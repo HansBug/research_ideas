@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:55`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -13,9 +13,10 @@
 3. 自 `2022` 年以来每一年的年度主页、`CFP` / important dates / author guidelines、submission system、program / accepted papers、proceedings / volume issue、论文名录页面和论文数量，并在表格中直接挂可点击超链接。
 4. 尚未召开但已经能找到官方年度主页、`CFP` 或 important dates 的未来年度信息。
 5. 以 [TIMELINE.md](./TIMELINE.md) 按年份串联所有投稿相关 important dates，形成跨 venue 时间线。
-6. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
+6. 每个会议 / 期刊的核心人员情报：组织委员会、PC / Research Track chair、Steering Committee、领域权威及其研究方向、代表作、近年论文线索。
+7. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
 
-换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里，并能直接从表格点击跳转。**
+换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里、谁是该 venue 当前最值得关注的组织者 / PC / 领域权威，并能直接从表格点击跳转。**
 
 ## 2. 与现有材料的关系
 
@@ -100,6 +101,7 @@
 3. **TIMELINE.md 的事件行必须保留可点击来源链**：每条 dated event 至少链接事件官方来源和本库年度 README；若会议已结束或论文入口已发布，应同时挂年度主页、论文集 / 论文名录链接。
 4. **缺失链接要显式标注**：未公布写 `未公布`，已检索未找到写 `⏳ 已检索未公布`，待人工补证写 `待补`；不得留空，也不得把第三方聚合页伪装成官方来源。
 5. **链接优先级必须清楚**：官方页面优先；出版商页面用于 proceedings / volume issue；DBLP 只能作论文名录或计数 fallback；PR #5 和旧材料只作发现线索。
+6. **核心人员情报必须可追溯**：会议至少记录当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee 与本仓库强相关的领域权威；期刊至少记录 Editor-in-Chief、Associate Editor / Editorial Board 中与本仓库强相关的人物，并给出官方角色页、个人主页或 DBLP / Google Scholar 等来源。
 
 ## 7. 标准目录结构
 
@@ -160,7 +162,11 @@ ccf_venues/
 
 ## 10. 更新日志
 
+> 更新日志按时间降序排列，最新修改在最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:55` | 将核心人员情报和更新日志降序要求同步为本库入口级维护口径。 |
+| `2026-06-04 21:42` | 补充核心人员情报的收录目标，要求每个 venue 维护组织者、PC / Steering 与领域权威的可追溯信息。 |
 | `2026-06-04 19:37` | 补充 venue 根 README、年度 README 与 TIMELINE 必须直接挂核心 URL / Markdown 超链接的要求。 |
 | `2026-06-04 18:55` | 明确默认未来检索/占位下限为当前年份 + 2（当前到 2028），更远未来若已有官方 CFP / important dates 也必须纳入。 |

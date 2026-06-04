@@ -1,6 +1,6 @@
 # MoDELS README
 
-> 信息更新时间：`2026-06-04 21:10`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:44`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -42,11 +42,26 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 | CFP / Call for Papers | [MoDELS 2026 Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | 年度 CFP 分散在 track 页面 | `2026-06-04 21:10` |
 | Important Dates | [MoDELS 2026 dates](https://conf.researchr.org/dates/models-2026) | 历年 dates 页见年度表 | `2026-06-04 21:10` |
 | Submission system | [EasyChair MoDELS 2026](https://easychair.org/conferences/?conf=models2026) | EasyChair 会跳转登录页 | `2026-06-04 21:10` |
-| Program / accepted papers | [MoDELS 2026 program](https://conf.researchr.org/program/models-2026/program-models-2026/) | 当前访问跳转 accessDenied；已结束年度见年度表 | `2026-06-04 21:10` |
+| Program / accepted papers | 未公布 | 已检索 [MoDELS 2026 program probe](https://conf.researchr.org/program/models-2026/program-models-2026/)，当前跳转 Access denied；不把该 URL 记作已公开论文名录 | `2026-06-04 21:10` |
 | Proceedings | [MoDELS 2022 proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) | 2024 proceedings 当前 accessDenied；DBLP 作计数 fallback | `2026-06-04 21:10` |
 | DBLP venue | [DBLP MoDELS](https://dblp.org/db/conf/models/) | 仅作论文名录 / 计数 fallback | `2026-06-04 21:10` |
 
-## 5. 年度信息汇总
+## 5. 核心人员情报
+
+> 人员角色以 MoDELS 官方 committee / steering 页面为准；研究方向为根据个人主页、DBLP 与近年论文线索归纳。MoDELS 人员情报重点服务 P1 的 MDE / UML / SysML / 状态机建模，也服务 P4 的模型变换、演化与修复。
+
+| 人员 | 角色 / 年度 | 官方角色来源 | 主要研究方向 | 代表作 / 近年论文线索 | 与本仓库关系 | 待深挖 |
+|---|---|---|---|---|---|---|
+| Lola Burgueño | 2026 General Chair；2026 Steering Committee | [2026 Organizing Committee](https://conf.researchr.org/committee/models-2026/models-2026-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | MDE、AI for MDE、模型变换质量、模型测试 | [个人主页](https://lolaburgueno.github.io/)；[DBLP](https://dblp.org/pid/116/5369)；[ESE 2026 modelling tasks](https://dblp.org/rec/journals/ese/ChakrabortyTBL26)；[few-shot model completion](https://dblp.org/rec/journals/corr/abs-2212-03404) | P1/P4 很高：LLM 辅助建模、模型评审、模型修复 | 需核验是否有直接 state machine / UML 级案例。 |
+| Shaukat Ali | 2025 Program Co-Chair；2026 Steering Committee | [2025 Organizing Committee](https://conf.researchr.org/committee/models-2025/models-2025-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | Verification & Validation、SBSE、模型测试、CPS、digital twins | [Simula 主页](https://www.simula.no/people/shaukat)；[DBLP](https://dblp.org/pid/25/5352-1)；[AV collision configuration learning](https://dblp.org/rec/journals/tse/LuSZZWYA23)；[Uncertainty-wise CPS testing](https://dblp.org/rec/journals/jss/ZhangAY19) | P2/P3/P4 高相关：测试生成、验证、闭环修复 | DBLP 同名需继续用机构 / ORCID 消歧。 |
+| Houari Sahraoui | 2025 Program Co-Chair；2026 Steering Committee | [2025 Organizing Committee](https://conf.researchr.org/committee/models-2025/models-2025-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | MDE、模型变换、软件质量、形式化验证、LLM / PLM for modeling | [UdeM 教授页](https://diro.umontreal.ca/english/departement-directory/professors/professor/in/in15076/sg/Houari%20Sahraoui/)；[DBLP](https://dblp.org/pid/s/HouariASahraoui)；[domain modeling with LLMs](https://dblp.org/rec/journals/corr/abs-2410-12577)；[metamodel concept recommendation](https://dblp.org/rec/journals/sosym/WeyssowSS22) | P1/P2/P3/P4 高相关：建模、验证、修复全链路 | 需判断近年重点更偏 LLM4MDE 还是传统 verification。 |
+| Esther Guerra | 2026 PC Chair；2026 Steering Committee | [2026 Organizing Committee](https://conf.researchr.org/committee/models-2026/models-2026-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | metamodeling、model transformation、model management、low-code MDE、metamorphic testing | [个人主页](https://arantxa.ii.uam.es/~eguerra)；[DBLP](https://dblp.org/pid/75/4962)；[domain-specific metamorphic testing](https://dblp.org/rec/journals/infsof/GomezAbajoCNGL23)；[model sensemaking](https://dblp.org/rec/conf/models/Martinez-Lasaca23) | P1/P4 很高：模型变换语义、低代码建模、模型修复 | 需补 2024-2026 low-code vs M2M 变换重心。 |
+| Mehrdad Sabetzadeh | 2026 PC Chair；2026 Steering Committee | [2026 Organizing Committee](https://conf.researchr.org/committee/models-2026/models-2026-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | requirements engineering、合规 / legal requirements、NLP / ML for requirements、MDE safety compliance | [UOttawa 页面](https://www.uottawa.ca/faculty-engineering/school-electrical-engineering-computer-science/directory/Mehrdad-Sabetzadeh)；[DBLP](https://dblp.org/pid/25/6367)；[LLM-generated algebraic specs](https://dblp.org/rec/journals/corr/abs-2601-00469)；[LLM Simulink slicing](https://dblp.org/rec/journals/corr/abs-2405-01695) | P1/P2/P3/P4 很高：需求抽取、合规验证、LLM 处理需求文本 | 需区分 RE/NLP 线与 MDE/compliance 线。 |
+| Daniel Varró | 2026 Steering Committee Chair | [2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | model transformation、graph transformation、MBSE、CPS、ML | [McGill 页面](https://www.mcgill.ca/miae/daniel-varro)；[DBLP](https://dblp.org/pid/53/1883)；[Model Transformation by Example](https://dblp.org/rec/conf/models/Varro06)；[MTBE with ILP](https://dblp.org/rec/journals/sosym/BaloghV09) | P1/P4 很高：模型生成、转换、修复基础方法 | 需追踪 2024-2026 是偏基础工具还是 MBSE/CPS 应用。 |
+| Manuel Wimmer | 2026 Steering Committee Vice-Chair | [2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | MDE foundations / applications、model evolution、model versioning、digital twins、language customization | [JKU 页面](https://se.jku.at/manuel-wimmer/)；[DBLP](https://dblp.org/pid/20/4565.html)；[LLM-enhanced model versioning](https://dblp.org/rec/conf/models/EisenbergKWW25)；[MDE in Practice](https://dblp.org/rec/series/synthesis/2017Brambilla) | P1/P4 高相关：建模语言、模型演化、自动化修复 | 需确认当前重点是否转向 language customization / digital twins。 |
+| Gabriele Taentzer | 2026 NIER Co-Chair；2026 Steering Committee | [2026 Organizing Committee](https://conf.researchr.org/committee/models-2026/models-2026-organizing-committee)；[2026 Steering](https://conf.researchr.org/committee/models-2026/models-2026-steering-committee) | graph / model transformation、formal foundations、visual languages、repair / consistency | [Marburg 页面](https://www.uni-marburg.de/de/fb12/arbeitsgruppen/swt/team/prof-dr-gabriele-taentzer)；[DBLP](https://dblp.org/pid/t/GabrieleTaentzer)；[Empowering Model Repair](https://dblp.org/rec/conf/models/LauerKT23)；[Change-Preserving Model Repair](https://dblp.org/rec/conf/fase/TaentzerOLR17) | P1/P4 很高：模型一致性、图变换修复、变换语义 | 需补更贴近 state-machine repair / consistency 的最新工作。 |
+
+## 6. 年度信息汇总
 
 年度汇总表按年份降序排列；官方仅给日期而未核实具体时刻的 deadline 统一写作 `待补时刻 AoE`。
 
@@ -54,27 +69,30 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
-| [2026](./2026/README.md) | 🟡 已截稿 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04 至 2026-10-09 | 未最终公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟡 已截稿 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04 至 2026-10-09 | 未最终公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [MoDELS 2025](https://2025.models-conf.com/) | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2025) | [Submission](https://easychair.org/my/conference?conf=models2025) | [Program](https://2025.models-conf.com/program/program-models-2025/) | 未公布 | [DBLP 2025](https://dblp.org/db/conf/models/models2025.html) | 2025-03-27 待补时刻 AoE | 2025-04-03 待补时刻 AoE | 2025-06-24 待补时刻 AoE | 2025-10-05 至 2025-10-10 | 27 | 🟢 已核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [MoDELS 2024](https://conf.researchr.org/home/models-2024) | [CfP PDF](https://conf.researchr.org/getImage/models-2024/orig/CfP.pdf) | [Important Dates](https://conf.researchr.org/dates/models-2024) | [Submission](https://easychair.org/conferences/?conf=models24) | [Program](https://conf.researchr.org/program/models-2024/program-models-2024/) | [Proceedings](https://conf.researchr.org/info/models-2024/conference-proceedings) | [DBLP 2024](https://dblp.org/db/conf/models/models2024.html) | 2024-03-21 待补时刻 AoE | 2024-03-28 待补时刻 AoE | 2024-06-17 待补时刻 AoE | 2024-09-22 至 2024-09-27 | 26 | 🟢 已核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | [Research Papers track](https://conf.researchr.org/track/models-2023/models-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2023) | [Submission](https://easychair.org/conferences/?conf=models23) | [FT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---pt) | 未公布 | [DBLP 2023](https://dblp.org/db/conf/models/models2023.html) | 2023-04-07 待补时刻 AoE | 2023-04-14 待补时刻 AoE | 2023-06-26 待补时刻 AoE | 2023-10-01 至 2023-10-06 | 30 | 🟢 已核验 |
 | [2022](./2022/README.md) | ✅ 已结束 | [MoDELS 2022](https://conf.researchr.org/home/models-2022) | [Research Papers track](https://conf.researchr.org/track/models-2022/models-2022-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2022) | [Submission](https://easychair.org/conferences/?conf=models2022) | [Program](https://conf.researchr.org/program/models-2022/program-models-2022/) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) | [DBLP 2022](https://dblp.org/db/conf/models/models2022.html) | 2022-05-18 待补时刻 AoE | 2022-05-18 待补时刻 AoE | 2022-07-12 待补时刻 AoE | 2022-10-23 至 2022-10-28 | 35 | 🟢 已核验 |
 
 
-## 6. 维护备注
+## 7. 维护备注
 
 - 2028 / 2027：官方 home、dates、Research track URL 已检索，均返回 `404`；按“未发布”处理，不伪造年度主页或 deadline。
 - 2026：official home、dates、submission、Research Papers track 可访问；program URL 当前跳转 accessDenied，论文数量未最终公布。
 - 2025 / 2024 / 2023 / 2022：论文数量使用 DBLP `inproceedings` 或官方 accepted paper 口径记录；年度页逐项说明计数口径。
 - ACM DL DOI 页面在本次 curl 核查中返回 `403`，但 DOI 链接仍按官方 proceedings 页给出的 main / companion proceedings 入口记录。
 
-## 7. TIMELINE.md 同步提示
+## 8. TIMELINE.md 同步提示
 
 - 本 venue 的年度汇总表和各年度 README 是 [TIMELINE.md](../TIMELINE.md) 的事实来源之一。
 - 若新增或修改本 venue 的投稿相关 important date、会期、论文名录 / proceedings 链接，必须同步更新 [TIMELINE.md](../TIMELINE.md) 的对应年度表格与 Mermaid Gantt。
 
-## 8. 更新日志
+## 9. 更新日志
+
+> 更新日志按时间降序排列，最新修改在最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:44` | 补充核心人员情报，并按 review 修正 accessDenied、计数或会期等事实口径。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 根 README，并创建 2022-2028 年度索引与核心 URL 表。 |

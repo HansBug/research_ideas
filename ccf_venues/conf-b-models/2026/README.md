@@ -13,7 +13,7 @@
 | 官方 CFP | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=models2026) |
-| Program / accepted papers | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) |
+| Program / accepted papers | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 当前阶段状态 | 🟡 已截稿 |
@@ -26,8 +26,8 @@
 | CFP / Call for Papers | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | 年度 CFP / track 页面 | `2026-06-04 21:10` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) | 官方 dates 页 | `2026-06-04 21:10` |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=models2026) | EasyChair 跳转登录页 | `2026-06-04 21:10` |
-| Tracks / program | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) | 官方 program 页面 | `2026-06-04 21:10` |
-| Accepted papers / paper list | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) | 未公布 | `2026-06-04 21:10` |
+| Tracks / program | [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | track 页面可访问；program probe 当前 Access denied，不能作为公开 program 使用 | `2026-06-04 21:10` |
+| Accepted papers / paper list | 未公布 | 已检索 [program probe](https://conf.researchr.org/program/models-2026/program-models-2026/)，当前 Access denied；最终论文名录待公开 | `2026-06-04 21:10` |
 | Proceedings | 未公布 | 未公布 | `2026-06-04 21:10` |
 | DBLP 年度页 | ⏳ 已检索未公布 | 未公布 | `2026-06-04 21:10` |
 
@@ -46,15 +46,15 @@
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
-| Research Papers | [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) | 重点关注 | 研究论文主 track。 |
+| Research Papers | [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | 未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 重点关注 | 研究论文主 track；最终 accepted papers 待公开。 |
 
 ## 5. 论文名录与数量
 
 | 字段 | 内容 |
 |---|---|
 | 论文数量 | 未最终公布 |
-| 官方论文名录 / accepted papers | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) |
-| Program | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) |
+| 官方论文名录 / accepted papers | 未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
+| Program | ⏳ 已检索未公布；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 计数口径 | 会议尚未召开；program URL 当前跳转 accessDenied，最终论文数待 proceedings / DBLP 发布后补。 |
@@ -72,7 +72,7 @@
 |---|---|---|---|
 | 官方年度主页 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | `2026-06-04 21:10` | 可访问。 |
 | 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) | `2026-06-04 21:10` | 可访问；deadline 已按官方日期记录，具体时刻待补。 |
-| 官方 track / program | [Program](https://conf.researchr.org/program/models-2026/program-models-2026/) | `2026-06-04 21:10` | program 当前跳转 accessDenied，Research track 可访问。 |
+| 官方 track / program | [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers)；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) | `2026-06-04 21:10` | Research track 可访问；program probe 当前跳转 Access denied，不作为已公开 program / accepted papers。 |
 | 官方论文名录 / proceedings | 未公布 | `2026-06-04 21:10` | 未发布。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | 未发布。 |
 

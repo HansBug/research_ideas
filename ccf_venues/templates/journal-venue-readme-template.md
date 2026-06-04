@@ -52,7 +52,15 @@
 | Articles in press / online first | `[待补](<ONLINE_FIRST_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
 | DBLP venue | `[待补](<DBLP_VENUE_URL>)` | 仅作论文名录 / 计数 fallback | `yyyy-mm-dd hh:mm` |
 
-## 5. 年度信息汇总
+## 5. 核心人员情报
+
+本节维护期刊 Editor-in-Chief、Associate Editor / Editorial Board、special issue guest editor 中与本仓库强相关的人员。角色来源以官方 editorial board / publisher 页面为准；研究方向和论文线索以个人主页、DBLP、DOI / 出版页为证据。
+
+| 人员 | 角色 / 任期或核查年份 | 官方角色来源 | 主要研究方向 | 代表作 / 近年论文线索 | 与本仓库关系 | 待深挖 |
+|---|---|---|---|---|---|---|
+| 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 |
+
+## 6. 年度信息汇总
 
 年度汇总表必须把期刊主页、author guidelines、special issue、volume / issue、online first、DBLP 等核心 URL 直接挂进表格。
 
@@ -66,7 +74,7 @@
 | `2023/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
 | `2022/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
 
-## 6. 维护备注
+## 7. 维护备注
 
 - 待补。
 
@@ -76,6 +84,8 @@
 - rolling submission 不进入 dated Mermaid，但 `../TIMELINE.md` 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
 
 ## 8. 更新日志
+
+> 更新日志按时间降序排列，最新修改在最上方。
 
 | 时间 | 更新内容 |
 |---|---|

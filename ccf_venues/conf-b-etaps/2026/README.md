@@ -39,15 +39,15 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| TACAS paper submission deadline | 2025-10-16 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻；AoE 时区未在用户给定证据中显式标注。 |
-| Mandatory artifact submission deadline | 2025-10-30 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻。 |
-| Rebuttal period | 2025-12-08 待补时刻..2025-12-10 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期范围，待补具体时刻。 |
-| Notification | 2025-12-22 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻。 |
-| Voluntary artifact submission deadline | 2026-01-08 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻。 |
-| Final version deadline | 2026-01-22 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻。 |
-| Artifact notification | 2026-02-12 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | 官方仅给日期，待补具体时刻。 |
-| ETAPS conference dates | 2026-04-11 待补时刻..2026-04-16 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | ETAPS umbrella 会期。 |
-| TACAS conference dates | 2026-04-13 待补时刻..2026-04-16 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | TACAS 分会会期。 |
+| TACAS paper submission deadline | 2025-10-16 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Mandatory artifact submission deadline | 2025-10-30 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Rebuttal period | 2025-12-08 待补时刻 AoE..2025-12-10 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期范围，具体时刻待补。 |
+| Notification | 2025-12-22 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Voluntary artifact submission deadline | 2026-01-08 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Final version deadline | 2026-01-22 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Artifact notification | 2026-02-12 待补时刻 AoE | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| ETAPS conference dates | 2026-04-11 待补时刻..2026-04-16 待补时刻 | [ETAPS 2026 homepage](https://etaps.org/2026/) | [ETAPS 2026](https://etaps.org/2026/) | ETAPS umbrella 会期；CFP 同时注明 Main conferences / TACAS 为 2026-04-13..2026-04-16。 |
+| TACAS conference dates | 2026-04-13 待补时刻..2026-04-16 待补时刻 | [CFP / Dates](https://etaps.org/2026/cfp/) | [ETAPS 2026](https://etaps.org/2026/) | TACAS / main conferences 会期；这是会期日期，不按 AoE deadline 解释。 |
 
 ## 4. Tracks / 分会
 

@@ -59,12 +59,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 321（proceedings / DBLP 年度页尚未公开，需后续复核） |
+| 论文数量 | 321（Research Track accepted papers count；proceedings / DBLP 年度页尚未公开，需后续复核） |
 | 官方论文名录 / accepted papers | [Research Track accepted papers](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) |
 | Program | [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 计数口径 | Research / Technical Track 主论文数量；数量按官方 accepted papers 表或 DBLP `inproceedings` fallback 记录；若 proceedings / DBLP 尚未公开，则在本页单独标注后续复核。 |
+| 计数口径 | Research / Technical Track 主论文数量；当前 `321` 来自官方 Research Track accepted papers 表，不代表 ICSE 全部 track 或 proceedings 总量；proceedings / DBLP 尚未公开，需后续复核。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 

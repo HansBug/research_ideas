@@ -40,13 +40,14 @@
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
 | TACAS paper submission deadline | 2026-10-15 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，保留 AoE，待补具体时刻。 |
-| Mandatory artifact submission deadline | 2026-10-29 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，待补具体时刻。 |
-| Rebuttal period | 2026-12-07 待补时刻..2026-12-09 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期范围，待补具体时刻。 |
-| Notification | 2026-12-22 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，待补具体时刻。 |
-| Voluntary artifact submission deadline | 2027-01-11 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，待补具体时刻。 |
-| Final version deadline | 2027-01-25 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，待补具体时刻。 |
-| Artifact notification | 2027-02-11 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方仅给日期，待补具体时刻。 |
-| ETAPS conference dates | 2027-04-10 待补时刻..2027-04-15 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 官方给出会期日期范围，待补每日具体时刻。 |
+| Mandatory artifact submission deadline | 2026-10-29 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Rebuttal period | 2026-12-07 待补时刻 AoE..2026-12-09 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期范围，具体时刻待补。 |
+| Notification | 2026-12-22 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Voluntary artifact submission deadline | 2027-01-11 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Final version deadline | 2027-01-25 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| Artifact notification | 2027-02-11 待补时刻 AoE | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 All the dates are AoE；官方仅给日期，具体时刻待补。 |
+| ETAPS conference dates | 2027-04-10 待补时刻..2027-04-15 待补时刻 | [ETAPS 2027 homepage](https://etaps.org/2027/) | [ETAPS 2027](https://etaps.org/2027/) | ETAPS umbrella 会期；官方主页 / CFP 均给出 Copenhagen, April 10–15, 2027。 |
+| Main conferences / TACAS dates | 2027-04-12 待补时刻..2027-04-15 待补时刻 | [CFP / Dates](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | CFP 明确写明 MAIN CONFERENCES / Main Conference: April 12–15, 2027；TACAS 属 main conferences，和 umbrella 会期分开记录。 |
 
 ## 4. Tracks / 分会
 

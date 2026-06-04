@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-04 21:10`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:55`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -14,17 +14,18 @@
 | 本轮新增 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
 | TIMELINE 状态 | 已按事件发生年份回填 2022-2028 的 PR-1A 会议时间线，见 [TIMELINE.md](./TIMELINE.md) |
+| 核心人员情报状态 | PR-1A 三个会议根 README 已补“核心人员情报”表；完整人员表在各 venue 根 README，SUMMARY 仅保留覆盖状态和高层观察 |
 | 当前优先批次 | PR-1B 期刊试点与后续 P0 批量 venue，需依赖 PR-1A review 结论 |
 
 说明：PR-1A 只覆盖 3 个会议试点，不代表 P0 全量完成。后续 PR 必须继续按 [GUIDE.md](./GUIDE.md) 的核心 URL、时间格式、状态口径和 [TIMELINE.md](./TIMELINE.md) 同步规则维护。
 
 ## 2. PR-1A 会议试点完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|
-| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | Research / Technical Track accepted papers；2026 DBLP/proceedings 待补 | 🟡 部分核验 |
-| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | DBLP `inproceedings` / 官方 accepted papers fallback；publisher 混合 | 🟡 部分核验 |
-| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | ETAPS umbrella count 与 TACAS official count 分开 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
+|---|---|---|---|---:|---|---|---|---|
+| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | 覆盖 2026/2027 GC/PC 与 Steering 代表人物；见根 README §5 | Research / Technical Track accepted papers；2026 DBLP/proceedings 待补 | 🟡 部分核验 |
+| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | 覆盖 2025/2026 GC/PC 与 Steering 代表人物，并补 DBLP / 代表作链接；见根 README §5 | DBLP `inproceedings` / 官方 accepted papers fallback；publisher 混合 | 🟡 部分核验 |
+| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | 覆盖 TACAS 2026/2027 PC Chair、Area Chair 与 Steering 代表人物；见根 README §5 | ETAPS umbrella count 与 TACAS official count 分开 | 🟡 部分核验 |
 
 ## 3. PR-1A 试点踩坑结论
 
@@ -35,6 +36,7 @@
 5. **venue URL 结构会随年份变化**：MoDELS 2025 使用独立域名 `2025.models-conf.com`，2024 及以前多在 `conf.researchr.org`；ETAPS 2022 是旧站 `.html`，2023 以后多为 `/year/cfp/` 与 `/year/conferences/tacas/`。
 6. **submission system 也需可点击**：ICSE 年度 HotCRP、MoDELS 年度 EasyChair、TACAS 年度 EasyChair 均应进入根 README 和年度 README；历史年度可能重定向登录或归档，备注中说明即可。
 7. **Mermaid 只放日期级可视化**：`AoE`、`UTC-12h`、官方仅日期、页面版本差异等细节留在表格备注，避免 Mermaid 图过长或不可读。
+8. **核心人员情报需要强制可追溯**：venue 根 README 应记录组织者、PC / Research Track chair、Steering Committee 和强相关领域权威；每行至少保留官方角色来源，并尽量补 DBLP、个人主页、代表作或近年论文链接。MoDELS 试点表明，只有文字描述“近年论文线索”不够，后续 PR 应直接挂 DBLP / DOI / 出版页。
 
 ## 4. 当前可复用的既有资源
 
@@ -138,8 +140,11 @@ P0 是“强相关先做完”的后续数据填充边界。当前 PR-1A 已完�
 
 ## 10. 更新日志
 
+> 更新日志按时间降序排列，最新修改在最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:55` | 同步核心人员情报覆盖状态，记录核心人员表可追溯性试点结论，并补充更新日志降序提示。 |
 | `2026-06-04 21:10` | 完成 PR-1A 会议试点：新增 ICSE、MoDELS、ETAPS/TACAS 根 README 与 2022-2028 年度 README，同步 TIMELINE，并记录试点踩坑结论。 |
 | `2026-06-04 19:37` | 补充核心 URL / 超链接覆盖口径，要求根 README、年度 README 和 TIMELINE 都直接挂核心来源链接。 |
 | `2026-06-04 18:55` | 明确默认未来检索/占位下限为当前年份 + 2（当前到 2028），更远未来若已有官方 CFP / important dates 也必须纳入。 |

@@ -209,15 +209,17 @@ some_project/
 
 ### CCF venue 情报库规范
 
-根目录 [ccf_venues/](./ccf_venues/) 不按“单论文路径 + 论文集路径”展开，而是一个入口文件 + venue 子路径 + 年度 README + [TIMELINE.md](./ccf_venues/TIMELINE.md) 的情报库。后续凡是涉及 CCF 会议 / 期刊、年度主页、CFP、important dates、论文名录、论文数量、投稿时间线的工作，默认遵循以下规则：
+根目录 [ccf_venues/](./ccf_venues/) 不按“单论文路径 + 论文集路径”展开，而是一个入口文件 + venue 子路径 + 年度 README + [TIMELINE.md](./ccf_venues/TIMELINE.md) 的情报库。后续凡是涉及 CCF 会议 / 期刊、年度主页、CFP、important dates、论文名录、论文数量、核心人员情报或投稿时间线的工作，默认遵循以下规则：
 
 1. 先读 [ccf_venues/README.md](./ccf_venues/README.md) 明确定位与路径结构。
 2. 再读 [ccf_venues/GUIDE.md](./ccf_venues/GUIDE.md) 明确来源优先级、时间格式、会议/期刊结构和 TIMELINE 同步规则。
 3. 再读 [ccf_venues/SUMMARY.md](./ccf_venues/SUMMARY.md) 获取 P0/P1/P2 分批与当前完成状态。
 4. 若任务涉及 deadline、投稿窗口或年度规划，必须读 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md)，并在更新年度 important date 后同步维护其表格和 Mermaid Gantt。
 5. 新增或更新 venue 时，根 README 年度汇总表、年度 README 和 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md) 都必须直接挂核心 URL 的 Markdown 超链接；会议至少覆盖年度主页、CFP、Important Dates、submission system、program / accepted papers、proceedings、DBLP 年度页；期刊至少覆盖 author guidelines、submission system、special issue、volume / issue、online first、DBLP 年度页。
-6. 再读 [ccf_venues/01-venue-scope.md](./ccf_venues/01-venue-scope.md) 确认目标 venue 是否属于当前批次。
-7. 初始化 PR 阶段只交付骨架和执行计划，不得把待建 venue 或待核验年度写成已完成。
+6. 新增或更新 venue 时，venue 根 README 必须维护“核心人员情报”：会议至少覆盖当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee 与强相关领域权威；期刊至少覆盖 Editor-in-Chief、相关 Associate Editor / Editorial Board 和相关 special issue guest editor；每行必须有官方角色来源、研究方向、代表作 / 近年论文线索与本仓库 project 关系。
+7. 所有更新日志表格必须按时间降序排列，最新修改在最上方；新增日志时插入表格首行，不追加到末尾。
+8. 再读 [ccf_venues/01-venue-scope.md](./ccf_venues/01-venue-scope.md) 确认目标 venue 是否属于当前批次。
+9. 初始化 PR 阶段只交付骨架和执行计划，不得把待建 venue 或待核验年度写成已完成。
 
 #### 2.2.1 Markdown 链接规范
 
