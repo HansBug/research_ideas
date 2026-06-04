@@ -156,6 +156,23 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 
 注意：`SL-9` 必须读取 `FixRequestBatch` 与完整 `FixLog`，逐 request 给出 accept/reject/waiver；`suggested_fix` 只是规则诊断的参考 hint，不是必须照抄的编辑命令。agent 可以基于 NL 与全局约束提出更合理的修复方案。
 
+#### E4.1 PR-E1 repair ledger 对齐要求
+
+PR-E1 后，E2 skill producer 即使不调用顶层 agent-loop，也必须保留类似 FixLog 的可审计台账。每次 repair 至少记录：
+
+| 字段 | 说明 |
+|---|---|
+| `fix_request_batch` | 来自 SD-8 / selected feedback 的 request 列表，说明 hard block、waiver allowed、local check required。 |
+| `sl9_decisions` | 对每个 request 的 accept / reject / waiver / rework_locked 决策及理由。 |
+| `candidate_diff` | 相对上一版 DSL 的主要结构变化，不要求完整 unified diff，但要能复盘。 |
+| `local_check_evidence` | parse / semantic / design / sim / local repair checks 结果。 |
+| `sl10_review` | `pass` / `fail` / `rework` 及 NL + FixLog + local evidence 依据。 |
+| `next_action` | 回到 SD-2、继续 rework、waiver continue、或标记 not ready。 |
+
+旧 `SD-10` / `SL-10B` 只能作为 local evidence 或 legacy-ablation 说明；默认 review 应按 `SL-10(NL + FixLog + local evidence)` 口径组织。若 reviewer 或 producer 发现某个旧 stage doc target 仍有旧措辞，本 PR 默认在 skill wrapper / index / health check 内遮蔽，不直接修改共享 stage docs。
+
+禁止为了 ABS / Elevator / CARA / LNG 等本轮四例写特判。若某条 waiver 或修复只对具体样本名成立，而不能迁移到同类控制系统建模任务，应在 review 中按学术可靠性风险处理。
+
 `local repair checks / SL-10 RepairReview` 的结果必须分级处理：
 
 - `regression_detected=true` 或 candidate parse/semantic fail：必须继续修复，不能 waiver。

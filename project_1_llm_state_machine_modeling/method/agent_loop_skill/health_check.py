@@ -201,6 +201,57 @@ def _check_run_agent_loop_mentions_are_guarded(root: Path) -> CheckResult:
     )
 
 
+
+
+def _check_pr_e1_design_residue(root: Path) -> CheckResult:
+    docs = {
+        "AGENT_LOOP_SKILL.md": _read(root / "AGENT_LOOP_SKILL.md"),
+        "e2e_ref_model_guide.md": _read(root / "e2e_ref_model_guide.md"),
+        "stages/README.md": _read(root / "stages" / "README.md"),
+    }
+    required = [
+        "FixRequestBatch",
+        "FixLog",
+        "waiver",
+        "rework",
+        "SL-10(NL + FixLog + local evidence)",
+        "SD-10",
+        "SL-10B",
+        "local-evidence",
+        "diagnostic_hot_start",
+        "SD-6",
+        "NFRR",
+    ]
+    missing: list[str] = []
+    combined = "\n".join(docs.values())
+    for term in required:
+        if term not in combined:
+            missing.append(term)
+    return CheckResult(
+        "pr_e1_design_residue",
+        not missing,
+        "skill docs carry PR-E1 repair/FixLog/SL-10/scenario-provenance residue policy"
+        if not missing
+        else "missing terms: " + ", ".join(missing),
+    )
+
+
+def _check_no_case_specific_optimization(root: Path) -> CheckResult:
+    docs = {
+        "AGENT_LOOP_SKILL.md": _read(root / "AGENT_LOOP_SKILL.md"),
+        "e2e_ref_model_guide.md": _read(root / "e2e_ref_model_guide.md"),
+    }
+    combined = "\n".join(docs.values())
+    required = ["禁止", "ABS", "Elevator", "CARA", "LNG", "特判"]
+    missing = [term for term in required if term not in combined]
+    return CheckResult(
+        "no_case_specific_optimization_policy",
+        not missing,
+        "skill docs explicitly ban lexical special-cases for the four smoke samples"
+        if not missing
+        else "missing anti-overfit terms: " + ", ".join(missing),
+    )
+
 def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
     return [
         _check_entry_symlinks(root),
@@ -209,6 +260,8 @@ def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
         _check_forbidden_top_runner(root),
         _check_repair_chain_terms(root),
         _check_tools_no_misleading_legacy(root),
+        _check_pr_e1_design_residue(root),
+        _check_no_case_specific_optimization(root),
         _check_e2e_input_grounding(root),
         _check_run_agent_loop_mentions_are_guarded(root),
     ]

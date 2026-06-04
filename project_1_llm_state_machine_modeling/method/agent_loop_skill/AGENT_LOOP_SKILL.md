@@ -22,6 +22,17 @@ PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill �
 
 当前 skill 使用者必须以实际 `SD-2` parser 为准，而不是只相信历史 grammar 摘要：已知当前 parser 支持 `def int` / `def float`，不支持 `def bool`、`true`、`false`；外部输入注释 `// @external` 不会被默认 `SD-4` 自动消费。详细见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
 
+### PR-skill-fix / PR-E1 设计变更残留审计
+
+PR-skill-fix 后续使用本 skill 时，必须确认 PR-E1 大改后的设计口径已经在 skill 侧生效：
+
+- repair 主链是 `SD-8 FixRequestBatch -> SL-9 per-request accept/reject + repair -> SL-10(NL + FixLog + local evidence) -> SC-11 -> SD-2`。
+- `FixLog` / repair memory / waiver / rework ledger 是必要 evidence；producer 不能只给最终 DSL 而不交代 request、decision、diff、SL-10 批示和下一步。
+- `SD-10` / `SL-10B` 只允许作为 local-evidence / legacy-ablation 线索，不是默认主链。
+- scenario 证据必须区分 `default_prefix`、`executed_prefix`、`reachable_prefix`、`external_input_initial_vars` 与 `diagnostic_hot_start`；不能把 hot-start 冒充主 BVS。
+- `SD-6` 与 NFRR scenario provenance 是 skill evidence 的必要组成；若工具或样本复杂度导致只能做弱 oracle，必须显式标注。
+- 禁止针对 ABS / Elevator / CARA / LNG 等具体样本写 lexical special-case；所有优化必须是普适、可迁移的 skill/toolbox 使用规则。
+
 ## 使用边界
 
 - `SD-*`：确定性工具，后续可被 Codex / Claude / ref-model pipeline / Path1 / Path2 直接调用。

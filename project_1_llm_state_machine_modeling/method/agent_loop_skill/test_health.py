@@ -33,6 +33,8 @@ def test_agent_loop_skill_health_check_passes_and_reports_json() -> None:
         "forbidden_top_runner",
         "repair_chain_terms",
         "tools_no_misleading_legacy",
+        "pr_e1_design_residue",
+        "no_case_specific_optimization_policy",
         "e2e_input_grounding",
         "run_agent_loop_mentions_guarded",
     }
@@ -92,3 +94,29 @@ def test_agent_loop_skill_e2e_boundaries_are_self_contained() -> None:
     assert "paper_content.txt" in e2e
     assert "paper.pdf" in e2e
     assert "bibtex.bib" in e2e
+
+
+
+def test_agent_loop_skill_tracks_pr_e1_design_residue() -> None:
+    entry = _read(SKILL_ROOT / "AGENT_LOOP_SKILL.md")
+    e2e = _read(SKILL_ROOT / "e2e_ref_model_guide.md")
+    stages = _read(SKILL_ROOT / "stages" / "README.md")
+    combined = "\n".join([entry, e2e, stages])
+
+    for term in [
+        "FixRequestBatch",
+        "FixLog",
+        "waiver",
+        "rework",
+        "SL-10(NL + FixLog + local evidence)",
+        "diagnostic_hot_start",
+        "SD-6",
+        "NFRR",
+    ]:
+        assert term in combined
+
+    assert "SD-10" in combined
+    assert "SL-10B" in combined
+    assert "不是默认主链" in combined or "不是" in combined
+    assert "ABS" in combined and "Elevator" in combined and "CARA" in combined and "LNG" in combined
+    assert "特判" in combined
