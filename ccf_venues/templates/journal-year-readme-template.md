@@ -22,14 +22,14 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| Journal homepage | 待补（占位：JOURNAL_HOME_URL） | 待补 | `yyyy-mm-dd hh:mm` |
-| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL） | 待补 | `yyyy-mm-dd hh:mm` |
-| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL） | 待补 | `yyyy-mm-dd hh:mm` |
-| Special issue / topical collection CFP | 待补（占位：SPECIAL_ISSUE_CFP_URL） | 无已知时写 `无已知` | `yyyy-mm-dd hh:mm` |
-| Volume / issue archive | 待补（占位：VOLUME_ISSUE_URL） | 出版商年度卷期页优先 | `yyyy-mm-dd hh:mm` |
-| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL） | 待补 | `yyyy-mm-dd hh:mm` |
-| Annual article list / publisher search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL） | 待补 | `yyyy-mm-dd hh:mm` |
-| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL） | 仅作 fallback / 计数核验 | `yyyy-mm-dd hh:mm` |
+| Journal homepage | 待补（占位：JOURNAL_HOME_URL；核验后改为 Markdown 链接） | 待补 | `yyyy-mm-dd hh:mm` |
+| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL；核验后改为 Markdown 链接） | 待补 | `yyyy-mm-dd hh:mm` |
+| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL；核验后改为 Markdown 链接） | 待补 | `yyyy-mm-dd hh:mm` |
+| Special issue / topical collection CFP | 待补（占位：SPECIAL_ISSUE_CFP_URL；核验后改为 Markdown 链接） | 无已知时写 `无已知` | `yyyy-mm-dd hh:mm` |
+| Volume / issue archive | 待补（占位：VOLUME_ISSUE_URL；核验后改为 Markdown 链接） | 出版商年度卷期页优先 | `yyyy-mm-dd hh:mm` |
+| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL；核验后改为 Markdown 链接） | 待补 | `yyyy-mm-dd hh:mm` |
+| Annual article list / publisher search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL；核验后改为 Markdown 链接） | 待补 | `yyyy-mm-dd hh:mm` |
+| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL；核验后改为 Markdown 链接） | 仅作 fallback / 计数核验 | `yyyy-mm-dd hh:mm` |
 
 ## 3. 投稿与出版节奏
 
@@ -50,10 +50,10 @@
 | 字段 | 内容 |
 |---|---|
 | 年度论文数量 | 年度结束且可核验后填写 |
-| 出版商年度入口 / Volume issue | 待补（占位：VOLUME_ISSUE_URL） 或 `待补` |
-| Online first / Articles in press | 待补（占位：ONLINE_FIRST_URL） 或 `待补` |
-| Publisher article list / search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL） 或 `待补` |
-| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL） 或 `待补` |
+| 出版商年度入口 / Volume issue | 待补（占位：VOLUME_ISSUE_URL；核验后改为 Markdown 链接） |
+| Online first / Articles in press | 待补（占位：ONLINE_FIRST_URL；核验后改为 Markdown 链接） |
+| Publisher article list / search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL；核验后改为 Markdown 链接） |
+| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL；核验后改为 Markdown 链接） |
 | 计数口径 | 待补 |
 
 ## 6. 与本仓库 project 的年度相关性观察
@@ -80,7 +80,7 @@
 
 ## 9. 更新日志
 
-> 更新日志按时间降序排列，最新修改在最上方。
+更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
