@@ -1,0 +1,243 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 1.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float Pd2max = 0.0;
+def float Pbatt_dis_max = 0.0;
+def float Pbatt_ch_max = 0.0;
+def float Pgen_req = 0.0;
+def float Pbatt_discharge = 0.0;
+def float Pbatt_charge = 0.0;
+def float Pspare = 0.0;
+def int cmd_LNG_cut_in = 0;
+def int cmd_LNG_cut_out = 1;
+def int cmd_DG1_cut_in = 0;
+def int cmd_DG1_cut_out = 1;
+def int cmd_DG2_cut_in = 0;
+def int cmd_DG2_cut_out = 1;
+def int cmd_load_cut_in = 1;
+def int cmd_load_cut_out = 0;
+
+state LNGShipEMS {
+    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];
+    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];
+    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];
+    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];
+    ! * -> LNGChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];
+    ! * -> LNGDG1Normal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];
+    ! * -> LNGDG1ChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];
+    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.3 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max))];
+    ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];
+
+    [*] -> ZeroIdle;
+
+    state ZeroIdle {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state ZeroLoadCharge {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = 0;
+            Pbatt_charge = Ppv + Pw;
+            Pspare = 0;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = Ppv + Pw;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state RESCharge {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = 0;
+            Pbatt_charge = Ppv + Pw - PL;
+            Pspare = 0;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state RESSpare {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = Ppv + Pw - PL;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state BatteryAssist {
+        enter {
+            Pgen_req = 0;
+            Pbatt_discharge = PL - Ppv - Pw;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 0;
+            cmd_LNG_cut_out = 1;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGOnlyNormal {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGChargeLowSoC {
+        enter {
+            Pgen_req = PL - Ppv - Pw + Pgmax / 5;
+            Pbatt_discharge = 0;
+            Pbatt_charge = Pgmax / 5;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 0;
+            cmd_DG1_cut_out = 1;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1Normal {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 1;
+            cmd_DG1_cut_out = 0;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1ChargeLowSoC {
+        enter {
+            Pgen_req = PL - Ppv - Pw + Pd1max / 10;
+            Pbatt_discharge = 0;
+            Pbatt_charge = Pd1max / 10;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 1;
+            cmd_DG1_cut_out = 0;
+            cmd_DG2_cut_in = 0;
+            cmd_DG2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1DG2 {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbatt_discharge = 0;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 1;
+            cmd_DG1_cut_out = 0;
+            cmd_DG2_cut_in = 1;
+            cmd_DG2_cut_out = 0;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state IllegalOverloadAllThermalBattery {
+        enter {
+            Pgen_req = eng3_Pmax + Pd1max + Pd2max;
+            Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;
+            Pbatt_charge = 0;
+            Pspare = 0;
+            cmd_LNG_cut_in = 1;
+            cmd_LNG_cut_out = 0;
+            cmd_DG1_cut_in = 1;
+            cmd_DG1_cut_out = 0;
+            cmd_DG2_cut_in = 1;
+            cmd_DG2_cut_out = 0;
+            cmd_load_cut_in = 0;
+            cmd_load_cut_out = 1;
+        }
+    }
+}

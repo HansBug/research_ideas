@@ -215,6 +215,26 @@ class PrE1RunSummary:
 
 
 REQUIRED_ENV_KEYS = ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL")
+LANGGRAPH_RUNTIME_METADATA_FIELDS = (
+    "graph_runtime_backend",
+    "graph_runtime_status",
+    "graph_runtime_backend_version",
+    "langgraph_version",
+    "langgraph_checkpoint_version",
+    "graph_runtime_id",
+    "graph_config_hash",
+    "node_edge_schema_version",
+    "checkpoint_backend",
+    "checkpoint_backend_type",
+    "checkpoint_serde",
+    "checkpoint_path_hash",
+    "resumed_from_checkpoint",
+    "resume_checkpoint_id_hash",
+    "instrumentation_layer",
+    "stage_semantics_module",
+    "langgraph_node_trace_count",
+    "langgraph_node_trace_hash",
+)
 
 
 def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = None) -> list[PrE1Case]:
@@ -1259,6 +1279,10 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| run record | [`{Path(summary.run_record_path).name}`](./{Path(summary.run_record_path).name}) |",
         "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`flow_log.json`](./flow_log.json), [`fix_log.json`](./fix_log.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
         "",
+        "### 1.1 LangGraph runtime metadata / checkpoint 口径",
+        "",
+        *_langgraph_runtime_metadata_lines(record),
+        "",
         "### 2. 输入 NL（多行原文）",
         "",
         "```text",
@@ -1376,6 +1400,10 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "",
         *_reproducibility_observation_lines(summaries),
         "",
+        "## 0.1 LangGraph runtime / checkpoint 口径",
+        "",
+        *_langgraph_runtime_observation_lines(summaries),
+        "",
         "## 1. 运行矩阵总览",
         "",
         "| Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
@@ -1464,6 +1492,10 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
             "",
             *_reproducibility_observation_lines(summaries),
             "",
+            "### LangGraph runtime metadata / checkpoint 口径",
+            "",
+            *_langgraph_runtime_observation_lines(summaries),
+            "",
             "### 初步观察",
             "",
             *_configuration_observation_lines(summaries),
@@ -1543,6 +1575,10 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
                 f"| logs | `{output_dir_text}/{s.run_id}/run_logs/stdout.txt`, `{output_dir_text}/{s.run_id}/run_logs/stderr.txt` |",
                 f"| checks / repro | `{output_dir_text}/{s.run_id}/checks.json`, `{output_dir_text}/{s.run_id}/reproducibility.json` |",
                 "",
+                "#### LangGraph runtime metadata 摘要（report §1.1 摘录）",
+                "",
+                _read_report_section(s.report_path, start="### 1.1 LangGraph runtime metadata / checkpoint 口径", end="### 2. 输入 NL（多行原文）", max_chars=5000),
+                "",
                 "#### 全流程摘要表（report §4 摘录）",
                 "",
                 _read_report_section(s.report_path, start="### 4. 全流程真实摘要表", end="### 5. Iteration / repair / review 摘要", max_chars=15000),
@@ -1565,9 +1601,14 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
 
 
 def _read_comment_artifact(path: str, *, max_chars: int) -> str:
-    try:
-        text = Path(path).read_text(encoding="utf-8")
-    except Exception:
+    text: str | None = None
+    for candidate in _candidate_artifact_paths(path):
+        try:
+            text = candidate.read_text(encoding="utf-8")
+            break
+        except Exception:
+            continue
+    if text is None:
         return "<artifact not available>"
     if len(text) <= max_chars:
         return text.rstrip()
@@ -1575,9 +1616,14 @@ def _read_comment_artifact(path: str, *, max_chars: int) -> str:
 
 
 def _read_report_section(path: str, *, start: str, end: str, max_chars: int) -> str:
-    try:
-        text = Path(path).read_text(encoding="utf-8")
-    except Exception:
+    text: str | None = None
+    for candidate in _candidate_artifact_paths(path):
+        try:
+            text = candidate.read_text(encoding="utf-8")
+            break
+        except Exception:
+            continue
+    if text is None:
         return "<report section not available>"
     start_index = text.find(start)
     if start_index < 0:
@@ -1649,6 +1695,143 @@ def _reproducibility_observation_lines(summaries: Sequence[PrE1RunSummary]) -> l
     hashes = sorted({s.prompt_snapshot_hash for s in summaries if s.prompt_snapshot_hash})
     lines.append(f"- prompt snapshot hash 种类：{len(hashes)}；用于确认同一轮 4 例是否共享同一 prompt/context 版本。")
     lines.append("- 每个 run 的 `reproducibility.json` 保存 git commit、dirty flag、diff hash、prompt file hash、runner command/config 与 source/paper path。")
+    return lines
+
+
+def _read_record_for_summary(summary: PrE1RunSummary) -> AgentLoopRunRecord | None:
+    for path in _candidate_artifact_paths(summary.run_record_path):
+        try:
+            return read_agent_loop_run_record(path)
+        except Exception:
+            continue
+    return None
+
+
+def _candidate_artifact_paths(path_text: str) -> list[Path]:
+    """Return plausible paths for historical run artifacts.
+
+    Some PR comments intentionally use paths relative to
+    ``project_1_llm_state_machine_modeling`` (for example ``../runs/...``)
+    while repository-local regeneration runs from the repo root.  Keep the
+    report renderer tolerant so re-rendering existing evidence does not require
+    rewriting historical summary paths by hand.
+    """
+
+    raw = Path(path_text)
+    candidates = [raw]
+    if not raw.is_absolute():
+        candidates.append(REPO_ROOT / raw)
+        candidates.append(PROJECT_ROOT / raw)
+        stripped = Path(str(raw).lstrip("./"))
+        candidates.append(REPO_ROOT / stripped)
+    result: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            result.append(candidate)
+            seen.add(key)
+    return result
+
+
+def _langgraph_runtime_metadata(record: AgentLoopRunRecord | None) -> dict[str, Any]:
+    if record is None:
+        return {}
+    env = record.environment if isinstance(record.environment, dict) else {}
+    metadata: dict[str, Any] = {}
+    for key in LANGGRAPH_RUNTIME_METADATA_FIELDS:
+        if key in env:
+            metadata[key] = env.get(key)
+    checkpoint_smoke = env.get("checkpoint_resume_smoke")
+    if isinstance(checkpoint_smoke, dict):
+        metadata["checkpoint_resume_smoke_scope"] = checkpoint_smoke.get("scope")
+        metadata["real_agent_loop_resume_supported"] = checkpoint_smoke.get("real_agent_loop_resume_supported")
+        metadata["resume_append_only"] = checkpoint_smoke.get("resume_append_only")
+        metadata["checkpoint_academic_claim"] = checkpoint_smoke.get("academic_claim")
+    compat_smoke = env.get("langgraph_compat_smoke")
+    if isinstance(compat_smoke, dict):
+        metadata["langgraph_compat_ok"] = compat_smoke.get("ok")
+    final_trace = record.final_artifacts.get("langgraph_runtime_trace") if isinstance(record.final_artifacts, dict) else None
+    if isinstance(final_trace, dict):
+        metadata["final_trace_delegated_monolithic_runtime"] = final_trace.get("delegated_monolithic_runtime")
+        metadata["final_trace_node_trace_count"] = final_trace.get("node_trace_count")
+    return metadata
+
+
+def _langgraph_runtime_metadata_lines(record: AgentLoopRunRecord) -> list[str]:
+    metadata = _langgraph_runtime_metadata(record)
+    if not metadata:
+        return ["- 本 run record 未记录 LangGraph runtime metadata；若这是 PR-langgraph run，应视为证据链缺口。"]
+    lines = [
+        "| 字段 | 值 |",
+        "|---|---|",
+    ]
+    for key in LANGGRAPH_RUNTIME_METADATA_FIELDS:
+        if key in metadata:
+            lines.append(f"| `{key}` | `{_escape_md(str(metadata.get(key)))}` |")
+    for key in (
+        "langgraph_compat_ok",
+        "checkpoint_resume_smoke_scope",
+        "real_agent_loop_resume_supported",
+        "resume_append_only",
+        "final_trace_delegated_monolithic_runtime",
+        "final_trace_node_trace_count",
+    ):
+        if key in metadata:
+            lines.append(f"| `{key}` | `{_escape_md(str(metadata.get(key)))}` |")
+    claim = metadata.get("checkpoint_academic_claim")
+    if claim:
+        lines.extend(
+            [
+                "",
+                f"- checkpoint 口径：{_escape_md(str(claim))}",
+                "- 注意：`real_agent_loop_resume_supported=false` 时，只能宣称 LangGraph checkpoint API / toy FixLog-like ledger smoke 通过；不能把它写成真实 agent-loop 中断恢复已用于主结果统计。",
+            ]
+        )
+    return lines
+
+
+def _langgraph_runtime_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
+    if not summaries:
+        return ["- 尚无 run，因此没有 LangGraph runtime metadata。"]
+    records = [(summary, _read_record_for_summary(summary)) for summary in summaries]
+    metadata_by_run = {summary.run_id: _langgraph_runtime_metadata(record) for summary, record in records}
+    all_metadata = [metadata for metadata in metadata_by_run.values() if metadata]
+    if not all_metadata:
+        return ["- 当前 summary 指向的 run record 均不可读或缺少 LangGraph metadata。"]
+
+    def values_for(key: str) -> list[str]:
+        return sorted({str(metadata.get(key)) for metadata in all_metadata if key in metadata})
+
+    lines = [
+        f"- graph_runtime_backend：{', '.join(f'`{value}`' for value in values_for('graph_runtime_backend')) or '<missing>'}。",
+        f"- graph_runtime_status：{', '.join(f'`{value}`' for value in values_for('graph_runtime_status')) or '<missing>'}。",
+        f"- langgraph / checkpoint 版本：langgraph={', '.join(f'`{value}`' for value in values_for('langgraph_version')) or '<missing>'}；langgraph-checkpoint={', '.join(f'`{value}`' for value in values_for('langgraph_checkpoint_version')) or '<missing>'}。",
+        f"- node_edge_schema_version：{', '.join(f'`{value}`' for value in values_for('node_edge_schema_version')) or '<missing>'}；checkpoint_backend={', '.join(f'`{value}`' for value in values_for('checkpoint_backend')) or '<missing>'}；serde={', '.join(f'`{value}`' for value in values_for('checkpoint_serde')) or '<missing>'}。",
+        f"- graph_config_hash：{len(values_for('graph_config_hash'))} 种；该字段绑定 registry、planned graph、resolved config、condition hash、iteration/scenario policy 与 checkpoint config，用于区分 run-level graph config。",
+    ]
+    trace_counts = [
+        int(metadata.get("langgraph_node_trace_count"))
+        for metadata in all_metadata
+        if str(metadata.get("langgraph_node_trace_count", "")).isdigit()
+    ]
+    if trace_counts:
+        lines.append(f"- node trace count 范围：min={min(trace_counts)}，max={max(trace_counts)}；每个 run 的详细 trace 见 report §1.1、run record `run_config.langgraph_node_trace` 与 final_artifacts。")
+    real_resume_values = values_for("real_agent_loop_resume_supported")
+    smoke_scopes = values_for("checkpoint_resume_smoke_scope")
+    if real_resume_values or smoke_scopes:
+        lines.append(
+            "- checkpoint/resume 口径：scope="
+            + (", ".join(f"`{value}`" for value in smoke_scopes) or "<missing>")
+            + "；real_agent_loop_resume_supported="
+            + (", ".join(f"`{value}`" for value in real_resume_values) or "<missing>")
+            + "。"
+        )
+        if "False" in real_resume_values:
+            lines.append("- 重要边界：本 PR 当前只宣称 LangGraph interrupt/resume API 与 toy FixLog-like ledger smoke；不宣称真实 agent-loop 主图的跨进程/中断恢复已进入主结果证据。")
+    missing_runs = [summary.run_id for summary, metadata in metadata_by_run.items() if not metadata]
+    if missing_runs:
+        lines.append("- metadata 缺失 run：" + ", ".join(f"`{run_id}`" for run_id in missing_runs))
     return lines
 
 

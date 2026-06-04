@@ -1,0 +1,1651 @@
+[
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc0_start",
+    "ts": "2026-06-04T16:42:54Z"
+  },
+  {
+    "adapter_mode": "real_env",
+    "event": "run_start",
+    "graph_runtime_backend": "langgraph",
+    "initial_dsl": "",
+    "initial_dsl_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "level": "info",
+    "max_iterations": 5,
+    "real_llm_provider_api": true,
+    "run_id": "pr-e1-path2_lng_ems-default-prlanggraph-stategraph-r2-664c3299",
+    "scenario_max_retries": 2,
+    "stage_id": "SC-0",
+    "ts": "2026-06-04T16:42:54Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sl1_initial_modeling",
+    "ts": "2026-06-04T16:42:54Z"
+  },
+  {
+    "event": "stage_enter",
+    "level": "info",
+    "nl_hash": "sha256:0d2c28ae7e5bddf09274b2b0e65c682a76badadff25bd97ff8e4338804dd9fdc",
+    "reason": "initial_modeling_adapter_available",
+    "stage_id": "SL-1",
+    "ts": "2026-06-04T16:42:54Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "assumptions": [
+        "The NL states that there are twelve finite states but does not provide exact state names or the full original transition table; the twelve state names and several capacity partition conditions are inferred from the described dispatch cases.",
+        "The model is represented as a guard-driven condition-classification FSM using forced transitions from any current state, because the NL says states are selected by logical transition conditions over demand, generation, capacity, and SoC rather than by named external events.",
+        "SoC suitability for battery discharge is modeled with an assumed threshold SoC >= 0.3; the NL specifies the 0.95 full-charge threshold but not the low/discharge suitability threshold.",
+        "Pd2max and Pbatt_dis_max/Pbatt_ch_max are introduced as capacity variables to express DG2 and battery limits mentioned in the NL, but their exact original identifiers were not supplied.",
+        "Load cut-out is asserted only in the illegal overload state to satisfy the NL obligation that load cut-in/cut-out commands exist; the NL does not provide detailed load-shedding logic for normal states."
+      ],
+      "candidate_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 1.0;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pbatt_dis_max = 0.0;\ndef float Pbatt_ch_max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbatt_discharge = 0.0;\ndef float Pbatt_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cut_in = 0;\ndef int cmd_LNG_cut_out = 1;\ndef int cmd_DG1_cut_in = 0;\ndef int cmd_DG1_cut_out = 1;\ndef int cmd_DG2_cut_in = 0;\ndef int cmd_DG2_cut_out = 1;\ndef int cmd_load_cut_in = 1;\ndef int cmd_load_cut_out = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];\n    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];\n    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNGChargeLowS…<truncated 6253 chars>",
+      "grounding_seeds": [
+        {
+          "confidence": 0.55,
+          "element_id": "state:ZeroIdle",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.ZeroIdle",
+          "evidence_text": "When PL = 0, EMS handles RES production according to SoC thresholds; zero production is modeled as idle.",
+          "requiredness": "speculative",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.82,
+          "element_id": "state:ZeroLoadCharge",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.ZeroLoadCharge",
+          "evidence_text": "When PL = 0, RES production is sent to battery charging according to SoC thresholds.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.82,
+          "element_id": "state:ZeroLoadSpare",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.ZeroLoadSpare",
+          "evidence_text": "When PL = 0, RES production is sent to spare power according to SoC thresholds.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.95,
+          "element_id": "state:RESCharge",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.RESCharge",
+          "evidence_text": "When Ppv + Pw covers PL, EMS serves all demand from RES and charges batteries while SoC is below 0.95.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.95,
+          "element_id": "state:RESSpare",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.RESSpare",
+          "evidence_text": "When Ppv + Pw covers PL and SoC is at least 0.95, residual renewable power is spare.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.76,
+          "element_id": "state:BatteryAssist",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.BatteryAssist",
+          "evidence_text": "When Ppv + Pw is below PL, dispatch uses RES first and batteries when SoC is suitable.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.79,
+          "element_id": "state:LNGOnlyNormal",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.LNGOnlyNormal",
+          "evidence_text": "Dispatch priority uses LNG before diesel units when renewable power is below load demand.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.9,
+          "element_id": "state:LNGChargeLowSoC",
+          "element_kind": "state",
+          "element_ref": "LNGShipEMS.LNGChargeLowSoC",
+          "evidence_text": "Low-SoC branches add explicit charging margins, including Pgmax/5 in an LNG-covered case.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "_omitted_items": 25
+        }
+      ]
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-1",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:45:18Z",
+    "usage": {
+      "chunk_count": 5897,
+      "completion_chars": 19601,
+      "completion_tokens": 7843,
+      "elapsed_seconds": 144.0797747040051,
+      "estimated_completion_tokens": 4901,
+      "estimated_prompt_tokens": 6646,
+      "estimated_total_tokens": 11547,
+      "first_chunk_seconds": 37.796556725981645,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 26582,
+      "prompt_tokens": 6469,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 14312
+    }
+  },
+  {
+    "assumption_count": 5,
+    "candidate_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 1.0;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pbatt_dis_max = 0.0;\ndef float Pbatt_ch_max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbatt_discharge = 0.0;\ndef float Pbatt_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cut_in = 0;\ndef int cmd_LNG_cut_out = 1;\ndef int cmd_DG1_cut_in = 0;\ndef int cmd_DG1_cut_out = 1;\ndef int cmd_DG2_cut_in = 0;\ndef int cmd_DG2_cut_out = 1;\ndef int cmd_load_cut_in = 1;\ndef int cmd_load_cut_out = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];\n    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];\n    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNGChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> LNGDG1Normal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1ChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.3 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max))];\n    ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroIdle;\n\n    state ZeroIdle {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw - PL;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state BatteryAssist {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = PL - Ppv - Pw;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGOnlyNormal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pgmax / 5;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1ChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pd1max / 10;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1DG2 {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state IllegalOverloadAllThermalBattery {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 0;\n            cmd_load_cut_out = 1;\n        }\n    }\n}",
+    "candidate_dsl_hash": "sha256:320beb5058ff8e8e82c3e3219e118f64e4254e10fd6c325031622a0a6953a1d5",
+    "event": "stage_result",
+    "grounding_seed_count": 33,
+    "jump": "SD-2",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-1",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "iteration_gate",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_pass",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "current_dsl_hash": "sha256:320beb5058ff8e8e82c3e3219e118f64e4254e10fd6c325031622a0a6953a1d5",
+    "event": "iteration_enter",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "current_dsl_hash": "sha256:320beb5058ff8e8e82c3e3219e118f64e4254e10fd6c325031622a0a6953a1d5",
+    "dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 1.0;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pbatt_dis_max = 0.0;\ndef float Pbatt_ch_max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbatt_discharge = 0.0;\ndef float Pbatt_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cut_in = 0;\ndef int cmd_LNG_cut_out = 1;\ndef int cmd_DG1_cut_in = 0;\ndef int cmd_DG1_cut_out = 1;\ndef int cmd_DG2_cut_in = 0;\ndef int cmd_DG2_cut_out = 1;\ndef int cmd_load_cut_in = 1;\ndef int cmd_load_cut_out = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];\n    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];\n    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNGChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> LNGDG1Normal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1ChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.3 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max))];\n    ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroIdle;\n\n    state ZeroIdle {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw - PL;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state BatteryAssist {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = PL - Ppv - Pw;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGOnlyNormal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pgmax / 5;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1ChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pd1max / 10;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1DG2 {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state IllegalOverloadAllThermalBattery {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 0;\n            cmd_load_cut_out = 1;\n        }\n    }\n}",
+    "event": "iteration_validation_enter",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "full_validation_pass",
+    "stage_id": "SD-2",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "col": null,
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "error_class": null,
+      "line": null,
+      "message": "",
+      "ok": true,
+      "source": "parse",
+      "source_stage": "SD-2"
+    },
+    "iteration": 0,
+    "jump": "SD-3",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-2",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-2 ok",
+    "stage_id": "SD-3",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "dangling_transitions": [],
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "missing_states": [],
+      "ok": true,
+      "source": "semantic",
+      "source_stage": "SD-3",
+      "type_mismatches": [],
+      "undefined_vars": [],
+      "unresolved_event_refs": []
+    },
+    "iteration": 0,
+    "jump": "SD-4",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-3",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-3 ok",
+    "stage_id": "SD-4",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "advisory_count": 179,
+      "blocking_count": 0,
+      "blocking_instance_keys": [],
+      "blocking_summaries": [],
+      "diagnostic_codes": [
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_VARIABLE_DECLARED_NEVER_USED",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT"
+      ],
+      "info_count": 0,
+      "ok": true,
+      "policy_actions": [
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory"
+      ],
+      "source": "design",
+      "source_stage": "SD-4"
+    },
+    "iteration": 0,
+    "jump": "SL-5",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-4",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage_directive": null,
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [],
+    "reason": "scenario_set_absent",
+    "stage_id": "SL-5",
+    "ts": "2026-06-04T16:45:18Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 0,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:46:41Z",
+    "usage": {
+      "chunk_count": 3434,
+      "completion_chars": 11909,
+      "completion_tokens": 4471,
+      "elapsed_seconds": 82.9552443959983,
+      "estimated_completion_tokens": 2978,
+      "estimated_prompt_tokens": 15723,
+      "estimated_total_tokens": 18701,
+      "first_chunk_seconds": 23.108589836978354,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 62889,
+      "prompt_tokens": 16682,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 21153
+    }
+  },
+  {
+    "attempt_index": 0,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 0,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 3,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 2,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 0,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 0,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M4_missing_forced_transition**: forced transition `! ...` line missing (global event ignored)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "iteration": 0,
+    "jump": "SL-5 retry",
+    "level": "info",
+    "n_scenarios": 12,
+    "ok": false,
+    "raw_generated_scenario_count": 12,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 12,
+      "new_count": 12,
+      "new_only_names": [
+        "default_init_zero_idle",
+        "zero_load_res_charges_battery_below_full_soc",
+        "zero_load_res_spare_at_full_soc_boundary",
+        "res_covers_load_charges_battery_below_full_soc",
+        "res_covers_load_spare_at_full_soc_boundary",
+        "battery_assist_at_soc_and_discharge_capacity_boundary",
+        "lng_only_after_battery_capacity_exceeded",
+        "low_soc_lng_charge_margin",
+        "lng_dg1_normal_after_lng_capacity_exceeded",
+        "low_soc_lng_dg1_charge_margin",
+        "lng_dg1_dg2_last_priority",
+        "illegal_overload_all_thermal_and_battery_lack"
+      ],
+      "preserved_previous_count": 0,
+      "previous_count": 0,
+      "updated_existing_names": []
+    },
+    "scenario_names": [
+      "default_init_zero_idle",
+      "zero_load_res_charges_battery_below_full_soc",
+      "zero_load_res_spare_at_full_soc_boundary",
+      "res_covers_load_charges_battery_below_full_soc",
+      "res_covers_load_spare_at_full_soc_boundary",
+      "battery_assist_at_soc_and_discharge_capacity_boundary",
+      "lng_only_after_battery_capacity_exceeded",
+      "low_soc_lng_charge_margin",
+      "lng_dg1_normal_after_lng_capacity_exceeded",
+      "low_soc_lng_dg1_charge_margin",
+      "lng_dg1_dg2_last_priority",
+      "illegal_overload_all_thermal_and_battery_lack"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-04T16:46:42Z"
+  },
+  {
+    "attempt_index": 1,
+    "coverage_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M4_missing_forced_transition**: forced transition `! ...` line missing (global event ignored)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps.",
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [
+      "default_init_zero_idle",
+      "zero_load_res_charges_battery_below_full_soc",
+      "zero_load_res_spare_at_full_soc_boundary",
+      "res_covers_load_charges_battery_below_full_soc",
+      "res_covers_load_spare_at_full_soc_boundary",
+      "battery_assist_at_soc_and_discharge_capacity_boundary",
+      "lng_only_after_battery_capacity_exceeded",
+      "low_soc_lng_charge_margin",
+      "lng_dg1_normal_after_lng_capacity_exceeded",
+      "low_soc_lng_dg1_charge_margin",
+      "lng_dg1_dg2_last_priority",
+      "illegal_overload_all_thermal_and_battery_lack"
+    ],
+    "reason": "scenario_coverage_gap_retry",
+    "stage_id": "SL-5",
+    "ts": "2026-06-04T16:46:42Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 1,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:47:48Z",
+    "usage": {
+      "chunk_count": 2952,
+      "completion_chars": 9747,
+      "completion_tokens": 3471,
+      "elapsed_seconds": 65.18610518900095,
+      "estimated_completion_tokens": 2437,
+      "estimated_prompt_tokens": 18865,
+      "estimated_total_tokens": 21302,
+      "first_chunk_seconds": 13.073469503986416,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 75457,
+      "prompt_tokens": 20235,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 23706
+    }
+  },
+  {
+    "attempt_index": 1,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 0,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 3,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 2,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 0,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 0,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M4_missing_forced_transition**: forced transition `! ...` line missing (global event ignored)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "iteration": 0,
+    "jump": "SL-5 retry",
+    "level": "info",
+    "n_scenarios": 14,
+    "ok": false,
+    "raw_generated_scenario_count": 14,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 14,
+      "new_count": 14,
+      "new_only_names": [
+        "forced_reclassification_from_default_zero_idle_to_res_charge",
+        "forced_reclassification_from_default_zero_idle_to_illegal_overload"
+      ],
+      "preserved_previous_count": 12,
+      "previous_count": 12,
+      "updated_existing_names": [
+        "default_init_zero_idle",
+        "zero_load_res_charges_battery_below_full_soc",
+        "zero_load_res_spare_at_full_soc_boundary",
+        "res_covers_load_charges_battery_below_full_soc",
+        "res_covers_load_spare_at_full_soc_boundary",
+        "battery_assist_at_soc_and_discharge_capacity_boundary",
+        "lng_only_after_battery_capacity_exceeded",
+        "low_soc_lng_charge_margin",
+        "lng_dg1_normal_after_lng_capacity_exceeded",
+        "low_soc_lng_dg1_charge_margin",
+        "lng_dg1_dg2_last_priority",
+        "illegal_overload_all_thermal_and_battery_lack"
+      ]
+    },
+    "scenario_names": [
+      "default_init_zero_idle",
+      "zero_load_res_charges_battery_below_full_soc",
+      "zero_load_res_spare_at_full_soc_boundary",
+      "res_covers_load_charges_battery_below_full_soc",
+      "res_covers_load_spare_at_full_soc_boundary",
+      "battery_assist_at_soc_and_discharge_capacity_boundary",
+      "lng_only_after_battery_capacity_exceeded",
+      "low_soc_lng_charge_margin",
+      "lng_dg1_normal_after_lng_capacity_exceeded",
+      "low_soc_lng_dg1_charge_margin",
+      "lng_dg1_dg2_last_priority",
+      "illegal_overload_all_thermal_and_battery_lack",
+      "forced_reclassification_from_default_zero_idle_to_res_charge",
+      "forced_reclassification_from_default_zero_idle_to_illegal_overload"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-04T16:47:48Z"
+  },
+  {
+    "attempt_index": 2,
+    "coverage_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M4_missing_forced_transition**: forced transition `! ...` line missing (global event ignored)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps.",
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [
+      "default_init_zero_idle",
+      "zero_load_res_charges_battery_below_full_soc",
+      "zero_load_res_spare_at_full_soc_boundary",
+      "res_covers_load_charges_battery_below_full_soc",
+      "res_covers_load_spare_at_full_soc_boundary",
+      "battery_assist_at_soc_and_discharge_capacity_boundary",
+      "lng_only_after_battery_capacity_exceeded",
+      "low_soc_lng_charge_margin",
+      "lng_dg1_normal_after_lng_capacity_exceeded",
+      "low_soc_lng_dg1_charge_margin",
+      "lng_dg1_dg2_last_priority",
+      "illegal_overload_all_thermal_and_battery_lack",
+      "forced_reclassification_from_default_zero_idle_to_res_charge",
+      "forced_reclassification_from_default_zero_idle_to_illegal_overload"
+    ],
+    "reason": "scenario_coverage_gap_retry",
+    "stage_id": "SL-5",
+    "ts": "2026-06-04T16:47:48Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 2,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:49:30Z",
+    "usage": {
+      "chunk_count": 4897,
+      "completion_chars": 17169,
+      "completion_tokens": 5416,
+      "elapsed_seconds": 101.7040383759886,
+      "estimated_completion_tokens": 4293,
+      "estimated_prompt_tokens": 19565,
+      "estimated_total_tokens": 23858,
+      "first_chunk_seconds": 12.399578518001363,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 78260,
+      "prompt_tokens": 20988,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 26404
+    }
+  },
+  {
+    "attempt_index": 2,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 0,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 3,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 2,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 0,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 0,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M4_missing_forced_transition**: forced transition `! ...` line missing (global event ignored)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "iteration": 0,
+    "jump": "SC-5F weak_oracle",
+    "level": "info",
+    "n_scenarios": 16,
+    "ok": false,
+    "raw_generated_scenario_count": 16,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 16,
+      "new_count": 16,
+      "new_only_names": [
+        "forced_reclassification_from_res_charge_to_dg2_mode",
+        "forced_reclassification_from_overload_to_zero_load_spare"
+      ],
+      "preserved_previous_count": 14,
+      "previous_count": 14,
+      "updated_existing_names": [
+        "default_init_zero_idle",
+        "zero_load_res_charges_battery_below_full_soc",
+        "zero_load_res_spare_at_full_soc_boundary",
+        "res_covers_load_charges_battery_below_full_soc",
+        "res_covers_load_spare_at_full_soc_boundary",
+        "battery_assist_at_soc_and_discharge_capacity_boundary",
+        "lng_only_after_battery_capacity_exceeded",
+        "low_soc_lng_charge_margin",
+        "lng_dg1_normal_after_lng_capacity_exceeded",
+        "low_soc_lng_dg1_charge_margin",
+        "lng_dg1_dg2_last_priority",
+        "illegal_overload_all_thermal_and_battery_lack",
+        "forced_reclassification_from_default_zero_idle_to_res_charge",
+        "forced_reclassification_from_default_zero_idle_to_illegal_overload"
+      ]
+    },
+    "scenario_names": [
+      "default_init_zero_idle",
+      "zero_load_res_charges_battery_below_full_soc",
+      "zero_load_res_spare_at_full_soc_boundary",
+      "res_covers_load_charges_battery_below_full_soc",
+      "res_covers_load_spare_at_full_soc_boundary",
+      "battery_assist_at_soc_and_discharge_capacity_boundary",
+      "lng_only_after_battery_capacity_exceeded",
+      "low_soc_lng_charge_margin",
+      "lng_dg1_normal_after_lng_capacity_exceeded",
+      "low_soc_lng_dg1_charge_margin",
+      "lng_dg1_dg2_last_priority",
+      "illegal_overload_all_thermal_and_battery_lack",
+      "forced_reclassification_from_default_zero_idle_to_res_charge",
+      "forced_reclassification_from_default_zero_idle_to_illegal_overload",
+      "forced_reclassification_from_res_charge_to_dg2_mode",
+      "forced_reclassification_from_overload_to_zero_load_spare"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "event": "scenario_coverage_retry_exhausted",
+    "iteration": 0,
+    "level": "warning",
+    "scenario_max_retries": 2,
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "epoch": 0,
+    "event": "stage_result",
+    "iteration": 0,
+    "jump": "SD-6",
+    "level": "info",
+    "n_scenarios": 16,
+    "ok": true,
+    "oracle_weak": true,
+    "scenario_set_id": "scenario-set-c5787bbe795b",
+    "source_dsl_hash": "sha256:320beb5058ff8e8e82c3e3219e118f64e4254e10fd6c325031622a0a6953a1d5",
+    "stage_id": "SC-5F",
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "n_scenarios": 16,
+    "reason": "scenario_set_ready",
+    "scenario_set_id": "scenario-set-c5787bbe795b",
+    "stage_id": "SD-6",
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "n_scenarios": 16,
+      "n_scenarios_passed": 16,
+      "ok": true,
+      "oracle_weak": false,
+      "scenario_results": [
+        {
+          "description": "default-init probe: with zero load and no renewable production, the initial dispatch should land in ZeroIdle with no generation, battery power, spare power, or load shedding.",
+          "name": "default_init_zero_idle",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'initial_cycle_enters_zero_idle', 'status': 'pass', 'actual_state': 'LNGShipEMS.ZeroIdle', 'actual_vars': {'PL': 0.0, 'Ppv': 0.0, 'Pw': 0.0, 'SoC': 1.0, 'eng3_Pmax': 0.0, 'Pgmax': 0.0, 'Pd1max': 0.0, 'Pd2max': 0.0, 'Pbatt_dis_max': 0.0, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: with PL=0, positive RES, and SoC below 0.95, renewable production should be sent to battery charging.",
+          "name": "zero_load_res_charges_battery_below_full_soc",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'zero_load_charge_selected', 'status': 'pass', 'actual_state': 'LNGShipEMS.ZeroLoadCharge', 'actual_vars': {'PL': 0, 'Ppv': 8, 'Pw': 2, 'SoC': 0.94, 'eng3_Pmax': 0.0, 'Pgmax': 0.0, 'Pd1max': 0.0, 'Pd2max': 0.0, 'Pbatt_dis_max': 0.0, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 0, 'Pbatt_charge': 10, 'Pspare': 0, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: with PL=0, positive RES, and SoC exactly 0.95, renewable production should become spare power rather than charging.",
+          "name": "zero_load_res_spare_at_full_soc_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'zero_load_spare_selected_at_095', 'status': 'pass', 'actual_state': 'LNGShipEMS.ZeroLoadSpare', 'actual_vars': {'PL': 0, 'Ppv': 8, 'Pw': 2, 'SoC': 0.95, 'eng3_Pmax': 0.0, 'Pgmax': 0.0, 'Pd1max': 0.0, 'Pd2max': 0.0, 'Pbatt_dis_max': 0.0, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 10, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: when RES covers positive load and SoC is below 0.95, all load should be served from RES and residual RES should charge batteries.",
+          "name": "res_covers_load_charges_battery_below_full_soc",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'res_charge_selected_below_095', 'status': 'pass', 'actual_state': 'LNGShipEMS.RESCharge', 'actual_vars': {'PL': 10, 'Ppv': 12, 'Pw': 3, 'SoC': 0.94, 'eng3_Pmax': 0.0, 'Pgmax': 0.0, 'Pd1max': 0.0, 'Pd2max': 0.0, 'Pbatt_dis_max': 0.0, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 0, 'Pbatt_charge': 5, 'Pspare': 0, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: when RES covers positive load and SoC is exactly 0.95, residual RES should be spare power rather than battery charge.",
+          "name": "res_covers_load_spare_at_full_soc_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'res_spare_selected_at_095', 'status': 'pass', 'actual_state': 'LNGShipEMS.RESSpare', 'actual_vars': {'PL': 10, 'Ppv': 12, 'Pw': 3, 'SoC': 0.95, 'eng3_Pmax': 0.0, 'Pgmax': 0.0, 'Pd1max': 0.0, 'Pd2max': 0.0, 'Pbatt_dis_max': 0.0, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 5, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: with RES below load, SoC exactly 0.3, and deficit equal to battery discharge capacity, batteries should cover the deficit before LNG or DGs.",
+          "name": "battery_assist_at_soc_and_discharge_capacity_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'battery_assist_selected_at_boundaries', 'status': 'pass', 'actual_state': 'LNGShipEMS.BatteryAssist', 'actual_vars': {'PL': 20, 'Ppv': 5, 'Pw': 5, 'SoC': 0.3, 'eng3_Pmax': 50, 'Pgmax': 0.0, 'Pd1max': 20, 'Pd2max': 20, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 0, 'Pbatt_discharge': 10, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 0, 'cmd_LNG_cut_out': 1, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: when RES and battery are insufficient but deficit is exactly within LNG capacity, LNG alone should be cut in with requested generator power equal to the deficit.",
+          "name": "lng_only_after_battery_capacity_exceeded",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'lng_only_selected_at_eng3_boundary', 'status': 'pass', 'actual_state': 'LNGShipEMS.LNGOnlyNormal', 'actual_vars': {'PL': 40, 'Ppv': 10, 'Pw': 0, 'SoC': 0.3, 'eng3_Pmax': 30, 'Pgmax': 0.0, 'Pd1max': 20, 'Pd2max': 20, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 30, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start low-SoC probe: when SoC is below 0.3 and LNG can cover deficit plus Pgmax/5 charging margin, LNG should both serve load and charge the battery.",
+          "name": "low_soc_lng_charge_margin",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'lng_low_soc_charge_selected', 'status': 'pass', 'actual_state': 'LNGShipEMS.LNGChargeLowSoC', 'actual_vars': {'PL': 40, 'Ppv': 10, 'Pw': 0, 'SoC': 0.29, 'eng3_Pmax': 40, 'Pgmax': 50, 'Pd1max': 20, 'Pd2max': 20, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 40.0, 'Pbatt_discharge': 0, 'Pbatt_charge': 10.0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 0, 'cmd_DG1_cut_out': 1, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: with suitable SoC and deficit above LNG capacity but within LNG plus DG1, LNG and DG1 should be cut in while DG2 remains out.",
+          "name": "lng_dg1_normal_after_lng_capacity_exceeded",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'lng_dg1_selected_at_dg1_boundary', 'status': 'pass', 'actual_state': 'LNGShipEMS.LNGDG1Normal', 'actual_vars': {'PL': 70, 'Ppv': 10, 'Pw': 0, 'SoC': 0.3, 'eng3_Pmax': 40, 'Pgmax': 0.0, 'Pd1max': 20, 'Pd2max': 30, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 60, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 1, 'cmd_DG1_cut_out': 0, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start low-SoC probe: when LNG alone cannot cover the low-SoC charging case, DG1 should be added and Pd1max/10 should be requested for battery charging.",
+          "name": "low_soc_lng_dg1_charge_margin",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'lng_dg1_low_soc_charge_selected', 'status': 'pass', 'actual_state': 'LNGShipEMS.LNGDG1ChargeLowSoC', 'actual_vars': {'PL': 70, 'Ppv': 10, 'Pw': 0, 'SoC': 0.29, 'eng3_Pmax': 40, 'Pgmax': 50, 'Pd1max': 200, 'Pd2max': 30, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 80.0, 'Pbatt_discharge': 0, 'Pbatt_charge': 20.0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 1, 'cmd_DG1_cut_out': 0, 'cmd_DG2_cut_in': 0, 'cmd_DG2_cut_out': 1, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: when RES, battery, LNG, and DG1 are insufficient but deficit is within LNG+DG1+DG2, DG2 should be cut in as the last priority.",
+          "name": "lng_dg1_dg2_last_priority",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'all_thermal_with_dg2_selected', 'status': 'pass', 'actual_state': 'LNGShipEMS.LNGDG1DG2', 'actual_vars': {'PL': 100, 'Ppv': 10, 'Pw': 0, 'SoC': 0.3, 'eng3_Pmax': 40, 'Pgmax': 0.0, 'Pd1max': 20, 'Pd2max': 30, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 90, 'Pbatt_discharge': 0, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 1, 'cmd_DG1_cut_out': 0, 'cmd_DG2_cut_in': 1, 'cmd_DG2_cut_out': 0, 'cmd_load_cut_in': 1, 'cmd_load_cut_out': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start overload probe: when extreme demand exceeds all RES and thermal resources, the illegal overload completion state should activate all thermal units, cover the remaining lack by battery discharge, and shed load.",
+          "name": "illegal_overload_all_thermal_and_battery_lack",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'illegal_overload_selected', 'status': 'pass', 'actual_state': 'LNGShipEMS.IllegalOverloadAllThermalBattery', 'actual_vars': {'PL': 130, 'Ppv': 10, 'Pw': 0, 'SoC': 0.3, 'eng3_Pmax': 40, 'Pgmax': 0.0, 'Pd1max': 20, 'Pd2max': 30, 'Pbatt_dis_max': 10, 'Pbatt_ch_max': 0.0, 'Pgen_req': 90, 'Pbatt_discharge': 30, 'Pbatt_charge': 0, 'Pspare': 0, 'cmd_LNG_cut_in': 1, 'cmd_LNG_cut_out': 0, 'cmd_DG1_cut_in': 1, 'cmd_DG1_cut_out': 0, 'cmd_DG2_cut_in': 1, 'cmd_DG2_cut_out': 0, 'cmd_load_cut_in': 0, 'cmd_load_cut_out': 1}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "_omitted_items": 4
+        }
+      ],
+      "setup_error": null,
+      "source": "sim",
+      "source_stage": "SD-6",
+      "weak_oracle_evidence": {},
+      "weak_oracle_reason": ""
+    },
+    "iteration": 0,
+    "jump": "SL-7",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-6",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": true,
+    "reason": "SD-6 ok",
+    "scenario_set_id": "scenario-set-c5787bbe795b",
+    "stage_id": "SL-7",
+    "ts": "2026-06-04T16:49:31Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "blocking_findings": [],
+      "decision": "pass",
+      "findings": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "DSL uses SoC >= 0.3 / SoC < 0.3 for battery suitability, while GroundingMap assumptions state: \"SoC suitability for battery discharge is modeled with an assumed threshold SoC >= 0.3; the NL specifies the 0.95 full-charge threshold but not the low/discharge suitability threshold.\"",
+            "DSL sets cmd_load_cut_out = 1 in IllegalOverloadAllThermalBattery, while the NL says the overload state activates all thermal units and covers the lack by battery discharge; detailed load-shedding logic is not provided.",
+            "GroundingMap assumptions state: \"Load cut-out is asserted only in the illegal overload state ... the NL does not provide detailed load-shedding logic for normal states.\""
+          ],
+          "severity": "minor",
+          "summary": "The model is broadly faithful to the described 12-state dispatch logic, but several important thresholds and overload/load-shedding details are inferred rather than directly stated in the NL."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "DSL declares Pbatt_ch_max but no transition guard or action caps Pbatt_charge by Pbatt_ch_max.",
+            "Design diagnostics report W_UNREFERENCED_VAR for Pbatt_ch_max and W_VARIABLE_DECLARED_NEVER_USED for Pbatt_ch_max.",
+            "Input five_component_summary is {}."
+          ],
+          "severity": "minor",
+          "summary": "Most major EMS components are represented, but battery charge capacity is declared without being used to constrain charging outputs, and the five-component summary is empty."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "IllegalOverloadAllThermalBattery assigns Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max without checking Pbatt_dis_max.",
+            "RESCharge and ZeroLoadCharge assign Pbatt_charge from surplus renewable power without checking Pbatt_ch_max.",
+            "The NL says EMS issues cut-in and cut-out commands for generating units and loads, but the model only toggles load cut-out in the illegal overload state."
+          ],
+          "severity": "minor",
+          "summary": "The model covers the stated dispatch cases, but it does not fully cover unspecified-but-relevant boundary behavior for battery charge limits, battery discharge limits in overload, or detailed load cut-in/cut-out policy."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "inspect_model_to_json_summary metrics show n_events = 0.",
+            "DSL uses global forced transitions ! * -> state for all dispatch classifications.",
+            "NL mentions changing time periods and operating conditions; the DSL models only instantaneous conditions over current variable values."
+          ],
+          "severity": "minor",
+          "summary": "The EMS is modeled as an instantaneous guard-classification FSM with no events, no temporal dwell behavior, and no explicit engine ramping or persistence beyond current state labels."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL transition: ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max].",
+            "NL: \"The overload completion state is illegal ... and the state shall never occur in practice.\"",
+            "IllegalOverloadAllThermalBattery enter action sets cmd_load_cut_in = 0 and cmd_load_cut_out = 1."
+          ],
+          "severity": "minor",
+          "summary": "The illegal overload state is reachable under an explicit guard and also sheds load, although the NL describes it as illegal and says it shall never occur in practice."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "inspect_model_to_json_summary metrics: n_transitions_forced = 144, n_transitions_normal = 1.",
+            "design_diagnostics_summary reports advisory_count = 179.",
+            "Diagnostics include many W_GUARD_VARS_NEVER_CHANGE instances caused by guard-driven external-input classification."
+          ],
+          "severity": "minor",
+          "summary": "The model has a dense forced-transition classification structure that is acceptable for this NL but produces many advisory diagnostics and may obscure intended mode-to-mode semantics."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "Diagnostic W_UNREFERENCED_VAR for Pbatt_ch_max includes suggested_fix kind delete.",
+            "GroundingMap assumptions state Pbatt_dis_max/Pbatt_ch_max were introduced as capacity variables to express battery limits mentioned in the NL.",
+            "DSL actions compute Pbatt_charge without using Pbatt_ch_max."
+          ],
+          "severity": "minor",
+          "summary": "A diagnostic suggested deleting Pbatt_ch_max because it is unused, but deletion would remove a plausible battery-limit input rather than addressing the more likely modeling gap that charge power should be capped."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "inspect_model_to_json_summary metrics: n_states_leaf = 12 and action_count = 12.",
+            "sim_summary: 16 scenarios passed, including probes for RES, battery assist, LNG, DG1, DG2, low-SoC charging, and overload.",
+            "GroundingMap source_summary lists assumptions for state names, SoC threshold 0.3, inferred Pd2max/Pbatt limits, and load cut-out behavior.",
+            "five_component_summary is empty."
+          ],
+          "severity": "minor",
+          "summary": "Estimated NFRR tier: T2 within-scope candidate. The model is not an empty shell and covers the main 12 dispatch states, but should be capped below T3/T4 due inferred thresholds, empty five-component summary, missing exact original transition table, and oracle mirroring risk."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "risk_level": "minor"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:50:24Z",
+    "usage": {
+      "chunk_count": 1712,
+      "completion_chars": 7833,
+      "completion_tokens": 2749,
+      "elapsed_seconds": 52.38402196101379,
+      "estimated_completion_tokens": 1959,
+      "estimated_prompt_tokens": 41762,
+      "estimated_total_tokens": 43721,
+      "first_chunk_seconds": 21.39768795101554,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 167046,
+      "prompt_tokens": 47659,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 50408
+    }
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "blocking_count": 0,
+      "blocking_findings": [],
+      "decision": "pass",
+      "finding_count": 11,
+      "finding_summaries": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "DSL uses SoC >= 0.3 / SoC < 0.3 for battery suitability, while GroundingMap assumptions state: \"SoC suitability for battery discharge is modeled with an assumed threshold SoC >= 0.3; the NL specifies the 0.95 full-charge threshold but not the low/discharge suitability threshold.\"",
+            "DSL sets cmd_load_cut_out = 1 in IllegalOverloadAllThermalBattery, while the NL says the overload state activates all thermal units and covers the lack by battery discharge; detailed load-shedding logic is not provided.",
+            "GroundingMap assumptions state: \"Load cut-out is asserted only in the illegal overload state ... the NL does not provide detailed load-shedding logic for normal states.\""
+          ],
+          "severity": "minor",
+          "summary": "The model is broadly faithful to the described 12-state dispatch logic, but several important thresholds and overload/load-shedding details are inferred rather than directly stated in the NL."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "DSL declares Pbatt_ch_max but no transition guard or action caps Pbatt_charge by Pbatt_ch_max.",
+            "Design diagnostics report W_UNREFERENCED_VAR for Pbatt_ch_max and W_VARIABLE_DECLARED_NEVER_USED for Pbatt_ch_max.",
+            "Input five_component_summary is {}."
+          ],
+          "severity": "minor",
+          "summary": "Most major EMS components are represented, but battery charge capacity is declared without being used to constrain charging outputs, and the five-component summary is empty."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "IllegalOverloadAllThermalBattery assigns Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max without checking Pbatt_dis_max.",
+            "RESCharge and ZeroLoadCharge assign Pbatt_charge from surplus renewable power without checking Pbatt_ch_max.",
+            "The NL says EMS issues cut-in and cut-out commands for generating units and loads, but the model only toggles load cut-out in the illegal overload state."
+          ],
+          "severity": "minor",
+          "summary": "The model covers the stated dispatch cases, but it does not fully cover unspecified-but-relevant boundary behavior for battery charge limits, battery discharge limits in overload, or detailed load cut-in/cut-out policy."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "inspect_model_to_json_summary metrics show n_events = 0.",
+            "DSL uses global forced transitions ! * -> state for all dispatch classifications.",
+            "NL mentions changing time periods and operating conditions; the DSL models only instantaneous conditions over current variable values."
+          ],
+          "severity": "minor",
+          "summary": "The EMS is modeled as an instantaneous guard-classification FSM with no events, no temporal dwell behavior, and no explicit engine ramping or persistence beyond current state labels."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL transition: ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max].",
+            "NL: \"The overload completion state is illegal ... and the state shall never occur in practice.\"",
+            "IllegalOverloadAllThermalBattery enter action sets cmd_load_cut_in = 0 and cmd_load_cut_out = 1."
+          ],
+          "severity": "minor",
+          "summary": "The illegal overload state is reachable under an explicit guard and also sheds load, although the NL describes it as illegal and says it shall never occur in practice."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "inspect_model_to_json_summary metrics: n_transitions_forced = 144, n_transitions_normal = 1.",
+            "design_diagnostics_summary reports advisory_count = 179.",
+            "Diagnostics include many W_GUARD_VARS_NEVER_CHANGE instances caused by guard-driven external-input classification."
+          ],
+          "severity": "minor",
+          "summary": "The model has a dense forced-transition classification structure that is acceptable for this NL but produces many advisory diagnostics and may obscure intended mode-to-mode semantics."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "Diagnostic W_UNREFERENCED_VAR for Pbatt_ch_max includes suggested_fix kind delete.",
+            "GroundingMap assumptions state Pbatt_dis_max/Pbatt_ch_max were introduced as capacity variables to express battery limits mentioned in the NL.",
+            "DSL actions compute Pbatt_charge without using Pbatt_ch_max."
+          ],
+          "severity": "minor",
+          "summary": "A diagnostic suggested deleting Pbatt_ch_max because it is unused, but deletion would remove a plausible battery-limit input rather than addressing the more likely modeling gap that charge power should be capped."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "inspect_model_to_json_summary metrics: n_states_leaf = 12 and action_count = 12.",
+            "sim_summary: 16 scenarios passed, including probes for RES, battery assist, LNG, DG1, DG2, low-SoC charging, and overload.",
+            "GroundingMap source_summary lists assumptions for state names, SoC threshold 0.3, inferred Pd2max/Pbatt limits, and load cut-out behavior.",
+            "five_component_summary is empty."
+          ],
+          "severity": "minor",
+          "summary": "Estimated NFRR tier: T2 within-scope candidate. The model is not an empty shell and covers the main 12 dispatch states, but should be capped below T3/T4 due inferred thresholds, empty five-component summary, missing exact original transition table, and oracle mirroring risk."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "ok": true,
+      "risk_level": "minor",
+      "source": "model_review",
+      "source_stage": "SL-7"
+    },
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T16:50:24Z"
+  },
+  {
+    "event": "grounding_update_hints_recorded",
+    "hint_hashes": [
+      "sha256:9222a6ea3324ee36e129f97b88dd7be6c9af78ce40ff51755e736336e62b18eb",
+      "sha256:6a493a0fca2a1114b416ceaab5ee96ed7792cd0d931f16e067747495d0a7959f",
+      "sha256:c80023a64fc54076bfe77c682cd59ebfe866b3c02f501be6b4d10f408bb8bb2e",
+      "sha256:9178a867405fd0fc5c5944850e962527dae974ebff9971bec06844bc8e3ca592",
+      "sha256:bcfde90d3d630ee166ec9049362155619c23f05cea11bff57a3456c566d16b75",
+      "sha256:72ed3b27369a54974f99dbab35c5adf4fa094008546c045549c146f248586e4a"
+    ],
+    "iteration": 0,
+    "level": "info",
+    "n_hints": 6,
+    "stage_id": "SL-7",
+    "ts": "2026-06-04T16:50:24Z"
+  },
+  {
+    "event": "iteration_validation_result",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "oracle_weak": true,
+    "scenario_set_id": "scenario-set-c5787bbe795b",
+    "selected_feedback": null,
+    "stage_ids": [
+      "SD-2",
+      "SD-3",
+      "SD-4",
+      "SL-5",
+      "SD-5A",
+      "SL-5",
+      "SD-5A",
+      "SL-5",
+      "SD-5A",
+      "SC-5F",
+      "SD-6",
+      "SL-7"
+    ],
+    "ts": "2026-06-04T16:50:24Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_decision",
+    "ts": "2026-06-04T16:50:24Z"
+  },
+  {
+    "event": "sc12_verdict",
+    "final_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 1.0;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pbatt_dis_max = 0.0;\ndef float Pbatt_ch_max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbatt_discharge = 0.0;\ndef float Pbatt_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cut_in = 0;\ndef int cmd_LNG_cut_out = 1;\ndef int cmd_DG1_cut_in = 0;\ndef int cmd_DG1_cut_out = 1;\ndef int cmd_DG2_cut_in = 0;\ndef int cmd_DG2_cut_out = 1;\ndef int cmd_load_cut_in = 1;\ndef int cmd_load_cut_out = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];\n    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];\n    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNGChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> LNGDG1Normal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1ChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.3 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max))];\n    ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroIdle;\n\n    state ZeroIdle {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw - PL;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state BatteryAssist {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = PL - Ppv - Pw;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGOnlyNormal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pgmax / 5;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1ChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pd1max / 10;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1DG2 {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state IllegalOverloadAllThermalBattery {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 0;\n            cmd_load_cut_out = 1;\n        }\n    }\n}",
+    "level": "info",
+    "reason": "full_pass_all_required_feedback_ok",
+    "record_status": "success",
+    "result_status": "converged",
+    "source_stage_id": "SL-7",
+    "stage_id": "SC-12",
+    "ts": "2026-06-04T16:50:24Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc13_trace_audit",
+    "ts": "2026-06-04T16:50:24Z"
+  },
+  {
+    "event": "run_end",
+    "final_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 1.0;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pbatt_dis_max = 0.0;\ndef float Pbatt_ch_max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbatt_discharge = 0.0;\ndef float Pbatt_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cut_in = 0;\ndef int cmd_LNG_cut_out = 1;\ndef int cmd_DG1_cut_in = 0;\ndef int cmd_DG1_cut_out = 1;\ndef int cmd_DG2_cut_in = 0;\ndef int cmd_DG2_cut_out = 1;\ndef int cmd_load_cut_in = 1;\ndef int cmd_load_cut_out = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroIdle : if [PL <= 0 && Ppv + Pw <= 0];\n    ! * -> ZeroLoadCharge : if [PL <= 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoadSpare : if [PL <= 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> RESCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RESSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> BatteryAssist : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw <= Pbatt_dis_max];\n    ! * -> LNGOnlyNormal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > Pbatt_dis_max && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNGChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> LNGDG1Normal : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1ChargeLowSoC : if [PL > 0 && Ppv + Pw < PL && SoC < 0.3 && PL - Ppv - Pw + Pgmax / 5 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.3 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.3 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max))];\n    ! * -> IllegalOverloadAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroIdle;\n\n    state ZeroIdle {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state ZeroLoadSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESCharge {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Ppv + Pw - PL;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state RESSpare {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state BatteryAssist {\n        enter {\n            Pgen_req = 0;\n            Pbatt_discharge = PL - Ppv - Pw;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 0;\n            cmd_LNG_cut_out = 1;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGOnlyNormal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pgmax / 5;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 0;\n            cmd_DG1_cut_out = 1;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1ChargeLowSoC {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbatt_discharge = 0;\n            Pbatt_charge = Pd1max / 10;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 0;\n            cmd_DG2_cut_out = 1;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state LNGDG1DG2 {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbatt_discharge = 0;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 1;\n            cmd_load_cut_out = 0;\n        }\n    }\n\n    state IllegalOverloadAllThermalBattery {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbatt_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbatt_charge = 0;\n            Pspare = 0;\n            cmd_LNG_cut_in = 1;\n            cmd_LNG_cut_out = 0;\n            cmd_DG1_cut_in = 1;\n            cmd_DG1_cut_out = 0;\n            cmd_DG2_cut_in = 1;\n            cmd_DG2_cut_out = 0;\n            cmd_load_cut_in = 0;\n            cmd_load_cut_out = 1;\n        }\n    }\n}",
+    "final_dsl_hash": "sha256:320beb5058ff8e8e82c3e3219e118f64e4254e10fd6c325031622a0a6953a1d5",
+    "graph_runtime_backend": "langgraph",
+    "iteration_count": 1,
+    "level": "info",
+    "record_status": "success",
+    "repair_count": 0,
+    "result_status": "converged",
+    "run_id": "pr-e1-path2_lng_ems-default-prlanggraph-stategraph-r2-664c3299",
+    "stage_count": 16,
+    "stage_id": "SC-13",
+    "ts": "2026-06-04T16:50:24Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_trace",
+    "instrumentation_layer": "langgraph",
+    "node_trace": [
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc0_start"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sl1_initial_modeling"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "iteration_gate"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_pass"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_decision"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc13_trace_audit"
+      }
+    ],
+    "node_trace_hash": "sha256:551ce01053da9bba711a382101de4235854e15508f8676d16863cb2b1134067d"
+  }
+]

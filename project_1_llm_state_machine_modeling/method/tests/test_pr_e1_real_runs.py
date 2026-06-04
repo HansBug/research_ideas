@@ -10,7 +10,10 @@ from method.pr_e1_real_runs import (
     make_pr_e1_config,
     pr_e1_cases,
     render_matrix_summary,
+    render_pr_comment,
+    render_run_report,
     run_pr_e1_matrix,
+    summarize_pr_e1_run,
 )
 from method.run_record import write_agent_loop_run_record
 from method.schema import AgentLoopResult, AgentLoopRunRecord
@@ -559,3 +562,65 @@ def test_pr_e1_matrix_summary_separates_provider_invalid_denominator() -> None:
     assert "1/1 effective success" in text
     assert "provider/network invalid=1/2" in text
     assert "当前 1/1 个非 infrastructure run" in text
+
+
+def test_pr_e1_reports_render_langgraph_runtime_metadata(tmp_path: Path) -> None:
+    record = _record("langgraph-metadata")
+    record.environment.update(
+        {
+            "graph_runtime_backend": "langgraph",
+            "graph_runtime_status": "enabled",
+            "langgraph_version": "1.2.4",
+            "langgraph_checkpoint_version": "4.1.1",
+            "graph_config_hash": "sha256:graph",
+            "node_edge_schema_version": "pr-langgraph.stage-nodes.v1",
+            "checkpoint_backend": "memory",
+            "checkpoint_serde": "pickle",
+            "resumed_from_checkpoint": False,
+            "instrumentation_layer": "langgraph",
+            "stage_semantics_module": "method.staged_runtime",
+            "langgraph_node_trace_count": 3,
+            "checkpoint_resume_smoke": {
+                "scope": "toy_ledger_langgraph_api_smoke",
+                "real_agent_loop_resume_supported": False,
+                "resume_append_only": True,
+                "academic_claim": "toy checkpoint smoke only; not evidence for real agent-loop resume",
+            },
+            "langgraph_compat_smoke": {"ok": True},
+        }
+    )
+    record.final_artifacts["langgraph_runtime_trace"] = {
+        "delegated_monolithic_runtime": False,
+        "node_trace_count": 3,
+    }
+    path = write_agent_loop_run_record(record, tmp_path / "langgraph.agent_loop.json.gz")
+    result = AgentLoopResult(
+        final_dsl=record.final_artifacts["final_dsl"],
+        status="not_converged",
+        run_record_id=record.run_id,
+        run_record_path=str(path),
+    )
+    case = pr_e1_cases()[0]
+    spec = condition_specs()["default"]
+    summary = summarize_pr_e1_run(
+        case=case,
+        spec=spec,
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    report = render_run_report(case, spec, record, summary)
+    matrix = render_matrix_summary([summary])
+    comment = render_pr_comment([summary], output_dir=tmp_path)
+
+    assert "LangGraph runtime metadata / checkpoint 口径" in report
+    assert "`graph_runtime_backend` | `langgraph`" in report
+    assert "real_agent_loop_resume_supported=false" in report
+    assert "graph_runtime_status：`enabled`" in matrix
+    assert "checkpoint/resume 口径：scope=`toy_ledger_langgraph_api_smoke`" in comment

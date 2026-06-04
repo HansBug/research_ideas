@@ -1,0 +1,92 @@
+def int CA_mode = 0;
+def float blood_pressure = 0.0;
+def float target_bp = 0.0;
+def float requested_target_bp = 0.0;
+def float flow_rate = 0.0;
+def float default_flow_rate = 0.0;
+def float built_in_switch_speed = 0.0;
+def float pump_speed = 0.0;
+def float control_voltage = 0.0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 0;
+def float buffer_bp = 0.0;
+def float log_infusion_rate = 0.0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+        ! * -> Manual :: TerminateAC;
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                control_released = 1;
+                if [pump_fault > 0] {
+                    alarm_signal = 1;
+                } else {
+                    alarm_signal = 0;
+                }
+            }
+            during {
+                pump_speed = built_in_switch_speed;
+                flow_rate = default_flow_rate;
+            }
+        }
+
+        state Ask_StartAC;
+
+        state AutocontrolInit {
+            enter {
+                if [pump_fault > 0] {
+                    CA_mode = 0;
+                    control_released = 1;
+                    alarm_signal = 1;
+                } else {
+                    CA_mode = 1;
+                    control_released = 0;
+                    alarm_signal = 0;
+                }
+            }
+        }
+
+        state AutocontrolNormal {
+            during {
+                buffer_bp = blood_pressure;
+                if [blood_pressure > target_bp] {
+                    flow_rate = flow_rate - 1.0;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = flow_rate + 1.0;
+                } else {
+                    flow_rate = flow_rate;
+                }
+                control_voltage = flow_rate;
+                pump_speed = control_voltage;
+                log_infusion_rate = flow_rate;
+            }
+        }
+
+        state PumpFault {
+            enter {
+                alarm_signal = 1;
+                control_released = 1;
+                CA_mode = 0;
+            }
+        }
+
+        Manual -> Ask_StartAC :: InitiateAC;
+        Ask_StartAC -> Ask_StartAC :: SetpointChanged effect { target_bp = requested_target_bp; };
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> PumpFault : if [pump_fault > 0];
+        AutocontrolInit -> AutocontrolNormal : if [pump_fault == 0];
+        AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+        PumpFault -> Manual :: FaultRemoved effect { pump_fault = 0; };
+    }
+}
