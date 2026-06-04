@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -1685,3 +1686,206 @@ def test_repair_memory_marks_previous_sl10_rejected_candidate_as_do_not_repeat(t
         for item in last_sl10_entry["repair_memory"]["actionable_rework_guidance"]
         if isinstance(item, dict)
     )
+
+
+def test_sd6_fix_request_carries_expected_actual_scenario_repair_brief(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+
+    scenario = TestScenario(
+        name="reset_forces_idle",
+        description="Reset must be visible from the active state and return to Idle with x reset.",
+        initial_state="Root.Active",
+        initial_vars={"x": 1, "noise": 99},
+        steps=[
+            schema.ScenarioStep(
+                events=["Reset"],
+                expected_state="Root.Idle",
+                expected_vars={"x": 0},
+                name="reset_goes_idle",
+            )
+        ],
+    )
+    failing_result = schema.ScenarioResult(
+        name="reset_forces_idle",
+        description=scenario.description,
+        status="error",
+        step_results=[
+            schema.StepResult(
+                step_index=0,
+                step_name="reset_goes_idle",
+                status="error",
+                actual_state="Root.Active",
+                actual_vars={"x": 1, "noise": 99},
+                runtime_error="SimulationRuntimeEventError: Cannot resolve event path 'Reset': Event 'Reset' not found",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, _scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        if dsl == "candidate-fixed":
+            return SimFeedback(ok=True, n_scenarios=1, n_scenarios_passed=1), _meta(StageId.SD_6_SIM)
+        return (
+            SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, scenario_results=[failing_result]),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def repair(request: RepairRequest) -> str:
+        repair_calls.append(request)
+        return "candidate-fixed"
+
+    result = run_full_staged_deterministic_runtime(
+        "SD-6 fix requests should expose expected-vs-actual scenario evidence to SL-9.",
+        FullStagedRuntimeConfig(initial_dsl="needs-sim-repair", run_id="pr-b1-sim-brief", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(scenario_generate=scenario_generate, sim=sim, repair=repair),
+    )
+
+    assert result.status == "converged"
+    assert repair_calls and repair_calls[0].fix_request_batch is not None
+    evidence = repair_calls[0].fix_request_batch.requests[0].evidence[0]
+    brief = evidence["repair_brief"]
+    assert brief["scenario_name"] == "reset_forces_idle"
+    assert brief["initial_state"] == "Root.Active"
+    step = brief["failing_steps"][0]
+    assert step["events"] == ["Reset"]
+    assert step["expected_state"] == "Root.Idle"
+    assert step["expected_vars"] == {"x": 0}
+    assert step["actual_state"] == "Root.Active"
+    assert step["actual_vars_focus"] == {"x": 1}
+    assert step["runtime_error_hint"]["event_path"] == "Reset"
+
+
+def test_sl10_rework_memory_carries_local_expected_actual_summary_to_next_sl9(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+
+    scenario = TestScenario(
+        name="fallback_reset",
+        initial_state="Root.Fault",
+        initial_vars={"mode": 1, "alarm": 1},
+        steps=[
+            schema.ScenarioStep(
+                events=["Recover"],
+                expected_state="Root.Idle",
+                expected_vars={"mode": 0, "alarm": 0},
+                name="recover_resets_outputs",
+            )
+        ],
+    )
+    failing_result = schema.ScenarioResult(
+        name="fallback_reset",
+        description="Recover should leave Fault and reset outputs.",
+        status="fail",
+        step_results=[
+            schema.StepResult(
+                step_index=0,
+                step_name="recover_resets_outputs",
+                status="fail",
+                actual_state="Root.Fault",
+                actual_vars={"mode": 1, "alarm": 1, "unrelated": 7},
+                state_assertion_ok=False,
+                var_assertion_ok=False,
+                var_mismatches={
+                    "mode": {"expected": 0, "actual": 1},
+                    "alarm": {"expected": 0, "actual": 1},
+                },
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, _scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        if dsl == "candidate-b":
+            return SimFeedback(ok=True, n_scenarios=1, n_scenarios_passed=1), _meta(StageId.SD_6_SIM)
+        return (
+            SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, scenario_results=[failing_result]),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        decision = {
+            "request_id": request.fix_request_batch.requests[0].request_id,
+            "decision": "accept",
+            "rationale": "accept current rework target",
+        }
+        candidate = "candidate-a" if len(repair_calls) == 1 else "candidate-b"
+        return {"decisions": [decision], "candidate_dsl": candidate, "repair_rationale": [f"emit {candidate}"]}
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == "candidate-b":
+            feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none")
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+            feedback.meta = meta
+            return feedback, meta
+        sim_feedback = SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, scenario_results=[failing_result])
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[{"kind": "scenario_regression", "sim_feedback": asdict(sim_feedback)}],
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, regression_detected=True, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def sl10_review(_request: RepairRequest, local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=local.ok)
+        if local.ok:
+            return (
+                SL10RepairReviewOutput(
+                    ok=True,
+                    decision="pass",
+                    target_resolved=True,
+                    regression_detected=False,
+                    drift_risk="none",
+                    evidence=[{"summary": "local checks passed"}],
+                    review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        return (
+            SL10RepairReviewOutput(
+                ok=False,
+                decision="rework",
+                target_resolved=False,
+                regression_detected=True,
+                drift_risk="major",
+                rework_instructions=["Use the local scenario regression details instead of guessing."],
+                evidence=[{"summary": "scenario_regression still blocks the candidate"}],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 rework must carry local expected-vs-actual evidence into the next SL-9 attempt.",
+        FullStagedRuntimeConfig(initial_dsl="needs-local-summary", run_id="pr-b1-local-summary-memory", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(
+            scenario_generate=scenario_generate,
+            sim=sim,
+            repair=repair,
+            repair_review=local_review,
+            sl10_review=sl10_review,
+        ),
+    )
+
+    assert result.status == "converged"
+    assert len(repair_calls) == 2
+    rendered_memory = str(repair_calls[1].repair_memory)
+    assert "local_actionable_repair_summary" in rendered_memory
+    assert "fallback_reset" in rendered_memory
+    assert "expected_state" in rendered_memory and "Root.Idle" in rendered_memory
+    assert "expected_vars" in rendered_memory and "alarm" in rendered_memory
+    assert "actual_vars_focus" in rendered_memory and "Root.Fault" in rendered_memory
+    hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)  # type: ignore[union-attr]
+    assert "local_actionable_repair_summary" in hint_text

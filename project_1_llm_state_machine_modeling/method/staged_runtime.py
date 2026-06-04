@@ -454,6 +454,7 @@ MAX_FIX_REQUESTS_PER_BATCH = 12
 MAX_FIX_REQUEST_EVIDENCE_ITEMS = 1
 MAX_FIX_REQUEST_HINTS = 4
 MAX_FIX_TEXT_CHARS = 1200
+MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS = 600
 
 
 def _truncate_text(value: Any, *, max_chars: int = MAX_FIX_TEXT_CHARS) -> str:
@@ -464,7 +465,14 @@ def _truncate_text(value: Any, *, max_chars: int = MAX_FIX_TEXT_CHARS) -> str:
     return f"{text[:max_chars]}…<truncated {omitted} chars>"
 
 
-def _compact_json(value: Any, *, max_text_chars: int = MAX_FIX_TEXT_CHARS, max_list_items: int = 8, depth: int = 0) -> Any:
+def _compact_json(
+    value: Any,
+    *,
+    max_text_chars: int = MAX_FIX_TEXT_CHARS,
+    max_list_items: int = 8,
+    depth: int = 0,
+    max_depth: int = 4,
+) -> Any:
     """Return a prompt-safe compact JSON value.
 
     The full diagnostic payload is still persisted in deterministic feedback
@@ -477,22 +485,226 @@ def _compact_json(value: Any, *, max_text_chars: int = MAX_FIX_TEXT_CHARS, max_l
         return value
     if isinstance(value, str):
         return _truncate_text(value, max_chars=max_text_chars)
-    if depth >= 4:
+    if depth >= max_depth:
         return _truncate_text(repr(_jsonable(value)), max_chars=max_text_chars)
     if isinstance(value, dict):
         compact: dict[str, Any] = {}
         for key, item in list(value.items())[:max_list_items]:
-            compact[str(key)] = _compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1)
+            compact[str(key)] = _compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1, max_depth=max_depth)
         if len(value) > max_list_items:
             compact["_omitted_keys"] = len(value) - max_list_items
         return compact
     if isinstance(value, (list, tuple, set)):
         seq = list(value)
-        compact_list = [_compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1) for item in seq[:max_list_items]]
+        compact_list = [_compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1, max_depth=max_depth) for item in seq[:max_list_items]]
         if len(seq) > max_list_items:
             compact_list.append({"_omitted_items": len(seq) - max_list_items})
         return compact_list
-    return _compact_json(_jsonable(value), max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1)
+    return _compact_json(_jsonable(value), max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1, max_depth=max_depth)
+
+
+def _scenario_lookup(scenario_set: ScenarioSet | None) -> dict[str, TestScenario]:
+    if scenario_set is None:
+        return {}
+    return {scenario.name: scenario for scenario in list(scenario_set.scenarios or []) if scenario.name}
+
+
+def _scenario_step_expectation(scenario: TestScenario | None, step_index: int) -> dict[str, Any]:
+    if scenario is None:
+        return {}
+    steps = list(getattr(scenario, "steps", []) or [])
+    if step_index < 0 or step_index >= len(steps):
+        return {}
+    step = steps[step_index]
+    return {
+        "before_cycles": getattr(step, "before_cycles", 0),
+        "events": _jsonable(getattr(step, "events", None)),
+        "expected_state": getattr(step, "expected_state", None),
+        "expected_vars": _compact_json(
+            getattr(step, "expected_vars", None) or {},
+            max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS,
+            max_list_items=16,
+        ),
+    }
+
+
+def _focused_actual_vars(actual_vars: dict[str, Any], expected_vars: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(actual_vars, dict):
+        return {}
+    if not expected_vars:
+        return _compact_json(actual_vars, max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS, max_list_items=8)
+    focus = {str(name): actual_vars.get(name) for name in expected_vars}
+    return _compact_json(focus, max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS, max_list_items=16)
+
+
+def _runtime_error_event_hint(runtime_error: str | None) -> dict[str, Any] | None:
+    if not runtime_error:
+        return None
+    match = re.search(r"Cannot resolve event path '([^']+)'", runtime_error)
+    if not match:
+        return None
+    event_path = match.group(1)
+    return {
+        "kind": "unresolved_event_path",
+        "event_path": event_path,
+        "instruction": (
+            "The failing scenario injects this event but the runtime cannot resolve it "
+            "from the active/hot-start state. Repair the DSL by adding or preserving "
+            "an NL-grounded event/transition representation that is visible from the "
+            "scenario source state; do not only change unrelated state/action code."
+        ),
+    }
+
+
+def _failed_scenario_repair_brief(
+    scenario_result: Any,
+    *,
+    scenario: TestScenario | None = None,
+    max_steps: int = 4,
+) -> dict[str, Any]:
+    """Return an SL-9-actionable expected-vs-actual brief for one failed scenario.
+
+    ``StepResult`` intentionally stores actual state/vars only; the expected
+    assertions live in the frozen ``TestScenario``.  Repair prompts need both
+    sides, otherwise SL-9 can only guess which DSL edit is meant to fix a
+    failing hot-start.  This helper joins the two records without changing the
+    stage graph or scenario oracle.
+    """
+
+    result = _jsonable(scenario_result)
+    if not isinstance(result, dict):
+        return {"raw": _compact_json(result)}
+    step_results = list(result.get("step_results") or [])
+    failing_steps: list[dict[str, Any]] = []
+    for raw_step in step_results:
+        if len(failing_steps) >= max_steps:
+            break
+        if not isinstance(raw_step, dict):
+            continue
+        if raw_step.get("status") == "pass":
+            continue
+        step_index = int(raw_step.get("step_index") or 0)
+        expectation = _scenario_step_expectation(scenario, step_index)
+        expected_vars = expectation.get("expected_vars") if isinstance(expectation.get("expected_vars"), dict) else {}
+        runtime_error = raw_step.get("runtime_error")
+        brief = {
+            "step_index": step_index,
+            "step_name": raw_step.get("step_name") or expectation.get("name") or f"step_{step_index}",
+            "events": expectation.get("events"),
+            "before_cycles": expectation.get("before_cycles"),
+            "expected_state": expectation.get("expected_state"),
+            "expected_vars": expectation.get("expected_vars"),
+            "actual_state": raw_step.get("actual_state"),
+            "actual_vars_focus": _focused_actual_vars(dict(raw_step.get("actual_vars") or {}), expected_vars),
+            "state_assertion_ok": raw_step.get("state_assertion_ok"),
+            "var_assertion_ok": raw_step.get("var_assertion_ok"),
+            "var_mismatches": _compact_json(raw_step.get("var_mismatches") or {}, max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS, max_list_items=12),
+            "runtime_error": _truncate_text(runtime_error, max_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS),
+        }
+        event_hint = _runtime_error_event_hint(str(runtime_error or ""))
+        if event_hint is not None:
+            brief["runtime_error_hint"] = event_hint
+        failing_steps.append(brief)
+    return {
+        "scenario_name": result.get("name") or getattr(scenario, "name", ""),
+        "description": _truncate_text(result.get("description") or getattr(scenario, "description", ""), max_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS),
+        "initial_state": getattr(scenario, "initial_state", None) if scenario is not None else None,
+        "initial_vars": _compact_json(getattr(scenario, "initial_vars", {}) if scenario is not None else {}, max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS, max_list_items=16),
+        "status": result.get("status"),
+        "failing_steps": failing_steps,
+        "actionable_rule": (
+            "For each failing step, repair against expected_state/expected_vars versus "
+            "actual_state/actual_vars_focus/runtime_error, and mention the scenario "
+            "name in repair_rationale."
+        ),
+    }
+
+
+def _enrich_sim_scenario_evidence(
+    evidence_item: Any,
+    *,
+    scenario_lookup: dict[str, TestScenario] | None = None,
+) -> dict[str, Any]:
+    item = _jsonable(evidence_item)
+    if not isinstance(item, dict):
+        item = {"value": item}
+    scenario = (scenario_lookup or {}).get(str(item.get("name") or ""))
+    if item.get("step_results") is not None:
+        item = {
+            **item,
+            "repair_brief": _failed_scenario_repair_brief(item, scenario=scenario),
+        }
+    return item
+
+
+def _sim_feedback_repair_brief(
+    sim_feedback: Any,
+    *,
+    scenario_set: ScenarioSet | None = None,
+    max_scenarios: int = 8,
+) -> dict[str, Any]:
+    feedback = _jsonable(sim_feedback)
+    if not isinstance(feedback, dict):
+        return {"raw": _compact_json(feedback)}
+    lookup = _scenario_lookup(scenario_set)
+    failed: list[dict[str, Any]] = []
+    for result in list(feedback.get("scenario_results") or []):
+        if len(failed) >= max_scenarios:
+            break
+        if not isinstance(result, dict) or result.get("status") == "pass":
+            continue
+        scenario = lookup.get(str(result.get("name") or ""))
+        failed.append(_failed_scenario_repair_brief(result, scenario=scenario))
+    return {
+        "n_scenarios": feedback.get("n_scenarios"),
+        "n_scenarios_passed": feedback.get("n_scenarios_passed"),
+        "failed_scenarios": failed,
+        "repair_rule": (
+            "Use these exact failed_scenarios as the repair target; preserve already "
+            "passing scenarios and do not invent benchmark-specific behavior."
+        ),
+    }
+
+
+def _actionable_repair_summary_from_local_evidence(
+    local_check_evidence: dict[str, Any] | None,
+    *,
+    scenario_set: ScenarioSet | None = None,
+) -> dict[str, Any]:
+    local = local_check_evidence or {}
+    feedback = local.get("repair_review_feedback") if isinstance(local, dict) else None
+    rejection = feedback.get("local_rejection") if isinstance(feedback, dict) else None
+    if not isinstance(rejection, dict):
+        return {}
+    summaries: list[dict[str, Any]] = []
+    for item in list(rejection.get("evidence") or []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("kind") == "scenario_regression" and isinstance(item.get("sim_feedback"), dict):
+            summaries.append(
+                {
+                    "kind": "scenario_regression_repair_brief",
+                    "summary": _sim_feedback_repair_brief(item.get("sim_feedback"), scenario_set=scenario_set),
+                }
+            )
+        elif item.get("kind") in {"missing_required_grounding", "count_drift", "forced_transition_count_drift", "new_blocking_design_diagnostic"}:
+            summaries.append({"kind": item.get("kind"), "evidence": _jsonable(item)})
+    return {
+        "local_rejection_reason": rejection.get("reason"),
+        "target_resolved": rejection.get("target_resolved"),
+        "regression_detected": rejection.get("regression_detected"),
+        "drift_risk": rejection.get("drift_risk"),
+        "actionable_items": _jsonable(summaries),
+    }
+
+
+def _compact_repair_memory_for_prompt(value: Any) -> Any:
+    return _compact_json(
+        value,
+        max_text_chars=MAX_SCENARIO_REPAIR_BRIEF_TEXT_CHARS,
+        max_list_items=16,
+        max_depth=12,
+    )
 
 
 def _diagnostic_signature(item: dict[str, Any]) -> str:
@@ -554,7 +766,7 @@ def _compact_fix_log_for_prompt(fix_log: list[dict[str, Any]] | None) -> list[di
                 "diff_summary": _compact_json(entry.get("diff_summary") or {}, max_list_items=6),
                 "local_check_evidence": _compact_json(entry.get("local_check_evidence") or {}, max_list_items=6),
                 "sl10_review": _compact_json(entry.get("sl10_review") or {}, max_list_items=6),
-                "repair_memory": _compact_json(entry.get("repair_memory") or {}, max_list_items=8),
+                "repair_memory": _compact_repair_memory_for_prompt(entry.get("repair_memory") or {}),
                 "next_action": entry.get("next_action"),
                 "notes": _compact_json(entry.get("notes") or [], max_list_items=6),
             }
@@ -621,8 +833,8 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         "previous_rejected_candidate_hashes": rejected_candidate_hashes[-8:],
         "repeated_candidate_hashes": repeated_hashes[-6:],
         "latest_rework_entry_ids": [entry.get("entry_id") for entry in latest_rework_entries],
-        "latest_actionable_rework_guidance": _compact_json(latest_guidance[-8:], max_list_items=8),
-        "latest_local_objections": _compact_json(latest_local_objections[-6:], max_list_items=6),
+        "latest_actionable_rework_guidance": _compact_repair_memory_for_prompt(latest_guidance[-8:]),
+        "latest_local_objections": _compact_repair_memory_for_prompt(latest_local_objections[-6:]),
         "sl9_rule": (
             "Before emitting a candidate, explicitly address the latest "
             "actionable_rework_guidance and avoid returning a candidate whose "
@@ -2097,6 +2309,19 @@ def _repair_memory_for_log(
             raw_evidence = rejection.get("evidence")
             if isinstance(raw_evidence, list):
                 evidence_items.extend(item for item in raw_evidence if isinstance(item, dict))
+    actionable_summary = local.get("actionable_repair_summary") if isinstance(local, dict) else None
+    if isinstance(actionable_summary, dict):
+        guidance.append(
+            {
+                "kind": "local_actionable_repair_summary",
+                "summary": _jsonable(actionable_summary),
+                "instruction": (
+                    "Use this expected-vs-actual local summary as the next SL-9 repair "
+                    "target. It is derived from the same local check that triggered "
+                    "SL-10 rework and should prevent repeating an under-specified edit."
+                ),
+            }
+        )
     guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
     candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
     previous = list(previous_candidate_hashes or [])
@@ -2117,8 +2342,8 @@ def _repair_memory_for_log(
     return {
         "candidate_dsl_hash": candidate_hash,
         "repeated_candidate_hash": repeated,
-        "local_objections": _compact_json(local_objections, max_list_items=6),
-        "actionable_rework_guidance": _compact_json(guidance, max_list_items=10),
+        "local_objections": _jsonable(local_objections),
+        "actionable_rework_guidance": _jsonable(guidance),
     }
 
 
@@ -2147,7 +2372,7 @@ def _fix_request_batch_with_repair_memory(
             "rejected candidate hashes unless the repair_rationale supplies "
             "stronger grounding/local_override evidence."
         ),
-        "repair_memory": _compact_json(repair_memory, max_list_items=8),
+        "repair_memory": _jsonable(repair_memory),
     }
     return FixRequestBatch(
         batch_id=batch.batch_id,
@@ -2166,7 +2391,7 @@ def _fix_request_batch_with_repair_memory(
         ],
         selected_feedback_trace={
             **dict(batch.selected_feedback_trace or {}),
-            "active_rework_memory": _compact_json(repair_memory, max_list_items=8),
+            "active_rework_memory": _jsonable(repair_memory),
         },
         before_dsl_hash=batch.before_dsl_hash,
         legacy_plan_kind=batch.legacy_plan_kind,
@@ -2181,19 +2406,26 @@ def _fix_request_batch_from_plan(
     selected_trace: dict[str, Any],
     fix_plan: FixPlan | RevisedFixPlan,
     effective_fix_plan: FixPlan,
+    scenario_set: ScenarioSet | None = None,
 ) -> FixRequestBatch:
     raw_evidence_items = list(effective_fix_plan.evidence or [])
     raw_diagnostic_ids = list(effective_fix_plan.diagnostic_ids or [])
     raw_n_requests = max(1, len(raw_evidence_items), len(raw_diagnostic_ids))
     request_pairs: list[tuple[str, list[dict[str, Any]]]] = []
     seen_signatures: set[str] = set()
+    scenario_lookup = _scenario_lookup(scenario_set)
     for index in range(raw_n_requests):
         raw_evidence = raw_evidence_items[index] if index < len(raw_evidence_items) else None
-        evidence = [_compact_json(raw_evidence)] if isinstance(raw_evidence, dict) else ([] if raw_evidence is None else [_compact_json(_jsonable(raw_evidence))])
+        enriched_evidence = (
+            _enrich_sim_scenario_evidence(raw_evidence, scenario_lookup=scenario_lookup)
+            if raw_evidence is not None
+            else None
+        )
+        evidence = [_jsonable(enriched_evidence)] if enriched_evidence is not None else []
         feedback_id = raw_diagnostic_ids[index] if index < len(raw_diagnostic_ids) else effective_fix_plan.source_feedback_id
         signature = str(feedback_id or "")
-        if raw_evidence is not None:
-            signature = f"{signature}:{_diagnostic_signature(_jsonable(raw_evidence) if isinstance(_jsonable(raw_evidence), dict) else {'value': raw_evidence})}"
+        if enriched_evidence is not None:
+            signature = f"{signature}:{_diagnostic_signature(enriched_evidence)}"
         if signature in seen_signatures:
             continue
         seen_signatures.add(signature)
@@ -2373,14 +2605,19 @@ def _local_repair_check_evidence(
     *,
     repair_review: RepairReviewFeedback,
     repair_review_meta: StageResultMeta,
+    scenario_set: ScenarioSet | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
         "legacy_local_check_stage_id": StageId.SD_10_REPAIR_REVIEW.value,
         "local_check_note": "PR-E1 uses local parse/semantic/design/sim checks as SL-10 evidence, not as the final deterministic judge.",
         "meta": _jsonable(repair_review_meta),
         "repair_review_feedback": _jsonable(repair_review),
     }
+    actionable = _actionable_repair_summary_from_local_evidence(payload, scenario_set=scenario_set)
+    if actionable:
+        payload["actionable_repair_summary"] = actionable
+    return payload
 
 
 _GROUNDING_HINT_KEYWORDS = (
@@ -2813,6 +3050,7 @@ def _run_repair_path(
         selected_trace=selected_trace,
         fix_plan=fix_plan,
         effective_fix_plan=effective_fix_plan,
+        scenario_set=validation.scenario_set,
     )
     _fix_log_entry(
         state=state,
@@ -3070,7 +3308,11 @@ def _run_repair_path(
             rework_locked=attempt_rework_locked,
         )
         local_review, local_meta = adapters.repair_review(review_request)
-        local_check_evidence = _local_repair_check_evidence(repair_review=local_review, repair_review_meta=local_meta)
+        local_check_evidence = _local_repair_check_evidence(
+            repair_review=local_review,
+            repair_review_meta=local_meta,
+            scenario_set=validation.scenario_set,
+        )
         review_request.local_check_evidence = local_check_evidence
         _append_flow_log(
             state.logs,

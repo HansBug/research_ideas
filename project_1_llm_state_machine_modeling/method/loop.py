@@ -23,6 +23,7 @@ from method.llm_stages import (
     ChatProvider,
     LLMStageConfig,
     RealEnvLLMProvider,
+    estimate_prompt_tokens,
     redact_run_record_payload,
     run_sl1_initial_modeling_llm,
     run_sl5_scenario_generation_llm,
@@ -42,8 +43,11 @@ from method.staged_runtime import (
     _compact_fix_request_batch_for_prompt,
     _compact_json,
     _compact_sl9_input_for_prompt,
+    _repair_memory_for_prompt,
     run_full_staged_deterministic_runtime,
 )
+from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
 from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
 
 RUN_RECORD_SCHEMA_VERSION = "pr-c.default-full-staged-runtime.v1"
@@ -144,12 +148,16 @@ def _provider_model_redacted(cfg: LoopConfig, provider: ChatProvider | None) -> 
 
 def _llm_stage_config(cfg: LoopConfig) -> LLMStageConfig:
     record_policy = cfg.record_policy
+    budget_policy = cfg.budget_policy
     return LLMStageConfig(
         provider_mode="mock" if cfg.llm_provider_mode == "mock" else "real_env",
         model=cfg.llm_model,
         temperature=float(cfg.llm_policy.get("temperature", 0.0)),
         seed=cfg.seed,
         max_tokens=cfg.llm_policy.get("max_tokens"),
+        max_prompt_tokens=budget_policy.get("prompt_token_budget", 128_000),
+        prompt_token_estimator=str(budget_policy.get("prompt_token_estimator", "chars_per_token")),
+        prompt_chars_per_token=float(budget_policy.get("chars_per_token_estimate", 4.0)),
         max_retries=cfg.llm_max_retries,
         record_prompts=bool(record_policy.get("record_prompts", True)),
         record_raw_outputs=bool(record_policy.get("record_raw_outputs", True)),
@@ -159,6 +167,218 @@ def _llm_stage_config(cfg: LoopConfig) -> LLMStageConfig:
         # high-confidence results.
         redact_secrets=True,
     )
+
+
+def _prompt_budget_metadata(
+    *,
+    stage_id: str,
+    prompt_messages: list[dict[str, str]],
+    cfg: LLMStageConfig,
+    compaction_level: str,
+) -> dict[str, Any]:
+    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
+    estimated_tokens = estimate_prompt_tokens(
+        prompt_messages,
+        estimator=cfg.prompt_token_estimator,
+        chars_per_token=cfg.prompt_chars_per_token,
+        model=cfg.model,
+    )
+    budget = cfg.max_prompt_tokens
+    return {
+        "stage_id": stage_id,
+        "prompt_chars": prompt_chars,
+        "estimated_prompt_tokens": estimated_tokens,
+        "prompt_token_budget": budget,
+        "prompt_token_estimator": cfg.prompt_token_estimator,
+        "chars_per_token_estimate": cfg.prompt_chars_per_token,
+        "compaction_level": compaction_level,
+        "prompt_compaction_applied": compaction_level != "none",
+        "compact_only_when_over_budget": True,
+        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
+    }
+
+
+def _within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
+    if cfg.max_prompt_tokens is None:
+        return True
+    return (
+        estimate_prompt_tokens(
+            prompt_messages,
+            estimator=cfg.prompt_token_estimator,
+            chars_per_token=cfg.prompt_chars_per_token,
+            model=cfg.model,
+        )
+        <= cfg.max_prompt_tokens
+    )
+
+
+def _jsonable_fix_request_batch_full(batch: Any) -> Any:
+    if batch is None:
+        return None
+    return _jsonable(batch)
+
+
+def _jsonable_fix_log_full(fix_log: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    return _jsonable(fix_log or [])
+
+
+def _sl9_prompt_payload_candidates(request: RepairRequest) -> list[tuple[str, dict[str, Any]]]:
+    plan = request.fix_plan
+    plan_summary = _jsonable(plan)
+    if isinstance(plan_summary, dict) and "original" in plan_summary and isinstance(plan_summary["original"], dict):
+        # Keep RevisedFixPlan evidence, but expose a concise top-level target for
+        # providers that attend to shallow fields first.
+        plan_summary = {
+            "kind": "RevisedFixPlan",
+            "target": plan_summary["original"].get("target"),
+            "source_stage": plan_summary["original"].get("source_stage"),
+            **plan_summary,
+        }
+    repair_memory = getattr(request, "repair_memory", None) or _repair_memory_for_prompt(request.fix_log)
+    scenario_summary = (
+        {
+            "scenario_set_id": request.scenario_set.scenario_set_id,
+            "epoch": request.scenario_set.epoch,
+            "n_scenarios": len(request.scenario_set.scenarios),
+            "coverage_report": request.scenario_set.coverage_report,
+        }
+        if request.scenario_set is not None
+        else {"pre_scenario": True}
+    )
+    preserve_list = (
+        request.fix_plan.required_preserve_element_ids
+        if hasattr(request.fix_plan, "required_preserve_element_ids")
+        else []
+    )
+    full = {
+        "fix_plan_summary": plan_summary,
+        "fix_request_batch": _jsonable_fix_request_batch_full(request.fix_request_batch),
+        "fix_log": _jsonable_fix_log_full(request.fix_log),
+        "repair_memory": _jsonable(repair_memory),
+        "grounding_map_summary": _jsonable(request.grounding_map),
+        "selected_diagnostics": [_jsonable(request.selected_feedback_trace)],
+        "preserve_list": list(preserve_list or []),
+        "scenario_summary": _jsonable(scenario_summary),
+    }
+    compact = _compact_sl9_input_for_prompt(
+        fix_plan=request.fix_plan,
+        fix_request_batch=request.fix_request_batch,
+        fix_log=request.fix_log,
+        grounding_map=request.grounding_map,
+        selected_diagnostics=[request.selected_feedback_trace],
+        preserve_list=preserve_list,
+        scenario_summary=scenario_summary,
+    )
+    if getattr(request, "repair_memory", None):
+        compact["repair_memory"] = request.repair_memory
+    return [("none", full), ("level1_compact", compact)]
+
+
+def _select_sl9_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidates = _sl9_prompt_payload_candidates(request)
+    selected_level, selected_payload = candidates[-1]
+    selected_prompt: list[dict[str, str]] | None = None
+    for level, payload in candidates:
+        prompt = build_sl9_repair_prompt(
+            nl=request.nl,
+            current_dsl=request.old_dsl,
+            fix_plan=payload["fix_plan_summary"],
+            fix_request_batch=payload["fix_request_batch"],
+            fix_log=payload["fix_log"],
+            repair_memory=payload["repair_memory"],
+            grounding_map=payload["grounding_map_summary"],
+            selected_diagnostics=payload["selected_diagnostics"],
+            preserve_list=payload["preserve_list"],
+            scenario_summary=payload["scenario_summary"],
+            repair_target=getattr(request.fix_plan, "target", None),
+        )
+        selected_level, selected_payload, selected_prompt = level, payload, prompt
+        if _within_prompt_budget(prompt, cfg):
+            break
+    assert selected_prompt is not None
+    metadata = _prompt_budget_metadata(
+        stage_id=StageId.SL_9_REPAIR.value,
+        prompt_messages=selected_prompt,
+        cfg=cfg,
+        compaction_level=selected_level,
+    )
+    selected_payload = {
+        **selected_payload,
+        "selected_diagnostics": [
+            *list(selected_payload.get("selected_diagnostics") or []),
+            {"prompt_budget": metadata},
+        ],
+    }
+    return selected_payload, metadata
+
+
+def _sl10_prompt_payload_candidates(request: RepairRequest) -> list[tuple[str, dict[str, Any]]]:
+    scenario_summary = (
+        {
+            "scenario_set_id": request.scenario_set.scenario_set_id,
+            "epoch": request.scenario_set.epoch,
+            "n_scenarios": len(request.scenario_set.scenarios),
+            "coverage_report": request.scenario_set.coverage_report,
+        }
+        if request.scenario_set is not None
+        else {"pre_scenario": True}
+    )
+    full = {
+        "grounding_map": _jsonable(request.grounding_map),
+        "request_batch": _jsonable_fix_request_batch_full(request.fix_request_batch),
+        "sl9_decisions": _jsonable(request.sl9_decision.decisions if request.sl9_decision else []),
+        "fix_log": _jsonable_fix_log_full(request.fix_log),
+        "diff_summary": _jsonable(request.diff_summary),
+        "local_check_evidence": _jsonable(request.local_check_evidence),
+        "scenario_summary": _jsonable(scenario_summary),
+    }
+    compact = {
+        "grounding_map": _compact_json(request.grounding_map, max_list_items=16),
+        "request_batch": _compact_fix_request_batch_for_prompt(request.fix_request_batch),
+        "sl9_decisions": _compact_json(request.sl9_decision.decisions if request.sl9_decision else [], max_list_items=16),
+        "fix_log": _compact_fix_log_for_prompt(request.fix_log),
+        "diff_summary": _compact_json(request.diff_summary, max_list_items=8),
+        "local_check_evidence": _compact_json(request.local_check_evidence, max_list_items=10),
+        "scenario_summary": _compact_json(scenario_summary, max_list_items=12),
+    }
+    return [("none", full), ("level1_compact", compact)]
+
+
+def _select_sl10_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidates = _sl10_prompt_payload_candidates(request)
+    selected_level, selected_payload = candidates[-1]
+    selected_prompt: list[dict[str, str]] | None = None
+    for level, payload in candidates:
+        prompt = build_sl10_repair_review_prompt(
+            nl=request.nl,
+            grounding_map=payload["grounding_map"],
+            old_dsl=request.old_dsl,
+            candidate_dsl=request.candidate_dsl,
+            request_batch=payload["request_batch"],
+            sl9_decisions=payload["sl9_decisions"],
+            fix_log=payload["fix_log"],
+            diff_summary=payload["diff_summary"],
+            local_check_evidence=payload["local_check_evidence"],
+            scenario_summary=payload["scenario_summary"],
+        )
+        selected_level, selected_payload, selected_prompt = level, payload, prompt
+        if _within_prompt_budget(prompt, cfg):
+            break
+    assert selected_prompt is not None
+    metadata = _prompt_budget_metadata(
+        stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+        prompt_messages=selected_prompt,
+        cfg=cfg,
+        compaction_level=selected_level,
+    )
+    selected_payload = {
+        **selected_payload,
+        "local_check_evidence": {
+            **dict(selected_payload.get("local_check_evidence") or {}),
+            "prompt_budget": metadata,
+        },
+    }
+    return selected_payload, metadata
 
 
 def _scenario_coverage_adapter(current_dsl: str, scenarios: list[Any]) -> tuple[dict[str, Any], Any]:
@@ -354,37 +574,18 @@ def _build_runtime_adapters(
         )
 
     def repair(request: RepairRequest) -> Any:
-        compact = _compact_sl9_input_for_prompt(
-            fix_plan=request.fix_plan,
-            fix_request_batch=request.fix_request_batch,
-            fix_log=request.fix_log,
-            grounding_map=request.grounding_map,
-            selected_diagnostics=[request.selected_feedback_trace],
-            preserve_list=(request.fix_plan.required_preserve_element_ids if hasattr(request.fix_plan, "required_preserve_element_ids") else []),
-            scenario_summary=(
-                {
-                    "scenario_set_id": request.scenario_set.scenario_set_id,
-                    "epoch": request.scenario_set.epoch,
-                    "n_scenarios": len(request.scenario_set.scenarios),
-                    "coverage_report": request.scenario_set.coverage_report,
-                }
-                if request.scenario_set is not None
-                else {"pre_scenario": True}
-            ),
-        )
-        if getattr(request, "repair_memory", None):
-            compact["repair_memory"] = request.repair_memory
+        prompt_payload, _budget_meta = _select_sl9_prompt_payload(request, llm_cfg)
         return run_sl9_repair_llm(
             nl=request.nl,
             current_dsl=request.old_dsl,
-            fix_plan=compact["fix_plan_summary"],
-            fix_request_batch=compact["fix_request_batch"],
-            fix_log=compact["fix_log"],
-            repair_memory=compact["repair_memory"],
-            grounding_map=compact["grounding_map_summary"],
-            selected_diagnostics=compact["selected_diagnostics"],
-            preserve_list=compact["preserve_list"],
-            scenario_summary=compact["scenario_summary"],
+            fix_plan=prompt_payload["fix_plan_summary"],
+            fix_request_batch=prompt_payload["fix_request_batch"],
+            fix_log=prompt_payload["fix_log"],
+            repair_memory=prompt_payload["repair_memory"],
+            grounding_map=prompt_payload["grounding_map_summary"],
+            selected_diagnostics=prompt_payload["selected_diagnostics"],
+            preserve_list=prompt_payload["preserve_list"],
+            scenario_summary=prompt_payload["scenario_summary"],
             repair_target=getattr(request.fix_plan, "target", None),
             config=llm_cfg,
             provider=provider,
@@ -408,28 +609,18 @@ def _build_runtime_adapters(
     def sl10_review(request: RepairRequest, _local_review: Any) -> Any:
         if request.fix_request_batch is None or request.sl9_decision is None:
             raise TypeError("SL-10 repair review requires FixRequestBatch and SL9 decisions")
+        prompt_payload, _budget_meta = _select_sl10_prompt_payload(request, llm_cfg)
         return run_sl10_repair_review_llm(
             nl=request.nl,
-            grounding_map=_compact_json(request.grounding_map, max_list_items=16),
+            grounding_map=prompt_payload["grounding_map"],
             old_dsl=request.old_dsl,
             candidate_dsl=request.candidate_dsl,
-            request_batch=_compact_fix_request_batch_for_prompt(request.fix_request_batch),
-            sl9_decisions=_compact_json(request.sl9_decision.decisions, max_list_items=16),
-            fix_log=_compact_fix_log_for_prompt(request.fix_log),
-            diff_summary=_compact_json(request.diff_summary, max_list_items=8),
-            local_check_evidence=_compact_json(request.local_check_evidence, max_list_items=10),
-            scenario_summary=_compact_json(
-                {
-                    "scenario_set_id": request.scenario_set.scenario_set_id,
-                    "epoch": request.scenario_set.epoch,
-                    "n_scenarios": len(request.scenario_set.scenarios),
-                    "coverage_report": request.scenario_set.coverage_report,
-                }
-                if request.scenario_set is not None
-                else {"pre_scenario": True}
-                ,
-                max_list_items=12,
-            ),
+            request_batch=prompt_payload["request_batch"],
+            sl9_decisions=prompt_payload["sl9_decisions"],
+            fix_log=prompt_payload["fix_log"],
+            diff_summary=prompt_payload["diff_summary"],
+            local_check_evidence=prompt_payload["local_check_evidence"],
+            scenario_summary=prompt_payload["scenario_summary"],
             review_policy={"mode": cfg.delta_review_mode, **_jsonable(cfg.feedback_policy)},
             config=llm_cfg,
             provider=provider,

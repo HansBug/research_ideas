@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -109,6 +110,9 @@ class LLMStageConfig:
     temperature: float = 0.0
     seed: Optional[int] = None
     max_tokens: Optional[int] = None
+    max_prompt_tokens: Optional[int] = 128_000
+    prompt_token_estimator: str = "chars_per_token"
+    prompt_chars_per_token: float = 4.0
     max_retries: int = 2
     record_prompts: bool = True
     record_raw_outputs: bool = True
@@ -121,6 +125,12 @@ class LLMStageConfig:
             raise ValueError("LLMStageConfig.max_retries must be a non-negative int")
         if self.max_tokens is not None and self.max_tokens <= 0:
             raise ValueError("LLMStageConfig.max_tokens must be positive when provided")
+        if self.max_prompt_tokens is not None and self.max_prompt_tokens <= 0:
+            raise ValueError("LLMStageConfig.max_prompt_tokens must be positive when provided")
+        if self.prompt_token_estimator not in {"chars_per_token", "tiktoken_optional"}:
+            raise ValueError("LLMStageConfig.prompt_token_estimator must be chars_per_token or tiktoken_optional")
+        if self.prompt_chars_per_token <= 0:
+            raise ValueError("LLMStageConfig.prompt_chars_per_token must be positive")
         if self.temperature < 0:
             raise ValueError("LLMStageConfig.temperature must be >= 0")
 
@@ -264,6 +274,43 @@ def _hash_text(text: str) -> str:
 
 def _hash_payload(value: Any) -> str:
     return _hash_text(json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, default=str))
+
+
+def _prompt_char_count(messages: list[dict[str, str]]) -> int:
+    return sum(len(str(message.get("content", ""))) for message in messages)
+
+
+def estimate_prompt_tokens(
+    messages: list[dict[str, str]],
+    *,
+    estimator: str = "chars_per_token",
+    chars_per_token: float = 4.0,
+    model: str | None = None,
+) -> int:
+    """Lightweight pre-request prompt-token estimate for budget gating.
+
+    The default intentionally mirrors ``method.gpt_client``'s chars/4 proxy so
+    PR-E1 does not gain a hard dependency on tokenizer packages.  If a local
+    environment already has ``tiktoken`` and explicitly asks for
+    ``tiktoken_optional``, use it as a best-effort estimate; otherwise fall back
+    to the same chars-per-token calculation.
+    """
+
+    prompt_chars = _prompt_char_count(messages)
+    if estimator == "tiktoken_optional":
+        try:
+            import tiktoken  # type: ignore[import-not-found]
+
+            try:
+                encoding = tiktoken.encoding_for_model(model or "")
+            except Exception:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            # Chat message framing differs by model/provider; add a small
+            # per-message overhead while keeping the estimate lightweight.
+            return sum(len(encoding.encode(str(message.get("content", "")))) + 4 for message in messages) + 2
+        except Exception:
+            pass
+    return int(math.ceil(max(0, prompt_chars) / chars_per_token))
 
 
 def _redaction_placeholder(secret: str, reason: str) -> str:
@@ -648,6 +695,14 @@ def _run_llm_stage(
     last_error_kind: str | None = None
     parsed: Any = {}
     schema_ok = False
+    prompt_chars = _prompt_char_count(prompt_messages)
+    estimated_prompt_tokens = estimate_prompt_tokens(
+        prompt_messages,
+        estimator=config.prompt_token_estimator,
+        chars_per_token=config.prompt_chars_per_token,
+        model=last_model_id,
+    )
+    prompt_budget = config.max_prompt_tokens
 
     for attempt_index in range(config.max_retries + 1):
         attempt_started = time.monotonic()
@@ -657,7 +712,9 @@ def _run_llm_stage(
             attempt=f"{attempt_index}/{config.max_retries}",
             provider=chat_provider.provider_name,
             model=last_model_id,
-            prompt_chars=sum(len(str(message.get("content", ""))) for message in prompt_messages),
+            prompt_chars=prompt_chars,
+            estimated_prompt_tokens=estimated_prompt_tokens,
+            prompt_budget=prompt_budget,
             response_format=response_format.get("type") if isinstance(response_format, dict) else None,
         )
         try:
@@ -805,6 +862,14 @@ def _run_llm_stage(
         "schema_validation_ok": schema_ok,
         "schema_validation_error": review_meta.schema_validation_error,
         "usage": _jsonable(last_usage),
+        "prompt_chars": prompt_chars,
+        "estimated_prompt_tokens": estimated_prompt_tokens,
+        "prompt_token_budget": prompt_budget,
+        "prompt_token_estimator": config.prompt_token_estimator,
+        "chars_per_token_estimate": config.prompt_chars_per_token,
+        "prompt_budget_exceeded_before_request": (
+            estimated_prompt_tokens > prompt_budget if prompt_budget is not None else False
+        ),
         "attempts": attempts,
         "retry_error": retry_error,
         "review_meta": asdict(review_meta),

@@ -50,6 +50,12 @@ Important boundaries:
   the current candidate and SL-9 rationale resolve those remembered objections;
   otherwise request rework with DSL-actionable guidance instead of repeating a
   pure review-format complaint.
+- When local_check_evidence includes `actionable_repair_summary` /
+  scenario repair briefs, use those expected-vs-actual details in your decision
+  and, on rework, translate them into DSL-actionable instructions. Do not only
+  say "scenario_regression remains"; name the failing scenario/step, expected
+  state/vars, actual state/vars/runtime_error, and the DSL mechanism that must
+  change.
 - Do not accept a candidate that drops NL-required states, events, guards,
   actions, or scenario obligations.
 - Do not reject a previously waived/rejected non-hard request again unless new

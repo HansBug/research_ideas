@@ -9,8 +9,9 @@ import pytest
 import method.llm_stages as llm_stages
 import method.loop as loop
 import method.schema as schema
-from method.llm_stages import MockLLMProvider
+from method.llm_stages import LLMStageConfig, MockLLMProvider
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from method.staged_runtime import RepairRequest
 from method.stages.ids import StageId
 
 
@@ -118,6 +119,155 @@ def test_pr_c_default_llm_policy_does_not_hard_limit_stage_output_tokens() -> No
 
     assert "max_tokens" not in cfg.llm_policy
     assert stage_cfg.max_tokens is None
+    assert cfg.budget_policy["prompt_token_budget"] == 128_000
+    assert cfg.budget_policy["prompt_token_estimator"] == "chars_per_token"
+    assert stage_cfg.max_prompt_tokens == 128_000
+    assert stage_cfg.prompt_token_estimator == "chars_per_token"
+
+
+def _prompt_budget_repair_request(*, marker: str) -> RepairRequest:
+    fix_plan = schema.FixPlan(
+        target="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        source_feedback_id="sim:scenario:0",
+        severity="sim_fail",
+        problem_summary=f"Scenario expected-vs-actual evidence must be preserved: {marker}",
+        evidence=[
+            {
+                "kind": "scenario_regression",
+                "repair_brief": {
+                    "scenario_name": "fallback_reset",
+                    "failing_steps": [
+                        {
+                            "step_name": "recover_resets_outputs",
+                            "expected_state": "Root.Idle",
+                            "expected_vars": {"alarm": 0},
+                            "actual_state": "Root.Fault",
+                            "actual_vars_focus": {"alarm": 1},
+                            "marker": marker,
+                        }
+                    ],
+                },
+            }
+        ],
+    )
+    batch = schema.FixRequestBatch(
+        batch_id="budget-batch",
+        iteration=0,
+        source="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        before_dsl_hash="sha256:old",
+        requests=[
+            schema.FixRequest(
+                request_id="req-sim-0",
+                target="sim",
+                source_stage=StageId.SD_6_SIM.value,
+                source_feedback_id="sim:scenario:0",
+                severity="sim_fail",
+                hard_block=True,
+                problem_summary=f"Repair exact scenario mismatch: {marker}",
+                evidence=list(fix_plan.evidence),
+                suggested_fix_hints=[
+                    {
+                        "kind": "repair_brief_hint",
+                        "instruction": "Use expected-vs-actual fields directly.",
+                        "marker": marker,
+                    }
+                ],
+            )
+        ],
+    )
+    fix_log = [
+        {
+            "entry_id": "fixlog-1",
+            "iteration": 0,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:bad",
+            "local_check_evidence": {
+                "actionable_repair_summary": {
+                    "actionable_items": [
+                        {
+                            "kind": "scenario_regression_repair_brief",
+                            "summary": {
+                                "failed_scenarios": [
+                                    {
+                                        "scenario_name": "fallback_reset",
+                                        "failing_steps": [
+                                            {
+                                                "expected_state": "Root.Idle",
+                                                "actual_state": "Root.Fault",
+                                                "marker": marker,
+                                            }
+                                        ],
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            },
+            "repair_memory": {
+                "actionable_rework_guidance": [
+                    {
+                        "kind": "local_actionable_repair_summary",
+                        "summary": {"marker": marker},
+                    }
+                ]
+            },
+            "next_action": "sl9_rework",
+        }
+    ]
+    return RepairRequest(
+        nl="Recover must always leave Fault, return to Idle, and clear alarm.",
+        grounding_map=schema.GroundingMap(source_summary={"source": "test"}),
+        old_dsl=_good_dsl(),
+        fix_plan=fix_plan,
+        selected_feedback_trace={"source": "sim", "source_stage": StageId.SD_6_SIM.value, "marker": marker},
+        fix_request_batch=batch,
+        fix_log=fix_log,
+        repair_memory=loop._repair_memory_for_prompt(fix_log),
+    )
+
+
+def test_pr_c_sl9_prompt_keeps_full_fixlog_until_prompt_budget_is_exceeded() -> None:
+    marker = "FULL_FIXLOG_MARKER_" + ("x" * 2400)
+    request = _prompt_budget_repair_request(marker=marker)
+    payload, meta = loop._select_sl9_prompt_payload(
+        request,
+        LLMStageConfig(max_prompt_tokens=128_000),
+    )
+
+    rendered = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+    assert meta["compaction_level"] == "none"
+    assert meta["prompt_compaction_applied"] is False
+    assert marker in rendered
+    # The full FixLog and current FixRequest evidence must remain untrimmed
+    # while the prompt fits the 128k-class budget.  ``repair_memory`` may still
+    # be a distilled helper view, but it must not replace the full ledger.
+    assert marker in json.dumps(payload["fix_log"], ensure_ascii=False)
+    assert "<truncated" not in json.dumps(payload["fix_log"], ensure_ascii=False)
+    assert marker in json.dumps(payload["fix_request_batch"], ensure_ascii=False)
+    assert "<truncated" not in json.dumps(payload["fix_request_batch"], ensure_ascii=False)
+
+
+def test_pr_c_sl9_prompt_compacts_only_after_prompt_budget_is_exceeded() -> None:
+    marker = "OVER_BUDGET_MARKER_" + ("y" * 2400)
+    request = _prompt_budget_repair_request(marker=marker)
+    payload, meta = loop._select_sl9_prompt_payload(
+        request,
+        LLMStageConfig(max_prompt_tokens=10),
+    )
+
+    rendered = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+    assert meta["compaction_level"] == "level1_compact"
+    assert meta["prompt_compaction_applied"] is True
+    assert meta["budget_exceeded"] is True
+    assert "fallback_reset" in rendered
+    assert "expected_state" in rendered and "Root.Idle" in rendered
+    assert "actual_state" in rendered and "Root.Fault" in rendered
+    assert "<truncated" in rendered
 
 
 def _assert_redaction_stage_failure_record(record: schema.AgentLoopRunRecord, *, stage_id: str, secret: str) -> dict[str, object]:

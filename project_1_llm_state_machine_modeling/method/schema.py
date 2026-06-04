@@ -174,6 +174,10 @@ def _default_budget_policy() -> dict[str, Any]:
         "scenario_max_retries": 2,
         "warning_repair_budget_per_instance": 1,
         "token_budget": None,
+        "prompt_token_budget": 128_000,
+        "prompt_token_estimator": "chars_per_token",
+        "chars_per_token_estimate": 4.0,
+        "compact_prompt_only_when_over_budget": True,
         "time_budget_seconds": None,
     }
 
@@ -448,6 +452,13 @@ class LoopConfig:
             "scenario_max_retries": self.scenario_max_retries,
             "warning_repair_budget_per_instance": self.budget_policy.get("warning_repair_budget_per_instance", 1),
             "token_budget": self.budget_policy.get("token_budget"),
+            "prompt_token_budget": self.budget_policy.get("prompt_token_budget", default_budget["prompt_token_budget"]),
+            "prompt_token_estimator": self.budget_policy.get("prompt_token_estimator", default_budget["prompt_token_estimator"]),
+            "chars_per_token_estimate": self.budget_policy.get("chars_per_token_estimate", default_budget["chars_per_token_estimate"]),
+            "compact_prompt_only_when_over_budget": self.budget_policy.get(
+                "compact_prompt_only_when_over_budget",
+                default_budget["compact_prompt_only_when_over_budget"],
+            ),
             "time_budget_seconds": self.budget_policy.get("time_budget_seconds"),
         }
         if expected_budget != default_budget or self.budget_policy != default_budget:

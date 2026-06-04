@@ -50,6 +50,11 @@ SL-9 Repair contract:
   rationale explicitly explains why an unchanged DSL plus stronger grounding /
   local_override evidence is intentionally sufficient. If it lists actionable
   rework guidance or local objections, address each item in repair_rationale.
+- If FixRequest evidence, FixLog, or `repair_memory` contains
+  `repair_brief` / `actionable_repair_summary`, treat it as the primary
+  expected-vs-actual repair target: name each failing scenario/step, compare
+  expected_state/expected_vars with actual_state/actual_vars/runtime_error, and
+  make the smallest DSL edit that resolves that exact gap.
 - If a request is marked rework_locked by SL-10, you must continue repairing it
   and must not reject it again.
 - `suggested_fix` / `suggested_fix_hints` are a hint, not a command. Prefer a
