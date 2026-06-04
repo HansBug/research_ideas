@@ -135,6 +135,7 @@ class PrE1Case:
     paper_path: str | None = None
     selection_rationale: str = ""
     variable_participation_note: str = ""
+    state_mode_participation_note: str = ""
 
 
 @dataclass(frozen=True)
@@ -235,7 +236,11 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             source_path="project_1_llm_state_machine_modeling/sources/abs-fsm-brake-control",
             paper_path="project_1_llm_state_machine_modeling/sources/abs-fsm-brake-control/paper.pdf",
             selection_rationale="三态、guard、state action 均明确，适合检验 parse/semantic/design/sim 是否能走到后段。",
-            variable_participation_note="`slp` 是 guard 变量；`k1/k2/n` 是状态动作输出，变量不是纯吉祥物。",
+            variable_participation_note=(
+                "`slp` 是外部/plant 输入型 guard 变量：standalone DSL 中通常只读，"
+                "scenario 可通过 `initial_vars` 覆盖来测试阈值；`k1/k2/n` 是状态动作输出。"
+            ),
+            state_mode_participation_note="三态本身承担阈值区间模式，状态进入动作决定阀/泵输出。",
         ),
         PrE1Case(
             case_key="path1_elevator",
@@ -249,7 +254,11 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             source_path="project_1_llm_state_machine_modeling/sources/automatic-elevator-controller",
             paper_path="project_1_llm_state_machine_modeling/sources/automatic-elevator-controller/paper.pdf",
             selection_rationale="楼层态、运动态、请求事件、到位传感事件与 reset 都明确，适合检验事件建模和 forced fallback。",
-            variable_participation_note="`PS*`/`S*`/`reset` 更适合按事件建模；`hbrg` 是输出动作，变量压力低于 Path2 EFSM。",
+            variable_participation_note=(
+                "`PS*`/`S*`/`reset` 更适合按事件建模；`hbrg` 是纯输出动作，"
+                "用于表达上行/下行/停止，不反向影响控制流。"
+            ),
+            state_mode_participation_note="楼层态和运动态直接承担 mode memory；请求/到位事件驱动状态迁移。",
         ),
         PrE1Case(
             case_key="path1_cara",
@@ -263,6 +272,7 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             paper_path="project_1_llm_state_machine_modeling/sources/cara-infusion-pump-formal-spec/paper.pdf",
             selection_rationale="issue #14 / PR-D 代表性医疗 EFSM，覆盖人工/自动模式、故障回退和跨组件事件。",
             variable_participation_note="变量和事件混合；`CA_mode` 与 setpoint/blood pressure 语义强，但容易触发 grounding / required-element 保留问题。",
+            state_mode_participation_note="Manual/Ask_StartAC/Autocontrol/PumpFault 状态承担模式记忆与故障恢复语义。",
         ),
         PrE1Case(
             case_key="path2_lng_ems",
@@ -274,8 +284,16 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             source_url="https://github.com/HansBug/research_ideas/issues/14#issuecomment-4598890799",
             source_path="project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship",
             paper_path="project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship/paper.pdf",
-            selection_rationale="issue #14 / PR-D 代表性 Path2 EFSM，变量、guard、12 个状态和非法状态都明确。",
+            selection_rationale=(
+                "issue #14 / PR-D 代表性 Path2 EFSM，变量、guard、12 个状态和非法状态都明确；"
+                "但它可能退化为条件分类式 dispatch，因此更适合作为 FE/BVS 压力测试，"
+                "是否适合作为 Path2 ref-model 蓝本需看最终 DSL 是否具有 state-dependent mode memory。"
+            ),
             variable_participation_note="`PL/Ppv/Pw/SoC/eng*_Pmax` 是环境输入/容量边界，适合暴露 SD-4 对外部输入变量的处理能力。",
+            state_mode_participation_note=(
+                "原 NL 的 12 状态主要由瞬时需求/容量条件选择；若最终 DSL 全靠 `! *` 条件重选状态，"
+                "则应标为 state_mode_decorative / 低区分度样本，而不是 Path2 主蓝本。"
+            ),
         ),
     ]
     if case_set == "mandatory":
@@ -569,6 +587,7 @@ def build_reproducibility_payload(
             "paper_path": case.paper_path,
             "selection_rationale": case.selection_rationale,
             "variable_participation_note": case.variable_participation_note,
+            "state_mode_participation_note": case.state_mode_participation_note,
             "nl_hash": _hash_text(case.nl),
             "nl_zh_hash": _hash_text(case.nl_zh),
         },
@@ -890,7 +909,15 @@ def _iteration_exit_reasons(record: AgentLoopRunRecord) -> list[str]:
 
 
 def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = None) -> dict[str, object]:
-    """Locate which accepted repair, if any, produced ``final.fcstm``."""
+    """Locate the provenance of ``final.fcstm`` without first-match ambiguity.
+
+    A repair candidate may appear multiple times with the same DSL hash: for
+    example, SL-10 can first request rework because the candidate lacks an
+    explicit local-override rationale, and then accept the unchanged DSL after
+    SL-9 supplies that rationale.  The final artifact must point at the accepted
+    entry rather than the earlier rejected/rework entry, otherwise the run record
+    reads as if a rejected candidate became the final model.
+    """
 
     wanted = final_dsl_hash or _optional_str(record.final_artifacts.get("final_dsl_hash"))
     source: dict[str, object] = {
@@ -899,24 +926,33 @@ def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = N
     }
     if not wanted:
         return source
-    for index, item in enumerate(record.repair_history if isinstance(record.repair_history, list) else []):
-        if not isinstance(item, dict):
-            continue
-        if item.get("candidate_dsl_hash") == wanted:
-            source.update(
-                {
-                    "source_kind": "repair_candidate",
-                    "repair_history_index": index,
-                    "iteration": item.get("iteration"),
-                    "accepted": item.get("accepted"),
-                    "sl10_decision": (item.get("sl10_repair_review") or {}).get("decision") if isinstance(item.get("sl10_repair_review"), dict) else None,
-                    "selected_source_stage": (item.get("selected_feedback") or {}).get("source_stage") if isinstance(item.get("selected_feedback"), dict) else None,
-                }
-            )
-            break
+
+    history = [item for item in (record.repair_history if isinstance(record.repair_history, list) else []) if isinstance(item, dict)]
+    matching: list[tuple[int, dict[str, Any]]] = [
+        (index, item) for index, item in enumerate(history) if item.get("candidate_dsl_hash") == wanted
+    ]
+    accepted_matches = [(index, item) for index, item in matching if item.get("accepted") is True]
+    chosen: tuple[int, dict[str, Any]] | None = accepted_matches[-1] if accepted_matches else (matching[-1] if matching else None)
+    if chosen is not None:
+        index, item = chosen
+        sl10 = item.get("sl10_repair_review") if isinstance(item.get("sl10_repair_review"), dict) else {}
+        matching_indices = [idx for idx, _ in matching]
+        source.update(
+            {
+                "source_kind": "repair_candidate",
+                "repair_history_index": index,
+                "matching_repair_history_indices": matching_indices,
+                "iteration": item.get("iteration"),
+                "accepted": item.get("accepted"),
+                "sl10_decision": sl10.get("decision") if isinstance(sl10, dict) else None,
+                "selected_source_stage": (item.get("selected_feedback") or {}).get("source_stage") if isinstance(item.get("selected_feedback"), dict) else None,
+                "accepted_after_rework": bool(accepted_matches and any(idx < index and prev.get("accepted") is not True for idx, prev in matching)),
+            }
+        )
+
     rejected: list[dict[str, object]] = []
-    for index, item in enumerate(record.repair_history if isinstance(record.repair_history, list) else []):
-        if not isinstance(item, dict) or item.get("accepted") is True:
+    for index, item in enumerate(history):
+        if item.get("accepted") is True:
             continue
         sl10 = item.get("sl10_repair_review") if isinstance(item.get("sl10_repair_review"), dict) else {}
         rejected.append(
@@ -924,6 +960,7 @@ def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = N
                 "repair_history_index": index,
                 "iteration": item.get("iteration"),
                 "candidate_dsl_hash": item.get("candidate_dsl_hash"),
+                "same_as_final": item.get("candidate_dsl_hash") == wanted,
                 "sl10_decision": sl10.get("decision") if isinstance(sl10, dict) else None,
                 "rework_instructions": sl10.get("rework_instructions") if isinstance(sl10, dict) else None,
             }
@@ -931,7 +968,6 @@ def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = N
     if rejected:
         source["last_rejected_candidate"] = rejected[-1]
     return source
-
 
 def _last_repair(record: AgentLoopRunRecord) -> dict[str, Any]:
     for item in reversed(record.repair_history if isinstance(record.repair_history, list) else []):
@@ -1303,12 +1339,12 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "| 维度 | 推荐纳入 | 降优先级 / 排除 |",
         "|---|---|---|",
         "| 状态机结构 | 有明确 states/events/transitions/modes/hierarchy，且 NL 能支持这些元素 | 只有流程叙述或连续优化公式，离散状态边界不清 |",
-        "| 变量参与度 | 变量进入 guard/action/invariant/output decision，并存在事件或动作可更新变量值 | 变量只在背景中出现，或仅作为 guard 常量被读取但从不写入，即“吉祥物变量” |",
+        "| 变量参与度 | 变量进入 guard/action/invariant/output decision；外部输入需显式标注 read-only 边界，内部状态变量需有 NL-grounded 写入 | 变量只在背景中出现（吉祥物变量）、只读但无 external-input rationale、或纯输出变量未解释其不影响控制流 |",
         "| 事件/触发 | 有外部事件、内部事件、故障/恢复、cut-in/out 等触发 | 纯连续控制或静态功率分配，缺少事件驱动逻辑 |",
         "| 论文证据 | `paper_content.txt` 可追溯支持 NL，必要图表可由 `paper.pdf` 核对 | 关键逻辑只在难解析图中，或抽取文本不足以复核 |",
         "| 复杂度 | 中等复杂度，足以展示层次/guard/action，但每轮可诊断 | 过小 toy case；或超大系统导致预算内无法形成有效诊断 |",
         "| Path1 需求 | 有 reference/signed behavior，适合和 ref model 比较 | gold/ref 过弱或人工标注不可复核 |",
-        "| Path2 需求 | 能体现变量、guard、scenario、repair/review 的利用价值 | baseline 靠状态名即可猜对，或变量/guard 不影响运行 |",
+        "| Path2 需求 | 能体现变量、guard、scenario、repair/review 与 state-dependent mode memory 的利用价值 | baseline 靠状态名即可猜对，变量/guard 不影响运行，或状态只是 `! *` 条件分类标签 |",
         "",
         "筛选原则：先定义标准，再筛样本；被排除样本必须记录原因，不能为了结果好看事后 cherry-pick。",
         "",
@@ -1331,8 +1367,8 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
         "",
         f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
-        "| Path | case | config | verdict | status | clean | eligible | failure class | tokens | report |",
-        "|---|---|---|---|---|---:|---:|---|---:|---|",
+        "| Path | case | config | verdict | status | clean | eligible | failure class | token usage | report |",
+        "|---|---|---|---|---|---:|---:|---|---|---|",
     ]
     for s in summaries:
         lines.append(
@@ -1474,9 +1510,11 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
     lines: list[str] = []
     for config_id in sorted(by_config):
         rows = by_config[config_id]
-        successes = sum(1 for row in rows if row.verdict == "success")
-        rejected = sum(1 for row in rows if row.record_status == "rejected")
-        budget = sum(1 for row in rows if row.record_status == "budget_exhausted")
+        infrastructure = [row for row in rows if row.primary_failure_class == "provider_or_retry"]
+        effective_rows = [row for row in rows if row.primary_failure_class != "provider_or_retry"]
+        successes = sum(1 for row in effective_rows if row.verdict == "success")
+        rejected = sum(1 for row in effective_rows if row.record_status == "rejected")
+        budget = sum(1 for row in effective_rows if row.record_status == "budget_exhausted")
         total_tokens = _sum_numeric(row.token_usage.get("total_tokens") for row in rows)
         estimated_tokens = _sum_numeric(row.token_usage.get("estimated_total_tokens") for row in rows)
         if total_tokens is not None:
@@ -1485,8 +1523,12 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
             token_text = f"estimated_total_tokens≈{estimated_tokens}（provider未返回stream usage，不当作真实token）"
         else:
             token_text = "token_usage=unknown"
+        if infrastructure:
+            ratio_text = f"{successes}/{len(effective_rows)} effective success；provider/network invalid={len(infrastructure)}/{len(rows)}（不计入质量/参数分母）"
+        else:
+            ratio_text = f"{successes}/{len(rows)} success"
         lines.append(
-            f"- `{config_id}`：{successes}/{len(rows)} success，rejected={rejected}，budget_exhausted={budget}，{token_text}。"
+            f"- `{config_id}`：{ratio_text}，rejected={rejected}，budget_exhausted={budget}，{token_text}。"
         )
     max_iteration_values = {condition_specs()[s.config_id].max_iterations for s in summaries if s.config_id in condition_specs()}
     observed_multi_iter = any(s.iteration_count > 1 for s in summaries)
@@ -1497,7 +1539,12 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
     if not any("SL-5" in s.executed_stage_ids for s in summaries):
         lines.append("- Q1/scenario-review 维度：当前矩阵尚未进入 SL-5/SD-6/SL-7/SL-10，因此 `scenario_max_retries`、`model_review_mode`、`repair_review_mode` 仍属于未回答问题。")
     eligible_count = sum(1 for s in summaries if s.main_result_eligible)
-    lines.append(f"- 主结果候选：当前 {eligible_count}/{len(summaries)} run 可进入 main_result_eligible；其余只能作为 exploratory / infrastructure evidence。")
+    effective_count = sum(1 for s in summaries if s.primary_failure_class != "provider_or_retry")
+    infrastructure_count = len(summaries) - effective_count
+    lines.append(
+        f"- 主结果候选：当前 {eligible_count}/{effective_count or len(summaries)} 个非 infrastructure run 可进入 main_result_eligible；"
+        f"provider/network invalid={infrastructure_count} 个，只能作为 infrastructure evidence。"
+    )
     return lines
 
 
@@ -1530,6 +1577,9 @@ def _sample_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
         lines.append("- 实证筛选更新：若论文变量主要是外部传感/环境输入，应在样本记录中明确“只读输入”身份；若模型需要内部状态变量，则必须有 NL-grounded write/action，否则容易被 SD-4 阻断。")
     if any(s.primary_failure_class == "grounding_or_required_element_loss" for s in summaries):
         lines.append("- 实证筛选更新：repair 能通过局部语法/语义但丢失 required grounded elements 的样本，应标为高风险，不应因为预算增大而视为质量提升。")
+    lines.append("- 实证筛选更新：外部输入变量（plant/sensor/environment read-only）与内部状态变量必须分开标注；只读外部输入可接受，但不能被误写成‘变量参与充分’。")
+    lines.append("- 实证筛选更新：纯输出变量（只写不读）可用于 Path1 行为展示，但需要 admitted-abstraction / output-only 说明；不应拿来证明变量驱动控制流。")
+    lines.append("- 实证筛选更新：若最终 DSL 的状态主要由无记忆 `! *` 条件重选，状态只是分类标签，应标为 state_mode_decorative；可作 FE/BVS 压力测试，不宜作为 Path2 state-machine ref-model 主蓝本。")
     return lines
 
 

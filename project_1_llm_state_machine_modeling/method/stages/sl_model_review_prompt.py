@@ -183,13 +183,11 @@ Blocking guidance:
   missing required states/transitions/guards/actions, SD-6 failure, weak oracle,
   constant required output without rationale, test-harness
   pollution, or blocking diagnostics.
-- If you raise a quality C/I concern, also raise or include an
-  `agent_loop_root_cause` finding. Do not stop at "model quality is poor":
-  trace the defect to the most likely loop stage/root cause, e.g. SL-1 missed
-  NL obligations, SD-4 deterministic feedback did not expose enough quality
-  context, SL-5 generated weak/model-derived scenarios, SL-7 review was too
-  weak, SL-9 repaired a local warning while losing global grounding, or SD-10
-  conservatively rejected a necessary structural expansion.
+- Decompose compound outputs by target; aggregate ids are not enough.
+- Flag `state_mode_decorative` for `! *` label-only states without mode memory.
+- Separate external inputs, internal variables, and pure outputs.
+- If you raise a quality C/I concern, include an `agent_loop_root_cause`
+  finding. Do not stop at "model quality is poor".
 - If the input is insufficient for a safe decision, use `audit_only`.
 
 Required input fields include NL, current DSL, GroundingMap, and the bounded

@@ -168,6 +168,11 @@ Additional PR-1B contract:
   as an unresolved/admitted abstraction instead of silently asserting the
   constant value as correct. Do this from NL/DSL semantics, not from
   benchmark-specific sample names.
+- If NL applies a command/output obligation to multiple target classes, create
+  scenario coverage for each represented target class when the DSL contains
+  corresponding variables/actions. If a target class is absent from the DSL,
+  add a coverage note/admitted-abstraction probe rather than using another
+  target's output as a proxy for all targets.
 - If `previous_scenarios` is non-empty, treat them as the current oracle draft:
   preserve their names, intent, and already-covered probes unless they are
   impossible under the DSL. Add or strengthen only the gaps named in

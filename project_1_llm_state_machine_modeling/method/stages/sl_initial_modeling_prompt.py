@@ -103,8 +103,18 @@ Hard constraints:
   a state action / transition effect, or record a clear `assumptions` entry
   explaining that the command is an admitted abstraction outside the current
   DSL scope. Cut-in/cut-out, alarm, reset/fault-release, valve, pump, drive,
-  and load/generator command words are examples of output obligations, but
-  decide from NL semantics rather than any benchmark-specific token list.
+  and other actuator/resource command words are examples of output obligations,
+  but decide from NL semantics rather than any benchmark-specific token list.
+- When NL says a command/output applies to multiple targets (phrases like
+  "X and Y" or any other compound object), decompose
+  the obligation by target class in your mental ledger. Model each target's
+  command/output when within scope, or record an admitted-abstraction assumption
+  for the omitted target. Do not let an aggregate command id silently cover only
+  one target class.
+- Make state participation explicit in the DSL design. If states are only
+  static output labels selected by current inputs, prefer adding event/mode
+  memory when NL supports it; otherwise record an assumption that the model is a
+  condition-classification abstraction rather than a mode-memory controller.
 - Stay inside the currently parseable pyfcstm subset: declare variables only as
   `def int` or `def float`; encode boolean-like flags as int 0/1; do not emit
   `def bool`, `true`, `false`, `!flag`, C-style inline comments, or unknown

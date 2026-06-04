@@ -997,15 +997,16 @@ def _transition_endpoint(owner_state: str, endpoint: Any) -> str:
     return raw
 
 
-def _component_index(model: Any) -> dict[str, set[str]]:
+def _component_index(model: Any) -> dict[str, Any]:
     states = _iter_model_states(model)
-    index: dict[str, set[str]] = {
+    index: dict[str, Any] = {
         "state_paths": set(),
         "state_names": set(),
         "event_refs": set(),
         "event_names": set(),
         "variable_names": set(),
         "transition_refs": set(),
+        "transition_objects": [],
         "guard_refs": set(),
         "action_refs": set(),
     }
@@ -1024,6 +1025,12 @@ def _component_index(model: Any) -> dict[str, set[str]]:
                 index["action_refs"].add(action_ref)
                 for operation in getattr(action_block, "operations", []) or []:
                     index["action_refs"].add(str(operation))
+        for action_block in getattr(state, "on_during_aspects", []) or []:
+            aspect = getattr(action_block, "aspect", None) or ""
+            for action_ref in _during_aspect_action_refs(state_path, aspect):
+                index["action_refs"].add(action_ref)
+            for operation in getattr(action_block, "operations", []) or []:
+                index["action_refs"].add(str(operation))
         for event_name in getattr(state, "events", {}) or {}:
             event_ref = f"{state_path}.{event_name}" if state_path else str(event_name)
             index["event_refs"].add(event_ref)
@@ -1046,12 +1053,149 @@ def _component_index(model: Any) -> dict[str, set[str]]:
             if guard is not None:
                 index["guard_refs"].add(base)
                 index["guard_refs"].add(str(guard))
+            index["transition_objects"].append(
+                {
+                    "from": from_ref,
+                    "to": to_ref,
+                    "event": event_ref,
+                    "event_leaf": event_leaf,
+                    "guard": str(guard) if guard is not None else "",
+                    "is_forced": bool(getattr(transition, "is_forced", False)),
+                }
+            )
             for effect in getattr(transition, "effects", []) or []:
                 index["action_refs"].add(str(effect))
     defines = getattr(model, "defines", {}) or {}
     index["variable_names"].update(str(name) for name in defines.keys())
     return index
 
+
+
+def _during_aspect_action_refs(state_path: str, aspect: str) -> set[str]:
+    """Return stable refs for pyfcstm ``>> during <aspect>`` actions."""
+
+    stage = f"during_{aspect}" if aspect else "during"
+    if not state_path:
+        return {stage, f">>{stage}"}
+    return {
+        f"{state_path}.{stage}",
+        f"{state_path}.>>{stage}",
+        f"{state_path}.during.{aspect}" if aspect else f"{state_path}.during",
+    }
+
+
+def _normalize_structural_ref(value: str) -> str:
+    return re.sub(r"\s+", "", value or "").replace("::", ":")
+
+
+def _path_suffix_matches(actual: str, expected: str) -> bool:
+    expected = (expected or "").strip()
+    actual = (actual or "").strip()
+    if not expected:
+        return True
+    if expected in {"*", "!*", "ALL"}:
+        return True
+    if actual == expected:
+        return True
+    actual_parts = [part for part in actual.split(".") if part]
+    expected_parts = [part for part in expected.split(".") if part]
+    if not actual_parts or not expected_parts:
+        return False
+    if len(expected_parts) == 1:
+        return actual_parts[-1] == expected_parts[0]
+    return len(actual_parts) >= len(expected_parts) and actual_parts[-len(expected_parts) :] == expected_parts
+
+
+def _strip_ref_tail(value: str) -> str:
+    value = re.sub(r"\beffect\s*\{.*", "", value, flags=re.IGNORECASE).strip()
+    return value.strip("; ")
+
+
+def _parse_transition_ref(ref: str) -> dict[str, str | bool] | None:
+    """Parse common SL-1 GroundingMap transition refs without sample lexicons."""
+
+    compact = _strip_ref_tail(ref).replace(" ", "")
+    if "->" not in compact:
+        return None
+    left, right = compact.split("->", 1)
+    event = ""
+    guard = ""
+    to_ref = right
+    if "::" in right:
+        to_ref, event = right.split("::", 1)
+    elif ":" in right:
+        to_ref, tail = right.split(":", 1)
+        if tail.lower().startswith("if["):
+            guard = tail
+        else:
+            event = tail
+    left_leaf = _ref_leaf(left)
+    from_wildcard = left_leaf in {"*", "!*", "ALL"}
+    parent_prefix = ""
+    left_parts = [part for part in left.split(".") if part]
+    if len(left_parts) > 1:
+        parent_prefix = ".".join(left_parts[:-1])
+    expected_to = to_ref
+    if parent_prefix and "." not in to_ref and to_ref not in {"[*]", "EXIT_STATE", "INIT_STATE"}:
+        expected_to = f"{parent_prefix}.{to_ref}"
+    return {
+        "from": left,
+        "to": expected_to,
+        "event": event,
+        "guard": guard,
+        "from_wildcard": from_wildcard,
+    }
+
+
+def _guard_matches(actual_guard: str, expected_guard: str) -> bool:
+    if not expected_guard:
+        return True
+    expected = expected_guard
+    if expected.lower().startswith("if[") and expected.endswith("]"):
+        expected = expected[3:-1]
+    actual = actual_guard or ""
+    return _normalize_structural_ref(expected) in _normalize_structural_ref(actual) or _normalize_structural_ref(actual) in _normalize_structural_ref(expected)
+
+
+def _transition_object_matches(actual: dict[str, Any], expected: dict[str, str | bool]) -> bool:
+    if expected.get("from_wildcard"):
+        if not actual.get("is_forced"):
+            return False
+    elif not _path_suffix_matches(str(actual.get("from") or ""), str(expected.get("from") or "")):
+        return False
+    if not _path_suffix_matches(str(actual.get("to") or ""), str(expected.get("to") or "")):
+        return False
+    expected_event = str(expected.get("event") or "")
+    if expected_event and not (
+        _path_suffix_matches(str(actual.get("event") or ""), expected_event)
+        or _path_suffix_matches(str(actual.get("event_leaf") or ""), expected_event)
+    ):
+        return False
+    if not _guard_matches(str(actual.get("guard") or ""), str(expected.get("guard") or "")):
+        return False
+    return True
+
+
+def _transition_ref_present(index: dict[str, Any], ref: str) -> bool:
+    normalized_ref = _normalize_structural_ref(ref)
+    if any(_normalize_structural_ref(str(item)) == normalized_ref for item in index["transition_refs"]):
+        return True
+    parsed = _parse_transition_ref(ref)
+    if parsed is None:
+        return False
+    return any(_transition_object_matches(item, parsed) for item in index.get("transition_objects", []))
+
+
+def _action_ref_present(index: dict[str, Any], ref: str) -> bool:
+    normalized_ref = _normalize_structural_ref(ref)
+    for item in index["action_refs"]:
+        item_text = str(item)
+        if _normalize_structural_ref(item_text) == normalized_ref:
+            return True
+        if "." in ref and _path_suffix_matches(item_text, ref):
+            return True
+    leaf = _ref_leaf(ref)
+    return any(ref == str(item) or leaf == _ref_leaf(str(item)) for item in index["action_refs"])
 
 def _element_ref_for_matching(element: GroundedElement) -> str:
     ref = (element.element_ref or "").strip()
@@ -1064,7 +1208,7 @@ def _element_ref_for_matching(element: GroundedElement) -> str:
     return ref
 
 
-def _grounded_element_present(index: dict[str, set[str]], element: GroundedElement) -> bool:
+def _grounded_element_present(index: dict[str, Any], element: GroundedElement) -> bool:
     ref = _element_ref_for_matching(element)
     if not ref:
         return True
@@ -1081,12 +1225,11 @@ def _grounded_element_present(index: dict[str, set[str]], element: GroundedEleme
     if kind == "variable":
         return ref in index["variable_names"] or leaf in index["variable_names"]
     if kind == "transition":
-        normalized_ref = re.sub(r"\s+", "", ref)
-        return any(re.sub(r"\s+", "", item) == normalized_ref for item in index["transition_refs"])
+        return _transition_ref_present(index, ref)
     if kind == "guard":
         return any(ref == item or leaf == _ref_leaf(item) for item in index["guard_refs"])
     if kind == "action":
-        return any(ref == item or leaf == _ref_leaf(item) for item in index["action_refs"])
+        return _action_ref_present(index, ref)
     return False
 
 

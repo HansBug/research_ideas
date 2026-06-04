@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from method.pr_e1_real_runs import (
@@ -326,3 +327,127 @@ def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> No
     assert summary.iteration_exit_reasons[-1].startswith("SD-6 sim failure")
     assert summary.final_dsl_source["repair_history_index"] == 0
     assert summary.final_dsl_source["last_rejected_candidate"]["candidate_dsl_hash"] == "sha256:rejected"
+
+
+def test_pr_e1_final_dsl_source_prefers_later_accepted_same_hash(tmp_path: Path) -> None:
+    record = _record("source-accepted-after-rework")
+    final_hash = "sha256:repeat"
+    record.final_artifacts["final_dsl_hash"] = final_hash
+    record.repair_history = [
+        {
+            "iteration": 0,
+            "candidate_dsl_hash": final_hash,
+            "accepted": False,
+            "sl10_repair_review": {"decision": "rework", "rework_instructions": ["add explicit mapping"]},
+            "selected_feedback": {"source_stage": "SD-6"},
+        },
+        {
+            "iteration": 0,
+            "candidate_dsl_hash": final_hash,
+            "accepted": True,
+            "sl10_repair_review": {"decision": "pass"},
+            "selected_feedback": {"source_stage": "SD-6"},
+        },
+    ]
+    path = write_agent_loop_run_record(record, tmp_path / "source-repeat.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="source-repeat", run_record_path=str(path))
+
+    from method.pr_e1_real_runs import summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case=pr_e1_cases()[0],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert summary.final_dsl_source["accepted"] is True
+    assert summary.final_dsl_source["sl10_decision"] == "pass"
+    assert summary.final_dsl_source["repair_history_index"] == 1
+    assert summary.final_dsl_source["matching_repair_history_indices"] == [0, 1]
+    assert summary.final_dsl_source["accepted_after_rework"] is True
+    assert summary.final_dsl_source["last_rejected_candidate"]["same_as_final"] is True
+
+
+def test_pr_e1_case_metadata_marks_external_inputs_outputs_and_state_mode_policy() -> None:
+    cases = {case.case_key: case for case in pr_e1_cases("all")}
+
+    assert "外部" in cases["path1_abs"].variable_participation_note
+    assert "只读" in cases["path1_abs"].variable_participation_note
+    assert "纯输出" in cases["path1_elevator"].variable_participation_note
+    assert "state_mode_decorative" in cases["path2_lng_ems"].state_mode_participation_note
+
+
+def test_pr_e1_matrix_summary_separates_provider_invalid_denominator() -> None:
+    ok = PrE1RunSummary(
+        case_key="path1_abs",
+        path="path1",
+        case_id="abs",
+        config_id="default",
+        condition_id="full_staged_v1",
+        run_id="ok-run",
+        result_status="success",
+        record_status="success",
+        verdict="success",
+        verdict_reason="ok",
+        verdict_source_stage_id="SC-12",
+        main_result_eligible=True,
+        oracle_weak=False,
+        schema_valid=True,
+        schema_error=None,
+        secret_redacted=True,
+        redaction_report_count=0,
+        provider_mode="real_env",
+        provider_model_redacted="model",
+        real_llm_provider_api=True,
+        provider_config_read=True,
+        git_commit="abc",
+        git_dirty=False,
+        git_diff_hash="sha256:diff",
+        prompt_snapshot_hash="sha256:prompt",
+        reproducibility_path="reproducibility.json",
+        clean_commit_bound=True,
+        elapsed_seconds=1.0,
+        token_usage={"total_tokens": 10, "token_usage_available": True},
+        stage_count=1,
+        executed_stage_ids=["SC-0"],
+        missing_required_stage_ids=[],
+        llm_stage_ids=[],
+        iteration_count=1,
+        repair_count=0,
+        accepted_repair_count=0,
+        scenario_history_count=0,
+        final_dsl_length=1,
+        final_dsl_hash="sha256:ok",
+        run_record_path="ok.agent_loop.json.gz",
+        report_path="ok/report.md",
+        summary_path="ok/summary.json",
+        final_dsl_path="ok/final.fcstm",
+        checks_path="ok/checks.json",
+        stdout_path="ok/stdout.txt",
+        stderr_path="ok/stderr.txt",
+        primary_failure_class="success",
+    )
+    invalid = replace(
+        ok,
+        run_id="provider-run",
+        result_status="error",
+        record_status="error",
+        verdict="provider_error",
+        main_result_eligible=False,
+        primary_failure_class="provider_or_retry",
+        final_dsl_hash="sha256:provider",
+    )
+
+    from method.pr_e1_real_runs import render_matrix_summary
+
+    text = render_matrix_summary([ok, invalid])
+    assert "1/1 effective success" in text
+    assert "provider/network invalid=1/2" in text
+    assert "当前 1/1 个非 infrastructure run" in text

@@ -1191,3 +1191,92 @@ state System {
     assert step.status == "fail"
     assert step.actual_state == "<ended>"
     assert step.runtime_error is None
+
+
+def test_sd10_repair_review_matches_structural_transition_refs_not_id_literals() -> None:
+    old_dsl = """
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+    state Mode_Control_Algorithm {
+        [*] -> Manual;
+        state Manual;
+        state Ask_StartAC;
+        Manual -> Ask_StartAC : InitiateAC;
+    }
+}
+"""
+    candidate_dsl = old_dsl
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="transition:Manual_to_Ask_StartAC",
+                element_kind="transition",
+                element_ref="CARA.Mode_Control_Algorithm.Manual->Ask_StartAC:InitiateAC",
+                source_stage="SL-1",
+                evidence_text="The caregiver initiates autocontrol from Manual into Ask_StartAC.",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Manual enters Ask_StartAC when InitiateAC occurs.",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert feedback.ok
+    assert feedback.local_rejection is None
+
+
+def test_sd10_repair_review_matches_forced_transition_and_during_aspect_refs() -> None:
+    dsl = """
+def int shared_bp_buffer = 0;
+def int blood_pressure = 0;
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+    state Mode_Control_Algorithm {
+        ! * -> Manual : CA_backManual;
+        >> during before { shared_bp_buffer = blood_pressure; }
+        [*] -> Manual;
+        state Manual;
+        state AutocontrolNormal;
+        AutocontrolNormal -> Manual : TerminateAC;
+    }
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="transition:Fallback_CA_backManual",
+                element_kind="transition",
+                element_ref="CARA.Mode_Control_Algorithm.!*->Manual:CA_backManual",
+                source_stage="SL-1",
+                evidence_text="CA_backManual causes return to Manual.",
+                requiredness="required",
+            ),
+            GroundedElement(
+                element_id="action:Mode_Control_store_sensor_buffer",
+                element_kind="action",
+                element_ref="CARA.Mode_Control_Algorithm.>>during_before",
+                source_stage="SL-1",
+                evidence_text="Sensor readings are stored in a shared buffer.",
+                requiredness="required",
+            ),
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Fallback event returns any substate to Manual and stores sensor readings in a shared buffer.",
+        grounding_map=grounding,
+        old_dsl=dsl,
+        candidate_dsl=dsl,
+        fix_plan=plan,
+    )
+
+    assert feedback.ok
+    assert feedback.local_rejection is None

@@ -58,6 +58,10 @@ Important boundaries:
   change.
 - Do not accept a candidate that drops NL-required states, events, guards,
   actions, or scenario obligations.
+- For compound command/output obligations, review target-level coverage. If the
+  NL requires outputs for multiple target classes, one aggregate grounding id or
+  one represented target class is insufficient unless the FixLog/candidate DSL
+  contains an admitted-abstraction rationale for omitted targets.
 - Do not reject a previously waived/rejected non-hard request again unless new
   evidence shows a regression.
 - If you choose rework, provide concrete rework instructions. Rework requests
