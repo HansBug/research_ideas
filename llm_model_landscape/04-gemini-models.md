@@ -1,0 +1,16 @@
+# Google Gemini 系列模型完整表
+
+> 本文件维护 Google Gemini 系列模型完整表。摘要结论见 [SUMMARY.md](./SUMMARY.md#6-gemini-当前重点模型)。Gemini 模型 lifecycle 与 pricing 变化较快，实验前必须按精确 model ID 重查 [Gemini API models](https://ai.google.dev/gemini-api/docs/models) 与 [pricing](https://ai.google.dev/gemini-api/docs/pricing)。
+
+## 1. Gemini 系列完整表（按发布时间降序）
+
+| 发布时间/排序键 | 模型/系列 | 状态 | context / max output | 价格口径 | 来源 |
+|---:|---|---|---:|---|---|
+| 2026-05-19 | Gemini 3.5 Flash / Gemini 3.5 Nano Banana | 官方 models 页 current 新线 | 按精确 ID 查；多为 1M 级 | 按 Gemini pricing 当前页 | [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| 2025-12-17 | Gemini 3 Flash | preview/较新线 | 1,048K / 65K 级 | 按 Gemini 3 pricing | [Gemini 3](https://ai.google.dev/gemini-api/docs/gemini-3) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| 2025-11-18 | Gemini 3 Pro | preview/较新线 | 1,048K / 65K 级 | 按 Gemini 3 pricing | [Gemini 3](https://ai.google.dev/gemini-api/docs/gemini-3) / [pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| 2025-07-22 | Gemini 2.5 Flash-Lite | GA/低价长上下文 | 1,048K / 65K 级 | 按 current pricing | [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
+| 2025-06-17 | Gemini 2.5 Pro / Flash | GA/常用线 | 1,048K / 65K 级 | Pro/Flash 按 current pricing | [models](https://ai.google.dev/gemini-api/docs/models) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
+| 2025-02 | Gemini 2.0 Flash / Flash-Lite | historical / lifecycle 风险 | 1M / 8K 级 | 旧 Vertex/Gemini 计价 | [lifecycle](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
+| 2024-05 | Gemini 1.5 Pro / Flash | historical/retired 风险 | 1M-2M 级历史长上下文 | 旧 Vertex 计价 | [lifecycle](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
+| 2024-02 | Gemini 1.0 Pro / Vision | retired/historical | 32K 时代 | 旧 Vertex 计价 | [lifecycle](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions) / [pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) |
