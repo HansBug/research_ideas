@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-04 18:55`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -10,12 +10,12 @@
 
 1. 与本仓库四个 project 强相关或中相关的 `CCF` 会议 / 期刊基本信息。
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
-3. 自 `2022` 年以来每一年的年度主页、`CFP` / author guideline、关键时间点、论文名录页面和论文数量。
+3. 自 `2022` 年以来每一年的年度主页、`CFP` / important dates / author guidelines、submission system、program / accepted papers、proceedings / volume issue、论文名录页面和论文数量，并在表格中直接挂可点击超链接。
 4. 尚未召开但已经能找到官方年度主页、`CFP` 或 important dates 的未来年度信息。
 5. 以 [TIMELINE.md](./TIMELINE.md) 按年份串联所有投稿相关 important dates，形成跨 venue 时间线。
 6. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
 
-换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口在哪里。**
+换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里，并能直接从表格点击跳转。**
 
 ## 2. 与现有材料的关系
 
@@ -90,7 +90,18 @@
 
 若 venue 属于 CCF 理论类、交叉类或国内高质量目录，但仍纳入本库，目录名仍先按等价 A/B/C 档记录，具体 CCF 大类写在 venue README 的元信息字段中。
 
-## 6. 标准目录结构
+
+## 6. 核心 URL 与超链接要求
+
+本库不是只记录“有 / 无”的静态目录，而是可直接点击使用的情报入口。后续任何 venue 数据填充 PR 都必须满足：
+
+1. **venue 根 README 的年度汇总表必须直接挂核心 URL**：会议至少包含官方年度主页、CFP、Important Dates、submission system、program / accepted papers、proceedings、DBLP 年度页；期刊至少包含期刊主页、author guidelines、submission system、special issue / topical collection、volume / issue、online first / articles in press、DBLP 年度页。
+2. **年度 README 必须集中维护年度核心 URL 索引**：当年主页、CFP / dates、投稿系统、论文集 / 论文名录或期刊卷期入口、DBLP fallback 都要有独立表格字段，不能只散落在正文。
+3. **TIMELINE.md 的事件行必须保留可点击来源链**：每条 dated event 至少链接事件官方来源和本库年度 README；若会议已结束或论文入口已发布，应同时挂年度主页、论文集 / 论文名录链接。
+4. **缺失链接要显式标注**：未公布写 `未公布`，已检索未找到写 `⏳ 已检索未公布`，待人工补证写 `待补`；不得留空，也不得把第三方聚合页伪装成官方来源。
+5. **链接优先级必须清楚**：官方页面优先；出版商页面用于 proceedings / volume issue；DBLP 只能作论文名录或计数 fallback；PR #5 和旧材料只作发现线索。
+
+## 7. 标准目录结构
 
 ```text
 ccf_venues/
@@ -119,7 +130,7 @@ ccf_venues/
     └── 2025/README.md
 ```
 
-## 7. 文件说明
+## 8. 文件说明
 
 1. [README.md](./README.md)
    - 本库定位、范围、命名规则和入口说明。
@@ -136,7 +147,7 @@ ccf_venues/
 7. `conf-a-icse/`、`journal-b-sosym/` 等 venue 子路径
    - 每个会议或期刊一个子路径；每个年度一个子目录。
 
-## 8. AI 工作入口提示
+## 9. AI 工作入口提示
 
 涉及本库的任务默认按以下顺序阅读：
 
@@ -147,8 +158,9 @@ ccf_venues/
 5. 若要新增 venue，先查 [01-venue-scope.md](./01-venue-scope.md)，确认是否属于当前批次。
 6. 最后进入 `<conf|journal>-<rank>-<slug>/` 维护具体 venue。
 
-## 9. 更新日志
+## 10. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 19:37` | 补充 venue 根 README、年度 README 与 TIMELINE 必须直接挂核心 URL / Markdown 超链接的要求。 |
 | `2026-06-04 18:55` | 明确默认未来检索/占位下限为当前年份 + 2（当前到 2028），更远未来若已有官方 CFP / important dates 也必须纳入。 |

@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 18:55`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -10,7 +10,7 @@
 
 1. 固定和本仓库 project 相关的 venue 范围。
 2. 维护每个 venue 的稳定信息：官方主页、scope、出版方、CCF 等级、project 相关性。
-3. 维护自 `2022` 年以来每个年度的官方主页、`CFP` / important dates、论文名录入口和论文数量。
+3. 维护自 `2022` 年以来每个年度的官方主页、`CFP` / important dates、submission system、program / accepted papers、proceedings / volume issue、论文名录入口和论文数量，并把这些入口以 Markdown 超链接挂进表格。
 4. 对尚未召开但已有官方信息的年度，记录当前状态和关键 ddl。
 5. 维护 [TIMELINE.md](./TIMELINE.md)，按年份汇总跨 venue 投稿相关 important dates。
 6. 给后续论文初筛、投稿计划、前沿追踪提供稳定入口。
@@ -87,7 +87,53 @@ yyyy-mm-dd hh:mm
 4. 官方 special issue `CFP` 页面。
 5. `DBLP` 年度页面，用于年度论文名录 fallback 或计数核验。
 
-## 5. 会议 README 结构规范
+
+## 5. 核心 URL 字段与超链接规范
+
+后续数据填充不是只写摘要，而是要把可复用入口直接挂进表格，方便人和 AI 点击核验。
+
+### 5.1 会议必须维护的核心 URL
+
+会议根 README 与年度 README 至少维护以下链接字段：
+
+| 链接字段 | 放置位置 | 来源优先级 | 缺失时写法 |
+|---|---|---|---|
+| 官方 series page | venue 根 README 基本信息与核心链接索引 | 官方长期主页 | `待补` |
+| 官方年度主页 | venue 年度汇总表、年度 README、TIMELINE | 官方年度主页 | `⏳ 待官网` 或 `⏳ 已检索未公布` |
+| CFP / Call for Papers | venue 年度汇总表、年度 README | 官方 CFP / track CFP | `未公布` / `待补` |
+| Important Dates | venue 年度汇总表、年度 README、TIMELINE | 官方 dates 页；可与 CFP 同页 | `未公布` / `待补` |
+| Submission system | venue 年度汇总表、年度 README | 官方投稿入口 | `未公布` / `不公开` |
+| Program / accepted papers | venue 年度汇总表、年度 README | 官方 program / accepted paper list | 未结束写 `未公布` |
+| Proceedings | venue 年度汇总表、年度 README | 出版商 / 官方 proceedings | 未发布写 `未公布` |
+| DBLP 年度页 | venue 年度汇总表、年度 README | DBLP | 仅 fallback，写明口径 |
+
+会议根 README 的年度表不允许只写“见年度页”；至少官方年度主页、CFP / Important Dates、论文名录 / proceedings、DBLP 年度页这些核心入口要能直接点击。
+
+### 5.2 期刊必须维护的核心 URL
+
+期刊根 README 与年度 README 至少维护以下链接字段：
+
+| 链接字段 | 放置位置 | 来源优先级 | 缺失时写法 |
+|---|---|---|---|
+| Journal homepage | 期刊根 README、年度 README | 出版商官方主页 | `待补` |
+| Aims and scope | 期刊根 README 核心链接索引 | 官方 scope 页 | `待补` |
+| Author guidelines | 期刊根 README、年度汇总表、年度 README、TIMELINE 未定日期表 | 官方指南 | `待补` |
+| Submission system | 期刊根 README、年度汇总表、年度 README、TIMELINE 未定日期表 | 官方投稿入口 | `待补` |
+| Special issue / topical collection CFP | 年度汇总表、年度 README、TIMELINE dated event | 官方专刊 CFP | 无则 `无已知` |
+| Volume / issue archive | 年度汇总表、年度 README | 出版商卷期页 | `待补` |
+| Articles in press / online first | 年度汇总表、年度 README | 出版商 online first 页 | `待补` |
+| DBLP 年度页 | 年度汇总表、年度 README | DBLP | 仅 fallback，写明口径 |
+
+期刊 rolling submission 不进入 dated Mermaid，但 [TIMELINE.md](./TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+
+### 5.3 Markdown 链接写法
+
+1. 已找到 URL 时，表格中直接写 Markdown 链接，例如 `[ICSE 2026](https://conf.researchr.org/home/icse-2026)`。
+2. 本库内部页使用相对路径，例如 [`2026`](./2026/README.md)、[TIMELINE.md](../TIMELINE.md)。
+3. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间。
+4. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
+
+## 6. 会议 README 结构规范
 
 每个会议根 README 必须包含：
 
@@ -105,18 +151,18 @@ yyyy-mm-dd hh:mm
 | 年份 | 链接到对应年度 README |
 | 阶段状态 | 使用 `emoji + 短文本`，例如 `🟢 投稿中` |
 | 官方主页 | 链接到官方年度主页；未找到则写 `待补` |
-| CFP / Important Dates | 链接到官方 `CFP` 或日期页 |
+| CFP / Important Dates | 直接链接到官方 `CFP` 或日期页，不允许只写纯文本 |
 | Abstract deadline | 精确到分钟；无则 `未公布` |
 | Submission deadline | 精确到分钟；无则 `未公布` |
 | Notification | 精确到分钟；无则 `未公布` |
 | 会期 | 起止日期或日期时间 |
 | 论文数量 | 仅已召开且可核验时填写 |
-| 论文名录 | 官方 proceedings 优先，`DBLP` 可作 fallback |
+| 论文名录 | 官方 program / accepted papers / proceedings 优先，`DBLP` 可作 fallback，必须是可点击链接 |
 | 核验状态 | 例如 `已核验`、`部分核验`、`待补` |
 
 说明：`阶段状态` 列按用户需求明确允许 `emoji + 短文本`，它不是仓库通用“emoji 口径列”。
 
-## 6. 会议年度 README 结构规范
+## 7. 会议年度 README 结构规范
 
 每个会议年度 README 必须包含：
 
@@ -130,7 +176,7 @@ yyyy-mm-dd hh:mm
 8. 证据与核查记录。
 9. 文末更新日志表。
 
-## 7. 期刊 README 结构规范
+## 8. 期刊 README 结构规范
 
 期刊没有会议式年度 ddl，因此期刊根 README 应改用期刊结构，至少包含：
 
@@ -148,16 +194,16 @@ yyyy-mm-dd hh:mm
 |---|---|
 | 年份 | 链接到对应年度 README |
 | 年度状态 | 例如 `🟢 滚动开放`、`✅ 年度已归档` |
-| Author guidelines | 当年核验到的官方指南链接 |
-| Special issue | 当年 special issue `CFP` 链接或 `无已知` |
+| Author guidelines | 当年核验到的官方指南链接，必须可点击 |
+| Special issue | 当年 special issue `CFP` 链接或 `无已知`，有链接时必须可点击 |
 | 关键截止时间 | special issue ddl；rolling journal 可写 `滚动投稿` |
-| Volume / issue | 出版商年度卷期入口 |
-| Online first | 出版商 online first / articles in press 入口 |
+| Volume / issue | 出版商年度卷期入口，必须可点击 |
+| Online first | 出版商 online first / articles in press 入口，必须可点击 |
 | 论文数量 | 年度结束且可核验时填写 |
 | 论文名录 | 出版商年度页面优先，`DBLP` fallback |
 | 核验状态 | `已核验`、`部分核验`、`待补` |
 
-## 8. 期刊年度 README 结构规范
+## 9. 期刊年度 README 结构规范
 
 每个期刊年度 README 至少包含：
 
@@ -170,7 +216,7 @@ yyyy-mm-dd hh:mm
 7. 证据与核查记录。
 8. 文末更新日志表。
 
-## 9. 阶段状态口径
+## 10. 阶段状态口径
 
 会议推荐状态：
 
@@ -207,18 +253,18 @@ yyyy-mm-dd hh:mm
 
 注意：阶段状态描述会议 / 期刊生命周期，核验状态描述证据完整度，二者不得混写。
 
-## 10. TIMELINE.md 结构规范
+## 11. TIMELINE.md 结构规范
 
 [TIMELINE.md](./TIMELINE.md) 是跨 venue 投稿时间线总览，必须随着 venue README / 年度 README 同步维护。
 
-### 10.1 年度章节
+### 11.1 年度章节
 
 1. 年份按降序排列，例如 `2028`、`2027`、`2026`、`2025`、`2024`、`2023`、`2022`。
 2. 每个年份章节内先写投稿事件总表，再写 Mermaid 可视化。
 3. 同一年表格内的事件必须按日期时间升序排列。
 4. 当前年份 + 1 和当前年份 + 2 的章节必须存在，并在实际检索后记录 `⏳ 已检索未公布` 或可用官方信息；更远未来年度一旦能找到官方主页、`CFP` 或 important dates，就必须新增对应年份章节。
 
-### 10.2 年度事件表字段
+### 11.2 年度事件表字段
 
 | 字段 | 说明 |
 |---|---|
@@ -228,10 +274,13 @@ yyyy-mm-dd hh:mm
 | Track / 栏目 | Research、Tool Demo、SEIP、Special Issue 等 |
 | 事件 | Abstract deadline、Submission deadline、Notification、Camera-ready、Conference dates 等 |
 | 阶段状态 | 使用本 GUIDE 的阶段状态口径 |
-| 来源 | 官方 `CFP`、Important Dates、special issue 或年度 README 链接 |
+| 事件官方来源 | 官方 `CFP`、Important Dates、special issue、author guidelines 或年度 README 链接，必须可点击 |
+| 年度主页 | 官方年度主页或期刊年度入口链接，必须可点击 |
+| 论文集 / 名录 | proceedings、accepted papers、volume / issue、online first 或 DBLP fallback；无则写 `未公布` / `不适用` |
+| 本库年度页 | 链接到本库对应年度 README |
 | 备注 | AoE、官方仅给日期、DBLP fallback、计数口径等 |
 
-### 10.3 Mermaid 规范
+### 11.3 Mermaid 规范
 
 1. 默认使用 `gantt` 图，不使用 Mermaid `timeline` 语法作为主图；`gantt` 在 GitHub 上更稳定，且适合表达 deadline / 会期窗口。
 2. 单日 deadline 使用 `milestone`，多日窗口使用普通任务。
@@ -239,13 +288,13 @@ yyyy-mm-dd hh:mm
 4. 如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类` 或 `会议 / 期刊专刊` 拆成多张 `gantt` 图。
 5. Mermaid 更新后必须至少人工预览；若本地具备 Mermaid CLI，可补充渲染检查。
 
-### 10.4 同步规则
+### 11.4 同步规则
 
 1. 新增或修改任何年度 README 中的投稿相关 important date 后，必须同步检查 [TIMELINE.md](./TIMELINE.md)。
 2. 若某个时间点因官方来源冲突被标为 `⚠️ 矛盾待解`，TIMELINE 表格也必须保留该状态，不得只在 venue 年度 README 中记录。
 3. [TIMELINE.md](./TIMELINE.md) 只汇总已进入本库的 venue，不替代 P1/P2 待补清单。
 
-## 11. 初始化 PR 自审流程
+## 12. 初始化 PR 自审流程
 
 当任务是“先开初始化 PR，不填实际 venue 数据”时，必须按以下顺序自审：
 
@@ -256,20 +305,21 @@ yyyy-mm-dd hh:mm
 5. 确认 Mermaid 代码块使用 GitHub 较稳定的 `gantt` 语法，不使用实验性 `timeline` 作为主图。
 6. 完成自审后停止，等待用户确认是否进入 P0 数据填充。
 
-## 12. 一轮数据填充流程
+## 13. 一轮数据填充流程
 
 1. 先读 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)。
 2. 根据 [01-venue-scope.md](./01-venue-scope.md) 选择本轮 venue。
 3. 新建或更新 `<conf|journal>-<rank>-<slug>/README.md`。
 4. 从最新年份开始，按降序补年度 README，默认覆盖到 `2022`。
 5. 回填上级 venue README 的年度汇总表。
-6. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt。
+6. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
 7. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度和待补清单。
 8. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
 9. 在相关 README 文末更新日志中追加记录。
 
-## 13. 更新日志
+## 14. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 19:37` | 新增核心 URL 字段与 Markdown 超链接规范，要求 venue 根表、年度页和 TIMELINE 都挂可点击链接。 |
 | `2026-06-04 18:55` | 明确后续搜索必须至少到当前年份 + 2；当前初始化覆盖到 2028，更远未来若已有官方信息也继续纳入。 |
