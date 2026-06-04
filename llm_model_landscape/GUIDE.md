@@ -52,15 +52,15 @@
 
 适用范围：
 
-1. [02-openai-models.md](./02-openai-models.md) 中的 OpenAI / GPT / Codex 完整表。
-2. [03-claude-models.md](./03-claude-models.md) 中的 Claude 完整表。
-3. [04-gemini-models.md](./04-gemini-models.md) 中的 Gemini 完整表。
-4. [05-deepseek-models.md](./05-deepseek-models.md) 中的 DeepSeek hosted API 与开放权重完整表。
-5. [06-qwen-models.md](./06-qwen-models.md) 中的 Qwen hosted API 与开放权重完整表。
-6. [07-llama-models.md](./07-llama-models.md) 中的 Llama 完整表。
-7. [08-grok-models.md](./08-grok-models.md) 中的 Grok 完整表。
-8. [09-other-open-models.md](./09-other-open-models.md) 中的其他 open-source / open-weight 高频系列表。
-9. [01-baseline-models.md](./01-baseline-models.md) 中的 `project_1/baselines` 文献模型清单；该表按论文 year 降序排列。
+1. [01-baseline-models.md](./01-baseline-models.md) 中的 `project_1/baselines` 文献模型清单；该表按论文 year 降序排列。
+2. [02-openai-models.md](./02-openai-models.md) 中的 OpenAI / GPT / Codex 完整表。
+3. [03-claude-models.md](./03-claude-models.md) 中的 Claude 完整表。
+4. [04-gemini-models.md](./04-gemini-models.md) 中的 Gemini 完整表。
+5. [05-deepseek-models.md](./05-deepseek-models.md) 中的 DeepSeek hosted API 与开放权重完整表。
+6. [06-qwen-models.md](./06-qwen-models.md) 中的 Qwen hosted API 与开放权重完整表。
+7. [07-llama-models.md](./07-llama-models.md) 中的 Llama 完整表。
+8. [08-grok-models.md](./08-grok-models.md) 中的 Grok 完整表。
+9. [09-other-open-models.md](./09-other-open-models.md) 中的其他 open-source / open-weight 高频系列表。
 
 ### 3.2 发布时间取值优先级
 
