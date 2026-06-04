@@ -48,12 +48,17 @@
    - 状态机类型谱系论文集。
    - 收录主流状态机族形式主义、相关标准/DSL/交换格式、基础设施论文以及综述论文。
    - 这里重点沉淀“我们到底应该生成哪一类状态机、这些类型各自有什么表达边界和工具生态”。
+4. [talks/](./talks/)
+   - project_1 内部正式导师讨论文库。
+   - 收录已经包含导师意见、会后路线决策或正式学术口径调整的讨论记录。
+   - 这里重点沉淀“第一篇论文 story、实验边界、baseline / 样本策略和后续 agent 工作应优先遵守的导师意见”。
 
-因此，这个项目当前可以理解为三条主线并行：
+因此，这个项目当前可以理解为三条材料主线加一条导师意见线并行：
 
 1. **方法线**：看已有工作如何从自然语言或邻近工件生成状态机模型，对应 [baselines/](./baselines/)。
 2. **数据线**：从真实控制系统论文中整理可用的描述样本和控制逻辑证据，对应 [sources/](./sources/)。
 3. **类型线**：梳理主流状态机族形式主义、构造方式和基础设施，为目标形式主义选型提供依据，对应 [state_machine_types/](./state_machine_types/)。
+4. **导师意见线**：维护 project_1 正式导师讨论与路线决策，对应 [talks/](./talks/)。当它与内部 [discussions/](./discussions/) 存在冲突时，默认优先遵守 [talks/](./talks/) 中更新、更明确的导师意见。
 
 ## 4. 各下属论文集分别是什么
 
@@ -123,6 +128,24 @@
 4. 若涉及普通条目，再读 [state_machine_types/DESC_GUIDE.md](./state_machine_types/DESC_GUIDE.md)
 5. 若涉及综述条目，再读 [state_machine_types/SURVEY_GUIDE.md](./state_machine_types/SURVEY_GUIDE.md)
 
+### 4.4 `talks/`（非论文集）
+
+[talks/](./talks/) 是 project_1 内部正式导师讨论文库，负责维护已经影响第一篇论文路线、实验边界、baseline / 样本策略或后续 agent 工作优先级的导师意见。它不是论文集，也不是根目录 [../talks/](../talks/) 那种完整会前/会后纪要工作区；它更接近 project_1 的高优先级路线档案。
+
+它回答的核心问题是：
+
+1. 当前第一篇论文 story 应以哪条路线为准。
+2. 哪些内部讨论、PR body 或 issue 草案已经被导师意见修正。
+3. 后续 agent 在处理 project_1 时应优先遵守哪些学术约束。
+4. 上游 PR / issue / comment 的详细证据应从哪里追溯。
+
+进入该文库后，应先读：
+
+1. [talks/README.md](./talks/README.md)
+2. [talks/GUIDE.md](./talks/GUIDE.md)
+3. [talks/SUMMARY.md](./talks/SUMMARY.md)
+4. 与任务主题最相关的单篇导师讨论记录，例如 [talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](./talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+
 ## 5. 本项目整体工作流
 
 围绕 `project_1` 工作时，默认应遵循以下逻辑：
@@ -132,7 +155,8 @@
 3. 如果是寻找真实控制系统语料、提取状态机描述样本、建设后续数据基础，进入 [sources/](./sources/)。
 4. 如果是梳理主流形式主义类型、构造方式和工具生态，进入 [state_machine_types/](./state_machine_types/)。
 5. 先读对应 collection 的 `README.md`、再读 `GUIDE.md`、再读 `SUMMARY.md`。
-6. 只有在明确 collection 边界和当前总账后，才进入具体单论文目录处理。
+6. 若任务涉及第一篇论文路线、Path-1/Path-2、E1/E2、baseline 选择、样本选择、实验边界或导师意见，必须再读 [talks/README.md](./talks/README.md)、[talks/GUIDE.md](./talks/GUIDE.md)、[talks/SUMMARY.md](./talks/SUMMARY.md) 以及相关单篇导师讨论记录。
+7. 只有在明确 collection 边界、当前总账和导师意见约束后，才进入具体单论文目录处理。
 
 本项目默认的研究信息流可概括为：
 
@@ -159,22 +183,26 @@
 对人类读者和 AI，都推荐按以下顺序进入本项目：
 
 1. 先读本文件 [README.md](./README.md)，理解 `project_1` 的总体目标与目录分工。
-2. 判断当前任务属于 [baselines/](./baselines/)、[sources/](./sources/) 还是 [state_machine_types/](./state_machine_types/)。
-3. 进入对应 collection 后，先读其 `README.md`。
-4. 再读其 `GUIDE.md`。
-5. 再读其 `SUMMARY.md`。
-6. 若任务涉及单篇派生文件，再读对应专项 GUIDE。
-7. 最后才进入具体单论文目录，按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序工作。
+2. 若任务涉及第一篇论文 story、导师意见、Path-1/Path-2、E1/E2、baseline 策略、样本策略或实验边界，先读 [talks/README.md](./talks/README.md)、[talks/GUIDE.md](./talks/GUIDE.md)、[talks/SUMMARY.md](./talks/SUMMARY.md) 和相关单篇导师讨论记录。
+3. 判断当前任务属于 [baselines/](./baselines/)、[sources/](./sources/)、[state_machine_types/](./state_machine_types/) 还是 [talks/](./talks/)。
+4. 进入对应 collection / 文库后，先读其 `README.md`。
+5. 再读其 `GUIDE.md`。
+6. 再读其 `SUMMARY.md`。
+7. 若任务涉及单篇派生文件，再读对应专项 GUIDE。
+8. 最后才进入具体单论文目录，按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序工作。
+
+特别地，[talks/](./talks/) 是 project_1 正式导师讨论文库；当它与 [discussions/](./discussions/) 中的内部推演存在冲突时，默认以 [talks/](./talks/) 为准，除非后续用户明确说明有更新的导师意见覆盖。
 
 ## 8. 后续维护时应优先做什么
 
 优先做的事：
 
 1. 保持 [baselines/](./baselines/)、[sources/](./sources/) 和 [state_machine_types/](./state_machine_types/) 三条线的边界清晰，不混收。
-2. 让各条线的比较字段、数据集口径、单篇派生文件格式持续一致。
-3. 优先补齐那些能直接服务“自然语言控制系统描述/设计/需求 -> 状态机模型”主线的问题材料。
-4. 尽快把“状态机类型谱系”这条线的定义型论文、综述型论文和工具/标准型论文接起来。
-5. 任何正式收录的论文，都应回写对应 collection 的 [baselines/SUMMARY.md](./baselines/SUMMARY.md)、[sources/SUMMARY.md](./sources/SUMMARY.md) 或 [state_machine_types/SUMMARY.md](./state_machine_types/SUMMARY.md) 总账。
+2. 维护 [talks/](./talks/) 中正式导师讨论记录的高优先级地位；涉及论文路线和实验边界时，优先遵守最新导师意见。
+3. 让各条线的比较字段、数据集口径、单篇派生文件格式持续一致。
+4. 优先补齐那些能直接服务“自然语言控制系统描述/设计/需求 -> 状态机模型”主线的问题材料。
+5. 尽快把“状态机类型谱系”这条线的定义型论文、综述型论文和工具/标准型论文接起来。
+6. 任何正式收录的论文，都应回写对应 collection 的 [baselines/SUMMARY.md](./baselines/SUMMARY.md)、[sources/SUMMARY.md](./sources/SUMMARY.md) 或 [state_machine_types/SUMMARY.md](./state_machine_types/SUMMARY.md) 总账；任何正式导师路线更新都应回写 [talks/SUMMARY.md](./talks/SUMMARY.md)。
 
 应避免的事：
 
@@ -183,3 +211,4 @@
 3. 把形式主义类型论文误收进 baseline 或 source collection。
 4. 只新增论文目录，不回写各自 collection 的总账。
 5. 在项目级目录继续堆放临时 markdown，而不及时把内容收敛进对应论文集。
+6. 在没有阅读 [talks/](./talks/) 最新导师讨论记录的情况下，继续沿用过期的 Path-2 / Hybrid / `fcstm` 显式贡献口径。
