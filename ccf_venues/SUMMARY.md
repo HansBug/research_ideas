@@ -1,12 +1,13 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
 | 文库状态 | PR-1B 期刊试点已开始回填；TSE / TOSEM / SoSyM 已建立根 README 和 `2022`-`2028` 年度 README |
+| PR-1A / PR-1B 合流状态 | 本 PR 已吸收 PR-1A 协议层规则；会议事实仍由 PR-1A 负责，期刊事实由 PR-1B 负责，合并时不得互相覆盖 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
 | 已建立并基础核验 venue 目录 | 3 |
@@ -17,7 +18,7 @@
 | PR-1B 验收目标 | 三个期刊目录、年度页、TIMELINE rolling / dated event、SUMMARY 统计与试点踩坑记录可复查 |
 | 当前优先批次 | P0-A 建模 / 需求 / 软工综合；P0-B 形式化验证 / 测试验证 |
 
-说明：当前统计只表示 PR-1B 已建立并完成基础核验的三个期刊 venue；它们仍标为 `🟡 部分核验`。2022-2026 年度论文数量已落 DBLP `entry article` baseline，但 publisher issue / online-first 口径、部分投稿入口和部分 editorial roster 仍需后续人工复核，不作为“事实完全闭环”的样板。
+说明：当前统计只表示 PR-1B 已建立并完成基础核验的三个期刊 venue；它们仍标为 `🟡 部分核验`。2022-2026 年度论文数量已落 DBLP `entry article` baseline，但 publisher issue / online-first 口径、部分投稿入口和部分 editorial roster 仍需后续人工复核，不作为“事实完全闭环”的样板。PR-1A 的会议事实目录、会议核心人员表、会议 deadline、会期和论文数量不在本 PR 复制；合并时两边事实状态应统一保留。
 
 ## 2. 当前可复用的既有资源
 
@@ -35,19 +36,19 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 
 | 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 |
 |---|---|---|---|---|---|
-| `conf-a-icse` | 会议 | A | P1/P2/P3/P4 | P0-A | ⏳ 待建 |
+| `conf-a-icse` | 会议 | A | P1/P2/P3/P4 | P0-A | PR-1A 负责；本 PR 不覆盖 |
 | `conf-a-fse` | 会议 | A | P1/P2/P4 | P0-A | ⏳ 待建 |
 | `conf-a-ase` | 会议 | A | P1/P2/P4 | P0-A | ⏳ 待建 |
 | `conf-a-issta` | 会议 | A | P2/P3/P4 | P0-A | ⏳ 待建 |
 | `journal-a-tse` | 期刊 | A | P1/P2/P3/P4 | P0-A | 🟡 部分核验 |
 | `journal-a-tosem` | 期刊 | A | P1/P2/P4 | P0-A | 🟡 部分核验 |
-| `conf-b-models` | 会议 | B | P1/P2/P3 | P0-A | ⏳ 待建 |
+| `conf-b-models` | 会议 | B | P1/P2/P3 | P0-A | PR-1A 负责；本 PR 不覆盖 |
 | `conf-b-re` | 会议 | B | P1/P2 | P0-A | ⏳ 待建 |
 | `journal-b-re` | 期刊 | B | P1/P2 | P0-A | ⏳ 待建 |
 | `journal-b-sosym` | 期刊 | B | P1/P3 | P0-A | 🟡 部分核验 |
 | `conf-a-fm` | 会议 | A | P2/P3 | P0-B | ⏳ 待建 |
 | `conf-a-cav` | 会议 | A | P3 | P0-B | ⏳ 待建 |
-| `conf-b-etaps` | 会议 | B | P3 | P0-B | ⏳ 待建 |
+| `conf-b-etaps` | 会议 | B | P3 | P0-B | PR-1A 负责；本 PR 不覆盖 |
 | `conf-b-vmcai` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
 | `conf-b-issre` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
 | `journal-b-stvr` | 期刊 | B | P2/P3 | P0-B | ⏳ 待建 |
@@ -102,11 +103,13 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 [TIMELINE.md](./TIMELINE.md) 是当前 PR 新增的一等入口。后续 P0 venue 数据填充时必须同步满足：
 
 1. `TIMELINE.md` 至少覆盖 `2022` 至当前年份 + 2；若已公布更远未来年度官方信息，也必须新增对应年份章节；年份按降序排列。
-2. 每个年份章节包含一张投稿事件总表，表内按时间升序排列。
-3. 每个表格事件都必须链接到事件官方来源、年度主页、本库年度 README；若论文集 / 名录 / 卷期入口已发布，也必须直接挂链接。
-4. 每个年份章节包含 Mermaid `gantt` 可视化；单日 deadline 用 `milestone`，多日窗口用普通任务。
-5. 期刊 rolling submission 不进入 Mermaid 图；期刊 special issue / topical collection deadline 进入年度时间线。
-6. 如果年度事件过多，应拆多张 Mermaid 图，不允许生成难以阅读的超长单图。
+2. 年份表示事件实际发生年份，不等同于会议 edition 年份；会议 edition 的 ddl 落在前一年时，应进入前一年章节，并在 Venue 字段保留 edition。
+3. 每个年份章节包含一张投稿事件总表，表内按时间升序排列。
+4. 每个表格事件都必须链接到事件官方来源、年度主页、本库年度 README；若论文集 / 名录 / 卷期入口已发布，也必须直接挂链接。
+5. 每个年份章节包含 Mermaid `gantt` 可视化；单日 deadline 用 `milestone`，多日窗口用普通任务。
+6. 期刊 rolling submission 不进入 Mermaid 图；期刊 special issue / topical collection deadline 进入年度时间线。
+7. PR-1A 负责会议 dated events，PR-1B 负责期刊 rolling 表与期刊 special issue dated events；合并时不得互相删除。
+8. 如果年度事件过多，应拆多张 Mermaid 图，不允许生成难以阅读的超长单图。
 
 ## 7. 当前验收口径
 
@@ -122,11 +125,22 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 8. 会议和期刊使用不同结构，不能把期刊硬写成会议式 ddl 表。
 9. 证据链接优先官方来源；出版商页面用于 proceedings / volume issue；`DBLP` 仅作论文名录 fallback 或核验。
 10. [SUMMARY.md](./SUMMARY.md) 统计数字与实际目录保持一致。
-11. PR body 必须区分“初始化已完成骨架”和“后续计划补齐数据”，不得把待建 venue 写成已完成。
+11. venue 根 README 必须维护核心人员情报；会议与期刊分轨记录官方角色来源、研究方向、代表作 / 近年论文入口和核验状态，期刊继续保留 `核验等级 / 当前性`。
+12. PR body 必须区分“本 PR 已完成事实”和“对方并行 PR 负责事实”，不得把待建 venue 写成已完成，也不得把对方已填 venue 写回待建。
 
-## 8. PR-1B 期刊试点踩坑记录
+## 8. PR-1A / PR-1B 合流协议记录
 
-### 8.1 TSE
+| 合流对象 | 统一协议 | PR-1B 当前处理 | 合并时注意 |
+|---|---|---|---|
+| [GUIDE.md](./GUIDE.md) | 共享规范优先，事实 ownership 分离 | 已吸收会议 / 期刊核心人员分轨、事件发生年份、模板占位链接和不互删规则 | 保留 PR-1B 期刊 `核验等级 / 当前性`，同时保留 PR-1A 会议人员与会期 / 计数口径规则 |
+| [TIMELINE.md](./TIMELINE.md) | 按事件发生年份分节，节内按时间升序 | PR-1B 保留 SoSyM Industry 5.0 dated event 和期刊 rolling 表，不复制会议事实行 | 合并 PR-1A 后会议 dated events、期刊 rolling 表和期刊专刊 dated events 必须共存 |
+| [templates/](./templates/) | 外部 URL 占位符纯文本，内部已知路径用相对 Markdown 链接 | 本 PR 统一模板占位链接写法，并保留期刊核心人员证据等级列 | 后续实例化模板时再把真实外部 URL 改成 Markdown 链接 |
+| P0 状态总账 | 并行 PR 不互相回退对方事实 | `conf-a-icse`、`conf-b-models`、`conf-b-etaps` 标为 PR-1A 负责；TSE / TOSEM / SoSyM 保持 PR-1B 部分核验 | 最终合并后统一重算会议 / 期刊数量，不从任一单边 SUMMARY 直接覆盖 |
+| 试点踩坑 | 会议与期刊踩坑都保留，但不复制对方事实数据 | 本 PR 只记录期刊试点踩坑和合流风险 | PR-1A 的会议踩坑在对方 PR 内维护，合并时放在同一 SUMMARY 中不同小节 |
+
+## 9. PR-1B 期刊试点踩坑记录
+
+### 9.1 TSE
 
 - 模板字段基本够用，但 IEEE TSE 页面、IEEE CSDL archive、IEEE Author Center / Publishing Portal、IEEE CFP 各自承担不同职责，不能把一个入口写成所有字段的事实来源。
 - 投稿入口区分 [IEEE Publishing Portal](https://publishingportal.ieee.org/) 入口、Author Center 说明和实际 peer-review destination；TSE 专属 ScholarOne 子站未获官方当前页确认前只写作待核验 destination，不写成既定事实。
@@ -135,7 +149,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - IEEE CSDL / Early Access 与 DBLP 年度归属可能错位，后续仍需按 publisher article type 交叉核验。
 - TSE 常规 rolling submission 不进入 Mermaid；未发现 active dated special issue。
 
-### 8.2 TOSEM
+### 9.2 TOSEM
 
 - ACM DL 正文和年度 issue 入口在命令行环境下较易受动态访问影响，DBLP 年度页是更稳定的书目信息 fallback。
 - 投稿入口改为 [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)，并保留 ACM DL TOSEM 当前页 / ACM submission sites 作为核查入口；canonical 入口仍需人工点击 ACM DL `Submit Manuscript` 当前跳转确认。
@@ -145,7 +159,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - 2022-2026 已用 DBLP volume/year 建 `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115；2026 仍可能进行中，不作为年度闭合数。
 - 后续 PR 若要提高核验等级，应优先补 ACM DL issue TOC / Just Accepted 与 DBLP 的计数差异说明。
 
-### 8.3 SoSyM
+### 9.3 SoSyM
 
 - SoSyM 同时存在 Springer journal page、Springer collections、SoSyM official site、Manuscript Central、DBLP 多个入口；根 README 和年度 README 必须分列主页、投稿、theme section、卷期、online-first 与 DBLP。
 - SoSyM 投稿入口当前记录 [Manuscript Central](https://mc.manuscriptcentral.com/sosym)，但 Industry 5.0 CFP 已提示 SoSyM online submission system 将变更；后续必须以 Springer submission guidelines / SoSyM 当前 submission notes 为准。
@@ -155,19 +169,20 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - SoSyM 2026 Industry 5.0 已同步进 [TIMELINE.md](./TIMELINE.md) dated event；Digital Twins 只进 rolling / 待补记录，不进主 Mermaid。
 - 2027/2028/2029+ 未发现官方年度卷期或 dated CFP；年度页写 `⏳ 已检索未公布`，不预设未来卷号。
 
-### 8.4 对后续 PR 的流程建议
+### 9.4 对后续 PR 的流程建议
 
 - PR-1A / 后续会议 PR 若修改 [TIMELINE.md](./TIMELINE.md)，应保留期刊 rolling 表与 SoSyM Industry 5.0 dated event，避免会议数据回填时误删期刊行。
 - PR-4 / PR-5 若继续做年度论文数量，应单独开计数复核 PR：以本 PR 的 DBLP `entry article` baseline 为起点，再用 publisher issue / online-first 按 article type 交叉核验，不要混用口径。
 - 期刊试点暴露出的主要问题不是模板字段缺失，而是同一字段需要明确“官方入口 / 投稿入口 / 出版入口 / DBLP fallback”的证据优先级。
 - 后续期刊 PR 必须把核心编辑人员作为情报维度：优先核验 Editor-in-Chief / Editors-in-Chief / Managing Editor / editorial leadership，记录研究方向、代表作或近 5 年论文入口，并把 roster 完整性限制写清楚。
 
-## 9. 更新日志
+## 10. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 23:04` | 吸收 PR-1A 合流协议：SUMMARY 标注会议试点 owner，补充跨 PR 合流记录，并把 TIMELINE 事件发生年份、核心人员和模板占位协议纳入验收口径。 |
 | `2026-06-04 22:05` | 根据正式复审补充 2022-2026 DBLP `entry article` baseline，并把 TSE / TOSEM 核心人员画像改为显式证据等级分层。 |
 | `2026-06-04 21:46` | 根据用户补充要求，把期刊核心编辑人员画像纳入 PR-1B 试点产物和后续 GUIDE 规则，三本期刊根 README 已补当前公开可核验的核心人员表。 |
 | `2026-06-04 21:15` | 根据实现后 multi-agent review 修正试点口径：SUMMARY 统计改为“基础核验”，TOSEM 投稿 / author guidelines / Just Accepted 链接降噪，TSE 和 SoSyM 投稿入口补充动态 destination / system-change caveat。 |

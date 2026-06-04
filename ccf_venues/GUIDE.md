@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -13,7 +13,8 @@
 3. 维护自 `2022` 年以来每个年度的官方主页、`CFP` / important dates、submission system、program / accepted papers、proceedings / volume issue、论文名录入口和论文数量，并把这些入口以 Markdown 超链接挂进表格。
 4. 对尚未召开但已有官方信息的年度，记录当前状态和关键 ddl。
 5. 维护 [TIMELINE.md](./TIMELINE.md)，按年份汇总跨 venue 投稿相关 important dates。
-6. 给后续论文初筛、投稿计划、前沿追踪提供稳定入口。
+6. 维护会议 / 期刊核心人员情报，至少覆盖官方角色、主要研究方向、代表作或近 5 年论文入口、与本仓库 project 的关系和核验状态。
+7. 给后续论文初筛、投稿计划、前沿追踪提供稳定入口。
 
 本库不应做：
 
@@ -80,6 +81,15 @@ yyyy-mm-dd hh:mm
 4. `DBLP` 年度页面，用于论文名录 fallback 或交叉核验。
 5. 其他第三方页面只可作为发现线索，不能作为最终证据。
 
+会议核心人员情报的来源优先级：
+
+1. 官方年度 organizing committee / program committee / track chair / steering committee 页面。
+2. 官方年度主页、track page 或 conference series 页面中的人员信息。
+3. 学会、出版社或主办组织的官方公告。
+4. 个人主页、机构主页、实验室主页。
+5. DBLP、Google Scholar、Semantic Scholar、ORCID 等学术入口。
+6. 第三方介绍页只可作为发现线索，不得单独支撑研究方向、代表作或近年论文结论。
+
 ### 4.2 期刊来源优先级
 
 1. 期刊官方主页。
@@ -139,7 +149,26 @@ yyyy-mm-dd hh:mm
 1. 已找到 URL 时，表格中直接写 Markdown 链接，例如 `[ICSE 2026](https://conf.researchr.org/home/icse-2026)`。
 2. 本库内部页使用相对路径，例如 [`2026`](./2026/README.md)、[TIMELINE.md](../TIMELINE.md)。
 3. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间。
-4. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
+4. 模板中的外部 URL 占位符不得写成 Markdown 链接；统一写 `待补（占位：OFFICIAL_URL；核验后改为 Markdown 链接）`。这样能避免模板被误读为已有可点击事实来源。
+5. 模板中的本库内部已知路径必须继续写相对 Markdown 链接，例如 [TIMELINE.md](./TIMELINE.md)、[2026](./2026/README.md)；不要把内部已知路径降级成纯文本。
+6. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
+
+### 5.4 核心人员情报规范
+
+核心人员情报是本库的一等学术情报，不是可选备注。它服务于后续判断 venue 的研究共同体、审稿偏好、主题连续性和潜在投稿适配度。
+
+会议根 README 应维护“核心人员情报”小节。默认覆盖：
+
+1. 当前 / 未来年度 General Chair、Program Chair、Research Track Chair、Technical Track Chair、Artifact / Tool / SEIP 等与本仓库 project 强相关 track 的 chair。
+2. Steering Committee / Advisory Board / Organizing Committee leadership。
+3. 在相关 track 或历年组织中反复出现、且与本仓库 project 强相关的领域权威。
+4. 对 umbrella venue，例如 ETAPS，应区分 umbrella 层级、main conference / satellite conference 层级和具体 track 层级；不要把 TACAS chair、ETAPS general chair 和 workshop organizer 混写成同一类角色。
+
+会议人员表至少包含：姓名、年度 / 层级、会议角色、单位、官方角色来源、主页或学术入口、主要研究方向、代表作或近 5 年论文入口、与本仓库 project 的关系、核验状态、核查时间。人员事实应优先来自官方 committee / track 页面；研究方向和代表作可来自主页、DBLP 或学术入口，但必须说明是公开资料判断。
+
+期刊根 README 应维护“核心编辑人员情报”小节。默认覆盖 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership、与本仓库强相关的 editorial board 成员，以及当年 special issue / topical collection guest editor。期刊人员表必须保留 `核验等级 / 当前性` 列，区分官方当前 roster、官方公告、个人 / 机构页候选线索和 legacy / 运营线索。
+
+完整人员表放在各 venue 根 README；[SUMMARY.md](./SUMMARY.md) 只记录覆盖状态、主要缺口和跨 PR 合流提示，不复制全量人员表。
 
 ## 6. 会议 README 结构规范
 
@@ -149,8 +178,9 @@ yyyy-mm-dd hh:mm
 2. 基本信息：缩写、全称、CCF 大类与等级、出版方、官方 series page、DBLP venue page。
 3. 官方 scope 与研究方向摘要。
 4. 与本仓库 project 的相关性表。
-5. `2022` 年以来年度汇总表，按年份降序排列。
-6. 文末更新日志表。
+5. 核心人员情报：至少覆盖当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee、强相关 track chair 和领域权威；每行必须给出官方角色来源、研究方向 / 代表作来源、核验状态和核查时间。
+6. `2022` 年以来年度汇总表，按年份降序排列。
+7. 文末更新日志表。
 
 年度汇总表至少包含：
 
@@ -163,8 +193,8 @@ yyyy-mm-dd hh:mm
 | Abstract deadline | 精确到分钟；无则 `未公布` |
 | Submission deadline | 精确到分钟；无则 `未公布` |
 | Notification | 精确到分钟；无则 `未公布` |
-| 会期 | 起止日期或日期时间 |
-| 论文数量 | 仅已召开且可核验时填写 |
+| 会期 | 起止日期或日期时间；根表建议写 `yyyy-mm-dd..yyyy-mm-dd`，跨年或多地会议须在备注中解释 |
+| 论文数量 | 仅已召开且可核验时填写；必须在备注或年度 README 写明计数口径，例如 research papers、all accepted papers、main conference only、DBLP `entry article` baseline |
 | 论文名录 | 官方 program / accepted papers / proceedings 优先，`DBLP` 可作 fallback，必须是可点击链接 |
 | 核验状态 | 例如 `已核验`、`部分核验`、`待补` |
 
@@ -246,6 +276,7 @@ yyyy-mm-dd hh:mm
 | `⏳ 待官网` | 尚未找到官方年度主页 |
 | `🟦 已有主页` | 已有年度主页，但尚未公布完整 CFP / 日期 |
 | `🟢 投稿中` | 投稿窗口尚未关闭 |
+| `🟡 审稿中` | submission 已截止，正在审稿 / rebuttal / author response |
 | `🟡 已截稿` | submission 已截止，等待审稿 / rebuttal |
 | `🟣 通知后` | acceptance notification 已出，等待 camera-ready / 会期 |
 | `🔵 会期临近` | camera-ready 后且会议尚未结束 |
@@ -281,9 +312,10 @@ yyyy-mm-dd hh:mm
 ### 11.1 年度章节
 
 1. 年份按降序排列，例如 `2028`、`2027`、`2026`、`2025`、`2024`、`2023`、`2022`。
-2. 每个年份章节内先写投稿事件总表，再写 Mermaid 可视化。
-3. 同一年表格内的事件必须按日期时间升序排列。
-4. 当前年份 + 1 和当前年份 + 2 的章节必须存在，并在实际检索后记录 `⏳ 已检索未公布` 或可用官方信息；更远未来年度一旦能找到官方主页、`CFP` 或 important dates，就必须新增对应年份章节。
+2. 年份表示事件实际发生年份，不等同于会议 edition 年份；例如 `ICSE 2027` 的 abstract / submission deadline 若发生在 `2026`，应进入 `2026` 年章节，并在 Venue 字段保留 `ICSE 2027`。
+3. 每个年份章节内先写投稿事件总表，再写 Mermaid 可视化。
+4. 同一年表格内的事件必须按日期时间升序排列。
+5. 当前年份 + 1 和当前年份 + 2 的章节必须存在，并在实际检索后记录 `⏳ 已检索未公布` 或可用官方信息；更远未来年度一旦能找到官方主页、`CFP` 或 important dates，就必须新增对应年份章节。
 
 ### 11.2 年度事件表字段
 
@@ -314,6 +346,7 @@ yyyy-mm-dd hh:mm
 1. 新增或修改任何年度 README 中的投稿相关 important date 后，必须同步检查 [TIMELINE.md](./TIMELINE.md)。
 2. 若某个时间点因官方来源冲突被标为 `⚠️ 矛盾待解`，TIMELINE 表格也必须保留该状态，不得只在 venue 年度 README 中记录。
 3. [TIMELINE.md](./TIMELINE.md) 只汇总已进入本库的 venue，不替代 P1/P2 待补清单。
+4. PR-1A / 会议填充负责维护会议 dated events；PR-1B / 期刊填充负责维护期刊 rolling 表和期刊 special issue dated events。并行 PR 合并时不得互相删除对方已经核验的事件行。
 
 ## 12. 初始化 PR 自审流程
 
@@ -332,19 +365,32 @@ yyyy-mm-dd hh:mm
 2. 根据 [01-venue-scope.md](./01-venue-scope.md) 选择本轮 venue。
 3. 新建或更新 `<conf|journal>-<rank>-<slug>/README.md`。
 4. 从最新年份开始，按降序补年度 README，默认覆盖到 `2022`。
-5. 若目标是期刊 venue，补根 README 的核心编辑人员情报；若暂不能核验，写明缺口、检索入口和核查时间。年度页只在 special issue guest editor、年度 editorial team 或人员变更与当年事实直接相关时单独记录。
-6. 回填上级 venue README 的年度汇总表。
-7. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
-8. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度、核心人员覆盖状态和待补清单。
-9. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
-10. 在相关 README 文末更新日志中按时间降序插入记录。
+5. 若目标是会议 venue，补根 README 的核心人员情报；至少覆盖当前 / 未来年度组织与审稿 leadership、Steering / Advisory 层级、强相关 track chair 和领域权威；umbrella venue 必须写清层级。
+6. 若目标是期刊 venue，补根 README 的核心编辑人员情报；若暂不能核验，写明缺口、检索入口和核查时间。年度页只在 special issue guest editor、年度 editorial team 或人员变更与当年事实直接相关时单独记录。
+7. 回填上级 venue README 的年度汇总表。
+8. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
+9. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度、核心人员覆盖状态和待补清单。
+10. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
+11. 在相关 README 文末更新日志中按时间降序插入记录。
 
-## 14. 更新日志
+## 14. PR-1A / PR-1B 并行合流协议
+
+本库已经进入会议试点 PR-1A 与期刊试点 PR-1B 并行阶段。两个 PR 都会修改 [GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 和 [templates/](./templates/)，因此合并时必须遵守以下协议：
+
+1. **共享规范优先**：时间格式、更新日志降序、Markdown 链接占位、核心 URL、核心人员情报、TIMELINE 事件年份规则属于共享规范；任一 PR 修正后，另一 PR 只吸收协议层，不复制对方事实表。
+2. **事实 ownership 分离**：PR-1A 负责会议事实、会议年度 README、会议核心人员和会议 dated events；PR-1B 负责期刊事实、期刊年度 README、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events。
+3. **SUMMARY 不互相回退**：PR-1A 已填充的会议不得被 PR-1B 写回 `⏳ 待建`；PR-1B 已填充的期刊不得被 PR-1A 写回 `⏳ 待建`。并行期间若本 PR 不拥有对方事实，状态写“由 PR-1A/PR-1B 负责，本 PR 不覆盖”。
+4. **TIMELINE 不互相删除**：会议 dated events、期刊 rolling 表和 SoSyM Industry 5.0 dated events 合并后必须共存；冲突解决时以“事件发生年份 + 来源可点击 + owner 不互删”为准。
+5. **模板统一协议**：外部 URL 占位符使用纯文本占位，内部已知路径使用相对 Markdown 链接；更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
+6. **试点踩坑保留边界**：PR-1A 的会议踩坑和 PR-1B 的期刊踩坑都应保留，但不得把对方试点的具体 deadline、论文数量或人员 roster 复制到本 PR 的事实表。
+
+## 15. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 23:04` | 吸收 PR-1A 合流协议：明确会议 / 期刊核心人员分轨、TIMELINE 事件发生年份规则、模板占位链接规则和并行 PR 事实 ownership。 |
 | `2026-06-04 22:05` | 根据正式复审补充期刊核心编辑人员的核验等级 / 当前性规则，明确候选线索和 legacy 运营线索不得写成当前 roster。 |
 | `2026-06-04 21:30` | 补充全库更新日志降序规则，并新增期刊核心编辑人员情报规则：期刊 PR 必须核验核心编辑的研究方向、代表作和近 5 年论文入口。 |
 | `2026-06-04 19:37` | 新增核心 URL 字段与 Markdown 超链接规范，要求 venue 根表、年度页和 TIMELINE 都挂可点击链接。 |
