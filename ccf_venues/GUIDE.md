@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:10`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -129,7 +129,7 @@ yyyy-mm-dd hh:mm
 ### 5.3 Markdown 链接写法
 
 1. 已找到 URL 时，表格中直接写 Markdown 链接，例如 `[ICSE 2026](https://conf.researchr.org/home/icse-2026)`。
-2. 本库内部页使用相对路径，例如 [`2026`](./2026/README.md)、[TIMELINE.md](../TIMELINE.md)。
+2. 本库内部页使用相对路径，例如 [conf-a-icse/2026/README.md](./conf-a-icse/2026/README.md)、[TIMELINE.md](./TIMELINE.md)；模板中的未来实例路径若尚不存在，应使用代码样式占位而不是伪造链接。
 3. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间。
 4. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
 
@@ -226,6 +226,7 @@ yyyy-mm-dd hh:mm
 | `🟦 已有主页` | 已有年度主页，但尚未公布完整 CFP / 日期 |
 | `🟢 投稿中` | 投稿窗口尚未关闭 |
 | `🟡 已截稿` | submission 已截止，等待审稿 / rebuttal |
+| `🟡 审稿中` | submission / response 已截止，等待 notification 或最终决定 |
 | `🟣 通知后` | acceptance notification 已出，等待 camera-ready / 会期 |
 | `🔵 会期临近` | camera-ready 后且会议尚未结束 |
 | `✅ 已结束` | 会议已结束，或 proceedings 已发布 |
@@ -321,5 +322,6 @@ yyyy-mm-dd hh:mm
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:10` | 根据 PR-1A 会议试点补充事件发生年份时间线口径、`🟡 审稿中` 阶段状态，并修正模板占位链接为代码样式。 |
 | `2026-06-04 19:37` | 新增核心 URL 字段与 Markdown 超链接规范，要求 venue 根表、年度页和 TIMELINE 都挂可点击链接。 |
 | `2026-06-04 18:55` | 明确后续搜索必须至少到当前年份 + 2；当前初始化覆盖到 2028，更远未来若已有官方信息也继续纳入。 |

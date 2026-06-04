@@ -75,8 +75,8 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 若本年度 README 新增或修改 special issue / topical collection important date，必须同步更新 [../../TIMELINE.md](../../TIMELINE.md)（实例化后按相对路径核对）。
-- rolling submission 不进入 dated Mermaid，但 [../../TIMELINE.md](../../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+- 若本年度 README 新增或修改 special issue / topical collection important date，必须同步更新 `../../TIMELINE.md`（实例化后按相对路径核对）。
+- rolling submission 不进入 dated Mermaid，但 `../../TIMELINE.md` 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
 
 ## 9. 更新日志
 

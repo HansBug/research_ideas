@@ -58,13 +58,13 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| [`2026`](./2026/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| [`2025`](./2025/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| [`2024`](./2024/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| [`2023`](./2023/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| [`2022`](./2022/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| `2028/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| `2027/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| `2026/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| `2025/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| `2024/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| `2023/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| `2022/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
 
 ## 6. 维护备注
 
@@ -72,8 +72,8 @@
 
 ## 7. TIMELINE.md 同步提示
 
-- 若本 README 的年度汇总表新增或修改 special issue / topical collection important date，必须同步更新 [../TIMELINE.md](../TIMELINE.md)（实例化后按相对路径核对）。
-- rolling submission 不进入 dated Mermaid，但 [../TIMELINE.md](../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+- 若本 README 的年度汇总表新增或修改 special issue / topical collection important date，必须同步更新 `../TIMELINE.md`（实例化后按相对路径核对）。
+- rolling submission 不进入 dated Mermaid，但 `../TIMELINE.md` 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
 
 ## 8. 更新日志
 
