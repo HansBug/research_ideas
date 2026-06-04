@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-04 21:55`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -23,9 +23,9 @@
 
 | Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
 |---|---|---|---|---:|---|---|---|---|
-| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | 覆盖 2026/2027 GC/PC 与 Steering 代表人物；见根 README §5 | Research / Technical Track accepted papers；2026 DBLP/proceedings 待补 | 🟡 部分核验 |
-| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | 覆盖 2025/2026 GC/PC 与 Steering 代表人物，并补 DBLP / 代表作链接；见根 README §5 | DBLP `inproceedings` / 官方 accepted papers fallback；publisher 混合 | 🟡 部分核验 |
-| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | 覆盖 TACAS 2026/2027 PC Chair、Area Chair 与 Steering 代表人物；见根 README §5 | ETAPS umbrella count 与 TACAS official count 分开 | 🟡 部分核验 |
+| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | 覆盖 2026/2027 GC/PC 与 Steering 代表人物；见根 README §5 | Research / Technical Track accepted papers；2026 Research Track count 待 DBLP/proceedings 复核 | 🟡 部分核验 |
+| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | 覆盖 2025/2026 GC/PC 与 Steering 代表人物，并补 DBLP / 代表作链接；见根 README §5 | DBLP `inproceedings` / 官方 accepted papers fallback，根表单元格显式写口径 | 🟡 部分核验 |
+| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | 覆盖 TACAS 2026/2027 PC Chair、Area Chair 与 Steering 代表人物；见根 README §5 | ETAPS umbrella / TACAS 双口径分开 | 🟡 部分核验 |
 
 ## 3. PR-1A 试点踩坑结论
 
@@ -133,6 +133,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 PR-1A 已完�
 |---|---|---|---|---|
 | ICSE | 2028 | 年度主页当前 Access denied，仅找到 Hawaii 预告 | 根 README / 年度 README 不写成正式 CFP | 后续复查年度主页与 Research Track |
 | ICSE | 2026 | accepted papers 已公开，但 proceedings / DBLP 年度页未公开 | 论文数量按官方 Research Track accepted papers 表记录，核验状态为部分核验 | 后续补 DBLP / proceedings |
+| MoDELS | 2026 | submission / rebuttal 已过但 notification 尚未到达 | 当前阶段统一写作 `🟡 审稿中`，program probe 为 Access denied | notification 后复核状态并补 accepted papers / proceedings |
 | MoDELS | 2027-2028 | 官方 home / dates / track 未发布 | 年度页标 `⏳ 已检索未公布` | 后续复查 researchr 与长期主页 |
 | MoDELS | 2024 | proceedings 页面当前 accessDenied | 继续挂官方 URL，数量用 DBLP fallback | 后续复查 proceedings 页面 |
 | ETAPS/TACAS | 2028 | 只有 ETAPS 主页，无 TACAS CFP / dates | 只记录会期，不写 TACAS submission | 后续复查 CFP 与 TACAS 分会页 |
@@ -144,6 +145,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 PR-1A 已完�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:20` | 同步 ICSE/MoDELS/ETAPS review 修复状态，记录根表计数口径与 MoDELS 2026 审稿中状态。 |
 | `2026-06-04 21:55` | 同步核心人员情报覆盖状态，记录核心人员表可追溯性试点结论，并补充更新日志降序提示。 |
 | `2026-06-04 21:10` | 完成 PR-1A 会议试点：新增 ICSE、MoDELS、ETAPS/TACAS 根 README 与 2022-2028 年度 README，同步 TIMELINE，并记录试点踩坑结论。 |
 | `2026-06-04 19:37` | 补充核心 URL / 超链接覆盖口径，要求根 README、年度 README 和 TIMELINE 都直接挂核心来源链接。 |

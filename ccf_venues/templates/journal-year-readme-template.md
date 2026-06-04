@@ -9,27 +9,27 @@
 | Journal | `<JOURNAL>` |
 | 年份 | `<YEAR>` |
 | 出版商 | 待补 |
-| Volume / issues | `[Volume / issues](<VOLUME_ISSUE_URL>)` 或 `待补` |
-| 期刊主页 | `[期刊主页](<JOURNAL_HOME_URL>)` 或 `待补` |
-| Author guidelines | `[Author guidelines](<AUTHOR_GUIDELINES_URL>)` 或 `待补` |
-| Submission system | `[Submission system](<SUBMISSION_SYSTEM_URL>)` 或 `待补` |
-| Special issues / topical collections | `[Special issues](<SPECIAL_ISSUES_URL>)` 或 `待补` |
-| Articles in press / online first | `[Articles in press / online first](<ONLINE_FIRST_URL>)` 或 `待补` |
-| DBLP 年度页 | `[DBLP <JOURNAL> <YEAR>](<DBLP_YEAR_URL>)` 或 `待补` |
+| Volume / issues | 待补（占位：VOLUME_ISSUE_URL；核验后改为 Markdown 链接） |
+| 期刊主页 | 待补（占位：JOURNAL_HOME_URL；核验后改为 Markdown 链接） |
+| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL；核验后改为 Markdown 链接） |
+| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL；核验后改为 Markdown 链接） |
+| Special issues / topical collections | 待补（占位：SPECIAL_ISSUES_URL；核验后改为 Markdown 链接） |
+| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL；核验后改为 Markdown 链接） |
+| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL；核验后改为 Markdown 链接） |
 | 当前年度状态 | 待补 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| Journal homepage | `[待补](<JOURNAL_HOME_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Author guidelines | `[待补](<AUTHOR_GUIDELINES_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Submission system | `[待补](<SUBMISSION_SYSTEM_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Special issue / topical collection CFP | `[待补](<SPECIAL_ISSUE_CFP_URL>)` | 无已知时写 `无已知` | `yyyy-mm-dd hh:mm` |
-| Volume / issue archive | `[待补](<VOLUME_ISSUE_URL>)` | 出版商年度卷期页优先 | `yyyy-mm-dd hh:mm` |
-| Articles in press / online first | `[待补](<ONLINE_FIRST_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Annual article list / publisher search | `[待补](<PUBLISHER_ARTICLE_LIST_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| DBLP 年度页 | `[待补](<DBLP_YEAR_URL>)` | 仅作 fallback / 计数核验 | `yyyy-mm-dd hh:mm` |
+| Journal homepage | 待补（占位：JOURNAL_HOME_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Special issue / topical collection CFP | 待补（占位：SPECIAL_ISSUE_CFP_URL） | 无已知时写 `无已知` | `yyyy-mm-dd hh:mm` |
+| Volume / issue archive | 待补（占位：VOLUME_ISSUE_URL） | 出版商年度卷期页优先 | `yyyy-mm-dd hh:mm` |
+| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Annual article list / publisher search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL） | 仅作 fallback / 计数核验 | `yyyy-mm-dd hh:mm` |
 
 ## 3. 投稿与出版节奏
 
@@ -50,10 +50,10 @@
 | 字段 | 内容 |
 |---|---|
 | 年度论文数量 | 年度结束且可核验后填写 |
-| 出版商年度入口 / Volume issue | `[待补](<VOLUME_ISSUE_URL>)` 或 `待补` |
-| Online first / Articles in press | `[待补](<ONLINE_FIRST_URL>)` 或 `待补` |
-| Publisher article list / search | `[待补](<PUBLISHER_ARTICLE_LIST_URL>)` 或 `待补` |
-| DBLP 年度页 | `[待补](<DBLP_YEAR_URL>)` 或 `待补` |
+| 出版商年度入口 / Volume issue | 待补（占位：VOLUME_ISSUE_URL） 或 `待补` |
+| Online first / Articles in press | 待补（占位：ONLINE_FIRST_URL） 或 `待补` |
+| Publisher article list / search | 待补（占位：PUBLISHER_ARTICLE_LIST_URL） 或 `待补` |
+| DBLP 年度页 | 待补（占位：DBLP_YEAR_URL） 或 `待补` |
 | 计数口径 | 待补 |
 
 ## 6. 与本仓库 project 的年度相关性观察
@@ -75,8 +75,8 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 若本年度 README 新增或修改 special issue / topical collection important date，必须同步更新 `../../TIMELINE.md`（实例化后按相对路径核对）。
-- rolling submission 不进入 dated Mermaid，但 `../../TIMELINE.md` 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+- 若本年度 README 新增或修改 special issue / topical collection important date，必须同步更新 [TIMELINE.md](../../TIMELINE.md)（实例化后按相对路径核对）。
+- rolling submission 不进入 dated Mermaid，但 [TIMELINE.md](../../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
 
 ## 9. 更新日志
 

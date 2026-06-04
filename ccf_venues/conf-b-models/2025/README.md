@@ -1,6 +1,6 @@
 # MoDELS 2025 README
 
-> 信息更新时间：`2026-06-04 21:10`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -12,7 +12,7 @@
 | 官方年度主页 | [MoDELS 2025](https://2025.models-conf.com/) |
 | 官方 CFP | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/models-2025) |
-| Submission system | [Submission system](https://easychair.org/my/conference?conf=models2025) |
+| Submission system | [Submission system](https://easychair.org/conferences/?conf=models2025) |
 | Program / accepted papers | [Program](https://2025.models-conf.com/program/program-models-2025/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP MoDELS 2025](https://dblp.org/db/conf/models/models2025.html) |
@@ -25,7 +25,7 @@
 | 年度主页 | [MoDELS 2025](https://2025.models-conf.com/) | 官方年度主页 | `2026-06-04 21:10` |
 | CFP / Call for Papers | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) | 年度 CFP / track 页面 | `2026-06-04 21:10` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/models-2025) | 官方 dates 页 | `2026-06-04 21:10` |
-| Submission system | [Submission system](https://easychair.org/my/conference?conf=models2025) | EasyChair 跳转登录页 | `2026-06-04 21:10` |
+| Submission system | [Submission system](https://easychair.org/conferences/?conf=models2025) | EasyChair 跳转登录页 | `2026-06-04 21:10` |
 | Tracks / program | [Program](https://2025.models-conf.com/program/program-models-2025/) | 官方 program 页面 | `2026-06-04 21:10` |
 | Accepted papers / paper list | [Program](https://2025.models-conf.com/program/program-models-2025/) | DBLP 年度页 `inproceedings` 口径计数为 27。 | `2026-06-04 21:10` |
 | Proceedings | 未公布 | 未公布 | `2026-06-04 21:10` |
@@ -83,6 +83,9 @@
 
 ## 9. 更新日志
 
+> 更新日志按时间降序排列，最新修改在最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2025 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |

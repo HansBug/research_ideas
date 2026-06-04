@@ -13,13 +13,13 @@
 | CCF 等级 | `<A/B/C>` |
 | 出版商 | 待补 |
 | ISSN | 待补 |
-| 期刊主页 | `[期刊主页](<JOURNAL_HOME_URL>)` 或 `待补` |
-| Author guidelines | `[Author guidelines](<AUTHOR_GUIDELINES_URL>)` 或 `待补` |
-| Submission system | `[Submission system](<SUBMISSION_SYSTEM_URL>)` 或 `待补` |
-| Special issues / topical collections | `[Special issues](<SPECIAL_ISSUES_URL>)` 或 `待补` |
-| Volume / issue archive | `[Volume / issue archive](<VOLUME_ISSUE_ARCHIVE_URL>)` 或 `待补` |
-| Articles in press / online first | `[Articles in press / online first](<ONLINE_FIRST_URL>)` 或 `待补` |
-| DBLP venue page | `[DBLP venue page](<DBLP_VENUE_URL>)` 或 `待补` |
+| 期刊主页 | 待补（占位：JOURNAL_HOME_URL；核验后改为 Markdown 链接） |
+| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL；核验后改为 Markdown 链接） |
+| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL；核验后改为 Markdown 链接） |
+| Special issues / topical collections | 待补（占位：SPECIAL_ISSUES_URL；核验后改为 Markdown 链接） |
+| Volume / issue archive | 待补（占位：VOLUME_ISSUE_ARCHIVE_URL；核验后改为 Markdown 链接） |
+| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL；核验后改为 Markdown 链接） |
+| DBLP venue page | 待补（占位：DBLP_VENUE_URL；核验后改为 Markdown 链接） |
 | 当前默认调查范围 | `2022` 至当前年份 + 2；若更远未来年度已有官方信息也继续纳入 |
 
 ## 2. Scope 与栏目
@@ -43,14 +43,14 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| Journal homepage | `[待补](<JOURNAL_HOME_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Aims and scope | `[待补](<AIMS_SCOPE_URL>)` | 可与主页同页 | `yyyy-mm-dd hh:mm` |
-| Author guidelines | `[待补](<AUTHOR_GUIDELINES_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Submission system | `[待补](<SUBMISSION_SYSTEM_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| Special issues / topical collections | `[待补](<SPECIAL_ISSUES_URL>)` | 若分散到出版社新闻页，年度页展开 | `yyyy-mm-dd hh:mm` |
-| Volume / issue archive | `[待补](<VOLUME_ISSUE_ARCHIVE_URL>)` | 出版商年度入口优先 | `yyyy-mm-dd hh:mm` |
-| Articles in press / online first | `[待补](<ONLINE_FIRST_URL>)` | 待补 | `yyyy-mm-dd hh:mm` |
-| DBLP venue | `[待补](<DBLP_VENUE_URL>)` | 仅作论文名录 / 计数 fallback | `yyyy-mm-dd hh:mm` |
+| Journal homepage | 待补（占位：JOURNAL_HOME_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Aims and scope | 待补（占位：AIMS_SCOPE_URL） | 可与主页同页 | `yyyy-mm-dd hh:mm` |
+| Author guidelines | 待补（占位：AUTHOR_GUIDELINES_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Submission system | 待补（占位：SUBMISSION_SYSTEM_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| Special issues / topical collections | 待补（占位：SPECIAL_ISSUES_URL） | 若分散到出版社新闻页，年度页展开 | `yyyy-mm-dd hh:mm` |
+| Volume / issue archive | 待补（占位：VOLUME_ISSUE_ARCHIVE_URL） | 出版商年度入口优先 | `yyyy-mm-dd hh:mm` |
+| Articles in press / online first | 待补（占位：ONLINE_FIRST_URL） | 待补 | `yyyy-mm-dd hh:mm` |
+| DBLP venue | 待补（占位：DBLP_VENUE_URL） | 仅作论文名录 / 计数 fallback | `yyyy-mm-dd hh:mm` |
 
 ## 5. 核心人员情报
 
@@ -66,13 +66,13 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| `2028/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| `2027/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| `2026/README.md` | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
-| `2025/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| `2024/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| `2023/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
-| `2022/README.md` | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| [2028](./2028/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| [2027](./2027/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| [2026](./2026/README.md) | 🟢 滚动开放 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 |  | ⏳ 待核验 |
+| [2025](./2025/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| [2024](./2024/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| [2023](./2023/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
+| [2022](./2022/README.md) | ✅ 年度已归档 | 待补 | 待补 | 待补 | 待补 | 滚动投稿 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 |
 
 ## 7. 维护备注
 
@@ -80,8 +80,8 @@
 
 ## 7. TIMELINE.md 同步提示
 
-- 若本 README 的年度汇总表新增或修改 special issue / topical collection important date，必须同步更新 `../TIMELINE.md`（实例化后按相对路径核对）。
-- rolling submission 不进入 dated Mermaid，但 `../TIMELINE.md` 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+- 若本 README 的年度汇总表新增或修改 special issue / topical collection important date，必须同步更新 [TIMELINE.md](../TIMELINE.md)（实例化后按相对路径核对）。
+- rolling submission 不进入 dated Mermaid，但 [TIMELINE.md](../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
 
 ## 8. 更新日志
 

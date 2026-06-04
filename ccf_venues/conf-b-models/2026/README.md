@@ -1,6 +1,6 @@
 # MoDELS 2026 README
 
-> 信息更新时间：`2026-06-04 21:10`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 已截稿 |
+| 当前阶段状态 | 🟡 审稿中 |
 
 ## 2. 年度核心 URL 索引
 
@@ -57,7 +57,7 @@
 | Program | ⏳ 已检索未公布；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 计数口径 | 会议尚未召开；program URL 当前跳转 accessDenied，最终论文数待 proceedings / DBLP 发布后补。 |
+| 计数口径 | 会议尚未召开；截至 `2026-06-04` submission 与 rebuttal 已过但 notification 尚未到达，整体阶段为 `🟡 审稿中`；program URL 当前跳转 accessDenied，最终论文数待 proceedings / DBLP 发布后补。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -83,6 +83,9 @@
 
 ## 9. 更新日志
 
+> 更新日志按时间降序排列，最新修改在最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:20` | 将当前阶段统一为审稿中，并补充阶段状态判定依据。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2026 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |

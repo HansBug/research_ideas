@@ -131,9 +131,10 @@ yyyy-mm-dd hh:mm
 ### 5.3 Markdown 链接写法
 
 1. 已找到 URL 时，表格中直接写 Markdown 链接，例如 `[ICSE 2026](https://conf.researchr.org/home/icse-2026)`。
-2. 本库内部页使用相对路径，例如 [conf-a-icse/2026/README.md](./conf-a-icse/2026/README.md)、[TIMELINE.md](./TIMELINE.md)；模板中的未来实例路径若尚不存在，应使用代码样式占位而不是伪造链接。
-3. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间。
-4. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
+2. 本库内部页使用相对路径，例如 [conf-a-icse/2026/README.md](./conf-a-icse/2026/README.md)、[TIMELINE.md](./TIMELINE.md)。模板中已经能确定的内部路径（如 `./2028/README.md`、`../../TIMELINE.md`）也必须写成相对 Markdown 链接，不能退化为代码样式。
+3. 模板里的外部 URL 占位符不得写成 Markdown 链接；应写 `待补（占位：OFFICIAL_YEAR_HOME_URL）` 这类纯文本。只有实例化并核验真实 URL 后，才允许改为 `[label](url)`。
+4. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间.
+5. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
 
 ### 5.4 核心人员情报规范
 
@@ -201,8 +202,8 @@ yyyy-mm-dd hh:mm
 | Abstract deadline | 精确到分钟；无则 `未公布` |
 | Submission deadline | 精确到分钟；无则 `未公布` |
 | Notification | 精确到分钟；无则 `未公布` |
-| 会期 | 起止日期或日期时间 |
-| 论文数量 | 仅已召开且可核验时填写 |
+| 会期 | 起止日期或日期时间；根 README 年度汇总表统一使用 `yyyy-mm-dd..yyyy-mm-dd`，TIMELINE 表格可用 `至` 表达人类可读区间 |
+| 论文数量 | 仅已召开且可核验时填写；根 README 必须在单元格内携带计数口径，例如 `Research Track: 245`、`DBLP inproceedings: 27`、`ETAPS umbrella: 138；TACAS: 56` |
 | 论文名录 | 官方 program / accepted papers / proceedings 优先，`DBLP` 可作 fallback，必须是可点击链接 |
 | 核验状态 | 例如 `已核验`、`部分核验`、`待补` |
 
@@ -371,6 +372,7 @@ yyyy-mm-dd hh:mm
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:20` | 明确模板外部 URL 占位不得伪造 Markdown 链接，内部已知路径仍必须使用相对 Markdown 链接；统一会议根表会期和论文数量口径。 |
 | `2026-06-04 21:55` | 修正数据填充流程中的更新日志写法，补充 PR 自审与 `SUMMARY.md` 核心人员覆盖验收项。 |
 | `2026-06-04 21:44` | 补充核心人员情报规范，并明确所有更新日志表格必须按时间降序排列。 |
 | `2026-06-04 21:10` | 根据 PR-1A 会议试点补充事件发生年份时间线口径、`🟡 审稿中` 阶段状态，并修正模板占位链接为代码样式。 |

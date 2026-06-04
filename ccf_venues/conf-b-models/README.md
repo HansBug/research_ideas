@@ -1,6 +1,6 @@
 # MoDELS README
 
-> 信息更新时间：`2026-06-04 21:44`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -16,7 +16,7 @@
 | 官方长期主页 | [models-conf.com](https://www.models-conf.com/) |
 | 官方当前 / 最新年度主页 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) |
 | 官方 CFP / Important Dates 总入口 | [MoDELS 2026 dates](https://conf.researchr.org/dates/models-2026) |
-| 官方 proceedings / paper list 总入口 | [DBLP MoDELS venue page](https://dblp.org/db/conf/models/) |
+| 官方 proceedings / paper list 总入口 | 未提供统一官方总入口；fallback: [DBLP MoDELS venue page](https://dblp.org/db/conf/models/) |
 | DBLP venue page | [DBLP MoDELS](https://dblp.org/db/conf/models/) |
 | 当前默认调查范围 | `2022` 至 `2028` |
 
@@ -69,17 +69,17 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
-| [2026](./2026/README.md) | 🟡 已截稿 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04 至 2026-10-09 | 未最终公布 | 🟡 部分核验 |
-| [2025](./2025/README.md) | ✅ 已结束 | [MoDELS 2025](https://2025.models-conf.com/) | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2025) | [Submission](https://easychair.org/my/conference?conf=models2025) | [Program](https://2025.models-conf.com/program/program-models-2025/) | 未公布 | [DBLP 2025](https://dblp.org/db/conf/models/models2025.html) | 2025-03-27 待补时刻 AoE | 2025-04-03 待补时刻 AoE | 2025-06-24 待补时刻 AoE | 2025-10-05 至 2025-10-10 | 27 | 🟢 已核验 |
-| [2024](./2024/README.md) | ✅ 已结束 | [MoDELS 2024](https://conf.researchr.org/home/models-2024) | [CfP PDF](https://conf.researchr.org/getImage/models-2024/orig/CfP.pdf) | [Important Dates](https://conf.researchr.org/dates/models-2024) | [Submission](https://easychair.org/conferences/?conf=models24) | [Program](https://conf.researchr.org/program/models-2024/program-models-2024/) | [Proceedings](https://conf.researchr.org/info/models-2024/conference-proceedings) | [DBLP 2024](https://dblp.org/db/conf/models/models2024.html) | 2024-03-21 待补时刻 AoE | 2024-03-28 待补时刻 AoE | 2024-06-17 待补时刻 AoE | 2024-09-22 至 2024-09-27 | 26 | 🟢 已核验 |
-| [2023](./2023/README.md) | ✅ 已结束 | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | [Research Papers track](https://conf.researchr.org/track/models-2023/models-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2023) | [Submission](https://easychair.org/conferences/?conf=models23) | [FT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---pt) | 未公布 | [DBLP 2023](https://dblp.org/db/conf/models/models2023.html) | 2023-04-07 待补时刻 AoE | 2023-04-14 待补时刻 AoE | 2023-06-26 待补时刻 AoE | 2023-10-01 至 2023-10-06 | 30 | 🟢 已核验 |
-| [2022](./2022/README.md) | ✅ 已结束 | [MoDELS 2022](https://conf.researchr.org/home/models-2022) | [Research Papers track](https://conf.researchr.org/track/models-2022/models-2022-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2022) | [Submission](https://easychair.org/conferences/?conf=models2022) | [Program](https://conf.researchr.org/program/models-2022/program-models-2022/) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) | [DBLP 2022](https://dblp.org/db/conf/models/models2022.html) | 2022-05-18 待补时刻 AoE | 2022-05-18 待补时刻 AoE | 2022-07-12 待补时刻 AoE | 2022-10-23 至 2022-10-28 | 35 | 🟢 已核验 |
+| [2026](./2026/README.md) | 🟡 审稿中 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
+| [2025](./2025/README.md) | ✅ 已结束 | [MoDELS 2025](https://2025.models-conf.com/) | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2025) | [Submission](https://easychair.org/conferences/?conf=models2025) | [Program](https://2025.models-conf.com/program/program-models-2025/) | 未公布 | [DBLP 2025](https://dblp.org/db/conf/models/models2025.html) | 2025-03-27 待补时刻 AoE | 2025-04-03 待补时刻 AoE | 2025-06-24 待补时刻 AoE | 2025-10-05..2025-10-10 | DBLP inproceedings: 27 | 🟢 已核验 |
+| [2024](./2024/README.md) | ✅ 已结束 | [MoDELS 2024](https://conf.researchr.org/home/models-2024) | [CfP PDF](https://conf.researchr.org/getImage/models-2024/orig/CfP.pdf) | [Important Dates](https://conf.researchr.org/dates/models-2024) | [Submission](https://easychair.org/conferences/?conf=models24) | [Program](https://conf.researchr.org/program/models-2024/program-models-2024/) | [Proceedings](https://conf.researchr.org/info/models-2024/conference-proceedings) | [DBLP 2024](https://dblp.org/db/conf/models/models2024.html) | 2024-03-21 待补时刻 AoE | 2024-03-28 待补时刻 AoE | 2024-06-17 待补时刻 AoE | 2024-09-22..2024-09-27 | DBLP inproceedings: 26 | 🟢 已核验 |
+| [2023](./2023/README.md) | ✅ 已结束 | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | [Research Papers track](https://conf.researchr.org/track/models-2023/models-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2023) | [Submission](https://easychair.org/conferences/?conf=models23) | [FT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---pt) | 未公布 | [DBLP 2023](https://dblp.org/db/conf/models/models2023.html) | 2023-04-07 待补时刻 AoE | 2023-04-14 待补时刻 AoE | 2023-06-26 待补时刻 AoE | 2023-10-01..2023-10-06 | Official FT/PT accepted: 30 | 🟢 已核验 |
+| [2022](./2022/README.md) | ✅ 已结束 | [MoDELS 2022](https://conf.researchr.org/home/models-2022) | [Research Papers track](https://conf.researchr.org/track/models-2022/models-2022-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2022) | [Submission](https://easychair.org/conferences/?conf=models2022) | [Program](https://conf.researchr.org/program/models-2022/program-models-2022/) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) | [DBLP 2022](https://dblp.org/db/conf/models/models2022.html) | 2022-05-18 待补时刻 AoE | 2022-05-18 待补时刻 AoE | 2022-07-12 待补时刻 AoE | 2022-10-23..2022-10-28 | DBLP inproceedings: 35 | 🟢 已核验 |
 
 
 ## 7. 维护备注
 
 - 2028 / 2027：官方 home、dates、Research track URL 已检索，均返回 `404`；按“未发布”处理，不伪造年度主页或 deadline。
-- 2026：official home、dates、submission、Research Papers track 可访问；program URL 当前跳转 accessDenied，论文数量未最终公布。
+- 2026：official home、dates、submission、Research Papers track 可访问；截至 `2026-06-04` submission 与 rebuttal 已过但 notification 尚未到达，因此整体阶段写作 `🟡 审稿中`；program URL 当前跳转 accessDenied，论文数量未最终公布。
 - 2025 / 2024 / 2023 / 2022：论文数量使用 DBLP `inproceedings` 或官方 accepted paper 口径记录；年度页逐项说明计数口径。
 - ACM DL DOI 页面在本次 curl 核查中返回 `403`，但 DOI 链接仍按官方 proceedings 页给出的 main / companion proceedings 入口记录。
 
@@ -94,5 +94,6 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:20` | 统一 MoDELS 2026 当前阶段、根表会期分隔符、论文数量计数口径和 EasyChair 链接。 |
 | `2026-06-04 21:44` | 补充核心人员情报，并按 review 修正 accessDenied、计数或会期等事实口径。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 根 README，并创建 2022-2028 年度索引与核心 URL 表。 |
