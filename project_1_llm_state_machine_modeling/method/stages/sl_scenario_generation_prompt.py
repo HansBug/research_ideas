@@ -160,6 +160,14 @@ Additional PR-1B contract:
   `expected_vars` for state/action outputs explicitly grounded in the NL/DSL;
   leave sensor/environment inputs as don't-care unless the NL gives a concrete
   value and the scenario sets it in `initial_vars`.
+- Cover NL-required command/output obligations, not only state reachability.
+  If a command/output variable is declared and assigned by the DSL, include at
+  least one scenario that exercises its non-default value whenever NL implies a
+  trigger/condition for that command. If the DSL keeps an NL-required output
+  constant in every state, create a scenario or coverage note that exposes this
+  as an unresolved/admitted abstraction instead of silently asserting the
+  constant value as correct. Do this from NL/DSL semantics, not from
+  benchmark-specific sample names.
 - If `previous_scenarios` is non-empty, treat them as the current oracle draft:
   preserve their names, intent, and already-covered probes unless they are
   impossible under the DSL. Add or strengthen only the gaps named in

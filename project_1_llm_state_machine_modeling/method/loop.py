@@ -372,12 +372,15 @@ def _build_runtime_adapters(
                 else {"pre_scenario": True}
             ),
         )
+        if getattr(request, "repair_memory", None):
+            compact["repair_memory"] = request.repair_memory
         return run_sl9_repair_llm(
             nl=request.nl,
             current_dsl=request.old_dsl,
             fix_plan=compact["fix_plan_summary"],
             fix_request_batch=compact["fix_request_batch"],
             fix_log=compact["fix_log"],
+            repair_memory=compact["repair_memory"],
             grounding_map=compact["grounding_map_summary"],
             selected_diagnostics=compact["selected_diagnostics"],
             preserve_list=compact["preserve_list"],

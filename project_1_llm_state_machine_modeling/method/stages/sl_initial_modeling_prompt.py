@@ -98,6 +98,13 @@ Hard constraints:
 - Ensure variables mentioned as influencing dispatch/guards/actions actually
   appear in guards or actions where NL supports that role. External inputs may
   remain read-only, but they should still participate in NL-grounded decisions.
+- For every NL-required command/output variable, do not leave it as a constant
+  mascot variable. Either assign at least one NL-grounded non-default value in
+  a state action / transition effect, or record a clear `assumptions` entry
+  explaining that the command is an admitted abstraction outside the current
+  DSL scope. Cut-in/cut-out, alarm, reset/fault-release, valve, pump, drive,
+  and load/generator command words are examples of output obligations, but
+  decide from NL semantics rather than any benchmark-specific token list.
 - Stay inside the currently parseable pyfcstm subset: declare variables only as
   `def int` or `def float`; encode boolean-like flags as int 0/1; do not emit
   `def bool`, `true`, `false`, `!flag`, C-style inline comments, or unknown

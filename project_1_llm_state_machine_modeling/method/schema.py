@@ -1337,6 +1337,7 @@ class FixLogEntry:
     diff_summary: dict[str, Any] = field(default_factory=dict)
     local_check_evidence: dict[str, Any] = field(default_factory=dict)
     sl10_review: dict[str, Any] | None = None
+    repair_memory: dict[str, Any] = field(default_factory=dict)
     next_action: str = ""
     notes: list[str] = field(default_factory=list)
 

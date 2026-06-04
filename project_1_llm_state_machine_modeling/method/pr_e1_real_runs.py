@@ -29,12 +29,20 @@ import re
 import subprocess
 import time
 import uuid
+from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import MISSING, asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
+from method.gpt_client import (
+    DEFAULT_SDK_MAX_RETRIES,
+    get_progress_log_enabled,
+    get_request_timeout_seconds,
+    get_stream_enabled,
+    get_stream_include_usage_enabled,
+)
 from method.loop import LoopConfig, run_agent_loop
 from method.pr_d_representative import (
     PATH1_CARA_NL,
@@ -178,7 +186,7 @@ class PrE1RunSummary:
     reproducibility_path: str
     clean_commit_bound: bool
     elapsed_seconds: float
-    token_usage: dict[str, int]
+    token_usage: dict[str, Any]
     stage_count: int
     executed_stage_ids: list[str]
     missing_required_stage_ids: list[str]
@@ -479,6 +487,7 @@ def _prompt_snapshot() -> dict[str, object]:
         PROJECT_ROOT / "method" / "stages" / "sl_repair_prompt.py",
         PROJECT_ROOT / "method" / "stages" / "sl_scenario_generation_prompt.py",
         PROJECT_ROOT / "method" / "stages" / "sl_model_review_prompt.py",
+        PROJECT_ROOT / "method" / "stages" / "sl10_repair_review_prompt.py",
         PROJECT_ROOT / "method" / "stages" / "sl_delta_review_prompt.py",
     ]
     files = []
@@ -494,6 +503,44 @@ def _as_repo_relative(path: str | Path) -> str:
         return p.resolve().relative_to(REPO_ROOT).as_posix()
     except Exception:
         return p.as_posix()
+
+
+def _hash_env_value(value: str | None, *, prefix: int = 16) -> str | None:
+    if value is None:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:prefix]
+
+
+def _redacted_endpoint_snapshot(endpoint: str | None) -> dict[str, object]:
+    if not endpoint:
+        return {"present": False}
+    parsed = urlparse(endpoint)
+    return {
+        "present": True,
+        "scheme": parsed.scheme or "<unknown>",
+        "host": parsed.hostname or "<unknown>",
+        "port": parsed.port,
+        "path_hash": _hash_env_value(parsed.path or "/"),
+        "endpoint_sha256_prefix": _hash_env_value(endpoint),
+    }
+
+
+def _provider_runtime_snapshot() -> dict[str, object]:
+    timeout = get_request_timeout_seconds()
+    endpoint = os.environ.get("LLM_ENDPOINT")
+    api_key = os.environ.get("LLM_API_KEY")
+    return {
+        "required_env_present": {key: bool(os.environ.get(key)) for key in REQUIRED_ENV_KEYS},
+        "model_redacted": os.environ.get("LLM_MODEL") or "<env:LLM_MODEL>",
+        "endpoint": _redacted_endpoint_snapshot(endpoint),
+        "api_key_sha256_prefix": _hash_env_value(api_key),
+        "llm_stream": get_stream_enabled(),
+        "llm_stream_include_usage": get_stream_include_usage_enabled(),
+        "llm_request_timeout_seconds": timeout if timeout is not None else "none",
+        "sdk_max_retries": DEFAULT_SDK_MAX_RETRIES,
+        "progress_log_enabled": get_progress_log_enabled(),
+        "snapshot_note": "Secret-safe provider/runtime snapshot for distinguishing OpenAI-compatible endpoints and stream policy; raw endpoint path/API key are never stored.",
+    }
 
 
 def build_reproducibility_payload(
@@ -545,7 +592,7 @@ def build_reproducibility_payload(
         },
         "prompt_snapshot": prompt_snapshot,
         "provider": {
-            "required_env_present": {key: bool(os.environ.get(key)) for key in REQUIRED_ENV_KEYS},
+            **_provider_runtime_snapshot(),
             "model_redacted": os.environ.get("LLM_MODEL") or cfg.llm_model or "<env:LLM_MODEL>",
         },
     }
@@ -1234,7 +1281,7 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
                 iters=s.iteration_count,
                 repairs=s.repair_count,
                 scenarios=s.scenario_history_count,
-                tokens=s.token_usage.get("total_tokens", 0),
+                tokens=_escape_md(_token_display(s.token_usage)),
                 elapsed=s.elapsed_seconds,
                 run_id=s.run_id,
             )
@@ -1289,7 +1336,7 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
     ]
     for s in summaries:
         lines.append(
-            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {s.token_usage.get('total_tokens', 0)} | `{output_dir_text}/{s.run_id}/report.md` |"
+            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {_escape_md(_token_display(s.token_usage))} | `{output_dir_text}/{s.run_id}/report.md` |"
         )
     lines.extend(
         [
@@ -1430,9 +1477,16 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
         successes = sum(1 for row in rows if row.verdict == "success")
         rejected = sum(1 for row in rows if row.record_status == "rejected")
         budget = sum(1 for row in rows if row.record_status == "budget_exhausted")
-        total_tokens = sum(row.token_usage.get("total_tokens", 0) for row in rows)
+        total_tokens = _sum_numeric(row.token_usage.get("total_tokens") for row in rows)
+        estimated_tokens = _sum_numeric(row.token_usage.get("estimated_total_tokens") for row in rows)
+        if total_tokens is not None:
+            token_text = f"total_tokens={total_tokens}"
+        elif estimated_tokens is not None:
+            token_text = f"estimated_total_tokens≈{estimated_tokens}（provider未返回stream usage，不当作真实token）"
+        else:
+            token_text = "token_usage=unknown"
         lines.append(
-            f"- `{config_id}`：{successes}/{len(rows)} success，rejected={rejected}，budget_exhausted={budget}，total_tokens={total_tokens}。"
+            f"- `{config_id}`：{successes}/{len(rows)} success，rejected={rejected}，budget_exhausted={budget}，{token_text}。"
         )
     max_iteration_values = {condition_specs()[s.config_id].max_iterations for s in summaries if s.config_id in condition_specs()}
     observed_multi_iter = any(s.iteration_count > 1 for s in summaries)
@@ -2374,7 +2428,15 @@ def _attempt_lines(record: AgentLoopRunRecord) -> list[str]:
 def _stage_feedback_summary(record: AgentLoopRunRecord, stage_id: str) -> str:
     if stage_id.startswith("SL-"):
         usage = [item.get("usage", {}) for item in record.llm_interactions if isinstance(item, dict) and item.get("stage_id") == stage_id]
-        return f"LLM calls={len(usage)}, tokens={sum(int(u.get('total_tokens', 0) or 0) for u in usage if isinstance(u, dict))}"
+        total = _sum_numeric(u.get("total_tokens") for u in usage if isinstance(u, dict))
+        estimated = _sum_numeric(u.get("estimated_total_tokens") for u in usage if isinstance(u, dict))
+        if total is not None:
+            token_text = str(total)
+        elif estimated is not None:
+            token_text = f"~{estimated} est"
+        else:
+            token_text = "unknown"
+        return f"LLM calls={len(usage)}, tokens={token_text}"
     if stage_id == "SD-2":
         return _det_feedback_ok(record, "parse")
     if stage_id == "SD-3":
@@ -2457,6 +2519,31 @@ def _design_summary(record: AgentLoopRunRecord) -> str:
     return "; ".join(parts)[:180] or "<none>"
 
 
+def _token_display(usage: dict[str, Any]) -> str:
+    available = usage.get("token_usage_available")
+    total = usage.get("total_tokens")
+    estimated = usage.get("estimated_total_tokens")
+    prompt_chars = usage.get("prompt_chars")
+    completion_chars = usage.get("completion_chars")
+    if available is True and total is not None:
+        return str(total)
+    if estimated:
+        return f"~{estimated} est (usage unavailable; chars={prompt_chars}/{completion_chars})"
+    if total is not None:
+        return str(total)
+    return "unknown"
+
+
+def _sum_numeric(values: Sequence[Any]) -> int | None:
+    total = 0
+    seen = False
+    for value in values:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            total += int(value)
+            seen = True
+    return total if seen else None
+
+
 def _repair_review_summary(record: AgentLoopRunRecord) -> str:
     parts = []
     for item in record.repair_history:
@@ -2476,14 +2563,19 @@ def _status_icon(status: str, ok: bool) -> str:
     return "⚠️"
 
 
-def _token_usage(record: AgentLoopRunRecord) -> dict[str, int]:
-    usage = {
+def _token_usage(record: AgentLoopRunRecord) -> dict[str, Any]:
+    usage: dict[str, Any] = {
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "total_tokens": 0,
+        "estimated_prompt_tokens": 0,
+        "estimated_completion_tokens": 0,
+        "estimated_total_tokens": 0,
         "prompt_chars": 0,
         "completion_chars": 0,
         "n_calls": 0,
+        "token_usage_available": True,
+        "token_usage_unavailable_calls": 0,
     }
     for interaction in record.llm_interactions:
         if not isinstance(interaction, dict):
@@ -2491,10 +2583,28 @@ def _token_usage(record: AgentLoopRunRecord) -> dict[str, int]:
         stage_usage = interaction.get("usage")
         if isinstance(stage_usage, dict):
             usage["n_calls"] += 1
-            for key in ("prompt_tokens", "completion_tokens", "total_tokens", "prompt_chars", "completion_chars"):
+            usage_available = stage_usage.get("token_usage_available")
+            if usage_available is None:
+                usage_available = all(
+                    isinstance(stage_usage.get(key), (int, float)) and not isinstance(stage_usage.get(key), bool)
+                    for key in ("prompt_tokens", "completion_tokens", "total_tokens")
+                )
+            if usage_available:
+                for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                    value = stage_usage.get(key, 0)
+                    if isinstance(value, (int, float)) and not isinstance(value, bool):
+                        usage[key] += int(value)
+            else:
+                usage["token_usage_available"] = False
+                usage["token_usage_unavailable_calls"] += 1
+            for key in ("estimated_prompt_tokens", "estimated_completion_tokens", "estimated_total_tokens", "prompt_chars", "completion_chars"):
                 value = stage_usage.get(key, 0)
-                if isinstance(value, int):
-                    usage[key] += value
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    usage[key] += int(value)
+    if usage["token_usage_unavailable_calls"]:
+        usage["prompt_tokens"] = None
+        usage["completion_tokens"] = None
+        usage["total_tokens"] = None
     return usage
 
 

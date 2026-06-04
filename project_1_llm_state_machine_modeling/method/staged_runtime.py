@@ -20,7 +20,7 @@ import subprocess
 import sys
 import uuid
 import difflib
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import asdict, dataclass, field, is_dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -161,6 +161,7 @@ class RepairRequest:
     local_check_evidence: dict[str, Any] = field(default_factory=dict)
     diff_summary: dict[str, Any] = field(default_factory=dict)
     rework_locked: bool = False
+    repair_memory: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -553,6 +554,7 @@ def _compact_fix_log_for_prompt(fix_log: list[dict[str, Any]] | None) -> list[di
                 "diff_summary": _compact_json(entry.get("diff_summary") or {}, max_list_items=6),
                 "local_check_evidence": _compact_json(entry.get("local_check_evidence") or {}, max_list_items=6),
                 "sl10_review": _compact_json(entry.get("sl10_review") or {}, max_list_items=6),
+                "repair_memory": _compact_json(entry.get("repair_memory") or {}, max_list_items=8),
                 "next_action": entry.get("next_action"),
                 "notes": _compact_json(entry.get("notes") or [], max_list_items=6),
             }
@@ -560,6 +562,76 @@ def _compact_fix_log_for_prompt(fix_log: list[dict[str, Any]] | None) -> list[di
     if fix_log and len(fix_log) > len(compact):
         compact.insert(0, {"_omitted_older_fix_log_entries": len(fix_log) - len(compact)})
     return compact
+
+
+def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """Return an SL-9-oriented repair memory distilled from the append-only FixLog.
+
+    The raw ledger remains the source of truth, but a long JSON history is not
+    enough for a repair LLM to avoid re-entering the same local-minimum.  This
+    compact, sample-agnostic view exposes exactly what a rework attempt needs:
+    recent candidate hashes, repeated candidates, the latest SL-10/local-check
+    objections, and the last explicit guidance that should be addressed before
+    emitting another candidate.
+    """
+
+    entries = list(fix_log or [])
+    reviewed_candidate_entries = [
+        entry
+        for entry in entries
+        if entry.get("candidate_dsl_hash")
+        and str(entry.get("phase") or "") in {"sl10_review", "sl10_rework_review"}
+    ]
+    candidate_hashes = [str(entry.get("candidate_dsl_hash") or "") for entry in reviewed_candidate_entries]
+    rejected_candidate_hashes = [
+        str(entry.get("candidate_dsl_hash") or "")
+        for entry in reviewed_candidate_entries
+        if entry.get("candidate_dsl_hash")
+        and str(entry.get("next_action") or "").startswith(("sl9_rework", "exit_rejected"))
+    ]
+    repeated_hashes = sorted({item for item in candidate_hashes if candidate_hashes.count(item) > 1})
+    latest_rework_entries = [
+        entry
+        for entry in entries
+        if str(entry.get("next_action") or "").startswith("sl9_rework")
+        or "rework" in str(entry.get("phase") or "")
+    ][-3:]
+    latest_guidance: list[Any] = []
+    latest_local_objections: list[Any] = []
+    for entry in latest_rework_entries:
+        memory = entry.get("repair_memory")
+        if isinstance(memory, dict):
+            latest_guidance.extend(memory.get("actionable_rework_guidance") or [])
+            latest_local_objections.extend(memory.get("local_objections") or [])
+        sl10 = entry.get("sl10_review")
+        if isinstance(sl10, dict):
+            latest_guidance.extend(sl10.get("rework_instructions") or [])
+            local = sl10.get("local_check_evidence")
+            if isinstance(local, dict):
+                feedback = local.get("repair_review_feedback")
+                if isinstance(feedback, dict) and feedback.get("local_rejection"):
+                    latest_local_objections.append(feedback.get("local_rejection"))
+        local_check = entry.get("local_check_evidence")
+        if isinstance(local_check, dict):
+            feedback = local_check.get("repair_review_feedback")
+            if isinstance(feedback, dict) and feedback.get("local_rejection"):
+                latest_local_objections.append(feedback.get("local_rejection"))
+    return {
+        "candidate_hash_history_tail": candidate_hashes[-8:],
+        "previous_rejected_candidate_hashes": rejected_candidate_hashes[-8:],
+        "repeated_candidate_hashes": repeated_hashes[-6:],
+        "latest_rework_entry_ids": [entry.get("entry_id") for entry in latest_rework_entries],
+        "latest_actionable_rework_guidance": _compact_json(latest_guidance[-8:], max_list_items=8),
+        "latest_local_objections": _compact_json(latest_local_objections[-6:], max_list_items=6),
+        "sl9_rule": (
+            "Before emitting a candidate, explicitly address the latest "
+            "actionable_rework_guidance and avoid returning a candidate whose "
+            "hash is listed in previous_rejected_candidate_hashes or "
+            "repeated_candidate_hashes unless the rationale explains why the "
+            "unchanged DSL plus stronger grounding/override evidence is "
+            "intentionally sufficient."
+        ),
+    }
 
 
 def _compact_sl9_input_for_prompt(
@@ -573,6 +645,7 @@ def _compact_sl9_input_for_prompt(
     scenario_summary: dict[str, Any] | None,
 ) -> dict[str, Any]:
     plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
+    repair_memory = _repair_memory_for_prompt(fix_log)
     return {
         "fix_plan_summary": {
             "kind": "RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan" if fix_plan is not None else "none",
@@ -586,6 +659,7 @@ def _compact_sl9_input_for_prompt(
         },
         "fix_request_batch": _compact_fix_request_batch_for_prompt(fix_request_batch),
         "fix_log": _compact_fix_log_for_prompt(fix_log),
+        "repair_memory": repair_memory,
         "grounding_map_summary": _compact_json(grounding_map, max_list_items=16),
         "selected_diagnostics": _compact_json((selected_diagnostics or [])[:MAX_FIX_REQUESTS_PER_BATCH], max_list_items=MAX_FIX_REQUESTS_PER_BATCH),
         "preserve_list": list((preserve_list or [])[:30]),
@@ -1926,6 +2000,179 @@ def _request_id(*, iteration: int, source_stage: str, feedback_id: str, index: i
     return f"fixreq-{iteration}-{safe_stage}-{index}-{digest}"
 
 
+def _repair_guidance_from_evidence(evidence: list[dict[str, Any]], *, target: str) -> list[dict[str, Any]]:
+    """Build sample-agnostic, SL-9-actionable guidance from deterministic evidence."""
+
+    guidance: list[dict[str, Any]] = []
+    for item in evidence:
+        kind = str(item.get("kind") or item.get("status") or item.get("code") or "")
+        if kind == "scenario_regression" or (target == "sim" and item):
+            guidance.append(
+                {
+                    "kind": "scenario_regression",
+                    "instruction": (
+                        "Use the failing scenario step/result as the repair target. "
+                        "Preserve scenarios that were already passing; change the "
+                        "minimal guard, initial transition, event, or state action "
+                        "needed for the failed expected state/vars."
+                    ),
+                    "expected_from_sl9": (
+                        "In repair_rationale, name which scenario obligation is "
+                        "fixed and why the edit does not regress prior passing scenarios."
+                    ),
+                }
+            )
+        if kind == "missing_required_grounding":
+            element_ids = item.get("element_ids") or []
+            guidance.append(
+                {
+                    "kind": "missing_required_grounding",
+                    "instruction": (
+                        "Do not merely repeat the same DSL. Either restore concrete "
+                        "DSL representation for each missing required element, or if "
+                        "the element is an abstract/aggregated GroundingMap id already "
+                        "implemented by concrete states/transitions/actions, make that "
+                        "mapping explicit in repair_rationale and preserve the concrete elements."
+                    ),
+                    "element_ids": list(element_ids)[:20] if isinstance(element_ids, list) else element_ids,
+                    "expected_from_sl9": (
+                        "For every listed element id, state whether the candidate DSL "
+                        "adds/restores it or intentionally keeps an NL-grounded concrete "
+                        "equivalent that SL-10 should evaluate via local_override_rationale."
+                    ),
+                }
+            )
+        if kind in {"count_drift", "forced_transition_count_drift"}:
+            guidance.append(
+                {
+                    "kind": kind,
+                    "instruction": (
+                        "If structural count drift is necessary for an NL-grounded "
+                        "repair, keep the edit minimal and explain why the new/removed "
+                        "state or transition is required rather than accidental."
+                    ),
+                }
+            )
+    if not guidance:
+        guidance.append(
+            {
+                "kind": "generic_repair",
+                "instruction": (
+                    "Address the selected feedback with the smallest NL-grounded edit, "
+                    "while preserving required elements and previously passing scenarios."
+                ),
+            }
+        )
+    return guidance[:8]
+
+
+def _repair_memory_for_log(
+    *,
+    sl10_output: SL10RepairReviewOutput | None = None,
+    local_check_evidence: dict[str, Any] | None = None,
+    candidate_dsl: str = "",
+    previous_candidate_hashes: list[str] | None = None,
+) -> dict[str, Any]:
+    """Create an append-only FixLog memory block for the next SL-9 pass."""
+
+    local_objections: list[Any] = []
+    guidance: list[Any] = []
+    if sl10_output is not None:
+        guidance.extend(list(sl10_output.rework_instructions or []))
+        guidance.extend(
+            {
+                "kind": "sl10_evidence",
+                "summary": item.get("summary"),
+            }
+            for item in list(sl10_output.evidence or [])
+            if isinstance(item, dict) and item.get("summary")
+        )
+    evidence_items: list[dict[str, Any]] = []
+    local = local_check_evidence or {}
+    feedback = local.get("repair_review_feedback") if isinstance(local, dict) else None
+    if isinstance(feedback, dict):
+        rejection = feedback.get("local_rejection")
+        if isinstance(rejection, dict):
+            local_objections.append(rejection)
+            raw_evidence = rejection.get("evidence")
+            if isinstance(raw_evidence, list):
+                evidence_items.extend(item for item in raw_evidence if isinstance(item, dict))
+    guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
+    candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
+    previous = list(previous_candidate_hashes or [])
+    repeated = bool(candidate_hash and candidate_hash in previous)
+    if repeated:
+        guidance.append(
+            {
+                "kind": "repeated_candidate_hash",
+                "candidate_dsl_hash": candidate_hash,
+                "instruction": (
+                    "The latest candidate DSL hash repeats a previous failed/reworked "
+                    "candidate. The next SL-9 attempt must not return the same DSL "
+                    "unless it adds a stronger, explicit grounding/override rationale "
+                    "that directly addresses the local objections."
+                ),
+            }
+        )
+    return {
+        "candidate_dsl_hash": candidate_hash,
+        "repeated_candidate_hash": repeated,
+        "local_objections": _compact_json(local_objections, max_list_items=6),
+        "actionable_rework_guidance": _compact_json(guidance, max_list_items=10),
+    }
+
+
+def _fix_request_batch_with_repair_memory(
+    batch: FixRequestBatch,
+    *,
+    repair_memory: dict[str, Any],
+    rework_locked: bool,
+) -> FixRequestBatch:
+    """Attach the current FixLog-derived memory to rework-locked requests.
+
+    The original SD-8 request batch stays in the append-only FixLog as the
+    source of truth.  During an SL-10 rework loop, however, SL-9 should not see
+    only the old request text: it also needs the latest objections, rejected
+    candidate hashes and actionable guidance.  This helper keeps the request
+    IDs stable while making the active request itself carry that guidance.
+    """
+
+    if not rework_locked or not repair_memory:
+        return batch
+    hint = {
+        "kind": "fixlog_rework_memory",
+        "instruction": (
+            "This request is rework-locked by SL-10. Read repair_memory and "
+            "the complete FixLog before editing; do not repeat previously "
+            "rejected candidate hashes unless the repair_rationale supplies "
+            "stronger grounding/local_override evidence."
+        ),
+        "repair_memory": _compact_json(repair_memory, max_list_items=8),
+    }
+    return FixRequestBatch(
+        batch_id=batch.batch_id,
+        iteration=batch.iteration,
+        source=batch.source,
+        source_stage=batch.source_stage,
+        requests=[
+            replace(
+                request,
+                suggested_fix_hints=_compact_json(
+                    [hint, *list(request.suggested_fix_hints or [])],
+                    max_list_items=MAX_FIX_REQUEST_HINTS + 4,
+                ),
+            )
+            for request in batch.requests
+        ],
+        selected_feedback_trace={
+            **dict(batch.selected_feedback_trace or {}),
+            "active_rework_memory": _compact_json(repair_memory, max_list_items=8),
+        },
+        before_dsl_hash=batch.before_dsl_hash,
+        legacy_plan_kind=batch.legacy_plan_kind,
+    )
+
+
 def _fix_request_batch_from_plan(
     *,
     iteration: int,
@@ -2001,7 +2248,13 @@ def _fix_request_batch_from_plan(
                 waiver_allowed=not hard_block,
                 problem_summary=_truncate_text(effective_fix_plan.problem_summary),
                 evidence=evidence[:MAX_FIX_REQUEST_EVIDENCE_ITEMS],
-                suggested_fix_hints=_compact_json(list(effective_fix_plan.suggested_fix_hints or [])[:MAX_FIX_REQUEST_HINTS]),
+                suggested_fix_hints=_compact_json(
+                    [
+                        *list(effective_fix_plan.suggested_fix_hints or [])[:MAX_FIX_REQUEST_HINTS],
+                        *_repair_guidance_from_evidence(evidence, target=effective_fix_plan.target),
+                    ],
+                    max_list_items=MAX_FIX_REQUEST_HINTS + 4,
+                ),
                 recommended_strategy=[_truncate_text(item, max_chars=300) for item in list(effective_fix_plan.recommended_strategy or [])[:4]],
                 forbidden_edits=[_truncate_text(item, max_chars=300) for item in list(effective_fix_plan.forbidden_edits or [])[:4]],
                 required_preserve_element_ids=list(effective_fix_plan.required_preserve_element_ids or [])[:30],
@@ -2334,6 +2587,16 @@ def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: Repa
             "address the local rejection reason/kind with a structured "
             "local_override_rationale."
         )
+        sl10.rework_instructions.append(
+            "For the next SL-9 repair, do not blindly regenerate the same DSL. "
+            "Either change the candidate so the local major-drift evidence is "
+            "resolved, or keep the minimal DSL only with explicit repair_rationale "
+            "mapping each local objection (for example missing_required_grounding, "
+            "scenario_regression, count_drift, or forced_transition_count_drift) "
+            "to concrete NL-grounded states/transitions/actions that remain in "
+            "the candidate. This rationale is required so SL-10 can produce "
+            "local_override_rationale instead of cycling."
+        )
         if sl10.meta is not None:
             sl10.meta.ok = False
             sl10.meta.status = StageStatus.FAIL
@@ -2377,6 +2640,7 @@ def _fix_log_entry(
     diff_summary: dict[str, Any] | None = None,
     local_check_evidence: dict[str, Any] | None = None,
     sl10_review: SL10RepairReviewOutput | None = None,
+    repair_memory: dict[str, Any] | None = None,
     next_action: str = "",
     notes: list[str] | None = None,
 ) -> dict[str, Any]:
@@ -2395,6 +2659,7 @@ def _fix_log_entry(
         diff_summary=_jsonable(diff_summary or {}),
         local_check_evidence=_jsonable(local_check_evidence or {}),
         sl10_review=_jsonable(sl10_review),
+        repair_memory=_jsonable(repair_memory or {}),
         next_action=next_action,
         notes=list(notes or []),
     )
@@ -2585,6 +2850,12 @@ def _run_repair_path(
 
     for rework_attempt in range(max_rework_attempts):
         attempt_rework_locked = rework_locked or rework_attempt > 0
+        repair_memory_for_attempt = _repair_memory_for_prompt(state.fix_log)
+        active_request_batch = _fix_request_batch_with_repair_memory(
+            request_batch,
+            repair_memory=repair_memory_for_attempt,
+            rework_locked=attempt_rework_locked,
+        )
         _append_flow_log(
             state.logs,
             event="stage_enter",
@@ -2593,8 +2864,9 @@ def _run_repair_path(
             reason="fix_requests_ready" if not attempt_rework_locked else "sl10_rework_locked",
             rework_attempt=rework_attempt,
             rework_locked=attempt_rework_locked,
-            batch_id=request_batch.batch_id,
-            request_ids=[request.request_id for request in request_batch.requests],
+            batch_id=active_request_batch.batch_id,
+            request_ids=[request.request_id for request in active_request_batch.requests],
+            repair_memory=_compact_json(repair_memory_for_attempt, max_list_items=8),
             old_dsl=state.current_dsl,
         )
         request = RepairRequest(
@@ -2607,10 +2879,20 @@ def _run_repair_path(
             scenario_set=validation.scenario_set,
             iteration=iteration,
             repair_attempt=len(state.repair_history),
-            fix_request_batch=request_batch,
-            fix_log=list(state.fix_log),
+            fix_request_batch=active_request_batch,
+            fix_log=[
+                *list(state.fix_log),
+                {
+                    "entry_id": f"runtime-current-repair-memory-{rework_attempt}",
+                    "iteration": iteration,
+                    "phase": "current_sl9_repair_memory",
+                    "repair_memory": repair_memory_for_attempt,
+                    "next_action": "sl9_must_address_repair_memory",
+                },
+            ],
             rework_locked=attempt_rework_locked,
         )
+        request.repair_memory = repair_memory_for_attempt
         repair_run = adapters.repair(request)
         repair_run = _append_llm_stage_run(
             run=repair_run,
@@ -2658,7 +2940,7 @@ def _run_repair_path(
 
         sl9_decision = _coerce_sl9_decision_output(
             parsed_output,
-            batch=request_batch,
+            batch=active_request_batch,
             candidate_dsl=candidate_dsl,
             rework_locked=attempt_rework_locked,
         )
@@ -2685,7 +2967,7 @@ def _run_repair_path(
             state=state,
             iteration=iteration,
             phase="sl9_decision" if rework_attempt == 0 else "sl9_rework_decision",
-            batch=request_batch,
+            batch=active_request_batch,
             decisions=sl9_decision.decisions,
             old_dsl=state.current_dsl,
             candidate_dsl=candidate_dsl,
@@ -2695,11 +2977,11 @@ def _run_repair_path(
         )
 
         if not sl9_decision.accepted_request_ids:
-            hard_rejected = any(req.hard_block for req in request_batch.requests)
+            hard_rejected = any(req.hard_block for req in active_request_batch.requests)
             waiver_continue = (
                 not hard_rejected
-                and bool(request_batch.requests)
-                and all(req.waiver_allowed for req in request_batch.requests)
+                and bool(active_request_batch.requests)
+                and all(req.waiver_allowed for req in active_request_batch.requests)
                 and all(decision.decision == "reject" for decision in sl9_decision.decisions)
             )
             rejection = RepairRejection(
@@ -2724,7 +3006,7 @@ def _run_repair_path(
                     stage_id=StageId.SL_9_REPAIR.value,
                     iteration=iteration,
                     source_stage=source_stage,
-                    batch_id=request_batch.batch_id,
+                    batch_id=active_request_batch.batch_id,
                     note="no candidate DSL; downstream validation continues without SC-11 acceptance",
                     jump="continue_after_current_stage",
                 )
@@ -2732,7 +3014,7 @@ def _run_repair_path(
                 state=state,
                 iteration=iteration,
                 phase="sl9_all_rejected",
-                batch=request_batch,
+                batch=active_request_batch,
                 decisions=sl9_decision.decisions,
                 old_dsl=state.current_dsl,
                 candidate_dsl=candidate_dsl,
@@ -2743,9 +3025,9 @@ def _run_repair_path(
             repair_payload = {
                 "iteration": iteration,
                 "selected_feedback": selected_trace,
-                "plan_kind": request_batch.legacy_plan_kind,
+                "plan_kind": active_request_batch.legacy_plan_kind,
                 "fix_plan": _jsonable(effective_fix_plan),
-                "fix_request_batch": _jsonable(request_batch),
+                "fix_request_batch": _jsonable(active_request_batch),
                 "sl9_decision": _jsonable(sl9_decision),
                 "candidate_dsl": candidate_dsl,
                 "candidate_dsl_hash": _hash_text(candidate_dsl),
@@ -2760,7 +3042,7 @@ def _run_repair_path(
             return False, {
                 "selected_feedback": selected_trace,
                 "repair_stage_ids": list(aggregate_stage_ids),
-                "fix_request_batch": _jsonable(request_batch),
+                "fix_request_batch": _jsonable(active_request_batch),
                 "sl9_decision": _jsonable(sl9_decision),
                 "repair_review": _jsonable(repair_review),
                 "accepted_candidate": False,
@@ -2781,7 +3063,7 @@ def _run_repair_path(
             iteration=iteration,
             repair_attempt=len(state.repair_history),
             warning_budget_state=validation.context.warning_budget_state,
-            fix_request_batch=request_batch,
+            fix_request_batch=active_request_batch,
             fix_log=list(state.fix_log),
             sl9_decision=sl9_decision,
             diff_summary=sl9_decision.diff_summary,
@@ -2809,7 +3091,7 @@ def _run_repair_path(
             "candidate_dsl_hash": _hash_text(candidate_dsl),
             "fix_plan_target": getattr(effective_fix_plan, "target", None),
             "fix_plan_source_stage": getattr(effective_fix_plan, "source_stage", None),
-            "fix_request_batch_id": request_batch.batch_id,
+            "fix_request_batch_id": active_request_batch.batch_id,
             "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
             "inputs": ["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"],
             "local_check_stage_id": StageId.SD_10_REPAIR_REVIEW.value,
@@ -2826,7 +3108,7 @@ def _run_repair_path(
                 iteration=iteration,
                 reason="candidate_dsl_and_local_evidence_ready",
                 rework_attempt=rework_attempt,
-                batch_id=request_batch.batch_id,
+                batch_id=active_request_batch.batch_id,
                 inputs=repair_review_input_summary["inputs"],
                 old_dsl_hash=_hash_text(state.current_dsl),
                 candidate_dsl_hash=_hash_text(candidate_dsl),
@@ -2872,6 +3154,18 @@ def _run_repair_path(
 
         repair_review = _repair_review_from_sl10(sl10_output, local_review=local_review)
         accepted = bool(sl10_output.ok)
+        previous_candidate_hashes = [
+            str(entry.get("candidate_dsl_hash") or "")
+            for entry in state.fix_log
+            if entry.get("candidate_dsl_hash")
+            and str(entry.get("phase") or "") in {"sl10_review", "sl10_rework_review"}
+        ]
+        repair_memory = _repair_memory_for_log(
+            sl10_output=sl10_output,
+            local_check_evidence=local_check_evidence,
+            candidate_dsl=candidate_dsl,
+            previous_candidate_hashes=previous_candidate_hashes,
+        )
         _append_flow_log(
             state.logs,
             event="stage_result",
@@ -2884,6 +3178,7 @@ def _run_repair_path(
             regression_detected=sl10_output.regression_detected,
             drift_risk=sl10_output.drift_risk,
             rework_instructions=sl10_output.rework_instructions,
+            repair_memory=_compact_json(repair_memory, max_list_items=8),
             evidence=_compact_json(sl10_output.evidence, max_list_items=8),
             local_override_rationale=sl10_output.local_override_rationale,
             jump="SC-11" if accepted else ("SL-9 rework" if rework_attempt + 1 < max_rework_attempts else "SC-12 rejected"),
@@ -2920,23 +3215,32 @@ def _run_repair_path(
             state=state,
             iteration=iteration,
             phase="sl10_review" if rework_attempt == 0 else "sl10_rework_review",
-            batch=request_batch,
+            batch=active_request_batch,
             decisions=sl9_decision.decisions,
             old_dsl=state.current_dsl,
             candidate_dsl=candidate_dsl,
             diff_summary=sl9_decision.diff_summary,
             local_check_evidence=local_check_evidence,
             sl10_review=sl10_output,
+            repair_memory=repair_memory,
             next_action="sc11_accept_then_sd2" if accepted else ("sl9_rework" if rework_attempt + 1 < max_rework_attempts else "exit_rejected_rework_budget_exhausted"),
-            notes=[*sl10_output.rework_instructions, *(f"grounding_update_hint:{item['hint_hash']}" for item in sl10_grounding_hints)],
+            notes=[
+                *sl10_output.rework_instructions,
+                *(
+                    f"repair_memory:{item.get('kind') or item}" if isinstance(item, dict) else f"repair_memory:{item}"
+                    for item in repair_memory.get("actionable_rework_guidance", [])
+                    if item
+                ),
+                *(f"grounding_update_hint:{item['hint_hash']}" for item in sl10_grounding_hints),
+            ],
         )
 
         repair_payload = {
             "iteration": iteration,
             "selected_feedback": selected_trace,
-            "plan_kind": request_batch.legacy_plan_kind,
+            "plan_kind": active_request_batch.legacy_plan_kind,
             "fix_plan": _jsonable(effective_fix_plan),
-            "fix_request_batch": _jsonable(request_batch),
+            "fix_request_batch": _jsonable(active_request_batch),
             "sl9_decision": _jsonable(sl9_decision),
             "candidate_dsl": candidate_dsl,
             "candidate_dsl_hash": _hash_text(candidate_dsl),
@@ -2959,7 +3263,7 @@ def _run_repair_path(
         last_iteration_patch = {
             "selected_feedback": selected_trace,
             "repair_stage_ids": list(aggregate_stage_ids),
-            "fix_request_batch": _jsonable(request_batch),
+            "fix_request_batch": _jsonable(active_request_batch),
             "sl9_decision": _jsonable(sl9_decision),
             "local_check_evidence": _jsonable(local_check_evidence),
             "sl10_repair_review": _jsonable(sl10_output),

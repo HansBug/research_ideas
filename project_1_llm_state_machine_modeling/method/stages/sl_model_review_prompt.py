@@ -181,7 +181,8 @@ Blocking guidance:
 - minor structure smells are advisory.
 - major `nfrr_quality_cap` is blocking when the model is T0/T1 because of
   missing required states/transitions/guards/actions, SD-6 failure, weak oracle,
-  test-harness pollution, or unwaived blocking diagnostics.
+  constant required output without rationale, test-harness
+  pollution, or blocking diagnostics.
 - If you raise a quality C/I concern, also raise or include an
   `agent_loop_root_cause` finding. Do not stop at "model quality is poor":
   trace the defect to the most likely loop stage/root cause, e.g. SL-1 missed

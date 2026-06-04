@@ -305,6 +305,40 @@ def test_sl9_prompt_contains_preserve_checklist_and_variable_role_context() -> N
     assert "no new ungrounded plant/environment dynamics were invented" in joined
 
 
+def test_sl9_prompt_carries_rework_repair_memory() -> None:
+    messages = build_sl9_repair_prompt(
+        nl="The repaired candidate must preserve required grounding.",
+        current_dsl="state Root { [*] -> Idle; state Idle; }",
+        fix_plan=_fix_plan(),
+        fix_log=[
+            {
+                "entry_id": "fixlog-2-sl10_review",
+                "phase": "sl10_review",
+                "candidate_dsl_hash": "sha256:old",
+                "repair_memory": {
+                    "actionable_rework_guidance": [
+                        {"kind": "missing_required_grounding", "instruction": "explain state:Required"}
+                    ]
+                },
+            }
+        ],
+        repair_memory={
+            "repeated_candidate_hashes": ["sha256:old"],
+            "latest_actionable_rework_guidance": [
+                {"kind": "missing_required_grounding", "instruction": "explain state:Required"}
+            ],
+        },
+        grammar_digest=_grammar_digest(),
+        repair_target="design",
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert "repair_memory" in joined
+    assert "repeated candidate hashes" in joined
+    assert "sha256:old" in joined
+    assert "missing_required_grounding" in joined
+
+
 
 def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens() -> None:
     """Guard against benchmark overfit in default agent-loop prompts.

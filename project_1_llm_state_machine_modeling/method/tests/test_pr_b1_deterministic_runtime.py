@@ -1500,3 +1500,188 @@ def test_sl7_grounding_update_hints_are_recorded_and_forwarded(tmp_path: Path) -
     assert record.final_artifacts["grounding_update_hints"]
     assert record.replay_index["grounding_update_hint_count"] >= 1
     assert any(entry["phase"] == "request_batch" for entry in record.fix_log)
+
+
+def test_sl10_rework_memory_is_visible_to_next_sl9_attempt(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+    sl10_calls = 0
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-rework-memory":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        decision = {
+            "request_id": request.fix_request_batch.requests[0].request_id,
+            "decision": "accept",
+            "rationale": "accept hard rework target",
+        }
+        candidate = "candidate-a" if len(repair_calls) == 1 else "candidate-b"
+        return {"decisions": [decision], "candidate_dsl": candidate, "repair_rationale": [f"emit {candidate}"]}
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[{"kind": "missing_required_grounding", "element_ids": ["state:Required"]}],
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def sl10_review(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        nonlocal sl10_calls
+        sl10_calls += 1
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        if sl10_calls == 1:
+            feedback = SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "candidate does not mention local grounding objection"}],
+                local_override_rationale=[],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            )
+        else:
+            feedback = SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "missing_required_grounding is resolved by candidate-b preserving state:Required"}],
+                local_override_rationale=["missing_required_grounding is explicitly addressed by preserving state:Required"],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            )
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={},
+            feedback=feedback,
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 rework guidance should be readable by the next SL-9 attempt",
+        FullStagedRuntimeConfig(initial_dsl="needs-rework-memory", run_id="pr-b1-rework-memory", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=local_major, sl10_review=sl10_review),
+    )
+
+    assert result.status == "converged"
+    assert len(repair_calls) == 2
+    second_memory = repair_calls[1].repair_memory
+    rendered = str(second_memory)
+    assert "latest_actionable_rework_guidance" in rendered
+    assert "missing_required_grounding" in rendered
+    assert "local_override_rationale" in rendered
+    assert repair_calls[1].fix_request_batch is not None
+    request_hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)
+    assert "fixlog_rework_memory" in request_hint_text
+    assert "previous_rejected_candidate_hashes" in request_hint_text
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    first_sl10_entry = next(entry for entry in record.fix_log if entry["phase"] == "sl10_review")
+    assert first_sl10_entry["repair_memory"]["actionable_rework_guidance"]
+    assert any("same DSL" in str(item) or "local_override" in str(item) for item in first_sl10_entry["repair_memory"]["actionable_rework_guidance"])
+
+
+def test_repair_memory_marks_previous_sl10_rejected_candidate_as_do_not_repeat(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "repeat-risk":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        decision = {
+            "request_id": request.fix_request_batch.requests[0].request_id,
+            "decision": "accept",
+            "rationale": "accept current request",
+        }
+        return {
+            "decisions": [decision],
+            "candidate_dsl": "same-candidate",
+            "repair_rationale": ["emit same candidate to test memory"],
+        }
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[{"kind": "scenario_regression", "scenario": "must_keep_alarm_until_clear"}],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def sl10_rework(_request: RepairRequest, _local_review: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+        output = SL10RepairReviewOutput(
+            ok=False,
+            decision="rework",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            rework_instructions=["Fix the scenario_regression instead of repeating the same candidate."],
+            evidence=[{"summary": "scenario_regression still fails"}],
+            local_override_rationale=[],
+            review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+            meta=meta,
+        )
+        return output, meta
+
+    result = run_full_staged_deterministic_runtime(
+        "Repeated rework candidates must be visible as previously rejected hashes.",
+        FullStagedRuntimeConfig(initial_dsl="repeat-risk", run_id="pr-b1-rework-repeat-memory", output_dir=tmp_path, max_iterations=3),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=local_major, sl10_review=sl10_rework),
+    )
+
+    assert result.status == "not_converged"
+    assert len(repair_calls) == 3
+    first_hash = repair_calls[1].repair_memory["previous_rejected_candidate_hashes"][0]
+    assert first_hash == repair_calls[1].repair_memory["candidate_hash_history_tail"][0]
+    assert repair_calls[2].repair_memory["repeated_candidate_hashes"] == [first_hash]
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    last_sl10_entry = [entry for entry in record.fix_log if entry["phase"] == "sl10_rework_review"][-1]
+    assert last_sl10_entry["repair_memory"]["repeated_candidate_hash"] is True
+    assert any(
+        item.get("kind") == "repeated_candidate_hash"
+        for item in last_sl10_entry["repair_memory"]["actionable_rework_guidance"]
+        if isinstance(item, dict)
+    )

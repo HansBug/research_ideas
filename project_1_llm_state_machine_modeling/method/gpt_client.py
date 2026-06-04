@@ -34,6 +34,7 @@ samples, which would invalidate the experiment.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import math
 import os
 import signal
 import sys
@@ -47,6 +48,7 @@ DEFAULT_REQUEST_TIMEOUT_SECONDS = 600.0
 DEFAULT_SDK_MAX_RETRIES = 0
 DEFAULT_STREAM_PROGRESS_INTERVAL_SECONDS = 5.0
 DEFAULT_STREAM_PROGRESS_CHUNK_INTERVAL = 512
+ESTIMATED_CHARS_PER_TOKEN = 4.0
 
 
 class LLMRequestTimeoutError(TimeoutError):
@@ -101,6 +103,19 @@ def get_stream_enabled() -> bool:
     return _env_bool("LLM_STREAM", default=True)
 
 
+def get_stream_include_usage_enabled() -> bool:
+    """Return whether stream requests should ask providers for final usage.
+
+    OpenAI-compatible providers may omit usage in streaming responses unless
+    ``stream_options={"include_usage": True}`` is requested.  PR-E1 uses token
+    and cost evidence for parameter conclusions, so the default is to request
+    usage.  If a legacy proxy rejects this option, set
+    ``LLM_STREAM_INCLUDE_USAGE=false`` for an explicit diagnostic run.
+    """
+
+    return _env_bool("LLM_STREAM_INCLUDE_USAGE", default=True)
+
+
 def get_progress_log_enabled() -> bool:
     """Return whether provider progress should be printed to stdout.
 
@@ -139,6 +154,25 @@ def _safe_choice_delta_content(chunk: Any) -> str:
     if content is None:
         return ""
     return str(content)
+
+
+def _usage_obj_to_dict(usage: Any) -> dict[str, int] | None:
+    """Return prompt/completion/total token usage from SDK/proxy objects."""
+
+    if usage is None:
+        return None
+    result: dict[str, int] = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        value = getattr(usage, key, None)
+        if value is None and isinstance(usage, dict):
+            value = usage.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            result[key] = int(value)
+    return result or None
+
+
+def _estimated_tokens(chars: int) -> int:
+    return int(math.ceil(max(0, chars) / ESTIMATED_CHARS_PER_TOKEN))
 
 
 def get_llm_client() -> OpenAI:
@@ -253,7 +287,9 @@ def chat(
     -------
     (content, usage)
         ``content``: assistant message string.
-        ``usage``: ``{"prompt_tokens": int, "completion_tokens": int, "total_tokens": int, "model": str}``.
+        ``usage``: ``{"prompt_tokens": int|None, "completion_tokens": int|None, "total_tokens": int|None, "model": str}``.
+        If a streaming provider omits usage, token fields are ``None`` and
+        ``estimated_*_tokens`` provide char-based proxies for PR-E1 cost evidence.
     """
     client = get_llm_client()
     actual_model = model or get_default_model()
@@ -287,11 +323,18 @@ def chat(
         first_chunk_seconds: float | None = None
         completion_chars = 0
         last_progress_at = started
+        stream_usage: dict[str, int] | None = None
+        stream_kwargs = dict(kwargs)
+        if get_stream_include_usage_enabled():
+            stream_kwargs["stream_options"] = {"include_usage": True}
         try:
             with _request_deadline(timeout_seconds):
-                stream = client.chat.completions.create(stream=True, **kwargs)
+                stream = client.chat.completions.create(stream=True, **stream_kwargs)
                 for chunk in stream:
                     chunk_count += 1
+                    usage_from_chunk = _usage_obj_to_dict(getattr(chunk, "usage", None))
+                    if usage_from_chunk is not None:
+                        stream_usage = usage_from_chunk
                     delta = _safe_choice_delta_content(chunk)
                     if delta:
                         if first_chunk_seconds is None:
@@ -322,17 +365,36 @@ def chat(
             raise
         elapsed = time.monotonic() - started
         content = "".join(chunks)
+        stream_usage_zero_reported = bool(
+            stream_usage
+            and prompt_chars + completion_chars > 0
+            and all(int(stream_usage.get(key) or 0) == 0 for key in ("prompt_tokens", "completion_tokens", "total_tokens"))
+        )
+        if stream_usage_zero_reported:
+            stream_usage = None
+        token_usage_available = stream_usage is not None
+        estimated_prompt_tokens = _estimated_tokens(prompt_chars)
+        estimated_completion_tokens = _estimated_tokens(completion_chars)
+        estimated_total_tokens = estimated_prompt_tokens + estimated_completion_tokens
         _emit_progress(
             "[llm] stream complete "
             f"model={actual_model} elapsed={elapsed:.1f}s chunks={chunk_count} "
-            f"completion_chars={completion_chars}"
+            f"completion_chars={completion_chars} "
+            f"token_usage={'available' if token_usage_available else 'unavailable'}"
         )
         usage = {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0,
+            "prompt_tokens": stream_usage.get("prompt_tokens") if stream_usage else None,
+            "completion_tokens": stream_usage.get("completion_tokens") if stream_usage else None,
+            "total_tokens": stream_usage.get("total_tokens") if stream_usage else None,
             "model": actual_model,
             "stream": True,
+            "stream_include_usage_requested": get_stream_include_usage_enabled(),
+            "token_usage_available": token_usage_available,
+            "stream_usage_zero_reported": stream_usage_zero_reported,
+            "estimated_prompt_tokens": estimated_prompt_tokens,
+            "estimated_completion_tokens": estimated_completion_tokens,
+            "estimated_total_tokens": estimated_total_tokens,
+            "token_usage_estimation_method": None if token_usage_available else f"ceil(chars/{ESTIMATED_CHARS_PER_TOKEN:g})",
             "chunk_count": chunk_count,
             "first_chunk_seconds": first_chunk_seconds,
             "elapsed_seconds": elapsed,
@@ -354,12 +416,18 @@ def chat(
         raise
     content = resp.choices[0].message.content or ""
     elapsed = time.monotonic() - started
+    usage_dict = _usage_obj_to_dict(getattr(resp, "usage", None))
     usage = {
-        "prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
-        "completion_tokens": getattr(resp.usage, "completion_tokens", 0),
-        "total_tokens": getattr(resp.usage, "total_tokens", 0),
+        "prompt_tokens": usage_dict.get("prompt_tokens") if usage_dict else None,
+        "completion_tokens": usage_dict.get("completion_tokens") if usage_dict else None,
+        "total_tokens": usage_dict.get("total_tokens") if usage_dict else None,
         "model": actual_model,
         "stream": False,
+        "token_usage_available": usage_dict is not None,
+        "estimated_prompt_tokens": _estimated_tokens(prompt_chars),
+        "estimated_completion_tokens": _estimated_tokens(len(content)),
+        "estimated_total_tokens": _estimated_tokens(prompt_chars) + _estimated_tokens(len(content)),
+        "token_usage_estimation_method": None if usage_dict is not None else f"ceil(chars/{ESTIMATED_CHARS_PER_TOKEN:g})",
         "elapsed_seconds": elapsed,
         "prompt_chars": prompt_chars,
         "completion_chars": len(content),

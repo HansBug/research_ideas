@@ -195,6 +195,7 @@ def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) ->
         assert (report.parent / "fix_log.json").exists()
         assert summary.prompt_snapshot_hash
         assert summary.token_usage["total_tokens"] == 42
+        assert summary.token_usage["token_usage_available"] is True
         assert summary.primary_failure_class == "design_or_variable_dynamics"
     assert (tmp_path / "SUMMARY.md").exists()
     assert (tmp_path / "pr_comment.md").exists()

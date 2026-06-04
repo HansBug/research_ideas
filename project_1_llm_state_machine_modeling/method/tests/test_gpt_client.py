@@ -89,6 +89,10 @@ def _chunk(text: str):
     return SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=text))])
 
 
+def _usage_chunk(prompt_tokens: int, completion_tokens: int, total_tokens: int):
+    return SimpleNamespace(choices=[], usage=SimpleNamespace(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens, total_tokens=total_tokens))
+
+
 def test_gpt_client_chat_streams_by_default_and_aggregates_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
 
@@ -96,6 +100,7 @@ def test_gpt_client_chat_streams_by_default_and_aggregates_chunks(monkeypatch: p
         def create(self, **kwargs: object):
             captured.update(kwargs)
             assert kwargs["stream"] is True
+            assert kwargs["stream_options"] == {"include_usage": True}
             return iter([_chunk("hello"), _chunk(" "), _chunk("world")])
 
     fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
@@ -113,6 +118,50 @@ def test_gpt_client_chat_streams_by_default_and_aggregates_chunks(monkeypatch: p
     assert usage["chunk_count"] == 3
     assert usage["completion_chars"] == len("hello world")
     assert usage["prompt_chars"] == len("Say hello")
+    assert usage["token_usage_available"] is False
+    assert usage["total_tokens"] is None
+    assert usage["estimated_total_tokens"] > 0
+
+
+def test_gpt_client_chat_stream_records_usage_when_provider_emits_final_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeCompletions:
+        def create(self, **kwargs: object):
+            assert kwargs["stream"] is True
+            assert kwargs["stream_options"] == {"include_usage": True}
+            return iter([_chunk("hello"), _usage_chunk(11, 3, 14)])
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setenv("LLM_MODEL", "mock-stream-model")
+    monkeypatch.setenv("LLM_PROGRESS_LOG", "false")
+    monkeypatch.setattr(gpt_client, "get_llm_client", lambda: fake_client)
+
+    content, usage = gpt_client.chat(messages=[{"role": "user", "content": "Say hello"}])
+
+    assert content == "hello"
+    assert usage["token_usage_available"] is True
+    assert usage["prompt_tokens"] == 11
+    assert usage["completion_tokens"] == 3
+    assert usage["total_tokens"] == 14
+
+
+def test_gpt_client_chat_stream_treats_zero_usage_as_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeCompletions:
+        def create(self, **kwargs: object):
+            assert kwargs["stream"] is True
+            return iter([_chunk("hello"), _usage_chunk(0, 0, 0)])
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setenv("LLM_MODEL", "mock-stream-model")
+    monkeypatch.setenv("LLM_PROGRESS_LOG", "false")
+    monkeypatch.setattr(gpt_client, "get_llm_client", lambda: fake_client)
+
+    content, usage = gpt_client.chat(messages=[{"role": "user", "content": "Say hello"}])
+
+    assert content == "hello"
+    assert usage["token_usage_available"] is False
+    assert usage["stream_usage_zero_reported"] is True
+    assert usage["total_tokens"] is None
+    assert usage["estimated_total_tokens"] > 0
 
 
 def test_gpt_client_chat_can_disable_stream_for_control_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -139,5 +188,6 @@ def test_gpt_client_chat_can_disable_stream_for_control_diagnostics(monkeypatch:
     assert captured["model"] == "mock-non-stream-model"
     assert captured["max_tokens"] == 123
     assert usage["stream"] is False
+    assert usage["token_usage_available"] is True
     assert usage["total_tokens"] == 5
     assert usage["completion_chars"] == len("non-stream ok")

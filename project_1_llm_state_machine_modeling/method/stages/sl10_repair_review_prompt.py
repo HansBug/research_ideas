@@ -43,6 +43,13 @@ Important boundaries:
   override in `local_override_rationale`. A silent pass, or a pass that merely
   mentions the local reason without a concrete override rationale, is invalid
   and will be downgraded to rework by the runtime consistency gate.
+- Read the complete FixLog, including any `repair_memory` blocks. They record
+  previous rework objections, repeated candidate hashes, and actionable
+  guidance from local checks / prior SL-10 decisions. If you pass a candidate
+  after such objections, `local_override_rationale` must explicitly explain why
+  the current candidate and SL-9 rationale resolve those remembered objections;
+  otherwise request rework with DSL-actionable guidance instead of repeating a
+  pure review-format complaint.
 - Do not accept a candidate that drops NL-required states, events, guards,
   actions, or scenario obligations.
 - Do not reject a previously waived/rejected non-hard request again unless new

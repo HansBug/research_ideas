@@ -15,6 +15,7 @@ def build_sl9_repair_prompt(
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None = None,
     fix_request_batch: FixRequestBatch | dict[str, Any] | None = None,
     fix_log: list[dict[str, Any]] | None = None,
+    repair_memory: dict[str, Any] | None = None,
     grounding_map: Any | None = None,
     selected_diagnostics: list[dict[str, Any]] | None = None,
     grammar_digest: str | None = None,
@@ -44,6 +45,11 @@ SL-9 Repair contract:
   evidence.
 - Read the complete FixLog ledger before deciding. Do not keep re-fixing a
   request that has already been rejected/waived unless new evidence appears.
+- Read `repair_memory` as the current rework brief distilled from FixLog. If it
+  lists repeated candidate hashes, do not return the same DSL again unless your
+  rationale explicitly explains why an unchanged DSL plus stronger grounding /
+  local_override evidence is intentionally sufficient. If it lists actionable
+  rework guidance or local objections, address each item in repair_rationale.
 - If a request is marked rework_locked by SL-10, you must continue repairing it
   and must not reject it again.
 - `suggested_fix` / `suggested_fix_hints` are a hint, not a command. Prefer a
@@ -137,6 +143,7 @@ Target-aware repair rules:
         "fix_plan_or_revised_fix_plan": fix_plan,
         "fix_request_batch": fix_request_batch,
         "fix_log": fix_log or [],
+        "repair_memory": repair_memory or {},
         "grounding_map": grounding_map,
         "selected_diagnostics": selected_diagnostics or [],
         "preserve_list": preserve_list or [],
