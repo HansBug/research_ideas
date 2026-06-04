@@ -1,0 +1,125 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float requested_generator_power = 0.0;
+def float battery_power = 0.0;
+def float spare_power = 0.0;
+
+state LNGShipEMS {
+    [*] -> RESCharge;
+
+    state RESCharge {
+        enter {
+            requested_generator_power = 0.0;
+            battery_power = Ppv + Pw - PL;
+            spare_power = 0.0;
+        }
+    }
+
+    state RESSpare {
+        enter {
+            requested_generator_power = 0.0;
+            battery_power = 0.0;
+            spare_power = Ppv + Pw - PL;
+        }
+    }
+
+    state RESBatterySupport {
+        enter {
+            requested_generator_power = 0.0;
+            battery_power = PL - (Ppv + Pw);
+            spare_power = 0.0;
+        }
+    }
+
+    state LNGSupply {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state LNGChargeMargin {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw) + Pgmax / 5;
+            battery_power = -(Pgmax / 5);
+            spare_power = 0.0;
+        }
+    }
+
+    state DGReserve {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DGChargeMargin {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw) + Pd1max / 10;
+            battery_power = -(Pd1max / 10);
+            spare_power = 0.0;
+        }
+    }
+
+    state LNGDGSupport {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state LNGDGBattery {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+            battery_power = PL - (Ppv + Pw) - eng3_Pmax;
+            spare_power = 0.0;
+        }
+    }
+
+    state ZeroLoadCharge {
+        enter {
+            requested_generator_power = 0.0;
+            battery_power = Ppv + Pw;
+            spare_power = 0.0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            requested_generator_power = 0.0;
+            battery_power = 0.0;
+            spare_power = Ppv + Pw;
+        }
+    }
+
+    state OverloadCompletion {
+        enter {
+            requested_generator_power = eng3_Pmax;
+            battery_power = PL - (Ppv + Pw) - eng3_Pmax;
+            spare_power = 0.0;
+        }
+    }
+
+    RESCharge -> RESSpare : if [Ppv + Pw >= PL && SoC >= 0.95];
+    RESSpare -> RESCharge : if [Ppv + Pw >= PL && SoC < 0.95];
+    RESCharge -> RESBatterySupport : if [Ppv + Pw < PL && SoC > 0.2];
+    RESBatterySupport -> LNGSupply : if [Ppv + Pw < PL && SoC <= 0.2 && PL - (Ppv + Pw) <= eng3_Pmax];
+    LNGSupply -> LNGChargeMargin : if [Ppv + Pw < PL && SoC < 0.2];
+    LNGChargeMargin -> DGReserve : if [PL - (Ppv + Pw) > eng3_Pmax];
+    DGReserve -> DGChargeMargin : if [SoC < 0.2];
+    DGChargeMargin -> LNGDGSupport : if [PL - (Ppv + Pw) > eng3_Pmax + Pd1max];
+    LNGDGSupport -> LNGDGBattery : if [PL - (Ppv + Pw) > eng3_Pmax && SoC > 0.2];
+    RESCharge -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+    RESSpare -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+    ZeroLoadCharge -> ZeroLoadSpare : if [SoC >= 0.95];
+    ZeroLoadSpare -> ZeroLoadCharge : if [SoC < 0.95];
+    LNGDGBattery -> OverloadCompletion : if [PL - (Ppv + Pw) > eng3_Pmax + Pgmax + Pd1max];
+}

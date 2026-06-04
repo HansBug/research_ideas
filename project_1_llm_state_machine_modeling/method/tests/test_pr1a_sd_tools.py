@@ -80,6 +80,20 @@ state Root {
 }
 """
 
+EXTERNAL_SENSOR_DSL = """
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+state Root {
+    [*] -> RESChargeBattery;
+    state RESChargeBattery;
+    state RESSpare;
+    RESChargeBattery -> RESSpare : if [Ppv + Pw >= PL && SoC >= 0.95];
+    RESSpare -> RESChargeBattery : if [Ppv + Pw < PL || SoC < 0.95];
+}
+"""
+
 FORCED_DSL = """
 state Root {
     state Idle;
@@ -197,6 +211,185 @@ def test_sd4_design_routes_advisory_warnings_and_audit_policy() -> None:
     assert any(item.code == "W_UNWRITTEN_READ_VAR" for item in audit_feedback.advisory_items)
 
 
+def test_sd4_design_downgrades_nl_grounded_external_input_warnings() -> None:
+    context = StageContext(
+        nl=(
+            "The EMS reads load demand PL, renewable contributions Ppv and Pw, "
+            "and battery state of charge SoC as external sensor inputs."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert not feedback.blocking_items
+    advisory_codes = [item.code for item in feedback.advisory_items]
+    assert "W_UNWRITTEN_READ_VAR" in advisory_codes
+    assert "W_GUARD_VARS_NEVER_CHANGE" in advisory_codes
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["PL", "Ppv", "Pw", "SoC"]
+    assert all(
+        item.rationale
+        for item in feedback.advisory_items
+        if item.code in {"W_UNWRITTEN_READ_VAR", "W_GUARD_VARS_NEVER_CHANGE"}
+    )
+
+
+def test_sd4_external_input_downgrade_is_generic_not_benchmark_special_case() -> None:
+    generic_context = StageContext(
+        nl=(
+            "The controller reads plant variables PL, Ppv, Pw, and SoC from "
+            "external input signals before selecting the next mode."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, generic_context)
+
+    generic_feedback, _ = run_sd4_design(generic_context)
+
+    assert generic_feedback.ok
+    assert generic_feedback.inspect_summary["nl_external_input_vars"] == ["PL", "Ppv", "Pw", "SoC"]
+
+    ambiguous_context = StageContext(
+        nl=(
+            "The controller uses load demand, renewable contribution, battery "
+            "state of charge, capacity, wheel speed, vehicle speed, and slip "
+            "ratio terminology, but does not explicitly say that PL, Ppv, Pw, "
+            "or SoC are read-only inputs."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, ambiguous_context)
+
+    ambiguous_feedback, _ = run_sd4_design(ambiguous_context)
+
+    assert not ambiguous_feedback.ok
+    assert ambiguous_feedback.inspect_summary["nl_external_input_vars"] == []
+    assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in ambiguous_feedback.blocking_items)
+
+
+
+def test_sd4_external_input_detector_does_not_capture_post_connector_control_words() -> None:
+    dsl = """
+def int mode = 0;
+def float T = 0.0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [mode > 0];
+    Active -> Idle;
+}
+"""
+    context = StageContext(
+        nl="The controller reads temperature T before selecting the next mode."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert not feedback.ok
+    assert meta.status is StageStatus.FAIL
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["T"]
+    assert any(
+        item.code == "W_UNWRITTEN_READ_VAR" and item.refs.get("var_name") == "mode"
+        for item in feedback.blocking_items
+    )
+    assert any(
+        item.code == "W_GUARD_VARS_NEVER_CHANGE" and item.refs.get("guard_vars") == ["mode"]
+        for item in feedback.blocking_items
+    )
+
+
+def test_sd4_external_input_detector_preserves_explicit_declaration_before_connector() -> None:
+    dsl = """
+def int mode = 0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [mode > 0];
+    Active -> Idle;
+}
+"""
+    context = StageContext(
+        nl="The controller reads mode as an external input before selecting Active."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["mode"]
+    assert not feedback.blocking_items
+    assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in feedback.advisory_items)
+
+
+def test_sd4_external_input_ledger_uses_plant_boundary_without_sample_lexicon() -> None:
+    dsl = """
+def float error_signal = 0.0;
+state Root {
+    [*] -> Increase;
+    state Increase;
+    state Hold;
+    Increase -> Hold : if [error_signal <= 0.01];
+    Hold -> Increase : if [error_signal > 0.01];
+}
+"""
+    context = StageContext(
+        nl=(
+            "The discrete supervisor switches on error_signal thresholds, "
+            "while the continuous dynamics remain in the plant model."
+        )
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["error_signal"]
+    rendered = str(feedback.inspect_summary["external_input_role_ledger"])
+    for sample_token in ["ABS", "CARA", "Elevator", "LNG", "SoC", "PL", "slp"]:
+        assert sample_token not in rendered
+
+
+def test_sd4_external_input_ledger_uses_capacity_boundary_and_grounding() -> None:
+    dsl = """
+def float load = 0.0;
+def float p_limit = 0.0;
+state Root {
+    [*] -> Low;
+    state Low;
+    state High;
+    Low -> High : if [load > p_limit];
+    High -> Low : if [load <= p_limit];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="variable:load",
+                element_kind="variable",
+                element_ref="load",
+                source_stage="SL-1",
+                evidence_text="controller reads load input",
+                requiredness="required",
+            )
+        ]
+    )
+    context = StageContext(
+        nl="The controller reads load and uses capacity limits such as p_limit.",
+        grounding_map=grounding,
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, _meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["load", "p_limit"]
+
+
 def test_warning_budget_attempt_decrements_to_advisory() -> None:
     context = StageContext()
     run_sd3_semantic(DEADLOCK_DSL, context)
@@ -274,6 +467,8 @@ def test_sd8_fix_plan_uses_design_feedback_hints_as_reference_not_command() -> N
     assert plan.severity == "blocking_warning"
     assert plan.suggested_fix_hints
     assert any("hints" in strategy.lower() or "smallest" in strategy.lower() for strategy in plan.recommended_strategy)
+    assert any("required_preserve_element_id" in strategy for strategy in plan.recommended_strategy)
+    assert any("plant/environment dynamics" in edit for edit in plan.forbidden_edits)
     assert "state:Root.Active" in plan.required_preserve_element_ids
     assert plan.before_dsl_hash.startswith("sha256:")
 
@@ -370,6 +565,48 @@ def test_sd10_repair_review_rejects_unresolved_design_target() -> None:
     assert not feedback.ok
     assert feedback.local_rejection is not None
     assert any(e["kind"] == "design_target_unresolved" for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_accepts_external_input_target_after_shared_budget_and_grounding() -> None:
+    dsl = """
+def float sensor_input = 0.0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [sensor_input > 0.0];
+    Active -> Idle : if [sensor_input <= 0.0];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="variable:sensor_input",
+                element_kind="variable",
+                element_ref="sensor_input",
+                source_stage="SL-1",
+                evidence_text="controller reads sensor_input from external process",
+                requiredness="required",
+            )
+        ],
+        source_summary={"assumptions": ["sensor_input is computed by the plant process"]},
+    )
+    context = StageContext(nl="The continuous process computes sensor_input outside the discrete controller.", grounding_map=grounding)
+    run_sd3_semantic(dsl, context)
+    design_feedback, _ = run_sd4_design(context)
+    plan, _ = run_sd8_fix_plan(design_feedback, source="design", grounding_map=grounding, before_dsl=dsl)
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="The continuous process computes sensor_input outside the discrete controller.",
+        grounding_map=grounding,
+        old_dsl=dsl,
+        candidate_dsl=dsl,
+        fix_plan=plan,
+        warning_budget_state=context.warning_budget_state,
+    )
+
+    assert feedback.ok
+    assert feedback.target_resolved
 
 
 def test_sd10_repair_review_detects_count_and_forced_transition_drift() -> None:
@@ -898,3 +1135,148 @@ def test_sd_tools_outputs_are_json_serializable() -> None:
 
     assert asdict(design_feedback)["blocking_items"]
     assert asdict(plan)["target"] == "design"
+
+
+def test_sd4_adds_variable_participation_advisories_without_blocking_outputs() -> None:
+    dsl = """
+def int unused = 0;
+def int output_signal = 0;
+def int internal_written = 0;
+def int guard_input = 0;
+state Root {
+    [*] -> Idle;
+    state Idle {
+        enter { output_signal = 1; internal_written = 2; }
+    }
+    state Active;
+    Idle -> Active : if [guard_input > 0];
+    Active -> [*];
+}
+"""
+    context = StageContext(
+        nl="The controller reads guard_input as an external input and sets output_signal as an output command."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, _meta = run_sd4_design(context)
+
+    advisories = {(item.code, item.refs.get("var_name")) for item in feedback.advisory_items}
+    assert ("W_VARIABLE_DECLARED_NEVER_USED", "unused") in advisories
+    assert ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", "internal_written") in advisories
+    assert ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", "output_signal") not in advisories
+    assert all(item.policy_action == "advisory" for item in feedback.advisory_items if item.code.startswith("W_VARIABLE_"))
+
+
+def test_sd6_sim_preserves_ended_runtime_as_structured_feedback() -> None:
+    dsl = """
+state System {
+    [*] -> Initial;
+    state Initial;
+    Initial -> [*];
+}
+"""
+    scenario = schema.TestScenario(
+        name="completion_to_final",
+        initial_state="System.Initial",
+        steps=[schema.ScenarioStep(events=[], expected_state="System", name="take_completion")],
+    )
+    scenario_set, _ = freeze_scenario_set([scenario], source_dsl_hash="sha256:test")
+
+    feedback, meta = run_sd6_sim(dsl, scenario_set, None)
+
+    assert not feedback.ok
+    assert meta.status is StageStatus.FAIL
+    assert feedback.scenario_results[0].status == "fail"
+    step = feedback.scenario_results[0].step_results[0]
+    assert step.status == "fail"
+    assert step.actual_state == "<ended>"
+    assert step.runtime_error is None
+
+
+def test_sd10_repair_review_matches_structural_transition_refs_not_id_literals() -> None:
+    old_dsl = """
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+    state Mode_Control_Algorithm {
+        [*] -> Manual;
+        state Manual;
+        state Ask_StartAC;
+        Manual -> Ask_StartAC : InitiateAC;
+    }
+}
+"""
+    candidate_dsl = old_dsl
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="transition:Manual_to_Ask_StartAC",
+                element_kind="transition",
+                element_ref="CARA.Mode_Control_Algorithm.Manual->Ask_StartAC:InitiateAC",
+                source_stage="SL-1",
+                evidence_text="The caregiver initiates autocontrol from Manual into Ask_StartAC.",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Manual enters Ask_StartAC when InitiateAC occurs.",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert feedback.ok
+    assert feedback.local_rejection is None
+
+
+def test_sd10_repair_review_matches_forced_transition_and_during_aspect_refs() -> None:
+    dsl = """
+def int shared_bp_buffer = 0;
+def int blood_pressure = 0;
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+    state Mode_Control_Algorithm {
+        ! * -> Manual : CA_backManual;
+        >> during before { shared_bp_buffer = blood_pressure; }
+        [*] -> Manual;
+        state Manual;
+        state AutocontrolNormal;
+        AutocontrolNormal -> Manual : TerminateAC;
+    }
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="transition:Fallback_CA_backManual",
+                element_kind="transition",
+                element_ref="CARA.Mode_Control_Algorithm.!*->Manual:CA_backManual",
+                source_stage="SL-1",
+                evidence_text="CA_backManual causes return to Manual.",
+                requiredness="required",
+            ),
+            GroundedElement(
+                element_id="action:Mode_Control_store_sensor_buffer",
+                element_kind="action",
+                element_ref="CARA.Mode_Control_Algorithm.>>during_before",
+                source_stage="SL-1",
+                evidence_text="Sensor readings are stored in a shared buffer.",
+                requiredness="required",
+            ),
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Fallback event returns any substate to Manual and stores sensor readings in a shared buffer.",
+        grounding_map=grounding,
+        old_dsl=dsl,
+        candidate_dsl=dsl,
+        fix_plan=plan,
+    )
+
+    assert feedback.ok
+    assert feedback.local_rejection is None

@@ -1,0 +1,175 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float LNG_Pmax = 0.0;
+def float DG1_Pmax = 0.0;
+def float DG2_Pmax = 0.0;
+def float DG3_Pmax = 0.0;
+def float total_thermal_Pmax = 0.0;
+def float requested_generator_power = 0.0;
+def float battery_discharge_power = 0.0;
+def float battery_charge_power = 0.0;
+def float spare_power = 0.0;
+def int cut_in_command = 0;
+def int cut_out_command = 0;
+
+state LNGShipEMS {
+    enter {
+        total_thermal_Pmax = LNG_Pmax + eng3_Pmax + DG1_Pmax + DG2_Pmax;
+    }
+
+    >> during before {
+        total_thermal_Pmax = LNG_Pmax + eng3_Pmax + DG1_Pmax + DG2_Pmax;
+    }
+
+    ! * -> ZeroLoadCharge : if [PL == 0.0 && Ppv + Pw > 0.0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL == 0.0 && Ppv + Pw > 0.0 && SoC >= 0.95];
+    ! * -> RESCharge : if [PL > 0.0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> RESSpare : if [PL > 0.0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> BatteryDischarge : if [PL > 0.0 && Ppv + Pw < PL && SoC > 0.2 && PL - Ppv - Pw <= total_thermal_Pmax];
+    ! * -> LNGChargeMargin : if [PL > 0.0 && Ppv + Pw < PL && SoC <= 0.2 && PL - Ppv - Pw + Pgmax / 5.0 <= LNG_Pmax];
+    ! * -> LNGNormal : if [PL > 0.0 && Ppv + Pw < PL && SoC <= 0.2 && PL - Ppv - Pw <= LNG_Pmax];
+    ! * -> DG3LNG : if [PL > 0.0 && Ppv + Pw < PL && SoC <= 0.2 && PL - Ppv - Pw > LNG_Pmax && PL - Ppv - Pw <= LNG_Pmax + eng3_Pmax];
+    ! * -> DG1AssistCharge : if [PL > 0.0 && Ppv + Pw < PL && SoC <= 0.2 && PL - Ppv - Pw > LNG_Pmax + eng3_Pmax && PL - Ppv - Pw + Pd1max / 10.0 <= LNG_Pmax + eng3_Pmax + DG1_Pmax];
+    ! * -> DG2AssistCharge : if [PL > 0.0 && Ppv + Pw < PL && SoC <= 0.2 && PL - Ppv - Pw > LNG_Pmax + eng3_Pmax + DG1_Pmax && PL - Ppv - Pw + Pd1max / 10.0 <= total_thermal_Pmax];
+    ! * -> AllThermalBattery : if [PL > 0.0 && Ppv + Pw < PL && PL - Ppv - Pw > total_thermal_Pmax];
+    ! * -> IllegalOverloadCompletion : if [PL < 0.0 && PL >= 0.0];
+
+    [*] -> ZeroLoadCharge;
+
+    state ZeroLoadCharge {
+        enter {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Ppv + Pw;
+            spare_power = 0.0;
+            cut_in_command = 0;
+            cut_out_command = 1;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = Ppv + Pw;
+            cut_in_command = 0;
+            cut_out_command = 1;
+        }
+    }
+
+    state RESCharge {
+        enter {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Ppv + Pw - PL;
+            spare_power = 0.0;
+            cut_in_command = 0;
+            cut_out_command = 1;
+        }
+    }
+
+    state RESSpare {
+        enter {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = Ppv + Pw - PL;
+            cut_in_command = 0;
+            cut_out_command = 1;
+        }
+    }
+
+    state BatteryDischarge {
+        enter {
+            requested_generator_power = 0.0;
+            battery_discharge_power = PL - Ppv - Pw;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cut_in_command = 0;
+            cut_out_command = 1;
+        }
+    }
+
+    state LNGChargeMargin {
+        enter {
+            requested_generator_power = PL - Ppv - Pw + Pgmax / 5.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Pgmax / 5.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state LNGNormal {
+        enter {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state DG3LNG {
+        enter {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state DG1AssistCharge {
+        enter {
+            requested_generator_power = PL - Ppv - Pw + Pd1max / 10.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Pd1max / 10.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state DG2AssistCharge {
+        enter {
+            requested_generator_power = PL - Ppv - Pw + Pd1max / 10.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Pd1max / 10.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state AllThermalBattery {
+        enter {
+            requested_generator_power = total_thermal_Pmax;
+            battery_discharge_power = PL - Ppv - Pw - total_thermal_Pmax;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+
+    state IllegalOverloadCompletion {
+        enter {
+            requested_generator_power = total_thermal_Pmax;
+            battery_discharge_power = PL - Ppv - Pw - total_thermal_Pmax;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cut_in_command = 1;
+            cut_out_command = 0;
+        }
+    }
+}

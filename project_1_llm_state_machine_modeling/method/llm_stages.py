@@ -21,7 +21,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import os
 import re
+import sys
+import time
 from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any, Callable, Literal, Optional, Protocol
 
@@ -29,11 +33,13 @@ from method.gpt_client import chat as real_env_chat
 from method.gpt_client import get_default_model
 from method.schema import (
     FixPlan,
+    FixRequestBatch,
     GroundingMap,
     ModelReviewFeedback,
     RepairReviewFeedback,
     ReviewRunMeta,
     RevisedFixPlan,
+    SL10RepairReviewOutput,
     StageResultMeta,
     TestScenario,
 )
@@ -42,6 +48,7 @@ from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt
 from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
 from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
 from method.stages.sl_scenario_generation_prompt import build_sl5_scenario_generation_prompt, parse_sl5_scenario_generation_response
 from method.stages.sl_prompt_common import strip_fence
 
@@ -78,6 +85,22 @@ SECRET_FIELD_EXACT_KEYS = {
 SECRET_FIELD_SUFFIXES = ("_api_key", "_token", "_password", "_passwd", "_secret", "_authorization")
 
 
+def _stage_progress_enabled() -> bool:
+    raw = os.environ.get("AGENT_LOOP_PROGRESS_LOG", os.environ.get("LLM_PROGRESS_LOG", "true"))
+    return str(raw).strip().lower() not in {"0", "false", "no", "off", "disabled"}
+
+
+def _stage_progress(stage_id: StageId, message: str, **payload: Any) -> None:
+    if not _stage_progress_enabled():
+        return
+    safe = " ".join(
+        f"{key}={str(value).replace(chr(10), ' ')[:180]}"
+        for key, value in payload.items()
+        if value is not None
+    )
+    print(f"[agent-loop][{stage_id.value}] {message}" + (f" {safe}" if safe else ""), file=sys.stdout, flush=True)
+
+
 @dataclass
 class LLMStageConfig:
     """Provider/retry contract for one PR-B2 LLM stage call."""
@@ -87,6 +110,9 @@ class LLMStageConfig:
     temperature: float = 0.0
     seed: Optional[int] = None
     max_tokens: Optional[int] = None
+    max_prompt_tokens: Optional[int] = 128_000
+    prompt_token_estimator: str = "chars_per_token"
+    prompt_chars_per_token: float = 4.0
     max_retries: int = 2
     record_prompts: bool = True
     record_raw_outputs: bool = True
@@ -99,6 +125,12 @@ class LLMStageConfig:
             raise ValueError("LLMStageConfig.max_retries must be a non-negative int")
         if self.max_tokens is not None and self.max_tokens <= 0:
             raise ValueError("LLMStageConfig.max_tokens must be positive when provided")
+        if self.max_prompt_tokens is not None and self.max_prompt_tokens <= 0:
+            raise ValueError("LLMStageConfig.max_prompt_tokens must be positive when provided")
+        if self.prompt_token_estimator not in {"chars_per_token", "tiktoken_optional"}:
+            raise ValueError("LLMStageConfig.prompt_token_estimator must be chars_per_token or tiktoken_optional")
+        if self.prompt_chars_per_token <= 0:
+            raise ValueError("LLMStageConfig.prompt_chars_per_token must be positive")
         if self.temperature < 0:
             raise ValueError("LLMStageConfig.temperature must be >= 0")
 
@@ -242,6 +274,43 @@ def _hash_text(text: str) -> str:
 
 def _hash_payload(value: Any) -> str:
     return _hash_text(json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, default=str))
+
+
+def _prompt_char_count(messages: list[dict[str, str]]) -> int:
+    return sum(len(str(message.get("content", ""))) for message in messages)
+
+
+def estimate_prompt_tokens(
+    messages: list[dict[str, str]],
+    *,
+    estimator: str = "chars_per_token",
+    chars_per_token: float = 4.0,
+    model: str | None = None,
+) -> int:
+    """Lightweight pre-request prompt-token estimate for budget gating.
+
+    The default intentionally mirrors ``method.gpt_client``'s chars/4 proxy so
+    PR-E1 does not gain a hard dependency on tokenizer packages.  If a local
+    environment already has ``tiktoken`` and explicitly asks for
+    ``tiktoken_optional``, use it as a best-effort estimate; otherwise fall back
+    to the same chars-per-token calculation.
+    """
+
+    prompt_chars = _prompt_char_count(messages)
+    if estimator == "tiktoken_optional":
+        try:
+            import tiktoken  # type: ignore[import-not-found]
+
+            try:
+                encoding = tiktoken.encoding_for_model(model or "")
+            except Exception:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            # Chat message framing differs by model/provider; add a small
+            # per-message overhead while keeping the estimate lightweight.
+            return sum(len(encoding.encode(str(message.get("content", "")))) + 4 for message in messages) + 2
+        except Exception:
+            pass
+    return int(math.ceil(max(0, prompt_chars) / chars_per_token))
 
 
 def _redaction_placeholder(secret: str, reason: str) -> str:
@@ -402,8 +471,9 @@ def _attempt_payload(
     provider_name: str,
     error_kind: str | None = None,
     error_message: str | None = None,
+    elapsed_seconds: float | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "stage_id": stage_id.value,
         "attempt_index": attempt_index,
         "status": status,
@@ -417,6 +487,9 @@ def _attempt_payload(
         "model_id": model_id,
         "provider": provider_name,
     }
+    if elapsed_seconds is not None:
+        payload["elapsed_seconds"] = elapsed_seconds
+    return payload
 
 
 def _redaction_failed_message(exc: Exception) -> str:
@@ -622,8 +695,28 @@ def _run_llm_stage(
     last_error_kind: str | None = None
     parsed: Any = {}
     schema_ok = False
+    prompt_chars = _prompt_char_count(prompt_messages)
+    estimated_prompt_tokens = estimate_prompt_tokens(
+        prompt_messages,
+        estimator=config.prompt_token_estimator,
+        chars_per_token=config.prompt_chars_per_token,
+        model=last_model_id,
+    )
+    prompt_budget = config.max_prompt_tokens
 
     for attempt_index in range(config.max_retries + 1):
+        attempt_started = time.monotonic()
+        _stage_progress(
+            stage_id,
+            "attempt_start",
+            attempt=f"{attempt_index}/{config.max_retries}",
+            provider=chat_provider.provider_name,
+            model=last_model_id,
+            prompt_chars=prompt_chars,
+            estimated_prompt_tokens=estimated_prompt_tokens,
+            prompt_budget=prompt_budget,
+            response_format=response_format.get("type") if isinstance(response_format, dict) else None,
+        )
         try:
             raw_output, usage, model_id = chat_provider.chat(
                 messages=prompt_messages,
@@ -637,8 +730,10 @@ def _run_llm_stage(
             last_usage = usage
             last_model_id = model_id
         except Exception as exc:  # provider/network/timeout/rate-limit are provider-layer here.
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "provider_error"
             last_error = f"provider failure: {type(exc).__name__}: {str(exc)[:300]}"
+            _stage_progress(stage_id, "attempt_provider_error", attempt=attempt_index, elapsed=f"{elapsed:.2f}s", error=last_error)
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -651,13 +746,16 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
             continue
 
         if empty_output_invalid and not raw_output.strip():
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "empty_output"
             last_error = "empty LLM output"
+            _stage_progress(stage_id, "attempt_empty_output", attempt=attempt_index, elapsed=f"{elapsed:.2f}s")
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -670,6 +768,7 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
             continue
@@ -679,6 +778,15 @@ def _run_llm_stage(
             schema_ok = True
             last_error = None
             last_error_kind = None
+            elapsed = time.monotonic() - attempt_started
+            _stage_progress(
+                stage_id,
+                "attempt_schema_ok",
+                attempt=attempt_index,
+                elapsed=f"{elapsed:.2f}s",
+                raw_chars=len(raw_output),
+                usage=_jsonable(usage),
+            )
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -689,12 +797,15 @@ def _run_llm_stage(
                     usage=usage,
                     model_id=model_id,
                     provider_name=chat_provider.provider_name,
+                    elapsed_seconds=elapsed,
                 )
             )
             break
         except Exception as exc:
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "schema_invalid"
             last_error = f"schema invalid: {type(exc).__name__}: {str(exc)[:300]}"
+            _stage_progress(stage_id, "attempt_schema_invalid", attempt=attempt_index, elapsed=f"{elapsed:.2f}s", raw_chars=len(raw_output), error=last_error)
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -707,6 +818,7 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
 
@@ -750,6 +862,14 @@ def _run_llm_stage(
         "schema_validation_ok": schema_ok,
         "schema_validation_error": review_meta.schema_validation_error,
         "usage": _jsonable(last_usage),
+        "prompt_chars": prompt_chars,
+        "estimated_prompt_tokens": estimated_prompt_tokens,
+        "prompt_token_budget": prompt_budget,
+        "prompt_token_estimator": config.prompt_token_estimator,
+        "chars_per_token_estimate": config.prompt_chars_per_token,
+        "prompt_budget_exceeded_before_request": (
+            estimated_prompt_tokens > prompt_budget if prompt_budget is not None else False
+        ),
         "attempts": attempts,
         "retry_error": retry_error,
         "review_meta": asdict(review_meta),
@@ -818,11 +938,12 @@ def run_sl5_scenario_generation_llm(
     design_summary: dict[str, Any] | None = None,
     grounding_map: Any | None = None,
     coverage_directive: str | None = None,
+    previous_scenarios: list[Any] | None = None,
     config: Optional[LLMStageConfig] = None,
     provider: Optional[ChatProvider] = None,
 ) -> LLMStageRun:
     cfg = config or LLMStageConfig()
-    version = "sl5-scenario-generation.v1"
+    version = "sl5-scenario-generation.v2"
     prompt = build_sl5_scenario_generation_prompt(
         nl=nl,
         current_dsl=current_dsl,
@@ -830,6 +951,7 @@ def run_sl5_scenario_generation_llm(
         design_summary=design_summary,
         grounding_map=grounding_map,
         coverage_directive=coverage_directive,
+        previous_scenarios=previous_scenarios,
         prompt_template_version=version,
     )
     run = _run_llm_stage(
@@ -893,6 +1015,9 @@ def run_sl9_repair_llm(
     nl: str,
     current_dsl: str,
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None = None,
+    fix_request_batch: FixRequestBatch | dict[str, Any] | None = None,
+    fix_log: list[dict[str, Any]] | None = None,
+    repair_memory: dict[str, Any] | None = None,
     grounding_map: Any | None = None,
     selected_diagnostics: list[dict[str, Any]] | None = None,
     grammar_digest: str | None = None,
@@ -903,11 +1028,14 @@ def run_sl9_repair_llm(
     provider: Optional[ChatProvider] = None,
 ) -> LLMStageRun:
     cfg = config or LLMStageConfig()
-    version = "sl9-repair.v1"
+    version = "sl9-repair.v2"
     prompt = build_sl9_repair_prompt(
         nl=nl,
         current_dsl=current_dsl,
         fix_plan=fix_plan,
+        fix_request_batch=fix_request_batch,
+        fix_log=fix_log,
+        repair_memory=repair_memory,
         grounding_map=grounding_map,
         selected_diagnostics=selected_diagnostics,
         grammar_digest=grammar_digest,
@@ -918,11 +1046,24 @@ def run_sl9_repair_llm(
     )
 
     def parse_repair(raw: str) -> dict[str, str]:
+        stripped = strip_fence(raw)
+        try:
+            parsed = json.loads(stripped)
+        except Exception:
+            parsed = None
+        if isinstance(parsed, dict) and parsed.get("candidate_dsl") is not None:
+            dsl = strip_fence(str(parsed.get("candidate_dsl") or ""))
+            if not dsl and any(decision.get("decision") == "accept" for decision in parsed.get("decisions", []) if isinstance(decision, dict)):
+                raise ValueError("SL-9 candidate_dsl must be non-empty when a request is accepted")
+            return {
+                **parsed,
+                "candidate_dsl": dsl,
+            }
         # Real providers sometimes wrap DSL in Markdown fences despite the
         # prompt saying "no fences".  Fence-wrapped DSL is an LLM formatting
         # artifact, not a semantic repair decision; normalize it here so PR-C
         # does not feed fenced text into deterministic parse/semantic stages.
-        dsl = strip_fence(raw)
+        dsl = stripped
         if not dsl:
             raise ValueError("SL-9 candidate_dsl must be non-empty")
         return {"candidate_dsl": dsl}
@@ -1127,6 +1268,89 @@ def run_sl10b_delta_review_llm(
     return run
 
 
+def run_sl10_repair_review_llm(
+    *,
+    nl: str,
+    grounding_map: Any,
+    old_dsl: str,
+    candidate_dsl: str,
+    request_batch: Any,
+    sl9_decisions: Any,
+    fix_log: list[dict[str, Any]] | None = None,
+    diff_summary: dict[str, Any] | None = None,
+    local_check_evidence: dict[str, Any] | None = None,
+    scenario_summary: dict[str, Any] | None = None,
+    review_policy: dict[str, Any] | None = None,
+    config: Optional[LLMStageConfig] = None,
+    provider: Optional[ChatProvider] = None,
+) -> LLMStageRun:
+    cfg = config or LLMStageConfig()
+    version = "sl10-repair-review.v1"
+    prompt = build_sl10_repair_review_prompt(
+        nl=nl,
+        grounding_map=grounding_map,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        request_batch=request_batch,
+        sl9_decisions=sl9_decisions,
+        fix_log=fix_log,
+        diff_summary=diff_summary,
+        local_check_evidence=local_check_evidence,
+        scenario_summary=scenario_summary,
+        prompt_template_version=version,
+    )
+    mode = _policy_mode(review_policy, default="blocking_major_only")
+    run = _run_llm_stage(
+        stage_id=StageId.SL_10_REPAIR_REVIEW,
+        prompt_template_version=version,
+        prompt_messages=prompt,
+        parser=parse_sl10_repair_review_response,
+        parsed_schema_version="SL10RepairReviewOutput.v1",
+        config=cfg,
+        provider=provider,
+        response_format={"type": "json_object"},
+        failure_policy=_review_failure_policy(mode),
+    )
+    parsed = run.parsed_output if isinstance(run.parsed_output, dict) else {}
+    review_meta = ReviewRunMeta(**run.interaction["review_meta"])
+    decision = parsed.get("decision", "invalid_output") if run.ok else "invalid_output"
+    target_resolved = bool(parsed.get("target_resolved", decision == "pass"))
+    regression_detected = bool(parsed.get("regression_detected", decision != "pass"))
+    drift_risk = parsed.get("drift_risk", "none" if decision == "pass" else "major")
+    ok = bool(
+        run.ok
+        and decision == "pass"
+        and target_resolved
+        and not regression_detected
+        and drift_risk in {"none", "minor"}
+    )
+    if run.ok and decision == "pass" and not ok:
+        decision = "rework"
+        instructions = [str(item) for item in parsed.get("rework_instructions", [])]
+        instructions.append(
+            "SL-10 pass was downgraded because its own fields reported "
+            f"target_resolved={target_resolved}, "
+            f"regression_detected={regression_detected}, drift_risk={drift_risk}."
+        )
+    else:
+        instructions = [str(item) for item in parsed.get("rework_instructions", [])]
+    feedback = SL10RepairReviewOutput(
+        ok=ok,
+        decision=decision,
+        target_resolved=target_resolved,
+        regression_detected=regression_detected,
+        drift_risk=drift_risk,
+        rework_instructions=instructions,
+        evidence=parsed.get("evidence", []),
+        local_override_rationale=[str(item) for item in parsed.get("local_override_rationale", [])],
+        local_check_evidence=local_check_evidence or {},
+        review_meta=review_meta,
+        meta=run.stage_meta,
+    )
+    run.feedback = feedback
+    return run
+
+
 __all__ = [
     "ChatProvider",
     "LLMStageConfig",
@@ -1138,5 +1362,6 @@ __all__ = [
     "run_sl5_scenario_generation_llm",
     "run_sl7_model_review_llm",
     "run_sl9_repair_llm",
+    "run_sl10_repair_review_llm",
     "run_sl10b_delta_review_llm",
 ]

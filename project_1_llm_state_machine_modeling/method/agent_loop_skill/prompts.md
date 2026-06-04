@@ -18,7 +18,7 @@ PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evalua
 - prompt generator 只返回 message pack 或 markdown prompt。
 - prompt generator 不调用 LLM、不读取 `.env`、不绑定 provider。
 - 真实 provider 调用、ReviewRunMeta/interaction record wiring 属于 PR-B2 的 `method.llm_stages`；top-down driver 与 run record 完整写入属于 PR-B1/PR-C。
-- `GroundingMap`、`FixPlan`、`ScenarioSet` 等输入默认由上游提供 schema-valid 对象；PR-1B 只消费并格式化它们，不负责生产。
+- `GroundingMap`、`FixRequestBatch`、`FixLog`、`ScenarioSet` 等输入默认由上游提供 schema-valid 对象；PR-1B/PR-E1 只消费并格式化它们，不负责生产。
 
 ## Generator 列表
 
@@ -27,8 +27,9 @@ PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evalua
 | SL-1 | `build_sl1_initial_modeling_prompt(...)` | NL、SpecJson、upstream lists、pyfcstm grammar digest | JSON：`candidate_dsl` + `grounding_seeds` |
 | SL-5 | `build_sl5_scenario_generation_prompt(...)` | NL、current DSL、inspect JSON、design summary、GroundingMap、coverage directive | JSON：`scenarios`，兼容 `TestScenario` / `ScenarioStep` |
 | SL-7 | `build_sl7_model_review_prompt(...)` | NL、current DSL、GroundingMap、inspect JSON、design diagnostics、sim summary、5-component summary、warning budget exhausted、ReviewPolicy | JSON：decision/risk/findings，findings 映射 issue #14 I.2 九类 category |
-| SL-9 | `build_sl9_repair_prompt(...)` | NL、current DSL、FixPlan/RevisedFixPlan、GroundingMap、selected diagnostics、grammar digest、preserve list、scenario summary | corrected pyfcstm DSL only；`suggested_fix` 只是 hint, not a command |
-| SL-10B | `build_sl10b_delta_review_prompt(...)` | NL、GroundingMap、old DSL、candidate DSL、FixPlan/RevisedFixPlan、diff summary | JSON：accept/reject/revise + drift evidence |
+| SL-9 | `build_sl9_repair_prompt(...)` | NL、current DSL、FixRequestBatch、完整 FixLog、GroundingMap、selected diagnostics、grammar digest、preserve list、scenario summary | JSON：per-request accept/reject + candidate DSL；legacy DSL-only 仅兼容 |
+| SL-10 | `build_sl10_repair_review_prompt(...)` | NL、GroundingMap、old DSL、candidate DSL、FixRequestBatch、SL-9 decisions、完整 FixLog、diff、local check evidence | JSON：pass/fail/rework + evidence + rework_instructions |
+| SL-10B | `build_sl10b_delta_review_prompt(...)` | NL、GroundingMap、old DSL、candidate DSL、FixPlan/RevisedFixPlan、diff summary | legacy/ablation：accept/reject/revise + drift evidence |
 
 ## Fake response / parser 测试
 
@@ -44,4 +45,4 @@ PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evalua
 
 `method.llm_stages` 对每个 SL stage 都会记录：`prompt_messages`、`raw_output`、`parsed_output`、`schema_validation_ok/error`、`usage`、`provider/model`、`attempts`、`retry_error`、prompt/input/raw hash 与 redaction report。
 
-注意：`SL-5` 的 coverage directive retry 由 `SD-5A` / runtime 决定何时触发；PR-B2 只保证带 directive 的 `SL-5` LLM call 可重放、可审计。`SL-9` 中的 `suggested_fix` 永远是 context hint，不是强制编辑命令。
+注意：`SL-5` 的 coverage directive retry 由 `SD-5A` / runtime 决定何时触发；PR-B2 只保证带 directive 的 `SL-5` LLM call 可重放、可审计。`SL-9` 中的 `suggested_fix` 永远是 context hint，不是强制编辑命令；PR-E1 后 `SL-9` 还必须读取 FixLog，避免重复修复已被 waiver/reject 的 request。

@@ -31,9 +31,9 @@ PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill �
 
 ## Stage 顺序
 
-`SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SD-10 -> SL-10B -> SC-11 -> SC-12 -> SC-13`
+`SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SC-12 -> SC-13`
 
-其中 `SC-5F` 是 ScenarioSet freeze，`SC-11` 是接受 candidate，`SC-13` 是 Trace/Audit；不要把 `SC-11` 改义为 run-record 写入。
+其中 `SC-5F` 是 ScenarioSet freeze，`SC-11` 是接受 candidate 并触发下一轮 `SD-2` 完整重验的 control 节点，`SC-13` 是 Trace/Audit；不要把 `SC-11` 改义为 final success 或 run-record 写入。PR-E1 默认 repair 链路是 `SD-8 FixRequestBatch -> SL-9 per-request accept/reject + repair -> SL-10(NL + FixLog + local evidence) -> SC-11`；旧 `SD-10`/`SL-10B` 仅作为 local evidence / legacy ablation。
 
 ## 入口文档
 
@@ -54,7 +54,7 @@ PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill �
 
 ## PR-B2 LLM stage adapter 边界
 
-- `method.llm_stages` 提供仓库内部可调用的 `SL-1/SL-5/SL-7/SL-9/SL-10B` execution units，用于 PR-C 集成。
+- `method.llm_stages` 提供仓库内部可调用的 `SL-1/SL-5/SL-7/SL-9/SL-10` execution units，用于 PR-C/PR-E1 集成；旧 `SL-10B` 保留为 legacy/ablation。
 - skill 使用者仍可只使用 prompt generator 自行调用 LLM/subagent；`llm_stages.py` 是 method runtime 的 adapter，不改变 `SL-*` prompt-only 规范。
 - retry 只限 LLM 层 provider/network/schema/empty-output，不处理 deterministic stage fail。
 - 每个 adapter 输出 `interaction` payload 与 `redaction_report`，应写入后续 `AgentLoopRunRecord.llm_interactions`。

@@ -8,7 +8,7 @@ PR-0/PR-1A 约定：`SD-*` 是确定性工具层，不调用 LLM、不读取 `.e
 PR-E2 的 agent 可以直接调用本页 `SD-*` deterministic tools 来检查候选模型，但不得把这些工具包在 `method.loop.run_agent_loop(...)` 或一键 runner 里间接执行。推荐最小顺序是：
 
 ```text
-run_sd2_parse -> run_sd3_semantic -> run_sd4_design -> SD-5A/SC-5F/SD-6 -> SD-8/SL-9 repair -> SD-10 review -> 回到 SD-2
+run_sd2_parse -> run_sd3_semantic -> run_sd4_design -> SD-5A/SC-5F/SD-6 -> SD-8 FixRequestBatch -> SL-9 decision/repair -> SL-10 review -> 回到 SD-2
 ```
 
 若某个工具因 import、语法或 pyfcstm 版本问题不可用，必须在 PR comment 中记录命令、错误摘要和影响分类；不能静默跳过并声称模型已通过验证。
@@ -30,7 +30,7 @@ from method.stages.sd_tools import (
     run_sd5a_scenario_coverage,
     run_sd6_sim,
     run_sd8_fix_plan,
-    run_sd10_repair_review,
+    run_sd10_repair_review,  # PR-E1 中作为 SL-10 local_check_evidence 使用
 )
 
 context = StageContext(nl=nl)
@@ -55,8 +55,8 @@ fix_plan, fix_meta = run_sd8_fix_plan(
 | `SD-5A` | `run_sd5a_scenario_coverage(current_dsl, scenarios)` | DSL + scenario candidates | coverage report, `StageResultMeta` | coverage probe；有缺口时给 retry directive。 |
 | `SC-5F` | `freeze_scenario_set(...)` | scenario candidates + hashes | `ScenarioSet`, `StageResultMeta` | 冻结 oracle，后续 repair 不随意重生成。 |
 | `SD-6` | `run_sd6_sim(current_dsl, scenario_set, context=None)` | DSL + frozen `ScenarioSet` | `SimFeedback`, `StageResultMeta` | scenario 缺失时显式 error，不静默跳过。 |
-| `SD-8` | `run_sd8_fix_plan(selected_feedback, source=..., ...)` | 最早失败 feedback + grounding | `FixPlan` 或 `RevisedFixPlan`, `StageResultMeta` | `suggested_fix_hints` 仅供参考；repair 可选择更优全局修复。 |
-| `SD-10` | `run_sd10_repair_review(nl=..., grounding_map=..., old_dsl=..., candidate_dsl=..., fix_plan=..., scenario_set=...)` | NL + grounding + before/after DSL + plan + oracle | `RepairReviewFeedback`, `StageResultMeta` | parse/semantic/design target/scenario regression/grounding/count drift（±30% 增减漂移）/forced count 本地复验。 |
+| `SD-8` | `run_sd8_fix_plan(selected_feedback, source=..., ...)` | 最早失败 feedback + grounding | legacy `FixPlan` 或 `RevisedFixPlan`, `StageResultMeta` | PR-E1 runtime 会把它提升为 `FixRequestBatch`；`suggested_fix_hints` 仅供参考。 |
+| local checks for `SL-10` | `run_sd10_repair_review(nl=..., grounding_map=..., old_dsl=..., candidate_dsl=..., fix_plan=..., scenario_set=...)` | NL + grounding + before/after DSL + plan + oracle | `RepairReviewFeedback`, `StageResultMeta` | 作为 `SL-10` 的 `local_check_evidence`；不再是默认主链最终裁判。 |
 
 ## Warning budget
 

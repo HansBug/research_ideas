@@ -1,0 +1,263 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.5;
+def float Pbmax = 0.0;
+def float Pgmax = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pd1max = 0.0;
+def float Pd2max = 0.0;
+def float requested_generator_power = 0.0;
+def float battery_discharge_power = 0.0;
+def float battery_charge_power = 0.0;
+def float spare_power = 0.0;
+def int cutin_LNG = 0;
+def int cutout_LNG = 1;
+def int cutin_ENG3 = 0;
+def int cutout_ENG3 = 1;
+def int cutin_DG1 = 0;
+def int cutout_DG1 = 1;
+def int cutin_DG2 = 0;
+def int cutout_DG2 = 1;
+def int illegal_overload = 0;
+
+state LNGShipEMS {
+    ! * -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+    ! * -> ResCoversCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> ResCoversSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> BatteryDischarge : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw <= Pbmax];
+    ! * -> LNGServe : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pbmax && PL - Ppv - Pw <= Pgmax];
+    ! * -> LNGChargeMargin : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= Pgmax];
+    ! * -> LNGAndEngine3Serve : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= Pgmax + eng3_Pmax];
+    ! * -> LNGAndEngine3ChargeMargin : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 > Pgmax && PL - Ppv - Pw + Pd1max / 10 <= Pgmax + eng3_Pmax];
+    ! * -> LNGEngine3DG1ServeOrCharge : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.2 && PL - Ppv - Pw > Pgmax + eng3_Pmax && PL - Ppv - Pw <= Pgmax + eng3_Pmax + Pd1max) || (SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > Pgmax + eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= Pgmax + eng3_Pmax + Pd1max))];
+    ! * -> LNGEngine3DG1DG2ServeOrCharge : if [PL > 0 && Ppv + Pw < PL && ((SoC >= 0.2 && PL - Ppv - Pw > Pgmax + eng3_Pmax + Pd1max && PL - Ppv - Pw <= Pgmax + eng3_Pmax + Pd1max + Pd2max) || (SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > Pgmax + eng3_Pmax + Pd1max && PL - Ppv - Pw <= Pgmax + eng3_Pmax + Pd1max + Pd2max))];
+    ! * -> OverloadIllegal : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax + eng3_Pmax + Pd1max + Pd2max];
+
+    [*] -> ZeroLoadCharge;
+
+    state ZeroLoadCharge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Ppv + Pw;
+            spare_power = 0.0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = Ppv + Pw;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state ResCoversCharge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Ppv + Pw - PL;
+            spare_power = 0.0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state ResCoversSpare {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = Ppv + Pw - PL;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state BatteryDischarge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = PL - Ppv - Pw;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGServe {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGChargeMargin {
+        during {
+            requested_generator_power = PL - Ppv - Pw + Pgmax / 5;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Pgmax / 5;
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 0;
+            cutout_ENG3 = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGAndEngine3Serve {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 1;
+            cutout_ENG3 = 0;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGAndEngine3ChargeMargin {
+        during {
+            requested_generator_power = PL - Ppv - Pw + Pd1max / 10;
+            battery_discharge_power = 0.0;
+            battery_charge_power = Pd1max / 10;
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 1;
+            cutout_ENG3 = 0;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGEngine3DG1ServeOrCharge {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            if [SoC < 0.2] {
+                requested_generator_power = PL - Ppv - Pw + Pd1max / 10;
+                battery_charge_power = Pd1max / 10;
+            }
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 1;
+            cutout_ENG3 = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGEngine3DG1DG2ServeOrCharge {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charge_power = 0.0;
+            if [SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 <= Pgmax + eng3_Pmax + Pd1max + Pd2max] {
+                requested_generator_power = PL - Ppv - Pw + Pd1max / 10;
+                battery_charge_power = Pd1max / 10;
+            }
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 1;
+            cutout_ENG3 = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 1;
+            cutout_DG2 = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state OverloadIllegal {
+        during {
+            requested_generator_power = Pgmax + eng3_Pmax + Pd1max + Pd2max;
+            battery_discharge_power = PL - Ppv - Pw - Pgmax - eng3_Pmax - Pd1max - Pd2max;
+            battery_charge_power = 0.0;
+            spare_power = 0.0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_ENG3 = 1;
+            cutout_ENG3 = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 1;
+            cutout_DG2 = 0;
+            illegal_overload = 1;
+        }
+    }
+}

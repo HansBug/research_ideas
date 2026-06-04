@@ -1,0 +1,58 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+
+state System {
+    [*] -> RES_Charge;
+
+    state RES_Charge;
+    state RES_Spare;
+    state RES_BattSupport;
+    state LNG_Supply;
+    state LNG_ChargeMargin;
+    state LNG_BattSupport;
+    state DG1_Support;
+    state DG1_ChargeMargin;
+    state DG2_Support;
+    state DG2_ChargeMargin;
+    state ZeroLoad;
+    state Overload;
+
+    RES_Charge -> ZeroLoad : if [PL == 0];
+    RES_Spare -> ZeroLoad : if [PL == 0];
+    RES_BattSupport -> ZeroLoad : if [PL == 0];
+    LNG_Supply -> ZeroLoad : if [PL == 0];
+    LNG_ChargeMargin -> ZeroLoad : if [PL == 0];
+    LNG_BattSupport -> ZeroLoad : if [PL == 0];
+    DG1_Support -> ZeroLoad : if [PL == 0];
+    DG1_ChargeMargin -> ZeroLoad : if [PL == 0];
+    DG2_Support -> ZeroLoad : if [PL == 0];
+    DG2_ChargeMargin -> ZeroLoad : if [PL == 0];
+
+    ZeroLoad -> RES_Charge : if [PL > 0 && (Ppv + Pw) >= PL && SoC < 0.95];
+    ZeroLoad -> RES_Spare : if [PL > 0 && (Ppv + Pw) >= PL && SoC >= 0.95];
+
+    RES_Charge -> RES_Spare : if [(Ppv + Pw) >= PL && SoC >= 0.95];
+    RES_Spare -> RES_Charge : if [(Ppv + Pw) >= PL && SoC < 0.95];
+
+    RES_Charge -> RES_BattSupport : if [(Ppv + Pw) < PL && SoC > 0.95];
+    RES_Spare -> RES_BattSupport : if [(Ppv + Pw) < PL && SoC > 0.95];
+
+    RES_Charge -> LNG_Supply : if [(Ppv + Pw) < PL && SoC <= 0.95 && PL <= eng3_Pmax];
+    RES_Spare -> LNG_Supply : if [(Ppv + Pw) < PL && SoC <= 0.95 && PL <= eng3_Pmax];
+
+    LNG_Supply -> LNG_ChargeMargin : if [SoC < 0.5 && PL <= eng3_Pmax + Pgmax / 5];
+    LNG_Supply -> LNG_BattSupport : if [SoC >= 0.5 && PL > eng3_Pmax];
+
+    LNG_BattSupport -> DG1_Support : if [PL > eng3_Pmax];
+    DG1_Support -> DG1_ChargeMargin : if [SoC < 0.5 && PL > eng3_Pmax];
+    DG1_Support -> DG2_Support : if [PL > eng3_Pmax + Pd1max];
+
+    DG2_Support -> DG2_ChargeMargin : if [SoC < 0.5];
+    DG2_Support -> Overload : if [PL > eng3_Pmax + Pd1max + Pgmax];
+    DG2_ChargeMargin -> Overload : if [PL > eng3_Pmax + Pd1max + Pgmax];
+}

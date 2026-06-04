@@ -1,0 +1,80 @@
+def int pump_speed = 0;
+def int target_bp = 120;
+def int patient_bp = 0;
+def int flow_rate = 0;
+def int algorithm_active = 0;
+def int pump_fault = 0;
+
+def int CA_mode = 0; // 0=Manual, 1=Autocontrol
+
+def int CA_backManual = 0;
+def int CB_backManual = 0;
+def int CP_backManual = 0;
+def int CC_backManual = 0;
+
+state CARA {
+    ! * -> Manual : if [CA_backManual || CB_backManual || CP_backManual || CC_backManual];
+
+    [*] -> Mode_Control_Algorithm;
+
+    state Manual {
+        enter { CA_mode = 0; }
+    }
+
+    state Mode_Control_Algorithm {
+        [*] -> Manual;
+
+        state Manual;
+        state Autocontrol {
+            [*] -> Ask_StartAC;
+
+            state Ask_StartAC {
+                state Setpoint;
+                state AutocontrolInit;
+
+                Setpoint -> AutocontrolInit :: StartAC;
+            }
+
+            state Running {
+                during { 
+                    if [pump_fault == 0 && algorithm_active == 1] {
+                        // flow_rate controlled by algorithm
+                    }
+                }
+            }
+        }
+    }
+
+    state Pump {
+        state ManualMode {
+            during { flow_rate = pump_speed; }
+        }
+        state AutocontrolMode {
+            during { 
+                if [algorithm_active == 1] {
+                    // flow_rate set by control voltage
+                }
+            }
+        }
+        state Alarm {
+            enter { pump_fault = 1; }
+        }
+    }
+
+    state Algorithm {
+        enter { algorithm_active = 1; }
+        exit  { algorithm_active = 0; }
+    }
+
+    state CaregiverInterface;
+    state BloodPressureMonitor {
+        during { patient_bp = patient_bp; } // placeholder for reading
+    }
+
+    state SharedBuffer;
+
+    Pump.ManualMode -> Pump.AutocontrolMode :: switch_to_autocontrol;
+    Pump.AutocontrolMode -> Pump.ManualMode :: switch_to_manual;
+    Pump.AutocontrolMode -> Pump.Alarm : if [pump_fault > 0];
+    Pump.Alarm -> Pump.ManualMode :: fault_cleared;
+}

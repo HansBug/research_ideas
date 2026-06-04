@@ -23,6 +23,7 @@ from method.schema import (
     ModelReviewFeedback,
     ParseFeedback,
     RepairReviewFeedback,
+    SL10RepairReviewOutput,
     ReviewRunMeta,
     ScenarioResult,
     ScenarioSet,
@@ -77,8 +78,7 @@ def test_stage_ids_are_canonical_and_cover_pr0_loop_contract() -> None:
         "SL-7",
         "SD-8",
         "SL-9",
-        "SD-10",
-        "SL-10B",
+        "SL-10",
         "SC-11",
         "SC-12",
         "SC-13",
@@ -278,20 +278,20 @@ def test_model_review_feedback_coerces_nested_review_and_stage_meta_from_json_di
     assert feedback.meta.stage_id == StageId.SL_7_MODEL_REVIEW.value
 
 
-def test_repair_review_feedback_coerces_delta_review_meta_from_sl10b_fixture() -> None:
-    fixture = json.loads((METHOD_ROOT / "stages" / "fixtures" / "SL-10B.json").read_text(encoding="utf-8"))
-    feedback = RepairReviewFeedback(
-        **fixture["output"]["repair_review_feedback"],
+def test_sl10_repair_review_output_coerces_review_meta_from_fixture() -> None:
+    fixture = json.loads((METHOD_ROOT / "stages" / "fixtures" / "SL-10.json").read_text(encoding="utf-8"))
+    feedback = SL10RepairReviewOutput(
+        **fixture["output"]["sl10_repair_review"],
         meta=fixture["meta"],
     )
 
+    assert feedback.ok is True
+    assert feedback.decision == "pass"
     assert isinstance(feedback.review_meta, ReviewRunMeta)
-    assert feedback.review_meta.decision_threshold == 0.7
     assert feedback.review_meta.failure_policy == "fail_closed"
-    assert feedback.review_meta.replay_key == "sl10b:sha256:delta-input"
-    assert feedback.delta_review and feedback.delta_review["decision"] == "accept"
+    assert feedback.review_meta.replay_key == "sl10:sha256:input"
     assert isinstance(feedback.meta, StageResultMeta)
-    assert feedback.meta.stage_id == StageId.SL_10B_DELTA_REVIEW.value
+    assert feedback.meta.stage_id == StageId.SL_10_REPAIR_REVIEW.value
 
 
 def test_nested_feedback_meta_coercion_preserves_stage_contract_from_json_dicts() -> None:
@@ -549,7 +549,7 @@ def test_review_feedback_rejects_invalid_literal_decision_and_risk_fields() -> N
         RepairReviewFeedback(ok=True, drift_risk="catastrophic")
 
     with pytest.raises(ValueError):
-        schema.RepairRejection(rejected_by_stage="SD-10", reason="bad", drift_risk="catastrophic")
+        schema.RepairRejection(rejected_by_stage="SL-10", reason="bad", drift_risk="catastrophic")
 
 
 def test_repair_review_bundle_blocks_mutated_delta_review_without_review_meta() -> None:
@@ -587,7 +587,7 @@ def test_fix_plan_rejects_invalid_target_and_severity() -> None:
                 "severity": "unknown",
             },
             rejection={
-                "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+                "rejected_by_stage": StageId.SL_10_REPAIR_REVIEW.value,
                 "reason": "bad repair",
             },
         )
@@ -601,7 +601,7 @@ def test_revised_fix_plan_rejects_invalid_revision_count() -> None:
         "severity": "error",
     }
     rejection = {
-        "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+        "rejected_by_stage": StageId.SL_10_REPAIR_REVIEW.value,
         "reason": "scenario regression",
     }
 
@@ -682,7 +682,7 @@ def test_revised_fix_plan_coerces_nested_dataclasses_from_json_dicts() -> None:
             "severity": "error",
         },
         rejection={
-            "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+            "rejected_by_stage": StageId.SL_10_REPAIR_REVIEW.value,
             "reason": "scenario regression",
             "target_resolved": False,
             "regression_detected": True,
@@ -815,8 +815,7 @@ def test_planned_stage_graph_covers_full_staged_default_and_trace_fields() -> No
         "SL-7",
         "SD-8",
         "SL-9",
-        "SD-10",
-        "SL-10B",
+        "SL-10",
         "SC-11",
         "SC-12",
         "SC-13",
@@ -932,7 +931,10 @@ def test_default_ablation_condition_preserves_default_academic_question() -> Non
     assert condition.academic_question == schema.DEFAULT_ACADEMIC_QUESTION
     assert cfg.resolved_config()["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
 
-def test_direct_non_default_loop_config_requires_academic_question(tmp_path: Path) -> None:
+def test_direct_non_default_loop_config_requires_academic_question(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    for key in ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"):
+        monkeypatch.delenv(key, raising=False)
+
     with pytest.raises(ValueError, match="requires explicit non-default academic_question"):
         schema.LoopConfig(condition_id="iter3_v1", changed_factors=["max_iterations=3"], max_iterations=3)
 
@@ -1291,18 +1293,12 @@ def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
         assert "review_meta" not in output
     elif stage_id == StageId.SD_8_FIX_PLAN.value:
         FixPlan(**output["fix_plan"])
-    elif stage_id == StageId.SD_10_REPAIR_REVIEW.value:
-        feedback = RepairReviewFeedback(**output["repair_review_feedback"])
-        assert feedback.review_meta is None
-    elif stage_id == StageId.SL_10B_DELTA_REVIEW.value:
-        feedback = RepairReviewFeedback(**output["repair_review_feedback"])
+    elif stage_id == StageId.SL_10_REPAIR_REVIEW.value:
+        feedback = SL10RepairReviewOutput(**output["sl10_repair_review"])
         assert isinstance(feedback.review_meta, ReviewRunMeta)
-        assert feedback.review_meta.decision_threshold is not None
         assert feedback.review_meta.failure_policy in {"fail_open", "fail_closed", "audit_only"}
         assert feedback.review_meta.replay_key
-        assert feedback.delta_review is not None
         assert "review_meta" not in output
-        assert "delta_review" not in output
     elif stage_id == StageId.SC_13_TRACE_AUDIT.value:
         AgentLoopRunRecord(**output["agent_loop_run_record"])
 

@@ -106,14 +106,14 @@ Obligation 是从 NL 中抽取出的、模型应该表达的可评价语义单�
 
 | 类型 | 例子 |
 |---|---|
-| `state` | `Manual`、`Autocontrol`、`F1`、`Fault` |
-| `event` | `StartAC`、`Reset`、`Ack` |
-| `transition` | `F1 + PS2 -> MU2` |
-| `guard` | `slp <= 0.01`、`SoC < 0.95` |
-| `action/output` | `k1=1`、`alarm=1`、`hbrg=up` |
-| `hierarchy` | `Ask_StartAC` 是某个 mode-control state 的子状态 |
-| `reset/fault` | `Reset` 强制回到 `Manual` / `F1` |
-| `external_input` | `PL/Ppv/Pw/SoC` 来自环境或传感器 |
+| `state` | `Waiting`、`Extending`、`Retracting`、`Faulted` |
+| `event` | `BeginExtend`、`Extended`、`ResetFault` |
+| `transition` | `Waiting + BeginExtend -> Extending` |
+| `guard` | `temperature <= limit`、`battery_level < reserve_threshold` |
+| `action/output` | `valve_open=1`、`alarm=1`、`drive_cmd=up` |
+| `hierarchy` | `MotionControl` 包含 `Extending` 与 `Retracting` 子状态 |
+| `reset/fault` | `FaultDetected` 强制进入 `Faulted`，`ResetFault` 返回 `Waiting` |
+| `external_input` | `load_demand / renewable_power / battery_level` 来自环境或传感器 |
 | `temporal/order` | 初始化后自动进入某状态；请求后到达传感器触发停止 |
 
 ### 2.2 Claim（评价结论声明）
@@ -705,7 +705,7 @@ calibration_status = pilot_only
 
 | validity / reliability | 指标 | 建议阈值 |
 |---|---|---|
-| convergent validity | NFRR tier 与 expert ordinal score / component F1 的 Spearman ρ 或 Kendall τ | ρ >= 0.5 或 τ >= 0.35 |
+| convergent validity | NFRR tier 与 expert ordinal score / component-level F-score 的 Spearman ρ 或 Kendall τ | ρ >= 0.5 或 τ >= 0.35 |
 | discriminant validity | FE 单独预测 high tier 的能力 | FE pass 不应单独把低 fidelity 模型推到 T2/T3 |
 | known-groups validity | known-bad mutants 被降级到 T1/T2 的比例 | >=90%；critical contradiction 应 100% 不进 T3 |
 | inter-rater reliability | required/optional/out-of-scope Cohen κ 或 IoU | κ >=0.6 或 required IoU >=0.6 |
@@ -845,7 +845,7 @@ SCOPE_LOCAL_FRAGMENT
 ## 10. Markdown 输出模板
 
 ```markdown
-## NFRR report: <case_id>
+## NFRR report: <artifact_id>
 
 ### 0. Claim
 

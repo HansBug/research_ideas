@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,7 @@ from method.stages.sl_model_review_prompt import (
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
+    compact_sl5_inspect_for_prompt,
     parse_sl5_scenario_generation_response,
 )
 
@@ -106,7 +108,71 @@ def test_sl1_prompt_generator_is_prompt_only_and_contains_schema() -> None:
     assert "chat(" not in joined
 
 
+def test_pyfcstm_grammar_digest_documents_parseable_boolean_flag_subset() -> None:
+    grammar = (METHOD_ROOT / "prompts" / "_pyfcstm_grammar.md").read_text(encoding="utf-8")
+
+    assert "def bool armed = false;" not in grammar
+    assert "Boolean-like flags MUST be encoded as `int`" in grammar
+    assert "never `def bool`" in grammar
+    assert "no `// ...`, no `/* ... */`" in grammar
+    assert "root-level `! * -> Manual ..." in grammar
+    assert "exists only as a nested child" in grammar
+    assert "Plain `during { ... }` is only used on leaf states" in grammar
+    assert "if (expr)" in grammar
+    assert "NL events are represented with `:: EventName`" in grammar
+
+
+def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
+    sl1 = "\n".join(
+        message["content"]
+        for message in build_sl1_initial_modeling_prompt(
+            nl="A fault flag controls fallback.",
+            pyfcstm_grammar_digest="def int flag = 0; state Root { [*] -> Idle; state Idle; }",
+        )
+    )
+    sl9 = "\n".join(
+        message["content"]
+        for message in build_sl9_repair_prompt(
+            nl="A fault flag controls fallback.",
+            current_dsl="def bool fault = false; state Root { [*] -> Idle; state Idle; }",
+            fix_plan={"target": "parse"},
+            selected_diagnostics=[{"code": "SyntaxFailError", "got": "bool"}],
+            grammar_digest="def int flag = 0; state Root { [*] -> Idle; state Idle; }",
+            repair_target="parse",
+        )
+    )
+
+    assert "do not emit" in sl1
+    assert "`def bool`, `true`, `false`, `!flag`" in sl1
+    assert "target a state resolvable in that scope" in sl1
+    assert "`max(...)` or `min(...)`" in sl1
+    assert "Use plain `during { ... }` only on leaf states" in sl1
+    assert "never `if (expr)`" in sl1
+    assert "Treat NL trigger names" in sl1
+    assert "Target-aware repair rules" in sl9
+    assert "meaningless self-assignments" in sl9
+    assert "Root-level forced transitions may only target states resolvable" in sl9
+    assert "E_DURING_ASPECT_INVALID" in sl9
+    assert "If diagnostics show undeclared event-like names" in sl9
+    assert "make every required" in sl9
+    assert "Do not rewrite event-triggered transitions into chain-scope `: Event`" in sl9
+    assert "Output exactly one complete DSL file" in sl9
+    assert "default-init scenarios usually need an empty cycle" in sl9
+    assert "mental NL obligation ledger" in sl1
+    assert "A parseable empty shell is not" in sl1
+    assert "nfrr_quality_cap" in sl9
+    assert "agent_loop_root_cause" in sl9
+    assert "structurally too small for explicit NL obligations" in sl9
+
+
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:
+    previous = [
+        ScenarioCase(
+            name="default_init_reaches_idle",
+            description="default-init probe",
+            steps=[{"before_cycles": 1, "expected_state": "Root.Idle"}],
+        )
+    ]
     messages = build_sl5_scenario_generation_prompt(
         nl="Default init reaches Idle; Start reaches Active.",
         current_dsl="state Root { [*] -> Idle; state Idle; state Active; Idle -> Active :: Start; }",
@@ -114,6 +180,7 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
         design_summary={"blocking_items": []},
         grounding_map=_grounding_map(),
         coverage_directive="Cover Start transition.",
+        previous_scenarios=previous,
     )
     joined = "\n".join(m["content"] for m in messages)
 
@@ -121,6 +188,15 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert "TestScenario" in joined
     assert "GroundingMap" in joined
     assert "Cover Start transition" in joined
+    assert "before_cycles: 1" in joined
+    assert "NL/DSL-grounded local event names" in joined
+    assert "`StartEvent`" in joined
+    assert "`ResetEvent`" in joined
+    assert "Avoid over-asserting weak or incidental variables" in joined
+    assert "previous_scenarios" in joined
+    assert "default_init_reaches_idle" in joined
+    assert "preserve their names" in joined
+    assert "initial-state provenance" in joined
 
     scenarios = parse_sl5_scenario_generation_response(
         json.dumps(
@@ -147,6 +223,195 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert len(scenarios) == 1
     assert isinstance(scenarios[0], ScenarioCase)
     assert scenarios[0].steps[0].expected_state == "Root.Active"
+
+
+def test_sl5_prompt_compacts_large_inspect_payload_and_avoids_duplicate_dsl() -> None:
+    """SL-5 should not resend huge raw inspect graphs or duplicate full DSL.
+
+    PR-E1 real LNG diagnostics showed repeated provider 5xx around a large
+    structured SL-5 request.  This is a general prompt-shape problem, not a
+    benchmark special case: scenario generation needs a compact model summary
+    plus one DSL block, not the full SD-4 inspect payload and the same DSL
+    twice.  This test must not impose a small context-window assumption.
+    """
+
+    current_dsl = "state Root { [*] -> S0; " + " ".join(f"state S{i};" for i in range(50)) + " }"
+    large_inspect = {
+        "root_state_path": "Root",
+        "states": [
+            {"path": f"Root.S{i}", "children": [f"Root.S{i}.C{j}" for j in range(20)], "long": "s" * 1000}
+            for i in range(60)
+        ],
+        "transitions": [
+            {"source": f"Root.S{i}", "target": f"Root.S{i+1}", "guard": "x > 0 " * 200, "effect": "y = y + 1;" * 80}
+            for i in range(59)
+        ],
+        "variables": [{"name": f"v{i}", "type": "float", "dataflow": "d" * 1000} for i in range(60)],
+        "events": [{"name": f"E{i}", "detail": "e" * 1000} for i in range(60)],
+        "actions": [{"state": f"Root.S{i}", "text": "a" * 1000} for i in range(60)],
+        "diagnostics": [{"code": "W_X", "severity": "warning", "message": "m" * 2000} for _ in range(60)],
+        "metrics": {"state_count": 60, "transition_count": 59},
+        "var_dataflow": {"very_large": "v" * 20000},
+        "reachability_graph": {"very_large": "r" * 20000},
+        "action_ref_graph": {"very_large": "a" * 20000},
+    }
+
+    compact = compact_sl5_inspect_for_prompt(large_inspect)
+    messages = build_sl5_scenario_generation_prompt(
+        nl="Exercise representative state transitions.",
+        current_dsl=current_dsl,
+        inspect_json=large_inspect,
+        design_summary={"blocking_items": [], "context": "c" * 10000},
+        grounding_map=_grounding_map(),
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert compact["state_count"] == 60
+    assert compact["transition_count"] == 59
+    assert "_truncated_items" in json.dumps(compact, ensure_ascii=False)
+    assert "compact_inspect_summary" in joined
+    assert "\"current_dsl\"" not in joined
+    assert joined.count("```pyfcstm") == 1
+    assert "m" * 2000 not in joined
+    assert "very_large" not in joined
+    assert len(joined) < len(json.dumps(large_inspect, ensure_ascii=False))
+
+
+def test_sl9_prompt_contains_preserve_checklist_and_variable_role_context() -> None:
+    messages = build_sl9_repair_prompt(
+        nl="The controller reads sensor value ext from external input signals before selecting Active.",
+        current_dsl="def int ext = 0; state Root { [*] -> Idle; state Idle; state Active; Idle -> Active : if [ext > 0]; }",
+        fix_plan=_fix_plan(),
+        selected_diagnostics=[
+            {
+                "source": "design",
+                "source_stage": "SD-4",
+                "variable_role_summary": {
+                    "source": "SD-4 diagnostic refs and generic NL external-input rationale",
+                    "variables": {"ext": {"role_hint": "external_input_candidate"}},
+                },
+            }
+        ],
+        preserve_list=["state:Idle", "transition:Idle_to_Active"],
+        grammar_digest=_grammar_digest(),
+        repair_target="design",
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert "variable_role_summary" in joined
+    assert "external-input vs internal-state" in joined
+    assert "required_preserve_element_ids" in joined
+    assert "no unrelated grounded branch was deleted" in joined
+    assert "no new ungrounded plant/environment dynamics were invented" in joined
+
+
+def test_sl9_prompt_carries_rework_repair_memory() -> None:
+    messages = build_sl9_repair_prompt(
+        nl="The repaired candidate must preserve required grounding.",
+        current_dsl="state Root { [*] -> Idle; state Idle; }",
+        fix_plan=_fix_plan(),
+        fix_log=[
+            {
+                "entry_id": "fixlog-2-sl10_review",
+                "phase": "sl10_review",
+                "candidate_dsl_hash": "sha256:old",
+                "repair_memory": {
+                    "actionable_rework_guidance": [
+                        {"kind": "missing_required_grounding", "instruction": "explain state:Required"}
+                    ]
+                },
+            }
+        ],
+        repair_memory={
+            "repeated_candidate_hashes": ["sha256:old"],
+            "latest_actionable_rework_guidance": [
+                {"kind": "missing_required_grounding", "instruction": "explain state:Required"}
+            ],
+        },
+        grammar_digest=_grammar_digest(),
+        repair_target="design",
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert "repair_memory" in joined
+    assert "repeated candidate hashes" in joined
+    assert "sha256:old" in joined
+    assert "missing_required_grounding" in joined
+
+
+
+def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens() -> None:
+    """Guard against benchmark overfit in default agent-loop prompts.
+
+    PR-E1 may keep concrete sample metadata in ``pr_e1_real_runs.py`` and run
+    artifacts, but reusable SL prompt contracts and shared legacy/skill prompt
+    files must not contain lexical hints from the evaluated
+    ABS/CARA/Elevator/LNG samples.
+    """
+
+    sample_specific_tokens = {
+        "ABS",
+        "CARA",
+        "Elevator",
+        "LNG",
+        "StartAC",
+        "Ask_StartAC",
+        "Autocontrol",
+        "PS1",
+        "PS2",
+        "PS3",
+        "MU2",
+        "MU3",
+        "MD1",
+        "MD2",
+        "automatic-elevator",
+        "path1_cara",
+        "path2_lng",
+        "case_id",
+        "case_key",
+    }
+    prompts = {
+        "SL-1": "\n".join(
+            message["content"]
+            for message in build_sl1_initial_modeling_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                spec_json={"states": ["Waiting", "Moving", "Done"], "events": ["BeginMove", "ArriveDone"]},
+            )
+        ),
+        "SL-5": "\n".join(
+            message["content"]
+            for message in build_sl5_scenario_generation_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                current_dsl="state SyntheticActuator { [*] -> Waiting; state Waiting; state Moving; state Done; Waiting -> Moving :: BeginMove; Moving -> Done :: ArriveDone; }",
+            )
+        ),
+        "SL-9": "\n".join(
+            message["content"]
+            for message in build_sl9_repair_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                current_dsl="state SyntheticActuator { [*] -> Waiting; state Waiting; }",
+                fix_plan={"target": "design"},
+            )
+        ),
+    }
+    shared_prompt_files = [
+        METHOD_ROOT / "prompts" / "_pyfcstm_grammar.md",
+        METHOD_ROOT / "prompts" / "modeler.txt",
+        METHOD_ROOT / "prompts" / "spec_extractor.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "identify_event.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "identify_transition.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "build_pyfcstm.txt",
+        METHOD_ROOT / "agent_loop_skill" / "nfrr_evaluation_guide.md",
+    ]
+    prompts.update({f"file:{path.relative_to(METHOD_ROOT)}": path.read_text(encoding="utf-8") for path in shared_prompt_files})
+
+    for prompt_name, prompt_text in prompts.items():
+        hits = sorted(
+            token
+            for token in sample_specific_tokens
+            if re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", prompt_text)
+        )
+        assert hits == [], f"{prompt_name} prompt contains PR-E1 sample-specific token(s): {hits}"
 
 
 def test_sl5_parser_accepts_string_before_cycles_and_rejects_non_numeric() -> None:
@@ -230,6 +495,47 @@ def test_sl7_prompt_contains_required_contract_fields() -> None:
     assert "review_policy" in joined
     for category in MODEL_REVIEW_CATEGORIES:
         assert category in joined
+    assert "NFRR v3 is a review rubric, not a deterministic SD hard gate" in joined
+    assert "T2 within-scope candidate" in joined
+    assert "nfrr_quality_cap" in joined
+    assert "agent_loop_root_cause" in joined
+    assert "Do not stop at \"model quality is poor\"" in joined
+
+
+def test_sl7_nfrr_quality_categories_parse_and_do_not_imply_sd_gate() -> None:
+    parsed = parse_sl7_model_review_response(
+        json.dumps(
+            {
+                "decision": "fail",
+                "risk_level": "major",
+                "findings": [
+                    {
+                        "category": "nfrr_quality_cap",
+                        "severity": "major",
+                        "summary": "T1 cap: NL requires multiple branches but DSL is an empty shell.",
+                        "evidence": [{"tier": "T1", "cap_reasons": ["critical_required_missing"]}],
+                    },
+                    {
+                        "category": "agent_loop_root_cause",
+                        "severity": "major",
+                        "summary": "Likely SL-1 obligation extraction missed required transitions.",
+                        "evidence": [{"stage": "SL-1"}],
+                    },
+                ],
+                "blocking_findings": [
+                    {
+                        "category": "agent_loop_root_cause",
+                        "severity": "major",
+                        "summary": "Fix root cause rather than only reporting poor quality.",
+                        "evidence": [{"stage": "SL-1"}],
+                    }
+                ],
+            }
+        )
+    )
+
+    assert parsed["findings"][0]["category"] == "nfrr_quality_cap"
+    assert parsed["blocking_findings"][0]["category"] == "agent_loop_root_cause"
 
 
 def test_sl7_prompt_compacts_large_inspect_and_design_payloads() -> None:

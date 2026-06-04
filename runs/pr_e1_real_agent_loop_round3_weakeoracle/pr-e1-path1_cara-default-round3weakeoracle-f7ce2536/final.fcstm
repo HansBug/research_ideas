@@ -1,0 +1,36 @@
+state System {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        [*] -> Manual;
+
+        state Manual;
+
+        state Ask_StartAC {
+            state SetpointChange;
+            [*] -> SetpointChange;
+        }
+
+        state AutocontrolInit;
+
+        state Autocontrol {
+            state ControlActive;
+            state PumpComplication;
+            [*] -> ControlActive;
+
+            ! * -> PumpComplication :: PumpFault;
+
+            ControlActive -> PumpComplication :: PumpFault;
+            PumpComplication -> Manual :: FaultRemoved;
+        }
+
+        Manual -> Ask_StartAC :: StartAlgorithmicControl;
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> Autocontrol;
+
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+    }
+}

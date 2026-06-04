@@ -1,0 +1,44 @@
+def int target_bp = 0;
+def float infusion_rate = 0.0;
+def int control_active = 0;
+def int pump_fault = 0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+
+        [*] -> Manual;
+
+        state Manual {
+            enter { control_active = 0; }
+        }
+
+        state Ask_StartAC;
+
+        state AutocontrolInit;
+
+        state Autocontrol {
+            enter { control_active = 1; }
+        }
+
+        state PumpFault {
+            enter {
+                control_active = 0;
+                pump_fault = 1;
+            }
+        }
+
+        Manual -> Ask_StartAC :: InitiateAC;
+        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint;
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> Autocontrol :: InitComplete;
+        Autocontrol -> Manual :: TerminateAC;
+        Autocontrol -> PumpFault :: PumpFaultEvent;
+        PumpFault -> Manual :: FaultRemoved;
+    }
+}

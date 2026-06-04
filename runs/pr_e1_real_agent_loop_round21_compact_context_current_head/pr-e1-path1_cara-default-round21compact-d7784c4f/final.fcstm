@@ -1,0 +1,131 @@
+def int CA_mode = 0;
+def int target_bp = 120;
+def int requested_target_bp = 120;
+def int blood_pressure = 0;
+def int sensor_buffer_bp = 0;
+def int flow_rate = 0;
+def int manual_flow_rate = 0;
+def int builtin_switch_speed = 0;
+def int pump_speed = 0;
+def int control_voltage = 0;
+def int pump_fault = 0;
+def int alarm_active = 0;
+def int control_released = 1;
+
+state CARA {
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault > 0] {
+                alarm_active = 1;
+            } else {
+                alarm_active = 0;
+            }
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+            if [pump_fault > 0] {
+                alarm_active = 1;
+                flow_rate = 0;
+                pump_speed = 0;
+            } else {
+                alarm_active = 0;
+                flow_rate = manual_flow_rate;
+                pump_speed = builtin_switch_speed;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+        }
+        during {
+            target_bp = requested_target_bp;
+            sensor_buffer_bp = blood_pressure;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            alarm_active = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 3;
+            control_released = 0;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+            flow_rate = target_bp - blood_pressure;
+            pump_speed = control_voltage;
+        }
+    }
+
+    state PumpFault {
+        enter {
+            CA_mode = 4;
+            alarm_active = 1;
+            control_released = 1;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Manual -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_active = 0;
+    };
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    Ask_StartAC -> Manual :: TerminateAC;
+    AutocontrolInit -> Manual :: TerminateAC;
+    AutocontrolInit -> PumpFault : if [pump_fault > 0];
+    AutocontrolInit -> AutocontrolNormal;
+    AutocontrolNormal -> Manual :: TerminateAC;
+    AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+    PumpFault -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+    };
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_active = 0;
+    };
+    PumpFault -> Manual : CB_backManual effect {
+        pump_fault = 0;
+        alarm_active = 0;
+    };
+    PumpFault -> Manual : CP_backManual effect {
+        pump_fault = 0;
+        alarm_active = 0;
+    };
+    PumpFault -> Manual : CC_backManual effect {
+        pump_fault = 0;
+        alarm_active = 0;
+    };
+
+    ! Manual -> Manual : CA_backManual;
+    ! Ask_StartAC -> Manual : CA_backManual;
+    ! AutocontrolInit -> Manual : CA_backManual;
+    ! AutocontrolNormal -> Manual : CA_backManual;
+    ! Manual -> Manual : CB_backManual;
+    ! Ask_StartAC -> Manual : CB_backManual;
+    ! AutocontrolInit -> Manual : CB_backManual;
+    ! AutocontrolNormal -> Manual : CB_backManual;
+    ! Manual -> Manual : CP_backManual;
+    ! Ask_StartAC -> Manual : CP_backManual;
+    ! AutocontrolInit -> Manual : CP_backManual;
+    ! AutocontrolNormal -> Manual : CP_backManual;
+    ! Manual -> Manual : CC_backManual;
+    ! Ask_StartAC -> Manual : CC_backManual;
+    ! AutocontrolInit -> Manual : CC_backManual;
+    ! AutocontrolNormal -> Manual : CC_backManual;
+}

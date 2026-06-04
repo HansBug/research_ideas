@@ -1,0 +1,69 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float DG1_Pmax = 0.0;
+def float DG2_Pmax = 0.0;
+def float spare_power = 0.0;
+def float Pgen = 0.0;
+def float Pbatt = 0.0;
+
+state LNGShipEMS {
+    [*] -> RES_Covered;
+
+    state RES_Covered {
+        during { if (SoC < 0.95) { Pbatt = min(Ppv + Pw - PL, Pgmax); } else { spare_power = Ppv + Pw - PL; } }
+    }
+
+    state LowSoC_RES {
+        during { Pbatt = Pgmax/5; }
+    }
+
+    state Partial_RES {
+        during { Pbatt = min(Ppv + Pw, Pgmax); } 
+    }
+
+    state Battery_Covered {
+        during { Pbatt = min(PL - (Ppv + Pw), Pgmax); }
+    }
+
+    state LNG_Covered {
+        during { Pgen = min(PL - (Ppv + Pw + Pbatt), eng3_Pmax); Pbatt += Pgmax/5; }
+    }
+
+    state Diesel1_Covered {
+        during { Pgen = min(PL - (Ppv + Pw + Pbatt + Pgen), Pd1max/10); }
+    }
+
+    state Diesel2_Covered {
+        during { Pgen = min(PL - (Ppv + Pw + Pbatt + Pgen), DG2_Pmax); }
+    }
+
+    state AllThermal {
+        during { Pgen = DG1_Pmax + DG2_Pmax + eng3_Pmax; Pbatt = min(PL - Pgen, Pgmax); }
+    }
+
+    state Zero_Load {
+        during { if (SoC < 0.95) { Pbatt = min(Ppv + Pw, Pgmax); } else { spare_power = Ppv + Pw; } }
+    }
+
+    state Idle;
+    state RES_Excess;
+    state Battery_Limit;
+    state DG_Required;
+    state Overload_ILLEGAL;
+
+    RES_Covered -> LowSoC_RES : if [SoC < 0.95];
+    RES_Covered -> RES_Excess : if [SoC >= 0.95];
+    LowSoC_RES -> Partial_RES;
+    Partial_RES -> Battery_Covered;
+    Battery_Covered -> LNG_Covered;
+    LNG_Covered -> Diesel1_Covered;
+    Diesel1_Covered -> Diesel2_Covered;
+    Diesel2_Covered -> AllThermal : if [PL > Ppv + Pw + Pbatt + Pgen + DG1_Pmax + DG2_Pmax + eng3_Pmax];
+    Zero_Load -> Idle : if [PL == 0];
+    ! * -> Overload_ILLEGAL :: extreme_demand;
+}

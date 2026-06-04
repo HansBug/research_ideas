@@ -42,6 +42,9 @@ class StageId(str, Enum):
     SL_7_MODEL_REVIEW = "SL-7"
     SD_8_FIX_PLAN = "SD-8"
     SL_9_REPAIR = "SL-9"
+    SL_10_REPAIR_REVIEW = "SL-10"
+    # Legacy stage IDs kept so older run records and compatibility tests can
+    # still be loaded.  The active PR-E1 graph uses SL-10 instead.
     SD_10_REPAIR_REVIEW = "SD-10"
     SL_10B_DELTA_REVIEW = "SL-10B"
     SC_11_ACCEPT_CANDIDATE = "SC-11"
@@ -69,16 +72,20 @@ ALL_STAGE_SPECS: tuple[StageSpec, ...] = (
     StageSpec(StageId.SC_5F_SCENARIO_FREEZE.value, StageKind.CONTROL, "冻结 ScenarioSet", "SC-5F-scenario-freeze.md"),
     StageSpec(StageId.SD_6_SIM.value, StageKind.DETERMINISTIC, "SimFeedback", "SD-6-sim.md", FeedbackSource.SIM),
     StageSpec(StageId.SL_7_MODEL_REVIEW.value, StageKind.LLM, "轻量模型评审", "SL-7-lightweight-model-review.md", FeedbackSource.MODEL_REVIEW),
-    StageSpec(StageId.SD_8_FIX_PLAN.value, StageKind.DETERMINISTIC, "FixPlan", "SD-8-fix-plan.md"),
-    StageSpec(StageId.SL_9_REPAIR.value, StageKind.LLM, "修复", "SL-9-repair.md"),
-    StageSpec(StageId.SD_10_REPAIR_REVIEW.value, StageKind.DETERMINISTIC, "RepairReview", "SD-10-repair-review.md", FeedbackSource.REPAIR_REVIEW),
-    StageSpec(StageId.SL_10B_DELTA_REVIEW.value, StageKind.LLM, "轻量修复评审", "SL-10B-delta-review.md"),
+    StageSpec(StageId.SD_8_FIX_PLAN.value, StageKind.DETERMINISTIC, "FixRequestBatch", "SD-8-fix-plan.md"),
+    StageSpec(StageId.SL_9_REPAIR.value, StageKind.LLM, "修复决策与执行", "SL-9-repair.md"),
+    StageSpec(StageId.SL_10_REPAIR_REVIEW.value, StageKind.LLM, "修复后审阅", "SL-10-repair-review.md", FeedbackSource.REPAIR_REVIEW),
     StageSpec(StageId.SC_11_ACCEPT_CANDIDATE.value, StageKind.CONTROL, "接受 candidate", "SC-11-accept-candidate.md"),
     StageSpec(StageId.SC_12_EXIT.value, StageKind.CONTROL, "收敛退出", "SC-12-exit.md"),
     StageSpec(StageId.SC_13_TRACE_AUDIT.value, StageKind.CONTROL, "Trace/Audit", "SC-13-trace-audit.md"),
 )
 
-STAGE_SPECS_BY_ID: dict[str, StageSpec] = {spec.stage_id: spec for spec in ALL_STAGE_SPECS}
+LEGACY_STAGE_SPECS: tuple[StageSpec, ...] = (
+    StageSpec(StageId.SD_10_REPAIR_REVIEW.value, StageKind.DETERMINISTIC, "Legacy RepairReview", "SD-10-repair-review.md"),
+    StageSpec(StageId.SL_10B_DELTA_REVIEW.value, StageKind.LLM, "Legacy DeltaReview", "SL-10B-delta-review.md"),
+)
+
+STAGE_SPECS_BY_ID: dict[str, StageSpec] = {spec.stage_id: spec for spec in (*ALL_STAGE_SPECS, *LEGACY_STAGE_SPECS)}
 FEEDBACK_SOURCE_TO_STAGE_ID: dict[str, str] = {
     spec.feedback_source.value: spec.stage_id
     for spec in ALL_STAGE_SPECS

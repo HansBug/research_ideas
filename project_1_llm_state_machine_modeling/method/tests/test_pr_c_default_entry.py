@@ -9,8 +9,9 @@ import pytest
 import method.llm_stages as llm_stages
 import method.loop as loop
 import method.schema as schema
-from method.llm_stages import MockLLMProvider
+from method.llm_stages import LLMStageConfig, MockLLMProvider
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from method.staged_runtime import RepairRequest
 from method.stages.ids import StageId
 
 
@@ -53,7 +54,7 @@ def _sl5_ok_raw() -> str:
             "scenarios": [
                 {
                     "name": "start_reaches_active",
-                    "initial_state": "Root.Idle",
+                    "initial_state": None,
                     "steps": [
                         {"events": [], "expected_state": "Root.Idle"},
                         {"events": [], "expected_state": "Root.Active"},
@@ -77,7 +78,7 @@ def _sl7_pass_raw() -> str:
     )
 
 
-def _sl10b_accept_raw() -> str:
+def _sl10_accept_raw() -> str:
     return json.dumps(
         {
             "decision": "accept",
@@ -102,6 +103,171 @@ def _mock_loop_config(tmp_path: Path, *, run_id: str = "pr-c-mock-success") -> s
         llm_model="mock-model",
         max_iterations=1,
     )
+
+
+def test_pr_c_default_llm_policy_does_not_hard_limit_stage_output_tokens() -> None:
+    """Default real runs should keep full-provider output budget.
+
+    PR-E1 full-blood runs assume a provider/model context of at least 128k and
+    must not silently cap structured DSL/JSON outputs through ``LoopConfig()``.
+    If a token cap is needed for a diagnostic, it must be declared by an
+    explicit non-default condition instead of contaminating the main path.
+    """
+
+    cfg = schema.LoopConfig()
+    stage_cfg = loop._llm_stage_config(cfg)
+
+    assert "max_tokens" not in cfg.llm_policy
+    assert stage_cfg.max_tokens is None
+    assert cfg.budget_policy["prompt_token_budget"] == 128_000
+    assert cfg.budget_policy["prompt_token_estimator"] == "chars_per_token"
+    assert stage_cfg.max_prompt_tokens == 128_000
+    assert stage_cfg.prompt_token_estimator == "chars_per_token"
+
+
+def _prompt_budget_repair_request(*, marker: str) -> RepairRequest:
+    fix_plan = schema.FixPlan(
+        target="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        source_feedback_id="sim:scenario:0",
+        severity="sim_fail",
+        problem_summary=f"Scenario expected-vs-actual evidence must be preserved: {marker}",
+        evidence=[
+            {
+                "kind": "scenario_regression",
+                "repair_brief": {
+                    "scenario_name": "fallback_reset",
+                    "failing_steps": [
+                        {
+                            "step_name": "recover_resets_outputs",
+                            "expected_state": "Root.Idle",
+                            "expected_vars": {"alarm": 0},
+                            "actual_state": "Root.Fault",
+                            "actual_vars_focus": {"alarm": 1},
+                            "marker": marker,
+                        }
+                    ],
+                },
+            }
+        ],
+    )
+    batch = schema.FixRequestBatch(
+        batch_id="budget-batch",
+        iteration=0,
+        source="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        before_dsl_hash="sha256:old",
+        requests=[
+            schema.FixRequest(
+                request_id="req-sim-0",
+                target="sim",
+                source_stage=StageId.SD_6_SIM.value,
+                source_feedback_id="sim:scenario:0",
+                severity="sim_fail",
+                hard_block=True,
+                problem_summary=f"Repair exact scenario mismatch: {marker}",
+                evidence=list(fix_plan.evidence),
+                suggested_fix_hints=[
+                    {
+                        "kind": "repair_brief_hint",
+                        "instruction": "Use expected-vs-actual fields directly.",
+                        "marker": marker,
+                    }
+                ],
+            )
+        ],
+    )
+    fix_log = [
+        {
+            "entry_id": "fixlog-1",
+            "iteration": 0,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:bad",
+            "local_check_evidence": {
+                "actionable_repair_summary": {
+                    "actionable_items": [
+                        {
+                            "kind": "scenario_regression_repair_brief",
+                            "summary": {
+                                "failed_scenarios": [
+                                    {
+                                        "scenario_name": "fallback_reset",
+                                        "failing_steps": [
+                                            {
+                                                "expected_state": "Root.Idle",
+                                                "actual_state": "Root.Fault",
+                                                "marker": marker,
+                                            }
+                                        ],
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            },
+            "repair_memory": {
+                "actionable_rework_guidance": [
+                    {
+                        "kind": "local_actionable_repair_summary",
+                        "summary": {"marker": marker},
+                    }
+                ]
+            },
+            "next_action": "sl9_rework",
+        }
+    ]
+    return RepairRequest(
+        nl="Recover must always leave Fault, return to Idle, and clear alarm.",
+        grounding_map=schema.GroundingMap(source_summary={"source": "test"}),
+        old_dsl=_good_dsl(),
+        fix_plan=fix_plan,
+        selected_feedback_trace={"source": "sim", "source_stage": StageId.SD_6_SIM.value, "marker": marker},
+        fix_request_batch=batch,
+        fix_log=fix_log,
+        repair_memory=loop._repair_memory_for_prompt(fix_log),
+    )
+
+
+def test_pr_c_sl9_prompt_keeps_full_fixlog_until_prompt_budget_is_exceeded() -> None:
+    marker = "FULL_FIXLOG_MARKER_" + ("x" * 2400)
+    request = _prompt_budget_repair_request(marker=marker)
+    payload, meta = loop._select_sl9_prompt_payload(
+        request,
+        LLMStageConfig(max_prompt_tokens=128_000),
+    )
+
+    rendered = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+    assert meta["compaction_level"] == "none"
+    assert meta["prompt_compaction_applied"] is False
+    assert marker in rendered
+    # The full FixLog and current FixRequest evidence must remain untrimmed
+    # while the prompt fits the 128k-class budget.  ``repair_memory`` may still
+    # be a distilled helper view, but it must not replace the full ledger.
+    assert marker in json.dumps(payload["fix_log"], ensure_ascii=False)
+    assert "<truncated" not in json.dumps(payload["fix_log"], ensure_ascii=False)
+    assert marker in json.dumps(payload["fix_request_batch"], ensure_ascii=False)
+    assert "<truncated" not in json.dumps(payload["fix_request_batch"], ensure_ascii=False)
+
+
+def test_pr_c_sl9_prompt_compacts_only_after_prompt_budget_is_exceeded() -> None:
+    marker = "OVER_BUDGET_MARKER_" + ("y" * 2400)
+    request = _prompt_budget_repair_request(marker=marker)
+    payload, meta = loop._select_sl9_prompt_payload(
+        request,
+        LLMStageConfig(max_prompt_tokens=10),
+    )
+
+    rendered = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+    assert meta["compaction_level"] == "level1_compact"
+    assert meta["prompt_compaction_applied"] is True
+    assert meta["budget_exceeded"] is True
+    assert "fallback_reset" in rendered
+    assert "expected_state" in rendered and "Root.Idle" in rendered
+    assert "actual_state" in rendered and "Root.Fault" in rendered
+    assert "<truncated" in rendered
 
 
 def _assert_redaction_stage_failure_record(record: schema.AgentLoopRunRecord, *, stage_id: str, secret: str) -> dict[str, object]:
@@ -241,7 +407,7 @@ def test_pr_c_explicit_mock_profile_preserves_review_meta_environment_and_eligib
     assert record.deterministic_feedback["iterations"][0]["design"]["info_items"]
     assert record.scenario_history[0]["scenario_set_id"] == record.iteration_records[0]["scenario_set_id"]
     sl5 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value)
-    assert sl5["scenario_hot_start_policy"] == "default_entry_clears_initial_state"
+    assert sl5["scenario_hot_start_policy"] == "preserve_explicit_hot_start_add_default_init_cycle"
     assert sl5["parsed_output"]["scenarios"][0]["initial_state"] is None
     sl7 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_7_MODEL_REVIEW.value)
     assert sl7["review_meta"]["provider"] == "mock"
@@ -259,9 +425,9 @@ def test_pr_c_default_entry_rejects_provider_injection_to_protect_real_env_path(
         loop.run_agent_loop("Start moves Idle to Active.", cfg, llm_provider=provider)
 
 
-def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scenariogen(tmp_path: Path) -> None:
+def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10_chain_before_scenariogen(tmp_path: Path) -> None:
     bad_initial = json.dumps({"candidate_dsl": "state Root {", "grounding_seeds": [], "assumptions": []}, ensure_ascii=False)
-    provider = MockLLMProvider(responses=[bad_initial, _good_dsl(), _sl10b_accept_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
+    provider = MockLLMProvider(responses=[bad_initial, _good_dsl(), _sl10_accept_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
     cfg = _mock_loop_config(tmp_path, run_id="pr-c-pre-scenario-repair")
     cfg.max_iterations = 2
 
@@ -277,8 +443,7 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scen
     assert record.repair_history[0]["repair_stage_ids"] == [
         StageId.SD_8_FIX_PLAN.value,
         StageId.SL_9_REPAIR.value,
-        StageId.SD_10_REPAIR_REVIEW.value,
-        StageId.SL_10B_DELTA_REVIEW.value,
+        StageId.SL_10_REPAIR_REVIEW.value,
         StageId.SC_11_ACCEPT_CANDIDATE.value,
     ]
     assert record.repair_history[0]["repair_review_input_summary"]["inputs"] == [
@@ -286,16 +451,28 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scen
         "GroundingMap",
         "old_dsl",
         "candidate_dsl",
-        "FixPlan",
+        "FixRequestBatch",
+        "SL9Decisions",
+        "FixLog",
+        "LocalCheckEvidence",
         "ScenarioSet",
     ]
     assert record.repair_history[0]["sd10_repair_review"]["review_meta"] is None
     sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
     assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < stage_ids.index(StageId.SL_5_SCENARIO_GENERATION.value)
-    sl10b = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_10B_DELTA_REVIEW.value)
-    assert sl10b["review_meta"]["parsed_schema_version"] == "RepairReviewFeedback.delta_review.v1"
-    assert sl10b["review_meta"]["schema_validation_ok"] is True
-    assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "RepairReviewFeedback.delta_review.v1"
+    sl10 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_10_REPAIR_REVIEW.value)
+    assert sl10["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
+    assert sl10["review_meta"]["schema_validation_ok"] is True
+    assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
+    assert record.repair_history[0]["repair_review_input_summary"]["has_nl_input"] is True
+    events = [item["event"] for item in record.logs]
+    assert "repair_path_enter" in events
+    assert "fix_request_batch" in events
+    assert "stage_result" in events
+    assert any(item.get("stage_id") == StageId.SL_9_REPAIR.value and item.get("candidate_dsl") and "state Active" in item.get("candidate_dsl") for item in record.logs)
+    assert any(item.get("stage_id") == StageId.SC_11_ACCEPT_CANDIDATE.value and item.get("candidate_dsl") and "state Active" in item.get("candidate_dsl") for item in record.logs)
+    assert record.fix_log[0]["old_dsl"] == "state Root {"
+    assert any(entry.get("candidate_dsl") and "state Active" in entry.get("candidate_dsl") for entry in record.fix_log)
 
 
 def test_pr_c_run_record_redacts_secrets_from_nl_and_llm_interactions(tmp_path: Path) -> None:

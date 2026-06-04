@@ -1,0 +1,137 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float requested_gen_power = 0.0;
+def float battery_power = 0.0;
+def float spare_power = 0.0;
+
+state System {
+    [*] -> ZeroLoadCharge;
+
+    state ZeroLoadCharge {
+        enter {
+            requested_gen_power = 0.0;
+            battery_power = Ppv + Pw;
+            spare_power = 0.0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            requested_gen_power = 0.0;
+            battery_power = 0.0;
+            spare_power = Ppv + Pw;
+        }
+    }
+
+    state RESCoverCharge {
+        enter {
+            requested_gen_power = 0.0;
+            battery_power = (Ppv + Pw) - PL;
+            spare_power = 0.0;
+        }
+    }
+
+    state RESCoverSpare {
+        enter {
+            requested_gen_power = 0.0;
+            battery_power = 0.0;
+            spare_power = (Ppv + Pw) - PL;
+        }
+    }
+
+    state DeficitBatterySupport {
+        enter {
+            requested_gen_power = 0.0;
+            battery_power = PL - (Ppv + Pw);
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitLNG {
+        enter {
+            requested_gen_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitLNGChargeMargin {
+        enter {
+            requested_gen_power = (PL - (Ppv + Pw)) + (Pgmax / 5.0);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitDG {
+        enter {
+            requested_gen_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitDGChargeMargin {
+        enter {
+            requested_gen_power = (PL - (Ppv + Pw)) + (Pd1max / 10.0);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitDG12 {
+        enter {
+            requested_gen_power = PL - (Ppv + Pw);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state DeficitDG12ChargeMargin {
+        enter {
+            requested_gen_power = (PL - (Ppv + Pw)) + (Pd1max / 10.0);
+            battery_power = 0.0;
+            spare_power = 0.0;
+        }
+    }
+
+    state Overload {
+        enter {
+            requested_gen_power = eng3_Pmax;
+            battery_power = PL - (Ppv + Pw) - eng3_Pmax;
+            spare_power = 0.0;
+        }
+    }
+
+    ZeroLoadCharge -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+    ZeroLoadSpare -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+
+    ZeroLoadCharge -> RESCoverCharge : if [PL > 0 && (Ppv + Pw) >= PL && SoC < 0.95];
+    ZeroLoadCharge -> RESCoverSpare : if [PL > 0 && (Ppv + Pw) >= PL && SoC >= 0.95];
+
+    ZeroLoadSpare -> RESCoverCharge : if [PL > 0 && (Ppv + Pw) >= PL && SoC < 0.95];
+    ZeroLoadSpare -> RESCoverSpare : if [PL > 0 && (Ppv + Pw) >= PL && SoC >= 0.95];
+
+    RESCoverCharge -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+    RESCoverSpare -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+
+    RESCoverCharge -> DeficitBatterySupport : if [(Ppv + Pw) < PL && SoC > 0.0];
+    RESCoverSpare -> DeficitBatterySupport : if [(Ppv + Pw) < PL && SoC > 0.0];
+
+    DeficitBatterySupport -> DeficitLNG : if [SoC <= 0.0 && (PL - (Ppv + Pw)) <= eng3_Pmax && SoC >= 0.20];
+    DeficitBatterySupport -> DeficitLNGChargeMargin : if [SoC < 0.20 && (PL - (Ppv + Pw)) <= eng3_Pmax];
+
+    DeficitLNG -> DeficitDG : if [(PL - (Ppv + Pw)) > eng3_Pmax];
+    DeficitLNGChargeMargin -> DeficitDGChargeMargin : if [(PL - (Ppv + Pw)) > eng3_Pmax];
+
+    DeficitDG -> DeficitDG12 : if [(PL - (Ppv + Pw)) > eng3_Pmax + Pgmax];
+    DeficitDGChargeMargin -> DeficitDG12ChargeMargin : if [(PL - (Ppv + Pw)) > eng3_Pmax + Pgmax];
+
+    DeficitDG12 -> Overload : if [(PL - (Ppv + Pw)) > eng3_Pmax + Pgmax + Pd1max];
+    DeficitDG12ChargeMargin -> Overload : if [(PL - (Ppv + Pw)) > eng3_Pmax + Pgmax + Pd1max];
+}
