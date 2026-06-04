@@ -35,7 +35,6 @@ from method.llm_stages import (
 from method.schema import AgentLoopResult, LoopConfig, StageContext
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
-    FullStagedRuntimeConfig,
     RepairRequest,
     ScenarioGenerationRequest,
     build_full_staged_runtime_adapters,
@@ -44,7 +43,6 @@ from method.staged_runtime import (
     _compact_json,
     _compact_sl9_input_for_prompt,
     _repair_memory_for_prompt,
-    run_full_staged_deterministic_runtime,
 )
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
@@ -670,33 +668,20 @@ def run_agent_loop(
     if cfg.llm_provider_mode == "real_env" and provider is None:
         provider = RealEnvLLMProvider()
     llm_cfg = _llm_stage_config(cfg)
-    runtime_cfg = FullStagedRuntimeConfig(
-        initial_dsl=seed_dsl or "",
-        run_id=run_id,
-        output_dir=cfg.output_dir,
-        max_iterations=cfg.max_iterations,
-        scenario_max_retries=cfg.scenario_max_retries,
-        policy_profile=cfg.policy_profile,
-        write_run_record=cfg.write_run_record,
-        adapter_mode=cfg.llm_provider_mode,
-        allow_main_result_eligible=cfg.condition_id == "full_staged_v1" and cfg.llm_provider_mode == "real_env",
-        resolved_loop_config=resolved_config,
-        run_config_extra={
-            "runtime_implementation": "method.staged_runtime.run_full_staged_deterministic_runtime",
-            "llm_max_retries": cfg.llm_max_retries,
-            "planned_stage_graph": graph,
-        },
-        environment_extra={
-            "loop_entrypoint": "method.loop.run_agent_loop",
-            "record_schema_version": RUN_RECORD_SCHEMA_VERSION,
-        },
-        real_llm_provider_api=cfg.llm_provider_mode == "real_env",
-        provider_config_read=_provider_config_read(cfg),
-        provider_model_redacted=_provider_model_redacted(cfg, provider),
-        default_loop_config_entry_integrated=True,
-    )
     adapters = _build_runtime_adapters(cfg, llm_cfg=llm_cfg, provider=provider)
-    result = run_full_staged_deterministic_runtime(nl, runtime_cfg, adapters=adapters)
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    result = run_full_staged_langgraph_runtime(
+        nl,
+        config=cfg,
+        adapters=adapters,
+        initial_dsl=seed_dsl or "",
+        planned_stage_graph=graph,
+        resolved_config=resolved_config,
+        run_id=run_id,
+        provider=provider,
+        called_from_loop=True,
+    )
     result.resolved_config = resolved_config
     result.planned_stage_graph = graph
     return result
