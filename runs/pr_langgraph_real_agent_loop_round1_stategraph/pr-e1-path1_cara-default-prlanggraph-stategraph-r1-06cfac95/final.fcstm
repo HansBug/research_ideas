@@ -1,0 +1,102 @@
+def int CA_mode = 0;
+def int software_control = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int log_count = 0;
+def float built_in_switch = 0.0;
+def float default_flow_rate = 0.0;
+def float control_voltage = 0.0;
+def float pump_speed = 0.0;
+def float blood_pressure = 0.0;
+def float target_blood_pressure = 0.0;
+def float setpoint = 0.0;
+def float infusion_rate = 0.0;
+def float flow_rate = 0.0;
+def float shared_buffer = 0.0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+                alarm_signal = 0;
+                pump_fault = 0;
+            }
+            during {
+                shared_buffer = blood_pressure;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            }
+        }
+
+        state Ask_StartAC {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+            }
+            during {
+                shared_buffer = blood_pressure;
+            }
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 1;
+                software_control = 1;
+                alarm_signal = 0;
+                pump_speed = control_voltage;
+            }
+            during {
+                shared_buffer = blood_pressure;
+                log_count = log_count + 1;
+            }
+        }
+
+        state AutocontrolNormal {
+            during {
+                shared_buffer = blood_pressure;
+                infusion_rate = target_blood_pressure - blood_pressure;
+                flow_rate = infusion_rate;
+                pump_speed = control_voltage;
+                log_count = log_count + 1;
+            }
+        }
+
+        state PumpFault {
+            enter {
+                alarm_signal = 1;
+                software_control = 0;
+                CA_mode = 0;
+            }
+            during {
+                shared_buffer = blood_pressure;
+            }
+        }
+
+        Manual -> Ask_StartAC : InitiateAC;
+        Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+            target_blood_pressure = setpoint;
+        };
+        Ask_StartAC -> AutocontrolInit : StartAC;
+        AutocontrolInit -> Manual : TerminateAC;
+        AutocontrolInit -> AutocontrolNormal;
+        AutocontrolNormal -> Manual : TerminateAC;
+        AutocontrolNormal -> AutocontrolNormal : PumpFaultDetected effect {
+            pump_fault = 1;
+        };
+        AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+        PumpFault -> Manual : FaultRemoved effect {
+            pump_fault = 0;
+        };
+    }
+}
