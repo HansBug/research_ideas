@@ -1,6 +1,6 @@
 # MoDELS 2026 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 01:08`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -37,10 +37,10 @@
 |---|---|---|---|---|
 | Abstract deadline | 2026-03-20 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
 | Submission deadline | 2026-03-27 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
-| Author response / rebuttal | 2026-05-27 至 2026-05-29 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
+| Author response / rebuttal | 2026-05-27..2026-05-29 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
 | Notification | 2026-06-17 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
 | Camera-ready | 2026-07-31 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 官方来源保留 AoE；具体时刻待补。 |
-| Conference dates | 2026-10-04 至 2026-10-09 | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 会期地点：Malaga, Spain。 |
+| Conference dates | 2026-10-04..2026-10-09 | [Important Dates](https://conf.researchr.org/dates/models-2026) | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 会期地点：Malaga, Spain。 |
 
 ## 4. Tracks
 
@@ -87,5 +87,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 将当前阶段统一为审稿中，并补充阶段状态判定依据。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2026 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |

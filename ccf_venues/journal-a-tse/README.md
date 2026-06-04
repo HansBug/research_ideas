@@ -1,6 +1,6 @@
 # TSE README
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 01:08`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -40,7 +40,7 @@
 | Tao Zhang | Associate Editor-in-Chief（2026-present，待 TSE 当前 roster 复核） | Macau University of Science and Technology | [个人 CV](https://cszhangtao.github.io/assets/CV.pdf)；[ICSSIP 2026 keynote page](https://icssip.net/speaker.html) | [DBLP](https://dblp.org/search?q=Tao%20Zhang)；[个人 CV](https://cszhangtao.github.io/assets/CV.pdf) | 软件测试、程序分析、调试与修复、LLM for SE、漏洞检测 | [DBLP 近年论文入口](https://dblp.org/search?q=Tao%20Zhang)：smart contract state analysis、HLS bug detection、PLM for SE tasks 等 | P1/P2/P3/P4 强 | 个人 / 会议公开材料交叉线索；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 | Yingfei Xiong | Associate Editor-in-Chief（2026-2028，待 TSE 当前 roster 复核） | Peking University | [个人主页](https://xiongyingfei.github.io/index.html)；[services 页](https://xiongyingfei.github.io/services.html) | [个人主页](https://xiongyingfei.github.io/index.html)；[DBLP](https://dblp.org/search?q=Yingfei%20Xiong) | 程序综合、程序修复、fault localization、程序正确性、LLM agents | [个人主页近年论文](https://xiongyingfei.github.io/index.html)：PredicateFix、HoarePrompt、LLM agent cost reduction、SmartFL 等 | P1/P2/P4 强；P3 中到强 | 个人主页 service 页核验；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 
-补充说明：上表是 本轮核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。除 Mauro Pezzè 的 EiC 角色外，AEiC 条目均按候选 / 间接线索处理，后续需用 IEEE / TSE 当前 roster 做一次人工快照。
+补充说明：上表是本轮核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。除 Mauro Pezzè 的 EiC 角色外，AEiC 条目均按候选 / 间接线索处理，后续需用 IEEE / TSE 当前 roster 做一次人工快照。
 
 ## 4. 与本仓库 project 的关系
 
@@ -94,6 +94,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 01:08` | 修复核心人员补充说明中的排版空格，保持期刊人员画像表述稳定。 |
 | `2026-06-04 22:05` | 根据正式复审补充 TSE 人员核验等级和年度 DBLP `entry article` baseline，并明确 IEEE CSDL 年度 permalink 限制。 |
 | `2026-06-04 21:46` | 补充 TSE 当前公开可核验的核心编辑人员情报，并记录研究方向、近年论文入口和与 P1-P4 的相关性判断。 |
 | `2026-06-04 21:15` | 根据 review 修正投稿入口表述：Publishing Portal 只作入口，actual peer-review destination 待官方当前页确认；TSE 2025 周年条目从 special issue 字段降为备注。 |

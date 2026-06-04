@@ -1,6 +1,6 @@
 # MoDELS 2025 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 01:08`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -37,10 +37,10 @@
 |---|---|---|---|---|
 | Abstract deadline | 2025-03-27 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
 | Submission deadline | 2025-04-03 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
-| Author response / rebuttal | 2025-06-03 至 2025-06-05 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
+| Author response / rebuttal | 2025-06-03..2025-06-05 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
 | Notification | 2025-06-24 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
 | Camera-ready | 2025-08-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 官方来源保留 AoE；具体时刻待补。 |
-| Conference dates | 2025-10-05 至 2025-10-10 | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 会期地点：Grand Rapids, Michigan, United States。 |
+| Conference dates | 2025-10-05..2025-10-10 | [Important Dates](https://conf.researchr.org/dates/models-2025) | [MoDELS 2025](https://2025.models-conf.com/) | 会期地点：Grand Rapids, Michigan, United States。 |
 
 ## 4. Tracks
 
@@ -87,5 +87,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2025 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |

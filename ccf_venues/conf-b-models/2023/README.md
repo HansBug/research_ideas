@@ -1,6 +1,6 @@
 # MoDELS 2023 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 01:08`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -37,10 +37,10 @@
 |---|---|---|---|---|
 | Abstract deadline | 2023-04-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
 | Submission deadline | 2023-04-14 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
-| Author response / rebuttal | 2023-06-05 至 2023-06-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
+| Author response / rebuttal | 2023-06-05..2023-06-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
 | Notification | 2023-06-26 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
 | Camera-ready | 2023-07-10 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 官方来源保留 AoE；具体时刻待补。 |
-| Conference dates | 2023-10-01 至 2023-10-06 | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 会期地点：Västerås, Sweden。 |
+| Conference dates | 2023-10-01..2023-10-06 | [Important Dates](https://conf.researchr.org/dates/models-2023) | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | 会期地点：Västerås, Sweden。 |
 
 ## 4. Tracks
 
@@ -90,5 +90,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2023 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |
