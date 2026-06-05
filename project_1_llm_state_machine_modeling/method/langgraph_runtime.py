@@ -34,7 +34,9 @@ except ImportError:  # pragma: no cover - depends on interpreter minor version.
     from typing_extensions import NotRequired
 
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.config import get_store
 from langgraph.graph import END, START, StateGraph
+from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from method.llm_stages import ChatProvider
@@ -877,6 +879,65 @@ def langgraph_compat_smoke() -> dict[str, Any]:
     return result
 
 
+def langgraph_store_compat_smoke() -> dict[str, Any]:
+    """Run a focused LangGraph Store smoke for LG-A2 transient object storage.
+
+    LG-A2 relies on ``StateGraph.compile(store=...)`` and node-local
+    ``get_store()`` rather than a module-level Python dict.  This smoke is kept
+    separate from the generic checkpoint smoke so CI can fail fast if the
+    installed LangGraph version changes Store APIs in a way that would make
+    transient validation objects disappear between nodes.
+    """
+
+    result: dict[str, Any] = {
+        "ok": False,
+        "langgraph_version": _package_version("langgraph"),
+        "inmemory_store_ok": False,
+        "namespace_isolation_ok": False,
+        "compile_store_ok": False,
+        "get_store_ok": False,
+        "delete_ok": False,
+    }
+    try:
+        store = InMemoryStore()
+        ns_a = ("lg-a2-store-smoke", "a")
+        ns_b = ("lg-a2-store-smoke", "b")
+        store.put(ns_a, "same-key", {"value": 1})
+        store.put(ns_b, "same-key", {"value": 2})
+        item_a = store.get(ns_a, "same-key")
+        item_b = store.get(ns_b, "same-key")
+        result["inmemory_store_ok"] = bool(item_a and item_a.value == {"value": 1})
+        result["namespace_isolation_ok"] = bool(item_b and item_b.value == {"value": 2})
+        store.delete(ns_a, "same-key")
+        result["delete_ok"] = store.get(ns_a, "same-key") is None and store.get(ns_b, "same-key") is not None
+
+        class _StoreSmokeState(TypedDict, total=False):
+            value: int
+
+        graph = StateGraph(_StoreSmokeState)
+
+        def node(state: _StoreSmokeState) -> _StoreSmokeState:
+            active_store = get_store()
+            active_store.put(("lg-a2-store-smoke", "node"), "value", {"value": int(state.get("value", 0)) + 1})
+            item = active_store.get(("lg-a2-store-smoke", "node"), "value")
+            return {"value": int((item.value if item is not None else {}).get("value", 0))}
+
+        graph.add_node("store_node", node)
+        graph.add_edge(START, "store_node")
+        graph.add_edge("store_node", END)
+        app = graph.compile(store=store)
+        result["compile_store_ok"] = True
+        output = app.invoke({"value": 41})
+        result["get_store_ok"] = output.get("value") == 42 and store.get(("lg-a2-store-smoke", "node"), "value") is not None
+        result["ok"] = all(
+            bool(result[key])
+            for key in ("inmemory_store_ok", "namespace_isolation_ok", "compile_store_ok", "get_store_ok", "delete_ok")
+        )
+    except Exception as exc:  # pragma: no cover - returned payload is enough for callers/tests.
+        result["error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
+    return result
+
+
 def _checkpoint_resume_smoke() -> dict[str, Any]:
     """Exercise LangGraph checkpoints/resume for append-only repair ledger metadata."""
 
@@ -1022,29 +1083,97 @@ def _provider_config_read(cfg: LoopConfig) -> bool:
         return False
     return all(bool(os.environ.get(key)) for key in ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"))
 
-# Process-local object store for transient Python objects that LangGraph's
-# checkpoint serializers should not persist directly (for example pyfcstm AST /
-# model objects inside StageContext).  Durable evidence remains in
-# AgentLoopRunRecord; this store only bridges adjacent graph nodes during one
-# in-process invocation.
+# Historical PR-LG-A1 compatibility placeholder.  LG-A2 must not write this
+# module-level dict anymore: transient validation payloads live in the
+# per-compiled LangGraph Store created by ``_build_graph``.
 _TRANSIENT_OBJECTS: dict[str, Any] = {}
 
 
-def _put_transient(run_id: str, kind: str, iteration: int, value: Any) -> str:
-    key = f"{run_id}:{kind}:{iteration}:{uuid.uuid4().hex[:8]}"
-    _TRANSIENT_OBJECTS[key] = value
+def _transient_namespace(run_id: str) -> tuple[str, str]:
+    return ("transient", run_id)
+
+
+def _transient_namespace_label(run_id: str) -> str:
+    return f"transient/{run_id}"
+
+
+def _put_transient(run_id: str, kind: str, iteration: int, value: Any, *, lifecycle: dict[str, Any] | None = None) -> str:
+    """Store a transient object inside the active LangGraph Store context.
+
+    This helper must only be called from compiled LangGraph nodes, because it
+    depends on ``langgraph.config.get_store()`` being available in the current
+    runnable context.  It deliberately does not write the historical module
+    level ``_TRANSIENT_OBJECTS`` dict.
+    """
+
+    key = f"{kind}:{iteration}:{uuid.uuid4().hex[:8]}"
+    get_store().put(
+        _transient_namespace(run_id),
+        key,
+        {
+            "_transient_wrapper": True,
+            "object": value,
+            "kind": kind,
+            "iteration": iteration,
+            "object_type": type(value).__name__,
+            "run_id": run_id,
+        },
+    )
+    if lifecycle is not None:
+        lifecycle["put_count"] = int(lifecycle.get("put_count", 0)) + 1
     return key
 
 
-def _get_transient(key: str) -> Any:
-    if key not in _TRANSIENT_OBJECTS:
+def _get_transient(run_id: str, key: str, *, lifecycle: dict[str, Any] | None = None) -> Any:
+    """Load a transient object from the active LangGraph Store context."""
+
+    item = get_store().get(_transient_namespace(run_id), key)
+    if item is None:
         raise KeyError(f"missing transient LangGraph runtime object: {key}")
-    return _TRANSIENT_OBJECTS[key]
+    if lifecycle is not None:
+        lifecycle["get_count"] = int(lifecycle.get("get_count", 0)) + 1
+    value = item.value
+    if isinstance(value, dict) and value.get("_transient_wrapper") is True and "object" in value:
+        return value["object"]
+    return value
 
 
-def _drop_transient(key: str | None) -> None:
+def _drop_transient(run_id: str | None, key: str | None, *, lifecycle: dict[str, Any] | None = None) -> None:
+    """Delete a transient Store object if it exists in the active graph node."""
+
     if key:
-        _TRANSIENT_OBJECTS.pop(key, None)
+        try:
+            namespace = _transient_namespace(str(run_id or ""))
+            existed = get_store().get(namespace, key) is not None
+            get_store().delete(namespace, key)
+            if lifecycle is not None and existed:
+                lifecycle["drop_count"] = int(lifecycle.get("drop_count", 0)) + 1
+        except Exception as exc:
+            if lifecycle is not None:
+                lifecycle.setdefault("cleanup_errors", []).append(f"drop:{type(exc).__name__}:{str(exc)[:160]}")
+
+
+def _drain_transients(run_id: str, *, lifecycle: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Final-drain all transient items in this run's Store namespace."""
+
+    namespace = _transient_namespace(run_id)
+    items = list(get_store().search(namespace))
+    deleted = 0
+    for item in items:
+        get_store().delete(namespace, item.key)
+        deleted += 1
+    remaining = list(get_store().search(namespace))
+    cleanup_status = "no_leak" if not remaining else f"partial_leak_{len(remaining)}_items"
+    if lifecycle is not None:
+        lifecycle["final_drain_count"] = int(lifecycle.get("final_drain_count", 0)) + 1
+        lifecycle["final_item_count"] = len(remaining)
+        lifecycle["cleanup_status"] = cleanup_status
+        lifecycle["drained_item_count"] = int(lifecycle.get("drained_item_count", 0)) + deleted
+    return {
+        "drained_count": deleted,
+        "final_item_count": len(remaining),
+        "cleanup_status": cleanup_status,
+    }
 
 
 def _trace_node(graph_state: _GraphLoopState, node_id: str, event: str = "node_enter", **payload: Any) -> None:
@@ -1150,10 +1279,56 @@ def _run_initial_modeling_node_logic(*, nl: str, runtime_cfg: FullStagedRuntimeC
 
 def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRuntimeAdapters) -> Any:
     graph = StateGraph(_GraphLoopState)
+    store = InMemoryStore()
+    store_instance_id = f"lg-a2-store-{uuid.uuid4().hex[:12]}"
+    transient_lifecycle: dict[str, Any] = {
+        "backend": "langgraph_inmemory_store",
+        "namespace": "",
+        "store_instance_id": store_instance_id,
+        "put_count": 0,
+        "get_count": 0,
+        "drop_count": 0,
+        "final_item_count": 0,
+        "cleanup_status": "not_finalized",
+        "final_drain_count": 0,
+        "drained_item_count": 0,
+        "cleanup_errors": [],
+    }
+
+    def _set_transient_run_metadata(run_id: str) -> None:
+        transient_lifecycle["namespace"] = _transient_namespace_label(run_id)
+
+    def _transient_metadata() -> dict[str, Any]:
+        return _jsonable(transient_lifecycle)
+
+    def _drop_state_validation_ref(graph_state: _GraphLoopState) -> None:
+        runtime_state = graph_state.get("runtime_state")
+        run_id = runtime_state.run_id if isinstance(runtime_state, _RunState) else runtime_cfg.run_id
+        _drop_transient(run_id, str(graph_state.get("validation_ref") or ""), lifecycle=transient_lifecycle)
+        graph_state.pop("validation_ref", None)
+
+    def _inject_transient_metadata(record: Any) -> None:
+        lifecycle = _transient_metadata()
+        record.environment.update(
+            {
+                "transient_backend": lifecycle["backend"],
+                "transient_namespace": lifecycle["namespace"],
+                "transient_store_instance_id": lifecycle["store_instance_id"],
+                "transient_put_count": lifecycle["put_count"],
+                "transient_get_count": lifecycle["get_count"],
+                "transient_drop_count": lifecycle["drop_count"],
+                "transient_final_item_count": lifecycle["final_item_count"],
+                "transient_cleanup_status": lifecycle["cleanup_status"],
+                "transient_final_drain_count": lifecycle["final_drain_count"],
+            }
+        )
+        record.run_config["transient_lifecycle"] = lifecycle
+        record.final_artifacts["transient_lifecycle"] = lifecycle
 
     def sc0_start(graph_state: _GraphLoopState) -> Command:
         nl = graph_state["nl"]
         run_id = _initial_run_id(nl, runtime_cfg)
+        _set_transient_run_metadata(run_id)
         runtime_state = _RunState(run_id=run_id, run_started_at=_utc_now(), current_dsl=runtime_cfg.initial_dsl)
         graph_state = dict(graph_state)
         graph_state["runtime_state"] = runtime_state
@@ -1251,6 +1426,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 }
             )
             graph_state["runtime_state"] = runtime_state
+            _drop_state_validation_ref(graph_state)
             return Command(goto="validation_decision", update=graph_state)
 
         runtime_state.warning_budget_state = validation.context.warning_budget_state
@@ -1280,8 +1456,8 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state["runtime_state"] = runtime_state
         old_ref = graph_state.get("validation_ref")
         if isinstance(old_ref, str):
-            _drop_transient(old_ref)
-        graph_state["validation_ref"] = _put_transient(runtime_state.run_id, "validation", iteration, validation)
+            _drop_transient(runtime_state.run_id, old_ref, lifecycle=transient_lifecycle)
+        graph_state["validation_ref"] = _put_transient(runtime_state.run_id, "validation", iteration, validation, lifecycle=transient_lifecycle)
         graph_state["selected_trace"] = selected_trace
         graph_state["iteration_record"] = {
             "iteration": iteration,
@@ -1298,11 +1474,12 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration_record = dict(graph_state.get("iteration_record") or {})
-        validation_ref = str(graph_state.get("validation_ref") or "")
-        validation = _get_transient(validation_ref) if validation_ref else None
         _trace_node(graph_state, "validation_decision", iteration=graph_state.get("iteration"))
         if runtime_state.verdict_source_stage_id is not None:
+            _drop_state_validation_ref(graph_state)
             return Command(goto="sc13_trace_audit", update=graph_state)
+        validation_ref = str(graph_state.get("validation_ref") or "")
+        validation = _get_transient(runtime_state.run_id, validation_ref, lifecycle=transient_lifecycle) if validation_ref else None
         weak_sim_feedback = getattr(validation, "feedback", {}).get("sim") if validation is not None else None
         if (
             getattr(validation, "selected", None) is None
@@ -1341,7 +1518,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
         if command_goto != "repair_path":
-            _drop_transient(str(graph_state.get("validation_ref") or ""))
+            _drop_state_validation_ref(graph_state)
         return Command(goto=command_goto, update=graph_state)
 
     def repair_path(graph_state: _GraphLoopState) -> Command:
@@ -1358,7 +1535,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 adapters=adapters,
                 state=runtime_state,
                 iteration=iteration,
-                validation=_get_transient(str(graph_state.get("validation_ref") or "")),
+                validation=_get_transient(runtime_state.run_id, str(graph_state.get("validation_ref") or ""), lifecycle=transient_lifecycle),
             )
         except _LLMRetryExhausted as exc:
             _mark_retry_exhausted(runtime_state, exc)
@@ -1457,7 +1634,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
         if command_goto != "waiver_continue":
-            _drop_transient(str(graph_state.get("validation_ref") or ""))
+            _drop_state_validation_ref(graph_state)
         return Command(goto=command_goto, update=graph_state)
 
     def waiver_continue(graph_state: _GraphLoopState) -> Command:
@@ -1466,7 +1643,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         iteration = int(graph_state.get("iteration", 0))
         iteration_stage_start = int(graph_state.get("iteration_stage_start", len(runtime_state.stage_records)))
         iteration_record = dict(graph_state.get("iteration_record") or {})
-        validation = _get_transient(str(graph_state.get("validation_ref") or ""))
+        validation = _get_transient(runtime_state.run_id, str(graph_state.get("validation_ref") or ""), lifecycle=transient_lifecycle)
         _trace_node(graph_state, "waiver_continue", iteration=iteration)
         try:
             continued_validation = _continue_after_design_waiver(
@@ -1489,7 +1666,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             command_goto = "sc13_trace_audit"
             graph_state["runtime_state"] = runtime_state
             graph_state["iteration_record"] = iteration_record
-            _drop_transient(str(graph_state.get("validation_ref") or ""))
+            _drop_state_validation_ref(graph_state)
             return Command(goto=command_goto, update=graph_state)
 
         runtime_state.warning_budget_state = continued_validation.context.warning_budget_state
@@ -1584,7 +1761,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
         if command_goto != "iteration_gate":
-            _drop_transient(str(graph_state.get("validation_ref") or ""))
+            _drop_state_validation_ref(graph_state)
         return Command(goto=command_goto, update=graph_state)
 
     def sc12_budget_exhausted(graph_state: _GraphLoopState) -> Command:
@@ -1611,12 +1788,14 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 stage_status=StageStatus.FAIL,
             )
         graph_state["runtime_state"] = runtime_state
+        _drop_state_validation_ref(graph_state)
         return Command(goto="sc13_trace_audit", update=graph_state)
 
     def sc13_trace_audit(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         _trace_node(graph_state, "sc13_trace_audit")
+        _drain_transients(runtime_state.run_id, lifecycle=transient_lifecycle)
         if runtime_state.final_record_status not in _VALID_RECORD_STATUSES:
             runtime_state.final_record_status = "failed"
             runtime_state.final_verdict = "not_converged"
@@ -1651,6 +1830,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
 
         if runtime_cfg.write_run_record:
             record = _build_record(cfg=runtime_cfg, nl=graph_state["nl"], state=runtime_state)
+            _inject_transient_metadata(record)
             try:
                 path = staged_runtime.write_agent_loop_run_record(record, staged_runtime.agent_loop_run_record_path(runtime_cfg.output_dir, runtime_state.run_id))
                 result.run_record_path = str(path)
@@ -1677,7 +1857,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
     graph.add_node("sc13_trace_audit", sc13_trace_audit)
 
     graph.add_edge(START, "sc0_start")
-    return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()))
+    return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()), store=store)
 
 
 def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: list[dict[str, Any]]) -> None:
