@@ -2669,3 +2669,58 @@ def test_lg_e3_repair_path_wraps_sd8_and_sd10_without_changing_fixlog(tmp_path: 
     assert [entry["phase"] for entry in on_record.fix_log] == [entry["phase"] for entry in off_record.fix_log]
     assert _canonical_hash(on_record.fix_log) == _canonical_hash(off_record.fix_log)
     assert on_record.final_artifacts["verdict"] == off_record.final_artifacts["verdict"] == "success"
+
+    event_payload = json.dumps(_lg_e3_tool_events(on_record), ensure_ascii=False, sort_keys=True)
+    assert "lg-e3-needs-repair" not in event_payload
+    assert _stable_dsl().strip() not in event_payload
+    for raw_key in ["before_dsl", "current_dsl", "candidate_dsl", "raw_prompt", "raw_output"]:
+        assert f'"{raw_key}":' not in event_payload
+
+
+def test_lg_e3_safe_summary_redacts_dsl_like_and_prompt_like_scalar_fields() -> None:
+    from method.langgraph_runtime import _safe_lg_e3_tool_summary
+
+    raw_payload = {
+        "before_dsl": "state SecretBefore { [*] -> Hidden; }",
+        "after_dsl": "state SecretAfter { [*] -> Hidden; }",
+        "final_dsl": "state SecretFinal { [*] -> Hidden; }",
+        "source_dsl": "state SecretSource { [*] -> Hidden; }",
+        "repair_candidate_dsl": "state SecretCandidate { [*] -> Hidden; }",
+        "raw_input": "raw input should never be mirrored",
+        "raw_output": "raw output should never be mirrored",
+        "prompt": "prompt should never be mirrored",
+        "nl": "NL should never be mirrored",
+        "messages": [{"role": "user", "content": "message should never be mirrored"}],
+        "safe_stage_id": "SD-8",
+    }
+
+    summary = _safe_lg_e3_tool_summary(raw_payload)
+    summary_json = json.dumps(summary, ensure_ascii=False, sort_keys=True)
+
+    for forbidden in [
+        "SecretBefore",
+        "SecretAfter",
+        "SecretFinal",
+        "SecretSource",
+        "SecretCandidate",
+        "raw input should never be mirrored",
+        "raw output should never be mirrored",
+        "prompt should never be mirrored",
+        "NL should never be mirrored",
+        "message should never be mirrored",
+    ]:
+        assert forbidden not in summary_json
+    for redacted_key in [
+        "before_dsl_hash",
+        "after_dsl_hash",
+        "final_dsl_hash",
+        "source_dsl_hash",
+        "repair_candidate_dsl_hash",
+        "raw_input_hash",
+        "raw_output_hash",
+        "prompt_hash",
+        "nl_hash",
+        "messages_hash",
+    ]:
+        assert redacted_key in summary
+    assert summary["safe_stage_id"] == "SD-8"

@@ -391,15 +391,45 @@ def _lg_e3_toolnode_wrappers_enabled(runtime_cfg: FullStagedRuntimeConfig) -> bo
     return bool(runtime_cfg.run_config_extra.get("lg_e3_toolnode_wrappers_enabled", True))
 
 
+_LG_E3_SENSITIVE_SUMMARY_KEY_EXACT = {
+    "dsl",
+    "current_dsl",
+    "old_dsl",
+    "before_dsl",
+    "after_dsl",
+    "candidate_dsl",
+    "repair_candidate_dsl",
+    "source_dsl",
+    "final_dsl",
+    "nl",
+    "messages",
+    "prompt",
+    "raw_prompt",
+    "raw_input",
+    "raw_output",
+}
+
+
+def _lg_e3_summary_key_is_sensitive(key_text: str) -> bool:
+    normalized = key_text.lower()
+    return (
+        normalized in _LG_E3_SENSITIVE_SUMMARY_KEY_EXACT
+        or normalized.endswith("_dsl")
+        or normalized.startswith("raw_")
+        or "prompt" in normalized
+        or normalized in {"nl", "messages"}
+    )
+
+
 def _safe_lg_e3_tool_summary(value: Any) -> Any:
     safe = _jsonable(value)
     if isinstance(safe, dict):
         out: dict[str, Any] = {}
         for key, nested in safe.items():
             key_text = str(key)
-            if key_text in {"dsl", "current_dsl", "old_dsl", "candidate_dsl", "nl", "messages", "prompt", "raw_prompt", "raw_output"}:
-                out[f"{key_text}_hash"] = _hash_text(str(nested))
-                out[f"{key_text}_chars"] = len(str(nested))
+            if _lg_e3_summary_key_is_sensitive(key_text):
+                out[f"{key_text}_hash"] = _hash_payload(nested)
+                out[f"{key_text}_chars"] = len(json.dumps(_jsonable(nested), ensure_ascii=False, sort_keys=True, default=str))
                 continue
             if isinstance(nested, (dict, list, tuple, set)):
                 out[f"{key_text}_hash"] = _hash_payload(nested)
