@@ -1019,6 +1019,118 @@ def test_sc11_budget_gate_emits_not_converged_without_direct_success(tmp_path: P
     }
 
 
+
+def test_sl10_rework_gets_one_same_batch_retry_even_on_last_iteration(tmp_path: Path) -> None:
+    """SL-10 rework guidance must be executed once before final rejection.
+
+    With max_iterations=1 the global SD-2 revalidation budget is exhausted after
+    an accepted candidate, but the local repair-review micro-loop must still let
+    SL-10's concrete rework instructions reach the next SL-9 attempt.  This is
+    the generalized fix for last-iteration repair paths that have actionable
+    SL-10 guidance but previously exited as rework-budget exhausted immediately.
+    """
+
+    repair_calls: list[RepairRequest] = []
+    sl10_calls: list[RepairRequest] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-last-iter-rework":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+                rationale="force a repair path on the only global iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        candidate = "candidate-a" if len(repair_calls) == 1 else "candidate-b"
+        return {
+            "decisions": [
+                {
+                    "request_id": item.request_id,
+                    "decision": "accept",
+                    "rationale": "accept request and produce candidate",
+                }
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": candidate,
+            "repair_rationale": [f"emit {candidate}"],
+            "diff_summary": {"summary": f"emit {candidate}"},
+        }
+
+    def repair_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta)
+        return feedback, meta
+
+    def sl10_review(request: RepairRequest, _local_review: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        sl10_calls.append(request)
+        if len(sl10_calls) == 1:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+            output = SL10RepairReviewOutput(
+                ok=False,
+                decision="rework",
+                target_resolved=False,
+                regression_detected=True,
+                drift_risk="major",
+                evidence=[{"summary": "candidate-a drops an NL-required obligation"}],
+                rework_instructions=["Keep candidate-a's useful repair but restore the dropped NL-required obligation."],
+                local_override_rationale=[],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            )
+            return output, meta
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        output = SL10RepairReviewOutput(
+            ok=True,
+            decision="pass",
+            target_resolved=True,
+            regression_detected=False,
+            drift_risk="none",
+            evidence=[{"summary": "candidate-b follows the SL-10 rework instruction"}],
+            rework_instructions=[],
+            local_override_rationale=[],
+            review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+            meta=meta,
+        )
+        return output, meta
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 rework guidance should get one same-batch retry on the final global iteration.",
+        FullStagedRuntimeConfig(
+            initial_dsl="needs-last-iter-rework",
+            run_id="pr-b1-last-iteration-sl10-rework-minimum",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=repair_review, sl10_review=sl10_review),
+    )
+
+    assert len(repair_calls) == 2
+    assert repair_calls[1].rework_locked is True
+    assert "Keep candidate-a" in str(repair_calls[1].repair_memory)
+    assert len(sl10_calls) == 2
+    assert result.status == "not_converged"
+    assert result.final_dsl == "candidate-b"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    phases = [entry["phase"] for entry in record.fix_log]
+    assert "sl9_rework_decision" in phases
+    assert "sl10_rework_review" in phases
+    assert record.repair_history[-1]["accepted"] is True
+    assert record.repair_history[-1]["rework_attempt"] == 1
+    assert record.iteration_records[0]["accepted_candidate"] is True
+    assert record.iteration_records[0]["rework_attempts_used"] == 2
+    assert record.status == "budget_exhausted"
+    assert record.iteration_records[0]["budget_gate"]["source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    stage_ids = _stage_ids(record)
+    assert stage_ids.count(StageId.SL_9_REPAIR.value) == 2
+    assert stage_ids.count(StageId.SL_10_REPAIR_REVIEW.value) == 2
+
 def test_llm_retry_exhausted_in_sl7_exits_provider_error_without_repair(tmp_path: Path) -> None:
     result = run_full_staged_deterministic_runtime(
         "SL-7 provider exhausted",

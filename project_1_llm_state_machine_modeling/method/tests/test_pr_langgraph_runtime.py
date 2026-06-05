@@ -1039,6 +1039,115 @@ def test_waiver_continue_consumes_stale_scenario_audit_and_enters_sl7(tmp_path: 
     )
 
 
+
+def test_langgraph_sl10_rework_gets_same_batch_retry_on_last_iteration(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+    sl10_calls: list[RepairRequest] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-last-iter-rework":
+            item = DesignDiagnosticItem(
+                code="W_LG_LAST_ITER_REWORK",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_LAST_ITER_REWORK:state=Idle",
+                rationale="force repair on the only LangGraph global iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        candidate = "lg-candidate-a" if len(repair_calls) == 1 else "lg-candidate-b"
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept for test"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": candidate,
+            "repair_rationale": [f"emit {candidate}"],
+            "diff_summary": {"summary": f"emit {candidate}"},
+        }
+
+    def repair_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        return RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta), meta
+
+    def sl10_review(request: RepairRequest, _local_review: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        sl10_calls.append(request)
+        if len(sl10_calls) == 1:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+            return (
+                SL10RepairReviewOutput(
+                    ok=False,
+                    decision="rework",
+                    target_resolved=False,
+                    regression_detected=True,
+                    drift_risk="major",
+                    evidence=[{"summary": "first candidate needs rework"}],
+                    rework_instructions=["Use same-batch rework to restore the dropped obligation."],
+                    review_meta=ReviewRunMeta(
+                        provider="test-adapter",
+                        model_id="none",
+                        prompt_template_version="SL-10.test",
+                        schema_validation_ok=True,
+                        parsed_schema_version="test.v1",
+                        failure_policy="audit_only",
+                        replay_key="SL-10:test-lg-rework",
+                    ),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="none",
+                evidence=[{"summary": "second candidate follows rework guidance"}],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="test.v1",
+                    failure_policy="audit_only",
+                    replay_key="SL-10:test-lg-pass",
+                ),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-last-iteration-sl10-rework-minimum",
+            initial_dsl="lg-last-iter-rework",
+            max_iterations=1,
+            adapters=_adapters_with(design=design, repair=repair, repair_review=repair_review, sl10_review=sl10_review),
+        )
+    )
+
+    assert len(repair_calls) == 2
+    assert repair_calls[1].rework_locked is True
+    assert "Use same-batch rework" in str(repair_calls[1].repair_memory)
+    assert len(sl10_calls) == 2
+    assert record.repair_history[-1]["accepted"] is True
+    assert record.repair_history[-1]["rework_attempt"] == 1
+    assert record.iteration_records[0]["rework_attempts_used"] == 2
+    assert record.status == "budget_exhausted"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.run_config["min_sl10_rework_attempts"] == 1
+    assert record.run_config["graph_config_hash"] == record.environment["graph_config_hash"]
+    assert record.stage_records[-2]["stage_id"] == StageId.SC_12_EXIT.value
+    assert [entry["phase"] for entry in record.fix_log].count("sl9_rework_decision") == 1
+    assert [entry["phase"] for entry in record.fix_log].count("sl10_rework_review") == 1
+
 def test_sl10_noop_override_waiver_continues_without_sc11_budget(tmp_path: Path) -> None:
     scenario_name = "lg_b1_noop_override_scenario"
     current_candidate = "noop-accepted-candidate"

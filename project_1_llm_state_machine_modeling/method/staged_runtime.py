@@ -181,6 +181,7 @@ class FullStagedRuntimeConfig:
     output_dir: str | Path = "runs"
     max_iterations: int = 5
     scenario_max_retries: int = 2
+    min_sl10_rework_attempts: int = 1
     policy_profile: str = "experiment_default"
     write_run_record: bool = True
     adapter_mode: str = "test_injected"
@@ -200,6 +201,8 @@ class FullStagedRuntimeConfig:
             raise ValueError("FullStagedRuntimeConfig.max_iterations must be >= 0")
         if self.scenario_max_retries < 0:
             raise ValueError("FullStagedRuntimeConfig.scenario_max_retries must be >= 0")
+        if self.min_sl10_rework_attempts < 0:
+            raise ValueError("FullStagedRuntimeConfig.min_sl10_rework_attempts must be >= 0")
 
 
 InitialModelingAdapter = Callable[[str, StageContext], Any]
@@ -3892,7 +3895,13 @@ def _run_repair_path(
         )
         state.warning_budget_state = validation.context.warning_budget_state
 
-    max_rework_attempts = max(1, cfg.max_iterations - iteration)
+    # ``max_iterations`` is the global full-validation budget.  Once a repair
+    # path has already been entered, SL-10's concrete rework instructions must
+    # still get at least one same-batch SL-9/SL-10 retry; otherwise the last
+    # global iteration can record useful SL-10 guidance but never execute it.
+    # This does not add another SD-2 validation iteration and remains
+    # sample-agnostic: it only controls the local repair-review micro-loop.
+    max_rework_attempts = max(1 + cfg.min_sl10_rework_attempts, cfg.max_iterations - iteration)
     aggregate_stage_ids = list(repair_stage_ids)
     last_iteration_patch: dict[str, Any] = {}
     last_repair_review: RepairReviewFeedback | None = None
@@ -4614,6 +4623,7 @@ def _build_record(
         **resolved_config,
         "max_iterations": cfg.max_iterations,
         "scenario_max_retries": cfg.scenario_max_retries,
+        "min_sl10_rework_attempts": cfg.min_sl10_rework_attempts,
         "policy_profile": cfg.policy_profile,
         "adapter_mode": cfg.adapter_mode,
         "allow_main_result_eligible": cfg.allow_main_result_eligible,
@@ -4761,6 +4771,7 @@ def run_full_staged_deterministic_runtime(
         run_id=run_id,
         max_iterations=config.max_iterations,
         scenario_max_retries=config.scenario_max_retries,
+        min_sl10_rework_attempts=config.min_sl10_rework_attempts,
         adapter_mode=config.adapter_mode,
         real_llm_provider_api=config.real_llm_provider_api,
         initial_dsl_hash=_hash_text(state.current_dsl),
