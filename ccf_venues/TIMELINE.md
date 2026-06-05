@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:28`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -1079,7 +1079,7 @@ gantt
 | STVR | 2022-2028 / 2029+ | Wiley Online Library CLI WAF/403，editorial board、for-authors、volume / issue 正文和 Early View 需人工浏览器核验 | 保留官方 URL；用 DBLP 作为论文名录 / 计数 fallback；不臆造 roster 或 future volume | 后续用浏览器核验 Wiley editorial board、ISSN、author guidelines 与卷期正文 |
 | STTT | 2022-2026 | conference-based special issue / invited / extended papers 与常规期刊 article 混在 DBLP 年度 baseline 中 | 仅写 DBLP `entry article` baseline，并在根 README 与年度页说明不得和会议 proceedings 混算 | 后续按 Springer issue TOC / article type 拆普通稿、special section 与 invited papers |
 | STTT | 2027 / 2028 / 2029+ | 未发现官方年度卷期、DBLP 年度页或 active dated CFP | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
-| ESEM | 2022-2025 | proceedings 出版商入口、历史 submission system 和论文数量未逐项闭合 | 年度页保留 official program / DBLP fallback，并明确部分核验 | 后续补 ACM / IEEE / LIPIcs proceedings 官方入口并按 Technical Track / ESEIW track 分离计数 |
+| ESEM | 2022-2025 | 2022 已定位 ACM DL proceedings；2023-2025 proceedings 出版商入口、历史 submission system 和论文数量仍未逐项闭合 | 年度页保留 official program / DBLP fallback，并明确部分核验 | 后续优先补 2023-2025 ACM / IEEE / LIPIcs proceedings 官方入口，并复核 2022-2025 Technical Track / ESEIW track 分离计数 |
 | ESEM | 2027-2028 | 未发现 official home / CFP / dates | 年度页写 `⏳ 已检索未公布`，不预造 deadline 或地点 | 后续复查 researchr series、ESEIW umbrella 与 ESEM track 页面 |
 | Empirical Software Engineering | 2025-2027 | 多个 Springer collection 同时包含 submission / review / revision / notification 日期 | TIMELINE 按事件类型分列，submission deadline 与 review / revision / notification 不混写 | 后续若 Springer 更新 collection 状态或具体时刻，再同步年度 README 与 Mermaid |
 | Empirical Software Engineering | 2027-2028 | 未来年度卷期、DBLP 年度页和 2028 dated collection 未公布 | 年度页保留 rolling submission 与 online-first 长期入口，未来年度写 `⏳ 已检索未公布` | 后续待 Springer / DBLP 发布后补录，不预设未来卷号 |
@@ -1132,6 +1132,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:28` | 采纳本地预检 M 级建议：收紧 ESEM proceedings 待补范围，明确 2022 已定位 ACM DL proceedings，后续重点为 2023-2025 出版商入口与 2022-2025 track count 复核。 |
 | `2026-06-05 18:13` | PR-7 合流口径修复：收紧 SQJ rolling 表 closed collection 表述，修正待补记录表格断裂，并把当前信息更新时间同步到本轮最终合流。 |
 | `2026-06-05 17:58` | PR-7 事实补强：补入 ESE FORGE 2026 邀请制 collection deadline、Agentic SE 第三位 collection editor 线索和 SQJ closed collection / guest editor 核验口径。 |
 | `2026-06-05 17:55` | PR-7 实证 / 质量 venue 合流：同步 ESEM 2022-2026 dated events、ESE / JSS / SQJ special issue dated events、期刊 rolling 表、Mermaid 与 PR-7 待补记录，并保留 ScienceDirect WAF 与 Springer closed collection 复核说明。 |
