@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from method import loop
@@ -430,6 +431,28 @@ def _lg_baseline(record: Any) -> dict[str, Any]:
     }
 
 
+
+def _retry_exhausted_run(stage_id: StageId, error_kind: str = "provider_error") -> Any:
+    message = f"{stage_id.value} {error_kind} exhausted"
+    meta = _meta(stage_id, ok=False, status=StageStatus.ERROR)
+    meta.stage_error = message
+    return SimpleNamespace(
+        stage_id=stage_id.value,
+        ok=False,
+        parsed_output={},
+        feedback=None,
+        stage_meta=meta,
+        interaction={
+            "stage_id": stage_id.value,
+            "provider": "test-adapter",
+            "model_id": "none",
+            "schema_validation_ok": False,
+            "retry_error": {"error_kind": error_kind, "error_message": message},
+            "attempts": [{"status": error_kind, "error_kind": error_kind, "error_message": message}],
+        },
+    )
+
+
 def _local_reject_review(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
     rejection = RepairRejection(
         rejected_by_stage=StageId.SL_10_REPAIR_REVIEW.value,
@@ -628,3 +651,140 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
     assert record.status in {"success", "budget_exhausted", "failed", "rejected"}
     assert record.iteration_records
     assert "post_waiver_stage_ids" in record.iteration_records[0]
+
+
+def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+
+    before_transients = set(lg._TRANSIENT_OBJECTS)
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_SL9_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="hard_block",
+            instance_key="lg-a1:sl9-retry",
+            rationale="force SL-9 retry-exhausted repair path",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-sl9-retry-exhausted",
+            adapters=_adapters_with(design=design_block, repair=lambda _request: _retry_exhausted_run(StageId.SL_9_REPAIR, "provider_error")),
+            max_iterations=2,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes[-3:] == ["repair_path", "repair_decision", "sc13_trace_audit"]
+    assert record.status == "error"
+    assert record.final_artifacts["verdict"] == "provider_error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_9_REPAIR.value
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_9_REPAIR.value} retry exhausted")
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "provider_error"
+    assert record.llm_interactions[-1]["attempts"]
+    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+
+
+def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+
+    before_transients = set(lg._TRANSIENT_OBJECTS)
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_WAIVER_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-a1:waiver-retry",
+            rationale="waiver-allowed diagnostic for Command routing retry cleanup",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver"}],
+            "repair_rationale": ["safe waiver"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-waiver-sl5-retry-exhausted",
+            adapters=_adapters_with(
+                design=design_block,
+                repair=reject_all_as_waiver,
+                scenario_generate=lambda _request: _retry_exhausted_run(StageId.SL_5_SCENARIO_GENERATION, "empty_output"),
+            ),
+            max_iterations=2,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert "waiver_continue" in trace_nodes
+    assert trace_nodes[-1] == "sc13_trace_audit"
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_5_SCENARIO_GENERATION.value} retry exhausted")
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
+    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+
+
+def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tmp_path: Path) -> None:
+    parse_calls: list[str] = []
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_calls.append(dsl)
+        return _ok_parse(dsl, context)
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-repair":
+            item = DesignDiagnosticItem(
+                code="W_LG_A1_MULTICYCLE",
+                pyfcstm_severity="warning",
+                policy_action="hard_block",
+                instance_key="lg-a1:multicycle",
+                rationale="force one accepted repair before full revalidation",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-multicycle-acceptance",
+            initial_dsl="needs-repair",
+            adapters=_adapters_with(parse=parse, design=design, repair=lambda _request: _stable_dsl()),
+            max_iterations=3,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "repair_path",
+        "repair_decision",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "sc13_trace_audit",
+    ]
+    assert trace_nodes.count("iteration_gate") == 2
+    assert trace_nodes.count("validation_pass") == 2
+    assert trace_nodes.count("repair_decision") == 1
+    assert parse_calls == ["needs-repair", _stable_dsl()]
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert len(record.iteration_records) == 2
+    assert record.iteration_records[0]["accepted_candidate"] is True
+    assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"

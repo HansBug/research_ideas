@@ -832,10 +832,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             iteration_record["exit_reason"] = runtime_state.verdict_reason
             iteration_record["repair_stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])[len(iteration_record.get("stage_ids") or []) :]
             runtime_state.iteration_records.append(iteration_record)
-            command_goto = "sc13_trace_audit"
             graph_state["runtime_state"] = runtime_state
             graph_state["iteration_record"] = iteration_record
-            return Command(goto=command_goto, update=graph_state)
+            return Command(goto="repair_decision", update=graph_state)
         iteration_record.update(repair_patch)
         _append_flow_log(
             runtime_state.logs,
@@ -957,6 +956,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             command_goto = "sc13_trace_audit"
             graph_state["runtime_state"] = runtime_state
             graph_state["iteration_record"] = iteration_record
+            _drop_transient(str(graph_state.get("validation_ref") or ""))
             return Command(goto=command_goto, update=graph_state)
 
         runtime_state.warning_budget_state = continued_validation.context.warning_budget_state
