@@ -121,6 +121,82 @@ def test_langgraph_compat_smoke_exposes_versions_and_stategraph() -> None:
     assert smoke["langgraph_version"] != "unknown"
 
 
+
+def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validation_source() -> None:
+    import method.langgraph_runtime as lg
+
+    context = StageContext(nl="waiver contract", current_dsl=_stable_dsl())
+    selected = DesignFeedback(
+        ok=False,
+        blocking_items=[
+            DesignDiagnosticItem(
+                code="W_LG_B3_CONTRACT",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="lg-b3:contract",
+                rationale="contract fixture",
+            )
+        ],
+    )
+    validation = lg._ValidationPass(
+        context=context,
+        feedback={"design": selected},
+        stage_metas=[_meta(StageId.SD_2_PARSE), _meta(StageId.SD_3_SEMANTIC), _meta(StageId.SD_4_DESIGN, ok=False)],
+        selected=("design", selected, StageId.SD_4_DESIGN.value),
+        scenario_set=None,
+        scenario_history=[],
+        oracle_weak=False,
+        scenario_epoch=None,
+    )
+    repair_patch = {
+        "waiver_continue": True,
+        "accepted_candidate": False,
+        "selected_feedback": {"source": "design", "source_stage": StageId.SD_4_DESIGN.value},
+        "repair_stage_ids": [StageId.SD_8_FIX_PLAN.value, StageId.SL_9_REPAIR.value],
+        "exit_reason": "all_fix_requests_rejected_as_waiver_continue",
+    }
+
+    envelope = lg._build_waiver_entry_envelope(
+        repair_patch=repair_patch,
+        validation_ref="transient:validation:0",
+        validation=validation,
+        iteration=3,
+    )
+
+    assert envelope["schema_version"] == "lg-b3.waiver-entry-envelope.v1"
+    assert envelope["repair_patch"]["waiver_continue"] is True
+    assert envelope["repair_patch"]["selected_feedback"]["source_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["validation_ref"] == "transient:validation:0"
+    assert envelope["validation_source"]["object_type"] == "_ValidationPass"
+    assert envelope["validation_source"]["selected_feedback"]["source_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["validation_scenario_epoch"] is None
+    assert envelope["validation_oracle_weak"] is False
+    assert envelope["iteration"] == 3
+    assert envelope["tail_start_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["tail_kind"] == "design_warning_waiver"
+
+    with pytest.raises(ValueError, match="waiver_continue=true"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={**repair_patch, "waiver_continue": False},
+            validation_ref="transient:validation:0",
+            validation=validation,
+            iteration=3,
+        )
+    with pytest.raises(ValueError, match="no accepted_candidate"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={**repair_patch, "accepted_candidate": True},
+            validation_ref="transient:validation:0",
+            validation=validation,
+            iteration=3,
+        )
+    with pytest.raises(ValueError, match="validation_ref"):
+        lg._build_waiver_entry_envelope(
+            repair_patch=repair_patch,
+            validation_ref="",
+            validation=validation,
+            iteration=3,
+        )
+
 def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> None:
     from method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
 
@@ -161,7 +237,15 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
     }.issubset(set(validation_node["subgraph_node_ids"]))
     waiver_node = next(node for node in registry["nodes"] if node["node_id"] == "waiver_continue")
     assert waiver_node["delegated_subgraph"] is True
-    assert waiver_node["subgraph_id"] == "validation_subgraph"
+    assert waiver_node["subgraph_id"] == "waiver_continuation_subgraph"
+    assert waiver_node["nested_subgraph_ids"] == ["validation_subgraph"]
+    assert {
+        "waiver_subgraph_enter",
+        "waiver_tail_decision",
+        "waiver_design_tail",
+        "waiver_sim_tail",
+        "waiver_subgraph_finalize",
+    }.issubset(set(waiver_node["subgraph_node_ids"]))
     delegated_node_ids = {node["node_id"] for node in registry["nodes"] if node.get("delegated_subgraph")}
     assert delegated_node_ids == {"validation_pass", "waiver_continue", "repair_path"}
     assert consistency["ok"] is True
@@ -824,6 +908,10 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
     assert record.iteration_records
     assert "post_waiver_stage_ids" in record.iteration_records[0]
     post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "waiver_subgraph_enter" in post_waiver_nodes
+    assert "waiver_tail_decision" in post_waiver_nodes
+    assert "waiver_design_tail" in post_waiver_nodes
+    assert "waiver_subgraph_finalize" in post_waiver_nodes
     assert "validation_subgraph" in post_waiver_nodes
     assert "validation_sd2_parse" not in post_waiver_nodes
     assert "validation_sd3_semantic" not in post_waiver_nodes
@@ -839,6 +927,19 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
         StageId.SD_6_SIM.value,
         StageId.SL_7_MODEL_REVIEW.value,
     ]
+    envelope = record.iteration_records[0]["waiver_entry_envelope"]
+    assert envelope["schema_version"] == "lg-b3.waiver-entry-envelope.v1"
+    assert envelope["waiver_continue"] is True
+    assert envelope["tail_start_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["tail_kind"] == "design_warning_waiver"
+    assert envelope["iteration"] == 0
+    assert envelope["graph_state_iteration"] == 0
+    assert envelope["repair_patch"]["waiver_continue"] is True
+    assert envelope["validation_ref"]
+    assert envelope["validation_source"]["object_type"] == "_ValidationPass"
+    assert envelope["validation_source"]["selected_feedback"]["source_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["validation_scenario_epoch"] is None
+    assert envelope["validation_oracle_weak"] is False
     post_waiver_stage_logs = [
         item
         for item in record.logs
@@ -851,6 +952,17 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
     assert post_waiver_stage_logs
     assert all(item.get("graph_subgraph") == "validation_subgraph" for item in post_waiver_stage_logs)
     assert all(str(item.get("graph_node") or "").startswith("validation_") for item in post_waiver_stage_logs)
+    assert any(
+        item.get("event") == "waiver_subgraph_enter"
+        and item.get("graph_subgraph") == "waiver_continuation_subgraph"
+        and item.get("tail_start_stage") == StageId.SD_4_DESIGN.value
+        for item in record.logs
+        if isinstance(item, dict)
+    )
+    waiver_runtime_trace = record.final_artifacts["langgraph_runtime_trace"]["waiver_subgraph_runtime_trace"]
+    assert waiver_runtime_trace["subgraph_id"] == "waiver_continuation_subgraph"
+    assert "waiver_design_tail" in waiver_runtime_trace["node_ids"]
+    assert waiver_runtime_trace["nested_subgraph_ids"] == ["validation_subgraph"]
 
 
 def test_waiver_continue_consumes_stale_scenario_audit_and_enters_sl7(tmp_path: Path) -> None:
@@ -1031,10 +1143,24 @@ def test_waiver_continue_consumes_stale_scenario_audit_and_enters_sl7(tmp_path: 
         StageId.SD_6_SIM.value,
         StageId.SL_7_MODEL_REVIEW.value,
     ]
+    stale_envelope = record.iteration_records[-1]["waiver_entry_envelope"]
+    assert stale_envelope["tail_start_stage"] == StageId.SD_6_SIM.value
+    assert stale_envelope["tail_kind"] == "stale_overridden_scenario_waiver"
+    assert stale_envelope["waiver_audit_kind"] == "stale_overridden_scenario_waiver"
+    assert stale_envelope["graph_state_iteration"] == stale_envelope["iteration"]
+    assert stale_envelope["repair_patch"]["waiver_audit"]["kind"] == "stale_overridden_scenario_waiver"
+    assert stale_envelope["validation_ref"]
+    assert stale_envelope["validation_source"]["object_type"] == "_ValidationPass"
+    assert stale_envelope["validation_source"]["selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    assert stale_envelope["validation_scenario_epoch"] is not None
     sl9_all_rejected = [entry for entry in record.fix_log if entry["phase"] == "sl9_all_rejected"]
     assert sl9_all_rejected and sl9_all_rejected[-1]["next_action"] == "continue_after_waiver"
     trace_nodes = _lg_trace_nodes(record)
     post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "waiver_subgraph_enter" in post_waiver_nodes
+    assert "waiver_tail_decision" in post_waiver_nodes
+    assert "waiver_sim_tail" in post_waiver_nodes
+    assert "waiver_subgraph_finalize" in post_waiver_nodes
     assert "validation_sd6_sim" in post_waiver_nodes
     assert "validation_sl7_model_review" in post_waiver_nodes
     assert "validation_sd2_parse" not in post_waiver_nodes
@@ -1433,6 +1559,18 @@ def test_sl10_noop_override_waiver_continues_without_sc11_budget(tmp_path: Path)
         StageId.SD_6_SIM.value,
         StageId.SL_7_MODEL_REVIEW.value,
     ]
+    noop_envelope = record.iteration_records[0]["waiver_entry_envelope"]
+    assert noop_envelope["tail_start_stage"] == StageId.SD_6_SIM.value
+    assert noop_envelope["tail_kind"] == "sl10_noop_override_waiver"
+    assert noop_envelope["waiver_audit_kind"] == "sl10_noop_override_waiver"
+    assert noop_envelope["graph_state_iteration"] == 0
+    assert noop_envelope["repair_patch"]["accepted_noop_override"] is True
+    assert noop_envelope["repair_patch"]["waiver_audit"]["kind"] == "sl10_noop_override_waiver"
+    assert noop_envelope["validation_source"]["selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    trace_nodes = _lg_trace_nodes(record)
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "waiver_sim_tail" in post_waiver_nodes
+    assert "validation_sd2_parse" not in post_waiver_nodes
     assert "SC-11 budget gate" not in str(record.iteration_records[0].get("exit_reason"))
     assert any(entry["phase"] == "sl10_noop_override_waiver" and entry["next_action"] == "continue_after_waiver" for entry in record.fix_log)
     assert any(
