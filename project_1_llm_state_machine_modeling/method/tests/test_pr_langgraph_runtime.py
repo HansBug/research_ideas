@@ -160,7 +160,8 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
     waiver_node = next(node for node in registry["nodes"] if node["node_id"] == "waiver_continue")
     assert waiver_node["delegated_subgraph"] is True
     assert waiver_node["subgraph_id"] == "validation_subgraph"
-    assert all(not node.get("delegated_subgraph") for node in registry["nodes"] if node["node_id"] not in {"validation_pass", "waiver_continue"})
+    delegated_node_ids = {node["node_id"] for node in registry["nodes"] if node.get("delegated_subgraph")}
+    assert delegated_node_ids == {"validation_pass", "waiver_continue", "repair_path"}
     assert consistency["ok"] is True
     assert consistency["missing_stage_ids"] == []
     assert consistency["opaque_wrapper"] is False
@@ -2129,3 +2130,157 @@ def test_lg_d1_instrumentation_does_not_replace_academic_evidence(tmp_path: Path
         "AgentLoopRunRecord.final_artifacts.final_dsl",
     ]
     assert "operator_log" not in record.replay_index
+
+
+# PR-LG-B2 Repair subgraph contract tests.
+
+
+
+def _blocking_design_feedback() -> tuple[DesignFeedback, StageResultMeta]:
+    item = DesignDiagnosticItem(
+        code="LG_B2_TEST_BLOCK",
+        message="mock blocking design issue for repair subgraph contract",
+        pyfcstm_severity="warning",
+        instance_key="lg-b2-test-block",
+        policy_action="hard_block",
+    )
+    return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+def test_lg_b2_repair_subgraph_registry_exposes_stage_level_nodes() -> None:
+    from method.langgraph_runtime import build_langgraph_node_registry
+
+    registry = build_langgraph_node_registry()
+    repair_node = next(node for node in registry["nodes"] if node["node_id"] == "repair_path")
+
+    assert repair_node["delegated_subgraph"] is True
+    assert repair_node["subgraph_id"] == "repair_subgraph"
+    assert {
+        "repair_enter",
+        "repair_sd8_fix_requests",
+        "repair_sl9_repair",
+        "repair_sl10_review",
+        "repair_sc11_accept_candidate",
+        "repair_finalize",
+    }.issubset(set(repair_node["subgraph_node_ids"]))
+
+
+def test_lg_b2_repair_subgraph_not_opaque_old_repair_path_wrapper() -> None:
+    import inspect
+    import method.langgraph_runtime as lg
+
+    build_graph_source = inspect.getsource(lg._build_graph)
+    repair_subgraph_source = inspect.getsource(lg._build_repair_subgraph)
+
+    assert "_build_repair_subgraph" in build_graph_source
+    assert "_run_repair_path" not in build_graph_source
+    assert "_run_repair_path" not in repair_subgraph_source
+
+
+def test_lg_b2_repair_subgraph_trace_exposes_sd8_sl9_sl10_sc11(tmp_path: Path) -> None:
+    design_calls = {"count": 0}
+
+    def design_then_ok(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        design_calls["count"] += 1
+        if design_calls["count"] == 1:
+            return _blocking_design_feedback()
+        return _ok_design(_context)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b2-repair-subgraph-contract",
+            adapters=_adapters_with(design=design_then_ok),
+            max_iterations=2,
+        )
+    )
+    trace_nodes = _lg_trace_nodes(record)
+    repair_nodes = [node for node in trace_nodes if node.startswith("repair_")]
+
+    assert "repair_enter" in repair_nodes
+    assert "repair_sd8_fix_requests" in repair_nodes
+    assert "repair_sl9_repair" in repair_nodes
+    assert "repair_sl10_review" in repair_nodes
+    assert "repair_sc11_accept_candidate" in repair_nodes
+    assert "repair_finalize" in repair_nodes
+    assert _record_stage_ids(record).count(StageId.SD_8_FIX_PLAN.value) == 1
+    assert _record_stage_ids(record).count(StageId.SL_9_REPAIR.value) == 1
+    assert _record_stage_ids(record).count(StageId.SL_10_REPAIR_REVIEW.value) == 1
+    assert _record_stage_ids(record).count(StageId.SC_11_ACCEPT_CANDIDATE.value) == 1
+    assert record.repair_history[0]["accepted"] is True
+    assert record.final_artifacts["langgraph_runtime_trace"]["repair_subgraph_runtime_trace"]["stage_node_ids"] == [
+        "repair_sd8_fix_requests",
+        "repair_sl9_repair",
+        "repair_sl10_review",
+        "repair_sc11_accept_candidate",
+    ]
+
+
+def test_lg_b2_repair_subgraph_rework_loop_is_visible_in_trace(tmp_path: Path) -> None:
+    attempts = {"count": 0}
+    design_calls = {"count": 0}
+
+    def design_then_ok(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        design_calls["count"] += 1
+        if design_calls["count"] == 1:
+            return _blocking_design_feedback()
+        return _ok_design(_context)
+
+    def repair_adapter(_request: RepairRequest) -> str:
+        attempts["count"] += 1
+        return f"""
+state Root {{
+    state Idle{attempts['count']};
+    [*] -> Idle{attempts['count']};
+    Idle{attempts['count']} -> [*];
+}}
+"""
+
+    def sl10_review_adapter(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        decision = "rework" if attempts["count"] == 1 else "pass"
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=decision == "pass",
+            parsed_output={"decision": decision},
+            feedback=SL10RepairReviewOutput(
+                ok=decision == "pass",
+                decision=decision,
+                target_resolved=decision == "pass",
+                regression_detected=decision != "pass",
+                drift_risk="none" if decision == "pass" else "minor",
+                rework_instructions=[] if decision == "pass" else ["make the repair concrete"],
+                evidence=[{"attempt": attempts["count"], "decision": decision}],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.lg-b2-test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="SL10RepairReviewOutput.test.v1",
+                    failure_policy="audit_only",
+                    replay_key=f"SL-10:lg-b2:{decision}:{attempts['count']}",
+                ),
+                meta=_meta(StageId.SL_10_REPAIR_REVIEW, ok=decision == "pass"),
+            ),
+            stage_meta=_meta(StageId.SL_10_REPAIR_REVIEW, ok=decision == "pass"),
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b2-rework-loop-visible",
+            adapters=_adapters_with(
+                design=design_then_ok,
+                repair=repair_adapter,
+                sl10_review=sl10_review_adapter,
+            ),
+            max_iterations=1,
+        )
+    )
+    trace_nodes = _lg_trace_nodes(record)
+
+    assert trace_nodes.count("repair_sl9_repair") == 2
+    assert trace_nodes.count("repair_sl10_review") == 2
+    assert "repair_sc11_accept_candidate" in trace_nodes
+    assert record.repair_history[0]["sl10_repair_review"]["decision"] == "rework"
+    assert record.repair_history[1]["sl10_repair_review"]["decision"] == "pass"
+    assert record.run_config["graph_node_registry"]["nodes"]
