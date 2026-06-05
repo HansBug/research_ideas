@@ -707,6 +707,93 @@ def _compact_repair_memory_for_prompt(value: Any) -> Any:
     )
 
 
+def _local_rejection_has_scenario_regression(rejection: RepairRejection | dict[str, Any] | None) -> bool:
+    if rejection is None:
+        return False
+    reason = getattr(rejection, "reason", "") if isinstance(rejection, RepairRejection) else str(rejection.get("reason") or "")
+    if "scenario_regression" in reason.lower():
+        return True
+    evidence = getattr(rejection, "evidence", None) if isinstance(rejection, RepairRejection) else rejection.get("evidence")
+    return any(isinstance(item, dict) and item.get("kind") == "scenario_regression" for item in list(evidence or []))
+
+
+def _local_rejection_kind_names(rejection: RepairRejection | dict[str, Any] | None) -> list[str]:
+    if rejection is None:
+        return []
+    reason = getattr(rejection, "reason", "") if isinstance(rejection, RepairRejection) else str(rejection.get("reason") or "")
+    kinds: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        text = str(value or "").strip().lower()
+        if len(text) < 4 or text in seen:
+            return
+        seen.add(text)
+        kinds.append(text)
+
+    for chunk in re.split(r"[;]+", reason):
+        add(chunk)
+    evidence = getattr(rejection, "evidence", None) if isinstance(rejection, RepairRejection) else rejection.get("evidence")
+    for item in list(evidence or []):
+        if isinstance(item, dict):
+            add(item.get("kind") or item.get("code"))
+    return kinds
+
+
+def _local_only_frontier_from_rework_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """Return a compact frontier candidate if rework is local-only.
+
+    A candidate whose local review reports no scenario regression has already
+    repaired the current behavioural target as far as the frozen scenarios can
+    tell.  Later SL-9 attempts should preserve that frontier and only address
+    remaining grounding/design/count objections, or provide a structured
+    override rationale for SL-10.  This is sample-agnostic and driven solely by
+    local evidence / SL-10 flags.
+    """
+
+    if str(entry.get("phase") or "") not in {"sl10_review", "sl10_rework_review"}:
+        return None
+    if not str(entry.get("next_action") or "").startswith("sl9_rework"):
+        return None
+    candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+    if not candidate_hash:
+        return None
+    sl10 = entry.get("sl10_review") if isinstance(entry.get("sl10_review"), dict) else {}
+    local = entry.get("local_check_evidence") if isinstance(entry.get("local_check_evidence"), dict) else {}
+    feedback = local.get("repair_review_feedback") if isinstance(local, dict) else None
+    rejection = feedback.get("local_rejection") if isinstance(feedback, dict) else None
+    if not isinstance(rejection, dict):
+        return None
+    if bool(sl10.get("regression_detected")) or bool(rejection.get("regression_detected")):
+        return None
+    if _local_rejection_has_scenario_regression(rejection):
+        return None
+    kinds = _local_rejection_kind_names(rejection)
+    if not kinds:
+        return None
+    return {
+        "candidate_dsl_hash": candidate_hash,
+        "entry_id": entry.get("entry_id"),
+        "phase": entry.get("phase"),
+        "next_action": entry.get("next_action"),
+        "local_rejection_reason": rejection.get("reason"),
+        "local_objection_kinds": kinds,
+        "diff_summary": _compact_json(entry.get("diff_summary") or {}, max_list_items=6),
+        "sl10_rework_instructions": _compact_repair_memory_for_prompt((sl10.get("rework_instructions") or [])[:6]),
+        "sl9_repair_rationale": _compact_repair_memory_for_prompt((entry.get("notes") or [])[:6]),
+        "candidate_dsl_excerpt": _truncate_text(entry.get("candidate_dsl") or "", max_chars=2400),
+        "instruction": (
+            "This is the latest non-regressive local-only frontier: frozen scenarios "
+            "no longer report scenario_regression, so the next SL-9 attempt should "
+            "preserve this candidate's behavioral repair and make only minimal "
+            "local-grounding/design/count changes. If pyfcstm syntax cannot satisfy "
+            "both the local matcher and the behavior, keep the frontier and provide "
+            "explicit grounding/local_override rationale for each listed objection kind; "
+            "do not swing back to a prior candidate that reintroduces scenario_regression."
+        ),
+    }
+
+
 def _diagnostic_signature(item: dict[str, Any]) -> str:
     code = str(item.get("code") or item.get("type") or item.get("name") or item.get("id") or "")
     variable = str(item.get("variable") or item.get("var") or item.get("element") or "")
@@ -808,6 +895,8 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         if str(entry.get("next_action") or "").startswith("sl9_rework")
         or "rework" in str(entry.get("phase") or "")
     ][-3:]
+    local_only_frontiers = [item for entry in entries if (item := _local_only_frontier_from_rework_entry(entry)) is not None]
+    latest_local_only_frontier = local_only_frontiers[-1] if local_only_frontiers else None
     latest_guidance: list[Any] = []
     latest_local_objections: list[Any] = []
     latest_waived_local_objections: list[Any] = []
@@ -852,6 +941,7 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         "latest_actionable_rework_guidance": _compact_repair_memory_for_prompt(latest_guidance[-8:]),
         "latest_local_objections": _compact_repair_memory_for_prompt(latest_local_objections[-6:]),
         "latest_waived_local_objections": _compact_repair_memory_for_prompt(latest_waived_local_objections[-6:]),
+        "latest_non_regressive_local_only_frontier": _compact_repair_memory_for_prompt(latest_local_only_frontier or {}),
         "sl9_rule": (
             "Before emitting a candidate, explicitly address the latest "
             "actionable_rework_guidance and avoid returning a candidate whose "
@@ -861,7 +951,11 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
             "intentionally sufficient. Treat latest_waived_local_objections as "
             "audit-only SL-10 overrides rather than primary repair targets; do "
             "not undo an NL-grounded fix merely to satisfy a waived local matcher "
-            "or stale-scenario objection."
+            "or stale-scenario objection. If "
+            "latest_non_regressive_local_only_frontier is present, preserve that "
+            "candidate's scenario-passing behavior and only make minimal local-only "
+            "grounding/design/count changes; do not swing back to a prior candidate "
+            "that reintroduces scenario_regression."
         ),
     }
 
@@ -2446,6 +2540,34 @@ def _repair_memory_for_log(
             )
     if not (sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections):
         guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
+    frontier_candidate: dict[str, Any] | None = None
+    if (
+        candidate_dsl
+        and sl10_output is not None
+        and not sl10_output.ok
+        and not sl10_output.regression_detected
+        and feedback is not None
+        and isinstance(feedback, dict)
+        and isinstance(feedback.get("local_rejection"), dict)
+        and not _local_rejection_has_scenario_regression(feedback.get("local_rejection"))
+    ):
+        kinds = _local_rejection_kind_names(feedback.get("local_rejection"))
+        if kinds:
+            frontier_candidate = {
+                "candidate_dsl_hash": _hash_text(candidate_dsl),
+                "local_rejection_reason": feedback["local_rejection"].get("reason"),
+                "local_objection_kinds": kinds,
+                "candidate_dsl_excerpt": _truncate_text(candidate_dsl, max_chars=2400),
+                "instruction": (
+                    "Local checks no longer report scenario_regression for this "
+                    "candidate; preserve its behavioral repair as the frontier. "
+                    "The next attempt should make only minimal local-only changes "
+                    "or provide SL-10-ready local_override rationale for the listed "
+                    "objection kinds."
+                ),
+            }
+            guidance.append({"kind": "non_regressive_local_only_frontier", **frontier_candidate})
+
     candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
     previous = list(previous_candidate_hashes or [])
     repeated = bool(candidate_hash and candidate_hash in previous)
@@ -2468,6 +2590,7 @@ def _repair_memory_for_log(
         "local_objections": _jsonable(local_objections),
         "overridden_local_objections": _jsonable(overridden_local_objections),
         "audit_only_rework_guidance": _jsonable(audit_only_guidance),
+        "non_regressive_local_only_frontier": _jsonable(frontier_candidate or {}),
         "actionable_rework_guidance": _jsonable(guidance),
     }
 

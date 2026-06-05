@@ -55,6 +55,14 @@ SL-9 Repair contract:
   expected-vs-actual repair target: name each failing scenario/step, compare
   expected_state/expected_vars with actual_state/actual_vars/runtime_error, and
   make the smallest DSL edit that resolves that exact gap.
+- If `repair_memory.latest_non_regressive_local_only_frontier` is present, a
+  previous candidate already removed scenario_regression and only local-only
+  objections such as grounding/design/count drift remained. Preserve that
+  frontier's behaviour first. Do not swing back to an older representation that
+  reintroduces scenario_regression just to satisfy a local matcher. Make only
+  minimal local-only changes, or explicitly keep the frontier and write
+  repair_rationale that maps each remaining local objection kind to concrete
+  NL-grounded DSL elements so SL-10 can provide local_override_rationale.
 - If a request is marked rework_locked by SL-10, you must continue repairing it
   and must not reject it again.
 - `suggested_fix` / `suggested_fix_hints` are a hint, not a command. Prefer a

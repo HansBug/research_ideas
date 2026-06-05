@@ -2115,3 +2115,169 @@ def test_sl10_rework_memory_carries_local_expected_actual_summary_to_next_sl9(tm
     assert "actual_vars_focus" in rendered_memory and "Root.Fault" in rendered_memory
     hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)  # type: ignore[union-attr]
     assert "local_actionable_repair_summary" in hint_text
+
+
+def test_repair_memory_exposes_non_regressive_local_only_frontier_in_sl9_prompt() -> None:
+    """A behavior-fixed candidate must be visible before SL-9 swings back."""
+
+    from method.staged_runtime import _repair_memory_for_prompt
+
+    fix_log = [
+        {
+            "entry_id": "fixlog-4-sl10_rework_review",
+            "iteration": 0,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:frontier",
+            "candidate_dsl": "state Root { [*] -> Idle; Idle -> Safe :: Recover; }",
+            "diff_summary": {"summary": "kept behavior-fixed transition and only changed grounding representation"},
+            "next_action": "sl9_rework",
+            "local_check_evidence": {
+                "repair_review_feedback": {
+                    "local_rejection": {
+                        "reason": "new_blocking_design_diagnostic; missing_required_grounding",
+                        "target_resolved": False,
+                        "regression_detected": False,
+                        "drift_risk": "major",
+                        "evidence": [
+                            {"kind": "new_blocking_design_diagnostic", "code": "W_SHADOWED_EVENT"},
+                            {"kind": "missing_required_grounding", "element_ids": ["event:Recover"]},
+                        ],
+                    }
+                }
+            },
+            "sl10_review": {
+                "ok": False,
+                "decision": "rework",
+                "target_resolved": False,
+                "regression_detected": False,
+                "drift_risk": "major",
+                "rework_instructions": ["Keep the scenario-passing candidate; only repair local grounding."],
+            },
+        }
+    ]
+
+    memory = _repair_memory_for_prompt(fix_log)
+    frontier = memory["latest_non_regressive_local_only_frontier"]
+    assert frontier["candidate_dsl_hash"] == "sha256:frontier"
+    assert "missing_required_grounding" in frontier["local_objection_kinds"]
+    assert "scenario_regression" not in frontier["local_objection_kinds"]
+
+    prompt = build_sl9_repair_prompt(
+        nl="Recover must move the active state to Safe.",
+        current_dsl="state Root { [*] -> Idle; }",
+        fix_log=fix_log,
+        repair_memory=memory,
+        fix_request_batch={"requests": []},
+    )
+    rendered = "\n".join(message["content"] for message in prompt)
+    assert "latest_non_regressive_local_only_frontier" in rendered
+    assert "Do not swing back" in rendered or "do not swing back" in rendered
+    assert "missing_required_grounding" in rendered
+
+
+def test_sl10_local_only_frontier_is_forwarded_to_next_sl9_attempt(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+    sl10_calls = 0
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-frontier":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        decision = {
+            "request_id": request.fix_request_batch.requests[0].request_id,
+            "decision": "accept",
+            "rationale": "accept current repair target",
+        }
+        candidate = "candidate-frontier" if len(repair_calls) == 1 else "candidate-with-local-rationale"
+        return {"decisions": [decision], "candidate_dsl": candidate, "repair_rationale": [f"emit {candidate}"]}
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == "candidate-with-local-rationale":
+            feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none")
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+            feedback.meta = meta
+            return feedback, meta
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="new_blocking_design_diagnostic; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[
+                {"kind": "new_blocking_design_diagnostic", "code": "W_SHADOWED_EVENT"},
+                {"kind": "missing_required_grounding", "element_ids": ["event:Recover"]},
+            ],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def sl10_review(_request: RepairRequest, local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        nonlocal sl10_calls
+        sl10_calls += 1
+        if local.ok:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+            return (
+                SL10RepairReviewOutput(
+                    ok=True,
+                    decision="pass",
+                    target_resolved=True,
+                    regression_detected=False,
+                    drift_risk="none",
+                    evidence=[{"summary": "local checks passed"}],
+                    review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+        return (
+            SL10RepairReviewOutput(
+                ok=False,
+                decision="rework",
+                target_resolved=False,
+                regression_detected=False,
+                drift_risk="major",
+                rework_instructions=["Preserve the behavior-fixed candidate and repair only local grounding/design objections."],
+                evidence=[{"summary": "No scenario_regression remains; only local matcher objections remain."}],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "local-only frontier should not be forgotten",
+        FullStagedRuntimeConfig(initial_dsl="needs-frontier", run_id="pr-b1-local-only-frontier", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=local_review, sl10_review=sl10_review),
+    )
+
+    assert result.status == "converged"
+    assert len(repair_calls) == 2
+    frontier = repair_calls[1].repair_memory["latest_non_regressive_local_only_frontier"]
+    assert frontier["candidate_dsl_hash"] == repair_calls[1].repair_memory["candidate_hash_history_tail"][0]
+    assert "missing_required_grounding" in str(frontier)
+    hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)  # type: ignore[union-attr]
+    assert "latest_non_regressive_local_only_frontier" in hint_text
+    assert "scenario_regression" in hint_text
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    first_sl10_entry = next(entry for entry in record.fix_log if entry["phase"] == "sl10_review")
+    assert first_sl10_entry["repair_memory"]["non_regressive_local_only_frontier"]["candidate_dsl_hash"].startswith("sha256:")
