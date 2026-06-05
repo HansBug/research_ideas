@@ -135,7 +135,23 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
         "sc13_trace_audit",
     }.issubset(node_ids)
     assert registry["delegated_monolithic_runtime"] is False
-    assert all(not node.get("delegated_subgraph") for node in registry["nodes"])
+    validation_node = next(node for node in registry["nodes"] if node["node_id"] == "validation_pass")
+    assert validation_node["delegated_subgraph"] is True
+    assert validation_node["subgraph_id"] == "validation_subgraph"
+    assert {
+        "validation_enter",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sd5a_reuse_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
+    }.issubset(set(validation_node["subgraph_node_ids"]))
+    assert all(not node.get("delegated_subgraph") for node in registry["nodes"] if node["node_id"] != "validation_pass")
     assert consistency["ok"] is True
     assert consistency["missing_stage_ids"] == []
     assert consistency["opaque_wrapper"] is False
@@ -416,6 +432,26 @@ def _lg_trace_nodes(record: Any) -> list[str]:
     return [str(item.get("node_id") or "") for item in record.run_config.get("langgraph_node_trace", [])]
 
 
+def _lg_top_level_trace_nodes(record: Any) -> list[str]:
+    top_level_nodes = {
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "repair_path",
+        "repair_decision",
+        "waiver_continue",
+        "sc12_budget_exhausted",
+        "sc13_trace_audit",
+    }
+    return [node for node in _lg_trace_nodes(record) if node in top_level_nodes]
+
+
+def _lg_validation_subgraph_nodes(record: Any) -> list[str]:
+    return [node for node in _lg_trace_nodes(record) if node.startswith("validation_") and node not in {"validation_pass", "validation_decision"}]
+
+
 def _lg_baseline(record: Any) -> dict[str, Any]:
     return {
         "stage_ids": [str(item.get("stage_id") if isinstance(item, dict) else item.stage_id) for item in record.stage_records],
@@ -483,6 +519,42 @@ def test_command_routing_no_next_action_as_primary_source() -> None:
     assert 'graph_state["next_action"]' not in source
 
 
+def test_lg_b1_validation_subgraph_replaces_monolithic_validation_pass(tmp_path: Path) -> None:
+    import inspect
+    import method.langgraph_runtime as lg
+
+    build_graph_source = inspect.getsource(lg._build_graph)
+    validation_subgraph_source = inspect.getsource(lg._build_validation_subgraph)
+
+    assert "_build_validation_subgraph" in build_graph_source
+    assert "_run_validation_pass" not in build_graph_source
+    assert "_run_validation_pass" not in validation_subgraph_source
+
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-b1-validation-subgraph-contract"))
+    validation_nodes = _lg_validation_subgraph_nodes(record)
+
+    assert validation_nodes == [
+        "validation_subgraph",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
+    ]
+    assert _lg_top_level_trace_nodes(record) == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "sc13_trace_audit",
+    ]
+
+
 def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: Path) -> None:
     full_pass = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-full-pass", max_iterations=1))
     full_pass_baseline = _lg_baseline(full_pass)
@@ -490,13 +562,25 @@ def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: 
     assert full_pass.status == "success"
     assert full_pass.final_artifacts["verdict"] == "success"
     assert full_pass.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
-    assert full_pass_baseline["trace_nodes"] == [
+    assert _lg_top_level_trace_nodes(full_pass) == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
         "validation_pass",
         "validation_decision",
         "sc13_trace_audit",
+    ]
+    assert _lg_validation_subgraph_nodes(full_pass) == [
+        "validation_subgraph",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
     ]
     assert full_pass_baseline["stage_ids"][-1] == StageId.SC_13_TRACE_AUDIT.value
     assert full_pass.final_artifacts["main_result_eligible"] is False
@@ -507,7 +591,7 @@ def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: 
     assert budget.status == "budget_exhausted"
     assert budget.final_artifacts["verdict"] == "not_converged"
     assert budget.final_artifacts["verdict_source_stage_id"] == StageId.SC_0_START.value
-    assert budget_baseline["trace_nodes"] == [
+    assert _lg_top_level_trace_nodes(budget) == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
@@ -762,7 +846,8 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
     )
 
     trace_nodes = _lg_trace_nodes(record)
-    assert trace_nodes == [
+    top_level_trace_nodes = _lg_top_level_trace_nodes(record)
+    assert top_level_trace_nodes == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
@@ -775,9 +860,12 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
         "validation_decision",
         "sc13_trace_audit",
     ]
-    assert trace_nodes.count("iteration_gate") == 2
-    assert trace_nodes.count("validation_pass") == 2
-    assert trace_nodes.count("repair_decision") == 1
+    assert top_level_trace_nodes.count("iteration_gate") == 2
+    assert top_level_trace_nodes.count("validation_pass") == 2
+    assert top_level_trace_nodes.count("repair_decision") == 1
+    assert trace_nodes.count("validation_subgraph") == 2
+    assert trace_nodes.count("validation_sd2_parse") == 2
+    assert trace_nodes.count("validation_sd4_design") == 2
     assert parse_calls == ["needs-repair", _stable_dsl()]
     assert record.status == "success"
     assert record.final_artifacts["verdict"] == "success"
