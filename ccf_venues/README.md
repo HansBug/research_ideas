@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 11:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 14:06`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -67,7 +67,7 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue 的基础建档与部分核验；合流后共有 19 个 venue 根 README、133 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README。后续进入“已建档事实维护 + P0/P1/P2 批量扩展”的长期维护阶段。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue 的基础建档与部分核验；merge-upstream 合流后共有 22 个 venue 根 README、154 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README。后续进入“已建档事实维护 + PR-5 全局收口或 P1/P2 批量扩展”的长期维护阶段。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到 PR-3 合流后的旧目录统计口径。
 
 ## 5. 目录命名规范
 
@@ -170,7 +170,8 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-05 11:25` | 合并上游 PR-2 后更新入口状态：记录合流后 19 个 venue 根 README、133 个年度 README，明确 PR-3 自身交付物仍是 8 个 venue / 64 个 README，并把 upstream merge 冲突解决纳入后续复审纪律。 |
+| `2026-06-05 14:06` | 修复 PR #46 review 入口口径：将 merge-upstream 后当前状态统一为 22 个 venue 根 README、154 个年度 README，并同时保留 PR-3 / PR-4 本轮交付计数和共享文件合流复审纪律。 |
+| `2026-06-05 11:25` | 合并上游 PR-2 后更新入口状态：记录 PR-3 当时的合流目录统计，明确 PR-3 自身交付物仍是 8 个 venue / 64 个 README，并把 upstream merge 冲突解决纳入后续复审纪律；当前总量以 14:06 记录的 22 / 154 为准。 |
 | `2026-06-05 08:46` | 完成 PR-2 后更新入口状态：说明 6 个试点 venue 与 5 个软工 / 需求会议 venue 均已基础建档，后续进入已建档事实维护与批量扩展阶段。 |
 | `2026-06-05 01:08` | 修复合流后入口仍保留“只建骨架”的旧初始化口径，改为试点后长期维护边界。 |
 | `2026-06-05 00:36` | 合入期刊试点后完成会议 / 期刊合流：正文改为长期维护规则，保留会议与期刊事实共存、核心人员分轨、TIMELINE 事件发生年份和更新日志降序口径。 |
