@@ -74,6 +74,7 @@ from method.staged_runtime import (
     _is_llm_stage_run,
     _mark_retry_exhausted,
     _make_waived_design_feedback,
+    _make_waived_sim_feedback,
     _mark_sc12_verdict,
     _meta,
     _merge_scenario_sets_by_name,
@@ -253,6 +254,7 @@ class _ValidationSubgraphState(_GraphLoopState, total=False):
     validation_result: Any
     validation_continuation_source: Any
     validation_continued_after_waiver: bool
+    validation_waiver_audit: Any
 
 
 def _jsonable(value: Any) -> Any:
@@ -1419,6 +1421,84 @@ def _build_validation_subgraph(
         continuation_source = graph_state.get("validation_continuation_source")
         if isinstance(continuation_source, _ValidationPass):
             source, selected_feedback, source_stage = continuation_source.selected or ("", None, "")
+            repair_patch = dict(graph_state.get("repair_patch") or {})
+            waiver_audit = repair_patch.get("waiver_audit")
+            if (
+                isinstance(waiver_audit, dict)
+                and waiver_audit.get("kind") == "stale_overridden_scenario_waiver"
+                and source == FeedbackSource.SIM.value
+                and source_stage == StageId.SD_6_SIM.value
+                and isinstance(selected_feedback, SimFeedback)
+            ):
+                context = _clone_stage_context(continuation_source.context, current_dsl=runtime_state.current_dsl)
+                context.warning_budget_state = continuation_source.context.warning_budget_state
+                scenario_set = continuation_source.scenario_set
+                context.scenario_set = scenario_set
+                feedback = dict(continuation_source.feedback)
+                waived_sim = _make_waived_sim_feedback(selected_feedback, waiver_audit)
+                feedback[FeedbackSource.SIM.value] = waived_sim
+                stage_metas = list(continuation_source.stage_metas)
+                scenario_history = list(continuation_source.scenario_history)
+
+                waiver_meta = _meta(StageId.SD_6_SIM, ok=True, status=StageStatus.ADVISORY)
+                waiver_meta.input_hash = _hash_text(runtime_state.current_dsl)
+                waiver_meta.output_hash = _short_hash(waiver_audit)
+                waiver_meta.skipped_reason = (
+                    "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
+                    "and matched a prior SL-10 local_override_rationale for the same scenario; "
+                    "continuing to SL-7 without DSL edit"
+                )
+                _trace_node(
+                    graph_state,
+                    "validation_sd6_sim",
+                    iteration=iteration,
+                    continued_after_waiver=True,
+                    waiver_audit_kind=waiver_audit.get("kind"),
+                )
+                _append_stage(runtime_state.stage_records, waiver_meta)
+                stage_metas.append(waiver_meta)
+                _append_flow_log(
+                    runtime_state.logs,
+                    event="waiver_continue_validation_enter",
+                    iteration=iteration,
+                    source_stage=StageId.SD_6_SIM.value,
+                    reason="SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit",
+                    current_dsl_hash=_hash_text(runtime_state.current_dsl),
+                    current_dsl=runtime_state.current_dsl,
+                    waiver_audit=_jsonable(waiver_audit),
+                    graph_subgraph="validation_subgraph",
+                    graph_node="validation_enter",
+                )
+                _append_flow_log(
+                    runtime_state.logs,
+                    event="stage_result",
+                    stage_id=StageId.SD_6_SIM.value,
+                    iteration=iteration,
+                    ok=True,
+                    status=str(StageStatus.ADVISORY),
+                    reason="stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7",
+                    feedback=_feedback_brief(StageId.SD_6_SIM.value, waived_sim),
+                    jump="SL-7",
+                    graph_subgraph="validation_subgraph",
+                    graph_node="validation_sd6_sim",
+                )
+                graph_state["validation_context"] = context
+                graph_state["validation_feedback"] = feedback
+                graph_state["validation_stage_metas"] = stage_metas
+                graph_state["validation_scenario_history"] = scenario_history
+                graph_state["validation_scenario_set"] = scenario_set
+                graph_state["validation_scenario_epoch"] = continuation_source.scenario_epoch
+                graph_state["validation_oracle_weak"] = continuation_source.oracle_weak
+                graph_state["validation_continued_after_waiver"] = True
+                graph_state["validation_waiver_audit"] = _jsonable(waiver_audit)
+                _trace_node(
+                    graph_state,
+                    "validation_sl7_model_review",
+                    iteration=iteration,
+                    continued_after_waiver=True,
+                    waiver_audit_kind=waiver_audit.get("kind"),
+                )
+                return Command(goto="validation_sl7_model_review", update=graph_state)
             if (
                 source != FeedbackSource.DESIGN.value
                 or source_stage != StageId.SD_4_DESIGN.value
@@ -1976,28 +2056,39 @@ def _build_validation_subgraph(
         stage_metas = list(graph_state.get("validation_stage_metas") or [])
         scenario_set = graph_state["validation_scenario_set"]
         oracle_weak = bool(graph_state.get("validation_oracle_weak", False))
+        waiver_audit = graph_state.get("validation_waiver_audit")
+        waiver_audit_kind = waiver_audit.get("kind") if isinstance(waiver_audit, dict) else None
+        review_reason = (
+            "waiver_continue_SD-6_stale_scenario_request"
+            if waiver_audit_kind == "stale_overridden_scenario_waiver"
+            else ("waiver_continue_SD-6 ok" if graph_state.get("validation_continued_after_waiver") else "SD-6 ok")
+        )
         _append_flow_log(
             runtime_state.logs,
             event="stage_enter",
             stage_id=StageId.SL_7_MODEL_REVIEW.value,
             iteration=iteration,
-            reason="waiver_continue_SD-6 ok" if graph_state.get("validation_continued_after_waiver") else "SD-6 ok",
+            reason=review_reason,
             scenario_set_id=scenario_set.scenario_set_id,
             oracle_weak=oracle_weak,
+            waiver_audit=_jsonable(waiver_audit) if isinstance(waiver_audit, dict) else None,
             graph_subgraph="validation_subgraph",
             graph_node="validation_sl7_model_review",
         )
+        review_payload = {
+            "parse": feedback.get(FeedbackSource.PARSE.value),
+            "semantic": feedback.get(FeedbackSource.SEMANTIC.value),
+            "design": feedback.get(FeedbackSource.DESIGN.value),
+            "sim": feedback.get(FeedbackSource.SIM.value),
+            "oracle_weak": oracle_weak,
+            "waiver_continue": bool(graph_state.get("validation_continued_after_waiver", False)),
+        }
+        if isinstance(waiver_audit, dict):
+            review_payload["waiver_audit"] = _jsonable(waiver_audit)
         review_run = adapters.model_review(
             runtime_state.current_dsl,
             context,
-            {
-                "parse": feedback.get(FeedbackSource.PARSE.value),
-                "semantic": feedback.get(FeedbackSource.SEMANTIC.value),
-                "design": feedback.get(FeedbackSource.DESIGN.value),
-                "sim": feedback.get(FeedbackSource.SIM.value),
-                "oracle_weak": oracle_weak,
-                "waiver_continue": bool(graph_state.get("validation_continued_after_waiver", False)),
-            },
+            review_payload,
         )
         review_run = _append_llm_stage_run(
             run=review_run,
