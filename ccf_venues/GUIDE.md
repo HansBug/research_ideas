@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 13:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 16:58`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -405,7 +405,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 |---|---|---|---|---|
 | PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
 | PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个 venue + 28 个年度 README | 保留 PR-6 与 P0 facts，期刊 rolling 不写成 dated Mermaid |
-| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README | 须在 PR-6/7 合入上游并阅读其踩坑经验后开工；形式化 / 工具链计数不得混用 DBLP fallback |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README | PR-5 后可并行开工；final ready 前必须 merge upstream 并吸收届时已合入 PR-6/7 的 GUIDE / SUMMARY 踩坑经验；形式化 / 工具链计数不得混用 DBLP fallback |
 | PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个 venue + 35 个年度 README | 须在 PR-6/7 合入上游后开工；建议同步吸收 PR-8 形式化 / 工具链踩坑经验；不升级为 P0/P1 主投目标 |
 | PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 统计 / 时间线 / Mermaid / 待补项全局收口 | 必须等 PR-6~PR-9 全部合入上游后执行 |
 
@@ -415,7 +415,8 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 2. 默认年度范围仍为 `2022` 至当前年份 + 2；发现更远未来官方 CFP / important dates 时继续纳入，并在 PR body 与更新日志说明。
 3. 不得静默新增合同外 venue。确需新增时，先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，并给出 CCF 官方或 venue 官方来源。
 4. final ready 前必须 merge upstream staging head；若有 conflict，冲突解决后必须复核 `git ls-files -u` 为空、冲突标记消失、双方 TIMELINE / Mermaid / rolling 表 / 更新日志 facts 均保留。
-5. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
+5. PR-8 的并行开工修订属于执行合同修订：可调整 PR-8 前置条件，但不得删除 P0、PR-6、PR-7、PR-9 的 venue facts、TIMELINE facts、rolling 表或更新日志。
+6. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
 
 ## 14. 会议 / 期刊合流与事实共存规则
 
