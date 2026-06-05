@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 18:28`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:44`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -177,10 +177,10 @@ gantt
   ICST27 Conference :icst2027_conf, 2027-05-17, 2027-05-21
 
   section ESE
-  ESE27 Special :milestone, ese_2027_1_20270301, 2027-03-01, 1d
-  ESE27 Notify :milestone, ese_2027_2_20270430, 2027-04-30, 1d
-  ESE27 Revision :milestone, ese_2027_3_20270731, 2027-07-31, 1d
-  ESE27 Notify :milestone, ese_2027_4_20271130, 2027-11-30, 1d
+  ESE27 PROMPT Sub :milestone, ese_2027_1_20270301, 2027-03-01, 1d
+  ESE27 PROMPT Review :milestone, ese_2027_2_20270430, 2027-04-30, 1d
+  ESE27 PROMPT Rev :milestone, ese_2027_3_20270731, 2027-07-31, 1d
+  ESE27 PROMPT Final :milestone, ese_2027_4_20271130, 2027-11-30, 1d
 
 ```
 
@@ -415,12 +415,12 @@ gantt
   ESEIW26 Conference :esem_2026_5_20261004, 2026-10-04, 2026-10-09
 
   section ESE
-  ESE26 Notify :milestone, ese_2026_1_20260531, 2026-05-31, 1d
-  ESE26 Revision :milestone, ese_2026_2_20260715, 2026-07-15, 1d
-  ESE26 Notify :milestone, ese_2026_3_20260915, 2026-09-15, 1d
-  ESE26 Special :milestone, ese_2026_4_20260928, 2026-09-28, 1d
-  ESE26 Special :milestone, ese_2026_5_20261002, 2026-10-02, 1d
-  ESE26 Special :milestone, ese_2026_6_20261031, 2026-10-31, 1d
+  ESE26 LLM Review :milestone, ese_2026_1_20260531, 2026-05-31, 1d
+  ESE26 LLM Rev :milestone, ese_2026_2_20260715, 2026-07-15, 1d
+  ESE26 LLM Final :milestone, ese_2026_3_20260915, 2026-09-15, 1d
+  ESE26 Agentic Sub :milestone, ese_2026_4_20260928, 2026-09-28, 1d
+  ESE26 FORGE Sub :milestone, ese_2026_5_20261002, 2026-10-02, 1d
+  ESE26 EASE Sub :milestone, ese_2026_6_20261031, 2026-10-31, 1d
 
 ```
 
@@ -595,9 +595,9 @@ gantt
   ESEIW25 Conference :esem_2025_5_20250928, 2025-09-28, 2025-10-03
 
   section ESE
-  ESE25 Special :milestone, ese_2025_1_20250823, 2025-08-23, 1d
-  ESE25 Special :milestone, ese_2025_2_20251128, 2025-11-28, 1d
-  ESE25 Special :milestone, ese_2025_3_20251228, 2025-12-28, 1d
+  ESE25 FM Conf :milestone, ese_2025_1_20250823, 2025-08-23, 1d
+  ESE25 LLM First :milestone, ese_2025_2_20251128, 2025-11-28, 1d
+  ESE25 FM Journal :milestone, ese_2025_3_20251228, 2025-12-28, 1d
 
   section JSS
   JSS25 Special :milestone, jss_2025_1_20251115, 2025-11-15, 1d
@@ -756,8 +756,8 @@ gantt
   REFSQ25 Submission :milestone, refsq_2024_5_20241108, 2024-11-08, 1d
 
   section SQJ
-  SQJ24 Special :milestone, sqj_2024_1_20240331, 2024-03-31, 1d
-  SQJ24 Special :milestone, sqj_2024_2_20240331, 2024-03-31, 1d
+  SQJ24 Gamification :milestone, sqj_2024_1_20240331, 2024-03-31, 1d
+  SQJ24 LearningSys :milestone, sqj_2024_2_20240331, 2024-03-31, 1d
 
   section ESEM
   ESEM24 Abstract :milestone, esem_2024_1_20240502, 2024-05-02, 1d
@@ -1132,6 +1132,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:44` | 实现后 review 修复：将 ESE / SQJ Mermaid milestone 标签改为带 collection 语义的短标签，并同步 ESEM 历史投稿入口措辞修复。 |
 | `2026-06-05 18:28` | 采纳本地预检 M 级建议：收紧 ESEM proceedings 待补范围，明确 2022 已定位 ACM DL proceedings，后续重点为 2023-2025 出版商入口与 2022-2025 track count 复核。 |
 | `2026-06-05 18:13` | PR-7 合流口径修复：收紧 SQJ rolling 表 closed collection 表述，修正待补记录表格断裂，并把当前信息更新时间同步到本轮最终合流。 |
 | `2026-06-05 17:58` | PR-7 事实补强：补入 ESE FORGE 2026 邀请制 collection deadline、Agentic SE 第三位 collection editor 线索和 SQJ closed collection / guest editor 核验口径。 |

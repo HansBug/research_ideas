@@ -1,6 +1,6 @@
 # ESEM 2025 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:44`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -25,10 +25,10 @@
 | 年度主页 | [ESEIW 2025](https://conf.researchr.org/home/esem-2025) | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 17:23` |
 | CFP / Call for Papers | [ESEM - Technical Track](https://conf.researchr.org/track/esem-2025/esem-2025-technical-track) | Technical Track / Technical Papers 页面优先；其他 track 不替代主 track | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/esem-2025) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 17:23` |
-| Submission system | [EasyChair esem25](https://easychair.org/conferences/?conf=esem25) | 2026 为 HotCRP；历史年度入口待复核 | `2026-06-05 17:23` |
+| Submission system | [EasyChair esem25](https://easychair.org/conferences/?conf=esem25) | 2025 使用 EasyChair（esem25）；入口当前登录 / 归档状态待人工复核（2026 起记录为 HotCRP） | `2026-06-05 17:23` |
 | Tracks / program | [ESEM - Technical Track](https://conf.researchr.org/track/esem-2025/esem-2025-technical-track) | ESEIW umbrella 下含 Technical、Emerging Results / Vision、Registered Reports、SEIP / IGC、Journal First、IDoESE、ISERN 等 track；计数时必须分开。 | `2026-06-05 17:23` |
 | Accepted papers / paper list | [Program](https://conf.researchr.org/program/esem-2025/program-esem-2025/) | 已结束年度优先 official program；DBLP 仅作 fallback | `2026-06-05 17:23` |
-| Proceedings | 待补（DBLP 年度页作论文名录 fallback） | 出版商入口待补时使用 DBLP fallback；2026 仅记录 LIPIcs / open science 官方说明，不写成已发布 proceedings | `2026-06-05 17:23` |
+| Proceedings | 待补（DBLP 年度页作论文名录 fallback） | 历史年度 publisher proceedings 入口仍待复核；DBLP 仅作论文名录 / 计数 fallback，不替代出版商入口 | `2026-06-05 17:23` |
 | DBLP 年度页 | [DBLP ESEM 2025](https://dblp.org/db/conf/esem/esem2025.html) | 仅作论文名录 / 计数核验；2026 及未来年度未公开时写 `⏳ 已检索未公布` | `2026-06-05 17:23` |
 
 ## 3. 重要时间点
@@ -85,7 +85,7 @@
 ## 8. 维护备注
 
 - ESEIW 2025 Honolulu；Important Dates 含 ESEM Technical Track abstract / submission / notification / camera-ready 和 early registration。
-- 本目录不修改共享 [../../TIMELINE.md](../../TIMELINE.md)；后续若同步全局时间线，应按事件发生年份写入 abstract / submission / notification / camera-ready / conference dates，并保留本年度页链接。
+- 本年度 ESEM dated events 已同步至 [../../TIMELINE.md](../../TIMELINE.md) 的 `2025` 事件表与 Mermaid Gantt；后续若修改 abstract / submission / notification / camera-ready / conference dates，必须同步更新全局时间线并保留本年度页链接。
 
 ## 9. 更新日志
 
@@ -93,4 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:44` | 实现后 review 修复：更新 TIMELINE 同步备注，并将历史 EasyChair 投稿入口说明改为 2025 年度事实优先口径。 |
+| `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2025 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |

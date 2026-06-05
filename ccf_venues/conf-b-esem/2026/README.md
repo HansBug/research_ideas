@@ -1,6 +1,6 @@
 # ESEM 2026 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:39`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -26,8 +26,7 @@
 | 年度主页 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 17:23` |
 | CFP / Call for Papers | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | Technical Track / Technical Papers 页面优先；其他 track 不替代主 track | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 17:23` |
-| Submission system | [HotCRP esem26](https://esem26.hotcrp.com) |
-| Review / open science policy | [Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) 明确 ESEM 2026 使用 double-anonymous review，且 open by default；强稿可被邀请扩展投稿到 Empirical Software Engineering special issue | 2026 为 HotCRP；历史年度入口待复核 | `2026-06-05 17:23` |
+| Submission system | [HotCRP esem26](https://esem26.hotcrp.com) | 2026 为 HotCRP；历史年度入口见对应年度页且登录归档状态待复核 | `2026-06-05 17:23` |
 | Review / open science policy | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | double-anonymous review；open by default；selected strong papers invited to an Empirical Software Engineering special issue | `2026-06-05 17:55` |
 | Tracks / program | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | ESEIW umbrella 下含 Technical、Emerging Results / Vision、Registered Reports、SEIP / IGC、Journal First、IDoESE、ISERN 等 track；计数时必须分开。 | `2026-06-05 17:23` |
 | Accepted papers / paper list | 未公布 | 已结束年度优先 official program；DBLP 仅作 fallback | `2026-06-05 17:23` |
@@ -86,7 +85,7 @@
 ## 8. 维护备注
 
 - 2026 年度 researchr 以 ESEIW slug 发布，`home/esem-2026` / `dates/esem-2026` 会跳转到 `eseiw-2026`；官方新闻说明 2026 起 ESEM open by default，并与 Dagstuhl LIPIcs 合作；Technical Track 页面还要求 double-anonymous review，并说明 selected strong papers 可被邀请扩展投稿到 Empirical Software Engineering special issue。
-- 本目录不修改共享 [../../TIMELINE.md](../../TIMELINE.md)；后续若同步全局时间线，应按事件发生年份写入 abstract / submission / notification / camera-ready / conference dates，并保留本年度页链接。
+- 本年度 ESEM dated events 已同步至 [../../TIMELINE.md](../../TIMELINE.md) 的 `2026` 事件表与 Mermaid Gantt；后续若修改 abstract / submission / notification / camera-ready / conference dates，必须同步更新全局时间线并保留本年度页链接。
 
 ## 9. 更新日志
 
@@ -94,4 +93,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2026 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |

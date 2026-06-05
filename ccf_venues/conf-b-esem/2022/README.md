@@ -1,6 +1,6 @@
 # ESEM 2022 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:44`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -25,10 +25,10 @@
 | 年度主页 | [ESEIW 2022](https://conf.researchr.org/home/esem-2022) | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 17:23` |
 | CFP / Call for Papers | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2022/esem-2022-technical-track) | Technical Track / Technical Papers 页面优先；其他 track 不替代主 track | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/esem-2022) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 17:23` |
-| Submission system | [EasyChair esem22](https://easychair.org/my/conference?conf=esem22) | 2026 为 HotCRP；历史年度入口待复核 | `2026-06-05 17:23` |
+| Submission system | [EasyChair esem22](https://easychair.org/my/conference?conf=esem22) | 2022 使用 EasyChair（esem22）；入口当前登录 / 归档状态待人工复核（2026 起记录为 HotCRP） | `2026-06-05 17:23` |
 | Tracks / program | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2022/esem-2022-technical-track) | ESEIW umbrella 下含 Technical、Emerging Results / Vision、Registered Reports、SEIP / IGC、Journal First、IDoESE、ISERN 等 track；计数时必须分开。 | `2026-06-05 17:23` |
 | Accepted papers / paper list | [Program](https://conf.researchr.org/program/esem-2022/program-esem-2022/) | 已结束年度优先 official program；DBLP 仅作 fallback | `2026-06-05 17:23` |
-| Proceedings | [ACM DL proceedings](https://dl.acm.org/doi/proceedings/10.1145/3544902) / [DBLP fallback](https://dblp.org/db/conf/esem/esem2022.html) | 出版商入口待补时使用 DBLP fallback；2026 仅记录 LIPIcs / open science 官方说明，不写成已发布 proceedings | `2026-06-05 17:23` |
+| Proceedings | [ACM DL proceedings](https://dl.acm.org/doi/proceedings/10.1145/3544902) / [DBLP fallback](https://dblp.org/db/conf/esem/esem2022.html) | 2022 已定位 ACM DL proceedings；DBLP 继续作论文名录 / 计数 fallback | `2026-06-05 17:23` |
 | DBLP 年度页 | [DBLP ESEM 2022](https://dblp.org/db/conf/esem/esem2022.html) | 仅作论文名录 / 计数核验；2026 及未来年度未公开时写 `⏳ 已检索未公布` | `2026-06-05 17:23` |
 
 ## 3. 重要时间点
@@ -79,13 +79,13 @@
 | Submission system / track page | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2022/esem-2022-technical-track) / [EasyChair esem22](https://easychair.org/my/conference?conf=esem22) | `2026-06-05 17:55` | Technical Track 页面给出历史 EasyChair submission link；登录归档状态待人工复核。 |
 | 官方 track / program | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2022/esem-2022-technical-track) / [Program](https://conf.researchr.org/program/esem-2022/program-esem-2022/) | `2026-06-05 17:23` | Track / program 入口已记录；主 track 与其他 ESEIW track 需分开计数。 |
 | 官方 proceedings | [ACM DL proceedings](https://dl.acm.org/doi/proceedings/10.1145/3544902) | `2026-06-05 17:55` | ESEIW 2022 home 直接提供 ACM Digital Library proceedings；DBLP 继续作计数 fallback。 |
-| 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/esem-2022/program-esem-2022/) / 待补（DBLP 年度页作论文名录 fallback） | `2026-06-05 17:23` | 官方 program / DBLP fallback 已定位；出版商 proceedings 入口仍待复核。 |
+| 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/esem-2022/program-esem-2022/) / [ACM DL proceedings](https://dl.acm.org/doi/proceedings/10.1145/3544902) | `2026-06-05 17:23` | 官方 program / ACM DL proceedings / DBLP fallback 已定位；论文数量与 track count 仍待复核。 |
 | DBLP fallback | [DBLP ESEM 2022](https://dblp.org/db/conf/esem/esem2022.html) | `2026-06-05 17:23` | DBLP 年度页已定位；数量尚待逐条复核。 |
 
 ## 8. 维护备注
 
 - ESEIW 2022 Helsinki；ESEIW 全周为 2022-09-18..23，ESEM 主会按当前已记录事实维护为 2022-09-22..23。
-- 本目录不修改共享 [../../TIMELINE.md](../../TIMELINE.md)；后续若同步全局时间线，应按事件发生年份写入 abstract / submission / notification / camera-ready / conference dates，并保留本年度页链接。
+- 本年度 ESEM dated events 已同步至 [../../TIMELINE.md](../../TIMELINE.md) 的 `2022` 事件表与 Mermaid Gantt；后续若修改 abstract / submission / notification / camera-ready / conference dates，必须同步更新全局时间线并保留本年度页链接。
 
 ## 9. 更新日志
 
@@ -93,4 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:44` | 实现后 review 修复：更新 TIMELINE 同步备注，并收紧 2022 proceedings 与历史投稿入口的证据口径。 |
+| `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2022 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |

@@ -1,6 +1,6 @@
 # ESEM 2028 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:44`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -25,7 +25,7 @@
 | 年度主页 | ⏳ 已检索未公布 | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 17:23` |
 | CFP / Call for Papers | ⏳ 已检索未公布 | Technical Track / Technical Papers 页面优先；其他 track 不替代主 track | `2026-06-05 17:23` |
 | Important Dates | ⏳ 已检索未公布 | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 17:23` |
-| Submission system | 未公布 | 2026 为 HotCRP；历史年度入口待复核 | `2026-06-05 17:23` |
+| Submission system | 未公布 | 未来年度投稿系统未公布；不得用 2026 HotCRP 或历史 EasyChair 入口反推本年度投稿系统 | `2026-06-05 17:23` |
 | Tracks / program | ⏳ 已检索未公布 | ESEIW umbrella 下含 Technical、Emerging Results / Vision、Registered Reports、SEIP / IGC、Journal First、IDoESE、ISERN 等 track；计数时必须分开。 | `2026-06-05 17:23` |
 | Accepted papers / paper list | 未公布 | 已结束年度优先 official program；DBLP 仅作 fallback | `2026-06-05 17:23` |
 | Proceedings | 未公布 | 出版商入口待补时使用 DBLP fallback；2026 仅记录 LIPIcs / open science 官方说明，不写成已发布 proceedings | `2026-06-05 17:23` |
@@ -83,7 +83,7 @@
 ## 8. 维护备注
 
 - 官方 researchr `home/esem-2028`、`home/eseiw-2028`、`dates/esem-2028`、`dates/eseiw-2028` 已检索未公布；不预造未来年度。
-- 本目录不修改共享 [../../TIMELINE.md](../../TIMELINE.md)；后续若同步全局时间线，应按事件发生年份写入 abstract / submission / notification / camera-ready / conference dates，并保留本年度页链接。
+- 本年度 official home / CFP / dates 尚未公布，当前没有 dated event 可同步至 [../../TIMELINE.md](../../TIMELINE.md)；后续若官方发布 abstract / submission / notification / camera-ready / conference dates，必须按事件发生年份同步全局时间线并保留本年度页链接。
 
 ## 9. 更新日志
 
@@ -91,4 +91,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:44` | 实现后 review 修复：更新 TIMELINE 同步备注，并明确未来年度投稿系统未公布，不能用 2026 HotCRP 或历史 EasyChair 入口反推。 |
+| `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2028 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |
