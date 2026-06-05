@@ -1,6 +1,6 @@
 # APSEC 2024 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -63,7 +63,7 @@
 
 - P1：🟡 中：区域性 SE / AI-intensive software engineering 可提供需求到模型、LLM4SE 辅助建模线索。
 - P2：🟡 中：需求、测试、实证、软件工程实践可为验证场景 / 性质生成提供邻近样本。
-- P3：🟡 中：模型检查、formal specification、runtime/monitoring 论文偶有出现，需按年度筛选。
+- P3：🟡 中：若出现状态机验证、验证剖面构造、模型检查工具或运行时监控案例，可为 profile-based verification 与工具链对照提供邻近参考。
 - P4：🟡 中：自动程序修复、defect analysis、maintenance 论文可作为修复相关观察。
 
 ## 7. 证据与核查记录
@@ -84,4 +84,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:40` | 修复实现后复审 M3：细化 P3 相关性描述，使其指向状态机验证、验证剖面与模型检查工具链，而非泛化 formal methods 线索。 |
 | `2026-06-05 17:23` | PR-9 初始化 APSEC 2024 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

@@ -1,12 +1,14 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 18:03`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
 
 ## 1. 路径定位
 
 `ccf_venues/` 是本仓库面向 `CCF` 相关会议与期刊的 **venue 情报库**。它服务于博士研究四个 project 的长期选题、投稿、论文检索与前沿追踪，不直接承担单篇论文全文收录职责。
 
 本路径重点维护：
+
+本分支当前计数锚点：**27 个 venue 根 README、189 个年度 README**（含 PR-9 P2 新增 5 个 venue / 35 个年度 README）。
 
 1. 与本仓库四个 project 强相关或中相关的 `CCF` 会议 / 期刊基本信息。
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
@@ -171,6 +173,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:40` | 修复实现后复审 M4：在入口 README 增加 27 venue / 189 年度 README 的显式计数锚点，便于后续 PR-6/7/8/10 合流审计。 |
 | `2026-06-05 18:03` | PR-9 P2 邻近观察建档后同步入口统计：本分支新增 APSEC / SEKE / EASE / MSR / RV 共 5 个 P2 venue、35 个年度 README，总计 27 个 venue / 189 个年度 README，同时保留 P2 不升级为 P0/P1 的边界。 |
 | `2026-06-05 15:59` | 实现后 review 修复：将 README 历史 PR #5 / `frontier_index` 资源口径与 SUMMARY 对齐，明确这些路径不是当前分支可点击文件。 |
 | `2026-06-05 15:36` | PR-5 全局收口：冻结 P1/P2 后续 PR-6~PR-10 ownership，明确 P0 22 个 venue / 154 个年度 README 进入长期维护状态，并把后续扩展入口指向 SUMMARY / scope 合同。 |

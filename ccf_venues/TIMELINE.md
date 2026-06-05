@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 18:03`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -34,15 +34,15 @@
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-06-14 | [RV 2026](./conf-c-rv/2026/README.md) | 会议-C / P2 | Paper submission | Submission | 🟢 投稿中 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [论文集 / 名录](https://rv2026.smithengineering.queensu.ca/program/) | [本库年度页](./conf-c-rv/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / extended；P2 不升级为 P0/P1 主线。 |
+| 2026-06-14 | [RV 2026](./conf-c-rv/2026/README.md) | 会议-C / P2 | Paper submission | Submission | 🟢 投稿中 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [论文集 / 名录](https://rv2026.smithengineering.queensu.ca/program/) | [本库年度页](./conf-c-rv/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / extended；不升级为 P0/P1 主线。 |
 | 2026-06-15 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended abstract | Abstract | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | extended deadline；无 artifact evaluation。 |
 | 2026-06-20 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | 30th Anniversary collection | Special issue | 🟡 专刊征稿 | [30th Anniversary collection](https://link.springer.com/collections/hegaifabjh) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-22 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended full paper | Submission | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | extended full-paper deadline。 |
 | 2026-06-23 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track abstract | Abstract | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
 | 2026-06-29 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | REFSQ 2026 collection | Special issue | 🟡 专刊征稿 | [REFSQ 2026 collection](https://link.springer.com/collections/gidfjjdijf) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-30 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track submission | Submission | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
-| 2026-07-06 | [APSEC 2026](./conf-c-apsec/2026/README.md) | 会议-C / P2 | Technical abstract | Abstract | 🟢 投稿中 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | [论文集 / 名录](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | [本库年度页](./conf-c-apsec/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / UTC+8 Bali time；P2 不升级为 P0/P1 主线。 |
-| 2026-07-13 | [APSEC 2026](./conf-c-apsec/2026/README.md) | 会议-C / P2 | Technical full paper | Submission | 🟢 投稿中 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | [论文集 / 名录](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | [本库年度页](./conf-c-apsec/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / UTC+8 Bali time；P2 不升级为 P0/P1 主线。 |
+| 2026-07-06 | [APSEC 2026](./conf-c-apsec/2026/README.md) | 会议-C / P2 | Technical abstract | Abstract | 🟢 投稿中 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | [论文集 / 名录](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | [本库年度页](./conf-c-apsec/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / UTC+8 Bali time；不升级为 P0/P1 主线。 |
+| 2026-07-13 | [APSEC 2026](./conf-c-apsec/2026/README.md) | 会议-C / P2 | Technical full paper | Submission | 🟢 投稿中 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | [论文集 / 名录](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | [本库年度页](./conf-c-apsec/2026/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；AoE / UTC+8 Bali time；不升级为 P0/P1 主线。 |
 | 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；另有 intent 2026-02-15 与 notification 2026-10-15。 |
 | 2026-10-15 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS paper submission | Submission | 🟢 投稿中 | [ETAPS 2027 CFP](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；TACAS deadline 不是 ETAPS umbrella 所有分会的通用 deadline。 |
 | 2026-10-29 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS mandatory artifact submission | Submission | 🟢 投稿中 | [ETAPS 2027 CFP](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；artifact deadline 单列，避免只看 paper deadline。 |
@@ -1297,6 +1297,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:40` | 修复实现后复审 M1：统一 PR-9 P2 备注中的“不升级为 P0/P1 主线”写法，避免同列备注口径漂移。 |
 | `2026-06-05 18:03` | PR-9 sidecar 审计修复：同步 README 总入口 27 venue / 189 年度 README 统计，将 PR-9 2026 EASE / SEKE 事件阶段状态从泛化 `投稿中` 调整为会期临近 / 审稿中，并把 RV / APSEC 仍可行动的 P2 投稿窗口补入近期速览。 |
 | `2026-06-05 17:23` | PR-9 P2 邻近观察建档：将 APSEC / SEKE / EASE / MSR / RV 的 2022-2026 main / technical / research chain 与 conference dates 同步进年度总表和 Mermaid；2027/2028 未公布事项不进 dated Mermaid。 |
 | `2026-06-05 15:59` | 实现后 review 修复：把近期投稿窗口从“日期之后”改为“截至信息更新时间仍未错过且可行动”，避免当天 deadline 被误排除。 |
