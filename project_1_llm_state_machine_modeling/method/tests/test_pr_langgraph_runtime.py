@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -431,6 +432,71 @@ def _lg_baseline(record: Any) -> dict[str, Any]:
     }
 
 
+def _canonical_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _read_operator_events(record: Any) -> list[dict[str, Any]]:
+    operator = record.final_artifacts.get("operator_log") or {}
+    path = Path(operator["operator_log_path"])
+    assert path.exists()
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _assert_no_forbidden_operator_keys(value: Any) -> None:
+    forbidden = {
+        "messages",
+        "prompt",
+        "raw_prompt",
+        "raw_output",
+        "chunk_text",
+        "delta_text",
+        "completion_text",
+        "api_key",
+        "authorization",
+        "headers",
+    }
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            assert str(key).lower() not in forbidden
+            _assert_no_forbidden_operator_keys(nested)
+    elif isinstance(value, list):
+        for item in value:
+            _assert_no_forbidden_operator_keys(item)
+
+
+def _initial_modeling_llm_run_with_stream_usage(_nl: str, _context: StageContext) -> Any:
+    return SimpleNamespace(
+        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+        ok=True,
+        parsed_output={"candidate_dsl": _stable_dsl(), "grounding_seeds": [], "assumptions": []},
+        feedback=None,
+        stage_meta=_meta(StageId.SL_1_INITIAL_MODELING),
+        interaction={
+            "stage_id": StageId.SL_1_INITIAL_MODELING.value,
+            "provider": "mock-stream-provider",
+            "model_id": "mock-stream-model",
+            "schema_validation_ok": True,
+            "usage": {
+                "stream": True,
+                "stream_include_usage_requested": True,
+                "chunk_count": 7,
+                "first_chunk_seconds": 0.05,
+                "elapsed_seconds": 0.42,
+                "prompt_chars": 1234,
+                "completion_chars": 567,
+                "estimated_prompt_tokens": 309,
+                "estimated_completion_tokens": 142,
+                "estimated_total_tokens": 451,
+            },
+            "attempts": [{"status": "ok", "usage": {"stream": True, "chunk_count": 7}}],
+        },
+    )
+
+
 
 def _retry_exhausted_run(stage_id: StageId, error_kind: str = "provider_error") -> Any:
     message = f"{stage_id.value} {error_kind} exhausted"
@@ -788,3 +854,181 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
     assert len(record.iteration_records) == 2
     assert record.iteration_records[0]["accepted_candidate"] is True
     assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
+
+
+# PR-LG-D1 Streaming + operator log contract tests.
+
+
+def test_lg_d1_operator_event_schema_is_jsonl_safe() -> None:
+    from method.langgraph_runtime import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-schema",
+        event_type="llm_stream_progress",
+        node="sl1_initial_modeling",
+        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+        payload={
+            "chunk_count": 3,
+            "completion_chars": 42,
+            "prompt": "MUST_NOT_APPEAR",
+            "messages": [{"role": "user", "content": "MUST_NOT_APPEAR"}],
+            "raw_output": "MUST_NOT_APPEAR",
+            "delta_text": "MUST_NOT_APPEAR",
+            "headers": {"Authorization": "Bearer MUST_NOT_APPEAR"},
+            "api_key": "MUST_NOT_APPEAR",
+        },
+    )
+
+    assert event["schema_version"] == LG_D1_OPERATOR_EVENT_SCHEMA_VERSION
+    assert event["run_id"] == "lg-d1-schema"
+    assert event["event_type"] == "llm_stream_progress"
+    assert event["timestamp"]
+    assert event["node"] == "sl1_initial_modeling"
+    assert event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    assert event["instrumentation_layer"] == "langgraph_streaming"
+    assert event["payload_hash"].startswith("sha256:")
+    assert event["payload"]["chunk_count"] == 3
+    assert event["payload"]["completion_chars"] == 42
+    assert event["payload"]["omitted_raw_content_field_count"] >= 5
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert "MUST_NOT_APPEAR" not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_stream_off_preserves_run_record_and_result(tmp_path: Path) -> None:
+    on_record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path / "on",
+            run_id="lg-d1-stream-on",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    off_result = run_full_staged_langgraph_runtime(
+        "LG-D1 stream-off control should preserve academic evidence.",
+        config=LoopConfig(
+            condition_id="lg-d1-stream-off",
+            condition_family="test_profile",
+            base_condition_id="full_staged_v1",
+            changed_factors=["llm_provider_mode=mock", "lg_d1_stream_off_contract"],
+            llm_provider_mode="mock",
+            academic_question="test-only LG-D1 stream-off equivalence; excluded from main results",
+            output_dir=str(tmp_path / "off"),
+            run_id="lg-d1-stream-off",
+            max_iterations=1,
+            compatibility_mode="langgraph_stategraph",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        operator_stream_enabled=False,
+    )
+    off_record = _lg_record(off_result)
+
+    assert on_record.status == off_record.status == "success"
+    for key in ("verdict", "verdict_source_stage_id", "oracle_weak", "main_result_eligible", "exclusion_reason"):
+        assert on_record.final_artifacts[key] == off_record.final_artifacts[key]
+    assert _lg_baseline(on_record)["stage_ids"] == _lg_baseline(off_record)["stage_ids"]
+    assert on_record.fix_log == off_record.fix_log
+    assert len(on_record.llm_interactions) == len(off_record.llm_interactions)
+    assert _canonical_hash(on_record.llm_interactions) == _canonical_hash(off_record.llm_interactions)
+    assert "operator_log" in on_record.final_artifacts
+    assert "operator_log" not in off_record.final_artifacts
+
+
+def test_lg_d1_langgraph_stream_emits_node_stage_llm_and_terminal_events(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-stream-events",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    events = _read_operator_events(record)
+    event_types = [event["event_type"] for event in events]
+
+    assert "node_enter" in event_types
+    assert "node_exit" in event_types
+    assert "stage_result" in event_types
+    assert "llm_stream_progress" in event_types
+    assert "terminal_verdict" in event_types
+    assert any(event["node"] == "validation_pass" and event["event_type"] == "node_enter" for event in events)
+    assert any(event["node"] == "sc13_trace_audit" and event["event_type"] == "terminal_verdict" for event in events)
+    assert any(event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value for event in events)
+    assert all(event["instrumentation_layer"] == "langgraph_streaming" for event in events)
+    _assert_no_forbidden_operator_keys(events)
+    assert record.final_artifacts["operator_log"]["langgraph_stream_status"] == "enabled"
+    assert record.final_artifacts["operator_log"]["operator_event_count"] == len(events)
+
+
+def test_lg_d1_operator_log_tee_reconstructs_progress_summary(tmp_path: Path) -> None:
+    from method.langgraph_runtime import reconstruct_lg_d1_stream_summary_from_jsonl
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-summary",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    operator = record.final_artifacts["operator_log"]
+    summary = reconstruct_lg_d1_stream_summary_from_jsonl(operator["operator_log_path"])
+
+    assert summary["schema_version"] == "lg-d1.stream-summary.v1"
+    assert summary["run_id"] == record.run_id
+    assert summary["node_sequence"] == _lg_trace_nodes(record)
+    assert summary["stage_sequence"] == [row["stage_id"] for row in record.stage_records]
+    assert summary["final_verdict"] == record.final_artifacts["verdict"]
+    assert summary["run_record_path_hash"] == operator["run_record_path_hash"]
+    assert summary["llm_stream_observed"] is True
+    assert summary["llm_stream_chunk_count_total"] == 7
+
+    summary_path = Path(operator["stream_summary_path"])
+    assert summary_path.exists()
+    on_disk = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert on_disk == summary
+    import hashlib
+
+    assert operator["stream_summary_hash"] == "sha256:" + hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    assert operator["stream_summary_payload_hash"] == _canonical_hash(summary)
+
+
+def test_lg_d1_llm_stream_flag_not_regressed_for_real_env_config(monkeypatch) -> None:
+    from method.langgraph_runtime import lg_d1_llm_stream_runtime_metadata
+
+    monkeypatch.delenv("LLM_STREAM", raising=False)
+    monkeypatch.delenv("LLM_STREAM_INCLUDE_USAGE", raising=False)
+    metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=True)
+
+    assert metadata["llm_stream_required"] is True
+    assert metadata["llm_stream_config_enabled"] is True
+    assert metadata["llm_stream_include_usage_config_enabled"] is True
+    assert metadata["llm_stream_observed"] is None
+    assert metadata["llm_stream_observation_source"] == "pending_llm_interactions"
+
+
+def test_lg_d1_instrumentation_does_not_replace_academic_evidence(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-evidence-layering",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    operator = record.final_artifacts["operator_log"]
+
+    assert record.stage_records
+    assert record.llm_interactions
+    assert record.final_artifacts["final_dsl"]
+    assert record.final_artifacts["final_dsl_hash"].startswith("sha256:")
+    assert record.final_artifacts["langgraph_runtime_trace"]["delegated_monolithic_runtime"] is False
+    assert operator["instrumentation_layer"] == "langgraph_streaming"
+    assert operator["does_not_replace_academic_evidence"] is True
+    assert operator["academic_evidence_sources"] == [
+        "AgentLoopRunRecord.stage_records",
+        "AgentLoopRunRecord.llm_interactions",
+        "AgentLoopRunRecord.fix_log",
+        "AgentLoopRunRecord.scenario_history",
+        "AgentLoopRunRecord.final_artifacts.final_dsl",
+    ]
+    assert "operator_log" not in record.replay_index
