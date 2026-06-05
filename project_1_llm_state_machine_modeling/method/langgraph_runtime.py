@@ -2378,19 +2378,75 @@ def _build_validation_subgraph(
 def _waiver_kind_from_patch(repair_patch: dict[str, Any]) -> str:
     waiver_audit = repair_patch.get("waiver_audit")
     if isinstance(waiver_audit, dict) and waiver_audit.get("kind"):
-        return str(waiver_audit.get("kind"))
+        kind = str(waiver_audit.get("kind"))
+        if kind not in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"}:
+            raise ValueError(f"waiver entry envelope received unsupported waiver_audit.kind={kind!r}")
+        return kind
     selected_trace = repair_patch.get("selected_feedback")
     if isinstance(selected_trace, dict) and selected_trace.get("source_stage") == StageId.SD_6_SIM.value:
-        return "sim_waiver"
+        raise ValueError("waiver entry envelope requires SD-6 waiver_audit.kind; refusing unhandled sim waiver fallback")
     return "design_warning_waiver"
 
 
 def _waiver_tail_start_stage(waiver_kind: str) -> str:
     return (
         StageId.SD_6_SIM.value
-        if waiver_kind in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver", "sim_waiver"}
+        if waiver_kind in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"}
         else StageId.SD_4_DESIGN.value
     )
+
+
+def _validate_waiver_repair_patch_contract(*, repair_patch: dict[str, Any], validation: "_ValidationPass") -> dict[str, Any] | None:
+    forbidden_keys = {
+        "scenario_epoch",
+        "oracle_weak",
+        "iteration",
+        "graph_state_iteration",
+        "validation_ref",
+        "validation_source",
+        "validation_source_stage_ids",
+        "validation_scenario_epoch",
+        "validation_oracle_weak",
+        "post_waiver_stage_ids",
+        "post_waiver_selected_feedback",
+        "post_waiver_scenario_epoch",
+        "post_waiver_oracle_weak",
+    }
+    polluted_keys = sorted(str(key) for key in repair_patch.keys() if str(key) in forbidden_keys)
+    if polluted_keys:
+        raise ValueError(
+            "waiver entry envelope forbids validation/scenario/oracle/iteration metadata inside repair_patch: "
+            + ", ".join(polluted_keys)
+        )
+    repair_selected = repair_patch.get("selected_feedback")
+    if repair_selected is None:
+        return None
+    if not isinstance(repair_selected, dict):
+        raise ValueError("waiver entry envelope requires repair_patch.selected_feedback to be a dict when present")
+    validation_selected = (
+        _selected_feedback_trace(*validation.selected, scenario_set=validation.scenario_set)
+        if validation.selected is not None
+        else None
+    )
+    if not isinstance(validation_selected, dict):
+        raise ValueError("waiver entry envelope requires validation.selected when repair_patch.selected_feedback is present")
+    for key in ("source", "source_stage"):
+        repair_value = repair_selected.get(key)
+        validation_value = validation_selected.get(key)
+        if repair_value is not None and str(repair_value) != str(validation_value):
+            raise ValueError(
+                "waiver entry envelope selected_feedback mismatch: "
+                f"repair_patch.{key}={repair_value!r} validation_source.{key}={validation_value!r}"
+            )
+    for key in ("scenario_set_id",):
+        repair_value = repair_selected.get(key)
+        validation_value = validation_selected.get(key)
+        if repair_value is not None and validation_value is not None and str(repair_value) != str(validation_value):
+            raise ValueError(
+                "waiver entry envelope selected_feedback mismatch: "
+                f"repair_patch.{key}={repair_value!r} validation_source.{key}={validation_value!r}"
+            )
+    return validation_selected
 
 
 def _build_waiver_entry_envelope(
@@ -2415,13 +2471,18 @@ def _build_waiver_entry_envelope(
         raise ValueError("waiver entry envelope requires repair_patch.waiver_continue=true")
     if bool(repair_patch.get("accepted_candidate")):
         raise ValueError("waiver entry envelope requires no accepted_candidate")
+    if "candidate_dsl" in repair_patch and str(repair_patch.get("candidate_dsl") or ""):
+        raise ValueError("waiver entry envelope forbids non-empty candidate_dsl on no-edit waiver path")
     if not validation_ref:
         raise ValueError("waiver entry envelope requires a validation_ref")
     if not isinstance(validation, _ValidationPass):
         raise TypeError("waiver entry envelope requires validation to be a _ValidationPass")
+    validation_selected_trace = _validate_waiver_repair_patch_contract(repair_patch=repair_patch, validation=validation)
     kind = _waiver_kind_from_patch(repair_patch)
     start_stage = _waiver_tail_start_stage(kind)
     waiver_audit = repair_patch.get("waiver_audit")
+    if kind in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"} and not isinstance(waiver_audit, dict):
+        raise ValueError("waiver entry envelope requires waiver_audit dict for SD-6 waiver")
     return {
         "schema_version": LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION,
         "repair_patch": _jsonable(repair_patch),
@@ -2439,9 +2500,13 @@ def _build_waiver_entry_envelope(
         "validation_source": {
             "object_type": type(validation).__name__,
             "selected_feedback": _jsonable(
-                _selected_feedback_trace(*validation.selected, scenario_set=validation.scenario_set)
-                if validation.selected is not None
-                else None
+                validation_selected_trace
+                if validation_selected_trace is not None
+                else (
+                    _selected_feedback_trace(*validation.selected, scenario_set=validation.scenario_set)
+                    if validation.selected is not None
+                    else None
+                )
             ),
             "stage_ids": _stage_ids(validation.stage_metas),
         },
@@ -2539,12 +2604,17 @@ def _build_waiver_continuation_subgraph(*, validation_subgraph: Any) -> Any:
             tail_kind=graph_state.get("waiver_tail_kind"),
             tail_start_stage=graph_state.get("waiver_tail_start_stage"),
         )
-        invoked = dict(
-            validation_subgraph.invoke(
-                graph_state,
-                config={"configurable": {"thread_id": f"{runtime_state.run_id}:waiver-tail:{tail_node}:{iteration}"}},
+        try:
+            invoked = dict(
+                validation_subgraph.invoke(
+                    graph_state,
+                    config={"configurable": {"thread_id": f"{runtime_state.run_id}:waiver-tail:{tail_node}:{iteration}"}},
+                )
             )
-        )
+        except _LLMRetryExhausted as exc:
+            graph_state["waiver_retry_error_envelope"] = dict(graph_state.get("waiver_input_envelope") or {})
+            graph_state["waiver_retry_error_tail_node"] = tail_node
+            raise
         continued_validation = invoked.get("validation_result")
         if not isinstance(continued_validation, _ValidationPass):
             raise TypeError("validation subgraph did not return a _ValidationPass after waiver continuation")
@@ -2597,6 +2667,62 @@ def _build_waiver_continuation_subgraph(*, validation_subgraph: Any) -> Any:
     graph.add_edge(START, "waiver_subgraph_enter")
     graph.add_edge("waiver_subgraph_finalize", END)
     return graph.compile(checkpointer=False)
+
+
+def _seed_waiver_exception_evidence(
+    graph_state: dict[str, Any],
+    *,
+    envelope: dict[str, Any],
+    tail_node: str,
+    iteration: int,
+    retry_stage_id: str | None = None,
+) -> None:
+    """Preserve LG-B3 evidence before entering a nested tail that may raise.
+
+    LangGraph subgraph state updates are not returned to the parent when an
+    inner node raises ``_LLMRetryExhausted``.  The parent therefore pre-seeds a
+    minimal, semantically equivalent trace/envelope so retry-exhausted waiver
+    tails remain distinguishable from ordinary validation failures in the final
+    ``AgentLoopRunRecord``.
+    """
+
+    if not envelope:
+        return
+    kind = str(envelope.get("tail_kind") or "")
+    start_stage = str(envelope.get("tail_start_stage") or "")
+    graph_state["waiver_input_envelope"] = dict(envelope)
+    graph_state["waiver_tail_kind"] = kind
+    graph_state["waiver_tail_start_stage"] = start_stage
+    runtime_state = graph_state.get("runtime_state")
+    _trace_node(graph_state, "waiver_subgraph_enter", event="subgraph_enter", iteration=iteration, tail_kind=kind, tail_start_stage=start_stage)
+    _trace_node(graph_state, "waiver_tail_decision", iteration=iteration, tail_kind=kind, tail_start_stage=start_stage)
+    _trace_node(graph_state, tail_node, iteration=iteration, tail_kind=kind, tail_start_stage=start_stage)
+    _trace_node(graph_state, "validation_subgraph", event="subgraph_enter", iteration=iteration, continued_after_waiver=True)
+    if start_stage == StageId.SD_6_SIM.value:
+        _trace_node(graph_state, "validation_sd6_sim", iteration=iteration, continued_after_waiver=True, waiver_audit_kind=envelope.get("waiver_audit_kind"))
+    else:
+        _trace_node(graph_state, "validation_sd4_design", iteration=iteration, continued_after_waiver=True)
+    retry_node_by_stage = {
+        StageId.SL_5_SCENARIO_GENERATION.value: "validation_sl5_scenario_generation",
+        StageId.SD_5A_SCENARIO_COVERAGE.value: "validation_sd5a_scenario_coverage",
+        StageId.SC_5F_SCENARIO_FREEZE.value: "validation_sc5f_scenario_freeze",
+        StageId.SD_6_SIM.value: "validation_sd6_sim",
+        StageId.SL_7_MODEL_REVIEW.value: "validation_sl7_model_review",
+    }
+    retry_node = retry_node_by_stage.get(str(retry_stage_id or ""))
+    if retry_node is not None:
+        _trace_node(graph_state, retry_node, iteration=iteration, continued_after_waiver=True, retry_exhausted=True)
+    if isinstance(runtime_state, _RunState):
+        _append_flow_log(
+            runtime_state.logs,
+            event="waiver_subgraph_enter",
+            iteration=iteration,
+            waiver_tail_kind=kind,
+            tail_start_stage=start_stage,
+            waiver_input_envelope=_jsonable(envelope),
+            graph_subgraph="waiver_continuation_subgraph",
+            graph_node="waiver_subgraph_enter",
+        )
 
 def _build_repair_subgraph(
     *,
@@ -4032,6 +4158,18 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         waiver_input_envelope: dict[str, Any] = {}
         _trace_node(graph_state, "waiver_continue", iteration=iteration)
         try:
+            if not isinstance(validation, _ValidationPass):
+                raise TypeError("waiver_continue requires transient validation_ref to resolve to a _ValidationPass")
+            repair_patch = dict(graph_state.get("repair_patch") or {})
+            validation_ref = str(graph_state.get("validation_ref") or "")
+            waiver_input_envelope = _jsonable(
+                _build_waiver_entry_envelope(
+                    repair_patch=repair_patch,
+                    validation_ref=validation_ref,
+                    validation=validation,
+                    iteration=iteration,
+                )
+            )
             graph_state["validation_continuation_source"] = validation
             graph_state = dict(
                 waiver_continuation_subgraph.invoke(
@@ -4047,11 +4185,30 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             _drop_validation_subgraph_state(graph_state)
             _drop_waiver_subgraph_state(graph_state)
         except _LLMRetryExhausted as exc:
+            if waiver_input_envelope:
+                _seed_waiver_exception_evidence(
+                    graph_state,
+                    envelope=waiver_input_envelope,
+                    tail_node=(
+                        "waiver_sim_tail"
+                        if str(waiver_input_envelope.get("tail_start_stage") or "") == StageId.SD_6_SIM.value
+                        else "waiver_design_tail"
+                    ),
+                    iteration=iteration,
+                    retry_stage_id=exc.stage_id,
+                )
+            waiver_input_envelope = _jsonable(
+                graph_state.get("waiver_input_envelope")
+                or graph_state.get("waiver_retry_error_envelope")
+                or waiver_input_envelope
+                or {}
+            )
             _drop_validation_subgraph_state(graph_state)
             _drop_waiver_subgraph_state(graph_state)
             _mark_retry_exhausted(runtime_state, exc)
             iteration_record["exit_reason"] = runtime_state.verdict_reason
             iteration_record["repair_stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])[len(iteration_record.get("stage_ids") or []) :]
+            iteration_record["waiver_entry_envelope"] = waiver_input_envelope
             runtime_state.iteration_records.append(iteration_record)
             command_goto = "sc13_trace_audit"
             graph_state["runtime_state"] = runtime_state

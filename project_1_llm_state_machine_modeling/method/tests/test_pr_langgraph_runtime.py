@@ -196,6 +196,69 @@ def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validat
             validation=validation,
             iteration=3,
         )
+    with pytest.raises(ValueError, match="scenario_epoch"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={**repair_patch, "scenario_epoch": 999},
+            validation_ref="transient:validation:0",
+            validation=validation,
+            iteration=3,
+        )
+    with pytest.raises(ValueError, match="oracle_weak"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={**repair_patch, "oracle_weak": True},
+            validation_ref="transient:validation:0",
+            validation=validation,
+            iteration=3,
+        )
+    with pytest.raises(ValueError, match="iteration"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={**repair_patch, "iteration": 99},
+            validation_ref="transient:validation:0",
+            validation=validation,
+            iteration=3,
+        )
+
+    sim_feedback = SimFeedback(
+        ok=False,
+        n_scenarios=1,
+        n_scenarios_passed=0,
+        scenario_results=[
+            ScenarioResult(
+                name="contract_sim",
+                status="fail",
+                step_results=[StepResult(step_index=0, status="fail")],
+            )
+        ],
+    )
+    sim_validation = lg._ValidationPass(
+        context=context,
+        feedback={"sim": sim_feedback},
+        stage_metas=[_meta(StageId.SD_2_PARSE), _meta(StageId.SD_3_SEMANTIC), _meta(StageId.SD_4_DESIGN), _meta(StageId.SD_6_SIM, ok=False)],
+        selected=("sim", sim_feedback, StageId.SD_6_SIM.value),
+        scenario_set=None,
+        scenario_history=[],
+        oracle_weak=False,
+        scenario_epoch=7,
+    )
+    with pytest.raises(ValueError, match="selected_feedback mismatch"):
+        lg._build_waiver_entry_envelope(
+            repair_patch=repair_patch,
+            validation_ref="transient:validation:sim",
+            validation=sim_validation,
+            iteration=3,
+        )
+    with pytest.raises(ValueError, match="unsupported waiver_audit.kind"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={
+                "waiver_continue": True,
+                "accepted_candidate": False,
+                "selected_feedback": {"source": "sim", "source_stage": StageId.SD_6_SIM.value},
+                "waiver_audit": {"kind": "sim_waiver"},
+            },
+            validation_ref="transient:validation:sim",
+            validation=sim_validation,
+            iteration=3,
+        )
 
 def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> None:
     from method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
@@ -1650,11 +1713,25 @@ def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_pa
 
     trace_nodes = _lg_trace_nodes(record)
     assert "waiver_continue" in trace_nodes
+    assert "waiver_subgraph_enter" in trace_nodes
+    assert "waiver_tail_decision" in trace_nodes
+    assert "waiver_design_tail" in trace_nodes
+    assert "validation_subgraph" in trace_nodes
+    assert "validation_sl5_scenario_generation" in trace_nodes
     assert trace_nodes[-1] == "sc13_trace_audit"
     assert record.status == "invalid"
     assert record.final_artifacts["verdict"] == "invalid"
     assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
     assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_5_SCENARIO_GENERATION.value} retry exhausted")
+    envelope = record.iteration_records[-1]["waiver_entry_envelope"]
+    assert envelope["schema_version"] == "lg-b3.waiver-entry-envelope.v1"
+    assert envelope["tail_kind"] == "design_warning_waiver"
+    assert envelope["tail_start_stage"] == StageId.SD_4_DESIGN.value
+    assert envelope["repair_patch"]["waiver_continue"] is True
+    assert envelope["validation_ref"]
+    waiver_runtime_trace = record.final_artifacts["langgraph_runtime_trace"]["waiver_subgraph_runtime_trace"]
+    assert "waiver_subgraph_enter" in waiver_runtime_trace["node_ids"]
+    assert "waiver_design_tail" in waiver_runtime_trace["node_ids"]
     assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
     lifecycle = _assert_lg_a2_store_metadata(record)
     assert lifecycle["put_count"] == 1
