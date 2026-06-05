@@ -1,0 +1,3047 @@
+[agent-loop] INFO langgraph_node_event node_id=sc0_start graph_event=node_enter graph_payload={}
+[agent-loop][SC-0] INFO run_start stage_id=SC-0 run_id=pr-e1-path1_cara-default-lg-b1-post-accept-bc94bda6-3dfea75b max_iterations=5 scenario_max_retries=2 adapter_mode=real_env real_llm_provider_api=True initial_dsl_hash=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 initial_dsl= graph_runtime_backend=langgraph
+[agent-loop] INFO langgraph_node_event node_id=sl1_initial_modeling graph_event=node_enter graph_payload={}
+[agent-loop][SL-1] INFO stage_enter stage_id=SL-1 reason=initial_modeling_adapter_available nl_hash=sha256:286212ffceec60d90bab51da2822c893d6640368fdb40fe2318b915469aa7cca
+[agent-loop][SL-1] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=26626 estimated_prompt_tokens=6657 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=26626 timeout=600.0 max_tokens=unset
+[llm] stream first_chunk model=gpt-5.5 after=37.74s
+[llm] stream progress model=gpt-5.5 elapsed=37.7s chunks=2 completion_chars=2
+[llm] stream progress model=gpt-5.5 elapsed=43.0s chunks=178 completion_chars=583
+[llm] stream progress model=gpt-5.5 elapsed=46.5s chunks=512 completion_chars=1929
+[llm] stream progress model=gpt-5.5 elapsed=51.5s chunks=783 completion_chars=2904
+[llm] stream progress model=gpt-5.5 elapsed=55.7s chunks=1024 completion_chars=3778
+[llm] stream progress model=gpt-5.5 elapsed=60.9s chunks=1300 completion_chars=4850
+[llm] stream progress model=gpt-5.5 elapsed=65.0s chunks=1536 completion_chars=5781
+[llm] stream progress model=gpt-5.5 elapsed=70.0s chunks=1784 completion_chars=6770
+[llm] stream progress model=gpt-5.5 elapsed=75.1s chunks=2044 completion_chars=7792
+[llm] stream progress model=gpt-5.5 elapsed=75.1s chunks=2048 completion_chars=7802
+[llm] stream progress model=gpt-5.5 elapsed=80.2s chunks=2313 completion_chars=8849
+[llm] stream progress model=gpt-5.5 elapsed=85.6s chunks=2394 completion_chars=9147
+[llm] stream progress model=gpt-5.5 elapsed=85.7s chunks=2560 completion_chars=9746
+[llm] stream progress model=gpt-5.5 elapsed=90.8s chunks=2963 completion_chars=11365
+[llm] stream progress model=gpt-5.5 elapsed=93.1s chunks=3072 completion_chars=11806
+[llm] stream progress model=gpt-5.5 elapsed=98.2s chunks=3356 completion_chars=12862
+[llm] stream progress model=gpt-5.5 elapsed=101.9s chunks=3584 completion_chars=13721
+[llm] stream progress model=gpt-5.5 elapsed=106.9s chunks=3835 completion_chars=14824
+[llm] stream complete model=gpt-5.5 elapsed=108.3s chunks=3935 completion_chars=15332 token_usage=available
+[agent-loop][SL-1] attempt_schema_ok attempt=0 elapsed=108.36s raw_chars=15332 usage={'prompt_tokens': 6450, 'completion_tokens': 5830, 'total_tokens': 12280, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True,
+[agent-loop][SL-1] INFO llm_stage_result stage_id=SL-1 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 3935, "completion_chars": 15332, "completion_tokens": 5830, "elapsed_seconds": 108.29030194401275, "estimated_completion_tokens": 3833, "estimated_prompt_tokens": 6657, "estimated_total_tokens": 10490, "f...<truncated 311 chars> retry_error=<none> parsed_summary={"assumptions": ["The exact numeric formula for computing infusion rate from blood pressure is not specified; the DSL uses a simple monotonic abstraction: pressure above target lowers flow by one unit and pressure below ...<truncated 4195 chars>
+[agent-loop][SL-1] INFO stage_result stage_id=SL-1 ok=True candidate_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc grounding_seed_count=34 assumption_count=4 jump=SD-2
+[agent-loop][SL-1] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-1] candidate_dsl END
+[agent-loop] INFO langgraph_node_event node_id=iteration_gate graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop] INFO langgraph_node_event node_id=validation_pass graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][iter=0] INFO iteration_enter iteration=0 current_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc scenario_set_id=<none> oracle_weak=False graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_subgraph graph_event=subgraph_enter graph_payload={"iteration": 0}
+[agent-loop][iter=0] INFO iteration_validation_enter iteration=0 current_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc scenario_set_id=<none> oracle_weak=False graph_subgraph=validation_subgraph
+[agent-loop][iter=0] dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][iter=0] dsl END
+[agent-loop] INFO langgraph_node_event node_id=validation_sd2_parse graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][SD-2][iter=0] INFO stage_enter stage_id=SD-2 iteration=0 reason=full_validation_pass
+[agent-loop][SD-2][iter=0] INFO stage_result stage_id=SD-2 iteration=0 ok=True status=StageStatus.OK feedback={"col": null, "diagnostic_count": 0, "diagnostics": [], "error_class": null, "line": null, "message": "", "ok": true, "source": "parse", "source_stage": "SD-2"} jump=SD-3 graph_subgraph=validation_subgraph graph_node=validation_sd2_parse
+[agent-loop] INFO langgraph_node_event node_id=validation_sd3_semantic graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][SD-3][iter=0] INFO stage_enter stage_id=SD-3 iteration=0 reason=SD-2 ok
+[agent-loop][SD-3][iter=0] INFO stage_result stage_id=SD-3 iteration=0 ok=True status=StageStatus.OK feedback={"dangling_transitions": [], "diagnostic_count": 0, "diagnostics": [], "missing_states": [], "ok": true, "source": "semantic", "source_stage": "SD-3", "type_mismatches": [], "undefined_vars": [], "unresolved_event_refs":...<truncated 4 chars> jump=SD-4 graph_subgraph=validation_subgraph graph_node=validation_sd3_semantic
+[agent-loop] INFO langgraph_node_event node_id=validation_sd4_design graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][SD-4][iter=0] INFO stage_enter stage_id=SD-4 iteration=0 reason=SD-3 ok
+[agent-loop][SD-4][iter=0] INFO stage_result stage_id=SD-4 iteration=0 ok=True status=StageStatus.OK feedback={"advisory_count": 21, "blocking_count": 0, "blocking_instance_keys": [], "blocking_summaries": [], "diagnostic_codes": ["W_HIGH_VAR_TO_LEAF_RATIO", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UN...<truncated 963 chars> jump=SL-5 graph_subgraph=validation_subgraph graph_node=validation_sd4_design
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 0, "iteration": 0}
+[agent-loop][SL-5][iter=0] INFO stage_enter stage_id=SL-5 iteration=0 reason=scenario_set_absent attempt_index=0 coverage_directive=<none> previous_scenario_names=[] graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=53655 estimated_prompt_tokens=13414 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=53655 timeout=600.0 max_tokens=unset
+[llm] stream first_chunk model=gpt-5.5 after=39.73s
+[llm] stream progress model=gpt-5.5 elapsed=39.7s chunks=2 completion_chars=2
+[llm] stream progress model=gpt-5.5 elapsed=44.8s chunks=271 completion_chars=1170
+[llm] stream progress model=gpt-5.5 elapsed=49.0s chunks=512 completion_chars=2116
+[llm] stream progress model=gpt-5.5 elapsed=54.3s chunks=787 completion_chars=3240
+[llm] stream progress model=gpt-5.5 elapsed=58.2s chunks=1024 completion_chars=4199
+[llm] stream progress model=gpt-5.5 elapsed=63.2s chunks=1297 completion_chars=5298
+[llm] stream progress model=gpt-5.5 elapsed=67.4s chunks=1536 completion_chars=6245
+[llm] stream progress model=gpt-5.5 elapsed=72.4s chunks=1806 completion_chars=7339
+[llm] stream progress model=gpt-5.5 elapsed=76.7s chunks=2048 completion_chars=8311
+[llm] stream progress model=gpt-5.5 elapsed=81.8s chunks=2329 completion_chars=9458
+[llm] stream progress model=gpt-5.5 elapsed=85.9s chunks=2560 completion_chars=10348
+[llm] stream progress model=gpt-5.5 elapsed=90.9s chunks=2845 completion_chars=11502
+[llm] stream progress model=gpt-5.5 elapsed=95.2s chunks=3072 completion_chars=12421
+[llm] stream progress model=gpt-5.5 elapsed=100.3s chunks=3333 completion_chars=13518
+[llm] stream complete model=gpt-5.5 elapsed=103.5s chunks=3539 completion_chars=14275 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=103.57s raw_chars=14275 usage={'prompt_tokens': 13190, 'completion_tokens': 5639, 'total_tokens': 18829, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=0] INFO llm_stage_result stage_id=SL-5 iteration=0 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 3539, "completion_chars": 14275, "completion_tokens": 5639, "elapsed_seconds": 103.51769054000033, "estimated_completion_tokens": 3569, "estimated_prompt_tokens": 13414, "estimated_total_tokens": 16983, "...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 0, "kind": "scenario_generation"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 0, "iteration": 0}
+[agent-loop][SD-5A][iter=0] INFO stage_result stage_id=SD-5A iteration=0 ok=False attempt_index=0 status=StageStatus.ADVISORY n_scenarios=9 raw_generated_scenario_count=9 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 248 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 9, "new_count": 9, "new_only_names": ["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressu...<truncated 440 chars> coverage={"coverage_gap": true, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicabl...<truncated 1853 chars> jump=SL-5 retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 0}
+[agent-loop][SL-5][iter=0] INFO stage_enter stage_id=SL-5 iteration=0 reason=scenario_coverage_gap_retry attempt_index=1 coverage_directive=Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mu...<truncated 743 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 248 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=68870 estimated_prompt_tokens=17218 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=68870 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=16.1s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=16.13s
+[llm] stream progress model=gpt-5.5 elapsed=21.1s chunks=324 completion_chars=1363
+[llm] stream progress model=gpt-5.5 elapsed=24.5s chunks=512 completion_chars=2118
+[llm] stream progress model=gpt-5.5 elapsed=29.6s chunks=784 completion_chars=3230
+[llm] stream progress model=gpt-5.5 elapsed=33.8s chunks=1024 completion_chars=4199
+[llm] stream progress model=gpt-5.5 elapsed=38.8s chunks=1303 completion_chars=5328
+[llm] stream progress model=gpt-5.5 elapsed=43.0s chunks=1536 completion_chars=6242
+[llm] stream progress model=gpt-5.5 elapsed=48.2s chunks=1814 completion_chars=7360
+[llm] stream progress model=gpt-5.5 elapsed=52.4s chunks=2048 completion_chars=8301
+[llm] stream progress model=gpt-5.5 elapsed=57.4s chunks=2328 completion_chars=9441
+[llm] stream progress model=gpt-5.5 elapsed=61.7s chunks=2560 completion_chars=10359
+[llm] stream progress model=gpt-5.5 elapsed=66.8s chunks=2846 completion_chars=11505
+[llm] stream progress model=gpt-5.5 elapsed=70.7s chunks=3072 completion_chars=12421
+[llm] stream progress model=gpt-5.5 elapsed=75.9s chunks=3353 completion_chars=13587
+[llm] stream progress model=gpt-5.5 elapsed=80.0s chunks=3584 completion_chars=14520
+[llm] stream progress model=gpt-5.5 elapsed=85.1s chunks=3864 completion_chars=15597
+[llm] stream progress model=gpt-5.5 elapsed=89.2s chunks=4096 completion_chars=16519
+[llm] stream complete model=gpt-5.5 elapsed=91.7s chunks=4229 completion_chars=17025 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=91.73s raw_chars=17025 usage={'prompt_tokens': 16928, 'completion_tokens': 4945, 'total_tokens': 21873, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=0] INFO llm_stage_result stage_id=SL-5 iteration=0 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 4229, "completion_chars": 17025, "completion_tokens": 4945, "elapsed_seconds": 91.67551251698751, "estimated_completion_tokens": 4257, "estimated_prompt_tokens": 17218, "estimated_total_tokens": 21475, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 1, "kind": "scenario_generation"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 0}
+[agent-loop][SD-5A][iter=0] INFO stage_result stage_id=SD-5A iteration=0 ok=False attempt_index=1 status=StageStatus.ADVISORY n_scenarios=12 raw_generated_scenario_count=12 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 402 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 12, "new_count": 12, "new_only_names": ["direct_start_ac_wrong_target_and_effect_probe", "direct_change_setpoint_self_transition_effect_probe", "ca_...<truncated 594 chars> coverage={"coverage_gap": true, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicabl...<truncated 1863 chars> jump=SL-5 retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 2, "iteration": 0}
+[agent-loop][SL-5][iter=0] INFO stage_enter stage_id=SL-5 iteration=0 reason=scenario_coverage_gap_retry attempt_index=2 coverage_directive=Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mu...<truncated 743 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 402 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=71620 estimated_prompt_tokens=17905 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=71620 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=14.6s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=14.58s
+[llm] stream progress model=gpt-5.5 elapsed=19.6s chunks=291 completion_chars=1245
+[llm] stream progress model=gpt-5.5 elapsed=23.5s chunks=512 completion_chars=2118
+[llm] stream progress model=gpt-5.5 elapsed=28.6s chunks=762 completion_chars=3134
+[llm] stream progress model=gpt-5.5 elapsed=32.6s chunks=1024 completion_chars=4199
+[llm] stream progress model=gpt-5.5 elapsed=37.7s chunks=1297 completion_chars=5298
+[llm] stream progress model=gpt-5.5 elapsed=41.9s chunks=1536 completion_chars=6242
+[llm] stream progress model=gpt-5.5 elapsed=47.0s chunks=1823 completion_chars=7395
+[llm] stream progress model=gpt-5.5 elapsed=51.4s chunks=2048 completion_chars=8301
+[llm] stream progress model=gpt-5.5 elapsed=56.4s chunks=2337 completion_chars=9473
+[llm] stream progress model=gpt-5.5 elapsed=60.3s chunks=2560 completion_chars=10359
+[llm] stream progress model=gpt-5.5 elapsed=65.4s chunks=2840 completion_chars=11475
+[llm] stream progress model=gpt-5.5 elapsed=69.6s chunks=3072 completion_chars=12421
+[llm] stream progress model=gpt-5.5 elapsed=74.9s chunks=3361 completion_chars=13611
+[llm] stream progress model=gpt-5.5 elapsed=78.8s chunks=3584 completion_chars=14520
+[llm] stream progress model=gpt-5.5 elapsed=83.9s chunks=3870 completion_chars=15620
+[llm] stream progress model=gpt-5.5 elapsed=88.0s chunks=4096 completion_chars=16519
+[llm] stream progress model=gpt-5.5 elapsed=93.3s chunks=4372 completion_chars=17618
+[llm] stream progress model=gpt-5.5 elapsed=98.4s chunks=4574 completion_chars=18473
+[llm] stream progress model=gpt-5.5 elapsed=98.8s chunks=4608 completion_chars=18589
+[llm] stream progress model=gpt-5.5 elapsed=103.9s chunks=4979 completion_chars=20036
+[llm] stream complete model=gpt-5.5 elapsed=103.9s chunks=4980 completion_chars=20036 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=103.97s raw_chars=20036 usage={'prompt_tokens': 17618, 'completion_tokens': 5669, 'total_tokens': 23287, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=0] INFO llm_stage_result stage_id=SL-5 iteration=0 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 4980, "completion_chars": 20036, "completion_tokens": 5669, "elapsed_seconds": 103.9187387410202, "estimated_completion_tokens": 5009, "estimated_prompt_tokens": 17905, "estimated_total_tokens": 22914, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 2, "kind": "scenario_generation"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 2, "iteration": 0}
+[agent-loop][SD-5A][iter=0] INFO stage_result stage_id=SD-5A iteration=0 ok=False attempt_index=2 status=StageStatus.ADVISORY n_scenarios=15 raw_generated_scenario_count=15 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 15, "new_count": 15, "new_only_names": ["forced_backmanual_from_manual_reapplies_manual_outputs", "direct_fault_removed_effect_value_probe", "direct...<truncated 738 chars> coverage={"coverage_gap": true, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicabl...<truncated 1863 chars> jump=SC-5F weak_oracle graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sc5f_scenario_freeze graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][iter=0] WARNING scenario_coverage_retry_exhausted iteration=0 scenario_max_retries=2 coverage_gap=<none> dsl_changed_since_freeze=<none> graph_subgraph=validation_subgraph
+[agent-loop][SC-5F][iter=0] INFO stage_result stage_id=SC-5F iteration=0 ok=True reason=<none> scenario_set_id=scenario-set-a23b477694f5 epoch=0 n_scenarios=15 oracle_weak=True source_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc jump=SD-6 graph_subgraph=validation_subgraph graph_node=validation_sc5f_scenario_freeze
+[agent-loop] INFO langgraph_node_event node_id=validation_sd6_sim graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][SD-6][iter=0] INFO stage_enter stage_id=SD-6 iteration=0 reason=scenario_set_ready scenario_set_id=scenario-set-a23b477694f5 n_scenarios=15 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop][SD-6][iter=0] INFO stage_result stage_id=SD-6 iteration=0 ok=False status=StageStatus.FAIL feedback={"n_scenarios": 15, "n_scenarios_passed": 7, "ok": false, "oracle_weak": false, "scenario_results": [{"description": "default-init verifies initial dispatch to Manual and manual operation sets pump speed from built-in sw...<truncated 13304 chars> jump=SD-8 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop] INFO langgraph_node_event node_id=validation_finalize graph_event=subgraph_exit graph_payload={"iteration": 0}
+[agent-loop][iter=0] INFO iteration_validation_result iteration=0 selected_feedback={"blocking": true, "is_pre_scenario": false, "n_scenarios": 15, "n_scenarios_passed": 7, "ok": false, "oracle_weak": false, "pre_scenario": false, "setup_error": null, "source": "sim", "source_stage": "SD-6", "weak_oracl...<truncated 42 chars> stage_ids=["SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SL-5", "SD-5A", "SL-5", "SD-5A", "SC-5F", "SD-6"] scenario_set_id=scenario-set-a23b477694f5 oracle_weak=True jump=SD-8 repair graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_decision graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop] INFO langgraph_node_event node_id=repair_path graph_event=node_enter graph_payload={"iteration": 0}
+[agent-loop][SD-8][iter=0] INFO repair_path_enter stage_id=SD-8 iteration=0 source=sim source_stage=SD-6 selected_feedback={"blocking": true, "is_pre_scenario": false, "n_scenarios": 15, "n_scenarios_passed": 7, "ok": false, "oracle_weak": false, "pre_scenario": false, "setup_error": null, "source": "sim", "source_stage": "SD-6", "weak_oracl...<truncated 42 chars> current_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc current_dsl=def int CA_mode = 0;\ndef int target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_switch = 10;\ndef int control_voltage = 10;\ndef int pump_...<truncated 2345 chars> jump=SD-8
+[agent-loop][SD-8][iter=0] INFO stage_result stage_id=SD-8 iteration=0 ok=True status=StageStatus.OK plan_kind=FixPlan fix_plan={"_omitted_keys": 7, "diagnostic_ids": ["initiate_change_setpoint_start_ac_to_normal_high_pressure", "pump_fault_alarms_releases_control_then_fault_removed_manual", "terminate_ac_from_ask_and_init_returns_manual", "back_...<truncated 11272 chars> jump=SL-9
+[agent-loop][SD-8][iter=0] INFO fix_request_batch stage_id=SD-8 iteration=0 batch_id=fixbatch-0-sha256-eef005362b4 request_count=8 hard_block=True requests=[{"evidence": [{"description": "default-init follows caregiver initiation through Ask_StartAC, setpoint change, StartAC, AutocontrolInit, and normal autocontrol with high pressure lowering flow.", "name": "initiate_chang...<truncated 51869 chars> next_action=SL-9
+[agent-loop][SL-9][iter=0] INFO stage_enter stage_id=SL-9 iteration=0 reason=fix_requests_ready rework_attempt=0 rework_locked=False batch_id=fixbatch-0-sha256-eef005362b4 request_ids=["fixreq-0-sd6-0-882634d574", "fixreq-0-sd6-1-5a0b11c3c0", "fixreq-0-sd6-2-6e58fa677a", "fixreq-0-sd6-3-ca14ae79d4", "fixreq-0-sd6-4-3389524377", "fixreq-0-sd6-5-c2231e32f6", "fixreq-0-sd6-6-2a2d1bb5f1", "fixreq-0-sd6-7-...<truncated 12 chars> repair_memory={"_omitted_keys": 1, "candidate_hash_history_tail": [], "latest_actionable_rework_guidance": [], "latest_local_objections": [], "latest_non_regressive_local_only_frontier": {}, "latest_rework_entry_ids": [], "latest_waiv...<truncated 100 chars>
+[agent-loop][SL-9][iter=0] old_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=0] old_dsl END
+[agent-loop][SL-9] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=230078 estimated_prompt_tokens=57520 prompt_budget=128000
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=230078 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=14.0s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=14.00s
+[llm] stream progress model=gpt-5.5 elapsed=19.0s chunks=322 completion_chars=1250
+[llm] stream progress model=gpt-5.5 elapsed=22.4s chunks=512 completion_chars=2050
+[llm] stream progress model=gpt-5.5 elapsed=27.4s chunks=784 completion_chars=3126
+[llm] stream progress model=gpt-5.5 elapsed=31.5s chunks=1024 completion_chars=4063
+[llm] stream progress model=gpt-5.5 elapsed=36.6s chunks=1296 completion_chars=5023
+[llm] stream progress model=gpt-5.5 elapsed=40.7s chunks=1536 completion_chars=6012
+[llm] stream progress model=gpt-5.5 elapsed=45.7s chunks=1805 completion_chars=7018
+[llm] stream progress model=gpt-5.5 elapsed=50.0s chunks=2048 completion_chars=8099
+[llm] stream progress model=gpt-5.5 elapsed=55.7s chunks=2277 completion_chars=9179
+[llm] stream complete model=gpt-5.5 elapsed=55.7s chunks=2290 completion_chars=9227 token_usage=available
+[agent-loop][SL-9] attempt_schema_ok attempt=0 elapsed=55.72s raw_chars=9227 usage={'prompt_tokens': 49346, 'completion_tokens': 2809, 'total_tokens': 52155, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-9][iter=0] INFO llm_stage_result stage_id=SL-9 iteration=0 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2290, "completion_chars": 9227, "completion_tokens": 2809, "elapsed_seconds": 55.66558548799367, "estimated_completion_tokens": 2307, "estimated_prompt_tokens": 57520, "estimated_total_tokens": 59827, "fi...<truncated 313 chars> retry_error=<none> parsed_summary={"candidate_dsl": "def int CA_mode = 0;\ndef int target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_switch = 10;\ndef int control_voltage =...<truncated 7215 chars>
+[agent-loop][SL-9][iter=0] INFO stage_result stage_id=SL-9 iteration=0 ok=True rework_attempt=0 accepted_request_ids=["fixreq-0-sd6-0-882634d574", "fixreq-0-sd6-1-5a0b11c3c0", "fixreq-0-sd6-2-6e58fa677a", "fixreq-0-sd6-3-ca14ae79d4", "fixreq-0-sd6-4-3389524377", "fixreq-0-sd6-5-c2231e32f6", "fixreq-0-sd6-6-2a2d1bb5f1", "fixreq-0-sd6-7-...<truncated 12 chars> rejected_request_ids=[] decisions=[{"accepted_edit_intent": ["Make InitiateAC visible as a CARA-scope event while preserving the Manual to Ask_StartAC transition and Ask_StartAC entry actions."], "decision": "accept", "rationale": "The failing initiate_c...<truncated 3805 chars> diff_summary={"summary": "Changed four event scopes from local :: to CARA-scope : for InitiateAC, StartAC, ChangeSetpoint, and FaultRemoved so scenario-injected CARA.Event paths resolve. Preserved all states, variables, guards, effec...<truncated 85 chars> jump=SL-10
+[agent-loop][SL-9][iter=0] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=0] candidate_dsl END
+[agent-loop][SD-10][iter=0] INFO stage_result stage_id=SD-10 iteration=0 ok=False status=StageStatus.FAIL local_check_evidence={"actionable_repair_summary": {"actionable_items": [{"evidence": {"element_ids": ["transition:InitialToManual", "transition:AutocontrolNormalToPumpFault"], "kind": "missing_required_grounding"}, "kind": "missing_required...<truncated 1384 chars> jump=SL-10
+[agent-loop][SL-10][iter=0] INFO stage_enter stage_id=SL-10 iteration=0 reason=candidate_dsl_and_local_evidence_ready rework_attempt=0 batch_id=fixbatch-0-sha256-eef005362b4 inputs=["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"] old_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc candidate_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1
+[agent-loop][SL-10] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=287643 estimated_prompt_tokens=71911 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=287643 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=11.4s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=11.40s
+[llm] stream progress model=gpt-5.5 elapsed=16.6s chunks=275 completion_chars=1177
+[llm] stream progress model=gpt-5.5 elapsed=20.8s chunks=512 completion_chars=2313
+[llm] stream progress model=gpt-5.5 elapsed=26.1s chunks=778 completion_chars=3672
+[llm] stream complete model=gpt-5.5 elapsed=26.1s chunks=779 completion_chars=3672 token_usage=available
+[agent-loop][SL-10] attempt_schema_ok attempt=0 elapsed=26.12s raw_chars=3672 usage={'prompt_tokens': 59772, 'completion_tokens': 1220, 'total_tokens': 60992, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-10][iter=0] INFO llm_stage_result stage_id=SL-10 iteration=0 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 779, "completion_chars": 3672, "completion_tokens": 1220, "elapsed_seconds": 26.062881736987038, "estimated_completion_tokens": 918, "estimated_prompt_tokens": 71911, "estimated_total_tokens": 72829, "fir...<truncated 311 chars> retry_error=<none> parsed_summary={"decision": "pass", "drift_risk": "minor", "evidence": [{"summary": "All eight hard SL-9 requests were accepted and address the same concrete defect: scenario-injected CARA-scope events InitiateAC, StartAC, ChangeSetpoi...<truncated 3352 chars>
+[agent-loop][SL-10][iter=0] INFO stage_result stage_id=SL-10 iteration=0 ok=True rework_attempt=0 decision=pass target_resolved=True regression_detected=False drift_risk=minor rework_instructions=[] repair_memory={"actionable_rework_guidance": [{"kind": "sl10_evidence", "summary": "All eight hard SL-9 requests were accepted and address the same concrete defect: scenario-injected CARA-scope events InitiateAC, StartAC, ChangeSetpoi...<truncated 7644 chars> evidence=[{"summary": "All eight hard SL-9 requests were accepted and address the same concrete defect: scenario-injected CARA-scope events InitiateAC, StartAC, ChangeSetpoint, and FaultRemoved could not resolve because the origi...<truncated 2722 chars> local_override_rationale=["Local_check_evidence reports drift_risk='major' and target_resolved=false solely because SD-10 flagged missing_required_grounding for transition:InitialToManual and transition:AutocontrolNormalToPumpFault. The candidat...<truncated 1157 chars> jump=SC-11
+[agent-loop][SL-10][iter=0] INFO grounding_update_hints_recorded stage_id=SL-10 iteration=0 n_hints=2 hint_hashes=["sha256:53fb0e804745078a52be1e2427270495cee72cb7f32eea699ad3d68806def3bb", "sha256:9c34071b0c2c89fa67c237edeb4d6993c6976bd27ac760c31ab4c384dd88881d"]
+[agent-loop][SC-11][iter=0] INFO stage_result stage_id=SC-11 iteration=0 ok=True reason=SL-10 accepted candidate; next iteration must restart at SD-2 old_dsl_hash=sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818d4920553e65fc candidate_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 jump=SD-2 next iteration
+[agent-loop][SC-11][iter=0] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-11][iter=0] candidate_dsl END
+[agent-loop][iter=0] INFO iteration_repair_result iteration=0 accepted=True repair_patch={"_omitted_keys": 2, "accepted_candidate": true, "fix_log_entry_count": 3, "fix_request_batch": {"batch_id": "fixbatch-0-sha256-eef005362b4", "before_dsl_hash": "sha256:c5110d09bafd36aa60100d87ddf686c6e6ec096d76c22ce2818...<truncated 42758 chars> current_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 jump=SD-2 next iteration graph_node=repair_path
+[agent-loop] INFO langgraph_node_event node_id=repair_decision graph_event=node_enter graph_payload={"accepted": true, "iteration": 0}
+[agent-loop] INFO langgraph_node_event node_id=iteration_gate graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop] INFO langgraph_node_event node_id=validation_pass graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][iter=1] INFO iteration_enter iteration=1 current_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=True graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_subgraph graph_event=subgraph_enter graph_payload={"iteration": 1}
+[agent-loop][iter=1] INFO iteration_validation_enter iteration=1 current_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=True graph_subgraph=validation_subgraph
+[agent-loop][iter=1] dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][iter=1] dsl END
+[agent-loop] INFO langgraph_node_event node_id=validation_sd2_parse graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-2][iter=1] INFO stage_enter stage_id=SD-2 iteration=1 reason=full_validation_pass
+[agent-loop][SD-2][iter=1] INFO stage_result stage_id=SD-2 iteration=1 ok=True status=StageStatus.OK feedback={"col": null, "diagnostic_count": 0, "diagnostics": [], "error_class": null, "line": null, "message": "", "ok": true, "source": "parse", "source_stage": "SD-2"} jump=SD-3 graph_subgraph=validation_subgraph graph_node=validation_sd2_parse
+[agent-loop] INFO langgraph_node_event node_id=validation_sd3_semantic graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-3][iter=1] INFO stage_enter stage_id=SD-3 iteration=1 reason=SD-2 ok
+[agent-loop][SD-3][iter=1] INFO stage_result stage_id=SD-3 iteration=1 ok=True status=StageStatus.OK feedback={"dangling_transitions": [], "diagnostic_count": 0, "diagnostics": [], "missing_states": [], "ok": true, "source": "semantic", "source_stage": "SD-3", "type_mismatches": [], "undefined_vars": [], "unresolved_event_refs":...<truncated 4 chars> jump=SD-4 graph_subgraph=validation_subgraph graph_node=validation_sd3_semantic
+[agent-loop] INFO langgraph_node_event node_id=validation_sd4_design graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-4][iter=1] INFO stage_enter stage_id=SD-4 iteration=1 reason=SD-3 ok
+[agent-loop][SD-4][iter=1] INFO stage_result stage_id=SD-4 iteration=1 ok=True status=StageStatus.OK feedback={"advisory_count": 21, "blocking_count": 0, "blocking_instance_keys": [], "blocking_summaries": [], "diagnostic_codes": ["W_HIGH_VAR_TO_LEAF_RATIO", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UN...<truncated 963 chars> jump=SD-5A graph_subgraph=validation_subgraph graph_node=validation_sd4_design
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_reuse_coverage graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-5A][iter=1] INFO stage_result stage_id=SD-5A iteration=1 ok=False reason=reuse_frozen_scenario_set scenario_set_id=scenario-set-a23b477694f5 coverage_gap=False dsl_changed_since_freeze=True coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SL-5 targeted_retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_reuse_coverage
+[agent-loop][iter=1] WARNING frozen_scenario_refresh_targeted_retry iteration=1 scenario_set_id=scenario-set-a23b477694f5 scenario_max_retries=2 coverage_gap=False dsl_changed_since_freeze=True graph_subgraph=validation_subgraph
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 1}
+[agent-loop][SL-5][iter=1] INFO stage_enter stage_id=SL-5 iteration=1 reason=targeted_refresh_after_frozen_gap_or_dsl_change attempt_index=1 coverage_directive={"current_dsl_hash": "sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1", "previous_scenario_set_id": "scenario-set-a23b477694f5", "previous_source_dsl_hash": "sha256:c5110d09bafd36aa60100d87ddf686c...<truncated 88 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=76597 estimated_prompt_tokens=19150 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=76597 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=20.1s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=20.12s
+[llm] stream progress model=gpt-5.5 elapsed=25.1s chunks=281 completion_chars=1212
+[llm] stream progress model=gpt-5.5 elapsed=29.3s chunks=512 completion_chars=2116
+[llm] stream progress model=gpt-5.5 elapsed=34.5s chunks=780 completion_chars=3212
+[llm] stream progress model=gpt-5.5 elapsed=38.7s chunks=1024 completion_chars=4199
+[llm] stream progress model=gpt-5.5 elapsed=43.8s chunks=1305 completion_chars=5338
+[llm] stream progress model=gpt-5.5 elapsed=47.9s chunks=1536 completion_chars=6245
+[llm] stream progress model=gpt-5.5 elapsed=52.9s chunks=1801 completion_chars=7277
+[llm] stream progress model=gpt-5.5 elapsed=57.1s chunks=2048 completion_chars=8272
+[llm] stream progress model=gpt-5.5 elapsed=62.3s chunks=2317 completion_chars=9374
+[llm] stream progress model=gpt-5.5 elapsed=66.2s chunks=2560 completion_chars=10360
+[llm] stream progress model=gpt-5.5 elapsed=71.3s chunks=2832 completion_chars=11425
+[llm] stream progress model=gpt-5.5 elapsed=75.7s chunks=3072 completion_chars=12395
+[llm] stream progress model=gpt-5.5 elapsed=80.9s chunks=3367 completion_chars=13594
+[llm] stream progress model=gpt-5.5 elapsed=85.1s chunks=3584 completion_chars=14454
+[llm] stream complete model=gpt-5.5 elapsed=87.0s chunks=3712 completion_chars=14950 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=87.05s raw_chars=14950 usage={'prompt_tokens': 19092, 'completion_tokens': 4734, 'total_tokens': 23826, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=1] INFO llm_stage_result stage_id=SL-5 iteration=1 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 3712, "completion_chars": 14950, "completion_tokens": 4734, "elapsed_seconds": 86.99605163000524, "estimated_completion_tokens": 3738, "estimated_prompt_tokens": 19150, "estimated_total_tokens": 22888, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 1, "kind": "scenario_refresh"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 1}
+[agent-loop][SD-5A][iter=1] INFO stage_result stage_id=SD-5A iteration=1 ok=True attempt_index=1 status=StageStatus.OK n_scenarios=15 raw_generated_scenario_count=8 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 15, "new_count": 8, "new_only_names": [], "preserved_previous_count": 15, "previous_count": 15, "updated_existing_names": ["default_init_enters_manu...<truncated 400 chars> coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SC-5F graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sc5f_scenario_freeze graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SC-5F][iter=1] INFO stage_result stage_id=SC-5F iteration=1 ok=True reason=refreshed_scenario_set scenario_set_id=scenario-set-a23b477694f5 epoch=1 n_scenarios=15 oracle_weak=False source_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 jump=SD-6 graph_subgraph=validation_subgraph graph_node=validation_sc5f_scenario_freeze
+[agent-loop] INFO langgraph_node_event node_id=validation_sd6_sim graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-6][iter=1] INFO stage_enter stage_id=SD-6 iteration=1 reason=scenario_set_ready scenario_set_id=scenario-set-a23b477694f5 n_scenarios=15 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop][SD-6][iter=1] INFO stage_result stage_id=SD-6 iteration=1 ok=True status=StageStatus.OK feedback={"n_scenarios": 15, "n_scenarios_passed": 15, "ok": true, "oracle_weak": false, "scenario_results": [{"description": "default-init verifies initial dispatch to Manual and manual operation sets pump speed from built-in sw...<truncated 19638 chars> jump=SL-7 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop] INFO langgraph_node_event node_id=validation_sl7_model_review graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SL-7][iter=1] INFO stage_enter stage_id=SL-7 iteration=1 reason=SD-6 ok scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False waiver_audit=<none> graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=79012 estimated_prompt_tokens=19753 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=79012 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=19.5s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=19.50s
+[llm] stream progress model=gpt-5.5 elapsed=24.6s chunks=264 completion_chars=1154
+[llm] stream progress model=gpt-5.5 elapsed=28.7s chunks=512 completion_chars=2128
+[llm] stream progress model=gpt-5.5 elapsed=33.7s chunks=780 completion_chars=3525
+[llm] stream progress model=gpt-5.5 elapsed=38.1s chunks=1024 completion_chars=4667
+[llm] stream progress model=gpt-5.5 elapsed=43.1s chunks=1316 completion_chars=5915
+[llm] stream progress model=gpt-5.5 elapsed=47.3s chunks=1536 completion_chars=6991
+[llm] stream progress model=gpt-5.5 elapsed=52.4s chunks=1797 completion_chars=8214
+[llm] stream progress model=gpt-5.5 elapsed=57.4s chunks=1932 completion_chars=8899
+[llm] stream progress model=gpt-5.5 elapsed=59.0s chunks=2048 completion_chars=9450
+[llm] stream complete model=gpt-5.5 elapsed=59.4s chunks=2152 completion_chars=9886 token_usage=available
+[agent-loop][SL-7] attempt_schema_ok attempt=0 elapsed=59.43s raw_chars=9886 usage={'prompt_tokens': 19741, 'completion_tokens': 3071, 'total_tokens': 22812, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-7][iter=1] INFO llm_stage_result stage_id=SL-7 iteration=1 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2152, "completion_chars": 9886, "completion_tokens": 3071, "elapsed_seconds": 59.372915443993406, "estimated_completion_tokens": 2472, "estimated_prompt_tokens": 19753, "estimated_total_tokens": 22225, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"blocking_findings": [{"category": "nl_fidelity", "evidence": ["NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.", "DSL has no assignment to `target_bp` after initializatio...<truncated 6695 chars>
+[agent-loop][SL-7][iter=1] INFO stage_result stage_id=SL-7 iteration=1 ok=False status=StageStatus.OK feedback={"blocking_count": 2, "blocking_findings": [{"category": "nl_fidelity", "evidence": ["NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.", "DSL has no assignment to `target_bp...<truncated 6727 chars> jump=SD-8 graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7][iter=1] INFO grounding_update_hints_recorded stage_id=SL-7 iteration=1 n_hints=4 hint_hashes=["sha256:ef08c32fbe1c53c4b62b4569cb5b2749673a3b74321de44116ebf7e45cb2fa54", "sha256:414c1178ba1aaaa3fffa089fb7767408c6b05b0fc0b2cb0b179d19abc9f7420d", "sha256:37ce2de1cf736514a37c152da367363dc5a81a41ef4c9da2683d76b5b5323...<truncated 80 chars>
+[agent-loop] INFO langgraph_node_event node_id=validation_finalize graph_event=subgraph_exit graph_payload={"iteration": 1}
+[agent-loop][iter=1] INFO iteration_validation_result iteration=1 selected_feedback={"blocking": true, "blocking_findings": [{"category": "nl_fidelity", "evidence": ["NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.", "DSL has no assignment to `target_bp` a...<truncated 1067 chars> stage_ids=["SD-2", "SD-3", "SD-4", "SD-5A", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7"] scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False jump=SD-8 repair graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_decision graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop] INFO langgraph_node_event node_id=repair_path graph_event=node_enter graph_payload={"iteration": 1}
+[agent-loop][SD-8][iter=1] INFO repair_path_enter stage_id=SD-8 iteration=1 source=model_review source_stage=SL-7 selected_feedback={"blocking": true, "blocking_findings": [{"category": "nl_fidelity", "evidence": ["NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.", "DSL has no assignment to `target_bp` a...<truncated 1067 chars> current_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 current_dsl=def int CA_mode = 0;\ndef int target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_switch = 10;\ndef int control_voltage = 10;\ndef int pump_...<truncated 2341 chars> jump=SD-8
+[agent-loop][SD-8][iter=1] INFO stage_result stage_id=SD-8 iteration=1 ok=True status=StageStatus.OK plan_kind=FixPlan fix_plan={"_omitted_keys": 7, "diagnostic_ids": ["0", "1"], "evidence": [{"category": "nl_fidelity", "evidence": "['NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.', 'DSL has no ass...<truncated 1536 chars> jump=SL-9
+[agent-loop][SD-8][iter=1] INFO fix_request_batch stage_id=SD-8 iteration=1 batch_id=fixbatch-1-sha256-afcf071a815 request_count=2 hard_block=True requests=[{"evidence": [{"category": "nl_fidelity", "evidence": ["NL requires caregiver modification of target blood pressure and setpoint change in Ask_StartAC.", "DSL has no assignment to `target_bp` after initialization.", "Ch...<truncated 7043 chars> next_action=SL-9
+[agent-loop][SL-9][iter=1] INFO stage_enter stage_id=SL-9 iteration=1 reason=fix_requests_ready rework_attempt=0 rework_locked=False batch_id=fixbatch-1-sha256-afcf071a815 request_ids=["fixreq-1-sl7-0-3096823055", "fixreq-1-sl7-1-f1f2c62158"] repair_memory={"_omitted_keys": 1, "candidate_hash_history_tail": ["sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1"], "latest_actionable_rework_guidance": [], "latest_local_objections": [], "latest_non_regress...<truncated 173 chars>
+[agent-loop][SL-9][iter=1] old_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            alarm_signal = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            pump_speed = built_in_switch;
+            flow_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=1] old_dsl END
+[agent-loop][SL-9] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=387514 estimated_prompt_tokens=96879 prompt_budget=128000
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=387514 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=20.5s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=20.54s
+[llm] stream progress model=gpt-5.5 elapsed=25.8s chunks=273 completion_chars=1263
+[llm] stream progress model=gpt-5.5 elapsed=29.5s chunks=512 completion_chars=2161
+[llm] stream progress model=gpt-5.5 elapsed=34.6s chunks=786 completion_chars=3232
+[llm] stream progress model=gpt-5.5 elapsed=38.7s chunks=1024 completion_chars=4197
+[llm] stream progress model=gpt-5.5 elapsed=43.8s chunks=1288 completion_chars=5316
+[llm] stream progress model=gpt-5.5 elapsed=47.9s chunks=1536 completion_chars=6576
+[llm] stream complete model=gpt-5.5 elapsed=48.3s chunks=1549 completion_chars=6633 token_usage=available
+[agent-loop][SL-9] attempt_schema_ok attempt=0 elapsed=48.38s raw_chars=6633 usage={'prompt_tokens': 81397, 'completion_tokens': 2521, 'total_tokens': 83918, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-9][iter=1] INFO llm_stage_result stage_id=SL-9 iteration=1 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1549, "completion_chars": 6633, "completion_tokens": 2521, "elapsed_seconds": 48.32334122402244, "estimated_completion_tokens": 1659, "estimated_prompt_tokens": 96879, "estimated_total_tokens": 98538, "fi...<truncated 313 chars> retry_error=<none> parsed_summary={"candidate_dsl": "def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_swit...<truncated 4474 chars>
+[agent-loop][SL-9][iter=1] INFO stage_result stage_id=SL-9 iteration=1 ok=True rework_attempt=0 accepted_request_ids=["fixreq-1-sl7-0-3096823055", "fixreq-1-sl7-1-f1f2c62158"] rejected_request_ids=[] decisions=[{"accepted_edit_intent": ["Add caregiver_target_bp as the external setpoint value supplied by the caregiver.", "Update ChangeSetpoint so it writes target_bp = caregiver_target_bp and setpoint_changed = 1."], "decision":...<truncated 1322 chars> diff_summary={"summary": "Added caregiver_target_bp and updated ChangeSetpoint to assign target_bp from it. Made Manual.enter and Manual.during fault-aware so active pump_fault preserves/raises alarm and suppresses pump outputs until...<truncated 131 chars> jump=SL-10
+[agent-loop][SL-9][iter=1] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=1] candidate_dsl END
+[agent-loop][SD-10][iter=1] INFO stage_result stage_id=SD-10 iteration=1 ok=False status=StageStatus.FAIL local_check_evidence={"actionable_repair_summary": {"actionable_items": [{"kind": "scenario_regression_repair_brief", "summary": {"failed_scenarios": [{"actionable_rule": "For each failing step, repair against expected_state/expected_vars ve...<truncated 27893 chars> jump=SL-10
+[agent-loop][SL-10][iter=1] INFO stage_enter stage_id=SL-10 iteration=1 reason=candidate_dsl_and_local_evidence_ready rework_attempt=0 batch_id=fixbatch-1-sha256-afcf071a815 inputs=["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"] old_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 candidate_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8
+[agent-loop][SL-10] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=438083 estimated_prompt_tokens=109521 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=438083 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=9.3s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=9.31s
+[llm] stream progress model=gpt-5.5 elapsed=14.4s chunks=268 completion_chars=1167
+[llm] stream progress model=gpt-5.5 elapsed=18.0s chunks=512 completion_chars=2278
+[llm] stream progress model=gpt-5.5 elapsed=23.3s chunks=786 completion_chars=3528
+[llm] stream progress model=gpt-5.5 elapsed=27.9s chunks=1024 completion_chars=4635
+[llm] stream complete model=gpt-5.5 elapsed=30.4s chunks=1183 completion_chars=5399 token_usage=available
+[agent-loop][SL-10] attempt_schema_ok attempt=0 elapsed=30.47s raw_chars=5399 usage={'prompt_tokens': 89918, 'completion_tokens': 1496, 'total_tokens': 91414, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-10][iter=1] INFO llm_stage_result stage_id=SL-10 iteration=1 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1183, "completion_chars": 5399, "completion_tokens": 1496, "elapsed_seconds": 30.4148563699855, "estimated_completion_tokens": 1350, "estimated_prompt_tokens": 109521, "estimated_total_tokens": 110871, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"decision": "pass", "drift_risk": "minor", "evidence": [{"summary": "Both current hard SL-7 model-review requests were accepted by SL-9 and are directly addressed in the candidate DSL. For the NL-fidelity request, the c...<truncated 5059 chars>
+[agent-loop][SL-10][iter=1] INFO stage_result stage_id=SL-10 iteration=1 ok=True rework_attempt=0 decision=pass target_resolved=True regression_detected=False drift_risk=minor rework_instructions=[] repair_memory={"actionable_rework_guidance": [{"kind": "sl10_evidence", "summary": "Both current hard SL-7 model-review requests were accepted by SL-9 and are directly addressed in the candidate DSL. For the NL-fidelity request, the c...<truncated 15721 chars> evidence=[{"summary": "Both current hard SL-7 model-review requests were accepted by SL-9 and are directly addressed in the candidate DSL. For the NL-fidelity request, the candidate adds `caregiver_target_bp` as the caregiver-sup...<truncated 3516 chars> local_override_rationale=["Local_check_evidence reports `scenario_regression; missing_required_grounding`, `regression_detected=true`, and `drift_risk='major'`. The scenario_regression portion is not treated as a real NL regression because the t...<truncated 2091 chars> jump=SC-11
+[agent-loop][SL-10][iter=1] INFO grounding_update_hints_recorded stage_id=SL-10 iteration=1 n_hints=3 hint_hashes=["sha256:01220ae9dd1414fab2fb97ca989c3867626de9b7700ebe2b5ec3ed1ffedb5394", "sha256:100f3955202b5e274631d0e07fd432327699baca8fdafa4bf7be5cd3e9ed0e59", "sha256:52e6a0e09179c3ea762b2e080d23bd444a63aaec221f6b1bb03a198ce3feb...<truncated 5 chars>
+[agent-loop][SC-11][iter=1] INFO stage_result stage_id=SC-11 iteration=1 ok=True reason=SL-10 accepted candidate; next iteration must restart at SD-2 old_dsl_hash=sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1 candidate_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 jump=SD-2 next iteration
+[agent-loop][SC-11][iter=1] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-11][iter=1] candidate_dsl END
+[agent-loop][iter=1] INFO iteration_repair_result iteration=1 accepted=True repair_patch={"_omitted_keys": 2, "accepted_candidate": true, "fix_log_entry_count": 6, "fix_request_batch": {"batch_id": "fixbatch-1-sha256-afcf071a815", "before_dsl_hash": "sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6e...<truncated 38124 chars> current_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 jump=SD-2 next iteration graph_node=repair_path
+[agent-loop] INFO langgraph_node_event node_id=repair_decision graph_event=node_enter graph_payload={"accepted": true, "iteration": 1}
+[agent-loop] INFO langgraph_node_event node_id=iteration_gate graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop] INFO langgraph_node_event node_id=validation_pass graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][iter=2] INFO iteration_enter iteration=2 current_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_subgraph graph_event=subgraph_enter graph_payload={"iteration": 2}
+[agent-loop][iter=2] INFO iteration_validation_enter iteration=2 current_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_subgraph=validation_subgraph
+[agent-loop][iter=2] dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][iter=2] dsl END
+[agent-loop] INFO langgraph_node_event node_id=validation_sd2_parse graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-2][iter=2] INFO stage_enter stage_id=SD-2 iteration=2 reason=full_validation_pass
+[agent-loop][SD-2][iter=2] INFO stage_result stage_id=SD-2 iteration=2 ok=True status=StageStatus.OK feedback={"col": null, "diagnostic_count": 0, "diagnostics": [], "error_class": null, "line": null, "message": "", "ok": true, "source": "parse", "source_stage": "SD-2"} jump=SD-3 graph_subgraph=validation_subgraph graph_node=validation_sd2_parse
+[agent-loop] INFO langgraph_node_event node_id=validation_sd3_semantic graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-3][iter=2] INFO stage_enter stage_id=SD-3 iteration=2 reason=SD-2 ok
+[agent-loop][SD-3][iter=2] INFO stage_result stage_id=SD-3 iteration=2 ok=True status=StageStatus.OK feedback={"dangling_transitions": [], "diagnostic_count": 0, "diagnostics": [], "missing_states": [], "ok": true, "source": "semantic", "source_stage": "SD-3", "type_mismatches": [], "undefined_vars": [], "unresolved_event_refs":...<truncated 4 chars> jump=SD-4 graph_subgraph=validation_subgraph graph_node=validation_sd3_semantic
+[agent-loop] INFO langgraph_node_event node_id=validation_sd4_design graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-4][iter=2] INFO stage_enter stage_id=SD-4 iteration=2 reason=SD-3 ok
+[agent-loop][SD-4][iter=2] INFO stage_result stage_id=SD-4 iteration=2 ok=True status=StageStatus.OK feedback={"advisory_count": 22, "blocking_count": 0, "blocking_instance_keys": [], "blocking_summaries": [], "diagnostic_codes": ["W_HIGH_VAR_TO_LEAF_RATIO", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UN...<truncated 997 chars> jump=SD-5A graph_subgraph=validation_subgraph graph_node=validation_sd4_design
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_reuse_coverage graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-5A][iter=2] INFO stage_result stage_id=SD-5A iteration=2 ok=False reason=reuse_frozen_scenario_set scenario_set_id=scenario-set-a23b477694f5 coverage_gap=False dsl_changed_since_freeze=True coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SL-5 targeted_retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_reuse_coverage
+[agent-loop][iter=2] WARNING frozen_scenario_refresh_targeted_retry iteration=2 scenario_set_id=scenario-set-a23b477694f5 scenario_max_retries=2 coverage_gap=False dsl_changed_since_freeze=True graph_subgraph=validation_subgraph
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 2}
+[agent-loop][SL-5][iter=2] INFO stage_enter stage_id=SL-5 iteration=2 reason=targeted_refresh_after_frozen_gap_or_dsl_change attempt_index=1 coverage_directive={"current_dsl_hash": "sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8", "previous_scenario_set_id": "scenario-set-a23b477694f5", "previous_source_dsl_hash": "sha256:b33b133cba821c111f054a2fa54395c...<truncated 88 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=90273 estimated_prompt_tokens=22569 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=90273 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=11.7s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=11.72s
+[llm] stream progress model=gpt-5.5 elapsed=16.8s chunks=286 completion_chars=1226
+[llm] stream progress model=gpt-5.5 elapsed=20.9s chunks=512 completion_chars=2098
+[llm] stream progress model=gpt-5.5 elapsed=26.0s chunks=794 completion_chars=3260
+[llm] stream progress model=gpt-5.5 elapsed=29.9s chunks=1024 completion_chars=4185
+[llm] stream progress model=gpt-5.5 elapsed=35.2s chunks=1297 completion_chars=5279
+[llm] stream progress model=gpt-5.5 elapsed=39.2s chunks=1536 completion_chars=6228
+[llm] stream progress model=gpt-5.5 elapsed=44.3s chunks=1809 completion_chars=7308
+[llm] stream progress model=gpt-5.5 elapsed=48.3s chunks=2048 completion_chars=8244
+[llm] stream progress model=gpt-5.5 elapsed=53.5s chunks=2321 completion_chars=9356
+[llm] stream progress model=gpt-5.5 elapsed=57.8s chunks=2560 completion_chars=10352
+[llm] stream progress model=gpt-5.5 elapsed=62.8s chunks=2839 completion_chars=11432
+[llm] stream progress model=gpt-5.5 elapsed=66.8s chunks=3072 completion_chars=12376
+[llm] stream progress model=gpt-5.5 elapsed=71.9s chunks=3328 completion_chars=13419
+[llm] stream progress model=gpt-5.5 elapsed=76.7s chunks=3584 completion_chars=14467
+[llm] stream progress model=gpt-5.5 elapsed=83.9s chunks=3706 completion_chars=14940
+[llm] stream progress model=gpt-5.5 elapsed=89.2s chunks=3713 completion_chars=14964
+[llm] stream complete model=gpt-5.5 elapsed=90.2s chunks=3872 completion_chars=15597 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=90.28s raw_chars=15597 usage={'prompt_tokens': 22551, 'completion_tokens': 4391, 'total_tokens': 26942, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=2] INFO llm_stage_result stage_id=SL-5 iteration=2 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 3872, "completion_chars": 15597, "completion_tokens": 4391, "elapsed_seconds": 90.22851891300525, "estimated_completion_tokens": 3900, "estimated_prompt_tokens": 22569, "estimated_total_tokens": 26469, "f...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 1, "kind": "scenario_refresh"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 2}
+[agent-loop][SD-5A][iter=2] INFO stage_result stage_id=SD-5A iteration=2 ok=True attempt_index=1 status=StageStatus.OK n_scenarios=15 raw_generated_scenario_count=8 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 15, "new_count": 8, "new_only_names": [], "preserved_previous_count": 15, "previous_count": 15, "updated_existing_names": ["default_init_enters_manu...<truncated 400 chars> coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SC-5F graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sc5f_scenario_freeze graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SC-5F][iter=2] INFO stage_result stage_id=SC-5F iteration=2 ok=True reason=refreshed_scenario_set scenario_set_id=scenario-set-a23b477694f5 epoch=2 n_scenarios=15 oracle_weak=False source_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 jump=SD-6 graph_subgraph=validation_subgraph graph_node=validation_sc5f_scenario_freeze
+[agent-loop] INFO langgraph_node_event node_id=validation_sd6_sim graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-6][iter=2] INFO stage_enter stage_id=SD-6 iteration=2 reason=scenario_set_ready scenario_set_id=scenario-set-a23b477694f5 n_scenarios=15 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop][SD-6][iter=2] INFO stage_result stage_id=SD-6 iteration=2 ok=False status=StageStatus.FAIL feedback={"n_scenarios": 15, "n_scenarios_passed": 12, "ok": false, "oracle_weak": false, "scenario_results": [{"description": "default-init verifies initial dispatch to Manual and manual operation sets pump speed from built-in s...<truncated 21432 chars> jump=SD-8 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop] INFO langgraph_node_event node_id=validation_finalize graph_event=subgraph_exit graph_payload={"iteration": 2}
+[agent-loop][iter=2] INFO iteration_validation_result iteration=2 selected_feedback={"blocking": true, "is_pre_scenario": false, "n_scenarios": 15, "n_scenarios_passed": 12, "ok": false, "oracle_weak": false, "pre_scenario": false, "setup_error": null, "source": "sim", "source_stage": "SD-6", "weak_orac...<truncated 43 chars> stage_ids=["SD-2", "SD-3", "SD-4", "SD-5A", "SL-5", "SD-5A", "SC-5F", "SD-6"] scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False jump=SD-8 repair graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_decision graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop] INFO langgraph_node_event node_id=repair_path graph_event=node_enter graph_payload={"iteration": 2}
+[agent-loop][SD-8][iter=2] INFO repair_path_enter stage_id=SD-8 iteration=2 source=sim source_stage=SD-6 selected_feedback={"blocking": true, "is_pre_scenario": false, "n_scenarios": 15, "n_scenarios_passed": 12, "ok": false, "oracle_weak": false, "pre_scenario": false, "setup_error": null, "source": "sim", "source_stage": "SD-6", "weak_orac...<truncated 43 chars> current_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 current_dsl=def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_switch = 10;\ndef int c...<truncated 2811 chars> jump=SD-8
+[agent-loop][SD-8][iter=2] INFO stage_result stage_id=SD-8 iteration=2 ok=True status=StageStatus.OK plan_kind=FixPlan fix_plan={"_omitted_keys": 7, "diagnostic_ids": ["terminate_ac_from_ask_and_init_returns_manual", "cc_back_manual_fallback_from_pumpfault", "ca_backmanual_from_pumpfault_forced_line_probe"], "evidence": [{"description": "explicit...<truncated 4600 chars> jump=SL-9
+[agent-loop][SD-8][iter=2] INFO fix_request_batch stage_id=SD-8 iteration=2 batch_id=fixbatch-2-sha256-be0bd2c6ce4 request_count=3 hard_block=True requests=[{"evidence": [{"description": "explicit-hot-start in Ask_StartAC verifies TerminateAC returns to Manual from Ask_StartAC, AutocontrolInit, and AutocontrolNormal while releasing control.", "name": "terminate_ac_from_ask_...<truncated 21341 chars> next_action=SL-9
+[agent-loop][SL-9][iter=2] INFO stage_enter stage_id=SL-9 iteration=2 reason=fix_requests_ready rework_attempt=0 rework_locked=False batch_id=fixbatch-2-sha256-be0bd2c6ce4 request_ids=["fixreq-2-sd6-0-3d7f40c3a8", "fixreq-2-sd6-1-4e13ce7433", "fixreq-2-sd6-2-9e715f57a3"] repair_memory={"_omitted_keys": 1, "candidate_hash_history_tail": ["sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1", "sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8"], "latest_actionab...<truncated 248 chars>
+[agent-loop][SL-9][iter=2] old_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=2] old_dsl END
+[agent-loop][SL-9] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=247873 estimated_prompt_tokens=61969 prompt_budget=128000
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=247873 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=46.2s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=46.17s
+[llm] stream progress model=gpt-5.5 elapsed=51.3s chunks=424 completion_chars=1860
+[llm] stream progress model=gpt-5.5 elapsed=52.6s chunks=512 completion_chars=2205
+[llm] stream progress model=gpt-5.5 elapsed=57.6s chunks=781 completion_chars=3317
+[llm] stream progress model=gpt-5.5 elapsed=61.9s chunks=1024 completion_chars=4249
+[llm] stream progress model=gpt-5.5 elapsed=67.1s chunks=1274 completion_chars=5270
+[llm] stream progress model=gpt-5.5 elapsed=71.4s chunks=1536 completion_chars=6186
+[llm] stream progress model=gpt-5.5 elapsed=76.6s chunks=1837 completion_chars=7583
+[llm] stream complete model=gpt-5.5 elapsed=80.6s chunks=2017 completion_chars=8483 token_usage=available
+[agent-loop][SL-9] attempt_schema_ok attempt=0 elapsed=80.64s raw_chars=8483 usage={'prompt_tokens': 49273, 'completion_tokens': 4260, 'total_tokens': 53533, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-9][iter=2] INFO llm_stage_result stage_id=SL-9 iteration=2 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2017, "completion_chars": 8483, "completion_tokens": 4260, "elapsed_seconds": 80.586271734006, "estimated_completion_tokens": 2121, "estimated_prompt_tokens": 61969, "estimated_total_tokens": 64090, "firs...<truncated 311 chars> retry_error=<none> parsed_summary={"candidate_dsl": "def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_swit...<truncated 6086 chars>
+[agent-loop][SL-9][iter=2] INFO stage_result stage_id=SL-9 iteration=2 ok=True rework_attempt=0 accepted_request_ids=["fixreq-2-sd6-1-4e13ce7433", "fixreq-2-sd6-2-9e715f57a3"] rejected_request_ids=["fixreq-2-sd6-0-3d7f40c3a8"] decisions=[{"accepted_edit_intent": [], "decision": "reject", "rationale": "Rejected as unsafe/inconsistent with the current NL-grounded model and prior accepted verification evidence. In scenario terminate_ac_from_ask_and_init_re...<truncated 2629 chars> diff_summary={"summary": "Added a Manual self-transition on CARA-scope FaultRemoved to clear an already-reached Manual fault state, and added a source-specific PumpFault -> Manual : CA_backManual transition with fault-clearing effect...<truncated 163 chars> jump=SL-10
+[agent-loop][SL-9][iter=2] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CA_backManual;
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=2] candidate_dsl END
+[agent-loop][SD-10][iter=2] INFO stage_result stage_id=SD-10 iteration=2 ok=False status=StageStatus.FAIL local_check_evidence={"actionable_repair_summary": {"actionable_items": [{"evidence": {"items": [{"budget_exhausted": false, "budget_remaining": 2, "code": "W_FORCED_OVERRIDES_NORMAL", "instance_key": "W_FORCED_OVERRIDES_NORMAL:from_path=CAR...<truncated 30776 chars> jump=SL-10
+[agent-loop][SL-10][iter=2] INFO stage_enter stage_id=SL-10 iteration=2 reason=candidate_dsl_and_local_evidence_ready rework_attempt=0 batch_id=fixbatch-2-sha256-be0bd2c6ce4 inputs=["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"] old_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 candidate_dsl_hash=sha256:4e2c7794b7f3d7d4f0a53ce595461cb93e3e68723ba5bcd88b135ca5fea2ca90
+[agent-loop][SL-10] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=239083 estimated_prompt_tokens=59771 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=239083 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=49.0s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=48.95s
+[llm] stream progress model=gpt-5.5 elapsed=54.1s chunks=304 completion_chars=1303
+[llm] stream progress model=gpt-5.5 elapsed=57.5s chunks=512 completion_chars=2331
+[llm] stream progress model=gpt-5.5 elapsed=62.6s chunks=755 completion_chars=3480
+[llm] stream complete model=gpt-5.5 elapsed=64.9s chunks=908 completion_chars=4161 token_usage=available
+[agent-loop][SL-10] attempt_schema_ok attempt=0 elapsed=64.95s raw_chars=4161 usage={'prompt_tokens': 47079, 'completion_tokens': 3451, 'total_tokens': 50530, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-10][iter=2] INFO llm_stage_result stage_id=SL-10 iteration=2 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 908, "completion_chars": 4161, "completion_tokens": 3451, "elapsed_seconds": 64.89759723600582, "estimated_completion_tokens": 1041, "estimated_prompt_tokens": 59771, "estimated_total_tokens": 60812, "fir...<truncated 311 chars> retry_error=<none> parsed_summary={"decision": "rework", "drift_risk": "major", "evidence": [{"summary": "The candidate correctly rejects the terminate_ac_from_ask_and_init_returns_manual request for flow_rate=11: with blood_pressure=78, target_bp=80, an...<truncated 3813 chars>
+[agent-loop][SL-10][iter=2] INFO stage_result stage_id=SL-10 iteration=2 ok=False rework_attempt=0 decision=rework target_resolved=False regression_detected=True drift_risk=major rework_instructions=["Resolve W_FORCED_OVERRIDES_NORMAL by eliminating the duplicate coverage between global forced CA_backManual and the source-specific PumpFault -> Manual : CA_backManual transition. Do not keep both transitions covering ...<truncated 1600 chars> repair_memory={"actionable_rework_guidance": ["Resolve W_FORCED_OVERRIDES_NORMAL by eliminating the duplicate coverage between global forced CA_backManual and the source-specific PumpFault -> Manual : CA_backManual transition. Do not ...<truncated 5517 chars> evidence=[{"summary": "The candidate correctly rejects the terminate_ac_from_ask_and_init_returns_manual request for flow_rate=11: with blood_pressure=78, target_bp=80, and default_flow_rate=9, the NL-grounded monotonic abstracti...<truncated 1822 chars> local_override_rationale=[] jump=SL-9 rework
+[agent-loop][SL-10][iter=2] INFO grounding_update_hints_recorded stage_id=SL-10 iteration=2 n_hints=3 hint_hashes=["sha256:8e4449cbbfc6d4d43a458017cc468b487f2cdffa6336b6ffebae53c9492ce3f5", "sha256:4d88ca904e4558b3f10c154fe613fcb4d7e82cf0db7c459b92196b05938beb43", "sha256:d601668154c34defdf93ce7faab4e2ea6d28291278f65fca710ec6e43bc63...<truncated 5 chars>
+[agent-loop][SL-9][iter=2] INFO stage_enter stage_id=SL-9 iteration=2 reason=sl10_rework_locked rework_attempt=1 rework_locked=True batch_id=fixbatch-2-sha256-be0bd2c6ce4 request_ids=["fixreq-2-sd6-0-3d7f40c3a8", "fixreq-2-sd6-1-4e13ce7433", "fixreq-2-sd6-2-9e715f57a3"] repair_memory={"_omitted_keys": 1, "candidate_hash_history_tail": ["sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1", "sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8", "sha256:4e2c7794b...<truncated 10396 chars>
+[agent-loop][SL-9][iter=2] old_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=2] old_dsl END
+[agent-loop][SL-9] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=579314 estimated_prompt_tokens=144829 prompt_budget=128000
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=579314 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=31.9s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=31.86s
+[llm] stream progress model=gpt-5.5 elapsed=36.9s chunks=271 completion_chars=1134
+[llm] stream progress model=gpt-5.5 elapsed=41.3s chunks=512 completion_chars=2140
+[llm] stream progress model=gpt-5.5 elapsed=46.3s chunks=795 completion_chars=3386
+[llm] stream progress model=gpt-5.5 elapsed=50.5s chunks=1024 completion_chars=4225
+[llm] stream progress model=gpt-5.5 elapsed=55.6s chunks=1286 completion_chars=5311
+[llm] stream progress model=gpt-5.5 elapsed=60.7s chunks=1444 completion_chars=5898
+[llm] stream progress model=gpt-5.5 elapsed=61.9s chunks=1536 completion_chars=6223
+[llm] stream progress model=gpt-5.5 elapsed=67.0s chunks=1952 completion_chars=8091
+[llm] stream progress model=gpt-5.5 elapsed=68.8s chunks=2048 completion_chars=8536
+[llm] stream complete model=gpt-5.5 elapsed=71.9s chunks=2211 completion_chars=9297 token_usage=available
+[agent-loop][SL-9] attempt_schema_ok attempt=0 elapsed=71.90s raw_chars=9297 usage={'prompt_tokens': 109596, 'completion_tokens': 3750, 'total_tokens': 113346, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': Tr
+[agent-loop][SL-9][iter=2] INFO llm_stage_result stage_id=SL-9 iteration=2 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2211, "completion_chars": 9297, "completion_tokens": 3750, "elapsed_seconds": 71.851776393014, "estimated_completion_tokens": 2325, "estimated_prompt_tokens": 144829, "estimated_total_tokens": 147154, "fi...<truncated 315 chars> retry_error=<none> parsed_summary={"candidate_dsl": "def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_swit...<truncated 6719 chars>
+[agent-loop][SL-9][iter=2] INFO stage_result stage_id=SL-9 iteration=2 ok=True rework_attempt=1 accepted_request_ids=["fixreq-2-sd6-0-3d7f40c3a8", "fixreq-2-sd6-1-4e13ce7433", "fixreq-2-sd6-2-9e715f57a3"] rejected_request_ids=[] decisions=[{"accepted_edit_intent": ["Preserve the accepted low-pressure autocontrol formula default_flow_rate + 1; do not introduce an ungrounded +2 adjustment."], "decision": "accept", "rationale": "Accepted for rework tracking ...<truncated 2774 chars> diff_summary={"summary": "Removed the global forced CA_backManual line and replaced it with explicit deterministic CA_backManual transitions for Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, and PumpFault; the PumpFault CA...<truncated 380 chars> jump=SL-10
+[agent-loop][SL-9][iter=2] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=2] candidate_dsl END
+[agent-loop][SD-10][iter=2] INFO stage_result stage_id=SD-10 iteration=2 ok=False status=StageStatus.FAIL local_check_evidence={"actionable_repair_summary": {"actionable_items": [{"kind": "scenario_regression_repair_brief", "summary": {"failed_scenarios": [{"actionable_rule": "For each failing step, repair against expected_state/expected_vars ve...<truncated 27207 chars> jump=SL-10
+[agent-loop][SL-10][iter=2] INFO stage_enter stage_id=SL-10 iteration=2 reason=candidate_dsl_and_local_evidence_ready rework_attempt=1 batch_id=fixbatch-2-sha256-be0bd2c6ce4 inputs=["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"] old_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 candidate_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246
+[agent-loop][SL-10] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=346205 estimated_prompt_tokens=86552 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=346205 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=9.7s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=9.65s
+[llm] stream progress model=gpt-5.5 elapsed=14.7s chunks=261 completion_chars=1117
+[llm] stream progress model=gpt-5.5 elapsed=19.0s chunks=512 completion_chars=2239
+[llm] stream progress model=gpt-5.5 elapsed=24.0s chunks=792 completion_chars=3590
+[llm] stream progress model=gpt-5.5 elapsed=28.2s chunks=1024 completion_chars=4747
+[llm] stream progress model=gpt-5.5 elapsed=33.6s chunks=1231 completion_chars=5726
+[llm] stream complete model=gpt-5.5 elapsed=34.3s chunks=1367 completion_chars=6452 token_usage=available
+[agent-loop][SL-10] attempt_schema_ok attempt=0 elapsed=34.37s raw_chars=6452 usage={'prompt_tokens': 67854, 'completion_tokens': 1703, 'total_tokens': 69557, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-10][iter=2] INFO llm_stage_result stage_id=SL-10 iteration=2 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1367, "completion_chars": 6452, "completion_tokens": 1703, "elapsed_seconds": 34.32076867701835, "estimated_completion_tokens": 1613, "estimated_prompt_tokens": 86552, "estimated_total_tokens": 88165, "fi...<truncated 312 chars> retry_error=<none> parsed_summary={"decision": "pass", "drift_risk": "minor", "evidence": [{"summary": "The candidate directly implements the locked SL-10 rework guidance from fixlog-8: it removes the duplicate global forced `! * -> Manual : CA_backManua...<truncated 6108 chars>
+[agent-loop][SL-10][iter=2] INFO stage_result stage_id=SL-10 iteration=2 ok=True rework_attempt=1 decision=pass target_resolved=True regression_detected=False drift_risk=minor rework_instructions=[] repair_memory={"actionable_rework_guidance": [{"kind": "sl10_evidence", "summary": "The candidate directly implements the locked SL-10 rework guidance from fixlog-8: it removes the duplicate global forced `! * -> Manual : CA_backManua...<truncated 17857 chars> evidence=[{"summary": "The candidate directly implements the locked SL-10 rework guidance from fixlog-8: it removes the duplicate global forced `! * -> Manual : CA_backManual` coverage and replaces it with deterministic explicit ...<truncated 3661 chars> local_override_rationale=["Local_check_evidence reports `scenario_regression; forced_transition_count_drift; missing_required_grounding`, with `target_resolved=false`, `regression_detected=true`, and `drift_risk='major'`. The scenario_regression...<truncated 3026 chars> jump=SC-11
+[agent-loop][SL-10][iter=2] INFO grounding_update_hints_recorded stage_id=SL-10 iteration=2 n_hints=3 hint_hashes=["sha256:42612458b57c856caae2d6d7416a44794a34f6ee91861dafaa5dfcdff429b3f7", "sha256:a449829f77d0cb2133307ae7d9bbb3e570c691beb50bc82d1afd26943e1b8e92", "sha256:e18e3ca314672e79aa2309521c11facc0fa6be6b8f6de536ba088cf410671...<truncated 5 chars>
+[agent-loop][SC-11][iter=2] INFO stage_result stage_id=SC-11 iteration=2 ok=True reason=SL-10 accepted candidate; next iteration must restart at SD-2 old_dsl_hash=sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8 candidate_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 jump=SD-2 next iteration
+[agent-loop][SC-11][iter=2] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-11][iter=2] candidate_dsl END
+[agent-loop][iter=2] INFO iteration_repair_result iteration=2 accepted=True repair_patch={"_omitted_keys": 2, "accepted_candidate": true, "fix_log_entry_count": 11, "fix_request_batch": {"batch_id": "fixbatch-2-sha256-be0bd2c6ce4", "before_dsl_hash": "sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffd...<truncated 46495 chars> current_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 jump=SD-2 next iteration graph_node=repair_path
+[agent-loop] INFO langgraph_node_event node_id=repair_decision graph_event=node_enter graph_payload={"accepted": true, "iteration": 2}
+[agent-loop] INFO langgraph_node_event node_id=iteration_gate graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop] INFO langgraph_node_event node_id=validation_pass graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][iter=3] INFO iteration_enter iteration=3 current_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_subgraph graph_event=subgraph_enter graph_payload={"iteration": 3}
+[agent-loop][iter=3] INFO iteration_validation_enter iteration=3 current_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_subgraph=validation_subgraph
+[agent-loop][iter=3] dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][iter=3] dsl END
+[agent-loop] INFO langgraph_node_event node_id=validation_sd2_parse graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-2][iter=3] INFO stage_enter stage_id=SD-2 iteration=3 reason=full_validation_pass
+[agent-loop][SD-2][iter=3] INFO stage_result stage_id=SD-2 iteration=3 ok=True status=StageStatus.OK feedback={"col": null, "diagnostic_count": 0, "diagnostics": [], "error_class": null, "line": null, "message": "", "ok": true, "source": "parse", "source_stage": "SD-2"} jump=SD-3 graph_subgraph=validation_subgraph graph_node=validation_sd2_parse
+[agent-loop] INFO langgraph_node_event node_id=validation_sd3_semantic graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-3][iter=3] INFO stage_enter stage_id=SD-3 iteration=3 reason=SD-2 ok
+[agent-loop][SD-3][iter=3] INFO stage_result stage_id=SD-3 iteration=3 ok=True status=StageStatus.OK feedback={"dangling_transitions": [], "diagnostic_count": 0, "diagnostics": [], "missing_states": [], "ok": true, "source": "semantic", "source_stage": "SD-3", "type_mismatches": [], "undefined_vars": [], "unresolved_event_refs":...<truncated 4 chars> jump=SD-4 graph_subgraph=validation_subgraph graph_node=validation_sd3_semantic
+[agent-loop] INFO langgraph_node_event node_id=validation_sd4_design graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-4][iter=3] INFO stage_enter stage_id=SD-4 iteration=3 reason=SD-3 ok
+[agent-loop][SD-4][iter=3] INFO stage_result stage_id=SD-4 iteration=3 ok=True status=StageStatus.OK feedback={"advisory_count": 22, "blocking_count": 0, "blocking_instance_keys": [], "blocking_summaries": [], "diagnostic_codes": ["W_HIGH_VAR_TO_LEAF_RATIO", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UN...<truncated 997 chars> jump=SD-5A graph_subgraph=validation_subgraph graph_node=validation_sd4_design
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_reuse_coverage graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-5A][iter=3] INFO stage_result stage_id=SD-5A iteration=3 ok=False reason=reuse_frozen_scenario_set scenario_set_id=scenario-set-a23b477694f5 coverage_gap=False dsl_changed_since_freeze=True coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SL-5 targeted_retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_reuse_coverage
+[agent-loop][iter=3] WARNING frozen_scenario_refresh_targeted_retry iteration=3 scenario_set_id=scenario-set-a23b477694f5 scenario_max_retries=2 coverage_gap=False dsl_changed_since_freeze=True graph_subgraph=validation_subgraph
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 3}
+[agent-loop][SL-5][iter=3] INFO stage_enter stage_id=SL-5 iteration=3 reason=targeted_refresh_after_frozen_gap_or_dsl_change attempt_index=1 coverage_directive={"current_dsl_hash": "sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246", "previous_scenario_set_id": "scenario-set-a23b477694f5", "previous_source_dsl_hash": "sha256:61cd61b0a826f875c372d019f28b015...<truncated 88 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=98699 estimated_prompt_tokens=24675 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=98699 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=19.1s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=19.12s
+[llm] stream progress model=gpt-5.5 elapsed=24.2s chunks=304 completion_chars=1282
+[llm] stream progress model=gpt-5.5 elapsed=27.9s chunks=512 completion_chars=2050
+[llm] stream progress model=gpt-5.5 elapsed=33.0s chunks=789 completion_chars=3204
+[llm] stream progress model=gpt-5.5 elapsed=37.1s chunks=1024 completion_chars=4137
+[llm] stream progress model=gpt-5.5 elapsed=42.1s chunks=1290 completion_chars=5136
+[llm] stream progress model=gpt-5.5 elapsed=46.2s chunks=1536 completion_chars=6019
+[llm] stream progress model=gpt-5.5 elapsed=51.3s chunks=1810 completion_chars=7079
+[llm] stream progress model=gpt-5.5 elapsed=55.4s chunks=2048 completion_chars=7925
+[llm] stream progress model=gpt-5.5 elapsed=60.7s chunks=2323 completion_chars=8999
+[llm] stream complete model=gpt-5.5 elapsed=64.1s chunks=2514 completion_chars=9684 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=64.11s raw_chars=9684 usage={'prompt_tokens': 24790, 'completion_tokens': 3361, 'total_tokens': 28151, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=3] INFO llm_stage_result stage_id=SL-5 iteration=3 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2514, "completion_chars": 9684, "completion_tokens": 3361, "elapsed_seconds": 64.06337673598318, "estimated_completion_tokens": 2421, "estimated_prompt_tokens": 24675, "estimated_total_tokens": 27096, "fi...<truncated 312 chars> retry_error=<none> parsed_summary={"attempt_index": 1, "kind": "scenario_refresh"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 3}
+[agent-loop][SD-5A][iter=3] INFO stage_result stage_id=SD-5A iteration=3 ok=True attempt_index=1 status=StageStatus.OK n_scenarios=15 raw_generated_scenario_count=8 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 15, "new_count": 8, "new_only_names": [], "preserved_previous_count": 15, "previous_count": 15, "updated_existing_names": ["default_init_enters_manu...<truncated 400 chars> coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SC-5F graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sc5f_scenario_freeze graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SC-5F][iter=3] INFO stage_result stage_id=SC-5F iteration=3 ok=True reason=refreshed_scenario_set scenario_set_id=scenario-set-a23b477694f5 epoch=3 n_scenarios=15 oracle_weak=False source_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 jump=SD-6 graph_subgraph=validation_subgraph graph_node=validation_sc5f_scenario_freeze
+[agent-loop] INFO langgraph_node_event node_id=validation_sd6_sim graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-6][iter=3] INFO stage_enter stage_id=SD-6 iteration=3 reason=scenario_set_ready scenario_set_id=scenario-set-a23b477694f5 n_scenarios=15 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop][SD-6][iter=3] INFO stage_result stage_id=SD-6 iteration=3 ok=True status=StageStatus.OK feedback={"n_scenarios": 15, "n_scenarios_passed": 15, "ok": true, "oracle_weak": false, "scenario_results": [{"description": "default-init verifies initial dispatch to Manual and manual operation sets pump speed from built-in sw...<truncated 21086 chars> jump=SL-7 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop] INFO langgraph_node_event node_id=validation_sl7_model_review graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SL-7][iter=3] INFO stage_enter stage_id=SL-7 iteration=3 reason=SD-6 ok scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False waiver_audit=<none> graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=101921 estimated_prompt_tokens=25481 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=101921 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=21.5s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=21.48s
+[llm] stream progress model=gpt-5.5 elapsed=26.8s chunks=297 completion_chars=1364
+[llm] stream progress model=gpt-5.5 elapsed=30.3s chunks=512 completion_chars=2421
+[llm] stream progress model=gpt-5.5 elapsed=35.3s chunks=781 completion_chars=3594
+[llm] stream progress model=gpt-5.5 elapsed=39.5s chunks=1024 completion_chars=4643
+[llm] stream progress model=gpt-5.5 elapsed=44.6s chunks=1297 completion_chars=5948
+[llm] stream progress model=gpt-5.5 elapsed=48.8s chunks=1536 completion_chars=7166
+[llm] stream complete model=gpt-5.5 elapsed=52.5s chunks=1742 completion_chars=8031 token_usage=available
+[agent-loop][SL-7] attempt_schema_ok attempt=0 elapsed=52.57s raw_chars=8031 usage={'prompt_tokens': 25650, 'completion_tokens': 2725, 'total_tokens': 28375, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-7][iter=3] INFO llm_stage_result stage_id=SL-7 iteration=3 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1742, "completion_chars": 8031, "completion_tokens": 2725, "elapsed_seconds": 52.52167426698725, "estimated_completion_tokens": 2008, "estimated_prompt_tokens": 25481, "estimated_total_tokens": 27489, "fi...<truncated 312 chars> retry_error=<none> parsed_summary={"blocking_findings": [{"category": "unsafe_recovery", "evidence": ["NL requires the caregiver to remove the fault before normal recovery.", "DSL: `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signa...<truncated 5762 chars>
+[agent-loop][SL-7][iter=3] INFO stage_result stage_id=SL-7 iteration=3 ok=False status=StageStatus.OK feedback={"blocking_count": 1, "blocking_findings": [{"category": "unsafe_recovery", "evidence": ["NL requires the caregiver to remove the fault before normal recovery.", "DSL: `PumpFault -> Manual : CA_backManual effect { pump_f...<truncated 5900 chars> jump=SD-8 graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7][iter=3] INFO grounding_update_hints_recorded stage_id=SL-7 iteration=3 n_hints=7 hint_hashes=["sha256:c4e6e9d0974fa26b1579617df1a531de4dd0f71b66d7d27685832d1fa3b4f678", "sha256:15664a6cdfa050e2c262c92b0d4c6ded9ec8d4224aec96335b77d3eed2197e09", "sha256:8e7b54a10c8bbf6285121e10cda5ad2743d84244b812d5cbe245ef3e28c3b...<truncated 305 chars>
+[agent-loop] INFO langgraph_node_event node_id=validation_finalize graph_event=subgraph_exit graph_payload={"iteration": 3}
+[agent-loop][iter=3] INFO iteration_validation_result iteration=3 selected_feedback={"blocking": true, "blocking_findings": [{"category": "unsafe_recovery", "evidence": ["NL requires the caregiver to remove the fault before normal recovery.", "DSL: `PumpFault -> Manual : CA_backManual effect { pump_faul...<truncated 616 chars> stage_ids=["SD-2", "SD-3", "SD-4", "SD-5A", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7"] scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False jump=SD-8 repair graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_decision graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop] INFO langgraph_node_event node_id=repair_path graph_event=node_enter graph_payload={"iteration": 3}
+[agent-loop][SD-8][iter=3] INFO repair_path_enter stage_id=SD-8 iteration=3 source=model_review source_stage=SL-7 selected_feedback={"blocking": true, "blocking_findings": [{"category": "unsafe_recovery", "evidence": ["NL requires the caregiver to remove the fault before normal recovery.", "DSL: `PumpFault -> Manual : CA_backManual effect { pump_faul...<truncated 616 chars> current_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 current_dsl=def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_switch = 10;\ndef int c...<truncated 3168 chars> jump=SD-8
+[agent-loop][SD-8][iter=3] INFO stage_result stage_id=SD-8 iteration=3 ok=True status=StageStatus.OK plan_kind=FixPlan fix_plan={"_omitted_keys": 7, "diagnostic_ids": ["0"], "evidence": [{"category": "unsafe_recovery", "evidence": "['NL requires the caregiver to remove the fault before normal recovery.', 'DSL: `PumpFault -> Manual : CA_backManual...<truncated 1078 chars> jump=SL-9
+[agent-loop][SD-8][iter=3] INFO fix_request_batch stage_id=SD-8 iteration=3 batch_id=fixbatch-3-sha256-0ee61448bc6 request_count=1 hard_block=True requests=[{"evidence": [{"category": "unsafe_recovery", "evidence": ["NL requires the caregiver to remove the fault before normal recovery.", "DSL: `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signal = 0; }...<truncated 3506 chars> next_action=SL-9
+[agent-loop][SL-9][iter=3] INFO stage_enter stage_id=SL-9 iteration=3 reason=fix_requests_ready rework_attempt=0 rework_locked=False batch_id=fixbatch-3-sha256-0ee61448bc6 request_ids=["fixreq-3-sl7-0-65d2e7f559"] repair_memory={"_omitted_keys": 1, "candidate_hash_history_tail": ["sha256:b33b133cba821c111f054a2fa54395c557d5c8d02a4ad00fe6eb009fbebe8fb1", "sha256:61cd61b0a826f875c372d019f28b015e190455700584113ffdbf76fe40ead0f8", "sha256:4e2c7794b...<truncated 31331 chars>
+[agent-loop][SL-9][iter=3] old_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=3] old_dsl END
+[agent-loop][SL-9] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=1030808 estimated_prompt_tokens=257702 prompt_budget=128000
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=1030808 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=13.0s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=12.97s
+[llm] stream progress model=gpt-5.5 elapsed=18.0s chunks=277 completion_chars=1091
+[llm] stream progress model=gpt-5.5 elapsed=22.2s chunks=512 completion_chars=1867
+[llm] stream progress model=gpt-5.5 elapsed=27.4s chunks=780 completion_chars=2958
+[llm] stream progress model=gpt-5.5 elapsed=31.4s chunks=1024 completion_chars=3943
+[llm] stream progress model=gpt-5.5 elapsed=36.6s chunks=1296 completion_chars=4960
+[llm] stream progress model=gpt-5.5 elapsed=40.4s chunks=1536 completion_chars=6019
+[llm] stream complete model=gpt-5.5 elapsed=41.5s chunks=1579 completion_chars=6233 token_usage=available
+[agent-loop][SL-9] attempt_schema_ok attempt=0 elapsed=41.55s raw_chars=6233 usage={'prompt_tokens': 183426, 'completion_tokens': 1985, 'total_tokens': 185411, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': Tr
+[agent-loop][SL-9][iter=3] INFO llm_stage_result stage_id=SL-9 iteration=3 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1579, "completion_chars": 6233, "completion_tokens": 1985, "elapsed_seconds": 41.50014643598115, "estimated_completion_tokens": 1559, "estimated_prompt_tokens": 257702, "estimated_total_tokens": 259261, "...<truncated 318 chars> retry_error=<none> parsed_summary={"candidate_dsl": "def int CA_mode = 0;\ndef int target_bp = 80;\ndef int caregiver_target_bp = 80;\ndef int blood_pressure = 80;\ndef int shared_sensor_buffer = 0;\ndef int default_flow_rate = 10;\ndef int built_in_swit...<truncated 3818 chars>
+[agent-loop][SL-9][iter=3] INFO stage_result stage_id=SL-9 iteration=3 ok=True rework_attempt=0 accepted_request_ids=["fixreq-3-sl7-0-65d2e7f559"] rejected_request_ids=[] decisions=[{"accepted_edit_intent": ["Change `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signal = 0; };` to `PumpFault -> Manual : CA_backManual;`.", "Preserve `PumpFault -> Manual : FaultRemoved effect { p...<truncated 815 chars> diff_summary={"summary": "Removed the fault-clearing effect from the PumpFault CA_backManual transition, preserving the Manual recovery target while requiring explicit FaultRemoved to clear pump_fault and alarm_signal. All required s...<truncated 176 chars> jump=SL-10
+[agent-loop][SL-9][iter=3] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            pump_speed = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SL-9][iter=3] candidate_dsl END
+[agent-loop][SD-10][iter=3] INFO stage_result stage_id=SD-10 iteration=3 ok=False status=StageStatus.FAIL local_check_evidence={"actionable_repair_summary": {"actionable_items": [{"kind": "scenario_regression_repair_brief", "summary": {"failed_scenarios": [{"actionable_rule": "For each failing step, repair against expected_state/expected_vars ve...<truncated 27080 chars> jump=SL-10
+[agent-loop][SL-10][iter=3] INFO stage_enter stage_id=SL-10 iteration=3 reason=candidate_dsl_and_local_evidence_ready rework_attempt=0 batch_id=fixbatch-3-sha256-0ee61448bc6 inputs=["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"] old_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 candidate_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd
+[agent-loop][SL-10] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=426362 estimated_prompt_tokens=106591 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=426362 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=13.5s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=13.54s
+[llm] stream progress model=gpt-5.5 elapsed=18.8s chunks=272 completion_chars=1101
+[llm] stream progress model=gpt-5.5 elapsed=22.8s chunks=512 completion_chars=2181
+[llm] stream progress model=gpt-5.5 elapsed=27.8s chunks=787 completion_chars=3444
+[llm] stream progress model=gpt-5.5 elapsed=32.3s chunks=1024 completion_chars=4616
+[llm] stream complete model=gpt-5.5 elapsed=35.8s chunks=1229 completion_chars=5640 token_usage=available
+[agent-loop][SL-10] attempt_schema_ok attempt=0 elapsed=35.86s raw_chars=5640 usage={'prompt_tokens': 77279, 'completion_tokens': 1671, 'total_tokens': 78950, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-10][iter=3] INFO llm_stage_result stage_id=SL-10 iteration=3 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1229, "completion_chars": 5640, "completion_tokens": 1671, "elapsed_seconds": 35.807675235992065, "estimated_completion_tokens": 1410, "estimated_prompt_tokens": 106591, "estimated_total_tokens": 108001, ...<truncated 315 chars> retry_error=<none> parsed_summary={"decision": "pass", "drift_risk": "minor", "evidence": [{"summary": "The hard SL-7 request is directly resolved. The request identified `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signal = 0; }` ...<truncated 5292 chars>
+[agent-loop][SL-10][iter=3] INFO stage_result stage_id=SL-10 iteration=3 ok=True rework_attempt=0 decision=pass target_resolved=True regression_detected=False drift_risk=minor rework_instructions=[] repair_memory={"actionable_rework_guidance": [{"kind": "sl10_evidence", "summary": "The hard SL-7 request is directly resolved. The request identified `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signal = 0; }` ...<truncated 16707 chars> evidence=[{"summary": "The hard SL-7 request is directly resolved. The request identified `PumpFault -> Manual : CA_backManual effect { pump_fault = 0; alarm_signal = 0; }` as unsafe because it conflated fallback-to-Manual with t...<truncated 2993 chars> local_override_rationale=["Local_check_evidence reports `scenario_regression; missing_required_grounding`, with `target_resolved=false`, `regression_detected=true`, and `drift_risk='major'`. The scenario regression is the local scenario `ca_back...<truncated 2847 chars> jump=SC-11
+[agent-loop][SL-10][iter=3] INFO grounding_update_hints_recorded stage_id=SL-10 iteration=3 n_hints=1 hint_hashes=["sha256:f370b39bc95ca0e14f4b92868fe907d549e54d0ea6f435eb4f30856a51c2e0b4"]
+[agent-loop][SC-11][iter=3] INFO stage_result stage_id=SC-11 iteration=3 ok=True reason=SL-10 accepted candidate; next iteration must restart at SD-2 old_dsl_hash=sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc8851317947b246 candidate_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd jump=SD-2 next iteration
+[agent-loop][SC-11][iter=3] candidate_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            pump_speed = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-11][iter=3] candidate_dsl END
+[agent-loop][iter=3] INFO iteration_repair_result iteration=3 accepted=True repair_patch={"_omitted_keys": 2, "accepted_candidate": true, "fix_log_entry_count": 14, "fix_request_batch": {"batch_id": "fixbatch-3-sha256-0ee61448bc6", "before_dsl_hash": "sha256:43f02231d93a2b1156f868a3906cfc7090d7450d3ef582f9fc...<truncated 32734 chars> current_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd jump=SD-2 next iteration graph_node=repair_path
+[agent-loop] INFO langgraph_node_event node_id=repair_decision graph_event=node_enter graph_payload={"accepted": true, "iteration": 3}
+[agent-loop] INFO langgraph_node_event node_id=iteration_gate graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop] INFO langgraph_node_event node_id=validation_pass graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][iter=4] INFO iteration_enter iteration=4 current_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_subgraph graph_event=subgraph_enter graph_payload={"iteration": 4}
+[agent-loop][iter=4] INFO iteration_validation_enter iteration=4 current_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False graph_subgraph=validation_subgraph
+[agent-loop][iter=4] dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            pump_speed = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][iter=4] dsl END
+[agent-loop] INFO langgraph_node_event node_id=validation_sd2_parse graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SD-2][iter=4] INFO stage_enter stage_id=SD-2 iteration=4 reason=full_validation_pass
+[agent-loop][SD-2][iter=4] INFO stage_result stage_id=SD-2 iteration=4 ok=True status=StageStatus.OK feedback={"col": null, "diagnostic_count": 0, "diagnostics": [], "error_class": null, "line": null, "message": "", "ok": true, "source": "parse", "source_stage": "SD-2"} jump=SD-3 graph_subgraph=validation_subgraph graph_node=validation_sd2_parse
+[agent-loop] INFO langgraph_node_event node_id=validation_sd3_semantic graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SD-3][iter=4] INFO stage_enter stage_id=SD-3 iteration=4 reason=SD-2 ok
+[agent-loop][SD-3][iter=4] INFO stage_result stage_id=SD-3 iteration=4 ok=True status=StageStatus.OK feedback={"dangling_transitions": [], "diagnostic_count": 0, "diagnostics": [], "missing_states": [], "ok": true, "source": "semantic", "source_stage": "SD-3", "type_mismatches": [], "undefined_vars": [], "unresolved_event_refs":...<truncated 4 chars> jump=SD-4 graph_subgraph=validation_subgraph graph_node=validation_sd3_semantic
+[agent-loop] INFO langgraph_node_event node_id=validation_sd4_design graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SD-4][iter=4] INFO stage_enter stage_id=SD-4 iteration=4 reason=SD-3 ok
+[agent-loop][SD-4][iter=4] INFO stage_result stage_id=SD-4 iteration=4 ok=True status=StageStatus.OK feedback={"advisory_count": 22, "blocking_count": 0, "blocking_instance_keys": [], "blocking_summaries": [], "diagnostic_codes": ["W_HIGH_VAR_TO_LEAF_RATIO", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UNREFERENCED_VAR", "W_UN...<truncated 997 chars> jump=SD-5A graph_subgraph=validation_subgraph graph_node=validation_sd4_design
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_reuse_coverage graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SD-5A][iter=4] INFO stage_result stage_id=SD-5A iteration=4 ok=False reason=reuse_frozen_scenario_set scenario_set_id=scenario-set-a23b477694f5 coverage_gap=False dsl_changed_since_freeze=True coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SL-5 targeted_retry graph_subgraph=validation_subgraph graph_node=validation_sd5a_reuse_coverage
+[agent-loop][iter=4] WARNING frozen_scenario_refresh_targeted_retry iteration=4 scenario_set_id=scenario-set-a23b477694f5 scenario_max_retries=2 coverage_gap=False dsl_changed_since_freeze=True graph_subgraph=validation_subgraph
+[agent-loop] INFO langgraph_node_event node_id=validation_sl5_scenario_generation graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 4}
+[agent-loop][SL-5][iter=4] INFO stage_enter stage_id=SL-5 iteration=4 reason=targeted_refresh_after_frozen_gap_or_dsl_change attempt_index=1 coverage_directive={"current_dsl_hash": "sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd", "previous_scenario_set_id": "scenario-set-a23b477694f5", "previous_source_dsl_hash": "sha256:43f02231d93a2b1156f868a3906cfc7...<truncated 88 chars> previous_scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> graph_subgraph=validation_subgraph graph_node=validation_sl5_scenario_generation
+[agent-loop][SL-5] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=106607 estimated_prompt_tokens=26652 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=106607 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=20.7s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=20.67s
+[llm] stream progress model=gpt-5.5 elapsed=25.7s chunks=310 completion_chars=1303
+[llm] stream progress model=gpt-5.5 elapsed=31.2s chunks=509 completion_chars=2038
+[llm] stream progress model=gpt-5.5 elapsed=31.7s chunks=512 completion_chars=2050
+[llm] stream progress model=gpt-5.5 elapsed=36.8s chunks=647 completion_chars=2606
+[llm] stream progress model=gpt-5.5 elapsed=38.6s chunks=1024 completion_chars=4137
+[llm] stream progress model=gpt-5.5 elapsed=43.8s chunks=1304 completion_chars=5182
+[llm] stream progress model=gpt-5.5 elapsed=48.0s chunks=1536 completion_chars=6015
+[llm] stream progress model=gpt-5.5 elapsed=53.0s chunks=1797 completion_chars=7020
+[llm] stream progress model=gpt-5.5 elapsed=57.2s chunks=2048 completion_chars=7910
+[llm] stream progress model=gpt-5.5 elapsed=62.4s chunks=2337 completion_chars=9027
+[llm] stream progress model=gpt-5.5 elapsed=66.4s chunks=2560 completion_chars=9892
+[llm] stream complete model=gpt-5.5 elapsed=69.2s chunks=2711 completion_chars=10445 token_usage=available
+[agent-loop][SL-5] attempt_schema_ok attempt=0 elapsed=69.22s raw_chars=10445 usage={'prompt_tokens': 26787, 'completion_tokens': 3619, 'total_tokens': 30406, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-5][iter=4] INFO llm_stage_result stage_id=SL-5 iteration=4 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 2711, "completion_chars": 10445, "completion_tokens": 3619, "elapsed_seconds": 69.1670355600072, "estimated_completion_tokens": 2612, "estimated_prompt_tokens": 26652, "estimated_total_tokens": 29264, "fi...<truncated 313 chars> retry_error=<none> parsed_summary={"attempt_index": 1, "kind": "scenario_refresh"}
+[agent-loop] INFO langgraph_node_event node_id=validation_sd5a_scenario_coverage graph_event=node_enter graph_payload={"attempt_index": 1, "iteration": 4}
+[agent-loop][SD-5A][iter=4] INFO stage_result stage_id=SD-5A iteration=4 ok=True attempt_index=1 status=StageStatus.OK n_scenarios=15 raw_generated_scenario_count=9 scenario_names=["default_init_enters_manual_and_sets_manual_outputs", "initiate_change_setpoint_start_ac_to_normal_high_pressure", "normal_autocontrol_low_pressure_raises_flow", "normal_autocontrol_no_fault_no_phantom_fault_transition"...<truncated 544 chars> scenario_merge_policy={"merge_policy": "preserve_previous_scenarios_by_name", "merged_count": 15, "new_count": 9, "new_only_names": [], "preserved_previous_count": 15, "previous_count": 15, "updated_existing_names": ["default_init_enters_manu...<truncated 450 chars> coverage={"coverage_gap": false, "coverage_report": {"M1_guard_off_by_one": {"caught_variants": 0, "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)", "n_variants": 0, "status": "not_applicab...<truncated 893 chars> jump=SC-5F graph_subgraph=validation_subgraph graph_node=validation_sd5a_scenario_coverage
+[agent-loop] INFO langgraph_node_event node_id=validation_sc5f_scenario_freeze graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SC-5F][iter=4] INFO stage_result stage_id=SC-5F iteration=4 ok=True reason=refreshed_scenario_set scenario_set_id=scenario-set-a23b477694f5 epoch=4 n_scenarios=15 oracle_weak=False source_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd jump=SD-6 graph_subgraph=validation_subgraph graph_node=validation_sc5f_scenario_freeze
+[agent-loop] INFO langgraph_node_event node_id=validation_sd6_sim graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SD-6][iter=4] INFO stage_enter stage_id=SD-6 iteration=4 reason=scenario_set_ready scenario_set_id=scenario-set-a23b477694f5 n_scenarios=15 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop][SD-6][iter=4] INFO stage_result stage_id=SD-6 iteration=4 ok=True status=StageStatus.OK feedback={"n_scenarios": 15, "n_scenarios_passed": 15, "ok": true, "oracle_weak": false, "scenario_results": [{"description": "default-init verifies initial dispatch to Manual and manual operation sets pump speed from built-in sw...<truncated 21124 chars> jump=SL-7 graph_subgraph=validation_subgraph graph_node=validation_sd6_sim
+[agent-loop] INFO langgraph_node_event node_id=validation_sl7_model_review graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SL-7][iter=4] INFO stage_enter stage_id=SL-7 iteration=4 reason=SD-6 ok scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False waiver_audit=<none> graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7] attempt_start attempt=0/2 provider=openai-compatible-env model=gpt-5.5 prompt_chars=109821 estimated_prompt_tokens=27456 prompt_budget=128000 response_format=json_object
+[llm] request start model=gpt-5.5 stream=True messages=2 prompt_chars=109821 timeout=600.0 max_tokens=unset
+[llm] stream progress model=gpt-5.5 elapsed=12.6s chunks=1 completion_chars=0
+[llm] stream first_chunk model=gpt-5.5 after=12.62s
+[llm] stream progress model=gpt-5.5 elapsed=17.9s chunks=308 completion_chars=1439
+[llm] stream progress model=gpt-5.5 elapsed=21.4s chunks=512 completion_chars=2502
+[llm] stream progress model=gpt-5.5 elapsed=26.4s chunks=791 completion_chars=3745
+[llm] stream progress model=gpt-5.5 elapsed=30.4s chunks=1024 completion_chars=4848
+[llm] stream progress model=gpt-5.5 elapsed=35.6s chunks=1292 completion_chars=6107
+[llm] stream progress model=gpt-5.5 elapsed=39.6s chunks=1536 completion_chars=7320
+[llm] stream complete model=gpt-5.5 elapsed=41.8s chunks=1647 completion_chars=7917 token_usage=available
+[agent-loop][SL-7] attempt_schema_ok attempt=0 elapsed=41.83s raw_chars=7917 usage={'prompt_tokens': 27636, 'completion_tokens': 2153, 'total_tokens': 29789, 'model': 'gpt-5.5', 'stream': True, 'stream_include_usage_requested': True, 'token_usage_available': True
+[agent-loop][SL-7][iter=4] INFO llm_stage_result stage_id=SL-7 iteration=4 ok=True status=StageStatus.OK retry_count=0 schema_validation_ok=True attempt_count=1 usage={"chunk_count": 1647, "completion_chars": 7917, "completion_tokens": 2153, "elapsed_seconds": 41.77465729700634, "estimated_completion_tokens": 1980, "estimated_prompt_tokens": 27456, "estimated_total_tokens": 29436, "fi...<truncated 313 chars> retry_error=<none> parsed_summary={"blocking_findings": [], "decision": "pass", "findings": [{"category": "nl_fidelity", "evidence": ["DSL includes states Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, and PumpFault.", "Ask_StartAC -> Ask_Start...<truncated 5148 chars>
+[agent-loop][SL-7][iter=4] INFO stage_result stage_id=SL-7 iteration=4 ok=True status=StageStatus.OK feedback={"blocking_count": 0, "blocking_findings": [], "decision": "pass", "finding_count": 11, "finding_summaries": [{"category": "nl_fidelity", "evidence": ["DSL includes states Manual, Ask_StartAC, AutocontrolInit, Autocontro...<truncated 5261 chars> jump=SC-12 success graph_subgraph=validation_subgraph graph_node=validation_sl7_model_review
+[agent-loop][SL-7][iter=4] INFO grounding_update_hints_recorded stage_id=SL-7 iteration=4 n_hints=6 hint_hashes=["sha256:9a2ed8f769e67fc14e933f29ea6cb957879935fc7e980c945b6282e498d71e35", "sha256:f938c109533f62386addc4c8372d2eea28266b211aeb427eb6ee65aaaa933a11", "sha256:54ba7498208baf981e718244b0e518c5dc3a86ad83842ae57f56be7ed1123...<truncated 230 chars>
+[agent-loop] INFO langgraph_node_event node_id=validation_finalize graph_event=subgraph_exit graph_payload={"iteration": 4}
+[agent-loop][iter=4] INFO iteration_validation_result iteration=4 selected_feedback=<none> stage_ids=["SD-2", "SD-3", "SD-4", "SD-5A", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7"] scenario_set_id=scenario-set-a23b477694f5 oracle_weak=False jump=SC-12 success graph_node=validation_pass
+[agent-loop] INFO langgraph_node_event node_id=validation_decision graph_event=node_enter graph_payload={"iteration": 4}
+[agent-loop][SC-12] INFO sc12_verdict stage_id=SC-12 verdict=success source_stage_id=SL-7 reason=full_pass_all_required_feedback_ok result_status=converged record_status=success
+[agent-loop][SC-12] final_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            pump_speed = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-12] final_dsl END
+[agent-loop] INFO langgraph_node_event node_id=sc13_trace_audit graph_event=node_enter graph_payload={}
+[agent-loop][SC-13] INFO run_end stage_id=SC-13 run_id=pr-e1-path1_cara-default-lg-b1-post-accept-bc94bda6-3dfea75b verdict=success result_status=converged record_status=success final_dsl_hash=sha256:bf01076a8a36fd3168dd34e217b409eb1fba5c078b6c6c09b78f3eb607ff4dfd stage_count=68 iteration_count=5 repair_count=5 graph_runtime_backend=langgraph
+[agent-loop][SC-13] final_dsl BEGIN
+def int CA_mode = 0;
+def int target_bp = 80;
+def int caregiver_target_bp = 80;
+def int blood_pressure = 80;
+def int shared_sensor_buffer = 0;
+def int default_flow_rate = 10;
+def int built_in_switch = 10;
+def int control_voltage = 10;
+def int pump_speed = 0;
+def int flow_rate = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 1;
+def int log_count = 0;
+def int setpoint_changed = 0;
+
+state CARA {
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+    ! AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            if [pump_fault == 0] {
+                alarm_signal = 0;
+                pump_speed = built_in_switch;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                pump_speed = 0;
+                flow_rate = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+            setpoint_changed = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 2;
+            control_released = 0;
+        }
+        during {
+            shared_sensor_buffer = blood_pressure;
+            log_count = log_count + 1;
+            pump_speed = control_voltage;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    flow_rate = default_flow_rate - 1;
+                } else if [blood_pressure < target_bp] {
+                    flow_rate = default_flow_rate + 1;
+                } else {
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_released = 1;
+            CA_mode = 0;
+            pump_speed = 0;
+            flow_rate = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC : InitiateAC;
+    Manual -> Manual : CA_backManual;
+    Manual -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+    Ask_StartAC -> AutocontrolInit : StartAC;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_bp = caregiver_target_bp;
+        setpoint_changed = 1;
+    };
+    Ask_StartAC -> Manual : TerminateAC;
+    Ask_StartAC -> Manual : CA_backManual;
+    AutocontrolInit -> Manual : TerminateAC;
+    AutocontrolInit -> Manual : CA_backManual;
+    AutocontrolNormal -> Manual : TerminateAC;
+    AutocontrolNormal -> Manual : CA_backManual;
+    AutocontrolInit -> AutocontrolNormal;
+    PumpFault -> Manual : CA_backManual;
+    PumpFault -> Manual : FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+    };
+}
+[agent-loop][SC-13] final_dsl END
