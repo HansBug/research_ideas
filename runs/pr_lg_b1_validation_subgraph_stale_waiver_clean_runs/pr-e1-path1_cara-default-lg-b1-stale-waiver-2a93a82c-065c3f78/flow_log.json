@@ -1,0 +1,1611 @@
+[
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc0_start",
+    "ts": "2026-06-05T09:37:30Z"
+  },
+  {
+    "adapter_mode": "real_env",
+    "event": "run_start",
+    "graph_runtime_backend": "langgraph",
+    "initial_dsl": "",
+    "initial_dsl_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "level": "info",
+    "max_iterations": 5,
+    "real_llm_provider_api": true,
+    "run_id": "pr-e1-path1_cara-default-lg-b1-stale-waiver-2a93a82c-065c3f78",
+    "scenario_max_retries": 2,
+    "stage_id": "SC-0",
+    "ts": "2026-06-05T09:37:30Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sl1_initial_modeling",
+    "ts": "2026-06-05T09:37:30Z"
+  },
+  {
+    "event": "stage_enter",
+    "level": "info",
+    "nl_hash": "sha256:286212ffceec60d90bab51da2822c893d6640368fdb40fe2318b915469aa7cca",
+    "reason": "initial_modeling_adapter_available",
+    "stage_id": "SL-1",
+    "ts": "2026-06-05T09:37:30Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "assumptions": [
+        "CA_mode is encoded as int, with 0 representing Manual and 1 representing Autocontrol-related control.",
+        "The infusion-rate computation is modeled as flow_rate = target_bp - blood_pressure to capture the stated inverse relationship that higher pressure produces lower flow rate; no saturation or clinical dosing formula was specified.",
+        "AutocontrolInit is modeled as an immediate automatic step into AutocontrolNormal because the NL names AutocontrolInit and also describes normal autocontrol, but does not specify an explicit completion event.",
+        "The displays and sounds of Caregiver Interface error messages are represented by alarm_signal; separate visual and audible command variables were not specified in the input.",
+        "Shared sensor buffering is represented for blood pressure readings, since blood pressure is the explicit patient sensor reading named in the NL."
+      ],
+      "candidate_dsl": "def int CA_mode = 0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int software_control = 0;\ndef float blood_pressure = 0.0;\ndef float sensor_buffer_bp = 0.0;\ndef float target_bp = 100.0;\ndef float target_bp_command = 100.0;\ndef float flow_rate = 0.0;\ndef float default_manual_flow_rate = 0.0;\ndef float builtin_switch_speed = 0.0;\ndef float control_voltage = 0.0;\ndef float pump_speed = 0.0;\ndef float infusion_log_rate = 0.0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                software_control = 0;\n                control_voltage = 0.0;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n        }\n\n        state Ask_StartA…<truncated 1643 chars>",
+      "grounding_seeds": [
+        {
+          "confidence": 0.91,
+          "element_id": "hierarchical_state:CARA",
+          "element_kind": "hierarchical_state",
+          "element_ref": "CARA",
+          "evidence_text": "At run time, CARA coordinates the Caregiver Interface, Blood Pressure Monitor, Algorithm, and Pump Monitors around an infusion pump.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.95,
+          "element_id": "hierarchical_state:Mode_Control_Algorithm",
+          "element_kind": "hierarchical_state",
+          "element_ref": "CARA.Mode_Control_Algorithm",
+          "evidence_text": "In the Mode_Control_Algorithm hierarchy, CARA has manual and autocontrol-related mode-control states plus an Ask_StartAC submode.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "state:Manual",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.Manual",
+          "evidence_text": "The pump has manual and autocontrol modes. In manual mode, pump speed is set with the built-in switch.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.97,
+          "element_id": "state:Ask_StartAC",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.Ask_StartAC",
+          "evidence_text": "CARA has manual and autocontrol-related mode-control states plus an Ask_StartAC submode; within Ask_StartAC, the setpoint can be changed.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "state:AutocontrolInit",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.AutocontrolInit",
+          "evidence_text": "Pressing StartAC enters AutocontrolInit.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.92,
+          "element_id": "state:AutocontrolNormal",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.AutocontrolNormal",
+          "evidence_text": "During normal autocontrol, CARA controls flow rate only while there are no pump-operation complications.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.89,
+          "element_id": "state:PumpFault",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.PumpFault",
+          "evidence_text": "If a pump fault such as fluid-tubing occlusion occurs, the pump activates alarm signals, the caregiver removes the fault.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.96,
+          "element_id": "variable:CA_mode",
+          "element_kind": "variable",
+          "element_ref": "CA_mode",
+          "evidence_text": "CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual causes CA_mode to become Manual.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "_omitted_items": 42
+        }
+      ]
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-1",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:39:17Z",
+    "usage": {
+      "chunk_count": 4264,
+      "completion_chars": 18751,
+      "completion_tokens": 5806,
+      "elapsed_seconds": 107.3992232879973,
+      "estimated_completion_tokens": 4688,
+      "estimated_prompt_tokens": 6657,
+      "estimated_total_tokens": 11345,
+      "first_chunk_seconds": 30.585581863997504,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 26626,
+      "prompt_tokens": 6450,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 12256
+    }
+  },
+  {
+    "assumption_count": 5,
+    "candidate_dsl": "def int CA_mode = 0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int software_control = 0;\ndef float blood_pressure = 0.0;\ndef float sensor_buffer_bp = 0.0;\ndef float target_bp = 100.0;\ndef float target_bp_command = 100.0;\ndef float flow_rate = 0.0;\ndef float default_manual_flow_rate = 0.0;\ndef float builtin_switch_speed = 0.0;\ndef float control_voltage = 0.0;\ndef float pump_speed = 0.0;\ndef float infusion_log_rate = 0.0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                software_control = 0;\n                control_voltage = 0.0;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n        }\n\n        state Ask_StartAC {\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                software_control = 1;\n                alarm_signal = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                sensor_buffer_bp = blood_pressure;\n                if [pump_fault == 0] {\n                    flow_rate = target_bp - blood_pressure;\n                    control_voltage = flow_rate;\n                    pump_speed = control_voltage;\n                    infusion_log_rate = flow_rate;\n                }\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                software_control = 0;\n                CA_mode = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAlgorithmicControl;\n        Ask_StartAC -> Ask_StartAC :: SetpointChanged effect {\n            target_bp = target_bp_command;\n        };\n        Ask_StartAC -> AutocontrolInit :: StartAC effect {\n            software_control = 1;\n            CA_mode = 1;\n        };\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolNormal -> Manual :: TerminateAlgorithmicControl;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: CaregiverRemovesFault effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n        };\n    }\n}\n",
+    "candidate_dsl_hash": "sha256:691c0b28fabc7e9dbe3443abafac6dda253d354c480d9f1670e6257a5bf3e921",
+    "event": "stage_result",
+    "grounding_seed_count": 50,
+    "jump": "SD-2",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-1",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "iteration_gate",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_pass",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "current_dsl_hash": "sha256:691c0b28fabc7e9dbe3443abafac6dda253d354c480d9f1670e6257a5bf3e921",
+    "event": "iteration_enter",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_subgraph",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "current_dsl_hash": "sha256:691c0b28fabc7e9dbe3443abafac6dda253d354c480d9f1670e6257a5bf3e921",
+    "dsl": "def int CA_mode = 0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int software_control = 0;\ndef float blood_pressure = 0.0;\ndef float sensor_buffer_bp = 0.0;\ndef float target_bp = 100.0;\ndef float target_bp_command = 100.0;\ndef float flow_rate = 0.0;\ndef float default_manual_flow_rate = 0.0;\ndef float builtin_switch_speed = 0.0;\ndef float control_voltage = 0.0;\ndef float pump_speed = 0.0;\ndef float infusion_log_rate = 0.0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                software_control = 0;\n                control_voltage = 0.0;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n        }\n\n        state Ask_StartAC {\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                software_control = 1;\n                alarm_signal = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                sensor_buffer_bp = blood_pressure;\n                if [pump_fault == 0] {\n                    flow_rate = target_bp - blood_pressure;\n                    control_voltage = flow_rate;\n                    pump_speed = control_voltage;\n                    infusion_log_rate = flow_rate;\n                }\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                software_control = 0;\n                CA_mode = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAlgorithmicControl;\n        Ask_StartAC -> Ask_StartAC :: SetpointChanged effect {\n            target_bp = target_bp_command;\n        };\n        Ask_StartAC -> AutocontrolInit :: StartAC effect {\n            software_control = 1;\n            CA_mode = 1;\n        };\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolNormal -> Manual :: TerminateAlgorithmicControl;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: CaregiverRemovesFault effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n        };\n    }\n}\n",
+    "event": "iteration_validation_enter",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd2_parse",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "full_validation_pass",
+    "stage_id": "SD-2",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "col": null,
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "error_class": null,
+      "line": null,
+      "message": "",
+      "ok": true,
+      "source": "parse",
+      "source_stage": "SD-2"
+    },
+    "graph_node": "validation_sd2_parse",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-3",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-2",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd3_semantic",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-2 ok",
+    "stage_id": "SD-3",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "dangling_transitions": [],
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "missing_states": [],
+      "ok": true,
+      "source": "semantic",
+      "source_stage": "SD-3",
+      "type_mismatches": [],
+      "undefined_vars": [],
+      "unresolved_event_refs": []
+    },
+    "graph_node": "validation_sd3_semantic",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-4",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-3",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd4_design",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-3 ok",
+    "stage_id": "SD-4",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "advisory_count": 20,
+      "blocking_count": 0,
+      "blocking_instance_keys": [],
+      "blocking_summaries": [],
+      "diagnostic_codes": [
+        "W_HIGH_VAR_TO_LEAF_RATIO",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "I_TRANSITION_NEVER_EVENT_TRIGGERED"
+      ],
+      "info_count": 1,
+      "ok": true,
+      "policy_actions": [
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "info"
+      ],
+      "source": "design",
+      "source_stage": "SD-4"
+    },
+    "graph_node": "validation_sd4_design",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-5",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-4",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl5_scenario_generation",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage_directive": null,
+    "event": "stage_enter",
+    "graph_node": "validation_sl5_scenario_generation",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [],
+    "reason": "scenario_set_absent",
+    "stage_id": "SL-5",
+    "ts": "2026-06-05T09:39:17Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 0,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:40:37Z",
+    "usage": {
+      "chunk_count": 2777,
+      "completion_chars": 11243,
+      "completion_tokens": 4332,
+      "elapsed_seconds": 79.70446880901,
+      "estimated_completion_tokens": 2811,
+      "estimated_prompt_tokens": 15612,
+      "estimated_total_tokens": 18423,
+      "first_chunk_seconds": 31.698067143006483,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 62446,
+      "prompt_tokens": 15182,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 19514
+    }
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd5a_scenario_coverage",
+    "ts": "2026-06-05T09:40:37Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 3,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 0,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 3,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 2,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 1,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 2,
+          "status": "partially_caught"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M5_missing_effect**: transition `effect { ... }` block missing (post-transition vars wrong)\n- **M6_wrong_effect_value**: effect assigns wrong constant (`var = N` → `var = N+100`)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "graph_node": "validation_sd5a_scenario_coverage",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-5 retry",
+    "level": "info",
+    "n_scenarios": 10,
+    "ok": false,
+    "raw_generated_scenario_count": 10,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 10,
+      "new_count": 10,
+      "new_only_names": [
+        "default_init_manual_outputs",
+        "initiate_and_change_setpoint_in_ask_startac",
+        "start_ac_init_then_normal_control",
+        "autocontrol_no_fault_boundary_stays_normal",
+        "pump_fault_boundary_enters_fault_and_alarms",
+        "caregiver_removes_fault_returns_manual",
+        "terminate_autocontrol_returns_manual",
+        "forced_back_manual_events_from_distinct_modes",
+        "forced_cp_back_manual_from_pump_fault",
+        "forced_cc_back_manual_from_autocontrol_init"
+      ],
+      "preserved_previous_count": 0,
+      "previous_count": 0,
+      "updated_existing_names": []
+    },
+    "scenario_names": [
+      "default_init_manual_outputs",
+      "initiate_and_change_setpoint_in_ask_startac",
+      "start_ac_init_then_normal_control",
+      "autocontrol_no_fault_boundary_stays_normal",
+      "pump_fault_boundary_enters_fault_and_alarms",
+      "caregiver_removes_fault_returns_manual",
+      "terminate_autocontrol_returns_manual",
+      "forced_back_manual_events_from_distinct_modes",
+      "forced_cp_back_manual_from_pump_fault",
+      "forced_cc_back_manual_from_autocontrol_init"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-05T09:40:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 1,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl5_scenario_generation",
+    "ts": "2026-06-05T09:40:37Z"
+  },
+  {
+    "attempt_index": 1,
+    "coverage_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M5_missing_effect**: transition `effect { ... }` block missing (post-transition vars wrong)\n- **M6_wrong_effect_value**: effect assigns wrong constant (`var = N` → `var = N+100`)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps.",
+    "event": "stage_enter",
+    "graph_node": "validation_sl5_scenario_generation",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [
+      "default_init_manual_outputs",
+      "initiate_and_change_setpoint_in_ask_startac",
+      "start_ac_init_then_normal_control",
+      "autocontrol_no_fault_boundary_stays_normal",
+      "pump_fault_boundary_enters_fault_and_alarms",
+      "caregiver_removes_fault_returns_manual",
+      "terminate_autocontrol_returns_manual",
+      "forced_back_manual_events_from_distinct_modes",
+      "forced_cp_back_manual_from_pump_fault",
+      "forced_cc_back_manual_from_autocontrol_init"
+    ],
+    "reason": "scenario_coverage_gap_retry",
+    "stage_id": "SL-5",
+    "ts": "2026-06-05T09:40:37Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 1,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:41:31Z",
+    "usage": {
+      "chunk_count": 2413,
+      "completion_chars": 9719,
+      "completion_tokens": 2772,
+      "elapsed_seconds": 53.86932339100167,
+      "estimated_completion_tokens": 2430,
+      "estimated_prompt_tokens": 18609,
+      "estimated_total_tokens": 21039,
+      "first_chunk_seconds": 11.638113139022607,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 74434,
+      "prompt_tokens": 18106,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 20878
+    }
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 1,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd5a_scenario_coverage",
+    "ts": "2026-06-05T09:41:31Z"
+  },
+  {
+    "attempt_index": 1,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 3,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 0,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 3,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 2,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 1,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 2,
+          "status": "partially_caught"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M5_missing_effect**: transition `effect { ... }` block missing (post-transition vars wrong)\n- **M6_wrong_effect_value**: effect assigns wrong constant (`var = N` → `var = N+100`)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "graph_node": "validation_sd5a_scenario_coverage",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-5 retry",
+    "level": "info",
+    "n_scenarios": 12,
+    "ok": false,
+    "raw_generated_scenario_count": 12,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 12,
+      "new_count": 12,
+      "new_only_names": [
+        "setpoint_effect_used_by_autocontrol_flow",
+        "fault_removal_effect_clears_fault_and_alarm_values"
+      ],
+      "preserved_previous_count": 10,
+      "previous_count": 10,
+      "updated_existing_names": [
+        "default_init_manual_outputs",
+        "initiate_and_change_setpoint_in_ask_startac",
+        "start_ac_init_then_normal_control",
+        "autocontrol_no_fault_boundary_stays_normal",
+        "pump_fault_boundary_enters_fault_and_alarms",
+        "caregiver_removes_fault_returns_manual",
+        "terminate_autocontrol_returns_manual",
+        "forced_back_manual_events_from_distinct_modes",
+        "forced_cp_back_manual_from_pump_fault",
+        "forced_cc_back_manual_from_autocontrol_init"
+      ]
+    },
+    "scenario_names": [
+      "default_init_manual_outputs",
+      "initiate_and_change_setpoint_in_ask_startac",
+      "start_ac_init_then_normal_control",
+      "autocontrol_no_fault_boundary_stays_normal",
+      "pump_fault_boundary_enters_fault_and_alarms",
+      "caregiver_removes_fault_returns_manual",
+      "terminate_autocontrol_returns_manual",
+      "forced_back_manual_events_from_distinct_modes",
+      "forced_cp_back_manual_from_pump_fault",
+      "forced_cc_back_manual_from_autocontrol_init",
+      "setpoint_effect_used_by_autocontrol_flow",
+      "fault_removal_effect_clears_fault_and_alarm_values"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-05T09:41:32Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 2,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl5_scenario_generation",
+    "ts": "2026-06-05T09:41:32Z"
+  },
+  {
+    "attempt_index": 2,
+    "coverage_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M5_missing_effect**: transition `effect { ... }` block missing (post-transition vars wrong)\n- **M6_wrong_effect_value**: effect assigns wrong constant (`var = N` → `var = N+100`)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps.",
+    "event": "stage_enter",
+    "graph_node": "validation_sl5_scenario_generation",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [
+      "default_init_manual_outputs",
+      "initiate_and_change_setpoint_in_ask_startac",
+      "start_ac_init_then_normal_control",
+      "autocontrol_no_fault_boundary_stays_normal",
+      "pump_fault_boundary_enters_fault_and_alarms",
+      "caregiver_removes_fault_returns_manual",
+      "terminate_autocontrol_returns_manual",
+      "forced_back_manual_events_from_distinct_modes",
+      "forced_cp_back_manual_from_pump_fault",
+      "forced_cc_back_manual_from_autocontrol_init",
+      "setpoint_effect_used_by_autocontrol_flow",
+      "fault_removal_effect_clears_fault_and_alarm_values"
+    ],
+    "reason": "scenario_coverage_gap_retry",
+    "stage_id": "SL-5",
+    "ts": "2026-06-05T09:41:32Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 2,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:42:54Z",
+    "usage": {
+      "chunk_count": 3865,
+      "completion_chars": 15666,
+      "completion_tokens": 4384,
+      "elapsed_seconds": 82.14176354301162,
+      "estimated_completion_tokens": 3917,
+      "estimated_prompt_tokens": 19335,
+      "estimated_total_tokens": 23252,
+      "first_chunk_seconds": 14.96689268501359,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 77337,
+      "prompt_tokens": 18819,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 23203
+    }
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 2,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd5a_scenario_coverage",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "attempt_index": 2,
+    "coverage": {
+      "coverage_gap": true,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 3,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 0,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 3,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 2,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 3,
+          "status": "partially_caught"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 1,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 2,
+          "status": "partially_caught"
+        }
+      },
+      "retry_directive": "Your previous scenario set has bug-detection coverage gaps. The following mutation types applied to the model produced variants that NONE of your scenarios could detect. Add or strengthen scenarios so that each listed mutation would cause at least one scenario to FAIL on the mutated model:\n\n- **M5_missing_effect**: transition `effect { ... }` block missing (post-transition vars wrong)\n- **M6_wrong_effect_value**: effect assigns wrong constant (`var = N` → `var = N+100`)\n\nSpecifically: pick the transition / guard / effect / forced-line implicated by each mutation type and add a scenario whose expected_state / expected_vars would be wrong if that exact mutation were present in the model. Preserve all previous scenarios; only ADD probes targeting the gaps."
+    },
+    "event": "stage_result",
+    "graph_node": "validation_sd5a_scenario_coverage",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-5F weak_oracle",
+    "level": "info",
+    "n_scenarios": 13,
+    "ok": false,
+    "raw_generated_scenario_count": 13,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 13,
+      "new_count": 13,
+      "new_only_names": [
+        "start_ac_effect_sets_autocontrol_flags_from_dirty_values"
+      ],
+      "preserved_previous_count": 12,
+      "previous_count": 12,
+      "updated_existing_names": [
+        "default_init_manual_outputs",
+        "initiate_and_change_setpoint_in_ask_startac",
+        "start_ac_init_then_normal_control",
+        "autocontrol_no_fault_boundary_stays_normal",
+        "pump_fault_boundary_enters_fault_and_alarms",
+        "caregiver_removes_fault_returns_manual",
+        "terminate_autocontrol_returns_manual",
+        "forced_back_manual_events_from_distinct_modes",
+        "forced_cp_back_manual_from_pump_fault",
+        "forced_cc_back_manual_from_autocontrol_init",
+        "setpoint_effect_used_by_autocontrol_flow",
+        "fault_removal_effect_clears_fault_and_alarm_values"
+      ]
+    },
+    "scenario_names": [
+      "default_init_manual_outputs",
+      "initiate_and_change_setpoint_in_ask_startac",
+      "start_ac_init_then_normal_control",
+      "autocontrol_no_fault_boundary_stays_normal",
+      "pump_fault_boundary_enters_fault_and_alarms",
+      "caregiver_removes_fault_returns_manual",
+      "terminate_autocontrol_returns_manual",
+      "forced_back_manual_events_from_distinct_modes",
+      "forced_cp_back_manual_from_pump_fault",
+      "forced_cc_back_manual_from_autocontrol_init",
+      "setpoint_effect_used_by_autocontrol_flow",
+      "fault_removal_effect_clears_fault_and_alarm_values",
+      "start_ac_effect_sets_autocontrol_flags_from_dirty_values"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.ADVISORY",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sc5f_scenario_freeze",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "coverage_gap": null,
+    "dsl_changed_since_freeze": null,
+    "event": "scenario_coverage_retry_exhausted",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "warning",
+    "scenario_max_retries": 2,
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "epoch": 0,
+    "event": "stage_result",
+    "graph_node": "validation_sc5f_scenario_freeze",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-6",
+    "level": "info",
+    "n_scenarios": 13,
+    "ok": true,
+    "oracle_weak": true,
+    "reason": null,
+    "scenario_set_id": "scenario-set-0154efc1fb9b",
+    "source_dsl_hash": "sha256:691c0b28fabc7e9dbe3443abafac6dda253d354c480d9f1670e6257a5bf3e921",
+    "stage_id": "SC-5F",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd6_sim",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "n_scenarios": 13,
+    "reason": "scenario_set_ready",
+    "scenario_set_id": "scenario-set-0154efc1fb9b",
+    "stage_id": "SD-6",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "n_scenarios": 13,
+      "n_scenarios_passed": 13,
+      "ok": true,
+      "oracle_weak": false,
+      "scenario_results": [
+        {
+          "description": "default-init dispatches into Manual and checks manual pump speed/flow come from the built-in switch and default manual flow rate.",
+          "name": "default_init_manual_outputs",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'initial_dispatch_to_manual', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 80.0, 'sensor_buffer_bp': 80.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 5.0, 'default_manual_flow_rate': 5.0, 'builtin_switch_speed': 7.0, 'control_voltage': 0.0, 'pump_speed': 7.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "default-init first reaches Manual, then caregiver initiates algorithmic control and changes the setpoint within Ask_StartAC.",
+          "name": "initiate_and_change_setpoint_in_ask_startac",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'manual_after_default_dispatch', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 88.0, 'sensor_buffer_bp': 88.0, 'target_bp': 100.0, 'target_bp_command': 120.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'initiate_enters_ask_startac', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Ask_StartAC', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 88.0, 'sensor_buffer_bp': 88.0, 'target_bp': 100.0, 'target_bp_command': 120.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 2, 'step_name': 'setpoint_changed_stays_in_ask_and_updates_target', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Ask_StartAC', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 88.0, 'sensor_buffer_bp': 88.0, 'target_bp': 120.0, 'target_bp_command': 120.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in Ask_StartAC checks StartAC enters AutocontrolInit, then automatic progression reaches normal autocontrol and computes/logs flow.",
+          "name": "start_ac_init_then_normal_control",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'start_ac_enters_autocontrol_init', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.AutocontrolInit', 'actual_vars': {'CA_mode': 1, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 1, 'blood_pressure': 90.0, 'sensor_buffer_bp': 90.0, 'target_bp': 120.0, 'target_bp_command': 100.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'automatic_step_to_autocontrol_normal', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.AutocontrolNormal', 'actual_vars': {'CA_mode': 1, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 1, 'blood_pressure': 90.0, 'sensor_buffer_bp': 90.0, 'target_bp': 120.0, 'target_bp_command': 100.0, 'flow_rate': 30.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 30.0, 'pump_speed': 30.0, 'infusion_log_rate': 30.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in AutocontrolNormal with pump_fault at the no-fault boundary verifies no fault transition fires and flow remains controlled.",
+          "name": "autocontrol_no_fault_boundary_stays_normal",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'no_fault_no_fire_and_lower_high_pressure_flow', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.AutocontrolNormal', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 110.0, 'sensor_buffer_bp': 110.0, 'target_bp': 120.0, 'target_bp_command': 100.0, 'flow_rate': 10.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 10.0, 'pump_speed': 10.0, 'infusion_log_rate': 10.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in AutocontrolNormal with pump_fault present verifies transition to PumpFault activates alarm and releases software control.",
+          "name": "pump_fault_boundary_enters_fault_and_alarms",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'fault_guard_fires_to_pump_fault', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.PumpFault', 'actual_vars': {'CA_mode': 0, 'pump_fault': 1, 'alarm_signal': 1, 'software_control': 0, 'blood_pressure': 95.0, 'sensor_buffer_bp': 95.0, 'target_bp': 120.0, 'target_bp_command': 100.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in PumpFault checks caregiver fault removal returns to Manual, clears the fault/alarm, and keeps software control released.",
+          "name": "caregiver_removes_fault_returns_manual",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'caregiver_removal_to_manual', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 75.0, 'sensor_buffer_bp': 75.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 4.0, 'default_manual_flow_rate': 4.0, 'builtin_switch_speed': 6.0, 'control_voltage': 0.0, 'pump_speed': 6.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in AutocontrolNormal checks caregiver termination of algorithmic control returns to Manual and restores manual pump settings.",
+          "name": "terminate_autocontrol_returns_manual",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'terminate_to_manual', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 82.0, 'sensor_buffer_bp': 82.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 3.0, 'default_manual_flow_rate': 3.0, 'builtin_switch_speed': 5.0, 'control_voltage': 0.0, 'pump_speed': 5.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probes wildcard backManual recovery from several concrete leaves, each requiring Manual as the shared recovery target.",
+          "name": "forced_back_manual_events_from_distinct_modes",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'ca_back_manual_from_ask_startac', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 70.0, 'sensor_buffer_bp': 70.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 2.0, 'default_manual_flow_rate': 2.0, 'builtin_switch_speed': 4.0, 'control_voltage': 0.0, 'pump_speed': 4.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'return_to_ask_for_additional_forced_probe', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Ask_StartAC', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 70.0, 'sensor_buffer_bp': 70.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 2.0, 'default_manual_flow_rate': 2.0, 'builtin_switch_speed': 4.0, 'control_voltage': 0.0, 'pump_speed': 4.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 2, 'step_name': 'cb_back_manual_from_ask_startac', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 70.0, 'sensor_buffer_bp': 70.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 2.0, 'default_manual_flow_rate': 2.0, 'builtin_switch_speed': 4.0, 'control_voltage': 0.0, 'pump_speed': 4.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in PumpFault checks CP_backManual also forces Manual as the shared recovery target.",
+          "name": "forced_cp_back_manual_from_pump_fault",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'cp_back_manual_forces_manual', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 1, 'alarm_signal': 1, 'software_control': 0, 'blood_pressure': 65.0, 'sensor_buffer_bp': 65.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 8.0, 'default_manual_flow_rate': 8.0, 'builtin_switch_speed': 9.0, 'control_voltage': 0.0, 'pump_speed': 9.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in AutocontrolInit checks CC_backManual overrides autocontrol initialization and forces Manual recovery.",
+          "name": "forced_cc_back_manual_from_autocontrol_init",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'cc_back_manual_forces_manual', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 78.0, 'sensor_buffer_bp': 78.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 6.0, 'default_manual_flow_rate': 6.0, 'builtin_switch_speed': 11.0, 'control_voltage': 0.0, 'pump_speed': 11.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in Ask_StartAC strengthens the SetpointChanged effect probe by requiring the changed target setpoint to drive the later autocontrol flow/log calculation.",
+          "name": "setpoint_effect_used_by_autocontrol_flow",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'setpoint_effect_assigns_command_value', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Ask_StartAC', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 92.0, 'sensor_buffer_bp': 92.0, 'target_bp': 132.0, 'target_bp_command': 132.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'start_after_changed_setpoint', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.AutocontrolInit', 'actual_vars': {'CA_mode': 1, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 1, 'blood_pressure': 92.0, 'sensor_buffer_bp': 92.0, 'target_bp': 132.0, 'target_bp_command': 132.0, 'flow_rate': 0.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 0.0, 'pump_speed': 0.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 2, 'step_name': 'normal_flow_uses_changed_target', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.AutocontrolNormal', 'actual_vars': {'CA_mode': 1, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 1, 'blood_pressure': 92.0, 'sensor_buffer_bp': 92.0, 'target_bp': 132.0, 'target_bp_command': 132.0, 'flow_rate': 40.0, 'default_manual_flow_rate': 0.0, 'builtin_switch_speed': 0.0, 'control_voltage': 40.0, 'pump_speed': 40.0, 'infusion_log_rate': 40.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start in PumpFault isolates the CaregiverRemovesFault transition effect so missing or wrong constant assignments to pump_fault/alarm_signal are caught.",
+          "name": "fault_removal_effect_clears_fault_and_alarm_values",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'caregiver_remove_fault_effect_values_are_zero', 'status': 'pass', 'actual_state': 'CARA.Mode_Control_Algorithm.Manual', 'actual_vars': {'CA_mode': 0, 'pump_fault': 0, 'alarm_signal': 0, 'software_control': 0, 'blood_pressure': 68.0, 'sensor_buffer_bp': 68.0, 'target_bp': 100.0, 'target_bp_command': 100.0, 'flow_rate': 12.0, 'default_manual_flow_rate': 12.0, 'builtin_switch_speed': 13.0, 'control_voltage': 0.0, 'pump_speed': 13.0, 'infusion_log_rate': 0.0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "_omitted_items": 1
+        }
+      ],
+      "setup_error": null,
+      "source": "sim",
+      "source_stage": "SD-6",
+      "weak_oracle_evidence": {},
+      "weak_oracle_reason": ""
+    },
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-7",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-6",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl7_model_review",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": true,
+    "reason": "SD-6 ok",
+    "scenario_set_id": "scenario-set-0154efc1fb9b",
+    "stage_id": "SL-7",
+    "ts": "2026-06-05T09:42:54Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "blocking_findings": [],
+      "decision": "pass",
+      "findings": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL: \"If a pump fault such as fluid-tubing occlusion occurs, the pump activates alarm signals, the caregiver removes the fault, and when CARA was controlling the pump the software releases control.\"",
+            "NL: \"CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual causes CA_mode to become Manual, making manual operation the shared recovery target.\"",
+            "DSL PumpFault.enter: alarm_signal = 1; software_control = 0; CA_mode = 0;",
+            "DSL active state can be CARA.Mode_Control_Algorithm.PumpFault while CA_mode encodes Manual."
+          ],
+          "severity": "minor",
+          "summary": "The DSL broadly follows the NL mode-control behavior, but CA_mode is set to Manual on entering PumpFault even though the active state remains PumpFault and the NL only explicitly requires software release on pump fault plus Manual as the target of backManual fallback events."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "NL names coordinated components: Caregiver Interface, Blood Pressure Monitor, Algorithm, Pump Monitors, and infusion pump.",
+            "DSL has one hierarchy: CARA.Mode_Control_Algorithm with leaf states Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, PumpFault.",
+            "five_component_summary: {}",
+            "Represented signals include blood_pressure, sensor_buffer_bp, target_bp_command, flow_rate, alarm_signal, pump_fault, pump_speed."
+          ],
+          "severity": "minor",
+          "summary": "The behavioral functions of the Caregiver Interface, Blood Pressure Monitor, Algorithm, and Pump/Pump Monitors are represented as variables/events/actions, but the model does not structurally separate those components; five_component_summary is empty."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "NL: \"The Caregiver Interface ... displays and sounds error messages.\"",
+            "GroundingMap assumption: \"The displays and sounds of Caregiver Interface error messages are represented by alarm_signal; separate visual and audible command variables were not specified in the input.\"",
+            "DSL only defines alarm_signal; no separate display_error_message or sound_error_message outputs."
+          ],
+          "severity": "minor",
+          "summary": "Caregiver Interface display and audible error-message behavior is collapsed into a single alarm_signal, so visual and audible/display semantics are not separately modeled."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "NL: \"Patient blood pressure is used to compute the infusion rate, with higher pressure producing a lower flow rate.\"",
+            "DSL AutocontrolNormal.during: flow_rate = target_bp - blood_pressure; control_voltage = flow_rate; pump_speed = control_voltage;",
+            "GroundingMap assumption acknowledges no saturation or clinical dosing formula was specified."
+          ],
+          "severity": "minor",
+          "summary": "The infusion-rate computation uses a direct linear subtraction formula that captures the inverse pressure/flow direction but may over-specify an exact relation not given in the NL and can produce unconstrained or negative rates."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL forced transitions: ! * -> Manual :: CA_backManual/CB_backManual/CP_backManual/CC_backManual;",
+            "DSL PumpFault -> Manual :: CaregiverRemovesFault effect clears pump_fault and alarm_signal, but forced backManual transitions have no clearing effects.",
+            "sim_summary scenario forced_cp_back_manual_from_pump_fault: actual_state Manual with pump_fault: 1, alarm_signal: 1, flow_rate: 8.0, pump_speed: 9.0.",
+            "NL: \"The caregiver removes the fault\" before normal recovery from pump fault."
+          ],
+          "severity": "minor",
+          "summary": "Wildcard backManual recovery from PumpFault can place the active state in Manual while pump_fault and alarm_signal remain set, allowing Manual.during to assign manual flow and pump speed despite an uncleared fault. This is a safety-relevant advisory because the NL separately describes caregiver fault removal for pump faults."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "NL external/input-like quantities include blood_pressure, target_bp_command, default_manual_flow_rate, builtin_switch_speed, pump_fault, and caregiver events.",
+            "design_diagnostics_summary.inspect_summary.nl_external_input_vars: []",
+            "design_diagnostics_summary.inspect_summary.external_input_role_ledger: []",
+            "Diagnostics include W_HIGH_VAR_TO_LEAF_RATIO and many W_UNREFERENCED_VAR advisories."
+          ],
+          "severity": "minor",
+          "summary": "External inputs, internal state variables, and outputs are not cleanly separated; the design diagnostics report an empty external input role ledger despite clear external caregiver/pump/sensor inputs in the NL."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "design_diagnostics_summary.ok: true",
+            "blocking_count: 0",
+            "warning_budget_exhausted: []",
+            "Remaining advisories include W_HIGH_VAR_TO_LEAF_RATIO and W_UNREFERENCED_VAR."
+          ],
+          "severity": "info",
+          "summary": "No evidence of unjustified repair to silence warnings was found; remaining diagnostics are advisory and budget is not exhausted."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "Required states Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, and PumpFault are present.",
+            "Required transitions/events InitiateAlgorithmicControl, SetpointChanged, StartAC, TerminateAlgorithmicControl, CaregiverRemovesFault, and backManual variants are present.",
+            "sim_summary: 13 scenarios, 13 passed.",
+            "five_component_summary is empty and external_input_role_ledger is empty.",
+            "No SD blocking diagnostics, but 20 advisory diagnostics remain."
+          ],
+          "severity": "minor",
+          "summary": "Estimated NFRR tier is T2 within-scope candidate, capped below T3/T4 due to component abstraction, external-role grounding gaps, simplified oracle/formula choices, and minor safety-recovery ambiguity, despite good state/transition coverage and passing simulations."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "risk_level": "minor"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:43:48Z",
+    "usage": {
+      "chunk_count": 1843,
+      "completion_chars": 8688,
+      "completion_tokens": 2880,
+      "elapsed_seconds": 53.949247070006095,
+      "estimated_completion_tokens": 2172,
+      "estimated_prompt_tokens": 20881,
+      "estimated_total_tokens": 23053,
+      "first_chunk_seconds": 21.561357510014204,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 83522,
+      "prompt_tokens": 20652,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 23532
+    }
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "blocking_count": 0,
+      "blocking_findings": [],
+      "decision": "pass",
+      "finding_count": 11,
+      "finding_summaries": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL: \"If a pump fault such as fluid-tubing occlusion occurs, the pump activates alarm signals, the caregiver removes the fault, and when CARA was controlling the pump the software releases control.\"",
+            "NL: \"CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual causes CA_mode to become Manual, making manual operation the shared recovery target.\"",
+            "DSL PumpFault.enter: alarm_signal = 1; software_control = 0; CA_mode = 0;",
+            "DSL active state can be CARA.Mode_Control_Algorithm.PumpFault while CA_mode encodes Manual."
+          ],
+          "severity": "minor",
+          "summary": "The DSL broadly follows the NL mode-control behavior, but CA_mode is set to Manual on entering PumpFault even though the active state remains PumpFault and the NL only explicitly requires software release on pump fault plus Manual as the target of backManual fallback events."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "NL names coordinated components: Caregiver Interface, Blood Pressure Monitor, Algorithm, Pump Monitors, and infusion pump.",
+            "DSL has one hierarchy: CARA.Mode_Control_Algorithm with leaf states Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, PumpFault.",
+            "five_component_summary: {}",
+            "Represented signals include blood_pressure, sensor_buffer_bp, target_bp_command, flow_rate, alarm_signal, pump_fault, pump_speed."
+          ],
+          "severity": "minor",
+          "summary": "The behavioral functions of the Caregiver Interface, Blood Pressure Monitor, Algorithm, and Pump/Pump Monitors are represented as variables/events/actions, but the model does not structurally separate those components; five_component_summary is empty."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "NL: \"The Caregiver Interface ... displays and sounds error messages.\"",
+            "GroundingMap assumption: \"The displays and sounds of Caregiver Interface error messages are represented by alarm_signal; separate visual and audible command variables were not specified in the input.\"",
+            "DSL only defines alarm_signal; no separate display_error_message or sound_error_message outputs."
+          ],
+          "severity": "minor",
+          "summary": "Caregiver Interface display and audible error-message behavior is collapsed into a single alarm_signal, so visual and audible/display semantics are not separately modeled."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "NL: \"Patient blood pressure is used to compute the infusion rate, with higher pressure producing a lower flow rate.\"",
+            "DSL AutocontrolNormal.during: flow_rate = target_bp - blood_pressure; control_voltage = flow_rate; pump_speed = control_voltage;",
+            "GroundingMap assumption acknowledges no saturation or clinical dosing formula was specified."
+          ],
+          "severity": "minor",
+          "summary": "The infusion-rate computation uses a direct linear subtraction formula that captures the inverse pressure/flow direction but may over-specify an exact relation not given in the NL and can produce unconstrained or negative rates."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL forced transitions: ! * -> Manual :: CA_backManual/CB_backManual/CP_backManual/CC_backManual;",
+            "DSL PumpFault -> Manual :: CaregiverRemovesFault effect clears pump_fault and alarm_signal, but forced backManual transitions have no clearing effects.",
+            "sim_summary scenario forced_cp_back_manual_from_pump_fault: actual_state Manual with pump_fault: 1, alarm_signal: 1, flow_rate: 8.0, pump_speed: 9.0.",
+            "NL: \"The caregiver removes the fault\" before normal recovery from pump fault."
+          ],
+          "severity": "minor",
+          "summary": "Wildcard backManual recovery from PumpFault can place the active state in Manual while pump_fault and alarm_signal remain set, allowing Manual.during to assign manual flow and pump speed despite an uncleared fault. This is a safety-relevant advisory because the NL separately describes caregiver fault removal for pump faults."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "NL external/input-like quantities include blood_pressure, target_bp_command, default_manual_flow_rate, builtin_switch_speed, pump_fault, and caregiver events.",
+            "design_diagnostics_summary.inspect_summary.nl_external_input_vars: []",
+            "design_diagnostics_summary.inspect_summary.external_input_role_ledger: []",
+            "Diagnostics include W_HIGH_VAR_TO_LEAF_RATIO and many W_UNREFERENCED_VAR advisories."
+          ],
+          "severity": "minor",
+          "summary": "External inputs, internal state variables, and outputs are not cleanly separated; the design diagnostics report an empty external input role ledger despite clear external caregiver/pump/sensor inputs in the NL."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "design_diagnostics_summary.ok: true",
+            "blocking_count: 0",
+            "warning_budget_exhausted: []",
+            "Remaining advisories include W_HIGH_VAR_TO_LEAF_RATIO and W_UNREFERENCED_VAR."
+          ],
+          "severity": "info",
+          "summary": "No evidence of unjustified repair to silence warnings was found; remaining diagnostics are advisory and budget is not exhausted."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "Required states Manual, Ask_StartAC, AutocontrolInit, AutocontrolNormal, and PumpFault are present.",
+            "Required transitions/events InitiateAlgorithmicControl, SetpointChanged, StartAC, TerminateAlgorithmicControl, CaregiverRemovesFault, and backManual variants are present.",
+            "sim_summary: 13 scenarios, 13 passed.",
+            "five_component_summary is empty and external_input_role_ledger is empty.",
+            "No SD blocking diagnostics, but 20 advisory diagnostics remain."
+          ],
+          "severity": "minor",
+          "summary": "Estimated NFRR tier is T2 within-scope candidate, capped below T3/T4 due to component abstraction, external-role grounding gaps, simplified oracle/formula choices, and minor safety-recovery ambiguity, despite good state/transition coverage and passing simulations."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "ok": true,
+      "risk_level": "minor",
+      "source": "model_review",
+      "source_stage": "SL-7"
+    },
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "grounding_update_hints_recorded",
+    "hint_hashes": [
+      "sha256:9c47feedcf3e1b3fea6d81c5895bd60783749a870234f654c97189ad5d7680b3",
+      "sha256:9473560a428193528d517f2c6b2d331efe5490001802625708f393df2bf79e78",
+      "sha256:754ed28c015a68519e312e9876a568156a05aa039fff42eb5edaacccd085e4d2",
+      "sha256:ecb5e280af69e7889707fbe26e14596959972d9bf2b5af0cdad02a26b824230f"
+    ],
+    "iteration": 0,
+    "level": "info",
+    "n_hints": 4,
+    "stage_id": "SL-7",
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_exit",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_finalize",
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "iteration_validation_result",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "oracle_weak": true,
+    "scenario_set_id": "scenario-set-0154efc1fb9b",
+    "selected_feedback": null,
+    "stage_ids": [
+      "SD-2",
+      "SD-3",
+      "SD-4",
+      "SL-5",
+      "SD-5A",
+      "SL-5",
+      "SD-5A",
+      "SL-5",
+      "SD-5A",
+      "SC-5F",
+      "SD-6",
+      "SL-7"
+    ],
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_decision",
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "sc12_verdict",
+    "final_dsl": "def int CA_mode = 0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int software_control = 0;\ndef float blood_pressure = 0.0;\ndef float sensor_buffer_bp = 0.0;\ndef float target_bp = 100.0;\ndef float target_bp_command = 100.0;\ndef float flow_rate = 0.0;\ndef float default_manual_flow_rate = 0.0;\ndef float builtin_switch_speed = 0.0;\ndef float control_voltage = 0.0;\ndef float pump_speed = 0.0;\ndef float infusion_log_rate = 0.0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                software_control = 0;\n                control_voltage = 0.0;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n        }\n\n        state Ask_StartAC {\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                software_control = 1;\n                alarm_signal = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                sensor_buffer_bp = blood_pressure;\n                if [pump_fault == 0] {\n                    flow_rate = target_bp - blood_pressure;\n                    control_voltage = flow_rate;\n                    pump_speed = control_voltage;\n                    infusion_log_rate = flow_rate;\n                }\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                software_control = 0;\n                CA_mode = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAlgorithmicControl;\n        Ask_StartAC -> Ask_StartAC :: SetpointChanged effect {\n            target_bp = target_bp_command;\n        };\n        Ask_StartAC -> AutocontrolInit :: StartAC effect {\n            software_control = 1;\n            CA_mode = 1;\n        };\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolNormal -> Manual :: TerminateAlgorithmicControl;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: CaregiverRemovesFault effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n        };\n    }\n}\n",
+    "level": "info",
+    "reason": "full_pass_all_required_feedback_ok",
+    "record_status": "success",
+    "result_status": "converged",
+    "source_stage_id": "SL-7",
+    "stage_id": "SC-12",
+    "ts": "2026-06-05T09:43:48Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc13_trace_audit",
+    "ts": "2026-06-05T09:43:48Z"
+  },
+  {
+    "event": "run_end",
+    "final_dsl": "def int CA_mode = 0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int software_control = 0;\ndef float blood_pressure = 0.0;\ndef float sensor_buffer_bp = 0.0;\ndef float target_bp = 100.0;\ndef float target_bp_command = 100.0;\ndef float flow_rate = 0.0;\ndef float default_manual_flow_rate = 0.0;\ndef float builtin_switch_speed = 0.0;\ndef float control_voltage = 0.0;\ndef float pump_speed = 0.0;\ndef float infusion_log_rate = 0.0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                software_control = 0;\n                control_voltage = 0.0;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n                flow_rate = default_manual_flow_rate;\n                pump_speed = builtin_switch_speed;\n            }\n        }\n\n        state Ask_StartAC {\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                software_control = 1;\n                alarm_signal = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                sensor_buffer_bp = blood_pressure;\n                if [pump_fault == 0] {\n                    flow_rate = target_bp - blood_pressure;\n                    control_voltage = flow_rate;\n                    pump_speed = control_voltage;\n                    infusion_log_rate = flow_rate;\n                }\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                software_control = 0;\n                CA_mode = 0;\n            }\n            during {\n                sensor_buffer_bp = blood_pressure;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAlgorithmicControl;\n        Ask_StartAC -> Ask_StartAC :: SetpointChanged effect {\n            target_bp = target_bp_command;\n        };\n        Ask_StartAC -> AutocontrolInit :: StartAC effect {\n            software_control = 1;\n            CA_mode = 1;\n        };\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolNormal -> Manual :: TerminateAlgorithmicControl;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: CaregiverRemovesFault effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n        };\n    }\n}\n",
+    "final_dsl_hash": "sha256:691c0b28fabc7e9dbe3443abafac6dda253d354c480d9f1670e6257a5bf3e921",
+    "graph_runtime_backend": "langgraph",
+    "iteration_count": 1,
+    "level": "info",
+    "record_status": "success",
+    "repair_count": 0,
+    "result_status": "converged",
+    "run_id": "pr-e1-path1_cara-default-lg-b1-stale-waiver-2a93a82c-065c3f78",
+    "stage_count": 16,
+    "stage_id": "SC-13",
+    "ts": "2026-06-05T09:43:48Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_trace",
+    "instrumentation_layer": "langgraph",
+    "node_trace": [
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc0_start"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sl1_initial_modeling"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "iteration_gate"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_pass"
+      },
+      {
+        "event": "subgraph_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_subgraph"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd2_parse"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd3_semantic"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd4_design"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl5_scenario_generation"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd5a_scenario_coverage"
+      },
+      {
+        "attempt_index": 1,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl5_scenario_generation"
+      },
+      {
+        "attempt_index": 1,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd5a_scenario_coverage"
+      },
+      {
+        "attempt_index": 2,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl5_scenario_generation"
+      },
+      {
+        "attempt_index": 2,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd5a_scenario_coverage"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sc5f_scenario_freeze"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd6_sim"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl7_model_review"
+      },
+      {
+        "event": "subgraph_exit",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_finalize"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_decision"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc13_trace_audit"
+      }
+    ],
+    "node_trace_hash": "sha256:0275a55617f1fbea9405e3ae8b4ef64da7b526ab57d2e353aebdb2200aa99d67"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "event": "lg_d1_operator_log_artifacts",
+    "instrumentation_layer": "langgraph_streaming",
+    "operator_event_count": 48,
+    "operator_log_hash": "sha256:f4e5503ca908e083a4719cfebcf1a5a67ea50fb900286f40a48f9eb6e46bbdfc",
+    "stream_summary_hash": "sha256:4d7596b92c0ffdb1b830321db31ad07f30844b516c81e5b4b8d4a7a0ebf2886d"
+  }
+]
