@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -470,6 +471,77 @@ def _lg_baseline(record: Any) -> dict[str, Any]:
     }
 
 
+def _canonical_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _read_operator_events(record: Any) -> list[dict[str, Any]]:
+    operator = record.final_artifacts.get("operator_log") or {}
+    path = Path(operator["operator_log_path"])
+    assert path.exists()
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _assert_no_forbidden_operator_keys(value: Any) -> None:
+    forbidden = {
+        "messages",
+        "prompt",
+        "raw_prompt",
+        "raw_output",
+        "chunk_text",
+        "delta_text",
+        "completion_text",
+        "content",
+        "text",
+        "response_text",
+        "output_text",
+        "choices",
+        "delta",
+        "api_key",
+        "authorization",
+        "headers",
+    }
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            assert str(key).lower() not in forbidden
+            _assert_no_forbidden_operator_keys(nested)
+    elif isinstance(value, list):
+        for item in value:
+            _assert_no_forbidden_operator_keys(item)
+
+
+def _initial_modeling_llm_run_with_stream_usage(_nl: str, _context: StageContext) -> Any:
+    return SimpleNamespace(
+        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+        ok=True,
+        parsed_output={"candidate_dsl": _stable_dsl(), "grounding_seeds": [], "assumptions": []},
+        feedback=None,
+        stage_meta=_meta(StageId.SL_1_INITIAL_MODELING),
+        interaction={
+            "stage_id": StageId.SL_1_INITIAL_MODELING.value,
+            "provider": "mock-stream-provider",
+            "model_id": "mock-stream-model",
+            "schema_validation_ok": True,
+            "usage": {
+                "stream": True,
+                "stream_include_usage_requested": True,
+                "chunk_count": 7,
+                "first_chunk_seconds": 0.05,
+                "elapsed_seconds": 0.42,
+                "prompt_chars": 1234,
+                "completion_chars": 567,
+                "estimated_prompt_tokens": 309,
+                "estimated_completion_tokens": 142,
+                "estimated_total_tokens": 451,
+            },
+            "attempts": [{"status": "ok", "usage": {"stream": True, "chunk_count": 7}}],
+        },
+    )
+
+
 
 def _retry_exhausted_run(stage_id: StageId, error_kind: str = "provider_error") -> Any:
     message = f"{stage_id.value} {error_kind} exhausted"
@@ -904,7 +976,6 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
     assert record.iteration_records[0]["accepted_candidate"] is True
     assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
 
-
 # PR-LG-A2 Store transient contract tests.
 
 def _assert_lg_a2_store_metadata(record: Any, *, expected_status: str = "no_leak") -> dict[str, Any]:
@@ -1195,3 +1266,326 @@ def test_store_metadata_in_run_record(tmp_path: Path) -> None:
     assert record.environment["transient_backend"] == lifecycle["backend"]
     assert record.environment["transient_namespace"] == lifecycle["namespace"]
     assert record.environment["transient_store_instance_id"] == lifecycle["store_instance_id"]
+
+# PR-LG-D1 Streaming + operator log contract tests.
+
+
+def test_lg_d1_operator_event_schema_is_jsonl_safe() -> None:
+    from method.langgraph_runtime import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-schema",
+        event_type="llm_stream_progress",
+        node="sl1_initial_modeling",
+        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+        payload={
+            "chunk_count": 3,
+            "completion_chars": 42,
+            "prompt": "MUST_NOT_APPEAR",
+            "messages": [{"role": "user", "content": "MUST_NOT_APPEAR"}],
+            "raw_output": "MUST_NOT_APPEAR",
+            "delta_text": "MUST_NOT_APPEAR",
+            "headers": {"Authorization": "Bearer MUST_NOT_APPEAR"},
+            "api_key": "MUST_NOT_APPEAR",
+        },
+    )
+
+    assert event["schema_version"] == LG_D1_OPERATOR_EVENT_SCHEMA_VERSION
+    assert event["run_id"] == "lg-d1-schema"
+    assert event["event_type"] == "llm_stream_progress"
+    assert event["timestamp"]
+    assert event["node"] == "sl1_initial_modeling"
+    assert event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    assert event["instrumentation_layer"] == "langgraph_streaming"
+    assert event["payload_hash"].startswith("sha256:")
+    assert event["payload"]["chunk_count"] == 3
+    assert event["payload"]["completion_chars"] == 42
+    assert event["payload"]["omitted_raw_content_field_count"] >= 5
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert "MUST_NOT_APPEAR" not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_llm_progress_event_uses_allowlist_for_raw_chunk_shapes() -> None:
+    from method.langgraph_runtime import build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-no-raw-chunk",
+        event_type="llm_stream_progress",
+        payload={
+            "chunk_count": 3,
+            "completion_chars": 42,
+            "elapsed_seconds": 1.5,
+            "content": "RAW_PROMPT_OR_CHUNK_SHOULD_NOT_BE_HERE",
+            "choices": [{"delta": {"content": "RAW_DELTA_SHOULD_NOT_BE_HERE"}}],
+            "response_text": "RAW_OUTPUT_SHOULD_NOT_BE_HERE",
+            "safe_count_but_not_allowlisted": 99,
+        },
+    )
+
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert event["payload"]["chunk_count"] == 3
+    assert event["payload"]["completion_chars"] == 42
+    assert event["payload"]["elapsed_seconds"] == 1.5
+    assert event["payload"]["omitted_raw_content_field_count"] >= 4
+    assert "RAW_PROMPT_OR_CHUNK_SHOULD_NOT_BE_HERE" not in encoded
+    assert "RAW_DELTA_SHOULD_NOT_BE_HERE" not in encoded
+    assert "RAW_OUTPUT_SHOULD_NOT_BE_HERE" not in encoded
+    assert "safe_count_but_not_allowlisted" not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_generic_operator_event_sanitizes_raw_chunk_and_token_like_fields() -> None:
+    from method.langgraph_runtime import build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-generic-no-raw",
+        event_type="node_enter",
+        payload={
+            "node_ok": "validation_pass",
+            "raw_chunk": "RAW_CHUNK_LEAK_GENERIC",
+            "nested": {
+                "content": "RAW_CONTENT_LEAK_GENERIC",
+                "choices": [{"delta": {"content": "RAW_DELTA_LEAK_GENERIC"}}],
+                "safe_secret_note": "this field name includes secret and should be omitted",
+            },
+            "apiKey": "camelCase secret key maybe not key-matched",
+            "token_value": "secret-token-string",
+            "bearer": "Bearer abcdefghijklmnopqrstuvwxyz",
+        },
+    )
+
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert event["payload"]["node_ok"] == "validation_pass"
+    assert event["payload"]["omitted_raw_content_field_count"] >= 7
+    for needle in (
+        "RAW_CHUNK_LEAK_GENERIC",
+        "RAW_CONTENT_LEAK_GENERIC",
+        "RAW_DELTA_LEAK_GENERIC",
+        "secret-token-string",
+        "Bearer abcdefghijklmnopqrstuvwxyz",
+        "camelCase secret key maybe not key-matched",
+    ):
+        assert needle not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
+    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+
+    class EmptyAfterSideEffectApp:
+        def __init__(self) -> None:
+            self.llm_calls = 0
+
+        def stream(self, _initial_state: dict[str, Any], *, config: dict[str, Any], stream_mode: str):  # noqa: ANN201
+            assert stream_mode == "updates"
+            assert config["configurable"]["thread_id"] == "lg-d1-no-replay"
+            self.llm_calls += 1
+            if False:
+                yield {"node": {"runtime_result": "unreachable"}}
+
+        def get_state(self, _config: dict[str, Any]) -> Any:
+            class Checkpoint:
+                values: dict[str, Any] = {}
+
+            return Checkpoint()
+
+        def invoke(self, _initial_state: dict[str, Any], *, config: dict[str, Any]) -> dict[str, Any]:
+            self.llm_calls += 1
+            return {"runtime_result": "must-not-be-called", "operator_events": [], "config": config}
+
+    app = EmptyAfterSideEffectApp()
+
+    try:
+        _run_graph_with_lg_d1_stream(
+            app,
+            initial_state={"operator_events": [], "operator_stream_enabled": True, "run_id": "lg-d1-no-replay"},
+            run_id="lg-d1-no-replay",
+            operator_stream_enabled=True,
+        )
+    except RuntimeError as exc:
+        assert "refusing fallback invoke" in str(exc)
+    else:  # pragma: no cover - failure path documents the expected guard.
+        raise AssertionError("empty stream after side effects must fail loud instead of replaying invoke")
+
+    assert app.llm_calls == 1
+
+
+def test_lg_d1_stream_typeerror_after_side_effect_does_not_invoke_twice() -> None:
+    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+
+    class TypeErrorAfterSideEffectApp:
+        def __init__(self) -> None:
+            self.stream_calls = 0
+            self.invoke_calls = 0
+            self.side_effects: list[str] = []
+
+        def stream(self, _initial_state: dict[str, Any], *, config: dict[str, Any], stream_mode: str) -> Any:
+            assert stream_mode == "updates"
+            assert config["configurable"]["thread_id"] == "lg-d1-typeerror-no-replay"
+            self.stream_calls += 1
+            self.side_effects.append("stream-side-effect-before-typeerror")
+            raise TypeError("simulated TypeError after stream side effect")
+
+        def invoke(self, _initial_state: dict[str, Any], *, config: dict[str, Any]) -> dict[str, Any]:
+            self.invoke_calls += 1
+            self.side_effects.append("invoke-side-effect")
+            return {"runtime_result": "must-not-be-called", "operator_events": [], "config": config}
+
+    app = TypeErrorAfterSideEffectApp()
+
+    try:
+        _run_graph_with_lg_d1_stream(
+            app,
+            initial_state={"operator_events": [], "operator_stream_enabled": True, "run_id": "lg-d1-typeerror-no-replay"},
+            run_id="lg-d1-typeerror-no-replay",
+            operator_stream_enabled=True,
+        )
+    except RuntimeError as exc:
+        assert "stream setup failed with TypeError" in str(exc)
+        assert "refusing fallback invoke" in str(exc)
+    else:  # pragma: no cover - failure path documents the expected guard.
+        raise AssertionError("TypeError after stream setup side effects must fail loud instead of replaying invoke")
+
+    assert app.stream_calls == 1
+    assert app.invoke_calls == 0
+    assert app.side_effects == ["stream-side-effect-before-typeerror"]
+
+
+def test_lg_d1_stream_off_preserves_run_record_and_result(tmp_path: Path) -> None:
+    on_record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path / "on",
+            run_id="lg-d1-stream-on",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    off_result = run_full_staged_langgraph_runtime(
+        "LG-D1 stream-off control should preserve academic evidence.",
+        config=LoopConfig(
+            condition_id="lg-d1-stream-off",
+            condition_family="test_profile",
+            base_condition_id="full_staged_v1",
+            changed_factors=["llm_provider_mode=mock", "lg_d1_stream_off_contract"],
+            llm_provider_mode="mock",
+            academic_question="test-only LG-D1 stream-off equivalence; excluded from main results",
+            output_dir=str(tmp_path / "off"),
+            run_id="lg-d1-stream-off",
+            max_iterations=1,
+            compatibility_mode="langgraph_stategraph",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        operator_stream_enabled=False,
+    )
+    off_record = _lg_record(off_result)
+
+    assert on_record.status == off_record.status == "success"
+    for key in ("verdict", "verdict_source_stage_id", "oracle_weak", "main_result_eligible", "exclusion_reason"):
+        assert on_record.final_artifacts[key] == off_record.final_artifacts[key]
+    assert _lg_baseline(on_record)["stage_ids"] == _lg_baseline(off_record)["stage_ids"]
+    assert on_record.fix_log == off_record.fix_log
+    assert len(on_record.llm_interactions) == len(off_record.llm_interactions)
+    assert _canonical_hash(on_record.llm_interactions) == _canonical_hash(off_record.llm_interactions)
+    assert "operator_log" in on_record.final_artifacts
+    assert "operator_log" not in off_record.final_artifacts
+
+
+def test_lg_d1_langgraph_stream_emits_node_stage_llm_and_terminal_events(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-stream-events",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    events = _read_operator_events(record)
+    event_types = [event["event_type"] for event in events]
+
+    assert "node_enter" in event_types
+    assert "node_exit" in event_types
+    assert "stage_result" in event_types
+    assert "llm_stream_progress" in event_types
+    assert "terminal_verdict" in event_types
+    assert any(event["node"] == "validation_pass" and event["event_type"] == "node_enter" for event in events)
+    assert any(event["node"] == "sc13_trace_audit" and event["event_type"] == "terminal_verdict" for event in events)
+    assert any(event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value for event in events)
+    assert all(event["instrumentation_layer"] == "langgraph_streaming" for event in events)
+    _assert_no_forbidden_operator_keys(events)
+    assert record.final_artifacts["operator_log"]["langgraph_stream_status"] == "enabled"
+    assert record.final_artifacts["operator_log"]["operator_event_count"] == len(events)
+
+
+def test_lg_d1_operator_log_tee_reconstructs_progress_summary(tmp_path: Path) -> None:
+    from method.langgraph_runtime import reconstruct_lg_d1_stream_summary_from_jsonl
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-summary",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    operator = record.final_artifacts["operator_log"]
+    summary = reconstruct_lg_d1_stream_summary_from_jsonl(operator["operator_log_path"])
+
+    assert summary["schema_version"] == "lg-d1.stream-summary.v1"
+    assert summary["run_id"] == record.run_id
+    assert summary["node_sequence"] == _lg_trace_nodes(record)
+    assert summary["stage_sequence"] == [row["stage_id"] for row in record.stage_records]
+    assert summary["final_verdict"] == record.final_artifacts["verdict"]
+    assert summary["run_record_path_hash"] == operator["run_record_path_hash"]
+    assert summary["llm_stream_observed"] is True
+    assert summary["llm_stream_chunk_count_total"] == 7
+
+    summary_path = Path(operator["stream_summary_path"])
+    assert summary_path.exists()
+    on_disk = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert on_disk == summary
+    import hashlib
+
+    assert operator["stream_summary_hash"] == "sha256:" + hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    assert operator["stream_summary_payload_hash"] == _canonical_hash(summary)
+
+
+def test_lg_d1_llm_stream_flag_not_regressed_for_real_env_config(monkeypatch) -> None:
+    from method.langgraph_runtime import lg_d1_llm_stream_runtime_metadata
+
+    monkeypatch.delenv("LLM_STREAM", raising=False)
+    monkeypatch.delenv("LLM_STREAM_INCLUDE_USAGE", raising=False)
+    metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=True)
+
+    assert metadata["llm_stream_required"] is True
+    assert metadata["llm_stream_config_enabled"] is True
+    assert metadata["llm_stream_include_usage_config_enabled"] is True
+    assert metadata["llm_stream_observed"] is None
+    assert metadata["llm_stream_observation_source"] == "pending_llm_interactions"
+
+
+def test_lg_d1_instrumentation_does_not_replace_academic_evidence(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d1-evidence-layering",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+    operator = record.final_artifacts["operator_log"]
+
+    assert record.stage_records
+    assert record.llm_interactions
+    assert record.final_artifacts["final_dsl"]
+    assert record.final_artifacts["final_dsl_hash"].startswith("sha256:")
+    assert record.final_artifacts["langgraph_runtime_trace"]["delegated_monolithic_runtime"] is False
+    assert operator["instrumentation_layer"] == "langgraph_streaming"
+    assert operator["does_not_replace_academic_evidence"] is True
+    assert operator["academic_evidence_sources"] == [
+        "AgentLoopRunRecord.stage_records",
+        "AgentLoopRunRecord.llm_interactions",
+        "AgentLoopRunRecord.fix_log",
+        "AgentLoopRunRecord.scenario_history",
+        "AgentLoopRunRecord.final_artifacts.final_dsl",
+    ]
+    assert "operator_log" not in record.replay_index
