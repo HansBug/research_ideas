@@ -740,6 +740,211 @@ def _local_rejection_kind_names(rejection: RepairRejection | dict[str, Any] | No
     return kinds
 
 
+def _scenario_names_from_payload(payload: Any, *, known_names: set[str] | None = None) -> list[str]:
+    """Extract scenario names from nested evidence payloads.
+
+    The extraction is deliberately schema-driven and sample-agnostic.  When a
+    frozen ``ScenarioSet`` is available, candidate strings are filtered against
+    its scenario names so generic ``name`` fields from unrelated objects cannot
+    accidentally authorize a waiver.
+    """
+
+    names: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            return
+        if known_names is not None and text not in known_names:
+            return
+        if known_names is None and (len(text) > 160 or re.search(r"\s", text)):
+            return
+        seen.add(text)
+        names.append(text)
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                key_text = str(key).lower()
+                if key_text in {"scenario_name", "name"}:
+                    add(item)
+                elif key_text == "scenario_names" and isinstance(item, list):
+                    for name in item:
+                        add(name)
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(payload)
+    return names
+
+
+def _known_scenario_names(scenario_set: ScenarioSet | None) -> set[str] | None:
+    if scenario_set is None:
+        return None
+    names = {str(scenario.name or "").strip() for scenario in list(scenario_set.scenarios or [])}
+    names.discard("")
+    return names or None
+
+
+def _request_scenario_names(requests: list[FixRequest], *, scenario_set: ScenarioSet | None) -> list[str]:
+    known = _known_scenario_names(scenario_set)
+    names: list[str] = []
+    seen: set[str] = set()
+    for request in requests:
+        for name in _scenario_names_from_payload(
+            {
+                "source_feedback_id": request.source_feedback_id,
+                "evidence": request.evidence,
+                "suggested_fix_hints": request.suggested_fix_hints,
+            },
+            known_names=known,
+        ):
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+    return names
+
+
+def _entry_local_rejections(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return local rejection payloads stored directly or inside SL-10 output."""
+
+    rejections: list[dict[str, Any]] = []
+    payloads: list[Any] = [entry.get("local_check_evidence")]
+    sl10 = entry.get("sl10_review")
+    if isinstance(sl10, dict):
+        payloads.append(sl10.get("local_check_evidence"))
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        feedback = payload.get("repair_review_feedback")
+        if isinstance(feedback, dict) and isinstance(feedback.get("local_rejection"), dict):
+            rejections.append(feedback["local_rejection"])
+    return rejections
+
+
+def _sl9_rejection_invokes_prior_override(sl9_decision: SL9RepairDecisionOutput) -> bool:
+    """Check whether SL-9 rejected because a request is stale/NL-conflicting.
+
+    This is not a quality gate and does not inspect benchmark names.  It only
+    ensures that a hard-request waiver is backed by an explicit SL-9 audit
+    rationale rather than an empty refusal.
+    """
+
+    rendered = json.dumps(_jsonable(sl9_decision.decisions), ensure_ascii=False, sort_keys=True).lower()
+    tokens = (
+        "stale",
+        "override",
+        "prior",
+        "previous",
+        "fixlog",
+        "nl",
+        "ground",
+        "conflict",
+        "ungrounded",
+        "non-grounded",
+        "已覆写",
+        "覆写",
+        "先前",
+        "证据",
+        "冲突",
+        "不符合",
+        "非nl",
+    )
+    return any(token in rendered for token in tokens)
+
+
+def _stale_overridden_scenario_waiver_audit(
+    *,
+    active_request_batch: FixRequestBatch,
+    sl9_decision: SL9RepairDecisionOutput,
+    fix_log: list[dict[str, Any]],
+    current_dsl_hash: str,
+    scenario_set: ScenarioSet | None,
+) -> dict[str, Any] | None:
+    """Audit whether an all-rejected hard SD-6 request is a stale scenario.
+
+    A waiver is allowed only when the same current candidate hash already has an
+    earlier ``SL-10 pass`` with explicit ``local_override_rationale`` for a
+    local ``scenario_regression`` bearing the same scenario name, and the current
+    SL-9 decision rejects the request as stale / NL-conflicting.  The rule is
+    intentionally narrow so fresh simulation failures still remain hard blocks.
+    """
+
+    if not active_request_batch.requests:
+        return None
+    if not all(decision.decision == "reject" for decision in sl9_decision.decisions):
+        return None
+    hard_requests = [request for request in active_request_batch.requests if request.hard_block]
+    if not hard_requests:
+        return None
+    if not all(request.source_stage == StageId.SD_6_SIM.value or request.target == "sim" for request in hard_requests):
+        return None
+    if not _sl9_rejection_invokes_prior_override(sl9_decision):
+        return None
+
+    current_scenario_names = _request_scenario_names(hard_requests, scenario_set=scenario_set)
+    if not current_scenario_names:
+        return None
+
+    candidate_hashes = {item for item in {current_dsl_hash, active_request_batch.before_dsl_hash} if item}
+    known = _known_scenario_names(scenario_set)
+    matches: list[dict[str, Any]] = []
+    matched_names: set[str] = set()
+    for entry in fix_log:
+        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+        if entry_candidate_hash not in candidate_hashes:
+            continue
+        sl10 = entry.get("sl10_review")
+        if not isinstance(sl10, dict):
+            continue
+        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
+            continue
+        entry_names: set[str] = set()
+        for rejection in _entry_local_rejections(entry):
+            if not _local_rejection_has_scenario_regression(rejection):
+                continue
+            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
+        overlap = sorted(set(current_scenario_names) & entry_names)
+        if not overlap:
+            continue
+        matched_names.update(overlap)
+        matches.append(
+            {
+                "entry_id": entry.get("entry_id"),
+                "phase": entry.get("phase"),
+                "old_dsl_hash": entry.get("old_dsl_hash"),
+                "candidate_dsl_hash": entry_candidate_hash,
+                "matched_scenario_names": overlap,
+                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
+                "local_rejection_hash": _short_hash(_entry_local_rejections(entry)),
+            }
+        )
+
+    if set(current_scenario_names) - matched_names:
+        return None
+
+    return {
+        "kind": "stale_overridden_scenario_waiver",
+        "policy": (
+            "All current hard SD-6 fix requests were rejected by SL-9 as stale / "
+            "NL-conflicting, and the same current DSL candidate hash has an "
+            "earlier SL-10 pass with explicit local_override_rationale for the "
+            "same scenario_regression. Continue downstream validation without a "
+            "DSL edit, while retaining this audit evidence in FixLog and the run record."
+        ),
+        "current_dsl_hash": current_dsl_hash,
+        "batch_id": active_request_batch.batch_id,
+        "request_ids": [request.request_id for request in hard_requests],
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": sorted(matched_names),
+        "matched_historical_overrides": matches,
+        "sl9_rejection_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
 def _local_only_frontier_from_rework_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
     """Return a compact frontier candidate if rework is local-only.
 
@@ -2115,6 +2320,187 @@ def _continue_after_design_waiver(
         )
 
     return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
+
+
+def _make_waived_sim_feedback(feedback: SimFeedback, waiver_audit: dict[str, Any]) -> SimFeedback:
+    """Mark a stale scenario failure as audit-waived for downstream SL-7 review."""
+
+    return SimFeedback(
+        ok=True,
+        n_scenarios=feedback.n_scenarios,
+        n_scenarios_passed=feedback.n_scenarios_passed,
+        scenario_results=list(feedback.scenario_results),
+        setup_error=feedback.setup_error,
+        oracle_weak=False,
+        weak_oracle_reason="",
+        weak_oracle_evidence={
+            "waiver_continue_note": (
+                "Original SD-6 feedback is kept in scenario_results/counts, but "
+                "the selected hard request was audit-waived as a stale scenario "
+                "oracle already overridden by SL-10."
+            ),
+            "waiver_audit": _jsonable(waiver_audit),
+        },
+    )
+
+
+def _continue_after_sim_waiver(
+    *,
+    nl: str,
+    current_dsl: str,
+    validation: _ValidationPass,
+    iteration: int,
+    stage_records: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+    adapters: FullStagedRuntimeAdapters,
+    waiver_audit: dict[str, Any],
+) -> _ValidationPass:
+    """Continue after an audited stale SD-6 scenario waiver into SL-7."""
+
+    _append_flow_log(
+        logs,
+        event="waiver_continue_validation_enter",
+        iteration=iteration,
+        source_stage=StageId.SD_6_SIM.value,
+        reason="SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit",
+        current_dsl_hash=_hash_text(current_dsl),
+        current_dsl=current_dsl,
+        waiver_audit=_jsonable(waiver_audit),
+    )
+    source, selected_feedback, source_stage = validation.selected or ("", None, "")
+    if source != FeedbackSource.SIM.value or source_stage != StageId.SD_6_SIM.value or not isinstance(selected_feedback, SimFeedback):
+        return validation
+
+    context = _clone_stage_context(validation.context, current_dsl=current_dsl)
+    feedback = dict(validation.feedback)
+    waived_sim = _make_waived_sim_feedback(selected_feedback, waiver_audit)
+    feedback[FeedbackSource.SIM.value] = waived_sim
+    iteration_stage_metas = list(validation.stage_metas)
+
+    waiver_meta = _meta(StageId.SD_6_SIM, ok=True, status=StageStatus.ADVISORY)
+    waiver_meta.input_hash = _hash_text(current_dsl)
+    waiver_meta.output_hash = _short_hash(waiver_audit)
+    waiver_meta.skipped_reason = (
+        "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
+        "and matched a prior SL-10 local_override_rationale for the same scenario; "
+        "continuing to SL-7 without DSL edit"
+    )
+    _append_stage(stage_records, waiver_meta)
+    iteration_stage_metas.append(waiver_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        ok=True,
+        status=str(StageStatus.ADVISORY),
+        reason="stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7",
+        feedback=_feedback_brief(StageId.SD_6_SIM.value, waived_sim),
+        jump="SL-7",
+    )
+
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        reason="waiver_continue_SD-6_stale_scenario_request",
+        scenario_set_id=validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+        oracle_weak=validation.oracle_weak,
+        waiver_audit=_jsonable(waiver_audit),
+    )
+    review_run = adapters.model_review(
+        current_dsl,
+        context,
+        {
+            "parse": feedback.get(FeedbackSource.PARSE.value),
+            "semantic": feedback.get(FeedbackSource.SEMANTIC.value),
+            "design": feedback.get(FeedbackSource.DESIGN.value),
+            "sim": waived_sim,
+            "oracle_weak": validation.oracle_weak,
+            "waiver_continue": True,
+            "waiver_audit": _jsonable(waiver_audit),
+        },
+    )
+    review_run = _append_llm_stage_run(
+        run=review_run,
+        expected_stage_id=StageId.SL_7_MODEL_REVIEW,
+        stage_records=stage_records,
+        iteration_stage_metas=iteration_stage_metas,
+        llm_interactions=llm_interactions,
+        logs=logs,
+        iteration=iteration,
+    )
+    if _is_llm_stage_run(review_run):
+        review_feedback = getattr(review_run, "feedback", None)
+        if not isinstance(review_feedback, ModelReviewFeedback):
+            raise TypeError("SL-7 LLMStageRun must carry ModelReviewFeedback in .feedback")
+    else:
+        review_feedback, review_meta = review_run
+        _append_stage(stage_records, review_meta)
+        iteration_stage_metas.append(review_meta)
+    feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        ok=not _model_review_blocks(review_feedback),
+        feedback=_feedback_brief(StageId.SL_7_MODEL_REVIEW.value, review_feedback),
+        jump="SD-8 next iteration" if _model_review_blocks(review_feedback) else "SC-12 success",
+    )
+    return _ValidationPass(
+        context,
+        feedback,
+        iteration_stage_metas,
+        _select_first_blocking(feedback),
+        validation.scenario_set,
+        list(validation.scenario_history),
+        validation.oracle_weak,
+        validation.scenario_epoch,
+    )
+
+
+def _continue_after_repair_waiver(
+    *,
+    nl: str,
+    current_dsl: str,
+    cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    validation: _ValidationPass,
+    iteration: int,
+    state: _RunState,
+    stage_records: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+    waiver_audit: dict[str, Any] | None = None,
+) -> _ValidationPass:
+    if isinstance(waiver_audit, dict) and waiver_audit.get("kind") == "stale_overridden_scenario_waiver":
+        return _continue_after_sim_waiver(
+            nl=nl,
+            current_dsl=current_dsl,
+            validation=validation,
+            iteration=iteration,
+            stage_records=stage_records,
+            llm_interactions=llm_interactions,
+            logs=logs,
+            adapters=adapters,
+            waiver_audit=waiver_audit,
+        )
+    return _continue_after_design_waiver(
+        nl=nl,
+        current_dsl=current_dsl,
+        cfg=cfg,
+        adapters=adapters,
+        validation=validation,
+        iteration=iteration,
+        state=state,
+        stage_records=stage_records,
+        llm_interactions=llm_interactions,
+        logs=logs,
+    )
+
 
 def _run_validation_pass(
     *,
@@ -3551,19 +3937,43 @@ def _run_repair_path(
 
         if not sl9_decision.accepted_request_ids:
             hard_rejected = any(req.hard_block for req in active_request_batch.requests)
-            waiver_continue = (
+            stale_waiver_audit = (
+                _stale_overridden_scenario_waiver_audit(
+                    active_request_batch=active_request_batch,
+                    sl9_decision=sl9_decision,
+                    fix_log=state.fix_log,
+                    current_dsl_hash=_hash_text(state.current_dsl),
+                    scenario_set=validation.scenario_set,
+                )
+                if hard_rejected
+                else None
+            )
+            standard_waiver_continue = (
                 not hard_rejected
                 and bool(active_request_batch.requests)
                 and all(req.waiver_allowed for req in active_request_batch.requests)
                 and all(decision.decision == "reject" for decision in sl9_decision.decisions)
             )
+            waiver_continue = standard_waiver_continue or stale_waiver_audit is not None
+            waiver_reason = (
+                ":stale_overridden_scenario_waiver"
+                if stale_waiver_audit is not None
+                else ":waiver_continue"
+                if standard_waiver_continue
+                else ":hard_block"
+                if hard_rejected
+                else ":waiver_only"
+            )
             rejection = RepairRejection(
                 rejected_by_stage=StageId.SL_9_REPAIR.value,
-                reason="sl9_rejected_all_fix_requests" + (":hard_block" if hard_rejected else ":waiver_continue" if waiver_continue else ":waiver_only"),
+                reason="sl9_rejected_all_fix_requests" + waiver_reason,
                 target_resolved=waiver_continue,
                 regression_detected=False,
-                drift_risk="major" if hard_rejected else "minor",
-                evidence=[_jsonable(decision) for decision in sl9_decision.decisions],
+                drift_risk="minor" if stale_waiver_audit is not None else "major" if hard_rejected else "minor",
+                evidence=[
+                    *_jsonable(sl9_decision.decisions),
+                    *([_jsonable(stale_waiver_audit)] if stale_waiver_audit is not None else []),
+                ],
             )
             repair_review = RepairReviewFeedback(
                 ok=waiver_continue,
@@ -3574,13 +3984,18 @@ def _run_repair_path(
             if waiver_continue:
                 _append_flow_log(
                     state.logs,
-                    event="sl9_all_rejected_waiver_continue",
+                    event=(
+                        "sl9_all_rejected_stale_scenario_waiver_continue"
+                        if stale_waiver_audit is not None
+                        else "sl9_all_rejected_waiver_continue"
+                    ),
                     level="info",
                     stage_id=StageId.SL_9_REPAIR.value,
                     iteration=iteration,
                     source_stage=source_stage,
                     batch_id=active_request_batch.batch_id,
                     note="no candidate DSL; downstream validation continues without SC-11 acceptance",
+                    waiver_audit=_jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                     jump="continue_after_current_stage",
                 )
             _fix_log_entry(
@@ -3593,7 +4008,14 @@ def _run_repair_path(
                 candidate_dsl=candidate_dsl,
                 diff_summary=sl9_decision.diff_summary,
                 next_action="continue_after_waiver" if waiver_continue else "exit_rejected",
-                notes=[rejection.reason],
+                notes=[
+                    rejection.reason,
+                    *(
+                        [f"waiver_audit:{stale_waiver_audit['kind']}:{_short_hash(stale_waiver_audit)}"]
+                        if stale_waiver_audit is not None
+                        else []
+                    ),
+                ],
             )
             repair_payload = {
                 "iteration": iteration,
@@ -3607,6 +4029,7 @@ def _run_repair_path(
                 "repair_review": _jsonable(repair_review),
                 "accepted": False,
                 "waiver_continue": waiver_continue,
+                "waiver_audit": _jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                 "repair_stage_ids": list(aggregate_stage_ids),
                 "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
                 "fix_log_entry_count": len(state.fix_log),
@@ -3620,6 +4043,7 @@ def _run_repair_path(
                 "repair_review": _jsonable(repair_review),
                 "accepted_candidate": False,
                 "waiver_continue": waiver_continue,
+                "waiver_audit": _jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                 "exit_reason": "all_fix_requests_rejected_as_waiver_continue" if waiver_continue else rejection.reason,
                 "retryable_repair_rejection": False,
             }
@@ -4380,7 +4804,7 @@ def run_full_staged_deterministic_runtime(
 
         if bool(repair_patch.get("waiver_continue")) and not accepted:
             try:
-                continued_validation = _continue_after_design_waiver(
+                continued_validation = _continue_after_repair_waiver(
                     nl=nl,
                     current_dsl=state.current_dsl,
                     cfg=config,
@@ -4391,6 +4815,7 @@ def run_full_staged_deterministic_runtime(
                     stage_records=state.stage_records,
                     llm_interactions=state.llm_interactions,
                     logs=state.logs,
+                    waiver_audit=repair_patch.get("waiver_audit") if isinstance(repair_patch.get("waiver_audit"), dict) else None,
                 )
             except _LLMRetryExhausted as exc:
                 _mark_retry_exhausted(state, exc)
