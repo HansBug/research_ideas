@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 13:29:31`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 13:29`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -308,7 +308,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-05 13:29:31` | merge-upstream 后完成 SUMMARY 合流：按实际目录重算为 22 个 venue / 154 个 2022-2028 年度 README，保留 PR-3 8 个会议与 PR-4 3 个期刊状态，清理 P0 待建项，并合并 PR-3 / PR-4 踩坑与待补记录。 |
+| `2026-06-05 13:29` | merge-upstream 后完成 SUMMARY 合流：按实际目录重算为 22 个 venue / 154 个 2022-2028 年度 README，保留 PR-3 8 个会议与 PR-4 3 个期刊状态，清理 P0 待建项，并合并 PR-3 / PR-4 踩坑与待补记录。 |
 | `2026-06-05 12:35` | PR-4 SUMMARY/GUIDE 专项复核：确认 14 个 venue / 98 个年度 README 统计一致，并澄清 P0 待建项不再包含 Requirements Engineering、STVR、STTT。 |
 | `2026-06-05 12:18` | 完成 PR-4 剩余 P0 期刊基础建档合流：新增 Requirements Engineering、STVR、STTT 共 3 个 venue、21 个年度 README，同步 TIMELINE rolling / dated events，并记录 Springer collections、Wiley WAF/403 与 STTT conference-based special issue 计数 caveat。 |
 | `2026-06-05 11:43` | 收尾复审后修正 PR-3 小节编号为 14.1 / 14.2，并同步记录剩余 M 级 polish 已处理。 |

@@ -9,8 +9,8 @@
 | 缩写 | STTT |
 | 全称 | International Journal on Software Tools for Technology Transfer |
 | 类型 | 期刊 |
-| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言 |
-| CCF 等级 | C |
+| CCF 大类 | [软件工程 / 系统软件 / 程序设计语言](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) |
+| CCF 等级 | C（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
 | 出版商 | Springer / Springer Nature |
 | ISSN | 1433-2779（print）；1433-2787（electronic） |
 | 期刊主页 | [Springer STTT](https://link.springer.com/journal/10009) |
