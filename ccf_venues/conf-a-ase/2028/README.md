@@ -77,8 +77,8 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本年度 README 是 [TIMELINE.md](../../TIMELINE.md) 的事实来源之一。
-- 本轮按 Worker B 写入范围限制未修改 [TIMELINE.md](../../TIMELINE.md)；可参考 [../_events_draft.md](../_events_draft.md) 合入对应年度事件。
+- 本年度 README 是 [TIMELINE.md](../../TIMELINE.md) 的年度事实源之一；当前可核验的 dated events 已同步或应按事件发生年份同步到全局时间线。
+- 后续新增 official CFP / important dates / proceedings 链接时，必须同时更新本年度页、根 README 年度汇总表与 `TIMELINE.md`。
 
 ## 9. 更新日志
 

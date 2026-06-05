@@ -81,7 +81,8 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本年度 README 是 [TIMELINE.md](../../TIMELINE.md) 的候选事实来源；本 worker 仅写入 venue 内部 [_events_draft.md](../_events_draft.md)，不直接修改全局 timeline。
+- 本年度 README 是 [TIMELINE.md](../../TIMELINE.md) 的年度事实源之一；当前可核验的 dated events 已同步或应按事件发生年份同步到全局时间线。
+- 后续新增 official CFP / important dates / proceedings 链接时，必须同时更新本年度页、根 README 年度汇总表与 `TIMELINE.md`。
 
 ## 9. 更新日志
 

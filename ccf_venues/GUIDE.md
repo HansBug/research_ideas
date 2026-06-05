@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 00:36`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 09:43`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -339,7 +339,10 @@ yyyy-mm-dd hh:mm
 2. 单日 deadline 使用 `milestone`，多日窗口使用普通任务。
 3. Mermaid 图只放短标题，不放 URL；来源链接必须留在年度表格中。
 4. 如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类` 或 `会议 / 期刊专刊` 拆成多张 `gantt` 图。
-5. Mermaid 更新后必须至少人工预览；若本地具备 Mermaid CLI，可补充渲染检查。
+5. Mermaid 展示 label 必须使用 **venue edition 年份**，不能使用事件发生年份。例如 `FSE 2026` 的 `2025-09` submission 在图中显示 `FSE26 Submission`，而不是 `FSE25 Submission`。
+6. Mermaid event id 推荐使用 `<venue_slug>_<event_year>_<sequence>_<yyyymmdd>`，其中 `sequence` 只保证同一事件发生年份内唯一；展示 label 与 event id 可以不同。
+7. Mermaid label 使用短但完整的英文事件词：`Abstract`、`Submission`、`Notify`、`Camera`、`Rebuttal`、`Conference`；不要写成 `Notificati`、`Cameraread` 等机械截断词。
+8. Mermaid 更新后必须至少人工预览；若本地具备 Mermaid CLI，可补充渲染检查。
 
 ### 11.4 同步规则
 
@@ -347,6 +350,8 @@ yyyy-mm-dd hh:mm
 2. 若某个时间点因官方来源冲突被标为 `⚠️ 矛盾待解`，TIMELINE 表格也必须保留该状态，不得只在 venue 年度 README 中记录。
 3. [TIMELINE.md](./TIMELINE.md) 只汇总已进入本库的 venue，不替代 P1/P2 待补清单。
 4. 会议填充负责维护会议 dated events；期刊填充负责维护期刊 rolling 表和期刊 special issue dated events。合流时不得互相删除已经核验的事件行。
+5. 若 worker 临时使用 `_events_draft.md` 或等价草稿收集事件，最终提交前必须删除临时草稿，并把所有根 README / 年度 README 中的草稿链接改成指向 [TIMELINE.md](./TIMELINE.md) 的事实陈述；不得在正式文档中留下 `_events_draft.md` 死链接或“主 session 合流时”这类 PR 内部流程语气。
+6. TIMELINE 表格与 Mermaid 必须一起更新：表格按事件发生日期升序，Mermaid 不放 URL，且图中 edition label 必须与表格 Venue edition 一致。
 
 ## 12. 初始化 PR 自审流程
 
@@ -369,9 +374,10 @@ yyyy-mm-dd hh:mm
 6. 若目标是期刊 venue，补根 README 的核心编辑人员情报；若暂不能核验，写明缺口、检索入口和核查时间。年度页只在 special issue guest editor、年度 editorial team 或人员变更与当年事实直接相关时单独记录。
 7. 回填上级 venue README 的年度汇总表。
 8. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
-9. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度、核心人员覆盖状态和待补清单。
-10. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
-11. 在相关 README 文末更新日志中按时间降序插入记录。
+9. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度、核心人员覆盖状态、踩坑记录和待补清单。
+10. 若本轮 review / 自查发现新的 C/I 级问题，或发现会反复影响后续填充的 M 级共性坑，必须把修复后的规则回写到本 [GUIDE.md](./GUIDE.md) 或 [SUMMARY.md](./SUMMARY.md) 对应“踩坑”小节，不能只在 PR comment 中解决一次。
+11. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
+12. 在相关 README 文末更新日志中按时间降序插入记录。
 
 ## 14. 会议 / 期刊合流与事实共存规则
 
@@ -384,12 +390,45 @@ yyyy-mm-dd hh:mm
 5. **模板统一协议**：外部 URL 占位符使用纯文本占位，内部已知路径使用相对 Markdown 链接；更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
 6. **试点经验保留边界**：会议试点和期刊试点的踩坑结论都应保留在 [SUMMARY.md](./SUMMARY.md) 的对应小节，但不得把某一类试点的 deadline、论文数量或人员 roster 复制成另一类事实。
 
-## 15. 更新日志
+## 15. 踩坑复盘与规则回写纪律
+
+本库是长期情报库，不是一次性 PR 产物。任何一轮踩坑都必须沉淀为后续 AI 能直接执行的规则，避免同类错误在后续 venue 中重复出现。
+
+### 15.1 必须回写的踩坑类型
+
+1. **来源与计数口径坑**：例如 FSE / ESEC-FSE / PACMSE 命名与计数、ISSTA 与 FSE / ECOOP / SPLASH co-location、ASE 多 track 与 DBLP 全 proceedings fallback、RE 的 IEEE Xplore conference number、REFSQ 的 Springer / CEUR / DBLP 分散入口。
+2. **TIMELINE 组织坑**：例如 edition 年份与事件发生年份错位、Mermaid label 使用事件年份导致误读、年度表格已更新但 TIMELINE 未同步、会期事件在根表存在但全局时间线缺失。
+3. **链接与草稿坑**：例如 `_events_draft.md` 已删除但正式 README 仍链接、模板占位链接被误认为事实链接、官方页面 access denied 但未标明 probe / fallback。
+4. **核心人员情报坑**：例如不同 venue 人员表列结构不一致、缺少 `核验状态` / `核查时间`、只写聚合 Steering Committee 而没有可追踪具体人员、研究方向或代表作没有主页 / DBLP / 学术入口支撑。
+5. **未来年度信息坑**：例如只查到当前年而未查当前年份 + 2，或未来年度已有官方主页 / CFP 却未入年度 README；反过来也不得为未公布年度虚构 deadline。
+6. **合流与共享文件坑**：例如后续 PR 修改 [TIMELINE.md](./TIMELINE.md) 时误删期刊 rolling 表、SoSyM special issue dated event、已核验会议事件，或把上游试点 venue 写回待建。
+
+### 15.2 回写位置
+
+1. 能形成长期操作规则的，优先写入本 [GUIDE.md](./GUIDE.md) 对应章节；若找不到合适章节，写入本节。
+2. 只属于某一批 venue 的事实性经验，写入 [SUMMARY.md](./SUMMARY.md) 的“踩坑记录 / 待补与核查记录”，并在相关 venue 根 README 的维护备注中保留。
+3. 单个年度或单个字段的 unresolved fact，写入对应年度 README 的“证据与核查记录”和 [SUMMARY.md](./SUMMARY.md) 的待补表，不要扩大成全库规则。
+4. PR comment 中提出的 C/I 级问题若已经修复，必须在最终 PR 汇总或 PR body 中说明“修复点 -> 本库规则 / 文档落点”，便于后续 reviewer 追踪。
+
+### 15.3 PR 结束前强制自查
+
+每轮数据填充 PR 在声称 ready 前至少执行以下检查：
+
+1. `rg -n "_events_draft|主 session 合流|候选事件见" ccf_venues/<本轮 venue>` 应无正式文档残留；历史更新日志除外。
+2. 本轮新增 / 修改的 venue 根 README 与年度 README 不应存在指向不存在本库文件的相对链接；模板目录的占位链接单独按模板规则解释。
+3. [TIMELINE.md](./TIMELINE.md) 年份章节按降序，节内事件按日期升序；Mermaid 不含 URL / Markdown 链接。
+4. Mermaid label 的 venue edition 必须与表格 Venue 一致，尤其检查 `ICSE`、`FSE`、`ETAPS/TACAS` 等前一年投稿的会议。
+5. 本轮新增的会议根 README 人员表必须包含 `官方角色来源`、`主页 / 学术入口`、`代表作 / 近 5 年论文入口`、`核验状态`、`核查时间`；期刊人员表必须保留 `核验等级 / 当前性`。
+6. [SUMMARY.md](./SUMMARY.md) 的统计数字、完成状态、踩坑记录、待补项与实际目录一致；更新日志仍按时间降序。
+7. 若复审暴露新的共性坑，先补 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md)，再声称 ready；不得把“下次注意”只留在聊天记录或 PR comment 中。
+
+## 16. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 09:43` | 根据 PR-2 复审与用户补充要求，新增踩坑复盘与规则回写纪律，补强 TIMELINE Mermaid edition label、临时草稿链接清理、核心人员字段一致性和 review 经验回写要求。 |
 | `2026-06-05 00:36` | 合入期刊试点后完成共享规则合流：正文改为会议 / 期刊长期事实共存规则，保留期刊核验等级、会议核心人员分层、模板占位链接和 TIMELINE 事件发生年份口径。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：明确会议 / 期刊核心人员分轨、TIMELINE 事件发生年份规则、模板占位链接规则和并行 PR 事实 ownership。 |
 | `2026-06-04 22:05` | 根据正式复审补充期刊核心编辑人员的核验等级 / 当前性规则，明确候选线索和 legacy 运营线索不得写成当前 roster。 |

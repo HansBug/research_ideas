@@ -49,15 +49,17 @@
 
 ## 5. 核心人员情报
 
-| 人员 | 角色 / 年度 | 官方角色来源 | 主要研究方向 | 代表作 / 近年论文线索 | 与本仓库关系 | 待深挖 |
-|---|---|---|---|---|---|---|
-| Foutse Khomh | FSE 2026 General Co-Chair | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | ML/AI software engineering, software quality, empirical SE | [DBLP](https://dblp.org/pid/21/7138) | P1/P2/P4 高相关：ML-enabled systems 与质量评估 | 待补个人主页与近 5 年代表作精确链接。 |
-| Shin Hwei Tan | FSE 2026 General Co-Chair | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | program repair, software testing, SE automation | [DBLP](https://dblp.org/pid/26/9450) | P4 很高，P2 中高：修复与测试反馈闭环 | 待补个人主页 / 近年 LLM repair 论文。 |
-| Julia Lawall | FSE 2026 Program Co-Chair | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | program analysis, Coccinelle, software evolution | [DBLP](https://dblp.org/pid/l/JuliaLawall) | P4/P3 高相关：规则化修复、程序分析证据链 | 待补 Coccinelle 代表作链接。 |
-| Christoph Treude | FSE 2026 Program Co-Chair | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | AI for SE, developer knowledge, empirical SE | [DBLP](https://dblp.org/pid/42/4730) | P1/P2/P4 高相关：LLM4SE、开发者知识与实验评估 | 待补近年 LLM4SE 论文入口。 |
-| Lin Tan | FSE 2024 Program Co-Chair | [FSE 2024 Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | software reliability, testing, program analysis | [DBLP](https://dblp.org/pid/t/LinTan) | P2/P3/P4 高相关 | 待补官方个人主页。 |
-| David Lo | FSE 2024 Program Co-Chair | [FSE 2024 Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | software analytics, mining software repositories, testing | [DBLP](https://dblp.org/pid/39/8119) | P2/P4 高相关，适合追踪 LLM4SE 实证线索 | 待补近 5 年代表作。 |
-| FSE Steering Committee | 长期治理层 | [FSE 2026 Organization navigation](https://conf.researchr.org/committee/fse-2026/fse-2026-steering-committee) | venue policy, PACMSE / conference naming, research track governance | 官方 steering 页面待逐人展开 | 与投稿制度、PACMSE 计数口径直接相关 | 后续应逐人补角色、DBLP 和任期。 |
+> 人员角色以 FSE 官方年度 organizing / research papers / steering 入口为准；研究方向和代表作基于个人主页、DBLP 或公开学术入口归纳。本表优先记录 General Chair、Research/Program Chair、与 P1-P4 强相关的 track chair / committee 成员和领域权威；不等同于全量 PC roster。
+
+| 人员 | 年度 / 层级 | 会议角色 | 单位 / 主页入口 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验状态 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Foutse Khomh | FSE 2026 | General Co-Chair | Polytechnique Montréal / 待补 | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | [DBLP](https://dblp.org/pid/21/7138) | ML / AI software engineering, software quality, empirical SE | DBLP 近年论文入口；代表作待逐篇筛选 | P1/P2/P4 高相关：ML-enabled systems 与质量评估 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Shin Hwei Tan | FSE 2026 | General Co-Chair | Southern University of Science and Technology / 待补 | [FSE 2026 Organizing Committee](https://conf.researchr.org/committee/fse-2026/fse-2026-organizing-committee) | [DBLP](https://dblp.org/pid/26/9450) | program repair, software testing, SE automation | DBLP 近年 repair / testing 论文入口；代表作待逐篇筛选 | P4 很高，P2 中高：修复与测试反馈闭环 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Julia Lawall | FSE 2026 | Program Co-Chair | Inria / Sorbonne Université / 待补 | [FSE 2026 Research Papers committee](https://conf.researchr.org/committee/fse-2026/fse-2026-research-papers-program-committee) | [DBLP](https://dblp.org/pid/l/JuliaLawall) | program analysis, Coccinelle, software evolution | Coccinelle / program transformation 线索待逐篇补证 | P4/P3 高相关：规则化修复、程序分析证据链 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Christoph Treude | FSE 2026 | Program Co-Chair | University of Melbourne / 待补 | [FSE 2026 Research Papers committee](https://conf.researchr.org/committee/fse-2026/fse-2026-research-papers-program-committee) | [DBLP](https://dblp.org/pid/42/4730) | AI for SE, developer knowledge, empirical SE | DBLP 近年 AI4SE / LLM4SE 论文入口；代表作待逐篇筛选 | P1/P2/P4 高相关：LLM4SE、开发者知识与实验评估 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Lin Tan | FSE 2024 | Program Co-Chair | Purdue University / 待补 | [FSE 2024 Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [DBLP](https://dblp.org/pid/t/LinTan) | software reliability, testing, program analysis | DBLP 近年 reliability / testing 论文入口；代表作待逐篇筛选 | P2/P3/P4 高相关 | 🟡 角色已核验，个人主页待补 | `2026-06-05 09:32` |
+| David Lo | FSE 2024 | Program Co-Chair | Singapore Management University / 待补 | [FSE 2024 Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [DBLP](https://dblp.org/pid/39/8119) | software analytics, mining software repositories, testing | DBLP 近年 LLM4SE / analytics 论文入口；代表作待逐篇筛选 | P2/P4 高相关，适合追踪 LLM4SE 实证线索 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| FSE Steering Committee | 长期治理层 | Steering Committee（聚合入口） | 待逐人展开 | [FSE 2026 homepage navigation](https://conf.researchr.org/home/fse-2026)；researchr steering 链接当前为 external path wrapper，需后续手工展开 | [FSE series](https://conf.researchr.org/series/fse) | venue policy, PACMSE / conference naming, research track governance | 逐人 DBLP / 任期待补 | 与投稿制度、PACMSE 计数口径直接相关 | ⚪ 聚合入口已记录，未达逐人情报粒度 | `2026-06-05 09:32` |
 
 ## 6. 年度信息汇总
 
@@ -82,7 +84,8 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本 worker 未修改 [TIMELINE.md](../TIMELINE.md)；候选事件见 [_events_draft.md](./_events_draft.md)。
+- 本 venue 当前已记录的 dated events 已同步至 [TIMELINE.md](../TIMELINE.md)；后续新增或修正 important dates 时，必须同步更新对应年度 README 与 `TIMELINE.md` 的事件发生年份章节。
+- 本目录不再保留 worker 事件草稿文件；事实源以各年度 README 的“重要时间点”表与 `TIMELINE.md` 为准。
 
 ## 9. 更新日志
 

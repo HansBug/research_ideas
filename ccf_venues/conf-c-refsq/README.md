@@ -73,14 +73,14 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 
 ## 7. 维护备注
 
-- REFSQ 虽在 scope 文件标为 P0-B，但 PR #41 计划纳入 PR-2；本 worker 只填充目录，不改 [../01-venue-scope.md](../01-venue-scope.md)。
+- REFSQ 虽在 scope 文件标为 P0-B，但 PR #41 计划纳入 PR-2；本轮只补充 REFSQ 目录事实，不改 [../01-venue-scope.md](../01-venue-scope.md)。
 - REFSQ 年度页面使用独立子域 `yyyy.refsq.org`，researchr 系列导航、Springer proceedings、CEUR / DBLP 入口可能分散；不要把 DBLP 当官方 accepted/program，也不要把 LNCS proceedings 卷号未核准时写成既定事实。
 - 2027 已有 official home / dates / organizing committee，submission system 未公布；2028 未发现官方主页或 dates。
 
 ## 8. TIMELINE.md 同步提示
 
-- 本目录只提供事实草稿；本 worker 不直接修改 [TIMELINE.md](../TIMELINE.md)。
-- 可同步行已另写入 [`_events_draft.md`](./_events_draft.md)，主 session 合流时需按事件发生年份插入 TIMELINE，并保留官方来源、本库年度页和论文名录 / proceedings 链接。
+- 本 venue 当前已记录的 dated events 已同步至 [TIMELINE.md](../TIMELINE.md)；后续新增或修正 important dates 时，必须同步更新对应年度 README 与 `TIMELINE.md` 的事件发生年份章节。
+- 本目录不再保留 worker 事件草稿文件；事实源以各年度 README 的“重要时间点”表与 `TIMELINE.md` 为准。
 
 ## 9. 更新日志
 

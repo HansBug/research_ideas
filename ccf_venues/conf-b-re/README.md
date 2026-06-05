@@ -79,8 +79,8 @@ RE 是需求工程领域核心会议，覆盖 elicitation、analysis、prioritiz
 
 ## 8. TIMELINE.md 同步提示
 
-- 本目录只提供事实草稿；本 worker 不直接修改 [TIMELINE.md](../TIMELINE.md)。
-- 可同步行已另写入 [`_events_draft.md`](./_events_draft.md)，主 session 合流时需按事件发生年份插入 TIMELINE，并保留官方来源、本库年度页和论文名录 / proceedings 链接。
+- 本 venue 当前已记录的 dated events 已同步至 [TIMELINE.md](../TIMELINE.md)；后续新增或修正 important dates 时，必须同步更新对应年度 README 与 `TIMELINE.md` 的事件发生年份章节。
+- 本目录不再保留 worker 事件草稿文件；事实源以各年度 README 的“重要时间点”表与 `TIMELINE.md` 为准。
 
 ## 9. 更新日志
 
