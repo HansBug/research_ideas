@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from method import loop
 from method.run_record import read_agent_loop_run_record
 from method.schema import (
+    DesignDiagnosticItem,
     DesignFeedback,
     LoopConfig,
     ModelReviewFeedback,
     ParseFeedback,
+    RepairRejection,
     RepairReviewFeedback,
     SemanticFeedback,
     SimFeedback,
@@ -19,6 +22,7 @@ from method.schema import (
 )
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
+    _LLMRetryExhausted,
     RepairRequest,
     ScenarioGenerationRequest,
 )
@@ -349,3 +353,438 @@ def test_targeted_scenario_refresh_preserves_previous_oracle_by_name() -> None:
     assert audit["merged_count"] == 3
     assert audit["new_only_names"] == ["effect_probe"]
     assert audit["updated_existing_names"] == ["fault_recovery"]
+
+
+# PR-LG-A1 Command routing contract tests.
+
+def _adapters_with(**overrides: Any) -> FullStagedRuntimeAdapters:
+    base = _adapters()
+    data = {
+        "parse": base.parse,
+        "semantic": base.semantic,
+        "design": base.design,
+        "scenario_generate": base.scenario_generate,
+        "scenario_coverage": base.scenario_coverage,
+        "sim": base.sim,
+        "model_review": base.model_review,
+        "repair": base.repair,
+        "repair_review": base.repair_review,
+        "sl10_review": base.sl10_review,
+        "delta_review": base.delta_review,
+        "initial_modeling": base.initial_modeling,
+    }
+    data.update(overrides)
+    return FullStagedRuntimeAdapters(**data)
+
+
+def _run_langgraph_mock(
+    tmp_path: Path,
+    *,
+    run_id: str,
+    adapters: FullStagedRuntimeAdapters | None = None,
+    initial_dsl: str | None = None,
+    max_iterations: int = 1,
+    condition_id: str | None = None,
+) -> Any:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    return run_full_staged_langgraph_runtime(
+        "LG-A1 Command routing should preserve graph evidence.",
+        config=LoopConfig(
+            condition_id=condition_id or run_id,
+            condition_family="test_profile",
+            base_condition_id="full_staged_v1",
+            changed_factors=["llm_provider_mode=mock", "lg_a1_command_routing_contract"],
+            llm_provider_mode="mock",
+            academic_question="test-only LG-A1 Command routing contract; excluded from main results",
+            output_dir=str(tmp_path),
+            run_id=run_id,
+            max_iterations=max_iterations,
+            compatibility_mode="langgraph_stategraph",
+        ),
+        initial_dsl=initial_dsl or _stable_dsl(),
+        adapters=adapters or _adapters(),
+    )
+
+
+def _lg_record(result: Any) -> Any:
+    assert result.run_record_path
+    return read_agent_loop_run_record(result.run_record_path)
+
+
+def _lg_trace_nodes(record: Any) -> list[str]:
+    return [str(item.get("node_id") or "") for item in record.run_config.get("langgraph_node_trace", [])]
+
+
+def _lg_baseline(record: Any) -> dict[str, Any]:
+    return {
+        "stage_ids": [str(item.get("stage_id") if isinstance(item, dict) else item.stage_id) for item in record.stage_records],
+        "record_status": record.status,
+        "verdict": record.final_artifacts.get("verdict"),
+        "verdict_source_stage_id": record.final_artifacts.get("verdict_source_stage_id"),
+        "oracle_weak": record.final_artifacts.get("oracle_weak"),
+        "main_result_eligible": record.final_artifacts.get("main_result_eligible"),
+        "exclusion_reason": record.final_artifacts.get("exclusion_reason"),
+        "iteration_count": len(record.iteration_records),
+        "fix_log_count": int(record.replay_index.get("fix_log_count") or 0),
+        "trace_nodes": _lg_trace_nodes(record),
+    }
+
+
+
+def _retry_exhausted_run(stage_id: StageId, error_kind: str = "provider_error") -> Any:
+    message = f"{stage_id.value} {error_kind} exhausted"
+    meta = _meta(stage_id, ok=False, status=StageStatus.ERROR)
+    meta.stage_error = message
+    return SimpleNamespace(
+        stage_id=stage_id.value,
+        ok=False,
+        parsed_output={},
+        feedback=None,
+        stage_meta=meta,
+        interaction={
+            "stage_id": stage_id.value,
+            "provider": "test-adapter",
+            "model_id": "none",
+            "schema_validation_ok": False,
+            "retry_error": {"error_kind": error_kind, "error_message": message},
+            "attempts": [{"status": error_kind, "error_kind": error_kind, "error_message": message}],
+        },
+    )
+
+
+def _local_reject_review(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+    rejection = RepairRejection(
+        rejected_by_stage=StageId.SL_10_REPAIR_REVIEW.value,
+        reason="mock_repair_review_rejected_candidate",
+        target_resolved=False,
+        regression_detected=True,
+        drift_risk="major",
+        evidence=[{"case": "lg_a1_repair_rejection"}],
+    )
+    feedback = RepairReviewFeedback(ok=False, target_resolved=False, regression_detected=True, drift_risk="major", local_rejection=rejection)
+    return feedback, _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+
+
+def test_command_routing_no_next_action_as_primary_source() -> None:
+    import inspect
+    import method.langgraph_runtime as lg
+
+    source = inspect.getsource(lg._build_graph)
+
+    assert "Command(" in source
+    assert "add_conditional_edges" not in source
+    assert "def route_iteration_gate" not in source
+    assert "def route_validation_decision" not in source
+    assert "def route_repair_decision" not in source
+    assert "def route_waiver_continue" not in source
+    assert "graph_state.get(\"next_action\")" not in source
+    assert "graph_state['next_action']" not in source
+    assert 'graph_state["next_action"]' not in source
+
+
+def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: Path) -> None:
+    full_pass = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-full-pass", max_iterations=1))
+    full_pass_baseline = _lg_baseline(full_pass)
+
+    assert full_pass.status == "success"
+    assert full_pass.final_artifacts["verdict"] == "success"
+    assert full_pass.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
+    assert full_pass_baseline["trace_nodes"] == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "sc13_trace_audit",
+    ]
+    assert full_pass_baseline["stage_ids"][-1] == StageId.SC_13_TRACE_AUDIT.value
+    assert full_pass.final_artifacts["main_result_eligible"] is False
+
+    budget = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-budget-zero", max_iterations=0))
+    budget_baseline = _lg_baseline(budget)
+
+    assert budget.status == "budget_exhausted"
+    assert budget.final_artifacts["verdict"] == "not_converged"
+    assert budget.final_artifacts["verdict_source_stage_id"] == StageId.SC_0_START.value
+    assert budget_baseline["trace_nodes"] == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "sc13_trace_audit",
+    ]
+    assert budget.final_artifacts["main_result_eligible"] is False
+
+
+def test_command_routing_equivalence_sc12_verdict_source_matrix(tmp_path: Path) -> None:
+    def weak_sim(_dsl: str, _scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        return (
+            SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, oracle_weak=True, weak_oracle_reason="mock_weak"),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_BLOCK",
+            pyfcstm_severity="warning",
+            policy_action="hard_block",
+            instance_key="lg-a1:block",
+            rationale="force repair path for Command routing matrix",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def retry_model_review(_dsl: str, _context: StageContext, _feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        raise _LLMRetryExhausted(
+            stage_id=StageId.SL_7_MODEL_REVIEW.value,
+            retry_error={"error_kind": "provider_error", "error_message": "mock retry exhausted"},
+            interaction={"stage_id": StageId.SL_7_MODEL_REVIEW.value, "attempts": [{"status": "provider_error"}]},
+        )
+
+    cases = [
+        (
+            "full_pass",
+            _adapters(),
+            1,
+            "success",
+            "success",
+            StageId.SL_7_MODEL_REVIEW.value,
+            ["validation_decision", "sc13_trace_audit"],
+        ),
+        (
+            "oracle_weak_sd6",
+            _adapters_with(sim=weak_sim),
+            1,
+            "failed",
+            "not_converged",
+            StageId.SD_6_SIM.value,
+            ["validation_decision", "sc13_trace_audit"],
+        ),
+        (
+            "repair_rejection",
+            _adapters_with(design=design_block, repair=lambda _request: _stable_dsl(), repair_review=_local_reject_review),
+            1,
+            "rejected",
+            "not_converged",
+            StageId.SL_10_REPAIR_REVIEW.value,
+            ["repair_path", "repair_decision", "sc13_trace_audit"],
+        ),
+        (
+            "budget_exhausted_after_accept",
+            _adapters_with(design=design_block, repair=lambda _request: _stable_dsl()),
+            1,
+            "budget_exhausted",
+            "not_converged",
+            StageId.SC_11_ACCEPT_CANDIDATE.value,
+            ["repair_path", "repair_decision", "sc13_trace_audit"],
+        ),
+        (
+            "llm_retry_exhausted_sl7",
+            _adapters_with(model_review=retry_model_review),
+            1,
+            "error",
+            "provider_error",
+            StageId.SL_7_MODEL_REVIEW.value,
+            ["validation_pass", "validation_decision", "sc13_trace_audit"],
+        ),
+    ]
+
+    for name, adapters, max_iterations, record_status, verdict, source_stage, required_nodes in cases:
+        record = _lg_record(_run_langgraph_mock(tmp_path, run_id=f"lg-a1-matrix-{name}", adapters=adapters, max_iterations=max_iterations))
+        assert record.status == record_status, name
+        assert record.final_artifacts["verdict"] == verdict, name
+        assert record.final_artifacts["verdict_source_stage_id"] == source_stage, name
+        trace_nodes = _lg_trace_nodes(record)
+        for node in required_nodes:
+            assert node in trace_nodes, (name, trace_nodes)
+
+
+def test_command_routing_preserves_eligibility_nfrr(tmp_path: Path) -> None:
+    def weak_sim(_dsl: str, _scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        return (
+            SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, oracle_weak=True, weak_oracle_reason="mock_weak"),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    success = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-elig-success"))
+    weak = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-elig-weak", adapters=_adapters_with(sim=weak_sim)))
+
+    assert success.final_artifacts["oracle_weak"] is False
+    assert success.final_artifacts["main_result_eligible"] is False
+    assert "non_real_provider_mode" in str(success.final_artifacts["exclusion_reason"])
+    assert weak.final_artifacts["oracle_weak"] is True
+    assert weak.final_artifacts["main_result_eligible"] is False
+    assert weak.final_artifacts["exclusion_reason"] == "verdict_not_success"
+    assert weak.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+
+
+def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_validation(tmp_path: Path) -> None:
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_WAIVER",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-a1:waiver",
+            rationale="waiver-allowed diagnostic for Command routing",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver"}],
+            "repair_rationale": ["safe waiver"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-waiver-continue",
+            adapters=_adapters_with(design=design_block, repair=reject_all_as_waiver),
+            max_iterations=1,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert "waiver_continue" in trace_nodes
+    assert trace_nodes[-1] == "sc13_trace_audit"
+    assert record.status in {"success", "budget_exhausted", "failed", "rejected"}
+    assert record.iteration_records
+    assert "post_waiver_stage_ids" in record.iteration_records[0]
+
+
+def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+
+    before_transients = set(lg._TRANSIENT_OBJECTS)
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_SL9_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="hard_block",
+            instance_key="lg-a1:sl9-retry",
+            rationale="force SL-9 retry-exhausted repair path",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-sl9-retry-exhausted",
+            adapters=_adapters_with(design=design_block, repair=lambda _request: _retry_exhausted_run(StageId.SL_9_REPAIR, "provider_error")),
+            max_iterations=2,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes[-3:] == ["repair_path", "repair_decision", "sc13_trace_audit"]
+    assert record.status == "error"
+    assert record.final_artifacts["verdict"] == "provider_error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_9_REPAIR.value
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_9_REPAIR.value} retry exhausted")
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "provider_error"
+    assert record.llm_interactions[-1]["attempts"]
+    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+
+
+def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+
+    before_transients = set(lg._TRANSIENT_OBJECTS)
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A1_WAIVER_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-a1:waiver-retry",
+            rationale="waiver-allowed diagnostic for Command routing retry cleanup",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver"}],
+            "repair_rationale": ["safe waiver"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-waiver-sl5-retry-exhausted",
+            adapters=_adapters_with(
+                design=design_block,
+                repair=reject_all_as_waiver,
+                scenario_generate=lambda _request: _retry_exhausted_run(StageId.SL_5_SCENARIO_GENERATION, "empty_output"),
+            ),
+            max_iterations=2,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert "waiver_continue" in trace_nodes
+    assert trace_nodes[-1] == "sc13_trace_audit"
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_5_SCENARIO_GENERATION.value} retry exhausted")
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
+    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+
+
+def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tmp_path: Path) -> None:
+    parse_calls: list[str] = []
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_calls.append(dsl)
+        return _ok_parse(dsl, context)
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-repair":
+            item = DesignDiagnosticItem(
+                code="W_LG_A1_MULTICYCLE",
+                pyfcstm_severity="warning",
+                policy_action="hard_block",
+                instance_key="lg-a1:multicycle",
+                rationale="force one accepted repair before full revalidation",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a1-multicycle-acceptance",
+            initial_dsl="needs-repair",
+            adapters=_adapters_with(parse=parse, design=design, repair=lambda _request: _stable_dsl()),
+            max_iterations=3,
+        )
+    )
+
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "repair_path",
+        "repair_decision",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "sc13_trace_audit",
+    ]
+    assert trace_nodes.count("iteration_gate") == 2
+    assert trace_nodes.count("validation_pass") == 2
+    assert trace_nodes.count("repair_decision") == 1
+    assert parse_calls == ["needs-repair", _stable_dsl()]
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert len(record.iteration_records) == 2
+    assert record.iteration_records[0]["accepted_candidate"] is True
+    assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"

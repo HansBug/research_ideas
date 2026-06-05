@@ -28,6 +28,7 @@ from typing import Any, NotRequired, TypedDict
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command
 
 from method.llm_stages import ChatProvider
 from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
@@ -103,7 +104,6 @@ class _GraphLoopState(TypedDict, total=False):
     selected_trace: Any
     accepted: bool
     repair_patch: dict[str, Any]
-    next_action: str
     runtime_result: Any
     runtime_error: NotRequired[str]
 
@@ -618,14 +618,13 @@ def _run_initial_modeling_node_logic(*, nl: str, runtime_cfg: FullStagedRuntimeC
 def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRuntimeAdapters) -> Any:
     graph = StateGraph(_GraphLoopState)
 
-    def sc0_start(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def sc0_start(graph_state: _GraphLoopState) -> Command:
         nl = graph_state["nl"]
         run_id = _initial_run_id(nl, runtime_cfg)
         runtime_state = _RunState(run_id=run_id, run_started_at=_utc_now(), current_dsl=runtime_cfg.initial_dsl)
         graph_state = dict(graph_state)
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration"] = 0
-        graph_state["next_action"] = "iteration_gate"
         _trace_node(graph_state, "sc0_start")
         _append_stage(runtime_state.stage_records, _meta(StageId.SC_0_START, ok=True))
         _append_flow_log(
@@ -641,9 +640,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             initial_dsl=runtime_state.current_dsl,
             graph_runtime_backend="langgraph",
         )
-        return graph_state
+        return Command(goto="sl1_initial_modeling", update=graph_state)
 
-    def sl1_initial_modeling(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def sl1_initial_modeling(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         _trace_node(graph_state, "sl1_initial_modeling")
         runtime_state = graph_state["runtime_state"]
@@ -660,22 +659,19 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 stage_status=StageStatus.FAIL,
             )
         graph_state["runtime_state"] = runtime_state
-        return graph_state
+        return Command(goto="iteration_gate", update=graph_state)
 
-    def iteration_gate(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def iteration_gate(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         _trace_node(graph_state, "iteration_gate", iteration=graph_state.get("iteration"))
-        return graph_state
-
-    def route_iteration_gate(graph_state: _GraphLoopState) -> str:
         runtime_state: _RunState = graph_state["runtime_state"]
         if runtime_state.verdict_source_stage_id is not None:
-            return "verdict_ready"
+            return Command(goto="sc13_trace_audit", update=graph_state)
         if int(graph_state.get("iteration", 0)) >= runtime_cfg.max_iterations:
-            return "budget_exhausted"
-        return "continue_validation"
+            return Command(goto="sc12_budget_exhausted", update=graph_state)
+        return Command(goto="validation_pass", update=graph_state)
 
-    def validation_pass(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def validation_pass(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration = int(graph_state.get("iteration", 0))
@@ -721,9 +717,8 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                     "exit_reason": runtime_state.verdict_reason,
                 }
             )
-            graph_state["next_action"] = "finalize"
             graph_state["runtime_state"] = runtime_state
-            return graph_state
+            return Command(goto="validation_decision", update=graph_state)
 
         runtime_state.warning_budget_state = validation.context.warning_budget_state
         runtime_state.scenario_set = validation.scenario_set
@@ -764,10 +759,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             "oracle_weak": runtime_state.oracle_weak,
             "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
         }
-        graph_state["next_action"] = "validation_decision"
-        return graph_state
+        return Command(goto="validation_decision", update=graph_state)
 
-    def validation_decision(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def validation_decision(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration_record = dict(graph_state.get("iteration_record") or {})
@@ -775,8 +769,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         validation = _get_transient(validation_ref) if validation_ref else None
         _trace_node(graph_state, "validation_decision", iteration=graph_state.get("iteration"))
         if runtime_state.verdict_source_stage_id is not None:
-            graph_state["next_action"] = "finalize"
-            return graph_state
+            return Command(goto="sc13_trace_audit", update=graph_state)
         weak_sim_feedback = getattr(validation, "feedback", {}).get("sim") if validation is not None else None
         if (
             getattr(validation, "selected", None) is None
@@ -797,7 +790,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             )
             iteration_record["exit_reason"] = reason
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         elif getattr(validation, "selected", None) is None:
             stage_metas = getattr(validation, "stage_metas", []) or []
             source_stage_id = stage_metas[-1].stage_id if stage_metas else StageId.SC_0_START.value
@@ -809,19 +802,16 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             )
             iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok"
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         else:
-            graph_state["next_action"] = "repair"
+            command_goto = "repair_path"
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
-        if graph_state.get("next_action") != "repair":
+        if command_goto != "repair_path":
             _drop_transient(str(graph_state.get("validation_ref") or ""))
-        return graph_state
+        return Command(goto=command_goto, update=graph_state)
 
-    def route_validation_decision(graph_state: _GraphLoopState) -> str:
-        return "repair_required" if graph_state.get("next_action") == "repair" else "verdict_ready"
-
-    def repair_path(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def repair_path(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration = int(graph_state.get("iteration", 0))
@@ -842,10 +832,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             iteration_record["exit_reason"] = runtime_state.verdict_reason
             iteration_record["repair_stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])[len(iteration_record.get("stage_ids") or []) :]
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
             graph_state["runtime_state"] = runtime_state
             graph_state["iteration_record"] = iteration_record
-            return graph_state
+            return Command(goto="repair_decision", update=graph_state)
         iteration_record.update(repair_patch)
         _append_flow_log(
             runtime_state.logs,
@@ -865,10 +854,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state["iteration_record"] = iteration_record
         graph_state["accepted"] = accepted
         graph_state["repair_patch"] = repair_patch
-        graph_state["next_action"] = "repair_decision"
-        return graph_state
+        return Command(goto="repair_decision", update=graph_state)
 
-    def repair_decision(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def repair_decision(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration = int(graph_state.get("iteration", 0))
@@ -877,9 +865,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         repair_patch = dict(graph_state.get("repair_patch") or {})
         _trace_node(graph_state, "repair_decision", iteration=iteration, accepted=accepted)
         if runtime_state.verdict_source_stage_id is not None:
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         elif bool(repair_patch.get("waiver_continue")) and not accepted:
-            graph_state["next_action"] = "waiver_continue"
+            command_goto = "waiver_continue"
         elif not accepted:
             reason = iteration_record.get("exit_reason") or "repair review rejected candidate"
             can_retry_rejection = (
@@ -892,7 +880,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 iteration_record["next_iteration_repair_plan"] = "RevisedFixPlan"
                 runtime_state.iteration_records.append(iteration_record)
                 graph_state["iteration"] = iteration + 1
-                graph_state["next_action"] = "next_iteration"
+                command_goto = "iteration_gate"
             else:
                 reason = _final_rejection_reason(iteration_record=iteration_record, repair_history=runtime_state.repair_history)
                 iteration_record["exit_reason"] = reason
@@ -907,7 +895,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                     stage_status=StageStatus.FAIL,
                 )
                 runtime_state.iteration_records.append(iteration_record)
-                graph_state["next_action"] = "finalize"
+                command_goto = "sc13_trace_audit"
         elif iteration + 1 >= runtime_cfg.max_iterations:
             reason = f"SC-11 budget gate blocked SD-2 revalidation: iter+1={iteration + 1} >= max_iterations={runtime_cfg.max_iterations}"
             _mark_sc12_verdict(
@@ -928,26 +916,18 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 "next_stage_allowed": False,
             }
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         else:
             runtime_state.iteration_records.append(iteration_record)
             graph_state["iteration"] = iteration + 1
-            graph_state["next_action"] = "next_iteration"
+            command_goto = "iteration_gate"
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
-        if graph_state.get("next_action") != "waiver_continue":
+        if command_goto != "waiver_continue":
             _drop_transient(str(graph_state.get("validation_ref") or ""))
-        return graph_state
+        return Command(goto=command_goto, update=graph_state)
 
-    def route_repair_decision(graph_state: _GraphLoopState) -> str:
-        action = str(graph_state.get("next_action") or "")
-        if action == "waiver_continue":
-            return "waiver_continue"
-        if action == "next_iteration":
-            return "next_iteration"
-        return "verdict_ready"
-
-    def waiver_continue(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def waiver_continue(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration = int(graph_state.get("iteration", 0))
@@ -973,10 +953,11 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             iteration_record["exit_reason"] = runtime_state.verdict_reason
             iteration_record["repair_stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])[len(iteration_record.get("stage_ids") or []) :]
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
             graph_state["runtime_state"] = runtime_state
             graph_state["iteration_record"] = iteration_record
-            return graph_state
+            _drop_transient(str(graph_state.get("validation_ref") or ""))
+            return Command(goto=command_goto, update=graph_state)
 
         runtime_state.warning_budget_state = continued_validation.context.warning_budget_state
         runtime_state.scenario_set = continued_validation.scenario_set
@@ -1033,7 +1014,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             )
             iteration_record["exit_reason"] = reason
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         elif continued_validation.selected is None:
             source_stage_id = continued_validation.stage_metas[-1].stage_id if continued_validation.stage_metas else StageId.SD_4_DESIGN.value
             _mark_sc12_verdict(
@@ -1044,7 +1025,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             )
             iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_waiver_continue"
             runtime_state.iteration_records.append(iteration_record)
-            graph_state["next_action"] = "finalize"
+            command_goto = "sc13_trace_audit"
         else:
             iteration_record["exit_reason"] = "waiver_continue_revealed_downstream_blocking_feedback"
             runtime_state.iteration_records.append(iteration_record)
@@ -1063,20 +1044,17 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                     stage_ok=False,
                     stage_status=StageStatus.FAIL,
                 )
-                graph_state["next_action"] = "finalize"
+                command_goto = "sc13_trace_audit"
             else:
                 graph_state["iteration"] = iteration + 1
-                graph_state["next_action"] = "next_iteration"
+                command_goto = "iteration_gate"
         graph_state["runtime_state"] = runtime_state
         graph_state["iteration_record"] = iteration_record
-        if graph_state.get("next_action") != "next_iteration":
+        if command_goto != "iteration_gate":
             _drop_transient(str(graph_state.get("validation_ref") or ""))
-        return graph_state
+        return Command(goto=command_goto, update=graph_state)
 
-    def route_waiver_continue(graph_state: _GraphLoopState) -> str:
-        return "next_iteration" if graph_state.get("next_action") == "next_iteration" else "verdict_ready"
-
-    def sc12_budget_exhausted(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def sc12_budget_exhausted(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         _trace_node(graph_state, "sc12_budget_exhausted", iteration=graph_state.get("iteration"))
@@ -1100,10 +1078,9 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 stage_status=StageStatus.FAIL,
             )
         graph_state["runtime_state"] = runtime_state
-        graph_state["next_action"] = "finalize"
-        return graph_state
+        return Command(goto="sc13_trace_audit", update=graph_state)
 
-    def sc13_trace_audit(graph_state: _GraphLoopState) -> _GraphLoopState:
+    def sc13_trace_audit(graph_state: _GraphLoopState) -> Command:
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         _trace_node(graph_state, "sc13_trace_audit")
@@ -1153,8 +1130,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 result.run_record_path = None
         graph_state["runtime_state"] = runtime_state
         graph_state["runtime_result"] = result
-        graph_state["next_action"] = "done"
-        return graph_state
+        return Command(goto=END, update=graph_state)
 
     graph.add_node("sc0_start", sc0_start)
     graph.add_node("sl1_initial_modeling", sl1_initial_modeling)
@@ -1168,24 +1144,6 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
     graph.add_node("sc13_trace_audit", sc13_trace_audit)
 
     graph.add_edge(START, "sc0_start")
-    graph.add_edge("sc0_start", "sl1_initial_modeling")
-    graph.add_edge("sl1_initial_modeling", "iteration_gate")
-    graph.add_conditional_edges(
-        "iteration_gate",
-        route_iteration_gate,
-        {"continue_validation": "validation_pass", "budget_exhausted": "sc12_budget_exhausted", "verdict_ready": "sc13_trace_audit"},
-    )
-    graph.add_edge("validation_pass", "validation_decision")
-    graph.add_conditional_edges("validation_decision", route_validation_decision, {"repair_required": "repair_path", "verdict_ready": "sc13_trace_audit"})
-    graph.add_edge("repair_path", "repair_decision")
-    graph.add_conditional_edges(
-        "repair_decision",
-        route_repair_decision,
-        {"waiver_continue": "waiver_continue", "next_iteration": "iteration_gate", "verdict_ready": "sc13_trace_audit"},
-    )
-    graph.add_conditional_edges("waiver_continue", route_waiver_continue, {"next_iteration": "iteration_gate", "verdict_ready": "sc13_trace_audit"})
-    graph.add_edge("sc12_budget_exhausted", "sc13_trace_audit")
-    graph.add_edge("sc13_trace_audit", END)
     return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()))
 
 
