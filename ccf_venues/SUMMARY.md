@@ -295,7 +295,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | 合流完整性 | PR-6 / PR-7 / PR-8 / PR-9 facts 共存 | `git ls-files -u` 为空；`ccf_venues/` 未发现 conflict marker；SUMMARY / TIMELINE 仍保留维护修复、实证质量、形式化工具链与 P2 邻近观察事件并集 | ✅ 已完成 |
 | 近期投稿窗口 | RV 2026、APSEC 2026、SANER 2027、ESE Agentic / FORGE / EASE / PROMPT-SE、JSS AI Techniques 已复核 | 官方页面确认 RV 2026 extended paper submission `2026-06-14`；APSEC 2026 Technical Track 为 `UTC+8 (Bali time)`；SANER 2027 Research Track 为 `AoE (UTC-12h)`；ESE Springer collections 日期与当前 TIMELINE 一致；JSS ScienceDirect 官方 URL 仍为 CLI 403/WAF caveat，不升级为完全核验 | ✅ 已完成 |
 | 模板链接 | 模板内伪相对链接已清理 | [templates/](./templates/) 下年度路径和 TIMELINE 路径改为代码样式占位；实例化后的正式 README 仍要求可点击相对链接 | ✅ 已完成 |
-| Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本 + 官方页面 requests / HTML 抽取完成核验；该坑已回写 [GUIDE.md](./GUIDE.md) §15.1 | ✅ 已完成 |
+| Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本、`curl` / `requests`、官方页面 HTML 抽取、`claude -p` 与 `codex-deepseek exec` 完成替代核验；该坑已回写 [GUIDE.md](./GUIDE.md) §15.1 | ✅ 已完成 |
 
 ## 10. 核心 URL / 超链接覆盖口径
 
