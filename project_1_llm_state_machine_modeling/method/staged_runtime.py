@@ -2596,6 +2596,54 @@ def _continue_after_repair_waiver(
     )
 
 
+def _run_post_accept_validation(
+    *,
+    nl: str,
+    cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    state: _RunState,
+    iteration: int,
+    stage_records: list[StageResultMeta],
+    logs: list[dict[str, Any]],
+    llm_interactions: list[dict[str, Any]],
+) -> _ValidationPass:
+    """Run same-iteration full validation after SC-11 accepted a candidate.
+
+    Used only when no next global iteration remains.  The accepted DSL still
+    must pass SD-2/SD-3/SD-4/SD-5A/SD-6/SL-7 before success is emitted; this
+    helper merely preserves the validation evidence instead of failing at the
+    SC-11 handoff boundary.
+    """
+
+    _append_flow_log(
+        logs,
+        event="post_accept_validation_enter",
+        stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
+        iteration=iteration,
+        reason="SC-11 accepted candidate but no next global iteration remains; run same-iteration full validation",
+        current_dsl_hash=_hash_text(state.current_dsl),
+        current_dsl=state.current_dsl,
+        scenario_set_id=state.scenario_set.scenario_set_id if state.scenario_set is not None else None,
+        oracle_weak=state.oracle_weak,
+        jump="SD-2 post_accept_validation",
+    )
+    return _run_validation_pass(
+        nl=nl,
+        current_dsl=state.current_dsl,
+        cfg=cfg,
+        adapters=adapters,
+        state=state,
+        scenario_set=state.scenario_set,
+        scenario_epoch=state.scenario_epoch,
+        oracle_weak=state.oracle_weak,
+        iteration=iteration,
+        stage_records=stage_records,
+        logs=logs,
+        llm_interactions=llm_interactions,
+        warning_budget_state=state.warning_budget_state,
+    )
+
+
 def _run_validation_pass(
     *,
     nl: str,
@@ -5144,24 +5192,116 @@ def run_full_staged_deterministic_runtime(
             state.iteration_records.append(iteration_record)
             break
         if iteration + 1 >= config.max_iterations:
-            reason = f"SC-11 budget gate blocked SD-2 revalidation: iter+1={iteration + 1} >= max_iterations={config.max_iterations}"
-            _mark_sc12_verdict(
-                state,
-                verdict="not_converged",
-                source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
-                reason=reason,
-                record_status="budget_exhausted",
-                result_status="not_converged",
-                stage_ok=False,
-                stage_status=StageStatus.FAIL,
+            budget_reason = (
+                f"SC-11 budget gate reached: iter+1={iteration + 1} >= max_iterations={config.max_iterations}; "
+                "running same-iteration post-accept validation"
             )
-            iteration_record["exit_reason"] = reason
             iteration_record["budget_gate"] = {
                 "source_stage_id": StageId.SC_11_ACCEPT_CANDIDATE.value,
                 "iter_plus_one": iteration + 1,
                 "max_iterations": config.max_iterations,
                 "next_stage_allowed": False,
+                "post_accept_validation_attempted": True,
             }
+            try:
+                post_accept_validation = _run_post_accept_validation(
+                    nl=nl,
+                    cfg=config,
+                    adapters=adapters,
+                    state=state,
+                    iteration=iteration,
+                    stage_records=state.stage_records,
+                    logs=state.logs,
+                    llm_interactions=state.llm_interactions,
+                )
+            except _LLMRetryExhausted as exc:
+                _mark_retry_exhausted(state, exc)
+                iteration_record["exit_reason"] = state.verdict_reason
+                iteration_record["post_accept_stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])[len(iteration_record["stage_ids"]):]
+                state.iteration_records.append(iteration_record)
+                break
+
+            state.warning_budget_state = post_accept_validation.context.warning_budget_state
+            state.scenario_set = post_accept_validation.scenario_set
+            if post_accept_validation.scenario_set is not None:
+                state.scenario_epoch = max(state.scenario_epoch, post_accept_validation.scenario_set.epoch + 1)
+            state.oracle_weak = post_accept_validation.oracle_weak
+            state.scenario_history.extend(post_accept_validation.scenario_history)
+            state.deterministic_feedback["iterations"].append(
+                {
+                    "iteration": iteration,
+                    "post_accept_validation": True,
+                    "parse": _jsonable(post_accept_validation.feedback.get(FeedbackSource.PARSE.value)),
+                    "semantic": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                    "design": _jsonable(post_accept_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                    "sim": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SIM.value)),
+                    "model_review": _jsonable(post_accept_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                    "stage_ids": _stage_ids(post_accept_validation.stage_metas),
+                    "scenario_epoch": post_accept_validation.scenario_epoch,
+                    "oracle_weak": post_accept_validation.oracle_weak,
+                }
+            )
+            if post_accept_validation.selected is not None:
+                source, feedback_obj, source_stage = post_accept_validation.selected
+                iteration_record["post_accept_selected_feedback"] = _selected_feedback_trace(
+                    source,
+                    feedback_obj,
+                    source_stage,
+                    scenario_set=post_accept_validation.scenario_set,
+                )
+            else:
+                iteration_record["post_accept_selected_feedback"] = None
+            iteration_record["post_accept_stage_ids"] = _stage_ids(post_accept_validation.stage_metas)
+            iteration_record["post_accept_scenario_epoch"] = post_accept_validation.scenario_epoch
+            iteration_record["post_accept_oracle_weak"] = post_accept_validation.oracle_weak
+            iteration_record["stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])
+
+            weak_sim_feedback = post_accept_validation.feedback.get(FeedbackSource.SIM.value)
+            if (
+                post_accept_validation.selected is None
+                and isinstance(weak_sim_feedback, SimFeedback)
+                and not weak_sim_feedback.ok
+                and getattr(weak_sim_feedback, "oracle_weak", False)
+            ):
+                reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=StageId.SD_6_SIM.value,
+                    reason=reason,
+                    record_status="failed",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = reason
+                state.iteration_records.append(iteration_record)
+                break
+            if post_accept_validation.selected is None:
+                source_stage_id = post_accept_validation.stage_metas[-1].stage_id if post_accept_validation.stage_metas else StageId.SC_11_ACCEPT_CANDIDATE.value
+                _mark_sc12_verdict(
+                    state,
+                    verdict="success",
+                    source_stage_id=source_stage_id,
+                    reason="full_pass_all_required_feedback_ok_after_sc11_post_accept_validation",
+                )
+                iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+                iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                state.iteration_records.append(iteration_record)
+                break
+            reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
+            _mark_sc12_verdict(
+                state,
+                verdict="not_converged",
+                source_stage_id=iteration_record["post_accept_selected_feedback"].get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                reason=str(reason),
+                record_status="budget_exhausted",
+                result_status="not_converged",
+                stage_ok=False,
+                stage_status=StageStatus.FAIL,
+            )
+            iteration_record["exit_reason"] = str(reason)
+            iteration_record["budget_gate"]["post_accept_validation_success"] = False
             state.iteration_records.append(iteration_record)
             break
         state.iteration_records.append(iteration_record)

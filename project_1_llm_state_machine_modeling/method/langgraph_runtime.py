@@ -2505,26 +2505,134 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 runtime_state.iteration_records.append(iteration_record)
                 command_goto = "sc13_trace_audit"
         elif iteration + 1 >= runtime_cfg.max_iterations:
-            reason = f"SC-11 budget gate blocked SD-2 revalidation: iter+1={iteration + 1} >= max_iterations={runtime_cfg.max_iterations}"
-            _mark_sc12_verdict(
-                runtime_state,
-                verdict="not_converged",
-                source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
-                reason=reason,
-                record_status="budget_exhausted",
-                result_status="not_converged",
-                stage_ok=False,
-                stage_status=StageStatus.FAIL,
-            )
-            iteration_record["exit_reason"] = reason
             iteration_record["budget_gate"] = {
                 "source_stage_id": StageId.SC_11_ACCEPT_CANDIDATE.value,
                 "iter_plus_one": iteration + 1,
                 "max_iterations": runtime_cfg.max_iterations,
                 "next_stage_allowed": False,
+                "post_accept_validation_attempted": True,
             }
-            runtime_state.iteration_records.append(iteration_record)
-            command_goto = "sc13_trace_audit"
+            _append_flow_log(
+                runtime_state.logs,
+                event="post_accept_validation_enter",
+                stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
+                iteration=iteration,
+                reason="SC-11 accepted candidate but no next global iteration remains; run same-iteration full validation",
+                current_dsl_hash=_hash_text(runtime_state.current_dsl),
+                current_dsl=runtime_state.current_dsl,
+                scenario_set_id=runtime_state.scenario_set.scenario_set_id if runtime_state.scenario_set is not None else None,
+                oracle_weak=runtime_state.oracle_weak,
+                jump="SD-2 post_accept_validation",
+                graph_node="repair_decision",
+            )
+            try:
+                graph_state.pop("validation_continuation_source", None)
+                graph_state = dict(
+                    validation_subgraph.invoke(
+                        graph_state,
+                        config={"configurable": {"thread_id": f"{runtime_state.run_id}:validation-post-accept:{iteration}"}},
+                    )
+                )
+                runtime_state = graph_state["runtime_state"]
+                post_accept_validation = graph_state.get("validation_result")
+                if not isinstance(post_accept_validation, _ValidationPass):
+                    raise TypeError("validation subgraph did not return a _ValidationPass after post-accept validation")
+                _drop_validation_subgraph_state(graph_state)
+            except _LLMRetryExhausted as exc:
+                _drop_validation_subgraph_state(graph_state)
+                _mark_retry_exhausted(runtime_state, exc)
+                iteration_record["exit_reason"] = runtime_state.verdict_reason
+                iteration_record["post_accept_stage_ids"] = _stage_ids(runtime_state.stage_records[int(graph_state.get("iteration_stage_start", len(runtime_state.stage_records))):])[len(iteration_record.get("stage_ids") or []) :]
+                runtime_state.iteration_records.append(iteration_record)
+                command_goto = "sc13_trace_audit"
+                graph_state["runtime_state"] = runtime_state
+                graph_state["iteration_record"] = iteration_record
+                _drop_state_validation_ref(graph_state)
+                return Command(goto=command_goto, update=graph_state)
+
+            runtime_state.warning_budget_state = post_accept_validation.context.warning_budget_state
+            runtime_state.scenario_set = post_accept_validation.scenario_set
+            if post_accept_validation.scenario_set is not None:
+                runtime_state.scenario_epoch = max(runtime_state.scenario_epoch, post_accept_validation.scenario_set.epoch + 1)
+            runtime_state.oracle_weak = post_accept_validation.oracle_weak
+            runtime_state.scenario_history.extend(post_accept_validation.scenario_history)
+            runtime_state.deterministic_feedback["iterations"].append(
+                {
+                    "iteration": iteration,
+                    "post_accept_validation": True,
+                    "parse": _jsonable(post_accept_validation.feedback.get(FeedbackSource.PARSE.value)),
+                    "semantic": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                    "design": _jsonable(post_accept_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                    "sim": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SIM.value)),
+                    "model_review": _jsonable(post_accept_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                    "stage_ids": _stage_ids(post_accept_validation.stage_metas),
+                    "scenario_epoch": post_accept_validation.scenario_epoch,
+                    "oracle_weak": post_accept_validation.oracle_weak,
+                    "langgraph_subgraph": "validation_subgraph",
+                }
+            )
+            if post_accept_validation.selected is not None:
+                source, feedback_obj, source_stage = post_accept_validation.selected
+                iteration_record["post_accept_selected_feedback"] = _selected_feedback_trace(
+                    source, feedback_obj, source_stage, scenario_set=post_accept_validation.scenario_set
+                )
+            else:
+                iteration_record["post_accept_selected_feedback"] = None
+            iteration_record["post_accept_stage_ids"] = _stage_ids(post_accept_validation.stage_metas)
+            iteration_record["post_accept_scenario_epoch"] = post_accept_validation.scenario_epoch
+            iteration_record["post_accept_oracle_weak"] = post_accept_validation.oracle_weak
+            iteration_stage_start = int(graph_state.get("iteration_stage_start", len(runtime_state.stage_records)))
+            iteration_record["stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])
+
+            weak_sim_feedback = post_accept_validation.feedback.get(FeedbackSource.SIM.value)
+            if (
+                post_accept_validation.selected is None
+                and isinstance(weak_sim_feedback, SimFeedback)
+                and not weak_sim_feedback.ok
+                and getattr(weak_sim_feedback, "oracle_weak", False)
+            ):
+                reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                _mark_sc12_verdict(
+                    runtime_state,
+                    verdict="not_converged",
+                    source_stage_id=StageId.SD_6_SIM.value,
+                    reason=reason,
+                    record_status="failed",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = reason
+                runtime_state.iteration_records.append(iteration_record)
+                command_goto = "sc13_trace_audit"
+            elif post_accept_validation.selected is None:
+                source_stage_id = post_accept_validation.stage_metas[-1].stage_id if post_accept_validation.stage_metas else StageId.SC_11_ACCEPT_CANDIDATE.value
+                _mark_sc12_verdict(
+                    runtime_state,
+                    verdict="success",
+                    source_stage_id=source_stage_id,
+                    reason="full_pass_all_required_feedback_ok_after_sc11_post_accept_validation",
+                )
+                iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+                iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                runtime_state.iteration_records.append(iteration_record)
+                command_goto = "sc13_trace_audit"
+            else:
+                reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
+                _mark_sc12_verdict(
+                    runtime_state,
+                    verdict="not_converged",
+                    source_stage_id=iteration_record["post_accept_selected_feedback"].get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                    reason=str(reason),
+                    record_status="budget_exhausted",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = str(reason)
+                iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                runtime_state.iteration_records.append(iteration_record)
+                command_goto = "sc13_trace_audit"
         else:
             runtime_state.iteration_records.append(iteration_record)
             graph_state["iteration"] = iteration + 1

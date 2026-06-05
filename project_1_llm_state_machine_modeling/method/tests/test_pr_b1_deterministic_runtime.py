@@ -978,10 +978,13 @@ def test_accept_candidate_with_parse_regression_is_revalidated_not_direct_succes
     assert record.status == "budget_exhausted"
     assert record.final_artifacts["main_result_eligible"] is False
     assert record.final_artifacts["verdict"] == "not_converged"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_2_PARSE.value
+    assert record.iteration_records[1]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[1]["budget_gate"]["post_accept_validation_success"] is False
+    assert record.iteration_records[1]["post_accept_selected_feedback"]["source_stage"] == StageId.SD_2_PARSE.value
 
 
-def test_sc11_budget_gate_emits_not_converged_without_direct_success(tmp_path: Path) -> None:
+def test_sc11_budget_gate_runs_post_accept_validation_instead_of_direct_success(tmp_path: Path) -> None:
     def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         if context.current_dsl == "needs-one-repair":
             item = DesignDiagnosticItem(
@@ -999,24 +1002,26 @@ def test_sc11_budget_gate_emits_not_converged_without_direct_success(tmp_path: P
         adapters=_base_adapters(design=design, repair=lambda request: "fixed-but-unvalidated"),
     )
 
-    assert result.status == "not_converged"
+    assert result.status == "converged"
     assert result.final_dsl == "fixed-but-unvalidated"
     record = read_agent_loop_run_record(result.run_record_path or "")
     stage_ids = _stage_ids(record)
     sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
     sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
-    assert sc11_index < sc12_index
-    assert StageId.SD_2_PARSE.value not in stage_ids[sc11_index + 1 : sc12_index]
-    assert record.status == "budget_exhausted"
-    assert record.final_artifacts["verdict"] == "not_converged"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
-    assert record.final_artifacts["main_result_eligible"] is False
+    sd2_after_accept = stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1)
+    assert sc11_index < sd2_after_accept < sc12_index
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
     assert record.iteration_records[0]["budget_gate"] == {
         "source_stage_id": StageId.SC_11_ACCEPT_CANDIDATE.value,
         "iter_plus_one": 1,
         "max_iterations": 1,
         "next_stage_allowed": False,
+        "post_accept_validation_attempted": True,
+        "post_accept_validation_success": True,
     }
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
 
 
 
@@ -1115,7 +1120,7 @@ def test_sl10_rework_gets_one_same_batch_retry_even_on_last_iteration(tmp_path: 
     assert repair_calls[1].rework_locked is True
     assert "Keep candidate-a" in str(repair_calls[1].repair_memory)
     assert len(sl10_calls) == 2
-    assert result.status == "not_converged"
+    assert result.status == "converged"
     assert result.final_dsl == "candidate-b"
     record = read_agent_loop_run_record(result.run_record_path or "")
     phases = [entry["phase"] for entry in record.fix_log]
@@ -1125,11 +1130,91 @@ def test_sl10_rework_gets_one_same_batch_retry_even_on_last_iteration(tmp_path: 
     assert record.repair_history[-1]["rework_attempt"] == 1
     assert record.iteration_records[0]["accepted_candidate"] is True
     assert record.iteration_records[0]["rework_attempts_used"] == 2
-    assert record.status == "budget_exhausted"
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
     assert record.iteration_records[0]["budget_gate"]["source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
     stage_ids = _stage_ids(record)
     assert stage_ids.count(StageId.SL_9_REPAIR.value) == 2
     assert stage_ids.count(StageId.SL_10_REPAIR_REVIEW.value) == 2
+    sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
+    sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
+    assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < sc12_index
+
+
+def test_sc11_last_iteration_runs_post_accept_validation_before_success(tmp_path: Path) -> None:
+    parse_seen: list[str] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-post-accept":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_POST_ACCEPT",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_POST_ACCEPT:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_seen.append(dsl)
+        return _ok_parse(dsl, context)
+
+    result = run_full_staged_deterministic_runtime(
+        "Accepted final-iteration candidate still needs post-accept validation.",
+        FullStagedRuntimeConfig(initial_dsl="needs-post-accept", run_id="pr-b1-post-accept-success", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(parse=parse, design=design, repair=lambda _request: "post-accepted-fixed"),
+    )
+
+    assert result.status == "converged"
+    assert parse_seen == ["needs-post-accept", "post-accepted-fixed"]
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["exit_reason"] == "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    assert StageId.SD_2_PARSE.value in record.iteration_records[0]["post_accept_stage_ids"]
+    assert record.stage_records[-2]["stage_id"] == StageId.SC_12_EXIT.value
+
+
+def test_sc11_post_accept_validation_failure_remains_not_converged(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-post-accept-fail":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_POST_ACCEPT_FAIL",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_POST_ACCEPT_FAIL:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        n = len(getattr(scenarios_or_set, "scenarios", []) or [])
+        if dsl == "post-accepted-still-bad":
+            return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, setup_error="post accept still fails"), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=n, n_scenarios_passed=n), _meta(StageId.SD_6_SIM)
+
+    result = run_full_staged_deterministic_runtime(
+        "Post-accept validation must not auto-pass a still failing candidate.",
+        FullStagedRuntimeConfig(initial_dsl="needs-post-accept-fail", run_id="pr-b1-post-accept-fail", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "post-accepted-still-bad", sim=sim),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "budget_exhausted"
+    assert record.final_artifacts["verdict"] == "not_converged"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is False
+    assert record.iteration_records[0]["post_accept_selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    assert "post accept still fails" in record.iteration_records[0]["exit_reason"]
 
 def test_llm_retry_exhausted_in_sl7_exits_provider_error_without_repair(tmp_path: Path) -> None:
     result = run_full_staged_deterministic_runtime(

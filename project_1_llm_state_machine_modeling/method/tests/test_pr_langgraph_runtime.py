@@ -437,6 +437,11 @@ def _lg_record(result: Any) -> Any:
     return read_agent_loop_run_record(result.run_record_path)
 
 
+
+
+def _record_stage_ids(record: Any) -> list[str]:
+    return [str(item.get("stage_id") if isinstance(item, dict) else item.stage_id) for item in record.stage_records]
+
 def _lg_trace_nodes(record: Any) -> list[str]:
     return [str(item.get("node_id") or "") for item in record.run_config.get("langgraph_node_trace", [])]
 
@@ -738,8 +743,8 @@ def test_command_routing_equivalence_sc12_verdict_source_matrix(tmp_path: Path) 
             1,
             "budget_exhausted",
             "not_converged",
-            StageId.SC_11_ACCEPT_CANDIDATE.value,
-            ["repair_path", "repair_decision", "sc13_trace_audit"],
+            StageId.SD_4_DESIGN.value,
+            ["repair_path", "repair_decision", "validation_subgraph", "sc13_trace_audit"],
         ),
         (
             "llm_retry_exhausted_sl7",
@@ -1140,13 +1145,74 @@ def test_langgraph_sl10_rework_gets_same_batch_retry_on_last_iteration(tmp_path:
     assert record.repair_history[-1]["accepted"] is True
     assert record.repair_history[-1]["rework_attempt"] == 1
     assert record.iteration_records[0]["rework_attempts_used"] == 2
-    assert record.status == "budget_exhausted"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    stage_ids = _record_stage_ids(record)
+    sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
+    sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
+    assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < sc12_index
     assert record.run_config["min_sl10_rework_attempts"] == 1
     assert record.run_config["graph_config_hash"] == record.environment["graph_config_hash"]
     assert record.stage_records[-2]["stage_id"] == StageId.SC_12_EXIT.value
     assert [entry["phase"] for entry in record.fix_log].count("sl9_rework_decision") == 1
     assert [entry["phase"] for entry in record.fix_log].count("sl10_rework_review") == 1
+
+
+def test_langgraph_sc11_last_iteration_runs_post_accept_validation_before_success(tmp_path: Path) -> None:
+    parse_seen: list[str] = []
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_seen.append(dsl)
+        return _ok_parse(dsl, context)
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-needs-post-accept":
+            item = DesignDiagnosticItem(
+                code="W_LG_POST_ACCEPT",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_POST_ACCEPT:state=Idle",
+                rationale="force accepted repair in last iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept post-accept repair"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": "lg-post-accepted-fixed",
+            "repair_rationale": ["produce post-accepted fixed candidate"],
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-post-accept-success",
+            initial_dsl="lg-needs-post-accept",
+            max_iterations=1,
+            adapters=_adapters_with(parse=parse, design=design, repair=repair),
+        )
+    )
+
+    assert parse_seen == ["lg-needs-post-accept", "lg-post-accepted-fixed"]
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["exit_reason"] == "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    assert StageId.SD_2_PARSE.value in record.iteration_records[0]["post_accept_stage_ids"]
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes.count("validation_subgraph") >= 2
+    assert "repair_decision" in trace_nodes
 
 def test_sl10_noop_override_waiver_continues_without_sc11_budget(tmp_path: Path) -> None:
     scenario_name = "lg_b1_noop_override_scenario"
