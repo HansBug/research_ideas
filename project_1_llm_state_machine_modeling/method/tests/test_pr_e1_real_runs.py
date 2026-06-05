@@ -130,6 +130,7 @@ def test_pr_e1_conditions_make_default_vs_exploratory_configs(tmp_path: Path) ->
 
     default_cfg = make_pr_e1_config(specs["default"], output_dir=tmp_path, run_id="default-run")
     iter8_cfg = make_pr_e1_config(specs["iter8"], output_dir=tmp_path, run_id="iter8-run")
+    postaccept_cfg = make_pr_e1_config(specs["postaccept1"], output_dir=tmp_path, run_id="postaccept-run")
 
     assert default_cfg.condition_id == "full_staged_v1"
     assert default_cfg.policy_profile == "experiment_default"
@@ -137,6 +138,10 @@ def test_pr_e1_conditions_make_default_vs_exploratory_configs(tmp_path: Path) ->
     assert iter8_cfg.policy_profile == "pr_e1_exploratory"
     assert iter8_cfg.max_iterations == 8
     assert "max_iterations=8" in iter8_cfg.changed_factors
+    assert postaccept_cfg.condition_id == "pr_e1_postaccept1_v1"
+    assert postaccept_cfg.policy_profile == "pr_e1_exploratory"
+    assert postaccept_cfg.max_iterations == 1
+    assert "post_accept_boundary_stress=true" in postaccept_cfg.changed_factors
 
 
 def test_pr_e1_cases_include_mandatory_and_e2_aligned_screening_set() -> None:
@@ -351,7 +356,14 @@ def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> No
     ]
     record.iteration_records = [
         {"iteration": 0, "exit_reason": "candidate_accepted_for_next_full_pass"},
-        {"iteration": 1, "exit_reason": "SD-6 sim failure: 1/2 scenarios passed"},
+        {
+            "iteration": 1,
+            "exit_reason": "SD-6 sim failure: 1/2 scenarios passed",
+            "budget_gate": {
+                "post_accept_validation_attempted": True,
+                "post_accept_validation_success": False,
+            },
+        },
     ]
     path = write_agent_loop_run_record(record, tmp_path / "source-summary.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="not_converged", run_record_id="source-summary", run_record_path=str(path))
@@ -377,6 +389,67 @@ def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> No
     assert summary.iteration_exit_reasons[-1].startswith("SD-6 sim failure")
     assert summary.final_dsl_source["repair_history_index"] == 0
     assert summary.final_dsl_source["last_rejected_candidate"]["candidate_dsl_hash"] == "sha256:rejected"
+    assert summary.post_accept_validation_attempted is True
+    assert summary.post_accept_validation_attempt_count == 1
+    assert summary.post_accept_validation_success_count == 0
+    assert summary.post_accept_validation_failure_count == 1
+
+
+def test_pr_e1_report_and_matrix_show_post_accept_coverage(tmp_path: Path) -> None:
+    record = _record("post-accept-summary")
+    record.status = "success"
+    record.stage_records = [_stage_meta(stage_id, ok=True) for stage_id in ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SD-8", "SL-9", "SL-10", "SC-11", "SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SC-12", "SC-13"]]
+    record.iteration_records = [
+        {
+            "iteration": 0,
+            "selected_feedback": {"source": "design", "source_stage": "SD-4"},
+            "repair_stage_ids": ["SD-8", "SL-9", "SL-10", "SC-11"],
+            "accepted_candidate": True,
+            "post_accept_stage_ids": ["SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7"],
+            "post_accept_selected_feedback": None,
+            "exit_reason": "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation",
+            "budget_gate": {
+                "post_accept_validation_attempted": True,
+                "post_accept_validation_success": True,
+            },
+        }
+    ]
+    record.final_artifacts.update(
+        {
+            "verdict": "success",
+            "verdict_reason": "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation",
+            "main_result_eligible": True,
+            "exclusion_reason": None,
+        }
+    )
+    path = write_agent_loop_run_record(record, tmp_path / "post-accept.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="success", run_record_id=record.run_id, run_record_path=str(path))
+    case = pr_e1_cases()[0]
+    summary = summarize_pr_e1_run(
+        case=case,
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    report = render_run_report(case, condition_specs()["default"], record, summary)
+    matrix = render_matrix_summary([summary])
+    comment = render_pr_comment([summary], output_dir=tmp_path)
+
+    assert summary.post_accept_validation_attempted is True
+    assert summary.post_accept_validation_attempt_count == 1
+    assert summary.post_accept_validation_success_count == 1
+    assert "SC-11 post-accept validation" in report
+    assert "attempted=`true`" in report
+    assert "post-accept" in matrix
+    assert "triggered=1/1" in matrix
+    assert "✅ 1/1; ❌ 0" in comment
 
 
 def test_pr_e1_final_dsl_source_prefers_later_accepted_same_hash(tmp_path: Path) -> None:

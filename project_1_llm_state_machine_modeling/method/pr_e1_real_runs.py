@@ -212,6 +212,10 @@ class PrE1RunSummary:
     fix_log_next_actions: list[str] = field(default_factory=list)
     iteration_exit_reasons: list[str] = field(default_factory=list)
     final_dsl_source: dict[str, object] = field(default_factory=dict)
+    post_accept_validation_attempted: bool = False
+    post_accept_validation_attempt_count: int = 0
+    post_accept_validation_success_count: int = 0
+    post_accept_validation_failure_count: int = 0
 
 
 REQUIRED_ENV_KEYS = ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL")
@@ -395,6 +399,19 @@ def condition_specs() -> dict[str, ConditionSpec]:
             changed_factors=("llm_max_retries=3",),
             academic_question="PR-E1 explores whether one extra LLM retry helps provider/schema instability.",
             recommendation_role="diagnostic-only",
+        ),
+        "postaccept1": ConditionSpec(
+            config_id="postaccept1",
+            label="SC-11 post-accept boundary stress max_iterations=1",
+            max_iterations=1,
+            exploratory=True,
+            changed_factors=("max_iterations=1", "post_accept_boundary_stress=true"),
+            academic_question=(
+                "PR-E1 diagnostic-only stress condition for observing whether a real run reaches "
+                "the SC-11 same-iteration post-accept validation boundary; it must not be mixed "
+                "with default main-result evidence."
+            ),
+            recommendation_role="diagnostic-only post-accept branch trigger probe",
         ),
     }
 
@@ -824,6 +841,7 @@ def summarize_pr_e1_run(
         state_mode_decorative=state_mode_decorative,
         final_dsl=final_dsl,
     )
+    post_accept_stats = _post_accept_validation_stats(record)
     return PrE1RunSummary(
         case_key=case.case_key,
         path=case.path,
@@ -878,6 +896,10 @@ def summarize_pr_e1_run(
         fix_log_next_actions=_fix_log_next_actions(record),
         iteration_exit_reasons=_iteration_exit_reasons(record),
         final_dsl_source=_final_dsl_source(record, final_dsl_hash),
+        post_accept_validation_attempted=post_accept_stats["attempted"],
+        post_accept_validation_attempt_count=post_accept_stats["attempt_count"],
+        post_accept_validation_success_count=post_accept_stats["success_count"],
+        post_accept_validation_failure_count=post_accept_stats["failure_count"],
     )
 
 
@@ -970,6 +992,38 @@ def _iteration_exit_reasons(record: AgentLoopRunRecord) -> list[str]:
         if isinstance(entry, dict) and entry.get("exit_reason") is not None:
             reasons.append(str(entry["exit_reason"]))
     return reasons
+
+
+def _post_accept_validation_stats(record: AgentLoopRunRecord) -> dict[str, int | bool]:
+    """Summarise SC-11 same-iteration post-accept validation coverage.
+
+    Four default real runs may all be clean without ever reaching the SC-11
+    budget-boundary branch.  Recording this explicitly prevents evidence
+    reports from over-claiming that non-regression runs have exercised the
+    post-accept branch.  The statistic is report-only and never feeds back into
+    the runtime quality gate.
+    """
+
+    attempt_count = 0
+    success_count = 0
+    failure_count = 0
+    for entry in record.iteration_records if isinstance(record.iteration_records, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        gate = entry.get("budget_gate")
+        if not isinstance(gate, dict) or gate.get("post_accept_validation_attempted") is not True:
+            continue
+        attempt_count += 1
+        if gate.get("post_accept_validation_success") is True:
+            success_count += 1
+        elif gate.get("post_accept_validation_success") is False:
+            failure_count += 1
+    return {
+        "attempted": attempt_count > 0,
+        "attempt_count": attempt_count,
+        "success_count": success_count,
+        "failure_count": failure_count,
+    }
 
 
 def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = None) -> dict[str, object]:
@@ -1239,6 +1293,10 @@ def _write_exception_artifacts(
         fix_log_next_actions=[],
         iteration_exit_reasons=[],
         final_dsl_source={},
+        post_accept_validation_attempted=False,
+        post_accept_validation_attempt_count=0,
+        post_accept_validation_success_count=0,
+        post_accept_validation_failure_count=0,
     )
     (run_dir / "final.fcstm").write_text("", encoding="utf-8")
     (run_dir / "summary.json").write_text(json.dumps(asdict(summary), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -1272,6 +1330,9 @@ def _record_budget_value(record: AgentLoopRunRecord, key: str, default: object =
     budget = resolved.get("budget_policy") if isinstance(resolved.get("budget_policy"), dict) else {}
     if key in budget:
         return budget[key]
+    run_budget = run_config.get("budget_policy") if isinstance(run_config.get("budget_policy"), dict) else {}
+    if key in run_budget:
+        return run_budget[key]
     if key in run_config:
         return run_config[key]
     return default
@@ -1315,6 +1376,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| state_mode_decorative_detected | `{str(summary.state_mode_decorative_detected).lower()}` |",
         f"| path2_ref_model_blueprint_eligible | `{_path2_blueprint_display(summary)}`；{_escape_md(summary.path2_ref_model_blueprint_reason or '<none>')} |",
         f"| final.fcstm 来源 | `{_escape_md(json.dumps(summary.final_dsl_source, ensure_ascii=False, sort_keys=True))}` |",
+        f"| SC-11 post-accept validation | attempted=`{str(summary.post_accept_validation_attempted).lower()}`；attempts=`{summary.post_accept_validation_attempt_count}`；success=`{summary.post_accept_validation_success_count}`；failure=`{summary.post_accept_validation_failure_count}` |",
         f"| FixLog next_action 序列 | `{_escape_md(_join_limited(summary.fix_log_next_actions, limit=12))}` |",
         f"| iteration exit_reason 序列 | `{_escape_md(_join_limited(summary.iteration_exit_reasons, limit=8))}` |",
         f"| token/cost/time | tokens=`{summary.token_usage}`, elapsed=`{summary.elapsed_seconds}s` |",
@@ -1448,12 +1510,12 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "",
         "## 1. 运行矩阵总览",
         "",
-        "| Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
-        "|---|---|---|---|---|---:|---:|---|---|---:|---:|---:|---:|---:|---|",
+        "| Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | post-accept | scenarios | tokens | elapsed | report |",
+        "|---|---|---|---|---|---:|---:|---|---|---:|---:|---|---:|---:|---:|---|",
     ]
     for s in summaries:
         lines.append(
-            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {clean} | {eligible} | {blueprint} | `{failure}` | {iters} | {repairs} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
+            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {clean} | {eligible} | {blueprint} | `{failure}` | {iters} | {repairs} | {post_accept} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
                 path=s.path,
                 case=s.case_key,
                 config=s.config_id,
@@ -1465,6 +1527,7 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
                 failure=s.primary_failure_class,
                 iters=s.iteration_count,
                 repairs=s.repair_count,
+                post_accept=_post_accept_display(s),
                 scenarios=s.scenario_history_count,
                 tokens=_escape_md(_token_display(s.token_usage)),
                 elapsed=s.elapsed_seconds,
@@ -1520,12 +1583,12 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
         "",
         f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
-        "| Path | case | config | verdict | status | clean | eligible | path2 blueprint | failure class | token usage | report |",
-        "|---|---|---|---|---|---:|---:|---|---|---|---|",
+        "| Path | case | config | verdict | status | clean | eligible | path2 blueprint | post-accept | failure class | token usage | report |",
+        "|---|---|---|---|---|---:|---:|---|---|---|---|---|",
     ]
     for s in summaries:
         lines.append(
-            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | {_path2_blueprint_icon(s)} | `{s.primary_failure_class}` | {_escape_md(_token_display(s.token_usage))} | `{output_dir_text}/{s.run_id}/report.md` |"
+            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | {_path2_blueprint_icon(s)} | {_post_accept_display(s)} | `{s.primary_failure_class}` | {_escape_md(_token_display(s.token_usage))} | `{output_dir_text}/{s.run_id}/report.md` |"
         )
     lines.extend(
         [
@@ -1609,6 +1672,7 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
                 f"| main_result_eligible | `{str(s.main_result_eligible).lower()}` |",
                 f"| path2_ref_model_blueprint | `{_path2_blueprint_display(s)}`；{_escape_md(s.path2_ref_model_blueprint_reason or '<none>')} |",
                 f"| state_mode_decorative | `{str(s.state_mode_decorative_detected).lower()}` |",
+                f"| SC-11 post-accept validation | `{_post_accept_display(s)}` |",
                 f"| executed stages | `{' -> '.join(s.executed_stage_ids)}` |",
                 f"| iter / repairs / accepted / scenarios | `{s.iteration_count}` / `{s.repair_count}` / `{s.accepted_repair_count}` / `{s.scenario_history_count}` |",
                 f"| token / elapsed | `{s.token_usage}` / `{s.elapsed_seconds}s` |",
@@ -1708,6 +1772,17 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
         lines.append(
             f"- `{config_id}`：{ratio_text}，rejected={rejected}，budget_exhausted={budget}，{token_text}。"
         )
+        post_accept_attempts = sum(row.post_accept_validation_attempt_count for row in rows)
+        post_accept_success = sum(row.post_accept_validation_success_count for row in rows)
+        post_accept_failure = sum(row.post_accept_validation_failure_count for row in rows)
+        if post_accept_attempts:
+            lines.append(
+                f"  - SC-11 post-accept validation：triggered={post_accept_attempts}/{len(rows)} run-level attempts，success={post_accept_success}，failure={post_accept_failure}。"
+            )
+        else:
+            lines.append(
+                "  - SC-11 post-accept validation：0 run 触发；本组 evidence 只能证明 non-regression / budget-policy 口径，不能声称真实覆盖 post-accept branch。"
+            )
     max_iteration_values = {condition_specs()[s.config_id].max_iterations for s in summaries if s.config_id in condition_specs()}
     observed_multi_iter = any(s.iteration_count > 1 for s in summaries)
     if len(max_iteration_values) > 1 and not observed_multi_iter:
@@ -2938,6 +3013,12 @@ def _path2_blueprint_observation_lines(summaries: Sequence[PrE1RunSummary]) -> l
         "- 解释：`path2_ref_model_blueprint_eligible=false` 不会把有效 run 改成 provider invalid；它只禁止把 state-mode-decorative / 条件分类式模型宣传为 Path2 ref-model 主蓝本。"
     )
     return lines
+
+
+def _post_accept_display(summary: PrE1RunSummary) -> str:
+    if not summary.post_accept_validation_attempted:
+        return "⚪ 0"
+    return f"✅ {summary.post_accept_validation_success_count}/{summary.post_accept_validation_attempt_count}; ❌ {summary.post_accept_validation_failure_count}"
 
 
 def _sum_numeric(values: Sequence[Any]) -> int | None:
