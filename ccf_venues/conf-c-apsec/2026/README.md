@@ -1,6 +1,6 @@
 # APSEC 2026 README
 
-> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 01:13`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -39,7 +39,7 @@
 | Submission deadline | 2026-07-13 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical full paper; UTC+8 Bali time（官方未标 AoE） |
 | Notification | 2026-09-14 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical notification; UTC+8 Bali time（官方未标 AoE） |
 | Camera-ready | 2026-10-19 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical camera-ready; UTC+8 Bali time（官方未标 AoE） |
-| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference; Bali local time |
+| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference; Bali local time (UTC+8) |
 
 ## 4. Tracks
 
@@ -84,6 +84,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 01:13` | PR-10 focused final review 修复：将 APSEC 2026 会期备注统一为 Bali local time (UTC+8)，与 TIMELINE 会期行一致。 |
 | `2026-06-06 00:16` | PR-10 复核 APSEC 2026 Technical Track timezone：technical chain 使用 UTC+8 Bali time，不写 AoE；已同步 TIMELINE。 |
 | `2026-06-05 18:40` | 修复实现后复审 M3：细化 P3 相关性描述，使其指向状态机验证、验证剖面与模型检查工具链，而非泛化 formal methods 线索。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟢 投稿中`；未改变官方日期与来源口径。 |
