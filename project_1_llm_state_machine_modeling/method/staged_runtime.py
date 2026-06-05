@@ -810,11 +810,17 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
     ][-3:]
     latest_guidance: list[Any] = []
     latest_local_objections: list[Any] = []
+    latest_waived_local_objections: list[Any] = []
     for entry in latest_rework_entries:
         memory = entry.get("repair_memory")
         if isinstance(memory, dict):
             latest_guidance.extend(memory.get("actionable_rework_guidance") or [])
-            latest_local_objections.extend(memory.get("local_objections") or [])
+            for objection in memory.get("local_objections") or []:
+                if isinstance(objection, dict) and objection.get("local_objection_status") == "overridden_by_sl10":
+                    latest_waived_local_objections.append(objection)
+                else:
+                    latest_local_objections.append(objection)
+            latest_waived_local_objections.extend(memory.get("overridden_local_objections") or [])
         sl10 = entry.get("sl10_review")
         if isinstance(sl10, dict):
             latest_guidance.extend(sl10.get("rework_instructions") or [])
@@ -822,7 +828,16 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
             if isinstance(local, dict):
                 feedback = local.get("repair_review_feedback")
                 if isinstance(feedback, dict) and feedback.get("local_rejection"):
-                    latest_local_objections.append(feedback.get("local_rejection"))
+                    if sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale"):
+                        latest_waived_local_objections.append(
+                            {
+                                "local_objection_status": "overridden_by_sl10",
+                                "local_rejection": feedback.get("local_rejection"),
+                                "local_override_rationale": sl10.get("local_override_rationale"),
+                            }
+                        )
+                    else:
+                        latest_local_objections.append(feedback.get("local_rejection"))
         local_check = entry.get("local_check_evidence")
         if isinstance(local_check, dict):
             feedback = local_check.get("repair_review_feedback")
@@ -835,13 +850,17 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         "latest_rework_entry_ids": [entry.get("entry_id") for entry in latest_rework_entries],
         "latest_actionable_rework_guidance": _compact_repair_memory_for_prompt(latest_guidance[-8:]),
         "latest_local_objections": _compact_repair_memory_for_prompt(latest_local_objections[-6:]),
+        "latest_waived_local_objections": _compact_repair_memory_for_prompt(latest_waived_local_objections[-6:]),
         "sl9_rule": (
             "Before emitting a candidate, explicitly address the latest "
             "actionable_rework_guidance and avoid returning a candidate whose "
             "hash is listed in previous_rejected_candidate_hashes or "
             "repeated_candidate_hashes unless the rationale explains why the "
             "unchanged DSL plus stronger grounding/override evidence is "
-            "intentionally sufficient."
+            "intentionally sufficient. Treat latest_waived_local_objections as "
+            "audit-only SL-10 overrides rather than primary repair targets; do "
+            "not undo an NL-grounded fix merely to satisfy a waived local matcher "
+            "or stale-scenario objection."
         ),
     }
 
@@ -2353,6 +2372,7 @@ def _repair_memory_for_log(
     """Create an append-only FixLog memory block for the next SL-9 pass."""
 
     local_objections: list[Any] = []
+    overridden_local_objections: list[Any] = []
     guidance: list[Any] = []
     if sl10_output is not None:
         guidance.extend(list(sl10_output.rework_instructions or []))
@@ -2370,7 +2390,23 @@ def _repair_memory_for_log(
     if isinstance(feedback, dict):
         rejection = feedback.get("local_rejection")
         if isinstance(rejection, dict):
-            local_objections.append(rejection)
+            local_override_rationale = list(getattr(sl10_output, "local_override_rationale", []) or []) if sl10_output is not None else []
+            if sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and local_override_rationale:
+                overridden = {
+                    "local_objection_status": "overridden_by_sl10",
+                    "local_rejection": rejection,
+                    "local_override_rationale": _jsonable(local_override_rationale),
+                    "instruction": (
+                        "Audit-only: SL-10 accepted the candidate and explicitly "
+                        "overrode this local deterministic objection. Do not treat "
+                        "it as a primary SL-9 repair target in later iterations "
+                        "unless new hard evidence or a real regression reopens it."
+                    ),
+                }
+                local_objections.append(overridden)
+                overridden_local_objections.append(overridden)
+            else:
+                local_objections.append(rejection)
             raw_evidence = rejection.get("evidence")
             if isinstance(raw_evidence, list):
                 evidence_items.extend(item for item in raw_evidence if isinstance(item, dict))
@@ -2387,7 +2423,8 @@ def _repair_memory_for_log(
                 ),
             }
         )
-    guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
+    if not (sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections):
+        guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
     candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
     previous = list(previous_candidate_hashes or [])
     repeated = bool(candidate_hash and candidate_hash in previous)
@@ -2408,6 +2445,7 @@ def _repair_memory_for_log(
         "candidate_dsl_hash": candidate_hash,
         "repeated_candidate_hash": repeated,
         "local_objections": _jsonable(local_objections),
+        "overridden_local_objections": _jsonable(overridden_local_objections),
         "actionable_rework_guidance": _jsonable(guidance),
     }
 
@@ -2829,11 +2867,12 @@ def _sl10_acknowledges_major_local_evidence(
     """Return whether an SL-10 pass explicitly engages major local evidence.
 
     SL-10 is allowed to overrule conservative deterministic checks, but the
-    override must be auditable.  For major local drift, merely mentioning the
-    rejection reason is not enough: the reviewer must provide a structured
-    local override rationale, and that rationale must engage at least one local
-    rejection reason/kind.  This keeps the mechanism sample-agnostic while
-    preventing silent or superficial LLM override of the DMR evidence chain.
+    override must be auditable.  For major local drift, the reviewer must
+    provide a structured local override rationale that engages at least one
+    local rejection reason/kind.  The runtime appends a separate audit evidence
+    object after this gate, so requiring the same anchor to be duplicated inside
+    ``sl10.evidence`` is brittle and makes convergence depend on output-field
+    wording rather than on the substantive rationale.
     """
 
     if local_review.drift_risk != "major" or not sl10.ok:
@@ -2857,9 +2896,8 @@ def _sl10_acknowledges_major_local_evidence(
                     anchors.add(value.strip().lower())
     if not anchors:
         return False
-    rendered_evidence = json.dumps(_jsonable(sl10.evidence), ensure_ascii=False, sort_keys=True).lower()
     rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
-    return any(anchor in rendered_evidence for anchor in anchors) and any(anchor in rendered_rationale for anchor in anchors)
+    return any(anchor in rendered_rationale for anchor in anchors)
 
 
 def _repair_review_from_sl10(
@@ -2916,8 +2954,10 @@ def _repair_review_from_sl10(
             "policy": (
                 "SL-10 may override conservative local major-drift evidence only "
                 "when local_override_rationale explicitly engages the local "
-                "reason/kind; the runtime binds that override to candidate and "
-                "local-evidence hashes for run-record audit."
+                "reason/kind. The runtime appends this audit evidence and binds "
+                "that override to candidate and local-evidence hashes for "
+                "run-record audit, so the rationale field is the authoritative "
+                "override explanation."
             ),
             "candidate_dsl_hash": candidate_dsl_hash,
             "local_check_evidence_hash": local_check_evidence_hash,
