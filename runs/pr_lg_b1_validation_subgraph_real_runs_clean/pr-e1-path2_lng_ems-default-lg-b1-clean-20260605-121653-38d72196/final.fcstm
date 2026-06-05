@@ -1,0 +1,280 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pbat_Pmax = 0.0;
+def float Pg_LNG_req = 0.0;
+def float Pg_DG1_req = 0.0;
+def float Pg_DG2_req = 0.0;
+def float Pb_discharge = 0.0;
+def float Pb_charge = 0.0;
+def float Pspare = 0.0;
+def int cutin_LNG = 0;
+def int cutout_LNG = 0;
+def int cutin_DG1 = 0;
+def int cutout_DG1 = 0;
+def int cutin_DG2 = 0;
+def int cutout_DG2 = 0;
+def int cutin_load = 0;
+def int cutout_load = 0;
+def int overload_illegal = 0;
+
+state LNGShipEMS {
+    ! * -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+    ! * -> RESCoverCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> RESCoverSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> BatteryDischargeOnly : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw <= Pbat_Pmax];
+    ! * -> LNGCoverChargeMargin : if [PL > 0 && Ppv + Pw < PL && (SoC < 0.2 || PL - Ppv - Pw > Pbat_Pmax) && SoC < 0.95 && PL - Ppv - Pw + Pgmax / 5 <= Pgmax];
+    ! * -> LNGCoverNoCharge : if [PL > 0 && Ppv + Pw < PL && (SoC >= 0.95 || PL - Ppv - Pw + Pgmax / 5 > Pgmax) && PL - Ppv - Pw <= Pgmax];
+    ! * -> LNGDG1ChargeMargin : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax && SoC < 0.95 && PL - Ppv - Pw + Pd1max / 10 <= Pgmax + Pd1max];
+    ! * -> LNGDG1NoCharge : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax && (SoC >= 0.95 || PL - Ppv - Pw + Pd1max / 10 > Pgmax + Pd1max) && PL - Ppv - Pw <= Pgmax + Pd1max];
+    ! * -> LNGDG1DG2ChargeMargin : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax + Pd1max && SoC < 0.95 && PL - Ppv - Pw + Pd1max / 10 <= Pgmax + Pd1max + eng3_Pmax];
+    ! * -> LNGDG1DG2NoCharge : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax + Pd1max && (SoC >= 0.95 || PL - Ppv - Pw + Pd1max / 10 > Pgmax + Pd1max + eng3_Pmax) && PL - Ppv - Pw <= Pgmax + Pd1max + eng3_Pmax];
+    ! * -> ExtremeOverloadIllegal : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax + Pd1max + eng3_Pmax];
+
+    [*] -> ZeroLoadCharge;
+
+    state ZeroLoadCharge {
+        enter {
+            Pg_LNG_req = 0;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = Ppv + Pw;
+            Pspare = 0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 0;
+            cutout_load = 1;
+            overload_illegal = 0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            Pg_LNG_req = 0;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = 0;
+            Pspare = Ppv + Pw;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 0;
+            cutout_load = 1;
+            overload_illegal = 0;
+        }
+    }
+
+    state RESCoverCharge {
+        enter {
+            Pg_LNG_req = 0;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = Ppv + Pw - PL;
+            Pspare = 0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state RESCoverSpare {
+        enter {
+            Pg_LNG_req = 0;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = 0;
+            Pspare = Ppv + Pw - PL;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state BatteryDischargeOnly {
+        enter {
+            Pg_LNG_req = 0;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = PL - Ppv - Pw;
+            Pb_charge = 0;
+            Pspare = 0;
+            cutin_LNG = 0;
+            cutout_LNG = 1;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGCoverChargeMargin {
+        enter {
+            Pg_LNG_req = PL - Ppv - Pw + Pgmax / 5;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = Pgmax / 5;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGCoverNoCharge {
+        enter {
+            Pg_LNG_req = PL - Ppv - Pw;
+            Pg_DG1_req = 0;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = 0;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 0;
+            cutout_DG1 = 1;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGDG1ChargeMargin {
+        enter {
+            Pg_LNG_req = Pgmax;
+            Pg_DG1_req = PL - Ppv - Pw - Pgmax + Pd1max / 10;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = Pd1max / 10;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGDG1NoCharge {
+        enter {
+            Pg_LNG_req = Pgmax;
+            Pg_DG1_req = PL - Ppv - Pw - Pgmax;
+            Pg_DG2_req = 0;
+            Pb_discharge = 0;
+            Pb_charge = 0;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 0;
+            cutout_DG2 = 1;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGDG1DG2ChargeMargin {
+        enter {
+            Pg_LNG_req = Pgmax;
+            Pg_DG1_req = Pd1max;
+            Pg_DG2_req = PL - Ppv - Pw - Pgmax - Pd1max + Pd1max / 10;
+            Pb_discharge = 0;
+            Pb_charge = Pd1max / 10;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 1;
+            cutout_DG2 = 0;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state LNGDG1DG2NoCharge {
+        enter {
+            Pg_LNG_req = Pgmax;
+            Pg_DG1_req = Pd1max;
+            Pg_DG2_req = PL - Ppv - Pw - Pgmax - Pd1max;
+            Pb_discharge = 0;
+            Pb_charge = 0;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 1;
+            cutout_DG2 = 0;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 0;
+        }
+    }
+
+    state ExtremeOverloadIllegal {
+        enter {
+            Pg_LNG_req = Pgmax;
+            Pg_DG1_req = Pd1max;
+            Pg_DG2_req = eng3_Pmax;
+            Pb_discharge = PL - Ppv - Pw - Pgmax - Pd1max - eng3_Pmax;
+            Pb_charge = 0;
+            Pspare = 0;
+            cutin_LNG = 1;
+            cutout_LNG = 0;
+            cutin_DG1 = 1;
+            cutout_DG1 = 0;
+            cutin_DG2 = 1;
+            cutout_DG2 = 0;
+            cutin_load = 1;
+            cutout_load = 0;
+            overload_illegal = 1;
+        }
+    }
+}
