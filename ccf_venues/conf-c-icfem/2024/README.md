@@ -1,6 +1,6 @@
 # ICFEM 2024 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:25`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [ICFEM official series / annual pages](https://icfem2026.github.io/) | [ICFEM 2024](https://icfem2024.info/) | 本轮未检索到可写入 dated timeline 的稳定日期。 |
+| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [ICFEM 2024 CFP](https://icfem2024.info/ICFEM2024CallforPapers.pdf)；未发现独立稳定 series page，当前以 [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) 作 fallback | [ICFEM 2024](https://icfem2024.info/) | 本轮未从 CFP / 年度页抽取到可写入 dated timeline 的稳定日期。 |
 
 ## 4. Tracks / 口径边界
 
@@ -85,4 +85,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:25` | 修复 ICFEM 2024 来源口径：不再把 ICFEM 2026 年度页写成 series / annual pages，改为年度 CFP + DBLP index fallback。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICFEM 2024 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

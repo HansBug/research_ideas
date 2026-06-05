@@ -1,6 +1,6 @@
 # ICFEM 2022 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:25`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [ICFEM official series / annual pages](https://icfem2026.github.io/) | [ICFEM 2022](https://maude.ucm.es/ICFEM22/) | 本轮未检索到可写入 dated timeline 的稳定日期。 |
+| 官方年页 / CFP / important dates | 历史 dates 待逐项迁移 | [ICFEM 2022 Important Dates](https://maude.ucm.es/ICFEM22/c_impd.html) | [ICFEM 2022](https://maude.ucm.es/ICFEM22/) | 已找到 2022 年度 dates 页；具体 dated events 尚未逐项迁入 [TIMELINE.md](../../TIMELINE.md)，后续需按官方日期逐项核验并同步。 |
 
 ## 4. Tracks / 口径边界
 
@@ -84,4 +84,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:25` | 修复 ICFEM 2022 重要时间点来源口径：不再把 ICFEM 2026 年度页写成 series / annual pages，改用 2022 年度 dates 页并标注尚需逐项迁入 TIMELINE。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICFEM 2022 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

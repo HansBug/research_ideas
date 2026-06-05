@@ -1,6 +1,6 @@
 # ICFEM 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:12`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,7 +14,7 @@
 | 官方 CFP | [CFP](https://icfem2026.github.io/#call-for-papers) |
 | Important Dates | [Important Dates](https://icfem2026.github.io/#dates) |
 | Submission system | [Submission](https://icfem2026.github.io/#submission) |
-| Program / accepted papers | [Program / Accepted](https://icfem2026.github.io/#program) |
+| Program / accepted papers | 未公布（`#program` 当前 TBA） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/icfem/index.html) |
 | 当前阶段状态 | 🟢 投稿中 |
@@ -27,7 +27,7 @@
 | CFP / Call for Papers | [CFP / Call for Papers](https://icfem2026.github.io/#call-for-papers) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Submission system | [Submission system](https://icfem2026.github.io/#submission) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Program / accepted papers | [Program / accepted papers](https://icfem2026.github.io/#program) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
+| Program / accepted papers | 未公布 | [Program anchor](https://icfem2026.github.io/#program) 当前为 TBA，不能写成 accepted papers | `2026-06-05 11:12` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icfem/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 
@@ -53,7 +53,7 @@
 |---|---|
 | 论文数量 | 未公布 |
 | 计数状态 | 🟡 部分核验 |
-| 论文名录 / accepted papers | [Program / Accepted](https://icfem2026.github.io/#program) |
+| 论文名录 / accepted papers | 未公布（`#program` 当前 TBA） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/icfem/index.html) |
 | 计数口径 | 2026 不设置 artifact evaluation；论文数量待 accepted/proceedings。 |
@@ -72,12 +72,12 @@
 | CFP / Call for Papers | [CFP / Call for Papers](https://icfem2026.github.io/#call-for-papers) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Submission system | [Submission system](https://icfem2026.github.io/#submission) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Program / accepted papers | [Program / accepted papers](https://icfem2026.github.io/#program) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| Program / accepted papers | [Program anchor](https://icfem2026.github.io/#program) | `2026-06-05 11:12` | 当前为 TBA，只能作为 program 占位线索，不能支撑 accepted papers 或论文数量。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icfem/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
 
-- 2026 不设置 artifact evaluation；论文数量待 accepted/proceedings。
+- 2026 不设置 artifact evaluation；`#program` 当前为 TBA，论文数量、accepted papers 和 proceedings 均待公布。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -90,4 +90,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:12` | 修复 ICFEM 2026 program 口径：`#program` 当前为 TBA，仅作占位线索，不写成 accepted papers / 论文名录。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICFEM 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

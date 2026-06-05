@@ -1,6 +1,6 @@
 # ISSRE README
 
-> 信息更新时间：`2026-06-05 10:04`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:12`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -45,11 +45,11 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 | 人员 | 年度 / 层级 / 会议角色 | 单位 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库 project 的关系 | 核验状态 | 核查时间 |
 |---|---|---|---|---|---|---|---|---|---|
-| Fumio Machida | reliability / dependability 学术线索；ISSRE 2026 官方角色页待补 | University of Tsukuba | ISSRE 2026 年度页与 research CFP 未提供可抓取 committee 角色；待补直达 committee / organizing / steering 页面 | [DBLP](https://dblp.org/pid/91/9246.html) | software reliability、dependability、cloud/service systems | [DBLP 论文入口](https://dblp.org/pid/91/9246.html) | P2/P3：可靠性 profile 与验证/测试场景。 | ⏳ 待核验 | `2026-06-05 10:04` |
-| Antonia Bertolino | reliability testing 学术线索；ISSRE 官方角色页待补 | ISTI-CNR | ISSRE 2026 年度页与 research CFP 未提供可抓取 committee 角色；待补直达 committee / steering 页面 | [DBLP](https://dblp.org/pid/b/AntoniaBertolino.html) | software testing、service-oriented systems、quality assurance | [DBLP 近 5 年论文入口](https://dblp.org/pid/b/AntoniaBertolino.html) | P2/P4：测试场景生成与修复验证。 | ⏳ 待核验 | `2026-06-05 10:04` |
-| Andrea Bondavalli | dependable systems 学术线索；ISSRE 官方角色页待补 | University of Florence | ISSRE 2026 年度页与 research CFP 未提供可抓取 committee 角色；待补直达 committee / steering 页面 | [DBLP](https://dblp.org/pid/b/AndreaBondavalli.html) | dependability、safety-critical systems、resilience | [DBLP 论文入口](https://dblp.org/pid/b/AndreaBondavalli.html) | P2/P3：安全/可靠性质与验证 profile。 | ⏳ 待核验 | `2026-06-05 10:04` |
-| Kenji Kono | reliability systems 学术线索；ISSRE 官方角色页待补 | Keio University | ISSRE 2026 年度页与 research CFP 未提供可抓取 committee 角色；待补直达 committee / steering 页面 | [DBLP](https://dblp.org/pid/k/KenjiKono.html) | operating systems、dependability、software reliability | [DBLP 论文入口](https://dblp.org/pid/k/KenjiKono.html) | P3/P4：系统可靠性与缺陷诊断。 | ⏳ 待核验 | `2026-06-05 10:04` |
-| Yulei Sui | program analysis and testing 学术线索；ISSRE 官方角色页待补 | University of Technology Sydney | ISSRE 2026 年度页与 research CFP 未提供可抓取 committee 角色；待补直达 committee / steering 页面 | [DBLP](https://dblp.org/pid/65/6928.html) | program analysis、software testing、security、LLM4SE | [DBLP 近年论文入口](https://dblp.org/pid/65/6928.html) | P2/P4：测试、缺陷定位和修复。 | ⏳ 待核验 | `2026-06-05 10:04` |
+| Leonardo Mariani | ISSRE 2026 General Chair | University of Milano-Bicocca | [ISSRE 2026 Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [DBLP](https://dblp.org/pid/27/2914.html) | software testing、runtime monitoring、software reliability、program analysis | [DBLP 论文入口](https://dblp.org/pid/27/2914.html) | P2/P3/P4：可靠性场景、运行时监控、缺陷定位与修复验证。 | 🟡 部分核验 | `2026-06-05 11:12` |
+| George Papadopoulos | ISSRE 2026 General Chair | University of Cyprus | [ISSRE 2026 Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [个人主页](https://www.cs.ucy.ac.cy/~george/) | distributed systems、software engineering、coordination / service-oriented systems | [个人主页 publications / CV 入口](https://www.cs.ucy.ac.cy/~george/) | P2/P3：分布式系统可靠性与验证场景。 | 🟡 部分核验 | `2026-06-05 11:12` |
+| Domenico Cotroneo | ISSRE 2026 Research Program Committee Chair | UNC Charlotte | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) | [个人主页](https://webpages.charlotte.edu/dcotrone/) / [DBLP](https://dblp.org/pid/c/DomenicoCotroneo) | software reliability、dependability、software security、fault injection | [DBLP 论文入口](https://dblp.org/pid/c/DomenicoCotroneo) | P2/P3/P4：可靠性 profile、故障模型、缺陷复现与修复验证。 | 🟡 部分核验 | `2026-06-05 11:12` |
+| Jie M. Zhang | ISSRE 2026 Research Program Committee Chair | King's College London | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) | [KCL profile](https://www.kcl.ac.uk/people/jie-zhang) | software testing、software engineering for AI、program analysis、ML trustworthiness | [KCL publications / profile](https://www.kcl.ac.uk/people/jie-zhang) | P2/P3/P4：AI 系统测试、性质/场景生成和修复评估。 | 🟡 部分核验 | `2026-06-05 11:12` |
+| Fumio Machida | ISSRE 2026 Program Board；Artifact Evaluation Chair | University of Tsukuba | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) / [Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [DBLP](https://dblp.org/pid/91/9246.html) | software reliability、dependability、cloud/service systems | [DBLP 论文入口](https://dblp.org/pid/91/9246.html) | P2/P3：可靠性 profile、artifact evaluation 与验证/测试场景。 | 🟡 部分核验 | `2026-06-05 11:12` |
 
 ## 6. 年度信息汇总
 
@@ -59,7 +59,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 投稿/复审窗口 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | [CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) | [Submission](https://easychair.org/conferences/?conf=issre2026) | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 2026-04-10 待补时刻 | 2026-04-17 待补时刻 | 2026-07-08 待补时刻 | 2026-10-20..2026-10-23 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟡 复审中 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | [CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) | [Submission](https://easychair.org/conferences/?conf=issre2026) | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 2026-04-24 待补时刻 AoE | 2026-04-24 待补时刻 AoE | 2026-07-08 待补时刻 | 2026-10-20..2026-10-23 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ISSRE 2025](https://issre.github.io/2025/) | [CFP](https://issre.github.io/2025/calls_cfp-research.html) | 未公布 | 未公布 | [Program / Accepted](https://issre.github.io/2025/program_research.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2025 待补精确日期 | 官方 statistics 待拆 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ISSRE 2024](https://issre.github.io/2024/) | 未公布 | [Important Dates](https://issre.github.io/2024/important-dates.html) | 未公布 | [Program / Accepted](https://issre.github.io/2024/program_full_program.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | DBLP/IEEE 待拆 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [ISSRE 2023](https://issre.github.io/2023/) | 未公布 | [Important Dates](https://issre.github.io/2023/important-dates.html) | 未公布 | [Program / Accepted](https://issre.github.io/2023/program_research.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | DBLP/IEEE 待拆 | 🟡 部分核验 |
@@ -72,7 +72,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 - `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ISSRE 2028 官方年页。
 - 2027 计数口径：未发现 ISSRE 2027 官方年页。
-- 2026 计数口径：Research track 包含 RES/PER/TAR；industry/tool/workshop 不混入 research count。
+- 2026 计数口径：Research track 包含 RES/PER/TAR；industry/tool/workshop 不混入 research count；Research CFP 当前把旧 abstract / paper deadline 延展到 `2026-04-24 AoE`。
 - 2025 计数口径：已知 official statistics 页面线索，需补 research / industry / tool 拆分。
 - 2022 计数口径：CFP/program 子路径待补；当前只把官方年页作为稳定入口。
 
@@ -88,5 +88,6 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:12` | 修复 ISSRE 2026 复审问题：把 abstract / paper deadline 统一为官方 extended 后的 2026-04-24 AoE，阶段改为复审中，并用官方 organizing / research track committee 页面回填核心人员角色来源。 |
 | `2026-06-05 10:04` | 根据复审把 ISSRE 核心人员从“官方角色来源”降级为学术线索 / 官方角色页待补，避免用年度主页或 404/非 committee 页支撑人员角色。 |
 | `2026-06-05 09:15` | PR-3 初始化 ISSRE venue 根 README，新增 2022--2028 年度索引、核心 URL、核心人员情报、计数口径和待补记录。 |

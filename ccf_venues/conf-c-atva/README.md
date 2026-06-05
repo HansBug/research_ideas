@@ -1,6 +1,6 @@
 # ATVA README
 
-> 信息更新时间：`2026-06-05 10:04`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:12`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -63,7 +63,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ATVA 2025](https://conf.researchr.org/home/atva-2025) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/atva2025) | 未公布 | 未公布 | 未公布 | 2025-10-27..2025-10-31 | 21 papers / 1 volume | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ATVA 2024](https://atva-conference.org/2024/) | 未公布 | [Important Dates](https://atva-conference.org/2024/important-dates/) | 未公布 | [Program / Accepted](https://atva-conference.org/2024/program/) | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | 28 papers / 2 volumes | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [ATVA 2023](https://atva-conference.org/2023/) | 未公布 | [Important Dates](https://atva-conference.org/2023/?page_id=47) | 未公布 | [Program / Accepted](https://atva-conference.org/2023/?page_id=34) | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | 38 papers / 2 volumes | 🟡 部分核验 |
-| [`2022`](./2022/README.md) | ✅ 已结束 | [ATVA 2022](https://atva-conference.org/previous-events/) | [CFP](https://www.easychair.org/cfp/ATVA2022) | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/atva2022) | 未公布 | 未公布 | 未公布 | 2022 待补精确日期 | 27 papers / 1 volume | 🟡 部分核验 |
+| [`2022`](./2022/README.md) | ✅ 已结束 | [ATVA 2022](https://atva-conference.org/2022/) | [CFP](https://atva-conference.org/2022/call-for-papers/) | [Important Dates](https://atva-conference.org/2022/important-dates/) | 未公布 | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Program](https://atva-conference.org/2022/program/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [DBLP](https://dblp.org/db/conf/atva/atva2022) | 2022-05-08 待补时刻 AoE | 2022-05-15 待补时刻 AoE | 2022-07-04 待补时刻 AoE | 2022-10-25..2022-10-28 | 21 regular + 5 tool + 1 invited / Springer TOC 27 papers | 🟡 部分核验 |
 
 ## 7. 计数口径与维护备注
 
@@ -74,7 +74,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 - 2027 计数口径：未发现 ATVA 2027 官方年页。
 - 2026：命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
 - 2026 计数口径：截至 2026-06-05 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
-- 2022 计数口径：2022 独立官网待补；当前用历史归档、EasyChair CFP、Springer/DBLP fallback。
+- 2022 计数口径：已核验独立年度页；Springer proceedings 写 21 regular + 5 tool + 1 invited，Springer TOC 显示 27 papers；EasyChair CFP 仅作历史 fallback。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -88,5 +88,6 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:12` | 修复 ATVA 2022 年度主页口径：previous-events 仅作历史索引，正式年度主页改为独立 2022 年页，并补 official dates、accepted papers、program 和 Springer proceedings 链接。 |
 | `2026-06-05 10:04` | 修正 ATVA 2026 年度主页为已检索未公布，降级 Jan Křetínský 为学术线索，并把 Doron Peled / Orna Kupferman 的官方角色来源落到 ATVA 2024 Organization。 |
 | `2026-06-05 09:15` | PR-3 初始化 ATVA venue 根 README，新增 2022--2028 年度索引、核心 URL、核心人员情报、计数口径和待补记录。 |
