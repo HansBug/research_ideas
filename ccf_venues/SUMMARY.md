@@ -1,12 +1,12 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:38`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
-| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊与 PR-6 维护 / 修复相关 P1 venue 均已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
+| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊与 PR-6 维护 / 修复相关 P1 venue 均已完成基础建档；当前分支的 PR-6 增量遵循会议试点 / 期刊试点约定，会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
 | 已完成会议试点 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
@@ -351,6 +351,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:38` | 吸收 final review M 级 polish：将 PR-6 当前分支与会议 / 期刊试点关系改写为“遵循约定”，避免误读为已经合入上游。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步当前全库统计、PR-6 完成状态，并吸收 JSEP rolling 候选与 SANER 2022 证书风险修复。 |
 | `2026-06-05 18:04` | PR-6 基础填充后更新 SUMMARY：新增 SANER / ICSME / ICPC / JSEP 完成表、维护修复 venue 踩坑、待补记录，并重算为 26 个 venue / 182 个年度 README。 |
 | `2026-06-05 15:59` | 实现后 review 修复：统一 PR-6~PR-9 数量单位，收紧 PR-8 / PR-9 前置依赖表述，避免后续执行者跳过上游踩坑经验。 |

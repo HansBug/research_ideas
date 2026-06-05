@@ -1,6 +1,6 @@
 # JSEP README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:38`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -12,7 +12,7 @@
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
 | CCF 等级 | B（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
 | 出版商 | Wiley / Wiley Online Library |
-| ISSN | 2047-7473（print）/ 2047-7481（online）待 Wiley 浏览器核验；DBLP / Wiley 入口保留 |
+| ISSN | 2047-7473（print）/ 2047-7481（online）；Wiley / DBLP 多源交叉核验，editorial roster 仍待人工浏览器核验 |
 | 期刊主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481)（CLI WAF/403，需人工浏览器核验正文） |
 | Author guidelines | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html)（CLI WAF/403，需人工浏览器核验正文） |
 | Submission system | [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme)（候选入口；是否仍为当前总入口待 Wiley 浏览器核验） |
@@ -94,5 +94,6 @@ JSEP 面向软件演化、维护、过程改进、项目 / 过程管理、软件
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:38` | 吸收 final review M 级 polish：将 ISSN 字段从“待 Wiley 浏览器核验”改为 Wiley / DBLP 多源交叉核验，同时保留 editorial roster 待人工核验 caveat。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：降级 Wiley rolling 投稿为候选口径，并将 current issue 与 Early View / articles in press 入口明确分离。 |
 | `2026-06-05 17:35` | PR-6 初始化 JSEP 期刊 README，记录 Wiley 官方入口、DBLP entry article baseline、WAF/403 caveat、2022-2028 年度汇总、2029+ 检索结论与核心编辑人员临时画像。 |
