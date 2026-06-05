@@ -788,3 +788,250 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
     assert len(record.iteration_records) == 2
     assert record.iteration_records[0]["accepted_candidate"] is True
     assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
+
+
+# PR-LG-A2 Store transient contract tests.
+
+def _assert_lg_a2_store_metadata(record: Any, *, expected_status: str = "no_leak") -> dict[str, Any]:
+    env = record.environment
+    artifacts = record.final_artifacts
+    assert env["transient_backend"] == "langgraph_inmemory_store"
+    assert env["transient_namespace"] == f"transient/{record.run_id}"
+    assert env["transient_store_instance_id"]
+    assert env["transient_cleanup_status"] == expected_status
+    assert env["transient_final_item_count"] == 0
+    assert artifacts["transient_lifecycle"]["backend"] == "langgraph_inmemory_store"
+    assert artifacts["transient_lifecycle"]["cleanup_status"] == expected_status
+    assert artifacts["transient_lifecycle"]["final_item_count"] == 0
+    assert artifacts["transient_lifecycle"]["put_count"] == env["transient_put_count"]
+    assert artifacts["transient_lifecycle"]["get_count"] == env["transient_get_count"]
+    assert artifacts["transient_lifecycle"]["drop_count"] == env["transient_drop_count"]
+    return artifacts["transient_lifecycle"]
+
+
+def test_store_compat_smoke_put_get_search_delete_and_get_store() -> None:
+    from method.langgraph_runtime import langgraph_store_compat_smoke
+
+    smoke = langgraph_store_compat_smoke()
+
+    assert smoke["ok"] is True
+    assert smoke["inmemory_store_ok"] is True
+    assert smoke["namespace_isolation_ok"] is True
+    assert smoke["compile_store_ok"] is True
+    assert smoke["get_store_ok"] is True
+    assert smoke["delete_ok"] is True
+
+
+def test_store_transient_backend_replaces_global_dict(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+
+    before_transients = dict(lg._TRANSIENT_OBJECTS)
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-backend-replaces-global"))
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert lifecycle["put_count"] >= 1
+    assert lg._TRANSIENT_OBJECTS == before_transients
+    assert "transient_store" in record.environment.get("instrumentation_layer", "") or record.environment["transient_backend"] == "langgraph_inmemory_store"
+
+
+def test_store_transient_cleanup_full_pass(tmp_path: Path) -> None:
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-cleanup-full-pass"))
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "success"
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["drop_count"] >= 1
+
+
+def test_store_transient_cleanup_weak_oracle(tmp_path: Path) -> None:
+    def weak_sim(_dsl: str, _scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        return (
+            SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, oracle_weak=True, weak_oracle_reason="mock_weak"),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-cleanup-weak-oracle", adapters=_adapters_with(sim=weak_sim)))
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "failed"
+    assert record.final_artifacts["oracle_weak"] is True
+    assert lifecycle["put_count"] == 1
+
+
+def test_store_transient_cleanup_budget_exhausted_from_iteration_gate(tmp_path: Path) -> None:
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-cleanup-budget-zero", max_iterations=0))
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "budget_exhausted"
+    assert lifecycle["put_count"] == 0
+    assert lifecycle["final_drain_count"] >= 1
+
+
+def test_store_transient_cleanup_repair_retry_exhausted(tmp_path: Path) -> None:
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A2_SL9_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="hard_block",
+            instance_key="lg-a2:sl9-retry",
+            rationale="force SL-9 retry-exhausted path for Store cleanup",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a2-cleanup-sl9-retry",
+            adapters=_adapters_with(design=design_block, repair=lambda _request: _retry_exhausted_run(StageId.SL_9_REPAIR, "provider_error")),
+            max_iterations=2,
+        )
+    )
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_9_REPAIR.value
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["get_count"] >= 1
+
+
+def test_store_transient_cleanup_waiver_retry_exhausted(tmp_path: Path) -> None:
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A2_WAIVER_RETRY",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-a2:waiver-retry",
+            rationale="force waiver_continue retry-exhausted path for Store cleanup",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver"}],
+            "repair_rationale": ["safe waiver"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a2-cleanup-waiver-retry",
+            adapters=_adapters_with(
+                design=design_block,
+                repair=reject_all_as_waiver,
+                scenario_generate=lambda _request: _retry_exhausted_run(StageId.SL_5_SCENARIO_GENERATION, "empty_output"),
+            ),
+            max_iterations=2,
+        )
+    )
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["get_count"] >= 2
+
+
+def test_store_transient_run_isolation(tmp_path: Path) -> None:
+    first = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-isolation-first"))
+    second = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-isolation-second"))
+
+    first_lifecycle = _assert_lg_a2_store_metadata(first)
+    second_lifecycle = _assert_lg_a2_store_metadata(second)
+    assert first.environment["transient_namespace"] != second.environment["transient_namespace"]
+    assert first.environment["transient_store_instance_id"] != second.environment["transient_store_instance_id"]
+    assert first_lifecycle["put_count"] == second_lifecycle["put_count"] == 1
+
+
+def test_store_transient_preserves_validation_to_repair_data(tmp_path: Path) -> None:
+    seen: dict[str, Any] = {}
+
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A2_DATA_TO_REPAIR",
+            pyfcstm_severity="warning",
+            policy_action="hard_block",
+            instance_key="lg-a2:data-to-repair",
+            rationale="force repair path to inspect Store-backed validation payload",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def repair(request: RepairRequest) -> str:
+        seen["source_stage"] = request.selected_feedback_trace.get("source_stage")
+        seen["instance_keys"] = request.selected_feedback_trace.get("blocking_instance_keys")
+        seen["scenario_set_none"] = request.scenario_set is None
+        return _stable_dsl()
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a2-preserve-validation-to-repair",
+            initial_dsl="needs-repair",
+            adapters=_adapters_with(design=design_block, repair=repair),
+            max_iterations=1,
+        )
+    )
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert seen == {
+        "source_stage": StageId.SD_4_DESIGN.value,
+        "instance_keys": ["lg-a2:data-to-repair"],
+        "scenario_set_none": True,
+    }
+    assert lifecycle["get_count"] >= 1
+
+
+def test_store_transient_preserves_waiver_continue_data(tmp_path: Path) -> None:
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_A2_WAIVER_DATA",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-a2:waiver-data",
+            rationale="force waiver_continue to inspect Store-backed validation payload",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver"}],
+            "repair_rationale": ["safe waiver"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a2-preserve-waiver-data",
+            adapters=_adapters_with(design=design_block, repair=reject_all_as_waiver),
+            max_iterations=1,
+        )
+    )
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert "waiver_continue" in _lg_trace_nodes(record)
+    assert "post_waiver_stage_ids" in record.iteration_records[0]
+    assert lifecycle["get_count"] >= 2
+
+
+def test_store_metadata_in_run_record(tmp_path: Path) -> None:
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-metadata-record"))
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    expected_keys = {
+        "backend",
+        "namespace",
+        "store_instance_id",
+        "put_count",
+        "get_count",
+        "drop_count",
+        "final_item_count",
+        "cleanup_status",
+        "final_drain_count",
+    }
+    assert expected_keys.issubset(lifecycle)
+    assert record.environment["transient_backend"] == lifecycle["backend"]
+    assert record.environment["transient_namespace"] == lifecycle["namespace"]
+    assert record.environment["transient_store_instance_id"] == lifecycle["store_instance_id"]
