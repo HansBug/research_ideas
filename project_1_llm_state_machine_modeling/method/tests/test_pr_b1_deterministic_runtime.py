@@ -1549,10 +1549,145 @@ def test_sl10_major_local_override_can_pass_when_anchor_only_in_rationale(tmp_pa
     memory = fix_entry["repair_memory"]
     assert memory["overridden_local_objections"]
     assert memory["local_objections"][0]["local_objection_status"] == "overridden_by_sl10"
+    assert memory["audit_only_rework_guidance"]
+    assert override_audit["covered_local_objection_kinds"] == [
+        "forced_transition_count_drift",
+        "missing_required_grounding",
+    ]
+    assert override_audit["missing_local_objection_kinds"] == []
     assert not any(
         item.get("kind") in {"forced_transition_count_drift", "missing_required_grounding"}
         for item in memory["actionable_rework_guidance"]
         if isinstance(item, dict)
+    )
+
+
+def test_sl10_compound_major_local_override_requires_each_objection_kind(tmp_path: Path) -> None:
+    """Compound major local objections need per-kind rationale coverage."""
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "compound-local-risk":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[
+                {"kind": "scenario_regression", "summary": "scenario S fails"},
+                {"kind": "missing_required_grounding", "element_ids": ["transition:RequiredSafetyFallback"]},
+            ],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def partial_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "candidate looks okay"}],
+                local_override_rationale=["scenario_regression is stale because the old scenario over-qualified an event path"],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 partial rationale must not waive compound local major drift.",
+        FullStagedRuntimeConfig(initial_dsl="compound-local-risk", run_id="pr-b1-compound-local-override", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "candidate", repair_review=local_major, sl10_review=partial_sl10_pass),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    sl10 = record.repair_history[0]["sl10_repair_review"]
+    assert sl10["decision"] == "rework"
+    assert sl10["ok"] is False
+    assert any("local_override_rationale" in item for item in sl10["rework_instructions"])
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
+
+
+def test_repair_memory_keeps_overridden_local_summary_audit_only() -> None:
+    """Accepted SL-10 overrides must not feed local summaries back as repair targets."""
+
+    from method.staged_runtime import _repair_memory_for_prompt
+
+    fix_log = [
+        {
+            "entry_id": "fixlog-6-sl10_rework_review",
+            "iteration": 1,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:ok",
+            "next_action": "sc11_accept_then_sd2",
+            "sl10_review": {
+                "ok": True,
+                "decision": "pass",
+                "local_override_rationale": [
+                    "missing_required_grounding is waived because state X remains represented",
+                ],
+            },
+            "repair_memory": {
+                "local_objections": [
+                    {
+                        "local_objection_status": "overridden_by_sl10",
+                        "local_rejection": {
+                            "reason": "missing_required_grounding",
+                            "evidence": [{"kind": "missing_required_grounding"}],
+                        },
+                    }
+                ],
+                "overridden_local_objections": [
+                    {
+                        "local_objection_status": "overridden_by_sl10",
+                        "local_rejection": {
+                            "reason": "missing_required_grounding",
+                            "evidence": [{"kind": "missing_required_grounding"}],
+                        },
+                    }
+                ],
+                "audit_only_rework_guidance": [
+                    {
+                        "kind": "audit_only_local_summary",
+                        "summary": {"actionable_items": [{"kind": "missing_required_grounding"}]},
+                    }
+                ],
+                "actionable_rework_guidance": [],
+            },
+        }
+    ]
+    memory = _repair_memory_for_prompt(fix_log)
+    assert memory["latest_waived_local_objections"]
+    assert not any(
+        isinstance(item, dict) and item.get("kind") == "local_actionable_repair_summary"
+        for item in memory["latest_actionable_rework_guidance"]
     )
 
 

@@ -815,6 +815,7 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         memory = entry.get("repair_memory")
         if isinstance(memory, dict):
             latest_guidance.extend(memory.get("actionable_rework_guidance") or [])
+            latest_waived_local_objections.extend(memory.get("audit_only_rework_guidance") or [])
             for objection in memory.get("local_objections") or []:
                 if isinstance(objection, dict) and objection.get("local_objection_status") == "overridden_by_sl10":
                     latest_waived_local_objections.append(objection)
@@ -2374,6 +2375,7 @@ def _repair_memory_for_log(
     local_objections: list[Any] = []
     overridden_local_objections: list[Any] = []
     guidance: list[Any] = []
+    audit_only_guidance: list[Any] = []
     if sl10_output is not None:
         guidance.extend(list(sl10_output.rework_instructions or []))
         guidance.extend(
@@ -2412,17 +2414,36 @@ def _repair_memory_for_log(
                 evidence_items.extend(item for item in raw_evidence if isinstance(item, dict))
     actionable_summary = local.get("actionable_repair_summary") if isinstance(local, dict) else None
     if isinstance(actionable_summary, dict):
-        guidance.append(
-            {
-                "kind": "local_actionable_repair_summary",
-                "summary": _jsonable(actionable_summary),
+        summary_item = {
+            "kind": "local_actionable_repair_summary",
+            "summary": _jsonable(actionable_summary),
+        }
+        if sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections:
+            audit_item = {
+                **summary_item,
+                "kind": "audit_only_local_summary",
                 "instruction": (
-                    "Use this expected-vs-actual local summary as the next SL-9 repair "
-                    "target. It is derived from the same local check that triggered "
-                    "SL-10 rework and should prevent repeating an under-specified edit."
+                    "Audit-only: this local expected-vs-actual summary belongs to "
+                    "a deterministic objection already overridden by SL-10. Preserve "
+                    "it for traceability, but do not use it as the next SL-9 repair "
+                    "target unless new hard evidence reopens the same issue."
                 ),
             }
-        )
+            audit_only_guidance.append(audit_item)
+            for overridden in overridden_local_objections:
+                if isinstance(overridden, dict):
+                    overridden["local_actionable_repair_summary"] = _jsonable(actionable_summary)
+        else:
+            guidance.append(
+                {
+                    **summary_item,
+                    "instruction": (
+                        "Use this expected-vs-actual local summary as the next SL-9 repair "
+                        "target. It is derived from the same local check that triggered "
+                        "SL-10 rework and should prevent repeating an under-specified edit."
+                    ),
+                }
+            )
     if not (sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections):
         guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
     candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
@@ -2446,6 +2467,7 @@ def _repair_memory_for_log(
         "repeated_candidate_hash": repeated,
         "local_objections": _jsonable(local_objections),
         "overridden_local_objections": _jsonable(overridden_local_objections),
+        "audit_only_rework_guidance": _jsonable(audit_only_guidance),
         "actionable_rework_guidance": _jsonable(guidance),
     }
 
@@ -2875,29 +2897,83 @@ def _sl10_acknowledges_major_local_evidence(
     wording rather than on the substantive rationale.
     """
 
-    if local_review.drift_risk != "major" or not sl10.ok:
+    coverage = _sl10_major_local_evidence_coverage(sl10, local_review=local_review)
+    if not coverage["required"]:
         return True
+    return not coverage["missing"]
+
+
+def _sl10_major_local_evidence_coverage(
+    sl10: SL10RepairReviewOutput,
+    *,
+    local_review: RepairReviewFeedback,
+) -> dict[str, Any]:
+    """Return per-objection rationale coverage for major local evidence.
+
+    The gate is intentionally field-stable but not sample-specific: each
+    independent local objection kind/code/reason chunk must be addressed in the
+    structured rationale.  A single matching token should not waive a compound
+    local rejection such as ``scenario_regression; missing_required_grounding``.
+    """
+
+    empty = {"required": [], "covered": [], "missing": []}
+    if local_review.drift_risk != "major" or not sl10.ok:
+        return empty
     rejection = local_review.local_rejection
     if rejection is None:
-        return True
+        return empty
     rationales = [str(item).strip() for item in getattr(sl10, "local_override_rationale", []) or [] if str(item).strip()]
     if not rationales:
-        return False
-    anchors: set[str] = set()
-    for chunk in re.split(r"[;,\s]+", rejection.reason or ""):
+        obligations = _local_rejection_obligations(rejection)
+        return {"required": [item["name"] for item in obligations], "covered": [], "missing": [item["name"] for item in obligations]}
+    obligations = _local_rejection_obligations(rejection)
+    if not obligations:
+        return {"required": [], "covered": [], "missing": []}
+    rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
+    covered: list[str] = []
+    missing: list[str] = []
+    for obligation in obligations:
+        anchors = obligation["anchors"]
+        if any(anchor in rendered_rationale for anchor in anchors):
+            covered.append(obligation["name"])
+        else:
+            missing.append(obligation["name"])
+    return {"required": [item["name"] for item in obligations], "covered": covered, "missing": missing}
+
+
+def _local_rejection_obligations(rejection: RepairRejection) -> list[dict[str, Any]]:
+    obligations: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_obligation(name: str, anchors: set[str]) -> None:
+        clean_name = name.strip().lower()
+        clean_anchors = {item.strip().lower() for item in anchors if item and len(item.strip()) >= 4}
+        if not clean_name or clean_name in seen or not clean_anchors:
+            return
+        seen.add(clean_name)
+        obligations.append({"name": clean_name, "anchors": sorted(clean_anchors)})
+
+    for chunk in re.split(r"[;]+", rejection.reason or ""):
         chunk = chunk.strip().lower()
         if len(chunk) >= 4:
-            anchors.add(chunk)
+            add_obligation(chunk, {chunk})
     for item in rejection.evidence:
         if isinstance(item, dict):
-            for key in ("kind", "code", "summary", "reason"):
-                value = item.get(key)
-                if isinstance(value, str) and len(value.strip()) >= 4:
-                    anchors.add(value.strip().lower())
-    if not anchors:
-        return False
-    rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
-    return any(anchor in rendered_rationale for anchor in anchors)
+            anchors = {
+                value.strip().lower()
+                for key in ("kind", "code")
+                for value in [item.get(key)]
+                if isinstance(value, str) and len(value.strip()) >= 4
+            }
+            if anchors:
+                add_obligation(sorted(anchors)[0], anchors)
+            else:
+                for key in ("summary", "reason"):
+                    value = item.get(key)
+                    if isinstance(value, str) and len(value.strip()) >= 4:
+                        add_obligation(value.strip().lower(), {value.strip().lower()})
+                        break
+    return obligations
 
 
 def _repair_review_from_sl10(
@@ -2948,6 +3024,7 @@ def _repair_review_from_sl10(
             sl10.meta.status = StageStatus.FAIL
             sl10.meta.stage_error = sl10.rework_instructions[-1]
     local_override_audit: dict[str, Any] | None = None
+    local_override_coverage = _sl10_major_local_evidence_coverage(sl10, local_review=local_review)
     if sl10.ok and local_review.drift_risk == "major" and local_review.local_rejection is not None:
         local_override_audit = {
             "kind": "local_major_drift_override_audit",
@@ -2965,6 +3042,8 @@ def _repair_review_from_sl10(
             "local_rejection_evidence_hash": _short_hash(local_review.local_rejection.evidence),
             "local_override_rationale_hash": _short_hash(sl10.local_override_rationale),
             "local_override_rationale_count": len(sl10.local_override_rationale),
+            "covered_local_objection_kinds": local_override_coverage["covered"],
+            "missing_local_objection_kinds": local_override_coverage["missing"],
         }
         sl10.evidence.append(local_override_audit)
 
