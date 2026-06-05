@@ -930,6 +930,41 @@ def test_lg_d1_llm_progress_event_uses_allowlist_for_raw_chunk_shapes() -> None:
     _assert_no_forbidden_operator_keys(event)
 
 
+def test_lg_d1_generic_operator_event_sanitizes_raw_chunk_and_token_like_fields() -> None:
+    from method.langgraph_runtime import build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-generic-no-raw",
+        event_type="node_enter",
+        payload={
+            "node_ok": "validation_pass",
+            "raw_chunk": "RAW_CHUNK_LEAK_GENERIC",
+            "nested": {
+                "content": "RAW_CONTENT_LEAK_GENERIC",
+                "choices": [{"delta": {"content": "RAW_DELTA_LEAK_GENERIC"}}],
+                "safe_secret_note": "this field name includes secret and should be omitted",
+            },
+            "apiKey": "camelCase secret key maybe not key-matched",
+            "token_value": "secret-token-string",
+            "bearer": "Bearer abcdefghijklmnopqrstuvwxyz",
+        },
+    )
+
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert event["payload"]["node_ok"] == "validation_pass"
+    assert event["payload"]["omitted_raw_content_field_count"] >= 7
+    for needle in (
+        "RAW_CHUNK_LEAK_GENERIC",
+        "RAW_CONTENT_LEAK_GENERIC",
+        "RAW_DELTA_LEAK_GENERIC",
+        "secret-token-string",
+        "Bearer abcdefghijklmnopqrstuvwxyz",
+        "camelCase secret key maybe not key-matched",
+    ):
+        assert needle not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
 def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
     from method.langgraph_runtime import _run_graph_with_lg_d1_stream
 
@@ -969,6 +1004,47 @@ def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
         raise AssertionError("empty stream after side effects must fail loud instead of replaying invoke")
 
     assert app.llm_calls == 1
+
+
+def test_lg_d1_stream_typeerror_after_side_effect_does_not_invoke_twice() -> None:
+    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+
+    class TypeErrorAfterSideEffectApp:
+        def __init__(self) -> None:
+            self.stream_calls = 0
+            self.invoke_calls = 0
+            self.side_effects: list[str] = []
+
+        def stream(self, _initial_state: dict[str, Any], *, config: dict[str, Any], stream_mode: str) -> Any:
+            assert stream_mode == "updates"
+            assert config["configurable"]["thread_id"] == "lg-d1-typeerror-no-replay"
+            self.stream_calls += 1
+            self.side_effects.append("stream-side-effect-before-typeerror")
+            raise TypeError("simulated TypeError after stream side effect")
+
+        def invoke(self, _initial_state: dict[str, Any], *, config: dict[str, Any]) -> dict[str, Any]:
+            self.invoke_calls += 1
+            self.side_effects.append("invoke-side-effect")
+            return {"runtime_result": "must-not-be-called", "operator_events": [], "config": config}
+
+    app = TypeErrorAfterSideEffectApp()
+
+    try:
+        _run_graph_with_lg_d1_stream(
+            app,
+            initial_state={"operator_events": [], "operator_stream_enabled": True, "run_id": "lg-d1-typeerror-no-replay"},
+            run_id="lg-d1-typeerror-no-replay",
+            operator_stream_enabled=True,
+        )
+    except RuntimeError as exc:
+        assert "stream setup failed with TypeError" in str(exc)
+        assert "refusing fallback invoke" in str(exc)
+    else:  # pragma: no cover - failure path documents the expected guard.
+        raise AssertionError("TypeError after stream setup side effects must fail loud instead of replaying invoke")
+
+    assert app.stream_calls == 1
+    assert app.invoke_calls == 0
+    assert app.side_effects == ["stream-side-effect-before-typeerror"]
 
 
 def test_lg_d1_stream_off_preserves_run_record_and_result(tmp_path: Path) -> None:

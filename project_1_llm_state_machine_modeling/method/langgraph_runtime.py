@@ -92,6 +92,7 @@ _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
     "choices",
     "delta",
     "api_key",
+    "apikey",
     "authorization",
     "headers",
     "token",
@@ -99,7 +100,7 @@ _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
     "refresh_token",
     "bearer_token",
 }
-_LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS = ("api_key", "secret", "credential", "password", "bearer")
+_LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS = ("api_key", "apikey", "secret", "credential", "password", "bearer", "token")
 _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES = (
     "_api_key",
     "_secret",
@@ -108,11 +109,21 @@ _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES = (
     "_bearer",
     "_token",
 )
+_LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS = {
+    "apikey",
+    "authorization",
+    "accesstoken",
+    "refreshtoken",
+    "bearertoken",
+    "token",
+    "headers",
+}
 _LG_D1_SECRET_VALUE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{7,}"),
     re.compile(r"gh[opsur]_[A-Za-z0-9_]{8,}"),
     re.compile(r"github_pat_[A-Za-z0-9_]{8,}"),
     re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE),
+    re.compile(r"(?i)(?:secret|token|api[_-]?key|password)[A-Za-z0-9._:\-]{4,}"),
 )
 _LG_D1_LLM_PROGRESS_EVENT_TYPES = {"llm_stream_progress", "llm_request_progress"}
 _LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS = {
@@ -226,11 +237,15 @@ def _sanitize_lg_d1_operator_payload(value: Any) -> tuple[Any, int]:
         for key, nested in value.items():
             key_text = str(key)
             key_norm = key_text.lower()
+            key_compact = re.sub(r"[^a-z0-9]", "", key_norm)
             if key_norm in _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS or any(
                 fragment in key_norm for fragment in _LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS
             ) or any(
                 key_norm.endswith(suffix) for suffix in _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES
-            ):
+            ) or key_compact in _LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS or key_compact.startswith("raw"):
+                omitted += 1
+                continue
+            if any(fragment in key_compact for fragment in ("token", "secret", "password", "apikey", "credential", "bearer")):
                 omitted += 1
                 continue
             safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
@@ -1751,14 +1766,16 @@ def _run_graph_with_lg_d1_stream(
             config={"configurable": {"thread_id": run_id}},
             stream_mode="updates",
         )
-    except TypeError:
+    except TypeError as exc:
         # Some LangGraph versions can expose invoke but lack the exact stream
-        # signature.  Only fall back if the stream iterator cannot be created;
-        # TypeError raised by node logic must propagate rather than replaying
-        # an LLM run and corrupting evidence.
-        state = app.invoke(initial_state, config={"configurable": {"thread_id": run_id}})
-        operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
-        return state, operator_events, "degraded_with_reason:langgraph_stream_updates_type_error"
+        # signature.  A non-generator ``stream`` implementation can still run
+        # arbitrary setup/provider code before raising ``TypeError``; replaying
+        # with ``invoke`` would risk duplicate LLM calls and corrupted academic
+        # evidence.  Fail loud instead of making an unauditable fallback.
+        raise RuntimeError(
+            "LangGraph stream setup failed with TypeError; refusing fallback invoke because "
+            "stream setup may already have provider/stage side effects"
+        ) from exc
     for chunk in stream_iter:
         if not isinstance(chunk, dict):
             continue
