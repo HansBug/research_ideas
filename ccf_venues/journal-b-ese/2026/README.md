@@ -1,6 +1,6 @@
 # Empirical Software Engineering 2026 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -89,4 +89,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 Agentic SE、FORGE 2026、EASE 2026、PROMPT-SE 2026 与 Advancing SE with LLM collection 的 Springer 日期 / 邀请制 caveat，并确认已同步 TIMELINE 对应 dated events。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 2026 年度 README，记录 Springer / DBLP 核心入口、重点 collection、投稿节奏与 DBLP entry article baseline。 |
