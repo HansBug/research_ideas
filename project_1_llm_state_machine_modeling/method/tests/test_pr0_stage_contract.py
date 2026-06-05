@@ -791,6 +791,8 @@ def test_canonical_loop_config_defaults_to_experiment_default_full_staged() -> N
     assert cfg.max_iterations == 5
     assert cfg.llm_max_retries == 2
     assert cfg.scenario_max_retries == 2
+    assert cfg.budget_policy["min_sl10_rework_attempts"] == 1
+    assert resolved["budget_policy"]["min_sl10_rework_attempts"] == 1
     assert resolved["condition_id"] == "full_staged_v1"
     assert resolved["condition_hash"].startswith("sha256:")
     assert resolved["feedback_sources"] == ["parse", "semantic", "design", "sim", "model_review"]

@@ -1401,6 +1401,26 @@ def test_pre_scenario_max_repairs_removed_from_loop_config_and_runtime_config() 
     assert not hasattr(runtime_cfg, "pre_scenario_max_repairs")
 
 
+def test_min_sl10_rework_attempts_is_default_budget_policy_and_hash_input() -> None:
+    cfg = schema.LoopConfig()
+    resolved = cfg.resolved_config()
+
+    assert schema._default_budget_policy()["min_sl10_rework_attempts"] == 1
+    assert cfg.budget_policy["min_sl10_rework_attempts"] == 1
+    assert resolved["budget_policy"]["min_sl10_rework_attempts"] == 1
+
+    changed = schema.LoopConfig(
+        condition_id="sl10_rework0_v1",
+        condition_family="budget_ablation",
+        base_condition_id="full_staged_v1",
+        changed_factors=["min_sl10_rework_attempts=0"],
+        budget_policy={**schema._default_budget_policy(), "min_sl10_rework_attempts": 0},
+        academic_question="SL-10 same-batch rework micro-budget 是否影响最后一轮修复闭环？",
+    )
+    assert changed.resolved_config()["budget_policy"]["min_sl10_rework_attempts"] == 0
+    assert changed.resolved_config()["condition_hash"] != resolved["condition_hash"]
+
+
 def test_default_adapter_helper_design_policy_matches_run_record(tmp_path: Path) -> None:
     stable_dsl = """
 state Root {

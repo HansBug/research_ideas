@@ -1266,6 +1266,17 @@ def _write_missing_record_artifacts(
     return _write_exception_artifacts(case, spec, cfg, run_id, run_dir, stdout_path, stderr_path, reproducibility_payload, reproducibility_path, elapsed, exc)
 
 
+def _record_budget_value(record: AgentLoopRunRecord, key: str, default: object = "<missing>") -> object:
+    run_config = record.run_config if isinstance(record.run_config, dict) else {}
+    resolved = run_config.get("resolved_loop_config") if isinstance(run_config.get("resolved_loop_config"), dict) else {}
+    budget = resolved.get("budget_policy") if isinstance(resolved.get("budget_policy"), dict) else {}
+    if key in budget:
+        return budget[key]
+    if key in run_config:
+        return run_config[key]
+    return default
+
+
 def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunRecord, summary: PrE1RunSummary) -> str:
     final_dsl = str(record.final_artifacts.get("final_dsl") or "")
     boundary = "否；本次使用真实默认入口/显式 PR-E1 探索条件，没有 fake、fixture、hot-start 或 replay。"
@@ -1291,7 +1302,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| case_id | `{case.case_id}` |",
         f"| config_id | `{spec.config_id}` |",
         "| 运行入口 | `method.loop.run_agent_loop(nl, LoopConfig(...))` |",
-        f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `model_review_mode={spec.model_review_mode}`, `repair_review_mode={spec.repair_review_mode}` |",
+        f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `min_sl10_rework_attempts={_record_budget_value(record, 'min_sl10_rework_attempts')}`, `model_review_mode={spec.model_review_mode}`, `repair_review_mode={spec.repair_review_mode}` |",
         f"| Git commit | `{summary.git_commit}` |",
         f"| clean / diff / prompt snapshot | clean=`{summary.clean_commit_bound}`, dirty=`{summary.git_dirty}`, diff_hash=`{summary.git_diff_hash}`, prompt_hash=`{summary.prompt_snapshot_hash}` |",
         f"| provider/model 脱敏标识 | mode=`{summary.provider_mode}`, model=`{summary.provider_model_redacted}`, real_api=`{summary.real_llm_provider_api}` |",
