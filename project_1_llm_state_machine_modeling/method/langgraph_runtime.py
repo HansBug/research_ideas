@@ -2396,6 +2396,28 @@ def _waiver_tail_start_stage(waiver_kind: str) -> str:
     )
 
 
+def _validate_waiver_kind_selected_consistency(*, kind: str, validation: "_ValidationPass") -> None:
+    selected = validation.selected
+    if selected is None:
+        raise ValueError(f"waiver entry envelope requires validation.selected for tail_kind={kind!r}")
+    source, feedback, source_stage = selected
+    sd6_waiver_kinds = {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"}
+    if kind in sd6_waiver_kinds:
+        if source != FeedbackSource.SIM.value or source_stage != StageId.SD_6_SIM.value or not isinstance(feedback, SimFeedback):
+            raise ValueError(
+                "waiver entry envelope requires waiver_audit.kind="
+                f"{kind!r} to match canonical SD-6 sim validation.selected"
+            )
+        return
+    if kind == "design_warning_waiver":
+        if source != FeedbackSource.DESIGN.value or source_stage != StageId.SD_4_DESIGN.value or not isinstance(feedback, DesignFeedback):
+            raise ValueError(
+                "waiver entry envelope requires design_warning_waiver to match canonical SD-4 design validation.selected"
+            )
+        return
+    raise ValueError(f"waiver entry envelope received unsupported tail_kind={kind!r}")
+
+
 def _validate_waiver_repair_patch_contract(*, repair_patch: dict[str, Any], validation: "_ValidationPass") -> dict[str, Any] | None:
     forbidden_keys = {
         "scenario_epoch",
@@ -2479,6 +2501,7 @@ def _build_waiver_entry_envelope(
         raise TypeError("waiver entry envelope requires validation to be a _ValidationPass")
     validation_selected_trace = _validate_waiver_repair_patch_contract(repair_patch=repair_patch, validation=validation)
     kind = _waiver_kind_from_patch(repair_patch)
+    _validate_waiver_kind_selected_consistency(kind=kind, validation=validation)
     start_stage = _waiver_tail_start_stage(kind)
     waiver_audit = repair_patch.get("waiver_audit")
     if kind in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"} and not isinstance(waiver_audit, dict):

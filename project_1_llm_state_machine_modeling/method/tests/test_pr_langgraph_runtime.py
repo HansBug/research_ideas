@@ -264,6 +264,34 @@ def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validat
             validation=sim_validation,
             iteration=3,
         )
+    sim_waiver_patch = {
+        "waiver_continue": True,
+        "accepted_candidate": False,
+        "selected_feedback": {"source": "sim", "source_stage": StageId.SD_6_SIM.value},
+        "waiver_audit": {"kind": "stale_overridden_scenario_waiver"},
+        "repair_stage_ids": [StageId.SD_8_FIX_PLAN.value, StageId.SL_9_REPAIR.value],
+        "exit_reason": "all_fix_requests_rejected_as_waiver_continue",
+    }
+    sim_envelope = lg._build_waiver_entry_envelope(
+        repair_patch=sim_waiver_patch,
+        validation_ref="transient:validation:sim",
+        validation=sim_validation,
+        iteration=3,
+    )
+    assert sim_envelope["tail_kind"] == "stale_overridden_scenario_waiver"
+    assert sim_envelope["tail_start_stage"] == StageId.SD_6_SIM.value
+    assert sim_envelope["validation_source"]["selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+
+    with pytest.raises(ValueError, match="canonical SD-6 sim validation.selected"):
+        lg._build_waiver_entry_envelope(
+            repair_patch={
+                **repair_patch,
+                "waiver_audit": {"kind": "stale_overridden_scenario_waiver"},
+            },
+            validation_ref="transient:validation:design",
+            validation=validation,
+            iteration=3,
+        )
     with pytest.raises(ValueError, match="unsupported waiver_audit.kind"):
         lg._build_waiver_entry_envelope(
             repair_patch={
@@ -1758,6 +1786,21 @@ def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_pa
     waiver_runtime_trace = record.final_artifacts["langgraph_runtime_trace"]["waiver_subgraph_runtime_trace"]
     assert "waiver_subgraph_enter" in waiver_runtime_trace["node_ids"]
     assert "waiver_design_tail" in waiver_runtime_trace["node_ids"]
+    assert waiver_runtime_trace["nested_subgraph_ids"] == ["validation_subgraph"]
+    waiver_trace_nodes = [
+        item
+        for item in record.run_config.get("langgraph_node_trace", [])
+        if str(item.get("node_id") or "")
+        in {"waiver_subgraph_enter", "waiver_tail_decision", "waiver_design_tail", "waiver_sim_tail", "waiver_subgraph_finalize"}
+    ]
+    waiver_operator_node_events = [
+        event
+        for event in _read_operator_events(record)
+        if event.get("event_type") in {"subgraph_enter", "node_enter", "subgraph_exit"}
+        and event.get("node") in {"waiver_subgraph_enter", "waiver_tail_decision", "waiver_design_tail", "waiver_sim_tail", "waiver_subgraph_finalize"}
+    ]
+    assert [item["node_id"] for item in waiver_trace_nodes] == [event["node"] for event in waiver_operator_node_events]
+    assert len(waiver_operator_node_events) == waiver_runtime_trace["node_trace_count"]
     assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
     lifecycle = _assert_lg_a2_store_metadata(record)
     assert lifecycle["put_count"] == 1
