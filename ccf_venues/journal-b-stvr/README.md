@@ -1,6 +1,6 @@
 # STVR README
 
-> 信息更新时间：`2026-06-05 12:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 14:28`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | Software Testing, Verification and Reliability |
 | 类型 | 期刊 |
 | CCF 大类 | [软件工程 / 系统软件 / 程序设计语言](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) |
-| CCF 等级 | B |
+| CCF 等级 | B（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
 | 出版商 | [Wiley / Wiley Online Library](https://onlinelibrary.wiley.com/journal/10991689) |
 | ISSN | 待人工浏览器核验（[Wiley STVR 期刊主页](https://onlinelibrary.wiley.com/journal/10991689)；CLI 命令行访问返回 WAF/403） |
 | 期刊主页 | [Wiley STVR](https://onlinelibrary.wiley.com/journal/10991689) |
@@ -97,4 +97,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 14:28` | 实现后 review 收尾：补齐 CCF 等级字段的官方目录链接，与 REJ / STTT 同批次口径对齐。 |
 | `2026-06-05 12:05` | 初始化 STVR 期刊 README，记录 Wiley 官方入口、DBLP entry article baseline、WAF/403 caveat、2022-2028 年度汇总与 2029+ 检索结论。 |
