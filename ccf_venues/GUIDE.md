@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 22:34`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -185,7 +185,7 @@ PR-7 实证 / 质量期刊填充后的补充规则：
 2. 本库内部页使用相对路径，且示例链接必须真实可达：在文库根文档中写 [`conf-a-fse/2026`](./conf-a-fse/2026/README.md)、[TIMELINE.md](./TIMELINE.md)；在 venue 根 README 中才写 `./2026/README.md` 这类相对年度页。
 3. 未找到 URL 时不要伪造链接，写 `待补`、`未公布`、`无已知` 或 `⏳ 已检索未公布`，并在证据 / 核查记录里写核查时间。
 4. 模板中的外部 URL 占位符不得写成 Markdown 链接；统一写 `待补（占位：OFFICIAL_URL；核验后改为 Markdown 链接）`。这样能避免模板被误读为已有可点击事实来源。
-5. 模板中的本库内部已知路径必须继续写相对 Markdown 链接，例如 [TIMELINE.md](./TIMELINE.md)、[`conf-a-fse/2026`](./conf-a-fse/2026/README.md)；不要把内部已知路径降级成纯文本。若模板位于 venue 目录内，可用 `./2026/README.md` 指向同 venue 年度页。
+5. 模板文件位于 [templates/](./templates/) 下，`./2026/README.md`、`../TIMELINE.md`、`../../TIMELINE.md` 这类路径在模板目录本身并不真实成立，因此模板占位默认写成代码样式纯文本；实例化到 venue 根目录或年度目录后，必须改回可点击相对 Markdown 链接。
 6. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
 7. 官方年度主页、series page、organizer call、CFP、Important Dates、submission system、program / accepted papers 和 proceedings 是不同字段；只有能直接代表该年度 edition 的页面才可写入“官方年度主页”。Series page / organizer call / submission system 只能放入对应字段或 fallback / 备注，不得冒充年度主页或 CFP。
 8. 不得把某一个年度站点冒充为 stable series page；若未发现独立稳定 series page，根 README 写 `待补`，可把 DBLP venue index 或官方年度页写作 fallback / 年度事实来源。
@@ -452,7 +452,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 2. **事实类型分离**：会议事实、会议年度 README、会议核心人员和会议 dated events，与期刊事实、期刊年度 README、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events 分开维护。
 3. **SUMMARY 不回退事实**：已经完成基础核验的会议或期刊不得被后续空白占位写回 `⏳ 待建`；若某轮不处理某类事实，应保留既有状态和链接。
 4. **TIMELINE 不互删事件**：会议 dated events、期刊 rolling 表和期刊 special issue dated events 合流后必须共存；冲突解决时以“事件发生年份 + 来源可点击 + 已核验事实不删除”为准。
-5. **模板统一协议**：外部 URL 占位符使用纯文本占位，内部已知路径使用相对 Markdown 链接；更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
+5. **模板统一协议**：模板文件中的外部 URL 和目录相对路径都使用纯文本占位，避免 link checker 把模板位置下不存在的 `./2028/README.md` / `../TIMELINE.md` 当成坏链；实例化后的正式 README 必须使用真实可点击相对 Markdown 链接。更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
 6. **试点经验保留边界**：会议试点和期刊试点的踩坑结论都应保留在 [SUMMARY.md](./SUMMARY.md) 的对应小节，但不得把某一类试点的 deadline、论文数量或人员 roster 复制成另一类事实。
 
 ## 15. 踩坑复盘与规则回写纪律
@@ -480,6 +480,8 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 17. **Elsevier / ScienceDirect candidate CFP 坑**：命令行只能打开入口或遇到 WAF/403 时，candidate special issue、editorial roster 和 issue 正文只能写作待人工浏览器核验；不能为了填满 TIMELINE 而把未核验 deadline 变成 dated event。
 18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
 19. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
+20. **PR-10 全局审计降级核验坑**：若 subagent 服务出现 503 / 429，不能把“agent 未返回”当作可遗留待核验项；主 session 必须用本地脚本、官方页面、带 User-Agent 的 `requests` / `curl`、`claude -p` / `codex-deepseek exec` 等替代路径完成核验，并在 SUMMARY / PR body 说明降级方式。
+21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`UTC+8`、本地时区或无具体时刻；不能把其他 track 的 AoE 套到 main / technical / research chain。核验时应检查 HTML 的 `title="Timezone: ..."` 或页面显示的时区图标说明；例如 APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE。
 
 ### 15.2 回写位置
 
@@ -503,6 +505,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 8. [SUMMARY.md](./SUMMARY.md) 的统计数字、完成状态、踩坑记录、待补项与实际目录一致；更新日志仍按时间降序。
 9. 若复审暴露新的共性坑，先补 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md)，再声称 ready；不得把“下次注意”只留在聊天记录或 PR comment 中。
 10. 若当前 PR 合入上游或 base 分支并出现冲突，必须把冲突处理纳入后续复审项：确认上游新增 venue、当前 PR venue、期刊 rolling / dated events、共享规则和更新日志均未被覆盖或回退；同时用 `git status --short` 和 `git ls-files -u` 确认冲突已被 `git add` 标记 resolved，不能只看文本里没有冲突标记。
+11. 全局审计 PR 声称 ready 前，必须把“需要核实的信息”和“需要纠正的问题”清零到可验收状态：事实错误必须修正；无法命令行穿透的官方 WAF / 403 必须明确写成 access caveat，并不得把它升级成已完全核验事实；subagent 失败必须有替代核验记录。
 
 ### 15.4 PR-9 P2 邻近观察补充规则
 
@@ -519,6 +522,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:16` | PR-10 全局审计规则回写：补充 subagent 503/429 降级核验、researchr 行级时区检查、模板占位路径非伪链接和 ready 前核实项清零纪律。 |
 | `2026-06-05 23:06` | PR-9 冲突后复审修复：同步 PR-9 已完成状态、39/273 合流统计纪律，并补充 week-only 日期不得进入 dated TIMELINE / Mermaid 的 P2 规则。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 规则回写与 PR-9 §15.4 P2 邻近观察规则，要求冲突复审同时覆盖 P1/P2 facts、TIMELINE、Mermaid、rolling 表、统计与更新日志。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：合并 PR-6 维护 / 修复 venue 规则、PR-7 实证 / 质量 venue 规则与 PR-8 形式化 / 工具链规则，明确三路 P1 sibling 合流后统计为 34/238 且冲突解决必须保留双方 TIMELINE、rolling 表、统计与更新日志 facts。 |

@@ -1,13 +1,13 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 22:34`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
 | 当前统计口径 | 本表统计为 PR-9 merge 最新上游 PR-8 后的组合状态：P0 22 个 venue / 154 个年度 README + PR-6 4 个 venue / 28 个年度 README + PR-7 4 个 venue / 28 个年度 README + PR-8 4 个 venue / 28 个年度 README + PR-9 5 个 venue / 35 个年度 README；当前总量为 39 个 venue 根 README、273 个年度 README |
-| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊、PR-6 维护 / 修复相关 P1 venue、PR-7 实证 / 质量 P1 venue、PR-8 形式化 / 工具链 P1 venue 与 PR-9 P2 邻近观察 venue 均已完成基础建档；当前 PR-9 分支已 merge 最新上游 PR-8，形成 P1/P2 facts 并集，会议 dated events、期刊 special issue dated events、P2 neighboring dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
+| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊、PR-6 维护 / 修复相关 P1 venue、PR-7 实证 / 质量 P1 venue、PR-8 形式化 / 工具链 P1 venue 与 PR-9 P2 邻近观察 venue 均已完成基础建档；PR-10 当前分支基于已合入 PR-6 / PR-7 / PR-8 / PR-9 的上游 staging，形成 P1/P2 facts 并集，会议 dated events、期刊 special issue dated events、P2 neighboring dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
 | 已完成会议试点 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
@@ -33,7 +33,7 @@
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
 | TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM / Requirements Engineering / ESE / JSS / SQJ dated collection events、PR-6 SANER / ICSME / ICPC dated events、PR-8 QRS / TASE dated events、PR-9 APSEC / SEKE / EASE / MSR / RV P2 dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 / PR-6 / PR-7 / PR-8 / PR-9 facts，且 2022--2026 Mermaid 已按不超过 40 条规则拆为多张分片图并补充 PR-9 P2 分片，见 [TIMELINE.md](./TIMELINE.md) |
 | 核心人员情报状态 | 27 个会议根 README 已补会议核心人员情报或待补核验记录；12 个期刊根 README 已补核心编辑人员画像、special issue / topical collection editor 线索或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
-| 当前优先批次 | PR-6 / PR-7 / PR-8 已由上游合入并在当前合流分支中共存；当前 PR-9 已完成 P2 邻近观察基础建档但不升级为 P0/P1 主线，PR-10 必须等待 PR-6 / PR-7 / PR-8 / PR-9 全部合入后做 P1/P2 全局审计 |
+| 当前优先批次 | PR-6 / PR-7 / PR-8 / PR-9 已由上游合入并在当前合流分支中共存；PR-10 已启动 P1/P2 全局审计，不新增 venue，只修正规则、事实链、近期窗口与一致性问题 |
 
 说明：当前统计表示 27 个会议 venue 与 12 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口、Wiley / Elsevier / ScienceDirect WAF/403、editorial roster 当前性与 special issue editor 角色边界待复核。
 
@@ -267,11 +267,11 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | `journal-b-scp` | 期刊 | B | 形式化、程序与工具链 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
 | `conf-c-qrs` | 会议 | C | 质量、可靠性、安全 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
 | `conf-c-tase` | 会议 | C | 形式化与理论软工 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
-| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | PR-9 / P2 | 当前 PR-9 分支已建档，见 §9.3 |
-| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | PR-9 / P2 | 当前 PR-9 分支已建档，见 §9.3 |
-| `conf-c-ease` | 会议 | C | 实证评估 | PR-9 / P2 | 当前 PR-9 分支已建档，见 §9.3 |
-| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | PR-9 / P2 | 当前 PR-9 分支已建档，见 §9.3 |
-| `conf-c-rv` | 会议 | C | 运行时验证 | PR-9 / P2 | 当前 PR-9 分支已建档，见 §9.3 |
+| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
+| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
+| `conf-c-ease` | 会议 | C | 实证评估 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
+| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
+| `conf-c-rv` | 会议 | C | 运行时验证 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
 
 
 ### 9.3 PR-9 P2 邻近观察完成情况
@@ -286,6 +286,16 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | MSR | C | 2022-2028 | [conf-c-msr](./conf-c-msr/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、Data/Tool、Mining Challenge 与 steering 代表人物 | Technical / Data&Tool / Challenge / Industry 分离；DBLP fallback 不写成 main count | 🟡 部分核验 |
 | RV | C | 2022-2028 | [conf-c-rv](./conf-c-rv/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering 与 runtime verification 代表人物 | Springer / DBLP fallback 分离；部分年度未列 General Chair | 🟡 部分核验 |
 
+
+### 9.4 PR-10 P1/P2 全局审计记录
+
+| 审计项 | 结果 | 证据 / 处理 | 状态 |
+|---|---|---|---|
+| 目录统计 | 39 个 venue；27 个会议；12 个期刊；273 个年度 README | 本地脚本重算每个 venue 均覆盖 `2022`--`2028` 共 7 个年度 README；未发现缺失年度 | ✅ 已完成 |
+| 合流完整性 | PR-6 / PR-7 / PR-8 / PR-9 facts 共存 | `git ls-files -u` 为空；`ccf_venues/` 未发现 conflict marker；SUMMARY / TIMELINE 仍保留维护修复、实证质量、形式化工具链与 P2 邻近观察事件并集 | ✅ 已完成 |
+| 近期投稿窗口 | RV 2026、APSEC 2026、SANER 2027、ESE Agentic / FORGE / EASE / PROMPT-SE、JSS AI Techniques 已复核 | 官方页面确认 RV 2026 extended paper submission `2026-06-14`；APSEC 2026 Technical Track 为 `UTC+8 (Bali time)`；SANER 2027 research chain、ESE Springer collections 日期与当前 TIMELINE 一致；JSS ScienceDirect 官方 URL 仍为 CLI 403/WAF caveat，不升级为完全核验 | ✅ 已完成 |
+| 模板链接 | 模板内伪相对链接已清理 | [templates/](./templates/) 下年度路径和 TIMELINE 路径改为代码样式占位；实例化后的正式 README 仍要求可点击相对链接 | ✅ 已完成 |
+| Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本 + 官方页面 requests / HTML 抽取完成核验；该坑已回写 [GUIDE.md](./GUIDE.md) §15.1 | ✅ 已完成 |
 
 ## 10. 核心 URL / 超链接覆盖口径
 
@@ -370,6 +380,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | Empirical Software Engineering | 2025-2027 | 多个 Springer collection 同时包含 submission / review / revision / notification 日期 | TIMELINE 按事件类型分列，submission deadline 与 review / revision / notification 不混写 | 后续若 Springer 更新 collection 状态或具体时刻，再同步年度 README 与 Mermaid |
 | Empirical Software Engineering | 2027-2028 | 未来年度卷期、DBLP 年度页和 2028 dated collection 未公布 | 年度页保留 rolling submission 与 online-first 长期入口，未来年度写 `⏳ 已检索未公布` | 后续待 Springer / DBLP 发布后补录，不预设未来卷号 |
 | JSS | 2022-2028 | ScienceDirect CLI 可能 403/WAF，special issue / issue 正文和 Editorial Manager landing 需人工浏览器核验 | 保留官方 URL，标注 CLI/WAF 风险；DBLP volume set 只作 fallback | 后续用浏览器核验 editorial board、issue TOC、special issue 状态和逐卷论文数量 |
+| PR-10 全局审计 | 2026 近期窗口 | multi-agent subagent 服务连续 503，且 ScienceDirect JSS 官方 URL 在 CLI 中 403/WAF | 已通过本地脚本、官方页面 requests/HTML、Springer/researchr/RV 官方页完成可访问窗口核验；JSS 仅保留官方 URL + WAF caveat，不写成完全核验 | 若后续人工浏览器能访问 ScienceDirect，再补 JSS special issue 正文与 guest editor 细节；当前无待修事实错误 |
 | SQJ | 2026 | `Software Quality in an AI-Driven World` 当前 Springer collection 页面显示 Closed，历史 deadline 日期仍需官方归档源复核 | TIMELINE 保留 2026-03-30 dated event，状态写 `✅ 已关闭` 且备注日期待复核 | 后续用浏览器 / 官方归档复查 deadline 和 guest editor 信息 |
 | SQJ | 当前 roster | Co-EiC / Managing Editor 未公开，W. Eric Wong / Christoph Treude 属待核验线索 | 根 README 应区分当前 official roster 与待核验线索，不把线索写成已核验角色 | 后续找到官方 collection / board 来源后再升级为正式核心人员事实 |
 | Empirical Software Engineering | 2026 | FORGE 2026 邀请制 collection 当前 Open，deadline 为 2026-10-02 | 已补入 ESE 2026 年度页、近期窗口、2026 timeline 与 Mermaid；editors 为 Gabriele Bavota / Yuan Tian | 后续跟踪 collection 状态变化和是否出现 published articles |
@@ -420,6 +431,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:16` | PR-10 全局审计执行：重算 39/273 统计，复核近期投稿窗口与官方来源，修正 APSEC 2026 Technical Track 时区口径，清理模板伪相对链接，并记录 subagent 503 降级核验。 |
 | `2026-06-05 23:06` | 修复 PR-9 / PR-8 合流后复审 C 级问题：将 §9 前导段落改为 PR-6 / PR-7 / PR-8 / PR-9 均已完成基础建档，并将 RV 2022 仅有 `Week 26` 的 notification 从 dated TIMELINE / Mermaid 降级为待补记录。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：当前总账统一为 39 个 venue、273 个年度 README、27 个会议与 12 个期刊，并保留 PR-6 / PR-7 / PR-8 / PR-9 facts、TIMELINE / Mermaid / rolling 表与 PR-10 全局审计约束。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：当前总账统一为 34 个 venue、238 个年度 README、22 个会议与 12 个期刊，并保留 PR-6 / PR-7 / PR-8 facts、TIMELINE / Mermaid / rolling 表与 PR-9 / PR-10 后续约束。 |
