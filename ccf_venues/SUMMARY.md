@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 08:46`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -72,7 +72,7 @@
 ### 6.1 PR-2 软工 / 需求会议踩坑
 
 1. **FSE / ESEC-FSE / PACMSE 必须冻结命名和计数**：根目录固定 `conf-a-fse`，历史年度保留 ESEC/FSE 注记；2024+ PACMSE issue 是主论文出版口径，不额外重复计数。
-2. **ISSTA co-location 不能改变计数边界**：ISSTA 与 FSE / SPLASH / ECOOP 的 co-location 只记录会期和入口关系，论文数量按 ISSTA 独立 program / proceedings / DBLP fallback。
+2. **ISSTA co-location 不能改变计数边界**：ISSTA 与 FSE / SPLASH / ECOOP 的 co-location 只记录会期和入口关系，论文数量按 ISSTA 独立 program / proceedings / DBLP fallback。2022/2023 年度页已有官方会期但曾漏入 TIMELINE，已在本轮修复并写入 [GUIDE.md](./GUIDE.md) 的会期同步自查规则。
 3. **ASE 多 track 计数风险高**：DBLP `inproceedings` fallback 往往混入 NIER、tool、industry、journal-first、artifact 等条目，SUMMARY 与根表均不能写成 Research Track count。
 4. **RE / REFSQ 已结束年度 proceedings 入口分散**：RE 的 IEEE Xplore conference number、REFSQ 的 Springer LNCS / LNBIP / CEUR 卷号需要后续专门复核；当前以官方 program / DBLP fallback 支撑基础入口。
 5. **需求类未来年度比 SE flagship 更早出现 CFP**：REFSQ 2027 已有 official dates，因此已进入 2026/2027 TIMELINE；RE 2027/2028 仍未发现官方主页，不得预造。
@@ -239,6 +239,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 10:00` | 修复 PR-2 修复后复审发现的 ISSTA 2022/2023 会期漏入 TIMELINE 问题，并把会期同步检查主要沉淀到 GUIDE。 |
 | `2026-06-05 08:46` | 完成 PR-2 软工 / 需求会议基础建档：新增 FSE、ASE、ISSTA、RE、REFSQ 共 5 个 venue、35 个年度 README，同步 TIMELINE，并记录 PR-2 计数 / proceedings / co-location 待补项。 |
 | `2026-06-05 00:36` | 合入 PR-1B 期刊试点后完成 SUMMARY 合流：重算 6 个 venue / 42 个年度 README，保留会议试点与期刊试点事实、踩坑记录、P0 状态和待补记录。 |
 | `2026-06-04 23:27` | 修复 PR-1B 复审 I 级问题：补充 TOSEM 在 ACM DL editorial-board 403 后的替代核验路径，并统一 SoSyM 复审时间戳为分钟粒度。 |
