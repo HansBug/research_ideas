@@ -1,6 +1,6 @@
 # `ccf_venues/` 01-venue-scope
 
-> 信息更新时间：`2026-06-05 15:36`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 15:59`（Asia/Shanghai）
 
 ## 1. 文档用途
 
@@ -26,18 +26,18 @@
 
 截至 PR-5，P0-A 与 P0-B 共 22 个 venue 已完成基础建档与部分核验，后续 P0 只做事实维护与缺口补证，不再作为待建清单管理。P1/P2 扩展必须按下表执行；更完整的验收规则见 [SUMMARY.md](./SUMMARY.md) §9。
 
-| 子级 PR | 批次主题 | Venue ownership | 数量 | 默认年度 README | 共享文件边界 |
-|---|---|---|---:|---:|---|
-| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 | 28 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
-| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 | 28 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
-| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 | 28 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
-| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 | 35 | 只增量维护邻近观察 venue，不升级为 P0/P1 主线 |
-| PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 0 | 0 | 统一复核统计、TIMELINE、Mermaid、更新日志、核心人员与待补项 |
+| 子级 PR | 批次主题 | Venue ownership | 数量 | 默认年度 README | 前置条件 | 共享文件边界 |
+|---|---|---|---:|---:|---|---|
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 | 28 | PR-5 ready / 合入上游后可开工；可与 PR-7 并行 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
+| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 | 28 | PR-5 ready / 合入上游后可开工；可与 PR-6 并行 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 | 28 | PR-6 与 PR-7 已合入上游，并已阅读其 GUIDE / SUMMARY 踩坑经验 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
+| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 | 35 | PR-6 与 PR-7 已合入上游；建议等待或同步阅读 PR-8 形式化 / 工具链踩坑记录 | 只增量维护邻近观察 venue，不升级为 P0/P1 主线 |
+| PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 0 | 0 | PR-6 / PR-7 / PR-8 / PR-9 全部合入上游 | 统一复核统计、TIMELINE、Mermaid、更新日志、核心人员与待补项 |
 
 约束：
 
 1. PR-6~PR-9 不得静默新增合同外 venue；若 CCF 官方更名或确有强相关漏项，必须先更新本文档和 PR body，并附官方来源。
-2. 每个 PR final ready 前必须 merge upstream staging head；若发生冲突，必须复审双方 facts、TIMELINE、Mermaid、更新日志与待补记录均未被覆盖。
+2. 每个 PR final ready 前必须 merge upstream staging head；若发生冲突，必须复审双方 facts、TIMELINE、Mermaid、更新日志与待补记录均未被覆盖。PR-8 / PR-9 开工前必须确认前置条件满足，不得只看 venue 清单跳过上游经验。
 3. [SUMMARY.md](./SUMMARY.md) 是完成状态总账；本文档只冻结范围和 ownership，不把待建 venue 写成已完成事实。
 
 ## 5. P0-A 强相关主线 venue
@@ -105,6 +105,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:59` | 实现后 review 修复：为 PR-6~PR-10 合同补充前置条件列，并明确 PR-8 / PR-9 不得跳过上游踩坑经验。 |
 | `2026-06-05 15:36` | PR-5 冻结 P0 完成状态与 PR-6~PR-10 P1/P2 ownership：本文档保留范围和执行合同，完成状态继续由 [SUMMARY.md](./SUMMARY.md) 维护。 |
 | `2026-06-05 00:36` | 合入期刊试点后确认范围清单不做事实 ownership 记录，P0 完成状态统一由 [SUMMARY.md](./SUMMARY.md) 维护。 |
 | `2026-06-04 23:04` | 同步全库更新日志降序口径；PR-1A / PR-1B 并行期间，P0 状态由 SUMMARY 记录具体 owner，本文仅保留范围边界。 |

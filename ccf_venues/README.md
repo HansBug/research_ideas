@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 15:36`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 15:59`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -25,8 +25,8 @@
 后续可参考但不直接照搬的历史资源包括：
 
 1. [../VENUES.md](../VENUES.md)：提供强相关 venue 的初始名录、CCF 等级和四个 project 的投稿相关性。
-2. `PR #5` 中的 `frontier_index/CCF_SE_A_B_C.md`：可作为软工相关 venue 范围和方向边界的参考来源。
-3. `PR #5` 中的 `frontier_index/CCF_SE_2026_DEADLINES.md` 与 `frontier_index/ccf_history/SUBMISSION_TIMELINES.md`：可作为 deadline 调研思路参考，但不能无核验地整表搬入。
+2. 历史 PR #5 中的 `frontier_index/CCF_SE_A_B_C.md`：可作为软工相关 venue 范围和方向边界的参考来源；当前分支没有该路径，不能当作可点击仓库文件。
+3. 历史 PR #5 中的 `frontier_index/CCF_SE_2026_DEADLINES.md` 与 `frontier_index/ccf_history/SUBMISSION_TIMELINES.md`：可作为 deadline 调研思路参考；当前分支没有这些路径，不能无核验地整表搬入。
 
 ## 3. CCF 官方来源基准
 
@@ -171,6 +171,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:59` | 实现后 review 修复：将 README 历史 PR #5 / `frontier_index` 资源口径与 SUMMARY 对齐，明确这些路径不是当前分支可点击文件。 |
 | `2026-06-05 15:36` | PR-5 全局收口：冻结 P1/P2 后续 PR-6~PR-10 ownership，明确 P0 22 个 venue / 154 个年度 README 进入长期维护状态，并把后续扩展入口指向 SUMMARY / scope 合同。 |
 | `2026-06-05 14:06` | 修复 PR #46 review 入口口径：将 merge-upstream 后当前状态统一为 22 个 venue 根 README、154 个年度 README，并同时保留 PR-3 / PR-4 本轮交付计数和共享文件合流复审纪律。 |
 | `2026-06-05 11:25` | 合并上游 PR-2 后更新入口状态：记录 PR-3 当时的合流目录统计，明确 PR-3 自身交付物仍是 8 个 venue / 64 个 README，并把 upstream merge 冲突解决纳入后续复审纪律；当前总量以 14:06 记录的 22 / 154 为准。 |
