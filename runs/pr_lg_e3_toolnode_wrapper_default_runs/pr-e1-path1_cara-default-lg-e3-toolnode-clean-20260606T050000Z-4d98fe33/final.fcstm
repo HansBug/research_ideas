@@ -1,0 +1,116 @@
+def int CA_mode = 0;
+def int algorithm_control = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int display_error = 0;
+def int sound_error = 0;
+def int log_count = 0;
+def float blood_pressure = 120.0;
+def float sensor_buffer_bp = 120.0;
+def float target_bp = 100.0;
+def float requested_target_bp = 100.0;
+def float default_flow_rate = 1.0;
+def float builtin_switch_speed = 0.0;
+def float pump_speed = 0.0;
+def float infusion_rate = 1.0;
+def float control_voltage = 0.0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            algorithm_control = 0;
+            control_voltage = 0.0;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+            pump_speed = builtin_switch_speed;
+            infusion_rate = default_flow_rate;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            algorithm_control = 0;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 1;
+            algorithm_control = 1;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            CA_mode = 1;
+            algorithm_control = 1;
+        }
+        during {
+            sensor_buffer_bp = blood_pressure;
+            if [pump_fault == 0] {
+                if [blood_pressure > target_bp] {
+                    if [default_flow_rate - ((blood_pressure - target_bp) / 10.0) < 0.0] {
+                        infusion_rate = 0.0;
+                    } else {
+                        infusion_rate = default_flow_rate - ((blood_pressure - target_bp) / 10.0);
+                    }
+                } else if [blood_pressure < target_bp] {
+                    infusion_rate = default_flow_rate + ((target_bp - blood_pressure) / 10.0);
+                } else {
+                    infusion_rate = default_flow_rate;
+                }
+                control_voltage = infusion_rate;
+                log_count = log_count + 1;
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            display_error = 1;
+            sound_error = 1;
+            algorithm_control = 0;
+            control_voltage = 0.0;
+            CA_mode = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Manual -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+        display_error = 0;
+        sound_error = 0;
+    };
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect {
+        target_bp = requested_target_bp;
+    };
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    Ask_StartAC -> Manual :: TerminateAC;
+    AutocontrolInit -> Manual :: TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    AutocontrolNormal -> Manual :: TerminateAC;
+    AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+    PumpFault -> Manual :: FaultRemoved effect {
+        pump_fault = 0;
+        alarm_signal = 0;
+        display_error = 0;
+        sound_error = 0;
+    };
+}
