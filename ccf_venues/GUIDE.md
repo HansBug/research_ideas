@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 13:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:12`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -93,6 +93,8 @@ yyyy-mm-dd hh:mm
 
 会议核心人员的 `官方角色来源` 必须能直接支撑“姓名 + 具体角色 / committee 层级”。只出现 series 主页、年度主页壳、CFP、Important Dates、投稿系统、第三方简介或个人主页时，不得写成已核验官方角色；应降级为 `学术线索 / 官方角色页待补`，核验状态写 `⏳ 待核验`，并把缺口写入待补 / 风险记录。
 
+会议历史投稿系统补充纪律：历史年度的 submission system 只记录当年官方 CFP / Important Dates / author instructions 明确给出的入口；若入口已经关闭、重定向、登录后不可见或只剩 EasyChair / HotCRP / PCS 等历史壳，应写成 `历史投稿入口已关闭 / 待人工登录核验`，不得用当前年度投稿系统反推旧年度，也不得把投稿系统入口冒充年度主页、CFP 或 accepted papers 来源。ESEM 这类实证会议的历史年度尤其要保留“官方来源仍可证明当年使用过该系统”和“当前是否还能访问正文 / 表单”两层事实。
+
 ### 4.2 期刊来源优先级
 
 1. 期刊官方主页。
@@ -111,7 +113,7 @@ yyyy-mm-dd hh:mm
 
 期刊核心人员指 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Managing Editor、Associate / Area Editor-in-Chief、Editorial Board leadership、官方列出的同等编辑领导角色，以及当年 special issue / topical collection guest editor。期刊核心人员的当前角色必须由官方 editorial board / editorial team / editors 页面或出版商 / 学会任命公告支撑；个人主页、机构页和 DBLP 只能补研究方向、代表作和近 5 年论文入口，不能单独支撑当前 editorial roster。
 
-补充纪律：若 Wiley / ACM / IEEE 等 publisher 页面在命令行环境中返回 WAF、Cloudflare、403、SPA 壳或登录页，必须保留官方 URL 作为核验入口，并在对应字段写清“待人工浏览器核验”；不得用第三方页面替代当前官方 roster、author guidelines 或卷期正文，也不得臆造 Editor-in-Chief / editorial board 当前名单。
+补充纪律：若 Wiley / ACM / IEEE / Elsevier / ScienceDirect 等 publisher 页面在命令行环境中返回 WAF、Cloudflare、403、SPA 壳或登录页，必须保留官方 URL 作为核验入口，并在对应字段写清“待人工浏览器核验”；不得用第三方页面替代当前官方 roster、author guidelines、articles in press、online first 或卷期正文，也不得臆造 Editor-in-Chief / editorial board 当前名单。ScienceDirect 命令行 `403` / WAF 只说明 CLI 抓取受限，不等价于官方页面不存在；JSS 这类 Elsevier 期刊应保留 ScienceDirect / Elsevier 官方入口并标注访问风险，DBLP 只能作论文名录或计数 fallback。
 
 ## 5. 核心 URL 字段与超链接规范
 
@@ -133,6 +135,12 @@ yyyy-mm-dd hh:mm
 | DBLP 年度页 | venue 年度汇总表、年度 README | DBLP | 仅 fallback，写明口径 |
 
 会议根 README 的年度表不允许只写“见年度页”；至少官方年度主页、CFP / Important Dates、论文名录 / proceedings、DBLP 年度页这些核心入口要能直接点击。
+
+PR-7 ESEM 填充后的补充规则：
+
+1. ESEM 历史年度投稿系统若来自当年官方 CFP / submission instructions，可以记录为历史事实；若入口已关闭或需登录，字段写 `历史入口已关闭 / 待人工登录核验`，不要改写成 `未公布`，也不要用新年度系统补旧年度。
+2. ESEM 年度主页、submission system、program / accepted papers、proceedings 和 DBLP 年度页必须分字段维护；投稿系统只能证明投稿入口，不能替代年度主页、CFP、Important Dates 或论文名录。
+3. 若官方年度站点只保留 program / proceedings 而历史 CFP 消失，应把 program / proceedings 作为论文入口来源，把 CFP / dates 写 `待补` 或 `⏳ 已检索未公布`，并在证据记录说明已检索的官方入口。
 
 ### 5.2 期刊必须维护的核心 URL
 
@@ -157,6 +165,13 @@ PR-4 期刊填充后的补充规则：
 2. Requirements Engineering 这类期刊 collection deadline 是期刊专刊事件，不是同名会议 deadline；TIMELINE 的 `类型-CCF` 应写作 `期刊专刊-CCF B/C` 等。
 3. STTT 这类期刊常包含 TACAS / SPIN / FMICS / Runtime Verification / ECBS 等 conference-based special issue、invited 或 extended papers；DBLP `entry article` baseline 不能与对应会议 proceedings 数混算，也不能用会议会期或会议 CFP 反推期刊 deadline。
 4. Wiley Online Library / Wiley Author Services / Equinocs、ScholarOne 等 publisher 或投稿系统若在命令行环境返回 WAF、Cloudflare、403、SPA / 登录壳，应记录为“官方入口已定位，正文 / 具体表单 / journal routing 待人工浏览器或登录核验”；不得用第三方页面替代 STVR 这类 Wiley 期刊的当前 roster、author guidelines 或卷期正文。
+
+PR-7 实证 / 质量期刊填充后的补充规则：
+
+1. Springer `collections` / topical collections 若状态为 `Closed`，仍可作为历史 special issue / collection 事实记录；若官方页给出 historical submission deadline，应按事件发生年份进入 [TIMELINE.md](./TIMELINE.md) 的历史 dated event，并在备注写明 `Closed / 历史 deadline`。Closed collection 不得写成当前 `🟡 专刊征稿`，也不得反推未来年度 active CFP。
+2. Empirical Software Engineering 等 Springer 期刊 collection 页面可能同时列出 `Submission deadline`、`Notification`、`Revision due`、`Final decision`、`Publication` 等多类事件；年度 README 和 [TIMELINE.md](./TIMELINE.md) 必须保留官方事件语义，不能把 notification、revision 或 final decision 统一改名为 submission deadline。只有官方给出明确日期的事件进入 dated 表；只给月份或季度的事件只能写入备注 / 待补记录。
+3. Special issue / topical collection editors、guest editors 或 collection editors 是当期专题角色，不等同于长期 editorial board / editorial leadership。除非同一人员另有官方当前 editorial board 页面支撑，否则不得把 collection editor 写入期刊根 README 的当前核心编辑人员正表；应放在年度 special issue / collection 小节或单独“专题编辑线索”小节。
+4. Elsevier / ScienceDirect 的 guide for authors、volume / issue、articles in press、online first、editorial board 页面若在 CLI 中返回 `403`、WAF、JS 壳或空正文，应保留官方链接并标注 `CLI 403/WAF，待人工浏览器核验`；不得用 DBLP、Scimago、LetPub、Guide2Research 或第三方索引替代官方入口。DBLP 可用于年度论文名录 / 计数 fallback，但不能支撑 author guidelines、current roster 或 articles in press 当前性。
 
 ### 5.3 Markdown 链接写法
 
@@ -245,6 +260,8 @@ PR-4 期刊填充后的补充规则：
 8. 文末更新日志表。
 
 期刊核心编辑人员情报应优先写在期刊根 README，作为当前 editorial leadership 入口。年度 README 不重复长期核心编辑人员；只有当某年度 special issue / topical collection 有 guest editor、年度 editorial team 或人员变更与当年事实直接相关时，才在年度 README 中单独记录。
+
+Special issue / topical collection editors 必须与长期 editorial board 分离：前者服务于某一专题、collection 或年度征稿，后者才是期刊当前 roster / leadership。根 README 的核心编辑人员表只收官方当前 editorial board / editorial team / editors 页面或任命公告能支撑的长期角色；专题编辑若没有长期角色证据，只能作为年度事实或候选线索记录，并保留 `待官方 roster 复核`。
 
 期刊核心编辑人员表必须显式区分证据等级和当前性，避免把候选线索写成已核验 roster。推荐使用 `核验等级 / 当前性` 列，至少区分：
 
@@ -443,6 +460,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 7. **访问异常与来源冒充坑**：证书问题可以用 `curl -k`、浏览器或带 `User-Agent` 重试；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口、投稿系统入口或 organizer call 都不得写成年度主页 / CFP / committee 官方角色源；Wiley STVR 等 publisher 页面在 CLI 中 WAF/403 时仍应保留官方链接和待人工浏览器核验状态，不能把“无法命令行抓取”改写成“无编辑人员”或用第三方页面补成当前 roster。
 8. **track 与角色混算坑**：research、industry、tool、artifact、workshop、journal-first、companion、umbrella conference 与 satellite conference 必须分列；committee / editorial roster 角色不足时只能写成线索，不能升级为已核验核心人员事实。
 9. **期刊专刊 / 会议扩展混算坑**：例如 STTT 的 conference-based special issue 只能按期刊 article baseline 记录，不能和 TACAS / SPIN / FMICS / RV 等会议 proceedings 合并计数。
+10. **PR-7 实证 / 质量 venue 坑**：Springer Closed collection 仍可能有 historical deadline，必须写成历史 dated event 而不是当前征稿；ESE collection 多事件类型要保留 submission / notification / revision / final decision 的原始语义；ScienceDirect CLI `403` / WAF 只能标注待浏览器核验，不能替代或删除官方 Elsevier 链接；ESEM historical submission system 要区分“当年官方使用过”和“当前入口是否仍可访问”。
 
 ### 15.2 回写位置
 
@@ -473,6 +491,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:12` | PR-7 实证 / 质量 venue 规则回写：补充 ESEM historical submission system、Springer Closed collection / historical deadline、ESE 多事件类型、special issue editors 与长期 editorial board 分离，以及 Elsevier / ScienceDirect CLI 403 / WAF 处理纪律。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
 | `2026-06-05 13:25` | merge upstream / PR-3+PR-4 合流规则：解决 GUIDE 冲突，保留形式化验证会议来源冒充、committee / track 分层、`curl -k` / 冲突复审纪律，同时保留 PR-4 期刊 rolling / dated event、Wiley WAF/403、Springer collections 和 STTT conference-based special issue 计数纪律。 |
