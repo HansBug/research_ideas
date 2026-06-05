@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 12:35`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -106,6 +106,8 @@ yyyy-mm-dd hh:mm
 4. DBLP、Google Scholar、Semantic Scholar、ORCID 等学术入口。
 5. 第三方介绍页只可作为发现线索，不得单独支撑研究方向、代表作或近年论文结论。
 
+补充纪律：若 Wiley / ACM / IEEE 等 publisher 页面在命令行环境中返回 WAF、Cloudflare、403、SPA 壳或登录页，必须保留官方 URL 作为核验入口，并在对应字段写清“待人工浏览器核验”；不得用第三方页面替代当前官方 roster、author guidelines 或卷期正文，也不得臆造 Editor-in-Chief / editorial board 当前名单。
+
 ## 5. 核心 URL 字段与超链接规范
 
 后续数据填充不是只写摘要，而是要把可复用入口直接挂进表格，方便人和 AI 点击核验。
@@ -143,6 +145,13 @@ yyyy-mm-dd hh:mm
 | DBLP 年度页 | 年度汇总表、年度 README | DBLP | 仅 fallback，写明口径 |
 
 期刊 rolling submission 不进入 dated Mermaid，但 [TIMELINE.md](./TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表也必须挂 author guidelines、submission system、volume / issue、online first 和本库年度页链接。
+
+PR-4 期刊填充后的补充规则：
+
+1. Springer `collections` / topical collections 若给出明确 submission deadline，应进入对应年份事件表和 Mermaid；若只给 revision / final decision 的月份，不能硬凑具体日期，只能放备注或待补记录。
+2. Requirements Engineering 这类期刊 collection deadline 是期刊专刊事件，不是同名会议 deadline；TIMELINE 的 `类型-CCF` 应写作 `期刊专刊-CCF B/C` 等。
+3. STTT 这类期刊常包含 TACAS / SPIN / FMICS / Runtime Verification / ECBS 等 conference-based special issue、invited 或 extended papers；DBLP `entry article` baseline 不能与对应会议 proceedings 数混算，也不能用会议会期或会议 CFP 反推期刊 deadline。
+4. Wiley Online Library / Wiley Author Services / Equinocs、ScholarOne 等 publisher 或投稿系统若在命令行环境返回 WAF、Cloudflare、403、SPA / 登录壳，应记录为“官方入口已定位，正文 / 具体表单 / journal routing 待人工浏览器或登录核验”；不得用第三方页面替代 STVR 这类 Wiley 期刊的当前 roster、author guidelines 或卷期正文。
 
 ### 5.3 Markdown 链接写法
 
@@ -401,7 +410,9 @@ yyyy-mm-dd hh:mm
 3. **链接与草稿坑**：例如 `_events_draft.md` 已删除但正式 README 仍链接、模板占位链接被误认为事实链接、官方页面 access denied 但未标明 probe / fallback。
 4. **核心人员情报坑**：例如不同 venue 人员表列结构不一致、缺少 `核验状态` / `核查时间`、只写聚合 Steering Committee 而没有可追踪具体人员、研究方向或代表作没有主页 / DBLP / 学术入口支撑。
 5. **未来年度信息坑**：例如只查到当前年而未查当前年份 + 2，或未来年度已有官方主页 / CFP 却未入年度 README；反过来也不得为未公布年度虚构 deadline。
-6. **合流与共享文件坑**：例如后续 PR 修改 [TIMELINE.md](./TIMELINE.md) 时误删期刊 rolling 表、SoSyM special issue dated event、已核验会议事件，或把上游试点 venue 写回待建。
+6. **合流与共享文件坑**：例如后续 PR 修改 [TIMELINE.md](./TIMELINE.md) 时误删期刊 rolling 表、SoSyM special issue dated event、Requirements Engineering 2026 collection dated events、已核验会议事件，或把上游试点 venue 写回待建。
+7. **Publisher 访问受限坑**：例如 Wiley STVR 官方页面在 CLI 中 WAF/403，仍应保留官方链接和待人工浏览器核验状态，不能把“无法命令行抓取”改写成“无编辑人员”或用第三方页面补成当前 roster。
+8. **期刊专刊 / 会议扩展混算坑**：例如 STTT 的 conference-based special issue 只能按期刊 article baseline 记录，不能和 TACAS / SPIN / FMICS / RV 等会议 proceedings 合并计数。
 
 ### 15.2 回写位置
 
@@ -420,8 +431,9 @@ yyyy-mm-dd hh:mm
 4. Mermaid label 的 venue edition 必须与表格 Venue 一致，尤其检查 `ICSE`、`FSE`、`ETAPS/TACAS` 等前一年投稿的会议。
 5. 对本轮新增 / 修改的会议年度 README，逐一抽查 `Conference dates`：若不是 `未公布` / `⏳ 已检索未公布`，则 [TIMELINE.md](./TIMELINE.md) 必须同时存在对应表格行和 Mermaid `Conference` 行；不要出现 ISSTA 2022/2023 这类年度页有会期但全局时间线缺会期的断链。
 6. 本轮新增的会议根 README 人员表必须包含 `官方角色来源`、`主页 / 学术入口`、`代表作 / 近 5 年论文入口`、`核验状态`、`核查时间`；期刊人员表必须保留 `核验等级 / 当前性`。
-7. [SUMMARY.md](./SUMMARY.md) 的统计数字、完成状态、踩坑记录、待补项与实际目录一致；更新日志仍按时间降序。
-8. 若复审暴露新的共性坑，先补 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md)，再声称 ready；不得把“下次注意”只留在聊天记录或 PR comment 中。
+7. 本轮新增的期刊若存在 `rolling submission`，则 [TIMELINE.md](./TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表必须有对应行；若存在 dated collection / special issue deadline，年度事件表和 Mermaid 必须同步；若无 dated CFP，必须显式写“无已知 active dated CFP”。
+8. [SUMMARY.md](./SUMMARY.md) 的统计数字、完成状态、踩坑记录、待补项与实际目录一致；更新日志仍按时间降序。
+9. 若复审暴露新的共性坑，先补 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md)，再声称 ready；不得把“下次注意”只留在聊天记录或 PR comment 中。
 
 ## 16. 更新日志
 
@@ -429,6 +441,8 @@ yyyy-mm-dd hh:mm
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 12:35` | PR-4 SUMMARY/GUIDE 专项复核：补强 Wiley WAF/403/SPA 壳处理表述，明确需保留官方入口并待人工浏览器核验，不能以第三方页面替代 STVR 当前 roster / guidelines / 卷期正文。 |
+| `2026-06-05 12:18` | 吸收 PR-4 期刊填充经验：补充 Springer collections dated event、Wiley WAF/403、Equinocs / Wiley Authors SPA、STTT conference-based special issue 计数和期刊 rolling / dated event 同步纪律。 |
 | `2026-06-05 10:00` | 根据 PR-2 修复后复审继续补强 GUIDE：修正链接规范示例，明确 `Conference dates` 也必须同步进 TIMELINE 表格与 Mermaid，并把 ISSTA 2022/2023 会期漏同步沉淀为强制自查项。 |
 | `2026-06-05 09:43` | 根据 PR-2 复审与用户补充要求，新增踩坑复盘与规则回写纪律，补强 TIMELINE Mermaid edition label、临时草稿链接清理、核心人员字段一致性和 review 经验回写要求。 |
 | `2026-06-05 00:36` | 合入期刊试点后完成共享规则合流：正文改为会议 / 期刊长期事实共存规则，保留期刊核验等级、会议核心人员分层、模板占位链接和 TIMELINE 事件发生年份口径。 |

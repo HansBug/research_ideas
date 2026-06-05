@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 12:33`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -33,7 +33,9 @@
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-06-20 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | 30th Anniversary collection | Special issue | 🟡 专刊征稿 | [30th Anniversary collection](https://link.springer.com/collections/hegaifabjh) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-23 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track abstract | Abstract | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
+| 2026-06-29 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | REFSQ 2026 collection | Special issue | 🟡 专刊征稿 | [REFSQ 2026 collection](https://link.springer.com/collections/gidfjjdijf) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-30 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track submission | Submission | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
 | 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；另有 intent 2026-02-15 与 notification 2026-10-15。 |
 | 2026-10-15 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS paper submission | Submission | 🟢 投稿中 | [ETAPS 2027 CFP](https://etaps.org/2027/cfp/) | [ETAPS 2027](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；TACAS deadline 不是 ETAPS umbrella 所有分会的通用 deadline。 |
@@ -163,13 +165,16 @@ gantt
 | 2026-04-11 至 2026-04-16 | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | ETAPS conference dates | Conference | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | Turin, Italy。 |
 | 2026-04-12 至 2026-04-18 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | Rio de Janeiro, Brazil。 |
 | 2026-04-16 23:59 AoE | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Initial notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
+| 2026-04-30 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | Rethinking Requirements Engineering in the Age of Large Language Models | Special issue | ✅ 已关闭 | [LLM collection](https://link.springer.com/collections/deebijccbh) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | Submission deadline 已过；July 2026 revisions / September 2026 final decisions 仅有月份，不生成独立 milestone。 |
 | 2026-05-08 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-05-27 至 2026-05-29 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers author response | Rebuttal | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-06-08 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-06-17 待补时刻 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-06-18 待补时刻 AoE | [ASE 2026](./conf-a-ase/2026/README.md) | 会议-A | Initial notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [年度主页](https://conf.researchr.org/home/ase-2026) | 未公布 | [本库年度页](./conf-a-ase/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
+| 2026-06-20 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | 30th Anniversary collection | Special issue | 🟡 专刊征稿 | [30th Anniversary collection](https://link.springer.com/collections/hegaifabjh) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-23 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track abstract | Abstract | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2026-06-25 23:59 AoE | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Final notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
+| 2026-06-29 待补时刻 | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 期刊专刊-CCF B | REFSQ 2026 collection | Special issue | 🟡 专刊征稿 | [REFSQ 2026 collection](https://link.springer.com/collections/gidfjjdijf) | [Springer RE](https://link.springer.com/journal/766) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；submission deadline。 |
 | 2026-06-30 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track submission | Submission | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2026-07-05 至 2026-07-09 | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Conference dates | Conference | 🔵 会期临近 | [官方来源](https://conf.researchr.org/home/fse-2026) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | Montreal, Canada。 |
 | 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Paper submission deadline；官方仅给日期，未给具体时刻。 |
@@ -259,6 +264,11 @@ gantt
   REFSQ26 Conference :refsq_2026_2_20260323, 2026-03-23, 2026-03-26
   REFSQ27 Abstract :milestone, refsq_2026_3_20261105, 2026-11-05, 1d
   REFSQ27 Submission :milestone, refsq_2026_4_20261112, 2026-11-12, 1d
+
+  section Requirements_Engineering
+  REJ26 LLM :milestone, rej_2026_1_20260430, 2026-04-30, 1d
+  REJ26 Anniversary :milestone, rej_2026_2_20260620, 2026-06-20, 1d
+  REJ26 REFSQ :milestone, rej_2026_3_20260629, 2026-06-29, 1d
 
   section SoSyM
   SoSyM26 Intent :milestone, sosym_2026_1_20260215, 2026-02-15, 1d
@@ -793,6 +803,9 @@ gantt
 | 2026 | [TSE](./journal-a-tse/README.md) | A | 常规 rolling submission | [IEEE CS Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated special issue | 未定 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE 2026](./journal-a-tse/2026/README.md) | 🟡 部分核验 | Publishing Portal 是入口；实际 peer-review destination / TSE 专属 ScholarOne 子站待官方当前页确认。 |
 | 2026 | [TOSEM](./journal-a-tosem/README.md) | A | 常规 rolling submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 未定 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [TOSEM 2026](./journal-a-tosem/2026/README.md) | 🟡 部分核验 | ACM DL 动态访问受限；TOSEM ScholarOne 仍作为候选入口，canonical 跳转待人工确认。 |
 | 2026 | [SoSyM](./journal-b-sosym/README.md) | B | 常规 rolling submission；theme section 另列 | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) | Industry 5.0: 2026-07-15 待补时刻；Digital Twins: rolling | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Industry 5.0 与 Digital Twins 是不同 theme section；Industry 5.0 CFP 提示 SoSyM online submission system 将变更。 |
+| 2026 | [Requirements Engineering](./journal-b-re/README.md) | B | 常规 rolling submission；2026 collections 另列 | [Springer submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Springer Nature Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [LLM collection](https://link.springer.com/collections/deebijccbh)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) | LLM: 2026-04-30 已关闭；30th Anniversary: 2026-06-20 待补时刻；REFSQ 2026: 2026-06-29 待补时刻 | [Vol. 31 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/31-1) | [Springer online first](https://link.springer.com/journal/766/online-first) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 常规投稿 rolling；带明确日期的 collection 已进入 2026 dated timeline / Mermaid，不在 2027/2028 重复。 |
+| 2026 | [STVR](./journal-b-stvr/README.md) | B | 常规 rolling submission | [Wiley STVR for authors](https://onlinelibrary.wiley.com/page/journal/10991689/homepage/forauthors.html)；[Wiley Authors STVR dashboard](https://authors.wiley.com/dashboard/journal?groupCode=STVR) | [Wiley Authors STVR dashboard](https://authors.wiley.com/dashboard/journal?groupCode=STVR)；[Wiley submission candidate for STVR](https://submission.wiley.com/submission/submissionBoard/new/?journalCode=STVR) | 无已知 active dated CFP | 未定 | [Wiley volume archive](https://onlinelibrary.wiley.com/loi/10991689) | [Wiley STVR Early View](https://onlinelibrary.wiley.com/journal/10991689/earlyview) | [STVR 2026](./journal-b-stvr/2026/README.md) | 🟡 部分核验；Wiley CLI WAF/403 | Wiley 官方页面需人工浏览器核验；DBLP 2026 年度页未公布。 |
+| 2026 | [STTT](./journal-c-sttt/README.md) | C | 常规 rolling submission；conference-based special issue 需另证 | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines) | [Equinocs](https://equinocs.cs.tu-dortmund.de/home) | 无已知 active dated CFP；[special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | 未定 | [Vol. 28 Issue 1](https://link.springer.com/journal/10009/volumes-and-issues/28-1) / [Issue 2](https://link.springer.com/journal/10009/volumes-and-issues/28-2) | [Online first](https://link.springer.com/journal/10009/online-first) | [STTT 2026](./journal-c-sttt/2026/README.md) | 🟡 部分核验 | DBLP `entry article` baseline 不与 TACAS/SPIN/FMICS/RV 等会议 proceedings 混算。 |
 
 ## 14. 待补与核查记录
 
@@ -809,6 +822,11 @@ gantt
 | TOSEM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 ACM DL / DBLP 发布后补录 |
 | SoSyM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 | SoSyM | 2026 | Digital Twins 是独立 rolling theme section，且 EDTConf'26 日期是 presentation target，不是普通 SoSyM 投稿 deadline | 只放 rolling / 待补记录，不进主 dated timeline | 后续若官方给出固定 journal submission deadline，再同步年度表与 Mermaid |
+| Requirements Engineering | 2026 | LLM collection revision / final decision 仅给月份，30th Anniversary 与 REFSQ 2026 collection 给日期但无具体时刻 | TIMELINE 只同步明确日期的 2026-04-30、2026-06-20、2026-06-29；月份节点留备注 | 后续若 Springer 补具体 revision / final decision 日期，再补年度表与 Mermaid |
+| Requirements Engineering | 2027 / 2028 / 2029+ | 未发现官方年度卷期、DBLP 年度页或 2029+ dated CFP | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
+| STVR | 2022-2028 / 2029+ | Wiley Online Library CLI WAF/403，editorial board、for-authors、volume / issue 正文和 Early View 需人工浏览器核验 | 保留官方 URL；用 DBLP 作为论文名录 / 计数 fallback；不臆造 roster 或 future volume | 后续用浏览器核验 Wiley editorial board、ISSN、author guidelines 与卷期正文 |
+| STTT | 2022-2026 | conference-based special issue / invited / extended papers 与常规期刊 article 混在 DBLP 年度 baseline 中 | 仅写 DBLP `entry article` baseline，并在根 README 与年度页说明不得和会议 proceedings 混算 | 后续按 Springer issue TOC / article type 拆普通稿、special section 与 invited papers |
+| STTT | 2027 / 2028 / 2029+ | 未发现官方年度卷期、DBLP 年度页或 active dated CFP | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 
 ## 15. Mermaid 示例与维护规范
 
@@ -844,8 +862,8 @@ gantt
 | 合流对象 | 维护边界 | 必须保留 | 不应做 |
 |---|---|---|---|
 | 会议 dated events | 会议年度 README 与会议根 README | ICSE / MoDELS / ETAPS 等会议的 abstract、submission、notification、camera-ready、conference dates；按事件发生年份落表 | 不要用空白年度 TODO 行覆盖已经核验的会议事件 |
-| 期刊 dated events | 期刊 special issue / topical collection 年度记录 | SoSyM Industry 5.0 intent、submission、notification 等带明确日期的 theme section 事件 | 不要因为会议数据回填而删除期刊专刊事件 |
-| 期刊 rolling / 未定日期表 | 期刊根 README 与年度 README | TSE / TOSEM / SoSyM 的 rolling submission、author guidelines、submission system、volume / online-first 入口 | 不要把 rolling journal 伪造成 dated Mermaid deadline |
+| 期刊 dated events | 期刊 special issue / topical collection 年度记录 | SoSyM Industry 5.0 intent / submission / notification 与 Requirements Engineering 2026 collections 等带明确日期的期刊事件 | 不要因为会议数据回填而删除期刊专刊事件 |
+| 期刊 rolling / 未定日期表 | 期刊根 README 与年度 README | TSE / TOSEM / SoSyM / Requirements Engineering / STVR / STTT 的 rolling submission、author guidelines、submission system、volume / online-first 入口 | 不要把 rolling journal 伪造成 dated Mermaid deadline |
 | Mermaid 年度图 | 与年度总表一致的事件集合 | 必要时按会议 / 期刊专刊拆图 | 不要为解决冲突删表格事实或删另一类已核验图块 |
 
 ## 17. 更新日志
@@ -854,6 +872,8 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 12:33` | TIMELINE 专项复核 PR-4 期刊合流：补回 Requirements Engineering rolling 投稿行，确认 2026 collection dated events 只落在近期窗口、2026 事件表与 2026 Mermaid。 |
+| `2026-06-05 12:18` | 完成 PR-4 期刊合流：新增 Requirements Engineering 2026 collection dated events、REJ/STVR/STTT rolling 投稿行，并记录 Wiley WAF/403、STTT conference-based special issue 与未来年度待补项。 |
 | `2026-06-05 10:00` | 修复 PR-2 复审发现的 ISSTA 2022/2023 会期遗漏：将年度 README 已记录的会期同步到 2022/2023 事件表与 Mermaid，并保留 ISSTA 独立计数说明。 |
 | `2026-06-05 00:36` | 合入 PR-1B 期刊试点后完成 TIMELINE 合流：保留会议 dated events、SoSyM Industry 5.0 dated event、期刊 rolling 表和 Mermaid 事实共存规则。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：TIMELINE 改用事件发生年份口径，新增并行 PR owner 提示，强调会议 dated events、期刊 rolling 表和 SoSyM Industry 5.0 dated event 合并后必须共存。 |

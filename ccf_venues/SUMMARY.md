@@ -1,26 +1,27 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 12:35`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
-| 文库状态 | PR-2 软工 / 需求会议已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
+| 文库状态 | PR-4 剩余 P0 期刊已完成基础建档并与会议试点、期刊试点、PR-2 会议合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
-| 已建立并基础核验 venue 目录 | 11 |
-| 已建立并基础核验年度 README | 77 |
+| 已建立并基础核验 venue 目录 | 14 |
+| 已建立并基础核验年度 README | 98 |
 | 已完成会议试点 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
 | 已完成期刊试点 venue | 3：[`journal-a-tse`](./journal-a-tse/README.md)、[`journal-a-tosem`](./journal-a-tosem/README.md)、[`journal-b-sosym`](./journal-b-sosym/README.md) |
 | 已完成 PR-2 会议 venue | 5：[`conf-a-fse`](./conf-a-fse/README.md)、[`conf-a-ase`](./conf-a-ase/README.md)、[`conf-a-issta`](./conf-a-issta/README.md)、[`conf-b-re`](./conf-b-re/README.md)、[`conf-c-refsq`](./conf-c-refsq/README.md) |
+| 已完成 PR-4 期刊 venue | 3：[`journal-b-re`](./journal-b-re/README.md)、[`journal-b-stvr`](./journal-b-stvr/README.md)、[`journal-c-sttt`](./journal-c-sttt/README.md) |
 | 事实完全核验 venue 目录 | 0 |
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
-| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、期刊 rolling 表与 PR-2 会议 dated events，见 [TIMELINE.md](./TIMELINE.md) |
-| 核心人员情报状态 | 8 个会议根 README 已补会议核心人员情报；3 个期刊根 README 已补核心编辑人员画像并保留 `核验等级 / 当前性` |
-| 当前优先批次 | PR-3 / PR-4 后续 P0-B 形式化验证会议与剩余期刊，需沿用本轮合流后的 URL、人员、计数和 TIMELINE 规则 |
+| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、期刊 rolling 表与 PR-2/PR-4 facts，见 [TIMELINE.md](./TIMELINE.md) |
+| 核心人员情报状态 | 8 个会议根 README 已补会议核心人员情报；6 个期刊根 README 已补核心编辑人员画像或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
+| 当前优先批次 | PR-3 后续 P0-B 形式化验证会议与 PR-5 全局收口，需沿用本轮合流后的 URL、人员、计数和 TIMELINE 规则 |
 
-说明：当前统计表示 6 个试点 venue 与 5 个 PR-2 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口待复核等问题；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
+说明：当前统计表示 6 个试点 venue、5 个 PR-2 venue 与 3 个 PR-4 期刊已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口待复核等问题；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
 
 ## 2. 当前可复用的既有资源
 
@@ -57,6 +58,14 @@
 | TSE | A | 2022-2028 | [journal-a-tse](./journal-a-tse/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选 AEiC / editorial leadership 线索，保留 `核验等级 / 当前性` | DBLP `entry article` baseline：2022=284、2023=278、2024=182、2025=228、2026=98 | 🟡 部分核验 |
 | TOSEM | A | 2022-2028 | [journal-a-tosem](./journal-a-tosem/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选编辑线索，ACM DL editorial-board 动态访问受限，保留替代核验路径 | DBLP `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115 | 🟡 部分核验 |
 | SoSyM | B | 2022-2028 | [journal-b-sosym](./journal-b-sosym/README.md) | 7 | rolling 表与 Industry 5.0 dated event 已同步 | 已记录 Editors-in-Chief / Associate Editor-in-Chief / Assistant Editors；Advisory Board 暂不展开 | DBLP `entry article` baseline：2022=108、2023=98、2024=75、2025=91、2026=30 | 🟡 部分核验 |
+
+### 5.1 PR-4 剩余 P0 期刊完成情况
+
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心编辑人员情报 | 计数 / 状态口径 | 核验状态 |
+|---|---|---|---|---:|---|---|---|---|
+| Requirements Engineering | B | 2022-2028 | [journal-b-re](./journal-b-re/README.md) | 7 | rolling 表与 2026 LLM / 30th Anniversary / REFSQ collections dated events 已同步 | 已记录 Editor-in-Chief、Honorary Editor 与 RE / traceability / NLP for RE 代表性 editorial board 成员；见根 README §3 | DBLP `entry article` baseline：2022=25、2023=26、2024=24、2025=9、2026=6；2026 仍进行中 | 🟡 部分核验 |
+| STVR | B | 2022-2028 | [journal-b-stvr](./journal-b-stvr/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board 官方入口受 WAF/403，已保留官方 roster 链接与待人工浏览器核验说明；可核验人物画像仍需后续补强 | DBLP `entry article` baseline：2022=31、2023=25、2024=26、2025=17；2026 DBLP 年度页未公布 | 🟡 部分核验 |
+| STTT | C | 2022-2028 | [journal-c-sttt](./journal-c-sttt/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | 已记录 Editor-in-Chief / Coordinating Editor、CoCha / Explain / FoMaC 主题编辑与形式化验证领域权威；见根 README §3 | DBLP `entry article` baseline：2022=51、2023=49、2024=48、2025=41、2026=14；conference-based special issue 不与会议 proceedings 混算 | 🟡 部分核验 |
 
 ## 6. 会议试点踩坑结论
 
@@ -107,7 +116,16 @@
 - SoSyM 2026 Industry 5.0 已同步进 [TIMELINE.md](./TIMELINE.md) dated event；Digital Twins 只进 rolling / 待补记录，不进主 Mermaid。
 - 2027/2028/2029+ 未发现官方年度卷期或 dated CFP；年度页写 `⏳ 已检索未公布`，不预设未来卷号。
 
-### 7.4 对后续流程的建议
+### 7.4 PR-4 剩余期刊踩坑
+
+- **Springer collections 会产生真正的 dated events**：Requirements Engineering 2026 的 LLM collection、30th Anniversary collection、REFSQ 2026 collection 都是期刊 collection，不是会议 deadline；带明确 submission deadline 的 collection 已进入 [TIMELINE.md](./TIMELINE.md) 表格与 Mermaid。
+- **Springer collections 的月份节点不能硬凑日期**：LLM collection 的 revision / final decision 只有月份时，只能放备注，不能生成精确 milestone。
+- **Wiley WAF/403 不能用第三方页面替代官方 roster**：STVR 已保留 Wiley editorial board、for-authors、Early View、volume archive 等官方入口；命令行无法读取正文时必须写“待人工浏览器核验”，不得臆造当前 Editor-in-Chief / board roster。
+- **STTT conference-based special issue 风险高**：STTT 常收 TACAS、SPIN、FMICS、Runtime Verification、ECBS 等扩展 / special issue 论文；期刊 DBLP `entry article` baseline 不得与对应会议 proceedings 计数混算，也不能由会议会期反推期刊 deadline。
+- **Equinocs / Wiley Authors 这类 SPA 投稿系统只能作为入口**：命令行只能看到登录或前端壳时，需说明“入口已定位，具体表单 / journal routing 待浏览器或登录核验”。
+- **未来年度不预设卷号**：2027/2028 期刊年度页可以保留 rolling submission 与 archive 复查入口，但未公布 volume / DBLP 年度页时不得预造卷号或论文数量。
+
+### 7.5 对后续流程的建议
 
 - 后续会议填充若修改 [TIMELINE.md](./TIMELINE.md)，必须保留期刊 rolling 表与 SoSyM Industry 5.0 dated event，避免会议数据回填时误删期刊行。
 - 后续若继续做年度论文数量，应单独开计数复核：以当前 DBLP `entry article` baseline 为起点，再用 publisher issue / online-first 按 article type 交叉核验，不要混用口径。
@@ -116,7 +134,7 @@
 
 ## 8. P0 强相关 venue 后续填充清单
 
-P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个试点 venue 与 5 个 PR-2 venue 完成基础建档；其余条目仍为待建或待后续批次处理。
+P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个试点 venue、5 个 PR-2 venue 与 3 个 PR-4 期刊 venue 完成基础建档；未建条目仅限下表仍标为 `⏳ 待建` 的 P0-B 会议。
 
 | 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 |
 |---|---|---|---|---|---|
@@ -128,20 +146,20 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 | [`journal-a-tosem`](./journal-a-tosem/README.md) | 期刊 | A | P1/P2/P4 | 期刊试点 | 🟡 部分核验 |
 | [`conf-b-models`](./conf-b-models/README.md) | 会议 | B | P1/P2/P3 | 会议试点 | 🟡 部分核验 |
 | [`conf-b-re`](./conf-b-re/README.md) | 会议 | B | P1/P2 | PR-2 | 🟡 部分核验 |
-| `journal-b-re` | 期刊 | B | P1/P2 | P0-A | ⏳ 待建 |
+| [`journal-b-re`](./journal-b-re/README.md) | 期刊 | B | P1/P2 | PR-4 | 🟡 部分核验 |
 | [`journal-b-sosym`](./journal-b-sosym/README.md) | 期刊 | B | P1/P3 | 期刊试点 | 🟡 部分核验 |
 | `conf-a-fm` | 会议 | A | P2/P3 | P0-B | ⏳ 待建 |
 | `conf-a-cav` | 会议 | A | P3 | P0-B | ⏳ 待建 |
 | [`conf-b-etaps`](./conf-b-etaps/README.md) | 会议 | B | P3 | 会议试点 | 🟡 部分核验 |
 | `conf-b-vmcai` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
 | `conf-b-issre` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
-| `journal-b-stvr` | 期刊 | B | P2/P3 | P0-B | ⏳ 待建 |
+| [`journal-b-stvr`](./journal-b-stvr/README.md) | 期刊 | B | P2/P3 | PR-4 | 🟡 部分核验 |
 | `conf-c-icfem` | 会议 | C | P2/P3 | P0-B | ⏳ 待建 |
 | `conf-c-spin` | 会议 | C | P3 | P0-B | ⏳ 待建 |
 | `conf-c-atva` | 会议 | C | P3 | P0-B | ⏳ 待建 |
 | `conf-c-icst` | 会议 | C | P2/P3/P4 | P0-B | ⏳ 待建 |
 | [`conf-c-refsq`](./conf-c-refsq/README.md) | 会议 | C | P1/P2 | PR-2 | 🟡 部分核验 |
-| `journal-c-sttt` | 期刊 | C | P3/P4 | P0-B | ⏳ 待建 |
+| [`journal-c-sttt`](./journal-c-sttt/README.md) | 期刊 | C | P3/P4 | PR-4 | 🟡 部分核验 |
 
 ## 9. P1 / P2 后续 venue
 
@@ -232,6 +250,11 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 | REFSQ | 2028 | 未发现官方年度主页或 CFP | 年度页写 `⏳ 已检索未公布` | 后续复查 REFSQ official / researchr series |
 | SoSyM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 | SoSyM | 2026 | Digital Twins 是独立 rolling theme section，且 EDTConf'26 日期是 presentation target，不是普通 SoSyM 投稿 deadline | 只放 rolling / 待补记录，不进主 dated timeline | 后续若官方给出固定 journal submission deadline，再同步年度表与 Mermaid |
+| Requirements Engineering | 2026 | LLM collection revision / final decision 仅给月份，30th Anniversary 与 REFSQ 2026 collection 给日期但无具体时刻 | TIMELINE 只同步明确日期的 2026-04-30、2026-06-20、2026-06-29；月份节点留备注 | 后续若 Springer 补具体 revision / final decision 日期，再补年度表与 Mermaid |
+| Requirements Engineering | 2027 / 2028 / 2029+ | 未发现官方年度卷期、DBLP 年度页或 2029+ dated CFP | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
+| STVR | 2022-2028 / 2029+ | Wiley Online Library CLI WAF/403，editorial board、for-authors、volume / issue 正文和 Early View 需人工浏览器核验 | 保留官方 URL；用 DBLP 作为论文名录 / 计数 fallback；不臆造 roster 或 future volume | 后续用浏览器核验 Wiley editorial board、ISSN、author guidelines 与卷期正文 |
+| STTT | 2022-2026 | conference-based special issue / invited / extended papers 与常规期刊 article 混在 DBLP 年度 baseline 中 | 仅写 DBLP `entry article` baseline，并在根 README 与年度页说明不得和会议 proceedings 混算 | 后续按 Springer issue TOC / article type 拆普通稿、special section 与 invited papers |
+| STTT | 2027 / 2028 / 2029+ | 未发现官方年度卷期、DBLP 年度页或 active dated CFP | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 
 ## 14. 更新日志
 
@@ -239,6 +262,8 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 12:35` | PR-4 SUMMARY/GUIDE 专项复核：确认 14 个 venue / 98 个年度 README 统计一致，并澄清 P0 待建项不再包含 Requirements Engineering、STVR、STTT。 |
+| `2026-06-05 12:18` | 完成 PR-4 剩余 P0 期刊基础建档合流：新增 Requirements Engineering、STVR、STTT 共 3 个 venue、21 个年度 README，同步 TIMELINE rolling / dated events，并记录 Springer collections、Wiley WAF/403 与 STTT conference-based special issue 计数 caveat。 |
 | `2026-06-05 10:00` | 修复 PR-2 修复后复审发现的 ISSTA 2022/2023 会期漏入 TIMELINE 问题，并把会期同步检查主要沉淀到 GUIDE。 |
 | `2026-06-05 08:46` | 完成 PR-2 软工 / 需求会议基础建档：新增 FSE、ASE、ISSTA、RE、REFSQ 共 5 个 venue、35 个年度 README，同步 TIMELINE，并记录 PR-2 计数 / proceedings / co-location 待补项。 |
 | `2026-06-05 00:36` | 合入 PR-1B 期刊试点后完成 SUMMARY 合流：重算 6 个 venue / 42 个年度 README，保留会议试点与期刊试点事实、踩坑记录、P0 状态和待补记录。 |
