@@ -744,3 +744,51 @@ def test_pr_e1_reports_render_langgraph_runtime_metadata(tmp_path: Path) -> None
     assert "real_agent_loop_resume_supported=false" in report
     assert "graph_runtime_status：`enabled`" in matrix
     assert "checkpoint/resume 口径：scope=`toy_ledger_langgraph_api_smoke`" in comment
+
+
+def test_pr_e1_matrix_summary_reports_missing_langgraph_metadata_without_crash(tmp_path: Path) -> None:
+    record = _record("metadata-present")
+    record.environment.update(
+        {
+            "graph_runtime_backend": "langgraph",
+            "graph_runtime_status": "enabled",
+            "langgraph_node_trace_count": 2,
+        }
+    )
+    record.final_artifacts["langgraph_runtime_trace"] = {
+        "delegated_monolithic_runtime": False,
+        "node_trace_count": 2,
+    }
+    path = write_agent_loop_run_record(record, tmp_path / "metadata-present.agent_loop.json.gz")
+    result = AgentLoopResult(
+        final_dsl=record.final_artifacts["final_dsl"],
+        status="not_converged",
+        run_record_id=record.run_id,
+        run_record_path=str(path),
+    )
+    case = pr_e1_cases()[0]
+    spec = condition_specs()["default"]
+    present = summarize_pr_e1_run(
+        case=case,
+        spec=spec,
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+    missing = replace(
+        present,
+        run_id="metadata-missing",
+        run_record_path=str(tmp_path / "missing.agent_loop.json.gz"),
+        report_path="missing/report.md",
+        final_dsl_hash="sha256:missing",
+    )
+
+    matrix = render_matrix_summary([present, missing])
+
+    assert "graph_runtime_backend：`langgraph`" in matrix
+    assert "metadata 缺失 run：`metadata-missing`" in matrix

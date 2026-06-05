@@ -3187,7 +3187,15 @@ def _build_repair_subgraph(
     graph.add_node("repair_sc11_accept_candidate", repair_sc11_accept_candidate)
     graph.add_node("repair_finalize", repair_finalize)
     graph.add_edge(START, "repair_enter")
-    return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()))
+    # The parent graph already owns the run-level checkpoint.  The repair
+    # subgraph intentionally carries live _RunState / feedback / adapter
+    # objects so that SD-8/SL-9/SL-10/SC-11 can update the canonical evidence
+    # ledger in place.  Giving this nested graph its own pickle-backed
+    # checkpointer would try to serialize pyfcstm/runtime objects on every
+    # waiver/rework boundary and can fail with weakref objects in real runs.
+    # Stage-level visibility is preserved through explicit _trace_node events,
+    # flow logs, fix_log, repair_history and the parent graph checkpoint.
+    return graph.compile(checkpointer=False)
 
 def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRuntimeAdapters) -> Any:
     graph = StateGraph(_GraphLoopState)

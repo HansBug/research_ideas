@@ -2174,6 +2174,8 @@ def test_lg_b2_repair_subgraph_not_opaque_old_repair_path_wrapper() -> None:
     assert "_build_repair_subgraph" in build_graph_source
     assert "_run_repair_path" not in build_graph_source
     assert "_run_repair_path" not in repair_subgraph_source
+    assert "return graph.compile(checkpointer=False)" in repair_subgraph_source
+    assert "InMemorySaver(" not in repair_subgraph_source
 
 
 def test_lg_b2_repair_subgraph_trace_exposes_sd8_sl9_sl10_sc11(tmp_path: Path) -> None:

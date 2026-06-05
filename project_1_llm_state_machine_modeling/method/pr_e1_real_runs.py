@@ -1946,7 +1946,7 @@ def _langgraph_runtime_observation_lines(summaries: Sequence[PrE1RunSummary]) ->
         )
         if "False" in real_resume_values:
             lines.append("- 重要边界：本 PR 当前只宣称 LangGraph interrupt/resume API 与 toy FixLog-like ledger smoke；不宣称真实 agent-loop 主图的跨进程/中断恢复已进入主结果证据。")
-    missing_runs = [summary.run_id for summary, metadata in metadata_by_run.items() if not metadata]
+    missing_runs = [run_id for run_id, metadata in metadata_by_run.items() if not metadata]
     if missing_runs:
         lines.append("- metadata 缺失 run：" + ", ".join(f"`{run_id}`" for run_id in missing_runs))
     return lines
