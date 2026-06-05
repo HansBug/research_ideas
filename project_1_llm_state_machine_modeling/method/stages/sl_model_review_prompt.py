@@ -179,6 +179,12 @@ Blocking guidance:
 - major nl_fidelity and unsafe_recovery findings are blocking.
 - path1_eval_risk/path2_grounding_risk are blocking only under matching policy.
 - minor structure smells are advisory.
+- If the NL says a state is illegal or shall never occur, do not require
+  deletion/unreachability as the only valid model. A reachable
+  exceptional/diagnostic/fail-safe branch can be an admitted abstraction when it
+  explicitly marks the violation, switches to safe outputs, and is not normal
+  dispatch/recovery. Keep it blocking only when no diagnostic/fail-safe
+  semantics exists.
 - major `nfrr_quality_cap` is blocking when the model is T0/T1 because of
   missing required states/transitions/guards/actions, SD-6 failure, weak oracle,
   constant required output without rationale, test-harness

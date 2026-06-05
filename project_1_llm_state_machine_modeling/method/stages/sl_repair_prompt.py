@@ -131,6 +131,18 @@ Target-aware repair rules:
   events such as `StartEvent` or `FaultEvent` can be injected by local name once the source
   leaf is active. Do not change correct `:: Event` transitions into `: Event`
   because of an over-qualified or premature event in the scenario.
+- If runtime evidence says an event injected from an active descendant leaf
+  cannot be resolved, and the current candidate tries composite-scope or forced
+  event transitions to a sibling target, repair the pyfcstm scope structure
+  instead of repeating the same event form.  Generic safe options are: flatten
+  an artificial composite submode that has only one meaningful internal leaf
+  into a single leaf state with self-loops; move the target into the same
+  resolvable scope when that is NL-grounded; or introduce an explicit
+  event-latch variable only when the NL supports such a flag and the extra
+  cycle semantics are acceptable.  Do not keep cycling through dotted source
+  paths, parent-composite event sources, or forced composite event transitions
+  after local evidence has shown that pyfcstm cannot resolve the event from the
+  active leaf.
 - After editing, self-check from scratch: parse syntax, semantic target
   resolution, design target, and preservation of required grounded elements.
 - Before final output, run this preservation checklist mentally and obey it:
