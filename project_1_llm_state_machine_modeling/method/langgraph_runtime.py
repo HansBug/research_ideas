@@ -117,6 +117,8 @@ NODE_EDGE_SCHEMA_VERSION = "pr-langgraph.stage-nodes.v1"
 LG_D1_OPERATOR_EVENT_SCHEMA_VERSION = "lg-d1.operator-event.v1"
 LG_D1_STREAM_SUMMARY_SCHEMA_VERSION = "lg-d1.stream-summary.v1"
 LG_D1_INSTRUMENTATION_LAYER = "langgraph_streaming"
+LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
+LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER = "fixed_toolnode_wrapper"
 
 _VALID_RECORD_STATUSES = {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}
 _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
@@ -228,6 +230,8 @@ class _GraphLoopState(TypedDict, total=False):
     graph_trace: list[dict[str, Any]]
     operator_events: list[dict[str, Any]]
     operator_stream_enabled: bool
+    toolnode_wrapper_events: list[dict[str, Any]]
+    toolnode_wrapper_enabled: bool
     run_id: str
     runtime_state: Any
     iteration: int
@@ -328,6 +332,180 @@ def _jsonable(value: Any) -> Any:
         return _jsonable(asdict(value))
     return str(value)
 
+
+
+def build_lg_e3_toolnode_wrapper_registry() -> dict[str, Any]:
+    """Return the fixed ToolNode-style wrapper contract for deterministic SD tools.
+
+    LG-E3 deliberately does **not** expose these tools to LLM tool-choice.  The
+    graph/stage nodes call the wrappers in fixed stage order and the wrappers
+    only add prompt-safe instrumentation around the original deterministic
+    callable.  Canonical checker outputs and verdict sources remain the original
+    SD tool return values.
+    """
+
+    def row(tool_name: str, stage_id: str, graph_nodes: list[str], callable_ref: str) -> dict[str, Any]:
+        return {
+            "tool_name": tool_name,
+            "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "stage_id": stage_id,
+            "graph_nodes": list(graph_nodes),
+            "callable_ref": callable_ref,
+            "wrapper_kind": "custom_langgraph_visible_fixed_toolnode_wrapper",
+            "fixed_invocation": True,
+            "llm_tool_choice_exposed": False,
+            "input_policy": "hash_and_safe_summary_only",
+            "output_policy": "hash_and_safe_summary_only",
+            "does_not_replace_academic_evidence": True,
+        }
+
+    wrappers = [
+        row("sd2_parse", StageId.SD_2_PARSE.value, ["validation_sd2_parse"], "FullStagedRuntimeAdapters.parse"),
+        row("sd3_semantic", StageId.SD_3_SEMANTIC.value, ["validation_sd3_semantic"], "FullStagedRuntimeAdapters.semantic"),
+        row("sd4_design", StageId.SD_4_DESIGN.value, ["validation_sd4_design"], "FullStagedRuntimeAdapters.design"),
+        row(
+            "sd5a_scenario_coverage",
+            StageId.SD_5A_SCENARIO_COVERAGE.value,
+            ["validation_sd5a_scenario_coverage", "validation_sd5a_reuse_coverage"],
+            "FullStagedRuntimeAdapters.scenario_coverage",
+        ),
+        row("sc5f_freeze_scenario_set", StageId.SC_5F_SCENARIO_FREEZE.value, ["validation_sc5f_scenario_freeze"], "freeze_scenario_set"),
+        row("sd6_sim", StageId.SD_6_SIM.value, ["validation_sd6_sim"], "FullStagedRuntimeAdapters.sim"),
+        row("sd8_fix_plan", StageId.SD_8_FIX_PLAN.value, ["repair_sd8_fix_requests"], "run_sd8_fix_plan"),
+        row("sd10_repair_review_local_check", StageId.SD_10_REPAIR_REVIEW.value, ["repair_sl10_review"], "FullStagedRuntimeAdapters.repair_review"),
+        row("warning_repair_attempt_marker", "warning_budget_state", ["repair_sd8_fix_requests"], "mark_warning_repair_attempt"),
+    ]
+    return {
+        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
+        "enabled_by_default": True,
+        "fixed_invocation": True,
+        "llm_tool_choice_exposed": False,
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+        "wrappers": wrappers,
+    }
+
+
+def _lg_e3_toolnode_wrappers_enabled(runtime_cfg: FullStagedRuntimeConfig) -> bool:
+    return bool(runtime_cfg.run_config_extra.get("lg_e3_toolnode_wrappers_enabled", True))
+
+
+def _safe_lg_e3_tool_summary(value: Any) -> Any:
+    safe = _jsonable(value)
+    if isinstance(safe, dict):
+        out: dict[str, Any] = {}
+        for key, nested in safe.items():
+            key_text = str(key)
+            if key_text in {"dsl", "current_dsl", "old_dsl", "candidate_dsl", "nl", "messages", "prompt", "raw_prompt", "raw_output"}:
+                out[f"{key_text}_hash"] = _hash_text(str(nested))
+                out[f"{key_text}_chars"] = len(str(nested))
+                continue
+            if isinstance(nested, (dict, list, tuple, set)):
+                out[f"{key_text}_hash"] = _hash_payload(nested)
+                if isinstance(nested, dict):
+                    out[f"{key_text}_key_count"] = len(nested)
+                else:
+                    out[f"{key_text}_count"] = len(nested)
+                continue
+            out[key_text] = nested
+        return out
+    if isinstance(safe, list):
+        return {"item_count": len(safe), "items_hash": _hash_payload(safe)}
+    if isinstance(safe, str):
+        return {"text_hash": _hash_text(safe), "text_chars": len(safe)}
+    return safe
+
+
+def _record_lg_e3_toolnode_event(
+    graph_state: _GraphLoopState,
+    *,
+    tool_name: str,
+    stage_id: str,
+    graph_node: str,
+    iteration: int | None,
+    input_payload: Any,
+    output_payload: Any,
+    status: str = "ok",
+) -> None:
+    if not bool(graph_state.get("toolnode_wrapper_enabled", True)):
+        return
+    event = {
+        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
+        "tool_name": tool_name,
+        "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "stage_id": stage_id,
+        "graph_node": graph_node,
+        "iteration": iteration,
+        "fixed_invocation": True,
+        "llm_tool_choice_exposed": False,
+        "status": status,
+        "input_hash": _hash_payload(input_payload),
+        "output_hash": _hash_payload(output_payload),
+        "input_summary": _safe_lg_e3_tool_summary(input_payload),
+        "output_summary": _safe_lg_e3_tool_summary(output_payload),
+        "does_not_replace_academic_evidence": True,
+    }
+    # Fail early if the wrapper accidentally starts carrying raw evidence fields.
+    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    events = list(graph_state.get("toolnode_wrapper_events", []) or [])
+    events.append(event)
+    graph_state["toolnode_wrapper_events"] = events
+    _append_lg_d1_operator_event(
+        graph_state,
+        event_type="fixed_toolnode_result",
+        node=graph_node,
+        stage_id=stage_id if stage_id.startswith(("SC-", "SD-", "SL-")) else None,
+        payload={
+            "tool_name": tool_name,
+            "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "input_hash": event["input_hash"],
+            "output_hash": event["output_hash"],
+            "fixed_invocation": True,
+            "llm_tool_choice_exposed": False,
+            "status": status,
+        },
+    )
+
+
+def _lg_e3_fixed_tool_call(
+    graph_state: _GraphLoopState,
+    *,
+    tool_name: str,
+    stage_id: str,
+    graph_node: str,
+    iteration: int | None,
+    input_payload: Any,
+    call: Any,
+) -> Any:
+    if not bool(graph_state.get("toolnode_wrapper_enabled", True)):
+        return call()
+    try:
+        output = call()
+    except Exception as exc:
+        _record_lg_e3_toolnode_event(
+            graph_state,
+            tool_name=tool_name,
+            stage_id=stage_id,
+            graph_node=graph_node,
+            iteration=iteration,
+            input_payload=input_payload,
+            output_payload={"error_type": type(exc).__name__, "error_hash": _hash_text(str(exc))},
+            status="error",
+        )
+        raise
+    _record_lg_e3_toolnode_event(
+        graph_state,
+        tool_name=tool_name,
+        stage_id=stage_id,
+        graph_node=graph_node,
+        iteration=iteration,
+        input_payload=input_payload,
+        output_payload=output,
+        status="ok",
+    )
+    return output
 
 def _hash_payload(payload: Any) -> str:
     encoded = json.dumps(_jsonable(payload), ensure_ascii=False, sort_keys=True, default=str)
@@ -1306,7 +1484,7 @@ def _checkpoint_resume_smoke() -> dict[str, Any]:
     }
 
 
-def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any], graph_config_hash: str) -> dict[str, Any]:
+def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any], graph_config_hash: str, toolnode_wrapper_enabled: bool = True) -> dict[str, Any]:
     return {
         "graph_runtime_backend": "langgraph",
         "graph_runtime_status": "enabled" if compat.get("ok") else "disabled_with_reason",
@@ -1323,6 +1501,10 @@ def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any],
         "resumed_from_checkpoint": False,
         "resume_checkpoint_id_hash": None,
         "instrumentation_layer": "langgraph",
+        "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+        "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
+        "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
         "checkpoint_resume_smoke": _checkpoint_resume_smoke(),
         "langgraph_compat_smoke": compat,
         "dependency_versions": {
@@ -1784,7 +1966,15 @@ def _build_validation_subgraph(
         feedback = dict(graph_state.get("validation_feedback") or {})
         stage_metas = list(graph_state.get("validation_stage_metas") or [])
         _append_flow_log(runtime_state.logs, event="stage_enter", stage_id=StageId.SD_2_PARSE.value, iteration=iteration, reason="full_validation_pass")
-        parse_feedback, parse_meta = adapters.parse(runtime_state.current_dsl, context)
+        parse_feedback, parse_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd2_parse",
+            stage_id=StageId.SD_2_PARSE.value,
+            graph_node="validation_sd2_parse",
+            iteration=iteration,
+            input_payload={"current_dsl": runtime_state.current_dsl, "context": context},
+            call=lambda: adapters.parse(runtime_state.current_dsl, context),
+        )
         feedback[FeedbackSource.PARSE.value] = parse_feedback
         _append_stage(runtime_state.stage_records, parse_meta)
         stage_metas.append(parse_meta)
@@ -1816,7 +2006,15 @@ def _build_validation_subgraph(
         feedback = dict(graph_state.get("validation_feedback") or {})
         stage_metas = list(graph_state.get("validation_stage_metas") or [])
         _append_flow_log(runtime_state.logs, event="stage_enter", stage_id=StageId.SD_3_SEMANTIC.value, iteration=iteration, reason="SD-2 ok")
-        semantic_feedback, semantic_meta = adapters.semantic(runtime_state.current_dsl, context)
+        semantic_feedback, semantic_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd3_semantic",
+            stage_id=StageId.SD_3_SEMANTIC.value,
+            graph_node="validation_sd3_semantic",
+            iteration=iteration,
+            input_payload={"current_dsl": runtime_state.current_dsl, "context": context},
+            call=lambda: adapters.semantic(runtime_state.current_dsl, context),
+        )
         feedback[FeedbackSource.SEMANTIC.value] = semantic_feedback
         _append_stage(runtime_state.stage_records, semantic_meta)
         stage_metas.append(semantic_meta)
@@ -1849,7 +2047,15 @@ def _build_validation_subgraph(
         stage_metas = list(graph_state.get("validation_stage_metas") or [])
         scenario_set = graph_state.get("validation_scenario_set")
         _append_flow_log(runtime_state.logs, event="stage_enter", stage_id=StageId.SD_4_DESIGN.value, iteration=iteration, reason="SD-3 ok")
-        design_feedback, design_meta = adapters.design(context)
+        design_feedback, design_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd4_design",
+            stage_id=StageId.SD_4_DESIGN.value,
+            graph_node="validation_sd4_design",
+            iteration=iteration,
+            input_payload={"context": context},
+            call=lambda: adapters.design(context),
+        )
         feedback[FeedbackSource.DESIGN.value] = design_feedback
         _append_stage(runtime_state.stage_records, design_meta)
         stage_metas.append(design_meta)
@@ -1952,7 +2158,15 @@ def _build_validation_subgraph(
         scenarios = list(graph_state.get("validation_selected_scenarios") or [])
         attempt_index = int(graph_state.get("validation_attempt_index", 0))
         retry_mode = str(graph_state.get("validation_retry_mode") or "initial")
-        coverage, coverage_meta = adapters.scenario_coverage(runtime_state.current_dsl, scenarios)
+        coverage, coverage_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd5a_scenario_coverage",
+            stage_id=StageId.SD_5A_SCENARIO_COVERAGE.value,
+            graph_node="validation_sd5a_scenario_coverage",
+            iteration=iteration,
+            input_payload={"current_dsl": runtime_state.current_dsl, "scenarios": scenarios, "attempt_index": attempt_index, "retry_mode": retry_mode},
+            call=lambda: adapters.scenario_coverage(runtime_state.current_dsl, scenarios),
+        )
         _append_stage(runtime_state.stage_records, coverage_meta)
         graph_state["validation_stage_metas"].append(coverage_meta)
         selected_coverage = dict(coverage)
@@ -2020,7 +2234,15 @@ def _build_validation_subgraph(
         scenario_set = graph_state["validation_scenario_set"]
         current_dsl_hash = _hash_text(runtime_state.current_dsl)
         dsl_changed_since_freeze = bool(scenario_set.source_dsl_hash and scenario_set.source_dsl_hash != current_dsl_hash)
-        coverage, coverage_meta = adapters.scenario_coverage(runtime_state.current_dsl, list(scenario_set.scenarios))
+        coverage, coverage_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd5a_scenario_coverage",
+            stage_id=StageId.SD_5A_SCENARIO_COVERAGE.value,
+            graph_node="validation_sd5a_reuse_coverage",
+            iteration=iteration,
+            input_payload={"current_dsl": runtime_state.current_dsl, "scenarios": list(scenario_set.scenarios), "scenario_set_id": scenario_set.scenario_set_id},
+            call=lambda: adapters.scenario_coverage(runtime_state.current_dsl, list(scenario_set.scenarios)),
+        )
         _append_stage(runtime_state.stage_records, coverage_meta)
         graph_state["validation_stage_metas"].append(coverage_meta)
         gap = bool(coverage.get("coverage_gap"))
@@ -2142,13 +2364,28 @@ def _build_validation_subgraph(
                 graph_subgraph="validation_subgraph",
             )
         epoch = int(graph_state.get("validation_next_epoch", graph_state.get("validation_scenario_epoch", 0))) if retry_mode == "targeted" else int(graph_state.get("validation_scenario_epoch", 0))
-        scenario_set, freeze_meta = freeze_scenario_set(
-            scenarios,
-            source_dsl_hash=_hash_text(runtime_state.current_dsl),
-            source_inspect_hash=_short_hash(context.inspect_json) if context.inspect_json is not None else "",
-            source_grounding_hash=_short_hash(runtime_cfg.grounding_map) if runtime_cfg.grounding_map is not None else None,
-            coverage_report=selected_coverage,
-            epoch=epoch,
+        scenario_set, freeze_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sc5f_freeze_scenario_set",
+            stage_id=StageId.SC_5F_SCENARIO_FREEZE.value,
+            graph_node="validation_sc5f_scenario_freeze",
+            iteration=iteration,
+            input_payload={
+                "scenarios": scenarios,
+                "source_dsl_hash": _hash_text(runtime_state.current_dsl),
+                "source_inspect_hash": _short_hash(context.inspect_json) if context.inspect_json is not None else "",
+                "source_grounding_hash": _short_hash(runtime_cfg.grounding_map) if runtime_cfg.grounding_map is not None else None,
+                "coverage_report": selected_coverage,
+                "epoch": epoch,
+            },
+            call=lambda: freeze_scenario_set(
+                scenarios,
+                source_dsl_hash=_hash_text(runtime_state.current_dsl),
+                source_inspect_hash=_short_hash(context.inspect_json) if context.inspect_json is not None else "",
+                source_grounding_hash=_short_hash(runtime_cfg.grounding_map) if runtime_cfg.grounding_map is not None else None,
+                coverage_report=selected_coverage,
+                epoch=epoch,
+            ),
         )
         scenario_set.coverage_report["oracle_weak"] = weak
         _append_stage(runtime_state.stage_records, freeze_meta)
@@ -2202,7 +2439,15 @@ def _build_validation_subgraph(
             graph_subgraph="validation_subgraph",
             graph_node="validation_sd6_sim",
         )
-        sim_feedback, sim_meta = adapters.sim(runtime_state.current_dsl, scenario_set, context)
+        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd6_sim",
+            stage_id=StageId.SD_6_SIM.value,
+            graph_node="validation_sd6_sim",
+            iteration=iteration,
+            input_payload={"current_dsl": runtime_state.current_dsl, "scenario_set": scenario_set, "context": context},
+            call=lambda: adapters.sim(runtime_state.current_dsl, scenario_set, context),
+        )
         feedback[FeedbackSource.SIM.value] = sim_feedback
         _append_stage(runtime_state.stage_records, sim_meta)
         stage_metas.append(sim_meta)
@@ -2432,19 +2677,46 @@ def _build_repair_subgraph(
 
         rework_locked = runtime_state.pending_repair_rejection is not None and runtime_state.pending_original_fix_plan is not None
         if rework_locked:
-            fix_plan, fix_meta = run_sd8_fix_plan(
-                None,
-                source="repair_review",
-                rejection=runtime_state.pending_repair_rejection,
-                original=runtime_state.pending_original_fix_plan,
+            fix_plan, fix_meta = _lg_e3_fixed_tool_call(
+                graph_state,
+                tool_name="sd8_fix_plan",
+                stage_id=StageId.SD_8_FIX_PLAN.value,
+                graph_node="repair_sd8_fix_requests",
+                iteration=iteration,
+                input_payload={
+                    "selected_feedback": None,
+                    "source": "repair_review",
+                    "rejection": runtime_state.pending_repair_rejection,
+                    "original": runtime_state.pending_original_fix_plan,
+                },
+                call=lambda: run_sd8_fix_plan(
+                    None,
+                    source="repair_review",
+                    rejection=runtime_state.pending_repair_rejection,
+                    original=runtime_state.pending_original_fix_plan,
+                ),
             )
         else:
-            fix_plan, fix_meta = run_sd8_fix_plan(
-                selected_feedback,
-                source=source,
-                source_stage=source_stage,
-                grounding_map=runtime_cfg.grounding_map,
-                before_dsl=runtime_state.current_dsl,
+            fix_plan, fix_meta = _lg_e3_fixed_tool_call(
+                graph_state,
+                tool_name="sd8_fix_plan",
+                stage_id=StageId.SD_8_FIX_PLAN.value,
+                graph_node="repair_sd8_fix_requests",
+                iteration=iteration,
+                input_payload={
+                    "selected_feedback": selected_feedback,
+                    "source": source,
+                    "source_stage": source_stage,
+                    "grounding_map": runtime_cfg.grounding_map,
+                    "before_dsl": runtime_state.current_dsl,
+                },
+                call=lambda: run_sd8_fix_plan(
+                    selected_feedback,
+                    source=source,
+                    source_stage=source_stage,
+                    grounding_map=runtime_cfg.grounding_map,
+                    before_dsl=runtime_state.current_dsl,
+                ),
             )
         _append_stage(runtime_state.stage_records, fix_meta)
         effective_fix_plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
@@ -2495,9 +2767,20 @@ def _build_repair_subgraph(
             graph_node="repair_sd8_fix_requests",
         )
         if source == FeedbackSource.DESIGN.value and isinstance(selected_feedback, DesignFeedback):
-            mark_warning_repair_attempt(
-                validation.context.warning_budget_state,
-                [item.instance_key for item in selected_feedback.blocking_items],
+            _lg_e3_fixed_tool_call(
+                graph_state,
+                tool_name="warning_repair_attempt_marker",
+                stage_id="warning_budget_state",
+                graph_node="repair_sd8_fix_requests",
+                iteration=iteration,
+                input_payload={
+                    "warning_budget_state": validation.context.warning_budget_state,
+                    "instance_keys": [item.instance_key for item in selected_feedback.blocking_items],
+                },
+                call=lambda: mark_warning_repair_attempt(
+                    validation.context.warning_budget_state,
+                    [item.instance_key for item in selected_feedback.blocking_items],
+                ),
             )
             runtime_state.warning_budget_state = validation.context.warning_budget_state
 
@@ -2825,7 +3108,15 @@ def _build_repair_subgraph(
             diff_summary=sl9_decision.diff_summary,
             rework_locked=attempt_rework_locked,
         )
-        local_review, local_meta = adapters.repair_review(review_request)
+        local_review, local_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd10_repair_review_local_check",
+            stage_id=StageId.SD_10_REPAIR_REVIEW.value,
+            graph_node="repair_sl10_review",
+            iteration=iteration,
+            input_payload={"repair_request": review_request},
+            call=lambda: adapters.repair_review(review_request),
+        )
         local_check_evidence = _local_repair_check_evidence(
             repair_review=local_review,
             repair_review_meta=local_meta,
@@ -3998,6 +4289,55 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
     return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()), store=store)
 
 
+
+def _augment_run_record_with_lg_e3_toolnode_trace(
+    result: AgentLoopResult,
+    *,
+    events: list[dict[str, Any]],
+    enabled: bool,
+) -> None:
+    if not result.run_record_path:
+        return
+    path = result.run_record_path
+    record = read_agent_loop_run_record(path)
+    safe_events = _jsonable(events if enabled else [])
+    registry = build_lg_e3_toolnode_wrapper_registry()
+    trace = {
+        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
+        "enabled": bool(enabled),
+        "fixed_invocation": True,
+        "llm_tool_choice_exposed": False,
+        "event_count": len(safe_events),
+        "events_hash": _hash_payload(safe_events),
+        "covered_tool_names": sorted({str(event.get("tool_name") or "") for event in safe_events if isinstance(event, dict)}),
+        "registry_hash": _hash_payload(registry),
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+        "events": safe_events,
+    }
+    record.environment["lg_e3_toolnode_wrappers_enabled"] = bool(enabled)
+    record.environment["lg_e3_toolnode_wrapper_schema_version"] = LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION
+    record.environment["lg_e3_toolnode_wrapper_event_count"] = len(safe_events)
+    record.environment["lg_e3_toolnode_wrapper_events_hash"] = trace["events_hash"]
+    record.environment["lg_e3_toolnode_wrapper_registry_hash"] = trace["registry_hash"]
+    record.environment["lg_e3_toolnode_wrapper_llm_tool_choice_exposed"] = False
+    record.run_config["lg_e3_toolnode_wrappers_enabled"] = bool(enabled)
+    record.run_config["lg_e3_toolnode_wrapper_schema_version"] = LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION
+    record.run_config["lg_e3_toolnode_wrapper_registry"] = registry
+    record.final_artifacts["toolnode_wrapper_trace"] = trace
+    record.logs.append(
+        {
+            "event": "lg_e3_toolnode_wrapper_trace",
+            "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
+            "enabled": bool(enabled),
+            "event_count": len(safe_events),
+            "events_hash": trace["events_hash"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
+    write_agent_loop_run_record(record, path)
+
 def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: list[dict[str, Any]]) -> None:
     if not result.run_record_path:
         return
@@ -4168,6 +4508,7 @@ def run_full_staged_langgraph_runtime(
     provider: ChatProvider | None = None,
     called_from_loop: bool = False,
     operator_stream_enabled: bool = True,
+    toolnode_wrapper_enabled: bool = True,
 ) -> AgentLoopResult:
     """Run the canonical full-staged loop through the default LangGraph runtime."""
 
@@ -4198,9 +4539,11 @@ def run_full_staged_langgraph_runtime(
         "runtime_schema_version": GRAPH_RUNTIME_SCHEMA_VERSION,
         "node_edge_schema_version": NODE_EDGE_SCHEMA_VERSION,
         "lg_d1_operator_stream_enabled": bool(operator_stream_enabled),
+        "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+        "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
     }
     graph_config_hash = _hash_payload(graph_config)
-    metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash)
+    metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash, toolnode_wrapper_enabled=toolnode_wrapper_enabled)
     run_id = run_id or config.run_id or f"pr-langgraph-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
     initial_lg_d1_stream_metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=config.llm_provider_mode == "real_env")
     runtime_cfg = FullStagedRuntimeConfig(
@@ -4225,6 +4568,10 @@ def run_full_staged_langgraph_runtime(
             "instrumentation_layer": "langgraph",
             "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
             "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+            "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "lg_e3_toolnode_wrapper_registry": build_lg_e3_toolnode_wrapper_registry(),
+            "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
             "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
             "stage_semantics_module": "method.staged_runtime",
         },
@@ -4236,6 +4583,10 @@ def run_full_staged_langgraph_runtime(
             "record_schema_version": "pr-c.default-full-staged-runtime.v1",
             "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
             "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+            "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
+            "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
             **initial_lg_d1_stream_metadata,
         },
         real_llm_provider_api=config.llm_provider_mode == "real_env",
@@ -4251,6 +4602,8 @@ def run_full_staged_langgraph_runtime(
             "graph_trace": [],
             "operator_events": [],
             "operator_stream_enabled": bool(operator_stream_enabled),
+            "toolnode_wrapper_events": [],
+            "toolnode_wrapper_enabled": bool(toolnode_wrapper_enabled),
             "run_id": run_id,
         },
         run_id=run_id,
@@ -4261,6 +4614,12 @@ def run_full_staged_langgraph_runtime(
         raise TypeError("LangGraph runtime did not return an AgentLoopResult")
     graph_trace = list(state.get("graph_trace", []) or [])
     _augment_run_record_with_graph_trace(result, graph_trace)
+    toolnode_events = list(state.get("toolnode_wrapper_events", []) or [])
+    _augment_run_record_with_lg_e3_toolnode_trace(
+        result,
+        events=toolnode_events,
+        enabled=bool(toolnode_wrapper_enabled),
+    )
     operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
     _augment_run_record_with_lg_d1_operator_log(
         result,
