@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 22:34`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -8,7 +8,7 @@
 
 本路径重点维护：
 
-本分支当前计数锚点：**27 个 venue 根 README、189 个年度 README**（含 PR-9 P2 新增 5 个 venue / 35 个年度 README）。
+当前组合计数锚点：**39 个 venue 根 README、273 个年度 README（27 个会议 / 12 个期刊）**；其中 PR-9 本轮新增 APSEC / SEKE / EASE / MSR / RV 共 5 个 P2 venue、35 个年度 README。
 
 1. 与本仓库四个 project 强相关或中相关的 `CCF` 会议 / 期刊基本信息。
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
@@ -69,7 +69,9 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue 的基础建档与部分核验；PR-5 merge-upstream 合流后共有 22 个 venue 根 README、154 个年度 README。本 PR-9 分支在用户显式覆盖前置条件后提前完成 APSEC / SEKE / EASE / MSR / RV 这 5 个 P2 邻近观察 venue 的基础建档，因此本分支当前共有 27 个 venue 根 README、189 个年度 README；PR-9 本轮交付物为 5 个根 README + 35 个年度 README = 40 个 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README。PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段：PR-6 / PR-7 / PR-8 仍按冻结合同独立推进，PR-9 只作为 P2 邻近观察，不升级为 P0/P1 主投目标，PR-10 在 PR-6~PR-9 全部合入后做 P1/P2 全局审计。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 与 PR-9 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue、PR-6 的 4 个维护 / 修复 P1 venue、PR-7 的 4 个实证 / 质量 P1 venue、PR-8 的 4 个 P1 形式化 / 工具链 venue，以及本 PR-9 的 5 个 P2 邻近观察 venue 的基础建档与部分核验；PR-9 merge 最新上游 PR-8 后，当前组合状态共有 39 个 venue 根 README、273 个年度 README，其中 27 个会议、12 个期刊。P0 冻结基线仍是 22 个 venue 根 README、154 个年度 README；PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-6、PR-7 与 PR-8 本轮交付物均各按 4 个目标 venue 计数，即各 4 个根 README + 28 个年度 README = 32 个 README；PR-9 本轮交付物按 5 个 P2 目标 venue 计数，即 5 个根 README + 35 个年度 README = 40 个 README。当前 39 / 273 是 PR-6 / PR-7 / PR-8 均已合入上游且 PR-9 已 merge 最新上游后的组合统计；历史更新日志中的 26 / 182、30 / 210、34 / 238 仅代表各 sibling branch-local 或中间组合阶段，不得再写作当前总量。
+
+PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段：PR-6 / PR-7 / PR-8 均已由上游合入并在当前合流分支中共存，当前 PR-9 分支已完成 APSEC / SEKE / EASE / MSR / RV 的 P2 邻近观察基础填充但不升级为 P0/P1 主投目标，PR-10 在 PR-6 / PR-7 / PR-8 / PR-9 全部合入后做 P1/P2 全局审计。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 / PR-6 / PR-7 / PR-8 / PR-9 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
 
 ## 5. 目录命名规范
 
@@ -173,8 +175,13 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-05 18:40` | 修复实现后复审 M4：在入口 README 增加 27 venue / 189 年度 README 的显式计数锚点，便于后续 PR-6/7/8/10 合流审计。 |
-| `2026-06-05 18:03` | PR-9 P2 邻近观察建档后同步入口统计：本分支新增 APSEC / SEKE / EASE / MSR / RV 共 5 个 P2 venue、35 个年度 README，总计 27 个 venue / 189 个年度 README，同时保留 P2 不升级为 P0/P1 的边界。 |
+| `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 与 PR-9 双方 facts，当前组合统计更新为 39 个 venue 根 README、273 个年度 README（27 会议 / 12 期刊），并把冲突处理纳入复审范围。 |
+| `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：保留 PR-6 维护 / 修复 venue、PR-7 实证 / 质量 venue 与 PR-8 形式化 / 工具链 venue 双方事实，将当前组合统计更新为 34 个 venue 根 README、238 个年度 README（22 会议 / 12 期刊），并把冲突处理纳入复审范围。 |
+| `2026-06-05 20:56` | PR-6 合流 PR-7 后更新入口维护边界：当前全库统一为 30 个 venue 根 README、210 个年度 README（20 会议 / 10 期刊），并保留 P0 22/154 冻结基线与 PR-8 / PR-9 待后续约束。 |
+| `2026-06-05 20:35` | PR-8 merge upstream PR-7：保留 PR-7 实证 / 质量 venue 与 PR-8 形式化 / 工具链 venue 双方事实，将当前组合统计更新为 30 个 venue 根 README、210 个年度 README，并把冲突处理纳入复审范围。 |
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：明确 26 / 182 为当前 PR-8 分支相对 PR-5 的 branch-local 统计，并记录与 PR-6 / PR-7 sibling PR 的合流重算纪律。 |
+| `2026-06-05 18:40` | PR-8 形式化 / 工具链补链合流：新增 IST、SCP、QRS、TASE 四个 P1 venue 后，将当前分支总量更新为 26 个 venue 根 README、182 个年度 README，并记录 PR-8 自身 32 个 README 交付口径。 |
+| `2026-06-05 18:12` | PR-7 后维护边界更新：将入口统计从 P0 合流后的 22 个 venue / 154 个年度 README 更新为 PR-7 后 26 个 venue / 182 个年度 README，并记录 PR-7 实证 / 质量 venue 的 4 个根 README + 28 个年度 README 交付口径。 |
 | `2026-06-05 15:59` | 实现后 review 修复：将 README 历史 PR #5 / `frontier_index` 资源口径与 SUMMARY 对齐，明确这些路径不是当前分支可点击文件。 |
 | `2026-06-05 15:36` | PR-5 全局收口：冻结 P1/P2 后续 PR-6~PR-10 ownership，明确 P0 22 个 venue / 154 个年度 README 进入长期维护状态，并把后续扩展入口指向 SUMMARY / scope 合同。 |
 | `2026-06-05 14:06` | 修复 PR #46 review 入口口径：将 merge-upstream 后当前状态统一为 22 个 venue 根 README、154 个年度 README，并同时保留 PR-3 / PR-4 本轮交付计数和共享文件合流复审纪律。 |
