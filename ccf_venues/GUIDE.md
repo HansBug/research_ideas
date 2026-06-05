@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 13:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -399,11 +399,11 @@ PR-4 期刊填充后的补充规则：
 
 ### 13.1 P1/P2 stacked PR 执行纪律
 
-PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；后续 AI 不得只凭 [01-venue-scope.md](./01-venue-scope.md) 的范围清单自由拆分。完整禁止事项、允许修改范围与依赖关系以 [SUMMARY.md](./SUMMARY.md) §9.1 为准，本节只保留执行纪律摘要。
+PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；后续 AI 不得只凭 [01-venue-scope.md](./01-venue-scope.md) 的范围清单自由拆分。完整禁止事项、允许修改范围与依赖关系以 [SUMMARY.md](./SUMMARY.md) §9.1 为准，本节只保留执行纪律摘要。PR-6 完成后，当前统计不在本节维护，以 [SUMMARY.md](./SUMMARY.md) §1 与 §9 的完成状态为准；本节保留 stacked PR ownership 纪律。
 
 | 子级 PR | 主题 | Venue ownership | 默认产物 | 共享文件纪律 |
 |---|---|---|---|---|
-| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README；当前 PR-6 分支已基础建档 | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
 | PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个 venue + 28 个年度 README | 保留 PR-6 与 P0 facts，期刊 rolling 不写成 dated Mermaid |
 | PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README | 须在 PR-6/7 合入上游并阅读其踩坑经验后开工；形式化 / 工具链计数不得混用 DBLP fallback |
 | PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个 venue + 35 个年度 README | 须在 PR-6/7 合入上游后开工；建议同步吸收 PR-8 形式化 / 工具链踩坑经验；不升级为 P0/P1 主投目标 |
@@ -443,6 +443,11 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 7. **访问异常与来源冒充坑**：证书问题可以用 `curl -k`、浏览器或带 `User-Agent` 重试；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口、投稿系统入口或 organizer call 都不得写成年度主页 / CFP / committee 官方角色源；Wiley STVR 等 publisher 页面在 CLI 中 WAF/403 时仍应保留官方链接和待人工浏览器核验状态，不能把“无法命令行抓取”改写成“无编辑人员”或用第三方页面补成当前 roster。
 8. **track 与角色混算坑**：research、industry、tool、artifact、workshop、journal-first、companion、umbrella conference 与 satellite conference 必须分列；committee / editorial roster 角色不足时只能写成线索，不能升级为已核验核心人员事实。
 9. **期刊专刊 / 会议扩展混算坑**：例如 STTT 的 conference-based special issue 只能按期刊 article baseline 记录，不能和 TACAS / SPIN / FMICS / RV 等会议 proceedings 合并计数。
+10. **维护 / 演化 venue 历史入口坑**：SANER / ICSME / ICPC 等维护、演化、程序理解会议的旧年度站点、CFP、submission system、program、proceedings、DBLP slug 经常分散；找不到官方 CFP 时只能写 `待补` 或 `第三方线索`，不能把第三方 deadline 写成官方事实。
+11. **冲突日期同步坑**：若 ICSME 2022 这类年度出现 IEEE CFP、archive 首页、proceedings 封面会期不一致，根 README、年度 README、[TIMELINE.md](./TIMELINE.md) 与待补表必须同步标 `日期冲突待核`，不能只在单个文件说明。
+12. **证书风险入口坑**：若官方旧站 HTTPS 证书主机名不匹配但 HTTP 可访问，例如 SANER 2022，应优先使用可访问的 HTTP 官方站入口，并在备注中显式写明 HTTPS 证书风险；不要留下会让读者点击失败的裸 HTTPS 链接。
+13. **Wiley current issue / Early View 混写坑**：Wiley `currentissue` 只可写作 current issue candidate，不能冒充 Early View / articles in press；若 Early View 入口未定位，应单独写 `Early View / articles in press 入口待定位`。JSEP 本轮已按此规则将 2026+ rolling 状态降级为 `🟡 rolling 候选 / 待人工核验`；STVR 等既有 Wiley WAF/403 历史条目在后续触碰或专项复核时也应吸收该口径。不得在 author guidelines / ScholarOne 路由未人工确认前，把新建或本轮修改的 Wiley WAF 条目写成 `🟢 滚动开放`。
+14. **未来年度维护会议预造坑**：SANER / ICSME / ICPC 的 2027/2028/2029+ 若只找到 series page、announcement、townhall、program 预告或无 official research track dates，应写 `⏳ 已检索未公布`，不得预造 official CFP、submission deadline、DBLP 年度页或 proceedings。
 
 ### 15.2 回写位置
 
@@ -473,6 +478,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:13` | PR-6 踩坑规则回写：补充 SANER/ICSME/ICPC 历史入口与日期冲突、SANER 2022 证书风险、JSEP Wiley WAF/current issue/Early View/rolling 候选口径。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
 | `2026-06-05 13:25` | merge upstream / PR-3+PR-4 合流规则：解决 GUIDE 冲突，保留形式化验证会议来源冒充、committee / track 分层、`curl -k` / 冲突复审纪律，同时保留 PR-4 期刊 rolling / dated event、Wiley WAF/403、Springer collections 和 STTT conference-based special issue 计数纪律。 |
