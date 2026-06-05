@@ -496,10 +496,17 @@ def lg_d1_llm_stream_runtime_metadata(
 
 
 def _build_lg_d1_stream_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
+    # Keep this sequence aligned with the durable LangGraph node trace.
+    # LG-B1 validation subgraphs deliberately use ``subgraph_enter`` /
+    # ``subgraph_exit`` in addition to ordinary ``node_enter`` events, and
+    # LG-D1 operator logs must not collapse those academic orchestration
+    # boundaries away.  Synthetic ``node_exit`` events from tee streaming remain
+    # excluded because they are operator-progress signals rather than graph-trace
+    # entries.
     node_sequence = [
         str(event.get("node"))
         for event in events
-        if event.get("event_type") == "node_enter" and event.get("node")
+        if event.get("event_type") in {"node_enter", "subgraph_enter", "subgraph_exit"} and event.get("node")
     ]
     stage_sequence = [
         str(event.get("stage_id"))
