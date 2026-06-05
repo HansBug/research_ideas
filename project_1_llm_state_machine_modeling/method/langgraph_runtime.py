@@ -2723,6 +2723,21 @@ def _seed_waiver_exception_evidence(
             graph_subgraph="waiver_continuation_subgraph",
             graph_node="waiver_subgraph_enter",
         )
+    seen_trace_keys: set[tuple[str, str, str]] = set()
+    deduped_trace: list[dict[str, Any]] = []
+    for item in list(graph_state.get("graph_trace", []) or []):
+        if not isinstance(item, dict):
+            continue
+        key = (
+            str(item.get("node_id") or ""),
+            str(item.get("event") or ""),
+            str(item.get("iteration") or ""),
+        )
+        if key in seen_trace_keys:
+            continue
+        seen_trace_keys.add(key)
+        deduped_trace.append(item)
+    graph_state["graph_trace"] = deduped_trace
 
 def _build_repair_subgraph(
     *,
@@ -4475,7 +4490,7 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
         "node_trace_hash": _hash_payload(waiver_trace),
         "node_ids": [str(item.get("node_id") or "") for item in waiver_trace],
         "stage_node_ids": [node_id for node_id in ("waiver_design_tail", "waiver_sim_tail") if node_id in waiver_seen],
-        "nested_subgraph_ids": ["validation_subgraph"],
+        "nested_subgraph_ids": ["validation_subgraph"] if waiver_trace else [],
         "join_key_fields": [
             "iteration",
             "waiver_audit_kind",

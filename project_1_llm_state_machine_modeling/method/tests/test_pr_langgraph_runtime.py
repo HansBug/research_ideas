@@ -217,6 +217,23 @@ def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validat
             validation=validation,
             iteration=3,
         )
+    no_selected_validation = lg._ValidationPass(
+        context=context,
+        feedback={"design": DesignFeedback(ok=True)},
+        stage_metas=[_meta(StageId.SD_2_PARSE), _meta(StageId.SD_3_SEMANTIC), _meta(StageId.SD_4_DESIGN)],
+        selected=None,
+        scenario_set=None,
+        scenario_history=[],
+        oracle_weak=False,
+        scenario_epoch=None,
+    )
+    with pytest.raises(ValueError, match="validation.selected"):
+        lg._build_waiver_entry_envelope(
+            repair_patch=repair_patch,
+            validation_ref="transient:validation:no-selected",
+            validation=no_selected_validation,
+            iteration=3,
+        )
 
     sim_feedback = SimFeedback(
         ok=False,
@@ -447,6 +464,10 @@ def test_run_agent_loop_routes_default_path_through_langgraph_with_mock_provider
     assert any(item["node_id"] == "validation_pass" for item in node_trace)
     assert node_trace[-1]["node_id"] == "sc13_trace_audit"
     assert record.final_artifacts["langgraph_runtime_trace"]["delegated_monolithic_runtime"] is False
+    waiver_runtime_trace = record.final_artifacts["langgraph_runtime_trace"]["waiver_subgraph_runtime_trace"]
+    assert waiver_runtime_trace["node_trace_count"] == 0
+    assert waiver_runtime_trace["node_ids"] == []
+    assert waiver_runtime_trace["nested_subgraph_ids"] == []
 
 
 
@@ -1718,6 +1739,11 @@ def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_pa
     assert "waiver_design_tail" in trace_nodes
     assert "validation_subgraph" in trace_nodes
     assert "validation_sl5_scenario_generation" in trace_nodes
+    assert trace_nodes.count("waiver_subgraph_enter") == 1
+    assert trace_nodes.count("waiver_tail_decision") == 1
+    assert trace_nodes.count("waiver_design_tail") == 1
+    assert trace_nodes.count("validation_subgraph") == 1
+    assert trace_nodes.count("validation_sl5_scenario_generation") == 1
     assert trace_nodes[-1] == "sc13_trace_audit"
     assert record.status == "invalid"
     assert record.final_artifacts["verdict"] == "invalid"
