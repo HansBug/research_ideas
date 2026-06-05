@@ -654,10 +654,6 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
 
 
 def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
-    from method import langgraph_runtime as lg
-
-    before_transients = set(lg._TRANSIENT_OBJECTS)
-
     def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         item = DesignDiagnosticItem(
             code="W_LG_A1_SL9_RETRY",
@@ -686,14 +682,12 @@ def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_trans
     assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_9_REPAIR.value} retry exhausted")
     assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "provider_error"
     assert record.llm_interactions[-1]["attempts"]
-    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+    lifecycle = _assert_lg_a2_store_metadata(record)
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["get_count"] >= 1
 
 
 def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_path: Path) -> None:
-    from method import langgraph_runtime as lg
-
-    before_transients = set(lg._TRANSIENT_OBJECTS)
-
     def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         item = DesignDiagnosticItem(
             code="W_LG_A1_WAIVER_RETRY",
@@ -733,7 +727,9 @@ def test_command_routing_waiver_continue_retry_exhausted_cleans_transient(tmp_pa
     assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
     assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_5_SCENARIO_GENERATION.value} retry exhausted")
     assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
-    assert set(lg._TRANSIENT_OBJECTS) == before_transients
+    lifecycle = _assert_lg_a2_store_metadata(record)
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["get_count"] >= 2
 
 
 def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tmp_path: Path) -> None:
@@ -892,6 +888,47 @@ def test_store_transient_cleanup_repair_retry_exhausted(tmp_path: Path) -> None:
     assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_9_REPAIR.value
     assert lifecycle["put_count"] == 1
     assert lifecycle["get_count"] >= 1
+
+
+def test_store_transient_cleanup_validation_retry_exhausted_after_accepted_repair(tmp_path: Path) -> None:
+    design_calls = {"count": 0}
+
+    def design_block_once(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        design_calls["count"] += 1
+        if design_calls["count"] == 1:
+            item = DesignDiagnosticItem(
+                code="W_LG_A2_STALE_REF_REPRO",
+                pyfcstm_severity="warning",
+                policy_action="hard_block",
+                instance_key="lg-a2:stale-ref-repro",
+                rationale="force accepted repair before a next-iteration validation retry exhaustion",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return _ok_design(context)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-a2-cleanup-validation-retry-after-repair",
+            initial_dsl="needs-repair",
+            adapters=_adapters_with(
+                design=design_block_once,
+                repair=lambda _request: _stable_dsl(),
+                model_review=lambda _dsl, _context, _feedback: _retry_exhausted_run(StageId.SL_7_MODEL_REVIEW, "provider_error"),
+            ),
+            max_iterations=3,
+        )
+    )
+    lifecycle = _assert_lg_a2_store_metadata(record)
+
+    assert record.status == "error"
+    assert record.final_artifacts["verdict"] == "provider_error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
+    assert record.iteration_records[-1]["exit_reason"].startswith(f"{StageId.SL_7_MODEL_REVIEW.value} retry exhausted")
+    assert lifecycle["put_count"] == 1
+    assert lifecycle["get_count"] >= 1
+    assert lifecycle["drop_count"] >= 1
+    assert _lg_trace_nodes(record)[-2:] == ["validation_decision", "sc13_trace_audit"]
 
 
 def test_store_transient_cleanup_waiver_retry_exhausted(tmp_path: Path) -> None:

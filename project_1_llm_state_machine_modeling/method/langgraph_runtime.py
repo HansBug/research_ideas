@@ -573,11 +573,20 @@ def _transient_namespace_label(run_id: str) -> str:
 
 
 def _put_transient(run_id: str, kind: str, iteration: int, value: Any, *, lifecycle: dict[str, Any] | None = None) -> str:
+    """Store a transient object inside the active LangGraph Store context.
+
+    This helper must only be called from compiled LangGraph nodes, because it
+    depends on ``langgraph.config.get_store()`` being available in the current
+    runnable context.  It deliberately does not write the historical module
+    level ``_TRANSIENT_OBJECTS`` dict.
+    """
+
     key = f"{kind}:{iteration}:{uuid.uuid4().hex[:8]}"
     get_store().put(
         _transient_namespace(run_id),
         key,
         {
+            "_transient_wrapper": True,
             "object": value,
             "kind": kind,
             "iteration": iteration,
@@ -591,18 +600,22 @@ def _put_transient(run_id: str, kind: str, iteration: int, value: Any, *, lifecy
 
 
 def _get_transient(run_id: str, key: str, *, lifecycle: dict[str, Any] | None = None) -> Any:
+    """Load a transient object from the active LangGraph Store context."""
+
     item = get_store().get(_transient_namespace(run_id), key)
     if item is None:
         raise KeyError(f"missing transient LangGraph runtime object: {key}")
     if lifecycle is not None:
         lifecycle["get_count"] = int(lifecycle.get("get_count", 0)) + 1
     value = item.value
-    if isinstance(value, dict) and "object" in value:
+    if isinstance(value, dict) and value.get("_transient_wrapper") is True and "object" in value:
         return value["object"]
     return value
 
 
 def _drop_transient(run_id: str | None, key: str | None, *, lifecycle: dict[str, Any] | None = None) -> None:
+    """Delete a transient Store object if it exists in the active graph node."""
+
     if key:
         try:
             namespace = _transient_namespace(str(run_id or ""))
@@ -616,6 +629,8 @@ def _drop_transient(run_id: str | None, key: str | None, *, lifecycle: dict[str,
 
 
 def _drain_transients(run_id: str, *, lifecycle: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Final-drain all transient items in this run's Store namespace."""
+
     namespace = _transient_namespace(run_id)
     items = list(get_store().search(namespace))
     deleted = 0
@@ -757,6 +772,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         runtime_state = graph_state.get("runtime_state")
         run_id = runtime_state.run_id if isinstance(runtime_state, _RunState) else runtime_cfg.run_id
         _drop_transient(run_id, str(graph_state.get("validation_ref") or ""), lifecycle=transient_lifecycle)
+        graph_state.pop("validation_ref", None)
 
     def _inject_transient_metadata(record: Any) -> None:
         lifecycle = _transient_metadata()
@@ -877,6 +893,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 }
             )
             graph_state["runtime_state"] = runtime_state
+            _drop_state_validation_ref(graph_state)
             return Command(goto="validation_decision", update=graph_state)
 
         runtime_state.warning_budget_state = validation.context.warning_budget_state
@@ -924,11 +941,12 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         graph_state = dict(graph_state)
         runtime_state: _RunState = graph_state["runtime_state"]
         iteration_record = dict(graph_state.get("iteration_record") or {})
-        validation_ref = str(graph_state.get("validation_ref") or "")
-        validation = _get_transient(runtime_state.run_id, validation_ref, lifecycle=transient_lifecycle) if validation_ref else None
         _trace_node(graph_state, "validation_decision", iteration=graph_state.get("iteration"))
         if runtime_state.verdict_source_stage_id is not None:
+            _drop_state_validation_ref(graph_state)
             return Command(goto="sc13_trace_audit", update=graph_state)
+        validation_ref = str(graph_state.get("validation_ref") or "")
+        validation = _get_transient(runtime_state.run_id, validation_ref, lifecycle=transient_lifecycle) if validation_ref else None
         weak_sim_feedback = getattr(validation, "feedback", {}).get("sim") if validation is not None else None
         if (
             getattr(validation, "selected", None) is None
