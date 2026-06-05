@@ -1,6 +1,6 @@
 # ISSRE README
 
-> 信息更新时间：`2026-06-05 11:12`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:43`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -47,7 +47,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 |---|---|---|---|---|---|---|---|---|---|
 | Leonardo Mariani | ISSRE 2026 General Chair | University of Milano-Bicocca | [ISSRE 2026 Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [DBLP](https://dblp.org/pid/27/2914.html) | software testing、runtime monitoring、software reliability、program analysis | [DBLP 论文入口](https://dblp.org/pid/27/2914.html) | P2/P3/P4：可靠性场景、运行时监控、缺陷定位与修复验证。 | 🟡 部分核验 | `2026-06-05 11:12` |
 | George Papadopoulos | ISSRE 2026 General Chair | University of Cyprus | [ISSRE 2026 Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [个人主页](https://www.cs.ucy.ac.cy/~george/) | distributed systems、software engineering、coordination / service-oriented systems | [个人主页 publications / CV 入口](https://www.cs.ucy.ac.cy/~george/) | P2/P3：分布式系统可靠性与验证场景。 | 🟡 部分核验 | `2026-06-05 11:12` |
-| Domenico Cotroneo | ISSRE 2026 Research Program Committee Chair | UNC Charlotte | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) | [个人主页](https://webpages.charlotte.edu/dcotrone/) / [DBLP](https://dblp.org/pid/c/DomenicoCotroneo) | software reliability、dependability、software security、fault injection | [DBLP 论文入口](https://dblp.org/pid/c/DomenicoCotroneo) | P2/P3/P4：可靠性 profile、故障模型、缺陷复现与修复验证。 | 🟡 部分核验 | `2026-06-05 11:12` |
+| Domenico Cotroneo | ISSRE 2026 Research Program Committee Chair | UNC Charlotte | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) | [个人主页](https://webpages.charlotte.edu/dcotrone/) / [DBLP](https://dblp.org/pid/c/DomenicoCotroneo.html) | software reliability、dependability、software security、fault injection | [个人主页 publications](https://webpages.charlotte.edu/dcotrone/) / [DBLP 论文入口](https://dblp.org/pid/c/DomenicoCotroneo.html) | P2/P3/P4：可靠性 profile、故障模型、缺陷复现与修复验证。 | 🟡 部分核验 | `2026-06-05 11:43` |
 | Jie M. Zhang | ISSRE 2026 Research Program Committee Chair | King's College London | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) | [KCL profile](https://www.kcl.ac.uk/people/jie-zhang) | software testing、software engineering for AI、program analysis、ML trustworthiness | [KCL publications / profile](https://www.kcl.ac.uk/people/jie-zhang) | P2/P3/P4：AI 系统测试、性质/场景生成和修复评估。 | 🟡 部分核验 | `2026-06-05 11:12` |
 | Fumio Machida | ISSRE 2026 Program Board；Artifact Evaluation Chair | University of Tsukuba | [ISSRE 2026 Research Track Committee](https://cyprusconferences.org/issre2026/research-track-committee/) / [Organizing Committee](https://cyprusconferences.org/issre2026/organizing-committee/) | [DBLP](https://dblp.org/pid/91/9246.html) | software reliability、dependability、cloud/service systems | [DBLP 论文入口](https://dblp.org/pid/91/9246.html) | P2/P3：可靠性 profile、artifact evaluation 与验证/测试场景。 | 🟡 部分核验 | `2026-06-05 11:12` |
 
@@ -88,6 +88,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:43` | 收尾复审后补强 Domenico Cotroneo 学术入口：保留官方 committee 角色源，并把个人主页作为 DBLP author page 的 fallback。 |
 | `2026-06-05 11:12` | 修复 ISSRE 2026 复审问题：把 abstract / paper deadline 统一为官方 extended 后的 2026-04-24 AoE，阶段改为复审中，并用官方 organizing / research track committee 页面回填核心人员角色来源。 |
 | `2026-06-05 10:04` | 根据复审把 ISSRE 核心人员从“官方角色来源”降级为学术线索 / 官方角色页待补，避免用年度主页或 404/非 committee 页支撑人员角色。 |
 | `2026-06-05 09:15` | PR-3 初始化 ISSRE venue 根 README，新增 2022--2028 年度索引、核心 URL、核心人员情报、计数口径和待补记录。 |

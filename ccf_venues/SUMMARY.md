@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 11:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:43`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -251,7 +251,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 | ATVA | C | 2022-2028 | [conf-c-atva](./conf-c-atva/README.md) | 7 | 2022 dated events 已同步；2026-2028 未公布年度不造日期 | 覆盖 ATVA 2023/2024 organization 与 verification 核心人员 | 2022 使用独立年度主页与 Springer proceedings 口径；2026-2028 独立官方年页未公布 | 🟡 部分核验 |
 | ICST | C | 2022-2028 | [conf-c-icst](./conf-c-icst/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICST 2026 organizing / steering 与 testing 核心人员 | Research track 与 DBLP series-wide 已分开，历史 count 待拆 | 🟡 部分核验 |
 
-### 13.1 PR-3 踩坑记录
+### 14.1 PR-3 踩坑记录
 
 1. **ATVA 2026 不能过度确认**：截至本轮核查未找到独立官方 ATVA 2026 年页；候选 researchr / APLAS-ATVA 路径不写作正式 CFP，避免把未确认入口变成事实。
 2. **ICST 必须区分 Research track 与 series-wide**：researchr program / dates 强 track 化，DBLP 年度页是 series-wide fallback，不可与 ICFEM / SPIN 的主会论文数横比。
@@ -262,7 +262,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 7. **TIMELINE 事件必须进入正式年度章节**：PR 临时增量表只能用于迁移审计，不能长期作为事实源；PR-3 事件已并入正式 2025--2027 年度章节与 Mermaid，风险节只保留未公布年度和来源降级记录。
 8. **踩坑必须写回规则**：来源冒充、角色源不足、访问异常、计数冲突、track 混算等如果会影响后续批次，必须同步写回 [GUIDE.md](./GUIDE.md)，不能只留在 PR comment 或单次总结中。
 
-### 13.2 PR-3 待补与风险记录
+### 14.2 PR-3 待补与风险记录
 
 | Venue | 年份 | 问题 | 当前处理 | 下一步 |
 |---|---|---|---|---|
@@ -284,6 +284,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:43` | 收尾复审后修正 PR-3 小节编号为 14.1 / 14.2，并同步记录剩余 M 级 polish 已处理。 |
 | `2026-06-05 11:25` | 修复 PR-3 复审与 upstream merge 后的 SUMMARY 口径：直接写明 PR-3 64 README 交付物，更新 ISSRE official committee / extended deadline、ICFEM series page 降级、ATVA 2022 年度主页与 2022 dated events 同步结论，并校正更新日志降序。 |
 | `2026-06-05 10:58` | 合并上游 PR-2 后重算全库状态：当前 19 个 venue、133 个年度 README，保留 PR-2 / PR-3 完成表、P0 状态、期刊试点记录，并把冲突处理风险写入待补与 PR-3 风险记录。 |
 | `2026-06-05 10:04` | PR-3 合流与规则修复：把 PR-3 TIMELINE 状态改为正式年度章节已同步，补充 ATVA / ISSRE 来源降级风险，并把踩坑写回 GUIDE 作为后续批次纪律。 |

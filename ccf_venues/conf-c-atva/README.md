@@ -1,6 +1,6 @@
 # ATVA README
 
-> 信息更新时间：`2026-06-05 11:12`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:43`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,14 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 | Jun Sun | ATVA 2023 Organization | Singapore Management University | [ATVA 2023 Organization](https://atva-conference.org/2023/?page_id=30) | [OpenReview](https://openreview.net/profile?id=~Jun_Sun12) | formal methods、software engineering、security、AI | [DBLP](https://dblp.org/pid/44/905.html) | P1/P2/P3/P4：形式化建模、验证、修复与 LLM4SE。 | 🟡 部分核验 | `2026-06-05 09:15` |
 | Doron Peled | ATVA 2024 Program Committee / Steering Committee | Bar-Ilan University | [ATVA 2024 Organization](https://atva-conference.org/2024/organization/) | [DBLP](https://dblp.org/pid/p/DoronPeled.html) | model checking、partial order reduction、formal verification | [DBLP 论文入口](https://dblp.org/pid/p/DoronPeled.html) | P2/P3：模型检查与状态空间约简。 | 🟡 部分核验 | `2026-06-05 10:04` |
 | Orna Kupferman | ATVA 2024 Program Committee | Hebrew University of Jerusalem | [ATVA 2024 Organization](https://atva-conference.org/2024/organization/) | [DBLP](https://dblp.org/pid/k/OrnaKupferman.html) | automata theory、temporal logic、formal verification | [DBLP 论文入口](https://dblp.org/pid/k/OrnaKupferman.html) | P1/P2/P3：自动机和时序性质。 | 🟡 部分核验 | `2026-06-05 10:04` |
-| Jan Křetínský | probabilistic verification 学术线索 / ATVA 官方角色页待补 | Technical University of Munich | 官方角色页待补；当前仅保留学术入口线索 | [DBLP](https://dblp.org/pid/10/394.html) | probabilistic verification、Markov models、automata learning | [DBLP 论文入口](https://dblp.org/pid/10/394.html) | P2/P3：概率验证 profile 和模型学习。 | ⏳ 待核验 | `2026-06-05 10:04` |
+
+### 5.1 学术线索 / 官方角色待补
+
+以下条目只作为后续补查 ATVA 官方角色页和领域画像的线索，不计入已核验核心人员表，也不得在 [SUMMARY.md](../SUMMARY.md) 中写成已确认官方角色。
+
+| 人员 | 线索类型 | 单位 | 当前角色来源状态 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库 project 的关系 | 核验状态 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|---|
+| Jan Křetínský | probabilistic verification 学术线索 | Technical University of Munich | ATVA 官方角色页待补；当前仅保留学术入口线索 | [DBLP](https://dblp.org/pid/10/394.html) | probabilistic verification、Markov models、automata learning | [DBLP 论文入口](https://dblp.org/pid/10/394.html) | P2/P3：概率验证 profile 和模型学习。 | ⏳ 待核验，非官方角色事实 | `2026-06-05 11:43` |
 
 ## 6. 年度信息汇总
 
@@ -88,6 +95,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:43` | 将 Jan Křetínský 从已核验核心人员表移入“学术线索 / 官方角色待补”小节，避免把未核验学术线索误读为 ATVA 官方角色。 |
 | `2026-06-05 11:12` | 修复 ATVA 2022 年度主页口径：previous-events 仅作历史索引，正式年度主页改为独立 2022 年页，并补 official dates、accepted papers、program 和 Springer proceedings 链接。 |
 | `2026-06-05 10:04` | 修正 ATVA 2026 年度主页为已检索未公布，降级 Jan Křetínský 为学术线索，并把 Doron Peled / Orna Kupferman 的官方角色来源落到 ATVA 2024 Organization。 |
 | `2026-06-05 09:15` | PR-3 初始化 ATVA venue 根 README，新增 2022--2028 年度索引、核心 URL、核心人员情报、计数口径和待补记录。 |
