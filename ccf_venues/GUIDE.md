@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -363,7 +363,7 @@ PR-8 期刊填充后的补充规则：
 1. 默认使用 `gantt` 图，不使用 Mermaid `timeline` 语法作为主图；`gantt` 在 GitHub 上更稳定，且适合表达 deadline / 会期窗口。
 2. 单日 deadline 使用 `milestone`，多日窗口使用普通任务。
 3. Mermaid 图只放短标题，不放 URL；来源链接必须留在年度表格中。
-4. 如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类` 或 `会议 / 期刊专刊` 拆成多张 `gantt` 图。
+4. 如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类`、`会议 / 期刊专刊` 或本轮 PR 增量拆成多张 `gantt` 图；年度总表仍保留统一事实总账，每张分片图的事件数原则上不超过 `40`。
 5. Mermaid 展示 label 必须使用 **venue edition 年份**，不能使用事件发生年份。例如 `FSE 2026` 的 `2025-09` submission 在图中显示 `FSE26 Submission`，而不是 `FSE25 Submission`。
 6. Mermaid event id 推荐使用 `<venue_slug>_<event_year>_<sequence>_<yyyymmdd>`，其中 `sequence` 只保证同一事件发生年份内唯一；展示 label 与 event id 可以不同。
 7. Mermaid label 使用短但完整的英文事件词：`Abstract`、`Submission`、`Notify`、`Camera`、`Rebuttal`、`Conference`；不要写成 `Notificati`、`Cameraread` 等机械截断词。
@@ -424,6 +424,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 3. 不得静默新增合同外 venue。确需新增时，先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，并给出 CCF 官方或 venue 官方来源。
 4. final ready 前必须 merge upstream staging head；若有 conflict，冲突解决后必须复核 `git ls-files -u` 为空、冲突标记消失、双方 TIMELINE / Mermaid / rolling 表 / 更新日志 facts 均保留。
 5. PR-8 的并行开工修订属于执行合同修订：可调整 PR-8 前置条件，但不得删除 P0、PR-6、PR-7、PR-9 的 venue facts、TIMELINE facts、rolling 表或更新日志。
+6. PR-6 / PR-7 / PR-8 同时 open draft 时，共享文件中的 “当前总量” 必须标清 branch-local 或组合统计口径；若当前分支不是第一个合入的 sibling，final ready 前必须 merge 最新 upstream 并重算组合统计，不能把自身 26 / 182 等旧口径覆盖已合入 facts。
 6. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
 
 ## 14. 会议 / 期刊合流与事实共存规则
@@ -485,6 +486,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：补强超 40 条年度 Mermaid 拆图执行规则，并明确 sibling PR 共享统计必须区分 branch-local / 组合口径。 |
 | `2026-06-05 18:40` | PR-8 形式化 / 工具链补链规则回写：补充 Elsevier / ScienceDirect WAF/403、Editorial Manager code、QRS techconf 计数拆分与 TASE 分散年度站处理纪律。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |

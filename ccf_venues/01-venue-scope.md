@@ -1,6 +1,6 @@
 # `ccf_venues/` 01-venue-scope
 
-> 信息更新时间：`2026-06-05 16:58`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 
 ## 1. 文档用途
 
@@ -38,7 +38,8 @@
 
 1. PR-6~PR-9 不得静默新增合同外 venue；若 CCF 官方更名或确有强相关漏项，必须先更新本文档和 PR body，并附官方来源。
 2. 每个 PR final ready 前必须 merge upstream staging head；若发生冲突，必须复审双方 facts、TIMELINE、Mermaid、更新日志与待补记录均未被覆盖。PR-8 可按本表修订后的并行合同开工，但 final ready 前必须确认已吸收当时上游已有的 PR-6 / PR-7 经验；不得只看 venue 清单跳过上游经验。
-3. [SUMMARY.md](./SUMMARY.md) 是完成状态总账；本文档只冻结范围和 ownership，不把待建 venue 写成已完成事实。
+3. PR-6 / PR-7 / PR-8 作为 sibling PR 同时 open 时，共享文件统计默认是各自 branch-local 口径；任一 sibling 若不是第一个合入上游，必须在 merge upstream 后把统计与 facts 重算为组合口径。
+4. [SUMMARY.md](./SUMMARY.md) 是完成状态总账；本文档只冻结范围和 ownership，不把待建 venue 写成已完成事实。
 
 ## 5. P0-A 强相关主线 venue
 
@@ -105,6 +106,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：补充 PR-6/7/8 sibling PR 的 branch-local 统计与 merge-upstream 组合重算纪律。 |
 | `2026-06-05 16:58` | PR-8 计划审查修复：同步 PR-8 并行开工合同，明确 PR-5 后可开工但 final ready 前必须 merge upstream 并吸收届时已合入 PR-6/7 经验。 |
 | `2026-06-05 15:59` | 实现后 review 修复：为 PR-6~PR-10 合同补充前置条件列，并明确 PR-8 / PR-9 不得跳过上游踩坑经验。 |
 | `2026-06-05 15:36` | PR-5 冻结 P0 完成状态与 PR-6~PR-10 P1/P2 ownership：本文档保留范围和执行合同，完成状态继续由 [SUMMARY.md](./SUMMARY.md) 维护。 |

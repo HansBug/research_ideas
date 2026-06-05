@@ -1,11 +1,12 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
+| 当前统计口径 | 本表统计为当前 PR-8 分支相对 PR-5 staging head 的 branch-local 状态；若 PR-6 / PR-7 先合入上游，PR-8 final ready 前必须 merge upstream 并重算组合统计，不得用 26 / 182 覆盖 sibling facts |
 | 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊与 PR-8 P1 形式化 / 工具链补链均已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
@@ -22,7 +23,7 @@
 | 已建立并基础核验年度 README | 182 |
 | 事实完全核验 venue 目录 | 0 |
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
-| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、PR-8 QRS / TASE 2022-2026 dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 / PR-8 facts，见 [TIMELINE.md](./TIMELINE.md) |
+| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、PR-8 QRS / TASE 2022-2026 dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 / PR-8 facts，且 2022--2026 超 40 条年度 Mermaid 已拆为多张分片图，见 [TIMELINE.md](./TIMELINE.md) |
 | 核心人员情报状态 | 18 个会议根 README 已补会议核心人员情报；8 个期刊根 README 已补核心编辑人员画像或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
 | 当前优先批次 | P0 清单已完成 PR-5 全局收口；当前 PR-8 已完成自有 P1 形式化 / 工具链 venue 基础建档；后续仍按 §9 冻结合同推进 PR-6 / PR-7 / PR-9，PR-10 做 P1/P2 全局审计 |
 
@@ -204,6 +205,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 3. 共享文件的修改必须是“增量合流”：新增自有 venue 统计、事件、滚动投稿、人员覆盖和踩坑规则时，保留 P0 与其他 PR 已核验事实。
 4. 每个子 PR final ready 前必须 merge upstream staging head；若发生 git conflict，需复核双方 venue、TIMELINE、Mermaid、更新日志和待补记录均未被覆盖。
 5. PR-8 对本节前置条件的修订属于执行合同修订，不属于删除已核验 venue facts；PR-8 可与 PR-6 / PR-7 / PR-9 并行推进，但不得用自身共享文件更新覆盖其他 PR 后续写入的事实。
+6. PR-6 / PR-7 / PR-8 是 sibling PR：若某一分支被选为 PR-5 后第一个 P1/P2 子 PR 合入，其 branch-local 统计可成为上游当前统计；其余 sibling PR 合入前必须 merge 最新 upstream 并把统计、TIMELINE、Mermaid、rolling 表和更新日志提升为组合状态。
 
 ### 9.2 venue 清单
 
@@ -351,6 +353,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：明确 PR-8 branch-local 统计与 sibling PR 合流重算纪律，并记录 TIMELINE 2022--2026 Mermaid 超阈值拆图。 |
 | `2026-06-05 18:40` | PR-8 形式化 / 工具链补链合流：新增 IST、SCP、QRS、TASE 四个 P1 venue 与 28 个年度 README，将当前总量更新为 26 个 venue / 182 个年度 README，并回写 PR-8 计数、TIMELINE、踩坑与待补记录。 |
 | `2026-06-05 16:58` | PR-8 计划审查修复：将 PR-8 前置条件从“等待 PR-6/7 已合入后开工”修订为“PR-5 后可并行开工，final ready 前必须 merge upstream 并吸收届时已合入 PR-6/7 经验”，消除 #35 body 与仓库合同冲突。 |
 | `2026-06-05 15:59` | 实现后 review 修复：统一 PR-6~PR-9 数量单位，收紧 PR-8 / PR-9 前置依赖表述，避免后续执行者跳过上游踩坑经验。 |

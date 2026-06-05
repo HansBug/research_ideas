@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -270,9 +270,13 @@ gantt
 
 ### 9.2 2026 Mermaid 可视化
 
+> 本年 dated events 超过 `40` 条，按 §2 / [GUIDE.md](./GUIDE.md) §11.3 拆成多张 Mermaid；年度总表仍是事实总账，以下子图只做可视化分片。
+
+#### 9.2.1 A 类 / 软工主会
+
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2026
+  title CCF Venue Important Dates 2026 - A / Software Flagship
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
@@ -282,16 +286,6 @@ gantt
   ASE26 Camera :milestone, ase_2026_3_20260716, 2026-07-16, 1d
   ASE26 Camera :milestone, ase_2026_4_20260803, 2026-08-03, 1d
   ASE26 Conference :ase_2026_5_20261012, 2026-10-12, 2026-10-16
-
-  section ETAPS_TACAS
-  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2026_1_20260108, 2026-01-08, 1d
-  ETAPS_TACAS26 Camera :milestone, etaps_tacas_2026_2_20260122, 2026-01-22, 1d
-  ETAPS_TACAS26 Notify :milestone, etaps_tacas_2026_3_20260212, 2026-02-12, 1d
-  ETAPS_TACAS26 Conference :etaps_tacas_2026_4_20260411, 2026-04-11, 2026-04-16
-  ETAPS_TACAS27 Submission :milestone, etaps_tacas_2026_5_20261015, 2026-10-15, 1d
-  ETAPS_TACAS27 Submission :milestone, etaps_tacas_2026_6_20261029, 2026-10-29, 1d
-  ETAPS_TACAS27 Rebuttal :etaps_tacas_2026_7_20261207, 2026-12-07, 2026-12-09
-  ETAPS_TACAS27 Notify :milestone, etaps_tacas_2026_8_20261222, 2026-12-22, 1d
 
   section FSE
   FSE26 Notify :milestone, fse_2026_1_20260324, 2026-03-24, 1d
@@ -313,6 +307,25 @@ gantt
   ISSTA26 Notify :milestone, issta_2026_2_20260416, 2026-04-16, 1d
   ISSTA26 Notify :milestone, issta_2026_3_20260625, 2026-06-25, 1d
   ISSTA26 Conference :issta_2026_4_20261003, 2026-10-03, 2026-10-09
+```
+
+#### 9.2.2 B/C 需求、建模与期刊专刊
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2026 - B-C Requirements / Modeling / Journal Specials
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+
+  section ETAPS_TACAS
+  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2026_1_20260108, 2026-01-08, 1d
+  ETAPS_TACAS26 Camera :milestone, etaps_tacas_2026_2_20260122, 2026-01-22, 1d
+  ETAPS_TACAS26 Notify :milestone, etaps_tacas_2026_3_20260212, 2026-02-12, 1d
+  ETAPS_TACAS26 Conference :etaps_tacas_2026_4_20260411, 2026-04-11, 2026-04-16
+  ETAPS_TACAS27 Submission :milestone, etaps_tacas_2026_5_20261015, 2026-10-15, 1d
+  ETAPS_TACAS27 Submission :milestone, etaps_tacas_2026_6_20261029, 2026-10-29, 1d
+  ETAPS_TACAS27 Rebuttal :etaps_tacas_2026_7_20261207, 2026-12-07, 2026-12-09
+  ETAPS_TACAS27 Notify :milestone, etaps_tacas_2026_8_20261222, 2026-12-22, 1d
 
   section MoDELS
   MoDELS26 Abstract :milestone, models_2026_1_20260320, 2026-03-20, 1d
@@ -344,6 +357,15 @@ gantt
   SoSyM26 Intent :milestone, sosym_2026_1_20260215, 2026-02-15, 1d
   SoSyM26 Special :milestone, sosym_2026_2_20260715, 2026-07-15, 1d
   SoSyM26 Notify :milestone, sosym_2026_3_20261015, 2026-10-15, 1d
+```
+
+#### 9.2.3 P0 形式化 / 验证链
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2026 - P0 Formal Verification Chain
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section FM_CAV_VMCAI
   VMCAI26 Conference :vmcai2026_conf, 2026-01-12, 2026-01-13
@@ -379,7 +401,15 @@ gantt
   ICFEM26 Camera :milestone, icfem2026_camera, 2026-09-07, 1d
   ISSRE26 Conference :issre2026_conf, 2026-10-20, 2026-10-23
   ICFEM26 Conference :icfem2026_conf, 2026-11-17, 2026-11-20
+```
 
+#### 9.2.4 PR-8 QRS / TASE
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2026 - PR-8 QRS / TASE
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section QRS
   QRS26 Abstract :milestone, qrs_2026_1_20260408, 2026-04-08, 1d
@@ -478,9 +508,13 @@ gantt
 
 ### 10.2 2025 Mermaid 可视化
 
+> 本年 dated events 超过 `40` 条，按 §2 / [GUIDE.md](./GUIDE.md) §11.3 拆成多张 Mermaid；年度总表仍是事实总账，以下子图只做可视化分片。
+
+#### 10.2.1 A 类 / 软工主会
+
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2025
+  title CCF Venue Important Dates 2025 - A / Software Flagship
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
@@ -488,16 +522,6 @@ gantt
   ASE25 Submission :milestone, ase_2025_1_20250530, 2025-05-30, 1d
   ASE25 Notify :milestone, ase_2025_2_20250814, 2025-08-14, 1d
   ASE25 Conference :ase_2025_3_20251116, 2025-11-16, 2025-11-20
-
-  section ETAPS_TACAS
-  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2025_1_20250109, 2025-01-09, 1d
-  ETAPS_TACAS25 Camera :milestone, etaps_tacas_2025_2_20250130, 2025-01-30, 1d
-  ETAPS_TACAS25 Notify :milestone, etaps_tacas_2025_3_20250213, 2025-02-13, 1d
-  ETAPS_TACAS25 Conference :etaps_tacas_2025_4_20250503, 2025-05-03, 2025-05-08
-  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2025_5_20251016, 2025-10-16, 1d
-  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2025_6_20251030, 2025-10-30, 1d
-  ETAPS_TACAS26 Rebuttal :etaps_tacas_2025_7_20251208, 2025-12-08, 2025-12-10
-  ETAPS_TACAS26 Notify :milestone, etaps_tacas_2025_8_20251222, 2025-12-22, 1d
 
   section FSE
   FSE25 Conference :fse_2025_1_20250623, 2025-06-23, 2025-06-27
@@ -527,6 +551,25 @@ gantt
   ISSTA25 Notify :milestone, issta_2025_2_20250331, 2025-03-31, 1d
   ISSTA25 Camera :milestone, issta_2025_3_20250424, 2025-04-24, 1d
   ISSTA25 Conference :issta_2025_4_20250625, 2025-06-25, 2025-06-28
+```
+
+#### 10.2.2 B/C 需求与建模链
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2025 - B-C Requirements / Modeling
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+
+  section ETAPS_TACAS
+  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2025_1_20250109, 2025-01-09, 1d
+  ETAPS_TACAS25 Camera :milestone, etaps_tacas_2025_2_20250130, 2025-01-30, 1d
+  ETAPS_TACAS25 Notify :milestone, etaps_tacas_2025_3_20250213, 2025-02-13, 1d
+  ETAPS_TACAS25 Conference :etaps_tacas_2025_4_20250503, 2025-05-03, 2025-05-08
+  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2025_5_20251016, 2025-10-16, 1d
+  ETAPS_TACAS26 Submission :milestone, etaps_tacas_2025_6_20251030, 2025-10-30, 1d
+  ETAPS_TACAS26 Rebuttal :etaps_tacas_2025_7_20251208, 2025-12-08, 2025-12-10
+  ETAPS_TACAS26 Notify :milestone, etaps_tacas_2025_8_20251222, 2025-12-22, 1d
 
   section MoDELS
   MoDELS25 Abstract :milestone, models_2025_1_20250327, 2025-03-27, 1d
@@ -550,6 +593,15 @@ gantt
   REFSQ26 Abstract :milestone, refsq_2025_4_20251010, 2025-10-10, 1d
   REFSQ26 Submission :milestone, refsq_2025_5_20251017, 2025-10-17, 1d
   REFSQ26 Notify :milestone, refsq_2025_6_20251215, 2025-12-15, 1d
+```
+
+#### 10.2.3 形式化工具链与 PR-8 增量
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2025 - Formal Toolchain / PR-8
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section VMCAI_FM_ICST
   VMCAI26 Submit :milestone, vmcai2026_submit, 2025-09-15, 1d
@@ -560,7 +612,6 @@ gantt
   FM26 Abstract :milestone, fm2026_abs, 2025-11-25, 1d
   FM26 Submit :milestone, fm2026_submit, 2025-12-02, 1d
   ICST26 Submit :milestone, icst2026_submit, 2025-12-22, 1d
-
 
   section QRS
   QRS25 Submission :milestone, qrs_2025_1_20250415, 2025-04-15, 1d
@@ -653,9 +704,13 @@ gantt
 
 ### 11.2 2024 Mermaid 可视化
 
+> 本年 dated events 超过 `40` 条，按 §2 / [GUIDE.md](./GUIDE.md) §11.3 拆成多张 Mermaid；年度总表仍是事实总账，以下子图只做可视化分片。
+
+#### 11.2.1 A 类 / 软工主会
+
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2024
+  title CCF Venue Important Dates 2024 - A / Software Flagship
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
@@ -664,18 +719,6 @@ gantt
   ASE24 Submission :milestone, ase_2024_2_20240607, 2024-06-07, 1d
   ASE24 Notify :milestone, ase_2024_3_20240806, 2024-08-06, 1d
   ASE24 Conference :ase_2024_4_20241027, 2024-10-27, 2024-11-01
-
-  section ETAPS_TACAS
-  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2024_1_20240104, 2024-01-04, 1d
-  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2024_2_20240118, 2024-01-18, 1d
-  ETAPS_TACAS24 Camera :milestone, etaps_tacas_2024_3_20240123, 2024-01-23, 1d
-  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2024_4_20240208, 2024-02-08, 1d
-  ETAPS_TACAS24 Conference :etaps_tacas_2024_5_20240406, 2024-04-06, 2024-04-11
-  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_6_20241010, 2024-10-10, 1d
-  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_7_20241014, 2024-10-14, 1d
-  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_8_20241024, 2024-10-24, 1d
-  ETAPS_TACAS25 Rebuttal :etaps_tacas_2024_9_20241203, 2024-12-03, 2024-12-05
-  ETAPS_TACAS25 Notify :milestone, etaps_tacas_2024_10_20241220, 2024-12-20, 1d
 
   section FSE
   FSE24 Conference :fse_2024_1_20240715, 2024-07-15, 2024-07-19
@@ -707,6 +750,27 @@ gantt
   ISSTA24 Conference :issta_2024_8_20240916, 2024-09-16, 2024-09-20
   ISSTA25 Submission :milestone, issta_2024_9_20241031, 2024-10-31, 1d
   ISSTA25 Notify :milestone, issta_2024_10_20241219, 2024-12-19, 1d
+```
+
+#### 11.2.2 B/C 需求与建模链
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2024 - B-C Requirements / Modeling
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+
+  section ETAPS_TACAS
+  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2024_1_20240104, 2024-01-04, 1d
+  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2024_2_20240118, 2024-01-18, 1d
+  ETAPS_TACAS24 Camera :milestone, etaps_tacas_2024_3_20240123, 2024-01-23, 1d
+  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2024_4_20240208, 2024-02-08, 1d
+  ETAPS_TACAS24 Conference :etaps_tacas_2024_5_20240406, 2024-04-06, 2024-04-11
+  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_6_20241010, 2024-10-10, 1d
+  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_7_20241014, 2024-10-14, 1d
+  ETAPS_TACAS25 Submission :milestone, etaps_tacas_2024_8_20241024, 2024-10-24, 1d
+  ETAPS_TACAS25 Rebuttal :etaps_tacas_2024_9_20241203, 2024-12-03, 2024-12-05
+  ETAPS_TACAS25 Notify :milestone, etaps_tacas_2024_10_20241220, 2024-12-20, 1d
 
   section MoDELS
   MoDELS24 Abstract :milestone, models_2024_1_20240321, 2024-03-21, 1d
@@ -729,7 +793,15 @@ gantt
   REFSQ24 Conference :refsq_2024_3_20240408, 2024-04-08, 2024-04-11
   REFSQ25 Abstract :milestone, refsq_2024_4_20241101, 2024-11-01, 1d
   REFSQ25 Submission :milestone, refsq_2024_5_20241108, 2024-11-08, 1d
+```
 
+#### 11.2.3 PR-8 QRS / TASE
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2024 - PR-8 QRS / TASE
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section QRS
   QRS24 Abstract :milestone, qrs_2024_1_20240318, 2024-03-18, 1d
@@ -814,9 +886,13 @@ gantt
 
 ### 12.2 2023 Mermaid 可视化
 
+> 本年 dated events 超过 `40` 条，按 §2 / [GUIDE.md](./GUIDE.md) §11.3 拆成多张 Mermaid；年度总表仍是事实总账，以下子图只做可视化分片。
+
+#### 12.2.1 A 类 / 软工主会
+
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2023
+  title CCF Venue Important Dates 2023 - A / Software Flagship
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
@@ -825,18 +901,6 @@ gantt
   ASE23 Submission :milestone, ase_2023_2_20230505, 2023-05-05, 1d
   ASE23 Notify :milestone, ase_2023_3_20230717, 2023-07-17, 1d
   ASE23 Conference :ase_2023_4_20230911, 2023-09-11, 2023-09-15
-
-  section ETAPS_TACAS
-  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2023_1_20230105, 2023-01-05, 1d
-  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2023_2_20230119, 2023-01-19, 1d
-  ETAPS_TACAS23 Camera :milestone, etaps_tacas_2023_3_20230126, 2023-01-26, 1d
-  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2023_4_20230209, 2023-02-09, 1d
-  ETAPS_TACAS23 Conference :etaps_tacas_2023_5_20230422, 2023-04-22, 2023-04-27
-  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_6_20231012, 2023-10-12, 1d
-  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_7_20231016, 2023-10-16, 1d
-  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_8_20231026, 2023-10-26, 1d
-  ETAPS_TACAS24 Rebuttal :etaps_tacas_2023_9_20231205, 2023-12-05, 2023-12-07
-  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2023_10_20231221, 2023-12-21, 1d
 
   section FSE
   FSE23 Submission :milestone, fse_2023_1_20230202, 2023-02-02, 1d
@@ -860,6 +924,27 @@ gantt
   ISSTA23 Submission :milestone, issta_2023_1_20230216, 2023-02-16, 1d
   ISSTA23 Conference :issta_2023_2_20230717, 2023-07-17, 2023-07-21
   ISSTA24 Submission :milestone, issta_2023_3_20231215, 2023-12-15, 1d
+```
+
+#### 12.2.2 B/C 需求与建模链
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2023 - B-C Requirements / Modeling
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+
+  section ETAPS_TACAS
+  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2023_1_20230105, 2023-01-05, 1d
+  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2023_2_20230119, 2023-01-19, 1d
+  ETAPS_TACAS23 Camera :milestone, etaps_tacas_2023_3_20230126, 2023-01-26, 1d
+  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2023_4_20230209, 2023-02-09, 1d
+  ETAPS_TACAS23 Conference :etaps_tacas_2023_5_20230422, 2023-04-22, 2023-04-27
+  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_6_20231012, 2023-10-12, 1d
+  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_7_20231016, 2023-10-16, 1d
+  ETAPS_TACAS24 Submission :milestone, etaps_tacas_2023_8_20231026, 2023-10-26, 1d
+  ETAPS_TACAS24 Rebuttal :etaps_tacas_2023_9_20231205, 2023-12-05, 2023-12-07
+  ETAPS_TACAS24 Notify :milestone, etaps_tacas_2023_10_20231221, 2023-12-21, 1d
 
   section MoDELS
   MoDELS23 Abstract :milestone, models_2023_1_20230407, 2023-04-07, 1d
@@ -882,7 +967,15 @@ gantt
   REFSQ23 Conference :refsq_2023_3_20230417, 2023-04-17, 2023-04-20
   REFSQ24 Abstract :milestone, refsq_2023_4_20231103, 2023-11-03, 1d
   REFSQ24 Submission :milestone, refsq_2023_5_20231110, 2023-11-10, 1d
+```
 
+#### 12.2.3 PR-8 QRS / TASE
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2023 - PR-8 QRS / TASE
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section QRS
   QRS23 Abstract :milestone, qrs_2023_1_20230731, 2023-07-31, 1d
@@ -962,9 +1055,13 @@ gantt
 
 ### 13.2 2022 Mermaid 可视化
 
+> 本年 dated events 超过 `40` 条，按 §2 / [GUIDE.md](./GUIDE.md) §11.3 拆成多张 Mermaid；年度总表仍是事实总账，以下子图只做可视化分片。
+
+#### 13.2.1 A 类 / 软工主会
+
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2022
+  title CCF Venue Important Dates 2022 - A / Software Flagship
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
@@ -973,23 +1070,6 @@ gantt
   ASE22 Submission :milestone, ase_2022_2_20220506, 2022-05-06, 1d
   ASE22 Notify :milestone, ase_2022_3_20220720, 2022-07-20, 1d
   ASE22 Conference :ase_2022_4_20221010, 2022-10-10, 2022-10-14
-
-  section ATVA
-  ATVA22 Abstract :milestone, atva_2022_1_20220508, 2022-05-08, 1d
-  ATVA22 Submission :milestone, atva_2022_2_20220515, 2022-05-15, 1d
-  ATVA22 Notify :milestone, atva_2022_3_20220704, 2022-07-04, 1d
-  ATVA22 Camera :milestone, atva_2022_4_20220801, 2022-08-01, 1d
-  ATVA22 Conference :atva_2022_5_20221025, 2022-10-25, 2022-10-28
-
-  section ETAPS_TACAS
-  ETAPS_TACAS22 Submission :milestone, etaps_tacas_2022_1_20220105, 2022-01-05, 1d
-  ETAPS_TACAS22 Camera :milestone, etaps_tacas_2022_2_20220126, 2022-01-26, 1d
-  ETAPS_TACAS22 Notify :milestone, etaps_tacas_2022_3_20220216, 2022-02-16, 1d
-  ETAPS_TACAS22 Conference :etaps_tacas_2022_4_20220402, 2022-04-02, 2022-04-07
-  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2022_5_20221013, 2022-10-13, 1d
-  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2022_6_20221110, 2022-11-10, 1d
-  ETAPS_TACAS23 Rebuttal :etaps_tacas_2022_7_20221206, 2022-12-06, 2022-12-08
-  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2022_8_20221222, 2022-12-22, 1d
 
   section FSE
   FSE22 Submission :milestone, fse_2022_1_20220317, 2022-03-17, 1d
@@ -1007,6 +1087,32 @@ gantt
   ISSTA22 Submission :milestone, issta_2022_1_20220128, 2022-01-28, 1d
   ISSTA22 Conference :issta_2022_2_20220718, 2022-07-18, 2022-07-22
   ISSTA23 Submission :milestone, issta_2022_3_20221110, 2022-11-10, 1d
+```
+
+#### 13.2.2 B/C 与形式化验证链
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2022 - B-C / Formal Verification
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
+
+  section ATVA
+  ATVA22 Abstract :milestone, atva_2022_1_20220508, 2022-05-08, 1d
+  ATVA22 Submission :milestone, atva_2022_2_20220515, 2022-05-15, 1d
+  ATVA22 Notify :milestone, atva_2022_3_20220704, 2022-07-04, 1d
+  ATVA22 Camera :milestone, atva_2022_4_20220801, 2022-08-01, 1d
+  ATVA22 Conference :atva_2022_5_20221025, 2022-10-25, 2022-10-28
+
+  section ETAPS_TACAS
+  ETAPS_TACAS22 Submission :milestone, etaps_tacas_2022_1_20220105, 2022-01-05, 1d
+  ETAPS_TACAS22 Camera :milestone, etaps_tacas_2022_2_20220126, 2022-01-26, 1d
+  ETAPS_TACAS22 Notify :milestone, etaps_tacas_2022_3_20220216, 2022-02-16, 1d
+  ETAPS_TACAS22 Conference :etaps_tacas_2022_4_20220402, 2022-04-02, 2022-04-07
+  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2022_5_20221013, 2022-10-13, 1d
+  ETAPS_TACAS23 Submission :milestone, etaps_tacas_2022_6_20221110, 2022-11-10, 1d
+  ETAPS_TACAS23 Rebuttal :etaps_tacas_2022_7_20221206, 2022-12-06, 2022-12-08
+  ETAPS_TACAS23 Notify :milestone, etaps_tacas_2022_8_20221222, 2022-12-22, 1d
 
   section MoDELS
   MoDELS22 Submission :milestone, models_2022_1_20220518, 2022-05-18, 1d
@@ -1027,7 +1133,15 @@ gantt
   REFSQ22 Conference :refsq_2022_2_20220321, 2022-03-21, 2022-03-24
   REFSQ23 Abstract :milestone, refsq_2022_3_20221111, 2022-11-11, 1d
   REFSQ23 Submission :milestone, refsq_2022_4_20221118, 2022-11-18, 1d
+```
 
+#### 13.2.3 PR-8 QRS / TASE
+
+```mermaid
+gantt
+  title CCF Venue Important Dates 2022 - PR-8 QRS / TASE
+  dateFormat YYYY-MM-DD
+  axisFormat %m-%d
 
   section QRS
   QRS22 Abstract :milestone, qrs_2022_1_20220831, 2022-08-31, 1d
@@ -1129,6 +1243,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：按年度事件数超过 40 条的既有规则，将 2022--2026 Mermaid 拆成多张分片图，并保留年度总表与 QRS / TASE dated events 不变。 |
 | `2026-06-05 18:40` | PR-8 形式化 / 工具链补链：新增 QRS / TASE 2022-2026 dated events 到正式年度表与 Mermaid，新增 IST / SCP rolling 投稿行，并把 ScienceDirect WAF/403、QRS/TASE future 年度与计数风险写入待补记录。 |
 | `2026-06-05 15:59` | 实现后 review 修复：把近期投稿窗口从“日期之后”改为“截至信息更新时间仍未错过且可行动”，避免当天 deadline 被误排除。 |
 | `2026-06-05 15:36` | PR-5 全局收口：明确近期投稿窗口筛选边界，保持近期窗口作为年度全量表筛选视图而非独立事实源。 |

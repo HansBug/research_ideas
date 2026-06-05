@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -67,7 +67,7 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue，以及本 PR-8 的 4 个 P1 形式化 / 工具链 venue 的基础建档与部分核验；在当前 PR-8 分支中共有 26 个 venue 根 README、182 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-8 本轮交付物按 4 个目标 venue 计数，即 4 个根 README + 28 个年度 README = 32 个 README。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue，以及本 PR-8 的 4 个 P1 形式化 / 工具链 venue 的基础建档与部分核验；在当前 PR-8 分支（相对 PR-5 staging head）中共有 26 个 venue 根 README、182 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-8 本轮交付物按 4 个目标 venue 计数，即 4 个根 README + 28 个年度 README = 32 个 README。若 PR-6 / PR-7 先于 PR-8 合入上游，上述 26 / 182 必须在 PR-8 merge 最新 upstream 后重算为组合统计，不能覆盖已合入 sibling facts；若 PR-8 被选为 PR-5 后第一个 P1/P2 子 PR 合入，则后续 sibling PR 负责在自身 merge-upstream 时把统计提升为组合状态并保留 PR-8 facts。
 
 PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段：PR-6 / PR-7 / PR-8 / PR-9 分别承担 P1/P2 venue 数据填充，PR-10 在这些分支全部合入后做 P1/P2 全局审计。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 / PR-8 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
 
@@ -173,6 +173,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复 PR-8 实现后 review：明确 26 / 182 为当前 PR-8 分支相对 PR-5 的 branch-local 统计，并记录与 PR-6 / PR-7 sibling PR 的合流重算纪律。 |
 | `2026-06-05 18:40` | PR-8 形式化 / 工具链补链合流：新增 IST、SCP、QRS、TASE 四个 P1 venue 后，将当前分支总量更新为 26 个 venue 根 README、182 个年度 README，并记录 PR-8 自身 32 个 README 交付口径。 |
 | `2026-06-05 15:59` | 实现后 review 修复：将 README 历史 PR #5 / `frontier_index` 资源口径与 SUMMARY 对齐，明确这些路径不是当前分支可点击文件。 |
 | `2026-06-05 15:36` | PR-5 全局收口：冻结 P1/P2 后续 PR-6~PR-10 ownership，明确 P0 22 个 venue / 154 个年度 README 进入长期维护状态，并把后续扩展入口指向 SUMMARY / scope 合同。 |

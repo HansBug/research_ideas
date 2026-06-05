@@ -1,6 +1,6 @@
 # QRS README
 
-> 信息更新时间：`2026-06-05 18:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:16`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -53,8 +53,8 @@
 
 | 姓名 | 年度 / 层级 / 会议角色 | 单位 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库 project 的关系 | 核验状态 | 核查时间 |
 |---|---|---|---|---|---|---|---|---|---|
-| Andrea Bondavalli | QRS 2026 General Chair；QRS 2022 Program Chair | University of Florence | [官方角色来源](https://qrs26.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/14/2752.html) | dependability、resilient systems、safety-critical systems | DBLP 近年论文入口 | P2/P3：可靠性与验证证据链 | 🟢 官方角色核验；研究方向由 DBLP 补证 | `2026-06-05 18:05` |
-| Shaoying Liu | QRS 2026 General Chair；QRS 2025 Program Chair | Hiroshima University / Southwest University 线索 | [官方角色来源](https://qrs26.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/l/ShaoyingLiu.html) | formal methods、SOFL、software engineering methodology | DBLP 近年论文入口 | P1-P4：形式化建模、验证与修复 | 🟢 官方角色核验；研究方向由 DBLP 补证 | `2026-06-05 18:05` |
+| Andrea Bondavalli | QRS 2026 General Chair；QRS 2022 Program Chair | University of Florence | [QRS 2026 organizing](https://qrs26.techconf.org/committee/organizing)；[QRS 2022 organizing](https://qrs22.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/14/2752.html) | dependability、resilient systems、safety-critical systems | DBLP 近年论文入口 | P2/P3：可靠性与验证证据链 | 🟢 2026 / 2022 官方角色均已核验；研究方向由 DBLP 补证 | `2026-06-05 19:16` |
+| Shaoying Liu | QRS 2026 General Chair；QRS 2025 Program Chair | East China Normal University / Hiroshima University 线索 | [QRS 2026 organizing](https://qrs26.techconf.org/committee/organizing)；[QRS 2025 organizing](https://qrs25.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/l/ShaoyingLiu.html) | formal methods、SOFL、software engineering methodology | DBLP 近年论文入口 | P1-P4：形式化建模、验证与修复 | 🟢 2026 / 2025 官方角色均已核验；研究方向由 DBLP 补证 | `2026-06-05 19:16` |
 | Jin Song Dong | QRS 2026 Program Chair | National University of Singapore | [官方角色来源](https://qrs26.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/d/JinSongDong.html) | formal methods、model checking、software verification | DBLP 近年论文入口 | P2/P3：形式化规约与验证 | 🟢 官方角色核验；研究方向由 DBLP 补证 | `2026-06-05 18:05` |
 | Felicita Di Giandomenico | QRS 2026 Program Chair | CNR | [官方角色来源](https://qrs26.techconf.org/committee/organizing) | [DBLP](https://dblp.org/pid/49/2584.html) | dependability、fault tolerance、critical systems | DBLP 近年论文入口 | P3：可靠性与验证证据 | 🟢 官方角色核验；研究方向由 DBLP 补证 | `2026-06-05 18:05` |
 | W. Eric Wong | QRS Steering Committee Chair | University of Texas at Dallas | [官方角色来源](https://qrs26.techconf.org/committee/steering) | [DBLP](https://dblp.org/pid/30/5336.html) | software testing、reliability、fault localization | DBLP 近年论文入口 | P2/P4：测试与修复 | 🟢 官方角色核验；研究方向由 DBLP 补证 | `2026-06-05 18:05` |
@@ -93,4 +93,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:16` | 修复实现后 review I-1：为 Andrea Bondavalli / Shaoying Liu 的历史 QRS 角色补充对应年度 organizing 官方来源，避免用 2026 页面支撑历史职位。 |
 | `2026-06-05 18:05` | PR-8 初始化 QRS venue 根 README，新增 2022--2028 年度索引、核心 URL、核心人员情报、计数口径和待补记录。 |
