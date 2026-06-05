@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:41`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -481,7 +481,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
 19. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
 20. **PR-10 全局审计降级核验坑**：若 subagent 服务出现 503 / 429，不能把“agent 未返回”当作可遗留待核验项；主 session 必须用本地脚本、官方页面、带 User-Agent 的 `requests` / `curl`、`claude -p` / `codex-deepseek exec` 等替代路径完成核验，并在 SUMMARY / PR body 说明降级方式。
-21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`UTC+8`、本地时区或无具体时刻；不能把其他 track 的 AoE 套到 main / technical / research chain。核验时应检查 HTML 的 `title="Timezone: ..."` 或页面显示的时区图标说明；例如 APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE。
+21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`UTC+8`、本地时区或无具体时刻；不能把其他 track 的 AoE 套到 main / technical / research chain，也不能在官方行级 `title="Timezone: ..."` 已给时区时继续写成“官方仅日期”。核验时应检查 HTML 的 `title="Timezone: ..."` 或页面显示的时区图标说明；例如 APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE；SANER 2027 Research Track 是 `AoE (UTC-12h)`，应写成 `待补时刻 AoE` / `AoE / UTC-12h`。
 
 ### 15.2 回写位置
 
@@ -522,6 +522,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:41` | PR-10 实现后 review 修复规则回写：明确 researchr 行级 `Timezone` 已给出时，必须把 AoE / UTC offset 写入 TIMELINE 与年度页，不能继续写“官方仅日期”。 |
 | `2026-06-06 00:16` | PR-10 全局审计规则回写：补充 subagent 503/429 降级核验、researchr 行级时区检查、模板占位路径非伪链接和 ready 前核实项清零纪律。 |
 | `2026-06-05 23:06` | PR-9 冲突后复审修复：同步 PR-9 已完成状态、39/273 合流统计纪律，并补充 week-only 日期不得进入 dated TIMELINE / Mermaid 的 P2 规则。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 规则回写与 PR-9 §15.4 P2 邻近观察规则，要求冲突复审同时覆盖 P1/P2 facts、TIMELINE、Mermaid、rolling 表、统计与更新日志。 |

@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:41`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -175,6 +175,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track AoE / UTC-12h 时区，统一 APSEC 2026 会期备注，并确认三路 review 的 C/I 已清零。 |
 | `2026-06-06 00:16` | PR-10 全局审计执行记录：重算 39 个 venue / 273 个年度 README，复核近期投稿窗口、修正 APSEC 2026 Technical Track 时区口径，并将模板占位链接改为非伪可点击文本。 |
 | `2026-06-05 23:06` | 修复 PR-9 冲突后复审问题：同步 PR-9 已完成状态，明确 RV 2022 Notification 只有 `Week 26` 时不得进入 dated TIMELINE / Mermaid。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 与 PR-9 双方 facts，当前组合统计更新为 39 个 venue 根 README、273 个年度 README（27 会议 / 12 期刊），并把冲突处理纳入复审范围。 |

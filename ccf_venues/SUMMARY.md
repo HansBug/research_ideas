@@ -1,12 +1,12 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:41`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
-| 当前统计口径 | 本表统计为 PR-9 merge 最新上游 PR-8 后的组合状态：P0 22 个 venue / 154 个年度 README + PR-6 4 个 venue / 28 个年度 README + PR-7 4 个 venue / 28 个年度 README + PR-8 4 个 venue / 28 个年度 README + PR-9 5 个 venue / 35 个年度 README；当前总量为 39 个 venue 根 README、273 个年度 README |
+| 当前统计口径 | 本表统计为 PR-6 / PR-7 / PR-8 / PR-9 全部合入上游并经 PR-10 全局审计后的组合状态：P0 22 个 venue / 154 个年度 README + PR-6 4 个 venue / 28 个年度 README + PR-7 4 个 venue / 28 个年度 README + PR-8 4 个 venue / 28 个年度 README + PR-9 5 个 venue / 35 个年度 README；当前总量为 39 个 venue 根 README、273 个年度 README |
 | 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊、PR-6 维护 / 修复相关 P1 venue、PR-7 实证 / 质量 P1 venue、PR-8 形式化 / 工具链 P1 venue 与 PR-9 P2 邻近观察 venue 均已完成基础建档；PR-10 当前分支基于已合入 PR-6 / PR-7 / PR-8 / PR-9 的上游 staging，形成 P1/P2 facts 并集，会议 dated events、期刊 special issue dated events、P2 neighboring dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
@@ -293,7 +293,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 |---|---|---|---|
 | 目录统计 | 39 个 venue；27 个会议；12 个期刊；273 个年度 README | 本地脚本重算每个 venue 均覆盖 `2022`--`2028` 共 7 个年度 README；未发现缺失年度 | ✅ 已完成 |
 | 合流完整性 | PR-6 / PR-7 / PR-8 / PR-9 facts 共存 | `git ls-files -u` 为空；`ccf_venues/` 未发现 conflict marker；SUMMARY / TIMELINE 仍保留维护修复、实证质量、形式化工具链与 P2 邻近观察事件并集 | ✅ 已完成 |
-| 近期投稿窗口 | RV 2026、APSEC 2026、SANER 2027、ESE Agentic / FORGE / EASE / PROMPT-SE、JSS AI Techniques 已复核 | 官方页面确认 RV 2026 extended paper submission `2026-06-14`；APSEC 2026 Technical Track 为 `UTC+8 (Bali time)`；SANER 2027 research chain、ESE Springer collections 日期与当前 TIMELINE 一致；JSS ScienceDirect 官方 URL 仍为 CLI 403/WAF caveat，不升级为完全核验 | ✅ 已完成 |
+| 近期投稿窗口 | RV 2026、APSEC 2026、SANER 2027、ESE Agentic / FORGE / EASE / PROMPT-SE、JSS AI Techniques 已复核 | 官方页面确认 RV 2026 extended paper submission `2026-06-14`；APSEC 2026 Technical Track 为 `UTC+8 (Bali time)`；SANER 2027 Research Track 为 `AoE (UTC-12h)`；ESE Springer collections 日期与当前 TIMELINE 一致；JSS ScienceDirect 官方 URL 仍为 CLI 403/WAF caveat，不升级为完全核验 | ✅ 已完成 |
 | 模板链接 | 模板内伪相对链接已清理 | [templates/](./templates/) 下年度路径和 TIMELINE 路径改为代码样式占位；实例化后的正式 README 仍要求可点击相对链接 | ✅ 已完成 |
 | Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本 + 官方页面 requests / HTML 抽取完成核验；该坑已回写 [GUIDE.md](./GUIDE.md) §15.1 | ✅ 已完成 |
 
@@ -431,6 +431,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track AoE / UTC-12h 时区、统一 APSEC 会期备注口径，并将当前统计口径改为 PR-10 审计后组合状态。 |
 | `2026-06-06 00:16` | PR-10 全局审计执行：重算 39/273 统计，复核近期投稿窗口与官方来源，修正 APSEC 2026 Technical Track 时区口径，清理模板伪相对链接，并记录 subagent 503 降级核验。 |
 | `2026-06-05 23:06` | 修复 PR-9 / PR-8 合流后复审 C 级问题：将 §9 前导段落改为 PR-6 / PR-7 / PR-8 / PR-9 均已完成基础建档，并将 RV 2022 仅有 `Week 26` 的 notification 从 dated TIMELINE / Mermaid 降级为待补记录。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：当前总账统一为 39 个 venue、273 个年度 README、27 个会议与 12 个期刊，并保留 PR-6 / PR-7 / PR-8 / PR-9 facts、TIMELINE / Mermaid / rolling 表与 PR-10 全局审计约束。 |
