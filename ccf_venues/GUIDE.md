@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 20:35`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 21:16`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -428,9 +428,9 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 子级 PR | 主题 | Venue ownership | 默认产物 | 共享文件纪律 |
 |---|---|---|---|---|
-| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
-| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个 venue + 28 个年度 README | 保留 PR-6 与 P0 facts，期刊 rolling 不写成 dated Mermaid |
-| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README | PR-5 后可并行开工；final ready 前必须 merge upstream 并吸收届时已合入 sibling PR 的 GUIDE / SUMMARY 踩坑经验；当前 PR-8 已吸收 PR-7，上游若再含 PR-6/9 也需重算组合统计；形式化 / 工具链计数不得混用 DBLP fallback |
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README；已基础建档 | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
+| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个 venue + 28 个年度 README；已基础建档 | 保留 PR-6 与 P0 facts，期刊 rolling 不写成 dated Mermaid |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README；当前 PR-8 分支已基础建档并吸收 PR-6 / PR-7 上游 facts | PR-5 后可并行开工；final ready 前必须 merge upstream 并吸收届时已合入 sibling PR 的 GUIDE / SUMMARY 踩坑经验；形式化 / 工具链计数不得混用 DBLP fallback；不得覆盖 PR-6 / PR-7 facts |
 | PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个 venue + 35 个年度 README | 须在 PR-6/7 合入上游后开工；建议同步吸收 PR-8 形式化 / 工具链踩坑经验；不升级为 P0/P1 主投目标 |
 | PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 统计 / 时间线 / Mermaid / 待补项全局收口 | 必须等 PR-6~PR-9 全部合入上游后执行 |
 
@@ -442,7 +442,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 4. final ready 前必须 merge upstream staging head；若有 conflict，冲突解决后必须复核 `git ls-files -u` 为空、冲突标记消失、双方 TIMELINE / Mermaid / rolling 表 / 更新日志 facts 均保留。
 5. PR-8 的并行开工修订属于执行合同修订：可调整 PR-8 前置条件，但不得删除 P0、PR-6、PR-7、PR-9 的 venue facts、TIMELINE facts、rolling 表或更新日志。
 6. PR-6 / PR-7 / PR-8 同时 open draft 时，共享文件中的 “当前总量” 必须标清 branch-local 或组合统计口径；若当前分支不是第一个合入的 sibling，final ready 前必须 merge 最新 upstream 并重算组合统计，不能把自身 26 / 182 等旧口径覆盖已合入 facts。
-6. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
+7. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
 
 ## 14. 会议 / 期刊合流与事实共存规则
 
@@ -470,10 +470,16 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 7. **访问异常与来源冒充坑**：证书问题可以用 `curl -k`、浏览器或带 `User-Agent` 重试；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口、投稿系统入口或 organizer call 都不得写成年度主页 / CFP / committee 官方角色源；Wiley STVR 等 publisher 页面在 CLI 中 WAF/403 时仍应保留官方链接和待人工浏览器核验状态，不能把“无法命令行抓取”改写成“无编辑人员”或用第三方页面补成当前 roster。
 8. **track 与角色混算坑**：research、industry、tool、artifact、workshop、journal-first、companion、umbrella conference 与 satellite conference 必须分列；committee / editorial roster 角色不足时只能写成线索，不能升级为已核验核心人员事实。
 9. **期刊专刊 / 会议扩展混算坑**：例如 STTT 的 conference-based special issue 只能按期刊 article baseline 记录，不能和 TACAS / SPIN / FMICS / RV 等会议 proceedings 合并计数。
-10. **PR-7 实证 / 质量 venue 坑**：Springer Closed collection 仍可能有 historical deadline，必须写成历史 dated event 而不是当前征稿；ESE collection 多事件类型要保留 submission / notification / revision / final decision 的原始语义；ScienceDirect CLI `403` / WAF 只能标注待浏览器核验，不能替代或删除官方 Elsevier 链接；ESEM historical submission system 要区分“当年官方使用过”和“当前是否还能访问正文 / 表单”。
-11. **Elsevier / ScienceDirect candidate CFP 坑**：命令行只能打开入口或遇到 WAF/403 时，candidate special issue、editorial roster 和 issue 正文只能写作待人工浏览器核验；不能为了填满 TIMELINE 而把未核验 deadline 变成 dated event。
-12. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
-13. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
+10. **维护 / 演化 venue 历史入口坑**：SANER / ICSME / ICPC 等维护、演化、程序理解会议的旧年度站点、CFP、submission system、program、proceedings、DBLP slug 经常分散；找不到官方 CFP 时只能写 `待补` 或 `第三方线索`，不能把第三方 deadline 写成官方事实。
+11. **冲突日期同步坑**：若 ICSME 2022 这类年度出现 IEEE CFP、archive 首页、proceedings 封面会期不一致，根 README、年度 README、[TIMELINE.md](./TIMELINE.md) 与待补表必须同步标 `日期冲突待核`，不能只在单个文件说明。
+12. **证书风险入口坑**：若官方旧站 HTTPS 证书主机名不匹配但 HTTP 可访问，例如 SANER 2022，应优先使用可访问的 HTTP 官方站入口，并在备注中显式写明 HTTPS 证书风险；不要留下会让读者点击失败的裸 HTTPS 链接。
+13. **Wiley current issue / Early View 混写坑**：Wiley `currentissue` 只可写作 current issue candidate，不能冒充 Early View / articles in press；若 Early View 入口未定位，应单独写 `Early View / articles in press 入口待定位`。JSEP 本轮已按此规则将 2026+ rolling 状态降级为 `🟡 rolling 候选 / 待人工核验`；STVR 等既有 Wiley WAF/403 历史条目在后续触碰或专项复核时也应吸收该口径。不得在 author guidelines / ScholarOne 路由未人工确认前，把新建或本轮修改的 Wiley WAF 条目写成 `🟢 滚动开放`。
+14. **未来年度维护会议预造坑**：SANER / ICSME / ICPC 的 2027/2028/2029+ 若只找到 series page、announcement、townhall、program 预告或无 official research track dates，应写 `⏳ 已检索未公布`，不得预造 official CFP、submission deadline、DBLP 年度页或 proceedings。
+15. **P1 sibling 合流统计坑**：PR-6、PR-7、PR-8 单独或两两合流时会产生 26/182 或 30/210 的中间口径；PR-6 / PR-7 / PR-8 三者合流后必须重算为 34 个 venue / 238 个年度 README（22 会议 / 12 期刊），并同时保留 P0 22/154 冻结基线、各 sibling 已建档事实、PR-9 pending 约束和 PR-10 全局审计依赖。
+16. **PR-7 实证 / 质量 venue 坑**：Springer Closed collection 仍可能有 historical deadline，必须写成历史 dated event 而不是当前征稿；ESE collection 多事件类型要保留 submission / notification / revision / final decision 的原始语义；ScienceDirect CLI `403` / WAF 只能标注待浏览器核验，不能替代或删除官方 Elsevier 链接；ESEM historical submission system 要区分“当年官方使用过”和“当前是否还能访问正文 / 表单”。
+17. **Elsevier / ScienceDirect candidate CFP 坑**：命令行只能打开入口或遇到 WAF/403 时，candidate special issue、editorial roster 和 issue 正文只能写作待人工浏览器核验；不能为了填满 TIMELINE 而把未核验 deadline 变成 dated event。
+18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
+19. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
 
 ### 15.2 回写位置
 
@@ -504,9 +510,12 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：合并 PR-6 维护 / 修复 venue 规则、PR-7 实证 / 质量 venue 规则与 PR-8 形式化 / 工具链规则，明确三路 P1 sibling 合流后统计为 34/238 且冲突解决必须保留双方 TIMELINE、rolling 表、统计与更新日志 facts。 |
+| `2026-06-05 20:56` | PR-6 合流 PR-7 后回写冲突处理纪律：强调合流统计需重算为 30/210，PR-6 / PR-7 facts 必须共存，PR-8 / PR-9 不得误标完成。 |
 | `2026-06-05 20:35` | PR-8 merge upstream PR-7：合并 PR-7 Springer collection / ESEM 历史投稿系统纪律与 PR-8 Elsevier / QRS / TASE 纪律，明确冲突解决必须保留双方 TIMELINE、rolling 表、统计与更新日志事实。 |
 | `2026-06-05 19:16` | 修复 PR-8 实现后 review：补强超 40 条年度 Mermaid 拆图执行规则，并明确 sibling PR 共享统计必须区分 branch-local / 组合口径。 |
 | `2026-06-05 18:40` | PR-8 形式化 / 工具链补链规则回写：补充 Elsevier / ScienceDirect WAF/403、Editorial Manager code、QRS techconf 计数拆分与 TASE 分散年度站处理纪律。 |
+| `2026-06-05 18:13` | PR-6 踩坑规则回写：补充 SANER/ICSME/ICPC 历史入口与日期冲突、SANER 2022 证书风险、JSEP Wiley WAF/current issue/Early View/rolling 候选口径。 |
 | `2026-06-05 18:12` | PR-7 实证 / 质量 venue 规则回写：补充 ESEM historical submission system、Springer Closed collection / historical deadline、ESE 多事件类型、special issue editors 与长期 editorial board 分离，以及 Elsevier / ScienceDirect CLI 403 / WAF 处理纪律。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
