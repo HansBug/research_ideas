@@ -656,18 +656,126 @@ def _node_for_stage(stage_id: str) -> str | None:
     return None
 
 
+_REPAIR_STAGE_NODE_BY_STAGE_ID = {
+    StageId.SD_8_FIX_PLAN.value: "repair_sd8_fix_requests",
+    StageId.SL_9_REPAIR.value: "repair_sl9_repair",
+    StageId.SD_10_REPAIR_REVIEW.value: "repair_sl10_review",
+    StageId.SL_10_REPAIR_REVIEW.value: "repair_sl10_review",
+    StageId.SC_11_ACCEPT_CANDIDATE.value: "repair_sc11_accept_candidate",
+}
+
+
+_OPERATOR_STAGE_FLOW_PAYLOAD_KEYS = {
+    "graph_subgraph",
+    "graph_node",
+    "jump",
+    "reason",
+    "status",
+    "ok",
+    "decision",
+    "target_resolved",
+    "regression_detected",
+    "drift_risk",
+    "rework_attempt",
+    "rework_locked",
+    "batch_id",
+    "request_count",
+    "hard_block",
+    "accepted_request_ids",
+    "rejected_request_ids",
+    "source",
+    "source_stage",
+    "plan_kind",
+    "old_dsl_hash",
+    "candidate_dsl_hash",
+    "current_dsl_hash",
+    "scenario_set_id",
+    "oracle_weak",
+}
+
+
+def _flow_log_stage_rows_by_stage(record: Any) -> dict[str, list[dict[str, Any]]]:
+    rows_by_stage: dict[str, list[dict[str, Any]]] = {}
+    for item in getattr(record, "logs", []) or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("event") not in {"stage_result", "llm_stage_result"}:
+            continue
+        stage_id = str(item.get("stage_id") or "")
+        graph_node = str(item.get("graph_node") or "")
+        if not stage_id or not graph_node:
+            continue
+        rows_by_stage.setdefault(stage_id, []).append(item)
+    return rows_by_stage
+
+
+def _operator_stage_flow_payload(row: dict[str, Any] | None) -> dict[str, Any]:
+    if not row:
+        return {}
+    payload: dict[str, Any] = {"flow_event": str(row.get("event") or "")}
+    for key in _OPERATOR_STAGE_FLOW_PAYLOAD_KEYS:
+        if key in row:
+            payload[key] = _jsonable(row.get(key))
+    decisions = row.get("decisions")
+    if isinstance(decisions, list):
+        payload["decision_count"] = len(decisions)
+        payload["decision_summaries"] = [
+            {
+                "request_id": str(item.get("request_id") or ""),
+                "decision": str(item.get("decision") or ""),
+                "waiver": bool(item.get("waiver")) if isinstance(item.get("waiver"), bool) else item.get("waiver"),
+                "rework_locked": (
+                    bool(item.get("rework_locked"))
+                    if isinstance(item.get("rework_locked"), bool)
+                    else item.get("rework_locked")
+                ),
+            }
+            for item in decisions
+            if isinstance(item, dict)
+        ][:12]
+    diff_summary = row.get("diff_summary")
+    if isinstance(diff_summary, dict):
+        payload["diff_summary"] = {
+            key: _jsonable(diff_summary.get(key))
+            for key in ("candidate_dsl_hash", "n_diff_lines", "changed")
+            if key in diff_summary
+        }
+    for hash_key in ("local_check_evidence", "repair_memory", "evidence", "fix_plan"):
+        if hash_key in row:
+            payload[f"{hash_key}_hash"] = _hash_payload(row.get(hash_key))
+    return payload
+
+
+def _pop_precise_stage_node(
+    rows_by_stage: dict[str, list[dict[str, Any]]],
+    stage_id: str,
+    *,
+    default_node: str | None = None,
+) -> tuple[str | None, dict[str, Any] | None]:
+    rows = rows_by_stage.get(stage_id) or []
+    if rows:
+        row = rows.pop(0)
+        return str(row.get("graph_node") or ""), row
+    if stage_id in _REPAIR_STAGE_NODE_BY_STAGE_ID:
+        return _REPAIR_STAGE_NODE_BY_STAGE_ID[stage_id], None
+    return default_node if default_node is not None else _node_for_stage(stage_id), None
+
+
 def _stage_result_operator_events(record: Any) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+    rows_by_stage = _flow_log_stage_rows_by_stage(record)
     for index, row in enumerate(record.stage_records):
         if not isinstance(row, dict):
             row = _jsonable(row)
         stage_id = str(row.get("stage_id") or "")
         stage_error = row.get("stage_error") or row.get("output_validation_error")
+        node, flow_row = _pop_precise_stage_node(rows_by_stage, stage_id)
+        stage_flow = _operator_stage_flow_payload(flow_row)
         events.append(
             build_lg_d1_operator_event(
                 run_id=record.run_id,
                 event_type="stage_result",
-                node=_node_for_stage(stage_id),
+                node=node,
                 stage_id=stage_id,
                 payload={
                     "stage_index": index,
@@ -677,6 +785,7 @@ def _stage_result_operator_events(record: Any) -> list[dict[str, Any]]:
                     "ok": row.get("ok"),
                     "status": str(row.get("status") or ""),
                     "stage_error_hash": _hash_text(str(stage_error)) if stage_error else None,
+                    **({"stage_flow": stage_flow} if stage_flow else {}),
                 },
             )
         )
@@ -685,14 +794,16 @@ def _stage_result_operator_events(record: Any) -> list[dict[str, Any]]:
 
 def _llm_progress_operator_events(record: Any) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+    rows_by_stage = _flow_log_stage_rows_by_stage(record)
     for row in _llm_stream_usage_from_interactions(record.llm_interactions):
         stage_id = str(row.get("stage_id") or "")
         event_type = "llm_stream_progress" if row.get("stream") is True else "llm_request_progress"
+        node, _flow_row = _pop_precise_stage_node(rows_by_stage, stage_id)
         events.append(
             build_lg_d1_operator_event(
                 run_id=record.run_id,
                 event_type=event_type,
-                node=_node_for_stage(stage_id),
+                node=node,
                 stage_id=stage_id,
                 payload=row,
             )
@@ -3154,30 +3265,10 @@ def _build_repair_subgraph(
             repair_stage_ids=list(graph_state.get("repair_patch", {}).get("repair_stage_ids", [])) if isinstance(graph_state.get("repair_patch"), dict) else [],
         )
         if "repair_patch" not in graph_state:
-            request_batch = graph_state.get("repair_request_batch")
-            fallback_reason = "sl10_rework_budget_exhausted"
-            last_repair_review = graph_state.get("repair_last_repair_review")
-            last_sl10_output = graph_state.get("repair_last_sl10_output")
-            if last_repair_review is not None and getattr(last_repair_review, "local_rejection", None) is not None:
-                fallback_reason = last_repair_review.local_rejection.reason
-            if last_sl10_output is not None and request_batch is not None:
-                _fix_log_entry(
-                    state=runtime_state,
-                    iteration=iteration,
-                    phase="sl10_rework_budget_exhausted",
-                    batch=request_batch,
-                    old_dsl=runtime_state.current_dsl,
-                    next_action="exit_rejected",
-                    notes=[fallback_reason],
-                )
-            last_patch = dict(graph_state.get("repair_last_iteration_patch") or {})
-            last_patch.setdefault("selected_feedback", dict(graph_state.get("repair_selected_trace") or {}))
-            last_patch.setdefault("repair_stage_ids", list(graph_state.get("repair_aggregate_stage_ids") or []))
-            last_patch.setdefault("accepted_candidate", False)
-            last_patch["exit_reason"] = fallback_reason
-            last_patch["retryable_repair_rejection"] = False
-            graph_state["repair_accepted"] = False
-            graph_state["repair_patch"] = last_patch
+            raise RuntimeError(
+                "repair subgraph contract violation: repair_finalize requires an explicit repair_patch; "
+                "each SD-8/SL-9/SL-10/SC-11 exit branch must record accept/reject/waiver evidence before finalizing"
+            )
         return Command(goto=END, update=graph_state)
 
     graph.add_node("repair_enter", repair_enter)
@@ -3641,6 +3732,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                     stage_status=StageStatus.FAIL,
                 )
                 iteration_record["exit_reason"] = reason
+                iteration_record["budget_gate"]["post_accept_validation_success"] = False
                 runtime_state.iteration_records.append(iteration_record)
                 command_goto = "sc13_trace_audit"
             elif post_accept_validation.selected is None:
@@ -3929,7 +4021,15 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
         "repair_sl10_review",
         "repair_sc11_accept_candidate",
     ]
-    repair_trace = [item for item in safe_trace if str(item.get("node_id") or "").startswith("repair_")]
+    repair_subgraph_node_order = [
+        "repair_enter",
+        *repair_stage_node_order,
+        "repair_finalize",
+    ]
+    repair_subgraph_node_ids = set(repair_subgraph_node_order)
+    repair_trace = [
+        item for item in safe_trace if str(item.get("node_id") or "") in repair_subgraph_node_ids
+    ]
     repair_seen = {str(item.get("node_id") or "") for item in repair_trace}
     repair_subgraph_runtime_trace = {
         "subgraph_id": "repair_subgraph",
