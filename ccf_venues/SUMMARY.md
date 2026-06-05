@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 13:29`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 15:59`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -22,7 +22,7 @@
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
 | TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 facts，见 [TIMELINE.md](./TIMELINE.md) |
 | 核心人员情报状态 | 16 个会议根 README 已补会议核心人员情报；6 个期刊根 README 已补核心编辑人员画像或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
-| 当前优先批次 | P0 清单已无待建项；后续只进入 PR-5 全局收口或 P1 / P2 分批扩展 |
+| 当前优先批次 | P0 清单已完成 PR-5 全局收口；后续按 §9 冻结合同进入 PR-6 / PR-7 / PR-8 / PR-9 分批扩展，PR-10 做 P1/P2 全局审计 |
 
 说明：当前统计表示 16 个会议 venue 与 6 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
 
@@ -31,10 +31,10 @@
 | 来源 | 当前用途 | 是否直接搬入 |
 |---|---|---|
 | [../VENUES.md](../VENUES.md) | 初始 venue 名录、CCF 等级、project 相关性 | 否，作为种子核验 |
-| `PR #5 frontier_index/CCF_SE_A_B_C.md` | 软工相关 venue 边界与方向先验 | 否，作为参考 |
-| `PR #5 frontier_index/CCF_SE_2026_DEADLINES.md` | deadline 调研字段与官方来源思路 | 否，需重新核验 |
-| `PR #5 frontier_index/ccf_history/SUBMISSION_TIMELINES.md` | 近年时间线组织方式参考 | 否，需重新核验 |
-| `PR #5 frontier_index/ccf_history/*/metadata/*.json` | 论文数量与 DBLP 计数的候选线索 | 否，只能作交叉核验 |
+| 历史 PR #5：`frontier_index/CCF_SE_A_B_C.md` | 软工相关 venue 边界与方向先验；当前分支没有该路径，不能当作可点击仓库文件 | 否，仅作历史线索 |
+| 历史 PR #5：`frontier_index/CCF_SE_2026_DEADLINES.md` | deadline 调研字段与官方来源思路；当前分支没有该路径，不能当作可点击仓库文件 | 否，需重新核验 |
+| 历史 PR #5：`frontier_index/ccf_history/SUBMISSION_TIMELINES.md` | 近年时间线组织方式参考；当前分支没有该路径，不能当作可点击仓库文件 | 否，需重新核验 |
+| 历史 PR #5：`frontier_index/ccf_history/*/metadata/*.json` | 论文数量与 DBLP 计数的候选线索；当前分支没有该路径，不能当作可点击仓库文件 | 否，只能作交叉核验 |
 
 ## 3. 会议试点完成情况
 
@@ -135,9 +135,9 @@
 - 期刊试点暴露出的主要问题不是模板字段缺失，而是同一字段需要明确“官方入口 / 投稿入口 / 出版入口 / DBLP fallback”的证据优先级。
 - 后续期刊填充必须把核心编辑人员作为情报维度：优先核验 Editor-in-Chief / Editors-in-Chief / Managing Editor / editorial leadership，记录研究方向、代表作或近 5 年论文入口，并把 roster 完整性限制写清楚。
 
-## 8. P0 强相关 venue 后续填充清单
+## 8. P0 强相关 venue 冻结清单
 
-P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 22 个 venue 均已完成基础建档与部分核验；本表不再保留 PR-3 / PR-4 已完成项的 `⏳ 待建` 状态，后续只进入 PR-5 全局收口或 P1 / P2 分批扩展。
+P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 22 个 venue 均已完成基础建档与部分核验；本表不再保留 PR-3 / PR-4 已完成项的 `⏳ 待建` 状态。PR-5 之后 P0 只做事实维护、链接复核、TIMELINE 同步和缺口补证，新增 P1/P2 venue 必须走 §9 冻结合同。
 
 | 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 |
 |---|---|---|---|---|---|
@@ -164,29 +164,48 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | [`conf-c-refsq`](./conf-c-refsq/README.md) | 会议 | C | P1/P2 | PR-2 | 🟡 部分核验 |
 | [`journal-c-sttt`](./journal-c-sttt/README.md) | 期刊 | C | P3/P4 | PR-4 | 🟡 部分核验 |
 
-## 9. P1 / P2 后续 venue
+## 9. P1 / P2 后续 venue 与 PR-6~PR-10 执行合同
 
-以下 venue 不属于当前试点数据填充目标；后续在 P0 试点与批量节奏稳定后分批推进。
+以下 venue 不属于 P0 已完成基础建档范围。PR-5 将它们冻结为后续 stacked PR 的执行合同，目的是让 PR-6 / PR-7 / PR-8 / PR-9 可以并行推进而不互相覆盖事实，PR-10 只在这些分支全部合入后做全局收口。
+
+### 9.1 PR-6~PR-10 ownership
+
+| 子级 PR | 主题 | Venue ownership | 数量 | 预期年度 README | 允许修改 | 禁止事项 | 依赖关系 |
+|---|---|---|---:|---:|---|---|---|
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个（3 会议 + 1 期刊） | 28 | 自有 venue 目录；按自有事件增量维护 [TIMELINE.md](./TIMELINE.md)、[SUMMARY.md](./SUMMARY.md)、[README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[01-venue-scope.md](./01-venue-scope.md) | 不改 PR-7/8/9 venue 目录；不新增合同外 venue；不删除 P0 / 其他 PR 已核验 TIMELINE 事件 | 依赖 PR-5 ready / 合入上游后开工；可与 PR-7 并行 |
+| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个（1 会议 + 3 期刊） | 28 | 自有 venue 目录；维护自有期刊 rolling / special issue 与会议 dated events；共享文件只做自有增量 | 不改 PR-6/8/9 venue 目录；不把期刊 rolling 写成 dated Mermaid；不删除 P0 / 其他 PR 已核验事实 | 依赖 PR-5 ready / 合入上游后开工；可与 PR-6 并行 |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个（2 期刊 + 2 会议） | 28 | 自有 venue 目录；维护形式化 / 工具链相关 TIMELINE 与待补记录；共享文件只做自有增量 | 不改 PR-6/7/9 venue 目录；不把 publisher / DBLP fallback 计数写成主 track count | 依赖 PR-6 与 PR-7 已合入上游，并已阅读其 GUIDE / SUMMARY 踩坑经验后再开工 |
+| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个会议 | 35 | 自有 venue 目录；按邻近观察口径维护年度页、论文入口、TIMELINE 会期 / 投稿事件 | 不升级为 P1/P0 事实；不改 PR-6/7/8 venue 目录；不把邻近 venue 写成主投目标 | 依赖 PR-6 与 PR-7 已合入上游，并建议等待或至少同步阅读 PR-8 的形式化 / 工具链踩坑记录 |
+| PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 全部产物 | 0 | 0 | 统一复核 P1/P2 统计、TIMELINE、Mermaid、更新日志、核心人员、待补项与 main-ready 决策 | 不再批量新增 venue；不无来源改写 PR-6~PR-9 已核验事实 | 依赖 PR-6 / PR-7 / PR-8 / PR-9 全部合入上游 |
+
+执行规则：
+
+1. PR-6~PR-9 每个 venue 默认覆盖 `2022-2028` 共 7 个年度 README；若发现 2029+ 官方 CFP / important dates，按 [GUIDE.md](./GUIDE.md) 规则继续纳入并在 PR body 说明。
+2. P1/P2 不允许静默新增合同外 venue。若 CCF 官方更名、缩写冲突或确有强相关漏项，必须先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，并给出官方来源。
+3. 共享文件的修改必须是“增量合流”：新增自有 venue 统计、事件、滚动投稿、人员覆盖和踩坑规则时，保留 P0 与其他 PR 已核验事实。
+4. 每个子 PR final ready 前必须 merge upstream staging head；若发生 git conflict，需复核双方 venue、TIMELINE、Mermaid、更新日志和待补记录均未被覆盖。
+
+### 9.2 venue 清单
 
 | Venue | 类型 | CCF | 主要价值 | 后续批次 |
 |---|---|---|---|---|
-| `conf-b-saner` | 会议 | B | 维护、演化、修复 | P1 |
-| `conf-b-icsme` | 会议 | B | 维护、演化、修复 | P1 |
-| `conf-b-icpc` | 会议 | B | 程序理解、LLM4SE 实证 | P1 |
-| `conf-b-esem` | 会议 | B | 实证评估与 benchmark | P1 |
-| `journal-b-ese` | 期刊 | B | LLM4SE 实证 | P1 |
-| `journal-b-jss` | 期刊 | B | 软工综合、系统案例 | P1 |
-| `journal-b-ist` | 期刊 | B | 软工综合、需求/测试 | P1 |
-| `journal-b-scp` | 期刊 | B | 形式化、程序与工具链 | P1 |
-| `journal-b-jsep` | 期刊 | B | 演化、维护、修复 | P1 |
-| `conf-c-qrs` | 会议 | C | 质量、可靠性、安全 | P1 |
-| `conf-c-tase` | 会议 | C | 形式化与理论软工 | P1 |
-| `journal-c-sqj` | 期刊 | C | 软件质量与评估 | P1 |
-| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | P2 |
-| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | P2 |
-| `conf-c-ease` | 会议 | C | 实证评估 | P2 |
-| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | P2 |
-| `conf-c-rv` | 会议 | C | 运行时验证 | P2 |
+| `conf-b-saner` | 会议 | B | 维护、演化、修复 | PR-6 / P1 |
+| `conf-b-icsme` | 会议 | B | 维护、演化、修复 | PR-6 / P1 |
+| `conf-b-icpc` | 会议 | B | 程序理解、LLM4SE 实证 | PR-6 / P1 |
+| `journal-b-jsep` | 期刊 | B | 演化、维护、修复 | PR-6 / P1 |
+| `conf-b-esem` | 会议 | B | 实证评估与 benchmark | PR-7 / P1 |
+| `journal-b-ese` | 期刊 | B | LLM4SE 实证 | PR-7 / P1 |
+| `journal-b-jss` | 期刊 | B | 软工综合、系统案例 | PR-7 / P1 |
+| `journal-c-sqj` | 期刊 | C | 软件质量与评估 | PR-7 / P1 |
+| `journal-b-ist` | 期刊 | B | 软工综合、需求/测试 | PR-8 / P1 |
+| `journal-b-scp` | 期刊 | B | 形式化、程序与工具链 | PR-8 / P1 |
+| `conf-c-qrs` | 会议 | C | 质量、可靠性、安全 | PR-8 / P1 |
+| `conf-c-tase` | 会议 | C | 形式化与理论软工 | PR-8 / P1 |
+| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | PR-9 / P2 |
+| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | PR-9 / P2 |
+| `conf-c-ease` | 会议 | C | 实证评估 | PR-9 / P2 |
+| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | PR-9 / P2 |
+| `conf-c-rv` | 会议 | C | 运行时验证 | PR-9 / P2 |
 
 ## 10. 核心 URL / 超链接覆盖口径
 
@@ -261,7 +280,6 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | ATVA | 2026 | 未检索到独立官方年度主页 / CFP / dates；series page 不能冒充年度主页 | 年度页和根表写 `⏳ 已检索未公布`，series page 只作 fallback 检索入口 | 后续复查官方公告、年度页与 DBLP |
 | ISSRE | 2026 | 普通 `curl` 可能返回 404/WAF-like；Research CFP 曾因旧 deadline 与 extended deadline 并存而误读 | 已用带 UA 访问核验 extended dates，并用官方 organizing / research track committee 页面升级核心人员角色来源 | 后续补 accepted papers / proceedings 与历史年度 research-track count |
 
-<!-- PR-3-SUMMARY-BEGIN -->
 ## 14. PR-3 形式化 / 验证会议批量填充记录
 
 | Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
@@ -298,8 +316,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | ICFEM | 2022-2028 | 历史年度页曾把 2026 年度页误写成 `series / annual pages` 来源 | 已降级为“未发现独立稳定 series page；使用年度页 / CFP / DBLP index 各自承担来源职责” | 后续补 2022 历史 dates 的逐项 TIMELINE 同步，并继续等待 2027/2028 官方年页 |
 | ATVA | 2026 | 独立官方年页 / CFP 未检索到 | 不纳入 TIMELINE dated events | 官方公布后再补 |
 | ICST | 2025-2022 | DBLP 为 series-wide fallback | 不写主会 research count | 后续按 research program 拆 count |
-| 共享文件复审 | PR-2 / PR-3 / PR-4 | `GUIDE.md`、`SUMMARY.md`、`TIMELINE.md` 并行更新后，存在遗漏已建 venue、年度事件或期刊 rolling 表的风险 | 当前按“已核验事实不互删”原则保留 PR-2 / PR-3 / PR-4 状态，并在 SUMMARY 重算目录统计 | PR-5 全局收口时复审 PR-2 / PR-3 / PR-4 venue、期刊 rolling / dated events 与更新日志是否共存 |
-<!-- PR-3-SUMMARY-END -->
+| 共享文件复审 | PR-2 / PR-3 / PR-4 / PR-5 | `GUIDE.md`、`SUMMARY.md`、`TIMELINE.md` 并行更新后，存在遗漏已建 venue、年度事件或期刊 rolling 表的风险 | PR-5 已按“已核验事实不互删”原则复审并保留 PR-2 / PR-3 / PR-4 状态、期刊 rolling / dated events 与重算目录统计 | 后续 PR-6~PR-10 每次 merge upstream 时继续复查共享文件，避免覆盖既有事实 |
 
 
 ## 15. 更新日志
@@ -308,6 +325,8 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:59` | 实现后 review 修复：统一 PR-6~PR-9 数量单位，收紧 PR-8 / PR-9 前置依赖表述，避免后续执行者跳过上游踩坑经验。 |
+| `2026-06-05 15:36` | PR-5 全局收口：冻结 PR-6~PR-10 P1/P2 执行合同，更新 P0 冻结清单、历史 PR #5 资源口径与共享文件复审状态，并移除 PR-3 临时 HTML 标记。 |
 | `2026-06-05 13:29` | merge-upstream 后完成 SUMMARY 合流：按实际目录重算为 22 个 venue / 154 个 2022-2028 年度 README，保留 PR-3 8 个会议与 PR-4 3 个期刊状态，清理 P0 待建项，并合并 PR-3 / PR-4 踩坑与待补记录。 |
 | `2026-06-05 12:35` | PR-4 SUMMARY/GUIDE 专项复核：确认 14 个 venue / 98 个年度 README 统计一致，并澄清 P0 待建项不再包含 Requirements Engineering、STVR、STTT。 |
 | `2026-06-05 12:18` | 完成 PR-4 剩余 P0 期刊基础建档合流：新增 Requirements Engineering、STVR、STTT 共 3 个 venue、21 个年度 README，同步 TIMELINE rolling / dated events，并记录 Springer collections、Wiley WAF/403 与 STTT conference-based special issue 计数 caveat。 |

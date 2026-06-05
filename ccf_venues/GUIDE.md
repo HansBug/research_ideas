@@ -397,6 +397,26 @@ PR-4 期刊填充后的补充规则：
 11. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
 12. 在相关 README 文末更新日志中按时间降序插入记录。
 
+### 13.1 P1/P2 stacked PR 执行纪律
+
+PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；后续 AI 不得只凭 [01-venue-scope.md](./01-venue-scope.md) 的范围清单自由拆分。完整禁止事项、允许修改范围与依赖关系以 [SUMMARY.md](./SUMMARY.md) §9.1 为准，本节只保留执行纪律摘要。
+
+| 子级 PR | 主题 | Venue ownership | 默认产物 | 共享文件纪律 |
+|---|---|---|---|---|
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个 venue + 28 个年度 README | 只增量维护自有 venue 的 SUMMARY / TIMELINE / README / GUIDE / scope 事实 |
+| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个 venue + 28 个年度 README | 保留 PR-6 与 P0 facts，期刊 rolling 不写成 dated Mermaid |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个 venue + 28 个年度 README | 须在 PR-6/7 合入上游并阅读其踩坑经验后开工；形式化 / 工具链计数不得混用 DBLP fallback |
+| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个 venue + 35 个年度 README | 须在 PR-6/7 合入上游后开工；建议同步吸收 PR-8 形式化 / 工具链踩坑经验；不升级为 P0/P1 主投目标 |
+| PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 统计 / 时间线 / Mermaid / 待补项全局收口 | 必须等 PR-6~PR-9 全部合入上游后执行 |
+
+执行要求：
+
+1. 每个子 PR 只能创建 / 修改自己 ownership 内的 venue 目录；共享文件只能做自有事实的增量合流，不得删除 P0、会议试点、期刊试点或其他子 PR 已核验事实。
+2. 默认年度范围仍为 `2022` 至当前年份 + 2；发现更远未来官方 CFP / important dates 时继续纳入，并在 PR body 与更新日志说明。
+3. 不得静默新增合同外 venue。确需新增时，先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，并给出 CCF 官方或 venue 官方来源。
+4. final ready 前必须 merge upstream staging head；若有 conflict，冲突解决后必须复核 `git ls-files -u` 为空、冲突标记消失、双方 TIMELINE / Mermaid / rolling 表 / 更新日志 facts 均保留。
+5. 历史更新日志可以保留当时真实的旧统计数字；旧口径扫描应聚焦正文和当前总账，不得为了让 `rg` 零命中而篡改历史日志。
+
 ## 14. 会议 / 期刊合流与事实共存规则
 
 本库的会议数据、期刊数据、共享规范和模板会被不同轮次持续维护。任何合流或冲突解决都必须遵守以下长期规则：
@@ -436,7 +456,7 @@ PR-4 期刊填充后的补充规则：
 
 每轮数据填充 PR 在声称 ready 前至少执行以下检查：
 
-1. `rg -n "_events_draft|主 session 合流|候选事件见" ccf_venues/<本轮 venue>` 应无正式文档残留；历史更新日志除外。
+1. `rg -n "_events_draft|主 session 合流|候选事件见" ccf_venues/<本轮 venue>` 应无正式文档残留；历史更新日志除外。旧统计口径扫描同理：只清理当前正文和总账，历史更新日志可保留当时真实状态。
 2. 本轮新增 / 修改的 venue 根 README 与年度 README 不应存在指向不存在本库文件的相对链接；模板目录的占位链接单独按模板规则解释。
 3. [TIMELINE.md](./TIMELINE.md) 年份章节按降序，节内事件按日期升序；Mermaid 不含 URL / Markdown 链接。
 4. Mermaid label 的 venue edition 必须与表格 Venue 一致，尤其检查 `ICSE`、`FSE`、`ETAPS/TACAS` 等前一年投稿的会议。
@@ -453,6 +473,8 @@ PR-4 期刊填充后的补充规则：
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
+| `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
 | `2026-06-05 13:25` | merge upstream / PR-3+PR-4 合流规则：解决 GUIDE 冲突，保留形式化验证会议来源冒充、committee / track 分层、`curl -k` / 冲突复审纪律，同时保留 PR-4 期刊 rolling / dated event、Wiley WAF/403、Springer collections 和 STTT conference-based special issue 计数纪律。 |
 | `2026-06-05 12:35` | PR-4 SUMMARY/GUIDE 专项复核：补强 Wiley WAF/403/SPA 壳处理表述，明确需保留官方入口并待人工浏览器核验，不能以第三方页面替代 STVR 当前 roster / guidelines / 卷期正文。 |
 | `2026-06-05 12:18` | 吸收 PR-4 期刊填充经验：补充 Springer collections dated event、Wiley WAF/403、Equinocs / Wiley Authors SPA、STTT conference-based special issue 计数和期刊 rolling / dated event 同步纪律。 |

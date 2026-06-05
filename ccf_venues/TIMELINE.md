@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 14:28`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 15:59`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -29,7 +29,7 @@
 
 ## 3. 近期投稿窗口速览
 
-> 筛选规则：仅列 `2026-06-05` 之后、已纳入 venue 中已经能从官方页面核验的投稿 / 专刊窗口；不列 notification、camera-ready、rebuttal、conference-only 事件。完整跨年度事件仍以 §6 之后各年度时间线为准。
+> 筛选规则：仅列截至本文件 `信息更新时间` 仍未错过、已纳入 venue 中已经能从官方页面核验且仍可行动的 Abstract / Submission / Special issue / Intent 窗口；当天仍可行动的截止也应保留。默认不列 notification、camera-ready、rebuttal、conference-only 事件，除非后续维护者在备注中显式说明其仍需行动。完整跨年度事件仍以 §6 之后各年度时间线为准。
 > 近期窗口是 §6 之后年度全量表的筛选视图，不是独立事实源；新增、删除或修改本节行时，必须同步维护对应年度总表，若事件进入 Mermaid，也必须同步更新对应年度 Mermaid。
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
@@ -996,6 +996,8 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:59` | 实现后 review 修复：把近期投稿窗口从“日期之后”改为“截至信息更新时间仍未错过且可行动”，避免当天 deadline 被误排除。 |
+| `2026-06-05 15:36` | PR-5 全局收口：明确近期投稿窗口筛选边界，保持近期窗口作为年度全量表筛选视图而非独立事实源。 |
 | `2026-06-05 14:28` | 实现后 review 收尾：补充近期窗口与年度全量表同步说明，并对齐 STVR CCF 等级官方目录链接。 |
 | `2026-06-05 13:29` | merge upstream 后同步 TIMELINE：PR-3 形式化 / 验证会议 dated events 与 PR-4 期刊 rolling / Requirements Engineering collections dated events 在近期窗口、年度表、滚动表和 Mermaid 中共存。 |
 | `2026-06-05 12:33` | TIMELINE 专项复核 PR-4 期刊合流：补回 Requirements Engineering rolling 投稿行，确认 2026 collection dated events 只落在近期窗口、2026 事件表与 2026 Mermaid。 |
