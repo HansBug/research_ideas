@@ -22,9 +22,16 @@ import json
 import os
 import pickle
 import platform
+import re
 import uuid
 from dataclasses import asdict, is_dataclass
-from typing import Any, NotRequired, TypedDict
+from pathlib import Path
+from typing import Any, TypedDict
+
+try:  # Python 3.10 compatibility for the repo venv.
+    from typing import NotRequired
+except ImportError:  # pragma: no cover - depends on interpreter minor version.
+    from typing_extensions import NotRequired
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_store
@@ -66,8 +73,88 @@ from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
 
 GRAPH_RUNTIME_SCHEMA_VERSION = "pr-langgraph.stategraph.v1"
 NODE_EDGE_SCHEMA_VERSION = "pr-langgraph.stage-nodes.v1"
+LG_D1_OPERATOR_EVENT_SCHEMA_VERSION = "lg-d1.operator-event.v1"
+LG_D1_STREAM_SUMMARY_SCHEMA_VERSION = "lg-d1.stream-summary.v1"
+LG_D1_INSTRUMENTATION_LAYER = "langgraph_streaming"
 
 _VALID_RECORD_STATUSES = {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}
+_LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
+    "messages",
+    "message",
+    "prompt",
+    "raw_prompt",
+    "raw_output",
+    "chunk_text",
+    "delta_text",
+    "completion_text",
+    "content",
+    "text",
+    "response_text",
+    "output_text",
+    "choices",
+    "delta",
+    "api_key",
+    "apikey",
+    "authorization",
+    "headers",
+    "token",
+    "access_token",
+    "refresh_token",
+    "bearer_token",
+}
+_LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS = ("api_key", "apikey", "secret", "credential", "password", "bearer", "token")
+_LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES = (
+    "_api_key",
+    "_secret",
+    "_credential",
+    "_password",
+    "_bearer",
+    "_token",
+)
+_LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS = {
+    "apikey",
+    "authorization",
+    "accesstoken",
+    "refreshtoken",
+    "bearertoken",
+    "token",
+    "headers",
+}
+_LG_D1_SECRET_VALUE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{7,}"),
+    re.compile(r"gh[opsur]_[A-Za-z0-9_]{8,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{8,}"),
+    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE),
+    re.compile(r"(?i)(?:secret|token|api[_-]?key|password)[A-Za-z0-9._:\-]{4,}"),
+)
+_LG_D1_LLM_PROGRESS_EVENT_TYPES = {"llm_stream_progress", "llm_request_progress"}
+_LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS = {
+    "interaction_index",
+    "stage_id",
+    "stream",
+    "stream_include_usage_requested",
+    "token_usage_available",
+    "stream_usage_zero_reported",
+    "chunk_count",
+    "first_chunk_seconds",
+    "elapsed_seconds",
+    "prompt_chars",
+    "completion_chars",
+    "estimated_prompt_tokens",
+    "estimated_completion_tokens",
+    "estimated_total_tokens",
+    "token_usage_estimation_method",
+    "attempt_count",
+    "attempt_stream_observed",
+    "usage_payload_hash",
+}
+_LG_D1_ACADEMIC_EVIDENCE_SOURCES = [
+    "AgentLoopRunRecord.stage_records",
+    "AgentLoopRunRecord.llm_interactions",
+    "AgentLoopRunRecord.fix_log",
+    "AgentLoopRunRecord.scenario_history",
+    "AgentLoopRunRecord.final_artifacts.final_dsl",
+]
 
 
 class _PickleCheckpointSerde:
@@ -98,6 +185,9 @@ class _CompatState(TypedDict, total=False):
 class _GraphLoopState(TypedDict, total=False):
     nl: str
     graph_trace: list[dict[str, Any]]
+    operator_events: list[dict[str, Any]]
+    operator_stream_enabled: bool
+    run_id: str
     runtime_state: Any
     iteration: int
     iteration_stage_start: int
@@ -125,6 +215,441 @@ def _jsonable(value: Any) -> Any:
 def _hash_payload(payload: Any) -> str:
     encoded = json.dumps(_jsonable(payload), ensure_ascii=False, sort_keys=True, default=str)
     return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _hash_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def _sanitize_lg_d1_operator_payload(value: Any) -> tuple[Any, int]:
+    """Return a JSON-safe operator payload without raw prompt/output fields.
+
+    LG-D1's operator stream is a terminal/debugging aid, not a new raw evidence
+    store.  It may carry sizes, hashes, timings and verdicts, but never prompts,
+    raw LLM outputs, chunk text, headers or API-key-like fields.
+    """
+
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        omitted = 0
+        for key, nested in value.items():
+            key_text = str(key)
+            key_norm = key_text.lower()
+            key_compact = re.sub(r"[^a-z0-9]", "", key_norm)
+            if key_norm in _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS or any(
+                fragment in key_norm for fragment in _LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS
+            ) or any(
+                key_norm.endswith(suffix) for suffix in _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES
+            ) or key_compact in _LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS or key_compact.startswith("raw"):
+                omitted += 1
+                continue
+            if any(fragment in key_compact for fragment in ("token", "secret", "password", "apikey", "credential", "bearer")):
+                omitted += 1
+                continue
+            safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
+            sanitized[key_text] = safe_nested
+            omitted += nested_omitted
+        return sanitized, omitted
+    if isinstance(value, (list, tuple, set)):
+        rows = []
+        omitted = 0
+        for item in value:
+            safe_item, item_omitted = _sanitize_lg_d1_operator_payload(item)
+            rows.append(safe_item)
+            omitted += item_omitted
+        return rows, omitted
+    if isinstance(value, str) and any(pattern.search(value) for pattern in _LG_D1_SECRET_VALUE_PATTERNS):
+        return "<omitted:secret-like-value>", 1
+    return _jsonable(value), 0
+
+
+def _sanitize_lg_d1_llm_progress_payload(value: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    """Allowlist LLM progress payload fields so chunks/messages never persist."""
+
+    sanitized: dict[str, Any] = {}
+    omitted = 0
+    for key, nested in value.items():
+        key_text = str(key)
+        if key_text not in _LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS:
+            _, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
+            omitted += 1 + nested_omitted
+            continue
+        safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
+        sanitized[key_text] = safe_nested
+        omitted += nested_omitted
+    return sanitized, omitted
+
+
+def build_lg_d1_operator_event(
+    *,
+    run_id: str,
+    event_type: str,
+    node: str | None = None,
+    stage_id: str | None = None,
+    payload: dict[str, Any] | None = None,
+    timestamp: str | None = None,
+) -> dict[str, Any]:
+    """Build one LG-D1 JSONL-safe operator event."""
+
+    if event_type in _LG_D1_LLM_PROGRESS_EVENT_TYPES and isinstance(payload, dict):
+        safe_payload, omitted_count = _sanitize_lg_d1_llm_progress_payload(payload)
+    else:
+        safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload or {})
+    if omitted_count:
+        if not isinstance(safe_payload, dict):
+            safe_payload = {"value": safe_payload}
+        safe_payload["omitted_raw_content_field_count"] = omitted_count
+    event = {
+        "schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
+        "run_id": str(run_id),
+        "event_type": str(event_type),
+        "timestamp": timestamp or _utc_now(),
+        "node": node,
+        "stage_id": stage_id,
+        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+        "payload": safe_payload,
+        "payload_hash": _hash_payload(safe_payload),
+    }
+    # Validate strict JSON compatibility and reject NaN/Infinity before a long
+    # real run can produce an unreadable operator log.
+    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    return event
+
+
+def _append_lg_d1_operator_event(
+    graph_state: _GraphLoopState,
+    *,
+    event_type: str,
+    node: str | None = None,
+    stage_id: str | None = None,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    if not bool(graph_state.get("operator_stream_enabled", True)):
+        return
+    runtime_state = graph_state.get("runtime_state")
+    run_id = getattr(runtime_state, "run_id", None) or graph_state.get("run_id") or ""
+    if not run_id:
+        return
+    events = list(graph_state.get("operator_events", []) or [])
+    events.append(
+        build_lg_d1_operator_event(
+            run_id=str(run_id),
+            event_type=event_type,
+            node=node,
+            stage_id=stage_id,
+            payload=payload or {},
+        )
+    )
+    graph_state["operator_events"] = events
+
+
+def _node_stage_ids_by_node_id() -> dict[str, list[str]]:
+    return {str(node.get("node_id") or ""): [str(item) for item in node.get("stage_ids", [])] for node in build_langgraph_node_registry()["nodes"]}
+
+
+def _safe_node_exit_payload(node_state: dict[str, Any]) -> dict[str, Any]:
+    runtime_state = node_state.get("runtime_state")
+    payload: dict[str, Any] = {
+        "state_keys": sorted(str(key) for key in node_state.keys() if key not in {"runtime_state", "nl"}),
+    }
+    if isinstance(runtime_state, _RunState):
+        payload.update(
+            {
+                "stage_count": len(runtime_state.stage_records),
+                "iteration_count": len(runtime_state.iteration_records),
+                "repair_count": len(runtime_state.repair_history),
+                "record_status": runtime_state.final_record_status,
+                "result_status": runtime_state.result_status,
+                "verdict": runtime_state.final_verdict,
+                "verdict_source_stage_id": runtime_state.verdict_source_stage_id,
+                "current_dsl_hash": _hash_text(runtime_state.current_dsl),
+            }
+        )
+    if isinstance(node_state.get("iteration"), int):
+        payload["iteration"] = node_state.get("iteration")
+    return payload
+
+
+def _llm_stream_usage_from_interactions(llm_interactions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, interaction in enumerate(llm_interactions):
+        if not isinstance(interaction, dict):
+            continue
+        usage = interaction.get("usage") if isinstance(interaction.get("usage"), dict) else {}
+        attempts = interaction.get("attempts") if isinstance(interaction.get("attempts"), list) else []
+        attempt_stream_flags: list[bool] = []
+        for attempt in attempts:
+            if isinstance(attempt, dict):
+                attempt_usage = attempt.get("usage") if isinstance(attempt.get("usage"), dict) else {}
+                if isinstance(attempt_usage.get("stream"), bool):
+                    attempt_stream_flags.append(bool(attempt_usage.get("stream")))
+        stream_value = usage.get("stream")
+        stream_observed = bool(stream_value) if isinstance(stream_value, bool) else (True if any(attempt_stream_flags) else None)
+        rows.append(
+            {
+                "interaction_index": index,
+                "stage_id": str(interaction.get("stage_id") or ""),
+                "stream": stream_observed,
+                "stream_include_usage_requested": usage.get("stream_include_usage_requested"),
+                "token_usage_available": usage.get("token_usage_available"),
+                "stream_usage_zero_reported": usage.get("stream_usage_zero_reported"),
+                "chunk_count": usage.get("chunk_count"),
+                "first_chunk_seconds": usage.get("first_chunk_seconds"),
+                "elapsed_seconds": usage.get("elapsed_seconds"),
+                "prompt_chars": usage.get("prompt_chars"),
+                "completion_chars": usage.get("completion_chars"),
+                "estimated_prompt_tokens": usage.get("estimated_prompt_tokens"),
+                "estimated_completion_tokens": usage.get("estimated_completion_tokens"),
+                "estimated_total_tokens": usage.get("estimated_total_tokens"),
+                "attempt_count": len(attempts),
+                "attempt_stream_observed": any(attempt_stream_flags) if attempt_stream_flags else None,
+                "usage_payload_hash": _hash_payload(usage),
+            }
+        )
+    return rows
+
+
+def lg_d1_llm_stream_runtime_metadata(
+    *,
+    real_llm_provider_api: bool,
+    llm_interactions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return prompt-safe LG-D1 metadata about provider stream discipline."""
+
+    from method.gpt_client import get_stream_enabled, get_stream_include_usage_enabled
+
+    stream_rows = _llm_stream_usage_from_interactions(llm_interactions or [])
+    observed_values = [row.get("stream") for row in stream_rows if isinstance(row.get("stream"), bool)]
+    observed = (all(bool(value) for value in observed_values) if observed_values else None)
+    return {
+        "llm_stream_required": True,
+        "llm_stream_required_reason": (
+            "PR-E1/LG-D1 real-provider runs must keep stream enabled so long structured generations "
+            "remain auditable and provider/proxy stalls are classified as invalid infrastructure failures."
+        ),
+        "llm_stream_config_enabled": bool(get_stream_enabled()),
+        "llm_stream_include_usage_config_enabled": bool(get_stream_include_usage_enabled()),
+        "llm_stream_observed": observed,
+        "llm_stream_observation_source": "llm_interactions.usage.stream" if observed_values else "pending_llm_interactions",
+        "real_llm_provider_api": bool(real_llm_provider_api),
+        "llm_stream_interaction_count": len(stream_rows),
+    }
+
+
+def _build_lg_d1_stream_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
+    node_sequence = [
+        str(event.get("node"))
+        for event in events
+        if event.get("event_type") == "node_enter" and event.get("node")
+    ]
+    stage_sequence = [
+        str(event.get("stage_id"))
+        for event in events
+        if event.get("event_type") == "stage_result" and event.get("stage_id")
+    ]
+    terminal_events = [event for event in events if event.get("event_type") == "terminal_verdict"]
+    terminal_payload = terminal_events[-1].get("payload", {}) if terminal_events else {}
+    llm_events = [event for event in events if event.get("event_type") in {"llm_stream_progress", "llm_request_progress"}]
+    stream_values = [
+        event.get("payload", {}).get("stream")
+        for event in llm_events
+        if isinstance(event.get("payload", {}).get("stream"), bool)
+    ]
+    chunk_total = 0
+    for event in llm_events:
+        value = event.get("payload", {}).get("chunk_count")
+        if isinstance(value, int) and not isinstance(value, bool):
+            chunk_total += value
+    return {
+        "schema_version": LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
+        "run_id": str(events[0].get("run_id")) if events else "",
+        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+        "operator_event_count": len(events),
+        "node_sequence": node_sequence,
+        "stage_sequence": stage_sequence,
+        "final_verdict": terminal_payload.get("verdict"),
+        "record_status": terminal_payload.get("record_status"),
+        "result_status": terminal_payload.get("result_status"),
+        "verdict_source_stage_id": terminal_payload.get("verdict_source_stage_id"),
+        "run_record_path_hash": terminal_payload.get("run_record_path_hash"),
+        "llm_stream_observed": (all(bool(value) for value in stream_values) if stream_values else None),
+        "llm_stream_chunk_count_total": chunk_total,
+        "llm_interaction_event_count": len(llm_events),
+        "event_type_counts": {
+            event_type: sum(1 for event in events if event.get("event_type") == event_type)
+            for event_type in sorted({str(event.get("event_type")) for event in events})
+        },
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+    }
+
+
+def reconstruct_lg_d1_stream_summary_from_jsonl(path: str | Path) -> dict[str, Any]:
+    """Reconstruct LG-D1 progress summary from a tee-able JSONL operator log."""
+
+    events: list[dict[str, Any]] = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        event = json.loads(line)
+        if event.get("schema_version") != LG_D1_OPERATOR_EVENT_SCHEMA_VERSION:
+            raise ValueError(f"unsupported LG-D1 operator event schema: {event.get('schema_version')}")
+        events.append(event)
+    return _build_lg_d1_stream_summary(events)
+
+
+def _operator_event_key(event: dict[str, Any]) -> str:
+    return json.dumps(event, ensure_ascii=False, sort_keys=True, default=str)
+
+
+def _merge_operator_events(existing: list[dict[str, Any]], new_events: Any) -> list[dict[str, Any]]:
+    merged = list(existing)
+    seen = {_operator_event_key(event) for event in merged if isinstance(event, dict)}
+    for event in new_events or []:
+        if not isinstance(event, dict):
+            continue
+        key = _operator_event_key(event)
+        if key in seen:
+            continue
+        merged.append(event)
+        seen.add(key)
+    return merged
+
+
+def _primary_stage_id_for_node(node_id: str) -> str | None:
+    stage_ids = _node_stage_ids_by_node_id().get(node_id, [])
+    return stage_ids[0] if len(stage_ids) == 1 else None
+
+
+def _node_for_stage(stage_id: str) -> str | None:
+    for node_id, stage_ids in _node_stage_ids_by_node_id().items():
+        if stage_id in stage_ids:
+            return node_id
+    return None
+
+
+def _stage_result_operator_events(record: Any) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, row in enumerate(record.stage_records):
+        if not isinstance(row, dict):
+            row = _jsonable(row)
+        stage_id = str(row.get("stage_id") or "")
+        stage_error = row.get("stage_error") or row.get("output_validation_error")
+        events.append(
+            build_lg_d1_operator_event(
+                run_id=record.run_id,
+                event_type="stage_result",
+                node=_node_for_stage(stage_id),
+                stage_id=stage_id,
+                payload={
+                    "stage_index": index,
+                    "stage_kind": row.get("stage_kind"),
+                    "enabled": row.get("enabled"),
+                    "ran": row.get("ran"),
+                    "ok": row.get("ok"),
+                    "status": str(row.get("status") or ""),
+                    "stage_error_hash": _hash_text(str(stage_error)) if stage_error else None,
+                },
+            )
+        )
+    return events
+
+
+def _llm_progress_operator_events(record: Any) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for row in _llm_stream_usage_from_interactions(record.llm_interactions):
+        stage_id = str(row.get("stage_id") or "")
+        event_type = "llm_stream_progress" if row.get("stream") is True else "llm_request_progress"
+        events.append(
+            build_lg_d1_operator_event(
+                run_id=record.run_id,
+                event_type=event_type,
+                node=_node_for_stage(stage_id),
+                stage_id=stage_id,
+                payload=row,
+            )
+        )
+    return events
+
+
+def _terminal_operator_event(record: Any, *, run_record_path_hash: str) -> dict[str, Any]:
+    final_artifacts = record.final_artifacts if isinstance(record.final_artifacts, dict) else {}
+    return build_lg_d1_operator_event(
+        run_id=record.run_id,
+        event_type="terminal_verdict",
+        node="sc13_trace_audit",
+        stage_id=StageId.SC_13_TRACE_AUDIT.value,
+        payload={
+            "verdict": final_artifacts.get("verdict"),
+            "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
+            "record_status": record.status,
+            "result_status": final_artifacts.get("agent_loop_result_status"),
+            "main_result_eligible": final_artifacts.get("main_result_eligible"),
+            "oracle_weak": final_artifacts.get("oracle_weak"),
+            "final_dsl_hash": final_artifacts.get("final_dsl_hash"),
+            "run_record_path_hash": run_record_path_hash,
+        },
+    )
+
+
+def _write_lg_d1_operator_artifacts(
+    *,
+    record: Any,
+    run_record_path: str | Path,
+    operator_events: list[dict[str, Any]],
+    graph_stream_status: str,
+) -> dict[str, Any]:
+    path = Path(run_record_path)
+    operator_log_path = path.with_name(f"{record.run_id}.operator_log.jsonl")
+    stream_summary_path = path.with_name(f"{record.run_id}.stream_summary.json")
+    run_record_path_hash = _hash_payload(str(path))
+    full_events = _merge_operator_events([], operator_events)
+    full_events = _merge_operator_events(full_events, _stage_result_operator_events(record))
+    full_events = _merge_operator_events(full_events, _llm_progress_operator_events(record))
+    full_events.append(_terminal_operator_event(record, run_record_path_hash=run_record_path_hash))
+
+    operator_log_path.parent.mkdir(parents=True, exist_ok=True)
+    with operator_log_path.open("w", encoding="utf-8") as f:
+        for event in full_events:
+            f.write(json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n")
+
+    summary = reconstruct_lg_d1_stream_summary_from_jsonl(operator_log_path)
+    stream_summary_path.write_text(
+        json.dumps(summary, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    stream_summary_payload_hash = _hash_payload(summary)
+    stream_metadata = lg_d1_llm_stream_runtime_metadata(
+        real_llm_provider_api=bool(record.run_config.get("real_llm_provider_api")),
+        llm_interactions=record.llm_interactions,
+    )
+    return {
+        "schema_version": "lg-d1.operator-log-artifacts.v1",
+        "operator_event_schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
+        "stream_summary_schema_version": LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
+        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+        "graph_stream_status": graph_stream_status,
+        "langgraph_stream_status": graph_stream_status,
+        "operator_log_path": str(operator_log_path),
+        "operator_log_hash": _hash_file(operator_log_path),
+        "stream_summary_path": str(stream_summary_path),
+        "stream_summary_hash": _hash_file(stream_summary_path),
+        "stream_summary_payload_hash": stream_summary_payload_hash,
+        "operator_event_count": len(full_events),
+        "run_record_path_hash": run_record_path_hash,
+        "llm_stream_required": stream_metadata["llm_stream_required"],
+        "llm_stream_config_enabled": stream_metadata["llm_stream_config_enabled"],
+        "llm_stream_include_usage_config_enabled": stream_metadata["llm_stream_include_usage_config_enabled"],
+        "llm_stream_observed": stream_metadata["llm_stream_observed"],
+        "llm_stream_observation_source": stream_metadata["llm_stream_observation_source"],
+        "llm_stream_interaction_count": stream_metadata["llm_stream_interaction_count"],
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+    }
 
 
 def _package_version(name: str) -> str:
@@ -655,6 +1180,14 @@ def _trace_node(graph_state: _GraphLoopState, node_id: str, event: str = "node_e
     trace = list(graph_state.get("graph_trace", []) or [])
     trace.append({"node_id": node_id, "event": event, "instrumentation_layer": "langgraph", **_jsonable(payload)})
     graph_state["graph_trace"] = trace
+    stage_ids = _node_stage_ids_by_node_id().get(node_id, [])
+    _append_lg_d1_operator_event(
+        graph_state,
+        event_type=event,
+        node=node_id,
+        stage_id=stage_ids[0] if len(stage_ids) == 1 else None,
+        payload={"graph_trace_index": len(trace) - 1, "stage_ids": stage_ids, **payload},
+    )
     runtime_state = graph_state.get("runtime_state")
     if isinstance(runtime_state, _RunState):
         _append_flow_log(
@@ -1352,6 +1885,107 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
     write_agent_loop_run_record(record, path)
 
 
+def _augment_run_record_with_lg_d1_operator_log(
+    result: AgentLoopResult,
+    *,
+    operator_events: list[dict[str, Any]],
+    graph_stream_status: str,
+    operator_stream_enabled: bool,
+) -> None:
+    if not operator_stream_enabled or not result.run_record_path:
+        return
+    path = result.run_record_path
+    record = read_agent_loop_run_record(path)
+    artifacts = _write_lg_d1_operator_artifacts(
+        record=record,
+        run_record_path=path,
+        operator_events=operator_events,
+        graph_stream_status=graph_stream_status,
+    )
+    record.run_config["lg_d1_operator_log_enabled"] = True
+    record.run_config["instrumentation_layer_detail"] = LG_D1_INSTRUMENTATION_LAYER
+    record.environment["lg_d1_operator_log_enabled"] = True
+    record.environment["lg_d1_instrumentation_layer"] = LG_D1_INSTRUMENTATION_LAYER
+    record.environment["lg_d1_graph_stream_status"] = graph_stream_status
+    record.environment["llm_stream_required"] = artifacts["llm_stream_required"]
+    record.environment["llm_stream_config_enabled"] = artifacts["llm_stream_config_enabled"]
+    record.environment["llm_stream_include_usage_config_enabled"] = artifacts["llm_stream_include_usage_config_enabled"]
+    record.environment["llm_stream_observed"] = artifacts["llm_stream_observed"]
+    record.environment["llm_stream_observation_source"] = artifacts["llm_stream_observation_source"]
+    record.environment["llm_stream_interaction_count"] = artifacts["llm_stream_interaction_count"]
+    record.final_artifacts["operator_log"] = artifacts
+    record.logs.append(
+        {
+            "event": "lg_d1_operator_log_artifacts",
+            "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "operator_event_count": artifacts["operator_event_count"],
+            "operator_log_hash": artifacts["operator_log_hash"],
+            "stream_summary_hash": artifacts["stream_summary_hash"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
+    write_agent_loop_run_record(record, path)
+
+
+def _run_graph_with_lg_d1_stream(
+    app: Any,
+    *,
+    initial_state: _GraphLoopState,
+    run_id: str,
+    operator_stream_enabled: bool,
+) -> tuple[_GraphLoopState, list[dict[str, Any]], str]:
+    if not operator_stream_enabled:
+        state = app.invoke(initial_state, config={"configurable": {"thread_id": run_id}})
+        return state, [], "disabled"
+
+    final_state: _GraphLoopState | None = None
+    operator_events: list[dict[str, Any]] = []
+    try:
+        stream_iter = app.stream(
+            initial_state,
+            config={"configurable": {"thread_id": run_id}},
+            stream_mode="updates",
+        )
+    except TypeError as exc:
+        # Some LangGraph versions can expose invoke but lack the exact stream
+        # signature.  A non-generator ``stream`` implementation can still run
+        # arbitrary setup/provider code before raising ``TypeError``; replaying
+        # with ``invoke`` would risk duplicate LLM calls and corrupted academic
+        # evidence.  Fail loud instead of making an unauditable fallback.
+        raise RuntimeError(
+            "LangGraph stream setup failed with TypeError; refusing fallback invoke because "
+            "stream setup may already have provider/stage side effects"
+        ) from exc
+    for chunk in stream_iter:
+        if not isinstance(chunk, dict):
+            continue
+        for node_id, update in chunk.items():
+            if not isinstance(update, dict):
+                continue
+            operator_events = _merge_operator_events(operator_events, update.get("operator_events"))
+            final_state = update  # LangGraph Command nodes return the graph-state update.
+            operator_events.append(
+                build_lg_d1_operator_event(
+                    run_id=run_id,
+                    event_type="node_exit",
+                    node=str(node_id),
+                    stage_id=_primary_stage_id_for_node(str(node_id)),
+                    payload=_safe_node_exit_payload(update),
+                )
+            )
+    if final_state is None:
+        checkpoint = app.get_state({"configurable": {"thread_id": run_id}})
+        state = getattr(checkpoint, "values", {}) if checkpoint is not None else {}
+        if isinstance(state, dict) and "runtime_result" in state:
+            operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
+            return state, operator_events, "degraded_with_reason:langgraph_stream_updates_empty_checkpoint_recovered"
+        raise RuntimeError(
+            "LangGraph stream produced no usable updates and no checkpoint runtime_result; "
+            "refusing fallback invoke because stream execution may already have provider/stage side effects"
+        )
+    return final_state, operator_events, "enabled"
+
+
 def run_full_staged_langgraph_runtime(
     nl: str,
     *,
@@ -1363,6 +1997,7 @@ def run_full_staged_langgraph_runtime(
     run_id: str | None = None,
     provider: ChatProvider | None = None,
     called_from_loop: bool = False,
+    operator_stream_enabled: bool = True,
 ) -> AgentLoopResult:
     """Run the canonical full-staged loop through the default LangGraph runtime."""
 
@@ -1391,10 +2026,12 @@ def run_full_staged_langgraph_runtime(
         "checkpoint_serde": "pickle",
         "runtime_schema_version": GRAPH_RUNTIME_SCHEMA_VERSION,
         "node_edge_schema_version": NODE_EDGE_SCHEMA_VERSION,
+        "lg_d1_operator_stream_enabled": bool(operator_stream_enabled),
     }
     graph_config_hash = _hash_payload(graph_config)
     metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash)
     run_id = run_id or config.run_id or f"pr-langgraph-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
+    initial_lg_d1_stream_metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=config.llm_provider_mode == "real_env")
     runtime_cfg = FullStagedRuntimeConfig(
         initial_dsl=initial_dsl,
         run_id=run_id,
@@ -1414,6 +2051,9 @@ def run_full_staged_langgraph_runtime(
             "graph_registry_consistency": consistency,
             "graph_config_hash": graph_config_hash,
             "instrumentation_layer": "langgraph",
+            "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
+            "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
             "stage_semantics_module": "method.staged_runtime",
         },
         environment_extra={
@@ -1422,6 +2062,9 @@ def run_full_staged_langgraph_runtime(
             "stage_semantics_module": "method.staged_runtime",
             "loop_entrypoint": "method.loop.run_agent_loop" if called_from_loop else "method.langgraph_runtime.run_full_staged_langgraph_runtime",
             "record_schema_version": "pr-c.default-full-staged-runtime.v1",
+            "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
+            "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            **initial_lg_d1_stream_metadata,
         },
         real_llm_provider_api=config.llm_provider_mode == "real_env",
         provider_config_read=_provider_config_read(config),
@@ -1429,12 +2072,30 @@ def run_full_staged_langgraph_runtime(
         default_loop_config_entry_integrated=called_from_loop or config.condition_id == "full_staged_v1",
     )
     app = _build_graph(runtime_cfg=runtime_cfg, adapters=adapters)
-    state = app.invoke({"nl": nl, "graph_trace": []}, config={"configurable": {"thread_id": run_id}})
+    state, operator_events, graph_stream_status = _run_graph_with_lg_d1_stream(
+        app,
+        initial_state={
+            "nl": nl,
+            "graph_trace": [],
+            "operator_events": [],
+            "operator_stream_enabled": bool(operator_stream_enabled),
+            "run_id": run_id,
+        },
+        run_id=run_id,
+        operator_stream_enabled=bool(operator_stream_enabled),
+    )
     result = state.get("runtime_result")
     if not isinstance(result, AgentLoopResult):
         raise TypeError("LangGraph runtime did not return an AgentLoopResult")
     graph_trace = list(state.get("graph_trace", []) or [])
     _augment_run_record_with_graph_trace(result, graph_trace)
+    operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
+    _augment_run_record_with_lg_d1_operator_log(
+        result,
+        operator_events=operator_events,
+        graph_stream_status=graph_stream_status,
+        operator_stream_enabled=bool(operator_stream_enabled),
+    )
     result.resolved_config = resolved
     result.planned_stage_graph = planned
     return result
