@@ -1,26 +1,28 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:43`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
-| 文库状态 | PR-2 软工 / 需求会议已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
+| 文库状态 | PR-2 软工 / 需求会议与 PR-3 形式化 / 验证会议已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
-| 已建立并基础核验 venue 目录 | 11 |
-| 已建立并基础核验年度 README | 77 |
 | 已完成会议试点 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
 | 已完成期刊试点 venue | 3：[`journal-a-tse`](./journal-a-tse/README.md)、[`journal-a-tosem`](./journal-a-tosem/README.md)、[`journal-b-sosym`](./journal-b-sosym/README.md) |
 | 已完成 PR-2 会议 venue | 5：[`conf-a-fse`](./conf-a-fse/README.md)、[`conf-a-ase`](./conf-a-ase/README.md)、[`conf-a-issta`](./conf-a-issta/README.md)、[`conf-b-re`](./conf-b-re/README.md)、[`conf-c-refsq`](./conf-c-refsq/README.md) |
+| 已完成 PR-3 会议 venue | 8：[`conf-a-fm`](./conf-a-fm/README.md)、[`conf-a-cav`](./conf-a-cav/README.md)、[`conf-b-vmcai`](./conf-b-vmcai/README.md)、[`conf-b-issre`](./conf-b-issre/README.md)、[`conf-c-icfem`](./conf-c-icfem/README.md)、[`conf-c-spin`](./conf-c-spin/README.md)、[`conf-c-atva`](./conf-c-atva/README.md)、[`conf-c-icst`](./conf-c-icst/README.md) |
+| PR-3 本轮交付 README | 64：8 个目标 venue 根 README + 56 个年度 README |
+| 已建立并基础核验 venue 目录 | 19 |
+| 已建立并基础核验年度 README | 133 |
 | 事实完全核验 venue 目录 | 0 |
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
-| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、期刊 rolling 表与 PR-2 会议 dated events，见 [TIMELINE.md](./TIMELINE.md) |
-| 核心人员情报状态 | 8 个会议根 README 已补会议核心人员情报；3 个期刊根 README 已补核心编辑人员画像并保留 `核验等级 / 当前性` |
-| 当前优先批次 | PR-3 / PR-4 后续 P0-B 形式化验证会议与剩余期刊，需沿用本轮合流后的 URL、人员、计数和 TIMELINE 规则 |
+| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、期刊 rolling 表、PR-2 会议 dated events 与 PR-3 会议 dated events，见 [TIMELINE.md](./TIMELINE.md) |
+| 核心人员情报状态 | 16 个会议根 README 已补会议核心人员情报；3 个期刊根 README 已补核心编辑人员画像并保留 `核验等级 / 当前性` |
+| 当前优先批次 | PR-3 正在收尾复审；后续 P0-A / PR-4 / PR-5 需沿用本轮合流后的 URL、人员、计数、TIMELINE 和冲突处理规则 |
 
-说明：当前统计表示 6 个试点 venue 与 5 个 PR-2 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口待复核等问题；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
+说明：当前统计表示 16 个会议 venue 与 3 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
 
 ## 2. 当前可复用的既有资源
 
@@ -116,7 +118,7 @@
 
 ## 8. P0 强相关 venue 后续填充清单
 
-P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个试点 venue 与 5 个 PR-2 venue 完成基础建档；其余条目仍为待建或待后续批次处理。
+P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个会议 / 期刊试点 venue、5 个 PR-2 venue 与 8 个 PR-3 venue 完成基础建档；其余条目仍为待建或待后续批次处理。
 
 | 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 |
 |---|---|---|---|---|---|
@@ -130,16 +132,16 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 | [`conf-b-re`](./conf-b-re/README.md) | 会议 | B | P1/P2 | PR-2 | 🟡 部分核验 |
 | `journal-b-re` | 期刊 | B | P1/P2 | P0-A | ⏳ 待建 |
 | [`journal-b-sosym`](./journal-b-sosym/README.md) | 期刊 | B | P1/P3 | 期刊试点 | 🟡 部分核验 |
-| `conf-a-fm` | 会议 | A | P2/P3 | P0-B | ⏳ 待建 |
-| `conf-a-cav` | 会议 | A | P3 | P0-B | ⏳ 待建 |
+| [`conf-a-fm`](./conf-a-fm/README.md) | 会议 | A | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
+| [`conf-a-cav`](./conf-a-cav/README.md) | 会议 | A | P3 | P0-B / PR-3 | 🟡 部分核验 |
 | [`conf-b-etaps`](./conf-b-etaps/README.md) | 会议 | B | P3 | 会议试点 | 🟡 部分核验 |
-| `conf-b-vmcai` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
-| `conf-b-issre` | 会议 | B | P2/P3 | P0-B | ⏳ 待建 |
+| [`conf-b-vmcai`](./conf-b-vmcai/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
+| [`conf-b-issre`](./conf-b-issre/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
 | `journal-b-stvr` | 期刊 | B | P2/P3 | P0-B | ⏳ 待建 |
-| `conf-c-icfem` | 会议 | C | P2/P3 | P0-B | ⏳ 待建 |
-| `conf-c-spin` | 会议 | C | P3 | P0-B | ⏳ 待建 |
-| `conf-c-atva` | 会议 | C | P3 | P0-B | ⏳ 待建 |
-| `conf-c-icst` | 会议 | C | P2/P3/P4 | P0-B | ⏳ 待建 |
+| [`conf-c-icfem`](./conf-c-icfem/README.md) | 会议 | C | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
+| [`conf-c-spin`](./conf-c-spin/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 |
+| [`conf-c-atva`](./conf-c-atva/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 |
+| [`conf-c-icst`](./conf-c-icst/README.md) | 会议 | C | P2/P3/P4 | P0-B / PR-3 | 🟡 部分核验 |
 | [`conf-c-refsq`](./conf-c-refsq/README.md) | 会议 | C | P1/P2 | PR-2 | 🟡 部分核验 |
 | `journal-c-sttt` | 期刊 | C | P3/P4 | P0-B | ⏳ 待建 |
 
@@ -232,14 +234,62 @@ P0 是“强相关先做完”的后续数据填充边界。当前已有 6 个�
 | REFSQ | 2028 | 未发现官方年度主页或 CFP | 年度页写 `⏳ 已检索未公布` | 后续复查 REFSQ official / researchr series |
 | SoSyM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 | SoSyM | 2026 | Digital Twins 是独立 rolling theme section，且 EDTConf'26 日期是 presentation target，不是普通 SoSyM 投稿 deadline | 只放 rolling / 待补记录，不进主 dated timeline | 后续若官方给出固定 journal submission deadline，再同步年度表与 Mermaid |
+| ATVA | 2026 | 未检索到独立官方年度主页 / CFP / dates；series page 不能冒充年度主页 | 年度页和根表写 `⏳ 已检索未公布`，series page 只作 fallback 检索入口 | 后续复查官方公告、年度页与 DBLP |
+| ISSRE | 2026 | 普通 `curl` 可能返回 404/WAF-like；Research CFP 曾因旧 deadline 与 extended deadline 并存而误读 | 已用带 UA 访问核验 extended dates，并用官方 organizing / research track committee 页面升级核心人员角色来源 | 后续补 accepted papers / proceedings 与历史年度 research-track count |
 
-## 14. 更新日志
+<!-- PR-3-SUMMARY-BEGIN -->
+## 14. PR-3 形式化 / 验证会议批量填充记录
+
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
+|---|---|---|---|---:|---|---|---|---|
+| FM | A | 2022-2028 | [conf-a-fm](./conf-a-fm/README.md) | 7 | 正式年度章节已同步 | 覆盖 FM 2026 chair / PC 与形式化方法代表人物；2027 organizer call 已降级为线索 | 2026 Springer Part I: 49 full + 2 short；2024/2023 待拆；2022/2025 无主会占位 | 🟡 部分核验 |
+| CAV | A | 2022-2028 | [conf-a-cav](./conf-a-cav/README.md) | 7 | 正式年度章节已同步 | 覆盖 CAV 2026 PC / verification 核心人员 | 2022 明确 40 full + 9 tool + 2 case；其他年度 proceedings / accepted 待拆 | 🟡 部分核验 |
+| VMCAI | B | 2022-2028 | [conf-b-vmcai](./conf-b-vmcai/README.md) | 7 | 正式年度章节已同步 | 覆盖 VMCAI 2026 organizing / steering 与 verification / abstract interpretation 学术线索 | 2026 dates / 2025 DBLP Part I/II 已入账，论文类别待拆 | 🟡 部分核验 |
+| ISSRE | B | 2022-2028 | [conf-b-issre](./conf-b-issre/README.md) | 7 | 正式年度章节已同步 | 覆盖 ISSRE 2026 General Chair、Research Program Committee Chair、Program Board / Artifact Evaluation Chair，并用官方 committee 页面支撑角色 | 2026 research track RES/PER/TAR 边界已写；abstract / paper deadline 均为 extended 后的 2026-04-24 AoE；历史 counts 待拆 | 🟡 部分核验 |
+| ICFEM | C | 2022-2028 | [conf-c-icfem](./conf-c-icfem/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICFEM 2026 Steering Committee、General Chair 与 Program Chair | 2022-2025 Springer/DBLP count：26/23/22/21；2026 待 accepted | 🟡 部分核验 |
+| SPIN | C | 2022-2028 | [conf-c-spin](./conf-c-spin/README.md) | 7 | 正式年度章节已同步 | 覆盖 SPIN 2025/2026 PC chair / steering 与 model checking 核心人员 | 2025=9 full，2024=14，2023=11；2022 8 full / 9 TOC 矛盾已标注 | 🟡 部分核验 |
+| ATVA | C | 2022-2028 | [conf-c-atva](./conf-c-atva/README.md) | 7 | 2022 dated events 已同步；2026-2028 未公布年度不造日期 | 覆盖 ATVA 2023/2024 organization 与 verification 核心人员 | 2022 使用独立年度主页与 Springer proceedings 口径；2026-2028 独立官方年页未公布 | 🟡 部分核验 |
+| ICST | C | 2022-2028 | [conf-c-icst](./conf-c-icst/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICST 2026 organizing / steering 与 testing 核心人员 | Research track 与 DBLP series-wide 已分开，历史 count 待拆 | 🟡 部分核验 |
+
+### 14.1 PR-3 踩坑记录
+
+1. **ATVA 2026 不能过度确认**：截至本轮核查未找到独立官方 ATVA 2026 年页；候选 researchr / APLAS-ATVA 路径不写作正式 CFP，避免把未确认入口变成事实。
+2. **ICST 必须区分 Research track 与 series-wide**：researchr program / dates 强 track 化，DBLP 年度页是 series-wide fallback，不可与 ICFEM / SPIN 的主会论文数横比。
+3. **SPIN 2022 存在计数冲突**：Springer book page 写 `8 full papers / 11 submissions`，TOC/DBLP 口径可见 `9 entries`；本库优先写 full-paper 口径并保留冲突。
+4. **FM 年度并非每年都有主系列主会**：2022 / 2025 未写成 FM 主会，2027 只记录 organizer call；避免把地区性或非主系列活动混入。
+5. **CAV 旧站路径需要人工点击复核**：证书问题可忽略，但 404 / old-domain path mismatch 不能当作有效来源；Springer/DBLP 是稳定 fallback。
+6. **ISSRE / ICST 与纯形式化会议不同**：research、industry、tool、artifact、workshop 必须分列，否则会直接破坏论文数量和验收口径。
+7. **TIMELINE 事件必须进入正式年度章节**：PR 临时增量表只能用于迁移审计，不能长期作为事实源；PR-3 事件已并入正式 2025--2027 年度章节与 Mermaid，风险节只保留未公布年度和来源降级记录。
+8. **踩坑必须写回规则**：来源冒充、角色源不足、访问异常、计数冲突、track 混算等如果会影响后续批次，必须同步写回 [GUIDE.md](./GUIDE.md)，不能只留在 PR comment 或单次总结中。
+
+### 14.2 PR-3 待补与风险记录
+
+| Venue | 年份 | 问题 | 当前处理 | 下一步 |
+|---|---|---|---|---|
+| FM | 2022 / 2025 | 未发现稳定 FM 主系列主会 edition | 年度页保留占位，不写成事实 | 后续复查 FM Europe / DBLP / Springer |
+| FM | 2027 | 只找到 organizer call | 标作主办征集中，不写 CFP | 等正式主页与 dates |
+| CAV | 2024 / 2023 / 2022 | old-domain / certificate / path 稳定性待人工复核 | 保留 official old-site 线索与 Springer/DBLP fallback | 用浏览器人工点击确认 |
+| VMCAI | 2026 | dates 页面存在 artifact / paper chain 噪声 | 年度页采用 paper chain Nov 6 / Nov 20，并标注风险 | proceedings 出版后复核 |
+| ISSRE | 2026 | Research CFP 普通 `curl` 可能 404/WAF-like，且旧 deadline 与 extended deadline 并存；accepted papers / proceedings 未公布 | 已用带 UA 访问核验 extended dates，并用官方 committee 页面支撑核心人员角色 | 后续补 accepted papers / proceedings 与历史年度 count |
+| ICFEM | 2022-2028 | 历史年度页曾把 2026 年度页误写成 `series / annual pages` 来源 | 已降级为“未发现独立稳定 series page；使用年度页 / CFP / DBLP index 各自承担来源职责” | 后续补 2022 历史 dates 的逐项 TIMELINE 同步，并继续等待 2027/2028 官方年页 |
+| ATVA | 2026 | 独立官方年页 / CFP 未检索到 | 不纳入 TIMELINE dated events | 官方公布后再补 |
+| ICST | 2025-2022 | DBLP 为 series-wide fallback | 不写主会 research count | 后续按 research program 拆 count |
+| upstream 合并 | PR-2 / PR-3 | `GUIDE.md`、`SUMMARY.md`、`TIMELINE.md` 同时修改导致冲突，存在吞掉 PR-2 或 PR-3 事实的风险 | 本轮按“已核验事实不互删”合并共享文件，并把冲突处理列入后续复审项 | 复审必须检查 PR-2 venue、PR-3 venue、期刊 rolling / dated events 与更新日志是否共存 |
+<!-- PR-3-SUMMARY-END -->
+
+
+## 15. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:43` | 收尾复审后修正 PR-3 小节编号为 14.1 / 14.2，并同步记录剩余 M 级 polish 已处理。 |
+| `2026-06-05 11:25` | 修复 PR-3 复审与 upstream merge 后的 SUMMARY 口径：直接写明 PR-3 64 README 交付物，更新 ISSRE official committee / extended deadline、ICFEM series page 降级、ATVA 2022 年度主页与 2022 dated events 同步结论，并校正更新日志降序。 |
+| `2026-06-05 10:58` | 合并上游 PR-2 后重算全库状态：当前 19 个 venue、133 个年度 README，保留 PR-2 / PR-3 完成表、P0 状态、期刊试点记录，并把冲突处理风险写入待补与 PR-3 风险记录。 |
+| `2026-06-05 10:04` | PR-3 合流与规则修复：把 PR-3 TIMELINE 状态改为正式年度章节已同步，补充 ATVA / ISSRE 来源降级风险，并把踩坑写回 GUIDE 作为后续批次纪律。 |
 | `2026-06-05 10:00` | 修复 PR-2 修复后复审发现的 ISSTA 2022/2023 会期漏入 TIMELINE 问题，并把会期同步检查主要沉淀到 GUIDE。 |
+| `2026-06-05 09:15` | PR-3 批量填充 8 个形式化 / 验证会议：新增 FM、CAV、VMCAI、ISSRE、ICFEM、SPIN、ATVA、ICST 根 README 与 56 个年度 README，同步 TIMELINE 正式年度章节、P0 状态、踩坑和待补记录。 |
 | `2026-06-05 08:46` | 完成 PR-2 软工 / 需求会议基础建档：新增 FSE、ASE、ISSTA、RE、REFSQ 共 5 个 venue、35 个年度 README，同步 TIMELINE，并记录 PR-2 计数 / proceedings / co-location 待补项。 |
 | `2026-06-05 00:36` | 合入 PR-1B 期刊试点后完成 SUMMARY 合流：重算 6 个 venue / 42 个年度 README，保留会议试点与期刊试点事实、踩坑记录、P0 状态和待补记录。 |
 | `2026-06-04 23:27` | 修复 PR-1B 复审 I 级问题：补充 TOSEM 在 ACM DL editorial-board 403 后的替代核验路径，并统一 SoSyM 复审时间戳为分钟粒度。 |

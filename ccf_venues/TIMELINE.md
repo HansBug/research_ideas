@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 11:25`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -33,6 +33,8 @@
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-06-15 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended abstract | Abstract | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | extended deadline；无 artifact evaluation。 |
+| 2026-06-22 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended full paper | Submission | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | extended full-paper deadline。 |
 | 2026-06-23 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track abstract | Abstract | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
 | 2026-06-30 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track submission | Submission | 🟢 投稿中 | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | AoE / UTC-12h，官方仅日期。 |
 | 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；另有 intent 2026-02-15 与 notification 2026-10-15。 |
@@ -66,17 +68,37 @@
 5. 图中展示 label 必须使用 **venue edition 年份** 而不是事件发生年份；例如 `FSE 2026` 的 2025 年 submission 应显示 `FSE26 Submission`，事件 id 可继续包含事件发生日期保证唯一性。
 
 
-## 6. 2028 时间线
+<!-- PR-3-BEGIN -->
+## 6. PR-3 合流审计与风险记录
+
+> PR-3 的 dated events 已并入 §8--§10 的正式年度时间线与 Mermaid；本节只保留未公布年度、来源降级和后续复查风险，不再作为事实事件源。后续若新增 PR-3 venue 日期，必须直接更新正式年度章节，不得恢复临时增量事实表。
+
+| Venue | 年份 | 当前处理 | 下一步 |
+|---|---:|---|---|
+| FM | 2027 | 只找到 FM Europe organizer call；未写成正式 CFP | 等正式主页 / CFP / dates |
+| FM | 2028 | 未检索到官方年页 | 后续复查 FM Europe / researchr / Springer |
+| CAV | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 CAV official series |
+| VMCAI | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 researchr series |
+| ISSRE | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 ISSRE official pages |
+| ICFEM | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 ICFEM official annual pages |
+| SPIN | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 SPIN GitHub pages |
+| ATVA | 2026-2028 | 未检索到独立官方年页；候选路径不写作正式事实 | 后续用浏览器 / 官方公告复核，不以第三方聚合页替代 |
+| ICST | 2027 | 只公布 home/dates shell 和会期；Research track / CFP 未公布 | 后续补 research track 和 submission dates |
+| ICST | 2028 | 未检索到官方年页 / CFP | 后续复查 researchr series |
+<!-- PR-3-END -->
+
+
+## 7. 2028 时间线
 
 > 当前章节按 **2028 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 6.1 2028 投稿事件总表
+### 7.1 2028 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 2028-04-02 至 2028-04-07 | [ETAPS/TACAS 2028](./conf-b-etaps/2028/README.md) | 会议-B | ETAPS conference dates | Conference | 🟦 已有主页 | [官方来源](https://etaps.org/2028/) | [年度主页](https://etaps.org/2028/) | 未公布 | [本库年度页](./conf-b-etaps/2028/README.md) | 🟡 部分核验 | 仅主页公开，CFP / TACAS dates 未公布。 |
 
-### 6.2 2028 Mermaid 可视化
+### 7.2 2028 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -89,11 +111,11 @@ gantt
 
 ```
 
-## 7. 2027 时间线
+## 8. 2027 时间线
 
 > 当前章节按 **2027 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 7.1 2027 投稿事件总表
+### 8.1 2027 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -107,9 +129,10 @@ gantt
 | 2027-04-12 至 2027-04-15 | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | Main conferences / TACAS dates | Conference | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | CFP 明确写明 MAIN CONFERENCES / Main Conference: April 12–15, 2027；TACAS 属 main conferences。 |
 | 2027-04-12 至 2027-04-15 | [REFSQ 2027](./conf-c-refsq/2027/README.md) | 会议-C | Conference dates | Conference | 🟢 投稿中 | [官方来源](https://2027.refsq.org/dates/refsq-2027) | [年度主页](https://2027.refsq.org/) | 未公布 | [本库年度页](./conf-c-refsq/2027/README.md) | 🟡 部分核验 | REFSQ official dates；Springer / DBLP 入口分散时以年度页说明为准。 |
 | 2027-04-25 至 2027-05-01 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Conference dates | Conference | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | Dublin, Ireland。 |
+| 2027-05-17 至 2027-05-21 | [ICST 2027](./conf-c-icst/2027/README.md) | 会议-C | Conference dates | Conference | 🟦 已有主页 | [ICST 2027 home](https://conf.researchr.org/home/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 未公布 | [本库年度页](./conf-c-icst/2027/README.md) | 🟡 部分核验 | Research track / CFP 未公布；只记录已公开会期。 |
 | 2027-07-12 至 2027-07-16 | [FSE 2027](./conf-a-fse/2027/README.md) | 会议-A | Conference dates | Conference | 🟦 已有主页 | [官方来源](https://conf.researchr.org/home/fse-2027) | [年度主页](https://conf.researchr.org/home/fse-2027) | 未公布 | [本库年度页](./conf-a-fse/2027/README.md) | 🟡 部分核验 | CFP / deadlines 未公布；仅会期。 |
 
-### 7.2 2027 Mermaid 可视化
+### 8.2 2027 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -136,47 +159,79 @@ gantt
   REFSQ27 Camera :milestone, refsq_2027_2_20270204, 2027-02-04, 1d
   REFSQ27 Conference :refsq_2027_3_20270412, 2027-04-12, 2027-04-15
 
+  section ICST
+  ICST27 Conference :icst2027_conf, 2027-05-17, 2027-05-21
+
 ```
 
-## 8. 2026 时间线
+## 9. 2026 时间线
 
 > 当前章节按 **2026 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 8.1 2026 投稿事件总表
+### 9.1 2026 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 2026-01-08 待补时刻 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS voluntary artifact submission | Submission | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
+| 2026-01-12 至 2026-01-13 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Conference dates | Conference | ✅ 已结束 | [VMCAI 2026 home](https://conf.researchr.org/home/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | POPL co-located；proceedings / DBLP 尚未闭合。 |
 | 2026-01-16 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track camera-ready, cycle 2 revised | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2026-01-19 待补时刻 AoE | [REFSQ 2026](./conf-c-refsq/2026/README.md) | 会议-C | Research camera-ready | Camera-ready | ✅ 已结束 | [官方来源](https://2026.refsq.org/dates/refsq-2026) | [年度主页](https://2026.refsq.org/) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | [本库年度页](./conf-c-refsq/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-01-22 待补时刻 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS final version | Camera-ready | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
+| 2026-01-22 待补时刻 AoE | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Abstract | Abstract | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | 官方只给日期 / AoE。 |
+| 2026-01-28 待补时刻 AoE | [CAV 2026](./conf-a-cav/2026/README.md) | 会议-A | Full paper submission | Submission | 🟡 已通知 / 待会期 | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 未公布 | [本库年度页](./conf-a-cav/2026/README.md) | 🟡 部分核验 | 不混入 artifact/workshop。 |
+| 2026-01-29 待补时刻 AoE | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Paper submission | Submission | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | tool artifact 单列。 |
 | 2026-01-29 23:59 AoE | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Research papers submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | Co-located with SPLASH/ISSTA 2026；只按 ISSTA 独立计数。 |
+| 2026-02-05 待补时刻 AoE | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Tool artifact submission | Submission | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | artifact 不混入 full-paper count。 |
+| 2026-02-06 待补时刻 | [FM 2026](./conf-a-fm/2026/README.md) | 会议-A | Author notification | Notification | ✅ 已结束 | [FM 2026 Dates](https://conf.researchr.org/dates/fm-2026) | [FM 2026](https://conf.researchr.org/home/fm-2026) | [Springer Part I](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [本库年度页](./conf-a-fm/2026/README.md) | 🟡 部分核验 | Springer Part I count 不混入 invited/tutorial/industry。 |
 | 2026-02-12 待补时刻 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS artifact notification | Notification | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
 | 2026-02-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Intent | ✅ 已过去 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期；intent to submit 已过去，保留为专刊完整日期链。 |
 | 2026-02-16 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers abstract | Abstract | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
+| 2026-02-20 待补时刻 | [ICST 2026](./conf-c-icst/2026/README.md) | 会议-C | Research author notification | Notification | ✅ 已结束 | [ICST 2026 dates](https://conf.researchr.org/dates/icst-2026) | [ICST 2026](https://conf.researchr.org/home/icst-2026) | [Program](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | [本库年度页](./conf-c-icst/2026/README.md) | 🟡 部分核验 | Research / Industry / Tool / Workshop 不混算。 |
 | 2026-02-23 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers submission | Submission | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
+| 2026-03-02 待补时刻 | [FM 2026](./conf-a-fm/2026/README.md) | 会议-A | Final version | Camera-ready | ✅ 已结束 | [FM 2026 Dates](https://conf.researchr.org/dates/fm-2026) | [FM 2026](https://conf.researchr.org/home/fm-2026) | [Springer Part I](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [本库年度页](./conf-a-fm/2026/README.md) | 🟡 部分核验 | final version deadline。 |
+| 2026-03-05 待补时刻 | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Notification | Notification | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | additional artifact notification 另列。 |
+| 2026-03-06 待补时刻 | [ICST 2026](./conf-c-icst/2026/README.md) | 会议-C | Research camera-ready | Camera-ready | ✅ 已结束 | [ICST 2026 dates](https://conf.researchr.org/dates/icst-2026) | [ICST 2026](https://conf.researchr.org/home/icst-2026) | [Program](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | [本库年度页](./conf-c-icst/2026/README.md) | 🟡 部分核验 | Research track chain。 |
+| 2026-03-12 待补时刻 | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Non-tool artifact submission | Submission | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | artifact 单列。 |
 | 2026-03-20 待补时刻 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers abstract | Abstract | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-03-23 至 2026-03-26 | [REFSQ 2026](./conf-c-refsq/2026/README.md) | 会议-C | Conference dates | Conference | ✅ 已结束 | [官方来源](https://2026.refsq.org/dates/refsq-2026) | [年度主页](https://2026.refsq.org/) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | [本库年度页](./conf-c-refsq/2026/README.md) | 🟡 部分核验 | REFSQ official dates；Springer / DBLP 入口分散时以年度页说明为准。 |
 | 2026-03-24 23:59 AoE | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Major revision final notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
 | 2026-03-26 待补时刻 AoE | [ASE 2026](./conf-a-ase/2026/README.md) | 会议-A | Research Track paper submission | Submission | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [年度主页](https://conf.researchr.org/home/ase-2026) | 未公布 | [本库年度页](./conf-a-ase/2026/README.md) | 🟡 部分核验 | 官方未列 abstract deadline。 |
 | 2026-03-27 待补时刻 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers submission | Submission | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
+| 2026-03-30 至 2026-04-02 | [CAV 2026](./conf-a-cav/2026/README.md) | 会议-A | Author response | Rebuttal | 🟡 已通知 / 待会期 | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 未公布 | [本库年度页](./conf-a-cav/2026/README.md) | 🟡 部分核验 | response window。 |
+| 2026-04-09 待补时刻 | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Additional artifact notification | Notification | ✅ 已结束 | [SPIN 2026 CFP](https://spin-web.github.io/SPIN2026/cfp) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | artifact 单列。 |
 | 2026-04-11 至 2026-04-16 | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | ETAPS conference dates | Conference | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | Turin, Italy。 |
 | 2026-04-12 至 2026-04-18 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | Rio de Janeiro, Brazil。 |
+| 2026-04-15 至 2026-04-16 | [SPIN 2026](./conf-c-spin/2026/README.md) | 会议-C | Symposium | Conference | ✅ 已结束 | [SPIN 2026 home](https://spin-web.github.io/SPIN2026/) | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | 未公布 | [本库年度页](./conf-c-spin/2026/README.md) | 🟡 部分核验 | proceedings count 待闭合。 |
 | 2026-04-16 23:59 AoE | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Initial notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
+| 2026-04-17 待补时刻 | [CAV 2026](./conf-a-cav/2026/README.md) | 会议-A | Notification | Notification | 🟡 已通知 / 待会期 | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 未公布 | [本库年度页](./conf-a-cav/2026/README.md) | 🟡 部分核验 | paper notification。 |
+| 2026-04-24 待补时刻 AoE | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Research abstract | Abstract | 🟡 审稿中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | 官方将旧 abstract deadline 2026-04-10 extended 到 2026-04-24；普通 curl 可能 404，带 UA 可 200。 |
+| 2026-04-24 待补时刻 AoE | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Research paper submission | Submission | 🟡 审稿中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | 官方将旧 paper deadline 2026-04-17 extended 到 2026-04-24。 |
 | 2026-05-08 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
+| 2026-05-15 待补时刻 | [CAV 2026](./conf-a-cav/2026/README.md) | 会议-A | Camera-ready | Camera-ready | 🟡 已通知 / 待会期 | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 未公布 | [本库年度页](./conf-a-cav/2026/README.md) | 🟡 部分核验 | paper camera-ready。 |
+| 2026-05-18 至 2026-05-22 | [FM 2026](./conf-a-fm/2026/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [FM 2026 home](https://conf.researchr.org/home/fm-2026) | [FM 2026](https://conf.researchr.org/home/fm-2026) | [Springer Part I](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [本库年度页](./conf-a-fm/2026/README.md) | 🟡 部分核验 | Tokyo。 |
+| 2026-05-18 至 2026-05-22 | [ICST 2026](./conf-c-icst/2026/README.md) | 会议-C | Conference dates | Conference | ✅ 已结束/待 proceedings | [ICST 2026 home](https://conf.researchr.org/home/icst-2026) | [ICST 2026](https://conf.researchr.org/home/icst-2026) | [Program](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | [本库年度页](./conf-c-icst/2026/README.md) | 🟡 部分核验 | Daejeon。 |
 | 2026-05-27 至 2026-05-29 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers author response | Rebuttal | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
+| 2026-06-05 至 2026-06-09 | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Rebuttal | Rebuttal | 🟡 复审中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | 当前日期附近；revision chain 另列。 |
 | 2026-06-08 待补时刻 AoE | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
+| 2026-06-15 待补时刻 | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Early decision | Notification | 🟡 复审中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | early notification / decisions。 |
+| 2026-06-15 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended abstract | Abstract | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | 无 artifact evaluation。 |
 | 2026-06-17 待补时刻 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-06-18 待补时刻 AoE | [ASE 2026](./conf-a-ase/2026/README.md) | 会议-A | Initial notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [年度主页](https://conf.researchr.org/home/ase-2026) | 未公布 | [本库年度页](./conf-a-ase/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
+| 2026-06-22 待补时刻 AoE | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Extended full paper | Submission | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | extended deadline。 |
 | 2026-06-23 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track abstract | Abstract | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2026-06-25 23:59 AoE | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Final notification | Notification | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
 | 2026-06-30 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track submission | Submission | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2026-07-05 至 2026-07-09 | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Conference dates | Conference | 🔵 会期临近 | [官方来源](https://conf.researchr.org/home/fse-2026) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | Montreal, Canada。 |
+| 2026-07-08 待补时刻 | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Final notification | Notification | 🟡 审稿中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | revised decision chain。 |
 | 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Paper submission deadline；官方仅给日期，未给具体时刻。 |
 | 2026-07-16 待补时刻 AoE | [ASE 2026](./conf-a-ase/2026/README.md) | 会议-A | Revision submission | Camera-ready | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [年度主页](https://conf.researchr.org/home/ase-2026) | 未公布 | [本库年度页](./conf-a-ase/2026/README.md) | 🟡 部分核验 | Major revision only。 |
+| 2026-07-26 至 2026-07-29 | [CAV 2026](./conf-a-cav/2026/README.md) | 会议-A | Main conference | Conference | 🟡 已通知 / 待会期 | [CAV 2026 home](https://conferences.i-cav.org/2026/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 未公布 | [本库年度页](./conf-a-cav/2026/README.md) | 🟡 部分核验 | FLoC Lisbon。 |
 | 2026-07-31 待补时刻 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-08-03 待补时刻 AoE | [ASE 2026](./conf-a-ase/2026/README.md) | 会议-A | Camera-ready | Camera-ready | 🟡 审稿中 | [官方来源](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [年度主页](https://conf.researchr.org/home/ase-2026) | 未公布 | [本库年度页](./conf-a-ase/2026/README.md) | 🟡 部分核验 | All papers。 |
+| 2026-08-08 待补时刻 | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Acceptance notification | Notification | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | acceptance notification。 |
 | 2026-08-17 至 2026-08-21 | [RE 2026](./conf-b-re/2026/README.md) | 会议-B | Conference dates | Conference | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/RE-2026) | [年度主页](https://conf.researchr.org/home/RE-2026) | 未公布 | [本库年度页](./conf-b-re/2026/README.md) | 🟡 部分核验 | IEEE RE conference dates。 |
+| 2026-08-19 待补时刻 | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Camera-ready | Camera-ready | 🟡 审稿中 | [ISSRE 2026 Research CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | research track camera-ready。 |
+| 2026-09-07 待补时刻 | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Camera-ready | Camera-ready | 🟢 投稿中 | [ICFEM 2026 Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | final version deadline。 |
 | 2026-09-23 至 2026-09-25 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track author response | Rebuttal | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2026-10-03 至 2026-10-09 | [ISSTA 2026](./conf-a-issta/2026/README.md) | 会议-A | Conference dates | Conference | 🔵 会期临近 | [官方来源](https://conf.researchr.org/home/issta-2026) | [年度主页](https://conf.researchr.org/home/issta-2026) | 未公布 | [本库年度页](./conf-a-issta/2026/README.md) | 🟡 部分核验 | Oakland, California；co-location 不改变 ISSTA 独立计数。 |
 | 2026-10-04 至 2026-10-09 | [MoDELS 2026](./conf-b-models/2026/README.md) | 会议-B | Conference dates | Conference | 🟡 审稿中 | [官方来源](https://conf.researchr.org/dates/models-2026) | [年度主页](https://conf.researchr.org/home/models-2026) | 未公布 | [本库年度页](./conf-b-models/2026/README.md) | 🟡 部分核验 | Málaga, Spain。 |
@@ -184,16 +239,18 @@ gantt
 | 2026-10-15 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS paper submission | Submission | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-10-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Notification | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | submission deadline 尚未到；notification 为后续节点。 |
 | 2026-10-20 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track notification | Notification | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
+| 2026-10-20 至 2026-10-23 | [ISSRE 2026](./conf-b-issre/2026/README.md) | 会议-B | Conference dates | Conference | 🟡 复审中 | [ISSRE 2026 home](https://cyprusconferences.org/issre2026/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 未公布 | [本库年度页](./conf-b-issre/2026/README.md) | 🟡 部分核验 | Limassol。 |
 | 2026-10-29 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS mandatory artifact submission | Submission | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-11-05 待补时刻 AoE | [REFSQ 2027](./conf-c-refsq/2027/README.md) | 会议-C | Research abstract | Abstract | 🟢 投稿中 | [官方来源](https://2027.refsq.org/dates/refsq-2027) | [年度主页](https://2027.refsq.org/) | 未公布 | [本库年度页](./conf-c-refsq/2027/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-11-12 待补时刻 AoE | [REFSQ 2027](./conf-c-refsq/2027/README.md) | 会议-C | Research submission | Submission | 🟢 投稿中 | [官方来源](https://2027.refsq.org/dates/refsq-2027) | [年度主页](https://2027.refsq.org/) | 未公布 | [本库年度页](./conf-c-refsq/2027/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-11-17 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track major revision due | Camera-ready | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
+| 2026-11-17 至 2026-11-20 | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Conference dates | Conference | 🟢 投稿中 | [ICFEM 2026 home](https://icfem2026.github.io/) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | Southampton。 |
 | 2026-11-24 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track camera-ready direct | Camera-ready | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2026-12-07 至 2026-12-09 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS rebuttal | Rebuttal | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2026-12-18 待补时刻 | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track final decision | Notification | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2026-12-22 待补时刻 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS notification | Notification | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 
-### 8.2 2026 Mermaid 可视化
+### 9.2 2026 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -265,13 +322,48 @@ gantt
   SoSyM26 Special :milestone, sosym_2026_2_20260715, 2026-07-15, 1d
   SoSyM26 Notify :milestone, sosym_2026_3_20261015, 2026-10-15, 1d
 
+  section FM_CAV_VMCAI
+  VMCAI26 Conference :vmcai2026_conf, 2026-01-12, 2026-01-13
+  CAV26 Submit :milestone, cav2026_submit, 2026-01-28, 1d
+  FM26 Notify :milestone, fm2026_notify, 2026-02-06, 1d
+  FM26 Camera :milestone, fm2026_camera, 2026-03-02, 1d
+  CAV26 Response :cav2026_resp, 2026-03-30, 2026-04-02
+  CAV26 Notify :milestone, cav2026_notify, 2026-04-17, 1d
+  CAV26 Camera :milestone, cav2026_camera, 2026-05-15, 1d
+  FM26 Conference :fm2026_conf, 2026-05-18, 2026-05-22
+  CAV26 Conference :cav2026_conf, 2026-07-26, 2026-07-29
+
+  section ISSRE_ICFEM_SPIN_ICST
+  SPIN26 Abstract :milestone, spin2026_abs, 2026-01-22, 1d
+  SPIN26 Submit :milestone, spin2026_submit, 2026-01-29, 1d
+  SPIN26 ToolArtifact :milestone, spin2026_tool_art, 2026-02-05, 1d
+  ICST26 Notify :milestone, icst2026_notify, 2026-02-20, 1d
+  SPIN26 Notify :milestone, spin2026_notify, 2026-03-05, 1d
+  ICST26 Camera :milestone, icst2026_camera, 2026-03-06, 1d
+  SPIN26 NonToolArtifact :milestone, spin2026_non_tool_art, 2026-03-12, 1d
+  SPIN26 ArtifactNotify :milestone, spin2026_art_notify, 2026-04-09, 1d
+  SPIN26 Conference :spin2026_conf, 2026-04-15, 2026-04-16
+  ISSRE26 Abstract :milestone, issre2026_abs, 2026-04-24, 1d
+  ISSRE26 Submit :milestone, issre2026_submit, 2026-04-24, 1d
+  ICST26 Conference :icst2026_conf, 2026-05-18, 2026-05-22
+  ISSRE26 Rebuttal :issre2026_rebuttal, 2026-06-05, 2026-06-09
+  ISSRE26 EarlyDecision :milestone, issre2026_early, 2026-06-15, 1d
+  ICFEM26 Abstract :milestone, icfem2026_abs, 2026-06-15, 1d
+  ICFEM26 Submit :milestone, icfem2026_submit, 2026-06-22, 1d
+  ISSRE26 Notify :milestone, issre2026_notify, 2026-07-08, 1d
+  ICFEM26 Notify :milestone, icfem2026_notify, 2026-08-08, 1d
+  ISSRE26 Camera :milestone, issre2026_camera, 2026-08-19, 1d
+  ICFEM26 Camera :milestone, icfem2026_camera, 2026-09-07, 1d
+  ISSRE26 Conference :issre2026_conf, 2026-10-20, 2026-10-23
+  ICFEM26 Conference :icfem2026_conf, 2026-11-17, 2026-11-20
+
 ```
 
-## 9. 2025 时间线
+## 10. 2025 时间线
 
 > 当前章节按 **2025 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 9.1 2025 投稿事件总表
+### 10.1 2025 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -311,6 +403,9 @@ gantt
 | 2025-09-04 23:59 AoE | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Research Papers registration | Abstract | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | FSE 使用 paper registration；PACMSE FSE issue 不重复计数。 |
 | 2025-09-10 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track camera-ready direct, cycle 1 | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2025-09-11 23:59 AoE | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Research Papers submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
+| 2025-09-15 待补时刻 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Paper submission extended | Submission | ✅ 已结束 | [VMCAI 2026 dates](https://conf.researchr.org/dates/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | edition 为 2026，但事件发生在 2025。 |
+| 2025-09-17 待补时刻 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Artifact registration | Submission | ✅ 已结束 | [VMCAI 2026 dates](https://conf.researchr.org/dates/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | artifact chain。 |
+| 2025-09-22 待补时刻 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Artifact submission | Submission | ✅ 已结束 | [VMCAI 2026 dates](https://conf.researchr.org/dates/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | artifact chain。 |
 | 2025-09-23 至 2025-09-25 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track author response, cycle 2 | Rebuttal | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2025-10-05 至 2025-10-10 | [MoDELS 2025](./conf-b-models/2025/README.md) | 会议-B | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2025) | [年度主页](https://2025.models-conf.com/) | [Program](https://2025.models-conf.com/program/program-models-2025/) / [DBLP](https://dblp.org/db/conf/models/models2025.html) | [本库年度页](./conf-b-models/2025/README.md) | 🟡 部分核验 | Grand Rapids, Michigan。 |
 | 2025-10-10 待补时刻 AoE | [REFSQ 2026](./conf-c-refsq/2026/README.md) | 会议-C | Research abstract | Abstract | ✅ 已结束 | [官方来源](https://2026.refsq.org/dates/refsq-2026) | [年度主页](https://2026.refsq.org/) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | [本库年度页](./conf-c-refsq/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
@@ -318,16 +413,21 @@ gantt
 | 2025-10-17 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track notification / final, cycle 1 | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2025-10-17 待补时刻 AoE | [REFSQ 2026](./conf-c-refsq/2026/README.md) | 会议-C | Research submission | Submission | ✅ 已结束 | [官方来源](https://2026.refsq.org/dates/refsq-2026) | [年度主页](https://2026.refsq.org/) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | [本库年度页](./conf-c-refsq/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2025-10-30 待补时刻 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS mandatory artifact submission | Submission | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
+| 2025-11-06 待补时刻 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Author notification | Notification | ✅ 已结束 | [VMCAI 2026 dates](https://conf.researchr.org/dates/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | paper chain 使用 Nov 6 / Nov 20，避免误读 artifact line。 |
 | 2025-11-14 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track revision due, cycle 2 | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2025-11-16 至 2025-11-20 | [ASE 2025](./conf-a-ase/2025/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/home/ase-2025) | [年度主页](https://conf.researchr.org/home/ase-2025) | [Program](https://conf.researchr.org/program/ase-2025/program-ase-2025/) / [DBLP](https://dblp.org/db/conf/kbse/ase2025.html) | [本库年度页](./conf-a-ase/2025/README.md) | 🟡 部分核验 | Seoul, South Korea。 |
+| 2025-11-20 待补时刻 | [VMCAI 2026](./conf-b-vmcai/2026/README.md) | 会议-B | Camera-ready | Camera-ready | ✅ 已结束 | [VMCAI 2026 dates](https://conf.researchr.org/dates/VMCAI-2026) | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | 未公布 | [本库年度页](./conf-b-vmcai/2026/README.md) | 🟡 部分核验 | camera-ready。 |
+| 2025-11-25 待补时刻 | [FM 2026](./conf-a-fm/2026/README.md) | 会议-A | Optional abstract | Abstract | ✅ 已结束 | [FM 2026 Dates](https://conf.researchr.org/dates/fm-2026) | [FM 2026](https://conf.researchr.org/home/fm-2026) | [Springer Part I](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [本库年度页](./conf-a-fm/2026/README.md) | 🟡 部分核验 | optional abstract。 |
 | 2025-11-28 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track camera-ready | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
+| 2025-12-02 待补时刻 | [FM 2026](./conf-a-fm/2026/README.md) | 会议-A | Full paper submission | Submission | ✅ 已结束 | [FM 2026 Dates](https://conf.researchr.org/dates/fm-2026) | [FM 2026](https://conf.researchr.org/home/fm-2026) | [Springer Part I](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [本库年度页](./conf-a-fm/2026/README.md) | 🟡 部分核验 | official dates page。 |
 | 2025-12-08 至 2025-12-10 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS rebuttal | Rebuttal | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
 | 2025-12-15 待补时刻 AoE | [REFSQ 2026](./conf-c-refsq/2026/README.md) | 会议-C | Research notification | Notification | ✅ 已结束 | [官方来源](https://2026.refsq.org/dates/refsq-2026) | [年度主页](https://2026.refsq.org/) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | [本库年度页](./conf-c-refsq/2026/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2025-12-19 待补时刻 | [ICSE 2026](./conf-a-icse/2026/README.md) | 会议-A | Research Track final decision, cycle 2 | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [年度主页](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | [本库年度页](./conf-a-icse/2026/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2025-12-22 待补时刻 AoE | [ETAPS/TACAS 2026](./conf-b-etaps/2026/README.md) | 会议-B | TACAS notification | Notification | ✅ 已结束 | [官方来源](https://etaps.org/2026/cfp/) | [年度主页](https://etaps.org/2026/) | [Programme](https://etaps.org/2026/programme/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2026) | [本库年度页](./conf-b-etaps/2026/README.md) | 🟡 部分核验 | CFP 明确写明 All the dates are AoE；官方仅日期，具体时刻待补。 |
+| 2025-12-22 待补时刻 | [ICST 2026](./conf-c-icst/2026/README.md) | 会议-C | Research full paper submission | Submission | ✅ 已结束 | [ICST 2026 dates](https://conf.researchr.org/dates/icst-2026) | [ICST 2026](https://conf.researchr.org/home/icst-2026) | [Program](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | [本库年度页](./conf-c-icst/2026/README.md) | 🟡 部分核验 | edition 为 2026，但 submission 在 2025。 |
 | 2025-12-22 23:59 AoE | [FSE 2026](./conf-a-fse/2026/README.md) | 会议-A | Research Papers initial notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [年度主页](https://conf.researchr.org/home/fse-2026) | [Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | [本库年度页](./conf-a-fse/2026/README.md) | 🟡 部分核验 | 23:59 AoE / UTC-12h。 |
 
-### 9.2 2025 Mermaid 可视化
+### 10.2 2025 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -402,13 +502,23 @@ gantt
   REFSQ26 Submission :milestone, refsq_2025_5_20251017, 2025-10-17, 1d
   REFSQ26 Notify :milestone, refsq_2025_6_20251215, 2025-12-15, 1d
 
+  section VMCAI_FM_ICST
+  VMCAI26 Submit :milestone, vmcai2026_submit, 2025-09-15, 1d
+  VMCAI26 ArtifactReg :milestone, vmcai2026_artreg, 2025-09-17, 1d
+  VMCAI26 ArtifactSub :milestone, vmcai2026_artsub, 2025-09-22, 1d
+  VMCAI26 Notify :milestone, vmcai2026_notify, 2025-11-06, 1d
+  VMCAI26 Camera :milestone, vmcai2026_camera, 2025-11-20, 1d
+  FM26 Abstract :milestone, fm2026_abs, 2025-11-25, 1d
+  FM26 Submit :milestone, fm2026_submit, 2025-12-02, 1d
+  ICST26 Submit :milestone, icst2026_submit, 2025-12-22, 1d
+
 ```
 
-## 10. 2024 时间线
+## 11. 2024 时间线
 
 > 当前章节按 **2024 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 10.1 2024 投稿事件总表
+### 11.1 2024 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -468,7 +578,7 @@ gantt
 | 2024-12-19 23:59:59 AoE | [ISSTA 2025](./conf-a-issta/2025/README.md) | 会议-A | Research Papers initial notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2025/issta-2025-papers) | [年度主页](https://conf.researchr.org/home/issta-2025) | [Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/) / [DBLP companion](https://dblp.org/db/conf/issta/issta2025c.html) | [本库年度页](./conf-a-issta/2025/README.md) | 🟡 部分核验 | 官方 track 明确列出 initial notification。 |
 | 2024-12-20 待补时刻 | [ETAPS/TACAS 2025](./conf-b-etaps/2025/README.md) | 会议-B | TACAS notification | Notification | ✅ 已结束 | [官方来源](https://etaps.org/2025/cfp/) | [年度主页](https://etaps.org/2025/) | [Past conference](https://etaps.org/2025/past-conference/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2025) | [本库年度页](./conf-b-etaps/2025/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 
-### 10.2 2024 Mermaid 可视化
+### 11.2 2024 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -549,11 +659,11 @@ gantt
 
 ```
 
-## 11. 2023 时间线
+## 12. 2023 时间线
 
 > 当前章节按 **2023 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 11.1 2023 投稿事件总表
+### 12.1 2023 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -605,7 +715,7 @@ gantt
 | 2023-12-15 23:59 AoE | [ISSTA 2024](./conf-a-issta/2024/README.md) | 会议-A | Technical Papers submission, round 1 | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2024/issta-2024-papers) | [年度主页](https://conf.researchr.org/home/issta-2024) | [Program](https://conf.researchr.org/program/issta-2024/program-issta-2024/) / [DBLP](https://dblp.org/db/conf/issta/issta2024.html) | [本库年度页](./conf-a-issta/2024/README.md) | 🟡 部分核验 | Canonical track slug 为 `issta-2024-papers`；ISSTA 2024 有两轮 submission。 |
 | 2023-12-21 待补时刻 | [ETAPS/TACAS 2024](./conf-b-etaps/2024/README.md) | 会议-B | TACAS notification | Notification | ✅ 已结束 | [官方来源](https://etaps.org/2024/cfp/) | [年度主页](https://etaps.org/2024/) | [Past conference](https://etaps.org/2024/past-conference/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2024) | [本库年度页](./conf-b-etaps/2024/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 
-### 11.2 2023 Mermaid 可视化
+### 12.2 2023 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -678,11 +788,11 @@ gantt
 
 ```
 
-## 12. 2022 时间线
+## 13. 2022 时间线
 
 > 当前章节按 **2022 年实际发生的事件日期** 升序排列；Venue 名称保留会议 edition。
 
-### 12.1 2022 投稿事件总表
+### 13.1 2022 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -699,20 +809,25 @@ gantt
 | 2022-04-02 至 2022-04-07 | [ETAPS/TACAS 2022](./conf-b-etaps/2022/README.md) | 会议-B | ETAPS conference dates | Conference | ✅ 已结束 | [官方来源](https://etaps.org/2022/call-for-papers.html) | [年度主页](https://etaps.org/2022/) | [TACAS accepted](https://etaps.org/user-profile/archive/53-etaps-2022/495-tacas-2022-accepted-papers.html) / [Proceedings](https://etaps.org/2022/proceedings.html) | [本库年度页](./conf-b-etaps/2022/README.md) | 🟡 部分核验 | Munich, Germany。 |
 | 2022-04-29 待补时刻 AoE | [ASE 2022](./conf-a-ase/2022/README.md) | 会议-A | Abstract submission | Abstract | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/ase-2022/ase-2022-research-papers) | [年度主页](https://conf.researchr.org/home/ase-2022) | [Program](https://conf.researchr.org/program/ase-2022/program-ase-2022/) / [DBLP](https://dblp.org/db/conf/kbse/ase2022.html) | [本库年度页](./conf-a-ase/2022/README.md) | 🟡 部分核验 |  |
 | 2022-05-06 待补时刻 AoE | [ASE 2022](./conf-a-ase/2022/README.md) | 会议-A | Paper submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/ase-2022/ase-2022-research-papers) | [年度主页](https://conf.researchr.org/home/ase-2022) | [Program](https://conf.researchr.org/program/ase-2022/program-ase-2022/) / [DBLP](https://dblp.org/db/conf/kbse/ase2022.html) | [本库年度页](./conf-a-ase/2022/README.md) | 🟡 部分核验 |  |
+| 2022-05-08 待补时刻 AoE | [ATVA 2022](./conf-c-atva/2022/README.md) | 会议-C | Abstract submission | Abstract | ✅ 已结束 | [Important Dates](https://atva-conference.org/2022/important-dates/) | [ATVA 2022](https://atva-conference.org/2022/) | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [本库年度页](./conf-c-atva/2022/README.md) | 🟡 部分核验 | 官方将旧 abstract deadline 2022-05-01 AoE extended 到 2022-05-08 AoE。 |
 | 2022-05-08 至 2022-05-27 | [ICSE 2022](./conf-a-icse/2022/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2022/icse-2022-papers) | [年度主页](https://conf.researchr.org/home/icse-2022) | [Program](https://conf.researchr.org/program/icse-2022/program-icse-2022/) / [DBLP](https://dblp.org/db/conf/icse/icse2022.html) | [本库年度页](./conf-a-icse/2022/README.md) | 🟡 部分核验 | venue-wide 会期窗口。 |
 | 2022-05-09 待补时刻 AoE | [RE 2022](./conf-b-re/2022/README.md) | 会议-B | Research Papers notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/RE-2022) | [年度主页](https://conf.researchr.org/home/RE-2022) | [Program](https://conf.researchr.org/program/RE-2022/program-RE-2022/) / [DBLP](https://dblp.org/db/conf/re/re2022.html) | [本库年度页](./conf-b-re/2022/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
+| 2022-05-15 待补时刻 AoE | [ATVA 2022](./conf-c-atva/2022/README.md) | 会议-C | Paper submission | Submission | ✅ 已结束 | [Important Dates](https://atva-conference.org/2022/important-dates/) | [ATVA 2022](https://atva-conference.org/2022/) | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [本库年度页](./conf-c-atva/2022/README.md) | 🟡 部分核验 | 官方将旧 paper deadline 2022-05-08 AoE extended 到 2022-05-15 AoE。 |
 | 2022-05-18 待补时刻 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Technical Track abstract / submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | abstract 与 full paper 同日；官方仅日期，AoE；时刻待补。 |
 | 2022-06-13 待补时刻 AoE | [RE 2022](./conf-b-re/2022/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/RE-2022) | [年度主页](https://conf.researchr.org/home/RE-2022) | [Program](https://conf.researchr.org/program/RE-2022/program-RE-2022/) / [DBLP](https://dblp.org/db/conf/re/re2022.html) | [本库年度页](./conf-b-re/2022/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2022-06-28 至 2022-07-01 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Technical Track author response | Rebuttal | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
+| 2022-07-04 待补时刻 AoE | [ATVA 2022](./conf-c-atva/2022/README.md) | 会议-C | Notification | Notification | ✅ 已结束 | [Important Dates](https://atva-conference.org/2022/important-dates/) | [ATVA 2022](https://atva-conference.org/2022/) | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [本库年度页](./conf-c-atva/2022/README.md) | 🟡 部分核验 | 官方将旧 notification 2022-06-24 extended 到 2022-07-04 AoE。 |
 | 2022-07-12 待补时刻 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Technical Track notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2022-07-18 至 2022-07-22 | [ISSTA 2022](./conf-a-issta/2022/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/home/issta-2022) | [年度主页](https://conf.researchr.org/home/issta-2022) | [Program](https://conf.researchr.org/program/issta-2022/program-issta-2022/) / [DBLP](https://dblp.org/db/conf/issta/issta2022.html) | [本库年度页](./conf-a-issta/2022/README.md) | 🟡 部分核验 | Online；ISSTA 独立计数，不混入 co-located 入口。 |
 | 2022-07-20 待补时刻 AoE | [ASE 2022](./conf-a-ase/2022/README.md) | 会议-A | Author notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/ase-2022/ase-2022-research-papers) | [年度主页](https://conf.researchr.org/home/ase-2022) | [Program](https://conf.researchr.org/program/ase-2022/program-ase-2022/) / [DBLP](https://dblp.org/db/conf/kbse/ase2022.html) | [本库年度页](./conf-a-ase/2022/README.md) | 🟡 部分核验 |  |
+| 2022-08-01 待补时刻 AoE | [ATVA 2022](./conf-c-atva/2022/README.md) | 会议-C | Camera-ready | Camera-ready | ✅ 已结束 | [Important Dates](https://atva-conference.org/2022/important-dates/) | [ATVA 2022](https://atva-conference.org/2022/) | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [本库年度页](./conf-c-atva/2022/README.md) | 🟡 部分核验 | 官方将旧 camera-ready 2022-07-22 extended 到 2022-08-01 AoE。 |
 | 2022-08-08 待补时刻 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Technical Track camera-ready | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2022-08-15 至 2022-08-20 | [RE 2022](./conf-b-re/2022/README.md) | 会议-B | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/RE-2022) | [年度主页](https://conf.researchr.org/home/RE-2022) | [Program](https://conf.researchr.org/program/RE-2022/program-RE-2022/) / [DBLP](https://dblp.org/db/conf/re/re2022.html) | [本库年度页](./conf-b-re/2022/README.md) | 🟡 部分核验 | IEEE RE conference dates。 |
 | 2022-09-01 待补时刻 | [ICSE 2023](./conf-a-icse/2023/README.md) | 会议-A | Technical Track submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2023/icse-2023-technical-track) | [年度主页](https://conf.researchr.org/home/icse-2023) | [Program](https://conf.researchr.org/program/icse-2023/program-icse-2023/) / [DBLP](https://dblp.org/db/conf/icse/icse2023.html) | [本库年度页](./conf-a-icse/2023/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
 | 2022-10-10 至 2022-10-14 | [ASE 2022](./conf-a-ase/2022/README.md) | 会议-A | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/home/ase-2022) | [年度主页](https://conf.researchr.org/home/ase-2022) | [Program](https://conf.researchr.org/program/ase-2022/program-ase-2022/) / [DBLP](https://dblp.org/db/conf/kbse/ase2022.html) | [本库年度页](./conf-a-ase/2022/README.md) | 🟡 部分核验 | Michigan, United States。 |
 | 2022-10-13 | [ETAPS/TACAS 2023](./conf-b-etaps/2023/README.md) | 会议-B | TACAS paper submission | Submission | ✅ 已结束 | [官方来源](https://etaps.org/2023/cfp/) | [年度主页](https://etaps.org/2023/) | [Accepted papers](https://etaps.org/2023/accepted-papers/) / [Proceedings](https://etaps.org/2023/proceedings/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2023) | [本库年度页](./conf-b-etaps/2023/README.md) | 🟡 部分核验 | 23:59 AoE。 |
 | 2022-10-23 至 2022-10-28 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Conference dates | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | Montréal, Canada。 |
+| 2022-10-25 至 2022-10-28 | [ATVA 2022](./conf-c-atva/2022/README.md) | 会议-C | Conference dates | Conference | ✅ 已结束 | [Important Dates](https://atva-conference.org/2022/important-dates/) | [ATVA 2022](https://atva-conference.org/2022/) | [Accepted Papers](https://atva-conference.org/2022/call-for-papers/accepted-papers/) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-19992-9) | [本库年度页](./conf-c-atva/2022/README.md) | 🟡 部分核验 | 官方年页说明因疫情最终为 purely virtual event；Springer subtitle 也写 Virtual Event。 |
 | 2022-11-10 待补时刻 | [ETAPS/TACAS 2023](./conf-b-etaps/2023/README.md) | 会议-B | TACAS artifact submission | Submission | ✅ 已结束 | [官方来源](https://etaps.org/2023/cfp/) | [年度主页](https://etaps.org/2023/) | [Accepted papers](https://etaps.org/2023/accepted-papers/) / [Proceedings](https://etaps.org/2023/proceedings/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2023) | [本库年度页](./conf-b-etaps/2023/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2022-11-10 23:59 AoE | [ISSTA 2023](./conf-a-issta/2023/README.md) | 会议-A | First round submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/issta-2023/issta-2023-technical-papers) | [年度主页](https://conf.researchr.org/home/issta-2023) | [Program](https://conf.researchr.org/program/issta-2023/program-issta-2023/) / [DBLP](https://dblp.org/db/conf/issta/issta2023.html) | [本库年度页](./conf-a-issta/2023/README.md) | 🟡 部分核验 | Technical Papers 第一轮。 |
 | 2022-11-11 待补时刻 AoE | [REFSQ 2023](./conf-c-refsq/2023/README.md) | 会议-C | Research abstract | Abstract | ✅ 已结束 | [官方来源](https://2023.refsq.org/dates/refsq-2023) | [年度主页](https://2023.refsq.org/) | [Program](https://2023.refsq.org/program/program-refsq-2023/) / [DBLP](https://dblp.org/db/conf/refsq/refsq2023.html) | [本库年度页](./conf-c-refsq/2023/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
@@ -724,7 +839,7 @@ gantt
 | 2022-12-09 待补时刻 | [ICSE 2023](./conf-a-icse/2023/README.md) | 会议-A | Technical Track notification | Notification | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2023/icse-2023-technical-track) | [年度主页](https://conf.researchr.org/home/icse-2023) | [Program](https://conf.researchr.org/program/icse-2023/program-icse-2023/) / [DBLP](https://dblp.org/db/conf/icse/icse2023.html) | [本库年度页](./conf-a-icse/2023/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2022-12-22 待补时刻 | [ETAPS/TACAS 2023](./conf-b-etaps/2023/README.md) | 会议-B | TACAS notification | Notification | ✅ 已结束 | [官方来源](https://etaps.org/2023/cfp/) | [年度主页](https://etaps.org/2023/) | [Accepted papers](https://etaps.org/2023/accepted-papers/) / [Proceedings](https://etaps.org/2023/proceedings/) / [DBLP TACAS](https://dblp.org/db/conf/tacas/index.html#2023) | [本库年度页](./conf-b-etaps/2023/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 
-### 12.2 2022 Mermaid 可视化
+### 13.2 2022 Mermaid 可视化
 
 ```mermaid
 gantt
@@ -737,6 +852,13 @@ gantt
   ASE22 Submission :milestone, ase_2022_2_20220506, 2022-05-06, 1d
   ASE22 Notify :milestone, ase_2022_3_20220720, 2022-07-20, 1d
   ASE22 Conference :ase_2022_4_20221010, 2022-10-10, 2022-10-14
+
+  section ATVA
+  ATVA22 Abstract :milestone, atva_2022_1_20220508, 2022-05-08, 1d
+  ATVA22 Submission :milestone, atva_2022_2_20220515, 2022-05-15, 1d
+  ATVA22 Notify :milestone, atva_2022_3_20220704, 2022-07-04, 1d
+  ATVA22 Camera :milestone, atva_2022_4_20220801, 2022-08-01, 1d
+  ATVA22 Conference :atva_2022_5_20221025, 2022-10-25, 2022-10-28
 
   section ETAPS_TACAS
   ETAPS_TACAS22 Submission :milestone, etaps_tacas_2022_1_20220105, 2022-01-05, 1d
@@ -786,7 +908,8 @@ gantt
   REFSQ23 Submission :milestone, refsq_2022_4_20221118, 2022-11-18, 1d
 
 ```
-## 13. 期刊滚动投稿 / 未定日期
+
+## 14. 期刊滚动投稿 / 未定日期
 
 | 年份 | Journal | CCF | 投稿模式 | Author guidelines | Submission system | Special issue / topical collection | 截止时间 | Volume / issue | Online first | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -794,7 +917,7 @@ gantt
 | 2026 | [TOSEM](./journal-a-tosem/README.md) | A | 常规 rolling submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 未定 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [TOSEM 2026](./journal-a-tosem/2026/README.md) | 🟡 部分核验 | ACM DL 动态访问受限；TOSEM ScholarOne 仍作为候选入口，canonical 跳转待人工确认。 |
 | 2026 | [SoSyM](./journal-b-sosym/README.md) | B | 常规 rolling submission；theme section 另列 | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) | Industry 5.0: 2026-07-15 待补时刻；Digital Twins: rolling | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Industry 5.0 与 Digital Twins 是不同 theme section；Industry 5.0 CFP 提示 SoSyM online submission system 将变更。 |
 
-## 14. 待补与核查记录
+## 15. 待补与核查记录
 
 | Venue | 年份 | 问题 | 当前处理 | 下一步 |
 |---|---|---|---|---|
@@ -810,7 +933,7 @@ gantt
 | SoSyM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
 | SoSyM | 2026 | Digital Twins 是独立 rolling theme section，且 EDTConf'26 日期是 presentation target，不是普通 SoSyM 投稿 deadline | 只放 rolling / 待补记录，不进主 dated timeline | 后续若官方给出固定 journal submission deadline，再同步年度表与 Mermaid |
 
-## 15. Mermaid 示例与维护规范
+## 16. Mermaid 示例与维护规范
 
 单日 deadline 使用 `milestone`：
 
@@ -839,7 +962,7 @@ gantt
 
 更新 Mermaid 后，应至少人工检查 Markdown 预览；若本地有 Mermaid CLI，可运行渲染检查，但不得为了通过渲染而删掉表格事实。
 
-## 16. 会议 / 期刊事实合流提示
+## 17. 会议 / 期刊事实合流提示
 
 | 合流对象 | 维护边界 | 必须保留 | 不应做 |
 |---|---|---|---|
@@ -848,13 +971,18 @@ gantt
 | 期刊 rolling / 未定日期表 | 期刊根 README 与年度 README | TSE / TOSEM / SoSyM 的 rolling submission、author guidelines、submission system、volume / online-first 入口 | 不要把 rolling journal 伪造成 dated Mermaid deadline |
 | Mermaid 年度图 | 与年度总表一致的事件集合 | 必要时按会议 / 期刊专刊拆图 | 不要为解决冲突删表格事实或删另一类已核验图块 |
 
-## 17. 更新日志
+## 18. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 11:25` | 根据复审收尾修正 TIMELINE：把 ISSRE 2026 当前阶段统一为复审中，记录 ICFEM/ATVA/ISSRE 最新事实修复已进入正式年度表与 Mermaid，并校正更新日志降序。 |
+| `2026-06-05 11:12` | 补充 ATVA 2022 独立年度主页、重要日期、accepted papers 与 Springer proceedings 后，将 ATVA 2022 abstract/submission/notification/camera-ready/conference 同步进 2022 正式时间线与 Mermaid。 |
+| `2026-06-05 10:58` | 合并上游 PR-2 后解决 TIMELINE 冲突：保留 PR-2 与 PR-3 所有已核验 dated events、期刊 rolling 表和 SoSyM dated event，并修正 ISSRE 2026 extended deadlines 到 2026-04-24。 |
+| `2026-06-05 10:04` | PR-3 合流修复：删除临时增量事实表口径，将 PR-3 事件并入正式 2025--2027 年度章节与 Mermaid，并把 PR-3 节降级为未公布年度 / 来源风险审计记录。 |
 | `2026-06-05 10:00` | 修复 PR-2 复审发现的 ISSTA 2022/2023 会期遗漏：将年度 README 已记录的会期同步到 2022/2023 事件表与 Mermaid，并保留 ISSTA 独立计数说明。 |
+| `2026-06-05 09:46` | PR-3 review 修复：同步当前核查日期为 2026-06-05，并把 ICFEM 2026 extended abstract / full-paper 投稿窗口补入近期投稿窗口速览。 |
 | `2026-06-05 00:36` | 合入 PR-1B 期刊试点后完成 TIMELINE 合流：保留会议 dated events、SoSyM Industry 5.0 dated event、期刊 rolling 表和 Mermaid 事实共存规则。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：TIMELINE 改用事件发生年份口径，新增并行 PR owner 提示，强调会议 dated events、期刊 rolling 表和 SoSyM Industry 5.0 dated event 合并后必须共存。 |
 | `2026-06-04 22:05` | 根据正式复审把 SoSyM Industry 5.0 已过 intent 节点标为已过去，避免误读为未来投稿点。 |
