@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 00:36`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 10:04`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -90,6 +90,8 @@ yyyy-mm-dd hh:mm
 5. DBLP、Google Scholar、Semantic Scholar、ORCID 等学术入口。
 6. 第三方介绍页只可作为发现线索，不得单独支撑研究方向、代表作或近年论文结论。
 
+会议核心人员的 `官方角色来源` 必须能直接支撑“姓名 + 具体角色 / committee 层级”。只出现 series 主页、年度主页壳、CFP、Important Dates、投稿系统、第三方简介或个人主页时，不得写成已核验官方角色；应降级为 `学术线索 / 官方角色页待补`，核验状态写 `⏳ 待核验`，并把缺口写入待补 / 风险记录。
+
 ### 4.2 期刊来源优先级
 
 1. 期刊官方主页。
@@ -105,6 +107,8 @@ yyyy-mm-dd hh:mm
 3. 个人主页、机构主页、实验室主页。
 4. DBLP、Google Scholar、Semantic Scholar、ORCID 等学术入口。
 5. 第三方介绍页只可作为发现线索，不得单独支撑研究方向、代表作或近年论文结论。
+
+期刊核心人员指 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Managing Editor、Associate / Area Editor-in-Chief、Editorial Board leadership、官方列出的同等编辑领导角色，以及当年 special issue / topical collection guest editor。期刊核心人员的当前角色必须由官方 editorial board / editorial team / editors 页面或出版商 / 学会任命公告支撑；个人主页、机构页和 DBLP 只能补研究方向、代表作和近 5 年论文入口，不能单独支撑当前 editorial roster。
 
 ## 5. 核心 URL 字段与超链接规范
 
@@ -152,6 +156,8 @@ yyyy-mm-dd hh:mm
 4. 模板中的外部 URL 占位符不得写成 Markdown 链接；统一写 `待补（占位：OFFICIAL_URL；核验后改为 Markdown 链接）`。这样能避免模板被误读为已有可点击事实来源。
 5. 模板中的本库内部已知路径必须继续写相对 Markdown 链接，例如 [TIMELINE.md](./TIMELINE.md)、[2026](./2026/README.md)；不要把内部已知路径降级成纯文本。
 6. 第三方聚合页只能放在备注或 fallback，不得放进“官方来源”列。
+7. 官方年度主页、series page、organizer call、CFP、Important Dates、submission system、program / accepted papers 和 proceedings 是不同字段；只有能直接代表该年度 edition 的页面才可写入“官方年度主页”。Series page / organizer call / submission system 只能放入对应字段或 fallback / 备注，不得冒充年度主页或 CFP。
+8. 命令行访问遇到证书问题时可以使用 `curl -k` 或浏览器继续核验；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口等都不是有效事实来源，必须写成访问风险或 `⏳ 已检索未公布`。
 
 ### 5.4 核心人员情报规范
 
@@ -347,6 +353,7 @@ yyyy-mm-dd hh:mm
 2. 若某个时间点因官方来源冲突被标为 `⚠️ 矛盾待解`，TIMELINE 表格也必须保留该状态，不得只在 venue 年度 README 中记录。
 3. [TIMELINE.md](./TIMELINE.md) 只汇总已进入本库的 venue，不替代 P1/P2 待补清单。
 4. 会议填充负责维护会议 dated events；期刊填充负责维护期刊 rolling 表和期刊 special issue dated events。合流时不得互相删除已经核验的事件行。
+5. 临时 PR 增量表只能作为迁移过程中的审计辅助，不得长期作为 dated event 事实源；一旦事件已核验，应并入正式年份章节与 Mermaid。
 
 ## 12. 初始化 PR 自审流程
 
@@ -384,12 +391,23 @@ yyyy-mm-dd hh:mm
 5. **模板统一协议**：外部 URL 占位符使用纯文本占位，内部已知路径使用相对 Markdown 链接；更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
 6. **试点经验保留边界**：会议试点和期刊试点的踩坑结论都应保留在 [SUMMARY.md](./SUMMARY.md) 的对应小节，但不得把某一类试点的 deadline、论文数量或人员 roster 复制成另一类事实。
 
-## 15. 更新日志
+## 15. 踩坑写回纪律
+
+踩坑记录不是 PR 评论的临时附件，而是后续批次的工作约束。凡一轮工作发现可复用风险，必须在收尾前按影响范围写回文档：
+
+1. 只影响单个 venue 或年度的事实风险，写入对应根 README / 年度 README 的待补、风险记录或更新日志。
+2. 影响多个 venue 的来源、计数、track、人员角色、访问异常或 TIMELINE 合流规则，写入 [SUMMARY.md](./SUMMARY.md) 的踩坑 / 待补记录。
+3. 会改变后续 AI 工作流程或验收标准的坑，必须同步写回本 [GUIDE.md](./GUIDE.md)，并在更新日志中说明。
+4. source 冒充、年度主页与 series page 混用、committee 角色源不足、期刊 editorial roster 当前性不清、DBLP / proceedings 计数冲突、research / industry / tool / artifact / workshop 混算、`curl -k` 后仍是 404 / 空页 / 未公布等，默认都属于可复用风险。
+5. 若时间不足，至少在本轮更新日志中明确“哪些坑尚未完全规则化”，不得只把坑留在 PR comment 或口头总结里。
+
+## 16. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 10:04` | PR-3 复审后补充硬纪律：踩坑必须按影响范围写回 README / SUMMARY / GUIDE，明确年度主页、series page、CFP、投稿入口、committee 角色源和 `curl -k` 访问异常的边界。 |
 | `2026-06-05 00:36` | 合入期刊试点后完成共享规则合流：正文改为会议 / 期刊长期事实共存规则，保留期刊核验等级、会议核心人员分层、模板占位链接和 TIMELINE 事件发生年份口径。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：明确会议 / 期刊核心人员分轨、TIMELINE 事件发生年份规则、模板占位链接规则和并行 PR 事实 ownership。 |
 | `2026-06-04 22:05` | 根据正式复审补充期刊核心编辑人员的核验等级 / 当前性规则，明确候选线索和 legacy 运营线索不得写成当前 roster。 |
