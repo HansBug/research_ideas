@@ -467,12 +467,21 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 9. 若复审暴露新的共性坑，先补 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md)，再声称 ready；不得把“下次注意”只留在聊天记录或 PR comment 中。
 10. 若当前 PR 合入上游或 base 分支并出现冲突，必须把冲突处理纳入后续复审项：确认上游新增 venue、当前 PR venue、期刊 rolling / dated events、共享规则和更新日志均未被覆盖或回退；同时用 `git status --short` 和 `git ls-files -u` 确认冲突已被 `git add` 标记 resolved，不能只看文本里没有冲突标记。
 
+### 15.4 PR-9 P2 邻近观察补充规则
+
+1. P2 venue 只服务检索扩展、投稿分流和社区画像，不得在 README / SUMMARY / PR body 中升级为 P0/P1 主投目标。
+2. 对 APSEC / EASE / MSR 这类 researchr venue，`dates` 页常混入多个 track；TIMELINE 默认只同步 main / technical / research chain 与 conference dates，SEIP / ERA / data-tool / challenge / industry 等 track 必须在年度 README 中分列，不能混算。
+3. 对 SEKE 这类旧站，若 program 页存在旧内容残留、proceedings archive 与 CFP 会期冲突，只能写成待人工确认；不得用旧页闭合 2026+ 事实。
+4. 对 RV 这类 Springer / DBLP 入口，年度官网、CFP、program、Springer proceedings 与 DBLP fallback 必须分列；某年度未列 General Chair 时不得臆造，只记录 Program Chair / Steering 等官方角色。
+5. 2027/2028 若只找到 stable series 或 future event 线索，不能当成年度主页 / CFP；只能在年度 README 写 `⏳ 已检索未公布`，不进入 dated Mermaid。
+
 ## 16. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 17:23` | PR-9 回写 P2 邻近观察规则：补充 researchr 多 track、SEKE 旧页残留、RV Springer / DBLP 分层、未来年度未公布不进 Mermaid 等纪律。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
 | `2026-06-05 13:25` | merge upstream / PR-3+PR-4 合流规则：解决 GUIDE 冲突，保留形式化验证会议来源冒充、committee / track 分层、`curl -k` / 冲突复审纪律，同时保留 PR-4 期刊 rolling / dated event、Wiley WAF/403、Springer collections 和 STTT conference-based special issue 计数纪律。 |

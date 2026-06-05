@@ -1,6 +1,6 @@
 # `ccf_venues/` 01-venue-scope
 
-> 信息更新时间：`2026-06-05 15:59`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
 
 ## 1. 文档用途
 
@@ -11,7 +11,7 @@
 1. **P0-A 强相关主线**：LLM4SE、需求到模型、MDE、状态机建模、软工综合顶会 / 顶刊，默认在 P0 阶段优先完成。
 2. **P0-B 强相关验证线**：形式化方法、模型检查、测试验证、验证工具化，同样属于 P0 阶段验收目标，但可在 P0-A 后推进。
 3. **P1 重要补链**：P0 完成后继续推进，主要补维护、演化、实证、工具化和可靠性链条。
-4. **P2 邻近观察**：作为论文检索和分流投稿线索，暂不阻塞 P0/P1。
+4. **P2 邻近观察**：作为论文检索和分流投稿线索，暂不阻塞 P0/P1；PR-9 已基础建档但不改变其 P2 边界。
 5. **暂不纳入**：与四个 project 关系弱、主要是系统/PL/AI 方法本身而非软工建模 / 验证问题的 venue，先不建目录。
 
 ## 3. CCF 官方核验说明
@@ -33,6 +33,8 @@
 | PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 | 28 | PR-6 与 PR-7 已合入上游，并已阅读其 GUIDE / SUMMARY 踩坑经验 | 只增量维护自有 venue 事实，不覆盖 P0 与其他 PR facts |
 | PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 | 35 | PR-6 与 PR-7 已合入上游；建议等待或同步阅读 PR-8 形式化 / 工具链踩坑记录 | 只增量维护邻近观察 venue，不升级为 P0/P1 主线 |
 | PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 | 0 | 0 | PR-6 / PR-7 / PR-8 / PR-9 全部合入上游 | 统一复核统计、TIMELINE、Mermaid、更新日志、核心人员与待补项 |
+
+> 注：上表 PR-9 前置条件是 PR-5 冻结的默认合同。本 PR-9 分支的提前建档来自当前用户显式覆盖决议；该覆盖不永久放宽后续 PR 的默认合同，final ready 前仍须 merge 最新上游并吸收 PR-6 / PR-7 / PR-8 若已合入的适用踩坑规则。
 
 约束：
 
@@ -105,6 +107,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 17:23` | PR-9 建档后同步 P2 范围说明：APSEC / SEKE / EASE / MSR / RV 已基础建档，但仍只作为邻近观察 venue。 |
 | `2026-06-05 15:59` | 实现后 review 修复：为 PR-6~PR-10 合同补充前置条件列，并明确 PR-8 / PR-9 不得跳过上游踩坑经验。 |
 | `2026-06-05 15:36` | PR-5 冻结 P0 完成状态与 PR-6~PR-10 P1/P2 ownership：本文档保留范围和执行合同，完成状态继续由 [SUMMARY.md](./SUMMARY.md) 维护。 |
 | `2026-06-05 00:36` | 合入期刊试点后确认范围清单不做事实 ownership 记录，P0 完成状态统一由 [SUMMARY.md](./SUMMARY.md) 维护。 |
