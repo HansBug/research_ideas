@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-05 14:06`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 15:36`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -67,7 +67,7 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue 的基础建档与部分核验；merge-upstream 合流后共有 22 个 venue 根 README、154 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README。后续进入“已建档事实维护 + PR-5 全局收口或 P1/P2 批量扩展”的长期维护阶段。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到 PR-3 合流后的旧目录统计口径。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue 的基础建档与部分核验；merge-upstream 合流后共有 22 个 venue 根 README、154 个年度 README。PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README。PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段：PR-6 / PR-7 / PR-8 / PR-9 分别承担 P1/P2 venue 数据填充，PR-10 在这些分支全部合入后做 P1/P2 全局审计。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
 
 ## 5. 目录命名规范
 
@@ -159,6 +159,7 @@ ccf_venues/
 4. 若任务涉及投稿 ddl 或年度时间规划，再读 [TIMELINE.md](./TIMELINE.md)。
 5. 若要新增 venue，先查 [01-venue-scope.md](./01-venue-scope.md)，确认是否属于当前批次。
 6. 最后进入 `<conf|journal>-<rank>-<slug>/` 维护具体 venue。
+7. 若任务属于 P1/P2 扩展，必须先查 [SUMMARY.md](./SUMMARY.md) §9 与 [01-venue-scope.md](./01-venue-scope.md) 中 PR-6~PR-10 的 ownership；不得跨 PR 新增或修改其他批次 venue 目录。
 
 会议与期刊数据合流时，会议事实、会议核心人员、会议 dated events、期刊事实、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events 必须共存；共享规范可统一吸收，但任何一类事实表不得被另一类空白占位覆盖或回退。
 
@@ -170,6 +171,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 15:36` | PR-5 全局收口：冻结 P1/P2 后续 PR-6~PR-10 ownership，明确 P0 22 个 venue / 154 个年度 README 进入长期维护状态，并把后续扩展入口指向 SUMMARY / scope 合同。 |
 | `2026-06-05 14:06` | 修复 PR #46 review 入口口径：将 merge-upstream 后当前状态统一为 22 个 venue 根 README、154 个年度 README，并同时保留 PR-3 / PR-4 本轮交付计数和共享文件合流复审纪律。 |
 | `2026-06-05 11:25` | 合并上游 PR-2 后更新入口状态：记录 PR-3 当时的合流目录统计，明确 PR-3 自身交付物仍是 8 个 venue / 64 个 README，并把 upstream merge 冲突解决纳入后续复审纪律；当前总量以 14:06 记录的 22 / 154 为准。 |
 | `2026-06-05 08:46` | 完成 PR-2 后更新入口状态：说明 6 个试点 venue 与 5 个软工 / 需求会议 venue 均已基础建档，后续进入已建档事实维护与批量扩展阶段。 |
