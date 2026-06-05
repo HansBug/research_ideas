@@ -1,0 +1,113 @@
+def int CA_mode = 0;
+def int pump_fault = 0;
+def int alarm_active = 0;
+def int control_released = 1;
+def int infusion_log_records = 0;
+def float patient_bp = 0.0;
+def float target_bp = 100.0;
+def float requested_target_bp = 100.0;
+def float shared_sensor_buffer = 0.0;
+def float manual_default_flow_rate = 1.0;
+def float default_flow_rate = 1.0;
+def float pressure_gain = 0.01;
+def float flow_rate = 0.0;
+def float control_voltage = 0.0;
+def float pump_speed = 0.0;
+def float manual_switch_speed = 0.0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+        ! * -> Manual :: TerminateAC;
+
+        >> during before { shared_sensor_buffer = patient_bp; }
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                if [pump_fault > 0] {
+                    alarm_active = 1;
+                } else {
+                    alarm_active = 0;
+                }
+                control_released = 1;
+            }
+            during {
+                pump_speed = manual_switch_speed;
+                flow_rate = manual_default_flow_rate;
+            }
+        }
+
+        state Ask_StartAC {
+            enter {
+                CA_mode = 1;
+                if [pump_fault > 0] {
+                    alarm_active = 1;
+                    control_released = 1;
+                } else {
+                    alarm_active = 0;
+                }
+            }
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 2;
+                if [pump_fault > 0] {
+                    control_released = 1;
+                    alarm_active = 1;
+                } else {
+                    control_released = 0;
+                    alarm_active = 0;
+                    flow_rate = default_flow_rate;
+                }
+            }
+        }
+
+        state Autocontrol {
+            enter {
+                CA_mode = 3;
+                control_released = 0;
+                alarm_active = 0;
+            }
+            during {
+                if [pump_fault == 0] {
+                    if [patient_bp > target_bp] {
+                        flow_rate = default_flow_rate - ((patient_bp - target_bp) * pressure_gain);
+                    } else {
+                        flow_rate = default_flow_rate + ((target_bp - patient_bp) * pressure_gain);
+                    }
+                    control_voltage = flow_rate;
+                    pump_speed = control_voltage;
+                    infusion_log_records = infusion_log_records + 1;
+                }
+            }
+        }
+
+        state PumpFault {
+            enter {
+                CA_mode = 4;
+                alarm_active = 1;
+                control_released = 1;
+            }
+        }
+
+        Manual -> Manual : /Mode_Control_Algorithm.PumpFault.FaultRemoved effect { pump_fault = 0; alarm_active = 0; };
+        Manual -> Manual : if [pump_fault > 0] effect { alarm_active = 1; control_released = 1; };
+        Manual -> Ask_StartAC :: InitiateAC;
+        Ask_StartAC -> PumpFault : if [pump_fault > 0];
+        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = requested_target_bp; };
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> PumpFault : if [pump_fault > 0];
+        AutocontrolInit -> Autocontrol;
+        Autocontrol -> PumpFault : if [pump_fault > 0];
+        PumpFault -> Manual :: FaultRemoved effect { pump_fault = 0; };
+    }
+}
