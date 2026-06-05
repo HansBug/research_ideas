@@ -455,6 +455,12 @@ def _assert_no_forbidden_operator_keys(value: Any) -> None:
         "chunk_text",
         "delta_text",
         "completion_text",
+        "content",
+        "text",
+        "response_text",
+        "output_text",
+        "choices",
+        "delta",
         "api_key",
         "authorization",
         "headers",
@@ -893,6 +899,76 @@ def test_lg_d1_operator_event_schema_is_jsonl_safe() -> None:
     encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
     assert "MUST_NOT_APPEAR" not in encoded
     _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_llm_progress_event_uses_allowlist_for_raw_chunk_shapes() -> None:
+    from method.langgraph_runtime import build_lg_d1_operator_event
+
+    event = build_lg_d1_operator_event(
+        run_id="lg-d1-no-raw-chunk",
+        event_type="llm_stream_progress",
+        payload={
+            "chunk_count": 3,
+            "completion_chars": 42,
+            "elapsed_seconds": 1.5,
+            "content": "RAW_PROMPT_OR_CHUNK_SHOULD_NOT_BE_HERE",
+            "choices": [{"delta": {"content": "RAW_DELTA_SHOULD_NOT_BE_HERE"}}],
+            "response_text": "RAW_OUTPUT_SHOULD_NOT_BE_HERE",
+            "safe_count_but_not_allowlisted": 99,
+        },
+    )
+
+    encoded = json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    assert event["payload"]["chunk_count"] == 3
+    assert event["payload"]["completion_chars"] == 42
+    assert event["payload"]["elapsed_seconds"] == 1.5
+    assert event["payload"]["omitted_raw_content_field_count"] >= 4
+    assert "RAW_PROMPT_OR_CHUNK_SHOULD_NOT_BE_HERE" not in encoded
+    assert "RAW_DELTA_SHOULD_NOT_BE_HERE" not in encoded
+    assert "RAW_OUTPUT_SHOULD_NOT_BE_HERE" not in encoded
+    assert "safe_count_but_not_allowlisted" not in encoded
+    _assert_no_forbidden_operator_keys(event)
+
+
+def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
+    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+
+    class EmptyAfterSideEffectApp:
+        def __init__(self) -> None:
+            self.llm_calls = 0
+
+        def stream(self, _initial_state: dict[str, Any], *, config: dict[str, Any], stream_mode: str):  # noqa: ANN201
+            assert stream_mode == "updates"
+            assert config["configurable"]["thread_id"] == "lg-d1-no-replay"
+            self.llm_calls += 1
+            if False:
+                yield {"node": {"runtime_result": "unreachable"}}
+
+        def get_state(self, _config: dict[str, Any]) -> Any:
+            class Checkpoint:
+                values: dict[str, Any] = {}
+
+            return Checkpoint()
+
+        def invoke(self, _initial_state: dict[str, Any], *, config: dict[str, Any]) -> dict[str, Any]:
+            self.llm_calls += 1
+            return {"runtime_result": "must-not-be-called", "operator_events": [], "config": config}
+
+    app = EmptyAfterSideEffectApp()
+
+    try:
+        _run_graph_with_lg_d1_stream(
+            app,
+            initial_state={"operator_events": [], "operator_stream_enabled": True, "run_id": "lg-d1-no-replay"},
+            run_id="lg-d1-no-replay",
+            operator_stream_enabled=True,
+        )
+    except RuntimeError as exc:
+        assert "refusing fallback invoke" in str(exc)
+    else:  # pragma: no cover - failure path documents the expected guard.
+        raise AssertionError("empty stream after side effects must fail loud instead of replaying invoke")
+
+    assert app.llm_calls == 1
 
 
 def test_lg_d1_stream_off_preserves_run_record_and_result(tmp_path: Path) -> None:

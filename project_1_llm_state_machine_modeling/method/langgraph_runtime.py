@@ -78,12 +78,19 @@ LG_D1_INSTRUMENTATION_LAYER = "langgraph_streaming"
 _VALID_RECORD_STATUSES = {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}
 _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
     "messages",
+    "message",
     "prompt",
     "raw_prompt",
     "raw_output",
     "chunk_text",
     "delta_text",
     "completion_text",
+    "content",
+    "text",
+    "response_text",
+    "output_text",
+    "choices",
+    "delta",
     "api_key",
     "authorization",
     "headers",
@@ -107,6 +114,27 @@ _LG_D1_SECRET_VALUE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"github_pat_[A-Za-z0-9_]{8,}"),
     re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE),
 )
+_LG_D1_LLM_PROGRESS_EVENT_TYPES = {"llm_stream_progress", "llm_request_progress"}
+_LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS = {
+    "interaction_index",
+    "stage_id",
+    "stream",
+    "stream_include_usage_requested",
+    "token_usage_available",
+    "stream_usage_zero_reported",
+    "chunk_count",
+    "first_chunk_seconds",
+    "elapsed_seconds",
+    "prompt_chars",
+    "completion_chars",
+    "estimated_prompt_tokens",
+    "estimated_completion_tokens",
+    "estimated_total_tokens",
+    "token_usage_estimation_method",
+    "attempt_count",
+    "attempt_stream_observed",
+    "usage_payload_hash",
+}
 _LG_D1_ACADEMIC_EVIDENCE_SOURCES = [
     "AgentLoopRunRecord.stage_records",
     "AgentLoopRunRecord.llm_interactions",
@@ -222,6 +250,23 @@ def _sanitize_lg_d1_operator_payload(value: Any) -> tuple[Any, int]:
     return _jsonable(value), 0
 
 
+def _sanitize_lg_d1_llm_progress_payload(value: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    """Allowlist LLM progress payload fields so chunks/messages never persist."""
+
+    sanitized: dict[str, Any] = {}
+    omitted = 0
+    for key, nested in value.items():
+        key_text = str(key)
+        if key_text not in _LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS:
+            _, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
+            omitted += 1 + nested_omitted
+            continue
+        safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
+        sanitized[key_text] = safe_nested
+        omitted += nested_omitted
+    return sanitized, omitted
+
+
 def build_lg_d1_operator_event(
     *,
     run_id: str,
@@ -233,7 +278,10 @@ def build_lg_d1_operator_event(
 ) -> dict[str, Any]:
     """Build one LG-D1 JSONL-safe operator event."""
 
-    safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload or {})
+    if event_type in _LG_D1_LLM_PROGRESS_EVENT_TYPES and isinstance(payload, dict):
+        safe_payload, omitted_count = _sanitize_lg_d1_llm_progress_payload(payload)
+    else:
+        safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload or {})
     if omitted_count:
         if not isinstance(safe_payload, dict):
             safe_payload = {"value": safe_payload}
@@ -1731,10 +1779,13 @@ def _run_graph_with_lg_d1_stream(
     if final_state is None:
         checkpoint = app.get_state({"configurable": {"thread_id": run_id}})
         state = getattr(checkpoint, "values", {}) if checkpoint is not None else {}
-        if not isinstance(state, dict) or "runtime_result" not in state:
-            state = app.invoke(initial_state, config={"configurable": {"thread_id": run_id}})
-        operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
-        return state, operator_events, "degraded_with_reason:langgraph_stream_updates_empty"
+        if isinstance(state, dict) and "runtime_result" in state:
+            operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
+            return state, operator_events, "degraded_with_reason:langgraph_stream_updates_empty_checkpoint_recovered"
+        raise RuntimeError(
+            "LangGraph stream produced no usable updates and no checkpoint runtime_result; "
+            "refusing fallback invoke because stream execution may already have provider/stage side effects"
+        )
     return final_state, operator_events, "enabled"
 
 
