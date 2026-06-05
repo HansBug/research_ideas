@@ -1,12 +1,12 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 16:58`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
 | 项目 | 数量 / 状态 |
 |---|---:|
-| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议与 PR-4 剩余 P0 期刊均已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
+| 文库状态 | PR-2 软工 / 需求会议、PR-3 形式化 / 验证会议、PR-4 剩余 P0 期刊与 PR-8 P1 形式化 / 工具链补链均已完成基础建档并与会议试点、期刊试点合流；会议 dated events、期刊 special issue dated events 与 rolling 投稿入口已在 [TIMELINE.md](./TIMELINE.md) 共存 |
 | 已建立核心文档 | 5 |
 | 已建立模板文件 | 4 |
 | 已完成会议试点 venue | 3：[`conf-a-icse`](./conf-a-icse/README.md)、[`conf-b-models`](./conf-b-models/README.md)、[`conf-b-etaps`](./conf-b-etaps/README.md) |
@@ -16,15 +16,17 @@
 | PR-3 本轮交付 README | 64：8 个目标 venue 根 README + 56 个年度 README |
 | 已完成 PR-4 期刊 venue | 3：[`journal-b-re`](./journal-b-re/README.md)、[`journal-b-stvr`](./journal-b-stvr/README.md)、[`journal-c-sttt`](./journal-c-sttt/README.md) |
 | PR-4 本轮交付 README | 24：3 个目标 venue 根 README + 21 个年度 README |
-| 已建立并基础核验 venue 目录 | 22 |
-| 已建立并基础核验年度 README | 154 |
+| 已完成 PR-8 P1 形式化 / 工具链 venue | 4：[`journal-b-ist`](./journal-b-ist/README.md)、[`journal-b-scp`](./journal-b-scp/README.md)、[`conf-c-qrs`](./conf-c-qrs/README.md)、[`conf-c-tase`](./conf-c-tase/README.md) |
+| PR-8 本轮交付 README | 32：4 个目标 venue 根 README + 28 个年度 README |
+| 已建立并基础核验 venue 目录 | 26 |
+| 已建立并基础核验年度 README | 182 |
 | 事实完全核验 venue 目录 | 0 |
 | 默认调查范围 | 2022 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入 |
-| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 facts，见 [TIMELINE.md](./TIMELINE.md) |
-| 核心人员情报状态 | 16 个会议根 README 已补会议核心人员情报；6 个期刊根 README 已补核心编辑人员画像或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
-| 当前优先批次 | P0 清单已完成 PR-5 全局收口；后续按 §9 冻结合同进入 PR-6 / PR-7 / PR-8 / PR-9 分批扩展，PR-10 做 P1/P2 全局审计 |
+| TIMELINE 状态 | 已按事件发生年份回填 2022-2028 会议时间线、SoSyM Industry 5.0 dated event、Requirements Engineering 2026 collections dated events、PR-8 QRS / TASE 2022-2026 dated events、期刊 rolling 表与 PR-2 / PR-3 / PR-4 / PR-8 facts，见 [TIMELINE.md](./TIMELINE.md) |
+| 核心人员情报状态 | 18 个会议根 README 已补会议核心人员情报；8 个期刊根 README 已补核心编辑人员画像或官方 roster 待核验入口，并保留 `核验等级 / 当前性` |
+| 当前优先批次 | P0 清单已完成 PR-5 全局收口；当前 PR-8 已完成自有 P1 形式化 / 工具链 venue 基础建档；后续仍按 §9 冻结合同推进 PR-6 / PR-7 / PR-9，PR-10 做 P1/P2 全局审计 |
 
-说明：当前统计表示 16 个会议 venue 与 6 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口和 editorial roster 当前性待复核。
+说明：当前统计表示 18 个会议 venue 与 8 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口、ScienceDirect / Wiley / ACM 动态访问限制和 editorial roster 当前性待人工浏览器复核。
 
 ## 2. 当前可复用的既有资源
 
@@ -69,6 +71,15 @@
 | Requirements Engineering | B | 2022-2028 | [journal-b-re](./journal-b-re/README.md) | 7 | rolling 表与 2026 LLM / 30th Anniversary / REFSQ collections dated events 已同步 | 已记录 Editor-in-Chief、Honorary Editor 与 RE / traceability / NLP for RE 代表性 editorial board 成员；见根 README §3 | DBLP `entry article` baseline：2022=25、2023=26、2024=24、2025=9、2026=6；2026 仍进行中 | 🟡 部分核验 |
 | STVR | B | 2022-2028 | [journal-b-stvr](./journal-b-stvr/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board 官方入口受 WAF/403，已保留官方 roster 链接与待人工浏览器核验说明；可核验人物画像仍需后续补强 | DBLP `entry article` baseline：2022=31、2023=25、2024=26、2025=17；2026 DBLP 年度页未公布 | 🟡 部分核验 |
 | STTT | C | 2022-2028 | [journal-c-sttt](./journal-c-sttt/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | 已记录 Editor-in-Chief / Coordinating Editor、CoCha / Explain / FoMaC 主题编辑与形式化验证领域权威；见根 README §3 | DBLP `entry article` baseline：2022=51、2023=49、2024=48、2025=41、2026=14；conference-based special issue 不与会议 proceedings 混算 | 🟡 部分核验 |
+
+### 5.2 PR-8 P1 形式化 / 工具链补链完成情况
+
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 |
+|---|---|---|---|---:|---|---|---|---|
+| IST | B | 2022-2028 | [journal-b-ist](./journal-b-ist/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=166、2023=184、2024=145、2025=243、2026=221；ScienceDirect volume / article type 待浏览器复核 | 🟡 部分核验 |
+| SCP | B | 2022-2028 | [journal-b-scp](./journal-b-scp/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=79、2023=64、2024=109、2025=113、2026=62；Editorial Manager code 为 `scico`，不得误写 `scp` | 🟡 部分核验 |
+| QRS | C | 2022-2028 | [conf-c-qrs](./conf-c-qrs/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 QRS 2026 General Chair、Program Chair、Steering Committee Chair / Vice Chair 与可靠性 / 测试 / 形式化相关线索 | QRS techconf submission stats、regular acceptance stats、DBLP / IEEE proceedings fallback 分开；不把 submission stats 写成 accepted paper count | 🟡 部分核验 |
+| TASE | C | 2022-2028 | [conf-c-tase](./conf-c-tase/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 TASE 2026 General Chair、Program Co-Chair、Steering Committee 与形式化 / 验证领域线索 | official accepted list、Springer TOC、DBLP count 并列保留；Important Dates 与 CFP 冲突时以 Important Dates 为准并记录差异 | 🟡 部分核验 |
 
 ## 6. 会议试点踩坑结论
 
@@ -134,6 +145,14 @@
 - 后续若继续做年度论文数量，应单独开计数复核：以当前 DBLP `entry article` baseline 为起点，再用 publisher issue / online-first 按 article type 交叉核验，不要混用口径。
 - 期刊试点暴露出的主要问题不是模板字段缺失，而是同一字段需要明确“官方入口 / 投稿入口 / 出版入口 / DBLP fallback”的证据优先级。
 - 后续期刊填充必须把核心编辑人员作为情报维度：优先核验 Editor-in-Chief / Editors-in-Chief / Managing Editor / editorial leadership，记录研究方向、代表作或近 5 年论文入口，并把 roster 完整性限制写清楚。
+
+### 7.6 PR-8 形式化 / 工具链补链踩坑
+
+- **ScienceDirect / Elsevier WAF/403 要降级处理**：IST / SCP 的 journal page、scope、editorial board、special issue 与 all issues 页面在命令行环境可能只能确认官方入口，不能把 candidate special issue 或 roster 写成已核验事实；应保留官方链接并写“待人工浏览器核验”。
+- **Editorial Manager code 不是 venue slug**：SCP 投稿入口使用 `scico`，不是 `scp`；后续期刊不得按缩写臆造 submission system URL。
+- **QRS techconf 口径必须拆开**：年度站、series latest、proceedings policy、submission stats、regular acceptance stats、IEEE / DBLP proceedings fallback 都是不同证据；submission stats / regular acceptance 不等于最终 accepted paper count。
+- **TASE 年度站分散且计数多源冲突**：没有稳定 official series page 时不能用最新年度主页冒充 series page；official accepted list、Springer TOC、DBLP count、Springer about page 的 full / short / invited 口径要并列记录。
+- **dated / rolling 分流要保守**：QRS / TASE 2022-2026 可核验 deadlines 已进入 [TIMELINE.md](./TIMELINE.md) 年度表和 Mermaid；IST / SCP 常规 rolling 只进入 rolling 表，candidate special issue 未浏览器核验 deadline 前不进入 dated event。
 
 ## 8. P0 强相关 venue 冻结清单
 
@@ -256,6 +275,12 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | Venue | 年份 | 问题 | 当前处理 | 下一步 |
 |---|---|---|---|---|
+| IST | 2022-2028 / 2029+ | ScienceDirect / Elsevier 页面 CLI WAF/403，scope、editorial board、special issue deadline 与 all issues 正文需人工浏览器核验 | 保留官方 URL；只写 DBLP `entry article` baseline；candidate special issue 不进 dated TIMELINE | 人工浏览器核验 editorial roster、candidate CFP deadline、ScienceDirect volume / issue 与 Articles in Press 当前性 |
+| SCP | 2022-2028 / 2029+ | ScienceDirect / Elsevier 页面 CLI WAF/403；Editorial Manager 正确 code 为 `scico`；candidate special issue deadline 未核验 | 保留官方 URL；只写 DBLP `entry article` baseline；candidate special issue 不进 dated TIMELINE | 人工浏览器核验 editorial roster、candidate CFP deadline、ScienceDirect volume / issue 与 Articles in Press 当前性 |
+| QRS | 2026 | accepted papers / program / DBLP 年度页尚未发布，官网仅见 submission stats / proceedings shell | 年度页与 TIMELINE 只记录可核验 dates、proceedings 入口和 DBLP series fallback，不写 accepted count | 会后复核 official program、IEEE proceedings、DBLP 年度页和 regular / short / workshop 计数边界 |
+| QRS | 2027-2028 / 2029+ | 未发现官方年度主页 / CFP / important dates | 年度页写 `⏳ 已检索未公布`，TIMELINE 不造日期 | 后续复查 QRS techconf series、DBLP 与 IEEE proceedings |
+| TASE | 2026 | Important Dates 页与 CFP 页 notification 存在 2026-04-18 / 2026-04-15 差异；Springer / DBLP 2026 未发布 | 年度页和 TIMELINE 以 Important Dates 页 2026-04-18 为准，并记录冲突；accepted count 不与后续 Springer TOC 混算 | 会后复核 Springer LNCS、DBLP 年度页和 official accepted list / publisher TOC 差异 |
+| TASE | 2027-2028 / 2029+ | 未发现官方年度主页 / CFP / important dates，且没有稳定独立 official series page | 年度页写 `⏳ 已检索未公布`；根 README 使用最新年度主页 + DBLP index 作入口，不冒充 series page | 后续复查 TASE GitHub annual pages、Springer 和 DBLP |
 | ICSE | 2028 | 年度主页当前 Access denied，仅找到 Hawaii 预告 | 根 README / 年度 README 不写成正式 CFP | 后续复查年度主页与 Research Track |
 | ICSE | 2026 | accepted papers 已公开，但 proceedings / DBLP 年度页未公开 | 论文数量按官方 Research Track accepted papers 表记录，核验状态为部分核验 | 后续补 DBLP / proceedings |
 | MoDELS | 2026 | submission / rebuttal 已过但 notification 尚未到达 | 当前阶段统一写作 `🟡 审稿中`，program probe 为 Access denied | notification 后复核状态并补 accepted papers / proceedings |
@@ -326,6 +351,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:40` | PR-8 形式化 / 工具链补链合流：新增 IST、SCP、QRS、TASE 四个 P1 venue 与 28 个年度 README，将当前总量更新为 26 个 venue / 182 个年度 README，并回写 PR-8 计数、TIMELINE、踩坑与待补记录。 |
 | `2026-06-05 16:58` | PR-8 计划审查修复：将 PR-8 前置条件从“等待 PR-6/7 已合入后开工”修订为“PR-5 后可并行开工，final ready 前必须 merge upstream 并吸收届时已合入 PR-6/7 经验”，消除 #35 body 与仓库合同冲突。 |
 | `2026-06-05 15:59` | 实现后 review 修复：统一 PR-6~PR-9 数量单位，收紧 PR-8 / PR-9 前置依赖表述，避免后续执行者跳过上游踩坑经验。 |
 | `2026-06-05 15:36` | PR-5 全局收口：冻结 PR-6~PR-10 P1/P2 执行合同，更新 P0 冻结清单、历史 PR #5 资源口径与共享文件复审状态，并移除 PR-3 临时 HTML 标记。 |

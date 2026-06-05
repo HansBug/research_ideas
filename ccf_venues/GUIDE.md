@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 16:58`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -111,7 +111,7 @@ yyyy-mm-dd hh:mm
 
 期刊核心人员指 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Managing Editor、Associate / Area Editor-in-Chief、Editorial Board leadership、官方列出的同等编辑领导角色，以及当年 special issue / topical collection guest editor。期刊核心人员的当前角色必须由官方 editorial board / editorial team / editors 页面或出版商 / 学会任命公告支撑；个人主页、机构页和 DBLP 只能补研究方向、代表作和近 5 年论文入口，不能单独支撑当前 editorial roster。
 
-补充纪律：若 Wiley / ACM / IEEE 等 publisher 页面在命令行环境中返回 WAF、Cloudflare、403、SPA 壳或登录页，必须保留官方 URL 作为核验入口，并在对应字段写清“待人工浏览器核验”；不得用第三方页面替代当前官方 roster、author guidelines 或卷期正文，也不得臆造 Editor-in-Chief / editorial board 当前名单。
+补充纪律：若 Wiley / ACM / IEEE / Elsevier / ScienceDirect 等 publisher 页面在命令行环境中返回 WAF、Cloudflare、403、SPA 壳或登录页，必须保留官方 URL 作为核验入口，并在对应字段写清“待人工浏览器核验”；不得用第三方页面替代当前官方 roster、author guidelines 或卷期正文，也不得臆造 Editor-in-Chief / editorial board 当前名单。
 
 ## 5. 核心 URL 字段与超链接规范
 
@@ -158,6 +158,12 @@ PR-4 期刊填充后的补充规则：
 3. STTT 这类期刊常包含 TACAS / SPIN / FMICS / Runtime Verification / ECBS 等 conference-based special issue、invited 或 extended papers；DBLP `entry article` baseline 不能与对应会议 proceedings 数混算，也不能用会议会期或会议 CFP 反推期刊 deadline。
 4. Wiley Online Library / Wiley Author Services / Equinocs、ScholarOne 等 publisher 或投稿系统若在命令行环境返回 WAF、Cloudflare、403、SPA / 登录壳，应记录为“官方入口已定位，正文 / 具体表单 / journal routing 待人工浏览器或登录核验”；不得用第三方页面替代 STVR 这类 Wiley 期刊的当前 roster、author guidelines 或卷期正文。
 
+PR-8 期刊填充后的补充规则：
+
+1. Elsevier / ScienceDirect 页面若在命令行环境返回 WAF/403，只能确认官方入口；scope 正文、editorial board 当前 roster、special issue deadline、guest editor、volume / issue 正文和 Articles in Press 当前列表均应写作“待人工浏览器核验”，不得用第三方页面或 candidate URL 补成已核验事实。
+2. ScienceDirect `special-issues` / `about/call-for-papers` 中的 candidate special issue 只有在人工浏览器核验到明确 submission deadline 后，才能进入 [TIMELINE.md](./TIMELINE.md) 年度 dated event 和 Mermaid；否则只进入期刊根 README / 年度 README 的 candidate 线索和待补记录。
+3. Editorial Manager 投稿系统 code 不得按 venue slug 臆造；例如 SCP 使用 `scico`，不是 `scp`。只能记录已定位的官方 / 出版商跳转或可访问投稿入口，并在登录 / 表单细节处保留待核验说明。
+
 ### 5.3 Markdown 链接写法
 
 1. 已找到 URL 时，表格中直接写 Markdown 链接，例如 `[ICSE 2026](https://conf.researchr.org/home/icse-2026)`。
@@ -169,6 +175,8 @@ PR-4 期刊填充后的补充规则：
 7. 官方年度主页、series page、organizer call、CFP、Important Dates、submission system、program / accepted papers 和 proceedings 是不同字段；只有能直接代表该年度 edition 的页面才可写入“官方年度主页”。Series page / organizer call / submission system 只能放入对应字段或 fallback / 备注，不得冒充年度主页或 CFP。
 8. 不得把某一个年度站点冒充为 stable series page；若未发现独立稳定 series page，根 README 写 `待补`，可把 DBLP venue index 或官方年度页写作 fallback / 年度事实来源。
 9. 命令行访问遇到证书问题时可以使用 `curl -k` 或浏览器继续核验；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口等都不是有效事实来源，必须写成访问风险或 `⏳ 已检索未公布`。
+10. QRS 这类 techconf 年度站需要区分 yearly site、series latest、proceedings policy、submission statistics、regular acceptance statistics、program / accepted list、IEEE proceedings 与 DBLP fallback；submission stats 或 regular acceptance stats 不能替代最终 accepted paper count。
+11. TASE 这类年度站分散且缺少 stable series page 的会议，不得用最新年度主页冒充 series page；Important Dates、CFP、Accepted Papers、Springer TOC、DBLP 年度页和 Springer about 的 full / short / invited 口径必须各自标明来源，发生日期冲突时说明采用依据。
 
 ### 5.4 核心人员情报规范
 
@@ -444,6 +452,9 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 7. **访问异常与来源冒充坑**：证书问题可以用 `curl -k`、浏览器或带 `User-Agent` 重试；但 `404`、Access denied、空页、WAF 返回页、未公布占位、只有 series 入口、投稿系统入口或 organizer call 都不得写成年度主页 / CFP / committee 官方角色源；Wiley STVR 等 publisher 页面在 CLI 中 WAF/403 时仍应保留官方链接和待人工浏览器核验状态，不能把“无法命令行抓取”改写成“无编辑人员”或用第三方页面补成当前 roster。
 8. **track 与角色混算坑**：research、industry、tool、artifact、workshop、journal-first、companion、umbrella conference 与 satellite conference 必须分列；committee / editorial roster 角色不足时只能写成线索，不能升级为已核验核心人员事实。
 9. **期刊专刊 / 会议扩展混算坑**：例如 STTT 的 conference-based special issue 只能按期刊 article baseline 记录，不能和 TACAS / SPIN / FMICS / RV 等会议 proceedings 合并计数。
+10. **Elsevier / ScienceDirect candidate CFP 坑**：命令行只能打开入口或遇到 WAF/403 时，candidate special issue、editorial roster 和 issue 正文只能写作待人工浏览器核验；不能为了填满 TIMELINE 而把未核验 deadline 变成 dated event。
+11. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
+12. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
 
 ### 15.2 回写位置
 
@@ -474,6 +485,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 18:40` | PR-8 形式化 / 工具链补链规则回写：补充 Elsevier / ScienceDirect WAF/403、Editorial Manager code、QRS techconf 计数拆分与 TASE 分散年度站处理纪律。 |
 | `2026-06-05 15:59` | 实现后 review 修复：明确 GUIDE §13.1 只是 SUMMARY §9.1 合同摘要，并同步 PR-8 / PR-9 前置条件提示。 |
 | `2026-06-05 15:36` | PR-5 全局收口：补充 PR-6~PR-10 stacked execution contract、共享文件增量合流边界、合同外 venue 禁止事项和历史更新日志扫描口径。 |
 | `2026-06-05 13:25` | merge upstream / PR-3+PR-4 合流规则：解决 GUIDE 冲突，保留形式化验证会议来源冒充、committee / track 分层、`curl -k` / 冲突复审纪律，同时保留 PR-4 期刊 rolling / dated event、Wiley WAF/403、Springer collections 和 STTT conference-based special issue 计数纪律。 |
