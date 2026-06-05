@@ -1,0 +1,254 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float Pd2max = 0.0;
+def float requested_generator_power = 0.0;
+def float battery_discharge_power = 0.0;
+def float battery_charging_power = 0.0;
+def float spare_power = 0.0;
+def int cmd_LNG_cutin = 0;
+def int cmd_LNG_cutout = 1;
+def int cmd_DG1_cutin = 0;
+def int cmd_DG1_cutout = 1;
+def int cmd_DG2_cutin = 0;
+def int cmd_DG2_cutout = 1;
+def int cmd_load_cutin = 0;
+def int cmd_load_cutout = 1;
+def int illegal_overload = 0;
+
+state LNGShipEMS {
+    ! * -> ZeroLoadNoRES : if [PL == 0 && Ppv + Pw <= 0];
+    ! * -> ZeroLoadCharge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];
+    ! * -> RESCoverCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> RESCoverSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> BatteryDischarge : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];
+    ! * -> LNGCoverLowSoCCharge : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw <= eng3_Pmax];
+    ! * -> LNGCover : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];
+    ! * -> LNGDG1LowSoCCharge : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];
+    ! * -> LNGDG1 : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];
+    ! * -> LNGDG1DG2 : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];
+    ! * -> ExtremeOverloadBatterySupport : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];
+
+    [*] -> ZeroLoadNoRES;
+
+    state ZeroLoadNoRES {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 0;
+            cmd_load_cutout = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state ZeroLoadCharge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charging_power = Ppv + Pw;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 0;
+            cmd_load_cutout = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = Ppv + Pw;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 0;
+            cmd_load_cutout = 1;
+            illegal_overload = 0;
+        }
+    }
+
+    state RESCoverCharge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charging_power = Ppv + Pw - PL;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state RESCoverSpare {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = Ppv + Pw - PL;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state BatteryDischarge {
+        during {
+            requested_generator_power = 0.0;
+            battery_discharge_power = PL - Ppv - Pw;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 0;
+            cmd_LNG_cutout = 1;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGCoverLowSoCCharge {
+        during {
+            requested_generator_power = PL - Ppv - Pw + Pgmax / 5;
+            battery_discharge_power = 0.0;
+            battery_charging_power = Pgmax / 5;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGCover {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 0;
+            cmd_DG1_cutout = 1;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGDG1LowSoCCharge {
+        during {
+            requested_generator_power = PL - Ppv - Pw + Pd1max / 10;
+            battery_discharge_power = 0.0;
+            battery_charging_power = Pd1max / 10;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 1;
+            cmd_DG1_cutout = 0;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGDG1 {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 1;
+            cmd_DG1_cutout = 0;
+            cmd_DG2_cutin = 0;
+            cmd_DG2_cutout = 1;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state LNGDG1DG2 {
+        during {
+            requested_generator_power = PL - Ppv - Pw;
+            battery_discharge_power = 0.0;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 1;
+            cmd_DG1_cutout = 0;
+            cmd_DG2_cutin = 1;
+            cmd_DG2_cutout = 0;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 0;
+        }
+    }
+
+    state ExtremeOverloadBatterySupport {
+        during {
+            requested_generator_power = eng3_Pmax + Pd1max + Pd2max;
+            battery_discharge_power = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;
+            battery_charging_power = 0.0;
+            spare_power = 0.0;
+            cmd_LNG_cutin = 1;
+            cmd_LNG_cutout = 0;
+            cmd_DG1_cutin = 1;
+            cmd_DG1_cutout = 0;
+            cmd_DG2_cutin = 1;
+            cmd_DG2_cutout = 0;
+            cmd_load_cutin = 1;
+            cmd_load_cutout = 0;
+            illegal_overload = 1;
+        }
+    }
+}

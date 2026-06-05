@@ -1,0 +1,98 @@
+def int CA_mode = 0;
+def int patient_bp = 120;
+def int target_bp = 120;
+def int requested_target_bp = 120;
+def int infusion_rate = 0;
+def int default_flow_rate = 0;
+def int manual_switch_speed = 0;
+def int pump_speed = 0;
+def int pump_control_voltage = 0;
+def int pump_fault = 0;
+def int alarm_active = 0;
+def int display_error = 0;
+def int sound_alarm = 0;
+def int software_control = 0;
+def int infusion_log_count = 0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+                pump_control_voltage = 0;
+                alarm_active = 0;
+                display_error = 0;
+                sound_alarm = 0;
+            }
+            during {
+                pump_speed = manual_switch_speed;
+                infusion_rate = default_flow_rate;
+            }
+        }
+
+        state Ask_StartAC {
+            [*] -> AwaitStart;
+
+            state AwaitStart;
+
+            AwaitStart -> AwaitStart :: ChangeSetpoint effect {
+                target_bp = requested_target_bp;
+            };
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 1;
+                software_control = 1;
+                alarm_active = 0;
+                display_error = 0;
+                sound_alarm = 0;
+            }
+        }
+
+        state AutocontrolNormal {
+            during {
+                if [pump_fault == 0] {
+                    infusion_rate = target_bp - patient_bp;
+                    pump_control_voltage = infusion_rate;
+                    infusion_log_count = infusion_log_count + 1;
+                } else {
+                    pump_control_voltage = 0;
+                }
+            }
+        }
+
+        state PumpFault {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+                pump_control_voltage = 0;
+                alarm_active = 1;
+                display_error = 1;
+                sound_alarm = 1;
+            }
+        }
+
+        Manual -> Ask_StartAC :: InitiateAC;
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> AutocontrolNormal;
+        AutocontrolInit -> Manual :: TerminateAC;
+        AutocontrolNormal -> Manual :: TerminateAC;
+        AutocontrolNormal -> PumpFault :: OcclusionFault effect {
+            pump_fault = 1;
+        };
+        PumpFault -> Manual :: FaultRemoved effect {
+            pump_fault = 0;
+        };
+    }
+}

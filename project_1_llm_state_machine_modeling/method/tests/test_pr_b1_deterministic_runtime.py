@@ -19,9 +19,12 @@ from method.schema import (
     SL10RepairReviewOutput,
     SemanticFeedback,
     SimFeedback,
+    ScenarioResult,
     StageContext,
     StageResultMeta,
+    StepResult,
     TestScenario,
+    ScenarioStep,
 )
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
@@ -975,10 +978,13 @@ def test_accept_candidate_with_parse_regression_is_revalidated_not_direct_succes
     assert record.status == "budget_exhausted"
     assert record.final_artifacts["main_result_eligible"] is False
     assert record.final_artifacts["verdict"] == "not_converged"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_2_PARSE.value
+    assert record.iteration_records[1]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[1]["budget_gate"]["post_accept_validation_success"] is False
+    assert record.iteration_records[1]["post_accept_selected_feedback"]["source_stage"] == StageId.SD_2_PARSE.value
 
 
-def test_sc11_budget_gate_emits_not_converged_without_direct_success(tmp_path: Path) -> None:
+def test_sc11_budget_gate_runs_post_accept_validation_instead_of_direct_success(tmp_path: Path) -> None:
     def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         if context.current_dsl == "needs-one-repair":
             item = DesignDiagnosticItem(
@@ -996,25 +1002,219 @@ def test_sc11_budget_gate_emits_not_converged_without_direct_success(tmp_path: P
         adapters=_base_adapters(design=design, repair=lambda request: "fixed-but-unvalidated"),
     )
 
-    assert result.status == "not_converged"
+    assert result.status == "converged"
     assert result.final_dsl == "fixed-but-unvalidated"
     record = read_agent_loop_run_record(result.run_record_path or "")
     stage_ids = _stage_ids(record)
     sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
     sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
-    assert sc11_index < sc12_index
-    assert StageId.SD_2_PARSE.value not in stage_ids[sc11_index + 1 : sc12_index]
-    assert record.status == "budget_exhausted"
-    assert record.final_artifacts["verdict"] == "not_converged"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
-    assert record.final_artifacts["main_result_eligible"] is False
+    sd2_after_accept = stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1)
+    assert sc11_index < sd2_after_accept < sc12_index
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
     assert record.iteration_records[0]["budget_gate"] == {
         "source_stage_id": StageId.SC_11_ACCEPT_CANDIDATE.value,
         "iter_plus_one": 1,
         "max_iterations": 1,
         "next_stage_allowed": False,
+        "post_accept_validation_attempted": True,
+        "post_accept_validation_success": True,
     }
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
 
+
+
+def test_sl10_rework_gets_one_same_batch_retry_even_on_last_iteration(tmp_path: Path) -> None:
+    """SL-10 rework guidance must be executed once before final rejection.
+
+    With max_iterations=1 the global SD-2 revalidation budget is exhausted after
+    an accepted candidate, but the local repair-review micro-loop must still let
+    SL-10's concrete rework instructions reach the next SL-9 attempt.  This is
+    the generalized fix for last-iteration repair paths that have actionable
+    SL-10 guidance but previously exited as rework-budget exhausted immediately.
+    """
+
+    repair_calls: list[RepairRequest] = []
+    sl10_calls: list[RepairRequest] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-last-iter-rework":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+                rationale="force a repair path on the only global iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        candidate = "candidate-a" if len(repair_calls) == 1 else "candidate-b"
+        return {
+            "decisions": [
+                {
+                    "request_id": item.request_id,
+                    "decision": "accept",
+                    "rationale": "accept request and produce candidate",
+                }
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": candidate,
+            "repair_rationale": [f"emit {candidate}"],
+            "diff_summary": {"summary": f"emit {candidate}"},
+        }
+
+    def repair_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta)
+        return feedback, meta
+
+    def sl10_review(request: RepairRequest, _local_review: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        sl10_calls.append(request)
+        if len(sl10_calls) == 1:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+            output = SL10RepairReviewOutput(
+                ok=False,
+                decision="rework",
+                target_resolved=False,
+                regression_detected=True,
+                drift_risk="major",
+                evidence=[{"summary": "candidate-a drops an NL-required obligation"}],
+                rework_instructions=["Keep candidate-a's useful repair but restore the dropped NL-required obligation."],
+                local_override_rationale=[],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            )
+            return output, meta
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        output = SL10RepairReviewOutput(
+            ok=True,
+            decision="pass",
+            target_resolved=True,
+            regression_detected=False,
+            drift_risk="none",
+            evidence=[{"summary": "candidate-b follows the SL-10 rework instruction"}],
+            rework_instructions=[],
+            local_override_rationale=[],
+            review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+            meta=meta,
+        )
+        return output, meta
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 rework guidance should get one same-batch retry on the final global iteration.",
+        FullStagedRuntimeConfig(
+            initial_dsl="needs-last-iter-rework",
+            run_id="pr-b1-last-iteration-sl10-rework-minimum",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=repair_review, sl10_review=sl10_review),
+    )
+
+    assert len(repair_calls) == 2
+    assert repair_calls[1].rework_locked is True
+    assert "Keep candidate-a" in str(repair_calls[1].repair_memory)
+    assert len(sl10_calls) == 2
+    assert result.status == "converged"
+    assert result.final_dsl == "candidate-b"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    phases = [entry["phase"] for entry in record.fix_log]
+    assert "sl9_rework_decision" in phases
+    assert "sl10_rework_review" in phases
+    assert record.repair_history[-1]["accepted"] is True
+    assert record.repair_history[-1]["rework_attempt"] == 1
+    assert record.iteration_records[0]["accepted_candidate"] is True
+    assert record.iteration_records[0]["rework_attempts_used"] == 2
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
+    assert record.iteration_records[0]["budget_gate"]["source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    stage_ids = _stage_ids(record)
+    assert stage_ids.count(StageId.SL_9_REPAIR.value) == 2
+    assert stage_ids.count(StageId.SL_10_REPAIR_REVIEW.value) == 2
+    sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
+    sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
+    assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < sc12_index
+
+
+def test_sc11_last_iteration_runs_post_accept_validation_before_success(tmp_path: Path) -> None:
+    parse_seen: list[str] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-post-accept":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_POST_ACCEPT",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_POST_ACCEPT:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_seen.append(dsl)
+        return _ok_parse(dsl, context)
+
+    result = run_full_staged_deterministic_runtime(
+        "Accepted final-iteration candidate still needs post-accept validation.",
+        FullStagedRuntimeConfig(initial_dsl="needs-post-accept", run_id="pr-b1-post-accept-success", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(parse=parse, design=design, repair=lambda _request: "post-accepted-fixed"),
+    )
+
+    assert result.status == "converged"
+    assert parse_seen == ["needs-post-accept", "post-accepted-fixed"]
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["exit_reason"] == "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    assert StageId.SD_2_PARSE.value in record.iteration_records[0]["post_accept_stage_ids"]
+    assert record.stage_records[-2]["stage_id"] == StageId.SC_12_EXIT.value
+
+
+def test_sc11_post_accept_validation_failure_remains_not_converged(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-post-accept-fail":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_POST_ACCEPT_FAIL",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_POST_ACCEPT_FAIL:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        n = len(getattr(scenarios_or_set, "scenarios", []) or [])
+        if dsl == "post-accepted-still-bad":
+            return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, setup_error="post accept still fails"), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=n, n_scenarios_passed=n), _meta(StageId.SD_6_SIM)
+
+    result = run_full_staged_deterministic_runtime(
+        "Post-accept validation must not auto-pass a still failing candidate.",
+        FullStagedRuntimeConfig(initial_dsl="needs-post-accept-fail", run_id="pr-b1-post-accept-fail", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "post-accepted-still-bad", sim=sim),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "budget_exhausted"
+    assert record.final_artifacts["verdict"] == "not_converged"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is False
+    assert record.iteration_records[0]["post_accept_selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    assert "post accept still fails" in record.iteration_records[0]["exit_reason"]
 
 def test_llm_retry_exhausted_in_sl7_exits_provider_error_without_repair(tmp_path: Path) -> None:
     result = run_full_staged_deterministic_runtime(
@@ -1199,6 +1399,26 @@ def test_pre_scenario_max_repairs_removed_from_loop_config_and_runtime_config() 
     assert "pre_scenario_max_repairs" not in resolved
     assert "pre_scenario_max_repairs" not in resolved["budget_policy"]
     assert not hasattr(runtime_cfg, "pre_scenario_max_repairs")
+
+
+def test_min_sl10_rework_attempts_is_default_budget_policy_and_hash_input() -> None:
+    cfg = schema.LoopConfig()
+    resolved = cfg.resolved_config()
+
+    assert schema._default_budget_policy()["min_sl10_rework_attempts"] == 1
+    assert cfg.budget_policy["min_sl10_rework_attempts"] == 1
+    assert resolved["budget_policy"]["min_sl10_rework_attempts"] == 1
+
+    changed = schema.LoopConfig(
+        condition_id="sl10_rework0_v1",
+        condition_family="budget_ablation",
+        base_condition_id="full_staged_v1",
+        changed_factors=["min_sl10_rework_attempts=0"],
+        budget_policy={**schema._default_budget_policy(), "min_sl10_rework_attempts": 0},
+        academic_question="SL-10 same-batch rework micro-budget 是否影响最后一轮修复闭环？",
+    )
+    assert changed.resolved_config()["budget_policy"]["min_sl10_rework_attempts"] == 0
+    assert changed.resolved_config()["condition_hash"] != resolved["condition_hash"]
 
 
 def test_default_adapter_helper_design_policy_matches_run_record(tmp_path: Path) -> None:
@@ -1472,6 +1692,223 @@ def test_sl10_major_local_override_can_pass_when_structured_and_grounded(tmp_pat
     assert override_audit["local_check_evidence_hash"].startswith("sha256:")
     assert "missing_required_grounding" in override_audit["local_rejection_reason"]
     assert StageId.SC_11_ACCEPT_CANDIDATE.value in _stage_ids(record)
+
+
+def test_sl10_major_local_override_can_pass_when_anchor_only_in_rationale(tmp_path: Path) -> None:
+    """A substantive SL-10 override must not depend on duplicating anchors in evidence."""
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-rationale-only-override":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="forced_transition_count_drift; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[
+                {"kind": "forced_transition_count_drift", "old": 25, "new": 24},
+                {"kind": "missing_required_grounding", "element_ids": ["transition:forced_backManual"]},
+            ],
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def rationale_only_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "The candidate keeps the NL-required recovery transition and fixes the hard request."}],
+                local_override_rationale=[
+                    "forced_transition_count_drift is intentional because removing the self-preempting forced expansion is the minimal NL-grounded repair",
+                    "missing_required_grounding is waived because transition:forced_backManual remains present as concrete DSL text",
+                ],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 rationale-only local override remains auditable.",
+        FullStagedRuntimeConfig(initial_dsl="needs-rationale-only-override", run_id="pr-b1-sl10-rationale-only-override", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=lambda _request: "fixed", repair_review=local_major, sl10_review=rationale_only_sl10_pass),
+    )
+
+    assert result.status == "converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.repair_history[0]["accepted"] is True
+    sl10 = record.repair_history[0]["sl10_repair_review"]
+    assert sl10["decision"] == "pass"
+    assert not sl10["rework_instructions"]
+    delta_review = record.repair_history[0]["repair_review"]["delta_review"]
+    override_audit = delta_review["local_override_audit"]
+    assert override_audit["kind"] == "local_major_drift_override_audit"
+    assert "forced_transition_count_drift" in override_audit["local_rejection_reason"]
+    fix_entry = next(entry for entry in record.fix_log if entry["phase"] == "sl10_review")
+    memory = fix_entry["repair_memory"]
+    assert memory["overridden_local_objections"]
+    assert memory["local_objections"][0]["local_objection_status"] == "overridden_by_sl10"
+    assert memory["audit_only_rework_guidance"]
+    assert override_audit["covered_local_objection_kinds"] == [
+        "forced_transition_count_drift",
+        "missing_required_grounding",
+    ]
+    assert override_audit["missing_local_objection_kinds"] == []
+    assert not any(
+        item.get("kind") in {"forced_transition_count_drift", "missing_required_grounding"}
+        for item in memory["actionable_rework_guidance"]
+        if isinstance(item, dict)
+    )
+
+
+def test_sl10_compound_major_local_override_requires_each_objection_kind(tmp_path: Path) -> None:
+    """Compound major local objections need per-kind rationale coverage."""
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "compound-local-risk":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[
+                {"kind": "scenario_regression", "summary": "scenario S fails"},
+                {"kind": "missing_required_grounding", "element_ids": ["transition:RequiredSafetyFallback"]},
+            ],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def partial_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "candidate looks okay"}],
+                local_override_rationale=["scenario_regression is stale because the old scenario over-qualified an event path"],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 partial rationale must not waive compound local major drift.",
+        FullStagedRuntimeConfig(initial_dsl="compound-local-risk", run_id="pr-b1-compound-local-override", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "candidate", repair_review=local_major, sl10_review=partial_sl10_pass),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    sl10 = record.repair_history[0]["sl10_repair_review"]
+    assert sl10["decision"] == "rework"
+    assert sl10["ok"] is False
+    assert any("local_override_rationale" in item for item in sl10["rework_instructions"])
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
+
+
+def test_repair_memory_keeps_overridden_local_summary_audit_only() -> None:
+    """Accepted SL-10 overrides must not feed local summaries back as repair targets."""
+
+    from method.staged_runtime import _repair_memory_for_prompt
+
+    fix_log = [
+        {
+            "entry_id": "fixlog-6-sl10_rework_review",
+            "iteration": 1,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:ok",
+            "next_action": "sc11_accept_then_sd2",
+            "sl10_review": {
+                "ok": True,
+                "decision": "pass",
+                "local_override_rationale": [
+                    "missing_required_grounding is waived because state X remains represented",
+                ],
+            },
+            "repair_memory": {
+                "local_objections": [
+                    {
+                        "local_objection_status": "overridden_by_sl10",
+                        "local_rejection": {
+                            "reason": "missing_required_grounding",
+                            "evidence": [{"kind": "missing_required_grounding"}],
+                        },
+                    }
+                ],
+                "overridden_local_objections": [
+                    {
+                        "local_objection_status": "overridden_by_sl10",
+                        "local_rejection": {
+                            "reason": "missing_required_grounding",
+                            "evidence": [{"kind": "missing_required_grounding"}],
+                        },
+                    }
+                ],
+                "audit_only_rework_guidance": [
+                    {
+                        "kind": "audit_only_local_summary",
+                        "summary": {"actionable_items": [{"kind": "missing_required_grounding"}]},
+                    }
+                ],
+                "actionable_rework_guidance": [],
+            },
+        }
+    ]
+    memory = _repair_memory_for_prompt(fix_log)
+    assert memory["latest_waived_local_objections"]
+    assert not any(
+        isinstance(item, dict) and item.get("kind") == "local_actionable_repair_summary"
+        for item in memory["latest_actionable_rework_guidance"]
+    )
 
 
 def test_sl7_grounding_update_hints_are_recorded_and_forwarded(tmp_path: Path) -> None:
@@ -1898,3 +2335,383 @@ def test_sl10_rework_memory_carries_local_expected_actual_summary_to_next_sl9(tm
     assert "actual_vars_focus" in rendered_memory and "Root.Fault" in rendered_memory
     hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)  # type: ignore[union-attr]
     assert "local_actionable_repair_summary" in hint_text
+
+
+def test_repair_memory_exposes_non_regressive_local_only_frontier_in_sl9_prompt() -> None:
+    """A behavior-fixed candidate must be visible before SL-9 swings back."""
+
+    from method.staged_runtime import _repair_memory_for_prompt
+
+    fix_log = [
+        {
+            "entry_id": "fixlog-4-sl10_rework_review",
+            "iteration": 0,
+            "phase": "sl10_rework_review",
+            "candidate_dsl_hash": "sha256:frontier",
+            "candidate_dsl": "state Root { [*] -> Idle; Idle -> Safe :: Recover; }",
+            "diff_summary": {"summary": "kept behavior-fixed transition and only changed grounding representation"},
+            "next_action": "sl9_rework",
+            "local_check_evidence": {
+                "repair_review_feedback": {
+                    "local_rejection": {
+                        "reason": "new_blocking_design_diagnostic; missing_required_grounding",
+                        "target_resolved": False,
+                        "regression_detected": False,
+                        "drift_risk": "major",
+                        "evidence": [
+                            {"kind": "new_blocking_design_diagnostic", "code": "W_SHADOWED_EVENT"},
+                            {"kind": "missing_required_grounding", "element_ids": ["event:Recover"]},
+                        ],
+                    }
+                }
+            },
+            "sl10_review": {
+                "ok": False,
+                "decision": "rework",
+                "target_resolved": False,
+                "regression_detected": False,
+                "drift_risk": "major",
+                "rework_instructions": ["Keep the scenario-passing candidate; only repair local grounding."],
+            },
+        }
+    ]
+
+    memory = _repair_memory_for_prompt(fix_log)
+    frontier = memory["latest_non_regressive_local_only_frontier"]
+    assert frontier["candidate_dsl_hash"] == "sha256:frontier"
+    assert "missing_required_grounding" in frontier["local_objection_kinds"]
+    assert "scenario_regression" not in frontier["local_objection_kinds"]
+
+    prompt = build_sl9_repair_prompt(
+        nl="Recover must move the active state to Safe.",
+        current_dsl="state Root { [*] -> Idle; }",
+        fix_log=fix_log,
+        repair_memory=memory,
+        fix_request_batch={"requests": []},
+    )
+    rendered = "\n".join(message["content"] for message in prompt)
+    assert "latest_non_regressive_local_only_frontier" in rendered
+    assert "Do not swing back" in rendered or "do not swing back" in rendered
+    assert "missing_required_grounding" in rendered
+
+
+def test_sl10_local_only_frontier_is_forwarded_to_next_sl9_attempt(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+    sl10_calls = 0
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-frontier":
+            item = DesignDiagnosticItem(
+                code="W_NEEDS_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_NEEDS_REPAIR:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        decision = {
+            "request_id": request.fix_request_batch.requests[0].request_id,
+            "decision": "accept",
+            "rationale": "accept current repair target",
+        }
+        candidate = "candidate-frontier" if len(repair_calls) == 1 else "candidate-with-local-rationale"
+        return {"decisions": [decision], "candidate_dsl": candidate, "repair_rationale": [f"emit {candidate}"]}
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == "candidate-with-local-rationale":
+            feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none")
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+            feedback.meta = meta
+            return feedback, meta
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="new_blocking_design_diagnostic; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[
+                {"kind": "new_blocking_design_diagnostic", "code": "W_SHADOWED_EVENT"},
+                {"kind": "missing_required_grounding", "element_ids": ["event:Recover"]},
+            ],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def sl10_review(_request: RepairRequest, local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        nonlocal sl10_calls
+        sl10_calls += 1
+        if local.ok:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+            return (
+                SL10RepairReviewOutput(
+                    ok=True,
+                    decision="pass",
+                    target_resolved=True,
+                    regression_detected=False,
+                    drift_risk="none",
+                    evidence=[{"summary": "local checks passed"}],
+                    review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+        return (
+            SL10RepairReviewOutput(
+                ok=False,
+                decision="rework",
+                target_resolved=False,
+                regression_detected=False,
+                drift_risk="major",
+                rework_instructions=["Preserve the behavior-fixed candidate and repair only local grounding/design objections."],
+                evidence=[{"summary": "No scenario_regression remains; only local matcher objections remain."}],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "local-only frontier should not be forgotten",
+        FullStagedRuntimeConfig(initial_dsl="needs-frontier", run_id="pr-b1-local-only-frontier", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=local_review, sl10_review=sl10_review),
+    )
+
+    assert result.status == "converged"
+    assert len(repair_calls) == 2
+    frontier = repair_calls[1].repair_memory["latest_non_regressive_local_only_frontier"]
+    assert frontier["candidate_dsl_hash"] == repair_calls[1].repair_memory["candidate_hash_history_tail"][0]
+    assert "missing_required_grounding" in str(frontier)
+    hint_text = str(repair_calls[1].fix_request_batch.requests[0].suggested_fix_hints)  # type: ignore[union-attr]
+    assert "latest_non_regressive_local_only_frontier" in hint_text
+    assert "scenario_regression" in hint_text
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    first_sl10_entry = next(entry for entry in record.fix_log if entry["phase"] == "sl10_review")
+    assert first_sl10_entry["repair_memory"]["non_regressive_local_only_frontier"]["candidate_dsl_hash"].startswith("sha256:")
+
+
+def test_stale_overridden_scenario_hard_request_can_continue_to_sl7(tmp_path: Path) -> None:
+    scenario_name = "stale_overridden_hot_start"
+    final_candidate = "uniform-nl-candidate"
+    final_hash = "sha256:423630e91568a5f39c8b69a597ae2fde4acf00e7fd8285b7bea17f9833521dc3"
+    sim_calls: list[str] = []
+    model_review_payloads: list[dict[str, Any]] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="stale local oracle expects a path-specific value later rejected by NL review",
+        initial_state="Root.Spare",
+        steps=[
+            ScenarioStep(
+                events=["tick"],
+                expected_state="Root.Overload",
+                expected_vars={"Pbat_dis": 4.0},
+                name="overload_step",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        sim_calls.append(dsl)
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        n = len(scenarios)
+        if dsl == final_candidate:
+            failed = ScenarioResult(
+                name=scenario_name,
+                description=scenario.description,
+                status="fail",
+                step_results=[
+                    StepResult(
+                        step_index=0,
+                        step_name="overload_step",
+                        status="fail",
+                        actual_state="Root.Overload",
+                        actual_vars={"Pbat_dis": 3.0},
+                        state_assertion_ok=True,
+                        var_assertion_ok=False,
+                        var_mismatches={"Pbat_dis": {"expected": 4.0, "actual": 3.0}},
+                    )
+                ],
+            )
+            return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, scenario_results=[failed]), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=n, n_scenarios_passed=n), _meta(StageId.SD_6_SIM)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        assert request.fix_request_batch is not None
+        request_id = request.fix_request_batch.requests[0].request_id
+        if request.selected_feedback_trace["source_stage"] == StageId.SD_6_SIM.value:
+            return {
+                "decisions": [
+                    {
+                        "request_id": request_id,
+                        "decision": "reject",
+                        "rationale": (
+                            "Reject stale scenario request: prior FixLog and SL-10 override show this "
+                            "oracle conflicts with the NL-grounded uniform formula."
+                        ),
+                        "rejected_reason": "stale local scenario expectation conflicts with NL and prior SL-10 override",
+                    }
+                ],
+                "candidate_dsl": "",
+                "repair_rationale": ["stale scenario override should continue to SL-7"],
+            }
+        return {
+            "decisions": [
+                {
+                    "request_id": request_id,
+                    "decision": "accept",
+                    "rationale": "accept model-review NL fidelity correction",
+                }
+            ],
+            "candidate_dsl": final_candidate,
+            "repair_rationale": ["produce uniform NL candidate"],
+        }
+
+    def model_review(dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        if dsl != final_candidate:
+            meta = _meta(StageId.SL_7_MODEL_REVIEW, ok=False)
+            return (
+                ModelReviewFeedback(
+                    ok=False,
+                    decision="fail",
+                    risk_level="major",
+                    findings=[{"id": "MR-uniform", "summary": "Use the uniform NL-grounded formula."}],
+                    blocking_findings=[{"id": "MR-uniform", "summary": "Use the uniform NL-grounded formula."}],
+                    review_meta=_review_meta(StageId.SL_7_MODEL_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return (
+            ModelReviewFeedback(
+                ok=True,
+                decision="pass",
+                risk_level="none",
+                findings=[{"id": "MR-waiver-seen", "summary": "stale waiver reviewed"}] if feedback.get("waiver_audit") else [],
+                review_meta=_review_meta(StageId.SL_7_MODEL_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        local_feedback = request.selected_feedback_trace
+        if request.candidate_dsl == final_candidate:
+            sim_feedback = SimFeedback(
+                ok=False,
+                n_scenarios=1,
+                n_scenarios_passed=0,
+                scenario_results=[
+                    ScenarioResult(
+                        name=scenario_name,
+                        status="fail",
+                        step_results=[
+                            StepResult(
+                                step_index=0,
+                                status="fail",
+                                actual_state="Root.Overload",
+                                actual_vars={"Pbat_dis": 3.0},
+                                var_mismatches={"Pbat_dis": {"expected": 4.0, "actual": 3.0}},
+                            )
+                        ],
+                    )
+                ],
+            )
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+                reason="scenario_regression",
+                target_resolved=True,
+                regression_detected=True,
+                drift_risk="minor",
+                evidence=[{"kind": "scenario_regression", "sim_feedback": asdict(sim_feedback)}],
+            )
+            feedback = RepairReviewFeedback(
+                ok=False,
+                target_resolved=True,
+                regression_detected=True,
+                drift_risk="minor",
+                local_rejection=rejection,
+            )
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        else:
+            feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none")
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        feedback.meta = meta
+        assert local_feedback
+        return feedback, meta
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Local scenario expectation is stale and conflicts with NL."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected Pbat_dis=4.0 is stale; NL-grounded value is 3.0."
+                ],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "stale scenario override should be audit-reused instead of exiting rejected",
+        FullStagedRuntimeConfig(
+            initial_dsl="initial-needs-review",
+            run_id="pr-b1-stale-scenario-waiver",
+            output_dir=tmp_path,
+            max_iterations=3,
+            allow_main_result_eligible=True,
+            resolved_loop_config={"condition_id": "full_staged_v1", "llm_provider_mode": "real_env"},
+        ),
+        adapters=_base_adapters(
+            scenario_generate=scenario_generate,
+            sim=sim,
+            model_review=model_review,
+            repair=repair,
+            repair_review=local_review,
+            sl10_review=sl10_review,
+        ),
+    )
+
+    assert result.status == "converged"
+    assert result.final_dsl == final_candidate
+    assert sim_calls[-1] == final_candidate
+    assert any(payload.get("waiver_audit", {}).get("kind") == "stale_overridden_scenario_waiver" for payload in model_review_payloads)
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "success"
+    assert record.final_artifacts["final_dsl_hash"] == final_hash
+    assert record.final_artifacts["main_result_eligible"] is True
+    assert record.iteration_records[-1]["waiver_continue"] is True
+    assert record.iteration_records[-1]["waiver_audit"]["kind"] == "stale_overridden_scenario_waiver"
+    assert record.iteration_records[-1]["post_waiver_selected_feedback"] is None
+    assert record.iteration_records[-1]["exit_reason"] == "full_pass_all_required_feedback_ok_after_waiver_continue"
+    sl9_all_rejected = [entry for entry in record.fix_log if entry["phase"] == "sl9_all_rejected"]
+    assert sl9_all_rejected
+    assert sl9_all_rejected[-1]["next_action"] == "continue_after_waiver"
+    assert "stale_overridden_scenario_waiver" in str(sl9_all_rejected[-1])
+    assert StageId.SL_7_MODEL_REVIEW.value in record.iteration_records[-1]["post_waiver_stage_ids"]

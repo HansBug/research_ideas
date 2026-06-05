@@ -50,6 +50,12 @@ Important boundaries:
   the current candidate and SL-9 rationale resolve those remembered objections;
   otherwise request rework with DSL-actionable guidance instead of repeating a
   pure review-format complaint.
+- If FixLog/repair_memory shows a `non_regressive_local_only_frontier`, do not
+  keep asking SL-9 to abandon that behaviourally fixed candidate unless there is
+  real scenario_regression or NL-fidelity regression. When current local evidence
+  only reports grounding/design/count matcher objections, decide whether NL +
+  FixLog + DSL evidence justify an audited pass with `local_override_rationale`;
+  if not, give minimal local-only edits that preserve the frontier behaviour.
 - When local_check_evidence includes `actionable_repair_summary` /
   scenario repair briefs, use those expected-vs-actual details in your decision
   and, on rework, translate them into DSL-actionable instructions. Do not only

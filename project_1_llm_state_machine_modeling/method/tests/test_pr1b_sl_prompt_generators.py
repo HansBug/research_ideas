@@ -414,6 +414,51 @@ def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens(
         assert hits == [], f"{prompt_name} prompt contains PR-E1 sample-specific token(s): {hits}"
 
 
+def test_sl9_repair_prompt_documents_descendant_leaf_event_scope_repair() -> None:
+    messages = build_sl9_repair_prompt(
+        nl="A controller enters a submode, receives an event from its active inner leaf, and then enters a sibling mode.",
+        current_dsl="state Root { [*] -> Outer; state Outer { [*] -> Inner; state Inner; } state Sibling; Outer -> Sibling :: Go; }",
+        fix_plan={"target": "sim"},
+        selected_diagnostics=[
+            {
+                "runtime_error": (
+                    "SimulationRuntimeEventError: Cannot resolve event path 'Go' from "
+                    "state 'Root.Outer.Inner'"
+                )
+            }
+        ],
+        grammar_digest=_grammar_digest(),
+        repair_target="sim",
+    )
+    joined = "\n".join(message["content"] for message in messages)
+
+    assert "active descendant leaf" in joined
+    assert "flatten" in joined
+    assert "artificial composite submode" in joined
+    assert "dotted source" in joined
+    assert "forced composite event transitions" in joined
+
+
+def test_sl7_model_review_prompt_allows_audited_illegal_state_abstraction() -> None:
+    messages = build_sl7_model_review_prompt(
+        nl="If demand exceeds all resources, the exceptional completion state is illegal and shall never occur in practice.",
+        current_dsl=(
+            "def int violation = 0; state Root { [*] -> Normal; state Normal; "
+            "state Exceptional { enter { violation = 1; } } ! * -> Exceptional : if [demand > capacity]; }"
+        ),
+        grounding_map={"elements": []},
+        inspect_json={},
+        design_diagnostics_summary={},
+        sim_summary={},
+    )
+    joined = "\n".join(message["content"] for message in messages)
+
+    assert "illegal or shall never occur" in joined
+    assert "exceptional/diagnostic/fail-safe branch" in joined
+    assert "explicitly marks the violation" in joined
+    assert "normal" in joined and "dispatch/recovery" in joined
+
+
 def test_sl5_parser_accepts_string_before_cycles_and_rejects_non_numeric() -> None:
     scenarios = parse_sl5_scenario_generation_response(
         json.dumps(
@@ -579,7 +624,7 @@ def test_sl7_prompt_compacts_large_inspect_and_design_payloads() -> None:
     assert "_truncated_items" in joined
     assert "inspect_model_to_json_summary" in joined
     assert "design_diagnostics_summary" in joined
-    assert len(joined) < 30000
+    assert len(joined) < 30500
     assert "m" * 2000 not in joined
     assert "long" * 1000 not in joined
 

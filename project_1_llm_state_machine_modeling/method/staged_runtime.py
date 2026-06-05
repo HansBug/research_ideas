@@ -181,6 +181,7 @@ class FullStagedRuntimeConfig:
     output_dir: str | Path = "runs"
     max_iterations: int = 5
     scenario_max_retries: int = 2
+    min_sl10_rework_attempts: int = 1
     policy_profile: str = "experiment_default"
     write_run_record: bool = True
     adapter_mode: str = "test_injected"
@@ -200,6 +201,8 @@ class FullStagedRuntimeConfig:
             raise ValueError("FullStagedRuntimeConfig.max_iterations must be >= 0")
         if self.scenario_max_retries < 0:
             raise ValueError("FullStagedRuntimeConfig.scenario_max_retries must be >= 0")
+        if self.min_sl10_rework_attempts < 0:
+            raise ValueError("FullStagedRuntimeConfig.min_sl10_rework_attempts must be >= 0")
 
 
 InitialModelingAdapter = Callable[[str, StageContext], Any]
@@ -707,6 +710,371 @@ def _compact_repair_memory_for_prompt(value: Any) -> Any:
     )
 
 
+def _local_rejection_has_scenario_regression(rejection: RepairRejection | dict[str, Any] | None) -> bool:
+    if rejection is None:
+        return False
+    reason = getattr(rejection, "reason", "") if isinstance(rejection, RepairRejection) else str(rejection.get("reason") or "")
+    if "scenario_regression" in reason.lower():
+        return True
+    evidence = getattr(rejection, "evidence", None) if isinstance(rejection, RepairRejection) else rejection.get("evidence")
+    return any(isinstance(item, dict) and item.get("kind") == "scenario_regression" for item in list(evidence or []))
+
+
+def _local_rejection_kind_names(rejection: RepairRejection | dict[str, Any] | None) -> list[str]:
+    if rejection is None:
+        return []
+    reason = getattr(rejection, "reason", "") if isinstance(rejection, RepairRejection) else str(rejection.get("reason") or "")
+    kinds: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        text = str(value or "").strip().lower()
+        if len(text) < 4 or text in seen:
+            return
+        seen.add(text)
+        kinds.append(text)
+
+    for chunk in re.split(r"[;]+", reason):
+        add(chunk)
+    evidence = getattr(rejection, "evidence", None) if isinstance(rejection, RepairRejection) else rejection.get("evidence")
+    for item in list(evidence or []):
+        if isinstance(item, dict):
+            add(item.get("kind") or item.get("code"))
+    return kinds
+
+
+def _scenario_names_from_payload(payload: Any, *, known_names: set[str] | None = None) -> list[str]:
+    """Extract scenario names from nested evidence payloads.
+
+    The extraction is deliberately schema-driven and sample-agnostic.  When a
+    frozen ``ScenarioSet`` is available, candidate strings are filtered against
+    its scenario names so generic ``name`` fields from unrelated objects cannot
+    accidentally authorize a waiver.
+    """
+
+    names: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            return
+        if known_names is not None and text not in known_names:
+            return
+        if known_names is None and (len(text) > 160 or re.search(r"\s", text)):
+            return
+        seen.add(text)
+        names.append(text)
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                key_text = str(key).lower()
+                if key_text in {"scenario_name", "name"}:
+                    add(item)
+                elif key_text == "scenario_names" and isinstance(item, list):
+                    for name in item:
+                        add(name)
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(payload)
+    return names
+
+
+def _known_scenario_names(scenario_set: ScenarioSet | None) -> set[str] | None:
+    if scenario_set is None:
+        return None
+    names = {str(scenario.name or "").strip() for scenario in list(scenario_set.scenarios or [])}
+    names.discard("")
+    return names or None
+
+
+def _request_scenario_names(requests: list[FixRequest], *, scenario_set: ScenarioSet | None) -> list[str]:
+    known = _known_scenario_names(scenario_set)
+    names: list[str] = []
+    seen: set[str] = set()
+    for request in requests:
+        for name in _scenario_names_from_payload(
+            {
+                "source_feedback_id": request.source_feedback_id,
+                "evidence": request.evidence,
+                "suggested_fix_hints": request.suggested_fix_hints,
+            },
+            known_names=known,
+        ):
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+    return names
+
+
+def _entry_local_rejections(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return local rejection payloads stored directly or inside SL-10 output."""
+
+    rejections: list[dict[str, Any]] = []
+    payloads: list[Any] = [entry.get("local_check_evidence")]
+    sl10 = entry.get("sl10_review")
+    if isinstance(sl10, dict):
+        payloads.append(sl10.get("local_check_evidence"))
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        feedback = payload.get("repair_review_feedback")
+        if isinstance(feedback, dict) and isinstance(feedback.get("local_rejection"), dict):
+            rejections.append(feedback["local_rejection"])
+    return rejections
+
+
+def _sl9_rejection_invokes_prior_override(sl9_decision: SL9RepairDecisionOutput) -> bool:
+    """Check whether SL-9 rejected because a request is stale/NL-conflicting.
+
+    This is not a quality gate and does not inspect benchmark names.  It only
+    ensures that a hard-request waiver is backed by an explicit SL-9 audit
+    rationale rather than an empty refusal.
+    """
+
+    rendered = json.dumps(_jsonable(sl9_decision.decisions), ensure_ascii=False, sort_keys=True).lower()
+    tokens = (
+        "stale",
+        "override",
+        "prior",
+        "previous",
+        "fixlog",
+        "nl",
+        "ground",
+        "conflict",
+        "ungrounded",
+        "non-grounded",
+        "已覆写",
+        "覆写",
+        "先前",
+        "证据",
+        "冲突",
+        "不符合",
+        "非nl",
+    )
+    return any(token in rendered for token in tokens)
+
+
+def _stale_overridden_scenario_waiver_audit(
+    *,
+    active_request_batch: FixRequestBatch,
+    sl9_decision: SL9RepairDecisionOutput,
+    fix_log: list[dict[str, Any]],
+    current_dsl_hash: str,
+    scenario_set: ScenarioSet | None,
+) -> dict[str, Any] | None:
+    """Audit whether an all-rejected hard SD-6 request is a stale scenario.
+
+    A waiver is allowed only when the same current candidate hash already has an
+    earlier ``SL-10 pass`` with explicit ``local_override_rationale`` for a
+    local ``scenario_regression`` bearing the same scenario name, and the current
+    SL-9 decision rejects the request as stale / NL-conflicting.  The rule is
+    intentionally narrow so fresh simulation failures still remain hard blocks.
+    """
+
+    if not active_request_batch.requests:
+        return None
+    if not all(decision.decision == "reject" for decision in sl9_decision.decisions):
+        return None
+    hard_requests = [request for request in active_request_batch.requests if request.hard_block]
+    if not hard_requests:
+        return None
+    if not all(request.source_stage == StageId.SD_6_SIM.value or request.target == "sim" for request in hard_requests):
+        return None
+    if not _sl9_rejection_invokes_prior_override(sl9_decision):
+        return None
+
+    current_scenario_names = _request_scenario_names(hard_requests, scenario_set=scenario_set)
+    if not current_scenario_names:
+        return None
+
+    candidate_hashes = {item for item in {current_dsl_hash, active_request_batch.before_dsl_hash} if item}
+    known = _known_scenario_names(scenario_set)
+    matches: list[dict[str, Any]] = []
+    matched_names: set[str] = set()
+    for entry in fix_log:
+        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+        if entry_candidate_hash not in candidate_hashes:
+            continue
+        sl10 = entry.get("sl10_review")
+        if not isinstance(sl10, dict):
+            continue
+        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
+            continue
+        entry_names: set[str] = set()
+        for rejection in _entry_local_rejections(entry):
+            if not _local_rejection_has_scenario_regression(rejection):
+                continue
+            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
+        overlap = sorted(set(current_scenario_names) & entry_names)
+        if not overlap:
+            continue
+        matched_names.update(overlap)
+        matches.append(
+            {
+                "entry_id": entry.get("entry_id"),
+                "phase": entry.get("phase"),
+                "old_dsl_hash": entry.get("old_dsl_hash"),
+                "candidate_dsl_hash": entry_candidate_hash,
+                "matched_scenario_names": overlap,
+                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
+                "local_rejection_hash": _short_hash(_entry_local_rejections(entry)),
+            }
+        )
+
+    if set(current_scenario_names) - matched_names:
+        return None
+
+    return {
+        "kind": "stale_overridden_scenario_waiver",
+        "policy": (
+            "All current hard SD-6 fix requests were rejected by SL-9 as stale / "
+            "NL-conflicting, and the same current DSL candidate hash has an "
+            "earlier SL-10 pass with explicit local_override_rationale for the "
+            "same scenario_regression. Continue downstream validation without a "
+            "DSL edit, while retaining this audit evidence in FixLog and the run record."
+        ),
+        "current_dsl_hash": current_dsl_hash,
+        "batch_id": active_request_batch.batch_id,
+        "request_ids": [request.request_id for request in hard_requests],
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": sorted(matched_names),
+        "matched_historical_overrides": matches,
+        "sl9_rejection_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
+def _sl10_noop_override_waiver_audit(
+    *,
+    active_request_batch: FixRequestBatch,
+    sl9_decision: SL9RepairDecisionOutput,
+    local_review: RepairReviewFeedback,
+    local_check_evidence: dict[str, Any],
+    sl10_output: SL10RepairReviewOutput,
+    old_dsl: str,
+    candidate_dsl: str,
+    scenario_set: ScenarioSet | None,
+) -> dict[str, Any] | None:
+    """Audit whether an accepted no-op repair should continue in-place.
+
+    This is the accepted-candidate counterpart of
+    ``_stale_overridden_scenario_waiver_audit``.  It handles the case where
+    SL-10 explicitly passes and overrides a local SD-6 scenario objection for
+    the *unchanged* candidate.  Revalidating via SC-11 would only spend another
+    iteration on the same stale oracle, so the repair decision can be forwarded
+    to the same-iteration SD-6→SL-7 waiver continuation instead.
+    """
+
+    if not active_request_batch.requests:
+        return None
+    if not sl9_decision.accepted_request_ids:
+        return None
+    if _hash_text(old_dsl) != _hash_text(candidate_dsl):
+        return None
+    if not (sl10_output.ok and sl10_output.decision == "pass" and sl10_output.local_override_rationale):
+        return None
+    hard_requests = [request for request in active_request_batch.requests if request.hard_block]
+    if not hard_requests:
+        return None
+    if not all(request.source_stage == StageId.SD_6_SIM.value or request.target == "sim" for request in hard_requests):
+        return None
+    rejection = local_review.local_rejection
+    if rejection is None or not _local_rejection_has_scenario_regression(rejection):
+        return None
+    current_scenario_names = _request_scenario_names(hard_requests, scenario_set=scenario_set)
+    known = _known_scenario_names(scenario_set)
+    local_scenario_names = _scenario_names_from_payload(_jsonable(rejection), known_names=known)
+    if current_scenario_names:
+        overlap = sorted(set(current_scenario_names) & set(local_scenario_names))
+        if not overlap:
+            return None
+        matched_names = overlap
+    else:
+        matched_names = sorted(set(local_scenario_names))
+    if not matched_names:
+        return None
+
+    return {
+        "kind": "sl10_noop_override_waiver",
+        "policy": (
+            "SL-9 accepted current SD-6 hard requests but produced a no-op "
+            "candidate, and SL-10 explicitly passed with local_override_rationale "
+            "for the matching scenario_regression. Continue downstream validation "
+            "without spending a new SC-11/SD-2 iteration, while retaining this audit "
+            "evidence in FixLog and the run record."
+        ),
+        "current_dsl_hash": _hash_text(old_dsl),
+        "candidate_dsl_hash": _hash_text(candidate_dsl),
+        "batch_id": active_request_batch.batch_id,
+        "request_ids": [request.request_id for request in hard_requests],
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": matched_names,
+        "local_rejection_reason": getattr(rejection, "reason", ""),
+        "local_rejection_hash": _short_hash(_jsonable(rejection)),
+        "local_check_evidence_hash": _short_hash(local_check_evidence),
+        "sl10_local_override_rationale_hash": _short_hash(sl10_output.local_override_rationale),
+        "sl9_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
+def _local_only_frontier_from_rework_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """Return a compact frontier candidate if rework is local-only.
+
+    A candidate whose local review reports no scenario regression has already
+    repaired the current behavioural target as far as the frozen scenarios can
+    tell.  Later SL-9 attempts should preserve that frontier and only address
+    remaining grounding/design/count objections, or provide a structured
+    override rationale for SL-10.  This is sample-agnostic and driven solely by
+    local evidence / SL-10 flags.
+    """
+
+    if str(entry.get("phase") or "") not in {"sl10_review", "sl10_rework_review"}:
+        return None
+    if not str(entry.get("next_action") or "").startswith("sl9_rework"):
+        return None
+    candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+    if not candidate_hash:
+        return None
+    sl10 = entry.get("sl10_review") if isinstance(entry.get("sl10_review"), dict) else {}
+    local = entry.get("local_check_evidence") if isinstance(entry.get("local_check_evidence"), dict) else {}
+    feedback = local.get("repair_review_feedback") if isinstance(local, dict) else None
+    rejection = feedback.get("local_rejection") if isinstance(feedback, dict) else None
+    if not isinstance(rejection, dict):
+        return None
+    if bool(sl10.get("regression_detected")) or bool(rejection.get("regression_detected")):
+        return None
+    if _local_rejection_has_scenario_regression(rejection):
+        return None
+    kinds = _local_rejection_kind_names(rejection)
+    if not kinds:
+        return None
+    return {
+        "candidate_dsl_hash": candidate_hash,
+        "entry_id": entry.get("entry_id"),
+        "phase": entry.get("phase"),
+        "next_action": entry.get("next_action"),
+        "local_rejection_reason": rejection.get("reason"),
+        "local_objection_kinds": kinds,
+        "diff_summary": _compact_json(entry.get("diff_summary") or {}, max_list_items=6),
+        "sl10_rework_instructions": _compact_repair_memory_for_prompt((sl10.get("rework_instructions") or [])[:6]),
+        "sl9_repair_rationale": _compact_repair_memory_for_prompt((entry.get("notes") or [])[:6]),
+        "candidate_dsl_excerpt": _truncate_text(entry.get("candidate_dsl") or "", max_chars=2400),
+        "instruction": (
+            "This is the latest non-regressive local-only frontier: frozen scenarios "
+            "no longer report scenario_regression, so the next SL-9 attempt should "
+            "preserve this candidate's behavioral repair and make only minimal "
+            "local-grounding/design/count changes. If pyfcstm syntax cannot satisfy "
+            "both the local matcher and the behavior, keep the frontier and provide "
+            "explicit grounding/local_override rationale for each listed objection kind; "
+            "do not swing back to a prior candidate that reintroduces scenario_regression."
+        ),
+    }
+
+
 def _diagnostic_signature(item: dict[str, Any]) -> str:
     code = str(item.get("code") or item.get("type") or item.get("name") or item.get("id") or "")
     variable = str(item.get("variable") or item.get("var") or item.get("element") or "")
@@ -808,13 +1176,22 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         if str(entry.get("next_action") or "").startswith("sl9_rework")
         or "rework" in str(entry.get("phase") or "")
     ][-3:]
+    local_only_frontiers = [item for entry in entries if (item := _local_only_frontier_from_rework_entry(entry)) is not None]
+    latest_local_only_frontier = local_only_frontiers[-1] if local_only_frontiers else None
     latest_guidance: list[Any] = []
     latest_local_objections: list[Any] = []
+    latest_waived_local_objections: list[Any] = []
     for entry in latest_rework_entries:
         memory = entry.get("repair_memory")
         if isinstance(memory, dict):
             latest_guidance.extend(memory.get("actionable_rework_guidance") or [])
-            latest_local_objections.extend(memory.get("local_objections") or [])
+            latest_waived_local_objections.extend(memory.get("audit_only_rework_guidance") or [])
+            for objection in memory.get("local_objections") or []:
+                if isinstance(objection, dict) and objection.get("local_objection_status") == "overridden_by_sl10":
+                    latest_waived_local_objections.append(objection)
+                else:
+                    latest_local_objections.append(objection)
+            latest_waived_local_objections.extend(memory.get("overridden_local_objections") or [])
         sl10 = entry.get("sl10_review")
         if isinstance(sl10, dict):
             latest_guidance.extend(sl10.get("rework_instructions") or [])
@@ -822,7 +1199,16 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
             if isinstance(local, dict):
                 feedback = local.get("repair_review_feedback")
                 if isinstance(feedback, dict) and feedback.get("local_rejection"):
-                    latest_local_objections.append(feedback.get("local_rejection"))
+                    if sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale"):
+                        latest_waived_local_objections.append(
+                            {
+                                "local_objection_status": "overridden_by_sl10",
+                                "local_rejection": feedback.get("local_rejection"),
+                                "local_override_rationale": sl10.get("local_override_rationale"),
+                            }
+                        )
+                    else:
+                        latest_local_objections.append(feedback.get("local_rejection"))
         local_check = entry.get("local_check_evidence")
         if isinstance(local_check, dict):
             feedback = local_check.get("repair_review_feedback")
@@ -835,13 +1221,22 @@ def _repair_memory_for_prompt(fix_log: list[dict[str, Any]] | None) -> dict[str,
         "latest_rework_entry_ids": [entry.get("entry_id") for entry in latest_rework_entries],
         "latest_actionable_rework_guidance": _compact_repair_memory_for_prompt(latest_guidance[-8:]),
         "latest_local_objections": _compact_repair_memory_for_prompt(latest_local_objections[-6:]),
+        "latest_waived_local_objections": _compact_repair_memory_for_prompt(latest_waived_local_objections[-6:]),
+        "latest_non_regressive_local_only_frontier": _compact_repair_memory_for_prompt(latest_local_only_frontier or {}),
         "sl9_rule": (
             "Before emitting a candidate, explicitly address the latest "
             "actionable_rework_guidance and avoid returning a candidate whose "
             "hash is listed in previous_rejected_candidate_hashes or "
             "repeated_candidate_hashes unless the rationale explains why the "
             "unchanged DSL plus stronger grounding/override evidence is "
-            "intentionally sufficient."
+            "intentionally sufficient. Treat latest_waived_local_objections as "
+            "audit-only SL-10 overrides rather than primary repair targets; do "
+            "not undo an NL-grounded fix merely to satisfy a waived local matcher "
+            "or stale-scenario objection. If "
+            "latest_non_regressive_local_only_frontier is present, preserve that "
+            "candidate's scenario-passing behavior and only make minimal local-only "
+            "grounding/design/count changes; do not swing back to a prior candidate "
+            "that reintroduces scenario_regression."
         ),
     }
 
@@ -2002,6 +2397,253 @@ def _continue_after_design_waiver(
 
     return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
+
+def _make_waived_sim_feedback(feedback: SimFeedback, waiver_audit: dict[str, Any]) -> SimFeedback:
+    """Mark a stale scenario failure as audit-waived for downstream SL-7 review."""
+
+    return SimFeedback(
+        ok=True,
+        n_scenarios=feedback.n_scenarios,
+        n_scenarios_passed=feedback.n_scenarios_passed,
+        scenario_results=list(feedback.scenario_results),
+        setup_error=feedback.setup_error,
+        oracle_weak=False,
+        weak_oracle_reason="",
+        weak_oracle_evidence={
+            "waiver_continue_note": (
+                "Original SD-6 feedback is kept in scenario_results/counts, but "
+                "the selected hard request was audit-waived as a stale scenario "
+                "oracle already overridden by SL-10."
+            ),
+            "waiver_audit": _jsonable(waiver_audit),
+        },
+    )
+
+
+def _continue_after_sim_waiver(
+    *,
+    nl: str,
+    current_dsl: str,
+    validation: _ValidationPass,
+    iteration: int,
+    stage_records: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+    adapters: FullStagedRuntimeAdapters,
+    waiver_audit: dict[str, Any],
+) -> _ValidationPass:
+    """Continue after an audited stale SD-6 scenario waiver into SL-7."""
+
+    waiver_kind = str(waiver_audit.get("kind") or "sim_waiver") if isinstance(waiver_audit, dict) else "sim_waiver"
+    if waiver_kind == "sl10_noop_override_waiver":
+        enter_reason = "SL-10 accepted a no-op override for the current SD-6 scenario request; continue to SL-7 without DSL edit"
+        stage_reason = "sl10_noop_override_waiver_marked_non_blocking_for_SL-7"
+        skipped_reason = (
+            "waiver_continue: SL-10 passed a no-op candidate with local_override_rationale "
+            "for the current SD-6 scenario_regression; continuing to SL-7 without SC-11 "
+            "budget consumption or DSL edit"
+        )
+        review_reason = "waiver_continue_SD-6_sl10_noop_override"
+    else:
+        enter_reason = "SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit"
+        stage_reason = "stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7"
+        skipped_reason = (
+            "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
+            "and matched a prior SL-10 local_override_rationale for the same scenario; "
+            "continuing to SL-7 without DSL edit"
+        )
+        review_reason = "waiver_continue_SD-6_stale_scenario_request"
+    _append_flow_log(
+        logs,
+        event="waiver_continue_validation_enter",
+        iteration=iteration,
+        source_stage=StageId.SD_6_SIM.value,
+        reason=enter_reason,
+        current_dsl_hash=_hash_text(current_dsl),
+        current_dsl=current_dsl,
+        waiver_audit=_jsonable(waiver_audit),
+    )
+    source, selected_feedback, source_stage = validation.selected or ("", None, "")
+    if source != FeedbackSource.SIM.value or source_stage != StageId.SD_6_SIM.value or not isinstance(selected_feedback, SimFeedback):
+        return validation
+
+    context = _clone_stage_context(validation.context, current_dsl=current_dsl)
+    feedback = dict(validation.feedback)
+    waived_sim = _make_waived_sim_feedback(selected_feedback, waiver_audit)
+    feedback[FeedbackSource.SIM.value] = waived_sim
+    iteration_stage_metas = list(validation.stage_metas)
+
+    waiver_meta = _meta(StageId.SD_6_SIM, ok=True, status=StageStatus.ADVISORY)
+    waiver_meta.input_hash = _hash_text(current_dsl)
+    waiver_meta.output_hash = _short_hash(waiver_audit)
+    waiver_meta.skipped_reason = skipped_reason
+    _append_stage(stage_records, waiver_meta)
+    iteration_stage_metas.append(waiver_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        ok=True,
+        status=str(StageStatus.ADVISORY),
+        reason=stage_reason,
+        feedback=_feedback_brief(StageId.SD_6_SIM.value, waived_sim),
+        jump="SL-7",
+    )
+
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        reason=review_reason,
+        scenario_set_id=validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+        oracle_weak=validation.oracle_weak,
+        waiver_audit=_jsonable(waiver_audit),
+    )
+    review_run = adapters.model_review(
+        current_dsl,
+        context,
+        {
+            "parse": feedback.get(FeedbackSource.PARSE.value),
+            "semantic": feedback.get(FeedbackSource.SEMANTIC.value),
+            "design": feedback.get(FeedbackSource.DESIGN.value),
+            "sim": waived_sim,
+            "oracle_weak": validation.oracle_weak,
+            "waiver_continue": True,
+            "waiver_audit": _jsonable(waiver_audit),
+        },
+    )
+    review_run = _append_llm_stage_run(
+        run=review_run,
+        expected_stage_id=StageId.SL_7_MODEL_REVIEW,
+        stage_records=stage_records,
+        iteration_stage_metas=iteration_stage_metas,
+        llm_interactions=llm_interactions,
+        logs=logs,
+        iteration=iteration,
+    )
+    if _is_llm_stage_run(review_run):
+        review_feedback = getattr(review_run, "feedback", None)
+        if not isinstance(review_feedback, ModelReviewFeedback):
+            raise TypeError("SL-7 LLMStageRun must carry ModelReviewFeedback in .feedback")
+    else:
+        review_feedback, review_meta = review_run
+        _append_stage(stage_records, review_meta)
+        iteration_stage_metas.append(review_meta)
+    feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        ok=not _model_review_blocks(review_feedback),
+        feedback=_feedback_brief(StageId.SL_7_MODEL_REVIEW.value, review_feedback),
+        jump="SD-8 next iteration" if _model_review_blocks(review_feedback) else "SC-12 success",
+    )
+    return _ValidationPass(
+        context,
+        feedback,
+        iteration_stage_metas,
+        _select_first_blocking(feedback),
+        validation.scenario_set,
+        list(validation.scenario_history),
+        validation.oracle_weak,
+        validation.scenario_epoch,
+    )
+
+
+def _continue_after_repair_waiver(
+    *,
+    nl: str,
+    current_dsl: str,
+    cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    validation: _ValidationPass,
+    iteration: int,
+    state: _RunState,
+    stage_records: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+    waiver_audit: dict[str, Any] | None = None,
+) -> _ValidationPass:
+    if isinstance(waiver_audit, dict) and waiver_audit.get("kind") in {
+        "stale_overridden_scenario_waiver",
+        "sl10_noop_override_waiver",
+    }:
+        return _continue_after_sim_waiver(
+            nl=nl,
+            current_dsl=current_dsl,
+            validation=validation,
+            iteration=iteration,
+            stage_records=stage_records,
+            llm_interactions=llm_interactions,
+            logs=logs,
+            adapters=adapters,
+            waiver_audit=waiver_audit,
+        )
+    return _continue_after_design_waiver(
+        nl=nl,
+        current_dsl=current_dsl,
+        cfg=cfg,
+        adapters=adapters,
+        validation=validation,
+        iteration=iteration,
+        state=state,
+        stage_records=stage_records,
+        llm_interactions=llm_interactions,
+        logs=logs,
+    )
+
+
+def _run_post_accept_validation(
+    *,
+    nl: str,
+    cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    state: _RunState,
+    iteration: int,
+    stage_records: list[StageResultMeta],
+    logs: list[dict[str, Any]],
+    llm_interactions: list[dict[str, Any]],
+) -> _ValidationPass:
+    """Run same-iteration full validation after SC-11 accepted a candidate.
+
+    Used only when no next global iteration remains.  The accepted DSL still
+    must pass SD-2/SD-3/SD-4/SD-5A/SD-6/SL-7 before success is emitted; this
+    helper merely preserves the validation evidence instead of failing at the
+    SC-11 handoff boundary.
+    """
+
+    _append_flow_log(
+        logs,
+        event="post_accept_validation_enter",
+        stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
+        iteration=iteration,
+        reason="SC-11 accepted candidate but no next global iteration remains; run same-iteration full validation",
+        current_dsl_hash=_hash_text(state.current_dsl),
+        current_dsl=state.current_dsl,
+        scenario_set_id=state.scenario_set.scenario_set_id if state.scenario_set is not None else None,
+        oracle_weak=state.oracle_weak,
+        jump="SD-2 post_accept_validation",
+    )
+    return _run_validation_pass(
+        nl=nl,
+        current_dsl=state.current_dsl,
+        cfg=cfg,
+        adapters=adapters,
+        state=state,
+        scenario_set=state.scenario_set,
+        scenario_epoch=state.scenario_epoch,
+        oracle_weak=state.oracle_weak,
+        iteration=iteration,
+        stage_records=stage_records,
+        logs=logs,
+        llm_interactions=llm_interactions,
+        warning_budget_state=state.warning_budget_state,
+    )
+
+
 def _run_validation_pass(
     *,
     nl: str,
@@ -2353,7 +2995,9 @@ def _repair_memory_for_log(
     """Create an append-only FixLog memory block for the next SL-9 pass."""
 
     local_objections: list[Any] = []
+    overridden_local_objections: list[Any] = []
     guidance: list[Any] = []
+    audit_only_guidance: list[Any] = []
     if sl10_output is not None:
         guidance.extend(list(sl10_output.rework_instructions or []))
         guidance.extend(
@@ -2370,24 +3014,88 @@ def _repair_memory_for_log(
     if isinstance(feedback, dict):
         rejection = feedback.get("local_rejection")
         if isinstance(rejection, dict):
-            local_objections.append(rejection)
+            local_override_rationale = list(getattr(sl10_output, "local_override_rationale", []) or []) if sl10_output is not None else []
+            if sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and local_override_rationale:
+                overridden = {
+                    "local_objection_status": "overridden_by_sl10",
+                    "local_rejection": rejection,
+                    "local_override_rationale": _jsonable(local_override_rationale),
+                    "instruction": (
+                        "Audit-only: SL-10 accepted the candidate and explicitly "
+                        "overrode this local deterministic objection. Do not treat "
+                        "it as a primary SL-9 repair target in later iterations "
+                        "unless new hard evidence or a real regression reopens it."
+                    ),
+                }
+                local_objections.append(overridden)
+                overridden_local_objections.append(overridden)
+            else:
+                local_objections.append(rejection)
             raw_evidence = rejection.get("evidence")
             if isinstance(raw_evidence, list):
                 evidence_items.extend(item for item in raw_evidence if isinstance(item, dict))
     actionable_summary = local.get("actionable_repair_summary") if isinstance(local, dict) else None
     if isinstance(actionable_summary, dict):
-        guidance.append(
-            {
-                "kind": "local_actionable_repair_summary",
-                "summary": _jsonable(actionable_summary),
+        summary_item = {
+            "kind": "local_actionable_repair_summary",
+            "summary": _jsonable(actionable_summary),
+        }
+        if sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections:
+            audit_item = {
+                **summary_item,
+                "kind": "audit_only_local_summary",
                 "instruction": (
-                    "Use this expected-vs-actual local summary as the next SL-9 repair "
-                    "target. It is derived from the same local check that triggered "
-                    "SL-10 rework and should prevent repeating an under-specified edit."
+                    "Audit-only: this local expected-vs-actual summary belongs to "
+                    "a deterministic objection already overridden by SL-10. Preserve "
+                    "it for traceability, but do not use it as the next SL-9 repair "
+                    "target unless new hard evidence reopens the same issue."
                 ),
             }
-        )
-    guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
+            audit_only_guidance.append(audit_item)
+            for overridden in overridden_local_objections:
+                if isinstance(overridden, dict):
+                    overridden["local_actionable_repair_summary"] = _jsonable(actionable_summary)
+        else:
+            guidance.append(
+                {
+                    **summary_item,
+                    "instruction": (
+                        "Use this expected-vs-actual local summary as the next SL-9 repair "
+                        "target. It is derived from the same local check that triggered "
+                        "SL-10 rework and should prevent repeating an under-specified edit."
+                    ),
+                }
+            )
+    if not (sl10_output is not None and sl10_output.ok and sl10_output.decision == "pass" and overridden_local_objections):
+        guidance.extend(_repair_guidance_from_evidence(evidence_items, target="repair_review"))
+    frontier_candidate: dict[str, Any] | None = None
+    if (
+        candidate_dsl
+        and sl10_output is not None
+        and not sl10_output.ok
+        and not sl10_output.regression_detected
+        and feedback is not None
+        and isinstance(feedback, dict)
+        and isinstance(feedback.get("local_rejection"), dict)
+        and not _local_rejection_has_scenario_regression(feedback.get("local_rejection"))
+    ):
+        kinds = _local_rejection_kind_names(feedback.get("local_rejection"))
+        if kinds:
+            frontier_candidate = {
+                "candidate_dsl_hash": _hash_text(candidate_dsl),
+                "local_rejection_reason": feedback["local_rejection"].get("reason"),
+                "local_objection_kinds": kinds,
+                "candidate_dsl_excerpt": _truncate_text(candidate_dsl, max_chars=2400),
+                "instruction": (
+                    "Local checks no longer report scenario_regression for this "
+                    "candidate; preserve its behavioral repair as the frontier. "
+                    "The next attempt should make only minimal local-only changes "
+                    "or provide SL-10-ready local_override rationale for the listed "
+                    "objection kinds."
+                ),
+            }
+            guidance.append({"kind": "non_regressive_local_only_frontier", **frontier_candidate})
+
     candidate_hash = _hash_text(candidate_dsl) if candidate_dsl else ""
     previous = list(previous_candidate_hashes or [])
     repeated = bool(candidate_hash and candidate_hash in previous)
@@ -2408,6 +3116,9 @@ def _repair_memory_for_log(
         "candidate_dsl_hash": candidate_hash,
         "repeated_candidate_hash": repeated,
         "local_objections": _jsonable(local_objections),
+        "overridden_local_objections": _jsonable(overridden_local_objections),
+        "audit_only_rework_guidance": _jsonable(audit_only_guidance),
+        "non_regressive_local_only_frontier": _jsonable(frontier_candidate or {}),
         "actionable_rework_guidance": _jsonable(guidance),
     }
 
@@ -2829,37 +3540,91 @@ def _sl10_acknowledges_major_local_evidence(
     """Return whether an SL-10 pass explicitly engages major local evidence.
 
     SL-10 is allowed to overrule conservative deterministic checks, but the
-    override must be auditable.  For major local drift, merely mentioning the
-    rejection reason is not enough: the reviewer must provide a structured
-    local override rationale, and that rationale must engage at least one local
-    rejection reason/kind.  This keeps the mechanism sample-agnostic while
-    preventing silent or superficial LLM override of the DMR evidence chain.
+    override must be auditable.  For major local drift, the reviewer must
+    provide a structured local override rationale that engages at least one
+    local rejection reason/kind.  The runtime appends a separate audit evidence
+    object after this gate, so requiring the same anchor to be duplicated inside
+    ``sl10.evidence`` is brittle and makes convergence depend on output-field
+    wording rather than on the substantive rationale.
     """
 
-    if local_review.drift_risk != "major" or not sl10.ok:
+    coverage = _sl10_major_local_evidence_coverage(sl10, local_review=local_review)
+    if not coverage["required"]:
         return True
+    return not coverage["missing"]
+
+
+def _sl10_major_local_evidence_coverage(
+    sl10: SL10RepairReviewOutput,
+    *,
+    local_review: RepairReviewFeedback,
+) -> dict[str, Any]:
+    """Return per-objection rationale coverage for major local evidence.
+
+    The gate is intentionally field-stable but not sample-specific: each
+    independent local objection kind/code/reason chunk must be addressed in the
+    structured rationale.  A single matching token should not waive a compound
+    local rejection such as ``scenario_regression; missing_required_grounding``.
+    """
+
+    empty = {"required": [], "covered": [], "missing": []}
+    if local_review.drift_risk != "major" or not sl10.ok:
+        return empty
     rejection = local_review.local_rejection
     if rejection is None:
-        return True
+        return empty
     rationales = [str(item).strip() for item in getattr(sl10, "local_override_rationale", []) or [] if str(item).strip()]
     if not rationales:
-        return False
-    anchors: set[str] = set()
-    for chunk in re.split(r"[;,\s]+", rejection.reason or ""):
+        obligations = _local_rejection_obligations(rejection)
+        return {"required": [item["name"] for item in obligations], "covered": [], "missing": [item["name"] for item in obligations]}
+    obligations = _local_rejection_obligations(rejection)
+    if not obligations:
+        return {"required": [], "covered": [], "missing": []}
+    rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
+    covered: list[str] = []
+    missing: list[str] = []
+    for obligation in obligations:
+        anchors = obligation["anchors"]
+        if any(anchor in rendered_rationale for anchor in anchors):
+            covered.append(obligation["name"])
+        else:
+            missing.append(obligation["name"])
+    return {"required": [item["name"] for item in obligations], "covered": covered, "missing": missing}
+
+
+def _local_rejection_obligations(rejection: RepairRejection) -> list[dict[str, Any]]:
+    obligations: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_obligation(name: str, anchors: set[str]) -> None:
+        clean_name = name.strip().lower()
+        clean_anchors = {item.strip().lower() for item in anchors if item and len(item.strip()) >= 4}
+        if not clean_name or clean_name in seen or not clean_anchors:
+            return
+        seen.add(clean_name)
+        obligations.append({"name": clean_name, "anchors": sorted(clean_anchors)})
+
+    for chunk in re.split(r"[;]+", rejection.reason or ""):
         chunk = chunk.strip().lower()
         if len(chunk) >= 4:
-            anchors.add(chunk)
+            add_obligation(chunk, {chunk})
     for item in rejection.evidence:
         if isinstance(item, dict):
-            for key in ("kind", "code", "summary", "reason"):
-                value = item.get(key)
-                if isinstance(value, str) and len(value.strip()) >= 4:
-                    anchors.add(value.strip().lower())
-    if not anchors:
-        return False
-    rendered_evidence = json.dumps(_jsonable(sl10.evidence), ensure_ascii=False, sort_keys=True).lower()
-    rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
-    return any(anchor in rendered_evidence for anchor in anchors) and any(anchor in rendered_rationale for anchor in anchors)
+            anchors = {
+                value.strip().lower()
+                for key in ("kind", "code")
+                for value in [item.get(key)]
+                if isinstance(value, str) and len(value.strip()) >= 4
+            }
+            if anchors:
+                add_obligation(sorted(anchors)[0], anchors)
+            else:
+                for key in ("summary", "reason"):
+                    value = item.get(key)
+                    if isinstance(value, str) and len(value.strip()) >= 4:
+                        add_obligation(value.strip().lower(), {value.strip().lower()})
+                        break
+    return obligations
 
 
 def _repair_review_from_sl10(
@@ -2910,14 +3675,17 @@ def _repair_review_from_sl10(
             sl10.meta.status = StageStatus.FAIL
             sl10.meta.stage_error = sl10.rework_instructions[-1]
     local_override_audit: dict[str, Any] | None = None
+    local_override_coverage = _sl10_major_local_evidence_coverage(sl10, local_review=local_review)
     if sl10.ok and local_review.drift_risk == "major" and local_review.local_rejection is not None:
         local_override_audit = {
             "kind": "local_major_drift_override_audit",
             "policy": (
                 "SL-10 may override conservative local major-drift evidence only "
                 "when local_override_rationale explicitly engages the local "
-                "reason/kind; the runtime binds that override to candidate and "
-                "local-evidence hashes for run-record audit."
+                "reason/kind. The runtime appends this audit evidence and binds "
+                "that override to candidate and local-evidence hashes for "
+                "run-record audit, so the rationale field is the authoritative "
+                "override explanation."
             ),
             "candidate_dsl_hash": candidate_dsl_hash,
             "local_check_evidence_hash": local_check_evidence_hash,
@@ -2925,6 +3693,8 @@ def _repair_review_from_sl10(
             "local_rejection_evidence_hash": _short_hash(local_review.local_rejection.evidence),
             "local_override_rationale_hash": _short_hash(sl10.local_override_rationale),
             "local_override_rationale_count": len(sl10.local_override_rationale),
+            "covered_local_objection_kinds": local_override_coverage["covered"],
+            "missing_local_objection_kinds": local_override_coverage["missing"],
         }
         sl10.evidence.append(local_override_audit)
 
@@ -3173,7 +3943,13 @@ def _run_repair_path(
         )
         state.warning_budget_state = validation.context.warning_budget_state
 
-    max_rework_attempts = max(1, cfg.max_iterations - iteration)
+    # ``max_iterations`` is the global full-validation budget.  Once a repair
+    # path has already been entered, SL-10's concrete rework instructions must
+    # still get at least one same-batch SL-9/SL-10 retry; otherwise the last
+    # global iteration can record useful SL-10 guidance but never execute it.
+    # This does not add another SD-2 validation iteration and remains
+    # sample-agnostic: it only controls the local repair-review micro-loop.
+    max_rework_attempts = max(1 + cfg.min_sl10_rework_attempts, cfg.max_iterations - iteration)
     aggregate_stage_ids = list(repair_stage_ids)
     last_iteration_patch: dict[str, Any] = {}
     last_repair_review: RepairReviewFeedback | None = None
@@ -3309,19 +4085,43 @@ def _run_repair_path(
 
         if not sl9_decision.accepted_request_ids:
             hard_rejected = any(req.hard_block for req in active_request_batch.requests)
-            waiver_continue = (
+            stale_waiver_audit = (
+                _stale_overridden_scenario_waiver_audit(
+                    active_request_batch=active_request_batch,
+                    sl9_decision=sl9_decision,
+                    fix_log=state.fix_log,
+                    current_dsl_hash=_hash_text(state.current_dsl),
+                    scenario_set=validation.scenario_set,
+                )
+                if hard_rejected
+                else None
+            )
+            standard_waiver_continue = (
                 not hard_rejected
                 and bool(active_request_batch.requests)
                 and all(req.waiver_allowed for req in active_request_batch.requests)
                 and all(decision.decision == "reject" for decision in sl9_decision.decisions)
             )
+            waiver_continue = standard_waiver_continue or stale_waiver_audit is not None
+            waiver_reason = (
+                ":stale_overridden_scenario_waiver"
+                if stale_waiver_audit is not None
+                else ":waiver_continue"
+                if standard_waiver_continue
+                else ":hard_block"
+                if hard_rejected
+                else ":waiver_only"
+            )
             rejection = RepairRejection(
                 rejected_by_stage=StageId.SL_9_REPAIR.value,
-                reason="sl9_rejected_all_fix_requests" + (":hard_block" if hard_rejected else ":waiver_continue" if waiver_continue else ":waiver_only"),
+                reason="sl9_rejected_all_fix_requests" + waiver_reason,
                 target_resolved=waiver_continue,
                 regression_detected=False,
-                drift_risk="major" if hard_rejected else "minor",
-                evidence=[_jsonable(decision) for decision in sl9_decision.decisions],
+                drift_risk="minor" if stale_waiver_audit is not None else "major" if hard_rejected else "minor",
+                evidence=[
+                    *_jsonable(sl9_decision.decisions),
+                    *([_jsonable(stale_waiver_audit)] if stale_waiver_audit is not None else []),
+                ],
             )
             repair_review = RepairReviewFeedback(
                 ok=waiver_continue,
@@ -3332,13 +4132,18 @@ def _run_repair_path(
             if waiver_continue:
                 _append_flow_log(
                     state.logs,
-                    event="sl9_all_rejected_waiver_continue",
+                    event=(
+                        "sl9_all_rejected_stale_scenario_waiver_continue"
+                        if stale_waiver_audit is not None
+                        else "sl9_all_rejected_waiver_continue"
+                    ),
                     level="info",
                     stage_id=StageId.SL_9_REPAIR.value,
                     iteration=iteration,
                     source_stage=source_stage,
                     batch_id=active_request_batch.batch_id,
                     note="no candidate DSL; downstream validation continues without SC-11 acceptance",
+                    waiver_audit=_jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                     jump="continue_after_current_stage",
                 )
             _fix_log_entry(
@@ -3351,7 +4156,14 @@ def _run_repair_path(
                 candidate_dsl=candidate_dsl,
                 diff_summary=sl9_decision.diff_summary,
                 next_action="continue_after_waiver" if waiver_continue else "exit_rejected",
-                notes=[rejection.reason],
+                notes=[
+                    rejection.reason,
+                    *(
+                        [f"waiver_audit:{stale_waiver_audit['kind']}:{_short_hash(stale_waiver_audit)}"]
+                        if stale_waiver_audit is not None
+                        else []
+                    ),
+                ],
             )
             repair_payload = {
                 "iteration": iteration,
@@ -3365,6 +4177,7 @@ def _run_repair_path(
                 "repair_review": _jsonable(repair_review),
                 "accepted": False,
                 "waiver_continue": waiver_continue,
+                "waiver_audit": _jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                 "repair_stage_ids": list(aggregate_stage_ids),
                 "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
                 "fix_log_entry_count": len(state.fix_log),
@@ -3378,6 +4191,7 @@ def _run_repair_path(
                 "repair_review": _jsonable(repair_review),
                 "accepted_candidate": False,
                 "waiver_continue": waiver_continue,
+                "waiver_audit": _jsonable(stale_waiver_audit) if stale_waiver_audit is not None else None,
                 "exit_reason": "all_fix_requests_rejected_as_waiver_continue" if waiver_continue else rejection.reason,
                 "retryable_repair_rejection": False,
             }
@@ -3534,6 +4348,101 @@ def _run_repair_path(
             iteration=iteration,
             source_stage_id=StageId.SL_10_REPAIR_REVIEW.value,
         )
+        noop_override_waiver_audit = (
+            _sl10_noop_override_waiver_audit(
+                active_request_batch=active_request_batch,
+                sl9_decision=sl9_decision,
+                local_review=local_review,
+                local_check_evidence=local_check_evidence,
+                sl10_output=sl10_output,
+                old_dsl=state.current_dsl,
+                candidate_dsl=candidate_dsl,
+                scenario_set=validation.scenario_set,
+            )
+            if accepted
+            else None
+        )
+        if noop_override_waiver_audit is not None:
+            _append_flow_log(
+                state.logs,
+                event="sl10_noop_override_waiver_continue",
+                level="info",
+                stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+                iteration=iteration,
+                source_stage=source_stage,
+                batch_id=active_request_batch.batch_id,
+                note="SL-10 accepted a no-op local override; downstream validation continues without SC-11 budget consumption",
+                waiver_audit=_jsonable(noop_override_waiver_audit),
+                jump="continue_after_current_stage",
+            )
+            repair_review = RepairReviewFeedback(
+                ok=True,
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+            )
+            _fix_log_entry(
+                state=state,
+                iteration=iteration,
+                phase="sl10_noop_override_waiver",
+                batch=active_request_batch,
+                decisions=sl9_decision.decisions,
+                old_dsl=state.current_dsl,
+                candidate_dsl=candidate_dsl,
+                diff_summary=sl9_decision.diff_summary,
+                local_check_evidence=local_check_evidence,
+                sl10_review=sl10_output,
+                repair_memory=repair_memory,
+                next_action="continue_after_waiver",
+                notes=[
+                    f"waiver_audit:{noop_override_waiver_audit['kind']}:{_short_hash(noop_override_waiver_audit)}",
+                    *sl10_output.local_override_rationale,
+                    *(f"grounding_update_hint:{item['hint_hash']}" for item in sl10_grounding_hints),
+                ],
+            )
+            repair_payload = {
+                "iteration": iteration,
+                "selected_feedback": selected_trace,
+                "plan_kind": active_request_batch.legacy_plan_kind,
+                "fix_plan": _jsonable(effective_fix_plan),
+                "fix_request_batch": _jsonable(active_request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "candidate_dsl": candidate_dsl,
+                "candidate_dsl_hash": _hash_text(candidate_dsl),
+                "repair_review_input_summary": repair_review_input_summary,
+                "local_check_evidence": _jsonable(local_check_evidence),
+                "sd10_repair_review": local_sd10_repair_review,
+                "sl10_repair_review": _jsonable(sl10_output),
+                "grounding_update_hints": _jsonable(sl10_grounding_hints),
+                "repair_review": _jsonable(repair_review),
+                "accepted": False,
+                "accepted_noop_override": True,
+                "waiver_continue": True,
+                "waiver_audit": _jsonable(noop_override_waiver_audit),
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+                "fix_log_entry_count": len(state.fix_log),
+                "rework_attempt": rework_attempt,
+            }
+            state.repair_history.append(repair_payload)
+            return False, {
+                "selected_feedback": selected_trace,
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "fix_request_batch": _jsonable(active_request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "local_check_evidence": _jsonable(local_check_evidence),
+                "sl10_repair_review": _jsonable(sl10_output),
+                "grounding_update_hints": _jsonable(sl10_grounding_hints),
+                "repair_review": _jsonable(repair_review),
+                "accepted_candidate": False,
+                "accepted_noop_override": True,
+                "waiver_continue": True,
+                "waiver_audit": _jsonable(noop_override_waiver_audit),
+                "fix_log_entry_count": len(state.fix_log),
+                "rework_attempts_used": rework_attempt + 1,
+                "exit_reason": "sl10_noop_override_waiver_continue",
+                "retryable_repair_rejection": False,
+            }
         if accepted:
             sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
             _append_stage(state.stage_records, sc11_meta)
@@ -3762,6 +4671,7 @@ def _build_record(
         **resolved_config,
         "max_iterations": cfg.max_iterations,
         "scenario_max_retries": cfg.scenario_max_retries,
+        "min_sl10_rework_attempts": cfg.min_sl10_rework_attempts,
         "policy_profile": cfg.policy_profile,
         "adapter_mode": cfg.adapter_mode,
         "allow_main_result_eligible": cfg.allow_main_result_eligible,
@@ -3909,6 +4819,7 @@ def run_full_staged_deterministic_runtime(
         run_id=run_id,
         max_iterations=config.max_iterations,
         scenario_max_retries=config.scenario_max_retries,
+        min_sl10_rework_attempts=config.min_sl10_rework_attempts,
         adapter_mode=config.adapter_mode,
         real_llm_provider_api=config.real_llm_provider_api,
         initial_dsl_hash=_hash_text(state.current_dsl),
@@ -4138,7 +5049,7 @@ def run_full_staged_deterministic_runtime(
 
         if bool(repair_patch.get("waiver_continue")) and not accepted:
             try:
-                continued_validation = _continue_after_design_waiver(
+                continued_validation = _continue_after_repair_waiver(
                     nl=nl,
                     current_dsl=state.current_dsl,
                     cfg=config,
@@ -4149,6 +5060,7 @@ def run_full_staged_deterministic_runtime(
                     stage_records=state.stage_records,
                     llm_interactions=state.llm_interactions,
                     logs=state.logs,
+                    waiver_audit=repair_patch.get("waiver_audit") if isinstance(repair_patch.get("waiver_audit"), dict) else None,
                 )
             except _LLMRetryExhausted as exc:
                 _mark_retry_exhausted(state, exc)
@@ -4280,24 +5192,116 @@ def run_full_staged_deterministic_runtime(
             state.iteration_records.append(iteration_record)
             break
         if iteration + 1 >= config.max_iterations:
-            reason = f"SC-11 budget gate blocked SD-2 revalidation: iter+1={iteration + 1} >= max_iterations={config.max_iterations}"
-            _mark_sc12_verdict(
-                state,
-                verdict="not_converged",
-                source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
-                reason=reason,
-                record_status="budget_exhausted",
-                result_status="not_converged",
-                stage_ok=False,
-                stage_status=StageStatus.FAIL,
+            budget_reason = (
+                f"SC-11 budget gate reached: iter+1={iteration + 1} >= max_iterations={config.max_iterations}; "
+                "running same-iteration post-accept validation"
             )
-            iteration_record["exit_reason"] = reason
             iteration_record["budget_gate"] = {
                 "source_stage_id": StageId.SC_11_ACCEPT_CANDIDATE.value,
                 "iter_plus_one": iteration + 1,
                 "max_iterations": config.max_iterations,
                 "next_stage_allowed": False,
+                "post_accept_validation_attempted": True,
             }
+            try:
+                post_accept_validation = _run_post_accept_validation(
+                    nl=nl,
+                    cfg=config,
+                    adapters=adapters,
+                    state=state,
+                    iteration=iteration,
+                    stage_records=state.stage_records,
+                    logs=state.logs,
+                    llm_interactions=state.llm_interactions,
+                )
+            except _LLMRetryExhausted as exc:
+                _mark_retry_exhausted(state, exc)
+                iteration_record["exit_reason"] = state.verdict_reason
+                iteration_record["post_accept_stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])[len(iteration_record["stage_ids"]):]
+                state.iteration_records.append(iteration_record)
+                break
+
+            state.warning_budget_state = post_accept_validation.context.warning_budget_state
+            state.scenario_set = post_accept_validation.scenario_set
+            if post_accept_validation.scenario_set is not None:
+                state.scenario_epoch = max(state.scenario_epoch, post_accept_validation.scenario_set.epoch + 1)
+            state.oracle_weak = post_accept_validation.oracle_weak
+            state.scenario_history.extend(post_accept_validation.scenario_history)
+            state.deterministic_feedback["iterations"].append(
+                {
+                    "iteration": iteration,
+                    "post_accept_validation": True,
+                    "parse": _jsonable(post_accept_validation.feedback.get(FeedbackSource.PARSE.value)),
+                    "semantic": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                    "design": _jsonable(post_accept_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                    "sim": _jsonable(post_accept_validation.feedback.get(FeedbackSource.SIM.value)),
+                    "model_review": _jsonable(post_accept_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                    "stage_ids": _stage_ids(post_accept_validation.stage_metas),
+                    "scenario_epoch": post_accept_validation.scenario_epoch,
+                    "oracle_weak": post_accept_validation.oracle_weak,
+                }
+            )
+            if post_accept_validation.selected is not None:
+                source, feedback_obj, source_stage = post_accept_validation.selected
+                iteration_record["post_accept_selected_feedback"] = _selected_feedback_trace(
+                    source,
+                    feedback_obj,
+                    source_stage,
+                    scenario_set=post_accept_validation.scenario_set,
+                )
+            else:
+                iteration_record["post_accept_selected_feedback"] = None
+            iteration_record["post_accept_stage_ids"] = _stage_ids(post_accept_validation.stage_metas)
+            iteration_record["post_accept_scenario_epoch"] = post_accept_validation.scenario_epoch
+            iteration_record["post_accept_oracle_weak"] = post_accept_validation.oracle_weak
+            iteration_record["stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])
+
+            weak_sim_feedback = post_accept_validation.feedback.get(FeedbackSource.SIM.value)
+            if (
+                post_accept_validation.selected is None
+                and isinstance(weak_sim_feedback, SimFeedback)
+                and not weak_sim_feedback.ok
+                and getattr(weak_sim_feedback, "oracle_weak", False)
+            ):
+                reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=StageId.SD_6_SIM.value,
+                    reason=reason,
+                    record_status="failed",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = reason
+                state.iteration_records.append(iteration_record)
+                break
+            if post_accept_validation.selected is None:
+                source_stage_id = post_accept_validation.stage_metas[-1].stage_id if post_accept_validation.stage_metas else StageId.SC_11_ACCEPT_CANDIDATE.value
+                _mark_sc12_verdict(
+                    state,
+                    verdict="success",
+                    source_stage_id=source_stage_id,
+                    reason="full_pass_all_required_feedback_ok_after_sc11_post_accept_validation",
+                )
+                iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+                iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                state.iteration_records.append(iteration_record)
+                break
+            reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
+            _mark_sc12_verdict(
+                state,
+                verdict="not_converged",
+                source_stage_id=iteration_record["post_accept_selected_feedback"].get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                reason=str(reason),
+                record_status="budget_exhausted",
+                result_status="not_converged",
+                stage_ok=False,
+                stage_status=StageStatus.FAIL,
+            )
+            iteration_record["exit_reason"] = str(reason)
+            iteration_record["budget_gate"]["post_accept_validation_success"] = False
             state.iteration_records.append(iteration_record)
             break
         state.iteration_records.append(iteration_record)

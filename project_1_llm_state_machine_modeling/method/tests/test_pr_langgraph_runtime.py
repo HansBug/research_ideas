@@ -15,10 +15,15 @@ from method.schema import (
     ParseFeedback,
     RepairRejection,
     RepairReviewFeedback,
+    ReviewRunMeta,
     SemanticFeedback,
     SimFeedback,
+    SL10RepairReviewOutput,
+    ScenarioResult,
+    ScenarioStep,
     StageContext,
     StageResultMeta,
+    StepResult,
     TestScenario,
 )
 from method.staged_runtime import (
@@ -136,7 +141,26 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
         "sc13_trace_audit",
     }.issubset(node_ids)
     assert registry["delegated_monolithic_runtime"] is False
-    assert all(not node.get("delegated_subgraph") for node in registry["nodes"])
+    validation_node = next(node for node in registry["nodes"] if node["node_id"] == "validation_pass")
+    assert validation_node["delegated_subgraph"] is True
+    assert validation_node["subgraph_id"] == "validation_subgraph"
+    assert {
+        "validation_enter",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sd5a_reuse_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
+    }.issubset(set(validation_node["subgraph_node_ids"]))
+    waiver_node = next(node for node in registry["nodes"] if node["node_id"] == "waiver_continue")
+    assert waiver_node["delegated_subgraph"] is True
+    assert waiver_node["subgraph_id"] == "validation_subgraph"
+    assert all(not node.get("delegated_subgraph") for node in registry["nodes"] if node["node_id"] not in {"validation_pass", "waiver_continue"})
     assert consistency["ok"] is True
     assert consistency["missing_stage_ids"] == []
     assert consistency["opaque_wrapper"] is False
@@ -413,8 +437,33 @@ def _lg_record(result: Any) -> Any:
     return read_agent_loop_run_record(result.run_record_path)
 
 
+
+
+def _record_stage_ids(record: Any) -> list[str]:
+    return [str(item.get("stage_id") if isinstance(item, dict) else item.stage_id) for item in record.stage_records]
+
 def _lg_trace_nodes(record: Any) -> list[str]:
     return [str(item.get("node_id") or "") for item in record.run_config.get("langgraph_node_trace", [])]
+
+
+def _lg_top_level_trace_nodes(record: Any) -> list[str]:
+    top_level_nodes = {
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "repair_path",
+        "repair_decision",
+        "waiver_continue",
+        "sc12_budget_exhausted",
+        "sc13_trace_audit",
+    }
+    return [node for node in _lg_trace_nodes(record) if node in top_level_nodes]
+
+
+def _lg_validation_subgraph_nodes(record: Any) -> list[str]:
+    return [node for node in _lg_trace_nodes(record) if node.startswith("validation_") and node not in {"validation_pass", "validation_decision"}]
 
 
 def _lg_baseline(record: Any) -> dict[str, Any]:
@@ -555,6 +604,42 @@ def test_command_routing_no_next_action_as_primary_source() -> None:
     assert 'graph_state["next_action"]' not in source
 
 
+def test_lg_b1_validation_subgraph_replaces_monolithic_validation_pass(tmp_path: Path) -> None:
+    import inspect
+    import method.langgraph_runtime as lg
+
+    build_graph_source = inspect.getsource(lg._build_graph)
+    validation_subgraph_source = inspect.getsource(lg._build_validation_subgraph)
+
+    assert "_build_validation_subgraph" in build_graph_source
+    assert "_run_validation_pass" not in build_graph_source
+    assert "_run_validation_pass" not in validation_subgraph_source
+
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-b1-validation-subgraph-contract"))
+    validation_nodes = _lg_validation_subgraph_nodes(record)
+
+    assert validation_nodes == [
+        "validation_subgraph",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
+    ]
+    assert _lg_top_level_trace_nodes(record) == [
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "sc13_trace_audit",
+    ]
+
+
 def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: Path) -> None:
     full_pass = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a1-full-pass", max_iterations=1))
     full_pass_baseline = _lg_baseline(full_pass)
@@ -562,13 +647,25 @@ def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: 
     assert full_pass.status == "success"
     assert full_pass.final_artifacts["verdict"] == "success"
     assert full_pass.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
-    assert full_pass_baseline["trace_nodes"] == [
+    assert _lg_top_level_trace_nodes(full_pass) == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
         "validation_pass",
         "validation_decision",
         "sc13_trace_audit",
+    ]
+    assert _lg_validation_subgraph_nodes(full_pass) == [
+        "validation_subgraph",
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+        "validation_finalize",
     ]
     assert full_pass_baseline["stage_ids"][-1] == StageId.SC_13_TRACE_AUDIT.value
     assert full_pass.final_artifacts["main_result_eligible"] is False
@@ -579,7 +676,7 @@ def test_command_routing_baseline_full_pass_and_budget_exhausted_path(tmp_path: 
     assert budget.status == "budget_exhausted"
     assert budget.final_artifacts["verdict"] == "not_converged"
     assert budget.final_artifacts["verdict_source_stage_id"] == StageId.SC_0_START.value
-    assert budget_baseline["trace_nodes"] == [
+    assert _lg_top_level_trace_nodes(budget) == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
@@ -646,8 +743,8 @@ def test_command_routing_equivalence_sc12_verdict_source_matrix(tmp_path: Path) 
             1,
             "budget_exhausted",
             "not_converged",
-            StageId.SC_11_ACCEPT_CANDIDATE.value,
-            ["repair_path", "repair_decision", "sc13_trace_audit"],
+            StageId.SD_4_DESIGN.value,
+            ["repair_path", "repair_decision", "validation_subgraph", "sc13_trace_audit"],
         ),
         (
             "llm_retry_exhausted_sl7",
@@ -723,6 +820,564 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
     assert record.status in {"success", "budget_exhausted", "failed", "rejected"}
     assert record.iteration_records
     assert "post_waiver_stage_ids" in record.iteration_records[0]
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "validation_subgraph" in post_waiver_nodes
+    assert "validation_sd2_parse" not in post_waiver_nodes
+    assert "validation_sd3_semantic" not in post_waiver_nodes
+    assert "validation_sd4_design" in post_waiver_nodes
+    assert "validation_sl5_scenario_generation" in post_waiver_nodes
+    assert "validation_sd6_sim" in post_waiver_nodes
+    assert "validation_sl7_model_review" in post_waiver_nodes
+    assert record.iteration_records[0]["post_waiver_stage_ids"] == [
+        StageId.SD_4_DESIGN.value,
+        StageId.SL_5_SCENARIO_GENERATION.value,
+        StageId.SD_5A_SCENARIO_COVERAGE.value,
+        StageId.SC_5F_SCENARIO_FREEZE.value,
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    post_waiver_stage_logs = [
+        item
+        for item in record.logs
+        if isinstance(item, dict)
+        and item.get("event") == "stage_result"
+        and item.get("stage_id") in {StageId.SD_4_DESIGN.value, StageId.SL_5_SCENARIO_GENERATION.value, StageId.SD_5A_SCENARIO_COVERAGE.value, StageId.SC_5F_SCENARIO_FREEZE.value, StageId.SD_6_SIM.value, StageId.SL_7_MODEL_REVIEW.value}
+        and item.get("iteration") == 0
+    ]
+    post_waiver_stage_logs = post_waiver_stage_logs[-6:]
+    assert post_waiver_stage_logs
+    assert all(item.get("graph_subgraph") == "validation_subgraph" for item in post_waiver_stage_logs)
+    assert all(str(item.get("graph_node") or "").startswith("validation_") for item in post_waiver_stage_logs)
+
+
+def test_waiver_continue_consumes_stale_scenario_audit_and_enters_sl7(tmp_path: Path) -> None:
+    scenario_name = "lg_b1_stale_scenario"
+    final_candidate = "uniform-nl-candidate-lg"
+    sim_calls: list[str] = []
+    model_review_payloads: list[dict[str, Any]] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="stale local oracle later overridden by SL-10",
+        initial_state="Root.Spare",
+        steps=[
+            ScenarioStep(
+                events=["tick"],
+                expected_state="Root.Overload",
+                expected_vars={"Pbat_dis": 4.0},
+                name="overload_step",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        sim_calls.append(dsl)
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        if dsl == final_candidate:
+            failed = ScenarioResult(
+                name=scenario_name,
+                description=scenario.description,
+                status="fail",
+                step_results=[
+                    StepResult(
+                        step_index=0,
+                        step_name="overload_step",
+                        status="fail",
+                        actual_state="Root.Overload",
+                        actual_vars={"Pbat_dis": 3.0},
+                        state_assertion_ok=True,
+                        var_assertion_ok=False,
+                        var_mismatches={"Pbat_dis": {"expected": 4.0, "actual": 3.0}},
+                    )
+                ],
+            )
+            return (
+                SimFeedback(ok=False, n_scenarios=len(scenarios), n_scenarios_passed=0, scenario_results=[failed]),
+                _meta(StageId.SD_6_SIM, ok=False),
+            )
+        return SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)), _meta(StageId.SD_6_SIM)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        request_id = request.fix_request_batch.requests[0].request_id
+        if request.selected_feedback_trace["source_stage"] == StageId.SD_6_SIM.value:
+            return {
+                "decisions": [
+                    {
+                        "request_id": request_id,
+                        "decision": "reject",
+                        "rationale": "Reject stale scenario request because prior FixLog/SL-10 override shows NL conflict.",
+                        "rejected_reason": "stale prior override conflicts with NL-grounded expected variable",
+                    }
+                ],
+                "candidate_dsl": "",
+                "repair_rationale": ["reuse prior scenario override and continue to SL-7"],
+            }
+        return {
+            "decisions": [{"request_id": request_id, "decision": "accept", "rationale": "accept NL-fidelity correction"}],
+            "candidate_dsl": final_candidate,
+            "repair_rationale": ["produce uniform NL candidate"],
+        }
+
+    def model_review(dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        if dsl != final_candidate:
+            meta = _meta(StageId.SL_7_MODEL_REVIEW, ok=False)
+            return (
+                ModelReviewFeedback(
+                    ok=False,
+                    decision="fail",
+                    risk_level="major",
+                    blocking_findings=[{"id": "MR-uniform", "summary": "Use the uniform NL-grounded formula."}],
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return (
+            ModelReviewFeedback(
+                ok=True,
+                decision="pass",
+                risk_level="none",
+                findings=[{"id": "MR-waiver-seen", "summary": "stale waiver reviewed"}] if feedback.get("waiver_audit") else [],
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == final_candidate:
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+                reason="scenario_regression",
+                target_resolved=True,
+                regression_detected=True,
+                drift_risk="minor",
+                evidence=[{"kind": "scenario_regression", "scenario_names": [scenario_name]}],
+            )
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+            return (
+                RepairReviewFeedback(
+                    ok=False,
+                    target_resolved=True,
+                    regression_detected=True,
+                    drift_risk="minor",
+                    local_rejection=rejection,
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        return RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta), meta
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Local scenario expectation is stale and conflicts with NL."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected Pbat_dis=4.0 is stale; NL-grounded value is 3.0."
+                ],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="test.v1",
+                    failure_policy="audit_only",
+                    replay_key="SL-10:test",
+                ),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-stale-scenario-waiver",
+            initial_dsl="initial-needs-review",
+            max_iterations=3,
+            adapters=_adapters_with(
+                scenario_generate=scenario_generate,
+                sim=sim,
+                model_review=model_review,
+                repair=repair,
+                repair_review=local_review,
+                sl10_review=sl10_review,
+            ),
+        )
+    )
+
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert sim_calls[-1] == final_candidate
+    assert any(payload.get("waiver_audit", {}).get("kind") == "stale_overridden_scenario_waiver" for payload in model_review_payloads)
+    assert record.iteration_records[-1]["waiver_continue"] is True
+    assert record.iteration_records[-1]["waiver_audit"]["kind"] == "stale_overridden_scenario_waiver"
+    assert record.iteration_records[-1]["post_waiver_selected_feedback"] is None
+    assert record.iteration_records[-1]["post_waiver_stage_ids"] == [
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    sl9_all_rejected = [entry for entry in record.fix_log if entry["phase"] == "sl9_all_rejected"]
+    assert sl9_all_rejected and sl9_all_rejected[-1]["next_action"] == "continue_after_waiver"
+    trace_nodes = _lg_trace_nodes(record)
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "validation_sd6_sim" in post_waiver_nodes
+    assert "validation_sl7_model_review" in post_waiver_nodes
+    assert "validation_sd2_parse" not in post_waiver_nodes
+    assert any(
+        item.get("event") == "stage_result"
+        and item.get("stage_id") == StageId.SD_6_SIM.value
+        and item.get("reason") == "stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7"
+        for item in record.logs
+        if isinstance(item, dict)
+    )
+
+
+
+def test_langgraph_sl10_rework_gets_same_batch_retry_on_last_iteration(tmp_path: Path) -> None:
+    repair_calls: list[RepairRequest] = []
+    sl10_calls: list[RepairRequest] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-last-iter-rework":
+            item = DesignDiagnosticItem(
+                code="W_LG_LAST_ITER_REWORK",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_LAST_ITER_REWORK:state=Idle",
+                rationale="force repair on the only LangGraph global iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        repair_calls.append(request)
+        assert request.fix_request_batch is not None
+        candidate = "lg-candidate-a" if len(repair_calls) == 1 else "lg-candidate-b"
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept for test"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": candidate,
+            "repair_rationale": [f"emit {candidate}"],
+            "diff_summary": {"summary": f"emit {candidate}"},
+        }
+
+    def repair_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        return RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta), meta
+
+    def sl10_review(request: RepairRequest, _local_review: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        sl10_calls.append(request)
+        if len(sl10_calls) == 1:
+            meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=False)
+            return (
+                SL10RepairReviewOutput(
+                    ok=False,
+                    decision="rework",
+                    target_resolved=False,
+                    regression_detected=True,
+                    drift_risk="major",
+                    evidence=[{"summary": "first candidate needs rework"}],
+                    rework_instructions=["Use same-batch rework to restore the dropped obligation."],
+                    review_meta=ReviewRunMeta(
+                        provider="test-adapter",
+                        model_id="none",
+                        prompt_template_version="SL-10.test",
+                        schema_validation_ok=True,
+                        parsed_schema_version="test.v1",
+                        failure_policy="audit_only",
+                        replay_key="SL-10:test-lg-rework",
+                    ),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="none",
+                evidence=[{"summary": "second candidate follows rework guidance"}],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="test.v1",
+                    failure_policy="audit_only",
+                    replay_key="SL-10:test-lg-pass",
+                ),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-last-iteration-sl10-rework-minimum",
+            initial_dsl="lg-last-iter-rework",
+            max_iterations=1,
+            adapters=_adapters_with(design=design, repair=repair, repair_review=repair_review, sl10_review=sl10_review),
+        )
+    )
+
+    assert len(repair_calls) == 2
+    assert repair_calls[1].rework_locked is True
+    assert "Use same-batch rework" in str(repair_calls[1].repair_memory)
+    assert len(sl10_calls) == 2
+    assert record.repair_history[-1]["accepted"] is True
+    assert record.repair_history[-1]["rework_attempt"] == 1
+    assert record.iteration_records[0]["rework_attempts_used"] == 2
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_7_MODEL_REVIEW.value
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    stage_ids = _record_stage_ids(record)
+    sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
+    sc12_index = stage_ids.index(StageId.SC_12_EXIT.value)
+    assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < sc12_index
+    assert record.run_config["min_sl10_rework_attempts"] == 1
+    assert record.run_config["graph_config_hash"] == record.environment["graph_config_hash"]
+    assert record.stage_records[-2]["stage_id"] == StageId.SC_12_EXIT.value
+    assert [entry["phase"] for entry in record.fix_log].count("sl9_rework_decision") == 1
+    assert [entry["phase"] for entry in record.fix_log].count("sl10_rework_review") == 1
+
+
+def test_langgraph_sc11_last_iteration_runs_post_accept_validation_before_success(tmp_path: Path) -> None:
+    parse_seen: list[str] = []
+
+    def parse(dsl: str, context: StageContext) -> tuple[ParseFeedback, StageResultMeta]:
+        parse_seen.append(dsl)
+        return _ok_parse(dsl, context)
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-needs-post-accept":
+            item = DesignDiagnosticItem(
+                code="W_LG_POST_ACCEPT",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_POST_ACCEPT:state=Idle",
+                rationale="force accepted repair in last iteration",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept post-accept repair"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": "lg-post-accepted-fixed",
+            "repair_rationale": ["produce post-accepted fixed candidate"],
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-post-accept-success",
+            initial_dsl="lg-needs-post-accept",
+            max_iterations=1,
+            adapters=_adapters_with(parse=parse, design=design, repair=repair),
+        )
+    )
+
+    assert parse_seen == ["lg-needs-post-accept", "lg-post-accepted-fixed"]
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_attempted"] is True
+    assert record.iteration_records[0]["budget_gate"]["post_accept_validation_success"] is True
+    assert record.iteration_records[0]["exit_reason"] == "full_pass_all_required_feedback_ok_after_sc11_post_accept_validation"
+    assert record.iteration_records[0]["post_accept_selected_feedback"] is None
+    assert StageId.SD_2_PARSE.value in record.iteration_records[0]["post_accept_stage_ids"]
+    trace_nodes = _lg_trace_nodes(record)
+    assert trace_nodes.count("validation_subgraph") >= 2
+    assert "repair_decision" in trace_nodes
+
+def test_sl10_noop_override_waiver_continues_without_sc11_budget(tmp_path: Path) -> None:
+    scenario_name = "lg_b1_noop_override_scenario"
+    current_candidate = "noop-accepted-candidate"
+    model_review_payloads: list[dict[str, Any]] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="local oracle expects de-alarm even though SL-10 overrides it as NL-conflicting",
+        initial_state="Root.Fault",
+        steps=[
+            ScenarioStep(
+                events=["fallback"],
+                expected_state="Root.Manual",
+                expected_vars={"alarm_signal": 0},
+                name="fallback_keeps_alarm_oracle",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(_dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        failed = ScenarioResult(
+            name=scenario_name,
+            description=scenario.description,
+            status="fail",
+            step_results=[
+                StepResult(
+                    step_index=0,
+                    step_name="fallback_keeps_alarm_oracle",
+                    status="fail",
+                    actual_state="Root.Manual",
+                    actual_vars={"alarm_signal": 1},
+                    state_assertion_ok=True,
+                    var_assertion_ok=False,
+                    var_mismatches={"alarm_signal": {"expected": 0, "actual": 1}},
+                )
+            ],
+        )
+        return (
+            SimFeedback(ok=False, n_scenarios=len(scenarios), n_scenarios_passed=0, scenario_results=[failed]),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {
+                    "request_id": item.request_id,
+                    "decision": "accept",
+                    "rationale": "Accept no-op because SL-10 must audit the local alarm oracle against NL/FixLog.",
+                }
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": current_candidate,
+            "repair_rationale": ["no DSL edit; request needs SL-10 override audit"],
+            "diff_summary": {"n_diff_lines": 0, "summary": "no-op candidate"},
+        }
+
+    def local_review(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[{"kind": "scenario_regression", "scenario_names": [scenario_name]}],
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        return (
+            RepairReviewFeedback(
+                ok=False,
+                target_resolved=False,
+                regression_detected=True,
+                drift_risk="major",
+                local_rejection=rejection,
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Local alarm oracle is stale; NL requires alarm to stay active until explicit fault removal."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected alarm_signal=0 is stale; actual alarm_signal=1 is NL-grounded while fault remains active."
+                ],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="test.v1",
+                    failure_policy="audit_only",
+                    replay_key="SL-10:test-noop",
+                ),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def model_review(_dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return (
+            ModelReviewFeedback(
+                ok=True,
+                decision="pass",
+                risk_level="none",
+                findings=[{"id": "MR-noop-waiver", "summary": "SL-10 no-op override waiver reviewed"}]
+                if feedback.get("waiver_audit")
+                else [],
+                meta=meta,
+            ),
+            meta,
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-sl10-noop-override-waiver",
+            initial_dsl=current_candidate,
+            max_iterations=1,
+            adapters=_adapters_with(
+                scenario_generate=scenario_generate,
+                sim=sim,
+                repair=repair,
+                repair_review=local_review,
+                sl10_review=sl10_review,
+                model_review=model_review,
+            ),
+        )
+    )
+
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert any(payload.get("waiver_audit", {}).get("kind") == "sl10_noop_override_waiver" for payload in model_review_payloads)
+    assert record.iteration_records[0]["waiver_continue"] is True
+    assert record.iteration_records[0]["accepted_noop_override"] is True
+    assert record.iteration_records[0]["waiver_audit"]["kind"] == "sl10_noop_override_waiver"
+    assert record.iteration_records[0]["post_waiver_selected_feedback"] is None
+    assert record.iteration_records[0]["post_waiver_stage_ids"] == [
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    assert "SC-11 budget gate" not in str(record.iteration_records[0].get("exit_reason"))
+    assert any(entry["phase"] == "sl10_noop_override_waiver" and entry["next_action"] == "continue_after_waiver" for entry in record.fix_log)
+    assert any(
+        item.get("event") == "stage_result"
+        and item.get("stage_id") == StageId.SD_6_SIM.value
+        and item.get("reason") == "sl10_noop_override_waiver_marked_non_blocking_for_SL-7"
+        for item in record.logs
+        if isinstance(item, dict)
+    )
 
 
 def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
@@ -834,7 +1489,8 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
     )
 
     trace_nodes = _lg_trace_nodes(record)
-    assert trace_nodes == [
+    top_level_trace_nodes = _lg_top_level_trace_nodes(record)
+    assert top_level_trace_nodes == [
         "sc0_start",
         "sl1_initial_modeling",
         "iteration_gate",
@@ -847,9 +1503,12 @@ def test_command_routing_multicycle_repair_acceptance_revalidates_via_command(tm
         "validation_decision",
         "sc13_trace_audit",
     ]
-    assert trace_nodes.count("iteration_gate") == 2
-    assert trace_nodes.count("validation_pass") == 2
-    assert trace_nodes.count("repair_decision") == 1
+    assert top_level_trace_nodes.count("iteration_gate") == 2
+    assert top_level_trace_nodes.count("validation_pass") == 2
+    assert top_level_trace_nodes.count("repair_decision") == 1
+    assert trace_nodes.count("validation_subgraph") == 2
+    assert trace_nodes.count("validation_sd2_parse") == 2
+    assert trace_nodes.count("validation_sd4_design") == 2
     assert parse_calls == ["needs-repair", _stable_dsl()]
     assert record.status == "success"
     assert record.final_artifacts["verdict"] == "success"
@@ -1119,7 +1778,11 @@ def test_store_transient_preserves_waiver_continue_data(tmp_path: Path) -> None:
     )
     lifecycle = _assert_lg_a2_store_metadata(record)
 
-    assert "waiver_continue" in _lg_trace_nodes(record)
+    trace_nodes = _lg_trace_nodes(record)
+    assert "waiver_continue" in trace_nodes
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "validation_subgraph" in post_waiver_nodes
+    assert "validation_sl5_scenario_generation" in post_waiver_nodes
     assert "post_waiver_stage_ids" in record.iteration_records[0]
     assert lifecycle["get_count"] >= 2
 
