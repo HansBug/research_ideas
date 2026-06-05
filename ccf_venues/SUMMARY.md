@@ -232,7 +232,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 ## 9. P1 / P2 后续 venue 与 PR-6~PR-10 执行合同
 
-以下 venue 不属于 P0 已完成基础建档范围。PR-5 将它们冻结为后续 stacked PR 的执行合同，目的是让 PR-6 / PR-7 / PR-8 / PR-9 可以并行推进而不互相覆盖事实，PR-10 只在这些分支全部合入后做全局收口。当前合流分支已经包含 PR-6、PR-7 与 PR-8 ownership 的基础建档；合同表仍作为后续合流、复审和 PR-10 全局审计的边界说明，PR-9 仍保持待后续执行状态。
+以下 venue 不属于 P0 已完成基础建档范围。PR-5 将它们冻结为后续 stacked PR 的执行合同，目的是让 PR-6 / PR-7 / PR-8 / PR-9 可以并行推进而不互相覆盖事实，PR-10 只在这些分支全部合入后做全局收口。当前合流分支已经包含 PR-6、PR-7、PR-8 与 PR-9 ownership 的基础建档；合同表仍作为后续合流、复审和 PR-10 全局审计的边界说明，PR-9 已按用户显式覆盖决议完成 P2 邻近观察基础建档，详见 §9.3。
 
 ### 9.1 PR-6~PR-10 ownership
 
@@ -240,8 +240,8 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 |---|---|---|---:|---:|---|---|---|
 | PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个（3 会议 + 1 期刊） | 28 | 自有 venue 目录；按自有事件增量维护 [TIMELINE.md](./TIMELINE.md)、[SUMMARY.md](./SUMMARY.md)、[README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[01-venue-scope.md](./01-venue-scope.md) | 不改 PR-7/8/9 venue 目录；不新增合同外 venue；不删除 P0 / 其他 PR 已核验 TIMELINE 事件 | 已完成基础建档；当前合流分支保留为已建档事实 |
 | PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个（1 会议 + 3 期刊） | 28 | 自有 venue 目录；维护自有期刊 rolling / special issue 与会议 dated events；共享文件只做自有增量 | 不改 PR-6/8/9 venue 目录；不把期刊 rolling 写成 dated Mermaid；不删除 P0 / 其他 PR 已核验事实 | 已完成基础建档；当前合流分支保留为已建档事实 |
-| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个（2 期刊 + 2 会议） | 28 | 自有 venue 目录；维护形式化 / 工具链相关 TIMELINE 与待补记录；共享文件只做自有增量 | 不改 PR-6/7/9 venue 目录；不把 publisher / DBLP fallback 计数写成主 track count | PR-5 后可并行开工；final ready 前必须 merge 最新上游并吸收已合入 PR-6 / PR-7 的 GUIDE / SUMMARY 踩坑经验；当前合流分支已完成该吸收 |
-| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个会议 | 35 | 自有 venue 目录；按邻近观察口径维护年度页、论文入口、TIMELINE 会期 / 投稿事件 | 不升级为 P1/P0 事实；不改 PR-6/7/8 venue 目录；不把邻近 venue 写成主投目标 | 依赖 PR-6 与 PR-7 已合入上游，并建议等待或至少同步阅读 PR-8 的形式化 / 工具链踩坑记录 |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个（2 期刊 + 2 会议） | 28 | 自有 venue 目录；维护形式化 / 工具链相关 TIMELINE 与待补记录；共享文件只做自有增量 | 不改 PR-6/7/9 venue 目录；不把 publisher / DBLP fallback 计数写成主 track count | 已完成基础建档并合入上游；当前合流分支已吸收 PR-6 / PR-7 的 GUIDE / SUMMARY 踩坑经验 |
+| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个会议 | 35 | 自有 venue 目录；按邻近观察口径维护年度页、论文入口、TIMELINE 会期 / 投稿事件 | 不升级为 P1/P0 事实；不改 PR-6/7/8 venue 目录；不把邻近 venue 写成主投目标 | 已完成基础建档；当前合流分支已 merge 最新上游 PR-8 并吸收 PR-6 / PR-7 / PR-8 适用踩坑规则 |
 | PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 全部产物 | 0 | 0 | 统一复核 P1/P2 统计、TIMELINE、Mermaid、更新日志、核心人员、待补项与 main-ready 决策 | 不再批量新增 venue；不无来源改写 PR-6~PR-9 已核验事实 | 依赖 PR-6 / PR-7 / PR-8 / PR-9 全部合入上游 |
 
 执行规则：
@@ -276,7 +276,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 ### 9.3 PR-9 P2 邻近观察完成情况
 
-> PR-9 属于用户显式覆盖前置条件后的抢跑分支：P2 venue 只作为检索 / 投稿分流 / 社区画像观察，不升级为 P0/P1 主投目标。若 PR-6 / PR-7 / PR-8 后续合入并更新 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md) 踩坑规则，PR-9 final ready 前仍需 merge 上游并吸收适用规则。
+> PR-9 属于用户显式覆盖前置条件后的抢跑分支：P2 venue 只作为检索 / 投稿分流 / 社区画像观察，不升级为 P0/P1 主投目标。当前合流分支已在 PR-6 / PR-7 / PR-8 均合入上游后 merge 最新 staging head，并吸收适用于 P2 venue 的 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md) 踩坑规则。
 
 | Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
 |---|---|---|---|---:|---|---|---|---|
@@ -373,6 +373,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | SQJ | 2026 | `Software Quality in an AI-Driven World` 当前 Springer collection 页面显示 Closed，历史 deadline 日期仍需官方归档源复核 | TIMELINE 保留 2026-03-30 dated event，状态写 `✅ 已关闭` 且备注日期待复核 | 后续用浏览器 / 官方归档复查 deadline 和 guest editor 信息 |
 | SQJ | 当前 roster | Co-EiC / Managing Editor 未公开，W. Eric Wong / Christoph Treude 属待核验线索 | 根 README 应区分当前 official roster 与待核验线索，不把线索写成已核验角色 | 后续找到官方 collection / board 来源后再升级为正式核心人员事实 |
 | Empirical Software Engineering | 2026 | FORGE 2026 邀请制 collection 当前 Open，deadline 为 2026-10-02 | 已补入 ESE 2026 年度页、近期窗口、2026 timeline 与 Mermaid；editors 为 Gabriele Bavota / Yuan Tian | 后续跟踪 collection 状态变化和是否出现 published articles |
+| RV | 2022 | 官方 CFP 只给 Notification `Week 26`，未给精确日期 | 根 README 与年度 README 保留 `Week 26（具体日期未公布）`；不进入 [TIMELINE.md](./TIMELINE.md) dated 表或 Mermaid | 后续若找到官方归档精确日期，再同步年度页、根 README、TIMELINE 表格与 Mermaid |
 
 ## 14. PR-3 形式化 / 验证会议批量填充记录
 
@@ -419,6 +420,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 23:06` | 修复 PR-9 / PR-8 合流后复审 C 级问题：将 §9 前导段落改为 PR-6 / PR-7 / PR-8 / PR-9 均已完成基础建档，并将 RV 2022 仅有 `Week 26` 的 notification 从 dated TIMELINE / Mermaid 降级为待补记录。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：当前总账统一为 39 个 venue、273 个年度 README、27 个会议与 12 个期刊，并保留 PR-6 / PR-7 / PR-8 / PR-9 facts、TIMELINE / Mermaid / rolling 表与 PR-10 全局审计约束。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：当前总账统一为 34 个 venue、238 个年度 README、22 个会议与 12 个期刊，并保留 PR-6 / PR-7 / PR-8 facts、TIMELINE / Mermaid / rolling 表与 PR-9 / PR-10 后续约束。 |
 | `2026-06-05 20:56` | PR-6 合流 PR-7 后解决共享文件冲突：当前总账统一为 30 个 venue、210 个年度 README、20 个会议与 10 个期刊，并保留 PR-8 / PR-9 pending 与 PR-10 全局审计约束。 |

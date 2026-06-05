@@ -106,6 +106,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 23:06` | PR-9 冲突后复审修复：保持 PR-6 / PR-7 / PR-8 / PR-9 facts 共存，并由 SUMMARY 记录 PR-9 已完成基础建档状态。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：当前合流后 PR-6 / PR-7 / PR-8 / PR-9 facts 共存，PR-9 仍只作为 P2 邻近观察；完成状态继续由 [SUMMARY.md](./SUMMARY.md) 维护。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：本文继续只冻结范围和 ownership，完成状态由 [SUMMARY.md](./SUMMARY.md) 维护；PR-6 / PR-7 / PR-8 当前均已建档，PR-9 / PR-10 仍按原合同推进。 |
 | `2026-06-05 19:16` | 修复 PR-8 实现后 review：补充 PR-6/7/8 sibling PR 的 branch-local 统计与 merge-upstream 组合重算纪律。 |

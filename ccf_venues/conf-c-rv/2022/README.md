@@ -1,6 +1,6 @@
 # RV 2022 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 23:06`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -36,7 +36,7 @@
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
 | Submission deadline | 2022-05-19 | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | Paper submission; 官方未给时区 |
-| Notification | 2022-06-27 | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | Notification; 官方仅给 Week 26；本日期为周一占位待复核 |
+| Notification | Week 26（具体日期未公布） | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | 官方仅给 Week 26；不硬落某一天，不进入 dated TIMELINE / Mermaid |
 | Camera-ready | 2022-08-09 | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | Camera-ready; 官方仅日期 |
 | Conference dates | 2022-09-28..2022-09-30 | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | Conference; Tbilisi local time |
 
@@ -76,11 +76,12 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本年度 README 的投稿相关 important date 和 `Conference dates` 已按 PR-9 口径同步到 [TIMELINE.md](../../TIMELINE.md)；若后续修改日期，必须同步更新 TIMELINE 表格与 Mermaid。
+- 本年度 README 中已有精确日期的 submission、camera-ready 和 `Conference dates` 已按 PR-9 口径同步到 [TIMELINE.md](../../TIMELINE.md)；Notification 只有 `Week 26`，当前不进入 dated TIMELINE / Mermaid。
 - 无日期、未公布、rolling 或只有线索的事项不得进入 dated Mermaid。
 
 ## 9. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 23:06` | 修复冲突后复审问题：Notification 仅有官方 `Week 26`，从精确日期降级为具体日期未公布，并同步根 README / TIMELINE 待补口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 RV 2022 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

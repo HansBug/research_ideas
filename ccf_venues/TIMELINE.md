@@ -1449,7 +1449,6 @@ gantt
 | 2022-06-13 待补时刻 AoE | [RE 2022](./conf-b-re/2022/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/RE-2022) | [年度主页](https://conf.researchr.org/home/RE-2022) | [Program](https://conf.researchr.org/program/RE-2022/program-RE-2022/) / [DBLP](https://dblp.org/db/conf/re/re2022.html) | [本库年度页](./conf-b-re/2022/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2022-06-13 至 2022-06-15 | [EASE 2022](./conf-c-ease/2022/README.md) | 会议-C / P2 | Conference | Conference | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/ease-2022/ease-2022-research) | [年度主页](https://conf.researchr.org/home/ease-2022) | [论文集 / 名录](https://conf.researchr.org/program/ease-2022/program-ease-2022/) | [本库年度页](./conf-c-ease/2022/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；Göteborg local time / online；不升级为 P0/P1 主线。 |
 | 2022-06-17 待补时刻 | [ESEM 2022](./conf-b-esem/2022/README.md) | 会议-B | Technical Track notification | Notification | ✅ 已结束 | [Important Dates](https://conf.researchr.org/dates/esem-2022) | [ESEIW 2022](https://conf.researchr.org/home/esem-2022) | [Program](https://conf.researchr.org/program/esem-2022/program-esem-2022/) / [DBLP](https://dblp.org/db/conf/esem/esem2022.html) | [本库年度页](./conf-b-esem/2022/README.md) | 🟡 部分核验 | 官方仅给日期；具体时刻待补。 |
-| 2022-06-27 | [RV 2022](./conf-c-rv/2022/README.md) | 会议-C / P2 | Notification | Notification | ✅ 已结束 | [官方来源](https://rv22.gitlab.io/cfp/) | [年度主页](https://rv22.gitlab.io/) | [论文集 / 名录](https://easychair.org/smart-program/RV2022/) | [本库年度页](./conf-c-rv/2022/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；官方仅给 Week 26；本日期为周一占位待复核；不升级为 P0/P1 主线。 |
 | 2022-06-28 至 2022-07-01 | [MoDELS 2022](./conf-b-models/2022/README.md) | 会议-B | Technical Track author response | Rebuttal | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2022) | [年度主页](https://conf.researchr.org/home/models-2022) | [Proceedings](https://conf.researchr.org/info/models-2022/conference-proceedings) / [DBLP](https://dblp.org/db/conf/models/models2022.html) | [本库年度页](./conf-b-models/2022/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
 | 2022-07-01 待补时刻 | [ICSME 2022](./conf-b-icsme/2022/README.md) | 会议-B | Research Papers camera-ready | Camera-ready | ✅ 已结束 / 日期冲突待核 | [IEEE CFP 2022](https://www.computer.org/cfp/icsme-2022) | [ICSME 2022](https://icsme.computer.org/2022/) | [DBLP 2022](https://dblp.org/db/conf/icsm/icsme2022) | [本库年度页](./conf-b-icsme/2022/README.md) | 🟡 部分核验 | 官方仅日期；会议日期口径另有冲突待核。 |
 | 2022-07-01 至 2022-07-10 | [SEKE 2022](./conf-c-seke/2022/README.md) | 会议-C / P2 | Conference | Conference | ✅ 已结束 | [官方来源](https://ksiresearch.org/seke/seke22main.html) | [年度主页](https://ksiresearch.org/seke/seke22.html) | [论文集 / 名录](https://ksiresearch.org/seke/seke22pgm.html) | [本库年度页](./conf-c-seke/2022/README.md) | 🟡 部分核验 | PR-9 P2 邻近观察；virtual；不升级为 P0/P1 主线。 |
@@ -1638,7 +1637,6 @@ gantt
   section RV_P2
   RV2022 Camera-ready :milestone, pr9_conf_c_rv_2022_camera_ready_20220809, 2022-08-09, 1d
   RV2022 Conference :pr9_conf_c_rv_2022_conference_20220928, 2022-09-28, 2022-09-30
-  RV2022 Notification :milestone, pr9_conf_c_rv_2022_notification_20220627, 2022-06-27, 1d
   RV2022 Submission :milestone, pr9_conf_c_rv_2022_submission_20220519, 2022-05-19, 1d
 
   section SEKE_P2
@@ -1676,6 +1674,7 @@ gantt
 | QRS | 2027-2028 / 2029+ | 未发现官方年度主页 / CFP / important dates | 年度页写 `⏳ 已检索未公布`，TIMELINE 不造日期 | 后续复查 QRS techconf series、DBLP 与 IEEE proceedings |
 | TASE | 2026 | Important Dates 页与 CFP 页 notification 存在 2026-04-18 / 2026-04-15 差异；Springer / DBLP 2026 未发布 | 年度页和 TIMELINE 以 Important Dates 页 2026-04-18 为准，并记录冲突；accepted count 不与后续 Springer TOC 混算 | 会后复核 Springer LNCS、DBLP 年度页和 official accepted list / publisher TOC 差异 |
 | TASE | 2027-2028 / 2029+ | 未发现官方年度主页 / CFP / important dates，且没有稳定独立 official series page | 年度页写 `⏳ 已检索未公布`；根 README 使用最新年度主页 + DBLP index 作入口，不冒充 series page | 后续复查 TASE GitHub annual pages、Springer 和 DBLP |
+| RV | 2022 | Notification 官方只给 `Week 26`，未给精确日期 | 根 README 与年度 README 保留 `Week 26（具体日期未公布）`；不进入 dated 表或 Mermaid | 后续若找到官方归档精确日期，再同步年度页、根 README、TIMELINE 表格与 Mermaid |
 | ICSE | 2028 | 年度主页当前 Access denied，仅找到 Hawaii 预告 | 根 README / 年度 README 不写成正式 CFP | 后续复查年度主页与 Research Track |
 | ICSE | 2026 | accepted papers 已公开，但 proceedings / DBLP 年度页未公开 | 论文数量按官方 Research Track accepted papers 表记录，核验状态为部分核验 | 后续补 DBLP / proceedings |
 | MoDELS | 2026 | submission / rebuttal 已过但 notification 尚未到达 | 当前阶段统一写作 `🟡 审稿中`，program probe 为 Access denied | notification 后复核状态并补 accepted papers / proceedings |
@@ -1753,6 +1752,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 23:06` | 修复 PR-9 冲突后复审问题：RV 2022 Notification 仅有官方 `Week 26`，从 2022 dated 表与 Mermaid 移除，改入待补记录；同步 SUMMARY / GUIDE 的 PR-9 已完成状态。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 的 SANER / ICSME / ICPC / JSEP、ESEM / ESE / JSS / SQJ、IST / SCP / QRS / TASE facts，并合入 APSEC / SEKE / EASE / MSR / RV P2 dated events、P2 Mermaid 分片与 39/273 组合统计。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：保留 SANER / ICSME / ICPC / JSEP、ESEM / ESE / JSS / SQJ 与 IST / SCP / QRS / TASE 双方 facts，重排年度事件表，重生成 Mermaid 分片并将当前组合统计提升为 34 个 venue / 238 个年度 README。 |
 | `2026-06-05 20:56` | PR-6 合流 PR-7 后解决 TIMELINE 冲突：保留 SANER / ICSME / ICPC / JSEP 与 ESEM / ESE / JSS / SQJ 事件并集，重排年度事件表，维持期刊 rolling / dated events 共存。 |

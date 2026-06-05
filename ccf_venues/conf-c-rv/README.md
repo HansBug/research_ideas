@@ -1,6 +1,6 @@
 # RV README
 
-> 信息更新时间：`2026-06-05 18:03`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 23:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -70,7 +70,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://rv25.isec.tugraz.at/) | [CFP / track](https://rv25.isec.tugraz.at/?page_id=27) | [Dates](https://rv25.isec.tugraz.at/?page_id=27) | [Submission](https://easychair.org/conferences/?conf=rv25) | [Program / accepted](https://rv25.isec.tugraz.at/program/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-032-05435-7) | [DBLP](https://dblp.org/db/conf/rv/rv2025.html) | 未公布 | 2025-06-06 | 2025-07-12 | 2025-09-15..2025-09-19 | DBLP fallback `inproceedings`=27 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://cmpe.bogazici.edu.tr/rv24/) | [CFP / track](https://cmpe.bogazici.edu.tr/rv24/call-for-papers/) | [Dates](https://cmpe.bogazici.edu.tr/rv24/call-for-papers/) | [Submission](https://easychair.org/conferences/?conf=rv2024) | [Program / accepted](https://cmpe.bogazici.edu.tr/rv24/program/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-74234-7) | [DBLP](https://dblp.org/db/conf/rv/rv2024.html) | 未公布 | 2024-05-28 | 2024-06-25 | 2024-10-15..2024-10-17 | DBLP fallback `inproceedings`=18 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://rv23.csd.auth.gr/) | [CFP / track](https://rv23.csd.auth.gr/calls) | [Dates](https://rv23.csd.auth.gr/calls) | [Submission](https://easychair.org/conferences/?conf=rv2023) | [Program / accepted](https://easychair.org/smart-program/RV2023/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-44267-4) | [DBLP](https://dblp.org/db/conf/rv/rv2023.html) | 未公布 | 2023-06-04 | 2023-07-07 | 2023-10-03..2023-10-06 | DBLP fallback `inproceedings`=26 | 🟡 部分核验 |
-| [`2022`](./2022/README.md) | ✅ 已结束 | [年度主页](https://rv22.gitlab.io/) | [CFP / track](https://rv22.gitlab.io/cfp/) | [Dates](https://rv22.gitlab.io/cfp/) | [Submission](https://easychair.org/conferences/?conf=rv2022) | [Program / accepted](https://easychair.org/smart-program/RV2022/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-17196-3) | [DBLP](https://dblp.org/db/conf/rv/rv2022.html) | 未公布 | 2022-05-19 | 2022-06-27 | 2022-09-28..2022-09-30 | DBLP fallback `inproceedings`=22 | 🟡 部分核验 |
+| [`2022`](./2022/README.md) | ✅ 已结束 | [年度主页](https://rv22.gitlab.io/) | [CFP / track](https://rv22.gitlab.io/cfp/) | [Dates](https://rv22.gitlab.io/cfp/) | [Submission](https://easychair.org/conferences/?conf=rv2022) | [Program / accepted](https://easychair.org/smart-program/RV2022/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-17196-3) | [DBLP](https://dblp.org/db/conf/rv/rv2022.html) | 未公布 | 2022-05-19 | Week 26（具体日期未公布） | 2022-09-28..2022-09-30 | DBLP fallback `inproceedings`=22 | 🟡 部分核验 |
 
 ## 7. 计数口径与维护备注
 
@@ -78,6 +78,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 - 论文数量优先使用官方 accepted / proceedings；DBLP 只作 fallback，且不得写成 main / research track count。
 - Research、industry、tool、artifact、workshop、special session、virtual / live segment 必须分开记录，不能混算。
 - 2027/2028 公开信息已检索；未公布年度保留占位，不预造 deadline / committee / proceedings。
+- RV 2022 Notification 官方只给 `Week 26`，不得硬落为某一天；仅在根 README / 年度 README / 待补记录保留，不进入 dated TIMELINE / Mermaid。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -89,5 +90,6 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 23:06` | 修复冲突后复审问题：RV 2022 Notification 仅有官方 `Week 26`，根表改为具体日期未公布，并同步 TIMELINE 降级为待补记录。 |
 | `2026-06-05 18:03` | 修复 PR-9 根 README 一致性：补回核心人员表 `单位` 列，并按 2026-06-05 当前阶段同步 2026 年度状态。 |
 | `2026-06-05 17:23` | PR-9 初始化 RV P2 邻近观察 venue README，覆盖 2022--2028 年度索引、核心链接、人员情报、计数口径和待补记录。 |
