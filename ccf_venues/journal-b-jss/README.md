@@ -1,6 +1,6 @@
 # JSS README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:01`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -32,16 +32,26 @@
 
 ## 3. 核心编辑人员情报
 
-本节只记录当前官方页面可定位的 editorial leadership、speciality / open science / senior associate 角色和本仓库强相关人员，不展开全量 board。角色来源以 [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) 为主；研究方向与 project 关系为基于公开学术入口的归纳，需后续人工复核。
+本节分离维护 ScienceDirect 当前长期 editorial roster 与 special issue / article collection guest editors：§3.1 只记录 [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) 可支撑的当前长期角色；§3.2 只记录具体 special issue / article collection 的 guest editor 线索，当前性限于对应 CFP，不等同于期刊长期 editorial leadership。研究方向与 project 关系为基于公开学术入口的归纳，需后续人工复核。
 
-| 姓名 | 期刊角色 | 单位 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
+### 3.1 当前 editorial leadership / board roles
+
+| 姓名 | 期刊长期角色 | 单位 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
 |---|---|---|---|---|---|---|---|---|---|
 | P. Avgeriou | Editor-in-Chief | University of Groningen | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=P.%20Avgeriou) | software architecture、technical debt、software evolution | [DBLP 近年论文入口](https://dblp.org/search?q=P.%20Avgeriou) | P1/P2/P4 强；P3 中 | 官方当前 roster 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
 | D. Shepherd | Editor-in-Chief | Louisiana State University | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=D.%20Shepherd) | empirical software engineering、developer tools、program comprehension | [DBLP 近年论文入口](https://dblp.org/search?q=D.%20Shepherd) | P1/P2 中到强；P4 中 | 官方当前 roster 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
 | L. Duchien | Speciality Editor | University of Lille | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=L.%20Duchien) | software architecture、adaptive / service systems、component-based software | [DBLP 近年论文入口](https://dblp.org/search?q=L.%20Duchien) | P1/P2 强；P3/P4 中 | 官方当前 roster 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
 | R. Mirandola | Speciality Editor | Polytechnic University of Milan | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=R.%20Mirandola) | performance / reliability engineering、software architecture、model-based analysis | [DBLP 近年论文入口](https://dblp.org/search?q=R.%20Mirandola) | P2/P3 强；P4 中 | 官方当前 roster 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
 | C. Treude | Open Science Editor | Singapore Management University | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=C.%20Treude) | empirical SE、NLP/LLM for SE、developer knowledge、open science | [DBLP 近年论文入口](https://dblp.org/search?q=C.%20Treude) | P1/P2 强；P3/P4 中 | 官方当前 roster 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
-| W. Eric Wong | Senior Associate Editor；Software Dependability special issue guest editor | The University of Texas at Dallas | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board)；[Software Dependability CFP](https://www.sciencedirect.com/special-issue/326119/special-issue-on-software-dependability-a-path-forward) | [DBLP](https://dblp.org/search?q=W.%20Eric%20Wong) | software testing、reliability、dependability、fault localization | [DBLP 近年论文入口](https://dblp.org/search?q=W.%20Eric%20Wong) | P2/P3/P4 强；P1 中 | 官方当前 roster + special issue CFP 核验；方向基于 DBLP 归纳 | `2026-06-05 17:21` |
+| W. Eric Wong | Senior Associate Editor | The University of Texas at Dallas | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | [DBLP](https://dblp.org/search?q=W.%20Eric%20Wong) | software testing、reliability、dependability、fault localization | [DBLP 近年论文入口](https://dblp.org/search?q=W.%20Eric%20Wong) | P2/P3/P4 强；P1 中 | 官方当前 roster 核验；Software Dependability guest editor 另见 §3.2，不并入长期角色列 | `2026-06-05 17:21` |
+
+### 3.2 Special issue / article collection guest editors
+
+本节只记录带具体 CFP / article collection 证据的专题 guest editor；这些角色服务于对应 special issue，不等同于 JSS 当前长期 editorial board / editorial leadership。若某人同时具备长期 roster 角色（如 W. Eric Wong），长期角色仍以 §3.1 为准，本表仅补专题上下文。
+
+| 姓名 | Special issue / 专题角色 | 官方来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|
+| W. Eric Wong | Software Dependability: A Path Forward guest editor | [Software Dependability CFP](https://www.sciencedirect.com/special-issue/326119/special-issue-on-software-dependability-a-path-forward) | [DBLP](https://dblp.org/search?q=W.%20Eric%20Wong) | software testing、reliability、dependability、fault localization | [DBLP 近年论文入口](https://dblp.org/search?q=W.%20Eric%20Wong) | P2/P3/P4 强；P1 中 | special issue CFP 核验；当前性限于该 2025 deadline-bearing special issue；长期 Senior Associate Editor 见 §3.1 | `2026-06-05 17:21` |
 
 ## 4. 与本仓库 project 的关系
 
@@ -97,5 +107,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:01` | 最终复审修复：将长期 editorial roster 与 Software Dependability special issue guest editor 拆成 §3.1 / §3.2，避免专题角色被误读为长期 roster。 |
 | `2026-06-05 18:13` | PR-7 全局同步收口：确认 JSS special issue dated events 已同步至 TIMELINE / SUMMARY，并保留 ScienceDirect CLI/WAF 待浏览器核验口径。 |
 | `2026-06-05 17:21` | 初始化 JSS 期刊 README，记录 ScienceDirect / Editorial Manager / DBLP 核心入口、2022-2028 年度汇总、special issue deadline、核心编辑人员情报与待同步风险。 |

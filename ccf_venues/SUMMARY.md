@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-05 18:39`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:01`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -78,7 +78,7 @@
 |---|---|---|---|---:|---|---|---|---|
 | ESEM | B | 2022-2028 | [conf-b-esem](./conf-b-esem/README.md) | 7 | 2022-2026 dated events 已同步，2027-2028 未公布不造日期 | 覆盖 2026 ESEM / ESEIW chair、Technical Track 与 empirical SE / benchmark 领域权威；见根 README §5 | 历史年度以 official program / DBLP fallback 为主；2022 已补 ACM DL proceedings；2026 记录 LIPIcs / open science 说明但不写成已发布 proceedings | 🟡 部分核验 |
 | Empirical Software Engineering | B | 2022-2028 | [journal-b-ese](./journal-b-ese/README.md) | 7 | rolling 表与 2025-2027 Springer collections dated events 已同步 | 长期 Editor-in-Chief / Advisory Board 见根 README §3.1；Agentic SE / FORGE / EASE / PROMPT-SE 等 collection editors 与长期 roster 分离，见 §3.2 和年度页 | DBLP `entry article` baseline 与 Springer volume / online-first 分开；collection 的 submission / review / revision / notification 按事件类型分列 | 🟡 部分核验 |
-| JSS | B | 2022-2028 | [journal-b-jss](./journal-b-jss/README.md) | 7 | rolling 表与 2025-2026 ScienceDirect special issue dated events 已同步 | 已记录 Elsevier editorial leadership 与 deadline-bearing special issue editors 线索；见根 README §3 | ScienceDirect CLI 可能 403/WAF；special issue 表为 deadline-bearing / project-relevant subset，不声称全量 special issue 清单 | 🟡 部分核验 |
+| JSS | B | 2022-2028 | [journal-b-jss](./journal-b-jss/README.md) | 7 | rolling 表与 2025-2026 ScienceDirect special issue dated events 已同步 | 长期 editorial leadership / board roles 与 Software Dependability special issue guest editor 已在根 README §3.1 / §3.2 分离；见根 README §3 | ScienceDirect CLI 可能 403/WAF；special issue 表为 deadline-bearing / project-relevant subset，不声称全量 special issue 清单 | 🟡 部分核验 |
 | SQJ | C | 2022-2028 | [journal-c-sqj](./journal-c-sqj/README.md) | 7 | rolling 表与 2024 / 2026 Springer topical collection dated events 已同步 | 已区分 official roster、待核验 editor 线索与 topical collection editors；见根 README §3 | `Software Quality in an AI-Driven World` 当前页面 Closed，不写作当前可行动窗口；2024 collection 日期仍需官方归档源复核 | 🟡 部分核验 |
 
 ## 6. 会议试点踩坑结论
@@ -353,6 +353,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:01` | 最终复审修复：将 JSS 长期 roster 与 Software Dependability special issue guest editor 分离，并同步 PR-7 完成表人员情报口径。 |
 | `2026-06-05 18:39` | 实现后 review 修复：将 ESE 长期 editorial roster 与 collection editors 分离，并同步 PR-7 完成表人员情报口径，避免专题编辑被误读为长期 roster。 |
 | `2026-06-05 18:28` | 采纳本地预检 M 级建议：收紧 ESEM proceedings 待补范围，明确 2022 已定位 ACM DL proceedings，后续重点为 2023-2025 出版商入口与 2022-2025 track count 复核。 |
 | `2026-06-05 18:13` | PR-7 实证 / 质量 venue 基础建档合流：新增 ESEM、ESE、JSS、SQJ 完成表、统计、踩坑记录和待补项，目录统计更新为 26 个 venue / 182 个年度 README。 |

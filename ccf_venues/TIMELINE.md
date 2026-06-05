@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-05 18:44`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 19:01`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -401,11 +401,11 @@ gantt
   ICFEM26 Conference :icfem2026_conf, 2026-11-17, 2026-11-20
 
   section JSS
-  JSS26 Special :milestone, jss_2026_1_20260315, 2026-03-15, 1d
-  JSS26 Special :milestone, jss_2026_2_20260930, 2026-09-30, 1d
+  JSS26 AI4SA Sub :milestone, jss_2026_1_20260315, 2026-03-15, 1d
+  JSS26 AIPerf Sub :milestone, jss_2026_2_20260930, 2026-09-30, 1d
 
   section SQJ
-  SQJ26 Special :milestone, sqj_2026_1_20260330, 2026-03-30, 1d
+  SQJ26 AIQuality Sub :milestone, sqj_2026_1_20260330, 2026-03-30, 1d
 
   section ESEM
   ESEM26 Abstract :milestone, esem_2026_1_20260511, 2026-05-11, 1d
@@ -1054,7 +1054,7 @@ gantt
 | 2026 | [Requirements Engineering](./journal-b-re/README.md) | B | 常规 rolling submission；2026 collections 另列 | [Springer submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Springer Nature Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [LLM collection](https://link.springer.com/collections/deebijccbh)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) | LLM: 2026-04-30 已关闭；30th Anniversary: 2026-06-20 待补时刻；REFSQ 2026: 2026-06-29 待补时刻 | [Vol. 31 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/31-1) | [Springer online first](https://link.springer.com/journal/766/online-first) | [Requirements Engineering 2026](./journal-b-re/2026/README.md) | 🟡 部分核验 | 常规投稿 rolling；带明确日期的 collection 已进入 2026 dated timeline / Mermaid，不在 2027/2028 重复。 |
 | 2026 | [STVR](./journal-b-stvr/README.md) | B | 常规 rolling submission | [Wiley STVR for authors](https://onlinelibrary.wiley.com/page/journal/10991689/homepage/forauthors.html)；[Wiley Authors STVR dashboard](https://authors.wiley.com/dashboard/journal?groupCode=STVR) | [Wiley Authors STVR dashboard](https://authors.wiley.com/dashboard/journal?groupCode=STVR)；[Wiley submission candidate for STVR](https://submission.wiley.com/submission/submissionBoard/new/?journalCode=STVR) | 无已知 active dated CFP | 未定 | [Wiley volume archive](https://onlinelibrary.wiley.com/loi/10991689) | [Wiley STVR Early View](https://onlinelibrary.wiley.com/journal/10991689/earlyview) | [STVR 2026](./journal-b-stvr/2026/README.md) | 🟡 部分核验；Wiley CLI WAF/403 | Wiley 官方页面需人工浏览器核验；DBLP 2026 年度页未公布。 |
 | 2026 | [STTT](./journal-c-sttt/README.md) | C | 常规 rolling submission；conference-based special issue 需另证 | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines) | [Equinocs](https://equinocs.cs.tu-dortmund.de/home) | 无已知 active dated CFP；[special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | 未定 | [Vol. 28 Issue 1](https://link.springer.com/journal/10009/volumes-and-issues/28-1) / [Issue 2](https://link.springer.com/journal/10009/volumes-and-issues/28-2) | [Online first](https://link.springer.com/journal/10009/online-first) | [STTT 2026](./journal-c-sttt/2026/README.md) | 🟡 部分核验 | DBLP `entry article` baseline 不与 TACAS/SPIN/FMICS/RV 等会议 proceedings 混算。 |
-| 2026 | [Empirical Software Engineering](./journal-b-ese/README.md) | B | 常规 rolling submission；collections 另列 | [Springer submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [Agentic SE](https://link.springer.com/collections/aaaihgcafc)；[FORGE 2026](https://link.springer.com/collections/aciaceiigh)；[EASE 2026](https://link.springer.com/collections/jefiadfibb)；[PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe) | Agentic: 2026-09-28 待补时刻；FORGE: 2026-10-02 待补时刻；EASE: 2026-10-31 待补时刻；PROMPT-SE: 2027-03-01 待补时刻 | [Vol. 31 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [ESE 2026](./journal-b-ese/2026/README.md) | 🟡 部分核验 | 常规投稿 rolling；带明确日期的 collection 已同步进 2025--2027 dated timeline / Mermaid。 |
+| 2026 | [Empirical Software Engineering](./journal-b-ese/README.md) | B | 常规 rolling submission；collections 另列 | [Springer submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [Advancing SE with LLMs（Closed；仅 review / revision / final notification 阶段）](https://link.springer.com/collections/jfdgedjehb)；[Agentic SE](https://link.springer.com/collections/aaaihgcafc)；[FORGE 2026](https://link.springer.com/collections/aciaceiigh)；[EASE 2026](https://link.springer.com/collections/jefiadfibb)；[PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe) | LLM collection: 2026-05-31 review、2026-07-15 revision、2026-09-15 final notification（Closed，不是新投稿窗口）；Agentic: 2026-09-28 待补时刻；FORGE: 2026-10-02 待补时刻；EASE: 2026-10-31 待补时刻；PROMPT-SE: 2027-03-01 待补时刻 | [Vol. 31 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [ESE 2026](./journal-b-ese/2026/README.md) | 🟡 部分核验 | 常规投稿 rolling；带明确日期的 collection 已同步进 2025--2027 dated timeline / Mermaid；closed collection 在本行只作交叉索引。 |
 | 2026 | [JSS](./journal-b-jss/README.md) | B | 常规 rolling submission；special issue 另列 | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | [AI for Software Architecting](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) | AI for SA: 2026-03-15 待补时刻；AI Techniques: 2026-09-30 待补时刻 | [ScienceDirect issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues) | [Articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) | [JSS 2026](./journal-b-jss/2026/README.md) | 🟡 部分核验；ScienceDirect CLI 可能 403/WAF | 常规投稿 rolling；ScienceDirect special issue URL 可定位但正文需浏览器复核。 |
 | 2026 | [SQJ](./journal-c-sqj/README.md) | C | 常规 rolling submission；topical collection 另列 | [Springer submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Springer Nature Submit manuscript](https://submission.nature.com/new-submission/11219/3) | [Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | 2026-03-30 待补时刻（当前已关闭；历史 deadline 日期待官方归档源复核） | [Vol. 34 Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/34-1) | [Springer articles](https://link.springer.com/journal/11219/articles) | [SQJ 2026](./journal-c-sqj/2026/README.md) | 🟡 部分核验 | 常规投稿 rolling；AI-Driven World collection 已进入 2026 dated timeline；当前 collection 页面显示 Closed，不写成当前可行动窗口。 |
 
@@ -1132,6 +1132,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 19:01` | 最终复审修复：拆分 JSS 长期 roster / special issue guest editor 边界，同步 JSS / SQJ 2026 Mermaid 标签和 ESE rolling 行 closed collection 交叉索引。 |
 | `2026-06-05 18:44` | 实现后 review 修复：将 ESE / SQJ Mermaid milestone 标签改为带 collection 语义的短标签，并同步 ESEM 历史投稿入口措辞修复。 |
 | `2026-06-05 18:28` | 采纳本地预检 M 级建议：收紧 ESEM proceedings 待补范围，明确 2022 已定位 ACM DL proceedings，后续重点为 2023-2025 出版商入口与 2022-2025 track count 复核。 |
 | `2026-06-05 18:13` | PR-7 合流口径修复：收紧 SQJ rolling 表 closed collection 表述，修正待补记录表格断裂，并把当前信息更新时间同步到本轮最终合流。 |
