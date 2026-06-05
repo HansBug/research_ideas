@@ -1425,11 +1425,28 @@ def _build_validation_subgraph(
             waiver_audit = repair_patch.get("waiver_audit")
             if (
                 isinstance(waiver_audit, dict)
-                and waiver_audit.get("kind") == "stale_overridden_scenario_waiver"
+                and waiver_audit.get("kind") in {"stale_overridden_scenario_waiver", "sl10_noop_override_waiver"}
                 and source == FeedbackSource.SIM.value
                 and source_stage == StageId.SD_6_SIM.value
                 and isinstance(selected_feedback, SimFeedback)
             ):
+                waiver_kind = str(waiver_audit.get("kind") or "")
+                if waiver_kind == "sl10_noop_override_waiver":
+                    enter_reason = "SL-10 accepted a no-op override for the current SD-6 scenario request; continue to SL-7 without DSL edit"
+                    stage_reason = "sl10_noop_override_waiver_marked_non_blocking_for_SL-7"
+                    skipped_reason = (
+                        "waiver_continue: SL-10 passed a no-op candidate with local_override_rationale "
+                        "for the current SD-6 scenario_regression; continuing to SL-7 without SC-11 "
+                        "budget consumption or DSL edit"
+                    )
+                else:
+                    enter_reason = "SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit"
+                    stage_reason = "stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7"
+                    skipped_reason = (
+                        "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
+                        "and matched a prior SL-10 local_override_rationale for the same scenario; "
+                        "continuing to SL-7 without DSL edit"
+                    )
                 context = _clone_stage_context(continuation_source.context, current_dsl=runtime_state.current_dsl)
                 context.warning_budget_state = continuation_source.context.warning_budget_state
                 scenario_set = continuation_source.scenario_set
@@ -1443,11 +1460,7 @@ def _build_validation_subgraph(
                 waiver_meta = _meta(StageId.SD_6_SIM, ok=True, status=StageStatus.ADVISORY)
                 waiver_meta.input_hash = _hash_text(runtime_state.current_dsl)
                 waiver_meta.output_hash = _short_hash(waiver_audit)
-                waiver_meta.skipped_reason = (
-                    "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
-                    "and matched a prior SL-10 local_override_rationale for the same scenario; "
-                    "continuing to SL-7 without DSL edit"
-                )
+                waiver_meta.skipped_reason = skipped_reason
                 _trace_node(
                     graph_state,
                     "validation_sd6_sim",
@@ -1462,7 +1475,7 @@ def _build_validation_subgraph(
                     event="waiver_continue_validation_enter",
                     iteration=iteration,
                     source_stage=StageId.SD_6_SIM.value,
-                    reason="SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit",
+                    reason=enter_reason,
                     current_dsl_hash=_hash_text(runtime_state.current_dsl),
                     current_dsl=runtime_state.current_dsl,
                     waiver_audit=_jsonable(waiver_audit),
@@ -1476,7 +1489,7 @@ def _build_validation_subgraph(
                     iteration=iteration,
                     ok=True,
                     status=str(StageStatus.ADVISORY),
-                    reason="stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7",
+                    reason=stage_reason,
                     feedback=_feedback_brief(StageId.SD_6_SIM.value, waived_sim),
                     jump="SL-7",
                     graph_subgraph="validation_subgraph",
@@ -2061,6 +2074,8 @@ def _build_validation_subgraph(
         review_reason = (
             "waiver_continue_SD-6_stale_scenario_request"
             if waiver_audit_kind == "stale_overridden_scenario_waiver"
+            else "waiver_continue_SD-6_sl10_noop_override"
+            if waiver_audit_kind == "sl10_noop_override_waiver"
             else ("waiver_continue_SD-6 ok" if graph_state.get("validation_continued_after_waiver") else "SD-6 ok")
         )
         _append_flow_log(

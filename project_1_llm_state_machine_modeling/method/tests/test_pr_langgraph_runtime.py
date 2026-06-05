@@ -1039,6 +1039,172 @@ def test_waiver_continue_consumes_stale_scenario_audit_and_enters_sl7(tmp_path: 
     )
 
 
+def test_sl10_noop_override_waiver_continues_without_sc11_budget(tmp_path: Path) -> None:
+    scenario_name = "lg_b1_noop_override_scenario"
+    current_candidate = "noop-accepted-candidate"
+    model_review_payloads: list[dict[str, Any]] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="local oracle expects de-alarm even though SL-10 overrides it as NL-conflicting",
+        initial_state="Root.Fault",
+        steps=[
+            ScenarioStep(
+                events=["fallback"],
+                expected_state="Root.Manual",
+                expected_vars={"alarm_signal": 0},
+                name="fallback_keeps_alarm_oracle",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(_dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        failed = ScenarioResult(
+            name=scenario_name,
+            description=scenario.description,
+            status="fail",
+            step_results=[
+                StepResult(
+                    step_index=0,
+                    step_name="fallback_keeps_alarm_oracle",
+                    status="fail",
+                    actual_state="Root.Manual",
+                    actual_vars={"alarm_signal": 1},
+                    state_assertion_ok=True,
+                    var_assertion_ok=False,
+                    var_mismatches={"alarm_signal": {"expected": 0, "actual": 1}},
+                )
+            ],
+        )
+        return (
+            SimFeedback(ok=False, n_scenarios=len(scenarios), n_scenarios_passed=0, scenario_results=[failed]),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {
+                    "request_id": item.request_id,
+                    "decision": "accept",
+                    "rationale": "Accept no-op because SL-10 must audit the local alarm oracle against NL/FixLog.",
+                }
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": current_candidate,
+            "repair_rationale": ["no DSL edit; request needs SL-10 override audit"],
+            "diff_summary": {"n_diff_lines": 0, "summary": "no-op candidate"},
+        }
+
+    def local_review(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="scenario_regression",
+            target_resolved=False,
+            regression_detected=True,
+            drift_risk="major",
+            evidence=[{"kind": "scenario_regression", "scenario_names": [scenario_name]}],
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        return (
+            RepairReviewFeedback(
+                ok=False,
+                target_resolved=False,
+                regression_detected=True,
+                drift_risk="major",
+                local_rejection=rejection,
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Local alarm oracle is stale; NL requires alarm to stay active until explicit fault removal."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected alarm_signal=0 is stale; actual alarm_signal=1 is NL-grounded while fault remains active."
+                ],
+                review_meta=ReviewRunMeta(
+                    provider="test-adapter",
+                    model_id="none",
+                    prompt_template_version="SL-10.test",
+                    schema_validation_ok=True,
+                    parsed_schema_version="test.v1",
+                    failure_policy="audit_only",
+                    replay_key="SL-10:test-noop",
+                ),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def model_review(_dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return (
+            ModelReviewFeedback(
+                ok=True,
+                decision="pass",
+                risk_level="none",
+                findings=[{"id": "MR-noop-waiver", "summary": "SL-10 no-op override waiver reviewed"}]
+                if feedback.get("waiver_audit")
+                else [],
+                meta=meta,
+            ),
+            meta,
+        )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-b1-sl10-noop-override-waiver",
+            initial_dsl=current_candidate,
+            max_iterations=1,
+            adapters=_adapters_with(
+                scenario_generate=scenario_generate,
+                sim=sim,
+                repair=repair,
+                repair_review=local_review,
+                sl10_review=sl10_review,
+                model_review=model_review,
+            ),
+        )
+    )
+
+    assert record.status == "success"
+    assert record.final_artifacts["verdict"] == "success"
+    assert any(payload.get("waiver_audit", {}).get("kind") == "sl10_noop_override_waiver" for payload in model_review_payloads)
+    assert record.iteration_records[0]["waiver_continue"] is True
+    assert record.iteration_records[0]["accepted_noop_override"] is True
+    assert record.iteration_records[0]["waiver_audit"]["kind"] == "sl10_noop_override_waiver"
+    assert record.iteration_records[0]["post_waiver_selected_feedback"] is None
+    assert record.iteration_records[0]["post_waiver_stage_ids"] == [
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    assert "SC-11 budget gate" not in str(record.iteration_records[0].get("exit_reason"))
+    assert any(entry["phase"] == "sl10_noop_override_waiver" and entry["next_action"] == "continue_after_waiver" for entry in record.fix_log)
+    assert any(
+        item.get("event") == "stage_result"
+        and item.get("stage_id") == StageId.SD_6_SIM.value
+        and item.get("reason") == "sl10_noop_override_waiver_marked_non_blocking_for_SL-7"
+        for item in record.logs
+        if isinstance(item, dict)
+    )
+
+
 def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
     def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         item = DesignDiagnosticItem(

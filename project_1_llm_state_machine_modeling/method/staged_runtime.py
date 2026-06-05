@@ -945,6 +945,79 @@ def _stale_overridden_scenario_waiver_audit(
     }
 
 
+def _sl10_noop_override_waiver_audit(
+    *,
+    active_request_batch: FixRequestBatch,
+    sl9_decision: SL9RepairDecisionOutput,
+    local_review: RepairReviewFeedback,
+    local_check_evidence: dict[str, Any],
+    sl10_output: SL10RepairReviewOutput,
+    old_dsl: str,
+    candidate_dsl: str,
+    scenario_set: ScenarioSet | None,
+) -> dict[str, Any] | None:
+    """Audit whether an accepted no-op repair should continue in-place.
+
+    This is the accepted-candidate counterpart of
+    ``_stale_overridden_scenario_waiver_audit``.  It handles the case where
+    SL-10 explicitly passes and overrides a local SD-6 scenario objection for
+    the *unchanged* candidate.  Revalidating via SC-11 would only spend another
+    iteration on the same stale oracle, so the repair decision can be forwarded
+    to the same-iteration SD-6→SL-7 waiver continuation instead.
+    """
+
+    if not active_request_batch.requests:
+        return None
+    if not sl9_decision.accepted_request_ids:
+        return None
+    if _hash_text(old_dsl) != _hash_text(candidate_dsl):
+        return None
+    if not (sl10_output.ok and sl10_output.decision == "pass" and sl10_output.local_override_rationale):
+        return None
+    hard_requests = [request for request in active_request_batch.requests if request.hard_block]
+    if not hard_requests:
+        return None
+    if not all(request.source_stage == StageId.SD_6_SIM.value or request.target == "sim" for request in hard_requests):
+        return None
+    rejection = local_review.local_rejection
+    if rejection is None or not _local_rejection_has_scenario_regression(rejection):
+        return None
+    current_scenario_names = _request_scenario_names(hard_requests, scenario_set=scenario_set)
+    known = _known_scenario_names(scenario_set)
+    local_scenario_names = _scenario_names_from_payload(_jsonable(rejection), known_names=known)
+    if current_scenario_names:
+        overlap = sorted(set(current_scenario_names) & set(local_scenario_names))
+        if not overlap:
+            return None
+        matched_names = overlap
+    else:
+        matched_names = sorted(set(local_scenario_names))
+    if not matched_names:
+        return None
+
+    return {
+        "kind": "sl10_noop_override_waiver",
+        "policy": (
+            "SL-9 accepted current SD-6 hard requests but produced a no-op "
+            "candidate, and SL-10 explicitly passed with local_override_rationale "
+            "for the matching scenario_regression. Continue downstream validation "
+            "without spending a new SC-11/SD-2 iteration, while retaining this audit "
+            "evidence in FixLog and the run record."
+        ),
+        "current_dsl_hash": _hash_text(old_dsl),
+        "candidate_dsl_hash": _hash_text(candidate_dsl),
+        "batch_id": active_request_batch.batch_id,
+        "request_ids": [request.request_id for request in hard_requests],
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": matched_names,
+        "local_rejection_reason": getattr(rejection, "reason", ""),
+        "local_rejection_hash": _short_hash(_jsonable(rejection)),
+        "local_check_evidence_hash": _short_hash(local_check_evidence),
+        "sl10_local_override_rationale_hash": _short_hash(sl10_output.local_override_rationale),
+        "sl9_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
 def _local_only_frontier_from_rework_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
     """Return a compact frontier candidate if rework is local-only.
 
@@ -2358,12 +2431,31 @@ def _continue_after_sim_waiver(
 ) -> _ValidationPass:
     """Continue after an audited stale SD-6 scenario waiver into SL-7."""
 
+    waiver_kind = str(waiver_audit.get("kind") or "sim_waiver") if isinstance(waiver_audit, dict) else "sim_waiver"
+    if waiver_kind == "sl10_noop_override_waiver":
+        enter_reason = "SL-10 accepted a no-op override for the current SD-6 scenario request; continue to SL-7 without DSL edit"
+        stage_reason = "sl10_noop_override_waiver_marked_non_blocking_for_SL-7"
+        skipped_reason = (
+            "waiver_continue: SL-10 passed a no-op candidate with local_override_rationale "
+            "for the current SD-6 scenario_regression; continuing to SL-7 without SC-11 "
+            "budget consumption or DSL edit"
+        )
+        review_reason = "waiver_continue_SD-6_sl10_noop_override"
+    else:
+        enter_reason = "SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit"
+        stage_reason = "stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7"
+        skipped_reason = (
+            "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
+            "and matched a prior SL-10 local_override_rationale for the same scenario; "
+            "continuing to SL-7 without DSL edit"
+        )
+        review_reason = "waiver_continue_SD-6_stale_scenario_request"
     _append_flow_log(
         logs,
         event="waiver_continue_validation_enter",
         iteration=iteration,
         source_stage=StageId.SD_6_SIM.value,
-        reason="SL-9 rejected stale overridden SD-6 scenario request; continue to SL-7 without DSL edit",
+        reason=enter_reason,
         current_dsl_hash=_hash_text(current_dsl),
         current_dsl=current_dsl,
         waiver_audit=_jsonable(waiver_audit),
@@ -2381,11 +2473,7 @@ def _continue_after_sim_waiver(
     waiver_meta = _meta(StageId.SD_6_SIM, ok=True, status=StageStatus.ADVISORY)
     waiver_meta.input_hash = _hash_text(current_dsl)
     waiver_meta.output_hash = _short_hash(waiver_audit)
-    waiver_meta.skipped_reason = (
-        "waiver_continue: stale SD-6 scenario hard request was rejected by SL-9 "
-        "and matched a prior SL-10 local_override_rationale for the same scenario; "
-        "continuing to SL-7 without DSL edit"
-    )
+    waiver_meta.skipped_reason = skipped_reason
     _append_stage(stage_records, waiver_meta)
     iteration_stage_metas.append(waiver_meta)
     _append_flow_log(
@@ -2395,7 +2483,7 @@ def _continue_after_sim_waiver(
         iteration=iteration,
         ok=True,
         status=str(StageStatus.ADVISORY),
-        reason="stale_overridden_scenario_waiver_marked_non_blocking_for_SL-7",
+        reason=stage_reason,
         feedback=_feedback_brief(StageId.SD_6_SIM.value, waived_sim),
         jump="SL-7",
     )
@@ -2405,7 +2493,7 @@ def _continue_after_sim_waiver(
         event="stage_enter",
         stage_id=StageId.SL_7_MODEL_REVIEW.value,
         iteration=iteration,
-        reason="waiver_continue_SD-6_stale_scenario_request",
+        reason=review_reason,
         scenario_set_id=validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
         oracle_weak=validation.oracle_weak,
         waiver_audit=_jsonable(waiver_audit),
@@ -2476,7 +2564,10 @@ def _continue_after_repair_waiver(
     logs: list[dict[str, Any]],
     waiver_audit: dict[str, Any] | None = None,
 ) -> _ValidationPass:
-    if isinstance(waiver_audit, dict) and waiver_audit.get("kind") == "stale_overridden_scenario_waiver":
+    if isinstance(waiver_audit, dict) and waiver_audit.get("kind") in {
+        "stale_overridden_scenario_waiver",
+        "sl10_noop_override_waiver",
+    }:
         return _continue_after_sim_waiver(
             nl=nl,
             current_dsl=current_dsl,
@@ -4200,6 +4291,101 @@ def _run_repair_path(
             iteration=iteration,
             source_stage_id=StageId.SL_10_REPAIR_REVIEW.value,
         )
+        noop_override_waiver_audit = (
+            _sl10_noop_override_waiver_audit(
+                active_request_batch=active_request_batch,
+                sl9_decision=sl9_decision,
+                local_review=local_review,
+                local_check_evidence=local_check_evidence,
+                sl10_output=sl10_output,
+                old_dsl=state.current_dsl,
+                candidate_dsl=candidate_dsl,
+                scenario_set=validation.scenario_set,
+            )
+            if accepted
+            else None
+        )
+        if noop_override_waiver_audit is not None:
+            _append_flow_log(
+                state.logs,
+                event="sl10_noop_override_waiver_continue",
+                level="info",
+                stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+                iteration=iteration,
+                source_stage=source_stage,
+                batch_id=active_request_batch.batch_id,
+                note="SL-10 accepted a no-op local override; downstream validation continues without SC-11 budget consumption",
+                waiver_audit=_jsonable(noop_override_waiver_audit),
+                jump="continue_after_current_stage",
+            )
+            repair_review = RepairReviewFeedback(
+                ok=True,
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+            )
+            _fix_log_entry(
+                state=state,
+                iteration=iteration,
+                phase="sl10_noop_override_waiver",
+                batch=active_request_batch,
+                decisions=sl9_decision.decisions,
+                old_dsl=state.current_dsl,
+                candidate_dsl=candidate_dsl,
+                diff_summary=sl9_decision.diff_summary,
+                local_check_evidence=local_check_evidence,
+                sl10_review=sl10_output,
+                repair_memory=repair_memory,
+                next_action="continue_after_waiver",
+                notes=[
+                    f"waiver_audit:{noop_override_waiver_audit['kind']}:{_short_hash(noop_override_waiver_audit)}",
+                    *sl10_output.local_override_rationale,
+                    *(f"grounding_update_hint:{item['hint_hash']}" for item in sl10_grounding_hints),
+                ],
+            )
+            repair_payload = {
+                "iteration": iteration,
+                "selected_feedback": selected_trace,
+                "plan_kind": active_request_batch.legacy_plan_kind,
+                "fix_plan": _jsonable(effective_fix_plan),
+                "fix_request_batch": _jsonable(active_request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "candidate_dsl": candidate_dsl,
+                "candidate_dsl_hash": _hash_text(candidate_dsl),
+                "repair_review_input_summary": repair_review_input_summary,
+                "local_check_evidence": _jsonable(local_check_evidence),
+                "sd10_repair_review": local_sd10_repair_review,
+                "sl10_repair_review": _jsonable(sl10_output),
+                "grounding_update_hints": _jsonable(sl10_grounding_hints),
+                "repair_review": _jsonable(repair_review),
+                "accepted": False,
+                "accepted_noop_override": True,
+                "waiver_continue": True,
+                "waiver_audit": _jsonable(noop_override_waiver_audit),
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+                "fix_log_entry_count": len(state.fix_log),
+                "rework_attempt": rework_attempt,
+            }
+            state.repair_history.append(repair_payload)
+            return False, {
+                "selected_feedback": selected_trace,
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "fix_request_batch": _jsonable(active_request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "local_check_evidence": _jsonable(local_check_evidence),
+                "sl10_repair_review": _jsonable(sl10_output),
+                "grounding_update_hints": _jsonable(sl10_grounding_hints),
+                "repair_review": _jsonable(repair_review),
+                "accepted_candidate": False,
+                "accepted_noop_override": True,
+                "waiver_continue": True,
+                "waiver_audit": _jsonable(noop_override_waiver_audit),
+                "fix_log_entry_count": len(state.fix_log),
+                "rework_attempts_used": rework_attempt + 1,
+                "exit_reason": "sl10_noop_override_waiver_continue",
+                "retryable_repair_rejection": False,
+            }
         if accepted:
             sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
             _append_stage(state.stage_records, sc11_meta)
