@@ -897,32 +897,63 @@ def run_record_checks(record: AgentLoopRunRecord, public_payload: str | None = N
     }
 
 
-def _required_stage_ids_for_record(record: AgentLoopRunRecord) -> list[str]:
-    """Return PR-E1 required stages without treating legacy stages as missing.
+def _is_waiver_continuation_without_candidate(record: AgentLoopRunRecord) -> bool:
+    """Return True when SL-9 rejected all fix requests and continued downstream.
 
-    PR-D's helper still counted legacy ``SD-10`` / ``SL-10B`` as required.  In
-    PR-E1 the default repair path is ``SL-10`` with local checks as evidence,
-    while ``SD-8/SL-9/SC-11`` are required only when a repair block actually
-    occurs.  Reporting legacy stages as "missing" on a success run confuses
-    reviewers and can falsely imply incomplete execution.
+    In this path SD-8 and SL-9 are real executed repair-decision evidence, but
+    no candidate DSL was accepted.  Therefore SL-10 repair review and SC-11
+    candidate acceptance are intentionally skipped; reporting them as missing
+    would make a valid waiver-continuation run look academically incomplete.
     """
 
-    stage_ids = {str(item.get("stage_id")) for item in record.stage_records if isinstance(item, dict)}
+    fix_log = record.fix_log if isinstance(record.fix_log, list) else []
+    next_actions = [str(entry.get("next_action")) for entry in fix_log if isinstance(entry, dict) and entry.get("next_action") is not None]
+    if "continue_after_waiver" in next_actions:
+        return True
+    for item in record.iteration_records if isinstance(record.iteration_records, list) else []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("exit_reason") or "") == "full_pass_all_required_feedback_ok_after_waiver_continue":
+            return True
+        if item.get("post_waiver_selected_feedback") is not None or item.get("post_waiver_stage_ids") is not None:
+            return True
+    return False
+
+
+def _repair_required_stage_ids(*, executed_stage_ids: Iterable[str], waiver_continue_without_candidate: bool) -> list[str]:
+    executed = set(str(stage_id) for stage_id in executed_stage_ids)
     required = list(PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS)
-    if any(stage_id in stage_ids for stage_id in PR_E1_REPAIR_STAGE_IDS):
-        for stage_id in PR_E1_REPAIR_STAGE_IDS:
-            if stage_id not in required:
-                required.append(stage_id)
+    if not any(stage_id in executed for stage_id in PR_E1_REPAIR_STAGE_IDS):
+        return required
+    repair_required = ["SD-8", "SL-9"] if waiver_continue_without_candidate else list(PR_E1_REPAIR_STAGE_IDS)
+    for stage_id in repair_required:
+        if stage_id not in required:
+            required.append(stage_id)
     return required
+
+
+def _required_stage_ids_for_record(record: AgentLoopRunRecord) -> list[str]:
+    """Return PR-E1 required stages without legacy or waiver false positives.
+
+    PR-D's helper still counted legacy ``SD-10`` / ``SL-10B`` as required.  In
+    PR-E1 the default accepted-repair path is ``SL-10`` + ``SC-11``.  If SL-9
+    rejects/waives all fix requests and continues downstream with no candidate
+    DSL, only ``SD-8`` and ``SL-9`` are required repair evidence.
+    """
+
+    stage_ids = _executed_stage_ids(record)
+    return _repair_required_stage_ids(
+        executed_stage_ids=stage_ids,
+        waiver_continue_without_candidate=_is_waiver_continuation_without_candidate(record),
+    )
 
 
 def _required_stage_ids_for_summary(summary: PrE1RunSummary) -> list[str]:
-    required = list(PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS)
-    if any(stage_id in set(summary.executed_stage_ids) for stage_id in PR_E1_REPAIR_STAGE_IDS):
-        for stage_id in PR_E1_REPAIR_STAGE_IDS:
-            if stage_id not in required:
-                required.append(stage_id)
-    return required
+    return _repair_required_stage_ids(
+        executed_stage_ids=summary.executed_stage_ids,
+        waiver_continue_without_candidate="continue_after_waiver" in summary.fix_log_next_actions
+        or "full_pass_all_required_feedback_ok_after_waiver_continue" in summary.iteration_exit_reasons,
+    )
 
 
 def _fix_log_next_actions(record: AgentLoopRunRecord) -> list[str]:

@@ -151,7 +151,10 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
         "validation_sl7_model_review",
         "validation_finalize",
     }.issubset(set(validation_node["subgraph_node_ids"]))
-    assert all(not node.get("delegated_subgraph") for node in registry["nodes"] if node["node_id"] != "validation_pass")
+    waiver_node = next(node for node in registry["nodes"] if node["node_id"] == "waiver_continue")
+    assert waiver_node["delegated_subgraph"] is True
+    assert waiver_node["subgraph_id"] == "validation_subgraph"
+    assert all(not node.get("delegated_subgraph") for node in registry["nodes"] if node["node_id"] not in {"validation_pass", "waiver_continue"})
     assert consistency["ok"] is True
     assert consistency["missing_stage_ids"] == []
     assert consistency["opaque_wrapper"] is False
@@ -735,6 +738,34 @@ def test_command_routing_waiver_continue_path_keeps_transient_until_downstream_v
     assert record.status in {"success", "budget_exhausted", "failed", "rejected"}
     assert record.iteration_records
     assert "post_waiver_stage_ids" in record.iteration_records[0]
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "validation_subgraph" in post_waiver_nodes
+    assert "validation_sd2_parse" not in post_waiver_nodes
+    assert "validation_sd3_semantic" not in post_waiver_nodes
+    assert "validation_sd4_design" in post_waiver_nodes
+    assert "validation_sl5_scenario_generation" in post_waiver_nodes
+    assert "validation_sd6_sim" in post_waiver_nodes
+    assert "validation_sl7_model_review" in post_waiver_nodes
+    assert record.iteration_records[0]["post_waiver_stage_ids"] == [
+        StageId.SD_4_DESIGN.value,
+        StageId.SL_5_SCENARIO_GENERATION.value,
+        StageId.SD_5A_SCENARIO_COVERAGE.value,
+        StageId.SC_5F_SCENARIO_FREEZE.value,
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    post_waiver_stage_logs = [
+        item
+        for item in record.logs
+        if isinstance(item, dict)
+        and item.get("event") == "stage_result"
+        and item.get("stage_id") in {StageId.SD_4_DESIGN.value, StageId.SL_5_SCENARIO_GENERATION.value, StageId.SD_5A_SCENARIO_COVERAGE.value, StageId.SC_5F_SCENARIO_FREEZE.value, StageId.SD_6_SIM.value, StageId.SL_7_MODEL_REVIEW.value}
+        and item.get("iteration") == 0
+    ]
+    post_waiver_stage_logs = post_waiver_stage_logs[-6:]
+    assert post_waiver_stage_logs
+    assert all(item.get("graph_subgraph") == "validation_subgraph" for item in post_waiver_stage_logs)
+    assert all(str(item.get("graph_node") or "").startswith("validation_") for item in post_waiver_stage_logs)
 
 
 def test_command_routing_repair_retry_exhausted_visits_decision_and_cleans_transient(tmp_path: Path) -> None:
@@ -1136,7 +1167,11 @@ def test_store_transient_preserves_waiver_continue_data(tmp_path: Path) -> None:
     )
     lifecycle = _assert_lg_a2_store_metadata(record)
 
-    assert "waiver_continue" in _lg_trace_nodes(record)
+    trace_nodes = _lg_trace_nodes(record)
+    assert "waiver_continue" in trace_nodes
+    post_waiver_nodes = trace_nodes[trace_nodes.index("waiver_continue") + 1 :]
+    assert "validation_subgraph" in post_waiver_nodes
+    assert "validation_sl5_scenario_generation" in post_waiver_nodes
     assert "post_waiver_stage_ids" in record.iteration_records[0]
     assert lifecycle["get_count"] >= 2
 

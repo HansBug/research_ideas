@@ -289,6 +289,53 @@ def test_pr_e1_missing_required_stages_do_not_require_legacy_sd10_sl10b(tmp_path
 
 
 
+def test_pr_e1_waiver_continue_does_not_require_sl10_sc11(tmp_path: Path) -> None:
+    record = _record("waiver-required")
+    record.status = "success"
+    executed = ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SD-8", "SL-9", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SC-12", "SC-13"]
+    record.stage_graph["executed"] = executed
+    record.stage_records = [_stage_meta(stage_id, ok=True) for stage_id in executed]
+    record.fix_log = [
+        {"next_action": "sl9_decision_and_repair"},
+        {"next_action": "reject_or_waiver"},
+        {"next_action": "continue_after_waiver"},
+    ]
+    record.iteration_records = [
+        {
+            "iteration": 0,
+            "stage_ids": executed[2:-2],
+            "selected_feedback": {"source": "design", "source_stage": "SD-4", "blocking": True},
+            "post_waiver_stage_ids": ["SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7"],
+            "exit_reason": "full_pass_all_required_feedback_ok_after_waiver_continue",
+        }
+    ]
+    record.final_artifacts["verdict"] = "success"
+    record.final_artifacts["verdict_reason"] = "full_pass_all_required_feedback_ok_after_waiver_continue"
+    record.final_artifacts["main_result_eligible"] = True
+    path = write_agent_loop_run_record(record, tmp_path / "waiver-required.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="waiver-required", run_record_path=str(path))
+
+    from method.pr_e1_real_runs import summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case=pr_e1_cases(case_keys=["path2_lng_ems"])[0],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert "SD-8" not in summary.missing_required_stage_ids
+    assert "SL-9" not in summary.missing_required_stage_ids
+    assert "SL-10" not in summary.missing_required_stage_ids
+    assert "SC-11" not in summary.missing_required_stage_ids
+
+
 def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> None:
     record = _record("source-summary")
     final_hash = "sha256:accepted"

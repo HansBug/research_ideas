@@ -35,7 +35,16 @@ from langgraph.types import Command
 from method.llm_stages import ChatProvider
 from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
 import method.staged_runtime as staged_runtime
-from method.schema import AgentLoopResult, GroundedElement, GroundingMap, LoopConfig, ModelReviewFeedback, SimFeedback, StageContext
+from method.schema import (
+    AgentLoopResult,
+    DesignFeedback,
+    GroundedElement,
+    GroundingMap,
+    LoopConfig,
+    ModelReviewFeedback,
+    SimFeedback,
+    StageContext,
+)
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
     FullStagedRuntimeConfig,
@@ -48,8 +57,8 @@ from method.staged_runtime import (
     _append_llm_stage_run,
     _append_stage,
     _build_record,
+    _clone_stage_context,
     _compact_json,
-    _continue_after_design_waiver,
     _extract_grounding_update_hints,
     _feedback_brief,
     _final_rejection_reason,
@@ -57,6 +66,7 @@ from method.staged_runtime import (
     _hash_text,
     _is_llm_stage_run,
     _mark_retry_exhausted,
+    _make_waived_design_feedback,
     _mark_sc12_verdict,
     _meta,
     _merge_scenario_sets_by_name,
@@ -151,6 +161,8 @@ class _ValidationSubgraphState(_GraphLoopState, total=False):
     validation_dsl_changed_since_freeze: bool
     validation_next_epoch: int
     validation_result: Any
+    validation_continuation_source: Any
+    validation_continued_after_waiver: bool
 
 
 def _jsonable(value: Any) -> Any:
@@ -265,7 +277,7 @@ def build_langgraph_node_registry() -> dict[str, Any]:
         {
             "node_id": "waiver_continue",
             "label": "continue downstream validation after accepted no-edit waiver",
-            "kind": "stage_group_node",
+            "kind": "validation_subgraph_continuation",
             "stage_ids": [
                 StageId.SD_4_DESIGN.value,
                 StageId.SL_5_SCENARIO_GENERATION.value,
@@ -275,7 +287,19 @@ def build_langgraph_node_registry() -> dict[str, Any]:
                 StageId.SL_7_MODEL_REVIEW.value,
                 StageId.SC_12_EXIT.value,
             ],
-            "delegated_subgraph": False,
+            "delegated_subgraph": True,
+            "subgraph_id": "validation_subgraph",
+            "subgraph_node_ids": [
+                "validation_enter",
+                "validation_sd4_design",
+                "validation_sl5_scenario_generation",
+                "validation_sd5a_scenario_coverage",
+                "validation_sd5a_reuse_coverage",
+                "validation_sc5f_scenario_freeze",
+                "validation_sd6_sim",
+                "validation_sl7_model_review",
+                "validation_finalize",
+            ],
         },
         {
             "node_id": "sc12_budget_exhausted",
@@ -842,7 +866,6 @@ def _build_validation_subgraph(
         iteration = _iteration(graph_state)
         scenario_set = runtime_state.scenario_set
         _trace_node(graph_state, "validation_subgraph", event="subgraph_enter", iteration=iteration)
-        _trace_node(graph_state, "validation_sd2_parse", iteration=iteration)
         _append_flow_log(
             runtime_state.logs,
             event="iteration_validation_enter",
@@ -853,6 +876,77 @@ def _build_validation_subgraph(
             dsl=runtime_state.current_dsl,
             graph_subgraph="validation_subgraph",
         )
+        continuation_source = graph_state.get("validation_continuation_source")
+        if isinstance(continuation_source, _ValidationPass):
+            source, selected_feedback, source_stage = continuation_source.selected or ("", None, "")
+            if (
+                source != FeedbackSource.DESIGN.value
+                or source_stage != StageId.SD_4_DESIGN.value
+                or not isinstance(selected_feedback, DesignFeedback)
+            ):
+                graph_state["validation_result"] = continuation_source
+                return Command(goto="validation_finalize", update=graph_state)
+            context = _clone_stage_context(continuation_source.context, current_dsl=runtime_state.current_dsl)
+            context.warning_budget_state = continuation_source.context.warning_budget_state
+            waived_design = _make_waived_design_feedback(selected_feedback)
+            feedback = dict(continuation_source.feedback)
+            feedback[FeedbackSource.DESIGN.value] = waived_design
+            stage_metas = list(continuation_source.stage_metas)
+            scenario_history = list(continuation_source.scenario_history)
+            scenario_set = continuation_source.scenario_set
+            waiver_meta = _meta(StageId.SD_4_DESIGN, ok=True, status=StageStatus.ADVISORY)
+            waiver_meta.input_hash = _hash_text(runtime_state.current_dsl)
+            waiver_meta.output_hash = _short_hash([item.instance_key for item in selected_feedback.blocking_items])
+            waiver_meta.skipped_reason = (
+                "waiver_continue: non-hard SD-4 blocking warnings were rejected/waived by "
+                "SL-9; continuing downstream validation without DSL edit"
+            )
+            _trace_node(graph_state, "validation_sd4_design", iteration=iteration, continued_after_waiver=True)
+            _append_stage(runtime_state.stage_records, waiver_meta)
+            stage_metas.append(waiver_meta)
+            _append_flow_log(
+                runtime_state.logs,
+                event="waiver_continue_validation_enter",
+                iteration=iteration,
+                source_stage=StageId.SD_4_DESIGN.value,
+                reason="SL-9 rejected/waived non-hard SD-4 requests; continue downstream without SC-11 DSL edit",
+                current_dsl_hash=_hash_text(runtime_state.current_dsl),
+                current_dsl=runtime_state.current_dsl,
+                graph_subgraph="validation_subgraph",
+                graph_node="validation_enter",
+            )
+            _append_flow_log(
+                runtime_state.logs,
+                event="stage_result",
+                stage_id=StageId.SD_4_DESIGN.value,
+                iteration=iteration,
+                ok=True,
+                status=str(StageStatus.ADVISORY),
+                reason="waiver_continue_design_items_marked_non_blocking_for_downstream_validation",
+                jump="SL-5" if scenario_set is None else "SD-5A",
+                graph_subgraph="validation_subgraph",
+                graph_node="validation_sd4_design",
+            )
+            graph_state["validation_context"] = context
+            graph_state["validation_feedback"] = feedback
+            graph_state["validation_stage_metas"] = stage_metas
+            graph_state["validation_scenario_history"] = scenario_history
+            graph_state["validation_scenario_set"] = scenario_set
+            graph_state["validation_scenario_epoch"] = runtime_state.scenario_epoch
+            graph_state["validation_oracle_weak"] = continuation_source.oracle_weak
+            graph_state["validation_continued_after_waiver"] = True
+            if scenario_set is None:
+                graph_state["validation_retry_mode"] = "initial"
+                graph_state["validation_attempt_index"] = 0
+                graph_state["validation_coverage_directive"] = None
+                graph_state["validation_previous_scenarios"] = []
+                graph_state["validation_selected_scenarios"] = []
+                graph_state["validation_selected_coverage"] = {"coverage_report": {}, "coverage_gap": False, "retry_directive": None}
+                _trace_node(graph_state, "validation_sl5_scenario_generation", iteration=iteration, attempt_index=0, continued_after_waiver=True)
+                return Command(goto="validation_sl5_scenario_generation", update=graph_state)
+            _trace_node(graph_state, "validation_sd5a_reuse_coverage", iteration=iteration, continued_after_waiver=True)
+            return Command(goto="validation_sd5a_reuse_coverage", update=graph_state)
+
         graph_state["validation_context"] = StageContext(
             nl=graph_state["nl"],
             current_dsl=runtime_state.current_dsl,
@@ -866,6 +960,7 @@ def _build_validation_subgraph(
         graph_state["validation_scenario_set"] = scenario_set
         graph_state["validation_scenario_epoch"] = runtime_state.scenario_epoch
         graph_state["validation_oracle_weak"] = runtime_state.oracle_weak
+        _trace_node(graph_state, "validation_sd2_parse", iteration=iteration)
         return Command(goto="validation_sd2_parse", update=graph_state)
 
     def validation_sd2_parse(graph_state: _ValidationSubgraphState) -> Command:
@@ -1288,9 +1383,11 @@ def _build_validation_subgraph(
             event="stage_enter",
             stage_id=StageId.SD_6_SIM.value,
             iteration=iteration,
-            reason="scenario_set_ready",
+            reason="waiver_continue_scenario_set_ready" if graph_state.get("validation_continued_after_waiver") else "scenario_set_ready",
             scenario_set_id=scenario_set.scenario_set_id,
             n_scenarios=len(scenario_set.scenarios),
+            graph_subgraph="validation_subgraph",
+            graph_node="validation_sd6_sim",
         )
         sim_feedback, sim_meta = adapters.sim(runtime_state.current_dsl, scenario_set, context)
         feedback[FeedbackSource.SIM.value] = sim_feedback
@@ -1320,7 +1417,9 @@ def _build_validation_subgraph(
                     iteration=iteration,
                     weak_oracle_reason=getattr(sim_feedback, "weak_oracle_reason", ""),
                     weak_oracle_evidence=_jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
+                    after_waiver_continue=bool(graph_state.get("validation_continued_after_waiver", False)),
                     graph_subgraph="validation_subgraph",
+                    graph_node="validation_sd6_sim",
                 )
                 graph_state["validation_oracle_weak"] = True
             graph_state["validation_result"] = _validation_result(graph_state, scenario_epoch=scenario_set.epoch)
@@ -1342,9 +1441,11 @@ def _build_validation_subgraph(
             event="stage_enter",
             stage_id=StageId.SL_7_MODEL_REVIEW.value,
             iteration=iteration,
-            reason="SD-6 ok",
+            reason="waiver_continue_SD-6 ok" if graph_state.get("validation_continued_after_waiver") else "SD-6 ok",
             scenario_set_id=scenario_set.scenario_set_id,
             oracle_weak=oracle_weak,
+            graph_subgraph="validation_subgraph",
+            graph_node="validation_sl7_model_review",
         )
         review_run = adapters.model_review(
             runtime_state.current_dsl,
@@ -1355,6 +1456,7 @@ def _build_validation_subgraph(
                 "design": feedback.get(FeedbackSource.DESIGN.value),
                 "sim": feedback.get(FeedbackSource.SIM.value),
                 "oracle_weak": oracle_weak,
+                "waiver_continue": bool(graph_state.get("validation_continued_after_waiver", False)),
             },
         )
         review_run = _append_llm_stage_run(
@@ -1796,19 +1898,20 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         validation = _get_transient(runtime_state.run_id, str(graph_state.get("validation_ref") or ""), lifecycle=transient_lifecycle)
         _trace_node(graph_state, "waiver_continue", iteration=iteration)
         try:
-            continued_validation = _continue_after_design_waiver(
-                nl=graph_state["nl"],
-                current_dsl=runtime_state.current_dsl,
-                cfg=runtime_cfg,
-                adapters=adapters,
-                validation=validation,
-                iteration=iteration,
-                state=runtime_state,
-                stage_records=runtime_state.stage_records,
-                llm_interactions=runtime_state.llm_interactions,
-                logs=runtime_state.logs,
+            graph_state["validation_continuation_source"] = validation
+            graph_state = dict(
+                validation_subgraph.invoke(
+                    graph_state,
+                    config={"configurable": {"thread_id": f"{runtime_state.run_id}:validation-waiver:{iteration}"}},
+                )
             )
+            runtime_state = graph_state["runtime_state"]
+            continued_validation = graph_state.get("validation_result")
+            if not isinstance(continued_validation, _ValidationPass):
+                raise TypeError("validation subgraph did not return a _ValidationPass after waiver continuation")
+            _drop_validation_subgraph_state(graph_state)
         except _LLMRetryExhausted as exc:
+            _drop_validation_subgraph_state(graph_state)
             _mark_retry_exhausted(runtime_state, exc)
             iteration_record["exit_reason"] = runtime_state.verdict_reason
             iteration_record["repair_stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])[len(iteration_record.get("stage_ids") or []) :]
@@ -1837,6 +1940,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
                 "stage_ids": _stage_ids(continued_validation.stage_metas),
                 "scenario_epoch": continued_validation.scenario_epoch,
                 "oracle_weak": continued_validation.oracle_weak,
+                "langgraph_subgraph": "validation_subgraph",
             }
         )
         if continued_validation.selected is not None:
