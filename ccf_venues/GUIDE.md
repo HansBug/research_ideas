@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-05 09:43`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
