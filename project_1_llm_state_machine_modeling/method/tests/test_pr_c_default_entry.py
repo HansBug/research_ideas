@@ -13,6 +13,7 @@ from method.llm_stages import LLMStageConfig, MockLLMProvider
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
 from method.staged_runtime import RepairRequest
 from method.stages.ids import StageId
+from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 
 
 def _good_dsl() -> str:
@@ -378,6 +379,8 @@ def test_pr_c_explicit_mock_profile_runs_full_staged_path_but_is_not_main_result
     assert record.run_config["llm_provider_mode"] == "mock"
     assert record.run_config["default_loop_config_entry_integrated"] is True
     assert record.run_config["real_llm_provider_api"] is False
+    assert record.run_config["lg_c2_context_subgraph_contract"]["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+    assert record.run_config["lg_c2_context_subgraph_contract_hash"] == record.environment["lg_c2_context_subgraph_contract_hash"]
     assert record.environment["provider_mode"] == "mock"
     assert record.environment["provider_model_redacted"] == "mock-model"
     assert record.redaction_report == []
@@ -460,7 +463,32 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10_chain_before_scena
     assert record.repair_history[0]["sd10_repair_review"]["review_meta"] is None
     sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
     assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < stage_ids.index(StageId.SL_5_SCENARIO_GENERATION.value)
+    sl9 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_9_REPAIR.value)
     sl10 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_10_REPAIR_REVIEW.value)
+    for interaction, stage_id in (
+        (sl9, StageId.SL_9_REPAIR.value),
+        (sl10, StageId.SL_10_REPAIR_REVIEW.value),
+    ):
+        context = interaction["context_engineering"]
+        assert context["context_engineering_schema_version"] == "lg-c2.context-subgraph.v1"
+        assert context["subgraph_id"] == "context_engineering_subgraph"
+        assert context["stage_id"] == stage_id
+        assert context["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+        assert context["prompt_payload_hash"].startswith("sha256:")
+        assert context["selected_prompt_messages_hash"] == interaction["prompt_hash"]
+        assert context["budget_metadata"]["prompt_token_budget"] == 128_000
+        assert context["budget_metadata"]["estimated_prompt_tokens"] == interaction["estimated_prompt_tokens"]
+        assert context["budget_metadata"]["prompt_chars"] == interaction["prompt_chars"]
+        assert context["context_subgraph_contract_hash"] == record.environment["lg_c2_context_subgraph_contract_hash"]
+        assert context["redaction_guard"]["status"] == "passed"
+        assert context["redaction_guard"]["checked_before_provider"] is True
+        assert [node["node_id"] for node in context["node_trace"]] == [
+            "context_evidence_collect",
+            "context_budget_gate",
+            "context_compact_full_select",
+            "context_redaction_guard",
+        ]
+        assert context["does_not_replace_academic_evidence"] is True
     assert sl10["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
     assert sl10["review_meta"]["schema_validation_ok"] is True
     assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
@@ -624,6 +652,9 @@ def test_pr_c_sl5_adapter_internal_redaction_failure_writes_invalid_record(monke
 
 
 def test_pr_c_sl9_adapter_internal_redaction_failure_writes_invalid_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Keep the NL/context secret-free here: LG-C2 now correctly blocks
+    # secret-like context before provider I/O, while this regression still
+    # needs to exercise the legacy SL-9 parsed_output redactor crash path.
     secret = "sk-pr26sl9internalredaction12345"
     bad_initial = json.dumps({"candidate_dsl": "state Root {", "grounding_seeds": [], "assumptions": []}, ensure_ascii=False)
     responses = [bad_initial, _good_dsl()]
@@ -663,7 +694,7 @@ def test_pr_c_sl9_adapter_internal_redaction_failure_writes_invalid_record(monke
     monkeypatch.setattr(llm_stages, "_redact_payload", broken_private_redactor)
     cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="pr-c-sl9-internal-redaction-fail-closed")
 
-    result = loop.run_agent_loop(f"Start moves Idle to Active. leaked token LLM_API_KEY={secret}", cfg)
+    result = loop.run_agent_loop("Start moves Idle to Active; this NL is secret-free for the SL-9 internal redactor test.", cfg)
 
     assert result.status == "spec_failed"
     assert result.run_record_path is not None
@@ -688,3 +719,195 @@ def test_pr_c_run_record_write_failure_does_not_return_success(monkeypatch: pyte
     assert result.run_record_path is None
     assert result.error_message is not None
     assert "run record write failed" in result.error_message
+
+
+def test_lg_c2_context_subgraph_registry_exposes_context_nodes() -> None:
+    from method.langgraph_runtime import build_langgraph_node_registry, build_lg_c2_context_subgraph_contract
+
+    contract = build_lg_c2_context_subgraph_contract()
+    registry = build_langgraph_node_registry()
+    repair_node = next(node for node in registry["nodes"] if node["node_id"] == "repair_path")
+
+    assert contract["schema_version"] == "lg-c2.context-subgraph.v1"
+    assert contract["subgraph_id"] == "context_engineering_subgraph"
+    assert contract["stage_ids"] == [StageId.SL_9_REPAIR.value, StageId.SL_10_REPAIR_REVIEW.value]
+    assert contract["node_ids"] == [
+        "context_evidence_collect",
+        "context_budget_gate",
+        "context_compact_full_select",
+        "context_redaction_guard",
+    ]
+    assert contract["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+    assert contract["instrumentation_layer"] == "langgraph_context_engineering"
+    assert repair_node["nested_subgraph_ids"] == ["context_engineering_subgraph"]
+    assert set(contract["node_ids"]).issubset(set(repair_node["subgraph_node_ids"]))
+
+
+def test_lg_c2_sl9_context_metadata_records_budget_hash_and_redaction_status() -> None:
+    from method.langgraph_runtime import assemble_lg_c2_prompt_context
+
+    request = _prompt_budget_repair_request(marker="LG_C2_HASH_MARKER")
+    payload, meta = loop._select_sl9_prompt_payload(request, LLMStageConfig(max_prompt_tokens=128_000))
+
+    assert meta["stage_id"] == StageId.SL_9_REPAIR.value
+    assert meta["context_engineering_schema_version"] == "lg-c2.context-subgraph.v1"
+    assert meta["subgraph_id"] == "context_engineering_subgraph"
+    assert meta["selected_payload_hash"].startswith("sha256:")
+    assert meta["prompt_payload_hash"] == meta["selected_payload_hash"]
+    assert meta["budget_metadata"]["compaction_level"] == "none"
+    assert meta["selection_reason"] == "within_budget"
+    assert meta["redaction_guard"]["status"] == "passed"
+    assert meta["redaction_guard"]["secret_like_field_detected"] is False
+    assert [node["node_id"] for node in meta["node_trace"]] == [
+        "context_evidence_collect",
+        "context_budget_gate",
+        "context_compact_full_select",
+        "context_redaction_guard",
+    ]
+    rendered_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    assert "context_engineering" not in rendered_payload
+    assert "prompt_budget" not in rendered_payload
+
+    repeated = assemble_lg_c2_prompt_context(
+        stage_id=StageId.SL_9_REPAIR.value,
+        payload_candidates=loop._sl9_prompt_payload_candidates(request),
+        prompt_builder=lambda candidate: build_sl9_repair_prompt(
+            nl=request.nl,
+            current_dsl=request.old_dsl,
+            fix_plan=candidate["fix_plan_summary"],
+            fix_request_batch=candidate["fix_request_batch"],
+            fix_log=candidate["fix_log"],
+            repair_memory=candidate["repair_memory"],
+            grounding_map=candidate["grounding_map_summary"],
+            selected_diagnostics=candidate["selected_diagnostics"],
+            preserve_list=candidate["preserve_list"],
+            scenario_summary=candidate["scenario_summary"],
+            repair_target=getattr(request.fix_plan, "target", None),
+        ),
+        cfg=LLMStageConfig(max_prompt_tokens=128_000),
+    )
+    assert repeated.metadata["prompt_payload_hash"] == meta["prompt_payload_hash"]
+
+    actual_prompt = build_sl9_repair_prompt(
+        nl=request.nl,
+        current_dsl=request.old_dsl,
+        fix_plan=payload["fix_plan_summary"],
+        fix_request_batch=payload["fix_request_batch"],
+        fix_log=payload["fix_log"],
+        repair_memory=payload["repair_memory"],
+        grounding_map=payload["grounding_map_summary"],
+        selected_diagnostics=payload["selected_diagnostics"],
+        preserve_list=payload["preserve_list"],
+        scenario_summary=payload["scenario_summary"],
+        repair_target=getattr(request.fix_plan, "target", None),
+    )
+    assert llm_stages._hash_payload(actual_prompt) == meta["selected_prompt_messages_hash"]
+    assert llm_stages.estimate_prompt_tokens(actual_prompt) == meta["budget_metadata"]["estimated_prompt_tokens"]
+
+
+def test_lg_c2_sl10_context_metadata_compacts_only_when_over_budget_and_is_canonical() -> None:
+    batch = schema.FixRequestBatch(
+        batch_id="lg-c2-batch",
+        iteration=0,
+        source="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        requests=[
+            schema.FixRequest(
+                request_id="r1",
+                target="sim",
+                source_stage=StageId.SD_6_SIM.value,
+                source_feedback_id="sim-1",
+                severity="sim_fail",
+                hard_block=True,
+            )
+        ],
+    )
+    request = RepairRequest(
+        nl="Secret-free NL.",
+        grounding_map=schema.GroundingMap(source_summary={"system": "lg-c2"}),
+        old_dsl=_good_dsl(),
+        fix_plan=schema.FixPlan(
+            target="sim",
+            source_stage=StageId.SD_6_SIM.value,
+            source_feedback_id="sim-1",
+            severity="sim_fail",
+            problem_summary="scenario mismatch",
+        ),
+        candidate_dsl=_good_dsl(),
+        fix_request_batch=batch,
+        sl9_decision=schema.SL9RepairDecisionOutput(
+            decisions=[schema.FixRequestDecision(request_id="r1", decision="accept")],
+            candidate_dsl=_good_dsl(),
+            diff_summary={"summary": "no-op"},
+        ),
+        fix_log=[{"entry_id": "huge", "phase": "sl9_decision", "payload": "Z" * 4000}],
+        diff_summary={"summary": "no-op"},
+        local_check_evidence={"repair_review_feedback": {"ok": True}},
+    )
+
+    payload, meta = loop._select_sl10_prompt_payload(request, LLMStageConfig(max_prompt_tokens=10))
+
+    assert meta["stage_id"] == StageId.SL_10_REPAIR_REVIEW.value
+    assert meta["compaction_level"] == "level1_compact"
+    assert meta["selection_reason"] == "fallback_compact_over_budget"
+    assert meta["budget_metadata"]["budget_exceeded"] is True
+    assert meta["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+    rendered_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    assert "context_engineering" not in rendered_payload
+    assert "prompt_budget" not in rendered_payload
+
+
+def test_lg_c2_redaction_guard_blocks_secret_like_context_before_provider() -> None:
+    from method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
+
+    provider_call_count = {"count": 0}
+
+    def prompt_builder(payload: dict[str, object]) -> list[dict[str, str]]:
+        provider_call_count["count"] += 1
+        return [
+            {
+                "role": "user",
+                "content": "repair context contains LLM_API_KEY=sk-lgc2redaction123456789",
+            }
+        ]
+
+    with pytest.raises(LG_C2_ContextRedactionBlocked) as excinfo:
+        assemble_lg_c2_prompt_context(
+            stage_id=StageId.SL_9_REPAIR.value,
+            payload_candidates=[("none", {"safe_field": "value"})],
+            prompt_builder=prompt_builder,
+            cfg=LLMStageConfig(max_prompt_tokens=128_000),
+        )
+
+    # The context subgraph may build the prompt for audit/hash purposes, but it
+    # must fail closed before any provider call path can consume that prompt.
+    assert provider_call_count["count"] == 1
+    assert excinfo.value.guard["status"] == "blocked"
+    assert excinfo.value.guard["secret_like_field_detected"] is True
+    assert excinfo.value.guard["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+    assert excinfo.value.payload_hash.startswith("sha256:")
+
+
+
+def test_lg_c2_redaction_guard_fail_closed_adapter_does_not_call_provider(tmp_path: Path) -> None:
+    secret_marker = "LLM_API_KEY=sk-lgc2adapterblock123456789"
+    request = _prompt_budget_repair_request(marker=secret_marker)
+    provider = MockLLMProvider(responses=[_good_dsl()])
+    cfg = _mock_loop_config(tmp_path, run_id="lg-c2-redaction-adapter")
+    llm_cfg = LLMStageConfig(provider_mode="mock", max_prompt_tokens=128_000)
+    adapters = loop._build_runtime_adapters(cfg, llm_cfg=llm_cfg, provider=provider)
+
+    run = adapters.repair(request)
+
+    assert provider.call_count == 0
+    assert run.ok is False
+    assert run.stage_id == StageId.SL_9_REPAIR.value
+    assert run.interaction["retry_error"]["error_kind"] == "redaction_failed"
+    assert run.interaction["redaction_failure_path"] == "lg_c2_context_engineering.selected_payload"
+    context = run.interaction["context_engineering"]
+    assert context["redaction_guard"]["status"] == "blocked"
+    assert context["redaction_guard"]["checked_before_provider"] is True
+    assert context["redaction_guard_fail_closed"] is True
+    assert context["canonical_record_field"] == "AgentLoopRunRecord.llm_interactions[].context_engineering"
+    assert secret_marker not in json.dumps(run.interaction, ensure_ascii=False, sort_keys=True)
+

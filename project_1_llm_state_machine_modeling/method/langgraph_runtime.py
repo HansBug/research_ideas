@@ -23,8 +23,11 @@ import os
 import pickle
 import platform
 import re
+import sqlite3
 import uuid
-from dataclasses import asdict, is_dataclass
+from collections import defaultdict
+import copy
+from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -42,9 +45,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_store
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.memory import InMemoryStore
-from langgraph.types import Command
+from langgraph.types import Command, Send
 
-from method.llm_stages import ChatProvider
+from method.llm_stages import ChatProvider, LLMStageConfig, estimate_prompt_tokens
 from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
 import method.staged_runtime as staged_runtime
 from method.schema import (
@@ -59,6 +62,8 @@ from method.schema import (
     GroundingMap,
     LoopConfig,
     ModelReviewFeedback,
+    ScenarioResult,
+    ScenarioSet,
     SimFeedback,
     StageContext,
 )
@@ -118,6 +123,7 @@ from method.stages.ids import FeedbackSource
 from method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
 
 GRAPH_RUNTIME_SCHEMA_VERSION = "pr-langgraph.stategraph.v1"
+LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION = "lg-f1.resume-reconciliation.v1"
 NODE_EDGE_SCHEMA_VERSION = "pr-langgraph.stage-nodes.v1"
 LG_D1_OPERATOR_EVENT_SCHEMA_VERSION = "lg-d1.operator-event.v1"
 LG_D1_STREAM_SUMMARY_SCHEMA_VERSION = "lg-d1.stream-summary.v1"
@@ -126,11 +132,14 @@ LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
 LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER = "fixed_toolnode_wrapper"
 LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
 LG_C1_REDUCER_STATE_SCHEMA_VERSION = "lg-c1.reducer-json-state.v1"
+LG_E2_SEND_PARALLEL_SCHEMA_VERSION = "lg-e2.send-parallel-sd6.v1"
+LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER = "langgraph_send_parallel_scenario_checker"
 
 _LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES = (
     "graph_trace",
     "operator_events",
     "toolnode_wrapper_events",
+    "lg_e2_send_parallel_events",
     "stage_record_events",
     "llm_interaction_events",
     "fix_log_events",
@@ -286,6 +295,365 @@ class _CompatState(TypedDict, total=False):
     value: int
 
 
+
+LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION = "lg-c2.context-subgraph.v1"
+LG_C2_CONTEXT_SUBGRAPH_ID = "context_engineering_subgraph"
+LG_C2_CONTEXT_INSTRUMENTATION_LAYER = "langgraph_context_engineering"
+LG_C2_CONTEXT_NODE_IDS = [
+    "context_evidence_collect",
+    "context_budget_gate",
+    "context_compact_full_select",
+    "context_redaction_guard",
+]
+LG_C2_CANONICAL_RECORD_FIELD = "AgentLoopRunRecord.llm_interactions[].context_engineering"
+
+
+class _LG_C2_ContextState(TypedDict, total=False):
+    stage_id: str
+    payload_candidates: list[tuple[str, dict[str, Any]]]
+    prompt_char_counts: dict[str, int]
+    prompt_token_estimates: dict[str, int]
+    prompt_messages_by_level: dict[str, list[dict[str, str]]]
+    budget_metadata_by_level: dict[str, dict[str, Any]]
+    selected_level: str
+    selected_payload: dict[str, Any]
+    selected_prompt_messages: list[dict[str, str]]
+    selected_payload_hash: str
+    selected_prompt_messages_hash: str
+    selection_reason: str
+    redaction_guard: dict[str, Any]
+    node_trace: list[dict[str, Any]]
+
+
+
+
+class LG_C2_ContextRedactionBlocked(RuntimeError):
+    """Raised before provider calls when LG-C2 context redaction guard blocks payload."""
+
+    def __init__(self, *, stage_id: str, payload_hash: str, guard: dict[str, Any]) -> None:
+        self.stage_id = stage_id
+        self.payload_hash = payload_hash
+        self.guard = dict(guard)
+        super().__init__(
+            "LG-C2 context redaction guard blocked secret-like prompt context before provider call "
+            f"for {stage_id}; payload_hash={payload_hash}"
+        )
+
+
+class LG_C2_ContextAssemblyResult:
+    """Prompt context selected by the LG-C2 context-engineering subgraph."""
+
+    def __init__(self, payload: dict[str, Any], metadata: dict[str, Any], prompt_messages: list[dict[str, str]]) -> None:
+        self.payload = payload
+        self.metadata = metadata
+        self.prompt_messages = prompt_messages
+
+
+def build_lg_c2_context_subgraph_contract() -> dict[str, Any]:
+    """Return the auditable LG-C2 context subgraph contract.
+
+    The subgraph is intentionally an instrumentation / context-assembly layer:
+    it chooses between existing full/compact prompt payloads and records budget,
+    hash, and redaction-guard provenance.  It does not alter FixLog, NFRR,
+    eligibility, stage verdict sources, or E1/E2 model-quality fields.
+    """
+
+    return {
+        "schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
+        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
+        "stage_ids": [StageId.SL_9_REPAIR.value, StageId.SL_10_REPAIR_REVIEW.value],
+        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+        "payload_hash_fields": [
+            "stage_id",
+            "compaction_level",
+            "selected_payload_hash",
+            "selected_prompt_messages_hash",
+            "budget_metadata",
+            "redaction_guard",
+        ],
+        "budget_metadata_required": [
+            "prompt_chars",
+            "estimated_prompt_tokens",
+            "prompt_token_budget",
+            "prompt_token_estimator",
+            "chars_per_token_estimate",
+            "compaction_level",
+            "prompt_compaction_applied",
+            "compact_only_when_over_budget",
+            "budget_exceeded",
+        ],
+        "redaction_guard_before_provider": True,
+        "redaction_guard_policy": "hash-and-fail-closed-on-secret-like-context-fields",
+        "no_sample_specific_behavior": True,
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources_preserved": [
+            "AgentLoopRunRecord.fix_log",
+            "AgentLoopRunRecord.repair_history",
+            "AgentLoopRunRecord.llm_interactions",
+            "AgentLoopRunRecord.final_artifacts",
+            "NFRR/eligibility fields",
+        ],
+    }
+
+
+def _lg_c2_prompt_budget_metadata(
+    *,
+    stage_id: str,
+    prompt_messages: list[dict[str, str]],
+    cfg: LLMStageConfig,
+    compaction_level: str,
+) -> dict[str, Any]:
+    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
+    estimated_tokens = estimate_prompt_tokens(
+        prompt_messages,
+        estimator=cfg.prompt_token_estimator,
+        chars_per_token=cfg.prompt_chars_per_token,
+        model=cfg.model,
+    )
+    budget = cfg.max_prompt_tokens
+    return {
+        "stage_id": stage_id,
+        "prompt_chars": prompt_chars,
+        "estimated_prompt_tokens": estimated_tokens,
+        "prompt_token_budget": budget,
+        "prompt_token_estimator": cfg.prompt_token_estimator,
+        "chars_per_token_estimate": cfg.prompt_chars_per_token,
+        "compaction_level": compaction_level,
+        "prompt_compaction_applied": compaction_level != "none",
+        "compact_only_when_over_budget": True,
+        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
+    }
+
+
+def _lg_c2_within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
+    if cfg.max_prompt_tokens is None:
+        return True
+    return (
+        estimate_prompt_tokens(
+            prompt_messages,
+            estimator=cfg.prompt_token_estimator,
+            chars_per_token=cfg.prompt_chars_per_token,
+            model=cfg.model,
+        )
+        <= cfg.max_prompt_tokens
+    )
+
+
+def _lg_c2_secret_like_field_detected(value: Any) -> bool:
+    """Conservative guard for obvious secret-like context fields.
+
+    This is intentionally sample-agnostic and only flags credential-shaped keys or
+    values.  Raw provider keys are never written into the metadata; callers can
+    use the boolean/hash-only status to fail closed if future context surfaces
+    become unsafe.
+    """
+
+    secret_key_re = re.compile(r"(api[_-]?key|token|secret|password|credential|authorization)", re.IGNORECASE)
+    secret_value_re = re.compile(r"(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|LLM_API_KEY\s*=)")
+
+    def walk(item: Any, path: str = "payload") -> bool:
+        if isinstance(item, dict):
+            for key, nested in item.items():
+                key_text = str(key)
+                if secret_key_re.search(key_text):
+                    return True
+                if walk(nested, f"{path}.{key_text}"):
+                    return True
+        elif isinstance(item, (list, tuple, set)):
+            for index, nested in enumerate(item):
+                if walk(nested, f"{path}[{index}]"):
+                    return True
+        elif isinstance(item, str) and secret_value_re.search(item):
+            return True
+        return False
+
+    return walk(value)
+
+
+def _build_lg_c2_context_subgraph(*, prompt_builder: Any, cfg: LLMStageConfig):
+    """Build the LG-C2 context-engineering subgraph.
+
+    The graph nodes are deliberately small and deterministic: evidence collect
+    builds candidate prompts, budget gate computes estimates, compact/full select
+    chooses the first candidate inside budget (or the compact fallback), and
+    redaction guard emits a hash-only safety summary.
+    """
+
+    graph = StateGraph(_LG_C2_ContextState)
+
+    def evidence_collect(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        candidates = list(state.get("payload_candidates") or [])
+        prompts = {level: prompt_builder(payload) for level, payload in candidates}
+        return {
+            **state,
+            "prompt_messages_by_level": prompts,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_evidence_collect",
+                    "candidate_levels": [level for level, _ in candidates],
+                    "candidate_count": len(candidates),
+                },
+            ],
+        }
+
+    def budget_gate(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        prompts = dict(state.get("prompt_messages_by_level") or {})
+        budget_by_level = {
+            level: _lg_c2_prompt_budget_metadata(
+                stage_id=str(state.get("stage_id") or ""),
+                prompt_messages=messages,
+                cfg=cfg,
+                compaction_level=level,
+            )
+            for level, messages in prompts.items()
+        }
+        return {
+            **state,
+            "budget_metadata_by_level": budget_by_level,
+            "prompt_char_counts": {level: meta["prompt_chars"] for level, meta in budget_by_level.items()},
+            "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_budget_gate",
+                    "prompt_token_budget": cfg.max_prompt_tokens,
+                    "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
+                },
+            ],
+        }
+
+    def compact_full_select(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        candidates = list(state.get("payload_candidates") or [])
+        prompts = dict(state.get("prompt_messages_by_level") or {})
+        selected_level = candidates[-1][0]
+        selected_payload = candidates[-1][1]
+        selected_prompt = prompts[selected_level]
+        selection_reason = "fallback_compact_over_budget"
+        for level, payload in candidates:
+            prompt = prompts[level]
+            selected_level, selected_payload, selected_prompt = level, payload, prompt
+            if _lg_c2_within_prompt_budget(prompt, cfg):
+                selection_reason = "within_budget"
+                break
+        return {
+            **state,
+            "selected_level": selected_level,
+            "selected_payload": selected_payload,
+            "selected_prompt_messages": selected_prompt,
+            "selected_payload_hash": _hash_payload(selected_payload),
+            "selected_prompt_messages_hash": _hash_payload(selected_prompt),
+            "selection_reason": selection_reason,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_compact_full_select",
+                    "selected_level": selected_level,
+                    "selection_reason": selection_reason,
+                    "selected_payload_hash": _hash_payload(selected_payload),
+                    "selected_prompt_messages_hash": _hash_payload(selected_prompt),
+                },
+            ],
+        }
+
+    def redaction_guard(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        selected_payload = dict(state.get("selected_payload") or {})
+        selected_prompt = list(state.get("selected_prompt_messages") or [])
+        secret_like = _lg_c2_secret_like_field_detected(
+            {
+                "selected_payload": selected_payload,
+                "selected_prompt_messages": selected_prompt,
+            }
+        )
+        guard = {
+            "status": "blocked" if secret_like else "passed",
+            "secret_like_field_detected": secret_like,
+            "policy": "hash_only_metadata_no_raw_secret_persistence",
+            "checked_before_provider": True,
+            "payload_hash": str(state.get("selected_payload_hash") or ""),
+            "prompt_messages_hash": str(state.get("selected_prompt_messages_hash") or ""),
+        }
+        return {
+            **state,
+            "redaction_guard": guard,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_redaction_guard",
+                    "status": guard["status"],
+                    "secret_like_field_detected": secret_like,
+                    "payload_hash": guard["payload_hash"],
+                },
+            ],
+        }
+
+    graph.add_node("context_evidence_collect", evidence_collect)
+    graph.add_node("context_budget_gate", budget_gate)
+    graph.add_node("context_compact_full_select", compact_full_select)
+    graph.add_node("context_redaction_guard", redaction_guard)
+    graph.add_edge(START, "context_evidence_collect")
+    graph.add_edge("context_evidence_collect", "context_budget_gate")
+    graph.add_edge("context_budget_gate", "context_compact_full_select")
+    graph.add_edge("context_compact_full_select", "context_redaction_guard")
+    graph.add_edge("context_redaction_guard", END)
+    return graph.compile(checkpointer=False)
+
+
+def assemble_lg_c2_prompt_context(
+    *,
+    stage_id: str,
+    payload_candidates: list[tuple[str, dict[str, Any]]],
+    prompt_builder: Any,
+    cfg: LLMStageConfig,
+) -> LG_C2_ContextAssemblyResult:
+    """Select an SL-9/SL-10 prompt payload through the LG-C2 context subgraph."""
+
+    if not payload_candidates:
+        raise ValueError("LG-C2 context subgraph requires at least one payload candidate")
+    app = _build_lg_c2_context_subgraph(prompt_builder=prompt_builder, cfg=cfg)
+    final_state = app.invoke({"stage_id": stage_id, "payload_candidates": payload_candidates, "node_trace": []})
+    selected_level = str(final_state["selected_level"])
+    selected_payload = dict(final_state["selected_payload"])
+    selected_prompt = list(final_state["selected_prompt_messages"])
+    budget_metadata = dict(final_state["budget_metadata_by_level"][selected_level])
+    guard = dict(final_state["redaction_guard"])
+    metadata = {
+        **budget_metadata,
+        "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
+        "stage_id": stage_id,
+        "compaction_level": selected_level,
+        "selection_reason": str(final_state["selection_reason"]),
+        "selected_payload_hash": str(final_state["selected_payload_hash"]),
+        "prompt_payload_hash": str(final_state["selected_payload_hash"]),
+        "selected_prompt_messages_hash": str(final_state["selected_prompt_messages_hash"]),
+        "budget_metadata": budget_metadata,
+        "redaction_guard": guard,
+        "redaction_guard_fail_closed": guard.get("status") == "blocked",
+        "node_trace": list(final_state.get("node_trace") or []),
+        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
+        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+        "context_subgraph_contract_hash": _hash_payload(build_lg_c2_context_subgraph_contract()),
+        "does_not_replace_academic_evidence": True,
+    }
+    if guard.get("status") == "blocked":
+        raise LG_C2_ContextRedactionBlocked(
+            stage_id=stage_id,
+            payload_hash=str(final_state["selected_payload_hash"]),
+            guard={
+                **guard,
+                "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+                "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+                "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+                "node_trace_hash": _hash_payload(metadata["node_trace"]),
+            },
+        )
+    return LG_C2_ContextAssemblyResult(selected_payload, metadata, selected_prompt)
+
+
 def _lg_c1_event_key(event: Any) -> str:
     return json.dumps(_jsonable(event), ensure_ascii=False, sort_keys=True, default=str)
 
@@ -324,6 +692,22 @@ def _lg_c1_append_only_reducer(existing: list[dict[str, Any]] | None, new_events
     return merged
 
 
+def _lg_e2_worker_result_reducer(existing: list[dict[str, Any]] | None, new_results: Any) -> list[dict[str, Any]]:
+    """Append LG-E2 Send worker results without using completion order as evidence.
+
+    LangGraph may merge Send worker updates in runtime completion order.  LG-E2
+    keeps that raw order only as instrumentation; all academic evidence is
+    re-sorted later by the canonical scenario/checker key.
+    """
+
+    merged = list(existing or [])
+    if new_results is None:
+        return merged
+    incoming = list(new_results if isinstance(new_results, list) else [new_results])
+    merged.extend(item for item in incoming if isinstance(item, dict))
+    return merged
+
+
 class _GraphLoopState(TypedDict, total=False):
     nl: str
     graph_trace: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
@@ -341,12 +725,20 @@ class _GraphLoopState(TypedDict, total=False):
     iteration: int
     iteration_stage_start: int
     validation_ref: str
+    lg_e2_send_parallel_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
     iteration_record: dict[str, Any]
     selected_trace: Any
     accepted: bool
     repair_patch: dict[str, Any]
     runtime_result: Any
     runtime_error: NotRequired[str]
+
+
+class _LgE2SendState(TypedDict, total=False):
+    """Internal map-reduce state for LG-E2 SD-6 scenario fan-out."""
+
+    worker_specs: list[dict[str, Any]]
+    worker_results: Annotated[list[dict[str, Any]], _lg_e2_worker_result_reducer]
 
 
 class _ValidationSubgraphState(_GraphLoopState, total=False):
@@ -382,6 +774,7 @@ class _ValidationSubgraphState(_GraphLoopState, total=False):
     validation_continuation_source: Any
     validation_continued_after_waiver: bool
     validation_waiver_audit: Any
+    validation_lg_e2_send_metadata: dict[str, Any]
 
 
 class _WaiverSubgraphState(_ValidationSubgraphState, total=False):
@@ -709,6 +1102,7 @@ def _build_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState
             "graph_trace": "LangGraph graph state reducer channel",
             "operator_events": "LangGraph graph state operator probe channel; full operator log audited separately",
             "toolnode_wrapper_events": "LangGraph graph state reducer channel",
+            "lg_e2_send_parallel_events": "LG-E2 Send fan-out audit channel; canonical SD-6 feedback remains AgentLoopRunRecord",
             "stage_record_events": "persisted AgentLoopRunRecord.stage_records",
             "llm_interaction_events": "persisted AgentLoopRunRecord.llm_interactions",
             "fix_log_events": "persisted AgentLoopRunRecord.fix_log",
@@ -999,6 +1393,620 @@ def _lg_e3_fixed_tool_call(
         status="ok",
     )
     return output
+
+
+_LG_E2_ORDERING_KEY_FIELDS = (
+    "scenario_epoch",
+    "scenario_index",
+    "normalized_scenario_name",
+    "checker_name",
+    "input_hash",
+)
+
+
+def build_lg_e2_send_parallel_contract() -> dict[str, Any]:
+    """Return the LG-E2 SD-6 Send fan-out contract.
+
+    LG-E2 is an auditability/reproducibility contract, not a model-quality
+    metric.  It uses LangGraph ``Send`` only for independent deterministic
+    scenario workers and then reduces worker results through a canonical order
+    that is independent of runtime completion order.
+    """
+
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "stage_id": StageId.SD_6_SIM.value,
+        "graph_node": "validation_sd6_sim",
+        "send_api": "langgraph.types.Send",
+        "fanout_scope": "independent deterministic SD-6 scenario simulation/checker workers",
+        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
+        "scenario_index_source": "frozen ScenarioSet.scenarios original order",
+        "normalized_scenario_name_role": "tie_break_only_after_scenario_index",
+        "serial_equivalence_hash_excludes": [
+            "operator_event_completion_order",
+            "wall_clock_timestamp",
+            "provider_latency",
+            "raw_prompt_or_raw_output",
+        ],
+        "worker_isolation": "deepcopy scenario plus isolated StageContext; shared graph state/FixLog/history are not passed to workers",
+        "preflight_required": True,
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+    }
+
+
+def _lg_e2_normalized_scenario_name(name: Any) -> str:
+    return re.sub(r"\s+", " ", str(name or "").strip().lower())
+
+
+def _lg_e2_worker_ordering_key(worker: dict[str, Any]) -> tuple[int, int, str, str, str]:
+    key = worker.get("ordering_key") if isinstance(worker.get("ordering_key"), dict) else worker
+    return (
+        int(key.get("scenario_epoch", 0) or 0),
+        int(key.get("scenario_index", 0) or 0),
+        str(key.get("normalized_scenario_name") or ""),
+        str(key.get("checker_name") or ""),
+        str(key.get("input_hash") or ""),
+    )
+
+
+def _lg_e2_canonicalize_worker_results(worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted([item for item in worker_results if isinstance(item, dict)], key=_lg_e2_worker_ordering_key)
+
+
+def _lg_e2_feedback_scenario_results(feedback: Any) -> list[Any]:
+    if isinstance(feedback, SimFeedback):
+        return list(feedback.scenario_results)
+    if isinstance(feedback, dict):
+        return list(feedback.get("scenario_results") or [])
+    return list(getattr(feedback, "scenario_results", []) or [])
+
+
+def _lg_e2_scenario_result_sort_key(result: Any, scenario_index_by_name: dict[str, int]) -> tuple[int, str, str]:
+    name = str(getattr(result, "name", "") or "")
+    return (
+        int(scenario_index_by_name.get(name, len(scenario_index_by_name) + 1)),
+        _lg_e2_normalized_scenario_name(name),
+        _hash_payload(result),
+    )
+
+
+def _lg_e2_canonicalize_scenario_results(scenario_results: list[Any], scenario_set: Any) -> list[Any]:
+    scenario_index_by_name = {
+        str(getattr(scenario, "name", "") or ""): index
+        for index, scenario in enumerate(list(getattr(scenario_set, "scenarios", []) or []))
+    }
+    return sorted(
+        [result for result in list(scenario_results or []) if isinstance(result, ScenarioResult)],
+        key=lambda result: _lg_e2_scenario_result_sort_key(result, scenario_index_by_name),
+    )
+
+
+def _lg_e2_selected_feedback_digest(feedback: SimFeedback, scenario_set: Any | None = None) -> dict[str, Any]:
+    selected = None
+    scenario_results = (
+        _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results or []), scenario_set)
+        if scenario_set is not None
+        else list(feedback.scenario_results or [])
+    )
+    canonical_feedback_payload = {
+        "ok": bool(feedback.ok),
+        "n_scenarios": int(feedback.n_scenarios),
+        "n_scenarios_passed": int(feedback.n_scenarios_passed),
+        "scenario_results": _jsonable(scenario_results),
+        "setup_error": feedback.setup_error,
+        "oracle_weak": bool(feedback.oracle_weak),
+        "weak_oracle_reason": feedback.weak_oracle_reason,
+        "weak_oracle_evidence": _jsonable(feedback.weak_oracle_evidence),
+    }
+    if not feedback.ok and not getattr(feedback, "oracle_weak", False):
+        selected = {
+            "source": FeedbackSource.SIM.value,
+            "source_stage": StageId.SD_6_SIM.value,
+            "feedback_hash": _hash_payload(canonical_feedback_payload),
+            "failing_scenario_names": [
+                result.name
+                for result in scenario_results
+                if isinstance(result, ScenarioResult) and result.status != "pass"
+            ],
+            "setup_error_hash": _hash_text(feedback.setup_error) if feedback.setup_error else None,
+        }
+    return {
+        "selected": selected,
+        "selected_feedback_digest": _hash_payload(selected),
+    }
+
+
+def _lg_e2_scenario_history_summary(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    summary: list[dict[str, Any]] = []
+    for item in history or []:
+        if not isinstance(item, dict):
+            continue
+        coverage = item.get("coverage")
+        summary.append(
+            {
+                "iteration": item.get("iteration"),
+                "attempt_index": item.get("attempt_index"),
+                "scenario_set_id": item.get("scenario_set_id"),
+                "epoch": item.get("epoch"),
+                "scenario_names": list(item.get("scenario_names") or []),
+                "coverage_gap": item.get("coverage_gap"),
+                "oracle_weak": item.get("oracle_weak"),
+                "coverage_hash": _hash_payload(coverage) if coverage is not None else None,
+            }
+        )
+    return summary
+
+
+def _lg_e2_coverage_summary(scenario_set: Any) -> dict[str, Any]:
+    coverage = getattr(scenario_set, "coverage_report", {}) or {}
+    return {
+        "scenario_set_id": getattr(scenario_set, "scenario_set_id", None),
+        "scenario_epoch": getattr(scenario_set, "epoch", None),
+        "scenario_names": [getattr(scenario, "name", "") for scenario in list(getattr(scenario_set, "scenarios", []) or [])],
+        "coverage_summary_hash": _hash_payload(coverage),
+        "coverage_gap": bool(coverage.get("coverage_gap")) if isinstance(coverage, dict) else None,
+        "oracle_weak": bool(coverage.get("oracle_weak")) if isinstance(coverage, dict) and "oracle_weak" in coverage else None,
+    }
+
+
+def _lg_e2_serial_equivalence_payload(
+    *,
+    scenario_results: list[Any],
+    selected_feedback_digest: dict[str, Any],
+    scenario_history: list[dict[str, Any]],
+    scenario_set: Any,
+    oracle_weak: bool,
+    scenario_epoch: int | None,
+    final_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
+        "scenario_results": _jsonable(scenario_results),
+        "selected_feedback_digest": _jsonable(selected_feedback_digest),
+        "scenario_history_summary": _lg_e2_scenario_history_summary(scenario_history),
+        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
+        "oracle_weak": bool(oracle_weak),
+        "scenario_epoch": scenario_epoch,
+        "nfrr_eligibility_verdict_summary": final_summary or {"status": "pending_at_sd6"},
+    }
+
+
+def _lg_e2_build_isolated_context(context: StageContext, *, current_dsl: str, scenario_set: ScenarioSet) -> StageContext:
+    """Build a worker-local StageContext without sharing mutable graph objects."""
+
+    isolated = StageContext(
+        nl=str(getattr(context, "nl", "") or ""),
+        current_dsl=current_dsl,
+        grounding_map=copy.deepcopy(getattr(context, "grounding_map", None)),
+        scenario_set=scenario_set,
+        warning_budget_state=copy.deepcopy(getattr(context, "warning_budget_state", {}) or {}),
+    )
+    isolated.inspect_json = copy.deepcopy(getattr(context, "inspect_json", None))
+    return isolated
+
+
+def _lg_e2_single_scenario_set(scenario_set: ScenarioSet, scenario: Any) -> ScenarioSet:
+    return ScenarioSet(
+        scenario_set_id=scenario_set.scenario_set_id,
+        scenarios=[copy.deepcopy(scenario)],
+        source_dsl_hash=scenario_set.source_dsl_hash,
+        source_inspect_hash=scenario_set.source_inspect_hash,
+        source_grounding_hash=scenario_set.source_grounding_hash,
+        coverage_report=copy.deepcopy(scenario_set.coverage_report),
+        epoch=scenario_set.epoch,
+        frozen=scenario_set.frozen,
+        invalidated_by=copy.deepcopy(scenario_set.invalidated_by),
+    )
+
+
+def _lg_e2_preflight(
+    *,
+    enabled_requested: bool,
+    adapters: FullStagedRuntimeAdapters,
+    scenario_set: ScenarioSet,
+    context: StageContext,
+    current_dsl: str,
+) -> dict[str, Any]:
+    scenario_count = len(list(scenario_set.scenarios or []))
+    preflight = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "send_api_import_ok": Send is not None,
+        "enabled_requested": bool(enabled_requested),
+        "scenario_count": scenario_count,
+        "parallel_send_enabled": False,
+        "fallback_reason": "",
+        "thread_safety_basis": "deepcopy_isolated_worker_context_and_single_scenario_set",
+        "worker_shared_object_policy": "workers receive no graph_state, reducer channel, FixLog, scenario_history or shared ScenarioSet object",
+    }
+    if not enabled_requested:
+        preflight["fallback_reason"] = "lg_e2_send_parallel_disabled_by_runtime_parameter"
+        return preflight
+    if scenario_count <= 0:
+        preflight["fallback_reason"] = "no_scenarios_to_fan_out"
+        return preflight
+    if getattr(adapters.sim, "lg_e2_thread_safe", None) is False:
+        preflight["fallback_reason"] = "sim_adapter_declared_lg_e2_thread_safe_false"
+        return preflight
+    if getattr(adapters.sim, "lg_e2_thread_safe", None) is not True:
+        preflight["fallback_reason"] = "sim_adapter_lacks_lg_e2_thread_safety_declaration"
+        return preflight
+    try:
+        probe_set = _lg_e2_single_scenario_set(scenario_set, scenario_set.scenarios[0])
+        _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=probe_set)
+        copy.deepcopy(scenario_set.scenarios[0])
+        preflight["deepcopy_isolation_ok"] = True
+    except Exception as exc:
+        preflight["deepcopy_isolation_ok"] = False
+        preflight["fallback_reason"] = f"deepcopy_isolation_failed:{type(exc).__name__}:{str(exc)[:160]}"
+        return preflight
+    preflight["parallel_send_enabled"] = True
+    preflight["fallback_reason"] = ""
+    return preflight
+
+
+def _lg_e2_worker_specs(*, current_dsl: str, scenario_set: ScenarioSet, context: StageContext) -> list[dict[str, Any]]:
+    specs: list[dict[str, Any]] = []
+    scenario_epoch = int(getattr(scenario_set, "epoch", 0) or 0)
+    for scenario_index, scenario in enumerate(list(scenario_set.scenarios or [])):
+        normalized_name = _lg_e2_normalized_scenario_name(getattr(scenario, "name", ""))
+        input_hash = _hash_payload(
+            {
+                "current_dsl_hash": _hash_text(current_dsl),
+                "scenario_set_id": scenario_set.scenario_set_id,
+                "scenario_epoch": scenario_epoch,
+                "scenario_index": scenario_index,
+                "scenario": scenario,
+            }
+        )
+        ordering_key = {
+            "scenario_epoch": scenario_epoch,
+            "scenario_index": scenario_index,
+            "normalized_scenario_name": normalized_name,
+            "checker_name": "sd6_sim",
+            "input_hash": input_hash,
+        }
+        single_set = _lg_e2_single_scenario_set(scenario_set, scenario)
+        specs.append(
+            {
+                "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+                "current_dsl": current_dsl,
+                "scenario_set": single_set,
+                "context": _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=single_set),
+                "scenario_name": getattr(scenario, "name", ""),
+                "ordering_key": ordering_key,
+                "send_arg_hash": _hash_payload({"ordering_key": ordering_key, "scenario": scenario}),
+            }
+        )
+    return specs
+
+
+def _lg_e2_execute_send_graph(
+    *,
+    worker_specs: list[dict[str, Any]],
+    sim_adapter: Any,
+) -> list[dict[str, Any]]:
+    graph = StateGraph(_LgE2SendState)
+
+    def route_workers(state: _LgE2SendState) -> list[Send]:
+        return [Send("lg_e2_sd6_scenario_worker", spec) for spec in list(state.get("worker_specs") or [])]
+
+    def worker(spec: dict[str, Any]) -> dict[str, Any]:
+        ordering_key = dict(spec.get("ordering_key") or {})
+        feedback, meta = sim_adapter(spec["current_dsl"], spec["scenario_set"], spec["context"])
+        return {
+            "worker_results": [
+                {
+                    "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+                    "ordering_key": ordering_key,
+                    "scenario_name": spec.get("scenario_name"),
+                    "send_arg_hash": spec.get("send_arg_hash"),
+                    "feedback": feedback,
+                    "meta": meta,
+                    "feedback_hash": _hash_payload(feedback),
+                    "meta_hash": _hash_payload(meta),
+                    "scenario_result_count": len(_lg_e2_feedback_scenario_results(feedback)),
+                    "ok": bool(getattr(feedback, "ok", False)),
+                    "oracle_weak": bool(getattr(feedback, "oracle_weak", False)),
+                }
+            ]
+        }
+
+    graph.add_node("lg_e2_sd6_scenario_worker", worker)
+    graph.add_conditional_edges(START, route_workers)
+    graph.add_edge("lg_e2_sd6_scenario_worker", END)
+    app = graph.compile(checkpointer=False)
+    result = app.invoke({"worker_specs": worker_specs, "worker_results": []})
+    return [item for item in list(result.get("worker_results") or []) if isinstance(item, dict)]
+
+
+def _lg_e2_aggregate_worker_results(
+    *,
+    worker_results: list[dict[str, Any]],
+    scenario_set: ScenarioSet,
+) -> tuple[SimFeedback, StageResultMeta, list[dict[str, Any]]]:
+    canonical = _lg_e2_canonicalize_worker_results(worker_results)
+    scenario_results_by_name: dict[str, list[ScenarioResult]] = defaultdict(list)
+    setup_errors: list[str] = []
+    weak_reasons: list[str] = []
+    weak_evidence: list[Any] = []
+    hard_failure_seen = False
+    n_passed = 0
+    ok = True
+    any_error_status = False
+    for worker in canonical:
+        feedback = worker.get("feedback")
+        meta = worker.get("meta")
+        if not isinstance(feedback, SimFeedback):
+            raise TypeError("LG-E2 worker must return SimFeedback")
+        ok = ok and bool(feedback.ok)
+        n_passed += int(getattr(feedback, "n_scenarios_passed", 0) or 0)
+        for result in feedback.scenario_results:
+            if isinstance(result, ScenarioResult):
+                scenario_results_by_name[str(result.name or "")].append(result)
+        if feedback.setup_error:
+            setup_errors.append(feedback.setup_error)
+        if not feedback.ok and feedback.oracle_weak:
+            weak_reasons.append(feedback.weak_oracle_reason)
+            weak_evidence.append(feedback.weak_oracle_evidence)
+        elif not feedback.ok:
+            hard_failure_seen = True
+        if getattr(meta, "status", None) == StageStatus.ERROR:
+            any_error_status = True
+            hard_failure_seen = True
+    status = StageStatus.ERROR if any_error_status else (StageStatus.OK if ok else StageStatus.FAIL)
+    scenario_results: list[ScenarioResult] = []
+    for scenario in list(scenario_set.scenarios or []):
+        scenario_name = str(getattr(scenario, "name", "") or "")
+        scenario_results.extend(scenario_results_by_name.pop(scenario_name, []))
+    for leftover_name in sorted(scenario_results_by_name, key=_lg_e2_normalized_scenario_name):
+        scenario_results.extend(scenario_results_by_name[leftover_name])
+    feedback = SimFeedback(
+        ok=ok,
+        n_scenarios=len(list(scenario_set.scenarios or [])),
+        n_scenarios_passed=n_passed,
+        scenario_results=scenario_results,
+        setup_error=setup_errors[0] if setup_errors else None,
+        oracle_weak=bool(weak_reasons) and not hard_failure_seen,
+        weak_oracle_reason=";".join(reason for reason in weak_reasons if reason) if bool(weak_reasons) and not hard_failure_seen else "",
+        weak_oracle_evidence={"worker_evidence": _jsonable(weak_evidence)} if bool(weak_reasons) and not hard_failure_seen else {},
+    )
+    meta = _meta(StageId.SD_6_SIM, ok=feedback.ok, status=status)
+    meta.input_hash = _hash_payload(
+        {
+            "scenario_set_id": scenario_set.scenario_set_id,
+            "scenario_epoch": scenario_set.epoch,
+            "scenario_names": [getattr(scenario, "name", "") for scenario in list(scenario_set.scenarios or [])],
+        }
+    )
+    meta.output_hash = _hash_payload(feedback)
+    return feedback, meta, canonical
+
+
+def _lg_e2_first_blocking_id(selected_digest: dict[str, Any]) -> str | None:
+    selected = selected_digest.get("selected") if isinstance(selected_digest, dict) else None
+    if not isinstance(selected, dict):
+        return None
+    names = selected.get("failing_scenario_names")
+    if isinstance(names, list) and names:
+        return str(names[0])
+    setup_hash = selected.get("setup_error_hash")
+    if setup_hash:
+        return f"setup_error:{setup_hash}"
+    return None
+
+
+def _lg_e2_metadata_for_feedback(
+    *,
+    enabled_requested: bool,
+    preflight: dict[str, Any],
+    scenario_set: ScenarioSet,
+    feedback: SimFeedback,
+    scenario_history: list[dict[str, Any]],
+    worker_results: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    canonical_workers = _lg_e2_canonicalize_worker_results(worker_results or [])
+    scenario_results = _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results), scenario_set)
+    selected_digest = _lg_e2_selected_feedback_digest(feedback, scenario_set)
+    serial_payload = _lg_e2_serial_equivalence_payload(
+        scenario_results=scenario_results,
+        selected_feedback_digest=selected_digest,
+        scenario_history=scenario_history,
+        scenario_set=scenario_set,
+        oracle_weak=feedback.oracle_weak,
+        scenario_epoch=scenario_set.epoch,
+    )
+    canonical_result_hash = _hash_payload(_jsonable(scenario_results))
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "enabled_requested": bool(enabled_requested),
+        "parallel_send_enabled": bool(preflight.get("parallel_send_enabled")),
+        "fallback_reason": str(preflight.get("fallback_reason") or ""),
+        "preflight": _jsonable(preflight),
+        "send_api": "langgraph.types.Send",
+        "send_api_import_ok": bool(preflight.get("send_api_import_ok")),
+        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
+        "worker_count": len(canonical_workers),
+        "fanout_count": len(list(scenario_set.scenarios or [])),
+        "raw_worker_order": [
+            _jsonable((worker.get("ordering_key") or {}))
+            for worker in list(worker_results or [])
+            if isinstance(worker, dict)
+        ],
+        "canonical_worker_order": [
+            _jsonable((worker.get("ordering_key") or {}))
+            for worker in canonical_workers
+        ],
+        "canonical_scenario_results": _jsonable(scenario_results),
+        "canonical_result_hash": canonical_result_hash,
+        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
+        "coverage_summary_hash": _lg_e2_coverage_summary(scenario_set)["coverage_summary_hash"],
+        "selected_feedback_digest": selected_digest,
+        "first_blocking_id": _lg_e2_first_blocking_id(selected_digest),
+        "scenario_epoch": scenario_set.epoch,
+        "oracle_weak": bool(feedback.oracle_weak),
+        "serial_equivalence_hash": _hash_payload(serial_payload),
+        "serial_equivalence_hash_input_scope": {
+            "scenario_results": True,
+            "first_blocking_or_selected_feedback_digest": True,
+            "scenario_history_summary": True,
+            "coverage_summary": True,
+            "oracle_weak": True,
+            "nfrr_eligibility_verdict_summary": "pending_at_sd6_finalized_in_run_record_trace",
+            "excludes_operator_event_order_wall_clock_latency": True,
+        },
+        "does_not_replace_academic_evidence": True,
+    }
+
+
+def _lg_e2_final_verdict_summary(record: Any) -> dict[str, Any]:
+    final_artifacts = record.final_artifacts if isinstance(getattr(record, "final_artifacts", None), dict) else {}
+    return {
+        "record_status": getattr(record, "status", None),
+        "verdict": final_artifacts.get("verdict"),
+        "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
+        "agent_loop_result_status": final_artifacts.get("agent_loop_result_status"),
+        "main_result_eligible": final_artifacts.get("main_result_eligible"),
+        "inclusion_reason": final_artifacts.get("inclusion_reason"),
+        "exclusion_reason": final_artifacts.get("exclusion_reason"),
+        "oracle_weak": final_artifacts.get("oracle_weak"),
+    }
+
+
+def _lg_e2_finalize_metadata_from_record(record: Any, metadata: dict[str, Any]) -> dict[str, Any]:
+    finalized = dict(metadata)
+    iteration = finalized.get("iteration")
+    scenario_results = finalized.get("canonical_scenario_results") or []
+    final_summary = _lg_e2_final_verdict_summary(record)
+    final_payload = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
+        "scenario_results": _jsonable(scenario_results or []),
+        "selected_feedback_digest": _jsonable(finalized.get("selected_feedback_digest") or {}),
+        "scenario_history_summary": _lg_e2_scenario_history_summary(list(getattr(record, "scenario_history", []) or [])),
+        "coverage_summary": _jsonable(finalized.get("coverage_summary") or {}),
+        "oracle_weak": bool(finalized.get("oracle_weak")),
+        "scenario_epoch": finalized.get("scenario_epoch"),
+        "nfrr_eligibility_verdict_summary": final_summary,
+    }
+    finalized["serial_equivalence_hash"] = _hash_payload(final_payload)
+    finalized["serial_equivalence_hash_finalized"] = True
+    finalized["nfrr_eligibility_verdict_summary"] = final_summary
+    finalized["serial_equivalence_hash_input_payload_hash"] = _hash_payload(final_payload)
+    return finalized
+
+
+def _lg_e2_run_sd6_send_parallel_or_serial(
+    graph_state: _ValidationSubgraphState,
+    *,
+    runtime_cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    current_dsl: str,
+    scenario_set: ScenarioSet,
+    context: StageContext,
+    iteration: int,
+    enabled_requested: bool,
+) -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
+    preflight = _lg_e2_preflight(
+        enabled_requested=enabled_requested,
+        adapters=adapters,
+        scenario_set=scenario_set,
+        context=context,
+        current_dsl=current_dsl,
+    )
+    scenario_history = list(graph_state.get("validation_scenario_history") or [])
+    input_payload = {
+        "current_dsl": current_dsl,
+        "scenario_set": scenario_set,
+        "context": context,
+        "lg_e2_preflight": preflight,
+    }
+    if not preflight.get("parallel_send_enabled"):
+        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd6_sim",
+            stage_id=StageId.SD_6_SIM.value,
+            graph_node="validation_sd6_sim",
+            iteration=iteration,
+            input_payload=input_payload,
+            call=lambda: adapters.sim(current_dsl, scenario_set, context),
+        )
+        if not isinstance(sim_feedback, SimFeedback):
+            raise TypeError("SD-6 sim adapter must return SimFeedback")
+        metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=sim_feedback,
+            scenario_history=scenario_history,
+            worker_results=[],
+        )
+        return sim_feedback, sim_meta, metadata
+
+    def call_parallel() -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
+        worker_specs = _lg_e2_worker_specs(current_dsl=current_dsl, scenario_set=scenario_set, context=context)
+        worker_results = _lg_e2_execute_send_graph(worker_specs=worker_specs, sim_adapter=adapters.sim)
+        parallel_feedback, parallel_meta, canonical_workers = _lg_e2_aggregate_worker_results(
+            worker_results=worker_results,
+            scenario_set=scenario_set,
+        )
+        parallel_metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=parallel_feedback,
+            scenario_history=scenario_history,
+            worker_results=worker_results,
+        )
+        serial_feedback, serial_meta = adapters.sim(current_dsl, scenario_set, context)
+        if not isinstance(serial_feedback, SimFeedback):
+            raise TypeError("SD-6 serial control adapter must return SimFeedback")
+        metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=serial_feedback,
+            scenario_history=scenario_history,
+            worker_results=worker_results,
+        )
+        serial_alignment_ok = (
+            parallel_metadata["canonical_result_hash"] == metadata["canonical_result_hash"]
+            and parallel_metadata["serial_equivalence_hash"] == metadata["serial_equivalence_hash"]
+            and bool(parallel_feedback.oracle_weak) == bool(serial_feedback.oracle_weak)
+            and bool(parallel_feedback.ok) == bool(serial_feedback.ok)
+        )
+        metadata["parallel_canonical_result_hash"] = parallel_metadata["canonical_result_hash"]
+        metadata["serial_canonical_result_hash"] = metadata["canonical_result_hash"]
+        metadata["parallel_serial_equivalence_hash"] = parallel_metadata["serial_equivalence_hash"]
+        metadata["serial_control_equivalence_hash"] = metadata["serial_equivalence_hash"]
+        metadata["serial_control_run_executed"] = True
+        metadata["serial_alignment_ok"] = serial_alignment_ok
+        metadata["canonical_output_source"] = "serial_control_after_send_alignment"
+        if not serial_alignment_ok:
+            metadata["canonical_fallback_reason"] = "parallel_serial_alignment_mismatch_canonical_serial_used"
+        else:
+            metadata["canonical_fallback_reason"] = ""
+        metadata["worker_count"] = len(canonical_workers)
+        metadata["send_constructed_count"] = len(worker_specs)
+        metadata["send_arg_hashes"] = [str(spec.get("send_arg_hash") or "") for spec in worker_specs]
+        metadata["parallel_aggregate_meta_hash"] = _hash_payload(parallel_meta)
+        metadata["serial_control_meta_hash"] = _hash_payload(serial_meta)
+        return serial_feedback, serial_meta, metadata
+
+    sim_feedback, sim_meta, metadata = _lg_e3_fixed_tool_call(
+        graph_state,
+        tool_name="sd6_sim",
+        stage_id=StageId.SD_6_SIM.value,
+        graph_node="validation_sd6_sim",
+        iteration=iteration,
+        input_payload=input_payload,
+        call=call_parallel,
+    )
+    return sim_feedback, sim_meta, metadata
+
 
 def _hash_payload(payload: Any) -> str:
     encoded = json.dumps(_jsonable(payload), ensure_ascii=False, sort_keys=True, default=str)
@@ -1643,9 +2651,11 @@ def build_langgraph_node_registry() -> dict[str, Any]:
             ],
             "delegated_subgraph": True,
             "subgraph_id": "repair_subgraph",
+            "nested_subgraph_ids": [LG_C2_CONTEXT_SUBGRAPH_ID],
             "subgraph_node_ids": [
                 "repair_enter",
                 "repair_sd8_fix_requests",
+                *LG_C2_CONTEXT_NODE_IDS,
                 "repair_sl9_repair",
                 "repair_sl10_review",
                 "repair_sc11_accept_candidate",
@@ -1985,9 +2995,18 @@ def _checkpoint_resume_smoke() -> dict[str, Any]:
     }
 
 
-def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any], graph_config_hash: str, toolnode_wrapper_enabled: bool = True) -> dict[str, Any]:
+def _graph_runtime_metadata(
+    *,
+    registry: dict[str, Any],
+    compat: dict[str, Any],
+    graph_config_hash: str,
+    toolnode_wrapper_enabled: bool = True,
+    checkpoint_metadata: dict[str, Any] | None = None,
+    lg_e2_send_parallel_enabled: bool = True,
+) -> dict[str, Any]:
     lg_c1_contract = build_lg_c1_graph_state_contract()
-    return {
+    lg_e2_contract = build_lg_e2_send_parallel_contract()
+    metadata = {
         "graph_runtime_backend": "langgraph",
         "graph_runtime_status": "enabled" if compat.get("ok") else "disabled_with_reason",
         "graph_runtime_backend_version": GRAPH_RUNTIME_SCHEMA_VERSION,
@@ -2016,6 +3035,10 @@ def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any],
         "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
         "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
         "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+        "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+        "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "lg_e2_send_parallel_contract_hash": _hash_payload(lg_e2_contract),
+        "lg_e2_send_parallel_ordering_key_fields": lg_e2_contract["ordering_key_fields"],
         "checkpoint_resume_smoke": _checkpoint_resume_smoke(),
         "langgraph_compat_smoke": compat,
         "dependency_versions": {
@@ -2025,6 +3048,9 @@ def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any],
             "langchain-core": _package_version("langchain-core"),
         },
     }
+    if checkpoint_metadata:
+        metadata.update(_jsonable(checkpoint_metadata))
+    return metadata
 
 
 def _planned_stage_graph_from_config(cfg: LoopConfig) -> dict[str, Any]:
@@ -2950,16 +3976,62 @@ def _build_validation_subgraph(
             graph_subgraph="validation_subgraph",
             graph_node="validation_sd6_sim",
         )
-        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
+        sim_feedback, sim_meta, lg_e2_metadata = _lg_e2_run_sd6_send_parallel_or_serial(
             graph_state,
-            tool_name="sd6_sim",
-            stage_id=StageId.SD_6_SIM.value,
-            graph_node="validation_sd6_sim",
+            runtime_cfg=runtime_cfg,
+            adapters=adapters,
+            current_dsl=runtime_state.current_dsl,
+            scenario_set=scenario_set,
+            context=context,
             iteration=iteration,
-            input_payload={"current_dsl": runtime_state.current_dsl, "scenario_set": scenario_set, "context": context},
-            call=lambda: adapters.sim(runtime_state.current_dsl, scenario_set, context),
+            enabled_requested=bool(runtime_cfg.run_config_extra.get("lg_e2_send_parallel_enabled", True)),
         )
         feedback[FeedbackSource.SIM.value] = sim_feedback
+        lg_e2_metadata = {
+            **lg_e2_metadata,
+            "iteration": iteration,
+            "stage_id": StageId.SD_6_SIM.value,
+            "scenario_set_id": scenario_set.scenario_set_id,
+            "sim_meta_hash": _hash_payload(sim_meta),
+        }
+        graph_state["validation_lg_e2_send_metadata"] = _jsonable(lg_e2_metadata)
+        lg_e2_events = list(graph_state.get("lg_e2_send_parallel_events", []) or [])
+        lg_e2_events.append(_jsonable(lg_e2_metadata))
+        graph_state["lg_e2_send_parallel_events"] = lg_e2_events
+        _append_flow_log(
+            runtime_state.logs,
+            event="lg_e2_send_parallel_result",
+            stage_id=StageId.SD_6_SIM.value,
+            iteration=iteration,
+            parallel_send_enabled=bool(lg_e2_metadata.get("parallel_send_enabled")),
+            fallback_reason=lg_e2_metadata.get("fallback_reason"),
+            fanout_count=lg_e2_metadata.get("fanout_count"),
+            worker_count=lg_e2_metadata.get("worker_count"),
+            serial_equivalence_hash=lg_e2_metadata.get("serial_equivalence_hash"),
+            canonical_result_hash=lg_e2_metadata.get("canonical_result_hash"),
+            selected_feedback_digest=lg_e2_metadata.get("selected_feedback_digest"),
+            scenario_epoch=lg_e2_metadata.get("scenario_epoch"),
+            oracle_weak=lg_e2_metadata.get("oracle_weak"),
+            lg_e2_metadata=_jsonable(lg_e2_metadata),
+            does_not_replace_academic_evidence=True,
+            graph_subgraph="validation_subgraph",
+            graph_node="validation_sd6_sim",
+        )
+        _append_lg_d1_operator_event(
+            graph_state,
+            event_type="lg_e2_send_parallel_result",
+            node="validation_sd6_sim",
+            stage_id=StageId.SD_6_SIM.value,
+            payload={
+                "parallel_send_enabled": bool(lg_e2_metadata.get("parallel_send_enabled")),
+                "fallback_reason": lg_e2_metadata.get("fallback_reason"),
+                "fanout_count": lg_e2_metadata.get("fanout_count"),
+                "worker_count": lg_e2_metadata.get("worker_count"),
+                "serial_equivalence_hash": lg_e2_metadata.get("serial_equivalence_hash"),
+                "canonical_result_hash": lg_e2_metadata.get("canonical_result_hash"),
+                "does_not_replace_academic_evidence": True,
+            },
+        )
         _append_stage(runtime_state.stage_records, sim_meta)
         stage_metas.append(sim_meta)
         _append_flow_log(
@@ -4471,9 +5543,15 @@ def _build_repair_subgraph(
     # flow logs, fix_log, repair_history and the parent graph checkpoint.
     return graph.compile(checkpointer=False)
 
-def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRuntimeAdapters) -> Any:
+def _build_graph(
+    *,
+    runtime_cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    checkpointer: Any | None = None,
+    store: Any | None = None,
+) -> Any:
     graph = StateGraph(_GraphLoopState)
-    store = InMemoryStore()
+    store = store or InMemoryStore()
     store_instance_id = f"lg-a2-store-{uuid.uuid4().hex[:12]}"
     transient_lifecycle: dict[str, Any] = {
         "backend": "langgraph_inmemory_store",
@@ -5224,7 +6302,8 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
     graph.add_node("sc13_trace_audit", sc13_trace_audit)
 
     graph.add_edge(START, "sc0_start")
-    return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()), store=store)
+    checkpointer = checkpointer or InMemorySaver(serde=_PickleCheckpointSerde())
+    return graph.compile(checkpointer=checkpointer, store=store)
 
 
 
@@ -5275,6 +6354,72 @@ def _augment_run_record_with_lg_e3_toolnode_trace(
         }
     )
     write_agent_loop_run_record(record, path)
+
+
+def _augment_run_record_with_lg_e2_send_parallel_trace(
+    result: AgentLoopResult,
+    *,
+    events: list[dict[str, Any]],
+    enabled: bool,
+) -> None:
+    if not result.run_record_path:
+        return
+    path = result.run_record_path
+    record = read_agent_loop_run_record(path)
+    contract = build_lg_e2_send_parallel_contract()
+    finalized_events = [
+        _jsonable(_lg_e2_finalize_metadata_from_record(record, event))
+        for event in list(events or [])
+        if isinstance(event, dict)
+    ]
+    trace = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "enabled": bool(enabled),
+        "event_count": len(finalized_events),
+        "events_hash": _hash_payload(finalized_events),
+        "parallel_send_enabled_count": sum(1 for event in finalized_events if bool(event.get("parallel_send_enabled"))),
+        "fallback_count": sum(1 for event in finalized_events if not bool(event.get("parallel_send_enabled"))),
+        "serial_equivalence_hashes": [
+            str(event.get("serial_equivalence_hash") or "")
+            for event in finalized_events
+            if event.get("serial_equivalence_hash")
+        ],
+        "canonical_result_hashes": [
+            str(event.get("canonical_result_hash") or "")
+            for event in finalized_events
+            if event.get("canonical_result_hash")
+        ],
+        "contract_hash": _hash_payload(contract),
+        "ordering_key_fields": contract["ordering_key_fields"],
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+        "events": finalized_events,
+    }
+    record.environment["lg_e2_send_parallel_enabled"] = bool(enabled)
+    record.environment["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
+    record.environment["lg_e2_send_parallel_event_count"] = len(finalized_events)
+    record.environment["lg_e2_send_parallel_events_hash"] = trace["events_hash"]
+    record.environment["lg_e2_send_parallel_contract_hash"] = trace["contract_hash"]
+    record.environment["lg_e2_send_parallel_ordering_key_fields"] = trace["ordering_key_fields"]
+    record.run_config["lg_e2_send_parallel_enabled"] = bool(enabled)
+    record.run_config["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
+    record.run_config["lg_e2_send_parallel_contract"] = contract
+    record.final_artifacts["lg_e2_send_parallel_trace"] = trace
+    record.logs.append(
+        {
+            "event": "lg_e2_send_parallel_trace",
+            "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+            "enabled": bool(enabled),
+            "event_count": len(finalized_events),
+            "parallel_send_enabled_count": trace["parallel_send_enabled_count"],
+            "fallback_count": trace["fallback_count"],
+            "events_hash": trace["events_hash"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
+    write_agent_loop_run_record(record, path)
+
 
 def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: list[dict[str, Any]]) -> None:
     if not result.run_record_path:
@@ -5479,6 +6624,909 @@ def _run_graph_with_lg_d1_stream(
     return final_state, operator_events, "enabled"
 
 
+def _lg_f1_actual_interrupt_node(interrupt_after: str) -> str:
+    """Map LG-F1 human/stage breakpoints onto the parent graph checkpoint boundary.
+
+    LG-F1 deliberately supports controlled node-boundary resume on the parent
+    graph.  Nested repair/validation subgraphs still run with ``checkpointer=False``
+    because they carry live Python objects; therefore a request such as
+    ``repair_sl10_review`` is recorded as requested evidence but executed at the
+    nearest durable parent checkpoint, ``repair_path``.
+    """
+
+    requested = str(interrupt_after or "").strip()
+    if requested in {
+        "sc0_start",
+        "sl1_initial_modeling",
+        "iteration_gate",
+        "validation_pass",
+        "validation_decision",
+        "repair_path",
+        "repair_decision",
+        "waiver_continue",
+        "sc12_budget_exhausted",
+        "sc13_trace_audit",
+    }:
+        return requested
+    repair_aliases = {
+        "SD-8",
+        "SD_8",
+        StageId.SD_8_FIX_PLAN.value,
+        "SL-9",
+        "SL_9",
+        StageId.SL_9_REPAIR.value,
+        "SL-10",
+        "SL_10",
+        StageId.SL_10_REPAIR_REVIEW.value,
+        "SC-11",
+        "SC_11",
+        StageId.SC_11_ACCEPT_CANDIDATE.value,
+        "repair_enter",
+        "repair_sd8_fix_requests",
+        "repair_sl9_repair",
+        "repair_sl10_review",
+        "repair_sc11_accept_candidate",
+        "repair_finalize",
+    }
+    if requested in repair_aliases or requested.startswith("repair_"):
+        return "repair_path"
+    validation_aliases = {
+        StageId.SD_2_PARSE.value,
+        StageId.SD_3_SEMANTIC.value,
+        StageId.SD_4_DESIGN.value,
+        StageId.SL_5_SCENARIO_GENERATION.value,
+        StageId.SD_5A_SCENARIO_COVERAGE.value,
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    }
+    if requested in validation_aliases or requested.startswith("validation_"):
+        return "validation_pass"
+    raise ValueError(f"unsupported LG-F1 interrupt_after breakpoint: {interrupt_after!r}")
+
+
+def _lg_f1_path_hash(path: str | Path) -> str:
+    return _hash_text(str(Path(path).expanduser().resolve()))
+
+
+def _lg_f1_checkpoint_id_hash(checkpoint: Any) -> str:
+    config = getattr(checkpoint, "config", {}) or {}
+    configurable = config.get("configurable", {}) if isinstance(config, dict) else {}
+    checkpoint_id = str(configurable.get("checkpoint_id") or "")
+    if not checkpoint_id:
+        return "sha256:<missing-checkpoint-id>"
+    return _hash_text(checkpoint_id)
+
+
+def _lg_f1_graph_config(
+    *,
+    config: LoopConfig,
+    registry: dict[str, Any],
+    planned: dict[str, Any],
+    resolved: dict[str, Any],
+    checkpoint_path: str | Path,
+    requested_interrupt_after: str,
+    actual_interrupt_after: str,
+    operator_stream_enabled: bool,
+    toolnode_wrapper_enabled: bool,
+) -> dict[str, Any]:
+    return {
+        "registry": registry,
+        "planned_stage_graph": planned,
+        "resolved_config": resolved,
+        "condition_hash": resolved.get("condition_hash"),
+        "condition_id": config.condition_id,
+        "max_iterations": config.max_iterations,
+        "scenario_max_retries": config.scenario_max_retries,
+        "min_sl10_rework_attempts": int(config.budget_policy.get("min_sl10_rework_attempts", 1)) if isinstance(config.budget_policy, dict) else 1,
+        "policy_profile": config.policy_profile,
+        "llm_provider_mode": config.llm_provider_mode,
+        "runtime_backend": "langgraph_lg_f1_resume_experiment",
+        "checkpoint_backend": "sqlite",
+        "checkpoint_backend_type": "SqliteSaver",
+        "checkpoint_serde": "pickle",
+        "checkpoint_path_hash": _lg_f1_path_hash(checkpoint_path),
+        "runtime_schema_version": GRAPH_RUNTIME_SCHEMA_VERSION,
+        "node_edge_schema_version": NODE_EDGE_SCHEMA_VERSION,
+        "lg_d1_operator_stream_enabled": bool(operator_stream_enabled),
+        "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+        "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "lg_f1_schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
+        "lg_f1_requested_interrupt_after": requested_interrupt_after,
+        "lg_f1_actual_interrupt_after": actual_interrupt_after,
+        "lg_f1_scope": "controlled_parent_node_boundary_resume",
+    }
+
+
+def _lg_f1_runtime_config(
+    *,
+    nl: str,
+    config: LoopConfig,
+    planned: dict[str, Any],
+    resolved: dict[str, Any],
+    registry: dict[str, Any],
+    consistency: dict[str, Any],
+    compat: dict[str, Any],
+    graph_config_hash: str,
+    initial_dsl: str,
+    run_id: str,
+    checkpoint_path: str | Path,
+    requested_interrupt_after: str,
+    actual_interrupt_after: str,
+    resumed_from_checkpoint: bool,
+    resume_checkpoint_id_hash: str | None = None,
+    resume_diff_report_path: str | None = None,
+    operator_stream_enabled: bool = False,
+    toolnode_wrapper_enabled: bool = True,
+    provider: ChatProvider | None = None,
+) -> FullStagedRuntimeConfig:
+    checkpoint_metadata = {
+        "checkpoint_backend": "sqlite",
+        "checkpoint_backend_type": "SqliteSaver",
+        "checkpoint_serde": "pickle",
+        "checkpoint_serde_mode": _LG_C1_CHECKPOINT_SERDE_MODE,
+        "checkpoint_path_hash": _lg_f1_path_hash(checkpoint_path),
+        "checkpoint_backend_status": "enabled",
+        "checkpoint_path": str(checkpoint_path),
+        "resumed_from_checkpoint": bool(resumed_from_checkpoint),
+        "resume_checkpoint_id_hash": resume_checkpoint_id_hash,
+        "real_agent_loop_resume_supported": True,
+        "real_agent_loop_resume_support_level": "controlled_parent_node_boundary_only",
+        "real_agent_loop_resume_scope": "controlled_parent_node_boundary_resume; nested subgraphs are not mid-node crash checkpoints",
+        "real_agent_loop_arbitrary_mid_node_resume_supported": False,
+        "real_agent_loop_nested_subgraph_resume_supported": False,
+        "real_agent_loop_json_checkpoint_supported": False,
+        "resume_run_main_result_eligible": False,
+        "resume_cli_entrypoint": "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment",
+        "resume_cli_workdir": "repo_root",
+        "resume_cli_requires_pythonpath": False,
+        "resume_cli_legacy_entrypoint": "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.pr_lg_f1_resume_experiment",
+        "resume_diff_report_path": resume_diff_report_path,
+        "resume_diff_report_schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
+        "lg_f1_requested_interrupt_after": requested_interrupt_after,
+        "lg_f1_actual_interrupt_after": actual_interrupt_after,
+        "lg_f1_mid_node_crash_supported": False,
+        "lg_f1_transient_store_durable": False,
+        "lg_f1_scope_note": (
+            "SQLite persists the parent LangGraph checkpoint.  LG-F1 does not claim "
+            "arbitrary mid-node crash recovery because nested subgraphs and transient "
+            "Store objects are still live-object boundaries."
+        ),
+    }
+    metadata = _graph_runtime_metadata(
+        registry=registry,
+        compat=compat,
+        graph_config_hash=graph_config_hash,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+        checkpoint_metadata=checkpoint_metadata,
+    )
+    initial_lg_d1_stream_metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=config.llm_provider_mode == "real_env")
+    return FullStagedRuntimeConfig(
+        initial_dsl=initial_dsl,
+        run_id=run_id,
+        output_dir=config.output_dir,
+        max_iterations=config.max_iterations,
+        scenario_max_retries=config.scenario_max_retries,
+        min_sl10_rework_attempts=int(config.budget_policy.get("min_sl10_rework_attempts", 1)) if isinstance(config.budget_policy, dict) else 1,
+        policy_profile=config.policy_profile,
+        write_run_record=config.write_run_record,
+        adapter_mode=config.llm_provider_mode,
+        # LG-F1 resume runs are evidence-only and must never become Path1/Path2 main results.
+        allow_main_result_eligible=False,
+        resolved_loop_config=resolved,
+        run_config_extra={
+            "runtime_implementation": "method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "langgraph_called_from_loop": False,
+            "canonical_runtime_backend": "langgraph",
+            "graph_node_registry": registry,
+            "graph_registry_consistency": consistency,
+            "graph_config_hash": graph_config_hash,
+            "instrumentation_layer": "langgraph",
+            "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
+            "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+            "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "lg_e3_toolnode_wrapper_registry": build_lg_e3_toolnode_wrapper_registry(),
+            "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
+            "stage_semantics_module": "method.staged_runtime",
+            "lg_f1_resume_experiment": True,
+            "resume_run_main_result_eligible": False,
+            "resumed_from_checkpoint": bool(resumed_from_checkpoint),
+            "resume_checkpoint_id_hash": resume_checkpoint_id_hash,
+            "checkpoint_backend": "sqlite",
+            "checkpoint_backend_type": "SqliteSaver",
+            "checkpoint_path_hash": _lg_f1_path_hash(checkpoint_path),
+            "resume_diff_report_path": resume_diff_report_path,
+            "resume_diff_report_schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
+        },
+        environment_extra={
+            **metadata,
+            "runner": "method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "stage_semantics_module": "method.staged_runtime",
+            "loop_entrypoint": "method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "record_schema_version": "pr-c.default-full-staged-runtime.v1",
+            "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
+            "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
+            "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
+            "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+            "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
+            "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            **initial_lg_d1_stream_metadata,
+        },
+        real_llm_provider_api=config.llm_provider_mode == "real_env",
+        provider_config_read=_provider_config_read(config),
+        provider_model_redacted=_provider_model_redacted(config, provider),
+        default_loop_config_entry_integrated=False,
+    )
+
+
+def _lg_f1_prepare_runtime(
+    *,
+    config: LoopConfig,
+    checkpoint_path: str | Path,
+    requested_interrupt_after: str,
+    operator_stream_enabled: bool,
+    toolnode_wrapper_enabled: bool,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], str, str]:
+    config.validate_for_run()
+    registry = build_langgraph_node_registry()
+    planned = _planned_stage_graph_from_config(config)
+    consistency = graph_registry_consistency(planned, registry)
+    if not consistency["ok"]:
+        raise ValueError(f"LangGraph registry does not cover planned stage graph: {consistency}")
+    compat = langgraph_compat_smoke()
+    if not compat.get("ok"):
+        raise RuntimeError(f"LangGraph compatibility smoke failed: {compat}")
+    resolved = config.resolved_config()
+    actual_interrupt_after = _lg_f1_actual_interrupt_node(requested_interrupt_after)
+    graph_config = _lg_f1_graph_config(
+        config=config,
+        registry=registry,
+        planned=planned,
+        resolved=resolved,
+        checkpoint_path=checkpoint_path,
+        requested_interrupt_after=requested_interrupt_after,
+        actual_interrupt_after=actual_interrupt_after,
+        operator_stream_enabled=operator_stream_enabled,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+    )
+    return registry, planned, consistency, compat, resolved, _hash_payload(graph_config), actual_interrupt_after
+
+
+def _lg_f1_sqlite_saver(checkpoint_path: str | Path) -> tuple[Any, sqlite3.Connection]:
+    try:
+        from langgraph.checkpoint.sqlite import SqliteSaver
+    except Exception as exc:  # pragma: no cover - depends on optional package installation.
+        raise RuntimeError(
+            "LG-F1 durable resume requires langgraph-checkpoint-sqlite; "
+            "install langgraph-checkpoint-sqlite and do not silently fall back to memory"
+        ) from exc
+
+    path = Path(checkpoint_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(path), check_same_thread=False)
+    saver = SqliteSaver(conn, serde=_PickleCheckpointSerde())
+    saver.setup()
+    return saver, conn
+
+
+def _lg_f1_state_snapshot(state: dict[str, Any] | None) -> dict[str, Any]:
+    state = dict(state or {})
+    runtime_state = state.get("runtime_state")
+    if isinstance(runtime_state, _RunState):
+        return {
+            "stage_records": _jsonable(runtime_state.stage_records),
+            "stage_ids": _stage_ids(runtime_state.stage_records),
+            "fix_log": _jsonable(runtime_state.fix_log),
+            "llm_interactions": _jsonable(runtime_state.llm_interactions),
+            "scenario_history": _jsonable(runtime_state.scenario_history),
+            "repair_history": _jsonable(runtime_state.repair_history),
+            "final_dsl_hash": _hash_text(runtime_state.current_dsl),
+            "verdict": runtime_state.final_verdict,
+            "result_status": runtime_state.result_status,
+        }
+    return {
+        "stage_records": [],
+        "stage_ids": [],
+        "fix_log": [],
+        "llm_interactions": [],
+        "scenario_history": [],
+        "repair_history": [],
+        "final_dsl_hash": None,
+        "verdict": None,
+        "result_status": None,
+    }
+
+
+def _lg_f1_record_snapshot(record: Any) -> dict[str, Any]:
+    return {
+        "stage_records": _jsonable(record.stage_records),
+        "stage_ids": [str(item.get("stage_id") if isinstance(item, dict) else getattr(item, "stage_id", "")) for item in record.stage_records],
+        "fix_log": _jsonable(record.fix_log),
+        "llm_interactions": _jsonable(record.llm_interactions),
+        "scenario_history": _jsonable(record.scenario_history),
+        "repair_history": _jsonable(record.repair_history),
+        "final_dsl_hash": record.final_artifacts.get("final_dsl_hash"),
+        "verdict": record.final_artifacts.get("verdict"),
+        "result_status": record.final_artifacts.get("agent_loop_result_status"),
+    }
+
+
+def _lg_f1_prefix_preserved(prefix: list[Any], full: list[Any]) -> bool:
+    return list(full[: len(prefix)]) == list(prefix)
+
+
+def _lg_f1_append_only_audit(prefix: dict[str, Any], resumed: dict[str, Any]) -> dict[str, Any]:
+    fix_log = list(resumed.get("fix_log") or [])
+    fix_ids = [
+        str(item.get("entry_id") or item.get("fix_log_entry_id") or item.get("candidate_dsl_hash") or _hash_payload(item))
+        for item in fix_log
+        if isinstance(item, dict)
+    ]
+    return {
+        "stage_records_prefix_preserved": _lg_f1_prefix_preserved(prefix.get("stage_records") or [], resumed.get("stage_records") or []),
+        "fix_log_prefix_preserved": _lg_f1_prefix_preserved(prefix.get("fix_log") or [], resumed.get("fix_log") or []),
+        "llm_interactions_prefix_preserved": _lg_f1_prefix_preserved(prefix.get("llm_interactions") or [], resumed.get("llm_interactions") or []),
+        "scenario_history_prefix_preserved": _lg_f1_prefix_preserved(prefix.get("scenario_history") or [], resumed.get("scenario_history") or []),
+        "repair_history_prefix_preserved": _lg_f1_prefix_preserved(prefix.get("repair_history") or [], resumed.get("repair_history") or []),
+        "duplicate_fix_log_entry_detected": len(fix_ids) != len(set(fix_ids)),
+    }
+
+
+def _lg_f1_stage_replay_audit(
+    *,
+    prefix: dict[str, Any],
+    resumed: dict[str, Any],
+    actual_interrupt_after: str,
+    next_nodes_after_interrupt: list[str],
+) -> dict[str, Any]:
+    """Explain repeated stage ids after resume instead of treating all repeats as replay bugs.
+
+    LG-F1 may intentionally resume at a parent boundary after the repair
+    subgraph has produced SD-8/SL-9/SL-10/SC-11 evidence.  The next parent node
+    is then ``repair_decision`` which routes to a full post-repair validation
+    pass.  That means resumed records are expected to contain a prefix ending
+    at SC-11 followed by SD-2/SD-3/.../SC-13.  This helper makes that route
+    machine-readable so reviewers can distinguish expected post-repair
+    revalidation from accidental replay / duplicate ledger pollution.
+    """
+
+    prefix_ids = [str(item) for item in (prefix.get("stage_ids") or [])]
+    resumed_ids = [str(item) for item in (resumed.get("stage_ids") or [])]
+    prefix_preserved = _lg_f1_prefix_preserved(prefix_ids, resumed_ids)
+    suffix = resumed_ids[len(prefix_ids) :] if prefix_preserved else resumed_ids
+    repeated_after_resume = [stage_id for stage_id in suffix if stage_id in set(prefix_ids)]
+    post_repair_full_revalidation_expected = (
+        bool(prefix_preserved)
+        and actual_interrupt_after == "repair_path"
+        and "repair_decision" in set(next_nodes_after_interrupt)
+        and suffix[:3] == ["SD-2", "SD-3", "SD-4"]
+    )
+    unexpected_stage_replay_detected = bool(repeated_after_resume) and not post_repair_full_revalidation_expected
+    explanation = (
+        "Expected: interrupt_after mapped to parent node repair_path; after resume the pending repair_decision "
+        "routes into a full post-repair validation pass, so SD-2/SD-3/... appear after the preserved repair prefix."
+        if post_repair_full_revalidation_expected
+        else (
+            "No repeated stage ids after the preserved prefix."
+            if not repeated_after_resume
+            else "Repeated stage ids after resume are not explained by a known LG-F1 parent-boundary route."
+        )
+    )
+    return {
+        "schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
+        "prefix_stage_ids": prefix_ids,
+        "resumed_stage_ids": resumed_ids,
+        "suffix_after_resume": suffix,
+        "repeated_stage_ids_after_resume": repeated_after_resume,
+        "prefix_preserved": prefix_preserved,
+        "post_repair_full_revalidation_expected": post_repair_full_revalidation_expected,
+        "unexpected_stage_replay_detected": unexpected_stage_replay_detected,
+        "actual_interrupt_after": actual_interrupt_after,
+        "next_nodes_after_interrupt": list(next_nodes_after_interrupt),
+        "explanation": explanation,
+    }
+
+
+def _lg_f1_compare_hash(value: Any) -> str:
+    """Hash a comparison payload after dropping known run-local bookkeeping."""
+
+    def scrub(item: Any) -> Any:
+        if isinstance(item, dict):
+            cleaned: dict[str, Any] = {}
+            for key, value in item.items():
+                key_s = str(key)
+                lowered = key_s.lower()
+                if any(fragment in lowered for fragment in ("run_id", "timestamp", "created_at", "updated_at", "path", "checkpoint_id")):
+                    cleaned[key_s] = "<allowed-run-local-diff>"
+                else:
+                    cleaned[key_s] = scrub(value)
+            return cleaned
+        if isinstance(item, list):
+            return [scrub(value) for value in item]
+        return item
+
+    return _hash_payload(scrub(value))
+
+
+def _lg_f1_comparison_checks(
+    prefix: dict[str, Any],
+    resumed: dict[str, Any],
+    uninterrupted: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    baseline_available = uninterrupted is not None
+    comparison_basis = "independent_uninterrupted_baseline" if baseline_available else "no_independent_baseline"
+    comparison_method = "independent_uninterrupted_baseline" if baseline_available else "not_available"
+    comparison_target = "uninterrupted_vs_resumed" if baseline_available else "baseline_unavailable"
+    for field in ("stage_ids", "fix_log", "llm_interactions", "scenario_history", "repair_history", "final_dsl_hash", "verdict", "result_status"):
+        prefix_value = prefix.get(field)
+        resumed_value = resumed.get(field)
+        resumed_hash = _lg_f1_compare_hash(resumed_value)
+        uninterrupted_hash = _lg_f1_compare_hash(uninterrupted.get(field)) if baseline_available else None
+        verdict = (
+            "consistent"
+            if baseline_available and uninterrupted_hash == resumed_hash
+            else ("unacceptable_diff" if baseline_available else "not_applicable")
+        )
+        note = (
+            "LG-F1 compares an independent uninterrupted baseline against the resumed final evidence; "
+            "prefix hash is recorded separately for append-only resume auditing."
+            if baseline_available
+            else (
+                "No independent uninterrupted baseline was provided; this check only records resumed/prefix hashes "
+                "and must not be cited as independent baseline equivalence."
+            )
+        )
+        checks.append(
+            {
+                "field": field,
+                "uninterrupted_value_hash": uninterrupted_hash,
+                "resumed_value_hash": resumed_hash,
+                "prefix_value_hash": _lg_f1_compare_hash(prefix_value),
+                "verdict": verdict,
+                "comparison_method": comparison_method,
+                "comparison_basis": comparison_basis,
+                "comparison_target": comparison_target,
+                "baseline_available": baseline_available,
+                "uninterrupted_baseline_available": baseline_available,
+                "note": note,
+            }
+        )
+    return checks
+
+
+def _lg_f1_finalize_result(
+    *,
+    result: AgentLoopResult,
+    state: _GraphLoopState,
+    operator_events: list[dict[str, Any]],
+    graph_stream_status: str,
+    operator_stream_enabled: bool,
+    toolnode_wrapper_enabled: bool,
+    resolved: dict[str, Any],
+    planned: dict[str, Any],
+) -> None:
+    graph_trace = list(state.get("graph_trace", []) or [])
+    _augment_run_record_with_graph_trace(result, graph_trace)
+    toolnode_events = list(state.get("toolnode_wrapper_events", []) or [])
+    _augment_run_record_with_lg_e3_toolnode_trace(
+        result,
+        events=toolnode_events,
+        enabled=bool(toolnode_wrapper_enabled),
+    )
+    lg_e2_events = list(state.get("lg_e2_send_parallel_events", []) or [])
+    _augment_run_record_with_lg_e2_send_parallel_trace(
+        result,
+        events=lg_e2_events,
+        enabled=True,
+    )
+    operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
+    _augment_run_record_with_lg_d1_operator_log(
+        result,
+        operator_events=operator_events,
+        graph_stream_status=graph_stream_status,
+        operator_stream_enabled=bool(operator_stream_enabled),
+    )
+    _refresh_lg_c1_readiness_after_lg_d1_operator_log(result, state)
+    result.resolved_config = resolved
+    result.planned_stage_graph = planned
+
+
+def _lg_f1_patch_record_with_report(record_path: str | Path, report: dict[str, Any]) -> None:
+    record = read_agent_loop_run_record(record_path)
+    record.environment.update(
+        {
+            "checkpoint_backend": "sqlite",
+            "checkpoint_backend_type": "SqliteSaver",
+            "checkpoint_path_hash": report["checkpoint_path_hash"],
+            "resumed_from_checkpoint": True,
+            "resume_checkpoint_id_hash": report["resume"]["checkpoint_id_hash"],
+            "real_agent_loop_resume_supported": True,
+            "real_agent_loop_resume_support_level": report["real_agent_loop_resume_support_level"],
+            "real_agent_loop_resume_scope": report["real_agent_loop_resume_scope"],
+            "real_agent_loop_arbitrary_mid_node_resume_supported": False,
+            "real_agent_loop_nested_subgraph_resume_supported": False,
+            "resume_run_main_result_eligible": False,
+            "resume_diff_report_path": report["resume_diff_report_path"],
+            "resume_diff_report_schema_version": report["schema_version"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "baseline_comparison_note": report["baseline_comparison_note"],
+            "verdict_scope": report["verdict_scope"],
+            "lg_f1_mid_node_crash_supported": False,
+            "lg_f1_stage_replay_explanation": report["stage_replay_audit"]["explanation"],
+        }
+    )
+    record.run_config.update(
+        {
+            "lg_f1_resume_experiment": True,
+            "checkpoint_backend": "sqlite",
+            "checkpoint_backend_type": "SqliteSaver",
+            "checkpoint_path_hash": report["checkpoint_path_hash"],
+            "resumed_from_checkpoint": True,
+            "resume_checkpoint_id_hash": report["resume"]["checkpoint_id_hash"],
+            "resume_run_main_result_eligible": False,
+            "resume_diff_report_path": report["resume_diff_report_path"],
+            "resume_diff_report_schema_version": report["schema_version"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "verdict_scope": report["verdict_scope"],
+        }
+    )
+    record.final_artifacts["main_result_eligible"] = False
+    record.final_artifacts["main_result_eligibility_reason"] = "LG-F1 resume run is evidence-only; resume artifacts are excluded from main-result statistics"
+    record.final_artifacts["resume_run_main_result_eligible"] = False
+    record.final_artifacts["resume_diff_report_path"] = report["resume_diff_report_path"]
+    record.final_artifacts["lg_f1_resume_verdict"] = report["verdict"]
+    record.final_artifacts["lg_f1_baseline_comparison_method"] = report["baseline_comparison_method"]
+    record.final_artifacts["lg_f1_baseline_comparison_verdict"] = report["baseline_comparison_verdict"]
+    record.final_artifacts["lg_f1_verdict_scope"] = report["verdict_scope"]
+    record.logs.append(
+        {
+            "event": "lg_f1_resume_reconciliation",
+            "schema_version": report["schema_version"],
+            "resume_diff_report_path": report["resume_diff_report_path"],
+            "verdict": report["verdict"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "verdict_scope": report["verdict_scope"],
+            "main_result_eligible": False,
+        }
+    )
+    write_agent_loop_run_record(record, record_path)
+
+
+def resume_lg_f1_from_checkpoint(
+    *,
+    checkpoint_path: str | Path,
+    thread_id: str,
+    expected_graph_config_hash: str,
+    config: LoopConfig,
+    adapters: FullStagedRuntimeAdapters,
+    nl: str = "LG-F1 resume from durable checkpoint.",
+    initial_dsl: str = "",
+    interrupt_after: str = "repair_path",
+    checkpoint_id_hash: str | None = None,
+    resume_diff_report_path: str | None = None,
+    operator_stream_enabled: bool = False,
+    toolnode_wrapper_enabled: bool = True,
+    provider: ChatProvider | None = None,
+) -> dict[str, Any]:
+    """Resume a controlled LG-F1 parent-graph checkpoint and fail loud on mismatch."""
+
+    path = Path(checkpoint_path)
+    if not path.exists():
+        raise FileNotFoundError(f"LG-F1 checkpoint missing: {path}")
+    registry, planned, consistency, compat, resolved, graph_config_hash, actual_interrupt_after = _lg_f1_prepare_runtime(
+        config=config,
+        checkpoint_path=path,
+        requested_interrupt_after=interrupt_after,
+        operator_stream_enabled=operator_stream_enabled,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+    )
+    if expected_graph_config_hash and expected_graph_config_hash != graph_config_hash:
+        raise ValueError(
+            f"LG-F1 graph_config_hash mismatch: expected {expected_graph_config_hash}, actual {graph_config_hash}; "
+            "refusing to resume from an incompatible checkpoint"
+        )
+    saver, conn = _lg_f1_sqlite_saver(path)
+    try:
+        runtime_cfg = _lg_f1_runtime_config(
+            nl=nl,
+            config=config,
+            planned=planned,
+            resolved=resolved,
+            registry=registry,
+            consistency=consistency,
+            compat=compat,
+            graph_config_hash=graph_config_hash,
+            initial_dsl=initial_dsl,
+            run_id=thread_id,
+            checkpoint_path=path,
+            requested_interrupt_after=interrupt_after,
+            actual_interrupt_after=actual_interrupt_after,
+            resumed_from_checkpoint=True,
+            resume_checkpoint_id_hash=checkpoint_id_hash,
+            resume_diff_report_path=resume_diff_report_path,
+            operator_stream_enabled=operator_stream_enabled,
+            toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+            provider=provider,
+        )
+        app = _build_graph(runtime_cfg=runtime_cfg, adapters=adapters, checkpointer=saver)
+        checkpoint = app.get_state({"configurable": {"thread_id": thread_id}})
+        if checkpoint is None or not getattr(checkpoint, "values", None):
+            raise RuntimeError(f"LG-F1 checkpoint not found for thread_id={thread_id!r}; refusing to rerun from scratch")
+        if not getattr(checkpoint, "next", None):
+            raise RuntimeError(f"LG-F1 checkpoint for thread_id={thread_id!r} has no pending next node; refusing ambiguous resume")
+        actual_checkpoint_hash = _lg_f1_checkpoint_id_hash(checkpoint)
+        if checkpoint_id_hash and checkpoint_id_hash != actual_checkpoint_hash:
+            raise ValueError(
+                f"LG-F1 checkpoint id mismatch for thread_id={thread_id!r}: expected {checkpoint_id_hash}, actual {actual_checkpoint_hash}"
+            )
+        state = app.invoke(None, config=checkpoint.config)
+        if not isinstance(state, dict) or "runtime_result" not in state:
+            raise RuntimeError("LG-F1 resume did not reach SC-13 runtime_result; refusing to report success")
+        result = state.get("runtime_result")
+        if not isinstance(result, AgentLoopResult):
+            raise TypeError("LG-F1 resumed graph did not return an AgentLoopResult")
+        _lg_f1_finalize_result(
+            result=result,
+            state=state,
+            operator_events=[],
+            graph_stream_status="disabled",
+            operator_stream_enabled=operator_stream_enabled,
+            toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+            resolved=resolved,
+            planned=planned,
+        )
+        return {
+            "state": state,
+            "result": result,
+            "record_path": result.run_record_path,
+            "checkpoint_id_hash": actual_checkpoint_hash,
+            "graph_config_hash": graph_config_hash,
+        }
+    finally:
+        conn.close()
+
+
+def run_lg_f1_resume_experiment(
+    nl: str,
+    *,
+    config: LoopConfig,
+    adapters: FullStagedRuntimeAdapters,
+    initial_dsl: str = "",
+    checkpoint_path: str | Path,
+    interrupt_after: str = "repair_path",
+    operator_stream_enabled: bool = False,
+    toolnode_wrapper_enabled: bool = True,
+    provider: ChatProvider | None = None,
+    uninterrupted_adapters: FullStagedRuntimeAdapters | None = None,
+    uninterrupted_provider: ChatProvider | None = None,
+) -> dict[str, Any]:
+    """Run a deterministic LG-F1 durable checkpoint/resume reconciliation experiment.
+
+    The helper is intentionally evidence-only: it writes ``resume_diff_report.json``
+    and patches the resumed run record so ``main_result_eligible`` remains false.
+    """
+
+    path = Path(checkpoint_path)
+    run_id = config.run_id or f"lg-f1-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
+    uninterrupted_snapshot: dict[str, Any] | None = None
+    uninterrupted_record_path: str | None = None
+    uninterrupted_run_id = f"{run_id}-uninterrupted"
+    if uninterrupted_adapters is not None:
+        baseline_cfg = replace(config, run_id=uninterrupted_run_id)
+        baseline_result = run_full_staged_langgraph_runtime(
+            nl,
+            config=baseline_cfg,
+            adapters=uninterrupted_adapters,
+            initial_dsl=initial_dsl,
+            run_id=uninterrupted_run_id,
+            provider=uninterrupted_provider if uninterrupted_provider is not None else provider,
+            called_from_loop=False,
+            operator_stream_enabled=bool(operator_stream_enabled),
+            toolnode_wrapper_enabled=bool(toolnode_wrapper_enabled),
+        )
+        if not baseline_result.run_record_path:
+            raise RuntimeError("LG-F1 uninterrupted baseline did not write an AgentLoopRunRecord")
+        uninterrupted_record_path = str(baseline_result.run_record_path)
+        uninterrupted_snapshot = _lg_f1_record_snapshot(read_agent_loop_run_record(baseline_result.run_record_path))
+    registry, planned, consistency, compat, resolved, graph_config_hash, actual_interrupt_after = _lg_f1_prepare_runtime(
+        config=config,
+        checkpoint_path=path,
+        requested_interrupt_after=interrupt_after,
+        operator_stream_enabled=operator_stream_enabled,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+    )
+    report_path = path.parent / "resume_diff_report.json"
+    saver, conn = _lg_f1_sqlite_saver(path)
+    try:
+        runtime_cfg = _lg_f1_runtime_config(
+            nl=nl,
+            config=config,
+            planned=planned,
+            resolved=resolved,
+            registry=registry,
+            consistency=consistency,
+            compat=compat,
+            graph_config_hash=graph_config_hash,
+            initial_dsl=initial_dsl,
+            run_id=run_id,
+            checkpoint_path=path,
+            requested_interrupt_after=interrupt_after,
+            actual_interrupt_after=actual_interrupt_after,
+            resumed_from_checkpoint=False,
+            resume_checkpoint_id_hash=None,
+            resume_diff_report_path=str(report_path),
+            operator_stream_enabled=operator_stream_enabled,
+            toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+            provider=provider,
+        )
+        app = _build_graph(runtime_cfg=runtime_cfg, adapters=adapters, checkpointer=saver)
+        initial_state: _GraphLoopState = {
+            "nl": nl,
+            "graph_trace": [],
+            "operator_events": [],
+            "operator_stream_enabled": bool(operator_stream_enabled),
+            "toolnode_wrapper_events": [],
+            "stage_record_events": [],
+            "llm_interaction_events": [],
+            "fix_log_events": [],
+            "scenario_history_events": [],
+            "repair_history_events": [],
+            "toolnode_wrapper_enabled": bool(toolnode_wrapper_enabled),
+            "run_id": run_id,
+        }
+        prefix_state = app.invoke(
+            initial_state,
+            config={"configurable": {"thread_id": run_id}},
+            interrupt_after=[actual_interrupt_after],
+        )
+        checkpoint = app.get_state({"configurable": {"thread_id": run_id}})
+        if checkpoint is None or not getattr(checkpoint, "values", None) or not getattr(checkpoint, "next", None):
+            raise RuntimeError(
+                f"LG-F1 interrupt_after={actual_interrupt_after!r} did not leave a resumable checkpoint; "
+                "refusing to report durable resume success"
+            )
+        checkpoint_id_hash = _lg_f1_checkpoint_id_hash(checkpoint)
+        prefix_snapshot = _lg_f1_state_snapshot(prefix_state if isinstance(prefix_state, dict) else getattr(checkpoint, "values", {}))
+    finally:
+        conn.close()
+
+    resumed = resume_lg_f1_from_checkpoint(
+        checkpoint_path=path,
+        thread_id=run_id,
+        expected_graph_config_hash=graph_config_hash,
+        config=config,
+        adapters=adapters,
+        nl=nl,
+        initial_dsl=initial_dsl,
+        interrupt_after=interrupt_after,
+        checkpoint_id_hash=checkpoint_id_hash,
+        resume_diff_report_path=str(report_path),
+        operator_stream_enabled=operator_stream_enabled,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+        provider=provider,
+    )
+    record_path = resumed["record_path"]
+    if not record_path:
+        raise RuntimeError("LG-F1 resumed run did not write an AgentLoopRunRecord")
+    record = read_agent_loop_run_record(record_path)
+    resumed_snapshot = _lg_f1_record_snapshot(record)
+    next_nodes_after_interrupt = list(getattr(checkpoint, "next", ()) or [])
+    append_only_audit = _lg_f1_append_only_audit(prefix_snapshot, resumed_snapshot)
+    stage_replay_audit = _lg_f1_stage_replay_audit(
+        prefix=prefix_snapshot,
+        resumed=resumed_snapshot,
+        actual_interrupt_after=actual_interrupt_after,
+        next_nodes_after_interrupt=next_nodes_after_interrupt,
+    )
+    comparison_checks = _lg_f1_comparison_checks(prefix_snapshot, resumed_snapshot, uninterrupted_snapshot)
+    uninterrupted_baseline_available = uninterrupted_snapshot is not None
+    baseline_comparison_method = (
+        "independent_uninterrupted_baseline" if uninterrupted_baseline_available else "not_available"
+    )
+    baseline_comparison_verdict = (
+        "unacceptable_diff"
+        if any(item.get("verdict") == "unacceptable_diff" for item in comparison_checks)
+        else ("consistent" if uninterrupted_baseline_available else "not_applicable")
+    )
+    unacceptable = [
+        key for key, value in append_only_audit.items() if key != "duplicate_fix_log_entry_detected" and value is not True
+    ]
+    if append_only_audit["duplicate_fix_log_entry_detected"]:
+        unacceptable.append("duplicate_fix_log_entry_detected")
+    if stage_replay_audit["unexpected_stage_replay_detected"]:
+        unacceptable.append("unexpected_stage_replay_detected")
+    unacceptable.extend(
+        f"comparison:{item['field']}" for item in comparison_checks if item.get("verdict") == "unacceptable_diff"
+    )
+    verdict = "consistent" if not unacceptable else "unacceptable_diff"
+    report: dict[str, Any] = {
+        "schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
+        "resume_experiment_id": run_id,
+        "thread_id": run_id,
+        "checkpoint_backend": "sqlite",
+        "checkpoint_backend_type": "SqliteSaver",
+        "checkpoint_path": str(path),
+        "checkpoint_path_hash": _lg_f1_path_hash(path),
+        "checkpoint_backend_status": "enabled",
+        "graph_config_hash": graph_config_hash,
+        "uninterrupted_run_id": uninterrupted_run_id if uninterrupted_baseline_available else None,
+        "uninterrupted_run_record_path": uninterrupted_record_path,
+        "interrupted_run_id": run_id,
+        "resumed_run_id": run_id,
+        "artifact_hash_scope": "academic_evidence_snapshot",
+        "uninterrupted_artifact_hash": _hash_payload(uninterrupted_snapshot) if uninterrupted_baseline_available else None,
+        "resumed_artifact_hash": _hash_payload(resumed_snapshot),
+        "interrupt": {
+            "requested_after": interrupt_after,
+            "actual_after": actual_interrupt_after,
+            "checkpoint_id_hash": checkpoint_id_hash,
+            "next_nodes_after_interrupt": next_nodes_after_interrupt,
+            "prefix_stage_ids": prefix_snapshot["stage_ids"],
+        },
+        "resume": {
+            "resumed_from_checkpoint": True,
+            "checkpoint_id_hash": resumed["checkpoint_id_hash"],
+            "record_path": str(record_path),
+            "resumed_stage_ids": resumed_snapshot["stage_ids"],
+        },
+        "append_only_audit": append_only_audit,
+        "stage_replay_audit": stage_replay_audit,
+        "comparison_checks": comparison_checks,
+        "uninterrupted_baseline_available": uninterrupted_baseline_available,
+        "baseline_comparison_method": baseline_comparison_method,
+        "baseline_comparison_verdict": baseline_comparison_verdict,
+        "baseline_comparison_note": (
+            "Independent uninterrupted baseline was compared with the resumed evidence snapshot."
+            if uninterrupted_baseline_available
+            else (
+                "No independent uninterrupted baseline was produced for this run; comparison_checks are "
+                "not_applicable and the top-level verdict only covers resume append-only/stage-replay audits."
+            )
+        ),
+        "verdict_scope": (
+            "append_only_stage_replay_and_independent_baseline_comparison"
+            if uninterrupted_baseline_available
+            else "append_only_stage_replay_only_no_independent_baseline"
+        ),
+        "allowed_diff_keys": [
+            "run_id",
+            "timestamps",
+            "checkpoint_id",
+            "checkpoint_path",
+            "resume_diff_report_path",
+            "operator_log_path",
+        ],
+        "acceptable_diffs": [],
+        "unacceptable_diff_findings": unacceptable,
+        "verdict": verdict,
+        "main_result_eligible": False,
+        "resume_run_main_result_eligible": False,
+        "resume_run_main_result_eligible_assertion": {
+            "expected": False,
+            "actual": bool(record.final_artifacts.get("main_result_eligible")),
+            "ok": record.final_artifacts.get("main_result_eligible") is False,
+        },
+        "run_record_path": str(record_path),
+        "resume_diff_report_path": str(report_path),
+        "real_agent_loop_resume_supported": True,
+        "real_agent_loop_resume_support_level": "controlled_parent_node_boundary_only",
+        "real_agent_loop_resume_scope": "controlled_parent_node_boundary_resume",
+        "real_agent_loop_arbitrary_mid_node_resume_supported": False,
+        "real_agent_loop_nested_subgraph_resume_supported": False,
+        "mid_node_crash_supported": False,
+        "transient_store_durable": False,
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(_jsonable(report), ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    _lg_f1_patch_record_with_report(record_path, report)
+    return report
+
+
 def run_full_staged_langgraph_runtime(
     nl: str,
     *,
@@ -5492,6 +7540,7 @@ def run_full_staged_langgraph_runtime(
     called_from_loop: bool = False,
     operator_stream_enabled: bool = True,
     toolnode_wrapper_enabled: bool = True,
+    lg_e2_send_parallel_enabled: bool = True,
 ) -> AgentLoopResult:
     """Run the canonical full-staged loop through the default LangGraph runtime."""
 
@@ -5505,8 +7554,12 @@ def run_full_staged_langgraph_runtime(
     if not compat.get("ok"):
         raise RuntimeError(f"LangGraph compatibility smoke failed: {compat}")
     resolved = resolved_config or config.resolved_config()
+    lg_c2_context_contract = build_lg_c2_context_subgraph_contract()
+    lg_c2_context_contract_hash = _hash_payload(lg_c2_context_contract)
     graph_config = {
         "registry": registry,
+        "lg_c2_context_subgraph_contract": lg_c2_context_contract,
+        "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
         "planned_stage_graph": planned,
         "resolved_config": resolved,
         "condition_hash": resolved.get("condition_hash"),
@@ -5524,9 +7577,17 @@ def run_full_staged_langgraph_runtime(
         "lg_d1_operator_stream_enabled": bool(operator_stream_enabled),
         "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
         "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+        "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
     }
     graph_config_hash = _hash_payload(graph_config)
-    metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash, toolnode_wrapper_enabled=toolnode_wrapper_enabled)
+    metadata = _graph_runtime_metadata(
+        registry=registry,
+        compat=compat,
+        graph_config_hash=graph_config_hash,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+        lg_e2_send_parallel_enabled=lg_e2_send_parallel_enabled,
+    )
     run_id = run_id or config.run_id or f"pr-langgraph-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
     initial_lg_d1_stream_metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=config.llm_provider_mode == "real_env")
     runtime_cfg = FullStagedRuntimeConfig(
@@ -5555,6 +7616,12 @@ def run_full_staged_langgraph_runtime(
             "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
             "lg_e3_toolnode_wrapper_registry": build_lg_e3_toolnode_wrapper_registry(),
             "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+            "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+            "lg_e2_send_parallel_contract": build_lg_e2_send_parallel_contract(),
+            "lg_c2_context_subgraph_contract": lg_c2_context_contract,
+            "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
+            "lg_c2_context_subgraph_canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
             "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
             "stage_semantics_module": "method.staged_runtime",
         },
@@ -5570,6 +7637,12 @@ def run_full_staged_langgraph_runtime(
             "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
             "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
             "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+            "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+            "lg_e2_send_parallel_contract_hash": _hash_payload(build_lg_e2_send_parallel_contract()),
+            "lg_c2_context_subgraph_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+            "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
+            "lg_c2_context_subgraph_canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
             **initial_lg_d1_stream_metadata,
         },
         real_llm_provider_api=config.llm_provider_mode == "real_env",
@@ -5586,6 +7659,7 @@ def run_full_staged_langgraph_runtime(
             "operator_events": [],
             "operator_stream_enabled": bool(operator_stream_enabled),
             "toolnode_wrapper_events": [],
+            "lg_e2_send_parallel_events": [],
             "stage_record_events": [],
             "llm_interaction_events": [],
             "fix_log_events": [],
@@ -5607,6 +7681,12 @@ def run_full_staged_langgraph_runtime(
         result,
         events=toolnode_events,
         enabled=bool(toolnode_wrapper_enabled),
+    )
+    lg_e2_events = list(state.get("lg_e2_send_parallel_events", []) or [])
+    _augment_run_record_with_lg_e2_send_parallel_trace(
+        result,
+        events=lg_e2_events,
+        enabled=bool(lg_e2_send_parallel_enabled),
     )
     operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
     _augment_run_record_with_lg_d1_operator_log(
