@@ -2401,7 +2401,15 @@ def test_lg_d1_langgraph_stream_emits_node_stage_llm_and_terminal_events(tmp_pat
     assert any(event["node"] == "validation_pass" and event["event_type"] == "node_enter" for event in events)
     assert any(event["node"] == "sc13_trace_audit" and event["event_type"] == "terminal_verdict" for event in events)
     assert any(event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value for event in events)
-    assert all(event["instrumentation_layer"] == "langgraph_streaming" for event in events)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    assert d2_events
+    assert all(
+        event["instrumentation_layer"] == "langgraph_streaming"
+        for event in events
+        if not str(event.get("event_type") or "").startswith("lg_d2_")
+    )
+    assert all(event["instrumentation_layer"] == "langgraph_llm_node_envelope" for event in d2_events)
+    assert all(event["schema_version"] == "lg-d1.operator-event.v1" for event in d2_events)
     _assert_no_forbidden_operator_keys(events)
     assert record.final_artifacts["operator_log"]["langgraph_stream_status"] == "enabled"
     assert record.final_artifacts["operator_log"]["operator_event_count"] == len(events)
@@ -3602,3 +3610,315 @@ def test_lg_e2_worker_mutation_is_isolated_and_canonical_serial_is_used(tmp_path
     ]
     assert "MUTATED::" not in json.dumps(record.scenario_history, ensure_ascii=False, sort_keys=True)
     assert record.final_artifacts["verdict"] == "success"
+
+
+# PR-LG-D2 Retry / timeout envelope contract tests.
+
+def _initial_modeling_llm_run_with_retry_attempts(_nl: str, _context: StageContext) -> Any:
+    run = _initial_modeling_llm_run_with_stream_usage(_nl, _context)
+    run.interaction["attempts"] = [
+        {"status": "schema_invalid", "error_kind": "schema_invalid", "error_message": "first parse failed"},
+        {"status": "ok", "usage": {"stream": True, "chunk_count": 5}},
+    ]
+    run.interaction["retry_count"] = 1
+    return run
+
+
+def test_lg_d2_policy_hash_is_canonical_and_recorded(tmp_path: Path) -> None:
+    from method.langgraph_runtime import build_lg_d2_llm_node_envelope_policy
+
+    policy_a = build_lg_d2_llm_node_envelope_policy()
+    policy_b = build_lg_d2_llm_node_envelope_policy()
+
+    assert policy_a["schema_version"] == "lg-d2.llm-node-envelope.v1"
+    assert policy_a["enabled"] is True
+    assert policy_a["max_envelope_attempts"] >= 1
+    assert policy_a["stream_default"] is True
+    assert policy_a["max_tokens_default"] is None
+    assert policy_a["policy_hash"] == policy_b["policy_hash"]
+    assert "provider_5xx" in policy_a["retryable_error_taxonomy"]
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-policy-recorded",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+
+    assert record.environment["llm_node_envelope_policy"]["policy_hash"] == policy_a["policy_hash"]
+    assert record.environment["llm_node_envelope_policy_hash"] == policy_a["policy_hash"]
+    assert record.run_config["llm_node_envelope_policy_hash"] == policy_a["policy_hash"]
+
+
+def test_lg_d2_successful_llm_node_records_enter_retry_exit_events(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-success-events",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_retry_attempts),
+        )
+    )
+
+    events = _read_operator_events(record)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    event_types = [event["event_type"] for event in d2_events]
+
+    assert "lg_d2_envelope_enter" in event_types
+    assert "lg_d2_retry" in event_types
+    assert "lg_d2_envelope_exit" in event_types
+    retry_event = next(event for event in d2_events if event["event_type"] == "lg_d2_retry")
+    assert retry_event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    assert retry_event["node"] == "sl1_initial_modeling"
+    assert retry_event["payload"]["graph_node"] == "sl1_initial_modeling"
+    assert retry_event["payload"]["subgraph_id"] is None
+    assert retry_event["payload"]["error_kind"] == "schema_invalid"
+    assert retry_event["payload"]["policy_hash"] == record.environment["llm_node_envelope_policy_hash"]
+    assert retry_event["payload"]["canonical_attempt_index"] == 0
+    assert retry_event["payload"]["canonical_interaction_id"] == 0
+    for event in d2_events:
+        _assert_no_forbidden_operator_keys(event)
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    audit = readiness["operator_log_audit"]
+    assert audit["lg_d2_envelope_event_count"] == len(d2_events)
+    assert audit["operator_log_missing_graph_state_event_types"] == []
+
+
+def test_lg_d2_validation_retry_exhausted_keeps_subgraph_event_and_invalid_run(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-sl5-exhausted",
+            adapters=_adapters_with(scenario_generate=lambda _request: _retry_exhausted_run(StageId.SL_5_SCENARIO_GENERATION, "empty_output")),
+        )
+    )
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
+
+    events = _read_operator_events(record)
+    exhausted = [event for event in events if event.get("event_type") == "lg_d2_retry_exhausted"]
+    assert exhausted
+    event = exhausted[-1]
+    assert event["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert event["node"] == "validation_sl5_scenario_generation"
+    assert event["payload"]["graph_node"] == "validation_sl5_scenario_generation"
+    assert event["payload"]["subgraph_id"] == "validation_subgraph"
+    assert event["payload"]["error_kind"] == "empty_output"
+    assert event["payload"]["outcome"] == "exhausted"
+
+
+def test_lg_d2_timeout_exception_is_converted_to_retry_exhausted_event(tmp_path: Path) -> None:
+    def timeout_initial(_nl: str, _context: StageContext) -> Any:
+        raise TimeoutError("synthetic provider timeout")
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-timeout-exception",
+            adapters=_adapters_with(initial_modeling=timeout_initial),
+        )
+    )
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    events = _read_operator_events(record)
+    assert any(event.get("event_type") == "lg_d2_timeout" for event in events)
+    exhausted = [event for event in events if event.get("event_type") == "lg_d2_retry_exhausted"]
+    assert exhausted[-1]["payload"]["error_kind"] == "timeout"
+
+
+def test_lg_d2_transient_timeout_exception_retries_and_succeeds(tmp_path: Path) -> None:
+    calls = {"count": 0}
+
+    def transient_timeout_initial(nl: str, context: StageContext) -> Any:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise TimeoutError("synthetic provider timeout before first token")
+        return _initial_modeling_llm_run_with_stream_usage(nl, context)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-transient-timeout-retry-success",
+            adapters=_adapters_with(initial_modeling=transient_timeout_initial),
+        )
+    )
+
+    assert calls["count"] == 2
+    assert record.status == "success"
+    events = _read_operator_events(record)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    assert any(event["event_type"] == "lg_d2_timeout" and event["payload"]["outcome"] == "retry_planned" for event in d2_events)
+    assert any(
+        event["event_type"] == "lg_d2_envelope_exit"
+        and event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+        and event["payload"]["outcome"] == "ok"
+        and event["payload"]["envelope_attempt_index"] == 1
+        for event in d2_events
+    )
+    assert record.final_artifacts["verdict"] == "success"
+    assert "verdict_not_success" not in str(record.final_artifacts.get("exclusion_reason") or "")
+    assert not any(
+        isinstance(interaction, dict)
+        and interaction.get("provider") == "lg-d2-envelope"
+        and interaction.get("retry_error")
+        for interaction in record.llm_interactions
+    )
+
+
+def test_lg_d2_local_contract_exception_is_not_disguised_as_provider_error(tmp_path: Path) -> None:
+    def broken_initial(_nl: str, _context: StageContext) -> Any:
+        raise TypeError("local adapter contract violated")
+
+    with pytest.raises(TypeError, match="local adapter contract violated"):
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-local-typeerror-not-provider-error",
+            adapters=_adapters_with(initial_modeling=broken_initial),
+        )
+
+
+def test_lg_d2_flow_log_fallback_signature_keeps_repeated_iteration_events() -> None:
+    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+
+    record = SimpleNamespace(
+        run_id="lg-d2-repeated-flow-fallback",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_retry_exhausted",
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "iteration": 0,
+                "graph_node": "validation_sl5_scenario_generation",
+                "graph_subgraph": "validation_subgraph",
+                "error_kind": "empty_output",
+                "retryable": True,
+                "outcome": "exhausted",
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_retry_exhausted",
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "iteration": 1,
+                "graph_node": "validation_sl5_scenario_generation",
+                "graph_subgraph": "validation_subgraph",
+                "error_kind": "empty_output",
+                "retryable": True,
+                "outcome": "exhausted",
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=[])
+
+    assert len(events) == 2
+    assert [event["timestamp"] for event in events] == ["2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z"]
+    assert all(event["event_type"] == "lg_d2_retry_exhausted" for event in events)
+    assert {event["payload"]["safe_summary"]["flow_log_index"] for event in events} == {0, 1}
+
+
+def test_lg_d2_flow_log_fallback_keeps_same_iteration_repeated_node_entries() -> None:
+    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+
+    record = SimpleNamespace(
+        run_id="lg-d2-same-iteration-rework-collapse",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=[])
+
+    assert len(events) == 2
+    assert [event["timestamp"] for event in events] == ["2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z"]
+    assert {event["payload"]["safe_summary"]["flow_log_index"] for event in events} == {0, 1}
+
+
+def test_lg_d2_flow_log_fallback_consumes_existing_reducer_event_count_only() -> None:
+    from method.langgraph_runtime import _lg_d2_envelope_event, _lg_d2_operator_events_from_flow_logs, build_lg_d2_llm_node_envelope_policy
+
+    policy = build_lg_d2_llm_node_envelope_policy()
+    existing = [
+        _lg_d2_envelope_event(
+            run_id="lg-d2-same-iteration-rework-collapse",
+            event_type="lg_d2_envelope_enter",
+            stage_id=StageId.SL_10_REPAIR_REVIEW,
+            graph_node="repair_sl10_review",
+            subgraph_id="repair_subgraph",
+            policy=policy,
+            iteration=0,
+            envelope_attempt_index=0,
+            outcome="enter",
+        )
+    ]
+    record = SimpleNamespace(
+        run_id="lg-d2-same-iteration-rework-collapse",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=existing)
+
+    assert len(events) == 1
+    assert events[0]["timestamp"] == "2026-01-01T00:00:01Z"
+    assert events[0]["payload"]["safe_summary"]["flow_log_index"] == 1
+
+
+def test_lg_d2_provider_status_code_classification_precedes_generic_timeout_and_connection_words() -> None:
+    from method.langgraph_runtime import _lg_d2_error_kind_from_exception
+
+    assert _lg_d2_error_kind_from_exception(RuntimeError("HTTP 504 Gateway Timeout from Cloudflare")) == "provider_504"
+    assert _lg_d2_error_kind_from_exception(RuntimeError("Connection failed with upstream HTTP 502")) == "provider_502"
+    assert _lg_d2_error_kind_from_exception(RuntimeError("provider 503 connection reset")) == "provider_5xx"
+    assert _lg_d2_error_kind_from_exception(TimeoutError("plain socket timed out")) == "timeout"
