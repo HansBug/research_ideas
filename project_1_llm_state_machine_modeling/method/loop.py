@@ -24,7 +24,6 @@ from method.llm_stages import (
     LLMStageConfig,
     LLMStageRun,
     RealEnvLLMProvider,
-    estimate_prompt_tokens,
     redact_run_record_payload,
     run_sl1_initial_modeling_llm,
     run_sl5_scenario_generation_llm,
@@ -166,49 +165,6 @@ def _llm_stage_config(cfg: LoopConfig) -> LLMStageConfig:
         # the canonical entry because unredacted secrets exclude Path1/Path2
         # high-confidence results.
         redact_secrets=True,
-    )
-
-
-def _prompt_budget_metadata(
-    *,
-    stage_id: str,
-    prompt_messages: list[dict[str, str]],
-    cfg: LLMStageConfig,
-    compaction_level: str,
-) -> dict[str, Any]:
-    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
-    estimated_tokens = estimate_prompt_tokens(
-        prompt_messages,
-        estimator=cfg.prompt_token_estimator,
-        chars_per_token=cfg.prompt_chars_per_token,
-        model=cfg.model,
-    )
-    budget = cfg.max_prompt_tokens
-    return {
-        "stage_id": stage_id,
-        "prompt_chars": prompt_chars,
-        "estimated_prompt_tokens": estimated_tokens,
-        "prompt_token_budget": budget,
-        "prompt_token_estimator": cfg.prompt_token_estimator,
-        "chars_per_token_estimate": cfg.prompt_chars_per_token,
-        "compaction_level": compaction_level,
-        "prompt_compaction_applied": compaction_level != "none",
-        "compact_only_when_over_budget": True,
-        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
-    }
-
-
-def _within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
-    if cfg.max_prompt_tokens is None:
-        return True
-    return (
-        estimate_prompt_tokens(
-            prompt_messages,
-            estimator=cfg.prompt_token_estimator,
-            chars_per_token=cfg.prompt_chars_per_token,
-            model=cfg.model,
-        )
-        <= cfg.max_prompt_tokens
     )
 
 
