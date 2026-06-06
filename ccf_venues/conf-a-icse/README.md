@@ -1,6 +1,6 @@
 # ICSE README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 10:16`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -40,9 +40,9 @@
 |---|---|---|---|
 | Series / main site | [ICSE series](https://conf.researchr.org/series/icse) | 长期官方 series 入口 | `2026-06-04 21:10` |
 | Latest year homepage | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) 可访问但返回 Access denied；另有 [ICSE 2028 introduction](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) 预告 | `2026-06-04 21:10` |
-| CFP / Call for Papers | [ICSE 2027 Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 2022-2026 逐年度 track 页维护 | `2026-06-04 21:10` |
-| Important Dates | [ICSE 2027 Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | Important dates 通常与 Research / Technical Track 同页 | `2026-06-04 21:10` |
-| Submission system | [ICSE 2027 HotCRP](https://icse2027.hotcrp.com/) | 历年投稿系统见年度表 | `2026-06-04 21:10` |
+| CFP / Call for Papers | [ICSE 2027 Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 2022-2026 逐年度 track 页维护 | `2026-06-06 10:16` |
+| Important Dates | [ICSE 2027 Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 官方页面已核验 `All dates are 23:59:59 AoE (UTC-12h)` | `2026-06-06 10:16` |
+| Submission system | [ICSE 2027 HotCRP](https://icse2027.hotcrp.com/) | 历年投稿系统见年度表 | `2026-06-06 10:16` |
 | Program / accepted papers | [ICSE 2026 Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track)；[ICSE 2026 Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | 2022-2026 已有官方 program / accepted papers；2027-2028 未公布 | `2026-06-04 21:10` |
 | Proceedings | [ICSE 2025 proceedings](https://conf.researchr.org/info/icse-2025/proceedings) | 2022-2024 proceedings URL 已核验但当前跳转 Access denied： [2022](https://conf.researchr.org/info/icse-2022/proceedings) / [2023](https://conf.researchr.org/info/icse-2023/proceedings) / [2024](https://conf.researchr.org/info/icse-2024/proceedings)；DBLP 作论文名录 fallback；2026-2028 未公布 | `2026-06-04 21:10` |
 | DBLP venue | [DBLP ICSE venue](https://dblp.org/db/conf/icse/) | 仅作论文名录 / 计数 fallback | `2026-06-04 21:10` |
@@ -69,7 +69,7 @@
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | 🟦 已有预告 | ⏳ 已检索未公开；[Hawaii 预告](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟢 投稿中 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [HotCRP](https://icse2027.hotcrp.com/) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-06-23 待补时刻 AoE / UTC-12h | 2026-06-30 待补时刻 AoE / UTC-12h | 2026-10-20 待补时刻 | 2027-04-25..2027-05-01 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 投稿中 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [HotCRP](https://icse2027.hotcrp.com/) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-06-23 23:59:59 AoE / UTC-12h | 2026-06-30 23:59:59 AoE / UTC-12h | 2026-10-20 23:59:59 AoE / UTC-12h | 2027-04-25..2027-05-01 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束 | [ICSE 2026](https://conf.researchr.org/home/icse-2026) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | [HotCRP](https://icse2026.hotcrp.com/) | [Research Track accepted papers](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | 未公布 | ⏳ 已检索未公布 | 2025-03-07 待补时刻 AoE / UTC-12h；2025-07-11 待补时刻 AoE / UTC-12h | 2025-03-14 待补时刻 AoE / UTC-12h；2025-07-18 待补时刻 AoE / UTC-12h | 2025-06-20 待补时刻；2025-10-17 待补时刻 | 2026-04-12..2026-04-18 | Research Track: 321（accepted papers count；proceedings / DBLP 待复核） | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ICSE 2025](https://conf.researchr.org/home/icse-2025) | [Research Track](https://conf.researchr.org/track/icse-2025/icse-2025-research-track) | [Research Track](https://conf.researchr.org/track/icse-2025/icse-2025-research-track) | [HotCRP](https://icse2025.hotcrp.com/) | [Program](https://conf.researchr.org/program/icse-2025/program-icse-2025/) | [Proceedings](https://conf.researchr.org/info/icse-2025/proceedings) | [DBLP 2025](https://dblp.org/db/conf/icse/icse2025.html) | 2024-03-15 待补时刻 AoE / UTC-12h；2024-07-26 待补时刻 AoE / UTC-12h | 2024-03-22 待补时刻 AoE / UTC-12h；2024-08-02 待补时刻 AoE / UTC-12h | 2024-07-05 待补时刻；2024-11-01 待补时刻 | 2025-04-26..2025-05-04 | Research Track: 245 | 🟢 已核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ICSE 2024](https://conf.researchr.org/home/icse-2024) | [Research Track](https://conf.researchr.org/track/icse-2024/icse-2024-research-track) | [Research Track](https://conf.researchr.org/track/icse-2024/icse-2024-research-track) | [HotCRP](https://icse2024.hotcrp.com/) | [Program](https://conf.researchr.org/program/icse-2024/program-icse-2024/) | ⏳ [Access denied](https://conf.researchr.org/info/icse-2024/proceedings) | [DBLP 2024](https://dblp.org/db/conf/icse/icse2024.html) | 未公布 | 2023-03-29 待补时刻 AoE / UTC-12h；2023-08-01 待补时刻 AoE / UTC-12h | 2023-06-02 待补时刻；2023-10-10 待补时刻 | 2024-04-12..2024-04-21 | Research Track: 234 | 🟡 部分核验 |
@@ -96,6 +96,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Research Track 页面，将 ICSE 2027 根表 abstract / submission / notification 精确到 `23:59:59 AoE / UTC-12h`。 |
 | `2026-06-04 22:20` | 补 Andrea Zisman，统一 ICSE 论文数量单元格口径，并回填 ICSE 2027 关键日期。 |
 | `2026-06-04 21:44` | 补充核心人员情报，并按 review 修正 accessDenied、计数或会期等事实口径。 |
 | `2026-06-04 21:10` | 初始化 ICSE venue 根 README 与 2022-2028 年度索引。 |
