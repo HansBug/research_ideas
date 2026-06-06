@@ -9,37 +9,35 @@
 
 ## 1. 本次新增产物
 
-本次所有产物都放在同名资产目录：
+> **2026-05-09 更新**：本 discussion 是当时记录解析 / parquet 化过程的真源文档。21 个 parquet 已物理迁移到核心数据资产目录 [`../data/`](../data/)（含 [`README.md`](../data/README.md) 与 [`scripts/`](../data/scripts/) 4 个常用 benchmark 范式导出脚本）；该目录是后续研究者读 parquet 的**入口**。以下表格中的 parquet 链接已同步更新为新位置；2 个 `build_*.py` 抽取脚本仍保留在本 discussion 同名 `.assets/` 目录下，作为该 discussion 的产物历史。
 
-`./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/`
-
-核心文件如下：
+本次抽取脚本与其产出 parquet 的对应关系如下：
 
 | 文件 | 作用 |
 | --- | --- |
 | [build_baseline_double_green_parquets.py](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_parquets.py) | 统一抽取脚本，负责把 4 组数据源转换成全部 `parquet` |
 | [build_baseline_double_green_human_review_parquets.py](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_human_review_parquets.py) | 人工评审抽取脚本，负责把公开人评结果、方法复原和可用性目录转换成 `parquet` |
-| [baseline_double_green_dataset_catalog.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_dataset_catalog.parquet) | 总目录，汇总每个数据集的样本粒度、规模、元模型和完整性状态 |
-| [llms_emp_raw_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_raw_samples.parquet) | `llms_emp` 原始公开账本 107 行 |
-| [llms_emp_complete_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_complete_samples.parquet) | `llms_emp` 清洗后 98 个可直接实验样本 |
-| [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) | `llms_emp` 公开逐样本人评结果 192 行，现已补入原始 workbook 行、人工文本原文摘录与论文原文评审口径 |
-| [ttool_ai_models.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_models.parquet) | `ttool-ai` 的 15 个完整 AVATAR 设计模型变体 |
-| [ttool_ai_state_machine_panels.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_state_machine_panels.parquet) | `ttool-ai` 的 122 个状态机面板 |
-| [ttool_ai_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_states.parquet) | `ttool-ai` 摊平后的 708 个状态节点 |
-| [ttool_ai_transitions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_transitions.parquet) | `ttool-ai` 摊平后的 798 条迁移 |
-| [ttool_ai_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_human_review.parquet) | `ttool-ai` 公开人评结果 116 行，含主表测试级总分、案例级摘要、`Overall` 汇总、补充评估原始行与 summary 行，并保留原始 `ods` 行文本 |
-| [light_control_nimbus_documents.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_documents.parquet) | `Light Control` 的两份原始文档全文 |
-| [light_control_nimbus_fragments.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_fragments.parquet) | `Light Control` 重建后的 4 个可实验片段 |
-| [light_control_nimbus_variables.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_variables.parquet) | `Light Control` 的 17 个 monitored / controlled variables |
-| [light_control_nimbus_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_states.parquet) | `Light Control` 的 20 个层次状态节点 |
-| [light_control_nimbus_rules.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_rules.parquet) | `Light Control` 的 16 条 RSML-e 规则 |
-| [structure_event_driven_cases.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_cases.parquet) | `Structure/Event-Driven` 的 9 个公开描述样本 |
-| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | `Structure/Event-Driven` 的 8 个论文案例 prompt/image/count ground truth 与 6 个 Umple 文本参考解 |
-| [structure_event_driven_metrics.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_metrics.parquet) | `Structure/Event-Driven` 的 512 条逐组件评测记录 |
-| [structure_event_driven_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_human_review.parquet) | `Structure/Event-Driven` 的 512 条统一字段人评记录，现已补入原始 `xlsx` 评分行与论文原文评审规则摘录 |
-| [baseline_double_green_human_review_records.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_records.parquet) | 跨论文统一人评总表 820 行 |
-| [baseline_double_green_human_review_protocols.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_protocols.parquet) | 四篇论文的人评方法复原表，现已补入论文 `paper_content.txt` 的原文摘录 |
-| [baseline_double_green_human_review_availability.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_availability.parquet) | 四篇论文公开人评可用性与缺口总表 |
+| [dataset_catalog.parquet](../data/dataset_catalog.parquet) | 总目录，汇总每个数据集的样本粒度、规模、元模型和完整性状态 |
+| [llms_emp_raw_samples.parquet](../data/llms_emp/raw_samples.parquet) | `llms_emp` 原始公开账本 107 行 |
+| [llms_emp_complete_samples.parquet](../data/llms_emp/complete_samples.parquet) | `llms_emp` 清洗后 98 个可直接实验样本 |
+| [llms_emp_human_review.parquet](../data/llms_emp/human_review.parquet) | `llms_emp` 公开逐样本人评结果 192 行，现已补入原始 workbook 行、人工文本原文摘录与论文原文评审口径 |
+| [ttool_ai_models.parquet](../data/ttool_ai/models.parquet) | `ttool-ai` 的 15 个完整 AVATAR 设计模型变体 |
+| [ttool_ai_state_machine_panels.parquet](../data/ttool_ai/state_machine_panels.parquet) | `ttool-ai` 的 122 个状态机面板 |
+| [ttool_ai_states.parquet](../data/ttool_ai/states.parquet) | `ttool-ai` 摊平后的 708 个状态节点 |
+| [ttool_ai_transitions.parquet](../data/ttool_ai/transitions.parquet) | `ttool-ai` 摊平后的 798 条迁移 |
+| [ttool_ai_human_review.parquet](../data/ttool_ai/human_review.parquet) | `ttool-ai` 公开人评结果 116 行，含主表测试级总分、案例级摘要、`Overall` 汇总、补充评估原始行与 summary 行，并保留原始 `ods` 行文本 |
+| [light_control_nimbus_documents.parquet](../data/light_control_nimbus/documents.parquet) | `Light Control` 的两份原始文档全文 |
+| [light_control_nimbus_fragments.parquet](../data/light_control_nimbus/fragments.parquet) | `Light Control` 重建后的 4 个可实验片段 |
+| [light_control_nimbus_variables.parquet](../data/light_control_nimbus/variables.parquet) | `Light Control` 的 17 个 monitored / controlled variables |
+| [light_control_nimbus_states.parquet](../data/light_control_nimbus/states.parquet) | `Light Control` 的 20 个层次状态节点 |
+| [light_control_nimbus_rules.parquet](../data/light_control_nimbus/rules.parquet) | `Light Control` 的 16 条 RSML-e 规则 |
+| [structure_event_driven_cases.parquet](../data/structure_event_driven/cases.parquet) | `Structure/Event-Driven` 的 9 个公开描述样本 |
+| [structure_event_driven_reference_solutions.parquet](../data/structure_event_driven/reference_solutions.parquet) | `Structure/Event-Driven` 的 8 个论文案例 prompt/image/count ground truth 与 6 个 Umple 文本参考解 |
+| [structure_event_driven_metrics.parquet](../data/structure_event_driven/metrics.parquet) | `Structure/Event-Driven` 的 512 条逐组件评测记录 |
+| [structure_event_driven_human_review.parquet](../data/structure_event_driven/human_review.parquet) | `Structure/Event-Driven` 的 512 条统一字段人评记录，现已补入原始 `xlsx` 评分行与论文原文评审规则摘录 |
+| [human_review_records.parquet](../data/human_review_records.parquet) | 跨论文统一人评总表 820 行 |
+| [human_review_protocols.parquet](../data/human_review_protocols.parquet) | 四篇论文的人评方法复原表，现已补入论文 `paper_content.txt` 的原文摘录 |
+| [human_review_availability.parquet](../data/human_review_availability.parquet) | 四篇论文公开人评可用性与缺口总表 |
 
 ## 2. 统一复现方式
 
@@ -128,8 +126,8 @@ python \
 该脚本会生成：
 
 1. 3 个论文级人评表：`llms_emp_human_review.parquet`、`ttool_ai_human_review.parquet`、`structure_event_driven_human_review.parquet`
-2. 1 个跨论文统一人评总表：`baseline_double_green_human_review_records.parquet`
-3. 2 个配套说明表：`baseline_double_green_human_review_protocols.parquet`、`baseline_double_green_human_review_availability.parquet`
+2. 1 个跨论文统一人评总表：`human_review_records.parquet`
+3. 2 个配套说明表：`human_review_protocols.parquet`、`human_review_availability.parquet`
 
 重跑后的 `human review` 相关 `parquet` 统一新增以下字段，用于最大限度保留原始人类评价细节：
 
@@ -167,8 +165,8 @@ python \
 
 | `parquet` | 作用 | 规模 |
 | --- | --- | --- |
-| [llms_emp_raw_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_raw_samples.parquet) | 原始账本完整镜像 | 107 行 |
-| [llms_emp_complete_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_complete_samples.parquet) | 删除占位行与缺失输出后的实验子集 | 98 行 |
+| [llms_emp_raw_samples.parquet](../data/llms_emp/raw_samples.parquet) | 原始账本完整镜像 | 107 行 |
+| [llms_emp_complete_samples.parquet](../data/llms_emp/complete_samples.parquet) | 删除占位行与缺失输出后的实验子集 | 98 行 |
 
 清洗后的 98 行图类型分布如下：
 
@@ -446,10 +444,10 @@ print(raw_account[["row_id", "model_name", "is_complete_sample"]].tail(12))
 
 最终得到：
 
-- 15 个完整设计变体，见 [ttool_ai_models.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_models.parquet)
-- 122 个状态机面板，见 [ttool_ai_state_machine_panels.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_state_machine_panels.parquet)
-- 708 个状态节点，见 [ttool_ai_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_states.parquet)
-- 798 条迁移，见 [ttool_ai_transitions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_transitions.parquet)
+- 15 个完整设计变体，见 [ttool_ai_models.parquet](../data/ttool_ai/models.parquet)
+- 122 个状态机面板，见 [ttool_ai_state_machine_panels.parquet](../data/ttool_ai/state_machine_panels.parquet)
+- 708 个状态节点，见 [ttool_ai_states.parquet](../data/ttool_ai/states.parquet)
+- 798 条迁移，见 [ttool_ai_transitions.parquet](../data/ttool_ai/transitions.parquet)
 
 ### 4.3 `parquet` 字段
 
@@ -779,11 +777,11 @@ print(assembled_panel["input_spec_text"][:400])
 
 | `parquet` | 规模 | 作用 |
 | --- | --- | --- |
-| [light_control_nimbus_documents.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_documents.parquet) | 2 行 | 保存原始案例和 Nimbus 论文全文 |
-| [light_control_nimbus_fragments.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_fragments.parquet) | 4 行 | 保存可直接做实验的片段级样本 |
-| [light_control_nimbus_variables.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_variables.parquet) | 17 行 | monitored / operator / controlled 变量字典 |
-| [light_control_nimbus_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_states.parquet) | 20 行 | 图 6 与图 16 中可恢复的状态节点 |
-| [light_control_nimbus_rules.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_rules.parquet) | 16 行 | 关键 RSML-e 赋值 / 迁移规则 |
+| [light_control_nimbus_documents.parquet](../data/light_control_nimbus/documents.parquet) | 2 行 | 保存原始案例和 Nimbus 论文全文 |
+| [light_control_nimbus_fragments.parquet](../data/light_control_nimbus/fragments.parquet) | 4 行 | 保存可直接做实验的片段级样本 |
+| [light_control_nimbus_variables.parquet](../data/light_control_nimbus/variables.parquet) | 17 行 | monitored / operator / controlled 变量字典 |
+| [light_control_nimbus_states.parquet](../data/light_control_nimbus/states.parquet) | 20 行 | 图 6 与图 16 中可恢复的状态节点 |
+| [light_control_nimbus_rules.parquet](../data/light_control_nimbus/rules.parquet) | 16 行 | 关键 RSML-e 赋值 / 迁移规则 |
 
 ### 5.3 `parquet` 字段
 
@@ -1176,9 +1174,9 @@ print(fragment_dataset.loc[0, "rule_rows"])
 
 | `parquet` | 规模 | 说明 |
 | --- | --- | --- |
-| [structure_event_driven_cases.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_cases.parquet) | 9 行 | 8 个论文正式案例 + 1 个工件额外案例 `ATAS` |
-| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | 9 行 | 8 个论文正式案例全部带 prompt/image/count ground truth；其中 6 个案例 + 1 个额外 `ATAS` 还带完整 Umple 文本 |
-| [structure_event_driven_metrics.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_metrics.parquet) | 512 行 | 4 种策略 × 2 个 LLM × 逐案例 × 逐组件的评测记录 |
+| [structure_event_driven_cases.parquet](../data/structure_event_driven/cases.parquet) | 9 行 | 8 个论文正式案例 + 1 个工件额外案例 `ATAS` |
+| [structure_event_driven_reference_solutions.parquet](../data/structure_event_driven/reference_solutions.parquet) | 9 行 | 8 个论文正式案例全部带 prompt/image/count ground truth；其中 6 个案例 + 1 个额外 `ATAS` 还带完整 Umple 文本 |
+| [structure_event_driven_metrics.parquet](../data/structure_event_driven/metrics.parquet) | 512 行 | 4 种策略 × 2 个 LLM × 逐案例 × 逐组件的评测记录 |
 
 当前完整性状态必须如实说明：
 
@@ -1508,7 +1506,7 @@ print(assembled_cases.loc[0, "reference_solution_text"][:400])
 
 如果后续要把 4 组数据统一接到新的实验里，我建议按下面方式使用：
 
-1. 先读 [baseline_double_green_dataset_catalog.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_dataset_catalog.parquet)，决定你要跑的是“行为图通用生成”还是“纯状态机生成”。
+1. 先读 [dataset_catalog.parquet](../data/dataset_catalog.parquet)，决定你要跑的是“行为图通用生成”还是“纯状态机生成”。
 2. 如果要做纯状态机，优先使用：
    - `llms_emp_complete_samples.parquet` 里 `diagram_type == "stm"` 的子集
    - `ttool_ai_state_machine_panels.parquet` + `ttool_ai_states.parquet` + `ttool_ai_transitions.parquet`
@@ -1530,7 +1528,7 @@ assets = Path(
     "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
 )
 
-catalog = pd.read_parquet(assets / "baseline_double_green_dataset_catalog.parquet")
+catalog = pd.read_parquet(assets / "dataset_catalog.parquet")
 llms_emp = pd.read_parquet(assets / "llms_emp_complete_samples.parquet")
 ttool_panels = pd.read_parquet(assets / "ttool_ai_state_machine_panels.parquet")
 light_fragments = pd.read_parquet(assets / "light_control_nimbus_fragments.parquet")
@@ -1584,9 +1582,9 @@ print(llms_emp.shape, ttool_panels.shape, light_fragments.shape, structure_cases
 
 | 文件 | 行数 | 现在实际包含什么 |
 | --- | ---: | --- |
-| [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) | 192 | 逐样本人评 benchmark，含 `input/ref/pred`、人工语法/语义检查结果、原始 workbook 行、人工文本原文和论文原文评审口径 |
-| [ttool_ai_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_human_review.parquet) | 116 | `30` 条主表测试级总分、`36` 条主表案例级摘要、`8` 条 `Overall` 汇总、`30` 条补充评估原始分数行、`12` 条补充评估 summary 行，并保留原始 `ods` 行文本、行号和论文原文评分口径 |
-| [structure_event_driven_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_human_review.parquet) | 512 | 逐组件 `TP/FN/FP/F1` benchmark，现已补入原始 `xlsx` 评分行和论文原文评审规则 |
+| [llms_emp_human_review.parquet](../data/llms_emp/human_review.parquet) | 192 | 逐样本人评 benchmark，含 `input/ref/pred`、人工语法/语义检查结果、原始 workbook 行、人工文本原文和论文原文评审口径 |
+| [ttool_ai_human_review.parquet](../data/ttool_ai/human_review.parquet) | 116 | `30` 条主表测试级总分、`36` 条主表案例级摘要、`8` 条 `Overall` 汇总、`30` 条补充评估原始分数行、`12` 条补充评估 summary 行，并保留原始 `ods` 行文本、行号和论文原文评分口径 |
+| [structure_event_driven_human_review.parquet](../data/structure_event_driven/human_review.parquet) | 512 | 逐组件 `TP/FN/FP/F1` benchmark，现已补入原始 `xlsx` 评分行和论文原文评审规则 |
 
 三张表共同保留的核心字段现在分成三类：
 
@@ -1613,9 +1611,9 @@ print(llms_emp.shape, ttool_panels.shape, light_fragments.shape, structure_cases
 
 | 文件 | 行数 | 作用 |
 | --- | ---: | --- |
-| [baseline_double_green_human_review_records.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_records.parquet) | 820 | 把 `llms_emp`、`ttool-ai`、`Structure/Event-Driven` 三篇有公开人评记录的论文统一到同一 schema |
-| [baseline_double_green_human_review_protocols.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_protocols.parquet) | 4 | 四篇论文的人评方法复原表，并补入 `paper_content.txt` 中与人工评审直接相关的原文摘录 |
-| [baseline_double_green_human_review_availability.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_availability.parquet) | 4 | 四篇论文“公开到什么粒度”的统一目录 |
+| [human_review_records.parquet](../data/human_review_records.parquet) | 820 | 把 `llms_emp`、`ttool-ai`、`Structure/Event-Driven` 三篇有公开人评记录的论文统一到同一 schema |
+| [human_review_protocols.parquet](../data/human_review_protocols.parquet) | 4 | 四篇论文的人评方法复原表，并补入 `paper_content.txt` 中与人工评审直接相关的原文摘录 |
+| [human_review_availability.parquet](../data/human_review_availability.parquet) | 4 | 四篇论文“公开到什么粒度”的统一目录 |
 
 如果你要直接做跨论文过滤，推荐先读：
 
@@ -1628,9 +1626,9 @@ assets = Path(
     "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
 )
 
-records = pd.read_parquet(assets / "baseline_double_green_human_review_records.parquet")
-availability = pd.read_parquet(assets / "baseline_double_green_human_review_availability.parquet")
-protocols = pd.read_parquet(assets / "baseline_double_green_human_review_protocols.parquet")
+records = pd.read_parquet(assets / "human_review_records.parquet")
+availability = pd.read_parquet(assets / "human_review_availability.parquet")
+protocols = pd.read_parquet(assets / "human_review_protocols.parquet")
 
 print(records.groupby("paper_slug").size())
 print(records[["paper_slug", "record_type"]].value_counts())
@@ -1654,7 +1652,7 @@ print(protocols[["paper_slug", "paper_method_verbatim_verified"]])
    - `Format Hallucinations`
    - `SysML Grammar Hallucinations`
    - `Semmantic Hallucinations`
-3. 现在的 [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) 里，这些原始列都被保留到了 `human_review_source_record_json`。
+3. 现在的 [llms_emp_human_review.parquet](../data/llms_emp/human_review.parquet) 里，这些原始列都被保留到了 `human_review_source_record_json`。
 4. 原始人工文本没有被改写，直接落在 `human_review_original_text` 和 `human_review_original_text_json`。
 
 几个最典型的真实人工文本例子如下：
@@ -1708,7 +1706,7 @@ Incorrect message type..Incorrect message exchange.
 2. 补充表原始来源是 [evaluation.ods](../reproduction/data/raw/ttool-ai/SNCS_complementaryEvaluation/evaluation.ods)。
 3. 最早旧版 parquet 之所以只有 `39` 行，是因为补充表里的 `9,2 / 8,8 / 6,7` 这类逗号小数没有被正确解析。
 4. 第一轮修复逗号小数后，补充评估部分恢复到了 `72` 行；但主表里的案例级摘要、学生 cohort 摘要和 `Overall` 汇总当时还没有纳入。
-5. 现在进一步补齐后，[ttool_ai_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_human_review.parquet) 共有 `116` 行：
+5. 现在进一步补齐后，[ttool_ai_human_review.parquet](../data/ttool_ai/human_review.parquet) 共有 `116` 行：
    - `30` 条 `summary_level_run_score`
    - `36` 条 `case_aggregate_stat`
    - `8` 条 `overall_aggregate_stat`
@@ -1789,7 +1787,7 @@ Std dev	1,7	1,8	1,6	1,7
 
 这篇不生成论文级 `human_review` 记录表，原因不是遗漏，而是原始公开物本来就没有逐样本人评分数。
 
-1. 它保留在 [baseline_double_green_human_review_protocols.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_protocols.parquet) 和 [baseline_double_green_human_review_availability.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_availability.parquet) 中。
+1. 它保留在 [human_review_protocols.parquet](../data/human_review_protocols.parquet) 和 [human_review_availability.parquet](../data/human_review_availability.parquet) 中。
 2. 现在 `protocols` 里已经补入论文原文摘录，不再只是脚本复述。
 3. 它的“真实人类反馈”是方法级的人工 inspection 机制，而不是逐样本数字表。
 
@@ -1812,7 +1810,7 @@ Std dev	1,7	1,8	1,6	1,7
 这篇公开的人评数据本体就是逐组件评分行。
 
 1. 原始来源是 [llm_state_machine_modeling.zip](../reproduction/data/raw/structure_event/llm_state_machine_modeling.zip) 中的 `Paper Experiment Resources/Final Detailed F1-Scores.xlsx`，并已同步到 `/tmp/baseline_double_green/raw/llm_state_machine_final_f1_scores.xlsx`。
-2. [structure_event_driven_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_human_review.parquet) 共 `512` 行，对应：
+2. [structure_event_driven_human_review.parquet](../data/structure_event_driven/human_review.parquet) 共 `512` 行，对应：
    - `8` 个案例
    - `4` 种策略
    - `2` 个 LLM

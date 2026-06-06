@@ -155,6 +155,39 @@
 | 61 | 🟠 | 用例到形式规范自动提取 | Extração Automática de Modelos CSP a Partir de Casos de Uso | 2011 | 状态化 use cases | CSP 形式模型 | Process algebra model | 未使用 | 用受控自然语言模板把状态化 use case 自动翻译成 CSP | 中｜受控模板承担需求结构化角色 | 无｜无仿真主线 | 高｜输出 CSP，本身面向 formal analysis / model checking 生态 | [paper](./automated-formal-specification-generation-and-refinement-from-requirement-documents/DESC.md) |
 | 62 | 🟠 | 需求形式化支持 | Computer-Aided Formalization of Requirements Based on Patterns | 2014 | 文本需求 | 形式化规格 | Formal specification | 未使用 | 用 pattern system 与 HFSM 组织 formalization knowledge 并辅助形式化 | 中｜pattern-based requirement templates｜核心是辅助 formalization | 无｜无仿真 | 中-高｜聚焦 requirement formalization knowledge，而非执行验证｜为 formal verification 前置打底 | [paper](./computer-aided-formalization-of-requirements-based-on-patterns/DESC.md) |
 
+## 数据集与 Benchmark 清单
+
+> 本节按 [GUIDE.md](./GUIDE.md) §6.7 维护，含 `### 数据集可获取性口径` 与正式数据集表两层结构。
+>
+> **当前覆盖范围**：本表当前回填的是 2026-03-05 时刻已审查的 7 篇“从零生成”论文（来自历史 `BASELINE.md` 中"数据集与代码可获取性分析"段落，commit `f6bea920`）；可获取性口径已按本节 §数据集可获取性口径 从旧 ✅/⚠️/❌ 映射到新 🟢/🟡/🟠/🔒。
+>
+> **后续待补**：W4.x 期间新增的 baselines（包括但不限于 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models`、`pushing-the-generative-envelope-mbse-artifacts`、`how-llms-aid-uml-modeling`、`I4.0`、`mermaidseqbench` 等）需在下一轮工作中按相同口径补行。
+>
+> **配套资产**：4 个数据集（`llms_emp` / `ttool-ai` / `Light Control - Nimbus` / `Structure-and-Event-Driven`）的下载、解析、parquet 化与人评字段对齐已完成，详见 [`../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.md`](../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.md)（含 21 个 parquet + 2 个生成脚本）。
+
+### 数据集可获取性口径
+
+| Emoji | 含义 |
+|---|---|
+| 🟢 | 可直接获取：论文给出了可直接下载、浏览或通过清晰公开渠道直接取得完整内容的链接/入口 |
+| 🟡 | 需联系申请：论文明确说明需要联系作者团队、项目方或维护方申请获取，或宣布将后续公开但尚未发布 |
+| 🟠 | 信息不清：论文只提到制作方式、来源或使用过该数据，但没有给出足够清晰的获取路径 |
+| 🔒 | 难以取得：数据依赖企业/团队内部资料、付费标准、受限工业资产或其他现实上很难取得的来源 |
+
+> 历史 `BASELINE.md` 表格使用的旧符号映射如下，仅供回溯：`✅ 可立即获取 → 🟢`；`⚠️ 部分可获取（论文中描述需自行构建 / 仅演示视频）→ 🟠`；`❌ 未公开（工业专有）→ 🔒`；`❌ 未公开（待发布）→ 🟡`。
+
+### 数据集与 Benchmark 表
+
+| # | 论文 | 评估 | 数据集/Benchmark | 来源类型 | 制作方法 | 输入 | 输出 | 规模 | 可获取性 | 获取方式/链接 | 简述来源 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2 | [paper](./llms_emp/) | 🟢 | G_Model SysML behavior model dataset | 作者搜集制作 | 从 Google Scholar / CNKI / GitHub 搜集 303 个来源（148 篇英文论文 + 2 本书 + 151 篇中文论文 + 2 个开源项目），使用 PlantUML 重建模型并编写需求描述 | 自然语言需求描述 | PlantUML 格式 SysML STM / ACT / SD | 107 个案例（36 STM / 36 ACT / 35 SD），其中 98 个为完整 input+output 实验样本 | 🟢 | [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | 通用 SysML 行为模型，包含状态机；与控制系统相关性中等 |
+| 3 | [paper](./fsm-gen-iec-61499/) | 🟢 | fbAssistant 工业自动化案例 | 作者制作 | 基于工业自动化实践和 IEC 61499 标准设计的 2 个案例系统，继承作者团队近 30 年的自动机编程研究积累 | 自然语言控制需求 + I/O 接口规范 | 可视化 FSM + IEC 61499 功能块代码 | 2 个案例（气动缸、拾取放置机械手） | 🟠 | [YouTube 演示](https://www.youtube.com/live/aR20KBmZnA4?si=wxyMOcAX4tirRgQf)（仅演示，需根据论文描述复现） | 工业自动化控制系统，IEC 61499 标准；与控制系统相关性高 |
+| 4 | [paper](./req/) | 🟢 | Volvo Cars Car Weaver 需求集 | 工业专有 | 来自 Volvo Cars 内部 Car Weaver 工具的 20 个产品功能需求，使用合成数据生成技术扩充训练集 | 自然语言产品功能需求 | Mermaid.js 状态机（Statechart） | 20 个真实需求 + 合成扩充 | 🔒 | 原文未提供公开下载链接；Volvo Cars 专有数据，需联系作者 | 汽车控制系统；工业专有，无法获取 |
+| 5 | [paper](./umple/) | 🟢 | Umple 5 测试系统 | 作者设计制作 | 作者设计的 5 个测试系统（Blackjack 基于标准游戏规则、Course Section 来自 Umple 文档，其余 3 个为作者原创设计） | 自然语言需求描述 | Umple 状态机代码 | 5 个系统（Blackjack 等） | 🟠 | 原文未提供公开下载链接；论文中有详细描述，需自行构建 | 通用状态机，非控制系统领域 |
+| 6 | [paper](./ttool-ai/) | 🟢 | TTool-AI AVATAR design artifacts | 作者使用现成规范 | 来自 3 个真实欧洲项目的系统规范（Platooning 车辆编队、Space-based 空间系统、Automated Braking 自动刹车） | 自然语言系统规范 | 含状态机的 SysML / AVATAR 联合模型 | 3 个真实案例系统（解析后 15 个模型变体 / 122 状态机面板 / 708 状态 / 798 迁移） | 🟢 | [GitHub ttool-ai](https://github.com/zebradile/ttool-ai) | 包含自动驾驶和航空系统，与控制系统相关性高；代码 + 数据均可立即获取 |
+| 7 | [paper](./enhance/) | 🟠 | HDLBits FSM 题集 | 第三方现成 | 直接使用 HDLBits 在线教育平台的 20 个 FSM 设计问题（基础 FSM、同步/异步复位、one-hot 编码等） | HDLBits FSM 设计问题描述 | SystemVerilog FSM 代码 | 20 个 FSM 设计问题 | 🟢 | [HDLBits 平台](https://hdlbits.01xz.net/) | 硬件 FSM 设计，偏向数字电路；与控制系统软件需求关联较弱 |
+| 8 | [paper](./LLM-FSM/) | 🟠 | LLM-FSM benchmark | 作者完全自动生成 | 自动化 pipeline 生成（约束随机 FSM 生成 → YAML 格式化 → LLM 生成 NL 规范 → 参考 RTL 合成 → 多层验证） | FSM 配置参数 + 自然语言规范 | Verilog RTL 代码 + 测试平台 | 1000 个 FSM-to-RTL 问题 | 🟡 | 原文未提供下载链接；需关注后续发布或联系作者 | RTL 代码生成，偏向硬件设计 |
+
 ## 初步归类与覆盖盘点
 
 ### 类别分布
@@ -198,6 +231,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-05-09 16:18:22 | 回填 `## 数据集与 Benchmark 清单` 章节 | 按 [GUIDE.md](./GUIDE.md) §6.7 在 `## 论文清单` 与 `## 初步归类与覆盖盘点` 之间补回长期缺失的 §`数据集与 Benchmark 清单` 与 §`数据集可获取性口径` 两个小节；7 行可获取性内容直接复用历史 `BASELINE.md` 中 commit `f6bea920`（2026-03-05）的 `数据集与代码可获取性分析` 段落，旧 ✅/⚠️/❌ 按 GUIDE §5.3 映射为 🟢/🟡/🟠/🔒；W4.x 期间新增的 baseline（如 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 等）暂未补行，待下一轮统一审查。 |
 | 2026-05-06 13:54:54 | 标注 3 篇硬条件符合论文同时进入 `state_machine_review_corpus/` | `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` / `llms_emp` / `ttool-ai` 现同时存在于本论文集与 `state_machine_review_corpus/`；前者从 baseline 方法对照角度，后者从可获取 human review 数据资产角度。各自维护独立的派生文件（`DESC.md` 留在本文库；`review_extraction.md` 在新文库）。论文总表对应行追加 `· [review](../state_machine_review_corpus/<slug>/review_extraction.md)` 链接。 |
 | 2026-04-16 12:41:58 | 在论文总表新增 `需求词工程 / 运行仿真 / 形式化验证` 三列并逐篇回填 | 基于全文阅读，统一按“程度｜技术｜角色”补齐 62 篇论文，重点区分 LLM 工作中的 prompt engineering、simulation/execution 与真正 formal verification；其中 `llms_emp`、`ttool-ai` 等带检查反馈环的论文，明确不把单纯语法/规则/静态检查误记为高强度形式化验证 |
 | 2026-04-14 17:29:20 | 新增 `Structure- and Event-Driven Frameworks for State Machine Modeling with Large Language Models` 并补齐 baseline 四件套 | 新增目录 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models`，补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`，并回填论文清单、数据集表、类别统计、BASELINE评估统计与整体观察；该文是当前最直接命中“非结构化自然语言 -> UML 状态机”的 2026 arXiv baseline |
