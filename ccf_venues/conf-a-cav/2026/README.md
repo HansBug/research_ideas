@@ -1,6 +1,6 @@
 # CAV 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -38,7 +38,8 @@
 | Full paper submission | 2026-01-28 待补时刻 AoE | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
 | Author response | 2026-03-30..2026-04-02 | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
 | Notification | 2026-04-17 待补时刻 | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
-| Artifact registration | 2026-04-22 待补时刻 | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
+| Artifact registration | 2026-04-22 待补时刻 AoE | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方 CFP 明确 All deadlines are AoE；artifact registration 与 artifact evaluation 单列，避免只看 paper chain。 |
+| Artifact evaluation | 2026-04-27..2026-05-29 AoE | [CFP / track](https://conferences.i-cav.org/2026/cfp/)；[Artifact Evaluation](https://conferences.i-cav.org/2026/artifacts/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方 CFP 给出 artifact evaluation window；不与 paper acceptance 或 proceedings count 混算。 |
 | Camera-ready | 2026-05-15 待补时刻 | [CFP / track](https://conferences.i-cav.org/2026/cfp/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
 | Conference | 2026-07-26..2026-07-29 | [年度主页](https://conferences.i-cav.org/2026/) | [CAV 2026](https://conferences.i-cav.org/2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
 
@@ -47,6 +48,7 @@
 | Track / 类别 | 官方链接 | 是否关注 | 备注 |
 |---|---|---|---|
 | Research papers | [Research papers](https://conferences.i-cav.org/2026/cfp/) | 主口径 | 只计主会 research / tool 等官方 CFP 定义的论文类别；artifact 单列。 |
+| Artifact Evaluation | [Artifact Evaluation](https://conferences.i-cav.org/2026/artifacts/) | 复现性 / 工具证据口径 | artifact registration `2026-04-22`，artifact evaluation `2026-04-27..2026-05-29`；不得混入主论文数量。 |
 
 ## 5. 论文名录与数量
 
@@ -90,4 +92,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 CAV 2026 artifact registration / artifact evaluation window，并在 TIMELINE 中单列 artifact 专项事件，避免混入 rebuttal 或主论文计数。 |
 | `2026-06-05 09:15` | PR-3 初始化 CAV 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

@@ -1,6 +1,6 @@
 # FSE README
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -40,9 +40,9 @@
 |---|---|---|---|
 | Series / main site | [FSE series](https://conf.researchr.org/series/fse) | researchr 长期入口 | `2026-06-05 08:39` |
 | Latest year homepage | [FSE 2027](https://conf.researchr.org/home/fse-2027) | 2028 未公布；2027 已有地点与会期 | `2026-06-05 08:39` |
-| CFP / Call for Papers | [FSE 2026 Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | 2027 CFP 未公布 | `2026-06-05 08:39` |
-| Important Dates | [FSE 2026 Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | Important Dates 与 Research Papers 同页 | `2026-06-05 08:39` |
-| Submission system | [FSE 2026 HotCRP](https://fse2026.hotcrp.com/) | 历年入口见年度页 | `2026-06-05 08:39` |
+| CFP / Call for Papers | [FSE 2027 Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | 2027 track 已公布；submission site 将临近 deadline 发布 | `2026-06-06 11:46` |
+| Important Dates | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) | 年度主页侧栏也列出 Research Papers 日期；AoE / UTC-12h | `2026-06-06 11:46` |
+| Submission system | 待公布 | FSE 2027 track 说明 submission site 将在临近 deadline 时发布；历年入口见年度页 | `2026-06-06 11:46` |
 | Program / accepted papers | [FSE 2026 Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | 已结束年度优先官方 program，DBLP fallback | `2026-06-05 08:39` |
 | Proceedings | [FSE 2025 proceedings](https://conf.researchr.org/info/fse-2025/proceedings) | 2024+ 注意 PACMSE issue 关系 | `2026-06-05 08:39` |
 | DBLP venue | [DBLP SIGSOFT/FSE venue](https://dblp.org/db/conf/sigsoft/) | 仅作论文名录 / 计数 fallback | `2026-06-05 08:39` |
@@ -68,7 +68,7 @@
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract / registration deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 待官网 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟦 已有主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 2027-07-12..2027-07-16 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 投稿中 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [Important Dates](https://conf.researchr.org/dates/fse-2027) | 待公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 无单独 abstract；full paper 2026-10-02 待补时刻 AoE / UTC-12h | 2026-10-02 待补时刻 AoE / UTC-12h | initial 2027-01-22；final 2027-03-31 | 2027-07-12..2027-07-16 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | 🟡 已通知 / 会前 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [HotCRP](https://fse2026.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | 未公布；PACMSE Issue FSE 2026 由 Research Papers track 说明 | ⏳ 已检索未公布 | 2025-09-04 23:59 AoE / UTC-12h | 2025-09-11 23:59 AoE / UTC-12h | 2025-12-22 23:59 AoE / UTC-12h；major revision final 2026-03-24 23:59 AoE / UTC-12h | 2026-07-05..2026-07-09 | 未最终核验；program 已有条目 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [FSE 2025](https://conf.researchr.org/home/fse-2025) | [Research Papers](https://conf.researchr.org/track/fse-2025/fse-2025-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2025/fse-2025-research-papers) | [HotCRP](https://fse2025.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2025/program-fse-2025/) | [Proceedings](https://conf.researchr.org/info/fse-2025/proceedings) / PACMSE Issue FSE 2025 | [DBLP 2025](https://dblp.org/db/conf/sigsoft/fse2025c.html) | 2024-09-05 23:59 AoE / UTC-12h | 2024-09-12 23:59 AoE / UTC-12h | 2025-01-14 23:59 AoE / UTC-12h（官方页疑似写 2024，按上下文待复核）；major revision final 2025-04-01 23:59 AoE / UTC-12h | 2025-06-23..2025-06-27 | DBLP inproceedings fallback: 259 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [FSE 2024](https://conf.researchr.org/home/fse-2024) | [Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [HotCRP](https://fse2024.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2024/program-fse-2024/) | [Proceedings](https://conf.researchr.org/info/fse-2024/proceedings) / PACMSE Issue FSE 2024 | [DBLP 2024](https://dblp.org/db/conf/sigsoft/fse2024c.html) | 2023-09-21 23:59 AoE / UTC-12h | 2023-09-28 23:59 AoE / UTC-12h | 2024-01-23 23:59 AoE / UTC-12h；major revision final 2024-04-16 23:59 AoE / UTC-12h | 2024-07-15..2024-07-19 | DBLP inproceedings fallback: 108 | 🟡 部分核验 |
@@ -91,5 +91,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：按 FSE 2027 官方主页 / dates / Research Papers track 补齐 full paper submission、author response、initial notification、major revision submission、final notification 和会期，并同步 TIMELINE。 |
 | `2026-06-05 10:00` | 补记 PR-2 复审修复日志：核心人员字段已包含核验状态 / 核查时间，FSE 2022-2025 会期已同步至全局 TIMELINE。 |
 | `2026-06-05 08:39` | 初始化 FSE venue 根 README 与 2022-2028 年度索引草稿。 |

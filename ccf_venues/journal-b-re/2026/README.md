@@ -1,6 +1,6 @@
 # Requirements Engineering 2026 README
 
-> 信息更新时间：`2026-06-05 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -46,7 +46,7 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Rethinking Requirements Engineering in the Age of Large Language Models | [LLM collection](https://link.springer.com/collections/deebijccbh) | 2026-04-30 待补时刻 | 🔒 | [Springer collection](https://link.springer.com/collections/deebijccbh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方 collection 页面为 Closed；主题与 LLM4RE / project_1 / project_2 高度相关；官方另给 `Revisions Due: July 2026`、`Final Decisions: September 2026`，只有月份，故不写成具体日期。 |
-| By Invite Only - Requirements Engineering 30th Anniversary | [30th Anniversary](https://link.springer.com/collections/hegaifabjh) | 2026-06-20 待补时刻 | 🟢 | [Springer collection](https://link.springer.com/collections/hegaifabjh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方仅给日期，未给具体时刻；collection editors 包含 Fabiano Dalpiaz 与 Peri Loucopoulos。 |
+| By Invite Only - Requirements Engineering 30th Anniversary | [30th Anniversary](https://link.springer.com/collections/hegaifabjh) | 2026-06-20 待补时刻 | 🟣 邀请制开放 | [Springer collection](https://link.springer.com/collections/hegaifabjh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方标题明确 By Invite Only；不是面向所有作者的普通开放征稿。官方仅给日期，未给具体时刻；collection editors 包含 Fabiano Dalpiaz 与 Peri Loucopoulos。 |
 | REFSQ 2026 | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) | 2026-06-29 待补时刻 | 🟢 | [Springer collection](https://link.springer.com/collections/gidfjjdijf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方仅给日期，未给具体时刻；collection editors 包含 Renata Guizzardi 与 João Araújo。 |
 
 ## 5. 年度论文入口与数量
@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：将 Requirements Engineering 30th Anniversary collection 明确标为 By Invite Only / 邀请制开放，避免误读为普通可投窗口。 |
 | `2026-06-05 12:47` | 专项复核 2026 三个 Springer collections：保留 LLM submission deadline 的明确日期，并将 LLM revision / final decision 的月份信息写为备注，不硬凑具体日期。 |
 | `2026-06-05 11:57` | 初始化 Requirements Engineering 2026 年度 README，记录 Springer / DBLP 核心入口、collection 状态、投稿节奏与 DBLP entry article baseline。 |

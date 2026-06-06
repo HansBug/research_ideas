@@ -1,6 +1,6 @@
 # ISSTA 2026 README
 
-> 信息更新时间：`2026-06-05 08:39`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -36,11 +36,12 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Abstract / registration deadline | 未公布 | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | FSE 使用 paper registration；ISSTA 若无 abstract/registration 则未公布。 |
-| Submission deadline | 2026-01-29 23:59 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方给 AoE 时统一写 23:59 AoE / UTC-12h；待补表示本轮未稳定定位。 |
-| Rebuttal / response | 见官方 track | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 本轮优先记录主 submission / notification / 会期。 |
-| Notification | 2026-04-16 23:59 AoE / UTC-12h；final 2026-06-25 23:59 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | major revision / final notification 若存在写入同格。 |
-| Camera-ready | 待补 | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 已在部分官方 track 中可见，后续逐年细化。 |
+| Abstract / registration deadline | 未公布 | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方 ISSTA Research Papers 页面未列单独 abstract / registration deadline。 |
+| Submission deadline | 2026-01-29 待补时刻 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方页面仅给日期与 AoE / UTC-12h，未公开具体钟点。 |
+| Author response | 2026-03-24..2026-03-26 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方页面列为 Author Response Period，未公开具体钟点。 |
+| Initial notification | 2026-04-16 待补时刻 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方页面仅给日期与 AoE / UTC-12h，未公开具体钟点。 |
+| Final notification | 2026-06-25 待补时刻 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方页面仅给日期与 AoE / UTC-12h，未公开具体钟点。 |
+| Camera-ready | 2026-07-23 待补时刻 AoE / UTC-12h | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 官方页面仅给日期与 AoE / UTC-12h，未公开具体钟点。 |
 | Conference dates | 2026-10-03..2026-10-09 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 按官方年度主页记录。 |
 
 ## 4. Tracks
@@ -75,7 +76,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | `2026-06-05 08:39` | 与 SPLASH/ISSTA 2026 co-located；计数只按 ISSTA research papers / PACMSE ISSTA issue。 |
-| 官方 CFP / Dates | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | `2026-06-05 08:39` | 主 submission / notification 已按可访问页面记录；缺失字段显式待补。 |
+| 官方 CFP / Dates | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | `2026-06-06 13:16` | 主 submission、author response、initial/final notification、camera-ready 已按官方日期记录；官方未给具体钟点时保留待补时刻。 |
 | 官方论文名录 / proceedings | 未公布；PACMSE Issue ISSTA 2026（track 说明；未正式发布） | `2026-06-05 08:39` | 官方 program / proceedings 优先；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:39` | DBLP 仅作论文名录与数量 fallback。 |
 
@@ -88,4 +89,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：去除 ISSTA 2026 未获官方证据支撑的 `23:59` 时刻，补齐 author response、final notification 与 camera-ready，删除跨会议误植说明，并同步根 README 与 TIMELINE。 |
 | `2026-06-05 08:39` | 初始化 ISSTA 2026 年度 README 草稿。 |

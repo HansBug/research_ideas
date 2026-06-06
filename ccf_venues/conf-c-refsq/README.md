@@ -1,6 +1,6 @@
 # REFSQ README
 
-> 信息更新时间：`2026-06-05 08:35`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -36,14 +36,14 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
-| Series / main site | [researchr REFSQ series](https://conf.researchr.org/series/refsq) | researchr / 年度独立站点为主 | `2026-06-05 08:35` |
-| Latest year homepage | [REFSQ 2027](https://2027.refsq.org/) | 未来年度无官网时写 `⏳ 已检索未公布` | `2026-06-05 08:35` |
-| CFP / Call for Papers | [Research](https://2027.refsq.org/track/refsq-2027-research) | 年度 CFP 分散在 track 页面 | `2026-06-05 08:35` |
-| Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 可与 CFP 同页 | `2026-06-05 08:35` |
-| Submission system | [EasyChair REFSQ 2026](https://easychair.org/conferences/?conf=refsq2026) | 历史年度入口需逐年复核 | `2026-06-05 08:35` |
-| Program / accepted papers | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | 已结束年度优先官方 program / accepted papers | `2026-06-05 08:35` |
-| Proceedings | Springer LNCS / LNBIP 与 CEUR 分散，逐年度待补卷号 | DBLP 仅作论文名录 / 计数 fallback | `2026-06-05 08:35` |
-| DBLP venue | [DBLP REFSQ](https://dblp.org/db/conf/refsq/) | 仅作论文名录 / 计数 fallback | `2026-06-05 08:35` |
+| Series / main site | [researchr REFSQ series](https://conf.researchr.org/series/refsq) | researchr / 年度独立站点为主 | `2026-06-06 13:16` |
+| Latest year homepage | [REFSQ 2027](https://2027.refsq.org/) | 未来年度无官网时写 `⏳ 已检索未公布` | `2026-06-06 13:16` |
+| CFP / Call for Papers | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | 年度 CFP 分散在 track 页面 | `2026-06-06 13:16` |
+| Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 可与 CFP 同页 | `2026-06-06 13:16` |
+| Submission system | [EasyChair REFSQ 2026](https://easychair.org/conferences/?conf=refsq2026) | 历史年度入口需逐年复核 | `2026-06-06 13:16` |
+| Program / accepted papers | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | 已结束年度优先官方 program / accepted papers | `2026-06-06 13:16` |
+| Proceedings | Springer LNCS / LNBIP 与 CEUR 分散，逐年度待补卷号 | DBLP 仅作论文名录 / 计数 fallback | `2026-06-06 13:16` |
+| DBLP venue | [DBLP REFSQ](https://dblp.org/db/conf/refsq/) | 仅作论文名录 / 计数 fallback | `2026-06-06 13:16` |
 
 ## 5. 核心人员情报
 
@@ -51,11 +51,11 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 
 | 姓名 | 年度 / 层级 | 会议角色 | 单位 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验状态 | 核查时间 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Sallam Abualhaija | 2027 / research | PC Co-Chair | University of Luxembourg | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) | [DBLP](https://dblp.org/pid/182/7667.html) | requirements engineering、NLP for RE、regulatory / legal requirements | [DBLP recent publications](https://dblp.org/pid/182/7667.html) | P1/P2 高：AI / NLP 辅助需求抽取、规约质量 | 🟢 已核验入口 | `2026-06-05 08:35` |
-| Jan-Philipp Steghöfer | 2027 / research | PC Co-Chair | XITASO GmbH | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) | [DBLP](https://dblp.org/pid/06/9207.html) | traceability、requirements engineering、software process / education | [DBLP recent publications](https://dblp.org/pid/06/9207.html) | P1/P2 中高：traceability 与需求质量数据线索 | 🟢 已核验入口 | `2026-06-05 08:35` |
-| Renata Guizzardi | 2026 / research | PC Chair | University of Twente | [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/80/134.html) | conceptual modeling、ontology、requirements quality | [DBLP recent publications](https://dblp.org/pid/80/134.html) | P1 高：需求概念建模、质量语义与模型元素抽取 | 🟢 已核验入口 | `2026-06-05 08:35` |
-| João Araújo | 2026 / research | PC Chair | NOVA LINCS, Universidade NOVA de Lisboa | [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/a/JoaoAraujo.html) | requirements engineering、model-driven engineering、software variability | [DBLP recent publications](https://dblp.org/pid/a/JoaoAraujo.html) | P1/P2 高：RE + MDE 交叉，适合需求到模型相关工作 | 🟢 已核验入口 | `2026-06-05 08:35` |
-| Samuel Fricker | 2027 / conference | General Chair；2026 Background Organization Chair | FHNW | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) / [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/47/576.html) | requirements engineering、software product management、innovation / industry RE | [DBLP recent publications](https://dblp.org/pid/47/576.html) | P1/P2 中：需求质量、工业需求流程与案例线索 | 🟢 已核验入口 | `2026-06-05 08:35` |
+| Sallam Abualhaija | 2027 / research | PC Co-Chair | University of Luxembourg | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) | [DBLP](https://dblp.org/pid/182/7667.html) | requirements engineering、NLP for RE、regulatory / legal requirements | [DBLP recent publications](https://dblp.org/pid/182/7667.html) | P1/P2 高：AI / NLP 辅助需求抽取、规约质量 | 🟢 已核验入口 | `2026-06-06 13:16` |
+| Jan-Philipp Steghöfer | 2027 / research | PC Co-Chair | XITASO GmbH | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) | [DBLP](https://dblp.org/pid/06/9207.html) | traceability、requirements engineering、software process / education | [DBLP recent publications](https://dblp.org/pid/06/9207.html) | P1/P2 中高：traceability 与需求质量数据线索 | 🟢 已核验入口 | `2026-06-06 13:16` |
+| Renata Guizzardi | 2026 / research | PC Chair | University of Twente | [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/80/134.html) | conceptual modeling、ontology、requirements quality | [DBLP recent publications](https://dblp.org/pid/80/134.html) | P1 高：需求概念建模、质量语义与模型元素抽取 | 🟢 已核验入口 | `2026-06-06 13:16` |
+| João Araújo | 2026 / research | PC Chair | NOVA LINCS, Universidade NOVA de Lisboa | [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/a/JoaoAraujo.html) | requirements engineering、model-driven engineering、software variability | [DBLP recent publications](https://dblp.org/pid/a/JoaoAraujo.html) | P1/P2 高：RE + MDE 交叉，适合需求到模型相关工作 | 🟢 已核验入口 | `2026-06-06 13:16` |
+| Samuel Fricker | 2027 / conference | General Chair；2026 Background Organization Chair | FHNW | [REFSQ 2027 organizing committee](https://2027.refsq.org/committee/refsq-2027-organizing-committee) / [REFSQ 2026 organizing committee](https://2026.refsq.org/committee/refsq-2026-organizing-committee) | [DBLP](https://dblp.org/pid/47/576.html) | requirements engineering、software product management、innovation / industry RE | [DBLP recent publications](https://dblp.org/pid/47/576.html) | P1/P2 中：需求质量、工业需求流程与案例线索 | 🟢 已核验入口 | `2026-06-06 13:16` |
 
 ## 6. 年度信息汇总
 
@@ -64,7 +64,7 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟢 已公布 CFP / 征稿窗口未到 | [REFSQ 2027](https://2027.refsq.org/) | [Research](https://2027.refsq.org/track/refsq-2027-research) | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布（Research track 页面尚未给投稿系统） | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-11-05 待补时刻 AoE | 2026-11-12 待补时刻 AoE | 2027-01-14 待补时刻 AoE | 2027-04-12..2027-04-15 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 已公布 CFP / 征稿窗口未到 | [REFSQ 2027](https://2027.refsq.org/) | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布（Research track 页面尚未给投稿系统） | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-11-05 待补时刻 AoE | 2026-11-12 待补时刻 AoE | 2027-01-14 待补时刻 AoE | 2027-04-12..2027-04-15 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束/论文名录已公开 | [REFSQ 2026](https://2026.refsq.org/) | [Research Track](https://2026.refsq.org/track/refsq-2026-research-papers) | [Important Dates](https://2026.refsq.org/dates/refsq-2026) | [EasyChair REFSQ 2026](https://easychair.org/conferences/?conf=refsq2026) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | 未公布（Springer LNCS / LNBIP 待补卷号） | ⏳ 已检索未公布 | 2025-10-10 待补时刻 AoE | 2025-10-17 待补时刻 AoE | 2025-12-15 待补时刻 AoE | 2026-03-23..2026-03-26 | 官方 Research Track accepted 已公开；数量待脚本复核 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [REFSQ 2025](https://2025.refsq.org/) | [Research Track](https://2025.refsq.org/track/refsq-2025-research-papers) | [Important Dates](https://2025.refsq.org/dates/refsq-2025) | 待补（历史 EasyChair 入口需复核） | [Program](https://2025.refsq.org/program/program-refsq-2025/) / [Research Track](https://2025.refsq.org/track/refsq-2025-research-papers) | 待补（Springer LNCS / LNBIP 卷号） | [DBLP 2025](https://dblp.org/db/conf/refsq/refsq2025.html) | 2024-11-01 待补时刻 AoE | 2024-11-08 待补时刻 AoE | 2025-01-15 待补时刻 AoE | 2025-04-07..2025-04-10 | 待复核（official program / DBLP fallback） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [REFSQ 2024](https://2024.refsq.org/) | [Research Track](https://2024.refsq.org/track/refsq-2024-papers) | [Important Dates](https://2024.refsq.org/dates/refsq-2024) | 待补（历史入口需复核） | [Program](https://2024.refsq.org/program/program-refsq-2024/) / [Research Track](https://2024.refsq.org/track/refsq-2024-papers) | 待补（Springer LNCS / LNBIP 卷号） | [DBLP 2024](https://dblp.org/db/conf/refsq/refsq2024.html) | 2023-11-03 待补时刻 AoE | 2023-11-10 待补时刻 AoE | 2024-01-15 待补时刻 AoE | 2024-04-08..2024-04-11 | 待复核（official program / DBLP fallback） | 🟡 部分核验 |
@@ -88,4 +88,5 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：修正 REFSQ 2027 Research Papers 官方 CFP 链接与根表入口，避免使用已 404 的旧 track slug。 |
 | `2026-06-05 08:35` | 初始化 REFSQ 根 README，填充 2022-2028 年度核心链接、主要 deadline 草稿、核心人员情报与维护备注。 |

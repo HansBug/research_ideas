@@ -1,6 +1,6 @@
 # IST 2026 README
 
-> 信息更新时间：`2026-06-05 18:24`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -43,9 +43,9 @@
 
 | 名称 | CFP / 入口 | 截止时间 | 状态 | 核验结论 | TIMELINE 同步 |
 |---|---|---|---|---|---|
-| Software Architecture for AI-Driven Systems | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/325890/software-architecture-for-ai-driven-systems-challenges-and-emerging-solutions) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；不写成 dated event | 未同步；待人工核验 deadline 后再进 TIMELINE |
-| Human Factor in Generative AI | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/329824/human-factor-in-generative-ai-trust-usability-and-responsible-adoption) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；不写成 dated event | 未同步；待人工核验 deadline 后再进 TIMELINE |
-| Green Software Evolution | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/330286/green-software-evolution) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；不写成 dated event | 未同步；待人工核验 deadline 后再进 TIMELINE |
+| 候选 / 未核验：Software Architecture for AI-Driven Systems | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/325890/software-architecture-for-ai-driven-systems-challenges-and-emerging-solutions) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；未核验 deadline / guest editor，不视为当前可投窗口 | 未同步；待人工核验 deadline 后再进 TIMELINE |
+| 候选 / 未核验：Human Factor in Generative AI | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/329824/human-factor-in-generative-ai-trust-usability-and-responsible-adoption) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；未核验 deadline / guest editor，不视为当前可投窗口 | 未同步；待人工核验 deadline 后再进 TIMELINE |
+| 候选 / 未核验：Green Software Evolution | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/330286/green-software-evolution) | 待人工浏览器核验 | ⏳ 待核验 | ScienceDirect CLI WAF/403；未核验 deadline / guest editor，不视为当前可投窗口 | 未同步；待人工核验 deadline 后再进 TIMELINE |
 
 ## 5. 年度论文入口与数量
 
@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：把 IST 2026 candidate special issue 行显式降级为“候选 / 未核验”，并说明未浏览器核验前不可视为当前可投窗口。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 IST 2026 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为待人工浏览器核验，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 IST 2026 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

@@ -1,6 +1,6 @@
 # FSE 2026 README
 
-> 信息更新时间：`2026-06-05 08:39`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -40,7 +40,7 @@
 | Submission deadline | 2025-09-11 23:59 AoE / UTC-12h | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 官方给 AoE 时统一写 23:59 AoE / UTC-12h；待补表示本轮未稳定定位。 |
 | Rebuttal / response | 见官方 track | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 本轮优先记录主 submission / notification / 会期。 |
 | Notification | 2025-12-22 23:59 AoE / UTC-12h；major revision final 2026-03-24 23:59 AoE / UTC-12h | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | major revision / final notification 若存在写入同格。 |
-| Camera-ready | 待补 | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 已在部分官方 track 中可见，后续逐年细化。 |
+| Camera-ready | 2026-04-23 待补时刻 AoE / UTC-12h | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 官方 Research Papers 页面给出 Camera ready: April 23, 2026；具体钟点按待补处理。 |
 | Conference dates | 2026-07-05..2026-07-09 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 按官方年度主页记录。 |
 
 ## 4. Tracks
@@ -75,7 +75,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | `2026-06-05 08:39` | PACMSE Issue FSE 2026 是主 Research Papers 出版口径，不额外重复计数。 |
-| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | `2026-06-05 08:39` | 主 submission / notification 已按可访问页面记录；缺失字段显式待补。 |
+| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | `2026-06-06 13:16` | 主 submission / notification / camera-ready 已按可访问页面记录；缺失字段显式待补。 |
 | 官方论文名录 / proceedings | [FSE Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/)；未公布；PACMSE Issue FSE 2026 由 Research Papers track 说明 | `2026-06-05 08:39` | 官方 program / proceedings 优先；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:39` | DBLP 仅作论文名录与数量 fallback。 |
 
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：补齐 FSE 2026 Research Papers 官方 camera-ready 日期 `2026-04-23`。 |
 | `2026-06-05 08:39` | 初始化 FSE 2026 年度 README 草稿。 |

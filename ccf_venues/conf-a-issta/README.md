@@ -1,6 +1,6 @@
 # ISSTA README
 
-> 信息更新时间：`2026-06-05 10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -39,9 +39,9 @@
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [ISSTA series](https://conf.researchr.org/series/issta) | researchr 长期入口 | `2026-06-05 08:39` |
-| Latest year homepage | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 2027/2028 未公布 | `2026-06-05 08:39` |
-| CFP / Call for Papers | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 2022-2023 为 Technical Papers 命名 | `2026-06-05 08:39` |
-| Important Dates | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 与 CFP 同页 | `2026-06-05 08:39` |
+| Latest year homepage | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 2027/2028 未公布 | `2026-06-06 13:16` |
+| CFP / Call for Papers | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 2022-2023 为 Technical Papers 命名 | `2026-06-06 13:16` |
+| Important Dates | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 与 CFP 同页；2026 官方只给日期 + AoE，未给具体钟点 | `2026-06-06 13:16` |
 | Submission system | [ISSTA 2026 HotCRP](https://issta2026.hotcrp.com/) | 历年入口见年度页 | `2026-06-05 08:39` |
 | Program / accepted papers | [ISSTA 2025 Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/) | 已结束年度优先官方 program，DBLP fallback | `2026-06-05 08:39` |
 | Proceedings | [DBLP ISSTA venue](https://dblp.org/db/conf/issta/) | ACM DL / PACMSE 待逐年补证 | `2026-06-05 08:39` |
@@ -69,7 +69,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 待官网 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 待官网 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟢 投稿 / 审稿周期中 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [HotCRP](https://issta2026.hotcrp.com/) | 未公布 | PACMSE Issue ISSTA 2026（track 说明；未正式发布） | ⏳ 已检索未公布 | 2026-01-29 23:59 AoE / UTC-12h | 2026-04-16 23:59 AoE / UTC-12h；final 2026-06-25 23:59 AoE / UTC-12h | 2026-10-03..2026-10-09 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟢 投稿 / 审稿周期中 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [HotCRP](https://issta2026.hotcrp.com/) | 未公布 | PACMSE Issue ISSTA 2026（track 说明；未正式发布） | ⏳ 已检索未公布 | 2026-01-29 待补时刻 AoE / UTC-12h | initial 2026-04-16 待补时刻 AoE / UTC-12h；final 2026-06-25 待补时刻 AoE / UTC-12h | 2026-10-03..2026-10-09 | 未公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ISSTA 2025](https://conf.researchr.org/home/issta-2025) | [Research Papers](https://conf.researchr.org/track/issta-2025/issta-2025-papers) | [Important Dates](https://conf.researchr.org/dates/issta-2025) | [HotCRP](https://issta25.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/) | PACMSE Issue ISSTA 2025（[proceedings probe](https://conf.researchr.org/info/issta-2025/proceedings) 当前 accessDenied，待 ACM/PACMSE 交叉核验） | [DBLP 2025 companion fallback](https://dblp.org/db/conf/issta/issta2025c.html) | 2024-10-31 23:59:59 AoE / UTC-12h | 2024-12-19 23:59:59 AoE / UTC-12h；final 2025-03-31 23:59:59 AoE / UTC-12h | 2025-06-25..2025-06-28 | DBLP companion fallback: 35 ⚠️ 待 ACM/PACMSE 交叉核验 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ISSTA 2024](https://conf.researchr.org/home/issta-2024) | [Technical Papers](https://conf.researchr.org/track/issta-2024/issta-2024-papers) | [Important Dates](https://conf.researchr.org/dates/issta-2024) | [HotCRP](https://issta24.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2024/program-issta-2024/) | 未逐项核验；ACM / DBLP fallback | [DBLP 2024](https://dblp.org/db/conf/issta/issta2024.html) | 2023-12-15 23:59 AoE / UTC-12h；round 2 2024-04-12 23:59 AoE / UTC-12h | 2024-03-02 待补时刻 AoE；round 2 2024-07-03 待补时刻 AoE | 2024-09-16..2024-09-20 | DBLP inproceedings fallback: 170 | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ISSTA 2023](https://conf.researchr.org/home/issta-2023) | [Technical Papers](https://conf.researchr.org/track/issta-2023/issta-2023-technical-papers) | [Technical Papers](https://conf.researchr.org/track/issta-2023/issta-2023-technical-papers) | [HotCRP](https://issta2023.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2023/program-issta-2023/) | 未逐项核验；ACM / DBLP fallback | [DBLP 2023](https://dblp.org/db/conf/issta/issta2023.html) | 2022-11-10 23:59 AoE / UTC-12h；second round 2023-02-16 23:59 AoE / UTC-12h | 2023-01-16 23:59 AoE / UTC-12h；second round 2023-05-03 23:59 AoE / UTC-12h | 2023-07-17..2023-07-21 | DBLP inproceedings fallback: 138 | 🟡 部分核验 |
@@ -90,5 +90,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：同步 ISSTA 2026 日期精度、author response 与 camera-ready 口径，避免把官方未给钟点的 AoE 日期写成 `23:59`。 |
 | `2026-06-05 10:00` | 根据 PR-2 修复后复审，确认 2022/2023 会期已补入全局 TIMELINE，并补记核心人员字段修复日志。 |
 | `2026-06-05 08:39` | 初始化 ISSTA venue 根 README 与 2022-2028 年度索引草稿。 |

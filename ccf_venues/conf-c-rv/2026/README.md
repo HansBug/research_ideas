@@ -1,6 +1,6 @@
 # RV 2026 README
 
-> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -35,7 +35,8 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Submission deadline | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Paper submission; AoE / extended |
+| Paper submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Paper submission; extended; all deadlines are AoE. |
+| Tutorial proposal submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tutorial proposal submission; extended; all deadlines are AoE；tutorial 最长 2 小时。 |
 | Notification | 2026-07-30 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Notification; AoE / extended |
 | Camera-ready | 2026-08-10 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Camera-ready; AoE |
 | Conference dates | 2026-10-06..2026-10-09 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Conference; Kingston local time |
@@ -45,6 +46,7 @@
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
 | Main / Technical / Research track | [Track / CFP](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program / accepted](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 关注 | P2 观察时优先读取 main / technical / research track。 |
+| Tutorial track | [CFP](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 按需 | tutorial 最长 2 小时；proposal deadline 与 paper submission 同为 extended `2026-06-14` AoE。 |
 | Data / Tool / Industry / Special session | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 按需 | 不能与 main track count 混算；有强相关 LLM / data / verification 主题时单独记录。 |
 
 ## 5. 论文名录与数量
@@ -83,6 +85,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 RV 2026 Tutorial proposal submission `2026-06-14` AoE，明确 tutorial track 与 paper submission 同日但不混入主论文计数。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 RV 2026 CFP extended 日期（submission `2026-06-14` AoE、notification `2026-07-30`、camera-ready `2026-08-10`、会期 `2026-10-06..09`）与 TIMELINE 一致，未改变官方来源口径。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟢 投稿中`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 RV 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

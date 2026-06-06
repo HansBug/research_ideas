@@ -1,6 +1,6 @@
 # IST 2027 README
 
-> 信息更新时间：`2026-06-05 18:24`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Special issues / topical collections | [ScienceDirect special issues](https://www.sciencedirect.com/journal/information-and-software-technology/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/information-and-software-technology/about/call-for-papers) |
 | Articles in press / online first | [Articles in Press](https://www.sciencedirect.com/journal/information-and-software-technology/articles-in-press) |
 | DBLP 年度页 | [DBLP index](https://dblp.org/db/journals/infsof/index.html) |
-| 当前年度状态 | 🟢 rolling 入口开放；年度卷期 / dated CFP 未公布 |
+| 当前年度状态 | 🟡 rolling 入口开放；ScienceDirect WAF/403，dated CFP 待浏览器核验 |
 
 ## 2. 年度核心 URL 索引
 
@@ -86,5 +86,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 11:46` | PR #35 近期窗口复审修复：把 IST 2027 年度状态降级为 `🟡 rolling 入口开放；ScienceDirect WAF/403，dated CFP 待浏览器核验`，避免误读为已确认 dated CFP。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 IST 2027 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为待人工浏览器核验，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 IST 2027 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

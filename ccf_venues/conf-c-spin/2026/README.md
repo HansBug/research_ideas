@@ -1,6 +1,6 @@
 # SPIN 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 官方年度主页 | [SPIN 2026](https://spin-web.github.io/SPIN2026/) |
 | 官方 CFP | [CFP](https://spin-web.github.io/SPIN2026/cfp) |
 | Important Dates | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) |
-| Submission system | 未公布 |
+| Submission system | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/spin/index.html) |
@@ -26,7 +26,7 @@
 | 官方年度主页 | [官方年度主页](https://spin-web.github.io/SPIN2026/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | CFP / Call for Papers | [CFP / Call for Papers](https://spin-web.github.io/SPIN2026/cfp) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Important Dates | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
+| Submission system | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/spin/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
@@ -47,7 +47,7 @@
 
 | Track / 类别 | 官方链接 | 是否关注 | 备注 |
 |---|---|---|---|
-| 主会 / research track | 待补或未公布 | 🟡 关注 | 若年度只保留 proceedings / DBLP fallback，后续需补 track 边界。 |
+| 主会 / research track | [CFP](https://spin-web.github.io/SPIN2026/cfp) / [EasyChair](https://easychair.org/conferences/?conf=spin2026) | 🟡 关注 | CFP 明确 EasyChair `SPIN 2026 Papers` track；后续 proceedings / DBLP count 仍需闭合。 |
 
 ## 5. 论文名录与数量
 
@@ -71,8 +71,9 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://spin-web.github.io/SPIN2026/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| CFP / Call for Papers | [CFP / Call for Papers](https://spin-web.github.io/SPIN2026/cfp) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| CFP / Call for Papers | [CFP / Call for Papers](https://spin-web.github.io/SPIN2026/cfp) | `2026-06-06 13:16` | 已记录为本年度入口；CFP 同页明确 EasyChair submission website。 |
 | Important Dates | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| Submission system | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) | `2026-06-06 13:16` | CFP 明确 papers should be submitted via EasyChair SPIN 2026 submission website。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/spin/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
@@ -90,4 +91,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：补齐 CFP 明确给出的 EasyChair SPIN 2026 submission website，避免投稿入口留空。 |
 | `2026-06-05 09:15` | PR-3 初始化 SPIN 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

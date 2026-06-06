@@ -1,6 +1,6 @@
 # REFSQ 2027 README
 
-> 信息更新时间：`2026-06-05 08:35`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -10,7 +10,7 @@
 | 年份 | 2027 |
 | 地点 | Switzerland（具体城市待补） |
 | 官方年度主页 | [REFSQ 2027](https://2027.refsq.org/) |
-| 官方 CFP | [Research](https://2027.refsq.org/track/refsq-2027-research) |
+| 官方 CFP | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) |
 | Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) |
 | Submission system | 未公布（Research track 页面尚未给投稿系统） |
 | Program / accepted papers | 未公布 |
@@ -22,14 +22,14 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [REFSQ 2027](https://2027.refsq.org/) | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 08:35` |
-| CFP / Call for Papers | [Research](https://2027.refsq.org/track/refsq-2027-research) | Research / main track 页面优先 | `2026-06-05 08:35` |
-| Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 08:35` |
-| Submission system | 未公布（Research track 页面尚未给投稿系统） | 历史年度若入口失效则待复核 | `2026-06-05 08:35` |
-| Tracks / program | [Research](https://2027.refsq.org/track/refsq-2027-research) | REFSQ 年度导航含 Research、Industry、Open Science、Education、Doctoral、Posters / Tools、Journal Early Feedback；计数时必须分开。 | `2026-06-05 08:35` |
-| Accepted papers / paper list | 未公布 | 已结束年度优先 official program / accepted papers | `2026-06-05 08:35` |
-| Proceedings | 未公布 | 出版商入口待补时使用 DBLP fallback | `2026-06-05 08:35` |
-| DBLP 年度页 | ⏳ 已检索未公布 | 仅作 fallback / 计数核验 | `2026-06-05 08:35` |
+| 年度主页 | [REFSQ 2027](https://2027.refsq.org/) | 官方年度主页；未公布年度不伪造 URL | `2026-06-06 13:16` |
+| CFP / Call for Papers | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | Research / main track 页面优先 | `2026-06-06 13:16` |
+| Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-06 13:16` |
+| Submission system | 未公布（Research track 页面尚未给投稿系统） | 历史年度若入口失效则待复核 | `2026-06-06 13:16` |
+| Tracks / program | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | REFSQ 年度导航含 Research、Industry、Open Science、Education、Doctoral、Posters / Tools、Journal Early Feedback；计数时必须分开。 | `2026-06-06 13:16` |
+| Accepted papers / paper list | 未公布 | 已结束年度优先 official program / accepted papers | `2026-06-06 13:16` |
+| Proceedings | 未公布 | 出版商入口待补时使用 DBLP fallback | `2026-06-06 13:16` |
+| DBLP 年度页 | ⏳ 已检索未公布 | 仅作 fallback / 计数核验 | `2026-06-06 13:16` |
 
 ## 3. 重要时间点
 
@@ -46,7 +46,7 @@
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
-| Research / main track | [Research](https://2027.refsq.org/track/refsq-2027-research) | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布 | 重点关注 | 本仓库默认只把该 track 作为 research 数量口径。 |
+| Research / main track | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布 | 重点关注 | 本仓库默认只把该 track 作为 research 数量口径；旧 `refsq-2027-research` 直链为 404，不得使用。 |
 | Industry / practice track | 待补或见年度导航 | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布 | 次要关注 | 只作为需求工程工业实践线索，不混入 research count。 |
 | Artifacts / Open Science / Posters / Tools | 待补或见年度导航 | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布 | 辅助关注 | 关注数据集、工具和 artifact policy；不混入主 research 数量。 |
 
@@ -72,10 +72,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [REFSQ 2027](https://2027.refsq.org/) | `2026-06-05 08:35` | 已按可访问状态记录；未公布年度写明未公布。 |
-| 官方 CFP / Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | `2026-06-05 08:35` | 已提取 research / main track 核心日期；具体时刻仍待补。 |
-| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 08:35` | 论文名录入口已记录；publisher proceedings 仍有待补项。 |
-| DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
+| 官方年度主页 | [REFSQ 2027](https://2027.refsq.org/) | `2026-06-06 13:16` | 已按可访问状态记录；未公布年度写明未公布。 |
+| 官方 CFP / Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | `2026-06-06 13:16` | 已提取 research / main track 核心日期；具体时刻仍待补。 |
+| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-06 13:16` | 论文名录入口已记录；publisher proceedings 仍有待补项。 |
+| DBLP fallback | ⏳ 已检索未公布 | `2026-06-06 13:16` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：修正 REFSQ 2027 Research Papers 官方 CFP 链接，旧 `refsq-2027-research` 直链为 404，不再使用。 |
 | `2026-06-05 08:35` | 初始化 REFSQ 2027 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |
