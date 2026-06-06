@@ -134,6 +134,16 @@ LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
 LG_C1_REDUCER_STATE_SCHEMA_VERSION = "lg-c1.reducer-json-state.v1"
 LG_E2_SEND_PARALLEL_SCHEMA_VERSION = "lg-e2.send-parallel-sd6.v1"
 LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER = "langgraph_send_parallel_scenario_checker"
+LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION = "lg-d2.llm-node-envelope.v1"
+LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION = "lg-d2.llm-node-envelope-event.v1"
+LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER = "langgraph_llm_node_envelope"
+LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES = {
+    "lg_d2_envelope_enter",
+    "lg_d2_retry",
+    "lg_d2_timeout",
+    "lg_d2_envelope_exit",
+    "lg_d2_retry_exhausted",
+}
 
 _LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES = (
     "graph_trace",
@@ -268,6 +278,475 @@ _LG_D1_ACADEMIC_EVIDENCE_SOURCES = [
     "AgentLoopRunRecord.scenario_history",
     "AgentLoopRunRecord.final_artifacts.final_dsl",
 ]
+
+
+def _canonical_json_payload(value: Any) -> str:
+    """Canonical JSON used for reproducible LG-D2 policy hashes."""
+
+    return json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False, default=str)
+
+
+def _hash_canonical_payload(value: Any) -> str:
+    return "sha256:" + hashlib.sha256(_canonical_json_payload(value).encode("utf-8")).hexdigest()
+
+
+def build_lg_d2_llm_node_envelope_policy() -> dict[str, Any]:
+    """Return the canonical LG-D2 node-level LLM envelope policy.
+
+    LG-D2 is intentionally an outer, LangGraph-visible diagnostics envelope. It
+    does not change the inner PR-B2 LLM-stage retry ledger, prompt, stream flag,
+    or ``max_tokens`` default.  The policy is hashed with canonical JSON so a
+    run record can later prove exactly which envelope contract was in force.
+    """
+
+    policy = {
+        "schema_version": LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION,
+        "enabled": True,
+        "max_envelope_attempts": 1,
+        "timeout_s": None,
+        "backoff": {"strategy": "none", "base_ms": 0, "max_ms": 0},
+        "jitter": {"enabled": False, "seed": 0},
+        "retryable_error_taxonomy": [
+            "provider_5xx",
+            "provider_502",
+            "provider_504",
+            "provider_error",
+            "network_error",
+            "timeout",
+            "stream_interrupted",
+            "schema_invalid",
+            "empty_output",
+        ],
+        "non_retryable_error_taxonomy": ["schema_contract_error", "stage_id_mismatch", "deterministic_feedback"],
+        "stream_default": True,
+        "max_tokens_default": None,
+        "outer_envelope_does_not_replace_inner_attempt_ledger": True,
+        "fake_clock_supported_for_tests": True,
+        "real_sleep_required_for_tests": False,
+    }
+    policy["policy_hash"] = _hash_canonical_payload(policy)
+    return policy
+
+
+def _lg_d2_retryable_taxonomy(policy: dict[str, Any] | None = None) -> set[str]:
+    policy = policy or build_lg_d2_llm_node_envelope_policy()
+    return {str(item) for item in policy.get("retryable_error_taxonomy", [])}
+
+
+def _lg_d2_error_kind_from_exception(exc: BaseException) -> str:
+    if isinstance(exc, TimeoutError):
+        return "timeout"
+    name = type(exc).__name__.lower()
+    message = str(exc).lower()
+    if "timeout" in name or "timeout" in message or "timed out" in message:
+        return "timeout"
+    if "stream" in name or "stream" in message:
+        return "stream_interrupted"
+    if "network" in name or "connection" in name or "network" in message or "connection" in message:
+        return "network_error"
+    if "502" in message:
+        return "provider_502"
+    if "504" in message:
+        return "provider_504"
+    if "5xx" in message or "500" in message or "503" in message:
+        return "provider_5xx"
+    return "provider_error"
+
+
+def _lg_d2_retry_error_for_exception(stage_id: StageId, exc: BaseException) -> dict[str, Any]:
+    error_kind = _lg_d2_error_kind_from_exception(exc)
+    return {
+        "error_kind": error_kind,
+        "error_message": f"{type(exc).__name__}: {str(exc)[:300]}",
+        "exception_type": type(exc).__name__,
+        "stage_id": stage_id.value,
+        "source": "lg_d2_llm_node_envelope",
+    }
+
+
+def _lg_d2_stage_meta_for_retry_error(stage_id: StageId, retry_error: dict[str, Any]) -> StageResultMeta:
+    meta = _meta(stage_id, ok=False, status=StageStatus.ERROR)
+    meta.stage_error = str(retry_error.get("error_message") or f"{stage_id.value} retry exhausted")
+    return meta
+
+
+def _lg_d2_envelope_safe_summary(value: Any, *, max_chars: int = 240) -> Any:
+    safe = _jsonable(value)
+    if isinstance(safe, str):
+        return {"text_hash": _hash_text(safe), "text_chars": len(safe)}
+    if isinstance(safe, list):
+        return {"item_count": len(safe), "items_hash": _hash_canonical_payload(safe)}
+    if isinstance(safe, dict):
+        out: dict[str, Any] = {}
+        for key, nested in safe.items():
+            key_text = str(key)
+            key_norm = key_text.lower()
+            if any(fragment in key_norm for fragment in ("prompt", "message", "raw", "output", "content", "text", "nl", "secret", "token", "api_key", "apikey")) or key_norm.endswith("_dsl") or key_norm == "dsl":
+                out[f"{key_text}_hash"] = _hash_canonical_payload(nested)
+                out[f"{key_text}_chars"] = len(_canonical_json_payload(nested))
+            elif isinstance(nested, (dict, list, tuple, set)):
+                out[f"{key_text}_hash"] = _hash_canonical_payload(nested)
+                out[f"{key_text}_count"] = len(nested)
+            else:
+                out[key_text] = nested
+        return out
+    text = str(safe)
+    return text if len(text) <= max_chars else {"text_hash": _hash_text(text), "text_chars": len(text)}
+
+
+def _lg_d2_latest_interaction_index(state: _RunState) -> int | None:
+    if not state.llm_interactions:
+        return None
+    return len(state.llm_interactions) - 1
+
+
+def _lg_d2_latest_attempt_index(interaction: dict[str, Any] | None) -> int | None:
+    attempts = interaction.get("attempts") if isinstance(interaction, dict) else None
+    if isinstance(attempts, list) and attempts:
+        return len(attempts) - 1
+    return None
+
+
+def _lg_d2_attempt_error_kind(attempt: Any) -> str | None:
+    if not isinstance(attempt, dict):
+        return None
+    for key in ("error_kind", "status", "kind"):
+        value = attempt.get(key)
+        if value:
+            text = str(value)
+            if text.lower() not in {"ok", "success", "passed"}:
+                return text
+    return None
+
+
+def _lg_d2_envelope_event(
+    *,
+    run_id: str,
+    event_type: str,
+    stage_id: StageId,
+    graph_node: str,
+    subgraph_id: str | None,
+    policy: dict[str, Any],
+    envelope_attempt_index: int = 0,
+    canonical_interaction_id: int | None = None,
+    canonical_attempt_index: int | None = None,
+    error_kind: str | None = None,
+    retryable: bool | None = None,
+    elapsed_ms: int = 0,
+    planned_sleep_ms: int = 0,
+    outcome: str | None = None,
+    safe_summary: Any | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "schema_version": LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
+        "event_type": event_type,
+        "stage_id": stage_id.value,
+        "graph_node": graph_node,
+        "subgraph_id": subgraph_id,
+        "policy_hash": policy.get("policy_hash"),
+        "envelope_attempt_index": envelope_attempt_index,
+        "canonical_interaction_id": canonical_interaction_id,
+        "canonical_attempt_index": canonical_attempt_index,
+        "error_kind": error_kind,
+        "retryable": retryable,
+        "elapsed_ms": int(elapsed_ms),
+        "planned_sleep_ms": int(planned_sleep_ms),
+        "outcome": outcome,
+        "safe_summary": _lg_d2_envelope_safe_summary(safe_summary or {}),
+        "does_not_replace_academic_evidence": True,
+    }
+    safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload)
+    if omitted_count:
+        safe_payload["omitted_raw_content_field_count"] = omitted_count
+    event = {
+        # LG-D2 events live inside the LG-D1 operator-log JSONL stream, so the
+        # top-level schema must remain LG-D1-compatible.  The LG-D2-specific
+        # schema is carried in payload["schema_version"] to keep existing
+        # stream-summary reconstruction and LG-C1 audit stable after upstream
+        # merges such as LG-F1 checkpoint/resume.
+        "schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
+        "run_id": str(run_id),
+        "event_type": event_type,
+        "timestamp": _utc_now(),
+        "node": graph_node,
+        "stage_id": stage_id.value,
+        "instrumentation_layer": LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
+        "payload": safe_payload,
+        "payload_hash": _hash_canonical_payload(safe_payload),
+    }
+    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
+    return event
+
+
+def _append_lg_d2_envelope_event(
+    graph_state: _GraphLoopState,
+    *,
+    event_type: str,
+    stage_id: StageId,
+    graph_node: str,
+    subgraph_id: str | None,
+    policy: dict[str, Any] | None = None,
+    envelope_attempt_index: int = 0,
+    canonical_interaction_id: int | None = None,
+    canonical_attempt_index: int | None = None,
+    error_kind: str | None = None,
+    retryable: bool | None = None,
+    elapsed_ms: int = 0,
+    planned_sleep_ms: int = 0,
+    outcome: str | None = None,
+    safe_summary: Any | None = None,
+) -> None:
+    if not bool(graph_state.get("operator_stream_enabled", True)):
+        return
+    runtime_state = graph_state.get("runtime_state")
+    run_id = getattr(runtime_state, "run_id", None) or graph_state.get("run_id") or ""
+    if not run_id:
+        return
+    policy = policy or build_lg_d2_llm_node_envelope_policy()
+    event = _lg_d2_envelope_event(
+        run_id=str(run_id),
+        event_type=event_type,
+        stage_id=stage_id,
+        graph_node=graph_node,
+        subgraph_id=subgraph_id,
+        policy=policy,
+        envelope_attempt_index=envelope_attempt_index,
+        canonical_interaction_id=canonical_interaction_id,
+        canonical_attempt_index=canonical_attempt_index,
+        error_kind=error_kind,
+        retryable=retryable,
+        elapsed_ms=elapsed_ms,
+        planned_sleep_ms=planned_sleep_ms,
+        outcome=outcome,
+        safe_summary=safe_summary,
+    )
+    events = list(graph_state.get("operator_events", []) or [])
+    events.append(event)
+    graph_state["operator_events"] = events
+    if isinstance(runtime_state, _RunState):
+        _append_flow_log(
+            runtime_state.logs,
+            event=event_type,
+            stage_id=stage_id.value,
+            graph_node=graph_node,
+            graph_subgraph=subgraph_id,
+            error_kind=error_kind,
+            outcome=outcome,
+            retryable=retryable,
+            policy_hash=policy.get("policy_hash"),
+        )
+
+
+def _lg_d2_emit_interaction_attempt_events(
+    graph_state: _GraphLoopState,
+    *,
+    stage_id: StageId,
+    graph_node: str,
+    subgraph_id: str | None,
+    policy: dict[str, Any],
+    interaction_index: int | None,
+    interaction: dict[str, Any] | None,
+) -> None:
+    attempts = interaction.get("attempts") if isinstance(interaction, dict) else None
+    if not isinstance(attempts, list):
+        return
+    taxonomy = _lg_d2_retryable_taxonomy(policy)
+    for index, attempt in enumerate(attempts):
+        error_kind = _lg_d2_attempt_error_kind(attempt)
+        if not error_kind:
+            continue
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_timeout" if error_kind == "timeout" else "lg_d2_retry",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            envelope_attempt_index=0,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=index,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="inner_attempt_failure_observed",
+            safe_summary={"attempt_index": index, "attempt": attempt},
+        )
+
+
+def _lg_d2_wrap_llm_stage_node(
+    graph_state: _GraphLoopState,
+    *,
+    stage_id: StageId,
+    graph_node: str,
+    subgraph_id: str | None,
+    call: Any,
+) -> Any:
+    """Run one stage-level LLM node under LG-D2 diagnostics envelope.
+
+    The wrapper is deliberately outside the PR-B2 stage adapter.  It records a
+    LangGraph-visible enter/exit/retry/exhausted ledger but keeps the inner
+    ``llm_interactions`` attempt ledger canonical.
+    """
+
+    runtime_state = graph_state.get("runtime_state")
+    policy = build_lg_d2_llm_node_envelope_policy()
+    if not isinstance(runtime_state, _RunState) or not bool(policy.get("enabled", True)):
+        return call()
+    before_count = len(runtime_state.llm_interactions)
+    _append_lg_d2_envelope_event(
+        graph_state,
+        event_type="lg_d2_envelope_enter",
+        stage_id=stage_id,
+        graph_node=graph_node,
+        subgraph_id=subgraph_id,
+        policy=policy,
+        envelope_attempt_index=0,
+        outcome="enter",
+        safe_summary={"before_llm_interaction_count": before_count},
+    )
+    try:
+        result = call()
+    except _LLMRetryExhausted as exc:
+        interaction_index = _lg_d2_latest_interaction_index(runtime_state)
+        interaction = runtime_state.llm_interactions[interaction_index] if interaction_index is not None else dict(exc.interaction or {})
+        attempt_index = _lg_d2_latest_attempt_index(interaction)
+        error_kind = exc.error_kind
+        taxonomy = _lg_d2_retryable_taxonomy(policy)
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_timeout" if error_kind == "timeout" else "lg_d2_retry_exhausted",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=attempt_index,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="exhausted",
+            safe_summary={"retry_error": exc.retry_error, "interaction_hash": _hash_canonical_payload(interaction)},
+        )
+        if error_kind == "timeout":
+            _append_lg_d2_envelope_event(
+                graph_state,
+                event_type="lg_d2_retry_exhausted",
+                stage_id=stage_id,
+                graph_node=graph_node,
+                subgraph_id=subgraph_id,
+                policy=policy,
+                canonical_interaction_id=interaction_index,
+                canonical_attempt_index=attempt_index,
+                error_kind=error_kind,
+                retryable=True,
+                outcome="exhausted",
+                safe_summary={"retry_error": exc.retry_error},
+            )
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_envelope_exit",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=attempt_index,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="exhausted",
+            safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
+        )
+        raise
+    except Exception as exc:
+        retry_error = _lg_d2_retry_error_for_exception(stage_id, exc)
+        interaction = {
+            "stage_id": stage_id.value,
+            "provider": "lg-d2-envelope",
+            "model_id": "outer-envelope",
+            "schema_validation_ok": False,
+            "retry_error": retry_error,
+            "retry_count": 0,
+            "attempts": [
+                {
+                    "status": retry_error["error_kind"],
+                    "error_kind": retry_error["error_kind"],
+                    "error_message": retry_error["error_message"],
+                    "source": "lg_d2_outer_envelope_exception",
+                }
+            ],
+        }
+        runtime_state.llm_interactions.append(interaction)
+        meta = _lg_d2_stage_meta_for_retry_error(stage_id, retry_error)
+        _append_stage(runtime_state.stage_records, meta)
+        exc_obj = _LLMRetryExhausted(stage_id=stage_id.value, retry_error=retry_error, interaction=interaction)
+        interaction_index = len(runtime_state.llm_interactions) - 1
+        error_kind = str(retry_error.get("error_kind") or "provider_error")
+        taxonomy = _lg_d2_retryable_taxonomy(policy)
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_timeout" if error_kind == "timeout" else "lg_d2_retry",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=0,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="exception_captured",
+            safe_summary={"exception_type": type(exc).__name__, "retry_error": retry_error},
+        )
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_retry_exhausted",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=0,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="exhausted",
+            safe_summary={"retry_error": retry_error},
+        )
+        _append_lg_d2_envelope_event(
+            graph_state,
+            event_type="lg_d2_envelope_exit",
+            stage_id=stage_id,
+            graph_node=graph_node,
+            subgraph_id=subgraph_id,
+            policy=policy,
+            canonical_interaction_id=interaction_index,
+            canonical_attempt_index=0,
+            error_kind=error_kind,
+            retryable=error_kind in taxonomy,
+            outcome="exhausted",
+            safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
+        )
+        raise exc_obj from exc
+    interaction_index = len(runtime_state.llm_interactions) - 1 if len(runtime_state.llm_interactions) > before_count else None
+    interaction = runtime_state.llm_interactions[interaction_index] if interaction_index is not None else None
+    _lg_d2_emit_interaction_attempt_events(
+        graph_state,
+        stage_id=stage_id,
+        graph_node=graph_node,
+        subgraph_id=subgraph_id,
+        policy=policy,
+        interaction_index=interaction_index,
+        interaction=interaction,
+    )
+    _append_lg_d2_envelope_event(
+        graph_state,
+        event_type="lg_d2_envelope_exit",
+        stage_id=stage_id,
+        graph_node=graph_node,
+        subgraph_id=subgraph_id,
+        policy=policy,
+        canonical_interaction_id=interaction_index,
+        canonical_attempt_index=_lg_d2_latest_attempt_index(interaction),
+        outcome="ok",
+        safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
+    )
+    return result
 
 
 class _PickleCheckpointSerde:
@@ -1024,11 +1503,19 @@ def _lg_c1_operator_log_audit(record: Any, graph_operator_events: list[dict[str,
     operator_log_events = _lg_c1_operator_log_events_from_record(record)
     graph_types = sorted({str(row.get("event_type") or row.get("event") or "") for row in graph_operator_events if isinstance(row, dict)})
     log_types = sorted({str(row.get("event_type") or row.get("event") or "") for row in operator_log_events if isinstance(row, dict)})
+    graph_lg_d2_count = sum(
+        1 for row in graph_operator_events if isinstance(row, dict) and str(row.get("event_type") or "").startswith("lg_d2_")
+    )
+    log_lg_d2_count = sum(
+        1 for row in operator_log_events if isinstance(row, dict) and str(row.get("event_type") or "").startswith("lg_d2_")
+    )
     return {
         "graph_state_operator_event_count": len(graph_operator_events),
         "operator_log_event_count": len(operator_log_events),
         "graph_state_event_types": graph_types,
         "operator_log_event_types": log_types,
+        "lg_d2_envelope_event_count": graph_lg_d2_count,
+        "operator_log_lg_d2_envelope_event_count": log_lg_d2_count,
         "operator_log_includes_graph_state_events": len(operator_log_events) >= len(graph_operator_events),
         "operator_log_missing_graph_state_event_types": [event_type for event_type in graph_types if event_type and event_type not in log_types],
         "operator_log_extra_event_types": [event_type for event_type in log_types if event_type and event_type not in graph_types],
@@ -2490,6 +2977,92 @@ def _llm_progress_operator_events(record: Any) -> list[dict[str, Any]]:
     return events
 
 
+def _lg_d2_event_signature(event: dict[str, Any]) -> tuple[str, str, str, str, str, str]:
+    payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+    return (
+        str(event.get("event_type") or ""),
+        str(event.get("stage_id") or ""),
+        str(event.get("node") or payload.get("graph_node") or ""),
+        str(payload.get("subgraph_id") or ""),
+        str(payload.get("error_kind") or ""),
+        str(payload.get("outcome") or ""),
+    )
+
+
+def _lg_d2_operator_events_from_flow_logs(record: Any, *, existing_events: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """Recover LG-D2 envelope events from canonical flow logs if graph updates drop them.
+
+    LangGraph does not commit a node's reducer-channel update when an inner
+    subgraph raises before returning a ``Command``.  The human/academic flow log
+    is still appended on the shared ``_RunState`` before the exception is
+    converted into an invalid run.  Reconstructing sanitized LG-D2 operator
+    events from that canonical log prevents retry-exhausted/timeout evidence
+    from disappearing after an upstream merge or checkpoint/resume path, without
+    changing stage order, retry semantics, prompts, or the inner PR-B2 attempt
+    ledger.
+
+    Normal non-exception paths already contain LG-D2 events in graph-state
+    reducer updates.  The signature check below therefore treats flow-log
+    recovery as a gap-filler, not a second source of duplicate evidence.
+    """
+
+    policy = build_lg_d2_llm_node_envelope_policy()
+    events: list[dict[str, Any]] = []
+    seen = {
+        _lg_d2_event_signature(event)
+        for event in (existing_events or [])
+        if isinstance(event, dict) and str(event.get("event_type") or "") in LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES
+    }
+    for flow_index, row in enumerate(getattr(record, "logs", []) or []):
+        if not isinstance(row, dict):
+            continue
+        event_type = str(row.get("event") or "")
+        if event_type not in LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES:
+            continue
+        stage_text = str(row.get("stage_id") or "")
+        try:
+            stage_id = StageId(stage_text)
+        except Exception:
+            continue
+        graph_node = str(row.get("graph_node") or "") or None
+        graph_subgraph = row.get("graph_subgraph")
+        subgraph_id = None if graph_subgraph in {None, "<none>", ""} else str(graph_subgraph)
+        signature = (
+            event_type,
+            stage_id.value,
+            graph_node or "unknown_lg_d2_flow_log_node",
+            str(subgraph_id or ""),
+            str(row.get("error_kind") or ""),
+            str(row.get("outcome") or ""),
+        )
+        if signature in seen:
+            continue
+        event = _lg_d2_envelope_event(
+            run_id=str(record.run_id),
+            event_type=event_type,
+            stage_id=stage_id,
+            graph_node=graph_node or "unknown_lg_d2_flow_log_node",
+            subgraph_id=subgraph_id,
+            policy=policy,
+            error_kind=row.get("error_kind"),
+            retryable=row.get("retryable") if isinstance(row.get("retryable"), bool) else None,
+            outcome=row.get("outcome"),
+            safe_summary={
+                "source": "record.logs fallback",
+                "flow_log_index": flow_index,
+                "policy_hash": row.get("policy_hash"),
+                "merge_conflict_resilient_recovery": True,
+            },
+        )
+        # Preserve the original flow-log timestamp where possible so JSONL order
+        # stays close to the terminal replay log; schema remains LG-D1-compatible.
+        if isinstance(row.get("ts"), str):
+            event["timestamp"] = row["ts"]
+        events.append(event)
+        seen.add(signature)
+    return events
+
+
 def _terminal_operator_event(record: Any, *, run_record_path_hash: str) -> dict[str, Any]:
     final_artifacts = record.final_artifacts if isinstance(record.final_artifacts, dict) else {}
     return build_lg_d1_operator_event(
@@ -2524,6 +3097,7 @@ def _write_lg_d1_operator_artifacts(
     full_events = _merge_operator_events([], operator_events)
     full_events = _merge_operator_events(full_events, _stage_result_operator_events(record))
     full_events = _merge_operator_events(full_events, _llm_progress_operator_events(record))
+    full_events = _merge_operator_events(full_events, _lg_d2_operator_events_from_flow_logs(record, existing_events=full_events))
     full_events.append(_terminal_operator_event(record, run_record_path_hash=run_record_path_hash))
 
     operator_log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3006,6 +3580,7 @@ def _graph_runtime_metadata(
 ) -> dict[str, Any]:
     lg_c1_contract = build_lg_c1_graph_state_contract()
     lg_e2_contract = build_lg_e2_send_parallel_contract()
+    lg_d2_policy = build_lg_d2_llm_node_envelope_policy()
     metadata = {
         "graph_runtime_backend": "langgraph",
         "graph_runtime_status": "enabled" if compat.get("ok") else "disabled_with_reason",
@@ -3039,6 +3614,11 @@ def _graph_runtime_metadata(
         "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
         "lg_e2_send_parallel_contract_hash": _hash_payload(lg_e2_contract),
         "lg_e2_send_parallel_ordering_key_fields": lg_e2_contract["ordering_key_fields"],
+        "llm_node_envelope_policy": lg_d2_policy,
+        "llm_node_envelope_policy_hash": lg_d2_policy["policy_hash"],
+        "lg_d2_llm_node_envelope_schema_version": LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION,
+        "lg_d2_llm_node_envelope_event_schema_version": LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
+        "lg_d2_llm_node_envelope_instrumentation_layer": LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
         "checkpoint_resume_smoke": _checkpoint_resume_smoke(),
         "langgraph_compat_smoke": compat,
         "dependency_versions": {
@@ -3200,72 +3780,68 @@ def _initial_run_id(nl: str, runtime_cfg: FullStagedRuntimeConfig) -> str:
 def _run_initial_modeling_node_logic(*, nl: str, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRuntimeAdapters, state: _RunState) -> None:
     if adapters.initial_modeling is None:
         return
-    try:
-        _append_flow_log(
-            state.logs,
-            event="stage_enter",
-            stage_id=StageId.SL_1_INITIAL_MODELING.value,
-            reason="initial_modeling_adapter_available",
-            nl_hash=_hash_text(nl),
-        )
-        initial_context = StageContext(nl=nl, current_dsl=state.current_dsl, grounding_map=runtime_cfg.grounding_map)
-        initial_run = adapters.initial_modeling(nl, initial_context)
-        initial_run = _append_llm_stage_run(
-            run=initial_run,
-            expected_stage_id=StageId.SL_1_INITIAL_MODELING,
-            stage_records=state.stage_records,
-            iteration_stage_metas=None,
-            llm_interactions=state.llm_interactions,
-            logs=state.logs,
-        )
-        if _is_llm_stage_run(initial_run):
-            parsed_output = getattr(initial_run, "parsed_output", {}) or {}
-            if isinstance(parsed_output, dict) and parsed_output.get("candidate_dsl"):
-                state.current_dsl = str(parsed_output["candidate_dsl"])
-                _append_flow_log(
-                    state.logs,
-                    event="stage_result",
-                    stage_id=StageId.SL_1_INITIAL_MODELING.value,
-                    ok=True,
-                    candidate_dsl_hash=_hash_text(state.current_dsl),
-                    grounding_seed_count=len(parsed_output.get("grounding_seeds") or []),
-                    assumption_count=len(parsed_output.get("assumptions") or []),
-                    jump="SD-2",
-                    candidate_dsl=state.current_dsl,
-                )
-                seeds = parsed_output.get("grounding_seeds") or []
-                assumptions = parsed_output.get("assumptions") or []
-                if seeds and runtime_cfg.grounding_map is None:
-                    try:
-                        runtime_cfg.grounding_map = GroundingMap(
-                            elements=[GroundedElement(**item) if isinstance(item, dict) else item for item in seeds],
-                            source_summary={
-                                "source_stage": StageId.SL_1_INITIAL_MODELING.value,
-                                "assumptions": assumptions,
-                            },
-                        )
-                    except Exception as exc:
-                        _append_flow_log(
-                            state.logs,
-                            event="grounding_seed_coercion_failed",
-                            level="warning",
-                            stage_id=StageId.SL_1_INITIAL_MODELING.value,
-                            message=str(exc),
-                        )
-        elif isinstance(initial_run, str) and initial_run:
-            state.current_dsl = initial_run
+    _append_flow_log(
+        state.logs,
+        event="stage_enter",
+        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+        reason="initial_modeling_adapter_available",
+        nl_hash=_hash_text(nl),
+    )
+    initial_context = StageContext(nl=nl, current_dsl=state.current_dsl, grounding_map=runtime_cfg.grounding_map)
+    initial_run = adapters.initial_modeling(nl, initial_context)
+    initial_run = _append_llm_stage_run(
+        run=initial_run,
+        expected_stage_id=StageId.SL_1_INITIAL_MODELING,
+        stage_records=state.stage_records,
+        iteration_stage_metas=None,
+        llm_interactions=state.llm_interactions,
+        logs=state.logs,
+    )
+    if _is_llm_stage_run(initial_run):
+        parsed_output = getattr(initial_run, "parsed_output", {}) or {}
+        if isinstance(parsed_output, dict) and parsed_output.get("candidate_dsl"):
+            state.current_dsl = str(parsed_output["candidate_dsl"])
             _append_flow_log(
                 state.logs,
                 event="stage_result",
                 stage_id=StageId.SL_1_INITIAL_MODELING.value,
                 ok=True,
                 candidate_dsl_hash=_hash_text(state.current_dsl),
+                grounding_seed_count=len(parsed_output.get("grounding_seeds") or []),
+                assumption_count=len(parsed_output.get("assumptions") or []),
                 jump="SD-2",
                 candidate_dsl=state.current_dsl,
             )
-    except _LLMRetryExhausted as exc:
-        _mark_retry_exhausted(state, exc)
-
+            seeds = parsed_output.get("grounding_seeds") or []
+            assumptions = parsed_output.get("assumptions") or []
+            if seeds and runtime_cfg.grounding_map is None:
+                try:
+                    runtime_cfg.grounding_map = GroundingMap(
+                        elements=[GroundedElement(**item) if isinstance(item, dict) else item for item in seeds],
+                        source_summary={
+                            "source_stage": StageId.SL_1_INITIAL_MODELING.value,
+                            "assumptions": assumptions,
+                        },
+                    )
+                except Exception as exc:
+                    _append_flow_log(
+                        state.logs,
+                        event="grounding_seed_coercion_failed",
+                        level="warning",
+                        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+                        message=str(exc),
+                    )
+    elif isinstance(initial_run, str) and initial_run:
+        state.current_dsl = initial_run
+        _append_flow_log(
+            state.logs,
+            event="stage_result",
+            stage_id=StageId.SL_1_INITIAL_MODELING.value,
+            ok=True,
+            candidate_dsl_hash=_hash_text(state.current_dsl),
+            jump="SD-2",
+            candidate_dsl=state.current_dsl,
+        )
 
 def _build_validation_subgraph(
     *,
@@ -3656,16 +4232,21 @@ def _build_validation_subgraph(
             previous_scenarios=previous_scenarios,
             scenario_epoch=scenario_epoch,
         )
-        generated = adapters.scenario_generate(request)
-        generated = _append_llm_stage_run(
-            run=generated,
-            expected_stage_id=StageId.SL_5_SCENARIO_GENERATION,
-            stage_records=runtime_state.stage_records,
-            iteration_stage_metas=graph_state["validation_stage_metas"],
-            llm_interactions=runtime_state.llm_interactions,
-            logs=runtime_state.logs,
-            iteration=iteration,
-            parsed_summary={"attempt_index": attempt_index, "kind": "scenario_generation" if retry_mode == "initial" else "scenario_refresh"},
+        generated = _lg_d2_wrap_llm_stage_node(
+            graph_state,
+            stage_id=StageId.SL_5_SCENARIO_GENERATION,
+            graph_node="validation_sl5_scenario_generation",
+            subgraph_id="validation_subgraph",
+            call=lambda: _append_llm_stage_run(
+                run=adapters.scenario_generate(request),
+                expected_stage_id=StageId.SL_5_SCENARIO_GENERATION,
+                stage_records=runtime_state.stage_records,
+                iteration_stage_metas=graph_state["validation_stage_metas"],
+                llm_interactions=runtime_state.llm_interactions,
+                logs=runtime_state.logs,
+                iteration=iteration,
+                parsed_summary={"attempt_index": attempt_index, "kind": "scenario_generation" if retry_mode == "initial" else "scenario_refresh"},
+            ),
         )
         raw_scenarios = list(getattr(generated, "parsed_output", []) or []) if _is_llm_stage_run(generated) else list(generated or [])
         scenarios, scenario_merge = _merge_scenario_sets_by_name(previous_scenarios, raw_scenarios)
@@ -4108,19 +4689,24 @@ def _build_validation_subgraph(
         }
         if isinstance(waiver_audit, dict):
             review_payload["waiver_audit"] = _jsonable(waiver_audit)
-        review_run = adapters.model_review(
-            runtime_state.current_dsl,
-            context,
-            review_payload,
-        )
-        review_run = _append_llm_stage_run(
-            run=review_run,
-            expected_stage_id=StageId.SL_7_MODEL_REVIEW,
-            stage_records=runtime_state.stage_records,
-            iteration_stage_metas=stage_metas,
-            llm_interactions=runtime_state.llm_interactions,
-            logs=runtime_state.logs,
-            iteration=iteration,
+        review_run = _lg_d2_wrap_llm_stage_node(
+            graph_state,
+            stage_id=StageId.SL_7_MODEL_REVIEW,
+            graph_node="validation_sl7_model_review",
+            subgraph_id="validation_subgraph",
+            call=lambda: _append_llm_stage_run(
+                run=adapters.model_review(
+                    runtime_state.current_dsl,
+                    context,
+                    review_payload,
+                ),
+                expected_stage_id=StageId.SL_7_MODEL_REVIEW,
+                stage_records=runtime_state.stage_records,
+                iteration_stage_metas=stage_metas,
+                llm_interactions=runtime_state.llm_interactions,
+                logs=runtime_state.logs,
+                iteration=iteration,
+            ),
         )
         if _is_llm_stage_run(review_run):
             review_feedback = getattr(review_run, "feedback", None)
@@ -4825,15 +5411,20 @@ def _build_repair_subgraph(
             rework_locked=attempt_rework_locked,
         )
         request.repair_memory = repair_memory_for_attempt
-        repair_run = adapters.repair(request)
-        repair_run = _append_llm_stage_run(
-            run=repair_run,
-            expected_stage_id=StageId.SL_9_REPAIR,
-            stage_records=runtime_state.stage_records,
-            iteration_stage_metas=None,
-            llm_interactions=runtime_state.llm_interactions,
-            logs=runtime_state.logs,
-            iteration=iteration,
+        repair_run = _lg_d2_wrap_llm_stage_node(
+            graph_state,
+            stage_id=StageId.SL_9_REPAIR,
+            graph_node="repair_sl9_repair",
+            subgraph_id="repair_subgraph",
+            call=lambda: _append_llm_stage_run(
+                run=adapters.repair(request),
+                expected_stage_id=StageId.SL_9_REPAIR,
+                stage_records=runtime_state.stage_records,
+                iteration_stage_metas=None,
+                llm_interactions=runtime_state.llm_interactions,
+                logs=runtime_state.logs,
+                iteration=iteration,
+            ),
         )
         parsed_output: Any = {}
         if _is_llm_stage_run(repair_run):
@@ -5131,15 +5722,20 @@ def _build_repair_subgraph(
                 graph_subgraph="repair_subgraph",
                 graph_node="repair_sl10_review",
             )
-            sl10_run = adapters.sl10_review(review_request, local_review)
-            sl10_run = _append_llm_stage_run(
-                run=sl10_run,
-                expected_stage_id=StageId.SL_10_REPAIR_REVIEW,
-                stage_records=runtime_state.stage_records,
-                iteration_stage_metas=None,
-                llm_interactions=runtime_state.llm_interactions,
-                logs=runtime_state.logs,
-                iteration=iteration,
+            sl10_run = _lg_d2_wrap_llm_stage_node(
+                graph_state,
+                stage_id=StageId.SL_10_REPAIR_REVIEW,
+                graph_node="repair_sl10_review",
+                subgraph_id="repair_subgraph",
+                call=lambda: _append_llm_stage_run(
+                    run=adapters.sl10_review(review_request, local_review),
+                    expected_stage_id=StageId.SL_10_REPAIR_REVIEW,
+                    stage_records=runtime_state.stage_records,
+                    iteration_stage_metas=None,
+                    llm_interactions=runtime_state.llm_interactions,
+                    logs=runtime_state.logs,
+                    iteration=iteration,
+                ),
             )
             if _is_llm_stage_run(sl10_run):
                 sl10_output = getattr(sl10_run, "feedback", None)
@@ -5643,7 +6239,16 @@ def _build_graph(
         graph_state = dict(graph_state)
         _trace_node(graph_state, "sl1_initial_modeling")
         runtime_state = graph_state["runtime_state"]
-        _run_initial_modeling_node_logic(nl=graph_state["nl"], runtime_cfg=runtime_cfg, adapters=adapters, state=runtime_state)
+        try:
+            _lg_d2_wrap_llm_stage_node(
+                graph_state,
+                stage_id=StageId.SL_1_INITIAL_MODELING,
+                graph_node="sl1_initial_modeling",
+                subgraph_id=None,
+                call=lambda: _run_initial_modeling_node_logic(nl=graph_state["nl"], runtime_cfg=runtime_cfg, adapters=adapters, state=runtime_state),
+            )
+        except _LLMRetryExhausted as exc:
+            _mark_retry_exhausted(runtime_state, exc)
         if runtime_cfg.max_iterations == 0 and runtime_state.verdict_source_stage_id is None:
             _mark_sc12_verdict(
                 runtime_state,
@@ -6523,8 +7128,15 @@ def _augment_run_record_with_lg_d1_operator_log(
         operator_events=operator_events,
         graph_stream_status=graph_stream_status,
     )
+    lg_d2_policy = build_lg_d2_llm_node_envelope_policy()
     record.run_config["lg_d1_operator_log_enabled"] = True
     record.run_config["instrumentation_layer_detail"] = LG_D1_INSTRUMENTATION_LAYER
+    record.run_config["llm_node_envelope_policy_hash"] = lg_d2_policy["policy_hash"]
+    record.environment["llm_node_envelope_policy"] = lg_d2_policy
+    record.environment["llm_node_envelope_policy_hash"] = lg_d2_policy["policy_hash"]
+    record.environment["lg_d2_llm_node_envelope_schema_version"] = LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION
+    record.environment["lg_d2_llm_node_envelope_event_schema_version"] = LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION
+    record.environment["lg_d2_llm_node_envelope_instrumentation_layer"] = LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER
     record.environment["lg_d1_operator_log_enabled"] = True
     record.environment["lg_d1_instrumentation_layer"] = LG_D1_INSTRUMENTATION_LAYER
     record.environment["lg_d1_graph_stream_status"] = graph_stream_status

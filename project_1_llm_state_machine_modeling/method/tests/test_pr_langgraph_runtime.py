@@ -2401,7 +2401,15 @@ def test_lg_d1_langgraph_stream_emits_node_stage_llm_and_terminal_events(tmp_pat
     assert any(event["node"] == "validation_pass" and event["event_type"] == "node_enter" for event in events)
     assert any(event["node"] == "sc13_trace_audit" and event["event_type"] == "terminal_verdict" for event in events)
     assert any(event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value for event in events)
-    assert all(event["instrumentation_layer"] == "langgraph_streaming" for event in events)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    assert d2_events
+    assert all(
+        event["instrumentation_layer"] == "langgraph_streaming"
+        for event in events
+        if not str(event.get("event_type") or "").startswith("lg_d2_")
+    )
+    assert all(event["instrumentation_layer"] == "langgraph_llm_node_envelope" for event in d2_events)
+    assert all(event["schema_version"] == "lg-d1.operator-event.v1" for event in d2_events)
     _assert_no_forbidden_operator_keys(events)
     assert record.final_artifacts["operator_log"]["langgraph_stream_status"] == "enabled"
     assert record.final_artifacts["operator_log"]["operator_event_count"] == len(events)
@@ -3602,3 +3610,124 @@ def test_lg_e2_worker_mutation_is_isolated_and_canonical_serial_is_used(tmp_path
     ]
     assert "MUTATED::" not in json.dumps(record.scenario_history, ensure_ascii=False, sort_keys=True)
     assert record.final_artifacts["verdict"] == "success"
+
+
+# PR-LG-D2 Retry / timeout envelope contract tests.
+
+def _initial_modeling_llm_run_with_retry_attempts(_nl: str, _context: StageContext) -> Any:
+    run = _initial_modeling_llm_run_with_stream_usage(_nl, _context)
+    run.interaction["attempts"] = [
+        {"status": "schema_invalid", "error_kind": "schema_invalid", "error_message": "first parse failed"},
+        {"status": "ok", "usage": {"stream": True, "chunk_count": 5}},
+    ]
+    run.interaction["retry_count"] = 1
+    return run
+
+
+def test_lg_d2_policy_hash_is_canonical_and_recorded(tmp_path: Path) -> None:
+    from method.langgraph_runtime import build_lg_d2_llm_node_envelope_policy
+
+    policy_a = build_lg_d2_llm_node_envelope_policy()
+    policy_b = build_lg_d2_llm_node_envelope_policy()
+
+    assert policy_a["schema_version"] == "lg-d2.llm-node-envelope.v1"
+    assert policy_a["enabled"] is True
+    assert policy_a["max_envelope_attempts"] >= 1
+    assert policy_a["stream_default"] is True
+    assert policy_a["max_tokens_default"] is None
+    assert policy_a["policy_hash"] == policy_b["policy_hash"]
+    assert "provider_5xx" in policy_a["retryable_error_taxonomy"]
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-policy-recorded",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+
+    assert record.environment["llm_node_envelope_policy"]["policy_hash"] == policy_a["policy_hash"]
+    assert record.environment["llm_node_envelope_policy_hash"] == policy_a["policy_hash"]
+    assert record.run_config["llm_node_envelope_policy_hash"] == policy_a["policy_hash"]
+
+
+def test_lg_d2_successful_llm_node_records_enter_retry_exit_events(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-success-events",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_retry_attempts),
+        )
+    )
+
+    events = _read_operator_events(record)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    event_types = [event["event_type"] for event in d2_events]
+
+    assert "lg_d2_envelope_enter" in event_types
+    assert "lg_d2_retry" in event_types
+    assert "lg_d2_envelope_exit" in event_types
+    retry_event = next(event for event in d2_events if event["event_type"] == "lg_d2_retry")
+    assert retry_event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    assert retry_event["node"] == "sl1_initial_modeling"
+    assert retry_event["payload"]["graph_node"] == "sl1_initial_modeling"
+    assert retry_event["payload"]["subgraph_id"] is None
+    assert retry_event["payload"]["error_kind"] == "schema_invalid"
+    assert retry_event["payload"]["policy_hash"] == record.environment["llm_node_envelope_policy_hash"]
+    assert retry_event["payload"]["canonical_attempt_index"] == 0
+    assert retry_event["payload"]["canonical_interaction_id"] == 0
+    for event in d2_events:
+        _assert_no_forbidden_operator_keys(event)
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    audit = readiness["operator_log_audit"]
+    assert audit["lg_d2_envelope_event_count"] == len(d2_events)
+    assert audit["operator_log_missing_graph_state_event_types"] == []
+
+
+def test_lg_d2_validation_retry_exhausted_keeps_subgraph_event_and_invalid_run(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-sl5-exhausted",
+            adapters=_adapters_with(scenario_generate=lambda _request: _retry_exhausted_run(StageId.SL_5_SCENARIO_GENERATION, "empty_output")),
+        )
+    )
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "empty_output"
+
+    events = _read_operator_events(record)
+    exhausted = [event for event in events if event.get("event_type") == "lg_d2_retry_exhausted"]
+    assert exhausted
+    event = exhausted[-1]
+    assert event["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert event["node"] == "validation_sl5_scenario_generation"
+    assert event["payload"]["graph_node"] == "validation_sl5_scenario_generation"
+    assert event["payload"]["subgraph_id"] == "validation_subgraph"
+    assert event["payload"]["error_kind"] == "empty_output"
+    assert event["payload"]["outcome"] == "exhausted"
+
+
+def test_lg_d2_timeout_exception_is_converted_to_retry_exhausted_event(tmp_path: Path) -> None:
+    def timeout_initial(_nl: str, _context: StageContext) -> Any:
+        raise TimeoutError("synthetic provider timeout")
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-timeout-exception",
+            adapters=_adapters_with(initial_modeling=timeout_initial),
+        )
+    )
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+    events = _read_operator_events(record)
+    assert any(event.get("event_type") == "lg_d2_timeout" for event in events)
+    exhausted = [event for event in events if event.get("event_type") == "lg_d2_retry_exhausted"]
+    assert exhausted[-1]["payload"]["error_kind"] == "timeout"
