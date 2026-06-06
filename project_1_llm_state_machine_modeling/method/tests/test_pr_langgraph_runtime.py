@@ -3344,6 +3344,34 @@ def test_lg_e2_canonical_order_uses_frozen_scenario_index_before_name() -> None:
 
 
 
+
+
+def test_lg_e2_metadata_handles_setup_error_without_scenario_results() -> None:
+    from method.langgraph_runtime import _lg_e2_metadata_for_feedback
+
+    metadata = _lg_e2_metadata_for_feedback(
+        enabled_requested=True,
+        preflight={
+            "parallel_send_enabled": False,
+            "fallback_reason": "serial_setup_error",
+            "send_api_import_ok": True,
+        },
+        scenario_set=ScenarioSet(
+            scenario_set_id="lg-e2-setup-error",
+            scenarios=[],
+            source_dsl_hash="sha256:dsl",
+            epoch=0,
+        ),
+        feedback=SimFeedback(ok=False, setup_error="sim setup failed before per-scenario execution"),
+        scenario_history=[],
+        worker_results=[],
+    )
+
+    assert metadata["first_blocking_id"].startswith("setup_error:sha256:")
+    assert metadata["selected_feedback_digest"]["selected"]["failing_scenario_names"] == []
+    assert metadata["serial_equivalence_hash"].startswith("sha256:")
+
+
 def test_lg_e2_selected_feedback_digest_uses_scenario_index_for_first_blocking() -> None:
     from method.langgraph_runtime import _lg_e2_selected_feedback_digest
 

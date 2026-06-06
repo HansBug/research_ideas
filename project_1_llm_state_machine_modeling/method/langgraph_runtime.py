@@ -1424,6 +1424,19 @@ def _lg_e2_aggregate_worker_results(
     return feedback, meta, canonical
 
 
+def _lg_e2_first_blocking_id(selected_digest: dict[str, Any]) -> str | None:
+    selected = selected_digest.get("selected") if isinstance(selected_digest, dict) else None
+    if not isinstance(selected, dict):
+        return None
+    names = selected.get("failing_scenario_names")
+    if isinstance(names, list) and names:
+        return str(names[0])
+    setup_hash = selected.get("setup_error_hash")
+    if setup_hash:
+        return f"setup_error:{setup_hash}"
+    return None
+
+
 def _lg_e2_metadata_for_feedback(
     *,
     enabled_requested: bool,
@@ -1471,11 +1484,7 @@ def _lg_e2_metadata_for_feedback(
         "coverage_summary": _lg_e2_coverage_summary(scenario_set),
         "coverage_summary_hash": _lg_e2_coverage_summary(scenario_set)["coverage_summary_hash"],
         "selected_feedback_digest": selected_digest,
-        "first_blocking_id": (
-            selected_digest.get("selected", {}).get("failing_scenario_names", [None])[0]
-            if isinstance(selected_digest.get("selected"), dict)
-            else None
-        ),
+        "first_blocking_id": _lg_e2_first_blocking_id(selected_digest),
         "scenario_epoch": scenario_set.epoch,
         "oracle_weak": bool(feedback.oracle_weak),
         "serial_equivalence_hash": _hash_payload(serial_payload),
