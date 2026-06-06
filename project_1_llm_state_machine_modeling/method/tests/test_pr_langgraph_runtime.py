@@ -3731,3 +3731,104 @@ def test_lg_d2_timeout_exception_is_converted_to_retry_exhausted_event(tmp_path:
     assert any(event.get("event_type") == "lg_d2_timeout" for event in events)
     exhausted = [event for event in events if event.get("event_type") == "lg_d2_retry_exhausted"]
     assert exhausted[-1]["payload"]["error_kind"] == "timeout"
+
+
+def test_lg_d2_transient_timeout_exception_retries_and_succeeds(tmp_path: Path) -> None:
+    calls = {"count": 0}
+
+    def transient_timeout_initial(nl: str, context: StageContext) -> Any:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise TimeoutError("synthetic provider timeout before first token")
+        return _initial_modeling_llm_run_with_stream_usage(nl, context)
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-transient-timeout-retry-success",
+            adapters=_adapters_with(initial_modeling=transient_timeout_initial),
+        )
+    )
+
+    assert calls["count"] == 2
+    assert record.status == "success"
+    events = _read_operator_events(record)
+    d2_events = [event for event in events if str(event.get("event_type") or "").startswith("lg_d2_")]
+    assert any(event["event_type"] == "lg_d2_timeout" and event["payload"]["outcome"] == "retry_planned" for event in d2_events)
+    assert any(
+        event["event_type"] == "lg_d2_envelope_exit"
+        and event["stage_id"] == StageId.SL_1_INITIAL_MODELING.value
+        and event["payload"]["outcome"] == "ok"
+        and event["payload"]["envelope_attempt_index"] == 1
+        for event in d2_events
+    )
+    assert record.final_artifacts["verdict"] == "success"
+    assert "verdict_not_success" not in str(record.final_artifacts.get("exclusion_reason") or "")
+    assert not any(
+        isinstance(interaction, dict)
+        and interaction.get("provider") == "lg-d2-envelope"
+        and interaction.get("retry_error")
+        for interaction in record.llm_interactions
+    )
+
+
+def test_lg_d2_local_contract_exception_is_not_disguised_as_provider_error(tmp_path: Path) -> None:
+    def broken_initial(_nl: str, _context: StageContext) -> Any:
+        raise TypeError("local adapter contract violated")
+
+    with pytest.raises(TypeError, match="local adapter contract violated"):
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-d2-local-typeerror-not-provider-error",
+            adapters=_adapters_with(initial_modeling=broken_initial),
+        )
+
+
+def test_lg_d2_flow_log_fallback_signature_keeps_repeated_iteration_events() -> None:
+    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+
+    record = SimpleNamespace(
+        run_id="lg-d2-repeated-flow-fallback",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_retry_exhausted",
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "iteration": 0,
+                "graph_node": "validation_sl5_scenario_generation",
+                "graph_subgraph": "validation_subgraph",
+                "error_kind": "empty_output",
+                "retryable": True,
+                "outcome": "exhausted",
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_retry_exhausted",
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "iteration": 1,
+                "graph_node": "validation_sl5_scenario_generation",
+                "graph_subgraph": "validation_subgraph",
+                "error_kind": "empty_output",
+                "retryable": True,
+                "outcome": "exhausted",
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=[])
+
+    assert len(events) == 2
+    assert [event["timestamp"] for event in events] == ["2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z"]
+    assert all(event["event_type"] == "lg_d2_retry_exhausted" for event in events)
+    assert {event["payload"]["safe_summary"]["flow_log_index"] for event in events} == {0, 1}
+
+
+def test_lg_d2_provider_status_code_classification_precedes_generic_timeout_and_connection_words() -> None:
+    from method.langgraph_runtime import _lg_d2_error_kind_from_exception
+
+    assert _lg_d2_error_kind_from_exception(RuntimeError("HTTP 504 Gateway Timeout from Cloudflare")) == "provider_504"
+    assert _lg_d2_error_kind_from_exception(RuntimeError("Connection failed with upstream HTTP 502")) == "provider_502"
+    assert _lg_d2_error_kind_from_exception(RuntimeError("provider 503 connection reset")) == "provider_5xx"
+    assert _lg_d2_error_kind_from_exception(TimeoutError("plain socket timed out")) == "timeout"
