@@ -28,6 +28,11 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, TypedDict
 
+try:  # Python 3.10 compatibility for LangGraph reducer annotations.
+    from typing import Annotated
+except ImportError:  # pragma: no cover - depends on interpreter minor version.
+    from typing_extensions import Annotated
+
 try:  # Python 3.10 compatibility for the repo venv.
     from typing import NotRequired
 except ImportError:  # pragma: no cover - depends on interpreter minor version.
@@ -120,6 +125,61 @@ LG_D1_INSTRUMENTATION_LAYER = "langgraph_streaming"
 LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
 LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER = "fixed_toolnode_wrapper"
 LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
+LG_C1_REDUCER_STATE_SCHEMA_VERSION = "lg-c1.reducer-json-state.v1"
+
+_LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES = (
+    "graph_trace",
+    "operator_events",
+    "toolnode_wrapper_events",
+    "stage_record_events",
+    "llm_interaction_events",
+    "fix_log_events",
+    "scenario_history_events",
+    "repair_history_events",
+)
+_LG_C1_JSON_SAFE_CHANNEL_NAMES = (
+    "nl",
+    "run_id",
+    "iteration",
+    "iteration_stage_start",
+    "validation_ref",
+    "iteration_record",
+    "selected_trace",
+    "accepted",
+    "repair_patch",
+    "runtime_error",
+    "operator_stream_enabled",
+    "toolnode_wrapper_enabled",
+    *_LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES,
+)
+_LG_C1_LIVE_OBJECT_CHANNEL_NAMES = (
+    "runtime_state",
+    "runtime_result",
+    "validation_result",
+    "validation_context",
+    "validation_feedback",
+    "validation_stage_metas",
+    "validation_scenario_set",
+    "validation_continuation_source",
+    "repair_validation",
+    "repair_selected_feedback",
+    "repair_fix_plan",
+    "repair_effective_fix_plan",
+    "repair_request_batch",
+    "repair_active_request_batch",
+    "repair_sl9_decision",
+    "repair_request",
+    "repair_local_review",
+    "repair_local_meta",
+    "repair_local_sd10_repair_review",
+    "repair_sl10_output",
+    "repair_repair_review",
+    "repair_last_repair_review",
+    "repair_last_sl10_output",
+    "waiver_validation_source",
+    "waiver_result",
+)
+_LG_C1_CHECKPOINT_SERDE_MODE = "pickle_for_live_object_bridge_with_json_safe_reducer_channels"
 
 _VALID_RECORD_STATUSES = {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}
 _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
@@ -226,12 +286,55 @@ class _CompatState(TypedDict, total=False):
     value: int
 
 
+def _lg_c1_event_key(event: Any) -> str:
+    return json.dumps(_jsonable(event), ensure_ascii=False, sort_keys=True, default=str)
+
+
+def _lg_c1_append_only_reducer(existing: list[dict[str, Any]] | None, new_events: Any) -> list[dict[str, Any]]:
+    """Merge append-only LangGraph channels without duplicating full-state updates.
+
+    Most current graph nodes still return a full state dict.  A naive ``operator.add``
+    reducer would therefore duplicate every previously emitted trace event when a
+    node returns ``{"graph_trace": old + [new]}``.  LG-C1 keeps the public stage
+    semantics unchanged and uses a prefix-aware reducer instead:
+
+    - if the incoming value is the full ledger with the old prefix, accept it;
+    - if the incoming value is an older prefix, keep the existing ledger;
+    - otherwise append only events that are not already present.
+    """
+
+    old = list(existing or [])
+    if new_events is None:
+        return old
+    incoming = list(new_events if isinstance(new_events, list) else [new_events])
+    if not incoming:
+        return old
+    if len(incoming) >= len(old) and incoming[: len(old)] == old:
+        return incoming
+    if len(old) >= len(incoming) and old[: len(incoming)] == incoming:
+        return old
+    merged = list(old)
+    seen = {_lg_c1_event_key(item) for item in merged}
+    for item in incoming:
+        key = _lg_c1_event_key(item)
+        if key in seen:
+            continue
+        merged.append(item)
+        seen.add(key)
+    return merged
+
+
 class _GraphLoopState(TypedDict, total=False):
     nl: str
-    graph_trace: list[dict[str, Any]]
-    operator_events: list[dict[str, Any]]
+    graph_trace: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    operator_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
     operator_stream_enabled: bool
-    toolnode_wrapper_events: list[dict[str, Any]]
+    toolnode_wrapper_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    stage_record_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    llm_interaction_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    fix_log_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    scenario_history_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
+    repair_history_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
     toolnode_wrapper_enabled: bool
     run_id: str
     runtime_state: Any
@@ -348,6 +451,285 @@ def _jsonable(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
         return _jsonable(asdict(value))
     return str(value)
+
+
+def build_lg_c1_graph_state_contract() -> dict[str, Any]:
+    """Return LG-C1's reducer / JSON-safe graph-state boundary contract.
+
+    This is deliberately a boundary contract, not a durable-resume claim.  The
+    real agent loop still carries live ``_RunState`` / validation / repair
+    objects through LangGraph and therefore still uses pickle for in-memory
+    checkpoints.  LG-C1 only makes the append-only evidence mirrors explicit as
+    reducer channels and records which parts are JSON-safe.
+    """
+
+    return {
+        "schema_version": LG_C1_REDUCER_STATE_SCHEMA_VERSION,
+        "append_only_reducer_channel_names": list(_LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES),
+        "json_safe_channel_names": list(_LG_C1_JSON_SAFE_CHANNEL_NAMES),
+        "live_object_channel_names": list(_LG_C1_LIVE_OBJECT_CHANNEL_NAMES),
+        "pickle_required_channel_names": list(_LG_C1_LIVE_OBJECT_CHANNEL_NAMES),
+        "checkpoint_serde": "pickle",
+        "checkpoint_serde_mode": _LG_C1_CHECKPOINT_SERDE_MODE,
+        "checkpoint_backend": "memory",
+        "checkpoint_backend_type": "InMemorySaver",
+        "real_agent_loop_json_checkpoint_supported": False,
+        "real_agent_loop_resume_supported": False,
+        "real_agent_loop_resume_scope": "not_claimed_in_LG_C1",
+        "json_safe_scope": (
+            "append-only reducer mirrors and graph-state readiness metadata only; "
+            "canonical academic evidence remains in AgentLoopRunRecord"
+        ),
+        "live_object_boundary_reason": (
+            "runtime_state, validation/repair working objects, adapter outputs and "
+            "pyfcstm/scenario objects are still live Python objects in the graph"
+        ),
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+    }
+
+
+def _lg_c1_stage_record_events(stage_records: list[Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, row in enumerate(stage_records or []):
+        safe = _jsonable(row)
+        if not isinstance(safe, dict):
+            safe = {"value": safe}
+        events.append(
+            {
+                "index": index,
+                "stage_id": str(safe.get("stage_id") or ""),
+                "stage_kind": str(safe.get("stage_kind") or ""),
+                "status": str(safe.get("status") or ""),
+                "ok": bool(safe.get("ok")) if isinstance(safe.get("ok"), bool) else safe.get("ok"),
+                "payload_hash": _hash_payload(safe),
+            }
+        )
+    return events
+
+
+def _lg_c1_llm_interaction_events(llm_interactions: list[Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, row in enumerate(llm_interactions or []):
+        safe = _jsonable(row)
+        if not isinstance(safe, dict):
+            safe = {"value": safe}
+        usage = safe.get("usage") if isinstance(safe.get("usage"), dict) else {}
+        events.append(
+            {
+                "index": index,
+                "stage_id": str(safe.get("stage_id") or ""),
+                "schema_validation_ok": safe.get("schema_validation_ok"),
+                "stream": usage.get("stream") if isinstance(usage, dict) else None,
+                "payload_hash": _hash_payload(safe),
+            }
+        )
+    return events
+
+
+def _lg_c1_fix_log_events(fix_log: list[Any]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, row in enumerate(fix_log or []):
+        safe = _jsonable(row)
+        if not isinstance(safe, dict):
+            safe = {"value": safe}
+        events.append(
+            {
+                "index": index,
+                "entry_id": str(safe.get("entry_id") or ""),
+                "phase": str(safe.get("phase") or ""),
+                "request_id": str(safe.get("request_id") or ""),
+                "decision": str(safe.get("decision") or ""),
+                "candidate_dsl_hash": safe.get("candidate_dsl_hash"),
+                "payload_hash": _hash_payload(safe),
+            }
+        )
+    return events
+
+
+def _lg_c1_generic_history_events(rows: list[Any], *, id_key: str | None = None) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, row in enumerate(rows or []):
+        safe = _jsonable(row)
+        if not isinstance(safe, dict):
+            safe = {"value": safe}
+        event = {"index": index, "payload_hash": _hash_payload(safe)}
+        if id_key:
+            event[id_key] = str(safe.get(id_key) or "")
+        for optional_key in ("name", "stage_id", "source_stage", "scenario_set_id", "decision", "phase"):
+            if optional_key in safe and optional_key not in event:
+                event[optional_key] = _jsonable(safe.get(optional_key))
+        events.append(event)
+    return events
+
+
+def _sync_lg_c1_canonical_mirror_channels(graph_state: _GraphLoopState) -> None:
+    """Mirror canonical ledgers into JSON-safe reducer channels.
+
+    The mirrors are hash/summary ledgers.  They are useful for checkpoint
+    readiness and reducer audits, but they do not become the final verdict source.
+    """
+
+    runtime_state = graph_state.get("runtime_state")
+    if not isinstance(runtime_state, _RunState):
+        return
+    graph_state["stage_record_events"] = _lg_c1_stage_record_events(runtime_state.stage_records)
+    graph_state["llm_interaction_events"] = _lg_c1_llm_interaction_events(runtime_state.llm_interactions)
+    graph_state["fix_log_events"] = _lg_c1_fix_log_events(runtime_state.fix_log)
+    graph_state["scenario_history_events"] = _lg_c1_generic_history_events(
+        runtime_state.scenario_history,
+        id_key="scenario_set_id",
+    )
+    graph_state["repair_history_events"] = _lg_c1_generic_history_events(runtime_state.repair_history)
+
+
+def _lg_c1_json_serialization_audit(channel_values: dict[str, Any]) -> dict[str, Any]:
+    failures: dict[str, str] = {}
+    for channel, value in channel_values.items():
+        try:
+            json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, allow_nan=False, default=str)
+        except Exception as exc:  # pragma: no cover - failure shape is asserted by callers if ever triggered.
+            failures[channel] = f"{type(exc).__name__}: {str(exc)[:200]}"
+    return {
+        "all_json_safe_reducer_channels_serializable": not failures,
+        "failure_count": len(failures),
+        "failures": failures,
+    }
+
+
+def _lg_c1_channel_summary(value: Any) -> dict[str, Any]:
+    safe = _jsonable(value if value is not None else [])
+    count = len(safe) if isinstance(safe, list) else (len(safe) if isinstance(safe, dict) else 0)
+    return {
+        "count": count,
+        "payload_hash": _hash_payload(safe),
+    }
+
+
+def _lg_c1_hash_sequence(rows: list[Any]) -> list[str]:
+    return [_hash_payload(_jsonable(row)) for row in rows or []]
+
+
+def _build_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState) -> dict[str, Any]:
+    contract = build_lg_c1_graph_state_contract()
+    reducer_channel_values = {
+        channel: _jsonable(graph_state.get(channel, []))
+        for channel in contract["append_only_reducer_channel_names"]
+    }
+    # The final run record can be redacted during ``_build_record``.  For
+    # canonical academic ledgers, final readiness must therefore mirror the
+    # exact persisted ``AgentLoopRunRecord`` fields, not the pre-redaction live
+    # ``_RunState`` objects.  Graph-only traces remain sourced from graph state.
+    reducer_channel_values["stage_record_events"] = _lg_c1_stage_record_events(record.stage_records)
+    reducer_channel_values["llm_interaction_events"] = _lg_c1_llm_interaction_events(record.llm_interactions)
+    reducer_channel_values["fix_log_events"] = _lg_c1_fix_log_events(record.fix_log)
+    reducer_channel_values["scenario_history_events"] = _lg_c1_generic_history_events(
+        record.scenario_history,
+        id_key="scenario_set_id",
+    )
+    reducer_channel_values["repair_history_events"] = _lg_c1_generic_history_events(record.repair_history)
+    canonical_stage_hashes = _lg_c1_hash_sequence(record.stage_records)
+    canonical_llm_hashes = _lg_c1_hash_sequence(record.llm_interactions)
+    canonical_fix_hashes = _lg_c1_hash_sequence(record.fix_log)
+    canonical_scenario_hashes = _lg_c1_hash_sequence(record.scenario_history)
+    canonical_repair_hashes = _lg_c1_hash_sequence(record.repair_history)
+
+    def event_hashes(channel: str) -> list[str]:
+        rows = reducer_channel_values.get(channel) or []
+        return [str(row.get("payload_hash") or "") for row in rows if isinstance(row, dict)]
+
+    consistency = {
+        "stage_records_match": event_hashes("stage_record_events") == canonical_stage_hashes,
+        "llm_interactions_match": event_hashes("llm_interaction_events") == canonical_llm_hashes,
+        "fix_log_match": event_hashes("fix_log_events") == canonical_fix_hashes,
+        "scenario_history_match": event_hashes("scenario_history_events") == canonical_scenario_hashes,
+        "repair_history_match": event_hashes("repair_history_events") == canonical_repair_hashes,
+    }
+    return {
+        **contract,
+        "final_reducer_channel_summaries": {
+            channel: _lg_c1_channel_summary(value)
+            for channel, value in reducer_channel_values.items()
+        },
+        "final_reducer_channel_events": reducer_channel_values,
+        "final_reducer_channel_event_sources": {
+            "graph_trace": "LangGraph graph state reducer channel",
+            "operator_events": "LangGraph graph state reducer channel",
+            "toolnode_wrapper_events": "LangGraph graph state reducer channel",
+            "stage_record_events": "persisted AgentLoopRunRecord.stage_records",
+            "llm_interaction_events": "persisted AgentLoopRunRecord.llm_interactions",
+            "fix_log_events": "persisted AgentLoopRunRecord.fix_log",
+            "scenario_history_events": "persisted AgentLoopRunRecord.scenario_history",
+            "repair_history_events": "persisted AgentLoopRunRecord.repair_history",
+        },
+        "mirror_canonical_consistency": consistency,
+        "mirror_canonical_consistency_ok": all(consistency.values()),
+        "json_serialization_audit": _lg_c1_json_serialization_audit(reducer_channel_values),
+        "canonical_counts": {
+            "stage_records": len(record.stage_records),
+            "llm_interactions": len(record.llm_interactions),
+            "fix_log": len(record.fix_log),
+            "scenario_history": len(record.scenario_history),
+            "repair_history": len(record.repair_history),
+        },
+    }
+
+
+def _inject_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState) -> None:
+    readiness = _build_lg_c1_graph_state_readiness(record, graph_state)
+    contract = {
+        key: readiness[key]
+        for key in (
+            "schema_version",
+            "append_only_reducer_channel_names",
+            "json_safe_channel_names",
+            "live_object_channel_names",
+            "pickle_required_channel_names",
+            "checkpoint_serde",
+            "checkpoint_serde_mode",
+            "checkpoint_backend",
+            "checkpoint_backend_type",
+            "real_agent_loop_json_checkpoint_supported",
+            "real_agent_loop_resume_supported",
+            "real_agent_loop_resume_scope",
+            "json_safe_scope",
+            "live_object_boundary_reason",
+            "does_not_replace_academic_evidence",
+            "academic_evidence_sources",
+        )
+    }
+    record.run_config["lg_c1_graph_state_contract"] = contract
+    record.environment.update(
+        {
+            "lg_c1_reducer_state_schema_version": readiness["schema_version"],
+            "lg_c1_append_only_reducer_channel_names": readiness["append_only_reducer_channel_names"],
+            "lg_c1_json_safe_channel_names": readiness["json_safe_channel_names"],
+            "lg_c1_live_object_channel_names": readiness["live_object_channel_names"],
+            "lg_c1_pickle_required_channel_names": readiness["pickle_required_channel_names"],
+            "lg_c1_reducer_channel_count": len(readiness["append_only_reducer_channel_names"]),
+            "lg_c1_academic_evidence_sources": readiness["academic_evidence_sources"],
+            "checkpoint_serde_mode": readiness["checkpoint_serde_mode"],
+            "real_agent_loop_json_checkpoint_supported": readiness["real_agent_loop_json_checkpoint_supported"],
+            "lg_c1_mirror_canonical_consistency_ok": readiness["mirror_canonical_consistency_ok"],
+            "lg_c1_json_safe_reducer_channels_serializable": readiness["json_serialization_audit"][
+                "all_json_safe_reducer_channels_serializable"
+            ],
+        }
+    )
+    record.final_artifacts["lg_c1_graph_state_readiness"] = readiness
+    record.logs.append(
+        {
+            "event": "lg_c1_graph_state_readiness",
+            "schema_version": LG_C1_REDUCER_STATE_SCHEMA_VERSION,
+            "append_only_reducer_channel_count": len(readiness["append_only_reducer_channel_names"]),
+            "mirror_canonical_consistency_ok": readiness["mirror_canonical_consistency_ok"],
+            "all_json_safe_reducer_channels_serializable": readiness["json_serialization_audit"][
+                "all_json_safe_reducer_channels_serializable"
+            ],
+            "real_agent_loop_json_checkpoint_supported": readiness["real_agent_loop_json_checkpoint_supported"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
 
 
 
@@ -1540,6 +1922,7 @@ def _checkpoint_resume_smoke() -> dict[str, Any]:
 
 
 def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any], graph_config_hash: str, toolnode_wrapper_enabled: bool = True) -> dict[str, Any]:
+    lg_c1_contract = build_lg_c1_graph_state_contract()
     return {
         "graph_runtime_backend": "langgraph",
         "graph_runtime_status": "enabled" if compat.get("ok") else "disabled_with_reason",
@@ -1552,9 +1935,18 @@ def _graph_runtime_metadata(*, registry: dict[str, Any], compat: dict[str, Any],
         "checkpoint_backend": "memory",
         "checkpoint_backend_type": "InMemorySaver",
         "checkpoint_serde": "pickle",
+        "checkpoint_serde_mode": lg_c1_contract["checkpoint_serde_mode"],
         "checkpoint_path_hash": "sha256:memory",
         "resumed_from_checkpoint": False,
         "resume_checkpoint_id_hash": None,
+        "real_agent_loop_json_checkpoint_supported": lg_c1_contract["real_agent_loop_json_checkpoint_supported"],
+        "lg_c1_reducer_state_schema_version": LG_C1_REDUCER_STATE_SCHEMA_VERSION,
+        "lg_c1_append_only_reducer_channel_names": lg_c1_contract["append_only_reducer_channel_names"],
+        "lg_c1_json_safe_channel_names": lg_c1_contract["json_safe_channel_names"],
+        "lg_c1_live_object_channel_names": lg_c1_contract["live_object_channel_names"],
+        "lg_c1_pickle_required_channel_names": lg_c1_contract["pickle_required_channel_names"],
+        "lg_c1_reducer_channel_count": len(lg_c1_contract["append_only_reducer_channel_names"]),
+        "lg_c1_academic_evidence_sources": lg_c1_contract["academic_evidence_sources"],
         "instrumentation_layer": "langgraph",
         "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
         "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
@@ -1705,6 +2097,7 @@ def _trace_node(graph_state: _GraphLoopState, node_id: str, event: str = "node_e
             graph_event=event,
             graph_payload=_compact_json(payload, max_list_items=8),
         )
+    _sync_lg_c1_canonical_mirror_channels(graph_state)
 
 
 def _initial_run_id(nl: str, runtime_cfg: FullStagedRuntimeConfig) -> str:
@@ -4727,6 +5120,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
             final_dsl=runtime_state.current_dsl,
             graph_runtime_backend="langgraph",
         )
+        _sync_lg_c1_canonical_mirror_channels(graph_state)
 
         result = AgentLoopResult(
             final_dsl=runtime_state.current_dsl,
@@ -4739,6 +5133,7 @@ def _build_graph(*, runtime_cfg: FullStagedRuntimeConfig, adapters: FullStagedRu
         if runtime_cfg.write_run_record:
             record = _build_record(cfg=runtime_cfg, nl=graph_state["nl"], state=runtime_state)
             _inject_transient_metadata(record)
+            _inject_lg_c1_graph_state_readiness(record, graph_state)
             try:
                 path = staged_runtime.write_agent_loop_run_record(record, staged_runtime.agent_loop_run_record_path(runtime_cfg.output_dir, runtime_state.run_id))
                 result.run_record_path = str(path)
@@ -5110,6 +5505,11 @@ def run_full_staged_langgraph_runtime(
             "operator_events": [],
             "operator_stream_enabled": bool(operator_stream_enabled),
             "toolnode_wrapper_events": [],
+            "stage_record_events": [],
+            "llm_interaction_events": [],
+            "fix_log_events": [],
+            "scenario_history_events": [],
+            "repair_history_events": [],
             "toolnode_wrapper_enabled": bool(toolnode_wrapper_enabled),
             "run_id": run_id,
         },
