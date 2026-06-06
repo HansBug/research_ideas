@@ -25,7 +25,7 @@ import platform
 import re
 import sqlite3
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 import copy
 from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
@@ -66,6 +66,7 @@ from method.schema import (
     ScenarioSet,
     SimFeedback,
     StageContext,
+    StageResultMeta,
 )
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
@@ -3139,11 +3140,11 @@ def _lg_d2_operator_events_from_flow_logs(record: Any, *, existing_events: list[
 
     policy = build_lg_d2_llm_node_envelope_policy()
     events: list[dict[str, Any]] = []
-    seen = {
+    existing_counts = Counter(
         _lg_d2_event_match_signature(event)
         for event in (existing_events or [])
         if isinstance(event, dict) and str(event.get("event_type") or "") in LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES
-    }
+    )
     fallback_seen: set[tuple[str, str, str, str, str, str, str, str, str, str, str]] = set()
     for flow_index, row in enumerate(getattr(record, "logs", []) or []):
         if not isinstance(row, dict):
@@ -3168,7 +3169,10 @@ def _lg_d2_operator_events_from_flow_logs(record: Any, *, existing_events: list[
             stage_id=stage_id,
             graph_node=graph_node_text,
         )
-        if match_signature in seen or fallback_signature in fallback_seen:
+        if existing_counts[match_signature] > 0:
+            existing_counts[match_signature] -= 1
+            continue
+        if fallback_signature in fallback_seen:
             continue
         event = _lg_d2_envelope_event(
             run_id=str(record.run_id),
@@ -3196,7 +3200,6 @@ def _lg_d2_operator_events_from_flow_logs(record: Any, *, existing_events: list[
         if isinstance(row.get("ts"), str):
             event["timestamp"] = row["ts"]
         events.append(event)
-        seen.add(match_signature)
         fallback_seen.add(fallback_signature)
     return events
 

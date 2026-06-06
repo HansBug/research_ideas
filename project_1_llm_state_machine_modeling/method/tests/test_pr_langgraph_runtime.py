@@ -3825,6 +3825,96 @@ def test_lg_d2_flow_log_fallback_signature_keeps_repeated_iteration_events() -> 
     assert {event["payload"]["safe_summary"]["flow_log_index"] for event in events} == {0, 1}
 
 
+def test_lg_d2_flow_log_fallback_keeps_same_iteration_repeated_node_entries() -> None:
+    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+
+    record = SimpleNamespace(
+        run_id="lg-d2-same-iteration-rework-collapse",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=[])
+
+    assert len(events) == 2
+    assert [event["timestamp"] for event in events] == ["2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z"]
+    assert {event["payload"]["safe_summary"]["flow_log_index"] for event in events} == {0, 1}
+
+
+def test_lg_d2_flow_log_fallback_consumes_existing_reducer_event_count_only() -> None:
+    from method.langgraph_runtime import _lg_d2_envelope_event, _lg_d2_operator_events_from_flow_logs, build_lg_d2_llm_node_envelope_policy
+
+    policy = build_lg_d2_llm_node_envelope_policy()
+    existing = [
+        _lg_d2_envelope_event(
+            run_id="lg-d2-same-iteration-rework-collapse",
+            event_type="lg_d2_envelope_enter",
+            stage_id=StageId.SL_10_REPAIR_REVIEW,
+            graph_node="repair_sl10_review",
+            subgraph_id="repair_subgraph",
+            policy=policy,
+            iteration=0,
+            envelope_attempt_index=0,
+            outcome="enter",
+        )
+    ]
+    record = SimpleNamespace(
+        run_id="lg-d2-same-iteration-rework-collapse",
+        logs=[
+            {
+                "ts": "2026-01-01T00:00:00Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+            {
+                "ts": "2026-01-01T00:00:01Z",
+                "event": "lg_d2_envelope_enter",
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+                "iteration": 0,
+                "graph_node": "repair_sl10_review",
+                "graph_subgraph": "repair_subgraph",
+                "outcome": "enter",
+                "envelope_attempt_index": 0,
+                "policy_hash": "sha256:p",
+            },
+        ],
+    )
+
+    events = _lg_d2_operator_events_from_flow_logs(record, existing_events=existing)
+
+    assert len(events) == 1
+    assert events[0]["timestamp"] == "2026-01-01T00:00:01Z"
+    assert events[0]["payload"]["safe_summary"]["flow_log_index"] == 1
+
+
 def test_lg_d2_provider_status_code_classification_precedes_generic_timeout_and_connection_words() -> None:
     from method.langgraph_runtime import _lg_d2_error_kind_from_exception
 
