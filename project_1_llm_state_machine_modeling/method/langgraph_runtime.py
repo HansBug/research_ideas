@@ -7115,6 +7115,12 @@ def _lg_f1_finalize_result(
         events=toolnode_events,
         enabled=bool(toolnode_wrapper_enabled),
     )
+    lg_e2_events = list(state.get("lg_e2_send_parallel_events", []) or [])
+    _augment_run_record_with_lg_e2_send_parallel_trace(
+        result,
+        events=lg_e2_events,
+        enabled=True,
+    )
     operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
     _augment_run_record_with_lg_d1_operator_log(
         result,

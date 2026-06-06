@@ -223,6 +223,18 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert record.run_config["graph_config_hash"] == report["graph_config_hash"]
     assert record.run_config["baseline_comparison_method"] == "independent_uninterrupted_baseline"
     assert record.final_artifacts["lg_f1_baseline_comparison_verdict"] == "consistent"
+    lg_e2_readiness = record.final_artifacts["lg_c1_graph_state_readiness"]["final_reducer_channel_summaries"][
+        "lg_e2_send_parallel_events"
+    ]
+    lg_e2_trace = record.final_artifacts["lg_e2_send_parallel_trace"]
+    assert record.environment["lg_e2_send_parallel_enabled"] is True
+    assert record.environment["lg_e2_send_parallel_event_count"] == lg_e2_readiness["count"]
+    assert record.environment["lg_e2_send_parallel_events_hash"] == lg_e2_trace["events_hash"]
+    assert record.run_config["lg_e2_send_parallel_enabled"] is True
+    assert record.run_config["lg_e2_send_parallel_contract"]
+    assert lg_e2_trace["schema_version"] == "lg-e2.send-parallel-sd6.v1"
+    assert lg_e2_trace["event_count"] == lg_e2_readiness["count"]
+    assert lg_e2_trace["does_not_replace_academic_evidence"] is True
 
 
 def test_lg_f1_without_uninterrupted_baseline_marks_comparison_not_applicable(tmp_path: Path) -> None:
