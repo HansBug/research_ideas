@@ -1,6 +1,6 @@
 # APSEC README
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -78,6 +78,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 - 论文数量优先使用官方 accepted / proceedings；DBLP 只作 fallback，且不得写成 main / research track count。
 - Research、industry、tool、artifact、workshop、special session、virtual / live segment 必须分开记录，不能混算。
 - 2027/2028 公开信息已检索；未公布年度保留占位，不预造 deadline / committee / proceedings。
+- PR-10 复核：APSEC 2026 Technical Track dates 页对 technical chain 标注 `UTC+8 (Bali time)`，不是 AoE；ERA / SEIP / tutorials 等其他 track 另有 AoE / UTC+8 混合标注，不能混用于 technical track。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -89,6 +90,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:04` | PR-10 复核 APSEC 2026 Technical Track timezone：technical chain 使用 UTC+8 Bali time，不写 AoE；ERA/SEIP 等其他 track 另行分列。 |
 | `2026-06-05 18:40` | 修复实现后复审 M3：同步年度页 P3 相关性口径，明确 APSEC 对验证剖面 / 模型检查工具链的邻近参考定位。 |
 | `2026-06-05 18:03` | 修复 PR-9 根 README 一致性：补回核心人员表 `单位` 列，并按 2026-06-05 当前阶段同步 2026 年度状态。 |
 | `2026-06-05 17:23` | PR-9 初始化 APSEC P2 邻近观察 venue README，覆盖 2022--2028 年度索引、核心链接、人员情报、计数口径和待补记录。 |

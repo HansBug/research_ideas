@@ -1,6 +1,6 @@
 # JSS 2026 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -86,4 +86,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 JSS AI Techniques special issue 官方 URL 仍存在 CLI 403/WAF caveat，当前只保留官方 URL 与 access caveat，不升级为完全核验事实。 |
 | `2026-06-05 17:21` | 初始化 JSS 2026 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

@@ -1,6 +1,6 @@
 # APSEC 2026 README
 
-> 信息更新时间：`2026-06-05 18:40`（Asia/Shanghai）
+> 信息更新时间：`2026-06-06 01:13`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -35,11 +35,11 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Abstract deadline | 2026-07-06 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical abstract; AoE / UTC+8 Bali time |
-| Submission deadline | 2026-07-13 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical full paper; AoE / UTC+8 Bali time |
-| Notification | 2026-09-14 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical notification; AoE / UTC+8 Bali time |
-| Camera-ready | 2026-10-19 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical camera-ready; AoE / UTC+8 Bali time |
-| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference; Bali local time |
+| Abstract deadline | 2026-07-06 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical abstract; UTC+8 Bali time（官方未标 AoE） |
+| Submission deadline | 2026-07-13 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical full paper; UTC+8 Bali time（官方未标 AoE） |
+| Notification | 2026-09-14 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical notification; UTC+8 Bali time（官方未标 AoE） |
+| Camera-ready | 2026-10-19 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical camera-ready; UTC+8 Bali time（官方未标 AoE） |
+| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference; Bali local time (UTC+8) |
 
 ## 4. Tracks
 
@@ -71,7 +71,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [年度主页](https://conf.researchr.org/home/apsec-2026) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-06-05 17:23` | 已定位。 |
+| 官方 CFP / Dates | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-06-06 00:16` | 已定位；PR-10 复核 Technical Track timezone 为 UTC+8 Bali time。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
 | DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
@@ -84,6 +84,8 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-06 01:13` | PR-10 focused final review 修复：将 APSEC 2026 会期备注统一为 Bali local time (UTC+8)，与 TIMELINE 会期行一致。 |
+| `2026-06-06 00:16` | PR-10 复核 APSEC 2026 Technical Track timezone：technical chain 使用 UTC+8 Bali time，不写 AoE；已同步 TIMELINE。 |
 | `2026-06-05 18:40` | 修复实现后复审 M3：细化 P3 相关性描述，使其指向状态机验证、验证剖面与模型检查工具链，而非泛化 formal methods 线索。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟢 投稿中`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 APSEC 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |
