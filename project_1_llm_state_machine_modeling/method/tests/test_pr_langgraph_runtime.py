@@ -22,6 +22,7 @@ from method.schema import (
     SimFeedback,
     SL10RepairReviewOutput,
     ScenarioResult,
+    ScenarioSet,
     ScenarioStep,
     StageContext,
     StageResultMeta,
@@ -3281,3 +3282,323 @@ def test_lg_e3_safe_summary_redacts_dsl_like_and_prompt_like_scalar_fields() -> 
     ]:
         assert redacted_key in summary
     assert summary["safe_stage_id"] == "SD-8"
+
+
+# PR-LG-E2 Send parallel scenario/checker fan-out contract tests.
+
+def test_lg_e2_contract_declares_send_ordering_and_hash_scope() -> None:
+    from langgraph.types import Send
+
+    from method.langgraph_runtime import (
+        LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        build_lg_e2_send_parallel_contract,
+    )
+
+    contract = build_lg_e2_send_parallel_contract()
+
+    assert Send.__name__ == "Send"
+    assert contract["schema_version"] == LG_E2_SEND_PARALLEL_SCHEMA_VERSION
+    assert contract["send_api"] == "langgraph.types.Send"
+    assert contract["ordering_key_fields"] == [
+        "scenario_epoch",
+        "scenario_index",
+        "normalized_scenario_name",
+        "checker_name",
+        "input_hash",
+    ]
+    assert contract["scenario_index_source"] == "frozen ScenarioSet.scenarios original order"
+    assert "operator_event_completion_order" in contract["serial_equivalence_hash_excludes"]
+    assert contract["preflight_required"] is True
+    assert contract["does_not_replace_academic_evidence"] is True
+
+
+def test_lg_e2_canonical_order_uses_frozen_scenario_index_before_name() -> None:
+    from method.langgraph_runtime import _lg_e2_canonicalize_worker_results
+
+    shuffled = [
+        {
+            "ordering_key": {
+                "scenario_epoch": 2,
+                "scenario_index": 1,
+                "normalized_scenario_name": "alpha",
+                "checker_name": "sd6_sim",
+                "input_hash": "sha256:b",
+            }
+        },
+        {
+            "ordering_key": {
+                "scenario_epoch": 2,
+                "scenario_index": 0,
+                "normalized_scenario_name": "zeta",
+                "checker_name": "sd6_sim",
+                "input_hash": "sha256:a",
+            }
+        },
+    ]
+
+    ordered = _lg_e2_canonicalize_worker_results(shuffled)
+
+    assert [item["ordering_key"]["scenario_index"] for item in ordered] == [0, 1]
+    assert [item["ordering_key"]["normalized_scenario_name"] for item in ordered] == ["zeta", "alpha"]
+
+
+
+
+
+
+def test_lg_e2_metadata_handles_setup_error_without_scenario_results() -> None:
+    from method.langgraph_runtime import _lg_e2_metadata_for_feedback
+
+    metadata = _lg_e2_metadata_for_feedback(
+        enabled_requested=True,
+        preflight={
+            "parallel_send_enabled": False,
+            "fallback_reason": "serial_setup_error",
+            "send_api_import_ok": True,
+        },
+        scenario_set=ScenarioSet(
+            scenario_set_id="lg-e2-setup-error",
+            scenarios=[],
+            source_dsl_hash="sha256:dsl",
+            epoch=0,
+        ),
+        feedback=SimFeedback(ok=False, setup_error="sim setup failed before per-scenario execution"),
+        scenario_history=[],
+        worker_results=[],
+    )
+
+    assert metadata["first_blocking_id"].startswith("setup_error:sha256:")
+    assert metadata["selected_feedback_digest"]["selected"]["failing_scenario_names"] == []
+    assert metadata["serial_equivalence_hash"].startswith("sha256:")
+
+
+def test_lg_e2_selected_feedback_digest_uses_scenario_index_for_first_blocking() -> None:
+    from method.langgraph_runtime import _lg_e2_selected_feedback_digest
+
+    scenario_set = ScenarioSet(
+        scenario_set_id="lg-e2-first-blocking-order",
+        scenarios=[
+            TestScenario(name="zeta_first", description="original index 0"),
+            TestScenario(name="alpha_second", description="original index 1"),
+        ],
+        epoch=0,
+        frozen=True,
+    )
+    reversed_feedback = SimFeedback(
+        ok=False,
+        n_scenarios=2,
+        n_scenarios_passed=0,
+        # Deliberately reversed to mimic nondeterministic worker completion or
+        # a hostile adapter.  LG-E2 first-blocking evidence must still follow
+        # the frozen ScenarioSet order rather than result arrival order/name.
+        scenario_results=[
+            ScenarioResult(name="alpha_second", status="fail"),
+            ScenarioResult(name="zeta_first", status="fail"),
+        ],
+    )
+    serial_order_feedback = SimFeedback(
+        ok=False,
+        n_scenarios=2,
+        n_scenarios_passed=0,
+        scenario_results=[
+            ScenarioResult(name="zeta_first", status="fail"),
+            ScenarioResult(name="alpha_second", status="fail"),
+        ],
+    )
+
+    reversed_digest = _lg_e2_selected_feedback_digest(reversed_feedback, scenario_set)
+    serial_digest = _lg_e2_selected_feedback_digest(serial_order_feedback, scenario_set)
+
+    assert reversed_digest["selected"]["failing_scenario_names"] == ["zeta_first", "alpha_second"]
+    assert reversed_digest["selected_feedback_digest"].startswith("sha256:")
+    assert reversed_digest["selected_feedback_digest"] == serial_digest["selected_feedback_digest"]
+
+
+def _two_scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+    return [
+        TestScenario(name="zeta_first", description="original index 0 must stay first", steps=[]),
+        TestScenario(name="alpha_second", description="lexicographically earlier but original index 1", steps=[]),
+    ]
+
+
+def _passing_result_for_scenario(scenario: TestScenario) -> ScenarioResult:
+    return ScenarioResult(
+        name=scenario.name,
+        description=scenario.description,
+        status="pass",
+        step_results=[StepResult(step_index=0, step_name="noop", status="pass")],
+    )
+
+
+def _lg_e2_thread_safe_passing_sim(
+    _dsl: str,
+    scenarios_or_set: Any,
+    _context: StageContext,
+) -> tuple[SimFeedback, StageResultMeta]:
+    scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+    results = [_passing_result_for_scenario(scenario) for scenario in scenarios]
+    return (
+        SimFeedback(
+            ok=True,
+            n_scenarios=len(scenarios),
+            n_scenarios_passed=len(scenarios),
+            scenario_results=results,
+        ),
+        _meta(StageId.SD_6_SIM),
+    )
+
+
+_lg_e2_thread_safe_passing_sim.lg_e2_thread_safe = True  # type: ignore[attr-defined]
+
+
+def _lg_e2_trace_event(record: Any) -> dict[str, Any]:
+    trace = record.final_artifacts["lg_e2_send_parallel_trace"]
+    events = trace["events"]
+    assert trace["schema_version"] == "lg-e2.send-parallel-sd6.v1"
+    assert trace["does_not_replace_academic_evidence"] is True
+    assert len(events) == 1
+    return events[0]
+
+
+def test_lg_e2_send_parallel_preserves_serial_canonical_sd6_evidence(tmp_path: Path) -> None:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    cfg_base = dict(
+        condition_family="test_profile",
+        base_condition_id="full_staged_v1",
+        changed_factors=["llm_provider_mode=mock", "lg_e2_send_parallel_contract"],
+        llm_provider_mode="mock",
+        academic_question="test-only LG-E2 Send fan-out contract; excluded from main results",
+        max_iterations=1,
+        compatibility_mode="langgraph_stategraph",
+    )
+    adapters = _adapters_with(
+        scenario_generate=_two_scenario_generate,
+        sim=_lg_e2_thread_safe_passing_sim,
+    )
+    parallel = run_full_staged_langgraph_runtime(
+        "LG-E2 parallel Send must not change canonical SD-6 evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e2-parallel-on",
+            output_dir=str(tmp_path / "parallel"),
+            run_id="lg-e2-parallel-on",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=adapters,
+        lg_e2_send_parallel_enabled=True,
+    )
+    serial = run_full_staged_langgraph_runtime(
+        "LG-E2 parallel Send must not change canonical SD-6 evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e2-parallel-off",
+            output_dir=str(tmp_path / "serial"),
+            run_id="lg-e2-parallel-off",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=adapters,
+        lg_e2_send_parallel_enabled=False,
+    )
+    parallel_record = _lg_record(parallel)
+    serial_record = _lg_record(serial)
+    parallel_event = _lg_e2_trace_event(parallel_record)
+    serial_event = _lg_e2_trace_event(serial_record)
+
+    assert parallel_record.final_artifacts["verdict"] == serial_record.final_artifacts["verdict"] == "success"
+    assert parallel_event["parallel_send_enabled"] is True
+    assert parallel_event["send_constructed_count"] == 2
+    assert parallel_event["worker_count"] == 2
+    assert parallel_event["serial_control_run_executed"] is True
+    assert parallel_event["serial_alignment_ok"] is True
+    assert [item["scenario_index"] for item in parallel_event["canonical_worker_order"]] == [0, 1]
+    assert [item["normalized_scenario_name"] for item in parallel_event["canonical_worker_order"]] == [
+        "zeta_first",
+        "alpha_second",
+    ]
+    assert serial_event["parallel_send_enabled"] is False
+    assert serial_event["fallback_reason"] == "lg_e2_send_parallel_disabled_by_runtime_parameter"
+    assert parallel_event["canonical_result_hash"] == serial_event["canonical_result_hash"]
+    assert parallel_event["serial_equivalence_hash"] == serial_event["serial_equivalence_hash"]
+    assert parallel_event["serial_equivalence_hash_finalized"] is True
+    assert parallel_event["nfrr_eligibility_verdict_summary"]["verdict"] == "success"
+    assert parallel_record.final_artifacts["lg_c1_graph_state_readiness"]["final_reducer_channel_summaries"][
+        "lg_e2_send_parallel_events"
+    ]["count"] == 1
+
+
+def test_lg_e2_fallback_when_sim_thread_safety_is_not_declared(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-e2-thread-safety-fallback",
+            adapters=_adapters_with(scenario_generate=_two_scenario_generate),
+        )
+    )
+
+    event = _lg_e2_trace_event(record)
+
+    assert event["parallel_send_enabled"] is False
+    assert event["fallback_reason"] == "sim_adapter_lacks_lg_e2_thread_safety_declaration"
+    assert event["fanout_count"] == 2
+    assert event["worker_count"] == 0
+    assert event["serial_equivalence_hash_finalized"] is True
+    assert record.environment["lg_e2_send_parallel_event_count"] == 1
+
+
+def test_lg_e2_worker_mutation_is_isolated_and_canonical_serial_is_used(tmp_path: Path) -> None:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    def mutating_worker_sim(
+        _dsl: str,
+        scenarios_or_set: Any,
+        context: StageContext,
+    ) -> tuple[SimFeedback, StageResultMeta]:
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        # Malicious worker path: mutate its local one-scenario copy.  If LG-E2
+        # leaked shared ScenarioSet/StageContext objects, the later serial
+        # control run would also see these names / DSL changes.
+        if len(scenarios) == 1:
+            scenarios[0].name = f"MUTATED::{scenarios[0].name}"
+            context.current_dsl = "MUTATED_WORKER_DSL"
+        results = [_passing_result_for_scenario(scenario) for scenario in scenarios]
+        return (
+            SimFeedback(
+                ok=True,
+                n_scenarios=len(scenarios),
+                n_scenarios_passed=len(scenarios),
+                scenario_results=results,
+            ),
+            _meta(StageId.SD_6_SIM),
+        )
+
+    mutating_worker_sim.lg_e2_thread_safe = True  # type: ignore[attr-defined]
+    result = run_full_staged_langgraph_runtime(
+        "LG-E2 workers must not mutate shared ScenarioSet or graph state.",
+        config=LoopConfig(
+            condition_id="lg-e2-worker-isolation",
+            condition_family="test_profile",
+            base_condition_id="full_staged_v1",
+            changed_factors=["llm_provider_mode=mock", "lg_e2_worker_isolation"],
+            llm_provider_mode="mock",
+            academic_question="test-only LG-E2 worker isolation; excluded from main results",
+            output_dir=str(tmp_path),
+            run_id="lg-e2-worker-isolation",
+            max_iterations=1,
+            compatibility_mode="langgraph_stategraph",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=_adapters_with(scenario_generate=_two_scenario_generate, sim=mutating_worker_sim),
+    )
+    record = _lg_record(result)
+    event = _lg_e2_trace_event(record)
+
+    assert event["parallel_send_enabled"] is True
+    assert event["serial_alignment_ok"] is False
+    assert event["canonical_fallback_reason"] == "parallel_serial_alignment_mismatch_canonical_serial_used"
+    assert [item["name"] for item in event["canonical_scenario_results"]] == [
+        "zeta_first",
+        "alpha_second",
+    ]
+    assert "MUTATED::" not in json.dumps(record.scenario_history, ensure_ascii=False, sort_keys=True)
+    assert record.final_artifacts["verdict"] == "success"

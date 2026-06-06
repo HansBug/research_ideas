@@ -25,6 +25,8 @@ import platform
 import re
 import sqlite3
 import uuid
+from collections import defaultdict
+import copy
 from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
 from typing import Any, TypedDict
@@ -43,9 +45,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.config import get_store
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.memory import InMemoryStore
-from langgraph.types import Command
+from langgraph.types import Command, Send
 
-from method.llm_stages import ChatProvider
+from method.llm_stages import ChatProvider, LLMStageConfig, estimate_prompt_tokens
 from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
 import method.staged_runtime as staged_runtime
 from method.schema import (
@@ -60,6 +62,8 @@ from method.schema import (
     GroundingMap,
     LoopConfig,
     ModelReviewFeedback,
+    ScenarioResult,
+    ScenarioSet,
     SimFeedback,
     StageContext,
 )
@@ -128,11 +132,14 @@ LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
 LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER = "fixed_toolnode_wrapper"
 LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
 LG_C1_REDUCER_STATE_SCHEMA_VERSION = "lg-c1.reducer-json-state.v1"
+LG_E2_SEND_PARALLEL_SCHEMA_VERSION = "lg-e2.send-parallel-sd6.v1"
+LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER = "langgraph_send_parallel_scenario_checker"
 
 _LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES = (
     "graph_trace",
     "operator_events",
     "toolnode_wrapper_events",
+    "lg_e2_send_parallel_events",
     "stage_record_events",
     "llm_interaction_events",
     "fix_log_events",
@@ -288,6 +295,365 @@ class _CompatState(TypedDict, total=False):
     value: int
 
 
+
+LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION = "lg-c2.context-subgraph.v1"
+LG_C2_CONTEXT_SUBGRAPH_ID = "context_engineering_subgraph"
+LG_C2_CONTEXT_INSTRUMENTATION_LAYER = "langgraph_context_engineering"
+LG_C2_CONTEXT_NODE_IDS = [
+    "context_evidence_collect",
+    "context_budget_gate",
+    "context_compact_full_select",
+    "context_redaction_guard",
+]
+LG_C2_CANONICAL_RECORD_FIELD = "AgentLoopRunRecord.llm_interactions[].context_engineering"
+
+
+class _LG_C2_ContextState(TypedDict, total=False):
+    stage_id: str
+    payload_candidates: list[tuple[str, dict[str, Any]]]
+    prompt_char_counts: dict[str, int]
+    prompt_token_estimates: dict[str, int]
+    prompt_messages_by_level: dict[str, list[dict[str, str]]]
+    budget_metadata_by_level: dict[str, dict[str, Any]]
+    selected_level: str
+    selected_payload: dict[str, Any]
+    selected_prompt_messages: list[dict[str, str]]
+    selected_payload_hash: str
+    selected_prompt_messages_hash: str
+    selection_reason: str
+    redaction_guard: dict[str, Any]
+    node_trace: list[dict[str, Any]]
+
+
+
+
+class LG_C2_ContextRedactionBlocked(RuntimeError):
+    """Raised before provider calls when LG-C2 context redaction guard blocks payload."""
+
+    def __init__(self, *, stage_id: str, payload_hash: str, guard: dict[str, Any]) -> None:
+        self.stage_id = stage_id
+        self.payload_hash = payload_hash
+        self.guard = dict(guard)
+        super().__init__(
+            "LG-C2 context redaction guard blocked secret-like prompt context before provider call "
+            f"for {stage_id}; payload_hash={payload_hash}"
+        )
+
+
+class LG_C2_ContextAssemblyResult:
+    """Prompt context selected by the LG-C2 context-engineering subgraph."""
+
+    def __init__(self, payload: dict[str, Any], metadata: dict[str, Any], prompt_messages: list[dict[str, str]]) -> None:
+        self.payload = payload
+        self.metadata = metadata
+        self.prompt_messages = prompt_messages
+
+
+def build_lg_c2_context_subgraph_contract() -> dict[str, Any]:
+    """Return the auditable LG-C2 context subgraph contract.
+
+    The subgraph is intentionally an instrumentation / context-assembly layer:
+    it chooses between existing full/compact prompt payloads and records budget,
+    hash, and redaction-guard provenance.  It does not alter FixLog, NFRR,
+    eligibility, stage verdict sources, or E1/E2 model-quality fields.
+    """
+
+    return {
+        "schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
+        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
+        "stage_ids": [StageId.SL_9_REPAIR.value, StageId.SL_10_REPAIR_REVIEW.value],
+        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+        "payload_hash_fields": [
+            "stage_id",
+            "compaction_level",
+            "selected_payload_hash",
+            "selected_prompt_messages_hash",
+            "budget_metadata",
+            "redaction_guard",
+        ],
+        "budget_metadata_required": [
+            "prompt_chars",
+            "estimated_prompt_tokens",
+            "prompt_token_budget",
+            "prompt_token_estimator",
+            "chars_per_token_estimate",
+            "compaction_level",
+            "prompt_compaction_applied",
+            "compact_only_when_over_budget",
+            "budget_exceeded",
+        ],
+        "redaction_guard_before_provider": True,
+        "redaction_guard_policy": "hash-and-fail-closed-on-secret-like-context-fields",
+        "no_sample_specific_behavior": True,
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources_preserved": [
+            "AgentLoopRunRecord.fix_log",
+            "AgentLoopRunRecord.repair_history",
+            "AgentLoopRunRecord.llm_interactions",
+            "AgentLoopRunRecord.final_artifacts",
+            "NFRR/eligibility fields",
+        ],
+    }
+
+
+def _lg_c2_prompt_budget_metadata(
+    *,
+    stage_id: str,
+    prompt_messages: list[dict[str, str]],
+    cfg: LLMStageConfig,
+    compaction_level: str,
+) -> dict[str, Any]:
+    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
+    estimated_tokens = estimate_prompt_tokens(
+        prompt_messages,
+        estimator=cfg.prompt_token_estimator,
+        chars_per_token=cfg.prompt_chars_per_token,
+        model=cfg.model,
+    )
+    budget = cfg.max_prompt_tokens
+    return {
+        "stage_id": stage_id,
+        "prompt_chars": prompt_chars,
+        "estimated_prompt_tokens": estimated_tokens,
+        "prompt_token_budget": budget,
+        "prompt_token_estimator": cfg.prompt_token_estimator,
+        "chars_per_token_estimate": cfg.prompt_chars_per_token,
+        "compaction_level": compaction_level,
+        "prompt_compaction_applied": compaction_level != "none",
+        "compact_only_when_over_budget": True,
+        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
+    }
+
+
+def _lg_c2_within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
+    if cfg.max_prompt_tokens is None:
+        return True
+    return (
+        estimate_prompt_tokens(
+            prompt_messages,
+            estimator=cfg.prompt_token_estimator,
+            chars_per_token=cfg.prompt_chars_per_token,
+            model=cfg.model,
+        )
+        <= cfg.max_prompt_tokens
+    )
+
+
+def _lg_c2_secret_like_field_detected(value: Any) -> bool:
+    """Conservative guard for obvious secret-like context fields.
+
+    This is intentionally sample-agnostic and only flags credential-shaped keys or
+    values.  Raw provider keys are never written into the metadata; callers can
+    use the boolean/hash-only status to fail closed if future context surfaces
+    become unsafe.
+    """
+
+    secret_key_re = re.compile(r"(api[_-]?key|token|secret|password|credential|authorization)", re.IGNORECASE)
+    secret_value_re = re.compile(r"(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|LLM_API_KEY\s*=)")
+
+    def walk(item: Any, path: str = "payload") -> bool:
+        if isinstance(item, dict):
+            for key, nested in item.items():
+                key_text = str(key)
+                if secret_key_re.search(key_text):
+                    return True
+                if walk(nested, f"{path}.{key_text}"):
+                    return True
+        elif isinstance(item, (list, tuple, set)):
+            for index, nested in enumerate(item):
+                if walk(nested, f"{path}[{index}]"):
+                    return True
+        elif isinstance(item, str) and secret_value_re.search(item):
+            return True
+        return False
+
+    return walk(value)
+
+
+def _build_lg_c2_context_subgraph(*, prompt_builder: Any, cfg: LLMStageConfig):
+    """Build the LG-C2 context-engineering subgraph.
+
+    The graph nodes are deliberately small and deterministic: evidence collect
+    builds candidate prompts, budget gate computes estimates, compact/full select
+    chooses the first candidate inside budget (or the compact fallback), and
+    redaction guard emits a hash-only safety summary.
+    """
+
+    graph = StateGraph(_LG_C2_ContextState)
+
+    def evidence_collect(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        candidates = list(state.get("payload_candidates") or [])
+        prompts = {level: prompt_builder(payload) for level, payload in candidates}
+        return {
+            **state,
+            "prompt_messages_by_level": prompts,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_evidence_collect",
+                    "candidate_levels": [level for level, _ in candidates],
+                    "candidate_count": len(candidates),
+                },
+            ],
+        }
+
+    def budget_gate(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        prompts = dict(state.get("prompt_messages_by_level") or {})
+        budget_by_level = {
+            level: _lg_c2_prompt_budget_metadata(
+                stage_id=str(state.get("stage_id") or ""),
+                prompt_messages=messages,
+                cfg=cfg,
+                compaction_level=level,
+            )
+            for level, messages in prompts.items()
+        }
+        return {
+            **state,
+            "budget_metadata_by_level": budget_by_level,
+            "prompt_char_counts": {level: meta["prompt_chars"] for level, meta in budget_by_level.items()},
+            "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_budget_gate",
+                    "prompt_token_budget": cfg.max_prompt_tokens,
+                    "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
+                },
+            ],
+        }
+
+    def compact_full_select(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        candidates = list(state.get("payload_candidates") or [])
+        prompts = dict(state.get("prompt_messages_by_level") or {})
+        selected_level = candidates[-1][0]
+        selected_payload = candidates[-1][1]
+        selected_prompt = prompts[selected_level]
+        selection_reason = "fallback_compact_over_budget"
+        for level, payload in candidates:
+            prompt = prompts[level]
+            selected_level, selected_payload, selected_prompt = level, payload, prompt
+            if _lg_c2_within_prompt_budget(prompt, cfg):
+                selection_reason = "within_budget"
+                break
+        return {
+            **state,
+            "selected_level": selected_level,
+            "selected_payload": selected_payload,
+            "selected_prompt_messages": selected_prompt,
+            "selected_payload_hash": _hash_payload(selected_payload),
+            "selected_prompt_messages_hash": _hash_payload(selected_prompt),
+            "selection_reason": selection_reason,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_compact_full_select",
+                    "selected_level": selected_level,
+                    "selection_reason": selection_reason,
+                    "selected_payload_hash": _hash_payload(selected_payload),
+                    "selected_prompt_messages_hash": _hash_payload(selected_prompt),
+                },
+            ],
+        }
+
+    def redaction_guard(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
+        selected_payload = dict(state.get("selected_payload") or {})
+        selected_prompt = list(state.get("selected_prompt_messages") or [])
+        secret_like = _lg_c2_secret_like_field_detected(
+            {
+                "selected_payload": selected_payload,
+                "selected_prompt_messages": selected_prompt,
+            }
+        )
+        guard = {
+            "status": "blocked" if secret_like else "passed",
+            "secret_like_field_detected": secret_like,
+            "policy": "hash_only_metadata_no_raw_secret_persistence",
+            "checked_before_provider": True,
+            "payload_hash": str(state.get("selected_payload_hash") or ""),
+            "prompt_messages_hash": str(state.get("selected_prompt_messages_hash") or ""),
+        }
+        return {
+            **state,
+            "redaction_guard": guard,
+            "node_trace": [
+                *list(state.get("node_trace") or []),
+                {
+                    "node_id": "context_redaction_guard",
+                    "status": guard["status"],
+                    "secret_like_field_detected": secret_like,
+                    "payload_hash": guard["payload_hash"],
+                },
+            ],
+        }
+
+    graph.add_node("context_evidence_collect", evidence_collect)
+    graph.add_node("context_budget_gate", budget_gate)
+    graph.add_node("context_compact_full_select", compact_full_select)
+    graph.add_node("context_redaction_guard", redaction_guard)
+    graph.add_edge(START, "context_evidence_collect")
+    graph.add_edge("context_evidence_collect", "context_budget_gate")
+    graph.add_edge("context_budget_gate", "context_compact_full_select")
+    graph.add_edge("context_compact_full_select", "context_redaction_guard")
+    graph.add_edge("context_redaction_guard", END)
+    return graph.compile(checkpointer=False)
+
+
+def assemble_lg_c2_prompt_context(
+    *,
+    stage_id: str,
+    payload_candidates: list[tuple[str, dict[str, Any]]],
+    prompt_builder: Any,
+    cfg: LLMStageConfig,
+) -> LG_C2_ContextAssemblyResult:
+    """Select an SL-9/SL-10 prompt payload through the LG-C2 context subgraph."""
+
+    if not payload_candidates:
+        raise ValueError("LG-C2 context subgraph requires at least one payload candidate")
+    app = _build_lg_c2_context_subgraph(prompt_builder=prompt_builder, cfg=cfg)
+    final_state = app.invoke({"stage_id": stage_id, "payload_candidates": payload_candidates, "node_trace": []})
+    selected_level = str(final_state["selected_level"])
+    selected_payload = dict(final_state["selected_payload"])
+    selected_prompt = list(final_state["selected_prompt_messages"])
+    budget_metadata = dict(final_state["budget_metadata_by_level"][selected_level])
+    guard = dict(final_state["redaction_guard"])
+    metadata = {
+        **budget_metadata,
+        "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
+        "stage_id": stage_id,
+        "compaction_level": selected_level,
+        "selection_reason": str(final_state["selection_reason"]),
+        "selected_payload_hash": str(final_state["selected_payload_hash"]),
+        "prompt_payload_hash": str(final_state["selected_payload_hash"]),
+        "selected_prompt_messages_hash": str(final_state["selected_prompt_messages_hash"]),
+        "budget_metadata": budget_metadata,
+        "redaction_guard": guard,
+        "redaction_guard_fail_closed": guard.get("status") == "blocked",
+        "node_trace": list(final_state.get("node_trace") or []),
+        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
+        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+        "context_subgraph_contract_hash": _hash_payload(build_lg_c2_context_subgraph_contract()),
+        "does_not_replace_academic_evidence": True,
+    }
+    if guard.get("status") == "blocked":
+        raise LG_C2_ContextRedactionBlocked(
+            stage_id=stage_id,
+            payload_hash=str(final_state["selected_payload_hash"]),
+            guard={
+                **guard,
+                "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+                "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
+                "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
+                "node_trace_hash": _hash_payload(metadata["node_trace"]),
+            },
+        )
+    return LG_C2_ContextAssemblyResult(selected_payload, metadata, selected_prompt)
+
+
 def _lg_c1_event_key(event: Any) -> str:
     return json.dumps(_jsonable(event), ensure_ascii=False, sort_keys=True, default=str)
 
@@ -326,6 +692,22 @@ def _lg_c1_append_only_reducer(existing: list[dict[str, Any]] | None, new_events
     return merged
 
 
+def _lg_e2_worker_result_reducer(existing: list[dict[str, Any]] | None, new_results: Any) -> list[dict[str, Any]]:
+    """Append LG-E2 Send worker results without using completion order as evidence.
+
+    LangGraph may merge Send worker updates in runtime completion order.  LG-E2
+    keeps that raw order only as instrumentation; all academic evidence is
+    re-sorted later by the canonical scenario/checker key.
+    """
+
+    merged = list(existing or [])
+    if new_results is None:
+        return merged
+    incoming = list(new_results if isinstance(new_results, list) else [new_results])
+    merged.extend(item for item in incoming if isinstance(item, dict))
+    return merged
+
+
 class _GraphLoopState(TypedDict, total=False):
     nl: str
     graph_trace: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
@@ -343,12 +725,20 @@ class _GraphLoopState(TypedDict, total=False):
     iteration: int
     iteration_stage_start: int
     validation_ref: str
+    lg_e2_send_parallel_events: Annotated[list[dict[str, Any]], _lg_c1_append_only_reducer]
     iteration_record: dict[str, Any]
     selected_trace: Any
     accepted: bool
     repair_patch: dict[str, Any]
     runtime_result: Any
     runtime_error: NotRequired[str]
+
+
+class _LgE2SendState(TypedDict, total=False):
+    """Internal map-reduce state for LG-E2 SD-6 scenario fan-out."""
+
+    worker_specs: list[dict[str, Any]]
+    worker_results: Annotated[list[dict[str, Any]], _lg_e2_worker_result_reducer]
 
 
 class _ValidationSubgraphState(_GraphLoopState, total=False):
@@ -384,6 +774,7 @@ class _ValidationSubgraphState(_GraphLoopState, total=False):
     validation_continuation_source: Any
     validation_continued_after_waiver: bool
     validation_waiver_audit: Any
+    validation_lg_e2_send_metadata: dict[str, Any]
 
 
 class _WaiverSubgraphState(_ValidationSubgraphState, total=False):
@@ -711,6 +1102,7 @@ def _build_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState
             "graph_trace": "LangGraph graph state reducer channel",
             "operator_events": "LangGraph graph state operator probe channel; full operator log audited separately",
             "toolnode_wrapper_events": "LangGraph graph state reducer channel",
+            "lg_e2_send_parallel_events": "LG-E2 Send fan-out audit channel; canonical SD-6 feedback remains AgentLoopRunRecord",
             "stage_record_events": "persisted AgentLoopRunRecord.stage_records",
             "llm_interaction_events": "persisted AgentLoopRunRecord.llm_interactions",
             "fix_log_events": "persisted AgentLoopRunRecord.fix_log",
@@ -1001,6 +1393,620 @@ def _lg_e3_fixed_tool_call(
         status="ok",
     )
     return output
+
+
+_LG_E2_ORDERING_KEY_FIELDS = (
+    "scenario_epoch",
+    "scenario_index",
+    "normalized_scenario_name",
+    "checker_name",
+    "input_hash",
+)
+
+
+def build_lg_e2_send_parallel_contract() -> dict[str, Any]:
+    """Return the LG-E2 SD-6 Send fan-out contract.
+
+    LG-E2 is an auditability/reproducibility contract, not a model-quality
+    metric.  It uses LangGraph ``Send`` only for independent deterministic
+    scenario workers and then reduces worker results through a canonical order
+    that is independent of runtime completion order.
+    """
+
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "stage_id": StageId.SD_6_SIM.value,
+        "graph_node": "validation_sd6_sim",
+        "send_api": "langgraph.types.Send",
+        "fanout_scope": "independent deterministic SD-6 scenario simulation/checker workers",
+        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
+        "scenario_index_source": "frozen ScenarioSet.scenarios original order",
+        "normalized_scenario_name_role": "tie_break_only_after_scenario_index",
+        "serial_equivalence_hash_excludes": [
+            "operator_event_completion_order",
+            "wall_clock_timestamp",
+            "provider_latency",
+            "raw_prompt_or_raw_output",
+        ],
+        "worker_isolation": "deepcopy scenario plus isolated StageContext; shared graph state/FixLog/history are not passed to workers",
+        "preflight_required": True,
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+    }
+
+
+def _lg_e2_normalized_scenario_name(name: Any) -> str:
+    return re.sub(r"\s+", " ", str(name or "").strip().lower())
+
+
+def _lg_e2_worker_ordering_key(worker: dict[str, Any]) -> tuple[int, int, str, str, str]:
+    key = worker.get("ordering_key") if isinstance(worker.get("ordering_key"), dict) else worker
+    return (
+        int(key.get("scenario_epoch", 0) or 0),
+        int(key.get("scenario_index", 0) or 0),
+        str(key.get("normalized_scenario_name") or ""),
+        str(key.get("checker_name") or ""),
+        str(key.get("input_hash") or ""),
+    )
+
+
+def _lg_e2_canonicalize_worker_results(worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted([item for item in worker_results if isinstance(item, dict)], key=_lg_e2_worker_ordering_key)
+
+
+def _lg_e2_feedback_scenario_results(feedback: Any) -> list[Any]:
+    if isinstance(feedback, SimFeedback):
+        return list(feedback.scenario_results)
+    if isinstance(feedback, dict):
+        return list(feedback.get("scenario_results") or [])
+    return list(getattr(feedback, "scenario_results", []) or [])
+
+
+def _lg_e2_scenario_result_sort_key(result: Any, scenario_index_by_name: dict[str, int]) -> tuple[int, str, str]:
+    name = str(getattr(result, "name", "") or "")
+    return (
+        int(scenario_index_by_name.get(name, len(scenario_index_by_name) + 1)),
+        _lg_e2_normalized_scenario_name(name),
+        _hash_payload(result),
+    )
+
+
+def _lg_e2_canonicalize_scenario_results(scenario_results: list[Any], scenario_set: Any) -> list[Any]:
+    scenario_index_by_name = {
+        str(getattr(scenario, "name", "") or ""): index
+        for index, scenario in enumerate(list(getattr(scenario_set, "scenarios", []) or []))
+    }
+    return sorted(
+        [result for result in list(scenario_results or []) if isinstance(result, ScenarioResult)],
+        key=lambda result: _lg_e2_scenario_result_sort_key(result, scenario_index_by_name),
+    )
+
+
+def _lg_e2_selected_feedback_digest(feedback: SimFeedback, scenario_set: Any | None = None) -> dict[str, Any]:
+    selected = None
+    scenario_results = (
+        _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results or []), scenario_set)
+        if scenario_set is not None
+        else list(feedback.scenario_results or [])
+    )
+    canonical_feedback_payload = {
+        "ok": bool(feedback.ok),
+        "n_scenarios": int(feedback.n_scenarios),
+        "n_scenarios_passed": int(feedback.n_scenarios_passed),
+        "scenario_results": _jsonable(scenario_results),
+        "setup_error": feedback.setup_error,
+        "oracle_weak": bool(feedback.oracle_weak),
+        "weak_oracle_reason": feedback.weak_oracle_reason,
+        "weak_oracle_evidence": _jsonable(feedback.weak_oracle_evidence),
+    }
+    if not feedback.ok and not getattr(feedback, "oracle_weak", False):
+        selected = {
+            "source": FeedbackSource.SIM.value,
+            "source_stage": StageId.SD_6_SIM.value,
+            "feedback_hash": _hash_payload(canonical_feedback_payload),
+            "failing_scenario_names": [
+                result.name
+                for result in scenario_results
+                if isinstance(result, ScenarioResult) and result.status != "pass"
+            ],
+            "setup_error_hash": _hash_text(feedback.setup_error) if feedback.setup_error else None,
+        }
+    return {
+        "selected": selected,
+        "selected_feedback_digest": _hash_payload(selected),
+    }
+
+
+def _lg_e2_scenario_history_summary(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    summary: list[dict[str, Any]] = []
+    for item in history or []:
+        if not isinstance(item, dict):
+            continue
+        coverage = item.get("coverage")
+        summary.append(
+            {
+                "iteration": item.get("iteration"),
+                "attempt_index": item.get("attempt_index"),
+                "scenario_set_id": item.get("scenario_set_id"),
+                "epoch": item.get("epoch"),
+                "scenario_names": list(item.get("scenario_names") or []),
+                "coverage_gap": item.get("coverage_gap"),
+                "oracle_weak": item.get("oracle_weak"),
+                "coverage_hash": _hash_payload(coverage) if coverage is not None else None,
+            }
+        )
+    return summary
+
+
+def _lg_e2_coverage_summary(scenario_set: Any) -> dict[str, Any]:
+    coverage = getattr(scenario_set, "coverage_report", {}) or {}
+    return {
+        "scenario_set_id": getattr(scenario_set, "scenario_set_id", None),
+        "scenario_epoch": getattr(scenario_set, "epoch", None),
+        "scenario_names": [getattr(scenario, "name", "") for scenario in list(getattr(scenario_set, "scenarios", []) or [])],
+        "coverage_summary_hash": _hash_payload(coverage),
+        "coverage_gap": bool(coverage.get("coverage_gap")) if isinstance(coverage, dict) else None,
+        "oracle_weak": bool(coverage.get("oracle_weak")) if isinstance(coverage, dict) and "oracle_weak" in coverage else None,
+    }
+
+
+def _lg_e2_serial_equivalence_payload(
+    *,
+    scenario_results: list[Any],
+    selected_feedback_digest: dict[str, Any],
+    scenario_history: list[dict[str, Any]],
+    scenario_set: Any,
+    oracle_weak: bool,
+    scenario_epoch: int | None,
+    final_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
+        "scenario_results": _jsonable(scenario_results),
+        "selected_feedback_digest": _jsonable(selected_feedback_digest),
+        "scenario_history_summary": _lg_e2_scenario_history_summary(scenario_history),
+        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
+        "oracle_weak": bool(oracle_weak),
+        "scenario_epoch": scenario_epoch,
+        "nfrr_eligibility_verdict_summary": final_summary or {"status": "pending_at_sd6"},
+    }
+
+
+def _lg_e2_build_isolated_context(context: StageContext, *, current_dsl: str, scenario_set: ScenarioSet) -> StageContext:
+    """Build a worker-local StageContext without sharing mutable graph objects."""
+
+    isolated = StageContext(
+        nl=str(getattr(context, "nl", "") or ""),
+        current_dsl=current_dsl,
+        grounding_map=copy.deepcopy(getattr(context, "grounding_map", None)),
+        scenario_set=scenario_set,
+        warning_budget_state=copy.deepcopy(getattr(context, "warning_budget_state", {}) or {}),
+    )
+    isolated.inspect_json = copy.deepcopy(getattr(context, "inspect_json", None))
+    return isolated
+
+
+def _lg_e2_single_scenario_set(scenario_set: ScenarioSet, scenario: Any) -> ScenarioSet:
+    return ScenarioSet(
+        scenario_set_id=scenario_set.scenario_set_id,
+        scenarios=[copy.deepcopy(scenario)],
+        source_dsl_hash=scenario_set.source_dsl_hash,
+        source_inspect_hash=scenario_set.source_inspect_hash,
+        source_grounding_hash=scenario_set.source_grounding_hash,
+        coverage_report=copy.deepcopy(scenario_set.coverage_report),
+        epoch=scenario_set.epoch,
+        frozen=scenario_set.frozen,
+        invalidated_by=copy.deepcopy(scenario_set.invalidated_by),
+    )
+
+
+def _lg_e2_preflight(
+    *,
+    enabled_requested: bool,
+    adapters: FullStagedRuntimeAdapters,
+    scenario_set: ScenarioSet,
+    context: StageContext,
+    current_dsl: str,
+) -> dict[str, Any]:
+    scenario_count = len(list(scenario_set.scenarios or []))
+    preflight = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "send_api_import_ok": Send is not None,
+        "enabled_requested": bool(enabled_requested),
+        "scenario_count": scenario_count,
+        "parallel_send_enabled": False,
+        "fallback_reason": "",
+        "thread_safety_basis": "deepcopy_isolated_worker_context_and_single_scenario_set",
+        "worker_shared_object_policy": "workers receive no graph_state, reducer channel, FixLog, scenario_history or shared ScenarioSet object",
+    }
+    if not enabled_requested:
+        preflight["fallback_reason"] = "lg_e2_send_parallel_disabled_by_runtime_parameter"
+        return preflight
+    if scenario_count <= 0:
+        preflight["fallback_reason"] = "no_scenarios_to_fan_out"
+        return preflight
+    if getattr(adapters.sim, "lg_e2_thread_safe", None) is False:
+        preflight["fallback_reason"] = "sim_adapter_declared_lg_e2_thread_safe_false"
+        return preflight
+    if getattr(adapters.sim, "lg_e2_thread_safe", None) is not True:
+        preflight["fallback_reason"] = "sim_adapter_lacks_lg_e2_thread_safety_declaration"
+        return preflight
+    try:
+        probe_set = _lg_e2_single_scenario_set(scenario_set, scenario_set.scenarios[0])
+        _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=probe_set)
+        copy.deepcopy(scenario_set.scenarios[0])
+        preflight["deepcopy_isolation_ok"] = True
+    except Exception as exc:
+        preflight["deepcopy_isolation_ok"] = False
+        preflight["fallback_reason"] = f"deepcopy_isolation_failed:{type(exc).__name__}:{str(exc)[:160]}"
+        return preflight
+    preflight["parallel_send_enabled"] = True
+    preflight["fallback_reason"] = ""
+    return preflight
+
+
+def _lg_e2_worker_specs(*, current_dsl: str, scenario_set: ScenarioSet, context: StageContext) -> list[dict[str, Any]]:
+    specs: list[dict[str, Any]] = []
+    scenario_epoch = int(getattr(scenario_set, "epoch", 0) or 0)
+    for scenario_index, scenario in enumerate(list(scenario_set.scenarios or [])):
+        normalized_name = _lg_e2_normalized_scenario_name(getattr(scenario, "name", ""))
+        input_hash = _hash_payload(
+            {
+                "current_dsl_hash": _hash_text(current_dsl),
+                "scenario_set_id": scenario_set.scenario_set_id,
+                "scenario_epoch": scenario_epoch,
+                "scenario_index": scenario_index,
+                "scenario": scenario,
+            }
+        )
+        ordering_key = {
+            "scenario_epoch": scenario_epoch,
+            "scenario_index": scenario_index,
+            "normalized_scenario_name": normalized_name,
+            "checker_name": "sd6_sim",
+            "input_hash": input_hash,
+        }
+        single_set = _lg_e2_single_scenario_set(scenario_set, scenario)
+        specs.append(
+            {
+                "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+                "current_dsl": current_dsl,
+                "scenario_set": single_set,
+                "context": _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=single_set),
+                "scenario_name": getattr(scenario, "name", ""),
+                "ordering_key": ordering_key,
+                "send_arg_hash": _hash_payload({"ordering_key": ordering_key, "scenario": scenario}),
+            }
+        )
+    return specs
+
+
+def _lg_e2_execute_send_graph(
+    *,
+    worker_specs: list[dict[str, Any]],
+    sim_adapter: Any,
+) -> list[dict[str, Any]]:
+    graph = StateGraph(_LgE2SendState)
+
+    def route_workers(state: _LgE2SendState) -> list[Send]:
+        return [Send("lg_e2_sd6_scenario_worker", spec) for spec in list(state.get("worker_specs") or [])]
+
+    def worker(spec: dict[str, Any]) -> dict[str, Any]:
+        ordering_key = dict(spec.get("ordering_key") or {})
+        feedback, meta = sim_adapter(spec["current_dsl"], spec["scenario_set"], spec["context"])
+        return {
+            "worker_results": [
+                {
+                    "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+                    "ordering_key": ordering_key,
+                    "scenario_name": spec.get("scenario_name"),
+                    "send_arg_hash": spec.get("send_arg_hash"),
+                    "feedback": feedback,
+                    "meta": meta,
+                    "feedback_hash": _hash_payload(feedback),
+                    "meta_hash": _hash_payload(meta),
+                    "scenario_result_count": len(_lg_e2_feedback_scenario_results(feedback)),
+                    "ok": bool(getattr(feedback, "ok", False)),
+                    "oracle_weak": bool(getattr(feedback, "oracle_weak", False)),
+                }
+            ]
+        }
+
+    graph.add_node("lg_e2_sd6_scenario_worker", worker)
+    graph.add_conditional_edges(START, route_workers)
+    graph.add_edge("lg_e2_sd6_scenario_worker", END)
+    app = graph.compile(checkpointer=False)
+    result = app.invoke({"worker_specs": worker_specs, "worker_results": []})
+    return [item for item in list(result.get("worker_results") or []) if isinstance(item, dict)]
+
+
+def _lg_e2_aggregate_worker_results(
+    *,
+    worker_results: list[dict[str, Any]],
+    scenario_set: ScenarioSet,
+) -> tuple[SimFeedback, StageResultMeta, list[dict[str, Any]]]:
+    canonical = _lg_e2_canonicalize_worker_results(worker_results)
+    scenario_results_by_name: dict[str, list[ScenarioResult]] = defaultdict(list)
+    setup_errors: list[str] = []
+    weak_reasons: list[str] = []
+    weak_evidence: list[Any] = []
+    hard_failure_seen = False
+    n_passed = 0
+    ok = True
+    any_error_status = False
+    for worker in canonical:
+        feedback = worker.get("feedback")
+        meta = worker.get("meta")
+        if not isinstance(feedback, SimFeedback):
+            raise TypeError("LG-E2 worker must return SimFeedback")
+        ok = ok and bool(feedback.ok)
+        n_passed += int(getattr(feedback, "n_scenarios_passed", 0) or 0)
+        for result in feedback.scenario_results:
+            if isinstance(result, ScenarioResult):
+                scenario_results_by_name[str(result.name or "")].append(result)
+        if feedback.setup_error:
+            setup_errors.append(feedback.setup_error)
+        if not feedback.ok and feedback.oracle_weak:
+            weak_reasons.append(feedback.weak_oracle_reason)
+            weak_evidence.append(feedback.weak_oracle_evidence)
+        elif not feedback.ok:
+            hard_failure_seen = True
+        if getattr(meta, "status", None) == StageStatus.ERROR:
+            any_error_status = True
+            hard_failure_seen = True
+    status = StageStatus.ERROR if any_error_status else (StageStatus.OK if ok else StageStatus.FAIL)
+    scenario_results: list[ScenarioResult] = []
+    for scenario in list(scenario_set.scenarios or []):
+        scenario_name = str(getattr(scenario, "name", "") or "")
+        scenario_results.extend(scenario_results_by_name.pop(scenario_name, []))
+    for leftover_name in sorted(scenario_results_by_name, key=_lg_e2_normalized_scenario_name):
+        scenario_results.extend(scenario_results_by_name[leftover_name])
+    feedback = SimFeedback(
+        ok=ok,
+        n_scenarios=len(list(scenario_set.scenarios or [])),
+        n_scenarios_passed=n_passed,
+        scenario_results=scenario_results,
+        setup_error=setup_errors[0] if setup_errors else None,
+        oracle_weak=bool(weak_reasons) and not hard_failure_seen,
+        weak_oracle_reason=";".join(reason for reason in weak_reasons if reason) if bool(weak_reasons) and not hard_failure_seen else "",
+        weak_oracle_evidence={"worker_evidence": _jsonable(weak_evidence)} if bool(weak_reasons) and not hard_failure_seen else {},
+    )
+    meta = _meta(StageId.SD_6_SIM, ok=feedback.ok, status=status)
+    meta.input_hash = _hash_payload(
+        {
+            "scenario_set_id": scenario_set.scenario_set_id,
+            "scenario_epoch": scenario_set.epoch,
+            "scenario_names": [getattr(scenario, "name", "") for scenario in list(scenario_set.scenarios or [])],
+        }
+    )
+    meta.output_hash = _hash_payload(feedback)
+    return feedback, meta, canonical
+
+
+def _lg_e2_first_blocking_id(selected_digest: dict[str, Any]) -> str | None:
+    selected = selected_digest.get("selected") if isinstance(selected_digest, dict) else None
+    if not isinstance(selected, dict):
+        return None
+    names = selected.get("failing_scenario_names")
+    if isinstance(names, list) and names:
+        return str(names[0])
+    setup_hash = selected.get("setup_error_hash")
+    if setup_hash:
+        return f"setup_error:{setup_hash}"
+    return None
+
+
+def _lg_e2_metadata_for_feedback(
+    *,
+    enabled_requested: bool,
+    preflight: dict[str, Any],
+    scenario_set: ScenarioSet,
+    feedback: SimFeedback,
+    scenario_history: list[dict[str, Any]],
+    worker_results: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    canonical_workers = _lg_e2_canonicalize_worker_results(worker_results or [])
+    scenario_results = _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results), scenario_set)
+    selected_digest = _lg_e2_selected_feedback_digest(feedback, scenario_set)
+    serial_payload = _lg_e2_serial_equivalence_payload(
+        scenario_results=scenario_results,
+        selected_feedback_digest=selected_digest,
+        scenario_history=scenario_history,
+        scenario_set=scenario_set,
+        oracle_weak=feedback.oracle_weak,
+        scenario_epoch=scenario_set.epoch,
+    )
+    canonical_result_hash = _hash_payload(_jsonable(scenario_results))
+    return {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "enabled_requested": bool(enabled_requested),
+        "parallel_send_enabled": bool(preflight.get("parallel_send_enabled")),
+        "fallback_reason": str(preflight.get("fallback_reason") or ""),
+        "preflight": _jsonable(preflight),
+        "send_api": "langgraph.types.Send",
+        "send_api_import_ok": bool(preflight.get("send_api_import_ok")),
+        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
+        "worker_count": len(canonical_workers),
+        "fanout_count": len(list(scenario_set.scenarios or [])),
+        "raw_worker_order": [
+            _jsonable((worker.get("ordering_key") or {}))
+            for worker in list(worker_results or [])
+            if isinstance(worker, dict)
+        ],
+        "canonical_worker_order": [
+            _jsonable((worker.get("ordering_key") or {}))
+            for worker in canonical_workers
+        ],
+        "canonical_scenario_results": _jsonable(scenario_results),
+        "canonical_result_hash": canonical_result_hash,
+        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
+        "coverage_summary_hash": _lg_e2_coverage_summary(scenario_set)["coverage_summary_hash"],
+        "selected_feedback_digest": selected_digest,
+        "first_blocking_id": _lg_e2_first_blocking_id(selected_digest),
+        "scenario_epoch": scenario_set.epoch,
+        "oracle_weak": bool(feedback.oracle_weak),
+        "serial_equivalence_hash": _hash_payload(serial_payload),
+        "serial_equivalence_hash_input_scope": {
+            "scenario_results": True,
+            "first_blocking_or_selected_feedback_digest": True,
+            "scenario_history_summary": True,
+            "coverage_summary": True,
+            "oracle_weak": True,
+            "nfrr_eligibility_verdict_summary": "pending_at_sd6_finalized_in_run_record_trace",
+            "excludes_operator_event_order_wall_clock_latency": True,
+        },
+        "does_not_replace_academic_evidence": True,
+    }
+
+
+def _lg_e2_final_verdict_summary(record: Any) -> dict[str, Any]:
+    final_artifacts = record.final_artifacts if isinstance(getattr(record, "final_artifacts", None), dict) else {}
+    return {
+        "record_status": getattr(record, "status", None),
+        "verdict": final_artifacts.get("verdict"),
+        "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
+        "agent_loop_result_status": final_artifacts.get("agent_loop_result_status"),
+        "main_result_eligible": final_artifacts.get("main_result_eligible"),
+        "inclusion_reason": final_artifacts.get("inclusion_reason"),
+        "exclusion_reason": final_artifacts.get("exclusion_reason"),
+        "oracle_weak": final_artifacts.get("oracle_weak"),
+    }
+
+
+def _lg_e2_finalize_metadata_from_record(record: Any, metadata: dict[str, Any]) -> dict[str, Any]:
+    finalized = dict(metadata)
+    iteration = finalized.get("iteration")
+    scenario_results = finalized.get("canonical_scenario_results") or []
+    final_summary = _lg_e2_final_verdict_summary(record)
+    final_payload = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
+        "scenario_results": _jsonable(scenario_results or []),
+        "selected_feedback_digest": _jsonable(finalized.get("selected_feedback_digest") or {}),
+        "scenario_history_summary": _lg_e2_scenario_history_summary(list(getattr(record, "scenario_history", []) or [])),
+        "coverage_summary": _jsonable(finalized.get("coverage_summary") or {}),
+        "oracle_weak": bool(finalized.get("oracle_weak")),
+        "scenario_epoch": finalized.get("scenario_epoch"),
+        "nfrr_eligibility_verdict_summary": final_summary,
+    }
+    finalized["serial_equivalence_hash"] = _hash_payload(final_payload)
+    finalized["serial_equivalence_hash_finalized"] = True
+    finalized["nfrr_eligibility_verdict_summary"] = final_summary
+    finalized["serial_equivalence_hash_input_payload_hash"] = _hash_payload(final_payload)
+    return finalized
+
+
+def _lg_e2_run_sd6_send_parallel_or_serial(
+    graph_state: _ValidationSubgraphState,
+    *,
+    runtime_cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    current_dsl: str,
+    scenario_set: ScenarioSet,
+    context: StageContext,
+    iteration: int,
+    enabled_requested: bool,
+) -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
+    preflight = _lg_e2_preflight(
+        enabled_requested=enabled_requested,
+        adapters=adapters,
+        scenario_set=scenario_set,
+        context=context,
+        current_dsl=current_dsl,
+    )
+    scenario_history = list(graph_state.get("validation_scenario_history") or [])
+    input_payload = {
+        "current_dsl": current_dsl,
+        "scenario_set": scenario_set,
+        "context": context,
+        "lg_e2_preflight": preflight,
+    }
+    if not preflight.get("parallel_send_enabled"):
+        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
+            graph_state,
+            tool_name="sd6_sim",
+            stage_id=StageId.SD_6_SIM.value,
+            graph_node="validation_sd6_sim",
+            iteration=iteration,
+            input_payload=input_payload,
+            call=lambda: adapters.sim(current_dsl, scenario_set, context),
+        )
+        if not isinstance(sim_feedback, SimFeedback):
+            raise TypeError("SD-6 sim adapter must return SimFeedback")
+        metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=sim_feedback,
+            scenario_history=scenario_history,
+            worker_results=[],
+        )
+        return sim_feedback, sim_meta, metadata
+
+    def call_parallel() -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
+        worker_specs = _lg_e2_worker_specs(current_dsl=current_dsl, scenario_set=scenario_set, context=context)
+        worker_results = _lg_e2_execute_send_graph(worker_specs=worker_specs, sim_adapter=adapters.sim)
+        parallel_feedback, parallel_meta, canonical_workers = _lg_e2_aggregate_worker_results(
+            worker_results=worker_results,
+            scenario_set=scenario_set,
+        )
+        parallel_metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=parallel_feedback,
+            scenario_history=scenario_history,
+            worker_results=worker_results,
+        )
+        serial_feedback, serial_meta = adapters.sim(current_dsl, scenario_set, context)
+        if not isinstance(serial_feedback, SimFeedback):
+            raise TypeError("SD-6 serial control adapter must return SimFeedback")
+        metadata = _lg_e2_metadata_for_feedback(
+            enabled_requested=enabled_requested,
+            preflight=preflight,
+            scenario_set=scenario_set,
+            feedback=serial_feedback,
+            scenario_history=scenario_history,
+            worker_results=worker_results,
+        )
+        serial_alignment_ok = (
+            parallel_metadata["canonical_result_hash"] == metadata["canonical_result_hash"]
+            and parallel_metadata["serial_equivalence_hash"] == metadata["serial_equivalence_hash"]
+            and bool(parallel_feedback.oracle_weak) == bool(serial_feedback.oracle_weak)
+            and bool(parallel_feedback.ok) == bool(serial_feedback.ok)
+        )
+        metadata["parallel_canonical_result_hash"] = parallel_metadata["canonical_result_hash"]
+        metadata["serial_canonical_result_hash"] = metadata["canonical_result_hash"]
+        metadata["parallel_serial_equivalence_hash"] = parallel_metadata["serial_equivalence_hash"]
+        metadata["serial_control_equivalence_hash"] = metadata["serial_equivalence_hash"]
+        metadata["serial_control_run_executed"] = True
+        metadata["serial_alignment_ok"] = serial_alignment_ok
+        metadata["canonical_output_source"] = "serial_control_after_send_alignment"
+        if not serial_alignment_ok:
+            metadata["canonical_fallback_reason"] = "parallel_serial_alignment_mismatch_canonical_serial_used"
+        else:
+            metadata["canonical_fallback_reason"] = ""
+        metadata["worker_count"] = len(canonical_workers)
+        metadata["send_constructed_count"] = len(worker_specs)
+        metadata["send_arg_hashes"] = [str(spec.get("send_arg_hash") or "") for spec in worker_specs]
+        metadata["parallel_aggregate_meta_hash"] = _hash_payload(parallel_meta)
+        metadata["serial_control_meta_hash"] = _hash_payload(serial_meta)
+        return serial_feedback, serial_meta, metadata
+
+    sim_feedback, sim_meta, metadata = _lg_e3_fixed_tool_call(
+        graph_state,
+        tool_name="sd6_sim",
+        stage_id=StageId.SD_6_SIM.value,
+        graph_node="validation_sd6_sim",
+        iteration=iteration,
+        input_payload=input_payload,
+        call=call_parallel,
+    )
+    return sim_feedback, sim_meta, metadata
+
 
 def _hash_payload(payload: Any) -> str:
     encoded = json.dumps(_jsonable(payload), ensure_ascii=False, sort_keys=True, default=str)
@@ -1645,9 +2651,11 @@ def build_langgraph_node_registry() -> dict[str, Any]:
             ],
             "delegated_subgraph": True,
             "subgraph_id": "repair_subgraph",
+            "nested_subgraph_ids": [LG_C2_CONTEXT_SUBGRAPH_ID],
             "subgraph_node_ids": [
                 "repair_enter",
                 "repair_sd8_fix_requests",
+                *LG_C2_CONTEXT_NODE_IDS,
                 "repair_sl9_repair",
                 "repair_sl10_review",
                 "repair_sc11_accept_candidate",
@@ -1994,8 +3002,10 @@ def _graph_runtime_metadata(
     graph_config_hash: str,
     toolnode_wrapper_enabled: bool = True,
     checkpoint_metadata: dict[str, Any] | None = None,
+    lg_e2_send_parallel_enabled: bool = True,
 ) -> dict[str, Any]:
     lg_c1_contract = build_lg_c1_graph_state_contract()
+    lg_e2_contract = build_lg_e2_send_parallel_contract()
     metadata = {
         "graph_runtime_backend": "langgraph",
         "graph_runtime_status": "enabled" if compat.get("ok") else "disabled_with_reason",
@@ -2025,6 +3035,10 @@ def _graph_runtime_metadata(
         "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
         "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
         "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+        "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+        "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "lg_e2_send_parallel_contract_hash": _hash_payload(lg_e2_contract),
+        "lg_e2_send_parallel_ordering_key_fields": lg_e2_contract["ordering_key_fields"],
         "checkpoint_resume_smoke": _checkpoint_resume_smoke(),
         "langgraph_compat_smoke": compat,
         "dependency_versions": {
@@ -2962,16 +3976,62 @@ def _build_validation_subgraph(
             graph_subgraph="validation_subgraph",
             graph_node="validation_sd6_sim",
         )
-        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
+        sim_feedback, sim_meta, lg_e2_metadata = _lg_e2_run_sd6_send_parallel_or_serial(
             graph_state,
-            tool_name="sd6_sim",
-            stage_id=StageId.SD_6_SIM.value,
-            graph_node="validation_sd6_sim",
+            runtime_cfg=runtime_cfg,
+            adapters=adapters,
+            current_dsl=runtime_state.current_dsl,
+            scenario_set=scenario_set,
+            context=context,
             iteration=iteration,
-            input_payload={"current_dsl": runtime_state.current_dsl, "scenario_set": scenario_set, "context": context},
-            call=lambda: adapters.sim(runtime_state.current_dsl, scenario_set, context),
+            enabled_requested=bool(runtime_cfg.run_config_extra.get("lg_e2_send_parallel_enabled", True)),
         )
         feedback[FeedbackSource.SIM.value] = sim_feedback
+        lg_e2_metadata = {
+            **lg_e2_metadata,
+            "iteration": iteration,
+            "stage_id": StageId.SD_6_SIM.value,
+            "scenario_set_id": scenario_set.scenario_set_id,
+            "sim_meta_hash": _hash_payload(sim_meta),
+        }
+        graph_state["validation_lg_e2_send_metadata"] = _jsonable(lg_e2_metadata)
+        lg_e2_events = list(graph_state.get("lg_e2_send_parallel_events", []) or [])
+        lg_e2_events.append(_jsonable(lg_e2_metadata))
+        graph_state["lg_e2_send_parallel_events"] = lg_e2_events
+        _append_flow_log(
+            runtime_state.logs,
+            event="lg_e2_send_parallel_result",
+            stage_id=StageId.SD_6_SIM.value,
+            iteration=iteration,
+            parallel_send_enabled=bool(lg_e2_metadata.get("parallel_send_enabled")),
+            fallback_reason=lg_e2_metadata.get("fallback_reason"),
+            fanout_count=lg_e2_metadata.get("fanout_count"),
+            worker_count=lg_e2_metadata.get("worker_count"),
+            serial_equivalence_hash=lg_e2_metadata.get("serial_equivalence_hash"),
+            canonical_result_hash=lg_e2_metadata.get("canonical_result_hash"),
+            selected_feedback_digest=lg_e2_metadata.get("selected_feedback_digest"),
+            scenario_epoch=lg_e2_metadata.get("scenario_epoch"),
+            oracle_weak=lg_e2_metadata.get("oracle_weak"),
+            lg_e2_metadata=_jsonable(lg_e2_metadata),
+            does_not_replace_academic_evidence=True,
+            graph_subgraph="validation_subgraph",
+            graph_node="validation_sd6_sim",
+        )
+        _append_lg_d1_operator_event(
+            graph_state,
+            event_type="lg_e2_send_parallel_result",
+            node="validation_sd6_sim",
+            stage_id=StageId.SD_6_SIM.value,
+            payload={
+                "parallel_send_enabled": bool(lg_e2_metadata.get("parallel_send_enabled")),
+                "fallback_reason": lg_e2_metadata.get("fallback_reason"),
+                "fanout_count": lg_e2_metadata.get("fanout_count"),
+                "worker_count": lg_e2_metadata.get("worker_count"),
+                "serial_equivalence_hash": lg_e2_metadata.get("serial_equivalence_hash"),
+                "canonical_result_hash": lg_e2_metadata.get("canonical_result_hash"),
+                "does_not_replace_academic_evidence": True,
+            },
+        )
         _append_stage(runtime_state.stage_records, sim_meta)
         stage_metas.append(sim_meta)
         _append_flow_log(
@@ -5295,6 +6355,72 @@ def _augment_run_record_with_lg_e3_toolnode_trace(
     )
     write_agent_loop_run_record(record, path)
 
+
+def _augment_run_record_with_lg_e2_send_parallel_trace(
+    result: AgentLoopResult,
+    *,
+    events: list[dict[str, Any]],
+    enabled: bool,
+) -> None:
+    if not result.run_record_path:
+        return
+    path = result.run_record_path
+    record = read_agent_loop_run_record(path)
+    contract = build_lg_e2_send_parallel_contract()
+    finalized_events = [
+        _jsonable(_lg_e2_finalize_metadata_from_record(record, event))
+        for event in list(events or [])
+        if isinstance(event, dict)
+    ]
+    trace = {
+        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+        "enabled": bool(enabled),
+        "event_count": len(finalized_events),
+        "events_hash": _hash_payload(finalized_events),
+        "parallel_send_enabled_count": sum(1 for event in finalized_events if bool(event.get("parallel_send_enabled"))),
+        "fallback_count": sum(1 for event in finalized_events if not bool(event.get("parallel_send_enabled"))),
+        "serial_equivalence_hashes": [
+            str(event.get("serial_equivalence_hash") or "")
+            for event in finalized_events
+            if event.get("serial_equivalence_hash")
+        ],
+        "canonical_result_hashes": [
+            str(event.get("canonical_result_hash") or "")
+            for event in finalized_events
+            if event.get("canonical_result_hash")
+        ],
+        "contract_hash": _hash_payload(contract),
+        "ordering_key_fields": contract["ordering_key_fields"],
+        "does_not_replace_academic_evidence": True,
+        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
+        "events": finalized_events,
+    }
+    record.environment["lg_e2_send_parallel_enabled"] = bool(enabled)
+    record.environment["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
+    record.environment["lg_e2_send_parallel_event_count"] = len(finalized_events)
+    record.environment["lg_e2_send_parallel_events_hash"] = trace["events_hash"]
+    record.environment["lg_e2_send_parallel_contract_hash"] = trace["contract_hash"]
+    record.environment["lg_e2_send_parallel_ordering_key_fields"] = trace["ordering_key_fields"]
+    record.run_config["lg_e2_send_parallel_enabled"] = bool(enabled)
+    record.run_config["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
+    record.run_config["lg_e2_send_parallel_contract"] = contract
+    record.final_artifacts["lg_e2_send_parallel_trace"] = trace
+    record.logs.append(
+        {
+            "event": "lg_e2_send_parallel_trace",
+            "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+            "enabled": bool(enabled),
+            "event_count": len(finalized_events),
+            "parallel_send_enabled_count": trace["parallel_send_enabled_count"],
+            "fallback_count": trace["fallback_count"],
+            "events_hash": trace["events_hash"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
+    write_agent_loop_run_record(record, path)
+
+
 def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: list[dict[str, Any]]) -> None:
     if not result.run_record_path:
         return
@@ -6408,6 +7534,7 @@ def run_full_staged_langgraph_runtime(
     called_from_loop: bool = False,
     operator_stream_enabled: bool = True,
     toolnode_wrapper_enabled: bool = True,
+    lg_e2_send_parallel_enabled: bool = True,
 ) -> AgentLoopResult:
     """Run the canonical full-staged loop through the default LangGraph runtime."""
 
@@ -6421,8 +7548,12 @@ def run_full_staged_langgraph_runtime(
     if not compat.get("ok"):
         raise RuntimeError(f"LangGraph compatibility smoke failed: {compat}")
     resolved = resolved_config or config.resolved_config()
+    lg_c2_context_contract = build_lg_c2_context_subgraph_contract()
+    lg_c2_context_contract_hash = _hash_payload(lg_c2_context_contract)
     graph_config = {
         "registry": registry,
+        "lg_c2_context_subgraph_contract": lg_c2_context_contract,
+        "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
         "planned_stage_graph": planned,
         "resolved_config": resolved,
         "condition_hash": resolved.get("condition_hash"),
@@ -6440,9 +7571,17 @@ def run_full_staged_langgraph_runtime(
         "lg_d1_operator_stream_enabled": bool(operator_stream_enabled),
         "lg_e3_toolnode_wrappers_enabled": bool(toolnode_wrapper_enabled),
         "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+        "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+        "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
     }
     graph_config_hash = _hash_payload(graph_config)
-    metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash, toolnode_wrapper_enabled=toolnode_wrapper_enabled)
+    metadata = _graph_runtime_metadata(
+        registry=registry,
+        compat=compat,
+        graph_config_hash=graph_config_hash,
+        toolnode_wrapper_enabled=toolnode_wrapper_enabled,
+        lg_e2_send_parallel_enabled=lg_e2_send_parallel_enabled,
+    )
     run_id = run_id or config.run_id or f"pr-langgraph-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
     initial_lg_d1_stream_metadata = lg_d1_llm_stream_runtime_metadata(real_llm_provider_api=config.llm_provider_mode == "real_env")
     runtime_cfg = FullStagedRuntimeConfig(
@@ -6471,6 +7610,12 @@ def run_full_staged_langgraph_runtime(
             "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
             "lg_e3_toolnode_wrapper_registry": build_lg_e3_toolnode_wrapper_registry(),
             "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+            "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+            "lg_e2_send_parallel_contract": build_lg_e2_send_parallel_contract(),
+            "lg_c2_context_subgraph_contract": lg_c2_context_contract,
+            "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
+            "lg_c2_context_subgraph_canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
             "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
             "stage_semantics_module": "method.staged_runtime",
         },
@@ -6486,6 +7631,12 @@ def run_full_staged_langgraph_runtime(
             "lg_e3_toolnode_wrapper_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
             "lg_e3_toolnode_wrapper_registry_hash": _hash_payload(build_lg_e3_toolnode_wrapper_registry()),
             "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
+            "lg_e2_send_parallel_enabled": bool(lg_e2_send_parallel_enabled),
+            "lg_e2_send_parallel_schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+            "lg_e2_send_parallel_contract_hash": _hash_payload(build_lg_e2_send_parallel_contract()),
+            "lg_c2_context_subgraph_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+            "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
+            "lg_c2_context_subgraph_canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
             **initial_lg_d1_stream_metadata,
         },
         real_llm_provider_api=config.llm_provider_mode == "real_env",
@@ -6502,6 +7653,7 @@ def run_full_staged_langgraph_runtime(
             "operator_events": [],
             "operator_stream_enabled": bool(operator_stream_enabled),
             "toolnode_wrapper_events": [],
+            "lg_e2_send_parallel_events": [],
             "stage_record_events": [],
             "llm_interaction_events": [],
             "fix_log_events": [],
@@ -6523,6 +7675,12 @@ def run_full_staged_langgraph_runtime(
         result,
         events=toolnode_events,
         enabled=bool(toolnode_wrapper_enabled),
+    )
+    lg_e2_events = list(state.get("lg_e2_send_parallel_events", []) or [])
+    _augment_run_record_with_lg_e2_send_parallel_trace(
+        result,
+        events=lg_e2_events,
+        enabled=bool(lg_e2_send_parallel_enabled),
     )
     operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
     _augment_run_record_with_lg_d1_operator_log(
