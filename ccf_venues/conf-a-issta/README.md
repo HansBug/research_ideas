@@ -1,0 +1,95 @@
+# ISSTA README
+
+> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
+
+## 1. 基本信息
+
+| 字段 | 内容 |
+|---|---|
+| 缩写 | ISSTA |
+| 全称 | ACM SIGSOFT International Symposium on Software Testing and Analysis |
+| 类型 | 会议 |
+| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言 |
+| CCF 等级 | A |
+| 出版方 | ACM / PACMSE（2025+ research papers 页面说明） |
+| 官方 series page | [ISSTA series](https://conf.researchr.org/series/issta) |
+| 官方当前 / 最新年度主页 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) |
+| 官方 CFP / Important Dates 总入口 | 逐年度 Technical / Research Papers track 维护 |
+| 官方 proceedings / paper list 总入口 | 逐年度 program / ACM / DBLP fallback |
+| DBLP venue page | [DBLP ISSTA venue](https://dblp.org/db/conf/issta/) |
+| 当前默认调查范围 | `2022` 至 `2028` |
+
+## 2. Scope 与方向
+
+- ISSTA 聚焦软件测试与分析，覆盖测试生成、程序分析、调试、修复、验证、artifact 和 testing for AI / AI for testing。
+- 与本仓库最相关的方向：验证场景生成、属性 / oracle、程序分析、模型检查相邻技术、自动修复与 LLM4Testing。
+- 明显不属于本仓库重点但可作背景：泛 PL co-location 活动、教育 / sponsorship / 社区活动。
+
+## 3. 与本仓库 project 的关系
+
+| Project | 相关性 | 说明 |
+|---|---|---|
+| P1 状态机建模 | 中 | 可追踪测试驱动建模、程序行为抽象与规格推断。 |
+| P2 场景与性质生成 | 高 | ISSTA 是测试生成、oracle、fuzzing、analysis 的核心 venue。 |
+| P3 验证剖面与模型检查 | 高 | 程序分析、静态 / 动态验证、符号执行与模型检查相关论文密集。 |
+| P4 模型修复 | 高 | 调试、fault localization、repair、testing-guided repair 与本仓库强相关。 |
+
+## 4. 核心链接索引
+
+| 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
+|---|---|---|---|
+| Series / main site | [ISSTA series](https://conf.researchr.org/series/issta) | researchr 长期入口 | `2026-06-05 08:39` |
+| Latest year homepage | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 2027/2028 未公布 | `2026-06-06 13:16` |
+| CFP / Call for Papers | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 2022-2023 为 Technical Papers 命名 | `2026-06-06 13:16` |
+| Important Dates | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 与 CFP 同页；2026 官方只给日期 + AoE，未给具体钟点 | `2026-06-06 13:16` |
+| Submission system | [ISSTA 2026 HotCRP](https://issta2026.hotcrp.com/) | 历年入口见年度页 | `2026-06-05 08:39` |
+| Program / accepted papers | [ISSTA 2025 Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/) | 已结束年度优先官方 program，DBLP fallback | `2026-06-05 08:39` |
+| Proceedings | [DBLP ISSTA venue](https://dblp.org/db/conf/issta/) | ACM DL / PACMSE 待逐年补证 | `2026-06-05 08:39` |
+| DBLP venue | [DBLP ISSTA venue](https://dblp.org/db/conf/issta/) | 仅作论文名录 / 计数 fallback | `2026-06-05 08:39` |
+
+## 5. 核心人员情报
+
+> 人员角色以 ISSTA 官方年度 research papers / track committee 为准；研究方向和代表作基于个人主页、DBLP 或公开学术入口归纳。本表优先记录 Research Papers Chair、与 P1-P4 强相关的 Area Chair / track chair 和测试分析领域权威；不等同于全量 PC roster。
+
+| 人员 | 年度 / 层级 | 会议角色 | 单位 / 主页入口 | 官方角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验状态 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Marcel Böhme | ISSTA 2026 | Research Papers Co-Chair | MPI-SP / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/74/5763) | fuzzing, software testing, debugging, security testing | DBLP 近年 fuzzing / testing 论文入口；代表作待逐篇筛选 | P2/P4 很高：测试生成、缺陷定位和自动修复评估 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Cindy Rubio-González | ISSTA 2026 | Research Papers Co-Chair | UC Davis / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/73/4965) | program analysis, debugging, dynamic analysis | DBLP 近年 analysis / debugging 论文入口；代表作待逐篇筛选 | P3/P4 高相关：分析、调试、修复证据链 | 🟡 角色已核验，个人主页待补 | `2026-06-05 09:32` |
+| Lionel Briand | ISSTA 2026 | Area Chair, AI for Analysis and Testing | University of Luxembourg / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/b/LionelBriand) | software testing, verification, model-based testing, AI for SE | DBLP 近年 model-based testing / AI4SE 论文入口；代表作待逐篇筛选 | P1/P2/P3 极高：模型测试、需求/验证和 LLM4SE | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Corina S. Păsăreanu | ISSTA 2026 | Area Chair, AI for Analysis and Testing | NASA Ames / CMU Silicon Valley / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/p/CorinaSPasareanu) | symbolic execution, model checking, program analysis | DBLP 近年 symbolic execution / model checking 论文入口；代表作待逐篇筛选 | P2/P3 很高：性质检查、模型检查和场景生成 | 🟡 角色已核验，主页待补 | `2026-06-05 09:32` |
+| Lingming Zhang | ISSTA 2026 | Area Chair, AI for Analysis and Testing | UIUC / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/56/8404) | software testing, debugging, deep learning testing | DBLP 近年 testing / LLM testing 论文入口；代表作待逐篇筛选 | P2/P4 高相关 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Sukyoung Ryu | ISSTA 2026 | Area Chair, Program Analysis & Verification | KAIST / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/r/SukyoungRyu) | programming languages, program analysis, verification | DBLP 近年 PL / analysis 论文入口；代表作待逐篇筛选 | P3 高相关：分析与验证方法 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+| Andreas Zeller | ISSTA 2026 | Area Chair, Software Test Generation | CISPA / Saarland University / 待补 | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [DBLP](https://dblp.org/pid/z/AndreasZeller) | automated debugging, test generation, mining specs | DBLP 近年 debugging / test generation 论文入口；代表作待逐篇筛选 | P2/P4 极高：测试生成、调试和反馈修复 | 🟡 角色已核验，代表作待深挖 | `2026-06-05 09:32` |
+
+## 6. 年度信息汇总
+
+> ISSTA 冻结口径：2024+ co-location / joint week 只作为会期和入口关系；论文数量按 ISSTA 独立 accepted papers / ACM proceedings / DBLP ISSTA entry 计数，不混入 FSE research track。若同一入口出现在联合 proceedings / FSE companion，仅在证据栏说明，不重复计数。
+
+| 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
+| [2028](./2028/README.md) | ⏳ 待官网 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | ⏳ 待官网 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟢 投稿 / 审稿周期中 | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | [HotCRP](https://issta2026.hotcrp.com/) | 未公布 | PACMSE Issue ISSTA 2026（track 说明；未正式发布） | ⏳ 已检索未公布 | 2026-01-29 待补时刻 AoE / UTC-12h | initial 2026-04-16 待补时刻 AoE / UTC-12h；final 2026-06-25 待补时刻 AoE / UTC-12h | 2026-10-03..2026-10-09 | 未公布 | 🟡 部分核验 |
+| [2025](./2025/README.md) | ✅ 已结束 | [ISSTA 2025](https://conf.researchr.org/home/issta-2025) | [Research Papers](https://conf.researchr.org/track/issta-2025/issta-2025-papers) | [Important Dates](https://conf.researchr.org/dates/issta-2025) | [HotCRP](https://issta25.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/) | PACMSE Issue ISSTA 2025（[proceedings probe](https://conf.researchr.org/info/issta-2025/proceedings) 当前 accessDenied，待 ACM/PACMSE 交叉核验） | [DBLP 2025 companion fallback](https://dblp.org/db/conf/issta/issta2025c.html) | 2024-10-31 23:59:59 AoE / UTC-12h | 2024-12-19 23:59:59 AoE / UTC-12h；final 2025-03-31 23:59:59 AoE / UTC-12h | 2025-06-25..2025-06-28 | DBLP companion fallback: 35 ⚠️ 待 ACM/PACMSE 交叉核验 | 🟡 部分核验 |
+| [2024](./2024/README.md) | ✅ 已结束 | [ISSTA 2024](https://conf.researchr.org/home/issta-2024) | [Technical Papers](https://conf.researchr.org/track/issta-2024/issta-2024-papers) | [Important Dates](https://conf.researchr.org/dates/issta-2024) | [HotCRP](https://issta24.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2024/program-issta-2024/) | 未逐项核验；ACM / DBLP fallback | [DBLP 2024](https://dblp.org/db/conf/issta/issta2024.html) | 2023-12-15 23:59 AoE / UTC-12h；round 2 2024-04-12 23:59 AoE / UTC-12h | 2024-03-02 待补时刻 AoE；round 2 2024-07-03 待补时刻 AoE | 2024-09-16..2024-09-20 | DBLP inproceedings fallback: 170 | 🟡 部分核验 |
+| [2023](./2023/README.md) | ✅ 已结束 | [ISSTA 2023](https://conf.researchr.org/home/issta-2023) | [Technical Papers](https://conf.researchr.org/track/issta-2023/issta-2023-technical-papers) | [Technical Papers](https://conf.researchr.org/track/issta-2023/issta-2023-technical-papers) | [HotCRP](https://issta2023.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2023/program-issta-2023/) | 未逐项核验；ACM / DBLP fallback | [DBLP 2023](https://dblp.org/db/conf/issta/issta2023.html) | 2022-11-10 23:59 AoE / UTC-12h；second round 2023-02-16 23:59 AoE / UTC-12h | 2023-01-16 23:59 AoE / UTC-12h；second round 2023-05-03 23:59 AoE / UTC-12h | 2023-07-17..2023-07-21 | DBLP inproceedings fallback: 138 | 🟡 部分核验 |
+| [2022](./2022/README.md) | ✅ 已结束 | [ISSTA 2022](https://conf.researchr.org/home/issta-2022) | [Technical Papers](https://conf.researchr.org/track/issta-2022/issta-2022-technical-papers) | [Technical Papers](https://conf.researchr.org/track/issta-2022/issta-2022-technical-papers) | [HotCRP](https://issta22.hotcrp.com/) | [ISSTA Program](https://conf.researchr.org/program/issta-2022/program-issta-2022/) | 未逐项核验；ACM / DBLP fallback | [DBLP 2022](https://dblp.org/db/conf/issta/issta2022.html) | 2022-01-28 23:59 AoE / UTC-12h | 2022-04-11 23:59 AoE / UTC-12h | 2022-07-18..2022-07-22 | DBLP inproceedings fallback: 72 | 🟡 部分核验 |
+
+## 7. 维护备注
+
+- 2026 与 SPLASH/ISSTA co-located，2024 与 ECOOP/ISSTA co-located，2025 与 FSE 同地同周；这些只作为会期/入口关系，不改变 ISSTA 独立计数。
+- 2024/2025 official track canonical slug 均为 `issta-YYYY-papers`：2024 页面标题为 Technical Papers，2025 页面标题为 Research Papers；不要再猜 `technical-papers` / `research-papers` 这类会 404 的 slug。
+- 2022-2024 数量暂以 DBLP inproceedings fallback；2025 DBLP `issta2025c.html` 明确为 companion/fallback 入口，35 条不能当作最终主 proceedings 数量，后续必须以 ACM DL / PACMSE Issue ISSTA 2025 和官方 accepted papers 交叉核验。
+
+## 8. TIMELINE.md 同步提示
+
+- 本 venue 当前已记录的 dated events 已同步至 [TIMELINE.md](../TIMELINE.md)；后续新增或修正 important dates 时，必须同步更新对应年度 README 与 `TIMELINE.md` 的事件发生年份章节。
+- 本目录不再保留 worker 事件草稿文件；事实源以各年度 README 的“重要时间点”表与 `TIMELINE.md` 为准。
+
+## 9. 更新日志
+
+| 时间 | 更新内容 |
+|---|---|
+| `2026-06-06 13:16` | PR #35 近期窗口复审修复：同步 ISSTA 2026 日期精度、author response 与 camera-ready 口径，避免把官方未给钟点的 AoE 日期写成 `23:59`。 |
+| `2026-06-05 10:00` | 根据 PR-2 修复后复审，确认 2022/2023 会期已补入全局 TIMELINE，并补记核心人员字段修复日志。 |
+| `2026-06-05 08:39` | 初始化 ISSTA venue 根 README 与 2022-2028 年度索引草稿。 |
