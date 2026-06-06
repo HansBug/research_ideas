@@ -1,0 +1,1145 @@
+[
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc0_start",
+    "ts": "2026-06-05T20:28:18Z"
+  },
+  {
+    "adapter_mode": "real_env",
+    "event": "run_start",
+    "graph_runtime_backend": "langgraph",
+    "initial_dsl": "",
+    "initial_dsl_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "level": "info",
+    "max_iterations": 5,
+    "real_llm_provider_api": true,
+    "run_id": "pr-e1-path1_abs-default-lg-e3-toolnode-clean-20260606T050000Z-deb5f8e2",
+    "scenario_max_retries": 2,
+    "stage_id": "SC-0",
+    "ts": "2026-06-05T20:28:18Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sl1_initial_modeling",
+    "ts": "2026-06-05T20:28:18Z"
+  },
+  {
+    "event": "stage_enter",
+    "level": "info",
+    "nl_hash": "sha256:c33f9f2d145c45f14980cc7c4769cc673393e2a8f3484f3f17bb4b88a82140cd",
+    "reason": "initial_modeling_adapter_available",
+    "stage_id": "SL-1",
+    "ts": "2026-06-05T20:28:18Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "assumptions": [
+        "The continuous wheel-speed, vehicle-speed, slip-ratio computation, and PID calculation are treated as external plant/controller computations; the FSM receives the resulting slip-error signal as the input variable `slp`.",
+        "The initial state is modeled as `increase` because it is the first state named in the natural-language state list and no alternate initial state was specified.",
+        "State output assignments are encoded as `enter` actions, so each mode sets the valve and pump command variables when entered."
+      ],
+      "candidate_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate SingleWheelABSRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter {\n            k1 = 1;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state hold {\n        enter {\n            k1 = 0;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state decrease {\n        enter {\n            k1 = 0;\n            k2 = 1;\n            n = 500;\n        }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+      "grounding_seeds": [
+        {
+          "confidence": 0.98,
+          "element_id": "state:increase",
+          "element_kind": "state",
+          "element_ref": "SingleWheelABSRegulator.increase",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "state:hold",
+          "element_kind": "state",
+          "element_ref": "SingleWheelABSRegulator.hold",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "state:decrease",
+          "element_kind": "state",
+          "element_ref": "SingleWheelABSRegulator.decrease",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "variable:slp",
+          "element_kind": "variable",
+          "element_ref": "slp",
+          "evidence_text": "transition guards split the slip-error space into four bands using `slp` thresholds",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "variable:k1",
+          "element_kind": "variable",
+          "element_ref": "k1",
+          "evidence_text": "`increase` sets `k1=1`; `hold` and `decrease` set `k1=0`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "variable:k2",
+          "element_kind": "variable",
+          "element_ref": "k2",
+          "evidence_text": "`decrease` sets `k2=1`; `increase` and `hold` set `k2=0`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "variable:n",
+          "element_kind": "variable",
+          "element_ref": "n",
+          "evidence_text": "`increase` and `hold` set `n=0`, and `decrease` sets `n=500` to release pressure",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "action:increase.enter",
+          "element_kind": "action",
+          "element_ref": "SingleWheelABSRegulator.increase.enter",
+          "evidence_text": "`increase` sets `k1=1, k2=0, n=0`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "_omitted_items": 10
+        }
+      ]
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-1",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:29:06Z",
+    "usage": {
+      "chunk_count": 2027,
+      "completion_chars": 6889,
+      "completion_tokens": 2546,
+      "elapsed_seconds": 48.01047840699903,
+      "estimated_completion_tokens": 1723,
+      "estimated_prompt_tokens": 6493,
+      "estimated_total_tokens": 8216,
+      "first_chunk_seconds": 11.439101432013558,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 25972,
+      "prompt_tokens": 6393,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 8939
+    }
+  },
+  {
+    "assumption_count": 3,
+    "candidate_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate SingleWheelABSRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter {\n            k1 = 1;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state hold {\n        enter {\n            k1 = 0;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state decrease {\n        enter {\n            k1 = 0;\n            k2 = 1;\n            n = 500;\n        }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "candidate_dsl_hash": "sha256:daf0a2131e360a06d62ea8c0a5ba398ff01b5fc756b01374275405d75c36a70e",
+    "event": "stage_result",
+    "grounding_seed_count": 18,
+    "jump": "SD-2",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-1",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "iteration_gate",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_pass",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "current_dsl_hash": "sha256:daf0a2131e360a06d62ea8c0a5ba398ff01b5fc756b01374275405d75c36a70e",
+    "event": "iteration_enter",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_subgraph",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "current_dsl_hash": "sha256:daf0a2131e360a06d62ea8c0a5ba398ff01b5fc756b01374275405d75c36a70e",
+    "dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate SingleWheelABSRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter {\n            k1 = 1;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state hold {\n        enter {\n            k1 = 0;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state decrease {\n        enter {\n            k1 = 0;\n            k2 = 1;\n            n = 500;\n        }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "event": "iteration_validation_enter",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd2_parse",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "full_validation_pass",
+    "stage_id": "SD-2",
+    "ts": "2026-06-05T20:29:06Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "col": null,
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "error_class": null,
+      "line": null,
+      "message": "",
+      "ok": true,
+      "source": "parse",
+      "source_stage": "SD-2"
+    },
+    "graph_node": "validation_sd2_parse",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-3",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-2",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd3_semantic",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-2 ok",
+    "stage_id": "SD-3",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "dangling_transitions": [],
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "missing_states": [],
+      "ok": true,
+      "source": "semantic",
+      "source_stage": "SD-3",
+      "type_mismatches": [],
+      "undefined_vars": [],
+      "unresolved_event_refs": []
+    },
+    "graph_node": "validation_sd3_semantic",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-4",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-3",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd4_design",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-3 ok",
+    "stage_id": "SD-4",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "advisory_count": 8,
+      "blocking_count": 0,
+      "blocking_instance_keys": [],
+      "blocking_summaries": [],
+      "diagnostic_codes": [
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE"
+      ],
+      "info_count": 0,
+      "ok": true,
+      "policy_actions": [
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory"
+      ],
+      "source": "design",
+      "source_stage": "SD-4"
+    },
+    "graph_node": "validation_sd4_design",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-5",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-4",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl5_scenario_generation",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage_directive": null,
+    "event": "stage_enter",
+    "graph_node": "validation_sl5_scenario_generation",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [],
+    "reason": "scenario_set_absent",
+    "stage_id": "SL-5",
+    "ts": "2026-06-05T20:29:07Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 0,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:30:04Z",
+    "usage": {
+      "chunk_count": 1634,
+      "completion_chars": 6140,
+      "completion_tokens": 3084,
+      "elapsed_seconds": 57.37103375099832,
+      "estimated_completion_tokens": 1535,
+      "estimated_prompt_tokens": 9895,
+      "estimated_total_tokens": 11430,
+      "first_chunk_seconds": 27.882075255009113,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 39580,
+      "prompt_tokens": 10031,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 13115
+    }
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd5a_scenario_coverage",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage": {
+      "coverage_gap": false,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 3,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 0,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 0,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 0,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 0,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        }
+      },
+      "retry_directive": null
+    },
+    "event": "stage_result",
+    "graph_node": "validation_sd5a_scenario_coverage",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-5F",
+    "level": "info",
+    "n_scenarios": 8,
+    "ok": true,
+    "raw_generated_scenario_count": 8,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 8,
+      "new_count": 8,
+      "new_only_names": [
+        "default_init_enters_increase_then_low_slip_holds",
+        "increase_to_hold_at_positive_boundary",
+        "increase_no_fire_above_positive_boundary",
+        "hold_no_fire_at_positive_boundary",
+        "hold_to_increase_above_positive_boundary",
+        "hold_no_fire_at_negative_boundary",
+        "hold_to_decrease_below_negative_boundary",
+        "decrease_to_hold_at_negative_boundary"
+      ],
+      "preserved_previous_count": 0,
+      "previous_count": 0,
+      "updated_existing_names": []
+    },
+    "scenario_names": [
+      "default_init_enters_increase_then_low_slip_holds",
+      "increase_to_hold_at_positive_boundary",
+      "increase_no_fire_above_positive_boundary",
+      "hold_no_fire_at_positive_boundary",
+      "hold_to_increase_above_positive_boundary",
+      "hold_no_fire_at_negative_boundary",
+      "hold_to_decrease_below_negative_boundary",
+      "decrease_to_hold_at_negative_boundary"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sc5f_scenario_freeze",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "epoch": 0,
+    "event": "stage_result",
+    "graph_node": "validation_sc5f_scenario_freeze",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-6",
+    "level": "info",
+    "n_scenarios": 8,
+    "ok": true,
+    "oracle_weak": false,
+    "reason": null,
+    "scenario_set_id": "scenario-set-202bf745864d",
+    "source_dsl_hash": "sha256:daf0a2131e360a06d62ea8c0a5ba398ff01b5fc756b01374275405d75c36a70e",
+    "stage_id": "SC-5F",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd6_sim",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "n_scenarios": 8,
+    "reason": "scenario_set_ready",
+    "scenario_set_id": "scenario-set-202bf745864d",
+    "stage_id": "SD-6",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "n_scenarios": 8,
+      "n_scenarios_passed": 8,
+      "ok": true,
+      "oracle_weak": false,
+      "scenario_results": [
+        {
+          "description": "default-init probe: first empty cycle dispatches to increase with inlet command, then default slp=0.0 satisfies increase->hold and neutralizes valves.",
+          "name": "default_init_enters_increase_then_low_slip_holds",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'initial_dispatch_to_increase', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.increase', 'actual_vars': {'slp': 0.0, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'low_slip_moves_to_hold', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.hold', 'actual_vars': {'slp': 0.0, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: increase must transition to hold exactly at slp=0.01 and set neutral valve and pump commands.",
+          "name": "increase_to_hold_at_positive_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'boundary_slip_enters_hold', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.hold', 'actual_vars': {'slp': 0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start no-fire probe: increase must remain increase when slp is just above 0.01.",
+          "name": "increase_no_fire_above_positive_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'above_boundary_stays_increase', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.increase', 'actual_vars': {'slp': 0.0101, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: hold must not transition to increase at slp=0.01 because the guard is strictly greater than 0.01.",
+          "name": "hold_no_fire_at_positive_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'positive_boundary_stays_hold', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.hold', 'actual_vars': {'slp': 0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: hold must transition to increase when slp is greater than 0.01 and set inlet valve command k1=1.",
+          "name": "hold_to_increase_above_positive_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'above_positive_boundary_enters_increase', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.increase', 'actual_vars': {'slp': 0.0101, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start boundary probe: hold must not transition to decrease at slp=-0.01 because the guard is strictly less than -0.01.",
+          "name": "hold_no_fire_at_negative_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'negative_boundary_stays_hold', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.hold', 'actual_vars': {'slp': -0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start probe: hold must transition to decrease when slp is below -0.01, command return valve k2=1 and pump n=500, then remain decrease while still below recovery threshold.",
+          "name": "hold_to_decrease_below_negative_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'below_negative_boundary_enters_decrease', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.decrease', 'actual_vars': {'slp': -0.0101, 'k1': 0, 'k2': 1, 'n': 500}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'still_below_recovery_stays_decrease', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.decrease', 'actual_vars': {'slp': -0.0101, 'k1': 0, 'k2': 1, 'n': 500}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start recovery boundary probe: decrease must transition to hold exactly at slp=-0.01 and neutralize both valves and pump.",
+          "name": "decrease_to_hold_at_negative_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'negative_boundary_recovers_to_hold', 'status': 'pass', 'actual_state': 'SingleWheelABSRegulator.hold', 'actual_vars': {'slp': -0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        }
+      ],
+      "setup_error": null,
+      "source": "sim",
+      "source_stage": "SD-6",
+      "weak_oracle_evidence": {},
+      "weak_oracle_reason": ""
+    },
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-7",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-6",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl7_model_review",
+    "ts": "2026-06-05T20:30:04Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "reason": "SD-6 ok",
+    "scenario_set_id": "scenario-set-202bf745864d",
+    "stage_id": "SL-7",
+    "ts": "2026-06-05T20:30:04Z",
+    "waiver_audit": null
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "blocking_findings": [],
+      "decision": "pass",
+      "findings": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL: FSM contains states `increase`, `hold`, and `decrease`.",
+            "DSL: state increase/hold/decrease are defined under SingleWheelABSRegulator.",
+            "NL: increase sets k1=1,k2=0,n=0; hold sets k1=0,k2=0,n=0; decrease sets k1=0,k2=1,n=500.",
+            "DSL enter actions implement those exact assignments.",
+            "NL transition guards: slp <= 0.01, slp > 0.01, slp < -0.01, slp >= -0.01.",
+            "DSL transitions implement the same four guards."
+          ],
+          "severity": "info",
+          "summary": "The DSL closely matches the stated three-state hydraulic supervisor: increase, hold, and decrease states are present, each assigns the specified k1, k2, and n outputs, and all four slip-threshold transitions are encoded with the stated inequalities."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "NL: continuous wheel-slip dynamics remain in the plant model.",
+            "Grounding assumption: continuous wheel-speed, vehicle-speed, slip-ratio computation, and PID calculation are treated as external plant/controller computations; FSM receives resulting slip-error signal `slp`.",
+            "Design diagnostics: nl_external_input_vars includes `slp`.",
+            "DSL: `slp` is read by guards and not written internally."
+          ],
+          "severity": "info",
+          "summary": "The discrete supervisor component is covered well. The continuous wheel-speed, vehicle-speed, slip-ratio, and PID computations are not modeled internally, but the NL allows them to remain outside the discrete FSM/plant boundary and the grounding map explicitly treats slp as an external input."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "DSL: `[*] -> increase`.",
+            "Grounding assumption: initial state is modeled as `increase` because it is the first state named and no alternate initial state was specified.",
+            "NL gives the state set and transitions but does not explicitly define startup behavior."
+          ],
+          "severity": "minor",
+          "summary": "The initial state is assumed to be `increase`, but the NL does not explicitly specify an initial state. This is a minor review risk rather than a fidelity failure because no contradictory initial state is stated."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "NL: wheel speed and vehicle speed are used to compute slip ratio, and PID output drives the Stateflow supervisor.",
+            "DSL variables: only `slp`, `k1`, `k2`, and `n` are declared.",
+            "No PID state, wheel-speed input, vehicle-speed input, or slip-ratio computation appears in the DSL.",
+            "NL also states continuous dynamics remain in the plant model, supporting this abstraction boundary."
+          ],
+          "severity": "minor",
+          "summary": "The PID/slip computation is abstracted to a single scalar `slp`. This is acceptable for the described discrete supervisor, but it means the model should not be interpreted as a full ABS controller including wheel-speed/vehicle-speed processing or PID dynamics."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "Diagnostics: W_UNWRITTEN_READ_VAR for `slp`.",
+            "Diagnostics: W_UNREFERENCED_VAR for `k1`, `k2`, and `n`.",
+            "Design diagnostics external_input_role_ledger identifies `slp` as an external_input_candidate.",
+            "NL: k1, k2, and n are valve/pump actions, not guard variables."
+          ],
+          "severity": "minor",
+          "summary": "The diagnostics report output variables as unreferenced and `slp` as unwritten, but this mostly reflects role separation: `slp` is an external input and k1/k2/n are pure actuator outputs. The model would be clearer if these roles were explicitly annotated if the DSL supports it."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "warning_budget_exhausted is empty.",
+            "Design diagnostics show advisory_count=8 and blocking_count=0.",
+            "DSL does not add artificial transitions or assignments solely to silence W_UNWRITTEN_READ_VAR or W_UNREFERENCED_VAR."
+          ],
+          "severity": "info",
+          "summary": "No unjustified repair is evident. The advisory warnings are not force-fixed by adding artificial writes or guard dependencies, which is appropriate because `slp` is externally supplied and k1/k2/n are actuator outputs."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "inspect_model_to_json_summary: n_states_leaf=3, n_transitions_normal=5, n_variables=4, action_count=3.",
+            "design_diagnostics_summary: ok=true, blocking_count=0.",
+            "sim_summary: ok=true, 8 of 8 scenarios passed.",
+            "Grounding map marks required states, variables, actions, transitions, and guards with high confidence."
+          ],
+          "severity": "info",
+          "summary": "Estimated NFRR tier: T3 strong reviewed candidate for the bounded supervisor abstraction. No quality cap to T0/T1 is indicated because required states, transitions, guards, and actions are present, simulation covers boundary cases, and diagnostics are advisory/role-related rather than blocking."
+        },
+        {
+          "category": "path1_eval_risk",
+          "evidence": [
+            "sim_summary: n_scenarios=8, n_scenarios_passed=8.",
+            "Scenario coverage includes increase->hold at slp=0.01, hold->increase above 0.01, hold->decrease below -0.01, and decrease->hold at -0.01.",
+            "Scenario assertions include state and k1/k2/n variable expectations."
+          ],
+          "severity": "info",
+          "summary": "Path-1 evaluation risk is low. The simulation oracle exercises the specified transition thresholds and state-output assignments, including positive and negative boundary behavior."
+        },
+        {
+          "_omitted_items": 1
+        }
+      ],
+      "risk_level": "minor"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:30:43Z",
+    "usage": {
+      "chunk_count": 1495,
+      "completion_chars": 6537,
+      "completion_tokens": 2014,
+      "elapsed_seconds": 38.41822252399288,
+      "estimated_completion_tokens": 1635,
+      "estimated_prompt_tokens": 9844,
+      "estimated_total_tokens": 11479,
+      "first_chunk_seconds": 11.41681051699561,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 39374,
+      "prompt_tokens": 10298,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 12312
+    }
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "blocking_count": 0,
+      "blocking_findings": [],
+      "decision": "pass",
+      "finding_count": 9,
+      "finding_summaries": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL: FSM contains states `increase`, `hold`, and `decrease`.",
+            "DSL: state increase/hold/decrease are defined under SingleWheelABSRegulator.",
+            "NL: increase sets k1=1,k2=0,n=0; hold sets k1=0,k2=0,n=0; decrease sets k1=0,k2=1,n=500.",
+            "DSL enter actions implement those exact assignments.",
+            "NL transition guards: slp <= 0.01, slp > 0.01, slp < -0.01, slp >= -0.01.",
+            "DSL transitions implement the same four guards."
+          ],
+          "severity": "info",
+          "summary": "The DSL closely matches the stated three-state hydraulic supervisor: increase, hold, and decrease states are present, each assigns the specified k1, k2, and n outputs, and all four slip-threshold transitions are encoded with the stated inequalities."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "NL: continuous wheel-slip dynamics remain in the plant model.",
+            "Grounding assumption: continuous wheel-speed, vehicle-speed, slip-ratio computation, and PID calculation are treated as external plant/controller computations; FSM receives resulting slip-error signal `slp`.",
+            "Design diagnostics: nl_external_input_vars includes `slp`.",
+            "DSL: `slp` is read by guards and not written internally."
+          ],
+          "severity": "info",
+          "summary": "The discrete supervisor component is covered well. The continuous wheel-speed, vehicle-speed, slip-ratio, and PID computations are not modeled internally, but the NL allows them to remain outside the discrete FSM/plant boundary and the grounding map explicitly treats slp as an external input."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "DSL: `[*] -> increase`.",
+            "Grounding assumption: initial state is modeled as `increase` because it is the first state named and no alternate initial state was specified.",
+            "NL gives the state set and transitions but does not explicitly define startup behavior."
+          ],
+          "severity": "minor",
+          "summary": "The initial state is assumed to be `increase`, but the NL does not explicitly specify an initial state. This is a minor review risk rather than a fidelity failure because no contradictory initial state is stated."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "NL: wheel speed and vehicle speed are used to compute slip ratio, and PID output drives the Stateflow supervisor.",
+            "DSL variables: only `slp`, `k1`, `k2`, and `n` are declared.",
+            "No PID state, wheel-speed input, vehicle-speed input, or slip-ratio computation appears in the DSL.",
+            "NL also states continuous dynamics remain in the plant model, supporting this abstraction boundary."
+          ],
+          "severity": "minor",
+          "summary": "The PID/slip computation is abstracted to a single scalar `slp`. This is acceptable for the described discrete supervisor, but it means the model should not be interpreted as a full ABS controller including wheel-speed/vehicle-speed processing or PID dynamics."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "Diagnostics: W_UNWRITTEN_READ_VAR for `slp`.",
+            "Diagnostics: W_UNREFERENCED_VAR for `k1`, `k2`, and `n`.",
+            "Design diagnostics external_input_role_ledger identifies `slp` as an external_input_candidate.",
+            "NL: k1, k2, and n are valve/pump actions, not guard variables."
+          ],
+          "severity": "minor",
+          "summary": "The diagnostics report output variables as unreferenced and `slp` as unwritten, but this mostly reflects role separation: `slp` is an external input and k1/k2/n are pure actuator outputs. The model would be clearer if these roles were explicitly annotated if the DSL supports it."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "warning_budget_exhausted is empty.",
+            "Design diagnostics show advisory_count=8 and blocking_count=0.",
+            "DSL does not add artificial transitions or assignments solely to silence W_UNWRITTEN_READ_VAR or W_UNREFERENCED_VAR."
+          ],
+          "severity": "info",
+          "summary": "No unjustified repair is evident. The advisory warnings are not force-fixed by adding artificial writes or guard dependencies, which is appropriate because `slp` is externally supplied and k1/k2/n are actuator outputs."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "inspect_model_to_json_summary: n_states_leaf=3, n_transitions_normal=5, n_variables=4, action_count=3.",
+            "design_diagnostics_summary: ok=true, blocking_count=0.",
+            "sim_summary: ok=true, 8 of 8 scenarios passed.",
+            "Grounding map marks required states, variables, actions, transitions, and guards with high confidence."
+          ],
+          "severity": "info",
+          "summary": "Estimated NFRR tier: T3 strong reviewed candidate for the bounded supervisor abstraction. No quality cap to T0/T1 is indicated because required states, transitions, guards, and actions are present, simulation covers boundary cases, and diagnostics are advisory/role-related rather than blocking."
+        },
+        {
+          "category": "path1_eval_risk",
+          "evidence": [
+            "sim_summary: n_scenarios=8, n_scenarios_passed=8.",
+            "Scenario coverage includes increase->hold at slp=0.01, hold->increase above 0.01, hold->decrease below -0.01, and decrease->hold at -0.01.",
+            "Scenario assertions include state and k1/k2/n variable expectations."
+          ],
+          "severity": "info",
+          "summary": "Path-1 evaluation risk is low. The simulation oracle exercises the specified transition thresholds and state-output assignments, including positive and negative boundary behavior."
+        },
+        {
+          "_omitted_items": 1
+        }
+      ],
+      "ok": true,
+      "risk_level": "minor",
+      "source": "model_review",
+      "source_stage": "SL-7"
+    },
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "grounding_update_hints_recorded",
+    "hint_hashes": [
+      "sha256:f9efa4ea5275c553f1dc0f2ad115d8442b9fd0b94c2fd2a8220850d46a499fdf",
+      "sha256:b58c94bff553d39ae66c0aa161864568284096e363dabdfcce582895a8419798",
+      "sha256:2610751c99bc033a7b1bc8c4a2d14d4555df352fca8078ef14b10515581d6b77",
+      "sha256:0415aa2a8848ca43fd46501f883539f9dd2090bd02afb04f5d3b19ec2d44dfbd",
+      "sha256:f8147a692d834e12e1b376f151b4eee6ab00bf46109038a908d157bc876c24cf"
+    ],
+    "iteration": 0,
+    "level": "info",
+    "n_hints": 5,
+    "stage_id": "SL-7",
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_exit",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_finalize",
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "iteration_validation_result",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": "scenario-set-202bf745864d",
+    "selected_feedback": null,
+    "stage_ids": [
+      "SD-2",
+      "SD-3",
+      "SD-4",
+      "SL-5",
+      "SD-5A",
+      "SC-5F",
+      "SD-6",
+      "SL-7"
+    ],
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_decision",
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "sc12_verdict",
+    "final_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate SingleWheelABSRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter {\n            k1 = 1;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state hold {\n        enter {\n            k1 = 0;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state decrease {\n        enter {\n            k1 = 0;\n            k2 = 1;\n            n = 500;\n        }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "level": "info",
+    "reason": "full_pass_all_required_feedback_ok",
+    "record_status": "success",
+    "result_status": "converged",
+    "source_stage_id": "SL-7",
+    "stage_id": "SC-12",
+    "ts": "2026-06-05T20:30:43Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc13_trace_audit",
+    "ts": "2026-06-05T20:30:43Z"
+  },
+  {
+    "event": "run_end",
+    "final_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate SingleWheelABSRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter {\n            k1 = 1;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state hold {\n        enter {\n            k1 = 0;\n            k2 = 0;\n            n = 0;\n        }\n    }\n\n    state decrease {\n        enter {\n            k1 = 0;\n            k2 = 1;\n            n = 500;\n        }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "final_dsl_hash": "sha256:daf0a2131e360a06d62ea8c0a5ba398ff01b5fc756b01374275405d75c36a70e",
+    "graph_runtime_backend": "langgraph",
+    "iteration_count": 1,
+    "level": "info",
+    "record_status": "success",
+    "repair_count": 0,
+    "result_status": "converged",
+    "run_id": "pr-e1-path1_abs-default-lg-e3-toolnode-clean-20260606T050000Z-deb5f8e2",
+    "stage_count": 12,
+    "stage_id": "SC-13",
+    "ts": "2026-06-05T20:30:43Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_trace",
+    "instrumentation_layer": "langgraph",
+    "node_trace": [
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc0_start"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sl1_initial_modeling"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "iteration_gate"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_pass"
+      },
+      {
+        "event": "subgraph_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_subgraph"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd2_parse"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd3_semantic"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd4_design"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl5_scenario_generation"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd5a_scenario_coverage"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sc5f_scenario_freeze"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd6_sim"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl7_model_review"
+      },
+      {
+        "event": "subgraph_exit",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_finalize"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_decision"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc13_trace_audit"
+      }
+    ],
+    "node_trace_hash": "sha256:fb96b701bb9df74ebe9108c05996a7d6f6a443a5ae41b9e57d2ce16d3307f474"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "enabled": true,
+    "event": "lg_e3_toolnode_wrapper_trace",
+    "event_count": 6,
+    "events_hash": "sha256:1db40c9e321d860692839ea1dbd3cc1ccb8e838bbc4018588d027ca4f5ea23f4",
+    "instrumentation_layer": "fixed_toolnode_wrapper"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "event": "lg_d1_operator_log_artifacts",
+    "instrumentation_layer": "langgraph_streaming",
+    "operator_event_count": 44,
+    "operator_log_hash": "sha256:f9cc70cf97a07f4439ff4d3ef004c2166ea3b787efba640d9bc0c1f3bdecdedb",
+    "stream_summary_hash": "sha256:9b62d9fc3b3a047860c67f1ae08a07fce2adb80b211d76f39fc6a369a96f216f"
+  }
+]

@@ -2752,3 +2752,324 @@ state Root {{
     assert record.repair_history[0]["sl10_repair_review"]["decision"] == "rework"
     assert record.repair_history[1]["sl10_repair_review"]["decision"] == "pass"
     assert record.run_config["graph_node_registry"]["nodes"]
+
+# PR-LG-E3 fixed ToolNode wrapper contract tests.
+
+def _lg_e3_tool_events(record: Any) -> list[dict[str, Any]]:
+    trace = record.final_artifacts.get("toolnode_wrapper_trace") or {}
+    events = trace.get("events") or []
+    assert isinstance(events, list)
+    return [event for event in events if isinstance(event, dict)]
+
+
+def _lg_e3_tool_names(record: Any) -> list[str]:
+    return [str(event.get("tool_name") or "") for event in _lg_e3_tool_events(record)]
+
+
+def _canonical_without_lg_e3(record: Any) -> dict[str, Any]:
+    """Canonical academic fields that LG-E3 instrumentation must not change."""
+
+    return {
+        "stage_records": record.stage_records,
+        "deterministic_feedback": record.deterministic_feedback,
+        "repair_history": record.repair_history,
+        "fix_log": record.fix_log,
+        "scenario_history": record.scenario_history,
+        "final_artifacts": {
+            key: value
+            for key, value in record.final_artifacts.items()
+            if key not in {"toolnode_wrapper_trace", "operator_log", "langgraph_runtime_trace", "transient_lifecycle"}
+        },
+        "status": record.status,
+        "replay_index": record.replay_index,
+    }
+
+
+def test_lg_e3_registry_declares_fixed_non_llm_toolnode_wrappers() -> None:
+    from method.langgraph_runtime import build_lg_e3_toolnode_wrapper_registry
+
+    registry = build_lg_e3_toolnode_wrapper_registry()
+
+    assert registry["schema_version"] == "lg-e3.fixed-toolnode-wrapper.v1"
+    assert registry["enabled_by_default"] is True
+    assert registry["llm_tool_choice_exposed"] is False
+    assert registry["fixed_invocation"] is True
+    wrappers = {item["tool_name"]: item for item in registry["wrappers"]}
+    expected = {
+        "sd2_parse": StageId.SD_2_PARSE.value,
+        "sd3_semantic": StageId.SD_3_SEMANTIC.value,
+        "sd4_design": StageId.SD_4_DESIGN.value,
+        "sd5a_scenario_coverage": StageId.SD_5A_SCENARIO_COVERAGE.value,
+        "sc5f_freeze_scenario_set": StageId.SC_5F_SCENARIO_FREEZE.value,
+        "sd6_sim": StageId.SD_6_SIM.value,
+        "sd8_fix_plan": StageId.SD_8_FIX_PLAN.value,
+        "sd10_repair_review_local_check": StageId.SD_10_REPAIR_REVIEW.value,
+        "warning_repair_attempt_marker": "warning_budget_state",
+    }
+    assert set(expected).issubset(wrappers)
+    for tool_name, stage_id in expected.items():
+        row = wrappers[tool_name]
+        assert row["stage_id"] == stage_id
+        assert row["fixed_invocation"] is True
+        assert row["llm_tool_choice_exposed"] is False
+        assert row["does_not_replace_academic_evidence"] is True
+        assert row["input_policy"] == "hash_and_safe_summary_only"
+        assert row["output_policy"] == "hash_and_safe_summary_only"
+    assert all("ABS" not in json.dumps(item, ensure_ascii=False) for item in registry["wrappers"])
+    assert all("Elevator" not in json.dumps(item, ensure_ascii=False) for item in registry["wrappers"])
+    assert all("CARA" not in json.dumps(item, ensure_ascii=False) for item in registry["wrappers"])
+    assert all("LNG" not in json.dumps(item, ensure_ascii=False) for item in registry["wrappers"])
+
+
+def test_lg_e3_success_path_records_fixed_tool_invocations_without_changing_canonical_evidence(tmp_path: Path) -> None:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    cfg_base = dict(
+        condition_family="test_profile",
+        base_condition_id="full_staged_v1",
+        changed_factors=["llm_provider_mode=mock", "lg_e3_toolnode_contract"],
+        llm_provider_mode="mock",
+        academic_question="test-only LG-E3 fixed ToolNode instrumentation; excluded from main results",
+        max_iterations=1,
+        compatibility_mode="langgraph_stategraph",
+    )
+    on = run_full_staged_langgraph_runtime(
+        "LG-E3 wrappers must not change successful deterministic validation evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e3-success-on",
+            output_dir=str(tmp_path / "on"),
+            run_id="lg-e3-success-on",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=_adapters(),
+    )
+    off = run_full_staged_langgraph_runtime(
+        "LG-E3 wrappers must not change successful deterministic validation evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e3-success-off",
+            output_dir=str(tmp_path / "off"),
+            run_id="lg-e3-success-off",
+        ),
+        initial_dsl=_stable_dsl(),
+        adapters=_adapters(),
+        toolnode_wrapper_enabled=False,
+    )
+    on_record = _lg_record(on)
+    off_record = _lg_record(off)
+
+    assert _canonical_hash(_canonical_without_lg_e3(on_record)) == _canonical_hash(_canonical_without_lg_e3(off_record))
+    assert on_record.environment["lg_e3_toolnode_wrappers_enabled"] is True
+    assert off_record.environment["lg_e3_toolnode_wrappers_enabled"] is False
+    assert on_record.final_artifacts["toolnode_wrapper_trace"]["does_not_replace_academic_evidence"] is True
+    tool_names = _lg_e3_tool_names(on_record)
+    assert tool_names == [
+        "sd2_parse",
+        "sd3_semantic",
+        "sd4_design",
+        "sd5a_scenario_coverage",
+        "sc5f_freeze_scenario_set",
+        "sd6_sim",
+    ]
+    assert _lg_e3_tool_events(off_record) == []
+    for event in _lg_e3_tool_events(on_record):
+        assert event["schema_version"] == "lg-e3.fixed-toolnode-wrapper.v1"
+        assert event["fixed_invocation"] is True
+        assert event["llm_tool_choice_exposed"] is False
+        assert event["input_hash"].startswith("sha256:")
+        assert event["output_hash"].startswith("sha256:")
+        assert "raw_input" not in event
+        assert "raw_output" not in event
+
+
+def test_lg_e3_repair_path_wraps_sd8_and_sd10_without_changing_fixlog(tmp_path: Path) -> None:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-e3-needs-repair":
+            item = DesignDiagnosticItem(
+                code="W_LG_E3_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_E3_REPAIR:state=Idle",
+                rationale="force SD-8/SL-9/SD-10 repair path for LG-E3 contract",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept LG-E3 repair request"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": _stable_dsl(),
+            "repair_rationale": ["return stable DSL so post-accept validation converges"],
+        }
+
+    cfg_base = dict(
+        condition_family="test_profile",
+        base_condition_id="full_staged_v1",
+        changed_factors=["llm_provider_mode=mock", "lg_e3_repair_toolnode_contract"],
+        llm_provider_mode="mock",
+        academic_question="test-only LG-E3 repair path ToolNode instrumentation; excluded from main results",
+        max_iterations=1,
+        compatibility_mode="langgraph_stategraph",
+    )
+    adapters = _adapters_with(design=design, repair=repair)
+    on = run_full_staged_langgraph_runtime(
+        "LG-E3 wrappers must not change SD-8/SD-10 repair evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e3-repair-on",
+            output_dir=str(tmp_path / "on"),
+            run_id="lg-e3-repair-on",
+        ),
+        initial_dsl="lg-e3-needs-repair",
+        adapters=adapters,
+    )
+    off = run_full_staged_langgraph_runtime(
+        "LG-E3 wrappers must not change SD-8/SD-10 repair evidence.",
+        config=LoopConfig(
+            **cfg_base,
+            condition_id="lg-e3-repair-off",
+            output_dir=str(tmp_path / "off"),
+            run_id="lg-e3-repair-off",
+        ),
+        initial_dsl="lg-e3-needs-repair",
+        adapters=adapters,
+        toolnode_wrapper_enabled=False,
+    )
+    on_record = _lg_record(on)
+    off_record = _lg_record(off)
+
+    assert _canonical_hash(_canonical_without_lg_e3(on_record)) == _canonical_hash(_canonical_without_lg_e3(off_record))
+    tool_names = _lg_e3_tool_names(on_record)
+    assert "warning_repair_attempt_marker" in tool_names
+    assert "sd8_fix_plan" in tool_names
+    assert "sd10_repair_review_local_check" in tool_names
+    assert [entry["phase"] for entry in on_record.fix_log] == [entry["phase"] for entry in off_record.fix_log]
+    assert _canonical_hash(on_record.fix_log) == _canonical_hash(off_record.fix_log)
+    assert on_record.final_artifacts["verdict"] == off_record.final_artifacts["verdict"] == "success"
+
+    event_payload = json.dumps(_lg_e3_tool_events(on_record), ensure_ascii=False, sort_keys=True)
+    assert "lg-e3-needs-repair" not in event_payload
+    assert _stable_dsl().strip() not in event_payload
+    for raw_key in ["before_dsl", "current_dsl", "candidate_dsl", "raw_prompt", "raw_output"]:
+        assert f'"{raw_key}":' not in event_payload
+
+
+def test_lg_e3_waiver_continuation_keeps_downstream_fixed_wrappers_after_lg_b3_merge(tmp_path: Path) -> None:
+    def design_block(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_LG_E3_B3_CROSS",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="lg-e3-b3-cross",
+            rationale="force LG-B3 waiver continuation while auditing LG-E3 fixed wrappers",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject_all_as_waiver(_request: RepairRequest) -> dict[str, Any]:
+        return {
+            "candidate_dsl": "",
+            "decisions": [{"request_id": "all", "decision": "reject", "rationale": "safe waiver for downstream checks"}],
+            "repair_rationale": ["safe waiver for downstream checks"],
+            "diff_summary": {"changed": False},
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-e3-b3-waiver-toolnode-cross",
+            adapters=_adapters_with(design=design_block, repair=reject_all_as_waiver),
+            max_iterations=1,
+        )
+    )
+
+    assert "waiver_continue" in _lg_trace_nodes(record)
+    assert record.iteration_records[0]["waiver_continue"] is True
+    assert record.iteration_records[0]["waiver_entry_envelope"]["schema_version"] == "lg-b3.waiver-entry-envelope.v1"
+    assert record.iteration_records[0]["post_waiver_stage_ids"] == [
+        StageId.SD_4_DESIGN.value,
+        StageId.SL_5_SCENARIO_GENERATION.value,
+        StageId.SD_5A_SCENARIO_COVERAGE.value,
+        StageId.SC_5F_SCENARIO_FREEZE.value,
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+
+    events = _lg_e3_tool_events(record)
+    by_tool_node = [(event["tool_name"], event["graph_node"]) for event in events]
+    assert by_tool_node == [
+        ("sd2_parse", "validation_sd2_parse"),
+        ("sd3_semantic", "validation_sd3_semantic"),
+        ("sd4_design", "validation_sd4_design"),
+        ("sd8_fix_plan", "repair_sd8_fix_requests"),
+        ("warning_repair_attempt_marker", "repair_sd8_fix_requests"),
+        ("sd5a_scenario_coverage", "validation_sd5a_scenario_coverage"),
+        ("sc5f_freeze_scenario_set", "validation_sc5f_scenario_freeze"),
+        ("sd6_sim", "validation_sd6_sim"),
+    ]
+    # LG-B3's post-waiver SD-4 is a waived/advisory tail marker, not a second
+    # deterministic design-checker call; LG-E3 must not invent a fake wrapper
+    # event for it.  The downstream deterministic tail must still be wrapped.
+    assert _lg_e3_tool_names(record).count("sd4_design") == 1
+    for expected_downstream_tool in ["sd5a_scenario_coverage", "sc5f_freeze_scenario_set", "sd6_sim"]:
+        assert expected_downstream_tool in _lg_e3_tool_names(record)
+
+    payload = json.dumps(events, ensure_ascii=False, sort_keys=True)
+    for raw_key in ["before_dsl", "current_dsl", "candidate_dsl", "raw_prompt", "raw_output", "prompt", "messages", "nl"]:
+        assert f'"{raw_key}":' not in payload
+    assert _stable_dsl().strip() not in payload
+
+
+def test_lg_e3_safe_summary_redacts_dsl_like_and_prompt_like_scalar_fields() -> None:
+    from method.langgraph_runtime import _safe_lg_e3_tool_summary
+
+    raw_payload = {
+        "before_dsl": "state SecretBefore { [*] -> Hidden; }",
+        "after_dsl": "state SecretAfter { [*] -> Hidden; }",
+        "final_dsl": "state SecretFinal { [*] -> Hidden; }",
+        "source_dsl": "state SecretSource { [*] -> Hidden; }",
+        "repair_candidate_dsl": "state SecretCandidate { [*] -> Hidden; }",
+        "raw_input": "raw input should never be mirrored",
+        "raw_output": "raw output should never be mirrored",
+        "prompt": "prompt should never be mirrored",
+        "nl": "NL should never be mirrored",
+        "messages": [{"role": "user", "content": "message should never be mirrored"}],
+        "safe_stage_id": "SD-8",
+    }
+
+    summary = _safe_lg_e3_tool_summary(raw_payload)
+    summary_json = json.dumps(summary, ensure_ascii=False, sort_keys=True)
+
+    for forbidden in [
+        "SecretBefore",
+        "SecretAfter",
+        "SecretFinal",
+        "SecretSource",
+        "SecretCandidate",
+        "raw input should never be mirrored",
+        "raw output should never be mirrored",
+        "prompt should never be mirrored",
+        "NL should never be mirrored",
+        "message should never be mirrored",
+    ]:
+        assert forbidden not in summary_json
+    for redacted_key in [
+        "before_dsl_hash",
+        "after_dsl_hash",
+        "final_dsl_hash",
+        "source_dsl_hash",
+        "repair_candidate_dsl_hash",
+        "raw_input_hash",
+        "raw_output_hash",
+        "prompt_hash",
+        "nl_hash",
+        "messages_hash",
+    ]:
+        assert redacted_key in summary
+    assert summary["safe_stage_id"] == "SD-8"
