@@ -2778,11 +2778,219 @@ def _canonical_without_lg_e3(record: Any) -> dict[str, Any]:
         "final_artifacts": {
             key: value
             for key, value in record.final_artifacts.items()
-            if key not in {"toolnode_wrapper_trace", "operator_log", "langgraph_runtime_trace", "transient_lifecycle"}
+            if key
+            not in {
+                "toolnode_wrapper_trace",
+                "operator_log",
+                "langgraph_runtime_trace",
+                "transient_lifecycle",
+                "lg_c1_graph_state_readiness",
+            }
         },
         "status": record.status,
         "replay_index": record.replay_index,
     }
+
+
+# PR-LG-C1 reducer + JSON-safe graph-state readiness contract tests.
+
+def test_lg_c1_contract_declares_reducer_and_live_object_boundaries() -> None:
+    from method.langgraph_runtime import (
+        LG_C1_REDUCER_STATE_SCHEMA_VERSION,
+        build_lg_c1_graph_state_contract,
+    )
+
+    contract = build_lg_c1_graph_state_contract()
+
+    assert contract["schema_version"] == LG_C1_REDUCER_STATE_SCHEMA_VERSION
+    assert contract["real_agent_loop_json_checkpoint_supported"] is False
+    assert contract["checkpoint_serde_mode"] == "pickle_for_live_object_bridge_with_json_safe_reducer_channels"
+    assert contract["does_not_replace_academic_evidence"] is True
+
+    reducer_channels = set(contract["append_only_reducer_channel_names"])
+    expected_reducer_channels = {
+        "graph_trace",
+        "operator_events",
+        "toolnode_wrapper_events",
+        "stage_record_events",
+        "llm_interaction_events",
+        "fix_log_events",
+        "scenario_history_events",
+        "repair_history_events",
+    }
+    assert expected_reducer_channels.issubset(reducer_channels)
+    assert expected_reducer_channels.issubset(set(contract["json_safe_channel_names"]))
+
+    live_channels = set(contract["live_object_channel_names"])
+    assert {"runtime_state", "runtime_result", "validation_result", "repair_validation"}.issubset(live_channels)
+    assert live_channels.isdisjoint(contract["json_safe_channel_names"])
+    assert "runtime_state" in contract["pickle_required_channel_names"]
+    assert "AgentLoopRunRecord.stage_records" in contract["academic_evidence_sources"]
+    assert "AgentLoopRunRecord.fix_log" in contract["academic_evidence_sources"]
+
+
+def test_lg_c1_append_only_reducer_merges_full_state_updates_without_duplicates() -> None:
+    from method.langgraph_runtime import _lg_c1_append_only_reducer
+
+    first = [{"entry_id": "1", "phase": "SD-8"}, {"entry_id": "2", "phase": "SL-9"}]
+    full_state_update = [
+        {"entry_id": "1", "phase": "SD-8"},
+        {"entry_id": "2", "phase": "SL-9"},
+        {"entry_id": "3", "phase": "SL-10"},
+    ]
+    merged = _lg_c1_append_only_reducer(first, full_state_update)
+
+    assert merged == full_state_update
+    assert _lg_c1_append_only_reducer(merged, full_state_update) == full_state_update
+
+
+def test_lg_c1_run_record_has_json_safe_reducer_readiness_and_mirror_consistency(tmp_path: Path) -> None:
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-c1-json-safe-mirror"))
+
+    env = record.environment
+    assert env["lg_c1_reducer_state_schema_version"] == "lg-c1.reducer-json-state.v1"
+    assert env["checkpoint_serde_mode"] == "pickle_for_live_object_bridge_with_json_safe_reducer_channels"
+    assert env["real_agent_loop_json_checkpoint_supported"] is False
+    assert env["lg_c1_reducer_channel_count"] >= 8
+    assert "runtime_state" in env["lg_c1_live_object_channel_names"]
+    assert "stage_record_events" in env["lg_c1_json_safe_channel_names"]
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    assert readiness["schema_version"] == "lg-c1.reducer-json-state.v1"
+    assert readiness["does_not_replace_academic_evidence"] is True
+    assert readiness["final_reducer_channel_summaries"]["stage_record_events"]["count"] == len(record.stage_records)
+    assert readiness["final_reducer_channel_summaries"]["llm_interaction_events"]["count"] == len(record.llm_interactions)
+    assert readiness["final_reducer_channel_summaries"]["fix_log_events"]["count"] == len(record.fix_log)
+    assert readiness["final_reducer_channel_summaries"]["scenario_history_events"]["count"] == len(record.scenario_history)
+    assert readiness["final_reducer_channel_summaries"]["repair_history_events"]["count"] == len(record.repair_history)
+    assert readiness["graph_state_reducer_channel_summaries"]["stage_record_events"]["count"] == len(record.stage_records)
+    assert readiness["graph_state_vs_canonical_consistency_ok"] is True
+    assert readiness["persisted_record_mirror_canonical_consistency_ok"] is True
+    assert readiness["mirror_canonical_consistency"]["stage_records_match"] is True
+    assert readiness["mirror_canonical_consistency"]["llm_interactions_match"] is True
+    assert readiness["mirror_canonical_consistency"]["fix_log_match"] is True
+    assert readiness["mirror_canonical_consistency"]["scenario_history_match"] is True
+    assert readiness["mirror_canonical_consistency"]["repair_history_match"] is True
+    assert readiness["json_serialization_audit"]["all_json_safe_reducer_channels_serializable"] is True
+    assert readiness["academic_evidence_sources"] == env["lg_c1_academic_evidence_sources"]
+
+
+def test_lg_c1_readiness_detects_corrupted_graph_state_mirror() -> None:
+    from method.langgraph_runtime import _build_lg_c1_graph_state_readiness
+
+    record = SimpleNamespace(
+        stage_records=[{"stage_id": "SC-X", "stage_kind": "control", "status": "ok", "ok": True}],
+        llm_interactions=[{"stage_id": "SL-X", "usage": {"stream": True}, "schema_validation_ok": True}],
+        fix_log=[{"entry_id": "fix-1", "phase": "accepted"}],
+        scenario_history=[{"scenario_set_id": "scenario-1", "items": [1]}],
+        repair_history=[{"accepted": True}],
+        final_artifacts={},
+    )
+    graph_state = {
+        "graph_trace": [],
+        "operator_events": [],
+        "toolnode_wrapper_events": [],
+        "stage_record_events": [{"index": 0, "stage_id": "CORRUPTED", "payload_hash": "sha256:bad"}],
+        "llm_interaction_events": [],
+        "fix_log_events": [],
+        "scenario_history_events": [],
+        "repair_history_events": [],
+    }
+
+    readiness = _build_lg_c1_graph_state_readiness(record, graph_state)
+
+    assert readiness["graph_state_vs_canonical_consistency_ok"] is False
+    assert readiness["graph_state_vs_canonical_consistency"]["stage_records_match"] is False
+    assert readiness["persisted_record_mirror_canonical_consistency_ok"] is True
+    assert readiness["graph_state_reducer_channel_events"]["stage_record_events"][0]["stage_id"] == "CORRUPTED"
+    assert readiness["final_reducer_channel_events"]["stage_record_events"][0]["stage_id"] == "SC-X"
+
+
+def test_lg_c1_mirrors_non_empty_llm_interactions_without_replacing_evidence(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-c1-llm-mirror",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    assert len(record.llm_interactions) == 1
+    assert readiness["final_reducer_channel_summaries"]["llm_interaction_events"]["count"] == 1
+    assert readiness["mirror_canonical_consistency"]["llm_interactions_match"] is True
+    assert readiness["does_not_replace_academic_evidence"] is True
+    assert record.final_artifacts["verdict"] == "success"
+
+
+def test_lg_c1_operator_log_audit_covers_complete_lg_d1_log(tmp_path: Path) -> None:
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-c1-operator-log-audit",
+            adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
+        )
+    )
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    audit = readiness["operator_log_audit"]
+    events = _read_operator_events(record)
+
+    assert audit["operator_log_event_count"] == len(events)
+    assert audit["operator_log_event_count"] > audit["graph_state_operator_event_count"]
+    assert audit["operator_log_includes_graph_state_events"] is True
+    assert audit["operator_log_missing_graph_state_event_types"] == []
+    assert {"node_exit", "stage_result", "llm_stream_progress", "terminal_verdict"}.issubset(
+        set(audit["operator_log_extra_event_types"])
+    )
+    assert "complete tee-able LG-D1 operator ledger" in audit["scope"]
+
+
+def test_lg_c1_mirrors_non_empty_fixlog_and_repair_history_without_reordering(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "lg-c1-needs-repair":
+            item = DesignDiagnosticItem(
+                code="W_LG_C1_REPAIR",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_LG_C1_REPAIR:state=Idle",
+                rationale="force non-empty FixLog / repair_history for LG-C1 reducer mirror contract",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, Any]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {"request_id": item.request_id, "decision": "accept", "rationale": "accept LG-C1 repair request"}
+                for item in request.fix_request_batch.requests
+            ],
+            "candidate_dsl": _stable_dsl(),
+            "repair_rationale": ["return stable DSL so the next validation pass converges"],
+        }
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-c1-fixlog-repair-mirror",
+            initial_dsl="lg-c1-needs-repair",
+            adapters=_adapters_with(design=design, repair=repair),
+            max_iterations=2,
+        )
+    )
+
+    readiness = record.final_artifacts["lg_c1_graph_state_readiness"]
+    assert record.final_artifacts["verdict"] == "success"
+    assert len(record.fix_log) >= 1
+    assert len(record.repair_history) >= 1
+    assert readiness["final_reducer_channel_summaries"]["fix_log_events"]["count"] == len(record.fix_log)
+    assert readiness["final_reducer_channel_summaries"]["repair_history_events"]["count"] == len(record.repair_history)
+    assert readiness["mirror_canonical_consistency"]["fix_log_match"] is True
+    assert readiness["mirror_canonical_consistency"]["repair_history_match"] is True
+    assert [entry["phase"] for entry in record.fix_log] == [
+        event["phase"] for event in readiness["final_reducer_channel_events"]["fix_log_events"]
+    ]
 
 
 def test_lg_e3_registry_declares_fixed_non_llm_toolnode_wrappers() -> None:

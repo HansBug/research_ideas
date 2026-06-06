@@ -1,0 +1,256 @@
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.5;
+def float Pgmax = 0.0;
+def float Pd1max = 0.0;
+def float eng3_Pmax = 0.0;
+def float Pbat_dismax = 0.0;
+def float Pgen_req = 0.0;
+def float Pbat_dis = 0.0;
+def float Pbat_ch = 0.0;
+def float Pspare = 0.0;
+def int cmd_lng_cut_in = 0;
+def int cmd_lng_cut_out = 1;
+def int cmd_dg1_cut_in = 0;
+def int cmd_dg1_cut_out = 1;
+def int cmd_dg2_cut_in = 0;
+def int cmd_dg2_cut_out = 1;
+def int cmd_load_cut_in = 1;
+def int cmd_load_cut_out = 0;
+
+state LNGShipEMS {
+    ! * -> ZeroLoadCharge : if [PL == 0 && SoC < 0.95];
+    ! * -> ZeroLoadSpare : if [PL == 0 && SoC >= 0.95];
+    ! * -> RESCoversCharge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    ! * -> RESCoversSpare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+    ! * -> RESBatteryDischarge : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw <= Pbat_dismax];
+    ! * -> LNGCoversDemand : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pbat_dismax && PL - Ppv - Pw <= Pgmax];
+    ! * -> LNGLowSoCChargeMargin : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw <= Pgmax];
+    ! * -> LNGDG1CoversDemand : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= Pgmax + Pd1max];
+    ! * -> LNGDG1LowSoCChargeMargin : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= Pgmax + Pd1max];
+    ! * -> LNGDG1DG2CoversDemand : if [PL > 0 && Ppv + Pw < PL && SoC >= 0.2 && PL - Ppv - Pw > Pgmax + Pd1max && PL - Ppv - Pw <= Pgmax + Pd1max + eng3_Pmax];
+    ! * -> LNGDG1DG2LowSoCChargeMargin : if [PL > 0 && Ppv + Pw < PL && SoC < 0.2 && PL - Ppv - Pw > Pgmax + Pd1max && PL - Ppv - Pw <= Pgmax + Pd1max + eng3_Pmax];
+    ! * -> ExtremeAllThermalBattery : if [PL > 0 && Ppv + Pw < PL && PL - Ppv - Pw > Pgmax + Pd1max + eng3_Pmax];
+
+    [*] -> ZeroLoadCharge;
+
+    state ZeroLoadCharge {
+        enter {
+            Pgen_req = 0;
+            Pbat_dis = 0;
+            Pbat_ch = Ppv + Pw;
+            Pspare = 0;
+            cmd_lng_cut_in = 0;
+            cmd_lng_cut_out = 1;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state ZeroLoadSpare {
+        enter {
+            Pgen_req = 0;
+            Pbat_dis = 0;
+            Pbat_ch = 0;
+            Pspare = Ppv + Pw;
+            cmd_lng_cut_in = 0;
+            cmd_lng_cut_out = 1;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state RESCoversCharge {
+        enter {
+            Pgen_req = 0;
+            Pbat_dis = 0;
+            Pbat_ch = Ppv + Pw - PL;
+            Pspare = 0;
+            cmd_lng_cut_in = 0;
+            cmd_lng_cut_out = 1;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state RESCoversSpare {
+        enter {
+            Pgen_req = 0;
+            Pbat_dis = 0;
+            Pbat_ch = 0;
+            Pspare = Ppv + Pw - PL;
+            cmd_lng_cut_in = 0;
+            cmd_lng_cut_out = 1;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state RESBatteryDischarge {
+        enter {
+            Pgen_req = 0;
+            Pbat_dis = PL - Ppv - Pw;
+            Pbat_ch = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 0;
+            cmd_lng_cut_out = 1;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGCoversDemand {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbat_dis = 0;
+            Pbat_ch = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGLowSoCChargeMargin {
+        enter {
+            if [PL - Ppv - Pw + Pgmax / 5 <= Pgmax] {
+                Pgen_req = PL - Ppv - Pw + Pgmax / 5;
+                Pbat_ch = Pgmax / 5;
+            } else {
+                Pgen_req = PL - Ppv - Pw;
+                Pbat_ch = 0;
+            }
+            Pbat_dis = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 0;
+            cmd_dg1_cut_out = 1;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1CoversDemand {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbat_dis = 0;
+            Pbat_ch = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 1;
+            cmd_dg1_cut_out = 0;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1LowSoCChargeMargin {
+        enter {
+            if [PL - Ppv - Pw + Pd1max / 10 <= Pgmax + Pd1max] {
+                Pgen_req = PL - Ppv - Pw + Pd1max / 10;
+                Pbat_ch = Pd1max / 10;
+            } else {
+                Pgen_req = PL - Ppv - Pw;
+                Pbat_ch = 0;
+            }
+            Pbat_dis = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 1;
+            cmd_dg1_cut_out = 0;
+            cmd_dg2_cut_in = 0;
+            cmd_dg2_cut_out = 1;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1DG2CoversDemand {
+        enter {
+            Pgen_req = PL - Ppv - Pw;
+            Pbat_dis = 0;
+            Pbat_ch = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 1;
+            cmd_dg1_cut_out = 0;
+            cmd_dg2_cut_in = 1;
+            cmd_dg2_cut_out = 0;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state LNGDG1DG2LowSoCChargeMargin {
+        enter {
+            if [PL - Ppv - Pw + Pd1max / 10 <= Pgmax + Pd1max + eng3_Pmax] {
+                Pgen_req = PL - Ppv - Pw + Pd1max / 10;
+                Pbat_ch = Pd1max / 10;
+            } else {
+                Pgen_req = PL - Ppv - Pw;
+                Pbat_ch = 0;
+            }
+            Pbat_dis = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 1;
+            cmd_dg1_cut_out = 0;
+            cmd_dg2_cut_in = 1;
+            cmd_dg2_cut_out = 0;
+            cmd_load_cut_in = 1;
+            cmd_load_cut_out = 0;
+        }
+    }
+
+    state ExtremeAllThermalBattery {
+        enter {
+            Pgen_req = Pgmax + Pd1max + eng3_Pmax;
+            Pbat_dis = PL - Ppv - Pw - Pgmax - Pd1max - eng3_Pmax;
+            Pbat_ch = 0;
+            Pspare = 0;
+            cmd_lng_cut_in = 1;
+            cmd_lng_cut_out = 0;
+            cmd_dg1_cut_in = 1;
+            cmd_dg1_cut_out = 0;
+            cmd_dg2_cut_in = 1;
+            cmd_dg2_cut_out = 0;
+            cmd_load_cut_in = 0;
+            cmd_load_cut_out = 1;
+        }
+    }
+}

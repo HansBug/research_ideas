@@ -1,0 +1,1167 @@
+[
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc0_start",
+    "ts": "2026-06-06T04:34:53Z"
+  },
+  {
+    "adapter_mode": "real_env",
+    "event": "run_start",
+    "graph_runtime_backend": "langgraph",
+    "initial_dsl": "",
+    "initial_dsl_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "level": "info",
+    "max_iterations": 5,
+    "real_llm_provider_api": true,
+    "run_id": "pr-e1-path1_abs-default-lg-c1-dotenv-parallel-20260606T125500Z-643a007e",
+    "scenario_max_retries": 2,
+    "stage_id": "SC-0",
+    "ts": "2026-06-06T04:34:53Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sl1_initial_modeling",
+    "ts": "2026-06-06T04:34:53Z"
+  },
+  {
+    "event": "stage_enter",
+    "level": "info",
+    "nl_hash": "sha256:c33f9f2d145c45f14980cc7c4769cc673393e2a8f3484f3f17bb4b88a82140cd",
+    "reason": "initial_modeling_adapter_available",
+    "stage_id": "SL-1",
+    "ts": "2026-06-06T04:34:53Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "assumptions": [
+        "The variable `slp` is modeled as an externally supplied slip-error or PID-supervisor signal used by the discrete FSM guards; the continuous wheel-speed, vehicle-speed, slip-ratio, and PID computations remain outside this discrete pyfcstm model as described in the NL.",
+        "The initial state is `increase` because the NL lists the states in the order `increase`, `hold`, `decrease` and no separate initial state is specified."
+      ],
+      "candidate_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate ABSHydraulicRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter { k1 = 1; k2 = 0; n = 0; }\n        during { k1 = 1; k2 = 0; n = 0; }\n    }\n\n    state hold {\n        enter { k1 = 0; k2 = 0; n = 0; }\n        during { k1 = 0; k2 = 0; n = 0; }\n    }\n\n    state decrease {\n        enter { k1 = 0; k2 = 1; n = 500; }\n        during { k1 = 0; k2 = 1; n = 500; }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+      "grounding_seeds": [
+        {
+          "confidence": 0.88,
+          "element_id": "hierarchical_state:ABSHydraulicRegulator",
+          "element_kind": "hierarchical_state",
+          "element_ref": "ABSHydraulicRegulator",
+          "evidence_text": "single-wheel ABS hydraulic regulator as a three-state FSM",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "state:increase",
+          "element_kind": "state",
+          "element_ref": "ABSHydraulicRegulator.increase",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "state:hold",
+          "element_kind": "state",
+          "element_ref": "ABSHydraulicRegulator.hold",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "state:decrease",
+          "element_kind": "state",
+          "element_ref": "ABSHydraulicRegulator.decrease",
+          "evidence_text": "The FSM contains the states `increase`, `hold`, and `decrease`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.98,
+          "element_id": "variable:slp",
+          "element_kind": "variable",
+          "element_ref": "slp",
+          "evidence_text": "transition guards split the slip-error space into four bands: `increase -> hold` when `slp <= 0.01`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "variable:k1",
+          "element_kind": "variable",
+          "element_ref": "k1",
+          "evidence_text": "increase sets `k1=1, k2=0, n=0`; hold neutralizes both valves with `k1=0`; decrease sets `k1=0`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "variable:k2",
+          "element_kind": "variable",
+          "element_ref": "k2",
+          "evidence_text": "increase sets `k1=1, k2=0, n=0`; hold neutralizes both valves with `k2=0`; decrease sets `k2=1`",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.99,
+          "element_id": "variable:n",
+          "element_kind": "variable",
+          "element_ref": "n",
+          "evidence_text": "increase sets `n=0`; hold neutralizes both valves with `n=0`; decrease sets `n=500` to release pressure",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "_omitted_items": 11
+        }
+      ]
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-1",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:35:37Z",
+    "usage": {
+      "chunk_count": 1759,
+      "completion_chars": 5982,
+      "completion_tokens": 2278,
+      "elapsed_seconds": 43.66088135604514,
+      "estimated_completion_tokens": 1496,
+      "estimated_prompt_tokens": 6493,
+      "estimated_total_tokens": 7989,
+      "first_chunk_seconds": 12.03962307504844,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 25972,
+      "prompt_tokens": 6393,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 8671
+    }
+  },
+  {
+    "assumption_count": 2,
+    "candidate_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate ABSHydraulicRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter { k1 = 1; k2 = 0; n = 0; }\n        during { k1 = 1; k2 = 0; n = 0; }\n    }\n\n    state hold {\n        enter { k1 = 0; k2 = 0; n = 0; }\n        during { k1 = 0; k2 = 0; n = 0; }\n    }\n\n    state decrease {\n        enter { k1 = 0; k2 = 1; n = 500; }\n        during { k1 = 0; k2 = 1; n = 500; }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "candidate_dsl_hash": "sha256:1eda27d531e2a9747b28bff4caf6fe7cc66695e1f3bb9b97606c5fb099eb1464",
+    "event": "stage_result",
+    "grounding_seed_count": 19,
+    "jump": "SD-2",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-1",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "iteration_gate",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_pass",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "current_dsl_hash": "sha256:1eda27d531e2a9747b28bff4caf6fe7cc66695e1f3bb9b97606c5fb099eb1464",
+    "event": "iteration_enter",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_subgraph",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "current_dsl_hash": "sha256:1eda27d531e2a9747b28bff4caf6fe7cc66695e1f3bb9b97606c5fb099eb1464",
+    "dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate ABSHydraulicRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter { k1 = 1; k2 = 0; n = 0; }\n        during { k1 = 1; k2 = 0; n = 0; }\n    }\n\n    state hold {\n        enter { k1 = 0; k2 = 0; n = 0; }\n        during { k1 = 0; k2 = 0; n = 0; }\n    }\n\n    state decrease {\n        enter { k1 = 0; k2 = 1; n = 500; }\n        during { k1 = 0; k2 = 1; n = 500; }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "event": "iteration_validation_enter",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd2_parse",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "full_validation_pass",
+    "stage_id": "SD-2",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "col": null,
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "error_class": null,
+      "line": null,
+      "message": "",
+      "ok": true,
+      "source": "parse",
+      "source_stage": "SD-2"
+    },
+    "graph_node": "validation_sd2_parse",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-3",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-2",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd3_semantic",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-2 ok",
+    "stage_id": "SD-3",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "dangling_transitions": [],
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "missing_states": [],
+      "ok": true,
+      "source": "semantic",
+      "source_stage": "SD-3",
+      "type_mismatches": [],
+      "undefined_vars": [],
+      "unresolved_event_refs": []
+    },
+    "graph_node": "validation_sd3_semantic",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-4",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-3",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd4_design",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-3 ok",
+    "stage_id": "SD-4",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "advisory_count": 17,
+      "blocking_count": 0,
+      "blocking_instance_keys": [],
+      "blocking_summaries": [],
+      "diagnostic_codes": [
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_DURING_CONST_ASSIGN",
+        "W_UNWRITTEN_READ_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE",
+        "W_GUARD_VARS_NEVER_CHANGE"
+      ],
+      "info_count": 0,
+      "ok": true,
+      "policy_actions": [
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory"
+      ],
+      "source": "design",
+      "source_stage": "SD-4"
+    },
+    "graph_node": "validation_sd4_design",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-5",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-4",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl5_scenario_generation",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage_directive": null,
+    "event": "stage_enter",
+    "graph_node": "validation_sl5_scenario_generation",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [],
+    "reason": "scenario_set_absent",
+    "stage_id": "SL-5",
+    "ts": "2026-06-06T04:35:37Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "attempt_index": 0,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-5",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:36:25Z",
+    "usage": {
+      "chunk_count": 1560,
+      "completion_chars": 5574,
+      "completion_tokens": 2464,
+      "elapsed_seconds": 47.04257760802284,
+      "estimated_completion_tokens": 1394,
+      "estimated_prompt_tokens": 10746,
+      "estimated_total_tokens": 12140,
+      "first_chunk_seconds": 18.879133585025556,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 42983,
+      "prompt_tokens": 11073,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 13537
+    }
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "attempt_index": 0,
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd5a_scenario_coverage",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage": {
+      "coverage_gap": false,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "caught_variants": 0,
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M2_wrong_transition_target": {
+          "caught_variants": 3,
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "status": "caught"
+        },
+        "M3_unreachable_target": {
+          "caught_variants": 0,
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M4_missing_forced_transition": {
+          "caught_variants": 0,
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M5_missing_effect": {
+          "caught_variants": 0,
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        },
+        "M6_wrong_effect_value": {
+          "caught_variants": 0,
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "status": "not_applicable"
+        }
+      },
+      "retry_directive": null
+    },
+    "event": "stage_result",
+    "graph_node": "validation_sd5a_scenario_coverage",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-5F",
+    "level": "info",
+    "n_scenarios": 8,
+    "ok": true,
+    "raw_generated_scenario_count": 8,
+    "scenario_merge_policy": {
+      "merge_policy": "preserve_previous_scenarios_by_name",
+      "merged_count": 8,
+      "new_count": 8,
+      "new_only_names": [
+        "default_init_increase_then_hold_at_upper_boundary",
+        "increase_no_hold_above_upper_boundary",
+        "hold_to_increase_above_upper_boundary",
+        "hold_no_increase_at_upper_boundary",
+        "hold_to_decrease_below_lower_boundary",
+        "hold_no_decrease_at_lower_boundary",
+        "decrease_to_hold_at_lower_boundary",
+        "decrease_no_hold_below_lower_boundary"
+      ],
+      "preserved_previous_count": 0,
+      "previous_count": 0,
+      "updated_existing_names": []
+    },
+    "scenario_names": [
+      "default_init_increase_then_hold_at_upper_boundary",
+      "increase_no_hold_above_upper_boundary",
+      "hold_to_increase_above_upper_boundary",
+      "hold_no_increase_at_upper_boundary",
+      "hold_to_decrease_below_lower_boundary",
+      "hold_no_decrease_at_lower_boundary",
+      "decrease_to_hold_at_lower_boundary",
+      "decrease_no_hold_below_lower_boundary"
+    ],
+    "stage_id": "SD-5A",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sc5f_scenario_freeze",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "epoch": 0,
+    "event": "stage_result",
+    "graph_node": "validation_sc5f_scenario_freeze",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SD-6",
+    "level": "info",
+    "n_scenarios": 8,
+    "ok": true,
+    "oracle_weak": false,
+    "reason": null,
+    "scenario_set_id": "scenario-set-923fd5b10ce7",
+    "source_dsl_hash": "sha256:1eda27d531e2a9747b28bff4caf6fe7cc66695e1f3bb9b97606c5fb099eb1464",
+    "stage_id": "SC-5F",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sd6_sim",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "n_scenarios": 8,
+    "reason": "scenario_set_ready",
+    "scenario_set_id": "scenario-set-923fd5b10ce7",
+    "stage_id": "SD-6",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "n_scenarios": 8,
+      "n_scenarios_passed": 8,
+      "ok": true,
+      "oracle_weak": false,
+      "scenario_results": [
+        {
+          "description": "default-init: first cycle dispatches to increase with inlet command, then slp=0.01 satisfies increase->hold and neutralizes valves.",
+          "name": "default_init_increase_then_hold_at_upper_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'initial_leaf_increase_outputs', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.increase', 'actual_vars': {'slp': 0.01, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}",
+            "{'step_index': 1, 'step_name': 'upper_boundary_moves_to_hold', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.hold', 'actual_vars': {'slp': 0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: increase must not transition to hold when slp is just above the slp<=0.01 guard boundary.",
+          "name": "increase_no_hold_above_upper_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'remains_in_increase', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.increase', 'actual_vars': {'slp': 0.0101, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: hold transitions to increase when slp is just above 0.01 and commands inlet-valve increase behavior.",
+          "name": "hold_to_increase_above_upper_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'increase_reached', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.increase', 'actual_vars': {'slp': 0.0101, 'k1': 1, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: hold must not take the strict slp>0.01 transition at exactly slp=0.01.",
+          "name": "hold_no_increase_at_upper_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'stays_in_hold', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.hold', 'actual_vars': {'slp': 0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: hold transitions to decrease when slp is just below -0.01 and commands pressure release.",
+          "name": "hold_to_decrease_below_lower_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'decrease_reached', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.decrease', 'actual_vars': {'slp': -0.0101, 'k1': 0, 'k2': 1, 'n': 500}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: hold must not take the strict slp<-0.01 transition at exactly slp=-0.01.",
+          "name": "hold_no_decrease_at_lower_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'stays_in_hold', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.hold', 'actual_vars': {'slp': -0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: decrease transitions back to hold at exactly slp=-0.01 under the inclusive slp>=-0.01 guard.",
+          "name": "decrease_to_hold_at_lower_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'hold_reached', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.hold', 'actual_vars': {'slp': -0.01, 'k1': 0, 'k2': 0, 'n': 0}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        },
+        {
+          "description": "explicit-hot-start: decrease must stay in pressure-release mode when slp is still below -0.01.",
+          "name": "decrease_no_hold_below_lower_boundary",
+          "setup_error": null,
+          "status": "pass",
+          "step_results": [
+            "{'step_index': 0, 'step_name': 'remains_in_decrease', 'status': 'pass', 'actual_state': 'ABSHydraulicRegulator.decrease', 'actual_vars': {'slp': -0.0101, 'k1': 0, 'k2': 1, 'n': 500}, 'state_assertion_ok': True, 'var_assertion_ok': True, 'var_mismatches': {}, 'runtime_error': None}"
+          ]
+        }
+      ],
+      "setup_error": null,
+      "source": "sim",
+      "source_stage": "SD-6",
+      "weak_oracle_evidence": {},
+      "weak_oracle_reason": ""
+    },
+    "graph_node": "validation_sd6_sim",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SL-7",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-6",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_sl7_model_review",
+    "ts": "2026-06-06T04:36:25Z"
+  },
+  {
+    "event": "stage_enter",
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "reason": "SD-6 ok",
+    "scenario_set_id": "scenario-set-923fd5b10ce7",
+    "stage_id": "SL-7",
+    "ts": "2026-06-06T04:36:25Z",
+    "waiver_audit": null
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "blocking_findings": [],
+      "decision": "pass",
+      "findings": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL states: increase sets k1=1,k2=0,n=0; hold sets k1=0,k2=0,n=0; decrease sets k1=0,k2=1,n=500.",
+            "DSL states increase/hold/decrease assign those same constants in enter and during actions.",
+            "NL guards: increase->hold slp<=0.01, hold->increase slp>0.01, hold->decrease slp<-0.01, decrease->hold slp>=-0.01.",
+            "DSL contains the same four guarded transitions."
+          ],
+          "severity": "info",
+          "summary": "The DSL faithfully implements the three named ABS hydraulic regulator states, their valve/pump output assignments, and the four specified slip-error threshold transitions."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "GroundingMap marks ABSHydraulicRegulator, increase, hold, decrease, slp, k1, k2, n, all three output actions, and all four transition guards as required.",
+            "inspect_model_to_json_summary reports n_states_leaf=3, n_states_composite=1, n_transitions_normal=5, n_variables=4, action_count=6."
+          ],
+          "severity": "info",
+          "summary": "Required discrete supervisor components are covered: one composite regulator, three leaf states, four guard transitions plus the initial transition, and variables slp, k1, k2, and n."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "NL says wheel speed and vehicle speed are used to compute slip ratio and PID output drives the Stateflow supervisor.",
+            "NL also says the continuous wheel-slip dynamics remain in the plant model.",
+            "GroundingMap assumption states slp is externally supplied and continuous wheel-speed, vehicle-speed, slip-ratio, and PID computations remain outside this discrete pyfcstm model."
+          ],
+          "severity": "minor",
+          "summary": "The continuous wheel-speed/vehicle-speed slip computation and PID controller are not modeled, but the NL explicitly allows these to remain outside the discrete supervisor; this is a scoped abstraction rather than a blocking omission."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "design_diagnostics_summary includes W_UNWRITTEN_READ_VAR for slp and W_GUARD_VARS_NEVER_CHANGE instances.",
+            "design_diagnostics_summary inspect_summary lists nl_external_input_vars: [\"slp\"].",
+            "external_input_role_ledger identifies slp as an external_input_candidate."
+          ],
+          "severity": "minor",
+          "summary": "The DSL declares slp as a normal float initialized to 0.0 even though it is semantically an external input/PID-supervisor signal. This causes guard-variable-never-change and unwritten-read diagnostics, but the role ledger mitigates the concern."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "Current DSL models the concrete three-state FSM and threshold map described in the NL.",
+            "The omitted continuous computations are explicitly described as outside the discrete pyfcstm model in the GroundingMap assumptions."
+          ],
+          "severity": "info",
+          "summary": "No blocking over-simplification is observed for the stated discrete-supervisor scope. The abstraction collapses the PID and plant into external slp, but preserves all required supervisor states, thresholds, and output commands."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL transitions are limited to [*]->increase and the four NL-specified guarded transitions.",
+            "inspect_model_to_json_summary reports n_transitions_forced=0 and no events."
+          ],
+          "severity": "info",
+          "summary": "No unsafe recovery or hidden fail-open behavior is present. The model contains only the specified normal transitions and no diagnostic or recovery branches."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "Diagnostics include W_DURING_CONST_ASSIGN for k1, k2, n in each state and W_UNREFERENCED_VAR for output variables.",
+            "NL requires each state to set concrete valve and pump outputs; those outputs are not required to affect transition guards."
+          ],
+          "severity": "info",
+          "summary": "No unjustified warning-driven repair is observed. Constant during assignments and unreferenced output variables are consistent with state-output semantics for valve/pump commands."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "All required states, output actions, and threshold guards in the GroundingMap are present in the DSL.",
+            "design_diagnostics_summary ok=true with blocking_count=0.",
+            "sim_summary ok=true with 8/8 scenarios passed, covering upper/lower threshold boundary behavior and each specified transition."
+          ],
+          "severity": "info",
+          "summary": "Estimated NFRR tier: T3 strong reviewed candidate. The model is compact but not an empty shell; it has high coverage of required discrete FSM structure and behavior. No T0/T1 quality cap is warranted."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "risk_level": "minor"
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:37:04Z",
+    "usage": {
+      "chunk_count": 1538,
+      "completion_chars": 6950,
+      "completion_tokens": 2057,
+      "elapsed_seconds": 38.941040734993294,
+      "estimated_completion_tokens": 1738,
+      "estimated_prompt_tokens": 12109,
+      "estimated_total_tokens": 13847,
+      "first_chunk_seconds": 11.195485381002072,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 48436,
+      "prompt_tokens": 13171,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 15228
+    }
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "blocking_count": 0,
+      "blocking_findings": [],
+      "decision": "pass",
+      "finding_count": 11,
+      "finding_summaries": [
+        {
+          "category": "nl_fidelity",
+          "evidence": [
+            "NL states: increase sets k1=1,k2=0,n=0; hold sets k1=0,k2=0,n=0; decrease sets k1=0,k2=1,n=500.",
+            "DSL states increase/hold/decrease assign those same constants in enter and during actions.",
+            "NL guards: increase->hold slp<=0.01, hold->increase slp>0.01, hold->decrease slp<-0.01, decrease->hold slp>=-0.01.",
+            "DSL contains the same four guarded transitions."
+          ],
+          "severity": "info",
+          "summary": "The DSL faithfully implements the three named ABS hydraulic regulator states, their valve/pump output assignments, and the four specified slip-error threshold transitions."
+        },
+        {
+          "category": "component_coverage",
+          "evidence": [
+            "GroundingMap marks ABSHydraulicRegulator, increase, hold, decrease, slp, k1, k2, n, all three output actions, and all four transition guards as required.",
+            "inspect_model_to_json_summary reports n_states_leaf=3, n_states_composite=1, n_transitions_normal=5, n_variables=4, action_count=6."
+          ],
+          "severity": "info",
+          "summary": "Required discrete supervisor components are covered: one composite regulator, three leaf states, four guard transitions plus the initial transition, and variables slp, k1, k2, and n."
+        },
+        {
+          "category": "coverage_gap",
+          "evidence": [
+            "NL says wheel speed and vehicle speed are used to compute slip ratio and PID output drives the Stateflow supervisor.",
+            "NL also says the continuous wheel-slip dynamics remain in the plant model.",
+            "GroundingMap assumption states slp is externally supplied and continuous wheel-speed, vehicle-speed, slip-ratio, and PID computations remain outside this discrete pyfcstm model."
+          ],
+          "severity": "minor",
+          "summary": "The continuous wheel-speed/vehicle-speed slip computation and PID controller are not modeled, but the NL explicitly allows these to remain outside the discrete supervisor; this is a scoped abstraction rather than a blocking omission."
+        },
+        {
+          "category": "structure_smell",
+          "evidence": [
+            "design_diagnostics_summary includes W_UNWRITTEN_READ_VAR for slp and W_GUARD_VARS_NEVER_CHANGE instances.",
+            "design_diagnostics_summary inspect_summary lists nl_external_input_vars: [\"slp\"].",
+            "external_input_role_ledger identifies slp as an external_input_candidate."
+          ],
+          "severity": "minor",
+          "summary": "The DSL declares slp as a normal float initialized to 0.0 even though it is semantically an external input/PID-supervisor signal. This causes guard-variable-never-change and unwritten-read diagnostics, but the role ledger mitigates the concern."
+        },
+        {
+          "category": "over_simplification",
+          "evidence": [
+            "Current DSL models the concrete three-state FSM and threshold map described in the NL.",
+            "The omitted continuous computations are explicitly described as outside the discrete pyfcstm model in the GroundingMap assumptions."
+          ],
+          "severity": "info",
+          "summary": "No blocking over-simplification is observed for the stated discrete-supervisor scope. The abstraction collapses the PID and plant into external slp, but preserves all required supervisor states, thresholds, and output commands."
+        },
+        {
+          "category": "unsafe_recovery",
+          "evidence": [
+            "DSL transitions are limited to [*]->increase and the four NL-specified guarded transitions.",
+            "inspect_model_to_json_summary reports n_transitions_forced=0 and no events."
+          ],
+          "severity": "info",
+          "summary": "No unsafe recovery or hidden fail-open behavior is present. The model contains only the specified normal transitions and no diagnostic or recovery branches."
+        },
+        {
+          "category": "unjustified_warning_fix",
+          "evidence": [
+            "Diagnostics include W_DURING_CONST_ASSIGN for k1, k2, n in each state and W_UNREFERENCED_VAR for output variables.",
+            "NL requires each state to set concrete valve and pump outputs; those outputs are not required to affect transition guards."
+          ],
+          "severity": "info",
+          "summary": "No unjustified warning-driven repair is observed. Constant during assignments and unreferenced output variables are consistent with state-output semantics for valve/pump commands."
+        },
+        {
+          "category": "nfrr_quality_cap",
+          "evidence": [
+            "All required states, output actions, and threshold guards in the GroundingMap are present in the DSL.",
+            "design_diagnostics_summary ok=true with blocking_count=0.",
+            "sim_summary ok=true with 8/8 scenarios passed, covering upper/lower threshold boundary behavior and each specified transition."
+          ],
+          "severity": "info",
+          "summary": "Estimated NFRR tier: T3 strong reviewed candidate. The model is compact but not an empty shell; it has high coverage of required discrete FSM structure and behavior. No T0/T1 quality cap is warranted."
+        },
+        {
+          "_omitted_items": 3
+        }
+      ],
+      "ok": true,
+      "risk_level": "minor",
+      "source": "model_review",
+      "source_stage": "SL-7"
+    },
+    "graph_node": "validation_sl7_model_review",
+    "graph_subgraph": "validation_subgraph",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-7",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "grounding_update_hints_recorded",
+    "hint_hashes": [
+      "sha256:6bce0f46f33aa8fca4cb8ded3d3cbe8f2e31a3b8c779678d4d7a4cec0028d1e7",
+      "sha256:d84f84aea237f690df5434927d388e3e1d24ae0ee644c0d730b4c9b1ee678d48",
+      "sha256:655ff19b498c11e2ac836785832a1aee9a440ac978ade11f70e6e6169778f01c",
+      "sha256:f8eb2ff66385e349f430489d4d5958b9b029d5de0e32e218e943ba44789fd9f3",
+      "sha256:e6bc0269d1ebdd3ad39b9f5f9d0735775ac63473776cc1b715a44722481ddbf7"
+    ],
+    "iteration": 0,
+    "level": "info",
+    "n_hints": 5,
+    "stage_id": "SL-7",
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "subgraph_exit",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_finalize",
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "iteration_validation_result",
+    "graph_node": "validation_pass",
+    "iteration": 0,
+    "jump": "SC-12 success",
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": "scenario-set-923fd5b10ce7",
+    "selected_feedback": null,
+    "stage_ids": [
+      "SD-2",
+      "SD-3",
+      "SD-4",
+      "SL-5",
+      "SD-5A",
+      "SC-5F",
+      "SD-6",
+      "SL-7"
+    ],
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {
+      "iteration": 0
+    },
+    "level": "info",
+    "node_id": "validation_decision",
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "sc12_verdict",
+    "final_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate ABSHydraulicRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter { k1 = 1; k2 = 0; n = 0; }\n        during { k1 = 1; k2 = 0; n = 0; }\n    }\n\n    state hold {\n        enter { k1 = 0; k2 = 0; n = 0; }\n        during { k1 = 0; k2 = 0; n = 0; }\n    }\n\n    state decrease {\n        enter { k1 = 0; k2 = 1; n = 500; }\n        during { k1 = 0; k2 = 1; n = 500; }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "level": "info",
+    "reason": "full_pass_all_required_feedback_ok",
+    "record_status": "success",
+    "result_status": "converged",
+    "source_stage_id": "SL-7",
+    "stage_id": "SC-12",
+    "ts": "2026-06-06T04:37:04Z",
+    "verdict": "success"
+  },
+  {
+    "event": "langgraph_node_event",
+    "graph_event": "node_enter",
+    "graph_payload": {},
+    "level": "info",
+    "node_id": "sc13_trace_audit",
+    "ts": "2026-06-06T04:37:04Z"
+  },
+  {
+    "event": "run_end",
+    "final_dsl": "def float slp = 0.0;\ndef int k1 = 0;\ndef int k2 = 0;\ndef int n = 0;\n\nstate ABSHydraulicRegulator {\n    [*] -> increase;\n\n    state increase {\n        enter { k1 = 1; k2 = 0; n = 0; }\n        during { k1 = 1; k2 = 0; n = 0; }\n    }\n\n    state hold {\n        enter { k1 = 0; k2 = 0; n = 0; }\n        during { k1 = 0; k2 = 0; n = 0; }\n    }\n\n    state decrease {\n        enter { k1 = 0; k2 = 1; n = 500; }\n        during { k1 = 0; k2 = 1; n = 500; }\n    }\n\n    increase -> hold : if [slp <= 0.01];\n    hold -> increase : if [slp > 0.01];\n    hold -> decrease : if [slp < -0.01];\n    decrease -> hold : if [slp >= -0.01];\n}",
+    "final_dsl_hash": "sha256:1eda27d531e2a9747b28bff4caf6fe7cc66695e1f3bb9b97606c5fb099eb1464",
+    "graph_runtime_backend": "langgraph",
+    "iteration_count": 1,
+    "level": "info",
+    "record_status": "success",
+    "repair_count": 0,
+    "result_status": "converged",
+    "run_id": "pr-e1-path1_abs-default-lg-c1-dotenv-parallel-20260606T125500Z-643a007e",
+    "stage_count": 12,
+    "stage_id": "SC-13",
+    "ts": "2026-06-06T04:37:04Z",
+    "verdict": "success"
+  },
+  {
+    "all_json_safe_reducer_channels_serializable": true,
+    "append_only_reducer_channel_count": 8,
+    "does_not_replace_academic_evidence": true,
+    "event": "lg_c1_graph_state_readiness",
+    "mirror_canonical_consistency_ok": true,
+    "real_agent_loop_json_checkpoint_supported": false,
+    "schema_version": "lg-c1.reducer-json-state.v1"
+  },
+  {
+    "event": "langgraph_node_trace",
+    "instrumentation_layer": "langgraph",
+    "node_trace": [
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc0_start"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sl1_initial_modeling"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "iteration_gate"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_pass"
+      },
+      {
+        "event": "subgraph_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_subgraph"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd2_parse"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd3_semantic"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd4_design"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl5_scenario_generation"
+      },
+      {
+        "attempt_index": 0,
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd5a_scenario_coverage"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sc5f_scenario_freeze"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sd6_sim"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_sl7_model_review"
+      },
+      {
+        "event": "subgraph_exit",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_finalize"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "iteration": 0,
+        "node_id": "validation_decision"
+      },
+      {
+        "event": "node_enter",
+        "instrumentation_layer": "langgraph",
+        "node_id": "sc13_trace_audit"
+      }
+    ],
+    "node_trace_hash": "sha256:fb96b701bb9df74ebe9108c05996a7d6f6a443a5ae41b9e57d2ce16d3307f474"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "enabled": true,
+    "event": "lg_e3_toolnode_wrapper_trace",
+    "event_count": 6,
+    "events_hash": "sha256:1fa804d37a42cd3afa24c70e07110c2fa5f507143ea9d11e78b867e194623c7c",
+    "instrumentation_layer": "fixed_toolnode_wrapper"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "event": "lg_d1_operator_log_artifacts",
+    "instrumentation_layer": "langgraph_streaming",
+    "operator_event_count": 44,
+    "operator_log_hash": "sha256:b7aa2b9dfe17ac970ab3e79a99f005bde97264723a47b8debf636ec6af154998",
+    "stream_summary_hash": "sha256:b79a7b12a0993beef6163f605ce797ec509eb631e6240eb29ad4ad58e97742d8"
+  },
+  {
+    "all_json_safe_reducer_channels_serializable": true,
+    "append_only_reducer_channel_count": 8,
+    "does_not_replace_academic_evidence": true,
+    "event": "lg_c1_graph_state_readiness",
+    "mirror_canonical_consistency_ok": true,
+    "real_agent_loop_json_checkpoint_supported": false,
+    "schema_version": "lg-c1.reducer-json-state.v1"
+  },
+  {
+    "does_not_replace_academic_evidence": true,
+    "event": "pr_e1_quality_boundary",
+    "main_result_eligible_unchanged": true,
+    "path2_ref_model_blueprint_eligible": null,
+    "schema_version": "pr-e1.quality-boundary.v1",
+    "state_mode_decorative_detected": false
+  }
+]

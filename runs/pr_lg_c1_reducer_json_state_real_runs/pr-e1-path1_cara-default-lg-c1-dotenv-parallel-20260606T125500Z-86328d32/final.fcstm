@@ -1,0 +1,107 @@
+def float blood_pressure = 0.0;
+def float sensor_buffer_bp = 0.0;
+def float target_blood_pressure = 0.0;
+def float requested_target_blood_pressure = 0.0;
+def float flow_rate = 0.0;
+def float default_flow_rate = 0.0;
+def float built_in_switch_speed = 0.0;
+def float control_voltage = 0.0;
+def float pump_speed = 0.0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int error_message_displayed = 0;
+def int software_control = 0;
+def int log_entry_count = 0;
+def int CA_mode = 0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+        ! * -> Manual :: TerminateAC;
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+            }
+            during {
+                sensor_buffer_bp = blood_pressure;
+                pump_speed = built_in_switch_speed;
+                flow_rate = default_flow_rate;
+                if [pump_fault > 0] {
+                    alarm_signal = 1;
+                    error_message_displayed = 1;
+                } else {
+                    alarm_signal = 0;
+                    error_message_displayed = 0;
+                }
+            }
+        }
+
+        state Ask_StartAC {
+            enter {
+                CA_mode = 1;
+                software_control = 0;
+            }
+            during {
+                sensor_buffer_bp = blood_pressure;
+            }
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 2;
+                software_control = 1;
+                alarm_signal = 0;
+                error_message_displayed = 0;
+            }
+            during {
+                sensor_buffer_bp = blood_pressure;
+            }
+        }
+
+        state NormalAutocontrol {
+            enter {
+                CA_mode = 3;
+                software_control = 1;
+            }
+            during {
+                sensor_buffer_bp = blood_pressure;
+                if [blood_pressure < target_blood_pressure] {
+                    flow_rate = target_blood_pressure - blood_pressure;
+                } else {
+                    flow_rate = 0.0;
+                }
+                control_voltage = flow_rate;
+                pump_speed = control_voltage;
+                log_entry_count = log_entry_count + 1;
+            }
+        }
+
+        state PumpFault {
+            enter {
+                CA_mode = 4;
+                software_control = 0;
+                alarm_signal = 1;
+                error_message_displayed = 1;
+            }
+            during {
+                sensor_buffer_bp = blood_pressure;
+            }
+        }
+
+        Manual -> Ask_StartAC : InitiateAC;
+        Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect { target_blood_pressure = requested_target_blood_pressure; };
+        Ask_StartAC -> AutocontrolInit : StartAC;
+        AutocontrolInit -> NormalAutocontrol;
+        NormalAutocontrol -> PumpFault : PumpFaultDetected effect { pump_fault = 1; };
+        PumpFault -> Manual : FaultRemoved effect { pump_fault = 0; };
+    }
+}
