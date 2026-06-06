@@ -269,6 +269,11 @@ def build_full_staged_runtime_adapters(
 
     def sim_adapter(current_dsl: str, scenario_set: ScenarioSet, context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
         return run_sd6_sim(current_dsl, scenario_set, context)
+    sim_adapter.lg_e2_thread_safe = True  # type: ignore[attr-defined]
+    sim_adapter.lg_e2_thread_safety_basis = (  # type: ignore[attr-defined]
+        "run_sd6_sim/check_sim parses the DSL into a fresh model per call; "
+        "LG-E2 workers receive a deep-copied one-scenario ScenarioSet and isolated StageContext"
+    )
 
     def repair_review_adapter(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
         if not isinstance(request.fix_plan, FixPlan):
