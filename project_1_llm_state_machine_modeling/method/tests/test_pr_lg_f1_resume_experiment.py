@@ -144,13 +144,18 @@ def _require_lg_f1_api() -> tuple[Callable[..., dict[str, Any]], Callable[..., d
     return run_experiment, resume_from_checkpoint
 
 
-def _create_interrupted_resume_report(tmp_path: Path, *, run_id: str = "lg-f1-resume-contract") -> dict[str, Any]:
+def _create_interrupted_resume_report(
+    tmp_path: Path,
+    *,
+    run_id: str = "lg-f1-resume-contract",
+    include_uninterrupted_baseline: bool = True,
+) -> dict[str, Any]:
     run_experiment, _resume_from_checkpoint = _require_lg_f1_api()
     return run_experiment(
         "The controller starts in Idle and should survive one durable resume.",
         config=_lg_f1_config(tmp_path, run_id=run_id),
         adapters=_repair_path_adapters(),
-        uninterrupted_adapters=_repair_path_adapters(),
+        uninterrupted_adapters=_repair_path_adapters() if include_uninterrupted_baseline else None,
         initial_dsl=_stable_dsl(),
         checkpoint_path=str(tmp_path / "checkpoints" / f"{run_id}.sqlite"),
         interrupt_after="repair_sl10_review",
@@ -177,7 +182,13 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert report["mid_node_crash_supported"] is False
     assert report["transient_store_durable"] is False
     assert report["uninterrupted_baseline_available"] is True
+    assert report["baseline_comparison_method"] == "independent_uninterrupted_baseline"
+    assert report["baseline_comparison_verdict"] == "consistent"
+    assert report["verdict_scope"] == "append_only_stage_replay_and_independent_baseline_comparison"
     assert report["uninterrupted_run_id"] == "lg-f1-resume-contract-uninterrupted"
+    assert report["uninterrupted_run_record_path"]
+    assert str(report["uninterrupted_artifact_hash"]).startswith("sha256:")
+    assert report["artifact_hash_scope"] == "academic_evidence_snapshot"
     assert report["append_only_audit"]["stage_records_prefix_preserved"] is True
     assert report["append_only_audit"]["fix_log_prefix_preserved"] is True
     assert report["append_only_audit"]["llm_interactions_prefix_preserved"] is True
@@ -188,6 +199,11 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert report["stage_replay_audit"]["unexpected_stage_replay_detected"] is False
     assert report["stage_replay_audit"]["suffix_after_resume"][:3] == ["SD-2", "SD-3", "SD-4"]
     assert all(item["verdict"] == "consistent" for item in report["comparison_checks"])
+    assert all(item["baseline_available"] is True for item in report["comparison_checks"])
+    assert all(item["uninterrupted_baseline_available"] is True for item in report["comparison_checks"])
+    assert all(item["comparison_basis"] == "independent_uninterrupted_baseline" for item in report["comparison_checks"])
+    assert all(item["comparison_target"] == "uninterrupted_vs_resumed" for item in report["comparison_checks"])
+    assert all(str(item["uninterrupted_value_hash"]).startswith("sha256:") for item in report["comparison_checks"])
     assert report["run_record_path"]
 
     record = read_agent_loop_run_record(report["run_record_path"])
@@ -197,11 +213,51 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert record.environment["real_agent_loop_resume_support_level"] == "controlled_parent_node_boundary_only"
     assert record.environment["real_agent_loop_arbitrary_mid_node_resume_supported"] is False
     assert record.environment["real_agent_loop_nested_subgraph_resume_supported"] is False
+    assert record.environment["baseline_comparison_method"] == "independent_uninterrupted_baseline"
+    assert record.environment["baseline_comparison_verdict"] == "consistent"
+    assert record.environment["verdict_scope"] == "append_only_stage_replay_and_independent_baseline_comparison"
     assert record.environment["resume_cli_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment"
     assert record.environment["resume_cli_workdir"] == "repo_root"
     assert record.environment["resume_cli_requires_pythonpath"] is False
     assert "post-repair validation" in record.environment["lg_f1_stage_replay_explanation"]
     assert record.run_config["graph_config_hash"] == report["graph_config_hash"]
+    assert record.run_config["baseline_comparison_method"] == "independent_uninterrupted_baseline"
+    assert record.final_artifacts["lg_f1_baseline_comparison_verdict"] == "consistent"
+
+
+def test_lg_f1_without_uninterrupted_baseline_marks_comparison_not_applicable(tmp_path: Path) -> None:
+    report = _create_interrupted_resume_report(
+        tmp_path,
+        run_id="lg-f1-no-baseline",
+        include_uninterrupted_baseline=False,
+    )
+
+    assert report["verdict"] == "consistent"
+    assert report["verdict_scope"] == "append_only_stage_replay_only_no_independent_baseline"
+    assert report["uninterrupted_baseline_available"] is False
+    assert report["baseline_comparison_method"] == "not_available"
+    assert report["baseline_comparison_verdict"] == "not_applicable"
+    assert "No independent uninterrupted baseline" in report["baseline_comparison_note"]
+    assert report["uninterrupted_run_id"] is None
+    assert report["uninterrupted_run_record_path"] is None
+    assert report["uninterrupted_artifact_hash"] is None
+    assert str(report["resumed_artifact_hash"]).startswith("sha256:")
+    assert report["artifact_hash_scope"] == "academic_evidence_snapshot"
+    assert not any(str(item).startswith("comparison:") for item in report["unacceptable_diff_findings"])
+    assert all(item["verdict"] == "not_applicable" for item in report["comparison_checks"])
+    assert all(item["baseline_available"] is False for item in report["comparison_checks"])
+    assert all(item["uninterrupted_baseline_available"] is False for item in report["comparison_checks"])
+    assert all(item["comparison_basis"] == "no_independent_baseline" for item in report["comparison_checks"])
+    assert all(item["comparison_method"] == "not_available" for item in report["comparison_checks"])
+    assert all(item["comparison_target"] == "baseline_unavailable" for item in report["comparison_checks"])
+    assert all(item["uninterrupted_value_hash"] is None for item in report["comparison_checks"])
+
+    record = read_agent_loop_run_record(report["run_record_path"])
+    assert record.environment["baseline_comparison_method"] == "not_available"
+    assert record.environment["baseline_comparison_verdict"] == "not_applicable"
+    assert record.environment["verdict_scope"] == "append_only_stage_replay_only_no_independent_baseline"
+    assert record.final_artifacts["lg_f1_baseline_comparison_method"] == "not_available"
+    assert record.final_artifacts["lg_f1_baseline_comparison_verdict"] == "not_applicable"
 
 
 def test_lg_f1_resume_fails_loud_when_thread_id_does_not_match_checkpoint(tmp_path: Path) -> None:

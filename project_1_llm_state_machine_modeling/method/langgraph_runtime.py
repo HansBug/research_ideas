@@ -5929,24 +5929,42 @@ def _lg_f1_comparison_checks(
     uninterrupted: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
+    baseline_available = uninterrupted is not None
+    comparison_basis = "independent_uninterrupted_baseline" if baseline_available else "no_independent_baseline"
+    comparison_method = "independent_uninterrupted_baseline" if baseline_available else "not_available"
+    comparison_target = "uninterrupted_vs_resumed" if baseline_available else "baseline_unavailable"
     for field in ("stage_ids", "fix_log", "llm_interactions", "scenario_history", "repair_history", "final_dsl_hash", "verdict", "result_status"):
         prefix_value = prefix.get(field)
         resumed_value = resumed.get(field)
-        uninterrupted_value = uninterrupted.get(field) if uninterrupted is not None else resumed_value
-        uninterrupted_hash = _lg_f1_compare_hash(uninterrupted_value)
         resumed_hash = _lg_f1_compare_hash(resumed_value)
+        uninterrupted_hash = _lg_f1_compare_hash(uninterrupted.get(field)) if baseline_available else None
+        verdict = (
+            "consistent"
+            if baseline_available and uninterrupted_hash == resumed_hash
+            else ("unacceptable_diff" if baseline_available else "not_applicable")
+        )
+        note = (
+            "LG-F1 compares an independent uninterrupted baseline against the resumed final evidence; "
+            "prefix hash is recorded separately for append-only resume auditing."
+            if baseline_available
+            else (
+                "No independent uninterrupted baseline was provided; this check only records resumed/prefix hashes "
+                "and must not be cited as independent baseline equivalence."
+            )
+        )
         checks.append(
             {
                 "field": field,
                 "uninterrupted_value_hash": uninterrupted_hash,
                 "resumed_value_hash": resumed_hash,
                 "prefix_value_hash": _lg_f1_compare_hash(prefix_value),
-                "verdict": "consistent" if uninterrupted_hash == resumed_hash else "unacceptable_diff",
-                "note": (
-                    "LG-F1 compares an independent uninterrupted baseline against the resumed final evidence "
-                    "when an independent baseline adapter set is provided; prefix hash is recorded separately "
-                    "for append-only resume auditing."
-                ),
+                "verdict": verdict,
+                "comparison_method": comparison_method,
+                "comparison_basis": comparison_basis,
+                "comparison_target": comparison_target,
+                "baseline_available": baseline_available,
+                "uninterrupted_baseline_available": baseline_available,
+                "note": note,
             }
         )
     return checks
@@ -6000,6 +6018,10 @@ def _lg_f1_patch_record_with_report(record_path: str | Path, report: dict[str, A
             "resume_run_main_result_eligible": False,
             "resume_diff_report_path": report["resume_diff_report_path"],
             "resume_diff_report_schema_version": report["schema_version"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "baseline_comparison_note": report["baseline_comparison_note"],
+            "verdict_scope": report["verdict_scope"],
             "lg_f1_mid_node_crash_supported": False,
             "lg_f1_stage_replay_explanation": report["stage_replay_audit"]["explanation"],
         }
@@ -6015,6 +6037,9 @@ def _lg_f1_patch_record_with_report(record_path: str | Path, report: dict[str, A
             "resume_run_main_result_eligible": False,
             "resume_diff_report_path": report["resume_diff_report_path"],
             "resume_diff_report_schema_version": report["schema_version"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "verdict_scope": report["verdict_scope"],
         }
     )
     record.final_artifacts["main_result_eligible"] = False
@@ -6022,12 +6047,18 @@ def _lg_f1_patch_record_with_report(record_path: str | Path, report: dict[str, A
     record.final_artifacts["resume_run_main_result_eligible"] = False
     record.final_artifacts["resume_diff_report_path"] = report["resume_diff_report_path"]
     record.final_artifacts["lg_f1_resume_verdict"] = report["verdict"]
+    record.final_artifacts["lg_f1_baseline_comparison_method"] = report["baseline_comparison_method"]
+    record.final_artifacts["lg_f1_baseline_comparison_verdict"] = report["baseline_comparison_verdict"]
+    record.final_artifacts["lg_f1_verdict_scope"] = report["verdict_scope"]
     record.logs.append(
         {
             "event": "lg_f1_resume_reconciliation",
             "schema_version": report["schema_version"],
             "resume_diff_report_path": report["resume_diff_report_path"],
             "verdict": report["verdict"],
+            "baseline_comparison_method": report["baseline_comparison_method"],
+            "baseline_comparison_verdict": report["baseline_comparison_verdict"],
+            "verdict_scope": report["verdict_scope"],
             "main_result_eligible": False,
         }
     )
@@ -6151,6 +6182,7 @@ def run_lg_f1_resume_experiment(
     path = Path(checkpoint_path)
     run_id = config.run_id or f"lg-f1-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
     uninterrupted_snapshot: dict[str, Any] | None = None
+    uninterrupted_record_path: str | None = None
     uninterrupted_run_id = f"{run_id}-uninterrupted"
     if uninterrupted_adapters is not None:
         baseline_cfg = replace(config, run_id=uninterrupted_run_id)
@@ -6167,6 +6199,7 @@ def run_lg_f1_resume_experiment(
         )
         if not baseline_result.run_record_path:
             raise RuntimeError("LG-F1 uninterrupted baseline did not write an AgentLoopRunRecord")
+        uninterrupted_record_path = str(baseline_result.run_record_path)
         uninterrupted_snapshot = _lg_f1_record_snapshot(read_agent_loop_run_record(baseline_result.run_record_path))
     registry, planned, consistency, compat, resolved, graph_config_hash, actual_interrupt_after = _lg_f1_prepare_runtime(
         config=config,
@@ -6259,6 +6292,15 @@ def run_lg_f1_resume_experiment(
         next_nodes_after_interrupt=next_nodes_after_interrupt,
     )
     comparison_checks = _lg_f1_comparison_checks(prefix_snapshot, resumed_snapshot, uninterrupted_snapshot)
+    uninterrupted_baseline_available = uninterrupted_snapshot is not None
+    baseline_comparison_method = (
+        "independent_uninterrupted_baseline" if uninterrupted_baseline_available else "not_available"
+    )
+    baseline_comparison_verdict = (
+        "unacceptable_diff"
+        if any(item.get("verdict") == "unacceptable_diff" for item in comparison_checks)
+        else ("consistent" if uninterrupted_baseline_available else "not_applicable")
+    )
     unacceptable = [
         key for key, value in append_only_audit.items() if key != "duplicate_fix_log_entry_detected" and value is not True
     ]
@@ -6280,10 +6322,12 @@ def run_lg_f1_resume_experiment(
         "checkpoint_path_hash": _lg_f1_path_hash(path),
         "checkpoint_backend_status": "enabled",
         "graph_config_hash": graph_config_hash,
-        "uninterrupted_run_id": uninterrupted_run_id if uninterrupted_snapshot is not None else run_id,
+        "uninterrupted_run_id": uninterrupted_run_id if uninterrupted_baseline_available else None,
+        "uninterrupted_run_record_path": uninterrupted_record_path,
         "interrupted_run_id": run_id,
         "resumed_run_id": run_id,
-        "uninterrupted_artifact_hash": _hash_payload(uninterrupted_snapshot if uninterrupted_snapshot is not None else resumed_snapshot),
+        "artifact_hash_scope": "academic_evidence_snapshot",
+        "uninterrupted_artifact_hash": _hash_payload(uninterrupted_snapshot) if uninterrupted_baseline_available else None,
         "resumed_artifact_hash": _hash_payload(resumed_snapshot),
         "interrupt": {
             "requested_after": interrupt_after,
@@ -6301,7 +6345,22 @@ def run_lg_f1_resume_experiment(
         "append_only_audit": append_only_audit,
         "stage_replay_audit": stage_replay_audit,
         "comparison_checks": comparison_checks,
-        "uninterrupted_baseline_available": uninterrupted_snapshot is not None,
+        "uninterrupted_baseline_available": uninterrupted_baseline_available,
+        "baseline_comparison_method": baseline_comparison_method,
+        "baseline_comparison_verdict": baseline_comparison_verdict,
+        "baseline_comparison_note": (
+            "Independent uninterrupted baseline was compared with the resumed evidence snapshot."
+            if uninterrupted_baseline_available
+            else (
+                "No independent uninterrupted baseline was produced for this run; comparison_checks are "
+                "not_applicable and the top-level verdict only covers resume append-only/stage-replay audits."
+            )
+        ),
+        "verdict_scope": (
+            "append_only_stage_replay_and_independent_baseline_comparison"
+            if uninterrupted_baseline_available
+            else "append_only_stage_replay_only_no_independent_baseline"
+        ),
         "allowed_diff_keys": [
             "run_id",
             "timestamps",

@@ -205,6 +205,9 @@ def _write_markdown_summary(report: dict[str, Any], output_dir: Path, *, mode: s
         f"- resume_diff_report_path: `{report.get('resume_diff_report_path')}`",
         f"- resume_run_main_result_eligible: `{report.get('resume_run_main_result_eligible')}`",
         f"- uninterrupted_baseline_available: `{report.get('uninterrupted_baseline_available')}`",
+        f"- baseline_comparison_method: `{report.get('baseline_comparison_method')}`",
+        f"- baseline_comparison_verdict: `{report.get('baseline_comparison_verdict')}`",
+        f"- verdict_scope: `{report.get('verdict_scope')}`",
         f"- support_level: `{report.get('real_agent_loop_resume_support_level')}`",
         f"- scope: `{report.get('real_agent_loop_resume_scope')}`；mid_node_crash_supported=`{report.get('mid_node_crash_supported')}`；nested_subgraph_resume_supported=`{report.get('real_agent_loop_nested_subgraph_resume_supported')}`",
         "",
@@ -214,8 +217,19 @@ def _write_markdown_summary(report: dict[str, Any], output_dir: Path, *, mode: s
     for key, value in sorted((report.get("append_only_audit") or {}).items()):
         lines.append(f"- `{key}`: `{value}`")
     lines.extend(["", "## Comparison checks", ""])
+    if not report.get("uninterrupted_baseline_available"):
+        lines.extend(
+            [
+                "> No independent uninterrupted baseline is available for this run.",
+                "> The following checks are `not_applicable` for baseline equivalence and only keep resumed/prefix hashes for audit.",
+                "",
+            ]
+        )
     for item in report.get("comparison_checks") or []:
-        lines.append(f"- `{item.get('field')}`: `{item.get('verdict')}`")
+        lines.append(
+            f"- `{item.get('field')}`: `{item.get('verdict')}` "
+            f"(basis=`{item.get('comparison_basis') or item.get('comparison_method')}`)"
+        )
     stage_replay = report.get("stage_replay_audit") or {}
     lines.extend(
         [
@@ -312,6 +326,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     report["mode"] = args.mode
     report["case_key"] = case_key
     report["condition_id"] = args.condition
+    Path(report["resume_diff_report_path"]).write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True, default=str),
+        encoding="utf-8",
+    )
     (output_dir / "summary.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True, default=str), encoding="utf-8")
     _write_markdown_summary(report, output_dir, mode=args.mode, case_key=case_key, condition_id=args.condition)
     print(json.dumps({"summary_json": str(output_dir / "summary.json"), "resume_diff_report": report["resume_diff_report_path"], "verdict": report["verdict"]}, ensure_ascii=False))

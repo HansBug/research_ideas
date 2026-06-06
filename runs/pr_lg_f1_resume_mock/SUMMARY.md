@@ -10,6 +10,9 @@
 - resume_diff_report_path: `runs/pr_lg_f1_resume_mock/resume_diff_report.json`
 - resume_run_main_result_eligible: `False`
 - uninterrupted_baseline_available: `True`
+- baseline_comparison_method: `independent_uninterrupted_baseline`
+- baseline_comparison_verdict: `consistent`
+- verdict_scope: `append_only_stage_replay_and_independent_baseline_comparison`
 - support_level: `controlled_parent_node_boundary_only`
 - scope: `controlled_parent_node_boundary_resume`；mid_node_crash_supported=`False`；nested_subgraph_resume_supported=`False`
 
@@ -24,14 +27,14 @@
 
 ## Comparison checks
 
-- `stage_ids`: `consistent`
-- `fix_log`: `consistent`
-- `llm_interactions`: `consistent`
-- `scenario_history`: `consistent`
-- `repair_history`: `consistent`
-- `final_dsl_hash`: `consistent`
-- `verdict`: `consistent`
-- `result_status`: `consistent`
+- `stage_ids`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `fix_log`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `llm_interactions`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `scenario_history`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `repair_history`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `final_dsl_hash`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `verdict`: `consistent` (basis=`independent_uninterrupted_baseline`)
+- `result_status`: `consistent` (basis=`independent_uninterrupted_baseline`)
 
 ## Stage replay audit
 

@@ -10,6 +10,9 @@
 - resume_diff_report_path: `runs/pr_lg_f1_resume_real_abs/resume_diff_report.json`
 - resume_run_main_result_eligible: `False`
 - uninterrupted_baseline_available: `False`
+- baseline_comparison_method: `not_available`
+- baseline_comparison_verdict: `not_applicable`
+- verdict_scope: `append_only_stage_replay_only_no_independent_baseline`
 - support_level: `controlled_parent_node_boundary_only`
 - scope: `controlled_parent_node_boundary_resume`；mid_node_crash_supported=`False`；nested_subgraph_resume_supported=`False`
 
@@ -24,14 +27,17 @@
 
 ## Comparison checks
 
-- `stage_ids`: `consistent`
-- `fix_log`: `consistent`
-- `llm_interactions`: `consistent`
-- `scenario_history`: `consistent`
-- `repair_history`: `consistent`
-- `final_dsl_hash`: `consistent`
-- `verdict`: `consistent`
-- `result_status`: `consistent`
+> No independent uninterrupted baseline is available for this run.
+> The following checks are `not_applicable` for baseline equivalence and only keep resumed/prefix hashes for audit.
+
+- `stage_ids`: `not_applicable` (basis=`no_independent_baseline`)
+- `fix_log`: `not_applicable` (basis=`no_independent_baseline`)
+- `llm_interactions`: `not_applicable` (basis=`no_independent_baseline`)
+- `scenario_history`: `not_applicable` (basis=`no_independent_baseline`)
+- `repair_history`: `not_applicable` (basis=`no_independent_baseline`)
+- `final_dsl_hash`: `not_applicable` (basis=`no_independent_baseline`)
+- `verdict`: `not_applicable` (basis=`no_independent_baseline`)
+- `result_status`: `not_applicable` (basis=`no_independent_baseline`)
 
 ## Stage replay audit
 
