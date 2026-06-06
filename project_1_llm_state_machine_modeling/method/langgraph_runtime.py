@@ -610,51 +610,104 @@ def _lg_c1_hash_sequence(rows: list[Any]) -> list[str]:
     return [_hash_payload(_jsonable(row)) for row in rows or []]
 
 
+def _lg_c1_event_hashes(rows: Any) -> list[str]:
+    return [str(row.get("payload_hash") or "") for row in (rows or []) if isinstance(row, dict)]
+
+
+def _lg_c1_operator_log_events_from_record(record: Any) -> list[dict[str, Any]]:
+    final_artifacts = getattr(record, "final_artifacts", {}) if record is not None else {}
+    operator_log = final_artifacts.get("operator_log") if isinstance(final_artifacts, dict) else {}
+    path_text = operator_log.get("operator_log_path") if isinstance(operator_log, dict) else None
+    if not path_text:
+        return []
+    try:
+        path = Path(str(path_text))
+        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except Exception:
+        return []
+
+
+def _lg_c1_operator_log_audit(record: Any, graph_operator_events: list[dict[str, Any]]) -> dict[str, Any]:
+    operator_log_events = _lg_c1_operator_log_events_from_record(record)
+    graph_types = sorted({str(row.get("event_type") or row.get("event") or "") for row in graph_operator_events if isinstance(row, dict)})
+    log_types = sorted({str(row.get("event_type") or row.get("event") or "") for row in operator_log_events if isinstance(row, dict)})
+    return {
+        "graph_state_operator_event_count": len(graph_operator_events),
+        "operator_log_event_count": len(operator_log_events),
+        "graph_state_event_types": graph_types,
+        "operator_log_event_types": log_types,
+        "operator_log_includes_graph_state_events": len(operator_log_events) >= len(graph_operator_events),
+        "operator_log_missing_graph_state_event_types": [event_type for event_type in graph_types if event_type and event_type not in log_types],
+        "operator_log_extra_event_types": [event_type for event_type in log_types if event_type and event_type not in graph_types],
+        "operator_log_events_hash": _hash_payload(operator_log_events),
+        "graph_state_operator_events_hash": _hash_payload(graph_operator_events),
+        "scope": (
+            "operator_events reducer channel is the LangGraph graph-state operator probe; "
+            "complete tee-able LG-D1 operator ledger remains final_artifacts.operator_log.operator_log_path"
+        ),
+    }
+
+
 def _build_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState) -> dict[str, Any]:
     contract = build_lg_c1_graph_state_contract()
-    reducer_channel_values = {
+    graph_state_channel_values = {
         channel: _jsonable(graph_state.get(channel, []))
         for channel in contract["append_only_reducer_channel_names"]
     }
     # The final run record can be redacted during ``_build_record``.  For
-    # canonical academic ledgers, final readiness must therefore mirror the
-    # exact persisted ``AgentLoopRunRecord`` fields, not the pre-redaction live
-    # ``_RunState`` objects.  Graph-only traces remain sourced from graph state.
-    reducer_channel_values["stage_record_events"] = _lg_c1_stage_record_events(record.stage_records)
-    reducer_channel_values["llm_interaction_events"] = _lg_c1_llm_interaction_events(record.llm_interactions)
-    reducer_channel_values["fix_log_events"] = _lg_c1_fix_log_events(record.fix_log)
-    reducer_channel_values["scenario_history_events"] = _lg_c1_generic_history_events(
+    # canonical academic ledgers, final readiness therefore records two views:
+    # (1) graph-state reducer channels as actually accumulated by LangGraph;
+    # (2) persisted-record mirrors reconstructed from the final, redacted
+    # AgentLoopRunRecord.  LG-C1 must not silently replace (1) with (2), because
+    # that would make reducer consistency self-certifying.
+    persisted_channel_values = dict(graph_state_channel_values)
+    persisted_channel_values["stage_record_events"] = _lg_c1_stage_record_events(record.stage_records)
+    persisted_channel_values["llm_interaction_events"] = _lg_c1_llm_interaction_events(record.llm_interactions)
+    persisted_channel_values["fix_log_events"] = _lg_c1_fix_log_events(record.fix_log)
+    persisted_channel_values["scenario_history_events"] = _lg_c1_generic_history_events(
         record.scenario_history,
         id_key="scenario_set_id",
     )
-    reducer_channel_values["repair_history_events"] = _lg_c1_generic_history_events(record.repair_history)
+    persisted_channel_values["repair_history_events"] = _lg_c1_generic_history_events(record.repair_history)
     canonical_stage_hashes = _lg_c1_hash_sequence(record.stage_records)
     canonical_llm_hashes = _lg_c1_hash_sequence(record.llm_interactions)
     canonical_fix_hashes = _lg_c1_hash_sequence(record.fix_log)
     canonical_scenario_hashes = _lg_c1_hash_sequence(record.scenario_history)
     canonical_repair_hashes = _lg_c1_hash_sequence(record.repair_history)
 
-    def event_hashes(channel: str) -> list[str]:
-        rows = reducer_channel_values.get(channel) or []
-        return [str(row.get("payload_hash") or "") for row in rows if isinstance(row, dict)]
-
-    consistency = {
-        "stage_records_match": event_hashes("stage_record_events") == canonical_stage_hashes,
-        "llm_interactions_match": event_hashes("llm_interaction_events") == canonical_llm_hashes,
-        "fix_log_match": event_hashes("fix_log_events") == canonical_fix_hashes,
-        "scenario_history_match": event_hashes("scenario_history_events") == canonical_scenario_hashes,
-        "repair_history_match": event_hashes("repair_history_events") == canonical_repair_hashes,
+    graph_state_consistency = {
+        "stage_records_match": _lg_c1_event_hashes(graph_state_channel_values.get("stage_record_events")) == canonical_stage_hashes,
+        "llm_interactions_match": _lg_c1_event_hashes(graph_state_channel_values.get("llm_interaction_events")) == canonical_llm_hashes,
+        "fix_log_match": _lg_c1_event_hashes(graph_state_channel_values.get("fix_log_events")) == canonical_fix_hashes,
+        "scenario_history_match": _lg_c1_event_hashes(graph_state_channel_values.get("scenario_history_events")) == canonical_scenario_hashes,
+        "repair_history_match": _lg_c1_event_hashes(graph_state_channel_values.get("repair_history_events")) == canonical_repair_hashes,
     }
+    persisted_consistency = {
+        "stage_records_match": _lg_c1_event_hashes(persisted_channel_values.get("stage_record_events")) == canonical_stage_hashes,
+        "llm_interactions_match": _lg_c1_event_hashes(persisted_channel_values.get("llm_interaction_events")) == canonical_llm_hashes,
+        "fix_log_match": _lg_c1_event_hashes(persisted_channel_values.get("fix_log_events")) == canonical_fix_hashes,
+        "scenario_history_match": _lg_c1_event_hashes(persisted_channel_values.get("scenario_history_events")) == canonical_scenario_hashes,
+        "repair_history_match": _lg_c1_event_hashes(persisted_channel_values.get("repair_history_events")) == canonical_repair_hashes,
+    }
+    operator_log_audit = _lg_c1_operator_log_audit(
+        record,
+        graph_state_channel_values.get("operator_events") if isinstance(graph_state_channel_values.get("operator_events"), list) else [],
+    )
     return {
         **contract,
         "final_reducer_channel_summaries": {
             channel: _lg_c1_channel_summary(value)
-            for channel, value in reducer_channel_values.items()
+            for channel, value in persisted_channel_values.items()
         },
-        "final_reducer_channel_events": reducer_channel_values,
+        "final_reducer_channel_events": persisted_channel_values,
+        "graph_state_reducer_channel_summaries": {
+            channel: _lg_c1_channel_summary(value)
+            for channel, value in graph_state_channel_values.items()
+        },
+        "graph_state_reducer_channel_events": graph_state_channel_values,
         "final_reducer_channel_event_sources": {
             "graph_trace": "LangGraph graph state reducer channel",
-            "operator_events": "LangGraph graph state reducer channel",
+            "operator_events": "LangGraph graph state operator probe channel; full operator log audited separately",
             "toolnode_wrapper_events": "LangGraph graph state reducer channel",
             "stage_record_events": "persisted AgentLoopRunRecord.stage_records",
             "llm_interaction_events": "persisted AgentLoopRunRecord.llm_interactions",
@@ -662,9 +715,20 @@ def _build_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopState
             "scenario_history_events": "persisted AgentLoopRunRecord.scenario_history",
             "repair_history_events": "persisted AgentLoopRunRecord.repair_history",
         },
-        "mirror_canonical_consistency": consistency,
-        "mirror_canonical_consistency_ok": all(consistency.values()),
-        "json_serialization_audit": _lg_c1_json_serialization_audit(reducer_channel_values),
+        "graph_state_vs_canonical_consistency": graph_state_consistency,
+        "graph_state_vs_canonical_consistency_ok": all(graph_state_consistency.values()),
+        "persisted_record_mirror_canonical_consistency": persisted_consistency,
+        "persisted_record_mirror_canonical_consistency_ok": all(persisted_consistency.values()),
+        # Backward-compatible name now deliberately means the real graph-state
+        # reducer mirror check, not the self-generated persisted mirror check.
+        "mirror_canonical_consistency": graph_state_consistency,
+        "mirror_canonical_consistency_ok": all(graph_state_consistency.values()),
+        "operator_log_audit": operator_log_audit,
+        "json_serialization_audit": _lg_c1_json_serialization_audit({
+            **graph_state_channel_values,
+            "persisted_record_reducer_channel_events": persisted_channel_values,
+            "operator_log_audit": operator_log_audit,
+        }),
         "canonical_counts": {
             "stage_records": len(record.stage_records),
             "llm_interactions": len(record.llm_interactions),
@@ -5339,6 +5403,23 @@ def _augment_run_record_with_lg_d1_operator_log(
     write_agent_loop_run_record(record, path)
 
 
+def _refresh_lg_c1_readiness_after_lg_d1_operator_log(result: AgentLoopResult, graph_state: _GraphLoopState) -> None:
+    """Refresh LG-C1 readiness after LG-D1 writes the complete operator log.
+
+    The first readiness injection happens inside SC-13 before the run record is
+    persisted.  LG-D1 operator artifacts are added later because they need the
+    final run-record path and stage ledger.  Refreshing here lets LG-C1 audit the
+    full tee-able operator log instead of only graph-state operator probes.
+    """
+
+    if not result.run_record_path:
+        return
+    path = result.run_record_path
+    record = read_agent_loop_run_record(path)
+    _inject_lg_c1_graph_state_readiness(record, graph_state)
+    write_agent_loop_run_record(record, path)
+
+
 def _run_graph_with_lg_d1_stream(
     app: Any,
     *,
@@ -5534,6 +5615,7 @@ def run_full_staged_langgraph_runtime(
         graph_stream_status=graph_stream_status,
         operator_stream_enabled=bool(operator_stream_enabled),
     )
+    _refresh_lg_c1_readiness_after_lg_d1_operator_log(result, state)
     result.resolved_config = resolved
     result.planned_stage_graph = planned
     return result

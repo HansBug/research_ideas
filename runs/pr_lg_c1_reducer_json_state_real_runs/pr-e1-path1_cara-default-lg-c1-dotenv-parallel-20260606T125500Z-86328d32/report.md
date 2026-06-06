@@ -319,7 +319,7 @@ state CARA {
 | 78 | `2026-06-06T04:41:32Z` | `SD-6` | `1` | `stage_enter` | {"reason": "scenario_set_ready"} | <none> |
 | 79 | `2026-06-06T04:41:32Z` | `SD-6` | `1` | `stage_result` | {"jump": "SD-8", "ok": false, "status": "StageStatus.FAIL"} | <none> |
 | 80 | `2026-06-06T04:41:32Z` | `<control>` | `-` | `langgraph_node_event` | {} | <none> |
-- ……另有 `65` 条流程日志见 [`flow_log.json`](./flow_log.json) / run record。
+- ……另有 `67` 条流程日志见 [`flow_log.json`](./flow_log.json) / run record。
 
 ### 5. Iteration / repair / review 摘要
 

@@ -51,7 +51,7 @@ from method.pr_d_representative import (
     missing_provider_env,
     representative_cases,
 )
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from method.run_record import is_path_result_eligible, read_agent_loop_run_record, write_agent_loop_run_record
 from method.schema import AgentLoopResult, AgentLoopRunRecord, experiment_default_condition
 
 RunAgentLoopFn = Callable[[str, LoopConfig], AgentLoopResult]
@@ -634,12 +634,15 @@ def build_reproducibility_payload(
         "condition": asdict(spec),
         "command": {
             "module": "method.pr_e1_real_runs",
+            "env_loading_command": "set -a; source .env; set +a",
             "canonical_example": (
+                "bash -lc 'set -a; source .env; set +a; "
                 "PYTHONPATH=project_1_llm_state_machine_modeling "
                 f"python -m method.pr_e1_real_runs --case-set e2-aligned "
                 f"--case-keys {case.case_key} --condition-set {spec.config_id} "
-                f"--output-dir {_as_repo_relative(output_root)} --run-tag <same-tag>"
+                f"--output-dir {_as_repo_relative(output_root)} --run-tag <same-tag>'"
             ),
+            "secret_policy": "loads .env but records only provider hashes and presence flags; raw endpoint path/API key are never stored",
         },
         "resolved_loop_config": cfg.resolved_config(),
         "git": {
@@ -805,6 +808,8 @@ def run_one_pr_e1_case(
         reproducibility_payload=repro_payload,
         reproducibility_path=repro_path,
     )
+    _inject_pr_e1_quality_boundary(record, summary)
+    write_agent_loop_run_record(record, result.run_record_path)
     _write_per_run_artifacts(case, spec, result, record, summary, run_dir)
     return summary
 
@@ -1203,6 +1208,40 @@ def _path2_ref_model_blueprint_policy(
     if final_dsl.count("->") <= 1:
         return False, "insufficient transition structure for Path2 ref-model blueprint"
     return True, "path2 default run has non-decorative state/mode structure under current heuristic"
+
+
+def _inject_pr_e1_quality_boundary(record: AgentLoopRunRecord, summary: PrE1RunSummary) -> None:
+    """Persist PR-E1-derived quality/blueprint boundary into canonical record.
+
+    These fields do not change ``main_result_eligible``.  They prevent a valid
+    Path2 stress run, especially a state-mode-decorative dispatcher, from being
+    mistaken for a Path2 reference-model blueprint by downstream scripts that
+    only load ``*.agent_loop.json.gz``.
+    """
+
+    boundary = {
+        "schema_version": "pr-e1.quality-boundary.v1",
+        "state_mode_decorative_detected": bool(summary.state_mode_decorative_detected),
+        "path2_ref_model_blueprint_eligible": summary.path2_ref_model_blueprint_eligible,
+        "path2_ref_model_blueprint_reason": summary.path2_ref_model_blueprint_reason,
+        "main_result_eligible_unchanged": bool(summary.main_result_eligible),
+        "scope": "derived PR-E1 quality boundary; does not alter main_result_eligible or final verdict",
+    }
+    record.final_artifacts["state_mode_decorative_detected"] = bool(summary.state_mode_decorative_detected)
+    record.final_artifacts["path2_ref_model_blueprint_eligible"] = summary.path2_ref_model_blueprint_eligible
+    record.final_artifacts["path2_ref_model_blueprint_reason"] = summary.path2_ref_model_blueprint_reason
+    record.final_artifacts["pr_e1_quality_boundary"] = boundary
+    record.run_config["pr_e1_quality_boundary"] = boundary
+    record.logs.append(
+        {
+            "event": "pr_e1_quality_boundary",
+            "schema_version": boundary["schema_version"],
+            "state_mode_decorative_detected": boundary["state_mode_decorative_detected"],
+            "path2_ref_model_blueprint_eligible": boundary["path2_ref_model_blueprint_eligible"],
+            "main_result_eligible_unchanged": boundary["main_result_eligible_unchanged"],
+            "does_not_replace_academic_evidence": True,
+        }
+    )
 
 
 def _write_per_run_artifacts(

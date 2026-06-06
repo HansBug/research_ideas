@@ -241,6 +241,8 @@ state ABSHydraulicRegulator {
 | 43 | `` | `<control>` | `-` | `langgraph_node_trace` | {} | <none> |
 | 44 | `` | `<control>` | `-` | `lg_e3_toolnode_wrapper_trace` | {} | <none> |
 | 45 | `` | `<control>` | `-` | `lg_d1_operator_log_artifacts` | {} | <none> |
+| 46 | `` | `<control>` | `-` | `lg_c1_graph_state_readiness` | {} | <none> |
+| 47 | `` | `<control>` | `-` | `pr_e1_quality_boundary` | {} | <none> |
 
 #### Scenario 逐轮通过矩阵（report §6.1 摘录）
 
@@ -791,6 +793,8 @@ state AutomaticElevatorController {
 | 43 | `` | `<control>` | `-` | `langgraph_node_trace` | {} | <none> |
 | 44 | `` | `<control>` | `-` | `lg_e3_toolnode_wrapper_trace` | {} | <none> |
 | 45 | `` | `<control>` | `-` | `lg_d1_operator_log_artifacts` | {} | <none> |
+| 46 | `` | `<control>` | `-` | `lg_c1_graph_state_readiness` | {} | <none> |
+| 47 | `` | `<control>` | `-` | `pr_e1_quality_boundary` | {} | <none> |
 
 #### Scenario 逐轮通过矩阵（report §6.1 摘录）
 

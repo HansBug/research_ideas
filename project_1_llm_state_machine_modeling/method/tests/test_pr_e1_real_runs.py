@@ -615,6 +615,99 @@ def test_pr_e1_path2_blueprint_allows_non_decorative_mode_model(tmp_path: Path) 
     assert summary.state_mode_decorative_detected is False
     assert summary.path2_ref_model_blueprint_eligible is True
 
+
+def test_pr_e1_reproducibility_payload_records_env_loading_command(tmp_path: Path) -> None:
+    from method.pr_e1_real_runs import build_reproducibility_payload
+
+    case = pr_e1_cases("all", case_keys=["path1_abs"])[0]
+    spec = condition_specs()["default"]
+    cfg = make_pr_e1_config(spec, output_dir=tmp_path / "run", run_id="repro-env")
+
+    payload = build_reproducibility_payload(
+        case=case,
+        spec=spec,
+        cfg=cfg,
+        run_id="repro-env",
+        output_root=tmp_path,
+        started_at="2026-06-06T00:00:00Z",
+    )
+
+    command = payload["command"]
+    assert command["env_loading_command"] == "set -a; source .env; set +a"
+    assert "source .env" in command["canonical_example"]
+    assert command["canonical_example"].startswith("bash -lc '")
+    assert "raw endpoint path/API key are never stored" in command["secret_policy"]
+
+
+def test_pr_e1_quality_boundary_is_persisted_in_canonical_record(tmp_path: Path) -> None:
+    from method.pr_e1_real_runs import _inject_pr_e1_quality_boundary, summarize_pr_e1_run
+    from method.run_record import read_agent_loop_run_record
+
+    record = _record("path2-boundary-canonical")
+    record.status = "success"
+    forced_classifier_dsl = """def float load_demand = 0.0;
+def float supply_capacity = 0.0;
+
+state DispatchClassifier {
+    ! * -> Surplus : if [supply_capacity >= load_demand];
+    ! * -> Balanced : if [supply_capacity == load_demand];
+    ! * -> BatteryAssist : if [supply_capacity < load_demand];
+    ! * -> EngineAssist : if [supply_capacity + 10 >= load_demand];
+    ! * -> ShedLoad : if [supply_capacity + 10 < load_demand];
+    ! * -> Recovery : if [load_demand == 0];
+    [*] -> Surplus;
+    state Surplus;
+    state Balanced;
+    state BatteryAssist;
+    state EngineAssist;
+    state ShedLoad;
+    state Recovery;
+}
+"""
+    record.final_artifacts.update(
+        {
+            "final_dsl": forced_classifier_dsl,
+            "final_dsl_hash": "sha256:path2-boundary",
+            "verdict": "success",
+            "verdict_reason": "full_pass_all_required_feedback_ok",
+            "agent_loop_result_status": "success",
+            "main_result_eligible": True,
+            "exclusion_reason": None,
+        }
+    )
+    path = write_agent_loop_run_record(record, tmp_path / "path2-boundary.agent_loop.json.gz")
+    result = AgentLoopResult(
+        final_dsl=forced_classifier_dsl,
+        status="success",
+        run_record_id="path2-boundary-canonical",
+        run_record_path=str(path),
+    )
+    summary = summarize_pr_e1_run(
+        case={case.case_key: case for case in pr_e1_cases("all")}["path2_lng_ems"],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    _inject_pr_e1_quality_boundary(record, summary)
+    write_agent_loop_run_record(record, path)
+    persisted = read_agent_loop_run_record(path)
+
+    assert persisted.final_artifacts["state_mode_decorative_detected"] is True
+    assert persisted.final_artifacts["path2_ref_model_blueprint_eligible"] is False
+    assert "dispatch-classifier" in persisted.final_artifacts["path2_ref_model_blueprint_reason"]
+    boundary = persisted.final_artifacts["pr_e1_quality_boundary"]
+    assert boundary["schema_version"] == "pr-e1.quality-boundary.v1"
+    assert boundary["main_result_eligible_unchanged"] is True
+    assert persisted.run_config["pr_e1_quality_boundary"] == boundary
+    assert any(item.get("event") == "pr_e1_quality_boundary" for item in persisted.logs)
+
 def test_pr_e1_matrix_summary_separates_provider_invalid_denominator() -> None:
     ok = PrE1RunSummary(
         case_key="path1_abs",

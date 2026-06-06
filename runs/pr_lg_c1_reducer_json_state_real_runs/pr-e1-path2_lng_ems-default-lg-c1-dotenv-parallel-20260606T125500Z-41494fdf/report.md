@@ -482,7 +482,7 @@ state LNGShipEMS {
 | 78 | `2026-06-06T04:44:05Z` | `<control>` | `1` | `iteration_enter` | {} | current_hash=sha256:61722f861ba411647785b9ef250434a2f617638dd5d785c5237dd0caefbeec44 |
 | 79 | `2026-06-06T04:44:05Z` | `<control>` | `-` | `langgraph_node_event` | {} | <none> |
 | 80 | `2026-06-06T04:44:05Z` | `<control>` | `1` | `iteration_validation_enter` | {} | dsl:len=7313,hash=sha256:61722f861ba4, current_hash=sha256:61722f861ba411647785b9ef250434a2f617638dd5d785c5237dd0caefbeec44 |
-- ……另有 `141` 条流程日志见 [`flow_log.json`](./flow_log.json) / run record。
+- ……另有 `143` 条流程日志见 [`flow_log.json`](./flow_log.json) / run record。
 
 ### 5. Iteration / repair / review 摘要
 
