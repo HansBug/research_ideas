@@ -13,6 +13,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+TEST_FILE = Path(__file__).resolve()
+METHOD_ROOT = TEST_FILE.parents[2]
+PROJECT_ROOT = METHOD_ROOT.parent
+REPO_ROOT = PROJECT_ROOT.parent
+STAGES_ROOT = METHOD_ROOT / "stages"
+
 
 def test_stage_api_exports_deterministic_tools_and_prompt_builders_without_provider() -> None:
     from method.stages import api
@@ -96,9 +102,8 @@ def test_sl_prompt_api_is_facade_not_prompt_implementation() -> None:
 
 
 def test_stage_api_files_do_not_read_env_or_call_full_loop() -> None:
-    root = Path("project_1_llm_state_machine_modeling/method/stages")
     for rel in ["api.py", "sc_control.py", "sl_prompt_api.py"]:
-        text = (root / rel).read_text(encoding="utf-8")
+        text = (STAGES_ROOT / rel).read_text(encoding="utf-8")
         assert "run_agent_loop" not in text
         assert "RealEnvLLMProvider" not in text
         assert "gpt_client" not in text
@@ -109,7 +114,7 @@ def test_stage_api_files_do_not_read_env_or_call_full_loop() -> None:
 
 def test_stage_api_import_and_sc_summary_work_without_llm_env() -> None:
     env = dict(os.environ)
-    env["PYTHONPATH"] = "project_1_llm_state_machine_modeling"
+    env["PYTHONPATH"] = str(PROJECT_ROOT)
     for key in ["LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"]:
         env.pop(key, None)
     script = (
@@ -119,4 +124,4 @@ def test_stage_api_import_and_sc_summary_work_without_llm_env() -> None:
         "assert summary[\"full_loop_free\"] is True; "
         "assert api.SC_CONTROL_SCHEMA_VERSION == summary[\"schema_version\"]"
     )
-    subprocess.run([sys.executable, "-c", script], cwd=Path.cwd(), env=env, check=True)
+    subprocess.run([sys.executable, "-c", script], cwd=REPO_ROOT, env=env, check=True)

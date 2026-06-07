@@ -41,7 +41,7 @@ skill 路径去修改共享 stage docs。
 
 ## 程序化调用入口
 
-本目录中的 stage symlink 是**人类可读**索引，用于快速跳转到共享 stage 文档；它不是程序化调用 API。
+本目录中的 stage 文档索引是**人类可读**入口，用于快速跳转到共享 stage 文档；它不是程序化调用 API。
 Codex / Claude Code / toolbox 若需要调用工具，应从 Python facade 导入：
 
 - `method.stages.api`：skill-facing 总入口，汇总 SD deterministic tools、SL prompt builders 与 SC summary helpers。

@@ -30,6 +30,7 @@ EXPERIMENT_MODULES = [
     "method.pr_d_representative",
     "method.pr2a_loop",
 ]
+LG_M1_D1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_B_ADDITIVE_STAGE_MODULES = {
     "method.stages.api",
     "method.stages.sc_control",
@@ -294,7 +295,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
         assert first_line == row["help_usage_first_line"]
 
 
-def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
+def test_lg_m1_a_pytest_collection_baseline_plus_registered_d1_and_b_delta_is_current() -> None:
     baseline = _load_baseline()
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
@@ -307,4 +308,8 @@ def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    assert int(match.group(1)) == baseline["collection"]["count"] + LG_M1_B_ADDITIVE_TEST_COUNT
+    # LG-M1-A captured the pre-maintenance collection count. D1 and B register
+    # exact additive deltas so future sub-PRs cannot silently lose old tests
+    # while adding new ones that merely keep the total above the floor.
+    expected_count = baseline["collection"]["count"] + LG_M1_D1_EXPECTED_COLLECTION_DELTA + LG_M1_B_ADDITIVE_TEST_COUNT
+    assert int(match.group(1)) == expected_count

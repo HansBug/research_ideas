@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[4]
+assert (REPO / "project_1_llm_state_machine_modeling").is_dir(), "REPO root detection failed"
 SKILL_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method" / "agent_loop_skill"
 HEALTH = SKILL_ROOT / "health_check.py"
 

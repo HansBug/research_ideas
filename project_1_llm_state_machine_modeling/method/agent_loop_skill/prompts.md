@@ -1,6 +1,6 @@
 # SL prompt generators
 
-PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑定内部 LLM wrapper。仓库内部 `agents/*` wrapper 也复用同一 prompt generator，避免 prompt drift。程序化调用优先从 `method.stages.sl_prompt_api` 或总 façade `method.stages.api` 导入；`method.stages.sl_prompt_common` 仍只是 prompt implementation 的共享工具。
+PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑定内部 LLM wrapper。仓库内部 `agents/*` wrapper 也复用同一 prompt generator，避免 prompt drift。程序化调用优先从 `method.stages.sl_prompt_api` 或总 façade `method.stages.api` 导入；`method.stages.sl_prompt_common` 是多个 SL prompt module 共享的底层 schema/format helper，不是面向 skill 的 API。
 
 
 ## PR-E2 外部 agent 使用方式

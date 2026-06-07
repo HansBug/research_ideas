@@ -5,7 +5,9 @@ The PR-skill-fix branch intentionally keeps all fixes inside this directory.
 This script is therefore both a lightweight regression test and a human-readable
 audit helper for Codex / Claude Code agents: it checks that the skill entry
 points, stage symlinks, E2 boundaries, and PR-E1 repair vocabulary still point
-to the current workflow without requiring the full agent-loop runtime.
+to the current workflow without requiring the full agent-loop runtime.  The
+stage-facade denylist is intentionally literal: the facade files must not
+mention provider/full-loop entrypoint names even inside comments/docstrings.
 
 Usage from repository root:
 
@@ -19,12 +21,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
 
 SKILL_ROOT = Path(__file__).resolve().parent
+METHOD_ROOT = SKILL_ROOT.parent
+PROJECT_ROOT = METHOD_ROOT.parent
+if str(PROJECT_ROOT) not in sys.path:
+    # Keep the documented clean command runnable from repo root without relying
+    # on a caller-provided PYTHONPATH while still avoiding any provider/.env load.
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 @dataclass(frozen=True)
