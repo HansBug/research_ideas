@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-07 10:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -8,7 +8,7 @@
 
 本路径重点维护：
 
-当前组合计数锚点：**39 个 venue 根 README、273 个年度 README（27 个会议 / 12 个期刊）**；其中 PR-9 新增 APSEC / SEKE / EASE / MSR / RV 共 5 个 P2 venue、35 个年度 README，PR-10 本轮不新增 venue，只执行 P1/P2 全局审计与一致性修复。
+当前组合计数锚点：**42 个 venue 根 README、294 个年度 README（29 个会议 / 13 个期刊）**；其中 PR #63 在 PR #35 / PR #62 之后新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 LLM4Modeling-SE 扩展候选，共 3 个 venue、21 个年度 README，并同步 CCF 名录证据等级与 TIMELINE。
 
 1. 与本仓库四个 project 强相关或中相关的 `CCF` 会议 / 期刊基本信息。
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
@@ -40,6 +40,8 @@
 
 若 [../VENUES.md](../VENUES.md)、`PR #5` 或其他旧材料与 CCF 官方页面冲突，以当前官方页面为准，并在具体 venue README 的“证据与核查记录”中说明差异。
 
+补充证据等级口径：`https://ccf.atom.im/` 当前只能作为非官方机器检索镜像 / 差集筛查线索；其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文 / 第七版状态待人工浏览器核验”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
+
 ## 4. 收录范围
 
 ### 4.1 初始优先范围
@@ -53,7 +55,7 @@
 
 ### 4.2 时间范围
 
-默认调查 `2022` 年至**当前年份 + 2**；以当前日期 `2026-06-05` 为例，初始化骨架应覆盖到 `2028` 年。`当前年份 + 2` 是默认检索与占位下限，不是未来年度上限；若任何 venue 已经能找到 `2029` 或更远年份的官方年度主页、`CFP`、important dates 或投稿入口，也必须继续纳入。
+默认调查 `2022` 年至**当前年份 + 2**；以当前日期 `2026-06-07` 为例，初始化骨架应覆盖到 `2028` 年。`当前年份 + 2` 是默认检索与占位下限，不是未来年度上限；若任何 venue 已经能找到 `2029` 或更远年份的官方年度主页、`CFP`、important dates 或投稿入口，也必须继续纳入。
 
 1. 已经结束的年度：记录年度主页、重要时间点、论文名录页面和论文数量。
 2. 当前年份、未来两年和更远已公布未来年度：只要已经公布官网、`CFP` 或 important dates，就记录官方主页、关键时间点和当前阶段。
@@ -69,9 +71,9 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue、PR-6 的 4 个维护 / 修复 P1 venue、PR-7 的 4 个实证 / 质量 P1 venue、PR-8 的 4 个 P1 形式化 / 工具链 venue，以及 PR-9 的 5 个 P2 邻近观察 venue 的基础建档与部分核验；PR-10 已完成并合入 #35，当前组合状态共有 39 个 venue 根 README、273 个年度 README，其中 27 个会议、12 个期刊。P0 冻结基线仍是 22 个 venue 根 README、154 个年度 README；PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-6、PR-7 与 PR-8 本轮交付物均各按 4 个目标 venue 计数，即各 4 个根 README + 28 个年度 README = 32 个 README；PR-9 本轮交付物按 5 个 P2 目标 venue 计数，即 5 个根 README + 35 个年度 README = 40 个 README。当前 39 / 273 是 PR-6 / PR-7 / PR-8 均已合入上游且 PR-9 已 merge 最新上游后的组合统计；历史更新日志中的 26 / 182、30 / 210、34 / 238 仅代表各 sibling branch-local 或中间组合阶段，不得再写作当前总量。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue、PR-6 的 4 个维护 / 修复 P1 venue、PR-7 的 4 个实证 / 质量 P1 venue、PR-8 的 4 个 P1 形式化 / 工具链 venue，以及 PR-9 的 5 个 P2 邻近观察 venue 的基础建档与部分核验；PR-10 已完成并合入 #35，当前组合状态共有 42 个 venue 根 README、294 个年度 README，其中 29 个会议、13 个期刊。P0 冻结基线仍是 22 个 venue 根 README、154 个年度 README；PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-6、PR-7 与 PR-8 本轮交付物均各按 4 个目标 venue 计数，即各 4 个根 README + 28 个年度 README = 32 个 README；PR-9 本轮交付物按 5 个 P2 目标 venue 计数，即 5 个根 README + 35 个年度 README = 40 个 README。当前 42 / 294 是 PR-6 / PR-7 / PR-8 / PR-9 均已合入上游、PR-10 完成全局审计后，再由 PR #63 增补 3 个 LLM4Modeling-SE 扩展候选后的组合统计；历史更新日志中的 26 / 182、30 / 210、34 / 238 仅代表各 sibling branch-local 或中间组合阶段，不得再写作当前总量。
 
-PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段：PR-6 / PR-7 / PR-8 / PR-9 均已由上游合入并在当前合流分支中共存，APSEC / SEKE / EASE / MSR / RV 的 P2 邻近观察基础填充不升级为 P0/P1 主投目标，PR-10 已在这些分支全部合入后完成 P1/P2 全局审计并同步到当前合流分支。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 / PR-6 / PR-7 / PR-8 / PR-9 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
+PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”的长期维护阶段；PR #63 属于用户显式指定的 CCF SE 名录漏项补充 / LLM4Modeling-SE 扩展，不回写为 PR-6~PR-10 原冻结合同：PR-6 / PR-7 / PR-8 / PR-9 均已由上游合入并在当前合流分支中共存，APSEC / SEKE / EASE / MSR / RV 的 P2 邻近观察基础填充不升级为 P0/P1 主投目标，PR-10 已在这些分支全部合入后完成 P1/P2 全局审计并同步到当前合流分支。新增或修改 venue 时必须以 [SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 与对应模板为同步边界，不得把待建 venue、未公布年度、未核验论文数量或候选人员线索写成已完成事实；任何 merge-upstream / base 合流后的冲突解决都必须复审 PR-2 / PR-3 / PR-4 / PR-6 / PR-7 / PR-8 / PR-9 venue、期刊 rolling / dated events、共享规则和更新日志是否共存，防止回退到旧目录统计口径。
 
 ## 5. 目录命名规范
 
@@ -176,6 +178,8 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 13:33` | 修复 PR #63 实现后 review 的 ICECCS 2026 / CAiSE 2023 时间线问题：降级 ICECCS 2026 404 accepted-list candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE。 |
+| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 venue 后，将入口统计更新为 42 个 venue / 294 个年度 README（29 会议 / 13 期刊），并补充 CCF 官方 / 镜像证据等级说明。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：在 AI 工作入口提示中加入 GUIDE §12、TIMELINE §3 与 SUMMARY §1.1 的最新投稿情报刷新路径。 |
 | `2026-06-06 13:45` | PR #35 近期窗口复审最终收口：统一 PR-10 已完成合流表述，并同步 ISSTA / FSE / REFSQ / APSEC / RV / IST / REJ 等近期投稿窗口修复。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：核验并同步 ICSE 2027 与 ICFEM 2026 官方精确 deadline 时刻，清理近期投稿窗口精度问题。 |
