@@ -35,6 +35,17 @@ if str(PROJECT_ROOT) not in sys.path:
     # on a caller-provided PYTHONPATH while still avoiding any provider/.env load.
     sys.path.insert(0, str(PROJECT_ROOT))
 
+STAGE_FACADE_DENY_TERMS = (
+    "method.loop",
+    "method.llm_stages",
+    "method.gpt_client",
+    "RealEnvLLMProvider",
+    "run_agent_loop",
+    "os.environ",
+    "load_dotenv",
+    "LLM_API_KEY",
+)
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -285,21 +296,11 @@ def _check_stage_api_contract(root: Path) -> CheckResult:
     summary = sc_control.build_stage_control_summary()
     sl_prompt_ok = hasattr(sl_prompt_api, "build_sl9_repair_prompt") and not hasattr(sl_prompt_api, "run_sl9_repair_llm")
 
-    deny_terms = [
-        "method.loop",
-        "method.llm_stages",
-        "method.gpt_client",
-        "RealEnvLLMProvider",
-        "run_agent_loop",
-        "os.environ",
-        "load_dotenv",
-        "LLM_API_KEY",
-    ]
     stage_root = root.parent / "stages"
     static_hits: list[str] = []
     for rel in ["api.py", "sc_control.py", "sl_prompt_api.py"]:
         file_text = _read(stage_root / rel)
-        for term in deny_terms:
+        for term in STAGE_FACADE_DENY_TERMS:
             if term in file_text:
                 static_hits.append(f"{rel}:{term}")
 

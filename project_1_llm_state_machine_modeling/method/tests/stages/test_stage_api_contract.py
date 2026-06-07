@@ -13,6 +13,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from method.agent_loop_skill.health_check import STAGE_FACADE_DENY_TERMS
+
 TEST_FILE = Path(__file__).resolve()
 METHOD_ROOT = TEST_FILE.parents[2]
 PROJECT_ROOT = METHOD_ROOT.parent
@@ -104,12 +106,8 @@ def test_sl_prompt_api_is_facade_not_prompt_implementation() -> None:
 def test_stage_api_files_do_not_read_env_or_call_full_loop() -> None:
     for rel in ["api.py", "sc_control.py", "sl_prompt_api.py"]:
         text = (STAGES_ROOT / rel).read_text(encoding="utf-8")
-        assert "run_agent_loop" not in text
-        assert "RealEnvLLMProvider" not in text
-        assert "gpt_client" not in text
-        assert "LLM_API_KEY" not in text
-        assert "os.environ" not in text
-        assert "method.llm_stages" not in text
+        hits = sorted(term for term in STAGE_FACADE_DENY_TERMS if term in text)
+        assert hits == []
 
 
 def test_stage_api_import_and_sc_summary_work_without_llm_env() -> None:
