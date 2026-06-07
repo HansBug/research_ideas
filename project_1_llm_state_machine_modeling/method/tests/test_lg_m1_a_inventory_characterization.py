@@ -43,7 +43,7 @@ LG_M1_B_ADDITIVE_STAGE_MODULES = {
 }
 LG_M1_B_ADDITIVE_TEST_COUNT = 7
 LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT = 3
-LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT = 3
+LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT = 4
 LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT = 52
 LG_M1_C2_EXPECTED_TEST_PR0_LEGACY_DIRECT_COUNT = 0
 LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
@@ -342,8 +342,8 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     # LG-M1-A captured the pre-maintenance collection count. C1, D1, B, and D2
     # register exact additive deltas. C2 is the approved cleanup point that
     # legally removes three old full-loop legacy-only tests, adds one explicit
-    # old/new ablation path equivalence test plus two non-legacy evidence
-    # preservation tests, and rewrites the remaining legacy-direct contracts
+    # old/new ablation path equivalence test, two non-legacy evidence
+    # preservation tests, and one LG-C2 redaction false-positive regression test, and rewrites the remaining legacy-direct contracts
     # into non-legacy helper/schema tests.
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
