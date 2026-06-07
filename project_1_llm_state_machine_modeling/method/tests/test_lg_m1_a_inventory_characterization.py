@@ -284,7 +284,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
         assert first_line == row["help_usage_first_line"]
 
 
-def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
+def test_lg_m1_a_pytest_collection_baseline_is_not_regressed() -> None:
     baseline = _load_baseline()
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
@@ -297,4 +297,7 @@ def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    assert int(match.group(1)) == baseline["collection"]["count"]
+    # LG-M1-A captured the pre-maintenance collection count as a floor. Later
+    # LG-M1 sub-PRs may add focused characterization tests, but must not
+    # silently lose coverage below that baseline.
+    assert int(match.group(1)) >= baseline["collection"]["count"]

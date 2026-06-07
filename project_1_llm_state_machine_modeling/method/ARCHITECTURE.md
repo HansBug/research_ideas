@@ -7,6 +7,7 @@
 - 上游 PR-langgraph：[PR #39](https://github.com/HansBug/research_ideas/pull/39)
 - LG-M1 总计划：[PR #64](https://github.com/HansBug/research_ideas/pull/64)
 - LG-M1-A 子 PR：[PR #66](https://github.com/HansBug/research_ideas/pull/66)
+- LG-M1-D1 子 PR：[PR #69](https://github.com/HansBug/research_ideas/pull/69)
 - 仓库内 baseline fixture：[tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json)
 - 表征测试：[tests/test_lg_m1_a_inventory_characterization.py](./tests/test_lg_m1_a_inventory_characterization.py)
 
@@ -102,6 +103,18 @@ LG-M1-A 的 runtime identity 真源来自已提交的 historical agent-loop gzip
 
 完整 registry dump、planned node / edge / stage order、schema/version metadata 与 consistency 结果见 fixture 的 `graph_contract`。
 
+### LG-M1-D1 foundation 当前事实
+
+LG-M1-D1 建立了 [`langgraph/`](./langgraph/) foundation 包，但不改变默认 runtime 语义、不读取 `.env`、不运行真实 provider 四例、不改写历史 `runs/` evidence。`method.langgraph_runtime` 仍是 public compatibility facade 与 run-record identity 真源。
+
+当前已落地的 D1 foundation 边界：
+
+- [`langgraph/constants.py`](./langgraph/constants.py)：只承载 `GRAPH_RUNTIME_SCHEMA_VERSION`、`NODE_EDGE_SCHEMA_VERSION`、`LANGGRAPH_RUNTIME_BACKEND`、`GRAPH_RUNTIME_ID` 等 runtime / registry identity 常量；LG-D1 instrumentation、LG-D2 retry/timeout、LG-E2 Send、LG-E3 ToolNode wrapper、LG-G1 trace export 等证据域常量暂不迁移。
+- [`langgraph/state.py`](./langgraph/state.py)：只承载 C/E-free 的 `CompatState` / `_CompatState` compatibility smoke 类型；`_GraphLoopState`、`_LgE2SendState`、`_ValidationSubgraphState`、`_WaiverSubgraphState`、`_RepairSubgraphState`、`_LG_C2_ContextState` 仍留在 `langgraph_runtime.py`，等待 D2/D3 或对应 lane 迁移。
+- [`langgraph/registry.py`](./langgraph/registry.py)：承载 registry builder 与 consistency checker；LG-C2 context identifier 由 `method.langgraph_runtime.build_langgraph_node_registry()` facade wrapper 注入，foundation 模块不得反向 import `method.langgraph_runtime`，也不拥有 context-engineering 行为。
+
+D1 focused tests 位于 [`tests/test_lg_m1_d1_langgraph_foundation.py`](./tests/test_lg_m1_d1_langgraph_foundation.py)，用于锁定 no reverse import、registry canonical hash、facade runtime identity、C2 identifier injection 与 state migration boundary。
+
 ### Experiment / CLI 当前事实
 
 LG-M1-A 对当前实验入口只做 import smoke 与 `--help` / argparse 层面的 no-provider baseline，不执行真实 provider run：
@@ -153,9 +166,9 @@ LG-M1-D1/D2/D3 负责把当前 `langgraph_runtime.py` 的大文件实现拆进 `
 
 ```text
 method/langgraph/
-├── constants.py          # LG-M1-D1：schema/version/constants
-├── state.py              # LG-M1-D1：graph state schema
-├── registry.py           # LG-M1-D1：node/edge registry
+├── constants.py          # LG-M1-D1 已建立：schema/version/runtime identity constants
+├── state.py              # LG-M1-D1 已建立：C/E-free foundation state；完整 graph state 待 D2/D3
+├── registry.py           # LG-M1-D1 已建立：node/edge registry + consistency checker
 ├── checkpointing.py      # LG-M1-D2：checkpoint / resume support
 ├── instrumentation.py    # LG-M1-D2：operator log / stream / metadata
 ├── send_parallel.py      # LG-M1-D2：Send fan-out utilities
