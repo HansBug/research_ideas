@@ -1,0 +1,1376 @@
+--- Page 1 ---
+LLM-aided Automatic Modeling for Security
+Protocol Verification
+Ziyu Mao1, Jingyi Wang1*, Jun Sun2, Shengchao Qin3, Jiawen Xiong4
+1Zhejiang University, Hangzhou, China
+2Singapore Management University, Singapore
+3Xidian University, China
+4East China Normal University, China
+Abstract —Symbolic protocol analysis serves as a pivotal tech-
+nique for protocol design, security analysis, and the safeguarding
+of information assets. Several modern tools such as T AMARIN
+and P ROVERIF have been proven successful in modeling and
+verifying real-world protocols, including complex protocols like
+TLS 1.3 and 5G AKA. However, developing formal models for
+protocol verification is a non-trivial task, which hinders the wide
+adoption of these powerful tools in practical protocol analysis.
+In this work, we aim to bridge the gap by developing an
+automatic method for generating symbolic protocol models using
+Large Language Models (LLMs) from protocol descriptions in
+natural language document. Although LLMs are powerful in
+various code generation tasks, it is shown to be ineffective in
+generating symbolic models (according to our empirical study).
+Therefore, rather than applying LLMs naively, we carefully de-
+compose the symbolic protocol modeling task into several stages
+so that a series of formal models are incrementally developed
+towards generating the final correct symbolic model. Specifi-
+cally, we apply LLMs for semantic parsing, enable lightweight
+manual interaction for disambiguation, and develop algorithms
+to transform the intermediate models for final symbolic model
+generation. To ensure the correctness of the generated symbolic
+model, each stage is designed based on a formal execution model
+and the model transformations are proven sound. To the best
+of our knowledge, this is the first work aiming to generate
+symbolic models for protocol verification from natural language
+documents. We also introduce a benchmark for symbolic pro-
+tocol model generation, with 18 real-world security protocol’s
+text description and their corresponding symbolic models. We
+then demonstrate the potential of our tool, which successfully
+generated correct models of moderate scale in 10 out of 18 cases.
+Our tool is released at [1].
+Index Terms —Automatic modeling, Symbolic analysis, LLMs
+I. I NTRODUCTION
+It is notoriously hard to design and implement security
+protocols. Among the variety of methods for analyzing se-
+curity protocols, symbolic methods play an important role in
+security protocol verification. Many protocol verifiers, such
+as T AMARIN [2] and P ROVERIF [3], have been developed to
+formally analyze the correctness and security of a protocol,
+based on a symbolic model of the protocol. The effectiveness
+and usefulness of these tools are evidenced by the verification
+of large-scale real-world protocols such as TLS 1.3 [4], 5G
+AKA [5], and EMV payment [6], which have uncovered
+critical and subtle security vulnerabilities.
+*Corresponding author.
+Documents
+ Symbolic
+Model𝒫Protocol Verifiers
+𝜙Property
+Attack
+Proof
+Fig. 1: Overall workflow for symbolic protocol analysis.
+However, applying these tools in practice can be costly,
+as a user must first develop a formal symbolic model of the
+protocol, which requires not only expert knowledge about the
+protocol design, but also deep insights (as well as modeling
+skills) of the corresponding verifier. Take T AMARIN as an
+example. The overall workflow of protocol analysis is shown
+in Figure 1. To use T AMARIN , one must first develop a
+model of the security protocol in its input language (multiset
+rewriting rules). To do that, a user must first build, in the
+mind, an abstract model from the protocol document (e.g.,
+IETF RFCs), and then encode the model using multiset
+rewriting rules which characterize a labeled transition system.
+Furthermore, the security properties 𝜙to be verified must be
+encoded in first-order logic (FOL). The validity of verification
+results depends on whether the multiset rewriting rules and
+properties are modeled correctly, as well as, subtle choices
+made during the modeling, e.g., an untyped message in a rule
+may cause T AMARIN to treat their outgoing messages as input,
+leading to the non-termination of backwards reasoning [7].
+To be fair, T AMARIN and other similar tools certainly made
+significant effort to make their modeling language accessible,
+and yet the difficulty in developing the symbolic model limits
+the application of these tools to ordinary users.
+In this work, we aim to address this practical challenge by
+developing a method to generate symbolic models required
+by tools such as T AMARIN automatically. Note that there
+were previously some attempts with similar goals [8], [9],
+[10]. What makes this work different is that we integrate
+the capability of large language models (LLMs) into a multi-
+step approach and adopt a much more powerful intermediate
+modeling language. Note that although LLMs have shown
+remarkable capabilities in multiple ‘less-formal’ tasks like
+6422025 IEEE/ACM 47th International Conference on Software Engineering (ICSE)
+1558-1225/25/$31.00 ©2025 IEEE
+DOI 10.1109/ICSE55347.2025.001972025 IEEE/ACM 47th International Conference on Software Engineering (ICSE) | 979-8-3315-0569-1/25/$31.00 ©2025 IEEE | DOI: 10.1109/ICSE55347.2025.00197
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 2 ---
+text comprehension and code generation, we observe (with
+empirical evidence based on our preliminary study) that LLMs
+cannot be naively adopted to solve the problem directly (i.e.,
+generating symbolic models of security protocols based on
+their natural language documents). Compared with tasks such
+as generating natural language text or Python code, generating
+symbolic protocol models are considerably more challenging
+as (1) there are limited samples that LLMs can learn from,
+and (2) unlike natural language texts, such symbolic models
+must be precise, as they are used for formal analysis.
+To address the aforementioned challenges, we design and
+implement a multi-step method for symbolic protocol model
+generation with the help of LLMs. First, given the natural
+language document of a security protocol, an LLM is adopted
+to work as a parser to generate an initial draft of the model
+in the form of a dedicated lambda calculus (inspired by
+[11]), which is intended to precisely capture all of the key
+ingredients of the protocol. This initial draft may be broken
+due to several reasons including the inevitable ambiguity of
+natural language documents (since the designer would often
+omit certain assumed ‘common’ knowledge) and hallucination
+of LLMs. We thus introduce a second step that involves
+lightweight user interaction combined with automatic program
+analysis to ‘repair’ the generated model. Afterward, we trans-
+form the repaired model into a S APIC+specification [12],
+which can then be compiled into input models for mainstream
+protocol verifiers including T AMARIN [2], P ROVERIF [3], and
+DEEPSEC[13] soundly. Notably, to ensure the correctness of
+the generated model, each stage of our method is designed
+based on a formal execution model and we further estab-
+lish trace inclusion relations between the models developed
+at different stages (following a method developed in [14]),
+which provides overall guarantee on the correctness of the
+verification result on the generated model.
+We evaluated our method on real-world complex protocols
+and introduce the first new benchmark for such non-trivial
+automatic symbolic modeling task, which includes 18 popular
+authentication and key agreement security protocols of dif-
+ferent scales. Applying our method, the experimental results
+show that it can generate 10/18 correct symbolic models from
+the given documents automatically. Based on the symbolic
+models, we are able to automatically identify attacks or verify
+their correctness using T AMARIN . To make our method more
+useful for real-world developers, we also implement a tool
+with a self-contained and user-friendly frontend to allow user
+interaction during the modeling process.
+We summarize the main contributions as follows.
+∙We develop a novel LLM-aided pipeline for generating
+correct symbolic protocol models from natural language
+documents, which carefully decomposed the symbolic
+modeling task into several stages so that a series of formal
+models are incrementally developed towards generating
+the final symbolic model.
+∙We introduce the first benchmark for automatic model-
+ing tasks containing 18 real-world protocols of different
+scales to benchmark future research in the field.∙We implement a user-friendly tool with a self-contained
+frontend to allow user interaction. Our evaluation on
+the benchmark shows promising results, i.e., generating
+10/18 correct symbolic models from the given documents
+automatically.
+Open-source. Our benchmark, tool implementation and all the
+experiment data are available at [1].
+II. B ACKGROUND
+In this section, we provide background about different sym-
+bolic models and offer an intuition into how lambda calculus
+can capture the semantics of natural language documents.
+A. Lambda-Calculus
+A lambda-term in lambda-calculus is in the form of 𝜆𝑥.𝐸
+(also called a function) where 𝑥is variable and 𝐸is an
+expression. An expression is defined recursively, which can be
+aconstant , afunction , or an application [15]. Here, we do not
+focus on the theory of lambda calculus. Instead, we introduce
+how lambda calculus can model the statements in security
+protocol documents. Taking the sentence “ the client sends a
+hash value of n to server ” as an example, the corresponding
+lambda term can be:
+(𝜆𝑥, 𝑦, 𝑚. send(𝑥, 𝑦, 𝑚 ))(cs(𝜆𝑧.hash(𝑧)n))predicate “send "
+the client serverpredicate “hash "
+nonce n
+where send andhash are the names of the functions that
+model ‘send’ action and ‘hash’ function respectively, and c
+andsare the identifiers of client and server respectively.
+Function applications are evaluated by substituting the value
+of the arguments in the body of the function definition [15],
+e.g., (𝜆𝑧.h(𝑧))n= [n/𝑧]h(𝑧) = h(n). After simplifying the
+expression inductively, the final result is send(c,s,hash(n)).
+In our approach, lambda calculus is used to construct an initial
+model for the protocol with the help of an LLM, which is the
+key component of our tool’s parsing part.
+B. Symbolic Protocol Models
+Different protocol verifiers are equipped with different input
+languages. Though each of them have their own strengths and
+weaknesses, from the the perspective of usability they have
+one thing in common: the input language are hard for non-
+expert user, which prevents the collaboration of those verifiers.
+SAPIC+[12] is designed to be a general specification language
+for security protocol modeling, which allows users to provide
+a single protocol specification then use three state-of-the-art
+protocol verifiers: P ROVERIF , TAMARIN , DEEPSEC[16] as
+backends for analysis.
+Term algebra. In symbolic protocol analysis, the messages
+communicated in the protocol and agents are abstracted as
+terms𝒯, which are built over a set of names 𝒩, variables
+𝒱, and signatures Σ(e.g., aenc(·,·),senc(·,·),hash(·)∈Σ).
+A substitution 𝜎is applied to map from variables to terms
+643
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 3 ---
+1let Client(skc,pks) =
+2new k;
+3out(aenc(k,pks));
+4in(cipher);
+5if h(k) = cipher then
+6 event SessKeyC(pks,k);
+7 event Commit(pks,h(k))8let Server(sks,pkc) =
+9in(r);
+10 let k=adec(r,sks) in
+11 let pks=pk(sks) in
+12 event Answer(pks,k);
+13 event Send(pks,h(k));
+14 out(h(k))
+15process:
+16 !( new sks; out(pk(sks)); !( new skc; out(pk(skc));
+17 ( !Client(skc, pk(sks)) | !Server(sks, pk(skc))))
+Fig. 2: A simple protocol specification using S APIC+.
+which is using postfix notation, i.e., 𝑡𝜎denotes replacing every
+variable 𝑡in the domain of 𝜎. If all variables in 𝑡can be
+replaced with ground terms 𝑡g∈𝒯Σ(𝒩), the substitution 𝜎
+isgrounding for𝑡, i.e., vars(𝑡𝜎) =∅. Here we use Γto
+denote the universe of such substitutions. The semantics of
+the function symbols is given by the equational theories. For
+example dec(enc(𝑛, 𝑘), 𝑘) =𝑛illustrates the decryption of a
+symmetrically encrypted message.
+SAPIC+specification. The symbolic models are specified in
+a dialect of appiled- 𝜋calculus in S APIC+. Figure 2 shows
+a simple protocol modeled in S APIC+for illustration. There
+are only two message exchange involve two roles in this
+protocol, which can be denoted in Alice&Bob notation [17]:
+Client→Server: aenc(k, pks)
+Server→Client: hash(k).
+The Client process (Lines 1-7 in Figure 2) and the Server
+process (Lines 8-14) represent the role behaviors within this
+key exchange protocol. A client initially generates a new
+symmetric key k, which is then encrypted using the server’s
+public key and transmitted to the server. The server verifies
+the key’s receipt by sending back the hash of the key to
+the client Event SessKeyC andAnswer claims that the client
+has set up a session key and the server has received the
+key respectively. The top specification 𝒫twhich starts with
+the keyword process , initializes the role instantiations. In
+this work, we use 𝒫t∪(⋃︀
+𝑟∈𝑅𝒫𝑟)to denote a complete
+SAPIC+specification, where 𝑟is the role name and 𝒫𝑟is
+the corresponding role process.
+Multiset rewriting rules. The S APIC+specification is quite
+similar to the input languages of two of its backends:
+PROVERIF and D EEPSEC. In contrast, the protocol’s symbolic
+model is specified using multiset rewriting (MSR) rules in
+TAMARIN . In MSR rules, the protocol’s states are encoded
+asfacts . When a rule is applied, some facts are consumed,
+and new facts are generated. Naturally, a transition system
+can be established via MSR rules. The intuition behind the
+compilation from S APIC+to MSR rules is that an execution
+of a statement in S APIC+corresponds to an application of a
+rule in T AMARIN .
+III. M OTIVATION AND OURAPPROACH
+A. Motivation
+Developing a symbolic model is crucial but challenging.
+As introduced in Section I, symbolic analysis is a highlyTABLE I: Estimated results for 3 impactful symbolic analysis
+works. The third column shows the symbolic model size.
+Protocol Document Symbolic Models
+TLS 1.3 Draft 21 [19], 143 pages 1 model, 2000+ LoC
+5G AKA 3GPP TS [20], 722 pages 7 models, 4000+ LoC
+EMV [21], [22], 2000+ pages 40 models, 2000+ LoC
+impactful approach for protocol security. While most of ex-
+isting works [4], [5] focusing on reasoning phase (shown in
+Figure 1), little attention has been given to the modeling phase,
+where the symbolic model is abstracted from natural language
+documents. However, as acknowledged in many studies, the
+modeling phase is effort-intensive. Table I gives an brief
+statistics of the efforts used in some of famous symbolic
+protocol analysis work. It is urgent to develop an automatic
+approach for symbolic model generation.
+Intuitive code generation is infeasible and untrustworthy.
+LLMs have demonstrated their impressive capabilities in code
+generation. It may seem intuitive to treat the modeling task
+as a form of code generation. However, unlike common
+programming languages such as Python, LLMs are unfamiliar
+with formal specification languages (due to the missing of
+dedicated datasets1). On the other hand, it is vital to ensure
+the correctness of the symbolic model as the model is intended
+for formal verification.
+B. Overview of our approach
+Motivated by the aforementioned challenges and obser-
+vations, we design a multi-step approach that divides the
+automatic task into several stages. Our insight is to only use
+LLMs for extracting necessary ingredients for the final model
+while relying on a series of formal models to establish layered
+correctness for the final symbolic model. Specifically, our
+approach, illustrated in Figure 3, consists of four stages:
+(1) L CCG: a LLM-powered CCG parser2, which takes a
+protocol document as input, parses it into lambda calculus
+expressions (that are defined specifically for modeling
+security protocols).
+(2) L- REPAIR : which repairs the broken specifications with
+static analysis techniques and user interaction to make it
+well-formed.
+(3) Rewriter: which transforms the lambda expressions into
+a SAPIC+specification𝒫.
+(4) Compiler: which takes the well-formed S APIC+process
+𝒫as input and compiles it into models ℛaccepted by
+verifiers: T AMARIN , DEEPSEC, and P ROVERIF directly.
+IV. A DEDICATED LAMBDA CALCULUS
+In this section, we introduce a dedicated lambda calculus
+(𝜆-DSL) to specify security protocols in an intuitive manner,
+so that it is easier to be generated by LLMs.
+1Although many relevant papers have released their symbolic models [18],
+aligning protocol documents to these symbolic models remains challenging.
+2CCG: combinatory categorial grammar [23], which is a rule-based system
+coupling syntax and semantics. It can take the natural language sentence as
+input and output a lambda expression. Here we use the LLM to serve as a
+CCG parser.
+644
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 4 ---
+S1: Parse
+L-Repair
+Rewriter
+L-CCG
+S2: Repair
+S4: Compile
+Document
+lambda
+wf-lambda
+SAPIC+
+Compiler
+ProVerifDeepSec
+TamarinS3: RewriteFig. 3: The high-level workflow of our approach.
+A. Notation
+We begin by presenting an overview of the notation em-
+ployed in this work to ease the reader’s comprehension.
+𝐸 event, corresponds to basic statement in DSL
+𝜎 substitution, maps variables to terms
+Σ,Σ*set of primitives, Σ*= Σ∪{binds}
+aenc,adec asymmetric encryption and decryption primitives
+𝒩,ℛ set of nonces and roles respectively
+𝐴mmultisets, where elements can appear more than once
+⊆m,∪m, /mmultiset operations: subset, union, and subtraction
+ℐ multiset of protocol instances
+𝑀⊢𝑡 deduction relation, 𝑡can be inferred from set 𝑀
+𝑐𝑙− →𝑐′state transition from 𝑐to𝑐′labeled by 𝑙
+B. Syntax
+From the perspective of lambda calculus, we observed that
+a sentence in a protocol’s document is often an application ,
+i.e., instantiating arguments of the key predicate with ground
+terms (e.g., role name, explicit message). Intuitively, a lambda
+expression describes that a role performs some operations
+at a time-point from a global perspective. Below we present
+the syntax of the above 𝜆-DSL, for simplicity we abbreviate
+application (𝜆𝑥,𝑦.e(𝑥,𝑦)𝑎𝑡)as𝑒(𝑎,𝑡), which we call an
+event 𝐸. The abstract syntax of our 𝜆-DSL is shown below,
+𝑃::=𝐸;𝑃|cond 𝛼 𝑃 else𝑄
+𝐸::=𝑒(𝑎,𝑡)| ⊥, 𝑎∈𝒜, 𝑡∈𝒯
+𝑒::=gen|send|recv|know|op
+where 𝑒is the name of an event 𝐸,𝑓and𝑎are the name
+of functions and agents respectively, 𝑡is a term in𝒯, and
+⊥denotes the terminating statement. We notate lists with
+overline, i.e., 𝑡is a sequence of terms. The substitution can be
+extended from terms to event 𝐸with notation 𝑒(𝑎,𝑡)𝜎, which
+is an abbreviation for 𝑒(𝑎𝜎,𝑡𝜎). An event 𝐸isgrounding iff
+all arguments are grounding.
+Following [24], we define a supersort msg for terms, i.e.,
+for all term 𝑡∈𝒯,𝑡is of sort msg. Further, we define two
+subsorts of msg for term 𝑡: terms representing agent names areclassified as agent , denoted 𝑡:agent , and terms representing
+fresh nonces are classified as nonce , denoted 𝑡:nonce . The
+grounding events set is denoted as Evg=𝐸(𝒜,𝒯Σ(𝒩))where
+𝒜={𝑎∈𝒩| 𝑎:agent}is the set of agent names.
+In this work, we consider the symbol set 𝑒presented in the
+above syntax, which can be extended to other event symbols.
+The event gen(𝑎, 𝑛)denotes that the agent 𝑎generates a fresh
+nonce 𝑛. Interaction events send(𝑎, 𝑚)andrecv(𝑎, 𝑚)denote
+that agent 𝑎sends or receives a message 𝑚via a public
+channel. Similar to its backend, T AMARIN , asynchronous com-
+munication is the default message exchange mode supported
+by𝜆-DSL. Specifically, messages 𝑚within a send event are
+placed on a public channel, where they can be intercepted or
+manipulated by an adversary and may be received by other
+roles at any later time. The event know (𝑎,𝑡)states that role 𝑎
+knows terms 𝑡initially, i.e., terms 𝑡are in the initial knowledge
+set of 𝑎. The event op(𝑎,𝑡)is a special kind of event, which
+states that agent 𝑎performs some local operation.
+Definition 1 (Event op).Event opis a second-order lambda
+calculus expression which takes a function 𝑓as an argument,
+i.e.,𝜆𝑎, 𝑓, 𝑡. op(𝑎, 𝑓, 𝑡 ).
+Event opcan be used to specify some statements in proto-
+col’s documents including term binding and security property
+claiming. We extend the set from ΣtoΣ*with a new function
+binds , which denotes a term binding for some variable. For
+explicit binding, the event is in the form of op(𝑎,binds, 𝑣, 𝑡).
+If the argument 𝑓is instantiated with other cryptographic
+primitives 𝑓∈Σlikeaenc , the event is specifying an implicit
+binding, e.g., op(𝑎,aenc, 𝑚, 𝑘 )stating that agent 𝑎encrypts
+message 𝑚with 𝑘and then binds the encrypted cipher to
+a variable implicitly. If 𝑓 /∈Σ*, we say that it is a signal
+[24] event, which models the labeling behavior of an agent,
+e.g., op(𝑎,accept , 𝑚))representing that agent 𝑎has already
+accepted a message 𝑚and stored it. To make it conform to
+the syntax, we reform the event op(𝑎, 𝑓,𝑡)asop(𝑎, 𝑓(𝑡)).
+Using its neat syntax, the 𝜆-DSL enables specification of
+both stateless and conversational interactions within a proto-
+col. For stateless protocols, send andrecv events represent
+independent message exchanges. Additionally, 𝜆-DSL utilizes
+SAPIC+as its backend, automatically storing all accessible
+variables and constants in state memory. Its pattern-matching
+functionality enabled by the opstatement supports stateful
+session features such as nonce verification.
+Example 1. Continuing the simple protocol example intro-
+duced in Section II-B, we use below expressions to show how
+our𝜆-DSL can specify a protocol, and how it can be related
+to natural language description intuitively.
+/∗The client generates a key k, encrypts it with the public
+key pkS and sends it to S. The server confirms the receipt
+by sending the hash of the key back to the client. ∗/
+1@gen(C, k);
+2@op(C,
+3@bind(msg,
+4 @aenc(k, @pk(S))));5@send(C, msg);
+6@recv(S, msg;
+7@send(S, @hash(k));
+8@recv(C, @hash(k))
+645
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 5 ---
+[GEN]
+inst={gen(𝑎, 𝑛);𝑃}⊆mℐ,𝑛∈𝒩
+ℰ′=ℰ∪{ 𝑛′},ℐ′=ℐ∖minst∪m{𝑃{𝑛′/𝑛}}
+(ℰ,ℐ, 𝜎)− →(ℰ′,ℐ′, 𝜎)
+[ADV]
+𝜈˜𝑛.𝜎⊢𝑀
+(ℰ,ℐ, 𝜎)K(𝑀)−−−−→ (ℰ,ℐ, 𝜎)
+[SIGNAL ]
+inst={op(𝑎, 𝑓(𝑡));𝑃}⊆mℐ,ℐ′=ℐ∖minst∪m{𝑃}
+(ℰ,ℐ, 𝜎)event 𝑓(𝑡)−−−−−−→ (ℰ′,ℐ′, 𝜎)
+[SEND]
+inst={send(𝑎, 𝑚);𝑃}⊆mℐ
+𝜎′=𝜎∪{𝑚/𝑥},ℐ′=ℐ∖minst∪m{𝑃}
+(ℰ,ℐ, 𝜎)− →(ℰ,ℐ′, 𝜎)
+[RECV]
+inst={recv(𝑎, 𝑚);𝑃}⊆mℐ,
+∃𝜏∈Γ.𝜈˜𝑛.𝜎⊢𝑚𝜏,ℐ′=ℐ∖minst∪m{𝑃𝜏}
+(ℰ,ℐ, 𝜎)K(𝑚𝜏)−−−−→ (ℰ,ℐ′, 𝜎)
+Fig. 4: Selection of the transition relations for events
+Definition 2 (Protocol specification). A protocol specification
+Λis defined as a tuple (𝑃, 𝑅,𝒯)where 𝑅is a set of roles,
+𝑃are lambda expressions built over 𝒯. For any statement
+(event) 𝐸in𝑃, it is executed by a role 𝜋a(𝐸)∈𝑅.
+A protocol is executed by agents who can play any role of
+the protocol arbitrary times [25], e.g., multiple authenticated
+clients can establish an unbounded number of sessions with the
+server. We refer to an execution of an agent in an executing
+protocol as a thread . For any thread, we suppose that there
+is an unique identifier idattached. We define the protocol
+instance as follows, which is an instantiation of our lambda
+calculus specification 𝑃.
+Definition 3 (Protocol Instance). LetΛ = ( 𝑃, 𝑅,𝒯), a
+protocol instance for Λis defined as a partial execution of 𝑃
+denoted as 𝑃𝑔with a set of involved threads, i.e., 𝑃𝑔=𝑃s𝜏
+where 𝜏is a grounding substitution and 𝑃=𝑃′;𝑃𝑠.
+A protocol instance inst composed of multiple threads.
+Although the smallest execution unit is the same in both the
+semantics of our specification Λand the symbolic model,
+i.e., a thread, the manner in which they are executed differs.
+In the operational semantics of the actual symbolic model,
+each execution step selects a thread for execution (Figure 6
+in Section VI gives an example to present this distinction).
+In contrast, our specification chooses a thread from a specific
+protocol instance for each step. This approach aligns with how
+protocols are typically described in natural language texts.
+C. Semantics
+Following [26], the operational semantics is defined via
+transition rules3between configurations in Figure 4. We define
+3The comprehensive elaboration of the rules is provided in the extended
+version in [1].Algorithm 1: LCCG parser
+Input: protocol document nl, length of context 𝑁
+Output: lambda calculus expressions 𝐿
+1Let𝐿←[]
+2Segment nlinto a list of chunks sequentially: chks←Segment (nl)
+3𝑀←len(chks)▷chks = [𝑘1𝑘2···𝑘𝑀]
+4for𝑖inrange (1, 𝑀)do
+5 Initialize context ctxas an empty list: ctx←[]
+6 for𝑗inrange (1, 𝑁)do
+7 blk←null
+8 if𝑖−𝑁+𝑗≥1then
+9 blk←k𝑖−𝑁+𝑗+𝐿𝑖−𝑁+𝑗
+10 Add blkinto its context: ctx.append (𝑏𝑙𝑘)
+11 Prompt LLM with 𝑘𝑖andctx:𝜆←Parse (ctx,k𝑖)
+12 𝐿.append (𝜆)
+13return 𝐿
+aconfiguration 𝑐in our lambda calculus specification as a 3-
+tuple (ℰ,ℐ, 𝜎), whereℰis a set of fresh nonces generated
+during protocol execution, ℐis a multiset representing the
+protocol instances executing in parallel, and 𝜎is a grounding
+substitution used to model the output message. A basic state
+transition specifies how the protocol state evolves through the
+execution of an event, denoted as 𝑐𝑙− →𝑐′, where 𝑙represents
+thetrace label of the transition. The trace label corresponds to
+the execution of the event 𝐸. To formalize this, we introduce
+a projection function 𝜋lbl, which maps the execution of a
+grounding event 𝐸to its trace label, i.e., 𝜋lbl(E) =𝑙. The
+traces of our specification Λis formally defined as:
+Definition 4 (Traces). Given Λ, the set of traces is defined as
+traces (Λ) ={𝑙1...𝑙𝑛|𝑐0𝑙1=⇒𝑐1...𝑙𝑛=⇒𝑐𝑛}where relation𝑙=⇒
+is defined as− →*𝑙− →− →*[26], which excludes empty labels.
+Intuitively, a trace is a sequence of observable (non-empty)
+events against protocol’s execution. The security properties are
+established with first-order logic formulas over traces.
+V. L CCG, L- REPAIR ,AND REWRITER
+A.LCCG: LLM as Parser
+Reading protocol documents and understanding protocols’
+behavior are challenging for large LLMs. One reason is the
+complexity of protocol behavior, which can be confusing for
+LLMs lacking domain-specific knowledge. Another reason is
+that input documents tend to be lengthy (hundreds or even
+thousands of tokens), affecting the accuracy of LLMs’ outputs.
+Recent research [27] shows that “ LLMs may get lost in the
+middle ”, where they tend to pay less attention to relevant
+information in the middle portion of the input, leading to a
+non-robust use of the provided context.
+We present an algorithm which harnesses LLM to parse
+entire protocol documents shown in Algorithm 1. Given a
+protocol document, we initially divide it into a list of chunks
+(Line 2), and the parsing is performed sequentially (Lines 4-
+12). Conceptually, a chunk is a block of text that represents a
+meaningful unit within the protocol, typically corresponding
+to a distinct message, action, or structural element. Both
+the chunk size chk and context length Nare configurable
+parameters that can be adjusted for different needs.
+646
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 6 ---
+For the parsing of a single chunk, we maintain a context ctx,
+containing the adjacent 𝑁chunks and their associated lambda
+expressions (Lines 6-10). Utilizing few-shot in-context learn-
+ing (Line 11), the LLM processes each chunk, captures the
+semantics of the input with the lambda expressions, and adds
+them to the memory list 𝐿. This chunk-by-chunk approach
+allows the LLM to concentrate on the immediate context,
+thereby minimizing the risk of missing intermediate details, as
+previously discussed. We implement the Parse function (Line
+11) with in-context few shots learning. Following [28], [29],
+we design prompts to instruct the LLM in writing lambda
+expressions, all of which are provided in [1].
+B.L-REPAIR : Repair the draft
+Before being translated into a S APIC+specification, the
+model generated by L CCG must be made well-formed and
+consistent with natural language documents. However, the
+initial model is frequently found to be broken for various
+reasons. In the following, we first give the formal definition
+of well-formedness of Λ. Then we present common problems
+of the generated initial model, followed by presenting the
+corresponding remedy.
+Definition 5 (Well-formedness [25]). Given a specification
+Λ = ( 𝑃, 𝑅,𝒯), we say it is well-formed if (1) any variable
+in𝑃is bound, (2) any received message is readable for the
+corresponding role 𝑟, and (3) for any statement (event) 𝐸in
+𝑃, its executor 𝜋a(𝐸)is a role in 𝑅.
+We say that a variable is bound , if it is a fresh nonce
+generated by the role or it occurs in a received message. With
+the definition above, we summarize three kinds of problems
+that mainly occur in the initial generated model:
+Inconsistency. Due to hallucination and the stochastic nature
+of LLMs, the initial model may deviate from the natural
+language description. For example, in a scenario where the
+server should respond to a client’s request with a hash of
+the secret key, hash(k), the LLM might erroneously construct
+a different message, such as aenc(hash(k),pks). Similarly, a
+message intended to be sent by role 𝐴may be incorrectly
+attributed to role 𝐵by the LLM
+Ambiguity. As ambiguity is natural in natural language doc-
+ument, it is crucial to employ methods to reduce errors and
+ensure clarity. According to our observation, the LLM tends
+to map unclear natural language description to a broken
+specification with unbounded variables, i.e., variables that
+are used but not declared. We will give more details and
+explanation in Section VII-A.
+Unreadability. The natural language specifies both the pro-
+tocol’s behavior and the message in a global view. However,
+messages within a ‘receive’ event should be presented with
+a local view, detailing the specific contents that the receiver
+should expect. As outlined in [25], the form of an incoming
+message in a protocol specification should be readable for the
+specific role, i.e., variables should be accessible. In protocol
+verifier, pattern matching is based on the message form. AnAlgorithm 2: Repair parsing result
+Input: protocol document nl, parsing result 𝑃
+1Prompt LLM to validate the parsing result: 𝑃←Validate (𝑃,nl)
+2LLM revise received message to be readable: 𝑃←View(𝑃)
+3while true do
+4▷Repair semi-automatically
+5 Get unbounded variables: V←Analysis (𝑃)
+6 if𝑉=∅then
+7 return 𝑃
+8 Extract a msc to aid user-interaction: msc←Graphviz (𝑃)
+9 User-interaction 𝑃←Interact (msc, 𝑉,/user)
+10return 𝑃
+incoming message with inaccessible variables within it can
+still be accepted by the verifier, but the unintended pattern
+matching may destroy the semantics.
+To address the aforementioned problems, we present a
+repair algorithm described in Algorithm 2. Besides the broken
+lambda expressions 𝑃, the inputs also include the correspond-
+ing protocol description nl. To handle inconsistency caused
+by hallucination and stochasticity of LLM, we introduce
+a self-validation method (Line 1) following [30]. Without
+introducing extra information, we instruct a LLM to review the
+specification alongside the given protocol description, finding
+and correcting the mistakes generated during the parsing stage.
+Forunreadability of the term in Λ, we encode a set of exam-
+ples in the diff [31] format to teach the LLM how to transform
+a message into a correct form in the role specification step-by-
+step (Line 2). The function Analysis (Line 5) is implemented
+using the Lark parser [32]. Given a BNF syntax, the abstract
+syntax tree (AST) of the specification can be readily obtained
+and analyzed. The return value of the function Analysis is a
+set𝑉of unbounded variables arising from the ambiguity of
+natural language or previous black-box steps of the LLM.
+When implementing our framework as a self-contained tool,
+we use a semi-automatic repair method (Lines 8-9). In this
+case, the lambda expressions 𝑃can be directly corrected
+by the user. The hints for the user’s corrections include a
+Example 2 (Repairing lambda expressions). We use the
+diff format shown below to demonstrate how lambda calculus
+expressions can be corrected for further rewriting. In this
+example, two errors are fixed: the first, on Line 5, is caused by
+the ambiguity of ’it’ in Line 2; the second, on Line 9, results
+from the unreadability of the received message.
+1/∗The client generates a key k, encrypts it with public
+2key of server, then sends it to server S ∗/
+3@gen(C,k)
+4@op(C, @aenc(k, pkS))
+5- @send(C,k) // Ambiguity of ’it’
+6+ @send(@aenc(k, pkS))
+7/∗The server S confirms the receipt by sending the hash
+8key of server, then sends it to server S ∗/
+9- @recv(@aenc(k, pkS)) // The message is not readable
+10+ @recv(S, req)
+11+ @op(S, @binds(k, @adec(req, skS)))
+12 @send(S, @hash(k))
+13 @recv(C, @hash(k))
+647
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 7 ---
+T(𝑃)≜⋃︁
+𝑟∈𝑅T(𝑝, 𝑟,∅) (T1)
+T(knows (𝑟,𝑡);𝑝, 𝑟, 𝑀 )≜let𝑟(𝑡) =T(𝑝, 𝑟, 𝑀∪{𝑡})(T2)
+T(Cond 𝛼 𝑝, 𝑟, 𝑀 )≜if𝛼thenT(𝑝, 𝑟, 𝑀 ) (T3)
+T(gen(𝑟, 𝑛);𝑝, 𝑟, 𝑀 )≜new𝑛;T(𝑝, 𝑟, 𝑀∪{𝑛}) (T4)
+T(send(𝑟, 𝑚);𝑝, 𝑟, 𝑀 )≜out(𝑚);T(𝑝, 𝑟, 𝑀 ) (T5)
+T(recv(𝑟, 𝑡);𝑝, 𝑟, 𝑀 )≜in(𝑡);T(𝑝, 𝑟, 𝑀∪{𝑡}) (T6)
+T(op(𝑟,binds (𝑡1, 𝑡2));𝑝, 𝑟, 𝑀 )≜
+let𝑡1=𝑡2inT(𝑝, 𝑟, 𝑀∪{𝑡1}) (T7)
+T(op(𝑟,f(𝑡));𝑝, 𝑟, 𝑀 )≜event 𝐹(𝑡);T(𝑝, 𝑟, 𝑀 ) (T8)
+Fig. 5: Rewriting rules T
+graphical message sequence chart (MSC) of the protocol (Line
+8) and reports of unbounded variables from program analysis.
+The user (denoted by /user) can directly edit the intermediate
+result (Line 9). When evaluating our overall approach for
+automatic modeling in Section VII-C, we do not allow any
+user interaction for repairing.
+C. Rewriter: From lambda calculus to SAPIC+
+Rewriting rules. The local role processes⋃︀
+𝑟𝒫𝑟can be
+extracted from our protocol specification Λ, where 𝑟denotes
+a role in a S APIC+specification. In the following, we propose
+a set of rules Tshown in Figure 5, which rewrite our lambda
+expressions into statements in the S APIC+specification. The
+soundness of Twill be discussed in Section VI. Our lambda
+calculus specification is role-oriented, i.e., every statement
+includes a role variable which indicates who executes the
+action. Before introducing the rewriting rules, we first define
+role specification which corresponds to a local process in
+SAPIC+specification as follow:
+Definition 6 (Role specification). Given a specification Λ =
+(𝑃, 𝑅,𝒯)and a role variable 𝑟∈𝑅, we define the corre-
+sponding role specification as a 3-tuple (𝑝, 𝑟, 𝑀 ), where 𝑝is
+a sequence of lambda expressions with the same role index 𝑟
+and𝑀is the initial knowledge set containing the variables
+that can be used initially.
+The top rule T1in Figure 5 states that the rewriting result of
+the lambda expressions 𝑃is a disjoint set of rewriting results
+of all role specifications extracted from 𝑃.T2-8 describe the
+recursive application of Tto derive a local process from a
+role specification. Specifically, Rule T2transforms the event
+knows into the local process’s signature; Rules T5-6 modify
+I/O events; and T7-8 convert opevents into corresponding let-
+bindings and signal events. Our rewriting rules Tare defined
+under a default context. We assume that: (1) The threat model
+is Dolev-Yao [33], where an adversary can inject, modify and
+intercept messages on the network. (2) The initial knowledge
+set of role is an empty set.
+E1E2E3E1E3E2E1E2E1E3
+E2traces(P)={ E1 E3, E1 E2 }E1traces(Λ)={  E1 E2}Fig. 6: Execution models of our lambda calculus Λand
+SAPIC+specification𝒫. There are two distinct threads t1
+andt2, each playing a different role. In Λ, two threads
+compose a protocol instance, and the execution order of
+events is constrained by the lambda expressions 𝑃. In S APIC+
+specification𝒫, however, two threads execute in parallel.
+Considering the two-step traces, we have traces (Λ) ={E1E2}
+andtraces (𝒫) ={E1E3,E1E2}.
+Top specification synthesis. After applying translation rules
+for each role specification, the local processes⋃︀
+𝑟𝒫𝑟can be
+obtained, which corresponds to the role’s behaviors portrayed
+in textual protocol description. However, as defined in Section
+II, a complete verifiable symbolic model should also include
+the protocol’s initialization, which we call topspecification
+𝒫t. We first collect all of the signatures of the local process
+𝒫𝑟, then incorporate in-context few-shot learning to teach
+LLMs how to give a top specification 𝒫t. Now the complete
+specification file,⋃︀
+𝑟𝒫𝑟∪𝒫 t, can be obtained and then
+compiled to different protocol verifiers. Each part of these
+translations is proven to be sound, which is also utilized to
+establish our overall soundness.
+VI. S OUNDNESS DISCUSSION
+In this section, we (1) establish trace inclusion relation
+between different models presented above. Then, we (2) show
+that for any safety property which is verified by the prover
+also holds on 𝜆-DSL model and S APIC+model. The overall
+soundness is intuitively implied combining (1) and (2).
+We first prove the soundness of the transformation Tfrom
+DSL specification Λto S APIC+process𝒫, following the
+approach in [14]. The lemma holds if traces (Λ)⊆traces (𝒫).
+The intuition behind this can be explained as follows: the
+traces of Λare constrained by the event order defined globally,
+while the traces of 𝒫are defined over the local event order
+within the role specification. The global event order implies the
+local one, thereby establishing a trace inclusion relationship
+between Λand𝒫. We present a simple example of both
+execution models of Λand𝒫to give an intuition in Figure 6.
+Lemma 1 (Soundness of rewriting). LetΛbe a protocol
+specification of our DSL, and 𝜙a safety trace property, then
+𝒫⊨𝜙⇒Λ⊨𝜙
+where𝒫=JΛKTdenotes the process rewritten from Λ.
+648
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 8 ---
+Theorem 1 (Soundness of compilation [12]). Let𝒫be a
+process in SAPIC+and𝜙a trace property formula, then
+𝒫⊨𝜙⇔ J𝒫K⟨⟩⊨J𝜙K⟨⟩
+where J𝒫K⟨⟩denotes the low-level symbolic models com-
+piled from process 𝒫.⟨⟩denotes three verifiers: TAMARIN ,
+PROVERIF and D EEPSEC.
+Corollary 1. J𝒫K⟨⟩⊨J𝜙K⟨⟩⇒Thm.1𝒫⊨𝜙⇒Lem.1Λ⊨𝜙
+Theorem 1 has been proven in [12], which demonstrates
+the soundness of the compilation. Combining Lemma 1, we
+can obtain the overall soundness result (Corollary 1) between
+three models, which has been explained earlier in this section.
+The detailed proof of Lemma 1 is included in our extended
+paper version in [1].
+VII. E VALUATION AND TOOL IMPLEMENTATION
+In this section, we first evaluate our approach, including
+both the parsing and repairing methods. Next, we construct
+a benchmark and evaluate our overall approach on it. Ad-
+ditionally, we implement a self-contained tool with frontend
+to make our method accessible. The LLMs we used to con-
+duct experiments include GPT-3.5-turbo, GPT-4, GPT-4o and
+Google Gemini-pro, with a temperature setting of 0.4 for both
+semantic parsing and automated repairing. All of the generated
+symbolic models run on a T AMARIN prover in version 1.8.0,
+which includes a S APIC+platform.
+A. Intermediate Language Extraction Evaluation
+We first evaluate how much of the protocol document input’s
+semantics can be captured by our intermediate language.
+Methodology. We evaluate the output of L CCG parser in 8 dif-
+ferent protocols as shown in Table III. The protocol documents
+are sourced from various origins, including IETF RFCs [34],
+[16], academic papers [35], [36], the T AMARIN manual [37],
+and informal texts such as teaching assignments [38]. Prior
+to parsing these documents with L CCG, we manually segment
+each document into a list of chunks.
+Ground truth and metrics. For each protocol, if a cor-
+responding S APIC+model𝒫is not available in [18], we
+manually construct it. We then provide lambda expressions
+as the ground truth, ensuring that they are well-formed and
+that S APIC+model𝒫can be rewritten from these expressions
+usingT. We use three metrics to quantify the parsing result:
+∙Exact Coverage (EC) : which measures the coverage of
+the generated expressions over the ground truth, calcu-
+lated as EC=𝑛g/𝑁;
+∙Bounded expressions rate (BER) : which evaluates the
+bounded expressions rate, calculated as BER =𝑛b/𝑁;
+∙Error Rate (ER) : which measures the error rate of the
+parsing result, calculated as ER= 1−EC. The error may
+include #1.expressions outside the ground truth (e.g., an
+extra send event), and #2.ground truth expressions that
+are incorrectly expressed (e.g., a wrong message),TABLE II: Original protocol documents used for evaluation.
+Protocol Document Source Size
+NSPK Online Teaching Assignment [38] 210
+Toy Exercises for starting with T AMARIN 226
+NSSK Needham–Schroeder, Wikipedia [39] 392
+NAXOS TAMARIN Manual [2], p36 234
+Otway-Rees GIAC Certification Paper [36] 351
+SSH RFC 4253 [34], Section 7.2 and 8 991
+IKEv2 ACSAC’21 [40], Section 3, p3 379
+KEMTLS CCS’20 [35], Section 3 659
+EDHOC draft-ietf-lake-edhoc-02 [41], p20 1029
+where 𝑛gand𝑛bdenote the number of lambda expressions
+within ground truth and bounded expressions4, respectively.
+𝑁is the total number of generated expressions.
+The parsing results with GPT-4 model are shown in Figure
+7. It is straightforward to see that generating well-formed
+lambda expressions in one round is hard, every parsing results
+contain errors and the exact coverage ranges from 9.09%
+(case Toy) to 87.56% (case EDHOC). The syntax errors tend
+to occur in long lambda expressions, e.g., when multiple
+expressions are nested, leading to mismatches in parentheses.
+Reviewing the original documents with generated lambda ex-
+pressions, we got several interesting observations and findings.
+#Finding 1. For those smaller cases whose protocol de-
+scriptions are explicit and specific (e.g., NSSK [39], Otway-
+Rees [36]), our lambda expression is effective to capture
+their semantics, with over 54.55% EC. Most of the generated
+expressions are bounded, with over 78.26% BER. For these
+cases, the main problem is the unreadibility of message in
+recv event, which will be resolved in the repairing phase.
+#Finding 2. For those complex protocols, a singular protocol
+document is not always self-contained enough to derive a
+symbolic model from it. Considering the cases of IKEv2 [40],
+EDHOC [16], and KEMTLS [35] in our evaluation, the
+ECvalue ranges from only 12.44% to 29.17%. There are
+many unbounded variables (about 20%) in their corresponding
+generated lambda expressions. Take the KEMTLS protocol
+as an example. A snippet of the original paper we used for
+parsing is:
+KEMTLS, CCS’20 [35] Section 3, para 5
+Phase 2: KEMTLS follows the TLS 1.3 key schedule, which
+applies a sequence of HKDF operations to the shared secret
+sseand the transcript to derive Client and Server traffic secrets
+CHTS andSHTS .
+A lambda expression parsed from the protocol snippet is:
+op(Client ,binds (CHTS ,HKDF (sse,transcript ))),
+where variable transcript is unbounded. As explained in
+Section V-B, unbounded variables may indicate ambiguities
+or implicitness in the protocol documentation. In fact, [35]
+does not provide further description for variable transcript ,
+4A bounded expression refers to the term grounding event defined in
+Section IV-B. Specifically, it means there are no unbounded variables in the
+expression.
+649
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 9 ---
+Toy
+NAXOSNSSK NSPKORSSHIKEv2EDHOCKEMTLS020406080100Coverage (%)EC
+BER
+𝛿𝑒=EC
+BER
+Fig. 7: Parsing results for 8 protocols with GPT-4 model.
+which confuses LLM to make a correct modeling choice. Con-
+versely, our approach can localize such problems effectively
+with syntactic check techniques, i.e., detection for unbounded
+variables, which is implemented as Analysis function.
+#Finding 3. The metric BER reflects whether the lambda
+expressions can be rewritten to S APIC+specification (as
+defined in [26], a process can be compiled only when there is
+no unbounded variable). Another interesting finding we got is
+that the value 𝛿𝑒=EC/BER reflects the degree of abstraction
+in natural language descriptions relative to symbolic models to
+some extent: the greater the value of 𝛿𝑒is, the more specific the
+natural language descriptions are indicated. Take the protocol
+IKEv2 as an example, whose parsing result on EC, and BER
+are 29.17%, 79.17% respectively. A chunk of the original
+paper we used for parsing is:
+IKEv2, ACSAC’21 [40] Section 3, page 3
+IKE_SA_INIT _Responder : The Responder also chooses a pri-
+vate ephemeral key eRand uses it to calculate the shared DHkey .
+Together with nonce randnonce i, this shared key is used to
+derive the session key (called keymat ).
+One of the parsing result for this chunk is:
+gen(Responder ,eR);
+op(Responder ,binds(epR,pk(eR)));
+op(Responder ,binds(DHkey ,func(eR))),
+where all variables are bounded. But in fact, the parsing
+result does not cover any lambda expression in ground truth,
+because the natural language is not specific. Consequently, the
+language model cannot determine how to ‘calculate the shared
+DHkey ’ and resorts to a generic operation func. The protocols
+EDHOC and KEMTLS have the same problem, whose 𝛿𝑒are
+47.10% and 16.48% respectively.
+Different LLMs for parsing. We also evaluate the parsing
+with other LLMs. Intuitively, the results show that advanced
+models have better capabilities of understanding semantics.
+Specifically, advanced LLMs are less likely to construct in-
+correct terms within lambda expressions, which reduces the
+second type errors in metric ER. Among them, GPT-4 performs
+the best, with an average ECof 56.36% and an average BER
+of 80.47% across all cases.TABLE III: Parsing results with GPT-4 model.
+ProtocolErr.EC BER 𝛿𝑒#1 #2
+Toy 00.00% 9.09% 90.91% 90.91% 100.0%
+NAXOS 00.00% 16.67% 83.33% 100.0% 83.33%
+NSPK 11.11% 11.11% 77.78% 88.89% 87.50%
+NSSK 17.39% 8.70% 73.91% 78.26% 94.44%
+Otway-Rees 20.83% 8.33% 70.83% 87.50% 80.94%
+SSH 18.18% 27.27% 54.55% 86.36% 63.17%
+IKEv2 25.00% 45.83% 29.17% 79.17% 36.84%
+EDHOC 20.45% 67.11% 12.44% 26.41% 47.10%
+KEMTLS 10.71% 75.00% 14.29% 86.71% 16.48%
+Summary of parsing evaluation. The evaluation of the
+parsing shows that our lambda expressions provide a way for
+quantitative analysis of document to determine if it is adequate
+to derive a symbolic model, and further, if it is specific enough
+to derive a strong model for analysis. Given a document as
+input, our L CCG parser is capable of providing a more detailed
+understanding. Even when the input falls short of delivering
+sufficiently effective information, our approach is still capable
+of identifying these issues using lambda expressions.
+B. Repairing Evaluation
+Methodology. Continuing parsing evaluation, we evaluate
+how the broken expressions can be repaired by LLMs. The
+effectiveness of repairing is also influenced by its input (the
+parsing result), so in this evaluation we use the same lambda
+expressions of every cases as input. Besides, we do not
+introduce any user-interaction.
+Different LLMs for repairing. We evaluate the repairing with
+different models. The result (included in [1]) shows that the
+effectiveness of repairing relies on advanced LLMs. For most
+complex cases, automatic repairing is not enough to resolve all
+the issues (reduce error average 14.74% with GPT-4). That’s
+the reason why it is necessary to introduce user-interaction
+when deploying our tool in practice.
+C. Overall Approach Evaluation
+Benchmark construction. We extend the protocol cases eval-
+uated above and construct a standardized benchmark for eval-
+uating our overall approach, as well as for future proposals.
+In this work, we focus on protocol cases of manageable scale,
+excluding extremely large-scale protocols like TLS 1.3 and
+5G AKA. The benchmark 𝐷={(𝑁𝑖,𝒫𝑖,ℛ𝑖)|𝑖∈N}is a
+set of 3-tuple, where N𝑖is the protocol document, 𝒫𝑖is the
+SAPIC+specification, and ℛ𝑖is the T AMARIN model. The
+construction mainly consists of the following three steps:
+(1) We start from ℛ𝑖which has been available at T AMARIN
+GitHub repository.
+(2) To get their corresponding N𝑖, we read these protocols’
+original documents e.g., RFCs, extract and reform the
+core parts corresponding to the model.
+(3) For the given model ℛ𝑖, there are a set of safety prop-
+erties Φwhich have been verified on ℛ𝑖. We manually
+build S APIC+model𝒫𝑖, ensuring that𝒫𝑖≈𝜙ℛ𝑖satisfies
+under every property 𝜙∈Φ.
+650
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 10 ---
+TABLE IV: Statistics of Benchmark.
+Protocol Success Ratio LoC SLoC M Prop Time (s)
+example ✓ 5/5 40 54 2 0.56
+Toy ✓ 5/5 37 44 3 0.23
+NSPK ✓ 3/5 100 333 4 22.62
+NSSK ✓ 3/5 117 320 7 6.26
+SigFox ✓ 4/5 30 95 3 1.14
+LAKE ✓ 2/5 46 78 6 90.36
+NAXOS ✗ 0/5 44 87 3 23.24
+X509.1 ✓ 4/5 66 180 4 8.66
+SSH ✗ 0/5 74 342 5 4.23
+EDHOC ✗ 0/5 91 707 10 31.38
+KEMTLS ✗ 0/5 117 722 5 24.68
+Yahalom ✓ 2/5 104 396 7 7.89
+Kao Chow ✓ 2/5 80 334 6 6.83
+SPLICE/AS ✗ 0/5 155 501 7 115.06
+Otway Rees ✓ 1/5 163 314 9 35.09
+Woo and Lam ✓ 3/5 81 195 5 1.96
+Denning-Sacco ✓ 2/5 73 156 5 1.91
+Stubblebine ✗ 0/5 70 388 7 9.05
+Definition 7 (Semantic equivalent). Given two symbolic
+modelsℛ1andℛ2, we say they are semantic equivalent w.r.t.
+property 𝜙, i.e.,≈𝜙, if𝜙holds on both symbolic models.
+We define an approximate and non-strict equivalence re-
+lation between two symbolic models in Definition 7, which
+is used to evaluate the correctness of our generated model.
+Similar to program testing where a program is considered
+correct if it can pass all test cases, we take the property 𝜙
+as the test case here. In Table IV, the mark ✓denotes that
+generated model can pass (be verified) all cases (properties).
+Benchmark evaluation. We evaluate our approach using
+a benchmark constructed above, with detailed information
+provided in Table IV. The input texts vary in size from 51 to
+639 tokens, and the lines of codes (LoC Sfor S APIC+, LoC M
+for T AMARIN ) range from 30 (44) to 163 (722) respectively.
+We have verified a list of basic security properties, including
+secrecy, authentication on these protocols. The number of the
+properties are listed under Prop item. In this experiment, we do
+not introduce any user-interaction and we set the run iterations
+as 5 for each protocol case. The results show that we can get
+a correct model in 10 out 18 cases automatically, with success
+ratio ranging from 2/5 to 5/5. It is not surprising that some
+cases failed. As discussed in our two findings (#Finding 2 and
+#Finding 3) in Section VII-A, these failed cases demonstrate
+the reliability of our approach: it aims to avoid generating
+seemingly correct but misleading results from a document that
+lacks sufficient information.
+Summary of Comparisons. We take the few-shot learning
+as the baseline. As shown in Figure 8, while 3-shot learning
+generates a maximum of 4 cases, our method shows superior
+performance, automatically generating correct models in 10
+out of 18 cases.
+D. Comparison with Correct-by-Construction Approach
+To provide complementary evidence of the correctness
+of our approach, we compare it with another correct-by-
+construction method [8]. There have been several studies0-shot 1-shot 2-shots 3-shots ours0246810Success cases ( n)GPT-4
+GPT-4o
+GPT-3.5-turbo
+Gemini-Pro
+Fig. 8: Comparison of few-shot learning with our method
+(e.g., [8], [10], [42]) that utilize the commonly used protocol
+specification— Alice&Bob notation, as input and then generate
+a symbolic model from it. As our target model is the T AMARIN
+model, we have chosen [8] for our comparison. We take
+four protocol cases as examples for our experiments. For
+each case, we manually construct a corresponding Alice&Bob
+specification as the input for [8]. After obtaining the T AMARIN
+modelℛanbfrom its output, we employ the same evaluation
+method defined in Definition 7. We verify the safety properties
+Φ, which are already satisfied by ℛ, againstℛanbto confirm
+that they also hold in ℛanb, i.e.,ℛanb≈ℛ . According to
+experiment data in [1], given a set of properties Φ, both the
+symbolic models generated from [8] and our approach can
+be successfully verified, which demonstrates their equivalence
+under our definition. All of the baseline models ℛanbare also
+included in [1].
+E. Tool Implementation.
+We implement our approach for automatic modeling as a
+Web-based frontend with HTML and JavaScript. Our bench-
+mark and tool implementation are released on [1].
+VIII. D ISCUSSION
+In this section, we discuss how the trustworthiness of the
+generated models is ensured by our approach. Other issues,
+such as model size, threats to validity, etc., are also included.
+Guarantee for trustworthiness. At a high-level, we aim to
+achieve a goal that is similar to that of correct-by-construction
+model synthesis [43]. The difficulty is however the lack of
+a formal-enough requirement to start with, and without such
+requirement it is difficult to ensure the strict correctness of
+the overall process (i.e., from natural language to generated
+model). That is why we employ LLM to give us some
+starting point, and then employ an approach similar to that of
+correct-by-construction model synthesis (i.e., the subsequent
+transformation). As demonstrated by our design philosophy :
+we need to validate some intermediate results that are intuitive
+and easy to understand. Meanwhile, we design algorithms
+and construct proofs to ensure the consistency between these
+intermediate results and the final output. We believe this effort
+is inevitable (and hopefully minimal) to ensure the overall
+correctness as this is the most intuitive representation for
+651
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 11 ---
+humans to understand (compared to validating the symbolic
+model directly).
+Difficulty of aligning data. We give a further explanation
+about “LLMs are unfamiliar with formal specification lan-
+guages” mentioned in Section III. While papers ([4], [5])
+and open-source models ([44], [45]) could serve as potential
+pretraining data for LLMs, directly using such datasets remains
+challenging due to the difficulty of perfectly aligning the
+documents with the symbolic model. Take TLS 1.3 paper
+[4] as an example, the authors provide a modeling note with
+side-by-side comparison of the specification and the model to
+show how a symbolic model is constructed from the document,
+which includes certain key ‘simplifications’ and ‘assumptions’.
+In most cases, such notes are not available, but are the key to
+align the document with the human-written models. Even with
+these notes, there is no perfect alignment between them.
+Model size and overspecification. The generated models
+exhibit size issues w.r.t human-created models, often being
+larger due to the compilation from S APIC+to the final
+TAMARIN model. In our case studies, the ratio of code size
+(lines of code) in the generated model to that in reference
+human-created model roughly ranges from 1.3 to 5.4. Though
+optimizations of the compilation to reduce the model size is
+one of the highlighted contributions in [12], our results show
+that the optimization still has room for improvement. With
+respect to overspecification , our approach leverages a DSL
+designed to formally model the semantics of natural language
+sentences through lambda expressions. This design is intended
+to capture the core semantics without over-analyzing or adding
+implicit details that are not explicitly stated, thereby mitigating
+the risk of overspecification.
+Threats to validity. (1)Internal validity. One potential threat
+to internal validity is the types of evaluation protocols . The
+protocol cases used in this work primarily involve classic
+symmetric and asymmetric cryptographic primitives, which are
+well-understood by LLMs. However, protocols incorporating
+other cryptographic primitives may exhibit different charac-
+teristics and should be considered to ensure a more com-
+prehensive evaluation. (2) External validity. A key threat to
+external validity is our reliance on GPT-4 . As shown in Section
+VII, the reproducibility of our results depends on an advanced
+closed-source LLM (GPT-4), which may undergo updates over
+time. While the continuous release of symbolic models online
+could improve performance for both our methods and few-shot
+prompting, this dependency limits generalizability. To mitigate
+this, open-source LLMs should be considered.
+Limitations. The first limitation lies in the gap between
+evaluation cases and real-world large scale protocols like TLS
+1.3. For a complex protocol case, there could be long-distance
+and non-sequential dependencies in the protocol document,
+which makes our parsing algorithm suffer. Another limitation
+is concerned about our intermediate language. Ideally, we
+would like our DSL can be as expressive as the low-level
+SAPIC+specification. But in this work, we only cover a core
+subset of its features.IX. R ELATED WORK
+Program synthesis. The symbolic model in this work func-
+tions as a specialized program. There has been considerable
+research on synthesizing domain-specific programs from natu-
+ral language documents, including SQL queries [46] and bash
+commands [47]. Recent advances in large language models
+have notably enhanced program synthesis [48], [49], [50], [51],
+[52], providing substantial data for training and facilitating
+end-to-end synthesis for most programs. However, data for
+symbolic model synthesis are scarce, which is the primary
+reason why our approach differs from these types of program
+synthesis. We believe that applying our approach to generate
+symbolic models from natural language presents a valuable
+method for obtaining high-quality data for future research.
+LLM-aided formal verification. We divide formal verifica-
+tion into three phases: (P1)build a formal model for the
+system to be verified, (P2)write formal specifications that are
+expected to be satisfied by the model constructed in P1, and
+(P3)prove with theory and tools. While our work focuses on
+P1, there are many works emerging to assist other phases. For
+P2, there are many kinds of formal specifications, e.g., linear
+temporal logic. In [53], the authors used LLMs to generate
+temporal logics and fine-tuned a T5 model [54] with generated
+datesets. [55] and [29] involve user interaction to correct the
+sub-formula of linear temporal logic. There are also many
+explorations to involve LLM in P3to assist with theorem
+proving, including [56], [57], [58].
+X. C ONCLUSION AND FUTURE WORK
+In this work, we design and implement a novel framework
+for symbolic protocol model generation with the help of
+LLMs. The insight of our framework is that we break down the
+entire process into multiple steps, where each defined within a
+formal model and refinement relations are established between
+them. Having conducted case studies on real-world protocols,
+the results show our method is effective for automatic model-
+ing and the intermediate results can provide evidence for the
+trustworthiness of the generated model.
+Our results suggest future directions. First, we argue that
+our approach can benefit from fine-tuning on domain-specific
+data. Fine-tuning an open-source LLM with such data cannot
+only reduce hallucinations but also enhance the accuracy of
+the generated models. Another direction is indicated by our
+#Finding 2. While the input document is not self-contained
+enough to derive a symbolic model, the subsequent manual
+efforts are still required. How to guide LLM make subsequent
+responses could benefit the automation of the overall method.
+ACKNOWLEDGEMENTS
+This research was supported by the Key R&D Program
+of Zhejiang under Grant No. 2025C01083, and the CCF-
+Huawei Populus Grove Fund (CCF-HuaweiFM202204). This
+research was also supported by the National Natural Science
+Foundation of China (Project No. 62302375), and the Ministry
+of Education, Singapore under its Academic Research Fund
+Tier 3 (Award ID: MOET32020-0004).
+652
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 12 ---
+REFERENCES
+[1] Z. Mao, J. Wang, J. Sun, S. Qin, and J. Xiong, “Tool implementation,
+benchmark, and extended paper version,” https://github.com/zerrymore/
+AutoSM.
+[2] S. Meier, B. Schmidt, C. Cremers, and D. Basin, “The tamarin prover
+for the symbolic analysis of security protocols,” in Computer Aided
+Verification: 25th International Conference, CAV 2013, Saint Petersburg,
+Russia, July 13-19, 2013. Proceedings 25 . Springer, 2013, pp. 696–701.
+[3] B. Blanchet, “An efficient cryptographic protocol verifier based on
+Prolog rules,” in 14th IEEE Computer Security Foundations Workshop
+(CSFW-14 2001), 11-13 June 2001, Cape Breton, Nova Scotia, Canada ,
+2001, pp. 82–96.
+[4] C. Cremers, M. Horvat, J. Hoyland, S. Scott, and T. van der Merwe, “A
+comprehensive symbolic analysis of tls 1.3,” in Proceedings of the 2017
+ACM SIGSAC Conference on Computer and Communications Security ,
+2017, pp. 1773–1788.
+[5] D. Basin, J. Dreier, L. Hirschi, S. Radomirovic, R. Sasse, and V . Stettler,
+“A formal analysis of 5g authentication,” in Proceedings of the 2018
+ACM SIGSAC conference on computer and communications security ,
+2018, pp. 1383–1396.
+[6] D. Basin, R. Sasse, and J. Toro-Pozo, “The emv standard: Break, fix,
+verify,” in 2021 IEEE Symposium on Security and Privacy (SP) . IEEE,
+2021, pp. 1766–1781.
+[7] “Needham-schroeder public-key protocol - non-termination.” [Online].
+Available: https://groups.google.com/g/tamarin-prover/c/k9zpOI_fxq0/
+m/q-C-WdhOCgAJ
+[8] M. Keller and P. D. D. Basin, “Converting alice&bob protocol specifi-
+cations to tamarin,” ETH Zurich , 2014.
+[9] R. Metere and L. Arnaboldi, “Automating cryptographic protocol lan-
+guage generation from structured specifications,” in Proceedings of
+the IEEE/ACM 10th International Conference on Formal Methods in
+Software Engineering , 2022, pp. 91–101.
+[10] P. Modesti, “Anbx: Automatic generation and verification of security
+protocols implementations,” in Foundations and Practice of Security:
+8th International Symposium, FPS 2015, Clermont-Ferrand, France,
+October 26-28, 2015, Revised Selected Papers 8 . Springer, 2016, pp.
+156–173.
+[11] J. Yen, T. Lévai, Q. Ye, X. Ren, R. Govindan, and B. Raghavan, “Semi-
+automated protocol disambiguation and code generation,” in Proceedings
+of the 2021 ACM SIGCOMM 2021 Conference , 2021, pp. 272–286.
+[12] V . Cheval, C. Jacomme, S. Kremer, and R. Künnemann, “SAPIC+: pro-
+tocol verifiers of the world, unite!” in 31st USENIX Security Symposium .
+Boston, MA, USA: USENIX Association, 2022, pp. 3935–3952.
+[13] V . Cheval, S. Kremer, and I. Rakotonirina, “Deepsec: deciding equiva-
+lence properties in security protocols theory and practice,” in 2018 IEEE
+symposium on security and privacy (SP) . IEEE, 2018, pp. 529–546.
+[14] C. Sprenger, T. Klenze, M. Eilers, F. A. Wolf, P. Müller, M. Clochard,
+and D. Basin, “Igloo: Soundly linking compositional refinement and
+separation logic for distributed system verification,” Proceedings of the
+ACM on Programming Languages , vol. 4, no. OOPSLA, pp. 1–31, 2020.
+[15] R. Rojas, “A tutorial introduction to the lambda calculus,” 2015.
+[Online]. Available: https://arxiv.org/abs/1503.09060
+[16] C. Jacomme, E. Klein, S. Kremer, and M. Racouchot, “A comprehensive,
+formal and automated analysis of the edhoc protocol,” in USENIX
+Security’23-32nd USENIX Security Symposium , 2023.
+[17] C. Caleiro, L. Vigano, and D. Basin, “On the semantics of alice&bob
+specifications of security protocols,” Theoretical Computer Science , vol.
+367, no. 1-2, pp. 88–122, 2006.
+[18] Tamarin Prover Team, “Tamarin prover,” https://github.com/
+tamarin-prover/tamarin-prover.
+[19] E. Rescorla, “The Transport Layer Security (TLS) Protocol Version
+1.3,” Internet Engineering Task Force, Tech. Rep., 2017. [Online].
+Available: https://datatracker.ietf.org/doc/draft-ietf-tls-tls13/21/
+[20] 3GPP, “Security architecture and procedures for 5g system.” 2018.
+[21] EMVCo, EMV Contactless Specifications for Payment Systems, Book
+C-2, Kernel 2 Specification, Version 2.8 , April 2019.
+[22] ——, EMV Contactless Specifications for Payment Systems, Book C-3,
+Kernel 3 Specification, Version 2.8 , April 2019.
+[23] Y . Artzi, N. FitzGerald, and L. Zettlemoyer, “Semantic parsing with
+combinatory categorial grammars.” ACL (Tutorial Abstracts) , vol. 3,
+2013.[24] R. Gil-Pons, R. Horne, S. Mauw, A. Tiu, and R. Trujillo-Rasua, “Is
+eve nearby? analysing protocols under the distant-attacker assumption,”
+in2022 IEEE 35th Computer Security Foundations Symposium (CSF) .
+IEEE, 2022, pp. 17–32.
+[25] C. Cremers and S. Mauw, “Operational semantics of security protocols,”
+inScenarios: Models, Transformations and Tools , S. Leue and T. J.
+Systä, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2005, pp.
+66–89.
+[26] S. Kremer and R. Künnemann, “Automated analysis of security protocols
+with global state,” Journal of Computer Security , vol. 24, no. 5, pp. 583–
+616, 2016.
+[27] N. F. Liu, K. Lin, J. Hewitt, A. Paranjape, M. Bevilacqua, F. Petroni, and
+P. Liang, “Lost in the Middle: How Language Models Use Long Con-
+texts,” Transactions of the Association for Computational Linguistics ,
+vol. 12, pp. 157–173, 02 2024.
+[28] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal,
+A. Neelakantan, P. Shyam, G. Sastry, A. Askell et al. , “Language mod-
+els are few-shot learners,” Advances in neural information processing
+systems , vol. 33, pp. 1877–1901, 2020.
+[29] M. Cosler, C. Hahn, D. Mendoza, F. Schmitt, and C. Trippel, “nl2spec:
+interactively translating unstructured natural language to temporal logics
+with large language models,” in International Conference on Computer
+Aided Verification . Springer, 2023, pp. 383–396.
+[30] H. Li, Y . Hao, Y . Zhai, and Z. Qian, “Enhancing static analysis for
+practical bug detection: An llm-integrated approach,” Proceedings of the
+ACM on Programming Languages (PACMPL), Issue OOPSLA , 2024.
+[31] B. W. Kernighan and R. Pike, The UNIX Programming Environment .
+Prentice-Hall, 1984.
+[32] E. Shinan and other contributors, “Lark: A modern parsing library for
+python,” https://github.com/lark-parser/lark.
+[33] D. Dolev and A. Yao, “On the security of public key protocols,” IEEE
+Transactions on information theory , vol. 29, no. 2, pp. 198–208, 1983.
+[34] T. Ylonen, “Rfc 4253: The secure shell (ssh) transport layer protocol,”
+2006.
+[35] P. Schwabe, D. Stebila, and T. Wiggers, “Post-quantum tls without hand-
+shake signatures,” in Proceedings of the 2020 ACM SIGSAC Conference
+on Computer and Communications Security , 2020, pp. 1461–1480.
+[36] D. Otway and O. Rees, “Efficient and timely mutual authentication,”
+ACM SIGOPS Operating Systems Review , vol. 21, no. 1, pp. 8–10, 1987.
+[37] F. Chollet et al. , “Keras,” https://keras.io, 2015.
+[38] G. Lowe, “An attack on the needham- schroeder public- key authenti-
+cation protocol,” Information processing letters , vol. 56, no. 3, 1995.
+[39] Wikipedia contributors, “Needham–Schroeder protocol.” [Online].
+Available: https://en.wikipedia.org/wiki/Needham-Schroeder_protocol
+[40] S.-L. Gazdag, S. Grundner-Culemann, T. Guggemos, T. Heider, and
+D. Loebenberger, “A formal analysis of ikev2’s post-quantum extension,”
+inProceedings of the 37th Annual Computer Security Applications
+Conference , 2021, pp. 91–105.
+[41] G. Selander, J. P. Mattsson, and F. Palombini, “Ephemeral Diffie-
+Hellman Over COSE (EDHOC),” Internet Engineering Task Force,
+Internet-Draft draft-ietf-lake-edhoc-02, Nov. 2020. [Online]. Available:
+https://datatracker.ietf.org/doc/draft-ietf-lake-edhoc/02/
+[42] Y . Zhao, H. Jiang, J. Lv, S. Tan, and Y . Li, “Anb2murphi: A translator
+for converting alicebob specifications to murphi.” in International Con-
+ference on Software Engineering and Knowledge Engineering (SEKE) ,
+2021, pp. 108–113.
+[43] E. W. Dijkstra, “A discipline of programming,” 1976.
+[44] D. Basin, J. D. L. Hirschi, S. Radomirovic, R. Sasse,
+and V . Stettler, “Tamarin model of 5g aka v15.0.0.” [On-
+line]. Available: https://github.com/tamarin-prover/tamarin-prover/blob/
+develop/examples/ccs18-5G/5G-AKA-bindingChannel/5G_AKA.spthy
+[45] C. Cremers, M. Horvat, J. Hoyland, S. Scott, and T. van der
+Merwe, “Tamarin models for tls 1.3 draft 21.” [Online]. Available:
+https://github.com/tls13tamarin/TLS13Tamarin/tree/master/src/rev21
+[46] J. Guo, Z. Zhan, Y . Gao, Y . Xiao, J.-G. Lou, T. Liu, and D. Zhang,
+“Towards complex text-to-SQL in cross-domain database with interme-
+diate representation,” in Proceedings of the 57th Annual Meeting of the
+Association for Computational Linguistics . Florence, Italy: Association
+for Computational Linguistics, 2019.
+[47] X. V . Lin, C. Wang, D. Pang, K. Vu, and M. D. Ernst, “Program synthesis
+from natural language using recurrent neural networks,” University of
+Washington Department of Computer Science and Engineering, Seattle,
+WA, USA, Tech. Rep. UW-CSE-17-03-01 , 2017.
+653
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 13 ---
+[48] J. Austin, A. Odena, M. Nye, M. Bosma, H. Michalewski, D. Dohan,
+E. Jiang, C. Cai, M. Terry, Q. Le, and C. Sutton, “Program
+synthesis with large language models,” 2021. [Online]. Available:
+https://arxiv.org/abs/2108.07732
+[49] Y . Li, D. Choi, J. Chung, N. Kushman, J. Schrittwieser, R. Leblond,
+T. Eccles, J. Keeling, F. Gimeno, A. Dal Lago et al. , “Competition-
+level code generation with alphacode,” Science , vol. 378, no. 6624, pp.
+1092–1097, 2022.
+[50] M. Chen, J. Tworek, H. Jun, Q. Yuan, H. P. de Oliveira Pinto, J. Kaplan,
+H. Edwards, Y . Burda, N. Joseph, G. Brockman, A. Ray, R. Puri,
+G. Krueger, M. Petrov, H. Khlaaf, G. Sastry, P. Mishkin, B. Chan,
+S. Gray, N. Ryder, M. Pavlov, A. Power, L. Kaiser, M. Bavarian,
+C. Winter, P. Tillet, F. P. Such, D. Cummings, M. Plappert, F. Chantzis,
+E. Barnes, A. Herbert-V oss, W. H. Guss, A. Nichol, A. Paino, N. Tezak,
+J. Tang, I. Babuschkin, S. Balaji, S. Jain, W. Saunders, C. Hesse,
+A. N. Carr, J. Leike, J. Achiam, V . Misra, E. Morikawa, A. Radford,
+M. Knight, M. Brundage, M. Murati, K. Mayer, P. Welinder,
+B. McGrew, D. Amodei, S. McCandlish, I. Sutskever, and W. Zaremba,
+“Evaluating large language models trained on code,” 2021. [Online].
+Available: https://arxiv.org/abs/2107.03374
+[51] A. Chowdhery, S. Narang, J. Devlin, M. Bosma, G. Mishra, A. Roberts,
+P. Barham, H. W. Chung, C. Sutton, S. Gehrmann et al. , “Palm: Scal-
+ing language modeling with pathways,” Journal of Machine Learning
+Research , vol. 24, no. 240, pp. 1–113, 2023.
+[52] E. Nijkamp, B. Pang, H. Hayashi, L. Tu, H. Wang, Y . Zhou,
+S. Savarese, and C. Xiong, “Codegen: An open large language model
+for code with multi-turn program synthesis,” 2023. [Online]. Available:
+https://arxiv.org/abs/2203.13474
+[53] Y . Chen, R. Gandhi, Y . Zhang, and C. Fan, “NL2TL: Transforming
+natural languages to temporal logics using large language models,” in
+Proceedings of the 2023 Conference on Empirical Methods in Natural
+Language Processing . Singapore: Association for Computational
+Linguistics, 2023, pp. 15 880–15 903.
+[54] C. Raffel, N. Shazeer, A. Roberts, K. Lee, S. Narang, M. Matena,
+Y . Zhou, W. Li, and P. J. Liu, “Exploring the limits of transfer
+learning with a unified text-to-text transformer,” The Journal of Machine
+Learning Research , vol. 21, no. 1, pp. 5485–5551, 2020.
+[55] I. Gavran, E. Darulova, and R. Majumdar, “Interactive synthesis of tem-
+poral specifications from examples and natural language,” Proceedings
+of the ACM on Programming Languages , vol. 4, no. OOPSLA, pp. 1–26,
+2020.
+[56] S. Polu and I. Sutskever, “Generative language modeling for automated
+theorem proving,” 2020. [Online]. Available: https://arxiv.org/abs/2009.
+03393
+[57] H. Wang, Y . Yuan, Z. Liu, J. Shen, Y . Yin, J. Xiong, E. Xie, H. Shi, Y . Li,
+L. Li et al. , “Dt-solver: Automated theorem proving with dynamic-tree
+sampling guided by proof-level value function,” in Proceedings of the
+61st Annual Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers) , 2023, pp. 12 632–12 646.
+[58] K. Yang, A. Swope, A. Gu, R. Chalamala, P. Song, S. Yu, S. Godil,
+R. Prenger, and A. Anandkumar, “LeanDojo: Theorem proving with
+retrieval-augmented language models,” in Neural Information Process-
+ing Systems (NeurIPS) , 2023.
+654
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 07,2026 at 12:22:32 UTC from IEEE Xplore.  Restrictions apply. 
