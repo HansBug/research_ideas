@@ -26,10 +26,14 @@ TESTS_ROOT = METHOD_ROOT / "tests"
 BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
 EXPERIMENT_MODULES = [
     "method.pr_e1_real_runs",
+    "method.experiments.real_run_matrix",
     "method.pr_lg_f1_resume_experiment",
+    "method.experiments.checkpoint_resume",
     "method.pr_d_representative",
+    "method.experiments.representative_cases",
     "method.pr2a_loop",
 ]
+LG_M1_C1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_B_ADDITIVE_STAGE_MODULES = {
     "method.stages.api",
@@ -295,7 +299,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
         assert first_line == row["help_usage_first_line"]
 
 
-def test_lg_m1_a_pytest_collection_baseline_plus_registered_d1_and_b_delta_is_current() -> None:
+def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_is_current() -> None:
     baseline = _load_baseline()
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
@@ -308,8 +312,17 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_d1_and_b_delta_is_cu
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    # LG-M1-A captured the pre-maintenance collection count. D1 and B register
-    # exact additive deltas so future sub-PRs cannot silently lose old tests
-    # while adding new ones that merely keep the total above the floor.
-    expected_count = baseline["collection"]["count"] + LG_M1_D1_EXPECTED_COLLECTION_DELTA + LG_M1_B_ADDITIVE_TEST_COUNT
+    # LG-M1-A captured the pre-maintenance collection count. C1, D1, and B
+    # register exact additive deltas so future sub-PRs cannot silently lose old
+    # tests while adding new ones that merely keep the total above the floor.
+    deltas = baseline["collection"]["expected_deltas"]
+    assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
+    assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
+    expected_c1_d1_count = (
+        baseline["collection"]["count"]
+        + LG_M1_C1_EXPECTED_COLLECTION_DELTA
+        + LG_M1_D1_EXPECTED_COLLECTION_DELTA
+    )
+    assert expected_c1_d1_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
+    expected_count = expected_c1_d1_count + LG_M1_B_ADDITIVE_TEST_COUNT
     assert int(match.group(1)) == expected_count
