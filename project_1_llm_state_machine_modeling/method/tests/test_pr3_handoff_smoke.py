@@ -94,7 +94,7 @@ def test_pr3_handoff_real_llm_mode_records_provider_metadata(tmp_path: Path, mon
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.pr2a_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -156,7 +156,7 @@ def test_pr3_handoff_real_llm_mode_retries_schema_invalid_output(tmp_path: Path,
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.pr2a_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -205,7 +205,7 @@ def test_pr3_handoff_real_llm_mode_retries_provider_error(tmp_path: Path, monkey
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.pr2a_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -235,7 +235,7 @@ def test_pr3_handoff_real_llm_mode_marks_invalid_after_retry_exhausted(tmp_path:
     def fake_chat(**kwargs):
         return ("not-json", {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2, "model": "mock-review-model"})
 
-    monkeypatch.setattr("method.pr2a_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,

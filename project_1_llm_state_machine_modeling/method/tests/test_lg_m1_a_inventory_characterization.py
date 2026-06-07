@@ -32,6 +32,7 @@ EXPERIMENT_MODULES = [
     "method.pr_d_representative",
     "method.experiments.representative_cases",
     "method.pr2a_loop",
+    "method.experiments.ablation.deterministic_loop",
 ]
 LG_M1_C1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D1_EXPECTED_COLLECTION_DELTA = 5
@@ -41,6 +42,14 @@ LG_M1_B_ADDITIVE_STAGE_MODULES = {
     "method.stages.sl_prompt_api",
 }
 LG_M1_B_ADDITIVE_TEST_COUNT = 7
+LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT = 3
+LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT = 1
+LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT = 50
+LG_M1_C2_EXPECTED_TEST_PR0_LEGACY_DIRECT_COUNT = 0
+LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
+    "project_1_llm_state_machine_modeling/method/loop.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py",
+}
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -236,9 +245,15 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
     assert any("run_sd2_parse" in module["functions"] for module in current_stage["modules"])
 
     current_legacy = _scan_legacy_contract_tests()
-    fixture_legacy = baseline["legacy_dependency_scan"]
-    assert current_legacy == {k: fixture_legacy[k] for k in current_legacy}
-    assert current_legacy["test_pr0_stage_contract"]["non_legacy_contract_count"] > current_legacy["test_pr0_stage_contract"]["legacy_loop_direct_count"]
+    # LG-M1-C2 is the approved cleanup point for the old A0-A4 legacy loop.
+    # It removes three legacy-only full-loop tests and rewrites the remaining
+    # legacy-direct contract checks into function-named helpers, so the PR-0
+    # contract test file becomes fully non-legacy while preserving/auditing the
+    # useful cascade and trace/schema contracts.
+    assert set(current_legacy["active_import_paths"]) <= LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES
+    assert current_legacy["test_pr0_stage_contract"]["legacy_loop_direct_count"] == LG_M1_C2_EXPECTED_TEST_PR0_LEGACY_DIRECT_COUNT
+    assert current_legacy["test_pr0_stage_contract"]["non_legacy_contract_count"] == LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT
+    assert current_legacy["test_pr0_stage_contract"]["test_count"] == LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT
 
 
 def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider() -> None:
@@ -271,7 +286,18 @@ def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider
 def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
     baseline = _load_baseline()
     rows = baseline["experiment_cli_import_baseline"]["modules"]
-    assert [row["module"] for row in rows] == EXPERIMENT_MODULES
+    fixture_modules = [row["module"] for row in rows]
+    assert fixture_modules == EXPERIMENT_MODULES[:-1]
+    rows = [
+        *rows,
+        {
+            "module": "method.experiments.ablation.deterministic_loop",
+            "import_exit_code": 0,
+            "help_exit_code": 0,
+            "help_usage_first_line": "",
+            "provider_invocation": False,
+        },
+    ]
 
     for row in rows:
         import_proc = subprocess.run(
@@ -313,8 +339,10 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
     # LG-M1-A captured the pre-maintenance collection count. C1, D1, and B
-    # register exact additive deltas so future sub-PRs cannot silently lose old
-    # tests while adding new ones that merely keep the total above the floor.
+    # register exact additive deltas. C2 is the approved cleanup point that
+    # legally removes three old full-loop legacy-only tests, adds one explicit
+    # old/new ablation path equivalence test, and rewrites the remaining
+    # legacy-direct contracts into non-legacy helper/schema tests.
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
@@ -324,5 +352,10 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
         + LG_M1_D1_EXPECTED_COLLECTION_DELTA
     )
     assert expected_c1_d1_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
-    expected_count = expected_c1_d1_count + LG_M1_B_ADDITIVE_TEST_COUNT
+    expected_count = (
+        expected_c1_d1_count
+        + LG_M1_B_ADDITIVE_TEST_COUNT
+        - LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT
+        + LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT
+    )
     assert int(match.group(1)) == expected_count

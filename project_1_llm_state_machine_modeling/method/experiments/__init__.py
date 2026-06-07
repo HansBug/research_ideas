@@ -6,7 +6,10 @@ commands and tests.
 """
 
 __all__ = [
+    "ablation",
     "checkpoint_resume",
     "real_run_matrix",
     "representative_cases",
 ]
+
+# Deterministic ablation experiment package is available as method.experiments.ablation.
