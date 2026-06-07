@@ -21,7 +21,7 @@
 - baseline source head：`8a5f7bfa9e93008a3b9eec4f7683b594aaee1de8`（LG-M1-A 空 PR head；fixture 还包含本 PR 新增 characterization test 后的 working-tree collection count，最终实现 commit 以 PR head 与实现 comment 为准，不在文件内伪造自引用 hash）
 - baseline 真源：[`tests/fixtures/lg_m1_a_baseline.json`](./tests/fixtures/lg_m1_a_baseline.json)
 - baseline 范围：inventory + characterization baseline；未读取 `.env`，未调用真实 provider，未生成新的论文主结果 evidence。
-- pytest collection 基线：`382` tests collected，scope 为 `project_1_llm_state_machine_modeling/method/tests`。
+- pytest collection 原始基线：`382` tests collected，scope 为 `project_1_llm_state_machine_modeling/method/tests`；LG-M1-C1 与 LG-M1-D1 各新增 `5` 个聚焦测试，因此当前 C1+D1 合流后期望为 `392` tests collected。
 
 ### 当前顶层文件事实
 
