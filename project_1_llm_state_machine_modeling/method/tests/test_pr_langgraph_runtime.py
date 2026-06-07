@@ -610,6 +610,7 @@ def _run_langgraph_mock(
     initial_dsl: str | None = None,
     max_iterations: int = 1,
     condition_id: str | None = None,
+    record_policy: dict[str, Any] | None = None,
 ) -> Any:
     from method.langgraph_runtime import run_full_staged_langgraph_runtime
 
@@ -626,6 +627,7 @@ def _run_langgraph_mock(
             run_id=run_id,
             max_iterations=max_iterations,
             compatibility_mode="langgraph_stategraph",
+            record_policy=record_policy or LoopConfig().record_policy,
         ),
         initial_dsl=initial_dsl or _stable_dsl(),
         adapters=adapters or _adapters(),
@@ -2486,6 +2488,139 @@ def test_lg_d1_instrumentation_does_not_replace_academic_evidence(tmp_path: Path
         "AgentLoopRunRecord.final_artifacts.final_dsl",
     ]
     assert "operator_log" not in record.replay_index
+
+
+def test_lg_g1_trace_export_disabled_by_default_preserves_academic_evidence(tmp_path: Path) -> None:
+    record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-g1-default-disabled"))
+
+    assert record.environment["lg_g1_trace_export_status"] == "disabled"
+    assert record.environment["lg_g1_trace_export_enabled"] is False
+    assert record.environment["lg_g1_external_trace_status"] == "disabled_not_configured"
+    assert "lg_g1_trace_export_enabled" not in record.run_config
+    assert "lg_g1_trace_export_policy" not in record.run_config
+    assert "lg_g1_trace_export" not in record.final_artifacts
+    assert "lg_g1_trace_export" not in record.replay_index
+    assert record.stage_records
+    assert record.final_artifacts["final_dsl"]
+    assert record.final_artifacts["langgraph_runtime_trace"]["delegated_monolithic_runtime"] is False
+
+
+def test_lg_g1_trace_export_policy_requires_boolean_enabled() -> None:
+    from method import langgraph_runtime as lg
+
+    with pytest.raises(ValueError, match="enabled must be a boolean"):
+        lg._lg_g1_trace_export_policy(
+            SimpleNamespace(record_policy={"lg_g1_trace_export": {"enabled": "false"}})
+        )
+
+
+def test_lg_g1_local_trace_export_writes_hash_only_safe_summary(tmp_path: Path) -> None:
+    policy = dict(LoopConfig().record_policy)
+    policy["lg_g1_trace_export"] = {"enabled": True, "mode": "local"}
+    adapters = _adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage)
+    default_record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-g1-local-trace-default-proxy",
+            adapters=adapters,
+        )
+    )
+
+    record = _lg_record(
+        _run_langgraph_mock(
+            tmp_path,
+            run_id="lg-g1-local-trace",
+            adapters=adapters,
+            record_policy=policy,
+        )
+    )
+    assert _lg_baseline(record) == _lg_baseline(default_record)
+    trace = record.final_artifacts["lg_g1_trace_export"]
+    path = tmp_path / trace["trace_artifact_name"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    artifact_encoded = json.dumps(trace, ensure_ascii=False, sort_keys=True)
+
+    assert trace["schema_version"] == "lg-g1.safe-trace-export.v1"
+    assert trace["trace_artifact_name"].startswith("lg_g1_trace.")
+    assert trace["trace_hash"].startswith("sha256:")
+    assert trace["trace_path_hash"].startswith("sha256:")
+    assert "trace_path" not in trace
+    assert record.run_id not in artifact_encoded
+    assert trace["does_not_replace_academic_evidence"] is True
+    assert trace["external_upload_performed"] is False
+    assert trace["redaction_policy"] == "hash_length_ids_counts_only"
+    assert record.environment["lg_g1_trace_export_status"] == "local_enabled"
+    assert record.environment["lg_g1_external_trace_status"] == "disabled_not_configured"
+    assert record.environment["lg_g1_trace_export_hash"] == trace["trace_hash"]
+    assert record.run_config["lg_g1_trace_export_enabled"] is True
+    assert record.run_config["lg_g1_trace_export_mode"] == "local"
+    assert record.run_config["lg_g1_trace_export_policy"]["mode"] == "local"
+    assert payload["instrumentation_layer"] == "lg_g1_optional_trace_export"
+    assert payload["snapshot_phase"] == "before_lg_g1_export_artifact_append"
+    assert payload["counts_scope"] == "canonical_record_before_export_artifact_append"
+    assert payload["counts"]["logs"] + 1 == len(record.logs)
+    assert record.logs[-1]["event"] == "lg_g1_trace_export"
+    assert payload["does_not_replace_academic_evidence"] is True
+    assert payload["academic_evidence_sources"] == trace["academic_evidence_sources"]
+    assert payload["run"]["run_id_hash"].startswith("sha256:")
+    assert payload["run"]["run_id_length"] == len(record.run_id)
+    assert payload["counts"]["stage_records"] == len(record.stage_records)
+    assert payload["counts"]["llm_interactions"] == len(record.llm_interactions)
+    assert payload["hashes"]["stage_records_hash"] == _canonical_hash(record.stage_records)
+    assert payload["hashes"]["llm_interactions_hash"] == _canonical_hash(record.llm_interactions)
+    assert "LG-A1 Command routing should preserve graph evidence" not in encoded
+    assert _stable_dsl().strip() not in encoded
+    for forbidden in ("raw_prompt", "raw_output", "messages", "choices", "api_key", "Bearer", "sk-"):
+        assert forbidden not in encoded
+    _assert_no_forbidden_operator_keys(payload)
+
+
+def test_lg_g1_trace_export_requires_persisted_run_record_when_enabled() -> None:
+    from method import langgraph_runtime as lg
+
+    with pytest.raises(ValueError, match="run_record_path"):
+        lg._augment_run_record_with_lg_g1_trace_export(
+            result=SimpleNamespace(run_record_path=None),
+            enabled=True,
+            mode="local",
+        )
+
+
+def test_lg_g1_local_trace_export_blocks_secret_like_payload(tmp_path: Path) -> None:
+    from method import langgraph_runtime as lg
+    from method.run_record import write_agent_loop_run_record
+    from method.schema import AgentLoopRunRecord
+
+    record = AgentLoopRunRecord(
+        schema_version="test",
+        run_id="lg-g1-secret-guard",
+        created_at="2026-06-07T00:00:00Z",
+        status="success",
+        input_bundle={},
+        run_config={},
+        environment={},
+        stage_graph={},
+        stage_records=[],
+        iteration_records=[],
+        fix_log=[],
+        final_artifacts={"verdict": "accepted", "raw_prompt": "non-secret raw prompt must still be blocked"},
+        logs=[],
+        llm_interactions=[],
+        redaction_report=[],
+        replay_index={},
+        scenario_history=[],
+        repair_history=[],
+    )
+    path = tmp_path / "lg-g1-secret-guard.agent_loop.json.gz"
+    write_agent_loop_run_record(record, path)
+
+    with pytest.raises(ValueError, match="secret-like"):
+        lg._augment_run_record_with_lg_g1_trace_export(
+            result=SimpleNamespace(run_record_path=str(path)),
+            enabled=True,
+            mode="local",
+        )
 
 
 # PR-LG-B2 Repair subgraph contract tests.
