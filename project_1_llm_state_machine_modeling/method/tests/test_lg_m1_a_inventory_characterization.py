@@ -50,6 +50,7 @@ LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
     "project_1_llm_state_machine_modeling/method/loop.py",
     "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py",
 }
+LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -338,7 +339,7 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    # LG-M1-A captured the pre-maintenance collection count. C1, D1, and B
+    # LG-M1-A captured the pre-maintenance collection count. C1, D1, B, and D2
     # register exact additive deltas. C2 is the approved cleanup point that
     # legally removes three old full-loop legacy-only tests, adds one explicit
     # old/new ablation path equivalence test plus two non-legacy evidence
@@ -347,6 +348,7 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
+    assert deltas["lg_m1_d2_langgraph_instrumentation"]["count"] == LG_M1_D2_EXPECTED_COLLECTION_DELTA
     expected_c1_d1_count = (
         baseline["collection"]["count"]
         + LG_M1_C1_EXPECTED_COLLECTION_DELTA
@@ -356,6 +358,7 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     expected_count = (
         expected_c1_d1_count
         + LG_M1_B_ADDITIVE_TEST_COUNT
+        + LG_M1_D2_EXPECTED_COLLECTION_DELTA
         - LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT
         + LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT
     )

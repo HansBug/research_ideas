@@ -125,32 +125,162 @@ from method.langgraph.registry import (
     graph_registry_consistency as _graph_registry_consistency_foundation,
 )
 from method.langgraph.state import _CompatState
+from method.langgraph.instrumentation.common import (
+    _canonical_json_payload,
+    _hash_canonical_payload,
+    _hash_file,
+    _hash_payload,
+    _jsonable,
+    _package_version,
+)
+from method.langgraph.checkpointing import _PickleCheckpointSerde, _checkpoint_resume_smoke
+from method.langgraph.instrumentation.operator_stream import (
+    LG_D1_INSTRUMENTATION_LAYER,
+    LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
+    LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
+    _LG_D1_ACADEMIC_EVIDENCE_SOURCES,
+    _LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS,
+    _LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS,
+    _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES,
+    _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS,
+    _LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS,
+    _LG_D1_LLM_PROGRESS_EVENT_TYPES,
+    _LG_D1_SECRET_VALUE_PATTERNS,
+    _append_lg_d1_operator_event,
+    _augment_run_record_with_lg_d1_operator_log,
+    _build_lg_d1_stream_summary,
+    _flow_log_stage_rows_by_stage,
+    _hash_file as _lg_d1_hash_file,
+    _llm_progress_operator_events,
+    _llm_stream_usage_from_interactions,
+    _merge_operator_events,
+    _node_for_stage,
+    _node_stage_ids_by_node_id,
+    _operator_event_key,
+    _operator_stage_flow_payload,
+    _pop_precise_stage_node,
+    _primary_stage_id_for_node,
+    _run_graph_with_lg_d1_stream,
+    _safe_node_exit_payload,
+    _sanitize_lg_d1_llm_progress_payload,
+    _sanitize_lg_d1_operator_payload,
+    _stage_result_operator_events,
+    _terminal_operator_event,
+    _write_lg_d1_operator_artifacts,
+    build_lg_d1_operator_event,
+    lg_d1_llm_stream_runtime_metadata,
+    reconstruct_lg_d1_stream_summary_from_jsonl,
+)
+from method.langgraph.instrumentation.trace_export import (
+    LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER,
+    LG_G1_TRACE_EXPORT_SCHEMA_VERSION,
+    _LG_G1_ACADEMIC_EVIDENCE_SOURCES,
+    _LG_G1_UNSAFE_TRACE_SOURCE_KEYS,
+    _augment_run_record_with_lg_g1_trace_export,
+    _lg_g1_has_secret_like_value,
+    _lg_g1_safe_trace_payload,
+    _lg_g1_stage_ids,
+    _lg_g1_trace_export_policy,
+    _write_lg_g1_trace_artifact,
+)
+from method.langgraph.instrumentation.tool_wrappers import (
+    LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
+    LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
+    _LG_E3_SENSITIVE_SUMMARY_KEY_EXACT,
+    _augment_run_record_with_lg_e3_toolnode_trace,
+    _lg_e3_fixed_tool_call,
+    _lg_e3_summary_key_is_sensitive,
+    _lg_e3_toolnode_wrappers_enabled,
+    _record_lg_e3_toolnode_event,
+    _safe_lg_e3_tool_summary,
+    build_lg_e3_toolnode_wrapper_registry,
+)
+from method.langgraph.instrumentation.retry_timeout import (
+    LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
+    LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES,
+    LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
+    LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION,
+    _append_lg_d2_envelope_event,
+    _lg_d2_attempt_error_kind,
+    _lg_d2_emit_interaction_attempt_events,
+    _lg_d2_envelope_event,
+    _lg_d2_envelope_safe_summary,
+    _lg_d2_error_kind_from_exception,
+    _lg_d2_event_match_signature,
+    _lg_d2_exception_is_provider_retryable,
+    _lg_d2_fallback_unique_signature,
+    _lg_d2_flow_log_match_signature,
+    _lg_d2_latest_attempt_index,
+    _lg_d2_latest_interaction_index,
+    _lg_d2_operator_events_from_flow_logs,
+    _lg_d2_retry_error_for_exception,
+    _lg_d2_retryable_taxonomy,
+    _lg_d2_stage_meta_for_retry_error,
+    _lg_d2_wrap_llm_stage_node,
+    build_lg_d2_llm_node_envelope_policy,
+)
+from method.langgraph.instrumentation.send_parallel import (
+    LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
+    LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
+    _LG_E2_ORDERING_KEY_FIELDS,
+    _LgE2SendState,
+    _augment_run_record_with_lg_e2_send_parallel_trace,
+    _lg_e2_aggregate_worker_results,
+    _lg_e2_build_isolated_context,
+    _lg_e2_canonicalize_scenario_results,
+    _lg_e2_canonicalize_worker_results,
+    _lg_e2_coverage_summary,
+    _lg_e2_execute_send_graph,
+    _lg_e2_feedback_scenario_results,
+    _lg_e2_finalize_metadata_from_record,
+    _lg_e2_final_verdict_summary,
+    _lg_e2_first_blocking_id,
+    _lg_e2_metadata_for_feedback,
+    _lg_e2_normalized_scenario_name,
+    _lg_e2_preflight,
+    _lg_e2_run_sd6_send_parallel_or_serial,
+    _lg_e2_scenario_history_summary,
+    _lg_e2_scenario_result_sort_key,
+    _lg_e2_selected_feedback_digest,
+    _lg_e2_serial_equivalence_payload,
+    _lg_e2_single_scenario_set,
+    _lg_e2_worker_ordering_key,
+    _lg_e2_worker_result_reducer,
+    _lg_e2_worker_specs,
+    build_lg_e2_send_parallel_contract,
+)
+from method.langgraph.instrumentation.store import (
+    _drain_transients,
+    _drop_transient,
+    _get_transient,
+    _put_transient,
+    _transient_namespace,
+    _transient_namespace_label,
+    langgraph_store_compat_smoke,
+)
+from method.langgraph.subgraphs.context_engineering import (
+    LG_C2_CANONICAL_RECORD_FIELD,
+    LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
+    LG_C2_CONTEXT_NODE_IDS,
+    LG_C2_CONTEXT_SUBGRAPH_ID,
+    LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
+    LG_C2_ContextAssemblyResult,
+    LG_C2_ContextRedactionBlocked,
+    _LG_C2_ContextState,
+    _build_lg_c2_context_subgraph,
+    _lg_c2_prompt_budget_metadata,
+    _lg_c2_secret_like_field_detected,
+    _lg_c2_within_prompt_budget,
+    assemble_lg_c2_prompt_context,
+    build_lg_c2_context_subgraph_contract,
+)
 from method.stages.ids import StageId, StageStatus
 from method.stages.ids import FeedbackSource
 from method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
 
 LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION = "lg-f1.resume-reconciliation.v1"
-LG_D1_OPERATOR_EVENT_SCHEMA_VERSION = "lg-d1.operator-event.v1"
-LG_D1_STREAM_SUMMARY_SCHEMA_VERSION = "lg-d1.stream-summary.v1"
-LG_D1_INSTRUMENTATION_LAYER = "langgraph_streaming"
-LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
-LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER = "fixed_toolnode_wrapper"
 LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
 LG_C1_REDUCER_STATE_SCHEMA_VERSION = "lg-c1.reducer-json-state.v1"
-LG_E2_SEND_PARALLEL_SCHEMA_VERSION = "lg-e2.send-parallel-sd6.v1"
-LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER = "langgraph_send_parallel_scenario_checker"
-LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION = "lg-d2.llm-node-envelope.v1"
-LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION = "lg-d2.llm-node-envelope-event.v1"
-LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER = "langgraph_llm_node_envelope"
-LG_G1_TRACE_EXPORT_SCHEMA_VERSION = "lg-g1.safe-trace-export.v1"
-LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER = "lg_g1_optional_trace_export"
-LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES = {
-    "lg_d2_envelope_enter",
-    "lg_d2_retry",
-    "lg_d2_timeout",
-    "lg_d2_envelope_exit",
-    "lg_d2_retry_exhausted",
-}
 
 _LG_C1_APPEND_ONLY_REDUCER_CHANNEL_NAMES = (
     "graph_trace",
@@ -208,1061 +338,62 @@ _LG_C1_LIVE_OBJECT_CHANNEL_NAMES = (
 _LG_C1_CHECKPOINT_SERDE_MODE = "pickle_for_live_object_bridge_with_json_safe_reducer_channels"
 
 _VALID_RECORD_STATUSES = {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}
-_LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS = {
-    "messages",
-    "message",
-    "prompt",
-    "raw_prompt",
-    "raw_output",
-    "chunk_text",
-    "delta_text",
-    "completion_text",
-    "content",
-    "text",
-    "response_text",
-    "output_text",
-    "choices",
-    "delta",
-    "api_key",
-    "apikey",
-    "authorization",
-    "headers",
-    "token",
-    "access_token",
-    "refresh_token",
-    "bearer_token",
-}
-_LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS = ("api_key", "apikey", "secret", "credential", "password", "bearer", "token")
-_LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES = (
-    "_api_key",
-    "_secret",
-    "_credential",
-    "_password",
-    "_bearer",
-    "_token",
-)
-_LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS = {
-    "apikey",
-    "authorization",
-    "accesstoken",
-    "refreshtoken",
-    "bearertoken",
-    "token",
-    "headers",
-}
-_LG_D1_SECRET_VALUE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{7,}"),
-    re.compile(r"gh[opsur]_[A-Za-z0-9_]{8,}"),
-    re.compile(r"github_pat_[A-Za-z0-9_]{8,}"),
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE),
-    re.compile(r"(?i)(?:secret|token|api[_-]?key|password)[A-Za-z0-9._:\-]{4,}"),
-)
-_LG_D1_LLM_PROGRESS_EVENT_TYPES = {"llm_stream_progress", "llm_request_progress"}
-_LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS = {
-    "interaction_index",
-    "stage_id",
-    "stream",
-    "stream_include_usage_requested",
-    "token_usage_available",
-    "stream_usage_zero_reported",
-    "chunk_count",
-    "first_chunk_seconds",
-    "elapsed_seconds",
-    "prompt_chars",
-    "completion_chars",
-    "estimated_prompt_tokens",
-    "estimated_completion_tokens",
-    "estimated_total_tokens",
-    "token_usage_estimation_method",
-    "attempt_count",
-    "attempt_stream_observed",
-    "usage_payload_hash",
-}
-_LG_D1_ACADEMIC_EVIDENCE_SOURCES = [
-    "AgentLoopRunRecord.stage_records",
-    "AgentLoopRunRecord.llm_interactions",
-    "AgentLoopRunRecord.fix_log",
-    "AgentLoopRunRecord.scenario_history",
-    "AgentLoopRunRecord.final_artifacts.final_dsl",
-]
-_LG_G1_ACADEMIC_EVIDENCE_SOURCES = list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES)
-_LG_G1_UNSAFE_TRACE_SOURCE_KEYS = {
-    "prompt",
-    "raw_prompt",
-    "raw_output",
-    "raw_response",
-    "provider_response",
-    "message",
-    "messages",
-    "choice",
-    "choices",
-    "content",
-    "raw_nl",
-    "input_nl",
-    "nl",
-    "api_key",
-    "apikey",
-    "authorization",
-    "headers",
-    "bearer",
-    "password",
-    "secret",
-    "token",
-    "access_token",
-    "refresh_token",
-}
-
-
-def _canonical_json_payload(value: Any) -> str:
-    """Canonical JSON used for reproducible LG-D2 policy hashes."""
-
-    return json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False, default=str)
-
-
-def _hash_canonical_payload(value: Any) -> str:
-    return "sha256:" + hashlib.sha256(_canonical_json_payload(value).encode("utf-8")).hexdigest()
-
-
-def build_lg_d2_llm_node_envelope_policy() -> dict[str, Any]:
-    """Return the canonical LG-D2 node-level LLM envelope policy.
-
-    LG-D2 is intentionally an outer, LangGraph-visible diagnostics envelope. It
-    does not change the inner PR-B2 LLM-stage retry ledger, prompt, stream flag,
-    or ``max_tokens`` default.  The policy is hashed with canonical JSON so a
-    run record can later prove exactly which envelope contract was in force.
-    """
-
-    policy = {
-        "schema_version": LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION,
-        "enabled": True,
-        "max_envelope_attempts": 2,
-        "timeout_s": None,
-        "backoff": {"strategy": "none", "base_ms": 0, "max_ms": 0},
-        "jitter": {"enabled": False, "seed": 0},
-        "retryable_error_taxonomy": [
-            "provider_5xx",
-            "provider_502",
-            "provider_504",
-            "provider_error",
-            "network_error",
-            "timeout",
-            "stream_interrupted",
-            "schema_invalid",
-            "empty_output",
-        ],
-        "non_retryable_error_taxonomy": ["schema_contract_error", "stage_id_mismatch", "deterministic_feedback"],
-        "stream_default": True,
-        "max_tokens_default": None,
-        "outer_envelope_does_not_replace_inner_attempt_ledger": True,
-        "fake_clock_supported_for_tests": True,
-        "real_sleep_required_for_tests": False,
-    }
-    policy["policy_hash"] = _hash_canonical_payload(policy)
-    return policy
-
-
-def _lg_d2_retryable_taxonomy(policy: dict[str, Any] | None = None) -> set[str]:
-    policy = policy or build_lg_d2_llm_node_envelope_policy()
-    return {str(item) for item in policy.get("retryable_error_taxonomy", [])}
-
-
-def _lg_d2_error_kind_from_exception(exc: BaseException) -> str:
-    name = type(exc).__name__.lower()
-    message = str(exc).lower()
-    text = f"{name} {message}"
-    # Provider HTTP status codes must win over generic words such as
-    # "timeout"/"connection"; otherwise Cloudflare/API 504 Gateway Timeout
-    # incidents are incorrectly reported as local timeouts, which blurs the
-    # invalid-run vs model-quality boundary in experiment audits.
-    if "502" in text:
-        return "provider_502"
-    if "504" in text:
-        return "provider_504"
-    if "5xx" in text or "500" in text or "503" in text:
-        return "provider_5xx"
-    if isinstance(exc, TimeoutError):
-        return "timeout"
-    if "timeout" in name or "timeout" in message or "timed out" in message:
-        return "timeout"
-    if "stream" in name or "stream" in message:
-        return "stream_interrupted"
-    if "network" in name or "connection" in name or "network" in message or "connection" in message:
-        return "network_error"
-    return "provider_error"
-
-
-def _lg_d2_exception_is_provider_retryable(exc: BaseException, policy: dict[str, Any]) -> bool:
-    """Return True only for upstream/provider-like failures safe to map into invalid-run evidence.
-
-    Local contract/programming errors such as TypeError, ValueError, AssertionError,
-    KeyError, AttributeError, import errors and cancellation must not be disguised
-    as provider_error, because that would corrupt root-cause evidence and make
-    academic trace audits misleading.
-    """
-
-    if isinstance(exc, (TypeError, ValueError, AssertionError, KeyError, AttributeError, ImportError, NotImplementedError)):
-        return False
-    error_kind = _lg_d2_error_kind_from_exception(exc)
-    retryable = _lg_d2_retryable_taxonomy(policy)
-    if error_kind in {"timeout", "stream_interrupted", "network_error", "provider_502", "provider_504", "provider_5xx"}:
-        return True
-    if error_kind == "provider_error":
-        text = f"{type(exc).__name__}: {exc}".lower()
-        provider_markers = ("provider", "openai", "api", "http", "502", "503", "504", "5xx", "rate limit", "connection", "network", "upstream")
-        return any(marker in text for marker in provider_markers) and error_kind in retryable
-    return error_kind in retryable
-
-
-def _lg_d2_retry_error_for_exception(stage_id: StageId, exc: BaseException) -> dict[str, Any]:
-    error_kind = _lg_d2_error_kind_from_exception(exc)
-    return {
-        "error_kind": error_kind,
-        "error_message": f"{type(exc).__name__}: {str(exc)[:300]}",
-        "exception_type": type(exc).__name__,
-        "stage_id": stage_id.value,
-        "source": "lg_d2_llm_node_envelope",
-    }
-
-
-def _lg_d2_stage_meta_for_retry_error(stage_id: StageId, retry_error: dict[str, Any]) -> StageResultMeta:
-    meta = _meta(stage_id, ok=False, status=StageStatus.ERROR)
-    meta.stage_error = str(retry_error.get("error_message") or f"{stage_id.value} retry exhausted")
-    return meta
-
-
-def _lg_d2_envelope_safe_summary(value: Any, *, max_chars: int = 240) -> Any:
-    safe = _jsonable(value)
-    if isinstance(safe, str):
-        return {"text_hash": _hash_text(safe), "text_chars": len(safe)}
-    if isinstance(safe, list):
-        return {"item_count": len(safe), "items_hash": _hash_canonical_payload(safe)}
-    if isinstance(safe, dict):
-        out: dict[str, Any] = {}
-        for key, nested in safe.items():
-            key_text = str(key)
-            key_norm = key_text.lower()
-            if any(fragment in key_norm for fragment in ("prompt", "message", "raw", "output", "content", "text", "nl", "secret", "token", "api_key", "apikey")) or key_norm.endswith("_dsl") or key_norm == "dsl":
-                out[f"{key_text}_hash"] = _hash_canonical_payload(nested)
-                out[f"{key_text}_chars"] = len(_canonical_json_payload(nested))
-            elif isinstance(nested, (dict, list, tuple, set)):
-                out[f"{key_text}_hash"] = _hash_canonical_payload(nested)
-                out[f"{key_text}_count"] = len(nested)
-            else:
-                out[key_text] = nested
-        return out
-    text = str(safe)
-    return text if len(text) <= max_chars else {"text_hash": _hash_text(text), "text_chars": len(text)}
-
-
-def _lg_d2_latest_interaction_index(state: _RunState) -> int | None:
-    if not state.llm_interactions:
-        return None
-    return len(state.llm_interactions) - 1
-
-
-def _lg_d2_latest_attempt_index(interaction: dict[str, Any] | None) -> int | None:
-    attempts = interaction.get("attempts") if isinstance(interaction, dict) else None
-    if isinstance(attempts, list) and attempts:
-        return len(attempts) - 1
-    return None
-
-
-def _lg_d2_attempt_error_kind(attempt: Any) -> str | None:
-    if not isinstance(attempt, dict):
-        return None
-    for key in ("error_kind", "status", "kind"):
-        value = attempt.get(key)
-        if value:
-            text = str(value)
-            if text.lower() not in {"ok", "success", "passed"}:
-                return text
-    return None
-
-
-def _lg_d2_envelope_event(
-    *,
-    run_id: str,
-    event_type: str,
-    stage_id: StageId,
-    graph_node: str,
-    subgraph_id: str | None,
-    policy: dict[str, Any],
-    iteration: int | None = None,
-    envelope_attempt_index: int = 0,
-    canonical_interaction_id: int | None = None,
-    canonical_attempt_index: int | None = None,
-    error_kind: str | None = None,
-    retryable: bool | None = None,
-    elapsed_ms: int = 0,
-    planned_sleep_ms: int = 0,
-    outcome: str | None = None,
-    safe_summary: Any | None = None,
-) -> dict[str, Any]:
-    payload = {
-        "schema_version": LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
-        "event_type": event_type,
-        "stage_id": stage_id.value,
-        "iteration": iteration,
-        "graph_node": graph_node,
-        "subgraph_id": subgraph_id,
-        "policy_hash": policy.get("policy_hash"),
-        "envelope_attempt_index": envelope_attempt_index,
-        "canonical_interaction_id": canonical_interaction_id,
-        "canonical_attempt_index": canonical_attempt_index,
-        "error_kind": error_kind,
-        "retryable": retryable,
-        "elapsed_ms": int(elapsed_ms),
-        "planned_sleep_ms": int(planned_sleep_ms),
-        "outcome": outcome,
-        "safe_summary": _lg_d2_envelope_safe_summary(safe_summary or {}),
-        "does_not_replace_academic_evidence": True,
-    }
-    safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload)
-    if omitted_count:
-        safe_payload["omitted_raw_content_field_count"] = omitted_count
-    event = {
-        # LG-D2 events live inside the LG-D1 operator-log JSONL stream, so the
-        # top-level schema must remain LG-D1-compatible.  The LG-D2-specific
-        # schema is carried in payload["schema_version"] to keep existing
-        # stream-summary reconstruction and LG-C1 audit stable after upstream
-        # merges such as LG-F1 checkpoint/resume.
-        "schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
-        "run_id": str(run_id),
-        "event_type": event_type,
-        "timestamp": _utc_now(),
-        "node": graph_node,
-        "stage_id": stage_id.value,
-        "instrumentation_layer": LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
-        "payload": safe_payload,
-        "payload_hash": _hash_canonical_payload(safe_payload),
-    }
-    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
-    return event
-
-
-def _append_lg_d2_envelope_event(
-    graph_state: _GraphLoopState,
-    *,
-    event_type: str,
-    stage_id: StageId,
-    graph_node: str,
-    subgraph_id: str | None,
-    policy: dict[str, Any] | None = None,
-    iteration: int | None = None,
-    envelope_attempt_index: int = 0,
-    canonical_interaction_id: int | None = None,
-    canonical_attempt_index: int | None = None,
-    error_kind: str | None = None,
-    retryable: bool | None = None,
-    elapsed_ms: int = 0,
-    planned_sleep_ms: int = 0,
-    outcome: str | None = None,
-    safe_summary: Any | None = None,
-) -> None:
-    if not bool(graph_state.get("operator_stream_enabled", True)):
-        return
-    runtime_state = graph_state.get("runtime_state")
-    run_id = getattr(runtime_state, "run_id", None) or graph_state.get("run_id") or ""
-    if not run_id:
-        return
-    policy = policy or build_lg_d2_llm_node_envelope_policy()
-    if iteration is None and subgraph_id is not None and isinstance(graph_state.get("iteration"), int):
-        iteration = int(graph_state["iteration"])
-    event = _lg_d2_envelope_event(
-        run_id=str(run_id),
-        event_type=event_type,
-        stage_id=stage_id,
-        graph_node=graph_node,
-        subgraph_id=subgraph_id,
-        policy=policy,
-        iteration=iteration,
-        envelope_attempt_index=envelope_attempt_index,
-        canonical_interaction_id=canonical_interaction_id,
-        canonical_attempt_index=canonical_attempt_index,
-        error_kind=error_kind,
-        retryable=retryable,
-        elapsed_ms=elapsed_ms,
-        planned_sleep_ms=planned_sleep_ms,
-        outcome=outcome,
-        safe_summary=safe_summary,
-    )
-    events = list(graph_state.get("operator_events", []) or [])
-    events.append(event)
-    graph_state["operator_events"] = events
-    if isinstance(runtime_state, _RunState):
-        _append_flow_log(
-            runtime_state.logs,
-            event=event_type,
-            stage_id=stage_id.value,
-            iteration=iteration,
-            graph_node=graph_node,
-            graph_subgraph=subgraph_id,
-            envelope_attempt_index=envelope_attempt_index,
-            canonical_interaction_id=canonical_interaction_id,
-            canonical_attempt_index=canonical_attempt_index,
-            error_kind=error_kind,
-            outcome=outcome,
-            retryable=retryable,
-            policy_hash=policy.get("policy_hash"),
-        )
-
-
-def _lg_d2_emit_interaction_attempt_events(
-    graph_state: _GraphLoopState,
-    *,
-    stage_id: StageId,
-    graph_node: str,
-    subgraph_id: str | None,
-    policy: dict[str, Any],
-    interaction_index: int | None,
-    interaction: dict[str, Any] | None,
-) -> None:
-    attempts = interaction.get("attempts") if isinstance(interaction, dict) else None
-    if not isinstance(attempts, list):
-        return
-    taxonomy = _lg_d2_retryable_taxonomy(policy)
-    for index, attempt in enumerate(attempts):
-        error_kind = _lg_d2_attempt_error_kind(attempt)
-        if not error_kind:
-            continue
-        _append_lg_d2_envelope_event(
-            graph_state,
-            event_type="lg_d2_timeout" if error_kind == "timeout" else "lg_d2_retry",
-            stage_id=stage_id,
-            graph_node=graph_node,
-            subgraph_id=subgraph_id,
-            policy=policy,
-            envelope_attempt_index=0,
-            canonical_interaction_id=interaction_index,
-            canonical_attempt_index=index,
-            error_kind=error_kind,
-            retryable=error_kind in taxonomy,
-            outcome="inner_attempt_failure_observed",
-            safe_summary={"attempt_index": index, "attempt": attempt},
-        )
-
-
-def _lg_d2_wrap_llm_stage_node(
-    graph_state: _GraphLoopState,
-    *,
-    stage_id: StageId,
-    graph_node: str,
-    subgraph_id: str | None,
-    call: Any,
-) -> Any:
-    """Run one stage-level LLM node under LG-D2 retry/timeout diagnostics envelope.
-
-    The wrapper is deliberately outside the PR-B2 stage adapter.  It records a
-    LangGraph-visible enter/exit/retry/exhausted ledger, performs only bounded
-    outer retries for provider-like transient exceptions, and keeps the inner
-    ``llm_interactions`` attempt ledger canonical.
-    """
-
-    runtime_state = graph_state.get("runtime_state")
-    policy = build_lg_d2_llm_node_envelope_policy()
-    if not isinstance(runtime_state, _RunState) or not bool(policy.get("enabled", True)):
-        return call()
-    before_count = len(runtime_state.llm_interactions)
-    max_attempts = max(1, int(policy.get("max_envelope_attempts") or 1))
-    taxonomy = _lg_d2_retryable_taxonomy(policy)
-    last_retry_error: dict[str, Any] | None = None
-    last_interaction: dict[str, Any] | None = None
-    last_error_kind: str | None = None
-
-    for envelope_attempt_index in range(max_attempts):
-        _append_lg_d2_envelope_event(
-            graph_state,
-            event_type="lg_d2_envelope_enter",
-            stage_id=stage_id,
-            graph_node=graph_node,
-            subgraph_id=subgraph_id,
-            policy=policy,
-            envelope_attempt_index=envelope_attempt_index,
-            outcome="enter",
-            safe_summary={"before_llm_interaction_count": before_count, "max_envelope_attempts": max_attempts},
-        )
-        try:
-            result = call()
-        except _LLMRetryExhausted as exc:
-            interaction_index = _lg_d2_latest_interaction_index(runtime_state)
-            interaction = runtime_state.llm_interactions[interaction_index] if interaction_index is not None else dict(exc.interaction or {})
-            attempt_index = _lg_d2_latest_attempt_index(interaction)
-            error_kind = exc.error_kind
-            retryable = error_kind in taxonomy
-            last_retry_error = dict(exc.retry_error or {})
-            last_interaction = dict(interaction or {})
-            last_error_kind = error_kind
-            exhausted_now = envelope_attempt_index >= max_attempts - 1 or not retryable
-            _append_lg_d2_envelope_event(
-                graph_state,
-                event_type="lg_d2_timeout" if error_kind == "timeout" else ("lg_d2_retry_exhausted" if exhausted_now else "lg_d2_retry"),
-                stage_id=stage_id,
-                graph_node=graph_node,
-                subgraph_id=subgraph_id,
-                policy=policy,
-                envelope_attempt_index=envelope_attempt_index,
-                canonical_interaction_id=interaction_index,
-                canonical_attempt_index=attempt_index,
-                error_kind=error_kind,
-                retryable=retryable,
-                outcome="exhausted" if exhausted_now else "retry_planned",
-                safe_summary={"retry_error": exc.retry_error, "interaction_hash": _hash_canonical_payload(interaction)},
-            )
-            if error_kind == "timeout" and exhausted_now:
-                _append_lg_d2_envelope_event(
-                    graph_state,
-                    event_type="lg_d2_retry_exhausted",
-                    stage_id=stage_id,
-                    graph_node=graph_node,
-                    subgraph_id=subgraph_id,
-                    policy=policy,
-                    envelope_attempt_index=envelope_attempt_index,
-                    canonical_interaction_id=interaction_index,
-                    canonical_attempt_index=attempt_index,
-                    error_kind=error_kind,
-                    retryable=retryable,
-                    outcome="exhausted",
-                    safe_summary={"retry_error": exc.retry_error},
-                )
-            _append_lg_d2_envelope_event(
-                graph_state,
-                event_type="lg_d2_envelope_exit",
-                stage_id=stage_id,
-                graph_node=graph_node,
-                subgraph_id=subgraph_id,
-                policy=policy,
-                envelope_attempt_index=envelope_attempt_index,
-                canonical_interaction_id=interaction_index,
-                canonical_attempt_index=attempt_index,
-                error_kind=error_kind,
-                retryable=retryable,
-                outcome="exhausted" if exhausted_now else "retry_planned",
-                safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
-            )
-            if exhausted_now:
-                raise
-            continue
-        except Exception as exc:
-            error_kind = _lg_d2_error_kind_from_exception(exc)
-            retryable = _lg_d2_exception_is_provider_retryable(exc, policy)
-            if not retryable:
-                _append_lg_d2_envelope_event(
-                    graph_state,
-                    event_type="lg_d2_envelope_exit",
-                    stage_id=stage_id,
-                    graph_node=graph_node,
-                    subgraph_id=subgraph_id,
-                    policy=policy,
-                    envelope_attempt_index=envelope_attempt_index,
-                    error_kind="schema_contract_error",
-                    retryable=False,
-                    outcome="non_retryable_exception_re_raised",
-                    safe_summary={"exception_type": type(exc).__name__, "exception_hash": _hash_text(str(exc))},
-                )
-                raise
-
-            retry_error = _lg_d2_retry_error_for_exception(stage_id, exc)
-            interaction = {
-                "stage_id": stage_id.value,
-                "provider": "lg-d2-envelope",
-                "model_id": "outer-envelope",
-                "schema_validation_ok": False,
-                "retry_error": retry_error,
-                "retry_count": envelope_attempt_index,
-                "attempts": [
-                    {
-                        "status": retry_error["error_kind"],
-                        "error_kind": retry_error["error_kind"],
-                        "error_message": retry_error["error_message"],
-                        "source": "lg_d2_outer_envelope_exception",
-                        "envelope_attempt_index": envelope_attempt_index,
-                    }
-                ],
-            }
-            last_retry_error = retry_error
-            last_interaction = interaction
-            last_error_kind = error_kind
-            exhausted_now = envelope_attempt_index >= max_attempts - 1
-            interaction_index: int | None = None
-            canonical_attempt_index: int | None = None
-            if exhausted_now:
-                # Only unrecovered provider-like envelope failures enter the
-                # canonical llm_interactions ledger and invalid-run path.  A
-                # transient failure later recovered by the next envelope attempt
-                # remains visible in the LG-D2 operator log but must not pollute
-                # the canonical successful interaction sequence.
-                runtime_state.llm_interactions.append(interaction)
-                interaction_index = len(runtime_state.llm_interactions) - 1
-                canonical_attempt_index = 0
-            _append_lg_d2_envelope_event(
-                graph_state,
-                event_type="lg_d2_timeout" if error_kind == "timeout" else ("lg_d2_retry_exhausted" if exhausted_now else "lg_d2_retry"),
-                stage_id=stage_id,
-                graph_node=graph_node,
-                subgraph_id=subgraph_id,
-                policy=policy,
-                envelope_attempt_index=envelope_attempt_index,
-                canonical_interaction_id=interaction_index,
-                canonical_attempt_index=canonical_attempt_index,
-                error_kind=error_kind,
-                retryable=True,
-                outcome="exhausted" if exhausted_now else "retry_planned",
-                safe_summary={"exception_type": type(exc).__name__, "retry_error": retry_error},
-            )
-            if error_kind == "timeout" and exhausted_now:
-                _append_lg_d2_envelope_event(
-                    graph_state,
-                    event_type="lg_d2_retry_exhausted",
-                    stage_id=stage_id,
-                    graph_node=graph_node,
-                    subgraph_id=subgraph_id,
-                    policy=policy,
-                    envelope_attempt_index=envelope_attempt_index,
-                    canonical_interaction_id=interaction_index,
-                    canonical_attempt_index=canonical_attempt_index,
-                    error_kind=error_kind,
-                    retryable=True,
-                    outcome="exhausted",
-                    safe_summary={"retry_error": retry_error},
-                )
-            _append_lg_d2_envelope_event(
-                graph_state,
-                event_type="lg_d2_envelope_exit",
-                stage_id=stage_id,
-                graph_node=graph_node,
-                subgraph_id=subgraph_id,
-                policy=policy,
-                envelope_attempt_index=envelope_attempt_index,
-                canonical_interaction_id=interaction_index,
-                canonical_attempt_index=canonical_attempt_index,
-                error_kind=error_kind,
-                retryable=True,
-                outcome="exhausted" if exhausted_now else "retry_planned",
-                safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
-            )
-            if exhausted_now:
-                meta = _lg_d2_stage_meta_for_retry_error(stage_id, retry_error)
-                _append_stage(runtime_state.stage_records, meta)
-                raise _LLMRetryExhausted(stage_id=stage_id.value, retry_error=retry_error, interaction=interaction) from exc
-            continue
-
-        interaction_index = len(runtime_state.llm_interactions) - 1 if len(runtime_state.llm_interactions) > before_count else None
-        interaction = runtime_state.llm_interactions[interaction_index] if interaction_index is not None else None
-        _lg_d2_emit_interaction_attempt_events(
-            graph_state,
-            stage_id=stage_id,
-            graph_node=graph_node,
-            subgraph_id=subgraph_id,
-            policy=policy,
-            interaction_index=interaction_index,
-            interaction=interaction,
-        )
-        _append_lg_d2_envelope_event(
-            graph_state,
-            event_type="lg_d2_envelope_exit",
-            stage_id=stage_id,
-            graph_node=graph_node,
-            subgraph_id=subgraph_id,
-            policy=policy,
-            envelope_attempt_index=envelope_attempt_index,
-            canonical_interaction_id=interaction_index,
-            canonical_attempt_index=_lg_d2_latest_attempt_index(interaction),
-            outcome="ok",
-            safe_summary={"after_llm_interaction_count": len(runtime_state.llm_interactions)},
-        )
-        return result
-
-    # Defensive: the loop should either return or raise from the final attempt.
-    retry_error = last_retry_error or {"error_kind": last_error_kind or "provider_error", "error_message": f"{stage_id.value} envelope retry exhausted"}
-    interaction = last_interaction or {"stage_id": stage_id.value, "retry_error": retry_error, "attempts": []}
-    meta = _lg_d2_stage_meta_for_retry_error(stage_id, retry_error)
-    _append_stage(runtime_state.stage_records, meta)
-    raise _LLMRetryExhausted(stage_id=stage_id.value, retry_error=retry_error, interaction=interaction)
-
-
-class _PickleCheckpointSerde:
-    """Serializer for in-memory LangGraph checkpoints containing Python dataclasses.
-
-    The durable academic evidence remains the JSON AgentLoopRunRecord written at
-    SC-13.  LangGraph checkpoints are an orchestration/resume aid and need to
-    carry live typed objects such as ``_RunState`` and ``_ValidationPass`` across
-    graph nodes; the default msgpack serializer cannot encode those internal
-    dataclasses.  We therefore make the serializer explicit and record it in
-    runtime metadata instead of silently relying on LangGraph defaults.
-    """
-
-    def dumps_typed(self, obj: Any) -> tuple[str, bytes]:
-        return "pickle", pickle.dumps(obj)
-
-    def loads_typed(self, data: tuple[str, bytes]) -> Any:
-        kind, payload = data
-        if kind != "pickle":
-            raise ValueError(f"unsupported checkpoint payload type: {kind}")
-        return pickle.loads(payload)
-
-
-LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION = "lg-c2.context-subgraph.v1"
-LG_C2_CONTEXT_SUBGRAPH_ID = "context_engineering_subgraph"
-LG_C2_CONTEXT_INSTRUMENTATION_LAYER = "langgraph_context_engineering"
-LG_C2_CONTEXT_NODE_IDS = [
-    "context_evidence_collect",
-    "context_budget_gate",
-    "context_compact_full_select",
-    "context_redaction_guard",
-]
-LG_C2_CANONICAL_RECORD_FIELD = "AgentLoopRunRecord.llm_interactions[].context_engineering"
-
-
-class _LG_C2_ContextState(TypedDict, total=False):
-    stage_id: str
-    payload_candidates: list[tuple[str, dict[str, Any]]]
-    prompt_char_counts: dict[str, int]
-    prompt_token_estimates: dict[str, int]
-    prompt_messages_by_level: dict[str, list[dict[str, str]]]
-    budget_metadata_by_level: dict[str, dict[str, Any]]
-    selected_level: str
-    selected_payload: dict[str, Any]
-    selected_prompt_messages: list[dict[str, str]]
-    selected_payload_hash: str
-    selected_prompt_messages_hash: str
-    selection_reason: str
-    redaction_guard: dict[str, Any]
-    node_trace: list[dict[str, Any]]
-
-
-
-
-class LG_C2_ContextRedactionBlocked(RuntimeError):
-    """Raised before provider calls when LG-C2 context redaction guard blocks payload."""
-
-    def __init__(self, *, stage_id: str, payload_hash: str, guard: dict[str, Any]) -> None:
-        self.stage_id = stage_id
-        self.payload_hash = payload_hash
-        self.guard = dict(guard)
-        super().__init__(
-            "LG-C2 context redaction guard blocked secret-like prompt context before provider call "
-            f"for {stage_id}; payload_hash={payload_hash}"
-        )
-
-
-class LG_C2_ContextAssemblyResult:
-    """Prompt context selected by the LG-C2 context-engineering subgraph."""
-
-    def __init__(self, payload: dict[str, Any], metadata: dict[str, Any], prompt_messages: list[dict[str, str]]) -> None:
-        self.payload = payload
-        self.metadata = metadata
-        self.prompt_messages = prompt_messages
-
-
-def build_lg_c2_context_subgraph_contract() -> dict[str, Any]:
-    """Return the auditable LG-C2 context subgraph contract.
-
-    The subgraph is intentionally an instrumentation / context-assembly layer:
-    it chooses between existing full/compact prompt payloads and records budget,
-    hash, and redaction-guard provenance.  It does not alter FixLog, NFRR,
-    eligibility, stage verdict sources, or E1/E2 model-quality fields.
-    """
-
-    return {
-        "schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
-        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
-        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
-        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
-        "stage_ids": [StageId.SL_9_REPAIR.value, StageId.SL_10_REPAIR_REVIEW.value],
-        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
-        "payload_hash_fields": [
-            "stage_id",
-            "compaction_level",
-            "selected_payload_hash",
-            "selected_prompt_messages_hash",
-            "budget_metadata",
-            "redaction_guard",
-        ],
-        "budget_metadata_required": [
-            "prompt_chars",
-            "estimated_prompt_tokens",
-            "prompt_token_budget",
-            "prompt_token_estimator",
-            "chars_per_token_estimate",
-            "compaction_level",
-            "prompt_compaction_applied",
-            "compact_only_when_over_budget",
-            "budget_exceeded",
-        ],
-        "redaction_guard_before_provider": True,
-        "redaction_guard_policy": "hash-and-fail-closed-on-secret-like-context-fields",
-        "no_sample_specific_behavior": True,
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources_preserved": [
-            "AgentLoopRunRecord.fix_log",
-            "AgentLoopRunRecord.repair_history",
-            "AgentLoopRunRecord.llm_interactions",
-            "AgentLoopRunRecord.final_artifacts",
-            "NFRR/eligibility fields",
-        ],
-    }
-
-
-def _lg_c2_prompt_budget_metadata(
-    *,
-    stage_id: str,
-    prompt_messages: list[dict[str, str]],
-    cfg: LLMStageConfig,
-    compaction_level: str,
-) -> dict[str, Any]:
-    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
-    estimated_tokens = estimate_prompt_tokens(
-        prompt_messages,
-        estimator=cfg.prompt_token_estimator,
-        chars_per_token=cfg.prompt_chars_per_token,
-        model=cfg.model,
-    )
-    budget = cfg.max_prompt_tokens
-    return {
-        "stage_id": stage_id,
-        "prompt_chars": prompt_chars,
-        "estimated_prompt_tokens": estimated_tokens,
-        "prompt_token_budget": budget,
-        "prompt_token_estimator": cfg.prompt_token_estimator,
-        "chars_per_token_estimate": cfg.prompt_chars_per_token,
-        "compaction_level": compaction_level,
-        "prompt_compaction_applied": compaction_level != "none",
-        "compact_only_when_over_budget": True,
-        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
-    }
-
-
-def _lg_c2_within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
-    if cfg.max_prompt_tokens is None:
-        return True
-    return (
-        estimate_prompt_tokens(
-            prompt_messages,
-            estimator=cfg.prompt_token_estimator,
-            chars_per_token=cfg.prompt_chars_per_token,
-            model=cfg.model,
-        )
-        <= cfg.max_prompt_tokens
-    )
-
-
-def _lg_c2_secret_like_field_detected(value: Any) -> bool:
-    """Conservative guard for obvious secret-like context fields.
-
-    This is intentionally sample-agnostic and only flags credential-shaped keys or
-    values.  Raw provider keys are never written into the metadata; callers can
-    use the boolean/hash-only status to fail closed if future context surfaces
-    become unsafe.
-    """
-
-    secret_key_re = re.compile(
-        r"(api[_-]?key|secret|password|credential|authorization|bearer[_-]?token|access[_-]?token|refresh[_-]?token)",
-        re.IGNORECASE,
-    )
-    secret_value_re = re.compile(r"(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|LLM_API_KEY\s*=)")
-
-    def walk(item: Any, path: str = "payload") -> bool:
-        if isinstance(item, dict):
-            for key, nested in item.items():
-                key_text = str(key)
-                # Do not treat ordinary accounting/trace keys such as
-                # ``prompt_tokens`` or ``nl_token_present`` as credentials.
-                # Values remain checked below for actual key-shaped secrets.
-                if secret_key_re.search(key_text):
-                    return True
-                if walk(nested, f"{path}.{key_text}"):
-                    return True
-        elif isinstance(item, (list, tuple, set)):
-            for index, nested in enumerate(item):
-                if walk(nested, f"{path}[{index}]"):
-                    return True
-        elif isinstance(item, str) and secret_value_re.search(item):
-            return True
-        return False
-
-    return walk(value)
-
-
-def _build_lg_c2_context_subgraph(*, prompt_builder: Any, cfg: LLMStageConfig):
-    """Build the LG-C2 context-engineering subgraph.
-
-    The graph nodes are deliberately small and deterministic: evidence collect
-    builds candidate prompts, budget gate computes estimates, compact/full select
-    chooses the first candidate inside budget (or the compact fallback), and
-    redaction guard emits a hash-only safety summary.
-    """
-
-    graph = StateGraph(_LG_C2_ContextState)
-
-    def evidence_collect(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
-        candidates = list(state.get("payload_candidates") or [])
-        prompts = {level: prompt_builder(payload) for level, payload in candidates}
-        return {
-            **state,
-            "prompt_messages_by_level": prompts,
-            "node_trace": [
-                *list(state.get("node_trace") or []),
-                {
-                    "node_id": "context_evidence_collect",
-                    "candidate_levels": [level for level, _ in candidates],
-                    "candidate_count": len(candidates),
-                },
-            ],
-        }
-
-    def budget_gate(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
-        prompts = dict(state.get("prompt_messages_by_level") or {})
-        budget_by_level = {
-            level: _lg_c2_prompt_budget_metadata(
-                stage_id=str(state.get("stage_id") or ""),
-                prompt_messages=messages,
-                cfg=cfg,
-                compaction_level=level,
-            )
-            for level, messages in prompts.items()
-        }
-        return {
-            **state,
-            "budget_metadata_by_level": budget_by_level,
-            "prompt_char_counts": {level: meta["prompt_chars"] for level, meta in budget_by_level.items()},
-            "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
-            "node_trace": [
-                *list(state.get("node_trace") or []),
-                {
-                    "node_id": "context_budget_gate",
-                    "prompt_token_budget": cfg.max_prompt_tokens,
-                    "prompt_token_estimates": {level: meta["estimated_prompt_tokens"] for level, meta in budget_by_level.items()},
-                },
-            ],
-        }
-
-    def compact_full_select(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
-        candidates = list(state.get("payload_candidates") or [])
-        prompts = dict(state.get("prompt_messages_by_level") or {})
-        selected_level = candidates[-1][0]
-        selected_payload = candidates[-1][1]
-        selected_prompt = prompts[selected_level]
-        selection_reason = "fallback_compact_over_budget"
-        for level, payload in candidates:
-            prompt = prompts[level]
-            selected_level, selected_payload, selected_prompt = level, payload, prompt
-            if _lg_c2_within_prompt_budget(prompt, cfg):
-                selection_reason = "within_budget"
-                break
-        return {
-            **state,
-            "selected_level": selected_level,
-            "selected_payload": selected_payload,
-            "selected_prompt_messages": selected_prompt,
-            "selected_payload_hash": _hash_payload(selected_payload),
-            "selected_prompt_messages_hash": _hash_payload(selected_prompt),
-            "selection_reason": selection_reason,
-            "node_trace": [
-                *list(state.get("node_trace") or []),
-                {
-                    "node_id": "context_compact_full_select",
-                    "selected_level": selected_level,
-                    "selection_reason": selection_reason,
-                    "selected_payload_hash": _hash_payload(selected_payload),
-                    "selected_prompt_messages_hash": _hash_payload(selected_prompt),
-                },
-            ],
-        }
-
-    def redaction_guard(state: _LG_C2_ContextState) -> _LG_C2_ContextState:
-        selected_payload = dict(state.get("selected_payload") or {})
-        selected_prompt = list(state.get("selected_prompt_messages") or [])
-        secret_like = _lg_c2_secret_like_field_detected(
-            {
-                "selected_payload": selected_payload,
-                "selected_prompt_messages": selected_prompt,
-            }
-        )
-        guard = {
-            "status": "blocked" if secret_like else "passed",
-            "secret_like_field_detected": secret_like,
-            "policy": "hash_only_metadata_no_raw_secret_persistence",
-            "checked_before_provider": True,
-            "payload_hash": str(state.get("selected_payload_hash") or ""),
-            "prompt_messages_hash": str(state.get("selected_prompt_messages_hash") or ""),
-        }
-        return {
-            **state,
-            "redaction_guard": guard,
-            "node_trace": [
-                *list(state.get("node_trace") or []),
-                {
-                    "node_id": "context_redaction_guard",
-                    "status": guard["status"],
-                    "secret_like_field_detected": secret_like,
-                    "payload_hash": guard["payload_hash"],
-                },
-            ],
-        }
-
-    graph.add_node("context_evidence_collect", evidence_collect)
-    graph.add_node("context_budget_gate", budget_gate)
-    graph.add_node("context_compact_full_select", compact_full_select)
-    graph.add_node("context_redaction_guard", redaction_guard)
-    graph.add_edge(START, "context_evidence_collect")
-    graph.add_edge("context_evidence_collect", "context_budget_gate")
-    graph.add_edge("context_budget_gate", "context_compact_full_select")
-    graph.add_edge("context_compact_full_select", "context_redaction_guard")
-    graph.add_edge("context_redaction_guard", END)
-    return graph.compile(checkpointer=False)
-
-
-def assemble_lg_c2_prompt_context(
-    *,
-    stage_id: str,
-    payload_candidates: list[tuple[str, dict[str, Any]]],
-    prompt_builder: Any,
-    cfg: LLMStageConfig,
-) -> LG_C2_ContextAssemblyResult:
-    """Select an SL-9/SL-10 prompt payload through the LG-C2 context subgraph."""
-
-    if not payload_candidates:
-        raise ValueError("LG-C2 context subgraph requires at least one payload candidate")
-    app = _build_lg_c2_context_subgraph(prompt_builder=prompt_builder, cfg=cfg)
-    final_state = app.invoke({"stage_id": stage_id, "payload_candidates": payload_candidates, "node_trace": []})
-    selected_level = str(final_state["selected_level"])
-    selected_payload = dict(final_state["selected_payload"])
-    selected_prompt = list(final_state["selected_prompt_messages"])
-    budget_metadata = dict(final_state["budget_metadata_by_level"][selected_level])
-    guard = dict(final_state["redaction_guard"])
-    metadata = {
-        **budget_metadata,
-        "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
-        "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
-        "instrumentation_layer": LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
-        "stage_id": stage_id,
-        "compaction_level": selected_level,
-        "selection_reason": str(final_state["selection_reason"]),
-        "selected_payload_hash": str(final_state["selected_payload_hash"]),
-        "prompt_payload_hash": str(final_state["selected_payload_hash"]),
-        "selected_prompt_messages_hash": str(final_state["selected_prompt_messages_hash"]),
-        "budget_metadata": budget_metadata,
-        "redaction_guard": guard,
-        "redaction_guard_fail_closed": guard.get("status") == "blocked",
-        "node_trace": list(final_state.get("node_trace") or []),
-        "node_ids": list(LG_C2_CONTEXT_NODE_IDS),
-        "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
-        "context_subgraph_contract_hash": _hash_payload(build_lg_c2_context_subgraph_contract()),
-        "does_not_replace_academic_evidence": True,
-    }
-    if guard.get("status") == "blocked":
-        raise LG_C2_ContextRedactionBlocked(
-            stage_id=stage_id,
-            payload_hash=str(final_state["selected_payload_hash"]),
-            guard={
-                **guard,
-                "context_engineering_schema_version": LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION,
-                "subgraph_id": LG_C2_CONTEXT_SUBGRAPH_ID,
-                "canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
-                "node_trace_hash": _hash_payload(metadata["node_trace"]),
-            },
-        )
-    return LG_C2_ContextAssemblyResult(selected_payload, metadata, selected_prompt)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def _lg_c1_event_key(event: Any) -> str:
@@ -1303,20 +434,6 @@ def _lg_c1_append_only_reducer(existing: list[dict[str, Any]] | None, new_events
     return merged
 
 
-def _lg_e2_worker_result_reducer(existing: list[dict[str, Any]] | None, new_results: Any) -> list[dict[str, Any]]:
-    """Append LG-E2 Send worker results without using completion order as evidence.
-
-    LangGraph may merge Send worker updates in runtime completion order.  LG-E2
-    keeps that raw order only as instrumentation; all academic evidence is
-    re-sorted later by the canonical scenario/checker key.
-    """
-
-    merged = list(existing or [])
-    if new_results is None:
-        return merged
-    incoming = list(new_results if isinstance(new_results, list) else [new_results])
-    merged.extend(item for item in incoming if isinstance(item, dict))
-    return merged
 
 
 class _GraphLoopState(TypedDict, total=False):
@@ -1345,11 +462,6 @@ class _GraphLoopState(TypedDict, total=False):
     runtime_error: NotRequired[str]
 
 
-class _LgE2SendState(TypedDict, total=False):
-    """Internal map-reduce state for LG-E2 SD-6 scenario fan-out."""
-
-    worker_specs: list[dict[str, Any]]
-    worker_results: Annotated[list[dict[str, Any]], _lg_e2_worker_result_reducer]
 
 
 class _ValidationSubgraphState(_GraphLoopState, total=False):
@@ -1445,16 +557,6 @@ class _RepairSubgraphState(_GraphLoopState, total=False):
     repair_patch: dict[str, Any]
 
 
-def _jsonable(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, dict):
-        return {str(k): _jsonable(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple, set)):
-        return [_jsonable(v) for v in value]
-    if is_dataclass(value) and not isinstance(value, type):
-        return _jsonable(asdict(value))
-    return str(value)
 
 
 def build_lg_c1_graph_state_contract() -> dict[str, Any]:
@@ -1810,1682 +912,136 @@ def _inject_lg_c1_graph_state_readiness(record: Any, graph_state: _GraphLoopStat
 
 
 
-def build_lg_e3_toolnode_wrapper_registry() -> dict[str, Any]:
-    """Return the fixed ToolNode-style wrapper contract for deterministic SD tools.
-
-    LG-E3 deliberately does **not** expose these tools to LLM tool-choice.  The
-    graph/stage nodes call the wrappers in fixed stage order and the wrappers
-    only add prompt-safe instrumentation around the original deterministic
-    callable.  Canonical checker outputs and verdict sources remain the original
-    SD tool return values.
-    """
-
-    def row(tool_name: str, stage_id: str, graph_nodes: list[str], callable_ref: str) -> dict[str, Any]:
-        return {
-            "tool_name": tool_name,
-            "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-            "stage_id": stage_id,
-            "graph_nodes": list(graph_nodes),
-            "callable_ref": callable_ref,
-            "wrapper_kind": "custom_langgraph_visible_fixed_toolnode_wrapper",
-            "fixed_invocation": True,
-            "llm_tool_choice_exposed": False,
-            "input_policy": "hash_and_safe_summary_only",
-            "output_policy": "hash_and_safe_summary_only",
-            "does_not_replace_academic_evidence": True,
-        }
-
-    wrappers = [
-        row("sd2_parse", StageId.SD_2_PARSE.value, ["validation_sd2_parse"], "FullStagedRuntimeAdapters.parse"),
-        row("sd3_semantic", StageId.SD_3_SEMANTIC.value, ["validation_sd3_semantic"], "FullStagedRuntimeAdapters.semantic"),
-        row("sd4_design", StageId.SD_4_DESIGN.value, ["validation_sd4_design"], "FullStagedRuntimeAdapters.design"),
-        row(
-            "sd5a_scenario_coverage",
-            StageId.SD_5A_SCENARIO_COVERAGE.value,
-            ["validation_sd5a_scenario_coverage", "validation_sd5a_reuse_coverage"],
-            "FullStagedRuntimeAdapters.scenario_coverage",
-        ),
-        row("sc5f_freeze_scenario_set", StageId.SC_5F_SCENARIO_FREEZE.value, ["validation_sc5f_scenario_freeze"], "freeze_scenario_set"),
-        row("sd6_sim", StageId.SD_6_SIM.value, ["validation_sd6_sim"], "FullStagedRuntimeAdapters.sim"),
-        row("sd8_fix_plan", StageId.SD_8_FIX_PLAN.value, ["repair_sd8_fix_requests"], "run_sd8_fix_plan"),
-        row("sd10_repair_review_local_check", StageId.SD_10_REPAIR_REVIEW.value, ["repair_sl10_review"], "FullStagedRuntimeAdapters.repair_review"),
-        row("warning_repair_attempt_marker", "warning_budget_state", ["repair_sd8_fix_requests"], "mark_warning_repair_attempt"),
-    ]
-    return {
-        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
-        "enabled_by_default": True,
-        "fixed_invocation": True,
-        "llm_tool_choice_exposed": False,
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-        "wrappers": wrappers,
-    }
-
-
-def _lg_e3_toolnode_wrappers_enabled(runtime_cfg: FullStagedRuntimeConfig) -> bool:
-    return bool(runtime_cfg.run_config_extra.get("lg_e3_toolnode_wrappers_enabled", True))
-
-
-_LG_E3_SENSITIVE_SUMMARY_KEY_EXACT = {
-    "dsl",
-    "current_dsl",
-    "old_dsl",
-    "before_dsl",
-    "after_dsl",
-    "candidate_dsl",
-    "repair_candidate_dsl",
-    "source_dsl",
-    "final_dsl",
-    "nl",
-    "messages",
-    "prompt",
-    "raw_prompt",
-    "raw_input",
-    "raw_output",
-}
-
-
-def _lg_e3_summary_key_is_sensitive(key_text: str) -> bool:
-    normalized = key_text.lower()
-    return (
-        normalized in _LG_E3_SENSITIVE_SUMMARY_KEY_EXACT
-        or normalized.endswith("_dsl")
-        or normalized.startswith("raw_")
-        or "prompt" in normalized
-        or normalized in {"nl", "messages"}
-    )
-
-
-def _safe_lg_e3_tool_summary(value: Any) -> Any:
-    safe = _jsonable(value)
-    if isinstance(safe, dict):
-        out: dict[str, Any] = {}
-        for key, nested in safe.items():
-            key_text = str(key)
-            if _lg_e3_summary_key_is_sensitive(key_text):
-                out[f"{key_text}_hash"] = _hash_payload(nested)
-                out[f"{key_text}_chars"] = len(json.dumps(_jsonable(nested), ensure_ascii=False, sort_keys=True, default=str))
-                continue
-            if isinstance(nested, (dict, list, tuple, set)):
-                out[f"{key_text}_hash"] = _hash_payload(nested)
-                if isinstance(nested, dict):
-                    out[f"{key_text}_key_count"] = len(nested)
-                else:
-                    out[f"{key_text}_count"] = len(nested)
-                continue
-            out[key_text] = nested
-        return out
-    if isinstance(safe, list):
-        return {"item_count": len(safe), "items_hash": _hash_payload(safe)}
-    if isinstance(safe, str):
-        return {"text_hash": _hash_text(safe), "text_chars": len(safe)}
-    return safe
-
-
-def _record_lg_e3_toolnode_event(
-    graph_state: _GraphLoopState,
-    *,
-    tool_name: str,
-    stage_id: str,
-    graph_node: str,
-    iteration: int | None,
-    input_payload: Any,
-    output_payload: Any,
-    status: str = "ok",
-) -> None:
-    if not bool(graph_state.get("toolnode_wrapper_enabled", True)):
-        return
-    event = {
-        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
-        "tool_name": tool_name,
-        "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-        "stage_id": stage_id,
-        "graph_node": graph_node,
-        "iteration": iteration,
-        "fixed_invocation": True,
-        "llm_tool_choice_exposed": False,
-        "status": status,
-        "input_hash": _hash_payload(input_payload),
-        "output_hash": _hash_payload(output_payload),
-        "input_summary": _safe_lg_e3_tool_summary(input_payload),
-        "output_summary": _safe_lg_e3_tool_summary(output_payload),
-        "does_not_replace_academic_evidence": True,
-    }
-    # Fail early if the wrapper accidentally starts carrying raw evidence fields.
-    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
-    events = list(graph_state.get("toolnode_wrapper_events", []) or [])
-    events.append(event)
-    graph_state["toolnode_wrapper_events"] = events
-    _append_lg_d1_operator_event(
-        graph_state,
-        event_type="fixed_toolnode_result",
-        node=graph_node,
-        stage_id=stage_id if stage_id.startswith(("SC-", "SD-", "SL-")) else None,
-        payload={
-            "tool_name": tool_name,
-            "tool_schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-            "input_hash": event["input_hash"],
-            "output_hash": event["output_hash"],
-            "fixed_invocation": True,
-            "llm_tool_choice_exposed": False,
-            "status": status,
-        },
-    )
-
-
-def _lg_e3_fixed_tool_call(
-    graph_state: _GraphLoopState,
-    *,
-    tool_name: str,
-    stage_id: str,
-    graph_node: str,
-    iteration: int | None,
-    input_payload: Any,
-    call: Any,
-) -> Any:
-    if not bool(graph_state.get("toolnode_wrapper_enabled", True)):
-        return call()
-    try:
-        output = call()
-    except Exception as exc:
-        _record_lg_e3_toolnode_event(
-            graph_state,
-            tool_name=tool_name,
-            stage_id=stage_id,
-            graph_node=graph_node,
-            iteration=iteration,
-            input_payload=input_payload,
-            output_payload={"error_type": type(exc).__name__, "error_hash": _hash_text(str(exc))},
-            status="error",
-        )
-        raise
-    _record_lg_e3_toolnode_event(
-        graph_state,
-        tool_name=tool_name,
-        stage_id=stage_id,
-        graph_node=graph_node,
-        iteration=iteration,
-        input_payload=input_payload,
-        output_payload=output,
-        status="ok",
-    )
-    return output
-
-
-_LG_E2_ORDERING_KEY_FIELDS = (
-    "scenario_epoch",
-    "scenario_index",
-    "normalized_scenario_name",
-    "checker_name",
-    "input_hash",
-)
-
-
-def build_lg_e2_send_parallel_contract() -> dict[str, Any]:
-    """Return the LG-E2 SD-6 Send fan-out contract.
-
-    LG-E2 is an auditability/reproducibility contract, not a model-quality
-    metric.  It uses LangGraph ``Send`` only for independent deterministic
-    scenario workers and then reduces worker results through a canonical order
-    that is independent of runtime completion order.
-    """
-
-    return {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
-        "stage_id": StageId.SD_6_SIM.value,
-        "graph_node": "validation_sd6_sim",
-        "send_api": "langgraph.types.Send",
-        "fanout_scope": "independent deterministic SD-6 scenario simulation/checker workers",
-        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
-        "scenario_index_source": "frozen ScenarioSet.scenarios original order",
-        "normalized_scenario_name_role": "tie_break_only_after_scenario_index",
-        "serial_equivalence_hash_excludes": [
-            "operator_event_completion_order",
-            "wall_clock_timestamp",
-            "provider_latency",
-            "raw_prompt_or_raw_output",
-        ],
-        "worker_isolation": "deepcopy scenario plus isolated StageContext; shared graph state/FixLog/history are not passed to workers",
-        "preflight_required": True,
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-    }
-
-
-def _lg_e2_normalized_scenario_name(name: Any) -> str:
-    return re.sub(r"\s+", " ", str(name or "").strip().lower())
-
-
-def _lg_e2_worker_ordering_key(worker: dict[str, Any]) -> tuple[int, int, str, str, str]:
-    key = worker.get("ordering_key") if isinstance(worker.get("ordering_key"), dict) else worker
-    return (
-        int(key.get("scenario_epoch", 0) or 0),
-        int(key.get("scenario_index", 0) or 0),
-        str(key.get("normalized_scenario_name") or ""),
-        str(key.get("checker_name") or ""),
-        str(key.get("input_hash") or ""),
-    )
-
-
-def _lg_e2_canonicalize_worker_results(worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return sorted([item for item in worker_results if isinstance(item, dict)], key=_lg_e2_worker_ordering_key)
-
-
-def _lg_e2_feedback_scenario_results(feedback: Any) -> list[Any]:
-    if isinstance(feedback, SimFeedback):
-        return list(feedback.scenario_results)
-    if isinstance(feedback, dict):
-        return list(feedback.get("scenario_results") or [])
-    return list(getattr(feedback, "scenario_results", []) or [])
-
-
-def _lg_e2_scenario_result_sort_key(result: Any, scenario_index_by_name: dict[str, int]) -> tuple[int, str, str]:
-    name = str(getattr(result, "name", "") or "")
-    return (
-        int(scenario_index_by_name.get(name, len(scenario_index_by_name) + 1)),
-        _lg_e2_normalized_scenario_name(name),
-        _hash_payload(result),
-    )
-
-
-def _lg_e2_canonicalize_scenario_results(scenario_results: list[Any], scenario_set: Any) -> list[Any]:
-    scenario_index_by_name = {
-        str(getattr(scenario, "name", "") or ""): index
-        for index, scenario in enumerate(list(getattr(scenario_set, "scenarios", []) or []))
-    }
-    return sorted(
-        [result for result in list(scenario_results or []) if isinstance(result, ScenarioResult)],
-        key=lambda result: _lg_e2_scenario_result_sort_key(result, scenario_index_by_name),
-    )
-
-
-def _lg_e2_selected_feedback_digest(feedback: SimFeedback, scenario_set: Any | None = None) -> dict[str, Any]:
-    selected = None
-    scenario_results = (
-        _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results or []), scenario_set)
-        if scenario_set is not None
-        else list(feedback.scenario_results or [])
-    )
-    canonical_feedback_payload = {
-        "ok": bool(feedback.ok),
-        "n_scenarios": int(feedback.n_scenarios),
-        "n_scenarios_passed": int(feedback.n_scenarios_passed),
-        "scenario_results": _jsonable(scenario_results),
-        "setup_error": feedback.setup_error,
-        "oracle_weak": bool(feedback.oracle_weak),
-        "weak_oracle_reason": feedback.weak_oracle_reason,
-        "weak_oracle_evidence": _jsonable(feedback.weak_oracle_evidence),
-    }
-    if not feedback.ok and not getattr(feedback, "oracle_weak", False):
-        selected = {
-            "source": FeedbackSource.SIM.value,
-            "source_stage": StageId.SD_6_SIM.value,
-            "feedback_hash": _hash_payload(canonical_feedback_payload),
-            "failing_scenario_names": [
-                result.name
-                for result in scenario_results
-                if isinstance(result, ScenarioResult) and result.status != "pass"
-            ],
-            "setup_error_hash": _hash_text(feedback.setup_error) if feedback.setup_error else None,
-        }
-    return {
-        "selected": selected,
-        "selected_feedback_digest": _hash_payload(selected),
-    }
-
-
-def _lg_e2_scenario_history_summary(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    summary: list[dict[str, Any]] = []
-    for item in history or []:
-        if not isinstance(item, dict):
-            continue
-        coverage = item.get("coverage")
-        summary.append(
-            {
-                "iteration": item.get("iteration"),
-                "attempt_index": item.get("attempt_index"),
-                "scenario_set_id": item.get("scenario_set_id"),
-                "epoch": item.get("epoch"),
-                "scenario_names": list(item.get("scenario_names") or []),
-                "coverage_gap": item.get("coverage_gap"),
-                "oracle_weak": item.get("oracle_weak"),
-                "coverage_hash": _hash_payload(coverage) if coverage is not None else None,
-            }
-        )
-    return summary
-
-
-def _lg_e2_coverage_summary(scenario_set: Any) -> dict[str, Any]:
-    coverage = getattr(scenario_set, "coverage_report", {}) or {}
-    return {
-        "scenario_set_id": getattr(scenario_set, "scenario_set_id", None),
-        "scenario_epoch": getattr(scenario_set, "epoch", None),
-        "scenario_names": [getattr(scenario, "name", "") for scenario in list(getattr(scenario_set, "scenarios", []) or [])],
-        "coverage_summary_hash": _hash_payload(coverage),
-        "coverage_gap": bool(coverage.get("coverage_gap")) if isinstance(coverage, dict) else None,
-        "oracle_weak": bool(coverage.get("oracle_weak")) if isinstance(coverage, dict) and "oracle_weak" in coverage else None,
-    }
-
-
-def _lg_e2_serial_equivalence_payload(
-    *,
-    scenario_results: list[Any],
-    selected_feedback_digest: dict[str, Any],
-    scenario_history: list[dict[str, Any]],
-    scenario_set: Any,
-    oracle_weak: bool,
-    scenario_epoch: int | None,
-    final_summary: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    return {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
-        "scenario_results": _jsonable(scenario_results),
-        "selected_feedback_digest": _jsonable(selected_feedback_digest),
-        "scenario_history_summary": _lg_e2_scenario_history_summary(scenario_history),
-        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
-        "oracle_weak": bool(oracle_weak),
-        "scenario_epoch": scenario_epoch,
-        "nfrr_eligibility_verdict_summary": final_summary or {"status": "pending_at_sd6"},
-    }
-
-
-def _lg_e2_build_isolated_context(context: StageContext, *, current_dsl: str, scenario_set: ScenarioSet) -> StageContext:
-    """Build a worker-local StageContext without sharing mutable graph objects."""
-
-    isolated = StageContext(
-        nl=str(getattr(context, "nl", "") or ""),
-        current_dsl=current_dsl,
-        grounding_map=copy.deepcopy(getattr(context, "grounding_map", None)),
-        scenario_set=scenario_set,
-        warning_budget_state=copy.deepcopy(getattr(context, "warning_budget_state", {}) or {}),
-    )
-    isolated.inspect_json = copy.deepcopy(getattr(context, "inspect_json", None))
-    return isolated
-
-
-def _lg_e2_single_scenario_set(scenario_set: ScenarioSet, scenario: Any) -> ScenarioSet:
-    return ScenarioSet(
-        scenario_set_id=scenario_set.scenario_set_id,
-        scenarios=[copy.deepcopy(scenario)],
-        source_dsl_hash=scenario_set.source_dsl_hash,
-        source_inspect_hash=scenario_set.source_inspect_hash,
-        source_grounding_hash=scenario_set.source_grounding_hash,
-        coverage_report=copy.deepcopy(scenario_set.coverage_report),
-        epoch=scenario_set.epoch,
-        frozen=scenario_set.frozen,
-        invalidated_by=copy.deepcopy(scenario_set.invalidated_by),
-    )
-
-
-def _lg_e2_preflight(
-    *,
-    enabled_requested: bool,
-    adapters: FullStagedRuntimeAdapters,
-    scenario_set: ScenarioSet,
-    context: StageContext,
-    current_dsl: str,
-) -> dict[str, Any]:
-    scenario_count = len(list(scenario_set.scenarios or []))
-    preflight = {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "send_api_import_ok": Send is not None,
-        "enabled_requested": bool(enabled_requested),
-        "scenario_count": scenario_count,
-        "parallel_send_enabled": False,
-        "fallback_reason": "",
-        "thread_safety_basis": "deepcopy_isolated_worker_context_and_single_scenario_set",
-        "worker_shared_object_policy": "workers receive no graph_state, reducer channel, FixLog, scenario_history or shared ScenarioSet object",
-    }
-    if not enabled_requested:
-        preflight["fallback_reason"] = "lg_e2_send_parallel_disabled_by_runtime_parameter"
-        return preflight
-    if scenario_count <= 0:
-        preflight["fallback_reason"] = "no_scenarios_to_fan_out"
-        return preflight
-    if getattr(adapters.sim, "lg_e2_thread_safe", None) is False:
-        preflight["fallback_reason"] = "sim_adapter_declared_lg_e2_thread_safe_false"
-        return preflight
-    if getattr(adapters.sim, "lg_e2_thread_safe", None) is not True:
-        preflight["fallback_reason"] = "sim_adapter_lacks_lg_e2_thread_safety_declaration"
-        return preflight
-    try:
-        probe_set = _lg_e2_single_scenario_set(scenario_set, scenario_set.scenarios[0])
-        _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=probe_set)
-        copy.deepcopy(scenario_set.scenarios[0])
-        preflight["deepcopy_isolation_ok"] = True
-    except Exception as exc:
-        preflight["deepcopy_isolation_ok"] = False
-        preflight["fallback_reason"] = f"deepcopy_isolation_failed:{type(exc).__name__}:{str(exc)[:160]}"
-        return preflight
-    preflight["parallel_send_enabled"] = True
-    preflight["fallback_reason"] = ""
-    return preflight
-
-
-def _lg_e2_worker_specs(*, current_dsl: str, scenario_set: ScenarioSet, context: StageContext) -> list[dict[str, Any]]:
-    specs: list[dict[str, Any]] = []
-    scenario_epoch = int(getattr(scenario_set, "epoch", 0) or 0)
-    for scenario_index, scenario in enumerate(list(scenario_set.scenarios or [])):
-        normalized_name = _lg_e2_normalized_scenario_name(getattr(scenario, "name", ""))
-        input_hash = _hash_payload(
-            {
-                "current_dsl_hash": _hash_text(current_dsl),
-                "scenario_set_id": scenario_set.scenario_set_id,
-                "scenario_epoch": scenario_epoch,
-                "scenario_index": scenario_index,
-                "scenario": scenario,
-            }
-        )
-        ordering_key = {
-            "scenario_epoch": scenario_epoch,
-            "scenario_index": scenario_index,
-            "normalized_scenario_name": normalized_name,
-            "checker_name": "sd6_sim",
-            "input_hash": input_hash,
-        }
-        single_set = _lg_e2_single_scenario_set(scenario_set, scenario)
-        specs.append(
-            {
-                "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-                "current_dsl": current_dsl,
-                "scenario_set": single_set,
-                "context": _lg_e2_build_isolated_context(context, current_dsl=current_dsl, scenario_set=single_set),
-                "scenario_name": getattr(scenario, "name", ""),
-                "ordering_key": ordering_key,
-                "send_arg_hash": _hash_payload({"ordering_key": ordering_key, "scenario": scenario}),
-            }
-        )
-    return specs
-
-
-def _lg_e2_execute_send_graph(
-    *,
-    worker_specs: list[dict[str, Any]],
-    sim_adapter: Any,
-) -> list[dict[str, Any]]:
-    graph = StateGraph(_LgE2SendState)
-
-    def route_workers(state: _LgE2SendState) -> list[Send]:
-        return [Send("lg_e2_sd6_scenario_worker", spec) for spec in list(state.get("worker_specs") or [])]
-
-    def worker(spec: dict[str, Any]) -> dict[str, Any]:
-        ordering_key = dict(spec.get("ordering_key") or {})
-        feedback, meta = sim_adapter(spec["current_dsl"], spec["scenario_set"], spec["context"])
-        return {
-            "worker_results": [
-                {
-                    "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-                    "ordering_key": ordering_key,
-                    "scenario_name": spec.get("scenario_name"),
-                    "send_arg_hash": spec.get("send_arg_hash"),
-                    "feedback": feedback,
-                    "meta": meta,
-                    "feedback_hash": _hash_payload(feedback),
-                    "meta_hash": _hash_payload(meta),
-                    "scenario_result_count": len(_lg_e2_feedback_scenario_results(feedback)),
-                    "ok": bool(getattr(feedback, "ok", False)),
-                    "oracle_weak": bool(getattr(feedback, "oracle_weak", False)),
-                }
-            ]
-        }
-
-    graph.add_node("lg_e2_sd6_scenario_worker", worker)
-    graph.add_conditional_edges(START, route_workers)
-    graph.add_edge("lg_e2_sd6_scenario_worker", END)
-    app = graph.compile(checkpointer=False)
-    result = app.invoke({"worker_specs": worker_specs, "worker_results": []})
-    return [item for item in list(result.get("worker_results") or []) if isinstance(item, dict)]
-
-
-def _lg_e2_aggregate_worker_results(
-    *,
-    worker_results: list[dict[str, Any]],
-    scenario_set: ScenarioSet,
-) -> tuple[SimFeedback, StageResultMeta, list[dict[str, Any]]]:
-    canonical = _lg_e2_canonicalize_worker_results(worker_results)
-    scenario_results_by_name: dict[str, list[ScenarioResult]] = defaultdict(list)
-    setup_errors: list[str] = []
-    weak_reasons: list[str] = []
-    weak_evidence: list[Any] = []
-    hard_failure_seen = False
-    n_passed = 0
-    ok = True
-    any_error_status = False
-    for worker in canonical:
-        feedback = worker.get("feedback")
-        meta = worker.get("meta")
-        if not isinstance(feedback, SimFeedback):
-            raise TypeError("LG-E2 worker must return SimFeedback")
-        ok = ok and bool(feedback.ok)
-        n_passed += int(getattr(feedback, "n_scenarios_passed", 0) or 0)
-        for result in feedback.scenario_results:
-            if isinstance(result, ScenarioResult):
-                scenario_results_by_name[str(result.name or "")].append(result)
-        if feedback.setup_error:
-            setup_errors.append(feedback.setup_error)
-        if not feedback.ok and feedback.oracle_weak:
-            weak_reasons.append(feedback.weak_oracle_reason)
-            weak_evidence.append(feedback.weak_oracle_evidence)
-        elif not feedback.ok:
-            hard_failure_seen = True
-        if getattr(meta, "status", None) == StageStatus.ERROR:
-            any_error_status = True
-            hard_failure_seen = True
-    status = StageStatus.ERROR if any_error_status else (StageStatus.OK if ok else StageStatus.FAIL)
-    scenario_results: list[ScenarioResult] = []
-    for scenario in list(scenario_set.scenarios or []):
-        scenario_name = str(getattr(scenario, "name", "") or "")
-        scenario_results.extend(scenario_results_by_name.pop(scenario_name, []))
-    for leftover_name in sorted(scenario_results_by_name, key=_lg_e2_normalized_scenario_name):
-        scenario_results.extend(scenario_results_by_name[leftover_name])
-    feedback = SimFeedback(
-        ok=ok,
-        n_scenarios=len(list(scenario_set.scenarios or [])),
-        n_scenarios_passed=n_passed,
-        scenario_results=scenario_results,
-        setup_error=setup_errors[0] if setup_errors else None,
-        oracle_weak=bool(weak_reasons) and not hard_failure_seen,
-        weak_oracle_reason=";".join(reason for reason in weak_reasons if reason) if bool(weak_reasons) and not hard_failure_seen else "",
-        weak_oracle_evidence={"worker_evidence": _jsonable(weak_evidence)} if bool(weak_reasons) and not hard_failure_seen else {},
-    )
-    meta = _meta(StageId.SD_6_SIM, ok=feedback.ok, status=status)
-    meta.input_hash = _hash_payload(
-        {
-            "scenario_set_id": scenario_set.scenario_set_id,
-            "scenario_epoch": scenario_set.epoch,
-            "scenario_names": [getattr(scenario, "name", "") for scenario in list(scenario_set.scenarios or [])],
-        }
-    )
-    meta.output_hash = _hash_payload(feedback)
-    return feedback, meta, canonical
-
-
-def _lg_e2_first_blocking_id(selected_digest: dict[str, Any]) -> str | None:
-    selected = selected_digest.get("selected") if isinstance(selected_digest, dict) else None
-    if not isinstance(selected, dict):
-        return None
-    names = selected.get("failing_scenario_names")
-    if isinstance(names, list) and names:
-        return str(names[0])
-    setup_hash = selected.get("setup_error_hash")
-    if setup_hash:
-        return f"setup_error:{setup_hash}"
-    return None
-
-
-def _lg_e2_metadata_for_feedback(
-    *,
-    enabled_requested: bool,
-    preflight: dict[str, Any],
-    scenario_set: ScenarioSet,
-    feedback: SimFeedback,
-    scenario_history: list[dict[str, Any]],
-    worker_results: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    canonical_workers = _lg_e2_canonicalize_worker_results(worker_results or [])
-    scenario_results = _lg_e2_canonicalize_scenario_results(list(feedback.scenario_results), scenario_set)
-    selected_digest = _lg_e2_selected_feedback_digest(feedback, scenario_set)
-    serial_payload = _lg_e2_serial_equivalence_payload(
-        scenario_results=scenario_results,
-        selected_feedback_digest=selected_digest,
-        scenario_history=scenario_history,
-        scenario_set=scenario_set,
-        oracle_weak=feedback.oracle_weak,
-        scenario_epoch=scenario_set.epoch,
-    )
-    canonical_result_hash = _hash_payload(_jsonable(scenario_results))
-    return {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
-        "enabled_requested": bool(enabled_requested),
-        "parallel_send_enabled": bool(preflight.get("parallel_send_enabled")),
-        "fallback_reason": str(preflight.get("fallback_reason") or ""),
-        "preflight": _jsonable(preflight),
-        "send_api": "langgraph.types.Send",
-        "send_api_import_ok": bool(preflight.get("send_api_import_ok")),
-        "ordering_key_fields": list(_LG_E2_ORDERING_KEY_FIELDS),
-        "worker_count": len(canonical_workers),
-        "fanout_count": len(list(scenario_set.scenarios or [])),
-        "raw_worker_order": [
-            _jsonable((worker.get("ordering_key") or {}))
-            for worker in list(worker_results or [])
-            if isinstance(worker, dict)
-        ],
-        "canonical_worker_order": [
-            _jsonable((worker.get("ordering_key") or {}))
-            for worker in canonical_workers
-        ],
-        "canonical_scenario_results": _jsonable(scenario_results),
-        "canonical_result_hash": canonical_result_hash,
-        "coverage_summary": _lg_e2_coverage_summary(scenario_set),
-        "coverage_summary_hash": _lg_e2_coverage_summary(scenario_set)["coverage_summary_hash"],
-        "selected_feedback_digest": selected_digest,
-        "first_blocking_id": _lg_e2_first_blocking_id(selected_digest),
-        "scenario_epoch": scenario_set.epoch,
-        "oracle_weak": bool(feedback.oracle_weak),
-        "serial_equivalence_hash": _hash_payload(serial_payload),
-        "serial_equivalence_hash_input_scope": {
-            "scenario_results": True,
-            "first_blocking_or_selected_feedback_digest": True,
-            "scenario_history_summary": True,
-            "coverage_summary": True,
-            "oracle_weak": True,
-            "nfrr_eligibility_verdict_summary": "pending_at_sd6_finalized_in_run_record_trace",
-            "excludes_operator_event_order_wall_clock_latency": True,
-        },
-        "does_not_replace_academic_evidence": True,
-    }
-
-
-def _lg_e2_final_verdict_summary(record: Any) -> dict[str, Any]:
-    final_artifacts = record.final_artifacts if isinstance(getattr(record, "final_artifacts", None), dict) else {}
-    return {
-        "record_status": getattr(record, "status", None),
-        "verdict": final_artifacts.get("verdict"),
-        "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
-        "agent_loop_result_status": final_artifacts.get("agent_loop_result_status"),
-        "main_result_eligible": final_artifacts.get("main_result_eligible"),
-        "inclusion_reason": final_artifacts.get("inclusion_reason"),
-        "exclusion_reason": final_artifacts.get("exclusion_reason"),
-        "oracle_weak": final_artifacts.get("oracle_weak"),
-    }
-
-
-def _lg_e2_finalize_metadata_from_record(record: Any, metadata: dict[str, Any]) -> dict[str, Any]:
-    finalized = dict(metadata)
-    iteration = finalized.get("iteration")
-    scenario_results = finalized.get("canonical_scenario_results") or []
-    final_summary = _lg_e2_final_verdict_summary(record)
-    final_payload = {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "hash_input_schema_version": f"{LG_E2_SEND_PARALLEL_SCHEMA_VERSION}.serial-equivalence-hash.v1",
-        "scenario_results": _jsonable(scenario_results or []),
-        "selected_feedback_digest": _jsonable(finalized.get("selected_feedback_digest") or {}),
-        "scenario_history_summary": _lg_e2_scenario_history_summary(list(getattr(record, "scenario_history", []) or [])),
-        "coverage_summary": _jsonable(finalized.get("coverage_summary") or {}),
-        "oracle_weak": bool(finalized.get("oracle_weak")),
-        "scenario_epoch": finalized.get("scenario_epoch"),
-        "nfrr_eligibility_verdict_summary": final_summary,
-    }
-    finalized["serial_equivalence_hash"] = _hash_payload(final_payload)
-    finalized["serial_equivalence_hash_finalized"] = True
-    finalized["nfrr_eligibility_verdict_summary"] = final_summary
-    finalized["serial_equivalence_hash_input_payload_hash"] = _hash_payload(final_payload)
-    return finalized
-
-
-def _lg_e2_run_sd6_send_parallel_or_serial(
-    graph_state: _ValidationSubgraphState,
-    *,
-    runtime_cfg: FullStagedRuntimeConfig,
-    adapters: FullStagedRuntimeAdapters,
-    current_dsl: str,
-    scenario_set: ScenarioSet,
-    context: StageContext,
-    iteration: int,
-    enabled_requested: bool,
-) -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
-    preflight = _lg_e2_preflight(
-        enabled_requested=enabled_requested,
-        adapters=adapters,
-        scenario_set=scenario_set,
-        context=context,
-        current_dsl=current_dsl,
-    )
-    scenario_history = list(graph_state.get("validation_scenario_history") or [])
-    input_payload = {
-        "current_dsl": current_dsl,
-        "scenario_set": scenario_set,
-        "context": context,
-        "lg_e2_preflight": preflight,
-    }
-    if not preflight.get("parallel_send_enabled"):
-        sim_feedback, sim_meta = _lg_e3_fixed_tool_call(
-            graph_state,
-            tool_name="sd6_sim",
-            stage_id=StageId.SD_6_SIM.value,
-            graph_node="validation_sd6_sim",
-            iteration=iteration,
-            input_payload=input_payload,
-            call=lambda: adapters.sim(current_dsl, scenario_set, context),
-        )
-        if not isinstance(sim_feedback, SimFeedback):
-            raise TypeError("SD-6 sim adapter must return SimFeedback")
-        metadata = _lg_e2_metadata_for_feedback(
-            enabled_requested=enabled_requested,
-            preflight=preflight,
-            scenario_set=scenario_set,
-            feedback=sim_feedback,
-            scenario_history=scenario_history,
-            worker_results=[],
-        )
-        return sim_feedback, sim_meta, metadata
-
-    def call_parallel() -> tuple[SimFeedback, StageResultMeta, dict[str, Any]]:
-        worker_specs = _lg_e2_worker_specs(current_dsl=current_dsl, scenario_set=scenario_set, context=context)
-        worker_results = _lg_e2_execute_send_graph(worker_specs=worker_specs, sim_adapter=adapters.sim)
-        parallel_feedback, parallel_meta, canonical_workers = _lg_e2_aggregate_worker_results(
-            worker_results=worker_results,
-            scenario_set=scenario_set,
-        )
-        parallel_metadata = _lg_e2_metadata_for_feedback(
-            enabled_requested=enabled_requested,
-            preflight=preflight,
-            scenario_set=scenario_set,
-            feedback=parallel_feedback,
-            scenario_history=scenario_history,
-            worker_results=worker_results,
-        )
-        serial_feedback, serial_meta = adapters.sim(current_dsl, scenario_set, context)
-        if not isinstance(serial_feedback, SimFeedback):
-            raise TypeError("SD-6 serial control adapter must return SimFeedback")
-        metadata = _lg_e2_metadata_for_feedback(
-            enabled_requested=enabled_requested,
-            preflight=preflight,
-            scenario_set=scenario_set,
-            feedback=serial_feedback,
-            scenario_history=scenario_history,
-            worker_results=worker_results,
-        )
-        serial_alignment_ok = (
-            parallel_metadata["canonical_result_hash"] == metadata["canonical_result_hash"]
-            and parallel_metadata["serial_equivalence_hash"] == metadata["serial_equivalence_hash"]
-            and bool(parallel_feedback.oracle_weak) == bool(serial_feedback.oracle_weak)
-            and bool(parallel_feedback.ok) == bool(serial_feedback.ok)
-        )
-        metadata["parallel_canonical_result_hash"] = parallel_metadata["canonical_result_hash"]
-        metadata["serial_canonical_result_hash"] = metadata["canonical_result_hash"]
-        metadata["parallel_serial_equivalence_hash"] = parallel_metadata["serial_equivalence_hash"]
-        metadata["serial_control_equivalence_hash"] = metadata["serial_equivalence_hash"]
-        metadata["serial_control_run_executed"] = True
-        metadata["serial_alignment_ok"] = serial_alignment_ok
-        metadata["canonical_output_source"] = "serial_control_after_send_alignment"
-        if not serial_alignment_ok:
-            metadata["canonical_fallback_reason"] = "parallel_serial_alignment_mismatch_canonical_serial_used"
-        else:
-            metadata["canonical_fallback_reason"] = ""
-        metadata["worker_count"] = len(canonical_workers)
-        metadata["send_constructed_count"] = len(worker_specs)
-        metadata["send_arg_hashes"] = [str(spec.get("send_arg_hash") or "") for spec in worker_specs]
-        metadata["parallel_aggregate_meta_hash"] = _hash_payload(parallel_meta)
-        metadata["serial_control_meta_hash"] = _hash_payload(serial_meta)
-        return serial_feedback, serial_meta, metadata
-
-    sim_feedback, sim_meta, metadata = _lg_e3_fixed_tool_call(
-        graph_state,
-        tool_name="sd6_sim",
-        stage_id=StageId.SD_6_SIM.value,
-        graph_node="validation_sd6_sim",
-        iteration=iteration,
-        input_payload=input_payload,
-        call=call_parallel,
-    )
-    return sim_feedback, sim_meta, metadata
-
-
-def _hash_payload(payload: Any) -> str:
-    encoded = json.dumps(_jsonable(payload), ensure_ascii=False, sort_keys=True, default=str)
-    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-def _hash_file(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
-
-
-def _sanitize_lg_d1_operator_payload(value: Any) -> tuple[Any, int]:
-    """Return a JSON-safe operator payload without raw prompt/output fields.
-
-    LG-D1's operator stream is a terminal/debugging aid, not a new raw evidence
-    store.  It may carry sizes, hashes, timings and verdicts, but never prompts,
-    raw LLM outputs, chunk text, headers or API-key-like fields.
-    """
-
-    if isinstance(value, dict):
-        sanitized: dict[str, Any] = {}
-        omitted = 0
-        for key, nested in value.items():
-            key_text = str(key)
-            key_norm = key_text.lower()
-            key_compact = re.sub(r"[^a-z0-9]", "", key_norm)
-            if key_norm in _LG_D1_FORBIDDEN_OPERATOR_PAYLOAD_KEYS or any(
-                fragment in key_norm for fragment in _LG_D1_FORBIDDEN_OPERATOR_KEY_FRAGMENTS
-            ) or any(
-                key_norm.endswith(suffix) for suffix in _LG_D1_FORBIDDEN_OPERATOR_KEY_SUFFIXES
-            ) or key_compact in _LG_D1_FORBIDDEN_OPERATOR_COMPACT_KEYS or key_compact.startswith("raw"):
-                omitted += 1
-                continue
-            if any(fragment in key_compact for fragment in ("token", "secret", "password", "apikey", "credential", "bearer")):
-                omitted += 1
-                continue
-            safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
-            sanitized[key_text] = safe_nested
-            omitted += nested_omitted
-        return sanitized, omitted
-    if isinstance(value, (list, tuple, set)):
-        rows = []
-        omitted = 0
-        for item in value:
-            safe_item, item_omitted = _sanitize_lg_d1_operator_payload(item)
-            rows.append(safe_item)
-            omitted += item_omitted
-        return rows, omitted
-    if isinstance(value, str) and any(pattern.search(value) for pattern in _LG_D1_SECRET_VALUE_PATTERNS):
-        return "<omitted:secret-like-value>", 1
-    return _jsonable(value), 0
-
-
-def _sanitize_lg_d1_llm_progress_payload(value: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """Allowlist LLM progress payload fields so chunks/messages never persist."""
-
-    sanitized: dict[str, Any] = {}
-    omitted = 0
-    for key, nested in value.items():
-        key_text = str(key)
-        if key_text not in _LG_D1_LLM_PROGRESS_ALLOWED_PAYLOAD_KEYS:
-            _, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
-            omitted += 1 + nested_omitted
-            continue
-        safe_nested, nested_omitted = _sanitize_lg_d1_operator_payload(nested)
-        sanitized[key_text] = safe_nested
-        omitted += nested_omitted
-    return sanitized, omitted
-
-
-def build_lg_d1_operator_event(
-    *,
-    run_id: str,
-    event_type: str,
-    node: str | None = None,
-    stage_id: str | None = None,
-    payload: dict[str, Any] | None = None,
-    timestamp: str | None = None,
-) -> dict[str, Any]:
-    """Build one LG-D1 JSONL-safe operator event."""
-
-    if event_type in _LG_D1_LLM_PROGRESS_EVENT_TYPES and isinstance(payload, dict):
-        safe_payload, omitted_count = _sanitize_lg_d1_llm_progress_payload(payload)
-    else:
-        safe_payload, omitted_count = _sanitize_lg_d1_operator_payload(payload or {})
-    if omitted_count:
-        if not isinstance(safe_payload, dict):
-            safe_payload = {"value": safe_payload}
-        safe_payload["omitted_raw_content_field_count"] = omitted_count
-    event = {
-        "schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
-        "run_id": str(run_id),
-        "event_type": str(event_type),
-        "timestamp": timestamp or _utc_now(),
-        "node": node,
-        "stage_id": stage_id,
-        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
-        "payload": safe_payload,
-        "payload_hash": _hash_payload(safe_payload),
-    }
-    # Validate strict JSON compatibility and reject NaN/Infinity before a long
-    # real run can produce an unreadable operator log.
-    json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False)
-    return event
-
-
-def _append_lg_d1_operator_event(
-    graph_state: _GraphLoopState,
-    *,
-    event_type: str,
-    node: str | None = None,
-    stage_id: str | None = None,
-    payload: dict[str, Any] | None = None,
-) -> None:
-    if not bool(graph_state.get("operator_stream_enabled", True)):
-        return
-    runtime_state = graph_state.get("runtime_state")
-    run_id = getattr(runtime_state, "run_id", None) or graph_state.get("run_id") or ""
-    if not run_id:
-        return
-    events = list(graph_state.get("operator_events", []) or [])
-    events.append(
-        build_lg_d1_operator_event(
-            run_id=str(run_id),
-            event_type=event_type,
-            node=node,
-            stage_id=stage_id,
-            payload=payload or {},
-        )
-    )
-    graph_state["operator_events"] = events
-
-
-def _node_stage_ids_by_node_id() -> dict[str, list[str]]:
-    return {str(node.get("node_id") or ""): [str(item) for item in node.get("stage_ids", [])] for node in build_langgraph_node_registry()["nodes"]}
-
-
-def _safe_node_exit_payload(node_state: dict[str, Any]) -> dict[str, Any]:
-    runtime_state = node_state.get("runtime_state")
-    payload: dict[str, Any] = {
-        "state_keys": sorted(str(key) for key in node_state.keys() if key not in {"runtime_state", "nl"}),
-    }
-    if isinstance(runtime_state, _RunState):
-        payload.update(
-            {
-                "stage_count": len(runtime_state.stage_records),
-                "iteration_count": len(runtime_state.iteration_records),
-                "repair_count": len(runtime_state.repair_history),
-                "record_status": runtime_state.final_record_status,
-                "result_status": runtime_state.result_status,
-                "verdict": runtime_state.final_verdict,
-                "verdict_source_stage_id": runtime_state.verdict_source_stage_id,
-                "current_dsl_hash": _hash_text(runtime_state.current_dsl),
-            }
-        )
-    if isinstance(node_state.get("iteration"), int):
-        payload["iteration"] = node_state.get("iteration")
-    return payload
-
-
-def _llm_stream_usage_from_interactions(llm_interactions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for index, interaction in enumerate(llm_interactions):
-        if not isinstance(interaction, dict):
-            continue
-        usage = interaction.get("usage") if isinstance(interaction.get("usage"), dict) else {}
-        attempts = interaction.get("attempts") if isinstance(interaction.get("attempts"), list) else []
-        attempt_stream_flags: list[bool] = []
-        for attempt in attempts:
-            if isinstance(attempt, dict):
-                attempt_usage = attempt.get("usage") if isinstance(attempt.get("usage"), dict) else {}
-                if isinstance(attempt_usage.get("stream"), bool):
-                    attempt_stream_flags.append(bool(attempt_usage.get("stream")))
-        stream_value = usage.get("stream")
-        stream_observed = bool(stream_value) if isinstance(stream_value, bool) else (True if any(attempt_stream_flags) else None)
-        rows.append(
-            {
-                "interaction_index": index,
-                "stage_id": str(interaction.get("stage_id") or ""),
-                "stream": stream_observed,
-                "stream_include_usage_requested": usage.get("stream_include_usage_requested"),
-                "token_usage_available": usage.get("token_usage_available"),
-                "stream_usage_zero_reported": usage.get("stream_usage_zero_reported"),
-                "chunk_count": usage.get("chunk_count"),
-                "first_chunk_seconds": usage.get("first_chunk_seconds"),
-                "elapsed_seconds": usage.get("elapsed_seconds"),
-                "prompt_chars": usage.get("prompt_chars"),
-                "completion_chars": usage.get("completion_chars"),
-                "estimated_prompt_tokens": usage.get("estimated_prompt_tokens"),
-                "estimated_completion_tokens": usage.get("estimated_completion_tokens"),
-                "estimated_total_tokens": usage.get("estimated_total_tokens"),
-                "attempt_count": len(attempts),
-                "attempt_stream_observed": any(attempt_stream_flags) if attempt_stream_flags else None,
-                "usage_payload_hash": _hash_payload(usage),
-            }
-        )
-    return rows
-
-
-def lg_d1_llm_stream_runtime_metadata(
-    *,
-    real_llm_provider_api: bool,
-    llm_interactions: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """Return prompt-safe LG-D1 metadata about provider stream discipline."""
-
-    from method.gpt_client import get_stream_enabled, get_stream_include_usage_enabled
-
-    stream_rows = _llm_stream_usage_from_interactions(llm_interactions or [])
-    observed_values = [row.get("stream") for row in stream_rows if isinstance(row.get("stream"), bool)]
-    observed = (all(bool(value) for value in observed_values) if observed_values else None)
-    return {
-        "llm_stream_required": True,
-        "llm_stream_required_reason": (
-            "PR-E1/LG-D1 real-provider runs must keep stream enabled so long structured generations "
-            "remain auditable and provider/proxy stalls are classified as invalid infrastructure failures."
-        ),
-        "llm_stream_config_enabled": bool(get_stream_enabled()),
-        "llm_stream_include_usage_config_enabled": bool(get_stream_include_usage_enabled()),
-        "llm_stream_observed": observed,
-        "llm_stream_observation_source": "llm_interactions.usage.stream" if observed_values else "pending_llm_interactions",
-        "real_llm_provider_api": bool(real_llm_provider_api),
-        "llm_stream_interaction_count": len(stream_rows),
-    }
-
-
-def _build_lg_d1_stream_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
-    # Keep this sequence aligned with the durable LangGraph node trace.
-    # LG-B1 validation subgraphs deliberately use ``subgraph_enter`` /
-    # ``subgraph_exit`` in addition to ordinary ``node_enter`` events, and
-    # LG-D1 operator logs must not collapse those academic orchestration
-    # boundaries away.  Synthetic ``node_exit`` events from tee streaming remain
-    # excluded because they are operator-progress signals rather than graph-trace
-    # entries.
-    node_sequence = [
-        str(event.get("node"))
-        for event in events
-        if event.get("event_type") in {"node_enter", "subgraph_enter", "subgraph_exit"} and event.get("node")
-    ]
-    stage_sequence = [
-        str(event.get("stage_id"))
-        for event in events
-        if event.get("event_type") == "stage_result" and event.get("stage_id")
-    ]
-    terminal_events = [event for event in events if event.get("event_type") == "terminal_verdict"]
-    terminal_payload = terminal_events[-1].get("payload", {}) if terminal_events else {}
-    llm_events = [event for event in events if event.get("event_type") in {"llm_stream_progress", "llm_request_progress"}]
-    stream_values = [
-        event.get("payload", {}).get("stream")
-        for event in llm_events
-        if isinstance(event.get("payload", {}).get("stream"), bool)
-    ]
-    chunk_total = 0
-    for event in llm_events:
-        value = event.get("payload", {}).get("chunk_count")
-        if isinstance(value, int) and not isinstance(value, bool):
-            chunk_total += value
-    return {
-        "schema_version": LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
-        "run_id": str(events[0].get("run_id")) if events else "",
-        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
-        "operator_event_count": len(events),
-        "node_sequence": node_sequence,
-        "stage_sequence": stage_sequence,
-        "final_verdict": terminal_payload.get("verdict"),
-        "record_status": terminal_payload.get("record_status"),
-        "result_status": terminal_payload.get("result_status"),
-        "verdict_source_stage_id": terminal_payload.get("verdict_source_stage_id"),
-        "run_record_path_hash": terminal_payload.get("run_record_path_hash"),
-        "llm_stream_observed": (all(bool(value) for value in stream_values) if stream_values else None),
-        "llm_stream_chunk_count_total": chunk_total,
-        "llm_interaction_event_count": len(llm_events),
-        "event_type_counts": {
-            event_type: sum(1 for event in events if event.get("event_type") == event_type)
-            for event_type in sorted({str(event.get("event_type")) for event in events})
-        },
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-    }
-
-
-def reconstruct_lg_d1_stream_summary_from_jsonl(path: str | Path) -> dict[str, Any]:
-    """Reconstruct LG-D1 progress summary from a tee-able JSONL operator log."""
-
-    events: list[dict[str, Any]] = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        event = json.loads(line)
-        if event.get("schema_version") != LG_D1_OPERATOR_EVENT_SCHEMA_VERSION:
-            raise ValueError(f"unsupported LG-D1 operator event schema: {event.get('schema_version')}")
-        events.append(event)
-    return _build_lg_d1_stream_summary(events)
-
-
-def _operator_event_key(event: dict[str, Any]) -> str:
-    return json.dumps(event, ensure_ascii=False, sort_keys=True, default=str)
-
-
-def _merge_operator_events(existing: list[dict[str, Any]], new_events: Any) -> list[dict[str, Any]]:
-    merged = list(existing)
-    seen = {_operator_event_key(event) for event in merged if isinstance(event, dict)}
-    for event in new_events or []:
-        if not isinstance(event, dict):
-            continue
-        key = _operator_event_key(event)
-        if key in seen:
-            continue
-        merged.append(event)
-        seen.add(key)
-    return merged
-
-
-def _primary_stage_id_for_node(node_id: str) -> str | None:
-    stage_ids = _node_stage_ids_by_node_id().get(node_id, [])
-    return stage_ids[0] if len(stage_ids) == 1 else None
-
-
-def _node_for_stage(stage_id: str) -> str | None:
-    for node_id, stage_ids in _node_stage_ids_by_node_id().items():
-        if stage_id in stage_ids:
-            return node_id
-    return None
-
-
-_REPAIR_STAGE_NODE_BY_STAGE_ID = {
-    StageId.SD_8_FIX_PLAN.value: "repair_sd8_fix_requests",
-    StageId.SL_9_REPAIR.value: "repair_sl9_repair",
-    StageId.SD_10_REPAIR_REVIEW.value: "repair_sl10_review",
-    StageId.SL_10_REPAIR_REVIEW.value: "repair_sl10_review",
-    StageId.SC_11_ACCEPT_CANDIDATE.value: "repair_sc11_accept_candidate",
-}
-
-
-_OPERATOR_STAGE_FLOW_PAYLOAD_KEYS = {
-    "graph_subgraph",
-    "graph_node",
-    "jump",
-    "reason",
-    "status",
-    "ok",
-    "decision",
-    "target_resolved",
-    "regression_detected",
-    "drift_risk",
-    "rework_attempt",
-    "rework_locked",
-    "batch_id",
-    "request_count",
-    "hard_block",
-    "accepted_request_ids",
-    "rejected_request_ids",
-    "source",
-    "source_stage",
-    "plan_kind",
-    "old_dsl_hash",
-    "candidate_dsl_hash",
-    "current_dsl_hash",
-    "scenario_set_id",
-    "oracle_weak",
-}
-
-
-def _flow_log_stage_rows_by_stage(record: Any) -> dict[str, list[dict[str, Any]]]:
-    rows_by_stage: dict[str, list[dict[str, Any]]] = {}
-    for item in getattr(record, "logs", []) or []:
-        if not isinstance(item, dict):
-            continue
-        if item.get("event") not in {"stage_result", "llm_stage_result"}:
-            continue
-        stage_id = str(item.get("stage_id") or "")
-        graph_node = str(item.get("graph_node") or "")
-        if not stage_id or not graph_node:
-            continue
-        rows_by_stage.setdefault(stage_id, []).append(item)
-    return rows_by_stage
-
-
-def _operator_stage_flow_payload(row: dict[str, Any] | None) -> dict[str, Any]:
-    if not row:
-        return {}
-    payload: dict[str, Any] = {"flow_event": str(row.get("event") or "")}
-    for key in _OPERATOR_STAGE_FLOW_PAYLOAD_KEYS:
-        if key in row:
-            payload[key] = _jsonable(row.get(key))
-    decisions = row.get("decisions")
-    if isinstance(decisions, list):
-        payload["decision_count"] = len(decisions)
-        payload["decision_summaries"] = [
-            {
-                "request_id": str(item.get("request_id") or ""),
-                "decision": str(item.get("decision") or ""),
-                "waiver": bool(item.get("waiver")) if isinstance(item.get("waiver"), bool) else item.get("waiver"),
-                "rework_locked": (
-                    bool(item.get("rework_locked"))
-                    if isinstance(item.get("rework_locked"), bool)
-                    else item.get("rework_locked")
-                ),
-            }
-            for item in decisions
-            if isinstance(item, dict)
-        ][:12]
-    diff_summary = row.get("diff_summary")
-    if isinstance(diff_summary, dict):
-        payload["diff_summary"] = {
-            key: _jsonable(diff_summary.get(key))
-            for key in ("candidate_dsl_hash", "n_diff_lines", "changed")
-            if key in diff_summary
-        }
-    for hash_key in ("local_check_evidence", "repair_memory", "evidence", "fix_plan"):
-        if hash_key in row:
-            payload[f"{hash_key}_hash"] = _hash_payload(row.get(hash_key))
-    return payload
-
-
-def _pop_precise_stage_node(
-    rows_by_stage: dict[str, list[dict[str, Any]]],
-    stage_id: str,
-    *,
-    default_node: str | None = None,
-) -> tuple[str | None, dict[str, Any] | None]:
-    rows = rows_by_stage.get(stage_id) or []
-    if rows:
-        row = rows.pop(0)
-        return str(row.get("graph_node") or ""), row
-    if stage_id in _REPAIR_STAGE_NODE_BY_STAGE_ID:
-        return _REPAIR_STAGE_NODE_BY_STAGE_ID[stage_id], None
-    return default_node if default_node is not None else _node_for_stage(stage_id), None
-
-
-def _stage_result_operator_events(record: Any) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    rows_by_stage = _flow_log_stage_rows_by_stage(record)
-    for index, row in enumerate(record.stage_records):
-        if not isinstance(row, dict):
-            row = _jsonable(row)
-        stage_id = str(row.get("stage_id") or "")
-        stage_error = row.get("stage_error") or row.get("output_validation_error")
-        node, flow_row = _pop_precise_stage_node(rows_by_stage, stage_id)
-        stage_flow = _operator_stage_flow_payload(flow_row)
-        events.append(
-            build_lg_d1_operator_event(
-                run_id=record.run_id,
-                event_type="stage_result",
-                node=node,
-                stage_id=stage_id,
-                payload={
-                    "stage_index": index,
-                    "stage_kind": row.get("stage_kind"),
-                    "enabled": row.get("enabled"),
-                    "ran": row.get("ran"),
-                    "ok": row.get("ok"),
-                    "status": str(row.get("status") or ""),
-                    "stage_error_hash": _hash_text(str(stage_error)) if stage_error else None,
-                    **({"stage_flow": stage_flow} if stage_flow else {}),
-                },
-            )
-        )
-    return events
-
-
-def _llm_progress_operator_events(record: Any) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    rows_by_stage = _flow_log_stage_rows_by_stage(record)
-    for row in _llm_stream_usage_from_interactions(record.llm_interactions):
-        stage_id = str(row.get("stage_id") or "")
-        event_type = "llm_stream_progress" if row.get("stream") is True else "llm_request_progress"
-        node, _flow_row = _pop_precise_stage_node(rows_by_stage, stage_id)
-        events.append(
-            build_lg_d1_operator_event(
-                run_id=record.run_id,
-                event_type=event_type,
-                node=node,
-                stage_id=stage_id,
-                payload=row,
-            )
-        )
-    return events
-
-
-def _lg_d2_event_match_signature(event: dict[str, Any]) -> tuple[str, str, str, str, str, str, str, str, str, str]:
-    """Return the reducer-vs-flow-log matching signature for one LG-D2 event.
-
-    This signature intentionally excludes fallback-only fields such as
-    ``flow_log_index``.  Normal reducer events do not carry that index, so using
-    it for matching would make every flow-log row look missing and duplicate
-    LG-D2 evidence in the operator log.
-    """
-
-    payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
-    return (
-        str(event.get("event_type") or ""),
-        str(event.get("stage_id") or ""),
-        str(payload.get("iteration") if payload.get("iteration") is not None else ""),
-        str(event.get("node") or payload.get("graph_node") or ""),
-        str(payload.get("subgraph_id") or ""),
-        str(payload.get("error_kind") or ""),
-        str(payload.get("outcome") or ""),
-        str(payload.get("envelope_attempt_index") if payload.get("envelope_attempt_index") is not None else ""),
-        str(payload.get("canonical_interaction_id") if payload.get("canonical_interaction_id") is not None else ""),
-        str(payload.get("canonical_attempt_index") if payload.get("canonical_attempt_index") is not None else ""),
-    )
-
-
-def _lg_d2_flow_log_match_signature(row: dict[str, Any], *, event_type: str, stage_id: StageId, graph_node: str) -> tuple[str, str, str, str, str, str, str, str, str, str]:
-    graph_subgraph = row.get("graph_subgraph")
-    subgraph_id = None if graph_subgraph in {None, "<none>", ""} else str(graph_subgraph)
-    return (
-        event_type,
-        stage_id.value,
-        str(row.get("iteration") if row.get("iteration") is not None else ""),
-        graph_node,
-        str(subgraph_id or ""),
-        str(row.get("error_kind") or ""),
-        str(row.get("outcome") or ""),
-        str(row.get("envelope_attempt_index") if row.get("envelope_attempt_index") is not None else ""),
-        str(row.get("canonical_interaction_id") if row.get("canonical_interaction_id") is not None else ""),
-        str(row.get("canonical_attempt_index") if row.get("canonical_attempt_index") is not None else ""),
-    )
-
-
-def _lg_d2_fallback_unique_signature(row: dict[str, Any], *, flow_index: int, event_type: str, stage_id: StageId, graph_node: str) -> tuple[str, str, str, str, str, str, str, str, str, str, str]:
-    return (*_lg_d2_flow_log_match_signature(row, event_type=event_type, stage_id=stage_id, graph_node=graph_node), str(flow_index))
-
-
-def _lg_d2_operator_events_from_flow_logs(record: Any, *, existing_events: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-    """Recover LG-D2 envelope events from canonical flow logs if graph updates drop them.
-
-    LangGraph does not commit a node's reducer-channel update when an inner
-    subgraph raises before returning a ``Command``.  The human/academic flow log
-    is still appended on the shared ``_RunState`` before the exception is
-    converted into an invalid run.  Reconstructing sanitized LG-D2 operator
-    events from that canonical log prevents retry-exhausted/timeout evidence
-    from disappearing after an upstream merge or checkpoint/resume path, without
-    changing stage order, retry semantics, prompts, or the inner PR-B2 attempt
-    ledger.
-
-    Normal non-exception paths already contain LG-D2 events in graph-state
-    reducer updates.  The signature check below therefore treats flow-log
-    recovery as a gap-filler, not a second source of duplicate evidence.
-    """
-
-    policy = build_lg_d2_llm_node_envelope_policy()
-    events: list[dict[str, Any]] = []
-    existing_counts = Counter(
-        _lg_d2_event_match_signature(event)
-        for event in (existing_events or [])
-        if isinstance(event, dict) and str(event.get("event_type") or "") in LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES
-    )
-    fallback_seen: set[tuple[str, str, str, str, str, str, str, str, str, str, str]] = set()
-    for flow_index, row in enumerate(getattr(record, "logs", []) or []):
-        if not isinstance(row, dict):
-            continue
-        event_type = str(row.get("event") or "")
-        if event_type not in LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES:
-            continue
-        stage_text = str(row.get("stage_id") or "")
-        try:
-            stage_id = StageId(stage_text)
-        except Exception:
-            continue
-        graph_node = str(row.get("graph_node") or "") or None
-        graph_subgraph = row.get("graph_subgraph")
-        subgraph_id = None if graph_subgraph in {None, "<none>", ""} else str(graph_subgraph)
-        graph_node_text = graph_node or "unknown_lg_d2_flow_log_node"
-        match_signature = _lg_d2_flow_log_match_signature(row, event_type=event_type, stage_id=stage_id, graph_node=graph_node_text)
-        fallback_signature = _lg_d2_fallback_unique_signature(
-            row,
-            flow_index=flow_index,
-            event_type=event_type,
-            stage_id=stage_id,
-            graph_node=graph_node_text,
-        )
-        if existing_counts[match_signature] > 0:
-            existing_counts[match_signature] -= 1
-            continue
-        if fallback_signature in fallback_seen:
-            continue
-        event = _lg_d2_envelope_event(
-            run_id=str(record.run_id),
-            event_type=event_type,
-            stage_id=stage_id,
-            graph_node=graph_node_text,
-            subgraph_id=subgraph_id,
-            policy=policy,
-            iteration=row.get("iteration") if isinstance(row.get("iteration"), int) else None,
-            envelope_attempt_index=int(row.get("envelope_attempt_index") or 0),
-            canonical_interaction_id=row.get("canonical_interaction_id") if isinstance(row.get("canonical_interaction_id"), int) else None,
-            canonical_attempt_index=row.get("canonical_attempt_index") if isinstance(row.get("canonical_attempt_index"), int) else None,
-            error_kind=row.get("error_kind"),
-            retryable=row.get("retryable") if isinstance(row.get("retryable"), bool) else None,
-            outcome=row.get("outcome"),
-            safe_summary={
-                "source": "record.logs fallback",
-                "flow_log_index": flow_index,
-                "policy_hash": row.get("policy_hash"),
-                "merge_conflict_resilient_recovery": True,
-            },
-        )
-        # Preserve the original flow-log timestamp where possible so JSONL order
-        # stays close to the terminal replay log; schema remains LG-D1-compatible.
-        if isinstance(row.get("ts"), str):
-            event["timestamp"] = row["ts"]
-        events.append(event)
-        fallback_seen.add(fallback_signature)
-    return events
-
-
-def _terminal_operator_event(record: Any, *, run_record_path_hash: str) -> dict[str, Any]:
-    final_artifacts = record.final_artifacts if isinstance(record.final_artifacts, dict) else {}
-    return build_lg_d1_operator_event(
-        run_id=record.run_id,
-        event_type="terminal_verdict",
-        node="sc13_trace_audit",
-        stage_id=StageId.SC_13_TRACE_AUDIT.value,
-        payload={
-            "verdict": final_artifacts.get("verdict"),
-            "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
-            "record_status": record.status,
-            "result_status": final_artifacts.get("agent_loop_result_status"),
-            "main_result_eligible": final_artifacts.get("main_result_eligible"),
-            "oracle_weak": final_artifacts.get("oracle_weak"),
-            "final_dsl_hash": final_artifacts.get("final_dsl_hash"),
-            "run_record_path_hash": run_record_path_hash,
-        },
-    )
-
-
-def _write_lg_d1_operator_artifacts(
-    *,
-    record: Any,
-    run_record_path: str | Path,
-    operator_events: list[dict[str, Any]],
-    graph_stream_status: str,
-) -> dict[str, Any]:
-    path = Path(run_record_path)
-    operator_log_path = path.with_name(f"{record.run_id}.operator_log.jsonl")
-    stream_summary_path = path.with_name(f"{record.run_id}.stream_summary.json")
-    run_record_path_hash = _hash_payload(str(path))
-    full_events = _merge_operator_events([], operator_events)
-    full_events = _merge_operator_events(full_events, _stage_result_operator_events(record))
-    full_events = _merge_operator_events(full_events, _llm_progress_operator_events(record))
-    full_events = _merge_operator_events(full_events, _lg_d2_operator_events_from_flow_logs(record, existing_events=full_events))
-    full_events.append(_terminal_operator_event(record, run_record_path_hash=run_record_path_hash))
-
-    operator_log_path.parent.mkdir(parents=True, exist_ok=True)
-    with operator_log_path.open("w", encoding="utf-8") as f:
-        for event in full_events:
-            f.write(json.dumps(event, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n")
-
-    summary = reconstruct_lg_d1_stream_summary_from_jsonl(operator_log_path)
-    stream_summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
-    stream_summary_payload_hash = _hash_payload(summary)
-    stream_metadata = lg_d1_llm_stream_runtime_metadata(
-        real_llm_provider_api=bool(record.run_config.get("real_llm_provider_api")),
-        llm_interactions=record.llm_interactions,
-    )
-    return {
-        "schema_version": "lg-d1.operator-log-artifacts.v1",
-        "operator_event_schema_version": LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
-        "stream_summary_schema_version": LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
-        "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
-        "graph_stream_status": graph_stream_status,
-        "langgraph_stream_status": graph_stream_status,
-        "operator_log_path": str(operator_log_path),
-        "operator_log_hash": _hash_file(operator_log_path),
-        "stream_summary_path": str(stream_summary_path),
-        "stream_summary_hash": _hash_file(stream_summary_path),
-        "stream_summary_payload_hash": stream_summary_payload_hash,
-        "operator_event_count": len(full_events),
-        "run_record_path_hash": run_record_path_hash,
-        "llm_stream_required": stream_metadata["llm_stream_required"],
-        "llm_stream_config_enabled": stream_metadata["llm_stream_config_enabled"],
-        "llm_stream_include_usage_config_enabled": stream_metadata["llm_stream_include_usage_config_enabled"],
-        "llm_stream_observed": stream_metadata["llm_stream_observed"],
-        "llm_stream_observation_source": stream_metadata["llm_stream_observation_source"],
-        "llm_stream_interaction_count": stream_metadata["llm_stream_interaction_count"],
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-    }
-
-
-def _lg_g1_trace_export_policy(config: LoopConfig) -> dict[str, Any]:
-    """Return LG-G1 opt-in trace export policy from ``record_policy``.
-
-    LG-G1 is deliberately optional and default-off.  Keeping the switch inside
-    ``record_policy`` avoids a new public runtime backend/config branch and
-    keeps the implementation small.
-    """
-
-    raw = config.record_policy.get("lg_g1_trace_export") if isinstance(config.record_policy, dict) else None
-    raw = raw if isinstance(raw, dict) else {}
-    raw_enabled = raw.get("enabled", False)
-    if not isinstance(raw_enabled, bool):
-        raise ValueError("LG-G1 trace export enabled must be a boolean")
-    enabled = raw_enabled
-    mode = str(raw.get("mode") or ("local" if enabled else "disabled"))
-    if not enabled:
-        mode = "disabled"
-    if mode not in {"disabled", "local"}:
-        raise ValueError("LG-G1 trace export mode must be 'disabled' or 'local'")
-    if enabled and mode == "disabled":
-        raise ValueError("LG-G1 enabled trace export requires mode 'local'")
-    return {
-        "schema_version": LG_G1_TRACE_EXPORT_SCHEMA_VERSION,
-        "enabled": enabled,
-        "mode": mode,
-        "external_trace_status": "disabled_not_configured",
-        "default_off": not enabled,
-        "redaction_policy": "hash_length_ids_counts_only",
-    }
-
-
-def _lg_g1_has_secret_like_value(value: Any) -> bool:
-    if isinstance(value, dict):
-        for key, nested in value.items():
-            key_norm = re.sub(r"[^a-z0-9]+", "_", str(key).lower()).strip("_")
-            if (
-                key_norm in _LG_G1_UNSAFE_TRACE_SOURCE_KEYS
-                or any(fragment in key_norm for fragment in ("api_key", "apikey", "bearer", "password", "secret"))
-                or key_norm.endswith("_token")
-            ):
-                return True
-            if _lg_g1_has_secret_like_value(nested):
-                return True
-        return False
-    if isinstance(value, (list, tuple, set)):
-        return any(_lg_g1_has_secret_like_value(item) for item in value)
-    return isinstance(value, str) and any(pattern.search(value) for pattern in _LG_D1_SECRET_VALUE_PATTERNS)
-
-
-def _lg_g1_stage_ids(rows: list[Any]) -> list[str]:
-    return [str(item.get("stage_id") if isinstance(item, dict) else getattr(item, "stage_id", "")) for item in rows]
-
-
-def _lg_g1_safe_trace_payload(record: Any, *, run_record_path: str | Path) -> dict[str, Any]:
-    final_artifacts = record.final_artifacts if isinstance(getattr(record, "final_artifacts", None), dict) else {}
-    if _lg_g1_has_secret_like_value(final_artifacts):
-        raise ValueError("LG-G1 trace export refused secret-like final_artifacts payload")
-    operator = final_artifacts.get("operator_log") if isinstance(final_artifacts.get("operator_log"), dict) else {}
-    runtime_trace = final_artifacts.get("langgraph_runtime_trace") if isinstance(final_artifacts.get("langgraph_runtime_trace"), dict) else {}
-    return {
-        "schema_version": LG_G1_TRACE_EXPORT_SCHEMA_VERSION,
-        "instrumentation_layer": LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER,
-        "external_upload_performed": False,
-        "external_trace_status": "disabled_not_configured",
-        "redaction_policy": "hash_length_ids_counts_only",
-        "snapshot_phase": "before_lg_g1_export_artifact_append",
-        "counts_scope": "canonical_record_before_export_artifact_append",
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_G1_ACADEMIC_EVIDENCE_SOURCES),
-        "run": {
-            "run_id_hash": _hash_payload(str(record.run_id)),
-            "run_id_length": len(str(record.run_id)),
-            "record_status": record.status,
-            "run_record_path_hash": _hash_payload(str(run_record_path)),
-        },
-        "counts": {
-            "stage_records": len(record.stage_records),
-            "llm_interactions": len(record.llm_interactions),
-            "fix_log": len(record.fix_log),
-            "scenario_history": len(record.scenario_history),
-            "repair_history": len(record.repair_history),
-            "logs": len(record.logs),
-        },
-        "stage_sequence": _lg_g1_stage_ids(record.stage_records),
-        "hashes": {
-            "stage_records_hash": _hash_payload(record.stage_records),
-            "llm_interactions_hash": _hash_payload(record.llm_interactions),
-            "fix_log_hash": _hash_payload(record.fix_log),
-            "scenario_history_hash": _hash_payload(record.scenario_history),
-            "repair_history_hash": _hash_payload(record.repair_history),
-            "final_dsl_hash": final_artifacts.get("final_dsl_hash"),
-            "operator_log_hash": operator.get("operator_log_hash"),
-            "langgraph_node_trace_hash": runtime_trace.get("node_trace_hash"),
-        },
-        "verdict_summary": {
-            "verdict": final_artifacts.get("verdict"),
-            "verdict_source_stage_id": final_artifacts.get("verdict_source_stage_id"),
-            "agent_loop_result_status": final_artifacts.get("agent_loop_result_status"),
-            "main_result_eligible": final_artifacts.get("main_result_eligible"),
-            "oracle_weak": final_artifacts.get("oracle_weak"),
-        },
-    }
-
-
-def _write_lg_g1_trace_artifact(record: Any, *, run_record_path: str | Path) -> dict[str, Any]:
-    path = Path(run_record_path)
-    run_id_hash = _hash_payload(str(record.run_id))
-    trace_file = f"lg_g1_trace.{run_id_hash.removeprefix('sha256:')[:12]}.json"
-    trace_path = path.with_name(trace_file)
-    payload = _lg_g1_safe_trace_payload(record, run_record_path=path)
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n"
-    if _lg_g1_has_secret_like_value(payload):
-        raise ValueError("LG-G1 trace export refused secret-like trace payload")
-    trace_path.write_text(encoded, encoding="utf-8")
-    return {
-        "schema_version": LG_G1_TRACE_EXPORT_SCHEMA_VERSION,
-        "instrumentation_layer": LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER,
-        "trace_artifact_name": trace_file,
-        "trace_path_hash": _hash_payload(str(trace_path)),
-        "trace_hash": _hash_file(trace_path),
-        "trace_payload_hash": _hash_payload(payload),
-        "redaction_policy": "hash_length_ids_counts_only",
-        "external_upload_performed": False,
-        "external_trace_status": "disabled_not_configured",
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_G1_ACADEMIC_EVIDENCE_SOURCES),
-    }
-
-
-def _augment_run_record_with_lg_g1_trace_export(
-    result: AgentLoopResult,
-    *,
-    enabled: bool,
-    mode: str,
-) -> None:
-    if not enabled:
-        return
-    if not result.run_record_path:
-        raise ValueError("LG-G1 local trace export requires a persisted run_record_path")
-    if mode != "local":
-        raise ValueError("LG-G1 trace export currently supports only local mode")
-    path = result.run_record_path
-    record = read_agent_loop_run_record(path)
-    record.environment["lg_g1_trace_export_enabled"] = True
-    record.environment["lg_g1_trace_export_schema_version"] = LG_G1_TRACE_EXPORT_SCHEMA_VERSION
-    record.environment["lg_g1_trace_export_instrumentation_layer"] = LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER
-    record.environment["lg_g1_external_trace_status"] = "disabled_not_configured"
-    record.run_config["lg_g1_trace_export_enabled"] = True
-    record.run_config["lg_g1_trace_export_mode"] = mode
-    record.run_config["lg_g1_external_trace_status"] = "disabled_not_configured"
-    artifact = _write_lg_g1_trace_artifact(record, run_record_path=path)
-    record.environment["lg_g1_trace_export_status"] = "local_enabled"
-    record.environment["lg_g1_trace_export_hash"] = artifact["trace_hash"]
-    record.environment["lg_g1_trace_export_path_hash"] = artifact["trace_path_hash"]
-    record.final_artifacts["lg_g1_trace_export"] = artifact
-    record.logs.append(
-        {
-            "event": "lg_g1_trace_export",
-            "instrumentation_layer": LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER,
-            "status": "local_enabled",
-            "trace_hash": artifact["trace_hash"],
-            "does_not_replace_academic_evidence": True,
-        }
-    )
-    write_agent_loop_run_record(record, path)
-
-
-def _package_version(name: str) -> str:
-    try:
-        return importlib.metadata.version(name)
-    except Exception:
-        return "unknown"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def build_langgraph_node_registry() -> dict[str, Any]:
@@ -3548,161 +1104,8 @@ def langgraph_compat_smoke() -> dict[str, Any]:
     return result
 
 
-def langgraph_store_compat_smoke() -> dict[str, Any]:
-    """Run a focused LangGraph Store smoke for LG-A2 transient object storage.
-
-    LG-A2 relies on ``StateGraph.compile(store=...)`` and node-local
-    ``get_store()`` rather than a module-level Python dict.  This smoke is kept
-    separate from the generic checkpoint smoke so CI can fail fast if the
-    installed LangGraph version changes Store APIs in a way that would make
-    transient validation objects disappear between nodes.
-    """
-
-    result: dict[str, Any] = {
-        "ok": False,
-        "langgraph_version": _package_version("langgraph"),
-        "inmemory_store_ok": False,
-        "namespace_isolation_ok": False,
-        "compile_store_ok": False,
-        "get_store_ok": False,
-        "delete_ok": False,
-    }
-    try:
-        store = InMemoryStore()
-        ns_a = ("lg-a2-store-smoke", "a")
-        ns_b = ("lg-a2-store-smoke", "b")
-        store.put(ns_a, "same-key", {"value": 1})
-        store.put(ns_b, "same-key", {"value": 2})
-        item_a = store.get(ns_a, "same-key")
-        item_b = store.get(ns_b, "same-key")
-        result["inmemory_store_ok"] = bool(item_a and item_a.value == {"value": 1})
-        result["namespace_isolation_ok"] = bool(item_b and item_b.value == {"value": 2})
-        store.delete(ns_a, "same-key")
-        result["delete_ok"] = store.get(ns_a, "same-key") is None and store.get(ns_b, "same-key") is not None
-
-        class _StoreSmokeState(TypedDict, total=False):
-            value: int
-
-        graph = StateGraph(_StoreSmokeState)
-
-        def node(state: _StoreSmokeState) -> _StoreSmokeState:
-            active_store = get_store()
-            active_store.put(("lg-a2-store-smoke", "node"), "value", {"value": int(state.get("value", 0)) + 1})
-            item = active_store.get(("lg-a2-store-smoke", "node"), "value")
-            return {"value": int((item.value if item is not None else {}).get("value", 0))}
-
-        graph.add_node("store_node", node)
-        graph.add_edge(START, "store_node")
-        graph.add_edge("store_node", END)
-        app = graph.compile(store=store)
-        result["compile_store_ok"] = True
-        output = app.invoke({"value": 41})
-        result["get_store_ok"] = output.get("value") == 42 and store.get(("lg-a2-store-smoke", "node"), "value") is not None
-        result["ok"] = all(
-            bool(result[key])
-            for key in ("inmemory_store_ok", "namespace_isolation_ok", "compile_store_ok", "get_store_ok", "delete_ok")
-        )
-    except Exception as exc:  # pragma: no cover - returned payload is enough for callers/tests.
-        result["error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
-    return result
 
 
-def _checkpoint_resume_smoke() -> dict[str, Any]:
-    """Exercise LangGraph checkpoints/resume for append-only repair ledger metadata."""
-
-    class _LedgerState(TypedDict, total=False):
-        fix_log: list[dict[str, Any]]
-        checkpoint_label: str
-
-    labels = ["after_SD-8", "after_SL-9", "after_SL-10_rework"]
-
-    def compile_app() -> Any:
-        graph = StateGraph(_LedgerState)
-
-        def append_entry(label: str):
-            def _node(state: _LedgerState) -> _LedgerState:
-                log = list(state.get("fix_log", []) or [])
-                log.append(
-                    {
-                        "entry_id": f"checkpoint-smoke-{len(log) + 1}",
-                        "phase": label,
-                        "candidate_dsl_hash": f"sha256:{label}",
-                    }
-                )
-                return {"fix_log": log, "checkpoint_label": label}
-
-            return _node
-
-        for label in labels:
-            graph.add_node(label, append_entry(label))
-        graph.add_edge(START, labels[0])
-        graph.add_edge(labels[0], labels[1])
-        graph.add_edge(labels[1], labels[2])
-        graph.add_edge(labels[2], END)
-        return graph.compile(checkpointer=InMemorySaver(serde=_PickleCheckpointSerde()))
-
-    app = compile_app()
-    config = {"configurable": {"thread_id": "pr-langgraph-fixlog-append-only-smoke"}}
-    final_state = app.invoke({"fix_log": []}, config=config)
-    history = list(app.get_state_history(config))
-    snapshots = [
-        snapshot.values.get("fix_log", [])
-        for snapshot in reversed(history)
-        if isinstance(getattr(snapshot, "values", None), dict) and snapshot.values.get("fix_log")
-    ]
-    append_only = True
-    duplicate_entry_detected = False
-    last: list[dict[str, Any]] = []
-    for log in snapshots:
-        if log[: len(last)] != last:
-            append_only = False
-        ids = [str(entry.get("entry_id")) for entry in log if isinstance(entry, dict)]
-        duplicate_entry_detected = duplicate_entry_detected or len(ids) != len(set(ids))
-        last = list(log)
-
-    resume_checks: list[dict[str, Any]] = []
-    for index, label in enumerate(labels):
-        resume_app = compile_app()
-        thread_id = f"pr-langgraph-resume-{label}"
-        run_config = {"configurable": {"thread_id": thread_id}}
-        prefix_state = resume_app.invoke({"fix_log": []}, config=run_config, interrupt_after=[label])
-        checkpoint = resume_app.get_state(run_config)
-        resumed = resume_app.invoke(None, config=checkpoint.config)
-        prefix_log = list(prefix_state.get("fix_log", []) or [])
-        resumed_log = list(resumed.get("fix_log", []) or [])
-        ids = [str(entry.get("entry_id")) for entry in resumed_log if isinstance(entry, dict)]
-        resume_checks.append(
-            {
-                "breakpoint": label,
-                "prefix_count": len(prefix_log),
-                "expected_prefix_count": index + 1,
-                "resumed_count": len(resumed_log),
-                "prefix_preserved": resumed_log[: len(prefix_log)] == prefix_log,
-                "append_only": resumed_log[: len(prefix_log)] == prefix_log and len(ids) == len(set(ids)),
-                "next_nodes_after_interrupt": list(getattr(checkpoint, "next", ()) or []),
-            }
-        )
-
-    resume_append_only = all(item["append_only"] for item in resume_checks)
-    return {
-        "scope": "toy_ledger_langgraph_api_smoke",
-        "real_agent_loop_resume_supported": False,
-        "real_agent_loop_resume_scope": "not_claimed_in_PR_langgraph_round1",
-        "academic_claim": (
-            "This smoke validates LangGraph interrupt/resume API shape and append-only "
-            "ledger behavior on a minimal FixLog-like state only. It is not evidence "
-            "that an interrupted real agent-loop run can be resumed for main-result "
-            "statistics."
-        ),
-        "checked_breakpoints": labels,
-        "checkpoint_history_count": len(history),
-        "final_fix_log_count": len(final_state.get("fix_log", []) or []),
-        "fix_log_append_only": append_only and len(final_state.get("fix_log", []) or []) == len(labels),
-        "duplicate_entry_detected": duplicate_entry_detected,
-        "resume_checks": resume_checks,
-        "resume_append_only": resume_append_only,
-        "resume_api": "StateGraph interrupt_after/get_state/invoke(None)/InMemorySaver",
-    }
 
 
 def _graph_runtime_metadata(
@@ -3794,91 +1197,16 @@ def _provider_config_read(cfg: LoopConfig) -> bool:
 _TRANSIENT_OBJECTS: dict[str, Any] = {}
 
 
-def _transient_namespace(run_id: str) -> tuple[str, str]:
-    return ("transient", run_id)
 
 
-def _transient_namespace_label(run_id: str) -> str:
-    return f"transient/{run_id}"
 
 
-def _put_transient(run_id: str, kind: str, iteration: int, value: Any, *, lifecycle: dict[str, Any] | None = None) -> str:
-    """Store a transient object inside the active LangGraph Store context.
-
-    This helper must only be called from compiled LangGraph nodes, because it
-    depends on ``langgraph.config.get_store()`` being available in the current
-    runnable context.  It deliberately does not write the historical module
-    level ``_TRANSIENT_OBJECTS`` dict.
-    """
-
-    key = f"{kind}:{iteration}:{uuid.uuid4().hex[:8]}"
-    get_store().put(
-        _transient_namespace(run_id),
-        key,
-        {
-            "_transient_wrapper": True,
-            "object": value,
-            "kind": kind,
-            "iteration": iteration,
-            "object_type": type(value).__name__,
-            "run_id": run_id,
-        },
-    )
-    if lifecycle is not None:
-        lifecycle["put_count"] = int(lifecycle.get("put_count", 0)) + 1
-    return key
 
 
-def _get_transient(run_id: str, key: str, *, lifecycle: dict[str, Any] | None = None) -> Any:
-    """Load a transient object from the active LangGraph Store context."""
-
-    item = get_store().get(_transient_namespace(run_id), key)
-    if item is None:
-        raise KeyError(f"missing transient LangGraph runtime object: {key}")
-    if lifecycle is not None:
-        lifecycle["get_count"] = int(lifecycle.get("get_count", 0)) + 1
-    value = item.value
-    if isinstance(value, dict) and value.get("_transient_wrapper") is True and "object" in value:
-        return value["object"]
-    return value
 
 
-def _drop_transient(run_id: str | None, key: str | None, *, lifecycle: dict[str, Any] | None = None) -> None:
-    """Delete a transient Store object if it exists in the active graph node."""
-
-    if key:
-        try:
-            namespace = _transient_namespace(str(run_id or ""))
-            existed = get_store().get(namespace, key) is not None
-            get_store().delete(namespace, key)
-            if lifecycle is not None and existed:
-                lifecycle["drop_count"] = int(lifecycle.get("drop_count", 0)) + 1
-        except Exception as exc:
-            if lifecycle is not None:
-                lifecycle.setdefault("cleanup_errors", []).append(f"drop:{type(exc).__name__}:{str(exc)[:160]}")
 
 
-def _drain_transients(run_id: str, *, lifecycle: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Final-drain all transient items in this run's Store namespace."""
-
-    namespace = _transient_namespace(run_id)
-    items = list(get_store().search(namespace))
-    deleted = 0
-    for item in items:
-        get_store().delete(namespace, item.key)
-        deleted += 1
-    remaining = list(get_store().search(namespace))
-    cleanup_status = "no_leak" if not remaining else f"partial_leak_{len(remaining)}_items"
-    if lifecycle is not None:
-        lifecycle["final_drain_count"] = int(lifecycle.get("final_drain_count", 0)) + 1
-        lifecycle["final_item_count"] = len(remaining)
-        lifecycle["cleanup_status"] = cleanup_status
-        lifecycle["drained_item_count"] = int(lifecycle.get("drained_item_count", 0)) + deleted
-    return {
-        "drained_count": deleted,
-        "final_item_count": len(remaining),
-        "cleanup_status": cleanup_status,
-    }
 
 
 def _trace_node(graph_state: _GraphLoopState, node_id: str, event: str = "node_enter", **payload: Any) -> None:
@@ -7048,118 +4376,8 @@ def _build_graph(
 
 
 
-def _augment_run_record_with_lg_e3_toolnode_trace(
-    result: AgentLoopResult,
-    *,
-    events: list[dict[str, Any]],
-    enabled: bool,
-) -> None:
-    if not result.run_record_path:
-        return
-    path = result.run_record_path
-    record = read_agent_loop_run_record(path)
-    safe_events = _jsonable(events if enabled else [])
-    registry = build_lg_e3_toolnode_wrapper_registry()
-    trace = {
-        "schema_version": LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
-        "enabled": bool(enabled),
-        "fixed_invocation": True,
-        "llm_tool_choice_exposed": False,
-        "event_count": len(safe_events),
-        "events_hash": _hash_payload(safe_events),
-        "covered_tool_names": sorted({str(event.get("tool_name") or "") for event in safe_events if isinstance(event, dict)}),
-        "registry_hash": _hash_payload(registry),
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-        "events": safe_events,
-    }
-    record.environment["lg_e3_toolnode_wrappers_enabled"] = bool(enabled)
-    record.environment["lg_e3_toolnode_wrapper_schema_version"] = LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION
-    record.environment["lg_e3_toolnode_wrapper_event_count"] = len(safe_events)
-    record.environment["lg_e3_toolnode_wrapper_events_hash"] = trace["events_hash"]
-    record.environment["lg_e3_toolnode_wrapper_registry_hash"] = trace["registry_hash"]
-    record.environment["lg_e3_toolnode_wrapper_llm_tool_choice_exposed"] = False
-    record.run_config["lg_e3_toolnode_wrappers_enabled"] = bool(enabled)
-    record.run_config["lg_e3_toolnode_wrapper_schema_version"] = LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION
-    record.run_config["lg_e3_toolnode_wrapper_registry"] = registry
-    record.final_artifacts["toolnode_wrapper_trace"] = trace
-    record.logs.append(
-        {
-            "event": "lg_e3_toolnode_wrapper_trace",
-            "instrumentation_layer": LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
-            "enabled": bool(enabled),
-            "event_count": len(safe_events),
-            "events_hash": trace["events_hash"],
-            "does_not_replace_academic_evidence": True,
-        }
-    )
-    write_agent_loop_run_record(record, path)
 
 
-def _augment_run_record_with_lg_e2_send_parallel_trace(
-    result: AgentLoopResult,
-    *,
-    events: list[dict[str, Any]],
-    enabled: bool,
-) -> None:
-    if not result.run_record_path:
-        return
-    path = result.run_record_path
-    record = read_agent_loop_run_record(path)
-    contract = build_lg_e2_send_parallel_contract()
-    finalized_events = [
-        _jsonable(_lg_e2_finalize_metadata_from_record(record, event))
-        for event in list(events or [])
-        if isinstance(event, dict)
-    ]
-    trace = {
-        "schema_version": LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
-        "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
-        "enabled": bool(enabled),
-        "event_count": len(finalized_events),
-        "events_hash": _hash_payload(finalized_events),
-        "parallel_send_enabled_count": sum(1 for event in finalized_events if bool(event.get("parallel_send_enabled"))),
-        "fallback_count": sum(1 for event in finalized_events if not bool(event.get("parallel_send_enabled"))),
-        "serial_equivalence_hashes": [
-            str(event.get("serial_equivalence_hash") or "")
-            for event in finalized_events
-            if event.get("serial_equivalence_hash")
-        ],
-        "canonical_result_hashes": [
-            str(event.get("canonical_result_hash") or "")
-            for event in finalized_events
-            if event.get("canonical_result_hash")
-        ],
-        "contract_hash": _hash_payload(contract),
-        "ordering_key_fields": contract["ordering_key_fields"],
-        "does_not_replace_academic_evidence": True,
-        "academic_evidence_sources": list(_LG_D1_ACADEMIC_EVIDENCE_SOURCES),
-        "events": finalized_events,
-    }
-    record.environment["lg_e2_send_parallel_enabled"] = bool(enabled)
-    record.environment["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
-    record.environment["lg_e2_send_parallel_event_count"] = len(finalized_events)
-    record.environment["lg_e2_send_parallel_events_hash"] = trace["events_hash"]
-    record.environment["lg_e2_send_parallel_contract_hash"] = trace["contract_hash"]
-    record.environment["lg_e2_send_parallel_ordering_key_fields"] = trace["ordering_key_fields"]
-    record.run_config["lg_e2_send_parallel_enabled"] = bool(enabled)
-    record.run_config["lg_e2_send_parallel_schema_version"] = LG_E2_SEND_PARALLEL_SCHEMA_VERSION
-    record.run_config["lg_e2_send_parallel_contract"] = contract
-    record.final_artifacts["lg_e2_send_parallel_trace"] = trace
-    record.logs.append(
-        {
-            "event": "lg_e2_send_parallel_trace",
-            "instrumentation_layer": LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
-            "enabled": bool(enabled),
-            "event_count": len(finalized_events),
-            "parallel_send_enabled_count": trace["parallel_send_enabled_count"],
-            "fallback_count": trace["fallback_count"],
-            "events_hash": trace["events_hash"],
-            "does_not_replace_academic_evidence": True,
-        }
-    )
-    write_agent_loop_run_record(record, path)
 
 
 def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: list[dict[str, Any]]) -> None:
@@ -7247,53 +4465,6 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
     write_agent_loop_run_record(record, path)
 
 
-def _augment_run_record_with_lg_d1_operator_log(
-    result: AgentLoopResult,
-    *,
-    operator_events: list[dict[str, Any]],
-    graph_stream_status: str,
-    operator_stream_enabled: bool,
-) -> None:
-    if not operator_stream_enabled or not result.run_record_path:
-        return
-    path = result.run_record_path
-    record = read_agent_loop_run_record(path)
-    artifacts = _write_lg_d1_operator_artifacts(
-        record=record,
-        run_record_path=path,
-        operator_events=operator_events,
-        graph_stream_status=graph_stream_status,
-    )
-    lg_d2_policy = build_lg_d2_llm_node_envelope_policy()
-    record.run_config["lg_d1_operator_log_enabled"] = True
-    record.run_config["instrumentation_layer_detail"] = LG_D1_INSTRUMENTATION_LAYER
-    record.run_config["llm_node_envelope_policy_hash"] = lg_d2_policy["policy_hash"]
-    record.environment["llm_node_envelope_policy"] = lg_d2_policy
-    record.environment["llm_node_envelope_policy_hash"] = lg_d2_policy["policy_hash"]
-    record.environment["lg_d2_llm_node_envelope_schema_version"] = LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION
-    record.environment["lg_d2_llm_node_envelope_event_schema_version"] = LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION
-    record.environment["lg_d2_llm_node_envelope_instrumentation_layer"] = LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER
-    record.environment["lg_d1_operator_log_enabled"] = True
-    record.environment["lg_d1_instrumentation_layer"] = LG_D1_INSTRUMENTATION_LAYER
-    record.environment["lg_d1_graph_stream_status"] = graph_stream_status
-    record.environment["llm_stream_required"] = artifacts["llm_stream_required"]
-    record.environment["llm_stream_config_enabled"] = artifacts["llm_stream_config_enabled"]
-    record.environment["llm_stream_include_usage_config_enabled"] = artifacts["llm_stream_include_usage_config_enabled"]
-    record.environment["llm_stream_observed"] = artifacts["llm_stream_observed"]
-    record.environment["llm_stream_observation_source"] = artifacts["llm_stream_observation_source"]
-    record.environment["llm_stream_interaction_count"] = artifacts["llm_stream_interaction_count"]
-    record.final_artifacts["operator_log"] = artifacts
-    record.logs.append(
-        {
-            "event": "lg_d1_operator_log_artifacts",
-            "instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,
-            "operator_event_count": artifacts["operator_event_count"],
-            "operator_log_hash": artifacts["operator_log_hash"],
-            "stream_summary_hash": artifacts["stream_summary_hash"],
-            "does_not_replace_academic_evidence": True,
-        }
-    )
-    write_agent_loop_run_record(record, path)
 
 
 def _refresh_lg_c1_readiness_after_lg_d1_operator_log(result: AgentLoopResult, graph_state: _GraphLoopState) -> None:
@@ -7313,63 +4484,6 @@ def _refresh_lg_c1_readiness_after_lg_d1_operator_log(result: AgentLoopResult, g
     write_agent_loop_run_record(record, path)
 
 
-def _run_graph_with_lg_d1_stream(
-    app: Any,
-    *,
-    initial_state: _GraphLoopState,
-    run_id: str,
-    operator_stream_enabled: bool,
-) -> tuple[_GraphLoopState, list[dict[str, Any]], str]:
-    if not operator_stream_enabled:
-        state = app.invoke(initial_state, config={"configurable": {"thread_id": run_id}})
-        return state, [], "disabled"
-
-    final_state: _GraphLoopState | None = None
-    operator_events: list[dict[str, Any]] = []
-    try:
-        stream_iter = app.stream(
-            initial_state,
-            config={"configurable": {"thread_id": run_id}},
-            stream_mode="updates",
-        )
-    except TypeError as exc:
-        # Some LangGraph versions can expose invoke but lack the exact stream
-        # signature.  A non-generator ``stream`` implementation can still run
-        # arbitrary setup/provider code before raising ``TypeError``; replaying
-        # with ``invoke`` would risk duplicate LLM calls and corrupted academic
-        # evidence.  Fail loud instead of making an unauditable fallback.
-        raise RuntimeError(
-            "LangGraph stream setup failed with TypeError; refusing fallback invoke because "
-            "stream setup may already have provider/stage side effects"
-        ) from exc
-    for chunk in stream_iter:
-        if not isinstance(chunk, dict):
-            continue
-        for node_id, update in chunk.items():
-            if not isinstance(update, dict):
-                continue
-            operator_events = _merge_operator_events(operator_events, update.get("operator_events"))
-            final_state = update  # LangGraph Command nodes return the graph-state update.
-            operator_events.append(
-                build_lg_d1_operator_event(
-                    run_id=run_id,
-                    event_type="node_exit",
-                    node=str(node_id),
-                    stage_id=_primary_stage_id_for_node(str(node_id)),
-                    payload=_safe_node_exit_payload(update),
-                )
-            )
-    if final_state is None:
-        checkpoint = app.get_state({"configurable": {"thread_id": run_id}})
-        state = getattr(checkpoint, "values", {}) if checkpoint is not None else {}
-        if isinstance(state, dict) and "runtime_result" in state:
-            operator_events = _merge_operator_events(operator_events, state.get("operator_events"))
-            return state, operator_events, "degraded_with_reason:langgraph_stream_updates_empty_checkpoint_recovered"
-        raise RuntimeError(
-            "LangGraph stream produced no usable updates and no checkpoint runtime_result; "
-            "refusing fallback invoke because stream execution may already have provider/stage side effects"
-        )
-    return final_state, operator_events, "enabled"
 
 
 def _lg_f1_actual_interrupt_node(interrupt_after: str) -> str:
