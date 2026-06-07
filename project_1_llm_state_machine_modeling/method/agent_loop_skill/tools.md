@@ -19,11 +19,11 @@ PR-E1 已将默认 repair 主链提升为 `FixRequestBatch + FixLog + SL-9 per-r
 
 ## Python 入口
 
-推荐从总 façade `method.stages.sd_tools` 导入；若需要按 stage 拆分，也可使用 `method.stages.sd_parse` / `sd_semantic` / `sd_design` / `sd_scenario_coverage` / `sd_sim` / `sd_fix_plan` / `sd_repair_review` 这些薄 re-export 模块。
+推荐从 skill-facing 总 façade `method.stages.api` 导入；若只需要 deterministic SD 工具，也可继续使用 `method.stages.sd_tools`。`agent_loop_skill/stages/` 中的 symlink 仅供人类阅读 stage 文档，不是程序化调用 API。
 
 ```python
 from method.schema import StageContext
-from method.stages.sd_tools import (
+from method.stages.api import (
     freeze_scenario_set,
     mark_warning_repair_attempt,
     run_sd2_parse,

@@ -38,6 +38,8 @@ PR-skill-fix 后续使用本 skill 时，必须确认 PR-E1 大改后的设计�
 - `SD-*`：确定性工具，后续可被 Codex / Claude / ref-model pipeline / Path1 / Path2 直接调用。
 - `SL-*`：只暴露 prompt generator / stage spec / input-output schema；skill 使用者自行调用 LLM 或 subagent。
 - `SC-*`：control、trace、budget、ScenarioSet freeze 与 run-record 写入。
+- 程序化调用入口优先使用 `method.stages.api`；SC/control 摘要使用 `method.stages.sc_control`；SL prompt facade 使用 `method.stages.sl_prompt_api`。这些入口不读取 `.env`、不调用 provider，也不得调用 `method.loop.run_agent_loop(...)`。
+- `agent_loop_skill/stages/` 下的 symlink 只是人类可读 stage 文档索引，不是程序化调用 API；工具调用必须走上面的 Python facade。
 - 每次完整 loop 必须产出一个自包含 `AgentLoopRunRecord` 单文件；PR-0 冻结字段，PR-2A/PR-2B 实现写入器。
 
 ## Stage 顺序
@@ -56,7 +58,7 @@ PR-skill-fix 后续使用本 skill 时，必须确认 PR-E1 大改后的设计�
 
 ## PR-C config / default runtime contract
 
-- 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`，并执行 full staged runtime。
+- 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`，并执行 full staged runtime；这不是 skill 程序化调用入口，PR-E2 ref-model producer 不得调用它。
 - legacy：旧 A0-A4 loop 只能通过 `method.legacy_loop.run_legacy_agent_loop()` 显式调用，并视为 deprecated。
 - skill 使用者若要生成 ref model，应使用 `SL-*` prompt generators 自行调用 LLM/subagent；`SD-*` deterministic tools 可直接作为封装工具调用。
 - 任何 ablation 都要显式 `condition_id/base_condition_id/changed_factors/academic_question`，并在 run record 中记录 resolved config 与 condition hash。
