@@ -354,54 +354,54 @@ SAPIC+ 作为统一中间规格语言，可编译到三个主流后端：
 
 ### 1. 重要的前身类工作
 
-**Semi-automated protocol disambiguation and code generation (Yen et al., 2021)**  
+**Semi-automated protocol disambiguation and code generation (Yen et al., 2021)**
 论文引用该工作作为 lambda calculus 启发来源之一。它说明自然语言协议描述存在歧义，需要中间表示和半自动消歧，这与本文的 L-Repair 和用户交互设计直接相关。
 
-**Operational semantics of security protocols (Cremers and Mauw, 2005)**  
+**Operational semantics of security protocols (Cremers and Mauw, 2005)**
 本文的协议执行语义、well-formedness 和 role/thread 视角继承了安全协议操作语义传统，为 $\lambda$-DSL 的 formal execution model 提供理论支撑。
 
-**SAPIC+: Protocol Verifiers of the World, Unite! (Cheval et al., 2022)**  
+**SAPIC+: Protocol Verifiers of the World, Unite! (Cheval et al., 2022)**
 SAPIC+ 是本文后端转换链路的关键基础。本文选择先转 SAPIC+，再利用其可编译到 Tamarin、ProVerif、DeepSec 的能力，避免为每个验证器单独生成模型。
 
 ### 2. 直接参与实验的 baseline
 
-**Few-shot learning baseline**  
+**Few-shot learning baseline**
 论文把直接 few-shot prompting 作为主要 LLM baseline，包括 0-shot、1-shot、2-shot、3-shot。结果显示 3-shot 最多成功 4 个协议，而本文方法成功 10 个协议，说明简单 prompt 不足以生成可靠符号模型。
 
-**Converting Alice&Bob protocol specifications to Tamarin (Keller and Basin, 2014)**  
+**Converting Alice&Bob protocol specifications to Tamarin (Keller and Basin, 2014)**
 论文选取该 correct-by-construction 方法作为补充比较对象。作者为 4 个协议手工构造 Alice&Bob specification 输入，并比较生成的 Tamarin 模型在给定性质上的等价性。结论是该方法和本文方法在这些性质上都能通过验证，但 Alice&Bob 方法要求结构化协议规格，而本文从自然语言文档出发。
 
 ### 3. 提供了重要论证的工作
 
-**Tamarin prover (Meier et al., 2013)**  
+**Tamarin prover (Meier et al., 2013)**
 Tamarin 是本文主要后端验证器，也是实验运行平台。论文把 Tamarin 建模难度作为研究动机之一，同时用 Tamarin 1.8.0 验证生成模型。
 
-**ProVerif (Blanchet, 2001) 与 DeepSec (Cheval et al., 2018)**  
+**ProVerif (Blanchet, 2001) 与 DeepSec (Cheval et al., 2018)**
 这两个工具与 Tamarin 一起构成 SAPIC+ 可面向的主流协议验证器生态，说明本文生成目标不是单一工具脚本，而是可跨验证器复用的符号协议规格。
 
-**TLS 1.3、5G AKA、EMV 的符号分析工作**  
+**TLS 1.3、5G AKA、EMV 的符号分析工作**
 论文引用这些真实案例说明符号协议验证能发现关键漏洞，但人工建模成本高。它们不参与本文 benchmark，却构成“为什么要自动化建模”的核心论据。
 
 ### 4. 在技术上提供支持的工作
 
-**Lost in the Middle (Liu et al., 2024)**  
+**Lost in the Middle (Liu et al., 2024)**
 论文用该工作解释长上下文中间信息容易被 LLM 忽略，因此采用 chunk-by-chunk parsing 和局部上下文机制。
 
-**Language Models are Few-Shot Learners (Brown et al., 2020)**  
+**Language Models are Few-Shot Learners (Brown et al., 2020)**
 本文的 L-CCG parsing、repair prompt 和 top specification synthesis 都使用 few-shot in-context learning。
 
-**Enhancing static analysis for practical bug detection: An LLM-integrated approach (Li et al., 2024)**  
+**Enhancing static analysis for practical bug detection: An LLM-integrated approach (Li et al., 2024)**
 论文引用该工作作为 LLM self-validation 思路来源之一，即让 LLM 对照输入与候选输出检查和修正问题。
 
-**Lark parser**  
+**Lark parser**
 L-Repair 中的 `Analysis` 函数使用 Lark parser 根据 BNF 得到 AST，并检测 unbounded variables。这是结构化 diagnostics 的具体实现基础。
 
 ### 5. 其他重要工作
 
-**NL2Spec 与交互式 temporal specification synthesis**  
+**NL2Spec 与交互式 temporal specification synthesis**
 论文把 LLM-aided formal verification 分为 P1 formal model construction、P2 formal specification writing、P3 proving。NL2Spec、NL2TL 和 temporal specification synthesis 主要支撑 P2，而本文强调自己聚焦 P1。
 
-**自动定理证明中的 LLM 工作**  
+**自动定理证明中的 LLM 工作**
 LeanDojo、DT-Solver、generative language modeling for theorem proving 等工作支撑 P3。本文与它们互补：不是帮 prover 证明，而是帮用户构建可被 prover 分析的模型。
 
 ## 文献分类总结
@@ -439,4 +439,3 @@ LeanDojo、DT-Solver、generative language modeling for theorem proving 等工�
 [13] Tamarin Prover Team. Tamarin Prover. https://github.com/tamarin-prover/tamarin-prover
 
 [14] Lark contributors. Lark: A Modern Parsing Library for Python. https://github.com/lark-parser/lark
-
