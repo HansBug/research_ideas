@@ -21,7 +21,7 @@
 - baseline source head：`8a5f7bfa9e93008a3b9eec4f7683b594aaee1de8`（LG-M1-A 空 PR head；fixture 还包含本 PR 新增 characterization test 后的 working-tree collection count，最终实现 commit 以 PR head 与实现 comment 为准，不在文件内伪造自引用 hash）
 - baseline 真源：[`tests/fixtures/lg_m1_a_baseline.json`](./tests/fixtures/lg_m1_a_baseline.json)
 - baseline 范围：inventory + characterization baseline；未读取 `.env`，未调用真实 provider，未生成新的论文主结果 evidence。
-- pytest collection 基线：`382` tests collected，scope 为 `project_1_llm_state_machine_modeling/method/tests`。
+- pytest collection 原始基线：`382` tests collected，scope 为 `project_1_llm_state_machine_modeling/method/tests`；LG-M1-C1 与 LG-M1-D1 各新增 `5` 个聚焦测试，因此当前 C1+D1 合流后期望为 `392` tests collected。
 
 ### 当前顶层文件事实
 
@@ -30,10 +30,10 @@
 - 默认公开入口：[`loop.py`](./loop.py)
 - 当前 LangGraph runtime 单文件入口：[`langgraph_runtime.py`](./langgraph_runtime.py)
 - 当前 legacy loop：[`legacy_loop.py`](./legacy_loop.py)
-- 当前 ablation / deterministic experiment 入口：[`pr2a_loop.py`](./pr2a_loop.py)
-- 当前真实 run matrix 入口：[`pr_e1_real_runs.py`](./pr_e1_real_runs.py)
-- 当前 representative cases 入口：[`pr_d_representative.py`](./pr_d_representative.py)
-- 当前 resume experiment 入口：[`pr_lg_f1_resume_experiment.py`](./pr_lg_f1_resume_experiment.py)
+- 当前 ablation / deterministic experiment 入口：[`pr2a_loop.py`](./pr2a_loop.py)（LG-M1-C2 后续处理）
+- 当前真实 run matrix 功能入口：[`experiments/real_run_matrix.py`](./experiments/real_run_matrix.py)；legacy shim：[`pr_e1_real_runs.py`](./pr_e1_real_runs.py)
+- 当前 representative cases 功能入口：[`experiments/representative_cases.py`](./experiments/representative_cases.py)；legacy shim：[`pr_d_representative.py`](./pr_d_representative.py)
+- 当前 checkpoint / resume experiment 功能入口：[`experiments/checkpoint_resume.py`](./experiments/checkpoint_resume.py)；legacy shim：[`pr_lg_f1_resume_experiment.py`](./pr_lg_f1_resume_experiment.py)
 - stage Python 模块目录：[`stages/`](./stages/)
 - method tests 目录：[`tests/`](./tests/)
 
@@ -121,12 +121,15 @@ LG-M1-A 对当前实验入口只做 import smoke 与 `--help` / argparse 层面�
 
 | 模块 | 当前 baseline | Provider 调用 |
 | --- | --- | --- |
-| `method.pr_e1_real_runs` | import ok，`--help` exit 0 | 否 |
-| `method.pr_lg_f1_resume_experiment` | import ok，`--help` exit 0 | 否 |
-| `method.pr_d_representative` | import ok，`--help` exit 0 | 否 |
+| `method.pr_e1_real_runs` | legacy shim import ok，`--help` exit 0 | 否 |
+| `method.experiments.real_run_matrix` | 功能命名入口 import ok，`--help` exit 0 | 否 |
+| `method.pr_lg_f1_resume_experiment` | legacy shim import ok，`--help` exit 0 | 否 |
+| `method.experiments.checkpoint_resume` | 功能命名入口 import ok，`--help` exit 0 | 否 |
+| `method.pr_d_representative` | legacy shim import ok，`--help` exit 0 | 否 |
+| `method.experiments.representative_cases` | 功能命名入口 import ok，`--help` exit 0 | 否 |
 | `method.pr2a_loop` | import ok，`python -m ... --help` exit 0；当前无 argparse usage 输出 | 否 |
 
-LG-M1-C1/C2 后续迁移实验入口时，old/new import / `--help` equivalence 应以该 baseline 为锚点。
+LG-M1-C1 已完成前三组 current experiment entrypoint 的 old/new import / `--help` 双入口 baseline；LG-M1-C2 后续迁移 ablation 入口时，应继续以该 baseline 口径为锚点。
 
 ## Future Target Structure
 
@@ -149,12 +152,14 @@ LG-M1-C1/C2 负责把施工编号式实验入口迁往功能语义路径，同�
 
 ```text
 method/experiments/
-├── real_runs.py                  # LG-M1-C1：原 pr_e1_real_runs.py
-├── resume_experiment.py          # LG-M1-C1：原 pr_lg_f1_resume_experiment.py
+├── real_run_matrix.py            # LG-M1-C1：原 pr_e1_real_runs.py
+├── checkpoint_resume.py          # LG-M1-C1：原 pr_lg_f1_resume_experiment.py
 ├── representative_cases.py       # LG-M1-C1：原 pr_d_representative.py
 └── ablation/
     └── deterministic_loop.py     # LG-M1-C2：原 pr2a_loop.py
 ```
+
+LG-M1-C1 implementation note：`method.pr_e1_real_runs`、`method.pr_lg_f1_resume_experiment` 与 `method.pr_d_representative` 现在是 compatibility shim；新代码和新文档应优先引用 `method.experiments.real_run_matrix`、`method.experiments.checkpoint_resume` 与 `method.experiments.representative_cases`。
 
 ### 古老 legacy loop 删除目标 → LG-M1-C2
 
