@@ -1,6 +1,6 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
 > 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
@@ -19,7 +19,7 @@
 3. **年度 README 是事实源**：各 venue 年度 README 保存原始核验事实；本文件只做跨 venue 汇总索引。
 4. **来源可点击**：每个时间点都必须给出事件官方来源、官方年度主页、本库年度 README；已发布论文集 / 论文名录 / 期刊卷期入口时也直接挂链接。
 5. **时间精确到分钟**：官方只给日期时写 `yyyy-mm-dd 待补时刻`；Mermaid 图只使用日期级粒度。
-6. **阶段状态为当前核查时点状态**：截至 `2026-06-06`，尚未发生的 future notification / camera-ready 不写成“已完成”；若 submission 已过但通知未出，可写 `🟡 审稿中`。
+6. **阶段状态为当前核查时点状态**：截至 `2026-06-07`，尚未发生的 future notification / camera-ready 不写成“已完成”；若 submission 已过但通知未出，可写 `🟡 审稿中`。
 7. **未来检索下限**：每轮实际搜索默认至少检索到当前年份 + 2；若当前年份 + 1 / +2 没有官方信息，也要在对应 venue 年度页或待补记录中说明已检索但未公布。
 8. **更远未来年度**：当前年份 + 3 或更远不强制占位，但只要能找到官方年度主页、`CFP`、important dates 或投稿入口，就必须新增对应年份章节。
 9. **期刊区别处理**：rolling submission 不伪造日期，放入“期刊滚动投稿 / 未定日期”；只有 special issue / topical collection 等带明确 ddl 的期刊事件进入年度 dated timeline。
@@ -372,6 +372,7 @@ gantt
 | 2026-11-12 待补时刻 AoE | [REFSQ 2027](./conf-c-refsq/2027/README.md) | 会议-C | Research submission | Submission | 🟢 投稿中 | [官方来源](https://2027.refsq.org/dates/refsq-2027) | [年度主页](https://2027.refsq.org/) | 未公布 | [本库年度页](./conf-c-refsq/2027/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2026-11-17 23:59:59 AoE | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track major revision due | Camera-ready | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方明确 All dates are 23:59:59 AoE / UTC-12h。 |
 | 2026-11-17 至 2026-11-20 | [ICFEM 2026](./conf-c-icfem/2026/README.md) | 会议-C | Conference dates | Conference | 🟢 投稿中 | [ICFEM 2026 home](https://icfem2026.github.io/) | [ICFEM 2026](https://icfem2026.github.io/) | 未公布 | [本库年度页](./conf-c-icfem/2026/README.md) | 🟡 部分核验 | Southampton。 |
+| 2026-11-23 至 2026-11-24 | [ICECCS 2026](./conf-c-iceccs/2026/README.md) | 会议-C / P2 | Conference dates | Conference | 🟢 投稿中 | [ICECCS 2026 homepage](https://formal-analysis.com/iceccs/2026/) | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) | 未公布 | [本库年度页](./conf-c-iceccs/2026/README.md) | 🟡 部分核验 | Brisbane, Australia；官网头部明示 `23-24 November 2026`；C 类 P2/P3 工程案例观察。 |
 | 2026-11-24 23:59:59 AoE | [ICSE 2027](./conf-a-icse/2027/README.md) | 会议-A | Research Track camera-ready direct | Camera-ready | 🟢 投稿中 | [官方来源](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | [年度主页](https://conf.researchr.org/home/icse-2027) | 未公布 | [本库年度页](./conf-a-icse/2027/README.md) | 🟡 部分核验 | 官方明确 All dates are 23:59:59 AoE / UTC-12h。 |
 | 2026-12-01 待补时刻 AoE | [SANER 2027](./conf-b-saner/2027/README.md) | 会议-B | Research Track notification | Notification | 🟢 投稿中 | [SANER 2027 dates](https://conf.researchr.org/dates/saner-2027) | [SANER 2027](https://conf.researchr.org/home/saner-2027) | 未公布 | [本库年度页](./conf-b-saner/2027/README.md) | 🟡 部分核验 | 官方日期与时区已核验：AoE / UTC-12h；具体钟点待补。 |
 | 2026-12-07 至 2026-12-09 AoE | [ETAPS/TACAS 2027](./conf-b-etaps/2027/README.md) | 会议-B | TACAS rebuttal | Rebuttal | 🟢 投稿中 | [官方来源](https://etaps.org/2027/cfp/) | [年度主页](https://etaps.org/2027/) | 未公布 | [本库年度页](./conf-b-etaps/2027/README.md) | 🟡 部分核验 | 官方仅日期，AoE；时刻待补。 |
@@ -617,6 +618,7 @@ gantt
   ASEJ26 LowCode :milestone, asej_26_lowcode_20260901, 2026-09-01, 1d
   ASEJ26 Business :milestone, asej_26_business_20260930, 2026-09-30, 1d
   ASEJ26 CodeReview :milestone, asej_26_codereview_20261001, 2026-10-01, 1d
+  ICECCS26 Conference :iceccs_26_conf_20261123, 2026-11-23, 2026-11-24
   ASEJ26 APSEC Open :milestone, asej_26_apsec_open_20261215, 2026-12-15, 1d
 ```
 
@@ -1295,6 +1297,7 @@ gantt
 | 2023-03-17 待补时刻 AoE | [RE 2023](./conf-b-re/2023/README.md) | 会议-B | Research Papers submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/RE-2023) | [年度主页](https://conf.researchr.org/home/RE-2023) | [Program](https://conf.researchr.org/program/RE-2023/program-RE-2023/) / [DBLP](https://dblp.org/db/conf/re/re2023.html) | [本库年度页](./conf-b-re/2023/README.md) | 🟡 部分核验 | main research / research track；具体时刻待补。 |
 | 2023-03-21 至 2023-03-24 | [SANER 2023](./conf-b-saner/2023/README.md) | 会议-B | Conference dates | Conference | ✅ 已结束 | [SANER 2023 home](https://saner2023.must.edu.mo/) | [SANER 2023](https://saner2023.must.edu.mo/) | [DBLP 2023](https://dblp.org/db/conf/wcre/saner2023) | [本库年度页](./conf-b-saner/2023/README.md) | 🟡 部分核验 | Macao SAR, China。 |
 | 2023-03-29 待补时刻 | [ICSE 2024](./conf-a-icse/2024/README.md) | 会议-A | Research Track submission, cycle 1 | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/track/icse-2024/icse-2024-research-track) | [年度主页](https://conf.researchr.org/home/icse-2024) | [Program](https://conf.researchr.org/program/icse-2024/program-icse-2024/) / [DBLP](https://dblp.org/db/conf/icse/icse2024.html) | [本库年度页](./conf-a-icse/2024/README.md) | 🟡 部分核验 | 官方仅日期，AoE / UTC-12h；时刻待补。 |
+| 2023-04-03 待补时刻 AoE | [CAiSE 2023](./conf-b-caise/2023/README.md) | 会议-B | Main conference camera-ready / author registration | Camera-ready | ✅ 已结束 | [Main conference CFP](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | [Accepted papers](https://caise23.svit.usj.es/accepted-papers/) | [本库年度页](./conf-b-caise/2023/README.md) | 🟡 部分核验 | 官方同页写 `Camera-ready Papers: 3rd April 2023` 与 author registration 同日；dates are AoE。 |
 | 2023-04-07 待补时刻 | [MoDELS 2023](./conf-b-models/2023/README.md) | 会议-B | Technical Track abstract | Abstract | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2023) | [年度主页](https://conf.researchr.org/home/models-2023) | [FT](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT](https://conf.researchr.org/info/models-2023/accepted-papers---pt) / [DBLP](https://dblp.org/db/conf/models/models2023.html) | [本库年度页](./conf-b-models/2023/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
 | 2023-04-10 待补时刻 | [TASE 2023](./conf-c-tase/2023/README.md) | 会议-C | Notification | Notification | ✅ 已结束 | [TASE 2023 official source](https://plrg-bristol.github.io/tase2023/cfp.html) | [TASE 2023](https://plrg-bristol.github.io/tase2023/) | [Accepted Papers](https://plrg-bristol.github.io/tase2023/accepted-papers.html) / [Proceedings](https://link.springer.com/book/10.1007/978-3-031-35257-7) / [DBLP](https://dblp.org/db/conf/tase/tase2023.html) | [本库年度页](./conf-c-tase/2023/README.md) | 🟡 部分核验 | TASE official accepted list、Springer TOC 与 DBLP 计数需分列；不混成单一论文数。 |
 | 2023-04-14 待补时刻 | [MoDELS 2023](./conf-b-models/2023/README.md) | 会议-B | Technical Track submission | Submission | ✅ 已结束 | [官方来源](https://conf.researchr.org/dates/models-2023) | [年度主页](https://conf.researchr.org/home/models-2023) | [FT](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT](https://conf.researchr.org/info/models-2023/accepted-papers---pt) / [DBLP](https://dblp.org/db/conf/models/models2023.html) | [本库年度页](./conf-b-models/2023/README.md) | 🟡 部分核验 | 官方仅日期；时刻待补。 |
@@ -1549,6 +1552,7 @@ gantt
   ICECCS23 Full :milestone, iceccs_23_full_20230116, 2023-01-16, 1d
   CAiSE23 Notify :milestone, caise_23_notify_20230301, 2023-03-01, 1d
   ICECCS23 Notify :milestone, iceccs_23_notify_20230315, 2023-03-15, 1d
+  CAiSE23 Camera :milestone, caise_23_camera_20230403, 2023-04-03, 1d
   ICECCS23 Camera :milestone, iceccs_23_camera_20230415, 2023-04-15, 1d
   CAiSE23 Conference :caise_23_conf_20230612, 2023-06-12, 2023-06-16
   ICECCS23 Conference :iceccs_23_conf_20230614, 2023-06-14, 2023-06-16
@@ -1947,12 +1951,13 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 13:33` | 修复 PR #63 实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步年度表与 Mermaid 分片。 |
+| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：同步 ASE Journal rolling / collection events、CAiSE 与 ICECCS dated events、PR-63 Mermaid 分片和待补记录。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：校准 ISSTA 2026 官方仅给日期 + AoE 的时间精度，补齐 author response 与 camera-ready，将 CAV 2026 artifact evaluation 类型从 Rebuttal 改为 artifact 专项类型，并修正 REFSQ 2027 Research Papers 官方链接。 |
 | `2026-06-06 11:46` | PR #35 近期窗口扩展复审修复：按 2026-01 至 2027 秋季口径补齐 FSE 2027 Research Papers、CAV 2026 artifact、RV 2026 tutorial、ISSRE 2026 revision period，并将 REJ invite-only 与 IST candidate CFP 降级语义同步到近期窗口。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：按官方页面将 ICSE 2027 Research Track 精确到 `23:59:59 AoE / UTC-12h`，将 ICFEM 2026 Important Dates 精确到 `23:59 AoE / UTC-12`，并同步近期窗口与年度事件表。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track 官方 AoE / UTC-12h 时区，统一 APSEC 2026 会期备注为 Bali local time (UTC+8)，并清零投稿规划相关 I 级问题。 |
 | `2026-06-06 00:16` | PR-10 全局审计：复核近期窗口官方来源，修正 APSEC 2026 Technical Track 为 UTC+8 (Bali time)（非 AoE），并确认 JSS ScienceDirect 仍保留 CLI 403/WAF caveat。 |
-| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：同步 ASE Journal rolling / collection events、CAiSE 与 ICECCS dated events、PR-63 Mermaid 分片和待补记录。 |
 | `2026-06-05 23:06` | 修复 PR-9 冲突后复审问题：RV 2022 Notification 仅有官方 `Week 26`，从 2022 dated 表与 Mermaid 移除，改入待补记录；同步 SUMMARY / GUIDE 的 PR-9 已完成状态。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：保留 PR-6 / PR-7 / PR-8 的 SANER / ICSME / ICPC / JSEP、ESEM / ESE / JSS / SQJ、IST / SCP / QRS / TASE facts，并合入 APSEC / SEKE / EASE / MSR / RV P2 dated events、P2 Mermaid 分片与 39/273 组合统计。 |
 | `2026-06-05 21:16` | PR-8 merge 最新上游 PR-6 / PR-7：保留 SANER / ICSME / ICPC / JSEP、ESEM / ESE / JSS / SQJ 与 IST / SCP / QRS / TASE 双方 facts，重排年度事件表，重生成 Mermaid 分片并将当前组合统计提升为 34 个 venue / 238 个年度 README。 |

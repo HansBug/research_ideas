@@ -1,6 +1,6 @@
 # ICECCS README
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -15,7 +15,7 @@
 | 官方 series page | 待补（未发现稳定 official series page；年度事实以年度主页为准） |
 | 官方当前 / 最新年度主页 | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) |
 | 官方 CFP / Important Dates 总入口 | [ICECCS 2026 submission section](https://formal-analysis.com/iceccs/2026/#submission) / [ICECCS 2026 dates](https://formal-analysis.com/iceccs/2026/#dates) |
-| 官方 proceedings / paper list 总入口 | [Accepted papers text candidate](https://formal-analysis.com/iceccs/2026/ICECCS_2026_Accepted_Papers.txt) / 未公布 / Springer LNCS 待补 |
+| 官方 proceedings / paper list 总入口 | 未公布；曾检索到 `ICECCS_2026_Accepted_Papers.txt` candidate，但 2026-06-07 CLI `curl -I` 返回 404，待补 / 不作 official paper-list 链接 |
 | DBLP venue page | [DBLP ICECCS](https://dblp.org/db/conf/iceccs/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；未公布未来年度不预造 |
 
@@ -43,7 +43,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 | CFP / Call for Papers | [ICECCS 2026 submission section](https://formal-analysis.com/iceccs/2026/#submission) | 若分 track，年度页展开 | `2026-06-07 12:47` |
 | Important Dates | [ICECCS 2026 dates](https://formal-analysis.com/iceccs/2026/#dates) | 可与 CFP 同页 | `2026-06-07 12:47` |
 | Submission system | [EasyChair ICECCS 2026](https://easychair.org/conferences/?conf=iceccs2026) | 只能证明投稿入口，不替代 CFP / dates | `2026-06-07 12:47` |
-| Program / accepted papers | [Accepted papers text candidate](https://formal-analysis.com/iceccs/2026/ICECCS_2026_Accepted_Papers.txt) | 已结束年度优先 official accepted/program | `2026-06-07 12:47` |
+| Program / accepted papers | 未公布；404 candidate 已降级为待补风险 | 已结束年度优先 official accepted/program；不得把 404 candidate 写成 official paper-list | `2026-06-07 13:33` |
 | Proceedings | 未公布 / Springer LNCS 待补 | publisher / DBLP fallback 分开 | `2026-06-07 12:47` |
 | DBLP venue | [DBLP ICECCS](https://dblp.org/db/conf/iceccs/index.html) | 仅作论文名录 / 计数 fallback | `2026-06-07 12:47` |
 
@@ -67,7 +67,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟢 投稿中 | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) | [Submission section](https://formal-analysis.com/iceccs/2026/#submission) | [Important Dates](https://formal-analysis.com/iceccs/2026/#dates) | [EasyChair ICECCS 2026](https://easychair.org/conferences/?conf=iceccs2026) | [Accepted papers text candidate](https://formal-analysis.com/iceccs/2026/ICECCS_2026_Accepted_Papers.txt) | 未公布；官网说明 planned Springer LNCS | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2026-06-29 待补时刻 | 2026-07-06 待补时刻 | 2026-08-17 待补时刻 | 2026-08-31 待补时刻 | 待补 | 未公布 / accepted text 内容待人工核验 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟢 投稿中 | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) | [Submission section](https://formal-analysis.com/iceccs/2026/#submission) | [Important Dates](https://formal-analysis.com/iceccs/2026/#dates) | [EasyChair ICECCS 2026](https://easychair.org/conferences/?conf=iceccs2026) | 未公布；404 candidate 已降级为待补风险 | 未公布；官网说明 planned Springer LNCS | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2026-06-29 待补时刻 | 2026-07-06 待补时刻 | 2026-08-17 待补时刻 | 2026-08-31 待补时刻 | 2026-11-23..2026-11-24（Brisbane, Australia） | 未公布；accepted-list candidate 2026-06-07 CLI 404 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | [Submission and Publication](https://iceccs2025-hangzhou.github.io/#submissionandpublication) | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | [EasyChair ICECCS 2025](https://easychair.org/conferences/?conf=iceccs2025) | [Program](https://iceccs2025-hangzhou.github.io/#program) / [Program PDF](https://iceccs2025-hangzhou.github.io/Program.pdf) | 官网说明 Springer LNCS；具体 Springer volume URL 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2025-01-28 待补时刻 AoE | 2025-02-11 待补时刻 AoE | 2025-04-04 待补时刻 AoE | 2025-05-02 待补时刻 AoE | 2025-07-02..2025-07-04 UTC+8 | 待按 official program / proceedings / DBLP 分口径计数 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 / 待补 | 待补；候选 `https://cyprusconferences.org/iceccs2024/` 当前 CLI 404 | 待补 | 待补 | 待补 | 待补 | 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 待补 | 待补 | 待补 | 待补 | 待补 | 待 DBLP / proceedings 复核 | ⏳ 待核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | [Submission section](https://www.irit.fr/iceccs2023/#submission) | [Important Dates](https://www.irit.fr/iceccs2023/#dates) | [EasyChair ICECCS 2023](https://easychair.org/conferences/?conf=iceccs2023) | [Accepted Papers](https://www.irit.fr/iceccs2023/#acceptedpapers) | [Local proceedings page](https://www.irit.fr/iceccs2023/doc/proc.html)；IEEE Xplore 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2023-01-16 待补时刻 | 2023-01-16 待补时刻 | 2023-03-15 待补时刻 | 2023-04-15 待补时刻 | 2023-06-14..2023-06-16 | 待从 accepted/proceedings/DBLP 分口径计数 | 🟡 部分核验 |
@@ -77,6 +77,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 
 - 未发现稳定 official series page；不要用 DBLP venue index 或第三方 deadline 聚合页冒充 official series。
 - 2024 候选 annual site 当前 CLI 返回 404，CFP / dates / submission / proceedings 继续待补，不进入 TIMELINE。
+- 2026 accepted-list candidate `ICECCS_2026_Accepted_Papers.txt` 在 2026-06-07 CLI `curl -I` 返回 404，不得作为 official Program / Accepted papers 链接；后续若发布再恢复。
 - 2022 年度页含 stale 2019 proceedings link，不得复用为 2022 proceedings；IEEE CLI WAF/418 只能说明命令行访问受限。
 - ICECCS 是 CCF C 补充观察与工程案例来源，不把 complex systems 全量论文自动标为 LLM4Modeling 强相关。
 
@@ -99,4 +100,5 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 13:33` | 修复实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 2026-11-23..2026-11-24 Brisbane 会期并同步 TIMELINE。 |
 | `2026-06-07 12:47` | PR #63 初始化 ICECCS 情报，补充 CCF / official / DBLP 证据、2022--2028 年度索引、核心人员、TIMELINE 同步和待补口径。 |

@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -45,7 +45,7 @@
 
 | 项目 | 当前口径 |
 |---|---|
-| 最新事实刷新锚点 | `2026-06-07 12:47` PR #63 LLM4Modeling-SE 扩展建档与 TIMELINE 同步（新增 ASE Journal / CAiSE / ICECCS 的 venue facts；PR #62 只补维护机制，不批量改 venue facts） |
+| 最新事实刷新锚点 | `2026-06-07 13:33` PR #63 实现后 review 修复：ICECCS 2026 accepted-list 404 candidate 降级、ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready 已同步 TIMELINE（PR #62 只补维护机制，不批量改 venue facts） |
 | 近期窗口入口 | 以 [TIMELINE.md](./TIMELINE.md) §3“近期投稿窗口速览”为行级承载表；SUMMARY 不复制第二套 deadline dashboard |
 | 默认 watchlist | 以本轮刷新日期为起点，优先 P0 + 未来 6 个月内已有 open 窗口或 next edition 线索的 P1；P2 仅因明确 open 窗口或用户指定临时纳入，且必须标注 `P2 / 不升级` |
 | 高风险人工核验入口 | ScienceDirect / Elsevier / Wiley / ACM / IEEE 等 WAF/403/CAPTCHA/Authwall、`待补时刻`、日期冲突、candidate CFP 和 browser-only 页面；具体条目仍以 §13 待补与核查记录和各 venue 年度页为准 |
@@ -130,8 +130,8 @@
 | Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 |
 |---|---|---|---|---:|---|---|---|---|
 | Automated Software Engineering Journal | B | 2022-2028 | [journal-b-ase](./journal-b-ase/README.md) | 7 | rolling 表与 project-relevant Springer collection dated events 已同步 | 已记录 Editor-in-Chief 与 Deputy Editors；collection guest editors 不混入长期 roster | 常规投稿 rolling；DBLP `entry article` baseline 不等于 Springer final count；与 `conf-a-ase` 消歧 | 🟡 部分核验 |
-| CAiSE | B | 2022-2028 | [conf-b-caise](./conf-b-caise/README.md) | 7 | 2022--2026 可核验 main conference / conference dates 已同步；2024 仅会期由 DBLP/Springer record 支撑 | 已记录 2025/2026 chair、PC chair 与 conceptual modeling / process / IS 代表人物 | 只计 main conference / LNCS 主卷；Forum/DC/Workshop/BPMDS/EMMSAD 分离；2024 official CFP 待补 | 🟡 部分核验 |
-| ICECCS | C | 2022-2028 | [conf-c-iceccs](./conf-c-iceccs/README.md) | 7 | 2022/2023/2025/2026 可核验 dated events 已同步；2024/2027/2028 不造日期 | 已记录 2022/2023/2025/2026 committee 线索与 formal methods / complex systems 代表人物 | C 类 P2/P3 工程案例观察；2024 official page、IEEE/Springer proceedings 与 DBLP 年度页待补 | 🟡 部分核验 |
+| CAiSE | B | 2022-2028 | [conf-b-caise](./conf-b-caise/README.md) | 7 | 2022--2026 可核验 main conference / conference dates 已同步；2023 camera-ready 已补入 TIMELINE；2024 仅会期由 DBLP/Springer record 支撑 | 已记录 2025/2026 chair、PC chair 与 conceptual modeling / process / IS 代表人物 | 只计 main conference / LNCS 主卷；Forum/DC/Workshop/BPMDS/EMMSAD 分离；2024 official CFP 待补 | 🟡 部分核验 |
+| ICECCS | C | 2022-2028 | [conf-c-iceccs](./conf-c-iceccs/README.md) | 7 | 2022/2023/2025/2026 可核验 dated events 已同步；2026 Brisbane 会期已补入 TIMELINE；2024/2027/2028 不造日期 | 已记录 2022/2023/2025/2026 committee 线索与 formal methods / complex systems 代表人物 | C 类 P2/P3 工程案例观察；2024 official page、IEEE/Springer proceedings 与 DBLP 年度页待补 | 🟡 部分核验 |
 
 
 ## 6. 会议试点踩坑结论
@@ -331,8 +331,8 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | 目录统计 | 42 个 venue；29 个会议；13 个期刊；294 个年度 README | 本地脚本重算每个 venue 均覆盖 `2022`--`2028` 共 7 个年度 README；新增 3 个 venue / 21 个年度 README 与 PR body 计划一致 | ✅ 已完成 |
 | CCF 证据等级 | CCF 官方入口与 `ccf.atom.im` 镜像已分级 | 新增根 README、[README.md](./README.md)、[GUIDE.md](./GUIDE.md) 均写明 `ccf.atom.im` 只作非官方机器检索线索；官方正文待人工浏览器复核时不臆断 | ✅ 已完成 |
 | 适配边界 | ASE Journal / CAiSE / ICECCS 三者边界已区分 | ASE Journal 与 ASE Conference 消歧；CAiSE 限定为 IS / conceptual modeling / MDE 分流；ICECCS 保持 C 类 P2/P3 工程案例观察 | ✅ 已完成 |
-| TIMELINE / rolling | ASE Journal rolling 与 collections、CAiSE / ICECCS dated events 已同步 | [TIMELINE.md](./TIMELINE.md) §3、2022--2027 年度表、PR #63 Mermaid 分片和 §14 rolling 表均已补齐；2024 CAiSE / ICECCS 未公布项未造日期 | ✅ 已完成 |
-| 待补风险 | 2024 CAiSE / ICECCS official annual site、ICECCS proceedings、ASE Journal collection 详情页边界仍需后续人工复核 | 已进入 §13 待补与核查记录和各 venue 年度 README；不影响当前基础建档验收 | 🟡 部分核验 |
+| TIMELINE / rolling | ASE Journal rolling 与 collections、CAiSE / ICECCS dated events 已同步，含 CAiSE 2023 camera-ready 与 ICECCS 2026 conference dates | [TIMELINE.md](./TIMELINE.md) §3、2022--2027 年度表、PR #63 Mermaid 分片和 §14 rolling 表均已补齐；2024 CAiSE / ICECCS 未公布项未造日期 | ✅ 已完成 |
+| 待补风险 | 2024 CAiSE / ICECCS official annual site、ICECCS proceedings / 2026 accepted-list 404 candidate、ASE Journal collection 详情页边界仍需后续人工复核 | 已进入 §13 待补与核查记录和各 venue 年度 README；不影响当前基础建档验收 | 🟡 部分核验 |
 
 
 ## 10. 核心 URL / 超链接覆盖口径
@@ -426,7 +426,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | ASE Journal | 2026-2027 collections | Springer collections 页面包含多个 open / upcoming CFP，其中部分弱相关或详情页边界待复核 | 本 PR 只把 LLM4Modeling 强相关 collection 进入 TIMELINE；弱相关 Q-SE / Green Software 不纳入近期重点 | 后续若用户指定或 collection 状态变化，再补年度页与 TIMELINE |
 | CAiSE | 2024 | official annual site 当前未定位到可访问归档；`cyprusconferences.org/caise2024` 多路径 404 | 只用 DBLP / Springer proceedings record 写会期与 proceedings 线索；CFP / dates / submission / program 写待补 | 后续用人工浏览器 / Internet Archive / Springer / DBLP 继续补证 |
 | ICECCS | 2024 | official annual site 候选 `cyprusconferences.org/iceccs2024` 当前 CLI 404 | 不写 official homepage / CFP / dates；仅保留待补 | 后续用人工浏览器 / Internet Archive / IEEE / Springer / DBLP 继续补证 |
-| ICECCS | 2022 / 2025 / 2026 | 2022 stale 2019 proceedings link、2025 author registration 日期冲突、2026 accepted text link状态待核 | 年度页保留 caveat；不提前写 proceedings / accepted list 已闭合 | 后续人工浏览器核验后同步根 README / TIMELINE / SUMMARY |
+| ICECCS | 2022 / 2025 / 2026 | 2022 stale 2019 proceedings link、2025 author registration 日期冲突、2026 accepted-list candidate 2026-06-07 CLI 404 | 年度页保留 caveat；不提前写 proceedings / accepted list 已闭合；2026 会期已按官网补入 TIMELINE | 后续人工浏览器核验后同步根 README / TIMELINE / SUMMARY |
 
 ## 14. PR-3 形式化 / 验证会议批量填充记录
 
@@ -473,9 +473,10 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 13:33` | 修复 PR #63 实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE / 待补风险。 |
+| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 ASE Journal、CAiSE、ICECCS 完成表、统计、TIMELINE、滚动表、待补项和 CCF 证据等级口径，总量更新为 42/294（29 会议 / 13 期刊）。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：澄清 §1.1 最新事实刷新锚点是 venue facts 全闭环刷新时间，不等同于 GUIDE 文档更新时间。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §1.1 轻量入口，明确 TIMELINE §3 是近期窗口行级承载表，并记录默认 watchlist、高风险来源与下一轮刷新建议。 |
-| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 ASE Journal、CAiSE、ICECCS 完成表、统计、TIMELINE、滚动表、待补项和 CCF 证据等级口径，总量更新为 42/294（29 会议 / 13 期刊）。 |
 | `2026-06-06 13:45` | PR #35 main-ready 最终收口：同步 FSE 2027、ISSTA 2026、REFSQ 2027、APSEC 2026、RV 2026、IST 与 REJ 近期窗口复审修复，并将 PR-10 状态改为已完成合流。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：核验并同步 ICSE 2027 `23:59:59 AoE / UTC-12h` 与 ICFEM 2026 `23:59 AoE / UTC-12`，清理近期投稿窗口中的 `待补时刻` 残留。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track AoE / UTC-12h 时区、统一 APSEC 会期备注口径，并将当前统计口径改为 PR-10 审计后组合状态。 |

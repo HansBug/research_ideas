@@ -1,6 +1,6 @@
 # CAiSE 2023 README
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -22,7 +22,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [CAiSE 2023](https://caise23.svit.usj.es/) | camera-ready 与历史 submission system 需后续补证。 | `2026-06-07 12:47` |
+| 年度主页 | [CAiSE 2023](https://caise23.svit.usj.es/) | main conference page 已核验 camera-ready / author registration 为 2023-04-03 AoE；历史 submission system 仍需后续补证。 | `2026-06-07 13:33` |
 | CFP / Call for Papers | [Main conference](https://caise23.svit.usj.es/main-conference/) | 未公布或待补时不得用第三方页面替代 | `2026-06-07 12:47` |
 | Important Dates | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | 可与 CFP 同页 | `2026-06-07 12:47` |
 | Submission system | 待补（官方按钮 / EasyChair 历史入口需复核） | 投稿系统不能替代 CFP / dates / accepted papers | `2026-06-07 12:47` |
@@ -37,7 +37,7 @@
 | Abstract deadline | 2022-11-22 待补时刻 | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | 若发生在 2021，只保留年度页，不进入 2022+ TIMELINE。 |
 | Submission deadline | 2022-11-29 待补时刻 | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | main / full paper 口径；其他 track 分列。 |
 | Notification | 2023-03-01 待补时刻 | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | 官方只给日期时写 `待补时刻`。 |
-| Camera-ready | 待补 | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | 未公布写待补，不反推。 |
+| Camera-ready | 2023-04-03 待补时刻 AoE | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | 官方同页写 `Camera-ready Papers: 3rd April 2023`，并注明 dates are AoE；author registration 同日。 |
 | Conference dates | 2023-06-12..2023-06-16 | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | [CAiSE 2023](https://caise23.svit.usj.es/) | 有会期则必须同步 TIMELINE；未公布不造。 |
 
 
@@ -69,14 +69,14 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [CAiSE 2023](https://caise23.svit.usj.es/) | `2026-06-07 12:47` | camera-ready 与历史 submission system 需后续补证。 |
+| 官方年度主页 | [CAiSE 2023](https://caise23.svit.usj.es/) | `2026-06-07 13:33` | main conference page 已核验 camera-ready / author registration 为 2023-04-03 AoE；历史 submission system 仍需后续补证。 |
 | 官方 CFP / Dates | [Main conference](https://caise23.svit.usj.es/main-conference/) / [Main conference dates](https://caise23.svit.usj.es/main-conference/) | `2026-06-07 12:47` | 可核验则进入重要时间点；待补则不写 dated event。 |
 | 官方论文名录 / proceedings | [Accepted papers](https://caise23.svit.usj.es/accepted-papers/) / [Program](https://caise23.svit.usj.es/program/) / [Proceedings](https://caise23.svit.usj.es/proceedings/) | `2026-06-07 12:47` | 论文数量仍需按 track / publisher / DBLP 拆分复核。 |
 | DBLP fallback | [DBLP CAiSE 2023](https://dblp.org/db/conf/caise/caise2023.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
 
 ## 8. 待补 / 风险记录
 
-- camera-ready 与历史 submission system 需后续补证。
+- 历史 submission system 需后续补证；camera-ready / author registration 已按 official main conference page 补为 2023-04-03 AoE。
 - 如果后续定位到新的 official CFP、important dates、accepted papers 或 proceedings，必须同步根 README、本文、[../../TIMELINE.md](../../TIMELINE.md) 和 SUMMARY 待补记录。
 
 ## 9. TIMELINE.md 同步提示
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 13:33` | 修复实现后 review：补入 official main conference page 的 `2023-04-03` camera-ready / author registration AoE，并同步 TIMELINE。 |
 | `2026-06-07 12:47` | 初始化 CAiSE 2023 年度 README，记录 official / DBLP 入口、重要时间点、计数口径和 TIMELINE 同步状态。 |
