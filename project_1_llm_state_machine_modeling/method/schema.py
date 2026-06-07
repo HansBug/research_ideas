@@ -539,7 +539,13 @@ class LoopConfig:
 
 @dataclass
 class LegacyLoopConfig:
-    """Deprecated config for the old A0-A4 legacy loop."""
+    """Historical schema artifact for the removed old A0-A4 legacy loop.
+
+    LG-M1-C2 keeps this dataclass only for provenance and historical material
+    readability.  New code must not use it to drive an active loop; canonical
+    experiments use :class:`LoopConfig`, while deterministic ablations use
+    ``method.experiments.ablation``.
+    """
 
     condition: ConditionLiteral = "A4"
     n_iter: int = 3

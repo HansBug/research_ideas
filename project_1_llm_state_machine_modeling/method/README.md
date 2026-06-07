@@ -17,7 +17,7 @@
 - 默认入口不再返回 PR-A `contract_only` façade；缺少真实 provider 配置或 provider/schema retry 耗尽时，也会写出 `AgentLoopRunRecord` 并以 `provider_error` / `invalid` 等可审计 verdict 退出。
 - fake / mock / replay / hot-start DSL 只能通过显式非默认 condition 或专用 smoke/replay 入口启用；默认 `LoopConfig()` 不允许 provider injection 或 `seed_dsl`，避免污染 Path1/Path2 主实验。
 - `AgentLoopRunRecord` 会记录 resolved config、condition hash、environment、provider/model 脱敏标识、stage/iteration/repair/scenario/LLM trace、eligibility 与 `redaction_report`；非默认/weak oracle/provider error/schema invalid/write failure 均不得进入高可信主结果。
-- 旧 A0-A4 loop 已迁移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，调用时发 `DeprecationWarning`，只用于历史诊断与 baseline 对照。
+- 旧 A0-A4 full loop 已从 active API 移除；确定性 replay / ablation 对照统一走 `method.experiments.ablation.deterministic_loop`，历史 `method.pr2a_loop` 仅保留 compatibility shim。
 
 默认 stage graph：
 
@@ -153,14 +153,17 @@ result = run_agent_loop(
 )
 ```
 
-历史 A0-A4 诊断入口必须显式调用 legacy module：
+确定性 replay / ablation 对照应显式调用功能命名的 ablation module；历史 `method.pr2a_loop` 只作为 compatibility shim：
 
 ```python
-from method.legacy_loop import LegacyLoopConfig, run_legacy_agent_loop
+from method.experiments.ablation.deterministic_loop import (
+    DeterministicLoopConfig,
+    run_deterministic_ablation_loop,
+)
 
-legacy_result = run_legacy_agent_loop(
+ablation_result = run_deterministic_ablation_loop(
     nl="...",
-    config=LegacyLoopConfig(condition="A4", n_iter=3, feedback_sources=["parse", "semantic", "sim"]),
+    cfg=DeterministicLoopConfig(run_id="ablation-demo"),
 )
 ```
 

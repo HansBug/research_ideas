@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
-import warnings
 from dataclasses import asdict, fields
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-import method.legacy_loop as legacy_loop
+import method.feedback.cascade as feedback_cascade
 import method.loop as loop
+from method.agents.repair import repair_model
 import method.schema as schema
 from method.schema import (
     AgentLoopRunRecord,
@@ -529,7 +530,7 @@ def test_sim_repair_prompt_accepts_json_loaded_sim_feedback() -> None:
         )
     )
 
-    selected, summary = legacy_loop.repair_model.__globals__["_build_repair_context"]("sim", feedback)
+    selected, summary = repair_model.__globals__["_build_repair_context"]("sim", feedback)
     message = json.dumps({"selected_diagnostics": selected, "scenario_summary": summary}, ensure_ascii=False)
 
     assert "s_pass" in message
@@ -862,30 +863,6 @@ def test_default_loop_rejects_seed_dsl_hot_start(tmp_path: Path) -> None:
         loop.run_agent_loop("NL", schema.LoopConfig(output_dir=str(tmp_path)), seed_dsl="state Root {}")
 
 
-def test_legacy_loop_is_explicit_and_deprecated(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
-    monkeypatch.setattr(
-        legacy_loop,
-        "check_sim",
-        lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
-    )
-    monkeypatch.setattr(legacy_loop, "generate_scenarios", lambda *args, **kwargs: ([], {}, {}))
-    monkeypatch.setattr(legacy_loop, "validate_coverage", lambda *args, **kwargs: {})
-    monkeypatch.setattr(legacy_loop, "coverage_directive", lambda cov: None)
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        result = legacy_loop.run_legacy_agent_loop(
-            "Start moves Idle to Active.",
-            seed_dsl="machine Sample {}",
-        )
-
-    assert result.status == "converged"
-    assert any(item.category is DeprecationWarning for item in caught)
-    assert result.final_feedback is not None
-    assert result.final_feedback.enabled_sources == ["parse", "semantic", "sim"]
-
 
 def test_explicit_ablation_condition_can_disable_stage_but_default_cannot() -> None:
     with pytest.raises(ValueError, match="cannot silently change stage_switches"):
@@ -960,15 +937,15 @@ def test_direct_non_default_loop_config_requires_academic_question(monkeypatch: 
 
 
 def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(feedback_cascade, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(feedback_cascade, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
     monkeypatch.setattr(
-        legacy_loop,
+        feedback_cascade,
         "check_sim",
         lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
     )
 
-    bundle = legacy_loop._run_cascade(
+    bundle = feedback_cascade.run_feedback_cascade(
         "machine Sample {}",
         feedback_sources=[
             FeedbackSource.PARSE.value,
@@ -988,9 +965,9 @@ def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeyp
 
 
 def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=False, error_message="boom"))
+    monkeypatch.setattr(feedback_cascade, "check_parse", lambda dsl: ParseFeedback(ok=False, error_message="boom"))
 
-    bundle = legacy_loop._run_cascade(
+    bundle = feedback_cascade.run_feedback_cascade(
         "broken",
         feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
         scenarios=None,
@@ -1006,10 +983,10 @@ def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> No
 
 
 def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(feedback_cascade, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(feedback_cascade, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
 
-    bundle = legacy_loop._run_cascade(
+    bundle = feedback_cascade.run_feedback_cascade(
         "machine Sample {}",
         feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value],
         scenarios=None,
@@ -1024,31 +1001,129 @@ def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) ->
     assert "enabled source stage meta blocks all_ok: SD-6 status=error ok=False" in errors
 
 
-def test_run_agent_loop_preserves_scenariogen_failure_root_cause(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
 
-    def raise_scenariogen(*args, **kwargs):
-        raise RuntimeError("scenario provider down")
 
-    monkeypatch.setattr(legacy_loop, "generate_scenarios", raise_scenariogen)
-    monkeypatch.setattr(
-        legacy_loop,
-        "repair_model",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("repair should not hide scenariogen root cause")),
+def test_scenariogen_failure_root_cause_is_preserved_without_repair(tmp_path: Path) -> None:
+    from method.staged_runtime import (
+        FullStagedRuntimeConfig,
+        build_full_staged_runtime_adapters,
+        run_full_staged_deterministic_runtime,
     )
 
-    result = legacy_loop.run_legacy_agent_loop(
+    provider_root_cause = "RuntimeError: scenario provider down"
+
+    def failing_scenariogen(_request):
+        return SimpleNamespace(
+            stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+            ok=False,
+            parsed_output={},
+            feedback=None,
+            stage_meta=StageResultMeta(
+                stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+                stage_kind=StageKind.LLM,
+                enabled=True,
+                ran=True,
+                status=StageStatus.ERROR,
+                ok=False,
+                stage_error=provider_root_cause,
+                output_validation_error=provider_root_cause,
+            ),
+            interaction={
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "provider": "test-adapter",
+                "model_id": "none",
+                "schema_validation_ok": False,
+                "retry_error": {
+                    "error_kind": "provider_error",
+                    "error_message": provider_root_cause,
+                },
+                "attempts": [
+                    {
+                        "status": "provider_error",
+                        "error_kind": "provider_error",
+                        "error_message": provider_root_cause,
+                    }
+                ],
+            },
+        )
+
+    result = run_full_staged_deterministic_runtime(
         "When Start occurs, move from Idle to Active.",
-        schema.LegacyLoopConfig(n_iter=1, feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value]),
-        seed_dsl="machine Sample {}",
+        FullStagedRuntimeConfig(
+            initial_dsl="""
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active;
+    Active -> Idle;
+}
+            """,
+            run_id="pr0-scenariogen-root-cause",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=build_full_staged_runtime_adapters(
+            scenario_generate=failing_scenariogen,
+            repair=lambda _request: (_ for _ in ()).throw(AssertionError("repair should not hide scenariogen root cause")),
+            model_review=lambda _dsl, _context, _feedback: (_ for _ in ()).throw(AssertionError("model review should not run after scenariogen provider failure")),
+        ),
     )
 
-    assert result.status == "not_converged"
-    assert result.error_message is not None
-    assert "scenariogen failed: RuntimeError: scenario provider down" in result.error_message
-    assert result.final_feedback is not None and result.final_feedback.sim is not None
-    assert result.final_feedback.sim.setup_error == "scenario generation unavailable for enabled sim feedback"
+    from method.run_record import read_agent_loop_run_record
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "api_failed"
+    assert record.final_artifacts["verdict"] == "provider_error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert provider_root_cause in str(result.error_message)
+    assert provider_root_cause in str(record.final_artifacts["verdict_reason"])
+    assert record.repair_history == []
+    assert StageId.SD_8_FIX_PLAN.value not in [row["stage_id"] for row in record.stage_records]
+    sl5_interaction = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value)
+    assert sl5_interaction["retry_error"]["error_message"] == provider_root_cause
+
+
+def test_iter_trace_persists_feedback_stage_results_without_removed_full_loop(tmp_path: Path) -> None:
+    from method.experiments.ablation.deterministic_loop import (
+        DeterministicLoopConfig,
+        run_deterministic_ablation_loop,
+    )
+    from method.run_record import read_agent_loop_run_record
+
+    result = run_deterministic_ablation_loop(
+        "The controller may move between Idle and Active without external events.",
+        DeterministicLoopConfig(
+            initial_dsl="""
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active;
+    Active -> Idle;
+}
+""",
+            scenarios=[schema.TestScenario(name="empty_smoke", steps=[])],
+            run_id="pr0-iter-trace-stage-results",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+    )
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "converged"
+    assert result.final_feedback is not None
+    iter_stage_ids = [m.stage_id for m in result.iter_traces[0].stage_results]
+
+    assert iter_stage_ids[:3] == [
+        StageId.SD_2_PARSE.value,
+        StageId.SD_3_SEMANTIC.value,
+        StageId.SD_4_DESIGN.value,
+    ]
+    assert StageId.SD_6_SIM.value in iter_stage_ids
+    assert record.iteration_records[0]["stage_ids"] == iter_stage_ids
+    assert [m.stage_id for m in result.final_feedback.stage_results] == iter_stage_ids
 
 
 def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
@@ -1095,23 +1170,6 @@ def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> Non
     bundle.semantic = SemanticFeedback(ok=False)
     assert not bundle.all_ok
 
-
-def test_run_agent_loop_persists_stage_results_in_iter_trace(monkeypatch) -> None:
-    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
-
-    result = legacy_loop.run_legacy_agent_loop(
-        "When Start occurs, move from Idle to Active.",
-        schema.LegacyLoopConfig(
-            n_iter=0,
-            feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
-        ),
-        seed_dsl="machine Sample {}",
-    )
-
-    assert result.final_feedback is not None
-    assert [m.stage_id for m in result.final_feedback.stage_results] == ["SD-2", "SD-3"]
-    assert [m.stage_id for m in result.iter_traces[0].stage_results] == ["SD-2", "SD-3"]
 
 
 def test_agent_loop_run_record_rejects_invalid_status() -> None:

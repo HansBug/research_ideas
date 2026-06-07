@@ -29,8 +29,8 @@
 
 - 默认公开入口：[`loop.py`](./loop.py)
 - 当前 LangGraph runtime 单文件入口：[`langgraph_runtime.py`](./langgraph_runtime.py)
-- 当前 legacy loop：[`legacy_loop.py`](./legacy_loop.py)
-- 当前 ablation / deterministic experiment 入口：[`pr2a_loop.py`](./pr2a_loop.py)（LG-M1-C2 后续处理）
+- 当前 legacy full loop：[`legacy_loop.py`](./legacy_loop.py) 仅保留 historical marker，不再提供 active full-loop API
+- 当前 ablation / deterministic experiment 入口：[`experiments/ablation/deterministic_loop.py`](./experiments/ablation/deterministic_loop.py)；[`pr2a_loop.py`](./pr2a_loop.py) 仅为 compatibility shim
 - 当前真实 run matrix 功能入口：[`experiments/real_run_matrix.py`](./experiments/real_run_matrix.py)；legacy shim：[`pr_e1_real_runs.py`](./pr_e1_real_runs.py)
 - 当前 representative cases 功能入口：[`experiments/representative_cases.py`](./experiments/representative_cases.py)；legacy shim：[`pr_d_representative.py`](./pr_d_representative.py)
 - 当前 checkpoint / resume experiment 功能入口：[`experiments/checkpoint_resume.py`](./experiments/checkpoint_resume.py)；legacy shim：[`pr_lg_f1_resume_experiment.py`](./pr_lg_f1_resume_experiment.py)
@@ -65,13 +65,17 @@ LG-M1-A 只盘点已存在的 `method.stages.*` Python-callable surface，不承
 
 ### Legacy loop 当前事实
 
-当前 active code 中 `method.legacy_loop` 的直接 import/use 主要集中在 [`tests/test_pr0_stage_contract.py`](./tests/test_pr0_stage_contract.py)，同时 [`loop.py`](./loop.py) 仅在错误信息中提及 legacy diagnostic path。
+LG-M1-C2 后，`method.legacy_loop` 不再是 active callable path；`tests/test_pr0_stage_contract.py` 的 legacy-direct checks 已改写为功能命名 helper/schema contract，`loop.py` 错误信息改指向 deterministic ablation diagnostics。
 
-LG-M1-A 将 `test_pr0_stage_contract.py` 划分为：
+LG-M1-A 原始基线曾将 `test_pr0_stage_contract.py` 划分为：总 test 数 `53`、直接依赖 `legacy_loop` 的 legacy-direct tests `7`、非 legacy stage/schema/contract tests `46`。
 
-- 总 test 数：`53`
-- 直接依赖 `legacy_loop` 的 legacy-only test：`7`
-- 不直接依赖 `legacy_loop` 的 stage/schema/contract test：`46`
+LG-M1-C2 后当前事实为：
+
+- 当前总 test 数：`52`
+- 直接依赖 `legacy_loop` 的 legacy-direct tests：`0`
+- 不直接依赖 `legacy_loop` 的 stage/schema/contract tests：`52`
+- 合法删除旧 full-loop legacy-only tests：`3`
+- 从 legacy-direct 改写为功能命名 helper/schema contract 的 tests：`4`
 
 这一区分是 LG-M1-C2 删除古老 legacy loop 的边界：C2 可以删除或迁移 legacy-only coverage，但不得默默丢失非 legacy stage/schema/contract coverage。
 
@@ -147,7 +151,7 @@ LG-M1-A 对当前实验入口只做 import smoke 与 `--help` / argparse 层面�
 | `method.experiments.checkpoint_resume` | 功能命名入口 import ok，`--help` exit 0 | 否 |
 | `method.pr_d_representative` | legacy shim import ok，`--help` exit 0 | 否 |
 | `method.experiments.representative_cases` | 功能命名入口 import ok，`--help` exit 0 | 否 |
-| `method.pr2a_loop` | import ok，`python -m ... --help` exit 0；当前无 argparse usage 输出 | 否 |
+| `method.pr2a_loop` | compatibility shim import ok；新推荐入口为 `method.experiments.ablation.deterministic_loop` | 否 |
 
 LG-M1-C1 已完成前三组 current experiment entrypoint 的 old/new import / `--help` 双入口 baseline；LG-M1-C2 后续迁移 ablation 入口时，应继续以该 baseline 口径为锚点。
 
