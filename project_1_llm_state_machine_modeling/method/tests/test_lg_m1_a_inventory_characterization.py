@@ -35,6 +35,12 @@ EXPERIMENT_MODULES = [
 ]
 LG_M1_C1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D1_EXPECTED_COLLECTION_DELTA = 5
+LG_M1_B_ADDITIVE_STAGE_MODULES = {
+    "method.stages.api",
+    "method.stages.sc_control",
+    "method.stages.sl_prompt_api",
+}
+LG_M1_B_ADDITIVE_TEST_COUNT = 7
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -221,8 +227,12 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
 
     current_stage = _scan_stage_api()
     fixture_stage = baseline["stage_api_scan"]
-    assert current_stage["module_count"] == fixture_stage["module_count"]
-    assert current_stage["modules"] == fixture_stage["modules"]
+    baseline_modules = fixture_stage["modules"]
+    additive_modules = [row for row in current_stage["modules"] if row["module"] in LG_M1_B_ADDITIVE_STAGE_MODULES]
+    non_additive_modules = [row for row in current_stage["modules"] if row["module"] not in LG_M1_B_ADDITIVE_STAGE_MODULES]
+    assert current_stage["module_count"] == fixture_stage["module_count"] + len(LG_M1_B_ADDITIVE_STAGE_MODULES)
+    assert non_additive_modules == baseline_modules
+    assert {row["module"] for row in additive_modules} == LG_M1_B_ADDITIVE_STAGE_MODULES
     assert any("run_sd2_parse" in module["functions"] for module in current_stage["modules"])
 
     current_legacy = _scan_legacy_contract_tests()
@@ -289,7 +299,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
         assert first_line == row["help_usage_first_line"]
 
 
-def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_and_d1_deltas_is_current() -> None:
+def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_is_current() -> None:
     baseline = _load_baseline()
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
@@ -302,18 +312,17 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_and_d1_deltas_is_
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    # LG-M1-A captured the pre-maintenance collection count.  C1 and D1 each
-    # add exactly five focused tests.  Keep the deltas explicit instead of
-    # overwriting the original A baseline with a post-C1 number; otherwise later
-    # maintainability PRs would lose the audit trail for where collection growth
-    # came from.
+    # LG-M1-A captured the pre-maintenance collection count. C1, D1, and B
+    # register exact additive deltas so future sub-PRs cannot silently lose old
+    # tests while adding new ones that merely keep the total above the floor.
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
-    expected_count = (
+    expected_c1_d1_count = (
         baseline["collection"]["count"]
         + LG_M1_C1_EXPECTED_COLLECTION_DELTA
         + LG_M1_D1_EXPECTED_COLLECTION_DELTA
     )
-    assert expected_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
+    assert expected_c1_d1_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
+    expected_count = expected_c1_d1_count + LG_M1_B_ADDITIVE_TEST_COUNT
     assert int(match.group(1)) == expected_count
