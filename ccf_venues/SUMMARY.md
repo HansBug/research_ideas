@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-07 10:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 11:10`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -43,7 +43,7 @@
 
 | 项目 | 当前口径 |
 |---|---|
-| 最新事实刷新锚点 | `2026-06-06 13:45` PR #35 main-ready 近期窗口复审；PR #62 只补维护机制，不批量改 venue facts |
+| 最新事实刷新锚点 | `2026-06-06 13:45` PR #35 main-ready 近期窗口复审（venue facts 最后全闭环刷新时间，非 GUIDE 文档更新时间）；PR #62 只补维护机制，不批量改 venue facts |
 | 近期窗口入口 | 以 [TIMELINE.md](./TIMELINE.md) §3“近期投稿窗口速览”为行级承载表；SUMMARY 不复制第二套 deadline dashboard |
 | 默认 watchlist | 以本轮刷新日期为起点，优先 P0 + 未来 6 个月内已有 open 窗口或 next edition 线索的 P1；P2 仅因明确 open 窗口或用户指定临时纳入，且必须标注 `P2 / 不升级` |
 | 高风险人工核验入口 | ScienceDirect / Elsevier / Wiley / ACM / IEEE 等 WAF/403/CAPTCHA/Authwall、`待补时刻`、日期冲突、candidate CFP 和 browser-only 页面；具体条目仍以 §13 待补与核查记录和各 venue 年度页为准 |
@@ -444,6 +444,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 11:10` | PR #62 实现后 review 修复：澄清 §1.1 最新事实刷新锚点是 venue facts 全闭环刷新时间，不等同于 GUIDE 文档更新时间。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §1.1 轻量入口，明确 TIMELINE §3 是近期窗口行级承载表，并记录默认 watchlist、高风险来源与下一轮刷新建议。 |
 | `2026-06-06 13:45` | PR #35 main-ready 最终收口：同步 FSE 2027、ISSTA 2026、REFSQ 2027、APSEC 2026、RV 2026、IST 与 REJ 近期窗口复审修复，并将 PR-10 状态改为已完成合流。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：核验并同步 ICSE 2027 `23:59:59 AoE / UTC-12h` 与 ICFEM 2026 `23:59 AoE / UTC-12`，清理近期投稿窗口中的 `待补时刻` 残留。 |

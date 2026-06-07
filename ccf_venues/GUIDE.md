@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-07 10:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 11:10`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -443,7 +443,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 每轮常态化刷新按以下顺序执行；除非用户明确要求只做只读调查，否则完成事实修改时不得跳步：
 
-1. **读取入口**：先读 [README.md](./README.md)、本 [GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md) §1.1 与 §13、[TIMELINE.md](./TIMELINE.md) §3 / §15；新增或跨批次 venue 时再读 [01-venue-scope.md](./01-venue-scope.md)。
+1. **读取入口**：先读 [README.md](./README.md)、本 [GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md) §1.1（常态化更新入口）与 §13（待补与核查记录）、[TIMELINE.md](./TIMELINE.md) §3（近期投稿窗口速览）与 §15（TIMELINE 待补与核查记录）；新增或跨批次 venue 时再读 [01-venue-scope.md](./01-venue-scope.md)。
 2. **确定 watchlist**：按 §12.3 选择 venue、年度、track / special issue，并记录本轮刷新日期作为“未来 6 个月”计算锚点。
 3. **核验官方来源**：会议查 official home、CFP / Important Dates、track page、submission system、program / accepted papers、proceedings、DBLP；期刊查 homepage、author guidelines、submission system、special issue / collection、volume / issue、online first、DBLP。
 4. **更新年度 README**：年度页是单年度事实承载入口；新增 / 修改日期、状态、链接、论文入口、证据与核查记录时，先在年度页落地。
@@ -474,8 +474,10 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 会议主链默认按以下状态迁移：
 
 ```text
-⏳ 待官网 -> 🟦 已有主页 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
+⏳ 待官网 / ⏳ 已检索未公布 -> 🟦 已有主页 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
 ```
+
+其中 `⏳ 已检索未公布` 表示只找到 stable series、publisher placeholder 或旧站入口，尚无本年度 official home / CFP / dates；它不得被硬升为 `🟦 已有主页`，也不得进入 dated TIMELINE / Mermaid。
 
 期刊主链默认按以下状态迁移：
 
@@ -531,7 +533,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 git status --short
 rg -n "常态化|滚动刷新|投稿窗口|近期窗口|刷新" ccf_venues/README.md ccf_venues/GUIDE.md ccf_venues/SUMMARY.md
 rg -n "39.*venue|273.*年度|P2" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md
-rg -n "<<<<<<<|=======|>>>>>>>" ccf_venues || true
+rg -n '^(<<<<<<<|=======|>>>>>>>)' ccf_venues || true
 ```
 
 若本轮修改了 TIMELINE 或年度 README，还必须人工检查：
@@ -674,6 +676,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 11:10` | PR #62 实现后 review 修复：将冲突标记自查命令改为行首锚定，补充 TIMELINE §15 / SUMMARY §13 入口释义，并明确 `⏳ 已检索未公布` 不得进入 dated TIMELINE / Mermaid。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §12，固定刷新频率、watchlist、字段落点、状态迁移、来源降级、SUMMARY/TIMELINE 分工与 reviewer dry-run 验收规则。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复规则回写：明确 researchr 行级 `Timezone` 已给出时，必须把 AoE / UTC offset 写入 TIMELINE 与年度页，不能继续写“官方仅日期”。 |
 | `2026-06-06 00:16` | PR-10 全局审计规则回写：补充 subagent 503/429 降级核验、researchr 行级时区检查、模板占位路径非伪链接和 ready 前核实项清零纪律。 |
