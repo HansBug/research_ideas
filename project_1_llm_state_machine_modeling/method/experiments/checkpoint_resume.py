@@ -25,7 +25,7 @@ if __package__ and __package__.startswith("project_1_llm_state_machine_modeling.
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
 
-from method.langgraph_runtime import run_lg_f1_resume_experiment
+from method.langgraph.resume import run_lg_f1_resume_experiment
 from method.llm_stages import RealEnvLLMProvider
 from method.loop import _build_runtime_adapters, _llm_stage_config
 from method.experiments.real_run_matrix import condition_specs, make_pr_e1_config, pr_e1_cases

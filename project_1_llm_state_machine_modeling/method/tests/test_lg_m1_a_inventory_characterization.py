@@ -51,6 +51,16 @@ LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
     "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py",
 }
 LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
+LG_M1_D3_EXPECTED_COLLECTION_DELTA = 7
+LG_M1_D3_REMOVED_FACADE_IMPORTS = {
+    (
+        "project_1_llm_state_machine_modeling/method/experiments/checkpoint_resume.py",
+        "from_import",
+        "run_lg_f1_resume_experiment",
+        None,
+    )
+}
+LG_M1_D3_REMOVED_DIRECT_SYMBOLS = {"run_lg_f1_resume_experiment"}
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -229,9 +239,20 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
 
     current_facade = _scan_langgraph_facade_consumers()
     fixture_facade = baseline["facade_reexport_scan"]
-    assert current_facade["entry_count"] == fixture_facade["entry_count"]
+    current_entries = {
+        (entry["module_path"], entry["kind"], entry["symbol"], entry.get("asname"))
+        for entry in current_facade["entries"]
+    }
+    fixture_entries = {
+        (entry["module_path"], entry["kind"], entry["symbol"], entry.get("asname"))
+        for entry in fixture_facade["entries"]
+    }
+    assert fixture_entries - current_entries == LG_M1_D3_REMOVED_FACADE_IMPORTS
+    assert current_entries - fixture_entries == set()
+    assert current_facade["entry_count"] + len(LG_M1_D3_REMOVED_FACADE_IMPORTS) == fixture_facade["entry_count"]
     assert current_facade["alias_attribute_count"] == fixture_facade["alias_attribute_count"]
-    assert current_facade["direct_symbols"] == fixture_facade["direct_symbols"]
+    assert set(fixture_facade["direct_symbols"]) - set(current_facade["direct_symbols"]) == LG_M1_D3_REMOVED_DIRECT_SYMBOLS
+    assert set(current_facade["direct_symbols"]) - set(fixture_facade["direct_symbols"]) == set()
     assert set(current_facade["reexporter_paths_checked"]) == set(fixture_facade["reexporter_paths_checked"])
     assert "project_1_llm_state_machine_modeling/method/loop.py" in current_facade["reexporter_paths_checked"]
 
@@ -350,17 +371,25 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d2_langgraph_instrumentation"]["count"] == LG_M1_D2_EXPECTED_COLLECTION_DELTA
+    assert deltas["lg_m1_d3_langgraph_nodes_subgraphs_core"]["count"] == LG_M1_D3_EXPECTED_COLLECTION_DELTA
     expected_c1_d1_count = (
         baseline["collection"]["count"]
         + LG_M1_C1_EXPECTED_COLLECTION_DELTA
         + LG_M1_D1_EXPECTED_COLLECTION_DELTA
     )
     assert expected_c1_d1_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
-    expected_count = (
+    expected_d2_count = (
         expected_c1_d1_count
         + LG_M1_B_ADDITIVE_TEST_COUNT
         + LG_M1_D2_EXPECTED_COLLECTION_DELTA
+    )
+    assert expected_d2_count == baseline["collection"]["current_expected_count_after_c1_d1_b_and_d2"]
+    expected_c2_count = (
+        expected_d2_count
         - LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT
         + LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT
     )
+    assert expected_c2_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_and_c2"]
+    expected_count = expected_c2_count + LG_M1_D3_EXPECTED_COLLECTION_DELTA
+    assert expected_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_and_d3"]
     assert int(match.group(1)) == expected_count
