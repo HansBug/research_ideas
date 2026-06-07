@@ -1,0 +1,1109 @@
+[
+  {
+    "batch_id": "fixbatch-0-sha256-019672ca0f5",
+    "candidate_dsl": "",
+    "candidate_dsl_hash": "",
+    "decisions": [],
+    "diff_summary": {},
+    "entry_id": "fixlog-0-request_batch",
+    "iteration": 0,
+    "local_check_evidence": {},
+    "next_action": "sl9_decision_and_repair",
+    "notes": [
+      "SD-8 produced FixRequestBatch; deterministic stage does not decide final repair."
+    ],
+    "old_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 0.5;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbat_discharge = 0.0;\ndef float Pbat_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cutin = 0;\ndef int cmd_LNG_cutout = 0;\ndef int cmd_DG1_cutin = 0;\ndef int cmd_DG1_cutout = 0;\ndef int cmd_DG2_cutin = 0;\ndef int cmd_DG2_cutout = 0;\ndef int cmd_load_cutin = 1;\ndef int cmd_load_cutout = 0;\ndef int illegal_state = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroLoad_Charge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoad_Spare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> ZeroLoad_NoRES : if [PL == 0 && Ppv + Pw == 0];\n    ! * -> RES_Covers_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RES_Covers_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> Battery_Assist : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];\n    ! * -> LNG_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNG_Covers_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> DG1_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> DG1_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> DG2_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];\n    ! * -> Extreme_Overload_Illegal : if [PL > Ppv + Pw && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroLoad_Charge;\n\n    state ZeroLoad_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_NoRES {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw - PL;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Battery_Assist {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = PL - Ppv - Pw;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pgmax / 5;\n            Pspare = eng3_Pmax - PL + Ppv + Pw - Pgmax / 5;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pd1max / 10;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw - Pd1max / 10;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG2_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max + Pd2max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Extreme_Overload_Illegal {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbat_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 1;\n        }\n    }\n}",
+    "old_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+    "phase": "request_batch",
+    "repair_attempt": 0,
+    "repair_memory": {},
+    "request_batch": {
+      "batch_id": "fixbatch-0-sha256-019672ca0f5",
+      "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+      "iteration": 0,
+      "legacy_plan_kind": "FixPlan",
+      "requests": [
+        {
+          "evidence": [
+            {
+              "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+              "name": "default_init_zero_load_no_res_classification",
+              "repair_brief": {
+                "actionable_rule": "For each failing step, repair against expected_state/expected_vars versus actual_state/actual_vars_focus/runtime_error, and mention the scenario name in repair_rationale.",
+                "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+                "failing_steps": [
+                  {
+                    "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                    "actual_vars_focus": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "before_cycles": 0,
+                    "events": [],
+                    "expected_state": "LNGShipEMS.ZeroLoad_NoRES",
+                    "expected_vars": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "runtime_error": "",
+                    "state_assertion_ok": false,
+                    "step_index": 0,
+                    "step_name": "default_zero_load_no_res",
+                    "var_assertion_ok": true,
+                    "var_mismatches": {}
+                  }
+                ],
+                "initial_state": null,
+                "initial_vars": {},
+                "scenario_name": "default_init_zero_load_no_res_classification",
+                "status": "fail"
+              },
+              "setup_error": null,
+              "status": "fail",
+              "step_results": [
+                {
+                  "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                  "actual_vars": {
+                    "PL": 0.0,
+                    "Pbat_charge": 0.0,
+                    "Pbat_discharge": 0.0,
+                    "Pd1max": 0.0,
+                    "Pd2max": 0.0,
+                    "Pgen_req": 0.0,
+                    "Pgmax": 0.0,
+                    "Ppv": 0.0,
+                    "Pspare": 0.0,
+                    "Pw": 0.0,
+                    "SoC": 0.5,
+                    "cmd_DG1_cutin": 0,
+                    "cmd_DG1_cutout": 1,
+                    "cmd_DG2_cutin": 0,
+                    "cmd_DG2_cutout": 1,
+                    "cmd_LNG_cutin": 0,
+                    "cmd_LNG_cutout": 1,
+                    "cmd_load_cutin": 1,
+                    "cmd_load_cutout": 0,
+                    "eng3_Pmax": 0.0,
+                    "illegal_state": 0
+                  },
+                  "runtime_error": null,
+                  "state_assertion_ok": false,
+                  "status": "fail",
+                  "step_index": 0,
+                  "step_name": "default_zero_load_no_res",
+                  "var_assertion_ok": true,
+                  "var_mismatches": {}
+                }
+              ]
+            }
+          ],
+          "forbidden_edits": [
+            "Do not delete grounded required elements merely to silence diagnostics.",
+            "Do not invent internal plant/environment dynamics merely to make external input variables appear written."
+          ],
+          "hard_block": true,
+          "legacy_fix_plan": {
+            "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+            "compacted": true,
+            "diagnostic_count": 1,
+            "evidence_count": 1,
+            "problem_summary": "simulation failed",
+            "required_preserve_element_ids": [
+              "state:ZeroLoad_Charge",
+              "state:ZeroLoad_Spare",
+              "state:RES_Covers_Charge",
+              "state:RES_Covers_Spare",
+              "state:Battery_Assist",
+              "state:LNG_Covers_Normal",
+              "state:LNG_Covers_LowSoC_ChargeMargin",
+              "state:DG1_Covers_Normal",
+              "state:DG1_LowSoC_ChargeMargin",
+              "state:DG2_Covers_Normal",
+              "state:Extreme_Overload_Illegal",
+              "variable:PL",
+              "variable:Ppv",
+              "variable:Pw",
+              "variable:SoC",
+              "variable:eng3_Pmax",
+              "variable:Pgmax",
+              "variable:Pd1max",
+              "variable:Pgen_req",
+              "variable:Pbat_discharge",
+              "variable:Pbat_charge",
+              "variable:Pspare",
+              "variable:cmd_LNG_cutin",
+              "variable:cmd_DG1_cutin",
+              "variable:cmd_DG2_cutin",
+              "transition:classify_RES_Covers_Charge",
+              "transition:classify_RES_Covers_Spare",
+              "transition:classify_Extreme_Overload_Illegal",
+              "guard:soc_full_threshold",
+              "guard:res_covers_load"
+            ],
+            "severity": "sim_fail",
+            "source_feedback_id": "default_init_zero_load_no_res_classification",
+            "source_stage": "SD-6",
+            "target": "sim"
+          },
+          "local_check_required": true,
+          "problem_summary": "simulation failed",
+          "recommended_strategy": [
+            "Use diagnostics as hints; choose the smallest globally consistent repair.",
+            "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation."
+          ],
+          "request_id": "fixreq-0-sd6-0-d7e4f2e8d5",
+          "required_preserve_element_ids": [
+            "state:ZeroLoad_Charge",
+            "state:ZeroLoad_Spare",
+            "state:RES_Covers_Charge",
+            "state:RES_Covers_Spare",
+            "state:Battery_Assist",
+            "state:LNG_Covers_Normal",
+            "state:LNG_Covers_LowSoC_ChargeMargin",
+            "state:DG1_Covers_Normal",
+            "state:DG1_LowSoC_ChargeMargin",
+            "state:DG2_Covers_Normal",
+            "state:Extreme_Overload_Illegal",
+            "variable:PL",
+            "variable:Ppv",
+            "variable:Pw",
+            "variable:SoC",
+            "variable:eng3_Pmax",
+            "variable:Pgmax",
+            "variable:Pd1max",
+            "variable:Pgen_req",
+            "variable:Pbat_discharge",
+            "variable:Pbat_charge",
+            "variable:Pspare",
+            "variable:cmd_LNG_cutin",
+            "variable:cmd_DG1_cutin",
+            "variable:cmd_DG2_cutin",
+            "transition:classify_RES_Covers_Charge",
+            "transition:classify_RES_Covers_Spare",
+            "transition:classify_Extreme_Overload_Illegal",
+            "guard:soc_full_threshold",
+            "guard:res_covers_load"
+          ],
+          "severity": "sim_fail",
+          "source_feedback_id": "default_init_zero_load_no_res_classification",
+          "source_stage": "SD-6",
+          "suggested_fix_hints": [
+            {
+              "expected_from_sl9": "In repair_rationale, name which scenario obligation is fixed and why the edit does not regress prior passing scenarios.",
+              "instruction": "Use the failing scenario step/result as the repair target. Preserve scenarios that were already passing; change the minimal guard, initial transition, event, or state action needed for the failed expected state/vars.",
+              "kind": "scenario_regression"
+            }
+          ],
+          "target": "sim",
+          "waiver_allowed": false
+        }
+      ],
+      "selected_feedback_trace": {
+        "_omitted_keys": 4,
+        "fix_request_compaction": {
+          "emitted_requests": 1,
+          "evidence_per_request": 1,
+          "max_requests": 12,
+          "raw_request_candidates": 1,
+          "reason": "bounded_prompt_and_repair_ledger"
+        },
+        "n_scenarios": 15,
+        "n_scenarios_passed": 14,
+        "ok": false,
+        "oracle_weak": false,
+        "setup_error": null,
+        "source": "sim",
+        "source_stage": "SD-6",
+        "weak_oracle_reason": ""
+      },
+      "source": "sim",
+      "source_stage": "SD-6"
+    },
+    "sl10_review": null
+  },
+  {
+    "batch_id": "fixbatch-0-sha256-019672ca0f5",
+    "candidate_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 0.5;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbat_discharge = 0.0;\ndef float Pbat_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cutin = 0;\ndef int cmd_LNG_cutout = 0;\ndef int cmd_DG1_cutin = 0;\ndef int cmd_DG1_cutout = 0;\ndef int cmd_DG2_cutin = 0;\ndef int cmd_DG2_cutout = 0;\ndef int cmd_load_cutin = 1;\ndef int cmd_load_cutout = 0;\ndef int illegal_state = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroLoad_Charge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoad_Spare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> ZeroLoad_NoRES : if [PL == 0 && Ppv + Pw == 0];\n    ! * -> RES_Covers_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RES_Covers_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> Battery_Assist : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];\n    ! * -> LNG_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNG_Covers_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> DG1_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> DG1_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> DG2_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];\n    ! * -> Extreme_Overload_Illegal : if [PL > Ppv + Pw && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroLoad_NoRES;\n\n    state ZeroLoad_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_NoRES {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw - PL;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Battery_Assist {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = PL - Ppv - Pw;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pgmax / 5;\n            Pspare = eng3_Pmax - PL + Ppv + Pw - Pgmax / 5;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pd1max / 10;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw - Pd1max / 10;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG2_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max + Pd2max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Extreme_Overload_Illegal {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbat_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 1;\n        }\n    }\n}",
+    "candidate_dsl_hash": "sha256:6db2000448279754de047248a70856cf083bd022c31259b074b67ef79dac16fe",
+    "decisions": [
+      {
+        "accepted_edit_intent": [
+          "Change the root initial transition from ZeroLoad_Charge to ZeroLoad_NoRES so default-init with PL=0 and no renewables enters the zero-load/no-renewable classification."
+        ],
+        "decision": "accept",
+        "rationale": "Accepted the hard simulation failure. In scenario default_init_zero_load_no_res_classification, the failing step default_zero_load_no_res expected LNGShipEMS.ZeroLoad_NoRES with zero output powers and illegal_state 0, but the default initial transition entered LNGShipEMS.ZeroLoad_Charge. The state actions already produce the expected variable values; only the initial state selection is wrong for the default PL=0, Ppv=0, Pw=0 case.",
+        "rejected_reason": "",
+        "request_id": "fixreq-0-sd6-0-d7e4f2e8d5",
+        "rework_locked": false,
+        "waiver": false
+      }
+    ],
+    "diff_summary": {
+      "summary": "Changed the single initial transition inside state LNGShipEMS from [*] -> ZeroLoad_Charge; to [*] -> ZeroLoad_NoRES; leaving all classification guards and state actions unchanged."
+    },
+    "entry_id": "fixlog-1-sl9_decision",
+    "iteration": 0,
+    "local_check_evidence": {},
+    "next_action": "sl10_review",
+    "notes": [
+      "Fixed scenario default_init_zero_load_no_res_classification, step default_zero_load_no_res: expected_state was LNGShipEMS.ZeroLoad_NoRES, actual_state was LNGShipEMS.ZeroLoad_Charge, while expected_vars already matched actual_vars_focus. Therefore the smallest safe edit is to change only the root initial transition target.",
+      "The ZeroLoad_NoRES state already sets Pgen_req, Pbat_discharge, Pbat_charge, Pspare, and illegal_state to the expected zero/no-illegal values.",
+      "All required preserved states, variables, forced classification transitions, SoC/RES guards, low-SoC charge-margin actions, and overload action remain present. No external input dynamics were invented and no passing branch behavior was otherwise rewritten."
+    ],
+    "old_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 0.5;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbat_discharge = 0.0;\ndef float Pbat_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cutin = 0;\ndef int cmd_LNG_cutout = 0;\ndef int cmd_DG1_cutin = 0;\ndef int cmd_DG1_cutout = 0;\ndef int cmd_DG2_cutin = 0;\ndef int cmd_DG2_cutout = 0;\ndef int cmd_load_cutin = 1;\ndef int cmd_load_cutout = 0;\ndef int illegal_state = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroLoad_Charge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoad_Spare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> ZeroLoad_NoRES : if [PL == 0 && Ppv + Pw == 0];\n    ! * -> RES_Covers_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RES_Covers_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> Battery_Assist : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];\n    ! * -> LNG_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNG_Covers_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> DG1_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> DG1_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> DG2_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];\n    ! * -> Extreme_Overload_Illegal : if [PL > Ppv + Pw && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroLoad_Charge;\n\n    state ZeroLoad_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_NoRES {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw - PL;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Battery_Assist {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = PL - Ppv - Pw;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pgmax / 5;\n            Pspare = eng3_Pmax - PL + Ppv + Pw - Pgmax / 5;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pd1max / 10;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw - Pd1max / 10;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG2_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max + Pd2max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Extreme_Overload_Illegal {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbat_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 1;\n        }\n    }\n}",
+    "old_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+    "phase": "sl9_decision",
+    "repair_attempt": 0,
+    "repair_memory": {},
+    "request_batch": {
+      "batch_id": "fixbatch-0-sha256-019672ca0f5",
+      "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+      "iteration": 0,
+      "legacy_plan_kind": "FixPlan",
+      "requests": [
+        {
+          "evidence": [
+            {
+              "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+              "name": "default_init_zero_load_no_res_classification",
+              "repair_brief": {
+                "actionable_rule": "For each failing step, repair against expected_state/expected_vars versus actual_state/actual_vars_focus/runtime_error, and mention the scenario name in repair_rationale.",
+                "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+                "failing_steps": [
+                  {
+                    "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                    "actual_vars_focus": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "before_cycles": 0,
+                    "events": [],
+                    "expected_state": "LNGShipEMS.ZeroLoad_NoRES",
+                    "expected_vars": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "runtime_error": "",
+                    "state_assertion_ok": false,
+                    "step_index": 0,
+                    "step_name": "default_zero_load_no_res",
+                    "var_assertion_ok": true,
+                    "var_mismatches": {}
+                  }
+                ],
+                "initial_state": null,
+                "initial_vars": {},
+                "scenario_name": "default_init_zero_load_no_res_classification",
+                "status": "fail"
+              },
+              "setup_error": null,
+              "status": "fail",
+              "step_results": [
+                {
+                  "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                  "actual_vars": {
+                    "PL": 0.0,
+                    "Pbat_charge": 0.0,
+                    "Pbat_discharge": 0.0,
+                    "Pd1max": 0.0,
+                    "Pd2max": 0.0,
+                    "Pgen_req": 0.0,
+                    "Pgmax": 0.0,
+                    "Ppv": 0.0,
+                    "Pspare": 0.0,
+                    "Pw": 0.0,
+                    "SoC": 0.5,
+                    "cmd_DG1_cutin": 0,
+                    "cmd_DG1_cutout": 1,
+                    "cmd_DG2_cutin": 0,
+                    "cmd_DG2_cutout": 1,
+                    "cmd_LNG_cutin": 0,
+                    "cmd_LNG_cutout": 1,
+                    "cmd_load_cutin": 1,
+                    "cmd_load_cutout": 0,
+                    "eng3_Pmax": 0.0,
+                    "illegal_state": 0
+                  },
+                  "runtime_error": null,
+                  "state_assertion_ok": false,
+                  "status": "fail",
+                  "step_index": 0,
+                  "step_name": "default_zero_load_no_res",
+                  "var_assertion_ok": true,
+                  "var_mismatches": {}
+                }
+              ]
+            }
+          ],
+          "forbidden_edits": [
+            "Do not delete grounded required elements merely to silence diagnostics.",
+            "Do not invent internal plant/environment dynamics merely to make external input variables appear written."
+          ],
+          "hard_block": true,
+          "legacy_fix_plan": {
+            "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+            "compacted": true,
+            "diagnostic_count": 1,
+            "evidence_count": 1,
+            "problem_summary": "simulation failed",
+            "required_preserve_element_ids": [
+              "state:ZeroLoad_Charge",
+              "state:ZeroLoad_Spare",
+              "state:RES_Covers_Charge",
+              "state:RES_Covers_Spare",
+              "state:Battery_Assist",
+              "state:LNG_Covers_Normal",
+              "state:LNG_Covers_LowSoC_ChargeMargin",
+              "state:DG1_Covers_Normal",
+              "state:DG1_LowSoC_ChargeMargin",
+              "state:DG2_Covers_Normal",
+              "state:Extreme_Overload_Illegal",
+              "variable:PL",
+              "variable:Ppv",
+              "variable:Pw",
+              "variable:SoC",
+              "variable:eng3_Pmax",
+              "variable:Pgmax",
+              "variable:Pd1max",
+              "variable:Pgen_req",
+              "variable:Pbat_discharge",
+              "variable:Pbat_charge",
+              "variable:Pspare",
+              "variable:cmd_LNG_cutin",
+              "variable:cmd_DG1_cutin",
+              "variable:cmd_DG2_cutin",
+              "transition:classify_RES_Covers_Charge",
+              "transition:classify_RES_Covers_Spare",
+              "transition:classify_Extreme_Overload_Illegal",
+              "guard:soc_full_threshold",
+              "guard:res_covers_load"
+            ],
+            "severity": "sim_fail",
+            "source_feedback_id": "default_init_zero_load_no_res_classification",
+            "source_stage": "SD-6",
+            "target": "sim"
+          },
+          "local_check_required": true,
+          "problem_summary": "simulation failed",
+          "recommended_strategy": [
+            "Use diagnostics as hints; choose the smallest globally consistent repair.",
+            "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation."
+          ],
+          "request_id": "fixreq-0-sd6-0-d7e4f2e8d5",
+          "required_preserve_element_ids": [
+            "state:ZeroLoad_Charge",
+            "state:ZeroLoad_Spare",
+            "state:RES_Covers_Charge",
+            "state:RES_Covers_Spare",
+            "state:Battery_Assist",
+            "state:LNG_Covers_Normal",
+            "state:LNG_Covers_LowSoC_ChargeMargin",
+            "state:DG1_Covers_Normal",
+            "state:DG1_LowSoC_ChargeMargin",
+            "state:DG2_Covers_Normal",
+            "state:Extreme_Overload_Illegal",
+            "variable:PL",
+            "variable:Ppv",
+            "variable:Pw",
+            "variable:SoC",
+            "variable:eng3_Pmax",
+            "variable:Pgmax",
+            "variable:Pd1max",
+            "variable:Pgen_req",
+            "variable:Pbat_discharge",
+            "variable:Pbat_charge",
+            "variable:Pspare",
+            "variable:cmd_LNG_cutin",
+            "variable:cmd_DG1_cutin",
+            "variable:cmd_DG2_cutin",
+            "transition:classify_RES_Covers_Charge",
+            "transition:classify_RES_Covers_Spare",
+            "transition:classify_Extreme_Overload_Illegal",
+            "guard:soc_full_threshold",
+            "guard:res_covers_load"
+          ],
+          "severity": "sim_fail",
+          "source_feedback_id": "default_init_zero_load_no_res_classification",
+          "source_stage": "SD-6",
+          "suggested_fix_hints": [
+            {
+              "expected_from_sl9": "In repair_rationale, name which scenario obligation is fixed and why the edit does not regress prior passing scenarios.",
+              "instruction": "Use the failing scenario step/result as the repair target. Preserve scenarios that were already passing; change the minimal guard, initial transition, event, or state action needed for the failed expected state/vars.",
+              "kind": "scenario_regression"
+            }
+          ],
+          "target": "sim",
+          "waiver_allowed": false
+        }
+      ],
+      "selected_feedback_trace": {
+        "_omitted_keys": 4,
+        "fix_request_compaction": {
+          "emitted_requests": 1,
+          "evidence_per_request": 1,
+          "max_requests": 12,
+          "raw_request_candidates": 1,
+          "reason": "bounded_prompt_and_repair_ledger"
+        },
+        "n_scenarios": 15,
+        "n_scenarios_passed": 14,
+        "ok": false,
+        "oracle_weak": false,
+        "setup_error": null,
+        "source": "sim",
+        "source_stage": "SD-6",
+        "weak_oracle_reason": ""
+      },
+      "source": "sim",
+      "source_stage": "SD-6"
+    },
+    "sl10_review": null
+  },
+  {
+    "batch_id": "fixbatch-0-sha256-019672ca0f5",
+    "candidate_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 0.5;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbat_discharge = 0.0;\ndef float Pbat_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cutin = 0;\ndef int cmd_LNG_cutout = 0;\ndef int cmd_DG1_cutin = 0;\ndef int cmd_DG1_cutout = 0;\ndef int cmd_DG2_cutin = 0;\ndef int cmd_DG2_cutout = 0;\ndef int cmd_load_cutin = 1;\ndef int cmd_load_cutout = 0;\ndef int illegal_state = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroLoad_Charge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoad_Spare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> ZeroLoad_NoRES : if [PL == 0 && Ppv + Pw == 0];\n    ! * -> RES_Covers_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RES_Covers_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> Battery_Assist : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];\n    ! * -> LNG_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNG_Covers_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> DG1_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> DG1_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> DG2_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];\n    ! * -> Extreme_Overload_Illegal : if [PL > Ppv + Pw && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroLoad_NoRES;\n\n    state ZeroLoad_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_NoRES {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw - PL;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Battery_Assist {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = PL - Ppv - Pw;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pgmax / 5;\n            Pspare = eng3_Pmax - PL + Ppv + Pw - Pgmax / 5;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pd1max / 10;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw - Pd1max / 10;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG2_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max + Pd2max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Extreme_Overload_Illegal {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbat_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 1;\n        }\n    }\n}",
+    "candidate_dsl_hash": "sha256:6db2000448279754de047248a70856cf083bd022c31259b074b67ef79dac16fe",
+    "decisions": [
+      {
+        "accepted_edit_intent": [
+          "Change the root initial transition from ZeroLoad_Charge to ZeroLoad_NoRES so default-init with PL=0 and no renewables enters the zero-load/no-renewable classification."
+        ],
+        "decision": "accept",
+        "rationale": "Accepted the hard simulation failure. In scenario default_init_zero_load_no_res_classification, the failing step default_zero_load_no_res expected LNGShipEMS.ZeroLoad_NoRES with zero output powers and illegal_state 0, but the default initial transition entered LNGShipEMS.ZeroLoad_Charge. The state actions already produce the expected variable values; only the initial state selection is wrong for the default PL=0, Ppv=0, Pw=0 case.",
+        "rejected_reason": "",
+        "request_id": "fixreq-0-sd6-0-d7e4f2e8d5",
+        "rework_locked": false,
+        "waiver": false
+      }
+    ],
+    "diff_summary": {
+      "summary": "Changed the single initial transition inside state LNGShipEMS from [*] -> ZeroLoad_Charge; to [*] -> ZeroLoad_NoRES; leaving all classification guards and state actions unchanged."
+    },
+    "entry_id": "fixlog-2-sl10_review",
+    "iteration": 0,
+    "local_check_evidence": {
+      "actionable_repair_summary": {
+        "actionable_items": [
+          {
+            "evidence": {
+              "element_ids": [
+                "transition:classify_RES_Covers_Charge",
+                "transition:classify_RES_Covers_Spare",
+                "transition:classify_Extreme_Overload_Illegal",
+                "guard:res_covers_load",
+                "guard:res_below_load"
+              ],
+              "kind": "missing_required_grounding"
+            },
+            "kind": "missing_required_grounding"
+          }
+        ],
+        "drift_risk": "major",
+        "local_rejection_reason": "missing_required_grounding",
+        "regression_detected": false,
+        "target_resolved": false
+      },
+      "legacy_local_check_stage_id": "SD-10",
+      "local_check_note": "PR-E1 uses local parse/semantic/design/sim checks as SL-10 evidence, not as the final deterministic judge.",
+      "meta": {
+        "elapsed_ms": null,
+        "enabled": true,
+        "input_hash": null,
+        "ok": false,
+        "output_hash": null,
+        "output_validation_error": null,
+        "prompt_hash": null,
+        "ran": true,
+        "skipped_reason": null,
+        "stage_error": null,
+        "stage_id": "SD-10",
+        "stage_kind": "deterministic",
+        "status": "fail"
+      },
+      "repair_review_feedback": {
+        "delta_review": null,
+        "drift_risk": "major",
+        "local_rejection": {
+          "drift_risk": "major",
+          "evidence": [
+            {
+              "element_ids": [
+                "transition:classify_RES_Covers_Charge",
+                "transition:classify_RES_Covers_Spare",
+                "transition:classify_Extreme_Overload_Illegal",
+                "guard:res_covers_load",
+                "guard:res_below_load"
+              ],
+              "kind": "missing_required_grounding"
+            }
+          ],
+          "reason": "missing_required_grounding",
+          "regression_detected": false,
+          "rejected_by_stage": "SD-10",
+          "target_resolved": false
+        },
+        "meta": {
+          "elapsed_ms": null,
+          "enabled": true,
+          "input_hash": null,
+          "ok": false,
+          "output_hash": null,
+          "output_validation_error": null,
+          "prompt_hash": null,
+          "ran": true,
+          "skipped_reason": null,
+          "stage_error": null,
+          "stage_id": "SD-10",
+          "stage_kind": "deterministic",
+          "status": "fail"
+        },
+        "ok": false,
+        "regression_detected": false,
+        "review_meta": null,
+        "target_resolved": false
+      },
+      "stage_id": "SL-10"
+    },
+    "next_action": "sc11_accept_then_sd2",
+    "notes": [
+      "repair_memory:sl10_evidence",
+      "repair_memory:sl10_evidence",
+      "repair_memory:sl10_evidence",
+      "repair_memory:sl10_evidence",
+      "grounding_update_hint:sha256:7c17063ef46acc86471e0ce6eb8970a9c8a9ce73ced4bcf700be7daa8a2f2820",
+      "grounding_update_hint:sha256:ead77947135149f4f8ada14728c9cd48df128243d440c770adb33fd9f25a5b7b"
+    ],
+    "old_dsl": "def float PL = 0.0;\ndef float Ppv = 0.0;\ndef float Pw = 0.0;\ndef float SoC = 0.5;\ndef float eng3_Pmax = 0.0;\ndef float Pgmax = 0.0;\ndef float Pd1max = 0.0;\ndef float Pd2max = 0.0;\ndef float Pgen_req = 0.0;\ndef float Pbat_discharge = 0.0;\ndef float Pbat_charge = 0.0;\ndef float Pspare = 0.0;\ndef int cmd_LNG_cutin = 0;\ndef int cmd_LNG_cutout = 0;\ndef int cmd_DG1_cutin = 0;\ndef int cmd_DG1_cutout = 0;\ndef int cmd_DG2_cutin = 0;\ndef int cmd_DG2_cutout = 0;\ndef int cmd_load_cutin = 1;\ndef int cmd_load_cutout = 0;\ndef int illegal_state = 0;\n\nstate LNGShipEMS {\n    ! * -> ZeroLoad_Charge : if [PL == 0 && Ppv + Pw > 0 && SoC < 0.95];\n    ! * -> ZeroLoad_Spare : if [PL == 0 && Ppv + Pw > 0 && SoC >= 0.95];\n    ! * -> ZeroLoad_NoRES : if [PL == 0 && Ppv + Pw == 0];\n    ! * -> RES_Covers_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];\n    ! * -> RES_Covers_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];\n    ! * -> Battery_Assist : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw <= Pgmax];\n    ! * -> LNG_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > Pgmax && PL - Ppv - Pw <= eng3_Pmax];\n    ! * -> LNG_Covers_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pgmax / 5 <= eng3_Pmax];\n    ! * -> DG1_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax && PL - Ppv - Pw <= eng3_Pmax + Pd1max];\n    ! * -> DG1_LowSoC_ChargeMargin : if [PL > Ppv + Pw && SoC < 0.2 && PL - Ppv - Pw + Pd1max / 10 > eng3_Pmax && PL - Ppv - Pw + Pd1max / 10 <= eng3_Pmax + Pd1max];\n    ! * -> DG2_Covers_Normal : if [PL > Ppv + Pw && SoC >= 0.2 && PL - Ppv - Pw > eng3_Pmax + Pd1max && PL - Ppv - Pw <= eng3_Pmax + Pd1max + Pd2max];\n    ! * -> Extreme_Overload_Illegal : if [PL > Ppv + Pw && PL - Ppv - Pw > eng3_Pmax + Pd1max + Pd2max];\n\n    [*] -> ZeroLoad_Charge;\n\n    state ZeroLoad_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state ZeroLoad_NoRES {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Charge {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Ppv + Pw - PL;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state RES_Covers_Spare {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = Ppv + Pw - PL;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Battery_Assist {\n        enter {\n            Pgen_req = 0.0;\n            Pbat_discharge = PL - Ppv - Pw;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 0;\n            cmd_LNG_cutout = 1;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state LNG_Covers_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pgmax / 5;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pgmax / 5;\n            Pspare = eng3_Pmax - PL + Ppv + Pw - Pgmax / 5;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 0;\n            cmd_DG1_cutout = 1;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG1_LowSoC_ChargeMargin {\n        enter {\n            Pgen_req = PL - Ppv - Pw + Pd1max / 10;\n            Pbat_discharge = 0.0;\n            Pbat_charge = Pd1max / 10;\n            Pspare = eng3_Pmax + Pd1max - PL + Ppv + Pw - Pd1max / 10;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 0;\n            cmd_DG2_cutout = 1;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state DG2_Covers_Normal {\n        enter {\n            Pgen_req = PL - Ppv - Pw;\n            Pbat_discharge = 0.0;\n            Pbat_charge = 0.0;\n            Pspare = eng3_Pmax + Pd1max + Pd2max - PL + Ppv + Pw;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 0;\n        }\n    }\n\n    state Extreme_Overload_Illegal {\n        enter {\n            Pgen_req = eng3_Pmax + Pd1max + Pd2max;\n            Pbat_discharge = PL - Ppv - Pw - eng3_Pmax - Pd1max - Pd2max;\n            Pbat_charge = 0.0;\n            Pspare = 0.0;\n            cmd_LNG_cutin = 1;\n            cmd_LNG_cutout = 0;\n            cmd_DG1_cutin = 1;\n            cmd_DG1_cutout = 0;\n            cmd_DG2_cutin = 1;\n            cmd_DG2_cutout = 0;\n            cmd_load_cutin = 1;\n            cmd_load_cutout = 0;\n            illegal_state = 1;\n        }\n    }\n}",
+    "old_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+    "phase": "sl10_review",
+    "repair_attempt": 0,
+    "repair_memory": {
+      "actionable_rework_guidance": [
+        {
+          "kind": "sl10_evidence",
+          "summary": "The hard simulation request was specific: default-init with PL=0, Ppv=0, Pw=0, SoC=0.5 expected LNGShipEMS.ZeroLoad_NoRES with Pgen_req=0, Pbat_discharge=0, Pbat_charge=0, Pspare=0, and illegal_state=0, but the old DSL initialized to LNGShipEMS.ZeroLoad_Charge. SL-9 accepted that request and made the minimal DSL edit: [*] -> ZeroLoad_Charge was changed to [*] -> ZeroLoad_NoRES. The ZeroLoad_NoRES enter action already assigns all expected zero/non-illegal outputs, so the reported scenario obligation is directly repaired."
+        },
+        {
+          "kind": "sl10_evidence",
+          "summary": "The diff is intentionally narrow: all variables, all dispatch states including ZeroLoad_Charge, ZeroLoad_Spare, RES_Covers_Charge, RES_Covers_Spare, Battery_Assist, LNG, DG1, DG2, low-SoC charge-margin, and Extreme_Overload_Illegal states remain present. All state actions for RES charging/spare, battery assist, LNG/DG dispatch, Pgmax/5, Pd1max/10, and overload all-thermal-plus-battery behavior are unchanged. This avoids dropping NL-required behavior while correcting the default classification."
+        },
+        {
+          "kind": "sl10_evidence",
+          "summary": "No FixLog repair_memory records prior rework objections, repeated candidate hashes, or non-regressive frontier constraints. The FixLog notes confirm the candidate preserves grounded required elements and does not invent external input dynamics."
+        },
+        {
+          "kind": "sl10_evidence",
+          "summary": "Local deterministic evidence reports no scenario regression, but rejects on missing_required_grounding for transition:classify_RES_Covers_Charge, transition:classify_RES_Covers_Spare, transition:classify_Extreme_Overload_Illegal, guard:res_covers_load, and guard:res_below_load. Inspection of the candidate DSL shows concrete representations for these obligations: forced transitions to RES_Covers_Charge and RES_Covers_Spare use Ppv + Pw >= PL with SoC < 0.95 / SoC >= 0.95; Extreme_Overload_Illegal uses PL > Ppv + Pw and deficit greater than eng3_Pmax + Pd1max + Pd2max; res_below_load is represented equivalently as PL > Ppv + Pw across the below-load dispatch transitions."
+        }
+      ],
+      "audit_only_rework_guidance": [
+        {
+          "instruction": "Audit-only: this local expected-vs-actual summary belongs to a deterministic objection already overridden by SL-10. Preserve it for traceability, but do not use it as the next SL-9 repair target unless new hard evidence reopens the same issue.",
+          "kind": "audit_only_local_summary",
+          "summary": {
+            "actionable_items": [
+              {
+                "evidence": {
+                  "element_ids": [
+                    "transition:classify_RES_Covers_Charge",
+                    "transition:classify_RES_Covers_Spare",
+                    "transition:classify_Extreme_Overload_Illegal",
+                    "guard:res_covers_load",
+                    "guard:res_below_load"
+                  ],
+                  "kind": "missing_required_grounding"
+                },
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "drift_risk": "major",
+            "local_rejection_reason": "missing_required_grounding",
+            "regression_detected": false,
+            "target_resolved": false
+          }
+        }
+      ],
+      "candidate_dsl_hash": "sha256:6db2000448279754de047248a70856cf083bd022c31259b074b67ef79dac16fe",
+      "local_objections": [
+        {
+          "instruction": "Audit-only: SL-10 accepted the candidate and explicitly overrode this local deterministic objection. Do not treat it as a primary SL-9 repair target in later iterations unless new hard evidence or a real regression reopens it.",
+          "local_actionable_repair_summary": {
+            "actionable_items": [
+              {
+                "evidence": {
+                  "element_ids": [
+                    "transition:classify_RES_Covers_Charge",
+                    "transition:classify_RES_Covers_Spare",
+                    "transition:classify_Extreme_Overload_Illegal",
+                    "guard:res_covers_load",
+                    "guard:res_below_load"
+                  ],
+                  "kind": "missing_required_grounding"
+                },
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "drift_risk": "major",
+            "local_rejection_reason": "missing_required_grounding",
+            "regression_detected": false,
+            "target_resolved": false
+          },
+          "local_objection_status": "overridden_by_sl10",
+          "local_override_rationale": [
+            "Override the SD-10 missing_required_grounding rejection because the cited elements are present in the candidate DSL as executable forced classification transitions and guards. The matcher appears to have failed to credit equivalent textual/canonical forms rather than identifying an actual dropped NL requirement: Ppv + Pw >= PL is explicitly present for RES_Covers_Charge and RES_Covers_Spare, PL > Ppv + Pw is the algebraic equivalent of Ppv + Pw < PL for below-load branches, and the overload transition explicitly checks demand deficit beyond all thermal capacities.",
+            "The local rejection does not report a simulation regression, parse failure, semantic failure, or changed behavior outside grounding recognition. The only DSL diff changes the initial transition to the already-existing ZeroLoad_NoRES state, which is exactly the hard failing scenario’s expected state and preserves all other classification guards/actions. Therefore the NL, FixLog, SL-9 rationale, and DSL diff justify accepting this candidate for the next full top-down revalidation pass despite the conservative local grounding failure."
+          ],
+          "local_rejection": {
+            "drift_risk": "major",
+            "evidence": [
+              {
+                "element_ids": [
+                  "transition:classify_RES_Covers_Charge",
+                  "transition:classify_RES_Covers_Spare",
+                  "transition:classify_Extreme_Overload_Illegal",
+                  "guard:res_covers_load",
+                  "guard:res_below_load"
+                ],
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "reason": "missing_required_grounding",
+            "regression_detected": false,
+            "rejected_by_stage": "SD-10",
+            "target_resolved": false
+          }
+        }
+      ],
+      "non_regressive_local_only_frontier": {},
+      "overridden_local_objections": [
+        {
+          "instruction": "Audit-only: SL-10 accepted the candidate and explicitly overrode this local deterministic objection. Do not treat it as a primary SL-9 repair target in later iterations unless new hard evidence or a real regression reopens it.",
+          "local_actionable_repair_summary": {
+            "actionable_items": [
+              {
+                "evidence": {
+                  "element_ids": [
+                    "transition:classify_RES_Covers_Charge",
+                    "transition:classify_RES_Covers_Spare",
+                    "transition:classify_Extreme_Overload_Illegal",
+                    "guard:res_covers_load",
+                    "guard:res_below_load"
+                  ],
+                  "kind": "missing_required_grounding"
+                },
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "drift_risk": "major",
+            "local_rejection_reason": "missing_required_grounding",
+            "regression_detected": false,
+            "target_resolved": false
+          },
+          "local_objection_status": "overridden_by_sl10",
+          "local_override_rationale": [
+            "Override the SD-10 missing_required_grounding rejection because the cited elements are present in the candidate DSL as executable forced classification transitions and guards. The matcher appears to have failed to credit equivalent textual/canonical forms rather than identifying an actual dropped NL requirement: Ppv + Pw >= PL is explicitly present for RES_Covers_Charge and RES_Covers_Spare, PL > Ppv + Pw is the algebraic equivalent of Ppv + Pw < PL for below-load branches, and the overload transition explicitly checks demand deficit beyond all thermal capacities.",
+            "The local rejection does not report a simulation regression, parse failure, semantic failure, or changed behavior outside grounding recognition. The only DSL diff changes the initial transition to the already-existing ZeroLoad_NoRES state, which is exactly the hard failing scenario’s expected state and preserves all other classification guards/actions. Therefore the NL, FixLog, SL-9 rationale, and DSL diff justify accepting this candidate for the next full top-down revalidation pass despite the conservative local grounding failure."
+          ],
+          "local_rejection": {
+            "drift_risk": "major",
+            "evidence": [
+              {
+                "element_ids": [
+                  "transition:classify_RES_Covers_Charge",
+                  "transition:classify_RES_Covers_Spare",
+                  "transition:classify_Extreme_Overload_Illegal",
+                  "guard:res_covers_load",
+                  "guard:res_below_load"
+                ],
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "reason": "missing_required_grounding",
+            "regression_detected": false,
+            "rejected_by_stage": "SD-10",
+            "target_resolved": false
+          }
+        }
+      ],
+      "repeated_candidate_hash": false
+    },
+    "request_batch": {
+      "batch_id": "fixbatch-0-sha256-019672ca0f5",
+      "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+      "iteration": 0,
+      "legacy_plan_kind": "FixPlan",
+      "requests": [
+        {
+          "evidence": [
+            {
+              "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+              "name": "default_init_zero_load_no_res_classification",
+              "repair_brief": {
+                "actionable_rule": "For each failing step, repair against expected_state/expected_vars versus actual_state/actual_vars_focus/runtime_error, and mention the scenario name in repair_rationale.",
+                "description": "default-init probe with default PL=0 and no RES: EMS should classify zero-load/no-renewable operation with no charge, spare, or illegal flag.",
+                "failing_steps": [
+                  {
+                    "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                    "actual_vars_focus": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "before_cycles": 0,
+                    "events": [],
+                    "expected_state": "LNGShipEMS.ZeroLoad_NoRES",
+                    "expected_vars": {
+                      "Pbat_charge": 0.0,
+                      "Pbat_discharge": 0.0,
+                      "Pgen_req": 0.0,
+                      "Pspare": 0.0,
+                      "illegal_state": 0
+                    },
+                    "runtime_error": "",
+                    "state_assertion_ok": false,
+                    "step_index": 0,
+                    "step_name": "default_zero_load_no_res",
+                    "var_assertion_ok": true,
+                    "var_mismatches": {}
+                  }
+                ],
+                "initial_state": null,
+                "initial_vars": {},
+                "scenario_name": "default_init_zero_load_no_res_classification",
+                "status": "fail"
+              },
+              "setup_error": null,
+              "status": "fail",
+              "step_results": [
+                {
+                  "actual_state": "LNGShipEMS.ZeroLoad_Charge",
+                  "actual_vars": {
+                    "PL": 0.0,
+                    "Pbat_charge": 0.0,
+                    "Pbat_discharge": 0.0,
+                    "Pd1max": 0.0,
+                    "Pd2max": 0.0,
+                    "Pgen_req": 0.0,
+                    "Pgmax": 0.0,
+                    "Ppv": 0.0,
+                    "Pspare": 0.0,
+                    "Pw": 0.0,
+                    "SoC": 0.5,
+                    "cmd_DG1_cutin": 0,
+                    "cmd_DG1_cutout": 1,
+                    "cmd_DG2_cutin": 0,
+                    "cmd_DG2_cutout": 1,
+                    "cmd_LNG_cutin": 0,
+                    "cmd_LNG_cutout": 1,
+                    "cmd_load_cutin": 1,
+                    "cmd_load_cutout": 0,
+                    "eng3_Pmax": 0.0,
+                    "illegal_state": 0
+                  },
+                  "runtime_error": null,
+                  "state_assertion_ok": false,
+                  "status": "fail",
+                  "step_index": 0,
+                  "step_name": "default_zero_load_no_res",
+                  "var_assertion_ok": true,
+                  "var_mismatches": {}
+                }
+              ]
+            }
+          ],
+          "forbidden_edits": [
+            "Do not delete grounded required elements merely to silence diagnostics.",
+            "Do not invent internal plant/environment dynamics merely to make external input variables appear written."
+          ],
+          "hard_block": true,
+          "legacy_fix_plan": {
+            "before_dsl_hash": "sha256:fba649434ded245d7b3d911c0d772214a5a1a517adf6d9f92e91309716b61d3a",
+            "compacted": true,
+            "diagnostic_count": 1,
+            "evidence_count": 1,
+            "problem_summary": "simulation failed",
+            "required_preserve_element_ids": [
+              "state:ZeroLoad_Charge",
+              "state:ZeroLoad_Spare",
+              "state:RES_Covers_Charge",
+              "state:RES_Covers_Spare",
+              "state:Battery_Assist",
+              "state:LNG_Covers_Normal",
+              "state:LNG_Covers_LowSoC_ChargeMargin",
+              "state:DG1_Covers_Normal",
+              "state:DG1_LowSoC_ChargeMargin",
+              "state:DG2_Covers_Normal",
+              "state:Extreme_Overload_Illegal",
+              "variable:PL",
+              "variable:Ppv",
+              "variable:Pw",
+              "variable:SoC",
+              "variable:eng3_Pmax",
+              "variable:Pgmax",
+              "variable:Pd1max",
+              "variable:Pgen_req",
+              "variable:Pbat_discharge",
+              "variable:Pbat_charge",
+              "variable:Pspare",
+              "variable:cmd_LNG_cutin",
+              "variable:cmd_DG1_cutin",
+              "variable:cmd_DG2_cutin",
+              "transition:classify_RES_Covers_Charge",
+              "transition:classify_RES_Covers_Spare",
+              "transition:classify_Extreme_Overload_Illegal",
+              "guard:soc_full_threshold",
+              "guard:res_covers_load"
+            ],
+            "severity": "sim_fail",
+            "source_feedback_id": "default_init_zero_load_no_res_classification",
+            "source_stage": "SD-6",
+            "target": "sim"
+          },
+          "local_check_required": true,
+          "problem_summary": "simulation failed",
+          "recommended_strategy": [
+            "Use diagnostics as hints; choose the smallest globally consistent repair.",
+            "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation."
+          ],
+          "request_id": "fixreq-0-sd6-0-d7e4f2e8d5",
+          "required_preserve_element_ids": [
+            "state:ZeroLoad_Charge",
+            "state:ZeroLoad_Spare",
+            "state:RES_Covers_Charge",
+            "state:RES_Covers_Spare",
+            "state:Battery_Assist",
+            "state:LNG_Covers_Normal",
+            "state:LNG_Covers_LowSoC_ChargeMargin",
+            "state:DG1_Covers_Normal",
+            "state:DG1_LowSoC_ChargeMargin",
+            "state:DG2_Covers_Normal",
+            "state:Extreme_Overload_Illegal",
+            "variable:PL",
+            "variable:Ppv",
+            "variable:Pw",
+            "variable:SoC",
+            "variable:eng3_Pmax",
+            "variable:Pgmax",
+            "variable:Pd1max",
+            "variable:Pgen_req",
+            "variable:Pbat_discharge",
+            "variable:Pbat_charge",
+            "variable:Pspare",
+            "variable:cmd_LNG_cutin",
+            "variable:cmd_DG1_cutin",
+            "variable:cmd_DG2_cutin",
+            "transition:classify_RES_Covers_Charge",
+            "transition:classify_RES_Covers_Spare",
+            "transition:classify_Extreme_Overload_Illegal",
+            "guard:soc_full_threshold",
+            "guard:res_covers_load"
+          ],
+          "severity": "sim_fail",
+          "source_feedback_id": "default_init_zero_load_no_res_classification",
+          "source_stage": "SD-6",
+          "suggested_fix_hints": [
+            {
+              "expected_from_sl9": "In repair_rationale, name which scenario obligation is fixed and why the edit does not regress prior passing scenarios.",
+              "instruction": "Use the failing scenario step/result as the repair target. Preserve scenarios that were already passing; change the minimal guard, initial transition, event, or state action needed for the failed expected state/vars.",
+              "kind": "scenario_regression"
+            }
+          ],
+          "target": "sim",
+          "waiver_allowed": false
+        }
+      ],
+      "selected_feedback_trace": {
+        "_omitted_keys": 4,
+        "fix_request_compaction": {
+          "emitted_requests": 1,
+          "evidence_per_request": 1,
+          "max_requests": 12,
+          "raw_request_candidates": 1,
+          "reason": "bounded_prompt_and_repair_ledger"
+        },
+        "n_scenarios": 15,
+        "n_scenarios_passed": 14,
+        "ok": false,
+        "oracle_weak": false,
+        "setup_error": null,
+        "source": "sim",
+        "source_stage": "SD-6",
+        "weak_oracle_reason": ""
+      },
+      "source": "sim",
+      "source_stage": "SD-6"
+    },
+    "sl10_review": {
+      "decision": "pass",
+      "drift_risk": "minor",
+      "evidence": [
+        {
+          "summary": "The hard simulation request was specific: default-init with PL=0, Ppv=0, Pw=0, SoC=0.5 expected LNGShipEMS.ZeroLoad_NoRES with Pgen_req=0, Pbat_discharge=0, Pbat_charge=0, Pspare=0, and illegal_state=0, but the old DSL initialized to LNGShipEMS.ZeroLoad_Charge. SL-9 accepted that request and made the minimal DSL edit: [*] -> ZeroLoad_Charge was changed to [*] -> ZeroLoad_NoRES. The ZeroLoad_NoRES enter action already assigns all expected zero/non-illegal outputs, so the reported scenario obligation is directly repaired."
+        },
+        {
+          "summary": "The diff is intentionally narrow: all variables, all dispatch states including ZeroLoad_Charge, ZeroLoad_Spare, RES_Covers_Charge, RES_Covers_Spare, Battery_Assist, LNG, DG1, DG2, low-SoC charge-margin, and Extreme_Overload_Illegal states remain present. All state actions for RES charging/spare, battery assist, LNG/DG dispatch, Pgmax/5, Pd1max/10, and overload all-thermal-plus-battery behavior are unchanged. This avoids dropping NL-required behavior while correcting the default classification."
+        },
+        {
+          "summary": "No FixLog repair_memory records prior rework objections, repeated candidate hashes, or non-regressive frontier constraints. The FixLog notes confirm the candidate preserves grounded required elements and does not invent external input dynamics."
+        },
+        {
+          "summary": "Local deterministic evidence reports no scenario regression, but rejects on missing_required_grounding for transition:classify_RES_Covers_Charge, transition:classify_RES_Covers_Spare, transition:classify_Extreme_Overload_Illegal, guard:res_covers_load, and guard:res_below_load. Inspection of the candidate DSL shows concrete representations for these obligations: forced transitions to RES_Covers_Charge and RES_Covers_Spare use Ppv + Pw >= PL with SoC < 0.95 / SoC >= 0.95; Extreme_Overload_Illegal uses PL > Ppv + Pw and deficit greater than eng3_Pmax + Pd1max + Pd2max; res_below_load is represented equivalently as PL > Ppv + Pw across the below-load dispatch transitions."
+        },
+        {
+          "candidate_dsl_hash": "sha256:6db2000448279754de047248a70856cf083bd022c31259b074b67ef79dac16fe",
+          "covered_local_objection_kinds": [
+            "missing_required_grounding"
+          ],
+          "kind": "local_major_drift_override_audit",
+          "local_check_evidence_hash": "sha256:5c8a59725e20d4af01197b31f2bdc16d61bc4e8130ad9330222d0da2b0b5cfc3",
+          "local_override_rationale_count": 2,
+          "local_override_rationale_hash": "sha256:5adc32c1909dd10d9133d7b2354812fa4e3c08d08e591ccdc5951ab0a2db5a82",
+          "local_rejection_evidence_hash": "sha256:6087ceb52df32538c70739e9ab9dc94e5c5b73ccd1433084fe70706dc7013620",
+          "local_rejection_reason": "missing_required_grounding",
+          "missing_local_objection_kinds": [],
+          "policy": "SL-10 may override conservative local major-drift evidence only when local_override_rationale explicitly engages the local reason/kind. The runtime appends this audit evidence and binds that override to candidate and local-evidence hashes for run-record audit, so the rationale field is the authoritative override explanation."
+        }
+      ],
+      "local_check_evidence": {
+        "actionable_repair_summary": {
+          "actionable_items": [
+            {
+              "evidence": {
+                "element_ids": [
+                  "transition:classify_RES_Covers_Charge",
+                  "transition:classify_RES_Covers_Spare",
+                  "transition:classify_Extreme_Overload_Illegal",
+                  "guard:res_covers_load",
+                  "guard:res_below_load"
+                ],
+                "kind": "missing_required_grounding"
+              },
+              "kind": "missing_required_grounding"
+            }
+          ],
+          "drift_risk": "major",
+          "local_rejection_reason": "missing_required_grounding",
+          "regression_detected": false,
+          "target_resolved": false
+        },
+        "legacy_local_check_stage_id": "SD-10",
+        "local_check_note": "PR-E1 uses local parse/semantic/design/sim checks as SL-10 evidence, not as the final deterministic judge.",
+        "meta": {
+          "elapsed_ms": null,
+          "enabled": true,
+          "input_hash": null,
+          "ok": false,
+          "output_hash": null,
+          "output_validation_error": null,
+          "prompt_hash": null,
+          "ran": true,
+          "skipped_reason": null,
+          "stage_error": null,
+          "stage_id": "SD-10",
+          "stage_kind": "deterministic",
+          "status": "fail"
+        },
+        "repair_review_feedback": {
+          "delta_review": null,
+          "drift_risk": "major",
+          "local_rejection": {
+            "drift_risk": "major",
+            "evidence": [
+              {
+                "element_ids": [
+                  "transition:classify_RES_Covers_Charge",
+                  "transition:classify_RES_Covers_Spare",
+                  "transition:classify_Extreme_Overload_Illegal",
+                  "guard:res_covers_load",
+                  "guard:res_below_load"
+                ],
+                "kind": "missing_required_grounding"
+              }
+            ],
+            "reason": "missing_required_grounding",
+            "regression_detected": false,
+            "rejected_by_stage": "SD-10",
+            "target_resolved": false
+          },
+          "meta": {
+            "elapsed_ms": null,
+            "enabled": true,
+            "input_hash": null,
+            "ok": false,
+            "output_hash": null,
+            "output_validation_error": null,
+            "prompt_hash": null,
+            "ran": true,
+            "skipped_reason": null,
+            "stage_error": null,
+            "stage_id": "SD-10",
+            "stage_kind": "deterministic",
+            "status": "fail"
+          },
+          "ok": false,
+          "regression_detected": false,
+          "review_meta": null,
+          "target_resolved": false
+        },
+        "stage_id": "SL-10"
+      },
+      "local_override_rationale": [
+        "Override the SD-10 missing_required_grounding rejection because the cited elements are present in the candidate DSL as executable forced classification transitions and guards. The matcher appears to have failed to credit equivalent textual/canonical forms rather than identifying an actual dropped NL requirement: Ppv + Pw >= PL is explicitly present for RES_Covers_Charge and RES_Covers_Spare, PL > Ppv + Pw is the algebraic equivalent of Ppv + Pw < PL for below-load branches, and the overload transition explicitly checks demand deficit beyond all thermal capacities.",
+        "The local rejection does not report a simulation regression, parse failure, semantic failure, or changed behavior outside grounding recognition. The only DSL diff changes the initial transition to the already-existing ZeroLoad_NoRES state, which is exactly the hard failing scenario’s expected state and preserves all other classification guards/actions. Therefore the NL, FixLog, SL-9 rationale, and DSL diff justify accepting this candidate for the next full top-down revalidation pass despite the conservative local grounding failure."
+      ],
+      "meta": {
+        "elapsed_ms": null,
+        "enabled": true,
+        "input_hash": "sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "ok": true,
+        "output_hash": "sha256:6f4498998d3f697f4078032434dbb07c76ba4d28519d374fb0bef9b450dea2a1",
+        "output_validation_error": null,
+        "prompt_hash": "sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "ran": true,
+        "skipped_reason": null,
+        "stage_error": null,
+        "stage_id": "SL-10",
+        "stage_kind": "LLM",
+        "status": "ok"
+      },
+      "ok": true,
+      "regression_detected": false,
+      "review_meta": {
+        "cache_key": "SL-10:sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "decision_threshold": null,
+        "failure_policy": "fail_closed",
+        "input_hash": "sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "model_id": "gpt-5.5",
+        "parsed_schema_version": "SL10RepairReviewOutput.v1",
+        "prompt_hash": "sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "prompt_template_version": "sl10-repair-review.v1",
+        "provider": "openai-compatible-env",
+        "raw_output_hash": "sha256:6f4498998d3f697f4078032434dbb07c76ba4d28519d374fb0bef9b450dea2a1",
+        "raw_output_path": null,
+        "replay_key": "SL-10:sha256:6a5c29147b92503d76841305e92b706d5d01b323de311df42eade58e36472609",
+        "resolved_model_id": "gpt-5.5",
+        "retry_count": 0,
+        "schema_validation_error": null,
+        "schema_validation_ok": true,
+        "seed": null,
+        "temperature": 0.0
+      },
+      "rework_instructions": [],
+      "target_resolved": true
+    }
+  }
+]
