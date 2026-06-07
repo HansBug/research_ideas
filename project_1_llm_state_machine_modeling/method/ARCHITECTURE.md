@@ -1,229 +1,199 @@
-# `method/` 架构与 LG-M1-A 基线
+# `method/` 架构与 LG-M1 current facts
 
-本文档是 LG-M1-A 的仓库内架构入口与 baseline 真源说明，服务于 LG-M1 后续维护性重构。LG-M1-A 只记录当前事实和后续目标边界，不迁移模块、不删除旧实现、不改变默认 runtime 语义、不运行真实 provider 四例。
+本文档是 `project_1_llm_state_machine_modeling/method/` 的架构入口，用于说明当前功能命名、LangGraph 模块化、测试镜像与 historical provenance 的边界。若只想快速知道“现在该从哪里调用”，请先读 [README.md](./README.md) 的功能入口地图；若要追溯 LG-M1 的重构证据链，请继续阅读本文。
 
 相关入口：
 
 - 上游 PR-langgraph：[PR #39](https://github.com/HansBug/research_ideas/pull/39)
 - LG-M1 总计划：[PR #64](https://github.com/HansBug/research_ideas/pull/64)
-- LG-M1-A 子 PR：[PR #66](https://github.com/HansBug/research_ideas/pull/66)
-- LG-M1-D1 子 PR：[PR #69](https://github.com/HansBug/research_ideas/pull/69)
-- 仓库内 baseline fixture：[tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json)
-- 表征测试：[tests/crosscutting/test_lg_m1_inventory_characterization.py](./tests/crosscutting/test_lg_m1_inventory_characterization.py)
+- LG-M1-A inventory 子 PR：[PR #66](https://github.com/HansBug/research_ideas/pull/66)
+- LG-M1-B stage API 子 PR：[PR #68](https://github.com/HansBug/research_ideas/pull/68)
+- LG-M1-C1 experiments entrypoints 子 PR：[PR #70](https://github.com/HansBug/research_ideas/pull/70)
+- LG-M1-C2 ablation / legacy cleanup 子 PR：[PR #72](https://github.com/HansBug/research_ideas/pull/72)
+- LG-M1-D1 foundation 子 PR：[PR #69](https://github.com/HansBug/research_ideas/pull/69)
+- LG-M1-D2 instrumentation / checkpoint / context 子 PR：[PR #71](https://github.com/HansBug/research_ideas/pull/71)
+- LG-M1-D3 nodes / subgraphs / core 子 PR：[PR #74](https://github.com/HansBug/research_ideas/pull/74)
+- LG-M1-E tests mirror 子 PR：[PR #75](https://github.com/HansBug/research_ideas/pull/75)
+- LG-M1-F docs / provenance 子 PR：[PR #76](https://github.com/HansBug/research_ideas/pull/76)
+- LG-M1-A baseline fixture：[tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json)
+- LG-M1 characterization tests：[tests/crosscutting/test_lg_m1_inventory_characterization.py](./tests/crosscutting/test_lg_m1_inventory_characterization.py)
 
-## Current Facts
+## 1. Current status summary
 
-本节只记录 LG-M1-A 实现时的当前磁盘事实与可观察合约，不描述未来目标结构。后续 LG-M1-B..G 若改变这些事实，必须在对应子 PR 中说明原因、更新 baseline 或给出兼容证明。
+当前（LG-M1-F）事实如下：
 
-### 基线捕获信息
+| 维度 | 当前事实 | 证据 / 入口 |
+|---|---|---|
+| 默认完整 runtime | `method.loop.run_agent_loop(...)` 仍是 canonical public entry；默认 backend 为 LangGraph full staged runtime | [loop.py](./loop.py)、[langgraph_runtime.py](./langgraph_runtime.py)、[langgraph/core.py](./langgraph/core.py) |
+| Stage API | 外部工具箱/skill 应优先调用 `method.stages.*` 的 Pythonic API；这些入口不读 `.env`、不调 provider、不调 full loop | [stages/api.py](./stages/api.py)、[stages/sc_control.py](./stages/sc_control.py)、[stages/sl_prompt_api.py](./stages/sl_prompt_api.py) |
+| Experiment entrypoints | 新文档和新代码优先使用 `method.experiments.*` 功能命名入口 | [experiments/](./experiments/) |
+| LangGraph physical layout | `method/langgraph/` 已承载 constants/state/registry/checkpointing/instrumentation/subgraphs/nodes/core/resume；`method.langgraph_runtime` 是 public compatibility facade | [langgraph/](./langgraph/)、[langgraph_runtime.py](./langgraph_runtime.py) |
+| Tests mirror | `method/tests/` 已按功能域镜像迁移；root flat `test*.py` 已清空 | [tests/](./tests/) |
+| 当前测试基线 | `412 tests collected`；full method tests `412 passed, 6 warnings` | LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) 与 LG-M1-F gates |
+| 当前 PR 边界 | LG-M1-F 只收口 docs/provenance/naming residue；不改 runtime、prompt、provider、FixLog、run record、eligibility 或真实 evidence | [PR #76](https://github.com/HansBug/research_ideas/pull/76) |
+| 下一步 | LG-M1-G 在最终集成 head 上跑四例并做 #64 总复审 | [PR #64](https://github.com/HansBug/research_ideas/pull/64) |
 
-- 捕获分支：`feature/project1-lg-m1-a-inventory-characterization`
-- baseline source head：`8a5f7bfa9e93008a3b9eec4f7683b594aaee1de8`（LG-M1-A 空 PR head；fixture 还包含本 PR 新增 characterization test 后的 working-tree collection count，最终实现 commit 以 PR head 与实现 comment 为准，不在文件内伪造自引用 hash）
-- baseline 真源：[`tests/fixtures/lg_m1_a_baseline.json`](./tests/fixtures/lg_m1_a_baseline.json)
-- baseline 范围：inventory + characterization baseline；未读取 `.env`，未调用真实 provider，未生成新的论文主结果 evidence。
-- pytest collection 原始基线：`382` tests collected，scope 为 `project_1_llm_state_machine_modeling/method/tests`；LG-M1-C1 与 LG-M1-D1 各新增 `5` 个聚焦测试，因此当前 C1+D1 合流后期望为 `392` tests collected。
+## 2. Public entrypoint architecture
 
-### 当前顶层文件事实
-
-`method/` 当前仍同时包含运行入口、实验入口、LangGraph runtime、legacy loop、stage helper、skill 文档和测试目录。LG-M1-A 不移动这些文件，只记录当前事实：
-
-- 默认公开入口：[`loop.py`](./loop.py)
-- 当前 LangGraph runtime 单文件入口：[`langgraph_runtime.py`](./langgraph_runtime.py)
-- 当前 legacy full loop：[`legacy_loop.py`](./legacy_loop.py) 仅保留 historical marker，不再提供 active full-loop API
-- 当前 ablation / deterministic experiment 入口：[`experiments/ablation/deterministic_loop.py`](./experiments/ablation/deterministic_loop.py)；[`pr2a_loop.py`](./pr2a_loop.py) 仅为 compatibility shim
-- 当前真实 run matrix 功能入口：[`experiments/real_run_matrix.py`](./experiments/real_run_matrix.py)；legacy shim：[`pr_e1_real_runs.py`](./pr_e1_real_runs.py)
-- 当前 representative cases 功能入口：[`experiments/representative_cases.py`](./experiments/representative_cases.py)；legacy shim：[`pr_d_representative.py`](./pr_d_representative.py)
-- 当前 checkpoint / resume experiment 功能入口：[`experiments/checkpoint_resume.py`](./experiments/checkpoint_resume.py)；legacy shim：[`pr_lg_f1_resume_experiment.py`](./pr_lg_f1_resume_experiment.py)
-- stage Python 模块目录：[`stages/`](./stages/)
-- method tests 目录：[`tests/`](./tests/)
-
-### Facade / re-export 当前事实
-
-LG-M1-A 的 facade scan 记录当前所有 `method.langgraph_runtime` direct import、module alias import 与 alias attribute consumer。该 scan 的目的不是冻结私有 helper 的存在性，而是让 LG-M1-D1/D2/D3 在拆分 `langgraph_runtime.py` 时能审计已有 consumer surface。
-
-关键事实：
-
-- direct / module import entries：`61`
-- alias attribute consumers：`27`
-- 必须纳入 scan 的 re-export /入口路径：
-  - [`__init__.py`](./__init__.py)
-  - [`loop.py`](./loop.py)
-  - [`staged_runtime.py`](./staged_runtime.py)
-- 当前默认入口 [`loop.py`](./loop.py) 直接使用 `method.langgraph_runtime` 的 context assembly 与 `run_full_staged_langgraph_runtime`。
-
-完整清单以 [`tests/fixtures/lg_m1_a_baseline.json`](./tests/fixtures/lg_m1_a_baseline.json) 的 `facade_reexport_scan` 为准。
-
-### Stage API 当前事实
-
-LG-M1-A 只盘点已存在的 `method.stages.*` Python-callable surface，不承诺尚未存在的 skill/toolbox API。当前 scan 覆盖 `17` 个 stage 模块，完整函数 / class / 常量清单见 fixture 的 `stage_api_scan`。
-
-后续 LG-M1-B 若新增 `api.py`、`sc_control.py` 或 prompt-oriented Pythonic API，必须保证：
-
-1. 不把当前不存在的 API 回填为“历史已有”。
-2. 不改变 SC/SD/SL 语义、FixLog、NFRR / eligibility 或默认 provider 行为。
-3. 保留可供 skill 直接调用的 Pythonic entrypoint。
-
-### Legacy loop 当前事实
-
-LG-M1-C2 后，`method.legacy_loop` 不再是 active callable path；`tests/stages/test_stage_contract.py` 的 legacy-direct checks 已改写为功能命名 helper/schema contract，`loop.py` 错误信息改指向 deterministic ablation diagnostics。
-
-LG-M1-A 原始基线曾将 `test_stage_contract.py` 划分为：总 test 数 `53`、直接依赖 `legacy_loop` 的 legacy-direct tests `7`、非 legacy stage/schema/contract tests `46`。
-
-LG-M1-C2 后当前事实为：
-
-- 当前总 test 数：`52`
-- 直接依赖 `legacy_loop` 的 legacy-direct tests：`0`
-- 不直接依赖 `legacy_loop` 的 stage/schema/contract tests：`52`
-- 合法删除旧 full-loop legacy-only tests：`3`
-- 从 legacy-direct 改写为功能命名 helper/schema contract 的 tests：`4`
-
-这一区分是 LG-M1-C2 删除古老 legacy loop 的边界：C2 可以删除或迁移 legacy-only coverage，但不得默默丢失非 legacy stage/schema/contract coverage。
-
-### Runtime identity 当前事实
-
-LG-M1-A 的 runtime identity 真源来自已提交的 historical agent-loop gzip run record；该 record 只作为只读证据来源，LG-M1-A 不 replay provider、不读取 `.env`、不新增真实四例 evidence。
-
-- 真源路径：[`../../runs/pr_langgraph_real_agent_loop_round2_stategraph_fix/pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4/pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4.agent_loop.json.gz`](../../runs/pr_langgraph_real_agent_loop_round2_stategraph_fix/pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4/pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4.agent_loop.json.gz)
-- `environment.runner`：`method.langgraph_runtime.run_full_staged_langgraph_runtime`
-- `environment.loop_entrypoint`：`method.loop.run_agent_loop`
-- `environment.graph_runtime_backend`：`langgraph`
-- `environment.graph_runtime_id`：`langgraph:pr-langgraph.stategraph.v1`
-- `environment.node_edge_schema_version`：`pr-langgraph.stage-nodes.v1`
-- `run_config.runtime_implementation`：`method.langgraph_runtime.run_full_staged_langgraph_runtime`
-- `run_config.canonical_runtime_backend`：`langgraph`
-
-完整字段见 fixture 的 `runtime_identity`。后续 LG-M1-D1/D2/D3 若调整物理模块位置，必须保持这些对外 identity / evidence 字段兼容，或在对应子 PR 中给出明确迁移与证据口径说明。
-
-### Graph contract 当前事实
-
-当前 graph contract baseline 来自 `build_langgraph_node_registry()`、`build_planned_stage_graph(LoopConfig())` 与 `graph_registry_consistency(...)` 的稳定字段。
-
-- canonical hash：`sha256:38cd757393d04422de98bb60c6d0534833f1b97dd00ffc70062bd040610d6a45`
-- registry runtime backend：`langgraph`
-- opaque wrapper：`false`
-- delegated monolithic runtime：`false`
-- planned stage order 与 registry canonical stage sequence 一致。
-- hash 排除：timestamp、绝对临时路径、dict insertion 偶然顺序、raw provider output、secret。
-
-完整 registry dump、planned node / edge / stage order、schema/version metadata 与 consistency 结果见 fixture 的 `graph_contract`。
-
-### LG-M1-D1 foundation 当前事实
-
-LG-M1-D1 建立了 [`langgraph/`](./langgraph/) foundation 包，但不改变默认 runtime 语义、不读取 `.env`、不运行真实 provider 四例、不改写历史 `runs/` evidence。`method.langgraph_runtime` 仍是 public compatibility facade 与 run-record identity 真源。
-
-当前已落地的 D1 foundation 边界：
-
-- [`langgraph/constants.py`](./langgraph/constants.py)：只承载 `GRAPH_RUNTIME_SCHEMA_VERSION`、`NODE_EDGE_SCHEMA_VERSION`、`LANGGRAPH_RUNTIME_BACKEND`、`GRAPH_RUNTIME_ID` 等 runtime / registry identity 常量；LG-D1 instrumentation、LG-D2 retry/timeout、LG-E2 Send、LG-E3 ToolNode wrapper、LG-G1 trace export 等证据域常量暂不迁移。
-- [`langgraph/state.py`](./langgraph/state.py)：只承载 C/E-free 的 `CompatState` / `_CompatState` compatibility smoke 类型；`_GraphLoopState`、`_LgE2SendState`、`_ValidationSubgraphState`、`_WaiverSubgraphState`、`_RepairSubgraphState`、`_LG_C2_ContextState` 仍留在 `langgraph_runtime.py`，等待 D2/D3 或对应 lane 迁移。
-- [`langgraph/registry.py`](./langgraph/registry.py)：承载 registry builder 与 consistency checker；LG-C2 context identifier 由 `method.langgraph_runtime.build_langgraph_node_registry()` facade wrapper 注入，foundation 模块不得反向 import `method.langgraph_runtime`，也不拥有 context-engineering 行为。
-
-D1 focused tests 位于 [`tests/langgraph/test_foundation.py`](./tests/langgraph/test_foundation.py)，用于锁定 no reverse import、registry canonical hash、facade runtime identity、C2 identifier injection 与 state migration boundary。
-
-### LG-M1-D2 instrumentation 当前事实
-
-LG-M1-D2 将 LangGraph runtime 中的 instrumentation / checkpoint / context helper 物理下沉到 [`langgraph/`](./langgraph/) 子包，同时继续保留 [`langgraph_runtime.py`](./langgraph_runtime.py) 作为 public compatibility facade。D2 不改变默认 runtime、provider 参数、prompt 文本、FixLog、eligibility、final DSL 或主 evidence 字段；若后续发现 operator log、stream summary、FixLog、eligibility 或 run_config/environment metadata 出现不可解释 drift，必须按 #64 纪律升级真实四例。
-
-当前已落地的 D2 模块边界：
-
-- [`langgraph/instrumentation/common.py`](./langgraph/instrumentation/common.py)：共享 JSON canonicalization、hash、package-version 与 dataclass-safe conversion helper。
-- [`langgraph/instrumentation/operator_stream.py`](./langgraph/instrumentation/operator_stream.py)：LG-D1 operator event、prompt-safe sanitizer、JSONL stream summary、operator artifact 与 stream runner helper；只提供 instrumentation primitive，不拥有 SC/SD/SL node orchestration。
-- [`langgraph/instrumentation/trace_export.py`](./langgraph/instrumentation/trace_export.py)：LG-G1 default-off safe local trace export；只写 hash/length/count 级 trace，不替代 canonical AgentLoopRunRecord evidence。
-- [`langgraph/instrumentation/tool_wrappers.py`](./langgraph/instrumentation/tool_wrappers.py)：LG-E3 fixed deterministic ToolNode-style wrapper instrumentation；不暴露 LLM tool-choice，不改变 SD tool canonical output。
-- [`langgraph/instrumentation/retry_timeout.py`](./langgraph/instrumentation/retry_timeout.py)：LG-D2 LLM node retry/timeout envelope policy、event builder、retry taxonomy 与 flow-log fallback recovery；provider-like failures 仍进入 invalid-run evidence，local contract errors不得伪装成 provider failure。
-- [`langgraph/instrumentation/send_parallel.py`](./langgraph/instrumentation/send_parallel.py)：LG-E2 Send fan-out helper；raw worker completion order 只作为 instrumentation，canonical SD-6 evidence 保持 serial-equivalent digest。
-- [`langgraph/instrumentation/store.py`](./langgraph/instrumentation/store.py)：LangGraph Store transient object helper 与 store compatibility smoke；不复活历史 module-level transient dict 作为数据源。
-- [`langgraph/checkpointing.py`](./langgraph/checkpointing.py)：`_PickleCheckpointSerde` 与 toy FixLog append-only checkpoint/resume smoke；不声明真实 agent-loop interrupted resume 可作为论文主结果 evidence。
-- [`langgraph/subgraphs/context_engineering.py`](./langgraph/subgraphs/context_engineering.py)：LG-C2 context assembly / budget / redaction deterministic subgraph；不调用 provider，不承载 validation/repair/waiver D3 orchestration。
-
-D2 focused tests 位于 [`tests/langgraph/test_instrumentation.py`](./tests/langgraph/test_instrumentation.py)，用于锁定 facade re-export identity、no reverse import、LG-C1 helper 不下沉、F1 resume 主流程 postponed、runtime identity 与 historical evidence read-only drift gate。
-
-D2 deliberately postponed：`resume_lg_f1_from_checkpoint`、`run_lg_f1_resume_experiment` 与 `_lg_f1_checkpoint_id_hash` 等 F1 resume 主流程仍保留在 [`langgraph_runtime.py`](./langgraph_runtime.py)，因为它们依赖 `_build_graph(...)`、run-record augmentation 与 #70 experiment entrypoint metadata，适合等 LG-M1-D3 core/nodes/subgraphs 边界稳定后再整体迁移。
-
-### Experiment / CLI 当前事实
-
-LG-M1-A 对当前实验入口只做 import smoke 与 `--help` / argparse 层面的 no-provider baseline，不执行真实 provider run：
-
-| 模块 | 当前 baseline | Provider 调用 |
-| --- | --- | --- |
-| `method.pr_e1_real_runs` | legacy shim import ok，`--help` exit 0 | 否 |
-| `method.experiments.real_run_matrix` | 功能命名入口 import ok，`--help` exit 0 | 否 |
-| `method.pr_lg_f1_resume_experiment` | legacy shim import ok，`--help` exit 0 | 否 |
-| `method.experiments.checkpoint_resume` | 功能命名入口 import ok，`--help` exit 0 | 否 |
-| `method.pr_d_representative` | legacy shim import ok，`--help` exit 0 | 否 |
-| `method.experiments.representative_cases` | 功能命名入口 import ok，`--help` exit 0 | 否 |
-| `method.pr2a_loop` | compatibility shim import ok；新推荐入口为 `method.experiments.ablation.deterministic_loop` | 否 |
-
-LG-M1-C1 已完成前三组 current experiment entrypoint 的 old/new import / `--help` 双入口 baseline；LG-M1-C2 后续迁移 ablation 入口时，应继续以该 baseline 口径为锚点。
-
-## Future Target Structure
-
-本节只记录未来目标结构和负责子 PR，不代表当前已经实现。任何条目若未标注负责子 PR，均不得作为实现依据。
-
-### `method/stages/` Pythonic API 目标 → LG-M1-B
-
-LG-M1-B 负责在不改变 stage 语义的前提下，为 skill/toolbox 调用补齐更清晰的 Pythonic API。可能结构包括：
+### 2.1 默认 agent-loop 入口
 
 ```text
-method/stages/
-├── api.py              # LG-M1-B：统一 stage callable facade
-├── sc_control.py       # LG-M1-B：SC control helpers
-└── ...                 # 现有 SD/SL helper 保持可追溯
+method.loop.run_agent_loop(nl, LoopConfig())
 ```
 
-### 当前实验入口迁移目标 → LG-M1-C1 / LG-M1-C2
+该入口保持 Path1/Path2 主实验语义：默认 `experiment_default/full_staged_v1`、默认 LangGraph backend、默认真实 provider adapter（由进程环境变量提供），并写出完整 `AgentLoopRunRecord`。LG-M1 维护性重构不得改变默认 stage 顺序、FixLog、eligibility、provider/stream 纪律或 run-record canonical 字段。
 
-LG-M1-C1/C2 负责把施工编号式实验入口迁往功能语义路径，同时保留必要 shim / old-new equivalence：
+默认 stage graph：
 
 ```text
-method/experiments/
-├── real_run_matrix.py            # LG-M1-C1：原 pr_e1_real_runs.py
-├── checkpoint_resume.py          # LG-M1-C1：原 pr_lg_f1_resume_experiment.py
-├── representative_cases.py       # LG-M1-C1：原 pr_d_representative.py
-└── ablation/
-    └── deterministic_loop.py     # LG-M1-C2：原 pr2a_loop.py
+SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SC-12 -> SC-13
 ```
 
-LG-M1-C1 implementation note：`method.pr_e1_real_runs`、`method.pr_lg_f1_resume_experiment` 与 `method.pr_d_representative` 现在是 compatibility shim；新代码和新文档应优先引用 `method.experiments.real_run_matrix`、`method.experiments.checkpoint_resume` 与 `method.experiments.representative_cases`。
+默认 repair chain：
 
-### 古老 legacy loop 删除目标 → LG-M1-C2
+```text
+SD-8 FixRequestBatch -> SL-9 per-request accept/reject + repair -> SL-10(NL + FixLog + local_check_evidence) -> SC-11 -> SD-2 full revalidation
+```
 
-LG-M1-C2 是唯一允许对古老 `legacy_loop.py` 做实质性删除 / 清理的子 PR。C2 必须先处理 LG-M1-A 记录的 legacy-only 与 non-legacy contract 区分，不能删除仍有学术价值的 stage/schema/contract 测试。
+### 2.2 Stage / skill API
 
-### LangGraph runtime 模块化目标 → LG-M1-D1 / LG-M1-D2 / LG-M1-D3
+LG-M1-B 后，skill/toolbox 不需要也不应该直接调用 full loop 来生成 ref model。稳定入口为：
 
-LG-M1-D1/D2/D3 负责把当前 `langgraph_runtime.py` 的大文件实现拆进 `method/langgraph/`，但必须保留 `method.langgraph_runtime` 作为 public physical facade：
+- [stages/api.py](./stages/api.py)：SD/SL/SC stage callable facade 与 stage catalog。
+- [stages/sc_control.py](./stages/sc_control.py)：control、stage order、summary helper。
+- [stages/sl_prompt_api.py](./stages/sl_prompt_api.py)：`SL-*` prompt generator facade。
+- [agent_loop_skill/AGENT_LOOP_SKILL.md](./agent_loop_skill/AGENT_LOOP_SKILL.md)：给 Codex / Claude Code 使用的 repo-local skill 文档。
+
+这些入口的核心约束：不读 `.env`、不调真实 provider、不调用 `method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器；外部 agent 应自行组合 prompt、LLM 调用、SD deterministic tools 与 NFRR/waiver evidence。
+
+### 2.3 Experiment entrypoints 与 compatibility shim
+
+| 功能 | 当前入口 | Compatibility shim | 新文档推荐 |
+|---|---|---|---|
+| real run matrix / 四例 evidence | [experiments/real_run_matrix.py](./experiments/real_run_matrix.py) | [pr_e1_real_runs.py](./pr_e1_real_runs.py) | 当前入口 |
+| checkpoint / resume experiment | [experiments/checkpoint_resume.py](./experiments/checkpoint_resume.py) | [pr_lg_f1_resume_experiment.py](./pr_lg_f1_resume_experiment.py) | 当前入口 |
+| representative cases | [experiments/representative_cases.py](./experiments/representative_cases.py) | [pr_d_representative.py](./pr_d_representative.py) | 当前入口 |
+| deterministic ablation / replay | [experiments/ablation/deterministic_loop.py](./experiments/ablation/deterministic_loop.py) | [pr2a_loop.py](./pr2a_loop.py) | 当前入口 |
+
+Shim 保留的理由是旧 PR comment reproduction path、历史脚本和 run-record provenance 可能仍引用这些模块。新代码不应把 shim 当作首选入口；删除 shim 需要另开兼容性评估 PR，不能在 F 阶段机械清理。
+
+## 3. LangGraph module layout
+
+LG-M1-D1/D2/D3 后的当前物理结构：
 
 ```text
 method/langgraph/
-├── constants.py                         # LG-M1-D1 已建立：schema/version/runtime identity constants
-├── state.py                             # LG-M1-D1 已建立：C/E-free foundation state；完整 graph state 待 D3
-├── registry.py                          # LG-M1-D1 已建立：node/edge registry + consistency checker
-├── checkpointing.py                     # LG-M1-D2 已建立：checkpoint serde + toy resume smoke
-├── instrumentation/                     # LG-M1-D2 已建立：operator/trace/tool/retry/send/store instrumentation primitives
-│   ├── common.py
-│   ├── operator_stream.py
-│   ├── trace_export.py
-│   ├── tool_wrappers.py
-│   ├── retry_timeout.py
-│   ├── send_parallel.py
-│   └── store.py
-├── nodes.py                             # LG-M1-D3：top-level graph nodes
-├── core.py                              # LG-M1-D3：runtime assembly core
-└── subgraphs/
-    ├── context_engineering.py           # LG-M1-D2 已建立：context assembly / budget / redaction helper
-    ├── validation.py                    # LG-M1-D3
-    ├── repair.py                        # LG-M1-D3
-    └── waiver.py                        # LG-M1-D3
+├── constants.py                  # runtime / registry identity constants
+├── state.py                      # graph state / compatibility state helpers
+├── registry.py                   # node registry + consistency checker
+├── checkpointing.py              # checkpoint serde / smoke helpers
+├── resume.py                     # checkpoint/resume experiment support
+├── core.py                       # graph assembly + full staged runtime core
+├── nodes/
+│   ├── sc.py                     # SC control nodes
+│   ├── sd.py                     # SD deterministic nodes
+│   └── sl.py                     # SL LLM/prompt nodes
+├── subgraphs/
+│   ├── context_engineering.py    # context assembly / budget / redaction helper
+│   ├── validation.py             # validation subgraph
+│   ├── repair.py                 # repair subgraph
+│   └── waiver.py                 # waiver subgraph
+└── instrumentation/
+    ├── common.py
+    ├── operator_stream.py
+    ├── trace_export.py
+    ├── tool_wrappers.py
+    ├── retry_timeout.py
+    ├── send_parallel.py
+    └── store.py
 ```
 
-### Tests mirror 目标 → LG-M1-E
+[langgraph_runtime.py](./langgraph_runtime.py) 仍然是 public physical facade 与 historical run-record identity 的兼容入口。它可以 re-export 或包装下沉后的实现，但不得被重新膨胀为 monolithic implementation，也不得改变历史 evidence 中的 `environment.runner` / `runtime_implementation` 口径。
 
-LG-M1-E 负责把测试目录从历史 flat `test_pr*` 命名整理为与 `method/` 子路径对应的镜像结构。当前测试入口已按功能域分入 [`tests/stages/`](./tests/stages/)、[`tests/langgraph/`](./tests/langgraph/)、[`tests/experiments/`](./tests/experiments/)、[`tests/llm/`](./tests/llm/)、[`tests/crosscutting/`](./tests/crosscutting/)、[`tests/handoff_smoke/`](./tests/handoff_smoke/) 与 [`tests/agent_loop_skill/`](./tests/agent_loop_skill/)，collection gate 仍以整个 [`tests/`](./tests/) 为准。
+## 4. LG-M1 naming provenance
 
-### 文档与 provenance 收口目标 → LG-M1-F
+LG-M1-F 不要求把所有 `PR-*` / `LG-*` / `pr_*` 字符串清零。正确处理方式是分类：
 
-LG-M1-F 负责 README / ARCHITECTURE / EXAMPLES / STATUS / docstring provenance 的最终收口。LG-M1-A 只添加本文件与 README 入口链接，不做全文改写。
+| 类别 | 可保留示例 | 保留理由 | 后续策略 |
+|---|---|---|---|
+| schema/evidence identity | `LG-C1`、`LG-D1`、`LG-E2`、`LG-F1`、`pr-langgraph.stage-nodes.v1` | 已进入 run record、schema version、historical evidence 或 fixture；随意改名会破坏复现 | 保留，并在文档解释不是当前施工残留 |
+| compatibility shim | `method.pr_e1_real_runs`、`method.pr_lg_f1_resume_experiment`、`method.pr_d_representative`、`method.pr2a_loop` | 支持旧命令、旧 PR comment reproduction path 与历史脚本 | 新文档优先功能入口；shim 标注 compatibility-only |
+| historical PR provenance | `PR-B2`、`PR-C`、`PR-E1`、`PR-E2`、`issue #21`、`PR-3` | 解释 prompt、repair chain、skill、handoff smoke 的来源 | 正文压缩为 provenance；不要写成“当前阶段” |
+| test function historical names | `test_pr_e1_*`、`test_lg_m1_*` | 改函数名对学术收益低且可能扰动 characterization baseline | 文件路径已功能化；函数名可保留为 M/backlog |
+| frozen baseline fixture | 旧 flat test path、historical scan snapshot | 用于证明迁移前后 path normalization 与 coverage 未丢 | 保留在 fixture / characterization test，并明确 frozen baseline |
+| stale misleading path | 旧 flat smoke/test path 作为当前运行命令 | 会误导新读者执行不存在或过时命令 | 必须修正为当前路径，或明确标为 historical evidence |
 
-### 最终集成目标 → LG-M1-G
+LG-M1-F 的 scan gate 应覆盖字母型 PR marker 与 hyphen/underscore LG marker，例如：
 
-LG-M1-G 负责最终集成复核、CI / coverage / review closure 与必要四例真实 run。LG-M1-A 默认不跑四例；若后续实现触及默认 runtime、FixLog、operator log、eligibility 或 evidence 主字段，则按 #64 纪律升级。
+```bash
+rg -n "test_pr|test_lg_m1|pr_[a-z0-9]|PR[-_][A-Za-z0-9][A-Za-z0-9_-]*|LG[-_][A-Za-z0-9][A-Za-z0-9_-]*|issue #|tests/test_" \
+  project_1_llm_state_machine_modeling/method \
+  -g "*.py" -g "*.md" -g "*.json"
+```
+
+验收口径是不要求零命中，但 stale misleading path 必须清零或被解释为 frozen baseline / historical evidence。
+
+## 5. Tests mirror current facts
+
+LG-M1-E 后测试树当前按功能域组织：
+
+```text
+method/tests/
+├── stages/
+├── langgraph/
+├── experiments/
+├── llm/
+├── crosscutting/
+├── handoff_smoke/
+└── agent_loop_skill/
+```
+
+当前 docs/tests-only gate：
+
+```bash
+source venv/bin/activate
+PYTHONPATH=project_1_llm_state_machine_modeling \
+  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/method/tests
+PYTHONPATH=project_1_llm_state_machine_modeling \
+  python -m pytest -q project_1_llm_state_machine_modeling/method/tests
+```
+
+旧 method tests flat path 只允许出现在 frozen baseline / path normalization test 中；不得作为当前运行命令或当前入口出现。
+
+## 6. Historical baseline facts
+
+LG-M1-A 捕获的 baseline 仍是重要 provenance，但它不是当前结构：
+
+- 捕获分支：`feature/project1-lg-m1-a-inventory-characterization`
+- baseline source head：`8a5f7bfa9e93008a3b9eec4f7683b594aaee1de8`
+- baseline 真源：[tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json)
+- baseline 范围：inventory + characterization；未读取 `.env`，未调用真实 provider，未生成新的论文主结果 evidence。
+- LG-M1-A 原始 collection：`382 tests collected`。
+- LG-M1-A 曾记录的 facade scan、stage API scan、legacy loop test 分类、graph contract hash 与 runtime identity 均作为历史迁移锚点保留在 fixture 与 characterization tests 中。
+
+后续子 PR 若改变 public identity、stage semantics、run record canonical 字段、FixLog、eligibility、provider policy 或 historical evidence 解释，必须给出等价性证明或按 #64 四例纪律升级验证。
+
+## 7. LG-M1 sub PR completion map
+
+| 子 PR | 状态 | 核心产物 | 四例策略 |
+|---|---|---|---|
+| LG-M1-A / [#66](https://github.com/HansBug/research_ideas/pull/66) | ✅ | inventory、ARCHITECTURE skeleton、baseline fixture、characterization tests | 未跑；baseline-only |
+| LG-M1-B / [#68](https://github.com/HansBug/research_ideas/pull/68) | ✅ | `method.stages.*` Pythonic API、skill contract / health | 未跑；API/docs-only |
+| LG-M1-C1 / [#70](https://github.com/HansBug/research_ideas/pull/70) | ✅ | experiments entrypoints 功能命名 + shim | 未跑；import/CLI equivalence |
+| LG-M1-C2 / [#72](https://github.com/HansBug/research_ideas/pull/72) | ✅ | ablation 归位、古老 legacy active API 清理 | 已按用户 override 跑四例 |
+| LG-M1-D1 / [#69](https://github.com/HansBug/research_ideas/pull/69) | ✅ | LangGraph constants/state/registry foundation | 未跑；foundation-only |
+| LG-M1-D2 / [#71](https://github.com/HansBug/research_ideas/pull/71) | ✅ | instrumentation、checkpointing、context helper | 未跑；focused/historical gates |
+| LG-M1-D3 / [#74](https://github.com/HansBug/research_ideas/pull/74) | ✅ | validation/repair/waiver subgraphs、SC/SD/SL nodes、core runtime、facade 收敛 | 已按计划跑四例 |
+| LG-M1-E / [#75](https://github.com/HansBug/research_ideas/pull/75) | ✅ | tests mirror、collection gates、old path normalization | 未跑；tests-only |
+| LG-M1-F / [#76](https://github.com/HansBug/research_ideas/pull/76) | 🚧 | docs/provenance/naming residue sweep | 不跑；docs/provenance-only |
+| LG-M1-G | ⏳ | final integrated evidence、CI/coverage/review closure | 必须跑四例 |
+
+> 表中 emoji 仅表示进度状态：✅ 已完成，🚧 进行中，⏳ 待开始。
+
+## 8. Review / merge risk rules
+
+1. 任何把 compatibility shim 写成当前首选入口的问题，若会误导实验复现，可列 I。
+2. 任何删除或改名 schema/evidence identity 的问题，若会破坏 historical run record / fixture / paper evidence 可追溯性，可列 C/I。
+3. 任何旧 flat test path 被写成当前命令，若命令不可执行或会误导新 session，可列 I。
+4. 纯措辞、风格、函数名历史残留若不影响学术证据链，最高 M。
+5. F 阶段不得 source `.env`、不得跑真实 provider、不得修改 `runs/` evidence；G 阶段必须在最终 integrated head 上跑四例。
