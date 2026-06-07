@@ -71,9 +71,9 @@ LG-M1-A 原始基线曾将 `test_pr0_stage_contract.py` 划分为：总 test 数
 
 LG-M1-C2 后当前事实为：
 
-- 当前总 test 数：`50`
+- 当前总 test 数：`52`
 - 直接依赖 `legacy_loop` 的 legacy-direct tests：`0`
-- 不直接依赖 `legacy_loop` 的 stage/schema/contract tests：`50`
+- 不直接依赖 `legacy_loop` 的 stage/schema/contract tests：`52`
 - 合法删除旧 full-loop legacy-only tests：`3`
 - 从 legacy-direct 改写为功能命名 helper/schema contract 的 tests：`4`
 
