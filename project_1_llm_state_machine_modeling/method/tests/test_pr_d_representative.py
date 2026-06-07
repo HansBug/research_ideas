@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from method.pr_d_representative import (
+from method.experiments.representative_cases import (
     FULL_STAGED_REQUIRED_STAGE_IDS,
     RepresentativeCase,
     _schema_validation_error,

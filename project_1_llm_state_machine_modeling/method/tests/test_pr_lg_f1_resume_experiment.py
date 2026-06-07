@@ -216,7 +216,10 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert record.environment["baseline_comparison_method"] == "independent_uninterrupted_baseline"
     assert record.environment["baseline_comparison_verdict"] == "consistent"
     assert record.environment["verdict_scope"] == "append_only_stage_replay_and_independent_baseline_comparison"
-    assert record.environment["resume_cli_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment"
+    assert record.environment["resume_cli_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume"
+    assert record.environment["resume_cli_pythonpath_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.experiments.checkpoint_resume"
+    assert record.environment["resume_cli_legacy_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.pr_lg_f1_resume_experiment"
+    assert record.environment["resume_cli_legacy_package_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment"
     assert record.environment["resume_cli_workdir"] == "repo_root"
     assert record.environment["resume_cli_requires_pythonpath"] is False
     assert "post-repair validation" in record.environment["lg_f1_stage_replay_explanation"]
@@ -324,7 +327,7 @@ def test_lg_f1_resumed_runs_are_not_main_result_eligible(tmp_path: Path) -> None
 
 
 def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path: Path) -> None:
-    from method.pr_lg_f1_resume_experiment import main
+    from method.experiments.checkpoint_resume import main
 
     out_dir = tmp_path / "cli"
     rc = main(
@@ -352,17 +355,21 @@ def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path:
     assert (out_dir / "pr_comment.md").exists()
 
 
-def test_lg_f1_resume_experiment_repo_root_module_entrypoint_is_reproducible() -> None:
+def test_lg_f1_resume_experiment_repo_root_module_entrypoints_are_reproducible() -> None:
     repo_root = Path(__file__).resolve().parents[3]
 
-    completed = subprocess.run(
-        [sys.executable, "-m", "project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment", "--help"],
-        cwd=repo_root,
-        check=False,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    for module_name in (
+        "project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume",
+        "project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment",
+    ):
+        completed = subprocess.run(
+            [sys.executable, "-m", module_name, "--help"],
+            cwd=repo_root,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
-    assert completed.returncode == 0
-    assert "Run LG-F1 durable checkpoint/resume experiment." in completed.stdout
+        assert completed.returncode == 0
+        assert "Run LG-F1 durable checkpoint/resume experiment." in completed.stdout

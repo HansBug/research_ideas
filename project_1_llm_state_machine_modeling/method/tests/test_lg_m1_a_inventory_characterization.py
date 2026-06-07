@@ -26,8 +26,11 @@ TESTS_ROOT = METHOD_ROOT / "tests"
 BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
 EXPERIMENT_MODULES = [
     "method.pr_e1_real_runs",
+    "method.experiments.real_run_matrix",
     "method.pr_lg_f1_resume_experiment",
+    "method.experiments.checkpoint_resume",
     "method.pr_d_representative",
+    "method.experiments.representative_cases",
     "method.pr2a_loop",
 ]
 
