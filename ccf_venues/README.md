@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-06 13:45`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 10:52`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -141,7 +141,7 @@ ccf_venues/
 1. [README.md](./README.md)
    - 本库定位、范围、命名规则和入口说明。
 2. [GUIDE.md](./GUIDE.md)
-   - 后续调研、记录、核验、排序、状态标记和更新日志规范。
+   - 后续调研、记录、核验、排序、状态标记、常态化投稿情报更新和更新日志规范。
 3. [SUMMARY.md](./SUMMARY.md)
    - 当前总账、优先级、覆盖进度、状态口径和后续批次。
 4. [TIMELINE.md](./TIMELINE.md)
@@ -160,10 +160,11 @@ ccf_venues/
 1. 先读 [README.md](./README.md)，明确范围与目录命名。
 2. 再读 [GUIDE.md](./GUIDE.md)，明确字段、时间、来源和状态规范。
 3. 再读 [SUMMARY.md](./SUMMARY.md)，了解当前覆盖进度和下一批优先级。
-4. 若任务涉及投稿 ddl 或年度时间规划，再读 [TIMELINE.md](./TIMELINE.md)。
-5. 若要新增 venue，先查 [01-venue-scope.md](./01-venue-scope.md)，确认是否属于当前批次。
-6. 最后进入 `<conf|journal>-<rank>-<slug>/` 维护具体 venue。
-7. 若任务属于 P1/P2 扩展，必须先查 [SUMMARY.md](./SUMMARY.md) §9 与 [01-venue-scope.md](./01-venue-scope.md) 中 PR-6~PR-10 的 ownership；不得跨 PR 新增或修改其他批次 venue 目录。
+4. 若任务涉及投稿 ddl、近期投稿窗口、CFP / important dates 更新、accepted papers / proceedings 发布或期刊 special issue 状态变化，必须再读 [TIMELINE.md](./TIMELINE.md)，并按 [GUIDE.md](./GUIDE.md) §12 的常态化投稿情报更新流程同步 venue 年度页、根 README、TIMELINE 表格与 Mermaid。
+5. 若任务需要判断下一轮刷新范围，先看 [SUMMARY.md](./SUMMARY.md) §1.1 的常态化投稿情报更新入口，再回到 [TIMELINE.md](./TIMELINE.md) §3 和 §15。
+6. 若要新增 venue，先查 [01-venue-scope.md](./01-venue-scope.md)，确认是否属于当前批次。
+7. 最后进入 `<conf|journal>-<rank>-<slug>/` 维护具体 venue。
+8. 若任务属于 P1/P2 扩展，必须先查 [SUMMARY.md](./SUMMARY.md) §9 与 [01-venue-scope.md](./01-venue-scope.md) 中 PR-6~PR-10 的 ownership；不得跨 PR 新增或修改其他批次 venue 目录。
 
 会议与期刊数据合流时，会议事实、会议核心人员、会议 dated events、期刊事实、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events 必须共存；共享规范可统一吸收，但任何一类事实表不得被另一类空白占位覆盖或回退。
 
@@ -175,6 +176,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：在 AI 工作入口提示中加入 GUIDE §12、TIMELINE §3 与 SUMMARY §1.1 的最新投稿情报刷新路径。 |
 | `2026-06-06 13:45` | PR #35 近期窗口复审最终收口：统一 PR-10 已完成合流表述，并同步 ISSTA / FSE / REFSQ / APSEC / RV / IST / REJ 等近期投稿窗口修复。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：核验并同步 ICSE 2027 与 ICFEM 2026 官方精确 deadline 时刻，清理近期投稿窗口精度问题。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track AoE / UTC-12h 时区，统一 APSEC 2026 会期备注，并确认三路 review 的 C/I 已清零。 |
