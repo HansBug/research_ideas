@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-07 11:28`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 11:25`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -676,7 +676,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-07 11:28` | PR #62 final M 级 polish：补充 SUMMARY 最新事实刷新锚点更新条件、P0 默认 watchlist 交叉锚定，以及 TIMELINE 辅助列中 `⏳ 已检索未公布` 的合法使用边界。 |
+| `2026-06-07 11:25` | PR #62 final M 级 polish：补充 SUMMARY 最新事实刷新锚点更新条件、P0 默认 watchlist 交叉锚定，以及 TIMELINE 辅助列中 `⏳ 已检索未公布` 的合法使用边界。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：将冲突标记自查命令改为行首锚定，补充 TIMELINE §15 / SUMMARY §13 入口释义，并明确 `⏳ 已检索未公布` 不得进入 dated TIMELINE / Mermaid。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §12，固定刷新频率、watchlist、字段落点、状态迁移、来源降级、SUMMARY/TIMELINE 分工与 reviewer dry-run 验收规则。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复规则回写：明确 researchr 行级 `Timezone` 已给出时，必须把 AoE / UTC offset 写入 TIMELINE 与年度页，不能继续写“官方仅日期”。 |
