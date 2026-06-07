@@ -114,8 +114,11 @@ def test_lg_m1_d1_registry_foundation_matches_facade_and_lg_m1_a_hash() -> None:
     )
 
     assert foundation_output == facade_registry
-    assert facade.graph_registry_consistency is foundation_registry.graph_registry_consistency
+    assert facade.graph_registry_consistency is not foundation_registry.graph_registry_consistency
+    assert facade.graph_registry_consistency.__module__ == "method.langgraph_runtime"
     consistency = facade.graph_registry_consistency(planned, facade_registry)
+    foundation_consistency = foundation_registry.graph_registry_consistency(planned, facade_registry)
+    assert consistency == foundation_consistency
     graph = _stable_graph_contract(facade_registry, consistency, planned_stage_order)
 
     baseline_graph = _load_baseline()["graph_contract"]

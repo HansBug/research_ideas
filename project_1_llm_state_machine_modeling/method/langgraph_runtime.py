@@ -122,7 +122,7 @@ from method.staged_runtime import (
 from method.langgraph.constants import GRAPH_RUNTIME_SCHEMA_VERSION, NODE_EDGE_SCHEMA_VERSION
 from method.langgraph.registry import (
     build_langgraph_node_registry as _build_langgraph_node_registry_foundation,
-    graph_registry_consistency,
+    graph_registry_consistency as _graph_registry_consistency_foundation,
 )
 from method.langgraph.state import _CompatState
 from method.stages.ids import StageId, StageStatus
@@ -3496,6 +3496,11 @@ def build_langgraph_node_registry() -> dict[str, Any]:
         context_node_ids=LG_C2_CONTEXT_NODE_IDS,
     )
 
+
+def graph_registry_consistency(planned_stage_graph: dict[str, Any], registry: dict[str, Any]) -> dict[str, Any]:
+    """Compare planned stage IDs with registry coverage via the compatibility facade."""
+
+    return _graph_registry_consistency_foundation(planned_stage_graph, registry)
 
 
 def langgraph_compat_smoke() -> dict[str, Any]:
