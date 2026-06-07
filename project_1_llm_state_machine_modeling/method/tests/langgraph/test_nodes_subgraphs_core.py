@@ -17,7 +17,7 @@ from method.run_record import read_agent_loop_run_record, write_agent_loop_run_r
 from method.schema import AgentLoopResult, AgentLoopRunRecord
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
 LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 

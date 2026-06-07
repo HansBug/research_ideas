@@ -56,7 +56,7 @@ PR-B2/PR-E1 的 retry 只覆盖 LLM 层噪声：provider/network/schema-invalid/
 5. **schema 定义** (`schema.py`)：FeedbackBundle / AgentLoopResult / LoopConfig 等 dataclass
 6. **prompt 模板** (`prompts/`)：spec_extractor / modeler / repair 三套 prompt（全英文）
 7. **组件抽取器** (`eval/component_extractor.py`)：从 Umple / pyfcstm DSL 抽出 7 类组件用于 Path 1 P/R/F1 评测
-8. **smoke 测试** (`tests/test_smoke.py`)：端到端 1 条样本跑通 verify
+8. **method 测试树** ([`tests/`](./tests/))：LG-M1-E 后按功能域镜像组织；默认用 `pytest project_1_llm_state_machine_modeling/method/tests` 做 collection/full gate，真实 provider 四例不属于 tests-only gate
 
 ## 2. LLM env 接入约束（**硬性要求**）
 

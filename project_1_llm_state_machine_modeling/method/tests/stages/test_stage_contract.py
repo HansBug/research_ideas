@@ -47,7 +47,7 @@ from method.stages.ids import (
 )
 
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method"
 
 

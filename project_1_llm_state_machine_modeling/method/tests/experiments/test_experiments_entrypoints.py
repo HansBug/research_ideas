@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
 
 ENTRYPOINT_PAIRS = [

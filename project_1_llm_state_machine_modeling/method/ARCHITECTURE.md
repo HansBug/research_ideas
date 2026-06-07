@@ -9,7 +9,7 @@
 - LG-M1-A 子 PR：[PR #66](https://github.com/HansBug/research_ideas/pull/66)
 - LG-M1-D1 子 PR：[PR #69](https://github.com/HansBug/research_ideas/pull/69)
 - 仓库内 baseline fixture：[tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json)
-- 表征测试：[tests/test_lg_m1_a_inventory_characterization.py](./tests/test_lg_m1_a_inventory_characterization.py)
+- 表征测试：[tests/crosscutting/test_lg_m1_inventory_characterization.py](./tests/crosscutting/test_lg_m1_inventory_characterization.py)
 
 ## Current Facts
 
@@ -65,9 +65,9 @@ LG-M1-A 只盘点已存在的 `method.stages.*` Python-callable surface，不承
 
 ### Legacy loop 当前事实
 
-LG-M1-C2 后，`method.legacy_loop` 不再是 active callable path；`tests/test_pr0_stage_contract.py` 的 legacy-direct checks 已改写为功能命名 helper/schema contract，`loop.py` 错误信息改指向 deterministic ablation diagnostics。
+LG-M1-C2 后，`method.legacy_loop` 不再是 active callable path；`tests/stages/test_stage_contract.py` 的 legacy-direct checks 已改写为功能命名 helper/schema contract，`loop.py` 错误信息改指向 deterministic ablation diagnostics。
 
-LG-M1-A 原始基线曾将 `test_pr0_stage_contract.py` 划分为：总 test 数 `53`、直接依赖 `legacy_loop` 的 legacy-direct tests `7`、非 legacy stage/schema/contract tests `46`。
+LG-M1-A 原始基线曾将 `test_stage_contract.py` 划分为：总 test 数 `53`、直接依赖 `legacy_loop` 的 legacy-direct tests `7`、非 legacy stage/schema/contract tests `46`。
 
 LG-M1-C2 后当前事实为：
 
@@ -117,7 +117,7 @@ LG-M1-D1 建立了 [`langgraph/`](./langgraph/) foundation 包，但不改变默
 - [`langgraph/state.py`](./langgraph/state.py)：只承载 C/E-free 的 `CompatState` / `_CompatState` compatibility smoke 类型；`_GraphLoopState`、`_LgE2SendState`、`_ValidationSubgraphState`、`_WaiverSubgraphState`、`_RepairSubgraphState`、`_LG_C2_ContextState` 仍留在 `langgraph_runtime.py`，等待 D2/D3 或对应 lane 迁移。
 - [`langgraph/registry.py`](./langgraph/registry.py)：承载 registry builder 与 consistency checker；LG-C2 context identifier 由 `method.langgraph_runtime.build_langgraph_node_registry()` facade wrapper 注入，foundation 模块不得反向 import `method.langgraph_runtime`，也不拥有 context-engineering 行为。
 
-D1 focused tests 位于 [`tests/test_lg_m1_d1_langgraph_foundation.py`](./tests/test_lg_m1_d1_langgraph_foundation.py)，用于锁定 no reverse import、registry canonical hash、facade runtime identity、C2 identifier injection 与 state migration boundary。
+D1 focused tests 位于 [`tests/langgraph/test_foundation.py`](./tests/langgraph/test_foundation.py)，用于锁定 no reverse import、registry canonical hash、facade runtime identity、C2 identifier injection 与 state migration boundary。
 
 ### LG-M1-D2 instrumentation 当前事实
 
@@ -135,7 +135,7 @@ LG-M1-D2 将 LangGraph runtime 中的 instrumentation / checkpoint / context hel
 - [`langgraph/checkpointing.py`](./langgraph/checkpointing.py)：`_PickleCheckpointSerde` 与 toy FixLog append-only checkpoint/resume smoke；不声明真实 agent-loop interrupted resume 可作为论文主结果 evidence。
 - [`langgraph/subgraphs/context_engineering.py`](./langgraph/subgraphs/context_engineering.py)：LG-C2 context assembly / budget / redaction deterministic subgraph；不调用 provider，不承载 validation/repair/waiver D3 orchestration。
 
-D2 focused tests 位于 [`tests/test_lg_m1_d2_langgraph_instrumentation.py`](./tests/test_lg_m1_d2_langgraph_instrumentation.py)，用于锁定 facade re-export identity、no reverse import、LG-C1 helper 不下沉、F1 resume 主流程 postponed、runtime identity 与 historical evidence read-only drift gate。
+D2 focused tests 位于 [`tests/langgraph/test_instrumentation.py`](./tests/langgraph/test_instrumentation.py)，用于锁定 facade re-export identity、no reverse import、LG-C1 helper 不下沉、F1 resume 主流程 postponed、runtime identity 与 historical evidence read-only drift gate。
 
 D2 deliberately postponed：`resume_lg_f1_from_checkpoint`、`run_lg_f1_resume_experiment` 与 `_lg_f1_checkpoint_id_hash` 等 F1 resume 主流程仍保留在 [`langgraph_runtime.py`](./langgraph_runtime.py)，因为它们依赖 `_build_graph(...)`、run-record augmentation 与 #70 experiment entrypoint metadata，适合等 LG-M1-D3 core/nodes/subgraphs 边界稳定后再整体迁移。
 
@@ -218,7 +218,7 @@ method/langgraph/
 
 ### Tests mirror 目标 → LG-M1-E
 
-LG-M1-E 负责把测试目录从当前 flat `test_pr*` 命名逐步整理为与 `method/` 子路径对应的镜像结构。LG-M1-A 新增的 [`tests/test_lg_m1_a_inventory_characterization.py`](./tests/test_lg_m1_a_inventory_characterization.py) 是功能语义命名起点，但不在本 PR 中重排整个测试树。
+LG-M1-E 负责把测试目录从历史 flat `test_pr*` 命名整理为与 `method/` 子路径对应的镜像结构。当前测试入口已按功能域分入 [`tests/stages/`](./tests/stages/)、[`tests/langgraph/`](./tests/langgraph/)、[`tests/experiments/`](./tests/experiments/)、[`tests/llm/`](./tests/llm/)、[`tests/crosscutting/`](./tests/crosscutting/)、[`tests/handoff_smoke/`](./tests/handoff_smoke/) 与 [`tests/agent_loop_skill/`](./tests/agent_loop_skill/)，collection gate 仍以整个 [`tests/`](./tests/) 为准。
 
 ### 文档与 provenance 收口目标 → LG-M1-F
 
