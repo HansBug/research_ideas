@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, fields
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -1002,44 +1003,127 @@ def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) ->
 
 
 
-def test_scenariogen_failure_root_cause_is_materialized_as_sim_setup_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(feedback_cascade, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(feedback_cascade, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
-
-    bundle = feedback_cascade.run_feedback_cascade(
-        "machine Sample {}",
-        feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value],
-        scenarios=None,
+def test_scenariogen_failure_root_cause_is_preserved_without_repair(tmp_path: Path) -> None:
+    from method.staged_runtime import (
+        FullStagedRuntimeConfig,
+        build_full_staged_runtime_adapters,
+        run_full_staged_deterministic_runtime,
     )
 
-    assert bundle.sim is not None
-    assert bundle.sim.setup_error == "scenario generation unavailable for enabled sim feedback"
-    assert [m.stage_id for m in bundle.stage_results] == ["SD-2", "SD-3", "SD-6"]
-    sim_meta = bundle.stage_results[-1]
-    assert sim_meta.status == StageStatus.ERROR
-    assert sim_meta.stage_error == bundle.sim.setup_error
-    assert "stage meta blocks all_ok: SD-6 status=error ok=False" in bundle.stage_contract_errors()
+    provider_root_cause = "RuntimeError: scenario provider down"
 
+    def failing_scenariogen(_request):
+        return SimpleNamespace(
+            stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+            ok=False,
+            parsed_output={},
+            feedback=None,
+            stage_meta=StageResultMeta(
+                stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+                stage_kind=StageKind.LLM,
+                enabled=True,
+                ran=True,
+                status=StageStatus.ERROR,
+                ok=False,
+                stage_error=provider_root_cause,
+                output_validation_error=provider_root_cause,
+            ),
+            interaction={
+                "stage_id": StageId.SL_5_SCENARIO_GENERATION.value,
+                "provider": "test-adapter",
+                "model_id": "none",
+                "schema_validation_ok": False,
+                "retry_error": {
+                    "error_kind": "provider_error",
+                    "error_message": provider_root_cause,
+                },
+                "attempts": [
+                    {
+                        "status": "provider_error",
+                        "error_kind": "provider_error",
+                        "error_message": provider_root_cause,
+                    }
+                ],
+            },
+        )
 
-def test_iter_trace_persists_feedback_stage_results_without_removed_full_loop() -> None:
-    metas = [ok_meta(StageId.SD_2_PARSE), ok_meta(StageId.SD_3_SEMANTIC)]
-    bundle = FeedbackBundle(
-        enabled_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
-        parse=ParseFeedback(ok=True),
-        semantic=SemanticFeedback(ok=True),
-        stage_results=metas,
+    result = run_full_staged_deterministic_runtime(
+        "When Start occurs, move from Idle to Active.",
+        FullStagedRuntimeConfig(
+            initial_dsl="""
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active;
+    Active -> Idle;
+}
+            """,
+            run_id="pr0-scenariogen-root-cause",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=build_full_staged_runtime_adapters(
+            scenario_generate=failing_scenariogen,
+            repair=lambda _request: (_ for _ in ()).throw(AssertionError("repair should not hide scenariogen root cause")),
+            model_review=lambda _dsl, _context, _feedback: (_ for _ in ()).throw(AssertionError("model review should not run after scenariogen provider failure")),
+        ),
     )
-    trace = schema.IterTrace(
-        iteration=0,
-        model="machine Sample {}",
-        feedback=bundle,
-        stage_results=list(bundle.stage_results),
-    )
-    result = schema.AgentLoopResult(iter_traces=[trace], final_feedback=bundle)
 
+    from method.run_record import read_agent_loop_run_record
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "api_failed"
+    assert record.final_artifacts["verdict"] == "provider_error"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
+    assert provider_root_cause in str(result.error_message)
+    assert provider_root_cause in str(record.final_artifacts["verdict_reason"])
+    assert record.repair_history == []
+    assert StageId.SD_8_FIX_PLAN.value not in [row["stage_id"] for row in record.stage_records]
+    sl5_interaction = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value)
+    assert sl5_interaction["retry_error"]["error_message"] == provider_root_cause
+
+
+def test_iter_trace_persists_feedback_stage_results_without_removed_full_loop(tmp_path: Path) -> None:
+    from method.experiments.ablation.deterministic_loop import (
+        DeterministicLoopConfig,
+        run_deterministic_ablation_loop,
+    )
+    from method.run_record import read_agent_loop_run_record
+
+    result = run_deterministic_ablation_loop(
+        "The controller may move between Idle and Active without external events.",
+        DeterministicLoopConfig(
+            initial_dsl="""
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active;
+    Active -> Idle;
+}
+""",
+            scenarios=[schema.TestScenario(name="empty_smoke", steps=[])],
+            run_id="pr0-iter-trace-stage-results",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+    )
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "converged"
     assert result.final_feedback is not None
-    assert [m.stage_id for m in result.final_feedback.stage_results] == ["SD-2", "SD-3"]
-    assert [m.stage_id for m in result.iter_traces[0].stage_results] == ["SD-2", "SD-3"]
+    iter_stage_ids = [m.stage_id for m in result.iter_traces[0].stage_results]
+
+    assert iter_stage_ids[:3] == [
+        StageId.SD_2_PARSE.value,
+        StageId.SD_3_SEMANTIC.value,
+        StageId.SD_4_DESIGN.value,
+    ]
+    assert StageId.SD_6_SIM.value in iter_stage_ids
+    assert record.iteration_records[0]["stage_ids"] == iter_stage_ids
+    assert [m.stage_id for m in result.final_feedback.stage_results] == iter_stage_ids
 
 
 def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
