@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-07 11:10`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 11:28`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -431,7 +431,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 常态化刷新不能默认全量扫描 39 个 venue。若用户没有给出明确目标，本轮 watchlist 按以下顺序确定：
 
-1. **P0 默认核心**：P0 22 个 venue 永远是投稿决策主线候选，但本轮只实际刷新其中“未来 6 个月有窗口、待补项影响决策、或已有 next edition 线索”的 venue。
+1. **P0 默认核心**：P0 22 个 venue 永远是投稿决策主线候选，但本轮只实际刷新其中“未来 6 个月有窗口、待补项影响决策、或已有 next edition 线索”的 venue；这就是 [SUMMARY.md](./SUMMARY.md) §1.1 中“优先 P0”的实际筛选口径。
 2. **P1 近期窗口**：P1 venue 只有在 [TIMELINE.md](./TIMELINE.md) §3 已有未来 6 个月 open 窗口、SUMMARY 待补项指向近期窗口、或官方 next edition 已公布时进入本轮 watchlist。
 3. **P2 临时观察**：P2 venue 只在 [TIMELINE.md](./TIMELINE.md) §3 已有明确 open 窗口、用户指定投稿分流，或其 deadline 与当前 project 有直接机会窗口时临时纳入；所有表格备注必须保留 `P2 / 不升级`。
 4. **高风险来源回访**：WAF/403/CAPTCHA/Authwall、browser-only、旧站证书、日期冲突、`待补时刻`、week/month-only、publisher candidate CFP 等高风险项可独立进入 watchlist。
@@ -451,7 +451,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 6. **更新 TIMELINE 年度表**：凡属于 dated event 的 abstract、submission、notification、camera-ready、conference dates、special issue deadline 等，都进入事件发生年份的年度表；会议 edition 年份保留在 Venue 字段。
 7. **更新 TIMELINE §3 近期窗口**：只有截至本轮刷新日期仍可行动的 abstract / submission / special issue / intent 等窗口进入 §3；§3 是年度全量表的筛选视图，不是独立事实源。
 8. **更新 Mermaid**：任何新增、删除或修改 dated event 都必须同步受影响年度 Mermaid；图中 label 使用 venue edition 年份，表格保留 URL 和 caveat。
-9. **更新 SUMMARY 轻量入口与待补项**：只记录最后刷新时间、watchlist 摘要、命中窗口数量、高风险人工核验入口和下一轮建议；不要复制 [TIMELINE.md](./TIMELINE.md) §3 全量行。
+9. **更新 SUMMARY 轻量入口与待补项**：只记录最后刷新时间、watchlist 摘要、命中窗口数量、高风险人工核验入口和下一轮建议；不要复制 [TIMELINE.md](./TIMELINE.md) §3 全量行。`最新事实刷新锚点` 只在本轮完成 venue facts 全闭环（年度 README、venue 根 README、TIMELINE 年度表 / §3 / Mermaid 与 SUMMARY 同步）时更新；若只调整 watchlist 摘要、高风险入口或下一轮建议而未触及 venue facts，则保留原锚点，并在更新日志说明本轮只是机制或入口维护。
 10. **更新时间戳与更新日志**：修改过的 README / GUIDE / SUMMARY / TIMELINE / venue 文件均需更新 `信息更新时间` 与文末更新日志，日志按时间降序。
 11. **一致性检查**：运行本节 §12.10 的命令，并人工检查 Markdown 相对链接、emoji 列口径、Mermaid label、统计数字、P0/P1/P2 边界。
 
@@ -477,7 +477,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 ⏳ 待官网 / ⏳ 已检索未公布 -> 🟦 已有主页 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
 ```
 
-其中 `⏳ 已检索未公布` 表示只找到 stable series、publisher placeholder 或旧站入口，尚无本年度 official home / CFP / dates；它不得被硬升为 `🟦 已有主页`，也不得进入 dated TIMELINE / Mermaid。
+其中 `⏳ 已检索未公布` 表示只找到 stable series、publisher placeholder 或旧站入口，尚无本年度 official home / CFP / dates；它不得被硬升为 `🟦 已有主页`，也不得作为事件本身进入 dated TIMELINE / Mermaid。若某条 dated event 已由官方日期支撑，TIMELINE 的论文集 / 名录等辅助列可以写 `⏳ 已检索未公布` 表示 proceedings、paper list 或卷期入口尚未发布；这不等同于把年度 placeholder 伪造成 dated event，但必须确保事件日期、阶段状态和来源列已核验。
 
 期刊主链默认按以下状态迁移：
 
@@ -676,6 +676,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 11:28` | PR #62 final M 级 polish：补充 SUMMARY 最新事实刷新锚点更新条件、P0 默认 watchlist 交叉锚定，以及 TIMELINE 辅助列中 `⏳ 已检索未公布` 的合法使用边界。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：将冲突标记自查命令改为行首锚定，补充 TIMELINE §15 / SUMMARY §13 入口释义，并明确 `⏳ 已检索未公布` 不得进入 dated TIMELINE / Mermaid。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §12，固定刷新频率、watchlist、字段落点、状态迁移、来源降级、SUMMARY/TIMELINE 分工与 reviewer dry-run 验收规则。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复规则回写：明确 researchr 行级 `Timezone` 已给出时，必须把 AoE / UTC offset 写入 TIMELINE 与年度页，不能继续写“官方仅日期”。 |
