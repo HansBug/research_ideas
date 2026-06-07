@@ -1001,6 +1001,47 @@ def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) ->
 
 
 
+
+def test_scenariogen_failure_root_cause_is_materialized_as_sim_setup_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(feedback_cascade, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(feedback_cascade, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+
+    bundle = feedback_cascade.run_feedback_cascade(
+        "machine Sample {}",
+        feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value],
+        scenarios=None,
+    )
+
+    assert bundle.sim is not None
+    assert bundle.sim.setup_error == "scenario generation unavailable for enabled sim feedback"
+    assert [m.stage_id for m in bundle.stage_results] == ["SD-2", "SD-3", "SD-6"]
+    sim_meta = bundle.stage_results[-1]
+    assert sim_meta.status == StageStatus.ERROR
+    assert sim_meta.stage_error == bundle.sim.setup_error
+    assert "stage meta blocks all_ok: SD-6 status=error ok=False" in bundle.stage_contract_errors()
+
+
+def test_iter_trace_persists_feedback_stage_results_without_removed_full_loop() -> None:
+    metas = [ok_meta(StageId.SD_2_PARSE), ok_meta(StageId.SD_3_SEMANTIC)]
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
+        parse=ParseFeedback(ok=True),
+        semantic=SemanticFeedback(ok=True),
+        stage_results=metas,
+    )
+    trace = schema.IterTrace(
+        iteration=0,
+        model="machine Sample {}",
+        feedback=bundle,
+        stage_results=list(bundle.stage_results),
+    )
+    result = schema.AgentLoopResult(iter_traces=[trace], final_feedback=bundle)
+
+    assert result.final_feedback is not None
+    assert [m.stage_id for m in result.final_feedback.stage_results] == ["SD-2", "SD-3"]
+    assert [m.stage_id for m in result.iter_traces[0].stage_results] == ["SD-2", "SD-3"]
+
+
 def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
     skipped_without_reason = StageResultMeta(
         stage_id=StageId.SD_4_DESIGN.value,
