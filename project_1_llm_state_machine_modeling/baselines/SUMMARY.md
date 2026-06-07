@@ -268,11 +268,12 @@
 ### 当前最有价值的整体观察
 
 1. `Structure- and Event-Driven Frameworks...` 仍是当前最直接回答“非结构化自由文本能否直接生成状态机”的新基线；guard、action 和复杂结构仍是主要短板。
-2. `Event-B Agent` 与 `PAT-Agent` 说明 `NL -> formal behavioral/state model -> model checker / theorem prover feedback -> repair` 已成为近邻强趋势，但二者输出不是同构 UML/SysML STM。
-3. `LLM-Aided Automatic Modeling for Security Protocol Verification` 表明中间 DSL、静态 diagnostics 与验证器后端可降低 LLM hallucination 风险，但 symbolic protocol model 只能作邻近方法参照。
-4. `Modeling Like Peeling an Onion` 是 ICSE 2026 行为模型近直接候选；PDF 暂缺时只能保留 `⏳` 阻塞记录，不能用官方页替代全文证据。
-5. 经典直接基线仍集中在 `use case/scenario/MSC/LSC/CNL -> statechart/LTS/FSM/reactive model`，说明“先规范化、再综合”仍需与 direct prompting 并行比较。
-6. 后续扩检应优先追 `non-structured requirements + state machine + LLM`、`LLM + formal feedback + behavioral/formal state model` 与 `timed/reactive/control-system` 线索，并显式区分同构 STM 与异构形式模型。
+2. `PAT-Agent` 是三篇新增已获 PDF 工作中行为语义最接近 Project1 的近邻：CSP# 的 guarded action、变量更新、process continuation 可展开为 LTS，但其输入额外包含 assertions 与期望结果，输出也不是 STM artifact。
+3. `Event-B Agent` 说明 SOTA 已推进到 `NL -> Event-B 状态化形式模型 -> ProB/Rodin/SMT proof feedback -> model/proof repair`，其 refinement planning、proof-state repair categories 与 proof replay gate 值得 Project1/Project4 借鉴，但不能当作同构 STM baseline。
+4. `LLM-Aided Automatic Modeling for Security Protocol Verification` 表明中间 DSL、静态 diagnostics、deterministic rewriter/compiler 与验证器后端可降低 LLM hallucination 风险；但 symbolic protocol model 的角色/消息/攻击者语义与控制系统 STM 不同，只能作邻近方法参照。
+5. `Modeling Like Peeling an Onion` 是 ICSE 2026 行为模型近直接候选；PDF 暂缺时只能保留 `⏳` 阻塞记录，不能用官方页替代全文证据。
+6. 经典直接基线仍集中在 `use case/scenario/MSC/LSC/CNL -> statechart/LTS/FSM/reactive model`，说明“先规范化、再综合”仍需与 direct prompting 并行比较。
+7. 后续扩检应优先追 `non-structured requirements + state machine + LLM`、`LLM + formal feedback + behavioral/formal state model` 与 `timed/reactive/control-system` 线索，并显式区分同构 STM 与异构形式模型。
 
 ## 待补充高优先级候选
 
@@ -286,6 +287,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-06-07 22:51:50 | 精读扩充 3 篇已获 PDF 的新增 LLM4Modeling 近邻论文 | 在 `event-b-agent`、`pat-agent-autoformalization-model-checking`、`llm-aided-security-protocol-verification` 的 `DESC.md` 中新增“精读补充”章节，重点解释建模对象、论文例子、方法闭环、实验结论和 Project1 可比性；同步细化本总账“当前最有价值的整体观察”，明确 PAT-Agent 最接近行为模型语义、Event-B Agent 强在 proof-guided repair、协议建模论文只作异构方法参照。 |
 | 2026-06-07 21:32:21 | 补入 4 篇 LLM4Modeling 直接 / 近直接 baseline 候选并按 PDF 可得性分层入账 | 新增 `event-b-agent`、`pat-agent-autoformalization-model-checking`、`llm-aided-security-protocol-verification` 三篇四件套；新增 `modeling-like-peeling-an-onion` 阻塞记录但不伪造 PDF / `DESC.md`。同步更新论文总表、数据集与 Benchmark 清单、类别统计、BASELINE 评估统计和待补候选；强调 Event-B / PAT / SAPIC+ 属异构形式模型近邻，不作为同构 STM baseline。 |
 | 2026-05-06 13:54:54 | 标注 3 篇硬条件符合论文同时进入 `state_machine_review_corpus/` | `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` / `llms_emp` / `ttool-ai` 现同时存在于本论文集与 `state_machine_review_corpus/`；前者从 baseline 方法对照角度，后者从可获取 human review 数据资产角度。各自维护独立的派生文件（`DESC.md` 留在本文库；`review_extraction.md` 在新文库）。论文总表对应行追加指向 `project_ex1_llm_judge_for_stm/state_machine_review_corpus/<slug>/review_extraction.md` 的 review 链接。 |
 | 2026-04-16 12:41:58 | 在论文总表新增 `需求词工程 / 运行仿真 / 形式化验证` 三列并逐篇回填 | 基于全文阅读，统一按“程度｜技术｜角色”补齐 62 篇论文，重点区分 LLM 工作中的 prompt engineering、simulation/execution 与真正 formal verification；其中 `llms_emp`、`ttool-ai` 等带检查反馈环的论文，明确不把单纯语法/规则/静态检查误记为高强度形式化验证 |

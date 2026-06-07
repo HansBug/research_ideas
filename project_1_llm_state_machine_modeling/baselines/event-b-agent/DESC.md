@@ -36,6 +36,77 @@
 
 实验在 27 个 Event-B 形式系统上进行，按需求数量分为 Simple / Medium / Complex 三组，每组 9 个系统。Event-B Agent 总体达到 PDR 97.86%、RC 97.13%、RF 93.79%，分别优于 LLM + auto provers、Cursor、adapted PAT-Agent 等 baseline。主要不足是当前 repair rules / atomic repair functions 仍不完备，需求一致性被假设成立，且输出是 Event-B 状态化形式模型而不是 Project 1 当前主要面向的层次化状态机 / timed automata DSL。
 
+
+## 精读补充：建模对象、论文案例与 Project1 可比性
+
+### 一句话澄清
+
+这篇论文不是把自然语言翻译成“状态机图”或普通代码，而是把自然语言需求翻译成 **Event-B 形式开发工件**：`Context` / `Machine` / `Event` / `Invariant` / `Refinement` / `Proof Obligation` 共同构成的状态化数学模型。若用状态机视角理解，Event-B 中的状态不是显式节点，而是变量取值；迁移不是图上的边，而是带 guard 和 action 的 `event`；正确性不是只看图结构，而是看 invariants 与 refinement proof obligations 是否能被 discharge。
+
+### 建模对象到底是什么
+
+Event-B Agent 的目标工件可以理解为“带证明义务的状态迁移系统”：
+
+- **状态空间**：由 variables 的所有可能 valuation 隐式给出，而非枚举为 `Idle`、`Active` 这类状态节点。
+- **迁移规则**：由 `event` 表达，每个 event 包含 parameters、guards 和 actions；guard 决定事件何时可触发，action 决定变量如何更新。
+- **全局约束**：由 invariants / theorems 表达，类似状态机设计中的安全约束，但在 Event-B 中会自动产生 proof obligations。
+- **抽象-具体关系**：由 refinement chain 和 gluing invariants 表达；抽象模型先证明关键性质，具体模型逐步加入实现细节，并用 refinement POs 证明没有破坏抽象层性质。
+- **验证工件**：包括 ProB counterexamples、Rodin / SMT / theorem prover 的 proof states、proof artifacts 和 repair 后重新 replay 的证明结果。
+
+因此，本文的“model synthesis”不是一般 text-to-model 渲染任务，而是生成一个可被 Rodin / ProB / SMT 共同检查的形式化开发项目。
+
+### 论文例子怎么理解：minimum-searching algorithm
+
+论文的 running example 是一个最小值搜索算法：给定有限自然数函数 `f` 和定义域大小 `n`，系统需要返回一个索引 `j`，使得 `j` 位于 `dom(f)` 中且 `f(j)` 等于 `ran(f)` 的最小值。需求被分为两类：
+
+- `EQP` 类需求描述环境 / 输入对象，例如 `f` 的有限函数性质与 `n` 的含义。
+- `FUN` 类需求描述功能行为，例如终止时最小值正确，以及搜索过程中如何扫描、比较和更新候选索引。
+
+Event-B Agent 不是一次性把全部需求塞进一个大模型，而是生成 refinement plan：
+
+1. **抽象层**只表达最终正确性。此时模型只需要保留与“返回的 `j` 是最小值位置”直接相关的变量和事件，尽量不引入扫描索引、循环状态等实现细节。
+2. **具体层**再加入 `i`、`searching` 等辅助变量，表达扫描过程、候选更新和终止条件。
+3. **gluing invariant** 负责说明具体层变量与抽象层语义之间的关系，例如搜索进行到索引 `i` 时，当前 `j` 已经是被扫描前缀区间中的最小值位置。
+
+这个例子的核心不是“最小值算法本身很难”，而是展示三类常见 LLM 建模错误：
+
+- 直接生成模型可能把终止条件写成 invariant，却没有在 `stop` event 的 guard 中约束何时可终止。
+- 通用 coding agent 可能初始化变量或布尔标志的方式破坏真实搜索语义。
+- 该 motivating example 显示，若只看模型检查 / 有限实例反馈，某个对比模型可能把 `minRanF` 之类的语义硬编码成特定常量，导致有限边界内看起来通过，但不能证明一般正确性；这不应泛化理解为对 PAT-Agent 全部设计的否定。
+
+Event-B Agent 的设计正是为了避免这些问题：抽象层先证明最核心性质，具体层通过 refinement 和 proof obligations 接回抽象语义，而不是只靠一次生成或 bounded trace 检查。
+
+### 方法读法：LLM 只做语义与策略，可信性来自工具闭环
+
+这篇论文的关键方法可以按“LLM 受控生成 + 确定性验证反馈”来读：
+
+1. **Refinement planning**：LLM 决定哪些需求先在抽象层建，哪些需求后续 refinement 再加，并提出 gluing invariant 草案。
+2. **Schema-guided synthesis**：LLM 先输出受 JSON schema 限制的结构化模型，再由程序转成 Event-B，避免任意文本输出造成大量语法和声明错误。
+3. **Model checking feedback**：ProB 先找 deadlock、invariant violation、axiom inconsistency 和 counterexample trace。
+4. **Proof-guided repair**：Rodin / SMT / theorem prover 生成 proof obligations；失败时系统分析 proof state，并把失败归入 contradiction、well-definedness、quantified invariant preservation 等 repair categories。
+5. **Atomic repair functions**：LLM 不被允许自由改整个模型，而是在 add / update invariant、strengthen guard、modify action、instantiate hypothesis 等受控操作中选择。每次修改后都 replay proofs，检查是否破坏已通过证明。
+
+这套流程对 Project1 的重要启发是：LLM 可以作为“语义规划器和修复策略选择器”，但最终接受标准必须来自 parser、model checker、theorem prover 和可重放 proof artifacts。
+
+### 实验结果应该怎么解读
+
+论文在 27 个 Event-B 系统上报告 PDR、RC、RF 三类指标。PDR 衡量 proof obligations 的 discharge 比例，RC 衡量需求是否被模型元素覆盖，RF 进一步要求需求覆盖后相关证明也成立。Event-B Agent 达到 PDR 97.86%、RC 97.13%、RF 93.79%，显著高于直接 LLM + prover、Cursor 和 adapted PAT-Agent。
+
+需要注意三点边界：
+
+1. 高 PDR / RF 说明生成模型在 Event-B proof pipeline 下更可靠，不等价于证明自然语言需求被完全无歧义理解。
+2. RC / RF 依赖需求标签和 refinement assumption，适合本文实验，但迁移到 Project1 时应换成状态机元素覆盖、reference model 对齐、trace / scenario 覆盖等指标。
+3. 运行代价不低，平均每个系统约几十次 LLM 调用和较长 repair 时间；它更像高可信建模 pipeline，而不是轻量 prompt baseline。
+
+### 对 Project1 Path-1 的定位
+
+本文应放在 **近直接 formal-state baseline / 强方法学参照**，但不能写成同构 STM baseline。
+
+- **可比点**：自然语言需求输入、状态化形式模型输出、guard/action/invariant 语义、verification feedback、repair loop。
+- **不可比点**：输出不是 UML/SysML/pyfcstm 状态机；核心正确性指标是 Event-B proof obligations，不是状态机结构 F1 或控制需求 trace coverage。
+- **最值得借鉴**：refinement planning、proof-state repair categories、atomic repair functions、proof replay gate。
+- **写作建议**：在 related work 中可把它放入 “LLM for verified formal model synthesis and repair” 小节，用来说明 SOTA 已经从 one-shot generation 走向 verifier-mediated repair；在实验 baseline 中则只能作为异构近邻，不能直接和 STM 输出一对一比较。
+
 ## 研究问题与动机
 
 ### 问题背景

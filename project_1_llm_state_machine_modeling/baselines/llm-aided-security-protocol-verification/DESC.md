@@ -72,6 +72,72 @@ Compiler: SAPIC+ -> Tamarin / ProVerif / DeepSec
 
 **结论与不足**：论文证明“直接让 LLM 写 Tamarin/SAPIC+ 模型”不可靠，更可行的路线是把 LLM 限制在语义解析与局部修复环节，把可验证工件生成交给受形式化语义约束的中间表示、重写规则和编译器。局限在于：案例规模仍远小于 TLS 1.3 / 5G AKA 等真实大型协议；复杂文档存在长距离、非顺序依赖；$\lambda$-DSL 只覆盖 SAPIC+ 的核心子集；结果依赖 GPT-4 这类闭源强模型，存在 provider drift 与可复现风险。
 
+
+## 精读补充：建模对象、论文案例与 Project1 可比性
+
+### 一句话澄清
+
+这篇论文不是控制系统状态机建模，而是安全协议验证中的“自然语言协议文档 -> 符号协议模型”自动建模。它的目标是生成 SAPIC+ / Tamarin / ProVerif / DeepSec 可用的协议模型，用来验证 secrecy、authentication 等安全性质；它与 Project1 的共同点在于都是 NL-to-formal-model，差异在于它建模的是消息交互协议而非控制系统状态演化。
+
+### 建模对象到底是什么
+
+论文的建模对象是 **symbolic protocol model**。核心元素包括：
+
+- **角色 / agent**：如 Client、Server、Initiator、Responder。
+- **消息与密码学 term**：nonce、key、hash、encryption、signature 等。
+- **事件序列**：生成 nonce、发送消息、接收消息、本地绑定、signal event。
+- **攻击者语义**：后端验证器通常基于 Dolev-Yao 风格攻击者模型分析消息可达性和知识增长。
+- **安全性质**：secrecy、authentication、trace safety property 等。
+
+它不是把协议画成节点-边状态图，而是把自然语言协议步骤翻译成角色进程和符号消息操作。虽然 Tamarin 的 multiset rewriting rules 可以被视作一种 transition system，但这不是 Project1 所说的 STM artifact。
+
+### 论文例子怎么理解：Client / Server 密钥交换
+
+论文中的示意协议可以按如下直觉理解：Client 生成一个对称密钥 `k`，用 Server 的公钥加密后发送给 Server；Server 解密得到 `k`，再返回 `hash(k)` 作为确认。
+
+在论文的 lambda-DSL / lambda-style 中间表示里，这类行为会被拆成接近自然语言的协议事件。下面是为说明语义而写的**示意写法**，不是逐字复刻原文完整语法：
+
+- `gen(C, k)`：Client 生成新鲜密钥。
+- `op(C, binds(msg, aenc(k, pk(S))))`：Client 构造加密消息。
+- `send(C, msg)`：Client 发送消息。
+- `recv(S, msg)`：Server 接收消息。
+- `op(S, binds(k, adec(msg, sk(S))))`：Server 解密并绑定密钥。
+- `send(S, hash(k))` / `recv(C, hash(k))`：Server 发回确认，Client 接收。
+
+这类中间表示不是最终验证器语法，但比 SAPIC+ / Tamarin 更接近协议文本，也更容易做静态分析。例如可以检查变量是否已绑定、接收方是否有能力 pattern match 某个消息、发送/接收角色是否一致。
+
+### 方法读法：LLM 负责语义解析，形式化落地由 DSL 和编译链完成
+
+本文最重要的设计思想是：不要直接让 LLM 写 Tamarin 或 SAPIC+。完整流程为：
+
+1. **L-CCG semantic parsing**：把协议文档切成 chunks，让 LLM 在局部上下文中把自然语言步骤解析成 lambda DSL 事件。
+2. **L-Repair**：用 LLM self-validation、接收消息可读化改写、Lark parser 静态分析和可选人工编辑，修复 inconsistency、ambiguity、unreadability。
+3. **Rewriter**：用形式化重写规则把 lambda DSL 转成 SAPIC+ role processes。
+4. **Compiler**：再由 SAPIC+ 工具链编译到 Tamarin、ProVerif、DeepSec 等后端。
+
+这条链路把 LLM 限制在“自然语言语义抽取”和“局部修复”环节，最终模型构造更多依赖确定性规则和已有验证器编译链。对 Project1 而言，这比“一次性 prompt 生成最终状态机”更值得借鉴。
+
+### 实验结果应该怎么解读
+
+论文构造了 18 个真实协议 benchmark，每个案例包含自然语言协议描述、SAPIC+ specification 和 Tamarin model。整体评估中，每个协议运行 5 次且不允许用户交互，正文 headline 结果是自动生成 10/18 个正确 symbolic models；直接 few-shot 生成最多成功约 4 个案例。
+
+这个结果说明：
+
+1. **直接生成最终协议模型明显不可靠**，即使使用强 LLM 也容易出现消息结构、变量绑定、角色归属或语法问题。
+2. **中间 DSL + 静态分析 + 重写器显著提高成功率**，但仍不足以覆盖复杂协议。
+3. **复杂协议需要 human-in-the-loop**，因为真实协议文档常有长距离依赖、省略、跨章节引用和非顺序描述。
+
+论文的正确性论证主要覆盖 lambda DSL 到 SAPIC+、SAPIC+ 到后端模型的形式化链路；自然语言到 lambda DSL 的映射仍依赖 LLM、validation 和人工消歧，不能被理解成完全形式化证明。
+
+### 对 Project1 Path-1 的定位
+
+本文应作为 **邻近形式化建模方法参照**，而不是直接 baseline。
+
+- **可比点**：自然语言输入、分阶段中间表示、静态 diagnostics、验证器后端、修复闭环、公开 benchmark。
+- **不可比点**：输出是 symbolic protocol model，不是 STM；验证性质是 secrecy / authentication，不是控制系统状态机结构正确性、需求覆盖或时序行为。
+- **最值得借鉴**：先生成可检查中间 DSL，再由 deterministic rewriter / compiler 生成最终 formal artifact；把 LLM 从“最终模型作者”降级为“语义解析和修复助手”。
+- **写作建议**：可放在 related work 的 “LLM-assisted formal model construction for verification” 小节，作为异构领域证据说明 LLM4Modeling 已经形成中间表示 + verification backend 的趋势；实验部分不应把它列为同构 STM baseline。
+
 ## 研究问题与动机
 
 ### 问题背景

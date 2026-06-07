@@ -41,6 +41,73 @@ PAT-Agent 解决的是“从自然语言系统描述自动构造可被模型检�
 
 实验上，论文在 40 个系统、133 条断言上报告完整 PAT-Agent pipeline 达到 `CSR/FPR/APR = 1.0000/1.0000/1.0000`，并通过消融显示 Planning LLM 和 Repair Loop 都是关键贡献；用户研究表明交互界面对非形式化方法专家也有帮助。
 
+
+## 精读补充：建模对象、论文案例与 Project1 可比性
+
+### 一句话澄清
+
+PAT-Agent 不是“从自然语言画状态机图”的论文，而是“自然语言系统描述 + 用户性质期望 -> PAT/CSP# 并发过程模型 + assertions -> PAT 模型检查 -> 反例驱动修复”的端到端 autoformalization 框架。它和 Project1 的关系非常近，因为 CSP# 模型由 guarded actions、变量更新和并发组合构成，可以展开为 labeled transition system；但它的目标工件仍是 PAT/CSP#，不是 UML/SysML/pyfcstm 状态机。
+
+### 建模对象到底是什么
+
+PAT-Agent 的建模对象是可由 PAT model checker 执行和验证的 **CSP# 行为模型**。从状态机角度看，CSP# 的过程可以视为隐式状态机：
+
+- **状态**：由全局 / 局部变量、process control point 和并发组件位置共同决定。
+- **迁移**：由 event prefix、guarded command、variable update 和 process continuation 表示。
+- **并发结构**：由同步 / 异步并发组合表达，不一定压平成单个状态图。
+- **性质**：由 `#assert` 断言表达，可检查 deadlock-freeness、reachability、LTL 等。
+- **修复证据**：由 PAT 返回的 counterexample trace 指向违反性质的动作序列。
+
+因此，这篇论文的模型比“状态机图”更程序化，但语义上比普通代码更接近 finite-state / transition-system 建模。
+
+### 论文例子怎么理解：Car system
+
+论文的 running example 是一个车系统。系统被拆成多个 process，例如 `driver`、`key`、`door`、`motor`，变量描述车主位置、钥匙位置、门状态、发动机状态、车是否在行驶、燃油量等。
+
+一个典型动作 `start_driving` 可以按状态机迁移来理解：
+
+- **event**：`start_driving`。
+- **guard**：发动机已启动、车辆当前停止、燃油大于 0、车主在车内。
+- **action**：把 `carMotion` 从 `stop` 更新为 `drive`。
+- **continuation**：回到或继续 `motor()` 过程。
+
+这与 Project1 的迁移槽位非常接近：`事件 + 守卫 + 动作 + 下一控制点`。区别在于 PAT/CSP# 中下一控制点是 process continuation，而不是显式画出的状态节点。
+
+论文中最直观的 repair 例子是“无人驾驶”违例。初始模型可能允许如下 trace：车主靠近车辆、拿钥匙、解锁、开门、进入、启动发动机、离开车辆，然后仍然触发 `start_driving`。PAT 检查发现某条性质的结果与用户期望不一致，于是返回 counterexample trace。Repair loop 根据 trace 中靠近故障点的动作，把 `start_driving` 识别为高优先级可疑动作，并收紧其 guard，例如要求驾驶者仍在车内。
+
+这个例子说明 PAT-Agent 的关键不是生成语法正确的 CSP#，而是用 verifier counterexample 定位“模型允许了需求禁止的行为”，再做局部修复。
+
+### 方法读法：显式 plan + formal code + verifier repair
+
+PAT-Agent 的流程可以按四段理解：
+
+1. **Planning LLM**：从自然语言中抽取 constants、variables、actions、guards、state changes 和 subsystem 结构，生成 JSON-like semantic plan。
+2. **Code Generation LLM**：根据 plan、PAT syntax cue、常见错误提示和检索到的相似示例生成 CSP# 代码。
+3. **PAT verification**：把用户性质和期望结果一起交给 PAT 检查；这里的 pass 指验证结果与用户期望一致，而不是简单“性质为真”。
+4. **Repair loop**：若出现 mismatch，则把 counterexample trace、错误性质和可疑动作反馈给生成模型，最多迭代若干轮。
+
+这个流程中，Planning 解决“LLM 一次性直出 formal code 容易丢结构”的问题；PAT repair 解决“模型可编译但语义不满足需求”的问题。
+
+### 实验结果应该怎么解读
+
+论文在 40 个系统、133 条 assertions 上评估，数据来自 PAT library、Understanding Concurrent Systems 和 Alloy4Fun 改编任务。指标包括 CSR、FPR、APR，其中 FPR 要求一个系统的所有 assertions 都与期望结果一致。默认 `<o3, Claude>` 组合达到 CSR / FPR / APR 全部 1.0，明显高于 R1、o3、Claude 直接生成。
+
+这个结果有两层含义：
+
+1. **对 direct generation 的反证很强**：直接让强 LLM 生成 PAT/CSP#，可编译率和全通过率都不稳定。
+2. **对闭环方法的支持很强**：planning 和 repair 的消融下降明显，说明结构化中间计划和 counterexample-guided repair 都是关键贡献。
+
+但也要注意，PAT-Agent 输入包含用户性质和期望结果，这比 Project1 Path-1 的纯 NL->STM 任务多了一个强监督信号。因此它适合作为 verifier-mediated autoformalization 近邻，而不是完全公平的 STM 生成直接 baseline。
+
+### 对 Project1 Path-1 的定位
+
+PAT-Agent 是三篇新增论文中与 Project1 **行为模型语义最近**的一篇，但仍应标为 🟠 近邻而不是 🟢 直接 baseline。
+
+- **最接近之处**：CSP# 的 guarded action、变量更新和 process continuation 与状态机迁移槽位高度相似；counterexample trace 也类似状态机仿真 / model checking trace。
+- **关键差异**：输出不是状态机图或 STM DSL；输入额外包含 assertions 与期望结果；成功标准是 PAT verification full pass。
+- **可借鉴模块**：semantic planning、syntax cue、RAG exemplar、counterexample suspicious-action ranking、最多轮次 repair gate。
+- **写作建议**：可在 paper 中把它作为 “LLM + model checking for formal behavioral model generation” 的强相关工作，并明确说明我们的 Path-1 更聚焦 `NL -> STM artifact`，而不是 `NL + properties -> CSP# + assertion pass`。
+
 ## 研究问题与动机
 
 ### 问题背景
