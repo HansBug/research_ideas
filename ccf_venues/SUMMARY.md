@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-06 13:45`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 10:52`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -36,6 +36,19 @@
 | 当前优先批次 | PR-6 / PR-7 / PR-8 / PR-9 已由上游合入并在当前合流分支中共存；PR-10 已完成 P1/P2 全局审计并合入当前合流分支；后续进入全库事实维护与近期窗口滚动复核阶段 |
 
 说明：当前统计表示 27 个会议 venue 与 12 个期刊 venue 已完成基础情报建档和部分核验，但仍不是“事实完全闭环”样板。会议侧仍存在 proceedings / DBLP 延迟公开、future CFP 未公布、多 track 计数、PACMSE / co-location、IEEE / Springer proceedings 入口、旧站 / WAF 访问风险、committee 角色源和 track / artifact / workshop 口径待复核；期刊侧仍存在 publisher issue / online-first 口径、动态投稿入口、Wiley / Elsevier / ScienceDirect WAF/403、editorial roster 当前性与 special issue editor 角色边界待复核。
+
+### 1.1 常态化投稿情报更新入口
+
+本入口只用于“已收录 venue 的最新投稿情报刷新”，不替代 [TIMELINE.md](./TIMELINE.md) 的行级事实表，也不替代具体 venue 年度 README 的证据记录。若任务是更新近期 deadline、CFP / important dates、accepted papers / proceedings 或期刊 special issue 状态，应先按 [GUIDE.md](./GUIDE.md) §12 执行常态化投稿情报更新流程。
+
+| 项目 | 当前口径 |
+|---|---|
+| 最新事实刷新锚点 | `2026-06-06 13:45` PR #35 main-ready 近期窗口复审；PR #62 只补维护机制，不批量改 venue facts |
+| 近期窗口入口 | 以 [TIMELINE.md](./TIMELINE.md) §3“近期投稿窗口速览”为行级承载表；SUMMARY 不复制第二套 deadline dashboard |
+| 默认 watchlist | 以本轮刷新日期为起点，优先 P0 + 未来 6 个月内已有 open 窗口或 next edition 线索的 P1；P2 仅因明确 open 窗口或用户指定临时纳入，且必须标注 `P2 / 不升级` |
+| 高风险人工核验入口 | ScienceDirect / Elsevier / Wiley / ACM / IEEE 等 WAF/403/CAPTCHA/Authwall、`待补时刻`、日期冲突、candidate CFP 和 browser-only 页面；具体条目仍以 §13 待补与核查记录和各 venue 年度页为准 |
+| 下一轮建议 | 若无用户指定目标，先复核 [TIMELINE.md](./TIMELINE.md) §3 中未来 3--6 个月仍可行动窗口，再按 [GUIDE.md](./GUIDE.md) §12.4 同步年度 README、根 README、TIMELINE 年度表 / Mermaid 与本入口 |
+
 
 ## 2. 当前可复用的既有资源
 
@@ -295,7 +308,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | 合流完整性 | PR-6 / PR-7 / PR-8 / PR-9 facts 共存 | `git ls-files -u` 为空；`ccf_venues/` 未发现 conflict marker；SUMMARY / TIMELINE 仍保留维护修复、实证质量、形式化工具链与 P2 邻近观察事件并集 | ✅ 已完成 |
 | 近期投稿窗口 | RV 2026、APSEC 2026、SANER 2027、ESE Agentic / FORGE / EASE / PROMPT-SE、JSS AI Techniques 已复核 | 官方页面确认 RV 2026 extended paper submission `2026-06-14`；APSEC 2026 Technical Track 为 `UTC+8 (Bali time)`；SANER 2027 Research Track 为 `AoE (UTC-12h)`；ESE Springer collections 日期与当前 TIMELINE 一致；JSS ScienceDirect 官方 URL 仍为 CLI 403/WAF caveat，不升级为完全核验 | ✅ 已完成 |
 | 模板链接 | 模板内伪相对链接已清理 | [templates/](./templates/) 下年度路径和 TIMELINE 路径改为代码样式占位；实例化后的正式 README 仍要求可点击相对链接 | ✅ 已完成 |
-| Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本、`curl` / `requests`、官方页面 HTML 抽取、`claude -p` 与 `codex-deepseek exec` 完成替代核验；该坑已回写 [GUIDE.md](./GUIDE.md) §15.1 | ✅ 已完成 |
+| Subagent 降级 | multi-agent spawn 连续出现 503 | 已重试并改用本地脚本、`curl` / `requests`、官方页面 HTML 抽取、`claude -p` 与 `codex-deepseek exec` 完成替代核验；该坑已回写 [GUIDE.md](./GUIDE.md) §16.1 | ✅ 已完成 |
 
 ## 10. 核心 URL / 超链接覆盖口径
 
@@ -431,6 +444,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §1.1 轻量入口，明确 TIMELINE §3 是近期窗口行级承载表，并记录默认 watchlist、高风险来源与下一轮刷新建议。 |
 | `2026-06-06 13:45` | PR #35 main-ready 最终收口：同步 FSE 2027、ISSTA 2026、REFSQ 2027、APSEC 2026、RV 2026、IST 与 REJ 近期窗口复审修复，并将 PR-10 状态改为已完成合流。 |
 | `2026-06-06 10:16` | PR #35 main-ready review 修复：核验并同步 ICSE 2027 `23:59:59 AoE / UTC-12h` 与 ICFEM 2026 `23:59 AoE / UTC-12`，清理近期投稿窗口中的 `待补时刻` 残留。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track AoE / UTC-12h 时区、统一 APSEC 会期备注口径，并将当前统计口径改为 PR-10 审计后组合状态。 |
