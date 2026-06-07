@@ -30,6 +30,12 @@ EXPERIMENT_MODULES = [
     "method.pr_d_representative",
     "method.pr2a_loop",
 ]
+LG_M1_B_ADDITIVE_STAGE_MODULES = {
+    "method.stages.api",
+    "method.stages.sc_control",
+    "method.stages.sl_prompt_api",
+}
+LG_M1_B_ADDITIVE_TEST_COUNT = 7
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -216,8 +222,12 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
 
     current_stage = _scan_stage_api()
     fixture_stage = baseline["stage_api_scan"]
-    assert current_stage["module_count"] == fixture_stage["module_count"]
-    assert current_stage["modules"] == fixture_stage["modules"]
+    baseline_modules = fixture_stage["modules"]
+    additive_modules = [row for row in current_stage["modules"] if row["module"] in LG_M1_B_ADDITIVE_STAGE_MODULES]
+    non_additive_modules = [row for row in current_stage["modules"] if row["module"] not in LG_M1_B_ADDITIVE_STAGE_MODULES]
+    assert current_stage["module_count"] == fixture_stage["module_count"] + len(LG_M1_B_ADDITIVE_STAGE_MODULES)
+    assert non_additive_modules == baseline_modules
+    assert {row["module"] for row in additive_modules} == LG_M1_B_ADDITIVE_STAGE_MODULES
     assert any("run_sd2_parse" in module["functions"] for module in current_stage["modules"])
 
     current_legacy = _scan_legacy_contract_tests()
@@ -297,4 +307,4 @@ def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    assert int(match.group(1)) == baseline["collection"]["count"]
+    assert int(match.group(1)) == baseline["collection"]["count"] + LG_M1_B_ADDITIVE_TEST_COUNT

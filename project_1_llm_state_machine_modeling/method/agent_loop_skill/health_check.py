@@ -252,9 +252,88 @@ def _check_no_case_specific_optimization(root: Path) -> CheckResult:
         else "missing anti-overfit terms: " + ", ".join(missing),
     )
 
+
+def _check_stage_api_contract(root: Path) -> CheckResult:
+    try:
+        from method.stages import api, sc_control, sl_prompt_api
+    except Exception as exc:  # pragma: no cover - reported as health detail
+        return CheckResult("stage_api_contract", False, f"stage API import failed: {exc!r}")
+
+    required = {
+        "SC_CONTROL_SCHEMA_VERSION",
+        "run_sd2_parse",
+        "run_sd3_semantic",
+        "run_sd4_design",
+        "run_sd8_fix_plan",
+        "build_sl1_initial_modeling_prompt",
+        "build_sl9_repair_prompt",
+        "build_sl10_repair_review_prompt",
+        "compact_sl5_design_summary_for_prompt",
+        "compact_sl5_inspect_for_prompt",
+        "compact_sl7_review_input",
+    }
+    missing = sorted(name for name in required if not hasattr(api, name))
+    summary = sc_control.build_stage_control_summary()
+    sl_prompt_ok = hasattr(sl_prompt_api, "build_sl9_repair_prompt") and not hasattr(sl_prompt_api, "run_sl9_repair_llm")
+
+    deny_terms = [
+        "method.loop",
+        "method.llm_stages",
+        "method.gpt_client",
+        "RealEnvLLMProvider",
+        "run_agent_loop",
+        "os.environ",
+        "load_dotenv",
+        "LLM_API_KEY",
+    ]
+    stage_root = root.parent / "stages"
+    static_hits: list[str] = []
+    for rel in ["api.py", "sc_control.py", "sl_prompt_api.py"]:
+        file_text = _read(stage_root / rel)
+        for term in deny_terms:
+            if term in file_text:
+                static_hits.append(f"{rel}:{term}")
+
+    docs = "\n".join(
+        [
+            _read(root / "AGENT_LOOP_SKILL.md"),
+            _read(root / "tools.md"),
+            _read(root / "prompts.md"),
+            _read(root / "stages" / "README.md"),
+        ]
+    )
+    doc_terms = ["method.stages.api", "method.stages.sc_control", "method.stages.sl_prompt_api", "程序化调用"]
+    doc_missing = _contains_all(docs, doc_terms)
+
+    ok = (
+        not missing
+        and bool(summary.get("provider_free"))
+        and bool(summary.get("full_loop_free"))
+        and sl_prompt_ok
+        and not doc_missing
+        and not static_hits
+    )
+    details = []
+    if missing:
+        details.append("missing API exports: " + ", ".join(missing))
+    if not summary.get("provider_free") or not summary.get("full_loop_free"):
+        details.append("SC summary does not declare provider/full-loop free")
+    if not sl_prompt_ok:
+        details.append("SL prompt facade missing builder or exposes runtime LLM adapter")
+    if static_hits:
+        details.append("stage facade denylist hits: " + ", ".join(static_hits))
+    if doc_missing:
+        details.append("skill docs missing terms: " + ", ".join(doc_missing))
+    return CheckResult(
+        "stage_api_contract",
+        ok,
+        "method.stages.api / sc_control / sl_prompt_api are documented no-provider skill facades" if ok else "; ".join(details),
+    )
+
 def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
     return [
         _check_entry_symlinks(root),
+        _check_stage_api_contract(root),
         _check_stage_symlinks(root),
         _check_stage_symlink_strategy(root),
         _check_forbidden_top_runner(root),
