@@ -1399,6 +1399,158 @@ def test_post_accept_validation_reuses_prior_sl10_stale_sd6_override(tmp_path: P
     assert iteration["exit_reason"] == "full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver"
 
 
+def test_post_accept_validation_does_not_waive_same_name_fresh_sd6_failure(tmp_path: Path) -> None:
+    scenario_name = "post_accept_same_name_fresh_failure"
+    final_candidate = "post-accept-fresh-failure-candidate"
+    model_review_payloads: list[dict[str, Any]] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="same scenario name but different failure signature must not be waived",
+        initial_state="Root.Idle",
+        steps=[ScenarioStep(events=["tick"], expected_state="Root.Done", expected_vars={"y": 1}, name="done_step")],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        n = len(scenarios)
+        if dsl == final_candidate:
+            failed = ScenarioResult(
+                name=scenario_name,
+                status="fail",
+                step_results=[
+                    StepResult(
+                        step_index=0,
+                        step_name="done_step",
+                        status="fail",
+                        actual_state="Root.Done",
+                        actual_vars={"y": 0},
+                        state_assertion_ok=True,
+                        var_assertion_ok=False,
+                        var_mismatches={"y": {"expected": 1, "actual": 0}},
+                    )
+                ],
+            )
+            return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, scenario_results=[failed]), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=n, n_scenarios_passed=n), _meta(StageId.SD_6_SIM)
+
+    def model_review(dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        if dsl != final_candidate:
+            meta = _meta(StageId.SL_7_MODEL_REVIEW, ok=False)
+            return (
+                ModelReviewFeedback(
+                    ok=False,
+                    decision="fail",
+                    risk_level="major",
+                    findings=[{"id": "MR-needs-final", "summary": "force one accepted candidate"}],
+                    blocking_findings=[{"id": "MR-needs-final", "summary": "force one accepted candidate"}],
+                    review_meta=_review_meta(StageId.SL_7_MODEL_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return ModelReviewFeedback(ok=True, decision="pass", risk_level="none", review_meta=_review_meta(), meta=meta), meta
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == final_candidate:
+            historical_x_failure = SimFeedback(
+                ok=False,
+                n_scenarios=1,
+                n_scenarios_passed=0,
+                scenario_results=[
+                    ScenarioResult(
+                        name=scenario_name,
+                        status="fail",
+                        step_results=[
+                            StepResult(
+                                step_index=0,
+                                status="fail",
+                                actual_state="Root.Done",
+                                actual_vars={"x": 3},
+                                var_mismatches={"x": {"expected": 4, "actual": 3}},
+                            )
+                        ],
+                    )
+                ],
+            )
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+                reason="scenario_regression",
+                target_resolved=True,
+                regression_detected=True,
+                drift_risk="minor",
+                evidence=[{"kind": "scenario_regression", "sim_feedback": asdict(historical_x_failure)}],
+            )
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+            return (
+                RepairReviewFeedback(
+                    ok=False,
+                    target_resolved=True,
+                    regression_detected=True,
+                    drift_risk="minor",
+                    local_rejection=rejection,
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        return RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta), meta
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Only the historical x mismatch is stale; fresh y mismatch must still block."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected x=4 is stale; NL-grounded value is x=3."
+                ],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "post-accept same-name fresh SD-6 failure must remain a hard block.",
+        FullStagedRuntimeConfig(
+            initial_dsl="initial-needs-model-review",
+            run_id="pr-lg-m1-g-post-accept-fresh-sd6-not-waived",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=_base_adapters(
+            scenario_generate=scenario_generate,
+            sim=sim,
+            model_review=model_review,
+            repair=lambda _request: final_candidate,
+            repair_review=local_review,
+            sl10_review=sl10_review,
+        ),
+    )
+
+    assert result.status == "not_converged"
+    assert not any(payload.get("waiver_audit") for payload in model_review_payloads if payload.get("sim"))
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    iteration = record.iteration_records[0]
+    assert record.status == "budget_exhausted"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+    assert iteration["budget_gate"]["post_accept_validation_attempted"] is True
+    assert iteration["budget_gate"]["post_accept_validation_success"] is False
+    assert iteration["post_accept_selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    assert "post_accept_waiver_audit" not in iteration
+    assert "SD-6 sim failure" in iteration["exit_reason"]
+
+
 def test_llm_retry_exhausted_in_sl7_exits_provider_error_without_repair(tmp_path: Path) -> None:
     result = run_full_staged_deterministic_runtime(
         "SL-7 provider exhausted",
