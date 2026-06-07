@@ -2031,6 +2031,43 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
             "node_trace_hash": record.environment["langgraph_node_trace_hash"],
         }
     )
+    validation_stage_node_order = [
+        "validation_sd2_parse",
+        "validation_sd3_semantic",
+        "validation_sd4_design",
+        "validation_sd5a_reuse_coverage",
+        "validation_sl5_scenario_generation",
+        "validation_sd5a_scenario_coverage",
+        "validation_sc5f_scenario_freeze",
+        "validation_sd6_sim",
+        "validation_sl7_model_review",
+    ]
+    validation_subgraph_node_order = [
+        "validation_subgraph",
+        *validation_stage_node_order,
+        "validation_finalize",
+    ]
+    validation_subgraph_node_ids = set(validation_subgraph_node_order)
+    validation_trace = [
+        item for item in safe_trace if str(item.get("node_id") or "") in validation_subgraph_node_ids
+    ]
+    validation_seen = {str(item.get("node_id") or "") for item in validation_trace}
+    validation_subgraph_runtime_trace = {
+        "subgraph_id": "validation_subgraph",
+        "node_trace_count": len(validation_trace),
+        "node_trace_hash": _hash_payload(validation_trace),
+        "stage_node_ids": [node_id for node_id in validation_stage_node_order if node_id in validation_seen],
+        "node_ids": [str(item.get("node_id") or "") for item in validation_trace],
+        "join_key_fields": [
+            "iteration",
+            "attempt_index",
+            "validation_ref",
+            "validation_stage_ids",
+            "scenario_set_id",
+            "selected_feedback_kind",
+            "continued_after_waiver",
+        ],
+    }
     repair_stage_node_order = [
         "repair_sd8_fix_requests",
         "repair_sl9_repair",
@@ -2093,6 +2130,7 @@ def _augment_run_record_with_graph_trace(result: AgentLoopResult, graph_trace: l
         "node_trace_count": len(safe_trace),
         "node_trace_hash": record.environment["langgraph_node_trace_hash"],
         "delegated_monolithic_runtime": False,
+        "validation_subgraph_runtime_trace": validation_subgraph_runtime_trace,
         "repair_subgraph_runtime_trace": repair_subgraph_runtime_trace,
         "waiver_subgraph_runtime_trace": waiver_subgraph_runtime_trace,
     }

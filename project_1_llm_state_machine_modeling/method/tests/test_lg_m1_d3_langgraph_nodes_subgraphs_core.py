@@ -13,6 +13,9 @@ import importlib
 from pathlib import Path
 from typing import Any
 
+from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from method.schema import AgentLoopResult, AgentLoopRunRecord
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
@@ -160,3 +163,62 @@ def test_lg_m1_d3_f1_experiment_imports_resume_implementation_not_facade() -> No
     source = (METHOD_ROOT / "experiments" / "checkpoint_resume.py").read_text(encoding="utf-8")
     assert "from method.langgraph.resume import run_lg_f1_resume_experiment" in source
     assert "method.langgraph_runtime" not in source
+
+
+def test_lg_m1_d3_graph_trace_final_artifacts_include_validation_subgraph_summary(tmp_path: Path) -> None:
+    core = importlib.import_module("method.langgraph.core")
+    record_path = tmp_path / "d3-validation-trace.agent_loop.json.gz"
+    write_agent_loop_run_record(
+        AgentLoopRunRecord(
+            schema_version="test",
+            run_id="d3-validation-trace",
+            created_at="2026-06-07T00:00:00Z",
+            status="success",
+            input_bundle={},
+            run_config={},
+            environment={},
+            stage_graph={},
+            stage_records=[],
+            iteration_records=[],
+            final_artifacts={},
+        ),
+        record_path,
+    )
+    result = AgentLoopResult(status="converged", run_record_id="d3-validation-trace", run_record_path=str(record_path))
+    graph_trace = [
+        {"event": "node_enter", "node_id": "validation_pass", "iteration": 0},
+        {"event": "subgraph_enter", "node_id": "validation_subgraph", "iteration": 0},
+        {"event": "node_enter", "node_id": "validation_sd2_parse", "iteration": 0},
+        {"event": "node_enter", "node_id": "validation_sd4_design", "iteration": 0, "continued_after_waiver": True},
+        {"event": "node_enter", "node_id": "validation_sl5_scenario_generation", "iteration": 0, "attempt_index": 1},
+        {"event": "node_enter", "node_id": "validation_sd6_sim", "iteration": 0},
+        {"event": "subgraph_exit", "node_id": "validation_finalize", "iteration": 0},
+        {"event": "node_enter", "node_id": "repair_enter", "iteration": 0},
+        {"event": "node_enter", "node_id": "waiver_subgraph_enter", "iteration": 0},
+    ]
+
+    core._augment_run_record_with_graph_trace(result, graph_trace)
+
+    record = read_agent_loop_run_record(record_path)
+    runtime_trace = record.final_artifacts["langgraph_runtime_trace"]
+    validation = runtime_trace["validation_subgraph_runtime_trace"]
+    assert validation["subgraph_id"] == "validation_subgraph"
+    assert validation["node_trace_count"] == 6
+    assert validation["node_trace_hash"].startswith("sha256:")
+    assert validation["node_ids"] == [
+        "validation_subgraph",
+        "validation_sd2_parse",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd6_sim",
+        "validation_finalize",
+    ]
+    assert validation["stage_node_ids"] == [
+        "validation_sd2_parse",
+        "validation_sd4_design",
+        "validation_sl5_scenario_generation",
+        "validation_sd6_sim",
+    ]
+    assert "continued_after_waiver" in validation["join_key_fields"]
+    assert "repair_subgraph_runtime_trace" in runtime_trace
+    assert "waiver_subgraph_runtime_trace" in runtime_trace
