@@ -5,6 +5,14 @@
 本目录是 project_1 agent-loop 的 repo-local skill 入口。PR-0 冻结 contract / docs / fixtures / run-record schema，不绑定具体 LLM provider。
 
 
+## LG-M1-F provenance legend（2026-06-08）
+
+- `PR-0`、`PR-1A`、`PR-B2`、`PR-C`、`PR-E1`、`PR-E2`、`PR-skill-fix` 等是 historical provenance，用于说明 skill contract、stage adapter、repair chain 与 ref-model 质量门的来源；它们不是当前功能模块命名规范。
+- 当前程序化工具入口优先级是：`method.stages.api` / `method.stages.sc_control` / `method.stages.sl_prompt_api`；这些入口不读 `.env`、不调 provider、也不得调用 `method.loop.run_agent_loop(...)`。
+- `method.loop.run_agent_loop(...)` 是 Path1/Path2 默认完整 runtime，不是 skill 侧一键 ref-model producer。
+- `LG-*` / `PR-*` marker 若已进入 run record、schema、historical evidence 或旧 PR reproduction path，应作为 provenance 保留；不得在 docs sweep 中机械删除。
+
+
 ## PR-E2 e2e ref-model 使用入口
 
 PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill 后，自主完成 `NL + 完整论文子路径 -> FCSTM/pyfcstm ref model 候选` 的建模、检查、修复与留痕。

@@ -1,5 +1,7 @@
 # `method.handoff_smoke`
 
+> **LG-M1-F provenance note（2026-06-08）**：本目录是 historical PR-3 handoff smoke artifact，用于证明 Path1/Path2 当时能接入 agent-loop infrastructure。下面的 `source .env` / `--real-llm` 命令只适用于显式 handoff smoke 或后续真实 provider 验证；它不是 LG-M1-F docs/provenance gate，也不代表当前 tests-only 验收需要 provider。当前推荐 method 入口见 [../README.md](../README.md)。
+
 PR-3 Path1/Path2 handoff smoke package.
 
 - Runner: [`runner.py`](./runner.py)
