@@ -41,7 +41,7 @@ from method.stages.sl_scenario_generation_prompt import (
     parse_sl5_scenario_generation_response,
 )
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method"
 
 

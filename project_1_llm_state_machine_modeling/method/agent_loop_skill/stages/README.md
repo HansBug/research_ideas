@@ -38,3 +38,14 @@ SD-8 FixRequestBatch
 在 `agent_loop_skill/` 内通过本 README、`tools.md`、`prompts.md`、
 `e2e_ref_model_guide.md` 或 `health_check.py` 遮蔽误导；不要在本 PR 中直接突破
 skill 路径去修改共享 stage docs。
+
+## 程序化调用入口
+
+本目录中的 stage 文档索引是**人类可读**入口，用于快速跳转到共享 stage 文档；它不是程序化调用 API。
+Codex / Claude Code / toolbox 若需要调用工具，应从 Python facade 导入：
+
+- `method.stages.api`：skill-facing 总入口，汇总 SD deterministic tools、SL prompt builders 与 SC summary helpers。
+- `method.stages.sc_control`：no-provider SC/control 摘要与 stage order helper。
+- `method.stages.sl_prompt_api`：SL prompt generator facade；不是 standalone prompt implementation，底层共享工具仍在 `sl_prompt_common.py`。
+
+这些 facade 不读取 `.env`、不调用 provider、不得调用 `method.loop.run_agent_loop(...)`。

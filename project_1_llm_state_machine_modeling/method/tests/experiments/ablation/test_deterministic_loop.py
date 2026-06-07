@@ -5,7 +5,7 @@ import gzip
 import json
 from pathlib import Path
 
-from method.pr2a_loop import DeterministicLoopConfig, run_pr2a_deterministic_loop
+from method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, run_deterministic_ablation_loop
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
 from method.schema import AgentLoopRunRecord, GroundedElement, GroundingMap, TestScenario
 from method.stages.ids import StageId
@@ -85,8 +85,19 @@ def _load_raw_gzip_json(path: str | Path) -> dict:
         return json.load(f)
 
 
+
+def test_deterministic_ablation_new_path_and_pr2a_shim_are_equivalent() -> None:
+    import method.pr2a_loop as historical_shim
+    from method.experiments.ablation import deterministic_loop
+
+    assert historical_shim.DeterministicLoopConfig is deterministic_loop.DeterministicLoopConfig
+    assert historical_shim.ReviewPolicy is deterministic_loop.ReviewPolicy
+    assert historical_shim.run_deterministic_ablation_loop is deterministic_loop.run_deterministic_ablation_loop
+    assert historical_shim.run_pr2a_deterministic_loop is deterministic_loop.run_pr2a_deterministic_loop
+
+
 def test_pr2a_loop_repairs_design_warning_and_writes_single_file_run_record(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The controller starts Idle, can become Active, and must continue operating.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,
@@ -138,7 +149,7 @@ def test_pr2a_loop_repairs_design_warning_and_writes_single_file_run_record(tmp_
 
 
 def test_pr2a_loop_does_not_repair_info_only_design_diagnostics(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The controller may move between Idle and Active without external events.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -164,7 +175,7 @@ def test_pr2a_loop_does_not_repair_info_only_design_diagnostics(tmp_path: Path) 
 
 
 def test_pr2a_repair_review_rejects_drift_and_keeps_old_dsl(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The Active state is required and must not be deleted.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,
@@ -208,7 +219,7 @@ def test_pr2a_invalid_run_record_status_is_allowed_but_filtered_from_path_result
 
 
 def test_pr2a_loop_writes_failed_parse_run_record_without_scenario_epoch_crash(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "Broken DSL should still produce an audit record.",
         DeterministicLoopConfig(
             initial_dsl="state Root {",
@@ -261,7 +272,7 @@ def test_pr2a_reader_rejects_schema_invalid_raw_run_record(tmp_path: Path) -> No
 
 
 def test_pr2a_repair_review_rejection_can_be_revised_and_repaired_on_second_candidate(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The Active state is required; reject drift then try the next repair candidate.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,
@@ -286,7 +297,7 @@ def test_pr2a_repair_review_rejection_can_be_revised_and_repaired_on_second_cand
 
 
 def test_pr2a_retry_can_use_last_iteration_slot_when_candidate_exists(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The Active state is required; retry budget equals the candidate count.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,
@@ -310,7 +321,7 @@ def test_pr2a_retry_can_use_last_iteration_slot_when_candidate_exists(tmp_path: 
 
 
 def test_pr2a_run_record_is_self_contained_for_prompt_and_rejected_candidate(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The Active state is required and the drift candidate must be auditable.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,
@@ -335,7 +346,7 @@ def test_pr2a_run_record_is_self_contained_for_prompt_and_rejected_candidate(tmp
 
 
 def test_pr2a_nan_path_context_writes_strict_json_invalid_record(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "A non-finite path metric should not enter Path1/Path2 main results.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -371,7 +382,7 @@ def test_pr2a_dataclass_type_path_context_writes_invalid_record(tmp_path: Path) 
     class Marker:
         value: int = 1
 
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "A dataclass type in path context should still yield an audit record.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -394,7 +405,7 @@ def test_pr2a_dataclass_type_path_context_writes_invalid_record(tmp_path: Path) 
 
 
 def test_pr2a_nan_scenario_history_writes_invalid_audit_record(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "A non-finite scenario value should still yield an audit record.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -422,7 +433,7 @@ def test_pr2a_nan_scenario_history_writes_invalid_audit_record(tmp_path: Path) -
 
 
 def test_pr2a_non_json_path_context_writes_invalid_record_not_corrupt_gzip(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "A non-json path context should not corrupt the audit file.",
         DeterministicLoopConfig(
             initial_dsl="state Root {",

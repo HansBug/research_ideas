@@ -15,6 +15,8 @@
 >
 > **生成日期**：2026-05-26（Phase G v3 节点）
 
+> **LG-M1-F provenance note（2026-06-08）**：本文件是早期 Phase G / Phase E 的历史演示记录，用于解释 scenario+sim framing 与 prompt 演化；其中 `/tmp/phase_*` 脚本/JSON 属于当时 session 的 ephemeral artifact，不是当前 LG-M1 推荐复现入口。当前功能入口、测试 gate 与真实四例纪律以 [README.md](./README.md) 与 [ARCHITECTURE.md](./ARCHITECTURE.md) 为准；最终 integrated 四例由 LG-M1-G 在最终 head 上重新产出。
+
 ---
 
 ## Part A — 3 个 NL 控制系统：LLM scenarios 同时满足"覆盖 + 探 bug"
@@ -241,14 +243,14 @@ hot-start: Red, timer=28
 | --- | --- | --- |
 | v1 (initial) | "scenarios 在 original 上的 pass rate" | ❌ 把"匹配 sim"当成功，把 LLM cycle off-by-one 当 noise |
 | v2 (sched refactor) | 同 v1 + multi-step schema | ❌ prompt 教 LLM cycle semantics 让 scenarios 100% pass — scenarios 变成 sim 行为镜像 |
-| **v3 (current)** | **differential mutation detection rate** + NL element coverage | ✓ scenarios 是 NL-driven bug probes，pass rate 不是目标，**catch bug 才是**；original 上的 fail 也是有价值的 finding |
+| **v3 (historical Phase G/E demo framing)** | **differential mutation detection rate** + NL element coverage | ✓ scenarios 是 NL-driven bug probes，pass rate 不是目标，**catch bug 才是**；original 上的 fail 也是有价值的 finding |
 
 ---
 
 ## 输入/输出资产路径
 
-- **测试脚本**：`/tmp/phase_g_v3_test.py`（含 6 个 mutation 的 regex-based mutator）
-- **完整 JSON 结果**：`/tmp/phase_g_v3_results.json`（含每个 scenario 的全部 step results、actual_state、actual_vars、var_mismatches、runtime_error）
+- **测试脚本**：`/tmp/phase_g_v3_test.py`（含 6 个 mutation 的 regex-based mutator；historical ephemeral artifact）
+- **完整 JSON 结果**：`/tmp/phase_g_v3_results.json`（含每个 scenario 的全部 step results、actual_state、actual_vars、var_mismatches、runtime_error；historical ephemeral artifact）
 - **prompt**：[`prompts/scenariogen/generate_scenarios.txt`](./prompts/scenariogen/generate_scenarios.txt)（v3 加入了 "dual mandate: NL element coverage + bug-finding probes" 段）
 - **schema**：[`schema.py`](./schema.py)（v2 multi-step `ScenarioStep` + `StepResult`，保留）
 - **sim 实现**：[`feedback/sim.py`](./feedback/sim.py)（v2 多步执行，保留）
@@ -346,8 +348,8 @@ status: converged   iters: 1   tokens: 12,284
 | 失败模式可观察可分析 | ✅（microwave repair 引 parse bug / inject M6 repair 绕道）|
 
 **输入/输出资产路径**：
-- 测试脚本：`/tmp/phase_e_demo.py`（含 A2 三例 + 2 个 inject + A1 ablation）
-- 完整 JSON：`/tmp/phase_e_results.json`（每 iter 的 DSL / feedback / repair_target / sim_violations 全保留）
+- 测试脚本：`/tmp/phase_e_demo.py`（含 A2 三例 + 2 个 inject + A1 ablation；historical ephemeral artifact）
+- 完整 JSON：`/tmp/phase_e_results.json`（每 iter 的 DSL / feedback / repair_target / sim_violations 全保留；historical ephemeral artifact）
 - loop driver：[`loop.py`](./loop.py)
 - cascaded repair：[`agents/repair.py`](./agents/repair.py)（dispatcher）+ [`prompts/repair/`](./prompts/repair/) 4 个 sub-prompt
 
@@ -528,7 +530,7 @@ Phase J 端到端 acceptance。
   retry，把每次 attempt 的 status 写入 `result.scenariogen_coverage`
 - `method/schema.py`：`AgentLoopResult` 加 `scenariogen_coverage`
 
-### 入口资产（v3）
+### 历史入口资产（v3，ephemeral）
 
-- Demo 脚本：`/tmp/phase_e_demo.py`（v2 → v3 同一组配置，便于对比）
-- 完整 JSON 结果：`/tmp/phase_e_results.json`（含 `scenariogen_coverage` 字段）
+- Demo 脚本：`/tmp/phase_e_demo.py`（v2 → v3 同一组配置，便于当时 session 对比；当前不作为可复现入口）
+- 完整 JSON 结果：`/tmp/phase_e_results.json`（含 `scenariogen_coverage` 字段；当前不作为可复现入口）

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from method.pr2a_loop import DeterministicLoopConfig, ReviewPolicy, run_pr2a_deterministic_loop
+from method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
 from method.schema import GroundedElement, GroundingMap, TestScenario
 from method.stages.ids import StageId
@@ -106,7 +106,7 @@ def _interaction(record, stage_id: StageId | str, index: int = 0) -> dict:
 
 
 def test_pr2b_sl7_audit_only_records_review_without_changing_main_result(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The controller may move between Idle and Active without external events.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -141,7 +141,7 @@ def test_pr2b_sl7_audit_only_records_review_without_changing_main_result(tmp_pat
 
 
 def test_pr2b_blocking_sl7_failure_enters_model_review_fix_plan(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The reviewer should be allowed to request a holistic model-review repair.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -174,7 +174,7 @@ def test_pr2b_blocking_sl7_failure_enters_model_review_fix_plan(tmp_path: Path) 
 
 
 def test_pr2b_sl7_replay_miss_marks_record_invalid_and_filters_path_result(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "Replay miss must not silently enter Path1/Path2 main results.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -204,7 +204,7 @@ def test_pr2b_sl7_replay_miss_marks_record_invalid_and_filters_path_result(tmp_p
 
 
 def test_pr2b_invalid_sl7_output_marks_record_invalid(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "Invalid review JSON must be visible and excluded from main results.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -227,7 +227,7 @@ def test_pr2b_invalid_sl7_output_marks_record_invalid(tmp_path: Path) -> None:
     assert "response is not valid JSON" in sl7["review_meta"]["schema_validation_error"]
 
 def test_pr2b_sl7_provider_failure_marks_record_invalid(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "Provider failure must be auditable and excluded from main results.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -261,7 +261,7 @@ def test_pr2b_run_record_redacts_secrets_and_reports_paths(tmp_path: Path) -> No
         ensure_ascii=False,
     )
 
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         secret_nl,
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -295,7 +295,7 @@ def test_pr2b_run_record_redacts_secrets_and_reports_paths(tmp_path: Path) -> No
 
 def test_pr2b_invalid_review_secret_is_redacted_from_logs_and_stage_meta(tmp_path: Path) -> None:
     secret = "sk-invalid-1234567890abcdef"
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "Invalid output with secret must still redact every record surface.",
         DeterministicLoopConfig(
             initial_dsl=INFO_ONLY_DSL,
@@ -319,7 +319,7 @@ def test_pr2b_invalid_review_secret_is_redacted_from_logs_and_stage_meta(tmp_pat
     assert any(item["field_path"].startswith("llm_interactions") for item in record.redaction_report)
 
 def test_pr2b_sl10b_delta_review_can_reject_sd10_accepted_candidate(tmp_path: Path) -> None:
-    result = run_pr2a_deterministic_loop(
+    result = run_deterministic_ablation_loop(
         "The Active state is required and delta review may reject semantic drift.",
         DeterministicLoopConfig(
             initial_dsl=DEADLOCK_DSL,

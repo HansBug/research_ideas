@@ -701,7 +701,7 @@ def run_agent_loop(
     if seed_dsl is not None and cfg.condition_id == "full_staged_v1":
         raise ValueError(
             "LoopConfig() default full_staged_v1 must not use seed_dsl/hot-start DSL; "
-            "use method.legacy_loop for historical diagnostics or an explicit replay condition."
+            "use method.experiments.ablation for deterministic replay/ablation diagnostics."
         )
     if cfg.condition_id == "full_staged_v1" and llm_provider is not None:
         raise ValueError("default full_staged_v1 must use real_env provider; provider injection requires an explicit non-default condition")
