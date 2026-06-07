@@ -1216,6 +1216,189 @@ def test_sc11_post_accept_validation_failure_remains_not_converged(tmp_path: Pat
     assert record.iteration_records[0]["post_accept_selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
     assert "post accept still fails" in record.iteration_records[0]["exit_reason"]
 
+
+
+def test_post_accept_validation_reuses_prior_sl10_stale_sd6_override(tmp_path: Path) -> None:
+    scenario_name = "post_accept_stale_sd6_override"
+    final_candidate = "post-accept-final-candidate"
+    model_review_payloads: list[dict[str, Any]] = []
+    repair_calls: list[RepairRequest] = []
+
+    scenario = TestScenario(
+        name=scenario_name,
+        description="stale post-accept oracle later overridden by SL-10",
+        initial_state="Root.Idle",
+        steps=[
+            ScenarioStep(
+                events=["tick"],
+                expected_state="Root.Done",
+                expected_vars={"x": 4},
+                name="done_step",
+            )
+        ],
+    )
+
+    def scenario_generate(_request: ScenarioGenerationRequest) -> list[TestScenario]:
+        return [scenario]
+
+    def sim(dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        scenarios = list(getattr(scenarios_or_set, "scenarios", []) or [])
+        n = len(scenarios)
+        if dsl == final_candidate:
+            failed = ScenarioResult(
+                name=scenario_name,
+                status="fail",
+                step_results=[
+                    StepResult(
+                        step_index=0,
+                        step_name="done_step",
+                        status="fail",
+                        actual_state="Root.Done",
+                        actual_vars={"x": 3},
+                        state_assertion_ok=True,
+                        var_assertion_ok=False,
+                        var_mismatches={"x": {"expected": 4, "actual": 3}},
+                    )
+                ],
+            )
+            return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, scenario_results=[failed]), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=n, n_scenarios_passed=n), _meta(StageId.SD_6_SIM)
+
+    def model_review(dsl: str, _context: StageContext, feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        model_review_payloads.append(feedback)
+        if dsl != final_candidate:
+            meta = _meta(StageId.SL_7_MODEL_REVIEW, ok=False)
+            return (
+                ModelReviewFeedback(
+                    ok=False,
+                    decision="fail",
+                    risk_level="major",
+                    findings=[{"id": "MR-needs-final", "summary": "force one accepted candidate"}],
+                    blocking_findings=[{"id": "MR-needs-final", "summary": "force one accepted candidate"}],
+                    review_meta=_review_meta(StageId.SL_7_MODEL_REVIEW),
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SL_7_MODEL_REVIEW)
+        return (
+            ModelReviewFeedback(
+                ok=True,
+                decision="pass",
+                risk_level="none",
+                findings=[{"id": "MR-post-accept-waiver", "summary": "stale SD-6 waiver reviewed"}] if feedback.get("waiver_audit") else [],
+                review_meta=_review_meta(StageId.SL_7_MODEL_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    def repair(request: RepairRequest) -> str:
+        repair_calls.append(request)
+        return final_candidate
+
+    def local_review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == final_candidate:
+            sim_feedback = SimFeedback(
+                ok=False,
+                n_scenarios=1,
+                n_scenarios_passed=0,
+                scenario_results=[
+                    ScenarioResult(
+                        name=scenario_name,
+                        status="fail",
+                        step_results=[
+                            StepResult(
+                                step_index=0,
+                                status="fail",
+                                actual_state="Root.Done",
+                                actual_vars={"x": 3},
+                                var_mismatches={"x": {"expected": 4, "actual": 3}},
+                            )
+                        ],
+                    )
+                ],
+            )
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+                reason="scenario_regression",
+                target_resolved=True,
+                regression_detected=True,
+                drift_risk="minor",
+                evidence=[{"kind": "scenario_regression", "sim_feedback": asdict(sim_feedback)}],
+            )
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+            return (
+                RepairReviewFeedback(
+                    ok=False,
+                    target_resolved=True,
+                    regression_detected=True,
+                    drift_risk="minor",
+                    local_rejection=rejection,
+                    meta=meta,
+                ),
+                meta,
+            )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        return RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none", meta=meta), meta
+
+    def sl10_review(_request: RepairRequest, _local: RepairReviewFeedback) -> tuple[SL10RepairReviewOutput, StageResultMeta]:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW)
+        return (
+            SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "Local post-accept scenario expectation is stale and conflicts with NL."}],
+                local_override_rationale=[
+                    f"Override scenario_regression for {scenario_name}: expected x=4 is stale; NL-grounded value is x=3."
+                ],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            meta,
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "post-accept SD-6 should reuse the same candidate-hash SL-10 stale scenario override.",
+        FullStagedRuntimeConfig(
+            initial_dsl="initial-needs-model-review",
+            run_id="pr-lg-m1-g-post-accept-stale-sd6-waiver",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+        adapters=_base_adapters(
+            scenario_generate=scenario_generate,
+            sim=sim,
+            model_review=model_review,
+            repair=repair,
+            repair_review=local_review,
+            sl10_review=sl10_review,
+        ),
+    )
+
+    assert result.status == "converged"
+    assert result.final_dsl == final_candidate
+    assert len(repair_calls) == 1
+    assert any(payload.get("waiver_audit", {}).get("kind") == "stale_overridden_scenario_waiver" for payload in model_review_payloads)
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    iteration = record.iteration_records[0]
+    assert record.status == "success"
+    assert iteration["budget_gate"]["post_accept_validation_attempted"] is True
+    assert iteration["budget_gate"]["post_accept_validation_success"] is True
+    assert iteration["budget_gate"]["post_accept_waiver_continue"] is True
+    assert iteration["post_accept_selected_feedback"]["source_stage"] == StageId.SD_6_SIM.value
+    assert iteration["post_accept_waiver_audit"]["kind"] == "stale_overridden_scenario_waiver"
+    assert iteration["post_accept_waiver_selected_feedback"] is None
+    assert iteration["post_accept_waiver_stage_ids"] == [
+        StageId.SD_6_SIM.value,
+        StageId.SL_7_MODEL_REVIEW.value,
+    ]
+    assert iteration["exit_reason"] == "full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver"
+
+
 def test_llm_retry_exhausted_in_sl7_exits_provider_error_without_repair(tmp_path: Path) -> None:
     result = run_full_staged_deterministic_runtime(
         "SL-7 provider exhausted",

@@ -816,6 +816,29 @@ def _request_scenario_names(requests: list[FixRequest], *, scenario_set: Scenari
     return names
 
 
+def _failed_scenario_names_from_sim_feedback(feedback: SimFeedback, *, scenario_set: ScenarioSet | None) -> list[str]:
+    """Return failed scenario names from SD-6 feedback.
+
+    This is intentionally schema-based rather than sample-name based.  Waiver
+    reuse must only target the failing scenario oracles that are currently
+    blocking validation; passing scenarios in the same frozen set must not be
+    required to have historical SL-10 overrides.
+    """
+
+    known = _known_scenario_names(scenario_set)
+    names: list[str] = []
+    seen: set[str] = set()
+    for result in list(feedback.scenario_results or []):
+        payload = _jsonable(result)
+        if isinstance(payload, dict) and str(payload.get("status") or "").lower() == "pass":
+            continue
+        for name in _scenario_names_from_payload(payload, known_names=known):
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+    return names
+
+
 def _entry_local_rejections(entry: dict[str, Any]) -> list[dict[str, Any]]:
     """Return local rejection payloads stored directly or inside SL-10 output."""
 
@@ -864,6 +887,51 @@ def _sl9_rejection_invokes_prior_override(sl9_decision: SL9RepairDecisionOutput)
     return any(token in rendered for token in tokens)
 
 
+def _matching_historical_scenario_overrides(
+    *,
+    fix_log: list[dict[str, Any]],
+    candidate_hashes: set[str],
+    scenario_names: list[str],
+    scenario_set: ScenarioSet | None,
+) -> tuple[set[str], list[dict[str, Any]]]:
+    """Match current SD-6 scenario names against prior SL-10 local overrides."""
+
+    known = _known_scenario_names(scenario_set)
+    matches: list[dict[str, Any]] = []
+    matched_names: set[str] = set()
+    candidate_hashes = {item for item in candidate_hashes if item}
+    for entry in fix_log:
+        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+        if entry_candidate_hash not in candidate_hashes:
+            continue
+        sl10 = entry.get("sl10_review")
+        if not isinstance(sl10, dict):
+            continue
+        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
+            continue
+        entry_names: set[str] = set()
+        for rejection in _entry_local_rejections(entry):
+            if not _local_rejection_has_scenario_regression(rejection):
+                continue
+            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
+        overlap = sorted(set(scenario_names) & entry_names)
+        if not overlap:
+            continue
+        matched_names.update(overlap)
+        matches.append(
+            {
+                "entry_id": entry.get("entry_id"),
+                "phase": entry.get("phase"),
+                "old_dsl_hash": entry.get("old_dsl_hash"),
+                "candidate_dsl_hash": entry_candidate_hash,
+                "matched_scenario_names": overlap,
+                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
+                "local_rejection_hash": _short_hash(_entry_local_rejections(entry)),
+            }
+        )
+    return matched_names, matches
+
+
 def _stale_overridden_scenario_waiver_audit(
     *,
     active_request_batch: FixRequestBatch,
@@ -897,39 +965,12 @@ def _stale_overridden_scenario_waiver_audit(
     if not current_scenario_names:
         return None
 
-    candidate_hashes = {item for item in {current_dsl_hash, active_request_batch.before_dsl_hash} if item}
-    known = _known_scenario_names(scenario_set)
-    matches: list[dict[str, Any]] = []
-    matched_names: set[str] = set()
-    for entry in fix_log:
-        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
-        if entry_candidate_hash not in candidate_hashes:
-            continue
-        sl10 = entry.get("sl10_review")
-        if not isinstance(sl10, dict):
-            continue
-        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
-            continue
-        entry_names: set[str] = set()
-        for rejection in _entry_local_rejections(entry):
-            if not _local_rejection_has_scenario_regression(rejection):
-                continue
-            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
-        overlap = sorted(set(current_scenario_names) & entry_names)
-        if not overlap:
-            continue
-        matched_names.update(overlap)
-        matches.append(
-            {
-                "entry_id": entry.get("entry_id"),
-                "phase": entry.get("phase"),
-                "old_dsl_hash": entry.get("old_dsl_hash"),
-                "candidate_dsl_hash": entry_candidate_hash,
-                "matched_scenario_names": overlap,
-                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
-                "local_rejection_hash": _short_hash(_entry_local_rejections(entry)),
-            }
-        )
+    matched_names, matches = _matching_historical_scenario_overrides(
+        fix_log=fix_log,
+        candidate_hashes={current_dsl_hash, active_request_batch.before_dsl_hash},
+        scenario_names=current_scenario_names,
+        scenario_set=scenario_set,
+    )
 
     if set(current_scenario_names) - matched_names:
         return None
@@ -950,6 +991,62 @@ def _stale_overridden_scenario_waiver_audit(
         "matched_scenario_names": sorted(matched_names),
         "matched_historical_overrides": matches,
         "sl9_rejection_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
+def _stale_overridden_sd6_validation_waiver_audit(
+    *,
+    validation: _ValidationPass,
+    fix_log: list[dict[str, Any]],
+    current_dsl_hash: str,
+) -> dict[str, Any] | None:
+    """Audit a validation-level SD-6 stale scenario failure.
+
+    This is the post-accept/current-validation counterpart of
+    ``_stale_overridden_scenario_waiver_audit``.  It does not depend on current
+    SL-9 wording because post-accept validation may have no remaining global
+    iteration budget to enter another repair path.  The rule remains narrow:
+    every currently failing SD-6 scenario must have an earlier SL-10 pass with
+    explicit ``local_override_rationale`` for the same current DSL hash and the
+    same scenario-regression evidence.
+    """
+
+    if validation.selected is None:
+        return None
+    source, selected_feedback, source_stage = validation.selected
+    if source != FeedbackSource.SIM.value or source_stage != StageId.SD_6_SIM.value:
+        return None
+    if not isinstance(selected_feedback, SimFeedback) or selected_feedback.ok:
+        return None
+    current_scenario_names = _failed_scenario_names_from_sim_feedback(
+        selected_feedback,
+        scenario_set=validation.scenario_set,
+    )
+    if not current_scenario_names:
+        return None
+    matched_names, matches = _matching_historical_scenario_overrides(
+        fix_log=fix_log,
+        candidate_hashes={current_dsl_hash},
+        scenario_names=current_scenario_names,
+        scenario_set=validation.scenario_set,
+    )
+    if set(current_scenario_names) - matched_names:
+        return None
+    return {
+        "kind": "stale_overridden_scenario_waiver",
+        "policy": (
+            "The current SD-6 validation failure is limited to scenarios that "
+            "the same current DSL hash already passed through SL-10 with explicit "
+            "local_override_rationale as stale / NL-conflicting scenario oracles. "
+            "Continue to SL-7 without consuming another repair budget slot, while "
+            "retaining this audit evidence in the run record."
+        ),
+        "current_dsl_hash": current_dsl_hash,
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": sorted(matched_names),
+        "matched_historical_overrides": matches,
+        "source_stage": StageId.SD_6_SIM.value,
+        "validation_level": True,
     }
 
 
@@ -5294,6 +5391,132 @@ def run_full_staged_deterministic_runtime(
                 iteration_record["budget_gate"]["post_accept_validation_success"] = True
                 state.iteration_records.append(iteration_record)
                 break
+
+            post_accept_waiver_audit = _stale_overridden_sd6_validation_waiver_audit(
+                validation=post_accept_validation,
+                fix_log=state.fix_log,
+                current_dsl_hash=_hash_text(state.current_dsl),
+            )
+            if post_accept_waiver_audit is not None:
+                try:
+                    post_accept_continued_validation = _continue_after_repair_waiver(
+                        nl=nl,
+                        current_dsl=state.current_dsl,
+                        cfg=config,
+                        adapters=adapters,
+                        validation=post_accept_validation,
+                        iteration=iteration,
+                        state=state,
+                        stage_records=state.stage_records,
+                        llm_interactions=state.llm_interactions,
+                        logs=state.logs,
+                        waiver_audit=post_accept_waiver_audit,
+                    )
+                except _LLMRetryExhausted as exc:
+                    _mark_retry_exhausted(state, exc)
+                    iteration_record["exit_reason"] = state.verdict_reason
+                    iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                    iteration_record["post_accept_stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])[len(iteration_record["stage_ids"]):]
+                    state.iteration_records.append(iteration_record)
+                    break
+
+                state.warning_budget_state = post_accept_continued_validation.context.warning_budget_state
+                state.scenario_set = post_accept_continued_validation.scenario_set
+                if post_accept_continued_validation.scenario_set is not None:
+                    state.scenario_epoch = max(state.scenario_epoch, post_accept_continued_validation.scenario_set.epoch + 1)
+                state.oracle_weak = post_accept_continued_validation.oracle_weak
+                state.scenario_history.extend(post_accept_continued_validation.scenario_history)
+                state.deterministic_feedback["iterations"].append(
+                    {
+                        "iteration": iteration,
+                        "post_accept_validation": True,
+                        "continued_after_post_accept_waiver": True,
+                        "waiver_audit": _jsonable(post_accept_waiver_audit),
+                        "parse": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.PARSE.value)),
+                        "semantic": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                        "design": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                        "sim": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.SIM.value)),
+                        "model_review": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                        "stage_ids": _stage_ids(post_accept_continued_validation.stage_metas),
+                        "scenario_epoch": post_accept_continued_validation.scenario_epoch,
+                        "oracle_weak": post_accept_continued_validation.oracle_weak,
+                    }
+                )
+                if post_accept_continued_validation.selected is not None:
+                    source, feedback_obj, source_stage = post_accept_continued_validation.selected
+                    iteration_record["post_accept_waiver_selected_feedback"] = _selected_feedback_trace(
+                        source,
+                        feedback_obj,
+                        source_stage,
+                        scenario_set=post_accept_continued_validation.scenario_set,
+                    )
+                else:
+                    iteration_record["post_accept_waiver_selected_feedback"] = None
+                iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                iteration_record["post_accept_waiver_stage_ids"] = _stage_ids(
+                    post_accept_continued_validation.stage_metas[len(post_accept_validation.stage_metas) :]
+                )
+                iteration_record["post_accept_waiver_scenario_epoch"] = post_accept_continued_validation.scenario_epoch
+                iteration_record["post_accept_waiver_oracle_weak"] = post_accept_continued_validation.oracle_weak
+                iteration_record["stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])
+
+                weak_sim_feedback = post_accept_continued_validation.feedback.get(FeedbackSource.SIM.value)
+                if (
+                    post_accept_continued_validation.selected is None
+                    and isinstance(weak_sim_feedback, SimFeedback)
+                    and not weak_sim_feedback.ok
+                    and getattr(weak_sim_feedback, "oracle_weak", False)
+                ):
+                    reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                    _mark_sc12_verdict(
+                        state,
+                        verdict="not_converged",
+                        source_stage_id=StageId.SD_6_SIM.value,
+                        reason=reason,
+                        record_status="failed",
+                        result_status="not_converged",
+                        stage_ok=False,
+                        stage_status=StageStatus.FAIL,
+                    )
+                    iteration_record["exit_reason"] = reason
+                    iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                    state.iteration_records.append(iteration_record)
+                    break
+                if post_accept_continued_validation.selected is None:
+                    source_stage_id = (
+                        post_accept_continued_validation.stage_metas[-1].stage_id
+                        if post_accept_continued_validation.stage_metas
+                        else StageId.SC_11_ACCEPT_CANDIDATE.value
+                    )
+                    _mark_sc12_verdict(
+                        state,
+                        verdict="success",
+                        source_stage_id=source_stage_id,
+                        reason="full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver",
+                    )
+                    iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver"
+                    iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                    iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                    state.iteration_records.append(iteration_record)
+                    break
+
+                reason = _repair_selected_reason(iteration_record["post_accept_waiver_selected_feedback"])
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=(iteration_record.get("post_accept_waiver_selected_feedback") or {}).get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                    reason=str(reason),
+                    record_status="budget_exhausted",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = str(reason)
+                iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                state.iteration_records.append(iteration_record)
+                break
+
             reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
             _mark_sc12_verdict(
                 state,

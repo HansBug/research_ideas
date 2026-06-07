@@ -116,6 +116,7 @@ from method.staged_runtime import (
     _sl10_noop_override_waiver_audit,
     _sl9_meta,
     _stale_overridden_scenario_waiver_audit,
+    _stale_overridden_sd6_validation_waiver_audit,
     _stage_ids,
     _utc_now,
 )
@@ -1718,21 +1719,187 @@ def _build_graph(
                 runtime_state.iteration_records.append(iteration_record)
                 command_goto = "sc13_trace_audit"
             else:
-                reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
-                _mark_sc12_verdict(
-                    runtime_state,
-                    verdict="not_converged",
-                    source_stage_id=iteration_record["post_accept_selected_feedback"].get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
-                    reason=str(reason),
-                    record_status="budget_exhausted",
-                    result_status="not_converged",
-                    stage_ok=False,
-                    stage_status=StageStatus.FAIL,
+                post_accept_waiver_audit = _stale_overridden_sd6_validation_waiver_audit(
+                    validation=post_accept_validation,
+                    fix_log=runtime_state.fix_log,
+                    current_dsl_hash=_hash_text(runtime_state.current_dsl),
                 )
-                iteration_record["exit_reason"] = str(reason)
-                iteration_record["budget_gate"]["post_accept_validation_success"] = False
-                runtime_state.iteration_records.append(iteration_record)
-                command_goto = "sc13_trace_audit"
+                if post_accept_waiver_audit is not None:
+                    graph_state["validation_continuation_source"] = post_accept_validation
+                    validation_ref = _put_transient(
+                        runtime_state.run_id,
+                        "post_accept_validation",
+                        iteration,
+                        post_accept_validation,
+                        lifecycle=transient_lifecycle,
+                    )
+                    graph_state["validation_ref"] = validation_ref
+                    repair_patch = {
+                        "waiver_continue": True,
+                        "accepted_candidate": False,
+                        "selected_feedback": iteration_record.get("post_accept_selected_feedback"),
+                        "repair_stage_ids": [],
+                        "waiver_audit": _jsonable(post_accept_waiver_audit),
+                        "exit_reason": "post_accept_stale_overridden_scenario_waiver_continue",
+                    }
+                    graph_state["repair_patch"] = repair_patch
+                    try:
+                        graph_state = dict(
+                            waiver_continuation_subgraph.invoke(
+                                graph_state,
+                                config={
+                                    "configurable": {
+                                        "thread_id": f"{runtime_state.run_id}:post-accept-waiver-continuation:{iteration}"
+                                    }
+                                },
+                            )
+                        )
+                        runtime_state = graph_state["runtime_state"]
+                        post_accept_continued_validation = graph_state.get("waiver_result") or graph_state.get("validation_result")
+                        if not isinstance(post_accept_continued_validation, _ValidationPass):
+                            raise TypeError("waiver continuation subgraph did not return a _ValidationPass after post-accept waiver")
+                        waiver_input_envelope = _jsonable(graph_state.get("waiver_input_envelope") or {})
+                        _drop_validation_subgraph_state(graph_state)
+                        _drop_waiver_subgraph_state(graph_state)
+                    except _LLMRetryExhausted as exc:
+                        waiver_input_envelope = _jsonable(graph_state.get("waiver_input_envelope") or {})
+                        if waiver_input_envelope:
+                            _seed_waiver_exception_evidence(
+                                graph_state,
+                                envelope=waiver_input_envelope,
+                                tail_node="waiver_sim_tail",
+                                iteration=iteration,
+                                retry_stage_id=exc.stage_id,
+                            )
+                        _drop_validation_subgraph_state(graph_state)
+                        _drop_waiver_subgraph_state(graph_state)
+                        _mark_retry_exhausted(runtime_state, exc)
+                        iteration_record["exit_reason"] = runtime_state.verdict_reason
+                        iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                        iteration_record["waiver_entry_envelope"] = waiver_input_envelope
+                        runtime_state.iteration_records.append(iteration_record)
+                        command_goto = "sc13_trace_audit"
+                        graph_state["runtime_state"] = runtime_state
+                        graph_state["iteration_record"] = iteration_record
+                        _drop_state_validation_ref(graph_state)
+                        return Command(goto=command_goto, update=graph_state)
+
+                    runtime_state.warning_budget_state = post_accept_continued_validation.context.warning_budget_state
+                    runtime_state.scenario_set = post_accept_continued_validation.scenario_set
+                    if post_accept_continued_validation.scenario_set is not None:
+                        runtime_state.scenario_epoch = max(runtime_state.scenario_epoch, post_accept_continued_validation.scenario_set.epoch + 1)
+                    runtime_state.oracle_weak = post_accept_continued_validation.oracle_weak
+                    runtime_state.scenario_history.extend(post_accept_continued_validation.scenario_history)
+                    runtime_state.deterministic_feedback["iterations"].append(
+                        {
+                            "iteration": iteration,
+                            "post_accept_validation": True,
+                            "continued_after_post_accept_waiver": True,
+                            "waiver_audit": _jsonable(post_accept_waiver_audit),
+                            "parse": _jsonable(post_accept_continued_validation.feedback.get("parse")),
+                            "semantic": _jsonable(post_accept_continued_validation.feedback.get("semantic")),
+                            "design": _jsonable(post_accept_continued_validation.feedback.get("design")),
+                            "sim": _jsonable(post_accept_continued_validation.feedback.get("sim")),
+                            "model_review": _jsonable(post_accept_continued_validation.feedback.get("model_review")),
+                            "stage_ids": _stage_ids(post_accept_continued_validation.stage_metas),
+                            "scenario_epoch": post_accept_continued_validation.scenario_epoch,
+                            "oracle_weak": post_accept_continued_validation.oracle_weak,
+                            "langgraph_subgraph": "waiver_continuation_subgraph",
+                        }
+                    )
+                    if post_accept_continued_validation.selected is not None:
+                        source, feedback_obj, source_stage = post_accept_continued_validation.selected
+                        iteration_record["post_accept_waiver_selected_feedback"] = _selected_feedback_trace(
+                            source,
+                            feedback_obj,
+                            source_stage,
+                            scenario_set=post_accept_continued_validation.scenario_set,
+                        )
+                    else:
+                        iteration_record["post_accept_waiver_selected_feedback"] = None
+                    iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                    iteration_record["post_accept_waiver_stage_ids"] = _stage_ids(
+                        post_accept_continued_validation.stage_metas[len(post_accept_validation.stage_metas) :]
+                    )
+                    iteration_record["post_accept_waiver_scenario_epoch"] = post_accept_continued_validation.scenario_epoch
+                    iteration_record["post_accept_waiver_oracle_weak"] = post_accept_continued_validation.oracle_weak
+                    iteration_record["waiver_continue"] = True
+                    iteration_record["waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                    iteration_record["waiver_entry_envelope"] = waiver_input_envelope
+                    iteration_record["stage_ids"] = _stage_ids(runtime_state.stage_records[iteration_stage_start:])
+
+                    weak_sim_feedback = post_accept_continued_validation.feedback.get("sim")
+                    if (
+                        post_accept_continued_validation.selected is None
+                        and isinstance(weak_sim_feedback, SimFeedback)
+                        and not weak_sim_feedback.ok
+                        and getattr(weak_sim_feedback, "oracle_weak", False)
+                    ):
+                        reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                        _mark_sc12_verdict(
+                            runtime_state,
+                            verdict="not_converged",
+                            source_stage_id=StageId.SD_6_SIM.value,
+                            reason=reason,
+                            record_status="failed",
+                            result_status="not_converged",
+                            stage_ok=False,
+                            stage_status=StageStatus.FAIL,
+                        )
+                        iteration_record["exit_reason"] = reason
+                        iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                        runtime_state.iteration_records.append(iteration_record)
+                        command_goto = "sc13_trace_audit"
+                    elif post_accept_continued_validation.selected is None:
+                        source_stage_id = (
+                            post_accept_continued_validation.stage_metas[-1].stage_id
+                            if post_accept_continued_validation.stage_metas
+                            else StageId.SC_11_ACCEPT_CANDIDATE.value
+                        )
+                        _mark_sc12_verdict(
+                            runtime_state,
+                            verdict="success",
+                            source_stage_id=source_stage_id,
+                            reason="full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver",
+                        )
+                        iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver"
+                        iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                        iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                        runtime_state.iteration_records.append(iteration_record)
+                        command_goto = "sc13_trace_audit"
+                    else:
+                        reason = _repair_selected_reason(iteration_record["post_accept_waiver_selected_feedback"])
+                        _mark_sc12_verdict(
+                            runtime_state,
+                            verdict="not_converged",
+                            source_stage_id=(iteration_record.get("post_accept_waiver_selected_feedback") or {}).get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                            reason=str(reason),
+                            record_status="budget_exhausted",
+                            result_status="not_converged",
+                            stage_ok=False,
+                            stage_status=StageStatus.FAIL,
+                        )
+                        iteration_record["exit_reason"] = str(reason)
+                        iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                        iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                        runtime_state.iteration_records.append(iteration_record)
+                        command_goto = "sc13_trace_audit"
+                else:
+                    reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
+                    _mark_sc12_verdict(
+                        runtime_state,
+                        verdict="not_converged",
+                        source_stage_id=iteration_record["post_accept_selected_feedback"].get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                        reason=str(reason),
+                        record_status="budget_exhausted",
+                        result_status="not_converged",
+                        stage_ok=False,
+                        stage_status=StageStatus.FAIL,
+                    )
+                    iteration_record["exit_reason"] = str(reason)
+                    iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                    runtime_state.iteration_records.append(iteration_record)
+                    command_goto = "sc13_trace_audit"
         else:
             runtime_state.iteration_records.append(iteration_record)
             graph_state["iteration"] = iteration + 1
