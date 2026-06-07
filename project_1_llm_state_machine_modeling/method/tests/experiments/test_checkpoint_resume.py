@@ -356,7 +356,7 @@ def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path:
 
 
 def test_lg_f1_resume_experiment_repo_root_module_entrypoints_are_reproducible() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[4]
     import os
 
     env = dict(os.environ)

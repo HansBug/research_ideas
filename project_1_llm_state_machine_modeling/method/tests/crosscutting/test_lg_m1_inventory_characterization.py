@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
 TESTS_ROOT = METHOD_ROOT / "tests"
 BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
@@ -48,7 +48,7 @@ LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT = 52
 LG_M1_C2_EXPECTED_TEST_PR0_LEGACY_DIRECT_COUNT = 0
 LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
     "project_1_llm_state_machine_modeling/method/loop.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py",
+    "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
 }
 LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D3_EXPECTED_COLLECTION_DELTA = 7
@@ -61,6 +61,53 @@ LG_M1_D3_REMOVED_FACADE_IMPORTS = {
     )
 }
 LG_M1_D3_REMOVED_DIRECT_SYMBOLS = {"run_lg_f1_resume_experiment"}
+
+LG_M1_E_TEST_PATH_MIRROR_MAP = {
+    "project_1_llm_state_machine_modeling/method/tests/test_gpt_client.py":
+        "project_1_llm_state_machine_modeling/method/tests/llm/test_gpt_client.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py":
+        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_c1_experiments_entrypoints.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/test_experiments_entrypoints.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d1_langgraph_foundation.py":
+        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_foundation.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d2_langgraph_instrumentation.py":
+        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_instrumentation.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d3_langgraph_nodes_subgraphs_core.py":
+        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_nodes_subgraphs_core.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr0_stage_contract.py":
+        "project_1_llm_state_machine_modeling/method/tests/stages/test_stage_contract.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr1a_sd_tools.py":
+        "project_1_llm_state_machine_modeling/method/tests/stages/test_sd_tools.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr1b_sl_prompt_generators.py":
+        "project_1_llm_state_machine_modeling/method/tests/stages/test_sl_prompt_generators.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr2a_deterministic_loop.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/ablation/test_deterministic_loop.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr2b_llm_review_integration.py":
+        "project_1_llm_state_machine_modeling/method/tests/llm/test_llm_review_integration.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr3_handoff_smoke.py":
+        "project_1_llm_state_machine_modeling/method/tests/handoff_smoke/test_handoff_smoke.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_b1_deterministic_runtime.py":
+        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_full_staged_runtime_contract.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_b2_llm_stage_adapters.py":
+        "project_1_llm_state_machine_modeling/method/tests/llm/test_llm_stage_adapters.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_c_default_entry.py":
+        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_default_agent_loop_entry.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_d_representative.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/test_representative_cases.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_e1_real_runs.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/test_real_run_matrix.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_e1_scenario_normalization.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/test_scenario_normalization.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_langgraph_runtime.py":
+        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_runtime_contract.py",
+    "project_1_llm_state_machine_modeling/method/tests/test_pr_lg_f1_resume_experiment.py":
+        "project_1_llm_state_machine_modeling/method/tests/experiments/test_checkpoint_resume.py",
+}
+
+
+def _lg_m1_e_mirror_path(path: str) -> str:
+    return LG_M1_E_TEST_PATH_MIRROR_MAP.get(path, path)
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -143,7 +190,7 @@ def _scan_stage_api() -> dict[str, Any]:
 
 
 def _scan_legacy_contract_tests() -> dict[str, Any]:
-    path = TESTS_ROOT / "test_pr0_stage_contract.py"
+    path = TESTS_ROOT / "stages" / "test_stage_contract.py"
     module = ast.parse(path.read_text(encoding="utf-8"))
     tests: list[dict[str, Any]] = []
     for node in module.body:
@@ -240,11 +287,11 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
     current_facade = _scan_langgraph_facade_consumers()
     fixture_facade = baseline["facade_reexport_scan"]
     current_entries = {
-        (entry["module_path"], entry["kind"], entry["symbol"], entry.get("asname"))
+        (_lg_m1_e_mirror_path(entry["module_path"]), entry["kind"], entry["symbol"], entry.get("asname"))
         for entry in current_facade["entries"]
     }
     fixture_entries = {
-        (entry["module_path"], entry["kind"], entry["symbol"], entry.get("asname"))
+        (_lg_m1_e_mirror_path(entry["module_path"]), entry["kind"], entry["symbol"], entry.get("asname"))
         for entry in fixture_facade["entries"]
     }
     assert fixture_entries - current_entries == LG_M1_D3_REMOVED_FACADE_IMPORTS
