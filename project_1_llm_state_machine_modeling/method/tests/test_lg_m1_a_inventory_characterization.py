@@ -343,8 +343,9 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     # register exact additive deltas. C2 is the approved cleanup point that
     # legally removes three old full-loop legacy-only tests, adds one explicit
     # old/new ablation path equivalence test, two non-legacy evidence
-    # preservation tests, and one LG-C2 redaction false-positive regression test, and rewrites the remaining legacy-direct contracts
-    # into non-legacy helper/schema tests.
+    # preservation tests, and one LG-C2 redaction false-positive regression test.
+    # It also rewrites the remaining legacy-direct contracts into non-legacy
+    # helper/schema tests.
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
