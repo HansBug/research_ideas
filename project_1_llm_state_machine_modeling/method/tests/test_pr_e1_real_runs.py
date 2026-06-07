@@ -4,7 +4,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from method.pr_e1_real_runs import (
+from method.experiments.real_run_matrix import (
     PrE1RunSummary,
     condition_specs,
     make_pr_e1_config,
@@ -243,7 +243,7 @@ def test_pr_e1_failure_class_is_trace_driven_for_sd6_sl10_rework() -> None:
     record.final_artifacts["verdict"] = "not_converged"
     record.final_artifacts["verdict_reason"] = "semantic transition text from last rejected candidate"
 
-    from method.pr_e1_real_runs import classify_primary_failure
+    from method.experiments.real_run_matrix import classify_primary_failure
 
     assert classify_primary_failure(record) == "repair_review_rework_budget"
 
@@ -257,7 +257,7 @@ def test_pr_e1_success_with_weak_oracle_is_not_plain_success() -> None:
     record.final_artifacts["main_result_eligible"] = False
     record.final_artifacts["exclusion_reason"] = "weak_oracle"
 
-    from method.pr_e1_real_runs import classify_primary_failure
+    from method.experiments.real_run_matrix import classify_primary_failure
 
     assert classify_primary_failure(record) == "success_but_weak_oracle_ineligible"
 
@@ -271,7 +271,7 @@ def test_pr_e1_missing_required_stages_do_not_require_legacy_sd10_sl10b(tmp_path
     path = write_agent_loop_run_record(record, tmp_path / "required.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="required", run_record_path=str(path))
 
-    from method.pr_e1_real_runs import summarize_pr_e1_run
+    from method.experiments.real_run_matrix import summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case=pr_e1_cases()[0],
@@ -320,7 +320,7 @@ def test_pr_e1_waiver_continue_does_not_require_sl10_sc11(tmp_path: Path) -> Non
     path = write_agent_loop_run_record(record, tmp_path / "waiver-required.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="waiver-required", run_record_path=str(path))
 
-    from method.pr_e1_real_runs import summarize_pr_e1_run
+    from method.experiments.real_run_matrix import summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case=pr_e1_cases(case_keys=["path2_lng_ems"])[0],
@@ -370,7 +370,7 @@ def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> No
     case = pr_e1_cases()[0]
     spec = condition_specs()["default"]
 
-    from method.pr_e1_real_runs import summarize_pr_e1_run
+    from method.experiments.real_run_matrix import summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case=case,
@@ -475,7 +475,7 @@ def test_pr_e1_final_dsl_source_prefers_later_accepted_same_hash(tmp_path: Path)
     path = write_agent_loop_run_record(record, tmp_path / "source-repeat.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="source-repeat", run_record_path=str(path))
 
-    from method.pr_e1_real_runs import summarize_pr_e1_run
+    from method.experiments.real_run_matrix import summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case=pr_e1_cases()[0],
@@ -545,7 +545,7 @@ state DispatchClassifier {
     path = write_agent_loop_run_record(record, tmp_path / "path2-blueprint.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=forced_classifier_dsl, status="success", run_record_id="path2-blueprint", run_record_path=str(path))
 
-    from method.pr_e1_real_runs import render_matrix_summary, summarize_pr_e1_run
+    from method.experiments.real_run_matrix import render_matrix_summary, summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case={case.case_key: case for case in pr_e1_cases("all")}["path2_lng_ems"],
@@ -596,7 +596,7 @@ def test_pr_e1_path2_blueprint_allows_non_decorative_mode_model(tmp_path: Path) 
     path = write_agent_loop_run_record(record, tmp_path / "path2-modeful.agent_loop.json.gz")
     result = AgentLoopResult(final_dsl=modeful_dsl, status="success", run_record_id="path2-modeful", run_record_path=str(path))
 
-    from method.pr_e1_real_runs import summarize_pr_e1_run
+    from method.experiments.real_run_matrix import summarize_pr_e1_run
 
     summary = summarize_pr_e1_run(
         case={case.case_key: case for case in pr_e1_cases("all")}["path2_lng_ems"],
@@ -617,7 +617,7 @@ def test_pr_e1_path2_blueprint_allows_non_decorative_mode_model(tmp_path: Path) 
 
 
 def test_pr_e1_reproducibility_payload_records_env_loading_command(tmp_path: Path) -> None:
-    from method.pr_e1_real_runs import build_reproducibility_payload
+    from method.experiments.real_run_matrix import build_reproducibility_payload
 
     case = pr_e1_cases("all", case_keys=["path1_abs"])[0]
     spec = condition_specs()["default"]
@@ -640,7 +640,7 @@ def test_pr_e1_reproducibility_payload_records_env_loading_command(tmp_path: Pat
 
 
 def test_pr_e1_quality_boundary_is_persisted_in_canonical_record(tmp_path: Path) -> None:
-    from method.pr_e1_real_runs import _inject_pr_e1_quality_boundary, summarize_pr_e1_run
+    from method.experiments.real_run_matrix import _inject_pr_e1_quality_boundary, summarize_pr_e1_run
     from method.run_record import read_agent_loop_run_record
 
     record = _record("path2-boundary-canonical")
@@ -769,7 +769,7 @@ def test_pr_e1_matrix_summary_separates_provider_invalid_denominator() -> None:
         final_dsl_hash="sha256:provider",
     )
 
-    from method.pr_e1_real_runs import render_matrix_summary
+    from method.experiments.real_run_matrix import render_matrix_summary
 
     text = render_matrix_summary([ok, invalid])
     assert "1/1 effective success" in text
