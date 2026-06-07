@@ -1,6 +1,6 @@
 # `ccf_venues/` 01-venue-scope
 
-> 信息更新时间：`2026-06-06 00:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
 
 ## 1. 文档用途
 
@@ -100,12 +100,23 @@
 | `conf-c-msr` | MSR | 会议 | C | 数据集、仓库挖掘、LLM4SE 实证。 |
 | `conf-c-rv` | RV | 会议 | C | 运行时验证，与 P3 邻近。 |
 
+## 8.5 PR #63 LLM4Modeling-SE 扩展候选
+
+PR #63 是在 PR #35 / PR #62 已合入后的用户指定补链，不属于 PR-6~PR-10 原冻结合同。它只补充 SE 大类中与 LLM4Modeling 主线足够贴合且规模可控的漏项，并要求 CCF 官方 / 镜像证据等级显式区分。
+
+| 目录名 | Venue | 类型 | CCF | 相关理由 | 边界 |
+|---|---|---|---|---|---|
+| `journal-b-ase` | Automated Software Engineering Journal | 期刊 | B | 自动化软工期刊，P1/P2/P4 强相关；补齐已有 ASE 会议之外的期刊入口。 | 与 `conf-a-ase` 严格消歧；常规投稿 rolling，只有 official collection deadline 进入 TIMELINE。 |
+| `conf-b-caise` | CAiSE | 会议 | B | Advanced Information Systems Engineering、概念建模、需求、MDE、过程与企业建模可承载 LLM-assisted modeling。 | 只作为 IS / conceptual modeling / MDE 分流，不写成泛 SE 主战场。 |
+| `conf-c-iceccs` | ICECCS | 会议 | C | 复杂系统工程、requirements/specification、V&V、formal engineering methods 与 P2/P3 工程案例贴合。 | C 类补充观察；不升级为 P0/P1 主投目标，2024/2027/2028 缺口不得伪造。 |
+
 ## 9. 更新日志
 
 > 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 12:47` | PR #63 增补 LLM4Modeling-SE 扩展候选：新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 venue，并明确其不回写为 PR-6~PR-10 原冻结合同。 |
 | `2026-06-06 00:16` | PR-10 全局审计执行：范围清单不新增 venue，继续确认 P2 邻近观察不升级为 P0/P1，完成状态由 SUMMARY 维护。 |
 | `2026-06-05 23:06` | PR-9 冲突后复审修复：保持 PR-6 / PR-7 / PR-8 / PR-9 facts 共存，并由 SUMMARY 记录 PR-9 已完成基础建档状态。 |
 | `2026-06-05 22:34` | PR-9 merge 最新上游 PR-8：当前合流后 PR-6 / PR-7 / PR-8 / PR-9 facts 共存，PR-9 仍只作为 P2 邻近观察；完成状态继续由 [SUMMARY.md](./SUMMARY.md) 维护。 |

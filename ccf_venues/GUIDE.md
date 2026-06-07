@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-07 11:25`（Asia/Shanghai）
+> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -178,6 +178,15 @@ PR-7 实证 / 质量期刊填充后的补充规则：
 2. Empirical Software Engineering 等 Springer 期刊 collection 页面可能同时列出 `Submission deadline`、`Notification`、`Revision due`、`Final decision`、`Publication` 等多类事件；年度 README 和 [TIMELINE.md](./TIMELINE.md) 必须保留官方事件语义，不能把 notification、revision 或 final decision 统一改名为 submission deadline。只有官方给出明确日期的事件进入 dated 表；只给月份或季度的事件只能写入备注 / 待补记录。
 3. Special issue / topical collection editors、guest editors 或 collection editors 是当期专题角色，不等同于长期 editorial board / editorial leadership。除非同一人员另有官方当前 editorial board 页面支撑，否则不得把 collection editor 写入期刊根 README 的当前核心编辑人员正表；应放在年度 special issue / collection 小节或单独“专题编辑线索”小节。
 4. Elsevier / ScienceDirect 的 guide for authors、volume / issue、articles in press、online first、editorial board 页面若在 CLI 中返回 `403`、WAF、JS 壳或空正文，应保留官方链接并标注 `CLI 403/WAF，待人工浏览器核验`；不得用 DBLP、Scimago、LetPub、Guide2Research 或第三方索引替代官方入口。DBLP 可用于年度论文名录 / 计数 fallback，但不能支撑 author guidelines、current roster 或 articles in press 当前性。
+
+
+### 5.4 PR #63 CCF 名录与 LLM4Modeling-SE 扩展补充规则
+
+1. CCF 等级优先以 [CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) 为主证据；若 CLI 遇到阿里云 WAF / CAPTCHA / 动态页壳，只能写“官方入口已定位，正文待人工浏览器核验”，不得把 `ccf.atom.im` 或旧 [../VENUES.md](../VENUES.md) 写成官方事实。
+2. `ccf.atom.im` 只能作为非官方机器检索镜像 / 差集筛查线索；其 `2026 / 第七版` 标注必须写成镜像标注或待官方核验线索。
+3. `journal-b-ase` 必须与 [conf-a-ase](./conf-a-ase/README.md) 消歧；期刊常规 rolling 不进 dated Mermaid，Springer collection guest editors 不混入长期 editorial board。
+4. `conf-b-caise` 只作为 Information Systems Engineering / conceptual modeling / requirements / MDE 分流；Forum、DC、Workshop、BPMDS、EMMSAD 与 main conference 计数分开。
+5. `conf-c-iceccs` 是 C 类 P2/P3 工程案例观察，不升级为 P0/P1 主投目标；未找到 stable series page 或 2024 official annual site 时写待补，不用 DBLP / 第三方页面冒充官方。
 
 ### 5.3 Markdown 链接写法
 
@@ -429,7 +438,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 ### 12.3 默认 watchlist 启动口径
 
-常态化刷新不能默认全量扫描 39 个 venue。若用户没有给出明确目标，本轮 watchlist 按以下顺序确定：
+常态化刷新不能默认全量扫描 42 个 venue。若用户没有给出明确目标，本轮 watchlist 按以下顺序确定：
 
 1. **P0 默认核心**：P0 22 个 venue 永远是投稿决策主线候选，但本轮只实际刷新其中“未来 6 个月有窗口、待补项影响决策、或已有 next edition 线索”的 venue；这就是 [SUMMARY.md](./SUMMARY.md) §1.1 中“优先 P0”的实际筛选口径。
 2. **P1 近期窗口**：P1 venue 只有在 [TIMELINE.md](./TIMELINE.md) §3 已有未来 6 个月 open 窗口、SUMMARY 待补项指向近期窗口、或官方 next edition 已公布时进入本轮 watchlist。
@@ -520,7 +529,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 ### 12.9 P0/P1/P2 与统计不回退规则
 
-1. 当前组合统计为 39 个 venue 根 README、273 个年度 README；P0 冻结基线为 22 个 venue 根 README、154 个年度 README。常态化更新不得把正文当前状态回退到历史中间统计。
+1. 当前组合统计为 42 个 venue 根 README、294 个年度 README；P0 冻结基线为 22 个 venue 根 README、154 个年度 README；PR-10 后、PR #63 前的 39/273 只能作为历史状态。常态化更新不得把正文当前状态回退到历史中间统计。
 2. 历史更新日志中的 26 / 182、30 / 210、34 / 238 等旧统计是当时真实记录，不得为了 `rg` 零命中而删除或篡改。
 3. P2 venue 可以出现在近期窗口和历史事件表中，但必须保留 `P2 / 不升级` 或等价说明；不得在 README、SUMMARY、PR body 或投稿建议中改写成 P0/P1 主投目标。
 4. 常态化刷新若发现 CCF 官方更名、venue 分裂 / 合并或确有强相关漏项，不能直接新增目录；先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，再进入新增 venue 流程。
@@ -532,7 +541,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 ```bash
 git status --short
 rg -n "常态化|滚动刷新|投稿窗口|近期窗口|刷新" ccf_venues/README.md ccf_venues/GUIDE.md ccf_venues/SUMMARY.md
-rg -n "39.*venue|273.*年度|P2" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md
+rg -n "42.*venue|294.*年度|P2|PR #63" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md
 rg -n '^(<<<<<<<|=======|>>>>>>>)' ccf_venues || true
 ```
 
@@ -629,7 +638,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 12. **证书风险入口坑**：若官方旧站 HTTPS 证书主机名不匹配但 HTTP 可访问，例如 SANER 2022，应优先使用可访问的 HTTP 官方站入口，并在备注中显式写明 HTTPS 证书风险；不要留下会让读者点击失败的裸 HTTPS 链接。
 13. **Wiley current issue / Early View 混写坑**：Wiley `currentissue` 只可写作 current issue candidate，不能冒充 Early View / articles in press；若 Early View 入口未定位，应单独写 `Early View / articles in press 入口待定位`。JSEP 本轮已按此规则将 2026+ rolling 状态降级为 `🟡 rolling 候选 / 待人工核验`；STVR 等既有 Wiley WAF/403 历史条目在后续触碰或专项复核时也应吸收该口径。不得在 author guidelines / ScholarOne 路由未人工确认前，把新建或本轮修改的 Wiley WAF 条目写成 `🟢 滚动开放`。
 14. **未来年度维护会议预造坑**：SANER / ICSME / ICPC 的 2027/2028/2029+ 若只找到 series page、announcement、townhall、program 预告或无 official research track dates，应写 `⏳ 已检索未公布`，不得预造 official CFP、submission deadline、DBLP 年度页或 proceedings。
-15. **P1/P2 sibling 合流统计坑**：PR-6、PR-7、PR-8 单独或两两合流时会产生 26/182 或 30/210 的中间口径；PR-6 / PR-7 / PR-8 三者合流后必须重算为 34 个 venue / 238 个年度 README（22 会议 / 12 期刊）；PR-9 合流后必须重算为 39 个 venue / 273 个年度 README（27 会议 / 12 期刊），并同时保留 P0 22/154 冻结基线、各 sibling 已建档事实和 PR-10 全局审计依赖。
+15. **P1/P2 sibling 合流统计坑**：PR-6、PR-7、PR-8 单独或两两合流时会产生 26/182 或 30/210 的中间口径；PR-6 / PR-7 / PR-8 三者合流后必须重算为 34 个 venue / 238 个年度 README（22 会议 / 12 期刊）；PR-9 合流后必须重算为 39 个 venue / 273 个年度 README（27 会议 / 12 期刊）；PR #63 合流后必须重算为 42 个 venue / 294 个年度 README（29 会议 / 13 期刊），并同时保留 P0 22/154 冻结基线、各 sibling 已建档事实和 PR-10 全局审计依赖。
 16. **PR-7 实证 / 质量 venue 坑**：Springer Closed collection 仍可能有 historical deadline，必须写成历史 dated event 而不是当前征稿；ESE collection 多事件类型要保留 submission / notification / revision / final decision 的原始语义；ScienceDirect CLI `403` / WAF 只能标注待浏览器核验，不能替代或删除官方 Elsevier 链接；ESEM historical submission system 要区分“当年官方使用过”和“当前是否还能访问正文 / 表单”。
 17. **Elsevier / ScienceDirect candidate CFP 坑**：命令行只能打开入口或遇到 WAF/403 时，candidate special issue、editorial roster 和 issue 正文只能写作待人工浏览器核验；不能为了填满 TIMELINE 而把未核验 deadline 变成 dated event。
 18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
@@ -670,12 +679,23 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 5. 若 RV 等 P2 venue 的官方日期只给 week / month / quarter（例如 RV 2022 Notification 仅给 `Week 26`），只能写入年度 README、根 README 或待补记录，不得硬落某一天并进入 dated TIMELINE / Mermaid。
 6. 2027/2028 若只找到 stable series 或 future event 线索，不能当成年度主页 / CFP；只能在年度 README 写 `⏳ 已检索未公布`，不进入 dated Mermaid。
 
+
+### 16.5 PR #63 LLM4Modeling-SE 扩展规则
+
+1. PR #63 新增 `journal-b-ase`、`conf-b-caise`、`conf-c-iceccs` 后，当前组合统计必须重算为 42 个 venue / 294 个年度 README（29 个会议 / 13 个期刊）；历史 39/273 只能作为 PR-10 后、PR #63 前状态。
+2. ASE Journal 与 ASE Conference 同缩写但不同 venue；任何投稿决策表、SUMMARY、TIMELINE label 都必须写清 Journal / Conference。
+3. CAiSE 只在需求、概念建模、MDE、信息系统 / 过程 / 企业建模语境下适投；不得将泛 LLM4SE 工具评测硬写为 CAiSE 主场。
+4. ICECCS 只作为 C 类复杂系统工程 / formal engineering / V&V 工程案例来源；不得把全部 complex systems 论文自动标为 LLM 状态机建模强相关。
+5. 若 CAiSE 2024 或 ICECCS 2024 只找到 DBLP / proceedings / 第三方 deadline，不得补写 abstract / submission / notification 等 official dates；会期可以由 proceedings record 支撑，但必须标明来源降级。
+6. Springer collections 进入 TIMELINE 前必须记录 collection 语义、状态、deadline 与本仓库相关性；弱相关 open collection 可留作观察线索，不必进入近期投稿重点，但不能把它写成已同步事实。
+
 ## 17. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：补充 CCF 官方 / 镜像证据等级、ASE Journal / CAiSE / ICECCS 的消歧、scope 边界、计数与 TIMELINE 同步规则。 |
 | `2026-06-07 11:25` | PR #62 final M 级 polish：补充 SUMMARY 最新事实刷新锚点更新条件、P0 默认 watchlist 交叉锚定，以及 TIMELINE 辅助列中 `⏳ 已检索未公布` 的合法使用边界。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：将冲突标记自查命令改为行首锚定，补充 TIMELINE §15 / SUMMARY §13 入口释义，并明确 `⏳ 已检索未公布` 不得进入 dated TIMELINE / Mermaid。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：新增 §12，固定刷新频率、watchlist、字段落点、状态迁移、来源降级、SUMMARY/TIMELINE 分工与 reviewer dry-run 验收规则。 |
