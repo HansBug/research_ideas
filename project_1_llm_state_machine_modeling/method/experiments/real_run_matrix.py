@@ -27,6 +27,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 import uuid
 from urllib.parse import urlparse
@@ -35,6 +36,17 @@ from dataclasses import MISSING, asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
+
+if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
+    # Allow repo-root package execution, for example
+    # ``python -m project_1_llm_state_machine_modeling.method.experiments.real_run_matrix``.
+    # The method implementation keeps absolute ``method.*`` imports to preserve
+    # the historical ``PYTHONPATH=project_1_llm_state_machine_modeling`` workflow;
+    # package-mode execution therefore needs the project package root on sys.path.
+    # This bootstrap does not read ``.env`` and does not touch provider config.
+    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    if str(_PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(_PROJECT_ROOT))
 
 from method.gpt_client import (
     DEFAULT_SDK_MAX_RETRIES,

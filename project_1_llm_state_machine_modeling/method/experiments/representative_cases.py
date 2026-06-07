@@ -18,9 +18,21 @@ import argparse
 import json
 import os
 import re
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
+
+if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
+    # Allow repo-root package execution, for example
+    # ``python -m project_1_llm_state_machine_modeling.method.experiments.representative_cases``.
+    # The method implementation keeps absolute ``method.*`` imports to preserve
+    # the historical ``PYTHONPATH=project_1_llm_state_machine_modeling`` workflow;
+    # package-mode execution therefore needs the project package root on sys.path.
+    # This bootstrap does not read ``.env`` and does not touch provider config.
+    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    if str(_PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(_PROJECT_ROOT))
 
 from method.loop import LoopConfig, run_agent_loop
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record

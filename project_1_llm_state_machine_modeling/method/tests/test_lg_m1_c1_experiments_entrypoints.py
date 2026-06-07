@@ -65,6 +65,14 @@ def _python_env() -> dict[str, str]:
     return env
 
 
+def _repo_root_env_without_pythonpath() -> dict[str, str]:
+    import os
+
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    return env
+
+
 def _help(module: str) -> argparse.ArgumentParser:
     imported = importlib.import_module(module)
     parser_holder: dict[str, argparse.ArgumentParser] = {}
@@ -120,6 +128,23 @@ def test_lg_m1_c1_all_old_and_new_module_entrypoints_exit_zero_without_provider(
                 [sys.executable, "-m", module_name, "--help"],
                 cwd=REPO_ROOT,
                 env=_python_env(),
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            assert completed.returncode == 0, completed.stderr
+            assert "usage:" in completed.stdout
+
+
+def test_lg_m1_c1_repo_root_package_entrypoints_exit_zero_without_pythonpath() -> None:
+    for old_module_name, new_module_name in ENTRYPOINT_PAIRS:
+        for module_name in (old_module_name, new_module_name):
+            package_module = f"project_1_llm_state_machine_modeling.{module_name}"
+            completed = subprocess.run(
+                [sys.executable, "-m", package_module, "--help"],
+                cwd=REPO_ROOT,
+                env=_repo_root_env_without_pythonpath(),
                 check=False,
                 text=True,
                 stdout=subprocess.PIPE,

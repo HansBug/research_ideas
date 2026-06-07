@@ -357,6 +357,10 @@ def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path:
 
 def test_lg_f1_resume_experiment_repo_root_module_entrypoints_are_reproducible() -> None:
     repo_root = Path(__file__).resolve().parents[3]
+    import os
+
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
 
     for module_name in (
         "project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume",
@@ -365,11 +369,12 @@ def test_lg_f1_resume_experiment_repo_root_module_entrypoints_are_reproducible()
         completed = subprocess.run(
             [sys.executable, "-m", module_name, "--help"],
             cwd=repo_root,
+            env=env,
             check=False,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
 
-        assert completed.returncode == 0
+        assert completed.returncode == 0, completed.stderr
         assert "Run LG-F1 durable checkpoint/resume experiment." in completed.stdout
