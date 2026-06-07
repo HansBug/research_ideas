@@ -59,7 +59,7 @@ PR-skill-fix 后续使用本 skill 时，必须确认 PR-E1 大改后的设计�
 ## PR-C config / default runtime contract
 
 - 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`，并执行 full staged runtime；这不是 skill 程序化调用入口，PR-E2 ref-model producer 不得调用它。
-- legacy：旧 A0-A4 loop 只能通过 `method.legacy_loop.run_legacy_agent_loop()` 显式调用，并视为 deprecated。
+- legacy：旧 A0-A4 full loop 已从 active skill entry 移除；新工作不得调用 `method.legacy_loop`，确定性对照应走 `method.experiments.ablation`。
 - skill 使用者若要生成 ref model，应使用 `SL-*` prompt generators 自行调用 LLM/subagent；`SD-*` deterministic tools 可直接作为封装工具调用。
 - 任何 ablation 都要显式 `condition_id/base_condition_id/changed_factors/academic_question`，并在 run record 中记录 resolved config 与 condition hash。
 - 默认入口接 PR-B1 driver + PR-B2 real-env LLM adapters；provider/schema/empty-output retry exhaustion 必须以 `provider_error` / `invalid` 等可追溯 verdict 退出并写 run record，不得回退 fake。

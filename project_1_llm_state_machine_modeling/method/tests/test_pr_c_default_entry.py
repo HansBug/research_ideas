@@ -857,6 +857,34 @@ def test_lg_c2_sl10_context_metadata_compacts_only_when_over_budget_and_is_canon
     assert "prompt_budget" not in rendered_payload
 
 
+
+def test_lg_c2_redaction_guard_allows_non_secret_token_accounting_fields() -> None:
+    from method.langgraph_runtime import assemble_lg_c2_prompt_context
+
+    result = assemble_lg_c2_prompt_context(
+        stage_id=StageId.SL_9_REPAIR.value,
+        payload_candidates=[
+            (
+                "none",
+                {
+                    "token_usage": {"prompt_tokens": 12, "completion_tokens": 3},
+                    "trace": {"nl_token_present": True, "token_usage_available": True},
+                },
+            )
+        ],
+        prompt_builder=lambda payload: [
+            {
+                "role": "user",
+                "content": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+            }
+        ],
+        cfg=LLMStageConfig(max_prompt_tokens=128_000),
+    )
+
+    assert result.metadata["redaction_guard"]["status"] == "passed"
+    assert result.metadata["redaction_guard"]["secret_like_field_detected"] is False
+
+
 def test_lg_c2_redaction_guard_blocks_secret_like_context_before_provider() -> None:
     from method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
 

@@ -164,13 +164,19 @@ def _lg_c2_secret_like_field_detected(value: Any) -> bool:
     become unsafe.
     """
 
-    secret_key_re = re.compile(r"(api[_-]?key|token|secret|password|credential|authorization)", re.IGNORECASE)
+    secret_key_re = re.compile(
+        r"(api[_-]?key|secret|password|credential|authorization|bearer[_-]?token|access[_-]?token|refresh[_-]?token)",
+        re.IGNORECASE,
+    )
     secret_value_re = re.compile(r"(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|LLM_API_KEY\s*=)")
 
     def walk(item: Any, path: str = "payload") -> bool:
         if isinstance(item, dict):
             for key, nested in item.items():
                 key_text = str(key)
+                # Do not treat ordinary accounting/trace keys such as
+                # ``prompt_tokens`` or ``nl_token_present`` as credentials.
+                # Values remain checked below for actual key-shaped secrets.
                 if secret_key_re.search(key_text):
                     return True
                 if walk(nested, f"{path}.{key_text}"):

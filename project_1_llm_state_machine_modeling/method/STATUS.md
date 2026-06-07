@@ -11,7 +11,7 @@
 - `LoopConfig()` 默认解析为 `experiment_default/full_staged_v1`，包含 full staged stage switches、feedback/budget/scenario/LLM/record/eligibility policy 与 condition hash。
 - `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation，也不再停留在 PR-A contract-only façade；默认执行 full staged runtime。
 - 默认 `LoopConfig()` 使用 real-env LLM provider adapter；缺 provider 配置、provider retry exhaustion 或 schema invalid 会写出 run record 并以 `provider_error` / `invalid` 退出，不回退 fake。
-- 旧实现移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，并发 deprecation warning。
+- 旧 A0-A4 full loop 后续由 LG-M1-C2 从 active API 中移除；历史配置 `LegacyLoopConfig` 仅作为 provenance/schema artifact。
 - planned stage graph 已更新为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SL-10/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
 - run record 记录 resolved config / environment / provider-model 脱敏标识 / stage_records / iteration_records / llm_interactions / deterministic_feedback / repair_history / fix_log / scenario_history / logs / final_artifacts / redaction_report。
 - PR-E1 继续负责四例真实 agent-loop 重跑、NFRR v3 质量诊断与 reviewer 闭环；当前不声明模型质量已达到高可信主结果。
