@@ -1,0 +1,300 @@
+"""LG-M1-A inventory and characterization baseline tests.
+
+These tests intentionally lock observable contracts only: import surfaces,
+collection count, graph registry metadata, no-provider CLI/help surfaces, and
+runtime identity fields that downstream LG-M1 sub-PRs must account for.
+They must not freeze private helper organization, line counts, or internal file
+split decisions that LG-M1-D* is explicitly allowed to change.
+"""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+TESTS_ROOT = METHOD_ROOT / "tests"
+BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
+EXPERIMENT_MODULES = [
+    "method.pr_e1_real_runs",
+    "method.pr_lg_f1_resume_experiment",
+    "method.pr_d_representative",
+    "method.pr2a_loop",
+]
+
+
+def _load_baseline() -> dict[str, Any]:
+    return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+
+
+def _sha256_json(payload: object) -> str:
+    data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def _python_env() -> dict[str, str]:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = "project_1_llm_state_machine_modeling"
+    return env
+
+
+def _scan_langgraph_facade_consumers() -> dict[str, Any]:
+    entries: list[dict[str, Any]] = []
+    alias_attrs: list[dict[str, str]] = []
+    for path in sorted(METHOD_ROOT.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        rel = str(path.relative_to(REPO_ROOT))
+        module = ast.parse(path.read_text(encoding="utf-8"))
+        alias_names: set[str] = set()
+        for node in ast.walk(module):
+            if isinstance(node, ast.ImportFrom) and node.module == "method.langgraph_runtime":
+                for alias in node.names:
+                    entries.append({"module_path": rel, "kind": "from_import", "symbol": alias.name, "asname": alias.asname})
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "method.langgraph_runtime":
+                        alias_names.add(alias.asname or "langgraph_runtime")
+                        entries.append({"module_path": rel, "kind": "module_import", "symbol": alias.name, "asname": alias.asname})
+            elif isinstance(node, ast.ImportFrom) and node.module == "method":
+                for alias in node.names:
+                    if alias.name == "langgraph_runtime":
+                        alias_names.add(alias.asname or alias.name)
+                        entries.append({"module_path": rel, "kind": "method_reexport_import", "symbol": alias.name, "asname": alias.asname})
+        for node in ast.walk(module):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in alias_names:
+                alias_attrs.append({"module_path": rel, "alias": node.value.id, "attribute": node.attr})
+    return {
+        "entry_count": len(entries),
+        "alias_attribute_count": len(alias_attrs),
+        "direct_symbols": sorted({entry["symbol"] for entry in entries if entry["kind"] == "from_import"}),
+        "reexporter_paths_checked": [
+            str((METHOD_ROOT / "__init__.py").relative_to(REPO_ROOT)),
+            str((METHOD_ROOT / "loop.py").relative_to(REPO_ROOT)),
+            str((METHOD_ROOT / "staged_runtime.py").relative_to(REPO_ROOT)),
+        ],
+        "entries": sorted(entries, key=lambda item: (item["module_path"], item["kind"], item["symbol"])),
+        "alias_attributes": sorted(alias_attrs, key=lambda item: (item["module_path"], item["alias"], item["attribute"])),
+    }
+
+
+def _scan_stage_api() -> dict[str, Any]:
+    modules: list[dict[str, Any]] = []
+    for path in sorted((METHOD_ROOT / "stages").glob("*.py")):
+        if path.name == "__init__.py":
+            continue
+        module = ast.parse(path.read_text(encoding="utf-8"))
+        funcs = [node.name for node in module.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_")]
+        classes = [node.name for node in module.body if isinstance(node, ast.ClassDef) and not node.name.startswith("_")]
+        constants: list[str] = []
+        for node in module.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and (target.id.isupper() or target.id.endswith("_ID")) and not target.id.startswith("_"):
+                        constants.append(target.id)
+        modules.append({
+            "module": f"method.stages.{path.stem}",
+            "path": str(path.relative_to(REPO_ROOT)),
+            "functions": funcs,
+            "classes": classes,
+            "constants": constants,
+        })
+    return {"module_count": len(modules), "modules": modules}
+
+
+def _scan_legacy_contract_tests() -> dict[str, Any]:
+    path = TESTS_ROOT / "test_pr0_stage_contract.py"
+    module = ast.parse(path.read_text(encoding="utf-8"))
+    tests: list[dict[str, Any]] = []
+    for node in module.body:
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
+            legacy_direct = False
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name) and child.id == "legacy_loop":
+                    legacy_direct = True
+                elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name) and child.value.id == "legacy_loop":
+                    legacy_direct = True
+            tests.append({"name": node.name, "lineno": node.lineno, "legacy_loop_direct": legacy_direct})
+    active_import_paths: list[str] = []
+    for py_file in sorted(METHOD_ROOT.rglob("*.py")):
+        if "__pycache__" in py_file.parts or py_file.name == "legacy_loop.py":
+            continue
+        text = py_file.read_text(encoding="utf-8")
+        if "method.legacy_loop" in text or "legacy_loop" in text:
+            active_import_paths.append(str(py_file.relative_to(REPO_ROOT)))
+    return {
+        "active_import_paths": active_import_paths,
+        "test_pr0_stage_contract": {
+            "path": str(path.relative_to(REPO_ROOT)),
+            "test_count": len(tests),
+            "legacy_loop_direct_count": sum(1 for row in tests if row["legacy_loop_direct"]),
+            "non_legacy_contract_count": sum(1 for row in tests if not row["legacy_loop_direct"]),
+            "tests": tests,
+        },
+    }
+
+
+def _stable_graph_contract() -> dict[str, Any]:
+    from method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
+    from method.loop import build_planned_stage_graph
+    from method.schema import LoopConfig
+
+    planned = build_planned_stage_graph(LoopConfig())
+    registry = build_langgraph_node_registry()
+    consistency = graph_registry_consistency(planned, registry)
+    stable_registry = {
+        "schema_version": registry.get("schema_version"),
+        "runtime_backend": registry.get("runtime_backend"),
+        "opaque_wrapper": registry.get("opaque_wrapper"),
+        "delegated_monolithic_runtime": registry.get("delegated_monolithic_runtime"),
+        "instrumentation_layer": registry.get("instrumentation_layer"),
+        "canonical_stage_sequence": registry.get("canonical_stage_sequence"),
+        "nodes": [
+            {
+                "node_id": node.get("node_id"),
+                "kind": node.get("kind"),
+                "stage_ids": node.get("stage_ids", []),
+                "delegated_subgraph": bool(node.get("delegated_subgraph", False)),
+                "subgraph_id": node.get("subgraph_id"),
+                "nested_subgraph_ids": node.get("nested_subgraph_ids", []),
+            }
+            for node in registry.get("nodes", [])
+        ],
+        "edges": [
+            {"source": edge.get("source"), "target": edge.get("target"), "condition": edge.get("condition")}
+            for edge in registry.get("edges", [])
+        ],
+    }
+    planned_stage_order = [node.get("stage_id") for node in planned.get("nodes", [])]
+    canonical_input = {"registry": stable_registry, "planned_stage_order": planned_stage_order, "consistency": consistency}
+    return {
+        "registry": stable_registry,
+        "planned_stage_order": planned_stage_order,
+        "consistency": consistency,
+        "canonical_hash": _sha256_json(canonical_input),
+        "hash_excludes": ["timestamps", "absolute temporary paths", "dict insertion ordering", "raw provider output", "secrets"],
+    }
+
+
+def test_lg_m1_a_baseline_fixture_is_structured_and_secret_free() -> None:
+    baseline = _load_baseline()
+
+    assert baseline["schema_version"] == "lg_m1_a_baseline_v1"
+    assert baseline["baseline_scope"].startswith("LG-M1-A inventory")
+    assert baseline["captured_commit"]
+    assert baseline["artifact_policy"] == {
+        "contains_raw_model_text": False,
+        "contains_raw_provider_output": False,
+        "contains_secret": False,
+        "fixture_is_programmatic_baseline_source": True,
+    }
+    serialized = BASELINE_PATH.read_text(encoding="utf-8").lower()
+    assert "llm_api_key" not in serialized
+    assert "bearer " not in serialized
+    assert "sk-" not in serialized
+
+
+def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surface() -> None:
+    baseline = _load_baseline()
+
+    current_facade = _scan_langgraph_facade_consumers()
+    fixture_facade = baseline["facade_reexport_scan"]
+    assert current_facade["entry_count"] == fixture_facade["entry_count"]
+    assert current_facade["alias_attribute_count"] == fixture_facade["alias_attribute_count"]
+    assert current_facade["direct_symbols"] == fixture_facade["direct_symbols"]
+    assert set(current_facade["reexporter_paths_checked"]) == set(fixture_facade["reexporter_paths_checked"])
+    assert "project_1_llm_state_machine_modeling/method/loop.py" in current_facade["reexporter_paths_checked"]
+
+    current_stage = _scan_stage_api()
+    fixture_stage = baseline["stage_api_scan"]
+    assert current_stage["module_count"] == fixture_stage["module_count"]
+    assert current_stage["modules"] == fixture_stage["modules"]
+    assert any("run_sd2_parse" in module["functions"] for module in current_stage["modules"])
+
+    current_legacy = _scan_legacy_contract_tests()
+    fixture_legacy = baseline["legacy_dependency_scan"]
+    assert current_legacy == {k: fixture_legacy[k] for k in current_legacy}
+    assert current_legacy["test_pr0_stage_contract"]["non_legacy_contract_count"] > current_legacy["test_pr0_stage_contract"]["legacy_loop_direct_count"]
+
+
+def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider() -> None:
+    baseline = _load_baseline()
+    graph = _stable_graph_contract()
+
+    assert graph["canonical_hash"] == baseline["graph_contract"]["canonical_hash"]
+    assert graph["consistency"]["ok"] is True
+    assert graph["registry"]["runtime_backend"] == "langgraph"
+    assert graph["registry"]["opaque_wrapper"] is False
+    assert graph["registry"]["delegated_monolithic_runtime"] is False
+    assert graph["planned_stage_order"] == graph["registry"]["canonical_stage_sequence"]
+    assert "timestamps" in baseline["graph_contract"]["hash_excludes"]
+
+    runtime = baseline["runtime_identity"]
+    assert runtime["source"]["type"] == "committed_historical_agent_loop_record_gzip"
+    assert Path(runtime["source"]["path"]).exists()
+    assert runtime["source"]["record_status"] == "success"
+    assert runtime["environment"]["runner"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert runtime["environment"]["loop_entrypoint"] == "method.loop.run_agent_loop"
+    assert runtime["environment"]["graph_runtime_backend"] == "langgraph"
+    assert runtime["environment"]["graph_runtime_id"] == "langgraph:pr-langgraph.stategraph.v1"
+    assert runtime["environment"]["node_edge_schema_version"] == "pr-langgraph.stage-nodes.v1"
+    assert runtime["run_config"]["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert runtime["run_config"]["canonical_runtime_backend"] == "langgraph"
+    assert runtime["run_config"]["graph_node_registry"]["opaque_wrapper"] is False
+    assert runtime["run_config"]["graph_node_registry"]["delegated_monolithic_runtime"] is False
+
+
+def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
+    baseline = _load_baseline()
+    rows = baseline["experiment_cli_import_baseline"]["modules"]
+    assert [row["module"] for row in rows] == EXPERIMENT_MODULES
+
+    for row in rows:
+        import_proc = subprocess.run(
+            [sys.executable, "-c", f"import {row['module']}; print({row['module']}.__name__)"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=_python_env(),
+            check=False,
+        )
+        help_proc = subprocess.run(
+            [sys.executable, "-m", row["module"], "--help"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=_python_env(),
+            check=False,
+        )
+        assert import_proc.returncode == row["import_exit_code"] == 0
+        assert help_proc.returncode == row["help_exit_code"] == 0
+        assert row["provider_invocation"] is False
+        first_line = (help_proc.stdout.splitlines() or [""])[0]
+        assert first_line == row["help_usage_first_line"]
+
+
+def test_lg_m1_a_pytest_collection_baseline_is_current() -> None:
+    baseline = _load_baseline()
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
+        cwd=REPO_ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=_python_env(),
+        check=True,
+    )
+    match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
+    assert match, proc.stdout + proc.stderr
+    assert int(match.group(1)) == baseline["collection"]["count"]

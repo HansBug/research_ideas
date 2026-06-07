@@ -6,6 +6,8 @@
 >
 > **创建日期**：2026-05-26（sprint 共同基础阶段）
 
+> **LG-M1-A 架构基线**：method 目录后续维护性重构以 [ARCHITECTURE.md](./ARCHITECTURE.md) 与 [tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/lg_m1_a_baseline.json) 为当前事实基线；该基线只做 inventory / characterization，不改变默认 runtime 或真实 evidence 口径。
+
 
 ## 0. PR-C 默认入口语义（2026-06-02）
 
