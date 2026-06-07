@@ -115,6 +115,26 @@ LG-M1-D1 建立了 [`langgraph/`](./langgraph/) foundation 包，但不改变默
 
 D1 focused tests 位于 [`tests/test_lg_m1_d1_langgraph_foundation.py`](./tests/test_lg_m1_d1_langgraph_foundation.py)，用于锁定 no reverse import、registry canonical hash、facade runtime identity、C2 identifier injection 与 state migration boundary。
 
+### LG-M1-D2 instrumentation 当前事实
+
+LG-M1-D2 将 LangGraph runtime 中的 instrumentation / checkpoint / context helper 物理下沉到 [`langgraph/`](./langgraph/) 子包，同时继续保留 [`langgraph_runtime.py`](./langgraph_runtime.py) 作为 public compatibility facade。D2 不改变默认 runtime、provider 参数、prompt 文本、FixLog、eligibility、final DSL 或主 evidence 字段；若后续发现 operator log、stream summary、FixLog、eligibility 或 run_config/environment metadata 出现不可解释 drift，必须按 #64 纪律升级真实四例。
+
+当前已落地的 D2 模块边界：
+
+- [`langgraph/instrumentation/common.py`](./langgraph/instrumentation/common.py)：共享 JSON canonicalization、hash、package-version 与 dataclass-safe conversion helper。
+- [`langgraph/instrumentation/operator_stream.py`](./langgraph/instrumentation/operator_stream.py)：LG-D1 operator event、prompt-safe sanitizer、JSONL stream summary、operator artifact 与 stream runner helper；只提供 instrumentation primitive，不拥有 SC/SD/SL node orchestration。
+- [`langgraph/instrumentation/trace_export.py`](./langgraph/instrumentation/trace_export.py)：LG-G1 default-off safe local trace export；只写 hash/length/count 级 trace，不替代 canonical AgentLoopRunRecord evidence。
+- [`langgraph/instrumentation/tool_wrappers.py`](./langgraph/instrumentation/tool_wrappers.py)：LG-E3 fixed deterministic ToolNode-style wrapper instrumentation；不暴露 LLM tool-choice，不改变 SD tool canonical output。
+- [`langgraph/instrumentation/retry_timeout.py`](./langgraph/instrumentation/retry_timeout.py)：LG-D2 LLM node retry/timeout envelope policy、event builder、retry taxonomy 与 flow-log fallback recovery；provider-like failures 仍进入 invalid-run evidence，local contract errors不得伪装成 provider failure。
+- [`langgraph/instrumentation/send_parallel.py`](./langgraph/instrumentation/send_parallel.py)：LG-E2 Send fan-out helper；raw worker completion order 只作为 instrumentation，canonical SD-6 evidence 保持 serial-equivalent digest。
+- [`langgraph/instrumentation/store.py`](./langgraph/instrumentation/store.py)：LangGraph Store transient object helper 与 store compatibility smoke；不复活历史 module-level transient dict 作为数据源。
+- [`langgraph/checkpointing.py`](./langgraph/checkpointing.py)：`_PickleCheckpointSerde` 与 toy FixLog append-only checkpoint/resume smoke；不声明真实 agent-loop interrupted resume 可作为论文主结果 evidence。
+- [`langgraph/subgraphs/context_engineering.py`](./langgraph/subgraphs/context_engineering.py)：LG-C2 context assembly / budget / redaction deterministic subgraph；不调用 provider，不承载 validation/repair/waiver D3 orchestration。
+
+D2 focused tests 位于 [`tests/test_lg_m1_d2_langgraph_instrumentation.py`](./tests/test_lg_m1_d2_langgraph_instrumentation.py)，用于锁定 facade re-export identity、no reverse import、LG-C1 helper 不下沉、F1 resume 主流程 postponed、runtime identity 与 historical evidence read-only drift gate。
+
+D2 deliberately postponed：`resume_lg_f1_from_checkpoint`、`run_lg_f1_resume_experiment` 与 `_lg_f1_checkpoint_id_hash` 等 F1 resume 主流程仍保留在 [`langgraph_runtime.py`](./langgraph_runtime.py)，因为它们依赖 `_build_graph(...)`、run-record augmentation 与 #70 experiment entrypoint metadata，适合等 LG-M1-D3 core/nodes/subgraphs 边界稳定后再整体迁移。
+
 ### Experiment / CLI 当前事实
 
 LG-M1-A 对当前实验入口只做 import smoke 与 `--help` / argparse 层面的 no-provider baseline，不执行真实 provider run：
@@ -171,20 +191,25 @@ LG-M1-D1/D2/D3 负责把当前 `langgraph_runtime.py` 的大文件实现拆进 `
 
 ```text
 method/langgraph/
-├── constants.py          # LG-M1-D1 已建立：schema/version/runtime identity constants
-├── state.py              # LG-M1-D1 已建立：C/E-free foundation state；完整 graph state 待 D2/D3
-├── registry.py           # LG-M1-D1 已建立：node/edge registry + consistency checker
-├── checkpointing.py      # LG-M1-D2：checkpoint / resume support
-├── instrumentation.py    # LG-M1-D2：operator log / stream / metadata
-├── send_parallel.py      # LG-M1-D2：Send fan-out utilities
-├── retry_timeout.py      # LG-M1-D2：retry / timeout envelope
-├── nodes.py              # LG-M1-D3：top-level graph nodes
-├── core.py               # LG-M1-D3：runtime assembly core
+├── constants.py                         # LG-M1-D1 已建立：schema/version/runtime identity constants
+├── state.py                             # LG-M1-D1 已建立：C/E-free foundation state；完整 graph state 待 D3
+├── registry.py                          # LG-M1-D1 已建立：node/edge registry + consistency checker
+├── checkpointing.py                     # LG-M1-D2 已建立：checkpoint serde + toy resume smoke
+├── instrumentation/                     # LG-M1-D2 已建立：operator/trace/tool/retry/send/store instrumentation primitives
+│   ├── common.py
+│   ├── operator_stream.py
+│   ├── trace_export.py
+│   ├── tool_wrappers.py
+│   ├── retry_timeout.py
+│   ├── send_parallel.py
+│   └── store.py
+├── nodes.py                             # LG-M1-D3：top-level graph nodes
+├── core.py                              # LG-M1-D3：runtime assembly core
 └── subgraphs/
-    ├── validation.py     # LG-M1-D3
-    ├── repair.py         # LG-M1-D3
-    ├── waiver.py         # LG-M1-D3
-    └── context_engineering.py  # LG-M1-D2/D3 boundary
+    ├── context_engineering.py           # LG-M1-D2 已建立：context assembly / budget / redaction helper
+    ├── validation.py                    # LG-M1-D3
+    ├── repair.py                        # LG-M1-D3
+    └── waiver.py                        # LG-M1-D3
 ```
 
 ### Tests mirror 目标 → LG-M1-E

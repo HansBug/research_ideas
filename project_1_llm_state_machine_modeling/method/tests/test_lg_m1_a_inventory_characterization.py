@@ -41,6 +41,7 @@ LG_M1_B_ADDITIVE_STAGE_MODULES = {
     "method.stages.sl_prompt_api",
 }
 LG_M1_B_ADDITIVE_TEST_COUNT = 7
+LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 
 
 def _load_baseline() -> dict[str, Any]:
@@ -312,17 +313,18 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     )
     match = re.search(r"(\d+) tests? collected", proc.stdout + proc.stderr)
     assert match, proc.stdout + proc.stderr
-    # LG-M1-A captured the pre-maintenance collection count. C1, D1, and B
+    # LG-M1-A captured the pre-maintenance collection count. C1, D1, B, and D2
     # register exact additive deltas so future sub-PRs cannot silently lose old
     # tests while adding new ones that merely keep the total above the floor.
     deltas = baseline["collection"]["expected_deltas"]
     assert deltas["lg_m1_c1_experiments_entrypoints"]["count"] == LG_M1_C1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
+    assert deltas["lg_m1_d2_langgraph_instrumentation"]["count"] == LG_M1_D2_EXPECTED_COLLECTION_DELTA
     expected_c1_d1_count = (
         baseline["collection"]["count"]
         + LG_M1_C1_EXPECTED_COLLECTION_DELTA
         + LG_M1_D1_EXPECTED_COLLECTION_DELTA
     )
     assert expected_c1_d1_count == baseline["collection"]["current_expected_count_after_c1_and_d1"]
-    expected_count = expected_c1_d1_count + LG_M1_B_ADDITIVE_TEST_COUNT
+    expected_count = expected_c1_d1_count + LG_M1_B_ADDITIVE_TEST_COUNT + LG_M1_D2_EXPECTED_COLLECTION_DELTA
     assert int(match.group(1)) == expected_count
