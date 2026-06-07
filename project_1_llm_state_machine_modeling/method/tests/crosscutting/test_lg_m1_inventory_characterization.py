@@ -52,6 +52,7 @@ LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
 }
 LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D3_EXPECTED_COLLECTION_DELTA = 7
+LG_M1_G_EXPECTED_COLLECTION_DELTA = 4
 LG_M1_D3_REMOVED_FACADE_IMPORTS = {
     (
         "project_1_llm_state_machine_modeling/method/experiments/checkpoint_resume.py",
@@ -419,6 +420,7 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     assert deltas["lg_m1_d1_langgraph_foundation"]["count"] == LG_M1_D1_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d2_langgraph_instrumentation"]["count"] == LG_M1_D2_EXPECTED_COLLECTION_DELTA
     assert deltas["lg_m1_d3_langgraph_nodes_subgraphs_core"]["count"] == LG_M1_D3_EXPECTED_COLLECTION_DELTA
+    assert deltas["lg_m1_g_final_integration_stabilization"]["count"] == LG_M1_G_EXPECTED_COLLECTION_DELTA
     expected_c1_d1_count = (
         baseline["collection"]["count"]
         + LG_M1_C1_EXPECTED_COLLECTION_DELTA
@@ -437,6 +439,8 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
         + LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT
     )
     assert expected_c2_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_and_c2"]
-    expected_count = expected_c2_count + LG_M1_D3_EXPECTED_COLLECTION_DELTA
-    assert expected_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_and_d3"]
+    expected_d3_count = expected_c2_count + LG_M1_D3_EXPECTED_COLLECTION_DELTA
+    assert expected_d3_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_and_d3"]
+    expected_count = expected_d3_count + LG_M1_G_EXPECTED_COLLECTION_DELTA
+    assert expected_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_d3_and_g"]
     assert int(match.group(1)) == expected_count

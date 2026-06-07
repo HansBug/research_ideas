@@ -816,6 +816,109 @@ def _request_scenario_names(requests: list[FixRequest], *, scenario_set: Scenari
     return names
 
 
+def _failed_scenario_payloads_from_sim_feedback(feedback: SimFeedback, *, scenario_set: ScenarioSet | None) -> list[dict[str, Any]]:
+    """Return failed scenario payloads from SD-6 feedback.
+
+    This is intentionally schema-based rather than sample-name based.  Waiver
+    reuse must only target the failing scenario oracles that are currently
+    blocking validation; passing scenarios in the same frozen set must not be
+    required to have historical SL-10 overrides.
+    """
+
+    known = _known_scenario_names(scenario_set)
+    payloads: list[dict[str, Any]] = []
+    for result in list(feedback.scenario_results or []):
+        payload = _jsonable(result)
+        if not isinstance(payload, dict):
+            continue
+        if str(payload.get("status") or "").lower() == "pass":
+            continue
+        names = _scenario_names_from_payload(payload, known_names=known)
+        if not names:
+            continue
+        payloads.append(payload)
+    return payloads
+
+
+def _failed_scenario_names_from_sim_feedback(feedback: SimFeedback, *, scenario_set: ScenarioSet | None) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    for payload in _failed_scenario_payloads_from_sim_feedback(feedback, scenario_set=scenario_set):
+        for name in _scenario_names_from_payload(payload, known_names=_known_scenario_names(scenario_set)):
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+    return names
+
+
+def _scenario_failure_signature(payload: dict[str, Any], *, scenario_name: str) -> dict[str, Any]:
+    """Build a stable failure signature for one scenario result.
+
+    Scenario names alone are insufficient for waiver reuse: a later run can fail
+    the same scenario for a fresh variable/state assertion.  The signature keeps
+    only semantic failure facts so equivalent stale oracle evidence can be
+    matched without relying on sample names, incidental formatting, or optional
+    harness-only fields such as ``step_name`` / assertion booleans.  In
+    particular, ``x`` and ``y`` mismatches must hash differently, while the same
+    ``x`` mismatch remains matchable even if one payload omits ``step_name``.
+    """
+
+    signature: dict[str, Any] = {
+        "scenario_name": scenario_name,
+        "status": str(payload.get("status") or ""),
+        "setup_error": payload.get("setup_error"),
+        "step_failures": [],
+    }
+    for step in list(payload.get("step_results") or []):
+        if not isinstance(step, dict):
+            continue
+        status = str(step.get("status") or "")
+        runtime_error = step.get("runtime_error")
+        state_ok = step.get("state_assertion_ok")
+        var_ok = step.get("var_assertion_ok")
+        mismatches = step.get("var_mismatches") if isinstance(step.get("var_mismatches"), dict) else {}
+        failed = status != "pass" or runtime_error or state_ok is False or var_ok is False or bool(mismatches)
+        if not failed:
+            continue
+        normalized_mismatches: dict[str, Any] = {}
+        for key in sorted(str(item) for item in mismatches.keys()):
+            item = mismatches.get(key)
+            normalized_mismatches[key] = _jsonable(item)
+        signature["step_failures"].append(
+            {
+                "step_index": step.get("step_index"),
+                "actual_state": step.get("actual_state") or "",
+                "var_mismatches": normalized_mismatches,
+                "runtime_error": runtime_error,
+            }
+        )
+    return signature
+
+
+def _scenario_failure_signature_map(payload: Any, *, known_names: set[str] | None = None) -> dict[str, set[str]]:
+    """Map scenario names to canonical failure signature hashes in nested evidence."""
+
+    result: dict[str, set[str]] = {}
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            names = _scenario_names_from_payload(value, known_names=known_names)
+            if names and ("step_results" in value or "setup_error" in value):
+                status = str(value.get("status") or "")
+                has_failure_shape = status and status != "pass" or bool(value.get("setup_error")) or bool(value.get("step_results"))
+                if has_failure_shape:
+                    for name in names:
+                        result.setdefault(name, set()).add(_short_hash(_scenario_failure_signature(value, scenario_name=name)))
+            for item in value.values():
+                visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    visit(_jsonable(payload))
+    return result
+
+
 def _entry_local_rejections(entry: dict[str, Any]) -> list[dict[str, Any]]:
     """Return local rejection payloads stored directly or inside SL-10 output."""
 
@@ -864,6 +967,84 @@ def _sl9_rejection_invokes_prior_override(sl9_decision: SL9RepairDecisionOutput)
     return any(token in rendered for token in tokens)
 
 
+def _merge_signature_maps(items: list[dict[str, set[str]]]) -> dict[str, set[str]]:
+    merged: dict[str, set[str]] = {}
+    for item in items:
+        for name, signatures in item.items():
+            merged.setdefault(name, set()).update(signatures)
+    return merged
+
+
+def _matching_historical_scenario_overrides(
+    *,
+    fix_log: list[dict[str, Any]],
+    candidate_hashes: set[str],
+    scenario_names: list[str],
+    scenario_set: ScenarioSet | None,
+    current_failure_signatures: dict[str, set[str]] | None = None,
+) -> tuple[set[str], dict[str, set[str]], list[dict[str, Any]]]:
+    """Match current SD-6 scenarios against prior SL-10 local overrides.
+
+    If ``current_failure_signatures`` is provided, scenario name overlap is not
+    enough: every current failure signature must also be present in the historical
+    local scenario-regression evidence for the same candidate hash.
+    """
+
+    known = _known_scenario_names(scenario_set)
+    matches: list[dict[str, Any]] = []
+    matched_names: set[str] = set()
+    matched_signatures: dict[str, set[str]] = {}
+    candidate_hashes = {item for item in candidate_hashes if item}
+    for entry in fix_log:
+        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
+        if entry_candidate_hash not in candidate_hashes:
+            continue
+        sl10 = entry.get("sl10_review")
+        if not isinstance(sl10, dict):
+            continue
+        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
+            continue
+        rejection_payloads = [rejection for rejection in _entry_local_rejections(entry) if _local_rejection_has_scenario_regression(rejection)]
+        entry_names: set[str] = set()
+        entry_signature_map: dict[str, set[str]] = {}
+        for rejection in rejection_payloads:
+            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
+            for name, signatures in _scenario_failure_signature_map(rejection, known_names=known).items():
+                entry_signature_map.setdefault(name, set()).update(signatures)
+        overlap = sorted(set(scenario_names) & entry_names)
+        if not overlap:
+            continue
+        signature_overlap: dict[str, list[str]] = {}
+        if current_failure_signatures is not None:
+            for name in overlap:
+                wanted = set(current_failure_signatures.get(name) or set())
+                if not wanted:
+                    continue
+                matched_for_name = wanted & set(entry_signature_map.get(name) or set())
+                if matched_for_name:
+                    matched_signatures.setdefault(name, set()).update(matched_for_name)
+                    signature_overlap[name] = sorted(matched_for_name)
+        for name in overlap:
+            if current_failure_signatures is None or not current_failure_signatures.get(name):
+                matched_names.add(name)
+            elif set(current_failure_signatures.get(name) or set()).issubset(matched_signatures.get(name) or set()):
+                matched_names.add(name)
+        matches.append(
+            {
+                "entry_id": entry.get("entry_id"),
+                "phase": entry.get("phase"),
+                "old_dsl_hash": entry.get("old_dsl_hash"),
+                "candidate_dsl_hash": entry_candidate_hash,
+                "matched_scenario_names": overlap,
+                "matched_failure_signature_hashes": signature_overlap,
+                "historical_failure_signature_hashes": {name: sorted(values) for name, values in sorted(entry_signature_map.items()) if name in overlap},
+                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
+                "local_rejection_hash": _short_hash(rejection_payloads),
+            }
+        )
+    return matched_names, matched_signatures, matches
+
+
 def _stale_overridden_scenario_waiver_audit(
     *,
     active_request_batch: FixRequestBatch,
@@ -897,41 +1078,29 @@ def _stale_overridden_scenario_waiver_audit(
     if not current_scenario_names:
         return None
 
-    candidate_hashes = {item for item in {current_dsl_hash, active_request_batch.before_dsl_hash} if item}
-    known = _known_scenario_names(scenario_set)
-    matches: list[dict[str, Any]] = []
-    matched_names: set[str] = set()
-    for entry in fix_log:
-        entry_candidate_hash = str(entry.get("candidate_dsl_hash") or "")
-        if entry_candidate_hash not in candidate_hashes:
-            continue
-        sl10 = entry.get("sl10_review")
-        if not isinstance(sl10, dict):
-            continue
-        if not (sl10.get("ok") and sl10.get("decision") == "pass" and sl10.get("local_override_rationale")):
-            continue
-        entry_names: set[str] = set()
-        for rejection in _entry_local_rejections(entry):
-            if not _local_rejection_has_scenario_regression(rejection):
-                continue
-            entry_names.update(_scenario_names_from_payload(rejection, known_names=known))
-        overlap = sorted(set(current_scenario_names) & entry_names)
-        if not overlap:
-            continue
-        matched_names.update(overlap)
-        matches.append(
-            {
-                "entry_id": entry.get("entry_id"),
-                "phase": entry.get("phase"),
-                "old_dsl_hash": entry.get("old_dsl_hash"),
-                "candidate_dsl_hash": entry_candidate_hash,
-                "matched_scenario_names": overlap,
-                "sl10_local_override_rationale_hash": _short_hash(sl10.get("local_override_rationale")),
-                "local_rejection_hash": _short_hash(_entry_local_rejections(entry)),
-            }
-        )
+    request_signature_map = _merge_signature_maps(
+        [
+            _scenario_failure_signature_map(
+                {"evidence": request.evidence, "suggested_fix_hints": request.suggested_fix_hints},
+                known_names=_known_scenario_names(scenario_set),
+            )
+            for request in hard_requests
+        ]
+    )
+    matched_names, matched_signatures, matches = _matching_historical_scenario_overrides(
+        fix_log=fix_log,
+        candidate_hashes={current_dsl_hash, active_request_batch.before_dsl_hash},
+        scenario_names=current_scenario_names,
+        scenario_set=scenario_set,
+        current_failure_signatures=request_signature_map or None,
+    )
 
     if set(current_scenario_names) - matched_names:
+        return None
+    if request_signature_map and any(
+        not set(signatures).issubset(matched_signatures.get(name) or set())
+        for name, signatures in request_signature_map.items()
+    ):
         return None
 
     return {
@@ -948,8 +1117,84 @@ def _stale_overridden_scenario_waiver_audit(
         "request_ids": [request.request_id for request in hard_requests],
         "current_scenario_names": current_scenario_names,
         "matched_scenario_names": sorted(matched_names),
+        "current_failure_signature_hashes": {name: sorted(values) for name, values in sorted(request_signature_map.items())},
+        "matched_failure_signature_hashes": {name: sorted(values) for name, values in sorted(matched_signatures.items())},
         "matched_historical_overrides": matches,
         "sl9_rejection_decision_hash": _short_hash(sl9_decision.decisions),
+    }
+
+
+def _stale_overridden_sd6_validation_waiver_audit(
+    *,
+    validation: _ValidationPass,
+    fix_log: list[dict[str, Any]],
+    current_dsl_hash: str,
+) -> dict[str, Any] | None:
+    """Audit a validation-level SD-6 stale scenario failure.
+
+    This is the post-accept/current-validation counterpart of
+    ``_stale_overridden_scenario_waiver_audit``.  It does not depend on current
+    SL-9 wording because post-accept validation may have no remaining global
+    iteration budget to enter another repair path.  The rule remains narrow:
+    every currently failing SD-6 scenario must have an earlier SL-10 pass with
+    explicit ``local_override_rationale`` for the same current DSL hash and the
+    same scenario-regression evidence.
+    """
+
+    if validation.selected is None:
+        return None
+    source, selected_feedback, source_stage = validation.selected
+    if source != FeedbackSource.SIM.value or source_stage != StageId.SD_6_SIM.value:
+        return None
+    if not isinstance(selected_feedback, SimFeedback) or selected_feedback.ok:
+        return None
+    failed_payloads = _failed_scenario_payloads_from_sim_feedback(
+        selected_feedback,
+        scenario_set=validation.scenario_set,
+    )
+    current_scenario_names = _failed_scenario_names_from_sim_feedback(
+        selected_feedback,
+        scenario_set=validation.scenario_set,
+    )
+    if not current_scenario_names:
+        return None
+    known_names = _known_scenario_names(validation.scenario_set)
+    current_failure_signatures = _merge_signature_maps(
+        [_scenario_failure_signature_map(payload, known_names=known_names) for payload in failed_payloads]
+    )
+    if any(not current_failure_signatures.get(name) for name in current_scenario_names):
+        return None
+    matched_names, matched_signatures, matches = _matching_historical_scenario_overrides(
+        fix_log=fix_log,
+        candidate_hashes={current_dsl_hash},
+        scenario_names=current_scenario_names,
+        scenario_set=validation.scenario_set,
+        current_failure_signatures=current_failure_signatures,
+    )
+    if set(current_scenario_names) - matched_names:
+        return None
+    if any(
+        not set(signatures).issubset(matched_signatures.get(name) or set())
+        for name, signatures in current_failure_signatures.items()
+    ):
+        return None
+    return {
+        "kind": "stale_overridden_scenario_waiver",
+        "policy": (
+            "The current SD-6 validation failure is limited to scenarios that "
+            "the same current DSL hash already passed through SL-10 with explicit "
+            "local_override_rationale as stale / NL-conflicting scenario oracles. "
+            "Continue to SL-7 without consuming another repair budget slot, while "
+            "retaining this audit evidence in the run record."
+        ),
+        "current_dsl_hash": current_dsl_hash,
+        "current_scenario_names": current_scenario_names,
+        "matched_scenario_names": sorted(matched_names),
+        "current_failure_signature_hashes": {name: sorted(values) for name, values in sorted(current_failure_signatures.items())},
+        "matched_failure_signature_hashes": {name: sorted(values) for name, values in sorted(matched_signatures.items())},
+        "matched_historical_overrides": matches,
+        "source_stage": StageId.SD_6_SIM.value,
+        "validation_level": True,
     }
 
 
@@ -5294,6 +5539,132 @@ def run_full_staged_deterministic_runtime(
                 iteration_record["budget_gate"]["post_accept_validation_success"] = True
                 state.iteration_records.append(iteration_record)
                 break
+
+            post_accept_waiver_audit = _stale_overridden_sd6_validation_waiver_audit(
+                validation=post_accept_validation,
+                fix_log=state.fix_log,
+                current_dsl_hash=_hash_text(state.current_dsl),
+            )
+            if post_accept_waiver_audit is not None:
+                try:
+                    post_accept_continued_validation = _continue_after_repair_waiver(
+                        nl=nl,
+                        current_dsl=state.current_dsl,
+                        cfg=config,
+                        adapters=adapters,
+                        validation=post_accept_validation,
+                        iteration=iteration,
+                        state=state,
+                        stage_records=state.stage_records,
+                        llm_interactions=state.llm_interactions,
+                        logs=state.logs,
+                        waiver_audit=post_accept_waiver_audit,
+                    )
+                except _LLMRetryExhausted as exc:
+                    _mark_retry_exhausted(state, exc)
+                    iteration_record["exit_reason"] = state.verdict_reason
+                    iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                    iteration_record["post_accept_stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])[len(iteration_record["stage_ids"]):]
+                    state.iteration_records.append(iteration_record)
+                    break
+
+                state.warning_budget_state = post_accept_continued_validation.context.warning_budget_state
+                state.scenario_set = post_accept_continued_validation.scenario_set
+                if post_accept_continued_validation.scenario_set is not None:
+                    state.scenario_epoch = max(state.scenario_epoch, post_accept_continued_validation.scenario_set.epoch + 1)
+                state.oracle_weak = post_accept_continued_validation.oracle_weak
+                state.scenario_history.extend(post_accept_continued_validation.scenario_history)
+                state.deterministic_feedback["iterations"].append(
+                    {
+                        "iteration": iteration,
+                        "post_accept_validation": True,
+                        "continued_after_post_accept_waiver": True,
+                        "waiver_audit": _jsonable(post_accept_waiver_audit),
+                        "parse": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.PARSE.value)),
+                        "semantic": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                        "design": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                        "sim": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.SIM.value)),
+                        "model_review": _jsonable(post_accept_continued_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                        "stage_ids": _stage_ids(post_accept_continued_validation.stage_metas),
+                        "scenario_epoch": post_accept_continued_validation.scenario_epoch,
+                        "oracle_weak": post_accept_continued_validation.oracle_weak,
+                    }
+                )
+                if post_accept_continued_validation.selected is not None:
+                    source, feedback_obj, source_stage = post_accept_continued_validation.selected
+                    iteration_record["post_accept_waiver_selected_feedback"] = _selected_feedback_trace(
+                        source,
+                        feedback_obj,
+                        source_stage,
+                        scenario_set=post_accept_continued_validation.scenario_set,
+                    )
+                else:
+                    iteration_record["post_accept_waiver_selected_feedback"] = None
+                iteration_record["post_accept_waiver_audit"] = _jsonable(post_accept_waiver_audit)
+                iteration_record["post_accept_waiver_stage_ids"] = _stage_ids(
+                    post_accept_continued_validation.stage_metas[len(post_accept_validation.stage_metas) :]
+                )
+                iteration_record["post_accept_waiver_scenario_epoch"] = post_accept_continued_validation.scenario_epoch
+                iteration_record["post_accept_waiver_oracle_weak"] = post_accept_continued_validation.oracle_weak
+                iteration_record["stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])
+
+                weak_sim_feedback = post_accept_continued_validation.feedback.get(FeedbackSource.SIM.value)
+                if (
+                    post_accept_continued_validation.selected is None
+                    and isinstance(weak_sim_feedback, SimFeedback)
+                    and not weak_sim_feedback.ok
+                    and getattr(weak_sim_feedback, "oracle_weak", False)
+                ):
+                    reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                    _mark_sc12_verdict(
+                        state,
+                        verdict="not_converged",
+                        source_stage_id=StageId.SD_6_SIM.value,
+                        reason=reason,
+                        record_status="failed",
+                        result_status="not_converged",
+                        stage_ok=False,
+                        stage_status=StageStatus.FAIL,
+                    )
+                    iteration_record["exit_reason"] = reason
+                    iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                    state.iteration_records.append(iteration_record)
+                    break
+                if post_accept_continued_validation.selected is None:
+                    source_stage_id = (
+                        post_accept_continued_validation.stage_metas[-1].stage_id
+                        if post_accept_continued_validation.stage_metas
+                        else StageId.SC_11_ACCEPT_CANDIDATE.value
+                    )
+                    _mark_sc12_verdict(
+                        state,
+                        verdict="success",
+                        source_stage_id=source_stage_id,
+                        reason="full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver",
+                    )
+                    iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_post_accept_stale_scenario_waiver"
+                    iteration_record["budget_gate"]["post_accept_validation_success"] = True
+                    iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                    state.iteration_records.append(iteration_record)
+                    break
+
+                reason = _repair_selected_reason(iteration_record["post_accept_waiver_selected_feedback"])
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=(iteration_record.get("post_accept_waiver_selected_feedback") or {}).get("source_stage") or StageId.SC_11_ACCEPT_CANDIDATE.value,
+                    reason=str(reason),
+                    record_status="budget_exhausted",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = str(reason)
+                iteration_record["budget_gate"]["post_accept_validation_success"] = False
+                iteration_record["budget_gate"]["post_accept_waiver_continue"] = True
+                state.iteration_records.append(iteration_record)
+                break
+
             reason = _repair_selected_reason(iteration_record["post_accept_selected_feedback"])
             _mark_sc12_verdict(
                 state,
