@@ -297,9 +297,6 @@ def codex_json_stream_audit(events_path: Path) -> dict[str, object]:
         if not line:
             continue
         line_count += 1
-        for marker in disallowed_markers:
-            if marker in line:
-                disallowed_hits.append({"line": idx, "marker": marker, "preview": line[:300]})
         try:
             obj = json.loads(line)
         except json.JSONDecodeError as exc:
@@ -308,8 +305,20 @@ def codex_json_stream_audit(events_path: Path) -> dict[str, object]:
         event_type = obj.get("type") if isinstance(obj, dict) else None
         if isinstance(event_type, str):
             counts[event_type] = counts.get(event_type, 0) + 1
+            if event_type in disallowed_markers:
+                disallowed_hits.append({"line": idx, "marker": event_type, "field": "type", "preview": line[:300]})
         else:
             parse_errors.append({"line": idx, "error": "missing string type field", "preview": line[:300]})
+            continue
+
+        # Only reject explicit runner/non-exec marker events. Do not scan the
+        # whole JSON line: real codex exec command outputs may legitimately
+        # mention test function names or documentation strings containing the
+        # marker text, and treating those as runtime markers invalidates
+        # otherwise auditable runs.
+        marker = obj.get("marker") if isinstance(obj, dict) else None
+        if isinstance(marker, str) and marker in disallowed_markers:
+            disallowed_hits.append({"line": idx, "marker": marker, "field": "marker", "preview": line[:300]})
     missing = sorted(required_types - set(counts))
     reason = None
     if line_count == 0:

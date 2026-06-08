@@ -1,0 +1,1016 @@
+{
+  "case_key": "path1_elevator",
+  "case_id": "automatic-elevator-controller",
+  "path": "path1",
+  "status": "valid_run",
+  "commands_or_api_calls": [
+    {
+      "stage": "E0",
+      "kind": "file_read",
+      "summary": "Read repo-local skill entry and required guide files."
+    },
+    {
+      "stage": "E1",
+      "kind": "file_read",
+      "summary": "Read NL, bibtex, STM, DESC, paper_content spans 120-210."
+    },
+    {
+      "stage": "E2/E3",
+      "kind": "python_api",
+      "summary": "Called method.stages.api SD-2/3/4/5A/SC-5F/SD-6 on final DSL."
+    },
+    {
+      "stage": "E4",
+      "kind": "python_api",
+      "summary": "Called SD-8 on initial reset sim failure and SD-10 local repair review on final DSL."
+    },
+    {
+      "stage": "E5",
+      "kind": "local_mutation",
+      "summary": "Ran custom obligation-anchored mutants against the frozen scenario suite for NFRR DMR."
+    }
+  ],
+  "checks": {
+    "SD-2": {
+      "stage": "SD-2",
+      "tool": "run_sd2_parse",
+      "ok": true,
+      "status": "ok",
+      "diagnostics": []
+    },
+    "SD-3": {
+      "stage": "SD-3",
+      "tool": "run_sd3_semantic",
+      "ok": true,
+      "status": "ok",
+      "diagnostics": []
+    },
+    "SD-4": {
+      "stage": "SD-4",
+      "tool": "run_sd4_design(policy_profile=generated_candidate)",
+      "ok": true,
+      "status": "ok",
+      "blocking_items": [],
+      "advisory_items": [
+        {
+          "code": "W_UNREFERENCED_VAR",
+          "pyfcstm_severity": "warning",
+          "policy_action": "advisory",
+          "instance_key": "W_UNREFERENCED_VAR:var_name=hbrg",
+          "refs": {
+            "var_name": "hbrg",
+            "init_value": "0"
+          },
+          "message": "Variable 'hbrg' does not affect any transition guard.",
+          "suggested_fix_hints": [
+            {
+              "kind": "delete",
+              "target": "variable_definition",
+              "anchor_ref": "refs.definition_delete_anchor",
+              "text_template": "",
+              "rationale": "Remove the declaration-only variable because it has no DSL reads or writes."
+            },
+            {
+              "kind": "for_llm_guidance",
+              "summary": "This variable does not participate in model decisions. It is dead from the DSL's guard-affect data-flow perspective.",
+              "recommended_actions": [
+                {
+                  "kind": "remove_variable",
+                  "target": "variable_definition",
+                  "rationale": "Remove the variable and related writes if it was speculative scaffolding."
+                },
+                {
+                  "kind": "connect_to_guard",
+                  "target": "guard_or_assignment",
+                  "rationale": "Add the missing data-flow path if the variable should affect a transition decision."
+                }
+              ],
+              "do_not": [
+                "Do not add a dummy guard reference only to silence the diagnostic."
+              ]
+            }
+          ],
+          "budget_remaining": 2,
+          "budget_exhausted": false,
+          "rationale": ""
+        }
+      ],
+      "waivers": [
+        {
+          "warning_id": "W_UNREFERENCED_VAR:var_name=hbrg",
+          "model_element_path": "def int hbrg / state enter actions",
+          "waiver_type": "output_only",
+          "nl_or_paper_evidence": "NL-8; paper_content lines 156-163 and 171-203 describe hbrg 01/up, 10/down, 00/stop",
+          "risk": "hbrg does not drive transition guards; downstream should treat it as actuator/output observation, not controller memory.",
+          "reviewer": "self",
+          "accepted": true
+        }
+      ]
+    },
+    "SD-5A": {
+      "stage": "SD-5A",
+      "tool": "run_sd5a_scenario_coverage",
+      "ok": true,
+      "status": "ok",
+      "coverage_gap": false,
+      "coverage_report": {
+        "M1_guard_off_by_one": {
+          "status": "not_applicable",
+          "description": "guard `>= N` mistakenly written as `>= N-1` (fires one cycle too early)",
+          "n_variants": 0,
+          "caught_variants": 0
+        },
+        "M2_wrong_transition_target": {
+          "status": "caught",
+          "description": "transition `A -> B` written as `A -> C` (wrong target state)",
+          "n_variants": 3,
+          "caught_variants": 3
+        },
+        "M3_unreachable_target": {
+          "status": "not_applicable",
+          "description": "guard threshold set far too high (`>= 99999`), target state never reached",
+          "n_variants": 0,
+          "caught_variants": 0
+        },
+        "M4_missing_forced_transition": {
+          "status": "caught",
+          "description": "forced transition `! ...` line missing (global event ignored)",
+          "n_variants": 1,
+          "caught_variants": 1
+        },
+        "M5_missing_effect": {
+          "status": "not_applicable",
+          "description": "transition `effect { ... }` block missing (post-transition vars wrong)",
+          "n_variants": 0,
+          "caught_variants": 0
+        },
+        "M6_wrong_effect_value": {
+          "status": "not_applicable",
+          "description": "effect assigns wrong constant (`var = N` → `var = N+100`)",
+          "n_variants": 0,
+          "caught_variants": 0
+        }
+      },
+      "retry_directive": null
+    },
+    "SC-5F": {
+      "stage": "SC-5F",
+      "tool": "freeze_scenario_set",
+      "ok": true,
+      "status": "ok",
+      "scenario_set_id": "scenario-set-elevator-pr-m3-final",
+      "scenario_count": 8,
+      "source_dsl_hash": "sha256:3029f80ff8b3a0b00fdacfbdc2817daae4c0e63c53d996a7ccf3225dd925f54c",
+      "source_inspect_hash": "sha256:ff6f803e8bc4ca4b6391594235e299d6b85c13309a31f5e85a62c410f00be88d",
+      "source_grounding_hash": "sha256:c1103fc35ae6c1e56b48b44bc25513dc71278486dff4681d20b4f9c8bfc96453"
+    },
+    "SD-6": {
+      "stage": "SD-6",
+      "tool": "run_sd6_sim",
+      "ok": true,
+      "status": "ok",
+      "setup_error": null,
+      "oracle_weak": false,
+      "weak_oracle_reason": "",
+      "scenario_results": [
+        {
+          "name": "S001_F1_PS2_S2_to_F2",
+          "description": "default_prefix; NL-4/NL-7; paper_content 171-174",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "request_floor2_from_f1",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU2",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "arrive_floor2",
+              "status": "pass",
+              "actual_state": "ElevatorController.F2",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S002_F1_PS3_S3_to_F3",
+          "description": "default_prefix; NL-4/NL-7; NL-specified F1->MU3->F3 branch",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "request_floor3_from_f1",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU3",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "arrive_floor3",
+              "status": "pass",
+              "actual_state": "ElevatorController.F3",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S003_F2_PS3_S3_to_F3",
+          "description": "reachable_prefix F1--PS2,S2-->F2; NL-5/NL-7; paper_content 182-185",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu2",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU2",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reach_f2",
+              "status": "pass",
+              "actual_state": "ElevatorController.F2",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 3,
+              "step_name": "request_floor3_from_f2",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU3",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 4,
+              "step_name": "arrive_floor3",
+              "status": "pass",
+              "actual_state": "ElevatorController.F3",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S004_F2_PS1_S1_to_F1",
+          "description": "reachable_prefix F1--PS2,S2-->F2; NL-5/NL-7",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu2",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU2",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reach_f2",
+              "status": "pass",
+              "actual_state": "ElevatorController.F2",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 3,
+              "step_name": "request_floor1_from_f2",
+              "status": "pass",
+              "actual_state": "ElevatorController.MD1",
+              "actual_vars": {
+                "hbrg": 2
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 4,
+              "step_name": "arrive_floor1",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S005_F3_PS1_S1_to_F1",
+          "description": "reachable_prefix F1--PS3,S3-->F3; NL-6/NL-7; paper_content 193-196",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu3",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU3",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reach_f3",
+              "status": "pass",
+              "actual_state": "ElevatorController.F3",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 3,
+              "step_name": "request_floor1_from_f3",
+              "status": "pass",
+              "actual_state": "ElevatorController.MD1",
+              "actual_vars": {
+                "hbrg": 2
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 4,
+              "step_name": "arrive_floor1",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S006_F3_PS2_S2_to_F2",
+          "description": "reachable_prefix F1--PS3,S3-->F3; NL-6/NL-7; paper_content 200-203",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu3",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU3",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reach_f3",
+              "status": "pass",
+              "actual_state": "ElevatorController.F3",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 3,
+              "step_name": "request_floor2_from_f3",
+              "status": "pass",
+              "actual_state": "ElevatorController.MD2",
+              "actual_vars": {
+                "hbrg": 2
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 4,
+              "step_name": "arrive_floor2",
+              "status": "pass",
+              "actual_state": "ElevatorController.F2",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S007_reset_from_F2_returns_F1",
+          "description": "reachable_prefix F1--PS2,S2-->F2; NL-9; paper_content 207-208",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu2",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU2",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reach_f2",
+              "status": "pass",
+              "actual_state": "ElevatorController.F2",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 3,
+              "step_name": "reset_to_f1",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        },
+        {
+          "name": "S008_reset_from_motion_returns_F1",
+          "description": "reachable_prefix F1--PS3-->MU3; NL-9",
+          "status": "pass",
+          "step_results": [
+            {
+              "step_index": 0,
+              "step_name": "default_dispatch",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 1,
+              "step_name": "reach_mu3",
+              "status": "pass",
+              "actual_state": "ElevatorController.MU3",
+              "actual_vars": {
+                "hbrg": 1
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            },
+            {
+              "step_index": 2,
+              "step_name": "reset_to_f1",
+              "status": "pass",
+              "actual_state": "ElevatorController.F1",
+              "actual_vars": {
+                "hbrg": 0
+              },
+              "state_assertion_ok": true,
+              "var_assertion_ok": true,
+              "var_mismatches": {},
+              "runtime_error": null
+            }
+          ],
+          "setup_error": null
+        }
+      ]
+    },
+    "SD-8": {
+      "stage": "SD-8",
+      "tool": "run_sd8_fix_plan",
+      "ok": true,
+      "status": "ok",
+      "fix_plan": {
+        "target": "sim",
+        "source_stage": "SD-6",
+        "source_feedback_id": "reset_from_motion_unresolved_local_event",
+        "severity": "sim_fail",
+        "diagnostic_ids": [
+          "reset_from_motion_unresolved_local_event"
+        ],
+        "problem_summary": "simulation failed",
+        "evidence": [
+          {
+            "name": "reset_from_motion_unresolved_local_event",
+            "description": "initial-candidate failure; reset encoded as leaf-local event",
+            "status": "error",
+            "step_results": [
+              {
+                "step_index": 0,
+                "step_name": "default_dispatch",
+                "status": "pass",
+                "actual_state": "ElevatorController.F1",
+                "actual_vars": {
+                  "hbrg": 0
+                },
+                "state_assertion_ok": true,
+                "var_assertion_ok": null,
+                "var_mismatches": {},
+                "runtime_error": null
+              },
+              {
+                "step_index": 1,
+                "step_name": "reach_mu3",
+                "status": "pass",
+                "actual_state": "ElevatorController.MU3",
+                "actual_vars": {
+                  "hbrg": 1
+                },
+                "state_assertion_ok": true,
+                "var_assertion_ok": null,
+                "var_mismatches": {},
+                "runtime_error": null
+              },
+              {
+                "step_index": 2,
+                "step_name": "reset_to_f1",
+                "status": "error",
+                "actual_state": "ElevatorController.MU3",
+                "actual_vars": {
+                  "hbrg": 1
+                },
+                "state_assertion_ok": null,
+                "var_assertion_ok": null,
+                "var_mismatches": {},
+                "runtime_error": "SimulationRuntimeEventError: Cannot resolve event path 'reset': failed with both StateMachine.resolve_event and State.resolve_event. Last error: Event 'reset' not found in state 'ElevatorController.MU3' while resolving event reference 'reset'"
+              }
+            ],
+            "setup_error": null
+          }
+        ],
+        "suggested_fix_hints": [],
+        "recommended_strategy": [
+          "Use diagnostics as hints; choose the smallest globally consistent repair.",
+          "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation."
+        ],
+        "forbidden_edits": [
+          "Do not delete grounded required elements merely to silence diagnostics.",
+          "Do not invent internal plant/environment dynamics merely to make external input variables appear written."
+        ],
+        "nl_grounding_hints": [],
+        "target_element_ids": [],
+        "required_preserve_element_ids": [],
+        "allowed_edit_kinds": [],
+        "verification_plan": [],
+        "max_edit_scope": "",
+        "before_dsl_hash": "sha256:1f4586bdc8703c56b63bc66205334a87e3744c1ce2109f80440a6ab920440ce5"
+      }
+    },
+    "SD-10-local": {
+      "stage": "SD-10",
+      "tool": "run_sd10_repair_review",
+      "ok": true,
+      "status": "ok",
+      "repair_review": {
+        "ok": true,
+        "target_resolved": true,
+        "regression_detected": false,
+        "drift_risk": "none",
+        "local_rejection": null,
+        "delta_review": null,
+        "review_meta": null,
+        "meta": {
+          "stage_id": "SD-10",
+          "stage_kind": "deterministic",
+          "enabled": true,
+          "ran": true,
+          "status": "ok",
+          "ok": true,
+          "skipped_reason": null,
+          "stage_error": null,
+          "output_validation_error": null,
+          "input_hash": null,
+          "output_hash": null,
+          "prompt_hash": null,
+          "elapsed_ms": null
+        }
+      }
+    }
+  },
+  "mutation_summary": {
+    "n_mutants": 15,
+    "caught": 15,
+    "results": [
+      {
+        "mutation_id": "M-TR-001",
+        "obligation_id": "O-007",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S001_F1_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S001_F1_PS2_S2_to_F2"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-002",
+        "obligation_id": "O-008",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S002_F1_PS3_S3_to_F3"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S002_F1_PS3_S3_to_F3"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-003",
+        "obligation_id": "O-009",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S003_F2_PS3_S3_to_F3"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S003_F2_PS3_S3_to_F3"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-004",
+        "obligation_id": "O-010",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S004_F2_PS1_S1_to_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S004_F2_PS1_S1_to_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-005",
+        "obligation_id": "O-011",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S005_F3_PS1_S1_to_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S005_F3_PS1_S1_to_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-006",
+        "obligation_id": "O-012",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S006_F3_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S006_F3_PS2_S2_to_F2"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-007",
+        "obligation_id": "O-013",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S001_F1_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S001_F1_PS2_S2_to_F2"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-008",
+        "obligation_id": "O-014",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S002_F1_PS3_S3_to_F3"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S002_F1_PS3_S3_to_F3"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-009",
+        "obligation_id": "O-015",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S004_F2_PS1_S1_to_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S004_F2_PS1_S1_to_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-TR-010",
+        "obligation_id": "O-016",
+        "mutant": "wrong_transition_target",
+        "scenario_names": [
+          "S006_F3_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S006_F3_PS2_S2_to_F2"
+        ]
+      },
+      {
+        "mutation_id": "M-RST-001",
+        "obligation_id": "O-018",
+        "mutant": "missing_reset_forced_transition",
+        "scenario_names": [
+          "S007_reset_from_F2_returns_F1",
+          "S008_reset_from_motion_returns_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S007_reset_from_F2_returns_F1",
+          "S008_reset_from_motion_returns_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-RST-002",
+        "obligation_id": "O-018",
+        "mutant": "wrong_reset_target",
+        "scenario_names": [
+          "S008_reset_from_motion_returns_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S008_reset_from_motion_returns_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-ACT-001",
+        "obligation_id": "O-017",
+        "mutant": "wrong_up_hbrg_value",
+        "scenario_names": [
+          "S001_F1_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S001_F1_PS2_S2_to_F2"
+        ]
+      },
+      {
+        "mutation_id": "M-ACT-002",
+        "obligation_id": "O-017",
+        "mutant": "wrong_down_hbrg_value",
+        "scenario_names": [
+          "S004_F2_PS1_S1_to_F1"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S004_F2_PS1_S1_to_F1"
+        ]
+      },
+      {
+        "mutation_id": "M-ACT-003",
+        "obligation_id": "O-017",
+        "mutant": "wrong_stop_hbrg_value",
+        "scenario_names": [
+          "S001_F1_PS2_S2_to_F2"
+        ],
+        "original_pass": true,
+        "mutated_fail": true,
+        "caught": true,
+        "failure_kind": "sim_fail",
+        "failing_scenarios": [
+          "S001_F1_PS2_S2_to_F2"
+        ]
+      }
+    ]
+  }
+}

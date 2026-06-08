@@ -219,6 +219,40 @@ def test_codex_exec_json_stream_audit_rejects_attached_runtime_note(tmp_path) ->
     assert payload["reason"] == "attached_or_non_exec_runtime_marker_present"
 
 
+
+def test_codex_exec_json_stream_audit_ignores_marker_text_inside_tool_output(tmp_path) -> None:
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+
+    events = tmp_path / "codex_events.jsonl"
+    events.write_text(
+        "\n".join(
+            [
+                json.dumps({"type": "thread.started"}),
+                json.dumps({"type": "turn.started"}),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "type": "command_execution",
+                            "command": "rg attached_runtime_note project_1_llm_state_machine_modeling",
+                            "aggregated_output": "def test_codex_exec_json_stream_audit_rejects_attached_runtime_note(tmp_path): ...",
+                        },
+                    }
+                ),
+                json.dumps({"type": "turn.completed"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = codex_json_stream_audit(events)
+
+    assert payload["ok"] is True
+    assert payload["reason"] is None
+    assert payload["disallowed_hits"] == []
+
+
 def test_codex_exec_json_stream_audit_accepts_core_exec_events(tmp_path) -> None:
     from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
 
