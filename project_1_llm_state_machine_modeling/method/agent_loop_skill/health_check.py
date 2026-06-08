@@ -5,7 +5,9 @@ The PR-skill-fix branch intentionally keeps all fixes inside this directory.
 This script is therefore both a lightweight regression test and a human-readable
 audit helper for Codex / Claude Code agents: it checks that the skill entry
 points, stage symlinks, E2 boundaries, and PR-E1 repair vocabulary still point
-to the current workflow without requiring the full agent-loop runtime.
+to the current workflow without requiring the full agent-loop runtime.  The
+stage-facade denylist is intentionally literal: the facade files must not
+mention provider/full-loop entrypoint names even inside comments/docstrings.
 
 Usage from repository root:
 
@@ -19,12 +21,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
 
 SKILL_ROOT = Path(__file__).resolve().parent
+METHOD_ROOT = SKILL_ROOT.parent
+PROJECT_ROOT = METHOD_ROOT.parent
+if str(PROJECT_ROOT) not in sys.path:
+    # Keep the documented clean command runnable from repo root without relying
+    # on a caller-provided PYTHONPATH while still avoiding any provider/.env load.
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+STAGE_FACADE_DENY_TERMS = (
+    "method.loop",
+    "method.llm_stages",
+    "method.gpt_client",
+    "RealEnvLLMProvider",
+    "run_agent_loop",
+    "os.environ",
+    "load_dotenv",
+    "LLM_API_KEY",
+)
 
 
 @dataclass(frozen=True)
@@ -252,9 +272,127 @@ def _check_no_case_specific_optimization(root: Path) -> CheckResult:
         else "missing anti-overfit terms: " + ", ".join(missing),
     )
 
+
+def _check_stage_api_contract(root: Path) -> CheckResult:
+    try:
+        from method.stages import api, sc_control, sl_prompt_api
+    except Exception as exc:  # pragma: no cover - reported as health detail
+        return CheckResult("stage_api_contract", False, f"stage API import failed: {exc!r}")
+
+    required = {
+        "SC_CONTROL_SCHEMA_VERSION",
+        "run_sd2_parse",
+        "run_sd3_semantic",
+        "run_sd4_design",
+        "run_sd8_fix_plan",
+        "build_sl1_initial_modeling_prompt",
+        "build_sl9_repair_prompt",
+        "build_sl10_repair_review_prompt",
+        "compact_sl5_design_summary_for_prompt",
+        "compact_sl5_inspect_for_prompt",
+        "compact_sl7_review_input",
+    }
+    missing = sorted(name for name in required if not hasattr(api, name))
+    summary = sc_control.build_stage_control_summary()
+    sl_prompt_ok = hasattr(sl_prompt_api, "build_sl9_repair_prompt") and not hasattr(sl_prompt_api, "run_sl9_repair_llm")
+
+    stage_root = root.parent / "stages"
+    static_hits: list[str] = []
+    for rel in ["api.py", "sc_control.py", "sl_prompt_api.py"]:
+        file_text = _read(stage_root / rel)
+        for term in STAGE_FACADE_DENY_TERMS:
+            if term in file_text:
+                static_hits.append(f"{rel}:{term}")
+
+    docs = "\n".join(
+        [
+            _read(root / "AGENT_LOOP_SKILL.md"),
+            _read(root / "tools.md"),
+            _read(root / "prompts.md"),
+            _read(root / "stages" / "README.md"),
+        ]
+    )
+    doc_terms = ["method.stages.api", "method.stages.sc_control", "method.stages.sl_prompt_api", "程序化调用"]
+    doc_missing = _contains_all(docs, doc_terms)
+
+    ok = (
+        not missing
+        and bool(summary.get("provider_free"))
+        and bool(summary.get("full_loop_free"))
+        and sl_prompt_ok
+        and not doc_missing
+        and not static_hits
+    )
+    details = []
+    if missing:
+        details.append("missing API exports: " + ", ".join(missing))
+    if not summary.get("provider_free") or not summary.get("full_loop_free"):
+        details.append("SC summary does not declare provider/full-loop free")
+    if not sl_prompt_ok:
+        details.append("SL prompt facade missing builder or exposes runtime LLM adapter")
+    if static_hits:
+        details.append("stage facade denylist hits: " + ", ".join(static_hits))
+    if doc_missing:
+        details.append("skill docs missing terms: " + ", ".join(doc_missing))
+    return CheckResult(
+        "stage_api_contract",
+        ok,
+        "method.stages.api / sc_control / sl_prompt_api are documented no-provider skill facades" if ok else "; ".join(details),
+    )
+
+
+def _check_codex_exec_experiment_contract(root: Path) -> CheckResult:
+    guide_path = root / "codex_exec_experiment_guide.md"
+    helper_path = root / "codex_exec_experiment.py"
+    if not guide_path.is_file():
+        return CheckResult("codex_exec_experiment_contract", False, "missing codex_exec_experiment_guide.md")
+    if not helper_path.is_file():
+        return CheckResult("codex_exec_experiment_contract", False, "missing codex_exec_experiment.py")
+    guide = _read(guide_path)
+    helper = _read(helper_path)
+    required_guide_terms = [
+        "CODEX_EXEC_DEFAULT_CONFIG=model_provider=airouter",
+        "codex exec --json",
+        "不得使用 `--ephemeral`",
+        "run_manifest.json",
+        "codex_events.jsonl",
+        "actual_file_reads.json",
+        "tool_stage_check_ledger.json",
+        "repair_ledger.json",
+        "nfrr_report.json",
+        "forbidden_call_check.json",
+        "redaction_report.json",
+        "report.md",
+        "人类可读",
+        "四例",
+        "ABS",
+        "CARA",
+        "Elevator",
+        "LNG",
+    ]
+    required_helper_terms = [
+        "TRACKED_DEFAULT_CODEX_EXEC_CONFIG",
+        "model_provider=airouter",
+        "resolve_codex_exec_config",
+        "redaction_report.json",
+        "forbidden_call_check.json",
+        "codex_exec_cases",
+        "build_codex_prompt",
+    ]
+    missing = [f"guide:{term}" for term in required_guide_terms if term not in guide]
+    missing.extend(f"helper:{term}" for term in required_helper_terms if term not in helper)
+    return CheckResult(
+        "codex_exec_experiment_contract",
+        not missing,
+        "PR-M3 codex exec config/audit/report contract is documented and helper-backed"
+        if not missing
+        else "missing terms: " + ", ".join(missing),
+    )
+
 def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
     return [
         _check_entry_symlinks(root),
+        _check_stage_api_contract(root),
         _check_stage_symlinks(root),
         _check_stage_symlink_strategy(root),
         _check_forbidden_top_runner(root),
@@ -264,6 +402,7 @@ def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
         _check_no_case_specific_optimization(root),
         _check_e2e_input_grounding(root),
         _check_run_agent_loop_mentions_are_guarded(root),
+        _check_codex_exec_experiment_contract(root),
     ]
 
 

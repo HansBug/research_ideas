@@ -172,6 +172,7 @@ def _default_budget_policy() -> dict[str, Any]:
         "max_iterations": 5,
         "llm_max_retries": 2,
         "scenario_max_retries": 2,
+        "min_sl10_rework_attempts": 1,
         "warning_repair_budget_per_instance": 1,
         "token_budget": None,
         "prompt_token_budget": 128_000,
@@ -450,6 +451,7 @@ class LoopConfig:
             "max_iterations": self.max_iterations,
             "llm_max_retries": self.llm_max_retries,
             "scenario_max_retries": self.scenario_max_retries,
+            "min_sl10_rework_attempts": self.budget_policy.get("min_sl10_rework_attempts", default_budget["min_sl10_rework_attempts"]),
             "warning_repair_budget_per_instance": self.budget_policy.get("warning_repair_budget_per_instance", 1),
             "token_budget": self.budget_policy.get("token_budget"),
             "prompt_token_budget": self.budget_policy.get("prompt_token_budget", default_budget["prompt_token_budget"]),
@@ -537,7 +539,13 @@ class LoopConfig:
 
 @dataclass
 class LegacyLoopConfig:
-    """Deprecated config for the old A0-A4 legacy loop."""
+    """Historical schema artifact for the removed old A0-A4 legacy loop.
+
+    LG-M1-C2 keeps this dataclass only for provenance and historical material
+    readability.  New code must not use it to drive an active loop; canonical
+    experiments use :class:`LoopConfig`, while deterministic ablations use
+    ``method.experiments.ablation``.
+    """
 
     condition: ConditionLiteral = "A4"
     n_iter: int = 3

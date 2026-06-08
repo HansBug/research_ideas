@@ -2,6 +2,12 @@
 
 本文件用于 PR-E2：让 Codex / Claude Code 类 agent 在**不调用顶层 agent-loop runtime** 的前提下，基于 repo-local skill / toolbox 自主完成“NL + 论文子路径 -> FCSTM/pyfcstm ref model 候选”的 e2e 建模、验证、修复和留痕。
 
+> **LG-M1-F provenance note（2026-06-08）**：本指南保留 PR-E2 / PR-skill-fix 的历史 e2e ref-model skill 流程。第 1.3 条“修改范围只限 `agent_loop_skill/`”是 PR-skill-fix 当时的实现约束；LG-M1-F 的 docs/provenance sweep 允许同步更新 method README / ARCHITECTURE / STATUS / handoff docs / skill docs，但仍不得修改 runtime、prompt、provider、FixLog、run record 或真实 evidence。当前程序化入口仍以 `method.stages.api`、`method.stages.sc_control`、`method.stages.sl_prompt_api` 为准。
+
+## 0.1 PR-M3 codex exec 标准实验入口补充
+
+PR-M3 的 `codex exec` 标准实验入口在本指南基础上增加了可复跑 harness、`codex exec --json` event stream、脱敏配置合同、机器可审计 artifact package 与人类友好 `report.md` 要求；详见 [codex_exec_experiment_guide.md](./codex_exec_experiment_guide.md)。PR-M3 仍遵守本文件的 E2 边界：不调用顶层 `method.loop.run_agent_loop(...)`，而是让 mature agent 使用 skill/toolbox 自主完成建模、检查、修复与 NFRR。
+
 ## 1. 硬性边界
 
 1. **禁止调用顶层 agent-loop runtime**：不得调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
@@ -255,7 +261,7 @@ PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction
 - advisory / warning waiver：尤其是 external input、output-only variable、local-check conservative fail 的逐项处理；
 - skill 改进建议。
 
-若本轮 skill 修改后 4 个样本没有重跑，不能声称“本轮已 ready”；只能标为局部修复或文档修正。
+若本轮 skill 修改后 4 个样本没有重跑，不能声称“本轮已 ready”；只能标为局部修复或文档修正。该四例闭环协议只适用于 PR-E2 / skill validation；LG-M1-F docs/provenance-only sweep 不以四例或 provider run 为验收条件。
 
 ## 4. 建模习语与边界模板
 

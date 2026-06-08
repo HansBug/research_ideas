@@ -1,0 +1,105 @@
+def int CA_mode = 0;
+def int patient_bp = 120;
+def int shared_buffer_bp = 120;
+def int target_bp = 120;
+def int requested_target_bp = 120;
+def int flow_rate = 0;
+def int default_flow_rate = 1;
+def int built_in_switch_speed = 0;
+def int pump_speed = 0;
+def int control_voltage = 0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int display_error = 0;
+def int sound_error = 0;
+def int control_released = 1;
+def int log_count = 0;
+
+state CARA_Mode_Control_Algorithm {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+
+    >> during before { shared_buffer_bp = patient_bp; }
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            CA_mode = 0;
+            control_released = 1;
+            if [pump_fault > 0] {
+                alarm_signal = 1;
+                display_error = 1;
+                sound_error = 1;
+            } else {
+                alarm_signal = 0;
+                display_error = 0;
+                sound_error = 0;
+            }
+        }
+        during {
+            if [pump_fault == 0] {
+                pump_speed = built_in_switch_speed;
+                flow_rate = default_flow_rate;
+            } else {
+                alarm_signal = 1;
+                display_error = 1;
+                sound_error = 1;
+                control_released = 1;
+                CA_mode = 0;
+            }
+        }
+    }
+
+    state Ask_StartAC;
+
+    state AutocontrolInit {
+        enter {
+            CA_mode = 1;
+            control_released = 0;
+            alarm_signal = 0;
+            display_error = 0;
+            sound_error = 0;
+        }
+    }
+
+    state AutocontrolNormal {
+        during {
+            if [pump_fault == 0] {
+                if [patient_bp > target_bp] {
+                    flow_rate = 1;
+                } else if [patient_bp == target_bp] {
+                    flow_rate = 3;
+                } else {
+                    flow_rate = 5;
+                }
+                control_voltage = flow_rate;
+                pump_speed = control_voltage;
+                log_count = log_count + 1;
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            display_error = 1;
+            sound_error = 1;
+            control_released = 1;
+            CA_mode = 0;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = requested_target_bp; };
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    AutocontrolInit -> PumpFault : if [pump_fault > 0];
+    AutocontrolInit -> Manual :: TerminateAC;
+    AutocontrolInit -> AutocontrolNormal;
+    AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+    AutocontrolNormal -> Manual :: TerminateAC;
+    Ask_StartAC -> Manual :: TerminateAC;
+    PumpFault -> Manual :: FaultRemoved effect { pump_fault = 0; };
+}

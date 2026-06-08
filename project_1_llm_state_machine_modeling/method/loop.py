@@ -22,8 +22,8 @@ from typing import Any, Optional
 from method.llm_stages import (
     ChatProvider,
     LLMStageConfig,
+    LLMStageRun,
     RealEnvLLMProvider,
-    estimate_prompt_tokens,
     redact_run_record_payload,
     run_sl1_initial_modeling_llm,
     run_sl5_scenario_generation_llm,
@@ -32,10 +32,9 @@ from method.llm_stages import (
     run_sl10_repair_review_llm,
     run_sl10b_delta_review_llm,
 )
-from method.schema import AgentLoopResult, LoopConfig, StageContext
+from method.schema import AgentLoopResult, LoopConfig, StageContext, StageResultMeta, ReviewRunMeta
 from method.staged_runtime import (
     FullStagedRuntimeAdapters,
-    FullStagedRuntimeConfig,
     RepairRequest,
     ScenarioGenerationRequest,
     build_full_staged_runtime_adapters,
@@ -44,11 +43,11 @@ from method.staged_runtime import (
     _compact_json,
     _compact_sl9_input_for_prompt,
     _repair_memory_for_prompt,
-    run_full_staged_deterministic_runtime,
 )
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
 from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
+from method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
 
 RUN_RECORD_SCHEMA_VERSION = "pr-c.default-full-staged-runtime.v1"
 
@@ -169,49 +168,6 @@ def _llm_stage_config(cfg: LoopConfig) -> LLMStageConfig:
     )
 
 
-def _prompt_budget_metadata(
-    *,
-    stage_id: str,
-    prompt_messages: list[dict[str, str]],
-    cfg: LLMStageConfig,
-    compaction_level: str,
-) -> dict[str, Any]:
-    prompt_chars = sum(len(str(message.get("content", ""))) for message in prompt_messages)
-    estimated_tokens = estimate_prompt_tokens(
-        prompt_messages,
-        estimator=cfg.prompt_token_estimator,
-        chars_per_token=cfg.prompt_chars_per_token,
-        model=cfg.model,
-    )
-    budget = cfg.max_prompt_tokens
-    return {
-        "stage_id": stage_id,
-        "prompt_chars": prompt_chars,
-        "estimated_prompt_tokens": estimated_tokens,
-        "prompt_token_budget": budget,
-        "prompt_token_estimator": cfg.prompt_token_estimator,
-        "chars_per_token_estimate": cfg.prompt_chars_per_token,
-        "compaction_level": compaction_level,
-        "prompt_compaction_applied": compaction_level != "none",
-        "compact_only_when_over_budget": True,
-        "budget_exceeded": estimated_tokens > budget if budget is not None else False,
-    }
-
-
-def _within_prompt_budget(prompt_messages: list[dict[str, str]], cfg: LLMStageConfig) -> bool:
-    if cfg.max_prompt_tokens is None:
-        return True
-    return (
-        estimate_prompt_tokens(
-            prompt_messages,
-            estimator=cfg.prompt_token_estimator,
-            chars_per_token=cfg.prompt_chars_per_token,
-            model=cfg.model,
-        )
-        <= cfg.max_prompt_tokens
-    )
-
-
 def _jsonable_fix_request_batch_full(batch: Any) -> Any:
     if batch is None:
         return None
@@ -275,11 +231,10 @@ def _sl9_prompt_payload_candidates(request: RepairRequest) -> list[tuple[str, di
 
 
 def _select_sl9_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> tuple[dict[str, Any], dict[str, Any]]:
-    candidates = _sl9_prompt_payload_candidates(request)
-    selected_level, selected_payload = candidates[-1]
-    selected_prompt: list[dict[str, str]] | None = None
-    for level, payload in candidates:
-        prompt = build_sl9_repair_prompt(
+    result = assemble_lg_c2_prompt_context(
+        stage_id=StageId.SL_9_REPAIR.value,
+        payload_candidates=_sl9_prompt_payload_candidates(request),
+        prompt_builder=lambda payload: build_sl9_repair_prompt(
             nl=request.nl,
             current_dsl=request.old_dsl,
             fix_plan=payload["fix_plan_summary"],
@@ -291,25 +246,16 @@ def _select_sl9_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> t
             preserve_list=payload["preserve_list"],
             scenario_summary=payload["scenario_summary"],
             repair_target=getattr(request.fix_plan, "target", None),
-        )
-        selected_level, selected_payload, selected_prompt = level, payload, prompt
-        if _within_prompt_budget(prompt, cfg):
-            break
-    assert selected_prompt is not None
-    metadata = _prompt_budget_metadata(
-        stage_id=StageId.SL_9_REPAIR.value,
-        prompt_messages=selected_prompt,
+        ),
         cfg=cfg,
-        compaction_level=selected_level,
     )
-    selected_payload = {
-        **selected_payload,
-        "selected_diagnostics": [
-            *list(selected_payload.get("selected_diagnostics") or []),
-            {"prompt_budget": metadata},
-        ],
-    }
-    return selected_payload, metadata
+    metadata = dict(result.metadata)
+    # Keep LG-C2 metadata out of the prompt-visible payload.  The selected
+    # prompt hash/budget computed by the context subgraph must describe the
+    # exact prompt later sent by ``run_sl9_repair_llm``; canonical audit evidence
+    # is attached to ``AgentLoopRunRecord.llm_interactions[].context_engineering``
+    # after the provider call, not echoed back into the LLM prompt.
+    return dict(result.payload), metadata
 
 
 def _sl10_prompt_payload_candidates(request: RepairRequest) -> list[tuple[str, dict[str, Any]]]:
@@ -345,11 +291,10 @@ def _sl10_prompt_payload_candidates(request: RepairRequest) -> list[tuple[str, d
 
 
 def _select_sl10_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> tuple[dict[str, Any], dict[str, Any]]:
-    candidates = _sl10_prompt_payload_candidates(request)
-    selected_level, selected_payload = candidates[-1]
-    selected_prompt: list[dict[str, str]] | None = None
-    for level, payload in candidates:
-        prompt = build_sl10_repair_review_prompt(
+    result = assemble_lg_c2_prompt_context(
+        stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+        payload_candidates=_sl10_prompt_payload_candidates(request),
+        prompt_builder=lambda payload: build_sl10_repair_review_prompt(
             nl=request.nl,
             grounding_map=payload["grounding_map"],
             old_dsl=request.old_dsl,
@@ -360,25 +305,117 @@ def _select_sl10_prompt_payload(request: RepairRequest, cfg: LLMStageConfig) -> 
             diff_summary=payload["diff_summary"],
             local_check_evidence=payload["local_check_evidence"],
             scenario_summary=payload["scenario_summary"],
-        )
-        selected_level, selected_payload, selected_prompt = level, payload, prompt
-        if _within_prompt_budget(prompt, cfg):
-            break
-    assert selected_prompt is not None
-    metadata = _prompt_budget_metadata(
-        stage_id=StageId.SL_10_REPAIR_REVIEW.value,
-        prompt_messages=selected_prompt,
+        ),
         cfg=cfg,
-        compaction_level=selected_level,
     )
-    selected_payload = {
-        **selected_payload,
-        "local_check_evidence": {
-            **dict(selected_payload.get("local_check_evidence") or {}),
-            "prompt_budget": metadata,
+    metadata = dict(result.metadata)
+    # Keep LG-C2 metadata out of the prompt-visible payload for the same reason
+    # as SL-9: the context subgraph's prompt hash/budget must match the exact
+    # provider prompt.  The canonical record carries LG-C2 evidence separately.
+    return dict(result.payload), metadata
+
+
+def _lg_c2_context_redaction_blocked_run(
+    *,
+    exc: LG_C2_ContextRedactionBlocked,
+    provider: ChatProvider | None,
+    cfg: LLMStageConfig,
+) -> LLMStageRun:
+    """Build a safe failed LLMStageRun when LG-C2 blocks context before provider I/O."""
+
+    stage_id = str(exc.stage_id)
+    spec = next(spec for spec in ALL_STAGE_SPECS if spec.stage_id == stage_id)
+    provider_name = getattr(provider, "provider_name", "mock" if cfg.provider_mode == "mock" else "openai-compatible-env")
+    model_id = cfg.model or getattr(provider, "model_id", "<provider:model>")
+    message = str(exc)[:500]
+    review_meta = ReviewRunMeta(
+        provider=provider_name,
+        model_id=model_id,
+        resolved_model_id=model_id,
+        prompt_template_version="lg-c2-context-redaction-guard",
+        prompt_hash=exc.payload_hash,
+        input_hash=exc.payload_hash,
+        temperature=cfg.temperature,
+        seed=cfg.seed,
+        retry_count=0,
+        raw_output_hash=exc.payload_hash,
+        raw_output_path=None,
+        parsed_schema_version="LG-C2.ContextRedactionGuard.v1",
+        schema_validation_ok=False,
+        schema_validation_error=message,
+        cache_key=f"{stage_id}:{exc.payload_hash}",
+        decision_threshold=None,
+        failure_policy="fail_closed",
+        replay_key=f"{stage_id}:{exc.payload_hash}",
+    )
+    interaction = {
+        "stage_id": stage_id,
+        "provider": provider_name,
+        "model_id": model_id,
+        "resolved_model_id": model_id,
+        "prompt_template_version": "lg-c2-context-redaction-guard",
+        "prompt_hash": exc.payload_hash,
+        "input_hash": exc.payload_hash,
+        "temperature": cfg.temperature,
+        "seed": cfg.seed,
+        "retry_count": 0,
+        "raw_output_hash": exc.payload_hash,
+        "raw_output_path": None,
+        "parsed_schema_version": "LG-C2.ContextRedactionGuard.v1",
+        "prompt_messages_omitted": "lg_c2_context_redaction_blocked",
+        "raw_output_omitted": "lg_c2_context_redaction_blocked",
+        "parsed_output_omitted": "lg_c2_context_redaction_blocked",
+        "schema_validation_ok": False,
+        "schema_validation_error": message,
+        "usage": {},
+        "attempts": [],
+        "retry_error": {
+            "error_kind": "redaction_failed",
+            "error_message": message,
         },
+        "review_meta": asdict(review_meta),
+        "provider_mode": cfg.provider_mode,
+        "real_llm_provider_api": cfg.provider_mode == "real_env",
+        "redaction_failed": True,
+        "redaction_failure_path": "lg_c2_context_engineering.selected_payload",
+        "context_engineering": {
+            **dict(exc.guard),
+            "stage_id": stage_id,
+            "prompt_payload_hash": exc.payload_hash,
+            "redaction_guard": dict(exc.guard),
+            "redaction_guard_fail_closed": True,
+            "does_not_replace_academic_evidence": True,
+        },
+        "omitted": "lg_c2_context_redaction_blocked",
+        "llm_retry_scope": "LG-C2 context redaction guard blocks before provider; no provider retry attempted",
     }
-    return selected_payload, metadata
+    return LLMStageRun(
+        stage_id=stage_id,
+        ok=False,
+        parsed_output={},
+        interaction=interaction,
+        stage_meta=StageResultMeta(
+            stage_id=stage_id,
+            stage_kind=spec.kind,
+            enabled=True,
+            ran=True,
+            status=StageStatus.ERROR,
+            ok=False,
+            stage_error=message,
+            output_validation_error=message,
+            input_hash=exc.payload_hash,
+            output_hash=exc.payload_hash,
+            prompt_hash=exc.payload_hash,
+        ),
+        redaction_report=[
+            {
+                "field_path": "llm_interaction.context_engineering.selected_payload",
+                "reason": "lg_c2_context_redaction_blocked",
+                "replacement": "<omitted:lg_c2_context_redaction_blocked>",
+                "affects_replay": True,
+            }
+        ],
+    )
 
 
 def _scenario_coverage_adapter(current_dsl: str, scenarios: list[Any]) -> tuple[dict[str, Any], Any]:
@@ -574,8 +611,11 @@ def _build_runtime_adapters(
         )
 
     def repair(request: RepairRequest) -> Any:
-        prompt_payload, _budget_meta = _select_sl9_prompt_payload(request, llm_cfg)
-        return run_sl9_repair_llm(
+        try:
+            prompt_payload, budget_meta = _select_sl9_prompt_payload(request, llm_cfg)
+        except LG_C2_ContextRedactionBlocked as exc:
+            return _lg_c2_context_redaction_blocked_run(exc=exc, provider=provider, cfg=llm_cfg)
+        run = run_sl9_repair_llm(
             nl=request.nl,
             current_dsl=request.old_dsl,
             fix_plan=prompt_payload["fix_plan_summary"],
@@ -590,6 +630,9 @@ def _build_runtime_adapters(
             config=llm_cfg,
             provider=provider,
         )
+        if hasattr(run, "interaction") and isinstance(run.interaction, dict):
+            run.interaction["context_engineering"] = budget_meta
+        return run
 
     def delta_review(request: RepairRequest, _repair_review: Any) -> Any:
         if request.fix_plan is None:
@@ -609,8 +652,11 @@ def _build_runtime_adapters(
     def sl10_review(request: RepairRequest, _local_review: Any) -> Any:
         if request.fix_request_batch is None or request.sl9_decision is None:
             raise TypeError("SL-10 repair review requires FixRequestBatch and SL9 decisions")
-        prompt_payload, _budget_meta = _select_sl10_prompt_payload(request, llm_cfg)
-        return run_sl10_repair_review_llm(
+        try:
+            prompt_payload, budget_meta = _select_sl10_prompt_payload(request, llm_cfg)
+        except LG_C2_ContextRedactionBlocked as exc:
+            return _lg_c2_context_redaction_blocked_run(exc=exc, provider=provider, cfg=llm_cfg)
+        run = run_sl10_repair_review_llm(
             nl=request.nl,
             grounding_map=prompt_payload["grounding_map"],
             old_dsl=request.old_dsl,
@@ -625,6 +671,9 @@ def _build_runtime_adapters(
             config=llm_cfg,
             provider=provider,
         )
+        if hasattr(run, "interaction") and isinstance(run.interaction, dict):
+            run.interaction["context_engineering"] = budget_meta
+        return run
 
     adapters = build_full_staged_runtime_adapters(
         scenario_generate=scenario_generate,
@@ -652,7 +701,7 @@ def run_agent_loop(
     if seed_dsl is not None and cfg.condition_id == "full_staged_v1":
         raise ValueError(
             "LoopConfig() default full_staged_v1 must not use seed_dsl/hot-start DSL; "
-            "use method.legacy_loop for historical diagnostics or an explicit replay condition."
+            "use method.experiments.ablation for deterministic replay/ablation diagnostics."
         )
     if cfg.condition_id == "full_staged_v1" and llm_provider is not None:
         raise ValueError("default full_staged_v1 must use real_env provider; provider injection requires an explicit non-default condition")
@@ -670,33 +719,20 @@ def run_agent_loop(
     if cfg.llm_provider_mode == "real_env" and provider is None:
         provider = RealEnvLLMProvider()
     llm_cfg = _llm_stage_config(cfg)
-    runtime_cfg = FullStagedRuntimeConfig(
-        initial_dsl=seed_dsl or "",
-        run_id=run_id,
-        output_dir=cfg.output_dir,
-        max_iterations=cfg.max_iterations,
-        scenario_max_retries=cfg.scenario_max_retries,
-        policy_profile=cfg.policy_profile,
-        write_run_record=cfg.write_run_record,
-        adapter_mode=cfg.llm_provider_mode,
-        allow_main_result_eligible=cfg.condition_id == "full_staged_v1" and cfg.llm_provider_mode == "real_env",
-        resolved_loop_config=resolved_config,
-        run_config_extra={
-            "runtime_implementation": "method.staged_runtime.run_full_staged_deterministic_runtime",
-            "llm_max_retries": cfg.llm_max_retries,
-            "planned_stage_graph": graph,
-        },
-        environment_extra={
-            "loop_entrypoint": "method.loop.run_agent_loop",
-            "record_schema_version": RUN_RECORD_SCHEMA_VERSION,
-        },
-        real_llm_provider_api=cfg.llm_provider_mode == "real_env",
-        provider_config_read=_provider_config_read(cfg),
-        provider_model_redacted=_provider_model_redacted(cfg, provider),
-        default_loop_config_entry_integrated=True,
-    )
     adapters = _build_runtime_adapters(cfg, llm_cfg=llm_cfg, provider=provider)
-    result = run_full_staged_deterministic_runtime(nl, runtime_cfg, adapters=adapters)
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    result = run_full_staged_langgraph_runtime(
+        nl,
+        config=cfg,
+        adapters=adapters,
+        initial_dsl=seed_dsl or "",
+        planned_stage_graph=graph,
+        resolved_config=resolved_config,
+        run_id=run_id,
+        provider=provider,
+        called_from_loop=True,
+    )
     result.resolved_config = resolved_config
     result.planned_stage_graph = graph
     return result
