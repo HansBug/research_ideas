@@ -127,6 +127,54 @@
 | 🟠 | 弱相关/可比性有限：输出不是状态机族模型，或任务只是有限状态推理、多模态识别、泛 UML/SysML/goal/domain 建模，只适合补充说明或方法借鉴 |
 | ⚪ | 背景资料：只适合当背景文献，不建议纳入 baseline 对比表 |
 
+说明：`⏳` 不是 baseline 强度等级，而是处理状态；它只用于合法 PDF / 全文或 `DESC.md` 暂缺时的阻塞记录。若 `SUMMARY.md` 主表中暂时保留 `⏳` 行，必须排在 completed rows 之后，并且不得计入已完成 `DESC.md` 数。
+
+### 3.6 四条件证据编码口径
+
+从 PR #82 起，[SUMMARY.md](./SUMMARY.md) 的论文清单必须同时维护以下四个 evidence-signal 列，用于把 LLM4MDE 候选的匹配证据拆开审计：
+
+| 条件 | 定义 | 🟢 | 🟡 | 🟠 | ⚪ |
+|---|---|---|---|---|---|
+| `LLM4Modeling` | 论文核心是否是用 LLM 做建模工件生成 / 抽取 / 精化 / 修复 / 评估 | 核心贡献就是 LLM4Modeling | 建模链路重要但不唯一 | 只作辅助或评估 | 不相关 |
+| `NL输入` | 输入是否含自然语言需求、文本描述、user story、访谈 transcript、文档等 | 主输入是 NL | NL + 结构化输入混合 | NL 只作提示/说明 | 无 NL 输入证据 |
+| `LLM方法` | LLM 是否是方法核心组件 | LLM 是核心流程组件 | LLM 是重要模块 | LLM 仅辅助 | 无 LLM |
+| `STM族输出` | 输出是否是 STM-family 或强状态 / 行为语义模型 | 明确 UML/SysML State Machine / Statechart / FSM / EFSM / LTS / 近同构状态-迁移模型 | Event-B / PAT(CSP#) / symbolic protocol / process/activity / Rebeca actor-based formal model 等强行为近邻 | Simulink block/data-flow slice、领域模型 / use case / 类图 / 目标模型 / 规约等间接相关 | 不满足或未见证据 |
+
+执行规则：
+
+1. `评估` 列是 Project 1 baseline 的综合 verdict；四条件列只是 evidence signals，不得用四条件机械派生或替代 `评估`。
+2. 经典非 LLM 前身工作可出现 `评估=🟢/🟡` 且 `LLM4Modeling=⚪`，因为其价值来自任务定义高度一致。
+3. LLM4MDE 近邻工作可出现 `STM族输出=🟡` 且 `评估=🟠`，因为强行为近邻不等于 exact STM direct baseline。
+4. `STM族输出=🟢` 但 `NL输入=🟠/⚪` 的论文只能说明存在状态机工件信号，不能写成 `NL -> STM` direct baseline。
+5. 对 BPMN、Petri net、POWL、UML activity diagram、Rebeca、Simulink slice、SysML UCD/BD consistency 等近邻，必须写清“为何可借鉴”以及“为何不能评为 `🟢` direct STM baseline”。
+
+### 3.7 PDF gate 与 `⏳` 阻塞规则
+
+候选进入正式 completed baseline 计数，必须同时满足以下条件：
+
+1. 有合法可用 PDF 或等价全文原文。
+2. 已使用 `tools/pdf_extractor.py` 生成可读 `paper_content.txt`；若 text 模式异常，应切 OCR 或记录失败。
+3. 已补齐可用于学术写作的 `bibtex.bib`。
+4. 已按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时）` 的顺序生成 `DESC.md`。
+5. `DESC.md` 明确输入、输出、输出模型类型、LLM / agent 设置、反馈/验证机制、数据集/benchmark、代码/数据获取方式，以及与 Project 1 的 direct / near / related-work 关系。
+
+若 PDF gate 未通过：
+
+1. 不生成 `paper.pdf`、`paper_content.txt`、`DESC.md`，也不计入 completed `DESC.md` 数。
+2. 只允许在“待补候选/阻塞记录”中保留最小信息，如标题、来源、当前价值、阻塞原因和下一步获取路径。
+3. 不得用 CSV 初筛、网页摘要、issue 表格或搜索结果直接写最终四条件；只能写“CSV 初筛信号，待 PDF 精读确认”。
+4. `needs_pdf`、`⏳` 或“待补”都是处理状态，不是 baseline 强度，不得冒充 `🟢/🟡/🟠/⚪` 结论。
+
+### 3.8 #81 LLM4MDE seed-source 使用边界
+
+Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文精读。后续从 #81 或类似批量 census 中导入候选时，必须遵守：
+
+1. 明确本轮处理集合来自哪一个评论、小节或筛选子集，避免把 228 篇全量、70 篇 high-fit 与少量优先精读候选混为一谈。
+2. 对已入库条目只更新总账字段，不重复建目录、不改 slug，避免反向链接失效。
+3. 对新候选先做 PDF gate；gate 未通过者只列入待补，不进入主表 completed rows。
+4. CSV 初筛的四条件只能作为检索排序线索；最终 `评估` 与四条件必须来自论文全文、artifact、publisher/DOI 或作者提供材料。
+5. 若本轮发现“初筛信号很强但全文不可得”的坑，必须把阻塞原因和后续获取策略回写到 [SUMMARY.md](./SUMMARY.md) 的待补候选或更新日志，并在必要时补充本 [GUIDE.md](./GUIDE.md)。
+
 ## 4. 目录与文件规范
 
 `baselines/` 下每篇论文必须独占一个子目录。目录名应保持简洁、稳定、可读，通常用标题关键词或已有 slug。
@@ -169,21 +217,30 @@
 后续写 [SUMMARY.md](./SUMMARY.md) 的论文总表时，每篇论文必须至少包含以下列：
 
 1. `BASELINE评估`
-2. `类别`
-3. `标题`
-4. `年份`
-5. `输入`
-6. `输出`
-7. `输出模型类型`
-8. `使用的LLM`
-9. `主要方法`
-10. `目录`
+2. `LLM4Modeling`
+3. `NL输入`
+4. `LLM方法`
+5. `STM族输出`
+6. `类别`
+7. `标题`
+8. `年份`
+9. `输入`
+10. `输出`
+11. `输出模型类型`
+12. `使用的LLM`
+13. `主要方法`
+14. `需求词工程`
+15. `运行仿真`
+16. `形式化验证`
+17. `目录`
 
 其中：
 
 1. `输入` 不得只写“文本”或“模型”，要尽量写清是“自然语言需求”“自然语言 + I/O 规格”“初始 FSM + 约束”“状态图图像”等。
 2. `输出` 不得只写“模型”，要尽量写清是“SysML 状态机”“Mermaid Statechart”“Umple 状态机”“SystemVerilog FSM 代码”“扩展状态图 + 测试用例”等；若不是状态机工件，也必须直说。
 3. `主要方法` 只用一句话概括核心 pipeline，避免写成长段。
+4. 四条件列必须只写单个 emoji，不在单元格里重复中文解释；中文解释统一放在口径说明中。
+5. `需求词工程 / 运行仿真 / 形式化验证` 三列按“程度｜技术｜角色”填写，不能把普通 prompt 或语法检查夸大成高强度 formal verification。
 
 ### 5.3 数据集/benchmark 汇总表字段
 
@@ -414,15 +471,22 @@
 
 1. `#`
 2. `评估`
-3. `类别`
-4. `标题`
-5. `年份`
-6. `输入`
-7. `输出`
-8. `输出模型类型`
-9. `使用的LLM`
-10. `主要方法`
-11. `目录`
+3. `LLM4Modeling`
+4. `NL输入`
+5. `LLM方法`
+6. `STM族输出`
+7. `类别`
+8. `标题`
+9. `年份`
+10. `输入`
+11. `输出`
+12. `输出模型类型`
+13. `使用的LLM`
+14. `主要方法`
+15. `需求词工程`
+16. `运行仿真`
+17. `形式化验证`
+18. `目录`
 
 表格写法要求如下：
 
@@ -433,7 +497,10 @@
 5. `目录` 必须链接到对应单论文目录，而不是只写 slug 文本。
 6. `目录` 列统一使用显示文本 `paper`，链接目标写对应单论文目录（形如 `./slug/`），不要直接显示子目录名。
 7. 一篇论文在表里只出现一次；不要按“本轮新增”“历史论文”拆成多张正式表。
-8. 排序口径以 `project_1` baseline 相关性、任务链条和维护优先级为准；本论文集不按年份升序/降序强制排序，但每行必须保留 `年份` 列，便于后续按年筛选。
+8. `#` 是当前排序视图编号，不作为稳定引用 ID；重排后应重新连续编号。
+9. 论文清单排序固定为：`评估rank(🟢, 🟡, 🟠, ⚪, ⏳) -> 年份降序 -> STM族输出rank -> NL输入rank -> LLM4Modelingrank -> LLM方法rank -> 标题升序`。
+10. `⏳` 只作为处理状态排在 completed rows 之后，不与 `🟢/🟡/🟠/⚪` 共享 baseline 强度语义。
+11. 若某篇论文的四条件与 `评估` 看起来不一致，应优先补充说明，而不是强行把颜色调成一致；例如非 LLM 经典 direct baseline、BPMN/Petri 近邻、已有状态图到形式模型转换都允许出现这种差异。
 
 ### 6.7 `数据集与 Benchmark 清单` 的写法
 
@@ -502,6 +569,8 @@
 1. `来源文档` 应尽量指向当前仓库内已经出现该候选的历史文档来源。
 2. `当前价值` 要说明为什么值得补入，而且应优先围绕状态机任务本身，不要再把非状态机方向当高优先级主线。
 3. 这里记录的是待正式收录对象，不是随手堆放的大候选池；数量应保持克制。
+4. 因 PDF gate 未通过而保留的候选，必须写清“已尝试过的获取入口”“失败原因”“下一步可行获取路径”，不得把它们塞进 completed 主表。
+5. 若后续获得合法 PDF，应先补齐四件套，再从待补候选移入主表，并同步更新统计、数据集表和更新日志。
 
 ### 6.10 `更新日志` 的写法
 
@@ -513,20 +582,48 @@
 
 写法要求如下：
 
-1. 时间统一写绝对日期，如 `2026-03-12`。
-2. 一行只记录一类相对完整的动作，不要把过细碎的命令级操作逐条入账。
-3. 若某轮工作既有新增论文，也有结构调整，可以拆成多行记录。
-4. 若一轮检索收获很少或存在失败/阻塞，应在说明列里简明写出原因。
+1. 时间统一写 `yyyy-mm-dd hh:mm:ss`，保留到秒。
+2. 更新日志必须按时间降序排列；新记录插入表格顶部，方便读者第一眼看到最近修改。
+3. 一行只记录一类相对完整的动作，不要把过细碎的命令级操作逐条入账。
+4. 若某轮工作既有新增论文，也有结构调整，可以拆成多行记录，但仍按每行时间降序组织。
+5. 若一轮检索收获很少或存在失败/阻塞，应在说明列里简明写出原因。
+6. 若从踩坑中产生新的可复用纪律，例如 PDF gate、CSV 初筛不能替代精读、DOI 尚未激活、artifact 入口需复核等，应同步回写到本 [GUIDE.md](./GUIDE.md) 的相应规则，而不只写在一次性 PR comment 里。
 
 维护要求如下：
 
 1. “当前推荐关键词簇”“高命中特征”“低命中特征”“检索倾向调整”四个小节默认每节不超过 `10` 行。
 2. 关键词簇相关小节必须优先做压缩式重写，不允许因为新一轮检索就机械累加旧 bullet；若发现内容在膨胀，必须主动删减到只剩当前最有效的核心模式。
-3. 论文清单必须使用第 5.2 节规定的固定字段，不因每轮新增而换列口径。
+3. 论文清单必须使用第 5.2 / 6.6 节规定的固定字段，不因每轮新增而换列口径；若 PR body 明确升级 schema，应同步更新本 [GUIDE.md](./GUIDE.md)。
 4. 数据集与 benchmark 清单必须使用第 5.3 节规定的固定字段。
 5. 统计数字必须与当前表格真实内容一致。
 6. 已正式入库但尚未完成 `DESC.md` 的论文必须显式标为 `⏳ 尚未提取`。
 7. 如果 [SUMMARY.md](./SUMMARY.md) 当前版本已经形成了更细的稳定写法，后续原则上应向当前版本收敛，而不是重新发明结构。
+
+### 6.11 四条件与 PDF gate dry-run 样例
+
+后续遇到 LLM4MDE 候选时，至少按以下样例先做 dry-run，再决定是否正式入库：
+
+1. `modeling-like-peeling-an-onion`
+   - gate：用户于 2026-06-08 提供本地原文 PDF，已提取 `paper_content.txt`，因此可从 `⏳` 转为 completed。
+   - 编码：`评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟢`，`LLM方法=🟢`，`STM族输出=🟡`。
+   - 理由：输入和 LLM 方法高度贴近 Project 1，但输出是 UML activity diagram / PlantUML activity diagram，不是 exact STM。
+2. #81 ID 14 `Model-based test execution from high-level natural language instructions using GPT-4`
+   - gate：若只有 Springer 页面或摘要、PDF 需购买/权限，则不得生成四件套，不得写最终四条件。
+   - 记录：只写入待补候选，说明“CSV 初筛信号强，待合法 PDF 精读确认”。
+3. #81 ID 9 `UML State Diagrams to Rebeca`
+   - gate：PDF 和可读文本可得时可入库。
+   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟠`，`LLM方法=🟢`，`STM族输出=🟡`。
+   - 理由：它处理已有 UML state diagrams 到 Rebeca actor-based formal model 的转换，不是自然语言需求到状态机；Rebeca 是强行为近邻和形式验证模型，但不是 STM-family 近同构输出。
+4. #81 ID 17 `Automated Generation of BPMN Processes from Textual Requirements`
+   - gate：PDF 和可读文本可得时可入库。
+   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟢`，`LLM方法=🟢`，`STM族输出=🟡`。
+   - 理由：`NL -> BPMN` 是强行为近邻，但 BPMN/process model 不是 Project 1 的 exact STM 输出。
+5. #81 `Requirements-Driven Slicing of Simulink Models using LLMs`
+   - gate：PDF 和可读文本可得时可入库。
+   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟢`，`LLM方法=🟢`，`STM族输出=🟠`。
+   - 理由：它由自然语言需求驱动定位 Simulink block，并输出 Simulink block/data-flow slice；该输出不是 Stateflow、状态机或强行为近邻，只能作为模型理解 / trace / slicing 支撑证据。
+
+这些 dry-run 的作用是防止两类常见错误：一是把 CSV 初筛当成全文终审；二是把 BPMN、Petri、POWL、Activity、Rebeca、Simulink、SysML UCD/BD 等近邻工件误标为 direct STM baseline。
 
 ## 7. 工作流程
 
@@ -534,10 +631,11 @@
 
 1. 先读 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)。
 2. 先补历史欠账，优先修复缺失 `DESC.md`、命名不一致、表格未回填等问题。
-3. 再进行候选检索与筛选。
-4. 对确认收录的论文建立或补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib`。
-5. 按 [DESC_GUIDE.md](./DESC_GUIDE.md) 完成 `DESC.md`。
-6. 最后统一回写 [SUMMARY.md](./SUMMARY.md)。
+3. 再进行候选检索与筛选，并明确 seed-source、候选集合和去重依据。
+4. 对候选先执行 PDF gate；未通过者只入待补候选/阻塞记录，不生成 `DESC.md`。
+5. 对确认收录的论文建立或补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib`。
+6. 按 [DESC_GUIDE.md](./DESC_GUIDE.md) 完成 `DESC.md`。
+7. 最后统一回写 [SUMMARY.md](./SUMMARY.md)，包括论文主表、数据集表、统计、待补候选和更新日志。
 
 一轮结束前必须做以下一致性检查：
 
@@ -546,6 +644,9 @@
 3. `BASELINE评估`、类别标签和统计数字是否一致。
 4. 数据集表是否与论文总表口径一致。
 5. 关键词簇是否仍保持简洁有效，没有变成冗长检索日志、历史追加清单或机械累积的关键词仓库。
+6. 论文主表是否按 `评估 -> 年份降序 -> 四条件 tie-break -> 标题` 排序，编号是否连续。
+7. 四条件列是否全部为单个 emoji，且是否与 `DESC.md` 中的证据说明一致。
+8. 更新日志是否按 `yyyy-mm-dd hh:mm:ss` 降序排列。
 
 ## 8. 质量与可追溯性要求
 
@@ -554,6 +655,8 @@
 1. 所有结论、数字、标签和分类都应能回溯到原文。
 2. 若原文未提供代码、数据集、benchmark 链接，必须如实标注“未提供”，不能臆测补齐。
 3. 若某篇论文与 `project_1` 的关系较弱，但仍决定收录，需在 `DESC.md` 和 [SUMMARY.md](./SUMMARY.md) 中明确说明“为何仍保留”。
+4. 对 PDF 暂缺、DOI 尚未激活、artifact 入口只由原文声明但未逐文件复核等情况，必须显式保留不确定性，不得为了让表格完整而伪造公开来源或复现能力。
+5. 每次踩坑后若形成稳定规则，应优先沉淀到本 [GUIDE.md](./GUIDE.md)，让后续 agent 能复用；不要只把经验留在临时 PR 评论、聊天记录或本地脚本里。
 
 ## 9. 与 `DESC_GUIDE.md` 的关系
 
