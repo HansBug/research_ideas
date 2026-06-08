@@ -1,0 +1,444 @@
+{
+  "nfrr_version": "3.0",
+  "artifact_id": "pr_m3_four_clean_20260608_133322/path1_abs",
+  "case_key": "path1_abs",
+  "case_id": "abs-fsm-brake-control",
+  "input_lock": {
+    "nl_source": "project_1_llm_state_machine_modeling/eval/data/sources/abs-fsm-brake-control/nl.md",
+    "paper_dir": "project_1_llm_state_machine_modeling/sources/abs-fsm-brake-control",
+    "model_ref": "final_model.fcstm",
+    "model_sha256": "2c0a3a5d240e75ed458fac0039a7b722979034909cf283d0306c6332e2681397",
+    "declared_scope": "覆盖输入NL片段中的单轮ABS三态液压压力监督器；连续轮速/车速、滑移率计算、PID和液压/轮胎动力学留在plant模型。"
+  },
+  "claim": {
+    "evidence_mode": "NL+paper",
+    "authority_provenance": null,
+    "scope_type": "full_NL_fragment",
+    "obligation_independence": "single_self_assessment",
+    "allowed_use_rule_id": "AU-3",
+    "allowed_use": "reviewer_queue",
+    "signed_reference": false,
+    "calibration_status": "uncalibrated_candidate_gate",
+    "calibration_artifact_ref": null
+  },
+  "nl_spans": [
+    {
+      "id": "NL-1",
+      "text": "The paper implements the single-wheel ABS hydraulic regulator as a three-state FSM coupled with a PID-based slip controller.",
+      "class": "required_obligation",
+      "rationale": "要求离散模型表达单轮ABS液压调节器的三态FSM监督器。"
+    },
+    {
+      "id": "NL-2",
+      "text": "Wheel speed and vehicle speed are used to compute the slip ratio, and the PID output drives the Stateflow supervisor instead of sending commands directly to the hydraulic valves.",
+      "class": "required_obligation",
+      "rationale": "要求把slip/PID输出视为监督器输入边界，不能把连续控制器直接硬编码成阀命令。"
+    },
+    {
+      "id": "NL-3",
+      "text": "The FSM contains the states increase, hold, and decrease, with state actions k1/k2/n.",
+      "class": "required_obligation",
+      "rationale": "要求状态集合和每个状态的执行器输出动作。"
+    },
+    {
+      "id": "NL-4",
+      "text": "The transition guards split the slip-error space into four bands.",
+      "class": "required_obligation",
+      "rationale": "要求四条带阈值方向的guard转移。"
+    },
+    {
+      "id": "NL-5",
+      "text": "The supervisor maps slip-error thresholds to inlet-valve, return-valve, and pump actions while continuous wheel-slip dynamics remain in the plant model.",
+      "class": "required_obligation",
+      "rationale": "要求动作输出边界和连续动力学out-of-scope声明。"
+    }
+  ],
+  "external_input_ledger": [
+    {
+      "id": "EIL-001",
+      "var_name": "slp",
+      "role": "external_input_guard",
+      "evidence": [
+        "NL-2: PID output drives the Stateflow supervisor.",
+        "NL-5: continuous wheel-slip dynamics remain in the plant model.",
+        "paper_content.txt Page 5: PID controls deviation between actual and reference slip ratio, and output decides solenoid valve action through the finite-state machine."
+      ],
+      "why_not_written_by_model": "FCSTM只表达离散Stateflow监督器，slp由连续/PID/plant侧每个控制周期提供。"
+    }
+  ],
+  "obligations": [
+    {
+      "obligation_id": "O-001",
+      "nl_span_id": "NL-1",
+      "type": "state",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["single-wheel ABS hydraulic supervisor", "three-state FSM"],
+      "scope_status": "in_scope",
+      "rationale": "模型必须是三态离散监督器，而不是连续PID或液压动力学模型。"
+    },
+    {
+      "obligation_id": "O-002",
+      "nl_span_id": "NL-3",
+      "type": "state",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["increase", "hold", "decrease"],
+      "scope_status": "in_scope",
+      "rationale": "三态均由NL和STM Figure 6摘录直接给出。"
+    },
+    {
+      "obligation_id": "O-003",
+      "nl_span_id": "NL-3",
+      "type": "action/output",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["increase", "k1=1", "k2=0", "n=0"],
+      "scope_status": "in_scope",
+      "rationale": "increase状态进入动作决定增压输出。"
+    },
+    {
+      "obligation_id": "O-004",
+      "nl_span_id": "NL-3",
+      "type": "action/output",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["hold", "k1=0", "k2=0", "n=0"],
+      "scope_status": "in_scope",
+      "rationale": "hold状态中和进油/回油阀并关闭泵。"
+    },
+    {
+      "obligation_id": "O-005",
+      "nl_span_id": "NL-2",
+      "type": "external_input",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["slp", "PID/plant provided guard input"],
+      "scope_status": "in_scope",
+      "rationale": "slp是Stateflow supervisor的guard输入，不应由离散FSM内部伪造写入。"
+    },
+    {
+      "obligation_id": "O-006",
+      "nl_span_id": "NL-3",
+      "type": "action/output",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["decrease", "k1=0", "k2=1", "n=500"],
+      "scope_status": "in_scope",
+      "rationale": "decrease状态释放压力并启动泵。"
+    },
+    {
+      "obligation_id": "O-007",
+      "nl_span_id": "NL-4",
+      "type": "transition",
+      "requiredness": "required",
+      "criticality": "major",
+      "source_state": "increase",
+      "target_state": "hold",
+      "guard": {"expr": "slp <= 0.01", "var": "slp", "op": "<=", "threshold": 0.01},
+      "scope_status": "in_scope",
+      "rationale": "Figure 6/STM/NL均给出increase到hold的边界guard。"
+    },
+    {
+      "obligation_id": "O-008",
+      "nl_span_id": "NL-4",
+      "type": "transition",
+      "requiredness": "required",
+      "criticality": "major",
+      "source_state": "hold",
+      "target_state": "increase",
+      "guard": {"expr": "slp > 0.01", "var": "slp", "op": ">", "threshold": 0.01},
+      "scope_status": "in_scope",
+      "rationale": "高于正阈值时回到增压。"
+    },
+    {
+      "obligation_id": "O-009",
+      "nl_span_id": "NL-4",
+      "type": "transition",
+      "requiredness": "required",
+      "criticality": "major",
+      "source_state": "hold",
+      "target_state": "decrease",
+      "guard": {"expr": "slp < -0.01", "var": "slp", "op": "<", "threshold": -0.01},
+      "scope_status": "in_scope",
+      "rationale": "低于负阈值时进入减压。"
+    },
+    {
+      "obligation_id": "O-010",
+      "nl_span_id": "NL-4",
+      "type": "transition",
+      "requiredness": "required",
+      "criticality": "major",
+      "source_state": "decrease",
+      "target_state": "hold",
+      "guard": {"expr": "slp >= -0.01", "var": "slp", "op": ">=", "threshold": -0.01},
+      "scope_status": "in_scope",
+      "rationale": "回到负阈值边界时保压。"
+    },
+    {
+      "obligation_id": "O-011",
+      "nl_span_id": "NL-5",
+      "type": "scope/abstraction",
+      "requiredness": "required",
+      "criticality": "major",
+      "required_fields": ["k1/k2/n actuator outputs", "continuous dynamics excluded"],
+      "scope_status": "in_scope",
+      "rationale": "模型应保留阀/泵动作，同时声明连续动力学不属于FCSTM本体。"
+    }
+  ],
+  "model_inventory_ref": {
+    "sd2": {
+      "ok": true,
+      "tool_output_ref": "tool_stage_check_ledger.json#/stages/3",
+      "diagnostics": []
+    },
+    "sd3": {
+      "ok": true,
+      "tool_output_ref": "tool_stage_check_ledger.json#/stages/4",
+      "diagnostics": []
+    },
+    "sd4": {
+      "ok": true,
+      "tool_output_ref": "tool_stage_check_ledger.json#/stages/5",
+      "diagnostics": [
+        {"id": "W_UNREFERENCED_VAR:k1/k2/n", "severity": "advisory", "waived": true},
+        {"id": "W_UNWRITTEN_READ_VAR:slp", "severity": "advisory", "waived": true},
+        {"id": "W_GUARD_VARS_NEVER_CHANGE:slp guards", "severity": "advisory", "waived": true}
+      ]
+    },
+    "inventory": {
+      "states": ["ABS", "ABS.increase", "ABS.hold", "ABS.decrease"],
+      "variables": [
+        {"name": "k1", "type": "int", "role": "output"},
+        {"name": "k2", "type": "int", "role": "output"},
+        {"name": "n", "type": "int", "role": "output"},
+        {"name": "slp", "type": "float", "role": "external_input_guard"}
+      ],
+      "transitions": [
+        {"source": "[*]", "target": "increase"},
+        {"source": "increase", "target": "hold", "guard": "slp <= 0.01"},
+        {"source": "hold", "target": "increase", "guard": "slp > 0.01"},
+        {"source": "hold", "target": "decrease", "guard": "slp < -0.01"},
+        {"source": "decrease", "target": "hold", "guard": "slp >= -0.01"}
+      ],
+      "actions": [
+        {"state": "increase", "enter": {"k1": 1, "k2": 0, "n": 0}},
+        {"state": "hold", "enter": {"k1": 0, "k2": 0, "n": 0}},
+        {"state": "decrease", "enter": {"k1": 0, "k2": 1, "n": 500}}
+      ],
+      "synthetic_abstractions": [
+        {"name": "ABS", "kind": "root wrapper", "justification": "pyfcstm root state wrapper for paper's single-wheel ABS supervisor"}
+      ]
+    }
+  },
+  "alignments": [
+    {"obligation_id": "O-001", "label": "matched_abstract", "field_score": 1.0, "model_element_path": "state ABS {...}", "risk": "ABS root name is synthetic wrapper only."},
+    {"obligation_id": "O-002", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.increase; ABS.hold; ABS.decrease", "risk": "none"},
+    {"obligation_id": "O-003", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.increase enter", "risk": "none"},
+    {"obligation_id": "O-004", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.hold enter", "risk": "none"},
+    {"obligation_id": "O-005", "label": "matched_abstract", "field_score": 1.0, "model_element_path": "def float slp = 0.0", "risk": "slp updates are external to FCSTM; scenario ledger must supply values."},
+    {"obligation_id": "O-006", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.decrease enter", "risk": "none"},
+    {"obligation_id": "O-007", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.increase -> ABS.hold : if [slp <= 0.01]", "risk": "none"},
+    {"obligation_id": "O-008", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.hold -> ABS.increase : if [slp > 0.01]", "risk": "none"},
+    {"obligation_id": "O-009", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.hold -> ABS.decrease : if [slp < -0.01]", "risk": "none"},
+    {"obligation_id": "O-010", "label": "matched_exact", "field_score": 1.0, "model_element_path": "ABS.decrease -> ABS.hold : if [slp >= -0.01]", "risk": "none"},
+    {"obligation_id": "O-011", "label": "matched_abstract", "field_score": 1.0, "model_element_path": "k1/k2/n outputs + slp external-input ledger", "risk": "continuous dynamics intentionally excluded."}
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "S-001",
+      "name": "default_increase_then_hold_at_boundary",
+      "covered_obligation_ids": ["O-002", "O-003", "O-004", "O-007"],
+      "oracle_source": "NL-3/NL-4 and STM Figure 6 excerpt",
+      "expected_state": "ABS.increase after default dispatch, then ABS.hold",
+      "expected_vars": {"step0": {"k1": 1, "k2": 0, "n": 0}, "step1": {"k1": 0, "k2": 0, "n": 0}},
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": "default init with slp=0.01: cycle1 enters increase; cycle2 takes increase->hold.",
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "EIL-001",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass"
+    },
+    {
+      "scenario_id": "S-002",
+      "name": "hold_to_increase_high_slp",
+      "covered_obligation_ids": ["O-003", "O-004", "O-008"],
+      "oracle_source": "NL-3/NL-4 and STM Figure 6 excerpt",
+      "expected_state": "ABS.increase",
+      "expected_vars": {"k1": 1, "k2": 0, "n": 0},
+      "provenance": "reachable_prefix",
+      "prefix_generation": "manual_from_NL",
+      "reachable_prefix_witness": "default init with slp=0.01 reaches ABS.hold after two cycles; environment then refreshes slp=0.02.",
+      "runtime_execution_mode": "runtime_hotstart_surrogate",
+      "state_snapshot_justification": "initial_state ABS.hold uses hold entry outputs k1=0,k2=0,n=0; slp=0.02 is external input from EIL-001.",
+      "initial_state": "ABS.hold",
+      "external_input_ledger_ref": "EIL-001",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass"
+    },
+    {
+      "scenario_id": "S-003",
+      "name": "hold_to_decrease_negative_slp",
+      "covered_obligation_ids": ["O-004", "O-006", "O-009"],
+      "oracle_source": "NL-3/NL-4 and STM Figure 6 excerpt",
+      "expected_state": "ABS.decrease",
+      "expected_vars": {"k1": 0, "k2": 1, "n": 500},
+      "provenance": "reachable_prefix",
+      "prefix_generation": "manual_from_NL",
+      "reachable_prefix_witness": "default init with slp=0.01 reaches ABS.hold after two cycles; environment then refreshes slp=-0.02.",
+      "runtime_execution_mode": "runtime_hotstart_surrogate",
+      "state_snapshot_justification": "initial_state ABS.hold uses hold entry outputs k1=0,k2=0,n=0; slp=-0.02 is external input from EIL-001.",
+      "initial_state": "ABS.hold",
+      "external_input_ledger_ref": "EIL-001",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass"
+    },
+    {
+      "scenario_id": "S-004",
+      "name": "decrease_to_hold_boundary_slp",
+      "covered_obligation_ids": ["O-004", "O-006", "O-010"],
+      "oracle_source": "NL-3/NL-4 and STM Figure 6 excerpt",
+      "expected_state": "ABS.hold",
+      "expected_vars": {"k1": 0, "k2": 0, "n": 0},
+      "provenance": "reachable_prefix",
+      "prefix_generation": "manual_from_NL",
+      "reachable_prefix_witness": "default init with slp=0.01 reaches hold; external slp=-0.02 reaches decrease; environment then refreshes slp=-0.01.",
+      "runtime_execution_mode": "runtime_hotstart_surrogate",
+      "state_snapshot_justification": "initial_state ABS.decrease uses decrease entry outputs k1=0,k2=1,n=500; slp=-0.01 is external input from EIL-001.",
+      "initial_state": "ABS.decrease",
+      "external_input_ledger_ref": "EIL-001",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass"
+    }
+  ],
+  "mutations": [
+    {
+      "mutation_id": "M-001",
+      "obligation_id": "O-007",
+      "mutant": "guard_boundary_flip",
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": ["default_increase_then_hold_at_boundary"]
+    },
+    {
+      "mutation_id": "M-002",
+      "obligation_id": "O-008",
+      "mutant": "wrong_transition_target",
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": ["hold_to_increase_high_slp"]
+    },
+    {
+      "mutation_id": "M-003",
+      "obligation_id": "O-009",
+      "mutant": "wrong_transition_target",
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": ["hold_to_decrease_negative_slp"]
+    },
+    {
+      "mutation_id": "M-004",
+      "obligation_id": "O-010",
+      "mutant": "guard_boundary_flip",
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": ["decrease_to_hold_boundary_slp"]
+    },
+    {
+      "mutation_id": "M-005",
+      "obligation_id": "O-006",
+      "mutant": "wrong_effect_value",
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": ["hold_to_decrease_negative_slp"]
+    }
+  ],
+  "waivers": [
+    {
+      "warning_id": "W_UNREFERENCED_VAR:k1/k2/n",
+      "accepted": true,
+      "waiver_type": "output_only",
+      "evidence": "NL-3/NL-5; STM摘录C; paper_content Figure 4和Figure 6",
+      "risk": "变量不影响guard但承载执行器输出，不能删除。",
+      "reviewer": "self"
+    },
+    {
+      "warning_id": "W_UNWRITTEN_READ_VAR:slp",
+      "accepted": true,
+      "waiver_type": "external_input",
+      "evidence": "NL-2/NL-5; paper_content Page 5 PID/FSM连接说明",
+      "risk": "FCSTM不模拟slp连续更新；scenario必须显式注入slp。",
+      "reviewer": "self"
+    },
+    {
+      "warning_id": "W_GUARD_VARS_NEVER_CHANGE:slp guards",
+      "accepted": true,
+      "waiver_type": "external_input",
+      "evidence": "NL-4/NL-5; STM摘录C",
+      "risk": "如果下游误把slp视为内部变量，会低估guard动态性。",
+      "reviewer": "self"
+    }
+  ],
+  "coverage": {
+    "weighted_recall": 1.0,
+    "all_required_obligations": 11,
+    "critical_major_obligations": 11,
+    "scenario_obligations": 8,
+    "mutable_obligations": 7,
+    "scenario_generation_coverage": 1.0,
+    "scenario_pass_rate": 1.0,
+    "mutation_generation_coverage": 0.714,
+    "mutation_caught_rate": 1.0,
+    "main_scenario_count": 4,
+    "counted_main_bvs_count": 4,
+    "diagnostic_hot_start_count": 0,
+    "model_derived_oracle_count": 0,
+    "external_input_initial_vars_count": 1,
+    "reachable_or_default_prefix_count": 4,
+    "runtime_hotstart_surrogate_count": 3,
+    "hot_start_main_obligation_ratio": 0.0,
+    "oracle_weak": false
+  },
+  "scores": {
+    "FE": 3,
+    "NGF": 3,
+    "REC": 3,
+    "GAS": 3,
+    "SCB": 3,
+    "AAT": 3,
+    "BVS": 3,
+    "DMR": 2
+  },
+  "tier_before_cap": "T3",
+  "cap_reasons": [
+    {
+      "code": "IND_SINGLE_SELF_ASSESSMENT",
+      "max_tier": "T2",
+      "reason": "同一producer完成obligation抽取、alignment、waiver和NFRR评价，无独立仲裁。"
+    },
+    {
+      "code": "NO_HUMAN_SIGNOFF",
+      "max_tier": "T3",
+      "reason": "未经过人工/专家签核，不能称为signed reference。"
+    }
+  ],
+  "final_tier": "T2",
+  "exit_gate": {
+    "passes_pr_e2_minimum": true,
+    "sd2_pass": true,
+    "sd3_pass": true,
+    "no_unwaived_sd4_blocking": true,
+    "at_least_one_counted_main_bvs_scenario_pass": true,
+    "no_critical_contradiction": true,
+    "no_reachable_test_harness_pollution": true,
+    "ready_for_reviewer_queue": true
+  }
+}

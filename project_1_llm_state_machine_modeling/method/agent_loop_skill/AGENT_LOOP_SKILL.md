@@ -13,6 +13,15 @@
 - `LG-*` / `PR-*` marker 若已进入 run record、schema、historical evidence 或旧 PR reproduction path，应作为 provenance 保留；不得在 docs sweep 中机械删除。
 
 
+## PR-M3 codex exec 标准实验入口
+
+PR-M3 将 `codex exec` / mature coding agent 的 skill 使用方式提升为可复跑、可审计的标准实验入口。它不复现 E1 的 hidden/internal reasoning，也不得调用 `method.loop.run_agent_loop(...)`；它保存的是 `codex exec --json` 外部事件流、实际读取文件、工具/检查/修复 ledger、NFRR 和人类友好 `report.md`。
+
+- 详细配置、artifact schema、redaction、forbidden-call、四例运行纪律见 [codex_exec_experiment_guide.md](./codex_exec_experiment_guide.md)。
+- 非敏感默认配置固定为 `CODEX_EXEC_DEFAULT_CONFIG=model_provider=airouter`，正式实验必须从 `.env`/环境解析并展开为 `codex exec -c model_provider=airouter` 或覆盖后的脱敏配置。
+- 每个 run 必须生成 `run_manifest.json`、`codex_events.jsonl`、`actual_file_reads.json`、`tool_stage_check_ledger.json`、`repair_ledger.json`、`nfrr_report.json`、`forbidden_call_check.json`、`redaction_report.json`、`report.md` 与 `run_summary.md`；`report.md` 必须能让 reviewer 快速理解全过程，而不是只贴 final FCSTM。
+- PR-M3 实现阶段四例为 ABS / CARA / Elevator / LNG；产物可暂时提交到 `runs/codex_exec_skill/...` 供 reviewer 审计，后续是否清理等待用户指示。
+
 ## PR-E2 e2e ref-model 使用入口
 
 PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill 后，自主完成 `NL + 完整论文子路径 -> FCSTM/pyfcstm ref model 候选` 的建模、检查、修复与留痕。
@@ -62,6 +71,7 @@ PR-skill-fix 后续使用本 skill 时，必须确认 PR-E1 大改后的设计�
 - [prompts.md](./prompts.md)
 - [stages/README.md](./stages/README.md)
 - [health_check.py](./health_check.py)
+- [codex_exec_experiment_guide.md](./codex_exec_experiment_guide.md)
 
 
 ## PR-C config / default runtime contract
