@@ -71,6 +71,19 @@ M3_AGENT_ARTIFACTS = (
     "tool_stage_check_ledger.json",
     "repair_ledger.json",
     "nfrr_report.json",
+)
+
+RUNNER_OWNED_ARTIFACTS = (
+    "prompt.md",
+    "command.redacted.txt",
+    "env.redacted.json",
+    "codex_events.jsonl",
+    "codex_stdout.log",
+    "codex_stderr.log",
+    "codex_transcript.redacted.md",
+    "run_manifest.json",
+    "forbidden_call_check.json",
+    "redaction_report.json",
     "run_summary.md",
 )
 
@@ -258,6 +271,64 @@ def relpath(path: Path, root: Path = REPO_ROOT) -> str:
 def write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def codex_json_stream_audit(events_path: Path) -> dict[str, object]:
+    """Audit whether a file is a real ``codex exec --json`` event stream."""
+
+    required_types = {"thread.started", "turn.started", "turn.completed"}
+    disallowed_markers = ("attached_runtime_note",)
+    counts: dict[str, int] = {}
+    parse_errors: list[dict[str, object]] = []
+    disallowed_hits: list[dict[str, object]] = []
+    line_count = 0
+    if not events_path.exists():
+        return {
+            "ok": False,
+            "reason": "missing_codex_events_jsonl",
+            "line_count": 0,
+            "type_counts": counts,
+            "parse_errors": [],
+            "disallowed_hits": [],
+            "required_types": sorted(required_types),
+        }
+    for idx, raw_line in enumerate(events_path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+        line = raw_line.replace("\x00", "").strip()
+        if not line:
+            continue
+        line_count += 1
+        for marker in disallowed_markers:
+            if marker in line:
+                disallowed_hits.append({"line": idx, "marker": marker, "preview": line[:300]})
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError as exc:
+            parse_errors.append({"line": idx, "error": str(exc), "preview": line[:300]})
+            continue
+        event_type = obj.get("type") if isinstance(obj, dict) else None
+        if isinstance(event_type, str):
+            counts[event_type] = counts.get(event_type, 0) + 1
+        else:
+            parse_errors.append({"line": idx, "error": "missing string type field", "preview": line[:300]})
+    missing = sorted(required_types - set(counts))
+    reason = None
+    if line_count == 0:
+        reason = "empty_codex_events_jsonl"
+    elif disallowed_hits:
+        reason = "attached_or_non_exec_runtime_marker_present"
+    elif missing:
+        reason = "missing_required_codex_exec_event_types:" + ",".join(missing)
+    elif len(parse_errors) > 0:
+        reason = "json_parse_errors_present"
+    return {
+        "ok": reason is None,
+        "reason": reason,
+        "line_count": line_count,
+        "type_counts": counts,
+        "parse_errors": parse_errors[:20],
+        "disallowed_hits": disallowed_hits[:20],
+        "required_types": sorted(required_types),
+    }
 
 
 def _python_without_strings(command: str) -> str:
@@ -508,7 +579,9 @@ def build_codex_prompt(case: CodexExecCase, run_dir: Path, run_label: str) -> st
 
 请把所有产物写入：`{relpath(run_dir)}`
 
-必须至少生成以下文件（缺一项都要在 report 中解释）：
+你只负责生成 producer-owned 产物；以下 runner-owned 文件由外部 harness 生成和回写，你不得创建、覆盖或修改：`prompt.md`、`command.redacted.txt`、`env.redacted.json`、`codex_events.jsonl`、`codex_stdout.log`、`codex_stderr.log`、`codex_transcript.redacted.md`、`run_manifest.json`、`forbidden_call_check.json`、`redaction_report.json`、`run_summary.md`。
+
+必须至少生成以下 producer-owned 文件（缺一项都要在 report 中解释）：
 
 ```text
 final_model.fcstm
@@ -518,8 +591,6 @@ actual_file_reads.json
 tool_stage_check_ledger.json
 repair_ledger.json
 nfrr_report.json
-forbidden_call_check.json
-run_summary.md
 ```
 
 `report.md` 必须中文为主、人类友好，不能只贴 final FCSTM；至少包含：输入 NL/NL_zh、实际读取文件、过程摘要表、检查/修复/NFRR 表、final FCSTM、质量风险和限制、是否可进入 reviewer queue。
@@ -536,7 +607,7 @@ run_summary.md
 | E3 deterministic checks | 至少尝试 SD-2、SD-3、SD-4、SD-5A/SC-5F、SD-6；工具不可用也要记录命令和影响。 |
 | E4 repair/waiver | 对 blocking 问题形成 FixRequestBatch/FixLog 风格 ledger，记录 request、accept/reject/waiver、diff、local evidence、SL-10式判断。 |
 | E5 NFRR | 按 NFRR v3 输出 claim、NL coverage ledger、obligation ledger、scenario provenance ledger、waiver ledger、FE/NGF/REC/GAS/SCB/AAT/BVS/DMR、tier/cap/allowed_use。 |
-| E6 final audit | 写 `report.md`、`metadata.json`、`run_summary.md`，检查 forbidden runner 和 secret redaction 风险。 |
+| E6 final audit | 写 `report.md`、`metadata.json` 与 producer-owned ledgers；不要写 runner-owned audit files，外部 harness 会生成 `run_summary.md`、forbidden-call 与 redaction 结果。 |
 
 # Case metadata
 

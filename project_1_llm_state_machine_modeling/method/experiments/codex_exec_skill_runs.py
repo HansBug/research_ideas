@@ -26,6 +26,8 @@ from method.agent_loop_skill.codex_exec_experiment import (  # noqa: E402
     CODEX_EXEC_ENV_KEYS,
     REPO_ROOT,
     M3_AGENT_ARTIFACTS,
+    RUNNER_OWNED_ARTIFACTS,
+    codex_json_stream_audit,
     CodexExecCase,
     augment_metadata,
     ensure_machine_audit_artifacts,
@@ -93,8 +95,11 @@ def run_one_case(
     run_dir = out_root / case.case_key
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "checks").mkdir(exist_ok=True)
+    capture_dir = run_dir / "_runner_capture"
+    capture_dir.mkdir(parents=True, exist_ok=True)
+
     prompt = build_codex_prompt(case, run_dir, out_root.name)
-    (run_dir / "prompt.md").write_text(prompt, encoding="utf-8")
+    env_snapshot = redacted_env_snapshot(run_env, file_env.keys())
 
     command_plan = build_command_plan(
         codex_bin=codex_bin,
@@ -102,8 +107,7 @@ def run_one_case(
         last_message_path=run_dir / "last_message.md",
         config_entries=config_entries,
     )
-    (run_dir / "command.redacted.txt").write_text(" ".join(command_plan.command_redacted) + "\n", encoding="utf-8")
-    write_json(run_dir / "env.redacted.json", redacted_env_snapshot(run_env, file_env.keys()))
+    command_redacted_text = " ".join(command_plan.command_redacted) + "\n"
     manifest = initial_manifest(
         case=case,
         run_dir=run_dir,
@@ -111,15 +115,40 @@ def run_one_case(
         prompt=prompt,
         file_env_keys=file_env.keys(),
     )
-    write_json(run_dir / "run_manifest.json", manifest)
+
+    def _write_runner_owned_initial() -> None:
+        (run_dir / "prompt.md").write_text(prompt, encoding="utf-8")
+        (run_dir / "command.redacted.txt").write_text(command_redacted_text, encoding="utf-8")
+        write_json(run_dir / "env.redacted.json", env_snapshot)
+        write_json(run_dir / "run_manifest.json", manifest)
+
+    def _restore_runner_owned_static() -> None:
+        # Mature agents may accidentally overwrite these files while assembling
+        # their own audit package.  The runner is the authority for launch
+        # prompt/config/command/manifest, so it rewrites them after the child
+        # process exits.  This prevents attached-session placeholders from
+        # masquerading as codex-exec evidence.
+        (run_dir / "prompt.md").write_text(prompt, encoding="utf-8")
+        (run_dir / "command.redacted.txt").write_text(command_redacted_text, encoding="utf-8")
+        write_json(run_dir / "env.redacted.json", env_snapshot)
+
+    _write_runner_owned_initial()
 
     if dry_run:
         write_invalid_placeholders(run_dir, reason="dry-run: codex exec not launched")
+        _restore_runner_owned_static()
+        (run_dir / "codex_events.jsonl").write_text("", encoding="utf-8")
+        (run_dir / "codex_stdout.log").write_text("", encoding="utf-8")
+        (run_dir / "codex_stderr.log").write_text("", encoding="utf-8")
+        event_audit = codex_json_stream_audit(run_dir / "codex_events.jsonl")
+        write_json(run_dir / "checks" / "codex_json_stream_audit.json", event_audit)
         forbidden = write_forbidden_call_check(run_dir)
         write_transcript_redacted(run_dir, secret_values)
         redaction = write_redaction_report(run_dir, secret_values)
         manifest = update_manifest_after_run(manifest, run_dir=run_dir, started_monotonic=time.monotonic(), exit_code=0, invalid_reason="dry-run")
         manifest["redaction_status"] = "ok" if redaction.get("ok") else "fail"
+        manifest["codex_json_stream_audit"] = event_audit
+        manifest["forbidden_call_check"] = forbidden
         write_json(run_dir / "run_manifest.json", manifest)
         augment_metadata(run_dir, manifest)
         completeness = ensure_machine_audit_artifacts(run_dir, manifest)
@@ -135,9 +164,9 @@ def run_one_case(
     print(f"[runner] start {case.case_key}: {' '.join(command_plan.command_redacted)}", flush=True)
     import subprocess
 
-    stdout_events = run_dir / "codex_events.jsonl"
-    stdout_log = run_dir / "codex_stdout.log"
-    stderr_log = run_dir / "codex_stderr.log"
+    stdout_events_capture = capture_dir / "codex_events.jsonl"
+    stdout_log_capture = capture_dir / "codex_stdout.log"
+    stderr_log_capture = capture_dir / "codex_stderr.log"
     proc = subprocess.Popen(
         command_plan.command,
         cwd=REPO_ROOT,
@@ -152,9 +181,9 @@ def run_one_case(
     proc.stdin.write(prompt)
     proc.stdin.close()
 
-    stderr_thread = threading.Thread(target=_tee_stream, args=(f"{case.case_key}:stderr", proc.stderr, stderr_log, secret_values), daemon=True)
+    stderr_thread = threading.Thread(target=_tee_stream, args=(f"{case.case_key}:stderr", proc.stderr, stderr_log_capture, secret_values), daemon=True)
     stderr_thread.start()
-    with stdout_events.open("w", encoding="utf-8") as events_f, stdout_log.open("w", encoding="utf-8") as stdout_f:
+    with stdout_events_capture.open("w", encoding="utf-8") as events_f, stdout_log_capture.open("w", encoding="utf-8") as stdout_f:
         for raw_line in iter(proc.stdout.readline, ""):
             safe = redact_text(raw_line, secret_values)
             events_f.write(safe)
@@ -168,9 +197,23 @@ def run_one_case(
     exit_code = proc.wait()
     stderr_thread.join(timeout=5)
 
+    # Reassert runner-owned evidence after the child process exits.  Official
+    # codex JSON/stdout/stderr files are copied from the private capture dir so
+    # producer code cannot replace them with hand-written placeholders.
+    _restore_runner_owned_static()
+    shutil.copyfile(stdout_events_capture, run_dir / "codex_events.jsonl")
+    shutil.copyfile(stdout_log_capture, run_dir / "codex_stdout.log")
+    shutil.copyfile(stderr_log_capture, run_dir / "codex_stderr.log")
+    shutil.rmtree(capture_dir, ignore_errors=True)
+
+    event_audit = codex_json_stream_audit(run_dir / "codex_events.jsonl")
+    write_json(run_dir / "checks" / "codex_json_stream_audit.json", event_audit)
+
     invalid_reason = None
     if exit_code != 0:
         invalid_reason = f"codex exec exited with code {exit_code}"
+    if not event_audit.get("ok") and invalid_reason is None:
+        invalid_reason = f"codex_json_stream_invalid:{event_audit.get('reason')}"
     if not (run_dir / "final_model.fcstm").exists() and invalid_reason is None:
         invalid_reason = "missing final_model.fcstm"
     if not (run_dir / "report.md").exists() and invalid_reason is None:
@@ -187,6 +230,8 @@ def run_one_case(
     manifest = update_manifest_after_run(manifest, run_dir=run_dir, started_monotonic=started, exit_code=exit_code, invalid_reason=invalid_reason)
     manifest["redaction_status"] = "ok" if redaction.get("ok") else "fail"
     manifest["forbidden_call_check"] = forbidden
+    manifest["codex_json_stream_audit"] = event_audit
+    manifest["runner_owned_artifacts"] = list(RUNNER_OWNED_ARTIFACTS)
     manifest["artifact_completeness_before_harness_fill"] = completeness_pre
     write_json(run_dir / "run_manifest.json", manifest)
     augment_metadata(run_dir, manifest)

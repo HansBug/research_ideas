@@ -196,3 +196,139 @@ def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executabl
     assert payload["forbidden_runner_used"] is True
     assert len(payload["suspicious_tool_lines"]) == 1
     assert payload["suspicious_tool_lines"][0]["line"] == 2
+
+
+def test_codex_exec_json_stream_audit_rejects_attached_runtime_note(tmp_path) -> None:
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+
+    events = tmp_path / "codex_events.jsonl"
+    events.write_text(
+        json.dumps(
+            {
+                "type": "attached_runtime_note",
+                "message": "No standalone codex exec --json event stream was available",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = codex_json_stream_audit(events)
+
+    assert payload["ok"] is False
+    assert payload["reason"] == "attached_or_non_exec_runtime_marker_present"
+
+
+def test_codex_exec_json_stream_audit_accepts_core_exec_events(tmp_path) -> None:
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+
+    events = tmp_path / "codex_events.jsonl"
+    events.write_text(
+        "\n".join(
+            [
+                json.dumps({"type": "thread.started"}),
+                json.dumps({"type": "turn.started"}),
+                json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "ok"}}),
+                json.dumps({"type": "turn.completed"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = codex_json_stream_audit(events)
+
+    assert payload["ok"] is True
+    assert payload["reason"] is None
+    assert payload["type_counts"]["thread.started"] == 1
+
+
+def test_codex_exec_prompt_marks_runner_owned_artifacts_as_harness_owned() -> None:
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import build_codex_prompt, codex_exec_cases
+
+    prompt = build_codex_prompt(codex_exec_cases("all", case_keys=["path1_abs"])[0], Path("runs/tmp/path1_abs"), "tmp")
+
+    assert "runner-owned" in prompt
+    assert "不得创建、覆盖或修改" in prompt
+    for name in [
+        "codex_events.jsonl",
+        "command.redacted.txt",
+        "env.redacted.json",
+        "run_manifest.json",
+        "forbidden_call_check.json",
+        "redaction_report.json",
+        "run_summary.md",
+    ]:
+        assert name in prompt
+
+
+def test_codex_exec_runner_rewrites_runner_owned_artifacts_after_child_overwrite(tmp_path) -> None:
+    from project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs import run_one_case
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_exec_cases
+
+    fake_codex = tmp_path / "fake_codex"
+    fake_codex.write_text(
+        f"#!{sys.executable}\n"
+        + """
+from __future__ import annotations
+import json
+import re
+import sys
+from pathlib import Path
+
+# Behave like a tiny `codex exec --json` executable: ignore argv, read prompt
+# from stdin, write producer artifacts, then emit JSONL events to stdout.
+prompt = sys.stdin.read()
+match = re.search(r"请把所有产物写入：`([^`]+)`", prompt)
+if not match:
+    raise SystemExit("run_dir not found in prompt")
+out = Path(match.group(1))
+out.mkdir(parents=True, exist_ok=True)
+# Simulate a misbehaving mature agent that tries to overwrite runner-owned files.
+(out / "codex_events.jsonl").write_text('{"type":"attached_runtime_note"}\\n', encoding="utf-8")
+(out / "command.redacted.txt").write_text("attached-tmux-runtime\\n", encoding="utf-8")
+(out / "env.redacted.json").write_text(json.dumps({"env_read": False}), encoding="utf-8")
+(out / "run_manifest.json").write_text(json.dumps({"status": "fake"}), encoding="utf-8")
+(out / "final_model.fcstm").write_text("state S { [*] -> A; state A; }\\n", encoding="utf-8")
+(out / "report.md").write_text("# fake report\\n", encoding="utf-8")
+(out / "metadata.json").write_text(json.dumps({"status": "fake-success"}), encoding="utf-8")
+(out / "actual_file_reads.json").write_text("[]", encoding="utf-8")
+(out / "tool_stage_check_ledger.json").write_text(json.dumps({"checks": {}}), encoding="utf-8")
+(out / "repair_ledger.json").write_text("[]", encoding="utf-8")
+(out / "nfrr_report.json").write_text(json.dumps({"claim": {"allowed_use": "test"}}), encoding="utf-8")
+for event in [
+    {"type": "thread.started"},
+    {"type": "turn.started"},
+    {"type": "item.completed", "item": {"type": "agent_message", "text": "ok"}},
+    {"type": "turn.completed"},
+]:
+    print(json.dumps(event), flush=True)
+""".lstrip(),
+        encoding="utf-8",
+    )
+    fake_codex.chmod(0o755)
+
+    result = run_one_case(
+        case=codex_exec_cases("all", case_keys=["path1_abs"])[0],
+        out_root=tmp_path / "runs",
+        codex_bin=str(fake_codex),
+        env_file=None,
+        dry_run=False,
+        cli_default_config=None,
+        cli_extra_config=[],
+        cli_override_config=[f"model={fake_codex}"],
+    )
+
+    run_dir = Path(result["run_dir"])
+    events = (run_dir / "codex_events.jsonl").read_text(encoding="utf-8")
+    command = (run_dir / "command.redacted.txt").read_text(encoding="utf-8")
+    env = json.loads((run_dir / "env.redacted.json").read_text(encoding="utf-8"))
+    manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+
+    assert "attached_runtime_note" not in events
+    assert "thread.started" in events
+    assert "attached-tmux-runtime" not in command
+    assert "exec --json" in command
+    assert "file_env_keys_loaded" in env
+    assert manifest["status"] == "completed"
+    assert manifest["codex_json_stream_audit"]["ok"] is True
