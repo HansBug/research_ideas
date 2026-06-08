@@ -1,0 +1,138 @@
+{
+  "schema_version": "pr-m3-repair-ledger-v1",
+  "case_key": "path1_cara",
+  "fix_log_style": "FixRequestBatch/SL-9/SL-10-equivalent local ledger; no provider call used",
+  "entries": [
+    {
+      "repair_id": "R-001",
+      "source_stage": "SD-3",
+      "fix_request_batch": [
+        {
+          "request_id": "FR-001",
+          "diagnostic": "E_DURING_ASPECT_INVALID",
+          "hard_block": true,
+          "waiver_allowed": false,
+          "local_check_required": [
+            "SD-2",
+            "SD-3"
+          ]
+        }
+      ],
+      "sl9_decisions": [
+        {
+          "request_id": "FR-001",
+          "decision": "accept",
+          "reason": "pyfcstm semantic rule allows aspect-qualified during only where supported; leaf states can use plain during for periodic actions"
+        }
+      ],
+      "candidate_diff": "Manual and Autocontrol leaf states: during before {...} -> during {...}; removed no-op log_written self-assignment.",
+      "local_check_evidence": {
+        "SD-2": "pass",
+        "SD-3": "pass after repair"
+      },
+      "sl10_review": {
+        "decision": "pass",
+        "basis": "The repair is grammar/semantic preserving: it changes scheduling aspect syntax without changing NL obligations for manual/autocontrol periodic outputs."
+      },
+      "next_action": "return_to_SD2"
+    },
+    {
+      "repair_id": "R-002",
+      "source_stage": "SD-6",
+      "fix_request_batch": [
+        {
+          "request_id": "FR-002",
+          "diagnostic": "SimulationRuntimeEventError on StartAC",
+          "hard_block": true,
+          "waiver_allowed": false,
+          "local_check_required": [
+            "SD-2",
+            "SD-3",
+            "SD-4",
+            "SD-6"
+          ]
+        }
+      ],
+      "sl9_decisions": [
+        {
+          "request_id": "FR-002",
+          "decision": "accept",
+          "reason": "The paper requires Ask_StartAC submode and StartAC enters AutocontrolInit; pyfcstm executes this reliably through submode exit plus parent guarded transition."
+        }
+      ],
+      "candidate_diff": "Ask_StartAC now has AwaitingStart -> [*] :: StartAC effect { ask_exit_target = 1; } and AwaitingStart -> [*] :: TerminateAC effect { ask_exit_target = 0; }; parent transitions route to AutocontrolInit or Manual by ask_exit_target.",
+      "local_check_evidence": {
+        "SD-2": "pass",
+        "SD-3": "pass",
+        "SD-4": "pass with no blocking",
+        "SD-6": "StartAC and TerminateAC scenarios pass"
+      },
+      "sl10_review": {
+        "decision": "pass",
+        "basis": "The helper variable is a portable pyfcstm exit-routing abstraction for nested state exits; it is declared in AAT/NFRR as synthetic and does not introduce CARA-specific lexical special-case logic."
+      },
+      "next_action": "return_to_SD2"
+    },
+    {
+      "repair_id": "R-003",
+      "source_stage": "SD-6 scenario execution",
+      "fix_request_batch": [
+        {
+          "request_id": "FR-003",
+          "diagnostic": "SimulationRuntimeEventError on bare CB_backManual scenario event",
+          "hard_block": true,
+          "waiver_allowed": false,
+          "local_check_required": [
+            "SD-6"
+          ]
+        }
+      ],
+      "sl9_decisions": [
+        {
+          "request_id": "FR-003",
+          "decision": "accept_scenario_repair",
+          "reason": "forced transitions expose chain-scoped events; scenario must inject parent-relative .CB_backManual from the current leaf state."
+        }
+      ],
+      "candidate_diff": "No model DSL semantic change. Scenario event names changed from bare CB_backManual to parent-relative .CB_backManual and the same pattern for CA/CP/CC.",
+      "local_check_evidence": {
+        "SD-6": "all four cross-component backManual scenarios pass from default-prefix reachability witness"
+      },
+      "sl10_review": {
+        "decision": "pass",
+        "basis": "This fixes the test harness event path, not the model semantics. It is portable to chain-scoped forced transitions and documented in scenario provenance."
+      },
+      "next_action": "final_audit"
+    }
+  ],
+  "waivers": [
+    {
+      "warning_id": "W_UNREFERENCED_VAR:*",
+      "waiver_type": "output_or_observability_variable",
+      "accepted": true,
+      "evidence": "NL/P-1/P-2/P-4: CA_mode, buffer, control voltage, infusion_rate, log/alarm/message/release are outputs or mode-memory variables, not guard controls.",
+      "risk": "Variables may look unused to SD-4 because NFRR scenarios assert them rather than model guards consuming them."
+    },
+    {
+      "warning_id": "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT:*",
+      "waiver_type": "output_only",
+      "accepted": true,
+      "evidence": "NL explicitly mentions shared buffer, pump speed source/control voltage, log files, alarms/messages and software release.",
+      "risk": "Some outputs are abstract flags rather than full UI/logging subsystems."
+    },
+    {
+      "warning_id": "W_DURING_CONST_ASSIGN:*",
+      "waiver_type": "accepted_abstraction",
+      "accepted": true,
+      "evidence": "Manual mode continuously leaves control_voltage=0; Autocontrol continuously records log_written=1 while controlling.",
+      "risk": "Periodic constant assignment is intentional but may overstate logging frequency."
+    },
+    {
+      "warning_id": "W_HIGH_VAR_TO_LEAF_RATIO",
+      "waiver_type": "accepted_abstraction",
+      "accepted": true,
+      "evidence": "NL has dense variable participation: CA_mode, setpoint, blood pressure, flow, control voltage, alarms, logs and release flags.",
+      "risk": "Model is EFSM-heavy relative to the number of named states."
+    }
+  ]
+}

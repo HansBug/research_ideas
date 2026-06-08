@@ -1,0 +1,743 @@
+{
+  "nfrr_version": "3.0",
+  "case_key": "path2_lng_ems",
+  "claim": {
+    "evidence_mode": "NL+paper",
+    "authority_provenance": null,
+    "scope_type": "full_NL_fragment",
+    "obligation_independence": "single_self_assessment",
+    "allowed_use_rule_id": "AU-3",
+    "allowed_use": "reviewer_queue",
+    "signed_reference": false,
+    "calibration_status": "uncalibrated_candidate_gate",
+    "calibration_artifact_ref": null
+  },
+  "nl_spans": [
+    {
+      "id": "NL-1",
+      "text": "EMS manages PVs, WECs, DGs, LNG, batteries, and ship loads; issuing cut-in/cut-out commands.",
+      "class": "required_obligation",
+      "rationale": "Defines controlled system boundary and command/output role."
+    },
+    {
+      "id": "NL-2",
+      "text": "It controls dispatch and dynamically switches states to maintain power balance.",
+      "class": "required_obligation",
+      "rationale": "Requires mode-selection state machine and balance-oriented outputs."
+    },
+    {
+      "id": "NL-3",
+      "text": "FSM reads PL, Ppv, Pw, SoC, and engine capacity bounds; returns generator power, battery charge/discharge, spare power.",
+      "class": "required_obligation",
+      "rationale": "Defines external inputs and outputs."
+    },
+    {
+      "id": "NL-4",
+      "text": "The twelve finite states are selected by logical transition conditions over demand, generation, capacity, and SoC.",
+      "class": "required_obligation",
+      "rationale": "Requires all 12 states and guard partition."
+    },
+    {
+      "id": "NL-5",
+      "text": "When Ppv+Pw covers PL, serve demand from RES and charge below SoC 0.95 or spare at/above 0.95.",
+      "class": "required_obligation",
+      "rationale": "RES-sufficient branches."
+    },
+    {
+      "id": "NL-6",
+      "text": "When Ppv+Pw is below PL, priority is RES, batteries when SoC suitable, LNG before diesel, DG1/DG2 last.",
+      "class": "required_obligation",
+      "rationale": "Thermal escalation and battery-discharge branches."
+    },
+    {
+      "id": "NL-7",
+      "text": "Low-SoC branches add Pgmax/5 and Pd1max/10 charging margins.",
+      "class": "required_obligation",
+      "rationale": "Quantitative output effects."
+    },
+    {
+      "id": "NL-8",
+      "text": "When PL=0, RES goes to battery charging or spare according to SoC thresholds.",
+      "class": "required_obligation",
+      "rationale": "Zero-load branches."
+    },
+    {
+      "id": "NL-9",
+      "text": "Overload completion state is illegal and should never occur in practice.",
+      "class": "required_obligation",
+      "rationale": "Abnormal/illegal state obligation."
+    }
+  ],
+  "obligations": [
+    {
+      "obligation_id": "O-001",
+      "nl_span_id": "NL-3",
+      "type": "external_input",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "PL/Ppv/Pw/SoC/eng*_Pmax are read inputs/capacity bounds",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-002",
+      "nl_span_id": "NL-3",
+      "type": "action/output",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "Pgr/Pd1r/Pd2r/Pbr/Pbc/Ps/ems_state outputs",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-003",
+      "nl_span_id": "NL-4",
+      "type": "state",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "12 finite states",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-004",
+      "nl_span_id": "NL-5",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "RES sufficient + SoC<0.95 -> State1_1, charging",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-005",
+      "nl_span_id": "NL-5",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "RES sufficient + SoC>=0.95 -> State1_2, spare",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-006",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "LNG-capacity high SoC -> battery discharge State2_1",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-007",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "LNG activated low SoC -> State2_2",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-008",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "LNG+DG1 capacity high SoC -> State2_3",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-009",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "LNG+DG1 active low SoC -> State2_4",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-010",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "All thermal capacity high SoC -> State2_5",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-011",
+      "nl_span_id": "NL-6",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "All engines active low SoC -> State2_6",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-012",
+      "nl_span_id": "NL-7",
+      "type": "action/output",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "Pgmax/5 margin in State2_2",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-013",
+      "nl_span_id": "NL-7",
+      "type": "action/output",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "Pd1max/10 margin in State2_4/2_6",
+      "alignment": "matched_exact"
+    },
+    {
+      "obligation_id": "O-014",
+      "nl_span_id": "NL-8",
+      "type": "transition",
+      "criticality": "major",
+      "requiredness": "required",
+      "evidence": "PL=0 low/mid/full SoC -> State3_1/3_2/3_3",
+      "alignment": "matched_abstract"
+    },
+    {
+      "obligation_id": "O-015",
+      "nl_span_id": "NL-9",
+      "type": "fault",
+      "criticality": "critical",
+      "requiredness": "required",
+      "evidence": "State2_7 illegal overload all resources insufficient",
+      "alignment": "matched_exact"
+    }
+  ],
+  "model_inventory_ref": {
+    "sd2": "tool_stage_check_ledger.json#/checks/SD-2",
+    "sd3": "tool_stage_check_ledger.json#/checks/SD-3",
+    "sd4": "tool_stage_check_ledger.json#/checks/SD-4"
+  },
+  "alignments": [
+    {
+      "obligation_id": "O-001",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-002",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-003",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-004",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-005",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-006",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-007",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-008",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-009",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-010",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-011",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-012",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-013",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    },
+    {
+      "obligation_id": "O-014",
+      "label": "matched_abstract",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "PL=0 State3_2 follows paper Table 3 prose; extracted symbol row is ambiguous"
+    },
+    {
+      "obligation_id": "O-015",
+      "label": "matched_exact",
+      "field_score": 1.0,
+      "model_element_path": "see final_model.fcstm",
+      "risk": "none"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "S_state_1_1_res_charges",
+      "covered_obligation_ids": [
+        "O-004"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 50.0,
+        "Ppv": 30.0,
+        "Pw": 25.0,
+        "SoC": 0.8
+      }
+    },
+    {
+      "scenario_id": "S_state_1_2_res_spare",
+      "covered_obligation_ids": [
+        "O-005"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 50.0,
+        "Ppv": 30.0,
+        "Pw": 25.0,
+        "SoC": 0.96
+      }
+    },
+    {
+      "scenario_id": "S_state_2_1_battery_discharge_lng_standby",
+      "covered_obligation_ids": [
+        "O-006"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 80.0,
+        "Ppv": 20.0,
+        "Pw": 20.0,
+        "SoC": 0.8
+      }
+    },
+    {
+      "scenario_id": "S_state_2_2_lng_charge_margin",
+      "covered_obligation_ids": [
+        "O-007",
+        "O-012"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 80.0,
+        "Ppv": 20.0,
+        "Pw": 20.0,
+        "SoC": 0.4
+      }
+    },
+    {
+      "scenario_id": "S_state_2_3_lng_on_dg1_standby_battery",
+      "covered_obligation_ids": [
+        "O-008"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 95.0,
+        "Ppv": 10.0,
+        "Pw": 10.0,
+        "SoC": 0.8
+      }
+    },
+    {
+      "scenario_id": "S_state_2_4_lng_dg1_charge_margin",
+      "covered_obligation_ids": [
+        "O-009",
+        "O-013"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 95.0,
+        "Ppv": 10.0,
+        "Pw": 10.0,
+        "SoC": 0.4
+      }
+    },
+    {
+      "scenario_id": "S_state_2_5_all_thermal_battery_high_soc",
+      "covered_obligation_ids": [
+        "O-010"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 130.0,
+        "Ppv": 10.0,
+        "Pw": 10.0,
+        "SoC": 0.8
+      }
+    },
+    {
+      "scenario_id": "S_state_2_6_all_thermal_charge_low_soc",
+      "covered_obligation_ids": [
+        "O-011",
+        "O-013"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 130.0,
+        "Ppv": 10.0,
+        "Pw": 10.0,
+        "SoC": 0.4
+      }
+    },
+    {
+      "scenario_id": "S_state_2_7_illegal_overload",
+      "covered_obligation_ids": [
+        "O-015"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 200.0,
+        "Ppv": 10.0,
+        "Pw": 10.0,
+        "SoC": 0.8
+      }
+    },
+    {
+      "scenario_id": "S_state_3_1_zero_load_low_soc",
+      "covered_obligation_ids": [
+        "O-014"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 0.0,
+        "Ppv": 15.0,
+        "Pw": 8.0,
+        "SoC": 0.4
+      }
+    },
+    {
+      "scenario_id": "S_state_3_2_zero_load_mid_soc",
+      "covered_obligation_ids": [
+        "O-014"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 0.0,
+        "Ppv": 15.0,
+        "Pw": 8.0,
+        "SoC": 0.7
+      }
+    },
+    {
+      "scenario_id": "S_state_3_3_zero_load_full_soc",
+      "covered_obligation_ids": [
+        "O-014"
+      ],
+      "oracle_source": "NL spans + paper Table 3; not model-derived",
+      "provenance": "external_input_initial_vars",
+      "prefix_generation": "default",
+      "reachable_prefix_witness": null,
+      "runtime_execution_mode": "default_runtime",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": "external_inputs:PL,Ppv,Pw,SoC,eng1_Pmax,eng2_Pmax,eng3_Pmax",
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass",
+      "initial_vars": {
+        "eng1_Pmax": 30.0,
+        "eng2_Pmax": 40.0,
+        "eng3_Pmax": 50.0,
+        "PL": 0.0,
+        "Ppv": 15.0,
+        "Pw": 8.0,
+        "SoC": 0.96
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "mutation_id": "M1_wrong_target_state1_1_to_state1_2",
+      "parse_semantic_ok": true,
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": [
+        "S_state_1_1_res_charges"
+      ]
+    },
+    {
+      "mutation_id": "M2_missing_lng_charge_margin",
+      "parse_semantic_ok": true,
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": [
+        "S_state_2_2_lng_charge_margin"
+      ]
+    },
+    {
+      "mutation_id": "M3_missing_dg1_charge_margin",
+      "parse_semantic_ok": true,
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": [
+        "S_state_2_4_lng_dg1_charge_margin"
+      ]
+    },
+    {
+      "mutation_id": "M4_illegal_wrong_target_state2_7_to_state2_6",
+      "parse_semantic_ok": true,
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": [
+        "S_state_2_7_illegal_overload"
+      ]
+    },
+    {
+      "mutation_id": "M5_guard_soc_full_threshold_too_high",
+      "parse_semantic_ok": true,
+      "original_pass": true,
+      "mutated_fail": true,
+      "caught": true,
+      "failed_scenarios": [
+        "S_state_1_2_res_spare"
+      ]
+    }
+  ],
+  "waivers": [
+    {
+      "warning_id": "W_UNWRITTEN_READ_VAR:*",
+      "model_element_path": "variables PL/Ppv/Pw/SoC/eng*_Pmax",
+      "waiver_type": "external_input",
+      "nl_or_paper_evidence": "NL-3 + paper Table 1",
+      "risk": "If treated as internally written, the model would invent plant dynamics absent from the paper.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_GUARD_VARS_NEVER_CHANGE:*",
+      "model_element_path": "Select -> State* guards",
+      "waiver_type": "external_input",
+      "nl_or_paper_evidence": "NL-4 + paper Table 3",
+      "risk": "Scenario evidence must inject external input valuations; SD-6 cannot refresh them step-by-step.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_UNREFERENCED_VAR:*",
+      "model_element_path": "Pgr/Pd1r/Pd2r/Pbr/Pbc/Ps/ems_state",
+      "waiver_type": "output_only",
+      "nl_or_paper_evidence": "NL-3 + paper Table 2",
+      "risk": "Outputs are observed by scenarios but do not feed back into state selection in this abstraction.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_LARGE_COMPOSITE",
+      "model_element_path": "Root",
+      "waiver_type": "accepted_abstraction",
+      "nl_or_paper_evidence": "NL-4 + paper Table 3 enumerates 12 sibling states",
+      "risk": "Flat table-driven EFSM is less hierarchical, but faithful to the paper state table.",
+      "accepted": true
+    }
+  ],
+  "coverage": {
+    "weighted_recall": 1.0,
+    "scenario_generation_coverage": 0.87,
+    "scenario_pass_rate": 1.0,
+    "mutation_generation_coverage": 0.63,
+    "mutation_caught_rate": 1.0,
+    "main_scenario_count": 12,
+    "counted_main_bvs_count": 12,
+    "diagnostic_hot_start_count": 0,
+    "model_derived_oracle_count": 0,
+    "external_input_initial_vars_count": 12,
+    "reachable_or_default_prefix_count": 12,
+    "hot_start_main_obligation_ratio": 0.0
+  },
+  "scores": {
+    "FE": 3,
+    "NGF": 3,
+    "REC": 3,
+    "GAS": 2,
+    "SCB": 3,
+    "AAT": 3,
+    "BVS": 2,
+    "DMR": 2
+  },
+  "tier_before_cap": "T2",
+  "cap_reasons": [
+    "IND_SINGLE_SELF_ASSESSMENT",
+    "NO_HUMAN_SIGNOFF",
+    "DYNAMIC_RESAMPLING_NOT_FULLY_SIMULATED"
+  ],
+  "final_tier": "T2",
+  "allowed_use": "reviewer_queue"
+}

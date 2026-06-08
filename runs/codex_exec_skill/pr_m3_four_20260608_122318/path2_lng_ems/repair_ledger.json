@@ -1,0 +1,95 @@
+{
+  "schema_version": "pr-m3-repair-ledger-v1",
+  "case_key": "path2_lng_ems",
+  "repair_chain_style": "FixRequestBatch/FixLog-compatible local ledger; no provider call",
+  "iterations": [
+    {
+      "iteration": 0,
+      "candidate": "initial 12-state DSL with output command flags",
+      "feedback": "SD-2/SD-3/SD-4 pass; SD-6 failed one scenario due to oracle expectation Pbr=70 vs mathematically correct Pbr=60",
+      "decision": "repair_oracle",
+      "candidate_diff": "Scenario expected Pbr for illegal overload corrected to PL-Ppv-Pw-eng3-eng1-eng2 = 60.",
+      "local_check_evidence": "Re-run SD-6: 12/12 pass."
+    },
+    {
+      "iteration": 1,
+      "candidate": "reduced final DSL",
+      "feedback": "Synthetic command flags were redundant with Table 2 power request outputs.",
+      "decision": "accept_structural_repair",
+      "candidate_diff": "Removed lng_cmd/dg1_cmd/dg2_cmd/battery_*_cmd/illegal_overload variables; retained paper-defined state names and output powers.",
+      "local_check_evidence": "SD-2/SD-3/SD-4 pass, SD-6 12/12 pass, 5/5 mutants caught."
+    }
+  ],
+  "fix_requests": [
+    {
+      "request_id": "FR-001",
+      "source": "SD-6 scenario oracle",
+      "blocking": true,
+      "request": "Correct illegal-overload expected battery discharge to the Table 3 lack-of-power formula.",
+      "sl9_decision": "accept",
+      "sl10_review": "pass after rerun",
+      "next_action": "rerun SD-2 through SD-6"
+    },
+    {
+      "request_id": "FR-002",
+      "source": "AAT self-review",
+      "blocking": false,
+      "request": "Remove synthetic command flags not directly required by paper Table 2.",
+      "sl9_decision": "accept",
+      "sl10_review": "pass; no loss of obligations because power request outputs encode cut-in/cut-out intent",
+      "next_action": "final audit"
+    },
+    {
+      "request_id": "WV-001",
+      "source": "SD-4 advisory",
+      "blocking": false,
+      "request": "Waive external read-only inputs and guard-vars-never-change warnings with Table 1/NL evidence.",
+      "sl9_decision": "waiver",
+      "sl10_review": "accepted advisory waiver",
+      "next_action": "record in waiver ledger"
+    },
+    {
+      "request_id": "WV-002",
+      "source": "SD-4 advisory",
+      "blocking": false,
+      "request": "Waive output-only/unreferenced variables with Table 2 evidence.",
+      "sl9_decision": "waiver",
+      "sl10_review": "accepted advisory waiver",
+      "next_action": "record in waiver ledger"
+    }
+  ],
+  "waiver_ledger": [
+    {
+      "warning_id": "W_UNWRITTEN_READ_VAR:*",
+      "model_element_path": "variables PL/Ppv/Pw/SoC/eng*_Pmax",
+      "waiver_type": "external_input",
+      "nl_or_paper_evidence": "NL-3 + paper Table 1",
+      "risk": "If treated as internally written, the model would invent plant dynamics absent from the paper.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_GUARD_VARS_NEVER_CHANGE:*",
+      "model_element_path": "Select -> State* guards",
+      "waiver_type": "external_input",
+      "nl_or_paper_evidence": "NL-4 + paper Table 3",
+      "risk": "Scenario evidence must inject external input valuations; SD-6 cannot refresh them step-by-step.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_UNREFERENCED_VAR:*",
+      "model_element_path": "Pgr/Pd1r/Pd2r/Pbr/Pbc/Ps/ems_state",
+      "waiver_type": "output_only",
+      "nl_or_paper_evidence": "NL-3 + paper Table 2",
+      "risk": "Outputs are observed by scenarios but do not feed back into state selection in this abstraction.",
+      "accepted": true
+    },
+    {
+      "warning_id": "W_LARGE_COMPOSITE",
+      "model_element_path": "Root",
+      "waiver_type": "accepted_abstraction",
+      "nl_or_paper_evidence": "NL-4 + paper Table 3 enumerates 12 sibling states",
+      "risk": "Flat table-driven EFSM is less hierarchical, but faithful to the paper state table.",
+      "accepted": true
+    }
+  ]
+}

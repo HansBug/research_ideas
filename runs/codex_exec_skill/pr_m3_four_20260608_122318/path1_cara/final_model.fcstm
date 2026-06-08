@@ -1,0 +1,140 @@
+def int CA_mode = 0;
+def int shared_bp_buffer = 80;
+def int blood_pressure = 80;
+def int target_bp = 80;
+def int default_flow_rate = 1;
+def int ask_exit_target = 0;
+def int pump_speed_source = 0;
+def int control_voltage = 0;
+def int infusion_rate = 1;
+def int log_written = 0;
+def int alarm_signal = 0;
+def int error_message = 0;
+def int software_control = 0;
+def int pump_control_released = 0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+
+        >> during before {
+            shared_bp_buffer = blood_pressure;
+        }
+
+        [*] -> Wait;
+
+        state Wait {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+                pump_speed_source = 0;
+            }
+        }
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                software_control = 0;
+                pump_speed_source = 0;
+                pump_control_released = 0;
+                alarm_signal = 0;
+                error_message = 0;
+            }
+            during {
+                infusion_rate = default_flow_rate;
+                control_voltage = 0;
+            }
+        }
+
+        state Ask_StartAC {
+            [*] -> AwaitingStart;
+
+            state AwaitingStart;
+
+            enter {
+                CA_mode = 1;
+                software_control = 0;
+                ask_exit_target = 0;
+            }
+
+            AwaitingStart -> AwaitingStart :: ChangeSetpoint effect {
+                target_bp = target_bp + 1;
+            }
+
+            AwaitingStart -> [*] :: StartAC effect {
+                ask_exit_target = 1;
+            }
+
+            AwaitingStart -> [*] :: TerminateAC effect {
+                ask_exit_target = 0;
+            }
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 2;
+                software_control = 1;
+                pump_speed_source = 1;
+                pump_control_released = 0;
+                log_written = 1;
+            }
+        }
+
+        state Autocontrol {
+            enter {
+                CA_mode = 3;
+                software_control = 1;
+                pump_speed_source = 1;
+                pump_control_released = 0;
+            }
+            during {
+                shared_bp_buffer = blood_pressure;
+                infusion_rate = (blood_pressure > target_bp) ? 1 : 2;
+                control_voltage = infusion_rate;
+                log_written = 1;
+            }
+        }
+
+        state PumpFault {
+            enter {
+                alarm_signal = 1;
+                error_message = 1;
+            }
+        }
+
+        Wait -> Manual :: BuiltInSwitchSet;
+        Manual -> Manual :: SetDefaultFlow effect {
+            default_flow_rate = default_flow_rate + 1;
+        }
+        Manual -> Ask_StartAC :: InitiateAC;
+
+        Ask_StartAC -> AutocontrolInit : if [ask_exit_target == 1];
+        Ask_StartAC -> Manual : if [ask_exit_target == 0];
+
+        AutocontrolInit -> Autocontrol :: AutoReady;
+        AutocontrolInit -> Manual :: TerminateAC;
+        AutocontrolInit -> PumpFault :: PumpFault effect {
+            software_control = 0;
+            pump_control_released = 1;
+        }
+
+        Autocontrol -> Autocontrol :: ControlTick;
+        Autocontrol -> Manual :: TerminateAC;
+        Autocontrol -> PumpFault :: PumpFault effect {
+            software_control = 0;
+            pump_control_released = 1;
+        }
+
+        Manual -> PumpFault :: PumpFault effect {
+            software_control = 0;
+            pump_control_released = 0;
+        }
+
+        PumpFault -> Manual :: FaultRemoved;
+    }
+}
