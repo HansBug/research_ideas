@@ -87,6 +87,60 @@ Hard constraints:
 - Preserve NL-grounded required states/events/variables/transitions.
 - Do not invent behavior beyond NL/SpecJson/upstream lists.
 - Include grounding seeds for all required model elements you can identify.
+- Before writing `candidate_dsl`, build a mental NL obligation ledger: required
+  states/modes, events/triggers, transitions, guards, actions/outputs,
+  external inputs, and declared scope. A parseable empty shell is not
+  acceptable when NL explicitly states multi-state/multi-branch behavior,
+  thresholds, cut-in/out commands, reset/fault recovery, or output actions.
+- If NL gives a number of states or a list of state/mode names, represent those
+  states/modes unless you explicitly mark an assumption in the JSON
+  `assumptions` field explaining why the declared scope excludes them.
+- Ensure variables mentioned as influencing dispatch/guards/actions actually
+  appear in guards or actions where NL supports that role. External inputs may
+  remain read-only, but they should still participate in NL-grounded decisions.
+- For every NL-required command/output variable, do not leave it as a constant
+  mascot variable. Either assign at least one NL-grounded non-default value in
+  a state action / transition effect, or record a clear `assumptions` entry
+  explaining that the command is an admitted abstraction outside the current
+  DSL scope. Cut-in/cut-out, alarm, reset/fault-release, valve, pump, drive,
+  and other actuator/resource command words are examples of output obligations,
+  but decide from NL semantics rather than any benchmark-specific token list.
+- When NL says a command/output applies to multiple targets (phrases like
+  "X and Y" or any other compound object), decompose
+  the obligation by target class in your mental ledger. Model each target's
+  command/output when within scope, or record an admitted-abstraction assumption
+  for the omitted target. Do not let an aggregate command id silently cover only
+  one target class.
+- Make state participation explicit in the DSL design. If states are only
+  static output labels selected by current inputs, prefer adding event/mode
+  memory when NL supports it; otherwise record an assumption that the model is a
+  condition-classification abstraction rather than a mode-memory controller.
+- Stay inside the currently parseable pyfcstm subset: declare variables only as
+  `def int` or `def float`; encode boolean-like flags as int 0/1; do not emit
+  `def bool`, `true`, `false`, `!flag`, C-style inline comments, or unknown
+  helper calls such as `ComputeRate(...)`, `max(...)` or `min(...)` in numeric
+  expressions. Also do not copy `//` or `/* ... */` comments from examples into
+  the DSL output.
+- Inside lifecycle action blocks, conditionals must be `if [expr] {{ ... }}` /
+  `else if [expr] {{ ... }}`, never `if (expr)`. Use ordinary assignments such
+  as `x = x + 1;`; do not use `+=`, `-=`, `*=`, or `/=`.
+- Treat NL trigger names (button press, reset, fault, back-to-manual, cut-in/out)
+  as events by default: encode them with `:: EventName`. Do not make undeclared
+  event names into guard variables or OR several event names inside `[A || B]`;
+  use separate event transitions unless the NL explicitly says these are input
+  variables.
+- Use plain `during {{ ... }}` only on leaf states; if a state has nested
+  children, use `>> during before/after {{ ... }}` or move the action to leaves.
+- For root-level forced transitions, target a state resolvable in that scope;
+  if a fallback target is nested, either place the forced transition in the
+  enclosing composite scope or introduce an NL-grounded root-level fallback
+  state. Do not target an unqualified nested leaf from the root. If a global
+  fallback target is nested, either place the forced transition in the enclosing
+  composite or introduce a root-level fallback state grounded in the NL.
+- Before output, self-check parse-critical syntax: one top-level state, every
+  composite has an initial transition, no event+guard on the same transition,
+  guards use `: if [...]`, forced transitions have no effect block, and no DSL
+  comments are present.
 
 ## pyfcstm grammar digest
 {grammar}

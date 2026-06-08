@@ -1,0 +1,221 @@
+{
+  "schema_version": "pr-m3-tool-stage-check-ledger-v1",
+  "case_key": "path1_abs",
+  "forbidden_runner_used": false,
+  "forbidden_runner_note": "未调用顶层agent-loop runtime、PR-D representative runner、PR-E1 real-run runner或任何一键full staged runner；仅使用method.stages.api中的SD deterministic tools。",
+  "tool_import_surface": {
+    "pythonpath": "project_1_llm_state_machine_modeling",
+    "imports": [
+      "method.schema.StageContext",
+      "method.schema.TestScenario",
+      "method.schema.ScenarioStep",
+      "method.stages.api.run_sd2_parse",
+      "method.stages.api.run_sd3_semantic",
+      "method.stages.api.run_sd4_design",
+      "method.stages.api.run_sd5a_scenario_coverage",
+      "method.stages.api.freeze_scenario_set",
+      "method.stages.api.run_sd6_sim"
+    ]
+  },
+  "final_model_sha256": "2c0a3a5d240e75ed458fac0039a7b722979034909cf283d0306c6332e2681397",
+  "stages": [
+    {
+      "stage": "E0 skill discovery",
+      "attempt": 1,
+      "command_summary": "rg/sed读取agent_loop_skill入口与必需指南；SKILL.md未列出，按入口说明读取AGENT_LOOP_SKILL.md。",
+      "status": "pass",
+      "result": {
+        "skill_entry_read": "project_1_llm_state_machine_modeling/method/agent_loop_skill/AGENT_LOOP_SKILL.md",
+        "required_guides_read": [
+          "e2e_ref_model_guide.md",
+          "tools.md",
+          "prompts.md",
+          "nfrr_evaluation_guide.md",
+          "codex_exec_experiment_guide.md"
+        ]
+      }
+    },
+    {
+      "stage": "E1 evidence grounding",
+      "attempt": 1,
+      "command_summary": "sed读取NL、bibtex、STM、DESC、paper_content；抽取states/actions/guards/external-input/scope obligations。",
+      "status": "pass",
+      "result": {
+        "paper": "Li and Wan 2015, Study on the Control of Anti-lock Brake System based on Finite State Machine",
+        "directly_grounded_states": ["increase", "hold", "decrease"],
+        "directly_grounded_outputs": ["k1", "k2", "n"],
+        "directly_grounded_guard_input": "slp",
+        "synthetic_abstractions": [
+          {
+            "name": "ABS",
+            "kind": "root state wrapper",
+            "reason": "pyfcstm需要一个root state；论文定义的是单轮ABS液压调节FSM，未把root命名为ABS。",
+            "risk": "低；不改变三态 supervisor 语义。"
+          }
+        ],
+        "excluded_continuous_scope": "轮速/车速、滑移率计算、PID控制器和连续轮胎/液压动力学保留在plant/连续控制侧。"
+      }
+    },
+    {
+      "stage": "E2 initial modeling",
+      "attempt": 1,
+      "command_summary": "手工生成pyfcstm DSL；使用def int/def float，未使用bool literal；slp作为外部输入变量。",
+      "status": "pass",
+      "result": {
+        "dsl_file": "final_model.fcstm",
+        "states": ["ABS.increase", "ABS.hold", "ABS.decrease"],
+        "variables": [
+          {"name": "k1", "type": "int", "role": "output"},
+          {"name": "k2", "type": "int", "role": "output"},
+          {"name": "n", "type": "int", "role": "output"},
+          {"name": "slp", "type": "float", "role": "external_input_guard"}
+        ],
+        "transition_count": 4
+      }
+    },
+    {
+      "stage": "SD-2 parse",
+      "attempt": 1,
+      "command_summary": "run_sd2_parse(final_dsl, StageContext)",
+      "status": "pass",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "error": null
+      }
+    },
+    {
+      "stage": "SD-3 semantic",
+      "attempt": 1,
+      "command_summary": "run_sd3_semantic(final_dsl, StageContext)",
+      "status": "pass",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "error": null,
+        "build_context_model_available": true
+      }
+    },
+    {
+      "stage": "SD-4 design",
+      "attempt": 1,
+      "command_summary": "run_sd4_design(context, policy_profile='generated_candidate')",
+      "status": "pass_with_advisory_waivers",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "blocking_items": [],
+        "advisory_summary": [
+          {
+            "code": "W_UNREFERENCED_VAR",
+            "instances": ["k1", "k2", "n"],
+            "waiver": "output_only_actuator_variables"
+          },
+          {
+            "code": "W_UNWRITTEN_READ_VAR",
+            "instances": ["slp"],
+            "waiver": "external_pid_or_plant_input"
+          },
+          {
+            "code": "W_GUARD_VARS_NEVER_CHANGE",
+            "instances": [
+              "ABS.increase->ABS.hold",
+              "ABS.hold->ABS.increase",
+              "ABS.hold->ABS.decrease",
+              "ABS.decrease->ABS.hold"
+            ],
+            "waiver": "external_pid_or_plant_input"
+          }
+        ],
+        "nl_external_input_vars": ["slp"],
+        "external_input_role_ledger": [
+          {
+            "var_name": "slp",
+            "evidence": ["NL states continuous/plant/process dynamics are outside the discrete controller"]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "SD-5A scenario coverage",
+      "attempt": 1,
+      "command_summary": "run_sd5a_scenario_coverage(final_dsl, initial_scenarios)",
+      "status": "advisory_gap",
+      "result": {
+        "ok": false,
+        "meta_status": "ADVISORY",
+        "reason": "初版increase_to_hold场景只执行一个cycle；runtime第一cycle仅进入默认初态increase，未执行increase->hold。",
+        "coverage_gap": true,
+        "retry_directive_present": true
+      }
+    },
+    {
+      "stage": "SD-6 sim",
+      "attempt": 1,
+      "command_summary": "run_sd6_sim(final_dsl, initial_scenario_set, context)",
+      "status": "fail",
+      "result": {
+        "ok": false,
+        "n_scenarios": 5,
+        "n_scenarios_passed": 4,
+        "failed_scenario": "increase_to_hold_low_slp",
+        "failure_summary": "expected ABS.hold with k1=0, actual ABS.increase with k1=1 after first default cycle",
+        "diagnosis": "scenario prefix/runtime cycle issue, not DSL contradiction"
+      }
+    },
+    {
+      "stage": "SC-5F freeze",
+      "attempt": 2,
+      "command_summary": "freeze_scenario_set(repaired_scenarios, source hashes, coverage_report)",
+      "status": "pass",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "scenario_set_id": "scenario-set-1bfac7d12d1d",
+        "scenario_count": 4
+      }
+    },
+    {
+      "stage": "SD-5A scenario coverage",
+      "attempt": 2,
+      "command_summary": "run_sd5a_scenario_coverage(final_dsl, repaired_scenarios)",
+      "status": "pass",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "coverage_gap": false,
+        "coverage_report_summary": {
+          "M2_wrong_transition_target": {
+            "status": "caught",
+            "n_variants": 3,
+            "caught_variants": 3
+          },
+          "M1_guard_off_by_one": {"status": "not_applicable"},
+          "M3_unreachable_target": {"status": "not_applicable"},
+          "M4_missing_forced_transition": {"status": "not_applicable"},
+          "M5_missing_effect": {"status": "not_applicable"},
+          "M6_wrong_effect_value": {"status": "not_applicable"}
+        }
+      }
+    },
+    {
+      "stage": "SD-6 sim",
+      "attempt": 2,
+      "command_summary": "run_sd6_sim(final_dsl, repaired_scenario_set, context)",
+      "status": "pass",
+      "result": {
+        "ok": true,
+        "meta_status": "OK",
+        "n_scenarios": 4,
+        "n_scenarios_passed": 4,
+        "oracle_weak": false,
+        "passed_scenarios": [
+          "default_increase_then_hold_at_boundary",
+          "hold_to_increase_high_slp",
+          "hold_to_decrease_negative_slp",
+          "decrease_to_hold_boundary_slp"
+        ]
+      }
+    }
+  ]
+}

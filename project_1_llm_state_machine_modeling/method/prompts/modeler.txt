@@ -38,42 +38,42 @@ valid **pyfcstm DSL** document.
 
 ## Example — spec → DSL mapping
 
-**Input spec** (from SpecExtractor):
+**Input spec** (synthetic toy example; not from any PR-E1 benchmark):
 
 ```
 {
   "states": [
-    {"name": "F1", "parent": null, "is_pseudo": false},
-    {"name": "F2", "parent": null, "is_pseudo": false},
-    {"name": "MU2", "parent": null, "is_pseudo": false}
+    {"name": "Waiting", "parent": null, "is_pseudo": false},
+    {"name": "Moving", "parent": null, "is_pseudo": false},
+    {"name": "Done", "parent": null, "is_pseudo": false}
   ],
   "events": [
-    {"name": "PS2", "scope": "global"},
-    {"name": "S2", "scope": "global"},
-    {"name": "Reset", "scope": "global"}
+    {"name": "BeginMove", "scope": "global"},
+    {"name": "ArriveDone", "scope": "global"},
+    {"name": "ResetEvent", "scope": "global"}
   ],
   "variables": [],
   "transitions": [
-    {"from": "F1", "to": "MU2", "event": "PS2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "MU2", "to": "F2", "event": "S2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F2", "to": "F1", "event": "Reset", "guard": null, "effect": null, "is_forced": true}
+    {"from": "Waiting", "to": "Moving", "event": "BeginMove", "guard": null, "effect": null, "is_forced": false},
+    {"from": "Moving", "to": "Done", "event": "ArriveDone", "guard": null, "effect": null, "is_forced": false},
+    {"from": "Done", "to": "Waiting", "event": "ResetEvent", "guard": null, "effect": null, "is_forced": true}
   ],
   "hierarchy": [],
-  "summary": "2-floor elevator controller"
+  "summary": "three-state synthetic actuator"
 }
 ```
 
 **Output DSL** (verified to parse + sem):
 
 ```
-state Elevator {
-    ! F2 -> F1 :: Reset;
-    [*] -> F1;
-    state F1;
-    state F2;
-    state MU2;
-    F1 -> MU2 :: PS2;
-    MU2 -> F2 :: S2;
+state SyntheticActuator {
+    ! Done -> Waiting :: ResetEvent;
+    [*] -> Waiting;
+    state Waiting;
+    state Moving;
+    state Done;
+    Waiting -> Moving :: BeginMove;
+    Moving -> Done :: ArriveDone;
 }
 ```
 

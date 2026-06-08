@@ -20,7 +20,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from method.gpt_client import get_default_model
-from method.pr2a_loop import DeterministicLoopConfig, ReviewPolicy, run_pr2a_deterministic_loop
+from method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
 from method.run_record import is_path_result_eligible, read_agent_loop_run_record
 from method.schema import GroundedElement, GroundingMap, TestScenario
 from method.stages.ids import StageId
@@ -235,7 +235,7 @@ def run_handoff_smoke(
             )
         }
 
-    result = run_pr2a_deterministic_loop(nl, cfg)
+    result = run_deterministic_ablation_loop(nl, cfg)
     if result.run_record_path is None:
         raise AssertionError("agent-loop did not write a run record")
     record = read_agent_loop_run_record(result.run_record_path)

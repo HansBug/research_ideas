@@ -1,5 +1,7 @@
 # PR-3 Path1/Path2 agent-loop handoff smoke
 
+> **LG-M1-F provenance note（2026-06-08）**：本文是 historical PR-3 / issue #14 handoff smoke 说明，保留用于复盘当时 Path1/Path2 交接证据链。其真实 LLM 命令只在显式 handoff smoke 中使用；LG-M1-F 本身不 source `.env`、不调用 provider、不跑四例。当前功能入口与测试 gate 见 [../../README.md](../../README.md)。
+
 本目录是 issue #14 的 PR-3 收官交付：证明已合并的 agent-loop 基础设施可以被 Path 1 / Path 2 后续工作接入，并且每次 representative smoke 都能写出 schema-valid、可单文件复盘的 `AgentLoopRunRecord`。
 
 ## 边界声明
