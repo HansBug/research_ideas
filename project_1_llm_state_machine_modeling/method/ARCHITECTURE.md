@@ -20,7 +20,7 @@
 
 ## 1. Current status summary
 
-当前（LG-M1-F）事实如下：
+当前（PR39 / LG-M1-G final）事实如下：
 
 | 维度 | 当前事实 | 证据 / 入口 |
 |---|---|---|
@@ -29,9 +29,9 @@
 | Experiment entrypoints | 新文档和新代码优先使用 `method.experiments.*` 功能命名入口 | [experiments/](./experiments/) |
 | LangGraph physical layout | `method/langgraph/` 已承载 constants/state/registry/checkpointing/instrumentation/subgraphs/nodes/core/resume；`method.langgraph_runtime` 是 public compatibility facade | [langgraph/](./langgraph/)、[langgraph_runtime.py](./langgraph_runtime.py) |
 | Tests mirror | `method/tests/` 已按功能域镜像迁移；root flat `test*.py` 已清空 | [tests/](./tests/) |
-| 当前测试基线 | `412 tests collected`；full method tests `412 passed, 6 warnings` | LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) 与 LG-M1-F gates |
-| 当前 PR 边界 | LG-M1-F 只收口 docs/provenance/naming residue；不改 runtime、prompt、provider、FixLog、run record、eligibility 或真实 evidence | [PR #76](https://github.com/HansBug/research_ideas/pull/76) |
-| 下一步 | LG-M1-G 在最终集成 head 上跑四例并做 #64 总复审 | [PR #64](https://github.com/HansBug/research_ideas/pull/64) |
+| 当前测试基线 | 最终 `432 passed, 6 warnings`；历史 LG-M1-F gate 为 `412 passed, 6 warnings` | PR39 / PR22 final review；LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) 与 LG-M1-F gates |
+| 当前 PR 边界 | PR39 / LG-M1-G final 已完成 runtime integration、四例 retained evidence、CI/comment 与三路 review closure；LangGraph 仍只是 orchestration/instrumentation 实现层，不改变 SC/SD/SL 学术语义 | [PR #39](https://github.com/HansBug/research_ideas/pull/39) / [PR #22](https://github.com/HansBug/research_ideas/pull/22) |
+| 下一步 | PR22 伞形分支进入最终 ready-to-merge；后续若扩展真实 resume/更多样本，应另开 hardening/experiment PR | [PR #22](https://github.com/HansBug/research_ideas/pull/22) |
 
 ## 2. Public entrypoint architecture
 
@@ -185,8 +185,8 @@ LG-M1-A 捕获的 baseline 仍是重要 provenance，但它不是当前结构：
 | LG-M1-D2 / [#71](https://github.com/HansBug/research_ideas/pull/71) | ✅ | instrumentation、checkpointing、context helper | 未跑；focused/historical gates |
 | LG-M1-D3 / [#74](https://github.com/HansBug/research_ideas/pull/74) | ✅ | validation/repair/waiver subgraphs、SC/SD/SL nodes、core runtime、facade 收敛 | 已按计划跑四例 |
 | LG-M1-E / [#75](https://github.com/HansBug/research_ideas/pull/75) | ✅ | tests mirror、collection gates、old path normalization | 未跑；tests-only |
-| LG-M1-F / [#76](https://github.com/HansBug/research_ideas/pull/76) | 🚧 | docs/provenance/naming residue sweep | 不跑；docs/provenance-only |
-| LG-M1-G | ⏳ | final integrated evidence、CI/coverage/review closure | 必须跑四例 |
+| LG-M1-F / [#76](https://github.com/HansBug/research_ideas/pull/76) | ✅ | docs/provenance/naming residue sweep | 历史 docs/provenance-only gate 已收口 |
+| LG-M1-G / PR #39 final integration | ✅ | final integrated evidence、CI/comment、三路 review closure | 已跑并保留四例 retained evidence |
 
 > 表中 emoji 仅表示进度状态：✅ 已完成，🚧 进行中，⏳ 待开始。
 
@@ -196,4 +196,4 @@ LG-M1-A 捕获的 baseline 仍是重要 provenance，但它不是当前结构：
 2. 任何删除或改名 schema/evidence identity 的问题，若会破坏 historical run record / fixture / paper evidence 可追溯性，可列 C/I。
 3. 任何旧 flat test path 被写成当前命令，若命令不可执行或会误导新 session，可列 I。
 4. 纯措辞、风格、函数名历史残留若不影响学术证据链，最高 M。
-5. F 阶段不得 source `.env`、不得跑真实 provider、不得修改 `runs/` evidence；G 阶段必须在最终 integrated head 上跑四例。
+5. 历史 F 阶段不得 source `.env`、不得跑真实 provider、不得修改 `runs/` evidence；G / PR39 final 阶段已在最终 integrated head 上跑四例并保留 retained evidence。

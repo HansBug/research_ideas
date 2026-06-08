@@ -1,6 +1,6 @@
 # `method/` current status
 
-> **当前锚点（2026-06-08，LG-M1-F）**：本文件现在作为 `method/` 的状态总账与历史索引。新读者应优先读取 [README.md](./README.md) 与 [ARCHITECTURE.md](./ARCHITECTURE.md)，再把本文件用于确认当前 PR 阶段和历史 sprint provenance。
+> **当前锚点（2026-06-08，PR39 / LG-M1-G final）**：本文件现在作为 `method/` 的状态总账与历史索引。新读者应优先读取 [README.md](./README.md) 与 [ARCHITECTURE.md](./ARCHITECTURE.md)，再把本文件用于确认当前 final evidence、PR 阶段和历史 sprint provenance。
 >
 > **注意**：下方 “Historical sprint record” 保留 2026-05-26 至 PR-E1/PR-E2/PR-3 的早期记录，用于追溯 agent-loop 设计来源；其中的 `dev/method-agent-implementation`、PR #11、Phase A-J 等不再是当前 LG-M1 推荐入口或当前施工分支。
 
@@ -16,8 +16,8 @@
 | LG-M1-D2 / [PR #71](https://github.com/HansBug/research_ideas/pull/71) | ✅ | instrumentation、checkpointing、context helper 已下沉到 `method/langgraph/` | focused/historical gates，不跑四例 |
 | LG-M1-D3 / [PR #74](https://github.com/HansBug/research_ideas/pull/74) | ✅ | validation/repair/waiver subgraphs、SC/SD/SL nodes、core runtime、facade 收敛已完成 | 已按计划跑四例 |
 | LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) | ✅ | `method/tests/` 已按功能域镜像迁移；root flat `test*.py` 清空 | `412 tests collected` / `412 passed, 6 warnings`；不跑四例 |
-| LG-M1-F / [PR #76](https://github.com/HansBug/research_ideas/pull/76) | 🚧 | README / ARCHITECTURE / STATUS / skill / handoff docs provenance 收口 | docs/provenance scan + method tests；不跑四例 |
-| LG-M1-G | ⏳ | 最终 integrated evidence、CI/coverage/comment、三路 review closure | 必须在最终 head 上跑四例 |
+| LG-M1-F / [PR #76](https://github.com/HansBug/research_ideas/pull/76) | ✅ | README / ARCHITECTURE / STATUS / skill / handoff docs provenance 收口 | docs/provenance scan + method tests；历史 no-provider docs/provenance-only 边界已收口 |
+| LG-M1-G / PR #39 final integration | ✅ | 最终 integrated evidence、CI/comment、三路 review closure | 已在最终 head 上保留 ABS / CARA / Elevator / LNG 四例 retained evidence；PR22 最终 review C=0/I=0 |
 
 > 表中 emoji 仅表示进度状态：✅ 已完成，🚧 进行中，⏳ 待开始。
 
@@ -31,7 +31,7 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
   python -m pytest -q project_1_llm_state_machine_modeling/method/tests
 ```
 
-预期为 `412 tests collected`，full method tests 通过。LG-M1-F 不应 source `.env`、不应调用 provider、不得提交 `runs/` 真实 run artifact。
+历史 LG-M1-F 预期为 `412 tests collected`，full method tests 通过，且不 source `.env` / 不调用 provider / 不提交 `runs/` 真实 run artifact。当前 PR39 / LG-M1-G final 已在后续阶段补齐真实四例 retained evidence；最终本地验证基线为 `432 passed, 6 warnings`。
 
 ## 2. Current recommended entrypoints
 

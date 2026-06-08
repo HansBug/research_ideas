@@ -4,7 +4,7 @@
 >
 > **服务对象**：Project 1 的 NL → pyfcstm / FCSTM 状态机建模 agent-loop 基础设施，供 Path 1 hard comparison、Path 2 differentiation、repo-local skill/ref-model 生产与后续 verification/repair 研究复用。
 >
-> **当前状态（LG-M1-F，2026-06-08）**：LG-M1-A/B/C1/C2/D1/D2/D3/E 已完成并 merge 回 umbrella [PR #64](https://github.com/HansBug/research_ideas/pull/64)；本目录已完成 stage API、实验入口功能命名、LangGraph runtime 模块化、测试树镜像迁移。当前 method 测试基线为 `412 tests collected` / full method `412 passed, 6 warnings`。LG-M1-F 只做文档与 provenance 收口，不改 runtime，不跑真实 provider 四例；最终集成四例由 LG-M1-G 负责。
+> **当前状态（PR39 / LG-M1-G final，2026-06-08）**：LG-M1-A/B/C1/C2/D1/D2/D3/E/F/G 已完成并 merge 回 umbrella [PR #64](https://github.com/HansBug/research_ideas/pull/64)，随后通过 [PR #39](https://github.com/HansBug/research_ideas/pull/39) 合入 PR #22 伞形分支。本目录已完成 stage API、实验入口功能命名、LangGraph runtime 模块化、测试树镜像迁移、docs/provenance 收口和最终四例 retained evidence；当前最终验证基线为 `432 passed, 6 warnings`。
 >
 > **历史说明**：早期 `dev/method-agent-implementation`、PR-B2、PR-C、PR-E1、PR-E2 等 marker 保留为 historical provenance，不再代表当前推荐入口。读者应优先从本文件、[ARCHITECTURE.md](./ARCHITECTURE.md) 与 [STATUS.md](./STATUS.md) 顶部 current overlay 进入。
 
@@ -22,7 +22,7 @@
 | LangGraph implementation | [`langgraph/`](./langgraph/) 与 [`langgraph_runtime.py`](./langgraph_runtime.py) | nodes、subgraphs、instrumentation、checkpoint、core runtime | `method.langgraph_runtime` 保持 public compatibility facade 与 run-record identity |
 | Tests | [`tests/`](./tests/) | method 单元/表征/contract 测试总入口 | LG-M1-E 后按 `stages/`、`langgraph/`、`experiments/`、`llm/`、`crosscutting/`、`handoff_smoke/`、`agent_loop_skill/` 镜像组织 |
 | Repo-local skill | [`agent_loop_skill/AGENT_LOOP_SKILL.md`](./agent_loop_skill/AGENT_LOOP_SKILL.md) | 给 Codex / Claude Code 使用 stage tools 与 prompt 规范 | skill 侧不得调用 `method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器 |
-| Handoff smoke | [`handoff_smoke/`](./handoff_smoke/) | 历史 PR-3 Path1/Path2 infrastructure compatibility smoke | 真实 provider 命令只用于显式 handoff smoke，不是 LG-M1-F gate |
+| Handoff smoke | [`handoff_smoke/`](./handoff_smoke/) | 历史 PR-3 Path1/Path2 infrastructure compatibility smoke | 真实 provider 命令只用于显式 handoff smoke；当前最终四例 evidence 以 `experiments/real_run_matrix.py` retained runs 为准 |
 
 ## 1. 当前默认 runtime 语义
 
@@ -60,7 +60,7 @@ LLM_MODEL     — 主跑模型名
 1. **只有真实 provider run**（例如 LG-M1-G 四例、handoff smoke `--real-llm`、正式 Path1/Path2 实验）才需要在 shell 中 `set -a; source .env; set +a`。
 2. docs/provenance scan、pytest collection、unit tests、skill health check 默认不得读取 `.env`、不得调用真实 provider。
 3. `method/gpt_client.py` 是仓库中唯一允许实例化 OpenAI-compatible client 的位置；所有 agent / baseline replication / judge adapter 均应注入或复用该 client。
-4. stream 纪律、retry/timeout policy 与 `max_tokens=None` 口径属于 runtime/evidence contract，LG-M1-F 不修改。
+4. stream 纪律、retry/timeout policy 与 `max_tokens=None` 口径属于 runtime/evidence contract；最终四例 retained evidence 已按该 contract 留档。
 
 ## 3. pyfcstm 集成方式
 
@@ -131,11 +131,11 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
   python -m pytest -q project_1_llm_state_machine_modeling/method/tests
 ```
 
-LG-M1-F 的验收重点是 docs/provenance scan、旧路径清理、pytest collection/full method tests。若 F 需要真实 provider 才能证明正确，说明 scope 已越界。
+LG-M1-F 的历史验收重点是 docs/provenance scan、旧路径清理、pytest collection/full method tests。当前 PR39/LG-M1-G final 已在其后补齐最终四例真实 provider retained evidence；不要再把 LG-M1-F 的 no-provider 边界误读为当前最终状态。
 
 ### 5.2 真实四例 / provider run（仅显式需要时）
 
-最终 integrated 四例由 LG-M1-G 或被明确升级的 runtime PR 负责。运行前必须显式加载环境变量：
+最终 integrated 四例已由 LG-M1-G / PR39 retained evidence 负责。若后续需要复跑或扩展实验，运行前必须显式加载环境变量：
 
 ```bash
 source venv/bin/activate

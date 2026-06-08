@@ -23,10 +23,10 @@
 
 | Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | post-accept | scenarios | tokens | elapsed | report |
 |---|---|---|---|---|---:|---:|---|---|---:|---:|---|---:|---:|---:|---|
-| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | ⚪ 0 | 1 | 35264 | 160.4s | [pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970](./pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970/report.md) |
-| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 3 | 2 | ⚪ 0 | 5 | 269773 | 593.5s | [pr-e1-path1_cara-default-lg_m1_g_signature_gate_20f104e8-caefa210](./pr-e1-path1_cara-default-lg_m1_g_signature_gate_20f104e8-caefa210/report.md) |
-| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | ⚪ 0 | 1 | 34256 | 144.1s | [pr-e1-path1_elevator-default-lg_m1_g_signature_gate_20f104e8-d5b14175](./pr-e1-path1_elevator-default-lg_m1_g_signature_gate_20f104e8-d5b14175/report.md) |
-| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | ❌ | `success` | 5 | 5 | ✅ 1/1; ❌ 0 | 14 | 862820 | 1252.9s | [pr-e1-path2_lng_ems-default-lg_m1_g_signature_gate_20f104e8-c311405f](./pr-e1-path2_lng_ems-default-lg_m1_g_signature_gate_20f104e8-c311405f/report.md) |
+| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | ⚪ 0 | 1 | 35264 | 160.4s | [pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970](./path1-abs-agent-loop-success/report.md) |
+| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 3 | 2 | ⚪ 0 | 5 | 269773 | 593.5s | [pr-e1-path1_cara-default-lg_m1_g_signature_gate_20f104e8-caefa210](./path1-cara-agent-loop-success/report.md) |
+| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | ⚪ 0 | 1 | 34256 | 144.1s | [pr-e1-path1_elevator-default-lg_m1_g_signature_gate_20f104e8-d5b14175](./path1-elevator-agent-loop-success/report.md) |
+| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | ❌ | `success` | 5 | 5 | ✅ 1/1; ❌ 0 | 14 | 862820 | 1252.9s | [pr-e1-path2_lng_ems-default-lg_m1_g_signature_gate_20f104e8-c311405f](./path2-lng-ems-agent-loop-success-not-blueprint/report.md) |
 
 ## 2. 初步配置结论
 
