@@ -285,7 +285,7 @@
 
 ### BASELINE评估 / 处理状态分布
 
-说明：`⏳` 为处理状态，不参与直接/相关/弱相关 baseline 强度判断；当前主表没有 `⏳` 行，ID 14 / ID 16 仅保留在待补候选中。
+说明：`⏳` 为处理状态，不参与直接/相关/弱相关 baseline 强度判断；当前主表没有 `⏳` 行，#81 候选 ID 14 / #81 候选 ID 16 仅保留在待补候选中。
 
 | 评估 | 篇数 | 说明 |
 |---|---:|---|
@@ -319,7 +319,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
-| 2026-06-08 18:35:07 | 合并最新 `origin/main` 并补强 PDF gate 证据链 | 将 `origin/main` 的 248 个上游提交合入当前分支，合并过程无 baselines 冲突；把待补记录中的 `ID 14 / ID 16` 明确为 `#81 候选 ID 14 / #81 候选 ID 16`，并为两条未过 PDF gate 的高优先级候选补充已尝试入口、失败原因和下一步合法获取路径。 |
+| 2026-06-08 18:35:07 | 合并最新 `origin/main` 并补强 PDF gate 证据链 | 将 `origin/main` 的 248 个上游提交合入当前分支，合并过程无 baselines 冲突；将待补记录中的候选编号统一写成 `#81 候选 ID 14 / #81 候选 ID 16`，并为两条未过 PDF gate 的高优先级候选补充已尝试入口、失败原因和下一步合法获取路径。 |
 | 2026-06-08 17:56:58 | 响应实现阶段复审并收紧近邻工件四条件编码 | 将 `chatgpt-uml-state-diagrams-to-rebeca` 的 `STM族输出` 从 `🟢` 降为 `🟡`，明确 Rebeca 是 actor-based formal model 而非 STM-family 近同构输出；将 `requirements-driven-slicing-simulink-llms` 的 `STM族输出` 从 `🟡` 降为 `🟠`，明确 Simulink block/data-flow slice 不是强行为近邻；同步重排主表/数据集表编号，并补充 LATO artifact 入口可能是匿名评审占位的来源风险说明。 |
 | 2026-06-08 17:23:15 | 扩充 #81 LLM4MDE 优先候选并补齐四条件总账 | 使用用户提供的 LATO 本地原文解除 #73 PDF 阻塞；新增 `chatgpt-uml-state-diagrams-to-rebeca`、`automated-generation-bpmn-processes-textual-requirements`、`universal-prompting-process-model-information`、`llm-business-process-modeling-benchmark`、`requirements-driven-slicing-simulink-llms`、`ai-driven-consistency-sysml-diagrams` 六篇四件套；为主表补齐四条件列并按 `评估 -> 年份降序 -> 四条件 tie-break` 重排；#81 候选 ID 14 / #81 候选 ID 16 因合法 PDF 暂缺仅列待补候选。 |
 | 2026-06-07 22:51:50 | 精读扩充 3 篇已获 PDF 的新增 LLM4Modeling 近邻论文 | 在 `event-b-agent`、`pat-agent-autoformalization-model-checking`、`llm-aided-security-protocol-verification` 的 `DESC.md` 中新增“精读补充”章节，重点解释建模对象、论文例子、方法闭环、实验结论和 Project1 可比性；同步细化本总账“当前最有价值的整体观察”，明确 PAT-Agent 最接近行为模型语义、Event-B Agent 强在 proof-guided repair、协议建模论文只作异构方法参照。 |
