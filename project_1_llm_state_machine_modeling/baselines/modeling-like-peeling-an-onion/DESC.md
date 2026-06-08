@@ -14,6 +14,7 @@
 **代码/仓库获取方式**：
 - 原文 Data Availability 声称相关源代码和数据集可通过 [https://github.com/reg-repo/LATO](https://github.com/reg-repo/LATO) 获取。
 - 原文还说明最终 prompt templates 已在 artifact repository 中公开。本轮仅依据原文记录该入口，未额外声明公开 PDF 下载 URL。
+- `reg-repo/LATO` 入口是对原文 Data Availability 的转写，可能是匿名评审阶段占位；本轮未独立确认为长期公开 artifact。
 
 **数据集获取方式**：
 - 原文 Data Availability 声称相关 datasets 与代码同在 [https://github.com/reg-repo/LATO](https://github.com/reg-repo/LATO)。

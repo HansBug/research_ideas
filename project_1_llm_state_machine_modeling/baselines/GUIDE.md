@@ -138,7 +138,7 @@
 | `LLM4Modeling` | 论文核心是否是用 LLM 做建模工件生成 / 抽取 / 精化 / 修复 / 评估 | 核心贡献就是 LLM4Modeling | 建模链路重要但不唯一 | 只作辅助或评估 | 不相关 |
 | `NL输入` | 输入是否含自然语言需求、文本描述、user story、访谈 transcript、文档等 | 主输入是 NL | NL + 结构化输入混合 | NL 只作提示/说明 | 无 NL 输入证据 |
 | `LLM方法` | LLM 是否是方法核心组件 | LLM 是核心流程组件 | LLM 是重要模块 | LLM 仅辅助 | 无 LLM |
-| `STM族输出` | 输出是否是 STM-family 或强状态 / 行为语义模型 | 明确 UML/SysML State Machine / Statechart / FSM / EFSM / LTS / 近同构状态-迁移模型 | Event-B / PAT(CSP#) / symbolic protocol / process/activity 等强行为近邻 | 领域模型 / use case / 类图 / 目标模型 / 规约等间接相关 | 不满足或未见证据 |
+| `STM族输出` | 输出是否是 STM-family 或强状态 / 行为语义模型 | 明确 UML/SysML State Machine / Statechart / FSM / EFSM / LTS / 近同构状态-迁移模型 | Event-B / PAT(CSP#) / symbolic protocol / process/activity / Rebeca actor-based formal model 等强行为近邻 | Simulink block/data-flow slice、领域模型 / use case / 类图 / 目标模型 / 规约等间接相关 | 不满足或未见证据 |
 
 执行规则：
 
@@ -612,14 +612,18 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
    - 记录：只写入待补候选，说明“CSV 初筛信号强，待合法 PDF 精读确认”。
 3. #81 ID 9 `UML State Diagrams to Rebeca`
    - gate：PDF 和可读文本可得时可入库。
-   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟠`，`LLM方法=🟢`，`STM族输出=🟢`。
-   - 理由：它处理已有 UML state diagrams 到 Rebeca formal model 的转换，不是自然语言需求到状态机。
+   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟠`，`LLM方法=🟢`，`STM族输出=🟡`。
+   - 理由：它处理已有 UML state diagrams 到 Rebeca actor-based formal model 的转换，不是自然语言需求到状态机；Rebeca 是强行为近邻和形式验证模型，但不是 STM-family 近同构输出。
 4. #81 ID 17 `Automated Generation of BPMN Processes from Textual Requirements`
    - gate：PDF 和可读文本可得时可入库。
    - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟢`，`LLM方法=🟢`，`STM族输出=🟡`。
    - 理由：`NL -> BPMN` 是强行为近邻，但 BPMN/process model 不是 Project 1 的 exact STM 输出。
+5. #81 `Requirements-Driven Slicing of Simulink Models using LLMs`
+   - gate：PDF 和可读文本可得时可入库。
+   - 编码：可为 `评估=🟠`，`LLM4Modeling=🟢`，`NL输入=🟢`，`LLM方法=🟢`，`STM族输出=🟠`。
+   - 理由：它由自然语言需求驱动定位 Simulink block，并输出 Simulink block/data-flow slice；该输出不是 Stateflow、状态机或强行为近邻，只能作为模型理解 / trace / slicing 支撑证据。
 
-这些 dry-run 的作用是防止两类常见错误：一是把 CSV 初筛当成全文终审；二是把 BPMN、Activity、Rebeca、Simulink、SysML UCD/BD 等近邻工件误标为 direct STM baseline。
+这些 dry-run 的作用是防止两类常见错误：一是把 CSV 初筛当成全文终审；二是把 BPMN、Petri、POWL、Activity、Rebeca、Simulink、SysML UCD/BD 等近邻工件误标为 direct STM baseline。
 
 ## 7. 工作流程
 

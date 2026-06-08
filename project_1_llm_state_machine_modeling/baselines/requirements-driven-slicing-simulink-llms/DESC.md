@@ -196,7 +196,7 @@ LLM 输出的 `BlockList` 不直接等于最终模型切片。方法会加入若
 | LLM4Modeling | 🟢 | 明确使用 ChatGPT/GPT-4.0-classic 对 Simulink 模型工件执行建模分析任务。 |
 | NL输入 | 🟢 | 每次切片由自然语言需求驱动。 |
 | LLM方法 | 🟢 | 核心 block 选择依赖 LLM prompt 输出 SID 列表。 |
-| STM族输出 | 🟡 | 输出是 Simulink 模型切片，属于控制系统模型工件近邻，但不是确认的 Stateflow/状态机/STM 族输出。 |
+| STM族输出 | 🟠 | 输出是 Simulink block/data-flow slice，属于控制系统模型工件与 trace/slicing 支撑证据；它不是 Stateflow、状态机、Statechart 或强行为近邻输出。 |
 
 ### 可借鉴之处
 

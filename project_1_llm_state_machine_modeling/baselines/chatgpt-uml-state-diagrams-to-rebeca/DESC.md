@@ -197,14 +197,14 @@ Prompt 的基本结构是 few-shot translation：
 
 ### 相关性分析
 
-**BASELINE评估建议：🟡**
+**BASELINE评估建议：🟠**
 
-这篇论文应评为 `🟡 相关但非直接 baseline`，倾向“近邻 formal transformation”。理由如下：
+这篇论文应评为 `🟠 弱相关/模型转换与形式验证近邻`，倾向“related formal transformation work”。理由如下：
 
-1. 它确实围绕状态机族工件：输入是 UML state diagrams / PlantUML，输出是 Rebeca formal model，用于形式化验证。
+1. 它的输入侧确实围绕状态机族工件：输入是 UML state diagrams / PlantUML；但输出侧是 Rebeca actor-based formal model，用于形式化验证，而不是 UML/SysML state machine、Statechart、FSM/EFSM 或 LTS 这类 STM-family 近同构输出。
 2. 它使用 GPT-4 / ChatGPT-4 执行模型转换，属于 LLM4Modeling / LLM-assisted model transformation。
 3. 但它不是 `project_1` 的 exact STM direct baseline，因为输入不是自然语言软件需求，而是已有 UML 状态图及 metadata；输出也不是给用户查看的 UML / SysML 状态机本身，而是 Rebeca actor-based formal verification model。
-4. 它比泛 UML / class diagram / sequence diagram 工作更接近 `project_1`，因为状态机工件是核心输入，且输出可用于 formal verification。
+4. 它比泛 UML / class diagram / sequence diagram 工作更接近 `project_1`，因为状态机工件是核心输入，且输出可用于 formal verification；但 Rebeca 应编码为强行为近邻，而不能按 STM-family 近同构输出编码为 `🟢`。
 
 **四条件建议**：
 
@@ -213,7 +213,7 @@ Prompt 的基本结构是 few-shot translation：
 | LLM4Modeling | 🟢 | 使用 ChatGPT-4 / GPT-4 进行模型转换。 |
 | NL输入 | 🟠 | 输入主要是 PlantUML UML state diagrams + metadata，不是自然语言需求；自然语言只出现在提示指令中。 |
 | LLM方法 | 🟢 | few-shot prompting 是核心方法变量。 |
-| STM族输出 | 🟢 | 输入为 UML 状态图，输出为状态相关的 Rebeca formal model / code，可服务于状态行为验证。 |
+| STM族输出 | 🟡 | 输出为 Rebeca actor-based formal model / code，可服务于状态行为验证，属于强行为近邻；但它不是 STM-family 近同构输出。 |
 
 ### 可借鉴之处
 
@@ -243,7 +243,7 @@ Prompt 的基本结构是 few-shot translation：
   -> Rebeca actor-based formal model/code for Afra verification
 ```
 
-因此，它是 `project_1` 的 near baseline / related formal transformation work，而不是 exact direct baseline。
+因此，它是 `project_1` 的 related formal transformation work / 下游验证桥接线索，而不是 near-direct baseline 或 exact direct baseline。
 
 ## 重要的相关工作
 
@@ -290,4 +290,4 @@ Prompt 的基本结构是 few-shot translation：
 
 这篇论文处于“UML 状态机工件 -> 形式化验证模型”的研究链条上。其前身包括传统 UML-to-Rebeca、ReUML、UML state machine formalization survey 和 Rebeca 工具链；其新增贡献是把 ChatGPT-4 few-shot prompting 放入模型转换流程，并用公开 replication package 记录数据、提示和输出。
 
-在 `project_1` baseline 体系中，它最适合归为 `🟡 近邻 formal transformation`：有状态机工件、有 LLM 建模方法、有形式化验证落点，但输入不是自然语言需求，输出也不是直接用于人类建模编辑的 UML/SysML STM，而是 Rebeca formal model。因此它适合作为“生成后形式化转换 / 验证桥接”的对照和启发，不适合作为 `NL -> STM` direct baseline。
+在 `project_1` baseline 体系中，它最适合归为 `🟠 模型转换/形式验证近邻`：有状态机工件、有 LLM 建模方法、有形式化验证落点，但输入不是自然语言需求，输出也不是直接用于人类建模编辑的 UML/SysML STM，而是 Rebeca actor-based formal model。因此它适合作为“生成后形式化转换 / 验证桥接”的对照和启发，不适合作为 `NL -> STM` direct baseline 或 near-direct baseline。
