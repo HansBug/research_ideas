@@ -10,11 +10,13 @@ mature agent rather than in the runner.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import re
 import shlex
 import subprocess
+import tokenize
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +45,14 @@ FORBIDDEN_RUNNER_TERMS = (
     "method.pr_e1_real_runs",
     "method.pr_d_representative",
     "real_run_matrix.py --run",
+)
+FORBIDDEN_COMMAND_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("python_module_method_loop", re.compile(r"\bpython(?:\d+(?:\.\d+)?)?\s+-m\s+(?:project_1_llm_state_machine_modeling\.)?method\.loop\b")),
+    ("import_method_loop_run_agent_loop", re.compile(r"\bfrom\s+(?:project_1_llm_state_machine_modeling\.)?method\.loop\s+import\s+run_agent_loop\b")),
+    ("import_method_loop", re.compile(r"\bimport\s+(?:project_1_llm_state_machine_modeling\.)?method\.loop\b")),
+    ("call_method_loop_run_agent_loop", re.compile(r"\b(?:project_1_llm_state_machine_modeling\.)?method\.loop\.run_agent_loop\s*\(")),
+    ("call_run_agent_loop", re.compile(r"(?<!['\"A-Za-z0-9_])run_agent_loop\s*\(")),
+    ("legacy_pr_e1_runner", re.compile(r"\bmethod\.pr_e1_real_runs\b|\bmethod\.pr_d_representative\b|\breal_run_matrix\.py\s+--run\b")),
 )
 REQUIRED_SKILL_DOCS = (
     "SKILL.md",
@@ -248,6 +258,82 @@ def relpath(path: Path, root: Path = REPO_ROOT) -> str:
 def write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _python_without_strings(command: str) -> str:
+    """Remove Python string/comment tokens from inline snippets best-effort."""
+
+    def _regex_without_strings(text: str) -> str:
+        # Fallback for large inline scripts whose surrounding shell quoting can
+        # make ``tokenize`` unhappy.  This intentionally removes string
+        # *contents* only; executable identifiers/imports/calls remain visible.
+        text = re.sub(r"'''(?:\\.|[^\\])*?'''", "''", text, flags=re.DOTALL)
+        text = re.sub(r'"""(?:\\.|[^\\])*?"""', '""', text, flags=re.DOTALL)
+        text = re.sub(r"'(?:\\.|[^'\\])*'", "''", text)
+        text = re.sub(r'"(?:\\.|[^"\\])*"', '""', text)
+        return text
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(command).readline)
+    except Exception:
+        return _regex_without_strings(command)
+    kept: list[str] = []
+    try:
+        for token in tokens:
+            if token.type in {tokenize.STRING, tokenize.COMMENT, tokenize.ENCODING}:
+                continue
+            kept.append(token.string)
+    except Exception:
+        return _regex_without_strings(command)
+    return " ".join(kept)
+
+
+def _extract_python_scan_text(command: str) -> str | None:
+    """Return the executable Python fragment to scan, or ``None`` if irrelevant.
+
+    The codex event stream stores whole shell commands.  Many valid commands read
+    skill docs that contain the banned runner names as *negative constraints*.
+    Scanning command output or all shell strings would therefore create false
+    positives.  This helper keeps the audit focused on code that is actually
+    being executed by Python.
+    """
+
+    cleaned = command.replace("\x00", "")
+    if not re.search(r"\bpython(?:\d+(?:\.\d+)?)?\b", cleaned):
+        # Direct legacy shell runner is still suspicious, but documentation
+        # searches/prints that merely mention it should not be.
+        if re.search(r"(^|\s)(?:\./)?real_run_matrix\.py\s+--run\b", cleaned):
+            return cleaned
+        return None
+
+    heredoc = re.search(
+        r"<<\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?\s*\n(.*?)\n\1['\"]?(?:\s*$|\s)",
+        cleaned,
+        flags=re.DOTALL,
+    )
+    if heredoc:
+        return _python_without_strings(heredoc.group(2))
+
+    dash_c = re.search(r"\s-c\s+(['\"])(.*?)\1", cleaned, flags=re.DOTALL)
+    if dash_c:
+        return _python_without_strings(dash_c.group(2))
+
+    # For module/script invocations the command line itself is the executable
+    # evidence.  Do not strip shell strings here: module/script names are args.
+    return cleaned
+
+
+def forbidden_command_matches(command: str) -> list[str]:
+    """Return forbidden-runner pattern names matched by an executable command."""
+
+    scan_text = _extract_python_scan_text(command)
+    if scan_text is None:
+        return []
+    return [
+        name
+        for name, pattern in FORBIDDEN_COMMAND_PATTERNS
+        if pattern.search(scan_text)
+    ]
 
 
 def load_env_file(path: Path | None) -> dict[str, str]:
@@ -751,34 +837,69 @@ def augment_metadata(run_dir: Path, manifest: Mapping[str, object]) -> None:
 def write_forbidden_call_check(run_dir: Path) -> dict[str, object]:
     """Best-effort external-observable forbidden-call audit.
 
-    We inspect command/tool-event looking lines, not the original prompt, because
-    the prompt must mention the banned APIs as negative constraints.
+    We inspect executable command strings, not command output or the original
+    prompt, because both the prompt and skill docs must mention the banned APIs
+    as negative constraints.  A literal mention in ``sed``/``rg`` output should
+    therefore not make a valid run look like it called the top-level E1 runner.
     """
 
     event_file = run_dir / "codex_events.jsonl"
     stderr_file = run_dir / "codex_stderr.log"
-    suspicious: list[str] = []
-    tool_markers = ("exec", "tool_call", "command", "cmd", "/bin/bash", "python", "pytest")
+    suspicious: list[dict[str, object]] = []
+    scanned_commands: list[dict[str, object]] = []
+
+    def _extract_command(line: str) -> str | None:
+        cleaned = line.replace("\x00", "").strip()
+        if not cleaned:
+            return None
+        try:
+            obj = json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Stderr is not structured.  Treat it as executable evidence only if
+            # it visibly looks like a shell/python command invocation rather than
+            # a copied prompt or documentation paragraph.
+            lower = cleaned.lower()
+            if any(marker in lower for marker in ("/bin/bash", "python ", "python3 ", "pytest ", "codex exec")):
+                return cleaned
+            return None
+        item = obj.get("item") if isinstance(obj, dict) else None
+        if not isinstance(item, dict):
+            return None
+        item_type = item.get("type")
+        command = item.get("command")
+        if item_type == "command_execution" and isinstance(command, str):
+            return command
+        return None
+
     for file in [event_file, stderr_file]:
         if not file.exists():
             continue
         for idx, line in enumerate(file.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
-            lower = line.lower()
-            # The initial user prompt must mention forbidden APIs as negative
-            # constraints.  Only command/tool-event shaped lines are evidence
-            # for actual forbidden use, so prompt/user-message payloads are
-            # excluded from this best-effort scan.
-            if '"type":"user"' in lower or '"type":"user_message"' in lower or '"role":"user"' in lower:
+            command = _extract_command(line)
+            if not command:
                 continue
-            if not any(marker in lower for marker in tool_markers):
-                continue
-            if any(term in line for term in FORBIDDEN_RUNNER_TERMS):
-                suspicious.append(f"{relpath(file)}:L{idx}:{line[:500]}")
+            scanned_commands.append({"path": relpath(file), "line": idx, "command_preview": command[:300]})
+            matches = forbidden_command_matches(command)
+            if matches:
+                suspicious.append(
+                    {
+                        "path": relpath(file),
+                        "line": idx,
+                        "matched_patterns": matches,
+                        "command_preview": command[:500],
+                    }
+                )
     payload = {
         "forbidden_runner_used": bool(suspicious),
         "forbidden_terms": list(FORBIDDEN_RUNNER_TERMS),
         "suspicious_tool_lines": suspicious[:50],
-        "scope_note": "Prompt/user-message mentions are excluded; this is an external tool-event scan.",
+        "scanned_command_count": len(scanned_commands),
+        "scanned_command_preview": scanned_commands[:50],
+        "scope_note": (
+            "Prompt/user-message and command output mentions are excluded; this "
+            "is an external executable-command scan. Documentation reads that "
+            "print forbidden terms are not counted as runner use."
+        ),
     }
     write_json(run_dir / "forbidden_call_check.json", payload)
     return payload

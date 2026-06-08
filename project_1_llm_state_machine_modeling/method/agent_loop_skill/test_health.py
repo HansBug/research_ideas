@@ -7,7 +7,9 @@ from pathlib import Path
 
 
 SKILL_ROOT = Path(__file__).resolve().parent
-REPO = SKILL_ROOT.parents[3]
+REPO = SKILL_ROOT.parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 HEALTH = SKILL_ROOT / "health_check.py"
 
 
@@ -148,3 +150,49 @@ def test_agent_loop_skill_codex_exec_experiment_contract() -> None:
     assert "TRACKED_DEFAULT_CODEX_EXEC_CONFIG" in helper
     assert "model_provider=airouter" in helper
     assert "codex_exec_cases" in helper
+
+
+def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executable_calls(tmp_path) -> None:
+    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import write_forbidden_call_check
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    event_file = run_dir / "codex_events.jsonl"
+    # First command reads documentation whose output mentions the forbidden API;
+    # this must not count as actual E1 runner use.  Second command is a real
+    # executable import/call and must be flagged.
+    event_file.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "type": "command_execution",
+                            "command": "/bin/bash -lc \"sed -n '1,20p' project_1_llm_state_machine_modeling/method/agent_loop_skill/SKILL.md\"",
+                            "aggregated_output": "禁止调用 method.loop.run_agent_loop(...)，这里只是文档约束。",
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "type": "command_execution",
+                            "command": "/bin/bash -lc \"python - <<'PY'\nfrom method.loop import run_agent_loop\nrun_agent_loop()\nPY\"",
+                            "aggregated_output": "",
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    payload = write_forbidden_call_check(run_dir)
+
+    assert payload["forbidden_runner_used"] is True
+    assert len(payload["suspicious_tool_lines"]) == 1
+    assert payload["suspicious_tool_lines"][0]["line"] == 2
