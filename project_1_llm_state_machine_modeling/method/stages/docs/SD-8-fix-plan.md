@@ -1,8 +1,8 @@
-# SD-8 FixPlan
+# SD-8 FixRequestBatch
 
 ## 目标
 
-把 selected feedback 转成结构化 FixPlan 或 RevisedFixPlan；inspect suggested_fix 仅作为参考，不允许无脑执行。
+把 selected feedback 转成结构化 repair request。底层工具仍产出 legacy `FixPlan` / `RevisedFixPlan`，PR-E1 runtime 会提升为 `FixRequestBatch = list[FixRequest]`；inspect suggested_fix 仅作为参考，不允许无脑执行。
 
 ## 输入
 
@@ -12,8 +12,8 @@
 
 ## 输出
 
-- `fix_plan`: target/severity/evidence/suggested_fix_hints/recommended_strategy/forbidden_edits。
-- `revised_fix_plan`: 可选，保留 original target 并追加 rejection evidence。
+- `fix_request_batch`: batch id、source stage、target、severity、problem summary、evidence、hard_block / waiver_allowed。
+- `legacy_fix_plan`: 兼容字段，包含 target/severity/evidence/suggested_fix_hints/recommended_strategy/forbidden_edits。
 
 ## 函数名或 prompt generator 名
 
@@ -54,4 +54,4 @@ fix_plan, meta = run_sd8_fix_plan(
 )
 ```
 
-当 SD-10 拒绝 candidate 时，二次输入必须使用 `RevisedFixPlan(original=..., rejection=...)`，不能把 `FixPlan.target` 改成 `repair_review`。
+当 `SL-10` 要求 rework 时，rework 指令必须写入 FixLog 并回到 `SL-9`，返工 request 不允许再次 reject；不再通过改写 `FixPlan.target=repair_review` 表达返工。

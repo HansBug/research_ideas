@@ -51,16 +51,16 @@ Modeler agent will turn into pyfcstm DSL.
 
 ## Example
 
-**Input NL** (sources/automatic-elevator-controller style):
+**Input NL** (synthetic actuator-cell style):
 
 ```
-The automatic elevator controller has three floor states F1, F2, F3 and
-motion states MU2 (moving up to F2), MU3 (moving up to F3), MD1 (moving down
-to F1), MD2 (moving down to F2). The system starts idle at F1, then chooses
-up or down based on floor request inputs PS1, PS2, PS3. It stops at the
-requested floor and waits for the next destination. Sensing inputs S1, S2, S3
-detect arrival at each floor. The reset signal forces the controller back to
-F1 regardless of context.
+A small actuator-cell controller has operating states Waiting, Extending,
+Retracting, and Faulted. The controller starts in Waiting. A BeginExtend
+command starts extension, an Extended sensor confirms that the actuator is
+fully extended, a BeginRetract command starts retraction, and a Retracted
+sensor confirms that the actuator has returned to Waiting. A FaultDetected
+signal forces the controller into Faulted from any state, and a ResetFault
+command returns Faulted to Waiting after maintenance.
 ```
 
 **Output JSON**:
@@ -68,41 +68,31 @@ F1 regardless of context.
 ```
 {
   "states": [
-    {"name": "F1", "parent": null, "is_pseudo": false, "notes": "idle at floor 1"},
-    {"name": "F2", "parent": null, "is_pseudo": false, "notes": "idle at floor 2"},
-    {"name": "F3", "parent": null, "is_pseudo": false, "notes": "idle at floor 3"},
-    {"name": "MU2", "parent": null, "is_pseudo": false, "notes": "moving up to F2"},
-    {"name": "MU3", "parent": null, "is_pseudo": false, "notes": "moving up to F3"},
-    {"name": "MD1", "parent": null, "is_pseudo": false, "notes": "moving down to F1"},
-    {"name": "MD2", "parent": null, "is_pseudo": false, "notes": "moving down to F2"}
+    {"name": "Waiting", "parent": null, "is_pseudo": false, "notes": "idle state before motion"},
+    {"name": "Extending", "parent": null, "is_pseudo": false, "notes": "actuator is moving outward"},
+    {"name": "Retracting", "parent": null, "is_pseudo": false, "notes": "actuator is moving inward"},
+    {"name": "Faulted", "parent": null, "is_pseudo": false, "notes": "fault handling state"}
   ],
   "events": [
-    {"name": "PS1", "scope": "global", "notes": "floor 1 request"},
-    {"name": "PS2", "scope": "global", "notes": "floor 2 request"},
-    {"name": "PS3", "scope": "global", "notes": "floor 3 request"},
-    {"name": "S1", "scope": "global", "notes": "arrived at floor 1"},
-    {"name": "S2", "scope": "global", "notes": "arrived at floor 2"},
-    {"name": "S3", "scope": "global", "notes": "arrived at floor 3"},
-    {"name": "Reset", "scope": "global", "notes": "force back to F1"}
+    {"name": "BeginExtend", "scope": "global", "notes": "operator command to start extension"},
+    {"name": "Extended", "scope": "global", "notes": "sensor confirms fully extended"},
+    {"name": "BeginRetract", "scope": "global", "notes": "operator command to start retraction"},
+    {"name": "Retracted", "scope": "global", "notes": "sensor confirms retracted"},
+    {"name": "FaultDetected", "scope": "global", "notes": "fault signal from monitoring logic"},
+    {"name": "ResetFault", "scope": "global", "notes": "maintenance reset after fault clearance"}
   ],
   "variables": [],
   "transitions": [
-    {"from": "F1", "to": "MU2", "event": "PS2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F1", "to": "MU3", "event": "PS3", "guard": null, "effect": null, "is_forced": false},
-    {"from": "MU2", "to": "F2", "event": "S2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F2", "to": "MU3", "event": "PS3", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F2", "to": "MD1", "event": "PS1", "guard": null, "effect": null, "is_forced": false},
-    {"from": "MU3", "to": "F3", "event": "S3", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F3", "to": "MD1", "event": "PS1", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F3", "to": "MD2", "event": "PS2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "MD1", "to": "F1", "event": "S1", "guard": null, "effect": null, "is_forced": false},
-    {"from": "MD2", "to": "F2", "event": "S2", "guard": null, "effect": null, "is_forced": false},
-    {"from": "F1", "to": "F1", "event": "Reset", "guard": null, "effect": null, "is_forced": true},
-    {"from": "F2", "to": "F1", "event": "Reset", "guard": null, "effect": null, "is_forced": true},
-    {"from": "F3", "to": "F1", "event": "Reset", "guard": null, "effect": null, "is_forced": true}
+    {"from": "[*]", "to": "Waiting", "event": null, "guard": null, "effect": null, "is_forced": false},
+    {"from": "Waiting", "to": "Extending", "event": "BeginExtend", "guard": null, "effect": null, "is_forced": false},
+    {"from": "Extending", "to": "Retracting", "event": "Extended", "guard": null, "effect": null, "is_forced": false},
+    {"from": "Retracting", "to": "Waiting", "event": "Retracted", "guard": null, "effect": null, "is_forced": false},
+    {"from": "Extending", "to": "Retracting", "event": "BeginRetract", "guard": null, "effect": null, "is_forced": false},
+    {"from": "*", "to": "Faulted", "event": "FaultDetected", "guard": null, "effect": null, "is_forced": true},
+    {"from": "Faulted", "to": "Waiting", "event": "ResetFault", "guard": null, "effect": null, "is_forced": false}
   ],
   "hierarchy": [],
-  "summary": "A 3-floor elevator controller with motion states, request inputs, arrival sensors, and a global reset."
+  "summary": "A synthetic actuator-cell controller with extension/retraction commands, position sensors, and a global fault escape."
 }
 ```
 

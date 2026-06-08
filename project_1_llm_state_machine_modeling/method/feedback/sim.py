@@ -46,11 +46,43 @@ def _state_path_str(state: Any) -> str:
     return str(name) if name is not None else str(state)
 
 
+def _safe_current_state_path(runtime: Any) -> str:
+    """Best-effort runtime state capture that never masks the original error.
+
+    ``pyfcstm`` raises from ``runtime.current_state`` after the runtime reaches
+    a final/ended configuration.  SD-6 must preserve that situation as
+    structured scenario evidence instead of raising a second exception while it
+    is already converting the original runtime error into ``StepResult``.
+    """
+
+    try:
+        return _state_path_str(runtime.current_state)
+    except Exception:
+        return "<ended>"
+
+
 def _vars_to_dict(runtime_vars: Any) -> dict[str, Any]:
     try:
         return dict(runtime_vars)
     except Exception:
         return {k: runtime_vars[k] for k in getattr(runtime_vars, "keys", lambda: [])()}
+
+
+def _safe_vars_dict(runtime: Any) -> dict[str, Any]:
+    try:
+        return _vars_to_dict(runtime.vars)
+    except Exception:
+        return {}
+
+
+def _default_initial_vars(model: Any) -> dict[str, Any]:
+    """Return pyfcstm variable defaults in a plain dict when available."""
+
+    defaults: dict[str, Any] = {}
+    for name, define in (getattr(model, "defines", {}) or {}).items():
+        init = getattr(define, "init", None)
+        defaults[str(name)] = getattr(init, "value", init)
+    return defaults
 
 
 def _numeric_equal(a: Any, b: Any) -> bool:
@@ -90,8 +122,8 @@ def _execute_step(runtime: Any, step: ScenarioStep, step_index: int) -> StepResu
         runtime.cycle(events=list(step.events))
 
     # 3. capture actual state + vars
-    sr.actual_state = _state_path_str(runtime.current_state)
-    sr.actual_vars = _vars_to_dict(runtime.vars)
+    sr.actual_state = _safe_current_state_path(runtime)
+    sr.actual_vars = _safe_vars_dict(runtime)
 
     # 4. state assertion (if non-None)
     if step.expected_state is not None:
@@ -132,12 +164,13 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
         # Note: pyfcstm requires initial_vars (even if empty dict) whenever initial_state
         # is specified. Default-init (no initial_state) leaves the runtime at the root
         # state — the first cycle() then dispatches into the initial leaf via [*] -> X.
+        default_vars = _default_initial_vars(model)
         kwargs: dict[str, Any] = {"abstract_error_mode": "log"}
         if scenario.initial_state is not None:
             kwargs["initial_state"] = scenario.initial_state
-            kwargs["initial_vars"] = dict(scenario.initial_vars) if scenario.initial_vars else {}
+            kwargs["initial_vars"] = {**default_vars, **(dict(scenario.initial_vars) if scenario.initial_vars else {})}
         elif scenario.initial_vars:
-            kwargs["initial_vars"] = dict(scenario.initial_vars)
+            kwargs["initial_vars"] = {**default_vars, **dict(scenario.initial_vars)}
         runtime = SimulationRuntime(model, **kwargs)
     except SimulationRuntimeDfsError as e:
         sresult.status = "error"
@@ -164,8 +197,8 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
                 step_name=step.name or f"step_{i}",
                 status="error",
                 runtime_error=f"SimulationRuntimeDfsError: {str(e)[:300]}",
-                actual_state=_state_path_str(getattr(runtime, "current_state", None)),
-                actual_vars=_vars_to_dict(getattr(runtime, "vars", {})),
+                actual_state=_safe_current_state_path(runtime),
+                actual_vars=_safe_vars_dict(runtime),
             )
             sresult.step_results.append(sr)
             hit_runtime_error = True
@@ -176,8 +209,8 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
                 step_name=step.name or f"step_{i}",
                 status="error",
                 runtime_error=f"{type(e).__name__}: {str(e)[:300]}",
-                actual_state=_state_path_str(getattr(runtime, "current_state", None)),
-                actual_vars=_vars_to_dict(getattr(runtime, "vars", {})),
+                actual_state=_safe_current_state_path(runtime),
+                actual_vars=_safe_vars_dict(runtime),
             )
             sresult.step_results.append(sr)
             hit_runtime_error = True

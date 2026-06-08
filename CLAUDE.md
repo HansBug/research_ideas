@@ -28,7 +28,7 @@
 - `phd_proposal/` - LaTeX格式的博士开题报告文档
   - `phd_proposal_report/` - 主开题报告
   - `phd_proposal_literature_review/` - 文献综述文档
-- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [method/](./project_1_llm_state_machine_modeling/method/) 是 agent-loop / pyfcstm / run-record 等方法基础设施入口，[eval/](./project_1_llm_state_machine_modeling/eval/) 是 project_1 评测与审计入口
+- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[method/](./project_1_llm_state_machine_modeling/method/) 是 agent-loop / pyfcstm / run-record 等方法基础设施入口，[eval/](./project_1_llm_state_machine_modeling/eval/) 是 project_1 评测与审计入口
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
@@ -46,7 +46,7 @@
 
 **论文组织方式**：论文资料可以出现在仓库的任何路径下（如各个 `project` 目录、专题文献目录、baseline 目录等），但后续统一按“**论文集路径** + **单论文路径**”两级结构组织；单论文路径是基础单元，论文集路径是其上级汇总与操作入口（详见下方“论文文件管理规范”）。
 
-**讨论纪要组织方式**：根目录 `talks/` 专门用于维护与人类讨论形成的纪要草稿与定稿，不按论文集结构管理；其具体规则见下方“讨论纪要工作区规范”。
+**讨论纪要组织方式**：根目录 `talks/` 专门用于维护与人类讨论形成的纪要草稿与定稿，不按论文集结构管理；其具体规则见下方“讨论纪要工作区规范”。另外，[project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，不等同于根目录 `talks/`，也不等同于 project_1 的内部 `discussions/`。
 
 **LLM 模型现状文库组织方式**：根目录 [llm_model_landscape/](./llm_model_landscape/) 是 LLM 模型现状微型文库，用于维护模型可用性、发布时间、context / max output、价格和官方来源。处理模型选型、baseline 模型矩阵、LLM 价格/上下文窗口更新、Qwen/Llama/Grok/DeepSeek/Gemini/GPT/Claude 等模型信息时，默认先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md)，再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)，最后读 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 获取统计结论与重点模型；需要完整表时跳转到各分册。所有正式模型表默认按**发布时间从高到低**排列，且必须使用可点击官方来源链接。
 
@@ -800,11 +800,22 @@ $$
 3. 根据需要逐步深入技术细节。
 4. 节省重复阅读成本。
 
+### 5.3 阅读 project_1 正式导师讨论时
+
+当任务涉及 `project_1_llm_state_machine_modeling` 的第一篇论文 story、Path-1 / Path-2、E1 / E2、baseline 选择、样本选择、实验边界、导师意见或会后路线更新时，必须优先读取 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/)：
+
+1. 先读 [project_1_llm_state_machine_modeling/talks/README.md](./project_1_llm_state_machine_modeling/talks/README.md)，理解该文库与根目录 `talks/`、project_1 内部 `discussions/` 的区别。
+2. 再读 [project_1_llm_state_machine_modeling/talks/GUIDE.md](./project_1_llm_state_machine_modeling/talks/GUIDE.md)，理解正式导师讨论记录的维护与优先级规则。
+3. 再读 [project_1_llm_state_machine_modeling/talks/SUMMARY.md](./project_1_llm_state_machine_modeling/talks/SUMMARY.md)，确认当前最新导师路线与高优先级约束。
+4. 最后阅读与任务最相关的单篇导师讨论记录。
+
+默认优先级：晚近且明确的导师讨论记录 > project_1 内部 [project_1_llm_state_machine_modeling/discussions/](./project_1_llm_state_machine_modeling/discussions/) 推演 > 更早 PR / issue 草案。若后续用户明确说明有新的导师意见覆盖，则以新的导师意见为准，并应回写 project_1 的 `talks/` 文库。
+
 ## 讨论纪要工作区规范
 
 ### 1. 路径定位
 
-根目录 `talks/` 用于存放**我与导师、同门、合作者或其他人类对象的讨论纪要**。它服务的不是论文收录，而是把“讨论前准备 -> deck 准备与 review -> 会后原始碎片 -> AI 扩写 -> 人工纠偏 -> 纪要定稿”这条迭代链稳定下来。
+根目录 `talks/` 用于存放**我与导师、同门、合作者或其他人类对象的讨论纪要**。它服务的不是论文收录，而是把“讨论前准备 -> deck 准备与 review -> 会后原始碎片 -> AI 扩写 -> 人工纠偏 -> 纪要定稿”这条迭代链稳定下来。注意：项目内部也可以有专题化正式讨论文库，例如 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/)；这类目录用于沉淀已经影响论文路线的导师意见，优先级和维护方式以其本地 `README.md` / `GUIDE.md` 为准。
 
 该路径默认适合以下材料：
 

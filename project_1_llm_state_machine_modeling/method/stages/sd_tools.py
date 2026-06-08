@@ -31,15 +31,17 @@ from method.schema import (
     RepairReviewFeedback,
     RevisedFixPlan,
     ScenarioSet,
+    ScenarioStep,
     SemanticFeedback,
     SimFeedback,
     StageContext,
     StageResultMeta,
+    TestScenario,
 )
 from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
 from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
 
-DesignPolicyProfile = Literal["generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
+DesignPolicyProfile = Literal["experiment_default", "generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
 
 _HIGH_RISK_WARNING_CODES = {
     "W_UNREACHABLE_STATE",
@@ -55,6 +57,8 @@ _ADVISORY_WARNING_CODES = {
     "W_UNUSED_EVENT",
     "W_WRITE_ONLY_VAR",
     "W_UNREFERENCED_VAR",
+    "W_VARIABLE_DECLARED_NEVER_USED",
+    "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
     "W_HIGH_VAR_TO_LEAF_RATIO",
     "W_DEEP_HIERARCHY",
     "W_LARGE_COMPOSITE",
@@ -66,6 +70,298 @@ _ADVISORY_WARNING_CODES = {
 }
 DEFAULT_WARNING_REPAIR_BUDGET = 2
 COUNT_DRIFT_THRESHOLD = 0.30
+
+_EXTERNAL_INPUT_DECLARATION_PATTERNS = (
+    re.compile(
+        r"\b(?:reads?|measures?|observes?|monitors?|samples?)\b"
+        r"(?P<segment>[^.;:\n]{0,180})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:external|environment(?:al)?|sensor|input|measured|observed|monitored)\s+"
+        r"(?:variables?|values?|signals?|inputs?|parameters?|readings?)\b"
+        r"(?P<segment>[^.;:\n]{0,180})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?P<segment>[^.;:\n]{0,180})"
+        r"\b(?:as|from)\s+"
+        r"(?:external|environment(?:al)?|sensor|input)\s+"
+        r"(?:variables?|values?|signals?|inputs?|parameters?|readings?)\b",
+        re.IGNORECASE,
+    ),
+)
+_NL_IDENTIFIER_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+_EXTERNAL_INPUT_SEGMENT_STOP_RE = re.compile(
+    r"\b(?:before|after|when|while|where|then|otherwise|until|unless|because|so\s+that)\b",
+    re.IGNORECASE,
+)
+_EXTERNAL_ROLE_CUE_RE = re.compile(
+    r"\b(?:external|environment(?:al)?|sensor|input|read(?:s|ings)?|measured|"
+    r"observed|monitored|plant|process|physical|dynamics?|computed|capacity\s+bounds?|"
+    r"limits?|margins?)\b",
+    re.IGNORECASE,
+)
+_PLANT_BOUNDARY_RE = re.compile(
+    r"\b(?:continuous|plant|process|physical|environment(?:al)?)\b[^.\n;]{0,120}"
+    r"\b(?:dynamics?|model|computed|calculated|estimated|remain|outside)\b|"
+    r"\b(?:dynamics?|computed|calculated|estimated)\b[^.\n;]{0,120}"
+    r"\b(?:plant|process|physical|environment(?:al)?|outside)\b",
+    re.IGNORECASE,
+)
+_CAPACITY_BOUNDARY_RE = re.compile(
+    r"\b(?:capacity\s+bounds?|capacity\s+limits?|power\s+limits?|maximum\s+capacity|"
+    r"max(?:imum)?\s+power|charging\s+margins?|margins?)\b",
+    re.IGNORECASE,
+)
+_CAPACITY_LIKE_IDENTIFIER_RE = re.compile(
+    r"(?:^|_)(?:[A-Za-z0-9]*max|[A-Za-z0-9]*min|limit|bound|cap(?:acity)?)$|"
+    r"(?:max|min|limit|bound|cap(?:acity)?)",
+    re.IGNORECASE,
+)
+_OUTPUT_ROLE_RE = re.compile(
+    r"\b(?:output|outputs|actuator|actuators|command|commands|signal|signals|"
+    r"valve|valves|pump|drive|alarm|display|sound|sets?|set)\b",
+    re.IGNORECASE,
+)
+
+
+def _trim_external_input_segment(segment: str) -> str:
+    """Keep only the declaration phrase, not subsequent control-flow prose.
+
+    PR-E1 uses this detector only as a conservative deterministic hint for
+    NL-declared read-only environment inputs.  A phrase such as
+    ``reads temperature T before selecting the next mode`` should ground ``T``
+    but must not accidentally classify a declared variable named ``mode`` as an
+    external input merely because it appears after the temporal connector
+    ``before``.  Explicit declarations before the connector, including
+    ``reads mode as an external input before ...``, remain detectable.
+    """
+
+    match = _EXTERNAL_INPUT_SEGMENT_STOP_RE.search(segment)
+    if not match:
+        return segment
+    return segment[: match.start()]
+
+
+def _external_input_variables_from_nl(nl: str) -> set[str]:
+    """Infer explicitly declared read-only environment variables from NL text.
+
+    The detector is deliberately *sample-agnostic*: it only uses generic
+    linguistic declarations such as "reads ...", "sensor variables ...", or
+    "... as external inputs".  It must not contain benchmark-domain lexicons,
+    case IDs, or acronym aliases by hand.  Ambiguous cases stay blocking so
+    SL-9 can reason about external-vs-internal variable intent from the full
+    prompt instead of the deterministic loop overfitting to known samples.
+    """
+
+    if not nl:
+        return set()
+    found: set[str] = set()
+    for pattern in _EXTERNAL_INPUT_DECLARATION_PATTERNS:
+        for match in pattern.finditer(nl):
+            segment = _trim_external_input_segment(match.group("segment"))
+            for token_match in _NL_IDENTIFIER_RE.finditer(segment):
+                token = token_match.group(0)
+                if len(token) <= 40:
+                    found.add(token)
+    return found
+
+
+def _diagnostic_read_only_guard_vars(diagnostics: Iterable[dict[str, Any]]) -> set[str]:
+    """Return vars that pyfcstm currently sees only as read/guard inputs."""
+
+    names: set[str] = set()
+    for diag in diagnostics:
+        refs = diag.get("refs") or {}
+        if diag.get("code") == "W_UNWRITTEN_READ_VAR" and refs.get("var_name") is not None:
+            names.add(str(refs["var_name"]))
+        guard_vars = refs.get("guard_vars")
+        if diag.get("code") == "W_GUARD_VARS_NEVER_CHANGE" and isinstance(guard_vars, list):
+            names.update(str(name) for name in guard_vars)
+    return names
+
+
+def _nl_mentions_output_role(nl: str, name: str) -> bool:
+    if not nl or not name:
+        return False
+    for match in re.finditer(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", nl):
+        start = max(0, match.start() - 90)
+        end = min(len(nl), match.end() + 90)
+        if _OUTPUT_ROLE_RE.search(nl[start:end]):
+            return True
+    return False
+
+
+def _variable_usage_advisories(
+    *,
+    inspect_json: dict[str, Any],
+    existing_diagnostics: Iterable[dict[str, Any]],
+    nl: str,
+) -> list[dict[str, Any]]:
+    """Add reviewer-facing variable participation diagnostics.
+
+    These advisories do not block repair.  They make "declared but never used"
+    and "written output but never read" visible in reports, while preserving
+    NL-grounded output variables such as actuator commands.
+    """
+
+    existing = {
+        (str(item.get("code")), str((item.get("refs") or {}).get("var_name") or ""))
+        for item in existing_diagnostics
+    }
+    advisories: list[dict[str, Any]] = []
+    for var in inspect_json.get("variables", []) or []:
+        if not isinstance(var, dict):
+            continue
+        name = str(var.get("name") or "")
+        if not name:
+            continue
+        read_sites = [
+            *(var.get("read_in_states") or []),
+            *(var.get("read_in_guards") or []),
+        ]
+        write_sites = [
+            *(var.get("written_in_states") or []),
+            *(var.get("written_in_effects") or []),
+        ]
+        if not read_sites and not write_sites and ("W_VARIABLE_DECLARED_NEVER_USED", name) not in existing:
+            advisories.append(
+                {
+                    "code": "W_VARIABLE_DECLARED_NEVER_USED",
+                    "severity": "warning",
+                    "message": f"Variable '{name}' is declared but never read or written in guards/actions/effects.",
+                    "span": None,
+                    "refs": {"var_name": name, "init_value": var.get("init_value")},
+                }
+            )
+        elif (
+            write_sites
+            and not read_sites
+            and not _nl_mentions_output_role(nl, name)
+            and ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", name) not in existing
+        ):
+            advisories.append(
+                {
+                    "code": "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+                    "severity": "warning",
+                    "message": (
+                        f"Variable '{name}' is written but never read, and the NL text does not clearly "
+                        "ground it as an output/actuator/signal."
+                    ),
+                    "span": None,
+                    "refs": {
+                        "var_name": name,
+                        "written_in_states": var.get("written_in_states") or [],
+                        "written_in_effects": var.get("written_in_effects") or [],
+                    },
+                }
+            )
+    return advisories
+
+
+def _grounding_role_texts(grounding_map: GroundingMap | None) -> list[str]:
+    if grounding_map is None:
+        return []
+    texts: list[str] = []
+    for element in grounding_map.elements:
+        if element.element_kind == "variable":
+            texts.append(f"{element.element_ref} {element.evidence_text}")
+    for value in (grounding_map.source_summary or {}).values():
+        if isinstance(value, str):
+            texts.append(value)
+        elif isinstance(value, (list, tuple)):
+            texts.extend(str(item) for item in value)
+        elif value is not None:
+            texts.append(str(value))
+    return texts
+
+
+def _external_input_role_ledger(
+    *,
+    nl: str,
+    declared_vars: set[str],
+    read_only_guard_vars: set[str],
+    grounding_map: GroundingMap | None,
+) -> dict[str, list[str]]:
+    """Build a conservative, sample-agnostic external-input role ledger.
+
+    The ledger is intentionally not a quality gate.  It only downgrades
+    high-risk pyfcstm warnings when the NL / SL-1 grounding contains generic
+    controller-boundary evidence that a variable is a read-only plant,
+    sensor, environment, or capacity input.  It must not depend on benchmark
+    case IDs or domain-specific benchmark aliases.
+    """
+
+    ledger: dict[str, list[str]] = {}
+
+    def add(name: str, reason: str) -> None:
+        if name in declared_vars:
+            ledger.setdefault(name, [])
+            if reason not in ledger[name]:
+                ledger[name].append(reason)
+
+    for name in _external_input_variables_from_nl(nl) & declared_vars:
+        add(name, "explicit NL read/external/sensor/input declaration")
+
+    if _PLANT_BOUNDARY_RE.search(nl):
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(nl, name):
+                add(name, "NL states continuous/plant/process dynamics are outside the discrete controller")
+
+    if _CAPACITY_BOUNDARY_RE.search(nl):
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(nl, name) and _CAPACITY_LIKE_IDENTIFIER_RE.search(name):
+                add(name, "NL describes capacity/limit/margin quantities as controller inputs or bounds")
+
+    for text in _grounding_role_texts(grounding_map):
+        if not _EXTERNAL_ROLE_CUE_RE.search(text):
+            continue
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(text, name):
+                add(name, "SL-1 grounding/assumption text contains generic external-input role cues")
+
+    return ledger
+
+
+def _guard_vars(item: DesignDiagnosticItem) -> set[str]:
+    raw = item.refs.get("guard_vars")
+    if isinstance(raw, list):
+        return {str(v) for v in raw}
+    return set()
+
+
+def _external_input_advisory_rationale(item: DesignDiagnosticItem, external_input_ledger: dict[str, list[str]]) -> str | None:
+    nl_external_vars = set(external_input_ledger)
+
+    def reason_for(names: Iterable[str]) -> str:
+        reasons: list[str] = []
+        for name in sorted(set(names)):
+            for reason in external_input_ledger.get(name, []):
+                if reason not in reasons:
+                    reasons.append(reason)
+        if not reasons:
+            return ""
+        return " Evidence: " + "; ".join(reasons) + "."
+
+    if item.code == "W_UNWRITTEN_READ_VAR":
+        var = str(item.refs.get("var_name") or "")
+        if var and var in nl_external_vars:
+            return (
+                f"Downgraded because `{var}` is NL-grounded as an external "
+                "sensor/environment input; adding invented writes would be "
+                "less faithful than leaving it read-only."
+                + reason_for([var])
+            )
+    if item.code == "W_GUARD_VARS_NEVER_CHANGE":
+        vars_in_guard = _guard_vars(item)
+        if vars_in_guard and vars_in_guard.issubset(nl_external_vars):
+            return (
+                "Downgraded because all guard variables are NL-grounded "
+                f"external inputs: {', '.join(sorted(vars_in_guard))}."
+                + reason_for(vars_in_guard)
+            )
+    return None
 
 
 def _hash_text(text: str) -> str:
@@ -306,6 +602,22 @@ def run_sd4_design(
     inspect_json = inspect_model(context.model).to_json()
     context.inspect_json = inspect_json
     diagnostics = [_diag_to_dict(diag) for diag in inspect_json.get("diagnostics", [])]
+    diagnostics.extend(
+        _variable_usage_advisories(
+            inspect_json=inspect_json,
+            existing_diagnostics=diagnostics,
+            nl=context.nl,
+        )
+    )
+    declared_vars = set(str(name) for name in (getattr(context.model, "defines", {}) or {}).keys())
+    read_only_guard_vars = _diagnostic_read_only_guard_vars(diagnostics)
+    external_input_ledger = _external_input_role_ledger(
+        nl=context.nl,
+        declared_vars=declared_vars,
+        read_only_guard_vars=read_only_guard_vars,
+        grounding_map=context.grounding_map,
+    )
+    nl_external_vars = set(external_input_ledger)
     blocking: list[DesignDiagnosticItem] = []
     advisory: list[DesignDiagnosticItem] = []
     info: list[DesignDiagnosticItem] = []
@@ -313,6 +625,13 @@ def run_sd4_design(
     for diag in diagnostics:
         state = _budget_state_for(diag, warning_budget_state)
         item = _design_item_from_diag(diag, state, policy_profile=policy_profile)
+        external_rationale = _external_input_advisory_rationale(item, external_input_ledger)
+        if external_rationale is not None and item.policy_action == "budgeted_repair":
+            item.policy_action = "advisory"
+            item.rationale = external_rationale
+            state.last_status = "external_input_advisory"
+        elif external_rationale is not None:
+            item.rationale = external_rationale
         state.last_status = item.policy_action
         state.last_stage = StageId.SD_4_DESIGN.value
         if item.policy_action in {"hard_block", "budgeted_repair", "requires_policy_classification"}:
@@ -349,6 +668,11 @@ def run_sd4_design(
                 for item in [*blocking, *advisory, *info]
             ],
             "warning_budget_state": {key: asdict(value) for key, value in sorted(warning_budget_state.items())},
+            "nl_external_input_vars": sorted(nl_external_vars),
+            "external_input_role_ledger": [
+                {"var_name": name, "role_hint": "external_input_candidate", "evidence": reasons}
+                for name, reasons in sorted(external_input_ledger.items())
+            ],
         },
     )
     status = StageStatus.OK if feedback.ok else StageStatus.FAIL
@@ -399,6 +723,98 @@ def freeze_scenario_set(
     return scenario_set, meta
 
 
+_NORMALIZED_HOT_START_MARKER = "[PR-E1/default-normalized:"
+_ORIGINAL_INITIAL_STATE_RE = re.compile(r"original_initial_state=([^;\]]+)")
+
+
+def _normalized_original_initial_state(description: str | None) -> str | None:
+    if not description or _NORMALIZED_HOT_START_MARKER not in description:
+        return None
+    match = _ORIGINAL_INITIAL_STATE_RE.search(description)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    return value or None
+
+
+def _same_state_path(left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    a = left.strip()
+    b = right.strip()
+    return a == b or a.endswith(f".{b}") or b.endswith(f".{a}")
+
+
+def _default_runtime_state(current_dsl: str) -> str | None:
+    probe = TestScenario(
+        name="__pr_e1_default_init_probe__",
+        steps=[ScenarioStep(events=[], name="default_initial_dispatch_probe")],
+    )
+    feedback = check_sim(current_dsl, [probe])
+    if not feedback.scenario_results:
+        return None
+    result = feedback.scenario_results[0]
+    if not result.step_results:
+        return None
+    return result.step_results[0].actual_state or None
+
+
+def _weak_normalized_hot_start_failures(current_dsl: str, scenario_set: ScenarioSet, feedback: SimFeedback) -> dict[str, Any] | None:
+    """Return weak-oracle evidence only when every failure is truly hot-start-only.
+
+    PR-E1 clears SL-5 hot-start ``initial_state`` before running scenarios on
+    the default path.  The marker attached by ``_normalize_scenarios_for_runtime``
+    is only provenance: it does **not** by itself prove a weak oracle.  A
+    normalized failure is weak only when its original hot-start state differs
+    from the model's default runtime state.  If the original state is the same
+    as the default state, the failure is reproducible from default init and must
+    remain ordinary SD-6 blocking feedback so the repair loop can see it.
+    """
+
+    default_state = _default_runtime_state(current_dsl)
+    weak: list[dict[str, str | None]] = []
+    real_or_unknown: list[dict[str, str | None]] = []
+    scenarios = list(scenario_set.scenarios)
+    for scenario, result in zip(scenarios, feedback.scenario_results):
+        if result.status == "pass":
+            continue
+        original_state = _normalized_original_initial_state(getattr(scenario, "description", ""))
+        if default_state is None:
+            real_or_unknown.append({"scenario_name": result.name, "reason": "default_state_probe_failed", "original_initial_state": original_state, "default_state": default_state})
+        elif original_state is None:
+            real_or_unknown.append({"scenario_name": result.name, "reason": "no_normalized_hot_start_provenance", "default_state": default_state})
+        elif _same_state_path(original_state, default_state):
+            real_or_unknown.append(
+                {
+                    "scenario_name": result.name,
+                    "reason": "failure_reproducible_from_default_initial_state",
+                    "original_initial_state": original_state,
+                    "default_state": default_state,
+                }
+            )
+        else:
+            weak.append(
+                {
+                    "scenario_name": result.name,
+                    "reason": "original_hot_start_state_not_default_reachable_without_prefix",
+                    "original_initial_state": original_state,
+                    "default_state": default_state,
+                }
+            )
+    if weak and not real_or_unknown:
+        return {
+            "scenario_names": [item["scenario_name"] for item in weak],
+            "default_state": default_state,
+            "weak_failures": weak,
+            "policy": (
+                "Default main path clears SL-5 hot-start initial_state. "
+                "Only failures whose original hot-start state differs from the default runtime state "
+                "are treated as weak oracle evidence; default-state failures remain repairable SD-6 feedback."
+            ),
+        }
+    return None
+
+
 def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: StageContext | None = None) -> tuple[SimFeedback, StageResultMeta]:
     if scenario_set is None:
         feedback = SimFeedback(ok=False, setup_error="ScenarioSet is missing")
@@ -406,6 +822,12 @@ def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: Sta
         _attach_meta(context, feedback, meta)
         return feedback, meta
     feedback = check_sim(current_dsl, list(scenario_set.scenarios))
+    if not feedback.ok:
+        weak_evidence = _weak_normalized_hot_start_failures(current_dsl, scenario_set, feedback)
+        if weak_evidence is not None:
+            feedback.oracle_weak = True
+            feedback.weak_oracle_reason = "normalized_hot_start_scenario_failed"
+            feedback.weak_oracle_evidence = weak_evidence
     meta = _stage_meta(StageId.SD_6_SIM, ok=feedback.ok)
     _attach_meta(context, feedback, meta)
     return feedback, meta
@@ -486,8 +908,14 @@ def run_sd8_fix_plan(
         problem_summary=summary,
         evidence=evidence,
         suggested_fix_hints=suggested_fix_hints,
-        recommended_strategy=["Use diagnostics as hints; choose the smallest globally consistent repair."],
-        forbidden_edits=["Do not delete grounded required elements merely to silence diagnostics."],
+        recommended_strategy=[
+            "Use diagnostics as hints; choose the smallest globally consistent repair.",
+            "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation.",
+        ],
+        forbidden_edits=[
+            "Do not delete grounded required elements merely to silence diagnostics.",
+            "Do not invent internal plant/environment dynamics merely to make external input variables appear written.",
+        ],
         target_element_ids=target_ids,
         required_preserve_element_ids=required_ids,
         before_dsl_hash=_hash_text(before_dsl) if before_dsl else "",
@@ -569,15 +997,16 @@ def _transition_endpoint(owner_state: str, endpoint: Any) -> str:
     return raw
 
 
-def _component_index(model: Any) -> dict[str, set[str]]:
+def _component_index(model: Any) -> dict[str, Any]:
     states = _iter_model_states(model)
-    index: dict[str, set[str]] = {
+    index: dict[str, Any] = {
         "state_paths": set(),
         "state_names": set(),
         "event_refs": set(),
         "event_names": set(),
         "variable_names": set(),
         "transition_refs": set(),
+        "transition_objects": [],
         "guard_refs": set(),
         "action_refs": set(),
     }
@@ -586,6 +1015,22 @@ def _component_index(model: Any) -> dict[str, set[str]]:
         if state_path:
             index["state_paths"].add(state_path)
             index["state_names"].add(_ref_leaf(state_path))
+        for stage_name, attr_name in (
+            ("enter", "on_enters"),
+            ("during", "on_durings"),
+            ("exit", "on_exits"),
+        ):
+            for action_block in getattr(state, attr_name, []) or []:
+                action_ref = f"{state_path}.{stage_name}" if state_path else stage_name
+                index["action_refs"].add(action_ref)
+                for operation in getattr(action_block, "operations", []) or []:
+                    index["action_refs"].add(str(operation))
+        for action_block in getattr(state, "on_during_aspects", []) or []:
+            aspect = getattr(action_block, "aspect", None) or ""
+            for action_ref in _during_aspect_action_refs(state_path, aspect):
+                index["action_refs"].add(action_ref)
+            for operation in getattr(action_block, "operations", []) or []:
+                index["action_refs"].add(str(operation))
         for event_name in getattr(state, "events", {}) or {}:
             event_ref = f"{state_path}.{event_name}" if state_path else str(event_name)
             index["event_refs"].add(event_ref)
@@ -606,13 +1051,151 @@ def _component_index(model: Any) -> dict[str, set[str]]:
                 index["transition_refs"].add(f"{base}::{event_leaf}")
             guard = getattr(transition, "guard", None)
             if guard is not None:
+                index["guard_refs"].add(base)
                 index["guard_refs"].add(str(guard))
+            index["transition_objects"].append(
+                {
+                    "from": from_ref,
+                    "to": to_ref,
+                    "event": event_ref,
+                    "event_leaf": event_leaf,
+                    "guard": str(guard) if guard is not None else "",
+                    "is_forced": bool(getattr(transition, "is_forced", False)),
+                }
+            )
             for effect in getattr(transition, "effects", []) or []:
                 index["action_refs"].add(str(effect))
     defines = getattr(model, "defines", {}) or {}
     index["variable_names"].update(str(name) for name in defines.keys())
     return index
 
+
+
+def _during_aspect_action_refs(state_path: str, aspect: str) -> set[str]:
+    """Return stable refs for pyfcstm ``>> during <aspect>`` actions."""
+
+    stage = f"during_{aspect}" if aspect else "during"
+    if not state_path:
+        return {stage, f">>{stage}"}
+    return {
+        f"{state_path}.{stage}",
+        f"{state_path}.>>{stage}",
+        f"{state_path}.during.{aspect}" if aspect else f"{state_path}.during",
+    }
+
+
+def _normalize_structural_ref(value: str) -> str:
+    return re.sub(r"\s+", "", value or "").replace("::", ":")
+
+
+def _path_suffix_matches(actual: str, expected: str) -> bool:
+    expected = (expected or "").strip()
+    actual = (actual or "").strip()
+    if not expected:
+        return True
+    if expected in {"*", "!*", "ALL"}:
+        return True
+    if actual == expected:
+        return True
+    actual_parts = [part for part in actual.split(".") if part]
+    expected_parts = [part for part in expected.split(".") if part]
+    if not actual_parts or not expected_parts:
+        return False
+    if len(expected_parts) == 1:
+        return actual_parts[-1] == expected_parts[0]
+    return len(actual_parts) >= len(expected_parts) and actual_parts[-len(expected_parts) :] == expected_parts
+
+
+def _strip_ref_tail(value: str) -> str:
+    value = re.sub(r"\beffect\s*\{.*", "", value, flags=re.IGNORECASE).strip()
+    return value.strip("; ")
+
+
+def _parse_transition_ref(ref: str) -> dict[str, str | bool] | None:
+    """Parse common SL-1 GroundingMap transition refs without sample lexicons."""
+
+    compact = _strip_ref_tail(ref).replace(" ", "")
+    if "->" not in compact:
+        return None
+    left, right = compact.split("->", 1)
+    event = ""
+    guard = ""
+    to_ref = right
+    if "::" in right:
+        to_ref, event = right.split("::", 1)
+    elif ":" in right:
+        to_ref, tail = right.split(":", 1)
+        if tail.lower().startswith("if["):
+            guard = tail
+        else:
+            event = tail
+    left_leaf = _ref_leaf(left)
+    from_wildcard = left_leaf in {"*", "!*", "ALL"}
+    parent_prefix = ""
+    left_parts = [part for part in left.split(".") if part]
+    if len(left_parts) > 1:
+        parent_prefix = ".".join(left_parts[:-1])
+    expected_to = to_ref
+    if parent_prefix and "." not in to_ref and to_ref not in {"[*]", "EXIT_STATE", "INIT_STATE"}:
+        expected_to = f"{parent_prefix}.{to_ref}"
+    return {
+        "from": left,
+        "to": expected_to,
+        "event": event,
+        "guard": guard,
+        "from_wildcard": from_wildcard,
+    }
+
+
+def _guard_matches(actual_guard: str, expected_guard: str) -> bool:
+    if not expected_guard:
+        return True
+    expected = expected_guard
+    if expected.lower().startswith("if[") and expected.endswith("]"):
+        expected = expected[3:-1]
+    actual = actual_guard or ""
+    return _normalize_structural_ref(expected) in _normalize_structural_ref(actual) or _normalize_structural_ref(actual) in _normalize_structural_ref(expected)
+
+
+def _transition_object_matches(actual: dict[str, Any], expected: dict[str, str | bool]) -> bool:
+    if expected.get("from_wildcard"):
+        if not actual.get("is_forced"):
+            return False
+    elif not _path_suffix_matches(str(actual.get("from") or ""), str(expected.get("from") or "")):
+        return False
+    if not _path_suffix_matches(str(actual.get("to") or ""), str(expected.get("to") or "")):
+        return False
+    expected_event = str(expected.get("event") or "")
+    if expected_event and not (
+        _path_suffix_matches(str(actual.get("event") or ""), expected_event)
+        or _path_suffix_matches(str(actual.get("event_leaf") or ""), expected_event)
+    ):
+        return False
+    if not _guard_matches(str(actual.get("guard") or ""), str(expected.get("guard") or "")):
+        return False
+    return True
+
+
+def _transition_ref_present(index: dict[str, Any], ref: str) -> bool:
+    normalized_ref = _normalize_structural_ref(ref)
+    if any(_normalize_structural_ref(str(item)) == normalized_ref for item in index["transition_refs"]):
+        return True
+    parsed = _parse_transition_ref(ref)
+    if parsed is None:
+        return False
+    return any(_transition_object_matches(item, parsed) for item in index.get("transition_objects", []))
+
+
+def _action_ref_present(index: dict[str, Any], ref: str) -> bool:
+    normalized_ref = _normalize_structural_ref(ref)
+    for item in index["action_refs"]:
+        item_text = str(item)
+        if _normalize_structural_ref(item_text) == normalized_ref:
+            return True
+        if "." in ref and _path_suffix_matches(item_text, ref):
+            return True
+    leaf = _ref_leaf(ref)
+    return any(ref == str(item) or leaf == _ref_leaf(str(item)) for item in index["action_refs"])
 
 def _element_ref_for_matching(element: GroundedElement) -> str:
     ref = (element.element_ref or "").strip()
@@ -625,7 +1208,7 @@ def _element_ref_for_matching(element: GroundedElement) -> str:
     return ref
 
 
-def _grounded_element_present(index: dict[str, set[str]], element: GroundedElement) -> bool:
+def _grounded_element_present(index: dict[str, Any], element: GroundedElement) -> bool:
     ref = _element_ref_for_matching(element)
     if not ref:
         return True
@@ -642,12 +1225,11 @@ def _grounded_element_present(index: dict[str, set[str]], element: GroundedEleme
     if kind == "variable":
         return ref in index["variable_names"] or leaf in index["variable_names"]
     if kind == "transition":
-        normalized_ref = re.sub(r"\s+", "", ref)
-        return any(re.sub(r"\s+", "", item) == normalized_ref for item in index["transition_refs"])
+        return _transition_ref_present(index, ref)
     if kind == "guard":
         return any(ref == item or leaf == _ref_leaf(item) for item in index["guard_refs"])
     if kind == "action":
-        return any(ref == item or leaf == _ref_leaf(item) for item in index["action_refs"])
+        return _action_ref_present(index, ref)
     return False
 
 
@@ -738,13 +1320,19 @@ def _remaining_design_targets(feedback: DesignFeedback, fix_plan: FixPlan) -> li
     if not target_ids:
         return []
     remaining: list[DesignDiagnosticItem] = []
-    for item in [*feedback.blocking_items, *feedback.advisory_items, *feedback.info_items]:
+    for item in feedback.blocking_items:
         if item.instance_key in target_ids or item.code in target_ids:
             remaining.append(item)
     return remaining
 
 
-def _design_feedback_for_review_baseline(nl: str, dsl_text: str) -> DesignFeedback | None:
+def _design_feedback_for_review_baseline(
+    nl: str,
+    dsl_text: str,
+    *,
+    grounding_map: GroundingMap | None = None,
+    warning_budget_state: dict[str, BudgetState] | None = None,
+) -> DesignFeedback | None:
     """Return SD-4 feedback for a comparable repair-review baseline if possible.
 
     Old DSL can be syntactically or semantically invalid for parse/semantic
@@ -752,7 +1340,12 @@ def _design_feedback_for_review_baseline(nl: str, dsl_text: str) -> DesignFeedba
     callers should conservatively treat candidate blocking diagnostics as
     newly introduced.
     """
-    context = StageContext(nl=nl, current_dsl=dsl_text)
+    context = StageContext(
+        nl=nl,
+        current_dsl=dsl_text,
+        grounding_map=grounding_map,
+        warning_budget_state=copy.deepcopy(warning_budget_state or {}),
+    )
     parse_feedback, _ = run_sd2_parse(dsl_text, context)
     if not parse_feedback.ok:
         return None
@@ -771,6 +1364,7 @@ def run_sd10_repair_review(
     candidate_dsl: str,
     fix_plan: FixPlan,
     scenario_set: ScenarioSet | None = None,
+    warning_budget_state: dict[str, BudgetState] | None = None,
 ) -> tuple[RepairReviewFeedback, StageResultMeta]:
     """Review a repair candidate with local deterministic gates.
 
@@ -780,7 +1374,12 @@ def run_sd10_repair_review(
     checks still run.
     """
     evidence: list[dict[str, Any]] = []
-    candidate_context = StageContext(nl=nl, current_dsl=candidate_dsl)
+    candidate_context = StageContext(
+        nl=nl,
+        current_dsl=candidate_dsl,
+        grounding_map=grounding_map,
+        warning_budget_state=copy.deepcopy(warning_budget_state or {}),
+    )
     parse_fb, _ = run_sd2_parse(candidate_dsl, candidate_context)
     if not parse_fb.ok:
         rejection = RepairRejection(
@@ -816,7 +1415,12 @@ def run_sd10_repair_review(
         if remaining_design:
             evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
     remaining_keys = {item.instance_key for item in remaining_design}
-    old_design_feedback = _design_feedback_for_review_baseline(nl, old_dsl)
+    old_design_feedback = _design_feedback_for_review_baseline(
+        nl,
+        old_dsl,
+        grounding_map=grounding_map,
+        warning_budget_state=warning_budget_state,
+    )
     old_blocking_keys = {item.instance_key for item in old_design_feedback.blocking_items} if old_design_feedback is not None else set()
     new_blocking_design = [
         item

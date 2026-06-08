@@ -5,6 +5,10 @@
 > has been verified to parse and convert to a state-machine model via the
 > actual pyfcstm runtime**. Treat this document as authoritative; do not
 > "guess from memory".
+>
+> The snippets below may contain human explanatory comments. Comments are **not**
+> part of the DSL output contract: when generating or repairing a model, never
+> emit `// ...` or `/* ... */` comments in the DSL text.
 
 ---
 
@@ -13,7 +17,7 @@
 ```
 def int counter = 0;             // variable definitions (int / float) BEFORE root
 def float temp = 25.0;
-def bool armed = false;
+def int armed = 0;                // boolean-like flags use int 0/1
 
 state Root { ... }               // EXACTLY ONE top-level state
 ```
@@ -30,8 +34,22 @@ state Root { ... }               // EXACTLY ONE top-level state
 ```
 def int counter = 0;
 def float temp = 25.0;
-def bool armed = false;
+def int armed = 0;
 ```
+
+Only `int` and `float` variable declarations are accepted by the current
+pyfcstm parser. Boolean-like flags MUST be encoded as `int` variables with
+`0`/`1` values, for example `def int fault = 0;`; guards should use
+`fault > 0` or `fault == 0`, and effects should assign `fault = 1;` or
+`fault = 0;`. Do not emit `def bool`, `true`, `false`, C-style
+`!flag` flag tests, or unsupported helpers such as `max(...)` / `min(...)`.
+Assignments use ordinary `x = x + 1;` syntax, not C-style `x += 1;`.
+
+Discrete trigger names from the NL, such as button presses, reset events,
+fault events or back-to-manual events, should normally be encoded as event
+transitions with `:: EventName`. Do not turn several alternative events into an
+undeclared boolean guard like `[A || B]`; use separate event transitions unless
+the NL explicitly defines those names as boolean input variables.
 
 Variables are referenced inside guards `[<expr>]`, effects `{ <stmt>; }`,
 and lifecycle blocks (`enter` / `during` / `exit`). Every variable used
@@ -191,6 +209,16 @@ NOT support `effect { ... }` blocks** (grammar enforces termination with
 ! * -> ErrorHandler : if [error_flag > 0];    // ANY descendant → ErrorHandler when guard true
 ```
 
+Target names on forced transitions must be semantically resolvable from the
+scope where the forced transition is written. If the intended target is a
+nested leaf such as `Root.Mode.Manual`, either place the forced transition
+inside the enclosing composite scope that can resolve `Manual`, or target a
+state declared in the same scope as the forced transition. Do not write a
+root-level `! * -> Manual ...` when `Manual` exists only as a nested child of
+`Mode`; pyfcstm will reject it as an unknown target. In that situation, either
+move the forced declaration into `Mode`, or introduce an NL-grounded root-level
+fallback state and target that state from the root-level forced transition.
+
 Forced transitions are auto-expanded by the pyfcstm model layer to every
 applicable descendant — write it ONCE.
 
@@ -218,7 +246,9 @@ state Red { enter { timer = 0; } }
 | Math functions | `sin cos tan asin acos atan sinh cosh tanh sqrt cbrt exp log log10 log2 log1p abs ceil floor round trunc sign` |
 | Constants | `PI_CONST E_CONST TAU_CONST` |
 
-Inside `effect { ... }` you may also use nested conditionals:
+Inside `effect { ... }` you may also use nested conditionals. Action-block
+conditionals use square-bracket guards: write `if [expr] { ... }` and
+`else if [expr] { ... }`; never write C/JavaScript-style `if (expr)`.
 
 ```
 effect {
@@ -305,31 +335,34 @@ Notes:
   allowed). Side-effect of resetting `timer = 0` is put in `Red.enter`.
 - Each guard transition uses `: if [...] effect { ... };` form.
 
-### Example B — 2-floor elevator (event-driven)
+### Example B — Synthetic actuator (event-driven)
 
-NL: Two floors F1 / F2 connected by motion state MU2. Floor request PS2
-moves up from F1; arrival sensor S2 completes at F2. Reset returns to F1
-from F2.
+This is a synthetic toy example for grammar illustration, not a benchmark case.
+
+NL: A three-state actuator starts in `Waiting`; `BeginMove` moves it to
+`Moving`; `ArriveDone` completes at `Done`. `ResetEvent` returns from `Done`
+to `Waiting`.
 
 ```
-state Elevator {
-    ! F2 -> F1 :: Reset;
-    [*] -> F1;
-    state F1;
-    state F2;
-    state MU2;
-    F1 -> MU2 :: PS2;
-    MU2 -> F2 :: S2;
+state SyntheticActuator {
+    ! Done -> Waiting :: ResetEvent;
+    [*] -> Waiting;
+    state Waiting;
+    state Moving;
+    state Done;
+    Waiting -> Moving :: BeginMove;
+    Moving -> Done :: ArriveDone;
 }
 ```
 
 Notes:
-- Each event-triggered transition uses `:: <event>` (LOCAL scope) — `PS2`,
-  `S2` and `Reset` each live in their own source state's namespace.
-- The forced `! F2 -> F1 :: Reset;` means "from any descendant of F2, go
-  to F1 on Reset" — in this flat model F2 has no descendants so it's
-  equivalent to `F2 -> F1 :: Reset;`, but `!` is idiomatic for
-  global-escape patterns.
+- Each event-triggered transition uses `:: <event>` (LOCAL scope) —
+  `BeginMove`, `ArriveDone` and `ResetEvent` each live in their own source
+  state's namespace.
+- The forced `! Done -> Waiting :: ResetEvent;` means "from any descendant of
+  Done, go to Waiting on ResetEvent" — in this flat model Done has no
+  descendants so it is equivalent to `Done -> Waiting :: ResetEvent;`, but `!`
+  is idiomatic for global-escape patterns.
 
 ### Example C — Microwave with hybrid event + guard
 
@@ -382,7 +415,8 @@ Notes:
 Before emitting your DSL, verify each of the following:
 
 - [ ] All variables used in guards / effects / lifecycle blocks are
-      declared at the top with `def int / def float / def bool`.
+      declared at the top with `def int / def float` only; boolean-like
+      flags are encoded as `int` 0/1, never `def bool`.
 - [ ] There is exactly **one** top-level state.
 - [ ] Every **composite** state has an `[*] -> <child>;` initial transition
       inside its body.
@@ -397,5 +431,18 @@ Before emitting your DSL, verify each of the following:
       state's `enter { ... }` block instead.
 - [ ] Absolute scope `/...` does NOT repeat the root state name after the
       slash.
-- [ ] No comments are emitted in the DSL output (the toolchain treats DSL
-      as machine-edited; comments are not part of the contract).
+- [ ] No comments are emitted in the DSL output: no `// ...`, no `/* ... */`,
+      and no copied explanatory comments from this reference.
+- [ ] No unknown helper function calls such as `ComputeRate(...)`, `max(...)`
+      or `min(...)` are used in numeric assignments unless that function is
+      explicitly supported by the expression function list above; otherwise use
+      an abstract lifecycle action or a simple variable assignment grounded in
+      NL.
+- [ ] Action-block conditionals are written as `if [expr] { ... }`, never
+      `if (expr) { ... }`; assignments do not use `+=`, `-=`, `*=`, `/=`.
+- [ ] NL events are represented with `:: EventName` transitions rather than
+      undeclared event-name guard variables; multiple alternative events use
+      multiple transitions.
+- [ ] Plain `during { ... }` is only used on leaf states. Composite states use
+      `>> during before { ... }` / `>> during after { ... }` or move the action
+      into descendant leaves.
