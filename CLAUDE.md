@@ -28,12 +28,16 @@
 - `phd_proposal/` - LaTeX格式的博士开题报告文档
   - `phd_proposal_report/` - 主开题报告
   - `phd_proposal_literature_review/` - 文献综述文档
-- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见
+- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[method/](./project_1_llm_state_machine_modeling/method/) 是 agent-loop / pyfcstm / run-record 等方法基础设施入口，[eval/](./project_1_llm_state_machine_modeling/eval/) 是 project_1 评测与审计入口
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
 - `project_ex1_llm_judge_for_stm/` - **计划外项目（ex = extra/unplanned）**：针对状态机制品的 LLM-as-Judge 评审子系统，从 project_1 拆出独立。**边界**：本项目专注 reviewer 系统 + 评审方法学，不做 STM 生成（那是 project_1 的 baselines/）/ verification（那是 project_2/3）/ repair（project_4）。详见该目录下的 [README.md](./project_ex1_llm_judge_for_stm/README.md)。
+- `open_explore/` - 探索型专题入口，用于暂未归属具体 project 的专题文库
 - `talks/` - 与导师、同门、合作者等人类讨论的纪要工作区
+- `llm_model_landscape/` - **根目录 LLM 模型现状微型文库**：长期维护 project_1 及后续研究常用 LLM / hosted API / 开放权重模型的发布时间、上下文窗口、最大输出、官方价格与来源链接；以 [README.md](./llm_model_landscape/README.md)、[GUIDE.md](./llm_model_landscape/GUIDE.md)、[SUMMARY.md](./llm_model_landscape/SUMMARY.md) 为入口，并用 [01-baseline-models.md](./llm_model_landscape/01-baseline-models.md)、[02-openai-models.md](./llm_model_landscape/02-openai-models.md)、[03-claude-models.md](./llm_model_landscape/03-claude-models.md)、[04-gemini-models.md](./llm_model_landscape/04-gemini-models.md)、[05-deepseek-models.md](./llm_model_landscape/05-deepseek-models.md)、[06-qwen-models.md](./llm_model_landscape/06-qwen-models.md)、[07-llama-models.md](./llm_model_landscape/07-llama-models.md)、[08-grok-models.md](./llm_model_landscape/08-grok-models.md)、[09-other-open-models.md](./llm_model_landscape/09-other-open-models.md) 维护完整表；所有模型表默认按发布时间从高到低排序，baseline 文献表按 year 从高到低排序。
+- `ccf_venues/` - **根目录 CCF venue 情报库**：长期维护与本仓库四个 project 相关的 CCF 会议 / 期刊官方主页、CFP、important dates、论文名录、论文数量、年度状态与跨 venue 投稿时间线；以 [README.md](./ccf_venues/README.md)、[GUIDE.md](./ccf_venues/GUIDE.md)、[SUMMARY.md](./ccf_venues/SUMMARY.md)、[TIMELINE.md](./ccf_venues/TIMELINE.md)、[01-venue-scope.md](./ccf_venues/01-venue-scope.md) 为入口。
+- `runs/` - 实验、smoke、handoff 等运行记录与可复现证据链入口；正式研究性运行应按下方 run record 规范保留配置、输入、输出、错误、模型元数据和 eligibility 信息
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具
   - `init_talk_workspace.py` - 讨论工作区初始化工具
@@ -43,6 +47,114 @@
 **论文组织方式**：论文资料可以出现在仓库的任何路径下（如各个 `project` 目录、专题文献目录、baseline 目录等），但后续统一按“**论文集路径** + **单论文路径**”两级结构组织；单论文路径是基础单元，论文集路径是其上级汇总与操作入口（详见下方“论文文件管理规范”）。
 
 **讨论纪要组织方式**：根目录 `talks/` 专门用于维护与人类讨论形成的纪要草稿与定稿，不按论文集结构管理；其具体规则见下方“讨论纪要工作区规范”。另外，[project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，不等同于根目录 `talks/`，也不等同于 project_1 的内部 `discussions/`。
+
+**LLM 模型现状文库组织方式**：根目录 [llm_model_landscape/](./llm_model_landscape/) 是 LLM 模型现状微型文库，用于维护模型可用性、发布时间、context / max output、价格和官方来源。处理模型选型、baseline 模型矩阵、LLM 价格/上下文窗口更新、Qwen/Llama/Grok/DeepSeek/Gemini/GPT/Claude 等模型信息时，默认先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md)，再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)，最后读 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 获取统计结论与重点模型；需要完整表时跳转到各分册。所有正式模型表默认按**发布时间从高到低**排列，且必须使用可点击官方来源链接。
+
+**CCF venue 情报库组织方式**：根目录 [ccf_venues/](./ccf_venues/) 是 CCF 会议 / 期刊情报库，用于维护官方主页、CFP、重要时间点、论文名录、论文数量、状态、核心人员情报与投稿时间线。处理 CCF venue、会议 deadline、期刊 special issue、2022 年以来年度主页、论文名录、核心人员情报或投稿规划时，默认先读 [ccf_venues/README.md](./ccf_venues/README.md)，再读 [ccf_venues/GUIDE.md](./ccf_venues/GUIDE.md)，再读 [ccf_venues/SUMMARY.md](./ccf_venues/SUMMARY.md) 和 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md)，最后查 [ccf_venues/01-venue-scope.md](./ccf_venues/01-venue-scope.md) 确认 P0/P1/P2 范围。新增或修改任何 venue 年度 important date 后，必须同步更新 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md) 的年度表格与 Mermaid Gantt；初始化 PR 阶段不得把待建 venue 写成已完成。
+
+## 仓库级一般性工作规范
+
+本节用于固化近期已经进入 `main` 的通用研究工程经验。它只写跨目录、跨任务可复用的一般原则；具体字段、模板、检索策略、同步细节和专项验收仍以各子目录的 `README.md`、`GUIDE.md`、`SUMMARY.md`、专项 `XXXX_GUIDE.md` 为准。
+
+### 1. 规则优先级与分工
+
+当根级规则与子项目 / 论文集 / 专项 GUIDE 同时适用时，默认优先级为：
+
+1. 用户当前明确指令。
+2. 子项目、论文集或专项 GUIDE 中写明的显式 override。
+3. 本文件的仓库级一般性规则。
+4. 其他默认行为或历史习惯。
+
+根级规则负责兜底、跨库抽象和最低质量线；子级 GUIDE 负责本地字段、来源等级、同步闭环、批次合同、模板和专项验收。若子级 GUIDE 要覆盖根级规则，必须明确写出 override 的范围、理由和适用条件；不要让两个文档同时成为互相矛盾的事实真源。
+
+### 2. 快速变化外部情报库维护原则
+
+凡是会随时间变化并影响研究决策、实验成本、模型选择、投稿窗口或结论复现的外部信息，默认按“活情报库”维护，而不是散落在 issue、PR comment 或临时笔记中。典型对象包括 LLM 模型能力 / 价格 / 上下文窗口、CCF venue / deadline / special issue、工具版本、标准状态、数据集状态等。
+
+默认原则如下：
+
+1. 建立或维护入口三件套：`README.md` 说明定位与范围，`GUIDE.md` 固定来源优先级和更新流程，`SUMMARY.md` 作为总账、风险、待补和跳转入口；必要时再拆分编号分册、年度页或 `TIMELINE.md`。
+2. 官方来源优先；第三方聚合页、镜像站、倒计时网站、candidate URL、论坛帖或搜索摘要只能作为发现线索，不得升级为官方事实。
+3. 遇到 WAF、403、404、CAPTCHA、SPA 壳、CLI 访问异常或浏览器限定页面时，应记录“入口已定位 / 内容待人工核验 / 访问异常类型”，不能据此断言事实不存在，也不能把候选链接写成已核验事实。
+4. `SUMMARY.md` 不应复制完整事实表，不做第二事实真源；细节应回到对应完整表、年度 README、venue README 或官方来源核验。
+5. 每轮更新要保留核验日期、来源链接、风险、待复查项、失败记录和更新日志；不确定内容应显式标注为待核验或待补，而不是为了表格完整而脑补。
+6. issue / PR / comment 中的一次性调研若有长期价值，应先整合进对应情报库的事实表或 GUIDE，再回写 `SUMMARY.md` 的统计、风险或入口说明。
+
+本节只抽象 [llm_model_landscape/](./llm_model_landscape/) 与 [ccf_venues/](./ccf_venues/) 等情报库的共同原则；具体模型价格口径、venue scope、P0/P1/P2 批次合同、Mermaid 拆分阈值、年度字段等细节仍以各自本地 GUIDE 为准。
+
+### 3. GUIDE / 流程文档的真实 dry-run 审查
+
+新增或大幅修改 `GUIDE.md`、专项 `XXXX_GUIDE.md`、流程规范、模板或 review 规则时，不能只做文字顺眼度审查。reviewer 默认必须使用 1 到 3 个真实或准真实样例 dry-run，验证该 GUIDE 能否指导一次完整操作。
+
+最小检查包括：
+
+1. 能否从入口文档在少量跳转内找到目标 GUIDE、总账、事实源和验收标准。
+2. 能否判断本轮应改哪些文件、不应改哪些文件、哪些事实需要来源、哪些风险必须记录。
+3. 能否给出明确 pass / fail 判据；若 reviewer 无法判断更新范围、证据等级、同步文件或验收条件，应至少列为 I 级问题。
+4. review comment 应写明所选 dry-run 场景、入口链路、实际检查路径或命令、结论与失败反例；只说“文字清晰 / 结构完整”不算有效 dry-run。
+
+对流程性文档而言，无法执行、无法验收、无法指导后续 agent 的 GUIDE 是学术推进风险，而不是普通措辞问题。
+
+### 4. 研究基础设施 PR 工作流
+
+复杂研究基础设施、实验框架、数据管线或大型文档库默认采用 contract-first 的 PR 流程：
+
+1. 先开 empty PR，把 PR body 写成 TDD contract，明确背景、现实需求、范围、非目标、执行计划、验收标准和 review gate。
+2. 先做 PR body 的一致性 / 可执行性 / 可验收性 review；若 body 存在 C/I，先修 body，再进入实现。
+3. 实现阶段优先采用 staged PR：先冻结 stage contract / schema / fixture / 文档，再实现 deterministic backbone，再接 prompt / LLM / integration loop，最后做真实 smoke 或 handoff。
+4. 每个阶段化 pipeline 应有稳定 stage ID、输入输出 schema、最小 fixture、contract test 和文档；后续 PR 只能向后兼容扩展，不能随意重定义字段语义。
+5. C/I 修复必须配套回归测试、复验命令、真实路径或 dry-run 证据；M 级工程建议可以记录为 follow-up，不应阻塞研究节奏。
+6. 若仓库没有 Codecov 或 coverage comment，不得虚构覆盖率证据；可以说明使用本地测试、GitHub Actions smoke 或真实制品回归作为 coverage proxy，并明确其局限。
+
+### 5. LLM 调用、`.env` 与真实运行边界
+
+涉及真实 LLM、hosted API、LLM-as-Judge、LLM review、baseline replication 或 agent-loop 运行时，默认遵循以下规则：
+
+1. 运行真实 LLM 前必须在 shell 中 `source .env`；`.env` 是本地配置入口，不应被代码直接解析。
+2. 代码只读取 `os.environ` 中的配置；切换 endpoint、key 或 model 时，通过修改并重新 `source .env` 完成，避免代码分支混入模型配置。
+3. 默认测试应使用 fake、mock、fixture 或 replay；prompt generator 不应自动调用 provider，也不应读取 `.env`。
+4. 真实 API 调用必须显式启用，并在运行记录中保存精确 `model_id`、provider、region（如适用）、调用日期、endpoint / pricing / model 来源链接、prompt、raw output、usage、错误和重试信息。
+5. secret、API key、bearer token、proxy token 等敏感信息必须脱敏；脱敏策略和结果应能被审计，不能把 secret 写入 run record、PR comment、日志或测试 fixture。
+6. 如果某次真实运行因为配置缺失、provider drift、模型不可用或访问失败而降级，应明确记录降级原因，不得把 fake/replay 结果冒充真实 LLM 结果。
+
+### 6. Run record 与实验可复现证据链
+
+研究性运行记录不是普通日志，而是论文实验、复盘、审计和后续修复的证据链。凡会影响实验结论、模型比较、Path 1 / Path 2 数据、LLM review 或 repair 结果的运行，默认应产出自包含的 run record 或等价审计文件。
+
+最低要求如下：
+
+1. 记录输入、配置、数据版本、依赖版本、stage / iteration 记录、反馈来源、最终产物、错误、警告和环境关键信息。
+2. 涉及 LLM 时记录模型精确 ID、provider、调用日期、prompt、raw output、usage、重试和 redaction 报告。
+3. schema-invalid、replay-invalid、partial run 或失败 run 可以写盘用于审计，但不得进入主结果统计；主结果必须有明确 eligibility filter。
+4. 修改 run record schema、stage contract 或 eligibility policy 时，必须同步更新测试、文档和下游读取逻辑，避免旧结果被误读。
+5. 任何会导致 `AgentLoopRunRecord` 或等价运行记录缺失关键证据的问题，都应优先按学术证据链风险评估 C/I，而不是只当作普通 logging bug。
+
+### 7. Submodule / 外部工具与结构化 diagnostics 集成原则
+
+当本仓库集成 pyfcstm、UPPAAL、外部 parser、模型检查器、benchmark 工具或其他子模块时，应优先依赖稳定、结构化、可版本化的接口，而不是解析异常字符串或内部私有属性。
+
+默认规则如下：
+
+1. `pyfcstm` 是仓库根目录下的 git submodule；新 clone 或 CI 环境应执行 `git submodule update --init --recursive`，并在仓库 venv 中 `pip install -e ./pyfcstm`。
+2. 工具版本、submodule commit 或外部依赖升级会影响实验结论时，应在文档、run record 或 CI 中保留可追溯版本信息。
+3. 优先消费结构化 diagnostics、JSON、typed API、official CLI output 或 machine-readable report；不要从异常 message、日志文本或内部对象布局中 regex 反解事实。
+4. 上游工具 diagnostics facts 与本项目 gate policy 要分层：上游报告“发生了什么”，本项目再决定哪些 warning / error 阻塞研究制品进入正式数据。
+5. 未知 diagnostic code、未分类 warning 或工具输出格式变化不能静默放过；应记录为待分类风险，必要时列为 I 级，直到明确其对实验可靠性的影响。
+
+本节只写通用集成原则；project_1 特定的 pyfcstm DSL 语义、parse / semantic / design / sim facade、diagnostic code 枚举和 prompt 约束仍留在 [project_1_llm_state_machine_modeling/](./project_1_llm_state_machine_modeling/) 的局部文档中维护。
+
+### 8. 大型文档库、伞 PR 与 sibling PR 合流
+
+大型论文集、外部情报库或批量建档任务可以使用“伞 PR / staging PR + 子 PR”模式，但必须保证事实不丢、统计闭合、scope 不漂移。
+
+默认规则如下：
+
+1. 伞 PR / staging PR 负责入口文档、模板、GUIDE、scope gate、批次计划、总账和最终合流；子 PR 只负责自己 ownership 内的目录或条目。
+2. 新增条目不能绕过 scope gate；若要处理合同外对象，必须先更新 scope 文档或 PR body，并说明来源、必要性和边界。
+3. sibling PR 修改同一 `SUMMARY.md`、`TIMELINE.md`、`GUIDE.md` 或共享 README 时，merge upstream 后必须按 fact-union 合流，保留双方已核验事实、风险记录、更新日志和统计口径。
+4. 冲突解决本身必须进入 review 范围；至少检查 `git status`、`git ls-files -u`、冲突标记、共享表格、统计重算和更新日志，不能只以“能 merge”作为验收。
+5. branch-local 统计、中间组合统计和当前 main 统计必须区分；历史日志可以保留旧口径，但当前正文与总账必须使用合流后的最新口径。
+6. 任何会覆盖上游已核验 facts、把旧统计写回当前正文、或把待建 / 未核验条目写成已完成的冲突处理，都应按 C/I 风险审查。
 
 ## 工具使用说明
 
@@ -188,6 +300,33 @@ some_project/
 4. 零个或多个专项 `XXXX_GUIDE.md`
 
 如果当前目录已经存在具有同等职责的历史文件，允许暂时兼容历史命名；但新建论文集时，优先采用 `README.md / SUMMARY.md / GUIDE.md / XXXX_GUIDE.md` 这一统一命名。
+
+### LLM 模型现状微型文库规范
+
+根目录 [llm_model_landscape/](./llm_model_landscape/) 不按“单论文路径 + 论文集路径”展开，而是一个入口文件 + 稳定完整表分册的微型文库；内容分册统一使用 `01-xxx.md`、`02-xxx.md` 这类两位编号文件名，以便与 [llm_model_landscape/README.md](./llm_model_landscape/README.md)、[llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)、[llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 区分。后续凡是涉及模型现状、模型价格、上下文窗口、最大输出、模型发布时间、API/开放权重可获取性、baseline 模型矩阵的工作，默认遵循以下规则：
+
+1. 先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md) 明确收录范围。
+2. 再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md) 明确来源优先级、价格口径、排序规则和一致性检查。
+3. 以 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 作为统计结论、重点模型与分册索引入口；完整表分别维护在 [01-baseline-models.md](./llm_model_landscape/01-baseline-models.md)、[02-openai-models.md](./llm_model_landscape/02-openai-models.md)、[03-claude-models.md](./llm_model_landscape/03-claude-models.md)、[04-gemini-models.md](./llm_model_landscape/04-gemini-models.md)、[05-deepseek-models.md](./llm_model_landscape/05-deepseek-models.md)、[06-qwen-models.md](./llm_model_landscape/06-qwen-models.md)、[07-llama-models.md](./llm_model_landscape/07-llama-models.md)、[08-grok-models.md](./llm_model_landscape/08-grok-models.md)、[09-other-open-models.md](./llm_model_landscape/09-other-open-models.md)。
+4. issue/PR/comment 中的一次性调研若有长期价值，应先整合进对应完整表，再更新 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 的统计结论或重点模型。
+5. 所有正式模型表默认按**发布时间从高到低**排序；baseline 文献表按 year 从高到低排序；同一系列中 hosted API、开放权重、legacy/alias 必须区分。
+6. 每条模型信息必须有可点击官方来源链接；没有官方来源的内容只能标为待核验，不能写成既定事实。
+7. [AGENTS.md](./AGENTS.md) 是 [CLAUDE.md](./CLAUDE.md) 的软链接，更新这类仓库级引导时只修改 [CLAUDE.md](./CLAUDE.md)，不要重复编辑两份。
+
+### CCF venue 情报库规范
+
+根目录 [ccf_venues/](./ccf_venues/) 不按“单论文路径 + 论文集路径”展开，而是一个入口文件 + venue 子路径 + 年度 README + [TIMELINE.md](./ccf_venues/TIMELINE.md) 的情报库。后续凡是涉及 CCF 会议 / 期刊、年度主页、CFP、important dates、论文名录、论文数量、核心人员情报或投稿时间线的工作，默认遵循以下规则：
+
+1. 先读 [ccf_venues/README.md](./ccf_venues/README.md) 明确定位与路径结构。
+2. 再读 [ccf_venues/GUIDE.md](./ccf_venues/GUIDE.md) 明确来源优先级、时间格式、会议/期刊结构和 TIMELINE 同步规则。
+3. 再读 [ccf_venues/SUMMARY.md](./ccf_venues/SUMMARY.md) 获取 P0/P1/P2 分批与当前完成状态。
+4. 若任务涉及 deadline、投稿窗口或年度规划，必须读 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md)，并在更新年度 important date 后同步维护其表格和 Mermaid Gantt。
+5. 新增或更新 venue 时，根 README 年度汇总表、年度 README 和 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md) 都必须直接挂核心 URL 的 Markdown 超链接；会议至少覆盖年度主页、CFP、Important Dates、submission system、program / accepted papers、proceedings、DBLP 年度页；期刊至少覆盖 author guidelines、submission system、special issue、volume / issue、online first、DBLP 年度页。
+6. 新增或更新 venue 时，venue 根 README 必须维护“核心人员情报”：会议至少覆盖当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee、强相关 track chair 与领域权威；期刊至少覆盖 Editor-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 和相关 special issue guest editor；每行必须有官方角色来源、研究方向、代表作 / 近年论文线索与本仓库 project 关系，期刊人员还必须保留 `核验等级 / 当前性`。
+7. [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md) 按事件发生年份组织，不按会议 edition 年份强行归档；会议 edition 的投稿 ddl 若发生在前一年，应进入前一年章节，并在 Venue 字段保留 edition。
+8. 所有更新日志表格必须按时间降序排列，最新记录置于最上方；新增日志时插入表格首行，不追加到末尾。
+9. 再读 [ccf_venues/01-venue-scope.md](./ccf_venues/01-venue-scope.md) 确认目标 venue 是否属于当前批次。
+10. 初始化 PR 阶段只交付骨架和执行计划，不得把待建 venue 或待核验年度写成已完成。
 
 #### 2.2.1 Markdown 链接规范
 
