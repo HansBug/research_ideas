@@ -37,6 +37,7 @@ def test_agent_loop_skill_health_check_passes_and_reports_json() -> None:
         "no_case_specific_optimization_policy",
         "e2e_input_grounding",
         "run_agent_loop_mentions_guarded",
+        "codex_exec_experiment_contract",
     }
     assert all(item["ok"] for item in checks)
 
@@ -120,3 +121,30 @@ def test_agent_loop_skill_tracks_pr_e1_design_residue() -> None:
     assert "不是默认主链" in combined or "不是" in combined
     assert "ABS" in combined and "Elevator" in combined and "CARA" in combined and "LNG" in combined
     assert "特判" in combined
+
+
+def test_agent_loop_skill_codex_exec_experiment_contract() -> None:
+    entry = _read(SKILL_ROOT / "AGENT_LOOP_SKILL.md")
+    guide = _read(SKILL_ROOT / "codex_exec_experiment_guide.md")
+    helper = _read(SKILL_ROOT / "codex_exec_experiment.py")
+
+    assert "codex_exec_experiment_guide.md" in entry
+    assert "CODEX_EXEC_DEFAULT_CONFIG=model_provider=airouter" in guide
+    assert "codex exec --json" in guide
+    assert "不得使用 `--ephemeral`" in guide
+    for term in [
+        "run_manifest.json",
+        "codex_events.jsonl",
+        "actual_file_reads.json",
+        "tool_stage_check_ledger.json",
+        "repair_ledger.json",
+        "nfrr_report.json",
+        "forbidden_call_check.json",
+        "redaction_report.json",
+        "report.md",
+        "run_summary.md",
+    ]:
+        assert term in guide
+    assert "TRACKED_DEFAULT_CODEX_EXEC_CONFIG" in helper
+    assert "model_provider=airouter" in helper
+    assert "codex_exec_cases" in helper

@@ -340,6 +340,55 @@ def _check_stage_api_contract(root: Path) -> CheckResult:
         "method.stages.api / sc_control / sl_prompt_api are documented no-provider skill facades" if ok else "; ".join(details),
     )
 
+
+def _check_codex_exec_experiment_contract(root: Path) -> CheckResult:
+    guide_path = root / "codex_exec_experiment_guide.md"
+    helper_path = root / "codex_exec_experiment.py"
+    if not guide_path.is_file():
+        return CheckResult("codex_exec_experiment_contract", False, "missing codex_exec_experiment_guide.md")
+    if not helper_path.is_file():
+        return CheckResult("codex_exec_experiment_contract", False, "missing codex_exec_experiment.py")
+    guide = _read(guide_path)
+    helper = _read(helper_path)
+    required_guide_terms = [
+        "CODEX_EXEC_DEFAULT_CONFIG=model_provider=airouter",
+        "codex exec --json",
+        "不得使用 `--ephemeral`",
+        "run_manifest.json",
+        "codex_events.jsonl",
+        "actual_file_reads.json",
+        "tool_stage_check_ledger.json",
+        "repair_ledger.json",
+        "nfrr_report.json",
+        "forbidden_call_check.json",
+        "redaction_report.json",
+        "report.md",
+        "人类可读",
+        "四例",
+        "ABS",
+        "CARA",
+        "Elevator",
+        "LNG",
+    ]
+    required_helper_terms = [
+        "TRACKED_DEFAULT_CODEX_EXEC_CONFIG",
+        "model_provider=airouter",
+        "resolve_codex_exec_config",
+        "redaction_report.json",
+        "forbidden_call_check.json",
+        "codex_exec_cases",
+        "build_codex_prompt",
+    ]
+    missing = [f"guide:{term}" for term in required_guide_terms if term not in guide]
+    missing.extend(f"helper:{term}" for term in required_helper_terms if term not in helper)
+    return CheckResult(
+        "codex_exec_experiment_contract",
+        not missing,
+        "PR-M3 codex exec config/audit/report contract is documented and helper-backed"
+        if not missing
+        else "missing terms: " + ", ".join(missing),
+    )
+
 def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
     return [
         _check_entry_symlinks(root),
@@ -353,6 +402,7 @@ def run_checks(root: Path = SKILL_ROOT) -> list[CheckResult]:
         _check_no_case_specific_optimization(root),
         _check_e2e_input_grounding(root),
         _check_run_agent_loop_mentions_are_guarded(root),
+        _check_codex_exec_experiment_contract(root),
     ]
 
 
