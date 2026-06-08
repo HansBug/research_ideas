@@ -24,9 +24,9 @@ LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 HISTORICAL_RECORD = (
     REPO_ROOT
     / "runs"
-    / "pr_langgraph_real_agent_loop_round2_stategraph_fix"
-    / "pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4"
-    / "pr-e1-path1_abs-default-prlanggraph-stategraph-r2-e849dad4.agent_loop.json.gz"
+    / "lg_m1_g_four_after_signature_gate_20260608_052552"
+    / "pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970"
+    / "pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970.agent_loop.json.gz"
 )
 
 MOVED_SYMBOLS: dict[str, list[str]] = {
@@ -226,8 +226,8 @@ def test_lg_m1_d2_historical_evidence_read_only_drift_gate() -> None:
         "stage_record_count": 12,
         "llm_interaction_count": 3,
         "fix_log_count": 0,
-        "operator_log_present": False,
-        "stream_summary_hash": None,
+        "operator_log_present": True,
+        "stream_summary_hash": "sha256:005531294789544c95e4c7500dcbc89443d2e048787ac852c0d6c8294d759303",
     }
     # Re-read after extracting the deterministic summary so this gate also
     # proves the committed historical run record was not mutated by the test.
