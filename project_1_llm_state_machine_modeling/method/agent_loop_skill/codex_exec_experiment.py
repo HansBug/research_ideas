@@ -85,7 +85,17 @@ RUNNER_OWNED_ARTIFACTS = (
     "forbidden_call_check.json",
     "redaction_report.json",
     "run_summary.md",
+    "checks/codex_json_stream_audit.json",
+    "checks/artifact_completeness.json",
+    "checks/normalized_summary.json",
 )
+
+# PR #79 introduced the structured-event-only audit for attached/non-exec
+# markers.  Clean evidence produced before that commit can still be
+# deterministically re-audited by a later tool revision; the provenance block
+# records that feature floor explicitly instead of pretending producer and audit
+# commits are identical.
+STRUCTURED_EVENT_MARKER_AUDIT_MINIMUM_COMMIT = "e0da6d8c6c6e5f9984934fd63983bf4fb4f8e219"
 
 
 @dataclass(frozen=True)
@@ -155,6 +165,62 @@ class CodexExecCase:
     selection_rationale: str = ""
     variable_participation_note: str = ""
     state_mode_participation_note: str = ""
+
+
+def _safe_case_key(value: str) -> str:
+    """Return a stable directory-safe case key for external PR-M3 inputs."""
+
+    key = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip()).strip("._-")
+    return key or "custom_case"
+
+
+def _path_for_manifest(path: Path | None) -> str | None:
+    if path is None:
+        return None
+    return relpath(path)
+
+
+def build_external_codex_exec_case(
+    *,
+    case_id: str,
+    nl: str,
+    path: str = "path1",
+    case_key: str | None = None,
+    title: str | None = None,
+    nl_zh: str | None = None,
+    source_url: str | None = None,
+    paper_dir: Path | None = None,
+    source_path: Path | None = None,
+    selection_rationale: str = "",
+    variable_participation_note: str = "",
+    state_mode_participation_note: str = "",
+) -> CodexExecCase:
+    """Build a non-hard-coded ``CodexExecCase`` for NL-only / NL+paper_dir runs.
+
+    PR-M3 is meant to be a reusable experiment entry, not only a four-sample
+    evidence runner.  This helper keeps the external input contract in the skill
+    layer while the CLI runner remains thin glue.
+    """
+
+    material_dir = paper_dir or source_path
+    paper_pdf = (material_dir / "paper.pdf") if material_dir is not None else None
+    effective_case_key = _safe_case_key(case_key or case_id)
+    return CodexExecCase(
+        case_key=effective_case_key,
+        path=path,
+        case_id=case_id,
+        title=title or case_id,
+        nl=nl,
+        nl_zh=nl_zh
+        or "（未提供人工中文翻译；请在 report.md 中给出由 agent 生成的中文释义，并明确标注其来源。）",
+        source_url=source_url or "external-nl-file",
+        source_path=_path_for_manifest(material_dir),
+        paper_path=_path_for_manifest(paper_pdf) if paper_pdf is not None and paper_pdf.exists() else None,
+        selection_rationale=selection_rationale or "external PR-M3 codex exec skill experiment input",
+        variable_participation_note=variable_participation_note or "external input; reviewer must inspect report.md/NFRR for variable participation.",
+        state_mode_participation_note=state_mode_participation_note
+        or "external input; reviewer must inspect report.md/NFRR for state/mode participation.",
+    )
 
 
 
@@ -761,15 +827,170 @@ def update_manifest_after_run(
     manifest["duration_seconds"] = round(time.monotonic() - started_monotonic, 3)
     manifest["exit_code"] = exit_code
     manifest["invalid_run_reason"] = invalid_reason
+    manifest["artifact_hashes"] = artifact_hashes_for_run(run_dir)
+    manifest["git_after"] = git_metadata()
+    return manifest
+
+
+def artifact_hashes_for_run(run_dir: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(run_dir.rglob("*")):
         if path.is_file():
             digest = sha256_file(path)
             if digest:
                 hashes[relpath(path)] = digest
-    manifest["artifact_hashes"] = hashes
-    manifest["git_after"] = git_metadata()
+    return hashes
+
+
+def runner_audit_provenance(
+    manifest: Mapping[str, object],
+    *,
+    mode: str,
+    note: str = "",
+    audit_git: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    """Describe which code produced the run and which code post-processed it.
+
+    This deliberately separates the long-running producer/codex-exec revision
+    from deterministic audit/post-process revisions.  Reviewers can therefore
+    reproduce an audit result without assuming that ``manifest["git"]`` and the
+    final audit tool revision are identical.
+    """
+
+    current_git = dict(audit_git or git_metadata())
+    return {
+        "schema_version": "pr-m3-runner-audit-provenance-v1",
+        "mode": mode,
+        "producer_run_git": manifest.get("git"),
+        "producer_run_git_after": manifest.get("git_after"),
+        "audit_tool_git": current_git,
+        "postprocess_git": current_git,
+        "audit_tool_feature_floor": {
+            "structured_event_marker_audit_minimum_commit": STRUCTURED_EVENT_MARKER_AUDIT_MINIMUM_COMMIT,
+            "reason": "codex_json_stream_audit only rejects explicit event type/marker fields, not marker-like text inside tool output.",
+        },
+        "audit_generated_at": utc_now_iso(),
+        "audit_artifacts": [
+            "checks/codex_json_stream_audit.json",
+            "forbidden_call_check.json",
+            "redaction_report.json",
+            "checks/normalized_summary.json",
+            "run_summary.md",
+        ],
+        "note": note
+        or "Producer/codex execution and deterministic audit may be performed at different commits; use audit_tool_git for reproducing runner-owned audit conclusions.",
+    }
+
+
+def attach_runner_audit_outputs(
+    run_dir: Path,
+    manifest: dict[str, object],
+    *,
+    event_audit: Mapping[str, object],
+    forbidden_check: Mapping[str, object],
+    redaction_report: Mapping[str, object],
+    provenance_mode: str,
+    provenance_note: str = "",
+    audit_git: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    """Attach runner-owned audit/provenance outputs to a manifest."""
+
+    manifest = dict(manifest)
+    manifest["redaction_status"] = "ok" if redaction_report.get("ok") else "fail"
+    manifest["forbidden_call_check"] = dict(forbidden_check)
+    manifest["codex_json_stream_audit"] = dict(event_audit)
+    manifest["runner_owned_artifacts"] = list(RUNNER_OWNED_ARTIFACTS)
+    manifest["runner_audit_provenance"] = runner_audit_provenance(
+        manifest,
+        mode=provenance_mode,
+        note=provenance_note,
+        audit_git=audit_git,
+    )
+    normalized = write_normalized_summary(
+        run_dir,
+        manifest,
+        event_audit=event_audit,
+        forbidden_check=forbidden_check,
+        redaction_report=redaction_report,
+    )
+    manifest["normalized_summary"] = normalized
+    manifest["artifact_hashes"] = artifact_hashes_for_run(run_dir)
     return manifest
+
+
+def codex_event_error_messages(events_path: Path) -> list[dict[str, object]]:
+    errors: list[dict[str, object]] = []
+    if not events_path.exists():
+        return errors
+    for idx, raw_line in enumerate(events_path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+        try:
+            obj = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and obj.get("type") == "error":
+            errors.append({"line": idx, "message": str(obj.get("message", ""))[:500]})
+    return errors
+
+
+def write_normalized_summary(
+    run_dir: Path,
+    manifest: Mapping[str, object],
+    *,
+    event_audit: Mapping[str, object],
+    forbidden_check: Mapping[str, object],
+    redaction_report: Mapping[str, object],
+) -> dict[str, object]:
+    """Write a runner-owned normalized summary for cross-case audit.
+
+    Producer-owned ledgers are intentionally flexible because codex/CC acts as a
+    mature agent.  This file gives reviewers a stable machine-readable spine
+    without rewriting the producer's evidence.
+    """
+
+    case = manifest.get("case", {}) if isinstance(manifest.get("case"), dict) else {}
+    metadata = load_json_file(run_dir / "metadata.json")
+    checks = metadata.get("checks") or metadata.get("deterministic_checks") or {}
+    nfrr = metadata.get("nfrr") or metadata.get("nfrr_report") or {}
+    provider_errors = codex_event_error_messages(run_dir / "codex_events.jsonl")
+    payload = {
+        "schema_version": "pr-m3-normalized-run-summary-v1",
+        "case_key": case.get("case_key"),
+        "case_id": case.get("case_id"),
+        "path": case.get("path"),
+        "status": manifest.get("status"),
+        "invalid_run_reason": manifest.get("invalid_run_reason"),
+        "final_model_sha256": sha256_file(run_dir / "final_model.fcstm"),
+        "report_sha256": sha256_file(run_dir / "report.md"),
+        "event_audit_ok": event_audit.get("ok"),
+        "event_type_counts": event_audit.get("type_counts"),
+        "recovered_provider_error_count": len(provider_errors),
+        "recovered_provider_errors": provider_errors[:20],
+        "forbidden_runner_used": forbidden_check.get("forbidden_runner_used"),
+        "redaction_ok": redaction_report.get("ok"),
+        "checks_shape": {
+            "type": type(checks).__name__,
+            "keys": sorted(checks.keys()) if isinstance(checks, dict) else None,
+        },
+        "nfrr_shape": {
+            "type": type(nfrr).__name__,
+            "keys": sorted(nfrr.keys()) if isinstance(nfrr, dict) else None,
+        },
+        "actual_file_reads_shape": {
+            "exists": (run_dir / "actual_file_reads.json").exists(),
+            "top_level_type": type(load_json_file(run_dir / "actual_file_reads.json")).__name__
+            if (run_dir / "actual_file_reads.json").exists()
+            else None,
+        },
+        "artifact_paths": {
+            "manifest": relpath(run_dir / "run_manifest.json"),
+            "report": relpath(run_dir / "report.md"),
+            "final_model": relpath(run_dir / "final_model.fcstm"),
+            "metadata": relpath(run_dir / "metadata.json"),
+            "codex_events": relpath(run_dir / "codex_events.jsonl"),
+        },
+    }
+    write_json(run_dir / "checks" / "normalized_summary.json", payload)
+    return payload
 
 
 def write_invalid_placeholders(run_dir: Path, *, reason: str) -> None:
@@ -1039,6 +1260,10 @@ def render_run_summary(run_dir: Path, manifest: Mapping[str, object], forbidden_
             metadata = {}
     nfrr = metadata.get("nfrr", {}) if isinstance(metadata.get("nfrr"), dict) else {}
     checks = metadata.get("checks") or metadata.get("deterministic_checks") or {}
+    provenance = manifest.get("runner_audit_provenance", {}) if isinstance(manifest.get("runner_audit_provenance"), dict) else {}
+    producer_git = provenance.get("producer_run_git", {}) if isinstance(provenance.get("producer_run_git"), dict) else {}
+    audit_git = provenance.get("audit_tool_git", {}) if isinstance(provenance.get("audit_tool_git"), dict) else {}
+    normalized = manifest.get("normalized_summary", {}) if isinstance(manifest.get("normalized_summary"), dict) else {}
     lines = [
         "# PR-M3 codex exec run summary",
         "",
@@ -1052,6 +1277,10 @@ def render_run_summary(run_dir: Path, manifest: Mapping[str, object], forbidden_
         f"- report_sha256: `{report_hash}`",
         f"- forbidden_runner_used: `{forbidden_check.get('forbidden_runner_used')}`",
         f"- redaction_ok: `{redaction_report.get('ok')}`",
+        f"- producer_run_commit: `{producer_git.get('commit')}`",
+        f"- audit_tool_commit: `{audit_git.get('commit')}`",
+        f"- audit_provenance_mode: `{provenance.get('mode')}`",
+        f"- recovered_provider_error_count: `{normalized.get('recovered_provider_error_count')}`",
         "",
         "## Artifact paths",
         "",
@@ -1061,6 +1290,30 @@ def render_run_summary(run_dir: Path, manifest: Mapping[str, object], forbidden_
         f"- metadata: `{relpath(metadata_path)}`",
         f"- codex_events: `{relpath(run_dir / 'codex_events.jsonl')}`",
         f"- transcript_redacted: `{relpath(run_dir / 'codex_transcript.redacted.md')}`",
+        f"- normalized_summary: `{relpath(run_dir / 'checks' / 'normalized_summary.json')}`",
+        "",
+        "## Runner audit provenance",
+        "",
+        "```json",
+        json.dumps(provenance, ensure_ascii=False, indent=2),
+        "```",
+        "",
+        "## Normalized summary snapshot",
+        "",
+        "```json",
+        json.dumps(
+            {
+                "event_audit_ok": normalized.get("event_audit_ok"),
+                "event_type_counts": normalized.get("event_type_counts"),
+                "recovered_provider_error_count": normalized.get("recovered_provider_error_count"),
+                "recovered_provider_errors": normalized.get("recovered_provider_errors"),
+                "redaction_ok": normalized.get("redaction_ok"),
+                "forbidden_runner_used": normalized.get("forbidden_runner_used"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        "```",
         "",
         "## Checks / NFRR snapshot",
         "",
