@@ -15,7 +15,7 @@
 - 本轮新增论文：**6** 篇；另有 **1** 篇历史阻塞条目完成转正
 - 已完成 `DESC.md`：**72** 篇
 - `⏳ 尚未提取`：**0** 篇
-- 本轮规范化工作：补齐 #73 遗留 LATO 原文与单篇分析；按 #81 §6 优先精读候选新增 6 篇 LLM4MDE 近邻文献；为论文清单补入 `LLM4Modeling / NL输入 / LLM方法 / STM族输出` 四条件列，并按“评估颜色 -> 年份降序 -> 四条件 tie-break”重排总账。ID 14、ID 16 因合法 PDF 暂缺仅保留待补候选，不进入 completed 计数。
+- 本轮规范化工作：补齐 #73 遗留 LATO 原文与单篇分析；按 #81 §6 优先精读候选新增 6 篇 LLM4MDE 近邻文献；为论文清单补入 `LLM4Modeling / NL输入 / LLM方法 / STM族输出` 四条件列，并按“评估颜色 -> 年份降序 -> 四条件 tie-break”重排总账。#81 候选 ID 14、#81 候选 ID 16 因合法 PDF 暂缺仅保留待补候选，不进入 completed 计数。
 
 ## BASELINE评估口径
 
@@ -303,7 +303,7 @@
 4. `Harnessing ChatGPT...UML State Diagrams to Rebeca` 的状态图输入与 Afra/model-checking 输出证明“已有 STM -> actor-based formal verification model”是重要下游转换线索；Rebeca 属强行为近邻而非 STM-family 近同构输出，对 Project 2/3 有价值，但不是 `NL -> STM` 生成 baseline。
 5. `Automated Generation of BPMN...`、`Universal Prompting...`、`Evaluating LLMs on BPM...` 共同构成流程建模近邻：它们的自然语言输入、结构化行为输出、错误处理和 benchmark 设计可迁移，但 BPMN/POWL/Petri 的过程语义与控制系统状态机不完全同构。
 6. `Requirements-Driven Slicing of Simulink Models using LLMs` 的输出是 Simulink block/data-flow slice，不是 Stateflow、状态机或强行为近邻；它与 `AI-Driven Consistency of SysML Diagrams` 更偏模型理解、trace、consistency 和 repair 支撑，后续应作为 LLM4Modeling 证据链而不是生成 baseline。
-7. PDF gate 仍然是本库学术证据链底线：ID 14 / ID 16 在 CSV 初筛中信号较强，但合法 PDF 暂缺，不能写最终四条件或生成 `DESC.md`。
+7. PDF gate 仍然是本库学术证据链底线：#81 候选 ID 14 / #81 候选 ID 16 在 CSV 初筛中信号较强，但合法 PDF 暂缺，不能写最终四条件或生成 `DESC.md`。
 
 ## 待补充高优先级候选
 
@@ -311,16 +311,17 @@
 
 | 优先级 | 标题 | 来源文档 | 当前价值 |
 |---|---|---|---|
-| 高 | Model-based test execution from high-level natural language instructions using GPT-4 | Issue #81 §6 / PR #82 PDF gate | CSV 初筛显示 `LLM4Modeling/NL输入/LLM方法/STM族输出` 信号很强；但本轮仅找到 Springer 页面/摘要，PDF 需购买或权限，未找到合法公开 PDF，不能生成 `DESC.md` 或写最终四条件。 |
-| 高 | LLM-Enhanced SysML Formal Method for Flanking Protection in Train Autonomous Control System | Issue #81 §6 / PR #82 PDF gate | 与轨道交通控制系统、SysML/formal method 相关，可能对控制系统状态机建模有重要证据价值；但 Springer PDF 需鉴权，未找到合法公开 PDF，当前只能保留阻塞记录。 |
+| 高 | Model-based test execution from high-level natural language instructions using GPT-4 | Issue #81 §6 / PR #82 PDF gate | CSV 初筛显示 `LLM4Modeling/NL输入/LLM方法/STM族输出` 信号很强；但本轮仅找到 Springer 页面/摘要，PDF 需购买或权限，未找到合法公开 PDF，不能生成 `DESC.md` 或写最终四条件。已尝试入口：Issue #81 §6 / PR #82 PDF gate 记录的 Springer 页面/摘要；失败原因：PDF 需购买或权限，未获合法公开 PDF；下一步：待用户提供机构可访问 PDF、作者版全文或合法本地研究副本后再补四件套。 |
+| 高 | LLM-Enhanced SysML Formal Method for Flanking Protection in Train Autonomous Control System | Issue #81 §6 / PR #82 PDF gate | 与轨道交通控制系统、SysML/formal method 相关，可能对控制系统状态机建模有重要证据价值；但 Springer PDF 需鉴权，未找到合法公开 PDF，当前只能保留阻塞记录。已尝试入口：Issue #81 §6 / PR #82 PDF gate 记录的 Springer 入口；失败原因：Springer PDF 需鉴权，未获合法公开 PDF；下一步：待用户提供机构可访问 PDF、作者版全文或合法本地研究副本后再补四件套。 |
 ## 更新日志
 
 说明：更新时间统一使用 `yyyy-mm-dd hh:mm:ss`，并按时间降序排列；新日志必须插入表格顶部。
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-06-08 18:35:07 | 合并最新 `origin/main` 并补强 PDF gate 证据链 | 将 `origin/main` 的 248 个上游提交合入当前分支，合并过程无 baselines 冲突；把待补记录中的 `ID 14 / ID 16` 明确为 `#81 候选 ID 14 / #81 候选 ID 16`，并为两条未过 PDF gate 的高优先级候选补充已尝试入口、失败原因和下一步合法获取路径。 |
 | 2026-06-08 17:56:58 | 响应实现阶段复审并收紧近邻工件四条件编码 | 将 `chatgpt-uml-state-diagrams-to-rebeca` 的 `STM族输出` 从 `🟢` 降为 `🟡`，明确 Rebeca 是 actor-based formal model 而非 STM-family 近同构输出；将 `requirements-driven-slicing-simulink-llms` 的 `STM族输出` 从 `🟡` 降为 `🟠`，明确 Simulink block/data-flow slice 不是强行为近邻；同步重排主表/数据集表编号，并补充 LATO artifact 入口可能是匿名评审占位的来源风险说明。 |
-| 2026-06-08 17:23:15 | 扩充 #81 LLM4MDE 优先候选并补齐四条件总账 | 使用用户提供的 LATO 本地原文解除 #73 PDF 阻塞；新增 `chatgpt-uml-state-diagrams-to-rebeca`、`automated-generation-bpmn-processes-textual-requirements`、`universal-prompting-process-model-information`、`llm-business-process-modeling-benchmark`、`requirements-driven-slicing-simulink-llms`、`ai-driven-consistency-sysml-diagrams` 六篇四件套；为主表补齐四条件列并按 `评估 -> 年份降序 -> 四条件 tie-break` 重排；ID 14 / ID 16 因合法 PDF 暂缺仅列待补候选。 |
+| 2026-06-08 17:23:15 | 扩充 #81 LLM4MDE 优先候选并补齐四条件总账 | 使用用户提供的 LATO 本地原文解除 #73 PDF 阻塞；新增 `chatgpt-uml-state-diagrams-to-rebeca`、`automated-generation-bpmn-processes-textual-requirements`、`universal-prompting-process-model-information`、`llm-business-process-modeling-benchmark`、`requirements-driven-slicing-simulink-llms`、`ai-driven-consistency-sysml-diagrams` 六篇四件套；为主表补齐四条件列并按 `评估 -> 年份降序 -> 四条件 tie-break` 重排；#81 候选 ID 14 / #81 候选 ID 16 因合法 PDF 暂缺仅列待补候选。 |
 | 2026-06-07 22:51:50 | 精读扩充 3 篇已获 PDF 的新增 LLM4Modeling 近邻论文 | 在 `event-b-agent`、`pat-agent-autoformalization-model-checking`、`llm-aided-security-protocol-verification` 的 `DESC.md` 中新增“精读补充”章节，重点解释建模对象、论文例子、方法闭环、实验结论和 Project1 可比性；同步细化本总账“当前最有价值的整体观察”，明确 PAT-Agent 最接近行为模型语义、Event-B Agent 强在 proof-guided repair、协议建模论文只作异构方法参照。 |
 | 2026-06-07 21:32:21 | 补入 4 篇 LLM4Modeling 直接 / 近直接 baseline 候选并按 PDF 可得性分层入账 | 新增 `event-b-agent`、`pat-agent-autoformalization-model-checking`、`llm-aided-security-protocol-verification` 三篇四件套；新增 `modeling-like-peeling-an-onion` 阻塞记录但不伪造 PDF / `DESC.md`。同步更新论文总表、数据集与 Benchmark 清单、类别统计、BASELINE 评估统计和待补候选；强调 Event-B / PAT / SAPIC+ 属异构形式模型近邻，不作为同构 STM baseline。 |
 | 2026-05-06 13:54:54 | 标注 3 篇硬条件符合论文同时进入 `state_machine_review_corpus/` | `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` / `llms_emp` / `ttool-ai` 现同时存在于本论文集与 `state_machine_review_corpus/`；前者从 baseline 方法对照角度，后者从可获取 human review 数据资产角度。各自维护独立的派生文件（`DESC.md` 留在本文库；`review_extraction.md` 在新文库）。论文总表对应行追加指向 `project_ex1_llm_judge_for_stm/state_machine_review_corpus/<slug>/review_extraction.md` 的 review 链接。 |
