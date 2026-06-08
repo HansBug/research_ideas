@@ -24,8 +24,8 @@ LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 HISTORICAL_RECORD = (
     REPO_ROOT
     / "runs"
-    / "lg_m1_g_four_after_signature_gate_20260608_052552"
-    / "pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970"
+    / "2026-06-08-052552-pr39-agent-loop-langgraph-final-four-case-evidence"
+    / "path1-abs-agent-loop-success"
     / "pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970.agent_loop.json.gz"
 )
 
