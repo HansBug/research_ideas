@@ -1,6 +1,6 @@
 # JSS README
 
-> 信息更新时间：`2026-06-05 19:01`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -21,6 +21,19 @@
 | Articles in press / online first | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) |
 | DBLP venue page | [DBLP JSS](https://dblp.org/db/journals/jss/) |
 | 当前默认调查范围 | `2022` 至 `2028`；2027/2028 已检索但年度卷期、DBLP 年度页和 dated CFP 未公布 |
+
+### 1.1 索引与分区信息
+
+> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+
+| 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
+|---|---|---|---|---|
+| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
+| WoS Collection | ❓ | 待核验 | 需按 ISSN / eISSN 在 Clarivate MJL / WoS 中核验 SCIE / SSCI / AHCI / ESCI 归属 | `待补` |
+| JCR Quartile | ❓ | 待核验 | 需记录 JCR release year、metric/data year、category、rank、quartile、percentile 与证据 URL | `待补` |
+| CAS 分区 | ❓ | 待核验 | 仅可记录中国科学院文献情报中心官方 / 历史版可追溯分区；需写版本年份与来源 | `待补` |
+| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 source title、source type、sheet、coverage | `待补` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
 
 ## 2. Scope 与栏目
 
@@ -107,6 +120,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 19:01` | 最终复审修复：将长期 editorial roster 与 Software Dependability special issue guest editor 拆成 §3.1 / §3.2，避免专题角色被误读为长期 roster。 |
 | `2026-06-05 18:13` | PR-7 全局同步收口：确认 JSS special issue dated events 已同步至 TIMELINE / SUMMARY，并保留 ScienceDirect CLI/WAF 待浏览器核验口径。 |
 | `2026-06-05 17:21` | 初始化 JSS 期刊 README，记录 ScienceDirect / Editorial Manager / DBLP 核心入口、2022-2028 年度汇总、special issue deadline、核心编辑人员情报与待同步风险。 |

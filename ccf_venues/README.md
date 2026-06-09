@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -17,6 +17,7 @@
 5. 以 [TIMELINE.md](./TIMELINE.md) 按事件发生年份串联所有投稿相关 important dates，形成跨 venue 时间线。
 6. 每个会议 / 期刊的核心人员情报：组织委员会、PC / Research Track chair、Steering Committee、领域权威及其研究方向、代表作、近年论文线索。
 7. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
+8. WoS / JCR / CAS / EI 外部索引与分区信息：以 emoji 列提供快速查阅入口，以官方证据链记录待核验 / 不适用 / 已核验状态，不替代 CCF 分类。
 
 换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里、谁是该 venue 当前最值得关注的组织者 / PC / 领域权威，并能直接从表格点击跳转。**
 
@@ -39,6 +40,17 @@
 3. CCF 推荐目录更新 / 更名通知：<https://www.ccf.org.cn/Academic_Evaluation/By_category/2024-06-28/825349.shtml>
 
 若 [../VENUES.md](../VENUES.md)、`PR #5` 或其他旧材料与 CCF 官方页面冲突，以当前官方页面为准，并在具体 venue README 的“证据与核查记录”中说明差异。
+
+
+### 3.1 外部索引与分区来源基准
+
+本库新增 WoS / JCR / CAS / EI 维度用于快速查阅 venue 外部索引状态，但这些维度不替代 CCF scope。执行时必须遵守以下规则：
+
+1. WoS 期刊集合以 Clarivate MJL / Web of Science Core Collection 为主证据，记录 `SCIE / SSCI / AHCI / ESCI / CPCI-S / CPCI-SSH / 未核验 / 未收录 / 不适用`。
+2. JCR 分区只记录 `JCR Quartile`，必须绑定 release year、category、rank、quartile 与证据 URL；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`。
+3. CAS / 中科院分区只记录官方 / 历史版可追溯证据，必须写版本年份；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`。
+4. EI / Compendex 以 Elsevier / Engineering Village 官方 source list snapshot 为主证据，记录 source title、source type 原值、sheet、snapshot 与 coverage。
+5. 所有缺证项写 `❓` / `⏳` / `⚪` 等规范占位，并同步登记到 [SUMMARY.md](./SUMMARY.md) 风险 / 待核验表；不得用第三方查询站作为唯一证据。
 
 补充证据等级口径：`https://ccf.atom.im/` 当前只能作为非官方机器检索镜像 / 差集筛查线索；其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文 / 第七版状态待人工浏览器核验”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
 
@@ -178,6 +190,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 制度化 WoS/JCR/CAS/EI 外部索引入口，明确其不替代 CCF 分类，并要求 SUMMARY/TIMELINE/venue README 同步索引占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review 的 ICECCS 2026 / CAiSE 2023 时间线问题：降级 ICECCS 2026 404 accepted-list candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 venue 后，将入口统计更新为 42 个 venue / 294 个年度 README（29 会议 / 13 期刊），并补充 CCF 官方 / 镜像证据等级说明。 |
 | `2026-06-07 10:52` | PR #62 常态化投稿情报更新机制：在 AI 工作入口提示中加入 GUIDE §12、TIMELINE §3 与 SUMMARY §1.1 的最新投稿情报刷新路径。 |

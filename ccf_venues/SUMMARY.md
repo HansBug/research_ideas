@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-07 13:33`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -62,76 +62,90 @@
 | 历史 PR #5：`frontier_index/ccf_history/SUBMISSION_TIMELINES.md` | 近年时间线组织方式参考；当前分支没有该路径，不能当作可点击仓库文件 | 否，需重新核验 |
 | 历史 PR #5：`frontier_index/ccf_history/*/metadata/*.json` | 论文数量与 DBLP 计数的候选线索；当前分支没有该路径，不能当作可点击仓库文件 | 否，只能作交叉核验 |
 
+## 2.5 外部索引与分区核验口径
+
+本轮仅完成 WoS / JCR / CAS / EI 列与索引占位制度化，不写入未经核验的外部索引结论。SUMMARY 中新增列的 emoji 口径如下：
+
+| 列 | 允许 emoji | 说明 |
+|---|---|---|
+| WoS | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | 期刊集合 / 部分核验 / CPCI 或会议卷 / 不适用或未查到 / 待核验 |
+| JCR | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | JCR Q1/Q2/Q3/Q4/不适用或无 JCR/待核验 |
+| CAS | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | CAS 1区/2区/3区/4区/不适用或未查到/待核验 |
+| EI | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | EI source / 部分核验 / proceedings 级 / 未查到或不适用 / 待核验 |
+| 索引核验 | 🟢 / 🟡 / 🔴 / ⏳ / ❓ | 官方证据齐全 / 部分核验 / 未找到 / 待人工核验 / 待启动 |
+
+JCR 与 CAS 列必须使用真实 emoji `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣`，不得使用非 emoji 数字圈、罗马数字文本符号或 `emoji + 中文` 混写。真实证据补齐前，各 venue 统一写 `❓`。
+
 ## 3. 会议试点完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | 覆盖 2026/2027 GC/PC 与 Steering 代表人物；见根 README §5 | Research / Technical Track accepted papers；2026 Research Track count 待 DBLP/proceedings 复核 | 🟡 部分核验 |
-| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | 覆盖 2025/2026 GC/PC 与 Steering 代表人物，并补 DBLP / 代表作链接；见根 README §5 | DBLP `inproceedings` / 官方 accepted papers fallback，根表单元格显式写口径 | 🟡 部分核验 |
-| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | 覆盖 TACAS 2026/2027 PC Chair、Area Chair 与 Steering 代表人物；见根 README §5 | ETAPS umbrella / TACAS 双口径分开 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ICSE | A | 2022-2028 | [conf-a-icse](./conf-a-icse/README.md) | 7 | 已同步 | 覆盖 2026/2027 GC/PC 与 Steering 代表人物；见根 README §5 | Research / Technical Track accepted papers；2026 Research Track count 待 DBLP/proceedings 复核 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| MoDELS | B | 2022-2028 | [conf-b-models](./conf-b-models/README.md) | 7 | 已同步 | 覆盖 2025/2026 GC/PC 与 Steering 代表人物，并补 DBLP / 代表作链接；见根 README §5 | DBLP `inproceedings` / 官方 accepted papers fallback，根表单元格显式写口径 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ETAPS / TACAS | B | 2022-2028 | [conf-b-etaps](./conf-b-etaps/README.md) | 7 | 已同步 | 覆盖 TACAS 2026/2027 PC Chair、Area Chair 与 Steering 代表人物；见根 README §5 | ETAPS umbrella / TACAS 双口径分开 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ## 4. PR-2 软工 / 需求会议完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| FSE | A | 2022-2028 | [conf-a-fse](./conf-a-fse/README.md) | 7 | 已同步 | 覆盖 2026 GC/PC、2024 PC 与 steering / PACMSE 治理线索；见根 README §5 | FSE / ESEC-FSE slug 冻结；2024+ PACMSE issue 不重复计数；2022-2025 多数仍需 DBLP / ACM 复核 | 🟡 部分核验 |
-| ASE | A | 2022-2028 | [conf-a-ase](./conf-a-ase/README.md) | 7 | 已同步 | 覆盖 2026/2025/2024/2023/2022 chair 与 AI+SE / repair / modeling 领域权威；见根 README §5 | 多 track 明确分离；已结束年度暂用 DBLP 全 proceedings fallback，不能写成 Research Track count | 🟡 部分核验 |
-| ISSTA | A | 2022-2028 | [conf-a-issta](./conf-a-issta/README.md) | 7 | 已同步 | 覆盖 2026 research chair、AI/testing/analysis area chair 与测试分析领域权威；见根 README §5 | ISSTA 2024+ co-location 仅作会期关系；论文数量按 ISSTA 独立入口 / DBLP fallback | 🟡 部分核验 |
-| RE | B | 2022-2028 | [conf-b-re](./conf-b-re/README.md) | 7 | 已同步 | 覆盖 2026 GC/PC 与需求工程、goal modeling、privacy / CPS RE 领域权威；见根 README §5 | Research / Industry / RE@Next / artifact / tools 分离；IEEE proceedings conference number 待补 | 🟡 部分核验 |
-| REFSQ | C | 2022-2028 | [conf-c-refsq](./conf-c-refsq/README.md) | 7 | 已同步 | 覆盖 2027/2026 PC chair、General Chair 与需求质量 / ontology / NLP for RE 线索；见根 README §5 | Springer / CEUR / DBLP 入口分散，official program 与 proceedings 卷号待后续复核；按 PR-2 收录但 scope 批次归属留 PR-5 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| FSE | A | 2022-2028 | [conf-a-fse](./conf-a-fse/README.md) | 7 | 已同步 | 覆盖 2026 GC/PC、2024 PC 与 steering / PACMSE 治理线索；见根 README §5 | FSE / ESEC-FSE slug 冻结；2024+ PACMSE issue 不重复计数；2022-2025 多数仍需 DBLP / ACM 复核 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ASE | A | 2022-2028 | [conf-a-ase](./conf-a-ase/README.md) | 7 | 已同步 | 覆盖 2026/2025/2024/2023/2022 chair 与 AI+SE / repair / modeling 领域权威；见根 README §5 | 多 track 明确分离；已结束年度暂用 DBLP 全 proceedings fallback，不能写成 Research Track count | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ISSTA | A | 2022-2028 | [conf-a-issta](./conf-a-issta/README.md) | 7 | 已同步 | 覆盖 2026 research chair、AI/testing/analysis area chair 与测试分析领域权威；见根 README §5 | ISSTA 2024+ co-location 仅作会期关系；论文数量按 ISSTA 独立入口 / DBLP fallback | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| RE | B | 2022-2028 | [conf-b-re](./conf-b-re/README.md) | 7 | 已同步 | 覆盖 2026 GC/PC 与需求工程、goal modeling、privacy / CPS RE 领域权威；见根 README §5 | Research / Industry / RE@Next / artifact / tools 分离；IEEE proceedings conference number 待补 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| REFSQ | C | 2022-2028 | [conf-c-refsq](./conf-c-refsq/README.md) | 7 | 已同步 | 覆盖 2027/2026 PC chair、General Chair 与需求质量 / ontology / NLP for RE 线索；见根 README §5 | Springer / CEUR / DBLP 入口分散，official program 与 proceedings 卷号待后续复核；按 PR-2 收录但 scope 批次归属留 PR-5 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ## 5. 期刊试点完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心编辑人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| TSE | A | 2022-2028 | [journal-a-tse](./journal-a-tse/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选 AEiC / editorial leadership 线索，保留 `核验等级 / 当前性` | DBLP `entry article` baseline：2022=284、2023=278、2024=182、2025=228、2026=98 | 🟡 部分核验 |
-| TOSEM | A | 2022-2028 | [journal-a-tosem](./journal-a-tosem/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选编辑线索，ACM DL editorial-board 动态访问受限，保留替代核验路径 | DBLP `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115 | 🟡 部分核验 |
-| SoSyM | B | 2022-2028 | [journal-b-sosym](./journal-b-sosym/README.md) | 7 | rolling 表与 Industry 5.0 dated event 已同步 | 已记录 Editors-in-Chief / Associate Editor-in-Chief / Assistant Editors；Advisory Board 暂不展开 | DBLP `entry article` baseline：2022=108、2023=98、2024=75、2025=91、2026=30 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心编辑人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TSE | A | 2022-2028 | [journal-a-tse](./journal-a-tse/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选 AEiC / editorial leadership 线索，保留 `核验等级 / 当前性` | DBLP `entry article` baseline：2022=284、2023=278、2024=182、2025=228、2026=98 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| TOSEM | A | 2022-2028 | [journal-a-tosem](./journal-a-tosem/README.md) | 7 | rolling 表已同步 | 已记录 EiC 与候选编辑线索，ACM DL editorial-board 动态访问受限，保留替代核验路径 | DBLP `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SoSyM | B | 2022-2028 | [journal-b-sosym](./journal-b-sosym/README.md) | 7 | rolling 表与 Industry 5.0 dated event 已同步 | 已记录 Editors-in-Chief / Associate Editor-in-Chief / Assistant Editors；Advisory Board 暂不展开 | DBLP `entry article` baseline：2022=108、2023=98、2024=75、2025=91、2026=30 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ### 5.1 PR-4 剩余 P0 期刊完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心编辑人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| Requirements Engineering | B | 2022-2028 | [journal-b-re](./journal-b-re/README.md) | 7 | rolling 表与 2026 LLM / 30th Anniversary / REFSQ collections dated events 已同步 | 已记录 Editor-in-Chief、Honorary Editor 与 RE / traceability / NLP for RE 代表性 editorial board 成员；见根 README §3 | DBLP `entry article` baseline：2022=25、2023=26、2024=24、2025=9、2026=6；2026 仍进行中 | 🟡 部分核验 |
-| STVR | B | 2022-2028 | [journal-b-stvr](./journal-b-stvr/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board 官方入口受 WAF/403，已保留官方 roster 链接与待人工浏览器核验说明；可核验人物画像仍需后续补强 | DBLP `entry article` baseline：2022=31、2023=25、2024=26、2025=17；2026 DBLP 年度页未公布 | 🟡 部分核验 |
-| STTT | C | 2022-2028 | [journal-c-sttt](./journal-c-sttt/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | 已记录 Editor-in-Chief / Coordinating Editor、CoCha / Explain / FoMaC 主题编辑与形式化验证领域权威；见根 README §3 | DBLP `entry article` baseline：2022=51、2023=49、2024=48、2025=41、2026=14；conference-based special issue 不与会议 proceedings 混算 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心编辑人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Requirements Engineering | B | 2022-2028 | [journal-b-re](./journal-b-re/README.md) | 7 | rolling 表与 2026 LLM / 30th Anniversary / REFSQ collections dated events 已同步 | 已记录 Editor-in-Chief、Honorary Editor 与 RE / traceability / NLP for RE 代表性 editorial board 成员；见根 README §3 | DBLP `entry article` baseline：2022=25、2023=26、2024=24、2025=9、2026=6；2026 仍进行中 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| STVR | B | 2022-2028 | [journal-b-stvr](./journal-b-stvr/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board 官方入口受 WAF/403，已保留官方 roster 链接与待人工浏览器核验说明；可核验人物画像仍需后续补强 | DBLP `entry article` baseline：2022=31、2023=25、2024=26、2025=17；2026 DBLP 年度页未公布 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| STTT | C | 2022-2028 | [journal-c-sttt](./journal-c-sttt/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | 已记录 Editor-in-Chief / Coordinating Editor、CoCha / Explain / FoMaC 主题编辑与形式化验证领域权威；见根 README §3 | DBLP `entry article` baseline：2022=51、2023=49、2024=48、2025=41、2026=14；conference-based special issue 不与会议 proceedings 混算 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ### 5.2 PR-6 维护 / 修复 P1 venue 完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| SANER | B | 2022-2028 | [conf-b-saner](./conf-b-saner/README.md) | 7 | 2022-2027 dated events 已同步；2028 未公布不造日期 | 覆盖 2027 General Co-Chair、Program Co-Chair 与维护 / 架构 / MSR 代表人物；见根 README §5 | 已结束年度以 official program / IEEE / DBLP fallback 入账，SANER 2022 CFP 缺失时不采用第三方 deadline 为官方事实 | 🟡 部分核验 |
-| ICSME | B | 2022-2028 | [conf-b-icsme](./conf-b-icsme/README.md) | 7 | 2022-2026 dated events 已同步；2027/2028 未公布不造日期 | 覆盖 2026 General Chair、Research Track PC、registered reports 与 RENE 相关 chair；见根 README §5 | 2022 会期来源冲突已标注；2026 camera-ready 仍为 TBD，不预设 | 🟡 部分核验 |
-| ICPC | B | 2022-2028 | [conf-b-icpc](./conf-b-icpc/README.md) | 7 | 2022-2026 dated events 已同步；2027/2028 未公布不造日期 | 覆盖 2026 research chairs、2025/steering 代表人物与程序理解领域权威；见根 README §5 | 2026 proceedings / DBLP 尚未稳定公开；历史年度使用 DBLP `inproceedings` fallback 并标 track 拆分待复核 | 🟡 部分核验 |
-| JSEP | B | 2022-2028 | [journal-b-jsep](./journal-b-jsep/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board CLI WAF/403；已记录 EiC / Co-EiC 候选线索并保留 B 级当前性 caveat | DBLP `entry article` baseline：2022=55、2023=82、2024=174、2025=120；2026+ 不预设卷号或闭合数 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| SANER | B | 2022-2028 | [conf-b-saner](./conf-b-saner/README.md) | 7 | 2022-2027 dated events 已同步；2028 未公布不造日期 | 覆盖 2027 General Co-Chair、Program Co-Chair 与维护 / 架构 / MSR 代表人物；见根 README §5 | 已结束年度以 official program / IEEE / DBLP fallback 入账，SANER 2022 CFP 缺失时不采用第三方 deadline 为官方事实 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ICSME | B | 2022-2028 | [conf-b-icsme](./conf-b-icsme/README.md) | 7 | 2022-2026 dated events 已同步；2027/2028 未公布不造日期 | 覆盖 2026 General Chair、Research Track PC、registered reports 与 RENE 相关 chair；见根 README §5 | 2022 会期来源冲突已标注；2026 camera-ready 仍为 TBD，不预设 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ICPC | B | 2022-2028 | [conf-b-icpc](./conf-b-icpc/README.md) | 7 | 2022-2026 dated events 已同步；2027/2028 未公布不造日期 | 覆盖 2026 research chairs、2025/steering 代表人物与程序理解领域权威；见根 README §5 | 2026 proceedings / DBLP 尚未稳定公开；历史年度使用 DBLP `inproceedings` fallback 并标 track 拆分待复核 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| JSEP | B | 2022-2028 | [journal-b-jsep](./journal-b-jsep/README.md) | 7 | rolling 表已同步；未发现 active dated CFP | Wiley editorial board CLI WAF/403；已记录 EiC / Co-EiC 候选线索并保留 B 级当前性 caveat | DBLP `entry article` baseline：2022=55、2023=82、2024=174、2025=120；2026+ 不预设卷号或闭合数 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 ### 5.3 PR-7 实证 / 质量 venue 完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| ESEM | B | 2022-2028 | [conf-b-esem](./conf-b-esem/README.md) | 7 | 2022-2026 dated events 已同步，2027-2028 未公布不造日期 | 覆盖 2026 ESEM / ESEIW chair、Technical Track 与 empirical SE / benchmark 领域权威；见根 README §5 | 历史年度以 official program / DBLP fallback 为主；2022 已补 ACM DL proceedings；2026 记录 LIPIcs / open science 说明但不写成已发布 proceedings | 🟡 部分核验 |
-| Empirical Software Engineering | B | 2022-2028 | [journal-b-ese](./journal-b-ese/README.md) | 7 | rolling 表与 2025-2027 Springer collections dated events 已同步 | 长期 Editor-in-Chief / Advisory Board 见根 README §3.1；Agentic SE / FORGE / EASE / PROMPT-SE 等 collection editors 与长期 roster 分离，见 §3.2 和年度页 | DBLP `entry article` baseline 与 Springer volume / online-first 分开；collection 的 submission / review / revision / notification 按事件类型分列 | 🟡 部分核验 |
-| JSS | B | 2022-2028 | [journal-b-jss](./journal-b-jss/README.md) | 7 | rolling 表与 2025-2026 ScienceDirect special issue dated events 已同步 | 长期 editorial leadership / board roles 与 Software Dependability special issue guest editor 已在根 README §3.1 / §3.2 分离；见根 README §3 | ScienceDirect CLI 可能 403/WAF；special issue 表为 deadline-bearing / project-relevant subset，不声称全量 special issue 清单 | 🟡 部分核验 |
-| SQJ | C | 2022-2028 | [journal-c-sqj](./journal-c-sqj/README.md) | 7 | rolling 表与 2024 / 2026 Springer topical collection dated events 已同步 | 已区分 official roster、待核验 editor 线索与 topical collection editors；见根 README §3 | `Software Quality in an AI-Driven World` 当前页面 Closed，不写作当前可行动窗口；2024 collection 日期仍需官方归档源复核 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ESEM | B | 2022-2028 | [conf-b-esem](./conf-b-esem/README.md) | 7 | 2022-2026 dated events 已同步，2027-2028 未公布不造日期 | 覆盖 2026 ESEM / ESEIW chair、Technical Track 与 empirical SE / benchmark 领域权威；见根 README §5 | 历史年度以 official program / DBLP fallback 为主；2022 已补 ACM DL proceedings；2026 记录 LIPIcs / open science 说明但不写成已发布 proceedings | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| Empirical Software Engineering | B | 2022-2028 | [journal-b-ese](./journal-b-ese/README.md) | 7 | rolling 表与 2025-2027 Springer collections dated events 已同步 | 长期 Editor-in-Chief / Advisory Board 见根 README §3.1；Agentic SE / FORGE / EASE / PROMPT-SE 等 collection editors 与长期 roster 分离，见 §3.2 和年度页 | DBLP `entry article` baseline 与 Springer volume / online-first 分开；collection 的 submission / review / revision / notification 按事件类型分列 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| JSS | B | 2022-2028 | [journal-b-jss](./journal-b-jss/README.md) | 7 | rolling 表与 2025-2026 ScienceDirect special issue dated events 已同步 | 长期 editorial leadership / board roles 与 Software Dependability special issue guest editor 已在根 README §3.1 / §3.2 分离；见根 README §3 | ScienceDirect CLI 可能 403/WAF；special issue 表为 deadline-bearing / project-relevant subset，不声称全量 special issue 清单 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SQJ | C | 2022-2028 | [journal-c-sqj](./journal-c-sqj/README.md) | 7 | rolling 表与 2024 / 2026 Springer topical collection dated events 已同步 | 已区分 official roster、待核验 editor 线索与 topical collection editors；见根 README §3 | `Software Quality in an AI-Driven World` 当前页面 Closed，不写作当前可行动窗口；2024 collection 日期仍需官方归档源复核 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 ### 5.4 PR-8 P1 形式化 / 工具链补链完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| IST | B | 2022-2028 | [journal-b-ist](./journal-b-ist/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=166、2023=184、2024=145、2025=243、2026=221；ScienceDirect volume / article type 待浏览器复核 | 🟡 部分核验 |
-| SCP | B | 2022-2028 | [journal-b-scp](./journal-b-scp/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=79、2023=64、2024=109、2025=113、2026=62；Editorial Manager code 为 `scico`，不得误写 `scp` | 🟡 部分核验 |
-| QRS | C | 2022-2028 | [conf-c-qrs](./conf-c-qrs/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 QRS 2026 General Chair、Program Chair、Steering Committee Chair / Vice Chair 与可靠性 / 测试 / 形式化相关线索 | QRS techconf submission stats、regular acceptance stats、DBLP / IEEE proceedings fallback 分开；不把 submission stats 写成 accepted paper count | 🟡 部分核验 |
-| TASE | C | 2022-2028 | [conf-c-tase](./conf-c-tase/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 TASE 2026 General Chair、Program Co-Chair、Steering Committee 与形式化 / 验证领域线索 | official accepted list、Springer TOC、DBLP count 并列保留；Important Dates 与 CFP 冲突时以 Important Dates 为准并记录差异 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| IST | B | 2022-2028 | [journal-b-ist](./journal-b-ist/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=166、2023=184、2024=145、2025=243、2026=221；ScienceDirect volume / article type 待浏览器复核 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SCP | B | 2022-2028 | [journal-b-scp](./journal-b-scp/README.md) | 7 | rolling 表已同步；ScienceDirect candidate special issue 不进 dated Mermaid | ScienceDirect editorial board CLI WAF/403，仅保留官方 roster 入口和待人工浏览器核验状态 | DBLP `entry article` baseline：2022=79、2023=64、2024=109、2025=113、2026=62；Editorial Manager code 为 `scico`，不得误写 `scp` | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| QRS | C | 2022-2028 | [conf-c-qrs](./conf-c-qrs/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 QRS 2026 General Chair、Program Chair、Steering Committee Chair / Vice Chair 与可靠性 / 测试 / 形式化相关线索 | QRS techconf submission stats、regular acceptance stats、DBLP / IEEE proceedings fallback 分开；不把 submission stats 写成 accepted paper count | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| TASE | C | 2022-2028 | [conf-c-tase](./conf-c-tase/README.md) | 7 | 2022-2026 dated events 与 Mermaid 已同步；2027/2028 未公布不造日期 | 覆盖 TASE 2026 General Chair、Program Co-Chair、Steering Committee 与形式化 / 验证领域线索 | official accepted list、Springer TOC、DBLP count 并列保留；Important Dates 与 CFP 冲突时以 Important Dates 为准并记录差异 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 
 ### 5.5 PR #63 LLM4Modeling-SE 扩展候选完成情况
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| Automated Software Engineering Journal | B | 2022-2028 | [journal-b-ase](./journal-b-ase/README.md) | 7 | rolling 表与 project-relevant Springer collection dated events 已同步 | 已记录 Editor-in-Chief 与 Deputy Editors；collection guest editors 不混入长期 roster | 常规投稿 rolling；DBLP `entry article` baseline 不等于 Springer final count；与 `conf-a-ase` 消歧 | 🟡 部分核验 |
-| CAiSE | B | 2022-2028 | [conf-b-caise](./conf-b-caise/README.md) | 7 | 2022--2026 可核验 main conference / conference dates 已同步；2023 camera-ready 已补入 TIMELINE；2024 仅会期由 DBLP/Springer record 支撑 | 已记录 2025/2026 chair、PC chair 与 conceptual modeling / process / IS 代表人物 | 只计 main conference / LNCS 主卷；Forum/DC/Workshop/BPMDS/EMMSAD 分离；2024 official CFP 待补 | 🟡 部分核验 |
-| ICECCS | C | 2022-2028 | [conf-c-iceccs](./conf-c-iceccs/README.md) | 7 | 2022/2023/2025/2026 可核验 dated events 已同步；2026 Brisbane 会期已补入 TIMELINE；2024/2027/2028 不造日期 | 已记录 2022/2023/2025/2026 committee 线索与 formal methods / complex systems 代表人物 | C 类 P2/P3 工程案例观察；2024 official page、IEEE/Springer proceedings 与 DBLP 年度页待补 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Automated Software Engineering Journal | B | 2022-2028 | [journal-b-ase](./journal-b-ase/README.md) | 7 | rolling 表与 project-relevant Springer collection dated events 已同步 | 已记录 Editor-in-Chief 与 Deputy Editors；collection guest editors 不混入长期 roster | 常规投稿 rolling；DBLP `entry article` baseline 不等于 Springer final count；与 `conf-a-ase` 消歧 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| CAiSE | B | 2022-2028 | [conf-b-caise](./conf-b-caise/README.md) | 7 | 2022--2026 可核验 main conference / conference dates 已同步；2023 camera-ready 已补入 TIMELINE；2024 仅会期由 DBLP/Springer record 支撑 | 已记录 2025/2026 chair、PC chair 与 conceptual modeling / process / IS 代表人物 | 只计 main conference / LNCS 主卷；Forum/DC/Workshop/BPMDS/EMMSAD 分离；2024 official CFP 待补 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ICECCS | C | 2022-2028 | [conf-c-iceccs](./conf-c-iceccs/README.md) | 7 | 2022/2023/2025/2026 可核验 dated events 已同步；2026 Brisbane 会期已补入 TIMELINE；2024/2027/2028 不造日期 | 已记录 2022/2023/2025/2026 committee 线索与 formal methods / complex systems 代表人物 | C 类 P2/P3 工程案例观察；2024 official page、IEEE/Springer proceedings 与 DBLP 年度页待补 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 ## 6. 会议试点踩坑结论
@@ -229,30 +243,30 @@
 
 P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 22 个 venue 均已完成基础建档与部分核验；本表不再保留 PR-3 / PR-4 已完成项的 `⏳ 待建` 状态。PR-5 之后 P0 只做事实维护、链接复核、TIMELINE 同步和缺口补证，新增 P1/P2 venue 必须走 §9 冻结合同。
 
-| 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 |
-|---|---|---|---|---|---|
-| [`conf-a-icse`](./conf-a-icse/README.md) | 会议 | A | P1/P2/P3/P4 | 会议试点 | 🟡 部分核验 |
-| [`conf-a-fse`](./conf-a-fse/README.md) | 会议 | A | P1/P2/P4 | PR-2 | 🟡 部分核验 |
-| [`conf-a-ase`](./conf-a-ase/README.md) | 会议 | A | P1/P2/P4 | PR-2 | 🟡 部分核验 |
-| [`conf-a-issta`](./conf-a-issta/README.md) | 会议 | A | P2/P3/P4 | PR-2 | 🟡 部分核验 |
-| [`journal-a-tse`](./journal-a-tse/README.md) | 期刊 | A | P1/P2/P3/P4 | 期刊试点 | 🟡 部分核验 |
-| [`journal-a-tosem`](./journal-a-tosem/README.md) | 期刊 | A | P1/P2/P4 | 期刊试点 | 🟡 部分核验 |
-| [`conf-b-models`](./conf-b-models/README.md) | 会议 | B | P1/P2/P3 | 会议试点 | 🟡 部分核验 |
-| [`conf-b-re`](./conf-b-re/README.md) | 会议 | B | P1/P2 | PR-2 | 🟡 部分核验 |
-| [`journal-b-re`](./journal-b-re/README.md) | 期刊 | B | P1/P2 | PR-4 | 🟡 部分核验 |
-| [`journal-b-sosym`](./journal-b-sosym/README.md) | 期刊 | B | P1/P3 | 期刊试点 | 🟡 部分核验 |
-| [`conf-a-fm`](./conf-a-fm/README.md) | 会议 | A | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-a-cav`](./conf-a-cav/README.md) | 会议 | A | P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-b-etaps`](./conf-b-etaps/README.md) | 会议 | B | P3 | 会议试点 | 🟡 部分核验 |
-| [`conf-b-vmcai`](./conf-b-vmcai/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-b-issre`](./conf-b-issre/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`journal-b-stvr`](./journal-b-stvr/README.md) | 期刊 | B | P2/P3 | PR-4 | 🟡 部分核验 |
-| [`conf-c-icfem`](./conf-c-icfem/README.md) | 会议 | C | P2/P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-c-spin`](./conf-c-spin/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-c-atva`](./conf-c-atva/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-c-icst`](./conf-c-icst/README.md) | 会议 | C | P2/P3/P4 | P0-B / PR-3 | 🟡 部分核验 |
-| [`conf-c-refsq`](./conf-c-refsq/README.md) | 会议 | C | P1/P2 | PR-2 | 🟡 部分核验 |
-| [`journal-c-sttt`](./journal-c-sttt/README.md) | 期刊 | C | P3/P4 | PR-4 | 🟡 部分核验 |
+| 目录名 | 类型 | CCF | 主要对应 project | 批次 | 状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [`conf-a-icse`](./conf-a-icse/README.md) | 会议 | A | P1/P2/P3/P4 | 会议试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-a-fse`](./conf-a-fse/README.md) | 会议 | A | P1/P2/P4 | PR-2 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-a-ase`](./conf-a-ase/README.md) | 会议 | A | P1/P2/P4 | PR-2 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-a-issta`](./conf-a-issta/README.md) | 会议 | A | P2/P3/P4 | PR-2 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-a-tse`](./journal-a-tse/README.md) | 期刊 | A | P1/P2/P3/P4 | 期刊试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-a-tosem`](./journal-a-tosem/README.md) | 期刊 | A | P1/P2/P4 | 期刊试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-b-models`](./conf-b-models/README.md) | 会议 | B | P1/P2/P3 | 会议试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-b-re`](./conf-b-re/README.md) | 会议 | B | P1/P2 | PR-2 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-b-re`](./journal-b-re/README.md) | 期刊 | B | P1/P2 | PR-4 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-b-sosym`](./journal-b-sosym/README.md) | 期刊 | B | P1/P3 | 期刊试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-a-fm`](./conf-a-fm/README.md) | 会议 | A | P2/P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-a-cav`](./conf-a-cav/README.md) | 会议 | A | P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-b-etaps`](./conf-b-etaps/README.md) | 会议 | B | P3 | 会议试点 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-b-vmcai`](./conf-b-vmcai/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-b-issre`](./conf-b-issre/README.md) | 会议 | B | P2/P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-b-stvr`](./journal-b-stvr/README.md) | 期刊 | B | P2/P3 | PR-4 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-c-icfem`](./conf-c-icfem/README.md) | 会议 | C | P2/P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-c-spin`](./conf-c-spin/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-c-atva`](./conf-c-atva/README.md) | 会议 | C | P3 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-c-icst`](./conf-c-icst/README.md) | 会议 | C | P2/P3/P4 | P0-B / PR-3 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`conf-c-refsq`](./conf-c-refsq/README.md) | 会议 | C | P1/P2 | PR-2 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| [`journal-c-sttt`](./journal-c-sttt/README.md) | 期刊 | C | P3/P4 | PR-4 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ## 9. P1 / P2 后续 venue 与 PR-6~PR-10 执行合同
 
@@ -277,41 +291,41 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 ### 9.2 venue 清单
 
-| Venue | 类型 | CCF | 主要价值 | 后续批次 | 当前状态 |
-|---|---|---|---|---|---|
-| `conf-b-saner` | 会议 | B | 维护、演化、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 |
-| `conf-b-icsme` | 会议 | B | 维护、演化、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 |
-| `conf-b-icpc` | 会议 | B | 程序理解、LLM4SE 实证 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 |
-| `journal-b-jsep` | 期刊 | B | 演化、维护、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 |
-| `conf-b-esem` | 会议 | B | 实证评估与 benchmark | PR-7 / P1 | 当前合流分支已建档，见 §5.3 |
-| `journal-b-ese` | 期刊 | B | LLM4SE 实证 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 |
-| `journal-b-jss` | 期刊 | B | 软工综合、系统案例 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 |
-| `journal-c-sqj` | 期刊 | C | 软件质量与评估 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 |
-| `journal-b-ist` | 期刊 | B | 软工综合、需求/测试 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
-| `journal-b-scp` | 期刊 | B | 形式化、程序与工具链 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
-| `conf-c-qrs` | 会议 | C | 质量、可靠性、安全 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
-| `conf-c-tase` | 会议 | C | 形式化与理论软工 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 |
-| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
-| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
-| `conf-c-ease` | 会议 | C | 实证评估 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
-| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
-| `conf-c-rv` | 会议 | C | 运行时验证 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 |
-| `journal-b-ase` | 期刊 | B | 自动化软工、LLM4SE、模型质量与修复 | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 |
-| `conf-b-caise` | 会议 | B | 信息系统工程、概念建模、需求、MDE | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 |
-| `conf-c-iceccs` | 会议 | C | 复杂系统工程、V&V、formal engineering methods | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 |
+| Venue | 类型 | CCF | 主要价值 | 后续批次 | 当前状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `conf-b-saner` | 会议 | B | 维护、演化、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-b-icsme` | 会议 | B | 维护、演化、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-b-icpc` | 会议 | B | 程序理解、LLM4SE 实证 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-jsep` | 期刊 | B | 演化、维护、修复 | PR-6 / P1 | 当前合流分支已建档，见 §5.2 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-b-esem` | 会议 | B | 实证评估与 benchmark | PR-7 / P1 | 当前合流分支已建档，见 §5.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-ese` | 期刊 | B | LLM4SE 实证 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-jss` | 期刊 | B | 软工综合、系统案例 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-c-sqj` | 期刊 | C | 软件质量与评估 | PR-7 / P1 | 当前合流分支已建档，见 §5.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-ist` | 期刊 | B | 软工综合、需求/测试 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-scp` | 期刊 | B | 形式化、程序与工具链 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-qrs` | 会议 | C | 质量、可靠性、安全 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-tase` | 会议 | C | 形式化与理论软工 | PR-8 / P1 | 当前合流分支已建档，见 §5.4 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-apsec` | 会议 | C | 区域性软工、LLM4SE | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-seke` | 会议 | C | 知识工程与软工交叉 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-ease` | 会议 | C | 实证评估 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-msr` | 会议 | C | 仓库挖掘、数据集 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-rv` | 会议 | C | 运行时验证 | PR-9 / P2 | PR-9 已建档并合入上游，见 §9.3 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `journal-b-ase` | 期刊 | B | 自动化软工、LLM4SE、模型质量与修复 | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-b-caise` | 会议 | B | 信息系统工程、概念建模、需求、MDE | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| `conf-c-iceccs` | 会议 | C | 复杂系统工程、V&V、formal engineering methods | PR #63 / LLM4Modeling-SE 扩展 | 已建档，见 §5.5 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 ### 9.3 PR-9 P2 邻近观察完成情况
 
 > PR-9 属于用户显式覆盖前置条件后的抢跑分支：P2 venue 只作为检索 / 投稿分流 / 社区画像观察，不升级为 P0/P1 主投目标。当前合流分支已在 PR-6 / PR-7 / PR-8 均合入上游后 merge 最新 staging head，并吸收适用于 P2 venue 的 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md) 踩坑规则。
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| APSEC | C | 2022-2028 | [conf-c-apsec](./conf-c-apsec/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering/SEIP 代表人物；见根 README §5 | 官方 track count 与 DBLP fallback 分离；IEEE proceedings URL 多数待补 | 🟡 部分核验 |
-| SEKE | C | 2022-2028 | [conf-c-seke](./conf-c-seke/README.md) | 7 | 已同步 P2 dated events | 覆盖 steering、2022--2026 chair / program chair 与 LLM / RE / formal special session 线索 | 官方 proceedings PDF 与 DBLP fallback 分离；2026 program/proceedings 未公布 | 🟡 部分核验 |
-| EASE | C | 2022-2028 | [conf-c-ease](./conf-c-ease/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、AI Models/Data、Prompt-SE 与 Steering 代表人物 | ACM proceedings / DBLP fallback 分离；ACM DL 可能 WAF/403 | 🟡 部分核验 |
-| MSR | C | 2022-2028 | [conf-c-msr](./conf-c-msr/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、Data/Tool、Mining Challenge 与 steering 代表人物 | Technical / Data&Tool / Challenge / Industry 分离；DBLP fallback 不写成 main count | 🟡 部分核验 |
-| RV | C | 2022-2028 | [conf-c-rv](./conf-c-rv/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering 与 runtime verification 代表人物 | Springer / DBLP fallback 分离；部分年度未列 General Chair | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+|---|---|---|---|---:|---|---|---|---|---|---|---|---|---|
+| APSEC | C | 2022-2028 | [conf-c-apsec](./conf-c-apsec/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering/SEIP 代表人物；见根 README §5 | 官方 track count 与 DBLP fallback 分离；IEEE proceedings URL 多数待补 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SEKE | C | 2022-2028 | [conf-c-seke](./conf-c-seke/README.md) | 7 | 已同步 P2 dated events | 覆盖 steering、2022--2026 chair / program chair 与 LLM / RE / formal special session 线索 | 官方 proceedings PDF 与 DBLP fallback 分离；2026 program/proceedings 未公布 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| EASE | C | 2022-2028 | [conf-c-ease](./conf-c-ease/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、AI Models/Data、Prompt-SE 与 Steering 代表人物 | ACM proceedings / DBLP fallback 分离；ACM DL 可能 WAF/403 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| MSR | C | 2022-2028 | [conf-c-msr](./conf-c-msr/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、Data&Tool、Mining Challenge 与 steering 代表人物 | Technical / Data&Tool / Challenge / Industry 分离；DBLP fallback 不写成 main count | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| RV | C | 2022-2028 | [conf-c-rv](./conf-c-rv/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering 与 runtime verification 代表人物 | Springer / DBLP fallback 分离；部分年度未列 General Chair | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 ### 9.4 PR-10 P1/P2 全局审计记录
@@ -430,16 +444,16 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 ## 14. PR-3 形式化 / 验证会议批量填充记录
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| FM | A | 2022-2028 | [conf-a-fm](./conf-a-fm/README.md) | 7 | 正式年度章节已同步 | 覆盖 FM 2026 chair / PC 与形式化方法代表人物；2027 organizer call 已降级为线索 | 2026 Springer Part I: 49 full + 2 short；2024/2023 待拆；2022/2025 无主会占位 | 🟡 部分核验 |
-| CAV | A | 2022-2028 | [conf-a-cav](./conf-a-cav/README.md) | 7 | 正式年度章节已同步 | 覆盖 CAV 2026 PC / verification 核心人员 | 2022 明确 40 full + 9 tool + 2 case；其他年度 proceedings / accepted 待拆 | 🟡 部分核验 |
-| VMCAI | B | 2022-2028 | [conf-b-vmcai](./conf-b-vmcai/README.md) | 7 | 正式年度章节已同步 | 覆盖 VMCAI 2026 organizing / steering 与 verification / abstract interpretation 学术线索 | 2026 dates / 2025 DBLP Part I/II 已入账，论文类别待拆 | 🟡 部分核验 |
-| ISSRE | B | 2022-2028 | [conf-b-issre](./conf-b-issre/README.md) | 7 | 正式年度章节已同步 | 覆盖 ISSRE 2026 General Chair、Research Program Committee Chair、Program Board / Artifact Evaluation Chair，并用官方 committee 页面支撑角色 | 2026 research track RES/PER/TAR 边界已写；abstract / paper deadline 均为 extended 后的 2026-04-24 AoE；历史 counts 待拆 | 🟡 部分核验 |
-| ICFEM | C | 2022-2028 | [conf-c-icfem](./conf-c-icfem/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICFEM 2026 Steering Committee、General Chair 与 Program Chair | 2022-2025 Springer/DBLP count：26/23/22/21；2026 待 accepted | 🟡 部分核验 |
-| SPIN | C | 2022-2028 | [conf-c-spin](./conf-c-spin/README.md) | 7 | 正式年度章节已同步 | 覆盖 SPIN 2025/2026 PC chair / steering 与 model checking 核心人员 | 2025=9 full，2024=14，2023=11；2022 8 full / 9 TOC 矛盾已标注 | 🟡 部分核验 |
-| ATVA | C | 2022-2028 | [conf-c-atva](./conf-c-atva/README.md) | 7 | 2022 dated events 已同步；2026-2028 未公布年度不造日期 | 覆盖 ATVA 2023/2024 organization 与 verification 核心人员 | 2022 使用独立年度主页与 Springer proceedings 口径；2026-2028 独立官方年页未公布 | 🟡 部分核验 |
-| ICST | C | 2022-2028 | [conf-c-icst](./conf-c-icst/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICST 2026 organizing / steering 与 testing 核心人员 | Research track 与 DBLP series-wide 已分开，历史 count 待拆 | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+| --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| FM | A | 2022-2028 | [conf-a-fm](./conf-a-fm/README.md) | 7 | 正式年度章节已同步 | 覆盖 FM 2026 chair / PC 与形式化方法代表人物；2027 organizer call 已降级为线索 | 2026 Springer Part I: 49 full + 2 short；2024/2023 待拆；2022/2025 无主会占位 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| CAV | A | 2022-2028 | [conf-a-cav](./conf-a-cav/README.md) | 7 | 正式年度章节已同步 | 覆盖 CAV 2026 PC / verification 核心人员 | 2022 明确 40 full + 9 tool + 2 case；其他年度 proceedings / accepted 待拆 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| VMCAI | B | 2022-2028 | [conf-b-vmcai](./conf-b-vmcai/README.md) | 7 | 正式年度章节已同步 | 覆盖 VMCAI 2026 organizing / steering 与 verification / abstract interpretation 学术线索 | 2026 dates / 2025 DBLP Part I/II 已入账，论文类别待拆 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ISSRE | B | 2022-2028 | [conf-b-issre](./conf-b-issre/README.md) | 7 | 正式年度章节已同步 | 覆盖 ISSRE 2026 General Chair、Research Program Committee Chair、Program Board / Artifact Evaluation Chair，并用官方 committee 页面支撑角色 | 2026 research track RES/PER/TAR 边界已写；abstract / paper deadline 均为 extended 后的 2026-04-24 AoE；历史 counts 待拆 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ICFEM | C | 2022-2028 | [conf-c-icfem](./conf-c-icfem/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICFEM 2026 Steering Committee、General Chair 与 Program Chair | 2022-2025 Springer/DBLP count：26/23/22/21；2026 待 accepted | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SPIN | C | 2022-2028 | [conf-c-spin](./conf-c-spin/README.md) | 7 | 正式年度章节已同步 | 覆盖 SPIN 2025/2026 PC chair / steering 与 model checking 核心人员 | 2025=9 full，2024=14，2023=11；2022 8 full / 9 TOC 矛盾已标注 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ATVA | C | 2022-2028 | [conf-c-atva](./conf-c-atva/README.md) | 7 | 2022 dated events 已同步；2026-2028 未公布年度不造日期 | 覆盖 ATVA 2023/2024 organization 与 verification 核心人员 | 2022 使用独立年度主页与 Springer proceedings 口径；2026-2028 独立官方年页未公布 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| ICST | C | 2022-2028 | [conf-c-icst](./conf-c-icst/README.md) | 7 | 正式年度章节已同步 | 覆盖 ICST 2026 organizing / steering 与 testing 核心人员 | Research track 与 DBLP series-wide 已分开，历史 count 待拆 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 ### 14.1 PR-3 踩坑记录
 
@@ -466,6 +480,11 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | ICST | 2025-2022 | DBLP 为 series-wide fallback | 不写主会 research count | 后续按 research program 拆 count |
 | 共享文件复审 | PR-2 / PR-3 / PR-4 / PR-5 / PR-6 / PR-7 / PR-8 / PR-9 | `GUIDE.md`、`SUMMARY.md`、`TIMELINE.md` 并行更新后，存在遗漏已建 venue、年度事件、期刊 rolling 表或 P2 neighboring events 的风险 | PR-10 当时合流分支已按“已核验事实不互删”原则保留 P0、期刊 rolling、PR-6 dated events、PR-7 special issue / empirical-quality facts、PR-8 QRS / TASE dated events、IST / SCP rolling facts 与 PR-9 P2 dated events，并重算为 39 个 venue / 273 个年度 README；PR #63 后当前总量另见 §9.5 的 42/294 审计记录 | 后续 PR-10 与任何 merge upstream 继续复查共享文件，避免覆盖既有事实 |
 
+### 14.3 外部索引待核验 / 风险记录
+
+| 对象 | 问题 | 当前处理 | 下一步 |
+|---|---|---|---|
+| 全库 | 2026-06-09 外部索引占位 | WoS / JCR / CAS / EI 真实结论尚未逐项核验；本轮仅建立列、模板与 venue 根 README 占位 | 后续按 [GUIDE.md](./GUIDE.md) §17 分批补证，所有 `❓` / `⏳` 必须回写本表 |
 
 ## 15. 更新日志
 
@@ -473,6 +492,8 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 12:13:06` | 修复外部索引实现复审问题：补齐 PR-9 P2 完成表 WoS/JCR/CAS/EI/索引核验列，并将全库外部索引待核验记录整理为正式风险表。 |
+| `2026-06-09 11:13` | 新增 WoS/JCR/CAS/EI/索引核验列与外部索引口径说明，并为后续 venue 分批补证建立全库待核验占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE / 待补风险。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 ASE Journal、CAiSE、ICECCS 完成表、统计、TIMELINE、滚动表、待补项和 CCF 证据等级口径，总量更新为 42/294（29 会议 / 13 期刊）。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：澄清 §1.1 最新事实刷新锚点是 venue facts 全闭环刷新时间，不等同于 GUIDE 文档更新时间。 |

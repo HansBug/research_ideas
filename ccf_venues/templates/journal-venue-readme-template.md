@@ -22,6 +22,19 @@
 | DBLP venue page | 待补（占位：DBLP_VENUE_URL；核验后改为 Markdown 链接） |
 | 当前默认调查范围 | `2022` 至当前年份 + 2；若更远未来年度已有官方信息也继续纳入 |
 
+### 1.1 索引与分区信息
+
+> 本节记录外部索引与分区事实。实例化时必须按 [GUIDE.md](../GUIDE.md) 的外部索引规则补证；若尚未核验，不得留空或脑补，应写 `❓` / `⚪` / `⏳` 等规范占位。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+
+| 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
+|---|---|---|---|---|
+| CCF | ❓ | 待核验 | CCF 官方目录 / 更新通知 | `yyyy-mm-dd hh:mm` |
+| WoS Collection | ❓ | 待核验 | Clarivate MJL / WoS；优先 ISSN / eISSN 精确检索 | `yyyy-mm-dd hh:mm` |
+| JCR Quartile | ❓ | 待核验 | JCR release year + category + rank + quartile + evidence URL | `yyyy-mm-dd hh:mm` |
+| CAS 分区 | ❓ | 待核验 | CAS 官方 / 历史版可追溯分区；需记录版本年份 | `yyyy-mm-dd hh:mm` |
+| EI / Compendex | ❓ | 待核验 | 官方 Compendex Source List snapshot / source type / sheet / coverage | `yyyy-mm-dd hh:mm` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表 | `yyyy-mm-dd hh:mm` |
+
 ## 2. Scope 与栏目
 
 - 官方 scope 摘要：待补。
@@ -91,4 +104,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 新增期刊 venue 外部索引与分区信息模板。 |
 | `yyyy-mm-dd hh:mm` | 初始化 `<JOURNAL>` 期刊 README。 |

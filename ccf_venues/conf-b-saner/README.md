@@ -1,6 +1,6 @@
 # SANER README
 
-> 信息更新时间：`2026-06-06 00:41`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -18,6 +18,19 @@
 | 官方 proceedings / paper list 总入口 | 逐年度使用 official program / publisher / DBLP fallback |
 | DBLP venue page | [DBLP SANER](https://dblp.org/db/conf/saner/index) |
 | 当前默认调查范围 | `2022` 至 `2028`；`2029+` 已检索，未发现可核验官方年度页 / CFP / important dates |
+
+### 1.1 索引与分区信息
+
+> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+
+| 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
+|---|---|---|---|---|
+| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
+| WoS / CPCI | ❓ | 待核验 | 会议不写作 SCI/JCR 期刊；仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录 | `待补` |
+| JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；若存在同名期刊必须另按期刊 venue 记录 | `待补` |
+| CAS 分区 | ⚪ | 不适用 | CAS 分区仅适用于期刊历史版分区证据；会议 venue 不填 CAS 区 | `待补` |
+| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 proceedings / book-series / source type / final coverage | `待补` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
 
 ## 2. Scope 与方向
 
@@ -89,6 +102,7 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：同步 SANER 2027 Research Track AoE / UTC-12h 时区到根表与维护备注。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：修正 SANER 2022 官方站为 HTTP 可访问入口，并显式记录 HTTPS 证书主机名不匹配风险。 |
 | `2026-06-05 17:35` | PR-6 初始化 SANER venue 根 README，新增 2022-2028 年度索引、核心 URL、核心人员情报、计数口径与待补记录。 |

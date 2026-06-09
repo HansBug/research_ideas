@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -689,12 +689,56 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 5. 若 CAiSE 2024 或 ICECCS 2024 只找到 DBLP / proceedings / 第三方 deadline，不得补写 abstract / submission / notification 等 official dates；会期可以由 proceedings record 支撑，但必须标明来源降级。
 6. Springer collections 进入 TIMELINE 前必须记录 collection 语义、状态、deadline 与本仓库相关性；弱相关 open collection 可留作观察线索，不必进入近期投稿重点，但不能把它写成已同步事实。
 
-## 17. 更新日志
+## 17. 外部索引与分区制度化规则
+
+外部索引与分区信息用于快速查阅 venue 的 WoS / JCR / CAS / EI 状态，但不得替代 CCF 分类，也不得替代官方 venue / 投稿事实。本节是后续维护的硬规则。
+
+### 17.1 来源优先级
+
+1. **CCF**：以 CCF 官方目录、官方更新 / 更名通知为主证据；镜像仅作差集筛查线索。
+2. **WoS / SCI 相关**：以 Clarivate MJL、Web of Science Core Collection、CPCI 官方入口为主证据；期刊优先用 ISSN / eISSN 精确检索，会议只可记录 CPCI-S / CPCI-SSH proceedings 证据，不得写成 JCR 期刊。
+3. **JCR Quartile**：以 Clarivate JCR 为主证据；必须记录 release year、metric/data year、category、rank、quartile、percentile、evidence URL 与 access note。多 category 必须逐条记录，SUMMARY 的 emoji 列只写派生 best quartile。
+4. **CAS / 中科院分区**：只记录中国科学院文献情报中心官方 / 历史版可追溯分区；必须记录版本年份、学科分类、来源 URL 与 access note。2026-03-27 之后应按历史版 / 停更口径处理，不写成实时官方分区。
+5. **EI / Compendex**：以 Elsevier / Engineering Village 官方 Compendex source list snapshot 为主证据；必须记录 source title、source type 原值、sheet、snapshot date、download/query date、publisher、ISSN/eISSN/ISBN、coverage / final coverage。
+
+### 17.2 emoji 列口径
+
+正式总表中的 emoji 列只写一个真实 emoji，不写“emoji + 中文”。
+
+| 维度 | 允许 emoji | 说明 |
+|---|---|---|
+| CCF | 🏆 / 🥈 / 🥉 / ⚪ / ❓ | CCF A/B/C/未列入/待核验 |
+| WoS / CPCI | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | 期刊集合 / 部分核验 / 会议卷 / 不适用或未查到 / 待核验 |
+| JCR | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | JCR Q1/Q2/Q3/Q4/不适用或无 JCR/待核验 |
+| CAS | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | CAS 1区/2区/3区/4区/不适用或未查到/待核验 |
+| EI / Compendex | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | source 级 / 部分核验 / proceedings 级 / 未查到或不适用 / 待核验 |
+| 索引核验 | 🟢 / 🟡 / 🔴 / ⏳ / ❓ | 官方证据齐全 / 部分核验 / 未找到 / 待人工核验 / 待启动 |
+
+JCR 与 CAS 都使用 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣`，具体含义由列名和口径表决定。不得在 emoji 列写 `JCR Q1`、`CAS 1区`、`1️⃣ JCR Q1` 或 `1️⃣ CAS 1区`。
+
+venue README 的 `emoji` 列与 `当前结论` 列职责分离：`emoji` 列只写单个编码；`当前结论` 列在占位阶段可写 `待核验`、`不适用`、`待启动` 等短文本，正式核验后替换为可读结论摘要。TIMELINE 的 `索引入口` 列允许在确实无法定位 venue 根 README 时临时写 `待补`；`索引核验` 列仍必须只写单个 emoji。
+
+### 17.3 文件同步要求
+
+1. 每个 venue 根 README 必须在 §1 基本信息之后维护 `### 1.1 索引与分区信息`，即使尚未核验，也要用 `❓` / `⚪` / `⏳` 显式占位。
+2. [SUMMARY.md](./SUMMARY.md) 的 venue 总表、P0/P1/P2 清单与批量填充记录必须包含 WoS / JCR / CAS / EI / 索引核验列。
+3. [TIMELINE.md](./TIMELINE.md) 的投稿事件表与期刊 rolling 表必须包含 `索引入口` 与 `索引核验` 列，链接到 venue 根 README 的索引小节，并用单 emoji 表示索引核验状态；不得在 TIMELINE 中展开 JCR/CAS/EI 细节。
+4. `templates/*venue-readme-template.md` 必须包含索引与分区信息模板，防止后续新 venue 漏字段。
+5. 所有 `❓`、`🟡`、`⏳`、`🔴` 条目必须同步进入 SUMMARY 的待核验 / 风险记录；不能只在 venue README 内部孤立标注。
+
+### 17.4 访问受限与缺证处理
+
+若 MJL、JCR、CAS、Engineering Village、publisher 或 source list 页面因订阅墙、WAF、403、登录页、动态页或证书问题不可达，应保留官方入口，写 `⏳ 待人工核验` 与 access note，不得用第三方站点补成既定事实。第三方站点只能作为发现线索。
+
+
+## 18. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 12:13:06` | 修复外部索引制度化复审问题：将外部索引规则独立为 §17，并补充 venue README `emoji` / `当前结论` 分工与 TIMELINE `索引入口` 占位边界。 |
+| `2026-06-09 11:13` | 新增外部索引与分区制度化规则，规定 WoS/JCR/CAS/EI 来源、emoji 列、SUMMARY/TIMELINE/venue README 同步要求与缺证处理。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：补充 CCF 官方 / 镜像证据等级、ASE Journal / CAiSE / ICECCS 的消歧、scope 边界、计数与 TIMELINE 同步规则。 |
 | `2026-06-07 11:25` | PR #62 final M 级 polish：补充 SUMMARY 最新事实刷新锚点更新条件、P0 默认 watchlist 交叉锚定，以及 TIMELINE 辅助列中 `⏳ 已检索未公布` 的合法使用边界。 |
 | `2026-06-07 11:10` | PR #62 实现后 review 修复：将冲突标记自查命令改为行首锚定，补充 TIMELINE §15 / SUMMARY §13 入口释义，并明确 `⏳ 已检索未公布` 不得进入 dated TIMELINE / Mermaid。 |

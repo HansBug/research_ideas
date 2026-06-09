@@ -1,6 +1,6 @@
 # SoSyM README
 
-> 信息更新时间：`2026-06-04 22:31`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -21,6 +21,19 @@
 | Articles in press / online first | [SoSyM online](https://www.sosym.org/online/) |
 | DBLP venue page | [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；`2029+` 已检索，未发现官方已公布年度卷期 |
+
+### 1.1 索引与分区信息
+
+> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+
+| 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
+|---|---|---|---|---|
+| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
+| WoS Collection | ❓ | 待核验 | 需按 ISSN / eISSN 在 Clarivate MJL / WoS 中核验 SCIE / SSCI / AHCI / ESCI 归属 | `待补` |
+| JCR Quartile | ❓ | 待核验 | 需记录 JCR release year、metric/data year、category、rank、quartile、percentile 与证据 URL | `待补` |
+| CAS 分区 | ❓ | 待核验 | 仅可记录中国科学院文献情报中心官方 / 历史版可追溯分区；需写版本年份与来源 | `待补` |
+| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 source title、source type、sheet、coverage | `待补` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
 
 ## 2. Scope 与栏目
 
@@ -98,6 +111,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-04 22:31` | 根据 deepseek reviewer 修复后复审意见，为 SoSyM 核心编辑人员表补齐 `核验等级 / 当前性` 列，并将 8 位核心人员显式标为 SoSyM 官方当前 roster 核验。 |
 | `2026-06-04 22:05` | 根据正式复审补充 SoSyM 年度 DBLP `entry article` baseline，并保留 publisher 交叉核验 caveat。 |
 | `2026-06-04 21:46` | 补充 SoSyM 当前核心编辑人员情报，覆盖 Editors-in-Chief、Associate Editor-in-Chief 和 Assistant Editors，并记录研究方向、近年论文入口和 P1-P4 相关性。 |
