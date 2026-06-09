@@ -33,7 +33,7 @@
 | JCR Quartile | ⏳ | 已检索未获可审计证据 | 待补（占位：JCR_EVIDENCE_URL；记录 release year、data year、category、rank、quartile、percentile） | `yyyy-mm-dd hh:mm` |
 | CAS 分区 | ⏳ | 已检索未获可审计证据 | 待补（占位：CAS_OFFICIAL_OR_INSTITUTIONAL_HISTORY_URL；记录历史版年份、学科、分区） | `yyyy-mm-dd hh:mm` |
 | EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISSN/eISSN、coverage） | `yyyy-mm-dd hh:mm` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表；证据链接不能只留在 PR comment | `yyyy-mm-dd hh:mm` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须在本 README 保留行级证据或 access note；跨 venue 共性风险再同步到 SUMMARY §13 合并待补表 | `yyyy-mm-dd hh:mm` |
 
 ## 2. Scope 与栏目
 

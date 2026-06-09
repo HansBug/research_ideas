@@ -30,7 +30,7 @@
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；如有同名期刊，另在 `journal-*` 目录核验 | `yyyy-mm-dd hh:mm` |
 | CAS 分区 | ⚪ | 不适用 | 会议 venue 默认不填 CAS 分区；CAS 仅用于期刊历史版分区 | `yyyy-mm-dd hh:mm` |
 | EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISBN/ISSN） | `yyyy-mm-dd hh:mm` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表；证据链接不能只留在 PR comment | `yyyy-mm-dd hh:mm` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须在本 README 保留行级证据或 access note；跨 venue 共性风险再同步到 SUMMARY §13 合并待补表 | `yyyy-mm-dd hh:mm` |
 
 ## 2. Scope 与方向
 

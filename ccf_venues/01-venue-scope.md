@@ -1,6 +1,6 @@
 # `ccf_venues/` 01-venue-scope
 
-> 信息更新时间：`2026-06-09 18:08:00`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 20:50:00`（Asia/Shanghai）
 
 ## 1. 文档用途
 
@@ -24,7 +24,7 @@
 
 ## 4. PR-5 冻结状态与后续执行合同
 
-截至 PR-5，P0-A 与 P0-B 共 22 个 venue 已完成基础建档与部分核验，后续 P0 只做事实维护与缺口补证，不再作为待建清单管理。P1/P2 扩展必须按下表执行；更完整的验收规则见 [SUMMARY.md](./SUMMARY.md) §9。
+截至 PR-5，P0-A 与 P0-B 共 22 个 venue 已完成基础建档与部分核验，后续 P0 只做事实维护与缺口补证，不再作为待建清单管理。P1/P2 扩展必须按下表执行；更完整的执行纪律见 [GUIDE.md](./GUIDE.md) §14.1。SUMMARY 只保留读者查阅总表，不再承载执行合同。
 
 | 子级 PR | 批次主题 | Venue ownership | 数量 | 默认年度 README | 前置条件 | 共享文件边界 |
 |---|---|---|---:|---:|---|---|
@@ -39,7 +39,7 @@
 1. PR-6~PR-9 不得静默新增合同外 venue；若 CCF 官方更名或确有强相关漏项，必须先更新本文档和 PR body，并附官方来源。
 2. 每个 PR final ready 前必须 merge upstream staging head；若发生冲突，必须复审双方 facts、TIMELINE、Mermaid、更新日志与待补记录均未被覆盖。PR-8 可按本表修订后的并行合同开工，但 final ready 前必须确认已吸收当时上游已有的 PR-6 / PR-7 经验；PR-9 final ready 前必须吸收已合入 PR-6 / PR-7 / PR-8 的适用踩坑规则；不得只看 venue 清单跳过上游经验。
 3. PR-6 / PR-7 / PR-8 作为 sibling PR 同时 open 时，共享文件统计默认是各自 branch-local 口径；任一 sibling 若不是第一个合入上游，必须在 merge upstream 后把统计与 facts 重算为组合口径。
-4. [SUMMARY.md](./SUMMARY.md) 是完成状态总账；本文档只冻结范围和 ownership，不把待建 venue 写成已完成事实。
+4. [SUMMARY.md](./SUMMARY.md) 是读者查阅总账；本文档冻结范围和 ownership，不把待建 venue 写成已完成事实，也不把执行合同回写到 SUMMARY 正文。
 
 ## 5. P0-A 强相关主线 venue
 
@@ -108,7 +108,7 @@ PR #63 是在 PR #35 / PR #62 已合入后的用户指定补链，不属于 PR-6
 |---|---|---|---|---|---|
 | `journal-b-ase` | Automated Software Engineering Journal | 期刊 | 🥈 | 自动化软工期刊，P1/P2/P4 强相关；补齐已有 ASE 会议之外的期刊入口。 | 与 `conf-a-ase` 严格消歧；常规投稿 rolling，只有 official collection deadline 进入 TIMELINE。 |
 | `conf-b-caise` | CAiSE | 会议 | 🥈 | Advanced Information Systems Engineering、概念建模、需求、MDE、过程与企业建模可承载 LLM-assisted modeling。 | 只作为 IS / conceptual modeling / MDE 分流，不写成泛 SE 主战场。 |
-| `conf-c-iceccs` | ICECCS | 会议 | 🥉 | 复杂系统工程、requirements/specification、V&V、formal engineering methods 与 P2/P3 工程案例贴合。 | C 类补充观察；不升级为 P0/P1 主投目标，2024/2027/2028 缺口不得伪造。 |
+| `conf-c-iceccs` | ICECCS | 会议 | 🥉 | 复杂系统工程、requirements/specification、V&V、formal engineering methods 与 P2/P3 工程案例贴合。 | 🥉 档补充观察；不升级为 P0/P1 主投目标，2024/2027/2028 缺口不得伪造。 |
 
 ## 9. 更新日志
 
@@ -116,6 +116,8 @@ PR #63 是在 PR #35 / PR #62 已合入后的用户指定补链，不属于 PR-6
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 20:50:00` | 同步 CCF emoji 口径：将扩展候选边界中的旧字母等级表述改为 🥉 档补充观察，避免与正式 CCF emoji 列混淆。 |
+| `2026-06-09 20:42:00` | 同步 SUMMARY 单表化纪律：P1/P2 ownership 与执行合同继续由本文和 GUIDE 承载，不再指向 SUMMARY 正文旧小节。 |
 | `2026-06-09 18:08:00` | 修复 PR #91 subagent I 级反馈：将范围冻结表中的正式 `CCF` 列从旧式字母等级文本改为 🏆/🥈/🥉 emoji，避免与 SUMMARY / TIMELINE 等总账口径分裂。 |
 | `2026-06-07 12:47` | PR #63 增补 LLM4Modeling-SE 扩展候选：新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 venue，并明确其不回写为 PR-6~PR-10 原冻结合同。 |
 | `2026-06-06 00:16` | PR-10 全局审计执行：范围清单不新增 venue，继续确认 P2 邻近观察不升级为 P0/P1，完成状态由 SUMMARY 维护。 |
