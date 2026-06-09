@@ -319,13 +319,13 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 > PR-9 属于用户显式覆盖前置条件后的抢跑分支：P2 venue 只作为检索 / 投稿分流 / 社区画像观察，不升级为 P0/P1 主投目标。当前合流分支已在 PR-6 / PR-7 / PR-8 均合入上游后 merge 最新 staging head，并吸收适用于 P2 venue 的 [GUIDE.md](./GUIDE.md) / [SUMMARY.md](./SUMMARY.md) 踩坑规则。
 
-| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 |
-|---|---|---|---|---:|---|---|---|---|
-| APSEC | C | 2022-2028 | [conf-c-apsec](./conf-c-apsec/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering/SEIP 代表人物；见根 README §5 | 官方 track count 与 DBLP fallback 分离；IEEE proceedings URL 多数待补 | 🟡 部分核验 |
-| SEKE | C | 2022-2028 | [conf-c-seke](./conf-c-seke/README.md) | 7 | 已同步 P2 dated events | 覆盖 steering、2022--2026 chair / program chair 与 LLM / RE / formal special session 线索 | 官方 proceedings PDF 与 DBLP fallback 分离；2026 program/proceedings 未公布 | 🟡 部分核验 |
-| EASE | C | 2022-2028 | [conf-c-ease](./conf-c-ease/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、AI Models/Data、Prompt-SE 与 Steering 代表人物 | ACM proceedings / DBLP fallback 分离；ACM DL 可能 WAF/403 | 🟡 部分核验 |
-| MSR | C | 2022-2028 | [conf-c-msr](./conf-c-msr/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、Data/Tool、Mining Challenge 与 steering 代表人物 | Technical / Data&Tool / Challenge / Industry 分离；DBLP fallback 不写成 main count | 🟡 部分核验 |
-| RV | C | 2022-2028 | [conf-c-rv](./conf-c-rv/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering 与 runtime verification 代表人物 | Springer / DBLP fallback 分离；部分年度未列 General Chair | 🟡 部分核验 |
+| Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
+|---|---|---|---|---:|---|---|---|---|---|---|---|---|---|
+| APSEC | C | 2022-2028 | [conf-c-apsec](./conf-c-apsec/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering/SEIP 代表人物；见根 README §5 | 官方 track count 与 DBLP fallback 分离；IEEE proceedings URL 多数待补 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| SEKE | C | 2022-2028 | [conf-c-seke](./conf-c-seke/README.md) | 7 | 已同步 P2 dated events | 覆盖 steering、2022--2026 chair / program chair 与 LLM / RE / formal special session 线索 | 官方 proceedings PDF 与 DBLP fallback 分离；2026 program/proceedings 未公布 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| EASE | C | 2022-2028 | [conf-c-ease](./conf-c-ease/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、AI Models/Data、Prompt-SE 与 Steering 代表人物 | ACM proceedings / DBLP fallback 分离；ACM DL 可能 WAF/403 | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| MSR | C | 2022-2028 | [conf-c-msr](./conf-c-msr/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC、Data&Tool、Mining Challenge 与 steering 代表人物 | Technical / Data&Tool / Challenge / Industry 分离；DBLP fallback 不写成 main count | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
+| RV | C | 2022-2028 | [conf-c-rv](./conf-c-rv/README.md) | 7 | 已同步 P2 dated events | 覆盖 2022--2026 GC/PC/Steering 与 runtime verification 代表人物 | Springer / DBLP fallback 分离；部分年度未列 General Chair | 🟡 部分核验 | ❓ | ❓ | ❓ | ❓ | ❓ |
 
 
 ### 9.4 PR-10 P1/P2 全局审计记录
@@ -480,8 +480,11 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | ICST | 2025-2022 | DBLP 为 series-wide fallback | 不写主会 research count | 后续按 research program 拆 count |
 | 共享文件复审 | PR-2 / PR-3 / PR-4 / PR-5 / PR-6 / PR-7 / PR-8 / PR-9 | `GUIDE.md`、`SUMMARY.md`、`TIMELINE.md` 并行更新后，存在遗漏已建 venue、年度事件、期刊 rolling 表或 P2 neighboring events 的风险 | PR-10 当时合流分支已按“已核验事实不互删”原则保留 P0、期刊 rolling、PR-6 dated events、PR-7 special issue / empirical-quality facts、PR-8 QRS / TASE dated events、IST / SCP rolling facts 与 PR-9 P2 dated events，并重算为 39 个 venue / 273 个年度 README；PR #63 后当前总量另见 §9.5 的 42/294 审计记录 | 后续 PR-10 与任何 merge upstream 继续复查共享文件，避免覆盖既有事实 |
 
+### 14.3 外部索引待核验 / 风险记录
 
-| 全库 | 2026-06-09 外部索引占位 | WoS / JCR / CAS / EI 真实结论尚未逐项核验；本轮仅建立列、模板与 venue 根 README 占位 | 后续按 GUIDE §16.5 分批补证，所有 `❓` / `⏳` 必须回写本表 |
+| 对象 | 问题 | 当前处理 | 下一步 |
+|---|---|---|---|
+| 全库 | 2026-06-09 外部索引占位 | WoS / JCR / CAS / EI 真实结论尚未逐项核验；本轮仅建立列、模板与 venue 根 README 占位 | 后续按 [GUIDE.md](./GUIDE.md) §17 分批补证，所有 `❓` / `⏳` 必须回写本表 |
 
 ## 15. 更新日志
 
@@ -489,6 +492,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 12:13:06` | 修复外部索引实现复审问题：补齐 PR-9 P2 完成表 WoS/JCR/CAS/EI/索引核验列，并将全库外部索引待核验记录整理为正式风险表。 |
 | `2026-06-09 11:13` | 新增 WoS/JCR/CAS/EI/索引核验列与外部索引口径说明，并为后续 venue 分批补证建立全库待核验占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE / 待补风险。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 ASE Journal、CAiSE、ICECCS 完成表、统计、TIMELINE、滚动表、待补项和 CCF 证据等级口径，总量更新为 42/294（29 会议 / 13 期刊）。 |

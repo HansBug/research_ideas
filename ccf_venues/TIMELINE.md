@@ -70,7 +70,7 @@
 
 ### 3.1 索引入口列说明
 
-`索引入口` 列提供到 venue 根 README `### 1.1 索引与分区信息` 的跳转，`索引核验` 列只写单个 emoji（当前统一 `❓` 待启动）。TIMELINE 不展开 JCR / CAS / EI / WoS 细节；若某行暂时无法自动定位 venue 根 README，先写 `待补`，后续补证时按 [GUIDE.md](./GUIDE.md) §16.5 修正。
+`索引入口` 列提供到 venue 根 README `### 1.1 索引与分区信息` 的跳转，`索引核验` 列只写单个 emoji（当前统一 `❓` 待启动）。TIMELINE 不展开 JCR / CAS / EI / WoS 细节；若某行暂时无法自动定位 venue 根 README，先写 `待补`，后续补证时按 [GUIDE.md](./GUIDE.md) §17 修正。
 
 ## 4. 事件类型口径
 
@@ -1904,8 +1904,6 @@ gantt
 | ICSME | 2026-2028 / 2029+ | 2026 camera-ready 仍为 TBD；2027+ 未发现官方年度页 / CFP | 2026 年度页不预设 camera-ready；2027/2028 写 `⏳ 已检索未公布` | 后续复查 researchr / IEEE CFP / DBLP |
 | ICPC | 2026-2028 / 2029+ | 2026 DBLP / proceedings 尚未稳定公开；2027+ 未检到官方年度页 | 2026 只记录 official dates / HotCRP / program；future 年度占位 | 后续补 proceedings、DBLP 和 SC 人员细化 |
 | JSEP | 2022-2028 / 2029+ | Wiley Online Library CLI WAF/403；author guidelines、editorial board、volume / issue 需人工浏览器核验，Early View / articles in press 入口待定位 | 保留 Wiley 官方 URL；用 DBLP 2022-2025 `entry article` baseline；2026+ 不预设卷号 | 后续用浏览器核验 Wiley roster、投稿入口、Early View 与 future volume |
-
-
 | ASE Journal | 2026-2027 collections | Springer collections 中存在多个 project-relevant dated CFP，也有弱相关 CFP | 本 PR 只把 Ex-ASE / Low-Code / Repro @ SANER / Interplay / Code Review Quality / SBSE / APSEC collection 进入 TIMELINE；弱相关 CFP 不进近期重点 | 后续若官方状态变化或用户指定，再补年度页和 Mermaid |
 | CAiSE | 2024 | official annual site 当前未定位到可访问归档 | 仅由 DBLP / Springer proceedings record 支撑 conference dates；CFP / dates 仍待补 | 找到官方归档后再补 dated events |
 | ICECCS | 2024 | 候选 annual site CLI 404，proceedings / DBLP 年度页待复核 | 不写 official dates；只保留年度待补 | 后续人工浏览器 / archive / publisher 复核 |
@@ -1955,6 +1953,7 @@ gantt
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 12:13:06` | 修复外部索引实现复审问题：更新索引规则锚点为 GUIDE §17，并将 ASE Journal / CAiSE / ICECCS 待补风险行并回正式表格。 |
 | `2026-06-09 11:13` | 在投稿事件表和期刊 rolling 表新增 `索引入口` 与 `索引核验` 列，链接到 venue 根 README 的 WoS/JCR/CAS/EI 占位信息。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review：降级 ICECCS 2026 accepted-list 404 candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步年度表与 Mermaid 分片。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：同步 ASE Journal rolling / collection events、CAiSE 与 ICECCS dated events、PR-63 Mermaid 分片和待补记录。 |
