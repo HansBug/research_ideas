@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-09 14:20`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 14:35`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -747,7 +747,10 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 8. **source-list snapshot 存储纪律**：venue README 可记录本轮使用的官方 snapshot URL、下载日期、文件名、sheet 与行级字段；大型第三方 `xlsx` 不默认提交进仓库。若后续需要长期归档，应另用 Git LFS、外部 artifact 或专门数据目录，并在 [SUMMARY.md](./SUMMARY.md) 风险表记录 hash / 获取方式；不得因为本地 `/tmp` 文件存在就把它当成永久证据。
 9. **source-list 更新纪律**：README 中的 CDN `xlsx` 链接只代表本轮核验 snapshot；后续维护应先从 [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex) 重新进入 `View source list` 获取当期 latest，再决定是否沿用旧 snapshot。若 latest 与旧 snapshot 字段变化，必须回写本节并在更新日志说明差异。
 10. **外部索引列不得污染非索引合同表**：WoS / JCR / CAS / EI / 索引核验列只允许进入 venue 总表、P0/P1/P2 venue 清单、TIMELINE 索引入口或明确新增的索引表；不得覆盖 PR ownership、职责边界、数量、允许修改、禁止事项、依赖关系等非索引语义字段。自动脚本批量写表后必须抽查这些合同表。
-11. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
+11. **ICSE / ETAPS dry-run 证据解释纪律**：`Proceedings - International Conference on Software Engineering` 这类 Compendex book-series 行、某一年 ICSE `NON-SERIALS` proceedings 行，以及 LNCS / LNBIP 等 Springer book-series 行，只能支撑 proceedings/book-series 级事实或 discovery 线索；不得把它们写成整个会议 venue 已获 EI source-level 认证。`索引核验` 行也必须同步写清这一点，避免读者只看总表 emoji 后误读。
+12. **Clarivate / CAS access note 纪律**：MJL / collection download / journal profile、JCR product record、fenqubiao 历史分区或 API 若需要 free login、product login、机构账号、IP 或 user/password，本轮只能保留官方入口与 access note；裸 GET 得到 SPA 壳页或登录页不能作为单刊 WoS/JCR/CAS 结论证据。
+13. **publisher page 交叉证据边界**：ScienceDirect、Wiley、Springer、IEEE 等 publisher 页面若显示 abstracting/indexing、impact factor 或 SCIE 字样，可作为交叉验证或 discovery note；但在未取得 Clarivate / CAS 行级记录前，不得把 JCR quartile 或 CAS 分区从 `⏳` 升级为最终分区事实。
+14. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
 
 ## 18. 更新日志
 
@@ -755,6 +758,7 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 14:35:00` | 吸收 dry-run 证据复核：补充 ICSE proceedings / ETAPS LNCS book-series 不得升级为 venue-level EI 事实，并明确 MJL/JCR/CAS 登录壳页与 publisher 交叉证据边界。 |
 | `2026-06-09 14:20:00` | 吸收 PR #91 实现 review C/M 级反馈：补充 source-list snapshot 存储与更新纪律，并禁止外部索引列覆盖 PR ownership 等非索引合同字段。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：新增证据链接落点、Compendex source list、Clarivate/JCR/CAS 缺证降级与 reviewer 复核纪律。 |
 | `2026-06-09 12:13:06` | 修复外部索引制度化复审问题：将外部索引规则独立为 §17，并补充 venue README `emoji` / `当前结论` 分工与 TIMELINE `索引入口` 占位边界。 |

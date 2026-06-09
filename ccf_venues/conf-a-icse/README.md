@@ -1,6 +1,6 @@
 # ICSE README
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 14:35`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -29,8 +29,8 @@
 | WoS / CPCI | ⏳ | 待人工核验 CPCI / proceedings 收录；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate Master Journal List](https://mjl.clarivate.com/search-results) 为官方入口；本轮未取得可审计单会议 CPCI-S / CPCI-SSH 行级结果，后续需按年度 proceedings / ISBN / publisher 卷次复核 | `2026-06-09 13:52` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
-| EI / Compendex | 🟠 | 官方 Compendex `NON-SERIALS` 命中代表性 proceedings 条目；只按 proceedings-level 记录，不代表整个会议 series 长期 source-level | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`，sheet `NON-SERIALS`，代表行 Source title `Proceedings - 2017 IEEE/ACM 39th International Conference on Software Engineering, ICSE 2017`，Source type `Proceeding` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | JCR / CAS 不适用，EI 已有官方 source-list 级证据或线索；WoS / CPCI 仍待人工核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 13:52` |
+| EI / Compendex | 🟠 | 官方 Compendex 命中 ICSE proceedings / book-series 证据，但只按 proceedings/book-series 级记录；不代表整个 ICSE venue 或长期 series 已获 EI source-level 认证 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`：sheet `SERIALS` 行 `Proceedings - International Conference on Software Engineering`，Source type `Book-Series`，ISSN `02705257`；sheet `NON-SERIALS` 代表行 `Proceedings - 2017 IEEE/ACM 39th International Conference on Software Engineering, ICSE 2017`，Source type `Proceeding`，ISBN13 `9781538638682` | `2026-06-09 14:35` |
+| 索引核验 | 🟡 | JCR / CAS 不适用；EI 仅有 proceedings/book-series 级证据或线索，不能升级为 venue-level 最终事实；WoS / CPCI 仍待人工核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 14:35` |
 
 ## 2. Scope 与方向
 
@@ -109,6 +109,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 14:35:00` | 按实现复审收紧 EI 口径：ICSE 仅有 Compendex proceedings/book-series 级证据，不得误读为 venue-level EI source 事实。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Research Track 页面，将 ICSE 2027 根表 abstract / submission / notification 精确到 `23:59:59 AoE / UTC-12h`。 |
 | `2026-06-04 22:20` | 补 Andrea Zisman，统一 ICSE 论文数量单元格口径，并回填 ICSE 2027 关键日期。 |
