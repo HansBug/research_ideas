@@ -9,7 +9,7 @@
 | 缩写 | ICECCS |
 | 全称 | International Conference on Engineering of Complex Computer Systems |
 | 类型 | 会议 |
-| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文待人工浏览器复核） |
+| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文未获公开可审计正文） |
 | CCF 等级 | C（官方入口已定位；`ccf.atom.im` 仅作非官方机器检索线索） |
 | 出版方 | IEEE CPS / IEEE Xplore（2022/2023）；Springer LNCS 线索（2025/2026）；2024 待复核 |
 | 官方 series page | 待补（未发现稳定 official series page；年度事实以年度主页为准） |
@@ -21,16 +21,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节在 PR #91 中从 PR #90 占位推进为“证据链优先”的真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。会议 venue 不写作 SCI/JCR/CAS 期刊，也不得继承同名期刊的分区。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。会议 venue 不写作 SCI/JCR/CAS 期刊，也不得继承同名期刊的分区。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🟡 | 沿用本库 CCF C 级；官方目录入口已定位，单条目仍需浏览器行级复核 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本 PR 不重新定义 CCF scope，只保留可点击官方基线入口 | `2026-06-09 13:52` |
-| WoS / CPCI | ⏳ | 待人工核验 CPCI / proceedings 收录；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate Master Journal List](https://mjl.clarivate.com/search-results) 为官方入口；本轮未取得可审计单会议 CPCI-S / CPCI-SSH 行级结果，后续需按年度 proceedings / ISBN / publisher 卷次复核 | `2026-06-09 13:52` |
+| CCF | 🥉 | CCF C 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
-| EI / Compendex | 🟠 | 官方 Compendex `NON-SERIALS` 命中代表性 proceedings 条目；只按 proceedings-level 记录，不代表整个会议 series 长期 source-level | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`，sheet `NON-SERIALS`，代表行 Source title `Proceedings - 2012 IEEE 17th International Conference on Engineering of Complex Computer Systems, ICECCS 2012`，Source type `Proceeding` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | JCR / CAS 不适用，EI 已有官方 source-list 级证据或线索；WoS / CPCI 仍待人工核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 13:52` |
+| EI / Compendex | 🟠 | 官方 Compendex `NON-SERIALS` 命中代表性 proceedings 条目；只按 proceedings-level 记录，不代表整个会议 series 长期 source-level | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `NON-SERIALS`，代表行 Source title `Proceedings - 2012 IEEE 17th International Conference on Engineering of Complex Computer Systems, ICECCS 2012`，Source type `Proceeding` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | JCR / CAS 不适用；EI 证据按本表 source-list / proceedings / book-series 级别解释；WoS / CPCI 已检索未获单会议行级证据 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；reviewer 需复核本节链接与 source-list 字段，尤其不能把 book-series 线索升级为 venue-level EI 事实 | `2026-06-09 16:20` |
 
 ## 2. Scope 与方向
 
@@ -98,11 +98,11 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态待人工浏览器复核。 |
+| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态未获公开可审计正文。 |
 | 非官方 CCF 镜像线索 | [ccf.atom.im](https://ccf.atom.im/) | `2026-06-07 12:47` | 仅作机器检索 / 差集筛查线索，不作为 CCF 官方事实。 |
 | Official annual pages | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) / [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) / [ICECCS 2023](https://www.irit.fr/iceccs2023/) / [ICECCS 2022](http://iceccs2022.xsrv.jp/) | `2026-06-07 12:47` | 2022/2023/2025/2026 年度 official chain 已定位；2024 official annual site 待补。 |
 | 2024 candidate | `https://cyprusconferences.org/iceccs2024/` | `2026-06-07 12:47` | 当前 CLI 返回 404 / page-not-found，不写作已核验官方主页。 |
-| DBLP fallback | [DBLP ICECCS](https://dblp.org/db/conf/iceccs/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback；IEEE / Springer proceedings 待人工浏览器或 publisher 复核。 |
+| DBLP fallback | [DBLP ICECCS](https://dblp.org/db/conf/iceccs/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback；IEEE / Springer proceedings 待 publisher 或公开证据复核。 |
 
 ## 9. TIMELINE.md 同步提示
 

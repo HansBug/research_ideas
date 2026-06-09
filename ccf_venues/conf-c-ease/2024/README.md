@@ -22,7 +22,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://conf.researchr.org/home/ease-2024) | ACM DL 正文需浏览器核验。 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://conf.researchr.org/home/ease-2024) | ACM DL 正文未获公开可审计正文。 | `2026-06-05 17:23` |
 | CFP / Call for Papers | [CFP / track](https://conf.researchr.org/track/ease-2024/ease-2024-papers) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/ease-2024) | 可与 CFP 同页 | `2026-06-05 17:23` |
 | Submission system | [Submission](https://easychair.org/conferences/?conf=ease2024) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |

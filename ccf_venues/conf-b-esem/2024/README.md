@@ -25,7 +25,7 @@
 | 年度主页 | [ESEIW 2024](https://conf.researchr.org/home/esem-2024) | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 17:23` |
 | CFP / Call for Papers | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) | Technical Track / Technical Papers 页面优先；其他 track 不替代主 track | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/esem-2024) | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 17:23` |
-| Submission system | [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | 2024 使用 EasyChair（esem24）；入口当前登录 / 归档状态待人工复核（2026 起记录为 HotCRP） | `2026-06-05 17:23` |
+| Submission system | [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | 2024 使用 EasyChair（esem24）；入口当前登录 / 归档状态未获公开可审计正文（2026 起记录为 HotCRP） | `2026-06-05 17:23` |
 | Tracks / program | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) | ESEIW umbrella 下含 Technical、Emerging Results / Vision、Registered Reports、SEIP / IGC、Journal First、IDoESE、ISERN 等 track；计数时必须分开。 | `2026-06-05 17:23` |
 | Accepted papers / paper list | [Program](https://conf.researchr.org/program/esem-2024/program-esem-2024/) | 已结束年度优先 official program；DBLP 仅作 fallback | `2026-06-05 17:23` |
 | Proceedings | 待补（DBLP 年度页作论文名录 fallback） | 历史年度 publisher proceedings 入口仍待复核；DBLP 仅作论文名录 / 计数 fallback，不替代出版商入口 | `2026-06-05 17:23` |
@@ -76,7 +76,7 @@
 |---|---|---|---|
 | 官方年度主页 | [ESEIW 2024](https://conf.researchr.org/home/esem-2024) | `2026-06-05 17:23` | 已按 researchr 年度主页记录。 |
 | 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/esem-2024) | `2026-06-05 17:23` | 已按 ESEM Technical Track / Technical Papers 核心日期记录，具体时刻待补。 |
-| Submission system / track page | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) / [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | `2026-06-05 17:55` | Technical Track 页面给出历史 EasyChair submission link；登录归档状态待人工复核。 |
+| Submission system / track page | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) / [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | `2026-06-05 17:55` | Technical Track 页面给出历史 EasyChair submission link；登录归档状态未获公开可审计正文。 |
 | 官方 track / program | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) / [Program](https://conf.researchr.org/program/esem-2024/program-esem-2024/) | `2026-06-05 17:23` | Track / program 入口已记录；主 track 与其他 ESEIW track 需分开计数。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/esem-2024/program-esem-2024/) / 待补（DBLP 年度页作论文名录 fallback） | `2026-06-05 17:23` | 官方 program / DBLP fallback 已定位；出版商 proceedings 入口仍待复核。 |
 | DBLP fallback | [DBLP ESEM 2024](https://dblp.org/db/conf/esem/esem2024.html) | `2026-06-05 17:23` | DBLP 年度页已定位；数量尚待逐条复核。 |

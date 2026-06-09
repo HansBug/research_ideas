@@ -47,12 +47,12 @@
 本库新增 WoS / JCR / CAS / EI 维度用于快速查阅 venue 外部索引状态，但这些维度不替代 CCF scope。执行时必须遵守以下规则：
 
 1. WoS 期刊集合以 Clarivate MJL / Web of Science Core Collection 为主证据，记录 `SCIE / SSCI / AHCI / ESCI / CPCI-S / CPCI-SSH / 未核验 / 未收录 / 不适用`。
-2. JCR 分区只记录 `JCR Quartile`，必须绑定 release year、category、rank、quartile 与证据 URL；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`。
-3. CAS / 中科院分区只记录官方 / 历史版可追溯证据，必须写版本年份；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`。
+2. JCR 分区只记录 `JCR Quartile`，必须绑定 release year、category、rank、quartile 与证据 URL；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `⏳` / `🔴` / `❓`。
+3. CAS / 中科院分区只记录官方 / 历史版可追溯证据，必须写版本年份；emoji 列只写 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `⏳` / `🔴` / `❓`。
 4. EI / Compendex 以 Elsevier / Engineering Village 官方 source list snapshot 为主证据，记录 source title、source type 原值、sheet、snapshot 与 coverage。
-5. 所有缺证项写 `❓` / `⏳` / `⚪` 等规范占位，并同步登记到 [SUMMARY.md](./SUMMARY.md) 风险 / 待核验表；不得用第三方查询站作为唯一证据。
+5. 所有缺证项写 `❓` / `⏳` / `⚪` / `🔴` 等规范占位，并同步登记到 [SUMMARY.md](./SUMMARY.md) 风险 / 待核验表；JCR / CAS 官方 product 若受账号或机构权限限制，允许使用可点击、字段完整、逐刊逐版本的公开分区记录作为二级可审计证据，但必须在 venue README 说明“非 Clarivate/CAS 官方导出 / 公开官方行级记录未获可复现访问”，且 `索引核验` 不得升级为 `🟢`。不得把未执行公开核验的占位说法作为终态；公开路径能核则核，不能核则写明已检索未获公开可审计证据。
 
-补充证据等级口径：`https://ccf.atom.im/` 当前只能作为非官方机器检索镜像 / 差集筛查线索；其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文 / 第七版状态待人工浏览器核验”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
+补充证据等级口径：`https://ccf.atom.im/` 当前只能作为非官方机器检索镜像 / 差集筛查线索；其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文未取得可审计快照”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
 
 ## 4. 收录范围
 
@@ -117,7 +117,7 @@ PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”
 1. **venue 根 README 的年度汇总表必须直接挂核心 URL**：会议至少包含官方年度主页、CFP、Important Dates、submission system、program / accepted papers、proceedings、DBLP 年度页；期刊至少包含期刊主页、author guidelines、submission system、special issue / topical collection、volume / issue、online first / articles in press、DBLP 年度页。
 2. **年度 README 必须集中维护年度核心 URL 索引**：当年主页、CFP / dates、投稿系统、论文集 / 论文名录或期刊卷期入口、DBLP fallback 都要有独立表格字段，不能只散落在正文。
 3. **TIMELINE.md 的事件行必须保留可点击来源链**：每条 dated event 至少链接事件官方来源和本库年度 README；若会议已结束或论文入口已发布，应同时挂年度主页、论文集 / 论文名录链接。
-4. **缺失链接要显式标注**：未公布写 `未公布`，已检索未找到写 `⏳ 已检索未公布`，待人工补证写 `待补`；不得留空，也不得把第三方聚合页伪装成官方来源。
+4. **缺失链接要显式标注**：未公布写 `未公布`，已检索未找到写 `⏳ 已检索未公布`，待补证写 `待补`；不得留空，也不得把第三方聚合页伪装成官方来源。
 5. **链接优先级必须清楚**：官方页面优先；出版商页面用于 proceedings / volume issue；DBLP 只能作论文名录或计数 fallback；PR #5 和旧材料只作发现线索。
 6. **核心人员情报必须可追溯**：会议至少记录当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee 与本仓库强相关的领域权威；期刊至少记录 Editor-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 与相关 special issue guest editor，并给出官方角色页、个人主页或 DBLP / Google Scholar 等来源；期刊人员必须保留 `核验等级 / 当前性`。
 
@@ -190,6 +190,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 17:05:00` | PR #91 复核后同步：补充 JCR/CAS 二级镜像降权口径，并确认 CCF 等级 emoji 使用 🏆/🥈/🥉 而非统一黄色。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：补充外部索引证据链接入口，要求 venue README 行级证据、SUMMARY/TIMELINE/GUIDE 同步和缺证降级。 |
 | `2026-06-09 11:13` | 制度化 WoS/JCR/CAS/EI 外部索引入口，明确其不替代 CCF 分类，并要求 SUMMARY/TIMELINE/venue README 同步索引占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review 的 ICECCS 2026 / CAiSE 2023 时间线问题：降级 ICECCS 2026 404 accepted-list candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE。 |

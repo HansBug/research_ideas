@@ -26,7 +26,7 @@
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
 | CCF | ❓ | 待核验 | 待补（占位：CCF_OFFICIAL_URL；核验后改为 Markdown 链接 + CCF 等级证据） | `yyyy-mm-dd hh:mm` |
-| WoS / CPCI | ⏳ | 待人工核验 | 待补（占位：CLARIVATE_CPCI_OR_MJL_URL；会议仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录） | `yyyy-mm-dd hh:mm` |
+| WoS / CPCI | ⏳ | 已检索未获可审计证据 | 待补（占位：CLARIVATE_CPCI_OR_MJL_URL；会议仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录） | `yyyy-mm-dd hh:mm` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；如有同名期刊，另在 `journal-*` 目录核验 | `yyyy-mm-dd hh:mm` |
 | CAS 分区 | ⚪ | 不适用 | 会议 venue 默认不填 CAS 分区；CAS 仅用于期刊历史版分区 | `yyyy-mm-dd hh:mm` |
 | EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISBN/ISSN） | `yyyy-mm-dd hh:mm` |

@@ -52,7 +52,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-37706-8) |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/cav/index.html) |
-| 计数口径 | 旧站路径需人工复核；不要把 workshop 混入主会。 |
+| 计数口径 | 旧站路径未获公开可审计正文；不要把 workshop 混入主会。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -70,7 +70,7 @@
 
 ## 8. 待补 / 风险记录
 
-- 旧站路径需人工复核；不要把 workshop 混入主会。
+- 旧站路径未获公开可审计正文；不要把 workshop 混入主会。
 
 ## 9. TIMELINE.md 同步提示
 

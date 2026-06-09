@@ -22,7 +22,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 待人工确认。 | `2026-06-07 12:47` |
+| 年度主页 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 需公开可审计证据确认。 | `2026-06-07 12:47` |
 | CFP / Call for Papers | [Submission and Publication](https://iceccs2025-hangzhou.github.io/#submissionandpublication) | 未公布或待补时不得用第三方页面替代 | `2026-06-07 12:47` |
 | Important Dates | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | 可与 CFP 同页 | `2026-06-07 12:47` |
 | Submission system | [EasyChair ICECCS 2025](https://easychair.org/conferences/?conf=iceccs2025) | 投稿系统不能替代 CFP / dates / accepted papers | `2026-06-07 12:47` |
@@ -39,7 +39,7 @@
 | Notification | 2025-04-04 待补时刻 AoE | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | 官方只给日期时写 `待补时刻`。 |
 | Camera-ready | 2025-05-02 待补时刻 AoE | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | 未公布写待补，不反推。 |
 | Conference dates | 2025-07-02..2025-07-04 UTC+8 | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | 有会期则必须同步 TIMELINE；未公布不造。 |
-| Author registration deadline | 2025-05-15 23:59:59 AoE | [Registration text](https://iceccs2025-hangzhou.github.io/#registration) | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | 同页 early dates 出现 2025-05-02 冲突，待人工确认最终版本。 |
+| Author registration deadline | 2025-05-15 23:59:59 AoE | [Registration text](https://iceccs2025-hangzhou.github.io/#registration) | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | 同页 early dates 出现 2025-05-02 冲突，需公开可审计证据确认最终版本。 |
 
 ## 4. Tracks / 口径边界
 
@@ -69,14 +69,14 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | `2026-06-07 12:47` | author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 待人工确认。 |
+| 官方年度主页 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | `2026-06-07 12:47` | author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 需公开可审计证据确认。 |
 | 官方 CFP / Dates | [Submission and Publication](https://iceccs2025-hangzhou.github.io/#submissionandpublication) / [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | `2026-06-07 12:47` | 可核验则进入重要时间点；待补则不写 dated event。 |
 | 官方论文名录 / proceedings | [Program](https://iceccs2025-hangzhou.github.io/#program) / [Program PDF](https://iceccs2025-hangzhou.github.io/Program.pdf) / 官网说明 Springer LNCS；具体 Springer volume URL 待补 | `2026-06-07 12:47` | 论文数量仍需按 track / publisher / DBLP 拆分复核。 |
 | DBLP fallback | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
 
 ## 8. 待补 / 风险记录
 
-- author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 待人工确认。
+- author registration 同页存在 2025-05-02 与 2025-05-15 冲突，按 registration section 保留 2025-05-15 23:59:59 AoE 需公开可审计证据确认。
 - 如果后续定位到新的 official CFP、important dates、accepted papers 或 proceedings，必须同步根 README、本文、[../../TIMELINE.md](../../TIMELINE.md) 和 SUMMARY 待补记录。
 
 ## 9. TIMELINE.md 同步提示

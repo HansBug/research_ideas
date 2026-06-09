@@ -29,9 +29,9 @@
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
 | CCF | ❓ | 待核验 | 待补（占位：CCF_OFFICIAL_URL；核验后改为 Markdown 链接 + CCF 等级证据） | `yyyy-mm-dd hh:mm` |
-| WoS Collection | ⏳ | 待人工核验 | 待补（占位：CLARIVATE_MJL_URL；优先 ISSN / eISSN 精确检索并记录 collection 原值） | `yyyy-mm-dd hh:mm` |
-| JCR Quartile | ⏳ | 待人工核验 | 待补（占位：JCR_EVIDENCE_URL；记录 release year、data year、category、rank、quartile、percentile） | `yyyy-mm-dd hh:mm` |
-| CAS 分区 | ⏳ | 待人工核验 | 待补（占位：CAS_OFFICIAL_OR_INSTITUTIONAL_HISTORY_URL；记录历史版年份、学科、分区） | `yyyy-mm-dd hh:mm` |
+| WoS Collection | ⏳ | 已检索未获可审计证据 | 待补（占位：CLARIVATE_MJL_URL；优先 ISSN / eISSN 精确检索并记录 collection 原值） | `yyyy-mm-dd hh:mm` |
+| JCR Quartile | ⏳ | 已检索未获可审计证据 | 待补（占位：JCR_EVIDENCE_URL；记录 release year、data year、category、rank、quartile、percentile） | `yyyy-mm-dd hh:mm` |
+| CAS 分区 | ⏳ | 已检索未获可审计证据 | 待补（占位：CAS_OFFICIAL_OR_INSTITUTIONAL_HISTORY_URL；记录历史版年份、学科、分区） | `yyyy-mm-dd hh:mm` |
 | EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISSN/eISSN、coverage） | `yyyy-mm-dd hh:mm` |
 | 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表；证据链接不能只留在 PR comment | `yyyy-mm-dd hh:mm` |
 

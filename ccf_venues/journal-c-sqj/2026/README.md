@@ -79,7 +79,7 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本年度 2026-03-30 SQJ AI-Driven World deadline 已作为历史 closed collection event 同步至 [../../TIMELINE.md](../../TIMELINE.md)；日期仍需后续用官方归档或浏览器复核。
+- 本年度 2026-03-30 SQJ AI-Driven World deadline 已作为历史 closed collection event 同步至 [../../TIMELINE.md](../../TIMELINE.md)；日期仍需后续用官方归档或公开可审计复核。
 
 ## 9. 更新日志
 

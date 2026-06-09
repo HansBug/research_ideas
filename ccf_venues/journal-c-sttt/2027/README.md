@@ -26,7 +26,7 @@
 | Journal homepage | [Springer STTT](https://link.springer.com/journal/10009) | Springer 官方入口 | `2026-06-05 11:58` |
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | development / verification tools、formal approaches、technology transfer 口径 | `2026-06-05 11:58` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines) | single-blind peer review；special / guest-edited issue 同样走期刊 peer review | `2026-06-05 11:58` |
-| Submission system | [Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | Springer `Submit your manuscript` 直链；Equinocs 是 SPA，登录后期刊选项需人工浏览器复核 | `2026-06-05 11:58` |
+| Submission system | [Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | Springer `Submit your manuscript` 直链；Equinocs 是 SPA，登录后期刊选项未获公开可审计正文 | `2026-06-05 11:58` |
 | Special issue / topical collection CFP | 无已知 | 已查 [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072)，未发现 2027 active dated CFP | `2026-06-05 11:58` |
 | Volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues) | 未发现 2027 年度卷期 | `2026-06-05 12:52` |
 | Articles in press / online first | [Springer online first](https://link.springer.com/journal/10009/online-first)（未发现可归档到 2027 的年度入口） | 已查 [Springer online first](https://link.springer.com/journal/10009/online-first)，未发现可归档到 2027 的年度入口 | `2026-06-05 11:58` |
@@ -69,7 +69,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 期刊主页 / scope | [Springer STTT](https://link.springer.com/journal/10009)；[Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | `2026-06-05 11:58` | 官方入口与 scope 可用。 |
-| Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines)；[Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | `2026-06-05 11:58` | 投稿指南与 Equinocs 入口可用；Equinocs 页面命令行只显示 loading 壳，需人工浏览器复核登录后流程。 |
+| Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines)；[Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | `2026-06-05 11:58` | 投稿指南与 Equinocs 入口可用；Equinocs 页面命令行只显示 loading 壳，未获公开可审计正文登录后流程。 |
 | Special issue / journal updates | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | `2026-06-05 11:58` | 未发现 2027 active dated CFP。 |
 | Volume / issue / online first | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues)；[Springer online first](https://link.springer.com/journal/10009/online-first) | `2026-06-05 11:58` | 未发现 2027 年度卷期 / online-first 年度入口。 |
 | DBLP fallback | [DBLP STTT](https://dblp.org/db/journals/sttt/index.html) | `2026-06-05 11:58` | 未发现 2027 年度页。 |

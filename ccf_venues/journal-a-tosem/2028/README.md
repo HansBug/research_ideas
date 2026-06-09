@@ -24,7 +24,7 @@
 |---|---|---|---|
 | Journal homepage | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | ACM 官方入口 | `2026-06-04 21:15` |
 | Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | TOSEM-specific author guidelines；ACM DL 动态访问可能受限 | `2026-06-04 21:15` |
-| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍需人工点击 ACM DL TOSEM Submit Manuscript 当前页确认 | `2026-06-04 21:15` |
+| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍待 ACM DL TOSEM Submit Manuscript 当前页给出公开可审计证据 | `2026-06-04 21:15` |
 | Special issue / topical collection CFP | 无已知 | 未发现 2028 TOSEM dated special issue | `2026-06-04 21:15` |
 | Volume / issue archive | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / DBLP TOSEM，未发现 2028 年度卷期 | `2026-06-04 21:15` |
 | Articles in press / online first | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / Just Accepted，未发现 2028 年度入口 | `2026-06-04 21:15` |
@@ -65,7 +65,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 官方入口可用。 |
-| Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | Rolling submission 入口按 TOSEM ScholarOne 候选入口记录；canonical 入口待 ACM DL 当前页人工确认。 |
+| Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | Rolling submission 入口按 TOSEM ScholarOne 候选入口记录；canonical 入口待 ACM DL 当前页公开可审计确认。 |
 | Special issue / topical collection | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 未发现 2028 dated special issue。 |
 | Volume / issue / online first | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 未发现 2028 年度卷期。 |
 | DBLP fallback | [DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html) | `2026-06-04 21:15` | 未发现 2028 年度页。 |

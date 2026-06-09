@@ -21,16 +21,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节在 PR #91 中从 PR #90 占位推进为“证据链优先”的真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。会议 venue 不写作 SCI/JCR/CAS 期刊，也不得继承同名期刊的分区。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。会议 venue 不写作 SCI/JCR/CAS 期刊，也不得继承同名期刊的分区。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🟡 | 沿用本库 CCF B 级；官方目录入口已定位，单条目仍需浏览器行级复核 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本 PR 不重新定义 CCF scope，只保留可点击官方基线入口 | `2026-06-09 13:52` |
-| WoS / CPCI | ⏳ | 待人工核验 CPCI / proceedings 收录；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate Master Journal List](https://mjl.clarivate.com/search-results) 为官方入口；本轮未取得可审计单会议 CPCI-S / CPCI-SSH 行级结果，后续需按年度 proceedings / ISBN / publisher 卷次复核 | `2026-06-09 13:52` |
+| CCF | 🥈 | CCF B 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
-| EI / Compendex | 🟠 | 官方 Compendex `NON-SERIALS` 命中代表性 proceedings 条目；只按 proceedings-level 记录，不代表整个会议 series 长期 source-level | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`，sheet `NON-SERIALS`，代表行 Source title `ESEM 2010 - Proceedings of the 2010 ACM-IEEE International Symposium on Empirical Software Engineering and Measurement`，Source type `Proceeding` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | JCR / CAS 不适用，EI 已有官方 source-list 级证据或线索；WoS / CPCI 仍待人工核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 13:52` |
+| EI / Compendex | 🟠 | 官方 Compendex `NON-SERIALS` 命中代表性 proceedings 条目；只按 proceedings-level 记录，不代表整个会议 series 长期 source-level | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `NON-SERIALS`，代表行 Source title `ESEM 2010 - Proceedings of the 2010 ACM-IEEE International Symposium on Empirical Software Engineering and Measurement`，Source type `Proceeding` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | JCR / CAS 不适用；EI 证据按本表 source-list / proceedings / book-series 级别解释；WoS / CPCI 已检索未获单会议行级证据 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；reviewer 需复核本节链接与 source-list 字段，尤其不能把 book-series 线索升级为 venue-level EI 事实 | `2026-06-09 16:20` |
 
 ## 2. Scope 与方向
 
@@ -40,7 +40,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 
 | Project | 相关性 | 说明 |
 |---|---|---|
-| P1 状态机建模 | 高 | 适合发表 LLM 生成状态机的实验评测、prompt / model / dataset 对比、人工评审一致性与误差分析。 |
+| P1 状态机建模 | 高 | 适合发表 LLM 生成状态机的实验评测、prompt / model / dataset 对比、公开证据评审一致性与误差分析。 |
 | P2 场景与性质生成 | 中 | 可支撑 verification scenario / property generation 的实证评估、benchmark 设计与度量指标。 |
 | P3 验证剖面与模型检查 | 中 | 可作为验证工具链实验设计、用户研究和可复现实验报告的投稿补链 venue。 |
 | P4 模型修复 | 中 | 可支撑 repair loop 的 ablation、human-in-the-loop 评估、缺陷分类和修复成效度量。 |
@@ -54,7 +54,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 | Latest year homepage | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | `home/esem-2026` 会跳转到 `home/eseiw-2026` | `2026-06-05 17:23` |
 | CFP / Call for Papers | [ESEM - Technical Track 2026](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | 2022-2025 使用 `esem-YYYY` track URL；2026 使用 `eseiw-2026` track URL | `2026-06-05 17:23` |
 | Important Dates | [ESEIW 2026 dates](https://conf.researchr.org/dates/eseiw-2026) | 2022-2025 使用 `dates/esem-YYYY` | `2026-06-05 17:23` |
-| Submission system | [HotCRP esem26](https://esem26.hotcrp.com) | 2022-2025 历史投稿入口已在年度页记录为 EasyChair；归档登录状态仍需人工复核 | `2026-06-05 17:23` |
+| Submission system | [HotCRP esem26](https://esem26.hotcrp.com) | 2022-2025 历史投稿入口已在年度页记录为 EasyChair；归档登录状态仍未获公开可审计正文 | `2026-06-05 17:23` |
 | Program / accepted papers | 逐年度 program 页面；当前最新已结束年度见 [ESEIW 2025 Program](https://conf.researchr.org/program/esem-2025/program-esem-2025/) | 已结束年度优先 official program；数量仍需 DBLP / proceedings 复核 | `2026-06-05 17:23` |
 | Proceedings | [Dagstuhl LIPIcs FAQ 2026](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy) | 2026 官方说明出版和开放科学口径发生变化；正式 proceedings 尚未公布 | `2026-06-05 17:23` |
 | DBLP venue | [DBLP ESEM](https://dblp.org/db/conf/esem/) | 仅作论文名录 / 计数 fallback；2026 DBLP 年度页未公开 | `2026-06-05 17:23` |

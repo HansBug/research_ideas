@@ -9,14 +9,14 @@
 | 缩写 | ASE Journal / Automated Software Engineering |
 | 全称 | Automated Software Engineering |
 | 类型 | 期刊 |
-| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文待人工浏览器复核） |
+| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文未获公开可审计正文） |
 | CCF 等级 | B（官方入口已定位；`ccf.atom.im` 仅作非官方机器检索线索） |
 | 出版商 | Springer / Springer Nature |
 | ISSN | 0928-8910（print）；1573-7535（electronic） |
 | 期刊主页 | [Springer Automated Software Engineering](https://link.springer.com/journal/10515) |
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/10515/aims-and-scope) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10515/submission-guidelines) |
-| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3)（具体登录流程待人工浏览器核验） |
+| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3)（具体登录流程未获公开可审计正文） |
 | Special issues / topical collections | [Springer collections](https://link.springer.com/journal/10515/collections) |
 | Volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/10515/volumes-and-issues) |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) |
@@ -26,16 +26,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节在 PR #91 中从 PR #90 占位推进为“证据链优先”的真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若没有可追溯单刊证据，宁可写 `⏳`，不得用第三方站点补成分区事实。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若使用 AbleSci / AIS 等公开镜像暂存分区，只能作为二级可审计证据，并必须在行内标注非 Clarivate/CAS 官方导出；`索引核验` 不得因此升级为 `🟢`。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🟡 | 沿用本库 CCF B 级；官方目录入口已定位，单条目仍需浏览器行级复核 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本 PR 不重新定义 CCF scope，只保留可点击官方基线入口 | `2026-06-09 13:52` |
-| WoS Collection | ⏳ | 待人工核验 Web of Science Core Collection 收录集合 | [Clarivate Master Journal List](https://mjl.clarivate.com/search-results) 为官方检索入口；本轮命令行仅确认 SPA 入口可访问，未取得可审计单刊 `SCIE/SSCI/AHCI/ESCI` 行级结果；后续用 ISSN / eISSN 通过浏览器或机构入口复核 | `2026-06-09 13:52` |
-| JCR Quartile | ⏳ | 待人工核验 2025 JCR 单刊 category / rank / quartile | [JCR 平台](https://jcr.clarivate.com/jcr/home)；[2025 JCR 发布说明](https://clarivate.com/news/clarivate-unveils-the-2025-journal-citation-reports/) 仅证明 release 存在，不证明本刊 quartile；需机构入口导出单刊 category、rank、quartile、percentile 后再改为 `1️⃣`--`4️⃣` | `2026-06-09 13:52` |
-| CAS 分区 | ⏳ | 待人工核验中科院历史版分区 | [中国科学院文献情报中心停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 证明 2026 起不再更新发布；本轮未获得本刊历史版官方行级分区，后续只可用官方 / 机构历史版证据补写 | `2026-06-09 13:52` |
-| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`，sheet `SERIALS`，Source title `Automated Software Engineering`，Source type `Journal`，ISSN `0928-8910`，EISSN `1573-7535`，Publisher `Springer` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | EI 已有官方 source-list 证据；WoS / JCR / CAS 仍待人工或机构入口核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 13:52` |
+| CCF | 🥈 | CCF B 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS Collection | 🟢 | Clarivate MJL ISSN 精确检索命中，Web of Science Core Collection = SCIE | [MJL ISSN exact search](https://mjl.clarivate.com/search-results?issn=0928-8910)；Clarivate MJL 页面核验显示 Exact Match / SCIE；[Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 作集合口径说明 | `2026-06-09 16:20` |
+| JCR Quartile | 2️⃣ | 2025 JCR：COMPUTER SCIENCE, SOFTWARE ENGINEERING, SCIE, Q2, 41/128 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=GDGQwp)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
+| CAS 分区 | 4️⃣ | 2025 中科院升级版：计算机科学大类 4区；计算机：软件工程小类 4区；2024 记录不同，后续刷新必须保留版本年份 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=GDGQwp)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
+| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `SERIALS`，Source title `Automated Software Engineering`，Source type `Journal`，ISSN `0928-8910`，EISSN `1573-7535`，Publisher `Springer` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；reviewer 应复核 MJL、Compendex source-list 与公开分区页三类链接是否支撑本行 | `2026-06-09 16:20` |
 
 ## 2. Scope 与栏目
 
@@ -74,7 +74,7 @@
 | Journal homepage | [Springer ASE Journal](https://link.springer.com/journal/10515) | 与 [ASE Conference](../conf-a-ase/README.md) 明确消歧 | `2026-06-07 12:47` |
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/10515/aims-and-scope) | Springer 首页摘要作补充 | `2026-06-07 12:47` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10515/submission-guidelines) | rolling 常规投稿 | `2026-06-07 12:47` |
-| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) | 具体登录 / article type 路由待人工浏览器核验 | `2026-06-07 12:47` |
+| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) | 具体登录 / article type 路由未获公开可审计正文 | `2026-06-07 12:47` |
 | Collections | [Springer collections](https://link.springer.com/journal/10515/collections) | 只把 project-relevant dated collection 同步进 TIMELINE | `2026-06-07 12:47` |
 | Volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/10515/volumes-and-issues) | 2022--2026 已有卷期；future 不预造 | `2026-06-07 12:47` |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) | continuous article publishing | `2026-06-07 12:47` |
@@ -104,7 +104,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态待人工浏览器复核。 |
+| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态未获公开可审计正文。 |
 | 非官方 CCF 镜像线索 | [ccf.atom.im](https://ccf.atom.im/) | `2026-06-07 12:47` | 仅作机器检索 / 差集筛查线索，不作为 CCF 官方事实。 |
 | Publisher homepage | [Springer Automated Software Engineering](https://link.springer.com/journal/10515) | `2026-06-07 12:47` | Springer 期刊入口、ISSN、submission、collections、volume / issue 与 editorial board 入口已定位。 |
 | DBLP fallback | [DBLP ASE Journal](https://dblp.org/db/journals/ase/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback / annual baseline；不得替代 publisher final count。 |

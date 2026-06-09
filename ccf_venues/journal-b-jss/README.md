@@ -15,7 +15,7 @@
 | ISSN | 0164-1212（print）；1873-1228（online） |
 | 期刊主页 | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) |
-| Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx)（CLI/landing 可能提示 `site under development`，待人工浏览器或登录流程再核验） |
+| Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx)（CLI/landing 可能提示 `site under development`，CLI/动态页/登录流程受限，未获公开可审计正文） |
 | Special issues / article collections | [ScienceDirect special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) |
 | Volume / issue archive | [ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues) |
 | Articles in press / online first | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) |
@@ -24,16 +24,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节在 PR #91 中从 PR #90 占位推进为“证据链优先”的真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若没有可追溯单刊证据，宁可写 `⏳`，不得用第三方站点补成分区事实。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若使用 AbleSci / AIS 等公开镜像暂存分区，只能作为二级可审计证据，并必须在行内标注非 Clarivate/CAS 官方导出；`索引核验` 不得因此升级为 `🟢`。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🟡 | 沿用本库 CCF B 级；官方目录入口已定位，单条目仍需浏览器行级复核 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本 PR 不重新定义 CCF scope，只保留可点击官方基线入口 | `2026-06-09 13:52` |
-| WoS Collection | ⏳ | 待人工核验 Web of Science Core Collection 收录集合 | [Clarivate Master Journal List](https://mjl.clarivate.com/search-results) 为官方检索入口；本轮命令行仅确认 SPA 入口可访问，未取得可审计单刊 `SCIE/SSCI/AHCI/ESCI` 行级结果；后续用 ISSN / eISSN 通过浏览器或机构入口复核 | `2026-06-09 13:52` |
-| JCR Quartile | ⏳ | 待人工核验 2025 JCR 单刊 category / rank / quartile | [JCR 平台](https://jcr.clarivate.com/jcr/home)；[2025 JCR 发布说明](https://clarivate.com/news/clarivate-unveils-the-2025-journal-citation-reports/) 仅证明 release 存在，不证明本刊 quartile；需机构入口导出单刊 category、rank、quartile、percentile 后再改为 `1️⃣`--`4️⃣` | `2026-06-09 13:52` |
-| CAS 分区 | ⏳ | 待人工核验中科院历史版分区 | [中国科学院文献情报中心停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 证明 2026 起不再更新发布；本轮未获得本刊历史版官方行级分区，后续只可用官方 / 机构历史版证据补写 | `2026-06-09 13:52` |
-| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本地 snapshot `compendex_source_list_2026-06-09.xlsx`，sheet `SERIALS`，Source title `Journal of Systems and Software`，Source type `Journal`，ISSN `0164-1212`，EISSN `-`，Publisher `Elsevier Inc.` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | EI 已有官方 source-list 证据；WoS / JCR / CAS 仍待人工或机构入口核验 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；后续 reviewer 需复核本节链接与 source-list 字段 | `2026-06-09 13:52` |
+| CCF | 🥈 | CCF B 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS Collection | 🟢 | Clarivate MJL ISSN 精确检索命中，Web of Science Core Collection = SCIE | [MJL ISSN exact search](https://mjl.clarivate.com/search-results?issn=0164-1212)；Clarivate MJL 页面核验显示 Exact Match / SCIE；[Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 作集合口径说明 | `2026-06-09 16:20` |
+| JCR Quartile | 1️⃣ | 2025 JCR best：Q1；Software Engineering Q1 23/128，Theory & Methods Q1 30/147 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=pPEbn5)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
+| CAS 分区 | 2️⃣ | 2025 中科院升级版：计算机科学大类 2区；软件工程 / 理论方法小类均 2区 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=pPEbn5)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
+| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `SERIALS`，Source title `Journal of Systems and Software`，Source type `Journal`，ISSN `0164-1212`，EISSN `-`，Publisher `Elsevier Inc.` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；reviewer 应复核 MJL、Compendex source-list 与公开分区页三类链接是否支撑本行 | `2026-06-09 16:20` |
 
 ## 2. Scope 与栏目
 
@@ -45,7 +45,7 @@
 
 ## 3. 核心编辑人员情报
 
-本节分离维护 ScienceDirect 当前长期 editorial roster 与 special issue / article collection guest editors：§3.1 只记录 [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) 可支撑的当前长期角色；§3.2 只记录具体 special issue / article collection 的 guest editor 线索，当前性限于对应 CFP，不等同于期刊长期 editorial leadership。研究方向与 project 关系为基于公开学术入口的归纳，需后续人工复核。
+本节分离维护 ScienceDirect 当前长期 editorial roster 与 special issue / article collection guest editors：§3.1 只记录 [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) 可支撑的当前长期角色；§3.2 只记录具体 special issue / article collection 的 guest editor 线索，当前性限于对应 CFP，不等同于期刊长期 editorial leadership。研究方向与 project 关系为基于公开学术入口的归纳，需后续公开可审计复核。
 
 ### 3.1 当前 editorial leadership / board roles
 
@@ -82,7 +82,7 @@
 | Journal homepage | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | [DBLP JSS](https://dblp.org/db/journals/jss/) 作 bibliographic fallback | `2026-06-05 17:21` |
 | Aims and scope | [ScienceDirect JSS homepage](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | scope 在 About the journal 中展开 | `2026-06-05 17:21` |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) | Elsevier / ScienceDirect 官方作者指南 | `2026-06-05 17:21` |
-| Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | CLI/landing 可能提示 `site under development`，需人工浏览器或登录流程再核验 | `2026-06-05 17:21` |
+| Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | CLI/landing 可能提示 `site under development`，CLI/动态页/登录流程受限，未获公开可审计正文 | `2026-06-05 17:21` |
 | Editorial board | [ScienceDirect editorial board](https://www.sciencedirect.com/journal/journal-of-systems-and-software/about/editorial-board) | 当前人员角色来源 | `2026-06-05 17:21` |
 | Special issues / article collections | [ScienceDirect special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) | 年度页展开 dated CFP | `2026-06-05 17:21` |
 | Volume / issue archive | [ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues) | DBLP volume set 与 publisher issue archive 需后续交叉核验 | `2026-06-05 17:21` |
@@ -112,7 +112,7 @@
 ## 8. TIMELINE.md 同步提示
 
 - 2025-11-15 `[JSS] Software Dependability: A Path Forward`、2026-03-15 `[JSS] AI for Software Architecting`、2026-09-30 `[JSS] AI Techniques for Performance / Reliability / Sustainability` 已作为 dated events 同步至 [../TIMELINE.md](../TIMELINE.md)。
-- `Editorial Manager` rolling submission 入口可作为期刊滚动投稿 / 未定日期入口候选，但提交系统 landing 仍需人工再核验。
+- `Editorial Manager` rolling submission 入口可作为期刊滚动投稿 / 未定日期入口候选，但提交系统 landing 仍需公开可审计证据补齐。
 
 ## 9. 更新日志
 
@@ -122,5 +122,5 @@
 |---|---|
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 19:01` | 最终复审修复：将长期 editorial roster 与 Software Dependability special issue guest editor 拆成 §3.1 / §3.2，避免专题角色被误读为长期 roster。 |
-| `2026-06-05 18:13` | PR-7 全局同步收口：确认 JSS special issue dated events 已同步至 TIMELINE / SUMMARY，并保留 ScienceDirect CLI/WAF 待浏览器核验口径。 |
+| `2026-06-05 18:13` | PR-7 全局同步收口：确认 JSS special issue dated events 已同步至 TIMELINE / SUMMARY，并保留 ScienceDirect CLI/WAF 未获公开可审计正文口径。 |
 | `2026-06-05 17:21` | 初始化 JSS 期刊 README，记录 ScienceDirect / Editorial Manager / DBLP 核心入口、2022-2028 年度汇总、special issue deadline、核心编辑人员情报与待同步风险。 |

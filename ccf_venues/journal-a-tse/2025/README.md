@@ -28,7 +28,7 @@
 | Special issue / topical collection CFP | 无已知 | [TSE 50th anniversary item](https://www.computer.org/publications/tech-news/insider-membership-news/tse-50-year-anniversary/) 仅作历史/纪念性信息，不是 CFP deadline | `2026-06-04 21:15` |
 | Volume / issue archive | [TSE archive](https://www.computer.org/csdl/journal/ts) | DBLP Vol. 51 可作年度落点 | `2026-06-04 21:15` |
 | Articles in press / online first | [TSE archive](https://www.computer.org/csdl/journal/ts) | Early Access 与正式卷期可能跨年 | `2026-06-04 21:15` |
-| Annual article list / publisher search | [TSE archive](https://www.computer.org/csdl/journal/ts) | 待人工过滤年度卷期 | `2026-06-04 21:15` |
+| Annual article list / publisher search | [TSE archive](https://www.computer.org/csdl/journal/ts) | 未获逐年公开可审计卷期列表 | `2026-06-04 21:15` |
 | DBLP 年度页 | [DBLP TSE Volume 51](https://dblp.org/db/journals/tse/tse51.html) | 年度计数 baseline | `2026-06-04 21:15` |
 
 ## 3. 投稿与出版节奏
@@ -67,7 +67,7 @@
 | 期刊主页 | [TSE](https://www.computer.org/csdl/journal/ts) | `2026-06-04 21:15` | 官方入口可用。 |
 | Author guidelines / submission | [IEEE CS Author Resources](https://www.computer.org/publications/author-resources/)；[IEEE Publishing Portal](https://publishingportal.ieee.org/) | `2026-06-04 21:15` | 记录为 IEEE author resources + Publishing Portal 入口说明；actual destination 待官方当前页确认。 |
 | Special issue / topical collection | [TSE 50th anniversary item](https://www.computer.org/publications/tech-news/insider-membership-news/tse-50-year-anniversary/) | `2026-06-04 21:15` | 仅作历史/纪念性信息，不是 active CFP deadline。 |
-| Volume / issue / online first | [TSE archive](https://www.computer.org/csdl/journal/ts) | `2026-06-04 21:15` | 出版商入口可用，年度细分需人工筛选。 |
+| Volume / issue / online first | [TSE archive](https://www.computer.org/csdl/journal/ts) | `2026-06-04 21:15` | 出版商入口可用，年度细分需按年度元数据补齐。 |
 | DBLP fallback | [DBLP TSE Volume 51](https://dblp.org/db/journals/tse/tse51.html) | `2026-06-04 21:15` | 可作年度 baseline。 |
 
 ## 8. TIMELINE.md 同步提示
