@@ -1,6 +1,6 @@
 # ICFEM README
 
-> 信息更新时间：`2026-06-06 10:16`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -16,6 +16,19 @@
 | 官方 series page | 待补（未发现独立稳定 series page；当前以 [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) 作索引 fallback，年度事实仍以各年度主页为准） |
 | DBLP venue page | [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；若后续发现 `2029+` 官方 CFP / important dates，必须继续新增年度页 |
+
+### 1.1 索引与分区信息
+
+> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+
+| 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
+|---|---|---|---|---|
+| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
+| WoS / CPCI | ❓ | 待核验 | 会议不写作 SCI/JCR 期刊；仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录 | `待补` |
+| JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；若存在同名期刊必须另按期刊 venue 记录 | `待补` |
+| CAS 分区 | ⚪ | 不适用 | CAS 分区仅适用于期刊历史版分区证据；会议 venue 不填 CAS 区 | `待补` |
+| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 proceedings / book-series / source type / final coverage | `待补` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
 
 ## 2. Scope 与方向
 
@@ -87,6 +100,7 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Important Dates，将 ICFEM 2026 根表 abstract / full paper / notification 精确到 `23:59 AoE / UTC-12`。 |
 | `2026-06-05 11:12` | 修复 ICFEM 2026 `#program` 过度确认：program 当前 TBA，不写作 accepted papers；同时将根 README 中误作 series page 的 2026 年度页降级为年度页 / DBLP fallback。 |
 | `2026-06-05 10:04` | 将核心人员官方角色来源细化到 ICFEM 2026 Committee anchor，并区分 Steering Committee、General Chair 与 Program Chair。 |
