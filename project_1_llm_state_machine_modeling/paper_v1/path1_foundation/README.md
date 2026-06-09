@@ -57,8 +57,8 @@ PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需
 
 本 foundation PR ready 的最低标准：
 
-- [ ] PR body 与本目录文档能无歧义说明第一篇论文 story、边界、执行计划和验收 gate。
-- [ ] 已清楚标注 PR #9 资产的历史性质、可复用部分和不可直接当结果的部分。
-- [ ] 样本、baseline、oracle、human adjudication、run record、claim-evidence、risk register 均有入口文件。
-- [ ] 多智能体学术 review 后无 C/I 级事实、学术、可执行性问题；M 级问题可进入 follow-up。
-- [ ] [paper_v1/README.md](../README.md) 已标注当前 overlay，避免新 session 误读 2026-05 sprint 旧口径。
+- [x] PR body 与本目录文档能无歧义说明第一篇论文 story、边界、执行计划和验收 gate。
+- [x] 已清楚标注 PR #9 资产的历史性质、可复用部分和不可直接当结果的部分。
+- [x] 样本、baseline、oracle、human adjudication、run record、claim-evidence、risk register 均有入口文件。
+- [x] 多智能体学术 review 后无 C/I 级事实、学术、可执行性问题；M 级问题可进入 follow-up。
+- [x] [paper_v1/README.md](../README.md) 已标注当前 overlay，避免新 session 误读 2026-05 sprint 旧口径。
