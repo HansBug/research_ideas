@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -759,7 +759,8 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 12. **Clarivate / CAS access note 纪律**：MJL / collection download / journal profile、JCR product record、fenqubiao 历史分区或 API 若需要 free login、product login、机构账号、IP 或 user/password，必须记录官方入口与 access note；裸 GET 得到 SPA 壳页或登录页不能作为单刊官方结论证据。若使用第三方镜像补 JCR/CAS 数值，证据字段必须同时列官方入口、镜像 URL、版本年份和“非官方导出” caveat。
 13. **publisher / 镜像交叉证据边界**：ScienceDirect、Wiley、Springer、IEEE 等 publisher 页面若显示 abstracting/indexing、impact factor 或 SCIE 字样，可作为交叉验证或 discovery note；AbleSci、AIS 等公开镜像可作为 JCR/CAS 二级证据展示 emoji，但不能让读者误以为已经取得 Clarivate / CAS 官方导出。任何这类条目的 `索引核验` 最高为 `🟡`。
 14. **CAV / 缩写碰撞防误读纪律**：Compendex source list 中的 `CAVS`、`EDCAV` 或其他相近缩写命中不得自动视为 CAV、CAV conference 或任一目标会议的 venue-level EI 证据；必须同时匹配会议全称、proceedings title、ISBN / ISSN、publisher 与年度上下文。若只得到缩写碰撞或其他会议条目，写 `🔴 已检索未获行级证据`，并在 README / SUMMARY 明确“不能作为目标会议证据”。
-15. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
+15. **终态文档不得保留本轮复核动作**：PR ready 前，venue 根 README 的 `索引核验` 行应写成“本轮已完成的证据链、降级理由和后续升级 / 降级条件”，不得把本轮应完成的核验写成仍需 reviewer 或后续人员复查的当前动作；review 要求应留在 GUIDE 或 PR comment，不能作为单个 venue 的事实结论。
+16. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
 
 ## 18. 更新日志
 
@@ -767,6 +768,7 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口规则回写：索引核验行应记录已完成证据链与后续升级条件，不得把本轮核验留成 reviewer 复核动作；同步 venue 根 README 口径。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查与 CAV 缩写碰撞防误读：规定所有 CCF 等级字段统一使用 🏆/🥈/🥉，并禁止将 CAVS/EDCAV 等相近缩写升级为 CAV EI 证据。 |
 | `2026-06-09 17:53:17` | PR #91 reviewer M 级建议修复：将时间格式规则拆分为投稿 / 事件时间默认分钟级、信息更新时间 / 更新日志默认秒级，历史分钟级日志兼容保留。 |
 | `2026-06-09 17:05:00` | PR #91 复核后修正：明确 CCF 三档等级使用 🏆/🥈/🥉，禁止回退为单色编码；将访问受限处理改为公开可审计核验 / 二级镜像降权，不再停留为未闭合核验占位。 |

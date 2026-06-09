@@ -1,6 +1,6 @@
 # SCP README
 
-> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -38,7 +38,7 @@
 | JCR Quartile | 3️⃣ | 2025 JCR：COMPUTER SCIENCE, SOFTWARE ENGINEERING, SCIE, Q3, 87/128 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=DYljo5)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
 | CAS 分区 | 4️⃣ | 2025 中科院升级版：计算机科学大类 4区；计算机：软件工程小类 4区 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=DYljo5)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
 | EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `SERIALS`，Source title `Science of Computer Programming`，Source type `Journal`，ISSN `0167-6423`，EISSN `-`，Publisher `Elsevier B.V.` | `2026-06-09 13:52` |
-| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；reviewer 应复核 MJL、Compendex source-list 与公开分区页三类链接是否支撑本行 | `2026-06-09 16:20` |
+| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；本轮按 MJL、Compendex source-list 与公开分区页三类证据建立降权链，后续若公开链接不可复现则降级 | `2026-06-09 16:20` |
 
 ## 2. Scope 与栏目
 
@@ -111,6 +111,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：因 ScienceDirect / Elsevier CLI WAF/403，将 editorial roster、scope 正文与 candidate special issue deadline 降级为未获公开可审计正文，避免把未核验事实写入 TIMELINE。 |

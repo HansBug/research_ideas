@@ -1,6 +1,6 @@
 # RV README
 
-> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -31,7 +31,7 @@
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
 | EI / Compendex | 🔴 | 已检索 Elsevier 官方 Compendex source list，未取得 RV / Runtime Verification 可用官方行级证据；LNCS 泛线索不得写成会议收录事实 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；本轮按 `SERIALS` / `NON-SERIALS` 与会议全称、缩写、proceedings title 交叉检索，未获可审计匹配行 | `2026-06-09 16:45` |
-| 索引核验 | 🟡 | JCR / CAS 不适用；WoS / CPCI 已检索未获单会议行级证据；EI 证据按本表 `🟠 proceedings` / `🟡 book-series` / `🔴 未获行级证据` 解释 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；reviewer 需复核 Compendex source-list 字段，尤其不能把 book-series 或缩写碰撞升级为 venue-level EI 事实 | `2026-06-09 16:45` |
+| 索引核验 | 🟡 | JCR / CAS 不适用；WoS / CPCI 已检索未获单会议行级证据；EI 证据按本表 `🟠 proceedings` / `🟡 book-series` / `🔴 未获行级证据` 解释 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；本轮按 Compendex source-list 字段、book-series 线索和缩写碰撞规则完成保守降级，后续仅在取得行级证据时升级 | `2026-06-09 16:45` |
 
 ## 2. Scope 与方向
 
@@ -103,6 +103,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 RV 2026 tutorial proposal submission 与 paper submission 同为 `2026-06-14` AoE，并同步年度页与 TIMELINE。 |

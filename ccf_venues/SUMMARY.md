@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-09 14:35`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -491,7 +491,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 | EI direct proceedings：[`conf-a-ase`](./conf-a-ase/README.md), [`conf-a-fse`](./conf-a-fse/README.md), [`conf-a-icse`](./conf-a-icse/README.md), [`conf-a-issta`](./conf-a-issta/README.md), [`conf-b-esem`](./conf-b-esem/README.md), [`conf-b-icpc`](./conf-b-icpc/README.md), [`conf-b-icsme`](./conf-b-icsme/README.md), [`conf-b-issre`](./conf-b-issre/README.md), [`conf-b-models`](./conf-b-models/README.md), [`conf-b-re`](./conf-b-re/README.md), [`conf-b-saner`](./conf-b-saner/README.md), [`conf-c-apsec`](./conf-c-apsec/README.md), [`conf-c-ease`](./conf-c-ease/README.md), [`conf-c-iceccs`](./conf-c-iceccs/README.md), [`conf-c-icfem`](./conf-c-icfem/README.md), [`conf-c-icst`](./conf-c-icst/README.md), [`conf-c-msr`](./conf-c-msr/README.md), [`conf-c-qrs`](./conf-c-qrs/README.md), [`conf-c-refsq`](./conf-c-refsq/README.md), [`conf-c-seke`](./conf-c-seke/README.md), [`conf-c-spin`](./conf-c-spin/README.md), [`conf-c-tase`](./conf-c-tase/README.md) | Compendex 只证明代表性年度 proceedings 行命中，不证明整个会议 series 长期 source-level；ICSE 这类条目即使另有 proceedings book-series 行，也不能升级为 venue-level EI source 事实 | venue README 写 `🟠`，证据字段记录 Elsevier source list snapshot、sheet `NON-SERIALS` 与代表 Source title；`索引核验` 行必须显式写明 proceedings-level | 后续如需年度级准确性，应逐年匹配 proceedings title / ISBN，并区分 main / companion / workshop |
 | EI book-series 线索：[`conf-a-fm`](./conf-a-fm/README.md), [`conf-b-caise`](./conf-b-caise/README.md) | 只确认 LNCS / LNBIP 等 book-series 在 Compendex `SERIALS`，不能直接推出某会议每年均收录 | venue README 写 `🟡`，证据字段记录 source list sheet `SERIALS` 与 book-series 名称；若有 Springer proceedings 官方页，也只作为 book-series 路径说明 | 后续逐年核验 Springer volume / ISBN / series，避免把 book-series 事实升级成 venue source-level |
 | EI 已检索未获行级证据 / 缩写碰撞：[`conf-a-cav`](./conf-a-cav/README.md), [`conf-b-etaps`](./conf-b-etaps/README.md), [`conf-b-vmcai`](./conf-b-vmcai/README.md), [`conf-c-atva`](./conf-c-atva/README.md), [`conf-c-rv`](./conf-c-rv/README.md) | 已检索 Elsevier 官方 source list，但未取得可支撑对应会议的行级证据；CAVS / EDCAV 等相近命中属于缩写碰撞或其他会议；ETAPS/TACAS 的 LNCS 出版路径只作 discovery / secondary 线索 | venue README 写 `🔴`，证据字段记录未命中、缩写碰撞或 book-series 泛线索，避免误读为会议 EI 收录事实 | 后续若找到明确年度 proceedings title / ISBN / source-list 行，再升级到 `🟠` 或 `🟡` |
-| 全库证据链接 | 每个 venue README 索引表必须能被 reviewer 点击复核或看到 access note | PR #91 已把 PR #90 的 `❓` 占位替换为可点击官方入口、source-list 字段或已检索未获可审计证据说明 | reviewer 需抽样打开 README 链接；任何无法支撑当前结论的链接应列 C/I 并降级结论 |
+| 全库证据链接 | 每个 venue README 索引表必须能被 reviewer 点击复核或看到 access note | PR #91 已把 PR #90 的 `❓` 占位替换为可点击官方入口、source-list 字段或已检索未获可审计证据说明 | 本轮已完成抽样复核；任何无法支撑当前结论的链接应列 C/I 并降级结论 |
 
 
 ## 15. 更新日志
@@ -500,6 +500,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将 venue 根 README 的索引核验行改为“已完成证据链 + 后续升级条件”口径，避免把证据核验责任留作未闭合动作，并同步清理 PR body 的旧 CCF 口径说明。 |
 | `2026-06-09 17:05:00` | PR #91 复核后同步：在期刊总表核验状态中显式标注 JCR/CAS 镜像降权，避免把 AbleSci/AIS 二级证据误读为 Clarivate/CAS 官方导出。 |
 | `2026-06-09 14:35:00` | 吸收 dry-run 证据复核：收紧 ICSE proceedings 与 ETAPS LNCS book-series 的 EI 解释，避免读者把 representative proceedings / book-series discovery 误读为 venue-level source 事实。 |
 | `2026-06-09 14:20:00` | 修复实现 review C 级问题：恢复 §9.1 PR-6~PR-10 ownership 合同字段，避免外部索引 emoji 覆盖 staged PR 数量、允许修改、禁止事项与依赖关系。 |
