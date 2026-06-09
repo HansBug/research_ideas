@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -190,6 +190,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 13:52:01` | PR #91 真实核验执行：补充外部索引证据链接入口，要求 venue README 行级证据、SUMMARY/TIMELINE/GUIDE 同步和缺证降级。 |
 | `2026-06-09 11:13` | 制度化 WoS/JCR/CAS/EI 外部索引入口，明确其不替代 CCF 分类，并要求 SUMMARY/TIMELINE/venue README 同步索引占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review 的 ICECCS 2026 / CAiSE 2023 时间线问题：降级 ICECCS 2026 404 accepted-list candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 venue 后，将入口统计更新为 42 个 venue / 294 个年度 README（29 会议 / 13 期刊），并补充 CCF 官方 / 镜像证据等级说明。 |

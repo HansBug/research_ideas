@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -708,15 +708,17 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 | 维度 | 允许 emoji | 说明 |
 |---|---|---|
 | CCF | 🏆 / 🥈 / 🥉 / ⚪ / ❓ | CCF A/B/C/未列入/待核验 |
-| WoS / CPCI | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | 期刊集合 / 部分核验 / 会议卷 / 不适用或未查到 / 待核验 |
-| JCR | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | JCR Q1/Q2/Q3/Q4/不适用或无 JCR/待核验 |
-| CAS | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ❓ | CAS 1区/2区/3区/4区/不适用或未查到/待核验 |
-| EI / Compendex | 🟢 / 🟡 / 🟠 / ⚪ / ❓ | source 级 / 部分核验 / proceedings 级 / 未查到或不适用 / 待核验 |
+| WoS / CPCI | 🟢 / 🟡 / 🟠 / ⚪ / ⏳ / 🔴 / ❓ | 期刊集合 / 部分核验 / 会议卷 / 不适用或未查到 / 待人工核验 / 已检索未获证据 / 待启动 |
+| JCR | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ⏳ / 🔴 / ❓ | JCR Q1/Q2/Q3/Q4 / 不适用或无 JCR / 待人工核验 / 已检索未获证据 / 待启动 |
+| CAS | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ⏳ / 🔴 / ❓ | CAS 1区/2区/3区/4区 / 不适用或未查到 / 待人工核验 / 已检索未获证据 / 待启动 |
+| EI / Compendex | 🟢 / 🟡 / 🟠 / ⚪ / ⏳ / 🔴 / ❓ | source 级 / book-series 或部分核验 / proceedings 级 / 未查到或不适用 / 待人工核验 / 已检索未获证据 / 待启动 |
 | 索引核验 | 🟢 / 🟡 / 🔴 / ⏳ / ❓ | 官方证据齐全 / 部分核验 / 未找到 / 待人工核验 / 待启动 |
 
 JCR 与 CAS 都使用 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣`，具体含义由列名和口径表决定。不得在 emoji 列写 `JCR Q1`、`CAS 1区`、`1️⃣ JCR Q1` 或 `1️⃣ CAS 1区`。
 
 venue README 的 `emoji` 列与 `当前结论` 列职责分离：`emoji` 列只写单个编码；`当前结论` 列在占位阶段可写 `待核验`、`不适用`、`待启动` 等短文本，正式核验后替换为可读结论摘要。TIMELINE 的 `索引入口` 列允许在确实无法定位 venue 根 README 时临时写 `待补`；`索引核验` 列仍必须只写单个 emoji。
+
+PR #91 scope note：本轮强制纯 emoji 的列是外部索引相关编码列（`emoji`、`WoS`、`JCR`、`CAS`、`EI`、`索引核验`）。历史表格中 `阶段状态`、`当前状态`、`核验状态` 等“emoji + 短文本”的混合语义列属于既有投稿情报状态字段，若要迁移为纯 emoji + 说明列，应另开结构化 schema PR，不能在本轮索引事实核验中顺手大改以免破坏 TIMELINE 可读性。
 
 ### 17.3 文件同步要求
 
@@ -731,12 +733,26 @@ venue README 的 `emoji` 列与 `当前结论` 列职责分离：`emoji` 列只�
 若 MJL、JCR、CAS、Engineering Village、publisher 或 source list 页面因订阅墙、WAF、403、登录页、动态页或证书问题不可达，应保留官方入口，写 `⏳ 待人工核验` 与 access note，不得用第三方站点补成既定事实。第三方站点只能作为发现线索。
 
 
+### 17.5 PR #91 真实核验执行纪律：证据链接、缺证降级与 reviewer 复核
+
+PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维护必须遵守以下硬规则：
+
+1. **venue README 是行级证据落点**：每个 `<conf|journal>-*/README.md` 的 `### 1.1 索引与分区信息` 不能只写结论；每一行都必须给出可点击官方入口、source-list snapshot 字段，或明确 access note（如 SPA / WAF / 机构订阅 / 待人工浏览器核验）。
+2. **第三方站点不得升级为最终事实源**：Scimago、LetPub、Guide2Research、DBLP、publisher 年度页、搜索结果页等只能作 discovery / 交叉线索；WoS/JCR/CAS/EI 结论必须优先来自 Clarivate、CAS、Elsevier / Engineering Village 等官方或机构可审计来源。
+3. **Elsevier Compendex source list 写法**：使用 [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex) 与 [官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx) 时，必须记录下载 / 查询日期、文件名、sheet、Source title、Source type、ISSN / EISSN 或 ISBN。`SERIALS` 中的 `Journal` 可写 `🟢`；`NON-SERIALS` 中年度 proceedings 只写 `🟠`；LNCS / LNBIP / CCIS 等 book-series 只写 `🟡`，不得冒充会议 source-level。
+4. **Clarivate / JCR 踩坑**：MJL / JCR 是官方入口，但当前命令行只能稳定确认 SPA / 平台入口，不能证明单刊 collection 或 quartile。Clarivate press release 只能证明 JCR release 存在；未取得单刊 category/rank/quartile/percentile 前必须写 `⏳`。
+5. **CAS 踩坑**：[中国科学院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 只能证明 2026 起停更与第三方发布无关；未取得官方/机构历史版单刊行级分区前必须写 `⏳`，不得写“2026 CAS 实时分区”。
+6. **会议不继承期刊分区**：会议默认 `JCR=⚪`、`CAS=⚪`；同名或近名 venue（如 `conf-a-ase` vs `journal-b-ase`、`conf-b-re` vs `journal-b-re`）必须分开核验。
+7. **reviewer 复核要求**：实现后 review 必须抽样打开 venue README 的证据链接；所有 `🟢` EI source-level、所有 `🟠` proceedings-level、所有 `⏳`/`🔴` 缺证项都必须检查证据是否支撑当前结论。链接不能支撑结论时，应列为 C/I 级事实风险并要求降级或补证。
+8. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆或证据不可复现情况，必须先回写本节或 §16，再判定 PR ready。
+
 ## 18. 更新日志
 
 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 13:52:01` | PR #91 真实核验执行：新增证据链接落点、Compendex source list、Clarivate/JCR/CAS 缺证降级与 reviewer 复核纪律。 |
 | `2026-06-09 12:13:06` | 修复外部索引制度化复审问题：将外部索引规则独立为 §17，并补充 venue README `emoji` / `当前结论` 分工与 TIMELINE `索引入口` 占位边界。 |
 | `2026-06-09 11:13` | 新增外部索引与分区制度化规则，规定 WoS/JCR/CAS/EI 来源、emoji 列、SUMMARY/TIMELINE/venue README 同步要求与缺证处理。 |
 | `2026-06-07 12:47` | PR #63 LLM4Modeling-SE 扩展：补充 CCF 官方 / 镜像证据等级、ASE Journal / CAiSE / ICECCS 的消歧、scope 边界、计数与 TIMELINE 同步规则。 |
