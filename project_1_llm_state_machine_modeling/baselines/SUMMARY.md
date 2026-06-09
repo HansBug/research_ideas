@@ -357,6 +357,7 @@
 
 | 时间 | 更新内容 | 说明 |
 |---|---|---|
+| 2026-06-09 23:45:00 | PR #92 补入 19 篇近期 arXiv LLM4Modeling direct / 强近邻 baseline 候选 | 新增 19 个单论文目录并补齐 `paper.pdf / paper_content.txt / bibtex.bib / DESC.md`；其中 `Designing FSMs...`、SpecGPT、FlowFSM 3 篇评为 direct STM baseline，RFSeek 评为协议状态可视摘要强相关，BPMN / TLA+ / Petri / LTL / STL / CFSM / RL-DFA 等 16 篇按强近邻 / 边界候选保守入账。同步更新 completed=91、评估分布 `🟢=17 / 🟡=20 / 🟠=54`、论文清单、数据集表、类别统计、整体观察，并新增 [arxiv-census-2025-2026-stm-candidates.md](./arxiv-census-2025-2026-stm-candidates.md) 固化筛选来源与边界。 |
 | 2026-06-08 18:35:07 | 合并最新 `origin/main` 并补强 PDF gate 证据链 | 将 `origin/main` 的 248 个上游提交合入当前分支，合并过程无 baselines 冲突；将待补记录中的候选编号统一写成 `#81 候选 ID 14 / #81 候选 ID 16`，并为两条未过 PDF gate 的高优先级候选补充已尝试入口、失败原因和下一步合法获取路径。 |
 | 2026-06-08 17:56:58 | 响应实现阶段复审并收紧近邻工件四条件编码 | 将 `chatgpt-uml-state-diagrams-to-rebeca` 的 `STM族输出` 从 `🟢` 降为 `🟡`，明确 Rebeca 是 actor-based formal model 而非 STM-family 近同构输出；将 `requirements-driven-slicing-simulink-llms` 的 `STM族输出` 从 `🟡` 降为 `🟠`，明确 Simulink block/data-flow slice 不是强行为近邻；同步重排主表/数据集表编号，并补充 LATO artifact 入口可能是匿名评审占位的来源风险说明。 |
 | 2026-06-08 17:23:15 | 扩充 #81 LLM4MDE 优先候选并补齐四条件总账 | 使用用户提供的 LATO 本地原文解除 #73 PDF 阻塞；新增 `chatgpt-uml-state-diagrams-to-rebeca`、`automated-generation-bpmn-processes-textual-requirements`、`universal-prompting-process-model-information`、`llm-business-process-modeling-benchmark`、`requirements-driven-slicing-simulink-llms`、`ai-driven-consistency-sysml-diagrams` 六篇四件套；为主表补齐四条件列并按 `评估 -> 年份降序 -> 四条件 tie-break` 重排；#81 候选 ID 14 / #81 候选 ID 16 因合法 PDF 暂缺仅列待补候选。 |
