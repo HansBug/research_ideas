@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 14:20`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -276,10 +276,10 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 子级 PR | 主题 | Venue ownership | 数量 | 预期年度 README | 允许修改 | 禁止事项 | 依赖关系 |
 |---|---|---|---:|---:|---|---|---|
-| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
-| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
-| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
-| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
+| PR-6 | P1-Maintenance / Repair | `conf-b-saner`、`conf-b-icsme`、`conf-b-icpc`、`journal-b-jsep` | 4 个（3 会议 + 1 期刊） | 28 | 自有 venue 目录；按自有事件增量维护 [TIMELINE.md](./TIMELINE.md)、[SUMMARY.md](./SUMMARY.md)、[README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[01-venue-scope.md](./01-venue-scope.md) | 不改 PR-7/8/9 venue 目录；不新增合同外 venue；不删除 P0 / 其他 PR 已核验 TIMELINE 事件 | 已完成基础建档；当前合流分支保留为已建档事实 |
+| PR-7 | P1-Empirical / Quality | `conf-b-esem`、`journal-b-ese`、`journal-b-jss`、`journal-c-sqj` | 4 个（1 会议 + 3 期刊） | 28 | 自有 venue 目录；维护自有期刊 rolling / special issue 与会议 dated events；共享文件只做自有增量 | 不改 PR-6/8/9 venue 目录；不把期刊 rolling 写成 dated Mermaid；不删除 P0 / 其他 PR 已核验事实 | 已完成基础建档；当前合流分支保留为已建档事实 |
+| PR-8 | P1-Formal / Toolchain | `journal-b-ist`、`journal-b-scp`、`conf-c-qrs`、`conf-c-tase` | 4 个（2 期刊 + 2 会议） | 28 | 自有 venue 目录；维护形式化 / 工具链相关 TIMELINE 与待补记录；共享文件只做自有增量 | 不改 PR-6/7/9 venue 目录；不把 publisher / DBLP fallback 计数写成主 track count | 已完成基础建档并合入上游；当前合流分支已吸收 PR-6 / PR-7 的 GUIDE / SUMMARY 踩坑经验 |
+| PR-9 | P2 Neighboring Observation | `conf-c-apsec`、`conf-c-seke`、`conf-c-ease`、`conf-c-msr`、`conf-c-rv` | 5 个会议 | 35 | 自有 venue 目录；按邻近观察口径维护年度页、论文入口、TIMELINE 会期 / 投稿事件 | 不升级为 P1/P0 事实；不改 PR-6/7/8 venue 目录；不把邻近 venue 写成主投目标 | 已完成基础建档；当前合流分支已 merge 最新上游 PR-8 并吸收 PR-6 / PR-7 / PR-8 适用踩坑规则 |
 | PR-10 | P1/P2 Global Audit | 不新增 venue；审计 PR-6~PR-9 全部产物 | 0 | 0 | 统一复核 P1/P2 统计、TIMELINE、Mermaid、更新日志、核心人员、待补项与 main-ready 决策 | 不再批量新增 venue；不无来源改写 PR-6~PR-9 已核验事实 | 依赖 PR-6 / PR-7 / PR-8 / PR-9 全部合入上游 |
 
 执行规则：
@@ -497,6 +497,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 14:20:00` | 修复实现 review C 级问题：恢复 §9.1 PR-6~PR-10 ownership 合同字段，避免外部索引 emoji 覆盖 staged PR 数量、允许修改、禁止事项与依赖关系。 |
 | `2026-06-09 14:12:00` | 修复实现 review 过程中发现的 SUMMARY §5.5 同步问题：ASE Journal 是期刊，索引列应与 venue README 保持 `WoS/JCR/CAS=⏳`、`EI=🟢`，不得继承 ASE Conference 的会议口径。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：为 42 个 venue 同步 WoS/JCR/CAS/EI 状态，EI 使用 Elsevier 官方 Compendex source list，WoS/JCR/CAS 缺行级证据统一降级并登记风险。 |
 | `2026-06-09 12:13:06` | 修复外部索引实现复审问题：补齐 PR-9 P2 完成表 WoS/JCR/CAS/EI/索引核验列，并将全库外部索引待核验记录整理为正式风险表。 |

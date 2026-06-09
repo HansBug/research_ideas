@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 14:20`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -743,8 +743,11 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 4. **Clarivate / JCR 踩坑**：MJL / JCR 是官方入口，但当前命令行只能稳定确认 SPA / 平台入口，不能证明单刊 collection 或 quartile。Clarivate press release 只能证明 JCR release 存在；未取得单刊 category/rank/quartile/percentile 前必须写 `⏳`。
 5. **CAS 踩坑**：[中国科学院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 只能证明 2026 起停更与第三方发布无关；未取得官方/机构历史版单刊行级分区前必须写 `⏳`，不得写“2026 CAS 实时分区”。
 6. **会议不继承期刊分区**：会议默认 `JCR=⚪`、`CAS=⚪`；同名或近名 venue（如 `conf-a-ase` vs `journal-b-ase`、`conf-b-re` vs `journal-b-re`）必须分开核验。
-7. **reviewer 复核要求**：实现后 review 必须抽样打开 venue README 的证据链接；所有 `🟢` EI source-level、所有 `🟠` proceedings-level、所有 `⏳`/`🔴` 缺证项都必须检查证据是否支撑当前结论。链接不能支撑结论时，应列为 C/I 级事实风险并要求降级或补证。
-8. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆或证据不可复现情况，必须先回写本节或 §16，再判定 PR ready。
+7. **reviewer 复核要求**：实现后 review 必须抽样打开 venue README 的证据链接；所有 `🟢` EI source-level、所有 `🟠` proceedings-level、所有 `🟡` book-series-level、所有 `⏳`/`🔴` 缺证项都必须检查证据是否支撑当前结论。链接不能支撑结论时，应列为 C/I 级事实风险并要求降级或补证。
+8. **source-list snapshot 存储纪律**：venue README 可记录本轮使用的官方 snapshot URL、下载日期、文件名、sheet 与行级字段；大型第三方 `xlsx` 不默认提交进仓库。若后续需要长期归档，应另用 Git LFS、外部 artifact 或专门数据目录，并在 [SUMMARY.md](./SUMMARY.md) 风险表记录 hash / 获取方式；不得因为本地 `/tmp` 文件存在就把它当成永久证据。
+9. **source-list 更新纪律**：README 中的 CDN `xlsx` 链接只代表本轮核验 snapshot；后续维护应先从 [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex) 重新进入 `View source list` 获取当期 latest，再决定是否沿用旧 snapshot。若 latest 与旧 snapshot 字段变化，必须回写本节并在更新日志说明差异。
+10. **外部索引列不得污染非索引合同表**：WoS / JCR / CAS / EI / 索引核验列只允许进入 venue 总表、P0/P1/P2 venue 清单、TIMELINE 索引入口或明确新增的索引表；不得覆盖 PR ownership、职责边界、数量、允许修改、禁止事项、依赖关系等非索引语义字段。自动脚本批量写表后必须抽查这些合同表。
+11. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
 
 ## 18. 更新日志
 
@@ -752,6 +755,7 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 14:20:00` | 吸收 PR #91 实现 review C/M 级反馈：补充 source-list snapshot 存储与更新纪律，并禁止外部索引列覆盖 PR ownership 等非索引合同字段。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：新增证据链接落点、Compendex source list、Clarivate/JCR/CAS 缺证降级与 reviewer 复核纪律。 |
 | `2026-06-09 12:13:06` | 修复外部索引制度化复审问题：将外部索引规则独立为 §17，并补充 venue README `emoji` / `当前结论` 分工与 TIMELINE `索引入口` 占位边界。 |
 | `2026-06-09 11:13` | 新增外部索引与分区制度化规则，规定 WoS/JCR/CAS/EI 来源、emoji 列、SUMMARY/TIMELINE/venue README 同步要求与缺证处理。 |
