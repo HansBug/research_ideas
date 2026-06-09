@@ -143,7 +143,7 @@ JCR 与 CAS 列必须使用真实 emoji `1️⃣` / `2️⃣` / `3️⃣` / `4�
 
 | Venue | CCF | 年度范围 | 根 README | 年度 README | TIMELINE | 核心人员 / 编辑人员情报 | 计数 / 状态口径 | 核验状态 | WoS | JCR | CAS | EI | 索引核验 |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Automated Software Engineering Journal | B | 2022-2028 | [journal-b-ase](./journal-b-ase/README.md) | 7 | rolling 表与 project-relevant Springer collection dated events 已同步 | 已记录 Editor-in-Chief 与 Deputy Editors；collection guest editors 不混入长期 roster | 常规投稿 rolling；DBLP `entry article` baseline 不等于 Springer final count；与 `conf-a-ase` 消歧 | 🟡 部分核验 | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
+| Automated Software Engineering Journal | B | 2022-2028 | [journal-b-ase](./journal-b-ase/README.md) | 7 | rolling 表与 project-relevant Springer collection dated events 已同步 | 已记录 Editor-in-Chief 与 Deputy Editors；collection guest editors 不混入长期 roster | 常规投稿 rolling；DBLP `entry article` baseline 不等于 Springer final count；与 `conf-a-ase` 消歧 | 🟡 部分核验 | ⏳ | ⏳ | ⏳ | 🟢 | 🟡 |
 | CAiSE | B | 2022-2028 | [conf-b-caise](./conf-b-caise/README.md) | 7 | 2022--2026 可核验 main conference / conference dates 已同步；2023 camera-ready 已补入 TIMELINE；2024 仅会期由 DBLP/Springer record 支撑 | 已记录 2025/2026 chair、PC chair 与 conceptual modeling / process / IS 代表人物 | 只计 main conference / LNCS 主卷；Forum/DC/Workshop/BPMDS/EMMSAD 分离；2024 official CFP 待补 | 🟡 部分核验 | ⏳ | ⚪ | ⚪ | 🟡 | 🟡 |
 | ICECCS | C | 2022-2028 | [conf-c-iceccs](./conf-c-iceccs/README.md) | 7 | 2022/2023/2025/2026 可核验 dated events 已同步；2026 Brisbane 会期已补入 TIMELINE；2024/2027/2028 不造日期 | 已记录 2022/2023/2025/2026 committee 线索与 formal methods / complex systems 代表人物 | C 类 P2/P3 工程案例观察；2024 official page、IEEE/Springer proceedings 与 DBLP 年度页待补 | 🟡 部分核验 | ⏳ | ⚪ | ⚪ | 🟠 | 🟡 |
 
@@ -497,6 +497,7 @@ P0 是“强相关先做完”的后续数据填充边界。当前 P0 清单内 
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 14:12:00` | 修复实现 review 过程中发现的 SUMMARY §5.5 同步问题：ASE Journal 是期刊，索引列应与 venue README 保持 `WoS/JCR/CAS=⏳`、`EI=🟢`，不得继承 ASE Conference 的会议口径。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：为 42 个 venue 同步 WoS/JCR/CAS/EI 状态，EI 使用 Elsevier 官方 Compendex source list，WoS/JCR/CAS 缺行级证据统一降级并登记风险。 |
 | `2026-06-09 12:13:06` | 修复外部索引实现复审问题：补齐 PR-9 P2 完成表 WoS/JCR/CAS/EI/索引核验列，并将全库外部索引待核验记录整理为正式风险表。 |
 | `2026-06-09 11:13` | 新增 WoS/JCR/CAS/EI/索引核验列与外部索引口径说明，并为后续 venue 分批补证建立全库待核验占位。 |
