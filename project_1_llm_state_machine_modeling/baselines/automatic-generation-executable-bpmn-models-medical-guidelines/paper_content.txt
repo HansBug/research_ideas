@@ -1,0 +1,951 @@
+--- Page 1 ---
+Automatic Generation of Executable BPMN
+Models from Medical Guidelines
+Praveen Kumar Menaka Sekar1, Ion Matei2, Maksym Zhenirovskyy2, Hon
+Yung Wong2, Sayuri Kohmura3, Shinji Hotta3, and Akihiro Inomata3
+1Dept. of Mechanical Engineering, University of Maryland, College Park, MD 20742,
+USA
+praveenm@umd.edu
+2Fujitsu Research of America, Santa Clara, CA 95054, USA
+{imatei, mzhenirovskyy, awong}@fujitsu.com
+3Fujitsu Limited, Nakahara-ku, Kawasaki, Kanagawa 211-8588, Japan
+{kohmura.sayuri,hotta_s,akiino}@fujitsu.com
+Project page:https://praveen1098.github.io/Automated-BPMN-Generation/
+Abstract.We present an end-to-end pipeline that converts healthcare
+policy documents into executable, data-aware Business Process Model
+and Notation (BPMN) models using large language models (LLMs) for
+simulation-based policy evaluation. We address the main challenges of
+automated policy digitization with four contributions: data-grounded
+BPMN generation with syntax auto-correction, executable augmenta-
+tion, KPI instrumentation, and entropy-based uncertainty detection. We
+evaluate the pipeline on diabetic nephropathy prevention guidelines from
+three Japanese municipalities, generating 100 models per backend across
+threeLLMsandexecutingeachagainst1,000syntheticpatients.Onwell-
+structured policies, the pipeline achieves a 100% ground-truth match
+with perfect per-patient decision agreement. Across all conditions, raw
+per-patient decision agreement exceeds 92%, and entropy scores increase
+monotonically with document complexity, confirming that the detector
+reliably separates unambiguous policies from those requiring targeted
+human clarification.
+1 Introduction
+Healthcare organizations depend on written policy documents to coordinate pa-
+tient care, allocate resources, and meet regulatory requirements. These docu-
+ments - often authored in natural language and sometimes spanning multiple
+languages - encode the operational logic of programs such as disease screening,
+health guidance, and chronic-condition management. Converting policy text into
+executableprocessmodelsthatcanbesimulatedandoptimizedremainsalargely
+manualtask:domainspecialistsreadprose,constructprocessdiagrams,andkeep
+them synchronized as policies evolve. This gap between textual policy and com-
+putational model limits the scale and speed of policy analysis, particularly for
+municipalities operating dozens of programs simultaneously.arXiv:2604.07817v1  [cs.AI]  9 Apr 2026
+
+--- Page 2 ---
+BusinessProcessModelandNotation(BPMN)[16]providesawidelyadopted
+standard for representing processes, and recent large language models (LLMs)
+extract structured information from natural language at scale [3]. However,
+generating a BPMN diagram from text constitutes only the first step toward
+simulation-based policy assessment. A practitioner must also make the diagram
+executable in a workflow engine, connect it to patient data, instrument it for
+performance measurement, and accompany it with quality guarantees - none of
+which existing text-to-BPMN methods address in an integrated fashion.
+This paper presents an end-to-end pipeline that transforms healthcare policy
+documents into executable, data-aware BPMN models and runs simulations to
+evaluate policy outcomes via key performance indicators (KPIs). We frame our
+investigation around four research questions.
+RQ1 (Scale)Can an LLM-driven pipeline handle diverse policy document for-
+mats with minimal manual intervention?
+RQ2 (Executability)Can the pipeline produce BPMN models that run di-
+rectly in a workflow engine without manual augmentation?
+RQ3 (Metrics)Can the pipeline automatically attach KPIs to model tasks so
+that simulation-based policy evaluation becomes possible?
+RQ4 (Trustworthiness)To what extent do automatically generated models
+reproduce the decisions of human-designed models?
+To answer these questions, we make four contributions. First, we develop a
+structured extraction-and-generation procedure that enforces BPMN 2.0 compli-
+ance through eight named structural rules checked in a validate-and-repair loop.
+Second, we introduce an augmentation step that converts descriptive BPMN
+into SpiffWorkflow-executable models [19], bridging the gap between the BPMN
+standard and a concrete workflow engine. Third, we automate KPI instrumen-
+tation through a majority-vote LLM procedure that associates predefined KPIs
+with relevant model tasks, enabling simulation-based evaluation without man-
+ual annotation. Fourth, we propose an entropy-based uncertainty detector that
+generates multiple candidate models per document, simulates each, and flags
+documents whose KPI distributions exhibit high variability - exposing latent
+ambiguity in the source text for human review.
+Wedemonstratethepipelineondiabeticnephropathy(DN)preventionguide-
+lines from three Japanese municipalities, using three LLM backends (Gemini 2.5
+Pro, Gemini 2.5 Flash, and GPT-5.1) and generating 100 models per backend
+per municipality to characterize generation variability. DN constitutes a signifi-
+cant public health concern, accounting for roughly 40% of new dialysis cases in
+Japan [20]. The paper proceeds as follows. Section 2 reviews related work. Sec-
+tion 3 presents the system architecture, including the pipeline stages, KPI-based
+evaluation framework, and uncertainty detection. Section 4 reports experimental
+results. Section 5 discusses conclusions, limitations, and future work.
+
+--- Page 3 ---
+2 Related Work
+Converting natural-language process descriptions into BPMN models has pro-
+gressed through three generations of techniques - rule-based, natural language
+processing-based,andLLM-driven-eachadvancingmodelconstructionbutleav-
+ing execution and quantitative evaluation largely unaddressed.
+Rule-based and early NLP approaches.Friedrich et al. [4] introduced
+one of the earliest full pipelines, parsing English sentences with Stanford NLP
+tools and mapping actors, actions, and control-flow markers to BPMN elements
+viahandcraftedrules.Becauseeverymappingishard-coded,theapproachbreaks
+onnon-standardphrasing,domainjargon,ornon-Englishtext-allofwhichchar-
+acterizetheJapanesepolicieswestudy.Ivanchikjetal.[8](BPMNSketchMiner)
+constrain input to a lightweight tabular notation, trading coverage for usability
+but providing no mechanism for data binding or execution. The survey by Bellan
+et al. [1] found that most of the 10 extraction systems they reviewed evaluate
+only structural similarity, with almost no work measuring decision correctness -
+a gap our KPI framework closes.
+LLM-driven model generation.LLM capabilities and prompt engineer-
+ing techniques have dramatically widened the range of processable texts. Zirn-
+stein[22]evaluatesthreeGPT-4-basedstrategiesforgeneratingBPMNdiagrams
+from unstructured text - direct Mermaid.js generation, intermediate event-log
+creation with process mining, and SAP Signavio JSON export - but stops at
+structural output without attempting execution. Interactive frameworks - Köpke
+and Safan’s BPMN-Chatbot [9] and Hörner’s BPMNGen [6] - reduce model-
+ing time but require human oversight and produce no execution-ready output.
+Kourani et al. [10] (ProMoAI) wrap GPT-4 with the POWL representation and
+pm4py forstructuralchecks,but thegeneratedmodels cannotbind toadatabase
+schema. Neuberger et al. [14] improve NER-based extraction recall with a fully
+data-driven pipeline that eliminates handcrafted rules, yet the work targets ele-
+mentextractionratherthanend-to-endmodelexecution.Voelteretal.[21]inves-
+tigate multimodal GPT-4V capabilities for extracting process models from com-
+bined text-and-image PDF documents, achieving 87% similarity with one-shot
+prompting on a dataset, but do not attempt execution. Lê et al. [11] augment the
+PETdatasetwith32newAND-gatewayannotationsandtrainBERT/RoBERTa
+models for NER with CatBoost for relation extraction, improving parallelism de-
+tection (F1 from 0% to 23% for AND gateways); however, the pipeline produces
+structural diagrams without execution semantics. In our prior work [12], we
+showed that a six-stage LLM pipeline can reconstruct SpiffWorkflow-compliant
+BPMN at scale (similarity>0.75across 387 models), but that study addressed
+only generic and simple processes without application-specific KPI evaluation.
+A consistent limitation persists across these works: researchers evaluate gen-
+erated models on structural fidelity or user satisfaction, never on whether the
+models produce functionally-equivalent decisions when executed against data.
+Towards executable process models.Monti et al. [13] (NL2ProcessOps)
+use LLMs with retrieval-augmented generation to translate natural language
+into executable Python scripts for process engines, but the output is imperative
+
+--- Page 4 ---
+code rather than a portable BPMN model. Nivon et al. [15] (GIVUP) gener-
+ate BPMN from text and verify functional properties via LTL model checking,
+achieving 83% valid process generation across 200 descriptions; however, the
+tool targets formal verification rather than data-driven execution. Garg et al. [5]
+(SOPStruct) convert standard operating procedures into DAG-based structured
+representations using LLMs with PDDL-based evaluation for graph soundness,
+butbindtonoexternaldatasourceanddonotproduceBPMNmodels.Bowleset
+al. [2] add resource annotations to healthcare BPMN for workflow optimization,
+though their annotation process remains manual. Complementary to generation,
+Shimaoka et al. [18] formulate the optimization of health guidance decision di-
+agrams as an integer program, finding threshold and notification assignments
+that maximize KPIs under budget constraints - assuming the diagram already
+exists; our pipeline constructs it from text.
+Positioning of this work.Our pipeline closes two gaps. First, we auto-
+matically validate, repair, and augment LLM-generated BPMN so that Spiff-
+Workflow [19], a Python-based workflow engine, can execute it directly against
+a patient database, with gateway conditions and service tasks grounded in ac-
+tual schema columns. Second, we evaluate models byfunctional equivalence: five
+KPIs map to tasks via majority-vote LLM matching and derive from execu-
+tion traces over 1,000 synthetic patients, while an entropy detector distinguishes
+LLM noise from genuine policy vagueness. This KPI-centered evaluation aligns
+with healthcare practice and enables simulation-based policy comparison that
+no prior system supports.
+3 System Architecture
+This section describes the end-to-end pipeline that transforms policy documents
+into executable BPMN models, instruments them for KPI measurement, and
+runs simulations for policy evaluation. We first present a high-level overview of
+the pipeline stages and then describe each stage in detail.
+3.1 Pipeline Overview
+The pipeline accepts as input a set of PDF policy documents (potentially in a
+foreign language) together with a patient database schema that defines the vari-
+ables available for decision logic. It produces as output a collection of executable
+BPMN models, each instrumented with KPI measurement points, along with
+simulation results comparing generated models against human-designed base-
+lines.
+The pipeline comprises six stages executed in sequence as illustrated in Fig-
+ure 1.
+
+--- Page 5 ---
+Pre-
+processingData -aware 
+model 
+generation
+Process 
+description text 
+(English)Patient database
+Model 
+augmentation 
+for simulation
+BPMN 
+diagram
+Code for 
+ExecutionSimulation
+EnginePatient database
+Simulation 
+tracesAugmented 
+BPMN 
+diagram
+Python codeKPI
+evaluation
+KPIsMedical 
+guidelines
+(Japanese)Fig.1: System Architecture for Automated Generation of Executable BPMN
+Models from Medical Guidelines
+Stage 1(Document Processing) extracts text and tables from PDF files us-
+ing PyMuPDF4LLM [17] and repairs common extraction artifacts such as bro-
+ken table layouts and hyphenated word-breaks.Stage 2(Translation) converts
+non-English content to English while preserving document structure, numeric
+thresholds, and logical operators.Stage 3(Narrative Generation) transforms
+the cleaned English text into a formal process narrative whose eligibility condi-
+tions reference only columns that exist in the patient database.Stage 4(BPMN
+Synthesis) converts the narrative into a BPMN 2.0 XML model and validates
+it against eight structural compliance rules, repairing violations automatically.
+Stage 5(Executable Augmentation) adds engine-specific execution semantics so
+that SpiffWorkflow, a Python-based BPMN workflow engine, can run the model.
+Stage 6(KPI Instrumentation and Simulation) attaches KPI measurement logic
+tomodeltasks,executesthemodelagainstsyntheticpatientrecords,andcollects
+performance metrics.
+We implement each stage as an LLM-driven module whose behavior we con-
+trol with a structured prompt containing explicit validation constraints, comple-
+mentedbyprogrammaticvalidationtominimizeLLMinconsistencies.Generated
+models use a BPMN 2.0 construct palette of start events, end events, exclusive
+gateways (split and merge), service tasks, script tasks, and conditional sequence
+flows - sufficient for the decision-centric eligibility-screening processes common
+in healthcare and fully supported by SpiffWorkflow.
+3.2 Document Processing and Translation
+We process source documents with PyMuPDF4LLM to extract text and tabular
+content from PDF files, handling multi-column layouts and hierarchical tables.
+A cleanup pass repairs common extraction artifacts such as vertically rendered
+text, hyphenated word-breaks, and blank filler rows.
+The cleanup module applies three categories of repair.Structural repairsre-
+construct table boundaries that the PDF extraction breaks across page bound-
+aries, re-merge cells that the extractor splits vertically, and remove decorative
+rows (e.g., horizontal rules rendered as sequences of underscores).Typographic
+
+--- Page 6 ---
+repairsrejoin hyphenated words at line breaks, normalize whitespace, and re-
+place Unicode look-alikes (e.g., full-width digits) with their ASCII equivalents
+to ensure downstream parsability.Content-integrity checksverify that numeric
+values appearing in eligibility thresholds (e.g., “HbA1c≥6.5%”) survive ex-
+traction without truncation or digit transposition; when a value falls outside
+a domain-plausible range, the module flags it for manual review rather than
+silently propagating an error.
+For non-English documents, the LLM translates the cleaned content to En-
+glish with explicit instructions to preserve table structure, reference identifiers,
+and numeric thresholds. We supply the LLM with a glossary of domain-specific
+terms (e.g., Japanese medical examination codes, municipality program names)
+to reduce mistranslation of jargon. The translation prompt further instructs the
+model to retain the original term in parentheses alongside the English transla-
+tion whenever the original carries regulatory significance, enabling downstream
+auditing against the source document.
+3.3 Data-Grounded Narrative Generation
+The central challenge in converting policy text to an executable process model
+lies in bridging the gap between natural-language descriptions and formal deci-
+sion logic. A policy document might state, for example, that “individuals diag-
+nosed with diabetes whose HbA1c is 6.5% or higher are eligible for health guid-
+ance”. To convert this sentence into a computable gateway condition, the system
+must (a) identify the relevant clinical concepts (diabetes diagnosis, HbA1c level),
+(b) find corresponding columns in the patient database (e.g.,Diabetes,HbA1c),
+and (c) construct a formal Boolean expression (Diabetes == 1 and HbA1c >=
+6.5). This mapping must be precise: selecting a wrong column or inventing one
+that does not exist in the database produces a model that silently makes incor-
+rect decisions.
+The narrative-generation stage addresses this challenge through a structured,
+five-phase prompting process that converts policy prose into adatabase-grounded
+formal narrative- a temporally ordered description of the process in which every
+condition takes the form of a Boolean expression over actual database columns.
+Phase 1 (Structural Analysis)decomposes the policy text into a sequence of
+process steps. The LLM identifies the high-level workflow stages (e.g., candidate
+identification, notification, screening, guidance enrollment) and organizes them
+into a directed acyclic sequence. Each step receives a descriptive label and a
+preliminary indication of whether it involves a decision (gateway) or an action
+(task). The prompt instructs the model to preserve the document’s own ordering
+and section structure wherever possible, reducing the risk of hallucinated control
+flow.
+Phase 2 (Criterion Tokenization)extracts the criteria embedded in each de-
+cision step and decomposes them into atomic predicates connected by logical op-
+erators. For example, the clause “fasting glucose≥126mg/dl or HbA1c≥6.5%”
+yields two atomic predicates (fasting_glucose >= 126,HbA1c >= 6.5) linked
+byOR.Thetokenizeralsoidentifiesnegation(“excludingpatientswith...”),range
+
+--- Page 7 ---
+predicates (“eGFR between 30 and 60”), and set membership (“urinary protein
+≥ ±”).
+Phase 3 (Expression-Tree Construction)applies standard operator prece-
+dence to assemble the token stream into a hierarchical expression tree. Parenthe-
+sization instructions resolve scope ambiguities that arise when the source text
+uses implicit conjunction (e.g., “patients with diabetesandimpaired renal func-
+tionorproteinuria” admits two parses). The prompt supplies the LLM with the
+explicit precedence rules and instructs it to default to the narrower (conjunc-
+tive) parse unless the document’s formatting (e.g., bullet-list nesting) indicates
+otherwise.
+Phase 4 (Database-Schema Mapping)maps each leaf node in the expression
+tree - representing a single criterion - to one or more columns in the patient
+database. The pipeline ranks candidate columns by semantic specificity using a
+three-tier hierarchy:
+1.Exact match with qualifying terms.A column whose name encodes both
+the concept and a qualifier (e.g.,Type_2_Diabetes_Priorfor “previously
+diagnosed with Type 2 diabetes”) receives the highest rank.
+2.Exact concept match without qualifiers.A column that names the concept
+alone (e.g.,Diabetes) ranks second.
+3.Keyword-level match.A column whose name shares a keyword with the cri-
+terion (e.g.,DM_Treatmentmatching “diabetes medication”) ranks third.
+When multiple columns share the same rank, the pipeline combines them with
+OR. If a policy criterion cannot match any database column with sufficient con-
+fidence, the pipeline omits the corresponding logic rather than inventing a ficti-
+tious variable, ensuring that no spurious columns enter the model.
+Phase5 (ExpressionGeneration)traversesthemappedexpressiontreedepth-
+first to produce the final Boolean expression with proper operator syntax and
+parenthesization. The output expression uses Python syntax (e.g.,and,or,==,
+>=) so that downstream stages can embed it directly in BPMN gateway condi-
+tions without an additional translation step.
+Theoutputofthisstageisaformalnarrativethatreadslikeaprocessdescrip-
+tion but whose every conditional statement constitutes a database-executable
+expression. This narrative serves as the specification from which the next stage
+generates BPMN XML.
+3.4 BPMN Synthesis and Structural Validation
+The synthesis stage converts the formal narrative into a BPMN 2.0 XML model.
+The LLM receives the narrative together with the list of available database
+variables and generates the XML directly, including element identifiers, sequence
+flows, gateway conditions, and layout coordinates.
+We validate every generated model against eight structural compliance rules:
+R1The model contains exactly one start event with no incoming flows.
+R2The model contains at least one end event.
+
+--- Page 8 ---
+R3Every task possesses exactly one incoming and one outgoing flow.
+R4Every gateway functions as either a split (one incoming, multiple outgoing)
+or a merge (multiple incoming, one outgoing), but not both.
+R5Every split gateway designates exactly one default outgoing flow.
+R6All non-default outgoing flows from a gateway carry a Python condition
+expression with proper XML entity encoding (e.g.,&gt;for>).
+R7No two outgoing flows from the same gateway target the same element.
+R8All variables referenced in condition expressions correspond to columns in
+the patient database schema.
+When the validator detects a rule violation, the system applies targeted re-
+pairsautomatically.ForR3violations,therepairmoduleinsertsamergegateway
+upstream of elements that receive multiple incoming flows. For R4 violations (a
+gateway acting as both split and merge), the module decomposes the node into a
+merge gateway followed by a split gateway connected by a single sequence flow.
+For R5, the module identifies the outgoing flow whose condition is most general
+(fewest conjuncts) and designates it as the default. For R6, the module applies
+XML entity encoding to all condition strings. For R7, the module removes dupli-
+cate flows and re-routes the second target to a newly inserted intermediate task
+that preserves the intended semantics. For R8, the module queries the LLM with
+the invalid variable name and the database schema to obtain the closest valid
+column; if no match exceeds a confidence threshold, the repair module removes
+the offending condition entirely and logs a warning.
+Validation and repair iterate until all eight rules pass or a maximum iteration
+count (default: five) is reached. Models that still violate any rule after the final
+iteration are marked as generation failures and excluded from simulation. The
+synthesis module also performs activity-level reasoning to ensure that the model
+contains only executable tasks: any task whose description references an action
+outside the BPMN construct palette (e.g., “send email” without a corresponding
+service binding) is flagged for review.
+3.5 Executable Augmentation
+The BPMN standard does not prescribe how workflow engines should exe-
+cute models; different workflow engines require different runtime annotations.
+The augmentation stage converts the validated BPMN into a SpiffWorkflow-
+executable format through three transformation steps.
+Task-type conversion.Generic BPMN user tasks, which assume human in-
+teraction, become script tasks or service tasks that SpiffWorkflow can execute
+programmatically. Each converted task receives a Python code block that reads
+patient-record fields from the workflow’s data context and writes decision out-
+comes (e.g.,eligible = True) back to the context for downstream gateways.
+Gateway-condition translation.Condition expressions originally written for
+BPMN XML compliance (with XML entity encoding and namespace prefixes)
+translate into raw Python Boolean expressions that SpiffWorkflow’s expression
+
+--- Page 9 ---
+evaluatorcanparse.Theaugmentationmoduleverifiessyntacticvaliditybypars-
+ing each expression with Python’sast.parsebefore embedding it; any expres-
+sion that fails to parse triggers a re-query to the LLM with the parse error as
+feedback.
+Data-context binding.The augmented model binds to a pandas-backed data
+context that loads patient records at runtime. Each patient record populates
+the workflow’s data dictionary, making database columns directly accessible
+as Python variables in gateway conditions and script tasks. The augmentation
+module verifies that every variable referenced in the model appears in the data-
+context schema, providing a second layer of defense (complementing R8 from
+the synthesis stage) against spurious variable references.
+A gateway-preservation invariant governs the entire augmentation process:
+the module asserts that the set of gateway conditions (modulo syntactic normal-
+ization) before and after augmentation is identical, ensuring that the transfor-
+mation does not alter any decision logic.
+3.6 KPI-Based Evaluation Framework
+The final pipeline stage instruments the executable model for quantitative evalu-
+ation and runs simulations. The goal is to determine whether a generated model
+makes thesame decisionsas a human-designed baseline when both process the
+same patient data. We operationalize this comparison through five domain-
+specific KPIs derived from theDiabetic Nephropathy Aggravation Prevention
+Program[7].
+These KPIs serve asfunctional-equivalence metrics: if a generated model
+producesthesameKPIvaluesasthehumanbaselineonthesametestpopulation,
+the two models are functionally equivalent with respect to the policy decisions
+they encode. The KPIs do not predict real-world clinical outcomes - that would
+require validation against actual patient data, which lies beyond the scope of
+this work.
+The five KPIs capture different aspects of the health guidance workflow:No-
+tification Count(NC) andHealth Guidance Count(HC) directly count patients
+receiving notifications and patients who accept guidance sessions, respectively;
+Guidance Resource Utilization(RU),Health Improvement Rate(HI), andMed-
+ical Cost Savings(CS) derive from HC through domain-specific empirical scal-
+ing factors (capacity ratio, improvement-rate coefficient, and dialysis-prevention
+cost, respectively) and therefore map to the same model task. Because RU, HI,
+and CS are deterministic functions of HC, only two independent metrics - NC
+and HC - underlie the KPI-based evaluation; we complement this aggregate view
+with a per-patient decision-agreement analysis in Section 4.6.
+KPI-to-task mapping.For each KPI, an LLM prompt identifies the model
+task whose execution semantics most closely correspond to the KPI defini-
+tion. Because LLM outputs exhibit stochastic variation, we repeat the mapping
+ktimes and select the task assignment that appears most frequently across repe-
+titions via majority vote. This voting mechanism filters transient mapping errors
+
+--- Page 10 ---
+while preserving consensus assignments. The selected mapping determines where
+the simulation engine increments each KPI counter during model execution.
+Simulation and aggregation.Weexecuteeachinstrumentedmodelagainst
+1,000 synthetic patient records whose clinical attributes match published DN
+screening statistics. The synthetic population spans the full range of values for
+each database column, including borderline cases near every decision threshold,
+to ensure that KPI differences between models reflect genuine logic discrepancies
+rather than artifacts of a population that avoids boundary values. We use the
+same dataset for both human-designed and generated models, so any patient-
+level or aggregate KPI difference reflects a difference in model logic.
+Uncertainty detection.For each policy document, the pipeline generates
+Mnarratives followed by candidate BPMN model for each narrative, per LLM
+backend.ThepipelinesimulateseverymodelandcomputesthenormalizedShan-
+non entropy over the empirical distribution of KPI combinations:
+Hnorm =−1
+logKKX
+i=1pilogp i,(1)
+whereKdenotes the number of distinct KPI combinations observed andp ide-
+notes the fraction of models producing combinationi. A normalized entropy of
+0% indicates that all models agree on a single KPI outcome (no ambiguity);
+a value approaching 100% indicates near-uniform disagreement acrossKout-
+comes.
+The entropy score serves as anambiguity detector: high entropy flags docu-
+ments whose natural-language descriptions admit multiple valid interpretations,
+directing human reviewers to the specific policies that require clarification. The
+detector also distinguishes betweenLLM noise(random generation failures that
+produce all-zero KPIs) andgenuine policy vagueness(multiple non-trivial KPI
+clusters corresponding to distinct but defensible readings of the source text)
+through the shape of the KPI distribution: noise manifests as a single outlier
+cluster alongside a dominant mode, whereas genuine vagueness produces multi-
+ple comparably-sized clusters.
+4 Experimental Results
+This section evaluates the pipeline on real-world healthcare policies and reports
+results addressing the research questions posed in Section 1.
+4.1 Experimental Setup
+We evaluate the pipeline on DN health guidance policies from three cities in
+Japan,referredtoasCity 1,City 2,andCity 3,spanningarangeofstructural
+complexity. For each municipality, we compare human-developed BPMN mod-
+els (ground truth) against automatically generated models via KPI-based func-
+tional equivalence rather than structural isomorphism. We employ three LLM
+
+--- Page 11 ---
+backends spanning two model families: Gemini 2.5 Pro and Gemini 2.5 Flash
+(Google, both inthinking mode), and GPT-5.1 (OpenAI). For each backend we
+generate 100 models per municipality, execute each against 1,000 synthetic pa-
+tient records, and evaluate the five KPIs from Section 3.6. The pipeline processes
+all three policies without manual intervention beyond translation verification.
+The 1,000 synthetic patient records span the full range of clinical attributes,
+including borderline values at each decision threshold (e.g., HbA1c near 6.5%,
+eGFR near 30 and 60), ensuring that KPI agreement reflects decision-level fi-
+delity rather than an artifact of a population that avoids boundary cases.
+4.2 Test Cases
+TheCity 1policy is well-structured, with a conjunction of two hierarchically
+organized criterion groups. Group A (diabetes) requires one of: claims-data di-
+agnosis, current treatment (oral or insulin), or fasting glucose≥126mg/dl /
+HbA1c≥6.5%. Group B (impaired renal function) requires one of: urinary pro-
+tein≥1+, eGFR 30-60, urinary protein≥ ±with eGFR 60-90, or diabetic
+nephropathy history. Eligibility requires A∧B. Exclusion criteria remove pa-
+tients with type 1 diabetes or cancer.
+TheCity 2policy targets Stage 2 or Stage 3 DN patients with a compound
+Boolean eligibility structure (( 1○∨2○)∧(3○∨4○)), where 1○/2○cover diabetes
+criteria (fasting glucose or HbA1c thresholds, or prior diagnosis with treatment)
+and3○/4○cover renal criteria (urinary protein/albumin levels or eGFR 30-
+60). The same exclusion criteria apply. Guidance spans a structured six-month
+program with pre- and post-intervention comparison.
+TheCity 3policy is the most complex, featuring implicit sequencing and
+temporal dependencies across two fiscal years. Stage 1○determines eligibility for
+an albumin test based on prior-year checkup results (HbA1c 6.0-6.4%, urinary
+protein(−)to(+), no diabetes medication, ages 60-64). Stage 2○determines
+eligibility for a guidance interview based on Stage 1○results or separate clinical
+criteria (urinary protein(±)+, eGFR 30-60, HbA1c≥6.5%). The temporal
+couplingisimplicit,blurringtheboundarybetweenselectioncriteriaandfallback
+procedures.
+Figure 2 compares a representative generated BPMN model forCity 1with
+the human-designed baseline. Despite structural differences, both implement
+identical policy logic and produce matching KPI outcomes.
+4.3 City 1: Well-Structured Policy
+Figure 3 shows the KPI combination frequency forCity 1across all three LLMs.
+Gemini 2.5 Pro (Figure 3a) achieves complete determinism: all 100 models pro-
+duce a single KPI combination matching the human baseline exactly (NC=88,
+HC=88, RU=17.6%, HI=53, CS=¥249.7M; normalized entropy 0.0%), con-
+firming that the pipeline’s decision logic is fully determined when the input
+policy is unambiguous.
+
+--- Page 12 ---
+Send
+Participation
+Encouragement
+NotificationProvide Six
+Months Health
+GuidanceConduct
+Follow-up
+Guidance
+SessionCheck Health
+Checkup Data
+ExcludedCheck Exclusion
+CriteriaCheck Inclusion
+Eligibility
+Incomplete DataIneligibleCheck Health
+Guidance
+Acceptance
+Participation
+DeclinedSuccessful
+Completion(a) Generated model.
+(b) Human-designed baseline.
+Fig.2: BPMN model comparison forCity 1. Both models implement identical
+policy logic and produce matching KPI outcomes despite differing in gateway
+topology and task ordering.
+Gemini 2.5 Flash (Figure 3b) and GPT-5.1 (Figure 3c) achieve ground-truth
+match rates of 86% and 87%, respectively (normalized entropies 43.5% and
+38.4%), with three unique combinations each. The failure modes differ. Flash
+produces 11% generation failures (all-zero KPIs from structural BPMN vio-
+lations unrepairable within the iteration budget) and 3% over-identifications
+(NC=279, from overly broad column selection). GPT-5.1 produces zero gener-
+ation failures; its 12% minority cluster yields NC=42 and HC=42 - roughly
+half the ground truth - diagnostic of a variable-binding error in which the LLM
+selects a narrower database column instead of the intended disjunction. The ab-
+sence of intermediate values between clusters confirms that this failure mode is
+binary.
+4.4 City 2: Compound Boolean Eligibility Logic
+City 2introduces compound Boolean conditions that combine disjunctions and
+conjunctions across four eligibility sub-criteria. Figure 4 shows the distributions
+under all three LLMs.
+Gemini 2.5 Pro (Figure 4a) produces four distinct KPI combinations from
+n= 99successfully executing models. The dominant cluster (70.7%) matches
+the ground truth exactly (NC=110, HC=110). All four clusters share NC=110
+(σ= 0) but differ in HC (110, 32, 78, and 0; mean90±33), localizing the dis-
+agreementtotheguidance-acceptancelogic-specifically,thenested“(condition1
+OR2)AND(condition3OR4)” structure-whiletheupstreamnotificationpath-
+
+--- Page 13 ---
+Combo 10255075100125150175200Number of ModelsMAXNC: 88
+HC: 88
+RU: 17.6%
+HI: 53
+CS: ¥249.7MTotal Models: 100
+Unique Combos: 1
+Shannon Entropy: 0.000 bits
+Normalized Entropy: 0.0%
+Perplexity: 1.00KPI Combination Frequency  (n = 100 models total)(a) Gemini 2.5 Pro.
+Combo 1 Combo 2 Combo 3020406080100120140160180Number of Models86.0%NC: 88
+HC: 88
+RU: 17.6%
+HI: 53
+CS: ¥249.7M
+11.0%NC: 0
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0M
+3.0%NC: 279
+HC: 279
+RU: 55.8%
+HI: 167
+CS: ¥791.7MTotal Models: 100
+Unique Combos: 3
+Shannon Entropy: 0.689 bits
+Normalized Entropy: 43.5%
+Perplexity: 1.61KPI Combination Frequency  (n = 100 models total)
+(b) Gemini 2.5 Flash.
+Combo 1 Combo 2 Combo 3020406080100120140160180Number of Models87.0%NC: 88
+HC: 88
+RU: 17.6%
+HI: 53
+CS: ¥249.7M
+12.0%NC: 42
+HC: 42
+RU: 8.4%
+HI: 25
+CS: ¥119.2M
+1.0%NC: 58
+HC: 58
+RU: 11.6%
+HI: 35
+CS: ¥164.6MTotal Models: 100
+Unique Combos: 3
+Shannon Entropy: 0.608 bits
+Normalized Entropy: 38.4%
+Perplexity: 1.52KPI Combination Frequency  (n = 100 models total)
+(c) GPT-5.1.
+Fig.3: Top-5 KPI combination frequency forCity 1(n= 100models per LLM).
+Pro achieves 100% ground-truth match with zero entropy. Flash and GPT-5.1
+each match at 86 - 87% but exhibit distinct failure patterns: Flash produces
+generation failures (all-zero KPIs); GPT-5.1 produces variable-binding errors
+(half-count KPIs).
+
+--- Page 14 ---
+way is reliably extracted. The normalized entropy of 60.2% reflects structured
+disagreement over compound Boolean interpretation.
+Gemini2.5Flash(Figure4b)producesnineuniquecombinations(normalized
+entropy 69.1%, perplexity 4.57) fromn= 100models, with a 46% ground-truth
+match rate. Generation failures account for 20% of models, and an additional
+18%correctlyidentifyNC=110butassignHC=0,indicatingthatFlashreliably
+extracts the notification pathway yet frequently fails on the guidance-acceptance
+logic. Minority clusters at HC=64 (7%) and HC=46 (4%) further confirm that
+the compound Boolean structure drives the variation.
+GPT-5.1 (Figure 4c) produces 13 unique combinations (normalized entropy
+51.4%, perplexity 3.74). Its two dominant clusters - 48% at ground truth and
+38% at a near-miss (NC=102, HC=102) - differ by only eight patients. Unlike
+Pro and Flash, GPT-5.1 also varies in NC (107±14), indicating occasional
+misparsing of the notification criterion.
+4.5 City 3: Implicit Temporal Dependencies
+City 3represents the most challenging case, with eligibility criteria spanning
+two fiscal years and implicit sequencing between screening, consultation, and
+guidance. Figure 5 shows the distributions under all three LLMs.
+Gemini 2.5 Pro (Figure 5a) produces four clusters with near-uniform fre-
+quency (28%, 27%, 24%, 21%), yielding a normalized entropy of 99.6% - the
+theoretical maximum for four outcomes. NC values across clusters (4, 45, 5, 3)
+span an order of magnitude, and the mean-variance analysis confirms multi-
+modal variation (NC=15±18, whereσ > µ) rather than noise around a central
+tendency.
+Gemini 2.5 Flash (Figure 5b) produces 10 unique combinations (normalized
+entropy 64.8%) with 21% generation failures. GPT-5.1 (Figure 5c) yields the
+highest fragmentation in the evaluation: 21 unique combinations (normalized
+entropy 65.2%, perplexity 7.27) with 29% generation failures - the highest rate
+observed across all experiments. For both Flash and GPT-5.1, the standard
+deviation of NC is either comparable to or exceeds the mean (Flash:40±22;
+GPT-5.1:17±35), indicating that the multi-modal pattern is not specific to Pro.
+The critical observation is thatall three LLMsproduce elevated entropy for
+City 3(99.6%, 64.8%, 65.2%), whereas the same models produce substantially
+lower entropy onCity 1(0.0%, 43.5%, 38.4%). The inter-city entropy gap far
+exceeds the inter-LLM gap within any city, confirming that the elevated uncer-
+tainty is an intrinsic property of the source document rather than an artifact of
+any individual model’s limitations.
+4.6 Per-Patient Decision Agreement
+The KPI-based evaluation measures aggregate functional equivalence across only
+two independent signals (NC and HC), since RU, HI, and CS are deterministic
+transforms of HC. To verify that aggregate agreement reflects per-patient deci-
+sion fidelity, we compare each generated model’s eligibility decision against the
+
+--- Page 15 ---
+Combo 1 Combo 2 Combo 3 Combo 40153045607590105120135Number of Models70.7%NC: 110
+HC: 110
+RU: 22.0%
+HI: 66
+CS: ¥312.1M
+20.2%NC: 110
+HC: 32
+RU: 6.4%
+HI: 19
+CS: ¥90.8M
+7.1%NC: 110
+HC: 78
+RU: 15.6%
+HI: 47
+CS: ¥221.3M
+2.0%NC: 110
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0MTotal Models: 99
+Unique Combos: 4
+Shannon Entropy: 1.204 bits
+Normalized Entropy: 60.2%
+Perplexity: 2.30KPI Combination Frequency  (n = 99 models total)(a) Gemini 2.5 Pro.
+Combo 1 Combo 2 Combo 3 Combo 4 Combo 50102030405060708090Number of Models46.0%NC: 110
+HC: 110
+RU: 22.0%
+HI: 66
+CS: ¥312.1M
+20.0%NC: 0
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0M
+18.0%NC: 110
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0M
+7.0%NC: 110
+HC: 64
+RU: 12.8%
+HI: 38
+CS: ¥181.6M
+4.0%NC: 110
+HC: 46
+RU: 9.2%
+HI: 28
+CS: ¥130.5MTotal Models: 100
+Unique Combos: 9
+Shannon Entropy: 2.192 bits
+Normalized Entropy: 69.1%
+Perplexity: 4.57KPI Combination Frequency  (n = 100 models total)
+(b) Gemini 2.5 Flash.
+Combo 1 Combo 2 Combo 3 Combo 4 Combo 50153045607590Number of Models48.0%NC: 110
+HC: 110
+RU: 22.0%
+HI: 66
+CS: ¥312.1M
+38.0%NC: 102
+HC: 102
+RU: 20.4%
+HI: 61
+CS: ¥289.4M
+3.0%NC: 115
+HC: 115
+RU: 23.0%
+HI: 69
+CS: ¥326.3M
+2.0%NC: 110
+HC: 29
+RU: 5.8%
+HI: 17
+CS: ¥82.3M
+1.0%NC: 29
+HC: 110
+RU: 22.0%
+HI: 66
+CS: ¥312.1MTotal Models: 100
+Unique Combos: 13
+Shannon Entropy: 1.901 bits
+Normalized Entropy: 51.4%
+Perplexity: 3.74KPI Combination Frequency  (n = 100 models total)
+(c) GPT-5.1.
+Fig.4: Top-5 KPI combination frequency forCity 2. Pro maintains NC=110
+across all clusters with variation only in HC (normalized entropy 60.2%). Flash
+exhibits 20% generation failures and 69.1% normalized entropy. GPT-5.1 varies
+in both NC and HC across 13 unique combinations (normalized entropy 51.4%).
+
+--- Page 16 ---
+Combo 1 Combo 2 Combo 3 Combo 4061218243036424854Number of Models28.0%NC: 4
+HC: 4
+RU: 0.8%
+HI: 2
+CS: ¥11.4M
+27.0%NC: 45
+HC: 45
+RU: 9.0%
+HI: 27
+CS: ¥127.7M
+24.0%NC: 5
+HC: 5
+RU: 1.0%
+HI: 3
+CS: ¥14.2M
+21.0%NC: 3
+HC: 3
+RU: 0.6%
+HI: 2
+CS: ¥8.5MTotal Models: 100
+Unique Combos: 4
+Shannon Entropy: 1.991 bits
+Normalized Entropy: 99.6%
+Perplexity: 3.98KPI Combination Frequency  (n = 100 models total)(a) Gemini 2.5 Pro.
+Combo 1 Combo 2 Combo 3 Combo 4 Combo 50102030405060708090Number of Models45.0%NC: 44
+HC: 70
+RU: 14.0%
+HI: 42
+CS: ¥198.6M
+22.0%NC: 70
+HC: 70
+RU: 14.0%
+HI: 42
+CS: ¥198.6M
+21.0%NC: 0
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0M
+3.0%NC: 44
+HC: 44
+RU: 8.8%
+HI: 26
+CS: ¥124.9M
+3.0%NC: 26
+HC: 26
+RU: 5.2%
+HI: 16
+CS: ¥73.8MTotal Models: 100
+Unique Combos: 10
+Shannon Entropy: 2.154 bits
+Normalized Entropy: 64.8%
+Perplexity: 4.45KPI Combination Frequency  (n = 100 models total)
+(b) Gemini 2.5 Flash.
+Combo 1 Combo 2 Combo 3 Combo 4 Combo 501020304050607080Number of Models39.0%NC: 5
+HC: 5
+RU: 1.0%
+HI: 3
+CS: ¥14.2M
+29.0%NC: 0
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0M
+5.0%NC: 121
+HC: 121
+RU: 24.2%
+HI: 73
+CS: ¥343.3M
+3.0%NC: 3
+HC: 3
+RU: 0.6%
+HI: 2
+CS: ¥8.5M
+3.0%NC: 5
+HC: 0
+RU: 0.0%
+HI: 0
+CS: ¥0.0MTotal Models: 100
+Unique Combos: 21
+Shannon Entropy: 2.863 bits
+Normalized Entropy: 65.2%
+Perplexity: 7.27KPI Combination Frequency  (n = 100 models total)
+(c) GPT-5.1.
+Fig.5: Top-5 KPI combination frequency forCity 3(n= 100models per LLM).
+All three LLMs produce high entropy (Pro: 99.6%, Flash: 64.8%, GPT-5.1:
+65.2%), confirming that the ambiguity is an intrinsic document property. Pro
+yields four stable clusters; Flash and GPT-5.1 exhibit long tails with 21-29%
+generation failures.
+
+--- Page 17 ---
+ground truth on the same 1,000 patients and compute agreement rate, F1, recall,
+balanced accuracy, and Cohen’sκ. Table 1 summarizes the results.
+ForCity 1,allbackendsachieve≥98.4%agreementandκ≥0.918,withPro
+attaining perfect agreement (κ= 1.000). ForCity 2, GPT-5.1 leads (κ= 0.931,
+98.9% agreement); Pro follows atκ= 0.850; Flash drops toκ= 0.615due to
+its higher generation-failure rate. ForCity 3, all backends exhibit near-chance
+κ(−0.015to0.077) despite>92%raw agreement. This outcome constitutes an
+instance of the base-rate paradox: when the eligible class is rare (<5%), even
+a model that never selects any patient achieves high raw agreement while con-
+tributingnodiscriminativevalue,asreflectedbyκ≈0.Thepatterncorroborates
+the entropy-based findings: high agreement on well-structured policies degrades
+when implicit temporal dependencies introduce ambiguity.
+Table 1: Per-patient decision-agreement metrics (mean across complete variants,
+1,000 patients each). Bal. Acc.= (Recall+Specificity)/2.∗Incomplete variants
+(<1,000 patients each) are excluded.
+Model CityNAgr. (%) F1 (%) Rec. (%) Bal.Acc. (%)κ
+Gemini Flash 2.5 City 1 91∗98.4 100.0 92.3 95.6 0.918
+Gemini Flash 2.5 City 2 84∗94.5 93.8 60.4 79.6 0.615
+Gemini Flash 2.5 City 3 84∗92.9 n/a 0.0 46.9−0.015
+Gemini Pro 2.5 City 1 100 100.0 100.0 100.0 100.0 1.000
+Gemini Pro 2.5 City 2 99 98.0 87.4 81.6 90.8 0.850
+Gemini Pro 2.5 City 3 100 97.6 8.2 5.1 51.8 0.034
+GPT-5.1 City 1 100 99.4 95.5 93.4 96.7 0.953
+GPT-5.1 City 2 100 98.9 94.5 91.7 95.8 0.931
+GPT-5.1 City 3 98∗97.5 13.7 16.7 57.5 0.077
+Across all three cities, the pattern is consistent:κtracks the entropy-based un-
+certainty scores.City 1(low entropy) yields near-perfectκ;City 2(moderate
+entropy) yields moderateκwith LLM-dependent variation;City 3(high en-
+tropy) yields near-zeroκuniversally. This concordance between two independent
+evaluation axes - aggregate KPI entropy and per-patient decision agreement -
+strengthens the conclusion that the pipeline’s uncertainty detector reliably iden-
+tifies documents whose ambiguity degrades model fidelity.
+5 Conclusions
+We presented an end-to-end pipeline that transforms healthcare policy docu-
+ments into executable, KPI-instrumented BPMN models and evaluated it on
+diabetic nephropathy guidance policies from three Japanese municipalities using
+three LLM backends (Gemini 2.5 Pro, Gemini 2.5 Flash, and GPT-5.1), gener-
+ating 100 candidate models per backend per municipality to characterize output
+variability.
+
+--- Page 18 ---
+The pipeline processed all three policies without manual intervention be-
+yond translation verification (RQ1). The generated models ran directly in Spiff-
+Workflow (RQ2). LLM-driven KPI instrumentation automatically linked five
+KPIs to tasks (RQ3). The entropy-based uncertainty detector distinguished
+well-specified policies from ambiguous policies: normalized entropy increased
+monotonically fromCity 1(0.0% - 43.5%) throughCity 2(51.4% - 69.1%)
+toCity 3(64.8% - 99.6%) across all backends, with per-patientκdropping
+from≥0.918to≤0.077(RQ4). Generation failures and variable-binding errors
+emerged as distinct failure modes; cross-LLM majority voting on the generated
+models can filter the former (non-zero KPI check) and mitigate the latter by
+selecting the consensus decision logic.
+Limitations include a narrow set of three test cases and a restricted BPMN
+construct palette that excludes parallel gateways, timers, and sub-processes.
+Future work will extend the framework to additional municipalities and non-
+healthcare domains and will incorporate human-in-the-loop and automated am-
+biguity correction for entropy-flagged documents.
+References
+1. Bellan, P., Dragoni, M., Ghidini, C.: Process extraction from text: State of the art
+and challenges for the future. arXiv preprint arXiv:2110.03754 (2021)
+2. Bowles, J., Czekster, R., Webber, T.: Annotated BPMN Models for Optimised
+Healthcare Resource Planning, pp. 123–135. Springer (12 2018).https://doi.
+org/10.1007/978-3-030-04771-9_12
+3. Brown, T.B., et al.: Language models are few-shot learners. In: Advances in Neural
+Information Processing Systems 33 (2020),https://arxiv.org/abs/2005.14165
+4. Friedrich, F., Mendling, J., Puhlmann, F.: Process model generation from natural
+language text. In: Proceedings of the 23rd International Conference on Advanced
+Information Systems Engineering (CAiSE). pp. 482–496. Springer (2011)
+5. Garg, D., Zeng, S., Ganesh, S., Ardon, L.: Generating structured plan representa-
+tion of procedures with LLMs. arXiv preprint arXiv:2504.00029 (2025)
+6. Hörner, L.F., Reichert, M.: Automatically generating BPMN 2.0 process models
+from natural language process descriptions: Challenges, framework, quality assess-
+ment. Business & Information Systems Engineering (2025).https://doi.org/10.
+1007/s12599-025-00983-x
+7. Ikeda,A.,Fujii,M.,Ohno,Y.,Godai,K.,Li, Y.,Nakamura,Y.,Yabe,D., Tsushita,
+K., Kashihara, N., Kamide, K., Kabayama, M.: Effect of the diabetic nephropathy
+aggravation prevention program on medical visit behavior in individuals under
+the municipal national health insurance. Journal of diabetes investigation14(03
+2023).https://doi.org/10.1111/jdi.14006
+8. Ivanchikj, A., Serbout, S., Pautasso, C.: From text to visual BPMN process mod-
+els: Design and evaluation. In: Proceedings of the 23rd ACM/IEEE International
+Conference on Model Driven Engineering Languages and Systems (MODELS). pp.
+229–239. ACM (2020)
+9. Köpke, J., Safan, A.: Introducing the BPMN-Chatbot for efficient LLM-based pro-
+cess modeling. In: Proceedings of the International Conference on Business Process
+Management. pp. 86–90 (2024)
+
+--- Page 19 ---
+10. Kourani, H., Berti, A., Schuster, D., van der Aalst, W.M.P.: ProMoAI: Process
+modeling with generative AI. In: Proceedings of the Thirty-Third International
+Joint Conference on Artificial Intelligence (IJCAI-24). pp. 8708–8712 (2024)
+11. Lê, P.N., Schneider-Depré, C., Goossens, A., Stevens, A., Leribaux, A., De Smedt,
+J.: Leveraging machine learning and enhanced parallelism detection for BPMN
+model generation from text. arXiv preprint arXiv:2507.08362 (2025)
+12. Matei, I., Zhenirovskyy, M., Menaka Sekar, P.K., Wong, H.Y.: Automated BPMN
+model generation from textual process descriptions: A multi-stage LLM-driven
+approach. In: Proceedings of the 2026 IEEE International Systems Conference
+(SysCon). IEEE (2026)
+13. Monti, F., Leotta, F., Mangler, J., Mecella, M., Rinderle-Ma, S.: NL2ProcessOps:
+Towards LLM-guided code generation for process execution. In: Proceedings of
+the International Conference on Business Process Management (BPM 2024). pp.
+127–143. Springer (2024)
+14. Neuberger,J.,Ackermann,L.,Jablonski,S.:Beyondrule-basednamedentityrecog-
+nition and relation extraction for process model generation from natural language
+text. In: Proceedings of the International Conference on Cooperative Information
+Systems (CoopIS 2023). Lecture Notes in Computer Science, vol. 14353, pp. 171–
+188. Springer (2024).https://doi.org/10.1007/978-3-031-46846-9_10
+15. Nivon, Q., Salaün, G., Lang, F.: GIVUP: Automated generation and verification
+of textual process descriptions. In: Proceedings of the 33rd ACM International
+Conference on the Foundations of Software Engineering (FSE Companion ’25).
+pp. 1119–1123. ACM (2025).https://doi.org/10.1145/3696630.3728593
+16. Object Management Group: Business Process Model and Notation (BPMN) Ver-
+sion 2.0. Tech. Rep. formal/2011-01-03, Object Management Group (2011),https:
+//www.omg.org/spec/BPMN/2.0
+17. PyMuPDF Contributors: PyMuPDF4LLM.https://github.com/pymupdf/
+pymupdf4llm(2025), accessed: 2025-10-09
+18. Shimaoka, N., Kamiyama, N., Hotta, S., Kohmura, S., Kurume, Y., Suzuki, H.,
+Inomata, A., Segawa, E.: Structure-aware optimization of decision diagrams for
+health guidance via integer programming. arXiv preprint arXiv:2603.22996 (2026)
+19. SpiffWorkflow Contributors: SpiffWorkflow: A BPMN 2.0 workflow engine
+for Python.https://github.com/sartography/SpiffWorkflow(2024), accessed:
+2025-10-09
+20. Tateyama, Y., Shimamoto, T., Uematsu, M.K., Taniguchi, S., Nishioka, N., Ya-
+mamoto, K., Okada, H., Takahashi, Y., Nakayama, T., Iwami, T.: Status of screen-
+ing and preventive efforts against diabetic kidney disease between 2013 and 2018:
+Analysis using an administrative database from Kyoto-city, Japan. Frontiers in
+Endocrinology14(2023).https://doi.org/10.3389/fendo.2023.1195167
+21. Voelter, M., Hadian, R., Kampik, T., Breitmayer, M., Reichert, M.: Leveraging
+generative AI for extracting process models from multimodal documents. In: arXiv
+preprint arXiv:2406.04959 (2024)
+22. Zirnstein, B.: Extraction of BPMN process models from unstructured textual de-
+scriptions. Tech. rep., Berlin School of Economics and Law (2024)

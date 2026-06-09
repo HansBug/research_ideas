@@ -1,0 +1,509 @@
+--- Page 1 ---
+What is the Best Process Model Representation?
+A Comparative Analysis for Process Modeling with Large
+Language Models
+Alexis Brissard1,2,3[0009−0005−1710−0133], Frédéric Cuppens1,2[0000−0003−1124−2200],
+and Amal Zouaq1,3[0000−0002−4791−0752]
+1Polytechnique Montréal
+2LabCys
+3LAMA-WeST Lab
+{first name.last name}@polymtl.ca
+Abstract. LargeLanguageModels(LLMs)areincreasinglyappliedforProcess
+Modeling(PMo)taskssuchasProcessModelGeneration(PMG).Tosupportthese
+tasks, researchers have introduced a variety of Process Model Representations
+(PMRs) that serve as model abstractions or generation targets. However, these
+PMRsdifferwidelyinstructure,complexity,andusability,andhaveneverbeen
+systematically compared. Moreover, recent PMG approaches rely on distinct
+evaluation strategies and generation techniques, making comparison difficult.
+This paper presents the first empirical study that evaluates multiple PMRs in
+the context of PMo with LLMs. We introduce the PMo Dataset, a new dataset
+containing 55 process descriptions paired with models in nine different PMRs.
+We evaluate PMRs along two dimensions: suitability for LLM-based PMo and
+performance on PMG. Mermaid achieves the highest overall score across six PMo
+criteria, whereas BPMN text delivers the best PMG results in terms of process
+element similarity.
+Keywords: BusinessProcessModeling ·LargeLanguageModels ·ProcessModel
+Generation ·Process Model Representation
+1 Introduction
+1.1 Background
+OneofthemostpromisingapplicationsofLLMsinBPMisProcessModeling(PMo),
+wherethegoalistoassistorautomatetheconstructionofprocessmodelsfromtextual
+process descriptions [ 6]. A central subtask in PMo is Process Model Generation (PMG),
+which involves generating a process model from a natural language input. To support
+this generation, researchers have introduced a variety of Process Model Representations
+(PMRs)—textual abstractions used to represent the output process model.
+TheinitialmotivationforusingPMRsstemmedfromthelimitationsofLLMs,which
+wereunableto directlygeneratestandardBPMNmodels duetoconstraintsincontext
+length and suboptimal LLM performance [ 6,9]. To address these challenges, alternative
+representations such as simplified BPMN or existing diagram notations were introduced.arXiv:2507.11356v1  [cs.CL]  15 Jul 2025
+
+--- Page 2 ---
+2 A. Brissard et al.
+Fig.1: Four Process Model Representations (PMRs) of the same process model.
+Sincethen,moreadvancedPMGapproacheshaveemerged,proposingnewtechniques
+suchasconstrainedgenerationormulti-agentsframework,oftentakingadvantageoftheir
+own custom PMRs [14,16,19,10]. A subset of these PMRs are presented in Figure 1.
+Despite this progress, the evaluation of the generated process models remains a
+major challenge [ 4]. Each approach introduces its own evaluation methods, metrics,
+andbenchmarks,preventingmeaningfulcomparisonsbetweenthem.Furthermore,the
+underlying PMRs differ significantly between approaches and have never been subject to
+a systematic comparative analysis. This fragmentation makes it difficult to assess which
+PMRs are most suitable for PMG and more broadly for PMo tasks.
+1.2 Research Questions and Contributions
+ThisworksystematicallyinvestigatesPMRsbyassessingtheirrespectivestrengthsand
+limitationsthroughconceptualandempiricalevaluation.Toclarifythecurrentlandscape
+and guide future research in the field, we address the following research questions:
+RQ1: What are the key characteristics and features that distinguish different PMRs?
+RQ2: Which PMRs are most suitable for PMo with LLMs?
+RQ3: Which PMRs lead to the best performance on PMG?
+Toanswertheseresearchquestions,wemakethefollowingcontributions.First,we
+introduce the PMo Dataset, a new dataset comprising 55 process descriptions paired
+with process models in nine distinct PMRs. Second, we perform the first comprehensive
+reviewand intrinsiccomparisonof PMRsinthe contextofPMo withLLMs,analyzing
+their structural properties and representational characteristics using both qualitative and
+quantitativemethods.Finally,we evaluatetheeffectivenessofeachPMRasa targetfor
+PMG under standard prompting with LLMs, identifying which representations facilitate
+more accurate and faithful model generation.
+The code of this project, containing all our data, prompts and results can be found at
+https://github.com/Lama-West/Process_Model_Representations .
+
+--- Page 3 ---
+What is the Best Process Model Representation ? 3
+Table 1: Main PMG approaches from the literature.
+PMG approach PMR LLM Evaluation setEvaluation
+method
+ConverMod [9]Graphviz +
+MermaidGPT-4 Mangler + PET-7Text similarity +
+Qualitative
+PromoAI [14] POWL code GPT-4 2 descriptions Qualitative
+MAO [16] BPMN text GPT-4 BPMN for Research BPMNDiff Viz
+Multimodal [19] PME GPT-4V SAP-SAM PME similarity
+BPMN-chatbot [10] JSON branches GPT-4o PET-7 Qualitative
+2 Related Work
+PMowithLLMs. LLMshaverecentlystartedtobeusedforProcessModeling(PMo)
+andshowpromisingresults[ 12,4,9].[9]haveframedtheirapproachas Conversational
+PMo, we use the broader formulations PMo with LLMs orLLM-based PMo .
+Main PMG approaches. One of the most complete PMG studies is ConverMod [ 9],
+investigating the useof Graphviz and Mermaid asPMRs. They evaluate their approach
+on a subset of 7 documents from the PET dataset [ 2] for which they create business
+models (hereafter referred to as PET-7). Their main evaluation metric is the Jaccard
+index between the generated and gold sequence flows.
+[14,13] introduce ProMoAI, a unique approach where Python code is generated and
+executedtoobtainPOWLprocessmodels.Designatedas POWL code ,thisPMRrequires
+extended prompts and multiple error correction rounds, which limits its practicality.
+[10] proposes BPMN-chatbot, an enhancement of the ProMoAI framework that
+introducesamorestructuredandpracticalPMR.Labeledinthisstudyas JSON branches ,
+this PMR encodes the process branching structure in JSON format and leverages
+OpenAI’s function calling to enforce schema adherence during generation. Using PET-7
+as in Convermod, the authors conduct a qualitative evaluation and report improved
+performance over both previous approaches.
+[16] uses a multi agent framework combined with a custom PMR (BPMN text) to
+improvethegenerationprocess.TheyevaluatetheirresultsontheBPMNforresearch
+dataset [3] using BPMNDiffViz [ 8], a tool to calculate the structural similarity between
+2 processes. According to these metrics, their method outperform ProMoAI.
+[19]evaluatesthemultimodalcapabilitiesofLLMsbygeneratingprocessmodels
+from processdescription anddiagrams pairs.They introducea PMRbased on lists of
+process model elements (PME), used for both generation and evaluation.
+Table 1 summarizes PMG approaches presented in this section. Despite recent
+progress,existingstudiesfaceseverallimitations:relianceonclosed-sourceLLMslimits
+reproducibility,evaluationsetsremainsmall,andperformanceisoftenassessedusing
+non-standardizedmetrics.WhilesomestudieshavebeguntocompareLLMs[ 12],the
+field still lacks a systematic and reproducible evaluation of PMG pipelines. In response,
+ourstudystartstoaddressthesegapsthroughaunifiedbenchmarkandacomparative
+framework, introduced in the following section.
+
+--- Page 4 ---
+4 A. Brissard et al.
+Table 2: PMR main features. PMRs are ordered by recency.
+PMR LanguageGraph
+basedBranch
+basedExecutable VisualizableGeneration
+schema
+BPMN XML ✓ ✗ ✓ ✓ ✗
+BPMN process XML ✓ ✗ ✓ ✗ ✗
+Graphviz Graphviz ✓ ✗ ✗ ✓ ✗
+Mermaid Mermaid ✓ ✗ ✗ ✓ ✗
+PME JSON ✓ ✗ ✗ ✗ ✓
+Simplified XML XML ✓ ✗ ✗ ✗ ✗
+POWL code Python ✗ ✗ ✓ ✗ ✗
+BPMN text XML ✗ ✓ ✗ ✗ ✗
+JSON branches JSON ✗ ✓ ✗ ✗ ✓
+3 Methodology
+3.1 Initial Definitions
+To ensure clarity throughout the paper, we distinguish between the following concepts:
+Processmodel :Anabstractmodelofabusinessprocess,independentofanyspecific
+formalism or notation. For brevity, we occasionally refer to it simply as a model.
+ProcessModel Representation (PMR) : Anotation usedto express a processmodel
+(e.g., BPMN, POWL, or Mermaid). A PMR defines the syntax and semantics by which a
+process model is described.
+PMR model : A process model represented using a PMR (e.g., a BPMN model, a
+Mermaid model).
+3.2 Process Model Representations
+We choose to evaluate nine PMRs, presented in Table 2. Our selection is guided by two
+criteria.First,weincludePMRsthatarebeingusedinexistingPMGapproaches,ensuring
+relevance to the current state of the art. Second, we ensure diversity in representation
+style, covering a range of structures and languages.
+Ouranalysisfocusesonaspecificsetofelementtypescommonlyfoundinprocess
+models.Theseincludetasks,events,gateways(withoptionallabelsreferredtoas decisions)
+and sequence flows (with optional labels referred to as conditions ). Furthermore, we
+consider swimlanes, which feature lanes nested within pools, and message flows. We
+do not include data objects, textual annotations or other special elements due to their
+limited prevalence in the PMo Dataset.
+Hereafter, we describe the main PMRs used in this study. BPMNis selected as
+ourbaselinegivenitsstatusasawidelyadoptedstandard. BPMNprocess isaBPMN
+model that only defines the process and does not include the BPMN diagram definition.
+Comparing BPMN and BPMN process allows us to directly measure the impact of
+specifyinggraphicalelements. Graphviz isagraphicalrepresentation,meaningitcanbe
+directly visualized using the DOT engine. Mermaid is another graphical representation
+
+--- Page 5 ---
+What is the Best Process Model Representation ? 5
+made for diagrams. Process Model Elements (PME) [19] consists of a JSON object
+containing6listsofelements:tasks,events,gateways,swimlanes,sequenceflowsand
+message flows. This flat structure enables easy counting of elements and comparison
+betweenmodels. SimplifiedXML isasimplificationofXMLoriginallyproposedin[ 11].
+SimilarlytoBPMNprocess,graphicalandothernon-essentialelementsareomitted.The
+XML structure is lightened, resulting in a more compact PMR. POWL code , introduced
+by [14], is Python code that can be executed to create a POWL model, itself translatable
+toBPMN.ThemainadvantagesofusingcodeasaPMRistoleverageLLM’sfamiliarity
+withcodingtaskswhileenablingdetailedfeedbackviaexecutionofsaidcode.POWL
+code lacks support for conditions, event labels, intermediate events, swimlanes and
+message flows, making it the least expressive PMR. JSON branches was developed
+by [10] specifically to reduce token count, be compact and provide schema following
+abilities for LLM generation. It only handles simple backward flows (represented as
+looping gateways) andcannot includemultiple start andend events, messageflowsand
+swimlanes. BPMN text [16] is similar to JSON branches, but in XML format. It has the
+same limitations except that it supports role and object annotations in tasks.
+3.3 PMo Dataset
+ToenablePMRcomparisonacrossawiderangeofprocessmodels,webuildthePMo
+dataset.Itcontains55processdescriptionspairedwithprocessmodelsrepresentedin
+allPMRsfromSection3.2.ThePModatasetisconstructedfromfiveexistingsources:
+24pairsfromtheManglerdataset[ 17],20fromthePMoBenchmark[ 12],6fromthe
+PET-7dataset[ 9]4,4fromtheBPMNforresearchdataset[ 3],and1fromtheCCC19
+dataset [18]. 5
+We chose these data sources because process models are handcrafted, or at least
+validated by domain experts. This explains why we did not include the much larger MaD
+dataset [15], which has been criticized for lack of variability of its models and their
+descriptions. Similarly, even though the descriptions are human-authored, the dataset in
+[1] also lacks diversity due to automatic process model generation (e.g., maximum 9
+activities).
+The PMo Dataset underwent extensive preprocessing to ensure optimal usability and
+applicability.Forprocessdescriptions,thisinvolvescleaningspecialcharacters,correcting
+punctuation and spacing, sentence splitting, and removing irrelevant information such as
+modelinginstructions.ThegroundtruthBPMNmodelsarealsorefinedbysanitizinglabel
+texts,improvingdiagramlayoutsandpositioningdecisionsandconditionsoptimally.The
+Manglerdatasetreceivedspecialattentionduetohavingmultiplemodelsperdescription,
+each graded from 0 to 5. The model closest to the textual description (to our own
+judgment) is chosen among those with the best grade, with a preference for models
+including only common elements (e.g., no data objects or other special elements).
+Following the preprocessing phase, we automatically convert all BPMN models into
+allthe otherrepresentationsto obtainourground truth.We developconvertersfor each
+PMRandvalidateourconversionsbytransformingmodelsfromBPMNtoPMRsand
+4One pair is removed because its description is already included in the PMo Benchmark.
+5The PMo Dataset is accessible at this url: https://doi.org/10.5281/zenodo.15857588
+
+--- Page 6 ---
+6 A. Brissard et al.
+back.SomeprocessmodelscontaininformationthatarenotsupportedbyeveryPMR.
+In this case, we ignore the additional information (e.g., conditions are not included in
+POWL code). In cases where the model cannot be represented by the PMR without
+significant loss of information, it is left out (e.g., models including swimlanes are not
+converted to JSON branches). For branching PMRs, two thirds of the BPMN models
+cannot be converted.
+3.4 PMR for PMo with LLMs
+Requirements. To guide our evaluation, we define six key requirements for an ideal
+PMR in the context of PMo with LLMs. A suitable PMR should be compact in terms of
+tokencounttofitwithinLLMcontextlimits,reducecosts,generationtimeandenergy
+consumption [ 10]. Strong expressiveness is essential, to ensure that a wide range of
+models can be represented. This is mainly measured by element coverage, i.e. how
+many elements from a model are representable by the PMR. The PMR should be human
+readable to support interpretability. More specifically, a non expert should be able to
+understand thegeneral purposeand structure ofthe processby just lookingat thePMR
+modelitself[ 9].Lengthinlines,wordsandcharactersarekeymetricstoconsiderforthis
+requirement, as a longermodel is often harder to understand. Beyond puretext, a PMR
+shouldshouldalsosupportdirectgraphicalvisualization,ideallywithouttheneedfor
+additionalconversions.Therepresentationmustbeeasilyusable—parsable,editable,and
+generable by LLMs. This includes support for additional tooling such as JSON schema.
+Finally,itshouldbepossibletoextendittofitspecificmodelingneedsoraddsupportfor
+other process model elements.
+In summary, our six requirements are Token compactness, Expressivity, Human
+readability,Visualizationcapabilities,UsabilityandExtensibility.Theserequirementsare
+specifictotheusecaseofPMowithLLMsandaredesignedtosupportthewholerangeof
+associated tasks (e.g., question answering, interactive modification). They represent our
+attempt to differentiate between PMRs using the PMo Dataset. Other criteria could also
+beincludedsuchascompositionality,butitwouldrequireamoreadvancedevaluation
+framework and dataset.
+Evaluation. We perform a comparison of PMRs across six dimensions that reflect
+the previously defined requirements. This evaluation combines both quantitative and
+qualitativemetrics.Forquantitativeanalysis,wemeasurethelengthofeachrepresentation
+intermsoflines,tokens,words,andcharacterstoassesstheircompactnessandefficiency.
+We also compute the mean element coverage over the PMo Dataset by dividing the
+number of process elements representable in the PMR by the total number of ground
+truth elements. For qualitative analysis, we evaluate human readability, visualization
+capabilities, usability and extensibility.
+3.5 PMR for PMG
+WeaimtomeasuretheperformanceofeachPMRforthespecifictaskofPMG.Toensure
+a fair comparison, we perform all experiments under a standardized setting. Specifically,
+
+--- Page 7 ---
+What is the Best Process Model Representation ? 7
+we restrict process elements to the following set: standard tasks, start and end events,
+exclusive and parallel gateways, and sequence flows. This simplified setting allows us to
+compare PMRs independently of their element coverage, while also limiting prompts
+lengthandcomplexity.Indeed,itwouldnotbefairtocompareacomplexmodelgenerated
+in a PMR that supports swimlanes to a simpler model in a less expressive PMR.
+Prompting. We design a PMG prompt that instructs the LLM to generate a process
+model-represented in a specific PMR based on a given process description. To ensure a
+fair evaluation across PMRs, we construct prompts with consistent size and structure.
+TheLLMreceivesthesametaskdescriptionandgeneralmodelinginstructionsregardless
+ofthePMR.Foreachrepresentation,weprovidespecificformattingguidelineswhich
+include Markdown subsections and an example illustrating the expected output format.
+LLMChoiceandGenerationParameters. WeperformourexperimentswithLLaMA-
+3.3-70b,whichisarecent,open-sourcemodelwithstateoftheartperformanceforits
+size.Ourchoicetouseanopen-sourceLLMismotivatedbytransparency,adaptability,
+andcommunitysupport,whichfacilitatereproducibility andfurtherresearch.Whileit
+couldbeinterestingtoevaluateadditionalLLMs,thisisoutofthescopeofthispaper.
+All experiments are performed using Google Vertex AI API. Generation parameters are
+set as follows: Top-K is left as default (i.e., -1), Top-P is 0.95 and Temperature is 0.2.
+Evaluation. We evaluate the generated PMR models through comparison with the
+ground-truthPMRmodelsalongtwodimensions:elementcounts,andPMEsimilarity.
+Element counts capture the number of generated process elements for each type. To
+also take in account the semantic content of elements (i.e., task labels, decisions,
+conditions), we follow the evaluation methodology proposed by [ 19]. It consists of 2
+steps: semantic matching and set similarity. Element pairs with semantic similarity
+higher than an experimentally defined threshold (0.7) are made identical using a 1-to-1
+matching.Tocalculatethissemanticsimilarity,weproduceembeddingsforeachelement
+using a sentence transformer trained for sentence similarity ( stsb-mpnet-base-v2 )
+andcalculatetheircosinesimilarity.Oncetheelementsaresemanticallymatched,the
+Dice–Sørensencoefficientiscomputedtoassesssimilaritybetweentheresultingsets,
+balancing precision and recall in a single score.
+4 Results
+4.1 PMR for PMo with LLMs
+Lengthcomparison. Table3presentsthelengthdifferencesbetweenground-truthPMR
+modelsandourbaseline,BPMNmodels.AllPMRsleadtoasignificantreductionacross
+all length metrics, successfully achieving their initial purpose. However, we observe
+substantial variation between PMRs: Mermaid is the most compact, achieving over
+90%reductioninlines,tokens,words,andcharacterscomparedtoBPMN.Lookingat
+BPMN process, we can see that removing the BPMN diagram definition alone leads to a
+
+--- Page 8 ---
+8 A. Brissard et al.
+Table 3: Mean length difference of ground-truth PMR models compared to BPMN
+models.
+PMRLine Count Token Count Word Count Char Count
+Rel Abs Rel Abs Rel Abs Rel Abs
+BPMN (Baseline) 384 4231 6531 19048
+BPMN process -64% -248 -70% -2984 -69% -4539 -63% -11947
+Graphviz -87% -336 -88% -3734 -90% -5888 -88% -16803
+Mermaid -91% -350 -93% -3934 -93% -6095 -92% -17524
+PME -27% -109 -65% -2783 -73% -4768 -62% -11799
+Simplified XML -60% -228 -83% -3502 -79% -5111 -70% -13207
+POWL code -87% -280 -93% -3268 -94% -5107 -91% -14471
+BPMN text -89% -284 -89% -3119 -93% -5032 -88% -13900
+JSON branches -67% -212 -88% -3078 -92% -4973 -80% -12215
+70% decrease in token count. This highlights the importance of excluding non-essential
+elements such as graphical details.
+POWL code, BPMN text, and JSON branches are reported in a separate section
+of the table as they do not cover all processes of the PMo Dataset, due to element
+coveragelimitations.Thisexplainstheslightdiscrepanciesbetweenabsoluteandrelative
+difference in the results. Nonetheless, they also achieve significant length reductions,
+comparable to Mermaid.
+Evaluation summary. Table 4 summarizes our evaluation of PMRs across the six
+requirementsdefinedinSection3.4.Wegradedeach requirementfrom1to5based on
+specific quantitative and qualitative metrics detailed in the same section.
+Token compactness reflects the results from Table 3, with Mermaid and POWL code
+achieving the highest scores.
+Forexpressiveness,wereporttheelementcoveragecalculatedonthePMoDataset
+models. Branching PMRs such as POWL code and BPMN text score lower due to their
+limited element support (see Section 3.2).
+Human readability scores are based on length results (Table 3) and ease of under-
+standingoftheprocesssolelyfromthePMRmodel.BranchingPMRsperformbestin
+this regard due to their concise syntax and clearer structure. We also take in account the
+user study from [9], where participants preferred Mermaid to Graphviz representation.
+BPMN,MermaidandGraphvizhavethebestvisualizationcapabilitiesastheycan
+bedirectlyrepresentedgraphically.BPMNprocessandPOWLcodecanbevisualized
+viastandardlibrariessuchaspm4py,whiletheremainingPMRsneedtobeconverted.
+The PMRs that are not graph-based are harder to convert, hence their reduced grade.
+Usabilityscoresarebasedon3aspects:parsability,editabilityandsupportforexternal
+tooling. Parsability is highest for JSON and XML-based formats, which benefit from
+standardizedparsers.CustomformatslikeMermaidandGraphvizarelessstraightforward,
+whilebranchingPMRsarepenalizedduetotheneedforrecursiveparsing.Weremoveone
+point toBPMN for editabilitydue to theneed to updatethe associatedBPMN diagram
+
+--- Page 9 ---
+What is the Best Process Model Representation ? 9
+Table 4: Evaluation summary of PMRs for LLM-based PMo. All grades are from 1 to 5.
+PMR Avg.Token
+compactExpressiveHuman
+readableVizualisable UsableExtensible
+BPMN 3.33 1 5(100%) 1 5 3 5
+BPMN process 3.50 2 5(100%) 2 3 4 5
+Graphviz 3.67 4 4 (89%) 3 5 3 3
+Mermaid 4.00 5 4(89%) 4 5 3 3
+PME 3.20 2 5(100%) 2 2 5 4
+Simplified XML 3.50 3 5(100%) 3 2 3 5
+POWL code 2.83 51(71%) 3 3 3 2
+BPMN text 2.67 4 2 (84%) 5 1 2 2
+JSON branches 3.00 4 3 (87%) 5 1 3 2
+when making a change to the process. We also account for LLM schema-following
+capabilities (see Table 2) by adding an additional point to JSON PMRs.
+Extensibility grades are based on the inherent limitations of PMRs and effort needed
+to support additional element types (e.g., it is harder to update the POWL generation
+logic than the PME JSON schema).
+4.2 PMR for PMG
+Element counts. Table 5 presents the mean element counts of the generated process
+modelsforeachPMR.Onaverage,LLMsgeneratesignificantlysmallermodels,with
+roughly eight fewer nodes (tasks, events, or gateways) compared to the ground truth.
+Gatewaysarethemostaffected:thenumberofExclusivegatewaysdropsby50%,and
+Parallel gateways by 65%. This indicates a tendency to simplify the model by retaining a
+single task sequence. Despite this general trend, differences between PMRs are notable.
+Branching PMRs (i.e., JSON branches and BPMN text) lead to substantially higher
+element counts than the other representations. This suggests that the branching structure
+can partially mitigate the LLMs’ tendency to omit gateways. Interestingly, Graphviz
+standsoutbyproducingmoretasksandgatewaysthanothergraph-basedPMRs.This
+may be attributed to its use of descriptive node names instead of identifiers, reducing
+generation complexity for the LLM.
+PMEsimilarity. Table6reportsPMEsimilarityscoresobtainedfordifferentelement
+types.BranchingPMRs-particularlyBPMNtext-consistentlyachievehighersimilarity
+scores than graph-based ones. Graphviz also shows strong performance for gateway
+decisions,likelybenefitingonceagainfromitsuseofdescriptiveidentifiers.POWLcode
+scores arelowered by thehigh numbers offormatting errors (40%of generated models
+are invalid), reflecting the PMR shortcomings with a limited prompting budget.
+
+--- Page 10 ---
+10 A. Brissard et al.
+Table 5: Mean element counts of generated PMR models compared to ground truth.
+Nodesincludetasks,eventsandgateways.Sequenceflowsarereportedseparatelyasthey
+directly depend on the number of nodes and would artificially increase the number of
+elements.
+PMR Nodes Tasks EventsExclusive
+gatewaysParallel
+gatewaysSequence
+flows
+Ground Truth 23.18 12.53 2 5.91 2.67 27.67
+BPMN -10.49 -4.62 +0.18 -4.09 -1.98 -13.93
+BPMN process -9.93 -4.35 +0.14 -3.96 -1.69 -13.21
+Graphviz -7.96 -2.71 +0.04 -3.82 -1.40 -10.29
+Mermaid -9.16 -3.87 +0.07 -3.75 -1.53 -11.80
+PME -9.56 -4.02 +0.09 -3.73 -1.82 -12.69
+Simplified XML -9.49 -4.36 +0.09 -3.51 -1.64 -12.38
+POWL code -9.36 -4.08 0.00 -3.91 -1.67 -12.94
+BPMN text -3.86 -1.53 0.00 -0.41 -1.85 -6.01
+JSON branches -4.29 -2.44 0.00 +0.09 -1.87 -6.07
+Average -8.23 -3.55 +0.07 -3.01 -1.72 -11.04
+5 Discussion and Conclusion
+Thisstudyoffersa comprehensiveanalysisofPMRsin thecontextofPMowithLLMs,
+with a particular focus on the PMG task.
+Tosupportthisinvestigation,weassemblethelargestgold-standarddatasettodate
+forPMo(55pairs)coupledwithvarioustypesofPMRs,enablingbothqualitativeand
+quantitative comparisons across nine PMRs drawn from the literature. Our analysis,
+guided by a set of functional requirements, identifies Mermaid as the most suitable PMR
+for PMo with LLMs, notably due to its token compactness and visualization capabilities.
+WefurtherexaminetheuseofPMRsasgenerationtargetsforPMG.Aftergeneration
+basedonstandardprompting,wemeasureperformanceusingprocesselementcountsand
+PME similarity. Results reveal a consistent tendency of LLMs to undergenerate process
+elements—particularlygateways—leadingtosimplifiedprocessmodels.However,PMRs
+that support explicit branching structures, such as BPMN text and JSON branches,
+mitigatethisbehavior.BPMNtext,inparticular,achievesthestrongestsimilaritywith
+ground truth elements for both raw numbers and semantic content.
+Overall,ourfindingshighlightthecriticalroleofPMRdesigninenablingeffective
+LLM-basedprocessmodelingandgeneration.WhileMermaidappearstobethemost
+versatilePMR,BPMNtextyieldsbetterresultsforPMG.Thissuggeststhatusingdifferent
+PMRs at specific stages of the PMo pipeline may lead to more effective outcomes.
+Several limitations must be acknowledged and provide avenues for future research.
+First, our evaluation of PMRs for PMo with LLMs (Table 4), while incorporating
+quantitative metrics, remains primarily subjective, as it is based on the assessment of the
+authors. A more rigorous approach, such as combining the grades from multiple experts,
+would enhance the validity of our findings.
+
+--- Page 11 ---
+What is the Best Process Model Representation ? 11
+Table 6: Mean PME similarity scores of generated PMR models compared to ground
+truth for each PMR under standard PMG.
+PMR OverallTasks
+overallEvents
+overallGateways
+overallGateway
+decisionsGateway
+typesSequence
+flows
+BPMN 0.43 0.48 0.55 0.38 0.16 0.45 0.36
+BPMN process 0.44 0.48 0.55 0.4 0.15 0.5 0.38
+Graphviz 0.47 0.5 0.74 0.49 0.6 0.54 0.38
+Mermaid 0.48 0.49 0.74 0.45 0.18 0.54 0.42
+PME 0.46 0.5 0.68 0.45 0.12 0.54 0.37
+Simplified XML 0.45 0.48 0.57 0.46 0.07 0.58 0.4
+POWL code 0.27 0.29 0.41 0.21 0.36 0.23 0.22
+BPMN text 0.54 0.52 0.75 0.58 0.13 0.69 0.49
+JSON branches 0.53 0.51 0.58 0.61 0.19 0.7 0.5
+Second, the structure of PMRs is inherently flexible, and our evaluation relies on
+standardized representations (e.g., consistent identifier formats). Alternative formatting
+choices may influence LLM behavior and lead to different results. Moreover, several
+promising PMRs, such as BPMN Sketch [ 7] or JSON-Nets [ 5], were not included in this
+study and represent valuable directions for future exploration.
+Third,anotherlimitationisthatPMEsimilarity,althoughitcapturessemanticcontent,
+remains highly sensitive to the number of generated elements. While most generated
+elementsmatchthegroundtruth,omissionssignificantlyreducetheoverallscore.For
+this reason, we also report element counts. Moreover, it enables us to better understand
+the under-generation problem of LLMs.
+Fourth,wedonotmanuallyevaluatetheLLM-generatedmodels,whichcouldprovide
+better insights of their quality and practical usability.
+Finally, our PMG experiments, like most existing studies, focus on a reduced subset
+of process elements. As such, they do not capture the full expressive range of real-world
+models. Future research should investigate LLMs’ ability to generate richer models that
+include more advanced elements such as swimlanes or data objects.
+Acknowledgement. This study was funded by MITACS grant number IT32670.
+DeclarationsofInterest. Theauthorshavenocompetingintereststodeclarethatare
+relevant to the content of this article.
+References
+1.Apaydin,K.,Zisgen,Y.:LocalLargeLanguageModelsforBusinessProcessModeling.In:
+Delgado, A., Slaats, T. (eds.) Process Mining Workshops. pp. 605–609. Springer Nature
+Switzerland, Cham (2025). https://doi.org/10.1007/978-3-031-82225-4_44
+2.Bellan, P., van der Aa, H., Dragoni, M., Ghidini, C., Ponzetto, S.P.: PET: An Annotated
+Dataset for Process Extraction from Natural Language Text (Jun 2022). https://doi.org/10.
+48550/arXiv.2203.04860
+
+--- Page 12 ---
+12 A. Brissard et al.
+3. Camunda: BPMN for Research Dataset (Dec 2015)
+4.Fettke,P.,Houy, C.:Evaluatingthe ProcessModelingAbilitiesof LargeLanguageModels –
+Preliminary Foundations and Results (Mar 2025). https://doi.org/10.48550/arXiv.2503.13520
+5.Forell, M., Schüler, S.: Modeling meets Large Language Models. In: Modellierung 2024
+Satellite Events. p. 10.18420/modellierung2024. Gesellschaft für Informatik e.V. (2024)
+6.Grohs,M.,Abb,L.,Elsayed,N.,Rehse,J.R.:LargeLanguageModelscanaccomplishBusiness
+Process Management Tasks (Jul 2023). https://doi.org/10.48550/arXiv.2307.09923
+7.Ivanchikj, A., Serbout, S., Pautasso, C.: Live process modeling with the BPMN Sketch
+Miner. Software and Systems Modeling 21(5), 1877–1906 (Oct 2022). https://doi.org/10.
+1007/s10270-022-01009-w
+8.Ivanov, S., Kalenkova, A., Aalst, van der, W.: BPMNDiffViz : A tool for BPMN models
+comparison. In: Daniel, F., Zugal, S. (eds.) Proceedings of the Demo Session of the 13th
+International Conference on Business Process Management (BPM 2015, Innsbruck, Austria,
+August 31-September 3, 2015). pp. 35–39. CEUR Workshop Proceedings (2015)
+9.Klievtsova,N.,Benzin,J.V.,Kampik,T.,Mangler,J.,Rinderle-Ma,S.:ConversationalProcess
+Modeling:CanGenerativeAIEmpowerDomainExpertsinCreatingandRedesigningProcess
+Models? (Jan 2024). https://doi.org/10.48550/arXiv.2304.11065
+10.Kopke, J., Safan, A.: Efficient LLM-Based Conversational Process Modeling. In: BPM2024
+(Sep 2024)
+11.Kourani, H., Berti, A., Hennrich, J., Kratsch, W., Weidlich, R., Li, C.Y., Arslan, A., Schuster,
+D., van der Aalst, W.M.P.: Leveraging Large Language Models for Enhanced Process Model
+Comprehension (Sep 2024). https://doi.org/10.48550/arXiv.2408.08892
+12.Kourani,H.,Berti,A.,Schuster,D.,vanderAalst,W.M.P.:EvaluatingLargeLanguageModels
+on Business Process Modeling: Framework, Benchmark, and Self-Improvement Analysis
+(Nov 2024). https://doi.org/10.48550/arXiv.2412.00023
+13.Kourani, H., Berti, A., Schuster, D., van der Aalst, W.M.P.: Process Modeling With Large
+Language Models (Apr 2024). https://doi.org/10.48550/arXiv.2403.07541
+14.Kourani, H., Berti, A., Schuster, D., van der Aalst, W.M.P.: ProMoAI: Process Modeling with
+Generative AI (Mar 2024). https://doi.org/10.48550/arXiv.2403.04327
+15.Li,X.,Ni,L.,Li,R.,Liu,J.,Zhang,M.:MaD:ADatasetforInterview-basedBPMinBusiness
+Process Management. In: 2023 International Joint Conference on Neural Networks (ĲCNN).
+pp. 1–8 (Jun 2023). https://doi.org/10.1109/ĲCNN54540.2023.10191898
+16.Lin,L.,Jin,Y.,Zhou,Y.,Chen,W.,Qian,C.:MAO:AFrameworkforProcessModelGeneration
+with Multi-Agent Orchestration (Aug 2024). https://doi.org/10.48550/arXiv.2408.01916
+17.Mangler, J., Klievtsova, N.: Textual Process Descriptions and Corresponding BPMN Models
+(Mar 2023). https://doi.org/10.5281/zenodo.7783492
+18.Munoz-Gama, J., de la Fuente, R.R., Sepúlveda, M.M., Fuentes, R.R.: Confor-
+mance Checking Challenge 2019 (CCC19) (Feb 2019). https://doi.org/10.4121/UUID:
+C923AF09-CE93-44C3-ACE0-C5508CF103AD
+19.Voelter, M., Hadian, R., Kampik, T., Breitmayer, M., Reichert, M.: Leveraging Generative AI
+forExtractingProcessModelsfromMultimodalDocuments(Jun2024).https://doi.org/10.
+48550/arXiv.2406.04959

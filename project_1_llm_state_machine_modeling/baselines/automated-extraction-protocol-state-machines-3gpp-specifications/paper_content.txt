@@ -1,0 +1,1109 @@
+--- Page 1 ---
+Automated Extraction of Protocol State Machines
+from 3GPP Specifications with Domain-Informed
+Prompts and LLM Ensembles
+Miao Zhang1, Runhan Feng2, Hongbo Tang1, Yu Zhao1, Jie Yang1, Hang Qiu1, Qi Liu2
+1Information Engineering University, China
+2Purple Mountain Laboratories, China
+Email: 1152461073@qq.com, fengrunhan@pmlabs.com.cn, tahobo@sina.com, itsyz@foxmail.com
+yjcsu@126.com, qiuhang ndsc@163.com, liuqi@pmlabs.com.cn
+Abstract—Mobile telecommunication networks are founda-
+tional to global infrastructure and increasingly support critical
+sectors such as manufacturing, transportation, and healthcare.
+The security and reliability of these networks are essential, yet
+depend heavily on accurate modeling of underlying protocols
+through state machines. While most prior work constructs such
+models manually from 3GPP specifications, this process is labor-
+intensive, error-prone, and difficult to maintain due to the
+complexity and frequent updates of the specifications. Recent
+efforts using natural language processing have shown promise,
+but remain limited in handling the scale and intricacy of cellular
+protocols. In this work, we propose SpecGPT, a novel framework
+that leverages large language models (LLMs) to automatically
+extract protocol state machines from 3GPP documents. SpecGPT
+segments technical specifications into meaningful paragraphs, ap-
+plies domain-informed prompting with chain-of-thought reason-
+ing, and employs ensemble methods to enhance output reliability.
+We evaluate SpecGPT on three representative 5G protocols (NAS,
+NGAP, and PFCP) using manually annotated ground truth, and
+show that it outperforms existing approaches, demonstrating the
+effectiveness of LLMs for protocol modeling at scale.
+Index Terms—Large Language Models, State Machine, 3GPP
+Standards
+I. INTRODUCTION
+Mobile telecommunication networks constitute a fundamen-
+tal pillar of global communication infrastructure. According
+to the GSMA Mobile Economy Report [1], the number of
+unique mobile subscribers worldwide surpassed 5.8 billion in
+2024. Beyond personal communication, mobile networks are
+increasingly integrated into critical sectors such as industrial
+manufacturing, transportation, and healthcare, rendering them
+an indispensable component of modern society. As such, their
+failure can lead to far-reaching and severe consequences.
+Ensuring the reliability and security of telecommunication
+networks have therefore become more crucial than ever [2].
+Network protocols specify the rules for information ex-
+change between entities in a network and serve as the foun-
+dation of telecommunication systems. To improve the overall
+security of telecommunication networks, researchers have pro-
+posed various approaches to evaluate protocol security from
+both design and implementation perspectives. For instance,
+formal methods are employed to verify the security propertiesof protocol designs [3]–[7], while software testing techniques
+such as fuzz testing are applied to uncover vulnerabilities in
+protocol implementations [8]–[13]. The vast majority of these
+approaches, either directly or indirectly, rely on protocol state
+machines, which serve as a common modeling framework for
+representing and analyzing protocol workflows.
+However, obtaining state machine models for telecommu-
+nication network protocols is a non-trivial task. Specifically,
+these protocols are designed and maintained by the 3rd Gen-
+eration Partnership Project (3GPP), a global consortium com-
+prising network operators, equipment vendors, and researchers
+[14]. The standardized protocol details are documented in
+technical specifications written in semi-structured natural lan-
+guage intended for domain experts. Due to the involvement
+of a wide range of cellular stakeholders and network entities,
+the diversity of use cases, and strict backward compatibility
+requirements, 3GPP protocol standards are typically complex
+and verbose. They are distributed across multiple specification
+documents, each focusing on specific layers, procedures, or
+architectural components of the protocol, and often span
+hundreds or even thousands of pages. Since 3GPP does
+not provide formal models of the protocols, existing work
+typically relies on domain experts to manually interpret the
+specifications and construct corresponding state machines.
+This process is labor-intensive, time-consuming, and prone to
+human error. The accuracy and level of abstraction of such
+hand-crafted models significantly influence the effectiveness of
+downstream tasks such as protocol verification. Furthermore,
+3GPP specifications undergo frequent updates—typically five
+to six times per year. Keeping pace with these changes is
+essential for assessing the security of the most recent protocol
+versions. However, due to the high time and labor costs
+involved, regularly updating manually constructed models is
+not feasible. In this work, we aim to automatically extract
+protocol state machines from 3GPP specifications.
+In recent years, researchers have explored the use of natu-
+ral language processing (NLP) techniques for the automated
+analysis of protocol documents [15]–[17]. Pacheco et al.
+[18] proposed RFCNLP which is capable of extracting finite
+state machines (FSMs) from Request for Comments (RFC)arXiv:2510.14348v1  [cs.NI]  16 Oct 2025
+
+--- Page 2 ---
+documents. However, compared to the relatively small-scale
+protocols defined in RFCs, cellular network protocols are
+significantly more complex, involving a larger number of state
+transitions, detailed protocol field descriptions, and intricate
+cross-layer interactions, which render RFCNLP ineffective. To
+address these challenges, Ishtiaq et al. [19] introduced Hermes,
+which leverages a deep-learning-based neural parsing model to
+perform constituency parsing of 3GPP documents and employs
+a domain-specific language to generate the final FSMs. Nev-
+ertheless, while Hermes incorporates domain-specific design
+elements, its effectiveness is still constrained by the inherent
+complexity of the task.
+Since the release of ChatGPT in late 2022 [20], large lan-
+guage models (LLMs) have demonstrated remarkable natural
+language comprehension capabilities, leading to groundbreak-
+ing progress in a wide range of NLP tasks, including document
+summarization and structured data extraction [21]–[25]. In this
+work, we propose leveraging large language models (LLMs)
+to automatically extract protocol state machines from 3GPP
+specifications. However, the application of LLMs to highly
+technical, domain-specific protocol specifications remains rel-
+atively unexplored. Applying LLM to infer protocol FSM
+from 3GPP specifications encounters several challenges. On
+the one hand, as is mentioned before, the 3GPP specifications
+as well as the protocols are highly complex. On the other
+hand, despite their strong language comprehension, LLMs are
+prone to hallucinations, especially when dealing with complex
+or ambiguous input [26]–[28].
+To overcome these challenges and unlock the full potential
+of large language models, we introduce SpecGPT, a novel
+framework designed to automatically extract protocol FSMs
+from complex technical documents. The framework first seg-
+ments 3GPP specifications into semantically meaningful para-
+graphs. It then constructs domain-informed prompts to guide
+the model toward accurate interpretations. Finally, ensemble
+methods are applied across multiple LLMs to aggregate and
+refine the results, enhancing both reliability and performance.
+We conduct a comprehensive evaluation of SpecGPT on 3GPP
+specifications, targeting three representative protocols: 5G
+NAS (Non-Access Stratum) [29], NGAP (Next Generation Ap-
+plication Protocol) [30], and PFCP (Packet Forwarding Control
+Protocol) [31]. Due to the absence of publicly available
+ground truth for their complete state machines, we construct
+manually annotated references. Experimental results indicate
+that SpecGPT achieves an F1-score of up to 91.14% in the task
+of state transition extraction, outperforming the state-of-the-art
+method.
+In summary, we make the following major contributions in
+this work:
+•We designed a novel technique that can automatically
+extract protocol state machines from 3GPP specifica-
+tion documents. Our approach leverages large language
+models to understand the natural language in the spec-
+ifications, incorporates domain knowledge to construct
+prompts, and employs model ensemble techniques to
+further improve the performance of state machine con-struction.
+•We implement our technique in a tool called SpecGPT
+and applied it to real-world 3GPP protocol specification
+documents for comprehensive evaluation. Experimental
+results show that our approach can accurately construct
+protocol state machine models and outperforms existing
+state-of-the-art solutions.
+The rest of the paper is organized as follows. We first
+introduce the background and research scope in Section II.
+We then describe the design of SpecGPT in Section III. The
+evaluation results are presented in Section IV, followed by a
+discussion in Section V. We introduce related work in Section
+VI and conclude our paper in Section VII.
+II. BACKGROUND
+A. Cellular network
+Cellular networks have undergone a continuous evolution
+from 1G to 5G, transitioning from voice-centric systems to
+advanced, data-driven architectures capable of supporting high
+data rates, ultra-low latency, and massive machine-type con-
+nectivity. A canonical cellular network architecture comprises
+two principal components: the Radio Access Network (RAN)
+and the Core Network (CN). Driven by increasing demands
+for service agility, flexibility, and scalability, network functions
+have been progressively decoupled from dedicated hardware,
+fostering the adoption of modular, service-based architectures.
+As illustrated in Figure 1, the 5G CN is logically decom-
+posed into a set of independent network functions (NFs), each
+designed to fulfill a specific operational role. These NFs com-
+municate with one another through standardized interfaces,
+each associated with a dedicated protocol stack that supports
+various control- and user-plane operations. For example, the
+NGAP facilitates control-plane signaling between the RAN
+and the Access and Mobility Management Function (AMF);
+the NAS protocol enables mobility management and session
+control between the User Equipment (UE) and the AMF; and
+the PFCP allows the Session Management Function (SMF)
+to govern user-plane behavior and enforce traffic handling
+policies on the User Plane Function (UPF).
+5G Control plane
+AMF SMF
+UPF DN
+RAN UENRF PCF UDM
+GTPPFCP
+NAS
+NGAPService-Based Interface
+Fig. 1. 5G Architecture.
+B. 3GPP Specifications
+3GPP is a collaborative standards organization comprising
+multiple regional telecommunications standards development
+
+--- Page 3 ---
+organizations, dedicated to the development of globally appli-
+cable technical specifications and technical reports for mobile
+communication systems. By defining standardized interface
+protocols, 3GPP ensures interoperability among equipment
+from different vendors, significantly promoting the develop-
+ment and standardization of the global mobile communications
+industry.
+3GPP has developed a comprehensive suite of technical
+specifications that span multiple layers of the cellular network
+architecture, including the RAN, CN, and UE. The volume
+of released specifications is substantial, and the standards are
+continuously refined to accommodate emerging technologies
+and evolving use cases. For instance, in the context of 5G,
+since the introduction of 5G New Radio in Release 15, the
+specifications have evolved through successive releases up
+to Release 19. Each new release introduces enhancements
+over its predecessor and extends support for novel application
+scenarios, such as integrated sensing and communication.
+Notably, each technical specification often spans hundreds
+of pages, addressing a wide range of deployment scenarios
+and operational conditions in mobile networks. This extensive
+and ever-growing body of documentation makes it increasingly
+inefficient and time-consuming for engineers and researchers
+to manually understand and interpret the standards. Therefore,
+there is a pressing need to explore automated approaches
+for the efficient parsing and application of these technical
+specifications.
+III. DESIGN
+Automatically extracting protocol state machines from
+3GPP specifications is a highly non-trivial task. In this section,
+we present the design of SpecGPT, our proposed framework
+for this challenge. We employ large language models (LLMs)
+to assist in interpreting the specifications written in natural
+language. Furthermore, we incorporate domain knowledge into
+prompt design and adopt an ensemble of LLMs to enhance
+overall performance and robustness.
+A. FSM Statement
+The specification of a cellular network state machine is
+typically defined as a quintuple⟨Q,Σ, q 0, δ, F⟩. The aim of
+SpecGPT is to construct a formal model as follows:
+•State Set (Q): A finite set of states representing all
+possible conditions that may occur within the protocol.
+•Input Alphabet (Σ): Also referred to as the set of
+input symbols, this includes all possible transitions in
+the protocol implementation. Each transition represents a
+specific condition or action within the protocol, thereby
+triggering state transitions.
+•Initial State (q 0): The set of initial states, which is a
+subset of the state setQ(q 0∈Q), indicating the state in
+which the protocol resides at startup.
+•State Transition Function (δ): A rule that defines how to
+transition to the next state based on the current state and
+input symbol. Formally, this is understood asδ:Q×Σ→
+Q.•Final State (q f): The set of final states, which is a subset
+ofQ(q f∈Q), indicating the terminal states when the
+protocol has completed its transitions.
+B. Overview
+We propose a framework named SpecGPT for automatically
+extracting state machines from 3GPP protocol specifications
+using LLMs. As illustrated in Figure 2, the framework consists
+of three main components. In thepreprocessing stage, we
+first perform text cleaning on the original 3GPP documents.
+We then merge related sections to restructure the content,
+enabling the documents to be segmented into smaller, coherent
+chunks suitable as inputs for the LLMs. This mitigates issues
+such as input truncation due to sequence length limitations.
+The preprocessing procedure is described in detail in Section
+III-C. In theprompt engineering stage, we design Chain-
+of-Thought [32] prompts to guide the automatic extraction of
+protocol state machines. Additionally, we incorporate domain-
+specific knowledge to comprehensively refine and optimize the
+prompts, thereby improving their effectiveness. Further details
+are presented in Section III-D. In themodel ensembling
+stage, we utilize multiple LLMs in parallel to analyze the
+protocol specifications. Their outputs are then aggregated
+using a majority voting strategy to construct the final finite
+state machine. The ensembling process is detailed in Section
+III-E.
+Algorithm 1Section-level Paragraph Window Merging
+Require:Protocol documentD
+1:sections←extract section numbers(D)
+2:paragraph tosection←map paragraphs tosections(D, sections)
+3:section tree←build section tree(sections)
+4:fornode∈get leaf nodes(section tree)do
+5:parent←get parent(node, section tree)
+6:ifall children merged(parent) ==Falsethen
+7:content←merge content(get children(parent))
+8: assign content(parent, content)
+9: set allchildren merged(parent)←True
+10:end if
+11:end for
+12:merged windows←get parent nodes with content(section tree)
+returnmerged windows
+C. Preprocess
+The input to the preprocessing stage is the raw 3GPP
+specification. After text cleaning and section consolidation, the
+output consists of small segments that remain aligned with the
+original document structure.
+a)Document cleaning:The 3GPP specifications are
+provided in Word format and contain a significant amount
+of non-body content, such as tables of contents, headers,
+footers, superscripted footnote markers, redundant blank lines,
+and fragmented or irrelevant chart data. Such noisy text
+can hinder the model’s comprehension and reduce reasoning
+accuracy. To address this, we apply regular expressions to
+automatically detect and remove residual elements, including
+tables of contents and headers.
+
+--- Page 4 ---
+Preprocessing
+3GPP 
+Specifications
+Document 
+Cleaning
+Text Splitting
+Domain-Informed Prompt EngineeringModel Ensembling
+Paragraph
+TextState 
+ExtractionCondition 
+and Action
+ExtractionPost 
+ProcessingChain of Thought Prompting
+Prompt Optimization 
+Collaborative 
+Contextual 
+ReasoningImplicit 
+Information
+IntegrationCross-
+Reference 
+HandlingEnhance
+Majority 
+Voting
+Finite State Machine
+Fig. 2. Overview of SpecGPT
+b)Text Splitting:Due to the context length limitations
+of large language models, it is necessary to segment the
+document content before processing. Traditional strategies
+typically adopt either fixed-size sliding windows or paragraph-
+based splitting. However, the former may lead to context
+loss due to truncation, while the latter often results in overly
+fine-grained segments, causing a large number of ineffective
+queries (e.g., some paragraphs in 3GPP documents contain
+only one or two sentences). To address this, we perform
+section consolidation leveraging the hierarchical section struc-
+ture of 3GPP specifications to produce semantically coherent
+input chunks. Specifically, we define a hierarchical relationship
+between sections as parent–child (also referred to as parent
+and leaf nodes in our algorithm). As shown in Algorithm
+1, the proposed approach first parses section numbers and
+formatted markers to accurately extract and map section nodes
+to their corresponding paragraphs. Furthermore, a section tree
+is constructed based on section numbering, clarifying the hier-
+archical and parent–child relationships across various section
+levels. On this basis, for the lowest-level leaf nodes of the
+section tree, a bottom-up merging strategy is applied: all leaf
+node contents under the same parent are merged recursively
+into their parent node, thereby achieving hierarchical content
+aggregation across the document.
+D. Prompt Engineering
+In this stage, we integrate domain knowledge with chain-of-
+thought prompt engineering to decompose the FSM extraction
+task into manageable sub-tasks. We further design targeted
+prompt optimization strategies to maximize the potential of
+large language models.
+a)Chain-of-Thought Prompting:The finite state ma-
+chine extraction task is divided into three main stages: state
+extraction, transition extraction, and post-processing. In our
+formulation, each transition is characterized by an associated
+action and condition. The details of each step are presented in
+the following subsections.
+State Extraction.As shown in Figure 1, the 3GPP spec-
+ifications define a wide range of protocols, each designed
+for different usage scenarios. As a result, they vary in bothdesign and descriptive style in the specifications. Based on
+our in-depth analysis of the 3GPP protocol specifications, we
+categorize them into two types: state-oriented and procedure-
+oriented protocols.
+State-oriented protocols are those in which transition nodes
+have clearly defined states, while procedure-oriented protocols
+feature transition nodes described in terms of procedural steps.
+Based on this classification, we divided prompts into state
+prompts and process prompts during state extraction. For state-
+oriented protocols (e.g., NAS), state names are explicit— for
+example, “5GMM-REGISTERED” indicates that the UE has
+successfully registered with the core network, representing a
+clear state. Here, the prompt can be formulated as “extract
+the states mentioned in the text.” In contrast, for procedure-
+oriented protocols (e.g., PFCP), states typically refer to nodes
+within a procedure, such as “Established connection with
+SMF.” In such cases, we focus on whether a specific procedure
+has been completed, and treat this as a state node.
+Unfortunately, the extraction of state tuples is often non-
+trivial. A major challenge arises from the presence of ambigu-
+ous or incomplete state names in the specifications themselves.
+For instance, in the NAS specification, the documents may
+describe states using vague terms such as “any state” or “some
+state,” which lack precise definitions. Additionally, due to
+the absence of clear state matching, large language models
+may further generate so-called pseudo-states like “Unknown”
+or “Undefined” during the extraction process. Traditional
+extraction approaches—primarily based on keyword matching
+(e.g., detecting the word “state” preceding a potential state
+name)—are insufficient to handle such ambiguities and the
+diverse expressions commonly found in protocol documents.
+To mitigate these issues, we incorporate explicit instructions
+into the prompt design to guide accurate state extraction, as
+illustrated in Figure 3. Specifically, the model is instructed to
+extract only standardized state names defined in the protocol,
+such as “5GMM-REGISTERED,” and to ignore non-standard
+or descriptive phrases that could introduce noise into the state
+set. Moreover, some states are presented in abbreviated forms,
+such as “PLMN-SEARCH,” whereas the full qualified state
+should be “5GMM-REGISTERED.PLMN-SEARCH.” To han-
+
+--- Page 5 ---
+Overall design prompt template
+Extract state machine information from the combined 
+content of these two parts (context + current).
+Context paragraph:[prev_paragraph]
+Current paragraph:[paragraph]
+Instruction:
+1.Covering (a) explicitly stated information and (b) 
+partially described information that requires logical 
+inference.However, the reasoning must be based on the 
+original text.
+2.State names must correspond to official protocol state 
+machine nodes (e.g., "5GMM-DEREGISTERED").
+3.For each transition, "condition" and "action" fields 
+must be distinguished, with content quoted verbatim 
+from the original text.
+...
+Note:
+For every complete transformation, a recheck of its 
+rationality must be conducted.
+...
+Desired format:
+{"states": ["STATE1", ...],
+"transitions": [ {"from": "STATE1", "to": "STATE2",          
+"condition": "...", "action": "..."},]}Fig. 3. A unified basic prompt model for FSM
+dle such cases, SpecGPT employs an associated search and
+multi-level joint reasoning strategy. During state extraction,
+it analyzes the semantic relationships among the target state,
+its surrounding context, and adjacent states to infer and re-
+construct the complete state representation, thereby ensuring
+consistency and correctness.
+Transition Extraction.Conditions and actions define the
+transitions in a state machine. Ideally, these elements are
+clearly stated in the specification. For example, a condition
+may be expressed as “No 5GMM context has been estab-
+lished,” with the corresponding action being “The UE shall
+start the initial registration procedure.” However, in practice,
+conditions and actions in 3GPP documents often appear within
+the same sentence, and their boundaries are not always well
+defined. This ambiguity often leads to confusion during ex-
+traction by large language models, mainly due to difficulties
+in understanding the logical relationship between the two
+components. To address this issue, as illustrated in Figure 3,
+we explicitly highlight the distinction between conditions and
+actions in our prompt design. A condition provides the premise
+for deciding whether a specific response should be triggered,while an action represents the behavior executed once the
+condition is satisfied. To further improve accuracy, we include
+few-shot examples [33] to help the model learn and internalize
+this logical separation.
+Post-Processing.In the prompt design stage, we incorporate
+specific restrictive instructions to guide the behavior of the
+large language models. However, due to the inherent limita-
+tions of these models, the generated outputs may occasionally
+deviate from the expected format or content. To address this,
+we introduce an auxiliary validation process to ensure output
+reliability. During this stage, we first perform structural vali-
+dation by checking the correctness of the JSON format during
+parsing. Any outputs that fail to meet the required specification
+are automatically flagged and reported. In addition, we apply
+a series of post-processing measures, including removal of
+pseudo-states and empty states. These steps are implemented
+through predefined rules, enabling the system to effectively
+identify and eliminate undesired or noisy content.
+b)Prompt Optimization:SpecGPT aims to construct
+a holistic and comprehensive state machine representation.
+However, extracting the state machine based on individual text
+segments may lead to information loss, as certain transitions
+can span across segment boundaries. To address this limitation,
+we further develop prompt optimization strategies that leverage
+broader contextual information, enabling the model to infer
+and recover implicit state transitions.
+Collaborative Contextual Reasoning.The large scale of
+3GPP protocol specifications necessitates segmented process-
+ing, which makes the recognition window of large language
+models a critical factor influencing extraction performance.
+Although preprocessing merges content across segment bound-
+aries, it does not fully achieve the construction of a coherent
+global state machine. To address this issue, SpecGPT incor-
+porates a collaborative contextual reasoning mechanism. As
+illustrated in Figure 3, the prompt is explicitly designed to
+include relevant historical context alongside the current text
+segment, enabling the model to continuously capture proto-
+col behavior across segments. This approach supports more
+accurate and consistent extraction of state machine elements
+by grounding the model’s reasoning in an extended context
+window.
+Integration of Explicit and Implicit Information.Con-
+ventional structured parsing methods [19] primarily focus
+on the accurate extraction of explicitly stated information in
+protocol specifications, but often struggle to identify or capture
+deeper, latent logical relationships embedded within 3GPP
+texts. To address this limitation, we design prompt strategies
+that integrate explicit extraction with implicit reasoning, as
+illustrated in Figure 3. This approach not only enables the pre-
+cise identification of clearly defined state machine elements,
+but also supports the inference of logically implied transitions
+that are not directly expressed in the text. To minimize the
+risk of hallucinations, our prompts enforce strict grounding in
+the original document content and require all inferred results
+to undergo a subsequent plausibility verification process.
+Cross-Reference Handling.Cross-references are pervasive
+
+--- Page 6 ---
+in 3GPP protocol specifications. If the content being refer-
+enced is not explicitly provided, it can result in contextual loss,
+as large language models are unable to access or retrieve the
+referenced material independently. To mitigate this issue, we
+design a simplified retrieval-augmented generation (RAG) [34]
+mechanism. Specifically, we allow multiple protocol texts to
+be input simultaneously and use the original document section
+numbers as prefixes to construct an integrated chapter-level
+mapping. This design supports retrieval-based input, ensuring
+that cross-referenced content is accurately located and incorpo-
+rated into the prompt, thereby improving the completeness and
+reliability of extracted information. Compared to conventional
+RAG frameworks, our approach is lightweight, incurs minimal
+computational overhead, and requires no external knowledge
+base or embedding storage.
+E. Ensembling
+Despite the carefully crafted prompts informed by domain
+knowledge, the performance of large language models remains
+inherently constrained by limitations such as hallucination. To
+further enhance overall reliability and accuracy, we adopt a
+model ensemble strategy that aggregates outputs from mul-
+tiple LLMs, thereby mitigating individual model biases and
+improving extraction robustness. Specifically, we select several
+mainstream LLMs from different providers, including GPT 4o
+and Gemini 2.5 Pro etc. For the same input task, we generate
+candidate outputs with identical prompts and standardized pa-
+rameters (e.g., temperature settings). Due to architectural and
+behavioral differences among models, their interpretations and
+outputs may vary, necessitating manual alignment to remove
+obvious inconsistencies, such as omissions in state transitions.
+Additionally, since actions and conditions are extracted as
+original text spans from the source, different models may
+select different fragments. To address these discrepancies, we
+introduce a consensus mechanism based on the principle of
+state transition completeness, utilizing a correlation matching
+algorithm defined as follows.
+LetT i= (Sinit
+i, Ai, Ci, Snext
+i)denote a state transition
+extracted by modeli, whereSinit
+iandSnext
+i represent the
+initial and resulting states,A iis the action text span, andC i
+is the condition text span.
+Two statesS iandS jare considered matching if
+Si=Sj.
+For actions and conditions, letspan(X)denote the text span
+ofXmeasured in words. The overlap between two spans is
+defined as
+Overlap(A i, Aj) =|span(A i)∩span(A j)|
+min
+|span(A i)|,|span(A j)|≥θ,
+whereθis a predefined threshold indicating sufficient overlap.
+We setθas 0.75 in practice, which yielded the best perfor-
+mance in our evaluation.
+Similarly, for conditions,
+Overlap(C i, Cj) =|span(C i)∩span(C j)|
+min
+|span(C i)|,|span(C j)|≥θ.Two transitionsT iandT jare considered aligned if and only
+if all of the following hold:
+
+
+Sinit
+i=Sinit
+j,
+Snext
+i=Snext
+j,
+Overlap(A i, Aj)≥θ,
+Overlap(C i, Cj)≥θ.
+Based on the aforementioned algorithm, we align the out-
+puts from different models and apply a majority voting strategy
+to integrate them, thereby obtaining the final finite state
+machine.
+IV. EVALUATION
+We evaluate SpecGPT on different settings and address the
+following three research questions:
+•RQ1: How effective is our multi-model ensemble frame-
+work in extracting protocol semantics from real-world
+3GPP documents?
+•RQ2: How does our approach compare to state-of-the-art
+protocol analysis tools?
+•RQ3: What is the practical cost and generalization ability
+of deploying our framework in real-world settings?
+A. Settings
+We selected five advanced models from different vendors,
+namely GPT 4o [20], DeepSeek V3 [35], Qwen Turbo [36],
+Claude Sonnet 4 [37], and Gemini 2.5 Pro [38]. These models
+represent the most advanced open-source and proprietary large
+language models available today [39]. The parameter sizes
+of these models range from tens to hundreds of billions.
+According to widely accepted recommendations for generating
+factual responses, we set the temperature parameter to 0.2 [40].
+All experiments were conducted on a machine equipped with
+32GB RAM and Intel Core i7-14700 CPU.
+a)Groundtruth Construction:Currently, there is still a
+lack of a comprehensive and authoritative ground truth dataset
+for 3GPP protocols. Existing datasets from prior work often
+suffer from limited protocol coverage and only capture explicit
+states or behaviors. To address this gap, we manually con-
+structed a detailed ground truth state machine dataset for three
+widely used 5G core network protocols—NAS, NGAP, and
+PFCP. All protocols are based on Release 17 specifications.
+This effort involved over 210 person-hours of work by multiple
+domain experts, including cross-validation and iterative peer
+review to ensure protocol type coverage, state completeness,
+and strict compliance with 3GPP specifications. Our ground
+truth dataset significantly improves state transition coverage
+across mainstream protocols, providing a robust foundation for
+future research in protocol modeling, analysis, and verification.
+b)Evaluation Metrics:We employ three widely used
+and objective measures: Precision, Recall, and F1-Score. Fol-
+lowing standard definitions, precision is defined asTP
+TP+FP,
+Recall is given byTP
+TP+FN, the F1-Score is calculated as
+2×Precision×Recall
+Precision+Recall. Here,TPdenotes the number of true
+positives,FPdenotes false positives (i.e., the number of
+
+--- Page 7 ---
+instances incorrectly predicted as positive), andFNdenotes
+false negatives (i.e., actual positive instances missed by the
+model). It should be emphasized that the F1-Score takes
+into account bothFPandFN, thereby serving as a crucial
+indicator for the overall performance of the model in this study.
+B. RQ1: End-to-End Performance
+We apply SpecGPT to extract state machines from the three
+protocols included in our ground truth dataset, namely the
+Release 17 versions of NAS, NGAP, and PFCP, in order
+to conduct a systematic evaluation of SpecGPT. Since the
+model outputs for conditions and actions are directly extracted
+from the source documents, their spans may not perfectly
+correspond to those in the ground truth. Therefore, we adopt
+an alignment strategy similar to that used in the ensembling
+process (Section III-E). Specifically, a state machine transition
+is considered correct only if the states match exactly, and
+both the condition and action spans overlap beyond a specified
+threshold, which we set as 0.75 in experiments.
+a)Performance of State Extraction on NAS:The NAS
+ground truth we annotated includes a total of 18 distinct states
+and 179 transitions. All five models successfully and precisely
+extracted all these states within the NAS protocol, resulting in
+an F1-score of 100%. This achievement highlights both the
+advanced understanding ability of large language models and
+the effectiveness of our specialized state extraction design.
+b)Performance of Transition Extraction on NAS:
+Table I presents the extraction performance of various large
+language models on state transitions within the NAS protocol.
+The row labeled ”Ensemble” shows the aggregated results
+from the five models, reflecting SpecGPT’s overall perfor-
+mance in extracting state transitions. The effectiveness of
+transition extraction demonstrates SpecGPT’s comprehensive
+capability in the state machine extraction task. As indicated
+in the table, extraction performance varies among models
+despite using identical prompt configurations. Specifically, the
+models exhibit relatively low precision, ranging from 61.71%
+to 80.39%, while recall remains comparatively high, between
+77.66% and 92.55%. This discrepancy is primarily due to
+the hallucination problem. Large language models tend to
+generate significantly more transition tuples than actually exist,
+leading to a higher false positive rate and consequently lower
+precision. However, this hallucination does not markedly affect
+the coverage of correct transitions, resulting in consistently
+high recall. Furthermore, when ensemble decision strategies
+are applied across multiple models, the F1-score improves
+substantially, ranging from 5.85% to 22.37%. This improve-
+ment is attributed to the ensemble method’s ability to remove
+incorrect transitions caused by hallucinations in individual
+models, thereby boosting overall extraction performance.
+Large language models were trained using 3GPP specifica-
+tion documents. We attempted to directly prompt these models
+to output state machines for different protocols, but the result-
+ing F1-score was only 14.87%. This outcome demonstrates
+the necessity of our carefully designed in-context prompts.TABLE I
+COMPARISON OF THE THREE INDICATORS OF VARIOUSLLMS
+Model Precision (%) Recall (%) F1-score (%)
+Claude Sonnet 4 80.39 87.23 83.67
+DeepSeek V3 68.70 84.04 75.60
+Gemini 2.5 Pro 70.00 89.36 78.50
+GPT 4o 79.09 92.55 85.29
+Qwen Turbo 61.71 77.66 68.77
+Ensemble 91.86 90.43 91.14
+TABLE II
+INDICATOR DATA AT DIFFERENT LEVELS OF DIFFERENT PROTOCOLS
+Protocol Precision (%) Recall (%) F1-score (%)
+PFCP-all 85.71 90.00 87.80
+PFCP-asscoiation 85.71 84.04 80.00
+PFCP-session 92.30 92.30 92.30
+NGAP-all 70.71 67.96 69.31
+NGAP-NCG 91.67 71.43 80.29
+NGAP-PSR 72.92 68.63 70.71
+NGAP-UCM 57.43 64.89 60.93
+c)Performance of Transition Extraction on PFCP and
+NGAP:Table II summarizes the performance of SpecGPT in
+extracting state transitions within the PFCP and NGAP proto-
+cols. To enable a more detailed evaluation of SpecGPT’s capa-
+bilities, both protocols were further subdivided for fine-grained
+assessment across distinct protocol components. Specifically,
+for the PFCP protocol, we separated the association estab-
+lishment and maintenance functions (association layer) from
+session management and forwarding rule control (session
+layer), treating them as two independent layers. For the NGAP
+protocol, the subdivision was based on functional granularity
+and control scope, resulting in three hierarchical layers from
+the network to the service bearer level: the Next-Generation
+Core (NGC) Connection Global layer, describing the global
+state of the NGC interface; the UE Context Main (UCM)
+layer, responsible for signaling and state management at
+the UE level; and the PDU (Protocol Data Unit) Session
+Resource layer, focusing on PDU session resources for each
+UE. Experimental results demonstrate that SpecGPT achieves
+excellent extraction performance on the PFCP protocol both
+overall and within each individual layer, with particularly
+precise recognition in the association and session layers. In
+contrast, the NGAP protocol is more complex and exhibits
+certain ambiguities in its specification, increasing the difficulty
+of automatic extraction. Nonetheless, its overall extraction
+performance still satisfies the basic requirements for practical
+application.
+C. RQ2: Comparison with the SOTA
+To evaluate the effectiveness of SpecGPT, we further con-
+duct a comparative evaluation against Hermes [19], the SOTA
+tool designed to automatically extract protocol finite state
+machines (FSMs) from 3GPP specification documents.
+Since the Hermes paper only reports experimental results on
+the 5G NAS and RRC protocols, we restrict our comparison
+with Hermes to the 5G NAS protocol. The main limitation
+of Hermes lies in its explicit extraction, which is restricted
+
+--- Page 8 ---
+to fully articulated transitions explicitly stated in protocol
+specification texts, and does not sufficiently account for the
+semantic logic and implicit information inherent in the natural
+language formation of specifications. In contrast, SpecGPT is
+capable of capturing implicit state transitions embedded in the
+protocol specifications. Hermes does not provide the actual
+state machines it constructed. According to the evaluation
+results reported in its paper, Hermes achieves an accuracy of
+81.39% for actions and 86.40% for conditions on the 5G NAS
+protocol. In comparison, SpecGPT achieves higher accuracies
+of 86.41% and 92.94%, respectively. It is worth noting that
+the ground truth used by SpecGPT is more comprehensive in
+terms of both the number of states and transitions. Therefore,
+SpecGPT demonstrates superior overall performance on the
+5G NAS protocol compared to Hermes.
+TABLE III
+THE EFFECTS OF DIFFERENT TOOLS IN LABELING TAGS
+Tools Precision (%) Recall (%) F1-score (%)
+NEUTREX-Labeled 64.30 66.13 65.20
+NEUTREX-Unlabeled 66.88 68.79 67.82
+LLM 87.46 90.40 88.90
+In addition, Hermes introduces a dedicated neural con-
+stituency parser, NEUTREX, to annotate transition compo-
+nents such as states, conditions, and actions in 3GPP specifica-
+tion documents. To assess the effectiveness of large language
+models (LLMs) on the same task, we use the ground truth
+provided by Hermes, which includes human-annotated transi-
+tion components extracted from the specifications. Using this
+dataset, we apply LLMs to perform the annotation task without
+any task-specific training. The results are shown in Table
+III. In this table, NEUTREX-Unlabeled denotes NEUTREX’s
+performance on the detected spans without any consideration
+of the labels assigned to them, while NEUTREX-Labeled take
+into consideration the labels assigned. Overall, LLMs outper-
+form NEUTREX on this task. These findings underscore the
+advantages of our end-to-end approach, which achieves higher
+accuracy without relying on a dedicated parser or training
+process. Figure 4 presents a breakdown of the performance
+of different large language models on each type of transition
+component in this task. All five models demonstrate strong
+performance across the annotation of individual components.
+This also highlights the potential of LLMs to simplify and
+enhance automated protocol analysis by eliminating the need
+for complex intermediate models.
+D. RQ3: Cost and Generalization Ability
+a)Cost:We assess the practical cost of our approach
+from two perspectives: monetary expense and runtime effi-
+ciency. Specifically, we measure the number of tokens con-
+sumed and the processing time required by SpecGPT when
+invoking large language models and executing subsequent
+processing pipelines. Regarding monetary cost, token usage
+is the main factor, which largely depends on the length
+of the 3GPP specification documents. Table IV summarizes
+the detailed token consumption for each model, showing
+020406080100
+Claude Sonnet 4DeepSeek V3Gemini 2.5 Pro GPT 4o Qwen Turbo<state>
+<contion>
+<action>
+all
+81869196Fig. 4. The effectiveness of each model in labeling the tags
+comparable usage across the evaluated models. Based on the
+respective API pricing, we estimate the cost per run to be
+approximately $2.7 for NAS, $1.6 for NGAP, and $1.5 for
+PFCP. In terms of runtime efficiency, the primary influence is
+the type of LLM employed. Through optimized input window
+scheduling and segmentation strategies, we have significantly
+reduced the processing time for a single document from
+several hours to mere minutes. Additionally, preprocessing
+and comparative testing typically require less than one minute.
+Detailed performance metrics are also presented in Table IV.
+Considering that protocol state machine extraction is usually
+performed only once per document, the overall time cost is
+acceptable in practical scenarios. With ongoing advancements
+in foundation models, we expect both monetary costs and
+processing time to further decrease.
+TABLE IV
+THE COSTS AND EFFICIENCIES OF EACH MODEL UNDER EACH PROTOCOL
+Protocol Model# Input
+Tokens# Output
+TokensTime (minute)
+NASClaude Sonnet 4 221,829 50,347 32
+DeepSeek V3 233,517 75,239 117
+Gemini 2.5 Pro 236,751 74,985 202
+GPT 4o 235,984 94,202 20
+Qwen Turbo 234,894 97,863 57
+NGAPClaude Sonnet 4 130,490 29,358 20
+DeepSeek V3 136,578 43,857 69
+Gemini 2.5 Pro 136,875 43,221 119
+GPT 4o 136,560 55,461 12
+Qwen Turbo 136,423 57,400 35
+PFCPClaude Sonnet 4 118,904 26,721 18
+DeepSeek V3 124,551 39,826 61
+Gemini 2.5 Pro 124,686 39,801 113
+GPT 4o 124,558 49,577 10
+Qwen Turbo 124,496 51,996 31
+b)Generalization Ability:We further assess the gen-
+eralization ability of SpecGPT on a different version of
+the specifications, as real-world applications typically require
+re-extracting state machine models following specification
+updates. Specifically, the evaluation is performed using the
+Release 15 (R15) version of the NAS protocol specification.
+SpecGPT successfully extracted 142 state transitions from the
+Release 15 (R15) version of the specification, representing
+
+--- Page 9 ---
+a reduction of approximately 20% compared to Release 17
+(R17). Notably, the total number of states remained largely
+unchanged. This outcome is consistent with expectations, as
+R15 serves as the initial 3GPP standard defining 5G NR
+and 5GC, whereas R17 introduces subsequent enhancements,
+including new features, commercial deployment scenarios, and
+expanded network capabilities, which collectively contribute
+to increased complexity in the protocol’s state machine. The
+results of the experiment validate the generalization ability
+of our tool, indicating its effectiveness in handling multiple
+versions of the protocol specifications.
+V. DISCUSSION
+A. Limitations and Future Work
+Although SpecGPT achieved an F1-score of 91.14% in
+extracting protocol state machines from 3GPP documents
+and significantly outperformed the existing SOTA tool, it
+still suffers from false positives and false negatives due to
+inherent limitations such as hallucinations in large language
+models. This challenge is common across many LLM-based
+approaches [26], [27]. Addressing this issue requires progress
+in two key directions. The first is the continual improvement
+of foundation model capabilities. The second involves the in-
+tegration of emerging techniques such as retrieval-augmented
+generation [34] and self-consistency [41] to reduce hallucina-
+tions and improve the reliability of model outputs. As large
+language model technologies continue to evolve rapidly, our
+extensible multi-model ensemble framework is well positioned
+to benefit from these advancements. This will enable contin-
+uous improvement in state machine extraction and ultimately
+support the goal of generating complete and accurate protocol
+state machines. In addition, this work focuses exclusively
+on protocol state machines. However, protocol specification
+documents contain a wealth of other valuable information,
+such as protocol fields and potential security hazards, which
+play a critical role in various security-related tasks. We leave
+the extraction and utilization of such information to future
+work.
+B. Utility of SpecGPT
+This work focuses on the automatic extraction of protocol
+state machines from 3GPP specifications. The proposed frame-
+work can facilitate a variety of downstream tasks, especially
+in protocol verification and testing, and the enrichment of
+technical specifications.
+a)Protocol verification and testing:Most existing tools
+for protocol verification and testing rely on hand-crafted state
+machines, which are time-consuming to build, error-prone,
+and difficult to maintain. With frequent updates to protocol
+specifications, manually constructed models often become
+outdated quickly. SpecGPT can automatically extract state
+machine models from the specifications, significantly reducing
+the manual effort required and improving the maintainability
+and accuracy of existing protocol analysis research.b)Enrichment of 3GPP specifications:The main reason
+researchers have to manually construct state machine models
+is that the 3GPP, as the maintainer of protocol specifications,
+provides the standards only in natural language, rather than
+in more structured forms such as state machines, which are
+better suited for a wide range of downstream tasks. This
+choice is influenced by various factors, but a major con-
+straint is the substantial manual effort required to create and
+maintain such formal representations. Our tool addresses this
+gap by automatically extracting protocol state machines from
+the specifications, significantly reducing human workload and
+enabling structured, machine-readable representations that can
+greatly support tasks such as verification, testing, and protocol
+evolution.
+VI. RELATEDWORK
+A. Cellular Security
+The complexity and continuous evolution of cellular net-
+work protocols have driven growing interest in automated
+security analysis and verification approaches [3]–[6], [8]–[12],
+[42]. Karim et al. [8] introduced ProChecker, a framework
+that combines dynamic testing with static instrumentation to
+detect logical flaws in 4G LTE protocol implementations.
+Akon et al. [3] proposed CoreScan, a decomposition-based
+framework with assume-guarantee reasoning to verify 5G
+access control, uncovering five new privilege escalation vul-
+nerabilities. Dong et al. [9] proposed CoreCrisis, a stateful
+fuzzing framework that learns an FSM to guide state-aware
+mutation for testing 5G core implementations. It discovered 7
+specification deviations and 13 critical vulnerabilities. While
+existing works have advanced automated security analysis of
+cellular protocols, automation in state machine modeling re-
+mains limited—especially for the complex, dynamic interfaces
+in 5G and beyond.
+B. Machine Learning Based Document Analysis
+Machine learning, particularly NLP, is increasingly used
+to extract structured protocol specifications from documents
+and code, supporting automated protocol parsing and state
+modeling [15], [16], [18], [19], [43], [44], [45]. Chen et al.
+[16] introduced CREEK, which uses a fine-tuned BERT model
+and Positive-Unlabeled learning to classify security-relevant
+3GPP Change Requests, and successfully uncovered multiple
+exploitable security vulnerabilities. Ishtiaq et al. [19] proposed
+Hermes, which combines a neural parser, a domain-specific
+language for intermediate representation, and logic-driven
+FSM generation to automatically extract state machines from
+3GPP specifications using NLP. Rahman et al. [44] applied
+NLP to identify design-level inconsistencies in specification
+documents and assessed their potential impact on implemen-
+tation choices. However, prior methods rely on annotated
+data and domain-specific training. Whether the capabilities of
+large language models can be leveraged for efficient protocol
+recognition is the focus of this work.
+
+--- Page 10 ---
+VII. CONCLUSION
+In this work, we present SpecGPT, a novel framework
+for automatically extracting protocol state machines from
+3GPP specifications using large language models. By com-
+bining domain-informed prompt engineering, chain-of-thought
+reasoning, and ensemble techniques, SpecGPT effectively
+addresses the complexity, scale, and ambiguity inherent in
+cellular protocol documents. Our evaluation on NAS, NGAP,
+and PFCP protocols demonstrates that SpecGPT achieves
+higher accuracy compared to prior approaches, highlighting
+the potential of LLMs in automating protocol analysis. The
+state machines extracted by our framework serve as structured,
+interpretable representations of protocol behavior, which can
+further facilitate downstream tasks such as automated testing
+and formal verification, ultimately enhancing the robustness
+and security of modern communication protocols.
+REFERENCES
+[1] “The Mobile Economy 2025,” https://www.gsma.com/
+solutions-and-impact/connectivity-for-good/mobile-economy/, 2025.
+[2] R. Khan, P. Kumar, D. N. K. Jayakody, and M. Liyanage, “A survey
+on security and privacy of 5g technologies: Potential solutions, recent
+advancements, and future directions,”IEEE Communications Surveys &
+Tutorials, vol. 22, no. 1, pp. 196–248, 2019.
+[3] M. Akon, M. Toufikuzzaman, and S. R. Hussain, “From control to chaos:
+A comprehensive formal analysis of 5g’s access control,” inProceedings
+of the 2025 IEEE Symposium on Security and Privacy (SP), 2025.
+[4] D. Basin, J. Dreier, L. Hirschi, S. Radomirovic, R. Sasse, and V . Stettler,
+“A formal analysis of 5g authentication,” inProceedings of the 2018
+ACM SIGSAC conference on computer and communications security,
+2018, pp. 1383–1396.
+[5] S. R. Hussain and e. a. Echeverria, “5greasoner: A property-directed se-
+curity and privacy analysis framework for 5g cellular network protocol,”
+inProceedings of the 2019 ACM SIGSAC Conference on Computer and
+Communications Security (CCS ’19), 2019, pp. 669–684.
+[6] S. Hussain, O. Chowdhury, S. Mehnaz, and E. Bertino, “LTEInspector:
+A systematic approach for adversarial testing of 4g LTE,” inNetwork
+and Distributed Systems Security (NDSS) Symposium 2018, 2018.
+[7] C. Cremers and M. Dehnel-Wild, “Component-based formal analysis of
+5g-aka: Channel assumptions and session confusion,” inNetwork and
+Distributed Systems Security (NDSS) Symposium, 2019.
+[8] I. Karim, S. R. Hussain, and E. Bertino, “Prochecker: An automated
+security and privacy analysis framework for 4g lte protocol imple-
+mentations,” inProceedings of the IEEE International Conference on
+Distributed Computing Systems (ICDCS), 2021, pp. 1158–1168.
+[9] Y . Dong, T. Yang, A. Al Ishtiaq, S. M. M. Rashid, A. Ranjbar, K. Tu,
+T. Wu, M. S. Mahmud, and S. R. Hussain, “Corecrisis: Threat-guided
+and context-aware iterative learning and fuzzing of 5g core networks,”
+2025.
+[10] T. Yang, S. K S, A. Arumugam, and S. Hussain, “Feedback-guided api
+fuzzing of 5g network,” 2024.
+[11] N. Bennett, W. Zhu, B. Simon, R. Kennedy, W. Enck, P. Traynor, and
+K. R. Butler, “Ransacked: A domain-informed approach for fuzzing
+lte and 5g ran-core interfaces,” inProceedings of the 2024 on ACM
+SIGSAC Conference on Computer and Communications Security, 2024,
+pp. 2027–2041.
+[12] H. Kim, J. Lee, E. Lee, and Y . Kim, “Touching the untouchables:
+Dynamic security analysis of the lte control plane,” in2019 IEEE
+Symposium on Security and Privacy (SP). IEEE, 2019, pp. 1153–1168.
+[13] L. Huang, P. Zhao, H. Chenet al., “Large language models based fuzzing
+techniques: A survey,”ACM Computing Surveys, 2024.
+[14] “3GPP Standard,” https://www.3gpp.org/, 2025.
+[15] Y . Chen, Y . Yao, X. Wang, D. Xu, C. Yue, X. Liu, K. Chen, H. Tang,
+and B. Liu, “Bookworm game: Automatic discovery of lte vulnerabilities
+through documentation analysis,” in2021 IEEE Symposium on Security
+and Privacy (SP). IEEE, 2021, pp. 1197–1214.[16] Y . Chen and e. a. Tang, “Seeing the forest for the trees: Understanding
+security hazards in the 3gpp ecosystem through intelligent analysis
+on change requests,” inProceedings of the 31st USENIX Security
+Symposium (Security 2022), 2022, pp. 2713–2730.
+[17] H.-T. Nguyen, N.-Q. Nguyen, N. K. Daoet al., “When 5g security
+meets natural language processing: Challenges and future pathways,” in
+Proceedings of the 2024 IEEE Conference on Antenna Measurements
+and Applications (CAMA), 2024.
+[18] M. L. Pacheco, M. von Hippel, B. Weintraub, D. Goldwasser, and
+C. Nita-Rotaru, “Automated attack synthesis by extracting finite state
+machines from protocol specification documents,” in2022 IEEE Sym-
+posium on Security and Privacy (SP). IEEE, 2022, pp. 51–68.
+[19] A. Al Ishtiaq, S. S. S. Das, S. M. M. Rashid, A. Ranjbar, K. Tu, T. Wu,
+Z. Song, W. Wang, M. Akon, R. Zhanget al., “Hermes: unlocking
+security analysis of cellular network protocols by synthesizing finite
+state machines from natural language specifications,” in33rd USENIX
+Security Symposium (USENIX Security 24), 2024, pp. 4445–4462.
+[20] “ChatGPT,” https://chatgpt.com/, 2025.
+[21] M. Zheng, D. Xie, and X. Zhang, “Large language models for validating
+network protocol parsers,”IEEE Transactions on Network and Service
+Management, 2025.
+[22] M. Duclos, I. A. Fernandez, K. Mooreet al., “Utilizing large language
+models to translate rfc protocol specifications to cpsa definitions,”IEEE
+Access, 2024.
+[23] L. Ma, S. Liu, Y . Liet al., “Specgen: Automated generation of formal
+program specifications via large language models,”Proceedings of the
+ACM on Programming Languages, 2024.
+[24] Y . Maklad, F. Wael, W. Elsersyet al., “Retrieval augmented generation
+based llm evaluation for protocol state machine inference with chain-
+of-thought reasoning,”IEEE Transactions on Information Forensics and
+Security, 2025.
+[25] P. Sharma and V . Yegneswaran, “Prosper: Extracting protocol specifica-
+tions using large language models,” inProceedings of the 22nd ACM
+Workshop on Hot Topics in Networks, 2023, pp. 41–47.
+[26] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen,
+W. Peng, X. Feng, B. Qinet al., “A survey on hallucination in large
+language models: Principles, taxonomy, challenges, and open questions,”
+ACM Transactions on Information Systems, vol. 43, no. 2, pp. 1–55,
+2025.
+[27] Z. Xu, S. Jain, and M. Kankanhalli, “Hallucination is inevitable:
+An innate limitation of large language models,”arXiv preprint
+arXiv:2401.11817, 2024.
+[28] D. Xie, B. Yoo, N. Jianget al., “How effective are large language
+models in generating software specifications?” inProceedings of the
+2025 IEEE International Conference on Software Analysis, Evolution
+and Reengineering (SANER), 2025.
+[29] “Non-Access-Stratum (NAS) protocol for 5G System (5GS); Stage 3,”
+https://www.3gpp.org/dynareport/24501.htm, 2025.
+[30] “Ng-ran; ng application protocol (ngap),” https://www.3gpp.org/
+dynareport/38413.htm, 2025.
+[31] “Interface between the control plane and the user plane nodes,” https:
+//www.3gpp.org/dynareport/29244.htm, 2025.
+[32] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V . Le,
+D. Zhouet al., “Chain-of-thought prompting elicits reasoning in large
+language models,”Advances in neural information processing systems,
+vol. 35, pp. 24 824–24 837, 2022.
+[33] A. Parnami and M. Lee, “Learning from few examples: A summary
+of approaches to few-shot learning,”arXiv preprint arXiv:2203.04291,
+2022.
+[34] Y . Gao, Y . Xiong, X. Gao, K. Jia, J. Pan, Y . Bi, Y . Dai, J. Sun,
+H. Wang, and H. Wang, “Retrieval-augmented generation for large
+language models: A survey,”arXiv preprint arXiv:2312.10997, vol. 2,
+no. 1, 2023.
+[35] “DeepSeek,” https://chat.deepseek.com/, 2025.
+[36] “Qwen,” https://github.com/QwenLM/Qwen, 2025.
+[37] “Claude,” https://claude.ai/, 2025.
+[38] “Gemini,” https://gemini.google.com/app, 2025.
+[39] “Lmarena leaderboad,” https://lmarena.ai/leaderboard, 2025.
+[40] M. Peeperkorn, T. Kouwenhoven, D. Brown, and A. Jordanous, “Is
+temperature the creativity parameter of large language models?”arXiv
+preprint arXiv:2405.00492, 2024.
+[41] X. Wang, J. Wei, D. Schuurmans, Q. Le, E. Chi, S. Narang, A. Chowdh-
+ery, and D. Zhou, “Self-consistency improves chain of thought reasoning
+in language models,”arXiv preprint arXiv:2203.11171, 2022.
+
+--- Page 11 ---
+[42] A. Shaik, R. Borgaonkar, N. Asokanet al., “Practical attacks against
+privacy and availability in 4g/lte mobile communication systems,”IEEE
+Transactions on Mobile Computing, 2017.
+[43] S. M. M. Rashid, T. Wu, K. Tuet al., “State machine mutation-
+based testing framework for wireless communication protocols,”IEEE
+Transactions on Software Engineering, 2024.
+[44] M. M. Rahman, I. Karim, and E. Bertino, “CellularLint: A Systematic
+Approach to Identify Inconsistent Behavior in Cellular Network Speci-
+fications,” in33rd USENIX Security Symposium (USENIX Security 24),
+2024, pp. 5215–5232.
+[45] Z. Wang and Y . Wang, “NLP-based Cross-Layer 5G Vulnerability
+Detection via Fuzzing-Generated Run-Time Profiling,” in2023 IEEE
+12th International Conference on Cloud Networking (CloudNet), 2023,
+pp. 194–202.
