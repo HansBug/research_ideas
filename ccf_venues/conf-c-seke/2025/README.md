@@ -22,7 +22,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://ksiresearch.org/seke/seke25.html) | Program/proceedings archive 对 virtual end date 有轻微冲突，需后续人工确认。 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://ksiresearch.org/seke/seke25.html) | Program/proceedings archive 对 virtual end date 有轻微冲突，需后续公开可审计确认。 | `2026-06-05 17:23` |
 | CFP / Call for Papers | [CFP / track](https://ksiresearch.org/seke/seke25main.html) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://ksiresearch.org/seke/seke25main.html) | 可与 CFP 同页 | `2026-06-05 17:23` |
 | Submission system | [Submission](https://www.easychair.org/conferences/?conf=seke25) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |

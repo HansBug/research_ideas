@@ -24,11 +24,11 @@
 |---|---|---|---|
 | Journal homepage | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | ACM 官方入口 | `2026-06-04 21:15` |
 | Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | TOSEM-specific author guidelines；ACM DL 动态访问可能受限 | `2026-06-04 21:15` |
-| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍需人工点击 ACM DL TOSEM Submit Manuscript 当前页确认 | `2026-06-04 21:15` |
+| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍待 ACM DL TOSEM Submit Manuscript 当前页给出公开可审计证据 | `2026-06-04 21:15` |
 | Special issue / topical collection CFP | 无已知 | 未发现 2022 TOSEM dated special issue | `2026-06-04 21:15` |
 | Volume / issue archive | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | DBLP Vol. 31 可作年度落点 | `2026-06-04 21:15` |
 | Articles in press / online first | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | ACM DL 动态访问受限；PFP 仅作运营线索，不作为 canonical online-first | `2026-06-04 21:15` |
-| Annual article list / publisher search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | 当前环境对 ACM DL 正文抓取受限，需人工点击复核 | `2026-06-04 21:15` |
+| Annual article list / publisher search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | 当前环境对 ACM DL 正文抓取受限，未获公开可审计正文 | `2026-06-04 21:15` |
 | DBLP 年度页 | [DBLP TOSEM Volume 31](https://dblp.org/db/journals/tosem/tosem31.html) | 年度计数 baseline | `2026-06-04 21:15` |
 
 ## 3. 投稿与出版节奏
@@ -64,10 +64,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 官方入口可用；正文可能需浏览器人工点击。 |
-| Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | 记录为 TOSEM ScholarOne 候选入口；canonical 入口待 ACM DL 当前页人工确认。 |
+| 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 官方入口可用；CLI/动态页受限，未获公开可审计正文。 |
+| Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | 记录为 TOSEM ScholarOne 候选入口；canonical 入口待 ACM DL 当前页公开可审计确认。 |
 | Special issue / topical collection | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 未发现 2022 dated special issue。 |
-| Volume / issue / online first | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 出版商入口可用，年度细分需人工点击。 |
+| Volume / issue / online first | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 出版商入口可用，年度细分未获公开可审计正文。 |
 | DBLP fallback | [DBLP TOSEM Volume 31](https://dblp.org/db/journals/tosem/tosem31.html) | `2026-06-04 21:15` | 可作年度 baseline。 |
 
 ## 8. TIMELINE.md 同步提示

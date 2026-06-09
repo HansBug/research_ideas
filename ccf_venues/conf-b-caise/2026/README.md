@@ -52,7 +52,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | accepted page 可人工计数；proceedings / DBLP 待补 |
+| 论文数量 | accepted page 可公开证据计数；proceedings / DBLP 待补 |
 | 官方论文名录 / accepted papers | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) |
 | Proceedings | 未公布 / Springer 主会 proceedings 待补 |
 | DBLP 年度页 | ⏳ 已检索未公布 |

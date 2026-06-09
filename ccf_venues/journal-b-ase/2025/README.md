@@ -24,7 +24,7 @@
 |---|---|---|---|
 | Journal homepage | [Springer ASE Journal](https://link.springer.com/journal/10515) | 与 ASE 会议消歧 | `2026-06-07 12:47` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10515/submission-guidelines) | rolling 常规投稿 | `2026-06-07 12:47` |
-| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) | 登录 / article type routing 待人工核验 | `2026-06-07 12:47` |
+| Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) | 登录 / article type routing 已检索未获可审计证据 | `2026-06-07 12:47` |
 | Special issue / topical collection CFP | [Springer collections](https://link.springer.com/journal/10515/collections) | 历史 / closed collections 待补 | `2026-06-07 12:47` |
 | Volume / issue archive | [Vol. 32 Issue 1](https://link.springer.com/journal/10515/volumes-and-issues/32-1) | future 年度未公布时不预设 | `2026-06-07 12:47` |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) | continuous article publishing | `2026-06-07 12:47` |
@@ -68,7 +68,7 @@
 | Springer homepage | [Springer ASE Journal](https://link.springer.com/journal/10515) | `2026-06-07 12:47` | 官方期刊入口已定位。 |
 | Springer collections | [Collections](https://link.springer.com/journal/10515/collections) | `2026-06-07 12:47` | project-relevant dated collections 已按年度维护；弱相关 CFP 未纳入 watchlist。 |
 | DBLP fallback | [DBLP ASE Journal](https://dblp.org/db/journals/ase/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
-| CCF official | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 正文可能 WAF，等级正文待人工浏览器复核。 |
+| CCF official | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 正文可能 WAF，等级正文未获公开可审计正文。 |
 
 ## 8. TIMELINE.md 同步提示
 

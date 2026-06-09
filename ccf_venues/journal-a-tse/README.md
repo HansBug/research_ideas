@@ -1,6 +1,6 @@
 # TSE README
 
-> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | IEEE Transactions on Software Engineering |
 | 类型 | 期刊 |
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言 |
-| CCF 等级 | A |
+| CCF 等级 | 🏆 |
 | 出版商 | IEEE Computer Society / IEEE |
 | ISSN | 0098-5589（print）；1939-3520（online） |
 | 期刊主页 | [IEEE Computer Society TSE](https://www.computer.org/csdl/journal/ts) |
@@ -24,16 +24,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若使用 AbleSci / AIS 等公开镜像暂存分区，只能作为二级可审计证据，并必须在行内标注非 Clarivate/CAS 官方导出；`索引核验` 不得因此升级为 `🟢`。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
-| WoS Collection | ❓ | 待核验 | 需按 ISSN / eISSN 在 Clarivate MJL / WoS 中核验 SCIE / SSCI / AHCI / ESCI 归属 | `待补` |
-| JCR Quartile | ❓ | 待核验 | 需记录 JCR release year、metric/data year、category、rank、quartile、percentile 与证据 URL | `待补` |
-| CAS 分区 | ❓ | 待核验 | 仅可记录中国科学院文献情报中心官方 / 历史版可追溯分区；需写版本年份与来源 | `待补` |
-| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 source title、source type、sheet、coverage | `待补` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
+| CCF | 🏆 | CCF 🏆 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS Collection | 🟢 | Clarivate MJL ISSN 精确检索命中，Web of Science Core Collection = SCIE | [MJL ISSN exact search](https://mjl.clarivate.com/search-results?issn=0098-5589)；Clarivate MJL 页面核验显示 Exact Match / SCIE；[Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 作集合口径说明 | `2026-06-09 16:20` |
+| JCR Quartile | 1️⃣ | 2025 JCR best：Q1；Software Engineering Q1 14/128，Electrical & Electronic Engineering Q1 63/366 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=r8LGqr)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
+| CAS 分区 | 1️⃣ | 2025 中科院升级版：计算机科学大类 1区；软件工程 / 电子与电气小类均 1区 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=r8LGqr)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
+| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `SERIALS`，Source title `IEEE Transactions on Software Engineering`，Source type `Journal`，ISSN `0098-5589`，EISSN `1939-3520`，Publisher `Institute of Electrical and Electronics Engineers Inc.` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；本轮按 MJL、Compendex source-list 与公开分区页三类证据建立降权链，后续若公开链接不可复现则降级 | `2026-06-09 16:20` |
 
 ## 2. Scope 与栏目
 
@@ -47,13 +47,13 @@
 
 | 姓名 | 期刊角色 | 单位 | 角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
 |---|---|---|---|---|---|---|---|---|---|
-| Mauro Pezzè | Editor-in-Chief（2026 起） | USI Università della Svizzera italiana；Università degli Studi di Milano-Bicocca | [IEEE CS 2026 EIC 公告](https://www.computer.org/press-room/2026-eics-announced)；[ICSE 2026 TSE Editorial Board Meeting](https://conf.researchr.org/details/icse-2026/icse-2026-meetings-and-bof/10/TSE-Journal-Editorial-Board-Meeting) | [USI 主页](https://www.inf.usi.ch/faculty/pezze/vitae.html)；[DBLP](https://dblp.org/search?q=Mauro%20Pezz%C3%A8) | 软件测试、程序分析、测试 oracle、自愈 / 自适应软件系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Mauro%20Pezz%C3%A8)：Tratto / LLM test oracles / Prevent 等 | P2/P3/P4 强；P1 中 | 官方公告核验；IEEE CS press-room 可能需浏览器访问，ICSE 2026 TSE meeting 交叉核验 | `2026-06-04 22:05` |
+| Mauro Pezzè | Editor-in-Chief（2026 起） | USI Università della Svizzera italiana；Università degli Studi di Milano-Bicocca | [IEEE CS 2026 EIC 公告](https://www.computer.org/press-room/2026-eics-announced)；[ICSE 2026 TSE Editorial Board Meeting](https://conf.researchr.org/details/icse-2026/icse-2026-meetings-and-bof/10/TSE-Journal-Editorial-Board-Meeting) | [USI 主页](https://www.inf.usi.ch/faculty/pezze/vitae.html)；[DBLP](https://dblp.org/search?q=Mauro%20Pezz%C3%A8) | 软件测试、程序分析、测试 oracle、自愈 / 自适应软件系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Mauro%20Pezz%C3%A8)：Tratto / LLM test oracles / Prevent 等 | P2/P3/P4 强；P1 中 | 官方公告核验；IEEE CS press-room 可能需要公开可审计证据补强，ICSE 2026 TSE meeting 交叉核验 | `2026-06-04 22:05` |
 | Marsha Chechik | Associate Editor-in-Chief（候选线索，待 TSE 当前 roster 复核） | University of Toronto | [SIGSOFT 2024 选举材料](https://www.acm.org/binaries/content/assets/sigs/elections/2024-sigsoft.pdf) | [个人主页](https://www.cs.toronto.edu/~chechik/)；[DBLP](https://dblp.org/search?q=Marsha%20Chechik) | 软件建模与分析、规约与验证、需求工程、Safe AI 软件工程 | [DBLP 近年论文入口](https://dblp.org/search?q=Marsha%20Chechik)：AI agents norms、FOL* satisfiability、controller verification 等 | P1/P2/P3 强；P4 中 | 间接 / 候选线索；来源为 2024 年材料，且与 SoSyM EIC 同期角色需 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 | Massimiliano Di Penta | Associate Editor-in-Chief（候选线索，待 TSE 当前 roster 复核） | University of Sannio | 待补 TSE 角色直接来源；[USI visiting professor page](https://www.inf.usi.ch/it/ricerca-informatica/programma-visiting-professor) 仅作机构线索 | [个人主页](https://mdipenta.github.io/)；[DBLP](https://dblp.org/search?q=Massimiliano%20Di%20Penta) | 软件演化、软件分析、技术债、软件工程推荐系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Massimiliano%20Di%20Penta)：refactoring、technical debt、software evolution 等 | P4 强；P2 中；P1/P3 弱到中 | 候选线索；当前行不作为已官方核验的 TSE AEiC 事实，待 TSE roster 或个人 service 页直接确认 | `2026-06-04 22:05` |
 | Tao Zhang | Associate Editor-in-Chief（2026-present，待 TSE 当前 roster 复核） | Macau University of Science and Technology | [个人 CV](https://cszhangtao.github.io/assets/CV.pdf)；[ICSSIP 2026 keynote page](https://icssip.net/speaker.html) | [DBLP](https://dblp.org/search?q=Tao%20Zhang)；[个人 CV](https://cszhangtao.github.io/assets/CV.pdf) | 软件测试、程序分析、调试与修复、LLM for SE、漏洞检测 | [DBLP 近年论文入口](https://dblp.org/search?q=Tao%20Zhang)：smart contract state analysis、HLS bug detection、PLM for SE tasks 等 | P1/P2/P3/P4 强 | 个人 / 会议公开材料交叉线索；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 | Yingfei Xiong | Associate Editor-in-Chief（2026-2028，待 TSE 当前 roster 复核） | Peking University | [个人主页](https://xiongyingfei.github.io/index.html)；[services 页](https://xiongyingfei.github.io/services.html) | [个人主页](https://xiongyingfei.github.io/index.html)；[DBLP](https://dblp.org/search?q=Yingfei%20Xiong) | 程序综合、程序修复、fault localization、程序正确性、LLM agents | [个人主页近年论文](https://xiongyingfei.github.io/index.html)：PredicateFix、HoarePrompt、LLM agent cost reduction、SmartFL 等 | P1/P2/P4 强；P3 中到强 | 个人主页 service 页核验；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 
-补充说明：上表是本轮核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。除 Mauro Pezzè 的 EiC 角色外，AEiC 条目均按候选 / 间接线索处理，后续需用 IEEE / TSE 当前 roster 做一次人工快照。
+补充说明：上表是本轮核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。除 Mauro Pezzè 的 EiC 角色外，AEiC 条目均按候选 / 间接线索处理，后续需用 IEEE / TSE 当前 roster 做一次公开可审计 roster 证据补齐。
 
 ## 4. 与本仓库 project 的关系
 
@@ -107,6 +107,8 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 01:08` | 修复核心人员补充说明中的排版空格，保持期刊人员画像表述稳定。 |
 | `2026-06-04 22:05` | 根据正式复审补充 TSE 人员核验等级和年度 DBLP `entry article` baseline，并明确 IEEE CSDL 年度 permalink 限制。 |

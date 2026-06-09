@@ -10,7 +10,7 @@
 | 全称 | `<Full Name>` |
 | 类型 | 期刊 |
 | CCF 大类 | `<E / 理论 / T / ...>` |
-| CCF 等级 | `<A/B/C>` |
+| CCF 等级 | `<🏆/🥈/🥉/⚪/❓>` |
 | 出版商 | 待补 |
 | ISSN | 待补 |
 | 期刊主页 | 待补（占位：JOURNAL_HOME_URL；核验后改为 Markdown 链接） |
@@ -24,16 +24,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节记录外部索引与分区事实。实例化时必须按 [GUIDE.md](../GUIDE.md) 的外部索引规则补证；若尚未核验，不得留空或脑补，应写 `❓` / `⚪` / `⏳` 等规范占位。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+> 本节记录外部索引与分区事实。实例化时必须按 [GUIDE.md](../GUIDE.md) 的外部索引规则补证；每一行都必须给出可点击官方入口、source-list snapshot 字段或明确 access note。若尚未核验，不得留空或脑补，应写 `❓` / `⚪` / `⏳` 等规范占位。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `⏳`，文字解释放在口径说明或相邻列。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | ❓ | 待核验 | CCF 官方目录 / 更新通知 | `yyyy-mm-dd hh:mm` |
-| WoS Collection | ❓ | 待核验 | Clarivate MJL / WoS；优先 ISSN / eISSN 精确检索 | `yyyy-mm-dd hh:mm` |
-| JCR Quartile | ❓ | 待核验 | JCR release year + category + rank + quartile + evidence URL | `yyyy-mm-dd hh:mm` |
-| CAS 分区 | ❓ | 待核验 | CAS 官方 / 历史版可追溯分区；需记录版本年份 | `yyyy-mm-dd hh:mm` |
-| EI / Compendex | ❓ | 待核验 | 官方 Compendex Source List snapshot / source type / sheet / coverage | `yyyy-mm-dd hh:mm` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表 | `yyyy-mm-dd hh:mm` |
+| CCF | ❓ | 待核验 | 待补（占位：CCF_OFFICIAL_URL；核验后改为 Markdown 链接 + CCF 等级证据） | `yyyy-mm-dd hh:mm` |
+| WoS Collection | ⏳ | 已检索未获可审计证据 | 待补（占位：CLARIVATE_MJL_URL；优先 ISSN / eISSN 精确检索并记录 collection 原值） | `yyyy-mm-dd hh:mm` |
+| JCR Quartile | ⏳ | 已检索未获可审计证据 | 待补（占位：JCR_EVIDENCE_URL；记录 release year、data year、category、rank、quartile、percentile） | `yyyy-mm-dd hh:mm` |
+| CAS 分区 | ⏳ | 已检索未获可审计证据 | 待补（占位：CAS_OFFICIAL_OR_INSTITUTIONAL_HISTORY_URL；记录历史版年份、学科、分区） | `yyyy-mm-dd hh:mm` |
+| EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISSN/eISSN、coverage） | `yyyy-mm-dd hh:mm` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须在本 README 保留行级证据或 access note；跨 venue 共性风险再同步到 SUMMARY §13 合并待补表 | `yyyy-mm-dd hh:mm` |
 
 ## 2. Scope 与栏目
 
@@ -104,5 +104,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将模板 `CCF 等级` 占位改为 `<🏆/🥈/🥉/⚪/❓>`，避免后续新增 venue 回退为旧式字母等级文本。 |
+| `2026-06-09 13:52:01` | PR #91 同步证据链模板纪律：索引表每行必须有官方链接、source-list 字段或 access note。 |
 | `2026-06-09 11:13` | 新增期刊 venue 外部索引与分区信息模板。 |
 | `yyyy-mm-dd hh:mm` | 初始化 `<JOURNAL>` 期刊 README。 |

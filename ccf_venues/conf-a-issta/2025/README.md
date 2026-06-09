@@ -76,7 +76,7 @@
 |---|---|---|---|
 | 官方年度主页 | [ISSTA 2025](https://conf.researchr.org/home/issta-2025) | `2026-06-05 08:39` | 与 FSE 2025 同地同周入口关联只作为会期关系；不混入 FSE research track。 |
 | 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/issta-2025/issta-2025-papers)；[Important Dates](https://conf.researchr.org/dates/issta-2025) | `2026-06-05 09:32` | Canonical track slug 为 `issta-2025-papers`；官方 track 明确 PACMSE is the proceedings；`research-papers` / `technical-papers` 探针会 404。 |
-| 官方论文名录 / proceedings | [ISSTA Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/)；[proceedings probe](https://conf.researchr.org/info/issta-2025/proceedings) 当前 accessDenied | `2026-06-05 09:32` | 官方 track 写 PACMSE Issue ISSTA 2025；CLI 无法直接核验 ACM/PACMSE 正文，需浏览器交叉核验。 |
+| 官方论文名录 / proceedings | [ISSTA Program](https://conf.researchr.org/program/issta-2025/program-issta-2025/)；[proceedings probe](https://conf.researchr.org/info/issta-2025/proceedings) 当前 accessDenied | `2026-06-05 09:32` | 官方 track 写 PACMSE Issue ISSTA 2025；CLI 无法直接核验 ACM/PACMSE 正文，未获公开可审计正文，需公开证据交叉核验。 |
 | DBLP fallback | [DBLP 2025 companion fallback](https://dblp.org/db/conf/issta/issta2025c.html) | `2026-06-05 09:32` | DBLP 页面为 Companion Volume，35 条仅作 companion/fallback 线索；不能作为 ISSTA 2025 主 proceedings 最终数量。 |
 
 ## 8. TIMELINE.md 同步提示

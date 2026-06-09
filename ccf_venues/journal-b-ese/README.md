@@ -1,6 +1,6 @@
 # Empirical Software Engineering README
 
-> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | Empirical Software Engineering |
 | 类型 | 期刊 |
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；旧材料常写作 `EMSE`，本库目录 slug 按 CCF 写作 `ESE`） |
-| CCF 等级 | B（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
+| CCF 等级 | 🥈 |
 | 出版商 | Springer / Springer Nature（[Springer journal homepage](https://link.springer.com/journal/10664)） |
 | ISSN | 1382-3256（print）；1573-7616（electronic）（[Springer journal information](https://link.springer.com/journal/10664)） |
 | 期刊主页 | [Springer Empirical Software Engineering](https://link.springer.com/journal/10664) |
@@ -25,16 +25,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。JCR / CAS 若使用 AbleSci / AIS 等公开镜像暂存分区，只能作为二级可审计证据，并必须在行内标注非 Clarivate/CAS 官方导出；`索引核验` 不得因此升级为 `🟢`。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
-| WoS Collection | ❓ | 待核验 | 需按 ISSN / eISSN 在 Clarivate MJL / WoS 中核验 SCIE / SSCI / AHCI / ESCI 归属 | `待补` |
-| JCR Quartile | ❓ | 待核验 | 需记录 JCR release year、metric/data year、category、rank、quartile、percentile 与证据 URL | `待补` |
-| CAS 分区 | ❓ | 待核验 | 仅可记录中国科学院文献情报中心官方 / 历史版可追溯分区；需写版本年份与来源 | `待补` |
-| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 source title、source type、sheet、coverage | `待补` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
+| CCF | 🥈 | CCF 🥈 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS Collection | 🟢 | Clarivate MJL ISSN 精确检索命中，Web of Science Core Collection = SCIE | [MJL ISSN exact search](https://mjl.clarivate.com/search-results?issn=1382-3256)；Clarivate MJL 页面核验显示 Exact Match / SCIE；[Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 作集合口径说明 | `2026-06-09 16:20` |
+| JCR Quartile | 1️⃣ | 2025 JCR：COMPUTER SCIENCE, SOFTWARE ENGINEERING, SCIE, Q1, 30/128 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=pLax25)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
+| CAS 分区 | 2️⃣ | 2025 中科院升级版：计算机科学大类 2区；计算机：软件工程小类 2区 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=pLax25)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
+| EI / Compendex | 🟢 | 官方 Compendex `SERIALS` 精确命中，按 source-level 期刊记录 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），sheet `SERIALS`，Source title `Empirical Software Engineering`，Source type `Journal`，ISSN `1382-3256`，EISSN `1573-7616`，Publisher `Springer` | `2026-06-09 13:52` |
+| 索引核验 | 🟡 | WoS / EI 已有官方行级证据；JCR / CAS 仅由可点击第三方镜像给出版本化分区结论，公开官方行级记录未获可复现访问，因此索引核验不升级为 `🟢` | 已同步到 [SUMMARY.md](../SUMMARY.md)；本轮按 MJL、Compendex source-list 与公开分区页三类证据建立降权链，后续若公开链接不可复现则降级 | `2026-06-09 16:20` |
 
 ## 2. Scope 与栏目
 
@@ -76,7 +76,7 @@
 | Project | 相关性 | 说明 |
 |---|---|---|
 | P1 状态机建模 | 强相关 | ESE 接受经验软件工程、AI for SE、requirements、model-driven development 与 qualitative / quantitative evaluation；适合作为 LLM 生成状态机质量评估、benchmark 与人类/LLM 评审实证研究出口。 |
-| P2 场景与性质生成 | 强相关 | verification and validation、quality assurance、requirements engineering 与 empirical evaluation 可支撑验证场景、性质生成、rubric 与人工/LLM 评价研究。 |
+| P2 场景与性质生成 | 强相关 | verification and validation、quality assurance、requirements engineering 与 empirical evaluation 可支撑验证场景、性质生成、rubric 与人类/LLM 评价研究。 |
 | P3 验证剖面与模型检查 | 中到强 | 若验证剖面研究含可复现实验、工业/开源案例、缺陷数据与工具对照，可对齐 ESE 的 empirical component。 |
 | P4 模型修复 | 强相关 | program repair、AI agents、software maintenance / evolution 与 empirical quality evaluation 可支撑迭代式模型修复的效果验证与缺陷剖析。 |
 
@@ -131,6 +131,8 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 18:39` | 根据实现后 review 修复核心人员边界：将当前 editorial leadership / advisory board 与 special issue / topical collection editors 拆成 §3.1 / §3.2，避免专题编辑被误读为长期 roster。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 期刊 README，补齐 2022-2028 年度入口、Springer / DBLP 核心链接、重点 collection deadline、DBLP entry article baseline 与核心编辑人员情报。 |

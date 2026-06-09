@@ -22,7 +22,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | IEEE proceedings URL 待人工浏览器核验。 | `2026-06-07 12:47` |
+| 年度主页 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | IEEE proceedings URL 未获公开可审计正文。 | `2026-06-07 12:47` |
 | CFP / Call for Papers | [Submission section](https://www.irit.fr/iceccs2023/#submission) | 未公布或待补时不得用第三方页面替代 | `2026-06-07 12:47` |
 | Important Dates | [Important Dates](https://www.irit.fr/iceccs2023/#dates) | 可与 CFP 同页 | `2026-06-07 12:47` |
 | Submission system | [EasyChair ICECCS 2023](https://easychair.org/conferences/?conf=iceccs2023) | 投稿系统不能替代 CFP / dates / accepted papers | `2026-06-07 12:47` |
@@ -69,14 +69,14 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | `2026-06-07 12:47` | IEEE proceedings URL 待人工浏览器核验。 |
+| 官方年度主页 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | `2026-06-07 12:47` | IEEE proceedings URL 未获公开可审计正文。 |
 | 官方 CFP / Dates | [Submission section](https://www.irit.fr/iceccs2023/#submission) / [Important Dates](https://www.irit.fr/iceccs2023/#dates) | `2026-06-07 12:47` | 可核验则进入重要时间点；待补则不写 dated event。 |
 | 官方论文名录 / proceedings | [Accepted Papers](https://www.irit.fr/iceccs2023/#acceptedpapers) / [Local proceedings page](https://www.irit.fr/iceccs2023/doc/proc.html)；IEEE Xplore 待补 | `2026-06-07 12:47` | 论文数量仍需按 track / publisher / DBLP 拆分复核。 |
 | DBLP fallback | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
 
 ## 8. 待补 / 风险记录
 
-- IEEE proceedings URL 待人工浏览器核验。
+- IEEE proceedings URL 未获公开可审计正文。
 - 如果后续定位到新的 official CFP、important dates、accepted papers 或 proceedings，必须同步根 README、本文、[../../TIMELINE.md](../../TIMELINE.md) 和 SUMMARY 待补记录。
 
 ## 9. TIMELINE.md 同步提示

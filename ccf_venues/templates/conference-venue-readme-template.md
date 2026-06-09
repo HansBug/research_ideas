@@ -10,7 +10,7 @@
 | 全称 | `<Full Name>` |
 | 类型 | 会议 |
 | CCF 大类 | `<E / 理论 / T / ...>` |
-| CCF 等级 | `<A/B/C>` |
+| CCF 等级 | `<🏆/🥈/🥉/⚪/❓>` |
 | 出版方 | `<ACM/IEEE/Springer/...>` |
 | 官方 series page | 待补（占位：OFFICIAL_SERIES_URL；核验后改为 Markdown 链接） |
 | 官方当前 / 最新年度主页 | 待补（占位：LATEST_YEAR_HOME_URL；核验后改为 Markdown 链接） |
@@ -21,16 +21,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节记录外部索引与分区事实。实例化时必须按 [GUIDE.md](../GUIDE.md) 的外部索引规则补证；若尚未核验，不得留空或脑补，应写 `❓` / `⚪` / `⏳` 等规范占位。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+> 本节记录外部索引与分区事实。实例化时必须按 [GUIDE.md](../GUIDE.md) 的外部索引规则补证；每一行都必须给出可点击官方入口、source-list snapshot 字段或明确 access note。若尚未核验，不得留空或脑补，应写 `❓` / `⚪` / `⏳` 等规范占位。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `⏳`，文字解释放在口径说明或相邻列。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | ❓ | 待核验 | CCF 官方目录 / 更新通知 | `yyyy-mm-dd hh:mm` |
-| WoS / CPCI | ❓ | 待核验 | 会议仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录 | `yyyy-mm-dd hh:mm` |
-| JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区 | `yyyy-mm-dd hh:mm` |
-| CAS 分区 | ⚪ | 不适用 | 会议 venue 默认不填 CAS 分区 | `yyyy-mm-dd hh:mm` |
-| EI / Compendex | ❓ | 待核验 | 官方 Compendex Source List snapshot / proceedings / book-series | `yyyy-mm-dd hh:mm` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 SUMMARY 风险 / 待核验表 | `yyyy-mm-dd hh:mm` |
+| CCF | ❓ | 待核验 | 待补（占位：CCF_OFFICIAL_URL；核验后改为 Markdown 链接 + CCF 等级证据） | `yyyy-mm-dd hh:mm` |
+| WoS / CPCI | ⏳ | 已检索未获可审计证据 | 待补（占位：CLARIVATE_CPCI_OR_MJL_URL；会议仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录） | `yyyy-mm-dd hh:mm` |
+| JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；如有同名期刊，另在 `journal-*` 目录核验 | `yyyy-mm-dd hh:mm` |
+| CAS 分区 | ⚪ | 不适用 | 会议 venue 默认不填 CAS 分区；CAS 仅用于期刊历史版分区 | `yyyy-mm-dd hh:mm` |
+| EI / Compendex | ❓ | 待核验 | 待补（占位：ELSEVIER_SOURCE_LIST_URL；记录 snapshot、sheet、Source title、Source type、ISBN/ISSN） | `yyyy-mm-dd hh:mm` |
+| 索引核验 | ❓ | 待启动 | 缺证条目须在本 README 保留行级证据或 access note；跨 venue 共性风险再同步到 SUMMARY §13 合并待补表 | `yyyy-mm-dd hh:mm` |
 
 ## 2. Scope 与方向
 
@@ -101,5 +101,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将模板 `CCF 等级` 占位改为 `<🏆/🥈/🥉/⚪/❓>`，避免后续新增 venue 回退为旧式字母等级文本。 |
+| `2026-06-09 13:52:01` | PR #91 同步证据链模板纪律：索引表每行必须有官方链接、source-list 字段或 access note。 |
 | `2026-06-09 11:13` | 新增会议 venue 外部索引与分区信息模板。 |
 | `yyyy-mm-dd hh:mm` | 初始化 `<VENUE>` venue README。 |

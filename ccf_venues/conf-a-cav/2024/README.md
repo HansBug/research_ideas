@@ -52,7 +52,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-65627-9) |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/cav/index.html) |
-| 计数口径 | 旧站路径 / 证书 / 404 风险需人工复核；Springer Part I 与 DBLP 为稳定 fallback。 |
+| 计数口径 | 旧站路径 / 证书 / 404 风险未获公开可审计正文；Springer Part I 与 DBLP 为稳定 fallback。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -70,7 +70,7 @@
 
 ## 8. 待补 / 风险记录
 
-- 旧站路径 / 证书 / 404 风险需人工复核；Springer Part I 与 DBLP 为稳定 fallback。
+- 旧站路径 / 证书 / 404 风险未获公开可审计正文；Springer Part I 与 DBLP 为稳定 fallback。
 
 ## 9. TIMELINE.md 同步提示
 

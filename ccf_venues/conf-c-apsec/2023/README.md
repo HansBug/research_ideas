@@ -52,12 +52,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 待人工核验 |
+| 论文数量 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 已检索未获可审计证据 |
 | 官方论文名录 / accepted papers | [Program / accepted](https://conf.researchr.org/program/apsec-2023/program-apsec-2023/) |
 | Program | [Program](https://conf.researchr.org/program/apsec-2023/program-apsec-2023/) |
 | Proceedings | [Proceedings](https://ieeexplore.ieee.org/xpl/conhome/1000681/all-proceedings) |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/apsec/apsec2023.html) |
-| 计数口径 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 待人工核验；DBLP / proceedings fallback 不得写成 main track count。 |
+| 计数口径 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 已检索未获可审计证据；DBLP / proceedings fallback 不得写成 main track count。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 

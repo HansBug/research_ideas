@@ -1,6 +1,6 @@
 # CAiSE README
 
-> 信息更新时间：`2026-06-09 11:13`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -9,8 +9,8 @@
 | 缩写 | CAiSE |
 | 全称 | International Conference on Advanced Information Systems Engineering |
 | 类型 | 会议 |
-| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文待人工浏览器复核） |
-| CCF 等级 | B（官方入口已定位；`ccf.atom.im` 仅作非官方机器检索线索） |
+| CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文未获公开可审计正文） |
+| CCF 等级 | 🥈 |
 | 出版方 | Springer LNCS（主会）；Forum / DC / Workshop 可能为 Springer / CEUR 等独立卷 |
 | 官方 series page | [CAiSE long-term site](https://caise-conference.org/)（本次 CLI 访问异常，作长期域名线索） |
 | 官方当前 / 最新年度主页 | [CAiSE 2026](https://caise26.polimi.it/) |
@@ -21,16 +21,16 @@
 
 ### 1.1 索引与分区信息
 
-> 本节由 PR #90 建立为外部索引占位入口；当前仅完成规则制度化与待核验占位，真实 WoS / JCR / CAS / EI 结论需按 [GUIDE.md](../GUIDE.md) 的外部索引规则逐项补证。JCR 与 CAS 的 emoji 列只允许写真实 emoji，例如 `1️⃣` / `2️⃣` / `3️⃣` / `4️⃣` / `⚪` / `❓`，文字解释放在口径说明或相邻列。
+> 本节为 PR #91 外部索引真实核验记录。表格的 `emoji` 列只写单个 emoji；解释、证据链接和 access note 放在相邻列。会议 venue 不写作 SCI/JCR/CAS 期刊，也不得继承同名期刊的分区。
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | ❓ | 待复核 CCF 官方目录证据 | 沿用 §1 CCF 等级；后续需补 CCF 官方目录链接与核验时间 | `待补` |
-| WoS / CPCI | ❓ | 待核验 | 会议不写作 SCI/JCR 期刊；仅按 CPCI-S / CPCI-SSH proceedings 或官方会议卷证据记录 | `待补` |
-| JCR Quartile | ⚪ | 不适用 | 会议 venue 默认不适用 JCR 期刊分区；若存在同名期刊必须另按期刊 venue 记录 | `待补` |
-| CAS 分区 | ⚪ | 不适用 | CAS 分区仅适用于期刊历史版分区证据；会议 venue 不填 CAS 区 | `待补` |
-| EI / Compendex | ❓ | 待核验 | 需按官方 Compendex Source List snapshot 核验 proceedings / book-series / source type / final coverage | `待补` |
-| 索引核验 | ❓ | 待启动 | 缺证条目须同步登记到 [SUMMARY.md](../SUMMARY.md) 风险 / 待核验表 | `待补` |
+| CCF | 🥈 | CCF 🥈 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
+| JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
+| CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
+| EI / Compendex | 🟡 | 仅确认 CAiSE 常见 Springer LNCS / LNBIP 出版路径与相关 book-series 在 Compendex source list 中；未取得 CAiSE 直接会议行 | [Elsevier Compendex 页面](https://www.elsevier.com/en-au/products/engineering-village/databases/compendex)；[官方 source list xlsx](https://assets.ctfassets.net/o78em1y1w4i4/wRpDAQPyS5xorlKFLeSrq/499c39b330a506838630188f00bc444c/CPXSourceList_052026__1_.xlsx)；官方 source list xlsx（2026-05 snapshot；2026-06-09 查询，未提交本地副本），只记录 book-series / publisher-path discovery 线索，不得冒充会议 source-level | `2026-06-09 16:45` |
+| 索引核验 | 🟡 | JCR / CAS 不适用；WoS / CPCI 已检索未获单会议行级证据；EI 证据按本表 `🟠 proceedings` / `🟡 book-series` / `🔴 未获行级证据` 解释 | 已同步到 [SUMMARY.md](../SUMMARY.md) 的外部索引风险表；本轮按 Compendex source-list 字段、book-series 线索和缩写碰撞规则完成保守降级，后续仅在取得行级证据时升级 | `2026-06-09 16:45` |
 
 ## 2. Scope 与方向
 
@@ -79,7 +79,7 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟡 已公布 / 会前 | [CAiSE 2026](https://caise26.polimi.it/) | [Full papers CFP](https://caise26.polimi.it/?page_id=60) | [CFP / dates](https://caise26.polimi.it/?page_id=60) | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | 未公布 / Springer 主会 proceedings 待补 | ⏳ 已检索未公布 | 2025-11-21 待补时刻 AoE | 2025-11-28 待补时刻 AoE | 2026-02-12 待补时刻 | 待补 | 2026-06-08..2026-06-12 | accepted page 可人工计数；proceedings / DBLP 待补 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟡 已公布 / 会前 | [CAiSE 2026](https://caise26.polimi.it/) | [Full papers CFP](https://caise26.polimi.it/?page_id=60) | [CFP / dates](https://caise26.polimi.it/?page_id=60) | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | 未公布 / Springer 主会 proceedings 待补 | ⏳ 已检索未公布 | 2025-11-21 待补时刻 AoE | 2025-11-28 待补时刻 AoE | 2026-02-12 待补时刻 | 待补 | 2026-06-08..2026-06-12 | accepted page 可公开证据计数；proceedings / DBLP 待补 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [CAiSE 2025](https://conferences.big.tuwien.ac.at/caise2025/) | [Full papers CFP](https://conferences.big.tuwien.ac.at/caise2025/cfp_full.php) | [CFP / dates](https://conferences.big.tuwien.ac.at/caise2025/cfp_full.php) | [EasyChair CAiSE 2025](https://easychair.org/my/conference?conf=caise2025) | [Accepted papers](https://conferences.big.tuwien.ac.at/caise2025/accepted_papers.php?type=Main%20Conference) | [Proceedings page](https://conferences.big.tuwien.ac.at/caise2025/proceedings.php) / [Vol.1](https://link.springer.com/book/10.1007/978-3-031-94569-4) / [Vol.2](https://link.springer.com/book/10.1007/978-3-031-94571-7) | ⏳ 已检索未公布 | 2024-11-22 待补时刻 | 2024-12-01 待补时刻 | 2025-02-28 待补时刻 | 2025-04-14 待补时刻 | 2025-06-16..2025-06-20 | 待按 main conference / LNCS 主卷复核 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 / 归档待补 | 待补（官方年度站当前未定位到可访问归档） | 待补 | 待补 | 待补 | 待补 | [DBLP / Springer proceedings record](https://dblp.org/db/conf/caise/caise2024.html) | [DBLP CAiSE 2024](https://dblp.org/db/conf/caise/caise2024.html) | 待补 | 待补 | 待补 | 待补 | 2024-06-03..2024-06-07（DBLP proceedings record） | DBLP 可计数；待 main conference 口径复核 | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [CAiSE 2023](https://caise23.svit.usj.es/) | [Main conference](https://caise23.svit.usj.es/main-conference/) | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | 待补（官方按钮 / EasyChair 历史入口需复核） | [Accepted papers](https://caise23.svit.usj.es/accepted-papers/) / [Program](https://caise23.svit.usj.es/program/) | [Proceedings](https://caise23.svit.usj.es/proceedings/) | [DBLP CAiSE 2023](https://dblp.org/db/conf/caise/caise2023.html) | 2022-11-22 待补时刻 | 2022-11-29 待补时刻 | 2023-03-01 待补时刻 | 2023-04-03 待补时刻 AoE | 2023-06-12..2023-06-16 | DBLP 可计数；待 main conference 口径复核 | 🟡 部分核验 |
@@ -95,7 +95,7 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态待人工浏览器复核。 |
+| CCF official entry | [CCF TCSE_SS_PDL](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) | `2026-06-07 12:47` | 官方入口已定位；CLI 可能触发 WAF / 动态页，正文与第七版状态未获公开可审计正文。 |
 | 非官方 CCF 镜像线索 | [ccf.atom.im](https://ccf.atom.im/) | `2026-06-07 12:47` | 仅作机器检索 / 差集筛查线索，不作为 CCF 官方事实。 |
 | Official annual pages | [CAiSE 2026](https://caise26.polimi.it/) / [CAiSE 2025](https://conferences.big.tuwien.ac.at/caise2025/) / [CAiSE 2023](https://caise23.svit.usj.es/) / [CAiSE 2022](https://caise22.ugent.be/) | `2026-06-07 12:47` | 2022/2023/2025/2026 年度官方站与 main conference chain 已定位。 |
 | 2024 fallback | [DBLP CAiSE 2024](https://dblp.org/db/conf/caise/caise2024.html) | `2026-06-07 12:47` | 仅支撑 proceedings record / 会期；2024 official CFP / dates / submission 仍待补。 |
@@ -110,6 +110,8 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-07 13:33` | 修复实现后 review：补入 CAiSE 2023 official camera-ready `2023-04-03` AoE 并同步 TIMELINE。 |
 | `2026-06-07 12:47` | PR #63 初始化 CAiSE 情报，补充 CCF / official / DBLP 证据、2022--2028 年度索引、核心人员、TIMELINE 同步和待补口径。 |

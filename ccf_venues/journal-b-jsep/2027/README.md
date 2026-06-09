@@ -10,13 +10,13 @@
 | 年份 | `2027` |
 | 出版商 | Wiley / Wiley Online Library |
 | Volume / issues | ⏳ 已检索未公布 |
-| 期刊主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481)（CLI WAF/403，待人工浏览器核验） |
-| Author guidelines | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html)（CLI WAF/403，待人工浏览器核验） |
+| 期刊主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481)（CLI WAF/403，未获公开可审计正文） |
+| Author guidelines | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html)（CLI WAF/403，未获公开可审计正文） |
 | Submission system | [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme)（候选入口，待 Wiley 核验当前性） |
 | Special issues / topical collections | 无已知 active dated CFP |
 | Current issue candidate / Early View 待定位 | [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue)（CLI WAF/403，待核验） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前年度状态 | 🟡 rolling 候选 / 待人工核验 |
+| 当前年度状态 | 🟡 rolling 候选 / 已检索未获可审计证据 |
 
 ## 2. 年度核心 URL 索引
 
@@ -27,7 +27,7 @@
 | Submission system | [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme) | 候选入口；是否仍为当前总入口待核验 | `2026-06-05 17:35` |
 | Special issue / topical collection CFP | 无已知 active dated CFP | active dated CFP 未发现时写 `无已知` | `2026-06-05 17:35` |
 | Volume / issue archive | ⏳ 已检索未公布 | 出版商年度卷期页优先；当前用 DBLP fallback / Wiley archive 待核验 | `2026-06-05 17:35` |
-| Current issue candidate / Early View 待定位 | [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) | CLI WAF/403；current issue 待浏览器确认；Early View / articles in press 入口待定位 | `2026-06-05 17:35` |
+| Current issue candidate / Early View 待定位 | [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) | CLI WAF/403；current issue 未获公开可审计正文；Early View / articles in press 入口待定位 | `2026-06-05 17:35` |
 | Annual article list / publisher search | [Wiley issues](https://onlinelibrary.wiley.com/journal/20477481/issues) | CLI WAF/403；DBLP 年度页作 fallback | `2026-06-05 17:35` |
 | DBLP 年度页 | ⏳ 已检索未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:35` |
 
@@ -35,15 +35,15 @@
 
 | 项目 | 内容 | 官方来源 | 核查时间 |
 |---|---|---|---|
-| 常规投稿 | rolling 投稿候选（待 Wiley 浏览器核验） | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) / [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme) | `2026-06-05 17:35` |
-| Article types | 待人工浏览器核验 | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) | `2026-06-05 17:35` |
-| Open access / hybrid | 待人工浏览器核验 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481) | `2026-06-05 17:35` |
+| 常规投稿 | rolling 投稿候选（待 Wiley 公开可审计核验） | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) / [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme) | `2026-06-05 17:35` |
+| Article types | 未获公开可审计正文 | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) | `2026-06-05 17:35` |
+| Open access / hybrid | 未获公开可审计正文 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481) | `2026-06-05 17:35` |
 
 ## 4. Special issue / topical collection
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| 无已知 active dated CFP | 待补或无已知 active CFP | 未公布 | 🟡 rolling 候选 / 待人工核验 | ⏳ 已检索未公布 | 不适用 | Wiley CLI WAF/403；未发现 2027 卷期、DBLP 年度页或 dated CFP。 |
+| 无已知 active dated CFP | 待补或无已知 active CFP | 未公布 | 🟡 rolling 候选 / 已检索未获可审计证据 | ⏳ 已检索未公布 | 不适用 | Wiley CLI WAF/403；未发现 2027 卷期、DBLP 年度页或 dated CFP。 |
 
 ## 5. 年度论文入口与数量
 
@@ -54,7 +54,7 @@
 | Current issue candidate / Early View 待定位 | [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) |
 | Publisher article list / search | [Wiley issues](https://onlinelibrary.wiley.com/journal/20477481/issues) |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 计数口径 | 已归档年度使用 DBLP `entry article` baseline；Wiley publisher article-type / front matter / errata 需浏览器复核。 |
+| 计数口径 | 已归档年度使用 DBLP `entry article` baseline；Wiley publisher article-type / front matter / errata 未获公开可审计正文。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -67,14 +67,14 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| Wiley 官方主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481) | `2026-06-05 17:35` | CLI WAF/403；保留官方入口，需人工浏览器核验。 |
+| Wiley 官方主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481) | `2026-06-05 17:35` | CLI WAF/403；保留官方入口，未获公开可审计正文。 |
 | Author guidelines / submission | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) / [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme) | `2026-06-05 17:35` | 候选入口已记录；当前性待核验。 |
-| Volume / issue / Current issue candidate | ⏳ 已检索未公布 / [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) | `2026-06-05 17:35` | DBLP 可见年度作为 fallback；Wiley 正文需浏览器复核。 |
+| Volume / issue / Current issue candidate | ⏳ 已检索未公布 / [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) | `2026-06-05 17:35` | DBLP 可见年度作为 fallback；Wiley 正文未获公开可审计正文。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback，不替代 Wiley 官方事实。 |
 
 ## 8. 待补 / 风险记录
 
-- Wiley 官方页面 CLI WAF/403，editorial board、for-authors、volume / issue 正文需人工浏览器核验，Early View / articles in press 入口待定位。
+- Wiley 官方页面 CLI WAF/403，editorial board、for-authors、volume / issue 正文未获公开可审计正文，Early View / articles in press 入口待定位。
 - Wiley CLI WAF/403；未发现 2027 卷期、DBLP 年度页或 dated CFP。
 - 若未来发现 active dated CFP，应同步更新本页、根 README 和 [../../TIMELINE.md](../../TIMELINE.md)。
 
