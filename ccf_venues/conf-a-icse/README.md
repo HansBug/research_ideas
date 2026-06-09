@@ -1,6 +1,6 @@
 # ICSE README
 
-> 信息更新时间：`2026-06-09 14:35`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | IEEE/ACM International Conference on Software Engineering |
 | 类型 | 会议 |
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言 |
-| CCF 等级 | A |
+| CCF 等级 | 🏆 |
 | 出版方 | IEEE / ACM |
 | 官方 series page | [ICSE series](https://conf.researchr.org/series/icse) |
 | 官方当前 / 最新年度主页 | [ICSE 2027](https://conf.researchr.org/home/icse-2027)；ICSE 2028 年度主页已检索但当前 Access denied，仅保留 [Hawaii 预告](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) |
@@ -25,7 +25,7 @@
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🏆 | CCF A 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| CCF | 🏆 | CCF 🏆 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
 | WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
@@ -109,6 +109,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 14:35:00` | 按实现复审收紧 EI 口径：ICSE 仅有 Compendex proceedings/book-series 级证据，不得误读为 venue-level EI source 事实。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Research Track 页面，将 ICSE 2027 根表 abstract / submission / notification 精确到 `23:59:59 AoE / UTC-12h`。 |

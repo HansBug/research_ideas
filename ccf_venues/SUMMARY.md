@@ -64,7 +64,7 @@
 
 ## 2.5 外部索引与分区核验口径
 
-PR #91 已开始真实核验：EI / Compendex 优先使用 Elsevier 官方 source list；CCF 列按 `🏆 / 🥈 / 🥉` 区分 A/B/C；期刊 WoS 使用 MJL ISSN 精确入口与可复现证据，JCR / CAS 在官方产品无法公开复现单刊导出时使用可点击第三方镜像暂存数值并显式降权为非官方证据；会议 WoS/CPCI 在未获单会议行级证据时写 `🔴`。SUMMARY 中索引列的 emoji 口径如下：
+PR #91 已开始真实核验：EI / Compendex 优先使用 Elsevier 官方 source list；CCF 列按 `🏆 / 🥈 / 🥉` 区分 CCF 三档等级；期刊 WoS 使用 MJL ISSN 精确入口与可复现证据，JCR / CAS 在官方产品无法公开复现单刊导出时使用可点击第三方镜像暂存数值并显式降权为非官方证据；会议 WoS/CPCI 在未获单会议行级证据时写 `🔴`。SUMMARY 中索引列的 emoji 口径如下：
 
 | 列 | 允许 emoji | 说明 |
 |---|---|---|

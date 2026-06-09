@@ -107,7 +107,7 @@ PR-5 后进入“P0 已建档事实维护 + P1/P2 按冻结合同分批扩展”
 8. `journal-b-re`
 9. `journal-c-sttt`
 
-若 venue 属于 CCF 理论类、交叉类或国内高质量目录，但仍纳入本库，目录名仍先按等价 A/B/C 档记录，具体 CCF 大类写在 venue README 的元信息字段中。
+若 venue 属于 CCF 理论类、交叉类或国内高质量目录，但仍纳入本库，目录名仍先按等价三档记录，具体 CCF 大类写在 venue README 的元信息字段中。
 
 
 ## 6. 核心 URL 与超链接要求
@@ -190,7 +190,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-09 17:05:00` | PR #91 复核后同步：补充 JCR/CAS 二级镜像降权口径，并确认 CCF 等级 emoji 使用 🏆/🥈/🥉 而非统一黄色。 |
+| `2026-06-09 17:05:00` | PR #91 复核后同步：补充 JCR/CAS 二级镜像降权口径，并确认 CCF 等级 emoji 使用 🏆/🥈/🥉 而非单色编码。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：补充外部索引证据链接入口，要求 venue README 行级证据、SUMMARY/TIMELINE/GUIDE 同步和缺证降级。 |
 | `2026-06-09 11:13` | 制度化 WoS/JCR/CAS/EI 外部索引入口，明确其不替代 CCF 分类，并要求 SUMMARY/TIMELINE/venue README 同步索引占位。 |
 | `2026-06-07 13:33` | 修复 PR #63 实现后 review 的 ICECCS 2026 / CAiSE 2023 时间线问题：降级 ICECCS 2026 404 accepted-list candidate，补入 ICECCS 2026 Brisbane 会期与 CAiSE 2023 camera-ready，并同步 TIMELINE。 |

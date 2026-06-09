@@ -1,6 +1,6 @@
 # ICFEM README
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | International Conference on Formal Engineering Methods |
 | 类型 | 会议 |
 | CCF 大类 | 软件工程 / 形式化工程方法 |
-| CCF 等级 | C |
+| CCF 等级 | 🥉 |
 | 本库目录 | `conf-c-icfem` |
 | 出版方 | Springer LNCS / ICFEM official annual pages |
 | 官方 series page | 待补（未发现独立稳定 series page；当前以 [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) 作索引 fallback，年度事实仍以各年度主页为准） |
@@ -23,7 +23,7 @@
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🥉 | CCF C 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| CCF | 🥉 | CCF 🥉 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
 | WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
@@ -32,7 +32,7 @@
 
 ## 2. Scope 与方向
 
-ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试、工具与工业应用，是控制系统状态机建模和验证案例的重要 CCF C venue。
+ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试、工具与工业应用，是控制系统状态机建模和验证案例的重要 CCF 🥉 venue。
 
 ## 3. 与本仓库 project 的关系
 
@@ -100,6 +100,7 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Important Dates，将 ICFEM 2026 根表 abstract / full paper / notification 精确到 `23:59 AoE / UTC-12`。 |
 | `2026-06-05 11:12` | 修复 ICFEM 2026 `#program` 过度确认：program 当前 TBA，不写作 accepted papers；同时将根 README 中误作 series page 的 2026 年度页降级为年度页 / DBLP fallback。 |

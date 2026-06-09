@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-09 17:53:17`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -170,7 +170,7 @@ PR-7 ESEM 填充后的补充规则：
 PR-4 期刊填充后的补充规则：
 
 1. Springer `collections` / topical collections 若给出明确 submission deadline，应进入对应年份事件表和 Mermaid；若只给 revision / final decision 的月份，不能硬凑具体日期，只能放备注或待补记录。
-2. Requirements Engineering 这类期刊 collection deadline 是期刊专刊事件，不是同名会议 deadline；TIMELINE 的 `类型-CCF` 应写作 `期刊专刊-CCF B/C` 等。
+2. Requirements Engineering 这类期刊 collection deadline 是期刊专刊事件，不是同名会议 deadline；TIMELINE 的 `类型-CCF` 应写作 `期刊专刊-🥈`、`期刊专刊-🥉` 等 emoji 编码，不得回退为旧式 CCF 字母文本。
 3. STTT 这类期刊常包含 TACAS / SPIN / FMICS / Runtime Verification / ECBS 等 conference-based special issue、invited 或 extended papers；DBLP `entry article` baseline 不能与对应会议 proceedings 数混算，也不能用会议会期或会议 CFP 反推期刊 deadline。
 4. Wiley Online Library / Wiley Author Services / Equinocs、ScholarOne 等 publisher 或投稿系统若在命令行环境返回 WAF、Cloudflare、403、SPA / 登录壳，应记录为“官方入口已定位，正文 / 具体表单 / journal routing 未获公开可审计正文或登录后流程”；不得用第三方页面替代 STVR 这类 Wiley 期刊的当前 roster、author guidelines 或卷期正文。
 
@@ -711,11 +711,11 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 ### 17.2 emoji 列口径
 
-正式总表中的 emoji 列只写一个真实 emoji，不写“emoji + 中文”。
+正式总表中的 emoji 列只写一个真实 emoji，不写“emoji + 中文”。本库凡字段名或语义明确承载 CCF 等级（包括正式 `CCF` 列、venue 根 README 的 `CCF 等级` 元信息行、TIMELINE 的 `类型-CCF` / `会议-*` / `期刊专刊-*` 组合标签、模板占位）均统一使用 `🏆 / 🥈 / 🥉 / ⚪ / ❓`，不得写回旧式字母等级文本或单色编码。证据链接、官方目录说明、镜像 caveat 放入 `CCF 大类`、§1.1 `CCF` 行或备注列，不塞进等级单元格。
 
 | 维度 | 允许 emoji | 说明 |
 |---|---|---|
-| CCF | 🏆 / 🥈 / 🥉 / ⚪ / ❓ | CCF A/B/C/未列入/待核验 |
+| CCF | 🏆 / 🥈 / 🥉 / ⚪ / ❓ | CCF 三档等级 / 未列入 / 待核验 |
 | WoS / CPCI | 🟢 / 🟡 / 🟠 / ⚪ / ⏳ / 🔴 / ❓ | 期刊集合 / 部分核验 / 会议卷 / 不适用或未查到 / 已检索未获可审计证据 / 已检索未获证据 / 待启动 |
 | JCR | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ⏳ / 🔴 / ❓ | JCR Q1/Q2/Q3/Q4 / 不适用或无 JCR / 已检索未获可审计证据 / 已检索未获证据 / 待启动 |
 | CAS | 1️⃣ / 2️⃣ / 3️⃣ / 4️⃣ / ⚪ / ⏳ / 🔴 / ❓ | CAS 1区/2区/3区/4区 / 不适用或未查到 / 已检索未获可审计证据 / 已检索未获证据 / 待启动 |
@@ -758,7 +758,8 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 11. **ICSE / ETAPS dry-run 证据解释纪律**：`Proceedings - International Conference on Software Engineering` 这类 Compendex book-series 行、某一年 ICSE `NON-SERIALS` proceedings 行，以及 LNCS / LNBIP 等 Springer book-series 行，只能支撑 proceedings/book-series 级事实或 discovery 线索；不得把它们写成整个会议 venue 已获 EI source-level 认证。`索引核验` 行也必须同步写清这一点，避免读者只看总表 emoji 后误读。
 12. **Clarivate / CAS access note 纪律**：MJL / collection download / journal profile、JCR product record、fenqubiao 历史分区或 API 若需要 free login、product login、机构账号、IP 或 user/password，必须记录官方入口与 access note；裸 GET 得到 SPA 壳页或登录页不能作为单刊官方结论证据。若使用第三方镜像补 JCR/CAS 数值，证据字段必须同时列官方入口、镜像 URL、版本年份和“非官方导出” caveat。
 13. **publisher / 镜像交叉证据边界**：ScienceDirect、Wiley、Springer、IEEE 等 publisher 页面若显示 abstracting/indexing、impact factor 或 SCIE 字样，可作为交叉验证或 discovery note；AbleSci、AIS 等公开镜像可作为 JCR/CAS 二级证据展示 emoji，但不能让读者误以为已经取得 Clarivate / CAS 官方导出。任何这类条目的 `索引核验` 最高为 `🟡`。
-14. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
+14. **CAV / 缩写碰撞防误读纪律**：Compendex source list 中的 `CAVS`、`EDCAV` 或其他相近缩写命中不得自动视为 CAV、CAV conference 或任一目标会议的 venue-level EI 证据；必须同时匹配会议全称、proceedings title、ISBN / ISSN、publisher 与年度上下文。若只得到缩写碰撞或其他会议条目，写 `🔴 已检索未获行级证据`，并在 README / SUMMARY 明确“不能作为目标会议证据”。
+15. **踩坑必须回写 GUIDE**：若执行中发现新的 WAF、登录、source-list 字段变化、会议卷歧义、同名混淆、证据不可复现或批量脚本误改非索引字段情况，必须先回写本节或 §16，再判定 PR ready。
 
 ## 18. 更新日志
 
@@ -766,8 +767,9 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查与 CAV 缩写碰撞防误读：规定所有 CCF 等级字段统一使用 🏆/🥈/🥉，并禁止将 CAVS/EDCAV 等相近缩写升级为 CAV EI 证据。 |
 | `2026-06-09 17:53:17` | PR #91 reviewer M 级建议修复：将时间格式规则拆分为投稿 / 事件时间默认分钟级、信息更新时间 / 更新日志默认秒级，历史分钟级日志兼容保留。 |
-| `2026-06-09 17:05:00` | PR #91 复核后修正：明确 CCF A/B/C 使用 🏆/🥈/🥉，禁止回退为统一黄色；将访问受限处理改为公开可审计核验 / 二级镜像降权，不再停留为未闭合核验占位。 |
+| `2026-06-09 17:05:00` | PR #91 复核后修正：明确 CCF 三档等级使用 🏆/🥈/🥉，禁止回退为单色编码；将访问受限处理改为公开可审计核验 / 二级镜像降权，不再停留为未闭合核验占位。 |
 | `2026-06-09 14:35:00` | 吸收 dry-run 证据复核：补充 ICSE proceedings / ETAPS LNCS book-series 不得升级为 venue-level EI 事实，并明确 MJL/JCR/CAS 登录壳页与 publisher 交叉证据边界。 |
 | `2026-06-09 14:20:00` | 吸收 PR #91 实现 review C/M 级反馈：补充 source-list snapshot 存储与更新纪律，并禁止外部索引列覆盖 PR ownership 等非索引合同字段。 |
 | `2026-06-09 13:52:01` | PR #91 真实核验执行：新增证据链接落点、Compendex source list、Clarivate/JCR/CAS 缺证降级与 reviewer 复核纪律。 |

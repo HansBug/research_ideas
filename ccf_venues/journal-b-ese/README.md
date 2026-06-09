@@ -1,6 +1,6 @@
 # Empirical Software Engineering README
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | Empirical Software Engineering |
 | 类型 | 期刊 |
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；旧材料常写作 `EMSE`，本库目录 slug 按 CCF 写作 `ESE`） |
-| CCF 等级 | B（[CCF 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)） |
+| CCF 等级 | 🥈 |
 | 出版商 | Springer / Springer Nature（[Springer journal homepage](https://link.springer.com/journal/10664)） |
 | ISSN | 1382-3256（print）；1573-7616（electronic）（[Springer journal information](https://link.springer.com/journal/10664)） |
 | 期刊主页 | [Springer Empirical Software Engineering](https://link.springer.com/journal/10664) |
@@ -29,7 +29,7 @@
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🥈 | CCF B 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| CCF | 🥈 | CCF 🥈 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
 | WoS Collection | 🟢 | Clarivate MJL ISSN 精确检索命中，Web of Science Core Collection = SCIE | [MJL ISSN exact search](https://mjl.clarivate.com/search-results?issn=1382-3256)；Clarivate MJL 页面核验显示 Exact Match / SCIE；[Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 作集合口径说明 | `2026-06-09 16:20` |
 | JCR Quartile | 1️⃣ | 2025 JCR：COMPUTER SCIENCE, SOFTWARE ENGINEERING, SCIE, Q1, 30/128 | [公开第三方 JCR 镜像（非 Clarivate 官方导出）](https://www.ablesci.com/journal/detail?id=pLax25)；[JCR 官方入口](https://jcr.clarivate.com/jcr/home) 需账号/机构权限，本行以可点击第三方镜像 + MJL SCIE 精确命中作为二级可审计证据；不是 Clarivate/CAS 官方导出，索引核验不升级为 `🟢` | `2026-06-09 16:20` |
 | CAS 分区 | 2️⃣ | 2025 中科院升级版：计算机科学大类 2区；计算机：软件工程小类 2区 | [公开第三方中科院分区镜像（非 CAS 官方导出）](https://www.ablesci.com/journal/detail?id=pLax25)；[中科院文献情报中心 2026-03-27 停更公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 说明 2026 起官方不再更新发布，因此本行记录版本化历史分区而非实时官方分区 | `2026-06-09 16:20` |
@@ -131,6 +131,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 18:39` | 根据实现后 review 修复核心人员边界：将当前 editorial leadership / advisory board 与 special issue / topical collection editors 拆成 §3.1 / §3.2，避免专题编辑被误读为长期 roster。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 期刊 README，补齐 2022-2028 年度入口、Springer / DBLP 核心链接、重点 collection deadline、DBLP entry article baseline 与核心编辑人员情报。 |

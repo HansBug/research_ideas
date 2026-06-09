@@ -10,7 +10,7 @@
 | 全称 | `<Full Name>` |
 | 类型 | 会议 |
 | CCF 大类 | `<E / 理论 / T / ...>` |
-| CCF 等级 | `<A/B/C>` |
+| CCF 等级 | `<🏆/🥈/🥉/⚪/❓>` |
 | 出版方 | `<ACM/IEEE/Springer/...>` |
 | 官方 series page | 待补（占位：OFFICIAL_SERIES_URL；核验后改为 Markdown 链接） |
 | 官方当前 / 最新年度主页 | 待补（占位：LATEST_YEAR_HOME_URL；核验后改为 Markdown 链接） |
@@ -101,6 +101,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将模板 `CCF 等级` 占位改为 `<🏆/🥈/🥉/⚪/❓>`，避免后续新增 venue 回退为旧式字母等级文本。 |
 | `2026-06-09 13:52:01` | PR #91 同步证据链模板纪律：索引表每行必须有官方链接、source-list 字段或 access note。 |
 | `2026-06-09 11:13` | 新增会议 venue 外部索引与分区信息模板。 |
 | `yyyy-mm-dd hh:mm` | 初始化 `<VENUE>` venue README。 |

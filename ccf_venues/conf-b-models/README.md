@@ -1,6 +1,6 @@
 # MoDELS README
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | ACM/IEEE International Conference on Model Driven Engineering Languages and Systems |
 | 类型 | 会议 |
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言 |
-| CCF 等级 | B |
+| CCF 等级 | 🥈 |
 | 出版方 | ACM / IEEE（年度 proceedings 以当年官方页面为准） |
 | 官方 series page | [researchr MoDELS series](https://conf.researchr.org/series/models) |
 | 官方长期主页 | [models-conf.com](https://www.models-conf.com/) |
@@ -26,7 +26,7 @@
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🥈 | CCF B 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| CCF | 🥈 | CCF 🥈 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
 | WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
@@ -107,6 +107,7 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-04 22:20` | 统一 MoDELS 2026 当前阶段、根表会期分隔符、论文数量计数口径和 EasyChair 链接。 |
 | `2026-06-04 21:44` | 补充核心人员情报，并按 review 修正 accessDenied、计数或会期等事实口径。 |

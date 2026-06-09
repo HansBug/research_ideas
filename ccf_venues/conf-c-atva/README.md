@@ -1,6 +1,6 @@
 # ATVA README
 
-> 信息更新时间：`2026-06-09 13:52`（Asia/Shanghai）
+> 信息更新时间：`2026-06-09 18:18:06`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -10,7 +10,7 @@
 | 全称 | International Symposium on Automated Technology for Verification and Analysis |
 | 类型 | 会议 |
 | CCF 大类 | 软件工程 / 自动验证 / 分析 |
-| CCF 等级 | C |
+| CCF 等级 | 🥉 |
 | 本库目录 | `conf-c-atva` |
 | 出版方 | Springer LNCS / ATVA official pages |
 | 官方 series page | [ATVA official site](https://atva-conference.org/) |
@@ -23,7 +23,7 @@
 
 | 索引项 | emoji | 当前结论 | 主证据 / 待补动作 | 最后核验 |
 |---|---|---|---|---|
-| CCF | 🥉 | CCF C 级；emoji 已按 GUIDE 的 A/B/C 口径编码，不再统一写成黄色 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
+| CCF | 🥉 | CCF 🥉 等级；emoji 已按 GUIDE 的三档等级口径编码，不再回退为单色编码 | [CCF TCSE/SS/PDL 官方目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；本库 CCF 等级仍以 [01-venue-scope.md](../01-venue-scope.md) 与 CCF 官方入口共同维护，镜像只作发现线索 | `2026-06-09 16:20` |
 | WoS / CPCI | 🔴 | 已检索 Clarivate / Web of Science 官方入口，未取得单会议 CPCI-S / CPCI-SSH 行级证据；当前不写成 SCI 期刊 | [Web of Science Core Collection 说明](https://webofscience.help.clarivate.com/Content/wos-core-collection/wos-core-collection.htm) 与 [Clarivate MJL](https://mjl.clarivate.com/search-results) 为官方入口；会议需按具体年度 proceedings / ISBN / publisher 卷次证明 CPCI，未获行级证据时只能记录为已检索未获证据 | `2026-06-09 16:20` |
 | JCR Quartile | ⚪ | 不适用 | 会议 venue 不适用 [JCR](https://jcr.clarivate.com/jcr/home) 期刊分区；若存在同名期刊，必须在独立 `journal-*` 目录核验 | `2026-06-09 13:52` |
 | CAS 分区 | ⚪ | 不适用 | CAS 分区仅记录期刊历史版；[中科院文献情报中心公告](https://www.las.cas.cn/news/tzgg/202603/t20260327_8178738.html) 同时要求不得写 2026 实时分区，会议 venue 不填 CAS 区 | `2026-06-09 13:52` |
@@ -108,6 +108,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
 | `2026-06-05 11:43` | 将 Jan Křetínský 从已核验核心人员表移入“学术线索 / 官方角色待补”小节，避免把未核验学术线索误读为 ATVA 官方角色。 |
 | `2026-06-05 11:12` | 修复 ATVA 2022 年度主页口径：previous-events 仅作历史索引，正式年度主页改为独立 2022 年页，并补 official dates、accepted papers、program 和 Springer proceedings 链接。 |
