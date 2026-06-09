@@ -1,5 +1,29 @@
 # `paper_v1/` — 第一篇论文工作区
 
+## 0. Current overlay（2026-06-09）
+
+当前第一篇论文已经从 2026-05 的 Direction-Decision Sprint 进入 **Path-1 paper foundation** 阶段。后续第一篇 paper 的默认入口是 [path1_foundation/README.md](./path1_foundation/README.md)。
+
+当前导师定调与执行口径：
+
+1. 第一篇主线优先走 **Path-1 baseline hard comparison**，而不是 Path-2 控制系统差异化主线。
+2. Path-2、变量三分法、BMC/LTL 和更深控制系统语义保留为后续论文或 future work。
+3. E1 自建 agent-loop 与 E2 mature-agent skill route 是同一底座的不同 agent orchestration 条件，不再主打 Hybrid。
+4. 论文贡献应落在形式化状态机表示、形式化检查反馈、可执行仿真反馈、LLM agent 修复与可审计 run record，而不是 `fcstm`、LangGraph、Codex、Claude 等工程名。
+5. 投稿计划按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 2026 夏季期刊冲刺口径推进：按 CCF-A 标准打磨，主投 SoSyM regular rolling，ASE Journal / RE Journal regular rolling 作备投。
+
+后续新 session 推荐阅读顺序：
+
+1. [path1_foundation/README.md](./path1_foundation/README.md)
+2. [path1_foundation/paper_story.md](./path1_foundation/paper_story.md)
+3. [path1_foundation/sample_assets.md](./path1_foundation/sample_assets.md)
+4. [path1_foundation/experiment_inventory.md](./path1_foundation/experiment_inventory.md)
+5. [path1_foundation/execution_plan.md](./path1_foundation/execution_plan.md)
+6. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+
+以下历史内容保留用于追溯 2026-05 Direction-Decision Sprint，不再代表当前默认施工入口。
+
+
 ## 1. 目录定位
 
 `paper_v1/` 是 `project_1` 第一篇论文的工作区，负责承载：
@@ -10,7 +34,7 @@
 
 它不收录论文（不属于论文集），所以**不遵循** [CLAUDE.md §2.2](../../CLAUDE.md) 的论文集规范；它的命名约定是"工作产物面向 paper 写作"。
 
-## 2. 当前阶段 — Direction-Decision Sprint
+## 2. 历史阶段 — Direction-Decision Sprint（2026-05，已被 current overlay 覆盖）
 
 本目录**当前阶段**（2026-05-26 起 30 小时窗口）承担的核心任务是：
 
@@ -80,6 +104,6 @@ Sprint 阶段所有 LLM 调用统一走仓库根 `.env`（已 gitignore）中的
 
 详细约束见 [PATH1_HARD_COMPARISON_GUIDE.md §4.2a](./PATH1_HARD_COMPARISON_GUIDE.md#42a-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0) 与 [PATH2_DIFFERENTIATION_GUIDE.md §4.3](./PATH2_DIFFERENTIATION_GUIDE.md#43-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0)。
 
-## 7. 投稿目标
+## 7. 历史投稿目标
 
-按用户 2026-05-26 对齐讨论：**ICSE / FSE / ASE 2027 conf paper**（10-12 页），截稿 2026 年 7-8 月。journal 投稿是 fallback。
+本节记录 2026-05 sprint 时的旧口径：当时曾按 **ICSE / FSE / ASE 2027 conf paper**（10-12 页）设想推进，journal 投稿作为 fallback。当前投稿口径已经被本文件 §0 覆盖：优先按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 SoSyM / ASE Journal / RE Journal regular rolling 期刊路线推进。
