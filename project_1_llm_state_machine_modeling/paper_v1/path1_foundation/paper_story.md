@@ -8,7 +8,7 @@
 
 ## Thesis
 
-We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. We introduce a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and evaluate its contribution through a frozen control-system benchmark, adapted component-level human adjudication, ablations, and comparisons with recent LLM-based modeling baselines.
+We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. This foundation plans a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and requires a frozen control-system benchmark, adapted component-level human adjudication, ablations, and recent-baseline comparisons before the manuscript can make result-level claims.
 
 ## Task Boundary
 
@@ -57,10 +57,10 @@ We study whether executable formal feedback can improve LLM-based state-machine 
 
 - `method/` 已完成 LangGraph full staged runtime、stage API、run record、tests 与 retained four-case evidence，见 [../method/README.md](../../method/README.md) 和 [../method/STATUS.md](../../method/STATUS.md)。
 - `baselines/` 已收录 72 篇 baseline / related work，含 2024-2026 LLM4Modeling 近邻，见 [../../baselines/SUMMARY.md](../../baselines/SUMMARY.md)。
-- PR #9 已形成 323 sample selection、Top-15 / Backup-15、30 条 NL expansion 和 2 个 early golden ref STM 经验，已在 [sample_assets.md](./sample_assets.md) 中压缩迁移。
+- PR #9 已形成 323 sample selection、Top-15 / Backup-15、30 条 NL expansion 和 2 个 early historical early reference draft STM 经验，已在 [sample_assets.md](./sample_assets.md) 中压缩迁移。
 - issue #67 已定义 2026 夏季 Path-1 投稿冲刺 gate、主投 SoSyM regular rolling 与 fallback。
 
-## Evidence Still Missing
+## Evidence Still Missing Before Result-Level Writing
 
 - 冻结 main sample registry：全量 9/101 或预注册降级样本。
 - `>=3` 个 closest prior works 的正式对齐矩阵，其中 `>=1` 个 same-sample approximate baseline。
@@ -99,7 +99,7 @@ We study whether executable formal feedback can improve LLM-based state-machine 
 - 不写 “LLM judge 是最终 oracle”。
 - 不写 “已完成 BMC / LTL / theorem proving”。
 - 不把 `fcstm`、LangGraph、Codex、Claude 或某个框架写成核心学术贡献。
-- 不把 PR #9 的 sample selection / early golden refs 直接当作最终实验结果。
+- 不把 PR #9 的 sample selection / early historical early reference drafts 直接当作最终实验结果。
 
 ## Reviewer Risks
 

@@ -4,7 +4,7 @@
 
 - Branch：`paper/project1-path1-foundation`
 - 目标：建立第一篇 Path-1 paper foundation，并开 PR 供后续 paper 工作承接。
-- 状态：foundation 文档初始化中。
+- 状态：foundation 初稿已提交至 PR #93；第一轮三路本地学术 review 已完成，第一轮 C/I 已完成文档修复，等待二轮 review 确认。
 
 ## 已完成
 
@@ -33,6 +33,10 @@
 | 时间 | 动作 | 结果 |
 |---|---|---|
 | 2026-06-09 | PR #9 asset extraction subagent review | 确认可迁移为 historical assets；C 风险是误写成 current paper result |
+| 2026-06-09 | academic critic reviewer | C1：旧 eval protocol 与正式 oracle 透明度冲突；I1：claim gate 过强；I2：样本池口径需 reconciliation |
+| 2026-06-09 | paper story reviewer | C1：Abstract gate 放行 planned experiment claim；I：缺 durable experiment / literature artifacts，progress 落后 |
+| 2026-06-09 | execution verifier reviewer | I：`paper_v1/README.md` 历史 sprint 入口仍误导；review/progress 证据需同步 |
+| 2026-06-09 | C/I 修复迭代 | 收紧 claim status、明确 formal paper protocol supersedes 旧 eval LLM-assistance 口径、补 candidate pools reconciliation、清理旧 README 入口、同步 progress 与 literature/citation artifact gate |
 
 ## Capability-use audit
 
@@ -40,5 +44,5 @@
 - Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、method/eval/baselines docs。
 - Inputs not used and why：未读取全部 323 review JSON，当前 foundation 只需压缩资产索引；正式样本冻结阶段再全量核验。
 - Artifacts produced：本目录所有 foundation Markdown。
-- Verification run：待 PR body review 后补充 markdown link / consistency scan。
-- Remaining risk：PR body 与文档需多智能体学术 review；[../../README.md](../../README.md) 需标注 current overlay。
+- Verification run：foundation markdown sanity、相对 Markdown 链接检查已通过；PR body 已创建并接受第一轮三路 review。
+- Remaining risk：C/I 修复后需要二轮 review 确认无学术阻塞。

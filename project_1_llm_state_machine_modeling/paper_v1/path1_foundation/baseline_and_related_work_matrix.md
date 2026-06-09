@@ -13,16 +13,16 @@
 
 ## 2. Closest prior works currently tracked
 
-| 候选 | 年份 | 内部路径 | 关系 | 当前对齐计划 | 风险 |
-|---|---:|---|---|---|---|
-| Structure- and Event-Driven Frameworks for State Machine Modeling with LLMs | 2026 | [../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/](../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/) | 最直接 NL→UML state machine prompt baseline | 优先 same-sample approximate baseline；若原 case 不兼容 history/parallel，则在 frozen sample 上复刻策略 | 公平性 C：不能声称 same benchmark 打赢 |
-| Generating SysML Behavior Models via LLMs | 2025 | [../../baselines/llms_emp/](../../baselines/llms_emp/) | SysML behavior model + checking feedback repair | 对齐 feedback types、repair loop、quality dimensions；若可行做 approximate baseline | 输出与工具不同，需明确不可比处 |
-| TTool-AI / Automatic System Modeling with AI | 2024 | [../../baselines/ttool-ai/](../../baselines/ttool-ai/) | NL→SysML blocks/state machine + tool feedback | evidence-based comparison + small approximate case if feasible | 复现成本和 artifact 可用性 |
-| Exploring Llama3 for Umple State Machines | 2025 | [../../baselines/umple/](../../baselines/umple/) | NL→Umple state machine prompt/RAG baseline | structured / RAG prompt baseline 参照 | 模型和数据差异 |
-| Automotive statechart generation from NL requirements | 2025 | [../../baselines/req/](../../baselines/req/) | 汽车需求到 statechart，领域近 | automotive subset / expert rubric 对齐 | 数据和微调细节可能不可复现 |
-| IEC 61499 FSM iterative refinement | 2025 | [../../baselines/fsm-gen-iec-61499/](../../baselines/fsm-gen-iec-61499/) | 控制需求 + FSM + simulation/code generation refinement | iterative refinement / simulation feedback related work | 输出与系统边界不同 |
-| Executable State Machines Derived from Structured Textual Requirements | 2019 | [../../baselines/executable-state-machines-derived-from-structured-textual-requirements/](../../baselines/executable-state-machines-derived-from-structured-textual-requirements/) | structured requirements → executable FSM | classical background for executable model derivation | 非 LLM，不作 direct baseline |
-| Coq timed DFRS from controlled NL | 2019/2020 | [../../baselines/modelling-timed-reactive-systems-from-natural-language-requirements/](../../baselines/modelling-timed-reactive-systems-from-natural-language-requirements/) / [../../baselines/validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/](../../baselines/validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/) | CNL→formal reactive model + verification/testing | background for stronger formal methods | 不能混同本稿 lighter formal feedback |
+| 候选 | 年份 | 内部路径 | citation / read status | 关系 | 当前对齐计划 | 风险 |
+|---|---:|---|---|---|---|---|
+| Structure- and Event-Driven Frameworks for State Machine Modeling with LLMs | 2026 | [../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/](../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/) | corpus-read；manuscript citation 待核验 | 最直接 NL→UML state machine prompt baseline | 优先 same-sample approximate baseline；若原 case 不兼容 history/parallel，则在 frozen sample 上复刻策略 | 公平性 C：不能声称 same benchmark 打赢 |
+| Generating SysML Behavior Models via LLMs | 2025 | [../../baselines/llms_emp/](../../baselines/llms_emp/) | corpus-read；manuscript citation 待核验 | SysML behavior model + checking feedback repair | 对齐 feedback types、repair loop、quality dimensions；若可行做 approximate baseline | 输出与工具不同，需明确不可比处 |
+| TTool-AI / Automatic System Modeling with AI | 2024 | [../../baselines/ttool-ai/](../../baselines/ttool-ai/) | corpus-read；manuscript citation 待核验 | NL→SysML blocks/state machine + tool feedback | evidence-based comparison + small approximate case if feasible | 复现成本和 artifact 可用性 |
+| Exploring Llama3 for Umple State Machines | 2025 | [../../baselines/umple/](../../baselines/umple/) | corpus-read；manuscript citation 待核验 | NL→Umple state machine prompt/RAG baseline | structured / RAG prompt baseline 参照 | 模型和数据差异 |
+| Automotive statechart generation from NL requirements | 2025 | [../../baselines/req/](../../baselines/req/) | corpus-read；manuscript citation 待核验 | 汽车需求到 statechart，领域近 | automotive subset / expert rubric 对齐 | 数据和微调细节可能不可复现 |
+| IEC 61499 FSM iterative refinement | 2025 | [../../baselines/fsm-gen-iec-61499/](../../baselines/fsm-gen-iec-61499/) | corpus-read；manuscript citation 待核验 | 控制需求 + FSM + simulation/code generation refinement | iterative refinement / simulation feedback related work | 输出与系统边界不同 |
+| Executable State Machines Derived from Structured Textual Requirements | 2019 | [../../baselines/executable-state-machines-derived-from-structured-textual-requirements/](../../baselines/executable-state-machines-derived-from-structured-textual-requirements/) | corpus-read；manuscript citation 待核验 | structured requirements → executable FSM | classical background for executable model derivation | 非 LLM，不作 direct baseline |
+| Coq timed DFRS from controlled NL | 2019/2020 | [../../baselines/modelling-timed-reactive-systems-from-natural-language-requirements/](../../baselines/modelling-timed-reactive-systems-from-natural-language-requirements/) / [../../baselines/validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/](../../baselines/validating-verifying-and-testing-timed-data-flow-reactive-systems-in-coq/) | corpus-read；manuscript citation 待核验 | CNL→formal reactive model + verification/testing | background for stronger formal methods | 不能混同本稿 lighter formal feedback |
 
 ## 3. Minimal external baseline contract
 
@@ -52,3 +52,17 @@
 - 不要把 PlantUML/TTool/Umple 的语法或一致性检查称为完整 model checking。
 - 不要把 classical CNL→formal model work 降低成“无 LLM 所以不相关”；它们是 formal rigor background。
 - 不要把 inability to reproduce 写成 prior work weakness；应写 artifact / assumption / output mismatch。
+
+## 6. Required literature / citation artifacts before Related Work
+
+当前 foundation 只建立 baseline matrix，不等于 manuscript citation gate 已通过。进入 Related Work / Introduction 写作前必须新增或维护以下 manuscript-level artifacts：
+
+| Artifact | 目的 | Ready gate |
+|---|---|---|
+| `literature/paper_inventory.md` | 记录 manuscript 级引用候选、官方 URL/DOI、本地 corpus 状态 | 每个核心引用有 verified metadata |
+| `literature/related_work_matrix.md` | 按主题归类 closest prior works、差异和可比性 | direct / near / evidence-only 分类清楚 |
+| `literature/positioning.md` | 固定本稿相对 closest work 的 task / assumption / evidence 差异 | 不夸大 novelty，不误述 prior work |
+| `references.bib` | manuscript BibTeX 真源 | 从权威来源获取，不手写猜测 |
+| `citation_verification.md` | 每条引用支持哪一句 claim | sentence-level claim 有来源 |
+
+上述文件尚未创建，因此当前 foundation 不能直接进入 Related Work 成稿，只能作为 related-work planning 入口。

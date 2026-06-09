@@ -19,7 +19,7 @@
 | R7 | I | Sample selection 是 stress-test 非代表性 | selection rationale 只基于 weak components，不能代表平均任务 | 主实验和 stress-test 分开报告；写清 sampling design | 待执行 |
 | R8 | I | External baseline 不足 | 主实验只有 direct/structured/internal ablation | 至少 3 个 closest prior work 入矩阵，至少 1 个 same-sample approximate | 待执行 |
 | R9 | I | Run record 不完整 | 缺 prompt/raw output/provider/usage/stage trace/eligibility | 使用仓库 run record 规范；provider error 不进入主统计 | method 已具备，主实验待执行 |
-| R10 | I | PR #9 golden ref 误用 | 把 CARA/CubeSat early ref 当最终 signed oracle | 明确 historical reference asset；正式复核签字 | foundation 已标注 |
+| R10 | I | PR #9 historical early reference draft 误用 | 把 CARA/CubeSat early ref 当最终 signed oracle | 明确 historical reference asset；正式复核签字 | foundation 已标注 |
 | R11 | M | 术语过多 | FCSTM/pyfcstm/LangGraph/Codex/SC/SD/SL 堆叠影响阅读 | 论文主文用概念术语，工程名放 implementation/artifact | 待写作执行 |
 | R12 | M | paper_v1 旧 sprint 口径残留 | 新 session 误读 2026-05 sprint 为当前事实 | 更新 [../README.md](../README.md) current overlay | 本 PR 处理 |
 

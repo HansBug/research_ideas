@@ -36,7 +36,7 @@
 
 ## 2. 历史阶段 — Direction-Decision Sprint（2026-05，已被 current overlay 覆盖）
 
-本目录**当前阶段**（2026-05-26 起 30 小时窗口）承担的核心任务是：
+本目录在 **2026-05 Direction-Decision Sprint 历史阶段** 曾承担以下任务：
 
 1. 在 main 分支稳定 `method/` 共同基础（agent loop + pyfcstm 反馈 + ex1 judge）
 2. fork 两个 branch（`dev/path1-hard-comparison` / `dev/path2-differentiation`）
@@ -47,7 +47,7 @@
 
 ## 3. 目录结构
 
-当前阶段产物：
+历史 sprint 阶段产物：
 
 ```text
 paper_v1/
@@ -58,7 +58,7 @@ paper_v1/
 └── PATH2_REPORT.md                      (Path 2 sprint 跑完后由 Phase 6 产出)
 ```
 
-方向定后的扩展产物（推迟创建，sprint 阶段不建）：
+方向定后曾设想的扩展产物（历史计划，当前以 [path1_foundation/](./path1_foundation/) 为准）：
 
 ```text
 paper_v1/
@@ -70,17 +70,16 @@ paper_v1/
 └── submission/                          (投稿 package)
 ```
 
-## 4. 新 session 进入顺序
+## 4. 历史 sprint 新 session 进入顺序
 
-任何新 Claude / codex session 进入本目录后，按以下顺序读：
+以下顺序仅用于追溯 2026-05 sprint 历史，不是当前默认施工入口。当前默认入口见本文件 §0。
 
-1. 本 [README.md](./README.md)（理解目录定位与当前阶段）
-2. [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则）
-3. 根据当前所在 branch 选读：
-   - 若在 `dev/path1-hard-comparison`：读 [PATH1_HARD_COMPARISON_GUIDE.md](./PATH1_HARD_COMPARISON_GUIDE.md)
-   - 若在 `dev/path2-differentiation`：读 [PATH2_DIFFERENTIATION_GUIDE.md](./PATH2_DIFFERENTIATION_GUIDE.md)
-   - 若在 `main`：两份 GUIDE 都读，但**只能动 `method/` 共同基础**，不能动 path 特有的 evaluation 代码
-4. `method/STATUS.md`（如果存在，查 sprint 当前进度）
+1. 本 [README.md](./README.md)（先读 §0 current overlay）
+2. [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（历史 meta-level 路线规划与决策准则）
+3. 如需追溯历史 branch，再选读：
+   - `dev/path1-hard-comparison` 历史材料：[PATH1_HARD_COMPARISON_GUIDE.md](./PATH1_HARD_COMPARISON_GUIDE.md)
+   - `dev/path2-differentiation` 历史材料：[PATH2_DIFFERENTIATION_GUIDE.md](./PATH2_DIFFERENTIATION_GUIDE.md)
+4. [../method/STATUS.md](../method/STATUS.md) 顶部 current overlay
 
 ## 5. 与 project_1 其他目录的关系
 

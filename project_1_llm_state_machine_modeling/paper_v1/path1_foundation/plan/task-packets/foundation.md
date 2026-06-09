@@ -28,7 +28,7 @@
 
 ## Rejection checks
 
-- 不能把 PR #9 selection / expansion / golden refs 写成当前 paper result。
+- 不能把 PR #9 selection / expansion / historical early reference drafts 写成当前 paper result。
 - 不能把第一篇主线写成 Path-2、Hybrid、DSL、LangGraph、Codex/Claude 主线。
 - 不能声明已有主实验 lift / SOTA / same-benchmark win。
 - 不能把 LLM-as-Judge 写成主 oracle。

@@ -35,7 +35,7 @@
 |---|---|---|---|
 | LG-M1 final four-case evidence | [../../method/STATUS.md](../../method/STATUS.md) / PR #39 / PR #22 | agent-loop 已能真实运行并留 retained evidence | 不能替代 Path-1 main experiment |
 | PR #9 sample selection | [sample_assets.md](./sample_assets.md) | selection rationale、stress-test pool、Top/Backup 样本候选 | 不能当主结果 |
-| PR #9 two early golden refs | [sample_assets.md](./sample_assets.md) | reference discipline、V-rich/V-poor case insight | 不能当最终 human-signed oracle |
+| PR #9 two early historical early reference drafts | [sample_assets.md](./sample_assets.md) | reference discipline、V-rich/V-poor case insight | 不能当最终 human-signed oracle |
 | Baseline corpus | [../../baselines/SUMMARY.md](../../baselines/SUMMARY.md) | close prior work matrix、direct / near / evidence-only 分类 | 不能直接给实验数字 |
 | eval protocol | [../../eval/PROTOCOL.md](../../eval/PROTOCOL.md) | 5-component TP/FP/FN、人类签字、LLM 初审辅助协议 | 不能免除正式 annotator / blind / agreement |
 

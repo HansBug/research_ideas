@@ -29,7 +29,26 @@
 3. 所有排除必须写明原因：parallel/history unsupported、too-thin NL、reference unavailable、provider failure、oracle insufficient 等。
 4. 如果使用 expanded NL，必须冻结原始 NL、扩充 NL、source evidence 和人工复核状态。
 
-## 3. Baseline / condition matrix
+## 3. Candidate pools reconciliation
+
+当前仓库同时存在多个历史 / 当前样本口径。正式冻结前不得混用。
+
+| Pool | 来源 | 数量 | 当前性 | 可否直接作为 main sample | 处理原则 |
+|---|---|---:|---|---|---|
+| Path-1 9 systems / 101 requirements | 仓库级数据集说明与 issue [#67](https://github.com/HansBug/research_ideas/issues/67) | 9 系统 / 101 需求 | 当前论文目标候选 | 否，需 reference / oracle 成本核验 | 优先作为 main-sample target；若降级需预注册规则 |
+| `sources/` T0+🟢 historical protocol pool | [../../eval/PROTOCOL.md](../../eval/PROTOCOL.md) 历史协议 | 约 332 条（历史协议口径） | 历史 / 待重算 | 否 | 用于理解 2026-05 sprint 选样来源；正式冻结前重算 |
+| PR #9 selection pool | PR #9 `dev/path1-hard-comparison` 分支 selection | 323 条，305 合格，18 排除 | historical sprint evidence | 否 | 只作为 stress-test candidate pool 和抽样纪律证据 |
+| PR #9 Top-15 / Backup-15 | [sample_assets.md](./sample_assets.md) | 15 + 15 | historical selected candidates | 否 | 可作为 stress-test extension / ref construction candidate；不能代表平均性能 |
+| PR #9 30 expansions | [sample_assets.md](./sample_assets.md) | 30 | historical expanded NL assets | 否 | 可作为 NL input/provenance 候选；必须人工复核，不作 oracle |
+
+冻结样本前的强制动作：
+
+1. 选择唯一 main-sample frame：优先 9/101；若改用 sources pool 或 Top/Backup subset，必须在 `sample_registry.csv` 中写明理由。
+2. 重算或核验数量、commit、来源路径和排除规则，不能混用 323 / 332 两种历史统计。
+3. 区分 main result sample、stress-test sample、diagnostic/failure sample。
+4. 每个样本保留 source path、input hash、reference/oracle 状态和 eligibility。
+
+## 4. Baseline / condition matrix
 
 | ID | condition | 目的 | 最低可接受实现 | 是否主结果 |
 |---|---|---|---|---|
@@ -42,9 +61,9 @@
 | E2 | Mature coding-agent skill route | 上限/实现形态分析 | skill + stage tools + full run record / report | 可选，建议 appendix / RQ5 |
 | EXT | Closest prior work approximate baseline | 回答外部可比性 | 至少 1 个 same-sample approximate，争取 2 个 | 是，若能复现 |
 
-## 4. Metrics and adjudication
+## 5. Metrics and adjudication
 
-### 4.1 Deterministic validity
+### 5.1 Deterministic validity
 
 | metric | 含义 | 来源 |
 |---|---|---|
@@ -54,7 +73,7 @@
 | simulation pass rate | scenario 是否可执行并达到期望 | simulator trace / scenario result |
 | eligibility | run 是否能进入主统计 | run record eligibility policy |
 
-### 4.2 Component-level quality
+### 5.2 Component-level quality
 
 按 [../../eval/PROTOCOL.md](../../eval/PROTOCOL.md) 的 5 类组件执行：
 
@@ -68,17 +87,25 @@
 
 注意：forced transition 按 DSL declaration-level 计数，不按 runtime descendant expansion 膨胀分母。
 
-### 4.3 Human adjudication
+### 5.3 Human adjudication and LLM-assistance transparency
+
+> **正式 paper protocol supersede 旧 eval 口径**：当前 [../../eval/PROTOCOL.md](../../eval/PROTOCOL.md) 是 2026-05 sprint 的历史基础协议，其中“LLM 初审 + 单人签字”和“不主动声明 LLM 辅助”的口径不得直接进入正式 paper。Path-1 第一篇正式实验必须在后续 `oracle_protocol.md` 中覆盖该旧口径。
+
+正式 protocol 只能采用以下两类之一，且必须在论文与 artifact 中透明披露：
+
+1. **human-only double-blind adjudication**：LLM 不参与主标签生成；至少两名独立人类 annotator 盲审并报告 agreement。
+2. **LLM-assisted triage + human final adjudication**：LLM 只做 draft / second-look / triage；最终标签由至少两名独立人类 annotator 盲审确认；论文必须披露 LLM 的辅助角色、模型版本、prompt、agreement / disagreement 与人工仲裁方式。
 
 | 项 | 最低要求 | 不满足时处理 |
 |---|---|---|
-| Annotator | 冻结样本主质量评分至少 `>=2` 名独立 annotator | 不得作为主结果表依据 |
-| Blind coding | 不暴露 method condition / model name / iteration label | threats 中降级说明 |
+| Annotator | 冻结样本主质量评分至少 `>=2` 名独立 human annotator | 不得作为主结果表依据 |
+| Blind coding | 不暴露 method condition / model name / iteration label | threats 中降级说明，必要时降级为 diagnostic result |
 | Disagreement | 记录 disagreement 与仲裁 | G5 不通过 |
 | Agreement | 报告 percent agreement + Cohen $\kappa$ 或 Krippendorff $\alpha$ | 若低于阈值，降级相应 claim |
-| LLM-as-Judge | 只作辅助 triage / second-look | 不得作为主 oracle |
+| LLM-as-Judge | 只作辅助 triage / second-look，且必须披露 | 不得作为主 oracle；不得写“不主动声明 LLM 辅助” |
+| Protocol versioning | `oracle_protocol.md` 必须显式写明 supersede 的旧协议段落和生效日期 | 不得进入 G2/G3 |
 
-## 5. Run record requirements
+## 6. Run record requirements
 
 每条真实 run 必须记录：
 
@@ -89,7 +116,7 @@
 - stage trace、scenario trace、fix request、repair decision、diff、SL-10 review、final artifact。
 - eligibility verdict：eligible / provider_error / schema_invalid / non_converged / weak_oracle 等。
 
-## 6. Current caveats
+## 7. Current caveats
 
 | caveat | 影响 | 缓解 |
 |---|---|---|

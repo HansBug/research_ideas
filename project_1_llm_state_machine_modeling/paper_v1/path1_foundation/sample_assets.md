@@ -21,7 +21,7 @@
 | expansion JSON | `paper_v1/selection/expansion/expansions/*.json` in PR #9 branch | 30 个 JSON | 后续构造 frozen NL input / provenance packet 的候选原料 | 不能不复核就进入 main result |
 | Path-1 parquet | `project_1_llm_state_machine_modeling/eval/data/sources_path1.parquet` in PR #9 branch | 1 个主数据文件 | 历史 sprint 主数据集候选 | 不能默认与当前 main 的正式样本一致 |
 | Path-1 backup parquet | `project_1_llm_state_machine_modeling/eval/data/sources_path1_backup.parquet` in PR #9 branch | 1 个备份数据文件 | 备份样本池候选 | 语义需重新核验 |
-| golden ref STM | `paper_v1/selection/ref_stms/audited/...` in PR #9 branch | 2 个：CARA 低-V、CubeSat 高-V | 参考模型纪律、V-rich/V-poor 对照、ref pipeline few-shot | 不能直接作为最终 signed reference model |
+| historical early reference draft STM | `paper_v1/selection/ref_stms/audited/...` in PR #9 branch | 2 个：CARA 低-V、CubeSat 高-V | 参考模型纪律、V-rich/V-poor 对照、ref pipeline few-shot | 不能直接作为最终 signed reference model |
 | ref-STM handover | `paper_v1/selection/ref_stms/HANDOVER.md` in PR #9 branch | 1 份 | 迁移 D1-D8 纪律和 pipeline 风险 | 不能当作 pipeline 完工证明 |
 | Path-1 report | `paper_v1/PATH1_REPORT.md` in PR #9 branch | Phase 4a 完成，4b 进行中，结果 TODO | 历史状态说明 | 不能作为 current paper result |
 
@@ -67,11 +67,11 @@ STM 类型分布：
 | 4 | 🌡️ | `control-system-design-of-water-filter-test-bench__01` | HSM | 水滤测试台主状态、阀门与泵监督控制器 | 3 | 3 | 3 | 3 | 12.9 | industrial process HSM |
 | 5 | 🏭 | `fault-handling-plc-industry4__02` | HSM | 包装机械模块故障后恢复控制过程 | 3 | 3 | 3 | 3 | 12.9 | PLC fault recovery |
 | 6 | ⚙️ | `finite-state-automaton-control-system-walking-machines__01` | HSM | walking machine / hexapod 高层导航与步态监督控制器 | 3 | 3 | 3 | 3 | 12.9 | walking machine HSM |
-| 7 | 🩺 | `cara-infusion-pump-formal-spec__01` | EFSM | CARA 输液泵控制系统中的泵控制方式 | 2 | 3 | 3 | 3 | 11.9 | 低-V golden ref 经验 |
+| 7 | 🩺 | `cara-infusion-pump-formal-spec__01` | EFSM | CARA 输液泵控制系统中的泵控制方式 | 2 | 3 | 3 | 3 | 11.9 | 低-V historical early reference draft 经验 |
 | 8 | 🅿️ | `lift-control-automatic-car-parking-using-plc__01` | EFSM | PLC 多层停车升降机定位与存取控制器 | 2 | 3 | 3 | 3 | 11.9 | parking lift EFSM |
 | 9 | 🏭 | `plc-scada-liquid-filling-automation-ejosat__01` | EFSM | PLC/SCADA 液体灌装产线控制器 | 2 | 3 | 3 | 3 | 11.9 | process automation EFSM |
 | 10 | 🚆 | `railway-generic-electronic-interlocking-software-engineering-methods__01` | EFSM | 电子铁路联锁软件 Route 3 控制链 | 2 | 3 | 3 | 3 | 11.9 | railway interlocking EFSM |
-| 11 | ✈️ | `reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation__01` | EFSM | Masat-1 CubeSat 飞控任务/故障管理逻辑 | 2 | 2 | 3 | 3 | 11.0 | 高-V golden ref 经验 |
+| 11 | ✈️ | `reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation__01` | EFSM | Masat-1 CubeSat 飞控任务/故障管理逻辑 | 2 | 2 | 3 | 3 | 11.0 | 高-V historical early reference draft 经验 |
 | 12 | ⚙️ | `finite-state-machine-accommodating-unexpected-large-ground-height-variations-bipedal-robot-walking__01` | FSM | MABEL 双足机器人台阶/绊倒应对监督控制器 | 2 | 3 | 3 | 3 | 11.9 | bipedal recovery FSM |
 | 13 | 🌡️ | `optimization-control-energy-management-system-microgrids__01` | FSM | 并网微电网 EMS 模式切换控制器 | 2 | 3 | 3 | 3 | 11.3 | energy management FSM |
 | 14 | ✈️ | `automated-contingency-management-in-unmanned-aircraft-systems__01` | FSM | 无人机自动应急管理安全监视器 | 1 | 3 | 3 | 3 | 10.9 | contingency management |
@@ -123,12 +123,12 @@ STM 类型分布：
 2. 冻结 NL input hash、来源路径、版本和排除规则。
 3. 把 expansion 作为输入材料，而不是 reference oracle；reference model 仍需人工确认。
 
-## 7. Early golden reference STM 经验
+## 7. Historical early reference draft 经验
 
 | case | 历史路径 | 状态 | 关键经验 | 当前处理 |
 |---|---|---|---|---|
-| CARA | `paper_v1/selection/ref_stms/audited/cara-infusion-pump-formal-spec__01/` in PR #9 branch | golden v3，含 `bundle.md`、`ref_model.fcstm`、`ref_components.json` | 低-V / mode-switching case；输出信号变量容易变成“为变量而变量” | 可作为 low-V reference discipline case；正式 ref 仍需复核 |
-| CubeSat | `paper_v1/selection/ref_stms/audited/reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation__01/` in PR #9 branch | golden v1，含 `ref_model.fcstm`、`ref_components.json`；缺 `bundle.md` | 高-V case；`@external`、counter self-read、V-driven guard、forced transition effect 限制、event/guard 分离 | 可作为 high-V reference discipline case；需要补 bundle / review |
+| CARA | `paper_v1/selection/ref_stms/audited/cara-infusion-pump-formal-spec__01/` in PR #9 branch | historical draft v3，含 `bundle.md`、`ref_model.fcstm`、`ref_components.json` | 低-V / mode-switching case；输出信号变量容易变成“为变量而变量” | 可作为 low-V historical reference-discipline case；正式 ref 仍需复核 |
+| CubeSat | `paper_v1/selection/ref_stms/audited/reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation__01/` in PR #9 branch | historical draft v1，含 `ref_model.fcstm`、`ref_components.json`；缺 `bundle.md` | 高-V case；`@external`、counter self-read、V-driven guard、forced transition effect 限制、event/guard 分离 | 可作为 high-V historical reference-discipline case；需要补 bundle / review |
 
 历史 handover 固定的 D1-D8 discipline：
 
@@ -148,7 +148,7 @@ STM 类型分布：
 | 优先级 | 待核验项 | 原因 | 目标文件 |
 |---|---|---|---|
 | C | 冻结正式 sample registry 前重核 selection 代表性 / stress-test 口径 | selection 是按 weak-component stress test 设计，不能默认代表平均场景 | future `tables/03_sample_registry.csv` |
-| C | reference model 必须由 human adjudication 确认 | PR #9 的 golden refs 是 early assets，不是最终 oracle | future `oracle_protocol.md` |
-| I | CubeSat `bundle.md` 缺失 | 高-V golden 的审计链不完整 | future ref packet |
+| C | reference model 必须由 human adjudication 确认 | PR #9 的 historical early reference drafts 是 early assets，不是最终 oracle | future `oracle_protocol.md` |
+| I | CubeSat `bundle.md` 缺失 | 高-V historical reference draft 的审计链不完整 | future ref packet |
 | I | `sources_path1_backup.parquet` 语义待核验 | 当前报告未清晰定义 backup parquet | future data ledger |
 | M | Top-15 HSM 偏多 | stress-test 合理，但如写代表性 claim 需分层修正 | sample registry |

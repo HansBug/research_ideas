@@ -8,21 +8,21 @@
 
 ## 2. 当前结论
 
-第一篇论文暂定走 **Path-1 baseline hard comparison**：研究自然语言控制系统需求到形式化状态机模型的 LLM 建模问题，重点证明形式化状态机表示、确定性检查反馈、可执行仿真反馈与 LLM agent 修复闭环能比近期 LLM-for-modeling / state-machine-generation baseline 提供更丰富、更可审计、更可执行的状态机建模结果。
+第一篇论文暂定走 **Path-1 baseline hard comparison**：研究自然语言控制系统需求到形式化状态机模型的 LLM 建模问题，重点检验形式化状态机表示、确定性检查反馈、可执行仿真反馈与 LLM agent 修复闭环是否能相对近期 LLM-for-modeling / state-machine-generation baseline 提供更丰富、更可审计、更可执行的状态机建模结果。
 
 一句话 thesis：
 
-> We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. We introduce a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and evaluate its contribution through a frozen control-system benchmark, adapted component-level human adjudication, ablations, and comparisons with recent LLM-based modeling baselines.
+> We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. This foundation PR plans a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and specifies the frozen benchmark, human adjudication, ablations, and baseline comparisons required before the manuscript may make result-level claims.
 
 中文口径：
 
-> 本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量。我们提出一种形式化状态机表示和 generate-check-simulate-repair agent loop，并通过冻结的控制系统 benchmark、改造的组件级人工评审、消融实验和近期 baseline 对比来评估其贡献。
+> 本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量。本 foundation PR 先规划形式化状态机表示、generate-check-simulate-repair agent loop，以及后续在冻结 benchmark、组件级人工评审、消融实验和近期 baseline 对比中必须补齐的证据。
 
 ## 3. 推荐阅读顺序
 
 1. [paper_story.md](./paper_story.md)：论文 thesis、gap、贡献、claim 边界。
 2. [project_inventory.md](./project_inventory.md)：当前仓库中与论文有关的证据、代码、baseline、run record 与缺口。
-3. [sample_assets.md](./sample_assets.md)：从历史 PR #9 压缩迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 golden reference STM 信息。
+3. [sample_assets.md](./sample_assets.md)：从历史 PR #9 压缩迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 historical early reference draft 信息。
 4. [baseline_and_related_work_matrix.md](./baseline_and_related_work_matrix.md)：最近 baseline / related work 的实验定位与对齐方式。
 5. [experiment_inventory.md](./experiment_inventory.md)：RQ、样本、baseline、metrics、oracle 与 run record 计划。
 6. [claim_evidence_map.md](./claim_evidence_map.md)：强 claim、谨慎 claim、禁用 claim 与证据状态。
@@ -38,9 +38,9 @@ PR #9 是 2026-05 Path-1 quick sprint 分支，提供了重要样本资产和 re
 - Top-15 / Backup-15 样本表。
 - 30 条 candidate / backup 的严格溯源 NL 扩充结果摘要。
 - `sources_path1.parquet` / backup parquet 的历史位置与用途。
-- 2 个 early golden reference STM（CARA 低-V、CubeSat 高-V）的经验与风险。
+- 2 个 early historical early reference draft（CARA 低-V、CubeSat 高-V）的经验与风险。
 
-PR #9 中的自动评分、扩充 NL 和 golden reference 仍需在正式 paper 实验前复核；不得把它们直接写成最终实验结果。
+PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需在正式 paper 实验前复核；不得把它们直接写成最终实验结果。
 
 ## 5. 非目标
 
