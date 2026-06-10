@@ -1,0 +1,510 @@
+--- Page 1 ---
+AUTOMATEDBPMN MODELGENERATION FROMTEXTUAL
+PROCESSDESCRIPTIONS: A MULTI-STAGELLM-DRIVEN
+APPROACH
+Ion Matei
+Fujitsu Research of America
+imatei@fujitsu.comMaksym Zhenirovskyy
+Fujitsu Research of America
+mzhenirovskyy@fujitsu.comPraveen Kumar Menaka Sekar
+University of Maryland
+praveenm@umd.edu
+Hon Yung Wong
+Fujitsu Research of America
+awong@fujitsu.com
+ABSTRACT
+Automatically reconstructing BPMN models from unstructured natural-language descriptions re-
+mains challenging due to heterogeneous modeling conventions, multilingual sources, and the lack
+of reliable ground truth. We present a scalable, multi-stage LLM-driven pipeline that automates
+both ground-truth construction and model reconstruction. Multilingual BPMN XML files are trans-
+lated into English, validated using execution-oriented compliance checks in SpiffWorkflow, and
+iteratively repaired through targeted LLM-guided corrections to produce a consistent ground-truth
+corpus. From these validated models, process descriptions are generated and used to reconstruct
+executable BPMN 2.0 XML diagrams without manual curation. We introduce a multi-dimensional
+similarity framework combining structural metrics, type-distribution alignment, and embedding-
+based semantic measures. In an empirical study of 750 public BPMN diagrams, the pipeline gener-
+ated 387 validated ground-truth models and achieved average reconstruction similarity above 0.75,
+including approximately 50 near-perfect reconstructions differing only in minor naming variations.
+The results demonstrate that LLMs can generate structurally compliant and semantically meaningful
+BPMN diagrams at scale.
+Keywordsprocess Modeling·BPMN·LLMs·process mining·workflow automation
+1 Introduction
+Modeling policies in Business Process Model and Notation (BPMN) [20] enables analysis, execution, monitoring, and
+optimization. For example, BPMN diagrams encode clinical pathways understandable to clinicians while supporting
+tool integration [11], and enable resource optimization in hospital settings [4]. However, much process knowledge
+exists only in textual form, and existing extraction methods often produce models that are syntactically invalid or non-
+executable. We address this limitation with a systematic, multi-stage LLM pipeline that incrementally builds process
+understanding and generates fully compliant BPMN diagrams.
+Our first contribution is an automated ground-truth construction pipeline that standardizes heterogeneous models and
+enforces, in part, execution compliance. We translate publicly available BPMN files from multiple languages to
+English while preserving XML structure, apply formal validation using SpiffWorkflow [1] to detect compliance issues,
+and integrate an LLM-guided correction loop to repair non-compliant models at scale. This produces a corpus of
+corrected models suitable as ground truth, from which we automatically generate process descriptions using LLMs.
+Our second contribution is an LLM-based reconstruction method that mimics human modelers. The pipeline extracts
+salient process elements and decision logic, constructs data models and activity–data mappings, synthesizes BPMN 2.0arXiv:2604.12105v1  [cs.SE]  13 Apr 2026
+
+--- Page 2 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+XML under explicit model checker requirements (e.g., default paths for exclusive gateways, condition expressions for
+non-default branches).
+Our third contribution is a multi-dimensional similarity framework integrating: (i) topological correspondence
+via graph statistics and degree-sequence correlation, (ii) type-distribution similarity using Jensen–Shannon diver-
+gence, (iii) semantic similarity from sentence-level embeddings with optimal assignment, and (iv) contextual struc-
+tural–semantic variants including local neighborhood features. We evaluate via an empirical study starting with 750
+public BPMN diagrams, yielding roughly 400 validated ground-truth models after translation and correction. Despite
+the absence of human curation, the method achieves an average similarity exceeding 0.75, with approximately 50
+near-perfect reconstructions differing only in minor naming variations.
+Paper structure: Section 2 details the ground-truth dataset generation methodology. Section 3 introduces the multi-
+stage BPMN generation framework. Section 4 outlines the evaluation framework. Section 5 presents our empirical
+study, while Section 6 sets our contributions within context of existing research.
+2 Ground truth generation
+To evaluate the reconstruction pipeline, we require BPMN models paired with process descriptions. We construct this
+dataset automatically from publicly available BPMN files, which cannot be assumed compliant and are infeasible to
+verify manually. The methodology consists of three stages: (i) multilingual BPMN XML translation to English, (ii)
+execution-oriented validation and correction using a model checker, and (iii) automated process description generation.
+2.1 Foreign language to English model translation
+Translation proceeds in four steps: text extraction, LLM-based translation, fuzzy matching, and XML reconstruction.
+An XML parser traverses the BPMN file and extracts translatable attributes (e.g.,name,default,string) while
+preserving identifiers. Unique strings are collected to avoid duplicate translations. A structured prompt enforces
+JSON-formatted input/output during translation. Fuzzy matching resolves minor discrepancies (e.g., encoding or
+whitespace differences) between extracted strings and translated outputs by selecting the highest-similarity match.
+The translated content is then reinserted into the XML while preserving structure and formatting.
+2.2 Model correction
+Public BPMN diagrams frequently contain compliance errors. We implement a closed-loop correction mechanism in
+which SpiffWorkflow [1] provides execution diagnostics that guide LLM-based repairs. Validation enforces execution
+constraints such as default paths for exclusive gateways and valid condition expressions for non-default branches.
+For simple diagrams, we regenerate the model; for complex diagrams, we apply localized LLM-proposed repairs
+(replacement, augmentation, modification, or deletion). The loop iterates until execution compliance is achieved or
+a repair limit is reached. To control prompt size, only recent interaction history is retained. Visual annotations are
+temporarily removed during correction and reattached afterward.
+2.3 Process description generation
+Each validated BPMN diagram (with visualization elements removed) is provided to the LLM to generate a well-
+organized natural language description of the process. The LLM agent explains the process purpose, identifies respon-
+sible actors, organizes activities into coherent steps, and translates gateway logic into natural conditional statements.
+The output consists of concise paragraphs summarizing process flow, participants, and key decision rules.
+3 BPMN Generation
+The BPMN generation framework transforms unstructured textual descriptions into executable BPMN 2.0 XML mod-
+els through a six-stage pipeline, where each stage refines structured outputs from the previous one. The decomposition
+follows a structured reasoning approach inspired by chain-of-thought methodologies [25] and common practices of
+human modelers. The pipeline is implemented as a configurable chain-based generator using LangChain [15].
+3.1 Process Element Extraction
+The first stage extracts core process components from text, including process boundaries, activities, participants,
+decisions, inputs, outputs, data flows, and external dependencies. Start and end events define process boundaries,
+2
+
+--- Page 3 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+while activities correspond to described tasks and procedural steps. Outputs are returned in structured JSON format to
+ensure consistency and downstream usability. An excerpt of the prompt used in this stage is shown below.
+You are an expert in process modeling and information extraction.
+Your task is to extract structured process elements from the documentation provided by the user
+.
+You must identify and extract the following components:
+- **Process boundaries** - What event triggers the start of the process, and what indicates its
+end.
+- **Activities** - Tasks, actions, or steps involved in the process.
+- **Participants** - Individuals, roles, or entities involved, along with their
+responsibilities.
+- **Decisions** - Key decision points or gateways affecting the process flow. These can be
+binary (yes/no) or multi-step.
+- **Inputs** - Required data or materials.
+- **Outputs** - Results or outcomes generated by each activity.
+- **Data flow** - How data moves between steps and is transformed or used.
+- **Dependencies** - Any links to external systems, or processes.
+...
+3.2 Decision Point Analysis
+The second stage formalizes decision logic. For each identified decision point, the system determines required inputs,
+possible outcomes, and explicit conditions governing each branch. This ensures correct configuration of exclusive
+gateways, including default paths and condition expressions compatible with execution engine requirements. Outputs
+maintain a structured mapping between inputs, conditions, and outcomes to support direct translation into BPMN
+gateway constructs. An excerpt of the prompt used in this stage is shown below.
+You are an expert in process modeling and information extraction.
+Your task is to analyze decision points and determine the input of the decision, the outcomes
+of the decision and what conditions need to be satisfied for each outcome.
+You must identify and extract the following components:
+- **Decision points** - Required data, key decision points or gateways affecting the process
+flow.
+- **Inputs** - Required data, information, or prerequisites needed to make each decision. This
+includes:
+- Data that needs to be checked or evaluated
+- Information that must be available before the decision can be made
+- Status or state that needs to be assessed
+- Results from previous activities that inform the decision
+- **Outputs** - Required data, possible outcomes or results from each decision point.
+- **Conditions** - Required data, specific conditions that need to be satisfied for each output
+.
+...
+3.3 Data Object Identification
+The third stage identifies and classifies data objects referenced in the process. Objects are categorized as primary (core
+entities), derived (created during processing), or temporary (used transiently). Each object is described with attributes,
+properties, relationships, and usage patterns, enabling consistent representation through BPMN data object references
+and associations. An excerpt of the prompt used in this stage is shown below.
+You are an expert in process modeling and data modeling.
+Your task is to extract **data objects** used by processes, based on information provided by
+the user.
+To complete this task, perform the following steps:
+- **Identify data objects** relevant to the process.
+- **Classify each data object** as one of: primary (main entity), derived (created during
+processing), or temporary (used transiently).
+- **Assign clear, descriptive names** to each data object, based on its role or content.
+- **Determine attributes and properties** that describe the data object (e.g., structure,
+format, units).
+3
+
+--- Page 4 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+- **Specify how the data object is used**-how it is created, updated, accessed, and archived or
+deleted.
+- **Describe relationships** between data objects (e.g., containment, linkage, hierarchy).
+- **Explain the flow and transformation** of data objects throughout the process.
+...
+3.4 Data Model Construction
+The fourth stage constructs a structured data model from the identified objects. Entities, attributes, relationships, and
+constraints (e.g., cardinality, inheritance, primary/foreign keys) are formalized to ensure internal consistency and data
+integrity. The resulting data architecture supports coherent mapping between process activities and data flows in the
+generated BPMN model. An excerpt of the prompt used in this stage is shown below.
+You are an expert in process modeling and data architecture.
+Your task is to define a structured **data model** for the extracted processes, based on
+technical documentation and the list of identified entities and data objects provided by the
+user.
+To accomplish this task, perform the following:
+- **Identify main entities** involved in the process, derived from previously identified data
+objects.
+- **Determine relationships** between entities, including directionality and type (e.g.,
+references, containment).
+- **List each entity’s attributes**, including their data types, constraints, and validation
+rules.
+- **Specify cardinality and multiplicity** for each relationship (e.g., one-to-many, min/max
+occurrences).
+- **Include inheritance rules**, where entities inherit properties or behavior from others, if
+applicable.
+- **Define primary keys, foreign keys, and uniqueness constraints** that enforce data integrity
+and govern model logic.
+....
+3.5 Data Mapping and Activity Association
+The fifth stage maps activities and decision points to their corresponding data inputs and outputs. For each
+process element, required inputs, generated outputs, and associated data object properties are explicitly de-
+fined. This structured mapping enables generation of BPMN models with completedataInputAssociationand
+dataOutputAssociationelements, ensuring execution-level consistency. An excerpt of the prompt used in this
+stage is shown below.
+You are an expert in process modeling and structured information extraction.
+Your task is to identify **data inputs and outputs** for each activity involved in processes,
+based on technical documentation, found activities, data objects and models provided by
+the user.
+To complete this task, follow these steps:
+- **Identify each activity** described in the process.
+- For each activity, **determine the required input data**-e.g., user-provided values, database
+queries, or prior outputs.
+- **Determine the output data** generated or modified by the activity-e.g., calculated values,
+updated records, or messages sent externally.
+- **Specify the data objects** used as inputs or outputs, including attributes such as format,
+data type, and validation rules.
+- **Include all elements** of process diagrams (activities such as tasks, events, messages,
+message events, decision points, such as gateways, etc.)
+- **Make sure** to use only activities and decisions included in the process descriptions.
+- **Make sure** to use only inputs and outputs included in the data objects and model.
+...
+4
+
+--- Page 5 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+3.6 BPMN XML Generation
+The final stage synthesizes all structured artifacts into executable BPMN 2.0 XML. Generation enforces specification
+compliance, excludes BPMNDI visualization elements to reduce model size, and ensures inclusion of all identified
+activities and gateways. Execution engine constraints include: (i) default paths for exclusive gateways, (ii) condition
+expressions for non-default branches, (iii) correct ordering of data object references, and (iv) complete sequence-flow
+connectivity. Generated models are validated using SpiffWorkflow and XML parsing utilities to ensure namespace,
+syntax, and structural correctness. When validation fails, models enter the correction loop described in Section 2.2.
+BPMNDI annotations are added after validation for visualization in tools such as Camunda. An excerpt of the prompt
+used in this stage is shown below.
+You are a BPMN modeling expert with deep knowledge of syntax and execution semantics for tools
+like Camunda.
+Your task is to generate a syntactically correct BPMN 2.0 XML diagram using only structured
+input provided by the user.
+The input will consist of structured dictionaries that define:
+- Data objects and their properties
+- Data inputs and outputs per activity
+- Participants (roles or entities)
+- Decision points (gateways)
+- Relationships between entities (if needed to define subprocesses or swimlanes)
+The requirements for the diagram are:
+- The diagram respects the BPMN specs.
+- Do NOT add BPMNDI annotations for visualization purposes to limit the size of the model.
+...
+4 BPMN model comparison
+BPMN diagram comparison can be seen from the lens of a graph isomorphism problem which is a challenging combi-
+natorial problem [7], at most solvable in quasipolynomial time [2]. Metrics based on features or graph kernels (e.g., the
+Weisfeiler–Lehman subtree kernel) [23] compare ordered label multiset features, but struggle when node/edge labels
+vary or orders differ. Embedding-based methods and semantic similarity help overcome this by mapping structural
+and label signals onto continuous space, where similarity is judged more flexibly even when feature orders or label
+vocabularies differ. In this section we describe a scoring mechanism that evaluates BPMN similarity across multiple
+dimensions. The assessment combines structural analysis and semantic understanding to produce similarity metrics.
+The mechanism integrates graph-theoretic measures with natural language processing techniques.
+We organize BPMN elements into five primary categories: tasks, gateways, events, data elements, and flow elements.
+This classification focuses on functional semantics rather than syntactic differences, allowing, for example, user tasks
+and service tasks to be compared within the same category. To operationalize these metrics, we utilize the NetworkX
+library for structural graph analysis and theall-MiniLM-L6-v2sentence-transformer model for generating semantic
+embeddings. This combination allows us to compute similarity scores that reflect both the topological integrity and
+the semantic intent of the generated models.
+4.1 Structural Similarity
+The structural similarity dimension evaluates topological connectivity patterns between BPMN models through graph
+analysis. The assessment considers multiple structural characteristics including node count, edge count, graph density,
+average degree, and degree sequence patterns. The topological similarity computation uses basic graph statistics,
+where similarity for each metric is calculated using the ratio formula:
+Smetric =min(M 1, M 2)
+max(M 1, M 2),(1)
+whereM 1andM 2represent the metric values for the two graphs being compared. This formulation generates a
+symmetric similarity score in the range [0,1]. Degree sequence similarity employs correlation analysis to assess
+structural pattern correspondence. The degree sequences are extracted from both graphs, padded to equal length, and
+then compared using Pearson correlation coefficient:
+Sdegree =|ρ(D 1, D2)|,(2)
+whereD 1andD 2represent the degree sequences andρdenotes the correlation coefficient. The structural similarity
+score is the mean of individual metric scores.
+5
+
+--- Page 6 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+4.2 Type Distribution Similarity
+The type distribution dimension assesses the compositional similarity between BPMN models by analyzing the dis-
+tribution of element types. This analysis recognizes that functionally similar processes should exhibit comparable
+distributions of different element types, even if the specific connectivity patterns differ. The assessment employs
+Jensen-Shannon divergence to quantify distributional differences between type frequency patterns. The type counts
+are first normalized to probability distributions:
+P1(t) =C1(t)P
+t′C1(t′), P 2(t) =C2(t)P
+t′C2(t′)(3)
+whereC i(t)represents the count of typetin graphi. The Jensen-Shannon divergence is computed using the symmetric
+formulation:
+JS(P 1, P2) =1
+2DKL(P1||M) +1
+2DKL(P2||M)(4)
+whereM=1
+2(P1+P 2)is the mixture distribution andD KLdenotes Kullback-Leibler divergence. Type-distribution
+similarity is computed as:
+Stypedist= max(0,1−JS(P 1, P2))(5)
+ensuring the similarity score remains within the valid range [0,1].
+4.3 Semantic Similarity
+The semantic dimension leverages natural language processing techniques to evaluate the similarity of text. This as-
+sessment recognizes that process models with different terminologies may represent functionally equivalent activities,
+requiring semantic understanding beyond exact string matching. The semantic analysis employs pre-trained sentence
+transformer models [22] to generate embedding vector representations of textual content. The similarity computation
+utilizes cosine similarity between embedding vectors to capture semantic relationships. We use optimal assignment
+matching to ensure maximum similarity alignment between text elements. This approach addresses the challenge
+of determining which elements in one model correspond to which elements in the comparison model, maximizing
+the overall semantic correspondence. The semantic similarity analysis creates label representations that incorporate
+neighborhood information. For each node, the context string is constructed as:
+context(n) =label(n)||”neighbors: ”||[
+m∈N(n)label(m)(6)
+whereN(n)represents the set of neighboring nodes and||denotes string concatenation. The neighbor labels are
+sorted alphabetically to ensure consistent representation regardless of processing order. The semantic similarity anal-
+ysis produces three distinct similarity measures: elementname/descriptionsimilarity,typesimilarity andcombined
+similarity using merged name-type representations. Thecombinedsimilarity employs concatenatedname-typestrings
+to capture both semantic content and structural role information simultaneously. The finaloverall similarityscore for
+one reconstruction experiment is theaverage across all five similarity-metric dimensions.
+5 Experimental results
+The experimental framework employs a two-phase evaluation strategy consisting of (i) model reconstruction and
+(ii) quantitative similarity assessment against curated ground-truth references. The reconstruction pipeline proceeds
+through several stages: (a) collection of open-source BPMN models, (b) translation of models into English, (c)
+SpiffWorkflow-based structural validation combined with LLM-driven iterative correction to establish ground-truth
+models, (d) LLM-based generation of process descriptions, and (e) LLM-based reconstruction of BPMN models. The
+resulting reconstructions are then compared with the ground-truth models using the methodology outlined in Section 4.
+A total of 750 models were initially collected and processed through translation, correction, and description genera-
+tion usingchatGPT-4o, resulting in 387 validated models. The collected dataset ensures domain diversity, spanning
+healthcare (clinical pathways), finance (loan approvals), and supply chain logistics. We then conducted three re-
+construction experiments employingchatGPT-4o,gemini-2.5-flash, andgemini-2.5-pro. Table 1 reports the
+number ofSpiffWorkflow-compliant models that each LLM was able to reconstruct from textual descriptions. The
+geminifamily achieved the strongest results, with theprovariant successfully reconstructing all models.
+We next evaluated the similarity metrics for the models reconstructed by the three LLMs. The quality of reconstruction
+was influenced both by the choice of LLM and by the amount of information available in the process descriptions.
+6
+
+--- Page 7 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+Table 1: LLM reconstruction count.
+Descriptions chatGPT-4o gemini-2.5-flash gemini-2.5-pro
+387 353 370 387
+When descriptions lacked sufficient detail, the LLMs tended to interpolate missing elements, which introduced discrep-
+ancies in component names and textual labels relative to the ground truth. Logical correctness of gateway expressions
+was not evaluated and remains future work.
+Figures 1, 2, and 3 present the histograms of overall similarity scores for the three LLMs, while Tables 2, 3, and 4
+provide the corresponding detailed results.chatGPT-4oandgemini-2.5-flashachieve comparable performance,
+whereasgemini-2.5-proshows a small improvement, additionally achieving approximately 50 near-perfect recon-
+structions. The reported scores are normalized by the number of successfully reconstructed models; when normal-
+ized by the number of process descriptions, thegeminifamily outperformschatGPT-4oby a larger margin. While
+gemini-2.5-promodel improves reconstruction quality, often taking only one iteration to fix errors, it does incurs
+higher latency (up to five minutes per model). For instance, the overall average score would decrease to 0.6981 for
+chatGPT-4oand 0.7350 forgemini-2.5-flash. Despite the absence of manual curation, the results demonstrate
+strong baseline performance for fully automated BPMN reconstruction.
+Figure 1: Score distribution histogram:chatGPT-4o.
+We analyzed examples of poor reconstruction results (similarity<0.5) to understand failure modes. Failures primar-
+ily stemmed from three sources: 1) Ambiguous Branching Logic: When descriptions lacked explicit conditions for
+exclusive gateways, the LLM often hallucinated arbitrary logic to satisfy the model’s execution validity requirements.
+2) Implicit Dependencies: The LLM sometimes failed to capture error-handling paths that were implied by context
+but not explicitly stated in the text. 3) Abstraction Mismatches: In some cases, the LLM aggregated multiple low-level
+steps into a single high-level activity, creating structural divergence from the ground truth despite maintaining seman-
+tic accuracy. An example of process description originating from a syntactically correct BPMN model that is logically
+incomplete is shown bellow.
+7
+
+--- Page 8 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+Figure 2: Score distribution histogram:gemini-2.5-flash.
+Table 2: Average evaluation scores across similarity dimensions:chatGPT-4o.
+Metric Average Score
+Structural Similarity 0.8050
+Type Distribution Similarity 0.9112
+Name/Description Semantic Similarity 0.6166
+Type Semantic Similarity 0.7944
+Name-Type Semantic Similarity 0.6997
+Overall Similarity 0.7654
+...
+The diagram does not provide further details on the tasks or activities that follow the parallel
+paths, nor does it specify any conditions or criteria for the completion of these tasks. The
+focus is primarily on the initiation of the process and the immediate branching into parallel
+paths, leaving the specifics of subsequent activities open to interpretation or further
+development.
+...
+6 Related Work
+Research on automatic BPMN generation from text spans more than a decade, evolving from rule-based approaches
+to LLM-driven pipelines. Friedrich et al. [5] pioneered syntactic parsing and template-based transformations, but
+faced semantic ambiguity and limited executability. Bellan et al. [3] benchmarked extraction methods and highlighted
+shortcomings in datasets and evaluation practices. Qayyum et al. [21] proposed dialogue-driven derivation of task
+relationships for rapid prototyping, but did not produce executable BPMN 2.0 XML; Zirnstein [26] studied extraction
+8
+
+--- Page 9 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+Figure 3: Score distribution histogram:gemini-2.5-pro.
+Table 3: Average evaluation scores across similarity dimensions:gemini-2.5-flash.
+Metric Average Score
+Structural Similarity 0.8098
+Type Distribution Similarity 0.9033
+Name/Description Semantic Similarity 0.6256
+Type Semantic Similarity 0.8047
+Name-Type Semantic Similarity 0.7006
+Overall Similarity 0.7688
+from unstructured text. In contrast, we construct ground truth at scale from heterogeneous repositories and enforce
+execution-oriented compliance via SpiffWorkflow.
+Recent work leverages LLMs for interactive assistance and information extraction. K ¨opke and Safan [14], Kourani et
+al. [13], and H ¨orner [9] emphasize usability and interactive modeling rather than large-scale benchmarking. Neuberger
+et al. [18] focus on universal prompting for mention detection, entity resolution, and relation extraction, treating BPMN
+generation as a proof of concept. Adjacent directions include simulation-model synthesis from logistics/manufactur-
+ing text [17], process-description generation and verification [19], structured plan representations [6], multimodal
+extraction [24], and parallelism detection [16]. Our focus is end-to-end automation with enforcement of specification
+compliance and large-scale evaluation.
+Several systems rely on curated datasets or constrained inputs. Held [8] uses gold standards and regulatory-text
+preprocessing and evaluates component-level extraction accuracy. BPMN Sketch Miner [10] uses constrained natural
+language during live modeling for incremental diagram synthesis. Zubenko [27] applies prompt-engineering with
+iterative correction for syntactic issues, often regenerating models when failures occur. We instead use SpiffWorkflow
+as a model checker to validate execution-oriented constraints and scale to larger processes by applying localized,
+programmatic repairs rather than wholesale regeneration.
+9
+
+--- Page 10 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+Table 4: Average evaluation scores across similarity dimensions:gemini-2.5-pro.
+Metric Average Score
+Structural Similarity 0.8173
+Type Distribution Similarity 0.9295
+Name/Description Semantic Similarity 0.6255
+Type Semantic Similarity 0.8104
+Name-Type Semantic Similarity 0.7021
+Overall Similarity 0.7770
+A key distinction between our work and prior approaches lies in the evaluation. Early systems such as Friedrich
+et al. [5] emphasized structural validity, while recent LLM frameworks [9, 13, 14] often rely on qualitative studies.
+Dataset-centric work [3,18] typically reports task-level extraction accuracy. Klievtsova et al. [12] propose text-to-task
+overlap-style metrics. Because we operate directly on BPMN files, we evaluate both topology and semantics (via
+embeddings) at the model level, with explicit attention to compliance and repair.
+7 Conclusions and future developments
+This paper presented an LLM-driven framework for reconstructing BPMN 2.0 models from textual process descrip-
+tions. The methodology integrates automated ground-truth generation, description synthesis, and staged reconstruc-
+tion. A multi-dimensional similarity framework was introduced, combining structural, semantic, and contextual mea-
+sures to provide a principled basis for evaluation. Experiments on 750 publicly sourced BPMN diagrams yielded
+approximately 400 validated ground-truth models, with average similarity scores up to 0.77 and 50 near-perfect cases.
+The results demonstrate scalable BPMN reconstruction without manual curation and robust structural interpolation
+under incomplete specifications. While our approach achieves structural executability — producing valid gateways,
+flows, and condition expressions — fully operationalizing these models requires task-level implementation details.
+Future work will focus on enriching these models with executable payloads, such as generating Python snippets for
+script tasks and configuring API connectors for service tasks. This will bridge the final gap between the structurally
+executable XML we currently generate and fully autonomous, production-ready process workflows.
+References
+[1] Samuel Abels, Matthew Hampton, Bruce Silver, and Kelly McDonald. SpiffWorkflow.https://github.com/
+sartography/SpiffWorkflow, 2025.
+[2] L ´aszl´o Babai. Graph isomorphism in quasipolynomial time [extended abstract]. InProceedings of the Forty-
+Eighth Annual ACM Symposium on Theory of Computing, STOC ’16, page 684–697, New York, NY , USA, 2016.
+Association for Computing Machinery.
+[3] Patrizio Bellan, Mauro Dragoni, Chiara Ghidini, Han van der Aa, and Simone Paolo Ponzetto. Process ex-
+traction from text: Benchmarking the state of the art and paving the way for future challenges.arXiv preprint
+arXiv:2110.03754, 2021. Version v2 last revised 25 Oct 2023.
+[4] Juliana Bowles, Ricardo M. Czekster, and Thais Webber. Annotated bpmn models for optimised healthcare
+resource planning. In Manuel Mazzara, Iulian Ober, and Gwen Sala ¨un, editors,Software Technologies: Applica-
+tions and Foundations, pages 146–162. Springer International Publishing, 2018.
+[5] Fabian Friedrich, Jan Mendling, and Frank Puhlmann. Automated generation of business process models from
+natural language text. InInternational Conference on Advanced Information Systems Engineering, pages 482–
+496, 2011.
+[6] Deepeka Garg, Sihan Zeng, Sumitra Ganesh, and Leo Ardon. Generating structured plan representation of
+procedures with llms.arXiv preprint arXiv:2504.00029, 2025. Version v1 submitted March 28, 2025 (cs.SE,
+cs.AI).
+[7] Martin Grohe and Pascal Schweitzer. The graph isomorphism problem.Commun. ACM, 63(11):128–134, Octo-
+ber 2020.
+[8] Vincent Derek Held. An enhanced automated approach for transforming natural language process descriptions to
+BPMN 2.0 process diagrams – with an evaluation of the application to ISO-norm process descriptions, December
+2023.
+10
+
+--- Page 11 ---
+Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach
+[9] Luca Franziska H ¨orner. Introducing bpmngen: An llm-based conversational framework for bpmn 2.0 process
+model generation. InEMISA 2025, pages 17–31. Gesellschaft f ¨ur Informatik e.V ., Bonn, 2025.
+[10] Ana Ivanchikj, Souhaila Serbout, and Cesare Pautasso. From text to visual bpmn process models: design and
+evaluation. InProceedings of the 23rd ACM/IEEE International Conference on Model Driven Engineering
+Languages and Systems, MODELS ’20, page 229–239, New York, NY , USA, 2020. Association for Computing
+Machinery.
+[11] S. A. Kassim, J. B. Gartner, L. Labb ´e, P. Landa, C. Paquet, F. Bergeron, C. Lemaire, and A. C ˆot´e. Benefits
+and limitations of business process model notation in modelling patient healthcare trajectory: a scoping review
+protocol.BMJ Open, 12(5):e060357, 2022.
+[12] Nataliia Klievtsova, Janik-Vasily Benzin, Timotheus Kampik, Juergen Mangler, and Stefanie Rinderle-Ma. Con-
+versational process modeling: Can generative ai empower domain experts in creating and redesigning process
+models?, 2024.
+[13] Humam Kourani, Alessandro Berti, Daniel Schuster, and Wil M. P. van der Aalst. ProMoAI: Process modeling
+with generative ai.arXiv preprint arXiv:2403.04327, 2024. Version v1 submitted March 7, 2024 (last revised
+April 29, 2024).
+[14] Julius K ¨opke and Aya Safan. Introducing the bpmn-chatbot for efficient llm-based process modeling. InProceed-
+ings of the Best Dissertation Award, Doctoral Consortium, and Demonstration and Resources Forum at BPM
+2024, volume 3758 ofCEUR Workshop Proceedings, pages 86–90, Krakow, Poland, 2024. CEUR-WS.org. CC
+BY 4.0 open access.
+[15] LangChain Team. Langchain.https://github.com/langchain-ai/langchain, 2025.
+[16] Phuong Nam L ˆe, Charlotte Schneider-Depr ´e, Alexandre Goossens, Alexander Stevens, Aur ´elie Leribaux, and Jo-
+hannes De Smedt. Leveraging machine learning and enhanced parallelism detection for bpmn model generation
+from text.arXiv preprint arXiv:2507.08362, July 2025. Version v1 submitted 11 Jul 2025.
+[17] Flavia Monti, Francesco Leotta, Juergen Mangler, Massimo Mecella, and Stefanie Rinderle-Ma. Nl2processops:
+Towards llm-guided code generation for process execution. In Andrea Marrella, Manuel Resinas, Mieke Jans,
+and Michael Rosemann, editors,Business Process Management Forum, pages 127–143, Cham, 2024. Springer
+Nature Switzerland.
+[18] Julian Neuberger, Lars Ackermann, Han van der Aa, and Stefan Jablonski. A universal prompting strategy for
+extracting process model information from natural language text using large language models.arXiv preprint
+arXiv:2407.18540, 2024. Version v1 submitted July 26, 2024.
+[19] Quentin Nivon, Gwen Sala ¨un, and Fr ´ed´eric Lang. GIVUP: Automated generation and verification of textual
+process descriptions. InProceedings of the 33rd ACM International Conference on the Foundations of Software
+Engineering (FSE 2025), pages 1–5, Trondheim, Norway, June 2025. ACM. HAL Id: hal-05131967.
+[20] Object Management Group. Business process model and notation (bpmn) version 2.0. Technical report, OMG
+Specification, 2011.
+[21] Sara Qayyum, Muhammad Moiz Asghar, and Muhammad Fouzan Yaseen. From dialogue to diagram: Task
+and relationship extraction from natural language for accelerated business process prototyping.arXiv preprint
+arXiv:2312.10432, 2023. Version v1 posted December 16, 2023.
+[22] Nils Reimers and Iryna Gurevych. Sentence-bert: Sentence embeddings using siamese bert-networks. InPro-
+ceedings of the 2019 Conference on Empirical Methods in Natural Language Processing. Association for Com-
+putational Linguistics, 11 2019.
+[23] Nino Shervashidze, Pascal Schweitzer, Erik Jan van Leeuwen, Kurt Mehlhorn, and Karsten M. Borgwardt.
+Weisfeiler-lehman graph kernels.Journal of Machine Learning Research, 12(77):2539–2561, 2011.
+[24] Marvin V oelter, Raheleh Hadian, Timotheus Kampik, Marius Breitmayer, and Manfred Reichert. Leveraging
+generative ai for extracting process models from multimodal documents.arXiv preprint arXiv:2406.04959,
+2024. Version v1 submitted June 2024.
+[25] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V . Le,
+and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models. InProceedings of
+the 36th International Conference on Neural Information Processing Systems, NIPS ’22, Red Hook, NY , USA,
+2022. Curran Associates Inc.
+[26] Bruno Zirnstein. Extraction of bpmn process models from unstructured textual descriptions. Report, April 2024.
+[27] Anastasiia Zubenko. Design nd development of an llm interface for prompt-based bpmn process generation and
+visualization, December 2024.
+11

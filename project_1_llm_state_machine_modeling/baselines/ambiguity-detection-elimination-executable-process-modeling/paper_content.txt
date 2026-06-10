@@ -1,0 +1,497 @@
+--- Page 1 ---
+AMBIGUITYDETECTION ANDELIMINATION INAUTOMATED
+EXECUTABLEPROCESSMODELING
+A PREPRINT
+Ion Matei
+Fujitsu Research of America
+imatei@fujitsu.comPraveen Kumar Menaka Sekar
+University of Maryland, College Park
+praveenm@umd.eduMaksym Zhenirovskyy
+Fujitsu Research of America
+mzhenirovskyy@fujitsu.com
+Hon Yung Wong
+Fujitsu Research of America
+awong@fujitsu.comSayuri Kohmura
+Fujitsu Limited
+kohmura.sayuri@fujitsu.comShinji Hotta
+Fujitsu Limited
+hotta_s@fujitsu.com
+Akihiro Inomata
+Fujitsu Limited
+akiino@fujitsu.com
+April 14, 2026
+ABSTRACT
+Automated generation of executable Business Process Model and Notation (BPMN) models from
+natural-language specifications is increasingly enabled by large language models. However, ambigu-
+ous or underspecified text can yield structurally valid models with different simulated behavior. Our
+goal is not to prove that one generated BPMN model is semantically correct, but to detect when
+a natural-language specification fails to support a stable executable interpretation under repeated
+generation and simulation. We present a diagnosis-driven framework that detects behavioral inconsis-
+tency from the empirical distribution of key performance indicators (KPIs), localizes divergence to
+gateway logic using model-based diagnosis, maps that logic back to verbatim narrative segments,
+and repairs the source text through evidence-based refinement. Experiments on diabetic nephropathy
+health-guidance policies show that the method reduces variability in regenerated model behavior. The
+result is a closed-loop approach for validating and repairing executable process specifications in the
+absence of ground-truth BPMN models.
+Keywordsambiguity·process·modeling·automation·diagnosis·LLM·BPMN
+1 Introduction
+Natural-language policies and clinical guidelines often need to be converted into executable models to support
+simulation, quantitative evaluation, and data-driven decision making. In healthcare and public policy, this matters
+because stakeholders increasingly want to assess intervention logic, estimate key performance indicators (KPIs), and
+compare alternative strategies before deployment. BPMN provides a useful representation because it captures workflow
+logic in a formal and executable form while remaining accessible to domain experts [ 1]. Recent advances in large
+language models (LLMs) have made it possible to automatically generate BPMN models from policy documents and
+clinical narratives [ 13,15,22]. However, automatic generation alone does not solve the validation problem. Natural-
+language specifications are often ambiguous, incomplete, or context-dependent [ 2,8]. As a result, repeated BPMN
+generation from the same source text can produce multiple syntactically valid and executable models with different
+simulated behavior. Structural checks such as soundness, gateway matching, and deadlock freedom remain necessary [ 9],
+but they are not sufficient here. A model may be structurally correct and still encode a different interpretation of thearXiv:2604.10884v1  [cs.SE]  13 Apr 2026
+
+--- Page 2 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+source narrative than intended. For automatically generated executable models, the central question is whether the
+source text supports astable executable interpretation.
+This paper studies that question in a setting where no ground-truth BPMN model is available. Our goal is not to
+prove that one generated BPMN model is semantically correct, but to detect when a natural-language specification
+fails to support a stable executable interpretation under repeated generation and simulation. We do this through
+behavioral evidence: we generate multiple BPMN models from the same narrative, simulate them on the same input
+data, and analyze the empirical distribution of KPI outcomes. A highly dispersed distribution indicates that the source
+specification supports competing executable interpretations under the generation pipeline. In this setting, generation
+consistency is used as a proxy for reliability, not as a proof of semantic correctness. We recently developed an end-to-end
+LLM-driven pipeline for generating executable BPMN models from healthcare policy documents and evaluating them
+through simulation [ 16,18]. The resulting models are further optimized in downstream applications [ 19]. In that
+system, we observed a recurrent failure mode: some policy descriptions produced multiple coherent but behaviorally
+different models, even though the models were structurally valid. This divergence appeared as elevated entropy and
+multimodal KPI distributions. Because the effect did not appear uniformly across all policies, it suggested that the
+source text was an important contributor to the observed instability. In this paper, we defineambiguityas a property
+of a natural-language specification that admits multiple logically coherent executable interpretations with different
+simulated behavior. These observations motivate the following research question:Given behaviorally inconsistent
+executable models generated from the same narrative, how can we localize the source of divergence in the underlying
+text and revise the specification so that it yields more consistent executable behavior?
+To answer this question, we make three main contributions. First, we introduce a simulation-based ambiguity detection
+method that uses repeated BPMN generation, KPI-output distributions, and normalized entropy to identify when a
+specification fails to support a stable executable interpretation. Second, we propose a diagnosis-driven localization
+procedure that selects representative models from dominant KPI classes and applies model-based diagnosis (MBD) [ 10,
+17] to link divergent simulated behavior to gateway-level process logic and then to verbatim narrative segments in the
+source text. Third, we develop an evidence-based repair loop that rewrites only the affected narrative segments using
+authoritative supporting material and validates the repair through regeneration and re-simulation, yielding improved
+behavioral consistency. We demonstrate the method on diabetic nephropathy [ 20] health-guidance policies from two
+Japanese municipalities. These case studies contain nested eligibility rules, operational branching, and implicit logical
+dependencies that are difficult to translate consistently into executable models. The results show that repairing the
+identified ambiguities leads to more concentrated KPI distributions and substantially more stable regenerated BPMN
+behavior.
+2 Ambiguity Detection and Repairs
+This section presents our framework for detecting and repairing ambiguity in natural-language process descriptions
+using executable BPMN evidence.
+2.1 Automatic Text-to-Executable Model Generation
+We build on our prior pipeline for generating executable BPMN models from natural-language clinical specifications [ 18].
+The pipeline preprocesses the source document, uses an LLM to extract tasks, events, gateways, and data dependencies,
+generates BPMN XML, executes the model with a workflow engine [ 3], and aggregates execution traces into policy KPIs.
+For the present paper, the critical property is that gateway conditions are grounded in available input data variables and
+KPI-producing activities are explicitly and automatically mapped, so repeated generations can be compared behaviorally
+under the same simulated population.
+2.2 BPMN Simulation Output Distribution Analysis
+To assess macro-scale behavioral uncertainty in BPMN generation, we analyze the distribution of simulated KPI outputs
+using normalized entropy. Each generated BPMN model is simulated over the same synthetic population, and the
+resulting aggregate KPI vector is treated as one sample, y= (y 1,y2,...,y d),with ddenoting the number of KPIs. From
+these samples, we construct an empirical distribution over the distinct KPI output vectors observed across generated
+models. Because the KPI outputs are sparse, we represent this distribution as a discrete probability mass function over
+the set of unique output combinations. Let Y={y(1),...,y(K)}denote the set of unique KPI combinations, and let pi
+be the empirical probability of observing y(i). We then compute the normalized Shannon entropy of this distribution
+asHnorm=−
+∑K
+i=1pilog2pi
+/log2|Y|, which takes values in [0,1] and provides a scale-independent measure of
+output dispersion. We use Hnormas a heuristic measure of generation consistency: lower values indicate concentration
+2
+
+--- Page 3 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+around one or a few KPI combinations, whereas higher values indicate multiple competing executable interpretations.
+In the experiments, we refer to four qualitative ranges certainty:very high( ≤0.30 ),high( (0.30,0.50] ),moderate
+((0.50,0.70]), andlow(>0.70) consistency.
+2.3 Model-Based Diagnosis for Process Model Validation
+When two BPMN models represent different interpretations of the same text, their equivalence must be assessed
+behaviorally rather than only structurally. In our setting, this is done through simulation. If the models produce different
+KPI outputs for the same inputs, we must identify which model elements explain that difference. We formulate this as a
+diagnosis problem and use model-based diagnosis (MBD) [ 10,17]. We treat gateways as potentially faulty components
+because they encode the main decision logic and are the most likely source of divergent behavior. Prior work compares
+BPMN models through event-structure relations such as causality, conflict, and repetition [ 5]. Our goal is different: we
+use diagnosis inside an ambiguity detection and repair loop, so direct diagnosis of gateway decisions from execution
+outcomes is more appropriate.
+From the empirical distribution of simulation results, we select two representative models from two dominant KPI classes.
+One is designated as the reference and the other as the target for diagnosis, with no assumption on correctness. Instead,
+we choose the diagnosis direction that produces the smaller minimum-diagnosis set, since this gives a more localized
+explanation. In our formulation, the system description ( SD) consists of the target-model process structure together with
+its gateway logic. The component set ( COMPS ) is the set of gateways in the target model. The observations ( OBS) are
+activity-level KPI outputs obtained by comparing the simulations of the reference and target models. An observation is
+marked as discrepant when the reference and target outputs differ. Formally, OBS disc={o∈OBS|o ref̸=o tgt}.These
+discrepant observations serve as symptoms in the diagnostic process.
+To localize the source of error, we compare the reference and target models only on input subsets for which their
+outputs differ. Agreement on other inputs indicates conditional inconsistency, so each divergent subset defines
+a separate diagnostic context. For each execution trace τin such a context, we construct an ordered sequence
+S(τ) =⟨(t 1,K1),...,(t n,Kn)⟩,where each pair contains a task and the KPI it produces. We include only KPI-producing
+tasks, and when multiple KPIs are associated with the same activity, their names are sorted deterministically. We then
+compare the reference and target sequences and identify the first point at which they diverge. The divergence may appear
+as a missing output, an extra output, or an incorrect output. Outputs after the first divergence are treated as downstream
+consequences and are not used to construct conflicts. Let tlastbe the last correct task and tfirstthe first erroneous task
+for a given divergent trace pair. Here, the ordering relation is the execution order along the target trace under the
+corresponding input case. We define the corresponding conflict set as CONF i={g∈COMPS|t last<g<t first}.Thus,
+each divergent input-output case yields one or more conflict sets containing only the target-model gateways between the
+last correct and first incorrect outputs. This positional restriction reduces conflict size. The full diagnosis problem is
+built from the collection of conflict sets Cobtained across all divergent subsets. We then compute minimal diagnoses as
+minimal hitting sets over C, following standard MBD theory. Although hitting-set computation is NP-hard in general,
+the bounded size of the conflict sets makes enumeration practical in our setting.
+Diagnosis Refinement through Path-Based Analysis:We further refine diagnoses using input-conditioned equivalence
+of exercised gateway decision functions rather than structural similarity between BPMN models. A target gateway is
+removed from a diagnosis if its normalized logical condition is identical to a condition exercised in the reference trace
+for the same input cases. In that case, the gateway does not explain the observed output difference. This equivalence
+check is implemented through comparison of normalized abstract syntax trees (ASTs) [4].
+2.4 Ambiguity Elimination and Narrative Refinement
+The repair stage revises only the text segments identified in the ambiguity report. It uses the original narrative, the
+structured ambiguity report, and authoritative supplemental material to select one supported interpretation and rewrite
+the affected passage with minimal change. The result is a repaired specification plus traceability metadata linking
+each revision to the original ambiguity and its supporting evidence. The ambiguity elimination prompt implements a
+four-step procedure.
+Ambiguity localization and mapping:Each ambiguity instance is mapped to its exact location in the source narrative.
+This constrains the revision process to the affected text and avoids unnecessary edits elsewhere in the document.
+Evidence-based interpretation selection:The competing interpretations identified in the ambiguity report are evaluated
+against the supplemental material. The selected interpretation must be justified by explicit supporting excerpts.
+Unsupported assumptions are not allowed.
+3
+
+--- Page 4 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+Minimal disambiguation synthesis:The ambiguous text is then rewritten to make the intended logic explicit. This
+includes clarifying logical operators such as AND andOR, making temporal dependencies explicit, and resolving
+underspecified conditions. The revision is kept as small as possible so that the original terminology and phrasing are
+preserved while the identified competing interpretations are reduced to a single intended executable reading.
+Narrative reconstruction:The revised passages are reinserted into the full narrative to produce the repaired specification.
+The output of this stage is a structured ambiguity elimination report that contains the revised narrative together with
+traceability metadata, including ambiguity identifiers, rewritten excerpts, justifications, and the supporting evidence
+used for each revision.
+3 Experimental Results
+As part of an ongoing policy digitalization project, we automated the generation of simulation-ready BPMN models for
+diabetic nephropathy policies. During experimentation, we observed that some policy descriptions produced substantial
+variability in model outputs. Because no ground-truth BPMN models were available, we used simulation consistency as
+a proxy for generation reliability. We quantified this consistency using normalized entropy over the KPI distributions.
+This section reports results for two policies that exhibited high variability and shows how our method detects and repairs
+the ambiguities that give rise to that variability. Our case study uses diabetic nephropathy [ 20] health-guidance policies
+from two Japanese municipalities. These policies contain multi-stage screening rules, nested decisions, and implicit
+temporal dependencies. The automated pipeline, including PDF extraction and GPT-5.1-based translation, could itself
+introduce ambiguity. However, the translations were reviewed by native speakers and were therefore considered unlikely
+to be the main source of the observed model-generation and simulation variability. The prompts for the ambiguity
+detection and repair, together with the input data, ambiguity detection and repair reports, representative models and a
+tool demo movie can be found at https://github.com/ionmatei/ambiguity-detection . All steps that involve
+an LLM use GPT-5.1.
+3.1 Experimental Setup
+The generation pipeline described in Section 2.1 converts policy documents into executable BPMN models and evaluates
+them using five KPIs:Notification Count(NC),Health Guidance Count(HC),Guidance Resource Utilization(RU),
+Health Improvement Rate(HI), andMedical Cost Savings(CS). These KPIs are derived from the Program for Preventing
+the Progression of Diabetic Nephropathy [ 12]. NC counts executions of notification tasks. HC counts patients who
+receive guidance. RU measures how heavily guidance activities use available capacity and penalizes overload. HI
+estimates the fraction of patients who achieve clinically meaningful improvement, such as HbA1c reduction, using
+evidence-based response rates. CS estimates avoided treatment costs due to reduced disease progression over a fixed
+time horizon.
+For each policy, we independently generate 100 BPMN models, simulate each model on the same synthetic patient
+population, and aggregate five population-level KPIs. We then estimate the empirical KPI-output distribution and
+compute its normalized entropy. Policies with high entropy are passed to the ambiguity-repair pipeline: MBD localizes
+the divergent decision constructs, ambiguity localization links them to source text, and evidence-based rewriting
+produces a repaired specification for regeneration and re-simulation.
+In the diagnosis stage, we select a reference model and a target model from dominant model classes associated
+with different KPI combinations. The reference model serves as the diagnostic baseline, and the target model is
+diagnosed relative to it. The prompt explicitly states that “reference” and “target” do not imply that one model
+is correct and the other is incorrect. We choose the direction of diagnosis based on which assignment produces
+the smaller minimum-diagnosis set, as this yields a more localized and interpretable diagnostic explanation. The
+authoritative supplemental material used in the repair stage is a Tokyo Program for Prevention of Severe Progression of
+Diabetic Nephropathy [ 21], with the relevant translated paragraphs used for repairs found at ( https://github.com/
+ionmatei/ambiguity-detection/blob/main/supplemental_material.pdf).
+3.2 City 1
+The extracted City 1 policy document can be found at https://github.com/ionmatei/ambiguity-detection/
+blob/main/city-1/city_1_raw_policy.pdf . The policy mainly defines an administrative framework for long-
+term project management and outcome tracking. It specifies evaluation targets, such as HbA1c and eGFR improvement
+rates over a six-year horizon, and describes an organizational structure involving medical associations and private
+operators. Participation is driven through broad publicity and recommendation notices. Using our automated BPMN
+4
+
+--- Page 5 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+generation pipeline, we generated 100 models and simulated them on synthetically generated patient data https:
+//github.com/ionmatei/ambiguity-detection/blob/main/input-data/test_data.csv . Figure 1 shows
+the resulting KPI histogram. The distribution contains several distinct KPI combinations, indicating substantial
+variability across generated models. This suggests that the policy description admits multiple executable interpretations
+under our generation pipeline.
+Figure 1: City 1, original process description — Distribution of all five KPIs across 100 generated models, showing the
+five most frequent KPI combinations.
+Next, we select two models for diagnosis: one from Combo 1 as the reference and one from Combo 2 as the target,
+shown in Figure 2 (the XML representation of both models can be found at https://github.com/ionmatei/
+ambiguity-detection/tree/main/city-1 . We then apply MBD, with the resulting minimum diagnosis shown in
+Figure 3. The diagnosis identifies the target-model gateways Check Inclusion Eligibility andCheck Health
+Guidance Acceptanceas the main decision points that can explain the observed behavioral differences.
+Figure 2: City 1 — Target models (minimum diagnosis set highlighted in red).
+Figure 3: City 1 — Minimum diagnosis set identifying target-model components that explain the simulation differences.
+We then use the diagnosis result in the ambiguity detection step. This step links the diagnosed gateways to the policy
+paragraphs that may have caused the divergent interpretations. For City 1, it yields two ambiguities, with the first
+ambiguity (AMB-1) associated with the paragraph in Listing 1.
+5
+
+--- Page 6 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+Listing 1: AMB 1, Paragraph in the original City 1 policy description
+Selection method: Persons who are visiting medical institutions for diabetes and whose renal function is impaired. Judgment
+criteria based on health checkup results among those who underwent health checkups: fasting blood glucose≥126 mg/dL or HbA1c
+≥6.5%, and eGFR 30-60 mL/min/1.73m2or urinary protein±or higher. Selection target criteria -judgment criteria based on
+receipts: Persons whose main disease is diabetes caused by lifestyle related diseases. Other judgment criteria: Persons deemed
+necessary by a physician.
+The ambiguity report states that this text does not clearly define the condition evaluated at gateway_3 , which appears as
+Check Clinical Eligibility in the reference model and Check Inclusion Eligibility in the target model.
+In the reference model, gateway_3 is interpreted strictly: a patient must satisfy both the receipt-based diabetes criterion
+and the laboratory thresholds. In the target model, gateway_3 is interpreted more broadly: a patient qualifies if either
+the laboratory thresholds or the receipt-based diabetes criterion is satisfied. This difference changes which patients
+proceed to notification and therefore produces different simulation traces. The second ambiguity (AMB-2) is associated
+with the paragraph in Listing 2.
+Listing 2: AMB 2, Paragraph in the original City 1 policy description
+Application for participation: Applicants wishing to participate submit a consent form to their primary care physician. The
+primary care physician submits the consent form and an instruction/recommendation form to the ward.
+Implementation - Content of implementation: Public health nurses and registered dietitians at cooperating medical institutions
+in the ward that implement health guidance provide health guidance through individual interviews once a month, six times in
+total.
+For AMB-2, the ambiguity report states that the text does not clearly define what Health_Guidance == 1 means
+atgateway_4 , labeled Check Health Guidance Acceptance . In the reference model, gateway_4 is interpreted
+narrowly: acceptance means that an already eligible patient has consented and is expected to proceed with health
+guidance. In the target model, gateway_4 is interpreted more broadly: submitting the consent form is treated as
+acceptance, even for patients admitted under the more permissive eligibility logic. This difference changes which
+patients proceed to health-guidance sessions and explains the different simulation traces. The full ambiguity report
+for City 1 can be found at https://github.com/ionmatei/ambiguity-detection/blob/main/city-1/city_
+1_ambiguity_report.pdf . The final step repairs the policy text to remove the identified ambiguities, with the
+repair results shown in Listings 3 and 4. For AMB-1, the repair makes the clinical eligibility logic explicit by
+stating that a person must satisfy both a diabetes-related condition and a reduced-renal-function condition, with
+OR relations within each group. For AMB-2, the repair clarifies that acceptance of health guidance requires both
+clinical eligibility and submission of the consent form through the primary care physician. Together, these revisions
+align the narrative more closely with the intended executable logic, reduce ambiguity at the main eligibility and
+participation gateways, and make the resulting BPMN behavior more consistent under repeated generation. The
+full repair report that include supplemental material content used for as rational for repairs can be found at https:
+//github.com/ionmatei/ambiguity-detection/blob/main/city-1/city_1_repair_report.pdf.
+Listing 3: AMB 1, City 1, Revised paragraph and rationale
+revised_process_narrative_excerpt:
+"Selection method: Persons who are visiting medical institutions for diabetes and whose renal function is impaired. Judgment
+criteria based on health checkup results among those who underwent health checkups: persons who (meet at least one of the
+following diabetes conditions: (fasting blood glucose≥126 mg/dL OR HbA1c≥6.5% OR are currently receiving medical treatment
+for diabetes OR have a history of diabetes)) AND who (meet at least one of the following reduced renal function conditions:
+eGFR <45 mL/min/1.73m2OR urinary protein (±) or higher OR confirmation of microalbuminuria). Selection target criteria -
+judgment criteria based on receipts: Persons whose main disease is diabetes caused by lifestyle-related diseases. Other
+judgment criteria: Persons deemed necessary by a physician,"
+rationale:
+The revision makes explicit that clinical eligibility requires BOTH (having diabetes) AND (having reduced kidney function),
+with OR relationships inside each group, matching the supplemental algorithmic structure. The previous phrasing could be read
+as tying receipts-based diabetes and physician judgment as alternative independent paths; the new text confines eligibility to
+the combined lab/clinical criteria expressed as ((diabetes conditions) AND (renal conditions)) in line with the final
+expression ‘( (Fasting_Blood_Glucose >= 126 OR HbA1c >=6.5) OR Diabetes_Under_Treatment == 1 OR Diabetes_History == 1 ) AND (
+eGFR < 45.0 OR Urinary_Protein >= 0 OR Urine_Albumin == 1 )‘.
+Listing 4: AMB 2, City 1, Revised paragraph and rationale
+revised_process_narrative_excerpt:
+"Application for participation: Applicants wishing to participate submit a consent form to their primary care physician. The
+primary care physician submits the consent form and an instruction/recommendation form to the ward. A person is regarded as
+having accepted health guidance (Health_Guidance==1) if and only if (they have been deemed eligible according to the program’s
+clinical eligibility criteria AND they submit this consent form through their primary care physician)
+Implementation - Content of implementation: Public health nurses and registered dietitians at cooperating medical institutions
+in the ward that implement health guidance provide health guidance through individual interviews once a month, six times in
+total."
+rationale:
+6
+
+--- Page 7 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+The revision explicitly links the process variable ‘Health_Guidance == 1‘ to two conditions: prior eligibility based on
+clinical criteria and the act of submitting the consent form via the primary care physician. This removes ambiguity about
+whether consent alone, or consent plus eligibility, constitutes acceptance, and anchors gateway behavior to the operational
+workflow description where consent is checked after eligibility assessment and notification.
+We then re-ran the generation process using the repaired policy text, and the resulting histogram is shown in Figure 4.
+More than 90% of the generated models now produce the same outcome. Under the entropy categories defined
+earlier, this corresponds to very high generation consistency after repair and indicates that the clarified process logic
+substantially reduced behavioral variability.
+Figure 4: City 1, repaired process description — Distribution of all five KPIs across 100 generated models.
+3.3 City 2
+The City 2 policy ( https://github.com/ionmatei/ambiguity-detection/blob/main/city-2/city_2_
+raw_policy.pdf ) is more operational and clinically specific than City 1. It defines explicit eligibility conditions,
+downstream screening logic, exclusion criteria, and concrete follow-up actions. Using the same pipeline, we generated
+100 BPMN models and computed the KPI distribution shown in Figure 5. The figure again shows substantial output
+variability. For the MBD step, we selected a model from Combo 2 as the reference and a model from Combo 1 as the tar-
+get (both models can be found at https://github.com/ionmatei/ambiguity-detection/tree/main/city-2
+with the resulting diagnosis is shown in Figure 6.
+City 2 is operationally more explicit than City 1 and therefore yields a more branched BPMN structure, with detailed
+screening, exclusion, and follow-up logic. Under repeated generation, it also exhibits substantial KPI variability, making
+it a useful second test case for ambiguity detection and repair.
+Figure 5: City 2, original process description — Distribution of all five KPIs across 100 generated models, showing the
+five most frequent KPI combinations.
+Using this diagnosis result, the ambiguity report for City 2 identifies four sources of divergence between the reference
+and target BPMN models. The first found ambiguity is shown in AMB-1 (Listing 5), and concerns the gateway Check
+Eligibility for Quantitative Albumin Testing in the target model. The policy text is unclear about whether
+7
+
+--- Page 8 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+Figure 6: City 2 – Minimum diagnosis set identifying target-model components that explain the simulation differences.
+eligibility should be based only on Category A, as in the reference model, or on the full condition Category A OR
+Category B, as in the target model. The full list of ambiguities for City 2 can be found at https://github.com/
+ionmatei/ambiguity-detection/blob/main/city-2/city_2_ambiguity_report.pdf.
+Listing 5: AMB 1, Paragraph in the original City 2 policy description
+An individual is eligible for quantitative urinary albumin testing if, and only if, at least one of the following two
+categories applies: - Category 1○-A: The individual (a) is 60 to 64 years of age at the end of the fiscal year AND (b) is not
+receiving diabetes medication AND (c) has R5 health checkup results showing HbA1c in the range 6.0% to 6.4% AND (d) has
+urinary protein in the range from (-) to (+). In logical form: (Age is between 60 and 64 at the end of the fiscal year) AND (
+not receiving diabetes medication) AND (HbA1c is between 6.0% and 6.4% in the R5 health checkup) AND (urinary protein is
+between (-) and (+)). - Category 1○-B: The individual is designated in R5 as a target of the diabetes medical consultation
+recommendation program. In logical form: (Designated in R5 as a target of the diabetes medical consultation recommendation
+program). The overall eligibility condition for 1○is: (Category 1○-A) OR (Category 1○-B).
+The ambiguity report was then used in the repair step. The results for repairing AMB-1 are shown in Listing 6, with the
+full repair report found at https://github.com/ionmatei/ambiguity-detection/blob/main/city-2/city_
+2_repair_report.pdf . The first two ambiguities (AMB-1 and AMB-2) are resolved by making the quantitative
+urinary albumin testing pathway explicit, with eligibility defined as Category ①-A OR Category ①-B. Individuals who
+satisfy neither condition are excluded, and the testing workflow terminates. The third ambiguity (AMB-3) is resolved
+by clarifying that the sequence “eligible for testing →tested→microalbuminuria” is only one sufficient path to Renal
+Health Screening interview eligibility, not the only one. This preserves physician-determined criteria as an independent
+basis for participation. The forth ambiguity (AMB-4) is resolved by clarifying who receives outreach. Telephone
+contact and ticket issuance are tied specifically to high-risk individuals identified from R5 health check data. Missing
+qualifying health-check information is also made an explicit reason for exclusion from the testing pathway. Together,
+these revisions make the gateway logic, termination behavior, and downstream eligibility conditions much clearer and
+lead to more consistent generated BPMN behavior.
+Listing 6: AMB 1, City 2, Revised paragraph and rationale
+revised_process_narrative_excerpt:
+An individual is eligible for quantitative urinary albumin testing if, and only if, at least one of the following two
+categories applies, and individuals who do not satisfy either category are not eligible and shall exit this testing-related
+workflow at this point:
+- Category①-A: The individual (a) is 60 to 64 years of age at the end of the fiscal year AND (b) is not receiving diabetes
+medication AND (c) has R5 health checkup results showing HbA1c in the range 6.0% to 6.4% AND (d) has urinary protein in the
+range from (-) to (+). In logical form:
+(Age is between 60 and 64 at the end of the fiscal year) AND (not receiving diabetes medication) AND (HbA1c is between 6.0%
+and 6.4% in the R5 health checkup) AND (urinary protein is between (-) and (+)).
+- Category①-B: The individual is designated in R5 as a target of the diabetes medical consultation recommendation program,
+based on the program’s diabetes and kidney-function criteria. In logical form:
+(Designated in R5 as a target of the diabetes medical consultation recommendation program).
+The overall eligibility condition for①is:
+((Category①-A) OR (Category①-B)); individuals for whom NOT((Category①-A) OR (Category①-B)) holds are not eligible for
+quantitative urinary albumin testing and are excluded from further processing related to this testing.",
+rationale:
+"The revision makes explicit that the logical condition for eligibility is exactly (Category①-A OR Category①-B), and that
+failing both categories results in termination of the quantitative-test-related workflow. This selects the \"full OR\"
+interpretation and removes the possibility of implementing only Category①-A. The explicit NOT((A) OR (B)) clause aligns the
+narrative with a gateway whose negative branch ends processing for non-eligible individuals."
+After re-running the generation process, we obtained the histogram in Figure 7, with 70% of the generated models
+now producing the same outcome. Under the entropy categories defined earlier, this corresponds to high generation
+consistency after repair and indicates that the clarified process logic reduced behavioral variability.
+8
+
+--- Page 9 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+Figure 7: City 2, repaired process description — Distribution of all five KPIs across 100 generated models.
+4 Comparison with the State of the Art and Discussion
+Our work relates to three research areas: ambiguity detection in natural-language specifications, ambiguity repair, and
+automated process-model generation. Its distinguishing feature is that ambiguity is not treated as a purely linguistic
+property. Instead, we detect and explain ambiguity through its observable effect on the behavior of executable BPMN
+models under simulation.
+Ambiguity has long been recognized as a major source of defects in requirements engineering. Prior work defined
+ambiguity from dictionary, linguistic, and software-engineering perspectives and surveyed techniques and tools for
+avoiding and detecting ambiguity in natural-language requirements [ 8]. Rule-based tools such as QuARS detect potential
+ambiguity-related defects through lexical and syntactic analysis [ 14], while standards such as ISO/IEC/IEEE 29148
+emphasize unambiguity as a core requirement-quality property [ 2]. More recent work uses machine learning and
+LLMs to detect and explain ambiguity, extending beyond earlier rule-based approaches that often relied on ambiguous
+keywords, key phrases, or heuristics [ 6]. However, these methods remain primarily text-centric and typically do
+not directly evaluate whether alternative readings lead to materially different executable behavior. In contrast, our
+framework flags ambiguity as actionable only when it is supported by behavioral evidence, namely divergent KPI
+outcomes produced by executable BPMN models generated from the same source text. One line of prior work addresses
+ambiguity prevention or reduction through controlled natural language, such as Attempto Controlled English, which
+rewrites requirements/specifications into a more precise, machine-processable form [ 11]. These approaches can be
+effective, but many require substantial human involvement or impose strong upfront language restrictions. Other
+methods use formal artifacts, examples, or human-in-the-loop feedback to guide refinement, but their applicability often
+depends on the availability of supporting annotations, domain knowledge, or expert validation [ 7,23]. LLM-based
+rewriting can generate plausible clarifications, but without a principled basis for choosing among interpretations, it
+may introduce edits that are linguistically fluent yet weakly justified. Our repair method addresses this limitation
+by grounding revision in diagnosed behavioral discrepancies, mappings from diagnosed gateway logic to verbatim
+narrative segments, and authoritative supplemental evidence. As a result, the revised text is targeted at ambiguities
+shown to alter executable behavior.
+Our work is also related to recent research on automated BPMN generation and ambiguity-aware process modeling [ 13,
+22]. These studies have shown that LLMs can extract process elements and support iterative model refinement,
+sometimes with human feedback or ambiguity-aware prompting. Their main focus, however, is improving generation
+quality. Our focus is different. We address the case in which repeated generations from the same specification produce
+multiple structurally valid but behaviorally different models. In that setting, the key question is not only how to generate
+a BPMN model, but how to determine whether the source text supports a stable executable interpretation. We answer
+this question through a diagnosis-driven loop that connects simulation outputs, gateway-level discrepancies, narrative
+ambiguity, and evidence-based repair.
+The closest methodological distinction of our work is therefore the role of executable evidence. Rather than inferring
+ambiguity solely from wording, we use simulation-output divergence to decide which ambiguities matter, model-based
+diagnosis to localize the responsible decision logic, and regeneration plus re-simulation to test whether the repair
+improves behavioral consistency. This closed-loop validation structure provides a level of behavioral grounding and
+traceability that text-only approaches do not offer. Our method has two main limitations. First, it can detect only
+ambiguities that affect the monitored KPIs under the sampled input population. Ambiguities that do not change those
+outputs, or that arise outside the explored input region, may remain undetected. Second, the localization and repair
+stages still rely on LLM prompting and on the completeness of the supporting evidence. Therefore, the quality of
+9
+
+--- Page 10 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+the final revision depends on both prompt design and the quality of the external material used to resolve competing
+interpretations.
+5 Conclusion
+We presented a diagnosis-driven framework for validating and repairing LLM-generated executable BPMN models
+when no ground-truth BPMN is available. The method uses repeated simulation to detect behavioral inconsistency,
+MBD to localize divergence to gateways, and evidence-based text repair to remove the responsible ambiguity from the
+source narrative. In two diabetic nephropathy policy case studies, the repaired specifications produced substantially
+more concentrated KPI distributions under regeneration. The main contribution is a closed validation loop from
+natural-language specification to executable model, simulated behavior, diagnosis, and repaired specification.
+References
+[1] Business Process Model and Notation (BPMN) Version 2.0.2, 2014.
+[2] ISO/IEC/IEEE 29148:2018 systems and software engineering—life cycle processes—requirements engineering,
+2018.
+[3]S. Abels, M. Hampton, B. Silver, and K. McDonald. Spiffworkflow. https://github.com/sartography/
+SpiffWorkflow, 2025.
+[4]Alfred V . Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman.Compilers: Principles, Techniques, and Tools.
+Addison-Wesley, 2006.
+[5]Abel Armas-Cervantes, Paolo Baldan, Marlon Dumas, and Luciano Garcia-Bañuelos. Diagnosing behavioral
+differences between business process models: An approach based on event structures.Inf. Syst., 56(C):304–325,
+March 2016.
+[6]Sarmad Bashir, Alessio Ferrari, Abbas Khan, Per Erik Strandberg, Zulqarnain Haider, Mehrdad Saadatmand, and
+Markus Bohlin. Requirements ambiguity detection and explanation with llms: An industrial study. In2025 IEEE
+International Conference on Software Maintenance and Evolution (ICSME), pages 620–631, 2025.
+[7]A. Beg, D. O’Donoghue, and R. Monahan. Leveraging llms for formal software requirements – challenges and
+prospects.https://arxiv.org/abs/2507.14330, 2025.
+[8]Daniel Berry and Erik Kamsties. Ambiguity in requirements specification.Persp. on SW Requirements, 01 2004.
+[9]Flavio Corradini, Andrea Morichetta, Andrea Polini, Barbara Re, Lorenzo Rossi, and Francesco Tiezzi. Correctness
+checking for bpmn collaborations with sub-processes.Journal of Systems and Software, 166:110594, 2020.
+[10] Johan de Kleer and Brian C. Williams. Diagnosing multiple faults.Artificial Intelligence, 32(1):97–130, 1987.
+[11] N. E. Fuchs and R Schwitter. Attempto controlled english (ace). https://arxiv.org/abs/cmp-lg/9603003 ,
+1996.
+[12] Japan Medical Association and Japan Diabetes Control and Promotion Council and Ministry of Health, Labour
+and Welfare.Program for Preventing the Progression of Diabetic Nephropathy. Tokyo, Japan, 2024. In Japanese.
+[13] Humam Kourani, Alessandro Berti, Daniel Schuster, and Wil M. P. van der Aalst.Process Modeling with Large
+Language Models, page 229–244. Springer Nature Switzerland, 2024.
+[14] Giuseppe Lami, Mario Fusani, and Gianluca Trentanni.QuARS: A Pioneer Tool for NL Requirement Analysis,
+page 211–219. Springer-Verlag, Berlin, Heidelberg, 2022.
+[15] Ion Matei, Maksym Zhenirovskyy, Praveen Kumar Menaka Sekar, and Hon Yung Wong. Automated BPMN
+model generation from textual process descriptions: A multi-stage LLM-driven approach. InProceedings of the
+2026 IEEE International Systems Conference (SysCon), 2026.
+[16] P. K. Menaka Sekar. Automated-bpmn-generation. https://praveen1098.github.io/
+Automated-BPMN-Generation/, 2026.
+[17] Raymond Reiter. A theory of diagnosis from first principles.Artificial Intelligence, 32(1):57–95, 1987.
+[18] Praveen Kumar Menaka Sekar, Ion Matei, Maksym Zhenirovskyy, Hon Yung Wong, Sayuri Kohmura, Shinji
+Hotta, and Akihiro Inomata. Automatic generation of executable bpmn models from medical guidelines. https:
+//arxiv.org/abs/2604.07817, 2026.
+[19] Nanako Shimaoka, Naoyuki Kamiyama, Shinji Hotta, Sayuri Kohmura, Yuta Kurume, Hiroko Suzuki, Akihiro
+Inomata, and Eigo Segawa. Structure-aware optimization of decision diagrams for health guidance via integer
+programming.https://arxiv.org/abs/2603.22996, 2026.
+10
+
+--- Page 11 ---
+Ambiguity Detection and Elimination in Automated Executable Process ModelingA PREPRINT
+[20] Yukiko Tateyama, Tomonari Shimamoto, Manako K. Uematsu, Shotaro Taniguchi, Norihiro Nishioka, Keiichi
+Yamamoto, Hiroshi Okada, Yoshimitsu Takahashi, Takeo Nakayama, and Taku Iwami. Status of screening and
+preventive efforts against diabetic kidney disease between 2013 and 2018: analysis using an administrative
+database from kyoto-city, japan.Frontiers in Endocrinology, V olume 14 - 2023, 2023.
+[21] Tokyo Metropolitan Government, Tokyo Medical Association, and Tokyo Council for the Promotion of Diabetes
+Countermeasures. Tokyo program for prevention of severe progression of diabetic nephropathy. Technical report,
+Tokyo Metropolitan Government, March 2022. Originally issued in March 2018; revised in March 2022.
+[22] W. Van Woensel and S. Motie. Nlp4pbm: A systematic review on process extraction using natural language
+processing with rule-based, machine and deep learning methods. https://arxiv.org/abs/2409.13738 , 2024.
+[23] Apurwa Yadav, Aarshil Patel, and Manan Shah. A comprehensive review on resolving ambiguities in natural
+language processing.AI Open, 2:85–92, 2021.
+11

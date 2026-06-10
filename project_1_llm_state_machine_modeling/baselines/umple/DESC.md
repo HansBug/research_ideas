@@ -7,10 +7,10 @@
 - **作者**：Parva Pathak
 - **单位**：University of Ottawa / Université d'Ottawa
 - **发表**：硕士学位论文（Master's Thesis），2025年
-- **类型**：PhD Thesis
+- **类型**：Master's Thesis
 - **链接**：https://ruor.uottawa.ca/items/b3679a91-5445-45ce-b289-bfddba3010f6
-- **代码/仓库获取方式**：原文未提供公开代码/仓库获取链接
-- **数据集获取方式**：论文中使用的5个测试系统（Blackjack, Course Section, Credit Card Transaction, Driver License, Hotel Stay）在论文正文中有详细描述和需求说明，但未提供独立的公开数据集下载链接
+- **代码/仓库获取方式**：原文未提供论文专属公开代码/仓库获取链接；Umple 工具链本身公开维护于 [umple/umple](https://github.com/umple/umple) 与 [umple/umpleonline](https://github.com/umple/umpleonline)，但这不等同于本 thesis 的实验脚本。
+- **数据集获取方式**：论文中使用的5个测试系统（Blackjack, Course Section, Credit Card Transaction, Driver License, Hotel Stay）在论文正文中有详细描述和需求说明，部分可从 [Umple Requirements Examples](https://cruise.umple.org/umple/RequirementsExamples.html) 重建，但未提供独立的论文 benchmark 下载包。完整资源状态见 [ASSETS.md](./ASSETS.md)。
 
 ## 简报
 
