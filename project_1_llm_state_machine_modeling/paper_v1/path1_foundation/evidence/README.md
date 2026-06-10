@@ -8,12 +8,14 @@
 |---|---|
 | [project_inventory.md](./project_inventory.md) | 盘点 method、eval、baselines、sources、talks、runs 和当前 foundation 的证据资产与缺口。 |
 | [baseline_and_related_work_matrix.md](./baseline_and_related_work_matrix.md) | 将已读 baseline / related work 压缩为 direct / near / evidence-only / background，并给出后续可执行 baseline contract。 |
+| [venue_length_structure_survey.md](./venue_length_structure_survey.md) | 摸排 issue #67 的 CCF-B 期刊官方篇幅约束、模板信号和真实已发表样本结构。 |
 
 ## 使用顺序
 
 1. 做 paper planning 或写 related work 前，先读 [project_inventory.md](./project_inventory.md)。
 2. 选择 baseline 或设计实验对照前，读 [baseline_and_related_work_matrix.md](./baseline_and_related_work_matrix.md)。
-3. 如果要新增 related work claim，必须回到对应 baseline 单篇目录核验 `bibtex.bib` / `DESC.md` / 原文提取物。
+3. 确定投稿出口、篇幅预算或初稿结构前，读 [venue_length_structure_survey.md](./venue_length_structure_survey.md)。
+4. 如果要新增 related work claim，必须回到对应 baseline 单篇目录核验 `bibtex.bib` / `DESC.md` / 原文提取物。
 
 ## 学术约束
 
