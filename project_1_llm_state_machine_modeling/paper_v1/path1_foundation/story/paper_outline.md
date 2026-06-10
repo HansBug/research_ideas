@@ -10,7 +10,7 @@
 2. **Path-2 控制系统差异化**、变量角色、BMC / LTL、深控制系统语义暂不作为第一篇主线；这些内容进入 future work 或后续论文。
 3. **E1 / E2 不是 Hybrid 方法贡献**。E1 是同一方法底座在自建闭环中的运行形态；E2 是同一方法底座通过 skill 在成熟 coding agent 中的运行形态。二者是实验条件，不是两个方法拼装。
 4. 论文主文弱化 `fcstm` 名称，优先称为“形式化 / 可执行状态机表示”；工具名放在 implementation / artifact 中。
-5. 方法贡献围绕“表示 + 检查 + 仿真 + 修复 + 审计记录”，不是围绕某个 prompt、某个框架或某个 LLM provider。
+5. 方法贡献围绕 LLM4STMModeling 的“表示 + 检查 + 仿真 + 修复决策”，不是围绕某个 prompt、某个框架、某个 LLM provider 或 run record。run record 只作为实验复核、打假和排障支撑。
 
 ## 2. 9 个五绿直接 baseline 后的现实判断
 
@@ -26,21 +26,21 @@
 | Umple Llama3 | NL 到 Umple 状态机代码，比较 zero-shot / one-shot / RAG | 打穿“RAG / few-shot 改善状态机代码生成是新贡献” | structured / RAG prompt baseline 候选 |
 | LLMs for EMP | NL 到 PlantUML / SysML 行为模型，含规则检查反馈和公开数据 | 打穿“反馈修复状态机 / 行为模型是独有优势” | 强 closest work；需区分语法反馈与可执行仿真反馈 |
 | Pushing the Generative Envelope | 短系统描述到 SysML v2 requirements / state machine diagrams，比较 prompt 技巧 | 打穿“prompt / temperature 是核心贡献” | evidence-only / prompt-technique 对照 |
-| TTool-AI | NL 到 SysML blocks / state machines / TTool XML，含知识注入与自动反馈循环 | 打穿“工具集成 + 自动反馈闭环是首创” | 强 closest work；强调本文的 run record、仿真、组件评价差异 |
+| TTool-AI | NL 到 SysML blocks / state machines / TTool XML，含知识注入与自动反馈循环 | 打穿“工具集成 + 自动反馈闭环是首创” | 强 closest work；强调本文的控制系统语义、scenario-level feedback、修复决策和组件评价差异；run record 只作实验复核 |
 
 结论：第一篇不能把 novelty 写成“我们能从自然语言生成状态机”。这个主问题已经被多条路线覆盖。本文最稳的增量只能是：
 
-> 将自然语言状态机生成转化为可解析、可执行、可检查、可仿真、可修复、可审计的闭环建模任务，并用冻结样本、人工组件级裁决、消融和 closest baseline 对比评估可执行形式化反馈的边际价值。
+> 将自然语言状态机生成转化为可解析、可执行、可检查、可仿真、可修复的闭环建模任务，并用冻结样本、人工组件级裁决、消融和 closest baseline 对比评估可执行形式化反馈与结构化修复决策对模型质量的边际价值。
 
 ## 3. 论文主线四句
 
 ### 3.1 Thesis
 
-本文提出并评估一种面向自然语言控制系统需求的 LLM 状态机建模闭环，该闭环通过形式化 / 可执行状态机表示把 LLM 生成结果接入确定性检查、场景仿真、结构化修复和运行审计记录，并在 Path-1 基线硬对比中检验可执行形式化反馈对模型质量、稳定性和可审计性的贡献。
+本文提出并评估一种面向自然语言控制系统需求的 LLM 状态机建模闭环，该闭环通过形式化 / 可执行状态机表示把 LLM 生成结果接入确定性检查、场景仿真和结构化修复决策，并在 Path-1 基线硬对比中检验可执行形式化反馈对模型质量和稳定性的影响。
 
 ### 3.2 Gap
 
-已有 LLM 状态机生成工作已经能生成 FSM、UML / SysML state machine、Umple、Mermaid 或 TTool 模型，但多数工作仍偏“生成后评价”或“语法 / schema / 人工反馈”，缺少一个同一实验协议下可执行、可仿真、可审计的闭环来说明工具反馈如何改变模型质量与修复过程。
+已有 LLM 状态机生成工作已经能生成 FSM、UML / SysML state machine、Umple、Mermaid 或 TTool 模型，但多数工作仍偏“生成后评价”或“语法 / schema / 人工反馈”，缺少一个同一实验协议下可执行、可仿真的闭环来说明工具反馈如何改变模型质量与修复过程；run record 只用于复核该过程。
 
 ### 3.3 Technical challenge
 
@@ -48,7 +48,7 @@
 
 ### 3.4 Method insight
 
-LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性工具负责把候选模型变成可解析、可执行、可仿真的对象，并以结构化 diagnostics / traces / diffs 形成反馈。两者之间用 run record 和 FixLog 连接，使“生成了什么、为什么修、如何修、修后是否回归”都能被审计。
+LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性工具负责把候选模型变成可解析、可执行、可仿真的对象，并以结构化 diagnostics / traces / diffs 形成反馈。两者之间用 FixLog 连接修复决策，并用 run record 保存“生成了什么、为什么修、如何修、修后是否回归”，用于实验复核、打假和排障。
 
 ## 4. 建议 RQ
 
@@ -56,7 +56,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 |---|---|---|---|
 | RQ1 | 在与近期直接 baseline 可比的输入 / 输出 / 组件评价协议下，本文方法能否生成更完整、可执行、可检查的状态机？ | frozen sample registry、至少 1 个 same-sample approximate baseline、组件级 human adjudication | 降级为 pilot / diagnostic comparison |
 | RQ2 | parse / semantic / inspect / simulation 等可执行形式化反馈分别贡献了什么？ | B0-B5 消融、失败类型学、修复轨迹 | 只报告哪些反馈源最常触发有效修复，不宣称整体提升 |
-| RQ3 | 同一方法底座在自建 agent-loop 与成熟 coding-agent skill 形态下，在质量、稳定性、成本和可审计性上有何差异？ | E1/E2 同样本或可比样本 run record、NFRR / human review、成本和失败记录 | 写成 implementation study / exploratory analysis |
+| RQ3 | 同一方法底座在自建 agent-loop 与成熟 coding-agent skill 形态下，在质量、稳定性、成本和失败模式上有何差异？ | E1/E2 同样本或可比样本 run record、NFRR / human review、成本和失败记录 | 写成 implementation study / exploratory analysis；run record 只作复核证据 |
 | RQ4 | 失败样本暴露了哪些状态机建模难点，例如 guard/action/hierarchy/变量/场景 oracle 漂移？ | failure taxonomy、代表性失败 case、reviewer closeout | 写成 threats / future work，不支撑主 claim |
 
 ## 5. 章节大纲草案
@@ -64,7 +64,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 ### 1 Introduction
 
 - 开场不是“LLM 可以画状态机”，而是“状态机模型只有可执行、可检查、可追溯时才可用于高可信控制系统建模”。
-- 说明已有工作已经能生成状态机族模型，但生成后模型的可执行性、反馈闭环和审计证据不足。
+- 说明已有工作已经能生成状态机族模型，但生成后模型的可执行性、反馈闭环和实验复核证据不足。
 - 明确本文研究问题：可执行形式化反馈是否能提升 LLM 状态机建模。
 - 给出贡献，但全部限定在后续证据已经完成的范围内。
 
@@ -85,7 +85,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 - Overview：生成-检查-仿真-修复闭环。
 - Representation：可执行状态机表示及其组件抽取。
 - Deterministic feedback：parse / semantic / inspect / simulation。
-- Repair and audit：fix request、accept/reject、FixLog、SL-10-style review、run record。
+- Repair decision：fix request、accept/reject、FixLog、SL-10-style review；run record 只作为实验复核记录。
 - Agent conditions：E1 自建闭环与 E2 成熟 agent skill route，作为实验条件而非 Hybrid 贡献。
 
 ### 5 Experimental Protocol
@@ -160,7 +160,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 | Oracle 门 | LLM judge 或单人判断不足 | `human_rubric.md`、`oracle_protocol.md`、`>=2` annotators、agreement / adjudication |
 | 可执行性门 | 文本相似不等于状态机可用 | parse / semantic / inspect / simulation 结果与 eligibility filter |
 | 消融门 | 无法证明 feedback 贡献 | B0-B5 条件、run record、failure taxonomy |
-| 审计门 | reviewer 无法复现或追踪修复 | prompt、raw output、usage、stage trace、scenario、diff、redaction |
+| 复核门 | reviewer 无法复现或追踪修复 | prompt、raw output、usage、stage trace、scenario、diff、redaction |
 | Claim 门 | 摘要 / 引言过度宣称 | [claim_evidence_map.md](./claim_evidence_map.md) 逐句审计 |
 
 ## 9. 当前 foundation 允许说什么
@@ -168,7 +168,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 当前只能说：
 
 - 已建立第一篇 Path-1 paper 的 foundation、历史资产归档和执行 gate。
-- 已确认第一篇主线应从“能否生成状态机”收缩为“可执行形式化反馈是否带来可审计增量”。
+- 已确认第一篇主线应从“能否生成状态机”收缩为“可执行形式化反馈与结构化修复决策是否带来模型质量增量”。
 - 已识别 9 个五绿 direct baseline 对 novelty 的反证压力。
 - 已规划 baseline、sample、oracle、run record、ablation 和 writing 的后续 PR。
 

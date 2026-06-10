@@ -20,14 +20,13 @@
 | 本研究面向 NL 控制系统需求到状态机模型生成任务。 | Foundation-supported | project_1 研究定位、sources / Path-1 / Path-2 资料、导师讨论文档 | 正式 manuscript 中定义输入输出和范围 | “we study NL-to-state-machine modeling for control-system requirements” |
 | 当前方法底座已有可解析、可执行的形式化状态机表示和 agent-loop 基础设施。 | Foundation-supported | [../../../method/README.md](../../../method/README.md)、pyfcstm / method stage API、run evidence | paper 中弱化 `fcstm` 名称，说明表示能力而非 DSL novelty | “our infrastructure uses a formalized/executable state-machine representation” |
 | 当前方法底座能将 deterministic checks 与 simulation feedback 放入 LLM 建模闭环。 | Foundation-supported | [../../../method/README.md](../../../method/README.md)、[../../../method/STATUS.md](../../../method/STATUS.md)、LG-M1 run records | 主实验 ablation 支撑边际贡献，并正面对比已有 feedback-loop baseline | “the implemented loop supports formal feedback and executable simulation feedback” |
-| run record / FixLog 提供可审计证据链。 | Foundation-supported | method run-record contract、LG-M1 final evidence、仓库 run record 规范 | artifact package 中给最小复现命令 | “the infrastructure records stage traces, repairs, and eligibility for auditability” |
 | PR #9 提供了可复用的 Path-1 sample selection assets。 | Foundation-supported | [sample_assets.md](../dataset_selection/sample_assets.md)、PR #9 分支资产 | 正式 sample registry 重核 | “historical candidate pool and stress-test assets” |
 | 本稿当前投稿策略是按 CCF-A 标准打磨并优先投 CCF-B rolling journal。 | Foundation-supported | issue #67、[venue_readiness_gate.md](./venue_readiness_gate.md)、ccf_venues 中 SoSyM / ASEJ / REJ 入口 | S0 产出 `target_venue_decision.md`，投前人工复核 author guidelines | “we prepare the manuscript against a high-rigor review standard while targeting a fit-first CCF-B journal route” |
 | 本稿已经达到 CCF-A 论文标准或投稿级质量。 | Planned | 当前只有 foundation gate，没有完整实验、稿件和 strong review closeout | G3 主实验、G4 完整稿、G5 C/I closeout、G6 artifact package | G5 前禁止写成完成事实；只能写“readiness gate is defined” |
 | 本文通过 frozen benchmark、human adjudication、ablation 和 recent baselines 完成评估。 | Planned | 本 PR 只有计划；[experiment_inventory.md](../experiment_design/experiment_inventory.md) 仍标注待正式实验 | G2 sample/oracle freeze、G3 main experiment、G5 review closeout、9 个 direct baseline absorption gate | 只能写“we plan / will evaluate after freeze”；不能写“we evaluate” |
 | 本方法提升了 LLM 状态机建模质量。 | Planned | 当前只有 method infrastructure 和代表性 run evidence | 主实验结果、baseline 对比、human adjudication | 结果出来前只能写研究问题：“whether feedback improves...” |
 | 本文是首个 NL / 文档到状态机生成方法。 | Forbidden | 9 个五绿 direct baseline 已覆盖 FSM、UML/SysML state machine、Umple、Mermaid、TTool、protocol FSM 等路线 | 不可升级；只能作为 related work 背景 | 禁止写；可改成“we study executable feedback for NL-to-state-machine modeling” |
-| 本文是首个将 feedback loop 用于 LLM 状态机 / 行为模型生成的方法。 | Forbidden | Designing FSMs、LLMs for EMP、TTool-AI 已有 oracle / model-checking rules / tool feedback / repair loop 先例 | 不可升级；只能限定为本文反馈组合和审计协议差异 | 禁止写“first feedback loop”；可写“integrates deterministic checking and simulation into an auditable loop” |
+| 本文是首个将 feedback loop 用于 LLM 状态机 / 行为模型生成的方法。 | Forbidden | Designing FSMs、LLMs for EMP、TTool-AI 已有 oracle / model-checking rules / tool feedback / repair loop 先例 | 不可升级；只能限定为本文反馈组合、scenario-level feedback 与修复决策差异；run record 只作实验复核支撑 | 禁止写“first feedback loop”；可写“integrates deterministic checking and simulation feedback into the modeling loop” |
 | 近期 baseline 只是画图，没有结构化输出或专家评估。 | Forbidden | CSV DFSM、Umple、PlantUML/SysML、TTool JSON/XML、3GPP transition tuple、专家 reference / F1 / Likert 均已存在 | 必须逐篇核验，不能概括性贬低 | 禁止写；应写具体 task / feedback / artifact 差异 |
 | 本文的 novelty 是 RAG / few-shot / prompt chaining / agent 编排本身。 | Forbidden | Umple、Structure/Event、FlowFSM、SpecGPT、Pushing Envelope 已覆盖这些 prompt / agentic 路线 | 只有在作为条件或 baseline 时可写 | 禁止作为核心贡献；只能作为实验条件或对照 |
 | 我们在同一 benchmark 上超过所有 prior work。 | Forbidden | 当前没有 strict same benchmark | 即使有 approximate baseline 也需限定 | 禁止写 |
@@ -41,8 +40,8 @@
 | Contribution | Foundation evidence already available | Evidence required before manuscript result claim | Risk if missing |
 |---|---|---|---|
 | Formalized executable state-machine representation | method / pyfcstm / parser / simulator / examples | representation definition、syntax subset、component extraction、limitations | 被质疑只是私有 DSL |
-| Feedback-guided modeling loop | LangGraph runtime、stage API、run record、four-case retained evidence | ablation B2-B5、failure taxonomy、representative successful and failed runs | 被质疑只是 prompt engineering |
-| Auditable repair evidence chain | FixLog / run record design、LG-M1 docs | artifact package、example trace、eligibility filter | 被质疑不可复现 |
+| Feedback-guided modeling loop | LangGraph runtime、stage API、four-case retained evidence；run record 只作为复核证据 | ablation B2-B5、failure taxonomy、representative successful and failed runs | 被质疑只是 prompt engineering |
+| Structured repair decision mechanism | FixLog / fix request / accept-reject decision design、LG-M1 docs；run record 只作为复核证据 | artifact package、example trace、eligibility filter | 被质疑只是简单 regenerate，而非有诊断依据的修复闭环 |
 | Controlled evaluation protocol | eval protocol 历史基础、Path-1 5-component 口径 | frozen samples、至少两名独立 human annotators、blind coding、agreement、baseline runners | 被质疑 oracle weak |
 | External baseline comparison | baselines corpus 91 papers，含 9 个五绿 direct baseline | 9 个 direct baseline absorption report、same-sample / approximate / evidence-only matrix and results | 被质疑缺少相关工作、误述 prior work 或 cherry-pick |
 

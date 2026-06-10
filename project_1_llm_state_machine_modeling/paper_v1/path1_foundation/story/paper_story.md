@@ -17,7 +17,7 @@
 ## Task Boundary
 
 - **Input**：自然语言控制系统需求、系统说明或从论文/案例中抽取的控制逻辑片段。
-- **Output**：结构化、可解析、可执行、可审计的形式化状态机模型，至少覆盖 states、transitions、guards、actions、hierarchical states 等组件。
+- **Output**：结构化、可解析、可执行的形式化状态机模型，至少覆盖 states、transitions、guards、actions、hierarchical states 等组件；run record 只记录生成和修复过程，作为实验复核、打假和排障支撑。
 - **Supported settings**：单控制器或主监督控制器；FSM / EFSM / HSM；T0 或弱时间依赖样本；可通过 parse / semantic / inspect / simulation 形成反馈。
 - **Out-of-scope settings**：并行 region、history pseudo-state、大规模 timing automata、完整 LTL/BMC/model checking、跨多个控制器的分布式协议证明。
 
@@ -27,18 +27,18 @@
 
 1. **离线生成为主**：许多方法生成图、代码或协议状态机后再做人工 / F1 / 语法 / schema / oracle 评估；但面向控制系统需求的可执行状态机语义、确定性诊断、仿真 trace 与修复证据链通常没有被统一纳入同一实验协议。
 2. **反馈语义偏浅**：已有反馈先例可以修语法、schema、PlantUML/TTool/Umple 格式、oracle trace 或部分一致性；但 transition guard/action、变量、层次状态、恢复路径与 scenario behavior 的可执行反馈仍需要更清楚的边界、消融和人工裁决。
-3. **证据链不足**：prompt、raw output、修复历史、scenario、diff、eligibility、human adjudication 和失败样本如果不能形成 run record，就很难抵抗 reviewer 对 cherry-pick、公平性、oracle 和 provider drift 的挑战。
+3. **实验复核链不足**：prompt、raw output、修复历史、scenario、diff、eligibility、human adjudication 和失败样本如果不能形成 run record，就很难抵抗 reviewer 对 cherry-pick、公平性、oracle 和 provider drift 的挑战。
 
 ## Technical Challenge
 
 1. **自然语言语义和可执行模型语义之间存在粒度差**：需求描述可能分散在文本中，状态、事件、guard、action 并不直接成表。
 2. **状态机组件之间有依赖级联**：state 错会连带 transition / guard / action 错，简单逐槽位生成容易产生局部看似正确但整体不可执行的模型。
 3. **形式化反馈不能过度承诺**：parse / semantic / inspect / simulation 可以提高模型质量，但不能被写成完整形式验证或 theorem proving。
-4. **LLM agent 修复容易振荡**：需要 FixLog、run record、scenario provenance 和 human adjudication 支撑可审计修复，而不是只报告最终模型。
+4. **LLM agent 修复容易振荡**：需要 FixLog、scenario provenance、human adjudication 与 run record 支撑可复核的修复过程，而不是只报告最终模型。
 
 ## Method Insight
 
-把 LLM 的语义生成能力与确定性工具的可执行反馈分层：LLM 负责解释需求、生成模型、生成场景和提出修复；确定性工具负责解析、语义构建、轻量设计诊断和场景仿真。反馈以结构化 run record 和 fix log 进入下一轮，使模型质量改进具备可审计证据链。
+把 LLM 的语义生成能力与确定性工具的可执行反馈分层：LLM 负责解释需求、生成模型、生成场景和提出修复；确定性工具负责解析、语义构建、轻量设计诊断和场景仿真。反馈以结构化 fix log 进入下一轮；run record 记录每轮输入、输出、修复和判定，作为实验复核、打假和排障证据链。
 
 ## System / Method Stages
 
@@ -53,9 +53,11 @@
 
 1. **Formalized executable state-machine representation**：定义适合 LLM 生成、工具检查和仿真执行的状态机表示，用于承载 states、transitions、guards、actions、hierarchical states 和变量/动作边界。
 2. **Feedback-guided agentic modeling loop**：设计 generate-check-simulate-repair loop，将 parse/semantic/design diagnostics 与 executable simulation feedback 结构化返回给 LLM。
-3. **Auditable run-record and repair evidence chain**：记录 prompt、raw output、stage trace、scenario、fix request、repair decision、diff、verdict 和 eligibility，支撑实验复现与失败分析。
-4. **Controlled evaluation protocol for Path-1 hard comparison**：构建冻结样本、component-level human adjudication、ablation 和 recent baseline matrix，评估 formal feedback 对模型质量、稳定性和可审计性的贡献。
+3. **Structured repair-decision mechanism**：用 fix request、accept/reject decision、FixLog 和修复后复核，把 LLM4STMModeling 中的错误定位、修复建议、修复执行和回归检查组织成可比较的数据流。
+4. **Controlled evaluation protocol for Path-1 hard comparison**：构建冻结样本、component-level human adjudication、ablation 和 recent baseline matrix，评估 formal feedback 对模型质量和稳定性的影响。
 5. **Empirical analysis across agent orchestration conditions**：将自建 agent-loop 与成熟 coding-agent skill route 作为实验条件分析，而不是把某个 agent 框架本身当作贡献。
+
+> 说明：run record / audit trail 是实验复核、打假、排障和 artifact 可信度支撑，不作为论文贡献点。
 
 ## Evidence Already Available
 
@@ -74,7 +76,7 @@
 
 ## Baseline-Aware Positioning
 
-9 个五绿 direct baseline 已经覆盖 NL / 文档到 FSM、UML state machine、SysML behavior、Umple、Mermaid statechart、TTool/SysML 和 protocol FSM 的主要路线。它们已经提供 single prompt、few-shot、RAG、CoT、prompt chaining、ensemble、fine-tuning、工具反馈、语法 / schema 检查、部分 repair 和专家参考评估。本文差异必须从“能否生成状态机”收缩为“可执行形式化反馈、仿真 trace、修复证据链和可审计实验协议是否带来边际贡献”。详细章节大纲和反证门见 [paper_outline.md](./paper_outline.md)。
+9 个五绿 direct baseline 已经覆盖 NL / 文档到 FSM、UML state machine、SysML behavior、Umple、Mermaid statechart、TTool/SysML 和 protocol FSM 的主要路线。它们已经提供 single prompt、few-shot、RAG、CoT、prompt chaining、ensemble、fine-tuning、工具反馈、语法 / schema 检查、部分 repair 和专家参考评估。本文差异必须从“能否生成状态机”收缩为“可执行形式化反馈、仿真 trace 与结构化修复决策是否带来模型质量边际贡献”；可复核实验协议只作为证据可信度支撑。详细章节大纲和反证门见 [paper_outline.md](./paper_outline.md)。
 
 ## Related Work Positioning
 
@@ -84,7 +86,7 @@
 2. **Requirements-to-formal/executable models**：结构化需求、受控自然语言、状态机或反应系统建模与验证。
 3. **Agentic feedback / repair for modeling artifacts**：用工具反馈、仿真、模型检查或 human/LLM review 修复模型工件。
 
-本稿的差异点不是“第一个用 LLM 画状态机”，而是把可执行形式化反馈和可审计 repair/run record 放进 NL-to-state-machine modeling loop，并用 baseline hard comparison 评估其边际贡献。
+本稿的差异点不是“第一个用 LLM 画状态机”，而是把可执行形式化反馈、scenario trace 与结构化修复决策放进 NL-to-state-machine modeling loop，并用 baseline hard comparison 评估其对模型质量的边际贡献；run record 只用于复核和排障。
 
 ## Target venue posture
 
@@ -94,17 +96,17 @@
 
 以下只是后续可争取的论文 claim 类型，不是当前 result claim。进入 Abstract / Introduction 前必须回到 [claim_evidence_map.md](./claim_evidence_map.md) 判定状态，并满足对应实验 gate。
 
-- 本方法支持从 NL 生成可解析、可执行、可审计的形式化状态机模型。
+- 本方法支持从 NL 生成可解析、可执行的形式化状态机模型。
 - 确定性检查和仿真反馈能形成可复现的模型质量诊断与修复证据链。
 - 与 direct / structured prompting 和 recent LLM-for-modeling baselines 相比，本方法可在更丰富组件维度上进行公平评估。
-- Agent orchestration 应作为实验条件接受评估；只有在 E1/E2 或后续复现实验完成后，才能讨论其对模型质量、稳定性和可审计性的影响。
+- Agent orchestration 应作为实验条件接受评估；只有在 E1/E2 或后续复现实验完成后，才能讨论其对模型质量、稳定性、成本和失败模式的影响。
 
 ## Claims to Be Careful About
 
 - “formal feedback” 只能指 parse / semantic / inspect / simulation 等可执行反馈，不等于完整 formal verification。
 - 如果外部 baseline 无法公平复现，只能写 approximate / evidence-only comparison，不能写 strict head-to-head。
 - 如果样本量不足或 human agreement 不够，主 claim 需要降级为 pilot / diagnostic finding。
-- E2 skill route 质量高时，必须解释这既包含成熟 agent 能力，也包含本研究工具底座贡献。
+- E2 skill route 质量高时，必须解释这既包含成熟 agent 能力，也包含本研究 LLM4STMModeling 工具底座的影响；不能把 Codex/Claude/skill 本身写成贡献。
 
 ## Claims to Avoid
 

@@ -51,7 +51,7 @@ PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入 `main`，�
 | Umple | NL 到 Umple 状态机代码，zero-shot / one-shot / RAG | “RAG / few-shot 状态机代码生成是新贡献” | structured / RAG baseline 候选 |
 | LLMs for EMP | 107 SysML 行为模型数据，36 STM，grammar accuracy / semantic F1 / feedback regeneration | “反馈修复行为模型是独有优势” | 必须进入 closest work；优先考虑 STM 子集复用 |
 | Pushing Envelope | 小样本 SysML v2 requirements / state machine，prompt 技巧比较 | “prompt / temperature 是核心方法贡献” | prompt-technique evidence-only |
-| TTool-AI | NL 到 SysML / TTool state machines，知识注入 + 工具反馈循环 + artifact | “工具集成与自动反馈是首创” | 必须进入 closest work；比较 run record / simulation / component rubric 差异 |
+| TTool-AI | NL 到 SysML / TTool state machines，知识注入 + 工具反馈循环 + artifact | “工具集成与自动反馈是首创” | 必须进入 closest work；比较 scenario-level feedback、修复决策和 component rubric 差异；run record 只作实验复核 |
 
 ## 3. Minimal external baseline contract
 
@@ -72,9 +72,9 @@ PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入 `main`，�
 |---|---|---|---|
 | 输出表示 | UML/SysML/Umple/Mermaid 等状态机或行为模型 | formalized executable state-machine representation | parser / semantic / simulator / component extraction |
 | Feedback | prompt refinement、schema/grammar checking、人工评审 | parse + semantic + design diagnostics + simulation trace as in-loop feedback | ablation B2/B3/B4/B5 |
-| Repair | regenerate / iterative prompting | structured fix request、accept/reject、FixLog、SL-10 review | run record / repair trace |
+| Repair | regenerate / iterative prompting | structured fix request、accept/reject、FixLog、SL-10 review | repair trace；run record 只作复核证据 |
 | Evaluation | manual slot F1、expert score、render/compile validity | component-level human adjudication + deterministic validity + failure taxonomy | human protocol + agreement |
-| Auditability | often prompt/output only | run record with raw outputs, stage trace, scenario, diff, eligibility | artifact package |
+| Reproducibility support | prompt/output often incomplete | run record with raw outputs, stage trace, scenario, diff, eligibility | artifact package；不作为 contribution bullet |
 
 ## 5. Claims to avoid in Related Work
 

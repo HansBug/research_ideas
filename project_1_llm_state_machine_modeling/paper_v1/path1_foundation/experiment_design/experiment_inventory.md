@@ -8,7 +8,7 @@
 | RQ2 | parse / semantic / design / simulation feedback 各自贡献是什么？ | B2/B3/B4/B5 ablation、repair rounds、failure reduction | 待正式实验 |
 | RQ3 | 相比 9 个五绿 direct baseline，本方法的边际贡献在哪里？ | 9 篇逐篇吸收报告、external baseline matrix、same-sample / approximate / evidence-only comparison | S1a 必须完成 blocking absorption 后冻结 |
 | RQ4 | 方法失败在哪里，失败是否可解释和可修复？ | failure taxonomy、repair logs、scenario history、FixLog | method run record 已具备，主实验待做 |
-| RQ5 | 自建 agent-loop 与成熟 coding-agent skill route 在质量、稳定性和可审计性上有何差异？ | E1/E2 representative runs、run record completeness、human review | 作为 implementation analysis / appendix，不能喧宾夺主 |
+| RQ5 | 自建 agent-loop 与成熟 coding-agent skill route 在质量、稳定性、成本和失败模式上有何差异？ | E1/E2 representative runs、run record completeness、human review | 作为 implementation analysis / appendix，不能喧宾夺主；run record 完整性只作复核支撑 |
 
 ## 2. Benchmark / dataset plan
 

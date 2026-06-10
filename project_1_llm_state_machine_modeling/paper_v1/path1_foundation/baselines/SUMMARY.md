@@ -20,7 +20,7 @@
 | 8 | `pushing-the-generative-envelope-mbse-artifacts` | Pushing the Generative Envelope of MBSE Artifacts | 2025 | RANLP | [原始目录](../../../baselines/pushing-the-generative-envelope-mbse-artifacts/) | [逐篇](./papers/pushing-the-generative-envelope-mbse-artifacts.md) | evidence-only；prompt technique / SME 评估 |
 | 9 | `ttool-ai` | TTool-AI / Automatic System Modeling with AI | 2024 | tool / paper artifact | [原始目录](../../../baselines/ttool-ai/) | [逐篇](./papers/ttool-ai.md) | mandatory closest；tool feedback / TTool artifact |
 
-定性总结：九篇 baseline 的时间集中在 2024–2026 年，说明 Path-1 的 novelty 空间已经从“有没有 LLM 生成状态机”转移到“在什么输入、表示、反馈、审计和评测协议下生成状态机”。当前必须正面处理四个 mandatory closest works（Designing FSMs、Structure/Event SMF、LLMs for EMP、TTool-AI），并把 FlowFSM、SpecGPT、REQ、Umple、Pushing Envelope 作为协议、汽车、代码生成和 MBSE prompt 技术的边界证据。
+定性总结：九篇 baseline 的时间集中在 2024–2026 年，说明 Path-1 的 novelty 空间已经从“有没有 LLM 生成状态机”转移到“在什么输入、表示、反馈和评测协议下生成状态机”。当前必须正面处理四个 mandatory closest works（Designing FSMs、Structure/Event SMF、LLMs for EMP、TTool-AI），并把 FlowFSM、SpecGPT、REQ、Umple、Pushing Envelope 作为协议、汽车、代码生成和 MBSE prompt 技术的边界证据。
 
 ## 2. 表 A：方法框架总表
 
