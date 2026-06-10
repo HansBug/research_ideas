@@ -1,0 +1,92 @@
+{
+  "sample_id": "energy-management-strategy-hybrid-micro-grid-renewable-energy__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper groups behavior into four scenarios and subcases, but the Stateflow/appendix representation is a flat set of output conditions/actions rather than explicit nested states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Guards partition PG vs PL and SOC thresholds, with arithmetic formulas such as PG = Ppv + Pwind + Pbatt and PPV + Pwind + Pbatt < PL, plus utility availability."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Appendix action table maps states to concrete outputs: AC Load = ON, Battery = ON/OFF, Utility grid = ON, Diesel generator = ON."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "When utility grid is unavailable the diesel generator is switched on; once renewable power is enough or utility grid becomes available, the diesel generator is switched off."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names, guards, and actions are distributed across Section 3 scenarios/equations, Section 4 Stateflow output discussion, and Appendix condition/action tables."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as SOC and utility-grid availability are used, but the transition rules are explicitly spelled out by equations and action descriptions."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Low-SOC recovery charging and diesel shutoff behavior are described in narrative prose in the results/control discussion rather than fully co-located in one state table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines multiple power variables arithmetically, e.g., PPV + Pwind + Pbatt < PL, with additional SOC and grid-availability predicates."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry/during/exit behavior is specified."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The utility-grid fallback is dedicated to the low-power/low-SOC condition, not a from-any-state global escape rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial initial pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The EMS has several arithmetic/comparison guards over PG, PL, PV, wind, battery power, SOC, and utility availability; SMT-style checks could validate partition consistency."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The EMS continuously checks renewable power and utility-grid availability across operating scenarios, which can be encoded once as an EMS-level during monitor."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Actions are concrete ON/OFF commands for load, battery, utility grid, and diesel generator, with no abstract log/publish/notify side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The power generation was supplied the load demand through four scenarios and with the help of the battery, a diesel generator, and the utility grid.",
+    "When the utility grid became unavailable, the diesel generator was switched on to supply the load."
+  ],
+  "one_line_pitch": "A Stateflow micro-grid EMS with arithmetic PG/PL/SOC/grid guards, repeated ON/OFF actuator outputs, and utility-grid failover is a strong guard/action stress test despite little true hierarchy.",
+  "verdict": "candidate",
+  "rationale": "The sample is not a hierarchy-heavy case, but it is fundamentally about guarded energy-routing decisions over multiple measured variables. It has enough concrete transition actions and recovery/failover behavior to expose the weak guard and action extraction reported for Umple-style baselines. Its main stress value comes from arithmetic guard partitioning, action attribution across prose/tables, and continuous monitoring over the operating scenarios.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 127129,
+      "cached_input_tokens": 107008,
+      "output_tokens": 9373,
+      "reasoning_output_tokens": 7333
+    },
+    "duration_s": 180.5,
+    "attempt": 1
+  }
+}

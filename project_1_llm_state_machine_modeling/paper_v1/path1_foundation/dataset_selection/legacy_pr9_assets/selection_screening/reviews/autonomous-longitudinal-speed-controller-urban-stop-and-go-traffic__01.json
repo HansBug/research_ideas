@@ -1,0 +1,92 @@
+{
+  "sample_id": "autonomous-longitudinal-speed-controller-urban-stop-and-go-traffic__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The controller is presented as a flat five-state FSM: Cruise, Approach, Follow, Emergency Brakes, and Hard Braking; no parent state, substate, or composite-state nesting is defined."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions are threshold-rule based over following distance and sensing range, including 90 m, 8.5 m, 1.5 m, and 0.5 m thresholds, plus conjunctive return logic such as beyond following distance but still within sensing distance."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States assign or continuously update desired velocity: Cruise sets 25/45 mph reference speed, Approach keeps the follower slightly faster than the leader, Follow invokes a close-following controller, and braking states reduce desired velocity each simulation step."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The FSM has dedicated safety states for Emergency Brake below 1.5 m and Hard Braking below 0.5 m, with returns to Approach or Cruise when spacing recovers; it is not specified as an any-state global fault transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The state graph and transition labels appear in Figure 14, while per-state actions and thresholds are distributed across Sections 3.1-3.5, and Follow's controller behavior is elaborated later in Chapter 4."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as Emergency Brake, Hard Braking, sensing range, and following distance are accompanied by explicit thresholds and desired-speed behavior, rather than requiring outside-domain decoding."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "Although prose-based, each state's key action is attributed in that state's own subsection, such as Approach maintaining a slightly higher speed and braking states reducing desired velocity."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines conditions, e.g. predecessor acceleration above the allowable limit together with being beyond sensing range, and recovery logic compares distance against both following and sensing thresholds."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state with entry, during, or exit behavior is defined."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper defines emergency braking transitions for unsafe spacing, but not a from-any-state global recovery or fault escape rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The FSM has multiple numeric threshold guards and some boolean combinations, but the composed guards are limited and mostly one-dimensional distance comparisons."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 1,
+      "evidence": "The low-distance emergency transition pattern applies to more than one normal driving state, so forced-transition notation could reduce small duplication, but there is no broad any-state rule."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The supervisor outputs abstract desired speed and controller-selection commands, leaving throttle/brake realization to the lower speed controller, but there are no abstract operator/log/publish side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "FSM switches from one state to the other using a rule base",
+    "following distance decreases below 0.5 m"
+  ],
+  "one_line_pitch": "A flat but action-heavy vehicle supervisor stresses guard extraction, continuous per-state speed commands, and safety-braking transitions in a realistic urban platooning controller.",
+  "verdict": "candidate",
+  "rationale": "The paper explicitly defines a five-state longitudinal FSM with dense threshold guards, non-trivial desired-speed updates, controller handoff in Follow, and two safety braking states. It does not test hierarchy, and its recovery logic is not global from any state, but it strongly targets the prior baseline's weak guard and action extraction dimensions. The baseline-trap density is moderate because the specification is split across figure, state subsections, and later controller discussion, while most state behavior remains reasonably traceable.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 102766,
+      "cached_input_tokens": 68736,
+      "output_tokens": 10199,
+      "reasoning_output_tokens": 8291
+    },
+    "duration_s": 194.8,
+    "attempt": 1
+  }
+}

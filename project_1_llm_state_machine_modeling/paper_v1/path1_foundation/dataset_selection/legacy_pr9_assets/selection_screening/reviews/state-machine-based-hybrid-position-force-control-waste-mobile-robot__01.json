@@ -1,0 +1,92 @@
+{
+  "sample_id": "state-machine-based-hybrid-position-force-control-waste-mobile-robot__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper explicitly separates the main supervisor from homing, position-control, and force-control submachines, with child states such as Si2.1, SC3.1, SC3.2, SC5, and SES."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Algorithm 1 includes composed and threshold guards: !ES && New Task, !Gopen, positioning-error versus epsilon, and force-error versus epsilon."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions execute multi-step actions: initialize and home motors, compute Fjaws, move and rotate the gripper, switch control type, update SP/SF, and open or close jaws; PLC messages set parameters and activate commands."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "A dedicated SES emergency-stop state is listed for position/force-control diagrams, Algorithm 1 gates the task loop on ES, and gripper motion can stop on alarm, but the recovery path is not fully specified."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and rough descriptions are in Table 1/Figures 3-4, while concrete guards/actions appear in Algorithm 1 and later implementation behavior appears in Sections 5-6."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as emergency stop, alarm, homing, and stand-by imply control rules and safe actuator behavior beyond the terse state labels."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "SC3/SC4 actions such as S-matrix update, force holding, switching back to position control, and jaw opening are attributed from narrative prose rather than colocated in the state table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The task loop combines ES and New Task, and the algorithm uses position/force error comparisons against epsilon thresholds."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "The force-control composite carries mode-level behavior: the gripper remains in force control and continuously holds force while other axes move the object."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Emergency stop is present, but the paper does not state an explicit from-any-state escape rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There are shallow composite submachines for homing, position control, and force control with default sequencing, but no deeply nested init chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The sample has several guards and error thresholds, but not enough arithmetic/boolean guard interactions for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Force-control mode has a continuous during behavior: the regulator keeps holding force while the 4DOF positioning system moves the object."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Actions are expressed as high-level commands such as GripperMove, Switch, Update, and command/value messages, though most side effects still target concrete motors and PLC behavior."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "while (!ES && New Task)",
+    "Switch(ToForceControl); Update(SP, SF); Jaws(close)"
+  ],
+  "one_line_pitch": "A hierarchical pick-and-drop supervisor with S-matrix mode switching, composed guards, continuous force holding, and emergency-stop handling targets the guard/action/hierarchy weaknesses of Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test case because hierarchy is explicit and central: the main supervisor delegates to homing, position-control, and force-control submachines. The transition logic also contains meaningful guards and action sequences, including S-matrix updates and physical command outputs, which directly stress known weak baseline dimensions. Its information is split across state tables, algorithms, control-architecture prose, and implementation discussion, increasing baseline-trap density without relying on method-specific cherry-picking.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 184185,
+      "cached_input_tokens": 149376,
+      "output_tokens": 9139,
+      "reasoning_output_tokens": 6548
+    },
+    "duration_s": 176.5,
+    "attempt": 1
+  }
+}

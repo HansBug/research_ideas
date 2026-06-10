@@ -1,0 +1,92 @@
+{
+  "sample_id": "autonomous-firefighting-inside-buildings-unmanned-aerial-vehicle__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper explicitly describes a FlexBE hierarchical state machine with a main mission level and nested lower-level machines for outdoor phase, window flythrough, and indoor phase."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions and internal controller decisions depend on compound conditions: window estimate lost while flythrough is active and MAV is still outside; max flight-time cutoff; fire target lost/not lost; inner/outer angle and distance bands for spraying."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States command takeoff, wall-following, window search, estimator/localization switching, hovering, flythrough, exploration, extinguishing-agent depletion, pump activation/deactivation, exit, return, and landing."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The paper defines global mission-abort landing for any state that cannot continue, plus local recovery paths: failed flythrough restarts window search, lost window estimate enters Escaping, lost fire target resumes exploration."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State-machine structure is in the high-level behavior section, while concrete behavior for exploration, fire detection, extinguishing, and estimator switching is spread across earlier subsystem sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as safe position, indoor flying mode, virtual bumper, and cannot continue mission imply domain-specific safety and control rules beyond a flat transition list."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions for states such as exploration and extinguishing are described narratively in subsystem prose, not as co-located state-action rows."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The controller uses compound numeric guards over angle, distance, time, target visibility, and vehicle location, including inner/outer steering hysteresis thresholds."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper clearly has composite states, but it does not explicitly assign separate parent entry/during/exit behavior beyond the nested substate behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "A landing event is triggered whenever any state reports an outcome meaning the MAV cannot continue the mission."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 2,
+      "evidence": "The main mission contains nested outdoor, flythrough, and indoor submachines with non-trivial initial sequences and return outcomes."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Several guards combine boolean and numeric conditions, including flythrough-loss recovery, flight-time cutoff, fire-estimate validation, and spraying hysteresis bands."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The any-state landing rule is a cross-cutting recovery transition; continuous detection/monitoring during wall-following and extinguishing also benefits from parent-level during aspects."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The HSM issues abstract outcomes and subsystem calls such as landing event, window-not-found result, localization-mode switch, and extinguish behavior without encoding every low-level effector detail."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "constructed as a hierarchical state machine",
+    "a landing event is called whenever any state"
+  ],
+  "one_line_pitch": "This is a high-value stress test because it combines deep mission hierarchy, compound guarded recovery, rich UAV actions, and a global abort-to-landing rule.",
+  "verdict": "candidate",
+  "rationale": "The sample is fundamentally a hierarchical UAV mission supervisor, not just a perception pipeline. Its behavior requires modeling nested phases, estimator-mode switches, retry loops, local escape from failed flythrough, fire-loss recovery, and any-state abort landing. These are exactly the kinds of actions, guards, hierarchy, and cross-cutting recovery patterns that weak Umple-style baselines are likely to drop or flatten.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 263703,
+      "cached_input_tokens": 224000,
+      "output_tokens": 7405,
+      "reasoning_output_tokens": 4882
+    },
+    "duration_s": 155.6,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,73 @@
+state Mode_Control_Algorithm {
+    enter abstract CoordinateCaregiverInterfaceBloodPressureMonitorAlgorithmPumpMonitors;
+    enter abstract StoreSensorReadingsInSharedBuffer;
+
+    event InitiateAlgorithmicPumpControl;
+    event ChangeSetpoint;
+    event StartAC;
+    event TerminateAlgorithmicPumpControl;
+    event PumpOperationComplication;
+    event CA_backManual;
+    event CB_backManual;
+    event CP_backManual;
+    event CC_backManual;
+
+    [*] -> Wait;
+
+    state Wait;
+
+    state Manual {
+        enter {
+            CA_mode_set_to_Manual = 1;
+        }
+        enter abstract UseBuiltInPumpSwitchForManualSpeed;
+        enter abstract UseDefaultFlowRateSetOnPump;
+    }
+
+    state Ask_StartAC {
+        enter abstract AllowCaregiverTargetBloodPressureChange;
+    }
+
+    state AutocontrolInit {
+        enter abstract ApplyExternalControlVoltageToPumpSpeed;
+        enter abstract ComputeInfusionRateFromBloodPressure;
+    }
+
+    state Autocontrol {
+        during abstract ComputeInfusionRateFromBloodPressure;
+        during abstract ComputeHigherPressureLowerFlowRate;
+        during abstract ControlInfusionRateWhenNoPumpOperationComplications;
+        during abstract RecordInfusionRelatedDataInLogFiles;
+    }
+
+    Wait -> Manual effect {
+        CA_mode_set_to_Manual = 1;
+    }
+    Manual -> Ask_StartAC : InitiateAlgorithmicPumpControl;
+    Ask_StartAC -> Ask_StartAC : ChangeSetpoint effect {
+        target_blood_pressure_modified = 1;
+    }
+    Ask_StartAC -> AutocontrolInit : StartAC effect {
+        algorithmic_pump_control_started = 1;
+    }
+    AutocontrolInit -> Autocontrol effect {
+        external_control_voltage_selected = 1;
+    }
+    Autocontrol -> Manual : TerminateAlgorithmicPumpControl effect {
+        algorithmic_pump_control_terminated = 1;
+        CA_mode_set_to_Manual = 1;
+        CARA_control_released = 1;
+    }
+    Autocontrol -> Manual : PumpOperationComplication effect {
+        alarm_signals_activated = 1;
+        error_messages_displayed_and_sounded = 1;
+        caregiver_removes_pump_fault = 1;
+        CARA_control_released = 1;
+        CA_mode_set_to_Manual = 1;
+    }
+
+    ! * -> Manual : CA_backManual;
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+}

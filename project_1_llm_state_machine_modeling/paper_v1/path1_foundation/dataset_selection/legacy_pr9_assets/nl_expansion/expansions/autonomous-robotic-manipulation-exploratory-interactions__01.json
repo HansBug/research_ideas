@@ -1,0 +1,77 @@
+{
+  "case_id": "autonomous-robotic-manipulation-exploratory-interactions__01",
+  "case_name": "Four-State Exploratory Manipulation Supervisor with Fault-Detection Substates",
+  "expanded_nl": "The controller is a finite-state supervisor for autonomous robotic material manipulation: it manages framework phases, consumes visual-perception data, and activates self-tuning impedance when interaction is expected [E1][E2]. Its top-level sequence begins in Workspace definition, where polygon vertices from Materials localization are stored, then enters Exploration to identify stiffness kst for each material [E3]. In Exploration, the end-effector grasps a stick-like tool, reaches the leftmost material compliantly, dunks into it, sets Im and If true, moves toward the polygon center, stores kst, and repeats the identification for all materials [E4]. An Exploration Fault Detection sub-unit monitors external forces projected along the motion vector; when the sampled linear-regression slope m exceeds mfault, the robot stops the current motion and returns to homing [E5]. Materials distribution associates vision-derived peak points with materials, and Task uses those peaks as scooping starts to scoop and pour material into a pot held by another robot [E6]. In the reported Task execution, the robotic hand grasps a scooping tool, Task is subdivided into four scheduled material substates starting with soil, and stiffness adapts along the current motion direction inside the interaction expectancy area [E7]. During Task, kst is bounded by the exploration stiffness multiplied by one plus a percentage p constrained to the range from 0 to 0.5; if kst exceeds that maximum, Task fault detection halts execution and returns the robot to its homing position or initial configuration in a compliant way [E8][E9].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.7 §2.5 | paper_content.txt 行 419-421",
+      "quote": "responsible of managing the transitions between the different phases of the framework",
+      "supports": "finite-state supervisor; manages framework phases"
+    },
+    {
+      "marker": "E2",
+      "source": "paper.pdf p.7 §2.5 | paper_content.txt 行 422-427",
+      "quote": "gets as input the data sent by the Visual perception module / activate the Self-tuning impedance unit",
+      "supports": "consumes visual-perception data; activates self-tuning impedance when interaction is expected"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 A | paper.pdf p.7 §2.5 | paper_content.txt 行 428-435",
+      "quote": "gets as input the vertices of the polygons / switches to the “Exploration” state / identify the kst parameter for every material",
+      "supports": "Workspace definition stores polygon vertices; transition into Exploration; identify kst per material"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 A | paper.pdf p.7 §2.5 | paper_content.txt 行 435-446",
+      "quote": "the robot end-effector grasps a stick-like tool / both the boolean value Im and If have been set to True / stores the resulting kst / repeated for all the materials",
+      "supports": "Exploration actions: grasp, dunk/contact expectation, set Im and If, store kst, repeat"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 B | paper.pdf p.7 §2.5 | paper_content.txt 行 457-465",
+      "quote": "linear regression slope m goes beyond a threshold set to mfault, the fault is triggered / ends its motion and goes back to its homing position",
+      "supports": "Exploration Fault Detection guard and recovery"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 B | paper.pdf p.7 §2.5 | paper_content.txt 行 466-483",
+      "quote": "the vision unit detects the highest point / the robot needs to scoop some material and pour it in a pot",
+      "supports": "Materials distribution peak association; Task scooping and pouring"
+    },
+    {
+      "marker": "E7",
+      "source": "paper.pdf p.9 §4 | paper_content.txt 行 587-606",
+      "quote": "robotic hand grasps a scooping tool / Task state, subdivided in four substates / following this sequence: soil (a) / kst is adapted along the direction of the motion",
+      "supports": "Task hardware action, four substates, first scheduled material, stiffness adaptation"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 C | paper.pdf p.8 §2.5 | paper_content.txt 行 495-501",
+      "quote": "kst_max,m = kst_exploration,m ∗ (1 + p) 0 ≤ p ≤ 0.5 ∀m",
+      "supports": "Task stiffness bound using exploration stiffness and p in range 0 to 0.5"
+    },
+    {
+      "marker": "E9",
+      "source": "STM §1 摘录 C | paper.pdf p.8 §2.5; paper.pdf p.11 Fig.11 | paper_content.txt 行 501-503, 676-693",
+      "quote": "the robot goes back to its homing position / execution halts and the robot goes back to its initial configuration in a compliant way",
+      "supports": "Task fault detection halts execution and returns to homing or initial configuration"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 在 [E5] 写出 Exploration 内部 Fault Detection sub-unit，在 [E7] 写出 Task subdivided into four scheduled material substates starting with soil；原文支持层次/子状态，但未给完整通用 init 链。",
+    "G_guards_arith": "G 钩子在 [E5][E8][E9]：外力回归斜率 m 超过 mfault，以及 Task 中 kst 相对 exploration stiffness 和 p∈[0,0.5] 计算的上界，均用自然语言条件表达。",
+    "A_actions_nontrivial": "A 钩子在 [E2][E4][E6][E7]：控制器激活 impedance，end-effector grasp/dunk/store kst，Materials distribution associates peaks，Task grasp/scoop/pour/adapt stiffness。",
+    "F_fault_recovery": "F 钩子在 [E5][E9]：Exploration 和 Task 内的 Fault Detection 在阈值越界时中止当前 motion/execution 并回到 homing/initial configuration；原文未支持全局任意状态 escape。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain terms（kst、Im/If、mfault）、implicit-action-prose（grasp/dunk/store/scoop/pour）和 multivar-guard/composite-internal（Task bound、Fault Detection sub-unit、Task substates）[E4][E5][E7][E8][E9]。",
+    "ft_fcstm_fit": "pyfcstm 适配点主要是复合状态/子状态与局部 recovery [E5][E7][E9]、Expr-IR 可表达的阈值/乘法上界 [E8]、以及 effector-agnostic grasp/scoop/pour/adapt 动作 [E4][E6][E7]；forced/aspect 全局横切覆盖弱。"
+  },
+  "word_count_estimate": 237,
+  "intentional_omissions": "没有补造全局 any-state emergency stop、Valve/PLC 编号、计时器/复位计数器或 ROS topic 名。实验段虽有材料坐标、α、kmin、通信频率等数字，但多数是实验设置而非该 STM 的通用控制规则，因此未写入 expanded_nl。",
+  "_meta": {
+    "id": "autonomous-robotic-manipulation-exploratory-interactions__01",
+    "actual_word_count": 237,
+    "markers_count": 9,
+    "provenance_count": 9
+  }
+}

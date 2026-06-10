@@ -18,14 +18,14 @@
 | 文件 | 作用 |
 |---|---|
 | [../README.md](../README.md) | foundation 入口 |
-| [../paper_story.md](../paper_story.md) | thesis、gap、contributions、claims |
-| [../project_inventory.md](../project_inventory.md) | repo evidence inventory |
-| [../sample_assets.md](../sample_assets.md) | PR #9 样本/扩充/ref资产迁移 |
-| [../experiment_inventory.md](../experiment_inventory.md) | RQ、baseline、metrics、oracle、run record |
-| [../baseline_and_related_work_matrix.md](../baseline_and_related_work_matrix.md) | closest prior works 与实验对齐计划 |
-| [../claim_evidence_map.md](../claim_evidence_map.md) | claim gate |
-| [../reviewer_risk_register.md](../reviewer_risk_register.md) | C/I/M 风险台账 |
-| [../execution_plan.md](../execution_plan.md) | gate-driven 执行计划 |
+| [../story/paper_story.md](../story/paper_story.md) | thesis、gap、contributions、claims |
+| [../evidence/project_inventory.md](../evidence/project_inventory.md) | repo evidence inventory |
+| [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md) | PR #9 样本/扩充/ref资产迁移 |
+| [../experiment_design/experiment_inventory.md](../experiment_design/experiment_inventory.md) | RQ、baseline、metrics、oracle、run record |
+| [../evidence/baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) | closest prior works 与实验对齐计划 |
+| [../story/claim_evidence_map.md](../story/claim_evidence_map.md) | claim gate |
+| [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md) | C/I/M 风险台账 |
+| [../experiment_design/execution_plan.md](../experiment_design/execution_plan.md) | gate-driven 执行计划 |
 | [./task-packets/foundation.md](./task-packets/foundation.md) | 本任务 packet |
 
 ## Validation / review log

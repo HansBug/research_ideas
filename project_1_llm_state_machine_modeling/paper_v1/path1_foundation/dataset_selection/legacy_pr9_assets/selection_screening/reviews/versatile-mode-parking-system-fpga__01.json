@@ -1,0 +1,92 @@
+{
+  "sample_id": "versatile-mode-parking-system-fpga__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper groups behavior into four parking modes and notes each mode has phases, but it does not define an explicit parent-child FSM or nested state architecture."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Mode selection depends on arithmetic/comparison guards such as slope existence, D2 = K*cos alpha, D1 >= D5, D2 = K, D1 >= D3, and D1 >= D4."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The algorithm measures D1/D2, detects corners, computes alpha, generates a geometric path, continues moving when space is insufficient, and drives DC motors plus the stepper motor."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "No emergency stop, fault rollback, abort-from-any-state, or explicit recovery state is described; insufficient space only causes continued searching."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Mode names appear in the introduction/Figure 1, distance formulas in Section 2.1, decision guards/actions in Section 2.2, and motor reactions in Sections 3-4."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as parking mode, slope, corner detection, and safety margin are accompanied by explicit D1/D2/D3/D4/D5 decision rules rather than requiring an unstated domain transition rule."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state/mode decision logic is in the flowchart prose, while concrete execution effects are later described as robot navigation and DC/stepper motor reactions."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard uses arithmetic over multiple variables, e.g. D2 = K*cos alpha, with follow-up minimum-space comparisons against D5/D3/D4."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state with parent-level entry/during/exit behavior is specified."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "There is no global fault rule such as from any state on fault go to safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial init/pseudo-state routing is described."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The four-mode selector contains several arithmetic and nested guards over slope, D1, D2, K, alpha, D3, D4, and D5."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The paper states that in all four parking modes the AVPS checks whether D1 satisfies the minimum parking space before generating the path; insufficient space sends the robot forward to search again."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Actions such as generating a geometric path and executing the selected mode are abstract, but the paper also grounds execution in concrete DC motor and stepper motor reactions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "If D2 = K*cos alpha, the mode is the head-out angled parking mode, and before executing the parking, the algorithm tests if D1 >= D5.",
+    "In the four parking modes indicated in h and i, the proposed AVPS checks if distance D1 satisfies the minimum parking space for generating a geometric path."
+  ],
+  "one_line_pitch": "This is a guard-heavy EFSM where four parking modes are selected by arithmetic geometric conditions and shared minimum-space checks before path generation and motor execution.",
+  "verdict": "candidate",
+  "rationale": "The sample is a strong stress case for guard and action extraction: the core controller is defined by multi-variable arithmetic guards plus meaningful sensing, calculation, path-generation, and motor-execution actions. It lacks explicit hierarchy and fault recovery, but the relevant mode logic is split across formulas, algorithm prose, and execution discussion, creating a dense baseline-trap profile. Its repeated minimum-space rule across all four modes also gives pyfcstm a concrete advantage over flatter Umple/PlantUML encodings.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83327,
+      "cached_input_tokens": 68736,
+      "output_tokens": 5000,
+      "reasoning_output_tokens": 3366
+    },
+    "duration_s": 97.6,
+    "attempt": 1
+  }
+}

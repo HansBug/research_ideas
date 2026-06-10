@@ -1,0 +1,92 @@
+{
+  "sample_id": "fuzzy-state-machine-energy-management-hybrid-electric-uavs__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The controller is described as a flat five-state FSM; the fuzzy controller is coupled to states 4-5 but is not presented as nested substates or a composite-state hierarchy."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "State selection uses arithmetic and multi-variable guards such as Pd = PD - PpvMax, Pd > 0, SOC < SOCH, |Pd| > Pchrg, and PF + PpvMax - PD < Pchrg."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Each state assigns numeric power outputs such as Ppv, Pbatt, and Pfc; the ECU also generates PV and fuel-cell reference currents every time step, while battery power is derived from the balance equation."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "No EMS fault state, recovery transition, or global escape rule is specified; the low-hydrogen fuel-cell stop belongs to the component model, not the FSM control logic."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "States 4-5 are introduced in Section 2.4, but the actual fuzzy fuel-cell dispatch behavior, membership functions, rule table, and defuzzification are specified separately in Section 2.5/Table 2/Figure 3."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as PV priority, MPPT, and fuzzy control are accompanied by explicit rules, equations, or tables; no transition rule depends mainly on outside domain decoding."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The main state actions are co-located with the five-state diagram and Section 2.4 descriptions; the modeler need not infer state actions from distant narrative results."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines variables arithmetically, e.g. PF + PpvMax - PD < Pchrg, and the FSM also uses Pd = PD - PpvMax with threshold tests."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry, during, or exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper does not declare an from-any-state fault transition, emergency stop, or global recovery path."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain to validate."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The FSM has several arithmetic guard relations over PD, PpvMax, Pd, Pchrg, SOC, and PF; an Expr IR plus SMT checks could help detect overlap or inconsistency."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global balance PD = Ppv + Pbatt + Pfc and per-tick current-command behavior apply across the five modes, so an aspect/during declaration can avoid duplicating continuous equations."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete power/current commands to PV, fuel cell, DCDC, and MPPT actuators, not abstract log, publish, notify, or operator side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The FSM strategy used to determine the output of the PV panel and fuel cell has five states.",
+    "The DC bus demand power is always satisfied by the three kinds of power sources: PD=Ppv+Pbatt+Pfc."
+  ],
+  "one_line_pitch": "A flat but dense EFSM whose five energy-management modes hinge on arithmetic power/SOC guards and simultaneous continuous power-command actions, directly stressing guard and action weaknesses in Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong guard/action stress case: the five states are selected by arithmetic relations over PV power, demand power, charge limit, SOC, and fuzzy fuel-cell output. The actions are not simple event labels; they continuously assign power/current commands and derive battery contribution from a global balance equation. It lacks hierarchy and explicit fault recovery, so its value is concentrated in the guard and action dimensions rather than broad coverage of all four H/G/A/F axes.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 91904,
+      "cached_input_tokens": 68736,
+      "output_tokens": 8071,
+      "reasoning_output_tokens": 6345
+    },
+    "duration_s": 160.4,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "hanging-rotary-parking-system-plc-hmi__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper names three HMI condition flows: activating the parking system, parking a car, and exiting a car, but it does not define nested parent/child states or composite-state semantics."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Parking depends on the combined logic of limit switch 7 and the infrared sensor: 1:1 means occupied and keep rotating, 1:0 means empty and stop; retrieval also depends on selected slot relays and matching limit switches, plus CMP 207 count bounds 0..6."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions trigger PLC internal relays, motor output 100.00, motor stopping on slot switches, +C/-C 207 occupancy updates, and red/green indicator outputs shown on the HMI in realtime."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The conclusion says the prototype has an emergency switch and a security menu to configure parking slots if the car count is wrong, but no explicit recovery state or transition path is specified."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Parking/retrieval behavior is split across the block-diagram description, HMI design section, ladder-program section, and test-result tables rather than being defined in one local state specification."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "The ladder description uses the domain term interlocking for the six limit switches, implying mutual-exclusion blocking logic that must be decoded into guards."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions such as rotating the motor, stopping at the requested slot, incrementing/decrementing CMP 207, and changing indicator colors are described narratively in ladder/test prose, not in a co-located state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines multiple inputs: limit switch 7 and infrared sensor values 1:1 versus 1:0 decide whether the carousel keeps rotating or stops; CMP 207 also compares the count against 0 and 6."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry, during, or exit behavior beyond child states is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Although an emergency switch is mentioned, the paper does not state a from-any-state fault transition or global safe-state rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no deep composite state or non-trivial init/pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The controller has repeated guarded logic over slot selection, corresponding limit switches, two-sensor empty-slot detection, interlocking, and bounded count comparison."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 1,
+      "evidence": "PIN/security enabling and the PLC program-enable relay gate multiple supervisory operations such as parking and retrieval, giving a weak cross-cutting guard advantage."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete PLC/HMI/motor/indicator actions rather than effector-agnostic publish, notify, or log actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "Jika limit switch ke 7 dan sensor infrared dapat logika 1:1 artinya ada mobil di slot tersebut dan slot parkir akan terus bergeser hingga menemukan slot kosong atau berlogika 1:0.",
+    "Instruksi CMP 207 telah disetel untuk memberi batasan jumlah tidak lebih dari 6 dan tidak kurang dari 0, jika jumlah penambahan sudah mencapai 6 maka lampu indikator akan menyala merah dan jika kurang dari 6 maka lampu indikator akan menyala hijau."
+  ],
+  "one_line_pitch": "This is a strong guard/action stress test because the model must recover PLC ladder semantics from dispersed prose: PIN gating, two-sensor empty-slot search, slot-specific recall, interlocking, count updates, and indicator side effects.",
+  "verdict": "candidate",
+  "rationale": "The sample has weak explicit hierarchy but strong guarded control and non-trivial transition actions, exactly where prior Umple-style baselines are fragile. The paper spreads the relevant state names, guards, actions, and test behavior across several sections, increasing baseline-trap density. Fault handling is only vaguely mentioned, so the stress-test value comes mainly from guard/action reconstruction rather than recovery modeling.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83356,
+      "cached_input_tokens": 63104,
+      "output_tokens": 5783,
+      "reasoning_output_tokens": 3872
+    },
+    "duration_s": 116.1,
+    "attempt": 1
+  }
+}

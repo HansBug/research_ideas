@@ -1,0 +1,83 @@
+{
+  "case_id": "finite-state-machine-accommodating-unexpected-large-ground-height-variations-bipedal-robot-walking__01",
+  "case_name": "Blind terrain-transition FSM for the MABEL biped",
+  "expanded_nl": "The controller supervises MABEL, a kneed planar biped with 1 m-long legs, over terrain whose height-change location and size are not given in advance [E1]. It uses a finite-state supervisor to switch among flat-ground walking, step-down, step-up, and trip-reflex controllers, with the top-level stance phases RW, SD, SU, and TR [E2]. Each transition decision combines front and end contact-switch readings with walking-surface height computed at impact from leg lengths and joint angles [E3]. When ground impact occurs close to the end of the gait, the swing-toe height guard keeps RW if the magnitude is below Delta H, selects SD if the height is below -Delta H, and selects SU if it is above Delta H [E4]. If the swing leg hits an obstacle or touches ground prematurely, the supervisor enters TR and checks late-trip or early-trip switching conditions [E5]. Inside TR, a separate reflex FSM routes tripping-start toward rapid lowering, rapid elevation, or recovery [E6]. A late trip requires shin obstacle contact, gait phase close to the end, and sufficient absolute swing-leg advance; the thresholds are searly = 0.66 and qearly = 190 deg [E7]. In that case, the current controller is left unchanged until swing-foot ground contact, then the ensuing step applies recovery [E8]. An early trip occurs before or during mid-gait, or with insufficient swing-leg advance, and rapidly bends the swing knee by repositioning the swing leg-shape motor so the leg can clear a 10 cm obstacle [E9]. If elevation fails, recovery is applied at the next step after checking swing-foot height and horizontal advance; a stuck foot is identified by near-zero horizontal advance and height within Delta H, with Delta H set to 0.05 m [E10].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Abstract | paper_content.txt 行 5-10",
+      "quote": "allows MABEL, a kneed planar bipedal robot with 1 m-long legs",
+      "supports": "MABEL 机器人对象、1 m 腿长、未知地形高度变化输入"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 B | paper.pdf p.9 Section V | paper_content.txt 行 924-935",
+      "quote": "regular-walking phase (RW), step-down phase (SD), step-up phase (SU), and tripping phase (TR)",
+      "supports": "顶层 FSM 的四个控制相位和控制器切换"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 C | paper.pdf p.9 Section V | paper_content.txt 行 936-955",
+      "quote": "values of the contact switches at the front and end of each leg",
+      "supports": "转移决策使用腿部前端/末端接触开关和冲击时高度估计"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 C | paper.pdf p.9 Section V | paper_content.txt 行 956-965",
+      "quote": "being less than -Delta H, or larger than Delta H, respectively",
+      "supports": "RW/SD/SU 的 Delta H、-Delta H、+Delta H 数值守卫方向"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 C | paper.pdf p.9 Section V | paper_content.txt 行 966-968",
+      "quote": "transition to TR arises when the swing leg trips over obstacles or touches the ground prematurely",
+      "supports": "障碍绊倒或过早触地触发 TR"
+    },
+    {
+      "marker": "E6",
+      "source": "paper.pdf p.6 Figure 5 and caption | paper_content.txt 行 532-538, 609-613",
+      "quote": "Fig. 5: Finite-state machine of tripping-reflex controller",
+      "supports": "TR 内部存在单独的 tripping-reflex FSM，含 tripping-start、rapid-lowering、rapid-elevation、recovery"
+    },
+    {
+      "marker": "E7",
+      "source": "paper.pdf p.5-6 Section IV-B3 | paper_content.txt 行 522-540",
+      "quote": "searly and qearly are set to 0.66 and 190 deg",
+      "supports": "late tripping 的复合条件和两个阈值"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 D | paper.pdf p.6 Section IV-B3 | paper_content.txt 行 541-548",
+      "quote": "The controller is not changed until the swing foot touches the ground",
+      "supports": "late tripping 的动作：保持控制器直到触地，然后下一步 recovery"
+    },
+    {
+      "marker": "E9",
+      "source": "STM §1 摘录 D | paper.pdf p.6 Section IV-B3 | paper_content.txt 行 556-578",
+      "quote": "Rapid-elevation of the swing leg is accomplished by rapidly bending the swing knee",
+      "supports": "early tripping 的动作、腿形电机重定位和 10 cm obstacle clearance"
+    },
+    {
+      "marker": "E10",
+      "source": "paper.pdf p.6 Section IV-B3 | paper_content.txt 行 579-608",
+      "quote": "Delta H in R is a scalar threshold value, which is set to 0.05m",
+      "supports": "rapid-elevation 失败后的 recovery 条件、水平前进近零、Delta H=0.05 m"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 用「top-level stance phases RW/SD/SU/TR」和「Inside TR, a separate reflex FSM routes tripping-start...」暴露了弱层次结构，但原文只支持 TR 内部 reflex FSM 与 tripping-start 图示，不支持更强的完整默认 init 链 [E2][E6]。",
+    "G_guards_arith": "G 钩子集中在 gait phase、swing-toe height、absolute swing-leg angle、horizontal advance、Delta H 等具名变量的复合阈值条件，尤其是 RW/SD/SU、late trip 与 failed elevation 判断 [E4][E7][E10]。",
+    "A_actions_nontrivial": "A 钩子体现在 late trip 保持当前控制器直到触地后切 recovery，以及 early trip 通过 repositioning swing leg-shape motor 快速弯膝清障 [E8][E9]。",
+    "F_fault_recovery": "原文支持局部绊倒恢复路径，即 TR 内 rapid-lowering/rapid-elevation 失败后进入 recovery；但不支持从任意状态进入全局 emergency safe-state 的横切故障恢复 [E6][E8][E10]。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain、multivar-guard、implicit-action-prose 和 composite-internal 几类 baseline 失败模式：机器人步态术语、复合数值守卫、散叙述动作和 TR 内部 FSM 分布在多句中 [E4][E6][E7][E9]。",
+    "ft_fcstm_fit": "pyfcstm 适配点主要是 Expr-IR/SMT 风格的多变量数值守卫和 effector-agnostic abstract action；forced+aspect 全局横切优势覆盖弱，因为原文没有全局 emergency 或 per-tick aspect [E4][E7][E9][E10]。"
+  },
+  "word_count_estimate": 279,
+  "intentional_omissions": "未写全局 emergency stop、safe shutdown、从任意状态强制恢复等 F 轴横切路径，因为原文只给 TR 内部 recovery 而没有全局故障转移。也未扩展全部 Figure 10 转移边和所有控制器参数，避免把图表枚举和优化细节注入为需求。",
+  "_meta": {
+    "id": "finite-state-machine-accommodating-unexpected-large-ground-height-variations-bipedal-robot-walking__01",
+    "actual_word_count": 279,
+    "markers_count": 10,
+    "provenance_count": 10
+  }
+}

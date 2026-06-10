@@ -1,0 +1,92 @@
+{
+  "sample_id": "handsfree-valet-technology-hfvt__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "Mostly flat FSM; Alignment and Park are only mode-grouped by isParallel into parallel-parking vs head-in behavior, without explicit nested state architecture."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions depend on sensor spike/jump, isParallel, Drop/depth preservation, distance_remembered, and a boolean fallback: if either Detecting condition is violated, return to Looking."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Looking polls sensors, sets InitialBase, sets isParallel and Drop, starts concurrent sensor/driving/progress tasks; later states drive, reverse, turn, and realign using sensor feedback."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Detecting has a dedicated recovery transition: if depth/obstacle or travelled-distance conditions fail, the vehicle abandons the candidate spot and goes back to Looking."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": false,
+      "evidence": "State names, main guards, and actions are colocated in the Parking Algorithm section across adjacent state paragraphs."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as parallel parking, head-in parking, S-turn, half S-turn, and corrective steering imply maneuver semantics beyond a simple state label."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "State actions are described directly under the corresponding state headings rather than in distant unrelated sections."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Detecting combines parking type, Drop/depth preservation, obstacle appearance, and distance_remembered with an either-condition failure rule."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No explicit composite state has its own entry/during/exit behavior separate from child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault or emergency transition is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial init/pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are 1-2 meaningful multi-variable sensor/space guards, especially in Detecting, but not enough explicit guard formulae for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Sensor polling and global sensor variables are continuously updated as concurrent monitoring tasks across the parking process, fitting a parent during-aspect pattern."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The progress indicator is an abstract side effect, but most actions are concrete motor/sensor commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The Parking algorithm uses a high-level finite state machine which consists of six states that must be traversed for each successful park.",
+    "If either of these conditions is violated, the vehicle will go back into looking."
+  ],
+  "one_line_pitch": "A sensor-driven parking FSM with multi-variable acceptance guards, non-trivial motion actions, and continuous monitoring is a strong stress test for baselines weak on guards and actions.",
+  "verdict": "candidate",
+  "rationale": "The sample is not hierarchically rich, but it is strongly defined by sensor guards and transition/state actions: it stores distances, branches on isParallel, checks space validity, and executes distinct parking maneuvers. The invalid-spot rollback to Looking gives a real recovery path, though not a global fault escape. Its main baseline traps are implicit parking-domain maneuver terms and multi-variable guarded logic, making it a good candidate stress case.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 78312,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6680,
+      "reasoning_output_tokens": 5459
+    },
+    "duration_s": 127.0,
+    "attempt": 1
+  }
+}

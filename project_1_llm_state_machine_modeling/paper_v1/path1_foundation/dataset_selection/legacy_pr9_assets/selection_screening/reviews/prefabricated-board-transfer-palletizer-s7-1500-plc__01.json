@@ -1,0 +1,92 @@
+{
+  "sample_id": "prefabricated-board-transfer-palletizer-s7-1500-plc__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper defines outer manual, maintenance, and automatic modes, then states that automatic mode contains operational modes such as board storage, retrieval, frame transverse, platform lifting, taking board, and sending board."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Movement and lifting depend on current vs. target column/layer; kiln selection uses arithmetic MOD/DIV and guarded ranges such as kiln number <=20, 21-41, and >41; position detection also uses combined sensor conditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Subroutines control motor start/reverse/speed/braking, positioning-device extension/retraction, kiln-door clamp extension/retraction, push-hook motion, indicator lights, HMI status, and alarms."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Initialization resets working mode, motor protection and emergency-stop faults, and the palletizer initial state; the HMI also provides stop and reset operations, but the paper does not fully formalize a layered fault hierarchy."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Mode names are in Section 4.2, automatic subroutine structure is in Section 4.3, physical storage/retrieval sequences are in Section 3.1, and HMI operation/reset details are in Section 5."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as maintenance mode, device exceptions, comprehensive protection functions, motor protection, and emergency stop faults imply control rules not fully enumerated as transitions."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The mode list is separated from narrative action descriptions such as transverse movement, lifting, opening the door, pushing, closing the door, hooking, indicator illumination, and color changes."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Target column and layer are calculated from kiln number with arithmetic formulas, and current-vs-target comparisons plus combined sensor detections determine motion decisions."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Automatic mode contains child operational modes, but the paper does not clearly assign independent entry, during, or exit behavior to the parent composite state beyond dispatching operations."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The stop button is described as halting all operations while the palletizer is in operation, and initialization handles failure/restart/reset conditions across the equipment controller."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite automatic mode with several child operation modes and a defined reset/initial state at A1-1, but no deep pseudo-state chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Kiln range guards, MOD/DIV target calculations, current-target comparisons, and combined sensor conditions create multiple arithmetic/boolean guards suited to expression-level validation."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global stop/reset behavior applies across many automatic operations, so forced transitions could avoid duplicating abort edges for storage, retrieval, movement, lifting, taking, and feeding modes."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The controller includes HMI status display, fault alarms, confirmation messages, indicator lights, and color changes, although many actuator actions remain concrete motor or hydraulic outputs."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The control mode of the palletizer is divided into manual mode, maintenance mode, and automatic mode.",
+    "Press the stop button while the palletizer is in operation to halt all operations."
+  ],
+  "one_line_pitch": "This is a strong industrial stress test because the same palletizer supervisor mixes nested operation modes, arithmetic kiln-position guards, rich actuator/HMI side effects, and cross-cutting stop/reset recovery.",
+  "verdict": "candidate",
+  "rationale": "The STM extraction is consistent with the paper: the sample is a layered mode-and-sequence controller, not just an equipment overview. It stresses known weak baseline areas through nested automatic operations, arithmetic and sensor-based guards, nontrivial transition actions, and stop/reset recovery spread across multiple sections. The cross-section split and global stop pattern make it especially likely to expose context-loss and transition-duplication failures.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 55180,
+      "cached_input_tokens": 43264,
+      "output_tokens": 5436,
+      "reasoning_output_tokens": 4035
+    },
+    "duration_s": 103.5,
+    "attempt": 1
+  }
+}

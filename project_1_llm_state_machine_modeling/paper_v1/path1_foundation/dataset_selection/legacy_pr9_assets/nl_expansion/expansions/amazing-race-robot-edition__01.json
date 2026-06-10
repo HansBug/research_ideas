@@ -1,0 +1,89 @@
+{
+  "case_id": "amazing-race-robot-edition__01",
+  "case_name": "Ask-for-Directions Hierarchical Navigation Supervisor",
+  "expanded_nl": "The supervisor controls a room-finding robot in an unknown single-floor building with no prior map or goal-location knowledge [E1]; it seeks a person, obtains spoken directions, follows them to the target hallway, and inspects door tags [E2]. The top-level FSM starts in WANDER, explores while detecting people, requests and interprets directions through speech synthesis and recognition, and enters FOLLOW DIRECTIONS only after dialogue yields a complete instruction set [E3]. Within WANDER, entry begins at MAKE DECISION, which checks registered-intersection context and available qualitative directions; when none are available, a recovery phase spins in place 360 degrees to update the quantitative and qualitative maps [E4]. Its exploration logic records hallway-trajectory visitation times, prefers unvisited trajectories, otherwise chooses the oldest visited one, and updates the selected trajectory before moving on [E5]. FOLLOW DIRECTIONS has a step counter initialized to the first plan step; forward actions drive until the specified intersection is detected, and left, right, or turn-around actions rotate 90 degrees, -90 degrees, or 180 degrees [E6]. For a forward-through-intersection action, the robot remains in motion until the intersection type changes and it has traveled at least 2 m from the rotation point; then the motion substate increments the step counter before returning to decision making [E7]. Failure recovery returns control to WANDER: top-level states have failure conditions that return to the initial state, and FOLLOW DIRECTIONS also returns to WANDER when a hallway-end 360-degree check still cannot find the specified intersection [E8]. The implementation uses a Husky platform with IMU, LiDAR, an Axis camera, ROS, speech I/O, and OCR over Axis-camera door-tag images [E9] [E10] [E11].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Introduction | paper_content.txt 行 59-65",
+      "quote": "we place the robot in an unknown environment, without a map... finding a door with a specified number on a single floor",
+      "supports": "unknown single-floor building, no prior map, specified door-number goal"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Introduction | paper_content.txt 行 64-71",
+      "quote": "it must seek a person for assistance... follow these directions to reach the hallway... search for doors and read their door tags",
+      "supports": "seek a person, obtain directions, follow to hallway, inspect door tags"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 B | paper.pdf p.2 §II.B Architecture | paper_content.txt 行 163-183",
+      "quote": "the initial state is WANDER... detect and track people... speech synthesis and speech recognition... complete set of directions",
+      "supports": "top-level WANDER start, people detection, dialogue I/O, transition after complete directions"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 C | paper.pdf p.5 §III.A WANDER | paper_content.txt 行 443-453",
+      "quote": "WANDER enters the MAKE DECISION substate first... spin in place 360°. This substate helps to update the quantitative and qualitative maps",
+      "supports": "WANDER composite default substate and 360-degree recovery action"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 C | paper.pdf p.5 §III.A WANDER | paper_content.txt 行 471-482",
+      "quote": "maintain a visitation time... selects the oldest one... randomly selects one... updates the visitation time of the selected hallway trajectory",
+      "supports": "visitation-time variable, trajectory selection policy, visitation-time update"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 D | paper.pdf p.11-12 §III.D FOLLOW DIRECTIONS | paper_content.txt 行 1061-1090",
+      "quote": "maintains a step counter... initializing the step counter to the first step... left → 90°, right → −90°, and turn-around → 180°",
+      "supports": "FOLLOW DIRECTIONS internal counter, default plan step, forward and rotation actions"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 D | paper.pdf p.12 §III.D FOLLOW DIRECTIONS | paper_content.txt 行 1091-1099",
+      "quote": "requires that the intersection type change and the robot travel at least 2 m... they increment the step counter accordingly",
+      "supports": "compound numeric guard and step-counter transition action"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 B/D | paper.pdf p.2 §II.B and p.12 §III.D | paper_content.txt 行 165-168, 1149-1155",
+      "quote": "failure conditions which result in a transition to the initial state... indicates failure to carry out the plan and will return to the WANDER state",
+      "supports": "failure recovery to initial WANDER behavior"
+    },
+    {
+      "marker": "E9",
+      "source": "paper.pdf p.2 §II.A Hardware and Software | paper_content.txt 行 135-141",
+      "quote": "Clearpath Husky A200 UGV equipped with an Open IMU UM7, Velodyne VLP-16 3D LiDAR, Axis M5525-E PTZ Camera",
+      "supports": "Husky platform, IMU, LiDAR, Axis camera hardware"
+    },
+    {
+      "marker": "E10",
+      "source": "paper.pdf p.2 §II.A Hardware and Software | paper_content.txt 行 142-146",
+      "quote": "using ROS Kinetic as the communication framework... SLAM from data from the IMU and 3D LiDAR",
+      "supports": "ROS communication and IMU/LiDAR SLAM grounding"
+    },
+    {
+      "marker": "E11",
+      "source": "paper.pdf p.2 §II.A Hardware and Software | paper_content.txt 行 147-157",
+      "quote": "record speech with the Blue Yeti microphone... synthesize speech through the laptop speaker... door tags taken with the Axis camera",
+      "supports": "speech input/output and OCR over Axis-camera door-tag images"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "H 轴由 [E4] 和 [E6] 覆盖：WANDER 进入后默认从 MAKE DECISION 开始并含 recovery phase，FOLLOW DIRECTIONS 以 step counter 初始化到第一 plan step 后进入 forward/rotate 等内部 phase。",
+    "G_guards_arith": "G 轴由 [E7] 覆盖：具名变量为 intersection type 与 distance from rotation point，自然语言复合条件是 intersection type changes AND distance >= 2 m；未额外发明其他阈值。",
+    "A_actions_nontrivial": "A 轴由 [E4]-[E7] 和 [E11] 覆盖：进入 recovery 时 360-degree spin，forward/rotate motion 执行，visitation time 更新，step counter increment，以及语音/OCR 等硬件相关动作。",
+    "F_fault_recovery": "F 轴由 [E8] 覆盖：顶层状态有 failure conditions 返回 initial state，FOLLOW DIRECTIONS 在 hallway-end 360-degree check 后仍未找到指定 intersection 时返回 WANDER。",
+    "bd_baseline_traps": "expanded_nl 命中 composite-internal（WANDER/FOLLOW DIRECTIONS 内部 phase，[E4][E6]）、implicit-domain（registered intersection/qualitative directions/hallway trajectories，[E4][E5]）和 multivar-guard（intersection type + 2 m，[E7]）等 baseline 失败模式。",
+    "ft_fcstm_fit": "pyfcstm 适配点主要是 [E4]/[E6] 的复合 init 链、[E7] 的可转 SMT 复合守卫和 [E8] 的 forced-reset 风格回到 WANDER；abstract action 只在 [E9]-[E11] 的硬件 grounding 上有有限支撑。"
+  },
+  "word_count_estimate": 265,
+  "intentional_omissions": "未加入 emergency stop、safe-state 或任意子状态强制中止，因为原文只支持失败返回 initial/WANDER。未加入具体阀门/电机编号、人物检测置信度或额外传感器阈值，因为原文没有给这些控制模型事实。",
+  "_meta": {
+    "id": "amazing-race-robot-edition__01",
+    "actual_word_count": 265,
+    "markers_count": 11,
+    "provenance_count": 11
+  }
+}

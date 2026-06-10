@@ -1,0 +1,93 @@
+{
+  "sample_id": "affordable-insole-sensor-based-transfemoral-prosthesis__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The controller is organized around a gait-cycle hierarchy: stance vs swing, with stance sensor states assigned to four gait phases and swing treated as a single state; this is a shallow composite structure rather than a deeply nested statechart."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Table 1 defines phase guards as four-sensor boolean patterns such as 1000, 1100, 0100/0110/0111, 0011/0001, and 0000; the controller also excludes the remaining stance combinations as non-ROS states."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "State actions set MR-damper current references for high, moderate, low, or very small damping, while the inner PI loop reads feedback current, computes error, and varies PWM duty cycle to track the reference."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper discusses preventing knee buckling and future attention to control security, but it does not define a fault state, abort transition, recovery path, or global safe-state rule."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The sensor guards are specified in Section 2.2/Table 1, while the finite-state control role and per-state damping actions are specified later in Section 2.4 and tuning details in Section 3.1."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Domain terms such as roll-over shapes, loading response, terminal stance, pre-swing, and swing imply gait-phase ordering and validity; the paper says eight stance combinations do not represent ROS segments, leaving the ignore/no-transition handling implicit."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The phase/state list and sensor patterns are tabular, but actions are assigned later in prose: state 0/1 high damping, state 2 moderate damping, state 3 low damping, and state 4 very small damping."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Each phase guard combines four sensor-group variables using boolean equality/conjunction, and some phases are disjunctions over multiple four-bit patterns."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No explicit stance/swing superstate entry, during, or exit action is defined beyond the substate damping behavior; the PI loop is described as an architectural inner controller."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "There is no from-any-state fault, emergency stop, rollback, or safe-state transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow gait-cycle/stance grouping with a natural default entry into loading response, but no deep composite init or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The eight accepted four-sensor patterns plus the excluded non-ROS combinations create enough boolean guard structure for SMT-style coverage and overlap checks to be useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The PI current controller is a common continuous behavior applied across all gait states to track whatever current reference the FSM emits, which maps naturally to a parent/aspect during rule."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete effector commands to the MR damper via current references and PWM, not abstract log, publish, notify, or status actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The secondary controller generates the required current references for the MR damper using a finite state machine.",
+    "only 7 states of stance can be assigned to four phases as tabulated in Table 1, whereas the remaining 8 states of stance do not represent any of the ROS segments.",
+    "In state 0... high damping... State 2... moderate damping... State 3... low damping... final state... very small damping."
+  ],
+  "one_line_pitch": "A two-level prosthesis gait supervisor with multi-sensor boolean phase guards and continuous MR-damper current control stresses hierarchy, guard reconstruction, and action attribution.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test because the finite-state behavior is not confined to one clean state table: guards, phase semantics, damping actions, and current-loop behavior are split across multiple sections. The sample has meaningful hierarchy, dense multi-variable guards, and non-trivial continuous actuation through the PI-controlled MR damper. It lacks an explicit fault-recovery model, but the H/G/A complexity plus high baseline-trap density make it suitable for the top stress-test set.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 94715,
+      "cached_input_tokens": 73344,
+      "output_tokens": 9331,
+      "reasoning_output_tokens": 7700
+    },
+    "duration_s": 179.1,
+    "attempt": 1
+  }
+}

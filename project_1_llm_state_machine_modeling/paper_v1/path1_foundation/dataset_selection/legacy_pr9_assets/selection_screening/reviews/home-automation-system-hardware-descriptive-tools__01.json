@@ -1,0 +1,92 @@
+{
+  "sample_id": "home-automation-system-hardware-descriptive-tools__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The controller is a flat Mealy/EFSM with states such as start, fdoor, fire, t_cool, t_heat, l_dim, and l_bright; no parent/child or composite state structure is described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The controller uses a priority-ordered if/else-if guard chain over d_sen, f_sen, temp_sen, and lum_sen; lower-priority transitions implicitly depend on earlier conditions being false plus their own threshold comparison."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "State actions drive hardware outputs: start clears b_alrm, f_alrm, heater, cooler, l_high, and l_low; fdoor sets b_alrm, fire sets f_alrm, t_heat/t_cool drive heater/cooler, and luminosity states drive light outputs."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The Verilog next-state block has a global reset check before the state case, sending the controller back to start from any current state; intrusion/fire alarm handling is present, but no layered fault-recovery model is specified."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The flow description gives conceptual guards/actions, the state table gives state identifiers and ordering, the implementation assigns outputs per state, and the results later confirm output behavior."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as priority order and 'buzzer is on till it is manually turned off' imply preemption/hold or manual-clear semantics beyond the compact state table."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The current/next-state table lists transitions only, while actions such as turning on the heater/cooler, buzzing alarms, and changing light current are described in prose and code elsewhere."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The priority chain over door, fire, temperature, and luminosity sensors creates effective boolean guards combining multiple variables with threshold comparisons."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state or parent state with its own entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The implementation checks reset before dispatching on current_st, so reset sends every state to start rather than being encoded separately in each case."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state init or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The priority-ordered guard chain has several threshold and sensor conditions whose effective semantics require boolean composition and guard consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global reset rule applies across all flat states and would be compact as one forced transition instead of duplicated per state."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete hardware signals and actuators such as b_alrm, f_alrm, heater, cooler, and light-current controls, not abstract log/publish/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "A sequential pattern of controlling the door, burglar alarm, fire alarm, temperature and luminosity is followed in a priority order.",
+    "if(reset== 'b1) next_st=`start; else case(current_st)"
+  ],
+  "one_line_pitch": "A flat but priority-driven home-control EFSM stresses guard synthesis because multiple sensor thresholds must preserve ordered preemption while outputs and global reset are distributed across prose, tables, and Verilog code.",
+  "verdict": "backup",
+  "rationale": "This is a meaningful stress-test for guarded EFSM extraction: the real semantics are not just single event transitions, because the priority chain induces multi-variable boolean guards. It also has nontrivial actuator outputs and a cross-cutting reset path. However, it lacks hierarchy and most actions are direct hardware commands, so it is better as a backup sample than a top-15 candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 82515,
+      "cached_input_tokens": 68736,
+      "output_tokens": 8349,
+      "reasoning_output_tokens": 6789
+    },
+    "duration_s": 157.8,
+    "attempt": 1
+  }
+}

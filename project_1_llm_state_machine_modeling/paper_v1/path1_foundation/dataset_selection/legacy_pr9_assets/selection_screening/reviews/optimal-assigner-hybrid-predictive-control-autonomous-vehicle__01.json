@@ -1,0 +1,92 @@
+{
+  "sample_id": "optimal-assigner-hybrid-predictive-control-autonomous-vehicle__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper describes a hierarchical control framework and several FSMs selected by driving scenario, but the highway maneuver machine itself is presented as a flat nine-state lane/maneuver table rather than explicit nested states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Forced maneuver activation is defined by a speed-band violation around vref conjoined with lane availability/normal-tracking conditions, plus lane-priority resolution; following/leading also depend on front/rear vehicle speed comparisons."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions/mode choices update MPC references, lane weights Zq, forced-maneuver penalties pzq, and feed trajectory/control outputs such as desired acceleration and yaw-rate deviation to lower-level controllers."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper has collision-avoidance constraints and forced lane-change escape from local minima, but no explicit fault state, emergency-stop transition, rollback, or from-any-state recovery rule."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names are in Table I in Section IV, maneuver meanings and target-speed jump rules are in Section II, and forced-maneuver weight updates are specified later in Section IV equations."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as open lane, normal tracking, following, leading, and lane change carry driving-domain rules that must be mapped to state behavior beyond the compact state table."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state table lists maneuver names and weights, while the actions of tracking vref/front/rear speeds and driving Zq or pzq are described in surrounding prose and equations."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The forced maneuver guard combines range arithmetic over the tolerated speed band with a normal-tracking lane condition and priority logic."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state is given with its own entry, during, or exit behavior beyond child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No fault-triggered from-any-state transition or global safe-state recovery rule is specified."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial initial pseudo-state chain is specified for the highway FSM."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Lane-indexed forced-maneuver guards and vehicle/lane constraints use arithmetic inequalities, range checks, and boolean composition suitable for expression-level consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The forced maneuver rule applies across lane candidates and repeated following/leading trap cases, where a forced-transition/aspect encoding could avoid duplicating the same escape logic across many states."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The assigner outputs abstract MPC setup data such as references, weights, and maneuver choices, although the paper also names concrete control variables like acceleration and yaw-rate deviation."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Different maneuvers are designed and grouped as (sets of) finite state machine(s) for the assigner to select from.",
+    "A forced maneuver from the maneuver candidates is added to the MPC by making its weight variable Zq track a value of 1."
+  ],
+  "one_line_pitch": "This is a strong guard/action stress test because a compact lane-maneuver FSM is coupled to arithmetic speed-band guards, lane priorities, and MPC weight/reference updates spread across the paper.",
+  "verdict": "candidate",
+  "rationale": "The sample is not a strong hierarchy or fault-recovery case, but it is a demanding EFSM benchmark for guards and actions. The paper’s actual controller requires reconstructing lane-specific maneuver states, arithmetic forced-maneuver guards, priority rules, and MPC weight/reference updates from non-adjacent sections. Those are exactly the areas where the Umple-style baselines report weak guard and action recovery.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83970,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6021,
+      "reasoning_output_tokens": 4428
+    },
+    "duration_s": 116.2,
+    "attempt": 1
+  }
+}

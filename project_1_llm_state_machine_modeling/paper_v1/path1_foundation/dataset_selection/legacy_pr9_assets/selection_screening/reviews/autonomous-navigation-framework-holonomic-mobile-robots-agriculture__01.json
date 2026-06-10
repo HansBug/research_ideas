@@ -1,0 +1,92 @@
+{
+  "sample_id": "autonomous-navigation-framework-holonomic-mobile-robots-agriculture__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "Top-level WAIT_FOR_GOAL -> PLAN_EXEC -> VISUAL_SERVOING, with VISUAL_SERVOING containing TARGET_ALIGNMENT plus TRAVERSE_FORWARD/INSPECT/TRAVERSE_BACKWARD loop."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Alignment completion requires dq approx 0, dy approx 0, dx approx 0; branch guards choose angular, lateral, or forward velocity based on combined alignment conditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States load map and mission, configure localization/action sequence, invoke TEB navigation, compute velocity vectors, traverse/inspect rows, and report invalid/aborted/failure outcomes."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "Paper states that any failure throughout the operation returns to a common invalid/aborted/failure state and then to initialization."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names are centralized in Section 3.4/Figure 8, while PLAN_EXEC, TARGET_ALIGNMENT, and rail traversal behaviors are detailed separately in Sections 3.5-3.7."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Domain terms such as VISUAL_SERVOING, TEB Local Planner, headland navigation, and rail alignment imply robotics-specific control behavior beyond a simple event label."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described in prose and equations in later subsections rather than in the state definition itself."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The alignment guard combines dq, dy, and dx comparisons, and velocity branches depend on boolean combinations of these alignment variables."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper defines substate behavior inside VISUAL_SERVOING but does not clearly specify separate parent entry/during/exit actions beyond its substates."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "Any failure anywhere in the operation routes to a common failure outcome and then initialization."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "One shallow composite VISUAL_SERVOING block has an initial TARGET_ALIGNMENT phase followed by an internal traversal/inspection loop."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Multiple numeric and boolean guard conditions over dq, dy, dx control alignment completion and velocity-mode selection."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global failure rule applies across the whole FSM, so a forced transition could encode one cross-cutting recovery rule instead of duplicating many transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Failure outcomes are abstract status reports such as invalid, aborted, or failure, while most other actions are concrete navigation or velocity commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The robot initialization is equivalent to the WAIT_FOR_GOAL state.",
+    "Any failure that may occur throughout the entire operation returns to a common state."
+  ],
+  "one_line_pitch": "A hierarchical greenhouse navigation supervisor with arithmetic alignment guards, nontrivial navigation actions, and global failure recovery stresses exactly the guard/action/hierarchy weaknesses of Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This sample is a strong stress test because the paper gives an explicit hierarchical FSM and then spreads the operational semantics across navigation, alignment, and rail-traversal sections. The controller includes multi-variable numeric guards for rail alignment, concrete action outputs through planners and velocity commands, and a global recovery path from any failure. These features directly target prior baseline weaknesses in hierarchy, guards, actions, and cross-cutting recovery.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 130678,
+      "cached_input_tokens": 108544,
+      "output_tokens": 5437,
+      "reasoning_output_tokens": 3740
+    },
+    "duration_s": 109.6,
+    "attempt": 1
+  }
+}

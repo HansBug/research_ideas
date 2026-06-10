@@ -1,0 +1,92 @@
+{
+  "sample_id": "control-strategies-low-voltage-dc-microgrids__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The controller is explicitly two-level: upper signalling states I-IV, with State III containing the sleep/droop/power mode-switch submachine."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions depend on converter role, sending/receiving completion, signal voltage detection, six-bit signal-series fields, conjunctions over ss[1]/ss[3], bus-voltage limits, SoC, and current-amplitude commands."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States send and receive signal series, continuously monitor DC bus voltage, perform current compensation, switch other sources on, set droop/power/sleep modes, set charge/discharge current references, and limit PV power."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The paper handles planned on-grid/off-grid transfer via an off-signal, but says abrupt grid-converter break/plug-out cannot be actively regulated and falls back only vaguely to restart or all-droop behavior."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State hierarchy is in §6.4.2, guard encoding is defined in §6.3/Table 6-1 and Appendix A6, and State IV current-compensation behavior is referenced back to Chapter 4."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as droop mode, power mode, MPPT, SoC, plug-and-play, and current compensation carry domain-specific control semantics not fully restated in the state bullets."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are partly narrated outside the state definitions: experiments describe switch-on, charge/discharge current, full-charge sleep return, and PV limitation behavior tied back to modes."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The second-level machine uses conjunctions such as ss[1] with ss[3], while the broader controller also tests bus voltage limits, SoC, PV power, and signal-series current bits."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Parent State III owns continuous bus-voltage monitoring and sending/receiving triggers while also containing the sleep/droop/power internal state machine."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "Signal-voltage arrival is handled at the parent State III level, so the receive transition applies across the internal sleep, droop, and power substates."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is one explicit composite state with role-dependent entry into sleep or droop, but no deep pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The six-bit signal protocol and mode machine create many boolean/comparison guards whose consistency is easier to check with a unified expression IR."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Parent State III declares continuous monitoring once and signal-arrival handling applies across all three internal modes, matching aspect/forced-transition compression."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are mostly concrete power-electronics commands and DC-bus signal-series actions, not channel-agnostic log/publish/notify effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The system state machine contains two levels.",
+    "sleep mode, droop mode and power mode"
+  ],
+  "one_line_pitch": "A two-level converter controller whose parent monitoring state decodes signal-series guards into cross-cutting receiving behavior and concrete mode/current actions.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test because the paper gives an explicit hierarchical state machine with a parent state that owns continuous monitoring and contains a second-level mode machine. The guard/action semantics are distributed across the state-machine section, signal-series table, appendix, and experimental scenarios, creating exactly the kind of context-splitting and semantic attribution that weakens Umple-style baselines. Fault handling is limited, but H/G/A plus BD and FT are high enough for a top candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 198305,
+      "cached_input_tokens": 123904,
+      "output_tokens": 7287,
+      "reasoning_output_tokens": 5325
+    },
+    "duration_s": 144.6,
+    "attempt": 1
+  }
+}

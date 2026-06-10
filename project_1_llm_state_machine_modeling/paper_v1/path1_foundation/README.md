@@ -20,14 +20,14 @@
 
 ## 3. 推荐阅读顺序
 
-1. [paper_story.md](./paper_story.md)：论文 thesis、gap、贡献、claim 边界。
-2. [project_inventory.md](./project_inventory.md)：当前仓库中与论文有关的证据、代码、baseline、run record 与缺口。
-3. [sample_assets.md](./sample_assets.md)：从历史 PR #9 压缩迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 historical early reference draft 信息。
-4. [baseline_and_related_work_matrix.md](./baseline_and_related_work_matrix.md)：最近 baseline / related work 的实验定位与对齐方式。
-5. [experiment_inventory.md](./experiment_inventory.md)：RQ、样本、baseline、metrics、oracle 与 run record 计划。
-6. [claim_evidence_map.md](./claim_evidence_map.md)：强 claim、谨慎 claim、禁用 claim 与证据状态。
-7. [reviewer_risk_register.md](./reviewer_risk_register.md)：按 C/I/M 维护的审稿风险与修复动作。
-8. [execution_plan.md](./execution_plan.md)：从 foundation 到投稿冲刺的 gate-driven 执行方案。
+1. [paper_story.md](./story/paper_story.md)：论文 thesis、gap、贡献、claim 边界。
+2. [project_inventory.md](./evidence/project_inventory.md)：当前仓库中与论文有关的证据、代码、baseline、run record 与缺口。
+3. [sample_assets.md](./dataset_selection/sample_assets.md)：从历史 PR #9 压缩迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 historical early reference draft 信息。
+4. [baseline_and_related_work_matrix.md](./evidence/baseline_and_related_work_matrix.md)：最近 baseline / related work 的实验定位与对齐方式。
+5. [experiment_inventory.md](./experiment_design/experiment_inventory.md)：RQ、样本、baseline、metrics、oracle 与 run record 计划。
+6. [claim_evidence_map.md](./story/claim_evidence_map.md)：强 claim、谨慎 claim、禁用 claim 与证据状态。
+7. [reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：按 C/I/M 维护的审稿风险与修复动作。
+8. [execution_plan.md](./experiment_design/execution_plan.md)：从 foundation 到投稿冲刺的 gate-driven 执行方案。
 9. [plan/progress.md](./plan/progress.md)：当前 PR / 后续 paper 工作进度与 review 记录。
 
 ## 4. 与历史 PR #9 的关系
