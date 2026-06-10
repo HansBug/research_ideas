@@ -8,7 +8,11 @@
 
 ## Thesis
 
-We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. This foundation plans a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and requires a frozen control-system benchmark, adapted component-level human adjudication, ablations, and recent-baseline comparisons before the manuscript can make result-level claims.
+中文工作口径：本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量；当前 foundation 只负责规划形式化状态机表示、生成-检查-仿真-修复闭环，以及后续冻结样本、人工评审、消融实验和近期 baseline 对比所需的证据门禁，不提前声明结果型结论。
+
+候选英文口径仅供后续 `abstract_v0.md` 改写时参考，不能直接复制进摘要：
+
+> We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. The manuscript may only claim empirical improvements after the benchmark, human adjudication, ablations, and recent-baseline comparisons are completed.
 
 ## Task Boundary
 
@@ -56,7 +60,7 @@ We study whether executable formal feedback can improve LLM-based state-machine 
 ## Evidence Already Available
 
 - `method/` 已完成 LangGraph full staged runtime、stage API、run record、tests 与 retained four-case evidence，见 [../method/README.md](../../../method/README.md) 和 [../method/STATUS.md](../../../method/STATUS.md)。
-- `baselines/` 已收录 72 篇 baseline / related work，含 2024-2026 LLM4Modeling 近邻，见 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)。
+- `baselines/` 当前 main 入口是 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)；后续 baseline 冻结前必须跟进 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 的 2025-2026 arXiv 再摸排增量，避免 related-work / baseline matrix 过期。
 - PR #9 已形成 323 sample selection、Top-15 / Backup-15、30 条 NL expansion 和 2 个 early historical early reference draft STM 经验，已在 [sample_assets.md](../dataset_selection/sample_assets.md) 中压缩迁移。
 - issue #67 已定义 2026 夏季 Path-1 投稿冲刺 gate、主投 SoSyM regular rolling 与 fallback。
 
@@ -78,12 +82,14 @@ We study whether executable formal feedback can improve LLM-based state-machine 
 
 本稿的差异点不是“第一个用 LLM 画状态机”，而是把可执行形式化反馈和可审计 repair/run record 放进 NL-to-state-machine modeling loop，并用 baseline hard comparison 评估其边际贡献。
 
-## Claims to Make
+## Claims to Make（必须先过 claim_evidence_map gate）
+
+以下只是后续可争取的论文 claim 类型，不是当前 result claim。进入 Abstract / Introduction 前必须回到 [claim_evidence_map.md](./claim_evidence_map.md) 判定状态，并满足对应实验 gate。
 
 - 本方法支持从 NL 生成可解析、可执行、可审计的形式化状态机模型。
 - 确定性检查和仿真反馈能形成可复现的模型质量诊断与修复证据链。
 - 与 direct / structured prompting 和 recent LLM-for-modeling baselines 相比，本方法可在更丰富组件维度上进行公平评估。
-- Agent orchestration 影响模型质量、稳定性和可审计性；E1/E2 应作为实验条件分析。
+- Agent orchestration 应作为实验条件接受评估；只有在 E1/E2 或后续复现实验完成后，才能讨论其对模型质量、稳定性和可审计性的影响。
 
 ## Claims to Be Careful About
 

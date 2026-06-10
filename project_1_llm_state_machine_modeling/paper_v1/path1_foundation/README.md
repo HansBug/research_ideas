@@ -10,13 +10,9 @@
 
 第一篇论文暂定走 **Path-1 baseline hard comparison**：研究自然语言控制系统需求到形式化状态机模型的 LLM 建模问题，重点检验形式化状态机表示、确定性检查反馈、可执行仿真反馈与 LLM agent 修复闭环是否能相对近期 LLM-for-modeling / state-machine-generation baseline 提供更丰富、更可审计、更可执行的状态机建模结果。
 
-一句话 thesis：
+一句话中文口径：
 
-> We study whether executable formal feedback can improve LLM-based state-machine modeling from natural-language control-system requirements. This foundation PR plans a formalized state-machine representation and an agentic generate-check-simulate-repair loop, and specifies the frozen benchmark, human adjudication, ablations, and baseline comparisons required before the manuscript may make result-level claims.
-
-中文口径：
-
-> 本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量。本 foundation PR 先规划形式化状态机表示、generate-check-simulate-repair agent loop，以及后续在冻结 benchmark、组件级人工评审、消融实验和近期 baseline 对比中必须补齐的证据。
+> 本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量。本 foundation PR 只规划形式化状态机表示、生成-检查-仿真-修复 agent loop，以及后续在冻结 benchmark、组件级人工评审、消融实验和近期 baseline 对比中必须补齐的证据；在这些证据完成前，不提前声明结果型结论。
 
 ## 3. 目录分层
 
@@ -52,6 +48,10 @@ PR #9 是 2026-05 Path-1 quick sprint 分支，提供了重要样本资产和 re
 - 文件级 [asset_manifest.tsv](./dataset_selection/asset_manifest.tsv) 与数量摘要 [asset_summary.json](./dataset_selection/asset_summary.json)。
 
 PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需在正式 paper 实验前复核；不得把它们直接写成最终实验结果。
+
+## 5.1 与 PR #92 baseline 增量的关系
+
+PR [#92](https://github.com/HansBug/research_ideas/pull/92) 正在补充 2025-2026 arXiv 的 LLM→STM-family direct baseline 与强近邻候选。本 PR 不复制 PR #92 的完整 baseline 文库内容，但后续 S1 baseline / related-work 冻结前必须先吸收其合入后的总账事实，或在其尚未合入时把它标成“待合入 / 待复核候选”。这样可以避免第一篇论文基于过期 baseline corpus 设计 competitor。
 
 ## 6. 非目标
 

@@ -52,12 +52,16 @@
 | 2026-06-09 | 最终三路复核 | READY；C=0/I=0；仅发现 README ready checklist 呈现不一致等 M 级问题，并已修正 |
 | 2026-06-10 | PR #9 详细资产归档 | 已归档 387 个历史资产文件：323 个 selection review、30 个 expansion JSON、2 个 parquet、2 个 reference draft 目录，并生成 manifest / summary |
 | 2026-06-10 | foundation 分层 README 收口 | 新增 story/evidence/dataset_selection/experiment_design/plan 及 legacy asset 子路径中文 README，修正 current overlay 旧路径 |
+| 2026-06-10 | 最终 execution verifier review | 发现 I：`asset_manifest.tsv` 中 `selection_screening/README.md` bytes/SHA 与当前文件不一致；已修复 manifest 与 summary 总字节数，并将深度 manifest 复算纳入检查 |
+| 2026-06-10 | PR #92 baseline 增量吸收要求 | 根据用户要求，补充“baseline 现状再摸排 / 吸收 PR #92 近期 arXiv 增量”为后续 S1a 子任务，避免基于过期 baseline corpus 冻结 competitor |
+| 2026-06-10 | PR body 中文化要求 | 根据用户要求，后续 PR body 尽量中文化，Mermaid 节点使用中文，英文只保留必要术语 / 论文候选句 |
+
 
 ## Capability-use audit
 
 - Required skills/scripts：`ai-research-writing-skill`、`research-planning`、`sub-agents`。
-- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、method/eval/baselines docs。
+- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、PR #92 body/comments、method/eval/baselines docs。
 - Inputs not used and why：已归档全部 323 review JSON，但当前 foundation 不重新解释每条 review；正式样本冻结阶段再逐条核验 eligibility / provenance。
 - Artifacts produced：分层 foundation Markdown、PR #9 legacy assets、asset manifest / summary。
 - Verification run：foundation markdown sanity、相对 Markdown 链接检查已通过；PR body 已创建并接受第一轮三路 review。
-- Remaining risk：当前 foundation PR 无 C/I 阻塞；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak 与 claim-evidence mismatch。
+- Remaining risk：当前 foundation PR 无 C/I 阻塞；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak、claim-evidence mismatch，并在 S1a 先吸收 PR #92 / 最新 baseline 增量。
