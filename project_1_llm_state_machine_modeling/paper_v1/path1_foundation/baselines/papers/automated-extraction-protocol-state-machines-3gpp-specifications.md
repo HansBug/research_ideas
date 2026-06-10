@@ -29,7 +29,7 @@
 | agent/prompt 模式（多选 tag+解释） | `structured prompt`：状态、条件、动作、JSON 字段显式约束；`CoT/decomposition`：state extraction、transition extraction、post-processing 三阶段；`few-shot`：condition/action 分离示例；`lightweight RAG/context`：章节号 cross-reference 与历史上下文；`ensemble`：五个 LLM 同 prompt 输出后对齐与多数投票。 | `P:255-276`, `P:357-474`, `P:475-529`, `P:530-588`, `D:122-128` |
 | LLM 模型四元组 | 模型：Claude Sonnet 4、DeepSeek V3、Gemini 2.5 Pro、GPT-4o、Qwen Turbo；provider：Anthropic / DeepSeek / Google / OpenAI / Qwen 系；调用方式：API/hosted LLM，temperature 0.2；版本锁：论文只给模型名和当时价格/耗时，不给精确 API snapshot 或 deployment id。 | `P:530-541`, `P:589-610`, `P:821-840`, `D:144-149` |
 | 输出 STM 类型 | Protocol finite state machine，论文形式化为 $\langle Q, \Sigma, q_0, \delta, F \rangle$，实际转移包含 `from/to state + condition span + action span`；语义能力：适合协议状态/消息/条件抽取；可执行性：论文未给可直接运行的 DSL/代码；guard/action：以原文 condition/action span 表示；hierarchy：可把 PFCP/NGAP 按层拆分评估，但不是通用层次状态机；time/concurrency：无显式 timed/concurrent semantics；应用场景：协议验证/测试前处理；与本项目差距：不覆盖控制变量、pyfcstm schema、时间约束、层次并发、scenario trace 或 repair loop。 | `P:235-254`, `P:413-436`, `P:641-653`, `P:698-734`, `P:888-915`, `D:97-121`, `D:200-208` |
-| 人在回路角色 | 作者人工构建并交叉验证 ground truth，是事后评测与 reference 构建；生成流程中原文提到多模型输出差异“necessitating manual alignment”，但未说明人工对齐流程、角色和可复现细节，不能视作完整可审计人类反馈闭环。 | `P:134-138`, `P:530-544`, `D:132-137`, `A:18`, `A:36` |
+| 人在回路角色 | 作者人工构建并交叉验证 ground truth，是事后评测与 reference 构建；生成流程中原文提到多模型输出差异“necessitating manual alignment”，但未说明人工对齐流程、角色和可复现细节，不能视作完整可复核的人类反馈闭环。 | `P:134-138`, `P:530-544`, `D:132-137`, `A:18`, `A:36` |
 | 输出后人工改动 | 论文没有公开最终 FSM 输出或逐转移编辑记录；可确认的是 post-processing 会做 JSON 结构校验、伪状态/空状态移除，多模型输出会对齐后投票；人工 GT 与可能的 manual alignment 不等于公开可复现的输出后人工修订记录。 | `P:461-474`, `P:530-588`, `A:16-19`, `A:38-40` |
 
 ## 3. 表 B：资产状态与可复现性
@@ -89,7 +89,7 @@
 | 项目 | 结论 | Source pointer |
 |---|---|---|
 | 打穿的 claim | 不能声称“长篇自然语言规格到 FSM 抽取尚无人做”或“LLM ensemble + domain prompt 抽取协议状态机是本文首创”。 | `P:21-30`, `P:121-139`, `P:956-971` |
-| 可保留的弱化表述 | 可说本文聚焦控制系统需求、可执行 STM schema、scenario/run-record/repair feedback；SpecGPT 聚焦通信协议规格抽取且无公开代码/GT。 | `P:888-915`, `D:200-208`, `A:13-19` |
+| 可保留的弱化表述 | 可说本文聚焦控制系统需求、可执行 STM schema、scenario-level feedback 与 repair decision；run record 只作为实验复现和排障记录。SpecGPT 聚焦通信协议规格抽取且无公开代码/GT。 | `P:888-915`, `D:200-208`, `A:13-19` |
 | S1b handoff | Related Work 中作为“long technical specifications -> protocol FSM”的强相关 evidence-only prior；强调其 chunking、domain prompt、span grounding、ensemble 对本项目有方法启发。 | `P:333-588`, `D:192-208` |
 | S3 handoff | 不建议重跑原实验；若需要做近似 ablation，可只抽取 `section-tree chunking + JSON schema + majority voting` 作为 pipeline 变体，并使用本项目公开控制需求样本。 | `P:292-356`, `P:413-474`, `P:530-588`, `A:46-50` |
 | 风险等级 | M/I：claim 风险高于复现实验价值；证据足以约束 novelty，但不足以支撑直接可复现实验比较。 | `A:17-19`, `A:46-50`, `project_1_llm_state_machine_modeling/paper_v1/path1_foundation/baselines/SUMMARY.md:§7` |

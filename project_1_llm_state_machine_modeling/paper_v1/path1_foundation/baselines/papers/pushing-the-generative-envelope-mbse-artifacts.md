@@ -82,7 +82,7 @@
 | 类型 | 内容 | 风险等级 | handoff |
 |---|---|---|---|
 | 会被打穿的 claim | “没有人评估 prompt technique/temperature 对 SysML state machine generation 的影响”；“local LLM 不能生成 MBSE state machine 初稿”。 | M | S1b Related Work 中可一笔承认该小样本研究。 |
-| 需要弱化的 claim | 可写“已有小样本研究比较了 zero/one/few-shot、CoT 和 temperature；本文聚焦更复杂控制系统需求、可执行 STM schema 与反馈/审计链”。 | M | 避免把 prompt trick 写成核心 novelty。 |
+| 需要弱化的 claim | 可写“已有小样本研究比较了 zero/one/few-shot、CoT 和 temperature；本文聚焦更复杂控制系统需求、可执行 STM schema 与 feedback-driven repair”。run record / audit trail 只作为实验复现、打假和排障保障，不列为学术贡献。 | M | 避免把 prompt trick 写成核心 novelty。 |
 | 不能误写的点 | METEOR/SME 是 post-hoc evaluation；没有 in-loop checker、simulation、formal verification、repair loop；state machine diagram 不等于可执行控制 STM。 | I | S1b/S3 都不要把它列为 checker baseline。 |
 | S1b handoff | 放在 prompt/temperature/local model 相关工作或 baseline matrix 的 evidence-only 行。 | M | 关联 `project_1_llm_state_machine_modeling/baselines/SUMMARY.md:127`。 |
 | S3 handoff | 不进入主对比；若有余力，可复刻两个题项做 prompt sanity check，但要标注 approximate/manual GT。 | M | 关联 `ASSETS.md:38-46`。 |
