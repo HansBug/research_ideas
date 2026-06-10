@@ -20,9 +20,13 @@
 | 8 | `pushing-the-generative-envelope-mbse-artifacts` | Pushing the Generative Envelope of MBSE Artifacts | 2025 | RANLP | [原始目录](../../../baselines/pushing-the-generative-envelope-mbse-artifacts/) | [逐篇](./papers/pushing-the-generative-envelope-mbse-artifacts.md) | evidence-only；prompt technique / SME 评估 |
 | 9 | `ttool-ai` | TTool-AI / Automatic System Modeling with AI | 2024 | tool / paper artifact | [原始目录](../../../baselines/ttool-ai/) | [逐篇](./papers/ttool-ai.md) | mandatory closest；tool feedback / TTool artifact |
 
+定性总结：九篇 baseline 的时间集中在 2024–2026 年，说明 Path-1 的 novelty 空间已经从“有没有 LLM 生成状态机”转移到“在什么输入、表示、反馈、审计和评测协议下生成状态机”。当前必须正面处理四个 mandatory closest works（Designing FSMs、Structure/Event SMF、LLMs for EMP、TTool-AI），并把 FlowFSM、SpecGPT、REQ、Umple、Pushing Envelope 作为协议、汽车、代码生成和 MBSE prompt 技术的边界证据。
+
 ## 2. 表 A：方法框架总表
 
 > 本表压缩自逐篇文件 §2。`agent/prompt tag` 为多选标签；详情以逐篇文件为准。
+
+定性总结：九篇 baseline 已覆盖从 single/few-shot prompt、structured prompt、prompt chaining、ensemble、RAG/fine-tuning 到 tool-feedback loop 的主要形态。Path-1 后续不能把贡献写成“首次用 LLM 从 NL 生成状态机”或“首次 agentic/prompt chaining”；更稳的定位应是：在控制系统需求的冻结样本上，系统评估可执行 DSL、诊断反馈、scenario trace、FixLog 与 run record 审计链对 STM 生成质量的作用。方法上最接近的是 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models`、`llms_emp`、`ttool-ai` 和 `designing-fsm-specifications-from-requirements-gpt4`。
 
 | slug | 输入 NL | 任务目标 | agent/prompt tag | LLM 模型四元组 | 输出 STM 类型与能力 | 人在回路角色 |
 |---|---|---|---|---|---|---|
@@ -38,6 +42,8 @@
 
 ## 3. 表 B：资产与可复现性总表
 
+定性总结：九篇 baseline 的 artifact 状态差异很大，真正可作为后续实验设计依据的不是“是否发表了指标”，而是输入、GT、prompt/code、输出和评测表能否被冻结。当前最有 same-sample approximate 潜力的是 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 的 8-case artifact 与 `llms_emp` 的 STM 子集 / parquet 资产；`ttool-ai` 和 `umple` 有工具生态价值但需要处理 provider drift、工具链安装和 benchmark 缺失；`req`、SpecGPT、FlowFSM、Pushing Envelope 更适合作为 evidence-only / near related work。后续 S3 不应把私有 GT 或未公开代码的工作强行升级为 executable baseline。
+
 | slug | Reference / GT | 数据与 artifact | 已有本地复现资产 | 可复现路径 | 主要 blocker |
 |---|---|---|---|---|---|
 | `designing-fsm-specifications-from-requirements-gpt4` | synthetic oracle / generated_text / CSV | GitHub `nl2fsm` 可访问，结果文本部分可得 | 无独立本地 reproduction | 可近似复刻 synthetic pipeline | release/license/依赖锁不足，API drift |
@@ -51,6 +57,8 @@
 | `ttool-ai` | GitHub artifact + `results.ods` | ttool-ai repo 可访问 | 无完整本地 reproduction | near / possible tool-based comparison | 需安装 TTool，provider drift |
 
 ## 4. 表 C：生成流程内反馈总表
+
+定性总结：流程内反馈是 Path-1 novelty 风险最高、也最需要精确定义的维度。已有工作已经覆盖 trace/oracle repair（Designing FSMs）、rule/manual checking feedback regeneration（LLMs for EMP）和 tool syntax/constraint feedback（TTool-AI），因此本文不能声称“首次反馈闭环”。当前可防守的差异在于：本文把 pyfcstm DSL diagnostics、scenario simulation、修复请求决策、FixLog 和 run record 组织成可审计的控制系统 STM 生成闭环。写作时必须继续严格区分 in-loop feedback 与 post-hoc evaluation；schema/JSON/PlantUML/TTool syntax 不能被写成完整 formal verification。
 
 | slug | 静态/schema | 编译/可执行性 | oracle/trace | 仿真执行 | 形式化验证 | 人类过程反馈 | 结论 |
 |---|---|---|---|---|---|---|---|
@@ -66,6 +74,8 @@
 
 ## 5. 表 D：事后评测与证据强度总表
 
+定性总结：现有 baseline 的事后证据从 strong 到 weak 分布不均：`structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 有公开 reference/workbook，`llms_emp` 有本地可审计 parquet，`ttool-ai` 有 artifact 和结果表；但 `req`、SpecGPT、FlowFSM 和 Pushing Envelope 的 GT、专家评审或样本规模限制明显。Path-1 论文应避免用不同任务、不同输出表示、不同 GT 口径的分数做直接横向排名；更合理的做法是把这些证据用于 capability boundary、claim-to-avoid 和 baseline selection rationale。
+
 | slug | 事后指标 / 评测 | GT 来源 | 证据强度 | 注意事项 |
 |---|---|---|---|---|
 | `designing-fsm-specifications-from-requirements-gpt4` | benchmark scores / oracle comparison | synthetic oracle | medium | artifact 非完整 release |
@@ -80,6 +90,8 @@
 
 ## 6. 表 E：同样本近似与可比性决策
 
+定性总结：当前可比性结论是“少数 approximate、少数 near、大部分 evidence-only”。`structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 应作为优先 external 8-case same-sample approximate 候选，但不能等同 Path-1 101-case 主样本；`llms_emp` STM 子集可作为第二候选，但需要 eligibility flag 处理“requirements inferred from models”的输入差异；`designing-fsm-specifications-from-requirements-gpt4` 更适合作为 repair/trace 近邻；`ttool-ai` 和 `umple` 可做工具/代码生成近似比较但成本较高。后续 S3 需要显式冻结输入归一、输出映射、模型预算、人工预算和反馈预算，不能只写“复现某 baseline”。
+
 | slug | 输入可同样本性 | 输出可归一性 | 模型预算 | 人在回路预算 | 反馈预算 | GT 可得性 | 决策 |
 |---|---|---|---|---|---|---|---|
 | `designing-fsm-specifications-from-requirements-gpt4` | 部分；偏 synthetic DFSM | CSV DFSM 可映射到 flat STM | 可替代但需预算说明 | 低人工 | trace/oracle repair 强 | synthetic oracle | near / repair baseline 候选 |
@@ -93,6 +105,8 @@
 | `ttool-ai` | 可小规模近似 | TTool XML / SysML 可映射但成本高 | GPT-3.5 turbo provider drift 明显；不得按 GPT-4 预算配置 | 质量评分 post-hoc | tool feedback 可近似 | artifact 可用 | near / possible tool comparison |
 
 ## 7. 表 F：Claim 风险与 handoff 总表
+
+定性总结：九篇 baseline 对 Path-1 的最大价值不是提供一个可以直接跑的单一竞品，而是明确哪些强 claim 不能写。必须避免 `first NL-to-STM`、`first agentic flow`、`first trace/repair feedback`、`first tool feedback`、`first behavior-model feedback regeneration`、`prior work only draws diagrams` 等表述。可保留的主线应收敛为：在控制系统需求与可执行 STM DSL 上，对结构化生成、可执行诊断、scenario-level feedback、修复台账和 run-record auditability 进行系统化设计与评测。S1b 写 Related Work 时应把四个 mandatory closest works 放在显著位置，而不是藏在泛泛 LLM/MBSE 段落中。
 
 | slug | 打穿的 claim | 可保留的弱化表述 | S1b handoff | S3 handoff | 风险等级 |
 |---|---|---|---|---|---|
@@ -119,6 +133,8 @@
 
 ## 9. PR #92 census 边界审计
 
+定性总结：PR #92 census 说明 2025–2026 年 LLM + formal/behavior modeling 的邻域正在快速扩张，但 exact STM direct baseline 与 formal-spec / process-model / property-generation / role-control / RL-DFA 边界必须分清。S1a 的九大 direct baseline 只收 NL / 文档 / 需求 / RFC / specification 到 FSM-family / statechart / UML/SysML state machine / protocol state machine 的近同构输出；TLA+、PAT、Event-B、Petri net、BPMN、LTL/STL 等应进入 S1b 的 related-work breadth 和 boundary discussion，不能混入 S3 的 STM generation baseline。
+
 PR #92 新增的 arXiv census 不只包含九大 direct baseline，也包含 RFSeek、CFSM、LANTERN / RL-DFA、TLA+、Petri net、BPMN / process model、LTL / STL、PAT / Event-B 等 strong-near / boundary 条目。S1a 的处理原则是：九大 exact STM direct baseline 之外的条目进入 S1b boundary / related-work 观察，不得混入本目录九大 direct baseline，也不得作为 S3 strict executable baseline。下表 source pointer 中 `C:` 均指向 `../../../baselines/arxiv-census-2025-2026-stm-candidates.md`。
 
 | census 分组 | census source pointer | 当前去向 | 不混入九大 direct baseline 的理由 | S1b / S3 handoff |
@@ -127,7 +143,7 @@ PR #92 新增的 arXiv census 不只包含九大 direct baseline，也包含 RFS
 | RFSeek | `C:26`, `C:54` | `near / boundary evidence` | RFC -> provenance-linked protocol state/event summary，输出接近 protocol FSM summary，但目标是可视摘要与审计，不是直接生成可执行 STM / UML state machine | S1b 放入 protocol-spec extraction / auditability 近邻；S3 不作为 strict baseline，除非后续单独设计 summary-to-STM adapter |
 | CFSM role-playing | `C:27`, `C:55` | `background / boundary` | NL profile -> CFSM / CPFSM，形式上状态-迁移同构，但任务域是角色扮演内部状态控制，不是软件/控制系统建模 | S1b 可用于说明 FSM-family 在 LLM agent/role control 中扩散；S3 不纳入同样本比较 |
 | LANTERN / RL-DFA | `C:28`, `C:55` | `background / boundary` | NL task -> DFA 服务 reinforcement-learning transfer；输出是学习/控制策略内部表示，不是需求到软件状态机 | S1b 只作为行为模型边界；S3 不纳入 baseline |
-| TLA+ / PAT / Event-B | `C:29`, `C:47-49`, `C:56` | `strong formal-method neighbor` | NL -> TLA+ / PAT / Event-B 属于形式规格或模型检查生态，强相关但不是 STM-family direct output；不能与 exact STM direct baseline 混称 | S1b 放入 formal specification / verification-adjacent related work；S3 不作为 STM generation baseline，但可用于讨论 stronger formal-method comparison boundary |
+| TLA+ / PAT / Event-B | `C:29`, `C:48-49`, `C:56` | `strong formal-method neighbor` | NL -> TLA+ / PAT / Event-B 属于形式规格或模型检查生态，强相关但不是 STM-family direct output；不能与 exact STM direct baseline 混称 | S1b 放入 formal specification / verification-adjacent related work；S3 不作为 STM generation baseline，但可用于讨论 stronger formal-method comparison boundary |
 | Petri net / CIR+CVN | `C:30`, `C:56` | `strong behavior-model neighbor` | LLM + Petri-net verification 关注并发行为与验证，输出/语义基础不是 UML/SysML/pyfcstm 状态机 | S1b 用于并发行为与验证近邻；S3 不混入 STM baseline |
 | BPMN / process model 系列 | `C:31-38`, `C:56` | `strong process-model neighbor` | 文本到 BPMN / executable process model / workflow benchmark 与状态机生成同属行为建模，但输出是 process/workflow 语义，不是 exact STM | S1b 单列 process-model generation 近邻；S3 不作为 STM baseline，可作为 related-work breadth 证据 |
 | LTL / STL / ClarifySTL | `C:39-41`, `C:56` | `property-generation / requirement-formalization neighbor` | NL requirements -> LTL/STL formulas 或 requirements clarification，输出是性质/时序逻辑而非状态-迁移模型 | S1b 放入 property / requirement formalization 相关工作；S3 不纳入 STM 生成 baseline，可为 Path-2/性质生成讨论保留入口 |
@@ -136,8 +152,45 @@ Source 口径来自 PR #92 census：direct baseline 只认 NL / 文档 / 需求 
 
 ## 10. 更新日志与剩余风险
 
+定性总结：当前剩余风险主要不是目录结构或字段缺失，而是后续写作阶段可能误读本总账的压缩结论：把 near/evidence-only 工作写成 strict baseline、把 post-hoc 指标写成 in-loop feedback、把 TTool/PlantUML/JSON 语法检查写成 formal verification、或把不可复现 artifact 当成 prior work 弱点。后续每次进入 S1b/S3 前都应回到逐篇文件核验 source pointer，并把新增证据以更新日志形式回写。
+
 | 时间 | 更新 | 剩余风险 |
 |---|---|---|
-| 2026-06-10 22:28:00 | 响应 codex reviewer I 级问题：纠正 TTool-AI 模型口径，并把 PR #92 census boundary audit 从总口径补成逐条去向/source pointer 表 | 仍需 Claude / DeepSeek reviewer 与复审确认无新增事实风险 |
+| 2026-06-10 23:10:00 | 响应 Claude reviewer I 级问题：修正 §9 `TLA+ / PAT / Event-B` census source pointer `C:47-49` 为 `C:48-49`；补充各表格小节定性总结和 §11 全局结论与建议 | 需三路 reviewer 重新强审确认新增定性判断未引入事实错误、过强 claim 或 baseline 定位偏差 |
+| 2026-06-10 22:28:00 | 响应 codex reviewer I 级问题：纠正 TTool-AI 模型口径，并把 PR #92 census boundary audit 从总口径补成逐条去向/source pointer 表 | 已由 23:10 记录补充 Claude I 级 source pointer 修复和全局定性总结；仍需本轮三路复审 |
 | 2026-06-10 22:05:00 | 九篇逐篇文件已回填；根据内部三路审计收紧 llms_emp / ttool-ai / Designing FSMs 等高风险口径，补充 reviewer 全文核验清单 | 已由 22:28 记录补充 boundary audit 与 TTool-AI 口径修复 |
 | 2026-06-10 21:32:00 | 初始化 S1a baseline 专项总账骨架 | 已被本轮九篇逐篇回填取代；历史记录保留 |
+
+
+## 11. 全局结论与后续建议
+
+### 11.1 当前 baseline 局面总括
+
+九大 baseline 已经足以证明：Path-1 第一篇论文不能依赖“LLM 能从 NL 生成状态机”这类泛化 novelty。近两年已有工作覆盖了 NL -> UML state machine、NL / requirements -> statechart、RFC / 3GPP specifications -> protocol FSM、NL -> Umple code、SysML behavior model generation、MBSE artifact generation 以及 TTool/SysML 工具集成。本文的学术空间应收敛到更窄但更可防守的命题：**面向控制系统需求的可执行状态机 DSL 生成中，结构化诊断、scenario trace、修复请求决策、FixLog 和 run-record auditability 如何改善模型质量与实验可审计性**。
+
+### 11.2 对论文 story 的建议
+
+1. Related Work 第一层应先承认 direct NL-to-STM / FSM-family 工作已经存在，再解释它们在输入域、输出语义、反馈来源、可复现性和审计链上的差异。
+2. Contribution 不应写成“提出首个 LLM 状态机生成方法”，而应写成“提出并评估一个以可执行 DSL diagnostics 与 scenario feedback 为核心的生成-审计-修复闭环”。
+3. Method 叙事应突出可审计数据流：NL / NL_zh、DSL、diagnostics、scenario pass/fail、fix request、accept/reject、diff、final status 与 run record，而不是泛泛强调 multi-agent 或 prompt engineering。
+4. Experiment 叙事应把 same-sample approximate、near baseline 和 evidence-only related work 分开呈现，避免用不可比较的输出/GT/人工预算强行横向排名。
+5. Limitations 应主动说明：部分 prior work 的 GT / code / prompt / expert data 不公开，因此不能做 strict executable baseline；这不是 prior work 的方法弱点，而是本文 baseline fairness 的边界条件。
+
+### 11.3 对 S1b / S3 的直接建议
+
+| 后续阶段 | 建议动作 | 理由 |
+|---|---|---|
+| S1b related work | 建立 closest-work matrix，优先放入 Structure/Event SMF、LLMs for EMP、TTool-AI、Designing FSMs | 四者分别约束 NL->UML SM、behavior model feedback、tool feedback、trace/oracle repair 的 novelty 边界 |
+| S1b boundary discussion | 单列 protocol FSM、formal specification、process model、property generation 近邻 | 防止审稿人认为本文遗漏 2025–2026 年快速扩张的 LLM + formal/behavior modeling 邻域 |
+| S3 baseline design | 优先尝试 Structure/Event SMF 的 external 8-case approximate；第二候选为 LLMs for EMP STM 子集 | 两者资产可审计性和任务接近度最高，但都不能直接等同 Path-1 101-case 主样本 |
+| S3 fairness protocol | 冻结输入归一、输出映射、模型预算、人工预算、反馈预算和 eligibility filter | 防止 reviewer 质疑 baseline 不公平或混入 post-hoc feedback |
+| Paper claim gate | 每条 novelty claim 都回查表 F 和逐篇 §7 | 避免 Abstract / Introduction 被 prior work 直接打穿 |
+
+### 11.4 当前不可越过的红线
+
+- 不写 `first NL-to-STM`、`first LLM state machine generation`、`first agentic FSM flow`。
+- 不写 `first feedback loop` 或 `first trace/repair feedback`。
+- 不把 rule-based checking、JSON schema、PlantUML parse、TTool syntax/constraint feedback 写成完整 formal verification。
+- 不把 private GT、missing code、missing prompt 写成 prior work weakness；只能写为 comparability / reproducibility blocker。
+- 不把 post-hoc GT F1、expert score、SME rubric 写成生成流程内反馈。
+- 不把 PR #92 的 TLA+ / PAT / Event-B / Petri net / BPMN / LTL/STL boundary works 混入九大 exact STM direct baseline。
