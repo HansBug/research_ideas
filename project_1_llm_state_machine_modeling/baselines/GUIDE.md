@@ -323,6 +323,8 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
 8. 邮件 / 申请路径必须保守处理：只有原文、artifact、仓库 README、publisher 页面或数据可用性声明明确给出 `available on request`、`contact us`、数据申请表、artifact contact、作者邮箱等正式渠道时，才把“可邮件 / 可申请”写成建议动作，并且只顺着该渠道联系。若只是“没有公开”但没有明确申请渠道，必须写“未提供公开申请入口，先放着 / 不主动打扰”，不得擅自从学校主页、LinkedIn、社交媒体或其他非原文渠道外扩打扰。论文首页作者邮箱可作为正式论文联系渠道记录，但不等于所有未公开数据都应主动索取；只有复现实验确实需要且没有公开替代时才使用。
 9. 对 GitHub 或其他活仓库，不得只写 URL；若它影响复现实验，应记录 default branch、HEAD commit、license / release / dependency lock 状态和主要目录。对 Google Drive / 匿名 artifact 这类入口，只能把 HTTP 可达写成“入口可达”，不能据此宣称逐文件下载已审计。
 10. [SUMMARY.md](./SUMMARY.md) 的五绿 direct baseline 表只保留紧凑资源列；完整资源说明以对应 `ASSETS.md` 为准，避免 [SUMMARY.md](./SUMMARY.md) 成为第二事实真源。
+11. 对 Anonymous Github / 4open 这类匿名 artifact，必须优先寻找可由浏览器直接访问的前端入口；若平台使用 `#!/r/<repo>/...` hashbang 路由，应把该路由作为人类浏览主入口。普通 `/r/<repo>/...` 或 `/repository/<repo>/...` 若重定向到 `/api/repo/...` 并返回 `401 not_connected`，不能直接判定 artifact 不存在，只能记录为入口踩坑。
+12. 对 Anonymous Github / 4open 这类匿名 artifact，资源记录应区分三类 URL：浏览器入口用于人工复核，`/api/repo/<repo>/file/...` 与 `/files/?path=...` 用于 raw 文件 / 目录 fallback，`/api/repo/<repo>/zip` 用于正式冻结。冻结时不要只依赖整包 ZIP SHA-256，因为 ZIP 元数据可能让整包 hash 随请求变化；应优先保存文件清单、关键文件大小和逐文件 hash。
 
 ### 5.4 什么内容进入 `DESC.md`
 
