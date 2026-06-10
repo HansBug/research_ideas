@@ -33,7 +33,7 @@ PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入 `main`，�
 
 1. 先读取最新 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)、新增 [../../../baselines/arxiv-census-2025-2026-stm-candidates.md](../../../baselines/arxiv-census-2025-2026-stm-candidates.md)，以及 9 个五绿 direct baseline 的 `paper_content.txt`、`DESC.md`、`ASSETS.md`。
 2. 对 9 篇逐篇写清：输入、输出、方法、反馈 / 验证机制、数据 / artifact / 复现性、能力上限、会打穿本文哪些 claim。
-3. `baseline_refresh_report.md` 必须把 9 篇至少分成 `strict executable`、`same-sample approximate`、`near`、`evidence-only` 四类之一，并解释降级原因。
+3. [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md) 与 [`../baselines/papers/*.md`](../baselines/papers/) 必须把 9 篇至少分成 `strict executable`、`same-sample approximate`、`near`、`evidence-only` 四类之一，并解释降级原因。
 4. `Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs` 必须进入 closest-prior-work 复核；至少 1 个 same-sample approximate baseline 优先从 `Structure/Event SMF` 或 `llms_emp` STM 子集中选。
 5. 强近邻条目只能用于 related work / trend / boundary analysis；不得把 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA 等混称 exact STM direct baseline。
 6. G3 主结果表不得只有 internal ablation；必须包含 external baseline 或明确把论文降级为 protocol / diagnostic study。

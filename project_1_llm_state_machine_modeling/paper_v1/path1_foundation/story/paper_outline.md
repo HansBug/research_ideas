@@ -154,7 +154,7 @@ LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性�
 
 | Gate | 阻塞问题 | 必需产物 |
 |---|---|---|
-| Baseline 事实门 | close work 漏读或误述会直接破坏 originality | `baseline_refresh_report.md`、9 个 direct baseline 反证表、4 个 mandatory closest works（`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`） |
+| Baseline 事实门 | close work 漏读或误述会直接破坏 originality | [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md)、[`../baselines/papers/*.md`](../baselines/papers/) 九篇 direct baseline 反证表、4 个 mandatory closest works（`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`） |
 | 同构性门 | 不同输入 / 输出 / 预算下的比较会被质疑不公平 | direct / near / evidence-only 分类、same-sample approximate baseline 说明 |
 | 样本冻结门 | cherry-pick 风险 | `sample_registry.csv`、纳入 / 排除理由、stress-test 与 main benchmark 区分 |
 | Oracle 门 | LLM judge 或单人判断不足 | `human_rubric.md`、`oracle_protocol.md`、`>=2` annotators、agreement / adjudication |

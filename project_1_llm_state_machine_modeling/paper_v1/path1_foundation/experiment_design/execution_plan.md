@@ -42,7 +42,7 @@ flowchart TD
 | WP | 任务 | 主要文件 | 依赖 | 验收 |
 |---|---|---|---|---|
 | S0 | story / venue freeze | `DIRECTION.md`、`abstract_v0.md`、`target_venue_decision.md`、CCF-A 标准自查表 | foundation | G0 |
-| S1a | baseline 阻塞吸收 | `baseline_refresh_report.md`、9 个 direct baseline 逐篇反证表 | baselines corpus + PR #92 | 明确 strict executable / approximate / near / evidence-only；mandatory closest work 不缺失 |
+| S1a | baseline 阻塞吸收 | [`baselines/SUMMARY.md`](../baselines/SUMMARY.md) 与 [`baselines/papers/*.md`](../baselines/papers/) 九篇逐篇反证表 | baselines corpus + PR #92 | 明确 strict executable / approximate / near / evidence-only；mandatory closest work 不缺失 |
 | S1b | 相关工作 / 对手矩阵 | `related_work_matrix.md`、`references.bib` | S1a | `>=4` mandatory closest works，`>=1` same-sample approximate baseline 计划 |
 | S2 | sample / oracle protocol | `tables/03_sample_registry.csv`、`oracle_protocol.md`、`human_rubric.md` | sample assets / eval protocol | frozen samples + annotator plan |
 | S3 | executable baselines | `experiment_plan.md`、runner scripts、baseline prompts | S1a/S1b/S2 | B0-B5 + external approximate path |
@@ -55,7 +55,7 @@ flowchart TD
 
 1. 将本 foundation PR 作为后续 paper 主线入口合并或保持 open 后持续迭代。
 2. 冻结 `DIRECTION.md` 与 `target_venue_decision.md`：确定 Path-1 hard comparison 为第一篇主线，Path-2 / BMC / LTL / variables role 放后续；默认主投 SoSyM regular，ASEJ / REJ 仅作条件备投。
-3. 先逐篇吸收 9 个五绿 direct baseline，形成 `baseline_refresh_report.md`；再从 [baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) 选 mandatory closest works，并明确可复现程度、同样本近似 baseline 与 evidence-only 降级理由。
+3. 先逐篇吸收 9 个五绿 direct baseline，形成 [`baselines/SUMMARY.md`](../baselines/SUMMARY.md) 与 [`baselines/papers/*.md`](../baselines/papers/)；再从 [baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) 选 mandatory closest works，并明确可复现程度、同样本近似 baseline 与 evidence-only 降级理由。
 4. 从 [sample_assets.md](../dataset_selection/sample_assets.md) 与 Path-1 9/101 数据中设计 `sample_registry.csv`。
 5. 把 [../../../eval/PROTOCOL.md](../../../eval/PROTOCOL.md) 扩展成正式 human adjudication protocol。
 6. 建立 pilot run record：至少 direct / structured / full method 三条线，保留 provider/model/prompt/raw output/eligibility。
