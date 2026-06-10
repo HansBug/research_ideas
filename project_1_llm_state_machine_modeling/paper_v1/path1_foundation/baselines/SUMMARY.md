@@ -34,7 +34,7 @@
 | `umple` | NL requirements descriptions | NL -> Umple state machine code | zero-shot; one-shot; RAG | Llama 3 8B | Umple state machine code；可编译/可执行，面向软件建模 | 评测/样本构建有人；生成策略可自动运行 |
 | `llms_emp` | SysML behavior model NL descriptions | NL -> PlantUML SysML behavior models | structured prompt; feedback regeneration; RAG/示例 | GPT-4、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 | PlantUML SysML STM/ACT/SD；STM 子集可比 | 人工评分/错误标注；生成阶段主要自动 |
 | `pushing-the-generative-envelope-mbse-artifacts` | short system descriptions | NL -> SysML v2 requirements/state machine diagrams | zero/one/few-shot; CoT; temperature comparison | Mixtral-8x7B-Instruct、Llama-3-Smaug-8B | SysML v2 state machine diagrams；小样本、偏图形/文本工件 | SME 事后评估；生成阶段人工不明 |
-| `ttool-ai` | NL system specifications | NL -> SysML/TTool models | knowledge injection; structured JSON; tool-feedback loop | GPT-4 / GPT-3.5 turbo 口径需逐篇核实 | SysML block/internal/state machine + TTool XML；工具可解析、可仿真/评估 | 质量评分/案例构建有人；工具反馈 loop 较强 |
+| `ttool-ai` | NL system specifications | NL -> SysML/TTool models | knowledge injection; structured JSON; tool-feedback loop | ChatGPT / `gpt-3.5-turbo`；示例 response 为 `gpt-3.5-turbo-16k-0613`；OpenAI API；GPT-4 仅见于相关工作/背景引用，未见用于本文实验 | SysML block/internal/state machine + TTool XML；工具可解析、可仿真/评估 | 质量评分/案例构建有人；工具反馈 loop 较强 |
 
 ## 3. 表 B：资产与可复现性总表
 
@@ -90,7 +90,7 @@
 | `umple` | 可尝试；NL requirements | Umple state machine 可映射 | Llama3 8B 可替代 | 低人工 | compile mostly eval | benchmark 未公开 | near / possible approximate |
 | `llms_emp` | 可尝试 STM 子集 | PlantUML SysML STM 可映射 | 多模型可替代 | human review post-hoc | checker feedback 可近似但需区分 rule/manual checking | parquet 可用 | same-sample approximate 候选；requirements inferred from models 部分需 eligibility flag，不能等同自然产生的控制需求 |
 | `pushing-the-generative-envelope-mbse-artifacts` | 小样本，不适合主样本 | SysML diagrams 难归一 | open models 不同 | SME post-hoc | 无 | 小样本 | evidence-only |
-| `ttool-ai` | 可小规模近似 | TTool XML / SysML 可映射但成本高 | GPT 口径需核实 | 质量评分 post-hoc | tool feedback 可近似 | artifact 可用 | near / possible tool comparison |
+| `ttool-ai` | 可小规模近似 | TTool XML / SysML 可映射但成本高 | GPT-3.5 turbo provider drift 明显；不得按 GPT-4 预算配置 | 质量评分 post-hoc | tool feedback 可近似 | artifact 可用 | near / possible tool comparison |
 
 ## 7. 表 F：Claim 风险与 handoff 总表
 
@@ -119,11 +119,25 @@
 
 ## 9. PR #92 census 边界审计
 
-PR #92 新增的 arXiv census 不只包含九大 direct baseline，也包含 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA、RFSeek 等 strong-near / boundary 条目。S1a 当前结论：这些工作应进入 S1b 的 boundary / related-work 观察，而不得混入九大 exact STM direct baseline。正式执行时需逐条在本节补 source pointer；当前总账只记录处理口径。
+PR #92 新增的 arXiv census 不只包含九大 direct baseline，也包含 RFSeek、CFSM、LANTERN / RL-DFA、TLA+、Petri net、BPMN / process model、LTL / STL、PAT / Event-B 等 strong-near / boundary 条目。S1a 的处理原则是：九大 exact STM direct baseline 之外的条目进入 S1b boundary / related-work 观察，不得混入本目录九大 direct baseline，也不得作为 S3 strict executable baseline。下表 source pointer 中 `C:` 均指向 `../../../baselines/arxiv-census-2025-2026-stm-candidates.md`。
+
+| census 分组 | census source pointer | 当前去向 | 不混入九大 direct baseline 的理由 | S1b / S3 handoff |
+|---|---|---|---|---|
+| PR #92 三个 P0 direct：Designing FSMs、SpecGPT、FlowFSM | `C:23-25`, `C:53` | 已纳入本目录九大 direct baseline 的逐篇盘点 | 三篇均满足 NL / 文档 / 需求 / RFC / specification 到 FSM-family 输出；其中 SpecGPT / FlowFSM 是 protocol FSM 近同构，Designing FSMs 是 CSV DFSM | S1b 作为 direct / mandatory closest 或 protocol-FSM evidence；S3 只在各逐篇文件许可范围内做 near / approximate |
+| RFSeek | `C:26`, `C:54` | `near / boundary evidence` | RFC -> provenance-linked protocol state/event summary，输出接近 protocol FSM summary，但目标是可视摘要与审计，不是直接生成可执行 STM / UML state machine | S1b 放入 protocol-spec extraction / auditability 近邻；S3 不作为 strict baseline，除非后续单独设计 summary-to-STM adapter |
+| CFSM role-playing | `C:27`, `C:55` | `background / boundary` | NL profile -> CFSM / CPFSM，形式上状态-迁移同构，但任务域是角色扮演内部状态控制，不是软件/控制系统建模 | S1b 可用于说明 FSM-family 在 LLM agent/role control 中扩散；S3 不纳入同样本比较 |
+| LANTERN / RL-DFA | `C:28`, `C:55` | `background / boundary` | NL task -> DFA 服务 reinforcement-learning transfer；输出是学习/控制策略内部表示，不是需求到软件状态机 | S1b 只作为行为模型边界；S3 不纳入 baseline |
+| TLA+ / PAT / Event-B | `C:29`, `C:47-49`, `C:56` | `strong formal-method neighbor` | NL -> TLA+ / PAT / Event-B 属于形式规格或模型检查生态，强相关但不是 STM-family direct output；不能与 exact STM direct baseline 混称 | S1b 放入 formal specification / verification-adjacent related work；S3 不作为 STM generation baseline，但可用于讨论 stronger formal-method comparison boundary |
+| Petri net / CIR+CVN | `C:30`, `C:56` | `strong behavior-model neighbor` | LLM + Petri-net verification 关注并发行为与验证，输出/语义基础不是 UML/SysML/pyfcstm 状态机 | S1b 用于并发行为与验证近邻；S3 不混入 STM baseline |
+| BPMN / process model 系列 | `C:31-38`, `C:56` | `strong process-model neighbor` | 文本到 BPMN / executable process model / workflow benchmark 与状态机生成同属行为建模，但输出是 process/workflow 语义，不是 exact STM | S1b 单列 process-model generation 近邻；S3 不作为 STM baseline，可作为 related-work breadth 证据 |
+| LTL / STL / ClarifySTL | `C:39-41`, `C:56` | `property-generation / requirement-formalization neighbor` | NL requirements -> LTL/STL formulas 或 requirements clarification，输出是性质/时序逻辑而非状态-迁移模型 | S1b 放入 property / requirement formalization 相关工作；S3 不纳入 STM 生成 baseline，可为 Path-2/性质生成讨论保留入口 |
+
+Source 口径来自 PR #92 census：direct baseline 只认 NL / 文档 / 需求 / RFC / specification -> UML/SysML State Machine / Statechart / FSM / EFSM / LTS / protocol state machine / 近同构状态-迁移模型；BPMN、process model、TLA+、Petri net、Event-B、PAT/CSP#、LTL/STL、角色/强化学习内部 FSM/DFA 等只能作为强行为近邻或 related work，不混称 exact STM direct baseline（`C:16-17`）。
 
 ## 10. 更新日志与剩余风险
 
 | 时间 | 更新 | 剩余风险 |
 |---|---|---|
-| 2026-06-10 22:05:00 | 九篇逐篇文件已回填；根据内部三路审计收紧 llms_emp / ttool-ai / Designing FSMs 等高风险口径，补充 reviewer 全文核验清单 | 仍需 PR 三路异构 reviewer 对事实准确性、source pointer 和措辞进行全文复审 |
+| 2026-06-10 22:28:00 | 响应 codex reviewer I 级问题：纠正 TTool-AI 模型口径，并把 PR #92 census boundary audit 从总口径补成逐条去向/source pointer 表 | 仍需 Claude / DeepSeek reviewer 与复审确认无新增事实风险 |
+| 2026-06-10 22:05:00 | 九篇逐篇文件已回填；根据内部三路审计收紧 llms_emp / ttool-ai / Designing FSMs 等高风险口径，补充 reviewer 全文核验清单 | 已由 22:28 记录补充 boundary audit 与 TTool-AI 口径修复 |
 | 2026-06-10 21:32:00 | 初始化 S1a baseline 专项总账骨架 | 已被本轮九篇逐篇回填取代；历史记录保留 |
