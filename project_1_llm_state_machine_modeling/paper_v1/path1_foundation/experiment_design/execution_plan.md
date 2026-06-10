@@ -55,7 +55,7 @@ flowchart TD
 
 1. 将本 foundation PR 作为后续 paper 主线入口合并或保持 open 后持续迭代。
 2. 冻结 `DIRECTION.md`：确定 Path-1 hard comparison 为第一篇主线，Path-2 / BMC / LTL / variables role 放后续。
-3. 先跟进 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 的近期 arXiv baseline / 强近邻增量，形成 `baseline_refresh_report.md`；再从 [baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) 选 `>=3` closest prior works 并明确可复现程度。
+3. 先吸收 `main` 中 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入的近期 arXiv baseline / 强近邻增量，形成 `baseline_refresh_report.md`；再从 [baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) 选 `>=3` closest prior works 并明确可复现程度。
 4. 从 [sample_assets.md](../dataset_selection/sample_assets.md) 与 Path-1 9/101 数据中设计 `sample_registry.csv`。
 5. 把 [../../../eval/PROTOCOL.md](../../../eval/PROTOCOL.md) 扩展成正式 human adjudication protocol。
 6. 建立 pilot run record：至少 direct / structured / full method 三条线，保留 provider/model/prompt/raw output/eligibility。

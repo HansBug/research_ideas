@@ -51,7 +51,7 @@ PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需
 
 ## 5.1 与 PR #92 baseline 增量的关系
 
-PR [#92](https://github.com/HansBug/research_ideas/pull/92) 正在补充 2025-2026 arXiv 的 LLM→STM-family direct baseline 与强近邻候选。本 PR 不复制 PR #92 的完整 baseline 文库内容，但后续 S1 baseline / related-work 冻结前必须先吸收其合入后的总账事实，或在其尚未合入时把它标成“待合入 / 待复核候选”。这样可以避免第一篇论文基于过期 baseline corpus 设计 competitor。
+PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已于 2026-06-10 合入 `main`，并补充 2025-2026 arXiv 的 LLM→STM-family direct baseline 与强近邻候选。本 PR 不复制 PR #92 的完整 baseline 文库内容，但后续 S1 baseline / related-work 冻结前必须直接读取 `main` 中最新 [../../baselines/SUMMARY.md](../../baselines/SUMMARY.md)、[../../baselines/arxiv-census-2025-2026-stm-candidates.md](../../baselines/arxiv-census-2025-2026-stm-candidates.md) 和对应单篇 `DESC.md` / `ASSETS.md`。这样可以避免第一篇论文基于过期 baseline corpus 设计 competitor。
 
 ## 6. 非目标
 

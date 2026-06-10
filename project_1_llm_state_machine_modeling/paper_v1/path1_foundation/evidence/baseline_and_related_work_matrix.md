@@ -27,21 +27,20 @@
 
 ## 2.1 PR #92 baseline 现状再摸排子任务
 
-PR [#92](https://github.com/HansBug/research_ideas/pull/92) 对 2025-2026 arXiv 的 LLM→STM-family / 强行为模型近邻做了近期再摸排，提出 3 篇 direct STM baseline 与一批 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA 等强近邻 / 边界条目。该 PR 当前属于相邻 baseline 文库增量来源；本 foundation PR 不复制其全部内容，但后续 S1 related-work / competitor freeze 必须显式处理。
+PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入 `main`，对 2025-2026 arXiv 的 LLM→STM-family / 强行为模型近邻做了近期再摸排，提出 3 篇 direct STM baseline 与一批 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA 等强近邻 / 边界条目。该 PR 现在已经是 `main` 中 baseline 文库事实来源；本 foundation PR 不复制其全部内容，但后续 S1 related-work / competitor freeze 必须显式处理。
 
 最低处理要求：
 
-1. 若 PR #92 已合入 main，则先读取最新 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)、新增 `arxiv-census-2025-2026-stm-candidates.md` 和对应单篇 `DESC.md` / `ASSETS.md`。
-2. 若 PR #92 尚未合入，则以 PR body 和 final review comment 作为候选来源，记录“待合入/待复核”，不得把其新增 19 篇写成当前 main 已完成事实。
-3. 三篇 direct STM baseline（Designing FSMs、SpecGPT、FlowFSM）需进入 closest-prior-work 候选复核；是否进入 same-sample approximate baseline，要看 artifact、输入输出表示、模型预算和 rubric 是否可公平对齐。
-4. 强近邻条目只能用于 related work / trend / boundary analysis；不得把 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA 等混称 exact STM direct baseline。
-5. S1 结束时必须输出一份 `baseline_refresh_report.md` 或等价材料，说明“已吸收 PR #92 哪些事实、哪些候选进入 direct/near/evidence-only、哪些仍因 artifact 或任务不一致降级”。
+1. 先读取最新 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)、新增 [../../../baselines/arxiv-census-2025-2026-stm-candidates.md](../../../baselines/arxiv-census-2025-2026-stm-candidates.md) 和对应单篇 `DESC.md` / `ASSETS.md`。
+2. 三篇 direct STM baseline（Designing FSMs、SpecGPT、FlowFSM）需进入 closest-prior-work 候选复核；是否进入 same-sample approximate baseline，要看 artifact、输入输出表示、模型预算和 rubric 是否可公平对齐。
+3. 强近邻条目只能用于 related work / trend / boundary analysis；不得把 TLA+、Petri net、BPMN、LTL/STL、CFSM、RL-DFA 等混称 exact STM direct baseline。
+4. S1 结束时必须输出一份 `baseline_refresh_report.md` 或等价材料，说明“已吸收 PR #92 哪些事实、哪些候选进入 direct/near/evidence-only、哪些仍因 artifact 或任务不一致降级”。
 
 ## 3. Minimal external baseline contract
 
 正式实验前必须满足：
 
-1. 先完成 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 及后续 baseline 文库增量吸收，避免基于过期 corpus 冻结 competitor。
+1. 先完成 `main` 中 PR [#92](https://github.com/HansBug/research_ideas/pull/92) baseline 文库增量吸收，避免基于过期 corpus 冻结 competitor。
 2. `>=3` 个 closest prior work 进入 baseline / related-work matrix。
 3. `>=1` 个 closest prior work 进入 same-sample approximate baseline；目标争取 `>=2` 个。
 4. evidence-only comparison 必须说明不可复现原因、缺失工件、不可比输出或 license/API 限制。

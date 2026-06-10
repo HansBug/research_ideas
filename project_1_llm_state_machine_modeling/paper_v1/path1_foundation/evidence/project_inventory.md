@@ -6,7 +6,7 @@
 |---|---|---|---|
 | [../../../method/](../../../method/) | agent-loop / LangGraph runtime / stage API / run record / skill 工具箱 | 已完成 LG-M1 集成与最终四例 retained evidence | 方法实现与可复现实验入口 |
 | [../../../eval/](../../../eval/) | component extraction、evaluation protocol、review package | 已有 Path-1 5-component manual eval 协议 | 评测与 human adjudication 基础 |
-| [../../../baselines/](../../../baselines/) | LLM-for-modeling / STM generation / requirements-to-model baseline 文库 | main 当前总账入口；PR [#92](https://github.com/HansBug/research_ideas/pull/92) 另补 2025-2026 arXiv direct baseline / 强近邻候选 | related work 与 baseline matrix 来源；正式冻结前必须吸收最新增量 |
+| [../../../baselines/](../../../baselines/) | LLM-for-modeling / STM generation / requirements-to-model baseline 文库 | main 当前总账入口；PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入 2025-2026 arXiv direct baseline / 强近邻候选 | related work 与 baseline matrix 来源；正式冻结前必须吸收最新增量 |
 | [../../../sources/](../../../sources/) | 控制系统 source / STM 文库 | 真实控制系统样本池 | Path-1 / Path-2 样本来源之一 |
 | [../../../talks/](../../../talks/) | project_1 内部导师讨论文库 | 已记录 2026-06-04 第一篇路线定调 | 学术决策来源 |
 | [../../](../../) | `paper_v1` 历史工作区 | 旧 README 有 sprint 口径，本 PR 增加 current overlay | 第一篇论文工作区 |
@@ -36,7 +36,7 @@
 | LG-M1 final four-case evidence | [../../../method/STATUS.md](../../../method/STATUS.md) / PR #39 / PR #22 | agent-loop 已能真实运行并留 retained evidence | 不能替代 Path-1 main experiment |
 | PR #9 sample selection | [sample_assets.md](../dataset_selection/sample_assets.md) / [legacy_pr9_assets/selection_screening/](../dataset_selection/legacy_pr9_assets/selection_screening/) | selection rationale、stress-test pool、Top/Backup 样本候选、323 个 review JSON | 不能当主结果 |
 | PR #9 two early historical early reference drafts | [sample_assets.md](../dataset_selection/sample_assets.md) / [legacy_pr9_assets/reference_drafts/](../dataset_selection/legacy_pr9_assets/reference_drafts/) | reference discipline、V-rich/V-poor case insight | 不能当最终 human-signed oracle |
-| Baseline corpus | [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md) 与 PR [#92](https://github.com/HansBug/research_ideas/pull/92) | close prior work matrix、direct / near / evidence-only 分类、2025-2026 arXiv 再摸排候选 | 不能直接给实验数字；PR #92 合入前不得把其增量写成 main 已完成事实 |
+| Baseline corpus | [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)、[../../../baselines/arxiv-census-2025-2026-stm-candidates.md](../../../baselines/arxiv-census-2025-2026-stm-candidates.md) 与 PR [#92](https://github.com/HansBug/research_ideas/pull/92) | close prior work matrix、direct / near / evidence-only 分类、2025-2026 arXiv 再摸排候选 | 不能直接给实验数字；必须在 S1a 中重新筛成 direct / near / evidence-only |
 | eval protocol | [../../../eval/PROTOCOL.md](../../../eval/PROTOCOL.md) | 5-component TP/FP/FN、人类签字、LLM 初审辅助协议 | 不能免除正式 annotator / blind / agreement |
 
 ## 4. Writing assets

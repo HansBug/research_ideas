@@ -60,7 +60,7 @@
 ## Evidence Already Available
 
 - `method/` 已完成 LangGraph full staged runtime、stage API、run record、tests 与 retained four-case evidence，见 [../method/README.md](../../../method/README.md) 和 [../method/STATUS.md](../../../method/STATUS.md)。
-- `baselines/` 当前 main 入口是 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)；后续 baseline 冻结前必须跟进 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 的 2025-2026 arXiv 再摸排增量，避免 related-work / baseline matrix 过期。
+- `baselines/` 当前 main 入口是 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)；后续 baseline 冻结前必须吸收 `main` 中 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入的 2025-2026 arXiv 再摸排增量，避免 related-work / baseline matrix 过期。
 - PR #9 已形成 323 sample selection、Top-15 / Backup-15、30 条 NL expansion 和 2 个 early historical early reference draft STM 经验，已在 [sample_assets.md](../dataset_selection/sample_assets.md) 中压缩迁移。
 - issue #67 已定义 2026 夏季 Path-1 投稿冲刺 gate、主投 SoSyM regular rolling 与 fallback。
 
