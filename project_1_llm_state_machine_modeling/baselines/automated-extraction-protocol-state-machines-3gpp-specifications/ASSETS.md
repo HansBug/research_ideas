@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:23:56
+更新时间：2026-06-10 14:22:57
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -25,7 +25,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2510.14348](https://arxiv.org/abs/2510.14348)
 
-- **联系 / 申请路径**：论文首页给出作者邮箱 `1152461073@qq.com`、`fengrunhan@pmlabs.com.cn`、`tahobo@sina.com`、`itsyz@foxmail.com`、`yjcsu@126.com`、`qiuhang_ndsc@163.com`（PDF 文本抽取中空格异常，按邮箱格式归一）、`liuqi@pmlabs.com.cn`；若需要 Release 17 ground truth、SpecGPT 代码或逐转移结果，只能通过作者 / 机构渠道询问，不能写成已有公开 benchmark。
+- **联系 / 申请路径**：论文首页给出作者邮箱 `1152461073@qq.com`、`fengrunhan@pmlabs.com.cn`、`tahobo@sina.com`、`itsyz@foxmail.com`、`yjcsu@126.com`、`qiuhang_ndsc@163.com`（PDF 文本抽取中空格异常，按邮箱格式归一）、`liuqi@pmlabs.com.cn`；正文未声明 code / GT available on request。当前先按“未公开”记录；只有后续确需复现实验且无公开替代时，才顺论文首页邮箱询问 Release 17 ground truth、SpecGPT 代码或逐转移结果。
 
 ## 3. 实验代码核查
 
@@ -33,7 +33,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 4. 数据集 / Benchmark 核查
 
-输入是官方 3GPP dynareport 入口；ground truth 是作者投入超过 210 人时构建并交叉验证的 NAS/NGAP/PFCP 状态机数据集，但未公开。这里必须区分“公开输入规格”和“公开 benchmark”：只有前者可直接访问，后者需要自行重建或联系作者询问。
+输入是官方 3GPP dynareport 入口；ground truth 是作者投入超过 210 人时构建并交叉验证的 NAS/NGAP/PFCP 状态机数据集，但未公开。这里必须区分“公开输入规格”和“公开 benchmark”：只有前者可直接访问，后者当前应按未公开处理；若后续确需复现实验，再考虑顺论文首页邮箱询问。
 
 ## 5. 实验结果细则核查
 
@@ -46,5 +46,5 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 ## 7. 风险与待复查
 
 1. 3GPP 标准页是活文档，复现必须锁定 Release 17 具体版本，不能只记录 dynareport 入口页。
-2. 缺源码和 GT，使端到端复现实验成本很高；如需原 GT，只能通过论文作者邮箱或机构渠道询问，不应声称已有公开 benchmark。
+2. 缺源码和 GT，使端到端复现实验成本很高；当前不应声称已有公开 benchmark，也不主动外扩联系；如后续确需原 GT，再顺论文首页邮箱询问。
 3. 若只引用论文表格，不能声称拥有可公开 benchmark。

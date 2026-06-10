@@ -12,11 +12,11 @@
 
 **代码/仓库获取方式**：
 - 原文在参考文献 `[18]` 中给出匿名工件入口：[anonymous.4open.science/r/llm_state_machine_modeling](https://anonymous.4open.science/r/llm_state_machine_modeling/)
-- 正文未给出实名 GitHub / Zenodo 仓库；当前更明确的公开入口就是上述匿名 artifact 页面
+- 正文未给出实名 GitHub / Zenodo 仓库；2026-06-10 复核发现普通匿名 artifact 页面会出现 `401 not_connected`，但具体文件 / 目录 API 可访问，已核到源码、prompt/example、reference solutions、生成图片和 F1 workbook；完整资源清单见 [ASSETS.md](./ASSETS.md)
 
 **数据集获取方式**：
 - 原文同样通过匿名工件页提供 paper artifacts；正文说明实验使用了 `8` 个非结构化 reactive-system descriptions 及其专家参考状态机
-- 正文未给出单独命名的数据集主页；若匿名 artifact 后续失效，则需要联系作者获取实验材料
+- 2026-06-10 已通过 4open 具体 API 端点核到 `Paper Experiment Resources/Reference Solutions/` 中 8 个 `.txt/.png` reference solutions，以及 `backend/resources/state_machine_descriptions.py`；若匿名 artifact 后续失效，优先使用本地冻结副本，只有确需作者确认 license / release / 失效文件时才顺论文首页邮箱联系
 
 ## 简报
 

@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:23:56
+更新时间：2026-06-10 14:22:57
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -24,7 +24,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2507.11222](https://arxiv.org/abs/2507.11222)
 
-- **联系 / 申请路径**：论文首页给出作者邮箱 `fares.wael@msa.edu.eg`、`youssef.mohamed88@msa.edu.eg`、`ahamdi@msa.edu.eg`、`wfarouk@msa.edu.eg`；若 GitHub 仓库仍停留在 shell 状态，可按这些邮箱询问 source code、ground truth、RTSP 版本和逐转移结果发布时间。
+- **联系 / 申请路径**：论文首页给出作者邮箱 `fares.wael@msa.edu.eg`、`youssef.mohamed88@msa.edu.eg`、`ahamdi@msa.edu.eg`、`wfarouk@msa.edu.eg`；GitHub README 写明 source code will be shared later，但未给单独 artifact 申请表。当前优先定期复查仓库；只有临近复现实验仍未开放、且确需该 baseline 时，才顺论文首页邮箱询问 source code、ground truth、RTSP 版本和逐转移结果发布时间。
 
 ## 3. 实验代码核查
 
@@ -44,6 +44,6 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 7. 风险与待复查
 
-1. 仓库壳不能支撑复现实验；后续应复查 HEAD `4ab9aa4e2e68da63f842b7e516aee8c27747d339` 之后是否补源码，必要时联系作者询问代码和 GT 发布时间。
+1. 仓库壳不能支撑复现实验；后续应复查 HEAD `4ab9aa4e2e68da63f842b7e516aee8c27747d339` 之后是否补源码。若临近复现实验仍未开放，再顺论文首页邮箱询问代码和 GT 发布时间。
 2. RTSP 输入版本和 ground truth 未冻结，重建时存在口径漂移。
 3. 协议 FSM 与控制系统状态机同构但领域差异大，baseline 对比需单独解释。

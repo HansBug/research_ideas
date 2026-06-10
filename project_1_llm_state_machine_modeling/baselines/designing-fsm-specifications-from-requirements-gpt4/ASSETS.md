@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:23:56
+更新时间：2026-06-10 14:22:57
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -24,7 +24,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2603.29140](https://arxiv.org/abs/2603.29140)
 
-- **联系 / 申请路径**：论文首页给出作者邮箱 `omer.nguena-timo@uqo.ca`、`paul-alexis.rodriguez@universite-paris-saclay.fr`、`florent.avellaneda@uqam.ca`；若后续需要确认仓库与论文版本、依赖或未公开数据，可优先按这些作者邮箱询问。
+- **联系 / 申请路径**：论文首页给出作者邮箱 `omer.nguena-timo@uqo.ca`、`paul-alexis.rodriguez@universite-paris-saclay.fr`、`florent.avellaneda@uqam.ca`；当前 GitHub 资源已足够支撑初步核查，暂不需要邮件。只有后续需要确认仓库与论文版本、依赖、license 或 release 时，才顺这些论文首页邮箱询问。
 
 ## 3. 实验代码核查
 
