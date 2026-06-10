@@ -12,9 +12,11 @@
 
 **代码/仓库获取方式**：
 - 原文提到作者实现了 Python prototype，用于调用 GPT-4 API、生成随机 DFSM oracle、生成英文描述、执行语法/语义比较和修复实验，但正文与参考文献未提供公开代码或仓库获取链接。
+- 本轮资源核查额外找到 paper-specific GitHub 仓库：[Paul3246/nl2fsm](https://github.com/Paul3246/nl2fsm)。仓库 README 明确说明其包含本文 Python 代码，根目录含 `v1` 至 `v5`、`err_lim` 与 `Fault_model_approach.zip`；完整资产状态见 [ASSETS.md](./ASSETS.md)。
 
 **数据集获取方式**：
-- 原文未提供公开数据集获取链接。实验数据为作者用 Python 模块随机生成的 DFSM oracle 及其英文描述；附录给出部分自然语言生成 pattern，但没有发布完整 oracle/description 数据文件。
+- 原文未提供独立数据集下载页。实验数据为作者用 Python 模块随机生成的 DFSM oracle 及其英文描述；附录给出部分自然语言生成 pattern。
+- 上述 GitHub 仓库含若干示例数据、`generated_text.csv`、Graphviz 输出与部分 benchmark/result 文本，可作为复现实验起点，但没有冻结版本、标准 split 或论文级数据包；完整资产状态见 [ASSETS.md](./ASSETS.md)。
 
 ## 简报
 

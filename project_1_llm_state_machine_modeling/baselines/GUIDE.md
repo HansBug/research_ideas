@@ -186,11 +186,16 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
 3. `bibtex.bib`
 4. `DESC.md`
 
+若论文在 [SUMMARY.md](./SUMMARY.md) 的“直接 baseline：评估与四条件五绿”表中同时满足 `评估=🟢` 且 `LLM4Modeling / NL输入 / LLM方法 / STM族输出` 四条件全部为 `🟢`，则该单论文目录还必须包含：
+
+5. `ASSETS.md`
+
 其中：
 
 1. `paper_content.txt` 必须由 PDF 自动提取获得。
 2. `DESC.md` 是本论文集的核心派生文件，统一遵循 [DESC_GUIDE.md](./DESC_GUIDE.md)。
-3. 若目录中已有代码仓库、数据集链接或补充材料信息，应优先写入 `DESC.md`，而不是只留在零散笔记里。
+3. `ASSETS.md` 是五绿 direct baseline 的资源与复现实验资产清单，只对这类最高优先级直接 baseline 强制要求；其他论文可在确有公开 artifact 时自愿补充，但不得把“有无 `ASSETS.md`”误解为 baseline 强度。
+4. 若目录中已有代码仓库、数据集链接或补充材料信息，应优先写入 `DESC.md`；若该论文属于五绿 direct baseline，还必须同步写入 `ASSETS.md`，不能只留在零散笔记里。
 
 ## 5. 内容整理策略
 
@@ -273,6 +278,45 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
 3. `获取方式/链接` 一列只要原文或作者工件中存在明确 URL，就必须写成 Markdown 链接。
 4. 若只有仓库、Zenodo、项目页、补充材料页等间接入口，也应优先给出该入口链接，而不是只写“见 DESC”。
 5. 若没有清晰链接，必须明确写“原文未提供公开下载链接”或等价表述，不能留空。
+
+### 5.3.1 五绿 direct baseline 的 `ASSETS.md` 资产记录
+
+五绿 direct baseline 是后续 Project 1 对比实验最可能真正复用的对象。凡进入 [SUMMARY.md](./SUMMARY.md) 第一张表的论文，必须额外维护 `ASSETS.md`，并按“可复现实验资产”而不是普通论文摘要来写。
+
+`ASSETS.md` 至少包含以下信息：
+
+1. 论文入口、DOI / arXiv / publisher page、本地 PDF 路径。
+2. Venue 与 CCF 口径；CCF 列沿用 `ccf_venues` 的 `🏆 / 🥈 / 🥉 / ⚪ / ❓` 口径。
+3. 实验代码 URL 与状态，必须区分：
+   - 公开可运行代码。
+   - paper-specific artifact repo。
+   - 只有 README / 占位符的仓库壳。
+   - 相关工具链仓库但非论文专属代码。
+   - 原文未提供或未找到。
+4. 实验结果细则 URL 与状态，必须区分：
+   - 可下载 workbook / CSV / ODS / JSON / parquet / raw output。
+   - 仓库内零散结果文件。
+   - 只有论文内表格。
+   - 无结果细则。
+5. 数据集 / benchmark URL 与状态，必须区分：
+   - 公开可下载标注数据 / ground truth。
+   - 公开输入文档但无 ground truth。
+   - 作者内部 / 工业私有数据。
+   - 可从标准、手册或公开示例重建但未打包的样本。
+   - 未公开。
+6. Artifact / replication package URL 与状态，说明是否足以支撑端到端复现实验。
+7. 仓库或数据集的大体结构说明，例如主要目录、输入文件、输出模型、结果表和可运行入口。
+8. 对 Project 1 对比实验的可用性判断：可直接用、需重建、只适合方法论参考、或暂不可用。
+9. 风险与待复查项：访问异常、匿名评审 artifact、WAF/权限、provider drift、版本漂移、license 不明、工业数据不可公开等。
+
+执行要求：
+
+1. `ASSETS.md` 中的外部事实必须给出可点击 URL；访问失败也要给出入口 URL 和失败状态。
+2. 不得把“公开输入文档”写成“公开 benchmark”，除非 ground truth / expected output 同时公开。
+3. 不得把“论文内表格”写成“可下载结果细则”；可下载结果必须有独立文件、仓库路径或本地冻结派生物。
+4. 不得把“相关工具仓库”写成“论文专属代码”；例如工具链公开但 thesis pipeline 未公开时，必须显式说明。
+5. 若本仓库已把公开数据解析成 parquet / JSONL / CSV 等冻结派生物，应在 `ASSETS.md` 同时链接原始公开入口和本地派生物路径，并说明派生时间或来源。
+6. [SUMMARY.md](./SUMMARY.md) 的五绿 direct baseline 表只保留紧凑资源列；完整资源说明以对应 `ASSETS.md` 为准，避免 [SUMMARY.md](./SUMMARY.md) 成为第二事实真源。
 
 ### 5.4 什么内容进入 `DESC.md`
 
@@ -501,6 +545,8 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
 9. 论文清单排序固定为：`评估rank(🟢, 🟡, 🟠, ⚪, ⏳) -> 年份降序 -> STM族输出rank -> NL输入rank -> LLM4Modelingrank -> LLM方法rank -> 标题升序`。
 10. `⏳` 只作为处理状态排在 completed rows 之后，不与 `🟢/🟡/🟠/⚪` 共享 baseline 强度语义。
 11. 若某篇论文的四条件与 `评估` 看起来不一致，应优先补充说明，而不是强行把颜色调成一致；例如非 LLM 经典 direct baseline、BPMN/Petri 近邻、已有状态图到形式模型转换都允许出现这种差异。
+12. “直接 baseline：评估与四条件五绿”表是第 5.3.1 节所述资源资产的总入口，除上述默认列外，必须在 `年份` 后追加 `Venue / CCF`、`论文链接`、`实验代码`、`实验结果`、`数据集 / Benchmark`、`资源说明` 六列；其他三张论文清单表维持默认列，避免表格过宽。
+13. 五绿 direct baseline 表的 `资源说明` 列必须链接到对应单论文目录的 `ASSETS.md`；若该文件缺失，应视为本论文集的 I 级维护问题。
 
 ### 6.7 `数据集与 Benchmark 清单` 的写法
 
