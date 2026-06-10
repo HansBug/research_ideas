@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 11:32:00
+更新时间：2026-06-10 13:08:00
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -11,7 +11,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 资源类型 | 状态 | URL / 路径 | 说明 |
 |---|---|---|---|
 | 论文 | 🟢 | [arXiv](https://arxiv.org/abs/2507.11222) / [本地 PDF](./paper.pdf) | 公开预印本；本地已提取 `paper_content.txt`。 |
-| 实验代码 | 🟠 | [YoussefMaklad/FlowFSM](https://github.com/YoussefMaklad/FlowFSM) | 仓库为 paper-specific 入口，但当前只有 `README.md` 和 `.gitignore`；README 写明 source code will be shared later。 |
+| 实验代码 | 🟠 | [YoussefMaklad/FlowFSM](https://github.com/YoussefMaklad/FlowFSM) | 仓库为 paper-specific 入口；default branch `main`，HEAD `4ab9aa4e2e68da63f842b7e516aee8c27747d339`，当前只有 `README.md` 和 `.gitignore`；README 写明 source code will be shared later。 |
 | 实验结果细则 | 🟠 | 论文内 Table I | FTP / RTSP 的 TP、FP、FN、precision、recall、F1 仅见论文表；未发现可下载逐转移结果。 |
 | 数据集 / Benchmark | 🟡 | [RFC 959 FTP](https://www.rfc-editor.org/rfc/rfc959) | 输入 RFC 是公开文档；RTSP 具体 RFC 版本正文未明确锁定，ground truth / rulebook / chunk 未公开。 |
 | Artifact / 复现包 | 🟠 | [GitHub repo shell](https://github.com/YoussefMaklad/FlowFSM) | 入口存在但没有源码、数据或结果包；目前不能直接复现实验。 |
@@ -25,7 +25,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 3. 实验代码核查
 
-论文称基于 CrewAI 组织 RFC processing、context retrieval 与 stepwise FSM extraction；当前 GitHub 只保留即将开放源码的说明。
+论文称基于 CrewAI 组织 RFC processing、context retrieval 与 stepwise FSM extraction；当前 GitHub 只保留即将开放源码的说明，仓库根目录只有 `README.md` 与 `.gitignore`，无 license、release、requirements、数据目录或结果文件。
 
 ## 4. 数据集 / Benchmark 核查
 
@@ -41,6 +41,6 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 7. 风险与待复查
 
-1. 仓库壳不能支撑复现实验。
+1. 仓库壳不能支撑复现实验；后续应复查 HEAD `4ab9aa4e2e68da63f842b7e516aee8c27747d339` 之后是否补源码，必要时联系作者询问代码和 GT 发布时间。
 2. RTSP 输入版本和 ground truth 未冻结，重建时存在口径漂移。
 3. 协议 FSM 与控制系统状态机同构但领域差异大，baseline 对比需单独解释。

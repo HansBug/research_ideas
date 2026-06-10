@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 11:32:00
+更新时间：2026-06-10 13:08:00
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -13,7 +13,8 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 论文 | 🟢 | [arXiv](https://arxiv.org/abs/2510.14348) / [本地 PDF](./paper.pdf) | 公开预印本；本地已提取 `paper_content.txt`。 |
 | 实验代码 | 🟠 | 未发现公开仓库 | 论文说明实现了 SpecGPT，但正文和参考文献未提供项目主页或源码。 |
 | 实验结果细则 | 🟠 | 论文内表格 | 状态/转移抽取的 precision、recall、F1 见论文；未发现可下载逐转移结果或模型输出。 |
-| 数据集 / Benchmark | 🟡 | [3GPP TS 24.501](https://www.3gpp.org/dynareport/24501.htm)、[TS 38.413](https://www.3gpp.org/dynareport/38413.htm)、[TS 29.244](https://www.3gpp.org/dynareport/29244.htm) | 输入规格官方公开；作者手工构建的 NAS/NGAP/PFCP Release 17 ground truth 未公开。 |
+| 公开输入规格 | 🟡 | [3GPP TS 24.501](https://www.3gpp.org/dynareport/24501.htm)、[TS 38.413](https://www.3gpp.org/dynareport/38413.htm)、[TS 29.244](https://www.3gpp.org/dynareport/29244.htm) | 3GPP 输入规格官方公开，但 dynareport 是活入口；复现必须锁定论文使用的 Release 17 具体版本。 |
+| Benchmark / GT | 🟠 | 未公开 | 作者手工构建的 NAS/NGAP/PFCP Release 17 ground truth 未公开；论文未提供公开申请表、Zenodo / OSF / Figshare / Drive 或补充材料。 |
 | Artifact / 复现包 | 🟠 | 无 | 没有公开复现包；需要自行下载 3GPP 规格并重建 chunking、prompt、ensemble 和 GT。 |
 
 ## 2. Venue 与 CCF
@@ -29,7 +30,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 4. 数据集 / Benchmark 核查
 
-输入是官方 3GPP dynareport 入口；ground truth 是作者投入超过 210 人时构建并交叉验证的 NAS/NGAP/PFCP 状态机数据集，但未公开。
+输入是官方 3GPP dynareport 入口；ground truth 是作者投入超过 210 人时构建并交叉验证的 NAS/NGAP/PFCP 状态机数据集，但未公开。这里必须区分“公开输入规格”和“公开 benchmark”：只有前者可直接访问，后者需要自行重建或联系作者询问。
 
 ## 5. 实验结果细则核查
 
@@ -41,6 +42,6 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 7. 风险与待复查
 
-1. 3GPP 标准页是活文档，复现必须锁定 Release 17 具体版本。
-2. 缺源码和 GT，使端到端复现实验成本很高。
+1. 3GPP 标准页是活文档，复现必须锁定 Release 17 具体版本，不能只记录 dynareport 入口页。
+2. 缺源码和 GT，使端到端复现实验成本很高；如需原 GT，只能通过论文作者邮箱或机构渠道询问，不应声称已有公开 benchmark。
 3. 若只引用论文表格，不能声称拥有可公开 benchmark。

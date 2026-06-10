@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 11:32:00
+更新时间：2026-06-10 13:08:00
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -13,7 +13,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 论文 | 🟢 | [Chalmers ODR PDF](https://odr.chalmers.se/bitstreams/7c06ef2c-d1ae-40b4-b13c-a35087077bce/download) / [本地 PDF](./paper.pdf) | 公开硕士论文。 |
 | 实验代码 | 🟠 | 未发现公开仓库 | 论文使用 Azure OpenAI、W&B 等工具链，但未提供代码或训练脚本。 |
 | 实验结果细则 | 🟠 | 论文内结果章节 | 定量评估和专家评审结果只在论文中呈现；未发现可下载 workbook。 |
-| 数据集 / Benchmark | 🔒 | 无公开入口 | 主数据来自 Volvo Cars / Car Weaver 的 20 个 product function requirements 与人工 statecharts；合成数据用于扩充和微调，均未公开。 |
+| 数据集 / Benchmark | 🔒 | 无公开入口 | 主数据来自 Volvo Cars / Car Weaver 的 20 个 product function requirements 与人工 statecharts，另有 12 个 domain-expert test cases；合成数据用于扩充和微调，均未公开。 |
 | Artifact / 复现包 | 🟠 | 无 | 缺代码、训练数据、微调配置和专家评分原始表，不能直接复现。 |
 
 ## 2. Venue 与 CCF
@@ -29,7 +29,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 4. 数据集 / Benchmark 核查
 
-最关键资产是 Volvo Cars 内部 Car Weaver 需求和对应 statecharts，外部不可下载。论文提到 20 个 product functions，并用合成数据弥补样本不足。
+最关键资产是 Volvo Cars 内部 Car Weaver 需求和对应 statecharts，外部不可下载。论文提到 20 个 product functions、12 个 domain-expert test cases，并用合成数据弥补样本不足。论文未提供公开数据申请表或正式数据邮箱；若确需原始资料，只能通过作者、学校导师或 Volvo Cars 工业导师 / 机构渠道询问，不能把这种询问路径写成公开数据服务。
 
 ## 5. 实验结果细则核查
 
@@ -41,6 +41,6 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 
 ## 7. 风险与待复查
 
-1. 工业私有数据不可公开，无法复现原始训练/评估。
+1. 工业私有数据不可公开，无法复现原始训练/评估；当前只存在作者 / 导师 / Volvo Cars 机构询问路径，没有公开申请表。
 2. Azure OpenAI 微调和模型版本会漂移。
 3. 若后续用作对比，只能重建类似任务，不能声称复现其原数据。
