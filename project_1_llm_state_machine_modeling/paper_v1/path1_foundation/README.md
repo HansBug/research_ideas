@@ -18,31 +18,42 @@
 
 > 本文研究可执行形式化反馈是否能提升 LLM 从自然语言控制系统需求生成状态机模型的质量。本 foundation PR 先规划形式化状态机表示、generate-check-simulate-repair agent loop，以及后续在冻结 benchmark、组件级人工评审、消融实验和近期 baseline 对比中必须补齐的证据。
 
-## 3. 推荐阅读顺序
+## 3. 目录分层
 
-1. [paper_story.md](./story/paper_story.md)：论文 thesis、gap、贡献、claim 边界。
-2. [project_inventory.md](./evidence/project_inventory.md)：当前仓库中与论文有关的证据、代码、baseline、run record 与缺口。
-3. [sample_assets.md](./dataset_selection/sample_assets.md)：从历史 PR #9 压缩迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 historical early reference draft 信息。
-4. [baseline_and_related_work_matrix.md](./evidence/baseline_and_related_work_matrix.md)：最近 baseline / related work 的实验定位与对齐方式。
-5. [experiment_inventory.md](./experiment_design/experiment_inventory.md)：RQ、样本、baseline、metrics、oracle 与 run record 计划。
-6. [claim_evidence_map.md](./story/claim_evidence_map.md)：强 claim、谨慎 claim、禁用 claim 与证据状态。
-7. [reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：按 C/I/M 维护的审稿风险与修复动作。
-8. [execution_plan.md](./experiment_design/execution_plan.md)：从 foundation 到投稿冲刺的 gate-driven 执行方案。
-9. [plan/progress.md](./plan/progress.md)：当前 PR / 后续 paper 工作进度与 review 记录。
+| 子路径 | 作用 | 入口 |
+|---|---|---|
+| [story/](./story/) | 论文 thesis、gap、贡献边界和 claim-evidence gate | [story/README.md](./story/README.md) |
+| [evidence/](./evidence/) | 仓库证据资产、baseline / related-work 对齐矩阵 | [evidence/README.md](./evidence/README.md) |
+| [dataset_selection/](./dataset_selection/) | 样本选择、PR #9 历史资产归档、后续 frozen registry 入口 | [dataset_selection/README.md](./dataset_selection/README.md) |
+| [experiment_design/](./experiment_design/) | RQ、实验合同、执行 gate、reviewer risk register | [experiment_design/README.md](./experiment_design/README.md) |
+| [plan/](./plan/) | 当前 PR 任务状态、review 记录和 task packet | [plan/README.md](./plan/README.md) |
 
-## 4. 与历史 PR #9 的关系
+## 4. 推荐阅读顺序
 
-PR #9 是 2026-05 Path-1 quick sprint 分支，提供了重要样本资产和 ref-STM 早期经验，但它不是当前论文主结果。当前目录只迁移其中可长期复用的事实与索引：
+1. [story/paper_story.md](./story/paper_story.md)：论文 thesis、gap、贡献、claim 边界。
+2. [evidence/project_inventory.md](./evidence/project_inventory.md)：当前仓库中与论文有关的证据、代码、baseline、run record 与缺口。
+3. [dataset_selection/sample_assets.md](./dataset_selection/sample_assets.md)：从历史 PR #9 迁移来的样本池、Top-15 / Backup-15、30 条扩充 NL 与 historical early reference draft 信息。
+4. [dataset_selection/legacy_pr9_assets/README.md](./dataset_selection/legacy_pr9_assets/README.md)：PR #9 详细原始资产归档入口。
+5. [evidence/baseline_and_related_work_matrix.md](./evidence/baseline_and_related_work_matrix.md)：最近 baseline / related work 的实验定位与对齐方式。
+6. [experiment_design/experiment_inventory.md](./experiment_design/experiment_inventory.md)：RQ、样本、baseline、metrics、oracle 与 run record 计划。
+7. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：强 claim、谨慎 claim、禁用 claim 与证据状态。
+8. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：按 C/I/M 维护的审稿风险与修复动作。
+9. [experiment_design/execution_plan.md](./experiment_design/execution_plan.md)：从 foundation 到投稿冲刺的 gate-driven 执行方案。
+10. [plan/progress.md](./plan/progress.md)：当前 PR / 后续 paper 工作进度与 review 记录。
 
-- `sources/` T0+🟢 候选池 323 sample 的筛选统计。
-- Top-15 / Backup-15 样本表。
-- 30 条 candidate / backup 的严格溯源 NL 扩充结果摘要。
-- `sources_path1.parquet` / backup parquet 的历史位置与用途。
-- 2 个 early historical early reference draft（CARA 低-V、CubeSat 高-V）的经验与风险。
+## 5. 与历史 PR #9 的关系
+
+PR #9 是 2026-05 Path-1 quick sprint 分支，提供了重要样本资产和 ref-STM 早期经验，但它不是当前论文主结果。当前目录已经把其中可长期复用的事实、索引和原始资产归档到 [dataset_selection/legacy_pr9_assets/](./dataset_selection/legacy_pr9_assets/)：
+
+- `sources/` T0+🟢 候选池 323 sample 的筛选输入、323 个自动评审 JSON、Top-15 / Backup-15 报告和 `summary.csv`。
+- 30 条 candidate / backup 的严格溯源 NL 扩充报告、30 个 expansion JSON 和 provenance。
+- `sources_path1.parquet` / `sources_path1_backup.parquet` 历史数据快照。
+- 2 个 early historical reference draft（CARA 低-V、CubeSat 高-V）、handover、prompt 和辅助脚本。
+- 文件级 [asset_manifest.tsv](./dataset_selection/asset_manifest.tsv) 与数量摘要 [asset_summary.json](./dataset_selection/asset_summary.json)。
 
 PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需在正式 paper 实验前复核；不得把它们直接写成最终实验结果。
 
-## 5. 非目标
+## 6. 非目标
 
 本 PR / 本目录当前不做：
 
@@ -53,7 +64,7 @@ PR #9 中的自动评分、扩充 NL 和 historical early reference draft 仍需
 5. 不把 LLM-as-Judge 当作主 oracle。
 6. 不声称完成 BMC / LTL / 完整 model checking。
 
-## 6. 当前验收标准
+## 7. 当前验收标准
 
 本 foundation PR ready 的最低标准：
 

@@ -15,11 +15,12 @@
 后续新 session 推荐阅读顺序：
 
 1. [path1_foundation/README.md](./path1_foundation/README.md)
-2. [path1_foundation/paper_story.md](./path1_foundation/paper_story.md)
-3. [path1_foundation/sample_assets.md](./path1_foundation/sample_assets.md)
-4. [path1_foundation/experiment_inventory.md](./path1_foundation/experiment_inventory.md)
-5. [path1_foundation/execution_plan.md](./path1_foundation/execution_plan.md)
-6. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+2. [path1_foundation/story/paper_story.md](./path1_foundation/story/paper_story.md)
+3. [path1_foundation/dataset_selection/sample_assets.md](./path1_foundation/dataset_selection/sample_assets.md)
+4. [path1_foundation/experiment_design/experiment_inventory.md](./path1_foundation/experiment_design/experiment_inventory.md)
+5. [path1_foundation/experiment_design/execution_plan.md](./path1_foundation/experiment_design/execution_plan.md)
+6. [path1_foundation/dataset_selection/legacy_pr9_assets/README.md](./path1_foundation/dataset_selection/legacy_pr9_assets/README.md)
+7. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
 
 以下历史内容保留用于追溯 2026-05 Direction-Decision Sprint，不再代表当前默认施工入口。
 

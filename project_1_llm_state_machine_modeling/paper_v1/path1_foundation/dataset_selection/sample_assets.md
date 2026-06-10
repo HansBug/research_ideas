@@ -11,18 +11,30 @@
 3. PR #9 的自动评分和扩充 NL 可以作为 selection rationale，但不能直接证明方法效果。
 4. 任何使用这些资产的论文 claim 都必须在 [claim_evidence_map.md](../story/claim_evidence_map.md) 中明确证据状态。
 
+
+## 1.1 当前归档入口
+
+PR #9 详细资产已经归档到 [legacy_pr9_assets/](./legacy_pr9_assets/)；文件级校验见 [asset_manifest.tsv](./asset_manifest.tsv)，数量摘要见 [asset_summary.json](./asset_summary.json)。
+
+| 归档路径 | 内容 |
+|---|---|
+| [legacy_pr9_assets/selection_screening/](./legacy_pr9_assets/selection_screening/) | 323 条候选 sample、323 个 review JSON、Top-15 / Backup-15 报告与 summary。 |
+| [legacy_pr9_assets/nl_expansion/](./legacy_pr9_assets/nl_expansion/) | 30 条扩充 NL、expansion JSON、provenance、扩充报告和 prompt。 |
+| [legacy_pr9_assets/path1_parquet/](./legacy_pr9_assets/path1_parquet/) | `sources_path1.parquet` 与 `sources_path1_backup.parquet` 历史快照。 |
+| [legacy_pr9_assets/reference_drafts/](./legacy_pr9_assets/reference_drafts/) | CARA / CubeSat historical ref-STM draft、handover、prompt 与辅助脚本。 |
+
 ## 2. PR #9 可搬运资产总览
 
 | 资产 | 历史路径 | 数量 / 状态 | 当前用途 | 不能怎么用 |
 |---|---|---:|---|---|
-| 323 sample selection pool | `project_1_llm_state_machine_modeling/paper_v1/selection/candidates.jsonl` in PR #9 branch | 323 条 T0+🟢 控制系统 sample | 作为 Path-1 stress-test 样本池来源和抽样纪律证据 | 不能说成正式 benchmark 已冻结 |
-| selection report | `paper_v1/selection/SELECTION_REPORT.md` in PR #9 branch | Top-15 + Backup-15 + 全量评分统计 | 迁移 Top-15 / Backup-15 和评分维度定义 | 不能说成最终实验结果 |
-| expansion report | `paper_v1/selection/expansion/EXPANSION_REPORT.md` in PR #9 branch | 30/30 扩充完成，0 fail，0 marker mismatch | 作为严格溯源 NL 扩充资产 | 不能把扩充文本当作人工 oracle |
-| expansion JSON | `paper_v1/selection/expansion/expansions/*.json` in PR #9 branch | 30 个 JSON | 后续构造 frozen NL input / provenance packet 的候选原料 | 不能不复核就进入 main result |
-| Path-1 parquet | `project_1_llm_state_machine_modeling/eval/data/sources_path1.parquet` in PR #9 branch | 1 个主数据文件 | 历史 sprint 主数据集候选 | 不能默认与当前 main 的正式样本一致 |
-| Path-1 backup parquet | `project_1_llm_state_machine_modeling/eval/data/sources_path1_backup.parquet` in PR #9 branch | 1 个备份数据文件 | 备份样本池候选 | 语义需重新核验 |
-| historical early reference draft STM | `paper_v1/selection/ref_stms/audited/...` in PR #9 branch | 2 个：CARA 低-V、CubeSat 高-V | 参考模型纪律、V-rich/V-poor 对照、ref pipeline few-shot | 不能直接作为最终 signed reference model |
-| ref-STM handover | `paper_v1/selection/ref_stms/HANDOVER.md` in PR #9 branch | 1 份 | 迁移 D1-D8 纪律和 pipeline 风险 | 不能当作 pipeline 完工证明 |
+| 323 sample selection pool | [legacy_pr9_assets/selection_screening/candidates.jsonl](./legacy_pr9_assets/selection_screening/candidates.jsonl) | 323 条 T0+🟢 控制系统 sample | 作为 Path-1 stress-test 样本池来源和抽样纪律证据 | 不能说成正式 benchmark 已冻结 |
+| selection report | [legacy_pr9_assets/selection_screening/SELECTION_REPORT.md](./legacy_pr9_assets/selection_screening/SELECTION_REPORT.md) | Top-15 + Backup-15 + 全量评分统计 | 迁移 Top-15 / Backup-15 和评分维度定义 | 不能说成最终实验结果 |
+| expansion report | [legacy_pr9_assets/nl_expansion/EXPANSION_REPORT.md](./legacy_pr9_assets/nl_expansion/EXPANSION_REPORT.md) | 30/30 扩充完成，0 fail，0 marker mismatch | 作为严格溯源 NL 扩充资产 | 不能把扩充文本当作人工 oracle |
+| expansion JSON | [legacy_pr9_assets/nl_expansion/expansions/](./legacy_pr9_assets/nl_expansion/expansions/) | 30 个 JSON | 后续构造 frozen NL input / provenance packet 的候选原料 | 不能不复核就进入 main result |
+| Path-1 parquet | [legacy_pr9_assets/path1_parquet/sources_path1.parquet](./legacy_pr9_assets/path1_parquet/sources_path1.parquet) | 1 个主数据文件 | 历史 sprint 主数据集候选 | 不能默认与当前 main 的正式样本一致 |
+| Path-1 backup parquet | [legacy_pr9_assets/path1_parquet/sources_path1_backup.parquet](./legacy_pr9_assets/path1_parquet/sources_path1_backup.parquet) | 1 个备份数据文件 | 备份样本池候选 | 语义需重新核验 |
+| historical early reference draft STM | [legacy_pr9_assets/reference_drafts/audited/](./legacy_pr9_assets/reference_drafts/audited/) | 2 个：CARA 低-V、CubeSat 高-V | 参考模型纪律、V-rich/V-poor 对照、ref pipeline few-shot | 不能直接作为最终 signed reference model |
+| ref-STM handover | [legacy_pr9_assets/reference_drafts/HANDOVER.md](./legacy_pr9_assets/reference_drafts/HANDOVER.md) | 1 份 | 迁移 D1-D8 纪律和 pipeline 风险 | 不能当作 pipeline 完工证明 |
 | Path-1 report | `paper_v1/PATH1_REPORT.md` in PR #9 branch | Phase 4a 完成，4b 进行中，结果 TODO | 历史状态说明 | 不能作为 current paper result |
 
 ## 3. Selection 统计摘要

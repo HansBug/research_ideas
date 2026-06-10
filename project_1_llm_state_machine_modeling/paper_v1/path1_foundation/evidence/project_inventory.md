@@ -9,7 +9,7 @@
 | [../../../baselines/](../../../baselines/) | LLM-for-modeling / STM generation / requirements-to-model baseline 文库 | 72 篇已完成全文分析 | related work 与 baseline matrix 来源 |
 | [../../../sources/](../../../sources/) | 控制系统 source / STM 文库 | 真实控制系统样本池 | Path-1 / Path-2 样本来源之一 |
 | [../../../talks/](../../../talks/) | project_1 内部导师讨论文库 | 已记录 2026-06-04 第一篇路线定调 | 学术决策来源 |
-| [../](../) | `paper_v1` 历史工作区 | 旧 README 有 sprint 口径，本 PR 增加 current overlay | 第一篇论文工作区 |
+| [../../](../../) | `paper_v1` 历史工作区 | 旧 README 有 sprint 口径，本 PR 增加 current overlay | 第一篇论文工作区 |
 | [../](../) | 当前 foundation | 本 PR 新增 | 后续第一篇 paper 主工作入口 |
 | [../../../../runs/](../../../../runs/) | 真实运行记录 | 已按仓库 run record 规范维护 | 主实验与代表性 run evidence 保存位置 |
 
@@ -34,8 +34,8 @@
 | 证据 | 来源 | 可支持什么 | 不能支持什么 |
 |---|---|---|---|
 | LG-M1 final four-case evidence | [../../../method/STATUS.md](../../../method/STATUS.md) / PR #39 / PR #22 | agent-loop 已能真实运行并留 retained evidence | 不能替代 Path-1 main experiment |
-| PR #9 sample selection | [sample_assets.md](../dataset_selection/sample_assets.md) | selection rationale、stress-test pool、Top/Backup 样本候选 | 不能当主结果 |
-| PR #9 two early historical early reference drafts | [sample_assets.md](../dataset_selection/sample_assets.md) | reference discipline、V-rich/V-poor case insight | 不能当最终 human-signed oracle |
+| PR #9 sample selection | [sample_assets.md](../dataset_selection/sample_assets.md) / [legacy_pr9_assets/selection_screening/](../dataset_selection/legacy_pr9_assets/selection_screening/) | selection rationale、stress-test pool、Top/Backup 样本候选、323 个 review JSON | 不能当主结果 |
+| PR #9 two early historical early reference drafts | [sample_assets.md](../dataset_selection/sample_assets.md) / [legacy_pr9_assets/reference_drafts/](../dataset_selection/legacy_pr9_assets/reference_drafts/) | reference discipline、V-rich/V-poor case insight | 不能当最终 human-signed oracle |
 | Baseline corpus | [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md) | close prior work matrix、direct / near / evidence-only 分类 | 不能直接给实验数字 |
 | eval protocol | [../../../eval/PROTOCOL.md](../../../eval/PROTOCOL.md) | 5-component TP/FP/FN、人类签字、LLM 初审辅助协议 | 不能免除正式 annotator / blind / agreement |
 
