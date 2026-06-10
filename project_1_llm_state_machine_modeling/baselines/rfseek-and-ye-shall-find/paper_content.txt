@@ -1,0 +1,568 @@
+--- Page 1 ---
+RFSeek and Ye Shall Find
+A tool for summary visualization and analysis of RFCs
+Noga H. Rotman
+Technion - Israel Institute of
+Technology
+noga.rotman@mail.huji.ac.ilTiago Ferreira
+University College London
+t.ferreira@ucl.ac.ukHila Peleg
+Technion - Israel Institute of
+Technology
+hilap.cs@gmail.com
+Mark Silberstein
+Technion - Israel Institute of
+Technology
+mark@ee.technion.ac.ilAlexandra Silva
+Cornell University
+alexandra.silva@cornell.edu
+Abstract
+Requests for Comments (RFCs) are extensive specification
+documents for network protocols, but their prose-based for-
+mat and their considerable length often impede precise op-
+erational understanding. We present RFSeek, an interactive
+tool that automatically extracts visual summaries of protocol
+logic from RFCs. RFSeek leverages large language models
+(LLMs) to generate provenance-linked, explorable diagrams,
+surfacing both official state machines and additional logic
+found only in the RFC text. Compared to existing RFC visu-
+alizations, RFSeek’s visual summaries are more transparent
+and easier to audit against their textual source. We showcase
+the tool’s potential through a series of use cases, including
+guided knowledge extraction and semantic diffing, applied
+to protocols such as TCP, QUIC, PPTP, and DCCP.
+In practice, RFSeek not only reconstructs the RFC dia-
+grams included in some specifications, but, more interest-
+ingly, also uncovers important logic such as nodes or edges
+described in the text but missing from those diagrams. RF-
+Seek further derives new visualization diagrams for complex
+RFCs, with QUIC as a representative case. Our approach,
+which we termSummary Visualization, highlights a promis-
+ing direction: combining LLMs with formal, user-customized
+visualizations to enhance protocol comprehension and sup-
+port robust implementations.
+1 Introduction
+Requests for Comments (RFCs) are the documents providing
+the authoritative standards for fundamental Internet proto-
+cols (e.g. TCP, HTTP, DNS, etc.), and serve as the definitive
+source for understanding and implementation guidance. New
+protocols begin their life cycle asliving documents, dozens
+of pages long, written by human authors in English. As such,
+they are prone to omissions and inconsistencies, that can
+appear many pages apart. In addition, their descriptions areintentionally permissive, in order to allow for general inter-
+faces and different “flavoring” when put to practice, further
+contributing to textual ambiguity. Authors of RFCs often
+include figures to assist implementers, but these depictions
+of Finite State Machines (FSMs) are typically abstract, and
+often incomplete.
+To bridge the gap between RFC authors and protocol de-
+velopers, we propose RFSeek, an interactive and malleable
+visualization of protocol states and governing events. We
+term this approachSummary Visualization, in which a sum-
+mary of protocol behavior is automatically produced from
+the RFC and transformed into a provenance-aware visual
+model. Underlying the tool is an automated framework lever-
+aging Large Language Models (LLMs), which the user is ag-
+nostic to, while ensuring every diagram element is grounded
+in specific RFC content.
+Let us take the case of an early developer working on a
+new version of the TCP RFC (9293).
+Figure 1: ASCII diagram from RFC 9293
+They might start their implementation by looking at the
+ASCII-art diagram in Section 3.3.2 of the RFC, shown in
+1arXiv:2509.10216v1  [cs.NI]  12 Sep 2025
+
+--- Page 2 ---
+Noga H. Rotman, Tiago Ferreira, Hila Peleg, Mark Silberstein, and Alexandra Silva
+(a)
+ (b)
+Figure 2: RFSeek analysis of TCP (RFC 9293): On the left, the summary of RFC 9293 created by RFSeek. Grey oval
+nodes areanynodes. On the right, we zoom in on a new edge found by using RFSeek, from SYN-RECEIVED toLISTEN .
+The edge is green, indicating it not being a part of the description of the FSM in the RFC text, but stemming from
+another section of the text. Hovering over the edge shows the text that caused that edge to be created.
+Figure 1. This diagram is inherently incomplete because it
+is an abstraction, and the RFC is explicit about this, clearly
+stating that there are missing edges.
+Seeking a more complete picture, our developer turns to
+RFSeek and loads the TCP RFC into the tool. RFSeek present
+them with the summary visualization shown in Figure 2a.
+While some of the edges are easily recognizable—even from
+an undergraduate networking class—our developer inspects
+the less familiar transitions, which are precisely the ones that
+motivated them to use RFSeek in the first place. They hone in
+on an edge from the SYN-RECEIVED state to the LISTEN state,
+created by rcv SYN . Note that this edge is absent from both
+the ASCII diagram and its accompanying notes in the RFC,
+but it describes the stated behavior in case a SYNis received
+after an initial one was already received in a passive OPEN
+connection, leading to theSYN-RECEIVEDstate.
+The developer then hovers on the transition to see ad-
+ditional details, clicking on the “show in RFC” button to
+inspect the text from the RFC that created the transition in
+RFSeek (Figure 2b). After validating the transition (explained
+in §3.10.7.4 of the RFC) and confirming that the clarifica-
+tions below the ASCII diagram do not mention its omission,
+they send a note to the RFC authors. At the very least, they
+suggest adding a reference to the omission in Section 3.3.2.
+In short, RFSeek aids in a deeper understanding of the
+protocol, and may facilitate feedback from developers to
+RFC authors, contributing to improved specifications and
+implementations of RFCs.
+Previous approaches.Numerous prior works have tackled
+extracting models from RFC text, but RFSeek differs on two
+significant fronts. First, the core problem RFSeek addresses
+is fundamentally different. Most tools are intended for au-
+tomated tasks like fuzzing [ 4,8,12] or attack synthesis [ 9],where some inaccuracy is tolerable and might even be bene-
+ficial (e.g., more transitions can aid coverage in fuzzing). In
+contrast, RFSeek is designed to advance the accurate under-
+standing of RFCs and ultimately support improved protocol
+specifications. As a result, our approach demands outputs
+that are as correct and faithful to the source as possible. Sec-
+ond, and not unrelated, existing tools typically produce FSMs
+with only the minimal information needed for automatic tra-
+versal, omitting many of the nuances present in protocol
+transitions. RFSeek, on the other hand, generates diagrams
+that are both comprehensive and readable, capturing richer
+context, transition rationale, and provenance information—
+features critical for in-depth analysis and auditability.
+RFSeek also stands out in its extraction technique. Most
+importantly, RFSeek does not rely on the ASCII-art diagrams
+in the RFC [ 10], which, if present, are inherently incomplete.
+Such diagrams can also be difficult to parse automatically,
+introducing errors or omissions into extracted models. More-
+over, unlike several recent approaches, RFSeek does not re-
+quire model training [ 4,9], nor does it rely on the users
+to supply supplementary resources such as a technical lexi-
+con [ 11]. This makes RFSeek both easier to deploy and more
+broadly applicable across diverse protocol documents. Our
+processing techniques set a new standard for auditability in
+protocol analysis: every extracted element is explicitly and
+transparently grounded in the RFC text.
+In a nutshell, our contributions are:
+1.A new, principled summary representation for RFC
+protocolsthat extends and defines the state machine
+information traditionally conveyed via informal diagrams.
+2.A modular extraction workflowthat transforms RFC
+documents into structured, explorable summaries while
+retaining both long-range cross-references and traceabil-
+ity to source text.
+2
+
+--- Page 3 ---
+RFSeek and Ye Shall Find
+3.RFSeek, an interactive environment for protocol
+summary exploration, enabling users to directly trace
+each transition to its RFC source, and supporting protocols
+regardless of whether FSM diagrams are comprehensive,
+fragmented, or absent, as exemplified by QUIC, which
+includes only partial figures and text-only state machines.
+4.A preliminary evaluationof our prompting strategy
+and extraction method, including a comparative analysis
+between RFSeek-generated summaries and the ASCII dia-
+grams from several RFCs—TCP, QUIC, DCCP and PPTP.
+2 Approach
+In this section, we describe the components of our frame-
+work: the summary representation, the pipeline of the tool,
+and the prompting strategy we use to maximize automation.
+2.1 Proposed Summary Definition
+Some RFCs include one or more FSM diagrams. However,
+because the official RFC is published as a plain text docu-
+ment, all diagrams, including FSMs, are restricted to ASCII-
+art representations. As a result, these figures provide only
+partial information. For example, the official TCP FSM ( Fig-
+ure 1) is accompanied by a disclaimer: “many details are not
+included”, and additional transitions are omitted lest “the
+diagram would become very difficult to read”.
+In this work, our goal is to capture more of the rich tapestry
+of protocol behavior described in RFCs. Rather than rely-
+ing on the varied and often informal FSM definitions found
+across RFCs and previous extraction efforts (see Section 5),
+we introduce a new summary representation that formalizes
+and unifies protocol behavior as presented in both diagrams
+and text. First, by design, our summary does not omit transi-
+tions it learned grounded on evidence. However, when mul-
+tiple states share the same event and handle it identically, we
+introduce a representative grouped node to avoid overcrowd-
+ing the presentation. Second, we include transitions that are
+recommended but are not mandatory, and transitions that are
+inferredfrom the text. In the case of inferred transitions, our
+summary always includes the reasoning for their creation.
+To the best of our knowledge, this is the first time such edges
+have been introduced. Finally, while other FSMs may include
+partial information regarding each edge, in our summary,
+each transition is described by: (i) the triggering event, and
+any relevant conditions; (ii) the action that should be taken,
+if any, in detail - including the construction / destruction of
+data structures, error codes, and any other pertinent infor-
+mation; (iii) the originating text (see §2.2), and (iv) in case of
+a grouped transition: which states are included.
+Figure 3: The pipeline of RFSeek
+2.2 Pipeline
+Effective use of LLMs requires balancing specificity and clar-
+ity in prompts, as overly detailed instructions can solicit
+unintelligible answers. Figure 3 depicts our pipeline, parti-
+tioned into specific tasks that LLMs excel at, such as summa-
+rization and semantic grounding [ 6]. All experiments used
+the OpenAI GPT-4.1 model via the OpenAI API.
+RFC documents are typically too large to be processed by
+LLMs in a single pass due to input length restrictions. We
+therefore begin by dividing the RFC intostructuralcompo-
+nents such as sections, subsections or even smaller fragments,
+depending on their size. Prior to partitioning, we apply stan-
+dard preprocessing steps (such as whitespace normalization
+and ASCII table condensation) to improve input quality and
+consistency. For each component, we compute dense vector
+representations (embeddings) and use these to retrieve se-
+mantically relevant excerpts from elsewhere in the document
+to supplement the main content during summarization. This
+ensures the LLM receives not only a well-defined portion
+of the text, but also any pertinent supporting information,
+improving the accuracy and level of detail in the summaries.
+The summaries we produce are designed to align with our
+proposed summary definition (see Section 2.1), ensuring that
+the extracted information faithfully represents the protocol
+semantics as captured by our approach.
+Next, we prompt the LLM to perform thevisualization
+extraction. For each edge, we instruct the LLM to identify
+and cite the specific summary segment(s) that serve as the
+basis for that transition. Using summary-based input enables
+us to include the full RFC context within a single prompt.
+In the final step,semantic grounding, we prompt the LLM
+to retrieve the corresponding RFC text passages that justify
+each edge. The full visualization summary is then loaded
+into our user interface (detailed in Section 3) allowing users
+to explore the constituent nodes and edges.
+2.3 Prompting Strategy
+We explored several strategies before settling on our current
+methodology. As a baseline, we first tested prompting the
+LLM with only those RFC sections that were deemed most
+3
+
+--- Page 4 ---
+Noga H. Rotman, Tiago Ferreira, Hila Peleg, Mark Silberstein, and Alexandra Silva
+relevant, to assess whether selective input could efficiently
+recover meaningful protocol transitions. While this sanity
+check performed reasonably well, it reproduced the transi-
+tions already depicted in the diagrams and did not yield any
+new or implicit protocol behaviors.
+Next, we introduced a summarization stage prior to vi-
+sualization extraction. However, we found that while some
+sections could be summarized in their entirety, it was rare for
+an RFC to contain only such manageable sections. In most
+cases, at least some sections required further partitioning
+into smaller fragments to fit input constraints and maintain
+semantic coherence.
+We also compared general-purpose summaries to targeted
+summaries focused on FSM extraction—that is, prompts specif-
+ically designed to elicit the transitions and context captured
+by our summary definition. Using shorter, targeted sum-
+maries did not reduce precision, so we adopted them as our
+default input.
+To further probe the LLM’s reliance on textual context,
+we evaluated the effect of omitting the original FSM diagram
+from the RFC input (particularly for RFC9293). When the di-
+agram was absent, certain transitions were missing from the
+summaries, as they were not directly mentioned elsewhere
+in the document. While we did not systematically assess this
+across all protocols, this suggests that transitions described
+exclusively in diagrams may be overlooked by LLM-based
+extraction methods focused on text.
+To ensure traceability, we required that every extracted
+transition be explained by its originating text. Notably, when
+we prompted the LLM to extract a “precise and accurate FSM”
+it completely omitted some edges it had previously identified,
+such as the one shown in Figure 2b.
+A related observation was that some of the transitions
+clearly mentioned in the section summaries were missing
+from the extracted visualization summary. To address this,
+we adjusted our prompt to explicitly instruct the LLM to
+extract all transitions mentioned in the summaries. Interest-
+ingly, this did not increase the total number of transitions
+identified; rather, the set of extracted transitions shifted.
+With the revised prompt, only transitions explicitly men-
+tioned in the summaries were extracted, while transitions
+previously inferred implicitly by the LLM from the text were
+now omitted. This warrants further investigation.
+3 User Interface
+Once an RFC is processed, the resulting summary visualiza-
+tion is loaded in the RFSeek UI.
+Inspecting summary visualizations.The user can zoom in and
+out on different parts of the diagram, and freely reposition
+nodes and edges to reorganize the visualization as needed.
+Node and edge labels are editable for clarity or annotation.
+(a) Hovering on an edge in RFSeek, showing 1○summary text
+that created the edge, 2○a “Recenter” button to scroll back
+to the 3○highlighted RFC text, and an 4○indicator this is
+RFC location 5 of 6 expressing the current edge. Arrows will
+move to the previous/next location in the text.
+(b) Toggling the 5○light bulb button highlights 6○edges that
+are only described in the text and grays out 7○edges from
+the ASCII diagram.
+Figure 4: Inspection features in RFSeek
+To make the interface reusable, any user customizations can
+be saved and reloaded in future sessions.
+Navigating the RFC.The user can hover over any edge to
+view the specific summary excerpt(s) ( 1○in Figure 4a). Click-
+ing the “Show in RFC” button (see Figure 2b) automatically
+scrolls the RFC side panel ( 3○in Figure 4a) to the first rele-
+vant passage and highlights all supporting locations. The but-
+ton then changes to “Recenter” ( 2○), letting the user browse
+freely and return to the source with a single click.
+If an edge is justified by multiple text passages, the sum-
+mary tooltip displays progress (e.g., “5/6” 4○) and arrow but-
+tons enable navigation between all supporting RFC snippets.
+Highlighting new edges.Summary visualizations of large
+RFCs can contain many edges, some originating from the
+main FSM diagram section and others from elsewhere in the
+RFC text. RFSeek colors edges from the FSM section blue
+(see Figure 2a) and highlights edges from other RFC sections
+in green.
+To help the user focus on new edges sourced from the
+broader text, the light bulb button ( 5○in Figure 4b) toggles
+a view that grays out diagram-section edges ( 7○) and high-
+lights those extracted from other sections ( 6○).
+4 Case Studies
+To evaluate RFSeek, we applied it to four protocols: PPTP
+(RFC2637), DCCP (RFC4341), QUIC (RFC9000), and TCP
+(RFC9293). For each, we measured how faithfully RFSeek
+recovered FSM edges and nodes depicted in the published
+4
+
+--- Page 5 ---
+RFSeek and Ye Shall Find
+Table 1: Comparison of missing nodes and edges (lower
+is better) across RFCs for PROSPER [10] and RFSeek.
+RFC PROSPER RFSeek
+Missing
+NodesMissing
+EdgesMissing
+NodesMissing
+Edges
+PPTP (RFC2637) 0 19 0 6
+DCCP (RFC4341) 1 7 0 1
+QUIC (RFC9000)1- - 0 2
+TCP (RFC9293)2- - 0 1
+1The RFC only shows two diagrams, others are described, making it a poor
+candidate for PROSPER.
+2PROSPER use RFC 793 for TCP, making a direct comparison unfair.
+diagrams, and identified additional protocol logic surfaced
+from the text. While we do not claim completeness, we fo-
+cus on correctness: our extracted summary diagrams are
+grounded in and traceable to the RFC source. We also com-
+pare RFSeek’s results to those of PROSPER [ 10] (see Table 1).
+4.1 Case study: TCP
+TCP [ 2] is among the most prominent and widely deployed
+networking protocols. RFC9293 consolidates over forty years
+of evolution and multiple updates into a single, unified speci-
+fication. Given this, one might expect the FSM of TCP would
+be agreed upon. Yet, we were surprised RFSeek identified a
+new transition absent from both the FSM diagram and its
+accompanying notes. This edge, depicted in Figure 2b, cap-
+tures the transition from SYN-RECEIVED toLISTEN , which
+occurs upon receiving a SYNprovided that the connection
+was initialized with passive OPEN . Otherwise, the proto-
+col specifies a different handling. Interestingly, a review of
+the Linux kernel’s TCP implementation [ 3] reveals that this
+transition is, in fact, present there.
+4.2 Case study: PPTP
+PPTP (RFC2637) defines its state machine through six sep-
+arate diagrams. RFSeek recovered all but six diagrammed
+transitions, while also surfacing new edges and a previously
+undocumented node not present in any diagram.
+Consider the transition from wait_ctl_reply toidle ,
+described in the RFC diagram (see Figure 5a). Section 3.1.3 of
+the RFC clearly states that in case of a collision, “The loser
+will immediately close the TCP connection it initiated”. This
+is indicated by the edge described above. However, the text
+also specifies what should happen to the connection the win-
+ner initiated, which will not terminate, but instead return
+towait_ctl_reply given specific conditions. This exam-
+ple demonstrates RFSeek’s ability to synthesize details from
+the RFC text that are not captured in the official diagrams,
+enabling a more complete and accurate summary.
+(a) ASCII diagram from RFC2637 PPTP. Note the edge from
+wait_ctl_reply toidle. Section §3.1.3 of the RFC (4.1.3 does
+not exist) clearly states that this edge exists only for the
+"loser" of the initiation race, the "winner" should continue,
+and specifically does not return toidle.
+(b) The new node constructed by RFSeek, collision . Note
+the edge from collision toidle for the losing party, and two
+edges towait_ctl_replyfor the winner.
+Figure 5: PPTP (RFC2637) in the RFC and in RFSeek
+4.3 Case study: QUIC
+The relatively new QUIC protocol [ 5] has already had a
+significant impact on both academic research and industry
+deployment. Although its RFC provides partial and inconsis-
+tent state machine figures for select procedures (e.g. Streams
+in §3.1-2), RFSeek not only reconstructs and unifies these vi-
+sualizations, showcasing their interactions, but also surfaces
+additional procedures not visualized in the official document
+(see Figure 6). This yields a more unified and complete view
+of protocol logic than the RFC diagrams alone.
+4.4 Case study: DCCP
+For DCCP (RFC4341), which formally introduced modular
+congestion control, RFSeek created two grouped nodes to
+handle the same event: receiving a DCCP-Reset packet. One
+was created for CLOSED ,LISTEN and TIMEWAIT states, for
+reset code3, and a second for the REQUEST and RESPOND
+5
+
+--- Page 6 ---
+Noga H. Rotman, Tiago Ferreira, Hila Peleg, Mark Silberstein, and Alexandra Silva
+Figure 6: QUIC (RFC9000) in RFSeek
+states, for reset code4. These distinctions, missing from the
+diagram but specified in the RFC text, are made explicit in
+RFSeek’s summary (which is elided for brevity).
+5 Related work
+For decades, RFCs have been thede factostandard for spec-
+ifying network protocols. This reliance on prose-based, in-
+formal specifications has motivated a broad range of NLP-,
+neural network-, and LLM-based tools. These efforts have
+primarily targeted code generation, protocol fuzzing, and
+attack synthesis. More recently, PROSPER [ 10] introduced
+an approach for extracting FSMs from RFCs with the explicit
+goal of aiding protocol understanding.
+Code Generation.Early efforts such as SAGE [ 11] used semi-
+automated NLP methods to extract logical forms from RFCs
+for code generation and ambiguity detection. SAGE notably
+generated interoperable ICMP implementations, demonstrat-
+ing feasibility for simple protocols. However, this approach
+was limited in supporting complex state management (e.g.,
+TCP), relied on user-supplied technical lexicons, and did not
+provide human-interpretable links to the original RFC text.
+Fuzzing and Attack Synthesis.Shortly after SAGE, a series
+of contributions addressed RFCs from an adversarial per-
+spective, using protocol specifications to guide fuzzing and
+synthesize attacks. Jero et al . [4] introduced an NLP-based
+approach to extract formal representations of a protocol’s
+packet-space, as well as optional properties to generate test
+cases for grammar-assisted fuzzing. Pacheco et al . [9] im-
+proved on this with BERT [ 1]-based neural models to extract
+FSMs, which are then used to seed traces used for attack
+synthesis. Unlike SAGE, their tool does not require a user-
+provided technical lexicon; instead, they train embeddings
+for protocol terminology, as part of model pretraining. Zhang
+et al. [12] similarly leverage BERT to extract intermediate
+FSMs, but to generate traces for fuzzing. Meng et al . [8] use
+LLMs directly for the same purpose, relying on the LLM’s
+training data rather than providing the RFC as input. Lianget al. [7] also use a BERT-based RFC parsing approach; how-
+ever, they aim to extractPetri netsrather than abstract FSMs.
+While the majority of these approaches, like ours, extract
+FSMs from RFCs, their primary goal is to produce interme-
+diate models for automated analysis or testing. Our work
+differs in three key ways: First, the FSMs produced by prior
+work are machine-readable representations intended for
+trace synthesis, whereas RFSeek provides users with human-
+interpretable summary diagrams for interactive exploration.
+Second, although our summaries are LLM-extracted, we pri-
+oritizesoundnesswith respect to the RFC: approximate FSMs
+may suffice for automation, but for understanding and au-
+ditability, correctness is essential. Third, every transition in
+RFSeek is explicitly linked to its supporting RFC text, allow-
+ing users to verify and audit the extracted protocol logic.
+Knowledge Acquisition.Unlike the aforementioned related
+contributions, Sharma and Yegneswaran [10] describe PROS-
+PER, an LLM-based tool to extract FSMs from RFCs with
+the explicit goal of human interpretation and knowledge
+acquisition. PROSPER operates by first selecting and clean-
+ing RFCs, removing metadata and appendices, and chunking
+them into 500-line portions. In parallel, their custom Artifact
+Miner tool extracts non-textual artifacts such as built-in FSM
+ASCII diagrams. Each chunk and artifact is then provided to
+the LLM, which is prompted to output Python code for any
+protocol-related transitions inferred from the input. Finally,
+the LLM assembles these into an aggregated FSM model.
+In contrast, our approach differs from PROSPER’s in three
+main ways: First, every data point in RFSeek’s summary dia-
+grams is explicitly linked to its RFC source, allowing users
+to verify soundness and directly audit the origin of each
+extracted transition. Second, our pipeline combines RFC par-
+titioning with context-aware LLM queries, ensuring that
+cross-references and semantically related details from across
+the RFC are considered together during summary extraction.
+Third, whereas PROSPER’s FSMs largely mirror the structure
+and detail of RFC diagrams, RFSeek’s summary diagrams re-
+liably recover nearly all diagrammed nodes and transitions
+(see Table 1), and consistently capture additional protocol el-
+ements documented only in the RFC text. This broader, more
+semantic summary representation, including conditions, ac-
+tions, and context, enables richer protocol analysis and is
+especially valuable for RFCs with incomplete diagrams, such
+as QUIC.
+6 Discussion
+Summary Visualization offers a promising new way to as-
+sist both implementers and RFC authors in protocol logic
+understanding and evolution. By grounding every extracted
+element in RFC source text, RFSeek delivers a level of trans-
+parency and auditability not previously possible for protocol
+6
+
+--- Page 7 ---
+RFSeek and Ye Shall Find
+visualizations. We hope these results encourage further ef-
+forts to bridge the long-standing gap between protocol spec-
+ifications and real-world implementations. Looking ahead,
+we plan to extend RFSeek to integrate data from multiple
+RFCs, allowing users to compare updates and relationships
+across protocols. This should help surface ambiguities and
+contradictions earlier in the RFC life cycle.
+Ethical Concerns
+This work raises no ethical concerns. All data consisted of
+RFC documents and researcher-submitted queries to the Ope-
+nAI API, and no private or personally identifiable informa-
+tion was involved at any stage.
+References
+[1]Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina N. Toutanova.
+2018. BERT: Pre-training of Deep Bidirectional Transformers for
+Language Understanding. https://arxiv.org/abs/1810.04805
+[2]Wesley Eddy. 2022. Transmission Control Protocol (TCP). RFC 9293.
+https://doi.org/10.17487/RFC9293
+[3]Tiago Ferreira, Harrison Brewton, Loris D’Antoni, and Alexandra
+Silva. 2021. Prognosis: closed-box analysis of network protocol imple-
+mentations. InProceedings of the 2021 ACM SIGCOMM 2021 Conference.
+762–774.
+[4]Samuel Jero, Maria Leonor Pacheco, Dan Goldwasser, and Cristina
+Nita-Rotaru. 2019. Leveraging Textual Specifications for Grammar-
+Based Fuzzing of Network Protocols. 33, 1 (2019), 9478–9483. https:
+//doi.org/10.1609/aaai.v33i01.33019478
+[5]Adam Langley, Alistair Riddoch, Alyssa Wilk, Antonio Vicente,
+Charles Krasic, Dan Zhang, Fan Yang, Fedor Kouranov, Ian Swett,
+Janardhan Iyengar, et al .2017. The quic transport protocol: Design
+and internet-scale deployment. InProceedings of the conference of the
+ACM special interest group on data communication. 183–196.
+[6]Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir
+Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau
+Yih, Tim Rocktäschel, et al .2020. Retrieval-augmented generation
+for knowledge-intensive nlp tasks.Advances in neural information
+processing systems33 (2020), 9459–9474.
+[7]Ronghao Liang, Qingtian Zeng, Wenyan Guo, Hua Duan, and Wei-
+jian Ni. 2024. Automatic Extraction of Petri Nets from RFC Protocol
+Texts. In2024 27th International Conference on Computer Supported
+Cooperative Work in Design (CSCWD)(Tianjin, China). IEEE, 556–561.
+https://doi.org/10.1109/CSCWD61410.2024.10580780
+[8]Ruijie Meng, Martin Mirchev, Marcel Böhme, and Abhik Roychoud-
+hury. [n. d.]. Large Language Model guided Protocol Fuzzing. In
+Proceedings 2024 Network and Distributed System Security Symposium
+(San Diego, CA, USA, 2024). Internet Society. https://doi.org/10.14722/
+ndss.2024.24556
+[9]Maria Leonor Pacheco, Max Von Hippel, Ben Weintraub, Dan Gold-
+wasser, and Cristina Nita-Rotaru. 2022. Automated Attack Synthesis
+by Extracting Finite State Machines from Protocol Specification Doc-
+uments. In2022 IEEE Symposium on Security and Privacy (SP)(San
+Francisco, CA, USA). IEEE, 51–68. https://doi.org/10.1109/SP46214.
+2022.9833673
+[10] Prakhar Sharma and Vinod Yegneswaran. [n. d.]. PROSPER: Extracting
+Protocol Specifications Using Large Language Models. InProceedings
+of the 22nd ACM Workshop on Hot Topics in Networks(Cambridge
+MA USA, 2023-11-28). ACM, 41–47. https://doi.org/10.1145/3626111.
+3628205[11] Jane Yen, Tamás Lévai, Qinyuan Ye, Xiang Ren, Ramesh Govindan,
+and Barath Raghavan. 2021. Semi-automated protocol disambiguation
+and code generation. InProceedings of the 2021 ACM SIGCOMM 2021
+Conference(Virtual Event USA). ACM, 272–286. https://doi.org/10.
+1145/3452296.3472910
+[12] Zhaowei Zhang, Wenjing Yu, Zibin Wang, and Youlin Xiang. 2023. A
+Blackbox Fuzzing Based on Automated State Machine Extraction. In
+2023 8th International Conference on Data Science in Cyberspace (DSC)
+(Hefei, China). IEEE, 476–482. https://doi.org/10.1109/DSC59305.2023.
+00075
+7

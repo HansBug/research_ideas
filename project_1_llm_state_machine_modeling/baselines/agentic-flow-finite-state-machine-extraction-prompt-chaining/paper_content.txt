@@ -1,0 +1,589 @@
+--- Page 1 ---
+An Agentic Flow for Finite State Machine
+Extraction using Prompt Chaining
+1stFares Wael
+Dept. of Computer Science
+MSA University
+Giza, Egypt
+fares.wael@msa.edu.eg2ndYoussef Maklad
+Dept. of Computer Science
+MSA University
+Giza, Egypt
+youssef.mohamed88@msa.edu.eg3rdAli Hamdi
+Dept. of Computer Science
+MSA University
+Giza, Egypt
+ahamdi@msa.edu.eg4thWael Elsersy
+Dept. of Computer Science
+MSA University
+Giza, Egypt
+wfarouk@msa.edu.eg
+Abstract —Finite-State Machines (FSMs) are critical for mod-
+eling the operational logic of network protocols, enabling veri-
+fication, analysis, and vulnerability discovery. However, existing
+FSM extraction techniques face limitations such as scalability,
+incomplete coverage, and ambiguity in natural language spec-
+ifications. In this paper, we propose FlowFSM , a novel agen-
+tic framework that leverages Large Language Models (LLMs)
+combined with prompt chaining and chain-of-thought reasoning
+to extract accurate FSMs from raw RFC documents. FlowFSM
+systematically processes protocol specifications, identifies state
+transitions, and constructs structured rule-books by chaining
+agent outputs. Experimental evaluation across FTP and RTSP
+protocols demonstrates that FlowFSM achieves high extraction
+precision while minimizing hallucinated transitions, showing
+promising results. Our findings highlight the potential of agent-
+based LLM systems in the advancement of protocol analysis
+and FSM inference for cybersecurity and reverse engineering
+applications.
+Index Terms —Finite-State Machine, Reverse Engineering,
+Large Language Models, AI Agents, Prompt Chaining, Chain-
+of-Thoughts
+I. I NTRODUCTION
+Finite-State Machines (FSMs) play a critical role in un-
+derstanding, verifying, and securing network protocols. They
+model the different states of a protocol and the transitions
+triggered by various events or inputs, serving as a fundamental
+basis for protocol verification [1], [2], vulnerability analysis,
+and protocol fuzzing [3]. Accurate FSM extraction is critical
+since vulnerabilities in network services are often deeply tied
+to unexpected state transitions and misimplementations of
+protocols [4]. FSM models have been widely applied, from
+software testing and security analysis to reverse engineering
+communication protocols [5]. Most protocol implementations
+are guided by the specifications described in the RFC docu-
+ments [6], which detail the functional and stateful behavior of
+network protocols.
+Traditional techniques for FSM extraction include static
+analysis, which infers state transitions by analyzing protocolspecifications and program structure without execution [7],
+and also dynamic analysis, which observes runtime behaviors
+[8]. Although static analysis offers insights without execution
+dependencies, it often suffers from scalability issues such as
+path explosion. In contrast, dynamic methods can miss critical
+transitions if testing coverage is inadequate [9].
+Recently, large language models (LLMs), originating from
+transformer-based architectures [10], have demonstrated sig-
+nificant promise in program analysis tasks such as code
+completion, repair, and vulnerability detection. They have also
+shown remarkable proficiency in solving complex computa-
+tional tasks by generating syntactically correct code [11]–[13].
+Their capabilities extend to FSM extraction and inference [14],
+[15], and even protocol fuzzing, where they have been used to
+guide graybox fuzzing process for improved security analysis
+[16]. Other FSM tasks, including zero-shot prompting for
+multi-hop question answering [17], and aiding developers with
+robotic FSM modification [18], were achieved with remarkable
+performance by LLMs.
+We introduce a novel framework, named FlowFSM , that
+combines chain-of-thought reasoning capabilities of LLMs
+[19], with a structured prompt chaining strategy for precise
+extraction of FSMs. Inspired by the principles of [20], our
+approach decomposes the complex task of FSM extraction into
+a sequence of modular, interpretable steps, where each prompt
+builds upon the output of the previous one. This chaining
+strategy not only aggregates incremental gains across steps
+but also enhances transparency in such LLM-based systems.
+The main contributions of this work can be summarized as
+follows:
+•We propose a novel framework, named FlowFSM , an
+AI agent-based flow for FSM extraction using prompt
+chaining and chain-of-thought techniques.
+•Our method systematically extracts protocol states, mes-
+sage types, and the transitions from specifications of
+different network protocols.
+•We demonstrate through experimental evaluation that
+FlowFSM significantly improves key metrics such as 979-8-3315-0185-3/25/$31.00 ©2025 IEEEarXiv:2507.11222v1  [cs.CL]  15 Jul 2025
+
+--- Page 2 ---
+increased true positives (TPs), reduced false postives
+(FPs), and balanced F1-scores.
+The paper is organized as follows: section II outlines the
+related work. Section III provides background on FSM ex-
+traction techniques and LLMs. Section IV details our method-
+ology. Section V discusses the research questions and the
+evaluation of the framework, while section VI presents the
+experimental results. Finally, section VII concludes the paper
+and suggests potential directions for future work.
+II. R ELATED WORK
+Recent work has explored automating protocol FSM ex-
+traction to support security analysis. PROSPER [15] presents
+a framework that leverages LLMs to extract FSMs from RFC
+documents by combining textual analysis with artifact mining.
+It uses a multi-step pipeline involving artifact extraction,
+prompt engineering, and few-shot learning to identify states,
+transitions, and events. Evaluation across 30 RFCs showed that
+PROSPER outperforms rule-based baselines, achieving 1.3×
+more true positives and 6.5× fewer false positives in FSM
+recovery. ProtocolGPT [14] introduces a system for extracting
+FSMs directly from protocol implementations using OpenAI’s
+GPT-4. It employs LLMs to first filter and retrieve FSM-
+relevant code regions and then infer states and transitions
+through sequential prompt queries, embedding retrieval, and
+structured output generation. Experiments on six protocol
+implementations achieved over 90% precision and recall, and
+integration with fuzzers such as AFLNet [21] yielded up
+to 10% more code coverage compared to FSMs extracted
+from specifications. RFCNLP [22] proposes a hybrid ma-
+chine learning and rule-based approach to extract FSMs from
+RFC documents using technical language embeddings, zero-
+shot semantic parsing, and heuristics to generate intermediate
+representations. The extracted FSMs were successfully used
+to synthesize attacks on TCP and DCCP, and the evaluation
+showed that even partial FSMs enable attacker synthesis,
+demonstrating the framework’s robustness despite incomplete
+extraction due to natural language ambiguities. Hermes [23]
+proposes a neural and symbolic framework for synthesizing
+FSMs from cellular network specifications using a neural
+parser and logical IR synthesis, achieving up to 87% extraction
+accuracy and allowing discovery of new vulnerabilities and
+deviations in commercial 4G/5G implementations.
+III. B ACKGROUND
+This section explains background on the protocol’s finite-
+state machine and LLMs. First, we discuss the pros and cons
+of the current existing approaches for FSM extraction. We then
+discuss LLM capabilities and some of their applications in the
+cybersecurity field.
+A. Finite-State Machine
+FSMs provide a formal model to represent the operational
+logic of network and communication protocols. An FSM
+defines a finite set of protocol states, the inputs triggering tran-
+sitions, and the conditions that govern these transitions. During
+Fig. 1. FTP protocol’s finite-state machine as defined in RFC-959.
+protocol interaction, specific events or messages lead to state
+changes, enabling structured and predictable communication.
+Inputs are typically the commands or responses exchanged
+between clients and servers, formatted according to protocol
+specifications to ensure interoperability. The File Transfer Pro-
+tocol (FTP) exemplifies the use of FSMs in practice, modeling
+states such as Not Connected, Authorization, Transaction, and
+Update. As shown in Figure 1, transitions between these states
+are triggered by commands like CONNECT, USER, PASS,
+PORT, and QUIT, facilitating operations from authentication
+to file transfer. FSM inference in protocols like FTP is vital
+for understanding behavior, verifying implementations, and
+detecting deviations that may lead to security vulnerabilities.
+Various FSM extraction techniques exist, including network
+traffic analysis [24], static code analysis [7], dynamic program
+analysis [8], and natural language processing approaches [22].
+Each offers unique strengths and limitations. Network traffic
+analysis can reverse-engineer FSMs by observing real-world
+exchanges but may miss rare or unexercised transitions. Static
+analysis offers deep insights without execution but often
+struggles with scalability and complex code paths. Dynamic
+analysis captures real-time behavior but heavily depends on
+input quality and coverage. NLP-based approaches extract
+FSMs from specifications but are limited by ambiguities and
+inconsistencies inherent in natural language documents.
+B. Large Language Models
+LLMs have become strong tools in artificial intelligence,
+capable of performing lots of tasks including text genera-
+tion, classification, and reasoning [25]. Recent research has
+expanded their application to the domains of cybersecurity
+and protocol analysis. LLMs have been used for tasks such
+as guiding protocol fuzzing [16], phishing site detection [26],
+and automated penetration testing through agent collaboration
+[27]. In software engineering, LLMs have demonstrated strong
+abilities in automation [28]–[31], test generation, and escaping
+coverage plateaus in fuzzing [32], as well as augmenting gray-
+box fuzzing through intelligent input generation [33]. Further
+advancements have shown that LLM-driven seed generation
+significantly improves fuzzing efficiency compared to tradi-
+tional methods [34]. Retrieval-augmented generation (RAG)
+
+--- Page 3 ---
+[35] combined with chain-of-thought reasoning techniques has
+been proven to improve the accuracy and reliability of LLMs
+in network packet generation [36]. Despite these successes,
+challenges remain, including randomness in model outputs,
+context window limitations, and difficulties handling complex
+static analysis tasks, necessitating incremental prompting and
+human guidance to achieve high precision in security-critical
+applications.
+IV. M ETHODOLOGY
+This section presents the methodology of our work, that
+proposes an agentic flow named FlowFSM , an innovative
+approach for FSM extraction from raw RFC documents. The
+extracted FSM contains defined states within the network
+protocol, commands that accommodate each state, and tran-
+sitions in the states. The methodology can be divided into two
+major steps, which are: RFC documents processing, and FSM
+extraction using prompt chaining.
+Fig. 2. RFC Documents Processing Pipeline
+A. RFC Document Processing
+Parsing RFC documents is crucial for extracting protocol
+specifications and FSM structures. RFCs are first preprocessed
+to remove page headers, footers, and formatting artifacts,
+producing continuous raw text T∈S, where Sdenotes the
+set of all string sequences. We define an RFC document as a
+hierarchical tree:
+T= (N, E )
+where Nis the set of nodes (sections) and E⊆N×Nis the
+set of parent-child edges. Each node n∈Nis represented as
+a structured JSON object containing a title, body, path, and a
+list of subsections. A parsing function P:S→ T recursively
+segments Tbased on section numbering patterns, such that:
+P(T) =k[
+i=1P(Si)
+where Siare contiguous subsections identified by regular
+expressions. Leaf nodes are defined as nodes n∈Nwhere:
+∀m∈N,(n, m )/∈E
+All leaf node bodies are collected into a set of chunks
+for downstream processing. The final appendix structure A
+is generated as an ordered listing of all paths in T, enhancing
+LLM reasoning for FSM extraction and protocol command
+identification. A summary of the whole RFC processing
+pipeline can be represented in Figure 2.
+Fig. 3. Pseudocode of the FlowFSM algorithm
+B. FSM Extraction using Prompt Chaining
+Extracting FSMs from protocol specifications requires nav-
+igating complex RFC document structures and accurately
+interpreting state transition semantics. Our approach com-
+bines prompt chaining with LLM reasoning to systematically
+construct a structured rulebook, which serves as the formal
+representation of the protocol’s FSM.
+Prompt chaining involves breaking down the extraction
+process into a sequence of guided interactions. At each stage,
+a prompt is carefully constructed to refine the output pro-
+gressively, starting from identifying relevant sections, isolat-
+ing candidate commands, and synthesizing structured state-
+transition information.
+Formally, let Pidenote the i-th prompt and Rithe corre-
+sponding model response. The overall FSM extraction process
+can be formulated as:
+Ri+1=M(Pi(Ri))
+whereMrepresents the LLM model, and each Pidepends
+on the output of the previous step. This iterative refinement
+minimizes hallucinations, enforces consistency, and improves
+the robustness of the extraction. By chaining prompts in a
+controlled flow, we decompose the complex FSM extraction
+
+--- Page 4 ---
+Fig. 4. Three-stage prompt chaining template for iterative rulebook update
+task into manageable subtasks, significantly enhancing both
+extraction accuracy and reliability of results. A pseudocode of
+the algorithm can be shown in Figure 3.
+C. Prompt Chaining Architecture
+As shown in the prompt template in Figure 4, we implement
+a three-stage chaining process:
+1)Command Extraction : extracts candidate commands
+from RFC chunks through text analysis. It classifies
+these commands into functional categories. This phase
+produces an initial command inventory annotated with
+basic operational descriptions.
+2)State Transition Analysis : identifies precondition and
+postcondition states for each extracted command. It
+maps all allowable command sequences within the pro-
+tocol specification.
+3)Rulebook Synthesis : formalizes the extracted infor-
+mation into the three-component rulebook structure. A
+sample rulebook example is shown in Figure IV-D.
+D. Rulebook Structure
+The rulebook organizes each protocol command through
+three fundamental components that collectively define the
+command’s behavior within the state machine. The rulebook
+organizes protocol commands into three main chapters:
+1)Command Purpose & Outlines: establishes the com-
+mand’s functional role within the protocol. This section
+precisely documents the command’s effects on system
+state, including any state transitions it triggers, and
+identifies all temporal constraints governing when the
+command can be legally executed within the protocol
+sequence.
+2)Valid Preceding Commands: defines the precondition
+states necessary for command execution. This includes
+specifying any mandatory prior commands that mustSample Rulebook Output for PASS Command
+Chapter 1: Command Purpose & Outlines
+ThePASS command is used to send the password, com-
+pleting the user’s identification process. Executing PASS
+transitions the system to a state where account information
+may be required. It cannot be used at any time, it must
+immediately follow the USER command.
+Chapter 2: Valid Direct Preceding Commands/Methods
+-Preceding Command: USER
+-System State: The system must have received the USER
+command.
+-Changes System State: Yes, transitions to a state where
+account information may be required.
+Chapter 3: Valid Direct Subsequent Commands/Methods
+-Subsequent Command: RETR
+-System State: User must be logged in.
+-Changes System State: Yes, retrieves a file.
+-Subsequent Command: TYPE
+-System State: User must be logged in.
+-Changes System State: Yes, sets the file transfer type.
+Figure IV-D: Sample generated rule-book output for the FTP
+PASS command showing its purpose, valid preceding, and
+subsequent commands.
+precede the current command. Beyond simple sequenc-
+ing, this section validates permissible command chains
+through comprehensive state dependency analysis, en-
+suring only valid protocol flows are permitted.
+3)Valid Subsequent Commands: outlines all possible
+legal state transitions following command execution.
+For each permitted subsequent command, this section
+documents the precise post-condition states that result
+from the transition while explicitly identifying and
+prohibiting invalid state transitions that could violate
+protocol specifications.
+E. Implementation
+We have implemented our framework, named FlowFSM , on
+top of CrewAI [37], an open-source Python multi-agent-based
+library. CrewAI is a framework independent of LangChain and
+other AI-agent-based frameworks. It offers a modular ’Crew’
+abstraction to define autonomous LLM agents and flows for
+event-driven orchestration, allowing precise task sequencing.
+CrewAI integrates with multiple LLM providers such as
+OpenAI, Anthropic, Azure, and others, giving flexibility in
+model selection and seamless scaling. It’s built-in tools and
+high-level APIs simplify the integration of utilities such as
+web search, file parsing, and vector store retrieval for RAG
+applications. Within this system, FlowFSM packages RFC
+processing, context retrieval, and stepwise FSM extraction
+tasks into separate modules. We open source FlowFSM ’s
+source code at: https://github.com/YoussefMaklad/FlowFSM.
+
+--- Page 5 ---
+V. E XPERIMENTAL DESIGN AND EVALUATION
+We evaluate the framework by evaluating FlowFSM ’s abil-
+ity to extract protocol state machines. This evaluation of
+FlowFSM aims to answer the following research questions:
+•RQ1: How accurate is FlowFSM in extracting protocol
+state machines?
+•RQ2: Does FlowFSM generalize to different protocol
+specifications?
+We conducted experiments using a combination of three
+powerful LLMs: llama3.3-70b-versatile ,deepseek-r1-distill-
+llama-70b , and llama3-70b-8192 . These models were selected
+based on their performance and large context windows. The
+experiments were performed on two different network pro-
+tocols: the File Transfer Protocol (FTP) and the Real-Time
+Streaming Protocol (RTSP). These protocols were chosen to
+represent diverse characteristics in protocol structure, interac-
+tion complexity, and document style.
+A. Evaluation Metrics
+To quantify the performance of FlowFSM , we use the
+following metrics:
+•True Positives (TP): The number of extracted state
+transitions that were manually verified to be correct
+according to the official protocol behavior.
+•False Positives (FP): The number of extracted transitions
+that were incorrect or hallucinated, deviating from the
+actual protocol specifications.
+•False Negatives (FN): The number of valid state transi-
+tions present in the protocol but missed by the extraction
+process.
+•Precision: The ratio of correctly extracted transitions to
+all extracted transitions (higher values indicate fewer false
+positives).
+•Recall: The ratio of correctly extracted transitions to all
+valid transitions in the protocol (higher values indicate
+fewer false negatives).
+•F1-Score: The harmonic mean of precision and recall,
+providing a balanced measure of extraction accuracy
+The correctness of extracted transitions was assessed
+through manual validation by cross-referencing with the pro-
+tocol RFC documents and standard references. The balance
+between true positives and false positives provides insight into
+the reliability of FlowFSM in FSM extraction across different
+protocols. The evaluation metrics can be calculated as follows:
+Precision =TP
+TP+FP×100 Recall =TP
+TP+FN×100
+F1-Score = 2×Precision ×Recall
+Precision +Recall×100
+VI. E XPERIMENTAL RESULTS AND DISCUSSION
+In this section, we present the experimental results of evalu-
+ating FlowFSM on the FTP and RTSP protocols. We assess the
+extraction performance based on the number of true positives
+(TP) and false positives (FP) identified in the inferred-stateProtocol TP FP FN Precision Recall F1-Score
+FTP 90 18 12 83.33% 88.24% 85.71%
+RTSP 18 4 3 81.82% 85.71% 83.72%
+TABLE I
+FSM E XTRACTION RESULTS FOR FTP AND RTSP P ROTOCOLS
+machines. Table I summarizes the results obtained in the two
+protocols. The metrics reflect the robustness of FlowFSM
+when processing different protocol transitions and interaction
+complexities.
+The experimental results demonstrate FlowFSM ’s effective-
+ness in protocol FSM extraction, with both protocols achieving
+precision scores above 81% and recall above 85%. For FTP,
+the system correctly identified 90 true state transitions (TP)
+while generating only 18 false positives (FP), yielding a
+precision of 83.33%. The 12 false negatives (FN) represent
+cases where valid transitions were missed, resulting in 88.24%
+recall and an F1-score of 85.71%. RTSP extraction showed
+comparable performance with 81.82% precision and 85.71%
+recall and 83.72% for F1-score. Three key technical observa-
+tions emerge from these results:
+1)Recall-Precision Tradeoff (Answering RQ1) : The
+higher recall scores (88.24%, 85.71%) compared to pre-
+cision indicate FlowFSM ’s conservative approach as it
+prioritizes capturing more potential transitions at the cost
+of requiring subsequent validation. The high F1-scores
+further validate this balance, showing that the tradeoff
+does not compromise overall accuracy. This proves
+advantageous for security applications where missing
+transitions (false negatives) could be more critical than
+extra candidates.
+2)Consistent Performance Across Protocols (Answering
+RQ2) : The marginal difference between FTP and RTSP
+precisions (83.33% and 81.82% respectively) suggests
+the method generalizes well despite RTSP’s more com-
+plex session management requirements, and F1-scores,
+differing by only 1.99%, reinforce this consistency. The
+1.51% precision variance falls within expected bounds
+for different protocol types.
+The results particularly highlight FlowFSM ’s robustness
+against two common LLM failure modes: (1) hallucination of
+non-existent transitions (controlled via precision metrics) and
+(2) omission of valid protocol behaviors (measured through
+recall). The F1-scores confirm that the framework maintains
+this robustness holistically. The balanced performance of
+FlowFSM suggests the prompt chaining strategy effectively
+constrains LLM outputs while maintaining comprehensive
+awareness of protocol specifications.
+VII. C ONCLUSION AND FUTURE WORK
+Finite-State Machines (FSMs) are fundamental for under-
+standing, verifying, and securing network protocols, providing
+structured models of protocol behavior, and guiding vulner-
+ability discovery. Traditional FSM extraction methods, such
+
+--- Page 6 ---
+as static or dynamic analysis, face significant challenges,
+including path explosion and incomplete transition coverage.
+Recent improvements in LLMs have proven strong capabilities
+in program analysis, code generation, and FSM-related tasks,
+offering new opportunities for protocol analysis. In this paper,
+we presented FlowFSM , a novel agent-based framework which
+uses prompt chaining and chain-of-thoughts to systematically
+extract FSMs from protocol specifications and construct a
+structured rule-book. Our approach identifies protocol states,
+messages, and transitions with promising results. Experimental
+evaluation demonstrated that FlowFSM significantly enhances
+FSM extraction quality, achieving higher true positive rates
+while reducing false positives. Future work will explore ex-
+tending FlowFSM to more diverse protocol families and fur-
+ther optimizing multi-agent collaboration strategies to enhance
+scalability and robustness, as a limitation of FlowFSM it it’s
+high computational and runtime cost. We also plan to integrate
+FlowFSM in protocol fuzzing frameworks to guide the fuzzing
+process.
+REFERENCES
+[1] M. Sutton, A. Greene, and P. Amini, Fuzzing: brute force vulnerability
+discovery . Pearson Education, 2007.
+[2] K. Bhargavan, B. Blanchet, and N. Kobeissi, “Verified models and
+reference implementations for the tls 1.3 standard candidate,” in 2017
+IEEE Symposium on Security and Privacy (SP) . IEEE, 2017, pp. 483–
+502.
+[3] Z. Zhang, H. Zhang, J. Zhao, and Y . Yin, “A survey on the development
+of network protocol fuzzing techniques,” Electronics , vol. 12, no. 13, p.
+2904, 2023.
+[4] L. Huang, P. Zhao, H. Chen, and L. Ma, “Large language models based
+fuzzing techniques: A survey,” arXiv preprint arXiv:2402.00350 , 2024.
+[5] J. Narayan, S. K. Shukla, and T. C. Clancy, “A survey of automatic
+protocol reverse engineering tools,” ACM Computing Surveys (CSUR) ,
+vol. 48, no. 3, pp. 1–26, 2015.
+[6] “About RFCs — ietf.org,” https://www.ietf.org/process/rfcs/, [Accessed
+28-04-2025].
+[7] Q. Shi, X. Xu, and X. Zhang, “Extracting protocol format as state
+machine via controlled static loop analysis,” in 32nd USENIX Security
+Symposium (USENIX Security 23) , 2023, pp. 7019–7036.
+[8] S. Zhou, Z. Yang, D. Qiao, P. Liu, M. Yang, Z. Wang, and
+C. Wu, “Ferry: {State-Aware }symbolic execution for exploring {State-
+Dependent }program paths,” in 31st USENIX Security Symposium
+(USENIX Security 22) , 2022, pp. 4365–4382.
+[9] D. Liu, V .-T. Pham, G. Ernst, T. Murray, and B. I. Rubinstein, “State
+selection algorithms and their impact on the performance of stateful
+network protocol fuzzing,” in 2022 IEEE International Conference on
+Software Analysis, Evolution and Reengineering (SANER) . IEEE, 2022,
+pp. 720–730.
+[10] A. Vaswani, “Attention is all you need,” Advances in Neural Information
+Processing Systems , 2017.
+[11] M. Chen, J. Tworek, H. Jun, Q. Yuan, H. P. D. O. Pinto, J. Kaplan,
+H. Edwards, Y . Burda, N. Joseph, G. Brockman et al. , “Evaluating large
+language models trained on code,” arXiv preprint arXiv:2107.03374 ,
+2021.
+[12] G. Kim, P. Baldi, and S. McAleer, “Language models can solve computer
+tasks,” Advances in Neural Information Processing Systems , vol. 36, pp.
+39 648–39 677, 2023.
+[13] M. A. Ferrag, F. Alwahedi, A. Battah, B. Cherif, A. Mechri, and
+N. Tihanyi, “Generative ai and large language models for cyber security:
+All insights you need,” Available at SSRN 4853709 , 2024.
+[14] H. Wei, Z. Du, H. Huang, Y . Liu, G. Cheng, L. Wang, and B. Mao,
+“Inferring state machine from the protocol implementation via large
+langeuage model,” arXiv preprint arXiv:2405.00393 , 2024.
+[15] P. Sharma and V . Yegneswaran, “Prosper: Extracting protocol specifica-
+tions using large language models,” in Proceedings of the 22nd ACM
+Workshop on Hot Topics in Networks , 2023, pp. 41–47.[16] R. Meng, M. Mirchev, M. B ¨ohme, and A. Roychoudhury, “Large
+language model guided protocol fuzzing,” in Proceedings of the 31st
+Annual Network and Distributed System Security Symposium (NDSS) ,
+2024.
+[17] X. Wang, J. He, Y . Wang, X. Meng, K. Pan, Z. Sui et al. , “Fsm: A
+finite state machine based zero-shot prompting paradigm for multi-hop
+question answering,” arXiv preprint arXiv:2407.02964 , 2024.
+[18] X. R. Gan, Y . R. Song, N. Walker, and M. Cakmak, “Can large language
+models help developers with robotic finite state machine modification?”
+arXiv preprint arXiv:2412.05625 , 2024.
+[19] S. Yao, J. Zhao, D. Yu, N. Du, I. Shafran, K. Narasimhan, and Y . Cao,
+“React: Synergizing reasoning and acting in language models,” arXiv
+preprint arXiv:2210.03629 , 2022.
+[20] T. Wu, M. Terry, and C. J. Cai, “Ai chains: Transparent and controllable
+human-ai interaction by chaining large language model prompts,” in
+Proceedings of the 2022 CHI conference on human factors in computing
+systems , 2022, pp. 1–22.
+[21] V .-T. Pham, M. B ¨ohme, and A. Roychoudhury, “Aflnet: a greybox fuzzer
+for network protocols,” in 2020 IEEE 13th International Conference on
+Software Testing, Validation and Verification (ICST) . IEEE, 2020, pp.
+460–465.
+[22] M. L. Pacheco, M. von Hippel, B. Weintraub, D. Goldwasser, and
+C. Nita-Rotaru, “Automated attack synthesis by extracting finite state
+machines from protocol specification documents,” in 2022 IEEE Sym-
+posium on Security and Privacy (SP) . IEEE, 2022, pp. 51–68.
+[23] A. Al Ishtiaq, S. S. S. Das, S. M. M. Rashid, A. Ranjbar, K. Tu, T. Wu,
+Z. Song, W. Wang, M. Akon, R. Zhang et al. , “Hermes: unlocking
+security analysis of cellular network protocols by synthesizing finite
+state machines from natural language specifications,” in 33rd USENIX
+Security Symposium (USENIX Security 24) , 2024, pp. 4445–4462.
+[24] Y . Ye, Z. Zhang, F. Wang, X. Zhang, and D. Xu, “Netplier: Probabilistic
+network protocol reverse engineering from message traces.” in NDSS ,
+2021.
+[25] D. Guo, D. Yang, H. Zhang, J. Song, R. Zhang, R. Xu, Q. Zhu, S. Ma,
+P. Wang, X. Bi et al. , “Deepseek-r1: Incentivizing reasoning capability
+in llms via reinforcement learning,” arXiv preprint arXiv:2501.12948 ,
+2025.
+[26] T. Koide, H. Nakano, and D. Chiba, “Chatphishdetector: Detecting
+phishing sites using large language models,” IEEE Access , 2024.
+[27] X. Shen, L. Wang, Z. Li, Y . Chen, W. Zhao, D. Sun, J. Wang,
+and W. Ruan, “Pentestagent: Incorporating llm agents to automated
+penetration testing,” arXiv preprint arXiv:2411.05185 , 2024.
+[28] O. H. Abdellaif, A. N. Hassan, and A. Hamdi, “Erpa: Efficient rpa model
+integrating ocr and llms for intelligent document processing,” in 2024
+International Mobile, Intelligent, and Ubiquitous Computing Conference
+(MIUCC) . IEEE, 2024, pp. 295–300.
+[29] O. H. Abdellaif, A. Nader, and A. Hamdi, “Lmrpa: Large lan-
+guage model-driven efficient robotic process automation for ocr,” arXiv
+preprint arXiv:2412.18063 , 2024.
+[30] O. Abdellatif, A. Ayman, and A. Hamdi, “Lmv-rpa: Large model voting-
+based robotic process automation,” arXiv preprint arXiv:2412.17965 ,
+2024.
+[31] L. Wassim, K. Mohamed, and A. Hamdi, “Llm-daas: Llm-driven
+drone-as-a-service operations from text user requests,” arXiv preprint
+arXiv:2412.11672 , 2024.
+[32] C. Lemieux, J. P. Inala, S. K. Lahiri, and S. Sen, “Codamosa: Escaping
+coverage plateaus in test generation with pre-trained large language
+models,” in 2023 IEEE/ACM 45th International Conference on Software
+Engineering (ICSE) . IEEE, 2023, pp. 919–931.
+[33] J. Hu, Q. Zhang, and H. Yin, “Augmenting greybox fuzzing with
+generative ai,” arXiv preprint arXiv:2306.06782 , 2023.
+[34] W. Shi, Y . Zhang, X. Xing, and J. Xu, “Harnessing large lan-
+guage models for seed generation in greybox fuzzing,” arXiv preprint
+arXiv:2411.18143 , 2024.
+[35] P. Lewis, E. Perez, A. Piktus, F. Petroni, V . Karpukhin, N. Goyal,
+H. K ¨uttler, M. Lewis, W.-t. Yih, T. Rockt ¨aschel et al. , “Retrieval-
+augmented generation for knowledge-intensive nlp tasks,” Advances in
+Neural Information Processing Systems , vol. 33, pp. 9459–9474, 2020.
+[36] Y . Maklad, F. Wael, W. Elsersy, and A. Hamdi, “Retrieval augmented
+generation based llm evaluation for protocol state machine inference
+with chain-of-thought reasoning,” arXiv preprint arXiv:2502.15727 ,
+2025.
+[37] “CrewAI,” https://www.crewai.com/, [Accessed 27-04-2025].
