@@ -55,13 +55,15 @@
 | 2026-06-10 | 最终 execution verifier review | 发现 I：`asset_manifest.tsv` 中 `selection_screening/README.md` bytes/SHA 与当前文件不一致；已修复 manifest 与 summary，并将 manifest 覆盖范围扩大为整个 `legacy_pr9_assets/` 目录 391 个文件；深度 manifest 复算纳入检查 |
 | 2026-06-10 | PR #92 baseline 增量吸收要求 | 根据用户要求，补充“baseline 现状再摸排 / 吸收 PR #92 近期 arXiv 增量”为后续 S1a 子任务，避免基于过期 baseline corpus 冻结 competitor |
 | 2026-06-10 | PR body 中文化要求 | 根据用户要求，后续 PR body 尽量中文化，Mermaid 节点使用中文，英文只保留必要术语 / 论文候选句 |
+| 2026-06-10 | 论文主线与 direct baseline 反证门补强 | 使用 `$ai-research-writing-skill` story / reviewer 规则与多智能体调研，吸收导师讨论和 9 个五绿 direct baseline 全文审查结论；新增 [paper_outline.md](../story/paper_outline.md)，并将 S1a 升级为 9 direct baseline blocking absorption gate |
+| 2026-06-10 | CCF-A 标准 / CCF-B 目标期刊门禁 | 根据 issue #67 补充 [venue_readiness_gate.md](../story/venue_readiness_gate.md)：默认主投 SoSyM regular，ASE Journal / Requirements Engineering Journal 作备投；后续按 CCF-A reviewer 强度执行 novelty、baseline、oracle、artifact、threats 和 writing gate |
 
 
 ## Capability-use audit
 
 - Required skills/scripts：`ai-research-writing-skill`、`research-planning`、`sub-agents`。
-- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、PR #92 body/comments、method/eval/baselines docs。
+- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、PR #92 body/comments、method/eval/baselines docs，以及 9 个五绿 direct baseline 的 `paper_content.txt` / `DESC.md` / `ASSETS.md` 调研结论。
 - Inputs not used and why：已归档全部 323 review JSON，但当前 foundation 不重新解释每条 review；正式样本冻结阶段再逐条核验 eligibility / provenance。
-- Artifacts produced：分层 foundation Markdown、PR #9 legacy assets、asset manifest / summary。
+- Artifacts produced：分层 foundation Markdown、[paper_outline.md](../story/paper_outline.md)、PR #9 legacy assets、asset manifest / summary。
 - Verification run：foundation markdown sanity、相对 Markdown 链接检查已通过；PR body 已创建并接受第一轮三路 review。
-- Remaining risk：当前 foundation PR 无 C/I 阻塞；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak、claim-evidence mismatch，并在 S1a 先吸收 PR #92 / 最新 baseline 增量。
+- Remaining risk：当前 foundation PR 无 C/I 阻塞；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak、claim-evidence mismatch、CCF-A 标准 readiness，并在 S1a 逐篇吸收 9 个五绿 direct baseline，尤其 `Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`。

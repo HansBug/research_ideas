@@ -7,13 +7,17 @@
 | 文件 | 作用 |
 |---|---|
 | [paper_story.md](./paper_story.md) | 论文 thesis、task boundary、gap、technical challenge、method insight、contributions 与 claims-to-avoid。 |
+| [paper_outline.md](./paper_outline.md) | 在导师定调和 9 个五绿 direct baseline 反证压力下，固定章节大纲、RQ、反证门和投稿前证据门。 |
+| [venue_readiness_gate.md](./venue_readiness_gate.md) | 固化 issue #67 的投稿策略：按 CCF-A 标准打磨，2026 夏季优先投 CCF-B 期刊，并定义 SoSyM / ASEJ / REJ 的 readiness gate。 |
 | [claim_evidence_map.md](./claim_evidence_map.md) | 将每条潜在论文 claim 映射到当前证据状态，防止把计划或历史资产写成已完成结果。 |
 
 ## 使用顺序
 
 1. 先读 [paper_story.md](./paper_story.md)，确认论文当前主线仍是 Path-1 baseline hard comparison。
-2. 写 abstract / introduction / contribution 前，必须查 [claim_evidence_map.md](./claim_evidence_map.md)。
-3. 任何依赖 frozen sample、human adjudication、baseline result 或 ablation 的结果型句子，在对应实验 gate 完成前只能写成 planned / to be evaluated。
+2. 再读 [paper_outline.md](./paper_outline.md)，确认章节逻辑、RQ、9 个 direct baseline 反证门和证据门。
+3. 再读 [venue_readiness_gate.md](./venue_readiness_gate.md)，确认当前投稿目标是按 CCF-A 审稿强度准备、优先投 CCF-B rolling journal。
+4. 写 abstract / introduction / contribution 前，必须查 [claim_evidence_map.md](./claim_evidence_map.md)。
+5. 任何依赖 frozen sample、human adjudication、baseline result 或 ablation 的结果型句子，在对应实验 gate 完成前只能写成 planned / to be evaluated。
 
 ## 边界
 

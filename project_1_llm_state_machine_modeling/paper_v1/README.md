@@ -10,17 +10,20 @@
 2. Path-2、变量三分法、BMC/LTL 和更深控制系统语义保留为后续论文或 future work。
 3. E1 自建 agent-loop 与 E2 mature-agent skill route 是同一底座的不同 agent orchestration 条件，不再主打 Hybrid。
 4. 论文贡献应落在形式化状态机表示、形式化检查反馈、可执行仿真反馈、LLM agent 修复与可审计 run record，而不是 `fcstm`、LangGraph、Codex、Claude 等工程名。
-5. 投稿计划按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 2026 夏季期刊冲刺口径推进：按 CCF-A 标准打磨，主投 SoSyM regular rolling，ASE Journal / RE Journal regular rolling 作备投。
+5. 投稿计划按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 2026 夏季期刊冲刺口径推进：**按 CCF-A 论文标准打磨，2026 夏季优先投 CCF-B 期刊**；默认主投 SoSyM regular rolling，ASE Journal / Requirements Engineering Journal regular rolling 作备投。这不是把论文质量降到 B，而是用 A 类 reviewer 会追问的 novelty / baseline / oracle / artifact 标准来准备一篇更稳的 B 类期刊首投稿。
+6. PR #92 已合入 `main`，后续 baseline 冻结必须把 9 个五绿 direct baseline 逐篇吸收为反证门；不能只读总账摘要或继续沿用过期 corpus。
 
 后续新 session 推荐阅读顺序：
 
 1. [path1_foundation/README.md](./path1_foundation/README.md)
 2. [path1_foundation/story/paper_story.md](./path1_foundation/story/paper_story.md)
-3. [path1_foundation/dataset_selection/sample_assets.md](./path1_foundation/dataset_selection/sample_assets.md)
-4. [path1_foundation/experiment_design/experiment_inventory.md](./path1_foundation/experiment_design/experiment_inventory.md)
-5. [path1_foundation/experiment_design/execution_plan.md](./path1_foundation/experiment_design/execution_plan.md)
-6. [path1_foundation/dataset_selection/legacy_pr9_assets/README.md](./path1_foundation/dataset_selection/legacy_pr9_assets/README.md)
-7. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+3. [path1_foundation/story/paper_outline.md](./path1_foundation/story/paper_outline.md)
+4. [path1_foundation/story/venue_readiness_gate.md](./path1_foundation/story/venue_readiness_gate.md)
+5. [path1_foundation/dataset_selection/sample_assets.md](./path1_foundation/dataset_selection/sample_assets.md)
+6. [path1_foundation/experiment_design/experiment_inventory.md](./path1_foundation/experiment_design/experiment_inventory.md)
+7. [path1_foundation/experiment_design/execution_plan.md](./path1_foundation/experiment_design/execution_plan.md)
+8. [path1_foundation/dataset_selection/legacy_pr9_assets/README.md](./path1_foundation/dataset_selection/legacy_pr9_assets/README.md)
+9. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
 
 以下历史内容保留用于追溯 2026-05 Direction-Decision Sprint，不再代表当前默认施工入口。
 

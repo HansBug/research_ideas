@@ -21,3 +21,4 @@
 - 不允许在 G2/G3/G5 完成前写 result-level claim。
 - 正式 oracle 必须以透明 human adjudication 为主，LLM 只能作为辅助且需要披露。
 - 如果使用 PR #9 样本资产，必须明确其 historical / stress-test 性质，并在正式 sample registry 中重新冻结。
+- 后续实验与写作默认按 [../story/venue_readiness_gate.md](../story/venue_readiness_gate.md) 的 CCF-A 标准门禁执行；目标是投 CCF-B rolling journal，但 baseline、oracle、artifact 和 threats 要按 A 类审稿强度准备。

@@ -6,7 +6,7 @@
 |---|---|---|---|
 | RQ1 | Formal-feedback-guided LLM loop 是否比 direct / structured prompting 生成更有效的状态机？ | validity、component-level quality、human adjudication | 待正式实验 |
 | RQ2 | parse / semantic / design / simulation feedback 各自贡献是什么？ | B2/B3/B4/B5 ablation、repair rounds、failure reduction | 待正式实验 |
-| RQ3 | 相比近期 LLM-for-modeling / state-machine generation 工作，本方法的新贡献在哪里？ | external baseline matrix、same-sample / approximate / evidence-only comparison、PR #92 近期 arXiv baseline 增量吸收 | baseline 现状需在 S1 重新摸排后冻结 |
+| RQ3 | 相比 9 个五绿 direct baseline，本方法的边际贡献在哪里？ | 9 篇逐篇吸收报告、external baseline matrix、same-sample / approximate / evidence-only comparison | S1a 必须完成 blocking absorption 后冻结 |
 | RQ4 | 方法失败在哪里，失败是否可解释和可修复？ | failure taxonomy、repair logs、scenario history、FixLog | method run record 已具备，主实验待做 |
 | RQ5 | 自建 agent-loop 与成熟 coding-agent skill route 在质量、稳定性和可审计性上有何差异？ | E1/E2 representative runs、run record completeness、human review | 作为 implementation analysis / appendix，不能喧宾夺主 |
 
@@ -59,7 +59,7 @@
 | B4 | Parse + semantic + simulation feedback | 测 simulation feedback 边际贡献 | 加 scenario / trace / execution feedback，但不额外人工修复 | 是 |
 | B5 | Full method | 主方法 | 完整 generate-check-simulate-repair-review loop | 是 |
 | E2 | Mature coding-agent skill route | 上限/实现形态分析 | skill + stage tools + full run record / report | 可选，建议 appendix / RQ5 |
-| EXT | Closest prior work approximate baseline | 回答外部可比性 | 先完成 PR #92 增量吸收，再至少 1 个 same-sample approximate，争取 2 个 | 是，若能复现 |
+| EXT | Closest prior work approximate baseline | 回答外部可比性 | 先完成 9 个 direct baseline 阻塞吸收；`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs` 四个 mandatory closest works 必须全部进入矩阵；至少 1 个 same-sample approximate，争取 2 个，优先从 `Structure/Event SMF` 或 `llms_emp` STM 子集落地 | 是，若能复现 |
 
 ## 5. Metrics and adjudication
 
@@ -122,6 +122,7 @@
 |---|---|---|
 | PR #9 selection 是 stress-test，不是随机代表性样本 | 平均性能 claim 易被 challenge | 区分 main sample 与 stress-test extension |
 | reference model 成本高 | 影响主样本规模 | 先 pilot，冻结降级标准 |
-| external baseline 可复现性不一 | 影响公平对比 | 先做 baseline 现状再摸排；分类为 reproduce / approximate / evidence-only |
+| external baseline 可复现性不一 | 影响公平对比 | 先做 9 个 direct baseline 阻塞吸收；分类为 strict executable / approximate / near / evidence-only |
 | E2 skill route 容易被认为只是 Codex/Claude 强 | 影响贡献归因 | 做 no/partial/full skill ablation 或作为 appendix RQ |
 | Formal feedback 容易被误解为 complete verification | 影响相关工作和 reviewer 信任 | 全文统一写 formal feedback / executable simulation，不写 complete model checking |
+| 目标是投 CCF-B 但按 CCF-A 标准准备 | 若门禁不硬，容易写成“降低标准投 B” | 按 [../story/venue_readiness_gate.md](../story/venue_readiness_gate.md) 执行 novelty / baseline / oracle / artifact / threats / writing 完整性门禁；G5 前未闭合 C/I 则不硬投 |

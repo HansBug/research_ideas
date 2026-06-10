@@ -23,8 +23,8 @@
 - PR #9 historical assets：selection、expansion、ref_stms、PATH1_REPORT。
 - PR #31 / project_1 talks：导师对 Path-1、E1/E2、Hybrid、Path-2 的定调。
 - PR #22 / method docs：当前 agent-loop / skill / run-record 事实。
-- issue #67：2026 夏季投稿计划。
-- baselines SUMMARY 与 PR [#92](https://github.com/HansBug/research_ideas/pull/92)：closest prior work matrix 与 2025-2026 arXiv baseline / 强近邻再摸排增量。
+- issue #67：2026 夏季投稿计划，尤其“按 CCF-A 论文标准打磨，2026 夏季优先投 CCF-B 期刊；主投 SoSyM regular，ASEJ / REJ 作备投”的 venue strategy。
+- baselines SUMMARY 与 PR [#92](https://github.com/HansBug/research_ideas/pull/92)：closest prior work matrix、2025-2026 arXiv baseline / 强近邻再摸排增量、9 个五绿 direct baseline 的 `paper_content.txt` / `DESC.md` / `ASSETS.md`。
 
 ## 拒收检查
 
@@ -33,8 +33,9 @@
 - 不能声明已有主实验 lift / SOTA / same-benchmark win。
 - 不能把 LLM-as-Judge 写成主 oracle。
 - 不能把 parse/semantic/sim 写成完整 formal verification。
-- PR body 必须包含范围、非目标、执行计划和 ready gate，并尽量使用中文；Mermaid 节点也应使用中文，英文只保留必要术语。
-- 后续 S1a 必须先完成 baseline 现状再摸排 / PR #92 增量吸收，不能基于过期 baseline corpus 冻结 competitor。
+- PR body 必须包含范围、非目标、执行计划、ready gate 和目标 venue/readiness gate，并尽量使用中文；Mermaid 节点也应使用中文，英文只保留必要术语。
+- 后续 S1a 必须先完成 9 个五绿 direct baseline 的逐篇阻塞吸收，不能只读 SUMMARY 或基于过期 / 过浅 baseline corpus 冻结 competitor。
+- 后续 S0-S7 必须按 [../../story/venue_readiness_gate.md](../../story/venue_readiness_gate.md) 的 CCF-A 标准门禁执行；目标投 B 不等于降低实验和写作标准。
 
 ## 验证命令
 
@@ -45,7 +46,8 @@ python - <<'PY'
 from pathlib import Path
 for p in Path('project_1_llm_state_machine_modeling/paper_v1/path1_foundation').rglob('*.md'):
     text = p.read_text(encoding='utf-8')
-    assert '<<<FOUNDATION-PLACEHOLDER>>>' not in text
+    placeholder = '<<<' + 'FOUNDATION-PLACEHOLDER' + '>>>'
+    assert placeholder not in text
 print('foundation markdown sanity ok')
 PY
 ```

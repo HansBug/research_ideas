@@ -23,11 +23,11 @@
 
 ## Gap
 
-近期 LLM-for-modeling 工作已经能从自然语言生成 UML / SysML / Umple / Mermaid 等状态机族模型，但普遍存在三个缺口：
+近期 LLM-for-modeling 工作已经能从自然语言生成 UML / SysML / Umple / Mermaid / TTool / protocol FSM 等状态机族模型，且部分工作已经包含 prompt chaining、RAG、few-shot、工具反馈、语法 / schema 检查、oracle trace 或自动修复循环。因此本文的 gap 不能写成“无人做 NL→STM”或“无人做反馈闭环”。在 9 个五绿 direct baseline 的反证压力下，本文只保留三个更窄的缺口：
 
-1. **离线生成为主**：许多方法只生成图或代码，然后用人工或简单规则评估；模型在生成 loop 内不一定经历可执行检查或仿真反馈。
-2. **反馈语义偏浅**：语法、JSON/schema 或渲染错误可以被反馈，但 transition guard/action、变量、层次状态和故障恢复行为是否真的可执行，通常缺少统一闭环。
-3. **证据链不足**：prompt、raw output、修复历史、scenario、human adjudication 和失败样本经常难以追溯，导致 claim 很难抵抗 reviewer 对 cherry-pick、公平性和 oracle 的挑战。
+1. **离线生成为主**：许多方法生成图、代码或协议状态机后再做人工 / F1 / 语法 / schema / oracle 评估；但面向控制系统需求的可执行状态机语义、确定性诊断、仿真 trace 与修复证据链通常没有被统一纳入同一实验协议。
+2. **反馈语义偏浅**：已有反馈先例可以修语法、schema、PlantUML/TTool/Umple 格式、oracle trace 或部分一致性；但 transition guard/action、变量、层次状态、恢复路径与 scenario behavior 的可执行反馈仍需要更清楚的边界、消融和人工裁决。
+3. **证据链不足**：prompt、raw output、修复历史、scenario、diff、eligibility、human adjudication 和失败样本如果不能形成 run record，就很难抵抗 reviewer 对 cherry-pick、公平性、oracle 和 provider drift 的挑战。
 
 ## Technical Challenge
 
@@ -60,17 +60,21 @@
 ## Evidence Already Available
 
 - `method/` 已完成 LangGraph full staged runtime、stage API、run record、tests 与 retained four-case evidence，见 [../method/README.md](../../../method/README.md) 和 [../method/STATUS.md](../../../method/STATUS.md)。
-- `baselines/` 当前 main 入口是 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)；后续 baseline 冻结前必须吸收 `main` 中 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入的 2025-2026 arXiv 再摸排增量，避免 related-work / baseline matrix 过期。
+- `baselines/` 当前 main 入口是 [../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md)；后续 baseline 冻结前必须吸收 `main` 中 PR [#92](https://github.com/HansBug/research_ideas/pull/92) 已合入的 2025-2026 arXiv 再摸排增量，并逐篇吸收 9 个五绿 direct baseline 的输入、输出、方法、反馈/验证、数据/复现性和能力上限，避免 related-work / baseline matrix 过期或过浅。
 - PR #9 已形成 323 sample selection、Top-15 / Backup-15、30 条 NL expansion 和 2 个 early historical early reference draft STM 经验，已在 [sample_assets.md](../dataset_selection/sample_assets.md) 中压缩迁移。
-- issue #67 已定义 2026 夏季 Path-1 投稿冲刺 gate、主投 SoSyM regular rolling 与 fallback。
+- issue #67 已定义 2026 夏季 Path-1 投稿冲刺 gate：按 CCF-A 论文标准打磨，优先投 CCF-B 期刊；默认主投 SoSyM regular rolling，ASE Journal / Requirements Engineering Journal regular rolling 作备投。具体见 [venue_readiness_gate.md](./venue_readiness_gate.md)。
 
 ## Evidence Still Missing Before Result-Level Writing
 
 - 冻结 main sample registry：全量 9/101 或预注册降级样本。
-- `>=3` 个 closest prior works 的正式对齐矩阵，其中 `>=1` 个 same-sample approximate baseline。
+- `>=4` 个 mandatory closest prior works（`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`）的正式对齐矩阵，其中 `>=1` 个 same-sample approximate baseline。
 - Direct / structured / no-feedback / partial-feedback / full-method 消融的可执行 pipeline。
 - `>=2` 名独立 human annotator 的 blind component-level adjudication、agreement 与仲裁记录。
 - 主实验结果、variance / repeat policy、failure taxonomy、artifact package。
+
+## Baseline-Aware Positioning
+
+9 个五绿 direct baseline 已经覆盖 NL / 文档到 FSM、UML state machine、SysML behavior、Umple、Mermaid statechart、TTool/SysML 和 protocol FSM 的主要路线。它们已经提供 single prompt、few-shot、RAG、CoT、prompt chaining、ensemble、fine-tuning、工具反馈、语法 / schema 检查、部分 repair 和专家参考评估。本文差异必须从“能否生成状态机”收缩为“可执行形式化反馈、仿真 trace、修复证据链和可审计实验协议是否带来边际贡献”。详细章节大纲和反证门见 [paper_outline.md](./paper_outline.md)。
 
 ## Related Work Positioning
 
@@ -81,6 +85,10 @@
 3. **Agentic feedback / repair for modeling artifacts**：用工具反馈、仿真、模型检查或 human/LLM review 修复模型工件。
 
 本稿的差异点不是“第一个用 LLM 画状态机”，而是把可执行形式化反馈和可审计 repair/run record 放进 NL-to-state-machine modeling loop，并用 baseline hard comparison 评估其边际贡献。
+
+## Target venue posture
+
+本稿当前目标不是直接冲 TSE / TOSEM，而是用 CCF-A 论文标准准备一篇可被 SoSyM / ASE Journal / Requirements Engineering Journal 这类 CCF-B rolling journal 接收的稳健论文。也就是说，story 可以选择更贴合 SoSyM 的建模叙事，但 novelty、baseline、oracle、artifact、threats 与写作完整度必须按 A 类 reviewer 的挑战强度准备；不能因为目标是 B 类期刊就降低实验和证据标准。
 
 ## Claims to Make（必须先过 claim_evidence_map gate）
 
@@ -100,6 +108,9 @@
 
 ## Claims to Avoid
 
+- 不写 “first NL-to-state-machine modeling method”。
+- 不写 “first feedback loop for LLM state-machine generation”。
+- 不写 “prior work only draws diagrams / lacks structured outputs”。
 - 不写 “solves NL-to-state-machine modeling”。
 - 不写 “same benchmark / same protocol 打赢所有 prior work”。
 - 不写 “LLM judge 是最终 oracle”。
@@ -109,4 +120,4 @@
 
 ## Reviewer Risks
 
-详见 [reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。当前最高风险是：baseline 公平性、reference / sample bias、LLM-assisted annotation 透明度、样本规模、human adjudication 独立性和 claim-evidence 对齐。
+详见 [reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。当前最高风险是：baseline 公平性、reference / sample bias、LLM-assisted annotation 透明度、样本规模、human adjudication 独立性、claim-evidence 对齐，以及“目标投 CCF-B 但证据标准未达到 CCF-A reviewer 预期”的 readiness 风险。

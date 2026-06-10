@@ -64,7 +64,7 @@
 |---|---|---|
 | Frozen sample registry | 影响 sample bias / cherry-pick 风险 | 冻结全量 9/101 或预注册降级样本，保留排除原因 |
 | Human adjudication team | 影响 oracle credibility | 至少 2 名独立 annotator + blind coding + disagreement 仲裁 |
-| External executable baselines | 影响 novelty/fairness | 先完成 PR #92 增量吸收和 baseline 现状再摸排，再冻结至少 3 个 closest prior work，其中至少 1 个 same-sample approximate baseline |
+| External executable baselines | 影响 novelty/fairness | 先完成 PR #92 增量吸收和 9 个 direct baseline 阻塞吸收，再冻结 4 个 mandatory closest works（`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`），其中至少 1 个 same-sample approximate baseline |
 | Main experiment runs | 影响所有 result claim | direct / structured / no-feedback / partial-feedback / full-method 全部留 run record |
 | Manuscript template | 影响写作与投稿 | 根据 SoSyM / ASEJ / REJ 决定模板、页数、匿名性 |
 | Submission artifact package | 影响 reproducibility | 从 raw requirement 到 generated STM / checks / repair / metrics 的最小复现命令 |
