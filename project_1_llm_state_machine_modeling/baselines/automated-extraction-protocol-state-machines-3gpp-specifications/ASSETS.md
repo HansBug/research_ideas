@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:08:00
+更新时间：2026-06-10 13:23:56
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -11,6 +11,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 资源类型 | 状态 | URL / 路径 | 说明 |
 |---|---|---|---|
 | 论文 | 🟢 | [arXiv](https://arxiv.org/abs/2510.14348) / [本地 PDF](./paper.pdf) | 公开预印本；本地已提取 `paper_content.txt`。 |
+| arXiv ancillary / 附属文件 | 🟠 | [arXiv abs](https://arxiv.org/abs/2510.14348) / [arXiv API](https://export.arxiv.org/api/query?id_list=2510.14348) | 2026-06-10 核验 arXiv API 仅列出 abs 与 PDF，未发现独立 ancillary artifact / 附属代码数据包；arXiv source 不等同实验代码或数据集。 |
 | 实验代码 | 🟠 | 未发现公开仓库 | 论文说明实现了 SpecGPT，但正文和参考文献未提供项目主页或源码。 |
 | 实验结果细则 | 🟠 | 论文内表格 | 状态/转移抽取的 precision、recall、F1 见论文；未发现可下载逐转移结果或模型输出。 |
 | 公开输入规格 | 🟡 | [3GPP TS 24.501](https://www.3gpp.org/dynareport/24501.htm)、[TS 38.413](https://www.3gpp.org/dynareport/38413.htm)、[TS 29.244](https://www.3gpp.org/dynareport/29244.htm) | 3GPP 输入规格官方公开，但 dynareport 是活入口；复现必须锁定论文使用的 Release 17 具体版本。 |
@@ -23,6 +24,8 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **发表 / 版本**：arXiv preprint, 2025, cs.NI
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2510.14348](https://arxiv.org/abs/2510.14348)
+
+- **联系 / 申请路径**：论文首页给出作者邮箱 `1152461073@qq.com`、`fengrunhan@pmlabs.com.cn`、`tahobo@sina.com`、`itsyz@foxmail.com`、`yjcsu@126.com`、`qiuhang_ndsc@163.com`（PDF 文本抽取中空格异常，按邮箱格式归一）、`liuqi@pmlabs.com.cn`；若需要 Release 17 ground truth、SpecGPT 代码或逐转移结果，只能通过作者 / 机构渠道询问，不能写成已有公开 benchmark。
 
 ## 3. 实验代码核查
 

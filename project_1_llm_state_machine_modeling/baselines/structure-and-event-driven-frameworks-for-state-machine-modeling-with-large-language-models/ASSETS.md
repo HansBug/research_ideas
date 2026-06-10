@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:08:00
+更新时间：2026-06-10 13:23:56
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -11,6 +11,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 资源类型 | 状态 | URL / 路径 | 说明 |
 |---|---|---|---|
 | 论文 | 🟢 | [arXiv](https://arxiv.org/abs/2604.00275) / [本地 PDF](./paper.pdf) | 公开预印本；本地已提取 `paper_content.txt`。 |
+| arXiv ancillary / 附属文件 | 🟠 | [arXiv abs](https://arxiv.org/abs/2604.00275) / [arXiv API](https://export.arxiv.org/api/query?id_list=2604.00275) | 2026-06-10 核验 arXiv API 仅列出 abs 与 PDF，未发现独立 ancillary artifact / 附属代码数据包；arXiv source 不等同实验代码或数据集。 |
 | 实验代码 | 🟠 | 未发现实名 GitHub / Zenodo 仓库 | 正文只给匿名 4open 工件入口；当前无法确认源码可访问。 |
 | 实验结果细则 | 🟠 | 论文内表格 | 未找到可下载逐样本结果文件；precision / recall / F1 细节主要在论文表格中。 |
 | 数据集 / Benchmark | ❓ | [anonymous.4open.science/r/llm_state_machine_modeling](https://anonymous.4open.science/r/llm_state_machine_modeling/) | 论文称工件在线可得，实验含 8 个 non-structured reactive-system descriptions 与专家参考状态机；本轮 CLI 访问 `api/repo/.../file/` 返回 403 Forbidden。 |
@@ -22,6 +23,8 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **发表 / 版本**：arXiv preprint, 2026, cs.SE
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2604.00275](https://arxiv.org/abs/2604.00275) / [DOI](https://doi.org/10.48550/arXiv.2604.00275)
+
+- **联系 / 申请路径**：论文首页给出 McGill 邮箱 `{samer.abdulkarim, evan.boyd, karl.bridi, alec.tufenkjian, boqi.chen}@mail.mcgill.ca` 与 `gunter.mussbacher@mcgill.ca`；若 4open 匿名工件仍不可访问，应通过这些作者 / 实验室渠道询问 artifact 公开计划或评审链接状态。
 
 ## 3. 实验代码核查
 

@@ -1,6 +1,6 @@
 # 资源与复现实验资产 / ASSETS
 
-更新时间：2026-06-10 13:08:00
+更新时间：2026-06-10 13:23:56
 
 状态口径：🟢 可直接访问；🟡 部分公开 / 可重建但不完整；🟠 未公开 / 仅论文内描述；🔒 受限私有资产 / 难以公开获取；❓ 入口存在但当前访问异常或未完成逐文件核验。
 
@@ -11,6 +11,7 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 | 资源类型 | 状态 | URL / 路径 | 说明 |
 |---|---|---|---|
 | 论文 | 🟢 | [arXiv](https://arxiv.org/abs/2603.29140) / [本地 PDF](./paper.pdf) | 公开预印本；本地已提取 `paper_content.txt`。 |
+| arXiv ancillary / 附属文件 | 🟠 | [arXiv abs](https://arxiv.org/abs/2603.29140) / [arXiv API](https://export.arxiv.org/api/query?id_list=2603.29140) | 2026-06-10 核验 arXiv API 仅列出 abs 与 PDF，未发现独立 ancillary artifact / 附属代码数据包；arXiv source 不等同实验代码或数据集。 |
 | 实验代码 | 🟢 | [Paul3246/nl2fsm](https://github.com/Paul3246/nl2fsm) | GitHub README 明确说明该仓库包含本论文 Python 代码；default branch `main`，HEAD `354f9aacf51b5121abb8a2e04718232185e71928`；含 `v1` 到 `v5`、`err_lim` 与 `Fault_model_approach.zip`。论文正文未给出该仓库，引用时应说明这是本轮额外核到的作者/项目仓库入口。 |
 | 实验结果细则 | 🟡 | [v1/benchmark_score.txt](https://github.com/Paul3246/nl2fsm/blob/main/v1/benchmark_score.txt)、[v5/scores1.txt](https://github.com/Paul3246/nl2fsm/blob/main/v5/scores1.txt)、[v5/repertoire-sortie](https://github.com/Paul3246/nl2fsm/tree/main/v5/repertoire-sortie) | 仓库保留部分 benchmark 文本、修复统计和 Graphviz 输出；不是整理好的论文结果复现包，结果与论文表格仍需人工对齐。 |
 | 数据集 / Benchmark | 🟡 | [v5/data](https://github.com/Paul3246/nl2fsm/tree/main/v5/data)、[v5/generated_text.csv](https://github.com/Paul3246/nl2fsm/blob/main/v5/generated_text.csv) | 合成 DFSM oracle 与英文描述可由代码生成，仓库含若干示例数据；没有冻结版本、许可证和标准 split。 |
@@ -22,6 +23,8 @@ CCF 口径：🏆 CCF A；🥈 CCF B；🥉 CCF C；⚪ 非 CCF 推荐或不适�
 - **发表 / 版本**：arXiv preprint, 2026, cs.SE
 - **CCF 口径**：⚪
 - **论文入口**：[arXiv:2603.29140](https://arxiv.org/abs/2603.29140)
+
+- **联系 / 申请路径**：论文首页给出作者邮箱 `omer.nguena-timo@uqo.ca`、`paul-alexis.rodriguez@universite-paris-saclay.fr`、`florent.avellaneda@uqam.ca`；若后续需要确认仓库与论文版本、依赖或未公开数据，可优先按这些作者邮箱询问。
 
 ## 3. 实验代码核查
 

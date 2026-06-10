@@ -318,10 +318,11 @@ Issue #81 的 CSV / 表格 / 评论适合做候选入口，但不能替代论文
 3. 不得把“论文内表格”写成“可下载结果细则”；可下载结果必须有独立文件、仓库路径或本地冻结派生物。
 4. 不得把“相关工具仓库”写成“论文专属代码”；例如工具链公开但 thesis pipeline 未公开时，必须显式说明。
 5. 若本仓库已把公开数据解析成 parquet / JSONL / CSV 等冻结派生物，应在 `ASSETS.md` 同时链接原始公开入口和本地派生物路径，并说明派生时间、来源、行数和 hash。
-6. 在写“未发现公开代码 / 数据 / 结果”之前，必须先完成非 GitHub 深挖：至少检查论文 PDF 与 `paper_content.txt` 中的 `artifact / supplementary / code / data / repository / GitHub / Zenodo / OSF / Figshare / Drive / contact / email` 等线索，检查 publisher / arXiv / DOI / 学校 repository 页面是否有附件或下载 tab，并检查项目页、匿名 artifact、仓库 release / zip / raw 结果文件。
-7. 如果资源可能需要邮件、表单或机构申请，应写清申请路径和对象，例如作者 / corresponding author、导师、工业合作方、项目维护者或 repository contact；没有正式申请入口时也要明确写“未提供公开申请表，只能通过作者/机构渠道询问”。
-8. 对 GitHub 或其他活仓库，不得只写 URL；若它影响复现实验，应记录 default branch、HEAD commit、license / release / dependency lock 状态和主要目录。对 Google Drive / 匿名 artifact 这类入口，只能把 HTTP 可达写成“入口可达”，不能据此宣称逐文件下载已审计。
-9. [SUMMARY.md](./SUMMARY.md) 的五绿 direct baseline 表只保留紧凑资源列；完整资源说明以对应 `ASSETS.md` 为准，避免 [SUMMARY.md](./SUMMARY.md) 成为第二事实真源。
+6. 在写“未发现公开代码 / 数据 / 结果”之前，必须先完成非 GitHub 深挖：至少检查论文 PDF 与 `paper_content.txt` 中的 `artifact / supplementary / code / data / repository / GitHub / Zenodo / OSF / Figshare / Drive / contact / email` 等线索，检查 publisher / arXiv / DOI / 学校 repository 页面是否有附件、download tab、source package、supplementary package 或 ancillary file，并检查项目页、匿名 artifact、仓库 release / zip / raw 结果文件。
+7. 对所有可下载资源不得只停留在“页面可达”：若是 zip / xlsx / ods / csv / json / parquet / source tarball / supplementary PDF / Drive 文件夹 / publisher download package，应尽量列出实际文件名、文件角色、是否包含实验代码、逐样本输出、prompt、评分细则、ground truth 或脚本；若无法逐文件打开，应明确写“入口可达但未逐文件审计”，不能把入口可达升级为代码或数据已核验。
+8. 如果资源可能需要邮件、表单或机构申请，应写清申请路径和对象，例如作者 / corresponding author、导师、工业合作方、项目维护者或 repository contact；若论文首页或仓库已给出邮箱，应优先记录具体邮箱；没有正式申请入口时也要明确写“未提供公开申请表，只能通过作者/机构渠道询问”。
+9. 对 GitHub 或其他活仓库，不得只写 URL；若它影响复现实验，应记录 default branch、HEAD commit、license / release / dependency lock 状态和主要目录。对 Google Drive / 匿名 artifact 这类入口，只能把 HTTP 可达写成“入口可达”，不能据此宣称逐文件下载已审计。
+10. [SUMMARY.md](./SUMMARY.md) 的五绿 direct baseline 表只保留紧凑资源列；完整资源说明以对应 `ASSETS.md` 为准，避免 [SUMMARY.md](./SUMMARY.md) 成为第二事实真源。
 
 ### 5.4 什么内容进入 `DESC.md`
 
