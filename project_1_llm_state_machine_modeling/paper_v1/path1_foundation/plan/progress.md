@@ -50,9 +50,9 @@
 | 2026-06-09 | paper story reviewer 二轮 | READY；确认结果型 Abstract/Introduction 句式已降级为 Planned，literature/citation gate 已记录，progress 记录完整 |
 | 2026-06-09 | execution verifier reviewer 二轮 | READY；确认 PR body 与文档一致、旧 sprint 入口误导已清理、sanity/link checks 可验收 |
 | 2026-06-09 | 最终三路复核 | READY；C=0/I=0；仅发现 README ready checklist 呈现不一致等 M 级问题，并已修正 |
-| 2026-06-10 | PR #9 详细资产归档 | 已归档 387 个历史资产文件：323 个 selection review、30 个 expansion JSON、2 个 parquet、2 个 reference draft 目录，并生成 manifest / summary |
+| 2026-06-10 | PR #9 详细资产归档 | 已归档并纳入 manifest 391 个历史资产 / 说明文件：323 个 selection review、30 个 expansion JSON、2 个 parquet、2 个 reference draft 目录及 legacy 子路径 README，并生成 manifest / summary |
 | 2026-06-10 | foundation 分层 README 收口 | 新增 story/evidence/dataset_selection/experiment_design/plan 及 legacy asset 子路径中文 README，修正 current overlay 旧路径 |
-| 2026-06-10 | 最终 execution verifier review | 发现 I：`asset_manifest.tsv` 中 `selection_screening/README.md` bytes/SHA 与当前文件不一致；已修复 manifest 与 summary 总字节数，并将深度 manifest 复算纳入检查 |
+| 2026-06-10 | 最终 execution verifier review | 发现 I：`asset_manifest.tsv` 中 `selection_screening/README.md` bytes/SHA 与当前文件不一致；已修复 manifest 与 summary，并将 manifest 覆盖范围扩大为整个 `legacy_pr9_assets/` 目录 391 个文件；深度 manifest 复算纳入检查 |
 | 2026-06-10 | PR #92 baseline 增量吸收要求 | 根据用户要求，补充“baseline 现状再摸排 / 吸收 PR #92 近期 arXiv 增量”为后续 S1a 子任务，避免基于过期 baseline corpus 冻结 competitor |
 | 2026-06-10 | PR body 中文化要求 | 根据用户要求，后续 PR body 尽量中文化，Mermaid 节点使用中文，英文只保留必要术语 / 论文候选句 |
 
