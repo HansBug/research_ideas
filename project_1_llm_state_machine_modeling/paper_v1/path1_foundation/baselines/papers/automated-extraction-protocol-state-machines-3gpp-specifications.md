@@ -89,7 +89,7 @@
 | 项目 | 结论 | Source pointer |
 |---|---|---|
 | 打穿的 claim | 不能声称“长篇自然语言规格到 FSM 抽取尚无人做”或“LLM ensemble + domain prompt 抽取协议状态机是本文首创”。 | `P:21-30`, `P:121-139`, `P:956-971` |
-| 可保留的弱化表述 | 可说本文聚焦控制系统需求、可执行 STM schema、scenario-level feedback 与 repair decision；run record 只作为实验复现和排障记录。SpecGPT 聚焦通信协议规格抽取且无公开代码/GT。 | `P:888-915`, `D:200-208`, `A:13-19` |
+| 可保留的弱化表述 | 可说本文聚焦控制系统需求、可执行 STM schema、scenario-level feedback 与 repair decision。SpecGPT 聚焦通信协议规格抽取且无公开代码/GT。 | `P:888-915`, `D:200-208`, `A:13-19` |
 | S1b handoff | Related Work 中作为“long technical specifications -> protocol FSM”的强相关 evidence-only prior；强调其 chunking、domain prompt、span grounding、ensemble 对本项目有方法启发。 | `P:333-588`, `D:192-208` |
 | S3 handoff | 不建议重跑原实验；若需要做近似 ablation，可只抽取 `section-tree chunking + JSON schema + majority voting` 作为 pipeline 变体，并使用本项目公开控制需求样本。 | `P:292-356`, `P:413-474`, `P:530-588`, `A:46-50` |
 | 风险等级 | M/I：claim 风险高于复现实验价值；证据足以约束 novelty，但不足以支撑直接可复现实验比较。 | `A:17-19`, `A:46-50`, `project_1_llm_state_machine_modeling/paper_v1/path1_foundation/baselines/SUMMARY.md:§7` |

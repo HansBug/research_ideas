@@ -19,7 +19,7 @@
 | 叙事 | 对应出口 | 主文必须强调 | 不满足时的处理 |
 |---|---|---|---|
 | 建模质量 + 形式化 / 可执行反馈 | SoSyM | 状态机/系统建模问题、machine-checkable representation、模型质量维度、feedback-guided construction | 不硬投 theme；转 regular 或备投 |
-| 自动化软工 + 工具支撑修复 | ASE Journal | automation、repair loop、agentic/tool workflow、公平消融、可复现运行记录 | 只作为备投；工程框架不写成贡献 |
+| 自动化软工 + 工具支撑修复 | ASE Journal | automation、repair loop、agentic/tool workflow、公平消融、必要实验披露 | 只作为备投；工程框架不写成贡献 |
 | 需求到模型 + 验证/追踪 | Requirements Engineering Journal | NL requirements、ambiguity、requirements-to-behavioral-model、human adjudication、traceability | 若需求工程视角不强，不切 REJ |
 
 S0b 选择 venue 时必须优先问：当前证据更支持哪种叙事，而不是先定 venue 再倒推 story。
@@ -35,8 +35,8 @@ S0b 选择 venue 时必须优先问：当前证据更支持哪种叙事，而不
 | 样本 | 防 cherry-pick；样本 frame、排除理由、stress-test 区分清楚 | 优先 9 系统 / 101 需求；若降级至少 `>=6` 系统 / `>=60` 需求并预注册原因 | 不写平均性能 claim |
 | Oracle | 主质量结论不能依赖 LLM judge 或单人主观判断 | 至少 2 名独立 human annotator、blind coding、agreement、仲裁；LLM 只可辅助且披露 | 不允许主结果表进入投稿稿 |
 | 消融 | 能证明 feedback 边际贡献，而不是只展示最终系统 | B0-B5：direct、structured、no-feedback、diagnostics-only、simulation-feedback、full structured repair | 只能写 diagnostic / pilot |
-| 可复现 | reviewer 能追踪输入、prompt、raw output、修复、失败和统计 | run record 保存 provider/model/date、prompt hash、raw/redacted output、usage、stage trace、FixLog、eligibility | artifact gate 不通过 |
-| 结果表达 | 不报喜不报忧；失败、振荡、provider error 都要可追踪 | failure taxonomy、non-converged / invalid / provider_error eligibility filter | 降级 claim 或补实验 |
+| 可复现 | reviewer 能追踪关键输入、模型配置、脱敏输出摘要、失败类型和统计口径 | 必要复现信息覆盖模型 / 工具版本、prompt hash、必要脱敏输出摘要、诊断 / 场景轨迹、版本信息与纳入 / 排除规则；不把过程性工程材料写成方法贡献 | artifact gate 不通过 |
+| 结果表达 | 不报喜不报忧；失败、振荡、provider error 都要可追踪 | failure taxonomy、non-converged / invalid / provider_error 标记和纳入 / 排除规则 | 降级 claim 或补实验 |
 | 威胁分析 | 主动承认 baseline fairness、sample bias、oracle、provider drift、LLM usage | threats 与 risk register 必须逐项闭合 C/I | G5 strong review 不通过 |
 | 写作完整性 | 像 CCF-A 稿件一样完整讲 story、方法、实验、威胁、artifact | G4 前 Introduction / Method / Experiments / Results / Threats / Related Work 全章节非空 | 暂停新实验，先补 manuscript |
 

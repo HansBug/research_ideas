@@ -88,7 +88,7 @@
 | 项目 | 结论 | Source pointer |
 |---|---|---|
 | 打穿的 claim | 不能声称“汽车自然语言需求到 statechart 生成尚无人做”或“首次把 LLM 用于汽车状态图生成”。 | `P:548-572`, `P:580-611`, `P:1743-1753` |
-| 可保留的弱化表述 | 可说本文使用公开控制系统需求、可执行 STM schema、自动反馈与 repair decision；run record 只作为实验复现和排障记录。Automotive Statechart 使用私有 Volvo 数据、fine-tuning 和 post-hoc 专家评审。 | `A:16-17`, `A:38-46`, `P:1818-1835` |
+| 可保留的弱化表述 | 可说本文使用公开控制系统需求、可执行 STM schema、自动反馈与 repair decision。Automotive Statechart 使用私有 Volvo 数据、fine-tuning 和 post-hoc 专家评审。 | `A:16-17`, `A:38-46`, `P:1818-1835` |
 | S1b handoff | Related Work 中作为“industrial automotive NL requirements -> statechart”的 evidence-only prior；突出其专家评审发现（复杂条件/时间/循环/术语仍弱）支持本文 problem motivation。 | `P:1583-1642`, `P:1690-1722`, `P:1762-1835` |
 | S3 handoff | 不建议复刻 fine-tuning；如需 approximate，可在本项目样本上做 `GPT-4/4o + Mermaid-style direct generation` 或 `synthetic augmentation` ablation，但必须声明不是复现 Volvo thesis。 | `P:747-883`, `P:984-1031`, `A:38-46` |
 | 风险等级 | I：claim 风险高；复现实验价值低。必须在 manuscript 中明确它已覆盖汽车状态图自动生成场景，但数据/工件私有导致只做 evidence-only。 | `S:124`, `S:251`, `A:42-46` |

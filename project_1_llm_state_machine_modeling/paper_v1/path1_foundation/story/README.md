@@ -23,7 +23,7 @@
 ## S0a 硬约束
 
 - 不写 `first NL-to-STM`、`first feedback loop`、`prior work only draws diagrams` 或其柔化版本。
-- 不把 `fcstm` / `pyfcstm`、run record、LangGraph、Codex、Claude、prompt template 写成 contribution。
+- 不把 `fcstm` / `pyfcstm`、过程性工程材料、LangGraph、Codex、Claude、prompt template 写成 contribution。
 - 不把 E1/E2 写成 Hybrid 方法贡献；只能作为 orchestration condition / RQ dimension。
 - 不把 parse / semantic / inspect / simulation 写成 complete formal verification。
 - 不把 private GT、missing code、missing prompt 写成 prior work weakness。

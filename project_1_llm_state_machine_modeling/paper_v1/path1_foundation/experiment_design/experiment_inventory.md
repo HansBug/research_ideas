@@ -2,19 +2,19 @@
 
 ## 0. S0a 定位与边界
 
-本文件是 PR #96 / S0a 的 experiment-design 草案，只把实验问题、条件矩阵、oracle 与 baseline fairness gate 写成可执行合同；它不运行真实 agent-loop、不生成新 run artifact、不修改 method runtime，也不冻结最终样本或投稿 venue。S0a 的实验叙事必须继承 [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md) §11：九大 baseline 已经覆盖泛化的 NL-to-state-machine 生成空间，因此本文不能围绕“首次生成 STM”立论，只能围绕 **deterministic diagnostics、scenario-level simulation feedback、structured repair decision 与 baseline-aware evaluation** 对控制系统状态机模型质量、可执行性和修复稳定性的边际作用来设计 RQ。
+本文件是 PR #96 / S0a 的 experiment-design 草案，只把实验问题、条件矩阵、oracle 与 baseline fairness gate 写成可执行合同；它不运行真实 agent-loop、不生成新实验结果、不修改 method runtime，也不冻结最终样本或投稿 venue。S0a 的实验叙事必须继承 [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md) §11：九大 baseline 已经覆盖泛化的 NL-to-state-machine 生成空间，因此本文不能围绕“首次生成 STM”立论，只能围绕 **deterministic diagnostics、scenario-level simulation feedback、structured repair decision 与 baseline-aware evaluation** 对控制系统状态机模型质量、可执行性和修复稳定性的边际作用来设计 RQ。
 
-> 本 PR 不跑四例真实 agent-loop 的原因：当前阶段是 story / experiment-design / reviewer-risk 的计划文档 gate，目标是阻止旧 novelty、旧 S0 和 venue-first 路线回潮；真实运行会触碰 provider 配置、runtime、sample registry、oracle protocol 和 run-record eligibility，属于后续 S3/S4 实验链路，不能用未冻结样本和未冻结 oracle 产出伪结果。
+> 本 PR 不跑四例真实 agent-loop 的原因：当前阶段是 story / experiment-design / reviewer-risk 的计划文档 gate，目标是阻止旧 novelty、旧 S0 和 venue-first 路线回潮；真实运行会触碰 provider 配置、runtime、sample registry、oracle protocol 和 运行纳入 / 排除规则，属于后续 S3/S4 实验链路，不能用未冻结样本和未冻结 oracle 产出伪结果。
 
 ## 1. Research questions
 
 | RQ | 问题 | 主要证据 | 关键对照 / 条件 | 当前状态 |
 |---|---|---|---|---|
-| RQ1 | **Deterministic diagnostics** 是否能减少 LLM 输出中的 parse、metamodel、semantic 与 design-level 缺陷，并改变可进入后续仿真 / 人工裁决的 eligible model 比例？ | parse validity、semantic validity、inspect diagnostics、eligibility、diagnostic failure taxonomy | B0/B1/B2 vs B3/B4/B5 | 待正式实验 |
+| RQ1 | **Deterministic diagnostics** 是否能减少 LLM 输出中的 parse、metamodel、semantic 与 design-level 缺陷，并改变可进入后续仿真 / 人工裁决的 有效模型比例？ | parse validity、semantic validity、inspect diagnostics、纳入 / 排除状态、diagnostic failure taxonomy | B0/B1/B2 vs B3/B4/B5 | 待正式实验 |
 | RQ2 | **Scenario-level simulation feedback** 是否能发现仅靠静态诊断或 post-hoc rubric 难以暴露的行为缺陷，并改变需求相关 scenario 的执行通过率与 trace 可解释性？ | scenario pass/fail、trace evidence、scenario-to-requirement link、behavioral failure types | B3 vs B4/B5；scenario coverage audit | 待正式实验 |
-| RQ3 | **Structured repair decision** 是否能把 diagnostics / simulation feedback 转化为可审计的 accept/reject、fix request、diff 与 regression-check 数据流，以及它们如何影响修复稳定性？ | FixLog、repair decision、diff、post-repair regression、non-converged cases | B4 vs B5；repair rounds / regression outcomes | 待正式实验 |
+| RQ3 | **Structured repair decision** 是否能把 diagnostics / simulation feedback 转化为可复盘的 accept/reject、fix request、diff 与 regression-check 决策流，以及它们如何影响修复稳定性？ | FixLog、repair decision、diff、post-repair regression、non-converged cases | B4 vs B5；repair rounds / regression outcomes | 待正式实验 |
 | RQ4 | 在 **baseline-aware evaluation** 下，本文相对 direct / structured prompting、no-feedback orchestration、closest-work approximate baselines 的可防守边际是什么？ | B0-B5 / EXT matrix、same-sample approximate / near / evidence-only 分层、human adjudication | PR #94 / S1a 九大 baseline 反证；mandatory closest works carve-out | S1b 后冻结 |
-| RQ5 | E1/E2 等 orchestration condition 在质量、稳定性、成本、失败模式与 run-record 完整性上有何差异？ | representative runs、cost/latency、failure mode、run-record completeness | E1/E2 作为 implementation dimension / appendix analysis | 可选；不作为贡献 |
+| RQ5 | E1/E2 等 orchestration condition 在质量、稳定性、成本、失败模式与复现负担上有何差异？ | representative runs、cost/latency、failure mode、复现负担 | E1/E2 作为 implementation dimension / appendix analysis | 可选；不作为贡献 |
 
 RQ 写作红线：不得把 RQ 写成“LLM 是否首次能生成状态机”“是否提出新 DSL”“agent framework 是否贡献主要效果”。E1/E2 只能帮助解释 orchestration 的实现影响，不能变成 contribution bullet。
 
@@ -55,7 +55,7 @@ RQ 写作红线：不得把 RQ 写成“LLM 是否首次能生成状态机”“
 1. 选择唯一 main-sample frame：优先 9/101；若改用 sources pool 或 Top/Backup subset，必须在 `sample_registry.csv` 中写明理由。
 2. 重算或核验数量、commit、来源路径和排除规则，不能混用 323 / 332 两种历史统计。
 3. 区分 main result sample、stress-test sample、diagnostic/failure sample。
-4. 每个样本保留 source path、input hash、reference/oracle 状态和 eligibility。
+4. 每个样本保留 source path、input hash、reference/oracle 状态和纳入 / 排除状态。
 
 ## 4. Baseline / condition matrix
 
@@ -69,8 +69,8 @@ RQ 写作红线：不得把 RQ 写成“LLM 是否首次能生成状态机”“
 | B3 | Diagnostics-only feedback | 测 deterministic diagnostics 的边际贡献 | 反馈 parser、schema、basic semantic、design diagnostics，不使用 scenario simulation | 是 |
 | B4 | Diagnostics + scenario simulation feedback | 测 scenario-level simulation feedback 的边际贡献 | 加 scenario candidates、trace、pass/fail、behavior evidence，但不启用 structured repair decision | 是 |
 | B5 | Full feedback + structured repair decision | 主方法条件 | 完整 generate-check-simulate-repair-review loop，记录 fix request、accept/reject、diff、regression | 是 |
-| E1 | Self-built agent-loop orchestration | 实现路径 / orchestration condition | 使用自建 agent-loop 与同一 stage contract / run-record schema | 可选；仅作 RQ5 / appendix |
-| E2 | Mature coding-agent skill route | 上限 / 实现形态分析 | skill + stage tools + full run record / report | 可选；仅作 RQ5 / appendix |
+| E1 | Self-built agent-loop orchestration | 实现路径 / orchestration condition | 使用自建 agent-loop 与同一 stage contract / 内部执行摘要格式 | 可选；仅作 RQ5 / appendix |
+| E2 | Mature coding-agent skill route | 上限 / 实现形态分析 | skill + stage tools + 脱敏执行摘要 / report | 可选；仅作 RQ5 / appendix |
 
 E1/E2 不是独立 contribution；若资源不足，主论文可以只报告 B0-B5，E1/E2 放入 appendix、threats 或 artifact note。
 
@@ -95,7 +95,7 @@ E1/E2 不是独立 contribution；若资源不足，主论文可以只报告 B0-
 | scenario executability | scenario 是否能在 simulator 中执行 | simulator trace / scenario result | RQ2 |
 | scenario pass rate | 执行结果是否满足需求相关期望 | scenario pass/fail + trace evidence | RQ2 |
 | repair convergence | 修复轮是否收敛且不引入回归 | FixLog / regression check | RQ3 |
-| eligibility | run 是否能进入主统计 | run record eligibility policy | RQ1-RQ4 |
+| 纳入 / 排除状态 | 某次运行是否能进入主统计 | 预注册样本与运行纳入 / 排除规则 | RQ1-RQ4 |
 
 ### 5.2 Component-level quality
 
@@ -129,18 +129,9 @@ E1/E2 不是独立 contribution；若资源不足，主论文可以只报告 B0-
 | LLM-as-Judge | 只作辅助 triage / second-look，且必须披露 | 不得作为主 oracle；不得写“不主动声明 LLM 辅助” |
 | Protocol versioning | `oracle_protocol.md` 必须显式写明 supersede 的旧协议段落和生效日期 | 不得进入 G2/G3 |
 
-## 6. Run record requirements
+## 6. 内部运行管理与正文披露边界
 
-每条真实 run 必须记录：
-
-- input NL、source path、sample id、sample registry hash。
-- code commit、dependency / pyfcstm submodule version。
-- provider、model ID、run date、endpoint 脱敏标识。
-- prompt hash、raw output 或脱敏 raw output、usage、retry、timeout、provider error。
-- stage trace、diagnostics、scenario trace、fix request、repair decision、diff、review result、final artifact。
-- eligibility verdict：eligible / provider_error / schema_invalid / semantic_invalid / non_converged / weak_oracle 等。
-
-Run record 只支撑 reproducibility、debugging、audit trail 与 eligibility filter，不作为论文 contribution。
+真实实验阶段需要另行维护内部执行材料，用于团队排障、成本核算和不可用运行的筛除；这些材料不进入 Method 章节，也不作为论文贡献。论文正文或补充材料只按 venue / artifact 要求披露必要信息：样本来源、模型与工具版本、提示词摘要或哈希、预算口径、脱敏输出摘要、诊断 / 场景结果、人工裁决协议，以及纳入 / 排除判定规则。
 
 ## 7. Current caveats and gates
 

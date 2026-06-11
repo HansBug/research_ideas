@@ -15,7 +15,7 @@
 当前必须同时遵守：
 
 1. **不主打 `fcstm` / `pyfcstm`**：论文主文使用 formalized / executable / machine-checkable state-machine representation；内部 DSL 只作为 implementation / artifact。
-2. **不把 run record 写成贡献**：run record 只支撑 reproducibility、debugging、eligibility 和 artifact audit。
+2. **不把过程性工程材料写入论文贡献或方法主线**：论文主文只呈现样本、预算、oracle、统计口径等必要实验条件，不主动叙述过程性工程材料。
 3. **不把 E1/E2 写成 Hybrid contribution**：E1/E2 只是 agent orchestration condition / RQ dimension。
 4. **不写结果型 claim**：G3/G5 前不得写 “we improve quality / we show improvement / same benchmark win”。
 5. **先过 S0a，再做 S0b**：旧 S0 的 `DIRECTION.md`、`abstract_v0.md`、`target_venue_decision.md` 必须后移到 S0b / PR-S0-Direction，在 S0a 新 story 后冻结。
@@ -39,7 +39,7 @@
 3. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：每条 claim 的 status、baseline_coverage、marginal_claim、forbidden_softened_claims 与 safe wording。
 4. [story/paper_outline.md](./story/paper_outline.md)：Introduction、Related Work、Method、Experiment、Threats 的 S0a 后章节逻辑。
 5. [evidence/baseline_and_related_work_matrix.md](./evidence/baseline_and_related_work_matrix.md)：四个 mandatory closest works 与 strict / approximate / near / evidence-only 分层。
-6. [experiment_design/experiment_inventory.md](./experiment_design/experiment_inventory.md)：RQ、B0-B5 条件、EXT 外部 baseline 分层、样本、oracle、metrics、run record 要求。
+6. [experiment_design/experiment_inventory.md](./experiment_design/experiment_inventory.md)：RQ、B0-B5 条件、EXT 外部 baseline 分层、样本、oracle、metrics 与内部实验管理要求。
 7. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：novelty、baseline fairness、oracle、formal overclaim、soft novelty、命名等 C/I/M 风险。
 8. [experiment_design/execution_plan.md](./experiment_design/execution_plan.md)：S0a/S0b 拆分、Mermaid 依赖图、G0a/G0b gate 与 stop condition。
 9. [story/venue_readiness_gate.md](./story/venue_readiness_gate.md)：仅作为 S0b 的 venue readiness 背景与 CCF-A 强度门禁，不代表 S0a 已冻结最终投稿期刊。
@@ -82,9 +82,9 @@ S1a 结论已改变第一篇 story：后续 S1b/S2/S3/S5 必须先通过 S0a 新
 
 - [x] PR body 与本目录文档能无歧义说明第一篇论文 story、边界、执行计划和验收 gate。
 - [x] 已清楚标注 PR #9 资产的历史性质、可复用部分和不可直接当结果的部分。
-- [x] 样本、baseline、oracle、human adjudication、run record、claim-evidence、risk register 均有入口文件。
+- [x] 样本、baseline、oracle、human adjudication、claim-evidence、risk register 与实验管理均有入口文件。
 - [x] 四个 mandatory closest works（Structure/Event SMF、LLMs for EMP、TTool-AI、Designing FSMs）已进入 story、claim map、outline、baseline matrix、risk 和 execution gate。
-- [x] `fcstm` / `pyfcstm`、run record、agent framework、E1/E2 均已降级为 implementation / evidence / condition，不作为 contribution。
+- [x] `fcstm` / `pyfcstm`、agent framework、E1/E2 均已降级为 implementation / evidence / condition；过程性工程材料不进入论文 contribution / Method。
 - [x] S0a/S0b 已拆分；旧 “S0 先冻结 abstract / venue” 路线被 execution plan 与入口文档阻断。
-- [x] S0a 不跑四例真实 agent-loop；真实运行留给样本、oracle、baseline budget、runtime eligibility 冻结后的 S3/S4。
+- [x] S0a 不跑四例真实 agent-loop；真实运行留给样本、oracle、baseline budget 与 runtime 条件冻结后的 S3/S4。
 - [ ] PR #96 实现后多智能体学术 review 无 C/I 级事实、学术、可执行性问题；M 级问题可进入 follow-up。

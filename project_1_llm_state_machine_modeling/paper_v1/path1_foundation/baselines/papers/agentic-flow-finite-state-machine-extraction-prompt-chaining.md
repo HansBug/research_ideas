@@ -86,7 +86,7 @@ source pointer：`paper_content.txt:346-393`（RQ 和指标）、`paper_content.
 | 是否可做同样本直接比较 | 现阶段不建议：论文未公开 GT、抽取输出、完整 prompt 和源码；RTSP RFC 版本也未锁。 |
 | 可做的近似比较 | 可作为 long-document prompt-chaining 方法参考；若后续源码/GT 开放，可用 FTP/RTSP 复跑，但仍属于协议文档样本，不是控制系统需求样本。 |
 | 与 Path-1 S1a 的放置 | 保留为 direct STM extraction baseline，但可复现性标注为弱；适合论证“agentic prompt chain + rulebook IR”而非直接横向量化。 |
-| 若复跑需要 | 先定期复查 GitHub；若仍为空，需人工重建 RFC chunk、GT transition set 和评审协议；所有 LLM 调用按 run record 记录模型、日期、prompt、raw output、usage。 |
+| 若复跑需要 | 先定期复查 GitHub；若仍为空，需人工重建 RFC chunk、GT transition set 和评审协议；复跑时需保存模型、日期、prompt hash、必要脱敏输出摘要与调用成本。 |
 
 source pointer：`ASSETS.md:15-18,45-49`；`paper_content.txt:354-362,383-393,394-403`；`DESC.md:201-216`。
 

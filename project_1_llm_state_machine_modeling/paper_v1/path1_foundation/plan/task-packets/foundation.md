@@ -22,7 +22,7 @@
 
 - PR #9 historical assets：selection、expansion、ref_stms、PATH1_REPORT。
 - PR #31 / project_1 talks：导师对 Path-1、E1/E2、Hybrid、Path-2 的定调。
-- PR #22 / method docs：当前 agent-loop / skill / run-record 事实。
+- PR #22 / method docs：当前 agent-loop / skill / 内部执行材料事实。
 - issue #67：2026 夏季投稿计划，尤其“按 CCF-A 论文标准打磨，2026 夏季优先投 CCF-B 期刊；主投 SoSyM regular，ASEJ / REJ 作备投”的 venue strategy。
 - PR [#94](https://github.com/HansBug/research_ideas/pull/94) / S1a baseline 总账与逐篇文件、PR [#92](https://github.com/HansBug/research_ideas/pull/92)：closest prior work matrix、2025-2026 arXiv baseline / 强近邻再摸排增量、九个 direct baseline 的分层结论。
 

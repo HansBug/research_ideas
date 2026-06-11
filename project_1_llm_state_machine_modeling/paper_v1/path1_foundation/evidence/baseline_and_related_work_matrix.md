@@ -19,7 +19,7 @@
 2. 不把 PlantUML / TTool / Umple / CSV parse、JSON schema、rule-based checking 写成完整 formal verification。
 3. 不把 post-hoc GT F1、expert score 或 SME rubric 写成生成流程内 feedback。
 4. 不把 private GT、缺代码、缺 prompt、artifact 漂移写成 prior work weakness；只能写成 comparability / reproducibility boundary。
-5. 不把 run record、`pyfcstm`、LangGraph / Codex / Claude、prompt chaining / RAG / few-shot 写成 paper contribution。
+5. 不把内部执行日志、`pyfcstm`、LangGraph / Codex / Claude、prompt chaining / RAG / few-shot 写成 paper contribution。
 
 ## 2. Mandatory closest works：Related Work 第一层
 
@@ -51,7 +51,7 @@ Related Work 第一节必须显式列出以下四项，并逐项给出本文边�
 正式 S3 之前至少满足以下 contract：
 
 1. **至少一个 external same-sample approximate baseline**：优先 Structure/Event SMF；备选 LLMs for EMP STM 子集。
-2. **预算表必须冻结**：输入上下文、example/RAG、模型 ID、temperature、反馈轮数、human budget、tool budget、输出归一化、eligibility filter。
+2. **预算表必须冻结**：输入上下文、example/RAG、模型 ID、temperature、反馈轮数、human budget、tool budget、输出归一化、样本 / 运行纳入排除规则。
 3. **同一层级才可比较**：same-sample approximate 可以进入主结果表；near work 只能做辅助 / 小规模工具对比；evidence-only 只能进入 Related Work 和 threat。
 4. **不可复现要中性描述**：private GT / missing prompt / missing pipeline / provider drift 只影响 strict replication，不作为 prior work 缺陷。
 5. **主结果不能只有 internal ablation**：若无外部 baseline，论文必须降级为 protocol / diagnostic study，不写优于 prior work。
