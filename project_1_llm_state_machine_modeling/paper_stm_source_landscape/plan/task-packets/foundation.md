@@ -2,7 +2,7 @@
 
 ## 范围
 
-- 新建 `paper_stm_source_landscape/`，与 PR #96 `path1_foundation/` 同构。
+- 新建 `paper_stm_source_landscape/`，采用 PR #96 论文工作区的六层分工思路。
 - 落地 #95 438 行审计、69 行 D1--D7 初筛、25 条人工下载 BibTeX、7 条自动全文复查门禁。
 - 建立论文主线 / 声明 / 证据 / 实验 / 计划入口。
 

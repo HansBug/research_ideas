@@ -13,7 +13,7 @@
 | G0 | 制品 / 版权边界 | 只提交元数据、BibTeX、CSV，未完成最终发布包 |
 | G1 | 后验协议审计 | 未完成；本 PR 只建入口 |
 | G2 | 编码可靠性审计 | 未完成；本 PR 只建入口 |
-| G3 | 相关工作查重 | 本 PR 完成元数据级初筛，待全文核验 |
+| G3 | 相关工作查重 | 本 PR 完成 #95 元数据级初筛与 Stage 1b 起点审计；DBLP/arXiv 已有轻量记录，Semantic Scholar / Google Scholar / ACM DL / IEEE Xplore / SpringerLink / ScienceDirect 等仍需后续人工或带凭证补跑 |
 | G4 | RQ 到数据 / 资格规则对齐 | 未完成；需后续资格规则 |
 | G5 | 跨论文边界 / 反切香肠边界 | `story/` 中已标注，需 companion boundary 文档 |
 | G6 | CCF-A 综述 / 映射研究门槛 | 投稿门禁已建，待 checklist |

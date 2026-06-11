@@ -10,6 +10,18 @@
 | `issue85_narrowed_related_candidates_preliminary.csv` | 69 / lines 70 | `73a1d584c76241c320785312658a479535a08df6a6493bcc5180b05f8f35e697` | [来源](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
 | `issue85_manual_download_needed_preliminary.bib` | n/a / lines 249 | `11c867b07985069f1ed0aefd025739c4f5b133d3512e57eb74af53f9ee4d63ce` | [来源](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
 
+## 本 PR 派生文件快照
+
+以下快照对应当前仓库内已硬化后的派生文件；它们可能不同于计划阶段 Gist 的原始 hash。
+
+| 文件 | 本地行数 | 本地 SHA256 | 说明 |
+|---|---:|---|---|
+| `issue85_narrowed_related_candidates_preliminary.csv` | 70 | `fd544dfbb8b7ca7a94b84f0c6c9eeaedfc1c982f3d18c08c1de811e450d9b846` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `screening_audit.csv` | 439 | `8cee4599a141b225613f6b74e33f310b9264881658f231aff21481d35d90b7a0` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `targeted_search_audit.csv` | 20 | `ffa6f35e093a5b653e7c59045b58ada631d018e47773fe6b74f7830ac534c844` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `auto_fulltext_light_review_gate.csv` | 8 | `9e9f9a00cf5481758bb1e9e1ccbc94a55f542b28f46ee9d93e2d03b817a4ccb4` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `manual_download_needed.bib` | 249 | `11c867b07985069f1ed0aefd025739c4f5b133d3512e57eb74af53f9ee4d63ce` | 本 PR 派生 / 硬化后的机器审计文件 |
+
 ## 漂移处理策略
 
 1. `issue95_*` CSV 原始 URL 视为可变输入；正式成稿前必须重新下载并比对 SHA256。
@@ -18,7 +30,7 @@
 
 ## 表头快照
 
-以下代码块保留原始 CSV 字段名，便于机器复验。
+以下代码块保留原始 CSV 字段名，便于机器复验；这些字段名是输入文件的机器字段，不翻译为中文，中文字段释义以 [../GUIDE.md](../GUIDE.md) 与本目录其他说明文件为准。
 
 ### `issue95_ccf_ab_review_candidates_2023_2026.csv`
 
@@ -41,11 +53,11 @@ doi, title, ccf_rank, journal, year_issue_table, publication_year_metadata, oa_s
 ### `issue85_narrowed_related_candidates_preliminary.csv`
 
 ```text
-prelim_row_id, source_row_index, discovery_source, include_reason, ccf_rank_source_claim, venue_source_claim, year_source_claim, title, authors_metadata, doi, doi_url, landing_page_url, fulltext_status_issue95, audit_download_status_raw, audit_discovered_pdf_url_count, audit_download_error_or_source, D1_score, D2_score, D3_score, D4_score, D5_score, D6_score, D7_score, preliminary_relation_level, verification_status, manual_priority, manual_download_decision, manual_decision_reason, preliminary_rationale, note, D1_preliminary_rationale, D2_preliminary_rationale, D3_preliminary_rationale, D4_preliminary_rationale, D5_preliminary_rationale, D6_preliminary_rationale, D7_preliminary_rationale, auto_fulltext_light_review_flag, auto_fulltext_light_review_reason
+prelim_row_id, source_row_index, discovery_source, include_reason, ccf_rank_source_claim, venue_source_claim, year_source_claim, title, authors_metadata, doi, doi_url, landing_page_url, fulltext_status_issue95, audit_download_status_raw, audit_discovered_pdf_url_count, audit_download_error_or_source, D1_score, D2_score, D3_score, D4_score, D5_score, D6_score, D7_score, preliminary_relation_level, relation_derivation_rule, supports_gate, D7_claim_element, D7_challenge_or_support, novelty_action, difference_from_85, verification_status, manual_priority, manual_download_decision, manual_decision_reason, preliminary_rationale, note, D1_evidence_level, D1_evidence_locator, D1_rationale, D1_pending_verification, D1_preliminary_rationale, D2_evidence_level, D2_evidence_locator, D2_rationale, D2_pending_verification, D2_preliminary_rationale, D3_evidence_level, D3_evidence_locator, D3_rationale, D3_pending_verification, D3_preliminary_rationale, D4_evidence_level, D4_evidence_locator, D4_rationale, D4_pending_verification, D4_preliminary_rationale, D5_evidence_level, D5_evidence_locator, D5_rationale, D5_pending_verification, D5_preliminary_rationale, D6_evidence_level, D6_evidence_locator, D6_rationale, D6_pending_verification, D6_preliminary_rationale, D7_evidence_level, D7_evidence_locator, D7_rationale, D7_pending_verification, D7_preliminary_rationale, auto_fulltext_light_review_flag, auto_fulltext_light_review_reason
 ```
 
 ### `issue85_manual_download_needed_preliminary.bib`
 
 ```text
-
+BibTeX 无表头；按 entry 数量、DOI 字段与 SHA256 复验。
 ```

@@ -22,8 +22,15 @@ Emoji 口径：`🟢` 核心强相关，`🟡` 高度近邻，`🟠` 值得关�
 
 ## 3. 自动全文暂缓复查门禁
 
-`auto_fulltext_light_review_flag=yes` 的行不能最终排除，直到完成轻量方法节复查。复查至少记录是否出现 state machine、behavioral model、benchmark、corpus、LLM4Modeling 等关键词，以及保持 `Skip`、升级 P1/P0 或转入 `verified_near_neighbor` 的原因。
+自动全文轻量复查标记为 `yes` 的行不能最终排除，直到完成轻量方法节复查。复查至少记录是否出现状态机（`state machine`）、行为模型（`behavioral model`）、基准（`benchmark`）、语料（`corpus`）、LLM4Modeling 等关键词，以及保持“暂缓 / 暂不下载（`Skip`）”、升级为 P1/P0，或转入“已核验近邻（`verified_near_neighbor`）”的原因。
 
 ## 4. 审查门禁
 
 C/I 级问题包括：P0/P1 BibTeX 不完整、438 行审计缺失、7 条自动全文门禁未复查就最终排除、仅元数据判断被写成已核验声明、遗漏明显直接近邻。纯格式问题为 M。
+
+
+## 5. 438 行审计与 69 行矩阵的字段边界
+
+`screening_audit.csv` 覆盖 #95 的 438 行候选；未进入 69 行矩阵的候选只要求保留 `screening_decision`、`screening_reason`、题名、年份、venue、DOI 和下载审计摘要。进入 69 行矩阵的候选必须完整填写 D1--D7 的 `score / evidence_level / evidence_locator / rationale / pending_verification`，并保留 `relation_derivation_rule / supports_gate / D7_claim_element / difference_from_85`。
+
+`targeted_search_audit.csv` 当前是 Stage 1b 起点审计：它记录命中、零命中与访问受限入口，但不关闭后续 G3 全面 direct-competitor safety search。

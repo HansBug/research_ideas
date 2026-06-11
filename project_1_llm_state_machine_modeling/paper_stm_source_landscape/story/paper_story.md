@@ -55,7 +55,7 @@ LLM4SE、LLM4MDE 与需求自动化研究快速增长，但仍缺少面向 LLM �
 
 ## 禁止过度声明
 
-- 不写 first / largest / complete / public benchmark dataset 等绝对化说法。
+- 不写“首次（`first`）/ 最大（`largest`）/ 完整（`complete`）/ 公开基准数据集（`public benchmark dataset`）”等绝对化说法。
 - 不写完整覆盖控制系统文献。
 - 不写 LLM 能力提升或性能结论。
 - 不把 `sources/` 现有 PDF / 全文抽取物当作公开制品。

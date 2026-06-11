@@ -4,7 +4,7 @@
 
 本目录是 issue #85 的独立论文工作区，服务于“控制系统状态机语料 / 基准来源景观”论文。它与 [`../paper_v1/`](../paper_v1/) 并列，不是 `paper_v1` 的后续版本，也不得使用带顺序含义的版本化命名。
 
-本目录复刻 PR #96 `paper_v1/path1_foundation/` 的论文工作区分层：用 `story/` 管论文主线，用 `evidence/` 管证据桥接，用 `baselines/` 管相关工作 / 基线初筛，用 `dataset_selection/` 管 `sources/` 语料边界，用 `experiment_design/` 管 RQ、协议与审稿风险，用 `plan/` 管当前 PR 进度与任务包。
+本目录沿用 PR #96 论文工作区的分层思路，但不引用一个当前 `main` 上不存在的子路径：用 `story/` 管论文主线，用 `evidence/` 管证据桥接，用 `baselines/` 管相关工作 / 基线初筛，用 `dataset_selection/` 管 `sources/` 语料边界，用 `experiment_design/` 管 RQ、协议与审稿风险，用 `plan/` 管当前 PR 进度与任务包。
 
 ## 2. 当前论文主线
 
@@ -43,7 +43,7 @@
 
 ## 6. 当前验收标准
 
-- [x] 目录结构与 PR #96 `path1_foundation/` 同构，并明确与 `paper_v1/` 并列。
+- [x] 目录结构采用 PR #96 论文工作区的六层分工思路，并明确与 `paper_v1/` 并列。
 - [x] #95 的 438 行候选有全量筛选审计入口。
 - [x] #85 初筛 69 行候选有 D1--D7 独立打分与判断依据。
 - [x] P0/P1 的 25 条人工下载 BibTeX 已落地。
