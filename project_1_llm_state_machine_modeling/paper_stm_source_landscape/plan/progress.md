@@ -21,6 +21,7 @@ PR #97 实现阶段：已从计划 PR 进入实现，目标是建立 #85 论文�
 
 | 时间 | 动作 | 结果 |
 |---|---|---|
+| 2026-06-11 21:13:00 | 修复 codex reviewer 第二轮 I 级残留：同步 row 32 聚合 `preliminary_rationale` 的 D1=🟠，并更新派生 CSV SHA256 | 本地 69 行聚合 rationale 与 D1--D7 独立分数一致性校验通过 |
 | 2026-06-11 20:56:00 | 处理 codex reviewer 复审 I 级意见：补字段级 provenance / 下载 handoff schema，并将 `human-in-the-loop` 泛词误判降级 | 本地校验通过，待推送后复审 |
 | 2026-06-11 19:06:00 | 本地生成工作区与审计文件 | 待本地检查 / 三路审阅 |
 | 2026-06-11 20:50:00 | 处理 codex reviewer I 级意见：行号修复、D1--D7 字段补齐、targeted search 起点审计扩充、PR body 待同步 | 本地校验通过，待推送后复审 |
