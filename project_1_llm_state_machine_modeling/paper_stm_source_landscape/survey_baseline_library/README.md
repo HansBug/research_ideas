@@ -55,7 +55,7 @@ survey_baseline_library/
 │   ├── README.md
 │   ├── fulltext_review_matrix.csv
 │   └── local_fulltext_receipt.csv
-├── scripts/
+├── checks/
 │   └── validate_library.py
 └── papers/
     └── <paper-slug>/
@@ -73,7 +73,7 @@ survey_baseline_library/
 | [SUMMARY.md](./SUMMARY.md) | 25 篇 P0/P1 全文级 baseline 总账；表格直接链接到单篇 review/PDF/TXT/BibTeX |
 | [data/fulltext_review_matrix.csv](./data/fulltext_review_matrix.csv) | 机器真源：D1--D7 全文评分、页码定位、方法学 checklist、final relation、claim impact |
 | [data/local_fulltext_receipt.csv](./data/local_fulltext_receipt.csv) | 文件 receipt：记录每篇 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`fulltext_review.md`、短哈希与抽取状态 |
-| [scripts/validate_library.py](./scripts/validate_library.py) | 文库结构与同步规则校验脚本：检查四件套、D1--D7、SUMMARY 链接、README/GUIDE 规则锚点 |
+| [checks/validate_library.py](./checks/validate_library.py) | 文库结构与同步规则校验脚本：检查四件套、D1--D7、SUMMARY 链接、README/GUIDE 规则锚点 |
 | [papers/](./papers/) | 单论文目录；每篇一目录，承载原文、抽取文本、BibTeX 和全文 review |
 
 ## 6. 推荐阅读路线图

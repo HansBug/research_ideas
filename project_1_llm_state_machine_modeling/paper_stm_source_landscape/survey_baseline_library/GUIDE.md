@@ -213,7 +213,7 @@ Emoji 口径：`🟢` 核心强相关，`🟡` 高度近邻，`🟠` 值得关�
 
 ```bash
 source venv/bin/activate
-python project_1_llm_state_machine_modeling/paper_stm_source_landscape/survey_baseline_library/scripts/validate_library.py
+python project_1_llm_state_machine_modeling/paper_stm_source_landscape/survey_baseline_library/checks/validate_library.py
 git diff --check
 ```
 
