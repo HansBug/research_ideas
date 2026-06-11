@@ -2,9 +2,9 @@
 
 ## 暂定标题
 
-From Control-System Papers to Benchmark-Source Landscapes: A Retrospective Systematic Mapping of State-Machine Cases
+中文主标题：从控制系统论文到基准来源景观：状态机案例的后验系统映射。
 
-中文暂译：从控制系统论文到基准来源景观：状态机案例的后验系统映射。
+英文投稿标题候选仅作为后续投稿时的题名备选：From Control-System Papers to Benchmark-Source Landscapes: A Retrospective Systematic Mapping of State-Machine Cases。
 
 ## 核心论点
 
