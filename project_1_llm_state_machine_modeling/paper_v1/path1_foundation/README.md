@@ -8,7 +8,7 @@
 
 ## 2. 当前结论
 
-第一篇论文暂定走 **Path-1 baseline hard comparison**：研究自然语言控制系统需求到形式化状态机模型的 LLM 建模问题，重点检验形式化状态机表示、确定性检查反馈、可执行仿真反馈与 LLM agent 修复闭环是否能相对近期 LLM-for-modeling / state-machine-generation baseline 提供更丰富、更可审计、更可执行的状态机建模结果。
+第一篇论文暂定走 **Path-1 baseline hard comparison**：研究自然语言控制系统需求到形式化状态机模型的 LLM 建模问题，重点检验形式化状态机表示、确定性检查反馈、可执行仿真反馈与 LLM agent 修复闭环是否能相对近期 LLM-for-modeling / state-machine-generation baseline 提供更完整、更可执行、更高质量的状态机建模结果；run record 只作为实验复核、打假和排障支撑，不列为学术贡献。
 
 一句话中文口径：
 

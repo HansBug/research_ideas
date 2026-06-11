@@ -24,14 +24,14 @@
 | R12 | M | paper_v1 旧 sprint 口径残留 | 新 session 误读 2026-05 sprint 为当前事实 | 更新 [../README.md](../README.md) current overlay | 本 PR 处理 |
 | R13 | C | Novelty 被 9 个 direct baseline 打穿 | 论文暗示“首次 NL→STM”“首次 feedback loop”“prior work only draws diagrams” | 在 story / claim map / related work 中显式列出反证门，所有 first/unique 类 claim 禁用 | foundation 已建立，需后续执行 |
 | R14 | I | `llms_emp` STM 子集未利用 | 公开 36 个 STM 子集却没有进入复核或 baseline 设计 | S1a 评估是否能作为 same-sample / approximate / evidence source | 待执行 |
-| R15 | I | TTool-AI / Designing FSMs 差异未讲清 | reviewer 认为我们只是重复工具反馈或 oracle repair | 对比控制系统语义、仿真 trace、FixLog、run record 与人工组件协议 | 待执行 |
+| R15 | I | TTool-AI / Designing FSMs 差异未讲清 | reviewer 认为我们只是重复工具反馈或 oracle repair | 对比控制系统语义、scenario trace、FixLog / 修复决策与人工组件协议；run record 只作为复核证据 | 待执行 |
 | R16 | C | 目标投 B 但证据未达 A 类标准 | 因目标是 CCF-B 期刊而降低 novelty、baseline、oracle、artifact 或 threats 标准 | 按 [venue_readiness_gate.md](../story/venue_readiness_gate.md) 做 CCF-A 标准自查；G5 前 C/I 不闭合则不硬投 | 待执行 |
 
 ## 3. Reviewer mental model
 
 希望 reviewer 形成的理解：
 
-> This paper is not primarily a new DSL paper or a Codex workflow report. It studies whether executable formal feedback helps LLMs produce better state-machine models from control-system requirements, and it supports the claim through auditable runs, human adjudication, ablations, careful baseline positioning, and a venue-ready artifact prepared to CCF-A review standards even though the fit-first first submission targets CCF-B journals.
+> This paper is not primarily a new DSL paper or a Codex workflow report. It studies whether executable formal feedback and structured repair decisions help LLMs produce better state-machine models from control-system requirements. Run records support reproducibility and debugging rather than serving as a contribution; the main claim is supported by human adjudication, ablations, careful baseline positioning, and a venue-ready artifact prepared to CCF-A review standards even though the fit-first first submission targets CCF-B journals.
 
 需要避免 reviewer 形成的误解：
 
