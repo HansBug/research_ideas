@@ -201,6 +201,15 @@ Emoji 口径：`🟢` 核心强相关，`🟡` 高度近邻，`🟠` 值得关�
 | final relation 改动 | [SUMMARY.md](./SUMMARY.md)、[../evidence/baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md) |
 | 新增 / 删除论文 | [SUMMARY.md](./SUMMARY.md) 总数、两个 CSV、单篇目录、更新日志 |
 
+### 6.1 时间戳审计规则
+
+本文库是 #85 论文 claim gate 的证据链，所有 `更新时间`、`reviewed_at` 与更新日志时间都必须满足：
+
+1. **不得写未来时间**：时间戳必须不晚于实际执行命令 / commit / PR comment 的时间；若需要回填历史事件，只能写可追溯的真实时间或明确标注为“逻辑批次时间”。
+2. **不得使用计划时间伪装已完成事实**：尚未发生的复查、精读、G3 检索或 reviewer gate 只能写入后续路线，不能写进 receipt 或已完成更新日志。
+3. **到秒精度必须有来源**：若无法从命令、文件 mtime、git commit 或 PR comment 追溯到秒，优先写较保守的批次时间并在说明中标明来源，不要制造假精度。
+4. **修改 receipt / SUMMARY 后必须运行校验脚本**：[checks/validate_library.py](./checks/validate_library.py) 会扫描文库内 Markdown / CSV 的 `yyyy-mm-dd hh:mm:ss` 时间戳，发现未来时间时直接失败。
+
 ## 7. 更新流程
 
 1. 先读本 [README.md](./README.md)、本 [GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)。

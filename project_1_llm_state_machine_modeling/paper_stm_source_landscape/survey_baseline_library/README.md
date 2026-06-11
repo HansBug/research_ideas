@@ -44,6 +44,8 @@
 
 完整可执行标准以 [GUIDE.md](./GUIDE.md) §4 为准；README 只保留路线图与入口，不作为第二事实真源。
 
+时间戳、receipt 与更新日志的审计规则以 [GUIDE.md](./GUIDE.md) §6.1 为准；不得把未来计划时间写成已经发生的全文初检或 reviewer 记录。
+
 ## 4. 路径结构
 
 ```text

@@ -4,9 +4,16 @@ import argparse
 import csv
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover - old Python fallback
+    ZoneInfo = None
+
 VALID_SCORES = {"🟢", "🟡", "🟠", "🔴"}
+TIMESTAMP_RE = re.compile(r"\b20\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\b")
 REQUIRED_SINGLE_PAPER_FILES = [
     "paper.pdf",
     "paper_content.txt",
@@ -32,6 +39,7 @@ GUIDE_ANCHORS = [
     "CSV 与 SUMMARY 字段合同",
     "证据链最低密度",
     "可写 / 不可写声明模板",
+    "时间戳审计规则",
 ]
 REQUIRED_MATRIX_COLS = [
     "paper_dir",
@@ -52,6 +60,46 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
+def now_china_naive() -> datetime:
+    if ZoneInfo is not None:
+        return datetime.now(ZoneInfo("Asia/Shanghai")).replace(tzinfo=None)
+    return datetime.now()
+
+
+def find_future_timestamps(path: Path, now: datetime) -> list[str]:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    future: list[str] = []
+    for match in TIMESTAMP_RE.finditer(text):
+        value = match.group(0)
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+        if parsed > now:
+            future.append(value)
+    return future
+
+
+def validate_summary_main_table(summary: str, expected_rows: int) -> list[str]:
+    errors: list[str] = []
+    marker = "## 3. 全文级 baseline 初检矩阵"
+    if marker not in summary:
+        return ["SUMMARY 缺少全文级 baseline 初检矩阵章节"]
+    section = summary.split(marker, 1)[1].split("## 3.1", 1)[0]
+    rows = [line for line in section.splitlines() if line.startswith("| ")]
+    data_rows = [line for line in rows if not line.startswith("| # ") and not line.startswith("|---")]
+    if len(data_rows) != expected_rows:
+        errors.append(f"SUMMARY 主表数据行数 {len(data_rows)} != 单论文目录数 {expected_rows}")
+    for idx, row in enumerate(data_rows, start=1):
+        cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+        if len(cells) != 15:
+            errors.append(f"SUMMARY 主表第 {idx} 行列数 {len(cells)} != 15: {row[:120]}")
+            continue
+        if cells[0] != str(idx):
+            errors.append(f"SUMMARY 主表第 {idx} 行编号为 {cells[0]!r}，期望 {idx}")
+    return errors
+
+
 def validate(lib_root: Path, expected_count: int | None = None) -> list[str]:
     errors: list[str] = []
     repo_root = lib_root.parents[3]
@@ -64,6 +112,7 @@ def validate(lib_root: Path, expected_count: int | None = None) -> list[str]:
     readme = (lib_root / "README.md").read_text(encoding="utf-8")
     guide = (lib_root / "GUIDE.md").read_text(encoding="utf-8")
     summary = (lib_root / "SUMMARY.md").read_text(encoding="utf-8")
+    audit_now = now_china_naive()
     for anchor in README_ANCHORS:
         if anchor not in readme:
             errors.append(f"README 缺少 roadmap / 评分入口锚点: {anchor}")
@@ -116,6 +165,8 @@ def validate(lib_root: Path, expected_count: int | None = None) -> list[str]:
                 if not row.get(f"D{dim}_{suffix}"):
                     errors.append(f"{review_id}: D{dim}_{suffix} 为空")
 
+    errors.extend(validate_summary_main_table(summary, len(paper_dirs)))
+
     for local_link in re.findall(r"\]\((\.\/[^)]+)\)", summary):
         target = lib_root / local_link[2:]
         if not target.exists():
@@ -157,6 +208,11 @@ def validate(lib_root: Path, expected_count: int | None = None) -> list[str]:
     for path in lib_root.rglob("*"):
         if path.is_file() and path.stat().st_size >= 100 * 1024 * 1024:
             errors.append(f"单文件超过或等于 100MB: {path} ({path.stat().st_size} bytes)")
+
+    for path in lib_root.rglob("*"):
+        if path.is_file() and path.suffix in {".md", ".csv"}:
+            for value in find_future_timestamps(path, audit_now):
+                errors.append(f"发现未来时间戳 {value}: {path.relative_to(repo_root)}；本文库时间默认 Asia/Shanghai")
 
     return errors
 

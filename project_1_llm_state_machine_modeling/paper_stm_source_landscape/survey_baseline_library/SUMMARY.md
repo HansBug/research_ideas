@@ -1,6 +1,6 @@
 # #85 综述 baseline 全文初检总账
 
-更新时间：`2026-06-12 00:30:00`。本文件是 P0/P1 本地全文初检结果的总账；机器真源见 [data/fulltext_review_matrix.csv](./data/fulltext_review_matrix.csv)。每一行都提供到单篇 `fulltext_review.md`、`paper.pdf`、`paper_content.txt` 与 `bibtex.bib` 的相对路径链接。
+更新时间：`2026-06-11 23:36:23`。本文件是 P0/P1 本地全文初检结果的总账；机器真源见 [data/fulltext_review_matrix.csv](./data/fulltext_review_matrix.csv)。每一行都提供到单篇 `fulltext_review.md`、`paper.pdf`、`paper_content.txt` 与 `bibtex.bib` 的相对路径链接。
 
 ## 0. 总览
 
@@ -75,7 +75,8 @@
 
 | 时间 | 更新 |
 |---|---|
-| 2026-06-12 00:45:00 | 根据 codex reviewer dry-run 的 I 级意见，在 [data/fulltext_review_matrix.csv](./data/fulltext_review_matrix.csv) 中补齐 `D1_writing_action`--`D7_writing_action`，确保机器真源也能承载逐维写作动作；同步将单篇 review 的负证据章节中文化为“负证据检索”。 |
-| 2026-06-12 00:30:00 | 按用户要求将文库维护规则固化到 [README.md](./README.md) 与 [GUIDE.md](./GUIDE.md)：README 增加文库 roadmap / 任务入口，GUIDE 增加四件套硬规则、D1--D7 七维独立评分硬规则、CSV/SUMMARY 同步合同和单篇 `fulltext_review.md` 证据链最低密度。 |
-| 2026-06-12 00:10:00 | 按单论文文库规范补齐 25 篇 `paper.pdf`、`paper_content.txt`，强化单篇 `fulltext_review.md` 的证据链，并让总账表格直接链接到 review/PDF/TXT/BibTeX。 |
-| 2026-06-11 23:25:00 | 用户已提供 P0/P1 本地下载 PDF；建立 `survey_baseline_library/`，完成 25 篇本地全文初检、receipt、D1--D7 全文级矩阵和单篇 `fulltext_review.md`。 |
+| 2026-06-11 23:36:23 | 修复 reviewer 指出的时间戳审计链问题：将 SUMMARY / data README / receipt 中的未来时间改为真实可追溯时间，并把未来时间戳与 SUMMARY 主表结构检查纳入 [checks/validate_library.py](./checks/validate_library.py)。 |
+| 2026-06-11 23:01:00 | 根据 codex reviewer dry-run 的 I 级意见，在 [data/fulltext_review_matrix.csv](./data/fulltext_review_matrix.csv) 中补齐 `D1_writing_action`--`D7_writing_action`，确保机器真源也能承载逐维写作动作；同步将单篇 review 的负证据章节中文化为“负证据检索”。 |
+| 2026-06-11 22:58:00 | 按用户要求将文库维护规则固化到 [README.md](./README.md) 与 [GUIDE.md](./GUIDE.md)：README 增加文库 roadmap / 任务入口，GUIDE 增加四件套硬规则、D1--D7 七维独立评分硬规则、CSV/SUMMARY 同步合同和单篇 `fulltext_review.md` 证据链最低密度。 |
+| 2026-06-11 22:55:00 | 按单论文文库规范补齐 25 篇 `paper.pdf`、`paper_content.txt`，强化单篇 `fulltext_review.md` 的证据链，并让总账表格直接链接到 review/PDF/TXT/BibTeX。 |
+| 2026-06-11 22:05:00 | 用户已提供 P0/P1 本地下载 PDF；建立 `survey_baseline_library/`，完成 25 篇本地全文初检、receipt、D1--D7 全文级矩阵和单篇 `fulltext_review.md`。 |
