@@ -23,5 +23,5 @@
 2. G1 后验协议审计：`PROTOCOL.md`、`INCLUSION_TRACE.csv/jsonl`、流程。
 3. G2 编码可靠性：盲编码 / 双人编码、一致性 / 裁决日志。
 4. P0/P1 人工全文下载与核验。
-5. 7 条 `auto_fulltext_light_review_flag=yes` 候选的轻量方法节复查。
+5. 21 条 `auto_fulltext_light_review_flag=yes` 候选的轻量方法节复查。
 6. G0 版权安全发布包与污染检查。

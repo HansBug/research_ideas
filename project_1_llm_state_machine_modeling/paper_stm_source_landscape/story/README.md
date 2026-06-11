@@ -8,4 +8,4 @@
 | [terminology_policy.md](./terminology_policy.md) | `benchmark-source landscape`、`retrospective SMS`、`corpus`、`benchmark` 等术语边界 |
 | [venue_readiness_gate.md](./venue_readiness_gate.md) | CCF-A 标准准备与投稿适配门禁 |
 
-硬约束：不写“完整 SLR / 覆盖所有控制系统文献”；不写最终基准；不写 first/largest；不提交 PDF/全文。
+硬约束：不写“完整 SLR / 覆盖所有控制系统文献”；不写最终基准；不写 first/largest；paper 内部文库可保存 PDF/TXT 四件套；对外论文正文和 PR comment 不复制长段原文。

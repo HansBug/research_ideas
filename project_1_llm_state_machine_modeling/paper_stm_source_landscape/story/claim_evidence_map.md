@@ -11,13 +11,13 @@
 | `sources/` 已形成大规模控制系统 STM 来源语料 | 787 篇 / 746 案例规划基线；需正式快照复算 | `pending_snapshot` | “本文分析一个经审计的控制系统论文语料快照” | “最大 / 完整语料” |
 | 语料可支撑基准来源景观 | 质量标签、结构标签、角色分布；需 G4/G7/G9 | `careful` | “基准来源景观 / 基于证据的基准设计启示” | “可直接使用的公开基准” |
 | 本文是带审计协议的后验系统映射 | issue #85 G1 规划；本 PR 不完成 G1 | `pending_protocol` | “带审计协议的后验系统映射” | “严格 PRISMA 合规的 SLR” |
-| D1--D7 相关工作初筛已定位高风险近邻 | 本 PR 69 行矩阵、P0/P1 BibTeX、定向检索审计 | `working_evidence` | “规划阶段相关工作初筛定位了需全文核验的候选” | “我们已核验所有直接近邻” |
-| 制品版权安全 | 本 PR 只提交元数据/BibTeX/CSV，不提交 PDF/全文；G0 未完成 | `partial` | “本 PR 遵守仅元数据提交策略” | “最终制品已经版权安全” |
+| D1--D7 相关工作初筛已定位高风险近邻 | 本 PR 69 行矩阵、P0/P1 BibTeX、25 篇本地私有全文初检、定向检索审计 | `strong_for_p0p1_initial_fulltext` | “P0/P1 gap-neighbor 已完成本地私有全文初检，未发现关闭 #85 gap 的同题完整竞品；仍需 G3 多数据库检索闭环” | “我们已核验所有直接近邻 / 已完成完整竞品检索” |
+| 制品版权安全 | 本 PR 在 paper 内部文库保存 PDF/TXT/BibTeX/review 四件套；对外写作只使用短引文、页码定位和转述；G0 未完成 | `partial` | “本 PR 遵守单篇文库四件套 + 对外短转述策略” | “最终制品已经版权安全” |
 | LLM 试跑 / 基准性能 | 当前无真实 LLM 试跑 | `avoid` | 仅作未来工作或 G10 条件 | “我们证明 LLM 性能……” |
 
 ## 3. 当前 PR 不能说什么
 
 - 不能说最终相关工作已完成。
-- 不能说 P0 都是已核验直接近邻。
-- 不能把 `Skip` 行当成最终排除，尤其是 `auto_fulltext_light_review_flag=yes` 的 7 行。
-- 不能把 #95 元数据字段当作已核验文献信息事实。
+- 不能说 P0 都是已核验直接竞品；当前安全说法是“P0 是全文初检后的 gap neighbor”。
+- 不能把 `Skip` 行当成最终排除，尤其是 `auto_fulltext_light_review_flag=yes` 的 21 行。
+- 不能把 #95 元数据字段当作已核验文献信息事实；P0/P1 的全文判断必须回到 [../survey_baseline_library/SUMMARY.md](../survey_baseline_library/SUMMARY.md)。

@@ -1,0 +1,2206 @@
+--- Page 1 ---
+Contents lists available at ScienceDirect
+The Journal of Systems & Software
+journal homepage: www.elsevier.com/locate/jss
+Model-driven safety and security co-analysis: A systematic literature review✩
+Victor Luiz Grechia,∗,André Luiz de Oliveirab,Rosana T. Vaccare Bragaa
+aMathematics and Computer Science Institute, University of Sao Paulo, São Carlos, Brazil
+bDepartment of Computer Science, Federal University of Juiz de Fora, Juiz de Fora, Brazil
+A R T I C L E I N F O
+Keywords:
+Safety
+Security
+Safety and security co-analysis
+Model-driven engineering
+Safety–critical systems
+Security-critical systemsA B S T R A C T
+Failures in systems that can lead to loss of life, property, and environmental damage, make them safety–
+critical systems requiring the analysis and demonstration of dependability properties. When those systems
+can connect/disconnect to each other, it raises security issues, making them also security-critical. Safety and
+security are crucial in safety- and security-critical design. The complexity of a connected world impacts safety
+and security, requiring dependability assurance processes in compliance with standards like ISO 26262, ISO
+21434, IEC 61511, and IEC 61508. Model-Driven Engineering (MDE) plays a significant role by using models
+to represent and analyze safety and security properties, facilitating their integration. This study aims to explore
+the role of MDE in supporting safety and security co-engineering through a Systematic Literature Review. We
+identified 119 studies that were analyzed and categorized based on the life-cycle phase, risk assessment activity,
+application domain, methodology type (integrated or unified), methodology goal (co-engineering or cross-
+fertilization), measurement (qualitative, quantitative, or both), modeling approach, representation, evaluation
+method, and supporting tools. Though model-driven contributions are less prevalent than model-based ones,
+tools widely support them. Studies primarily focus on transportation (especially automotive) and industrial
+domains, but there is potential for broader participation with increasing IoT adoption.
+Editor’s note: Open Science material was validated by the Journal of Systems and Software Open Science Board .
+1. Introduction
+Safety and security  are important  quality  attributes  of any software
+system  (Kenner  et al.,2021 ), especially  in the context  of safety–critical
+domains  (e.g., automotive,  aerospace,  manufacturing,  and medical  de-
+vices Knight ,2002 ), in which faults and failures  that cause harm to
+the system,  its users, or to the environment  must be avoided.  Safety
+is the absence  of unreasonable  risk of physical  harm to people  (serious
+injuries  or loss of life), significant  damage  to the property,  and environ-
+mental  damage  due to system  malfunctioning  behavior,  and its correct
+operation  in response  to user’s inputs (IEC,2010 ).
+Security,  on the other hand, is the prevention  of unauthorized
+access from malicious  external  agents  aiming  to change  or damage
+equipment,  information,  or services  (IEC,2009 ). For example,  au-
+tonomous  cars must ensure  safe operation,  preventing  accidents  and
+physical  injuries  to people  (Dajsuren  and van den Brand ,2019 ); cloud
+computing  systems  and services  connected  to the Internet  must ensure
+data confidentiality,  integrity,  and availability  (Dillon et al.,2010 );
+and cyber–physical  systems  should  guarantee  the safety of involved
+humans  (Biffl et al.,2019 ).
+✩Editor: Heiko Koziolek.
+∗Corresponding  author.
+E-mail addresses: victor.grechi@usp.br (V.L. Grechi) ,andre.oliveira@ufjf.br (A.L. de Oliveira) ,rtvb@icmc.usp.br (R.T.V.  Braga) .Cyber-physical  systems  (CPS) are smart systems  that include  en-
+gineered  interacting  networks  of physical  and computational  compo-
+nents (NIST,2016 ). CPSs combine  physical  processes  and computer
+systems,  comprising  sensors  to observe  the environment  and actuators
+that modify  physical  processes  (Kopetz  et al.,2016 ). CPSs are often
+safety–critical  since any system  malfunction  might seriously  harm users
+or the environment.  For instance,  a malfunctioning  pacemaker  may
+harm its patient.  CPSs can also be considered  security-critical  if they
+communicate  with the external  world since the communication  channel
+is a vulnerability  that attack vectors  could exploit  against  the CPS (Biro
+et al.,2017 ).
+CPSs in safety–critical  domains  like autonomous  cars have the abil-
+ity to connect  and disconnect  to each other at runtime  (i.e., openness),
+and are capable  of modifying  their behaviors  in response  to changes  in
+the environment  (i.e., adaptiveness)  (Wei et al.,2018 ).
+Since CPSs and Internet  of Things  (IoT) systems  are heavily  con-
+nected  (e.g., to the Internet),  it raises security  issues,  making  them sus-
+ceptible  to external  cyber-attacks.  Attack  vectors  could exploit  vulner-
+abilities  to compromise  system  and/or  data confidentiality,  integrity,
+https://doi.org/10.1016/j.jss.2024.112251
+Received  24 July 2023; Received  in revised  form 14 July 2024; Accepted  5 October  2024The Journal  of Systems  and Software  220 (2025)  112251
+Available  online  18 October  2024
+0164-1212/©  2024  Elsevier  Inc. All rights  are reserved,  including  those  for text and data mining,  AI training,  and similar  technologies.
+
+--- Page 2 ---
+V.L. Grechi et al.
+availability, or other security properties such as authenticity, autho-
+rization, and accountability.
+A security vulnerability is an internal system failure caused by
+faults in the design (e.g., unintended feature interactions), devel-
+opment (e.g., buffer overflow), or operation (e.g., configuration er-
+ror) (McGraw ,2006 ). Thus, if the assurance of security properties is
+imperative, then safety–critical systems can also be security-critical1.
+However, safety and security are frequently addressed separately (Kruck
+et al.,2021 ;Kenner et al.,2021 ). While the malfunctioning behavior
+is addressed by safety engineering, the increasing risk of intentionally
+caused harm is addressed by security engineering (Lisova et al.,2019 ).
+But, with the increased connectivity between heterogeneous systems,
+safety and security must be integrated to properly address the unrea-
+sonable risk of harm due to malfunctioning behavior or malicious intent
+from external agents (Lisova et al.,2019 ).
+Since separating safety and security risk analysis is no longer feasi-
+ble (Biro et al.,2017 ), we need methods that deal with them simulta-
+neously because, in some situations, safety and security requirements
+may conflict with each other. For example, encrypting a message for
+security reasons may increase the delivery time to a value greater than
+the required threshold to address safety. Moreover, existing standards
+address safety and security separately. For instance, in the automotive
+domain, ISO 26262 (ISO,2011 ) addresses functional safety, while ISO
+21434 (ISO,2021 ) focus on cyber-security.
+Another important concern is that treating safety and security sepa-
+rately and dealing with their integration later at the development stage
+implies a greater effort to identify inconsistencies between conflicting
+safety and security requirements and common measures. Thus, the
+late detection of inconsistencies demands repetitive iterations between
+safety and security engineering to solve them. The early integration of
+safety and security aiming to detect issues and trade-offs may reduce
+the number of iterations to identify common measures (Urretavizcaya
+et al.,2021 ). Both disciplines use an acyclic graph to describe the
+propagation of failures/attacks across a system model. While safety
+describes fault and error propagation across a system model using Fault
+Tree Analysis (FTA), security considers attack paths and their links
+to threats and security properties, like the CIA Triad, which stands
+for Confidentiality, Integrity, and Availability, and goals using Attack
+Trees.
+The design of critical systems demands the management of inter-
+actions between safety and security requirements that can be conflict-
+ing. In this context, model-based and model-driven approaches can
+be employed to support the integrated analysis of security concerns
+(e.g., expressed in attack trees) and their impact on system safety
+properties using FTAs. While Model-Based Engineering (MBE) assists
+the development, Model-Driven Engineering (MDE) is a Software En-
+gineering paradigm in which models are primary artifacts, driving the
+system development (Selic,2003 ). The benefits of automation and
+consistency from MDE have been explored in the last decade in both
+academia and industry to support the integration and analysis of the
+interplay between safety and security engineering models.
+In this paper, we present a Systematic Literature Review (SLR)
+(Kitchenham ,2004 ) to investigate the current state of the art of mod-
+eling approaches, namely model-based or model-driven, for safety and
+security co-analysis. We aim to get a better understanding of existing
+modeling approaches to support the analysis of the interplay between
+safety and security. To achieve this goal, we identified the domains
+where such techniques are applied, their principles, how they were
+evaluated, and whether they have tooling support.
+Based on the analysis of 119 selected publications, our findings
+revealed several gaps concerning the analysis of safety and security
+interplay while using modeling approaches. Those gaps include few
+1From now on, we adopted thecritical systems term to refer to safety and
+security-critical systemsmodel-driven methodologies dedicated to formal modeling; the lack of
+studies addressing more specific application domains, with a predomi-
+nant focus on transportation, particularly in automotive and industrial
+domains; the significant number of approaches that choose safety as a
+starting point for co-analysis, while the inverse has not received enough
+attention; and the shortage of tools that natively support safety and
+security co-analysis. These findings open opportunities for potential
+directions in future research.
+The remainder of this paper is organized as follows. Section 2
+presents a brief background on model-driven and model-based ap-
+proaches, safety, and security concepts needed to better understand the
+contributions and analysis developed in this study. Section 3details
+the planning and execution procedure of our SLR. The SLR results are
+shown in Section 4. Section 5discusses the main findings of the SRL
+results. Section 6presents the threats to the validity of our study.
+Section 7presents related work and compares them to this study,
+highlighting the differences in methodology and objectives. Finally, in
+Section 8, we present the conclusions and future research directions.
+2. Background
+In this section, we provide the key background concepts on model-
+based and model-driven engineering, safety and security engineering
+disciplines, formal methods, and the interplay between safety and
+security necessary for a better understanding of the SLR results.
+2.1. Modeling approaches
+Models are abstractions from reality that can represent it in a partial
+or simplified way. In the software industry, ‘‘these models are used
+to exchange information between engineers to, for example, further refine
+requirements, implement software/systems/architecture, including software
+deployment’’ (Nigam et al.,2018 ). In this study, we adopted the model-
+ing approaches classification scheme defined byBrambilla et al.(2012 ).
+We distinguish between model-driven and model-based approaches.
+Model-driven is an approach where models are used as the pri-
+mary artifact of the development process. Usually, the resulting im-
+plementation is semi or automatically generated from those models.
+This approach has several acronyms, such as Model-Driven Develop-
+ment, Model-Driven Engineering, Model-Driven Software Engineering,
+and Model-Driven Architecture. Still, they all share the same line of
+thought.
+Model-Based approaches, on the other hand, are a softer version of
+model-driven approaches. ‘‘The MBE process is a process in which software
+models play an important role although they are not necessarily the key
+artifacts of the development (i.e., they do NOT ‘‘drive’’ the process as in
+MDE)’’ (Brambilla et al.,2012 ). For the remainder of this paper, aiming
+to achieve a more consistent and straightforward reading, we use the
+acronyms: MD for model-driven and MB for model-based approaches.
+2.2. Safety
+According toDraeger (2015 ), safety is typically concerned with
+avoiding adverse effects of the system on its environment. Safety issues
+are usually related to damage to people, property, and the environment.
+As mentioned in Section 1, FTA and FMEA are the first techniques
+for safety analysis, and they date from 1960 (Hecht et al.,2020 ;Nai
+Fovino et al.,2009 ). FTA is a tree-based top-down analysis and the last
+is a bottom-up supported by spreadsheets. There are also other relevant
+techniques like System Theoretic Process Analysis (STPA) (Castiglione
+and Lupu ,2020 ), which defines the system control structure and iden-
+tifies its hazardous control actions; Hazard and Operability Analysis
+(HAZOP) (Friedberg et al.,2017 ), which uses guidewords over system
+parameters to identify deviations from the designed behavior; and
+Hazard Analysis and Risk Assessment (HARA), widely used in the auto-
+motive domain, which classifies hazards considering severity, exposure,
+and controllability (Martin et al.,2020 ).The Journal  of Systems  & Software  220 (2025)  112251
+2
+
+--- Page 3 ---
+V.L. Grechi et al.
+2.3. Security
+Security issues are mainly related with risk to the availability,
+confidentiality, and integrity of systems threatened by intentional or
+unintentional attacks. Those issues can be physical or virtual. As men-
+tioned byAbdo et al.(2018 ), the increasing usage of the Internet for
+connecting, remote controlling, and supervising systems and facilities
+also increases the risk related to cybersecurity.
+Security also has its own techniques (e.g. STRIDE Hernan et al.,
+2006 ), some of which were based on safety analog techniques. AT,
+already mentioned in Section 1, is analogous to FTA. The E-Safety
+Vehicle Intrusion Protected Applications (EVITA) project proposed the
+Threat and Operability Analysis based on the well-known HAZOP
+method, which uses guide-words for the analysis (Dürrwang et al.,
+2017 ). The Threat Analysis and Risk Assessment (TARA) method is
+based on Common Criteria (Cybersecurity & Infraestructure Security
+Agency ,2006 ) and EVITA, and it is very similar to HARA. The TARA
+method considers the expertise, time, knowledge, access, and resources
+needed to make an attack feasible (Förster et al.,2019 ).
+2.4. Formal methods
+Modeling approaches use structural, semiformal, or formal machine-
+readable models instead of non-structured word processing documents
+(Papakonstantinou et al.,2019 ). According toBrunel et al.(2014 ),
+formal techniques (i.e., techniques using formal models), can be used
+to support safety and security assessment due to their mathematical
+foundation, which allows them to prove some requirements with higher
+confidence than testing and manual review. Thus, using formalisms can
+reduce or even eliminate possible defects in the software, maintaining
+the system’s safety (Howard et al.,2017 ). Although we recognize the
+important role formal methods play in modeling approaches, they are
+out of the scope of this SLR, and another work should be conducted to
+address it.
+2.5. Safety and security interplay
+As discussed in Section 1and previous Sections 2.2and2.3, both
+disciplines are indispensable for acquiring a completely safe and secure
+system, although a new challenge emerges when dealing with them in
+the same software development process. The expertise required for en-
+gineers to deal with those disciplines remains split, but the components
+and connections that are assessed by safety and security analysis are the
+same. Therefore, an effort must be made to align them.
+According toSabaliauskaite and Mathur (2015 ), a weak align-
+ment between those disciplines may produce inefficient development
+and partially-protected systems. We can accomplish excessive costs
+by defining redundant countermeasures or degradation of the whole
+safety of the system by adopting mechanisms that increase safety and
+decreases security at the same time, and vice-versa. Safety and security
+can have different kinds of interplay:
+•No Interference : Properties from one discipline do not interfere
+with the other (e.g., requiring Multi-Factor Authentication for an
+accounting system might not endanger safety, even though the
+data is related to an industry where there are several safety–
+critical systems);
+•Reinforcement : Properties from both disciplines share the same
+failure or attack paths and affect the same components (e.g. an
+attacker can disable a car brake system through an intrusion or
+the brake system can fail internally, resulting in the same type of
+accident);
+•Mutual exclusion : Properties from one discipline negatively af-
+fect the properties from another discipline (e.g. adding cryptog-
+raphy to a network connection will add security but will increase
+latency and that can affect a safety property);3. Conducting the systematic literature review
+The main goal of this SLR is to identify safety and security co-
+analysis methodologies using model-driven and model-based
+approaches and how they deal with the interplay between those disci-
+plines, the domains they were applied in both academia and industry,
+and their tooling support. Having this goal, this SLR was planned,
+conducted, and reported following well-known review guidelines found
+inKitchenham et al.(2015 ) and Petersen et al.(2015 ). The SLR
+planning and conduction are detailed in the following.
+3.1. Planning
+This SLR addresses five Research Questions (RQ), which are pre-
+sented as follows, along with the rationale and metrics for each RQ.
+•RQ1. Which studies propose model-based (MB) or model-driven
+(MD) approaches to address safety and security concerns in the
+system engineering process?
+Rationale : Understanding the existing model-based and model-
+driven methodologies that address the co-analysis of safety and
+security concerns in systems is crucial for advancing the field.
+This knowledge helps to identify the strengths and limitations of
+current approaches, fostering the development of new methodolo-
+gies and tools, and it provides the foundations for future research.
+Insights into the nature of these studies (i.e., whether they consist
+in an approach, case study, comparative study, framework, lan-
+guage, metamodel, method, or a pattern) are essential for guiding
+research efforts and practical applications.
+Metrics :
+–The number of safety and security co-analysis methodolo-
+gies using models (MB approaches) and treating models as
+primary artifacts (MD approaches).
+–The number of safety and security co-analysis method-
+ologies categorized by year and by type of contribution
+(approach, case study, comparative study, framework, lan-
+guage, metamodel, method, pattern).
+•RQ2. For which domains, life cycle phases, and risk assessment
+activities have safety and security co-analysis methodologies been
+proposed and applied?
+Rationale : Identifying the domains (e.g., automotive, industrial,
+medical, transportation), life cycle phases (i.e., requirements, de-
+sign, development, test, operation), and risk assessment activities
+(i.e., identification, analysis, control) where safety and security
+co-analysis methodologies have been proposed and applied is
+vital for understanding their practical relevance and applicability.
+Additionally, it is important to identify if industry standards
+are highlighted. This information provides valuable insights into
+the effectiveness of these methodologies in various contexts, life
+cycle phases of system development, and risk assessment. For
+the research community, it highlights areas of success and gaps
+that need further exploration, thus guiding future research and
+development efforts in creating more robust and versatile safety
+and security co-analysis methodologies and tools.
+Metrics :
+–Number of types of systems and application domains where
+safety and security co-analysis methodologies have been
+applied.
+–Number of cited industry standards.
+–The list of supported system development life cycle phases.
+–The supported risk assessment activities.The Journal  of Systems  & Software  220 (2025)  112251
+3
+
+--- Page 4 ---
+V.L. Grechi et al.
+•RQ3. How do the identified studies address safety and security?
+Rationale : Understanding the methodologies employed in the
+studies is important to comprehend how safety and security are
+addressed. This involves determining whether safety and security
+are analyzed together from the start (unified co-analysis) or sep-
+arately and then combined (integrated co-analysis). Additionally,
+it is important to identify if the studies aim for co-engineering or
+cross-fertilization (where one discipline influences the other) and
+whether the methodologies are quantitative, qualitative, or both.
+The research community can use this information to evaluate the
+robustness and applicability of these methodologies and identify
+areas where further research is needed.
+Metrics : Number of studies in each category, presented as follow-
+ing, and relationships among these categories.
+–Number of studies per methodology type (unified vs. inte-
+grated).
+–Number of studies per methodology goal (co-engineering,
+security-informed safety, or safety-informed security).
+–Number of studies by measurement (quantitative, qualita-
+tive, or both).
+•RQ4. How was the methodology proposed by the studies vali-
+dated?
+Rationale : Understanding the validation methods employed by the
+studies is crucial for assessing the reliability and applicability of
+the proposed methodologies. This includes identifying whether
+validation was conducted through comparative studies, empirical
+studies, expert evaluations, or other methods. Such insights are
+important for the research community to assess the robustness
+of these methodologies and to identify best practices for future
+research and development.
+Metrics :
+–Number and types of studies related to the validation of
+safety and security co-analysis methodologies, models, and
+tools.
+–Type of research methods used for validation (comparative
+study, empirical study, expert evaluation, among others).
+•RQ5. What are the tools used to support the proposed studies?
+Rationale : Identifying the tools used to support the methodologies
+proposed by the studies helps in understanding their practical ap-
+plication and effectiveness. It is important to determine how each
+tool was utilized (actively used or merely cited) and how these
+tools contribute to addressing safety and security disciplines. This
+information is valuable for the academic community to assess the
+utility of various tools, identify gaps in tool support, and guide
+the development of more comprehensive tools for future research
+and applications.
+Metrics :
+–List of tools cited or used by the studies.
+–Evaluation of how these tools address safety and security
+disciplines (do not address, address one, or address both).
+From the analysis of the research questions, we identified the fol-
+lowing relevant keywords: safety analysis, security analysis, model-
+driven engineering, and model-based engineering. We combined these
+terms using logical operators (AND, OR) to obtain the following search
+string.
+("safety analysis" AND "security analysis" AND ("model-driven
+engineering" OR "model-based engineering"))
+We avoided using abbreviations like ‘‘MDE’’ for model-driven engi-
+neering or ‘‘MBE’’ for model-based engineering. Since the abbreviation
+is not supposed to appear without its meaning, all papers retrievedwith ‘‘model-driven engineering’’ will also be retrieved with ‘‘MDE’’,
+but the opposite is not true. Moreover, in this study we focused on iden-
+tifying safety and security co-analysis methodologies using modeling
+approaches. However, the term ‘‘analysis’’ is not adopted unanimously
+in the literature. We mitigated this problem by conducting a manual
+search step described in Section 3.2.
+We aim to find studies that address safety and security analysis by
+employing a MB or MD approach. However, it is important to notice
+that not all authors use these terms in the same way, thus we have to
+provide our analysis before categorizing the study so that the results
+respect the definitions we have provided in Section 2.1. We applied
+this search string to identify studies in the following databases: ACM
+Digital Library, IEEE Xplore, ScienceDirect, Scopus, and SpringerLink.
+This search string had to be adapted for each database.
+We also defined the inclusion criteria (IC) to identify relevant stud-
+ies from each database and exclusion criteria (EC) to exclude studies
+that do not add relevant knowledge to this SLR. A study must meet at
+least one IC to be included, and it is excluded if it meets at least one
+EC. The inclusion and exclusion criteria used were:
+•IC1: The study reports a methodology based on or driven by
+models to support the analysis of the interplay between safety and
+security concerns.
+•IC2: The study proposes tool support for safety and security
+co-analysis.
+•IC3: The study presents a case study describing the usage of a
+methodology or tool to perform safety and security analysis in
+an application domain.
+•EC1: The study does not propose contributions based on or driven
+by models.
+•EC2: The study does not propose a methodology or tool for safety
+or security co-analysis.
+•EC3: The study does not provide enough detailed information
+about the methodology applied, which makes it impossible to
+apply the Data Extraction Form.
+•EC4: The study was written in another language than English.
+•EC5: The study addresses (proposes or uses) a methodology or
+tool that addresses both safety and security, but another more
+complete study related to the same methodology exists.
+•EC6: The full text of the study was not available through the
+author’s institutional access, and there was no response from the
+authors contacted via email.
+•EC7: The study is not peer-reviewed or only available as grey
+literature (Kamei et al.,2021 ).
+•EC8: The study must be published in the last 12 years.
+•EC9: The study must be at least four pages long.
+To answer the RQs, we defined a Data Extraction Form to extract the
+following information from the identified studies, presented inTable 1.
+3.2. Conduction
+We conducted this SLR in two periods: firstly, from July 2022 to
+December 2022, and then from November 2023 to December 2023,
+when we updated it as explained in the following paragraphs. We
+selected and evaluated studies through the procedure presented in
+Fig. 1. After adapting the defined search string for each database, we
+obtained a total of 3.319 studies, and after removing duplicates, 3.146
+studies remained.
+All three authors selected the studies. At least two authors read each
+study. When there was no agreement between the first two authors, the
+third author resolved any potential misinterpretations. In cases where
+the third author’s reading was necessary, a discussion took place to
+decide whether the study should be included or not, following the
+defined criteria.
+We then conducted the first selection step, where we read all stud-
+ies’ titles, abstracts, and keywords and applied the selection criteria.The Journal  of Systems  & Software  220 (2025)  112251
+4
+
+--- Page 5 ---
+V.L. Grechi et al.
+Table 1
+Questions  of the Data Extraction  Form related to the research  questions  they aim to
+answer.
+RQs Fs Questions
+RQ1 F1 What is the contribution  of the study? The possible
+values are approach,  case study, comparative  study,
+framework,  language,  method,  and pattern.
+RQ1 F2 Does the study propose  or use any MB or MD
+methodology  to co-analysis  of safety and security?  If
+so, describe  the proposed  contribution  with
+advantages  and disadvantages.
+RQ1 F3 Is there a case study described?  If so, describe  it.
+RQ2 F4 What is the application  domain targeted  by the study?
+RQ2 F5 Which are the software  life-cycle  phases that the
+study addresses?
+RQ2 F6 Which are the risk assessment  activities  addressed  by
+the study?
+RQ2 F7 Is there any industry  standard  highlighted  in the
+study? If so, what are they?
+RQ3 F8 Does the study successfully  address safety and security
+co-analysis?  If so, specify which process the study
+adopts.
+∙Safety and security  were analyzed  separately  in
+different  models and put together  later in
+development  (Integrated);
+∙Safety and security  were analyzed  on the same
+model from the very beginning  (Unified);
+RQ3 F9 What is the analysis  goal?
+∙To accomplish  simultaneous  analysis  in a twofold
+objective  (Co-engineering);
+∙To accomplish  cross-fertilization  (Safety-informed
+security  or Security-informed  safety).
+RQ3 F10 Is the study’s approach  quantitative,  qualitative,  or
+both?
+RQ4 F11 How was the methodology  evaluated?
+∙Comparison  with other methodologies
+(Comparative);
+∙Execution  of the analysis  on a controlled
+environment  (Empirical);
+∙Expert evaluation;
+∙Application  to a case study;
+RQ5 F12 Does the study use any tool to support the analysis?  If
+so, specify what disciplines  the tool addresses  with
+native features  and if the tool was used or just cited.
+Fig. 1.Overview  of our Conducting  phase.Following  the second  selection  step, we read the full text of all studies
+and applied  the selection  criteria  again. The first selection  reduced  the
+number  of primary  studies  to 134, and the second  selection  reduced  it
+to 35 primary  studies.
+After conducting  the first and the second  selection  steps, aiming  to
+identify  the primary  studies,  we conducted  a backward  snowballing  in-
+spection  in each selected  study. During  the snowballing,  we performed
+the first and second  selection  steps to analyze  the references  for each
+primary  study. We repeated  this process  until no more primary  studies
+were found.  At the end of the snowballing  inspection,  we included  40
+other relevant  studies,  resulting  in 75 primary  studies.
+During  this SLR, we faced different  terms in the academic  commu-
+nity that had similar  meanings.  For example,  the paper from Dobaj
+et al.(2019 ) uses the word ‘‘co-design’’  in its content  and ‘‘integrated’’
+in its title because  they apply safety and security  co-analysis  during
+the design  phase of the system,  but they do not use the terms ‘‘co-
+engineering’’  or ‘‘co-analyses’’.  The paper from Martinez  et al.(2020 )
+used the word ‘‘interference’’  to show how safety and security  can
+be analyzed  together.  This divergence  of terms led us to conduct  an
+additional  manual  search  step (right side from Fig. 1), which resulted
+in 21 new studies.
+The manual  search  involved  adding  2 studies  recommended  by
+specialists  and 19 studies  identified  using an alternative  search  string,
+totaling  21 studies.  The revised  search  string aimed to address  the issue
+of term divergence  discussed  in the previous  paragraph  by employing
+a broader  approach.  This updated  strategy  was subsequently  applied
+in the SLR protocol.  We searched  the same 5 databases  (refer to
+Section 3.1) and applied  inclusion  and exclusion  criteria  to all studies
+based on their titles, abstracts,  and keywords.  These criteria  were then
+reapplied  to the full texts of the selected  studies.
+("security"  AND "safety")  AND ("co-analysis"  OR "co-engineering")
+AND ("model-based"  OR "model-driven")
+We also conducted  a second  backward  snowballing  inspection  on
+these 21 new studies  resulting  from a manual  search,  as well as sec-
+ondary  studies  in this area identified  during  the analysis  of the related
+work (see Section 7). We conducted  the second  snowballing  inspection
+similarly  to the first one, repeating  it until no more studies  were found.
+We analyzed  the references  of each relevant  study and performed  the
+first and second  review  selection  steps guided  by the same inclusion  and
+exclusion  criteria.  This inspection  resulted  in 23 other relevant  studies,
+totaling  44 new studies.
+We extracted  relevant  information  from each primary  study ac-
+cepted  after the first selection,  second  selection,  and snowballing  in-
+spection  by filling out the Data Extraction  Form presented  in Sec-
+tion3.1.
+4. Results
+We could extract  relevant  information  from the 119 identified  stud-
+ies to answer  our RQs successfully.  To facilitate  the reference  to all
+studies,  they received  a Study ID, presented  inAppendix  A. All the
+extracted  data is located  in a table elsewhere2due to space restrictions.
+In the following  sections,  we will present  the absolute  number  of studies
+as an integer,  followed  by a percentage  with two decimal  places.  The
+percentage  is an approximation  to help readers  quickly  understand  the
+participation  of that categorized  group of studies  among  all identified
+studies.
+2https://bit.ly/3xJCHEIThe Journal  of Systems  & Software  220 (2025)  112251
+5
+
+--- Page 6 ---
+V.L. Grechi et al.
+Fig. 2.Number  of studies grouped  by their publication  year.
+Table 2
+List of studies grouped  by their contribution  and modeling  method.
+Study ID Contribution Modeling  method
+23, 31, 34, 38, 39, 46, 54, 58,
+61, 65, 70, 72, 73, 74, 87, 88,
+90, 91, 93, 94, 98, 99, 104, 106,
+109, 118Approach MB
+5, 10, 25, 29, 49, 51, 53, 66, 68,
+75, 82, 100, 101, 103, 113, 114Approach MD
+47, 55, 56, 79 Case Study MB
+9, 57, 83 Case Study MD
+2, 20, 36, 102, 105 Comparative  Study MB
+43, 60, 76, 78, 92, 97, 108, 116 Framework MB
+17, 89, 96, 119 Framework MD
+50 Language MB
+52 Language MD
+77 Metamodel MB
+4, 13, 14, 19, 21, 27, 28, 30, 32,
+33, 35, 37, 41, 42, 44, 59, 62,
+63, 64, 67, 69, 71, 81, 85, 86,
+102, 111, 112, 115, 117Method MB
+1, 6, 7, 8, 11, 12, 15, 16, 18, 22,
+24, 26, 40, 45, 48, 80, 84, 107,
+110Method MD
+3, 95 Pattern MB
+4.1. Answers  to RQ1
+We present  the number  of studies  grouped  by their publication
+year and type of publisher  as a timeline  inFig. 2. More complete
+information  regarding  the publication  of those studies  is presented  in
+Appendix  B. The subject  of those publishers  differs  considerably.  We
+have publishers  with specific  subjects  related  to this work (e.g., ‘‘safety
+and security’’,  ‘‘security  and privacy’’,  or ‘‘dependability’’),  but we also
+have middle-terms  (e.g., ‘‘computer  science  in general’’)  and subjects
+in general.
+InTable 2, each line groups  similar  studies  based on their contribu-
+tion to the literature  and modeling  approach.
+Regarding  the methodology,  the difference  between  method  and
+approach  is worth mentioning.  A method  is a defined  sequence  of
+reproducible  steps, while an approach  is a different  point of view. An
+approach  can be created  over a technique  (e.g., FTAs and its analog
+version  AT), but also over a method  (e.g., STPA and its extension  using
+STRIDE,  proposed  byde Souza et al.(2020 ), where STPA is extended
+by adopting  STRIDE  in one of its four steps, theIdentify  Loss Scenarios
+step). To summarize,  a new approach  to a method  can be a change  on
+only a few steps of the current  method,  without  the need to define an
+entirely  new method.  From our extraction,  48 primary  studies  (40,34%)
+contributed  with a method,  42 primary  studies  (35,29%)  contributed
+with an approach.We stick with primary  studies  authors’  definitions  whenever  possi-
+ble for other contributions.  Only 12 primary  studies  reported  a frame-
+work, 2 reported  a language,  2 reported  a pattern,  and 1 reported
+a metamodel.  The work ofMashkoor  et al.(2022 ) explains  those
+types of contributions.  Framework  is a platform  providing  a foundation
+for safety and security  systems  development.  Languages  can be for-
+mal languages,  graphical  modeling  languages,  architecture  description
+language,  programming  languages,  or language  for presenting  mishaps.
+We also found 7 primary  studies  reporting  a case study, where
+studies  use a method,  approach,  or technique  defined  in other works
+and apply it to a case study. Finally,  5 comparative  studies  were
+found where authors  compare  two or more methods,  approaches,  or
+techniques.
+For the modeling  approaches,  as defined  in Section 2.1, we iden-
+tified 76 primary  studies  (63,87%)  of MB methodologies  against  43
+primary  studies  (36,13%)  of MD methodologies.  MDE is strongly  sup-
+ported  by models  that are formally  represented.  According  toBrambilla
+et al.(2012 ), to make model transformations  or generate  code, the
+meta-model  (of those models  used in the identified  methodologies)
+must be written  in a formal  language  with semantics  defining  concepts,
+properties,  relationships,  and constraints.  As mentioned  in Section 2.4,
+formal  methods  are outside  the scope of this SLR. Therefore,  they are
+absent  in the results.
+4.2. Answers  to RQ2
+Extensive  diversity  of application  domains  was identified  by this
+SLR, as can be seen inFig. 3. This reflects  the broad applicability
+of safety and security  disciplines  in software  engineering.  The most
+present  domain  is transportation,  with 57 primary  studies  (47,89%)  of
+presence,  divided  into automotive  with 34 primary  studies  (28,57%),
+autonomous  vehicles  with 11 primary  studies  (9,24%),  avionics  with
+7 primary  studies  (5,88%),  railroad  and ships with 2 primary  studies
+(1,68%),  and autonomous  drones  with 1 primary  study (0,84%).  The
+automotive  domain  is the most expressive  due to the introduction  of
+the ISO 26262  (ISO,2011 ) international  standard  for functional  safety
+in passenger  vehicles,  which has greatly  increased  the awareness  within
+the industry  for the issues involved  in functional  safety (Burton  et al.,
+2012 ). From 34 primary  studies  addressing  the automotive  domain,
+21 of them cited the standard.  In the second  place, we identified  the
+industrial  domain  with 25 primary  studies  (21,01%).
+We used the definition  ofSommerville (2015 ) for the life cycle
+phases  of system  development.  Those phases  are:Requirements for the
+specification  of objectives,  services,  and restrictions  of the system;
+Design for the design  of system  functionality  and architecture; Implemen-
+tation for the development  of the system; Testing for the validation  and
+verification  of the system;  and, Operation for the usage and maintenance
+of the system.The Journal  of Systems  & Software  220 (2025)  112251
+6
+
+--- Page 7 ---
+V.L. Grechi et al.
+Fig. 3.Number  of studies grouped  by their application  domain.
+Table 3
+List of studies grouped  by the system development  life cycle phases.
+Study ID Life cycle phase
+Require-
+mentsDesign Imple-
+menta-
+tionTest-
+ingOpera-
+tion
+78, 97 ✓ ✓ ✓
+2, 3, 4, 10, 11, 14, 45, 48,
+51, 55, 80, 83, 90, 100,
+113, 119✓ ✓
+77 ✓ ✓
+1, 5, 6, 7, 8, 12, 13, 20,
+22, 25, 26, 29, 32, 33, 34,
+35, 36, 39, 40, 41, 42, 43,
+44, 47, 49, 50, 52, 53, 54,
+56, 57, 58, 59, 60, 62, 63,
+64, 65, 66, 67, 68, 69, 71,
+73, 74, 81, 82, 85, 87, 88,
+92, 93, 96, 99, 101, 102,
+103, 104, 105, 106, 107,
+109, 110, 111, 112, 115,
+117✓
+9, 15, 16, 17, 18, 19, 21,
+24, 27, 28, 30, 31, 37, 38,
+46, 61, 70, 72, 75, 76, 84,
+86, 91, 94, 95, 98, 114,
+116, 118✓
+23, 89, 108 ✓
+79 ✓
+When analyzing  the application  domain  of the studies  to the known
+life cycle phases  of system  development,  we identified  that most of the
+studies  address  the requirements  or design  phase.  We identified  these
+life cycle phases  for every primary  study during  our extraction.  Also,
+only 19 primary  studies  (15,97%)  addressed  more than one phase.  In
+Table 3, we present  the studies  grouped  by those phases.
+We can notice inTable 3that the Implementation  life cycle phase
+is not addressed  at all. Almost  all studies  focused  their methodologies
+on the Requirements  or Design  phase.  Only 6 studies  explicitly  consider
+the applicability  of their methods  when the system  is already  operating
+(O), and only 1 study addresses  the Test life cycle phase.Table 4
+List of studies grouped  by the risk activities  addressed.
+Study ID Risk activity
+Identification Analysis Control
+1, 3, 5, 9, 13, 16, 19, 21, 24,
+33, 35, 37, 42, 45, 54, 67, 72,
+73, 77, 78, 87, 88, 90, 102,
+105, 107, 108, 109, 111, 115,
+119✓ ✓ ✓
+2, 4, 18, 20, 23, 27, 28, 31,
+36, 39, 46, 47, 48, 51, 55, 56,
+58, 59, 60, 63, 68, 70, 71, 75,
+81, 83, 86, 92, 95, 98, 100,
+104, 106, 112, 117, 118✓ ✓
+12, 22, 40, 43, 62, 101 ✓ ✓
+97 ✓ ✓
+6, 10, 11, 14, 15, 25, 26, 38,
+41, 44, 50, 52, 53, 57, 61, 65,
+66, 69, 7476, 80, 82, 93, 94,
+96, 103, 110, 113, 116✓
+7, 8, 17, 29, 30, 32, 34, 49,
+79, 84, 89, 91, 99, 114✓
+85 ✓
+We considered  identification,  analysis,  and control  activities  for
+risk assessment  activity.  As the name indicates,  identification  is the
+activity  where hazards  and threats  are identified.  Analysis  assesses  the
+risk itself and considers  several  parameters,  such as severity,  likeli-
+hood, impact,  cost, and damage.  The control  activity  is the suggestion
+of countermeasures  to reduce  risks. Those activities  are sequential,
+but only 32 primary  studies  (26,89%)  addressed  all three activities.
+Previous  activities  are considered  a preliminary  step for applying  the
+methodology  for the remaining  studies.
+The studies  grouped  by the Risk Assessment  Activity  are presented
+inTable 4, the Analysis  activity  is the most present,  being addressed
+by 103 (86,55%)  studies,  followed  by Identification  with 83 studies
+(69,75%)  and Control  with 40 studies  (33,61%).
+4.3. Answers  to RQ3
+To answer  RQ3, three different  charts are presented.  First, inFig. 4,
+we present  the number  of studies  according  to their methodology  type.The Journal  of Systems  & Software  220 (2025)  112251
+7
+
+--- Page 8 ---
+V.L. Grechi et al.
+Fig. 4.Percentage  of studies grouped  by their methodology  type.
+Fig. 5.Percentage  of studies grouped  by their methodology  goal.
+The possible  values  are (i)Integrated when safety and security  analysis
+are conducted  separately  but at some point, their artifacts  have to
+be merged  and submitted  through  a trade-off  analysis  (Nigam  et al.,
+2018 ) or harmonization  process  (Nicklas  et al.,2016 ); and (ii)Unified ,
+when safety and security  analysis  are conducted  closely,  requiring
+exchange  and discussion  between  both disciplines  in all phases  of the
+system  engineering  life cycle (Schmittner  et al.,2015 ). We identified
+an equilibrium  between  those methodology  types.
+The second  chart, Fig. 5, presents  the primary  studies  classified
+by their methodology  goal. Co-engineering  (simultaneous  analysis),
+security-informed  safety (safety  analysis  improved  with security  con-
+cerns),  and safety-informed  security  (security  analysis  improved  with
+safety concerns)  are the possible  values.  Co-engineering  is the most
+present  goal in our SLR with 93 studies  (78,15%),  followed  by security-
+informed  safety with 22 studies  (18,49%).  This is due to the maturity
+of safety analysis  over security  analysis,  as mentioned  in Sections 1,2.2
+and2.3. Indeed,  it is easier to modify  a well-established  safety analysis
+to consider  security  concepts  than the opposite.
+Lastly, Fig. 6presents  the primary  studies  classified  by their mea-
+surement,  in which the possible  values  are quantitative,  qualitative,  or
+both. Quantitative  measurement  is considered  when the methodology
+works with failures  and threats’  likelihood,  probability,  Mean Time To
+Failure,  risk, or other parameters  as real numbers.  Methodologies  that
+classify  those parameters  by range (e.g., failure  impact  classified  as low,
+medium,  or high) are considered  qualitative.  Quantitative  methodolo-
+gies are less present  in the literature,  with only 12 primary  studies
+Fig. 6.Percentage  of studies grouped  by their measurement.
+Fig. 7.Number  of studies grouped  by their evaluation  method.
+(10,08%)  plus other 25 primary  studies  (21,01%)  considering  theBoth
+classification.
+4.4. Answers  to RQ4
+Most of the identified  studies  were evaluated  by a case study
+(102 primary  studies  representing  85,71%)  that applies  the proposed
+methodology,  as seen inFig. 7. Those case studies  vary from hypo-
+thetical  and simplified  systems  to real systems.  Only 5 studies  were
+evaluated  in empirical  experiments  (4,2%),  3 are comparative  studies
+(2,52%),  and the other 2 are expert  opinions  (1,68%).  The last 7
+(5,89%)  primary  studies  did not provide  any validation.
+4.5. Answers  to RQ5
+There were 93 mentions  of tools that support  the proposed  method-
+ology, concentrated  in 52 (43,7%)  of the identified  primary  studies.  The
+most mentioned  tools are Rodin,  with 7 mentions,  and TTool,  with 6
+mentions.  There were 53 different  tools mentioned  in primary  studies.
+Some studies  mention  up to 8 tools, while the majority  mention  only
+one, representing  various  tools in the literature.  Besides,  some studies
+do not use the tools they present;  instead,  they present  their potential.
+The categorization  according  to the type of mention  helps make that
+distinction.  From 93 mentions,  in 69 (74,19%)  tools were used, while
+in 24 (25,81%)  tools were just cited.The Journal  of Systems  & Software  220 (2025)  112251
+8
+
+--- Page 9 ---
+V.L. Grechi et al.
+Regarding the discipline supported by the identified tools, 19 tools
+(35,85%) do not address safety or security. They were used for model-
+ing purposes such as behavior models, system design, and data flows.
+Tools that address both disciplines as native features represent 37,74%
+(20 tools). Tools that address only safety or only security represent,
+respectively, 15,09% (8 tools) and 11,32% (6 tools). Table 5presents
+all the tools cited in primary studies.
+5. Discussion
+In this section, we discuss several aspects that emerged from the
+analysis of the SLR results.
+5.1. Process-based versus component-based methodologies
+After observing the results of the 119 selected studies, two groups
+of methodologies were identified: process-based and component-based.
+In the context of this work, process-based methodologies consider the
+data flow and how the system interacts with the physical environment.
+The following process-based methodologies were identified in this
+SLR: (i) STAMP S&S (Kaneko et al.,2020 ;Kaneko and Yoshioka ,2020 );
+(ii) STPA-SafeSec (Friedberg et al.,2017 ); (iii) Systems-Theoretic Likeli-
+hood and Severity Analysis (Temple et al.,2017 ); and (iv) Uncontrolled
+Flows of Information and Energy (Carreras Guzman et al.,2021a ) as
+process-based methodologies.
+In the same way, component-based methodologies focus on smaller
+pieces of the system, and the results can be merged for an artifact
+representing the entire system. The Attack Tree BowTie (Abdo et al.,
+2018 ), Attack-Fault Trees (Kumar and Stoelinga ,2017 ), Parametric
+weighted timed automata (Andre et al.,2019 ), Pattern Engineering
+Lifecycle (Amorim et al.,2017 ), and Failure Mode, Vulnerabilities and
+Effect Analysis (FMVEA) (Schmittner et al.,2014b ) are some of those
+methodologies.
+5.2. Modeling approaches
+As presented in Section 4.1, we identified 76 primary studies of MB
+methodologies against 43 MD methodologies. This represents 76,74%
+more studies on MBE than in MDE. Another fact we have detected is
+that primary studies proposing MD methodologies addressed less risk
+assessment activities (RAA) than MB methodologies, as presented in
+Table 6. A possible justification for this is the effort needed to develop
+meta-models, implement changes to existing modeling tools, or even
+develop a brand-new tool to support the proposed meta-model and
+methodology. Only 25 tools were cited along with MB methodologies,
+against 68 tools cited by MD methodologies. More about tooling is
+presented in Section 5.6.
+MDE proposes the reuse of modeling artifacts for code generation
+and model transformations. This facilitates the achievement of lower
+development costs in the long term by increasing the efficiency of
+engineers in safety and security analysis. It is worth mentioning that
+the initial effort, cost, and learning curve can be higher when applying
+MDE, and it can configure itself as an obstacle to be overcome.
+5.3. Application domain
+Safety and security are more applicable to critical systems, such as
+transportation and industrial domains. The answer to our RQ2 (pre-
+sented in Section 4.2) showed the majority presence of those domains
+in primary studies. That does not mean exclusivity since 37 primary
+studies (31,09%) addressed other domains. Safety and security con-
+cerns are becoming widely used, but there is still room for addressing
+other application domains other than transportation and industrial.
+We also identified a strong relationship between industry standards
+and those domains. Supporting the Automotive domain, there is the
+already mentioned ISO 26262 (presented in Section 4.2regardingTable 5
+List of tools, the disciplines addressed, and how many times they were mentioned by the
+primary studies. The checkmark represents that the discipline is addressed. Mentions
+are categorized between Used byand Cited by.
+Tool name Safety Security Used by Cited by
+Alloy analyzer ✓ ✓ 1 0
+AltaRica 1 1
+Architecture analysis & Design
+Language (AADL) Error Model
+V2✓ 0 1
+ATTop Tool ✓ ✓ 1 1
+Breach 1 0
+Cameo systems modeler 1 0
+Capella 1 2
+CHESS ✓ ✓ 2 0
+CLINGO 1 0
+CMSS ✓ ✓ 1 0
+Concept-aware analysis library 1 0
+Cyber architect ✓ 2 0
+Cyber security modeling
+language (CySeMoL)✓ 0 1
+Enterprise architect 14 1 0
+EPF-C3- (Eclipse Process
+Framework – Composer)1 0
+ERIS 1 0
+ETSI ✓ ✓ 1 0
+Figaro 1 0
+Figseq ✓ ✓ 2 0
+FIIS tool ✓ ✓ 1 0
+FinPSA ✓ 1 0
+Henshin 1 0
+KB3 workbench 2 0
+Labelled transition system
+analyser (LTSA)1 0
+MATLAB 3 0
+Melody 1 0
+Microsoft Threat Modeling ✓ 2 0
+MILS-AADL ✓ ✓ 1 0
+MSBNx 1 0
+Multihost, multistage
+Vulnerability AnaLysis
+(MulVAL)✓ 0 1
+OCRA ✓ 1 0
+Open Source AADL Tool
+Environment (OSATE)✓ ✓ 1 0
+Papyrus 2 2
+Papyrus-RT 0 1
+PolarSys OpenCert ✓ ✓ 2 0
+Proposed tool SOT ✓ ✓ 1 0
+ProTL ✓ ✓ 1 0
+ProVerif ✓ 1 4
+REAFFIRM ✓ 1 0
+Rodin ✓ 4 3
+Safety Architect ✓ ✓ 3 0
+Simulink 2 1
+STAMP Workbench ✓ 1 0
+ThreatGet Plugin ✓ 1 0
+ToSS (Traceability of Safety
+Systems)✓ ✓ 1 0
+TTool ✓ ✓ 5 1
+UPPAAL ✓ 2 3
+Uppaal SMC ✓ 2 0
+Vitech GENESYS MBSE ✓ ✓ 1 0
+WEFACT (Workflow Engine
+for Analysis, Certification and
+Test)✓ ✓ 1 0
+XSTAMPP (eXtensible STAMP
+Platform)✓ ✓ 1 0
+YAKINDU Security Analyst
+(YSA)✓ ✓ 1 0
+YAMS ✓ ✓ 0 2The Journal  of Systems  & Software  220 (2025)  112251
+9
+
+--- Page 10 ---
+V.L. Grechi et al.
+Fig. 8.Number  of studies grouped  by methodology  goal and application  domain.  Only industrial  and transportation  application  domains  are presented.
+Table 6
+Number  of studies by their modeling  approach  and number of RAAs addressed.
+Number  of RAAs addressed
+Only one At least two All three Total
+MB 20 32 24 76
+MD 24 11 8 43
+Total 44 43 32 119
+automotive  safety)  and the ISO/SAE  21434  (ISO,2021 ), which focuses
+on automotive  cybersecurity  engineering.  With this support,  academic
+researchers  can develop  more methodologies  by adapting  or improving
+those standards  to new situations  in this domain.  The Industrial  do-
+main also has support  from the IEC 61511  (Functional  safety - Safety
+instrumented  systems  for the process  industry  sector)  (IEC,2016 ).
+Thus, academic  researchers  can enjoy the same benefits  for safety in
+the industry  sector,  but not for security.  Other domains  do not have
+these specific  standards  to support.  Instead,  they have been using
+more generic  standards  like IEC 61508  (Functional  safety of electri-
+cal/electronic/programmable  electronic  safety-related  systems)  (IEC,
+2010 ), but there is also a lack of security  concerns  for those domains.
+Although  we identified  that transportation  and industrial  sectors  are
+supported  by industry  standards,  which are concerned  with a single
+domain,  when put in context  with the methodology  goal used, we
+can see that academic  research  is biased  towards  the co-engineering
+goal. The industrial  application  domain  aiming  at co-engineering  is
+present  in 18 studies,  against  7 studies  aiming  at cross-fertilization.
+The transportation  application  domain  has 45 studies  applying  co-
+engineering  against  12 applying  cross-fertilization.  We highlight  this
+bias inFig. 8. A more complete  explanation  of methodology  goals is
+presented  in Section 5.5.
+Medical  and Internet  of Things  (IoT) are application  domains  that
+appeared  only a few times during  this SLR, with 5 and 3 studies,  re-
+spectively.  Nevertheless,  they could be identified  together  on the same
+application,  for example,  in the PCA Interlock  application  described
+byProcter  et al.(2017 ). Medical  devices  were originally  designed  to
+operate  in standalone  environments,  but new features  have been con-
+ceived  by connecting  devices  to the Internet  (Hayakawa  et al.,2018 ).
+Since IoT connects things to theInternet , it can intersect  with any other
+domains,  increasing  their exposure  to cybersecurity  threats.  Therefore,
+we expect  an increase  in the participation  of other domains  when
+conducting  future literature  searches  on safety and security  analysis.
+5.4. System  development  and risk assessment  support
+As presented  in Section 4.2, the life cycle phases  of system  develop-
+ment most addressed  areRequirements andDesign . TheImplementation ,
+Testing , and Operation life cycle phases  were addressed  by 0, 1, and
+6 studies,  respectively.  This distribution  is expected  since we focused
+on model-driven  methodologies,  and models  are usually  artifacts  built
+during  the initial phases  of system  development.  Our focus on safetyTable 7
+Number  of studies by their methodology  goal and methodology  type.
+Integrated Unified
+Co-Engineering 32 61
+Security-informed  Safety 22 0
+Safety-informed  Security 4 0
+and security  also reinforces  this result.  During  the co-analysis  of these
+disciplines,  we expect  to interact  and analyze  their interplay  at early
+stages to avoid waste of effort and higher  costs. More about the
+interplay  of safety and security  is present  in the next section.
+Regarding  risk assessment  activities,  most of the studies  addressed
+theAnalysis activity,  which is also expected  due to our focus on safety
+and security  co-analysis.  The Identification activity  has a strong  pres-
+ence, too, but it does not overcome  theAnalysis activity.  As mentioned
+in Section 4.2, some methodologies  considered  theIdentification as a
+preliminary  activity  for applying  theAnalysis activity.  Thus, theIden-
+tification is not addressed  in the study. TheControl is the least present
+activity  of all. Only 1 study addressed  it in isolation,  considering
+Identification andAnalysis as preliminary  activities.  Methodologies  that
+address Control and other previous  activities  are more robust  and may
+be more challenging  for the research  community  to produce.
+5.5. Interplay  between  safety and security
+We identified  an equilibrium  between Integrated and Unified
+methodologies  (see Section 4.3). When considering  the publication  year
+in the analysis,  we noticed  a balanced  cadence  between  studies  propos-
+ing integrated  and unified  approaches,  as presented  inFig. 9. This
+shows that academia  has not yet established  a preferred  methodology.
+Another  relevant  analysis  can be conducted  by crossing  the study’s
+methodology  goal with the methodology  type. TheCo-Engineering goal
+was more found along with theUnified methodology  type, represented
+by 61 primary  studies  (51,26%),  but it also appears  in theIntegrated
+methodology  type, represented  by 32 primary  studies  (26,89%).  Cross-
+fertilization  goals, named Security-informed  Safety andSafety-informed
+Security , are only found in integrated  approaches,  with 22 primary
+studies  (18,49%)  and 4 primary  studies  (3,36%),  respectively. Table 7
+presents  those relations.
+As mentioned  in Section 4.3, integrated  approaches  that aim to
+accomplish  co-engineering  must have a step for trade-off  analysis  or
+harmonization  since safety and security  disciplines  can mutually  ex-
+clude one another.  This additional  step can only occur at interaction
+points during  the process  (Pomante  et al.,2019 ) or at the end of the
+development  process,  which may bring unwanted  surprises  in effort
+and cost. According  toLisova  et al.(2019 ), integrated  approaches
+that consider  safety as an overall  goal also have a potential  limitation
+when applied  to systems  where non-safety-related  security  issues are
+important.  In such a case, security  analysis  would  have to be performed
+separately.  The required  effort can be reduced  during  the harmo-
+nization  step, but there would  still be duplication  of work. SimilarThe Journal  of Systems  & Software  220 (2025)  112251
+10
+
+--- Page 11 ---
+V.L. Grechi et al.
+Fig. 9.Number  of studies grouped  by methodology  type and publication  year.
+activities  will occur in unified  approaches,  but since both disciplines
+are conducted  closely,  the effort is better distributed  along the process.
+The identified  studies  that presented  a unified  methodology  type did
+not create a step for trade-off  analysis  or harmonization  because  they
+did not have to. This essence  of unified  approaches  is an advantage
+compared  to integrated  approaches  since we can avoid unwanted  sur-
+prises.  Still, it also comes  with the disadvantage  of combining  different
+profiles  of engineers,  which may lead to stressful  teamwork.
+Regarding  the maturity  of safety and security  disciplines,  the first
+study that proposed  an approach  with aSafety-informed  Security goal
+was published  in 2019, while Co-Engineering and Security-informed
+Safety first studies  were published  in 2012, respectively.  Therefore,
+the most common  strategies  start with a safety analysis  and increment
+it with security  concerns  or consider  both from the beginning.  Secu-
+rity analysis  will likely achieve  better maturity  and become  another
+possible  starting  point for assessing  critical  systems  in the following
+years.
+This SLR has identified  several  distinct  approaches,  methods,  tech-
+niques,  and processes,  but another  relevant  aspect  of safety and security
+co-analysis  is worth mentioning:  community  acceptance.  Since safety
+and security  have been treated  separately  (see Sections 1and2.5),
+security  and safety analysts  also work individually  and know too little
+about the other discipline.  The work ofKruck et al.(2021 ) is among  the
+identified  studies  and tackles  this issue by proposing  a MB workflow
+that allows  safety and security  analysts  to learn about propagation
+considerations  of the respective  other discipline.  The workflow  was
+created  over a metamodel  and gives suggestions  to analysts  instead  of
+running  an analysis  at the tool’s backend  and outputting  a result that
+might not need to be clarified  to all analysts.
+5.6. Tooling
+As presented  in Section 4.5, the majority  of tools support  both
+disciplines  with native features,  such as TTool,  which is based on the
+SysML-Sec  methodology  (Zhao et al.,2019 ); CMSS,  a prototype  tool
+created  by the authors  of the study (Liu et al.,2021 ); STAMP-based
+Ontology  Tool (SOT),  also created  by authors  for this purpose  (Pereira
+et al.,2019 ); and PolarSys  OpenCert.3(Javed et al.,2021 ) This identi-
+fied majority  highlights  the importance  of tools that approximate  safety
+and security  disciplines  when conducting  their co-analysis.
+3https://www.eclipse.org/opencert/Other tools accomplish  this feature  by developing  plugins  or ex-
+tensions,  such as CHESS,4improved  with SafeConcert  (Gallina  and
+Haider ,2020 ); Safety Architect,5which supports  security  with an exten-
+sion (Brunel  et al.,2014 ); and Enterprise  Architect  146with ThreatGet
+Plugin.7(Martin  et al.,2020 )
+Some primary  studies  defined  their methodology  around  tools,
+which can use general-purpose  tools for system  design,  behavior  mod-
+eling, data flows, and specific  tools for each application  domain.  Some
+examples  are presented  byKriaa et al.(2015a ,2019 ), which use KB3
+Workbench,  Figaro  language,8and Figseq  in their S-Cube  approach;  and
+byMartinez  et al.(2020 ), which uses Safety Architect,  Cyber Architect,9
+and Concept-aware  analysis  library  in their interference  analysis.  A
+very present  combination  in primary  studies  uses a modeling  tool
+that supports  dependability  properties  (e.g., TTool and CMSS),  along
+with UPPAAL  and ProVerif  as backend  verification  tools for safety and
+security,  respectively.
+Some studies  accomplish  safety and security  co-analysis  by using
+attacks  as some kind ofexternal  failure . Therefore,  every tool that can
+be used for safety now also supports  security.  This approach  may work
+but has a conceptual  limitation.  As mentioned  in Section 2.3, an attack
+consists  of expertise,  time, knowledge,  access,  and resources  needed  to
+make an attack feasible.  Other properties,  such as vulnerabilities,  can
+also integrate  the concept  of an attack and can be decomposed  into
+several  properties  on their own. Using this approach  may put these rel-
+evant properties  aside. This conceptual  limitation  can be overcome  with
+more meta-models  that address  safety and security  in completeness.
+6. Threats  to validity
+We are aware of a few threats  that could impair  the validity  of our
+study.
+Construct  Validity . Our search  strategy  could not cover all publica-
+tions regarding  safety and security.  More than one search  string was
+tested before  reaching  the final version  used in this work. For example,
+using the term cybersecurity instead  ofsecurity could result in more
+specific  primary  studies  but could also neglect  other works similar  in
+4https://www.eclipse.org/chess/
+5https://www.all4tec.com/en/safety-architect-fmeca-fta-sofware/
+6https://sparxsystems.com/products/ea/14/index.html
+7https://documentation.threatget.com/20.09/
+8https://github.com/charles-river-analytics/figaro
+9https://www.all4tec.com/en/cyber-architect-en/The Journal  of Systems  & Software  220 (2025)  112251
+11
+
+--- Page 12 ---
+V.L. Grechi et al.
+importance for this SLR. To overcome this threat, we conducted an
+additional manual search using a second search string and a backward
+snowballing inspection of all selected papers.
+External Validity . Some publications described their research in great
+detail, while others provided only sparse, sometimes even vague de-
+tails. For example, we identified proposed approaches without val-
+idation. At the same time, other authors published more than one
+work regarding the same methodology applied to different scenarios
+or passing through different types of validation. This shows a need
+for more consistency and completeness in the available information,
+making the data extraction highly dependent on our interpretation.
+Moreover, our findings are based on modeling approaches to safety
+and security co-analysis. The generalizability of these conclusions to
+methodologies that do not use models may be limited. Future research
+could explore the applicability of our conclusions in non-model-based
+methodologies to further validate and refine the insights presented in
+this study. To overcome this threat we applied the exclusion criteria
+EC3, which excludes papers that do not provide detailed information,
+and at least two authors assessed all papers.
+Internal Validity . Some authors provided ambiguous information
+or used concepts in a different way than we did. For example, the
+publication uses the term model-based , but in our understanding, it
+proposes a model-driven approach. We classified the studies according
+to our interpretation. This threat was overcome by the same measures
+described in external validity. When the study did not provide enough
+detailed information to be part of the results, it was excluded during the
+selection steps. Also, all papers were assessed by at least two authors,
+which elevates our interpretations to agreement.
+7. Related work
+Safety and security co-analysis is a relevant topic presented in sev-
+eral secondary studies, and it can be enhanced by adopting MDE. Those
+studies were our source of inspiration and drove the classifications used
+in this current work. Table 8presents these classifications by secondary
+study.
+7.1. Systematic literature reviews
+The work ofLisova et al.(2019 ) is very similar and was our primary
+source of inspiration. They researched the most adopted techniques
+for co-analysis of safety and security but focused on the requirements
+life-cycle phase of software development. Their results showed a need
+for more evaluation of the proposed methodologies. This gap was
+addressed byPirbhulal et al.(2021 ), who added a specific research
+question to understand how the identified techniques in their study
+were evaluated, and results showed that a more extended investigation
+is necessary to estimate the efficiency and accuracy of those validation
+methods. Their work focused only on Graph Theory and Bayesian
+Network models. The work ofPekaric et al.(2023 ) is a complete work
+specific to self-adaptive systems, categorizing hazard sources, cause
+and handling, and attack mechanisms and surfaces. They analyzed the
+usage of models regarding safety, security, and architecture.
+Our work differs from the previous SLRs on safety and security co-
+analysis by removing limitations of scope. There is a model limitation in
+the (Pirbhulal et al.,2021 ) study, which focuses only on network mod-
+els. A limitation regarding the system type is present inPekaric et al.
+(2023 ), since they focus on self-adaptive systems. Finally, the (Lisova
+et al.,2019 ) study limited its scope to the requirements life-cycle phase.7.2. Systematic mapping studies
+According toPetersen et al.(2015 ),‘‘While systematic reviews aim at
+synthesizing evidence, also considering the strength of evidence, systematic
+maps are primarily concerned with structuring a research area’’. We found
+three systematic mapping studies that also targeted the co-analysis
+of safety and security. The work ofKenner et al.(2021 ) focused
+on configurable systems, and the results are enumerated as literature
+gaps, which provide clear future directions for scientific production.
+A mapping study of safety and security analysis methods restricted to
+autonomous vehicles is presented byBoyer et al.(2021 ). The study
+from Mashkoor et al.(2022 ) is the only mapping study that defined
+research questions and aimed to map MDE methods for safety and
+security, as we did. Thus, they presented fewer classifications in the
+results.
+7.3. Comparative studies, reviews and surveys
+Other secondary studies extracted relevant information that drove
+our classifications (Pietre-Cambacedes and Bouissou ,2013 ;Kriaa et al.,
+2015b ;Paul and Rioux ,2015 ;Abulamddi ,2016 ;Chockalingam et al.,
+2017 ;Torkildson et al.,2018 ;Kavallieratos et al.,2020 ;Lyu et al.,
+2019 ;Oueidat et al.,2020 ). These works are surveys, reviews, and com-
+parative studies. Therefore, they did not follow a systematic protocol
+like those in SLRs and systematic mapping studies.
+A comparison study between FMVEA, CHASSIS, and STPA-Sec
+techniques applied to an autonomous boot case study is presented
+byTorkildson et al.(2018 ). They evaluated the level of abstraction,
+replicability, reusability, scope of analysis, suitability to risk rating, and
+adaptability to the context of those techniques. The work ofOueidat
+et al.(2020 ) also compared several approaches by applying them to a
+beer production system. They evaluated if the approach is generic or
+MB, qualitative or quantitative, level of detail, integration principles
+between safety and security, software life-cycle phases, and application
+domains.
+With a focus on CPSs, we can highlight the works from Lyu et al.
+(2019 ),Kavallieratos et al.(2020 ), andAbulamddi (2016 ). Other works
+focused on safety and security interplay (Kriaa et al.,2015b ;Pietre-
+Cambacedes and Bouissou ,2013 ;Paul and Rioux ,2015 ). Finally, the
+last related work contributed with a survey relating to safety and
+security integration with risk assessment (Chockalingam et al.,2017 ).
+In summary, we took advantage of the categorization and limita-
+tions presented by 15 secondary studies related to safety and security
+co-analysis to define the planning of our SLR. In this SLR, our focus
+was on safety and security co-analysis by using modeling approaches.
+We addressed all the identified aspects without putting any restrictions
+on application domains or types of systems (e.g., CPS or self-adaptive
+systems).
+8. Conclusion
+We performed an SLR to obtain a panorama of the current research
+on safety and security co-analysis methodologies with the aid of mod-
+els. We identified 119 primary studies by answering the RQs regarding
+the interplay between safety and security analysis methodologies, high-
+lighting potential future research directions such as model-driven safety
+and security methodologies dedicated to formal analysis and verifica-
+tion; case studies addressing safety and security co-analysis in other
+application domains (e.g., avionics and CPS); secured-informed safety
+analysis; and the need for more mature tooling support for safety and
+security co-analysis.
+We have observed that although the current state-of-the-art offers
+practical aid for co-analyzing safety and security using model-driven
+methodologies, its adoption rate is lower than expected. Specifically,
+MBE was mentioned in 34 more studies than MDE. The steep learningThe Journal  of Systems  & Software  220 (2025)  112251
+12
+
+--- Page 13 ---
+V.L. Grechi et al.
+Table 8
+Related work and the classification used in their methodology.
+Study
+referenceStudy type Classifications
+Applica-
+tion
+domainStandards Tool
+supportMethodol-
+ogy typeMethodol-
+ogy goalModeling
+approachMeasure-
+mentSoftware
+life cycle
+phaseRisk as-
+sessment
+activityValidation
+of ap-
+proaches
+Lisova et al.
+(2019 )SLR ✓ ✓
+Pirbhulal
+et al.(2021 )SLR ✓ ✓
+Pekaric et al.
+(2023 )SLR ✓ ✓ ✓ ✓
+Mashkoor
+et al.(2022 )Systematic
+Mapping✓ ✓
+Kenner et al.
+(2021 )Systematic
+Mapping✓ ✓ ✓ ✓
+Boyer et al.
+(2021 )Systematic
+Mapping✓
+Torkildson
+et al.(2018 )Comparative
+Study
+Oueidat et al.
+(2020 )Comparative
+Study✓ ✓
+Lyu et al.
+(2019 )Review ✓ ✓ ✓
+Kavallieratos
+et al.(2020 )Survey ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+Kriaa et al.
+(2015b )Survey ✓ ✓ ✓ ✓
+Paul and
+Rioux (2015 )Survey ✓
+Pietre-
+Cambacedes
+and Bouissou
+(2013 )Survey ✓
+Chockalingam
+et al.(2017 )Survey ✓ ✓
+Abulamddi
+(2016 )Survey
+Present work SLR ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+curve to work with a specific tool, initial effort, and costs associ-
+ated with systemic modeling currently pose a challenge for engineers,
+hindering the broad implementation of risk assessment activities men-
+tioned in the studies. Also, only a few tools support safety and security
+co-analysis as native features. Most tools are extended with plugins
+or used in different approaches, including modeling cyberattacks as
+external faults. Those approaches represent a need for robust meta-
+models to support both disciplines and to be used as a base for tools’
+new features. Adopting such tools with cross-cutting concerns may
+challenge community acceptance since no standard addresses safety
+and security combined.
+Concerning the application domains, the current research landscape
+tends towards the transportation and industrial sectors. Standards are
+already in place for those sectors. However, the reality is that any
+Internet-connected system is vulnerable to cyberattacks. As emerging
+technologies increasingly merge the cyber and physical world, potential
+safety and security concerns must be addressed.
+In our future work, we aim to fill the gap in MD methodologies by
+proposing our own. Despite the significant effort required to realize this
+proposal, we plan to gradually contribute by establishing a common
+meta-model for safety and security.
+CRediT authorship contribution statement
+Victor Luiz Grechi: Writing – review & editing, Writing – origi-
+nal draft, Visualization, Validation, Resources, Project administration,Methodology, Investigation, Formal analysis. André Luiz de Oliveira:
+Writing – review & editing, Writing – original draft, Supervision,
+Methodology, Conceptualization. Rosana T. Vaccare Braga: Writing
+– review & editing, Writing – original draft, Supervision, Methodology,
+Conceptualization.
+Declaration of competing interest
+The authors declare that they have no known competing finan-
+cial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Appendix A. List of primary studies
+SeeTable 9.
+Appendix B. List of publishers
+SeeTable 10.
+Data availability
+Data will be made available on request.The Journal  of Systems  & Software  220 (2025)  112251
+13
+
+--- Page 14 ---
+V.L. Grechi et al.
+Table 9
+List of primary studies.
+Study
+IDReference Year Title
+1 Pedroza and Mockly (2020 ) 2020 Method and Framework for Security Risks Analysis Guided by Safety Criteria
+2 Schmittner et al.(2015 ) 2015 A Case Study of FMVEA and CHASSIS as Safety and Security Co-Analysis Method for Automotive
+Cyber-Physical Systems
+3 Kaneko and Yoshioka (2020 ) 2020 A Five-Layer Model for the Analysis of Complex Socio-Technical Systems
+4 Burton et al.(2012 ) 2012 Automotive Functional Safety = Safety + Security
+5 Castiglione and Lupu (2020 ) 2020 Hazard Driven Threat Modeling for Cyber Physical Systems
+6 Kruck et al.(2021 ) 2021 Safe and Secure: Mutually Supporting Safety and Security Analyses with Model-Based Suggestions
+7 Kriaa et al.(2015a ) 2015 A model based approach for SCADA safety and security joint modeling: S-cube
+8 Papakonstantinou et al.(2019 ) 2019 Early Hybrid Safety and Security Risk Assessment Based on Interdisciplinary Dependency Models
+9 Liu et al.(2021 ) 2021 CMSS: Collaborative Modeling of Safety and Security Requirements for Network Protocols
+10 Draeger (2015 ) 2015 A roadmap to a unified treatment of safety and security
+11 Zhao et al.(2019 ) 2019 A Language-Based Multi-View Approach for Combining Functional and Security Models
+12 Viet Nguyen et al.(2020 ) 2020 REAFFIRM: Model-Based Repair of Hybrid Systems for Improving Resiliency
+13 Hecht et al.(2020 ) 2020 Automated Generation of FMEAs using SysML for Reliability, Safety, and Cybersecurity
+14 Lyu et al.(2020 ) 2020 Bayesian Network Based C2P Risk Assessment for Cyber-Physical Systems
+15 Fujikura and Kurachi (2020 ) 2020 A Simultaneous Attack Scenario Generation Method Using the Parallel Behavior Model
+16 Tantawy et al.(2022 ) 2022 Cyber LOPA: An Integrated Approach for the Design of Dependable and Secure Cyber-Physical
+Systems
+17 Ponsard et al.(2021 ) 2021 A goal-driven approach for the joint deployment of safety and security standards for operators of
+essential services
+18 Saqui-sannes et al.(2021 ) 2021 Checking sysml models against safety and security properties
+19 Martin et al.(2020 ) 2020 Combined automotive safety and security pattern engineering approach
+20 Torkildson et al.(2020 ) 2020 Improving security and safety co-analysis of STPA
+21 Kondeva et al.(2019 ) 2019 On computer-Aided techniques for supporting safety and security co-engineering
+22 Kriaa et al.(2019 ) 2019 A new safety and security risk analysis framework for industrial control systems
+23 Herbert and Kappauf (2021 ) 2021 A non-parametric cumulative sum approach for online diagnostics of cyber attacks to nuclear
+power plants
+24 Sassone et al.(2019 ) 2019 A methodology for assuring the safety and security of critical infrastructure based on STPA and
+Event-B
+25 Kumar and Stoelinga (2017 ) 2017 Quantitative security and safety analysis with attack-fault trees
+26 Apvrille and Li(2017 ) 2017 Safe and Secure Support for Public Safety Networks
+27 Beckers et al.(2016 ) 2016 Standard compliant hazard and threat analysis for the automotive domain
+28 Antonino et al.(2018 ) 2018 A Combined Safety-Hazards and Security-Threat Analysis Method for Automotive Systems
+29 Julien (2014 ) 2014 From Safety Models to Security Models: Preliminary Lessons Learnt
+30 Ito(2013 ) 2013 Finding Threats with Hazards in the Concept Phase of Product Development
+31 Macher et al.(2016 ) 2016 Threat and Risk Assessment Methodologies in the Automotive Domain
+32 Utsunomiya et al.(2016 ) 2016 A Safety Knowledge Representation of the Automatic Driving System
+33 Javed et al.(2021 ) 2021 Safe and secure platooning of Automated Guided Vehicles in Industry 4.0
+34 de Souza et al.(2020 ) 2020 Extending STPA with STRIDE to identify cybersecurity loss scenarios
+35 Friedberg et al.(2017 ) 2017 STPA-SafeSec: Safety and security analysis for cyber–physical systems
+36 Carreras Guzman et al.(2021b ) 2021 A Comparative Study of STPA-Extension and the UFoI-E Method for Safety and Security Co-analysis
+37 Dürrwang et al.(2017 ) 2017 A Lightweight Threat Analysis Approach Intertwining Safety and Security for the Automotive
+Domain
+38 Reichenbach et al.(2012 ) 2012 A pragmatic approach on combined safety and security risk analysis
+39 Abdo et al.(2018 ) 2018 A safety/security risk analysis approach of Industrial Control Systems: A cyber bowtie combining
+new version of attack tree with bowtie analysis
+40 Brunel et al.(2014 ) 2014 A Viewpoint-Based Approach for Formal Safety & Security Assessment of System Architectures
+41 Sabaliauskaite and Mathur (2015 ) 2015 Aligning Cyber-Physical System Safety and Security
+42 Carreras Guzman et al.(2021a ) 2021 An integrated safety and security analysis for cyber–physical harm scenarios
+43 Cui et al.(2019 ) 2019 Collaborative Analysis Framework of Safety and Security for Autonomous Vehicles
+44 Steiner and Liggesmeyer (2013 ) 2013 Combination of Safety and Security Analysis - Finding Security Problems That Threaten The Safety
+of a System
+45 Troubitsyna and Vistbakka (2018 ) 2018 Deriving and formalizing safety and security requirements for control systems
+46 Raspotnig et al.(2013 ) 2013 Enhancing CHASSIS: A Method for Combining Safety and Security
+47 Schmittner et al.(2014b ) 2014 FMVEA for safety and security analysis of intelligent and cooperative vehicles
+48 Howard et al.(2017 ) 2017 Formal Analysis of Safety and Security Requirements of Critical Systems Supported by an Extended
+STPA Methodology
+49 Jablonski et al.(2022 ) 2022 Generating Cyber-Physical System Risk Overlays for Attack and Fault Trees using Systems Theory
+50 Gallina and Haider (2020 ) 2020 Making safeconcert security-informed to enable multi-concern modeling
+51 Suo et al.(2018 ) 2018 Merging safety and cybersecurity analysis in product design
+52 Kharatyan et al.(2021 ) 2021 Metamodel for safety and security integrated system architecture modeling
+53 Andre et al.(2019 ) 2019 Parametric analyses of attack-fault trees
+54 Hayakawa et al.(2018 ) 2018 Proposal and application of security/safety evaluation method for medical device system that
+includes IoT
+55 Schwarzl et al.(2021 ) 2021 Safety and security co-engineering for highly automated vehicles
+56 Kriaa et al.(2014 ) 2014 Safety and security interactions modeling using the bdmp formalism: Case study of a pipeline
+57 Martinez et al.(2020 ) 2020 Safety and security interference analysis in the design stage,
+58 Förster et al.(2019 ) 2019 Safety goals in vehicle security analysesâ e‘‘a method to assess malicious attacks with safety impact
+59 Schmittner et al.(2014a ) 2014 Security application of Failure Mode and Effect Analysis (FMEA)
+60 Kaneko et al.(2020 ) 2020 STAMP s&s: Safety & security scenario for specification and standard in the society of ai/iot
+(continued on next page)The Journal  of Systems  & Software  220 (2025)  112251
+14
+
+--- Page 15 ---
+V.L. Grechi et al.
+Table 9(continued ).
+Study
+IDReference Year Title
+61 Kornecki et al.(2013 ) 2013 Studying interrelationships of safety and security for software assurance in cyberphysical systems:
+Approach based on bayesian belief networks
+62 Amorim et al.(2017 ) 2017 Systematic pattern approach for safety and security co-engineering in the automotive domain
+63 Temple et al.(2017 ) 2017 Systems-theoretic likelihood and severity analysis for safety and security co-engineering
+64 Hollerer et al.(2021 ) 2021 Towards a Threat Modeling Approach Addressing Security and Safety in OT Environments
+65 Dobaj et al.(2019 ) 2019 Towards integrated quantitative security and safety risk assessment
+66 Witte et al.(2022 ) 2022 Towards Model Co-evolution Across Self-Adaptation Steps for Combined Safety and Security
+Analysis
+67 Nicklas et al.(2016 ) 2016 Use case based approach for an integrated consideration of safety and security aspects for smart
+home applications
+68 Rinaldo and Horeis (2020 ) 2020 A Hybrid Model for Safety and Security Assessment of Autonomous Vehicles
+69 Langhendries and Lacaille (2022 ) 2022 A new model-based risk analysis approach that generate cyberattacks scenarios and combine them
+with safety risks
+70 Liew et al.(2021 ) 2021 A Novel System-Theoretic Matrix-Based Approach to Analysing Safety and Security of
+Cyber-Physical Systems
+71 Pereira et al.(2019 ) 2019 A STAMP-based ontology approach to support safety and security analyses.
+72 Lamddi (2017 ) 2017 Developing Dependability Requirements Engineering for Secure and Safe Information Systems with
+Knowledge Acquisition for Automated Specification
+73 Procter et al.(2017 ) 2017 SAFE and Secure: Deeply Integrating Security in a New Hazard Analysis
+74 Popov (2015 ) 2015 Stochastic modeling of safety and security of the e-motor, an ASIL-D device
+75 Roudier and Apvrille (2015 ) 2015 SysML-Sec: A model driven approach for designing safe and secure systems
+76 Li and Hankin (2015 ) 2015 A Model-based Approach to Interdependency between Safety and Security in ICS
+77 Bakirtzis et al.(2022 ) 2022 An ontological metamodel for cyber–physical system safety, security, and resilience coengineering
+78 Sabaliauskaite et al.(2019 ) 2019 AVES – Automated Vehicle Safety and Security Analysis Framework
+79 Sojka et al.(2014 ) 2014 Case study on combined validation of safety & security requirements
+80 Cimatti et al.(2015 ) 2015 Combining MILS with contract-based design for safety and security requirements
+81 Plósz et al.(2017 ) 2017 Combining Safety and Security Analysis for Industrial Collaborative Automation Systems
+82 Quamara et al.(2022 ) 2022 Formal Analysis Approach for Multi-layered System Safety and Security Co-engineering
+83 Hosseini et al.(2023 ) 2023 Formal Verification of Safety and Security Properties in Industry 4.0 Applications
+84 Huang and Kang (2019 ) 2019 Formal verification of safety & security related timing constraints for a cooperative automotive
+system
+85 Gu et al.(2020 ) 2020 Integrated Functional Safety and Security Diagnosis Mechanism of CPS Based on Blockchain
+86 Sabaliauskaite et al.(2018a ) 2018 Integrated safety and cybersecurity risk analysis of cooperative intelligent transport systems
+87 Sabaliauskaite et al.(2018b ) 2018 Integrating Autonomous Vehicle Safety and Security Analysis Using STPA Method and the Six-Step
+Model
+88 Sabaliauskaite and Adepu (2017 ) 2017 Integrating six-step model with information flow diagrams for comprehensive analysis of
+cyber–physical system safety and security
+89 Gautham et al.(2020 ) 2020 Multilevel Runtime Security and Safety Monitoring for Cyber Physical Systems using Model-based
+Engineering
+90 Cui and Sabaliauskaite (2017 ) 2017 On the Alignment of Safety and Security for Autonomous Vehicles
+91 Tekaat et al.(2019 ) 2019 Potentials for the integration of design thinking along automotive systems engineering focusing
+security and safety
+92 Park and Lee(2019 ) 2019 Probabilistic safety assessment-based importance analysis of cyber-attacks on nuclear power plants
+93 Steiner and Liggesmeyer (2015 ) 2015 Qualitative and quantitative analysis of CFTs taking security causes into account
+94 Katta et al.(2013 ) 2013 Requirements management in a combined process for safety and security assessments
+95 Taguchi et al.(2015 ) 2015 Safe & sec case patterns
+96 Brunel and Chemouil (2015 ) 2015 Safety and security assessment of behavioral properties using Alloy
+97 Monakova et al.(2012 ) 2012 Security and safety of assets in business processes
+98 Bloomfield et al.(2013 ) 2013 Security-Informed Safety: If It’s Not Secure, It’s Not Safe
+99 de Souza et al.(2019 ) 2019 STAMP-based approach to analyze safety, security and data privacy
+100 Vistbakka and Troubitsyna (2018 ) 2018 Towards a Formal Approach to Analysing Security of Safety-Critical Systems
+101 Cho et al.(2017 ) 2017 Using Tree-Based Approaches to Analyze Dependability and Security on I&C Systems in
+Safety-Critical Systems
+102 Sahay et al.(2023 ) 2023 A comparative risk analysis on CyberShip system with STPA-Sec, STRIDE and CORAS
+103 Poorhadi et al.(2022 ) 2022 Analysing the Impact of Security Attacks on Safety Using SysML and Event-B
+104 Nurchalifah et al.(2023 ) 2023 Analysing the Safety and Security of a UV-C Disinfection Robot
+105 Bolbot et al.(2023 ) 2023 A novel risk assessment process: Application to an autonomous inland waterways ship
+106 Verma et al.(2018 ) 2018 A quantitative approach for the likelihood of exploits of system vulnerabilities
+107 Dantas and Nigam (2023 ) 2023 Automating Safety and Security Co-design through Semantically Rich Architecture Patterns
+108 Yuan et al.(2023 ) 2023 Cost-effective maintenance of safety and security barriers in the chemical process industries via
+genetic algorithm
+109 Trentinaglia (2022 ) 2022 Deriving model-based safety and security assurance cases from design rationale of countermeasure
+patterns
+110 Greiner et al.(2023 ) 2023 Feature-based software architecture analysis to identify safety and security interactions
+111 Sango et al.(2019 ) 2019 Model-based system, safety and security co-engineering method and toolchain for medical devices
+design
+112 Gallina et al.(2022 ) 2022 Multiconcern, Dependability-Centered Assurance Via a Qualitative and Quantitative Coanalysis
+113 Quamara et al.(2021 ) 2021 Multi-layered Model-based Design Approach towards System Safety and Security Co-engineering
+114 Vistbakka and Troubitsyna (2019 ) 2019 Pattern-based formal approach to analyze security and safety of control systems
+115 Japs and Anacker (2021 ) 2021 Resolution of safety relevant security threats in the system architecture design phase on the
+example of automotive industry
+116 Martin et al.(2017 ) 2017 Safety and security co-engineering and argumentation framework
+(continued on next page)The Journal  of Systems  & Software  220 (2025)  112251
+15
+
+--- Page 16 ---
+V.L. Grechi et al.
+Table 9(continued ).
+Study
+IDReference Year Title
+117 Japs et al.(2021 ) 2021 SAVE: Security & safety by model-based systems engineering on the example of automotive
+industry
+118 Macher et al.(2016 ) 2016 Threat and Risk Assessment Methodologies in the Automotive Domain
+119 Meng et al.(2021 ) 2021 VERDICT: A Language and Framework for Engineering Cyber Resilient and Safe System
+Table 10
+List of publishers.
+Study ID Publisher subject Publisher name Publisher type
+18 Aerospace Technology Journal of Aerospace Information Systems JOURNAL
+26 Communication Technology Wireless Public Safety Networks 3 BOOK
+107 Computer Science in general ACM Transactions on Cyber-Physical Systems JOURNAL
+97 Computer Science in general Annual ACM Symposium on Applied Computing SYMPOSIUM
+40 Computer Science in general CEUR Workshop Proceedings WORKSHOP
+61 Computer Science in general Federated Conference on Computer Science and Information Systems (FedCSIS) CONFERENCE
+90 Computer Science in general IARIA CYBER CONFERENCE
+86 Computer Science in general International Conference on Soft Computing and Intelligent Systems (SCIS) CONFERENCE
+37, 47, 56,
+59, 62, 63,
+65Computer Science in general Lecture Notes in Computer Science (LNCS) JOURNAL
+32, 31 Computer Science in general Procedia Computer Science JOURNAL
+118 Computer Science in general Procedia Computer Science CONFERENCE
+39, 102 Cyber Security Computers & Security JOURNAL
+87 Cyber Security International Journal on Advances in Security JOURNAL
+76 Cyber Security International Symposium for ICS & SCADA Cyber Security Research SYMPOSIUM
+44 Dependability Computer Safety, Reliability, and Security (SAFECOMP) Workshops WORKSHOP
+100 Dependability European Dependable Computing Conference (EDCC) CONFERENCE
+88 Dependability IEEE International Symposium on High Assurance Systems Engineering (HASE) SYMPOSIUM
+57, 74 Dependability International Conference on Computer Safety, Reliability, and Security CONFERENCE
+45 Dependability International Conference (SAFECOMP) CONFERENCE
+99 Dependability Latin-American Symposium on Dependable Computing (LADC) SYMPOSIUM
+94 Dependability and security International Conference on Availability, Reliability and Security (ARES) CONFERENCE
+60 Dependability and security International Conference on Software Quality, Reliability, and Security (QRS-C) CONFERENCE
+117 Design in general CIRP Design Conference CONFERENCE
+91 Design in general Design Society: International Conference on Engineering Design CONFERENCE
+52, 115 Design in general Proceedings of the Design Society CONFERENCE
+55 Electrical and Information
+SystemsElektrotechnik und Informationstechnik JOURNAL
+51 Electrical Power Systems IET Intelligent Transport Systems JOURNAL
+4, 54, 73 General ACM International Conference Proceeding Series CONFERENCE
+14, 43, 85 General IEEE Access JOURNAL
+27 General Information (Switzerland) JOURNAL
+58 General Ruhr University Bochum BOOK
+30 General Springer Berlin, Heidelberg JOURNAL
+29, 28, 23 General Springer Cham JOURNAL
+83 Industrial automation technology IEEE International Conference on Emerging Technologies and Factory Automation
+(ETFA)CONFERENCE
+104 Industrial automation technology IEEE International Conference on Robotics and Automation (ICRA) CONFERENCE
+79 Industrial automation technology IEEE International Symposium on Industrial Embedded Systems (SIES) SYMPOSIUM
+64 Industrial automation technology IEEE International Workshop on Factory Communication Systems - Proceedings
+(WFCS)WORKSHOP
+111 Medical Technology Frontiers in Biomedical Devices CONFERENCE
+12 Model-driven software
+engineeringACM-IEEE International Conference on Formal Methods and Models for System
+Design (MEMOCODE)CONFERENCE
+1, 113 Model-driven software
+engineeringACM/IEEE International Conference on Model Driven Engineering Languages and
+Systems Companion (MODELS-C)CONFERENCE
+75 Model-driven software
+engineeringInternational Conference on Model-Driven Engineering and Software Development CONFERENCE
+109 Model-driven software
+engineeringInternational Conference on Model Driven Engineering Languages and Systems:
+Companion ProceedingsCONFERENCE
+103 Model-driven software
+engineeringInternational Symposium on Model-Based Safety and Assessment SYMPOSIUM
+114 Model-driven software
+engineeringModel-Based Safety and Assessment: International Symposium, IMBSA SYMPOSIUM
+77 Model-driven software
+engineeringSoftware and Systems Modeling BOOK
+92 Nuclear Technology Nuclear Engineering and Technology JOURNAL
+9 Parallel and Distributed
+ProcessingIEEE International Symposium on Parallel and Distributed Processing with
+ApplicationsSYMPOSIUM
+3 Pattern languages CONFERENCE ON PATTERN LANGUAGES OF PROGRAMS (PLoP) CONFERENCE
+16 Reliability IEEE Transactions on Reliability JOURNAL
+13, 8 Reliability and Maintainability Annual Reliability and Maintainability Symposium (RAMS) SYMPOSIUM
+22 Reliability and Risk Analysis Institution of Mechanical Engineers, Part O: Journal of Risk and Reliability JOURNAL
+105 Reliability and Risk Analysis Journal of Risk and Reliability JOURNAL
+69 Reliability and Safety European Conference on Safety and Reliability (ESREL) CONFERENCE
+(continued on next page)The Journal  of Systems  & Software  220 (2025)  112251
+16
+
+--- Page 17 ---
+V.L. Grechi et al.
+Table 10(continued ).
+Study ID Publisher subject Publisher name Publisher type
+20 Reliability and Safety European Safety and Reliability Conference CONFERENCE
+19, 36 Reliability and Safety Reliability Engineering and System Safety JOURNAL
+50 Safety and Risk Analysis Probabilistic Safety Assessment and Management Conference (PSAM) CONFERENCE
+10 Safety and Security 10th IET System Safety and Cyber-Security Conference CONFERENCE
+81, 80, 89,
+96, 95, 93,
+106, 116Safety and Security Computer Safety, Reliability, and Security (SAFECOMP) Workshops WORKSHOP
+82 Safety and Security European Dependable Computing Conference CONFERENCE
+7 Safety and Security IET System Safety and Cyber-Security Conference CONFERENCE
+24 Safety-critical applications Journal of Critical Computer-Based Systems JOURNAL
+108 Safety in general Process Safety and Environmental Protection JOURNAL
+42 Safety in general Safety Science JOURNAL
+49 Security and privacy ACM Conference on Data and Application Security and Privacy CONFERENCE
+2 Security and privacy ACM Workshop on Cyber-Physical System Security (CPSS), Part of ASIACCS CONFERENCE
+48 Security and privacy IEEE European Symposium on Security and Privacy Workshops SYMPOSIUM
+46 Security and privacy International Conference on Availability, Reliability and Security (ARES) CONFERENCE
+5 Security and privacy Joint Workshop on CPS and IoT Security and Privacy WORKSHOP
+34, 35, 71 Security and privacy Journal of Information Security and Applications (JISA) JOURNAL
+66 Self-adaptive systems Symposium on Software Engineering for Adaptive and Self-Managing Systems SYMPOSIUM
+41 Smart Transportation Complex Systems Design & Management Asia CONFERENCE
+11 Software Engineering Asia-Pacific Software Engineering Conference (APSEC) CONFERENCE
+84 Software Engineering Fundamental Approaches to Software Engineering: International Conference (FASE) CONFERENCE
+25 Software Engineering IEEE International Symposium on High Assurance Systems Engineering (HASE) SYMPOSIUM
+112 Software Engineering IEEE Software JOURNAL
+53 Software Engineering International Conference on Application of Concurrency to System Design CONFERENCE
+72 Software Engineering Journal of Software Engineering and Applications JOURNAL
+17 Software Engineering Journal of Software: Evolution and Process JOURNAL
+119 Software Engineering MDPI Systems JOURNAL
+98 Software Engineering Software Engineering for Resilient Systems: 5th International Workshop (SERENE) WORKSHOP
+6 Software Reliability Engineering IEEE International Symposium on Software Reliability Engineering Workshops
+(ISSREW)WORKSHOP
+21, 38 Software Reliability Engineering IEEE International Symposium on Software Reliability Engineering Workshops
+(ISSREW)SYMPOSIUM
+110 Systems Architecture International Conference on Software Architecture (ICSA) CONFERENCE
+33 Systems Architecture Journal of Systems Architecture JOURNAL
+101 Systems of Systems Engineering IEEE Systems Journal JOURNAL
+67 Systems of Systems Engineering Systems of Systems Engineering Conference (SoSE) CONFERENCE
+70 Telecommunications Telecom JOURNAL
+68, 78 Vehicular Technology ACM Computer Science in Cars Symposium SYMPOSIUM
+15 Vehicular Technology IEEE Vehicular Technology Conference CONFERENCE
+References
+Abdo, H., Kaouk, M., Flaus, J.M., Masse, F., 2018. A safety/security risk analysis
+approach of Industrial Control Systems: A cyber bowtie – combining new version
+of attack tree with bowtie analysis. Comput. Secur. 72, 175–195. http://dx.doi.org/
+10.1016/j.cose.2017.09.004 .
+Abulamddi, M.F.H., 2016. A survey on techniques requirements for integrateing safety
+and security engineering for cyber-physical systems. Int. J. Comput. Sci. Eng. Surv.
+7 (6), 1–15. http://dx.doi.org/10.5121/ijcses.2016.7601 .
+Amorim, T., Martin, H., Ma, Z., Schmittner, C., Schneider, D., Macher, G., Winkler, B.,
+Krammer, M., Kreiner, C., 2017. Systematic pattern approach for safety and security
+co-engineering in the automotive domain. In: Lecture Notes in Computer Science
+(Including Subseries Lecture Notes in Artificial Intelligence and Lecture Notes in
+Bioinformatics), vol. 10488 LNCS, pp. 329–342. http://dx.doi.org/10.1007/978-3-
+319-66266-4_22 .
+Andre, E., Lime, D., Ramparison, M., Stoelinga, M., 2019. Parametric analyses of
+attack-fault trees. In: Proceedings - International Conference on Application of
+Concurrency to System Design, Vol. 2019-June. ACSD, pp. 33–42. http://dx.doi.
+org/10.1109/ACSD.2019.00008 ,arXiv:1902.04336 .
+Antonino, P.O., Trapp, M., Barbosa, P., 2018. A Combined Safety-Hazards and Security-
+Threat Analysis Method for Automotive Systems, vol. 9337, Springer Cham,
+pp. 237 – 250, URL: http://link.springer.com/10.1007/978-3-319-24255-2 ,arXiv:
+0809.4107 .
+Apvrille, L., Li, L.W., 2017. Safe and secure support for public safety networks.
+In: Câmara, D., Nikaein, N. (Eds.), Wireless Public Safety Networks 3. Elsevier,
+pp. 185–210. http://dx.doi.org/10.1016/B978-1-78548-053-9.50009-3 , URL: https:
+//www.sciencedirect.com/science/article/pii/B9781785480539500093 .
+Bakirtzis, G., Sherburne, T., Adams, S., Horowitz, B.M., Beling, P.A., Fleming, C.H.,
+2022. An ontological metamodel for cyber-physical system safety, security, and
+resilience coengineering. Softw. Syst. Model. 21 (1), 113–137.
+Beckers, K., Dürrwang, J., Holling, D., 2016. Standard compliant hazard and threat
+analysis for the automotive domain. Information (Switzerland) 7 (3), 1–35. http:
+//dx.doi.org/10.3390/info7030036 .Biffl, S., Eckhart, M., Lüder, A., Weippl, E.R., Gilb, T., 2019. Security and quality in
+cyber-physical systems engineering: With forewords by Robert M. Lee and Tom
+Gilb. Secur. Qual. Cyber Phys. Syst. Eng. URL: https://api.semanticscholar.org/
+CorpusID:207988735 .
+Biro, M., Mashkoor, A., Sametinger, J., Seker, R., 2017. Software safety and security
+risk mitigation in cyber-physical systems. IEEE Softw. 35 (1), 24–29.
+Bloomfield, R., Netkachova, K., Stroud, R., 2013. Security-informed safety: if it’s not
+secure, it’s not safe. In: Software Engineering for Resilient Systems: 5th Interna-
+tional Workshop, SERENE 2013, Kiev, Ukraine, October 3–4, 2013. Proceedings 5.
+Springer, pp. 17–32.
+Bolbot, V., Theotokatos, G., Wennersberg, L.A., Faivre, J., Vassalos, D., Boulougouris, E.,
+Jan Rødseth, Ø., Andersen, P., Pauwelyn, A.S., Van Coillie, A., 2023. A novel risk
+assessment process: Application to an autonomous inland waterways ship. Proc.
+Inst. Mech. Eng. O 237 (2), 436–458.
+Boyer, M., Chelim, T., Sobieraj, J., 2021. Hybridization of safety and security for
+the design and validation of autonomous vehicles: where are we? In: European
+Conference on Safety and Reliability. ESREL, http://dx.doi.org/10.3850/981-973-
+0000-00-0 .
+Brambilla, M., Cabot, J., Wimmer, M., 2012. Model-driven software engineering in
+practice. In: Synthesis Lectures on Software Engineering, vol. 1, Springer Cham,
+pp. 1–182. http://dx.doi.org/10.2200/s00441ed1v01y201208swe001 .
+Brunel, J., Chemouil, D., 2015. Safety and security assessment of behavioral properties
+using alloy. In: Computer Safety, Reliability, and Security: SAFECOMP 2015
+Workshops, ASSURE, DECSoS. ISSE, ReSA4CI, and SASSUR, Delft, the Netherlands,
+September 22, 2015, Proceedings 34. Springer, pp. 251–263.
+Brunel, J., Chemouil, D., Rioux, L., Bakkali, M., Vallée, F., 2014. A viewpoint-based
+approach for formal safety & security assessment of system architectures. CEUR
+Workshop Proc. 1235, 39–48.
+Burton, S., Likkei, J., Vembar, P., Wolf, M., 2012. Automotive functional safety=safety
++ security. In: ACM International Conference Proceeding Series. pp. 150–159.
+http://dx.doi.org/10.1145/2490428.2490449 .
+Carreras Guzman, N.H., Kozine, I., Lundteigen, M.A., 2021a. An integrated safety and
+security analysis for cyber-physical harm scenarios. Saf. Sci. 144 (April 2020),
+105458. http://dx.doi.org/10.1016/j.ssci.2021.105458 .The Journal  of Systems  & Software  220 (2025)  112251
+17
+
+--- Page 18 ---
+V.L. Grechi et al.
+Carreras Guzman, N.H., Zhang, J., Xie, J., Glomsrud, J.A., 2021b. A comparative
+study of STPA-extension and the UFoI-E method for safety and security co-analysis.
+Reliab. Eng. Syst. Saf. 211 (March), 107633. http://dx.doi.org/10.1016/j.ress.2021.
+107633 .
+Castiglione, L.M., Lupu, E.C., 2020. Hazard driven threat modelling for cyber physical
+systems. In: CPSIOTSEC 2020 - Proceedings of the 2020 Joint Workshop on CPS and
+IoT Security and Privacy. pp. 13–24. http://dx.doi.org/10.1145/3411498.3419967 .
+Cho, C.S., Chung, W.H., Kuo, S.Y., 2017. Using tree-based approaches to analyze
+dependability and security on I&C systems in safety-critical systems. IEEE Syst.
+J. 12 (2), 1118–1128.
+Chockalingam, S., Hadžiosmanović, D., Pieters, W., Teixeira, A., van Gelder, P., 2017.
+Integrated safety and security risk assessment methods: A survey of key character-
+istics and applications. In: Lecture Notes in Computer Science (Including Subseries
+Lecture Notes in Artificial Intelligence and Lecture Notes in Bioinformatics), vol.
+10242 LNCS, pp. 50–62. http://dx.doi.org/10.1007/978-3-319-71368-7_5 ,arXiv:
+1707.02140 .
+Cimatti, A., DeLong, R., Marcantonio, D., Tonetta, S., 2015. Combining MILS with
+contract-based design for safety and security requirements. In: Computer Safety,
+Reliability, and Security: SAFECOMP 2015 Workshops, ASSURE, DECSoS. ISSE,
+ReSA4CI, and SASSUR, Delft, the Netherlands, September 22, 2015, Proceedings
+34. Springer, pp. 264–276.
+Cui, J., Sabaliauskaite, G., 2017. On the Alignment of Safety and Security for
+Autonomous Vehicles. IARIA CYBER, Barcelona, Spain.
+Cui, J., Sabaliauskaite, G., Liew, L.S., Zhou, F., Zhang, B., 2019. Collaborative analysis
+framework of safety and security for autonomous vehicles. IEEE Access 7 (March
+2018), 148672–148683. http://dx.doi.org/10.1109/ACCESS.2019.2946632 .
+Cybersecurity & Infraestructure Security Agency, 2006. The common criteria.
+https://www.cisa.gov/uscert/bsi/articles/best-practices/requirements-engineering/
+the-common-criteria . (Accessed 27 December 2020).
+Dajsuren, Y., van den Brand, M., 2019. Automotive Systems and Software Engineering:
+State of the Art and Future Trends, first ed. Springer Publishing Company,
+Incorporated.
+Dantas, Y.G., Nigam, V., 2023. Automating safety and security co-design through
+semantically rich architecture patterns. ACM Trans. Cyber-Phys. Syst. 7 (1), 1–28.
+de Souza, N.P., César, C.d.A.C., Bezerra, J.d.M., Hirata, C.M., 2020. Extending STPA
+with STRIDE to identify cybersecurity loss scenarios. J. Inf. Secur. Appl. 55
+(October), http://dx.doi.org/10.1016/j.jisa.2020.102620 .
+de Souza, N.P., César, C.d.A.C., de Melo Bezerra, J., Hirata, C.M., 2019. STAMP-based
+approach to analyze safety, security and data privacy. In: 2019 9th Latin-American
+Symposium on Dependable Computing. LADC, IEEE, pp. 1–10.
+Dillon, T., Wu, C., Chang, E., 2010. Cloud computing: Issues and challenges. In: Pro-
+ceedings of the 2010 24th IEEE International Conference on Advanced Information
+Networking and Applications. AINA ’10, IEEE Computer Society, USA, pp. 27–33.
+http://dx.doi.org/10.1109/AINA.2010.187 .
+Dobaj, J., Schmittner, C., Krisper, M., Macher, G., 2019. Towards integrated quanti-
+tative security and safety risk assessment. In: Lecture Notes in Computer Science
+(Including Subseries Lecture Notes in Artificial Intelligence and Lecture Notes in
+Bioinformatics), vol. 11699 LNCS, (no. August), pp. 102–116. http://dx.doi.org/10.
+1007/978-3-030-26250-1_8 .
+Draeger, J., 2015. A roadmap to a unified treatment of safety and security. IET Conf.
+Publ. 2015 (CP682), http://dx.doi.org/10.1049/cp.2015.0286 .
+Dürrwang, J., Beckers, K., Kriesten, R., 2017. A lightweight threat analysis approach
+intertwining safety and security for the automotive domain. In: Lecture Notes in
+Computer Science (Including Subseries Lecture Notes in Artificial Intelligence and
+Lecture Notes in Bioinformatics), vol. 10488 LNCS, (no. November), pp. 305–319.
+http://dx.doi.org/10.1007/978-3-319-66266-4_20 .
+Förster, D., Loderhose, C., Bruckschl, T., 2019. Safety Goals in Vehicle Security Analyses
+– A Method to Assess Malicious Attacks with Safety Impact. Ruhr-Universität
+Bochum, pp. 74–88.
+Friedberg, I., McLaughlin, K., Smith, P., Laverty, D., Sezer, S., 2017. STPA-SafeSec:
+Safety and security analysis for cyber-physical systems. J. Inf. Secur. Appl. 34,
+183–196. http://dx.doi.org/10.1016/j.jisa.2016.05.008 .
+Fujikura, T., Kurachi, R., 2020. A simultaneous attack scenario generation method
+using the parallel behavior model. In: IEEE Vehicular Technology Conference,
+Vol. 2020-May, No. July. http://dx.doi.org/10.1109/VTC2020-Spring48590.2020.
+9129076 .
+Gallina, B., Haider, Z., 2020. Making safeconcert security-informed to enable multi-
+concern modelling. In: 30th European Safety and Reliability Conference, ESREL
+2020 and 15th Probabilistic Safety Assessment and Management Conference. PSAM
+2020, pp. 2049–2056. http://dx.doi.org/10.3850/978-981-14-8593-0 .
+Gallina, B., Montecchi, L., De Oliveira, A.L., Bressan, L., 2022. Multiconcern,
+dependability-centered assurance via a qualitative and quantitative coanalysis. IEEE
+Softw. 39 (4), 39–47.
+Gautham, S., Jayakumar, A.V., Elks, C., 2020. Multilevel runtime security and safety
+monitoring for cyber physical systems using model-based engineering. In: Computer
+Safety, Reliability, and Security. SAFECOMP 2020 Workshops: DECSoS 2020,
+DepDevOps 2020, USDAI 2020, and WAISE 2020, Lisbon, Portugal, September 15,
+2020, Proceedings 39. Springer, pp. 193–204.
+Greiner, S., Massierer, M., et al., 2023. Feature-based software architecture analysis
+to identify safety and security interactions. In: 2023 IEEE 20th International
+Conference on Software Architecture. ICSA, IEEE, pp. 12–22.Gu, A., Yin, Z., Cui, C., Li, Y., 2020. Integrated functional safety and security diagnosis
+mechanism of cps based on blockchain. IEEE Access 8, 15241–15255.
+Hayakawa, T., Sasaki, R., Hayashi, H., Takahashi, Y., Kaneko, T., Okubo, T., 2018.
+Proposal and application of security/safety evaluation method for medical device
+system that includes IoT. In: ACM International Conference Proceeding Series. pp.
+157–164. http://dx.doi.org/10.1145/3301326.3301330 .
+Hecht, M., Chuidian, A., Tanaka, T., Raymond, R., 2020. Automated generation of
+FMEAs using SysML for reliability, safety, and cybersecurity. In: Proceedings -
+Annual Reliability and Maintainability Symposium, Vol. 2020-Janua. http://dx.doi.
+org/10.1109/RAMS48030.2020.9153708 .
+Herbert, W., Kappauf, H.W., 2021. A Non-parametric Cumulative Sum Approach for
+Online Diagnostics of Cyber Attacks to Nuclear Power Plants. Springer Cham, pp.
+1–12.
+Hernan, S., Lambert, S., Ostwald, T., Shostack, A., 2006. Threat modeling-uncover
+security design flaws using the stride approach. In: MSDN Magazine-Louisville.
+CMP Media Inc., c2000-, San Francisco, CA, pp. 68–75.
+Hollerer, S., Kastner, W., Sauter, T., 2021. Towards a threat modeling approach
+addressing security and safety in OT environments. In: IEEE International Workshop
+on Factory Communication Systems - Proceedings, vol. 2021-June. WFCS, IEEE, pp.
+37–40. http://dx.doi.org/10.1109/WFCS46889.2021.9483591 .
+Hosseini, A.M., Sauter, T., Kastner, W., 2023. Formal verification of safety and security
+properties in Industry 4.0 applications. In: 2023 IEEE 28th International Conference
+on Emerging Technologies and Factory Automation. ETFA, IEEE, pp. 1–8.
+Howard, G., Butler, M., Colley, J., Sassone, V., 2017. Formal analysis of safety
+and security requirements of critical systems supported by an extended STPA
+methodology. In: Proceedings - 2nd IEEE European Symposium on Security and
+Privacy Workshops. EuroS and PW 2017, IEEE, pp. 174–180. http://dx.doi.org/10.
+1109/EuroSPW.2017.68 .
+Huang, L., Kang, E.Y., 2019. Formal verification of safety & security related timing
+constraints for a cooperative automotive system. In: Fundamental Approaches To
+Software Engineering: 22nd International Conference, FASE 2019, Held as Part of
+the European Joint Conferences on Theory and Practice of Software, ETAPS 2019,
+Prague, Czech Republic, April 6–11, 2019, Proceedings 22. Springer, pp. 210–227.
+IEC, 2009. IEC 62443 2009–2018 — Industrial Communication Networks Network and
+System Security. Standard. International Electrotechnical Commission, Geneva, CH.
+IEC, 2010. IEC 61508-1:2010 Functional safety of electrical/electronic/programmable
+electronic safety-related systems.
+IEC, 2016. IEC 61511-1:2016 ‘‘Functional safety - Safety instrumented systems for the
+process industry sector’’.
+ISO, 2011. ISO 26262 ‘‘Road Vehicles – Functional Safety’’.
+ISO, 2021. ISO/SAE 21434:2021 ‘‘Road vehicles — Cybersecurity engineering’’.
+Ito, M., 2013. Finding threats with hazards in the concept phase of product develop-
+ment. In: Computer Standards and Interfaces, vol. 36, Springer Berlin, Heidelberg,
+pp. 277–284. http://dx.doi.org/10.1016/j.csi.2013.08.001 .
+Jablonski, M., Wijesekera, D., Singhal, A., 2022. Generating cyber-physical system
+risk overlays for attack and fault trees using systems theory. In: SaT-CPS 2022
+- Proceedings of the 2022 ACM Workshop on Secure and Trustworthy Cyber-
+Physical Systems, Vol. 1. Association for Computing Machinery, pp. 13–20. http:
+//dx.doi.org/10.1145/3510547.3517922 .
+Japs, S., Anacker, H., 2021. Resolution of safety relevant security threats in the system
+architecture design phase on the example of automotive industry. Proc. Des. Soc.
+1, 2561–2570.
+Japs, S., Anacker, H., Dumitrescu, R., 2021. SAVE: Security & safety by model-based
+systems engineering on the example of automotive industry. Procedia CIRP 100,
+187–192.
+Javed, M.A., Muram, F.U., Punnekkat, S., Hansson, H., 2021. Safe and secure platooning
+of automated guided vehicles in industry 4.0. J. Syst. Archit. 121 (October),
+102309. http://dx.doi.org/10.1016/j.sysarc.2021.102309 .
+Julien, B., 2014. From safety models to security models preliminary lessons learnt. In:
+Lecture Notes in Computer Science (Including Subseries Lecture Notes in Artificial
+Intelligence and Lecture Notes in Bioinformatics), vol. 8696 LNCS, Springer Cham,
+pp. 269–281.
+Kamei, F., Wiese, I., Lima, C., Polato, I., Nepomuceno, V., Ferreira, W., Ribeiro, M.,
+Pena, C., Cartaxo, B., Pinto, G., et al., 2021. Grey literature in software engineering:
+A critical review. Inf. Softw. Technol. 138, 106609.
+Kaneko, T., Yoshioka, N., 2020. A five-layer model for analyses of complex socio-
+technical systems. In: The 27th Conference on Pattern Languages of Programs.
+PLoP 2020, pp. 1–7.
+Kaneko, T., Yoshioka, N., Sasaki, R., 2020. STAMP SS: Safety security scenario for
+specification and standard in the society of AI/IoT. In: Proceedings - Companion
+of the 2020 IEEE 20th International Conference on Software Quality, Reliability,
+and Security. QRS-C 2020, pp. 168–175. http://dx.doi.org/10.1109/QRS-C51114.
+2020.00037 .
+Katta, V., Raspotnig, C., Karpati, P., Stålhane, T., 2013. Requirements management
+in a combined process for safety and security assessments. In: 2013 International
+Conference on Availability, Reliability and Security. IEEE, pp. 780–786.
+Kavallieratos, G., Katsikas, S., Gkioulos, V., 2020. Cybersecurity and safety co-
+engineering of cyberphysical systems - A comprehensive survey. Future Internet
+12 (4), 1–17. http://dx.doi.org/10.3390/FI12040065 .The Journal  of Systems  & Software  220 (2025)  112251
+18
+
+--- Page 19 ---
+V.L. Grechi et al.
+Kenner, A., May, R., Krüger, J., Saake, G., Leich, T., 2021. Safety, security, and
+configurable software systems: A systematic mapping study. In: ACM International
+Conference Proceeding Series, Vol. Part F1716. pp. 148–159. http://dx.doi.org/10.
+1145/3461001.3471147 .
+Kharatyan, A., Tekaat, J., Japs, S., Anacker, H., Dumitrescu, R., 2021. Metamodel
+for safety and security integrated system architecture modeling. Proc. Des. Soc.
+1 (August), 2027–2036. http://dx.doi.org/10.1017/pds.2021.464 .
+Kitchenham, B., 2004. Procedures for performing systematic reviews. Keele, UK 33
+(2004), 1–26.
+Kitchenham, B.A., Budgen, D., Brereton, P., 2015. Evidence-Based Software Engineering
+and Systematic Reviews. Chapman & Hall/CRC.
+Knight, J.C., 2002. Safety critical systems: challenges and directions. In: Proceedings
+of the 24th International Conference on Software Engineering. pp. 547–550.
+Kondeva, A., Nigam, V., Ruess, H., Carlan, C., 2019. On computer-aided techniques for
+supporting safety and security co-engineering. In: Proceedings - 2019 IEEE 30th
+International Symposium on Software Reliability Engineering Workshops. ISSREW
+2019, pp. 346–353. http://dx.doi.org/10.1109/ISSREW.2019.00095 .
+Kopetz, H., Bondavalli, A., Brancati, F., Frömel, B., Höftberger, O., Iacob, S., 2016.
+Emergence in cyber-physical systems-of-systems (CPSoSs). In: Cyber-Physical Sys-
+tems of Systems: Foundations–A Conceptual Model and Some Derivations: The
+AMADEOS Legacy. Springer, pp. 73–96.
+Kornecki, A.J., Subramanian, N., Zalewski, J., 2013. Studying interrelationships of
+safety and security for software assurance in cyber-physical systems: Approach
+based on Bayesian belief networks. In: 2013 Federated Conference on Computer
+Science and Information Systems. FedCSIS 2013, Polish Information Processing
+Society, pp. 1393–1399.
+Kriaa, S., Bouissou, M., Colin, F., Halgand, Y., Pietre-Cambacedes, L., 2014. Safety
+and security interactions modeling using the BDMP formalism: Case study of a
+pipeline. In: Lecture Notes in Computer Science (Including Subseries Lecture Notes
+in Artificial Intelligence and Lecture Notes in Bioinformatics), vol. 8666 LNCS, (no.
+September 2014), pp. 326–341. http://dx.doi.org/10.1007/978-3-319-10506-2_22 .
+Kriaa, S., Bouissou, M., Laarouchi, Y., 2015a. A model based approach for SCADA
+safety and security joint modelling: S-cube. IET Conf. Publ. 2015 (CP682), http:
+//dx.doi.org/10.1049/cp.2015.0293 .
+Kriaa, S., Bouissou, M., Laarouchi, Y., 2019. A new safety and security risk analysis
+framework for industrial control systems. Proc. Inst. Mech. Eng. O 233 (2),
+151–174. http://dx.doi.org/10.1177/1748006X18765885 .
+Kriaa, S., Pietre-Cambacedes, L., Bouissou, M., Halgand, Y., 2015b. A survey of
+approaches combining safety and security for industrial control systems. Reliab.
+Eng. Syst. Saf. 139 (February), 156–178.
+Kruck, B., Munk, P., Angermeier, D., 2021. Safe and secure: Mutually supporting safety
+and security analyses with model-based suggestions. In: Proceedings - 2021 IEEE
+International Symposium on Software Reliability Engineering Workshops. ISSREW
+2021, pp. 172–181. http://dx.doi.org/10.1109/ISSREW53611.2021.00061 .
+Kumar, R., Stoelinga, M., 2017. Quantitative security and safety analysis with attack-
+fault trees. In: Proceedings of IEEE International Symposium on High Assurance
+Systems Engineering, Vol. 1, No. September 2018. pp. 25–32. http://dx.doi.org/
+10.1109/HASE.2017.12 .
+Lamddi, M.A., 2017. Developing dependability requirements engineering for secure and
+safe information systems with knowledge acquisition for automated specification. J.
+Softw. Eng. Appl. 10 (02), 211–244. http://dx.doi.org/10.4236/jsea.2017.102013 .
+Langhendries, R., Lacaille, J., 2022. A new model-based risk analysis approach that
+generate cyberattacks scenarios and combine them with safety risks. In: European
+Conference on Safety and Reliability. ESREL, http://dx.doi.org/10.3850/981-973-
+0000-00-0 .
+Li, T., Hankin, C., 2015. A model-based approach to interdependency between safety
+and security in ICS. In: 3rd International Symposium for ICS & SCADA Cyber
+Security Research 2015. ICS-CSR 2015, BCS Learning & Development, pp. 31–41.
+Liew, L.S., Sabaliauskaite, G., Kandasamy, N.K., Wong, C.Y.W., 2021. A novel system-
+theoretic matrix-based approach to analysing safety and security of cyber-physical
+systems. Telecom 2 (4), 536–553. http://dx.doi.org/10.3390/telecom2040030 .
+Lisova, E., Sljivo, I., Causevic, A., 2019. Safety and security co-analyses: A systematic
+literature review. In: Proceedings - International Computer Software and Applica-
+tions Conference, Vol. 1, No. 3. IEEE, p. 833. http://dx.doi.org/10.1109/COMPSAC.
+2019.00122 .
+Liu, Z., Wang, Q., Li, Y., Zhao, Y., 2021. CMSS: Collaborative modeling of safety and
+security requirements for network protocols. In: 19th IEEE International Symposium
+on Parallel and Distributed Processing with Applications, 11th IEEE International
+Conference on Big Data and Cloud Computing, 14th IEEE International Conference
+on Social Computing and Networking and 11th IEEE Internation. pp. 185–192. http:
+//dx.doi.org/10.1109/ISPA-BDCloud-SocialCom-SustainCom52081.2021.00037 .
+Lyu, X., Ding, Y., Yang, S.H., 2019. Safety and security risk assessment in cyberphysical
+systems. IET Cyber-Phys. Syst. Theory Appl. 4 (3), 221–232. http://dx.doi.org/10.
+1049/iet-cps.2018.5068 .
+Lyu, X., Ding, Y., Yang, S.H., 2020. Bayesian network based C2P risk assessment for
+cyber-physical systems. IEEE Access 8, 88506–88517. http://dx.doi.org/10.1109/
+ACCESS.2020.2993614 .
+Macher, G., Armengaud, E., Brenner, E., Kreiner, C., 2016. Threat and risk assessment
+methodologies in the automotive domain. Procedia Comput. Sci. 83,http://dx.doi.
+org/10.1016/j.procs.2016.04.268 .Martin, H., Bramberger, R., Schmittner, C., Ma, Z., Gruber, T., Ruiz, A., Macher, G.,
+2017. Safety and security co-engineering and argumentation framework. In:
+Computer Safety, Reliability, and Security: SAFECOMP 2017 Workshops, AS-
+SURE, DECSoS, SASSUR, TELERISE, and TIPS, Trento, Italy, September 12, 2017,
+Proceedings 36. Springer, pp. 286–297.
+Martin, H., Ma, Z., Schmittner, C., Winkler, B., Krammer, M., Schneider, D., Amorim, T.,
+Macher, G., Kreiner, C., 2020. Combined automotive safety and security pattern
+engineering approach. Reliab. Eng. Syst. Saf. 198 (April 2018), http://dx.doi.org/
+10.1016/j.ress.2019.106773 .
+Martinez, J., Godot, J., Ruiz, A., Balbis, A., Ruiz Nolasco, R., 2020. Safety and security
+interference analysis in the design stage. In: International Conference on Computer
+Safety, Reliability, and Security. Springer, pp. 54–68.
+Mashkoor, A., Egyed, A., Wille, R., Stock, S., 2022. Model-driven engineering of safety
+and security software systems: A systematic mapping study and future research
+directions. J. Softw. Evol. Process 1–26. http://dx.doi.org/10.1002/smr.2457 .
+McGraw, G., 2006. Software security: Building security in. In: 2006 17th International
+Symposium on Software Reliability Engineering. p. 6.http://dx.doi.org/10.1109/
+ISSRE.2006.43 .
+Meng, B., Larraz, D., Siu, K., Moitra, A., Interrante, J., Smith, W., Paul, S., Prince, D.,
+Herencia-Zapana, H., Arif, M.F., et al., 2021. Verdict: a language and framework
+for engineering cyber resilient and safe system. Systems 9 (1), 18.
+Monakova, G., Brucker, A.D., Schaad, A., 2012. Security and safety of assets in
+business processes. In: Proceedings of the 27th Annual ACM Symposium on Applied
+Computing. pp. 1667–1673.
+Nai Fovino, I., Masera, M., De Cian, A., 2009. Integrating cyber attacks within fault
+trees. Reliab. Eng. Syst. Saf. 94 (9), 1394–1402. http://dx.doi.org/10.1016/j.ress.
+2009.02.020 .
+Nicklas, J.P., Mamrot, M., Winzer, P., Lichte, D., Marchlewitz, S., Wolf, K.D., 2016.
+Use case based approach for an integrated consideration of safety and security
+aspects for smart home applications. In: 2016 11th Systems of Systems Engineering
+Conference. SoSE 2016, IEEE, http://dx.doi.org/10.1109/SYSOSE.2016.7542908 .
+Nigam, V., Pretschner, A., Ruess, H., 2018. Model-based safety and security engineering.
+pp. 1–15, arXiv preprint arXiv:1810.04866 .
+NIST, 2016. Framework for Cyber-physical Systems Release 1.0. National Institute of
+Standard and Technology (NIST), http://dx.doi.org/10.6028/NIST.SP.1500-201 .
+Nurchalifah, D., Blumenthal, S., Iacono, L.L., Hochgeschwender, N., 2023. Analysing
+the safety and security of a UV-C disinfection robot. In: 2023 IEEE International
+Conference on Robotics and Automation. ICRA, IEEE, pp. 12729–12736.
+Oueidat, T., Flaus, J.M., Masse, F., 2020. A review of combined safety and security
+risk analysis approaches: Application and classification. In: 2020 International
+Conference on Control, Automation and Diagnosis, ICCAD 2020 - Proceedings.
+http://dx.doi.org/10.1109/ICCAD49821.2020.9260512 .
+Papakonstantinou, N., Linnosmaa, J., Alanen, J., Bashir, A.Z., O’Halloran, B., Van
+Bossuyt, D.L., 2019. Early hybrid safety and security risk assessment based on
+interdisciplinary dependency models. In: Proceedings - Annual Reliability and
+Maintainability Symposium, Vol. 2019-Janua. IEEE, http://dx.doi.org/10.1109/
+RAMS.2019.8768943 .
+Park, J.W., Lee, S.J., 2019. Probabilistic safety assessment-based importance analysis
+of cyber-attacks on nuclear power plants. Nucl. Eng. Technol. 51 (1), 138–145.
+Paul, S., Rioux, L., 2015. Over 20 years of research into cybersecurity and safety
+engineering: a short bibliography. Saf. Secur. Eng. VI 1, 335–349. http://dx.doi.
+org/10.2495/safe150291 .
+Pedroza, G., Mockly, G., 2020. Method and framework for security risks analysis guided
+by safety criteria. In: Proceedings - 23rd ACM/IEEE International Conference on
+Model Driven Engineering Languages and Systems, MODELS-C 2020 - Companion
+Proceedings. pp. 385–392. http://dx.doi.org/10.1145/3417990.3420047 .
+Pekaric, I., Groner, R., Witte, T., Adigun, J.G., Raschke, A., Felderer, M., Tichy, M.,
+2023. A systematic review on security and safety of self-adaptive systems. J. Syst.
+Softw. 111716.
+Pereira, D.P., Hirata, C., Nadjm-Tehrani, S., 2019. A STAMP-based ontology approach
+to support safety and security analyses. J. Inf. Secur. Appl. 47, 302–319. http:
+//dx.doi.org/10.1016/j.jisa.2019.05.014 .
+Petersen, K., Vakkalanka, S., Kuzniarz, L., 2015. Guidelines for conducting systematic
+mapping studies in software engineering: An update. Inf. Softw. Technol. 64, 1–18.
+http://dx.doi.org/10.1016/j.infsof.2015.03.007 .
+Pietre-Cambacedes, L., Bouissou, M., 2013. Cross-fertilization between safety and
+security engineering. Reliab. Eng. Syst. Saf. 110, 110–126. http://dx.doi.org/10.
+1016/j.ress.2012.09.011 .
+Pirbhulal, S., Gkioulos, V., Katsikas, S., 2021. Towards integration of security and safety
+measures for critical infrastructures based on Bayesian networks and graph theory:
+A systematic literature review. Signals 2 (4), 771–802. http://dx.doi.org/10.3390/
+signals2040045 .
+Plósz, S., Schmittner, C., Varga, P., 2017. Combining safety and security analysis for
+industrial collaborative automation systems. In: Computer Safety, Reliability, and
+Security: SAFECOMP 2017 Workshops, ASSURE, DECSoS, SASSUR, TELERISE, and
+TIPS, Trento, Italy, September 12, 2017, Proceedings 36. Springer, pp. 187–198.
+Pomante, L., Muttillo, V., Křena, B., Vojnar, T., Veljković, F., Magnin, P., Matschnig, M.,
+Fischer, B., Martinez, J., Gruber, T., 2019. The AQUAS ECSEL project ag-
+gregated quality assurance for systems: Co-engineering inside and across the
+product life cycle. Microprocess. Microsyst. 69, 54–67. http://dx.doi.org/10.
+1016/j.micpro.2019.05.013 , URL: https://www.sciencedirect.com/science/article/
+pii/S014193311930047X .The Journal  of Systems  & Software  220 (2025)  112251
+19
+
+--- Page 20 ---
+V.L. Grechi et al.
+Ponsard, C., Grandclaudon, J., Massonet, P., 2021. A goal-driven approach for the joint
+deployment of safety and security standards for operators of essential services. J.
+Softw. Evol. Process 33 (9), 1–26. http://dx.doi.org/10.1002/smr.2338 .
+Poorhadi, E., Troubitsyna, E., Dán, G., 2022. Analysing the impact of security attacks
+on safety using SysML and event-B. In: International Symposium on Model-Based
+Safety and Assessment. Springer, pp. 170–185.
+Popov, P.T., 2015. Stochastic modeling of safety and security of the e-motor, an ASIL-D
+device. In: International Conference on Computer Safety, Reliability, and Security.
+Springer, pp. 385–399.
+Procter, S., Vasserman, E.Y., Hatcli, J., 2017. SAFE and secure: Deeply integrating
+security in a new hazard analysis. In: ACM International Conference Proceeding
+Series, Vol. Part F1305. http://dx.doi.org/10.1145/3098954.3105823 .
+Quamara, M., Pedroza, G., Hamid, B., 2021. Multi-layered model-based design approach
+towards system safety and security co-engineering. In: 2021 ACM/IEEE Interna-
+tional Conference on Model Driven Engineering Languages and Systems Companion.
+MODELS-C, IEEE, pp. 274–283.
+Quamara, M., Pedroza, G., Hamid, B., 2022. Formal analysis approach for multi-layered
+system safety and security co-engineering. In: European Dependable Computing
+Conference. Springer, pp. 18–31.
+Raspotnig, C., Katta, V., Karpati, P., Opdahl, A.L., 2013. Enhancing CHASSIS: A
+method for combining safety and security. In: Proceedings - 2013 International
+Conference on Availability, Reliability and Security. ARES 2013, IEEE, pp. 766–773.
+http://dx.doi.org/10.1109/ARES.2013.102 .
+Reichenbach, F., Endresen, J., Chowdhury, M.M., Rossebø, J., 2012. A pragmatic
+approach on combined safety and security risk analysis. In: Proceedings - 23rd IEEE
+International Symposium on Software Reliability Engineering Workshops. ISSREW
+2012, IEEE, pp. 239–244. http://dx.doi.org/10.1109/ISSREW.2012.98 .
+Rinaldo, R.C., Horeis, T.F., 2020. A hybrid model for safety and security assessment
+of autonomous vehicles. In: Proceedings - CSCS 2020: ACM Computer Science in
+Cars Symposium. http://dx.doi.org/10.1145/3385958.3430478 .
+Roudier, Y., Apvrille, L., 2015. SysML-Sec: A model driven approach for designing safe
+and secure systems. In: MODELSWARD 2015 - 3rd International Conference on
+Model-Driven Engineering and Software Development, Proceedings. SCITEPRESS,
+pp. 655–664. http://dx.doi.org/10.5220/0005402006550664 .
+Sabaliauskaite, G., Adepu, S., 2017. Integrating six-step model with information
+flow diagrams for comprehensive analysis of cyber-physical system safety and
+security. In: 2017 IEEE 18th International Symposium on High Assurance Systems
+Engineering. HASE, IEEE, pp. 41–48.
+Sabaliauskaite, G., Cui, J., Liew, L.S., Zhou, F., 2018a. Integrated safety and cyber-
+security risk analysis of cooperative intelligent transport systems. In: 2018 Joint
+10th International Conference on Soft Computing and Intelligent Systems (SCIS)
+and 19th International Symposium on Advanced Intelligent Systems. ISIS, IEEE,
+pp. 723–728.
+Sabaliauskaite, G., Liew, L.S., Cui, J., 2018b. Integrating autonomous vehicle safety and
+security analysis using stpa method and the six-step model. Int. J. Adv. Secur. 11
+(1&2), 160–169.
+Sabaliauskaite, G., Liew, L.S., Zhou, F., 2019. AVES–Automated vehicle safety and
+security analysis framework. In: Proceedings of the 3rd ACM Computer Science
+in Cars Symposium. pp. 1–8.
+Sabaliauskaite, G., Mathur, A.P., 2015. Aligning cyber-physical system safety and
+security. Complex Syst. Des. Manag. Asia 41–53. http://dx.doi.org/10.1007/978-3-
+319-12544-2 .
+Sahay, R., Estay, D.S., Meng, W., Jensen, C.D., Barfod, M.B., 2023. A comparative risk
+analysis on CyberShip system with STPA-Sec, STRIDE and CORAS. Comput. Secur.
+128, 103179.
+Sango, M., Godot, J., Gonzalez, A., Ruiz Nolasco, R., 2019. Model-based system, safety
+and security co-engineering method and toolchain for medical devices design.
+In: Frontiers in Biomedical Devices, vol. 41037, American Society of Mechanical
+Engineers, p. V001T07A001.
+Saqui-sannes, P.D., Apvrille, L., Vingerhoeds, R., Saqui-sannes, P.D., Apvrille, L.,
+Vingerhoeds, R., Sysml, C., Against, M., 2021. Checking SysML models against
+safety and security properties. J. Aerosp. Inf. Syst.
+Sassone, V., Howard, G., Colley, J., Butler, M., 2019. A methodology for assuring the
+safety and security of critical infrastructure based on STPA and Event-B. Int. J. Crit.
+Comput.-Based Syst. 9 (1/2), 56.http://dx.doi.org/10.1504/ijccbs.2019.10020048 .
+Schmittner, C., Gruber, T., Puschner, P., Schoitsch, E., 2014a. Security application of
+failure mode and effect analysis (FMEA). In: Lecture Notes in Computer Science
+(Including Subseries Lecture Notes in Artificial Intelligence and Lecture Notes in
+Bioinformatics), vol. 8666 LNCS, (no. September), pp. 310–325. http://dx.doi.org/
+10.1007/978-3-319-10506-2_21 .
+Schmittner, C., Ma, Z., Schoitsch, E., Gruber, T., 2015. A case study of FMVEA and
+CHASSIS as safety and security co-analysis method for automotive cyber-physical
+systems. In: CPSS 2015 - Proceedings of the 1st ACM Workshop on Cyber-Physical
+System Security, Part of ASIACCS 2015. pp. 69–80. http://dx.doi.org/10.1145/
+2732198.2732204 .
+Schmittner, C., Ma, Z., Smith, P., 2014b. FMVEA for safety and security analysis
+of intelligent and cooperative vehicles. In: Lecture Notes in Computer Science
+(Including Subseries Lecture Notes in Artificial Intelligence and Lecture Notes in
+Bioinformatics), vol. 8696 LNCS, pp. 282–288. http://dx.doi.org/10.1007/978-3-
+319-10557-4_31 .Schwarzl, C., Marko, N., Martin, H., Expósito Jiménez, V., Castella Triginer, J.,
+Winkler, B., Bramberger, R., 2021. Safety and security co-engineering for highly
+automated vehicles. Elektrotech. Inf.tech. 138 (7), 469–479. http://dx.doi.org/10.
+1007/s00502-021-00934-w .
+Selic, B., 2003. The pragmatics of model-driven development. IEEE Softw. 20 (5),
+19–25. http://dx.doi.org/10.1109/MS.2003.1231146 .
+Sojka, M., Kreč, M., Hanzálek, Z., 2014. Case study on combined validation of safety
+& security requirements. In: Proceedings of the 9th IEEE International Symposium
+on Industrial Embedded Systems. SIES 2014, IEEE, pp. 244–251.
+Sommerville, I., 2015. Software Engineering, tenth ed. Pearson.
+Steiner, M., Liggesmeyer, P., 2013. Combination of safety and security analysis -
+Finding security problems that threaten the safety of a system. In: SAFECOMP
+2013 - Workshop DECS (ERCIM/EWICS Workshop on Dependable Embedded and
+Cyber-physical Systems) of the 32nd International Conference on Computer Safety,
+Reliability and Security. pp. 1–8.
+Steiner, M., Liggesmeyer, P., 2015. Qualitative and quantitative analysis of CFTs
+taking security causes into account. In: Computer Safety, Reliability, and Security:
+SAFECOMP 2015 Workshops, ASSURE, DECSoS. ISSE, ReSA4CI, and SASSUR, Delft,
+the Netherlands, September 22, 2015, Proceedings 34. Springer, pp. 109–120.
+Suo, D., Siegel, J.E., Sarma, S.E., 2018. Merging safety and cybersecurity analysis in
+product design. IET Intell. Transp. Syst. 12 (9), 1103–1109. http://dx.doi.org/10.
+1049/iet-its.2018.5323 .
+Taguchi, K., Souma, D., Nishihara, H., 2015. Safe & sec case patterns. In: Computer
+Safety, Reliability, and Security: SAFECOMP 2015 Workshops, ASSURE, DEC-
+SoS. ISSE, ReSA4CI, and SASSUR, Delft, the Netherlands, September 22, 2015,
+Proceedings 34. Springer, pp. 27–37.
+Tantawy, A., Abdelwahed, S., Erradi, A., 2022. Cyber LOPA: An integrated approach for
+the design of dependable and secure cyber-physical systems. IEEE Trans. Reliab. 71
+(2), 1075–1091. http://dx.doi.org/10.1109/TR.2022.3163652 ,arXiv:2006.00165 .
+Tekaat, J., Kharatyan, A., Anacker, H., Dumitrescu, R., 2019. Potentials for the
+integration of design thinking along automotive systems engineering focusing
+security and safety. In: Proceedings of the Design Society: International Conference
+on Engineering Design, Vol. 1, No. 1. Cambridge University Press, pp. 2883–2892.
+Temple, W.G., Wu, Y., Chen, B., Kalbarczyk, Z., 2017. Systems-theoretic likelihood
+and severity analysis for safety and security co-engineering. In: Lecture Notes in
+Computer Science (Including Subseries Lecture Notes in Artificial Intelligence and
+Lecture Notes in Bioinformatics), vol. 10598 LNCS, pp. 51–67. http://dx.doi.org/
+10.1007/978-3-319-68499-4_4 .
+Torkildson, E.N., Li, J., Johnsen, S.O., Glomsrud, J.A., 2018. Empirical studies of
+methods for safety and security co-analysis of autonomous boat. In: Safety and
+Reliability - Safe Societies in a Changing World - Proceedings of the 28th Inter-
+national European Safety and Reliability Conference. ESREL 2018, pp. 2949–2958.
+http://dx.doi.org/10.1201/9781351174664-369 .
+Torkildson, E.N., Li, J., Torkildsonn, S.O., 2020. Improving security and safety
+co-analysis of STPA. In: Proceedings of the 30th European Safety and Reliabil-
+ity Conference and the 15th Probabilistic Safety Assessment and Management
+Conference. http://dx.doi.org/10.3850/978-981-11-2724-3 .
+Trentinaglia, R., 2022. Deriving model-based safety and security assurance cases
+from design rationale of countermeasure patterns. In: Proceedings of the 25th
+International Conference on Model Driven Engineering Languages and Systems:
+Companion Proceedings. pp. 164–169.
+Troubitsyna, E., Vistbakka, I., 2018. Deriving and formalising safety and security
+requirements for control systems. In: Lecture Notes in Computer Science (In-
+cluding Subseries Lecture Notes in Artificial Intelligence and Lecture Notes in
+Bioinformatics), vol. 11093 LNCS, Springer International Publishing, pp. 107–122.
+http://dx.doi.org/10.1007/978-3-319-99130-6_8 .
+Urretavizcaya, I., Martinez, J., Satriani, G., Ruiz, A., Nolasco, R.R., Gonzalez, A.,
+Moreno, I., Balbis, A., 2021. Will safety-security co-engineering pay off? A quality
+and cost perspective in two case studies. In: 2021 IEEE/ACM Joint 9th International
+Workshop on Software Engineering for Systems-of-Systems and 15th Workshop on
+Distributed Software Development, Software Ecosystems and Systems-of-Systems.
+SESoS/WDES, IEEE, pp. 8–15.
+Utsunomiya, H., Kobayashi, N., Yamamoto, S., 2016. A safety knowledge representation
+of the automatic driving system. Procedia Comput. Sci. 96, 869–878. http://dx.doi.
+org/10.1016/j.procs.2016.08.265 .
+Verma, S., Gruber, T., Puschner, P., Schmittner, C., Schoitsch, E., 2018. A quantitative
+approach for the likelihood of exploits of system vulnerabilities. In: Computer
+Safety, Reliability, and Security: SAFECOMP 2018 Workshops, ASSURE, DECSoS,
+SASSUR, STRIVE, and WAISE, VästeråS, Sweden, September 18, 2018, Proceedings
+37. Springer, pp. 177–189.
+Viet Nguyen, L., Mohan, G., Weimer, J., Sokolsky, O., Lee, I., Alur, R., 2020.
+REAFFIRM: Model-based repair of hybrid systems for improving resiliency. In:
+2020 18th ACM-IEEE International Conference on Formal Methods and Models for
+System Design. MEMOCODE 2020, http://dx.doi.org/10.1109/MEMOCODE51338.
+2020.9315153 ,arXiv:1902.04064 .
+Vistbakka, I., Troubitsyna, E., 2018. Towards a formal approach to analysing security of
+safety-critical systems. In: 2018 14th European Dependable Computing Conference.
+EDCC, IEEE, pp. 182–189.The Journal  of Systems  & Software  220 (2025)  112251
+20
+
+--- Page 21 ---
+V.L. Grechi et al.
+Vistbakka, I., Troubitsyna, E., 2019. Pattern-based formal approach to analyse secu-
+rity and safety of control systems. In: Model-Based Safety and Assessment: 6th
+International Symposium, IMBSA 2019, Thessaloniki, Greece, October 16–18, 2019,
+Proceedings 6. Springer, pp. 363–378.
+Wei, R., Kelly, T.P., Hawkins, R., Armengaud, E., 2018. DEIS: Dependability engineering
+innovation for cyber-physical systems. In: Seidl, M., Zschaler, S. (Eds.), Software
+Technologies: Applications and Foundations. Springer International Publishing,
+Cham, pp. 409–416.
+Witte, T., Groner, R., Raschke, A., Tichy, M., Pekaric, I., Felderer, M., 2022. Towards
+model co-evolution across self-adaptation steps for combined safety and security
+analysis. In: Proceedings - 17th Symposium on Software Engineering for Adaptive
+and Self-Managing Systems, Vol. 1. SEAMS 2022, Association for Computing
+Machinery, pp. 106–112. http://dx.doi.org/10.1145/3524844.3528062 .
+Yuan, S., Reniers, G., Yang, M., Bai, Y., 2023. Cost-effective maintenance of safety and
+security barriers in the chemical process industries via genetic algorithm. Process
+Saf. Environ. Prot. 170, 356–371.
+Zhao, H., Mallet, F., Apvrille, L., 2019. A language-based multi-view approach for
+combining functional and security models. In: Proceedings - Asia-Pacific Software
+Engineering Conference, Vol. 2019-Decem. APSEC, pp. 426–433. http://dx.doi.org/
+10.1109/APSEC48747.2019.00064 .Victor Luiz Grechi is a Ph.D. student in computer science at the University of São
+Paulo, Brazil. His research focuses on model-driven engineering for safety- and security-
+critical systems. Before embarking on his doctorate, he obtained a specialization in web
+software development at the Federal University of São Carlos and a bachelor’s degree
+in computer engineering at the Estácio University Center of Ribeirão Preto.
+Rosana T. Vaccare Braga Rosana T. Vaccare Braga is an Associate Professor and Re-
+searcher since 2003 with the Software Engineering Lab at the Institute of Mathematics
+and Computational Sciences, University of São Paulo (USP), Brazil, where she graduated
+in 1986 and completed her PhD in 2003. She worked in software development from
+1986 to 1999. Her research interests include software reuse (patterns, software product
+lines, and model-driven development), safety analysis, and systems-of-systems.
+André Luiz de Oliveira is an assistant professor of computer science at the Federal
+University of Juiz de Fora, Minas Gerais, Brazil. His research focuses on model-driven
+engineering, assurance cases, certification of configurable, autonomous, and intelligent
+dependable systems and cyberphysical systems, software reuse, and technical debt in
+mission-critical systems. De Oliveira received his Ph.D. in computer science from the
+University of São Paulo.The Journal  of Systems  & Software  220 (2025)  112251
+21

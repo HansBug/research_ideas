@@ -1,6 +1,6 @@
 # #85 相关工作与基线初筛总账
 
-更新时间：`2026-06-11 20:56:00`。本文件是 #85 相关工作 / 基线初筛的逐行总账。当前所有关系均为**元数据级初步判断**；除非后续明确标记为 `fulltext_manual_checked` 或 `verified_fact`，不得写成已核验事实。
+更新时间：`2026-06-12 00:10:00`。本文件是 #85 相关工作 / 基线初筛的逐行总账；其中 69 行矩阵仍保留 metadata 初筛原貌。P0/P1 的 25 篇本地全文初检已升级到 [../survey_baseline_library/SUMMARY.md](../survey_baseline_library/SUMMARY.md)，后续引用全文结论时必须以该文库为准。
 
 > 说明：论文题名、期刊 / 会议名、DOI 链接和机器字段名保留官方英文；解释性文字尽量中文化。七维评分的机器可审计证据列见 [data/screening_audit.csv](./data/screening_audit.csv)。
 
@@ -15,7 +15,8 @@
 | P2 | 13 |
 | Skip | 31 |
 | P0/P1 人工下载 BibTeX | 25 |
-| 自动全文轻量复查门禁 | 7 |
+| P0/P1 本地 PDF 全文初检 | 25 |
+| 自动全文轻量复查门禁 | 21 |
 
 ## 1. `relation_level` 分布
 
@@ -112,18 +113,31 @@
 | 68 | `background_cluster_or_exclude_metadata_only` | `Skip` | 🟠 | 🟠 | 🟡 | 🔴 | 🟢 | 🟢 | 🟠 | Software architecture for quantum computing systems — A systematic review | Journal of Systems and Software | [DOI](https://doi.org/10.1016/j.jss.2023.111682) |
 | 69 | `watch_metadata_only` | `Skip` | 🟠 | 🟢 | 🟠 | 🔴 | 🟠 | 🟢 | 🔴 | An overview of research with Slco on seamless integration of formal verification into model-driven software engineering | Science of Computer Programming | [DOI](https://doi.org/10.1016/j.scico.2025.103386) |
 
-## 4. P0/P1 人工下载入口
+
+## 4. P0/P1 全文级 baseline 初检入口
+
+用户已提供 P0/P1 共 `25` 篇本地 PDF；文库内部保存 `paper.pdf` 与 `paper_content.txt`，同时提交 receipt、页码定位、短转述和 D1--D7 全文级初检矩阵；对外说明不复制长段原文。
+
+- 总账入口：[../survey_baseline_library/SUMMARY.md](../survey_baseline_library/SUMMARY.md)
+- 机器真源：[../survey_baseline_library/data/fulltext_review_matrix.csv](../survey_baseline_library/data/fulltext_review_matrix.csv)
+- 本地全文 receipt：[../survey_baseline_library/data/local_fulltext_receipt.csv](../survey_baseline_library/data/local_fulltext_receipt.csv)
+
+当前全文初检结论：P0 更适合写作成 `verified_gap_neighbor_fulltext`，不是已完成的 verified direct competitor；未发现一篇同时覆盖“控制系统需求 → 状态机来源语料 / benchmark-source landscape → LLM4Modeling 任务”的同题完整竞品，但 G3 多数据库 direct-competitor safety search 仍未关闭。
+
+## 5. P0/P1 人工下载入口
 
 完整 BibTeX 见 [data/manual_download_needed.bib](./data/manual_download_needed.bib)，人工协作队列见 [MANUAL_DOWNLOAD_REQUESTS.md](./MANUAL_DOWNLOAD_REQUESTS.md)。
 
-## 5. 自动全文复查门禁
+## 6. 自动全文复查门禁
 
-当前共有 `7` 行自动全文轻量复查标记为 `yes`，详见 [data/auto_fulltext_light_review_gate.csv](./data/auto_fulltext_light_review_gate.csv)。复查前不得把这些行最终排除。
+当前共有 `21` 行自动全文轻量复查标记为 `yes`，详见 [data/auto_fulltext_light_review_gate.csv](./data/auto_fulltext_light_review_gate.csv)。复查前不得把这些行最终排除。
 
-## 6. 更新日志
+## 7. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-11 23:25:00 | 用户提供 P0/P1 本地 PDF 后，建立 paper 内部 `survey_baseline_library/` 综述 baseline 文库，完成 25 篇全文初检、receipt 和单篇 review。 |
+| 2026-06-11 21:45:00 | 修复自动全文复查门禁规则与列表不一致：触发条件改为 D7 未降至 🔴 且 D1/D2/D4 至少两个非红，门禁列表从 7 条扩展到 21 条。 |
 | 2026-06-11 20:56:00 | 补齐字段级 provenance 与下载拆分字段，扩展 P0/P1 人工下载 request ledger，并将泛 SE 的 `human-in-the-loop` D1 误判从 🟢 降为 🟠。 |
 | 2026-06-11 20:50:00 | 修复 D1 评分的泛词误命中，避免把 `security`、`execution` 等误判为 ECU / 嵌入式证据；继续保留元数据级边界。 |
 | 2026-06-11 20:30:00 | 修复 `source_row_index` 为 #95 原始 CSV 1-based 行号；补齐 D1--D7 evidence/rationale/pending 字段；中文化自动全文复查理由。 |

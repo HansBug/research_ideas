@@ -16,11 +16,13 @@
 
 | 文件 | 本地行数 | 本地 SHA256 | 说明 |
 |---|---:|---|---|
-| `issue85_narrowed_related_candidates_preliminary.csv` | 70 | `c8f8547c1719ec166957a7605e776dd9cf30d8ad6f4828fa0feadb9d2b450c92` | 本 PR 派生 / 硬化后的机器审计文件 |
-| `screening_audit.csv` | 439 | `16c5932bc383455c6ca1c1138be6b1dfe570d7d09ccd346c1e0ffffd19bf71b4` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `issue85_narrowed_related_candidates_preliminary.csv` | 70 | `88f30ab896c2b2d6702e15fa246ea469b863c10d6c8e8316f6ae9a78bba39173` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `screening_audit.csv` | 439 | `0c615f561ebb07d95a6e593752777ad68d826a4cbaa7e5cda8fc06e3a643b18b` | 本 PR 派生 / 硬化后的机器审计文件 |
 | `targeted_search_audit.csv` | 20 | `ffa6f35e093a5b653e7c59045b58ada631d018e47773fe6b74f7830ac534c844` | 本 PR 派生 / 硬化后的机器审计文件 |
-| `auto_fulltext_light_review_gate.csv` | 8 | `9e9f9a00cf5481758bb1e9e1ccbc94a55f542b28f46ee9d93e2d03b817a4ccb4` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `auto_fulltext_light_review_gate.csv` | 22 | `ef9e961b19b95984323f8b151292339fd50ea912b9351ee0b31b74da14684f59` | 本 PR 派生 / 硬化后的机器审计文件 |
 | `manual_download_needed.bib` | 249 | `11c867b07985069f1ed0aefd025739c4f5b133d3512e57eb74af53f9ee4d63ce` | 本 PR 派生 / 硬化后的机器审计文件 |
+| `survey_baseline_library/data/fulltext_review_matrix.csv` | 26 | `1a1145bac13396c177430b5d88ee73c295832afff6bb45ee7079dd4758f47e3e` | P0/P1 全文级 baseline 主矩阵 |
+| `survey_baseline_library/data/local_fulltext_receipt.csv` | 26 | `e23f1c666c1045fcacc74647c8a486d75074af5de8499ad70c13b424b74f4107` | P0/P1 单篇四件套 receipt |
 
 ## 漂移处理策略
 

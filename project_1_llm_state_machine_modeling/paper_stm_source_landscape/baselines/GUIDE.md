@@ -4,7 +4,7 @@
 
 目标：从 issue #95 的 438 行 CCF-A/B 综述候选与定向直接近邻安全检索中，形成 #85 的 D1--D7 初筛矩阵、人工下载队列和声明风险控制底座。
 
-非目标：不写最终相关工作，不提交 PDF/全文，不把仅元数据判断升级成已核验事实。
+非目标：不写最终相关工作，不在对外评论/论文正文复制长段原文；不把仅元数据判断升级成已核验事实。
 
 ## 2. D1--D7 字段合同
 
@@ -30,13 +30,13 @@ D1 的 `human-in-the-loop` 只在同时出现 CPS、控制、嵌入式、安全�
 
 ## 3. 自动全文暂缓复查门禁
 
-自动全文轻量复查标记为 `yes` 的行不能最终排除，直到完成轻量方法节复查。复查至少记录是否出现状态机（`state machine`）、行为模型（`behavioral model`）、基准（`benchmark`）、语料（`corpus`）、LLM4Modeling 等关键词，以及保持“暂缓 / 暂不下载（`Skip`）”、升级为 P1/P0，或转入“已核验近邻（`verified_near_neighbor`）”的原因。
+自动全文轻量复查标记为 `yes` 的行不能最终排除，直到完成轻量方法节复查。当前默认触发条件是：`manual_priority=Skip`、`auto_fulltext_state=parsed`、`D7_score` 未降至 🔴，且 D1/D2/D4 中至少两个维度不是 🔴。复查至少记录是否出现状态机（`state machine`）、行为模型（`behavioral model`）、基准（`benchmark`）、语料（`corpus`）、LLM4Modeling 等关键词，以及保持“暂缓 / 暂不下载（`Skip`）”、升级为 P1/P0，或转入“已核验近邻（`verified_near_neighbor`）”的原因。
 
 升级时必须同步更新 `issue85_narrowed_related_candidates_preliminary.csv` 的 `manual_priority / manual_download_decision / verification_status`、`screening_audit.csv` 对应行、`SUMMARY.md` 的统计与门禁条目数；不得只在 `auto_fulltext_light_review_gate.csv` 单点修改导致跨文件统计漂移。
 
 ## 4. 审查门禁
 
-C/I 级问题包括：P0/P1 BibTeX 不完整、438 行审计缺失、7 条自动全文门禁未复查就最终排除、仅元数据判断被写成已核验声明、遗漏明显直接近邻。纯格式问题为 M。
+C/I 级问题包括：P0/P1 BibTeX 不完整、438 行审计缺失、21 条自动全文门禁未复查就最终排除、仅元数据判断被写成已核验声明、遗漏明显直接近邻。纯格式问题为 M。
 
 
 ## 5. 438 行审计与 69 行矩阵的字段边界
@@ -51,3 +51,14 @@ C/I 级问题包括：P0/P1 BibTeX 不完整、438 行审计缺失、7 条自动
 [MANUAL_DOWNLOAD_REQUESTS.md](./MANUAL_DOWNLOAD_REQUESTS.md) 是 P0/P1 人工协作 receipt 真源。每行必须至少记录 `request_id / priority / title / DOI / publisher_or_landing_url / public_pdf_candidate_url / access_route / why_needed / blocking_gate_or_claim / needed_for_gate / requested_action / after_download_action / request_status / user_response / manual_check_status / final_verification_status / copyright_note / do_not_commit_pdf_or_fulltext`。
 
 若用户后续确认可访问或不可访问，只能更新 receipt 字段和矩阵中的核验状态；不得提交用户下载的 PDF、出版社全文、长摘录或 OCR 全文。
+
+## 7. P0/P1 全文级 baseline 文库联动
+
+用户已提供 25 篇 P0/P1 的本地私有 PDF；这些 PDF 进入本 paper 内部单论文文库，但不在对外评论或论文正文中复制长段原文。全文级初检结果的真源是 [../survey_baseline_library/data/fulltext_review_matrix.csv](../survey_baseline_library/data/fulltext_review_matrix.csv)，人类入口是 [../survey_baseline_library/SUMMARY.md](../survey_baseline_library/SUMMARY.md)。
+
+维护规则：
+
+1. `baselines/` 继续保留 438 行审计、69 行初筛和下载 handoff，不覆盖 metadata 阶段证据。
+2. `survey_baseline_library/` 记录 P0/P1 的全文 receipt、页码定位、短转述、D1--D7 全文评分和 final relation。
+3. 若全文初检改变 P0/P1 的 relation、D1--D7 或 claim impact，必须同步更新 [SUMMARY.md](./SUMMARY.md)、[../evidence/baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) 与 [../story/claim_evidence_map.md](../story/claim_evidence_map.md)。
+4. 任何 reviewer 若发现长段原文被复制进 PR comment、论文正文或 review 文本，应按 C 级证据链 / 版权污染问题处理；单篇目录中的 `paper.pdf` 与 `paper_content.txt` 是本地研究文库源材料。
