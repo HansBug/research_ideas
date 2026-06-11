@@ -1,34 +1,34 @@
-# STM Source Landscape Paper Outline
+# 状态机来源景观论文大纲
 
 ## 1. 写作锚点
 
-本文主线是 **benchmark-source landscape**：用 retrospective SMS + audit protocol 说明控制系统论文中的状态机案例如何成为 LLM 状态机建模 benchmark 的可追溯来源。
+本文主线是“基准来源景观”：用后验系统映射与审计协议说明控制系统论文中的状态机案例如何成为 LLM 状态机建模基准的可追溯来源。
 
 ## 2. 建议 RQ / DQ
 
 | 编号 | 问题 | 证据 | 边界 |
 |---|---|---|---|
-| RQ1 | frozen `sources` audited corpus 中哪些控制领域提供可抽取 STM / mode-switching / guarded-control 案例？ | 领域、STM 状态、案例数、negative audit | 只回答 corpus 内部分布 |
-| RQ2 | 案例呈现哪些状态机类型、时间级别和结构复杂度？ | FSM/EFSM/HSM/Hybrid、T0--T3、结构标签 | 只解释 codebook 分类 |
-| RQ3 | 预定义 eligibility rule 下，哪些案例适合核心候选、清洗候选、降采样候选？ | 质量标签、版权 gate、sensitivity | 不宣称最终 benchmark |
-| RQ4 | 哪些同质簇会影响 benchmark 代表性？ | cluster / stratified analysis | 给 empirical constraints |
-| DQ1 | 如何设计 copyright-safe、分层、可复现的 LLM STM benchmark-source artifact？ | RQ1--RQ4 synthesis、task-card pilot | discussion / design implication |
+| RQ1 | 冻结后的 `sources` 审计语料中，哪些控制领域提供可抽取 STM / 模式切换 / 带守卫控制案例？ | 领域、STM 状态、案例数、负例审计 | 只回答语料内部分布 |
+| RQ2 | 案例呈现哪些状态机类型、时间级别和结构复杂度？ | FSM/EFSM/HSM/Hybrid、T0--T3、结构标签 | 只解释编码手册分类 |
+| RQ3 | 预定义资格规则下，哪些案例适合核心候选、清洗候选、降采样候选？ | 质量标签、版权门禁、敏感性分析 | 不宣称最终基准 |
+| RQ4 | 哪些同质簇会影响基准代表性？ | 聚类 / 分层分析 | 给出经验约束 |
+| DQ1 | 如何设计版权安全、分层、可复现的 LLM STM 基准来源制品？ | RQ1--RQ4 综合分析、任务卡小规模试跑 | 讨论 / 设计启示 |
 
-## 3. Section architecture
+## 3. 章节架构
 
-1. Introduction：LLM4Modeling benchmark-source gap 与贡献边界。
-2. Background and Related Work：LLM4MDE / MDE / MBSE / RE / state-machine generation / CCF-A SMS bar。
-3. Retrospective Mapping Protocol：snapshot、inclusion/exclusion、data extraction、quality / copyright policy。
-4. Codebook and Corpus：领域、状态机类型、时间级别、结构标签、quality labels、evidence locator。
-5. Results：RQ1--RQ4。
-6. Benchmark-Source Design Implications：eligibility rules、stratified sampling、sanitized task-card schema。
-7. Threats to Validity：retrospective provenance、selection bias、coding bias、copyright、LLM contamination。
-8. Artifact Availability and Conclusion：metadata / labels / codebook / evidence locators / scripts / sanitized cards。
+1. 引言：LLM4Modeling 基准来源缺口与贡献边界。
+2. 背景与相关工作：LLM4MDE / MDE / MBSE / RE / 状态机生成 / CCF-A 系统映射门槛。
+3. 后验映射协议：快照、纳入 / 排除、数据抽取、质量 / 版权策略。
+4. 编码手册与语料：领域、状态机类型、时间级别、结构标签、质量标签、证据定位符。
+5. 结果：RQ1--RQ4。
+6. 基准来源设计启示：资格规则、分层采样、脱敏任务卡 schema。
+7. 有效性威胁：后验来源、选择偏差、编码偏差、版权、LLM 污染。
+8. 制品可用性与结论：元数据 / 标签 / 编码手册 / 证据定位符 / 脚本 / 脱敏任务卡。
 
-## 4. Related Work 红线
+## 4. 相关工作红线
 
-| 风险 claim | 安全替代表述 |
+| 风险声明 | 安全替代表述 |
 |---|---|
-| “没有人做过状态机生成 / UML state machine generation” | “prior work addresses LLM-to-state-machine/modeling; our focus is benchmark-source landscape from control-system papers” |
-| “本文发布了 benchmark” | “本文提出 benchmark-source eligibility and task-card pilot” |
-| “systematic review 完整覆盖控制系统文献” | “retrospective systematic mapping over an audited corpus snapshot” |
+| “没有人做过状态机生成 / UML state machine generation” | “已有工作研究 LLM 到状态机 / 建模；本文聚焦控制系统论文中的基准来源景观。” |
+| “本文发布了基准” | “本文提出基准来源资格规则，并通过任务卡小规模试跑验证可行性。” |
+| “systematic review 完整覆盖控制系统文献” | “本文对一个经审计的语料快照进行后验系统映射。” |

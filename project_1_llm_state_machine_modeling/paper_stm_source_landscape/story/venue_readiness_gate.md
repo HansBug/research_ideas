@@ -1,11 +1,11 @@
-# Venue Readiness Gate
+# 投稿准备度门禁
 
-#85 按 CCF-A reviewer 强度准备 story、protocol、artifact、related-work、reliability 与 usefulness，但投稿出口可按 fit-first 选择 TSE/TOSEM（A-stretch）或 IST/JSS/SoSyM/REJ（B-primary / journal fit）。本 PR 不冻结最终 venue。
+#85 按 CCF-A 审稿强度准备论文主线、协议、制品、相关工作、可靠性与有用性证据，但投稿出口可按适配优先原则选择 TSE/TOSEM（A 类冲刺）或 IST/JSS/SoSyM/REJ（B 类主投 / 期刊适配）。本 PR 不冻结最终投稿 venue。
 
-| Gate | Ready 条件 | 当前状态 |
+| 门禁 | 就绪条件 | 当前状态 |
 |---|---|---|
-| Direct competitor matrix | 25--40 prior-art entries，direct / near / background / benchmark / tool pipeline 分层 | 本 PR 69 行 metadata-level 初筛，待全文核验 |
-| Protocol transparency | snapshot、inclusion trace、reconstructed provenance、flow、failure log | 待后续 G1 |
-| Coding reliability | codebook、blind/double-code、agreement/adjudication | 待后续 G2 |
-| Artifact usefulness | sanitized package、task-card pilot、外部/盲评 dry-run | 待后续 G7/G9 |
-| Copyright safety | contamination scan、no PDF/fulltext release、evidence locator policy | 本 PR 遵守 metadata-only，最终包待 G0 |
+| 直接近邻矩阵 | 25--40 个既有工作条目，按直接 / 近邻 / 背景 / 基准 / 工具流水线分层 | 本 PR 69 行元数据级初筛，待全文核验 |
+| 协议透明性 | 快照、纳入轨迹、重建来源、流程、失败日志 | 待后续 G1 |
+| 编码可靠性 | 编码手册、盲编码 / 双人编码、一致性 / 裁决 | 待后续 G2 |
+| 制品有用性 | 脱敏发布包、任务卡小规模试跑、外部 / 盲评 dry-run | 待后续 G7/G9 |
+| 版权安全 | 污染扫描、不发布 PDF/全文、证据定位符策略 | 本 PR 遵守仅元数据策略，最终包待 G0 |

@@ -1,22 +1,24 @@
-# #85 baseline screening input snapshot
+# #85 基线初筛输入快照
 
-核验时间：`2026-06-11 19:06:00`。本文件冻结 #95 / #85 planning 输入快照；若 raw URL 后续漂移，必须新增快照而不是静默覆盖。
+核验时间：`2026-06-11 19:06:00`。本文件冻结 #95 / #85 规划输入快照；若原始 URL 后续漂移，必须新增快照而不是静默覆盖。
 
 | 文件 | 行数 | SHA256 | 来源 |
 |---|---:|---|---|
-| `issue95_ccf_ab_review_candidates_2023_2026.csv` | 438 / lines 439 | `d91229d843314a033a8ae74bec36a4a983b8ffed61a9be25758e24bb1a5345b6` | [source](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_ccf_ab_review_candidates_2023_2026.csv) |
-| `issue95_fulltext_structure_analysis_87papers.csv` | 87 / lines 88 | `2bbc0bd6bc0a6068c4482c6ff0e5858223f9c0f78e1af29aecd6e8d1e403c2c1` | [source](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_fulltext_structure_analysis_87papers.csv) |
-| `issue95_fulltext_download_audit_438papers.csv` | 438 / lines 439 | `31965751e000e42be71561d464f76d6144f9f00b646a5ab00de50c9b48c78644` | [source](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_fulltext_download_audit_438papers.csv) |
-| `issue85_narrowed_related_candidates_preliminary.csv` | 69 / lines 70 | `73a1d584c76241c320785312658a479535a08df6a6493bcc5180b05f8f35e697` | [source](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
-| `issue85_manual_download_needed_preliminary.bib` | n/a / lines 249 | `11c867b07985069f1ed0aefd025739c4f5b133d3512e57eb74af53f9ee4d63ce` | [source](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
+| `issue95_ccf_ab_review_candidates_2023_2026.csv` | 438 / lines 439 | `d91229d843314a033a8ae74bec36a4a983b8ffed61a9be25758e24bb1a5345b6` | [来源](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_ccf_ab_review_candidates_2023_2026.csv) |
+| `issue95_fulltext_structure_analysis_87papers.csv` | 87 / lines 88 | `2bbc0bd6bc0a6068c4482c6ff0e5858223f9c0f78e1af29aecd6e8d1e403c2c1` | [来源](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_fulltext_structure_analysis_87papers.csv) |
+| `issue95_fulltext_download_audit_438papers.csv` | 438 / lines 439 | `31965751e000e42be71561d464f76d6144f9f00b646a5ab00de50c9b48c78644` | [来源](https://gist.githubusercontent.com/HansBug/2310896ff4921f3d4809001571228820/raw/issue95_fulltext_download_audit_438papers.csv) |
+| `issue85_narrowed_related_candidates_preliminary.csv` | 69 / lines 70 | `73a1d584c76241c320785312658a479535a08df6a6493bcc5180b05f8f35e697` | [来源](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
+| `issue85_manual_download_needed_preliminary.bib` | n/a / lines 249 | `11c867b07985069f1ed0aefd025739c4f5b133d3512e57eb74af53f9ee4d63ce` | [来源](https://gist.github.com/HansBug/57dd103e27205a25b97e816a4167fa1d) |
 
-## Drift policy
+## 漂移处理策略
 
-1. `issue95_*` CSV raw URL 视为可变输入；正式 manuscript 前必须重新下载并比对 SHA256。
+1. `issue95_*` CSV 原始 URL 视为可变输入；正式成稿前必须重新下载并比对 SHA256。
 2. 若 SHA256 变化，保留旧快照记录并生成新版 `screening_audit.csv`；不得把新旧统计混写。
-3. #95 元数据、CCF、DOI、PDF 状态默认只是 `source_claim`；进入论文正文前必须按 DOI landing page、publisher、DBLP 或人工全文核验升级。
+3. #95 元数据、CCF、DOI、PDF 状态默认只是 `source_claim`；进入论文正文前必须按 DOI 落地页、出版社页面、DBLP 或人工全文核验升级。
 
-## Header snapshot
+## 表头快照
+
+以下代码块保留原始 CSV 字段名，便于机器复验。
 
 ### `issue95_ccf_ab_review_candidates_2023_2026.csv`
 

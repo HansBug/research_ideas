@@ -1,23 +1,25 @@
-# #85 Related Work / Baseline Screening Summary
+# #85 相关工作与基线初筛总账
 
-更新时间：`2026-06-11 19:06:00`。本文件是 #85 related-work / baseline 初筛的 row-level 总账。当前所有关系均为 **metadata-level preliminary**，除非后续明确标记为 `fulltext_manual_checked` 或 `verified_fact`。
+更新时间：`2026-06-11 19:06:00`。本文件是 #85 相关工作 / 基线初筛的逐行总账。当前所有关系均为**元数据级初步判断**；除非后续明确标记为 `fulltext_manual_checked` 或 `verified_fact`，不得写成已核验事实。
+
+> 说明：论文题名、期刊 / 会议名、DOI 链接保留官方英文名；其余解释性文字尽量中文化。
 
 ## 0. 总览
 
 | 指标 | 数量 / 状态 |
 |---|---:|
 | #95 输入候选 | 438 |
-| #85 初筛 slice | 69 |
+| #85 初筛子集 | 69 |
 | P0 | 7 |
 | P1 | 18 |
 | P2 | 13 |
 | Skip | 31 |
 | P0/P1 人工下载 BibTeX | 25 |
-| auto-fulltext 轻量复查 gate | 7 |
+| 自动全文轻量复查门禁 | 7 |
 
-## 1. relation_level 分布
+## 1. `relation_level` 分布
 
-| relation_level | 数量 |
+| `relation_level` | 数量 |
 |---|---:|
 | `background_cluster_or_exclude_metadata_only` | 8 |
 | `candidate_direct_metadata_only` | 7 |
@@ -25,9 +27,9 @@
 | `methodology_anchor_metadata_only` | 22 |
 | `watch_metadata_only` | 1 |
 
-## 2. include_reason 分布
+## 2. `include_reason` 分布
 
-| include_reason | 数量 |
+| `include_reason` | 数量 |
 |---|---:|
 | `control_cps_mapping_near_85` | 20 |
 | `core_seed` | 18 |
@@ -38,7 +40,7 @@
 
 ## 3. 69 行 D1--D7 初筛矩阵
 
-| # | Rel | Pri | D1 | D2 | D3 | D4 | D5 | D6 | D7 | Title | Venue | DOI |
+| # | 关系 | 优先级 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | 题名 | 期刊 / 会议 | DOI |
 |---:|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `candidate_direct_metadata_only` | `P0` | 🟢 | 🟡 | 🟢 | 🟡 | 🟡 | 🟠 | 🟢 | Model Driven Engineering, Artificial Intelligence, and DevOps for Software and Systems Engineering: A Systematic Mapping Study of Synergies and Challenges | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3759454) |
 | 2 | `candidate_direct_metadata_only` | `P0` | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 🟠 | 🟢 | A Systematic Literature Review of Model-Driven Engineering Using Machine Learning | IEEE Transactions on Software Engineering | [DOI](https://doi.org/10.1109/tse.2024.3430514) |
@@ -114,7 +116,7 @@
 
 完整 BibTeX 见 [data/manual_download_needed.bib](./data/manual_download_needed.bib)，人工协作队列见 [MANUAL_DOWNLOAD_REQUESTS.md](./MANUAL_DOWNLOAD_REQUESTS.md)。
 
-## 5. Auto-fulltext 复查 gate
+## 5. 自动全文复查门禁
 
 当前共有 `7` 行 `auto_fulltext_light_review_flag=yes`，详见 [data/auto_fulltext_light_review_gate.csv](./data/auto_fulltext_light_review_gate.csv)。复查前不得把这些行最终排除。
 
@@ -122,4 +124,4 @@
 
 | 时间 | 更新 |
 |---|---|
-| 2026-06-11 19:06:00 | 初始化 #85 baseline screening 总账；落地 438 行审计、69 行初筛、25 条人工下载 BibTeX、7 条 auto-fulltext 复查 gate。 |
+| 2026-06-11 19:06:00 | 初始化 #85 相关工作与基线初筛总账；落地 438 行审计、69 行初筛、25 条人工下载 BibTeX、7 条自动全文复查门禁。 |

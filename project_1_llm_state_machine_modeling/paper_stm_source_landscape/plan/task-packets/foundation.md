@@ -1,10 +1,10 @@
-# #85 Baseline Related-Work Screening Foundation Task Packet
+# #85 基线相关工作初筛基础任务包
 
 ## 范围
 
 - 新建 `paper_stm_source_landscape/`，与 PR #96 `path1_foundation/` 同构。
-- 落地 #95 438 行审计、69 行 D1--D7 初筛、25 条人工下载 BibTeX、7 条 auto-fulltext 复查 gate。
-- 建立 story / claim / evidence / experiment / plan 入口。
+- 落地 #95 438 行审计、69 行 D1--D7 初筛、25 条人工下载 BibTeX、7 条自动全文复查门禁。
+- 建立论文主线 / 声明 / 证据 / 实验 / 计划入口。
 
 ## 允许修改文件
 
@@ -19,8 +19,8 @@
 
 ## 拒收检查
 
-1. 出现 带顺序含义的版本化命名 或把 #85 写成 `paper_v1` 后续版本。
+1. 出现带顺序含义的版本化命名，或把 #85 写成 `paper_v1` 后续版本。
 2. 缺少 `baselines/data/screening_audit.csv` 或不足 438 行。
 3. 缺少 `baselines/data/manual_download_needed.bib` 或 P0/P1 不完整。
-4. 缺少 `auto_fulltext_light_review_gate.csv` 或未记录 7 条复查 gate。
-5. 把 metadata-only 写成 verified direct competitor。
+4. 缺少 `auto_fulltext_light_review_gate.csv` 或未记录 7 条复查门禁。
+5. 把仅元数据判断写成已核验直接近邻。

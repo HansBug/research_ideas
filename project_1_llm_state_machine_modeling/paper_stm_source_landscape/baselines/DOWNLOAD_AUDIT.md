@@ -1,10 +1,10 @@
-# Download Audit
+# 下载审计
 
 本文件汇总 #95 下载审计事实与 #97 / #85 的使用边界。下载事实来源为 #95 Gist 的 `issue95_fulltext_download_audit_438papers.csv`，不是本 PR 新下载。
 
 ## 1. #95 全量下载状态
 
-| download_status | 数量 |
+| 下载状态（原始代码） | 数量 |
 |---|---:|
 | `exists_old` | 28 |
 | `fail` | 63 |
@@ -12,11 +12,11 @@
 | `ok` | 59 |
 
 - 已进入自动结构分析的全文样本：`87`。
-- 本 PR 不提交这些 PDF/TXT，只记录 metadata、状态和 SHA256。
+- 本 PR 不提交这些 PDF/TXT，只记录元数据、状态和 SHA256。
 
-## 2. #85 初筛 slice 下载状态
+## 2. #85 初筛子集下载状态
 
-| fulltext_status_issue95 | 数量 |
+| #95 全文状态 | 数量 |
 |---|---:|
 | `⚠️ 未取得公开 PDF/CLI 受限` | 44 |
 | `✅ 已下载解析公开 PDF` | 25 |

@@ -1,59 +1,61 @@
-# STM Source Landscape Paper Story
+# 状态机来源景观论文主线
 
-## Working title
+## 暂定标题
 
 From Control-System Papers to Benchmark-Source Landscapes: A Retrospective Systematic Mapping of State-Machine Cases
 
-## Thesis
+中文暂译：从控制系统论文到基准来源景观：状态机案例的后验系统映射。
 
-We study how state-machine, mode-switching, and guarded-control descriptions embedded in control-system papers can be audited into a copyright-safe, stratified benchmark-source landscape for LLM-based state-machine modeling.
+## 核心论点
 
-## Task Boundary
+本文研究如何将控制系统论文中嵌入的状态机、模式切换与带守卫控制描述，审计为面向 LLM 状态机建模的版权安全、可分层的基准来源景观。
 
-- **Inputs**：`sources/` 中已入库的控制系统论文、`STM.md` 案例标注、BibTeX、摘要级与全文级证据定位。
-- **Outputs**：metadata / labels / codebook / evidence locators / sanitized benchmark-card rules，不输出受版权保护 PDF 或全文。
-- **Supported settings**：控制系统、CPS、机器人/自动驾驶、嵌入式、安全关键、工业自动化、铁路、交通、医疗、楼宇机电等含离散行为或模式切换的论文。
-- **Out-of-scope settings**：证明 LLM 性能、发布最终 benchmark、覆盖所有控制系统文献、完整形式化验证或工业认证。
+## 任务边界
 
-## Gap
+- **输入**：`sources/` 中已入库的控制系统论文、`STM.md` 案例标注、BibTeX、摘要级与全文级证据定位。
+- **输出**：元数据、标签、编码手册、证据定位符、脱敏基准任务卡规则；不输出受版权保护 PDF 或全文。
+- **支持场景**：控制系统、CPS、机器人 / 自动驾驶、嵌入式、安全关键、工业自动化、铁路、交通、医疗、楼宇机电等含离散行为或模式切换的论文。
+- **非目标场景**：证明 LLM 性能、发布最终基准、覆盖所有控制系统文献、完整形式化验证或工业认证。
 
-LLM4SE / LLM4MDE / requirements automation 已快速增长，但缺少面向 LLM 状态机建模的、跨控制域、带质量标签、同质性风险与版权边界的 benchmark-source map。
+## 研究缺口
 
-## Technical Challenge
+LLM4SE、LLM4MDE 与需求自动化研究快速增长，但仍缺少面向 LLM 状态机建模的、跨控制域、带质量标签、同质性风险与版权边界的基准来源地图。
+
+## 技术挑战
 
 1. 状态机信息分散在正文、图、表、模式描述、控制逻辑和实验场景中。
-2. `sources/` 是长期增量文库，必须写成 retrospective SMS with audit protocol。
-3. `STM.md` 标签不是 gold standard，必须做 codebook、reliability 与 negative/excluded sample audit。
-4. PDF、全文抽取物和长引用存在版权风险，公开 artifact 必须 sanitized。
-5. 同质样本簇会导致 benchmark 偏斜，必须分层采样与降同质化。
+2. `sources/` 是长期增量文库，必须写成带审计协议的后验系统映射。
+3. `STM.md` 标签不是金标准，必须做编码手册、可靠性与负例 / 排除样本审计。
+4. PDF、全文抽取物和长引用存在版权风险，公开制品必须脱敏。
+5. 同质样本簇会导致基准偏斜，必须分层采样与降同质化。
 
-## Method Insight
+## 方法洞见
 
-把“发现论文中的状态机案例”与“构造 LLM benchmark”分离：前者用 retrospective SMS + codebook + audit 得到 corpus landscape；后者只作为 evidence-informed benchmark design implication，并通过 sanitized task-card pilot 验证可用性。
+把“发现论文中的状态机案例”与“构造 LLM 基准”分离：前者用后验系统映射、编码手册和审计得到语料景观；后者只作为基于证据的基准设计启示，并通过脱敏任务卡小规模试跑验证可用性。
 
-## Contributions
+## 贡献边界
 
-1. 控制系统论文到状态机案例的 source landscape。
-2. 从论文原文识别和标注状态机案例的 codebook 与审计协议。
+1. 控制系统论文到状态机案例的来源景观。
+2. 从论文原文识别和标注状态机案例的编码手册与审计协议。
 3. 对案例质量、结构复杂度、时间约束、领域分布和同质簇的系统分析。
-4. 面向 LLM 状态机建模 benchmark 的分层采样、降同质化与版权安全 artifact 设计原则。
-5. 明确的 claim / artifact / copyright gate，避免把内部文库整理过度包装成最终 benchmark。
+4. 面向 LLM 状态机建模基准的分层采样、降同质化与版权安全制品设计原则。
+5. 明确的声明、制品与版权门禁，避免把内部文库整理过度包装成最终基准。
 
-## Evidence
+## 当前证据
 
-- 当前 planning baseline：`sources/` 787 篇论文、746 条正例案例、787/787 `STM.md` 覆盖。
-- 本 PR 交付：#95 的 438 行候选审计、69 行初筛矩阵、25 条 P0/P1 人工下载 BibTeX、7 条 auto-fulltext 复查 gate。
-- 正式结果前必须完成 snapshot 复算、codebook reliability、related-work direct competitor matrix、sanitized package。
+- 当前规划基线：`sources/` 787 篇论文、746 条正例案例、787/787 `STM.md` 覆盖。
+- 本 PR 交付：#95 的 438 行候选审计、69 行初筛矩阵、25 条 P0/P1 人工下载 BibTeX、7 条自动全文复查门禁。
+- 正式结果前必须完成快照复算、编码可靠性、相关工作直接近邻矩阵、脱敏发布包。
 
-## Related Work Positioning
+## 相关工作定位
 
-- Direct / near：MDE/AI/DevOps SMS、MDE+ML SLR、MBSE behaviour V&V SLR、MDSE modelling assistants SMS、MBSE requirements extraction SLR。
-- Methodology anchors：TSE/TOSEM/IST/JSS/SoSyM 的 SLR/SMS/landscape/bar 样本。
-- Boundary works：LLM to UML/state machine generation、ProtocolGPT、UML diagram benchmarking、LLM4SE surveys。
+- 直接 / 近邻：MDE/AI/DevOps 系统映射、MDE+ML 系统综述、MBSE 行为验证与确认系统综述、MDSE 建模助手系统映射、MBSE 需求抽取系统综述。
+- 方法学锚点：TSE/TOSEM/IST/JSS/SoSyM 中的系统综述、系统映射、景观研究写作门槛样本。
+- 边界工作：LLM 到 UML / 状态机生成、ProtocolGPT、UML 图基准评测、LLM4SE 综述。
 
-## Claims to Avoid
+## 禁止过度声明
 
-- 不写 first / largest / complete / public benchmark dataset。
+- 不写 first / largest / complete / public benchmark dataset 等绝对化说法。
 - 不写完整覆盖控制系统文献。
 - 不写 LLM 能力提升或性能结论。
-- 不把 `sources/` 现有 PDF / 全文抽取物当作公开 artifact。
+- 不把 `sources/` 现有 PDF / 全文抽取物当作公开制品。

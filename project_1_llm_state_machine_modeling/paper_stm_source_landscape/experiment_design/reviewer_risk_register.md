@@ -1,18 +1,18 @@
-# Reviewer Risk Register
+# 审稿风险登记表
 
 ## 1. C/I/M 口径
 
-C/I 只用于影响学术目标、事实准确性、实验可靠性、claim-evidence、可复现证据链的问题；纯工程风格最高 M。
+C/I 只用于影响学术目标、事实准确性、实验可靠性、声明-证据、可复现证据链的问题；纯工程风格最高 M。
 
 ## 2. 当前风险总表
 
 | 风险 | 等级 | 为什么影响学术目标 | 当前缓解 |
 |---|---|---|---|
-| 漏掉 direct competitor | C | 会打穿 #85 gap / novelty | 69 行初筛 + targeted search audit + P0/P1 下载队列 |
-| metadata-only 被写成 verified | C | 会导致 Related Work 和 claim 失真 | relation_level / verification_status 升级规则 |
-| 7 条 auto-fulltext Skip 过早排除 | C | 可能漏掉 near neighbor | 独立 gate CSV，复查前不得最终排除 |
+| 漏掉直接近邻 | C | 会打穿 #85 研究缺口 / 新颖性 | 69 行初筛 + 定向检索审计 + P0/P1 下载队列 |
+| 仅元数据判断被写成已核验事实 | C | 会导致相关工作和声明失真 | `relation_level` / `verification_status` 升级规则 |
+| 7 条自动全文 `Skip` 过早排除 | C | 可能漏掉高度近邻 | 独立门禁 CSV，复查前不得最终排除 |
 | P0/P1 BibTeX 不完整 | I | 用户无法下载，全文核验断链 | `manual_download_needed.bib` 已落地 |
 | #95 输入快照不可复验 | I | 438 -> 69 过程无法审计 | `INPUT_SNAPSHOT.md` + `screening_audit.csv` |
-| 只建文献清单，不建 paper workspace | C | 无 story / claim / RQ / risk gate | 已复刻 PR #96 同构结构 |
-| 版权污染 | C | artifact 不能公开复验 | 本 PR 不提交 PDF/全文，后续 G0 |
-| 带顺序含义的版本化命名 命名误导 | I | 暗示与 `paper_v1` 前后置关系 | 固定 `paper_stm_source_landscape/` |
+| 只建文献清单，不建论文工作区 | C | 无论文主线 / 声明 / RQ / 风险门禁 | 已复刻 PR #96 同构结构 |
+| 版权污染 | C | 制品不能公开复验 | 本 PR 不提交 PDF/全文，后续 G0 |
+| 带顺序含义的版本化命名误导 | I | 暗示与 `paper_v1` 前后置关系 | 固定 `paper_stm_source_landscape/` |
