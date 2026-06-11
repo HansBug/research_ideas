@@ -19,7 +19,7 @@
 | `PASS` | 已有可审计证据，且与 S0a/S0b 真源一致 | 可作为对应 gate 通过依据 |
 | `BLOCKED` | 缺少外部条件或需人工决策 | 不得绕过；必须在 PR / manuscript 中显式记录 |
 
-本表初始状态以 S0b 文档冻结为准，默认不把尚未运行的实验写成 `PASS`。
+本表初始状态以 S0b 文档冻结为准，默认不把尚未运行的实验写成 `PASS`。`PARTIAL` / `TODO` 在 S0b 阶段是正常的诚实状态，不自动构成缺陷；只有到对应 owner 阶段（如 S1b/S2/S3/S4/S5/S6）结束后仍无法闭合，才升级为 gate failure 或 claim 降级依据。
 
 ## 2. Novelty 与 story gate
 
@@ -100,7 +100,7 @@
 
 | ID | 检查项 | 当前状态 | grep / 人工检查建议 | 不通过时动作 |
 |---|---|---|---|---|
-| W1 | 标题 / 摘要不出现 `FCSTM`、`new DSL`、`first NL-to-STM` | TODO | 搜索 `FCSTM\|new DSL\|first NL-to-STM\|first feedback loop` | 改成 executable / machine-checkable representation |
+| W1 | 标题 / 摘要不出现 `FCSTM`、`pyfcstm`、`new DSL`、`first NL-to-STM`、`first feedback loop` | TODO | 搜索 `FCSTM\|pyfcstm\|new DSL\|first NL-to-STM\|first feedback loop\|first trace repair` 并人工判断上下文 | 改成 executable / machine-checkable representation |
 | W2 | Abstract v0 只写方向和研究问题，不写结果提升 | TODO | 搜索 `improve\|outperform\|show that` 并人工判断 | 改成 `we study / evaluate / investigate whether` |
 | W3 | Related Work 第一层先处理四个 mandatory closest works | TODO | 搜索四个 work 名称是否集中出现在第一层 | S1b 重排章节 |
 | W4 | Method 不主动讲工程过程材料 | TODO | 检查 Method heading 与 contribution bullets | 移到 artifact / appendix 或删除 |

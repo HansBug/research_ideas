@@ -49,6 +49,8 @@
 
 ## 5. 候选英文摘要 v0
 
+Lint anchor：本节候选摘要必须通过 “no first claim / no DSL naming / no result-level improvement” 人工检查；若 grep 命中禁词，只允许出现在本文件的禁止写法或自检说明中。
+
 > Large language models can help translate natural-language requirements into behavioral models, but control-system state-machine artifacts must also be checkable, executable, and repairable under explicit feedback. This paper studies LLM-based state-machine modeling from control-system requirements under a machine-checkable and executable target representation. Rather than naming a new paper-level formalism or claiming a first generator, we use the representation as an implementation substrate for deterministic diagnostics, scenario-level simulation, and structured repair decisions. The planned evaluation separates closest-work positioning, frozen samples, human component adjudication, and ablations over diagnostic and simulation feedback sources. This pre-result draft states the intended scope and protocol; result-level claims will be added only after the experimental evidence gate is closed.
 
 ## 6. 候选英文摘要 v0：更短版本

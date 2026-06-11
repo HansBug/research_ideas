@@ -101,7 +101,7 @@ S0b 是 S2/S3/S4/S5 的方向前置条件，不是孤立文档。后续 PR 必�
 
 | 后续阶段 | S0b 约束 | 若不满足则 |
 |---|---|---|
-| S1b 相关工作 / 最接近工作矩阵 | 四个最接近工作必须第一层出现；不得把 private GT、missing code、missing prompt 写成既有工作弱点，只能写可比性 / 可复现性边界 | 不得进入 S3 基线复现实验设计 |
+| S1b 相关工作 / 最接近工作矩阵 | 四个最接近工作必须第一层出现；不得把 private GT、missing code、missing prompt 写成既有工作弱点，只能写可比性 / 可复现性边界；若后续实际触发 Requirements Engineering Journal 切换，S1b 需补足 requirements-to-model、controlled natural language、requirements validation 等 RE 语境文献，但该补充不阻塞当前 SoSyM 主线的 S1b 准备 | 不得进入 S3 基线复现实验设计 |
 | S2 样本登记 / oracle 协议 | 样本必须服务当前范围：控制系统需求、可执行状态机表示、可组件级裁决；oracle 必须支持状态、迁移、guard、action、变量和行为证据 | 不得冻结主样本或写平均性能论断 |
 | S3 可执行基线 / 消融 | B0-B5 / EXT 必须围绕诊断、场景反馈、结构化修复决策的边际贡献；至少一个最接近工作的近似基线需要有计划或降级说明 | 不得进入主实验运行或结果写作 |
 | S4 pilot / 主实验 | 只运行已冻结样本、预算、oracle、纳入 / 排除规则下的实验；结果只能支撑 claim map 中对应待证据项 | 不得升级为稿件可支撑论断 |
