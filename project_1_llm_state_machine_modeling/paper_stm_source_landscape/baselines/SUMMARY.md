@@ -1,6 +1,6 @@
 # #85 相关工作与基线初筛总账
 
-更新时间：`2026-06-11 20:50:00`。本文件是 #85 相关工作 / 基线初筛的逐行总账。当前所有关系均为**元数据级初步判断**；除非后续明确标记为 `fulltext_manual_checked` 或 `verified_fact`，不得写成已核验事实。
+更新时间：`2026-06-11 20:56:00`。本文件是 #85 相关工作 / 基线初筛的逐行总账。当前所有关系均为**元数据级初步判断**；除非后续明确标记为 `fulltext_manual_checked` 或 `verified_fact`，不得写成已核验事实。
 
 > 说明：论文题名、期刊 / 会议名、DOI 链接和机器字段名保留官方英文；解释性文字尽量中文化。七维评分的机器可审计证据列见 [data/screening_audit.csv](./data/screening_audit.csv)。
 
@@ -73,7 +73,7 @@
 | 29 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟠 | 🟠 | 🟠 | Challenges in Testing Large Language Model Based Software: A Faceted Taxonomy | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3806396) |
 | 30 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🟠 | 🟢 | 🟢 | 🟡 | 🟠 | 🟡 | Enhancing Automated Unit Test Generation with Large Language Models: A Systematic Literature Review | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3802827) |
 | 31 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🔴 | 🟢 | 🟢 | 🟠 | 🟠 | 🟡 | A survey of coverage-guided greybox fuzzing with deep neural models | Information and Software Technology | [DOI](https://doi.org/10.1016/j.infsof.2025.107797) |
-| 32 | `methodology_anchor_metadata_only` | `P2` | 🟢 | 🔴 | 🟢 | 🟢 | 🟡 | 🟠 | 🟡 | Faster Code, Deeper Debt? A Multivocal Literature Review on Technical Debt and Its Early Signs in LLM-Assisted Software Development | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3820165) |
+| 32 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🔴 | 🟢 | 🟢 | 🟡 | 🟠 | 🟡 | Faster Code, Deeper Debt? A Multivocal Literature Review on Technical Debt and Its Early Signs in LLM-Assisted Software Development | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3820165) |
 | 33 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟠 | 🟠 | 🟡 | Ethical Prompt Engineering for AI-driven SE: Evidence-informed Interaction-time Governance Roadmap to 2030 | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3801980) |
 | 34 | `methodology_anchor_metadata_only` | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟠 | 🟠 | 🟠 | A Survey on LLM-based Code Generation for Low-Resource and Domain-Specific Programming Languages | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3770084) |
 | 35 | `methodology_anchor_metadata_only` | `P2` | 🔴 | 🔴 | 🟢 | 🟢 | 🟠 | 🟡 | 🟡 | Patch Generation in APR: A Survey from the Perspectives of Utilizing LLMs and Using APR-Specific Information | ACM Transactions on Software Engineering and Methodology | [DOI](https://doi.org/10.1145/3764584) |
@@ -124,6 +124,7 @@
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-11 20:56:00 | 补齐字段级 provenance 与下载拆分字段，扩展 P0/P1 人工下载 request ledger，并将泛 SE 的 `human-in-the-loop` D1 误判从 🟢 降为 🟠。 |
 | 2026-06-11 20:50:00 | 修复 D1 评分的泛词误命中，避免把 `security`、`execution` 等误判为 ECU / 嵌入式证据；继续保留元数据级边界。 |
 | 2026-06-11 20:30:00 | 修复 `source_row_index` 为 #95 原始 CSV 1-based 行号；补齐 D1--D7 evidence/rationale/pending 字段；中文化自动全文复查理由。 |
 | 2026-06-11 19:06:00 | 初始化 #85 相关工作与基线初筛总账；落地 438 行审计、69 行初筛、25 条人工下载 BibTeX、7 条自动全文复查门禁。 |

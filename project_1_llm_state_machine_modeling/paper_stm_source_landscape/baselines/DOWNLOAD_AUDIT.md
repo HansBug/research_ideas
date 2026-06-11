@@ -26,3 +26,8 @@
 1. `download_status=ok / exists_old` 只能说明 #95 自动流程取得并解析过公开 PDF，不等于 #85 已人工读完。
 2. `no_public_pdf_url_discovered` 或失败并不代表论文不可获取；用户可通过校园网、浏览器、作者页或图书馆访问。
 3. P0/P1 人工下载优先队列见 [MANUAL_DOWNLOAD_REQUESTS.md](./MANUAL_DOWNLOAD_REQUESTS.md)。
+
+
+## 4. 字段级下载拆分事实
+
+当前 `screening_audit.csv` 与 `issue85_narrowed_related_candidates_preliminary.csv` 已拆分记录 `public_pdf_url_state / auto_fulltext_state / download_failure_reason / pdf_url / pdf_url_source / pdf_access_status / pdf_status_source`。这些字段只表示 #95 自动流程和公开入口状态；人工下载与全文核验仍以 [MANUAL_DOWNLOAD_REQUESTS.md](./MANUAL_DOWNLOAD_REQUESTS.md) 的 request ledger 为准。

@@ -47,7 +47,7 @@
 | 29 | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟠 | Challenges in Testing Large Language Model Based Software: A Faceted Taxonomy | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
 | 30 | `P2` | 🟠 | 🟠 | 🟢 | 🟢 | 🟡 | Enhancing Automated Unit Test Generation with Large Language Models: A Systematic Literature Review | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
 | 31 | `P2` | 🟠 | 🔴 | 🟢 | 🟢 | 🟡 | A survey of coverage-guided greybox fuzzing with deep neural models | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
-| 32 | `P2` | 🟢 | 🔴 | 🟢 | 🟢 | 🟡 | Faster Code, Deeper Debt? A Multivocal Literature Review on Technical Debt and Its Early Signs in LLM-Assisted Software Development | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
+| 32 | `P2` | 🟠 | 🔴 | 🟢 | 🟢 | 🟡 | Faster Code, Deeper Debt? A Multivocal Literature Review on Technical Debt and Its Early Signs in LLM-Assisted Software Development | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
 | 33 | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟡 | Ethical Prompt Engineering for AI-driven SE: Evidence-informed Interaction-time Governance Roadmap to 2030 | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
 | 34 | `P2` | 🟠 | 🟡 | 🟢 | 🟢 | 🟠 | A Survey on LLM-based Code Generation for Low-Resource and Domain-Specific Programming Languages | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
 | 35 | `P2` | 🔴 | 🔴 | 🟢 | 🟢 | 🟡 | Patch Generation in APR: A Survey from the Perspectives of Utilizing LLMs and Using APR-Specific Information | 支撑写作门槛、方法学或背景定位，不参与新颖性对抗 |
