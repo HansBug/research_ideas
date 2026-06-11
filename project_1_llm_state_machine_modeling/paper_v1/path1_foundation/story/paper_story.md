@@ -4,7 +4,7 @@
 
 **Executable Feedback for LLM-Based State-Machine Modeling from Control-System Requirements**
 
-标题只是工作名。正式投稿前由后续 S0b / PR-S0-Direction 根据新 story、目标 venue 和真实实验结果再压缩。标题、摘要和 contribution 候选中不得主打 `FCSTM` / `pyfcstm` / `new DSL`。
+标题只是工作名。后续 S0b / PR-S0-Direction 只基于新 story 与目标 venue 冻结工作标题方向；正式投稿前再根据真实实验结果压缩标题。标题、摘要和 contribution 候选中不得主打 `FCSTM` / `pyfcstm` / `new DSL`。
 
 ## Thesis
 
@@ -53,7 +53,7 @@ S0a 后可防守的 gap 收窄为：
 
 ## System / Method Stages
 
-论文主文不必暴露全部工程 stage ID，可解释为四段：
+论文主文不必暴露全部工程 stage ID，可解释为“四段方法链路 + 一段评测协议”：
 
 1. **Represent / Generate**：LLM 从 NL 生成 formal-executable、machine-checkable state-machine representation。
 2. **Diagnose**：deterministic parser、semantic builder 和 design inspector 产生 parse / semantic / design diagnostics。

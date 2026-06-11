@@ -65,6 +65,7 @@
 | 2026-06-10 | 论文主线与 direct baseline 反证门补强 | 使用 `$ai-research-writing-skill` story / reviewer 规则与多智能体调研，吸收导师讨论和 9 个五绿 direct baseline 全文审查结论；新增 [paper_outline.md](../story/paper_outline.md)，并将 S1a 升级为 9 direct baseline blocking absorption gate |
 | 2026-06-10 | CCF-A 标准 / CCF-B 目标期刊门禁（旧 foundation 口径） | 根据 issue #67 补充 [venue_readiness_gate.md](../story/venue_readiness_gate.md) 的 CCF-A reviewer 强度、候选 SoSyM / ASEJ / REJ 出口和 novelty、baseline、oracle、artifact、threats、writing gate；S0a 已将其重定位为 S0b 背景输入，不再把该文件视为最终 venue 决策。 |
 | 2026-06-11 17:01:20 | PR #96 / S0a 多 subagent 文档实现 | 使用 `$ai-research-writing-skill` story / claim-evidence 规则，并启动 4 个 codex spawn subagents 并行覆盖 story/claim/terminology、outline/baseline matrix、experiment/risk/execution、README/venue/progress；主 session 合流到 S0a 文档实现。未跑四例 agent-loop / skill 真实例子，因为本轮不触碰 runtime、runner、样本冻结、oracle 冻结或实验链路。 |
+| 2026-06-11 18:16:52 | 响应 PR #96 codex reviewer I-1 | 修正 [../baselines/SUMMARY.md](../baselines/SUMMARY.md) 中 S1a 旧 story wording：新增 S0a supersession note，并将 `DSL` / `质量提升` / contribution 表述改为可机检 / 可执行状态机表示、deterministic diagnostics、scenario-level feedback、structured repair decision 与待实验检验的边际作用；同时微调 [../story/paper_story.md](../story/paper_story.md) 的 S0b 标题时机和“四段方法链路 + 一段评测协议”表述。复验 `git diff --check` 与 forbidden wording contextual grep。 |
 | 2026-06-11 17:22:00 | S0a 预提交一致性审计与 C/I 修复 | 启动 2 个 codex spawn sidecar 只读审计，发现并修复 Designing FSMs 层级混淆、B0-B5/EXT/E1/E2 口径混合、behavior-model checking 措辞和 G1/S1b 命名混淆；保留 S0a docs-only、不跑四例真实例子的边界。 |
 
 
