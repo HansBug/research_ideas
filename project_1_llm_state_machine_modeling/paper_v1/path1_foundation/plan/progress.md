@@ -2,9 +2,10 @@
 
 ## 当前阶段
 
-- Branch：`paper/project1-path1-foundation`
-- 目标：建立第一篇 Path-1 paper foundation，并开 PR 供后续 paper 工作承接。
-- 状态：PR #93 已进入结构化 foundation 收口阶段；PR #9 详细样本筛选 / NL 扩充 / parquet / reference draft 资产已归档，当前正在进行分层 README、PR body 与最终复核。
+- Branch：`paper/project1-path1-s0a-story-reframe`
+- 上游：PR #93 foundation；当前执行 PR #96 / S0a Story-Reframe。
+- 目标：把 PR #94 / S1a baseline 反证、PR #31 导师口径、`fcstm` 弱化策略、工程留痕移出论文主线策略和 S0a/S0b 分工落实到 story、claim map、outline、baseline matrix、experiment design、risk register、execution plan 与入口文档。
+- 状态：S0a 文档实现已合流；本轮跟进修订已通过本地 grep / diff 检查与 sidecar 审计，待提交推送后在 PR #96 汇报。本 PR 不触碰 runtime、runner、样本冻结、oracle 冻结或真实实验链路。
 
 ## 已完成
 
@@ -13,6 +14,10 @@
 - 建立 `path1_foundation/` 工作区。
 - 归档 PR #9 的 selection / expansion / parquet / ref-STM 原始资产，不将其写成 current result。
 - 将 `path1_foundation/` 分层为 `story/`、`evidence/`、`dataset_selection/`、`experiment_design/` 与 `plan/`。
+- PR #96 / S0a 本轮已读取 PR #96 body、PR #93 body 中 S0a/S0b 依赖信息、PR #94 / S1a baseline 总账 §11、PR #31 导师讨论记录，以及 foundation 根入口、story、evidence、experiment_design、plan 文件。
+- S0a 入口文档已明确要求先读 [../story/paper_story.md](../story/paper_story.md)、[../story/terminology_policy.md](../story/terminology_policy.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/paper_outline.md](../story/paper_outline.md) 和 baseline carve-out，再进入 experiment / venue / progress。
+- [../story/venue_readiness_gate.md](../story/venue_readiness_gate.md) 已重定位为 S0b venue readiness 背景输入；最终 `target_venue_decision.md`、abstract v0 和投稿路线由 S0b 冻结。
+- 已用 4 个 codex spawn subagents 并行处理 S0a 分片：story/claim/terminology、outline/baseline matrix、experiment/risk/execution、README/venue/progress；主 session 已合流。
 
 ## 本 PR 产物
 
@@ -22,6 +27,8 @@
 | [../story/README.md](../story/README.md) | story 分层入口 |
 | [../story/paper_story.md](../story/paper_story.md) | thesis、gap、contributions、claims |
 | [../story/claim_evidence_map.md](../story/claim_evidence_map.md) | claim gate |
+| [../story/terminology_policy.md](../story/terminology_policy.md) | S0a terminology gate；本轮入口文档已将其纳入必读依赖 |
+| [../story/venue_readiness_gate.md](../story/venue_readiness_gate.md) | S0b venue readiness 背景输入 |
 | [../evidence/README.md](../evidence/README.md) | evidence 分层入口 |
 | [../evidence/project_inventory.md](../evidence/project_inventory.md) | repo evidence inventory |
 | [../evidence/baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) | closest prior works 与实验对齐计划 |
@@ -31,7 +38,7 @@
 | [../dataset_selection/asset_manifest.tsv](../dataset_selection/asset_manifest.tsv) | 归档资产文件级 SHA-256 清单 |
 | [../dataset_selection/asset_summary.json](../dataset_selection/asset_summary.json) | 归档资产数量摘要 |
 | [../experiment_design/README.md](../experiment_design/README.md) | experiment design 分层入口 |
-| [../experiment_design/experiment_inventory.md](../experiment_design/experiment_inventory.md) | RQ、baseline、metrics、oracle、run record |
+| [../experiment_design/experiment_inventory.md](../experiment_design/experiment_inventory.md) | RQ、baseline、metrics、oracle、内部运行边界 |
 | [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md) | C/I/M 风险台账 |
 | [../experiment_design/execution_plan.md](../experiment_design/execution_plan.md) | gate-driven 执行计划 |
 | [./README.md](./README.md) | plan 分层入口 |
@@ -56,14 +63,18 @@
 | 2026-06-10 | PR #92 baseline 增量吸收要求 | 根据用户要求，补充“baseline 现状再摸排 / 吸收 PR #92 近期 arXiv 增量”为后续 S1a 子任务，避免基于过期 baseline corpus 冻结 competitor |
 | 2026-06-10 | PR body 中文化要求 | 根据用户要求，后续 PR body 尽量中文化，Mermaid 节点使用中文，英文只保留必要术语 / 论文候选句 |
 | 2026-06-10 | 论文主线与 direct baseline 反证门补强 | 使用 `$ai-research-writing-skill` story / reviewer 规则与多智能体调研，吸收导师讨论和 9 个五绿 direct baseline 全文审查结论；新增 [paper_outline.md](../story/paper_outline.md)，并将 S1a 升级为 9 direct baseline blocking absorption gate |
-| 2026-06-10 | CCF-A 标准 / CCF-B 目标期刊门禁 | 根据 issue #67 补充 [venue_readiness_gate.md](../story/venue_readiness_gate.md)：默认主投 SoSyM regular，ASE Journal / Requirements Engineering Journal 作备投；后续按 CCF-A reviewer 强度执行 novelty、baseline、oracle、artifact、threats 和 writing gate |
+| 2026-06-10 | CCF-A 标准 / CCF-B 目标期刊门禁（旧 foundation 口径） | 根据 issue #67 补充 [venue_readiness_gate.md](../story/venue_readiness_gate.md) 的 CCF-A reviewer 强度、候选 SoSyM / ASEJ / REJ 出口和 novelty、baseline、oracle、artifact、threats、writing gate；S0a 已将其重定位为 S0b 背景输入，不再把该文件视为最终 venue 决策。 |
+| 2026-06-11 17:01:20 | PR #96 / S0a 多 subagent 文档实现 | 使用 `$ai-research-writing-skill` story / claim-evidence 规则，并启动 4 个 codex spawn subagents 并行覆盖 story/claim/terminology、outline/baseline matrix、experiment/risk/execution、README/venue/progress；主 session 合流到 S0a 文档实现。未跑四例 agent-loop / skill 真实例子，因为本轮不触碰 runtime、runner、样本冻结、oracle 冻结或实验链路。 |
+| 2026-06-11 18:16:52 | 响应 PR #96 codex reviewer I-1 | 修正 [../baselines/SUMMARY.md](../baselines/SUMMARY.md) 中 S1a 旧 story wording：新增 S0a supersession note，并将 `DSL` / `质量提升` / contribution 表述改为可机检 / 可执行状态机表示、deterministic diagnostics、scenario-level feedback、structured repair decision 与待实验检验的边际作用；同时微调 [../story/paper_story.md](../story/paper_story.md) 的 S0b 标题时机和“四段方法链路 + 一段评测协议”表述。复验 `git diff --check` 与 forbidden wording contextual grep。 |
+| 2026-06-11 17:22:00 | S0a 预提交一致性审计与 C/I 修复 | 启动 2 个 codex spawn sidecar 只读审计，发现并修复 Designing FSMs 层级混淆、B0-B5/EXT/E1/E2 口径混合、behavior-model checking 措辞和 G1/S1b 命名混淆；保留 S0a docs-only、不跑四例真实例子的边界。 |
+| 2026-06-11 19:00:25 | 用户跟进修订：移除工程留痕方法化残留并中文化大纲 | 按用户要求清理非 legacy 路径中把过程记录写成 Method、RQ、贡献或结果可信度依据的表述，统一改为样本 / 运行纳入排除规则、必要实验披露或内部执行边界；`paper_outline.md` §4 保持英文 section heading，下方大纲尽量中文化。启动 codex spawn sidecar 复审，结论为 C=0/I=0，仅有不阻塞 M 级措辞建议。 |
 
 
 ## Capability-use audit
 
-- Required skills/scripts：`ai-research-writing-skill`、`research-planning`、`sub-agents`。
-- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、PR #92 body/comments、method/eval/baselines docs，以及 9 个五绿 direct baseline 的 `paper_content.txt` / `DESC.md` / `ASSETS.md` 调研结论。
-- Inputs not used and why：已归档全部 323 review JSON，但当前 foundation 不重新解释每条 review；正式样本冻结阶段再逐条核验 eligibility / provenance。
-- Artifacts produced：分层 foundation Markdown、[paper_outline.md](../story/paper_outline.md)、PR #9 legacy assets、asset manifest / summary。
-- Verification run：foundation markdown sanity、相对 Markdown 链接检查已通过；PR body 已创建并接受第一轮三路 review。
-- Remaining risk：当前 foundation PR 无 C/I 阻塞；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak、claim-evidence mismatch、CCF-A 标准 readiness，并在 S1a 逐篇吸收 9 个五绿 direct baseline，尤其 `Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`。
+- Required skills/scripts：`ai-research-writing-skill`、`sub-agents`；S0a 实现阶段使用 4 个 codex spawn subagents 分工，分别覆盖 story/claim/terminology、outline/baseline matrix、experiment/risk/execution、README/venue/progress；正式 review 仍要求 codex spawn reviewer + `claude -p` + `codex-deepseek exec`。
+- Inputs consumed：PR #9 body/assets、PR #31 body、本地导师讨论、issue #67、PR #92 body/comments、PR #94 / S1a baseline 总账与逐篇文件、PR #96 body/comments、method/eval/baselines docs，以及 9 个五绿 direct baseline 的 `paper_content.txt` / `DESC.md` / `ASSETS.md` 调研结论。
+- Inputs not used and why：已归档全部 323 review JSON，但当前 S0a 不重新解释每条 review；正式样本冻结阶段再逐条核验 纳入 / 排除规则与 provenance。S0a 不 source `.env`、不跑四例真实 agent-loop，因为它不触碰 runtime / 实验链路。
+- Artifacts produced：S0a 更新后的 [paper_story.md](../story/paper_story.md)、[terminology_policy.md](../story/terminology_policy.md)、[claim_evidence_map.md](../story/claim_evidence_map.md)、[paper_outline.md](../story/paper_outline.md)、[baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md)、[experiment_inventory.md](../experiment_design/experiment_inventory.md)、[reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)、[execution_plan.md](../experiment_design/execution_plan.md)、入口 README 与 venue readiness gate。
+- Verification run：本地已运行 `git diff --check`、非 legacy 路径工程留痕关键词 grep、结果支撑类敏感表述 grep、paper_outline §4 人工抽查与 sidecar 审计；真实四例留给 S3/S4，因为 S0a 是 docs/story gate。CI / Codecov 状态待 push 后检查。
+- Remaining risk：当前 S0a 仍需正式三路实现后 review；后续主实验仍需按 risk register 处理 baseline fairness、sample/reference bias、oracle weak、claim-evidence mismatch、CCF-A 标准 readiness，并在 S1b/S3 逐篇吸收 mandatory closest works，尤其 Structure/Event SMF、LLMs for EMP、TTool-AI、Designing FSMs。

@@ -1,181 +1,161 @@
-# Path-1 第一篇论文章节大纲与主线冻结草案
+# Path-1 第一篇论文章节大纲与 Related Work 主线草案
 
-本文档是 Path-1 第一篇论文的写作骨架。它把导师讨论、PR #9 历史资产、PR #22 方法底座、PR #92 baseline 增量和 9 个五绿直接 baseline 的反证压力合在一起，防止后续论文写成“又一个自然语言生成状态机”或“工程 agent 报告”。
+本文档是 PR #96 / S0a 的论文 outline 草案，只冻结 **story、章节顺序、Related Work 分层和 claim gate**，不冻结最终 venue、不写最终 abstract、不声明实验结果。当前论文主线不再围绕“首个自然语言到状态机生成”，而围绕：
 
-## 1. 导师决策锚点
+> 在自然语言控制系统需求到状态机模型的任务中，能否通过机器可检查、可执行的状态机表示，把 LLM 初始生成转化为可由确定性诊断、场景级仿真反馈与结构化修复决策支撑的闭环，并用基线感知协议检验其边际作用。
 
-当前第一篇论文必须按以下锚点推进：
+## 1. S0a 写作锚点
 
-1. 第一篇优先走 **Path-1 基线硬对比**，目标是回答“相对已有 LLM 状态机生成工作，我们的可执行形式化反馈是否带来可验证增量”。
-2. **Path-2 控制系统差异化**、变量角色、BMC / LTL、深控制系统语义暂不作为第一篇主线；这些内容进入 future work 或后续论文。
-3. **E1 / E2 不是 Hybrid 方法贡献**。E1 是同一方法底座在自建闭环中的运行形态；E2 是同一方法底座通过 skill 在成熟 coding agent 中的运行形态。二者是实验条件，不是两个方法拼装。
-4. 论文主文弱化 `fcstm` 名称，优先称为“形式化 / 可执行状态机表示”；工具名放在 implementation / artifact 中。
-5. 方法贡献围绕 LLM4STMModeling 的“表示 + 检查 + 仿真 + 修复决策”，不是围绕某个 prompt、某个框架、某个 LLM provider 或 run record。run record 只作为实验复核、打假和排障支撑。
+1. **不争“会生成状态机”**：S1a 九篇 baseline 已覆盖 NL / 文档到 FSM、UML state machine、SysML behavior、Umple、Mermaid、TTool/SysML、protocol FSM、prompt chaining、RAG、tool feedback 与部分 repair loop。
+2. **贡献只围绕反馈闭环机制**：输出表示、确定性诊断、场景仿真反馈、结构化修复决策、基线感知评估；`pyfcstm`、agent framework 和 prompt 技巧都只是实现或实验条件。
+3. **E1/E2 是实验条件**：自建 agent-loop 与成熟 coding-agent skill route 用于比较编排条件，不作为 hybrid method contribution。
+4. **过程性工程材料不进入论文主线**：不写成 Method 段落或 contribution bullet。
+5. **prior work 边界要公平**：私有 GT、缺失代码、缺失 prompt、供应商 / 模型漂移 只能写成可比性 / 复现边界，不写成 prior work weakness。
 
-## 2. 9 个五绿直接 baseline 后的现实判断
+## 2. 论文 thesis、gap 与技术挑战
 
-[../../../baselines/SUMMARY.md](../../../baselines/SUMMARY.md) 当前已记录 9 个五绿直接 baseline。它们覆盖了自然语言 / 文档到 FSM、UML state machine、SysML behavior、Umple、Mermaid statechart、TTool/SysML 等主要路径。
+### 2.1 Thesis
 
-| 直接 baseline | 已经做到什么 | 对本文 claim 的反证压力 | 后续用途 |
+本文研究一种 LLM 状态机建模闭环：将自然语言控制系统需求映射到机器可检查且可执行的状态机表示，并把确定性诊断、场景级仿真证据与结构化修复决策纳入迭代生成过程；论文评估这些反馈信号在冻结样本、组件级人工裁决和基线感知比较下是否产生可防守的模型质量与修复稳定性边际变化。
+
+### 2.2 Gap
+
+已有最接近工作已经展示自然语言到状态机族工件生成、SysML / MBSE 工具反馈、规则反馈再生成与 oracle / 轨迹修复。尚需收敛检验的是：在控制系统需求场景中，**同一受控协议**下将可执行表示、确定性诊断、场景仿真和结构化修复决策组合为反馈数据流时，哪些质量问题被发现、哪些修复决策可复核、哪些表观差异只是由样本、oracle 或预算差异造成。
+
+### 2.3 Technical challenge
+
+- 自然语言需求中的状态、事件、guard、action、变量、异常路径和时序暗示不天然对齐到状态机组件。
+- 静态诊断能发现 parse / schema / consistency 问题，但不能替代行为 oracle。
+- 场景候选可能暴露行为缺陷，也可能引入 oracle drift，必须由确定性仿真器与人工裁决分层处理。
+- 修复循环可能振荡、过修或退化，因此需要接受 / 拒绝、差异记录、FixLog 与回归检查。
+- 基线比较不能把不同输入上下文、输出语义、人工预算或私有 GT 强行横向排名。
+
+## 3. 建议 RQ
+
+| RQ | 核心问题 | 必需证据 | 失败时的降级写法 |
 |---|---|---|---|
-| Designing FSMs from Requirements with GPT-4 | 合成英文 DFSM 描述到 CSV DFSM / Mealy machine，并有 oracle / trace / repair 诊断 | 打穿“NL 到 FSM 是新任务” | direct / approximate 候选，重点比较可执行性与样本真实性 |
-| Structure- and Event-Driven Frameworks | 非结构化 reactive-system NL 到 UML 状态机，按 states / transitions / guards / actions 等槽位评 F1 | 打穿“自由文本到状态机生成是新问题” | 最优先 closest prior work，适合复刻策略或同样本近似对比 |
-| FlowFSM | RFC 长文档经 prompt chaining 抽取 protocol FSM / rulebook | 打穿“长文档 + agentic flow + FSM 抽取是新问题” | evidence-only 或协议方向近邻；artifact 不完整时不强行硬复现 |
-| SpecGPT | 3GPP 规格经领域 CoT 和多模型 ensemble 抽取协议状态机 | 打穿“规格文档到状态机抽取 / ensemble 是新贡献” | evidence-only / near baseline，强调输出领域与 oracle 不可比 |
-| Automotive Statechart Generation | 私有汽车需求到 Mermaid statechart，含微调和专家评审 | 打穿“汽车工业 statechart 生成是新场景” | evidence-only；不可复现风险高 |
-| Umple Llama3 | NL 到 Umple 状态机代码，比较 zero-shot / one-shot / RAG | 打穿“RAG / few-shot 改善状态机代码生成是新贡献” | structured / RAG prompt baseline 候选 |
-| LLMs for EMP | NL 到 PlantUML / SysML 行为模型，含规则检查反馈和公开数据 | 打穿“反馈修复状态机 / 行为模型是独有优势” | 强 closest work；需区分语法反馈与可执行仿真反馈 |
-| Pushing the Generative Envelope | 短系统描述到 SysML v2 requirements / state machine diagrams，比较 prompt 技巧 | 打穿“prompt / temperature 是核心贡献” | evidence-only / prompt-technique 对照 |
-| TTool-AI | NL 到 SysML blocks / state machines / TTool XML，含知识注入与自动反馈循环 | 打穿“工具集成 + 自动反馈闭环是首创” | 强 closest work；强调本文的控制系统语义、scenario-level feedback、修复决策和组件评价差异；run record 只作实验复核 |
+| RQ1 诊断反馈 | parse / semantic / design diagnostics 能识别哪些状态机组件缺陷，并如何改变后续修复请求？ | 诊断编号、组件级缺陷映射、B0/B1/B2 消融、人工裁决 | 只报告诊断覆盖率与盲区，不宣称整体质量提升 |
+| RQ2 场景仿真反馈 | 场景级仿真的通过 / 失败、执行轨迹与行为证据是否能发现静态诊断难以暴露的问题？ | 场景候选、确定性仿真轨迹、B3/B4 消融、oracle 复核 | 写成场景仿真反馈的失败分类或探索性证据 |
+| RQ3 结构化修复决策 | 结构化修复请求、接受 / 拒绝、差异记录、FixLog 与回归检查如何影响修复过程的可复核性和稳定性？ | 修复尝试、收敛 / 回退 / 振荡统计、代表性轨迹 | 只说结构化修复决策使失败可复盘，不说提高质量 |
+| RQ4 基线定位 | 在最接近基线的同样本近似 / 近邻 / 仅作证据分层下，本文闭环相对已有生成、工具反馈和轨迹修复的边际在哪里？ | 至少一个同样本近似基线、基线预算表、样本纳入 / 排除规则 | 降级为诊断协议或基线感知定位研究 |
+| RQ5 编排条件 | 同一方法底座在自建 agent-loop 与成熟 coding-agent skill route 下的质量、成本、失败模式有何差异？ | E1/E2 同样本或可比样本的运行摘要、调用成本、失败模式 | 写成实现条件分析，不作为贡献 |
 
-结论：第一篇不能把 novelty 写成“我们能从自然语言生成状态机”。这个主问题已经被多条路线覆盖。本文最稳的增量只能是：
-
-> 将自然语言状态机生成转化为可解析、可执行、可检查、可仿真、可修复的闭环建模任务，并用冻结样本、人工组件级裁决、消融和 closest baseline 对比评估可执行形式化反馈与结构化修复决策对模型质量的边际价值。
-
-## 3. 论文主线四句
-
-### 3.1 Thesis
-
-本文提出并评估一种面向自然语言控制系统需求的 LLM 状态机建模闭环，该闭环通过形式化 / 可执行状态机表示把 LLM 生成结果接入确定性检查、场景仿真和结构化修复决策，并在 Path-1 基线硬对比中检验可执行形式化反馈对模型质量和稳定性的影响。
-
-### 3.2 Gap
-
-已有 LLM 状态机生成工作已经能生成 FSM、UML / SysML state machine、Umple、Mermaid 或 TTool 模型，但多数工作仍偏“生成后评价”或“语法 / schema / 人工反馈”，缺少一个同一实验协议下可执行、可仿真的闭环来说明工具反馈如何改变模型质量与修复过程；run record 只用于复核该过程。
-
-### 3.3 Technical challenge
-
-自然语言需求中的状态、事件、guard、action、变量和异常行为并不天然对齐到状态机组件；LLM 生成错误会跨组件级联；确定性检查只能发现部分缺陷而不能替代 human oracle；修复循环还可能振荡。因此，论文必须同时处理表示、反馈、仿真、修复记忆、人工裁决和 baseline 公平性。
-
-### 3.4 Method insight
-
-LLM 负责语义解释、模型草拟、场景草拟和修复决策；确定性工具负责把候选模型变成可解析、可执行、可仿真的对象，并以结构化 diagnostics / traces / diffs 形成反馈。两者之间用 FixLog 连接修复决策，并用 run record 保存“生成了什么、为什么修、如何修、修后是否回归”，用于实验复核、打假和排障。
-
-## 4. 建议 RQ
-
-| RQ | 问题 | 必需证据 | 失败时的降级写法 |
-|---|---|---|---|
-| RQ1 | 在与近期直接 baseline 可比的输入 / 输出 / 组件评价协议下，本文方法能否生成更完整、可执行、可检查的状态机？ | frozen sample registry、至少 1 个 same-sample approximate baseline、组件级 human adjudication | 降级为 pilot / diagnostic comparison |
-| RQ2 | parse / semantic / inspect / simulation 等可执行形式化反馈分别贡献了什么？ | B0-B5 消融、失败类型学、修复轨迹 | 只报告哪些反馈源最常触发有效修复，不宣称整体提升 |
-| RQ3 | 同一方法底座在自建 agent-loop 与成熟 coding-agent skill 形态下，在质量、稳定性、成本和失败模式上有何差异？ | E1/E2 同样本或可比样本 run record、NFRR / human review、成本和失败记录 | 写成 implementation study / exploratory analysis；run record 只作复核证据 |
-| RQ4 | 失败样本暴露了哪些状态机建模难点，例如 guard/action/hierarchy/变量/场景 oracle 漂移？ | failure taxonomy、代表性失败 case、reviewer closeout | 写成 threats / future work，不支撑主 claim |
-
-## 5. 章节大纲草案
+## 4. 章节大纲草案
 
 ### 1 Introduction
 
-- 开场不是“LLM 可以画状态机”，而是“状态机模型只有可执行、可检查、可追溯时才可用于高可信控制系统建模”。
-- 说明已有工作已经能生成状态机族模型，但生成后模型的可执行性、反馈闭环和实验复核证据不足。
-- 明确本文研究问题：可执行形式化反馈是否能提升 LLM 状态机建模。
-- 给出贡献，但全部限定在后续证据已经完成的范围内。
+- 开场问题：控制系统状态机只有在可检查、可执行、可追溯时，才可能支撑后续诊断、仿真和修复。
+- 承认现状：近期 LLM 工作已经覆盖自然语言到 FSM / UML / SysML / Umple / TTool / 协议状态机的生成。
+- 缺口转向：问题不是“LLM 能不能生成状态机”，而是“哪些反馈信号能进入生成、诊断、仿真、修复闭环，并在公平基线协议下被评估”。
+- 贡献候选必须先通过证据门禁：可执行表示底座、确定性诊断、场景级仿真反馈、结构化修复决策和基线感知评估都只能按证据强度写作。
+- 禁止写法：`first NL-to-STM`、`first feedback loop`、`new DSL`、`prior work only draws diagrams`、`we show improvement`。
 
 ### 2 Background and Task Definition
 
-- 定义输入、输出、状态机组件、支持范围和不支持范围。
-- 说明本文的“形式化状态机表示”只是为检查 / 仿真 / 反馈服务，不主张 DSL 本身为核心贡献。
-- 定义组件级评价对象：states、transitions、guards、actions、hierarchy、variables / effects、scenario behavior。
+- 定义输入：自然语言控制系统需求及必要上下文。
+- 定义输出：机器可检查、可执行的状态机表示；说明它是检查、仿真和反馈底座，不是论文主打的新建模语言。
+- 定义组件：状态、事件、迁移、守卫、动作 / 效应、变量、层次结构，以及与需求相关的场景行为。
+- 定义反馈：诊断反馈、仿真反馈和修复决策反馈；明确它们不等同于完整模型检查、定理证明或工业认证。
+- 定义评价：组件级人工裁决、确定性有效性、场景通过 / 失败、修复收敛与样本纳入 / 排除规则。
 
-### 3 Prior Work Capability Gap
+### 3 Related Work and Baseline Positioning
 
-- 用 9 个五绿直接 baseline 建一张 “已有能力 / 反馈类型 / artifact / 可复现性 / 本文差异” 表。
-- 明确哪些 claim 已被 prior work 覆盖：NL->STM、RAG、prompt chaining、long-doc FSM、tool feedback、工业 statechart。
-- 收敛出本文差异：可执行形式化反馈 + 仿真 + repair evidence chain + agent orchestration 对照。
+#### 3.1 先处理四个强相关工作
+
+相关工作第一节必须先列出四个强相关工作，而不是先泛泛讲 LLM 或形式化方法。
+
+| 强相关工作 | 已覆盖能力 | 本文边际差异 | 不能写的弱化新颖性 |
+|---|---|---|---|
+| Structure/Event SMF | 非结构化 reactive-system 自然语言描述 → UML state machine；支持 states / transitions / guards / actions / hierarchy 等组件级 F1；工件可访问 | 本文不争 NL → UML SM 生成，而聚焦控制系统需求下的可执行目标表示、确定性诊断、场景仿真和结构化修复决策 | 不能写“自由文本到状态机无人做过” |
+| LLMs for EMP | NL → PlantUML / SysML behavior models；STM / ACT / SD 数据；PlantUML / SysML rule-based checking feedback 与 regeneration | 本文需把规则反馈与可执行场景轨迹反馈区分；若实验支持，只主张诊断、仿真与修复决策的组合协议 | 不能写“首次 tool feedback / feedback regeneration” |
+| TTool-AI | ChatGPT 集成 TTool / MBSE；NL → SysML blocks / state machines；JSON / constraint / TTool syntax feedback loop；工件 / ODS 可复核 | 本文边际不是工具集成，而是控制需求专用可执行闭环、场景级仿真反馈、结构化修复决策与基线感知评估 | 不能把 TTool 的工具背景 model checker / simulator 误写成 prior work 未使用任何反馈 |
+| Designing FSMs | 合成 NL → CSV DFSM / Mealy；oracle、distinguishing trace、checking sequence 与 fault-model repair | 本文不能声称 trace / repair 首创；差异限定为真实或准真实控制需求、guard / action / 变量等更丰富语义、场景候选生成、确定性仿真执行和结构化修复决策 | 不能写“首次 trace repair / oracle repair” |
+
+#### 3.2 可执行建模近邻工作
+
+- Umple / NL-to-code state machine：作为结构化提示、RAG、few-shot prompt 基线或近邻工作，不把 RAG / few-shot 写成本文 novelty。
+- Automotive statechart generation：领域相近，但数据、微调过程和专家 GT 私有；用于仅作证据或领域动机，不写成可直接击败的直接基线。
+- Pushing the Generative Envelope / MBSE artifacts：用于说明提示技巧与 SysML v2 工件趋势，不作为严格 STM 基线。
+
+#### 3.3 协议 FSM、长规格与边界工作
+
+- FlowFSM、SpecGPT 等长文档 / 协议 FSM 工作说明 prompt chaining、CoT、ensemble、JSON 校验和 expert GT 已覆盖相邻能力；由于领域、输出语义、GT 和工件边界，不强行纳入直接基线。
+- TLA+、PAT、Event-B、Petri net、BPMN、LTL / STL、property generation 等快速扩张邻域进入边界讨论，不能混称精确 STM 直接基线。
+- 经典需求到形式模型 / 受控自然语言工作作为严谨性背景，不能因“无 LLM”而贬低为不相关。
+
+#### 3.4 Related Work 收束句
+
+本节最后收束到：已有工作分别覆盖状态机族生成、SysML / MBSE 工具反馈、规则反馈再生成和 oracle / 轨迹修复；本文的可评估空间是这些能力在控制系统状态机任务中，以可执行表示、确定性诊断、场景级仿真反馈和结构化修复决策组合成受控闭环时的边际效果。
 
 ### 4 Method
 
-- Overview：生成-检查-仿真-修复闭环。
-- Representation：可执行状态机表示及其组件抽取。
-- Deterministic feedback：parse / semantic / inspect / simulation。
-- Repair decision：fix request、accept/reject、FixLog、SL-10-style review；run record 只作为实验复核记录。
-- Agent conditions：E1 自建闭环与 E2 成熟 agent skill route，作为实验条件而非 Hybrid 贡献。
+- 概览：自然语言需求 → 初始状态机草稿 → 确定性诊断 → 场景候选生成 → 确定性仿真 → 结构化修复决策 → 回归检查。
+- 目标表示：机器可检查、可执行的状态机表示；`pyfcstm` 只放在实现 / 复现材料说明中。
+- 确定性诊断：解析、schema、语义、设计 / 检查诊断；输出诊断编号、消息、位置和受影响组件。
+- 场景反馈：LLM 生成需求相关场景候选；确定性仿真器执行并产出通过 / 失败、轨迹和行为证据；人工 oracle 只裁决场景相关性与组件正确性。
+- 结构化修复决策：修复请求、接受 / 拒绝、差异、修复记录、回滚和回归检查策略。
 
 ### 5 Experimental Protocol
 
-- Sample registry：样本来源、纳入 / 排除标准、代表性与 stress-test 区分。
-- Baselines：direct / near / evidence-only；至少 1 个 same-sample approximate baseline。
-- Metrics：组件级 human adjudication、deterministic validity、scenario pass、repair convergence、audit completeness。
-- Human protocol：至少两名独立标注人、blind coding、agreement、仲裁。
-- Run record：provider、model、prompt、raw output、usage、stage trace、eligibility、redaction。
+- 样本登记：样本来源、冻结时间、纳入 / 排除标准，以及 压力测试 与主基准的区分。
+- 基线分层：同样本近似、近邻、仅作证据、边界工作；至少一个最接近工作进入同样本近似，优先 Structure/Event SMF 或 LLMs for EMP STM 子集。
+- 消融设计：B0 直接提示、B1 结构化提示、B2 无反馈编排、B3 仅诊断、B4 诊断 + 场景仿真、B5 完整反馈 + 结构化修复；EXT 单独报告最接近工作的近似基线，E1/E2 只作编排条件或附录分析。
+- 人工协议：组件级评分规则、至少两名标注人、盲审 / 独立标注、一致性度量、仲裁和分歧记录。
+- 预算协议：统一模型、提示上下文、反馈轮数、人工预算、工具预算和样本纳入 / 排除规则。
 
 ### 6 Results
 
-- RQ1 baseline hard comparison。
-- RQ2 消融：无反馈、只有检查、检查+仿真、完整闭环。
-- RQ3 E1/E2 对照：质量、稳定性、成本、审计性。
-- 所有结果必须含 failure / non-converged / invalid run 的 eligibility 说明。
+- RQ1：报告诊断覆盖率、无效到有效的转化、组件缺陷分布。
+- RQ2：报告仿真反馈发现的行为级失败、场景通过 / 失败结果和轨迹级案例。
+- RQ3：报告修复收敛、回归、振荡、接受 / 拒绝理由和修复记录完整性。
+- RQ4：报告最接近基线比较；不同层级 baseline 不放入同一“胜负排名”表。
+- RQ5：报告 E1/E2 编排条件的质量、成本、失败模式与可复现边界差异。
 
 ### 7 Failure Analysis and Case Study
 
-- 选择成功与失败各有代表性的 case。
-- 展示一条完整 run record / FixLog / scenario trace。
-- 说明哪些问题由检查发现，哪些由仿真发现，哪些只能靠 human adjudication。
+- 展示成功、失败、振荡、过修和 oracle drift 各类代表样本。
+- 对每个案例展示诊断 → 场景轨迹 → 修复决策 → 回归结果。
+- 明确哪些问题由确定性工具发现，哪些只能由人工裁决发现。
 
-### 8 Related Work
+### 8 Threats to Validity and Limitations
 
-- LLM for state-machine / behavior model generation。
-- Requirements-to-executable / formal models。
-- Agentic feedback / repair for modeling artifacts。
-- 本文避免把“无 LLM 的经典 formal methods”贬低为不相关；它们支撑 rigor 背景。
+- 基线公平性：输入、输出、GT、工件、提示词、模型预算和人工预算不可完全对齐。
+- 复现边界：缺代码、缺 prompt、私有 GT、供应商 / 模型漂移 是可比性 / 复现边界，不是 prior work weakness。
+- Oracle 风险：场景候选与人工裁决都可能偏移；LLM-as-Judge 不能作为主 oracle。
+- 形式化范围：本文是可执行反馈 / 仿真，不是完整验证、BMC / LTL、定理证明或认证。
+- 泛化性：Path-2 深控制系统语义、时间自动机、BMC / LTL、工业认证留给后续工作。
 
-### 9 Threats to Validity and Limitations
+### 9 Artifact and Conclusion
 
-- baseline 公平性、closed artifact、provider drift、sample bias、human oracle、LLM assistance、形式化反馈深度有限。
-- 明确 Path-2、变量角色、BMC/LTL、深控制系统语义是后续工作。
+- 复现材料：代码、语法 / 模式、样本登记、提示词模板、必要脱敏输入 / 输出摘要、诊断摘要、场景轨迹、人工标注规则、结果表和脱敏报告。
+- 结论只能回到已由实验支持的范围：哪些反馈源有效、哪些失败暴露边界、哪些基线比较可防守。
+- 不写 最优性能、已解决、完整验证或工业认证。
 
-### 10 Artifact and Conclusion
+## 5. Related Work / Baseline 写作红线
 
-- artifact 内容：代码、prompt、run records、样本注册表、标注协议、结果表。
-- 结论只回到已验证的范围，不写 SOTA / solve / complete verification。
-
-## 6. 反证门：禁止作为核心贡献的 claim
-
-| 禁止 claim | 为什么禁止 | 可替代表述 |
+| 禁止 claim | 为什么禁止 | 安全替代表述 |
 |---|---|---|
-| 首个 NL / 文档到状态机生成方法 | 9 个五绿 baseline 已覆盖 | “we study executable feedback for NL-to-state-machine modeling” |
-| RAG / few-shot / prompt chaining 是本文核心 novelty | Umple、Structure/Event、FlowFSM、SpecGPT 已覆盖 | “we include structured baselines and focus on executable feedback” |
-| 工具反馈 / 自动修复闭环是本文独有 | LLMs for EMP 和 TTool-AI 已有反馈 / 修复先例 | “we integrate deterministic checking and simulation into an auditable loop” |
-| 长文档 FSM 抽取是新问题 | FlowFSM、SpecGPT 已覆盖 | “long-document extraction is related; our main setting is control-system requirements with executable feedback” |
-| 汽车 / 工业状态图生成是新场景 | Automotive statechart thesis 已覆盖 | “industrial examples motivate the task; novelty is not the domain alone” |
-| `fcstm` / LangGraph / Codex / Claude 是学术贡献 | 导师讨论已要求弱化工程名 | “implementation choices supporting the method / experiments” |
-| 已完成完整形式化验证 | 当前只是 parse / semantic / inspect / simulation | “executable formal feedback, not complete model checking” |
+| 首个 NL / 文档到状态机生成方法 | 九篇直接基线已覆盖 FSM、UML SM、SysML behavior、Umple、TTool、protocol FSM | “we study executable feedback for LLM-based state-machine modeling” |
+| 首个 tool feedback / 自动修复闭环 | LLMs for EMP、TTool-AI 已有 rule/tool feedback；Designing FSMs 已有 trace/oracle repair | “we combine deterministic diagnostics, scenario simulation, and structured repair decisions under a controlled protocol” |
+| prior work only draws diagrams | 多篇已有 machine-readable / tool-backed outputs | “prior work differs in feedback type, execution semantics, evaluation protocol, and comparability boundary” |
+| `fcstm` / `pyfcstm` 是新 DSL 贡献 | S0a 术语策略要求弱化工程名 | “an internal implementation substrate for executable checking and simulation” |
+| 私有 GT / missing code 是 prior weakness | 这是复现边界，不是方法缺陷 | “strict replication is blocked by private assets / missing prompt / output mismatch; we therefore classify it as evidence-only or near” |
 
-## 7. 投稿目标与 CCF-A 标准门禁
+## 6. 投稿与 S0b 边界
 
-本稿后续写作按 [venue_readiness_gate.md](./venue_readiness_gate.md) 执行：目标是 **按 CCF-A 论文标准打磨，2026 夏季优先投 CCF-B 期刊**。默认主投 SoSyM regular rolling；如果最终稿更像自动化软工 / tool-supported repair loop，则备投 ASE Journal regular；如果最终稿更像 requirements-to-behavioral-model / requirements validation，则备投 Requirements Engineering Journal regular。
+S0a 不冻结最终投稿期刊，也不宣布达到 CCF-A 标准。`venue_readiness_gate.md` 只能作为后续 S0b / Direction + Venue Freeze 的输入。当前 outline 的验收标准是：Related Work 分层、RQ、Method 和 Experiment 已经不会把论文带回“首创状态机生成”或“新 DSL 贡献”的旧主线。
 
-这一定调对章节写法有三个直接约束：
+## 7. 当前 foundation 允许说什么
 
-1. **Introduction** 要回答 SoSyM / ASEJ / REJ reviewer 都会问的第一问题：为什么这是一个有学术价值的建模问题，而不是一个 prompt engineering demo。
-2. **Experiment** 必须按 A 类审稿强度准备：9 个 direct baseline 阻塞吸收、至少 1 个 same-sample approximate baseline、B0-B5 消融、human adjudication、run record 和 failure taxonomy。
-3. **Threats / Artifact** 不能当附录边角料：baseline fairness、sample bias、oracle、provider drift、LLM usage、artifact 可复现性必须在主文或清晰 artifact 中闭合。
+当前允许说：
 
-当前 foundation 阶段只能说“已建立 readiness gate”，不能说“论文已经达到 CCF-A 标准”。是否达到该级别要在 G5 strong review closeout 时根据完整稿、结果表、artifact 和 C/I/M closeout 判定。
-
-## 8. 投稿前证据门
-
-| Gate | 阻塞问题 | 必需产物 |
-|---|---|---|
-| Baseline 事实门 | close work 漏读或误述会直接破坏 originality | [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md)、[`../baselines/papers/*.md`](../baselines/papers/) 九篇 direct baseline 反证表、4 个 mandatory closest works（`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs`） |
-| 同构性门 | 不同输入 / 输出 / 预算下的比较会被质疑不公平 | direct / near / evidence-only 分类、same-sample approximate baseline 说明 |
-| 样本冻结门 | cherry-pick 风险 | `sample_registry.csv`、纳入 / 排除理由、stress-test 与 main benchmark 区分 |
-| Oracle 门 | LLM judge 或单人判断不足 | `human_rubric.md`、`oracle_protocol.md`、`>=2` annotators、agreement / adjudication |
-| 可执行性门 | 文本相似不等于状态机可用 | parse / semantic / inspect / simulation 结果与 eligibility filter |
-| 消融门 | 无法证明 feedback 贡献 | B0-B5 条件、run record、failure taxonomy |
-| 复核门 | reviewer 无法复现或追踪修复 | prompt、raw output、usage、stage trace、scenario、diff、redaction |
-| Claim 门 | 摘要 / 引言过度宣称 | [claim_evidence_map.md](./claim_evidence_map.md) 逐句审计 |
-
-## 9. 当前 foundation 允许说什么
-
-当前只能说：
-
-- 已建立第一篇 Path-1 paper 的 foundation、历史资产归档和执行 gate。
-- 已确认第一篇主线应从“能否生成状态机”收缩为“可执行形式化反馈与结构化修复决策是否带来模型质量增量”。
-- 已识别 9 个五绿 direct baseline 对 novelty 的反证压力。
-- 已规划 baseline、sample、oracle、run record、ablation 和 writing 的后续 PR。
+- 已把第一篇论文主线收缩为 diagnostics / simulation feedback / structured repair decision 的受控闭环研究。
+- 已识别四个 mandatory closest works 对 claim 的 carve-out。
+- 已规划 Related Work 第一层与 baseline 分层，避免把不可比较工作硬当直接基线。
 
 当前不能说：
 
 - 方法已经优于 baseline。
-- 样本已经冻结。
-- 人工 oracle 已完成。
-- 消融已经证明 feedback 有效。
-- 本文已具备投稿级实验结果。
+- 样本、oracle、baseline runner 或消融已经冻结。
+- 可执行反馈已经被证明提升质量或修复稳定性。
+- 本文提出了新的 paper-level DSL 或完成了完整形式化验证。

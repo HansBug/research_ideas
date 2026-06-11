@@ -84,7 +84,7 @@
 4. `evidence-only`
 5. `not eligible`
 
-如果输入来自模型反向补写、私有工业需求、协议长规格、小样本 prompt demo 或人工重构数据，必须写 eligibility flag。
+如果输入来自模型反向补写、私有工业需求、协议长规格、小样本 prompt demo 或人工重构数据，必须写纳入 / 排除标记。
 
 ### 4.6 表 F：Claim 风险与 handoff
 

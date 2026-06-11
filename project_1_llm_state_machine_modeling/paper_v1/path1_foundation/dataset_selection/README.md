@@ -26,4 +26,4 @@
 2. PR #9 的 selection 是 stress-test design，不是代表性随机抽样。
 3. PR #9 的 expansion 可作为 NL/provenance 候选，但不能作为人工 oracle。
 4. PR #9 的 ref draft 可作为 reference discipline / few-shot 经验，不能直接作为 final signed oracle。
-5. 正式实验必须另建 frozen sample registry、eligibility filter、human adjudication protocol 和 run record。
+5. 正式实验必须另建 frozen sample registry、样本 / 运行纳入排除规则和 human adjudication protocol。

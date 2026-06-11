@@ -47,7 +47,7 @@ source pointer：`paper_content.txt:111-132`（DFSM 定义）、`paper_content.t
 | Reference/GT | GT 是作者随机生成的 DFSM oracle；每个 oracle 自动生成英文描述；实验用 5/10/25 states、5 inputs、2 outputs，常规每规模 30 oracles，25 states 只报告 1 个。 |
 | 数据与 artifact | 原文未给独立数据下载；本轮额外核到 `Paul3246/nl2fsm`，含 `v1`-`v5`、`err_lim`、`Fault_model_approach.zip`、示例数据/结果，但不是冻结 replication package。 |
 | 已有本地复现资产 | 本地已有论文 PDF、提取文本、`DESC.md`、`ASSETS.md`；`ASSETS.md` 记录 GitHub HEAD `354f9aacf51b5121abb8a2e04718232185e71928` 与部分结果/数据入口。 |
-| 可复现路径 | 冻结 GitHub HEAD → 检查依赖与潜在 `.env` 风险 → 配置 OpenAI API → 复跑 `v1`/`v4`/`v5`/fault-model 流程 → 对齐论文 Table 1-5。需要补 run record、模型 ID、日期、usage、seed 与生成 oracle 清单。 |
+| 可复现路径 | 冻结 GitHub HEAD → 检查依赖与潜在 `.env` 风险 → 配置 OpenAI API → 复跑 `v1`/`v4`/`v5`/fault-model 流程 → 对齐论文 Table 1-5。需要补模型 ID、日期、调用成本、seed 与生成 oracle 清单。 |
 | 资源许可与访问风险 | GitHub 仓库无 release、license、依赖锁；论文正文未引用该仓库；实验调用真实 API，存在 provider drift 与成本风险；合成数据没有标准 split。 |
 
 source pointer：`ASSETS.md:11-18,29-39,45-49`；`DESC.md:13-19,127-149`；`paper_content.txt:349-398,475-489,591-596,664-676`。
@@ -86,7 +86,7 @@ source pointer：`paper_content.txt:349-398`（实验设置与 Table 1）、`pap
 | 是否可做同样本直接比较 | 不建议作为控制系统主数据集的同样本直接 baseline；原样本是随机 DFSM + 模板英文描述，与 Project 1 的真实控制系统功能安全需求分布不同。 |
 | 可做的近似比较 | 可作为 synthetic smoke / oracle-rich baseline：用其 DFSM CSV 任务测试 parser gate、trace equivalence、fault-type 统计、repair feedback 设计。 |
 | 与 Path-1 S1a 的放置 | 作为 direct STM baseline 方法条目保留，但实验可比性标注为“任务同构、样本不同”。 |
-| 若复跑需要 | 固定 `nl2fsm` HEAD、生成 oracle seed、模型 ID/date/usage、prompt、raw output、repair attempts；不要把 fake/replay 或 oracle-augmented repair 冒充真实无 oracle 场景结果。 |
+| 若复跑需要 | 固定 `nl2fsm` HEAD、生成 oracle seed、模型 ID/date/usage、prompt hash、必要脱敏输出摘要、repair attempts；不要把 fake/replay 或 oracle-augmented repair 冒充真实无 oracle 场景结果。 |
 
 source pointer：`paper_content.txt:171-184,349-398,697-755`；`ASSETS.md:31-49`；`DESC.md:197-206`。
 
@@ -98,7 +98,7 @@ source pointer：`paper_content.txt:171-184,349-398,697-755`；`ASSETS.md:31-49`
 | Claim 风险 2 | 不应把 CSV/schema 检查或 FSM testing feedback 写成通用 formal verification / model checking。 |
 | Claim 风险 3 | fault-model repair 的 100% 成功率带有 oracle/repair-domain augmentation 条件，不能外推到无 oracle 真实需求。 |
 | 可 handoff 到 Project 1 | 引入 machine-readable output gate；用 missing transition / wrong output / transfer fault 映射缺陷类型；设计 trace/checking-sequence 专家最小查询；比较“LLM 自由修复”与“候选空间受限修复”。 |
-| 下一步 | 若纳入实验，先复现最小 5-state synthetic chain，再决定是否把 CSV DFSM 转成 pyfcstm/内部 DSL；补 run record 与 redaction。 |
+| 下一步 | 若纳入实验，先复现最小 5-state synthetic chain，再决定是否把 CSV DFSM 转成 pyfcstm/内部 DSL；补模型 / 日期 / 用量 / 脱敏说明。 |
 
 source pointer：`paper_content.txt:404-489,621-691,697-755`；`DESC.md:197-206`；`ASSETS.md:45-49`。
 

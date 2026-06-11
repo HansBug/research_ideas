@@ -7,7 +7,7 @@
 硬原则：
 
 1. 这些资产是 **historical sprint evidence / candidate inputs / reference assets**，不是当前 paper 的主实验结果。
-2. 所有样本、reference、baseline、oracle 在进入正式 paper 之前都必须重新进入冻结协议、人工复核和 run-record 体系。
+2. 所有样本、reference、baseline、oracle 在进入正式 paper 之前都必须重新进入冻结协议、人工复核和样本 / 运行纳入排除规则。
 3. PR #9 的自动评分和扩充 NL 可以作为 selection rationale，但不能直接证明方法效果。
 4. 任何使用这些资产的论文 claim 都必须在 [claim_evidence_map.md](../story/claim_evidence_map.md) 中明确证据状态。
 

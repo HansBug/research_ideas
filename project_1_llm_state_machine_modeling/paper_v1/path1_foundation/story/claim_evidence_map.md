@@ -2,71 +2,86 @@
 
 ## 1. 使用方式
 
-本文件控制后续 Abstract / Introduction / Contribution 中所有强 claim。任何新 claim 在进入 manuscript 前必须落到下表之一。
+本文件是 S0a 后的 claim gate。任何进入 Abstract / Introduction / Contribution / Related Work 差异定位的 claim，必须在本文件中有对应状态、证据来源、baseline carve-out 和 safe wording。
 
 状态口径：
 
-- **Foundation-supported**：当前 foundation 已可支持的任务边界、方法基础设施、历史资产索引或计划性表述；适合进入 planning / method overview，不等于结果 claim。
-- **Manuscript-supported**：主实验、human adjudication、baseline 对齐和 artifact 已完成后才可进入 Abstract / Introduction 的结果型 claim。
-- **Planned**：本 PR 已规划但尚无结果证据；可以写进 execution plan，不能写成当前论文已完成事实。
-- **Forbidden**：当前证据不支持或与导师定调冲突，禁止写入论文主线。
+- **Foundation-supported**：当前 foundation 可支持的任务边界、方法基础设施、历史资产索引或计划性表述；可进入 planning / method overview，不等于结果 claim。
+- **Evidence-needed**：方向可保留，但必须等待 frozen sample、human adjudication、ablation、external baseline 或 artifact 证据；不能写成当前完成事实。
+- **Manuscript-supported**：主实验、human adjudication、baseline 对齐和 artifact 完成后才可升级的结果型 claim。
+- **Forbidden**：当前证据不支持、被 S1a baseline 打穿或与导师定调冲突，禁止进入论文主线。
 
-硬规则：依赖 frozen sample、human adjudication、ablation、external baseline 或实验数字的句子，在 G3/G5 通过前只能是 **Planned**，不能作为 Abstract / Introduction 的 ready wording。
+硬规则：依赖 frozen sample、human adjudication、ablation、external baseline 或实验数字的句子，在 G3/G5 通过前只能是 **Evidence-needed**，不能作为 Abstract / Introduction 的 ready wording。
 
-## 2. Claim status table
+## 2. Mandatory closest works carve-out
+
+四个 mandatory closest works 是每条 contribution 的默认反证入口：
+
+| Baseline | 已覆盖能力 | 对 claim 的硬约束 |
+|---|---|---|
+| Structure/Event SMF | same-task NL -> UML state machine / structured prompt / 事件和结构化建模 | 禁止 “first NL-to-state-machine”；本文只能主张 executable / diagnostic / simulation substrate 的边际 |
+| LLMs for EMP | SysML behavior model generation、rule/manual checking feedback、regeneration、human review | 禁止 “first behavior-model feedback loop”；本文只能区分 deterministic diagnostics + scenario simulation + structured repair decision 的组合 |
+| TTool-AI | NL -> SysML/TTool、JSON / syntax / constraint tool feedback、artifact | 禁止 “first tool feedback”；本文只能把 diagnostics 当闭环组件，并承认 TTool/TTool-AI 先例 |
+| Designing FSMs | synthetic NL -> CSV DFSM/Mealy、oracle / distinguishing / checking-sequence repair | 禁止 “first trace/oracle repair”；本文只能强调 scenario candidates + deterministic simulator execution + structured fix decision |
+
+## 3. Contribution claim gate
+
+| Contribution claim | status | baseline_coverage | marginal_claim | forbidden_softened_claims | evidence_source | evidence_needed | safe wording |
+|---|---|---|---|---|---|---|---|
+| C1：把 LLM 输出约束为 machine-checkable / executable state-machine representation 作为 feedback evaluation substrate | Foundation-supported | Structure/Event SMF 已覆盖 NL -> UML SM；LLMs for EMP / TTool-AI / Umple 覆盖 SysML / TTool / Umple 等目标表示 | 本文边际不是“生成状态机”，而是让目标表示服务 deterministic diagnostics、scenario simulation 和 repair decision 的受控评估 | “first NL-to-STM”；“we propose a new DSL / FCSTM as the contribution” | [paper_story.md](./paper_story.md)、[terminology_policy.md](./terminology_policy.md)、method parser/simulator docs | representation definition、语法子集、component extraction、limitations、artifact version | “We constrain LLM outputs to a machine-checkable and executable state-machine representation that supports deterministic diagnostics and simulation.” |
+| C2：deterministic diagnostics feedback 进入建模 / 修复闭环 | Evidence-needed | TTool-AI 已有 syntax/constraint tool feedback；LLMs for EMP 已有 rule/manual checking feedback；Umple 可做 compile / syntax 评测 | 本文边际是把 parse / semantic / inspect diagnostics 作为可复核反馈信号，与 simulation / repair decision 共同进入受控消融 | “first deterministic diagnostics loop”；“prior tools only draw diagrams” | method stage API、diagnostic docs、retained examples | B2/B3/B5 消融、diagnostic taxonomy、失败/修复案例、external closest-work positioning | “We evaluate deterministic diagnostics as one feedback source in a controlled modeling loop.” |
+| C3：scenario-level simulation feedback 作为行为证据 | Evidence-needed | Designing FSMs 已有 oracle / trace repair；TTool-AI 有 TTool simulation / verification 背景但主要不是 LLM loop 的 scenario feedback；LLMs for EMP 把 simulation trace 作为未来方向 | 本文边际是 LLM 生成 scenario candidates + deterministic simulator execution + pass/fail / trace 反馈，而不是 trace repair 首创 | “first scenario-based feedback”；“prior trace repair lacks simulation feedback” | method simulator、scenario stage、four-case retained evidence | B4/B5 消融、scenario freeze policy、trace examples、human adjudication 与 failure taxonomy | “We study scenario-level simulation feedback produced by deterministic execution of LLM-generated scenario candidates.” |
+| C4：structured repair decision 记录 fix request / accept-reject / diff / FixLog | Evidence-needed | Designing FSMs 已有 fault-model / oracle repair；LLMs for EMP / TTool-AI 有 regeneration / auto-correction 先例 | 本文边际是把修复请求、接受/拒绝、diff、FixLog 和回归检查组织成可复核数据流 | “first repair loop”；“prior work lacks structured repair” | FixLog / repair-review design、PR #31 E1 evidence | repair trace、样本纳入 / 排除规则、non-converged 样本、ablation 与 manual review | “We structure repair decisions and regression checks so that feedback-driven changes can be audited and evaluated.” |
+| C5：baseline-aware controlled evaluation protocol | Foundation-supported | 九个 direct baseline 已覆盖多种任务/表示/反馈/评测；不同 artifact/GT/prompt/code 可得性不一 | 本文边际是按 same-sample approximate / near / evidence-only / boundary 分层，避免不可比横向排名 | “same benchmark beats all prior work”；“missing code is prior weakness” | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[../evidence/baseline_and_related_work_matrix.md](../evidence/baseline_and_related_work_matrix.md) | frozen samples、human protocol、EXT baseline、budget table、artifact package | “We use a baseline-aware evaluation protocol that separates same-sample approximate, near, evidence-only, and boundary comparisons.” |
+| C6：E1/E2 agent orchestration condition 分析 | Evidence-needed | Prior work 已覆盖 prompt chaining、agentic flow、tool feedback；Codex/Claude/skill 本身不是贡献 | E1/E2 只分析同一底座在不同 agent orchestration 下的质量、稳定性、成本和失败模式 | “Hybrid method contribution”；“Codex/Claude is the method” | PR #31 导师讨论、method retained examples 与后续运行摘要 | E1/E2 comparable runs、cost/quality/stability analysis、threats | “Agent orchestration is treated as an experimental condition rather than a standalone contribution.” |
+
+## 4. General claim status table
 
 | Claim | 状态 | 当前证据 | 进入 manuscript 还需什么 | 允许写法 |
 |---|---|---|---|---|
-| 本研究面向 NL 控制系统需求到状态机模型生成任务。 | Foundation-supported | project_1 研究定位、sources / Path-1 / Path-2 资料、导师讨论文档 | 正式 manuscript 中定义输入输出和范围 | “we study NL-to-state-machine modeling for control-system requirements” |
-| 当前方法底座已有可解析、可执行的形式化状态机表示和 agent-loop 基础设施。 | Foundation-supported | [../../../method/README.md](../../../method/README.md)、pyfcstm / method stage API、run evidence | paper 中弱化 `fcstm` 名称，说明表示能力而非 DSL novelty | “our infrastructure uses a formalized/executable state-machine representation” |
-| 当前方法底座能将 deterministic checks 与 simulation feedback 放入 LLM 建模闭环。 | Foundation-supported | [../../../method/README.md](../../../method/README.md)、[../../../method/STATUS.md](../../../method/STATUS.md)、LG-M1 run records | 主实验 ablation 支撑边际贡献，并正面对比已有 feedback-loop baseline | “the implemented loop supports formal feedback and executable simulation feedback” |
-| PR #9 提供了可复用的 Path-1 sample selection assets。 | Foundation-supported | [sample_assets.md](../dataset_selection/sample_assets.md)、PR #9 分支资产 | 正式 sample registry 重核 | “historical candidate pool and stress-test assets” |
-| 本稿当前投稿策略是按 CCF-A 标准打磨并优先投 CCF-B rolling journal。 | Foundation-supported | issue #67、[venue_readiness_gate.md](./venue_readiness_gate.md)、ccf_venues 中 SoSyM / ASEJ / REJ 入口 | S0 产出 `target_venue_decision.md`，投前人工复核 author guidelines | “we prepare the manuscript against a high-rigor review standard while targeting a fit-first CCF-B journal route” |
-| 本稿已经达到 CCF-A 论文标准或投稿级质量。 | Planned | 当前只有 foundation gate，没有完整实验、稿件和 strong review closeout | G3 主实验、G4 完整稿、G5 C/I closeout、G6 artifact package | G5 前禁止写成完成事实；只能写“readiness gate is defined” |
-| 本文通过 frozen benchmark、human adjudication、ablation 和 recent baselines 完成评估。 | Planned | 本 PR 只有计划；[experiment_inventory.md](../experiment_design/experiment_inventory.md) 仍标注待正式实验 | G2 sample/oracle freeze、G3 main experiment、G5 review closeout、9 个 direct baseline absorption gate | 只能写“we plan / will evaluate after freeze”；不能写“we evaluate” |
-| 本方法提升了 LLM 状态机建模质量。 | Planned | 当前只有 method infrastructure 和代表性 run evidence | 主实验结果、baseline 对比、human adjudication | 结果出来前只能写研究问题：“whether feedback improves...” |
-| 本文是首个 NL / 文档到状态机生成方法。 | Forbidden | 9 个五绿 direct baseline 已覆盖 FSM、UML/SysML state machine、Umple、Mermaid、TTool、protocol FSM 等路线 | 不可升级；只能作为 related work 背景 | 禁止写；可改成“we study executable feedback for NL-to-state-machine modeling” |
-| 本文是首个将 feedback loop 用于 LLM 状态机 / 行为模型生成的方法。 | Forbidden | Designing FSMs、LLMs for EMP、TTool-AI 已有 oracle / model-checking rules / tool feedback / repair loop 先例 | 不可升级；只能限定为本文反馈组合、scenario-level feedback 与修复决策差异；run record 只作实验复核支撑 | 禁止写“first feedback loop”；可写“integrates deterministic checking and simulation feedback into the modeling loop” |
-| 近期 baseline 只是画图，没有结构化输出或专家评估。 | Forbidden | CSV DFSM、Umple、PlantUML/SysML、TTool JSON/XML、3GPP transition tuple、专家 reference / F1 / Likert 均已存在 | 必须逐篇核验，不能概括性贬低 | 禁止写；应写具体 task / feedback / artifact 差异 |
-| 本文的 novelty 是 RAG / few-shot / prompt chaining / agent 编排本身。 | Forbidden | Umple、Structure/Event、FlowFSM、SpecGPT、Pushing Envelope 已覆盖这些 prompt / agentic 路线 | 只有在作为条件或 baseline 时可写 | 禁止作为核心贡献；只能作为实验条件或对照 |
-| 我们在同一 benchmark 上超过所有 prior work。 | Forbidden | 当前没有 strict same benchmark | 即使有 approximate baseline 也需限定 | 禁止写 |
-| Formal feedback 等于完整形式化验证 / model checking。 | Forbidden | 当前主要是 parse / semantic / inspect / simulation | 若未来接入 BMC/LTL 需另写 | 禁止写 |
-| LLM-as-Judge 是主 oracle。 | Forbidden | 当前 formal paper protocol 必须 human adjudication 为主 | LLM judge 只可辅助且必须披露 | 禁止写 |
-| E1/E2 构成 Hybrid 方法贡献。 | Forbidden | 导师讨论已明确不主打 Hybrid | E1/E2 作为 agent orchestration conditions | 禁止写 |
-| PR #9 selection / expansion / early refs 是当前 paper result。 | Forbidden | PR #9 是 historical sprint evidence | 正式 paper 需重核样本和 oracle | 禁止写 |
+| 本研究面向 NL 控制系统需求到状态机模型生成任务。 | Foundation-supported | project_1 定位、导师讨论、Path-1 foundation | 正式 manuscript 中定义输入输出和范围 | “we study NL-to-state-machine modeling for control-system requirements” |
+| 当前方法底座已有可解析、可执行的状态机表示和 deterministic feedback infrastructure。 | Foundation-supported | [../../../method/README.md](../../../method/README.md)、[../../../method/STATUS.md](../../../method/STATUS.md) | 弱化 `fcstm` 名称，说明 representation 能力而非 DSL novelty | “our prototype operationalizes a machine-checkable and executable representation” |
+| 本方法提升了 LLM 状态机建模质量。 | Evidence-needed | 当前只有方法基础设施和代表性工程 smoke 证据 | 主实验、baseline 对比、human adjudication、统计表 | 结果出来前只能写研究问题：“whether feedback affects...” |
+| 本文通过 frozen benchmark、human adjudication、ablation 和 recent baselines 完成评估。 | Evidence-needed | 当前只有计划和 S1a baseline 总账 | G2 sample/oracle freeze、G3 main experiment、G5 review closeout | 只能写 “we will evaluate / the protocol requires...” |
+| 本稿当前投稿策略是按 CCF-A 标准打磨并优先投 CCF-B rolling journal。 | Foundation-supported | issue #67、[venue_readiness_gate.md](./venue_readiness_gate.md) | S0b 产出 `target_venue_decision.md` | “the readiness gate targets CCF-A review rigor while preserving a fit-first CCF-B route” |
+| 本稿已经达到 CCF-A 论文标准或投稿级质量。 | Evidence-needed | 当前只有 readiness gate | G3/G4/G5/G6 全部通过 | G5 前禁止写成完成事实 |
+| PR #9 提供了可复用的 historical sample / stress-test assets。 | Foundation-supported | [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md) | 正式 sample registry 重核 | “historical candidate/stress-test assets” |
 
-## 3. Contribution-to-evidence map
+## 5. Forbidden claims
 
-| Contribution | Foundation evidence already available | Evidence required before manuscript result claim | Risk if missing |
-|---|---|---|---|
-| Formalized executable state-machine representation | method / pyfcstm / parser / simulator / examples | representation definition、syntax subset、component extraction、limitations | 被质疑只是私有 DSL |
-| Feedback-guided modeling loop | LangGraph runtime、stage API、four-case retained evidence；run record 只作为复核证据 | ablation B2-B5、failure taxonomy、representative successful and failed runs | 被质疑只是 prompt engineering |
-| Structured repair decision mechanism | FixLog / fix request / accept-reject decision design、LG-M1 docs；run record 只作为复核证据 | artifact package、example trace、eligibility filter | 被质疑只是简单 regenerate，而非有诊断依据的修复闭环 |
-| Controlled evaluation protocol | eval protocol 历史基础、Path-1 5-component 口径 | frozen samples、至少两名独立 human annotators、blind coding、agreement、baseline runners | 被质疑 oracle weak |
-| External baseline comparison | baselines corpus 91 papers，含 9 个五绿 direct baseline | 9 个 direct baseline absorption report、same-sample / approximate / evidence-only matrix and results | 被质疑缺少相关工作、误述 prior work 或 cherry-pick |
+| Forbidden claim | 为什么禁止 | 替代写法 |
+|---|---|---|
+| 本文是首个 NL / 文档到状态机生成方法。 | 九个 direct baseline 已覆盖 FSM、UML/SysML state machine、Umple、Mermaid、TTool、protocol FSM 等路线 | “we study executable feedback for NL-to-state-machine modeling” |
+| 本文是首个将 feedback loop 用于 LLM 状态机 / 行为模型生成的方法。 | Designing FSMs、LLMs for EMP、TTool-AI 已有 oracle / rule feedback / tool feedback / repair loop | “we integrate deterministic diagnostics and scenario-level simulation feedback under a controlled protocol” |
+| 近期 baseline 只是画图，没有结构化输出或专家评估。 | CSV DFSM、Umple、PlantUML/SysML、TTool JSON/XML、3GPP transition tuple、专家 reference / F1 / Likert 均已存在 | 写具体 task / feedback / artifact 差异 |
+| 本文 novelty 是 RAG / few-shot / prompt chaining / agent 编排本身。 | 多个 baseline 已覆盖这些技术 | 只作为条件、baseline 或 implementation detail |
+| 我们在同一 benchmark 上超过所有 prior work。 | 当前没有 strict same benchmark | 使用 strict / approximate / near / evidence-only 分类 |
+| Formal feedback 等于完整形式化验证 / model checking。 | 当前主要是 parse / semantic / inspect / simulation | “deterministic diagnostics and executable simulation feedback” |
+| LLM-as-Judge 是主 oracle。 | 正式 protocol 必须 human adjudication 为主 | LLM 只可辅助且必须披露 |
+| E1/E2 构成 Hybrid 方法贡献。 | 导师讨论已明确不主打 Hybrid | agent orchestration conditions / RQ dimension |
+| PR #9 selection / expansion / early refs 是当前 paper result。 | PR #9 是 historical sprint evidence | stress-test / historical assets，正式复核后再用 |
+| `fcstm` / `pyfcstm` 是 paper-level 新概念。 | 导师建议弱化命名，避免 DSL 说服负担 | internal DSL / prototype encoding / implementation artifact |
+| 过程性工程材料是 contribution，或作为 Method 主线主动介绍。 | 过程性工程材料不是 novelty；论文主文不主动提 | 如 venue / artifact 要求必须披露，只保留必要复现信息，不进入 contribution / method wording |
 
-## 4. Abstract / introduction guardrails
+## 6. Abstract / Introduction guardrails
 
 ### Foundation 阶段可以写
 
-- “We study whether executable formal feedback can improve LLM-based state-machine modeling from control-system requirements.”
-- “The current infrastructure supports an agent workflow that generates, checks, simulates, and repairs executable state-machine models.”
-- “This foundation specifies the benchmark, human adjudication, ablations, and baseline comparisons required before result-level claims can be made.”
+- “We study whether executable feedback helps LLM-based state-machine modeling from control-system requirements.”
+- “The current protocol separates deterministic diagnostics, scenario-level simulation feedback, structured repair decisions, and baseline-aware evaluation.”
+- “The evaluation will use frozen samples, human adjudication, ablations, and closest-work baseline positioning.”
 
-### G3/G5 之前不能作为完成事实写入摘要
+### G3/G5 之前不能写
 
-- “We evaluate the approach through a frozen control-system benchmark.”
-- “The method improves component-level F1 over recent baselines.”
-- “Human adjudication confirms the generated models are better.”
+- “We improve model quality.”
+- “We outperform prior work.”
+- “Our feedback loop is the first of its kind.”
+- “The method is verified / formally correct.”
+- “The artifact is submission-ready.”
 
-这些句子只有在样本、oracle、主实验、baseline 和 strong review 全部完成后，才能升级为 **Manuscript-supported**。
+## 7. 更新规则
 
-### 禁止句式
-
-- “Our method is the first LLM method for NL-to-state-machine generation.”
-- “Our method is the first feedback loop for LLM-based state-machine generation.”
-- “Prior work only draws diagrams and lacks structured outputs.”
-- “Our method solves state-machine modeling from natural language.”
-- “We outperform prior work on the same benchmark.”
-- “The LLM judge proves model correctness.”
-- “The DSL itself is the main contribution.”
+1. 后续新增 claim 时，必须先放入本文件再进 paper draft。
+2. 如果 S1b/S3 对某个 external baseline 的可复现性判断改变，必须同步更新 `baseline_coverage` 与 safe wording。
+3. 如果实验结果不支持某个 Evidence-needed claim，优先降级或删除 claim，而不是补强措辞。
+4. reviewer 提出 C/I 级 novelty 或 factual issue 时，必须在本文件新增 forbidden / weakened claim 记录。
