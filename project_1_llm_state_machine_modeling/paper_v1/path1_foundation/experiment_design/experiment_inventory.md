@@ -1,14 +1,22 @@
 # Path-1 Experiment Inventory and Protocol Plan
 
+## 0. S0a 定位与边界
+
+本文件是 PR #96 / S0a 的 experiment-design 草案，只把实验问题、条件矩阵、oracle 与 baseline fairness gate 写成可执行合同；它不运行真实 agent-loop、不生成新 run artifact、不修改 method runtime，也不冻结最终样本或投稿 venue。S0a 的实验叙事必须继承 [`../baselines/SUMMARY.md`](../baselines/SUMMARY.md) §11：九大 baseline 已经覆盖泛化的 NL-to-state-machine 生成空间，因此本文不能围绕“首次生成 STM”立论，只能围绕 **deterministic diagnostics、scenario-level simulation feedback、structured repair decision 与 baseline-aware evaluation** 对控制系统状态机模型质量、可执行性和修复稳定性的边际作用来设计 RQ。
+
+> 本 PR 不跑四例真实 agent-loop 的原因：当前阶段是 story / experiment-design / reviewer-risk 的计划文档 gate，目标是阻止旧 novelty、旧 S0 和 venue-first 路线回潮；真实运行会触碰 provider 配置、runtime、sample registry、oracle protocol 和 run-record eligibility，属于后续 S3/S4 实验链路，不能用未冻结样本和未冻结 oracle 产出伪结果。
+
 ## 1. Research questions
 
-| RQ | 问题 | 主要证据 | 当前状态 |
-|---|---|---|---|
-| RQ1 | Formal-feedback-guided LLM loop 是否比 direct / structured prompting 生成更有效的状态机？ | validity、component-level quality、human adjudication | 待正式实验 |
-| RQ2 | parse / semantic / design / simulation feedback 各自贡献是什么？ | B2/B3/B4/B5 ablation、repair rounds、failure reduction | 待正式实验 |
-| RQ3 | 相比 9 个五绿 direct baseline，本方法的边际贡献在哪里？ | 9 篇逐篇吸收报告、external baseline matrix、same-sample / approximate / evidence-only comparison | S1a 必须完成 blocking absorption 后冻结 |
-| RQ4 | 方法失败在哪里，失败是否可解释和可修复？ | failure taxonomy、repair logs、scenario history、FixLog | method run record 已具备，主实验待做 |
-| RQ5 | 自建 agent-loop 与成熟 coding-agent skill route 在质量、稳定性、成本和失败模式上有何差异？ | E1/E2 representative runs、run record completeness、human review | 作为 implementation analysis / appendix，不能喧宾夺主；run record 完整性只作复核支撑 |
+| RQ | 问题 | 主要证据 | 关键对照 / 条件 | 当前状态 |
+|---|---|---|---|---|
+| RQ1 | **Deterministic diagnostics** 是否能减少 LLM 输出中的 parse、metamodel、semantic 与 design-level 缺陷，并改变可进入后续仿真 / 人工裁决的 eligible model 比例？ | parse validity、semantic validity、inspect diagnostics、eligibility、diagnostic failure taxonomy | B0/B1/B2 vs B3/B4/B5 | 待正式实验 |
+| RQ2 | **Scenario-level simulation feedback** 是否能发现仅靠静态诊断或 post-hoc rubric 难以暴露的行为缺陷，并改变需求相关 scenario 的执行通过率与 trace 可解释性？ | scenario pass/fail、trace evidence、scenario-to-requirement link、behavioral failure types | B3 vs B4/B5；scenario coverage audit | 待正式实验 |
+| RQ3 | **Structured repair decision** 是否能把 diagnostics / simulation feedback 转化为可审计的 accept/reject、fix request、diff 与 regression-check 数据流，以及它们如何影响修复稳定性？ | FixLog、repair decision、diff、post-repair regression、non-converged cases | B4 vs B5；repair rounds / regression outcomes | 待正式实验 |
+| RQ4 | 在 **baseline-aware evaluation** 下，本文相对 direct / structured prompting、no-feedback orchestration、closest-work approximate baselines 的可防守边际是什么？ | B0-B5 / EXT matrix、same-sample approximate / near / evidence-only 分层、human adjudication | PR #94 / S1a 九大 baseline 反证；mandatory closest works carve-out | S1b 后冻结 |
+| RQ5 | E1/E2 等 orchestration condition 在质量、稳定性、成本、失败模式与 run-record 完整性上有何差异？ | representative runs、cost/latency、failure mode、run-record completeness | E1/E2 作为 implementation dimension / appendix analysis | 可选；不作为贡献 |
+
+RQ 写作红线：不得把 RQ 写成“LLM 是否首次能生成状态机”“是否提出新 DSL”“agent framework 是否贡献主要效果”。E1/E2 只能帮助解释 orchestration 的实现影响，不能变成 contribution bullet。
 
 ## 2. Benchmark / dataset plan
 
@@ -16,18 +24,19 @@
 
 | 层级 | 目标规模 | 来源 | 用途 | 当前状态 |
 |---|---:|---|---|---|
-| Pilot sample | `>=3` 个系统 / `>=30` 条需求 | Path-1 9 系统 / 101 需求或 sources/ stress-test 子集 | G1 可行性、pipeline smoke | 待冻结 |
-| Main sample 首选 | 9 系统 / 101 需求 | BSN、CARA、Elevator、Microwave、PBA、Radar、Stopwatch、TCS、VHL | 主实验 | 待确认 reference / oracle 成本 |
-| Main sample 降级 | `>=6` 个系统 / `>=60` 条需求 | 预注册分层抽样 | 若全量成本不可控 | 必须记录排除原因 |
+| Pilot sample | `>=3` 个系统 / `>=30` 条需求 | Path-1 9 系统 / 101 需求或 sources/ stress-test 子集 | G1 可行性、pipeline smoke、oracle 成本估计 | 待冻结 |
+| Main sample 首选 | 9 系统 / 101 需求 | BSN、CARA、Elevator、Microwave、PBA、Radar、Stopwatch、TCS、VHL | 主实验与 RQ1-RQ4 | 待确认 reference / oracle 成本 |
+| Main sample 降级 | `>=6` 个系统 / `>=60` 条需求 | 预注册分层抽样 | 若全量成本不可控 | 必须记录排除原因与降级规则 |
 | Stress-test extension | Top-15 / Backup-15 或其子集 | PR #9 selection assets | 诊断 guard/action/hierarchy/fault-recovery 弱项 | 已有历史资产，需复核 |
-| Diagnostic failures | 所有失败样本 | 正式 runs 自动产生 | failure taxonomy / limitations | 待正式实验 |
+| Diagnostic failures | 所有失败样本 | 正式 runs 自动产生 | failure taxonomy / limitations / repair ceiling | 待正式实验 |
 
 ### 2.2 样本选择原则
 
 1. 主结果默认优先 Path-1 9/101 或预注册降级样本，而不是只用 PR #9 Top-15。
-2. PR #9 Top-15 / Backup-15 更适合当 stress-test 或 ref-model construction pool。
+2. PR #9 Top-15 / Backup-15 只能作为 stress-test、reference construction candidate 或 failure probing，不代表平均性能。
 3. 所有排除必须写明原因：parallel/history unsupported、too-thin NL、reference unavailable、provider failure、oracle insufficient 等。
-4. 如果使用 expanded NL，必须冻结原始 NL、扩充 NL、source evidence 和人工复核状态。
+4. 如果使用 expanded NL，必须冻结原始 NL、扩充 NL、source evidence、人工复核状态和 input hash。
+5. 样本冻结前不得把 historical reference draft、early human note 或 LLM draft 当作 signed oracle。
 
 ## 3. Candidate pools reconciliation
 
@@ -50,28 +59,43 @@
 
 ## 4. Baseline / condition matrix
 
+### 4.1 Internal condition matrix
+
 | ID | condition | 目的 | 最低可接受实现 | 是否主结果 |
 |---|---|---|---|---|
-| B0 | Direct prompting | LLM 直接生成下限 | 同模型、同输入、同输出表示、无结构化反馈 | 是 |
-| B1 | Structured prompting | 分解 / schema prompt 的收益 | 固定 prompt template，输出同一 formal representation | 是 |
-| B2 | No-feedback agent | 分离 agent orchestration 与 deterministic feedback | 多轮/agent loop，但不接 parse/semantic/simulation feedback | 是 |
-| B3 | Parse + metamodel feedback | 测 syntax / metamodel feedback 边际贡献 | 只反馈 parser、schema、basic semantic | 是 |
-| B4 | Parse + semantic + simulation feedback | 测 simulation feedback 边际贡献 | 加 scenario / trace / execution feedback，但不额外人工修复 | 是 |
-| B5 | Full method | 主方法 | 完整 generate-check-simulate-repair-review loop | 是 |
-| E2 | Mature coding-agent skill route | 上限/实现形态分析 | skill + stage tools + full run record / report | 可选，建议 appendix / RQ5 |
-| EXT | Closest prior work approximate baseline | 回答外部可比性 | 先完成 9 个 direct baseline 阻塞吸收；`Structure/Event SMF`、`llms_emp`、`TTool-AI`、`Designing FSMs` 四个 mandatory closest works 必须全部进入矩阵；至少 1 个 same-sample approximate，争取 2 个，优先从 `Structure/Event SMF` 或 `llms_emp` STM 子集落地 | 是，若能复现 |
+| B0 | Direct prompting | LLM 直接生成同一 machine-checkable representation 的下限 | 同模型、同输入、同输出表示、无结构化反馈 | 是 |
+| B1 | Structured prompting | 分解 / schema prompt 的收益 | 固定 prompt template，输出同一 representation | 是 |
+| B2 | No-feedback orchestration | 分离 agent orchestration 与 deterministic feedback 的影响 | 多轮/agent loop，但不接 parse/semantic/simulation feedback | 是 |
+| B3 | Diagnostics-only feedback | 测 deterministic diagnostics 的边际贡献 | 反馈 parser、schema、basic semantic、design diagnostics，不使用 scenario simulation | 是 |
+| B4 | Diagnostics + scenario simulation feedback | 测 scenario-level simulation feedback 的边际贡献 | 加 scenario candidates、trace、pass/fail、behavior evidence，但不启用 structured repair decision | 是 |
+| B5 | Full feedback + structured repair decision | 主方法条件 | 完整 generate-check-simulate-repair-review loop，记录 fix request、accept/reject、diff、regression | 是 |
+| E1 | Self-built agent-loop orchestration | 实现路径 / orchestration condition | 使用自建 agent-loop 与同一 stage contract / run-record schema | 可选；仅作 RQ5 / appendix |
+| E2 | Mature coding-agent skill route | 上限 / 实现形态分析 | skill + stage tools + full run record / report | 可选；仅作 RQ5 / appendix |
+
+E1/E2 不是独立 contribution；若资源不足，主论文可以只报告 B0-B5，E1/E2 放入 appendix、threats 或 artifact note。
+
+### 4.2 External baseline-aware comparison
+
+| 层级 | 对象 | 作用 | 最低要求 |
+|---|---|---|---|
+| Same-sample approximate | 优先尝试 `Structure/Event SMF` external 8-case approximate 或 `LLMs for EMP` STM 子集 | 回答“最接近公开方法在同/近样本上如何比较” | 至少 1 个可解释映射；清楚披露输入、输出、oracle、预算差异 |
+| Mandatory closest-work carve-out | `Structure/Event SMF`、`LLMs for EMP`、`TTool-AI`、`Designing FSMs` | 约束 novelty 与 contribution wording | 全部进入 related-work / risk / claim gate；不能缺席 |
+| Near baseline | protocol FSM、Umple、SysML / MBSE、process model、formal specification generation | 防止遗漏邻域 | 说明为何不是 strict executable same-sample comparison |
+| Evidence-only related work | code / data / prompt / GT 不可得或任务不等价的工作 | 支撑边界讨论 | 不强行横向排名；不把 private GT / missing prompt 写成 prior-work weakness |
 
 ## 5. Metrics and adjudication
 
-### 5.1 Deterministic validity
+### 5.1 Deterministic validity and feedback evidence
 
-| metric | 含义 | 来源 |
-|---|---|---|
-| parse validity | DSL 是否可解析 | method deterministic parser / pyfcstm |
-| semantic validity | 模型能否构建语义对象 | pyfcstm semantic / method stage API |
-| inspect validity | design diagnostics 是否无阻塞问题 | inspect / SD checks |
-| simulation pass rate | scenario 是否可执行并达到期望 | simulator trace / scenario result |
-| eligibility | run 是否能进入主统计 | run record eligibility policy |
+| metric | 含义 | 来源 | 支撑 RQ |
+|---|---|---|---|
+| parse validity | representation 是否可解析 | deterministic parser / pyfcstm-backed implementation | RQ1 |
+| semantic validity | 模型能否构建语义对象 | semantic facade / method stage API | RQ1 |
+| inspect validity | design diagnostics 是否无阻塞问题 | inspect / SD checks | RQ1 |
+| scenario executability | scenario 是否能在 simulator 中执行 | simulator trace / scenario result | RQ2 |
+| scenario pass rate | 执行结果是否满足需求相关期望 | scenario pass/fail + trace evidence | RQ2 |
+| repair convergence | 修复轮是否收敛且不引入回归 | FixLog / regression check | RQ3 |
+| eligibility | run 是否能进入主统计 | run record eligibility policy | RQ1-RQ4 |
 
 ### 5.2 Component-level quality
 
@@ -85,7 +109,7 @@
 
 核心公式：$P = TP / (TP + FP)$，$R = TP / (TP + FN)$，$F1 = 2PR / (P + R)$。
 
-注意：forced transition 按 DSL declaration-level 计数，不按 runtime descendant expansion 膨胀分母。
+注意：forced transition 按 declaration-level 计数，不按 runtime descendant expansion 膨胀分母。
 
 ### 5.3 Human adjudication and LLM-assistance transparency
 
@@ -113,16 +137,19 @@
 - code commit、dependency / pyfcstm submodule version。
 - provider、model ID、run date、endpoint 脱敏标识。
 - prompt hash、raw output 或脱敏 raw output、usage、retry、timeout、provider error。
-- stage trace、scenario trace、fix request、repair decision、diff、SL-10 review、final artifact。
-- eligibility verdict：eligible / provider_error / schema_invalid / non_converged / weak_oracle 等。
+- stage trace、diagnostics、scenario trace、fix request、repair decision、diff、review result、final artifact。
+- eligibility verdict：eligible / provider_error / schema_invalid / semantic_invalid / non_converged / weak_oracle 等。
 
-## 7. Current caveats
+Run record 只支撑 reproducibility、debugging、audit trail 与 eligibility filter，不作为论文 contribution。
+
+## 7. Current caveats and gates
 
 | caveat | 影响 | 缓解 |
 |---|---|---|
 | PR #9 selection 是 stress-test，不是随机代表性样本 | 平均性能 claim 易被 challenge | 区分 main sample 与 stress-test extension |
 | reference model 成本高 | 影响主样本规模 | 先 pilot，冻结降级标准 |
-| external baseline 可复现性不一 | 影响公平对比 | 先做 9 个 direct baseline 阻塞吸收；分类为 strict executable / approximate / near / evidence-only |
-| E2 skill route 容易被认为只是 Codex/Claude 强 | 影响贡献归因 | 做 no/partial/full skill ablation 或作为 appendix RQ |
-| Formal feedback 容易被误解为 complete verification | 影响相关工作和 reviewer 信任 | 全文统一写 formal feedback / executable simulation，不写 complete model checking |
+| external baseline 可复现性不一 | 影响公平对比 | 分类为 same-sample approximate / near / evidence-only，不强行排名 |
+| E1/E2 skill route 容易被认为只是 Codex/Claude 强 | 影响贡献归因 | 降级为 orchestration condition / RQ5 / appendix，不列 contribution |
+| Formal feedback 容易被误解为 complete verification | 影响相关工作和 reviewer 信任 | 全文统一写 deterministic diagnostics、formal-executable feedback、scenario-level simulation，不写 complete model checking |
 | 目标是投 CCF-B 但按 CCF-A 标准准备 | 若门禁不硬，容易写成“降低标准投 B” | 按 [../story/venue_readiness_gate.md](../story/venue_readiness_gate.md) 执行 novelty / baseline / oracle / artifact / threats / writing 完整性门禁；G5 前未闭合 C/I 则不硬投 |
+| S0a 只是文档 gate | 可能被误解为已有实验结果 | 所有 RQ 与指标均标注待正式实验；本 PR 不新增 result 数字、不跑四例 agent-loop |
