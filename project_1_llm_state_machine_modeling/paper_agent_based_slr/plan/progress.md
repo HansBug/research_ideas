@@ -40,7 +40,7 @@
 | 风险 | 当前状态 | 后续处理 |
 |---|---|---|
 | Related work corpus 仍不完整 | A0 已登记 seed 并补 `references.bib` 核心锚点；LLM-assisted SLR 仍待系统检索 | A1 / related-work PR。 |
-| PR #97 仍 OPEN / 未合入 | 已建立 fact drift policy | A1 merge 或冻结 snapshot。 |
+| PR #97 仍 OPEN / 未合入 | 已建立 fact drift policy，并在 A0 task packet 增加 A1 snapshot 等值断言 gate | A1 merge 或冻结 snapshot。 |
 | 没有真实场景和运行 | A0 已补 [dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，但不冻结场景 | A3/A4/A5。 |
 | A5 指标未冻结 | A0 非目标 | A5。 |
 

@@ -114,3 +114,28 @@ PY
 5. terminology / claim / novelty / risk / evidence 文档能指导 A1-A5。
 6. 旧 Path-1 的 `baselines/` 与 `dataset_selection/` 层级已在本工作区保留，但 A0 只登记相关工作锚点和候选场景，不冻结真实 benchmark。
 7. C/I 必须修复；M 可 follow-up。
+
+## 8. A1 接力 gate
+
+A1 启动前必须先做 PR #97 snapshot 等值断言，避免 A0 记录的 `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727` 因 PR #97 更新而漂移。建议使用：
+
+```bash
+gh pr view 97 --repo HansBug/research_ideas --json state,headRefOid
+python - <<'PY'
+from pathlib import Path
+import json
+import subprocess
+root = Path('project_1_llm_state_machine_modeling/paper_agent_based_slr')
+expected = 'b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727'
+actual = json.loads(subprocess.check_output([
+    'gh', 'pr', 'view', '97', '--repo', 'HansBug/research_ideas', '--json', 'headRefOid'
+]))['headRefOid']
+assert actual == expected, (actual, expected)
+for rel in ['evidence/fact_drift_policy.md', 'story/claim_evidence_map.md']:
+    text = (root / rel).read_text(encoding='utf-8')
+    assert expected in text, rel
+print('PR #97 snapshot equality gate ok')
+PY
+```
+
+若断言失败，A1 必须先更新 [../../evidence/fact_drift_policy.md](../../evidence/fact_drift_policy.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) 与 [../../evidence/project_inventory.md](../../evidence/project_inventory.md)，再继续资产盘点。
