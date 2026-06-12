@@ -6,7 +6,7 @@
 |---|---|
 | PR | [#102](https://github.com/HansBug/research_ideas/pull/102) |
 | 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| 当前阶段 | Impl-1：R0 文档落地 |
+| 当前阶段 | Ready：实现复审与 CI 均通过，等待用户审阅 / merge 指示 |
 | 四例真实运行 | 不需要；R0 是文档 / story gate。 |
 | 真实 LLM 调用 | 不需要。 |
 | method runtime 修改 | 不涉及。 |
@@ -52,6 +52,17 @@
 | deepseek reviewer | [路径修正后复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692683224) | C=0 / I=0 |
 | 主 session | [plan review 收口](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692696625) | 已进入实现 |
 
+
+## 4.1 Implementation review 状态
+
+| reviewer | comment | 结论 |
+|---|---|---|
+| deepseek reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692946713) | C=0 / I=0 / M=0，implementation ready |
+| claude reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692952218) | C=0 / I=0 / M=3，implementation ready |
+| codex reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692966223) | C=0 / I=0 / M=2，implementation ready |
+
+上一轮 implementation review 发现的旧 `paper_v1/better_stm_repair_loop/` 双事实源问题已通过提交 `f8bc3408` 修复：旧目录已从 diff 消失，PR body 目录树已收敛到 `paper_stm_repair/`。
+
 ## 5. 本地检查记录
 
 | 检查 | 命令 / 口径 | 结果 |
@@ -62,6 +73,8 @@
 | `path1_foundation` 修改 | `git diff --name-only origin/paper1/better-stm-repair-loop-umbrella...HEAD | grep path1_foundation` | 通过；无命中。 |
 | 四例真实运行 | 按 PR #100 / #102 R0 合同 | 不执行。 |
 | 真实 LLM 调用 | 按 R0 范围 | 不执行。 |
+| CI / feedback-smoke | `gh pr checks 102` | 通过；`feedback-smoke` success。 |
+| Codecov / coverage | PR comments / checks | 未发现 Codecov 覆盖率评论；本 PR 为 docs-only，无单测覆盖率变化，未虚构 coverage。 |
 
 ## 6. 剩余风险
 
@@ -87,5 +100,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-13 00:08:00 | 三路 implementation re-review 均 C=0/I=0；feedback-smoke 通过；记录 docs-only 无 Codecov 覆盖率变化。 |
 | 2026-06-12 23:43:33 | 完成本地链接、diff、forbidden wording 与 `path1_foundation` 修改检查；补充旧 `paper_v1/README.md` 入口提示。 |
 | 2026-06-12 23:42:20 | 初始化 R0 文档路径与 progress 记录。 |
