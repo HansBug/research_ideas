@@ -101,7 +101,51 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-13 00:45:00 | PR-R1 创建 baseline 资产审计文档：source coverage、branch-local trace、候选矩阵、artifact 可获取性与格式转换压力；本轮不改写 R0 completion 结论。 |
 | 2026-06-13 00:19:18 | 按人工审阅意见补充 R0 是可执行论文工作基线而非最终论证链；后续 R1--R6 可按真实实验结果回填并局部校准 story / RQ / claim。 |
 | 2026-06-13 00:08:00 | 三路 implementation re-review 均 C=0/I=0；feedback-smoke 通过；记录 docs-only 无 Codecov 覆盖率变化。 |
 | 2026-06-12 23:43:33 | 完成本地链接、diff、forbidden wording 与 `path1_foundation` 修改检查；补充旧 `paper_v1/README.md` 入口提示。 |
 | 2026-06-12 23:42:20 | 初始化 R0 文档路径与 progress 记录。 |
+
+## 9. PR-R1 进度
+
+| 字段 | 状态 |
+|---|---|
+| PR | [#104](https://github.com/HansBug/research_ideas/pull/104) |
+| 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
+| 当前阶段 | R1 implementation / review iteration |
+| 四例真实运行 | 不需要；R1 是资产审计。 |
+| 真实 LLM 调用 | 不需要。 |
+| method runtime 修改 | 不涉及。 |
+| `path1_foundation/` 修改 | 不允许；仅在 [../evidence/branch_asset_trace.md](../evidence/branch_asset_trace.md) 记录分支局部状态。 |
+
+### 9.1 R1 已消费输入
+
+| 输入 | 用途 |
+|---|---|
+| PR #100 body | R1 合同、字段、四例运行边界、后续依赖。 |
+| PR-R0 / #102 文档 | 本地事实锚点，尤其是旧资产继承边界与 Better STM 定义。 |
+| [../../baselines/SUMMARY.md](../../baselines/SUMMARY.md) | 91 篇 baseline 总账、九个五绿 direct baseline 与数据集清单。 |
+| 九个 direct baseline `ASSETS.md` | 代码 / 数据 / artifact / 结果可获取性深审输入。 |
+| [../../sources/SUMMARY.md](../../sources/SUMMARY.md) | 787 篇真实控制系统 seed 池规模与状态分布。 |
+| PR #93/#94/#96 gh / git 状态 | 分支局部资产状态与消费决策。 |
+
+### 9.2 R1 已产出文件
+
+| 文件 | 状态 |
+|---|---|
+| [../evidence/baseline_asset_audit.md](../evidence/baseline_asset_audit.md) | 已创建 |
+| [../evidence/baseline_candidate_matrix.md](../evidence/baseline_candidate_matrix.md) | 已创建 |
+| [../evidence/artifact_availability_ledger.md](../evidence/artifact_availability_ledger.md) | 已创建 |
+| [../evidence/format_conversion_matrix.md](../evidence/format_conversion_matrix.md) | 已创建 |
+| [../evidence/branch_asset_trace.md](../evidence/branch_asset_trace.md) | 已创建 |
+| [../evidence/source_coverage_ledger.md](../evidence/source_coverage_ledger.md) | 已创建 |
+
+### 9.3 R1 已知边界
+
+| 边界 | 说明 |
+|---|---|
+| 未逐篇深审全部 91 篇 baseline | R1 对 91 篇做 summary-level closure，对 9 个 direct baseline 和部分强近邻做深审。 |
+| 未冻结四例 seed | R2 才能基于本审计选择样本。 |
+| 未验证转换器 | R3 才能把“可转换性评估”变成 schema / fixture / adapter。 |
+| 未复跑外部 artifact | 活链接、仓库 HEAD、Drive / 4open / 3GPP dynareport 等正式实验前仍需冻结。 |
