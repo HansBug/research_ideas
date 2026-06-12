@@ -12,6 +12,13 @@
 
 本文研究带人工审计门的 agent-based SLR：将软件工程 systematic literature review / systematic mapping 的检索、筛选、全文获取状态记录、抽取、编码、综合和报告环节组织成可审计的 agent-executed workflow，并用结论到来源的可追踪性、事实准确性、幻觉控制、筛选一致性、透明报告、覆盖代理、成本效率和人工审计通过率评价其可靠性。
 
+
+## 2.1 Story 成熟度与更新策略
+
+A0 的 story 是为了防止主线回滑和过强 claim 的 **v0 种子**，不是最终论文叙事。当前 thesis、contribution 和 outline 仍然偏保守、偏薄，属于有意留白：后续 A1 的 baseline / related-work 调研可能发现 LLM-based SLR、LLM-assisted screening / extraction / synthesis 或 agentic review workflow 的更近工作；A3 的场景设计、A4/A5 的真实运行结果也可能改变可主张的贡献强度、评价维度和 threat model。因此后续 PR 若新增证据或发现近邻打穿当前 novelty，必须同步更新本文档、[paper_outline.md](./paper_outline.md)、[claim_evidence_map.md](./claim_evidence_map.md)、[differential_novelty_matrix.md](./differential_novelty_matrix.md) 与 [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。
+
+更新原则：宁可先把 story 写成可审计、可降级、可迭代的研究假设，也不要在 A0 阶段把它写成已被实验证明的最终结论。
+
 ## 3. Task Boundary
 
 | 项 | A0 冻结口径 |

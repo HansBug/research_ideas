@@ -15,6 +15,7 @@ A0 阶段冻结以下口径：
 3. PR #97 当前仍为 OPEN / 未合入，其 438→69→25 与 25 篇全文文库只能作为 **PR #97 snapshot / 分支局部证据** 使用，不能写成 `main` fact。
 4. A0 只冻结 story、协议、术语、claim 边界、事实漂移政策、相关工作边界、评价维度种子和 reviewer 风险；不跑真实 LLM，不跑四个真实例子，不实现 pipeline。
 5. A0 不冻结评价指标公式、阈值、统计协议或最终评价脚本；这些留给 PR-A5。
+6. A0 的 story / outline 是**可继续演化的 v0 种子**，不应被当成最终论文叙事；后续 A1 baseline 调研、A3 场景设计、A4/A5 真实运行和评价结果若改变 novelty、贡献强度或风险判断，必须回写 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
 
 ## 3. 目录分层
 
@@ -58,7 +59,7 @@ A0 阶段冻结以下口径：
 ## 6. 当前验收标准
 
 - [x] 路径不使用 `foundation/` 子目录层。
-- [x] `story/`、`evidence/`、`experiment_design/`、`plan/` 四个入口齐全。
+- [x] `story/`、`evidence/`、`baselines/`、`dataset_selection/`、`experiment_design/`、`plan/` 六个入口齐全。
 - [x] A0 核心文件可解释论文 story、术语、协议、claim 边界、事实漂移和风险登记。
 - [x] PR #97 被标注为 OPEN / 未合入 / snapshot / 分支局部证据。
 - [x] A0 不跑真实 LLM、不跑四个真实例子、不冻结 A5 指标公式。
