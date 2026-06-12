@@ -58,7 +58,7 @@
 |---|---|---|
 | Markdown 相对链接 | 自定义 Python 链接检查脚本 | 通过；missing links = 0。 |
 | Markdown diff whitespace | `git diff --check` | 通过。 |
-| forbidden wording grep | `grep -RIn "better_stm_repair_loop\|paper_v1/paper_stm_repair\|首个\|最强\|new DSL\|完整形式化验证\|model checking\|NL -> STM.*主贡献" project_1_llm_state_machine_modeling/paper_stm_repair` | 命中均位于 forbidden / 降级 / 自检语境；未发现旧 story 回流。 |
+| forbidden wording grep | `grep -RIn "首个\|最强\|new DSL\|完整形式化验证\|model checking\|NL -> STM.*主贡献" project_1_llm_state_machine_modeling/paper_stm_repair` | 命中均位于 forbidden / 降级 / 自检语境；未发现旧 story 回流。 |
 | `path1_foundation` 修改 | `git diff --name-only origin/paper1/better-stm-repair-loop-umbrella...HEAD | grep path1_foundation` | 通过；无命中。 |
 | 四例真实运行 | 按 PR #100 / #102 R0 合同 | 不执行。 |
 | 真实 LLM 调用 | 按 R0 范围 | 不执行。 |
