@@ -8,6 +8,8 @@
 
 ## 2. 矩阵口径
 
+A0 状态口径：🟢 = A0 可作为已核验锚点使用；🟡 = 已登记但待后续 PR 深化；🟣 = PR #97 OPEN / 未合入 / snapshot / 分支局部证据。
+
 | 方向 / 工具 | 覆盖环节 | 与本文关系 | 本文差异 | 不能 claim | A0 状态 |
 |---|---|---|---|---|---|
 | 软件工程 SLR 方法学 | planning、conducting、reporting | 本文的流程与规范基础。 | 本文研究如何把这些环节 agent 化并形成可审计 evidence package。 | 不能声称替代 SLR 方法学。 | 已登记 seed，待 A1/A5 深化。 |
@@ -20,7 +22,7 @@
 | LLM-assisted extraction | LLM 抽取字段、证据、metadata | 近邻任务。 | 本文要求 evidence locator、uncertain、negative evidence 和 audit gate。 | 不能声称 LLM 抽取从未用于综述。 | 待 A1 系统检索。 |
 | LLM-assisted synthesis | LLM 生成 summary / related work / evidence synthesis | 高风险近邻。 | 本文要求 claim-evidence map 和 unsupported claim 检查，限制无来源综合。 | 不能写 LLM synthesis 本身就是本文 novelty。 | 待 A1 系统检索。 |
 | 本仓库 `sources/` 文库 | 控制系统 STM domain asset | 可作为真实 case / stress test。 | 本文贡献不是文库规模，而是 agent-based SLR workflow 如何审计此类文献证据链。 | 不能写 `sources` corpus paper 是主线。 | `main` 已有，需 A1 复核总账。 |
-| PR #97 baseline 文库 | OPEN / 未合入 / snapshot 证据线索 | 可作为 related-work screening / fulltext extraction 的案例。 | 必须按 snapshot evidence 使用，不能升级为 `main` fact。 | 不能写 PR #97 资产已合入。 | 🟣 分支局部，待 A1。 |
+| PR #97 baseline 文库 | OPEN / 未合入 / snapshot 证据线索 | 可作为 related-work screening / fulltext extraction 的案例。 | 必须按 snapshot evidence 使用，不能升级为 `main` fact。 | 不能写 PR #97 资产已合入。 | 🟣 |
 
 ## 3. 最低 related-work gate
 

@@ -20,16 +20,11 @@
 
 建议分成以下小节：
 
-1. Software Engineering SLR and Systematic Mapping
-   - 介绍 protocol、search、screening、extraction、synthesis、reporting 的基本规范。
-2. PRISMA and Transparent Reporting
-   - 说明 PRISMA 是透明报告参考，不等于本文默认合规。
-3. Review Automation Tools
-   - 覆盖 ASReview、RobotReviewer、systematic review automation practical guide。
-4. LLM-assisted Evidence Synthesis
-   - 覆盖 LLM 用于筛选、抽取、综合的近邻工作，重点讨论幻觉和 provenance 风险。
-5. Positioning
-   - 明确本文差异：多阶段 agent workflow、claim-to-source evidence package、human audit gates。
+1. Software Engineering SLR and Systematic Mapping：软件工程系统综述与系统映射研究，重点介绍 protocol、search、screening、extraction、synthesis、reporting 的基本规范。
+2. PRISMA and Transparent Reporting：PRISMA 与透明报告，说明它是 flow / checklist / exclusion ledger 参考，不等于本文默认合规。
+3. Review Automation Tools：综述自动化工具，覆盖 ASReview、RobotReviewer 和 systematic review automation practical guide。
+4. LLM-assisted Evidence Synthesis：LLM 辅助筛选、抽取与综合，重点讨论幻觉、provenance 和 unsupported claim 风险。
+5. Positioning：本文定位，明确多阶段 agent workflow、claim-to-source evidence package 与 human audit gates 的差异。
 
 ## 4. Problem Definition
 
@@ -44,15 +39,15 @@
 
 应按 [protocol.md](./protocol.md) 的 stage contract 展开：
 
-1. protocol setup；
-2. query planning and search logging；
-3. deduplication and screening；
-4. fulltext availability logging；
-5. extraction with evidence locator；
-6. coding and taxonomy；
-7. synthesis and claim-evidence map；
-8. PRISMA-style reporting；
-9. audit / rollback / claim downgrade。
+1. protocol setup：定义 RQ、范围、纳排标准、数据库和人工审计门。
+2. query planning and search logging：生成检索式并记录数据库、时间、结果数和失败。
+3. deduplication and screening：去重、标题摘要筛选、保留 include / exclude 理由。
+4. fulltext availability logging：记录全文获取状态、版权边界和人工下载需求。
+5. extraction with evidence locator：抽取字段时保留页码、段落或原文定位。
+6. coding and taxonomy：把抽取结果映射到 taxonomy，并标注 uncertain / disagreement。
+7. synthesis and claim-evidence map：综合结论必须回连证据链和审计状态。
+8. PRISMA-style reporting：生成 flow、排除理由和协议偏离记录，但不声称合规。
+9. audit / rollback / claim downgrade：人工审计发现问题后回滚、降级或删除 claim。
 
 关键写法：强调接口、证据包和审计门，不把工程日志写成方法贡献。
 
@@ -74,7 +69,7 @@ A0 只列维度，不写最终公式。后续 A5 冻结指标。
 
 ## 7. Benchmark / Case Study Scenarios
 
-A0 不冻结场景。后续 A3 应考虑：
+A0 不冻结场景。候选资产总账见 [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，后续 A3 应考虑：
 
 1. 小型已知领域场景，便于 gold / silver fact 构造。
 2. 中型 systematic mapping 场景，检验 taxonomy / coding。
@@ -87,13 +82,13 @@ A0 不冻结场景。后续 A3 应考虑：
 
 A0 不写结果。后续结果应围绕：
 
-1. evidence package completeness；
-2. traceability failure modes；
-3. factuality / hallucination errors；
-4. audit gate interception；
-5. coverage proxy；
-6. cost / efficiency trade-off；
-7. scenario-level differences。
+1. evidence package completeness：证据包字段是否齐全，哪些环节最容易缺证据。
+2. traceability failure modes：claim-to-source 链条在哪些阶段断裂。
+3. factuality / hallucination errors：metadata、引用、抽取和综合中的事实错误或无证据 claim。
+4. audit gate interception：人工审计门拦截了哪些错误，仍残留哪些风险。
+5. coverage proxy：known-item、seed recovery 和 database overlap 等覆盖代理。
+6. cost / efficiency trade-off：agent 时间、token / API 成本、人工审计成本之间的权衡。
+7. scenario-level differences：不同场景下错误模式和审计收益是否不同。
 
 ## 9. Threats to Validity / Limitations
 
@@ -111,14 +106,14 @@ A0 不写结果。后续结果应围绕：
 
 应说明后续 artifact 包括：
 
-1. workflow schema；
-2. query logs；
-3. screening ledger；
-4. extraction / coding tables；
-5. claim-evidence map；
-6. audit logs；
-7. run records；
-8. redaction / copyright-safe policy。
+1. workflow schema：每个阶段的输入、输出、状态和失败字段。
+2. query logs：检索式、数据库、时间、结果数和异常记录。
+3. screening ledger：纳排决策、理由、分歧和裁决。
+4. extraction / coding tables：字段抽取、证据定位、编码标签和不确定标记。
+5. claim-evidence map：报告级 claim 与来源、抽取、编码、审计状态的映射。
+6. audit logs：人工审计样本、发现的问题、裁决和修正。
+7. run records：模型、prompt、usage、错误、重试和 redaction 记录。
+8. redaction / copyright-safe policy：版权安全发布、全文不可发布时的替代证据策略。
 
 ## 11. Conclusion
 

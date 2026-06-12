@@ -21,7 +21,9 @@ A0 阶段冻结以下口径：
 | 子路径 | 作用 | 入口 |
 |---|---|---|
 | [story/](./story/) | 论文 thesis、协议、术语、claim-evidence map、差异化 novelty 和章节架构 | [story/README.md](./story/README.md) |
-| [evidence/](./evidence/) | 仓库证据资产、PR #97 事实漂移政策、citation seed 与证据层级 | [evidence/README.md](./evidence/README.md) |
+| [evidence/](./evidence/) | 仓库证据资产、PR #97 事实漂移政策、citation seed、已核验引用种子与证据层级 | [evidence/README.md](./evidence/README.md) |
+| [baselines/](./baselines/) | 自动化综述、SLR/SMS 方法学、ASReview、RobotReviewer、LLM-assisted SLR 等相关工作对照入口 | [baselines/README.md](./baselines/README.md) |
+| [dataset_selection/](./dataset_selection/) | A0 候选场景与证据资产选择入口；不冻结 benchmark scenarios | [dataset_selection/README.md](./dataset_selection/README.md) |
 | [experiment_design/](./experiment_design/) | A0 评价维度种子和 reviewer 风险登记；不冻结 A5 指标公式 | [experiment_design/README.md](./experiment_design/README.md) |
 | [plan/](./plan/) | 当前 PR task packet、进度、验证命令与 capability-use audit | [plan/README.md](./plan/README.md) |
 
@@ -34,11 +36,13 @@ A0 阶段冻结以下口径：
 3. [story/protocol.md](./story/protocol.md)：理解 agent-based SLR workflow 与 human audit gates。
 4. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：写任何 abstract / introduction / contribution 前必须检查。
 5. [story/differential_novelty_matrix.md](./story/differential_novelty_matrix.md)：确认与 SLR/SMS、PRISMA、ASReview、RobotReviewer、review automation 和 LLM-assisted evidence synthesis 的边界。
-6. [evidence/fact_drift_policy.md](./evidence/fact_drift_policy.md)：引用 PR #97、`sources/` 或 historical comments 前必须检查。
-7. [evidence/project_inventory.md](./evidence/project_inventory.md)：查看当前可用证据、待构造证据和资产角色。
-8. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 A0 只冻结哪些评价维度种子。
-9. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前审稿风险和缓解入口。
-10. [plan/progress.md](./plan/progress.md)：查看当前 PR 进度、检查和剩余风险。
+6. [baselines/SUMMARY.md](./baselines/SUMMARY.md)：查看 A0 已核验 related-work 锚点和 A1 待补近邻。
+7. [dataset_selection/sample_assets.md](./dataset_selection/sample_assets.md)：查看 A0 候选场景和证据资产，但不要把它们当成已冻结 benchmark。
+8. [evidence/fact_drift_policy.md](./evidence/fact_drift_policy.md)：引用 PR #97、`sources/` 或 historical comments 前必须检查。
+9. [evidence/project_inventory.md](./evidence/project_inventory.md)：查看当前可用证据、待构造证据和资产角色。
+10. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 A0 只冻结哪些评价维度种子。
+11. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前审稿风险和缓解入口。
+12. [plan/progress.md](./plan/progress.md)：查看当前 PR 进度、检查和剩余风险。
 
 ## 5. 非目标
 

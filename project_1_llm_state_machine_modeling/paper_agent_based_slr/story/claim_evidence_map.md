@@ -17,7 +17,7 @@
 |---|---|---:|---|---|---|---|
 | C1 | 论文任务定义 | 🟢 | 本文研究带 human audit gates 的 agent-based SLR / systematic mapping workflow。 | PR #101、2026-06-12 导师讨论记录、A0 story。 | A2 工作流合同、A3 场景、A4/A5 运行与评价。 | 本文已经证明 agent 可端到端生成合格 SLR。 |
 | C2 | `sources/` 资产角色 | 🟢 | `sources/` 可作为 domain scenario / stress test / evidence package 来源。 | `main` 已有 `sources/` 文库与导师定调。 | A1 资产盘点、A3 场景定义。 | `sources/` 文库规模本身就是第二篇论文 novelty。 |
-| C3 | PR #97 资产角色 | 🟣 | PR #97 提供 OPEN / 未合入 / snapshot / 分支局部的 related-work screening 与全文抽取证据线索。 | PR #97 comment 与当前 OPEN 状态。 | A1 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经是 `main` 已有正式资产。 |
+| C3 | PR #97 资产角色 | 🟣 | PR #97 提供 OPEN / 未合入 / snapshot / 分支局部的 related-work screening 与全文抽取证据线索。 | [PR #97 comment](https://github.com/HansBug/research_ideas/pull/97#issuecomment-4682737117)、当前 OPEN 状态与 snapshot `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727`。 | A1 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经是 `main` 已有正式资产。 |
 | C4 | 可追踪 evidence package | 🟡 | 论文计划把 claim-to-source traceability 作为核心评价维度。 | PR #101 §5、A0 protocol。 | A2 schema、A4 写出器、A5 断链率 / 定位错误率统计。 | 我们已经实现每条 claim 完全可追踪。 |
 | C5 | 幻觉控制 | 🟡 | 论文计划通过 gold / silver facts、trap papers 和 human audit gates 评估 unsupported claims。 | PR #101 §5.2、A0 protocol。 | A3 fact/trap set、A5 hallucination taxonomy 和残余错误统计。 | agent-based SLR 完全无幻觉。 |
 | C6 | 人工审计门 | 🟡 | 人工审计门用于 protocol approval、抽样审计、分歧裁决和 final claim review。 | 导师定调、A0 protocol。 | A3/A5 审计日志、成本、分歧率、裁决记录。 | 人工审计门保证最终报告完全正确。 |
