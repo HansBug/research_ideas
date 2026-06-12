@@ -25,23 +25,26 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：reproducible optimisation protocol for prompt-based LLM workflows in evidence synthesis，强约束 reproducibility / prompt calibration claim。
-- title / abstract 证据（中文转述）：摘要强调人工参与、审计、provenance、verification 或可追踪机制。
-- title / abstract 证据（中文转述）：摘要覆盖筛选 / screening 环节。
-- title / abstract 证据（中文转述）：摘要覆盖综合、总结、综述生成或 survey generation 环节。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：A Reproducible Optimisation Protocol for Calibrating Prompt-Based Large Language Model Workflows in Evidence Synthesis。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、筛选、分类/编码、综合/总结 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：审计线索：出现 trace、reproducible，与本文 human audit / provenance 主张相关。
+- title / abstract 证据（中文转述）：评价线索：出现 benchmark、metrics、evaluation，后续需核验指标、样本与可复现性。
+- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟡 | SLR/SMS 流程覆盖度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| LLM/agent 自动化深度 | 🟡 | LLM/agent 自动化深度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 人工审计与可追踪性 | 🟢 | 人工审计与可追踪性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 评价严谨性 | 🟢 | 评价严谨性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SE/CCF 相关性 | 🟠 | SE/CCF 相关性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| 对本文 novelty 的威胁 | 🟡 | 对本文 novelty 的威胁中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：A Reproducible Optimisation Protocol for Calibrating Prompt-Based Large Language Model Wor | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤、筛选、分类/编码、综合/总结 | 已能从 abstract 识别 4 类环节：检索/过滤、筛选、分类/编码、综合/总结；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟢 | abstract 审计词：trace、reproducible | 审计/人工复核线索包括 trace、reproducible；后续需核验是否保存可导出证据包。 |
+| D5 评价严谨性 | 🟢 | abstract 评价词：benchmark、metrics、evaluation | 评价线索包括 benchmark、metrics、evaluation；需全文核验样本、指标和金标。 |
+| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
+| D7 对本文 novelty 的威胁 | 🟡 | P1：reproducible optimisation protocol for prompt-based LLM workflows in evidence synthesis，强约 | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -49,14 +52,16 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 1 | `screening`, `evaluation`, `synthesis`, `trace` |
-| 2 | `screening`, `extraction`, `synthesis` |
-| 3 | `screening`, `audit`, `evaluation`, `synthesis`, `trace` |
-| 4 | `screening`, `extraction`, `provenance`, `evaluation`, `synthesis` |
-| 5 | `screening`, `extraction`, `evaluation`, `synthesis`, `trace` |
-| 6 | `screening`, `extraction`, `evaluation`, `synthesis` |
-| 7 | `screening`, `evaluation` |
-| 8 | `screening`, `extraction`, `evaluation`, `synthesis` |
+| 1 | `systematic`, `screening`, `synthesis`, `evaluation`, `benchmark`, `trace` |
+| 2 | `systematic`, `screening`, `extraction`, `synthesis`, `dataset`, `reproducible` |
+| 3 | `screening`, `synthesis`, `audit`, `evaluation`, `trace`, `reproducible` |
+| 4 | `screening`, `extraction`, `synthesis`, `provenance`, `evaluation`, `benchmark` |
+| 5 | `screening`, `extraction`, `synthesis`, `evaluation`, `trace` |
+| 6 | `screening`, `extraction`, `synthesis`, `evaluation`, `dataset` |
+| 7 | `systematic`, `screening`, `evaluation`, `dataset` |
+| 8 | `screening`, `extraction`, `synthesis`, `evaluation`, `dataset` |
+| 9 | `systematic`, `screening`, `human`, `audit`, `evaluation`, `trace` |
+| 10 | `screening`, `synthesis`, `human`, `audit`, `dataset`, `trace` |
 
 ## 6. 对本文 story 的影响
 

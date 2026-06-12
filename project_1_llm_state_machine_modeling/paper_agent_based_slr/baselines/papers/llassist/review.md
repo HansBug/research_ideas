@@ -25,21 +25,24 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：开源 LLAssist 工具自动化文献 review 的 extraction 与 relevance evaluation，可作工具类对照。
-- title / abstract 证据（中文转述）：摘要覆盖筛选 / screening 环节。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：LLAssist: Simple Tools for Automating Literature Review Using Large Language Models。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、筛选 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟡 | SLR/SMS 流程覆盖度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| LLM/agent 自动化深度 | 🟡 | LLM/agent 自动化深度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 人工审计与可追踪性 | 🟠 | 人工审计与可追踪性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| 评价严谨性 | 🟠 | 评价严谨性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| SE/CCF 相关性 | 🟠 | SE/CCF 相关性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| 对本文 novelty 的威胁 | 🟡 | 对本文 novelty 的威胁中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：LLAssist: Simple Tools for Automating Literature Review Using Large Language Models | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤、筛选 | 已能从 abstract 识别 2 类环节：检索/过滤、筛选；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟠 | user-defined research questions / evaluates relevance; abstract 未提 audit log/provenance | 摘要强调按 user-defined research questions 抽取与相关性评估，但未见 audit log、provenance 或人工裁决日志，因此审计维度弱。 |
+| D5 评价严谨性 | 🟠 | open-source tool / streamline literature reviews; abstract 未给 benchmark、样本或指标 | 摘要定位为 open-source tool 并描述目标收益，但未给 benchmark、样本规模或评价指标，因此评价严谨性只能弱评。 |
+| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
+| D7 对本文 novelty 的威胁 | 🟡 | P1：开源 LLAssist 工具自动化文献 review 的 extraction 与 relevance evaluation，可作工具类对照。 | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -47,14 +50,16 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 1 | `agent`, `screening`, `human`, `evaluation` |
-| 2 | `screening`, `extraction`, `human`, `evaluation` |
-| 3 | `screening`, `human`, `evaluation` |
-| 4 | `agent`, `screening`, `extraction`, `human`, `evaluation` |
-| 5 | `screening`, `extraction`, `evaluation` |
-| 7 | `screening` |
-| 8 | `screening`, `human` |
-| 9 | `screening`, `human` |
+| 1 | `systematic`, `screening`, `agent`, `human`, `evaluation` |
+| 2 | `systematic`, `screening`, `extraction`, `human`, `evaluation` |
+| 3 | `screening`, `human`, `evaluation`, `dataset` |
+| 4 | `screening`, `extraction`, `agent`, `human`, `evaluation` |
+| 5 | `screening`, `extraction`, `evaluation`, `dataset` |
+| 6 | `dataset` |
+| 7 | `screening`, `dataset` |
+| 8 | `systematic`, `screening`, `human`, `dataset` |
+| 9 | `systematic`, `screening`, `human` |
+| 10 | `systematic`, `screening`, `human` |
 
 ## 6. 对本文 story 的影响
 

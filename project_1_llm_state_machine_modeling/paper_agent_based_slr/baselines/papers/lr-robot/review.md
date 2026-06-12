@@ -25,24 +25,26 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：Human-in-the-loop LLM framework for SLR，覆盖筛选与综合，直接威胁 human audit + SLR 自动化组合 claim。
-- title / abstract 证据（中文转述）：题名或摘要明确处在 SLR / SMS / systematic review 语境。
-- title / abstract 证据（中文转述）：摘要强调人工参与、审计、provenance、verification 或可追踪机制。
-- title / abstract 证据（中文转述）：摘要覆盖筛选 / screening 环节。
-- title / abstract 证据（中文转述）：摘要覆盖综合、总结、综述生成或 survey generation 环节。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：LR-Robot: An Human-in-the-Loop LLM Framework for Systematic Literature Reviews with Applications in Financial Research。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、筛选、分类/编码、综合/总结 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：审计线索：出现 human-in-the-loop / 人工参与，与本文 human audit / provenance 主张相关。
+- title / abstract 证据（中文转述）：评价线索：出现 摘要给出数量级或样本规模、dataset、accuracy、evaluation、expert annotation，后续需核验指标、样本与可复现性。
+- title / abstract 证据（中文转述）：领域线索：金融研究；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟢 | SLR/SMS 流程覆盖度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| LLM/agent 自动化深度 | 🟢 | LLM/agent 自动化深度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 人工审计与可追踪性 | 🟢 | 人工审计与可追踪性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 评价严谨性 | 🟠 | 评价严谨性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| SE/CCF 相关性 | 🟠 | SE/CCF 相关性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| 对本文 novelty 的威胁 | 🟢 | 对本文 novelty 的威胁强：title / abstract 已给出直接线索，足以进入强核验路径。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：LR-Robot: An Human-in-the-Loop LLM Framework for Systematic Literature Reviews with Applic | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟢 | abstract 阶段词：检索/过滤、筛选、分类/编码、综合/总结 | 已能从 abstract 识别 4 类环节：检索/过滤、筛选、分类/编码、综合/总结；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟢 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟢 | abstract 审计词：human-in-the-loop / 人工参与 | 审计/人工复核线索包括 human-in-the-loop / 人工参与；后续需核验是否保存可导出证据包。 |
+| D5 评价严谨性 | 🟠 | abstract 评价词：摘要给出数量级或样本规模、dataset、accuracy、evaluation、expert annotation | 评价线索包括 摘要给出数量级或样本规模、dataset、accuracy、evaluation、expert annotation；需全文核验样本、指标和金标。 |
+| D6 SE/CCF 相关性 | 🟠 | 领域：金融研究 | 领域是金融研究，方法学相关但不是 SE/CCF 直接 baseline。 |
+| D7 对本文 novelty 的威胁 | 🟢 | P0：Human-in-the-loop LLM framework for SLR，覆盖筛选与综合，直接威胁 human audit + SLR 自动化组合 claim。 | 同时触及 SLR/evidence workflow、LLM/agent 自动化、评价或审计中的多个核心点，足以强约束本文 novelty。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -50,14 +52,16 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 1 | `human` |
-| 2 | `screening`, `human`, `evaluation`, `synthesis` |
-| 3 | `screening`, `human`, `synthesis` |
-| 4 | `screening`, `human`, `evaluation` |
-| 5 | `human`, `evaluation` |
+| 1 | `systematic`, `human` |
+| 2 | `systematic`, `screening`, `synthesis`, `human`, `evaluation`, `dataset` |
+| 3 | `screening`, `synthesis`, `human` |
+| 4 | `systematic`, `screening`, `human`, `evaluation`, `benchmark` |
+| 5 | `systematic`, `human`, `evaluation` |
 | 6 | `evaluation` |
 | 7 | `human`, `evaluation` |
-| 8 | `human`, `evaluation` |
+| 8 | `systematic`, `human`, `evaluation`, `dataset` |
+| 9 | `systematic`, `human`, `audit`, `evaluation`, `benchmark` |
+| 10 | `evaluation`, `dataset` |
 
 ## 6. 对本文 story 的影响
 

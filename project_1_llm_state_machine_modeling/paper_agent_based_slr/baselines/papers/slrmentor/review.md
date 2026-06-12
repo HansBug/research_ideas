@@ -25,22 +25,24 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：面向软件工程 SLR 学习与 planning 的 LLM assistant，SE 场景强相关但偏教育/planning。
-- title / abstract 证据（中文转述）：题名或摘要明确处在 SLR / SMS / systematic review 语境。
-- title / abstract 证据（中文转述）：题名或摘要与软件工程 / 软件开发场景直接相连。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：SLRMentor: An LLM-Based Tool Supporting Learning of SLR in Software Engineering。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：领域线索：软件工程 / 软件开发；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟠 | SLR/SMS 流程覆盖度弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| LLM/agent 自动化深度 | 🟡 | LLM/agent 自动化深度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 人工审计与可追踪性 | 🟡 | 人工审计与可追踪性中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 评价严谨性 | 🟠 | 评价严谨性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| SE/CCF 相关性 | 🟢 | SE/CCF 相关性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 对本文 novelty 的威胁 | 🟡 | 对本文 novelty 的威胁中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：SLRMentor: An LLM-Based Tool Supporting Learning of SLR in Software Engineering | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟠 | abstract 阶段词：检索/过滤 | 已能从 abstract 识别 1 类环节：检索/过滤；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟡 | explanations grounded in established SLR guidelines / active methodological judgment | 摘要说明解释 grounded in established SLR guidelines 且仍需 active methodological judgment，属于教学/规划层面人工判断，不是完整证据链审计。 |
+| D5 评价严谨性 | 🟠 | pilot validation with graduate students | 摘要明确有 graduate students pilot validation，可作为初步验证线索，但样本、指标和可复现性仍需全文核验。 |
+| D6 SE/CCF 相关性 | 🟢 | 领域：软件工程 / 软件开发 | 直接面向软件工程 / SDLC / SE SLR，和本文目标社区强相关。 |
+| D7 对本文 novelty 的威胁 | 🟡 | P1：面向软件工程 SLR 学习与 planning 的 LLM assistant，SE 场景强相关但偏教育/planning。 | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -48,12 +50,16 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 2 | `agent`, `human`, `evaluation` |
-| 3 | `agent`, `synthesis` |
-| 4 | `agent`, `evaluation` |
-| 9 | `extraction`, `evaluation` |
-| 10 | `agent`, `evaluation` |
-| 11 | `evaluation` |
+| 1 | `systematic` |
+| 2 | `systematic`, `agent`, `human`, `evaluation` |
+| 3 | `systematic`, `synthesis`, `agent` |
+| 4 | `systematic`, `agent`, `evaluation` |
+| 5 | `systematic` |
+| 6 | `systematic` |
+| 7 | `systematic` |
+| 8 | `systematic` |
+| 9 | `systematic`, `extraction`, `evaluation` |
+| 10 | `systematic`, `agent`, `evaluation` |
 
 ## 6. 对本文 story 的影响
 

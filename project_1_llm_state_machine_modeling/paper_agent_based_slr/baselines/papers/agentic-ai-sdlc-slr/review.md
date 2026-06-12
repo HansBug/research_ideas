@@ -25,25 +25,25 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：agentic AI across SDLC 的 SLR，并使用/验证 multi-agent screening pipeline；SE 场景强相关但主题是 agentic AI landscape。
-- title / abstract 证据（中文转述）：题名或摘要明确处在 SLR / SMS / systematic review 语境。
-- title / abstract 证据（中文转述）：题名或摘要直接出现 multi-agent、agentic、agent-based 或 agents 工作流线索。
-- title / abstract 证据（中文转述）：摘要覆盖筛选 / screening 环节。
-- title / abstract 证据（中文转述）：摘要覆盖综合、总结、综述生成或 survey generation 环节。
-- title / abstract 证据（中文转述）：题名或摘要与软件工程 / 软件开发场景直接相连。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：Assistance to Autonomy: A Systematic Literature Review of Agentic AI across the Software Development Life Cycle。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、筛选、综合/总结 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 agent / multi-agent、LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：评价线索：出现 摘要给出数量级或样本规模，后续需核验指标、样本与可复现性。
+- title / abstract 证据（中文转述）：领域线索：软件工程 / 软件开发；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟡 | SLR/SMS 流程覆盖度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| LLM/agent 自动化深度 | 🟢 | LLM/agent 自动化深度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 人工审计与可追踪性 | 🟡 | 人工审计与可追踪性中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 评价严谨性 | 🟢 | 评价严谨性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SE/CCF 相关性 | 🟢 | SE/CCF 相关性强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 对本文 novelty 的威胁 | 🟡 | 对本文 novelty 的威胁中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：Assistance to Autonomy: A Systematic Literature Review of Agentic AI across the Software D | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤、筛选、综合/总结 | 已能从 abstract 识别 3 类环节：检索/过滤、筛选、综合/总结；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟢 | abstract 自动化词：agent / multi-agent、LLM、workflow / pipeline | 自动化机制包含 agent / multi-agent、LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟡 | validated multi-agent screening pipeline / conflict-resolution defaults / 92 manually verified primary studies | 摘要说明 multi-agent screening pipeline 经过验证，并有 conflict-resolution defaults 与 92 manually verified primary studies，能支撑人工复核线索，但还不是完整报告级审计链。 |
+| D5 评价严谨性 | 🟢 | abstract 评价词：摘要给出数量级或样本规模 | 评价线索包括 摘要给出数量级或样本规模；需全文核验样本、指标和金标。 |
+| D6 SE/CCF 相关性 | 🟢 | 领域：软件工程 / 软件开发 | 直接面向软件工程 / SDLC / SE SLR，和本文目标社区强相关。 |
+| D7 对本文 novelty 的威胁 | 🟡 | P1：agentic AI across SDLC 的 SLR，并使用/验证 multi-agent screening pipeline；SE 场景强相关但主题是 agentic AI | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -51,14 +51,16 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 1 | `agent`, `screening`, `synthesis` |
-| 2 | `agent`, `screening`, `human`, `synthesis` |
-| 3 | `agent`, `human`, `synthesis` |
-| 4 | `agent`, `screening`, `evaluation`, `synthesis` |
-| 5 | `agent`, `screening` |
+| 1 | `systematic`, `screening`, `synthesis`, `agent` |
+| 2 | `systematic`, `screening`, `synthesis`, `agent`, `human` |
+| 3 | `synthesis`, `agent`, `human` |
+| 4 | `systematic`, `screening`, `synthesis`, `agent`, `evaluation` |
+| 5 | `screening`, `agent`, `dataset` |
 | 6 | `agent` |
-| 7 | `agent`, `screening`, `extraction`, `human`, `evaluation` |
-| 8 | `agent`, `screening`, `evaluation` |
+| 7 | `screening`, `extraction`, `agent`, `human`, `evaluation`, `benchmark` |
+| 8 | `screening`, `agent`, `evaluation` |
+| 9 | `screening`, `synthesis`, `agent`, `human`, `evaluation`, `benchmark` |
+| 10 | `agent`, `human`, `evaluation`, `benchmark` |
 
 ## 6. 对本文 story 的影响
 

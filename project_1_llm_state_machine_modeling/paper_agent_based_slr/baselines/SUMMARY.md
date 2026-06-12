@@ -7,7 +7,9 @@
 
 | 项 | 数量 / 状态 |
 |---|---:|
-| arXiv title / abstract 候选 | 34 |
+| arXiv title / abstract 纳入候选 | 34 |
+| arXiv query 原始快照记录 | 354 |
+| arXiv 2024--2026 去重候选池 | 291 |
 | 本地建库 P0/P1 候选 | 25 |
 | P0 强 baseline | 10 |
 | P1 高度关注 | 15 |
@@ -86,10 +88,17 @@
 ## 7. CCF 与人工下载
 
 - CCF coverage / gap 见 [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md)。
+- CCF DBLP title 扫描原始快照见 [search/ccf-dblp-title-scan-raw.md](./search/ccf-dblp-title-scan-raw.md)。
 - CCF title-level 粗筛见 [search/ccf-abc-2024-2026-title-abstract-screening.md](./search/ccf-abc-2024-2026-title-abstract-screening.md)。
 - 当前人工下载清单见 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。其中 `WSESE@ICSE 2025` 命中与 SE SLR + LLM 直接相关，应在用户拿到全文后升级单篇目录。
 
-## 8. 后续工作建议
+## 8. arXiv 审计链
+
+- arXiv query 原始快照：[search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)。
+- arXiv 2024--2026 去重候选池：[search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)。
+- 本轮筛选链条是 `raw query rows -> 2024--2026 dedup pool -> 34 纳入候选 -> 25 本地建库`；未纳入候选保留 `excluded` 与中文排除理由，便于后续 reviewer 抽查漏筛。
+
+## 9. 后续工作建议
 
 1. 优先全文细读 10 篇 P0，形成正式 Related Work 对照矩阵。
 2. 把 P1 中的 screening / prompt calibration / survey generation 工作拆成局部 baseline，映射到 A2/A3/A5 的模块级评价。
@@ -97,9 +106,10 @@
 4. 在上游 story 中降级“自动化 SLR”宽泛 claim，强化“可审计证据包 + human audit gate + SE 场景”的组合贡献。
 5. 后续如果要写 CCF A 类级别论文，需要补一个更严格的 fulltext baseline review PR，不能只依赖当前粗筛。
 
-## 9. 更新日志
+## 10. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-13 12:40:00` | 修复实现后 review：新增 arXiv 原始快照与去重候选池、CCF DBLP title 原始扫描快照、ASE 审计摘要，并为单篇 `review.md` 补充 paper-specific 逐维证据锚点。 |
 | `2026-06-13 02:40:00` | PR-B0 实现：建立 25 篇 P0/P1 本地 baseline 文库，重写 README/GUIDE/SUMMARY，更新 arXiv 34 篇粗筛表与 CCF coverage/gap。 |
 | `2026-06-13 01:20:00` | 初始 arXiv / CCF 粗筛与自动 PDF 下载。 |

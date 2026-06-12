@@ -25,22 +25,25 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 ## 3. 纳入理由与证据链
 
 - 初步判断：SLR 自动化统一框架 + agent-based assistant，直接覆盖本文的 agent workflow 近邻。
-- title / abstract 证据（中文转述）：题名或摘要明确处在 SLR / SMS / systematic review 语境。
-- title / abstract 证据（中文转述）：题名或摘要直接出现 multi-agent、agentic、agent-based 或 agents 工作流线索。
+- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：SWARM-SLR AIssistant: A Unified Framework for Scalable Systematic Literature Review Automation。
+- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤 等环节，需全文确认实际实现深度。
+- title / abstract 证据（中文转述）：自动化线索：出现 agent / multi-agent、LLM、workflow / pipeline，说明不是单纯人工综述。
+- title / abstract 证据（中文转述）：评价线索：出现 evaluation，后续需核验指标、样本与可复现性。
+- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
 - 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
 - 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
 
 ## 4. 逐维判定理由
 
-| 维度 | 评分 | 判定理由 |
-|---|---:|---|
-| 主题贴合度 | 🟢 | 主题贴合度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| SLR/SMS 流程覆盖度 | 🟡 | SLR/SMS 流程覆盖度中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| LLM/agent 自动化深度 | 🟢 | LLM/agent 自动化深度强：title / abstract 已给出直接线索，足以进入强核验路径。 |
-| 人工审计与可追踪性 | 🟡 | 人工审计与可追踪性中：有明确相关线索，但覆盖范围、机制细节或证据链仍需全文核验。 |
-| 评价严谨性 | 🟠 | 评价严谨性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| SE/CCF 相关性 | 🟠 | SE/CCF 相关性弱：当前更像局部、跨领域或背景参照，不能直接支撑强对照结论。 |
-| 对本文 novelty 的威胁 | 🟢 | 对本文 novelty 的威胁强：title / abstract 已给出直接线索，足以进入强核验路径。 |
+| 维度 | 评分 | 证据锚点 | 判定理由 |
+|---|---:|---|---|
+| D1 主题贴合度 | 🟢 | 题名：SWARM-SLR AIssistant: A Unified Framework for Scalable Systematic Literature Review Automa | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤 | 已能从 abstract 识别 1 类环节：检索/过滤；完整覆盖度仍需全文核验。 |
+| D3 LLM/agent 自动化深度 | 🟢 | abstract 自动化词：agent / multi-agent、LLM、workflow / pipeline | 自动化机制包含 agent / multi-agent、LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
+| D4 人工审计与可追踪性 | 🟡 | persistent data storage / centralized tool registry / shared metadata schema | 摘要提到 persistent data storage、tool registry 与 shared metadata schema，具备有限可追踪线索，但未见 human audit gate 或 claim-level provenance。 |
+| D5 评价严谨性 | 🟠 | abstract 评价词：evaluation | 评价线索包括 evaluation；需全文核验样本、指标和金标。 |
+| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
+| D7 对本文 novelty 的威胁 | 🟢 | P0：SLR 自动化统一框架 + agent-based assistant，直接覆盖本文的 agent workflow 近邻。 | 同时触及 SLR/evidence workflow、LLM/agent 自动化、评价或审计中的多个核心点，足以强约束本文 novelty。 |
 
 ## 5. `paper_content.txt` 定位线索
 
@@ -48,10 +51,10 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 
 | 页码 | 命中关键词 |
 |---:|---|
-| 1 | `agent`, `human`, `evaluation` |
-| 2 | `agent`, `human` |
-| 3 | `human`, `evaluation` |
-| 4 | `agent`, `human`, `evaluation` |
+| 1 | `systematic`, `agent`, `human`, `evaluation` |
+| 2 | `systematic`, `agent`, `human` |
+| 3 | `systematic`, `human`, `evaluation`, `benchmark` |
+| 4 | `systematic`, `agent`, `human`, `evaluation` |
 
 ## 6. 对本文 story 的影响
 

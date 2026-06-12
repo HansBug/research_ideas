@@ -60,14 +60,16 @@ emoji 列在正式表格中只写 emoji；中文解释集中写在本节。每�
 2. 优先级：年度 README 已维护 paper list → 官方 accepted/program/proceedings → publisher TOC → DBLP 年度页 → 搜索线索。
 3. 多数 CCF venue 不提供可批量获取 abstract；若只有标题，必须写成 title-level discovery，不能写成 abstract screening。
 4. 遇到 429、403、WAF、尚未出版、DBLP 未归档，应写入 [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md)，不得解释为“无相关论文”。
-5. 若发现 CCF-adjacent workshop / companion 命中，必须标注 track / source，不得冒充 main track。
+5. 每个 venue-year 的最低审计字段为：入口 URL、检查日期、coverage emoji、是否拿到 title list、命中 title 数、排除理由或 gap 原因；能自动扫描的原始命中应保留到 [search/ccf-dblp-title-scan-raw.md](./search/ccf-dblp-title-scan-raw.md)。
+6. 若发现 CCF-adjacent workshop / companion 命中，必须标注 track / source，不得冒充 main track。
 
 ### 5.2 arXiv 粗筛
 
 1. 保留 query、检索时间、原始记录、去重数量、纳入数量。
 2. 初始 query 至少覆盖：`LLM + systematic literature review`、`LLM + screening/extraction/synthesis`、`agentic literature review`、`automated literature review`、`evidence synthesis`、`survey generation`。
-3. 原始 arXiv 元数据写入 [search/arxiv-query-results.jsonl](./search/arxiv-query-results.jsonl)。
-4. 粗筛结果写入 [search/arxiv-2024-2026-title-abstract-screening.md](./search/arxiv-2024-2026-title-abstract-screening.md)。
+3. 原始 arXiv query 快照写入 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)，2024--2026 去重候选池写入 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)。
+4. 正式纳入候选元数据写入 [search/arxiv-query-results.jsonl](./search/arxiv-query-results.jsonl)，粗筛总表写入 [search/arxiv-2024-2026-title-abstract-screening.md](./search/arxiv-2024-2026-title-abstract-screening.md)。
+5. 每条未纳入候选至少保留 `screening_decision=excluded` 与中文排除理由；否则不能把 291→34 这类筛选链条写成可审计。
 
 ## 6. 单篇目录规则
 
@@ -91,7 +93,7 @@ papers/<slug>/
    ```
    若文字模式严重异常，再记录 OCR 或人工复查。
 3. `bibtex.bib`：至少含 title、author、year、url/eprint；正式引用前再补 DOI / venue。
-4. `review.md`：必须包含元数据、D1-D7 表、中文证据转述、逐维判定理由、对本文 story 的影响、后续全文细读清单。
+4. `review.md`：必须包含元数据、D1-D7 表、中文证据转述、逐维判定理由、对本文 story 的影响、后续全文细读清单。逐维判定理由不能只写模板句；每个维度至少要有一个 title / abstract / `paper_content.txt` 页级证据锚点。
 5. 单篇 `review.md` 可以使用少量原文短语，但不要复制长段英文；默认用中文转述并给出 PDF / `paper_content.txt` 链接。
 
 ## 7. SUMMARY 回填规则

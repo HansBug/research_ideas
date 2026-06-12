@@ -2,24 +2,25 @@
 
 ## 1. arXiv query 记录
 
-检索时间：`2026-06-13 01:20:00` 初筛，`2026-06-13 02:55:00` 复核 query 计数（Asia/Shanghai）。检索入口为 arXiv API，排序按 submittedDate descending；原始纳入候选见 [arxiv-query-results.jsonl](./arxiv-query-results.jsonl)。本表中的返回数是 API 复核时的可复现近似值，后续 arXiv 新增论文可能导致漂移。
+检索时间：`2026-06-13 01:20:00` 初筛，`2026-06-13 12:40:00` 补齐原始快照与去重候选池（Asia/Shanghai）。检索入口为 arXiv API，排序按 submittedDate descending；原始 query 快照见 [arxiv-query-raw-snapshot.jsonl](./arxiv-query-raw-snapshot.jsonl)，2024--2026 去重候选池见 [arxiv-dedup-candidate-pool.jsonl](./arxiv-dedup-candidate-pool.jsonl)。
 
-| Query | totalResults | fetched | 2024-2026 条目 | 2024-2026 去重 |
-|---|---:|---:|---:|---:|
-| `all:"systematic literature review" AND (all:"large language model" OR all:LLM OR all:ChatGPT)` | 107 | 107 | 102 | 102 |
-| `all:"systematic review" AND (all:LLM OR all:"large language model") AND (all:screening OR all:extraction OR all:synthesis)` | 103 | 103 | 93 | 93 |
-| `all:"literature review" AND (all:agent OR all:agentic OR all:autonomous) AND (all:LLM OR all:"large language model")` | 66 | 66 | 64 | 64 |
-| `all:"evidence synthesis" AND (all:LLM OR all:"large language model" OR all:ChatGPT)` | 42 | 42 | 41 | 41 |
-| `all:"research synthesis" AND (all:LLM OR all:"large language model") AND (all:automation OR all:workflow)` | 7 | 7 | 7 | 7 |
-| `all:"automated literature review" AND (all:LLM OR all:"large language model")` | 6 | 6 | 6 | 6 |
-| `all:"survey generation" AND (all:LLM OR all:"large language model")` | 23 | 23 | 20 | 20 |
+| Query | 说明 | totalResults | fetched | 2024-2026 条目 |
+|---|---|---:|---:|---:|
+| `Q1` | LLM + systematic literature review | 107 | 107 | 102 |
+| `Q2` | LLM + systematic review + screening/extraction/synthesis | 103 | 103 | 93 |
+| `Q3` | agentic literature review + LLM | 66 | 66 | 64 |
+| `Q4` | LLM + evidence synthesis | 42 | 42 | 41 |
+| `Q5` | LLM + research synthesis + automation/workflow | 7 | 7 | 7 |
+| `Q6` | automated literature review + LLM | 6 | 6 | 6 |
+| `Q7` | survey generation + LLM | 23 | 23 | 20 |
 
-复核汇总：上述 query 的 2024--2026 去重并集约 `291` 条；PR-B0 按 D1-D7 title / abstract 粗筛保留 `34` 条，其中 `25` 条建立本地 PDF / `paper_content.txt` / `bibtex.bib` / `review.md` 文库，`9` 条暂作 P2 背景保留。
+复核汇总：query 原始快照 `raw_rows=354`；2024--2026 去重候选池 `dedup=291`；纳入 `34` 条，其中 `25` 条建立本地 PDF / `paper_content.txt` / `bibtex.bib` / `review.md` 文库。若后续 arXiv API 漂移，以本次 JSONL 快照作为 PR-B0 审计基线。
 
 ## 2. 操作日志
 
 | 时间 | 动作 | 结果 | 风险 / 备注 |
 |---|---|---|---|
+| `2026-06-13 12:40:00` | 补齐实现后 review 指出的审计缺口 | 新增 arXiv 原始快照、去重候选池、CCF DBLP 原始扫描快照、ASE 排除理由表，并更新单篇逐维证据锚点 | 仍是粗筛，不替代 P0 全文细读；CCF 负证据仍须保守。 |
 | `2026-06-13 02:55:00` | 复核 arXiv query 计数 | 7 组 query 的 2024--2026 去重并集约 291 条；粗筛纳入 34 条 | arXiv 持续更新，计数会漂移；正式论文写作前需刷新。 |
 | `2026-06-13 02:40:00` | 同步第二批 arXiv 候选与本地文库 | arXiv 粗筛表扩展为 34 篇；本地 P0/P1 建库 25 篇；ARISE 升级为 P1 并纳入本地目录 | 仍属于 title / abstract 粗筛 + PDF 获取，不得写成最终全文结论。 |
 | `2026-06-13 02:40:00` | 重写 README / GUIDE / SUMMARY | 固化 D1-D7、PDF / `paper_content.txt`、人工下载 BibTeX、CCF gap 与 story 风险规则 | 后续 Related Work 写作必须回到单篇 PDF / `paper_content.txt`。 |
