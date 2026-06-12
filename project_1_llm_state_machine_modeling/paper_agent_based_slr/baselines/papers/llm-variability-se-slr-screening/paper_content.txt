@@ -1,0 +1,615 @@
+--- Page 1 ---
+Beyond Accuracy: LLM Variability in Evidence Screening for
+Software Engineering SLRs
+A Preprint
+Gilberto Sussumu Hida∗
+AIBL
+CESAR School
+Recife, Pernambuco, Brazil
+gsh@cesar.school
+Danilo Monteiro Ribeiro
+AIBL
+CESAR School
+Recife, Pernambuco, Brazil
+dmr@cesar.school
+Erika Yahata
+CMCC
+UFABC
+Santo André, São Paulo, Brazil
+e.yahata@ufabc.edu.br
+May 1, 2026
+Abstract
+Context:Study screening in systematic literature reviews is costly, inconsistency-prone, and risk-
+asymmetric, since false negatives can compromise validity. Despite rapid uptake of Large Language
+Models (LLMs), there is limited evidence on how such models behave during the study screening
+phase, particularly regarding the choice of specific LLMs and their comparison with classical models.
+Objective:To assess LLM performance and variability in screening, quantify the impact of input
+metadata (abstract, title, keywords), and compare LLMs with classical classifiers under a shared
+protocol.Methods:Weanalyzed12LLMsfrom4providers(OpenAI,GoogleGemini,Anthropic,
+Llama)and4classicalmodels(LogisticRegression,SupportVectorClassification,RandomForest,and
+Naive Bayes) on 2 real Systematic Literature Reviews (SLRs), totaling 518 papers. The experimental
+designinvestigated3critical dimensions: (i)LLMs performancevariability, (ii)the impactof input
+feature composition (abstract, title, and keywords) on LLM performance, and (iii) the real gain of
+using LLMs instead of more traditional classification models.Results:LLMs exhibited substantial
+heterogeneity and residual non-determinism even at temperature zero. Abstract availability was
+decisive: removingitconsistentlydegradedperformance,whileaddingtitleand/orkeywordstothe
+abstractyieldednorobustgains. Comparedtoclassicalmodels,performancedifferenceswerenot
+consistent enough to support generalizable LLM superiority.Discussion:LLM adoption should
+bejustifiedbyoperationalandgovernanceconstraints(reproducibility,cost,metadataavailability),
+supported by pilot validation and explicit reporting of variability and input configuration.
+KeywordsSystematicLiteratureReview ·LargeLanguageModels ·LLMs ·AutomatedScreening ·MachineLearning ·
+Feature Engineering·Software Engineering
+Preprint note.This manuscript is an earlier, shorter, conference-style version of a more comprehensive journal
+manuscript currently under review. The journal submission is substantially expanded and incorporates revisions
+motivated by prior peer review, as well as additional methodological details, limitations, and practical guidance.
+1 Introduction
+Systematic Literature Reviews (SLRs) constitute an essential approach for consolidating knowledge in Software
+Engineering (SE) Costalonga et al. [2025], Felizardo et al. [2024], Syriani et al. [2024], enabling the rigorous synthesis
+of evidence across diverse topics in the field. However, the process can be time-consuming, costly, and susceptible
+tobias VanDinter etal. [2021], particularlyduringthe publicationscreening phase, whichinvolvesanalyzingtitles,
+abstracts, and keywords. This step is vulnerable to fatigue, confirmation bias, and inconsistencies across reviewers,
+∗Email: sussumu.educacional@gmail.com,arXiv:2604.27006v1  [cs.SE]  29 Apr 2026
+
+--- Page 2 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+which limits scalability when the corpus reaches thousands of records. Established guidelines, such as involving
+independent pairs of reviewers followed by cross-validation, help mitigate these risks but do not eliminate the high
+operational cost of the process Costalonga et al. [2025], Felizardo et al. [2024], Thode et al. [2025], Wang et al. [2020].
+To reduce this cost, the scientific community has explored alternatives to support study selection Esposito et al. [2024],
+Felizardo et al. [2024], Luo et al. [2024]. Supervised machine learning approaches have demonstrated the potential to
+reducehumaneffortMinettoNapoleãoetal.[2024],andamongtheseapproaches,LLMshaveemergedaspromising
+candidates due to their capacity for deep contextual understanding Brown et al. [2020].
+Because they are emerging technologies, LLMs present operational and behavioral challenges that are not yet fully
+understood. Recent studies have reported issues related to stability, cost and reproducibility Thode et al. [2025],
+Felizardo et al. [2024], especially when models are accessed through commercial APIs. Research has also identified the
+phenomenonofhallucination,which,inthepresentcontext,correspondstothegenerationofnon-existentreferences
+orfabricatedinformationHuangetal.[2025],Xuetal.[2025],Rawteetal.[2023]. Althoughtheseissuesaremore
+evident in the synthesis stages, they may also affect reliability in the early screening phases. These characteristics,
+combinedwiththeblack-boxnatureofthemodelsBenderetal.[2021]andtherapidevolutionofversionsChenetal.
+[2024], indicate that the overall behavior of LLMs in scientific research contexts still requires systematic investigations
+to establish their scope, limits, and appropriate conditions of use Angermeir et al. [2025].
+Inthis context,weconductedacontrolled empiricalevaluation comparing 12LLMsfrom 4providersand 4classical
+classifiers in the screening task on 2 real SLRs, previously used in the related literature Felizardo et al. [2024]. The
+studywasdesignedtoproduceevidenceforthefollowingresearchquestions: (RQ1)howperformanceandvariability
+behavebetweenmodelsanditerations;(RQ2)theimpactofmetadatacompositions(withandwithoutabstracts);and
+(RQ3) whether there is a consistent predictive gain compared to traditional approaches.
+2 Related Work
+Automation of the screening phase in SLRs has received increasing attention from the community, particularly with the
+emergenceofLargeLanguageModels(LLMs). ThissectionsynthesizesstudiesthatinvestigatetheuseofLLMsand
+classical Machine Learning techniques to support study selection in Software Engineering.
+2.1 Classical Machine Learning Approaches
+ClassicalMachineLearningapproachestoscreeninggenerallydependonlabeleddataandatrainingandvalidation
+process, enabling explicit optimization toward objectives such as high recall, which is often desirable in review
+screening Cohen et al. [2006].
+Costalongaetal.[2025]investigatedthespecificcontextofSLRupdates,trainingRandomForest(RF)andSupport
+Vector Machines (SVM) on data from the original SLR for application to 551 new studies. RF achieved an F-score of
+0.33, while the SVM optimized for high recall achieved 100% recall with 10% precision, enabling the exclusion of
+33.9%ofstudieswithoutlossofevidence. Arelevantfindingwasthathuman–humanpairsproducedresultssignificantly
+more aligned with the final curated outcome than human–ML pairs Costalonga et al. [2025].
+Minetto Napoleão et al. [2024] proposed an approach that automates both search (via snowballing) and study selection.
+Inthe search phase,the system identified95.3% ofthe studiesretrieved manually. For selection, among4 algorithms
+tested (LSVM, XGBoost, Logistic Regression, Multinomial Naive Bayes), LSVM presented the best performance
+(recall74.3%, precision15%, F-measure0.246), reducingbyapproximately2.5timesthenumberofstudiesthatrequire
+manual analysis Minetto Napoleão et al. [2024].
+2.2 LLMs for Study Screening
+RecentstudiesinvestigateLLMsforSLRscreeningusingtitle,abstract,andkeywordsasinput. Acriticalgapisthat
+most of the studies treat metadata as a single input without systematically isolating the effect of different compositions
+on performance.
+Felizardoetal.[2024]conductedasystematicreplicationusingChatGPT-4.0on2SESLRs. Figure1illustratesthe
+methodological structure.
+Thodeetal.[2025]evaluated5LLMvariants(Llama2,GPT-3.5/4-turbo,Mixtral)on2SEdatasets,adoptingrecall
+maximization. Combining LLMs via unanimity achieved 99% recall (27% precision), suggesting effort reduction
+without evidence loss.
+2
+
+--- Page 3 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 1: Methodological structure of the study by Felizardo et al. [2024]
+Syriani et al. [2024] compared ChatGPT and 4 classical classifiers on 5 ReLiS datasets (5,144 studies). ChatGPT
+achieved mean recall 0.74 (range: 0.33–0.95), comparable to classical methods (0.67–0.73). While balanced accuracy
+and MCC were similar, ChatGPT required no prior training. Performance varied by dataset characteristics: high recall
+in typical SLRs (10% inclusion), balanced in balanced datasets, and degraded in high-conflict datasets ( >50%) Syriani
+et al. [2024].
+2.3 Gaps and Positioning of the Present Study
+AlthoughexistingstudieshighlightLLMandclassicalmethodpotential,theydiffersubstantiallyinmetrics, decision
+strategies, and experimental configurations, limiting generalization. Critical gaps remain: comparisons under identical
+protocols are scarce, metadata composition effects are not evaluated systematically, and intra-model variability under
+deterministic configurations is seldom discussed. This study addresses these gaps through controlled comparative
+evaluation of performance, metadata influence, and response consistency.
+3 Methods
+3.1 Study Design and Research Questions
+Thisstudyextends Felizardoetal.[2024]byevaluatingmultipleAPI-accessibleLLMsunderacontrolledprotocol,
+quantifyingintra-modelvariability,testinginputmetadatacompositions,andcomparingagainstclassicalsupervised
+baselines. We address 3 research questions:
+•RQ1 - LLM Performance and Variability in Screening:What are the performance differences across LLM
+families (OpenAI, Gemini, Claude, Llama) in screening, and how stable are decisions across repeated runs?
+•RQ2 - Impact of Input Features:Whichtextualmetadatacomposition(title,abstract,keywords)yieldsthe
+best screening performance, and does the effect vary across models?
+•RQ3 - Comparison: LLMs versus Classical Approaches:Do LLMs provide advantages over classical
+Machine Learning methods for SLR screening?
+Weusedthesamerecordsandreferencelabelsas Felizardoetal.[2024],restrictedtostudieswithconsistentlyrecovered
+title,abstract,andkeywords. Figure2summarizestheexperimentalpipelineacrossdatasetpreparation,modelexecution,
+and statistical analysis.
+The subsequent sections describe each of these phases in detail.
+3.2 Phase 0. Dataset Preparation and Construction
+SLR 1:We reused the SLR1 sample from Felizardo et al. [2024], which was originally drawn from a tertiary study on
+HCI–AIconvergenceTravassosetal.[2017]. Fromthe134sampledpapers, weextractedthetitle,abstract, keywords,
+and the original inclusion/exclusion decisions.
+SLR 2:We reused the SLR2 candidate set from a systematic mapping study on user classification strategies in
+game-basedandgamifiedlearningenvironmentsPessoaetal.[2024],conductedfollowingKitchenhametal.[2004].
+Theoriginalsearch retrieved579records; afterdeduplication,448uniquecandidatesremainedand servedasinputto
+our analyses.
+Inclusion criteria (IC) are described in Table 1.
+3
+
+--- Page 4 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure2: Experimentalpipeline: Datapreparation;ComparativeanalysisofLLMperformance;Identificationofthe
+most relevant features; Comparison with the traditional classifier-training approach.
+Table 1: Inclusion criteria for the SLRs
+SLR Inclusion Criteria
+SLR 1 Travassos et al. [2017]1. It is a secondary study (Systematic Re-
+view, Mapping Study, Rapid Review, or
+Systematic Mapping)
+2. It presents findings for converging
+Human-ComputerInteractionandArtificial
+Intelligence
+SLR 2 Pessoa et al. [2024]1. Thepublicationshoulddiscusstherela-
+tionship between game elements and user
+types.
+2. The publication should discuss how to
+usetherelationshipbetweengameelements
+and user types to analyze user engagement.
+3.3 Phase 1: Comparative Analysis across LLMs
+This phase extended the investigation by Felizardo et al. [2024], replicating the study screening task but with multiple
+LLMs from different providers. Although the original study evaluated a single model (ChatGPT-4.0), in this phase, we
+evaluated 12 LLMs organized into 4 variants per provider:
+•OpenAI [2025]: gpt-3.5-turbo, gpt-4.1, and gpt-4o.
+•Google DeepMind [2025]: gemini-1.5-flash, gemini-2.0-flash, and gemini-2.5-flash.
+•Anthropic [2025]: claude-3-haiku-20240307, claude-3-5-haiku-20241022, and claude-3-5-sonnet-20241022.
+•Llama AI [2025]: Llama-3.2-3B-Instruct-Turbo, Llama-3.3-70B-Instruct-Turbo, andLlama-4-Scout-17B-16E-
+Instruct.
+The experimental procedure of this phase was structured into 3 main steps (Figure 3): (i) prompt construction, (ii)
+experimental execution with multiple rounds of LLM inference, and (iii) post-processing and performance comparison.
+In the prompt construction step, we developed templates instructing each LLM to classify studies using a 7-point Likert
+scale(1=StronglyDisagree,7=StronglyAgree),followingtheapproachof Felizardoetal.[2024]. Foreachstudy
+(represented by the metadata tuple: title, abstract, and keywords), the prompt asks the model to rate its agreement with
+oneofthe2inclusioncriteriaspecifictoeachSLR,aspresentedintheprevioussections(theprocessisrepeatedforeach
+4
+
+--- Page 5 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 3: Phase 1 pipeline for model comparison.
+prompt = f """
+Assume you are a software engineering researcher
+conducting a systematic literature review (SLR).
+Considering the title , abstract , and keywords of a
+primary study :
+Using a Likert scale from 1 to 7 (1−Strongly Disagree ,
+2−Disagree , 3−Partially Disagree , 4−Neutral ,
+5−Partially Agree , 6−Agree , and 7−Strongly Agree) ,
+evaluate your agreement with the following question :
+"{ inclusion_criteria_question }"
+About the paper :
+∗∗Title :∗∗{ title }
+∗∗Abstract :∗∗{abstract}
+∗∗Keywords:∗∗{keywords}
+Return only a number from 1 to 7, with no additional
+explanation .
+"""
+Figure 4: Prompt Template for LLM-based Classification.
+inclusioncriterion). Thepromptswerekeptconstantacrossallmodelstoensurecomparability,withthetemperatureset
+to zero. Figure 4 presents the template used.
+Each study was independently assessed by each LLM for each review inclusion criterion, producing 2 Likert scores on
+the7-pointscale,oneforeachcriterion. Wethenappliedthesameconversionruleadoptedby Felizardoetal.[2024]: a
+studywasclassifiedasincludedintheselectiononlywhentheLLMassignedscorewasgreaterthanorequalto5for
+both inclusion criteria; otherwise, the study was classified as excluded. Thus, the final decision for each study was
+obtained by combining the 2 independent assessments.
+The experimental execution step consisted of 5 successive iterations of each model in each study in both datasets (SLR1
+andSLR2);thatis,eachtaskwasrepeated5times. Multipleroundswerenecessarytocapturethevariabilityinherentin
+language models. Although the temperature was set to zero with the aim of inducing more deterministic behavior, the
+experimentaldesignincludedrepeatedexecutionsbasedonrecentinvestigationsthatchallengetheguaranteeoffull
+determinism in LLMs Atil et al. [2025], Renze [2024]. These studies show that determinism in LLMs is not guaranteed
+byzerotemperatureduetofactorssuchasraceconditionsinparallelprocessingarchitecturesandfloating-pointrounding
+in softmax computations. Accordingly, the multiple-iteration design enabled an empirical investigation of the degree of
+variability in each model’s responses, an issue that remains underexplored in the literature on automated SLR screening.
+Theperformanceofeachmodelwasevaluatedusingaccuracyastheprimarymetric;weretainedthismetricbecausethe
+class imbalance observed in both datasets was low. If the imbalance were high, we would have opted for a different
+5
+
+--- Page 6 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+metricHidaandAlvesDoNascimento[2026]. Finally,weassessedagreementacrossthemultipleiterationsofeach
+modelusingGwet’sAC2coefficientGwet[2014]withquadraticweighting(forordinaldataonthe1–7Likertscale).
+AC2 was chosen over Cohen’sKappa due to its robustness in class-imbalanced settings(typical in SLR screening where
+inclusion rates are low), avoiding the prevalence paradox that affects the Kappa coefficient.
+3.4 Phase 2: Impact Analysis of Input Features on LLMs
+WhilePhase1evaluatedtheperformanceofmultipleLLMsusingthefullmetadatacomposition(title,abstract,and
+keywords),thepresentphasesystematicallyinvestigateshowdifferentinputfeaturecompositionsaffectclassification
+quality. To answer this question (RQ2), we selected random samples of 50 studies from each SLR, totaling 100 studies
+for the feature analysis. These same 100 studies were processed with 5 distinct feature composition variants, in addition
+to the composition already processed in the previous phase:
+•Variant A: Abstract only.
+•Variant B: Abstract + Title.
+•Variant C: Abstract + Title + Keywords (already processed in the previous phase).
+•Variant D: Abstract + Keywords.
+•Variant E: Title + Keywords.
+Theselectionofthesevariantsfollowedamoreempiricallogic,directlytestingtheimpactoffeaturesetsonperformance
+andenablingtheisolationoftheincrementalcontributionofeachtextualcomponent.Variant Aservedasthereference
+baselineagainst which we directly compared the performance of the simplest composition with the other compositions.
+The experimental procedure for this phase followed a structure similar to Phase 1, as shown in Figure 3, with the
+difference that the processing was replicated for each of the 4 variants of features. The procedure was structured into 2
+mainsteps: the firstfocusedonconstructing promptsadaptedtoeach featurevariant,and thesecondonexperimental
+execution with multiple rounds.
+In the prompt construction step, we adapted the template used in Phase 1 (shown in Figure 4) for each of the 4 variants,
+keeping the remainder of the prompt identical to ensure comparability. Each prompt was dynamically instantiated with
+the metadata corresponding to the variant under analysis, preserving the 7-point Likert scale and the SLR-specific
+inclusion criteria.
+For statistical analysis, we constructed 95% confidence intervals by bootstrapping Tibshirani and Efron [1993] over the
+5 iterations of each model per variant, allowing us to investigate whether performance differences between variants are
+statistically significant.
+To investigate the differential impact of feature compositions, we performed a contrast meta-analysis. The variance
+in the model was derived from the 95% confidence intervals obtained by bootstrap stratified with papers Tibshirani
+andEfron[1993],andtheeffectswereaggregatedusingtheDerSimonian–Lairdrandom-effectsmodelDerSimonian
+and Laird[2015], providing anestimate of themean effect, thequantification of heterogeneity( I2) andthe prediction
+intervals. PracticalrelevancewasfurthercontextualizedviatheSmallestEffectSizeofInterest(SESOI)Anvariand
+Lakens [2021], set to±2.0percentage points of accuracy.
+3.5 Phase 3: Comparison between LLMs and Classical Machine Learning
+This phase complements the previous ones by comparing LLMs against classical supervised classification methods.
+TheobjectiveistoaddressRQ3,definedinSection 3.1. Toenablethiscomparison, classicalmodelsweretrainedusing
+subsetsofeachSLR.Werandomlyselected50studiesfromeachSLR(SLR1andSLR2)tocomposethetrainingset,
+keeping the remaining studies for testing. The choice of a reduced training set aims to reflect a pragmatic scenario
+inwhichonlyafractionofthecorpushasbeeninitiallyscreenedandlabeledbyhumans,allowingustoevaluatethe
+performanceofclassicalclassifiersunderlabelconstraintsandtocomparethissettingwiththezero-shotlearninguseof
+LLMs.
+We concatenated title, abstract, and keywords and applied TF–IDF vectorization Salton and Buckley [1988] after
+standard preprocessing with NLTK Bird et al. [2009]. We trained Multinomial Naive Bayes, Logistic Regression,
+Random Forest, and SVM Bishop [2006], Hastie et al. [2009] using scikit-learn Pedregosa et al. [2011] with standard
+settings and stratified 4-fold cross-validation. We evaluated accuracy and F1-score Hida and Alves Do Nascimento
+[2026] and estimated 95% confidence intervals via bootstrapping.
+6
+
+--- Page 7 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Table 2: Phase 1 results. lim_inf=mean−stdand lim_sup=mean+std
+SLR Model Accuracy-Mean Accuracy-Median Std lim_inf lim_sup
+1 gpt-4o 0.830159 0.825397 0.026679 0.803480 0.856838
+1 gemini-1.5-flash 0.815873 0.817460 0.006640 0.809233 0.822513
+1 Llama-4-Scout-17B-16E-Instruct 0.803175 0.801587 0.003549 0.799625 0.806724
+1 gpt-4.1 0.779365 0.777778 0.006640 0.772725 0.786005
+1 Llama-3.3-70B-Instruct-Turbo-Free 0.753968 0.753968 0.000000 0.753968 0.753968
+1 claude-3-5-haiku-20241022 0.752381 0.753968 0.003549 0.748832 0.755930
+1 gemini-2.5-flash 0.746032 0.746032 0.021735 0.724297 0.767767
+1 gemini-2.0-flash 0.730159 0.730159 0.007937 0.722222 0.738095
+1 claude-3-5-sonnet-20241022 0.698413 0.698413 0.000000 0.698413 0.698413
+1 gpt-3.5-turbo 0.652381 0.634921 0.035670 0.616711 0.688051
+1 Llama-3.2-3B-Instruct-Turbo 0.611111 0.611111 0.000000 0.611111 0.611111
+1 claude-3-haiku-20240307 0.611111 0.611111 0.000000 0.611111 0.611111
+2 gpt-4.1 0.835204 0.834184 0.005290 0.829914 0.840494
+2 claude-3-5-sonnet-20241022 0.834694 0.834184 0.001141 0.833553 0.835835
+2 gpt-4o 0.830612 0.831633 0.005290 0.825322 0.835902
+2 claude-3-haiku-20240307 0.807143 0.806122 0.001397 0.805746 0.808540
+2 claude-3-5-haiku-20241022 0.799490 0.798469 0.001397 0.798093 0.800887
+2 gemini-2.5-flash 0.779592 0.778061 0.011773 0.767818 0.791365
+2 gemini-1.5-flash 0.767347 0.767857 0.002795 0.764552 0.770141
+2 gemini-2.0-flash 0.745408 0.742347 0.005530 0.739878 0.750939
+2 Llama-4-Scout-17B-16E-Instruct 0.678061 0.678571 0.001141 0.676920 0.679202
+2 Llama-3.2-3B-Instruct-Turbo 0.676020 0.676020 0.000000 0.676020 0.676020
+2 Llama-3.3-70B-Instruct-Turbo-Free 0.668367 0.668367 0.000000 0.668367 0.668367
+2 gpt-3.5-turbo 0.369898 0.369898 0.003124 0.366774 0.373022
+4 Results
+This section reports the empirical findings for each experimental phase.
+4.1 Phase 0. Dataset Preparation and Construction
+Starting from the titles provided by Felizardo et al. Felizardo et al. [2024], we retrieved missing abstracts and keywords
+to enable the analyses in Phases 1–3.
+For SLR1, from 134 titles, we retrieved 126 complete records (94% retrieval rate). Seven papers were excluded due to
+missing keywords and one paper was not found, resulting in 126 studies.
+For SLR2, from 448 titles, we consolidated 392 complete records (87.5% retrieval rate). Fifty-six papers were excluded
+due to duplication, missing abstracts, or inconsistent metadata.
+4.2 Phase 1: LLM Performance and Variability
+Aggregated Accuracy and Performance Variation:Table 2 reports the aggregated accuracy (mean across the 5
+rounds)foreachLLM,stratifiedbydataset(SLR1andSLR2). Theresultsevidencedrelevantinter-modelheterogeneity:
+inSLR1,gpt-4oachievedthehighestmeanaccuracy (0.83±0.03) ,whileclaude-3-haiku-20240307andLlama-3.2-3B-
+Instruct-Turbo presented the lowest values (0.61); in SLR2, gpt-4.1 achieved the highest accuracy (0.84±0.05) , while
+gpt-3.5-turbopresentedthelowestperformance(0.37±0.03). Tocharacterizethedispersionobservedacrossrounds,
+we also report the standard deviation of the 5 executions and the range corresponding to the mean standard deviation ±,
+asindicatedinTable2,avoidinginterpretingthisrangeasaconfidenceinterval. Differencesof22percentagepoints
+(p.p.) for SLR1 and 47 percentage points for SLR2 demonstrate this performance heterogeneity between models in the
+classification task.
+Performance and Class Imbalance:Performance on SLR2 was slightly higher than on SLR1 for most models,
+suggesting that dataset characteristics (inclusion/exclusion proportion, term distribution) may influence the quality
+of LLM decisions. In screening tasks, class imbalance has an important impact on classification performance Hida
+and Alves Do Nascimento [2026]. In SLR1, of the 126 papers, 61.1% (77) were excluded and 38.9% (49) were
+7
+
+--- Page 8 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+(a) SLR1
+(b) SLR2
+Figure 5: Variability of responses in each iteration (n = 5) per model for both SLR1 and SLR2.
+included in the original study; thus, the accuracy of amodel that classifies all papers as excludedwould be 0.611. The
+Llama-3.2-3B-Instruct-Turbo and claude-3-haiku-20240307 models not only reach this baseline but may be close to it,
+suggestinglimitedabilitytodiscriminatebetweenclasses. ForSLR2,ofthe392papers,67.6%(265)wereexcludedand
+32.4% (127) were included; the corresponding accuracy would be 0.676, and in this SLR2 all models from the Llama
+family presented performance closeto the baseline. In contrast, gpt-3.5-turbo achievedan accuracy of 0.37, below the
+trivial baseline for SLR2. This behavior is consistent with a prediction pattern that is strongly misaligned with the
+reference labels.
+Main Finding:Evenwithtemperaturesettozero,asubstantialportionofthemodelsexhibitedresponsevariability
+across the 5 experimental rounds. Figure 5 illustrates this behavior. Although the literature acknowledges that zero
+temperaturedoesnotguaranteefulldeterminisminLLMs,thisconfigurationisfrequentlyadoptedinempiricalscreening
+8
+
+--- Page 9 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+(a) SLR1-CI1
+ (b) SLR1-CI2
+(c) SLR2-CI1
+ (d) SLR2-CI2
+Figure 6: Agreement between the responses for each model and SLR across iterations.
+applicationsinanattempttoreduceresponsevariation. Theempiricalresultsdocumentthat,evenunderthisestablished
+configuration, multiple iterations reveal inconsistencies in screening decisions.
+Agreement between Iterations: TheanalysisusingtheGwetAC2coefficientshowedheterogeneitybetweenmodels
+(Figure 6), with values ranging from 0.55 (Gemini-2.5-Flash) to 1.0 (Llama-3.3-70B-Instruct-Turbo-Free). The
+agreement varied according to the inclusion criterion and the origin of the studies, suggesting that these characteristics
+modulate the stability of the response.
+4.3 Phase 2: Impact of Input Features on LLMs
+Wefirstpresentresultsstratifiedbydataset(SLR1andSLR2),followedbyanaggregatedmeta-analyticsynthesisto
+assess whether the observed patterns generalize robustly.
+SLR1:We selected 4 models with superior performance in Phase 1: gpt-4o, gemini-1.5-flash, claude-3-5-haiku-
+20241022andLlama-4-Scout-17B-16E-Instruct. Figure7presentsthemeanaccuracywithconfidenceintervalsfor
+each variant of feature composition. Visually, substantial overlap is observed between the 5 variants (except for
+claude-3-5-haiku-20241022), suggesting equivalence at the level of stratified data.
+SLR2:TheLLMsusedwere: gpt-4.1,gemini-2.5-flash,claude-3-5-sonnet-20241022andLlama-4-Scout-17B-16E-
+Instruct. Figure 8 shows a pattern similar to that observed in SLR1, except for Llama-4-Scout-17B-16E-Instruct, which
+exhibits notably higher variability than the other models.
+Joint analysis:Toassesswhetherthepatternsobservedineachdatasetweregeneralized,weconductedarandom-effects
+meta-analysis comparing each feature composition with Variant A (abstract-only metadata). Figure 9 presents the
+estimated effects with 95% confidence intervals.
+•Variants B, C, and D yielded estimated effects close to zero (abstract+keywords: +0.28 p.p.; title+abstract:
+-0.06p.p.;title+abstract+keywords: -0.99p.p.),with95%confidenceintervalsentirelycontainedwithinthe
+SESOI of±2.0 p.p., indicating practical equivalence.
+•VariantE(title+keywords)producedasignificantdegradationof-5.55p.p. (95%CI:[-9.94,-1.16]),withan
+interval that does not cross zero and exceeds the SESOI, indicating a meaningful loss.
+9
+
+--- Page 10 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 7: Phase 2 results for SLR1
+Figure 8: Phase 2 results for SLR2
+Thus, the presenceof an abstract wasessential for robust LLMperformance. Whenavailable, abstracts alone (Variant
+A)orcombinedwiththetitleand/orkeywords(VariantsB,C,D)producedequivalentresults. Onlythecomposition
+basedexclusivelyontitleandkeywords(VariantE)exhibitedsystematicallyinferiorperformance,suggestingthatLLMs
+depend on the contextual information provided by the abstract for effective classification.
+4.4 Phase 3: Comparison between LLMs and Classical Methods (RQ3)
+TheresultsofthecomparisonbetweenLLMsandclassicalsupervisedclassificationmethodsshowedsimilarperformance
+behaviors between these approaches in the 2 SLRs evaluated.
+Analysis of SLR1 results:The data presented in Figure 10 indicate that LLMs tend to exhibit performance comparable
+toclassicalmethods. Intermsofaccuracy,theLLMsLlama-4-Scout-17B-16E-Instruct,gemini-1.5-flash,andgpt-4.1
+are concentrated in the range 0.81-0.82, while the classical methods (MultinomialNB, LogReg, SVC) are around 0.74.
+Random Forest shows a more pronounced degradation. The estimated confidence intervals exhibit considerable overlap
+betweenapproaches,whichsuggestsalackofrobustevidenceofperformanceseparationundertheadoptedprotocol;
+therefore, isolated differences should be interpreted with caution.
+The F1-score metric reveals more pronounced dynamics. The LLMs (gemini-1.5-flash, gpt-4.1, claude-3-5-haiku)
+maintainedrobustperformance(F1-scoresof 0.70–0.79),whereasRandomForestdegradedto 0.39,suggestingthatthis
+10
+
+--- Page 11 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 9: Meta-analysis of aggregated effect sizes for feature composition variants across both SLRs. Points represent
+pooled effect estimates; error bars show 95% confidence intervals. Shaded area indicates SESOI (Smallest Effect Size
+of Interest):±2.0 p.p.
+Figure 10: Comparison of accuracy and F1-score for LLMs and classical machine learning methods on SLR1 with 95%
+bootstrap confidence intervals.
+algorithm fails to balance precision and recall in this context, which is particularly critical in class-imbalanced settings.
+The remaining models exhibited an intermediate trend.
+Analysis of results for SLR2:Figure11presentsapatternsimilartoSLR1,inwhichclassicalmethods(particularly
+Logistic Regression) competed more closely with the LLMs. In terms of accuracy, gpt-4.1 achieved 0.83, followed
+byclaude-3-5-sonnet-20241022with 0.82andLogisticRegressionwith 0.80;thus,LogisticRegressionpresenteda
+confidence interval that overlaps with those of the LLMs of the top level. An anomalous behavior was detected for
+Llama-4-Scout-17B-16E-Instruct, which achieved an accuracy of 0.68[0.63,0.73], making it the worst model in SLR2
+and constituting a notable reversal compared to its superior performance in SLR1.
+For the F1-score, the behaviors are similar. Gpt-4.1 and claude-3-5-sonnet-20241022 achieved F1-scores of 0.73, while
+Logistic Regression reached 0.68, with partially overlapping intervals. This overlap indicates that, statistically, Logistic
+Regression does not differ significantly from the LLMs on this metric. In contrast, low performance was observed
+for Random Forest ( 0.22) and Multinomial NB ( 0.19), and particularly for Llama-4-Scout-17B-16E-Instruct ( 0.04).
+TheextremelylowF1-scoreforLlama,approachingzero,confirmsacollapseindiscrimination: themodelassigned
+virtuallyallstudiestoasingleclass(excluded),resultinginnegligiblerecall. Thisbehaviorsuggeststhat,inthisspecific
+dataset,themodelconvergedtoadegeneratedecisionstrategy,assigningmoststudiestoasingleclass,whichdrastically
+reduces F1-score while preserving part of the accuracy due to class imbalance. The performance reversal of the same
+11
+
+--- Page 12 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 11: Comparison of accuracy and F1-score for LLMs and classical machine learning methods on SLR2 with 95%
+bootstrap confidence intervals.
+modelbetweenSLR1andSLR2isconsistentwiththesensitivitytothedomainandtothetextualdistributionofthe
+evaluated set, reinforcing that the results observed in one dataset should not be automatically extrapolated to another.
+Comparison between SLR1 and SLR2:AcrossbothSLRs,confidenceintervalslargelyoverlapped,supportingbroadly
+comparableperformancebetweenLLMsandclassicalbaselinesundertheadoptedprotocol. However,domainsensitivity
+was evident (e.g., Llama-4-Scout reversal from SLR1 to SLR2), and class imbalance can inflate accuracy-based
+impressions, reinforcing the need to report metrics beyond accuracy when interpreting screening performance.
+5 Operational Guidelines for Adopting LLMs in Study Screening
+Thissectiondistillsoperationalguidancefromourempiricalfindingstosupportacontrolledandauditableadoption
+of LLMs for screening in systematic reviews. The guidance is not normative and should be adapted to each review
+protocol. Thegoalistomitigaterisksobservedinourexperiment,particularlyresponsevariability,classimbalance,
+and metadata constraints, through minimal checks and conservative use.
+5.1 Guidelines Based on the Findings
+A pragmatic starting point is a pilot on a representative sample (e.g., 50–100 studies), comparing at least one LLM with
+aclassicalbaseline(e.g.,LogisticRegression)usingmultiplemetricsselectedaccordingtoexpectedclassimbalance.
+Reporting a trivial baseline that excludes all studies helps detect degenerate behaviors and contextualize observed gains.
+Metadata availability is a primary constraint: abstracts should be prioritized whenever possible, and LLM-based
+screening should be avoided when most records lack abstracts. Titles and keywords are complementary signals but
+should not be treated as substitutes for abstracts.
+Toaccountforresidualstochasticity,werecommendmulti-roundinferencewithunanimity-basedautomation(Figure12).
+Only unanimous decisions are automated; any disagreement flags the study as “conflicting” and routes it to human
+review. In addition, verification sampling on unanimously decided cases helps detect systematic errors due to prompt
+design or changes in the execution environment.
+5.2 Practical Checklist for Responsible Use
+Before adopting LLMs (or classical models) for SLR screening, we recommend verifying, at a minimum, the following
+items:
+•Validation:a pilot study was conducted; at least one LLM and one classical baseline were compared; a trivial
+exclusion baseline was computed and reported.
+12
+
+--- Page 13 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Figure 12: Flowchart describing our proposed use of LLM in screening; each publication should go through the process
+described above.
+•Metadata:metadata availability and consistency were verified, especially abstracts; title+keywords-only
+configurations were avoided when abstracts are not consistently available.
+•Variability:multipleexecutionsperstudywereperformed;aclearaggregationrulewasdefined(e.g.,unanimity,
+majority vote, threshold); agreement across runs was quantified and recorded.
+•Evaluation and reproducibility:performancewasreportedwithmultiplemetrics(atleastprecision,recall,and
+F1); verification sampling was applied to automatically screened cases; software/library versions, environment
+configuration, inference parameters, and exact model/API identifiers were documented for reproducibility.
+Thischecklistisnotexhaustive,butitsummarizesaminimalsetofpracticesdirectlysupportedbyourfindings,and
+provides a pragmatic starting point for responsible adoption of LLMs in systematic review screening.
+6 Limitations and Biases
+Although conducted with methodological rigor, this study has scope and design limitations that affect generalizability.
+This section contextualizes these constraints.
+•External validity:Results are limited to 2 SLRs in educational domains (HCI–AI, Educational Gamification)
+published in English. Patterns may not generalize to other Software Engineering domains or multilingual
+corpora.
+•Internal validity:ModelsevaluatedviaAPIs(May–October2025)introducetemporaldependence;subsequent
+updates may affect reproducibility.
+•Construct validity:Variabilityestimatedfrom5iterationspermodelsufficestoevidencenon-determinism
+but may underestimate variance in unstable settings.
+•Conclusion validity:LLMsampleexcludedfine-tunedorspecializedmodels;nocost–benefitanalysiswas
+performed, limiting prescriptive recommendations in resource-constrained contexts. Screening error may
+partly reflect human ambiguity rather than exclusively model failures.
+These limitations contextualize the scope without invalidating the findings.
+7 Conclusion
+Thisstudyevaluated12LLMsfrom4providersand4classicalmachinelearningmodelsforscreeningin2realSLRs(n
+=518),focusingoncross-modelperformanceheterogeneity,intra-modelvariabilityundercontrolledconditions,and
+dependence on available metadata.
+InPhase1,weobservedsubstantialheterogeneityacrossmodelsandsensitivitytothereviewdomain,includingrank
+reversals between SLRs. Even with temperature set to zero, several LLMs produced non-deterministic screening
+decisions, indicating that stability should be treated as an empirical, context-dependent requirement rather than an
+operational assumption.
+InPhase2,abstractsemergedasthedecisivemetadataelementforLLM-basedscreening: removingabstractsconsistently
+degraded performance, whereas adding titles and keywords to abstracts provided no robust practical gains.
+In Phase 3, LLMs and classical methods exhibited broadly comparable performance under the same protocol, with
+overlapping bootstrap confidence intervals. Therefore, method selection should be guided primarily by operational and
+13
+
+--- Page 14 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+scientific governance criteria, including cost, transparency, reproducibility, and metadata availability, rather than by
+aggregated performance metrics alone.
+Overall,thestudyclarifiespracticallimitsandconditionsforusingLLMsinscreening,showingthatmodelscaleand
+version do not guarantee reliability, that residual variability can persist under controlled settings, and that abstract
+availabilityiscritical. FutureworkshouldexpandtoadditionalSoftwareEngineeringdomainsandmultilingualcorpora,
+strengthen reproducibility analyses in API-based settings by tracking versions and execution windows, increase the
+number of repeated runs to better characterize variability, and incorporate cost–benefit analyses at scale alongside
+assessments of reference-label reliability.
+References
+Marcelo Costalonga, Bianca Minetto Napoleão, Maria Teresa Baldassarre, Katia Romero Felizardo, Igor Steinmacher,
+and Marcos Kalinowski. Can Machine Learning Support the Selection of Studies for Systematic Literature Review
+Updates?, 2025. URLhttp://arxiv.org/abs/2502.08050.
+Katia Romero Felizardo, Márcia Sampaio Lima, Anderson Deizepe, Tayana Uchôa Conte, and Igor Steinmacher.
+ChatGPT application in Systematic Literature Reviews in Software Engineering: An evaluation of its accuracy
+to support the selection activity. InProceedings of the 18th ACM/IEEE International Symposium on Empirical
+Software Engineering and Measurement, pages 25–36, New York, NY, USA, 2024. ACM. ISBN 979-8-4007-1047-6.
+doi:10.1145/3674805.3686666. URLhttps://dl.acm.org/doi/10.1145/3674805.3686666.
+Eugene Syriani, Istvan David, and Gauransh Kumar. Screening articles for systematic reviews with chatgpt.Journal of
+Computer Languages, 80:101287, 2024.
+Raymon Van Dinter, Bedir Tekinerdogan, and Cagatay Catal. Automation of systematic literature re-
+views: A systematic literature review.Information and Software Technology, 136:106589, 2021. ISSN
+09505849. doi:10.1016/j.infsof.2021.106589. URL https://linkinghub.elsevier.com/retrieve/pii/
+S0950584921000690.
+LukasThode,UmarIftikhar,andDanielMendez.ExploringtheuseofLLMsfortheselectionphaseinsystematicliterature
+studies.InformationandSoftwareTechnology,184:107757,2025. ISSN09505849. doi:10.1016/j.infsof.2025.107757.
+URLhttps://linkinghub.elsevier.com/retrieve/pii/S0950584925000965.
+Zhen Wang, Tarek Nayfeh, Jennifer Tetzlaff, Peter O’Blenis, and Mohammad Hassan Murad. Error rates of human
+reviewers during abstract screening in systematic reviews.PLOS ONE, 15(1):e0227742, 2020. ISSN 1932-6203.
+doi:10.1371/journal.pone.0227742. URLhttps://dx.plos.org/10.1371/journal.pone.0227742.
+MatteoEsposito,AndreaJanes,DavideTaibi,andValentinaLenarduzzi. GenerativeAIinEvidence-BasedSoftware
+Engineering: A White Paper, 2024. URLhttp://arxiv.org/abs/2407.17440.
+XufeiLuo,FengxianChen,DiZhu,LingWang,ZijunWang,HuiLiu,MengLyu,YeWang,QiWang,andYaolong
+Chen. Potential roles of large language models in the production of systematic reviews and meta-analyses.Journal of
+Medical Internet Research, 26:e56780, 2024.
+Bianca Minetto Napoleão, RitikaSarkar,Sylvain Hallé, FabioPetrillo, and Marcos Kalinowski. Emerging Resultson
+AutomatedSupportforSearchingandSelectingEvidenceforSystematicLiteratureReviewUpdates. InProceedingsof
+the1stIEEE/ACMInternationalWorkshoponMethodologicalIssueswithEmpiricalStudiesinSoftwareEngineering,
+pages34–41,NewYork,NY,USA,2024.ACM. ISBN979-8-4007-0567-0. doi:10.1145/3643664.3648202. URL
+https://dl.acm.org/doi/10.1145/3643664.3648202.
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan,
+Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom
+Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse,
+Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam
+McCandlish, AlecRadford, IlyaSutskever,andDarioAmodei. LanguageModelsareFew-ShotLearners, 2020. URL
+http://arxiv.org/abs/2005.14165.
+Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong, Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua Peng,
+XiaochengFeng,BingQin,andTingLiu.ASurveyonHallucinationinLargeLanguageModels: Principles,Taxonomy,
+Challenges,andOpenQuestions,2025. ISSN1046-8188,1558-2868. URL http://arxiv.org/abs/2311.05232 .
+ZiweiXu, SanjayJain,andMohan Kankanhalli. Hallucination isInevitable: AnInnateLimitationofLarge Language
+Models, 2025. URLhttp://arxiv.org/abs/2401.11817.
+Vipula Rawte, Amit Sheth, and Amitava Das. A Survey of Hallucination in Large Foundation Models, 2023. URL
+http://arxiv.org/abs/2309.05922.
+14
+
+--- Page 15 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Emily M. Bender, Timnit Gebru, Angelina McMillan-Major, and Shmargaret Shmitchell. On the dangers of stochastic
+parrots: Can language models be too big? InProceedings of the 2021 ACM Conference on Fairness, Account-
+ability, and Transparency, pages 610–623, New York, NY, USA, 2021. Association for Computing Machinery.
+doi:10.1145/3442188.3445922.
+Lingjiao Chen, Matei Zaharia, and James Zou. How is chatgpt’s behavior changing over time?Harvard Data Science
+Review, 6(2):1–47, 2024.
+Florian Angermeir, Maximilian Amougou, Mark Kreitz, Andreas Bauer, Matthias Linhuber, Davide Fucci, Daniel
+Mendez, Tony Gorschek, et al. Reflections on the reproducibility of commercial llm performance in empirical
+software engineering studies, 2025.
+AaronMCohen,WilliamRHersh,KimPeterson,andPo-YinYen. Reducingworkloadinsystematicreviewpreparation
+usingautomatedcitationclassification.JournaloftheAmerican MedicalInformaticsAssociation,13(2):206–219,
+2006.
+Guilherme Horta Travassos, Katia Romero Felizardo, Marcelo Morandini, and Christophe Kolski.A Tertiary Study on
+theConvergenceofHuman-ComputerInteractionandArtificialIntelligence. LearningandAnalyticsinIntelligent
+Systems. Springer International Publishing, New York, NY, USA, 1 edition, 2017.
+Marcela Pessoa, Márcia Lima, Fernanda Pires, Gabriel Haydar, Rafaela Melo, Luiz Rodrigues, David Oliveira, Elaine
+Oliveira, Leandro Galvão, Bruno Gadelha, Seiji Isotani, Isabela Gasparini, and Tayana Conte. A Journey to Identify
+Users’ClassificationStrategiestoCustomizeGame-BasedandGamifiedLearningEnvironments.IEEETransactions
+on Learning Technologies, 17:527–541, 2024. ISSN 1939-1382, 2372-0050. doi:10.1109/TLT.2023.3317396. URL
+https://ieeexplore.ieee.org/document/10256042/.
+Barbara A Kitchenham, Tore Dyba, and Magne Jorgensen. Evidence-based software engineering. InProceedings. 26th
+International Conference on Software Engineering, pages 273–281, Los Alamitos, CA, USA, 2004. IEEE, IEEE
+Computer Society.
+OpenAI. Openaiapidocumentation-gptmodels. https://platform.openai.com/docs/models ,2025. Accessed
+on: 2025-11-03.
+Google DeepMind. Gemini api documentation. https://ai.google.dev/docs/models , 2025. Accessed on:
+2025-11-03.
+Anthropic. Claudeapidocumentation. https://docs.anthropic.com/en/resources/overview ,2025. Accessed
+on: 2025-11-03.
+Together AI. Together ai platform - llama models.https://www.together.ai/, 2025. Accessed on: 2025-11-03.
+BerkAtil,SarpAykent,AlexaChittams,LishengFu,RebeccaJ.Passonneau,EvanRadcliffe,GuruRajanRajagopal,
+Adam Sloan, Tomasz Tudrej, Ferhan Ture, Zhe Wu, Lixinyu Xu, and Breck Baldwin. Non-Determinism of
+"Deterministic" LLM Settings, 2025. URLhttp://arxiv.org/abs/2408.04667.
+MatthewRenze. Theeffectofsamplingtemperatureonproblemsolvinginlargelanguagemodels. InFindingsofthe
+association for computational linguistics: EMNLP 2024, pages 7346–7356, Miami, Florida, USA, 2024. Association
+for Computational Linguistics.
+Gilberto Sussumu Hida and André Câmara Alves Do Nascimento. Overview of machine learning in class im-
+balance scenarios: Trends, challenges, and approaches.Expert Systems with Applications, 298:129592, 2026.
+ISSN09574174. doi:10.1016/j.eswa.2025.129592. URL https://linkinghub.elsevier.com/retrieve/pii/
+S0957417425032075.
+KilemLGwet.Handbookofinter-raterreliability: Thedefinitiveguidetomeasuringtheextentofagreementamong
+raters. Advanced Analytics, LLC, Gaithersburg, MD, USA, 2014.
+Robert J Tibshirani and Bradley Efron. An introduction to the bootstrap.Monographs on statistics and applied
+probability, 57(1):1–436, 1993.
+RebeccaDerSimonianandNanM.Laird. Meta-analysisinclinicaltrialsrevisited.ContemporaryClinicalTrials,45:
+139–145, 2015. doi:10.1016/j.cct.2015.09.002.
+Farid Anvari and Daniël Lakens. Using anchor-based methods to determine the smallest effect size of interest.Journal
+of Experimental Social Psychology, 96:104159, 2021.
+GerardSaltonandChristopherBuckley. Term-weightingapproachesinautomatictextretrieval.InformationProcessing
+& Management, 24(5):513–523, 1988. doi:10.1016/0306-4573(88)90021-0.
+Steven Bird, Ewan Klein, and Edward Loper.Natural Language Processing with Python. O’Reilly Media, Sebastopol,
+CA, 2009. ISBN 978-0-596-51649-9.
+15
+
+--- Page 16 ---
+Beyond Accuracy: LLM Variability in SLR ScreeningA Preprint
+Christopher M. Bishop.Pattern Recognition and Machine Learning. Springer, New York, NY, 2006. ISBN
+978-0-387-31073-2.
+Trevor Hastie, Robert Tibshirani, and Jerome Friedman.The Elements of Statistical Learning: Data Mining, Inference,
+and Prediction. Springer, New York, NY, 2nd edition, 2009. ISBN 978-0-387-84857-0.
+FabianPedregosaetal. Scikit-learn: Machinelearninginpython.JournalofMachineLearningResearch,12:2825–2830,
+2011.
+16

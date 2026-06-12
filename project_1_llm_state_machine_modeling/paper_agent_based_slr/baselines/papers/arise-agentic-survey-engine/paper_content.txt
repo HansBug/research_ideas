@@ -1,0 +1,1447 @@
+--- Page 1 ---
+ARISE: Agentic Rubric-Guided Iterative Survey Engine
+for Automated Scholarly Paper Generation
+Zi Wang1, Xingqiao Wang1, Sangah Lee2, Xiaowei Xu1*
+1University of Arkansas at Little Rock
+2Seoul National University
+zwang@ualr.edu, xwang1@ualr.edu, sanalee@snu.ac.kr, xwxu@ualr.edu
+Abstract
+The rapid expansion of scholarly literature presents signifi-
+cant challenges in synthesizing comprehensive, high-quality
+academic surveys. Recent advancements in agentic systems
+offer considerable promise for automating tasks that tradi-
+tionally require human expertise, including literature review,
+synthesis, and iterative refinement. However, existing auto-
+mated survey-generation solutions often suffer from inade-
+quate quality control, poor formatting, and limited adaptabil-
+ity to iterative feedback—core elements intrinsic to scholarly
+writing.
+To address these limitations, we introduce ARISE, an Agen-
+tic Rubric-guided Iterative Survey Engine designed for au-
+tomated generation and continuous refinement of academic
+survey papers. ARISE employs a modular architecture com-
+posed of specialized large language model agents, each mir-
+roring distinct scholarly roles, such as topic expansion, ci-
+tation curation, literature summarization, manuscript draft-
+ing, and peer-review-based evaluation. Central to ARISE is
+a rubric-guided iterative refinement loop where multiple re-
+viewer agents independently assess manuscript drafts using
+a structured, behaviorally anchored rubric, systematically en-
+hancing the content through synthesized feedback.
+Evaluating ARISE against state-of-the-art automated sys-
+tems and recent human-written surveys, our experimental re-
+sults demonstrate superior performance, achieving an aver-
+age rubric-aligned quality score of 92.48. ARISE consistently
+surpasses baseline methods across metrics of comprehensive-
+ness, accuracy, formatting, and overall scholarly rigor. All
+code, evaluation rubrics, and generated outputs are provided
+openly at https://github.com/ziwang11112/ARISE.
+Introduction
+Recent advances in agentic AI have demonstrated the po-
+tential of large language model (LLM) agents to collabo-
+rate, reason, and solve complex tasks by mirroring human
+workflows. By orchestrating multiple specialized agents in
+a modular, feedback-driven manner, agentic systems offer
+a powerful paradigm for automating labor-intensive pro-
+cesses that traditionally require expert human collaboration,
+and have already proven effective in domains such as code
+generation, multi-step planning, and academic research sys-
+tems.
+*Corresponding author.Survey paper writing is a promising application for agen-
+tic systems, as a subdomain of academic research sys-
+tems, it demands coordinated, expert-level reasoning and
+reflects the complexity of real-world scholarly workflows.
+With scientific literature expanding rapidly (Conde et al.
+2024), synthesizing new developments into high-quality sur-
+veys has become increasingly challenging. Recent stud-
+ies have explored automating survey paper generation with
+LLMs, combining retrieval, structuring, and generation in
+end-to-end pipelines. Notable approaches such asAutoSur-
+vey(Wang et al. 2024),SurveyX(Liang et al. 2025), andSur-
+veyForge(Yan et al. 2025) demonstrate promising results by
+leveraging LLM-assisted writing and hybrid retrieval tech-
+niques.
+While recent literature review automation methods offer
+promising performance (Wu et al. 2025), they still have no-
+table limitations. For example, these approaches commonly
+rely on preprint-heavy sources, generate survey paper within
+one pass running and lacking efficient evaluation standards.
+As a result, ensuring high-quality, reliable references is chal-
+lenging, as retrieval agents often surface outdated, non-peer-
+reviewed, or low-quality sources. In addition, real-world sur-
+vey writing is inherently iterative, requiring multiple cy-
+cles of review and revision—a process not well captured by
+existing single-pass systems. Finally, although benchmark-
+ing and evaluation protocols are improving, comprehensive
+rubrics and peer-review-style feedback remain rare, limiting
+the interpretability, transparency, and reproducibility of au-
+tomated outputs.
+To address these limitations, we proposeARISE, an agen-
+tic system that decomposes the academic survey writing pro-
+cess into specialized LLM-powered agents, each mirroring a
+distinct human role. It employs acitation-first, article-level
+retrieval pipeline that prioritizes references from reputable,
+peer-reviewed journals and conferences, and produces fully
+editable L ATEX manuscripts with structured bibliographies
+tailored to target publication venues. Dedicated validation
+agents at every stage ensure factual accuracy and minimize
+hallucinations. ARISE further incorporates a rubric-guided,
+multi-agent iterative refinement loop: powerful LLMs serve
+as distinct reviewer agents, each applying a shared evalu-
+ation rubric to assess system outputs and generate struc-
+tured feedback. This feedback is synthesized by the refine-
+ment module, driving systematic and interpretable improve-arXiv:2511.17689v1  [cs.DL]  21 Nov 2025
+
+--- Page 2 ---
+Figure 1: Agent roles and functionality in ARISE. Each agent is assigned a specific function in the modular survey generation
+and refinement pipeline. All non-reviewer agents run on GPT-4.1 by default. Reviewer agents use a cross-family judge pool
+(GPT-4.1(optional), Gemini 2.5 Pro, and Claude 3.7 Sonnet).
+ments through multiple revision cycles while ensuring trans-
+parency and reproducibility.
+Our main contributions are:
+• We presentARISE, an agentic system that automates
+end-to-end survey generation and peer-review, support-
+ing full-cycle scholarly workflows with modular, special-
+ized LLM agents.
+• We introduce a citation-first, rubric-guided, multi-agent
+iterative refinement framework that produces template
+flexible outputs, enabling systematic and transparent
+quality improvement through structured reviewer feed-
+back.
+• We introduce an extensible, behaviorally anchored rubric
+and evaluation framework that mirrors human peer re-
+view, enabling transparent, reproducible, and customiz-
+able assessment.
+Related Work
+Agentic System Collaborative Frameworks
+Recent advances in large language models have spurred
+the development of frameworks for orchestrating agentic
+systems, including CrewAI (Contributors 2024b), Auto-
+Gen (Wu et al. 2023), and LangGraph (Contributors 2024a).
+These toolkits provide abstractions for designing and coor-
+dinating teams of LLM-powered agents in hierarchical, col-
+laborative, and conversational workflows.
+Further progress includes frameworks for emergent be-
+havior and specialized capabilities, such as Hugging-
+GPT (Shen et al. 2023), MM-Agent (Liu et al. 2025), Agent-
+Verse (Chen et al. 2023), and Any-Agent (Ye et al. 2025), en-
+abling dynamic tool use, web-based interaction, and multi-
+modal collaboration. Additional research explores com-municative agent systems for software engineering (Qian,
+Wang et al. 2024; He, Treude, and Lo 2025), collective rea-
+soning (Du et al. 2023), and open challenges in cooperative
+AI (Dafoe et al. 2021), as well as scientific discovery (Gha-
+farollahi and Buehler 2025).
+These advances have made it increasingly feasible to de-
+sign, prototype, and benchmark multi-agent LLM systems
+for tasks such as collaborative writing, complex reasoning,
+tool use, and structured document generation. Our work
+builds on this foundation, leveraging agentic orchestration
+and modular task decomposition for robust and extensible
+academic survey generation.
+LLM-Based Survey Generation
+Recent systems have explored automating survey paper gen-
+eration with large language models (LLMs), combining re-
+trieval, structuring, and generation in end-to-end pipelines.
+AutoSurvey(Wang et al. 2024) follows a four-phase pipeline
+with arXiv-based retrieval and LLM-assisted writing, but re-
+lies solely on preprints and offers limited source curation.
+SurveyX(Liang et al. 2025) enhances retrieval via hybrid
+keyword expansion and semantic filtering with anAttribute-
+Treecitation structure, though it could be improved in mod-
+ularity and user control.SurveyForge(Yan et al. 2025) uses
+heuristic templates and a memory-driven Scholar Naviga-
+tion Agent (SANA), and introduces the SurveyBench bench-
+mark for holistic evaluation, but remains constrained by a
+static architecture and preprint-heavy sourcing.
+LLM Evaluation and Rubric Design
+Evaluation of LLM-generated outputs remains a major chal-
+lenge (Chang et al. 2023; Guo et al. 2023; Laskar et al.
+2024), especially for complex tasks like survey writing, due
+
+--- Page 3 ---
+Figure 2: Agentic citation preparation pipeline. Users shape
+topics and guide domain scoping; agents handle retrieval,
+filtering, and validation.
+to subjectivity, inconsistency, and ambiguity in assessment
+criteria. Several recent works have addressed these issues
+by proposing more comprehensive, behaviorally anchored
+rubrics and checklists (Messer et al. 2024; Lee et al. 2025).
+Peer-review guidelines from organizations such as IEEE and
+ACL (IEEE 2020; ACL Rolling Review 2025) provide ad-
+ditional best practices for rubric construction and reviewer
+alignment.
+Methodology
+System Overview
+Figure 1 presents the modular architecture of ARISE, de-
+signed for automated survey generation and iterative self-
+improvement. We target a systematic mapping review with
+article-level screening and structured rubric-guided synthe-
+sis. Each module consists of one or more dedicated LLM
+agents, assigned to perform specific scholarly tasks such
+as topic expansion, citation discovery and validation, liter-
+ature summarization, outline drafting, manuscript genera-
+tion, and peer review. In total, ARISE orchestrates 22 spe-
+cialized agents, including subagents for title and abstract
+generation, section-level summarization, and citation com-
+pletion. Some roles (e.g., “Summarizer”) are instantiated
+with module-specific prompts and objectives, reflecting the
+unique requirements of each pipeline stage. A complete ros-
+ter of agents, along with their task descriptions and configu-
+rations, is provided in our supplementary material to support
+transparency and reproducibility.
+Citation Preparation
+Figure 2 illustrates the agentic citation preparation pipeline
+in ARISE. The process begins with the user specifying an
+initial survey theme (e.g., “agentic systems for automated
+survey generation”). An expansion agent then proposes se-
+mantically related subtopics, which the user can further re-
+fine or approve.This interactive expansion step determinesthe conceptual scope of the survey and ensures both thematic
+breadth and alignment with user goals.
+Once topics are confirmed, adomain-scopingagent sug-
+gests publication venues that aretopically appropriate
+for each subtopic, including publisher portals (e.g., IEEE
+Xplore, Elsevier/ScienceDirect), academic search/indexing
+services (e.g., Google Scholar, Crossref, Semantic Scholar),
+and open-access repositories (e.g., arXiv). The goal of this
+step is to avoid obviously unrelated domains (e.g., business
+or biology journals when the topic is AI/ML), not to use
+venue prestige as a proxy for article quality. In other words,
+venues act asfilters on field, while inclusion and ranking de-
+cisions remain at thearticle level.
+For each (topic, source) pair, a citation retrieval agent
+gathers candidate references enriched with metadata such as
+authors, title, venue, year, and URL. Candidates retrieved
+from different sources are unified and normalized, then
+passed through automatic de-duplication and formatting val-
+idation to remove near-duplicates and malformed entries.
+The resulting curated citation list forms the basis for down-
+stream knowledge base construction and outline generation.
+Structured Knowledge Base Construction
+Figure 3 presents the structured knowledge base construc-
+tion pipeline in ARISE. The process begins with the cu-
+rated citation list from the previous phase or user-provided
+references. For each citation, the system first attempts di-
+rect retrieval via stored URLs. If a direct link fails due to
+paywalls or missing resources, a fallback metadata search is
+performed using author and title information on platforms
+such as Google Scholar or arXiv.
+If full or partial content (such as the abstract or introduc-
+tion) is successfully retrieved, an agent summarizes the text
+into a concise, contribution-focused entry. If all retrieval at-
+tempts fail, the citation is recorded in anError Listfor later
+review and possible reprocessing.
+All retrieved summaries are then deduplicated and vali-
+dated before being indexed into a persistent knowledge base,
+organized by citation indexrefN. This knowledge base
+forms the factual backbone for downstream modules, en-
+suring that the subsequent outline and paper composition
+phases are grounded in coherent, context-rich information.
+Citation-Keyed Memory (CKM).Beyond serving as a
+passive repository, the knowledge base functions as a
+citation-keyed memory: each entry is stored as a key–value
+pair(refN→summary). During drafting and refinement,
+sections query CKM only with the citation keys they already
+use (i.e.,cite(S)for a sectionS), and the system injects just
+those summaries into the prompt. This design minimizes ir-
+relevant context and interference while preserving traceabil-
+ity from generated text back to its evidence sources.
+Structured Outline Generation
+To support coherent and citation-grounded survey writing,
+the system uses a team of agents to build a structured out-
+line based on the knowledge base. As shown in Figure 4, the
+process starts from a knowledge base containingNcleaned
+citation summaries. These are divided into mini-batches, and
+
+--- Page 4 ---
+Figure 3: Structured Knowledge Base Construction. Each
+citation is processed via direct or fallback retrieval, sum-
+marized, deduplicated, and indexed in a persistent database
+aligned with the citation index.
+each batch is processed by a Writing Agent, which generates
+a partial outline with sections, subsections, and explicit cita-
+tion index references (e.g., [1][2][3]).
+The partial outlines are then passed to a Merging Agent,
+which combines them in pairs to form progressively larger
+outlines. After each merge, a Validation Agent checks that
+the merged outline is coherent and well organized, and that
+no newly introduced redundancies or obvious gaps appear.
+Citation-Preserving Outline Synthesis (CPOS).Beyond
+semantic coherence, we enforce acitation-preserving invari-
+antduring merging: for any pair of outlinesAandBwith
+citation index setscite(A)andcite(B), the merged outline
+Cmust satisfycite(C) = cite(A)∪cite(B). After each
+merge, the Validation Agent compares citation sets and iden-
+tifies any missing indices; a backfilling step then re-inserts
+the corresponding references and local context. This merg-
+ing and validation cycle continues until a single, citation-
+complete Final Outline is created, and a final check ensures
+that all original references from the curated citation index
+are present.
+Survey Paper Composition and Finalization
+This component completes the initial drafting and format-
+ting stages of the system. It transforms the structured out-
+line and curated knowledge base into a citation-grounded,
+academically formatted survey.
+As shown in Figure 5, the process begins by decompos-
+ing the final outline into section-level prompts based on the
+document hierarchy established during outline generation.
+For each sectionS, the system retrieves the relevant cita-
+tion indicescite(S)and their associated summaries from
+the citation-keyed memory (CKM). A Writing Agent then
+synthesizes these section-specific summaries into coherent,
+thematically organized prose, ensuring that every claim is
+anchored in the cited works and that traceability to origi-
+Figure 4: Structured outline generation component. Cita-
+tion summaries are grouped, outlined, and iteratively merged
+to form a thematically coherent, citation-preserving global
+structure.
+nal sources is preserved. The resulting drafts are passed to
+an Editor Agent, which improves logical flow and clarity,
+resolves local redundancies, and inserts placeholders for ta-
+bles or figures where appropriate. These refined sections are
+finally merged into a unified draft that respects the outline
+structure and maintains citation alignment.
+Citation and Formatting Hygiene.Figure 6 illustrates
+the citation completion and L ATEX formatting pipeline. Start-
+ing from a citation list that may contain incomplete biblio-
+graphic information, a Citation Completion Agent validates
+each entry and resolves missing metadata fields (e.g., DOIs,
+venues, years) by querying trusted academic databases and
+search engines. The agent emits standardized BibT EX en-
+tries, which are compiled into a structured bibliography.
+A Formatting Agent then enforceshygiene normaliza-
+tionon the L ATEX manuscript: it standardizes citation com-
+mands (e.g., transforming raw numeric brackets into con-
+sistent\cite{refN}calls), harmonizes section and table
+environments, and removes residual artifacts from earlier
+stages of the pipeline. To ensure professional presentation
+and reliable compilation, the agent applies structured table
+environments and consistent style conventions throughout
+the document. The cleaned L ATEX source can then be com-
+piled into a camera-ready PDF under the target conference
+or journal template.
+
+--- Page 5 ---
+Figure 5: Agentic Survey Paper Composition. Each section
+query is matched with relevant citations and summaries. A
+writing agent drafts the content, which is refined by an editor
+agent before merging into intermediate content outputs.
+Agentic Rubric-Guided Iterative Refinement
+Framework
+Framework Overview.To mirror real-world peer review,
+ARISE treats refinement as amulti-agent control loop. At
+each iterationt, the current draftD tis segmented into con-
+tiguous page chunks and independently evaluated by a set of
+reviewer agentsR, each applying the shared rubricB. Re-
+viewerireturns a rubric-based scoresi
+tand structured feed-
+backfi
+t. Scores are then aggregated to compute an average
+quality estimate:
+st=1
+|R|X
+i∈Rsi
+t,(1)
+where|R|=Nis the number of reviewer agents.
+If the aggregated score stmeets or exceeds the target
+thresholdτ, the draft is accepted as the final outputD∗. Oth-
+erwise, a summary agent plays the role of a meta-reviewer:
+it synthesizes the individual feedback items{fi
+t}into an ac-
+tionable revision plan ˆft. This plan specifieswhich sections
+and issuesto address (e.g., missing related work, weak anal-
+ysis, unclear structure). A refinement agent and an editor
+agent then apply the plan to obtain an improved draftD t+1,
+and the loop repeats until the threshold or another stopping
+condition (e.g., max rounds) is reached. Appendix 1 shows
+concrete examples of reviewer feedback and the resulting
+revision plans.
+Evidence-Locked Targeted Revision.Crucially, ARISE
+couples this control loop withevidence-locked, section-level
+revision. For a given sectionS, we first recover its set of
+cited keyscite(S)(i.e., therefNindices that appear in the
+text) and query the citation-keyed memory (CKM) to obtain
+only the corresponding summaries(refN→summary).
+The refinement agent is instructed to:
+Figure 6: Citation and Formatting Pipeline. The system com-
+pletes citation metadata, generates BibTeX entries, and stan-
+dardizes the L ATEX document to produce a clean, structured
+PDF ready for academic use.
+• modifyonlythe sections that are explicitly targeted in ˆft
+(no global free-form rewriting), and
+• ground new wording exclusively in the CKM entries for
+cite(S), without introducing new, uncited claims or ref-
+erences.
+This evidence-locked sectional refinement (ELSR) mini-
+mizes hallucination and scope drift by design, while preserv-
+ing traceability from every revision back to the underlying
+sources.
+Bias Controls and Early Stopping.To reduce LLM-as-
+judge bias, we use a cross-family reviewer pool and report
+both atri-judgesetting (GPT-4.1, Gemini 2.5 Pro, Claude
+3.7 Sonnet) and a setting where the generator family is ex-
+cluded from the judge set. We also vary the number of re-
+viewersN, the number of refinement roundst, and the ac-
+ceptance thresholdτto probe quality–cost trade-offs. In all
+cases, we log chunk-level scores and aggregated trajectories
+{st}T
+t=0, enabling analysis of convergence behavior and di-
+minishing returns.
+Rubric Construction and Evaluation Rationale.Our
+shared rubricBis constructed by synthesizing best practices
+from established peer-review guidelines—specifically, the
+IEEE (IEEE 2020) and ACL Rolling Review (ACL Rolling
+Review 2025)—as well as recent advances in automated,
+rubric-based evaluation (Messer et al. 2024). We further in-
+corporate insights from frameworks such as CheckEval (Lee
+et al. 2025), which emphasize subdividing evaluation criteria
+into explicit, behaviorally anchored sub-aspects to improve
+reliability and inter-rater agreement in LLM-based assess-
+ment.
+To ensure consistent and interpretable scoring,Bopera-
+tionalizes seven core dimensions and twenty subcategories,
+each with explicit, detailed criteria for every score from 1 to
+5 (Table 1). This structure minimizes ambiguity and subjec-
+tivity, supporting transparent and reproducible evaluation for
+both human- and LLM-generated surveys. All criteria and
+
+--- Page 6 ---
+Figure 7: Agentic rubric-guided iterative refinement. At each
+iterationt, reviewer agents independently score draftD tus-
+ing rubricB, producing scoressi
+tand feedbackfi
+t. The aver-
+age score stis computed; if st≥τ, the draft is accepted as
+D∗. Otherwise, feedback is synthesized into a revision plan
+that drives targeted updates to produceD t+1. The process
+repeats until the threshold is met or a stopping condition is
+reached.
+scoring anchors are fully documented (Appendix 2), provid-
+ing a robust foundation for benchmarking, actionable feed-
+back, and community adaptation to new domains.
+Experiment Setup
+Benchmarking and Comparison Framework
+Human-Written BaselinesWe benchmark ARISE
+against ten recently published, human-authored survey
+papers, selected for topical diversity, publication recency
+(2023–2025), and high visibility in either arXiv or leading
+peer-reviewed venues. These baselines were chosen to
+represent a spectrum of research areas—including LLM
+reasoning, evaluation, multimodality, time-series modeling,
+and human-agent interaction—ensuring relevance to our
+target domains. See Appendix 3 for the full summary table
+of baseline survey papers. For direct comparison, we use
+ARISE to generate survey papers on the same research
+areas as the human-written baselines.
+Automated Survey Generation SystemsWe also evalu-
+ate ARISE against prior automated systems, includingSur-
+veyForge(Yan et al. 2025),SurveyX(Liang et al. 2025),
+andAutoSurvey(Wang et al. 2024). Due to availability con-
+straints, we include 10 papers each from SurveyForge and
+SurveyX, and 3 from AutoSurvey.Dimension Subcategories
+Scope Objectives, Relevance, Audience
+Literature Comprehensiveness, Balance, Currency
+Analysis Depth, Integration, Gaps
+Originality Novelty, Advancement, Redundancy Avoidance
+Organization Logical Flow, Section Clarity, Summarization
+Presentation Language, Visuals, Formatting
+References Accuracy, Appropriateness
+Table 1: Structure of the shared evaluation rubric: seven di-
+mensions, twenty subcategories, each scored from 1 to 5 (to-
+tal 100 points).
+Experimental Design
+ARISE is implemented using CrewAI (Contributors 2024b),
+with API keys for GPT-4.1 (OpenAI 2023), Gemini 2.5
+Pro (Google 2025), and Claude 3.7 Sonnet (Anthropic 2024)
+managed via environment variables. All system agents run
+on GPT-4.1 by default. Our pipeline also integrates the Ser-
+per API (Serper 2024) for web search and source scrap-
+ing(see Appendix 5 for cost and time details). The rubric,
+shown in Table 1, defines twenty subcategories across seven
+core dimensions, and all reported scores are computed using
+the aggregate formula given in Eq. (1).
+To ensure full-document coverage and minimize posi-
+tional bias, we segment each paper into contiguous 3-page
+chunks, encouraging balanced attention across sections and
+ensuring each chunk fits within the LLMs’ context win-
+dows. Chunk-level reviews produce localized rubric scores,
+enabling fine-grained analysis of writing quality and docu-
+ment structure. All outputs from ARISE, competing auto-
+mated systems, and human-written baselines are evaluated
+using the same domain-agnostic rubric, chunking strategy,
+and tri-model reviewer setup.
+Beyond automated evaluation, we include a human expert
+study to validate perceived quality improvements after iter-
+ative refinement. We also perform a model-based ablation,
+comparing end-to-end system performance with both small
+(gpt-4.1-mini) and large (gpt-4.1) language models
+as pipeline agents. Finally, we conduct a citation traceabil-
+ity audit to assess reference reliability and report inter-rater
+agreement using Krippendorff’s Alpha.
+Results and Analysis
+Overall Performance.
+Our system,ARISE, achieves the highest overall quality
+among all five evaluated systems. As shown in Table 2,
+On our agentic rubric-based evaluation framework, ARISE’s
+outputs receive higher scores than all baselines across each
+individual reviewer—Claude 3.7, Gemini 2.5 Pro, and GPT-
+4.1—with a tri-judge average of92.48(Table 2). To check
+for potential self-judging bias, we also report a bi-judge set-
+ting thatexcludesGPT-4.1 from the reviewer pool (Bi-judge
+(G+C) column); ARISE remains the top-performing system
+(92.43 vs. the next best 87.58), indicating that our conclu-
+sions do not depend on using the generator family as a judge.
+
+--- Page 7 ---
+System GPT-4.1 Gemini Claude Tri-judge Avg Bi-judge Avg
+ARISE 92.57 92.59 92.27 92.48 92.43
+AutoSurvey 81.87 81.74 83.76 82.46 82.75
+Baseline 86.58 85.81 86.06 86.15 85.94
+SurveyForge 87.88 87.51 87.64 87.68 87.58
+SurveyX 81.13 81.99 81.82 81.65 81.91
+Table 2: Mean TOTAL scores by system and reviewer. “Tri-
+judge Avg” uses all three reviewers (GPT-4.1, Gemini 2.5
+Pro, Claude 3.7 Sonnet). “Bi-judge Avg (G+C)” excludes
+the generator family and averages only Gemini 2.5 Pro and
+Claude 3.7 Sonnet.
+Rubric-Level Superiority
+ARISE demonstrates consistently strong rubric-level perfor-
+mance, leading in all seven categories evaluated (Table 3).
+In critical dimensions such asLiterature(4.95),Presen-
+tation(4.84),References(4.98), andOrganization(4.82),
+ARISE surpasses both human-written baselines and recent
+automated systems. These gains are attributed to our agentic
+refinement strategy and explicit modular writing design.
+CategoryARISEAutosurvey Baseline SurveyForge SurveyX
+Analysis4.563.94 3.74 4.45 3.64
+Literature4.954.53 4.70 4.79 4.29
+Organization4.824.26 4.52 4.55 4.41
+Originality4.443.88 3.97 4.10 3.68
+Presentation4.843.57 4.35 3.87 4.22
+References4.984.81 4.94 4.85 4.45
+Scope4.304.10 4.14 4.23 4.00
+Table 3: Mean reviewer scores by rubric category and sys-
+tem
+ARISE’s consistently high scores across all rubric dimen-
+sions confirm the effectiveness of our modular agent design
+and rubric-guided refinement strategy. Inter-rater reliability
+among the reviewers was consistently high across all sys-
+tems, with Krippendorff’s Alpha (α) exceeding0.966in all
+cases and reaching up to0.987—see Appendix 4 for full
+agreement scores.
+These results validate our core hypothesis: rubric-guided
+iterative refinement enables transparent, interpretable, and
+high-quality survey generation. By integrating modular
+agent roles, structured evaluation criteria, and multi-round
+refinement, ARISE achieves higher rubric scores than base-
+line and other generation systems, and establishes a repro-
+ducible foundation for self-improving academic writing.
+Validating the Refinement Process with a
+Domain-Specific Example
+To illustrate the impact of ARISE’s rubric-guided iterative
+refinement loop, we present a representative refinement tra-
+jectory for a system-generated survey paper in the domain
+ofLLM reasoning and replication. This example tracks how
+quality evolves over successive refinement iterations basedRound GPT-4.1 Gemini 2.5 Pro Claude 3.7 Sonnet Average
+0 86.8 87.9 86.2 87.0
+1 90.5 89.8 90.0 90.1
+2 93.8 89.2 91.3 91.4
+3 92.3 92.8 92.9 92.7
+Table 4: A case of average review score progression across
+rubric-guided refinement rounds for a generated survey. The
+target average score is 92.0.
+on rubric-guided feedback from three independent reviewer
+agents.
+As shown in Table 4, the case begins with an average re-
+viewer score of 87.0. By Round 3, the average score exceeds
+the threshold, reaching 92.7. This trajectory demonstrates
+ARISE’s ability to iteratively elevate content quality through
+modular, reviewer-guided revision. See the supplementary
+material for results from all other topic domains.
+Human Evaluation
+To assess the effectiveness of our agentic refinement pro-
+cess, we conducted a human evaluation with four experts
+(two professors, one postdoc, one PhD student). Each ex-
+pert independently reviewed five system-generated survey
+papers, bothbeforeandafteriterative refinement, using the
+same 20-subcategory rubric as in our automated evaluation.
+Results.Table 5 summarizes the scores. On average, the
+total score increased from 70.2 to 83.7 out of 100 , and
+the mean subcategory rating rose from 3.51 to 4.18 out of
+5. All topics and reviewers observed substantial, consistent
+improvement. After refinement, system outputs consistently
+achieved “strong” (≥4.0) expert ratings.
+Topic Before After Before After
+(Total) (Total) (Avg) (Avg)
+ASG LitRev 69.8 80.5 3.49 4.03
+GenAI in Manufacturing 68.8 82.8 3.44 4.14
+LLM Reasoning 66.3 86.0 3.31 4.30
+Clustering Indexing 70.5 82.0 3.53 4.10
+Retrieval-Aug. Gen. 75.8 87.0 3.79 4.35
+Average70.2 83.7 3.51 4.18
+Improvement (%)–19.2%–19.2%
+Table 5: Human evaluation scores for five system-generated
+surveys (N=4 experts per paper). “Total” is out of 100; “Avg”
+is per-rubric average out of 5.
+These results confirm that rubric-guided refinement sub-
+stantially and reliably improves survey quality as perceived
+by domain experts. Additional human evaluations are de-
+tailed extensively in Appendix 6.
+Model-Based Ablation Study
+To assess how agent capacity influences end-to-end survey
+generation quality, we conducted an ablation study using
+two full system configurations: one withgpt-4.1-mini
+
+--- Page 8 ---
+as the primary agent in all modules, and another with
+the largergpt-4.1. For each configuration, we generated
+complete survey papers and evaluated them across refine-
+ment rounds using the same rubric-guided iterative process.
+As shown in Table 6, both configurations demonstrate
+quality improvements through the iterative refinement loop.
+The system powered by the larger model achieved a higher
+final rubric score and greater improvement, reflecting the ad-
+vantages of increased model capacity for both generation
+and refinement tasks. Even with the smaller model config-
+uration, ARISE achieves an average final rubric score of
+88.04, which remains slightly higher than those of prior au-
+tomated systems and human-written baselines, as shown in
+Table 2.
+System Model Initial Final Improvement (%)
+gpt-4.1-mini83.09 88.045.96%
+gpt-4.186.53 92.486.88%
+Table 6: Average per-reviewer rubric score across refinement
+rounds for system-generated papers using small and large
+models.
+Reference Reliability
+To validate the reliability of ARISE’s citation prepara-
+tion process, we conducted a traceability audit of the final
+system-generated references. We define theExpanded Cita-
+tion Traceability Rate(eCTR) as:
+eCTR=V
+T,Hallucination Rate= 1−eCTR (2)
+whereVis the number of verifiable citations successfully
+matched to external databases, andTis the total number of
+citations extracted from the system-generated PDF.
+We applied layout-aware reference extraction (via
+PyMuPDF) to final PDF outputs and matched each citation
+against CrossRef, Semantic Scholar, and arXiv using pub-
+lic APIs. Across all evaluated ARISE outputs, we observed
+a perfect mean eCTR of1.00, corresponding to a halluci-
+nation rate of0.00. This result demonstrates the robustness
+of our citation-first pipeline in producing factually grounded
+scholarly references.
+Conclusion
+We present ARISE, a modular, agentic system for auto-
+mated academic survey generation and iterative refinement.
+By decomposing the survey writing and peer review pro-
+cess into specialized LLM-powered agents, ARISE deliv-
+ers transparent, reproducible, and high-quality scholarly out-
+puts, and effectively addressing longstanding challenges in
+quality control, formatting, and iterative improvement. Our
+experiments show that ARISE achieves higher rubric scores
+than both human-written baselines and state-of-the-art au-
+tomated survey generation systems across a comprehensive,behaviorally anchored evaluation rubric. The system demon-
+strates near-perfect reference reliability and substantial qual-
+ity improvements through rubric-guided, multi-agent itera-
+tive refinement. Further discussion of broader impact, ethi-
+cal statement, and limitations is provided in Appendix 5.
+Appendix
+1. Rubric-Guided Iterative Refinement Sample
+Each round of refinement in our framework is guided by
+structured feedback from multiple reviewer agents, who in-
+dependently evaluate each manuscript draft using a detailed,
+standardized rubric (see Table A4). Agents provide both
+quantitative scores and qualitative suggestions; representa-
+tive reviewer outputs and sample revision recommendations
+are compiled in Tables A1–A3. These records illustrate the
+diversity and depth of agentic assessment throughout the it-
+erative improvement process described in the main text.
+For full transparency and reproducibility, all generated
+survey drafts, reviewer feedback, meta-review synthesis, and
+the codebase for executing rubric-driven evaluation and re-
+vision are provided in the supplementary materials (see each
+topic’s subfolderreview output).
+Generated Survey Sample
+Our ARISE system assists academic researchers by gener-
+ating high-quality PDF drafts using the fullTeX Liveli-
+brary, which supports a wide variety of L ATEX classes for
+major journals and conferences (e.g., AAAI, ACM, IEEE,
+Springer, Elsevier, and more). The title and abstract for each
+draft are autonomously generated by dedicated agents based
+on the complete manuscript content, ensuring that each pa-
+per features a contextually relevant and well-structured sum-
+mary. The modular formatting and finalization module en-
+ables users to specify their preferred style, automatically
+adapting the manuscript structure, citation format, and page
+layout to the conventions of the target venue. ARISE man-
+ages all technical aspects of L ATEX formatting, including ti-
+tle, abstract, metadata, tables, and references, allowing re-
+searchers to focus on the intellectual content rather than for-
+matting details. This workflow streamlines the preparation
+of survey drafts in L ATEX, saving substantial time and effort
+when initiating new research projects. An example output
+generated by ARISE is illustrated in Figure A1.
+Reference Sample
+To illustrate the professional formatting quality and citation
+currency of ARISE-generated manuscripts, we provide a ref-
+erence sample generated by our system on the topic ofClus-
+tering, Indexing, and Data Structures for High-Dimensional
+and Categorical Data(see Figure A2).
+ARISE emphasizes citations from peer-reviewed journals
+and established venues when available, while still incorpo-
+rating relevant preprints for timeliness. This approach en-
+hances the credibility, accuracy, and academic rigor of the
+generated surveys compared to systems predominantly re-
+liant on preprints.
+
+--- Page 9 ---
+Figure A1: Example first page of a survey paper generated by ARISE, formatted in ACM style. This sample illustrates the
+structured abstract, clear academic formatting, and section organization achieved by the pipeline. Full outputs for additional
+topics are provided in the supplementary materials.
+
+--- Page 10 ---
+Figure A2: Reference sample generated by ARISE on the topic ofClustering, Indexing, and Data Structures for High-
+Dimensional and Categorical Data, highlighting its prioritization of peer-reviewed journal and conference papers to ensure
+citation quality and credibility.
+
+--- Page 11 ---
+Model Section Suggestions
+gpt-4.1 Abstract, Introduction, and
+Historical and Foundational
+LandscapeExpand literature coverage, especially in the benchmarking and reason-
+ing evaluation literature.; Ensure all referenced tables and visuals are
+present, clear, and visually improve synthesis.; Replace generic num-
+bered citations with a full reference list in the final version for traceabil-
+ity.
+gemini-2.5 Abstract, Introduction,
+Historical and Foundational
+Landscape (through start of
+Benchmarking)Ensure referenced figures/tables (e.g., Table 1) are included in the fi-
+nal version.; Verify full references section for accuracy and formatting.;
+Strengthen in-chunk summarization using inline tables or boxes if pos-
+sible to reinforce key comparative points.
+claude-3.7 Introduction, Historical and
+Foundational LandscapeBroaden and deepen the engagement with competing or alternative
+views where appropriate (e.g., critiques of hybrid models or transformer
+approaches).; Ensure that figures, tables, and diagrams are present and
+directly support claims when referenced.; Replace placeholder citation
+markers with complete bibliography for full submission.; Consider sum-
+marizing key takeaways at the end of major sections more explicitly.
+gpt-4.1 3.2–4.3 Benchmark Evalua-
+tion and Probing SectionsAdd an explicit restatement or recap of the overall survey objectives
+when introducing new major sub-sections.; Provide a few concrete ex-
+amples where benchmarking volatility misled the field (to deepen criti-
+cal analysis).; Highlight implications or actionable guidance for bench-
+mark and metric developers.; Consider briefly summarizing emerging
+benchmarks from late 2023 or 2024, if possible, for currency.
+gemini-2.5 3. Benchmarking, Evalua-
+tion, and Comparative Anal-
+ysisProvide a brief, explicit statement of objectives at the start or end of the
+section.; Consider enhancing section summaries or explicitly restating
+takeaways after major analyses.; Integrate more conceptual figures to
+complement the empirical tables.; Check for correct and non-redundant
+formatting in citation numbering.
+claude-3.7 Benchmarking and Evalu-
+ation Paradigms; Probing,
+Reasoning, and Linguistic
+BenchmarksAdd an explicit section-level objective statement or overview at the
+start.; Improve section transitions or provide mini-introductions to ma-
+jor subsections.; Standardize citation formatting in text and ensure
+consistent reference styling.; Consider including workflow diagrams,
+paradigm maps, or conceptual illustrations.; Make audience/who-will-
+benefit aspects clear in introductory text.
+Table A1: Rubric-Guided Iterative Refinement Sample
+2. Rubric Structure and Scoring Anchors.
+To operationalize consistent, high-fidelity review, Table A4
+presents the complete scoring rubricBused throughout our
+agentic evaluation pipeline. Each dimension and subcate-
+gory is defined with explicit, behaviorally anchored crite-
+ria for every possible score from 1 (lowest) to 5 (highest).
+This granular structure—covering scope, literature review,
+analysis, originality, organization, presentation, and refer-
+ences—translates general peer-review standards into action-
+able, reproducible evaluation guidance for both human and
+automated assessment. By making all criteria and scoring
+anchors fully explicit, the rubric supports transparent bench-
+marking, facilitates community adaptation, and underpins
+robust feedback cycles in our iterative refinement frame-
+work.3. Baseline Survey Papers Used for
+Benchmarking
+To ensure fair and meaningful benchmarking, the selection
+of baseline research domains was constrained by the avail-
+ability of comparable sample outputs from all three auto-
+mated survey generation systems evaluated in this study.
+Within these feasible domains, we aimed for a balanced rep-
+resentation by including five preprint surveys and five peer-
+reviewed surveys. Table A5 details each baseline’s research
+area, full title with citation, and publication venue or year,
+providing a transparent reference set for direct comparison
+against ARISE and prior automated systems.
+4. Reliability Evaluation
+To assess consistency among reviewer agents, we compute
+Krippendorff’s Alpha(α), a standard inter-rater reliability
+
+--- Page 12 ---
+Model Chunk ChunkIndex Category Sub-Criterion Score Comment (shared for category)
+gpt-4.1 Pages 1–3 0 Literature Comprehensiveness 4 The section references many key works across
+subfields and uses over 30 citations (references
+numbering up to 114 are mentioned), but the
+specific breadth cannot be fully verified as most
+citation details are numeric placeholders in this
+excerpt. Coverage appears current, with refer-
+ences to recent methods and issues, but explicit
+years or full coverage cannot be absolutely con-
+firmed. Discussion is balanced and cites limita-
+tions and open problems.
+gpt-4.1 Pages 1–3 0 Literature Balance 5
+gpt-4.1 Pages 1–3 0 Literature Currency 4
+gemini-2.5 Pages 1–3 0 Literature Comprehensiveness 5 The section displays strong comprehensive-
+ness, referencing foundational and very recent
+works (with≥30 citations), covering mul-
+tiple domains (survey generation, LLMs, hy-
+brid workflows). Balance is maintained by dis-
+cussing benefits and challenges, though the cri-
+tique could be more granular. Currency is ex-
+cellent, with up-to-date references.
+gemini-2.5 Pages 1–3 0 Literature Balance 4
+gemini-2.5 Pages 1–3 0 Literature Currency 5
+claude-3.7 Pages 1–3 0 Literature Comprehensiveness 5 References are numerous and span many
+subfields, often citing multiple recent pa-
+pers in each subtopic (≥30 citations ap-
+pear, many recent, referencing preprints/con-
+ferences). Strengths and weaknesses are dis-
+cussed, including presenting trade-offs (e.g.,
+hybrid vs. black-box). Multiple perspectives
+are mentioned, but direct debates between com-
+peting schools are limited.
+claude-3.7 Pages 1–3 0 Literature Balance 4
+claude-3.7 Pages 1–3 0 Literature Currency 5
+Table A2: Detailed rubric scores sample of Literature category for reviewer agents (Pages 1–3, Chunk 0), grouped by agent
+with shared comments.
+metric. It is defined as:
+α= 1−Do
+De
+whereD odenotes observed disagreement andD edenotes
+expected disagreement by chance. Values range from−∞
+to 1, withα= 1indicating perfect agreement.
+We computeαunder the interval-level setting using rubric
+scores from three reviewers (GPT-4.1, Gemini 2.5, Claude
+3.7) across four systems and a published baseline. All eval-
+uations use the same rubric and chunking protocol.
+As shown in Table A6, all systems—including ARISE,
+the baselines, and prior automated methods—achieved ex-
+ceptionally high inter-rater reliability, with Krippendorff’s
+Alpha (α) values exceeding 0.96 across the board. This
+reflects strong consistency in scoring among the indepen-
+dent reviewer agents and further supports the robustness
+and interpretability of the rubric-guided evaluation protocol
+adopted in our study. High agreement at both the system and
+model levels suggests that our rubric design and agent work-flow produce reproducible, reliable assessments suitable for
+benchmarking survey generation quality.
+5. Limitations, Broader Impact, and Ethical
+Statement
+Limitations
+While ARISE achieves strong empirical performance in
+generating and evaluating survey papers, several limitations
+should be acknowledged.
+First, our evaluation framework relies entirely on large
+language models (LLMs) as reviewer agents—specifically
+GPT-4.1, Gemini 2.5 Pro, and Claude 3.7 Sonnet. Although
+we adopt a detailed and standardized rubric to promote con-
+sistency, we were unable to involve human reviewers due to
+time and resource constraints. As such, the evaluation may
+reflect alignment patterns and blind spots specific to current
+LLMs.
+Second, Our system relies on commercial LLM APIs with
+tiered pricing and computational constraints, such as request
+
+--- Page 13 ---
+rate limits, context window caps, and quota exhaustion.
+These factors can intermittently affect pipeline stability or
+trigger retry logic. We employ both large-scale models (e.g.,
+GPT-4.1, Claude 3.7, Gemini 2.0 Pro) and smaller, cost-
+efficient alternatives (e.g., GPT-4.1 Mini, Gemini Flash),
+balancing performance and budget. As shown in Figure A7,
+larger models tend to offer stronger reasoning and editing ca-
+pabilities but at significantly higher costs—up to 5–10× per
+million tokens compared to compact variants. In addition to
+LLM usage, ARISE integrates paid external APIs such as
+Serper for web search and scraping, which incurs $0.01 per
+query beyond the free tier (100/month), making it affordable
+at an academic scale. For our experiments, total Serper usage
+cost remained under $200.
+In practice, a single paper generation cycle typically costs
+$10–$20 and takes approximately 3.5 hours, depending on
+the topics. As topic complexity and breadth grow, addi-
+tional time is required for citation expansion, data collec-
+tion, and outline refinement. Notably, our refinement mod-
+ule—which includes agentic evaluation and iterative rewrit-
+ing—accounts for 30-40 percent of total processing time, es-
+pecially when multi-round improvement is needed for qual-
+ity assurance.
+Despite these limitations, ARISE maintains a modular,
+auditable, and reproducible architecture. Future work may
+address these constraints through lightweight model fine-
+tuning, asynchronous feedback loops with human-in-the-
+loop reviewers, or more cost-efficient batching strategies.
+Broader Impact
+ARISE aims to improve the scalability, structure, and fac-
+tual consistency of academic survey writing by automating
+key tasks such as citation preparation, outline construction,
+and LaTeX formatting through modular agent workflows. Its
+intended users include researchers, educators, and academic
+writers seeking assistance in synthesizing large volumes of
+literature.
+Beyond survey writing, ARISE’s modular architecture
+and role-specialized agents can be readily adapted for
+broader document generation tasks, including grant propos-
+als, technical reports, and educational materials. The rubric-
+guided feedback loop and structured refinement process gen-
+eralize well to any domain requiring high-fidelity, structured
+writing.
+The broader impact of ARISE is twofold. Positively, it
+lowers the barrier to entry for producing well-organized,
+citation-grounded scholarly outputs. This is especially ben-
+eficial in under-resourced research communities or inter-
+disciplinary areas where manual literature synthesis is pro-
+hibitively time-consuming. Furthermore, ARISE empha-
+sizes traceable references, rubric-based evaluation, and
+workflow transparency, promoting responsible deployment
+and downstream auditing.
+However, certain risks must be considered. Over-reliance
+on automated systems may diminish critical thinking or per-
+petuate biases inherent in training data. If deployed with-
+out expert oversight, ARISE could contribute to derivative
+content or fail to capture diverse perspectives. To mitigate
+these risks, ARISE is explicitly designed as an assistivetool—never a replacement for human authorship. All final
+outputs must be reviewed and approved by domain experts.
+We encourage future research to explore participatory re-
+viewer integration, adaptive learning mechanisms, and safe-
+guards to ensure originality, diversity, and attribution fi-
+delity.
+Ethical Statement
+We used large language models, including ChatGPT, solely
+to polish the manuscript’s language, including grammar and
+phrasing. All substantive content, system design, and exper-
+imental decisions were authored and verified by the human
+research team.
+ARISE is designed to assist researchers by automating
+structured writing tasks such as citation collection, summa-
+rization, and LaTeX formatting. It operates on verified aca-
+demic inputs and uses low-temperature generation to mini-
+mize hallucinations. Most observed failure cases stem from
+external API disruptions (e.g., quota exhaustion) rather than
+model unpredictability. ARISE is not intended to replace hu-
+man authorship or scholarly judgment. It produces draft ma-
+terials for human review, and all final responsibility and in-
+tellectual ownership remain with the user.
+6. Additional Human Evaluation with
+GPT-4.1-Mini
+To assess whether our rubric-guided refinement remains ef-
+fective with smaller models, we conducted an additional hu-
+man evaluation using GPT-4.1-mini. As before, four expert
+reviewers (two professors, one postdoc, one PhD student)
+assessed five survey topics using the same detailed rubric.
+As shown in Table A8, the system achieved an average to-
+tal score improvement from 66.45 to 80.70 (+21.45%) and a
+subcategory average increase from 3.32 to 4.03 (+21.45%).
+These gains are even higher than the +19.20% improvement
+observed with GPT-4.1 (Table 5), highlighting that rubric-
+guided refinement remains robust and impactful even when
+starting from weaker initial drafts. The smaller model ben-
+efits more due to its lower baseline quality, while the full
+GPT-4.1 starts from a higher base and thus shows slightly
+smaller relative gains. This comparison underscores the gen-
+eralizability of our framework across model sizes.
+7. Ablation Study: Small-Model Pipeline
+(GPT-4.1 Mini)
+To assess the trade-offs between cost and performance, we
+conducted an ablation study using the GPT-4.1 Mini model
+throughout the agentic pipeline. As shown in Table A9, the
+smaller model achieved slightly lower initial and final rubric
+scores compared to the default (full-size) ARISE pipeline,
+but remained competitive with other systems and published
+baselines. Notably, we observed that the primary source of
+performance loss stemmed from the small model’s weaker
+instruction-following and formatting ability (e.g., outputting
+raw metadata, markdown, or incomplete LaTeX environ-
+ments). Despite this, the 4.1 Mini pipeline still delivered
+
+--- Page 14 ---
+high-quality survey drafts at significantly reduced compu-
+tational cost, supporting its use in resource-constrained set-
+tings or for rapid iteration.
+References
+Abdullahi, S.; Danyaro, K. U.; Zakari, A.; Aziz, I. A.; Za-
+wawi, N. A. W. A.; and Adamu, S. 2025. Time-Series Large
+Language Models: A Systematic Review of State-of-the-
+Art.IEEE Access, 13: 30235–30261.
+ACL Rolling Review. 2025. Reviewer Guidelines. https:
+//aclrollingreview.org/reviewerguidelines. Accessed May
+2025.
+Anthropic. 2024. Claude 3 Model Family. https://www.
+anthropic.com/api.
+Chang, Y .; Wang, X.; Wang, J.; Wu, Y .; Yang, L.; Zhu,
+K.; Chen, H.; Yi, X.; Wang, C.; Wang, Y .; Ye, W.;
+Zhang, Y .; Chang, Y .; Yu, P. S.; Yang, Q.; and Xie, X.
+2023. A Survey on Evaluation of Large Language Models.
+arXiv:2307.03109.
+Chen, W.; Su, Y .; Zuo, J.; Yang, C.; Yuan, C.; Chan, C.-M.;
+Yu, H.; Lu, Y .; Hung, Y .-H.; Qian, C.; Qin, Y .; Cong, X.; Xie,
+R.; Liu, Z.; Sun, M.; and Zhou, J. 2023. AgentVerse: Facil-
+itating Multi-Agent Collaboration and Exploring Emergent
+Behaviors. arXiv:2308.10848.
+Conde, J.; Reviriego, P.; Salvach ´ua, J.; Mart ´ınez, G.;
+Hern ´andez, J. A.; and Lombardi, F. 2024. Understanding
+the Impact of Artificial Intelligence in Academic Writing:
+Metadata to the Rescue.Computer, 57(1): 85–88.
+Contributors, L. 2024a. LangGraph: Composable Multi-
+Agent Workflows for LLM Applications. https://www.
+langchain.com/langgraph. Accessed: 2025-07-14.
+Contributors, T. C. 2024b. CrewAI: Fast and Flexible
+Multi-Agent Automation Framework. https://github.com/
+joaomdmoura/crewai. Accessed: 2025-05-16.
+Dafoe, A.; Hughes, E.; Bachrach, Y .; Collins, T.; Mc-
+Kee, K. R.; Leibo, J. Z.; Larson, K.; and Graepel, T.
+2021. Open Problems in Cooperative AI.arXiv preprint
+arXiv:2012.08630.
+Dong, W.; Zhao, Y .; Sun, Z.; Liu, Y .; Peng, Z.; Zheng, J.;
+Zhang, Z.; Zhang, Z.; Wu, J.; Wang, R.; Xu, S.; Huang, X.;
+and He, X. 2025. Humanizing LLMs: A Survey of Psy-
+chological Measurements with Tools, Datasets, and Human-
+Agent Applications. arXiv:2505.00049.
+Du, Y .; Li, S.; Torralba, A.; Tenenbaum, J. B.; and Mordatch,
+I. 2023. Improving Factuality and Reasoning in Language
+Models through Multiagent Debate. arXiv:2305.14325.
+Gao, Y .; Xiong, Y .; Gao, X.; Jia, K.; Pan, J.; Bi, Y .; Dai,
+Y .; Sun, J.; Wang, M.; and Wang, H. 2024. Retrieval-
+Augmented Generation for Large Language Models: A Sur-
+vey. arXiv:2312.10997.
+Ghafarollahi, A.; and Buehler, M. J. 2025. SciAgents: Au-
+tomating Scientific Discovery Through Bioinspired Multi-
+Agent Intelligent Graph Reasoning.Advanced Materials,
+37(22): 2413523.
+Google, G. T. 2025. Gemini: A Family of Highly Capable
+Multimodal Models. arXiv:2312.11805.Guo, Z.; Jin, R.; Liu, C.; Huang, Y .; Shi, D.; Supryadi; Yu,
+L.; Liu, Y .; Li, J.; Xiong, B.; and Xiong, D. 2023. Eval-
+uating Large Language Models: A Comprehensive Survey.
+arXiv:2310.19736.
+He, J.; Treude, C.; and Lo, D. 2025. LLM-Based Multi-
+Agent Systems for Software Engineering: Literature Re-
+view, Vision and the Road Ahead. arXiv:2404.04834.
+IEEE. 2020. IEEE Reviewer Guidelines. https:
+//ieeeauthorcenter.ieee.org/wp-content/uploads/ieee-
+reviewer-guidelines.pdf. Accessed: 2025-05-18.
+Karapantelakis, A.; Alizadeh, P.; Alabassi, A.; et al. 2024.
+Generative AI in mobile networks: a survey.Annals of
+Telecommunications, 79: 15–33.
+Laskar, M. T. R.; Alqahtani, S.; Bari, M. S.; Rahman, M.;
+Khan, M. A. M.; Khan, H.; Jahan, I.; Bhuiyan, A.; Tan,
+C. W.; Parvez, M. R.; Hoque, E.; Joty, S.; and Huang, J.
+2024. A Systematic Survey and Critical Review on Evalu-
+ating Large Language Models: Challenges, Limitations, and
+Recommendations. arXiv:2407.04069.
+Lee, S. K.; and Ko, H. 2025. Generative Machine Learning
+in Adaptive Control of Dynamic Manufacturing Processes:
+A Review. arXiv:2505.00210.
+Lee, Y .; Kim, J.; Kim, J.; Cho, H.; Kang, J.; Kang, P.;
+and Kim, N. 2025. CheckEval: A reliable LLM-as-a-Judge
+framework for evaluating text generation using checklists.
+arXiv:2403.18771.
+Liang, X.; Yang, J.; Wang, Y .; Tang, C.; Zheng, Z.; Song,
+S.; Lin, Z.; Yang, Y .; Niu, S.; Wang, H.; Tang, B.; Xiong,
+F.; Mao, K.; and Li, Z. 2025. SurveyX: Academic Survey
+Automation via Large Language Models.arXiv preprint
+arXiv:2502.14776.
+Liu, F.; Yang, Z.; Liu, C.; Song, T.; Gao, X.; and Liu, H.
+2025. MM-Agent: LLM as Agents for Real-world Mathe-
+matical Modeling Problem. arXiv:2505.14148.
+Luo, J.; and Rao, H. 2025. A Survey on the Topology of
+Fractal Squares. arXiv:2505.00309.
+Messer, M.; Brown, N. C. C.; K ¨olling, M.; and Shi, M. 2024.
+Automated Grading and Feedback Tools for Programming
+Education: A Systematic Review.ACM Trans. Comput.
+Educ., 24(1).
+Miah, A. S. M.; taro Suzuki; and Shin, J. 2025. A Method-
+ological and Structural Review of Parkinsons Disease De-
+tection Across Diverse Data Modalities. arXiv:2505.00525.
+OpenAI. 2023. GPT-4 Technical Report. https://openai.com/
+research/gpt-4.
+Qian, J.; Wang, X.; et al. 2024. Communicative Agents for
+Software Development. InICLR.
+Serper. 2024. Serper API Documentation. https://serper.
+dev/.
+Shen, Y .; Song, K.; Tan, X.; Li, D.; Lu, W.; and Zhuang, Y .
+2023. HuggingGPT: Solving AI Tasks with ChatGPT and
+its Friends in Hugging Face. arXiv:2303.17580.
+Wang, Y .; Guo, Q.; Yao, W.; Zhang, H.; Zhang, X.; Wu, Z.;
+Zhang, M.; Dai, X.; Zhang, M.; Wen, Q.; Ye, W.; Zhang,
+S.; and Zhang, Y . 2024. AutoSurvey: Large Language
+
+--- Page 15 ---
+Models Can Automatically Write Surveys.arXiv preprint
+arXiv:2406.10252.
+Wu, Q.; Li, C.; Peng, B.; and et al. 2023. AutoGen: Enabling
+Next-Generation Large Language Model Applications via
+Multi-Agent Conversation Framework. https://microsoft.
+github.io/autogen/.
+Wu, S.; Ma, X.; Luo, D.; Li, L.; Shi, X.; Chang, X.;
+Lin, X.; Luo, R.; Pei, C.; Du, C.; Zhao, Z.-J.; and Gong,
+J. 2025. Automated Review Generation Method Based
+on Large Language Models.National Science Review.
+ArXiv:2407.20906.
+Yan, X.; Feng, S.; Yuan, J.; Xia, R.; Wang, B.; Zhang, B.;
+and Bai, L. 2025. SurveyForge: On the Outline Heuris-
+tics, Memory-Driven Generation, and Multi-dimensional
+Evaluation for Automated Survey Writing.arXiv preprint
+arXiv:2503.04629 [cs.CL].
+Ye, R.; Liu, X.; Wu, Q.; Pang, X.; Yin, Z.; Bai, L.;
+and Chen, S. 2025. X-MAS: Towards Building Multi-
+Agent Systems with Heterogeneous LLMs.arXiv preprint
+arXiv:2505.16997.
+Yin, S.; Fu, C.; Zhao, S.; Li, K.; Sun, X.; Xu, T.; and Chen,
+E. 2024. A survey on multimodal large language models.
+National Science Review, 11(12).
+Zhang, C.; Deng, Y .; Lin, X.; Wang, B.; Ng, D.; Ye, H.; Li,
+X.; Xiao, Y .; Mo, Z.; Zhang, Q.; and Bing, L. 2025. 100
+Days After DeepSeek-R1: A Survey on Replication Stud-
+ies and More Directions for Reasoning Language Models.
+arXiv:2505.00551.
+
+--- Page 16 ---
+Model Chunk Summary Major Strengths Major Weaknesses Recommendations Final
+ScoreDec.
+gpt-4.1 Pages 1–3 This section is exemplary
+for an academic survey,
+setting a strong foundation
+for both technical insight
+and methodological rigor.
+It weaves together the
+latest advances in agentic
+systems, AI-driven survey
+automation, and academic
+workflow innovation,
+making substantial
+contributions via new
+taxonomies, thorough
+discussion of standards,
+and explicit identification
+of unresolved challenges.Explicit objectives and
+robust relevance to
+urgent AI and academia
+intersections; Integrated,
+up-to-date, and balanced
+literature coverage;
+Thorough analysis, new
+frameworks, and clearly
+presented
+challenges/gaps;
+Excellent organization
+and professional
+presentation.Minor gaps in visual
+diver-
+sity—additional
+figures would be
+valuable; Clustered
+citations could be
+better detailed in the
+references section.Add one or more
+schematic diagrams
+or flowcharts of
+workflow
+architectures;
+Maintain detailed,
+accessible reference
+lists for full citation
+clarity.4.9 accept
+gemini-2.5 Pages 1–3 This section of the survey
+provides a comprehensive,
+state-of-the-art review of
+AI-driven academic
+automation. Theoretical
+and workflow foundations
+are robust, and major
+research challenges are
+well-delineated via
+succinct tables. The
+taxonomy of GAEs and
+focus on explainability,
+standardization, and equity
+are notable advances.Clear objectives and
+targeted audience;
+Thorough, recent, and
+balanced literature
+review; Insightful
+theoretical foundation
+and comparative
+analysis; Succinct,
+effective summarization
+via tablesMinor overlap with
+prior
+automation/LLM
+surveys; Occasional
+imbalance in
+strength vs
+weakness
+discussion; Visuals
+could extend
+beyond tables;
+citation formatting
+is numeric-onlyMinor revision:
+emphasize weak-
+nesses/limitations
+alongside strengths
+more uniformly;
+Introduce more
+diverse visuals (e.g.,
+workflow diagrams);
+Include reference list
+or mapping in the
+supplementary
+material for citation
+traceability4.7 minor
+revision
+claude-3.7 Pages 1–3 This is an ambitious and
+well-written survey that
+provides a timely,
+comprehensive, and
+insightful overview of
+automated survey
+generation, literature
+review, and agentic
+academic AI systems. The
+writing is clear and
+professional, objectives are
+explicit, and the structure is
+logical and effective.
+Integration of tables
+reinforces important points
+and summarizes complex
+ideas. The taxonomy of
+GAEs is novel and
+enhances the field.
+Citations and literature
+engagement are mature but
+could be marginally more
+explicit or current in
+places.Explicit objectives and
+well-defined scope;
+Addresses cutting-edge
+trends and pressing
+academic needs;
+Original
+taxonomy/framework
+and clear advancement
+for the field; Balanced,
+analyzed, and critical
+discussion; Effective
+summarization and
+organizationSome integration
+could be
+strengthened
+between technical
+and methodological
+examples; Citation
+formatting and
+clarity could be
+made more
+consistent; Minor
+need for additional
+visuals to
+complement tablesStrengthen
+interdisciplinary
+connections and
+integration across
+subfields;
+Standardize and
+clarify citation
+format throughout
+the section;
+Incorporate
+additional figures or
+diagrams for
+workflow
+illustration;
+Elaborate on specific
+research gaps with
+suggested future
+directions4.6 minor
+revision
+Table A3: Grouped review summary scores for each section (Pages 1–3 and 4–6) and agent.
+
+--- Page 17 ---
+Category Criterion 1 2 3 4 5
+Scope Objectives No objectives stated
+or inferredUnclear or implicit;
+requires inferenceVague or generic;
+lacks focusClear in one section;
+lacks precisionClearly stated in
+abstract and intro;
+scoped and
+measurable
+Relevance Not relevant to the
+fieldWeak or outdated
+connectionPartially related to
+broader topicGenerally relevant,
+not urgentDirectly aligns with
+high-impact trends
+Audience No discernible
+audienceConfusing or poorly
+targetedSomewhat unclear Generally appropriate
+toneClear academic or
+interdisciplinary
+targeting
+Literature Comprehensiveness Sparse or
+incomplete
+coverageMajor omissions Some omissions or
+limited domainMostly complete with
+minor gaps≥30 citations, across
+subfields, up-to-date
+Balance Highly biased or
+promotionalOne-sided view Somewhat
+unbalancedBalanced with minor
+biasDiscusses
+strengths/weaknesses
+and perspectives
+Currency Ignores recent
+developmentsMostly dated content Some outdated
+dominanceMostly recent with
+few older worksUp-to-date including
+preprints and
+conferences
+Analysis Depth No meaningful
+analysisMinimal or weak
+analysisDescriptive only Moderate depth Theoretical rigor,
+layered insight
+Integration Disjointed and
+fragmentedMostly disconnected
+ideasPartial, siloed
+integrationGood integration Seamless integration
+of multiple
+perspectives
+Gaps Ignores all research
+gapsBarely addresses open
+questionsSurface-level mention Mentions some gaps Clearly identifies
+open challenges
+Originality Novelty No original
+contributionMostly derivative Slightly original Novel combination of
+ideasNew taxonomy,
+framework, or domain
+Advancement No advancement Minimal progress Incremental value Moderate contribution Strong guidance for
+future research
+Redundancy
+AvoidanceHighly repetitive Largely redundant Moderate overlap Mostly unique Clearly distinct from
+prior surveys
+Organization Logical Flow Chaotic and
+disorganizedPoor transitions Basic structure with
+issuesMostly clear flow Excellent transitions
+and structure
+Section Clarity No clear structure Unclear or unlabeled Confusing or too long Mostly clear Well-labeled and
+crystal clear
+Summarization No summary or
+synthesisAlmost none Minimal synthesis Some synthesis and
+structureEffective use of
+summaries and
+visuals
+Presentation Language Unreadable or
+ungrammaticalPoor grammar or
+clarityClumsy tone Mostly well-written Clear academic
+language throughout
+Visuals No meaningful
+visualsIrrelevant or
+low-qualityBasic, not integrated Good visuals with
+minor issuesStrong figures/tables
+supporting content
+Formatting Disorganized
+formattingDistracting issues Inconsistent
+formattingMinor format
+problemsClean, consistent
+styles
+References Accuracy Unreliable or
+incorrect citationsMultiple citation errors Some mismatched or
+incompleteMinor format issues Accurate, traceable,
+properly formatted
+Appropriateness Poor citation quality Many low-quality
+sourcesSome irrelevant or
+fillerMostly appropriate Highly relevant,
+current and
+foundational
+Table A4: Evaluation Rubric for Survey Paper Quality (Scores 1–5)
+
+--- Page 18 ---
+Research Area Paper Title and Reference Venue / Year
+LLM reasoning and replication100 Days After DeepSeek-R1: A Survey on Repli-
+cation Studies...(Zhang et al. 2025)arXiv 2025
+LLM evaluation metricsA Survey on Evaluation of Large Language Mod-
+els(Chang et al. 2023)ACM 2024
+Retrieval-augmented generationRetrieval-Augmented Generation for LLMs: A Sur-
+vey(Gao et al. 2024)arXiv 2024
+Multimodal large language modelsA Survey on Multimodal Large Language Mod-
+els(Yin et al. 2024)NSR 2024
+Time-series modelingTime-Series Large Language Models: A Systematic
+Review of State-of-the-Ar(Abdullahi et al. 2025)IEEE 2025
+Generative AI in manufacturingGenerative Machine Learning in Adaptive Con-
+trol of Dynamic Manufacturing Processes: A Re-
+view(Lee and Ko 2025)arXiv 2025
+Topology of fractal squaresA Survey on the Topology of Fractal Squares(Luo
+and Rao 2025)arXiv 2025
+Human-agent interactionHumanizing llms: A survey of psychological mea-
+surements with tools, datasets, and human-agent
+applications(Dong et al. 2025)arXiv 2025
+Disease detection across modalitiesA Methodological and Structural Review of Parkin-
+son’s Disease Detection Across Diverse Data
+Modalitie(Miah, taro Suzuki, and Shin 2025)IEEE 2025
+Generative AI in mobile networksGenerative AI in Mobile Networks: A Sur-
+vey(Karapantelakis et al. 2024)AoT 2024
+Table A5: Selected Baseline Survey Papers with Research Areas and Publication Venues
+
+--- Page 19 ---
+Type System / Model Pair Krippendorff’s Alpha (α)
+System-Level Agreement
+SurveyX 0.974
+SurveyForge 0.977
+Baseline (Published) 0.966
+Autosurvey 0.987
+ARISE 0.973
+Model-Level Agreement (All Systems)
+Claude 3.7 vs Gemini 2.5 0.974
+Claude 3.7 vs GPT-4.1 0.977
+Gemini 2.5 vs GPT-4.1 0.973
+Table A6: Krippendorff’s Alpha scores for system-level
+and inter-model agreement. Computed using interval-scale
+rubric ratings across reviewer agents.
+Model Type Input Output Context Caching
+GPT-4.1 Premium $2.00 $8.00 $0.50
+GPT-4.1 mini Balanced $0.40 $1.60 $0.10
+Claude 3.7 Sonnet Premium $3.00 $15.00 $0.30 (read), $3.75 (write)
+Gemini 2.5 Pro Premium $1.25 / $2.50 $10.00 / $15.00 $0.31 / $0.625
+Gemini 2.0 Flash Affordable $0.10 (text/image), $0.70 (audio) $0.40 $0.025
+Table A7: LLM Pricing Comparison (USD per 1M tokens)
+
+--- Page 20 ---
+Topic Before (Total Score) After (Total Score) Before (Subcat. Avg) After (Subcat. Avg)
+Disease Detection Across Modalities 69.00 82.25 3.45 4.11
+Automated Survey Generation 70.00 86.25 3.50 4.31
+Retrieval-Augmented Generation 65.25 79.25 3.26 3.96
+Time-Series Modeling 68.00 81.00 3.40 4.05
+Topology of Fractal Squares 60.00 74.75 3.00 3.74
+Average 66.40 80.70 3.32 4.03
+Improvement (%) 21.45% 21.45%
+Table A8: Human evaluation results under GPT-4.1-mini. Despite reduced model capacity, the agentic refinement pipeline
+yields substantial improvements across five diverse topics, as verified by four expert reviewers.
+Folder / Topic Initial Score Final Score Avg Improvement per Round
+Evaluation of Large Language Models 85.90 91.17 1.76
+Retrieval-Augmented Generation 79.90 90.90 11.00
+Time-Series Modeling 86.93 90.70 3.77
+Clustering, Indexing and Range Searching 88.67 90.53 1.87
+Disease Detection Across Modalities 80.10 89.67 4.78
+Integrating Multimodal Fusion, PLMs 81.33 87.10 2.88
+Telecommunication 82.50 86.60 1.03
+Generative AI in Mobile Networks 82.50 86.60 1.03
+Generative AI in Manufacturing 82.00 86.07 1.36
+Automated Survey Generation Lit. Review 84.43 84.87 0.22
+Topology of Fractal Squares 79.73 84.27 2.27
+Average 83.09 88.04 2.91
+Table A9: Ablation study: Initial and final rubric scores and average improvement per round using the GPT-4.1 Mini model.
+All scores are averaged across reviewer agents and rubric categories.
