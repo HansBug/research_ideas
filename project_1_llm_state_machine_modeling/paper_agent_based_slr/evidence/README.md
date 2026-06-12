@@ -1,0 +1,18 @@
+# evidence/：证据资产、事实漂移与引用入口
+
+本目录维护第二篇 agent-based SLR 论文的证据资产总账。A0 阶段，它只登记证据层级和可复用入口，不复制 PR #97 的全文文库，也不构造最终 benchmark scenarios。
+
+## 文件说明
+
+| 文件 | 作用 |
+|---|---|
+| [project_inventory.md](./project_inventory.md) | 盘点 `main` 已合入事实、PR #97 snapshot、historical comments、待构造证据和资产角色。 |
+| [fact_drift_policy.md](./fact_drift_policy.md) | 规定 `main` fact / PR #97 snapshot / historical comment / 待构造证据的引用格式、复核触发和漂移处理规则。 |
+| [citation_seed_inventory.md](./citation_seed_inventory.md) | 维护 A0 相关工作 citation seed、核验状态与来源优先级。 |
+
+## 使用规则
+
+1. 引用 PR #97 前必须先读 [fact_drift_policy.md](./fact_drift_policy.md)。
+2. `project_inventory.md` 只登记资产角色，不把未合入资产升级成事实真源。
+3. `citation_seed_inventory.md` 中 `待核验` 的条目不能用于正文强 claim。
+4. 若后续 PR #97 merge 或 head SHA 变化，必须同步更新本目录。
