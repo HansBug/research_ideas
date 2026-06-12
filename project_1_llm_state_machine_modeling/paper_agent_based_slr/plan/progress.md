@@ -32,7 +32,7 @@
 
 | 时间 | 命令 | 结果 |
 |---|---|---|
-| 2026-06-12 | `source venv/bin/activate` 后运行 A0 Python sanity：检查 18 个必需文件、无 `foundation/` 子层、PR #97 引用含 OPEN / 未合入 / snapshot / 分支局部口径、禁止 claim 只在禁止 / 风险语境中出现、novelty matrix 覆盖 SLR / SMS / PRISMA / ASReview / RobotReviewer / systematic review automation / LLM-assisted | 通过，输出 `paper_agent_based_slr A0 sanity ok`。 |
+| 2026-06-12 | `source venv/bin/activate` 后运行 A0 Python sanity：检查 25 个必需文件、无 `foundation/` 子层、PR #97 引用含 OPEN / 未合入 / snapshot / 分支局部口径、禁止 claim 只在禁止 / 风险语境中出现、novelty matrix 覆盖 SLR / SMS / PRISMA / ASReview / RobotReviewer / systematic review automation / LLM-assisted | 通过，输出 `paper_agent_based_slr A0 sanity ok`。 |
 | 2026-06-12 | `git diff --check` | 通过。 |
 
 ## 5. Remaining risks
