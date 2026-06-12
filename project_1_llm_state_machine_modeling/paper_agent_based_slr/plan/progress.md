@@ -14,7 +14,7 @@
 ## 2. 已完成
 
 - 创建 `project_1_llm_state_machine_modeling/paper_agent_based_slr/` 工作区。
-- 按用户要求复刻旧 Path-1 的 `story/ evidence/ experiment_design/ plan/` 主结构，但不创建 `foundation/` 子路径。
+- 按用户要求复刻旧 Path-1 的 `story/ evidence/ baselines/ dataset_selection/ experiment_design/ plan/` 主结构，但不创建 `foundation/` 子路径。
 - 落地 story、protocol、terminology policy、claim-evidence map、novelty matrix、outline。
 - 落地 project inventory、fact drift policy、citation seed inventory 与 A0 `references.bib` 种子。
 - 落地 evaluation dimensions seed 与 reviewer risk register。
@@ -49,6 +49,6 @@
 - Required references/scripts：`ai-research-writing-skill` 的 story gate；`sub-agents` / 三路 reviewer 合同审查；旧 Path-1 PR #96 路径结构。
 - Inputs consumed：PR #101 body、PR #99 会后定调 comment、已合入导师讨论记录、PR #97 状态、PR #96 文件结构、三路 reviewer comment。
 - Inputs not used and why：未读取或复制 PR #97 PDF / fulltext；A0 只做合同与证据层级，不复制未合入资产。
-- Artifacts produced：`paper_agent_based_slr/` 下 README、story、evidence、experiment_design、plan 全部 A0 文件。
+- Artifacts produced：`paper_agent_based_slr/` 下 README、story、evidence、baselines、dataset_selection、experiment_design、plan 全部 A0 文件。
 - Verification run：`source venv/bin/activate` 后运行 A0 Python sanity、Markdown 相对链接检查、成片英文检查、emoji 列检查、`git diff --check`，并用 DOI metadata 获取 A0 `references.bib` 种子。
 - Remaining risk：真实 related-work coverage、benchmark scenarios、LLM run records 和 A5 metrics 尚未构造。
