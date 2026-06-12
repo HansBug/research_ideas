@@ -1,5 +1,11 @@
 # `paper_v1/` — 第一篇论文工作区
 
+## 0. 2026-06-12 后当前第一篇新主线入口
+
+> **重要更新**：2026-06-12 导师讨论后，本目录保留为 2026-05 Direction-Decision Sprint / Path-1 / Path-2 历史工作区。第一篇论文主线已经从早期 Path-1 hard comparison / `NL -> STM` 生成口径，转向 **`<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正任务**。当前新主线入口请读 [../paper_stm_repair/README.md](../paper_stm_repair/README.md)；本目录旧 `NL -> STM` / hard comparison 口径不再作为当前第一篇事实真源。
+
+若需要追溯导师定调，先读 [../talks/SUMMARY.md](../talks/SUMMARY.md) 与 [../talks/2026-06-12-导师-两篇论文转向与模型修正定调.md](../talks/2026-06-12-导师-两篇论文转向与模型修正定调.md)。
+
 ## 1. 目录定位
 
 `paper_v1/` 是 `project_1` 第一篇论文的工作区，负责承载：
