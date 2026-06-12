@@ -80,6 +80,7 @@
 
 | 风险 | 状态 | 后续处理 |
 |---|---|---|
+| R0 当前 story 仍是可迭代基线，部分论证链需等待真实实验回填。 | 已显式说明 | R1--R6 根据事实证据校准 claim、RQ 与大纲 |
 | baseline / prior artifact 可用性尚未盘点。 | 已知未闭合 | PR-R1 |
 | 四例样本尚未冻结。 | 已知未闭合 | PR-R2 |
 | 转换器范围尚未冻结。 | 已知未闭合 | PR-R3 |
@@ -100,6 +101,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-13 00:19:18 | 按人工审阅意见补充 R0 是可执行论文工作基线而非最终论证链；后续 R1--R6 可按真实实验结果回填并局部校准 story / RQ / claim。 |
 | 2026-06-13 00:08:00 | 三路 implementation re-review 均 C=0/I=0；feedback-smoke 通过；记录 docs-only 无 Codecov 覆盖率变化。 |
 | 2026-06-12 23:43:33 | 完成本地链接、diff、forbidden wording 与 `path1_foundation` 修改检查；补充旧 `paper_v1/README.md` 入口提示。 |
 | 2026-06-12 23:42:20 | 初始化 R0 文档路径与 progress 记录。 |
