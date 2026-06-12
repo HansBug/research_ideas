@@ -2,9 +2,7 @@
 
 ## 0. 2026-06-12 后当前第一篇新主线入口
 
-> **重要更新**：2026-06-12 导师讨论后，第一篇论文主线已经从早期 Direction-Decision Sprint / Path-1 hard comparison / `NL -> STM` 生成口径，转向 **`<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机模型修正任务**。
-
-当前新主线的 R0 工作区是 [better_stm_repair_loop/](./better_stm_repair_loop/)。后续涉及第一篇论文 story、任务边界、claim gate、研究问题或论文大纲时，默认先读该目录；本文件下方保留的 Path-1 / Path-2 sprint 内容只作为 2026-05 历史背景，不再作为当前第一篇论文事实真源。
+> **重要更新**：2026-06-12 导师讨论后，本目录保留为 2026-05 Direction-Decision Sprint / Path-1 / Path-2 历史工作区。第一篇论文主线已经从早期 Path-1 hard comparison / `NL -> STM` 生成口径，转向 **`<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正任务**。当前新主线入口请读 [../paper_stm_repair/README.md](../paper_stm_repair/README.md)；本目录旧 `NL -> STM` / hard comparison 口径不再作为当前第一篇事实真源。
 
 若需要追溯导师定调，先读 [../talks/SUMMARY.md](../talks/SUMMARY.md) 与 [../talks/2026-06-12-导师-两篇论文转向与模型修正定调.md](../talks/2026-06-12-导师-两篇论文转向与模型修正定调.md)。
 
