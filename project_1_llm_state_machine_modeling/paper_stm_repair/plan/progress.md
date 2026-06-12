@@ -1,9 +1,11 @@
-# PR-R0 progress
+# paper_stm_repair progress
 
 ## 1. 当前阶段
 
 | 字段 | 状态 |
 |---|---|
+| 2026-06-13 01:18:00 | 按人工审阅意见补充 R1 是阶段性资产候选证据而非最终论文论证；扩充九个 direct baseline 的候选级证据闭合表，并明确 R2--R6 可按真实实验结果回填 / 局部校准链路。 |
+| 2026-06-13 00:57:00 | 修复 deepseek reviewer 指出的 R1 evidence forbidden wording；补充 `sources/` 715 篇 `🟢 直接可用` 的统计口径说明和 R1 本地检查记录。 |
 | PR | [#102](https://github.com/HansBug/research_ideas/pull/102) |
 | 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
 | 当前阶段 | Ready：实现复审与 CI 均通过，等待用户审阅 / merge 指示 |
@@ -86,6 +88,7 @@
 | 转换器范围尚未冻结。 | 已知未闭合 | PR-R3 |
 | 评价量表和主结果 eligibility 尚未冻结。 | 已知未闭合 | PR-R4 / PR-R6 |
 | 修正循环效果尚未实证。 | 已知未闭合 | PR-R5 / PR-R6 |
+| R1 当前资产审计仍是候选级证据，部分链路需等待 R2--R6 真实实验回填。 | 已显式说明 | R2 样本冻结、R3 转换器、R4--R6 实验结果出来后校准候选角色和论文 story。 |
 
 ## 7. Capability-use audit
 
@@ -140,6 +143,17 @@
 | [../evidence/format_conversion_matrix.md](../evidence/format_conversion_matrix.md) | 已创建 |
 | [../evidence/branch_asset_trace.md](../evidence/branch_asset_trace.md) | 已创建 |
 | [../evidence/source_coverage_ledger.md](../evidence/source_coverage_ledger.md) | 已创建 |
+
+### 9.2.1 R1 本地检查记录
+
+| 检查 | 命令 / 口径 | 结果 |
+|---|---|---|
+| Markdown 相对链接 | 自定义 Python 链接检查脚本，范围 `project_1_llm_state_machine_modeling/paper_stm_repair` | 通过；missing links = 0。 |
+| Markdown diff whitespace | `git diff --check` | 通过。 |
+| forbidden wording grep | `grep -RIn "首个\|最强\|new DSL\|完整形式化验证\|model checking\|NL -> STM.*主贡献" project_1_llm_state_machine_modeling/paper_stm_repair` | 修复 R1 evidence 中的 `最强` 后，命中仅位于 forbidden / 降级 / 自检语境。 |
+| `path1_foundation` 修改 | `git diff --name-only origin/paper1/better-stm-repair-loop-umbrella...HEAD | grep path1_foundation` | 通过；无命中。 |
+| 四例真实运行 | 按 PR #100 / #104 R1 合同 | 不执行。 |
+| 真实 LLM 调用 | 按 R1 范围 | 不执行。 |
 
 ### 9.3 R1 已知边界
 

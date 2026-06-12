@@ -39,9 +39,12 @@ PR-R1 的核心结论是：历史 baseline 并未作废，但它们不再主要�
 | R6 | 使用 [artifact_availability_ledger.md](./artifact_availability_ledger.md) 判断哪些 prior work 能进入 near-approximate comparison。 |
 | R7 | Related Work 按 direct / near / evidence-only / boundary 写作，不做硬排名。 |
 
-## 5. 未闭合风险
+## 5. 阶段性边界与未闭合风险
+
+R1 当前有意保持为资产审计层，不提前替代后续实验事实。部分结论看起来仍偏“薄”，原因是转换器、四例 seed、评价门和真实 repair loop 结果尚未闭合；这些内容必须由 PR-R2--R6 回填，而不能在 R1 为了让叙事丰满而提前脑补。
 
 1. R1 未逐篇深审 91 篇 baseline 的代码与 artifact，只对高优先级 direct baseline 和部分强近邻做矩阵化重排。
 2. R1 未重新联网下载 artifact；活链接仍需在正式实验前冻结。
 3. R1 未选择四例样本；任何样本选择必须留给 R2。
 4. R1 未实现转换器；任何“可转换”都是风险评估，不是已通过 adapter 测试。
+5. R1 未证明修正 loop 带来真实改善；论文 story、RQ 和 comparison 角色应在 R2--R6 真实结果出来后允许局部回填和校准。

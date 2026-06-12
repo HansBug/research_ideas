@@ -24,7 +24,7 @@
 ## 3. 重要边界
 
 1. `baselines/` 当前已有 91 篇 completed baseline 条目，但 R1 只对 9 个五绿 direct baseline 与若干强近邻做资产角色重排；未逐篇深审 91 篇的可转换性。
-2. `sources/` 当前已有 787 篇、715 篇 `🟢 直接可用`，可作为 PR-R2 seed 池线索；R1 不从中选定四例，也不改 `sources/` 总账。
+2. `sources/` 当前已有 787 篇；按 [sources/SUMMARY.md](../../sources/SUMMARY.md) 的“按领域统计的论文状态分布”合计行，其中 715 篇为 `🟢 直接可用`，可作为 PR-R2 seed 池线索。R1 不从中选定四例，也不改 `sources/` 总账。
 3. PR #94 / #96 的资产只存在于 `paper/project1-path1-foundation` 分支；当前 PR 不 re-land 其文件，只在 [branch_asset_trace.md](./branch_asset_trace.md) 记录消费决策。
 4. “四件套齐全”只说明论文分析完成，不等于代码、数据、ground truth 或结果包可复现。
 

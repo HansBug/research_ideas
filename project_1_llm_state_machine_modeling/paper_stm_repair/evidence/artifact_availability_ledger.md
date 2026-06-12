@@ -9,7 +9,7 @@
 | slug | 论文 | 代码 | 数据 / 输入 | 结果细则 | artifact | R1 结论 |
 |---|---|---|---|---|---|---|
 | `designing-fsm-specifications-from-requirements-gpt4` | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 可作为 near-approximate 复现起点，但必须固定 GitHub HEAD 并记录无 license / release 风险。 |
-| `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 当前最强 external same-sample approximate 候选；正式实验前必须冻结 4open 副本和逐文件 hash。 |
+| `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 当前 artifact 最完整的 external same-sample approximate 候选；正式实验前必须冻结 4open 副本和逐文件 hash。 |
 | `agentic-flow-finite-state-machine-extraction-prompt-chaining` | 🟢 | 🟠 | 🟠 | 🟠 | 🟠 | 主要作 related-work / protocol FSM evidence，不适合 R2 预演 seed。 |
 | `automated-extraction-protocol-state-machines-3gpp-specifications` | 🟢 | 🟠 | 🟡 | 🟠 | 🟠 | 只能确认公开 3GPP 输入规格；GT 和代码未公开。 |
 | `req` | 🟢 | 🟠 | 🔒 | 🟠 | 🟠 | 工业私有数据，不适合作为可复验实验资产。 |
