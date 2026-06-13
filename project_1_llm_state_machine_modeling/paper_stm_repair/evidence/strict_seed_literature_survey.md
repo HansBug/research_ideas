@@ -14,12 +14,14 @@
 |---|---|---|
 | `P1_NL_INPUT` | 输入主源是自然语言需求、用例、场景、系统描述、文本规格或等价非形式化文本。 | 形式规格、源码、已有图模型或纯表格输入不得标 strict。 |
 | `P2_T0_STM_FAMILY` | 输出目标属于 `T0（无关键时间语义）` 的 `FSM / HSM / EFSM / statechart` 家族，可包含 UML/SysML/PlantUML/Mermaid/Umple 的状态机方言。 | `T1+`、Hybrid、Protocol、Resource-flow、BPMN、Petri、CSP、Event-B、TLA+、LTL/STL 等不得标 strict。 |
-| `P3_GENERATION_RELATION` | STM 必须在 generation / extraction / synthesis / derivation 环节由 `NL` 生成或派生；方法可以是 LLM、规则、传统 NLP、模型转换或人工，但必须存在 `NL -> STM` 关系。 | 只有 NL 与 STM 同时存在、已有 STM repair/refinement、或 diagram/formal-model conversion 不得标 strict。 |
+| `P3_GENERATION_RELATION` | STM 必须在 generation / synthesis / derivation 环节由 `P1` 所定义的非形式化 `NL` 生成或派生；若使用 extraction，抽取源也必须是自然语言需求 / 场景 / 描述而非 protocol spec、形式规格或已有图模型。方法可以是 LLM、规则、传统 NLP、受控模板 / 中间结构归一或人工，但必须存在可追踪的 `NL -> STM` 关系；图模型 / 形式模型之间的转换不能单独满足本谓词。 | 只有 NL 与 STM 同时存在、已有 STM repair/refinement、protocol / formal-spec extraction、或 diagram/formal-model conversion 不得标 strict。 |
 | `P4_EVIDENCE_POINTER` | 至少有论文段落、本地 `DESC/ASSETS/STM`、artifact、结果文件或可追踪 URL 证明输入、输出和生成关系。 | 证据不足只能标 candidate / pending，不计入 strict 数量。 |
 
 > 术语说明：这里的 `T0` 指 [sources/STM_GUIDE.md](../../sources/STM_GUIDE.md) 中的“无关键时间语义”，不是初始模型 `STM_0`。`STM_0` 是修正任务的输入模型，可能来自 strict seed、extended seed 或人工 / 弱模型构造。
 
 ## 3. 硬排除码
+
+**判定顺序**：先应用硬排除码，再评估四个谓词。也就是说，即使某个 protocol 或形式规格任务表面上满足“文本输入 -> 状态机输出”，只要触发 `X_PROTOCOL`、`X_FORMAL_SPEC`、`X_PROCESS` 等排除码，就不得标为 strict seed。
 
 | 排除码 | 排除对象 | strict seed 处理 | 可保留用途 |
 |---|---|---|---|
@@ -47,7 +49,7 @@
 | `output_family` | FSM / HSM / EFSM / statechart / UML-SM / SysML-SM / PlantUML / Mermaid / Umple / non-STM | `P2_T0_STM_FAMILY` gate。 | 输出样例、图、表、代码或结果文件。 |
 | `time_tier` | T0 / T1 / T2 / T3 / hybrid / N/A | strict 与 extended seed 分界。 | 按 [sources/STM_GUIDE.md](../../sources/STM_GUIDE.md) 口径判定。 |
 | `generation_relation` | explicit NL->STM / implicit NL->STM / co-exist only / repair-only / unknown | `P3_GENERATION_RELATION` gate。 | 方法章节、实验设置或 artifact pipeline。 |
-| `generation_actor` | LLM / rule-based NLP / model transformation / human / mixed / unknown | 解释 seed 来源，不作为 strict 必要条件。 | 方法说明。 |
+| `generation_actor` | LLM / rule-based NLP / controlled template or intermediate normalization / human / mixed / unknown | 解释 seed 来源，不作为 strict 必要条件。 | 方法说明。 |
 | `control_relevance` | control-system / synthetic-FSM / MBSE-toy / protocol-only / non-control | 决定外部效度与主实验优先级。 | 任务或领域描述。 |
 | `artifact_usability` | SA-1 / SA-2 / SA-3 / SA-4 / SA-5 | 决定能否进 R2 可复验样本。 | 文件、commit、hash、license、下载入口。 |
 | `conversion_readiness` | deterministic / semi-automatic / manual / not-convertible | 交给 PR-R3 定转换合同。 | 格式样例与字段映射风险。 |
@@ -62,14 +64,16 @@
 
 | 等级 | 名称 | 判定标准 | 是否计入 strict seed | 后续用途 |
 |---|---|---|---|---|
-| `SS-A` | strict + artifact usable | 同时满足四个谓词，且 NL 与 STM artifact 可冻结。 | 是 | PR-R2 主 seed 候选。 |
-| `SS-B` | strict-paper but weak artifact | 任务方向满足 strict，但数据、输出、代码或 license 不完整。 | 文献可计，实验不可直接计 | related work、R2 风险候选。 |
+| `SS-A` | strict literature confirmed | 同时满足四个谓词，且未触发任何硬排除码；已有足够证据证明该文献/样本确为 `NL -> T0 STM-family`。artifact 是否可冻结另由 `SA-*` 轴判断。 | 是 | 文献证据；若同时为 `SA-1/SA-2`，再进入 PR-R2 主 seed 候选。 |
+| `SS-B` | strict literature candidate | 任务方向看起来满足 strict，但 fulltext / artifact 证据仍不足，或生成关系 / T0 边界需二次核验。artifact 是否可冻结另由 `SA-*` 轴判断。 | 暂不计入 strict 数量 | R2 风险候选 / 待复核。 |
 | `ES-C` | extended seed | 存在 NL->状态机关系，但含 `T1+`、非主格式、强转换或外部效度弱。 | 否 | converter pressure、扩展 / stress 分析。 |
 | `NN-D` | near neighbor | protocol FSM、process model、formal spec、repair / verification 近邻。 | 否 | related work、feedback taxonomy、boundary。 |
 | `EX-E` | excluded | 明确非 NL、非 STM、无生成关系或证据不足。 | 否 | 排除记录。 |
 | `pending` | 待筛查 | 尚未完成 fulltext / artifact 核验。 | 否 | R2 / 后续外部检索。 |
 
 ### 5.2 seed artifact usability
+
+`SA-*` 只回答“能否进入可复验实验样本”，不改变 `SS-*` 的文献资格判断。最终 R2 样本应优先选择 `SS-A + SA-1/SA-2`；`SS-A + SA-3/SA-4` 只能作为文献证据或 related work。
 
 | 等级 | 名称 | 判定标准 | 是否可进 R2 样本 |
 |---|---|---|---|
@@ -83,9 +87,14 @@
 
 ### 6.1 `sources/` 宽池与 strict-source 子池
 
-[sources/SUMMARY.md](../../sources/SUMMARY.md) 当前记录 `787` 篇论文、`746` 条正例案例。按案例级字段重新筛选，满足 `状态机类型 ∈ {FSM, EFSM, HSM}` 且 `时间级别 = T0（无关键时间语义）` 的案例为 `337` 条，其中 `EFSM=177`、`HSM=91`、`FSM=69`。
+[sources/SUMMARY.md](../../sources/SUMMARY.md) 当前记录 `787` 篇论文、`746` 条正例案例。按案例级字段重新筛选，满足 `状态机类型 ∈ {FSM, EFSM, HSM}` 且 `时间级别 = T0（无关键时间语义）` 的案例为 `337` 条，其中 `EFSM=177`、`HSM=91`、`FSM=69`；当前未出现 `T0 + statechart` 的单独桶，因此 `statechart` 只保留在定义层作为后续外部检索可能命中的状态机家族，不计入本轮 `sources/` 子池数字。
 
-质量与角色分布如下：`💎 核心保留=320`，`🧰 清洗后保留=7`，`🪫 降采样保留=10`；`原文=🟢 A` 且 `描述=🟢 A` 的案例为 `319` 条，其中同时为 `💎 核心保留` 的为 `308` 条；`原文/描述 >= 🟡 B` 的为 `334` 条。
+质量与角色分布如下：`💎 核心保留=320`，`🧰 清洗后保留=7`，`🪫 降采样保留=10`；`原文=🟢 A` 且 `描述=🟢 A` 的案例为 `319` 条，其中同时为 `💎 核心保留` 的为 `308` 条；`原文/描述 >= 🟡 B` 的为 `334` 条。换言之，337 条 T0-family 子池中，双 A 占 319 条，约 `94.7%`；双 A 且核心保留为 308 条；B 级以上为 334 条，约 `99.1%`。
+
+
+#### 6.1.1 `sources/` 数字重算口径
+
+上述 `337 / 177 / 91 / 69 / 319 / 308 / 334` 数字来自 [sources/SUMMARY.md](../../sources/SUMMARY.md) 的“案例总账（按新口径维护）”案例级表，而不是论文级状态表。复算时按如下列过滤：`状态机类型`、`时间级别`、`数据集角色`、`原文细节`、`描述细节`；其中 strict-source 子池条件为 `状态机类型 ∈ {FSM, EFSM, HSM}` 且 `时间级别 = T0`。
 
 这些数字只说明 `sources/` 中存在大量 **T0 + FSM/HSM/EFSM 控制系统 NL 描述源池**。它们不自动等同于外部文献已有的 paired strict seed；若 PR-R2 用弱 prompt、旧模型或人工方式从这些 NL 描述构造 `STM_0`，必须把构造流程、是否偷看 reference、转换损失和 eligibility 单独登记。
 
@@ -112,7 +121,7 @@
 | [structure_event/predictions.parquet](../../reproduction/results/structure_event/predictions.parquet) | `32` 行，即 `8` 个 case × `4` 个 strategy。 | strict-like；仍需 R2 选取 seed 与 reference，R3 冻结解析路径。 |
 | [llms_emp/predictions.parquet](../../reproduction/results/llms_emp/predictions.parquet) | `98` 行，其中 `diagram_type=stm` 为 `38`，`act=21`，`sd=39`。 | 只允许 STM 子集进 strict 讨论。 |
 | [ttool/predictions.parquet](../../reproduction/results/ttool/predictions.parquet) | `6` 行，来自 `3` 个 scenario × `2` 个 strategy。 | 只能剥离 state-machine/SMD 部分；联合模型整体不等于 strict seed。 |
-| [nimbus/predictions.parquet](../../reproduction/results/nimbus/predictions.parquet) | `4` 行 structured fragment 结果。 | 更适合作 RSML-e / 负面边界，不作为主 strict seed。 |
+| [nimbus/predictions.parquet](../../reproduction/results/nimbus/predictions.parquet) | `4` 行 structured fragment 结果。 | 更适合作 RSML-e / 负面边界，不作为主 strict seed；仅 4 行，不能声称可泛化到 RSML-e 全族。 |
 
 [project_ex1 reviewer corpus](../../../project_ex1_llm_judge_for_stm/state_machine_review_corpus/SUMMARY.md) 当前可消费 `973` 行 reviewer records，其中 baseline `820` 行、新增 protocol `153` 行。该 corpus 是 reviewer 数据资产，不是 seed 总账：`structure-event-driven`、`llms_emp` STM 子集和 `ttool-ai` SMD 子集可作为 strict-compatible review 证据；`psmbench`、`rfcnlp`、`hermes` 的 protocol FSM 只能作 out-of-domain / robustness 资产，不得并入主 strict seed 统计。
 
@@ -138,4 +147,3 @@ PR #104 重新 ready 前，reviewer 至少检查以下事项：
 5. 是否区分 literature eligibility、artifact usability、conversion readiness 和 downstream role。
 6. 是否承认大规模外部文献调研尚未闭合，只交付筛选协议和初始台账。
 7. 是否避免“已证明可泛化 / 已完成全面 seed census / baseline 覆盖全部空间”等过强 claim。
-
