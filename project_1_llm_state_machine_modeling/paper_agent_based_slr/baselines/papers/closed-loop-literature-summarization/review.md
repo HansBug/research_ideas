@@ -42,10 +42,10 @@
 | paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
 | baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
 | 对比方式 | 定性强baseline |
-| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
-| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 代码状态 | 未发布；原文只说正在开发 modular codebase，不能当作可用源码 |
+| 数据状态 | 未提及公开数据入口；只描述内部抽取的 tungsten pilot 数据点 |
 | 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
-| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 制品入口 | 本轮仅做 paper_content 文本级线索识别，未打开外部 URL；具体 URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
 | 运行可行性 | 定性强baseline |
 | 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
 

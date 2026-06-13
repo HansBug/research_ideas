@@ -43,10 +43,10 @@
 | paper2 应避免的主张 | 避免声称自动 survey / review generation 尚无人研究；避免把文本流畅度、引用准确率或 LLM-as-Judge 总分等同于 SLR/SMS 方法学可靠性。 |
 | baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
 | 对比方式 | 仅related-work背景 / survey生成局部近邻 |
-| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
-| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 代码状态 | 给出 GitHub code/data 入口；本轮未打开 URL、commit 或 license 核验 |
+| 数据状态 | 给出 code and data GitHub；含 SurveyGen 数据集，license 本轮未核验 |
 | 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
-| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 制品入口 | 本轮仅做 paper_content 文本级线索识别，未打开外部 URL；具体 URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
 | 运行可行性 | 仅related-work背景 / survey生成局部近邻 |
 | 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
 
@@ -125,4 +125,3 @@ paper2 可借鉴其 human-written survey gold standard 思路，但应将粒度�
 - GitHub 链接需后续核验是否已 发布代码 / 数据，以及 license 是否符合本仓库使用。
 - 论文 `bibtex.bib` 为 arXiv 预印本；正式引用前需核验是否有 ACL/EMNLP 等正式版本。
 - QUAL-SG 权重来自作者直觉和 preliminary analysis；paper2 若采用类似 quality ranking，需避免把该权重当作普适最优。
-

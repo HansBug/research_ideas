@@ -42,10 +42,10 @@
 | paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
 | baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
 | 对比方式 | 仅related-work背景 |
-| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
-| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 代码状态 | 未提及本研究源码；只识别到 Hugging Face 数据/模型线索 |
+| 数据状态 | 使用 SciTLDR / Hugging Face 数据集；本研究数据处理与 license 待核验 |
 | 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
-| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 制品入口 | 本轮仅做 paper_content 文本级线索识别，未打开外部 URL；具体 URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
 | 运行可行性 | 仅related-work背景 |
 | 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
 

@@ -160,11 +160,22 @@ papers/<slug>/
 2. **任务边界与方法事实**：研究脉络、引用角色、研究任务、输入、输出、覆盖 SLR/SMS 阶段、不覆盖阶段、方法/系统形态、LLM/agent 角色、人类角色与 human-in-the-loop 位置。
 3. **审计与 provenance**：人工审计机制、人类角色、审计发生时机、证据溯源粒度、主张追踪状态、决策日志状态、冲突处理机制、审计记录是否可导出。
 4. **评价与结果**：RQ 或评价问题、数据集/案例/领域、gold/reference/human label、baselines/comparators、metrics 与方向、主要结果数字、关键结果锚点、数值使用许可、failure/error analysis。若原文未给某项，必须写“原文未给出”，不能省略后让读者误以为已核验。
-5. **LLM workflow 与可复现资产**：模型/API 设置、提示词状态、温度/重复/随机种子、token/成本、代码状态、数据状态、许可状态、artifact URL / 本地路径、运行可行性。若只是看到论文声称有代码或数据，但未打开核验，应写“声称有；本轮未核验”，不能写成已可复现。
+5. **LLM workflow 与可复现资产**：模型/API 设置、模型角色、提示词状态、温度/重复/随机种子、token/成本、代码状态、数据状态、许可状态、artifact URL / 本地路径、运行可行性。若只是看到论文声称有代码或数据，但未打开核验，应写“给出 URL；本轮未打开核验”或“论文声称但无 URL”，不能写成已可复现；若只是正文出现 `code` / `dataset` 字样但不是本研究制品入口，应写“未提及源码入口”或“方法内部代码描述；非 artifact 入口”。
 6. **paper2 claim-evidence 影响**：受影响主张 ID、威胁类型、威胁的 paper2 主张、支持的 paper2 主张、paper2 应避免的主张、差异化要求、对 paper2 evaluation design 的启发、对比方式 / baseline 可用性。
 7. **写作与待复核**：可用于 Related Work 的引用角度、可支持的写作强度、局限与可复现性、代码/数据/prompt/license/artifact 状态、按优先级排序的待复核清单。
 
 `分层` 字段只写 SUMMARY 事实分层 P0/P1/P2，不写“全文建议 P0/P1”这类和总账冲突的判断。若单篇作者认为该论文虽被归入 P2 但对某个模块威胁很强，应另设 `近邻强度备注`，并在 SUMMARY 的 claim / 可用性表中解释降级理由。
+
+若目标是支撑 CCF A 类论文写作或 rebuttal，快速结论卡片还应显式覆盖以下扩展字段；本轮如果尚未逐项核验，必须写“待 artifact audit / 待 PDF 图表核对 / 原文未给出”，而不是省略：
+
+| 字段组 | 必填字段 | 目的 |
+|---|---|---|
+| 来源与审稿状态 | `source_type`、`peer_review_status`、`venue_rank_or_scope`、`doi_or_proceedings_status` | 区分 arXiv、workshop、main track、journal、CCF 与非 CCF，避免把预印本写成同行评审事实。 |
+| 方法假设与可比性 | `method_assumptions`、`input_availability_assumption`、`human_expertise_assumption`、`model_access_assumption`、`domain_generalization_boundary`、`comparability_to_paper2` | 回答 baseline 是否要求专家标签、完整 PDF、商业 API、固定领域 taxonomy 或特殊人工裁决，防止不公平比较。 |
+| 负面证据与失败模式 | `negative_evidence`、`reported_failure_modes`、`metric_limitations`、`residual_risk`、`paper2_evaluation_implication` | 把 prior work 暴露的问题转成 paper2 的评价指标和失败分析，而不是只摘取正面结果。 |
+| 人类研究与数据伦理 | `human_subjects_involved`、`IRB_or_ethics_status`、`consent_compensation_status`、`data_sensitivity`、`data_license_or_terms`、`copyright_redistribution_risk` | 对专家评审、用户研究、clinical / biomedical data、人工标注和 PDF 全文版权风险做条件性核验。 |
+| 可复现制品状态 | `artifact_claim_status`、`artifact_url_status`、`artifact_local_status`、`license_status`、`baseline_readiness`、`artifact_evidence_anchor` | 把“论文说有”“URL 可访问”“本地已 clone”“license 可复用”“能 smoke”拆开，防止把文本线索升级为可运行 baseline。 |
+| claim-to-source 锚点 | `paper2_claim_id`、`claim_strength`、`source_anchor`、`number_anchor`、`number_use_status` | 每个可能进入论文正文的主张都必须绑定证据强度和位置；含数字时必须标出是否已 PDF 图表核对。 |
 
 每篇全文 review 至少包含以下章节，顺序保持稳定，便于后续汇总脚本和人工阅读：
 
@@ -214,6 +225,9 @@ papers/<slug>/
 4. **LLM 设置字段**：至少记录 `模型/API 设置`、`提示词状态`、`温度/重复/随机种子`、`成本/token`；若原文未给出，写“原文未给出”。这类缺失本身就是 paper2 可复现性设计的动机。
 5. **资产可复现字段**：至少记录 `代码状态`、`数据状态`、`许可状态`、`制品入口`、`运行可行性`。不要用一句“代码/数据/prompt 待复核”覆盖所有论文；它无法支持是否能作为 executable baseline 的决策。
 6. **数字证据字段**：凡 `SUMMARY.md` 写入 AUC、F1、accuracy、cost、win-rate、time saving 等数字，必须同时写 `关键结果锚点` 与 `数值使用许可`。当前没有人工 PDF 图表级核对时，默认写“仅文本级引用；正式写作前需 PDF 图表核对”。
+7. **方法假设与可比性字段**：至少记录 `关键假设 / 不可比原因`，必要时拆到单篇 `method_assumptions`、`input_availability_assumption`、`human_expertise_assumption`、`model_access_assumption`、`domain_generalization_boundary` 和 `comparability_to_paper2`。这类字段用于判断是否能作为公平 baseline，而不是只判断“主题相关”。
+8. **负面证据字段**：至少记录 `主要负证据 / 对 paper2 指标的要求`。若 prior work 报告 false negative、模型变异、citation hallucination、低一致性、人工成本或跨域失败，应回写为 paper2 的评价指标或风险，而不是只在长文里散落描述。
+9. **伦理/数据/版权字段**：涉及 human participants、专家评审、clinical/biomedical data、私有全文 PDF、人工标注或用户研究时，必须标注 `ethics/data/license flag`；未核验 IRB、consent、compensation、data terms 或版权再分发时写“待核验”，不能沉默。
 
 推荐受控口径：
 
@@ -221,6 +235,11 @@ papers/<slug>/
 |---|---|
 | `代码状态` | `未提及` / `声称有；未核验` / `URL已核验` / `已clone未运行` / `已smoke运行` |
 | `数据状态` | `未提及` / `公开；未核验license` / `公开且license已核验` / `需申请` / `部分公开` / `不可得` |
+| `artifact_claim_status` | `未提及` / `论文声称但无URL` / `给出URL待打开` / `补充材料提供` / `需申请` / `不可得` |
+| `artifact_url_status` | `未检查` / `可访问` / `404` / `403/WAF` / `需登录` / `重定向异常` |
+| `artifact_local_status` | `未下载` / `已保存metadata` / `已clone未运行` / `已smoke通过` / `smoke失败` |
+| `license_status` | `未提及` / `未核验` / `已核验可复用` / `仅学术使用` / `不可再分发` / `需人工许可` |
+| `baseline_readiness` | `executable-baseline` / `needs-adaptation` / `protocol-metric-only` / `qualitative-only` / `not-baseline` |
 | `提示词状态` | `未给出` / `附录片段` / `repo提供` / `完整可复用` / `版本未定` |
 | `运行可行性` | `可运行baseline待复现` / `可复现需改造` / `协议/指标baseline` / `定性强baseline` / `仅related-work背景` |
 | `人类角色` | `无` / `标注者` / `运行中审查者` / `冲突裁决者` / `事后评价者` / `领域专家gold` / `用户反馈` |
@@ -228,6 +247,8 @@ papers/<slug>/
 | `主张追踪状态` | `无` / `引用级` / `段落级` / `source-span级` / `页面/表格/单元格级` / `报告级claim链` |
 | `决策日志状态` | `无` / `per-record` / `per-stage` / `full run record` / `仅论文叙述` |
 | `数值使用许可` | `可直接引用` / `仅文本级引用` / `需PDF图表核对` / `原文未给明确数值` |
+
+其中 `代码状态` / `数据状态` 只能来自原文中的明确制品入口或数据可用性声明。仅因正文出现 “code generation”“dataset construction”“GitHub Copilot”“benchmark dataset”等普通词，不得写“声称有代码/数据”。若未打开外部 URL，最多写“给出 URL；本轮未打开核验”；若原文写 “upon request” 或 “will be added upon publication”，必须分别写成“需申请”或“占位承诺；未发布”。
 
 ### 7.2 字段命名风险
 
@@ -237,6 +258,18 @@ papers/<slug>/
 4. P0/P1/P2 表示 novelty 威胁强度，不等同“可复现实验 baseline”或“正式发表等级”。
 5. 避免把 `分层` 写成“全文建议 P0/P1”这类自由文本；事实分层与近邻强度备注应分列，便于 SUMMARY 数量闭合。
 6. 避免把 `可复现性` 只写在长文末尾；快速结论卡片和 SUMMARY 必须有 代码/数据/prompt/artifact 可用性 或 阻塞项。
+
+### 7.3 字段分层 checklist
+
+为避免字段一次性膨胀到不可维护，后续维护按三层执行：
+
+| 层级 | 进入条件 | 必填字段组 | 验收方式 |
+|---|---|---|---|
+| L0：全文 review 最低层 | 论文已保存 `paper.pdf` 与 `paper_content.txt` | 元信息、阅读状态、证据等级、输入、输出、覆盖/不覆盖阶段、方法形态、LLM/agent 角色、人审/审计机制、实验对象/指标、主要发现、D1-D7、paper2 主张影响、初步代码/数据/许可状态 | 当前 PR-B0 必须满足；缺失按 I 级处理。 |
+| L1：artifact audit 层 | 准备把某篇 work 当作可运行 baseline 或复现实验对象 | artifact claim、URL 状态、本地 clone/download 状态、commit/version、license、prompt/data/code 可复用条件、smoke 命令与结果 | 只有 URL 打开、license 记录、smoke 或阻塞原因写入后，才能把 `运行可行性` 升级。 |
+| L2：CCF-A 写作 / rebuttal 层 | 某个 claim 要进入 paper 正文、novelty matrix 或 rebuttal | 方法假设、可比性边界、负面证据、failure modes、metric limitations、伦理/IRB/data/copyright flag、claim strength、source/number anchor | 每个强 claim 都能从 SUMMARY 跳到单篇 `review.md` 和 `paper_content.txt` / PDF 位置；缺证据时降级为 careful/background/avoid。 |
+
+当前 PR-B0 已完成 L0，并对 L1 的代码/数据/许可线索做文本级识别；L1 URL/commit/license/smoke 与 L2 claim-level 写作锚点仍是后续 artifact audit / PDF 图表核对任务，不能提前写成已完成。
 
 ## 8. 验证与验收
 

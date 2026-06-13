@@ -42,10 +42,10 @@
 | paper2 应避免的主张 | 避免声称 page/table/cell 级 evidence provenance 是空白；避免只保存最终答案而缺少证据定位。 |
 | baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
 | 对比方式 | 仅related-work背景 / extraction 局部baseline |
-| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
-| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 代码状态 | 给出 GitHub 开源 pipeline 入口；本轮未打开 URL、commit 或 license 核验 |
+| 数据状态 | 使用 digital health SLR / article chunks；数据公开性与 license 待核验 |
 | 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
-| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 制品入口 | 本轮仅做 paper_content 文本级线索识别，未打开外部 URL；具体 URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
 | 运行可行性 | 仅related-work背景 / extraction 局部baseline |
 | 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
 

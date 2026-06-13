@@ -50,6 +50,9 @@
 - 单篇 `review.md` 把 expert gold、human evaluation、运行中人工审计、claim-to-source、decision log 混成一个字段，导致 paper2 差异化无法判断。
 - `SUMMARY.md` 只写“代码/数据/提示词/许可待复核”这类泛化阻塞项，不能区分代码状态、数据状态、许可状态和运行可行性。
 - `SUMMARY.md` 写入 AUC、F1、accuracy、cost、win-rate、time saving 等数字，但没有 `关键结果锚点` / `数值使用许可`，导致正式写作时证据链断点。
+- `review.md` 或 `SUMMARY.md` 仅因正文出现 `code`、`dataset`、`GitHub Copilot`、`benchmark dataset` 等普通词，就写成“声称有代码/数据”；代码/数据状态必须来自明确 artifact / data availability 语句。
+- 准备把某篇 work 当作可运行 baseline 时，没有记录 artifact claim、URL 状态、license、local clone/download 状态、smoke 结果或阻塞原因。
+- 计划把某个 baseline 结论写入 CCF A 类正文 / rebuttal 时，没有记录方法假设、可比性边界、负面证据、failure modes、metric limitations、伦理/IRB/data/copyright flag、claim strength 与 source/number anchor。
 
 ## 7. 验证命令
 
@@ -73,6 +76,10 @@ for p in (root / 'papers').iterdir():
         for col in ['作者 / venue / 出版状态', '研究脉络', '引用角色', 'LLM/agent 角色', '证据溯源粒度', '不覆盖阶段', '人类角色', '审计时机', '主张追踪状态', '决策日志状态', '审计导出性', '模型/API 设置', '提示词状态', '温度/重复/随机种子', '关键结果锚点', '数值使用许可', '受影响主张 ID', '威胁类型', '威胁的 paper2 主张', '支持的 paper2 主张', 'paper2 应避免的主张', 'baseline 可用性', '代码状态', '数据状态', '许可状态', '运行可行性', '可复现资产 / 阻塞项']:
             assert col in review, (p.name, col)
         assert '全文建议 P0' not in review and '全文建议 P1' not in review, p.name
+        assert '声称有/正文出现 GitHub 或 code 线索' not in review, p.name
+        assert '声称有/正文出现 dataset 或 data availability 线索' not in review, p.name
+assert '声称有/正文出现 GitHub 或 code 线索' not in summary
+assert '声称有/正文出现 dataset 或 data availability 线索' not in summary
 for bad in ['first automated SLR', 'first agentic SLR', 'complete coverage', 'PRISMA' + '-compliant']:
     assert bad not in summary, bad
 print('B0 fulltext baseline sanity ok')

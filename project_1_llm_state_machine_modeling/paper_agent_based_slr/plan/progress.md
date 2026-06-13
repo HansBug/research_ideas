@@ -85,6 +85,7 @@
 | 2026-06-14 | `source venv/bin/activate` 后运行 B0 sanity：检查 34 个论文目录四件套、`review.md` 必需章节、SUMMARY 描述性字段与禁用强 claim | 通过，输出 `paper_dirs= 34`、`missing= []`、`bad= []`。 |
 | 2026-06-14 | `git diff --check` | 通过；本轮已清理新增 `paper_content.txt` 的 PDF 提取残留 NUL 与行尾空白，避免验收记录与真实 gate 冲突。 |
 | 2026-06-14 | 字段 hardening sanity：检查 34 篇 quick card 均含受影响主张 ID、威胁类型、阶段边界、人类角色、审计时机、主张追踪、决策日志、审计导出性、模型/API、提示词、随机种子、代码/数据/许可、运行可行性、关键结果锚点、数值使用许可；检查 SUMMARY 含主表 C/D/E | 通过，输出 `B0 field-hardened sanity ok`。 |
+| 2026-06-14 | 修复复审指出的 artifact 状态误标风险：清理 34 篇 `review.md` 与 SUMMARY §7 中“声称有/正文出现 GitHub 或 code 线索”“dataset 或 data availability 线索”等模板句；按原文文本线索改成未提及、给出 URL 待打开、需申请、占位承诺、匿名仓库、Colab/补充材料等更保守口径；同时在 GUIDE / task packet 固化 artifact-status、方法假设、负面证据、伦理/license 和 claim-anchor 分层规则。 | 待复验。 |
 
 ### Capability-use audit（B0 强化）
 
@@ -93,4 +94,4 @@
 - Inputs not used and why：WSESE@ICSE 2025 PDF 仍未获取，不能全文核验；关键 P0 的 PDF 图表尚未逐页人工核对，因此当前证据等级为“全文文本级；图表待人工核对”。
 - Artifacts produced：更新 [../baselines/README.md](../baselines/README.md)、[../baselines/GUIDE.md](../baselines/GUIDE.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)、补 P2 本地目录、重写单篇 `review.md`、补齐主张-证据 / baseline 可用性 / artifact readiness 字段、清理 `paper_content.txt` 提取残留、更新 [task-packets/b0-fulltext-baseline-review.md](./task-packets/b0-fulltext-baseline-review.md)。
 - Verification run：已运行 B0 sanity、字段 hardening sanity 与 `git diff --check`。
-- Remaining risk：自动文本提取可能遗漏图表细节；正式写 Related Work 前，关键 P0 仍建议人工打开 PDF 复核图表/表格/数值，WSESE@ICSE 2025 仍需人工全文。
+- Remaining risk：自动文本提取可能遗漏图表细节；正式写 Related Work 前，关键 P0 仍建议人工打开 PDF 复核图表/表格/数值，WSESE@ICSE 2025 仍需人工全文；当前代码/数据/许可只完成文本级线索识别，未打开 URL、未 clone、未核验 license、未 smoke，不能写成可运行 baseline。
