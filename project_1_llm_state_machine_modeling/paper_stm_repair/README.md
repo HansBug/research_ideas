@@ -8,6 +8,8 @@
 
 需要注意的是，R0 当前冻结的是**可执行的论文工作基线**，不是最终论文论证链。由于 baseline artifact 可用性、四例 seed、转换器范围、评价门和真实修正效果尚未经过后续 PR 实证闭合，当前 story 和 RQ 只要求先把方向、边界和禁止 claim 讲清楚；后续 PR-R1--R6 若产生新的事实证据，应回填本工作区，并允许在不突破导师定调的前提下局部调整论证链、术语侧重和实验问题。
 
+R1 已开始把历史 baseline / prior artifact 改写为 seed、转换压力和有限对照资产，并进一步补充 strict seed 文献调研口径：seed 搜索不能局限于旧九个 direct baseline，但进入主 strict seed 的样本必须满足 `NL -> T0（无关键时间语义）FSM/HSM/EFSM/statechart` 且有生成 / 派生关系证据。这些台账仍只是**阶段性候选证据**：R2 样本冻结、R3 转换器、R4 评价门、R5 修正循环和 R6 端到端预演可能会继续回填甚至局部修正当前链路。因此当前文档要优先保证边界清楚、事实可追踪、禁止 claim 不回流，而不是提前把最终论文论证写满。
+
 ## 1. 核心口径
 
 | 维度 | R0 冻结口径 |
@@ -28,7 +30,11 @@
 5. [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md)：确认 `Better STM` 的最小操作化定义。
 6. [experiment_design/research_questions.md](./experiment_design/research_questions.md)：确认 RQ 草案和后续 PR 依赖。
 7. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
-8. [plan/progress.md](./plan/progress.md)：确认当前 PR 执行状态。
+8. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 PR-R1 对 baseline / seed / artifact 的分层审计结论。
+9. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
+10. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
+11. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
+12. [plan/progress.md](./plan/progress.md)：确认当前 PR 执行状态。
 
 ## 3. 目录结构
 
@@ -71,4 +77,6 @@ paper_stm_repair/
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 00:16:15 | PR-R1 补充 strict seed 大规模文献调研口径、排除码、多维指标、分级标准与执行方案，明确不局限旧 direct baseline 且不把宽口径 `<NL, STM>` 共现误作 strict seed。 |
+| 2026-06-13 00:45:00 | PR-R1 新增 baseline 资产审计、候选矩阵、artifact 可获取性、格式转换压力、分支局部资产追踪与 source coverage ledger。 |
 | 2026-06-12 23:42:20 | 初始化 PR-R0 新工作区，冻结 `<NL, STM_0> -> STM_k / Better STM` 主线、路径结构与后续子 PR 接口。 |
