@@ -15,7 +15,7 @@
 |---|---|---|
 | `nl_input_available` | 自然语言需求 / 场景 / 系统描述是否可冻结。 | 只有论文概述或私有需求时不得进主样本。 |
 | `generated_stm_available` | 由 NL 生成 / 派生的初始 STM 或 reference 是否可冻结。 | 只有图片或聚合分数时需标 `SA-2/SA-3`。 |
-| `generation_relation_evidence` | 是否有证据说明 STM 由 NL 生成，而不是共现或已有模型转换。 | 缺证据时只能 pending / near。 |
+| `generation_relation_evidence` | 是否有证据说明 STM 由 NL 生成，而不是共现或已有图模型 / 形式模型转换。 | 缺证据时只能 pending / near。 |
 | `license_or_access_risk` | 数据、代码、artifact 是否允许实验复用。 | 私有 / 无 license / live-only 入口需降级。 |
 | `hash_or_commit_plan` | 是否能记录 commit、hash、文件清单和下载日期。 | 无法冻结时不得声称可复验。 |
 
