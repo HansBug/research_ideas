@@ -2,7 +2,7 @@
 
 ## 1. 工作边界
 
-本指南约束 PR-R1.5 / PR-R1.6 的 seed 文献调研和文库建设。所有结论必须服务于第一篇论文的 `<NL, STM_0> -> STM_k / Better STM` 任务，不得把 `NL -> STM` 初始生成重新包装成论文主贡献，也不得把 `fcstm` / `pyfcstm` / DSL 当成贡献点。
+本指南约束 PR-R1.5 / PR-R1.6 / PR-R1.7 的 seed 文献调研和文库建设。所有结论必须服务于第一篇论文的 `<NL, STM_0> -> STM_k / Better STM` 任务，不得把 `NL -> STM` 初始生成重新包装成论文主贡献，也不得把 `fcstm` / `pyfcstm` / DSL 当成贡献点。
 
 ## 2. 检索策略
 
@@ -44,7 +44,7 @@
 | strict seed literature eligibility | `SS-A` / `SS-B` / `ES-C` / `NN-D` / `EX-E` / `pending` | 文献是否满足 strict seed 定义。 |
 | seed artifact usability | `SA-1` / `SA-2` / `SA-3` / `SA-4` / `SA-5` | artifact 是否可进入可复验实验样本。 |
 
-`SS-A + SA-1/SA-2` 是 PR-R2 主 seed 的优先候选；`SS-B + SA-1/SA-2` 只有在生成关系清楚、T0 边界清楚且 artifact 可隔离时，才可作为条件主候选；`SA-3/SA-4` 只能作为文献证据或 related work。含 `after` / timeout / timed automata / hybrid dynamics 的候选不得默认计入主 seed，除非后续完成 case-level T0 isolation 或在 PR-R3 中冻结可审计的时间语义规范化策略。
+`SS-A + SA-1/SA-2` 是 PR-R2 主 seed 的优先候选；`SS-B + SA-1/SA-2` 只有在生成关系清楚、T0 边界清楚且 artifact 可隔离时，才可作为条件主候选；`SA-3/SA-4/SA-5` 只能作为文献证据或 related work。含 `after` / timeout / timed automata / hybrid dynamics 的候选不得默认计入主 seed，除非后续完成 case-level T0 isolation 或在 PR-R3 中冻结可审计的时间语义规范化策略。
 
 ## 5. 单论文目录规范
 
@@ -73,7 +73,7 @@ papers/<paper-slug>/
 - 所有 agent 禁止 sub-subagent。
 - [agent_provenance.md](./agent_provenance.md) 记录本目录细账；[../plan/agent_provenance.md](../plan/agent_provenance.md) 只写跨 PR 摘要。
 
-## 8. R1.6 补充纪律
+## 8. R1.6 / R1.7 补充纪律
 
 1. `candidate_matrix.md` 与 `screening_ledger.md` 必须 ID 一一对应；新增候选不得只进入一边。
 2. `search_log.md` 只写摘要；每轮检索细节写入 [search_rounds/](./search_rounds/) 并保持 append-only。
@@ -83,4 +83,11 @@ papers/<paper-slug>/
 
 ## 9. 完成门
 
-本 PR 最低 bounded snapshot：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验；若不少于 `4` 条达到 `SS-A/SS-B + SA-1/SA-2`，才可称为“已具备可交接 PR-R2 的四例主 seed 候选”。若不足 `4` 条，本 PR 仍可 ready，但必须以“bounded snapshot + blocker handoff”交接：明确当前主候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入。`SA-3/SA-4` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。
+本 PR 最低 bounded snapshot：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验，并显式统计 `SS-A/SS-B + SA-1/SA-2` 可计主 / 条件主候选数量。`>=4` 只表示可交接 PR-R2 的四例候选池达到最低裁决起点，不等于四例已经冻结；`>=6` 是 R1.7 希望通过广域检索达到的更稳健缓冲目标。若未达到 `>=6`，本 PR 仍可 ready，但必须以“bounded snapshot + negative evidence + fallback handoff”交接：明确当前可计候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入或全域穷尽。`SA-3/SA-4/SA-5` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。
+
+## 10. R1.7 补充纪律
+
+1. R1.7 新增/重判候选必须同时进入 [candidate_matrix.md](./candidate_matrix.md) 与 [screening_ledger.md](./screening_ledger.md)，并显式记录 `P0..P3` priority。
+2. `search_results/r17_*.jsonl` 只是 raw evidence，必须由 [search_rounds/](./search_rounds/) 的 `round-r17-*.md` 解释后才能作为验收证据。
+3. R1.7 新增 `SA-3` paper-only strict/conditional 论文不得计入 PR-R2 主 / 条件主 seed 数量。
+4. 若 R1.7 未把可计数主 / 条件主候选提升到 `>=6`，必须在 [seed_selection_candidates.md](./seed_selection_candidates.md) 写出 negative evidence 与 fallback。
