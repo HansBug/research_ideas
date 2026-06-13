@@ -102,8 +102,8 @@
 
 | slug | strict 初判 | artifact 可用性 | 关键限制 | R1 后续角色 |
 |---|---|---|---|---|
-| `structure-and-event-driven-frameworks...` | `SS-A` 候选 | `SA-1` 候选 | 8 个 reactive-system descriptions 与 UML state machine/reference artifact 最贴近 strict；正式实验前冻结 4open 副本、license 与 hash。 | R2 主 seed / near comparison 优先候选。 |
-| `llms_emp` | STM 子集 `SS-A` 候选；ACT/SD 排除 | `SA-1/SA-2` | [reproduction parquet](../../reproduction/results/llms_emp/predictions.parquet) 中 `diagram_type=stm` 为 `38` 行；不能把 ACT/SD 混入 STM seed。 | STM 子集 seed、judge 校准、conversion-aware。 |
+| `structure-and-event-driven-frameworks...` | `SS-A?` 待 R2 复核 | `SA-1?` 待 R2 冻结 | 8 个 reactive-system descriptions 与 UML state machine/reference artifact 最贴近 strict；正式实验前冻结 4open 副本、license 与 hash。 | R2 主 seed / near comparison 优先候选。 |
+| `llms_emp` | STM 子集 `SS-A?` 待 R2 复核；ACT/SD 排除 | `SA-1/SA-2` | [reproduction parquet](../../reproduction/results/llms_emp/predictions.parquet) 中 `diagram_type=stm` 为 `38` 行；不能把 ACT/SD 混入 STM seed。 | STM 子集 seed、judge 校准、conversion-aware。 |
 | `ttool-ai` | SMD/state-machine 部分 `SS-B/ES-C` | `SA-1/SA-2` | NL 系统规范到 SysML 联合模型；只能取 state-machine panel，不取 BD/IBD/UCD/properties。 | 工具格式 seed / converter pressure。 |
 | `umple` | `SS-B/ES-C` | `SA-2/SA-3` | NL->Umple state machine 方向贴近，但论文 bundle / pipeline 不完整。 | 转换压力、人工重建候选。 |
 | `designing-fsm...` | `SS-B/ES-C` | `SA-2` | NL->DFSM/Mealy CSV；可用初始生成链路，不得把其 repair/refinement 输出当主 seed；合成数据外部效度弱。 | repair-refinement 近邻、CSV adapter 压力。 |
@@ -132,7 +132,7 @@
 | Survey-0 | 从 `baselines/`、`sources/`、`reproduction/`、review corpus 和 PR #73/#82/#92/#94 统一建立候选入口。 | 初始 `candidate_id` 与 dedup key。 | 不把旧 direct baseline 当封闭全集。 |
 | Survey-1 | 扩展外部学术检索：`natural language requirements state machine`、`use case statechart generation`、`scenario to state machine`、`textual requirements UML state machine`、`LLM state machine modeling` 等关键词簇。 | 外部候选清单与检索日期。 | 每条候选记录来源链接、筛查层级与去重结果。 |
 | Survey-2 | Title / abstract / fulltext / artifact 四级筛查。 | `screening_depth`、`strict_seed_grade`、`exclusion_code`。 | 没有 fulltext/artifact 证据不得标 `SS-A`。 |
-| Survey-3 | 对 `SS-A/SS-B/ES-C` 候选补输入、输出、生成关系和 artifact 可用性。 | 可进入 PR-R2 的 seed registry 候选池。 | 每个 strict 行必须有 `P1/P2/P3/P4` 证据指针。 |
+| Survey-3 | 对 `SS-A?/SS-B?/ES-C?` 候选补输入、输出、生成关系和 artifact 可用性。 | 可进入 PR-R2 的 seed registry 候选池。 | 每个 strict 行必须有 `P1/P2/P3/P4` 证据指针。 |
 | Survey-4 | 负例 sentinel 复查：protocol、BPMN/process、formal spec、T1+、co-exist only、repair-only 各抽至少 1 例。 | 排除门自检记录。 | sentinel 不得误入 strict。 |
 | Survey-5 | 与 PR-R2/R3/R6 交接。 | R2 seed 候选、R3 converter pressure、R6 related-work / comparison 分层。 | 不从 R1 直接推出实验效果 claim。 |
 

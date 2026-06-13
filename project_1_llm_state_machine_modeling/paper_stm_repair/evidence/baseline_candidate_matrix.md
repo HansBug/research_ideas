@@ -46,8 +46,8 @@
 
 | slug | strict 初判 | 必须保留的限制 | R2/R3 使用建议 |
 |---|---|---|---|
-| `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` | `SS-A` 候选 | 需冻结 4open artifact、reference、license 与 hash。 | 优先作 external same-sample strict seed 候选。 |
-| `llms_emp` | STM 子集 `SS-A` 候选 | 只取 `diagram_type=stm`；ACT/SD 不得混入 STM seed。 | 作 STM 子集 seed / judge 校准。 |
+| `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` | `SS-A?` 待 R2 复核 | 需冻结 4open artifact、reference、license 与 hash。 | 优先作 external same-sample strict seed 候选。 |
+| `llms_emp` | STM 子集 `SS-A?` 待 R2 复核 | 只取 `diagram_type=stm`；ACT/SD 不得混入 STM seed。 | 作 STM 子集 seed / judge 校准。 |
 | `ttool-ai` | SMD 部分 `SS-B/ES-C` | 只取 state-machine panel；BD/IBD/UCD/properties 不算 strict seed。 | 作工具格式和 XML 转换压力。 |
 | `umple` | `SS-B/ES-C` | NL->Umple 方向贴近，但 benchmark bundle / pipeline 不完整。 | 作可重建 seed 或 adapter 压力。 |
 | `designing-fsm-specifications-from-requirements-gpt4` | `SS-B/ES-C` | 只能用 NL->DFSM/Mealy 初始生成链路；repair/refinement 输出不能作为主 seed。 | 作 CSV/DFSM 近似 seed 与 repair 近邻。 |
