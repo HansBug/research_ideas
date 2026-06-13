@@ -4,7 +4,7 @@
 
 ## 1. 可交接主 / 条件主候选
 
-按 PR #108 §1.3 公式，只有 `SS-A/SS-B + SA-1/SA-2` 才能进入主 / 条件主候选；`SA-3/SA-4/SA-5` 不计数。
+按 PR #108 §1.3 公式，只有 `SS-A/SS-B + SA-1/SA-2` 且 `candidate_matrix.md` 中 `计数资格` 为 `yes-main` / `yes-conditional` 的条目，才进入当前主 / 条件主候选；`SA-3/SA-4/SA-5`、pipeline-only/output-missing、project-constructed/source fallback 均不计数。
 
 | 优先级 | ID | SS | SA | 是否可计入四例候选 | 为什么可考虑 | PR-R2 必做裁决 |
 |---:|---|---|---|---|---|---|
@@ -15,7 +15,7 @@
 
 ## 2. R1.7 可计数不足的 negative evidence
 
-R1.7 新增/重判 10 条正式候选，并新增 8 个单篇目录，但新增 strict-like 文献均为 paper-only / manual / boundary，**没有新增 `SA-1/SA-2` 主候选**。
+R1.7 新增/重判 10 条正式候选，并新增 8 个单篇目录，但新增 strict-like 文献均为 paper-only / manual / boundary，**没有新增 `计数资格=yes-main/yes-conditional` 主 / 条件主候选**。
 
 | 证据类别 | R1.7 发现 | 对 PR-R2 的含义 |
 |---|---|---|
@@ -30,7 +30,7 @@ R1.7 新增/重判 10 条正式候选，并新增 8 个单篇目录，但新增 
 
 | ID | 当前等级 | 为什么暂不计数 | 何时可升级 |
 |---|---|---|---|
-| `fsm-bench-20` | `SS-A / SA-2`（pipeline-only） | 公开包有 dataset / prompt / schema / code / MIT，但 generated FSM outputs / gold 没有冻结；`SA-2` 只指 pipeline artifact 可冻结。 | PR-R2 按 v1.0.0 tag + prompt + model digest 复跑并保存 raw/cleaned outputs、manifest、hash 后，可作为 project-rerun seed。 |
+| `fsm-bench-20` | `SS-A / SA-2`（pipeline-only；`计数资格=no-pipeline-output-missing`） | 公开包有 dataset / prompt / schema / code / MIT，但 generated FSM outputs / gold 没有冻结；`SA-2` 只指 pipeline artifact 可冻结，不代表已有 `STM_0` 可直接冻结。 | PR-R2 按 v1.0.0 tag + prompt + model digest 复跑并保存 raw/cleaned outputs、manifest、hash 后，可作为 project-rerun seed。 |
 | `ttool-ai-smd-subset` | `ES-C / SA-2` | 含 `after (5, 5)`、signal、guard/action 等 timed-SMD 语义；不满足 T0 hard gate。 | PR-R3 若冻结 timing abstraction / case-level T0 isolation，可重新裁决。 |
 | `fsm-gen-iec-61499` | `SS-B / SA-4` | 控制系统相关性强，但 fbAssistant、数据、状态机输出和 IEC 61499 代码未公开。 | 作者公开 artifact 或本项目另行构造 comparable seed；不能直接复用原文私有输出。 |
 | `sources-*` | `pending-source` | 本项目真实控制系统描述池，不是文献 strict seed；R1.7 不构造 `STM_0`。 | R2/R3 若构造 `STM_0`，需单独记录 provenance、leakage control 和人工/低配 prompt 生成过程。 |

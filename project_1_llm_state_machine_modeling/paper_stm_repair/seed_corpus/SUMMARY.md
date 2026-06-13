@@ -4,7 +4,7 @@
 
 本目录当前处于 **PR-R1.7 bounded snapshot v3**：在 R1.6 的 36 条候选 / 36 条 screening / 15 个单篇目录 / 4 条可交接主或条件主候选基础上，继续执行广域 strict seed 文献调研、classic use-case/statechart 全文阅读、manual queue 资源复查和 negative evidence 补强。
 
-R1.7 的核心结论是：**广域检索显著扩展了 paper-only classic seed 证据和 boundary sentinel，但没有新增可按 §1.3 公式直接计入 PR-R2 主 / 条件主 seed 的 `SA-1/SA-2` 文献候选。** 因此 PR-R2 仍应以 R1.6 的 4 条主 / 条件主候选为核心，并准备 `fsm-bench-20` 复跑、`sources/` 构造、低配 prompt 或学生 / 人工种子作为 fallback。
+R1.7 的核心结论是：**广域检索显著扩展了 paper-only classic seed 证据和 boundary sentinel，但没有新增可按 §1.3 公式与 `candidate_matrix.md` 的 `计数资格` 直接计入 PR-R2 主 / 条件主 seed 的文献候选。** 因此 PR-R2 仍应以 R1.6 的 4 条主 / 条件主候选为核心，并准备 `fsm-bench-20` 复跑、`sources/` 构造、低配 prompt 或学生 / 人工种子作为 fallback。
 
 ## 当前统计（bounded snapshot v3）
 
@@ -14,7 +14,7 @@ R1.7 的核心结论是：**广域检索显著扩展了 paper-only classic seed 
 | `screening_ledger.md` 已入账候选 | 46 | 与 candidate matrix 一一对应。 |
 | 已完成单篇全文 / artifact 编码目录 | 23 | R1.6 15 个 + R1.7 新增 8 个：`nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`、`integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion`。 |
 | R1.7 search round | 8 | `round-r17-01` 到 `round-r17-08`，覆盖 OpenAlex、Crossref、arXiv、Semantic Scholar blocker、DBLP exact、classic fulltext、manual queue recheck。 |
-| 可按 §1.3 公式计入的主 / 条件主候选 | 4 | 仍为 `sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4`、`unified-uml-multimodal-validation`；`fsm-bench-20` 是 pipeline fallback，不直接计四例。 |
+| 可按 §1.3 公式 + `计数资格` 计入的主 / 条件主候选 | 4 | 仍为 `sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4`、`unified-uml-multimodal-validation`；`fsm-bench-20` 虽为 `SS-A / SA-2` pipeline artifact，但 generated `STM_0` outputs 未公开冻结，在 `candidate_matrix.md` 标为 `no-pipeline-output-missing`，不直接计四例。 |
 | R1.7 新增 paper-only strict/conditional evidence | 5 | `nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`，均为 `SA-3`，不计主 seed。 |
 | R1.7 新增 hard boundary / exclusion | 5+ | `integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion`、`ucgen-usecase-descriptions`、`web-tool-goal-statechart-derivation` 等。 |
 | manual queue 状态 | 2 downloaded/excluded；2 excluded-by-metadata；10 still-blocked；2 new-manual-pending | 详见 [manual_download_queue.md](./manual_download_queue.md)。 |
@@ -41,7 +41,7 @@ R1.7 的核心结论是：**广域检索显著扩展了 paper-only classic seed 
 
 ## 关键风险
 
-1. **四例候选仍紧绷**：按 `SS-A/SS-B + SA-1/SA-2` 公式仍只有 4 条可交接候选，且其中 2 条为条件候选。
+1. **四例候选仍紧绷**：按 `SS-A/SS-B + SA-1/SA-2 + 计数资格=yes-main/yes-conditional` 口径仍只有 4 条可交接候选，且其中 2 条为条件候选。
 2. **`fsm-bench-20` 仍不能直接算 generated seed**：它适合 R2 复跑生成并冻结 `STM_0`，但公开包未给 generated outputs。
 3. **paper-only 证据不能替代可运行样本**：新增 classic 论文可用于 related work 和手工构造灵感，但不能冒充可复验实验输入。
 4. **closed/manual 项可能改变 related-work 叙述，但不应改变 hard gate**：即使人工下载后确认生成关系，也大概率仍是 `SA-3/SA-5`，除非发现公开 artifact。

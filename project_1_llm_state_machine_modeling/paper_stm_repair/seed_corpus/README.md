@@ -31,6 +31,6 @@
 ## PR-R1.6 / R1.7 交接速记
 
 - 当前可交接给 PR-R2 的主 / 条件主候选、R1.7 negative evidence 与 fallback 见 [seed_selection_candidates.md](./seed_selection_candidates.md)。
-- `SS-A/SS-B + SA-1/SA-2` 只是进入 PR-R2 人工裁决的候选条件；最终四例仍需 case-level freeze。
+- `SS-A/SS-B + SA-1/SA-2` 只是进入 PR-R2 人工裁决的必要条件；当前计数还必须检查 [candidate_matrix.md](./candidate_matrix.md) 的 `计数资格`，最终四例仍需 case-level freeze。
 - `SA-3/SA-4/SA-5`、paper-only、private-only、completion-only、scenario/formal input、protocol/standard sentinel 和 `sources/` 构造项均不计 PR-R2 主 / 条件主 seed 候选。
 - `fsm-bench-20` 是强 pipeline fallback，但没有公开冻结 generated outputs；若使用，需要 PR-R2 复跑并保存 run record。

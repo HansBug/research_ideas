@@ -254,7 +254,7 @@
 | 四例真实运行 | 不需要；本 PR 只做文献与 artifact 审计。 |
 | 真实 LLM 调用 | 不需要，未读取 `.env`。 |
 | 当前 bounded snapshot | R1.7 已有 46 candidates / 46 screening / 23 fulltext dirs / 8 R1.7 rounds / manual queue 状态分布。 |
-| 关键结论 | 新增 classic paper-only evidence 与 boundary sentinel，但未新增 `SA-1/SA-2` 主候选；PR-R2 仍需裁决 R1.6 四条并准备 fallback。 |
+| 关键结论 | 新增 classic paper-only evidence 与 boundary sentinel，但未新增 `计数资格=yes-main/yes-conditional` 主 / 条件主候选；PR-R2 仍需裁决 R1.6 四条并准备 fallback。 |
 
 ### 11.1 PR-R1.7 已产出文件
 
@@ -284,7 +284,7 @@
 
 | 风险 | 处理 |
 |---|---|
-| 可计主 / 条件主候选仍只有 4 条 | 已在 [../seed_corpus/seed_selection_candidates.md](../seed_corpus/seed_selection_candidates.md) 写出 negative evidence 与 fallback。 |
+| 可计主 / 条件主候选仍只有 4 条 | 已在 [../seed_corpus/seed_selection_candidates.md](../seed_corpus/seed_selection_candidates.md) 写出 negative evidence 与 fallback；`fsm-bench-20` 标为 `no-pipeline-output-missing`，不误计。 |
 | 新增 classic 论文多为 paper-only | 明确 `SA-3` 不计主 seed，只作 related work / manual reconstruction。 |
 | Semantic Scholar API 429 | 已有 blocker round，并用 OpenAlex/Crossref/arXiv/DBLP 替代。 |
 | closed/manual 项仍多 | 已给状态分布，不作为 PR-R2 启动 blocker。 |
@@ -295,4 +295,4 @@
 - Inputs not used and why: 受 paywall / browser-only / API 429 阻塞的 manual queue 项未强行下载；已在 [../seed_corpus/manual_download_queue.md](../seed_corpus/manual_download_queue.md) 记录 blocker 与 PR-R2 影响。
 - Artifacts produced: 46-row candidate / screening ledger、23 个全文 / artifact 编码目录、8 个 R1.7 search rounds、manual queue 状态分布、R2 handoff negative evidence。
 - Verification run: `git diff --check`、candidate/screening ID 对齐、Markdown 相对链接检查、8 个新增单篇目录五件套检查。
-- Remaining risk: 可计主 / 条件主候选仍只有 4 条且其中 2 条为条件候选；R2 需要 case-level freeze，并准备 `fsm-bench-20` 复跑或 `sources/` / 低配 prompt / 学生人工 fallback。
+- Remaining risk: 按 `计数资格` 可计主 / 条件主候选仍只有 4 条且其中 2 条为条件候选；R2 需要 case-level freeze，并准备 `fsm-bench-20` 复跑或 `sources/` / 低配 prompt / 学生人工 fallback。
