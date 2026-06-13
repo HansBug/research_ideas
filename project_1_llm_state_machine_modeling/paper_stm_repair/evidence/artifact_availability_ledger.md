@@ -4,6 +4,21 @@
 
 本台账只记录 R1 阶段已能从当前本地文档和已核验入口获得的资产状态。`🟢` 表示已有明确公开入口或本地冻结；`🟡` 表示可作为复现起点但缺 release / license / 依赖锁 / 完整包；`🟠` 表示仅有论文内结果、仓库壳或线索；`🔒` 表示明确私有或难以取得。
 
+补充口径：artifact 可用性不同于 strict seed eligibility。某论文可以满足 `NL -> T0 STM-family` 的文献方向，但若原始 NL、生成 STM、reference、逐次输出或 license 无法冻结，仍不能直接进入 PR-R2 可复验 seed 样本。反过来，protocol / process / formal-spec artifact 即使公开，也只能作为 related work 或 out-of-domain 资产。
+
+
+## 2.1 strict seed artifact 额外字段
+
+后续 PR-R2 若把某候选放入 seed registry，除本表五类可获取性外，还必须补下列字段：
+
+| 字段 | 含义 | 阻塞条件 |
+|---|---|---|
+| `nl_input_available` | 自然语言需求 / 场景 / 系统描述是否可冻结。 | 只有论文概述或私有需求时不得进主样本。 |
+| `generated_stm_available` | 由 NL 生成 / 派生的初始 STM 或 reference 是否可冻结。 | 只有图片或聚合分数时需标 `SA-2/SA-3`。 |
+| `generation_relation_evidence` | 是否有证据说明 STM 由 NL 生成，而不是共现或已有模型转换。 | 缺证据时只能 pending / near。 |
+| `license_or_access_risk` | 数据、代码、artifact 是否允许实验复用。 | 私有 / 无 license / live-only 入口需降级。 |
+| `hash_or_commit_plan` | 是否能记录 commit、hash、文件清单和下载日期。 | 无法冻结时不得声称可复验。 |
+
 ## 2. 五绿 direct baseline 可获取性
 
 | slug | 论文 | 代码 | 数据 / 输入 | 结果细则 | artifact | R1 结论 |

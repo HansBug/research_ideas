@@ -6,6 +6,7 @@
 - `主实验`：是否可能进入主实验样本或对照。
 - `对照资格`：`runnable` / `near-approximate` / `evidence-only` / `related-work-only` / `skip`。
 - `对照角色`：seed、NL-regeneration、no-structured-feedback、repair-refinement、conversion-aware、related-work 等。
+- `strict seed`：比五绿 direct baseline 更窄；必须满足 [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) 的 `P1_NL_INPUT / P2_T0_STM_FAMILY / P3_GENERATION_RELATION / P4_EVIDENCE_POINTER` 四谓词。
 - `本地事实源`：本表优先引用当前 `baselines/` 下的四件套、`ASSETS.md` 和 `DESC.md`；外部 URL 的可用性沿用这些文件中已经记录的核验结论，R1 本轮不重新联网复跑。
 
 ## 2. 五绿 direct baseline 候选级证据闭合
@@ -37,6 +38,23 @@
 | `llms_emp` | 107 个 SysML 行为模型需求；本地 parquet 含样本和 human review。 | PlantUML SysML 行为模型：STM / ACT / SD。 | 中：可抽 STM 子集，但需排除 ACT/SD 干扰，并定义 PlantUML / SysML 到内部 STM 的信息保留规则。 | yes | possible | near-approximate | seed / no-structured-feedback / conversion-aware |
 | `pushing-the-generative-envelope-mbse-artifacts` | air purifier、vacuum 两个简短系统题项。 | SysML v2 requirements list + state machine diagrams。 | 高：无可下载逐次输出，样本极小；只适合作 prompt / temperature / local LLM 敏感性背景。 | no | no | evidence-only | related-work |
 | `ttool-ai` | platooning、spacebasedsystem、AutomatedBraking 等自然语言系统规范。 | SysML BDD / IBD / state machine；TTool XML；结果表。 | 中-高：需解析 TTool XML，分离结构图与状态机，并对齐 TTool 语义与内部 STM 语义。 | yes | possible | near-approximate | seed / repair-refinement / conversion-aware |
+
+
+### 2.3 strict seed 资格初判
+
+本节不替代后续 PR-R2 的 seed registry，只防止把宽口径 direct baseline 全部误写成 strict seed。`SS-A/SS-B/ES-C/NN-D` 口径见 [strict_seed_literature_survey.md](./strict_seed_literature_survey.md)。
+
+| slug | strict 初判 | 必须保留的限制 | R2/R3 使用建议 |
+|---|---|---|---|
+| `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` | `SS-A` 候选 | 需冻结 4open artifact、reference、license 与 hash。 | 优先作 external same-sample strict seed 候选。 |
+| `llms_emp` | STM 子集 `SS-A` 候选 | 只取 `diagram_type=stm`；ACT/SD 不得混入 STM seed。 | 作 STM 子集 seed / judge 校准。 |
+| `ttool-ai` | SMD 部分 `SS-B/ES-C` | 只取 state-machine panel；BD/IBD/UCD/properties 不算 strict seed。 | 作工具格式和 XML 转换压力。 |
+| `umple` | `SS-B/ES-C` | NL->Umple 方向贴近，但 benchmark bundle / pipeline 不完整。 | 作可重建 seed 或 adapter 压力。 |
+| `designing-fsm-specifications-from-requirements-gpt4` | `SS-B/ES-C` | 只能用 NL->DFSM/Mealy 初始生成链路；repair/refinement 输出不能作为主 seed。 | 作 CSV/DFSM 近似 seed 与 repair 近邻。 |
+| `req` | `SS-B` | 任务贴合但原始工业数据、人工 statechart、评分私有。 | related work / task boundary，不作可复验主样本。 |
+| `pushing-the-generative-envelope-mbse-artifacts` | `SS-B/ES-C` | 只有 2 个题项和论文表格，无逐次输出包。 | 方法背景 / 小样本 evidence。 |
+| `agentic-flow-finite-state-machine-extraction-prompt-chaining` | `NN-D` | RFC -> protocol FSM，触发 `X_PROTOCOL`。 | protocol related work，不进主 strict seed。 |
+| `automated-extraction-protocol-state-machines-3gpp-specifications` | `NN-D` | 3GPP -> protocol FSM，触发 `X_PROTOCOL`。 | protocol related work，不进主 strict seed。 |
 
 ## 3. 强近邻与补充资产
 

@@ -4,12 +4,13 @@
 
 | 字段 | 状态 |
 |---|---|
+| 2026-06-14 00:16:15 | 按最新讨论补充 strict seed 大规模文献调研协议：定义 `NL -> T0（无关键时间语义）FSM/HSM/EFSM/statechart` 四谓词、硬排除码、多维指标、分级标准、337 条 `sources/` strict-source 子池统计，以及 direct baseline / reproduction / reviewer corpus 的 strict 使用边界。 |
 | 2026-06-13 01:18:00 | 按人工审阅意见补充 R1 是阶段性资产候选证据而非最终论文论证；扩充九个 direct baseline 的候选级证据闭合表，并明确 R2--R6 可按真实实验结果回填 / 局部校准链路。 |
 | 2026-06-13 00:57:00 | 修复 deepseek reviewer 指出的 R1 evidence forbidden wording；补充 `sources/` 715 篇 `🟢 直接可用` 的统计口径说明和 R1 本地检查记录。 |
-| PR | [#102](https://github.com/HansBug/research_ideas/pull/102) |
+| PR | [#104](https://github.com/HansBug/research_ideas/pull/104) |
 | 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| 当前阶段 | Ready：实现复审与 CI 均通过，等待用户审阅 / merge 指示 |
-| 四例真实运行 | 不需要；R0 是文档 / story gate。 |
+| 当前阶段 | R1 implementation / strict seed 调研协议补充后 review iteration |
+| 四例真实运行 | 不需要；R1 是文档 / 资产审计 / seed 调研协议。 |
 | 真实 LLM 调用 | 不需要。 |
 | method runtime 修改 | 不涉及。 |
 | `path1_foundation/` 修改 | 不允许。 |
@@ -104,6 +105,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 00:16:15 | PR-R1 补充 strict seed 大规模文献调研协议、初始统计和 review gate；等待补充后多智能体复审。 |
 | 2026-06-13 00:45:00 | PR-R1 创建 baseline 资产审计文档：source coverage、branch-local trace、候选矩阵、artifact 可获取性与格式转换压力；本轮不改写 R0 completion 结论。 |
 | 2026-06-13 00:19:18 | 按人工审阅意见补充 R0 是可执行论文工作基线而非最终论证链；后续 R1--R6 可按真实实验结果回填并局部校准 story / RQ / claim。 |
 | 2026-06-13 00:08:00 | 三路 implementation re-review 均 C=0/I=0；feedback-smoke 通过；记录 docs-only 无 Codecov 覆盖率变化。 |
@@ -116,7 +118,7 @@
 |---|---|
 | PR | [#104](https://github.com/HansBug/research_ideas/pull/104) |
 | 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| 当前阶段 | R1 implementation / review iteration |
+| 当前阶段 | R1 implementation / strict seed 调研协议补充后 review iteration |
 | 四例真实运行 | 不需要；R1 是资产审计。 |
 | 真实 LLM 调用 | 不需要。 |
 | method runtime 修改 | 不涉及。 |
@@ -143,6 +145,7 @@
 | [../evidence/format_conversion_matrix.md](../evidence/format_conversion_matrix.md) | 已创建 |
 | [../evidence/branch_asset_trace.md](../evidence/branch_asset_trace.md) | 已创建 |
 | [../evidence/source_coverage_ledger.md](../evidence/source_coverage_ledger.md) | 已创建 |
+| [../evidence/strict_seed_literature_survey.md](../evidence/strict_seed_literature_survey.md) | 已创建 |
 
 ### 9.2.1 R1 本地检查记录
 
@@ -159,7 +162,7 @@
 
 | 边界 | 说明 |
 |---|---|
-| 未逐篇深审全部 91 篇 baseline | R1 对 91 篇做 summary-level closure，对 9 个 direct baseline 和部分强近邻做深审。 |
-| 未冻结四例 seed | R2 才能基于本审计选择样本。 |
+| 未逐篇深审全部 91 篇 baseline | R1 对 91 篇做 summary-level closure，对 9 个 direct baseline 和部分强近邻做深审；未完成全部 91 篇 strict seed eligibility 闭合。 |
+| 未冻结四例 seed | R2 才能基于本审计选择样本；`sources/` 的 337 条 strict-source 子池仍需构造 / 冻结 `STM_0`。 |
 | 未验证转换器 | R3 才能把“可转换性评估”变成 schema / fixture / adapter。 |
 | 未复跑外部 artifact | 活链接、仓库 HEAD、Drive / 4open / 3GPP dynareport 等正式实验前仍需冻结。 |
