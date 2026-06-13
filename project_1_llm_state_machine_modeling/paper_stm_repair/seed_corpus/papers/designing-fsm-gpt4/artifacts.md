@@ -41,9 +41,9 @@
 | 论文结果复现 | low-medium | 仓库含 score 文本和输出目录，但表格结果与代码版本需人工对齐。 |
 | 真实 LLM 调用复现 | low | 需要 OpenAI API 环境；必须按仓库 `.env` 与 run record 规范记录 model_id、日期、usage、prompt 和 raw output。 |
 
-## R2 / repair artifact 边界
+## R2 seed / repair artifact 边界
 
-可参考但不可直接冻结的 repair 资产：
+可冻结为条件 seed 的范围仅限：Page 4 Listing 1.1 的 NL description、Page 6 Listing 1.2 的 CSV schema，以及与初始生成直接相关的输出文件。以下 repair 资产可参考但不可直接冻结为 seed：
 
 1. `v1` / syntactic fault repair：对应论文 Section 5.1。
 2. `v4` / distinguishing sequence repair：对应论文 Section 5.2。
@@ -75,3 +75,7 @@
 | pending | 未冻结 GitHub 数据和输出文件 hash | 影响 benchmark 复现。 |
 | blocker | GitHub repo 无 license | 阻止代码/数据直接纳入正式 artifact 包。 |
 | blocker | 无 release/tag/依赖锁 | 阻止标记为 `SA-1` 或 `SS-A`。 |
+
+## initial-generation-only 冻结建议
+
+若 PR-R2 选择该候选，应建立独立 seed 切片：`nl_description.txt`、`initial_generated_dfsm.csv`、`schema.md`、`source_commit.txt` 和 `excluded_repair_sections.md`。不得把 oracle DFSM、distinguishing / checking sequence 答案或 fault-model repaired machine 混入初始 seed 输入输出。

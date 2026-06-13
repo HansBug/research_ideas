@@ -10,8 +10,9 @@
 | bibliographic_id | arXiv:2603.29140, 2026 |
 | strict_seed_grade | `SS-B` |
 | artifact_usability | `SA-2` |
-| R2_repair_usability | `R2-reference-only` |
-| 当前结论 | 可作为 `NL requirement -> DFSM/Mealy CSV` 的 strict seed 候选；不得把论文 repair/oracle 实验整体当作 seed，也不得标为 `SS-A`。 |
+| R2_seed_usability | `initial-generation-only conditional seed candidate` |
+| repair_oracle_sections | `excluded-from-seed / reference-only` |
+| 当前结论 | 可作为 `NL requirement -> DFSM/Mealy CSV` 的条件 strict seed 候选，但只限初始生成链路；不得把论文 repair/oracle/fault-model 实验整体当作 seed，也不得标为 `SS-A`。 |
 
 ## P1/P2/P3/P4 核验
 
@@ -47,16 +48,20 @@
 3. fault-model / mutation-machine mining 产生的 repaired DFSM。
 4. 论文表格中的 aggregate repair success rate，除非另建 R2 repair benchmark。
 
-## R2 可用性
+## R2 seed 可用性
 
-`R2-reference-only`。论文提供四类修复思路，适合作为 Project 1 后续修复反馈设计的参考：
+`initial-generation-only conditional seed candidate`。可交接给 PR-R2 的仅是初始 `NL description -> DFSM/Mealy CSV` seed 切片：输入为英文自然语言 DFSM 描述，输出 schema 为 `State,Input,Output,Next_State` CSV，形式化对象为 deterministic finite state machine / Mealy machine。该切片仍带合成数据、license pending、无 release / split 冻结等 caveat。
+
+### repair / oracle 部分只作参考，不作 seed
+
+论文提供四类修复思路，适合作为 Project 1 后续修复反馈设计的参考：
 
 - syntactic fault prompt repair：可映射到 missing transition / wrong output / wrong target。
 - distinguishing sequence repair：可作为 trace feedback 负例或对照组。
 - checking sequence repair：可借鉴“专家只回答行为 trace”的低负担查询思想。
 - fault-model repair domain：可借鉴“限制候选修复空间，而不是让 LLM 自由改写全模型”。
 
-但当前不宜直接升级为 R2 复现实验：真实 artifact 未冻结，repair domain 构造依赖论文外代码与 oracle 增强，且实验数据是合成描述。
+这些 repair / oracle 部分当前不计入 seed：真实 artifact 未冻结，repair domain 构造依赖论文外代码与 oracle 增强，且实验数据是合成描述。PR-R2 若使用该候选，必须物理或逻辑隔离 initial-generation seed 切片，并在 provenance 中记录未使用 oracle / distinguishing sequence / checking sequence / fault-model 修复输出。
 
 ## 证据文件与 hash
 

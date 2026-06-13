@@ -12,11 +12,11 @@
 | Dataset / outputs | public | 论文§5.2说明`platooning`、`spacebasedsystem`、`AutomatedBraking`目录包含系统规格和TTool-AI生成的`.xml`模型；源`ASSETS.md`还记录`results.ods`和补充工件目录。 |
 | License / redistribution | pending | 本轮允许读取材料未给出GitHub仓库license，不能判定可再分发；R2若要搬运XML/desc到本仓库，需先人工核验license或仅记录URL与hash。 |
 | URL stability | medium-high | HAL/DOI稳定；GitHub URL公开，源`ASSETS.md`已记录pinned HEAD和`results.ods` raw ETag，但本轮未重新联网核验。 |
-| Conversion readiness | medium | 可从公开`.desc`/`.xml`抽取NL规格与生成SMD；需处理TTool XML结构、SysML SMD动作/信号、`after`时间约束和LLM生成残余错误。 |
+| Conversion readiness | boundary | 可从公开 `.desc` / `.xml` 抽取 NL 规格与生成 SMD；但 `after` 时间约束、signal send/receive、guard/action 赋值和 LLM 生成残余错误是 PR-R3 converter blocker。当前不计入 PR-R2 主 seed 下限。 |
 
-## R2可用性判断
+## R2 / R3 可用性判断
 
-R2可用性为**可用但需约束**。公开artifact提供三类核心材料：自然语言系统规格、TTool-AI生成模型和评分结果表。它适合做“固定artifact抽取/审计”，不适合要求完全重跑生成过程得到同一输出。
+R2 可用性为**不计主 seed 的 converter pressure / timed boundary**。公开 artifact 提供自然语言系统规格、TTool-AI 生成模型和评分结果表，适合做“固定 artifact 抽取 / 审计”和 PR-R3 转换压力测试；但在完成 case-level T0 isolation 或 timed-SMD 规范化合同前，不适合作为 PR-R2 四例主 seed。
 
 R2建议入口：
 
@@ -31,3 +31,7 @@ R2建议入口：
 2. **完整源码不足**：公开仓库主要保存实验输入/输出/结果，TTool-AI能力在TTool工具中；如要改造baseline，需要另查TTool本体。
 3. **provider drift**：论文实验绑定TTool nightly build October 2023与ChatGPT 3.5 turbo，复跑会受模型版本、temperature和API行为变化影响。
 4. **SMD语义转换**：公开模型可能包含guards、actions、signals和`after`时间约束；若目标repair pipeline只接受简化FSM，必须显式转换并保留审计记录。
+
+## 主 seed 排除说明
+
+当前不计入 `SS-A/SS-B + SA-1/SA-2` 主 seed 下限。若未来要升级，必须补一份 case-level 记录，说明选定 `.xml` 中的 `after` / timeout / signal / guard-action 是否保留、抽象或剔除，以及该处理是否影响后续 Better STM 评价。
