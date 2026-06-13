@@ -2,7 +2,7 @@
 
 ## 1. 工作边界
 
-本指南约束 PR-R1.5 的 seed 文献调研和文库建设。所有结论必须服务于第一篇论文的 `<NL, STM_0> -> STM_k / Better STM` 任务，不得把 `NL -> STM` 初始生成重新包装成论文主贡献，也不得把 `fcstm` / `pyfcstm` / DSL 当成贡献点。
+本指南约束 PR-R1.5 / PR-R1.6 的 seed 文献调研和文库建设。所有结论必须服务于第一篇论文的 `<NL, STM_0> -> STM_k / Better STM` 任务，不得把 `NL -> STM` 初始生成重新包装成论文主贡献，也不得把 `fcstm` / `pyfcstm` / DSL 当成贡献点。
 
 ## 2. 检索策略
 
@@ -73,6 +73,14 @@ papers/<paper-slug>/
 - 所有 agent 禁止 sub-subagent。
 - [agent_provenance.md](./agent_provenance.md) 记录本目录细账；[../plan/agent_provenance.md](../plan/agent_provenance.md) 只写跨 PR 摘要。
 
-## 8. 完成门
+## 8. R1.6 补充纪律
+
+1. `candidate_matrix.md` 与 `screening_ledger.md` 必须 ID 一一对应；新增候选不得只进入一边。
+2. `search_log.md` 只写摘要；每轮检索细节写入 [search_rounds/](./search_rounds/) 并保持 append-only。
+3. 新增或升级为主 / 条件主候选时，必须同步更新 [seed_selection_candidates.md](./seed_selection_candidates.md)。
+4. `SS-B + SA-2` 只能作为条件候选，必须写明生成关系、T0 边界、artifact 可隔离性与 caveat。
+5. pipeline 可复跑但 outputs 未冻结的候选（如 `fsm-bench-20`）不得直接计入已生成 `STM_0` 四例下限。
+
+## 9. 完成门
 
 本 PR 最低 bounded snapshot：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验；若不少于 `4` 条达到 `SS-A/SS-B + SA-1/SA-2`，才可称为“已具备可交接 PR-R2 的四例主 seed 候选”。若不足 `4` 条，本 PR 仍可 ready，但必须以“bounded snapshot + blocker handoff”交接：明确当前主候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入。`SA-3/SA-4` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。

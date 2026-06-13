@@ -1,6 +1,6 @@
 # strict seed search log
 
-本文件记录 PR-R1.5 的检索边界。当前条目是初始 bounded snapshot，不代表全域 census。
+本文件记录 PR-R1.5 / PR-R1.6 的 cumulative 检索边界与扩展检索摘要。当前条目只代表 bounded snapshot，不代表全域 census；逐轮细节以 [search_rounds/](./search_rounds/) 为事实源。
 
 | 批次 | 日期 | source | query / 入口 | cap | 原始命中 | 去重后 | 进入 title/abstract | 进入 fulltext/artifact | 失败 / blocker | 早停理由 | 备注 |
 |---|---|---|---|---:|---:|---:|---:|---:|---|---|---|
@@ -9,5 +9,8 @@
 | snowballing-plan | 2026-06-14 | references / cited-by | 从 `from-use-cases-to-statecharts`、`synthesizing-statecharts...`、`structure-event` 等候选出发 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 待执行 | 记录 `snowballing_parent_id` |
 | external-openalex-nl-req-sm | 2026-06-14 | OpenAlex | `natural language requirements state machine generation` | top 20 | 20 | 未人工去重 | 未筛查 | 0 | 高噪声：首批命中 LeCun/Quantum Espresso 等非目标 | query 过宽，早停；需 exact phrase / 排除词 | 原始结果见 `search_results/openalex_nl_req_state_machine.jsonl` |
 | external-openalex-use-case-statechart | 2026-06-14 | OpenAlex | `use case statechart generation` | top 20 | 20 | 未人工去重 | 未筛查 | 0 | 高噪声：NuSMV/UPPAAL 等工具泛命中 | query 过宽，早停；需 exact phrase / venue / title filter | 原始结果见 `search_results/openalex_use_case_statechart.jsonl` |
-| external-planner-scout | 2026-06-14 | mixed web / arXiv / ACM / Springer / ResearchGate line search | scout agent query plan | 20 candidates | 20 | 20 | 10+ | 待核 | 部分链接为 publisher / RG，需要人工下载 | 作为 external candidate seeds 写入 `candidate_matrix.md` |
-| sources-scout | 2026-06-14 | local `sources/` | `FSM/HSM/EFSM + T0 + A/A + high-priority` 抽样策略 | 10 candidate lines | 10 | 10 | 0 | 0 | sources 不自动 strict | 作为 source candidate / possible student seed，不直接标 SS-A |
+| external-planner-scout | 2026-06-14 | mixed web / arXiv / ACM / Springer / ResearchGate line search | scout agent query plan | 20 candidates | 20 | 20 | 10+ | 0 / 待核 | 部分链接为 publisher / RG，需要人工下载 | 作为候选线索，交 R1.5/R1.6 精筛 | 已写入 `candidate_matrix.md` 部分外部候选 |
+| sources-scout | 2026-06-14 | local `sources/` | `FSM/HSM/EFSM + T0 + A/A + high-priority` 抽样策略 | 10 candidate lines | 10 | 10 | 0 | 0 | sources 不自动 strict | 仅作 source candidate / possible student seed | 不直接标 SS-A |
+| r16-01-crossref-refined | 2026-06-14 | Crossref / DOI | exact title / refined queries | 5 query clusters | 15 | 5 | 5 | 2 | closed PDF for IEEE/SSRN | exact title enough for DOI; handoff to fulltext/artifact | 详见 [round-r16-01-crossref-refined.md](./search_rounds/round-r16-01-crossref-refined.md) |
+| r16-02-llm-recent-artifact | 2026-06-14 | arXiv / Zenodo / GitHub / IJISRT / TechScience / HF | LLM + state machine / UML state diagram recent candidates | 10 candidates | 10 | 10 | 7 | 5 | HF license unclear; FSM-Bench outputs missing | 完成 recent LLM artifact 核验 | 详见 [round-r16-02-llm-recent-artifact.md](./search_rounds/round-r16-02-llm-recent-artifact.md) |
+| r16-03-classic-snowball-boundary | 2026-06-14 | Crossref / DBLP / OpenAlex / DOI / subagents | use-case / scenario / completion snowballing | 12 candidates | 12 | 12 | 10 | 1 | closed publisher PDFs; many P1/P3 failures | enough negative evidence for classic boundary | 详见 [round-r16-03-classic-snowball-boundary.md](./search_rounds/round-r16-03-classic-snowball-boundary.md) |
