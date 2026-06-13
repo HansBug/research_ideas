@@ -1,77 +1,90 @@
 # Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies
 
-## 1. 元数据
+## 1. 快速结论卡片
 
 | 字段 | 内容 |
 |---|---|
 | 标题 | Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies |
 | 年份 | 2026 |
-| 作者 | Ming Zhang、Jiabao Zhuang、Wenqing Jing、Kexin Tan 等 |
-| arXiv | [2601.12369](https://arxiv.org/abs/2601.12369) |
-| PDF | [paper.pdf](./paper.pdf) |
-| 正文提取 | [paper_content.txt](./paper_content.txt) |
-| BibTeX | [bibtex.bib](./bibtex.bib) |
-| 初步分层 | P1 |
-| 核验阶段 | arXiv title / abstract 粗筛 + PDF 自动获取 + `paper_content.txt` 文字模式提取；还不是最终全文细读结论。 |
+| 分层 | P1：survey/deep research agent 评价强 baseline；对 paper2 的评价指标和 synthesis quality claim 有强约束 |
+| 阅读状态 | 已读全文文本-paper_content核验；原 `paper_content.txt` 含 NUL，读取时仅替换显示，未修改原文 |
+| 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
+| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 输入 | 72 篇高引用 LLM survey topic、专家 taxonomy tree、3815 篇 cited papers；Deep Research mode 输入 topic，Bottom-Up mode 输入 expert paper set |
+| 输出 | retrieval Recall/Precision/F1、leaf-level ARI/V-Measure、hierarchy-level US-TED/US-NTED/Sem-Path、reference-independent defect diagnostics |
+| 方法/系统形态 | TaxoBench benchmark + evaluation framework；评估 7 个 Deep Research Agents 和 12 个 frontier LLMs；含 LLM-as-Judge 与 human baseline |
+| 覆盖阶段 | 聚焦 survey generation 的 retrieval 和 organization/taxonomy 两个基础环节；不覆盖 SLR screening/extraction/coding/report writing 全流程 |
+| 人审/审计机制 | Ph.D.-level annotators 抽取专家 taxonomy 并映射 paper categories；3 组 independent human annotator taxonomy baseline；GPT-4o judge 与 human evaluators Cohen's κ=0.8909 |
+| 实验/指标 | 72 surveys、8 AI/ML subdomains、3815 papers；7 DR agents、12 LLMs、1000 generated taxonomies、3-run robustness、embedding sensitivity、multi-category sensitivity |
+| 主要发现 | best agent Recall 20.92%；Bottom-Up LLM Sem-Path 28-29%，低于 human groups 47.32%/52.14%/57.74%；reference-free defects 包括 sibling overlap 75.9%、MECE violations 51.2%、imbalance 83.4% |
+| 对 paper2 的作用 | 约束 paper2 的 automated synthesis/report organization claim：必须评估检索覆盖、taxonomy/编码结构和 reference-free defects，不能只看文本流畅度或 citation correctness |
+## 2. D1-D7 全文核验评分
 
-## 2. 七维初筛评分
+emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
 
-emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
-
-| D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
+| D1 | D2 | D3 | D4 | D5 | D6 | D7 |
 |---|---|---|---|---|---|---|
-| 🟢 | 🟡 | 🟢 | 🟠 | 🟢 | 🟠 | 🟡 |
+| 🟢 | 🟡 | 🟢 | 🟡 | 🟢 | 🟠 | 🟡 |
 
-## 3. 纳入理由与证据链
-
-- 初步判断：评估 deep research agents 的 retrieval/organization 与 expert taxonomies，和 agentic literature review 的 coverage/synthesis gap 直接相关。
-- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies。
-- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、分类/编码、综合/总结、报告/生成 等环节，需全文确认实际实现深度。
-- title / abstract 证据（中文转述）：自动化线索：出现 agent / multi-agent、LLM，说明不是单纯人工综述。
-- title / abstract 证据（中文转述）：审计线索：出现 human-in-the-loop / 人工参与，与本文 human audit / provenance 主张相关。
-- title / abstract 证据（中文转述）：评价线索：出现 摘要给出数量级或样本规模、benchmark、metrics、F1、expert annotation，后续需核验指标、样本与可复现性。
-- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
-- 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
-- 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
-
-## 4. 逐维判定理由
-
-| 维度 | 评分 | 证据锚点 | 判定理由 |
+| 维度 | 评分 | 全文证据锚点 | 判定理由 |
 |---|---:|---|---|
-| D1 主题贴合度 | 🟢 | 题名：Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert T | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
-| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤、分类/编码、综合/总结、报告/生成 | 已能从 abstract 识别 4 类环节：检索/过滤、分类/编码、综合/总结、报告/生成；完整覆盖度仍需全文核验。 |
-| D3 LLM/agent 自动化深度 | 🟢 | abstract 自动化词：agent / multi-agent、LLM | 自动化机制包含 agent / multi-agent、LLM，足以作为 agent/LLM 工作流对照。 |
-| D4 人工审计与可追踪性 | 🟠 | abstract 审计词：human-in-the-loop / 人工参与 | 审计/人工复核线索包括 human-in-the-loop / 人工参与；后续需核验是否保存可导出证据包。 |
-| D5 评价严谨性 | 🟢 | abstract 评价词：摘要给出数量级或样本规模、benchmark、metrics、F1、expert annotation | 评价线索包括 摘要给出数量级或样本规模、benchmark、metrics、F1、expert annotation；需全文核验样本、指标和金标。 |
-| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
-| D7 对本文 novelty 的威胁 | 🟡 | P1：评估 deep research agents 的 retrieval/organization 与 expert taxonomies，和 agentic literature  | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
+| D1 主题贴合度 | 🟢 | Page 1 Abstract：Deep Research Agents automate survey generation；Page 2：retrieving essential papers and organizing expert-like taxonomies | 直接研究 agentic/deep research systems 在 survey generation 中能否检索和组织文献，和 paper2 的自动综述生成/综合质量直接相关。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | Page 2 Figure 2 / §Introduction：Deep Research mode 测 retrieval + taxonomy construction；Bottom-Up mode 隔离 organization | 只覆盖检索和组织/taxonomy，不覆盖筛选、全文抽取、编码决策、证据综合和报告 claim 生成的完整 SLR/SMS 流程。 |
+| D3 LLM/agent 自动化深度 | 🟢 | Page 7 §4：7 Deep Research Agents 和 12 frontier LLMs；Page 5-6：Deep Research mode、Bottom-Up mode、metrics | 明确评估 end-to-end DR agents 和 LLM taxonomy construction，不是概念讨论。 |
+| D4 人工审计与可追踪性 | 🟡 | Page 3 §Taxonomy extraction：Ph.D.-level annotators 读取全文映射 cited papers；Page 7 §3.4：LLM-as-Judge 与 human evaluators κ=0.8909；Page 35-36 human baseline | 有人工 benchmark、annotation 和 judge validation，但不是 human-in-the-loop SLR workflow，也未展示 stage decision log。 |
+| D5 评价严谨性 | 🟢 | Page 3-4 Table 1：72 surveys / 3815 papers；Page 7-10 Tables 2-4：多模型、多指标；Appendix G：3-run、embedding、multi-category、cross-domain checks | benchmark 规模、指标设计、human baseline 和 robustness checks 都较充分，属于强评价。 |
+| D6 SE/CCF 相关性 | 🟠 | `bibtex.bib`：arXiv cs.CL；Page 11 Limitations：benchmark 来自 AI/ML surveys，cross-domain pilot 仅 finance/medical 各一类 | 方法学强相关，但不是 SE/CCF，也不是软件工程 SLR。 |
+| D7 对本文 novelty 的威胁 | 🟡 | Page 10 Related Work：TaxoBench isolates Information Acquisition and structural organization；Page 10 Conclusion：dual bottleneck | 它强约束 paper2 的 retrieval/synthesis evaluation，但未覆盖 agent-based SLR workflow、human audit gate 和 SE setting 的完整 novelty 组合。 |
 
-## 5. `paper_content.txt` 定位线索
+## 3. 论文解决的问题与背景
 
-以下只是关键词页级定位线索，便于后续全文细读；不替代人工核验。
+论文针对 deep research agents 生成 survey 的两个基础能力：能否找回专家会引用的核心论文，以及能否把论文组织成专家式 taxonomy。作者指出已有 benchmark 多关注 writing quality、factuality、citation correctness 或 report rubric，较少直接检查 retrieval coverage 和 hierarchical organization。标准 clustering 指标又无法捕捉 taxonomy 的父子结构和路径语义，因此需要新的 benchmark 和结构指标。
 
-| 页码 | 命中关键词 |
-|---:|---|
-| 1 | `synthesis`, `agent`, `human`, `benchmark` |
-| 2 | `synthesis`, `agent`, `evaluation`, `benchmark` |
-| 3 | `extraction`, `synthesis`, `agent`, `human`, `evaluation`, `dataset` |
-| 4 | `systematic`, `synthesis`, `agent`, `evaluation`, `dataset` |
-| 5 | `systematic`, `synthesis`, `agent`, `evaluation`, `benchmark` |
-| 6 | `synthesis`, `agent` |
-| 7 | `synthesis`, `agent`, `human`, `benchmark` |
-| 8 | `synthesis`, `agent`, `evaluation` |
-| 9 | `systematic`, `synthesis`, `agent`, `evaluation` |
-| 10 | `systematic`, `synthesis`, `agent`, `human`, `evaluation`, `benchmark` |
+这篇论文不是 SLR 自动执行系统，而是 evaluation paper。它的价值在于把“自动 survey 写得像不像”拆成可量化的必要条件：检索召回、paper-to-category assignment、taxonomy hierarchy、reference-independent defects。对 paper2 来说，它提供了比普通生成质量更严格的 synthesis evaluation 口径。
 
-## 6. 对本文 story 的影响
+## 4. 方法 / 系统拆解
 
-- 会威胁本文某个局部模块或评价维度，不能只作为普通背景一笔带过。
-- 后续需要明确本文相对该工作的差异：是否覆盖更多 SLR 环节、是否有更强审计链、是否面向 SE 场景或是否有更可复验的证据包。
+TaxoBench 由 72 篇高引用 LLM-related surveys 构成，平均引用 354.5，覆盖 8 个 AI/ML 子域，总计 3815 篇 cited papers。构建流程包括 taxonomy figure filter、impact filter、scope filter 和 Ph.D.-level expert verification。taxonomy extraction 并不是重新设计分类法，而是抽取 survey 作者发表的 taxonomy figure，再通过阅读全文把 cited papers 映射到 paper categories。最终 taxonomy 以目录树形式保存，topics 是 folders，papers 是 files。
 
-## 7. 后续全文细读清单
+Evaluation Framework 有两个模式。Deep Research mode 给 agent 一个 survey topic，让 agent web research、retrieve papers 并构造 taxonomy，评估端到端检索与组织。Bottom-Up mode 提供专家 paper set，隔离组织能力，避免 retrieval failure 掩盖 taxonomy construction。retrieval 用 Recall、Precision、F1；leaf-level 用 ARI 和 V-Measure；hierarchy-level 用 US-TED、US-NTED 和 Sem-Path。
 
-- 核验其实际覆盖的 SLR/SMS 环节：检索、筛选、全文抽取、编码、综合、报告分别到什么程度。
-- 核验 human-in-the-loop 是否只是用户反馈，还是有可复查审计协议、裁决日志和错误分类。
-- 核验是否保存 claim-to-source / cell-to-source / page-level provenance，以及是否可导出为论文证据包。
-- 核验评价数据集、金标、样本规模、指标、消融、失败案例和成本统计。
-- 核验是否已有 SE / CCF 版本或 peer-reviewed 版本；arXiv 版本不得直接等同正式出版。
+US-TED 用 unordered semantic tree edit distance 处理 sibling 无序性，避免把 taxonomy 中兄弟节点排列顺序当作错误。Sem-Path 对每个 aligned paper 比较 root-to-leaf ancestor chain，衡量论文是否被放在语义一致的路径下。作者还把 diagnostics 分成 alignment-based 和 capability-based：前者依赖专家 reference，后者包括 retrieval Recall ceiling、sibling semantic overlap、MECE violation、structural imbalance、inconsistent classification criteria 等 reference-free 缺陷。
+
+## 5. 实验 / 评价设计
+
+RQI 问 current agents 能否复现 expert-level literature discovery；RQII 问 agents 能否组织已检索子集；RQIII 问在 perfect retrieval 下 LLM 能否组织 taxonomy。Deep Research mode 评估 o3、Grok、Gemini、Perplexity、DeepSeek、Qwen、Doubao 7 个 agents。Bottom-Up mode 评估 12 个 frontier LLMs，包含 Claude-4.5-Sonnet、GPT-5、Gemini-3-Pro、DeepSeek-V3.2、Qwen3-Max、Kimi-K2 及 thinking variants。输入粒度包括 Title+Abstract、+Summary、+Core-task&Contributions。
+
+人工基线由三组 independent non-author human annotators 在相同 paper sets 上构造 taxonomy，作为判断“taxonomy 本身有主观性”是否能解释模型低分的参照。LLM-as-Judge 使用 GPT-4o 从 Coverage、Organization for MECE、Logic、Topology 四维评分，并报告与 human evaluators 的 Cohen's κ=0.8909。Appendix 还提供 temporal filtering、3-run error bars、embedding sensitivity、multi-category paper sensitivity 和 cross-domain pilot。
+
+## 6. 主要结果与结论
+
+Deep Research mode 的核心结果是 retrieval bottleneck：best agent o3 Recall 20.92%、Precision 29.29%、F1 24.41%；四个 agent F1 低于 10%。作者强调这是 capability-based finding，因为任何下游 synthesis pipeline 都受专家核心论文召回上限限制。
+
+组织能力方面，Deep Research mode 的 global ARI 都低于 5%，但在 retrieved intersection 上 ARI 可到 28-42%，说明 retrieval failure 掩盖了一部分 clustering potential。retrieval F1 与 Sem-Path 强相关，Spearman ρ=0.89，p=0.007。
+
+Bottom-Up mode 下，即使给定 expert paper set，模型仍有明显 hierarchy gap。best ARI 为 Qwen3-Max 31.24%；Sem-Path 在所有 12 个 LLM 上收敛到 28.13-29.16%，而三组 human annotators 达到 47.32%/52.14%/57.74%。reference-free defects 也很高：1000 个 model-generated taxonomies 中 sibling overlap 75.9%、MECE violations 51.2%、inconsistent classification criteria 66.0%、structural imbalance 83.4%。这些结果说明问题不只是 reference taxonomy 主观，而是模型 taxonomy 结构本身常有缺陷。
+
+## 7. 局限与可复现性
+
+作者明确区分 alignment 与 capability：Sem-Path、US-TED 等衡量的是与某个专家 taxonomy 的一致性，不等于 taxonomy 的绝对合理性。每篇 survey 只有一个 published expert taxonomy，可能存在多个同样合理的分类法；作者用三组 human baseline 和 reference-free defects 缓解这一点，但仍建议未来做 multi-reference 扩展。领域范围局限于 AI/ML surveys，虽然有 finance/medical 的小型 cross-domain pilot，但绝对数值不应直接外推到 SE。
+
+可复现性较强：摘要给出 GitHub `https://github.com/KongLongGeFDU/TaxoBench`；正文提供数据构建、指标公式、prompt、模型列表、robustness 表。需要注意的是，paper_content 中部分模型名和年份明显依赖未来/preview 语境；正式写作时应按本地文本和核验日期保守引用。
+
+## 8. 对 paper2 story / 实验设计的影响
+
+paper2 如果要做 agent-based SLR 报告生成，不能只评估最终报告的 fluency、citation correctness 或 human preference。TaxoBench 证明 retrieval 和 organization 是必要条件：如果 agent 没找回核心论文，后续 synthesis 再流畅也不可信；如果 taxonomy/编码结构 sibling overlap、MECE violation 或 path inconsistency 很高，报告结构也不能视为可靠。
+
+paper2 可以借鉴两类指标。第一类是 retrieval coverage：对 known relevant studies、seed set、expert set 计算 Recall/Precision/F1。第二类是结构组织：对 coding taxonomy、theme hierarchy 或 evidence map 计算 tree/path/cluster 指标，并补充 reference-free defects。若 paper2 强调 human audit gate，则可把人工裁决后的 coding hierarchy 当作参考，但要像本文一样区分 alignment-based 与 capability-based 结论。
+
+## 9. 可用于写作的引用角度
+
+- 作为 deep research agent 评价背景：已有 benchmark 显示当前 agents 在 survey-oriented retrieval 和 taxonomy organization 上存在明显瓶颈。
+- 作为 synthesis evaluation 方法参照：TaxoBench 提供 retrieval metrics、leaf-level clustering metrics 和 hierarchy-level path/edit metrics，可启发 paper2 的 evidence map / coding quality 评价。
+- 作为谨慎措辞依据：自动 survey 生成的关键风险不只 hallucination，还包括核心文献遗漏和 taxonomy 结构缺陷。
+
+## 10. 待复核清单
+
+- 回 PDF 核对 Figure 2、Tables 2-4、Figures 5-6 的版式和数值，当前只读了提取文本。
+- 复核 GitHub 仓库是否实际公开 TaxoBench 数据、evaluation harness 和 prompt。
+- 若引用 GPT-5、Claude-4.5、Gemini-3 等模型结果，应标注为原文 benchmark 设置，避免和本仓库模型情报库混写。
+- 不把 AI/ML survey 数值直接外推到 SE SLR；只能作为方法学警示和评价设计启发。

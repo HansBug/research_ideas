@@ -1,78 +1,80 @@
 # Accelerating Clinical Evidence Synthesis with Large Language Models
 
-## 1. 元数据
+## 1. 快速结论卡片
 
 | 字段 | 内容 |
 |---|---|
 | 标题 | Accelerating Clinical Evidence Synthesis with Large Language Models |
 | 年份 | 2024 |
-| 作者 | Zifeng Wang、Lang Cao、Benjamin Danek、Qiao Jin 等 |
-| arXiv | [2406.17755](https://arxiv.org/abs/2406.17755) |
-| PDF | [paper.pdf](./paper.pdf) |
-| 正文提取 | [paper_content.txt](./paper_content.txt) |
-| BibTeX | [bibtex.bib](./bibtex.bib) |
-| 初步分层 | P0 |
-| 核验阶段 | arXiv title / abstract 粗筛 + PDF 自动获取 + `paper_content.txt` 文字模式提取；还不是最终全文细读结论。 |
-
-## 2. 七维初筛评分
-
-emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
+| 分层 | P0 |
+| 阅读状态 | 已读全文文本-paper_content核验；未人工打开 PDF 图表，不写图表级核对结论 |
+| 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
+| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
+| 输入 | PICO elements、PubMed/PMC 文献、candidate citations、PDF/XML/full content、用户指定字段和 outcome/cohort |
+| 输出 | Boolean search terms、eligibility criteria、ranked studies、structured study characteristics、result extraction、standardized meta-analysis inputs、forest plots |
+| 方法/系统形态 | TrialMind：面向 clinical evidence synthesis 的 LLM pipeline + web app + human-AI collaboration workflow |
+| 覆盖阶段 | literature search、screening/ranking、data extraction、result standardization、evidence synthesis forest plot；不强调多 agent 架构 |
+| 人审/审计机制 | 专家可 monitor/edit/verify intermediate outputs；每个抽取结果 linked to sources；用户研究比较 AI+Human 与 Human-only |
+| 实验/指标 | TrialReviewBench：100 systematic reviews、2,220 studies、1,334 study characteristics、1,049 study results；Recall、Recall@20/50、Accuracy、win rate、user-study time saving |
+| 主要发现 | search recall 0.782；screening 相比 best embedding baseline 1.3-2.6 fold；result extraction 相比 GPT-4/Sonnet 更高；AI+Human screening recall +71.4%、time -44.2%，data extraction accuracy +23.5%、time -63.4% |
+| 对 paper2 的作用 | 是端到端 evidence synthesis pipeline 的强 baseline；paper2 必须避免“首次覆盖 search-screen-extract-synthesis”的表述，并转向 SE、agent audit、run record 和 claim trace 差异 |
+## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
 |---|---|---|---|---|---|---|
-| 🟢 | 🟢 | 🟡 | 🟡 | 🟢 | 🟠 | 🟡 |
+| 🟢 | 🟢 | 🟡 | 🟡 | 🟢 | 🟠 | 🟢 |
 
-## 3. 纳入理由与证据链
-
-- 初步判断：LLM pipeline for clinical evidence synthesis，覆盖 study search、screening、data extraction，并有 benchmark，构成强方法学 baseline。
-- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：Accelerating Clinical Evidence Synthesis with Large Language Models。
-- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、筛选、抽取、综合/总结 等环节，需全文确认实际实现深度。
-- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
-- title / abstract 证据（中文转述）：审计线索：出现 human-in-the-loop / 人工参与，与本文 human audit / provenance 主张相关。
-- title / abstract 证据（中文转述）：评价线索：出现 摘要给出数量级或样本规模、benchmark、dataset、accuracy、user study，后续需核验指标、样本与可复现性。
-- title / abstract 证据（中文转述）：领域线索：医学/临床 evidence synthesis；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
-- 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
-- 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
-
-## 4. 逐维判定理由
-
-| 维度 | 评分 | 证据锚点 | 判定理由 |
+| 维度 | 评分 | 全文证据锚点 | 判定理由 |
 |---|---:|---|---|
-| D1 主题贴合度 | 🟢 | 题名：Accelerating Clinical Evidence Synthesis with Large Language Models | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
-| D2 SLR/SMS 流程覆盖度 | 🟢 | abstract 阶段词：检索/过滤、筛选、抽取、综合/总结 | 已能从 abstract 识别 4 类环节：检索/过滤、筛选、抽取、综合/总结；完整覆盖度仍需全文核验。 |
-| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
-| D4 人工审计与可追踪性 | 🟡 | abstract 审计词：human-in-the-loop / 人工参与 | 审计/人工复核线索包括 human-in-the-loop / 人工参与；后续需核验是否保存可导出证据包。 |
-| D5 评价严谨性 | 🟢 | abstract 评价词：摘要给出数量级或样本规模、benchmark、dataset、accuracy、user study | 评价线索包括 摘要给出数量级或样本规模、benchmark、dataset、accuracy、user study；需全文核验样本、指标和金标。 |
-| D6 SE/CCF 相关性 | 🟠 | 领域：医学/临床 evidence synthesis | 领域是医学/临床 evidence synthesis，方法学相关但不是 SE/CCF 直接 baseline。 |
-| D7 对本文 novelty 的威胁 | 🟡 | P0：LLM pipeline for clinical evidence synthesis，覆盖 study search、screening、data extraction，并有  | 同时触及 SLR/evidence workflow、LLM/agent 自动化、评价或审计中的多个核心点，足以强约束本文 novelty。 |
+| D1 主题贴合度 | 🟢 | `paper_content.txt` Page 1 Abstract；Page 2 Introduction | 直接研究 LLM 加速 clinical evidence synthesis，任务就是 systematic review 相关 search、screening、extraction。 |
+| D2 SLR/SMS 流程覆盖度 | 🟢 | Page 3 Figure 1；Page 4 Results；Page 14 Discussion | 覆盖检索、筛选/排序、数据抽取、结果标准化和 evidence synthesis，达到四个以上核心环节。 |
+| D3 LLM/agent 自动化深度 | 🟡 | Page 2 Introduction；Page 17-19 Methods | 使用 LLM pipeline、RAG、CoT、外部工具和代码生成，但全文没有把系统定义为 multi-agent autonomous workflow；人机协作和分步 prompt 更突出。 |
+| D4 人工审计与可追踪性 | 🟡 | Page 2 Introduction；Page 4 Build system；Page 10 extraction；Page 14 Discussion | 专家可检查/编辑中间结果，抽取 linked to sources；但没有完整 provenance schema、decision log 或 per-claim audit package。 |
+| D5 评价严谨性 | 🟢 | Page 4 dataset；Page 6-13 results；Page 19-20 experimental setup | 有 100 reviews/2,220 studies benchmark、多任务指标、baselines、人工标注、human evaluation 和 user study，评价强。 |
+| D6 SE / CCF 相关性 | 🟠 | `bibtex.bib` arXiv cs.CL；Page 1-2 clinical evidence setting | 医学/临床 evidence synthesis，非 SE/CCF；对 paper2 是跨域强 baseline。 |
+| D7 novelty 威胁 | 🟢 | Page 3 Figure 1；Page 12-13 human-AI collaboration；Page 14 Discussion | 已覆盖 search-screening-extraction-synthesis 和 human-AI collaboration，强威胁 paper2 的端到端 workflow 与评价 claim；但不覆盖 SE-specific audit。 |
 
-## 5. `paper_content.txt` 定位线索
+## 3. 论文解决的问题与背景
 
-以下只是关键词页级定位线索，便于后续全文细读；不替代人工核验。
+TrialMind 的背景是临床证据更新成本高，传统 systematic review 平均需要多名专家和很长周期。医学文献快速增长，使已发表 review 很快过时。作者认为已有 LLM 工作多聚焦单个任务，如 query generation、PICO extraction、citation screening 或 summarization，缺少对完整 evidence synthesis pipeline 的整体评估和 human-AI collaboration 验证。因此论文提出 TrialMind 和 TrialReviewBench，同时评估检索、筛选和抽取等关键任务。
 
-| 页码 | 命中关键词 |
-|---:|---|
-| 1 | `systematic`, `screening`, `extraction`, `synthesis`, `human`, `dataset` |
-| 2 | `systematic`, `screening`, `extraction`, `synthesis`, `human`, `evaluation` |
-| 3 | `screening`, `extraction`, `synthesis` |
-| 4 | `systematic`, `screening`, `extraction`, `synthesis`, `evaluation`, `dataset` |
-| 5 | `systematic` |
-| 6 | `systematic`, `screening`, `human`, `evaluation`, `dataset` |
-| 7 | `screening`, `human` |
-| 8 | `evaluation` |
-| 9 | `extraction` |
-| 10 | `extraction`, `human`, `evaluation`, `dataset` |
+## 4. 方法 / 系统拆解
 
-## 6. 对本文 story 的影响
+TrialMind 从 PICO elements 开始。检索阶段生成 treatment/condition/outcome terms，构造 Boolean queries 去 PubMed 检索；界面允许用户增删改 terms。筛选阶段生成 eligibility criteria，用户可编辑，然后对候选 study 做 criterion-level eligibility prediction，输出 `eligible / ineligible / unknown` 并汇总成排序分数。抽取阶段根据用户给定字段描述，从 PDF/XML/full content 中抽取 study design、population、results 等结构化值，并把结果链接到来源以便人工检查。
 
-- 不能再使用“首次 agent-based / LLM-based SLR 自动化”这类宽泛 claim。
-- 后续 story 必须证明本文的差异化组合：软件工程场景、阶段化 run record、claim-to-source 不可断链证据包、human audit gate、透明报告与失败分类。
-- Related Work 必须逐段核验其流程覆盖、人审机制、provenance / evidence package 与评价设计。
+结果抽取和 synthesis 阶段更复杂：用户定义 outcome 和 cohort，系统先定位结果并形成表格，再生成 Python 程序把 raw result standardize 成 meta-analysis 所需格式，最后由 R `meta` package 生成 forest plots。人机协作贯穿各阶段：用户可监控、编辑和验证中间输出，也可从任一中间步骤开始。
 
-## 7. 后续全文细读清单
+## 5. 实验 / 评价设计
 
-- 核验其实际覆盖的 SLR/SMS 环节：检索、筛选、全文抽取、编码、综合、报告分别到什么程度。
-- 核验 human-in-the-loop 是否只是用户反馈，还是有可复查审计协议、裁决日志和错误分类。
-- 核验是否保存 claim-to-source / cell-to-source / page-level provenance，以及是否可导出为论文证据包。
-- 核验评价数据集、金标、样本规模、指标、消融、失败案例和成本统计。
-- 核验是否已有 SE / CCF 版本或 peer-reviewed 版本；arXiv 版本不得直接等同正式出版。
+TrialReviewBench 来自 100 篇 cancer systematic reviews，共 2,220 个 associated clinical studies，覆盖 Immunotherapy、Radiation/Chemotherapy、Hormone Therapy、Hyperthermia。任务一是 study search：输入 review abstract 中的 PICO，模型生成 PubMed query，指标是找回 target review 中实际 included studies 的 Recall。baseline 是 GPT-4 query generation 和 Human/UMLS 手工扩展 terms。
+
+任务二是 study screening/ranking：每个 review 构造 2,000 citation candidate set，混入 included studies，指标为 Recall@20 和 Recall@50；baseline 是 MPNet、MedCPT 和 Random。任务三是 data extraction：由 review 表格转换出 1,334 target data points，并人工核验；结果抽取另有 1,049 study result annotations，baseline 是 GPT-4 和 Sonnet 的 vanilla prompting。Evidence synthesis 评价用五个 systematic review studies，对比 TrialMind 与 GPT-4+Human 生成 forest plots，由三名 AI medicine 背景计算机科学研究者和五名医生评价。另有两名参与者做 AI+Human vs Human-only 的 user study。
+
+## 6. 主要结果与结论
+
+检索上，TrialMind 平均 Recall 为 0.782，GPT-4 baseline 为 0.073，Human baseline 为 0.187；四个 topic 中 TrialMind recall 分别约为 0.797、0.780、0.711、0.834。筛选上，TrialMind 相对 best embedding baseline 的 fold change 为 1.3-2.6；例如 Immunotherapy 的 Recall@20 为 0.567、Recall@50 为 0.713，Radiation/Chemotherapy 为 0.416/0.654。作者还报告 K=100 时可捕获超过 80% target studies。
+
+数据抽取上，TrialMind 在四个 topic 的 study characteristic accuracy 约为 0.72-0.83；Immunotherapy 中 study design 可达 0.95，但 results 只有 0.42，说明数值结果抽取最难。hallucination/missing 分析显示 study design precision 0.994、population 0.966、study results 0.862，results hallucination 更常见但通常可由人工通过引用源发现。结果抽取上，TrialMind 在四个 topic 的 accuracy 为 0.65-0.84，高于 GPT-4 的 0.50-0.54 区间；错误类型以 inaccurate extraction 36 例最多，其次 extraction failure 27 例、unavailable data 10 例、hallucinations 3 例。
+
+human evaluation 显示，五个 forest plot case 中 TrialMind win rates 为 87.5%、100%、62.5%、62.5%、81.2%。user study 中 AI+Human 比 Human-only 在 screening 上 recall 提升 71.4%、时间节省 44.2%；data extraction accuracy 提升 23.5%、时间节省 63.4%。
+
+## 7. 局限与可复现性
+
+论文限制写得较明确：LLM 任一阶段仍会出错，实际部署必须有人类监督和验证；prompts 主要基于 prompt engineering 经验，未做系统 prompt optimization 或 fine-tuning；数据集受人工标注成本限制；覆盖局限在 PubMed Central 公开 full text，很多研究不在 PubMed 或需要 OCR；适配其他 LLM 仍待研究；GPT-4 成本与处理时间可能成为瓶颈。正文未在已读部分给出明确代码仓库/数据下载链接，因此复现实验需额外核验。
+
+## 8. 对 paper2 story / 实验设计的影响
+
+TrialMind 是 paper2 必须认真处理的端到端 evidence synthesis baseline。paper2 不应声称“首次用 LLM 支持 systematic review 的 search-screen-extract-synthesis”。更稳妥的 story 是：TrialMind 证明 clinical evidence synthesis pipeline 可行，但 paper2 关注 SE/SMS 场景、agentic run record、可审计 stage contract、claim-to-source trace 和 reviewer-facing evidence package。实验设计上，paper2 可借鉴 TrialReviewBench 的多阶段任务拆分和 user study，但需要补充面向 SE 文献的 gold data、错误分类和人审门控。
+
+## 9. 可用于写作的引用角度
+
+- TrialMind 可引用为“LLM pipeline 覆盖 clinical evidence synthesis 多阶段任务，并通过 benchmark 和 user study 评估”的强近邻。
+- 它提供了检索 recall、screening Recall@K、抽取 accuracy、人工协作时间节省等多维评价范式。
+- 它也说明 human-AI collaboration 比无人自动化更符合高风险 evidence synthesis 的当前能力边界。
+
+## 10. 待复核清单
+
+- 人工打开 PDF 核对 Figure 1-5、Extended figures 和关键表格数值。
+- 查找是否有 TrialMind/TrialReviewBench 官方代码或数据链接；正文已读文本未明确给出。
+- 正式引用前核验 arXiv 是否已有 peer-reviewed 版本或更新版。
+- 如果 paper2 借鉴 user study，需要复核参与者人数、任务分配和统计方式是否足以支撑强结论。

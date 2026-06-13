@@ -4,18 +4,18 @@
 
 本目录服务于第二篇 **agent-based SLR** 论文的 Related Work、novelty gate 与审稿风险控制。它不是最终系统综述结果，而是用于回答一个前置问题：近三年 CCF A/B/C 软件工程及邻近 venue、近两年 arXiv 中，是否已经存在足以打穿本文 story 的 **LLM-based SLR / LLM-assisted evidence synthesis / agentic literature-review workflow**。
 
-当前 PR-B0 的结论必须保守使用：它提供 title / abstract 粗筛、可得 PDF 建库和初步七维评分；只有后续全文细读后，才能把某篇工作写成最终 Related Work 结论。
+当前 PR-B0 的结论必须保守使用：本轮已把 34 篇可得 PDF 条目升级为 `paper_content.txt` 全文文本核验与七维评分，但多数条目尚未人工逐页核对 PDF 图表；正式写入 Related Work / novelty matrix 前，仍需回到单篇 `review.md`、`paper_content.txt` 和关键 PDF 图表做最终复核。
 
 ## 2. 当前状态
 
 | 项 | 数量 / 状态 |
 |---|---:|
 | arXiv 近邻候选 | 34 |
-| 本地建库候选 | 25 |
-| P0 强 baseline | 10（本地 10） |
-| P1 高度关注 | 15（本地 15） |
-| P2 背景相关 | 9（本地 0） |
-| CCF title-level 命中 | 1 条 CCF-adjacent / ICSE workshop 线索，需人工下载 |
+| 本地建库候选 | 34 |
+| P0 强 baseline | 10（本地 10，全文文本核验 10） |
+| P1 高度关注 | 15（本地 15，全文文本核验 15） |
+| P2 背景相关 | 9（本地 9，全文文本核验 9） |
+| CCF title-level 命中 | 1 条 CCF-adjacent / ICSE workshop 线索，仍需人工全文 |
 | 人工下载清单 | [search/manual-download-needed.bib](./search/manual-download-needed.bib) |
 
 ## 3. 文件说明
@@ -23,7 +23,7 @@
 | 文件 / 目录 | 作用 |
 |---|---|
 | [GUIDE.md](./GUIDE.md) | 固化检索、筛选、七维评分、PDF 获取、人工下载、SUMMARY 回填与 `review.md` 写作规则。 |
-| [SUMMARY.md](./SUMMARY.md) | PR-B0 baseline 总账：候选统计、七维总表、强 baseline 威胁、story 调整建议和风险。 |
+| [SUMMARY.md](./SUMMARY.md) | PR-B0 baseline 总账：候选统计、阅读状态 / 证据等级、输入输出方法主表、D1-D7 七维总表、强 baseline 威胁、story 调整建议和风险。 |
 | [search/](./search/) | 检索日志、arXiv query 原始快照、去重候选池、CCF coverage / gap、CCF 粗筛、DBLP title 扫描原始快照与人工下载 BibTeX。 |
 | [papers/](./papers/) | 单篇 baseline 目录；每篇至少包含 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`。 |
 

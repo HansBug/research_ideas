@@ -1,74 +1,86 @@
 # Compiling Prompts, Not Crafting Them: A Reproducible Workflow for AI-Assisted Evidence Synthesis
 
-## 1. 元数据
+## 1. 快速结论卡片
 
 | 字段 | 内容 |
 |---|---|
 | 标题 | Compiling Prompts, Not Crafting Them: A Reproducible Workflow for AI-Assisted Evidence Synthesis |
 | 年份 | 2025 |
-| 作者 | Teo Susnjak |
-| arXiv | [2509.00038](https://arxiv.org/abs/2509.00038) |
-| PDF | [paper.pdf](./paper.pdf) |
-| 正文提取 | [paper_content.txt](./paper_content.txt) |
-| BibTeX | [bibtex.bib](./bibtex.bib) |
-| 初步分层 | P1 |
-| 核验阶段 | arXiv title / abstract 粗筛 + PDF 自动获取 + `paper_content.txt` 文字模式提取；还不是最终全文细读结论。 |
+| 分层 | P1/P2 边界：prompt compilation 概念蓝图值得引用，但全文证据不足以作为强实证 baseline |
+| 阅读状态 | 已读全文文本-paper_content核验 |
+| 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
+| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 输入 | SLR task declaration、context file / criteria、gold-standard labelled abstracts、metric、fixed model settings |
+| 输出 | compiled screener artefact、prompt/exemplars/config/metrics/run log 的可审计 bundle、示例 screening decision |
+| 方法/系统形态 | Research-in-brief preprint；提出 declarative LM-program tuning / prompt compilation workflow，并给 DSPy MIPROv2 abstract-screening code example |
+| 覆盖阶段 | 概念上说适用于 SLR stages；正文可执行例子只展示 abstract screening module |
+| 人审/审计机制 | 设计层面要求 versioned context、gold-standard examples、metric、prompt/data hashes、model ID、decoding params、run log；没有真实人工 audit study |
+| 实验/指标 | 无完整实证 benchmark；Appendix 给最小代码例子和 toy-like gold examples；没有报告真实数据集上的 accuracy/recall/F1 |
+| 主要发现 | 主要是方法倡议：把 brittle manual prompts 改为 task declaration + test suite + automated prompt tuning + packaged artefact |
+| 对 paper2 的作用 | 可作为 prompt/workflow reproducibility 的早期背景；不能作为已验证 agent-based SLR 系统或强性能证据 |
+## 2. D1-D7 全文核验评分
 
-## 2. 七维初筛评分
+emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
 
-emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
-
-| D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
+| D1 | D2 | D3 | D4 | D5 | D6 | D7 |
 |---|---|---|---|---|---|---|
-| 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 🟠 | 🟡 |
+| 🟢 | 🟠 | 🟠 | 🟡 | 🟠 | 🟠 | 🟠 |
 
-## 3. 纳入理由与证据链
-
-- 初步判断：提出 prompt compilation / reproducible workflow for AI-assisted evidence synthesis，约束 reproducibility 与 prompt workflow claim。
-- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：Compiling Prompts, Not Crafting Them: A Reproducible Workflow for AI-Assisted Evidence Synthesis。
-- title / abstract 证据（中文转述）：流程线索：可识别 检索/过滤、综合/总结 等环节，需全文确认实际实现深度。
-- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
-- title / abstract 证据（中文转述）：审计线索：出现 reproducible，与本文 human audit / provenance 主张相关。
-- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
-- 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
-- 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
-
-## 4. 逐维判定理由
-
-| 维度 | 评分 | 证据锚点 | 判定理由 |
+| 维度 | 评分 | 全文证据锚点 | 判定理由 |
 |---|---:|---|---|
-| D1 主题贴合度 | 🟢 | 题名：Compiling Prompts, Not Crafting Them: A Reproducible Workflow for AI-Assisted Evidence Syn | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
-| D2 SLR/SMS 流程覆盖度 | 🟡 | abstract 阶段词：检索/过滤、综合/总结 | 已能从 abstract 识别 2 类环节：检索/过滤、综合/总结；完整覆盖度仍需全文核验。 |
-| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
-| D4 人工审计与可追踪性 | 🟡 | abstract 审计词：reproducible | 审计/人工复核线索包括 reproducible；后续需核验是否保存可导出证据包。 |
-| D5 评价严谨性 | 🟡 | working code examples / test suites / automated prompt tuning | 摘要强调 task declarations、test suites、automated prompt tuning 和 working code examples，更像可复现协议/蓝图，实证强度需全文核验。 |
-| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
-| D7 对本文 novelty 的威胁 | 🟡 | P1：提出 prompt compilation / reproducible workflow for AI-assisted evidence synthesis，约束 reprod | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
+| D1 主题贴合度 | 🟢 | Page 1 Abstract：AI-assisted evidence synthesis、SLR automation；Page 2 Introduction：abstract screening、data extraction、quality assessment、evidence syntheses | 主题直接是 SLR/evidence synthesis LLM workflow 的 reproducibility。 |
+| D2 SLR/SMS 流程覆盖度 | 🟠 | Page 3 Box 1：Abstract Screening Example；Page 4：framework applicable to all stages but example is abstract screening | 正文只有 abstract screening module 的蓝图和代码，其他阶段是倡议/展望，不能按多阶段覆盖计分。 |
+| D3 LLM/agent 自动化深度 | 🟠 | Page 4 Appendix A：DSPy MIPROv2 code compiles ChainOfThought(ScreenAbstract)；没有真实 workflow 运行结果表 | 有 programmatic LLM module 示例，但缺少真实多阶段自动化或 agent workflow，实证深度弱。 |
+| D4 人工审计与可追踪性 | 🟡 | Page 3 Box 1：config.yaml、prompt.txt、exemplars.json、metrics.json、run log、hashes、model ID、decoding params | 审计设计很清楚，但主要是 blueprint；未展示真实 run record 或人工 audit protocol，因此中等。 |
+| D5 评价严谨性 | 🟠 | Page 4：functional Python implementation / code example；Appendix A：minimal example，未给 benchmark metrics | 没有真实数据集、baseline、指标结果或统计分析，只能弱分。 |
+| D6 SE/CCF 相关性 | 🟠 | `bibtex.bib`：arXiv cs.CL；正文示例是医学 PICOS / digital CBT abstract screening | 方法学相关，但不是 SE venue，也没有 SE dataset 验证。 |
+| D7 对本文 novelty 的威胁 | 🟠 | Page 4 Conclusion：conceptual blueprint and working implementation；未来需 fully test and expand to other SLR stages | 对 paper2 的 prompt reproducibility claim 有背景约束，但不威胁 agent workflow、audit gate、SE evaluation 的核心组合。 |
 
-## 5. `paper_content.txt` 定位线索
+## 3. 论文解决的问题与背景
 
-以下只是关键词页级定位线索，便于后续全文细读；不替代人工核验。
+论文针对 prompt fragility。作者指出 LLM 有潜力加速 SLR，但当前方法依赖 brittle manually crafted prompts，影响 reliability 和 reproducibility。背景中列举 screening、data extraction、risk-of-bias/quality assessment 中 prompt 或模型配置导致的性能波动，例如 prompt 改写、few-shot 顺序、LLM family 不同都会影响 accuracy、sensitivity、kappa 等。
 
-| 页码 | 命中关键词 |
-|---:|---|
-| 1 | `systematic`, `synthesis`, `reproducible` |
-| 2 | `systematic`, `screening`, `extraction`, `synthesis`, `human`, `audit` |
-| 3 | `screening`, `extraction`, `human`, `audit`, `evaluation`, `trace` |
-| 4 | `systematic`, `screening`, `synthesis`, `audit`, `dataset`, `reproducible` |
-| 5 | `systematic`, `screening`, `extraction`, `synthesis`, `human`, `benchmark` |
-| 6 | `screening`, `synthesis`, `reproducible` |
-| 7 | `screening`, `evaluation`, `trace`, `reproducible` |
-| 8 | `screening` |
+与 2026 年的 methods article 相比，这篇更像早期 research-in-brief：它提出把 prompt engineering 从 ad hoc “prompt alchemy” 转为 declarative LM-program tuning，并用一个 abstract screening code example 说明可执行路径，但没有做完整实证验证。
 
-## 6. 对本文 story 的影响
+## 4. 方法 / 系统拆解
 
-- 会威胁本文某个局部模块或评价维度，不能只作为普通背景一笔带过。
-- 后续需要明确本文相对该工作的差异：是否覆盖更多 SLR 环节、是否有更强审计链、是否面向 SE 场景或是否有更可复验的证据包。
+框架由四个组件构成。第一，Define the Goal：输入 schema 为 title、abstract、keywords，label space 是 Include、Exclude、Unsure；Unsure 作为 Include 或 route to human review 的 policy 写入固定 spec；versioned context file 记录 PICO criteria、study designs 和 review questions。第二，Codify the Standard：准备 expert-labelled abstracts，并定义 machine-testable metric。第三，Compile the Program：compiler 在 pinned model build、temperature=0、fixed seed 和预算 B 下探索 instruction templates 和 few-shot exemplars，并记录 data/prompt hashes、model ID、decoding parameters。第四，Package the Artefact：输出 config.yaml、prompt.txt、exemplars.json、metrics.json 和 run log，并映射它支持的 PRISMA 条目，例如 protocol transparency 和 decision traceability。
 
-## 7. 后续全文细读清单
+Appendix A 给出 DSPy 例子：`ScreenAbstract` signature 有 criteria、study_aims、research_question、abstract 输入，decision、reasoning、confidence 输出；gold_standard 中有 Include、Exclude、Unsure 三类示例；metric 是 predicted decision 是否等于 gold decision；optimizer 用 MIPROv2 编译 ChainOfThought(ScreenAbstract)；compiled_screener 保存为 `screen_abstract_v1.json` 并可重载用于新 abstract。
 
-- 核验其实际覆盖的 SLR/SMS 环节：检索、筛选、全文抽取、编码、综合、报告分别到什么程度。
-- 核验 human-in-the-loop 是否只是用户反馈，还是有可复查审计协议、裁决日志和错误分类。
-- 核验是否保存 claim-to-source / cell-to-source / page-level provenance，以及是否可导出为论文证据包。
-- 核验评价数据集、金标、样本规模、指标、消融、失败案例和成本统计。
-- 核验是否已有 SE / CCF 版本或 peer-reviewed 版本；arXiv 版本不得直接等同正式出版。
+## 5. 实验 / 评价设计
+
+严格说，本文没有完整实验。它没有报告真实 SLR dataset 上的 train/validation/test split、baseline 对比、accuracy/precision/recall/F1、人工标注一致性或错误分析。正文 Table 1 汇总的是其他研究中 prompt-induced performance swings，用于论证问题存在，不是作者自己的实验结果。
+
+Appendix 的代码例子使用 digital CBT / MDD 的 PICOS criteria 和少量示例 abstract，目的是展示 workflow structure，而不是验证性能。Gold-standard examples 注释中写到真实集合可能需要 10-50 个 high-quality examples，但正文没有展示作者实际收集和评估这样的集合。
+
+## 6. 主要结果与结论
+
+主要结论是方法性主张：SLR automation 需要从 manual prompt crafting 转向 structured, testable, version-controlled workflow。作者认为 prompt compilation 可把 researcher 的 scientific intent 与 model-specific implementation 分离，把自然语言指令和 examples 当作可调 artefacts，并通过 validation data 与 metric 搜索更合适配置。
+
+这些结论在本文中是 blueprint-level，不是实证证明。正文没有给出 prompt compilation 在真实 SLR 任务中优于 manual prompting 的作者实验数值。写 paper2 时只能把它作为 reproducible prompt workflow 的概念背景，不能引用为“已验证提升 SLR 自动化性能”的证据。
+
+## 7. 局限与可复现性
+
+局限来自证据层级：preprint 篇幅短，缺少真实实验表、数据集、baseline、统计分析和失败案例。虽然 appendix 给出代码，但 API key、真实运行环境、完整 notebook、真实 gold examples 和 compiled artefact 是否可获取，需要另行核验。
+
+可复现性设计本身值得借鉴：作者要求 fixed seed、temperature、model build、data/prompt hashes、config、metrics 和 run log。问题是本文没有把这些作为真实研究运行记录完整展示。后续 2026 methods article 对这些缺口有更详细验证，因此 paper2 若需要强证据，应优先引用 2026 方法文，而把本篇作为前身或概念动机。
+
+## 8. 对 paper2 story / 实验设计的影响
+
+paper2 应吸收它的两个设计原则。第一，prompt 不是临时文本，而是应作为 versioned artefact 管理，和 criteria、examples、metric、model settings、run logs 一起保存。第二，SLR 阶段任务应先形式化为输入/输出 schema 和 metric，再谈自动化。
+
+但 paper2 不能把这篇当作 full baseline。它没有 agent roles、没有 multi-stage SLR execution、没有 human audit gate 的实证记录，也没有 SE 数据集验证。若 novelty matrix 中纳入它，应标注为 “prompt reproducibility / artefact packaging background”，而不是 “agentic SLR workflow baseline”。
+
+## 9. 可用于写作的引用角度
+
+- 作为 prompt fragility 背景：SLR automation 中 prompt wording 和模型配置会影响 reliability/reproducibility。
+- 作为 workflow design 引用：AI-assisted evidence synthesis 应把 task declaration、test suite、prompt compilation 和 artefact packaging 串成可审计流程。
+- 作为 claims-to-avoid 提醒：不能因为有 code example 就声称一个完整 SLR automation system 已被实证验证。
+
+## 10. 待复核清单
+
+- 检查 Google Colab notebook 是否真实可访问，以及是否包含比论文 appendix 更完整的运行结果。
+- 不引用其“novel/first”类表述作为 paper2 claim；只引用可证实的 workflow design。
+- 若纳入 novelty matrix，标注为弱实证 / conceptual blueprint。
+- 优先与 2026 `prompt-optimisation-evidence-synthesis` 合并定位，避免重复夸大同一作者路线。

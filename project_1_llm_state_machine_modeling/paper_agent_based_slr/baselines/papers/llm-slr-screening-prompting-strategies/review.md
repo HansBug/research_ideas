@@ -1,76 +1,95 @@
 # Evaluating Prompting Strategies and Large Language Models in Systematic Literature Review Screening: Relevance and Task-Stage Classification
 
-## 1. 元数据
+## 1. 快速结论卡片
 
 | 字段 | 内容 |
 |---|---|
 | 标题 | Evaluating Prompting Strategies and Large Language Models in Systematic Literature Review Screening: Relevance and Task-Stage Classification |
 | 年份 | 2025 |
-| 作者 | Binglan Han、Anuradha Mathrani、Teo Susnjak |
-| arXiv | [2510.16091](https://arxiv.org/abs/2510.16091) |
-| PDF | [paper.pdf](./paper.pdf) |
-| 正文提取 | [paper_content.txt](./paper_content.txt) |
-| BibTeX | [bibtex.bib](./bibtex.bib) |
-| 初步分层 | P1 |
-| 核验阶段 | arXiv title / abstract 粗筛 + PDF 自动获取 + `paper_content.txt` 文字模式提取；还不是最终全文细读结论。 |
-
-## 2. 七维初筛评分
+| 分层 | P1 |
+| 阅读状态 | 已读全文文本-paper_content核验 |
+| 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
+| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 核对图表 |
+| 输入 | 2014--2024 年 SLR automation 相关候选文献；去重筛选后 1,376 条，人工标注出 491 条 relevant 记录 |
+| 输出 | relevance yes/no、五类 SLR stage 自动化标签、是否使用 LLM 标签、prompt/model 指标和每 1,000 abstracts 成本 |
+| 方法/系统形态 | 6 个 LLM × 5 类 prompt 的系统评价；两层分类任务；非 agent 系统 |
+| 覆盖阶段 | 实质执行 relevance screening 与 task-stage coding；其他 SLR 阶段只是被分类为标签对象 |
+| 人审/审计机制 | 两名研究者独立标注并 consensus；prompt 模板和 CI 报告较完整；无 per-record provenance 或审计日志 |
+| 实验/指标 | accuracy、precision、recall、F1、Wilson CI、bootstrap F1 CI、Friedman / Nemenyi、成本分析 |
+| 主要发现 | CoT-few-shot 在 relevance classification 中整体均衡；zero-shot 适合高召回初筛；self-reflection 过度纳入且不稳定；GPT-4o / DeepSeek 强，GPT-4o-mini 成本低 |
+| 对 paper2 的作用 | 支撑 paper2 的 prompt/model/cost baseline 和分层筛选策略；不应被写成端到端 SLR 自动化竞品 |
+## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
 |---|---|---|---|---|---|---|
-| 🟢 | 🟠 | 🟡 | 🟠 | 🟢 | 🟠 | 🟡 |
+| 🟢 | 🟡 | 🟡 | 🟠 | 🟢 | 🟠 | 🟡 |
 
-## 3. 纳入理由与证据链
-
-- 初步判断：系统评估不同 LLM 与 prompting strategy 在 SLR screening 的表现，提供 screening 指标和成本基线。
-- title / abstract 证据（中文转述）：题名 / 摘要把论文定位为：Evaluating Prompting Strategies and Large Language Models in Systematic Literature Review Screening: Relevance and Task-Stage Classification。
-- title / abstract 证据（中文转述）：流程线索：可识别 筛选、分类/编码 等环节，需全文确认实际实现深度。
-- title / abstract 证据（中文转述）：自动化线索：出现 LLM、workflow / pipeline，说明不是单纯人工综述。
-- title / abstract 证据（中文转述）：评价线索：出现 摘要给出数量级或样本规模、benchmark、F1、accuracy，后续需核验指标、样本与可复现性。
-- title / abstract 证据（中文转述）：领域线索：泛领域；D6 评分据此区分 SE 直接近邻和跨域方法学 baseline。
-- 本地证据入口：PDF、BibTeX 与 `paper_content.txt` 已放在本目录，后续写 Related Work 时必须回到这些文件做逐段核验。
-- 粗筛限制：本文件只固定 baseline triage；未人工逐页核验表格、指标、实验设计和工具可复现性。
-
-## 4. 逐维判定理由
-
-| 维度 | 评分 | 证据锚点 | 判定理由 |
+| 维度 | 评分 | 全文证据锚点 | 判定理由 |
 |---|---:|---|---|
-| D1 主题贴合度 | 🟢 | 题名：Evaluating Prompting Strategies and Large Language Models in Systematic Literature Review  | title / abstract 直接把任务放在 SLR、systematic review、evidence synthesis 或 literature review 自动化语境。 |
-| D2 SLR/SMS 流程覆盖度 | 🟠 | abstract 阶段词：筛选、分类/编码 | 已能从 abstract 识别 2 类环节：筛选、分类/编码；完整覆盖度仍需全文核验。 |
-| D3 LLM/agent 自动化深度 | 🟡 | abstract 自动化词：LLM、workflow / pipeline | 自动化机制包含 LLM、workflow / pipeline，足以作为 agent/LLM 工作流对照。 |
-| D4 人工审计与可追踪性 | 🟠 | screening relevance classification / task-stage classification; abstract 未提 audit/provenance | 摘要聚焦 model-prompt interaction、classification metrics 与成本表现，未见 human audit、provenance 或可追踪证据包，因此审计维度弱。 |
-| D5 评价严谨性 | 🟢 | abstract 评价词：摘要给出数量级或样本规模、benchmark、F1、accuracy | 评价线索包括 摘要给出数量级或样本规模、benchmark、F1、accuracy；需全文核验样本、指标和金标。 |
-| D6 SE/CCF 相关性 | 🟠 | 领域：泛领域 | 领域是泛领域，方法学相关但不是 SE/CCF 直接 baseline。 |
-| D7 对本文 novelty 的威胁 | 🟡 | P1：系统评估不同 LLM 与 prompting strategy 在 SLR screening 的表现，提供 screening 指标和成本基线。 | 覆盖多个关键点但通常缺少本文完整组合，需作为局部 baseline 明确差异化。 |
+| D1 主题贴合度 | 🟢 | `paper_content.txt` Abstract / Page 1；§1 / Page 2 | 论文直接研究 LLM 与 prompt strategy 在 SLR screening / stage classification 中的表现，和 paper2 的筛选与分类模块高度相关。 |
+| D2 SLR/SMS 流程覆盖度 | 🟡 | `paper_content.txt` §3.1 / Page 4--5；§4.2 / Page 11--18 | LLM 实际执行 relevance screening 和 Level-2 task-stage coding；虽然标签覆盖 searching、screening、retrieval、synthesis、writing，但模型并未执行这些阶段，因此按两个核心环节计。 |
+| D3 LLM/agent 自动化深度 | 🟡 | `paper_content.txt` §3.2--3.4 / Page 5--7；Appendix B / Page 31--35 | 有清楚的 prompt、模型、JSON 输出和批量分类流程，但没有 agent、工具链、迭代审计或跨阶段状态传递。 |
+| D4 人工审计与可追踪性 | 🟠 | `paper_content.txt` §3.1 / Page 4--5；§5.4 / Page 20 | 数据集由两名研究者独立标注并 consensus，prompt 附录可复核；但自动化流程没有 human audit gate、决策日志、claim-to-source 或 per-cell provenance。 |
+| D5 评价严谨性 | 🟢 | `paper_content.txt` §4 / Page 7--18；Table 2--9；Appendix A / Page 25--30 | 评价覆盖 6 个 LLM、5 类 prompt、两层分类任务、置信区间、显著性检验、成本表和附录细表，实验设计扎实。 |
+| D6 SE / CCF 相关性 | 🟠 | `paper_content.txt` BibTeX / arXiv cs.CL；§2 / Page 2--4 | 论文属于泛 SLR automation / NLP 评价，不是 SE venue，也不是直接面向 SE SLR；可作为方法学和评价设计背景。 |
+| D7 novelty 威胁强度 | 🟡 | `paper_content.txt` §5.1--5.5 / Page 18--21 | 对 paper2 的 prompt selection、model-cost tradeoff、分层筛选 workflow 构成局部威胁；但没有多 agent SLR workflow、证据链、报告生成或 SE 场景。 |
 
-## 5. `paper_content.txt` 定位线索
+## 3. 论文解决的问题与背景
 
-以下只是关键词页级定位线索，便于后续全文细读；不替代人工核验。
+论文关注的问题是：LLM 能用于 literature screening，但不同 prompt 和模型之间的交互效应没有被系统量化。作者指出，现实 screening 常有成千上万 abstracts，prompt token 会影响成本和延迟，模型选择也会造成数量级级别的费用差异。因此只比较一个模型或一种 prompt 不足以指导大规模使用。
 
-| 页码 | 命中关键词 |
-|---:|---|
-| 1 | `systematic`, `screening`, `synthesis`, `benchmark` |
-| 2 | `systematic`, `screening`, `evaluation`, `dataset`, `benchmark`, `reproducible` |
-| 3 | `systematic`, `screening`, `extraction`, `synthesis`, `human`, `evaluation` |
-| 4 | `systematic`, `screening`, `synthesis`, `evaluation`, `dataset` |
-| 5 | `systematic`, `screening`, `synthesis`, `evaluation`, `dataset` |
-| 6 | `systematic`, `screening` |
-| 7 | `screening`, `synthesis`, `evaluation`, `dataset`, `benchmark`, `reproducible` |
-| 8 | `systematic`, `screening`, `evaluation`, `dataset` |
-| 9 | `systematic`, `screening`, `evaluation`, `dataset` |
-| 10 | `systematic`, `screening`, `evaluation` |
+这篇论文的“screening”需要谨慎理解。它并不是针对一个具体医学或 SE SLR 的 inclusion/exclusion protocol 来筛选候选文献，而是作者构建了一个 SLR automation 文献库，先判断论文是否与 SLR automation 相关，再判断它涉及哪些 SLR stage 以及是否使用 LLM。也就是说，它更接近“文献库构建中的 relevance screening + coding”，而不是端到端 SLR 执行。
 
-## 6. 对本文 story 的影响
+## 4. 方法 / 系统拆解
 
-- 会威胁本文某个局部模块或评价维度，不能只作为普通背景一笔带过。
-- 后续需要明确本文相对该工作的差异：是否覆盖更多 SLR 环节、是否有更强审计链、是否面向 SE 场景或是否有更可复验的证据包。
+输入来自 Scopus、ScienceDirect、ACM Digital Library、IEEE Xplore、Web of Science、Semantic Scholar 等数据库，检索 2014--2024 年与 literature review automation / systematic review automation 相关的论文。初始返回超过 5,000 条，去重和剔除非研究项后剩 1,376 条。两名有 LLM 和 systematic-review 经验的研究者独立标注并协商，得到 491 条 relevant 记录。Level 1 是 relevance yes/no；Level 2 是 searching、screening、retrieval、synthesis、writing 五类 stage 自动化标签，以及 Using LLMs 标签。
 
-## 7. 后续全文细读清单
+prompt 设计覆盖 zero-shot、few-shot、CoT、CoT-few-shot、self-reflection。Level 1 relevance classification 使用五类 prompt；Level 2 task classification 只使用四类 prompt，self-reflection 因预实验较弱未纳入。所有 prompt 都要求严格 JSON 输出，附录 B 给出了模板。模型包括 GPT-4o、GPT-4o-mini、DeepSeek-Chat-V3、Gemini-2.5-Flash、Claude-3.5-Haiku、Llama-4-Maverick，统一经 OpenRouter API 调用。
 
-- 核验其实际覆盖的 SLR/SMS 环节：检索、筛选、全文抽取、编码、综合、报告分别到什么程度。
-- 核验 human-in-the-loop 是否只是用户反馈，还是有可复查审计协议、裁决日志和错误分类。
-- 核验是否保存 claim-to-source / cell-to-source / page-level provenance，以及是否可导出为论文证据包。
-- 核验评价数据集、金标、样本规模、指标、消融、失败案例和成本统计。
-- 核验是否已有 SE / CCF 版本或 peer-reviewed 版本；arXiv 版本不得直接等同正式出版。
+系统形态是批量分类评测，不是 agent。LLM 不执行检索、不读全文抽取、不综合证据、不写报告；它只根据 title 和 abstract 生成分类标签。人机协作主要在数据集标注阶段和作者建议阶段，并未形成模型输出后的人工复核闭环。
+
+## 5. 实验 / 评价设计
+
+RQ1 询问 prompt strategy 和 LLM choice 如何单独及共同影响 accuracy、precision、recall、F1 和 criteria/task 表现。RQ2 询问大规模 screening 下 model-prompt 组合的成本-性能权衡，以及哪些配置能兼顾效果和操作效率。
+
+评价分两层。Level 1 对 1,376 条记录做 SLR automation relevance classification。Level 2 对 491 条 relevant 记录做六类标签预测：五个 SLR stage 和 LLM use。指标包括 accuracy、precision、recall、F1；Accuracy / Precision / Recall 使用 Wilson score interval，F1 使用 5,000 次 abstract-level bootstrap。显著性分析使用 Friedman 检验和 Nemenyi ranks。成本分析按每 1,000 abstracts 汇总 input/output tokens、美元成本和 F1。
+
+人工标注和专家评审方面，原文只说明两名研究者独立标注并通过 consensus 解决分歧；未报告 Cohen's kappa、具体分歧率或标注手册版本。baseline 是不同 LLM / prompt 组合之间的横向比较，没有传统 ML、active learning 工具或 human-only speed baseline。
+
+## 6. 主要结果与结论
+
+Level 1 relevance classification 中，CoT-few-shot 的宏平均 F1 最高，为 0.913；few-shot 为 0.912，CoT 为 0.905。zero-shot 的 recall 最高，为 0.971，但 precision 只有 0.834，适合高敏感度初筛。self-reflection 表现最弱，F1 为 0.835，precision 为 0.753，作者认为它容易过度纳入且模型间方差大。
+
+模型层面，GPT-4o 宏平均 F1 为 0.918，DeepSeek-Chat-V3 为 0.914；Gemini、Claude、Llama、GPT-4o-mini 形成第二梯队。作者强调没有单一 prompt 适合所有模型：GPT-4o 的 zero-shot 很强，DeepSeek 适合 CoT，Llama 和 Claude 更依赖 CoT-few-shot。
+
+Level 2 task classification 显示任务复杂度差异明显。LLM-use detection 最容易，F1 为 0.925；screening F1 为 0.868，retrieval 为 0.810；synthesis 最难，F1 为 0.642，writing 为 0.702。作者据此认为 LLM 对具体、词汇线索明显的任务更可靠，而对 synthesis / writing 这类抽象概念分类仍弱。
+
+成本分析显示 GPT-4o-mini 在多种 prompt 下成本很低。Table 9 中 GPT-4o-mini 的 zero-shot 每 1,000 abstracts 成本为 0.09 美元、F1 为 0.896；CoT / CoT-few-shot 成本约 0.12 / 0.18 美元，F1 均为 0.910。作者推荐用低成本模型和结构化 prompt 做第一轮，再把 borderline / contentious cases 升级给更强模型。
+
+## 7. 局限与可复现性
+
+原文明确承认 domain scope 是主要局限。数据集集中在 SLR automation 论文，这类标题和摘要常有显式词汇线索，如 systematic review、screening、automation，可能导致 shortcut learning，性能不一定迁移到 PICO-guided clinical meta-analysis、social policy 或 ecology 这类信号更隐性的领域。
+
+第二类局限是方法范围：论文没有测试 RAG、迭代/meta prompting、declarative prompt optimization，也没有 qualitative error analysis、user study 或 human-in-the-loop audit。第三类局限是数据不平衡，writing 和 synthesis 样本少，导致 F1 和置信区间不稳定。可复现性方面，论文提供模型名、prompt 模板、指标和统计方法，但 `paper_content.txt` 中没有发现当前代码、数据、标注 rubrics 的公开链接；作者在 future work 中建议开放这些材料，说明当前还不能视为制品级完全可复现。
+
+## 8. 对 paper2 story / 实验设计的影响
+
+paper2 需要把这篇作为 prompt/model/cost evaluation 的局部强 baseline。它提示我们在实验中不能只报告一个默认 prompt 的结果，而应至少固定 zero-shot、few-shot/CoT-few-shot 等代表性 prompt，并说明为什么选择某个 operating point。若 paper2 有大规模 screening，成本表也应成为设计的一部分。
+
+但 paper2 不能把这篇当作完整 SLR 自动化系统来对比。它没有 agent、没有检索到报告的闭环、没有 run record、没有人工 audit gate，也没有 claim-to-source trace。paper2 的差异化应写成：在已知 prompt/model 选择会显著影响筛选结果的前提下，本文进一步把阶段输入输出、人工裁决、证据来源和报告 claim 组织成可审计 workflow。
+
+## 9. 可用于写作的引用角度
+
+- Han 等人的系统评价表明，LLM screening 中 prompt 与模型存在显著交互，CoT-few-shot 往往提供较好的 precision-recall 平衡，而 zero-shot 更适合高召回初筛。
+- 该工作还显示 self-reflection 并非自然带来更好 screening，反而可能产生过度纳入和跨模型不稳定；本文不应把“反思”类步骤写成无条件收益。
+- 其成本分析支持 staged workflow：低成本模型先筛，争议样本再交给强模型；本文可把该思想扩展为带人工 audit 和 run record 的阶段化决策。
+- 由于该数据集集中于 SLR automation 主题，作者自己提醒外部迁移风险；本文在 SE / LLM4SE / MDE 场景中需要独立验证。
+
+## 10. 待复核清单
+
+- 人工打开 PDF 核对 Table 9 的成本列和附录表格，`paper_content.txt` 中表格换行较密。
+- 核验是否有 GitHub / OSF / data release；全文文本中未见公开代码数据链接。
+- 若用于 paper2 实验设计，需复核 OpenRouter 调用时间、模型版本和价格是否仍适用。
+- 补查是否已有 peer-reviewed 版本；当前 BibTeX 仅为 arXiv preprint。

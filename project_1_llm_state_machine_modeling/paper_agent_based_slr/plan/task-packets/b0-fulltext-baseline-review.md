@@ -1,0 +1,79 @@
+# PR-B0 强化任务包：全文级 baseline review 与总账升级
+
+## 1. 范围
+
+本任务包服务 PR [#105](https://github.com/HansBug/research_ideas/pull/105)。原 PR-B0 已完成 LLM-based SLR / agentic literature-review 近邻 baseline 的粗筛和 25 篇 P0/P1 建库；本强化迭代把它升级为可支撑 paper2 CCF A 类写作的全文证据级 baseline 文库。
+
+## 2. 允许修改文件
+
+- `project_1_llm_state_machine_modeling/paper_agent_based_slr/baselines/**`
+- `project_1_llm_state_machine_modeling/paper_agent_based_slr/plan/**`
+- PR #105 body / comments
+
+## 3. 非目标
+
+| 非目标 | 说明 |
+|---|---|
+| 不实现 agent workflow | 本 PR 只做 related work / baseline 文库。 |
+| 不运行真实 LLM | 只有读论文和写文档；若后续真实 LLM 调用必须 `source .env` 并记录 run record。 |
+| 不声称完成正式 SLR | 当前是 baseline review，不是 PRISMA 完整系统综述。 |
+| 不绕过付费墙 | WSESE / IEEE 等闭源 PDF 只记录人工下载需求。 |
+
+## 4. 输入证据
+
+- [baselines/search/arxiv-query-results.jsonl](../../baselines/search/arxiv-query-results.jsonl)：34 篇候选元数据。
+- [baselines/papers/](../../baselines/papers/)：P0/P1/P2 本地 PDF、文本、BibTeX 与 review。
+- [baselines/GUIDE.md](../../baselines/GUIDE.md)：全文 review 模板和 D1-D7 标准。
+- [baselines/SUMMARY.md](../../baselines/SUMMARY.md)：总账和 story 定调。
+
+## 5. 执行计划
+
+1. 更新 [../../baselines/GUIDE.md](../../baselines/GUIDE.md)，固化全文 `review.md` 模板、D1-D7 全文评分规则和 `SUMMARY.md` 描述性主表要求。
+2. 把 9 篇 P2 重要 arXiv 背景候选补成本地目录，确保 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md` 齐全。
+3. 对每篇本地论文按 `bibtex.bib -> paper_content.txt -> paper.pdf` 信息流全文阅读并重写 `review.md`。
+4. 重构 [../../baselines/SUMMARY.md](../../baselines/SUMMARY.md)：主表必须含输入、输出、方法、阶段、人审/审计、实验/指标、发现、D1-D7、paper2 作用。
+5. 更新 [../progress.md](../progress.md) 的 B0 强化记录、验证命令和 capability-use audit。
+6. push 后启动 codex / claude / deepseek 三路 review，要求从学术准确性、事实可追溯性、CCF A 级 story 支撑性角度强对抗审查。
+
+## 6. 拒收检查
+
+- 任一本地论文缺 `paper.pdf` / `paper_content.txt` / `bibtex.bib` / `review.md`。
+- P0/P1 `review.md` 仍只有 title/abstract 粗筛式描述。
+- `SUMMARY.md` 主表只有 D1-D7，没有输入、输出、方法、阶段、审计、实验、发现等描述性列。
+- 把 arXiv 写成 peer-reviewed / CCF 事实。
+- 写出“首次自动化 SLR / 首次 agentic SLR / 完整覆盖 / PRISMA 合规”等 unsupported claim。
+- WSESE@ICSE 2025 这类拿不到 PDF 的论文被写成已全文核验。
+
+## 7. 验证命令
+
+```bash
+source venv/bin/activate
+python - <<'PY'
+from pathlib import Path
+root = Path('project_1_llm_state_machine_modeling/paper_agent_based_slr/baselines')
+missing = []
+for d in sorted(p for p in (root / 'papers').iterdir() if p.is_dir()):
+    for name in ['paper.pdf', 'paper_content.txt', 'bibtex.bib', 'review.md']:
+        if not (d / name).exists():
+            missing.append(str(d / name))
+assert not missing, missing
+summary = (root / 'SUMMARY.md').read_text(encoding='utf-8')
+for col in ['输入', '输出', '方法', '覆盖阶段', '审计', '实验', '主要发现', '对 paper2 的作用']:
+    assert col in summary, col
+for bad in ['first automated SLR', 'first agentic SLR', 'complete coverage', 'PRISMA' + '-compliant']:
+    assert bad not in summary, bad
+print('B0 fulltext baseline sanity ok')
+PY
+
+git diff --check
+```
+
+## 8. Review gate
+
+三路 reviewer 必须检查：
+
+1. 每篇 review 是否真正基于全文证据，而不是模板化扩写。
+2. D1-D7 是否被全文证据支持。
+3. SUMMARY 主表是否能让读者一眼看到输入、输出、方法、实验、审计和 paper2 作用。
+4. 是否充分承认强 baseline，避免虚假 novelty。
+5. 是否保留人工下载 / coverage gap / arXiv 未审稿等风险。

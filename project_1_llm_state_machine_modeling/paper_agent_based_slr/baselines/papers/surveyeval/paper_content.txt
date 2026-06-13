@@ -1,0 +1,393 @@
+--- Page 1 ---
+SurveyEval: Towards Comprehensive Evaluation of
+LLM-Generated Academic Surveys
+Jiahao Zhao∗
+zhaojiahao2019@ia.ac.cn
+Beijing Wenge Technology Co., Ltd.
+Institute of Automation, Chinese Academy of Sciences
+Beijing, ChinaShuaixing Zhang∗
+shuaixing.zhang@wenge.com
+Beijing Wenge Technology Co., Ltd.
+Beijing, China
+Nan Xu
+nan.xu@wenge.com
+Beijing Wenge Technology Co., Ltd.
+Beijing, ChinaLei Wang
+lei.wang@wenge.com
+Beijing Wenge Technology Co., Ltd.
+Beijing, China
+Abstract
+LLM-based automatic survey systems are transforming how users
+acquire information from the web by integrating retrieval, organi-
+zation, and content synthesis into end-to-end generation pipelines.
+While recent works focus on developing new generation pipelines,
+how to evaluate such complex systems remains a significant chal-
+lenge. To this end, we introduceSurveyEval, a comprehensive
+benchmark that evaluates automatically generated surveys across
+three dimensions: overall quality, outline coherence, and refer-
+ence accuracy. We extend the evaluation across 7 subjects and
+augment the LLM-as-a-Judge framework with human references to
+strengthen evaluation–human alignment. Evaluation results show
+that while general long-text or paper-writing systems tend to pro-
+duce lower-quality surveys, specialized survey-generation systems
+are able to deliver substantially higher-quality results. We envi-
+sion SurveyEval as a scalable testbed to understand and improve
+automatic survey systems across diverse subjects and evaluation
+criteria.
+CCS Concepts
+•Computing methodologies →Natural language generation.
+Keywords
+Survey Evaluation, Automated Survey, Large Language Models
+ACM Reference Format:
+Jiahao Zhao, Shuaixing Zhang, Nan Xu, and Lei Wang. 2026. SurveyEval:
+Towards Comprehensive Evaluation of LLM-Generated Academic Surveys.
+InProceedings of (preprint).ACM, New York, NY, USA, 4 pages. https:
+//doi.org/XXXXXXX.XXXXXXX
+∗Both authors contributed equally to this research.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+preprint, in progress
+©2026 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-x-xxxx-xxxx-x/YYYY/MM
+https://doi.org/XXXXXXX.XXXXXXX1 Introduction
+The rapid advancement of large language models (LLMs) has demon-
+strated remarkable potential in complex text-generation tasks such
+as academic writing, literature reviews, and scientific reports [ 1].
+LLM-based automatic survey systems are transforming how users
+acquire knowledge from vast information repositories by integrat-
+ing retrieval, organization, and content synthesis into streamlined
+end-to-end generation pipelines [4].
+Both academia and industry have introduced various special-
+ized systems for survey generation. These automated writing sys-
+tems can be broadly categorized into three types: general long-
+text writing systems (e.g., Kimi [ 2], GLM [ 3]) that provide broader
+capabilities for extended text generation; paper-writing systems
+(e.g., Chengpian [ 5], Doubao Paper Mode [ 8]) that focus on struc-
+tured composition of complete research papers; and survey-writing
+agents (e.g., SurveyGo [ 9], SurveyX [ 7], Panshi ScienceOne [ 6])
+specifically designed for academic survey generation. These sys-
+tems not only process large volumes of literature and extract key
+information, but also generate well-structured survey drafts com-
+plete with sectioned organization, citation annotations, and logical
+coherence.
+However, while recent research has primarily focused on de-
+veloping new generation pipelines, how to evaluate such complex
+systems remains a significant challenge. Existing evaluation ap-
+proaches often rely on ad-hoc human subjective scoring of individ-
+ual cases, lacking reusable quantitative metrics that could support
+cross-system comparison, performance attribution, and systematic
+improvement. These issues severely constrain quality assurance and
+capability enhancement of survey-writing systems. Therefore, es-
+tablishing a standardized evaluation benchmark for survey-writing
+systems is not only critical for ensuring output quality and reli-
+ability, but also provides the research community with a unified
+foundation for performance comparison and capability diagnosis.
+To address this gap, we introduce SurveyEval, a comprehensive
+benchmark that evaluates automatically generated surveys across
+three dimensions:overall quality,outline coherence, andreference ac-
+curacy. We extend the evaluation across seven academic disciplines
+and enhance the LLM-as-a-Judge framework with human-written
+reference surveys to increase alignment consistency between auto-
+mated evaluation and human judgments. Our evaluation of repre-
+sentative automatic survey systems shows that general LLM-basedarXiv:2512.02763v1  [cs.CL]  2 Dec 2025
+
+--- Page 2 ---
+preprint, in progress Zhao et al.
+•F1
+•Recall•Veracity
+•Originality
+•Depth
+•Structural
+•Content
+•Descriptiveness[Content]
+Reference
+[1] xxx.[Content][Subsubtitle ][Title]
+   [Subtitle]
+Llm -as-a-judge
+with principleLlm -as-a-judge
+with human reference
+Standard MetricsOutline ScoreOverall Score
+Reference ScoreComputer 
+Science
+AstronomyBiologyChemistryGeographyAerospace 
+Physics 
+Science 
+Domain
+… …
+•Precision[Subtitle]
+Figure 1: The overall framework of SurveyEval, which evaluates LLM-generated surveys across seven domains through content
+quality, outline coherence, and reference accuracy.
+writing models often yield suboptimal survey quality, whereas ded-
+icated survey-generation systems demonstrate notably stronger
+performance with clearer strengths and more stable output. The
+main contributions are as follows:
+•We propose SurveyEval, a comprehensive benchmark with
+three evaluation dimensions enhanced by human references
+to improve evaluation-human alignment.
+•We construct a cross-disciplinary test dataset spanning seven
+academic subjects with manually curated evaluation tasks.
+•We conduct systematic evaluation of representative auto-
+matic survey systems, revealing their capabilities, strengths,
+and limitations.
+2 SurveyEval Benchmark
+2.1 Dataset Construction
+To enable fair evaluation across tasks and systems, we construct a
+multi-topic, multi-disciplinary test dataset:
+Computer Science (20 topics).We curate topics covering core ar-
+eas including large language model training, inference mechanisms,
+model compression, and alignment methods, balancing research
+frontiers with verifiability. This dataset has been previously used
+as test data in SurveyX [7] system.
+Six STEM Disciplines (18 topics).We extend coverage to math-
+ematics, physics, biology, chemistry, aerospace, and geography,
+addressing the gap where existing datasets predominantly focus on
+computer science. These topics are derived from recent publications
+inNatureover the past two years.
+Each topic includes: (1) automatically generated surveys from
+target systems; (2) human-authored high-quality reference surveys
+serving as scoring anchors for the Human Benchmark; and (3)
+aligned reference literature collections for citation verification.
+Table 1 presents detailed statistics of our constructed dataset
+across all disciplines.
+2.2 Evaluation Metrics
+To evaluate automatically generated surveys, we adopt two com-
+plementary approaches. For content quality, we use an enhancedTable 1: Statistics of the SurveyEval dataset.
+Discipline # Topics Avg. # Sects Avg. # Refs
+Computer Science 20 34.7 220.2
+Astronomy 3 19.0 99.3
+Biology 3 18.0 122.7
+Chemistry 3 31.7 48.7
+Geography 3 18.3 147.3
+Aerospace 3 30.3 77.7
+Physics 3 30.7 128.3
+Total 38 26.1 120.6
+LLM-as-a-Judge framework that leverages human-written reference
+surveys to improve alignment with expert judgment. For outline
+coherence, we apply a principle-based LLM assessment without ref-
+erence materials. For reference quality, we rely on standard citation
+metrics (Recall, Precision, F1).
+Overall.We first replicate five widely used content dimensions:
+coverage,structure,relevance,synthesis, andcritical analysisfrom
+frameworks such as SurveyForge [ 11], SurveyX [ 7], and AutoSur-
+vey [ 10] to establish a baseline. Beyond these, we extend content
+evaluation with three complementary sub-dimensions:
+Veracity, evaluating the clear separation of facts, opinions, and
+hypotheses and the precision/temperance of terminology with
+evidence-backed assertions;
+Originality Proportion, assessing the proportion and quality of
+original contributions (e.g., novel taxonomies, critical insights, and
+forward-looking directions) beyond mere aggregation;
+Depth of Content, measuring logical depth and structured syn-
+thesis that distinguish shallow collection from well-organized, rea-
+soned analysis.
+All sub-dimensions use a unified 1–5 scale (5 best).
+Outline.We evaluate the outline as a first-class objective be-
+cause it determines the structural skeleton and organizational logic
+of a survey. The assessment targets three dimensions:
+
+--- Page 3 ---
+SurveyEval: Towards Comprehensive Evaluation of LLM-Generated Academic Surveys preprint, in progress
+Table 2: Main evaluation results on overall quality of LLM-generated survey (1–5 scale; higher is better).
+Dataset System Coverage Structure Relevance SynthesisCritical
+AnalysisVeracityOriginality
+ProportionDepth of
+ContentAvg.
+Computer
+ScienceKimi 3.10 3.45 4.30 3.10 3.30 3.30 2.20 3.30 3.26
+GLM 4.05 3.45 4.70 3.25 3.40 2.95 1.95 3.10 3.36
+Doubao 3.90 3.65 4.60 3.35 3.65 2.90 2.40 3.20 3.46
+Chengpian 2.45 2.85 3.45 2.45 2.30 2.40 2.00 2.35 2.53
+SurveyX 2.61 3.04 3.66 2.95 2.90 2.80 2.23 2.00 2.77
+SurveyGo 4.90 3.95 4.95 4.05 4.00 3.50 2.90 3.70 3.99
+ScienceOne 4.50 4.30 5.00 3.95 4.25 3.90 3.05 4.15 4.14
+Six STEM
+DisciplinesKimi 3.94 4.16 4.66 3.55 3.22 3.00 2.83 3.27 3.58
+GLM 3.77 3.77 4.27 3.05 2.44 3.00 2.16 2.94 3.18
+Doubao 4.16 4.16 4.72 3.55 3.00 2.88 2.50 3.22 3.52
+Chengpian 2.72 3.05 3.44 2.55 2.16 2.55 2.27 2.33 2.63
+SurveyX 3.20 3.00 3.55 2.88 2.77 2.66 1.88 2.16 2.76
+SurveyGo 4.94 4.50 4.94 4.33 4.44 4.27 3.11 4.16 4.34
+ScienceOne 4.83 4.61 4.94 4.16 4.44 4.00 3.66 4.27 4.36
+(i) Structural Organization (Struc.): adherence to field-appropriate
+schemas (e.g., IMRaD, chronological development, method-based
+taxonomy) that support clear information localization and rapid
+retrieval.
+(ii) Content Value (Cont.): inclusion of meaningful scholarly
+elements such as research gaps, conceptual frameworks, synthe-
+sized trends, limitations, and future directions, instead of simple
+enumeration.
+(iii) Descriptiveness (Desc.): use of precise and concise section
+titles that correctly reflect scope and entities while avoiding vague
+or overly broad phrasing.
+All dimensions use a unified 1–10 scale (10 best).
+Reference.We evaluate citation quality using standard met-
+rics: Citation Recall, Citation Precision, and their harmonic mean
+(F1). Recall measures how many ground-truth references (from
+the human-written survey) are correctly included in the generated
+survey, reflecting the breadth of literature coverage. Precision as-
+sesses whether the references cited in the generated survey indeed
+appear in the ground-truth reference set, indicating citation ac-
+curacy rather than arbitrary or hallucinated sources. In this way,
+we directly compare the generated reference list with the human
+reference list, offering a clear and interpretable view of how closely
+an automatic system’s literature grounding aligns with human re-
+search practice. This protocol allows systematic comparison of the
+depth and breadth of literature investigation between automatic
+survey systems and human-written surveys.
+2.3 LLM-as-a-Judge
+LLM-as-a-Judge has become a widely adopted paradigm for evalu-
+ating generated text, owing to its scalability, consistency, and low
+annotation cost. In its standard form, a judging model is prompted
+with rubric definitions and score ranges, and assigns quality rat-
+ings to system outputs. Despite its convenience, this rubric-only
+setup often exhibits leniency and score saturation, particularly for
+high-level generation tasks such as long-text surveys. To betteraccommodate the distinct characteristics of our evaluation dimen-
+sions, we employ two complementary variants of LLM-as-a-Judge:
+onewith human-written referencefor overall content evaluation,
+and onewith principlefor outline evaluation.
+2.3.1 LLM-as-a-Judge with Human-Written Reference.For overall
+survey quality assessment, we adopt an enhanced configuration in
+which the judging model is provided with a human-written survey
+on the same topic alongside the generated text. The human-written
+survey acts as a high-quality anchor, enabling the model to form
+relative judgments rather than relying solely on abstract rubric
+descriptions.
+This reference-guided setup mitigates several limitations of rubric-
+only evaluation. First, the presence of a concrete expert example
+offers strong contextual anchoring, reducing the tendency of the
+judging model to overestimate vague, generic, or shallow content.
+Second, comparing the generated survey against an analytically
+rich human counterpart increases the model’s sensitivity to higher-
+level qualities such as argumentative rigor, evidential grounding,
+and conceptual contribution—areas where rubric-only scoring of-
+ten becomes overly permissive. Third, anchoring the judgment to
+a gold-standard sample alleviates the score saturation frequently
+observed when different systems receive uniformly high marks de-
+spite substantial quality differences. As a result, this method yields
+clearer separation among systems and provides a more reliable sig-
+nal for diagnosing strengths and weaknesses in automated survey
+generation.
+2.3.2 LLM-as-a-Judge with Principle.For outline evaluation, we
+adopt a principle-based setup without human references. Because
+outlines are much shorter than full surveys and encode only struc-
+tural intent, comparing them directly with a human-written ex-
+emplar would be overly rigid and provide limited discriminative
+value. Instead, the judging model assesses each outline against ex-
+plicit criteria of structural organization, logical progression, and
+pragmatic clarity. This design better reflects the nature of outline
+quality, which depends primarily on adherence to well-established
+
+--- Page 4 ---
+preprint, in progress Zhao et al.
+Table 3: Outline evaluation results. “Struc.”, “Cont.”, “Desc.”
+stand for structure, content value, and descriptiveness.
+Dataset System Struc. Cont. Desc. Total
+Computer
+ScienceKimi 5.30 4.95 8.68 18.93
+GLM 8.05 6.32 8.76 23.13
+Doubao 8.05 6.67 8.90 23.62
+Chengpian 6.00 1.70 7.00 14.70
+SurveyX 7.78 6.06 8.53 22.37
+SurveyGo 8.26 6.83 8.60 23.69
+ScienceOne 8.30 7.28 8.97 24.55
+Six STEM
+DisciplinesKimi 7.03 5.75 8.44 21.22
+GLM 5.83 1.78 6.72 14.33
+Doubao 5.42 5.03 8.92 19.37
+Chengpian 7.67 5.83 8.42 21.92
+SurveyX 7.64 5.86 8.58 22.08
+SurveyGo 7.81 5.86 8.50 22.17
+ScienceOne 7.78 6.78 9.00 23.56
+scholarly conventions. The principle-based method therefore pro-
+vides a more stable, fair, and interpretable evaluation tailored to
+the structural characteristics of outlines.
+3 Experiments
+3.1 Experimental Setup
+We use the original survey title as the query for each automatic sur-
+vey system to obtain its generated survey. All systems are capable
+of performing web retrieval, ensuring fair access to external infor-
+mation sources. We evaluate three categories of systems: general-
+purpose long-text writing systems (e.g., Kimi [ 2], GLM [ 3]), paper-
+writing systems (e.g., Chengpian [ 5], Doubao Paper Mode [ 8]),
+and dedicated survey-generation systems (e.g., SurveyX [ 7], Sur-
+veyGo [ 9], ScienceOne [ 6]). All systems receive the same input
+query, and their outputs are evaluated under identical criteria. The
+aggregated scores are reported below.
+3.2 Main Results
+Overall Evaluation.Table 2 reveals distinct patterns across the
+three categories of systems. General long-text models show good
+language fluency and topic relevance, but their surveys remain
+shallow: originality, synthesis, and critical analysis are consistently
+weak. Paper-writing systems provide stronger structural control,
+yet their outputs are often rigid and template-driven, limiting ana-
+lytical depth and reducing the diversity of perspectives. Dedicated
+survey-generation systems achieve the highest scores overall, with
+clearer taxonomies, more coherent synthesis, and noticeably better
+fact–opinion separation. Their advantage is particularly evident in
+STEM subjects, where effective retrieval and domain-aware struc-
+turing matter most. These differences indicate that high-quality
+survey writing requires more than general LLM capabilities—it
+benefits from specialized pipelines that explicitly target literature
+grounding and structured synthesis.Table 4: Reference evaluation results.
+System Recall Precision F1
+SurveyX 76.85 75.09 75.96
+ScienceOne 90.58 84.28 87.32
+Outline Evaluation.Table 3 shows that dedicated survey-generation
+systems produce the most coherent outlines, with clearer hierarchi-
+cal structure and more informative section titles. General long-text
+models generate fluent headings but struggle to maintain consistent,
+field-appropriate organization. Paper-writing systems perform un-
+evenly: while structurally disciplined, some outputs become overly
+rigid or lack meaningful content signals. Overall, the results in-
+dicate that effective outline design—capturing both structure and
+scholarly intent—is a core strength of specialized survey systems
+and a common weakness of generic models.
+Reference Evaluation.Table 4 shows a clear gap between the
+two systems capable of producing full reference lists. ScienceOne
+achieves both higher recall and higher precision, indicating stronger
+retrieval grounding and fewer hallucinated or irrelevant citations.
+SurveyX, despite covering a reasonable portion of the literature,
+introduces more incorrect or unmatched references. This contrast
+highlights that citation reliability—especially avoiding unsupported
+references—remains a key weakness for many systems.
+4 Conclusion
+We introducedSurveyEval, a comprehensive benchmark for as-
+sessing LLM-generated academic surveys across content quality,
+outline coherence, and reference accuracy. SurveyEval provides a
+practical tool for analyzing and identifying limitations in current
+survey-writing systems, supporting more targeted improvements
+in future development.
+References
+[1]S. Agarwal. 2024. LitLLMs, LLMs for Literature Review: Are we there yet?
+arXiv:2412.15249 [cs.CL]
+[2] Moonshot AI. 2025. Kimi. Online. https://kimi.ai/
+[3] Zhipu AI. 2025. GLM. Online. https://open.bigmodel.cn/dev/api
+[4]N. F. Ali. 2024. Automated Literature Review Using NLP Techniques
+and Retrieval-Augmented Generation (RAG) with Large Language Models.
+arXiv:2411.18583 [cs.CL]
+[5] Inc. Baidu. 2025. Chengpian. Online. https://cp.baidu.com/
+[6]Chinese Academy of Sciences Institute of Automation. 2025. ScienceOne. Online.
+https://scienceone.ia.ac.cn
+[7]Xun Liang, Jiawei Yang, Yezhaohui Wang, Chen Tang, Zifan Zheng, Shichao
+Song, Zehao Lin, Yebin Yang, Simin Niu, Hanyu Wang, Bo Tang, Feiyu Xiong,
+Keming Mao, and Zhiyu li. 2025. SurveyX: Academic Survey Automation via
+Large Language Models. arXiv:2502.14776
+[8] ByteDance Ltd. 2025. Doubao. Online. https://www.volcengine.com/
+[9]Haoyu Wang, Yujia Fu, Zhu Zhang, Shuo Wang, Zirui Ren, Xiaorong Wang, Zhili
+Li, Chaoqun He, Bo An, Zhiyuan Liu, and Maosong Sun. 2025. LLM ×MapReduce-
+V2: Entropy-Driven Convolutional Test-Time Scaling for Generating Long-Form
+Articles from Extremely Long Resources. arXiv:2504.05732
+[10] Yidong Wang, Qi Guo, Wenjin Yao, Hongbo Zhang, Xin Zhang, Zhen Wu, Meishan
+Zhang, Xinyu Dai, Min Zhang, Qingsong Wen, Wei Ye, Shikun Zhang, and Yue
+Zhang. 2024. AutoSurvey: Large Language Models Can Automatically Write
+Surveys. InThe Thirty-eighth Annual Conference on Neural Information Processing
+Systems.
+[11] Xiangchao Yan, Shiyang Feng, Jiakang Yuan, Renqiu Xia, Bin Wang, Bo Zhang,
+and Lei Bai. 2025. Surveyforge: On the outline heuristics, memory-driven gener-
+ation, and multi-dimensional evaluation for automated survey writing.arXiv
+preprint arXiv:2503.04629(2025).
