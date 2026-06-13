@@ -39,3 +39,13 @@
 4. 是否误动旧 `paper_v1/path1_foundation/`。
 5. 是否把 R1--R7 内容提前冻结。
 6. Markdown 链接和路径是否可用。
+
+## PR-R1.5 seed corpus agent 摘要
+
+| 时间 | agent / 来源 | 任务 | 输出 | 状态 |
+|---|---|---|---|---|
+| 2026-06-14 | literature scout A | 只读盘点 baseline / reproduction strict seed 候选 | 5 个最可能候选 + 4 个强但不适合主 seed + 排除列表 | completed |
+| 2026-06-14 | literature scout B | 只读盘点 sources 宽池抽样策略 | 10 个 sources 优先目录与字段建议 | completed |
+| 2026-06-14 | external search planner | 设计外部检索 query plan | Semantic Scholar / arXiv / OpenAlex / Google 替代 query 与 20 个候选线索 | completed |
+| 2026-06-14 | paper-reader agents | 高优先单篇全文核验 | 10 个候选目录的 `seed_desc.md` / `artifacts.md` | completed |
+| 2026-06-14 | implementation reviewers #106 | 三路实现强审与修复迭代 | 统计闭合、TTool timing、`designing-fsm-gpt4` initial-only、`req-mermaid-statechart` 目录补齐 | completed / C-I fixed / awaiting final ready check |

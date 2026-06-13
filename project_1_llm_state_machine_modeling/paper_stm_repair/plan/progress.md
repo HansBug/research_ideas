@@ -166,3 +166,23 @@
 | 未冻结四例 seed | R2 才能基于本审计选择样本；`sources/` 的 337 条 strict-source 子池仍需构造 / 冻结 `STM_0`。 |
 | 未验证转换器 | R3 才能把“可转换性评估”变成 schema / fixture / adapter。 |
 | 未复跑外部 artifact | 活链接、仓库 HEAD、Drive / 4open / 3GPP dynareport 等正式实验前仍需冻结。 |
+
+## PR-R1.5：strict seed 文献调研与 seed 文库（进行中）
+
+- 时间：2026-06-14 02:22:00
+- PR：[#106](https://github.com/HansBug/research_ideas/pull/106)
+- 当前状态：implementation review 发现的统计闭合、TTool timing、`designing-fsm-gpt4` initial-only、`req-mermaid-statechart` 无目录等 C/I 已按 bounded snapshot + blocker handoff 口径修复。
+- 已产出：`seed_corpus/README.md`、`GUIDE.md`、`SUMMARY.md`、`candidate_matrix.md`、`search_log.md`、`screening_ledger.md`、`exclusion_ledger.md`、`manual_download_queue.md`、`agent_provenance.md` 与 10 个单篇候选目录。
+- bounded snapshot v1：candidate matrix 27 条，screening ledger 27 条，单篇全文 / artifact 编码目录 10 个；保守可交接 PR-R2 主 seed 候选为 3 条（`sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4` initial-only），未达到四例下限。
+- R2 blocker：PR-R2 必须继续外部检索 / 人工下载、从 `sources/` 构造可追踪 `STM_0`，或用低配 prompt / 学生人工构造补足样本，并记录 provenance 与 leakage control；PR-R1.5 不声称已具备四例冻结输入。
+- 检索风险：OpenAlex 两条宽 query 噪声很高，已记录为未筛查 / 早停经验；后续需 exact phrase、排除词、IEEE/ACM/DBLP/publisher 与 snowballing 补强。
+- 四例运行：本 PR 不跑四例、不调用真实 LLM、不读取 `.env`。
+
+### Capability-use audit
+
+- Required references/scripts: `ai-research-writing-skill` claim-evidence discipline、`sub-agents` reviewer/reader、Crossref 元数据核验、GitHub PR review comment。
+- Inputs consumed: PR #100 body、PR #104 strict seed 协议、baseline/reproduction/sources scout 结果、外部 search planner 结果、implementation reviewers 的 C/I/M 评论。
+- Inputs not used and why: IEEE/ACM/DBLP 正式检索与部分 publisher PDF 尚未执行，需要后续联网或人工下载补齐。
+- Artifacts produced: `paper_stm_repair/seed_corpus/` bounded snapshot v1、10 个单篇目录、人工下载队列、统计闭合台账。
+- Verification run: body 三路 review、implementation 三路 review、统计脚本、Markdown 链接检查、`git diff --check`、GitHub `feedback-smoke`。
+- Remaining risk: 当前主 seed 仅 3 条，四例下限交给 PR-R2 作为 blocker；外部下载 / IEEE / ACM / DBLP / snowballing 仍待补。
