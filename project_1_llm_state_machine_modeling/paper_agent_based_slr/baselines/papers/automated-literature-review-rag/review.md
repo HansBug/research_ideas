@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation |
 | 年份 | 2024 |
-| 分层 | P2 背景相关 |
+| 作者 / venue / 出版状态 | Nurshat Fateh Ali、Md. Mahdi Mohtasim 等；arXiv:2411.18583; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt) |
+| 研究脉络 | LLM 辅助文献综述与证据综合 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | LLM 参与单阶段或少数阶段任务；未形成完整 agent 式 SLR 工作流。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | 多篇 research paper PDFs；部分 pipeline 还使用 DOI；SciTLDR dataset 用于训练/测试/知识库。 |
 | 输出 | 自动生成的 literature review segment；最终实现为基于 GPT-3.5-TURBO-0125 的 GUI tool。 |
 | 方法/系统形态 | 比较 spaCy frequency-based、Simple T5、GPT-3.5-TURBO-0125 RAG/OpenAI Assistant 三种生成管线。 |
 | 覆盖阶段 | 主要覆盖从 PDF 文本抽取、单篇 summarization、合并为 literature review 段落；不覆盖系统检索、筛选、质量评价、编码或证据审计。 |
-| 人审/审计机制 | 没有系统性 human audit、provenance、claim-to-source trace；仅有 4 篇论文的 UI 示例输出。 |
+| 不覆盖阶段 | 不覆盖系统检索、筛选、质量评价、编码或证据审计。 |
+| 人审/审计机制 | 没有系统性 人工审计、provenance、claim-to-source trace；仅有 4 篇论文的 UI 示例输出。 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 无明确 claim-to-source trace；仅 RAG/UI 示例，不能支撑审计 claim。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | SciTLDR 数据集，ROUGE-1/2/L/Lsum 比较三种方法；UI demo 使用 4 篇 healthcare/IoT 论文。 |
+| 模型/API 设置 | Gemini、Llama、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | GPT-3.5-TURBO-0125 在 ROUGE-1 和 ROUGE-2 上最高；T5 在 ROUGE-L 和 ROUGE-Lsum 上高于 GPT；作者仍把 LLM pipeline 作为最终系统。 |
-| 对 paper2 的作用 | 是 report generation/RAG 的弱背景 baseline，可用于说明仅靠 PDF summarization 和 ROUGE 不足以支撑可审计 SLR claim。 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 是 报告生成/RAG 的弱背景 baseline，可用于说明仅靠 PDF summarization 和 ROUGE 不足以支撑可审计 SLR claim。 |
+| 受影响主张 ID | C6 |
+| 威胁类型 | 背景定位 + 禁用 claim 证据 |
+| 威胁的 paper2 主张 | 是 报告生成/RAG 的弱背景 baseline，可用于说明仅靠 PDF summarization 和 ROUGE 不足以支撑可审计 SLR claim。 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
@@ -32,7 +63,7 @@
 | D4 人工审计与可追踪性 | ⚪ | `paper_content.txt:293-302`, `paper_content.txt:395-442` | prompt 要求写 first author 和 title，UI demo 展示生成结果；原文没有人工审核机制、引用核验、证据定位、日志、provenance 或 claim-level trace。 |
 | D5 评价严谨性 | 🟡 | `paper_content.txt:193-208`, `paper_content.txt:332-389`, `paper_content.txt:443-469` | 有 SciTLDR 数据集、三种方法对照和 ROUGE 指标；但评价对象更接近 scientific summarization，缺少人工 factuality/citation 评估、错误分类、统计显著性和真实 SLR 任务评价。 |
 | D6 SE / CCF 相关性 | 🟠 | `paper_content.txt:6-26`, `paper_content.txt:510-526` | 作者来自 CS/CSE 机构，主题是泛自动 literature review/NLP/RAG，不是软件工程 SLR 或 CCF SE venue。 |
-| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:470-488` | 它只威胁 paper2 的“PDF 输入生成综述段落”弱表述；对 agent workflow、human audit、run record、SE setting 和 claim-to-source 支撑不构成强威胁。 |
+| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:470-488` | 它只威胁 paper2 的“PDF 输入生成综述段落”弱表述；对 agent 工作流、人工审计、run record、SE setting 和 claim-to-source 支撑不构成强威胁。 |
 
 ## 3. 论文解决的问题与背景
 

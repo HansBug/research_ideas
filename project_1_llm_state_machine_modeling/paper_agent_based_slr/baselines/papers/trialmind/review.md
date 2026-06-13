@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Accelerating Clinical Evidence Synthesis with Large Language Models |
 | 年份 | 2024 |
+| 作者 / venue / 出版状态 | Zifeng Wang、Lang Cao 等；arXiv:2406.17755; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验；未人工打开 PDF 图表，不写图表级核对结论 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
+| 研究脉络 | agent式证据综合与闭环文献总结 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM 参与单阶段或少数阶段任务；未形成完整 agent 式 SLR 工作流。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | PICO elements、PubMed/PMC 文献、candidate citations、PDF/XML/full content、用户指定字段和 outcome/cohort |
 | 输出 | Boolean search terms、eligibility criteria、ranked studies、structured study characteristics、result extraction、standardized meta-analysis inputs、forest plots |
 | 方法/系统形态 | TrialMind：面向 clinical evidence synthesis 的 LLM pipeline + web app + human-AI collaboration workflow |
 | 覆盖阶段 | literature search、screening/ranking、data extraction、result standardization、evidence synthesis forest plot；不强调多 agent 架构 |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
 | 人审/审计机制 | 专家可 monitor/edit/verify intermediate outputs；每个抽取结果 linked to sources；用户研究比较 AI+Human 与 Human-only |
+| 人类角色 | 领域专家gold / 标注者 / 事后评价者（具体角色见人审机制字段） |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 来源链接级 extraction trace 线索；不等同完整报告级 claim ledger。 |
+| 决策日志状态 | per-stage 叙述级；结构化日志待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | TrialReviewBench：100 systematic reviews、2,220 studies、1,334 study characteristics、1,049 study results；Recall、Recall@20/50、Accuracy、win rate、user-study time saving |
+| 模型/API 设置 | GPT-4、Sonnet、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | k=10；正式复现前需回原文核对 |
 | 主要发现 | search recall 0.782；screening 相比 best embedding baseline 1.3-2.6 fold；result extraction 相比 GPT-4/Sonnet 更高；AI+Human screening recall +71.4%、time -44.2%，data extraction accuracy +23.5%、time -63.4% |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 是端到端 evidence synthesis pipeline 的强 baseline；paper2 必须避免“首次覆盖 search-screen-extract-synthesis”的表述，并转向 SE、agent audit、run record 和 claim trace 差异 |
+| 受影响主张 ID | C1,C2,C3,C5,C7 |
+| 威胁类型 | 直接覆盖 + 评价协议约束 |
+| 威胁的 paper2 主张 | 是端到端 evidence synthesis pipeline 的强 baseline；paper2 必须避免“首次覆盖 search-screen-extract-synthesis”的表述，并转向 SE、agent audit、run record 和 claim trace 差异 |
+| 支持的 paper2 主张 | 支持 paper2 强调阶段化 evidence package、deterministic execution boundary、人类反馈闭环和 run record，而不是单次生成报告。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 定性强baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 定性强baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |

@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | LR-Robot: An Human-in-the-Loop LLM Framework for Systematic Literature Reviews with Applications in Financial Research |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Wei Wei、Jin Zheng 等；arXiv:2604.14793; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)；未人工逐页打开 PDF 图表 |
+| 研究脉络 | agent式 SLR 工作流与评价基准 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM 参与单阶段或少数阶段任务；未形成完整 agent 式 SLR 工作流。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | Scopus option pricing records、标题/摘要/元数据/引用列表、专家四维 taxonomy、prompt constraints、人工标注样本 |
 | 输出 | 多维分类标签、RAG knowledge base、temporal co-occurrence 分析、label-enhanced citation networks、PageRank/子网络分析 |
 | 方法/系统形态 | Human-in-the-loop LLM classification framework；专家定义 taxonomy，LLM 批量分类，RAG/网络分析做下游综述 |
 | 覆盖阶段 | 检索、分类/编码、样本评估、知识库构建、主题演化和引用网络分析；不做全文报告生成或 claim-level writing |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
 | 人审/审计机制 | 专家设计分类维度和 prompt constraints，人工标注 1000 篇样本，417 篇继续标注 Dims 2--4；持久化分类输出支持 re-evaluation |
+| 人类角色 | 领域专家gold / 标注者 / 事后评价者（具体角色见人审机制字段） |
+| 审计时机 | 仅评价阶段 / 运行后审计 |
+| 主张追踪状态 | 分类标签/人工标注 gold 级；无报告级 claim trace。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 12,666 篇 option pricing 文献；BERTopic baseline；11/5 个 LLM；Accuracy、F1、Jaccard、self-consistency、error heatmap、PageRank overlap |
+| 模型/API 设置 | GPT-5、Opus、Gemini、DeepSeek、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | 专家约束显著提升 Dim 1；Dims 2--3 表现较强，Dim 4 中等；错误多来自摘要内在模糊；RAG 标签支持发现传统 bibliometrics 看不到的结构 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 强约束 human-in-the-loop + taxonomy/prompt/evaluation story；但领域是金融文献分类，不是 SE SLR 报告生成 |
+| 受影响主张 ID | C1,C2,C4,C5,C7 |
+| 威胁类型 | 直接覆盖 + 局部覆盖 |
+| 威胁的 paper2 主张 | 强约束 human-in-the-loop + taxonomy/prompt/evaluation story；但领域是金融文献分类，不是 SE SLR 报告生成 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 定性强baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 定性强baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
@@ -74,7 +105,7 @@ Dim 4 最难，subclass-to-class 策略优于直接大类分类，sample F1 提�
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-LR-Robot 强烈提醒 paper2：只说“LLM 能辅助 SLR”不够，必须说明专家 taxonomy、prompt constraints、人工标注样本、模型选择和 error analysis 如何形成闭环。paper2 如果面向 SE 文献或状态机建模文献，应把 domain taxonomy 与 human audit 设计成正式实验对象，而不是写成附带步骤。
+LR-Robot 强烈提醒 paper2：只说“LLM 能辅助 SLR”不够，必须说明专家 taxonomy、prompt constraints、人工标注样本、模型选择和 error analysis 如何形成闭环。paper2 如果面向 SE 文献或状态机建模文献，应把 domain taxonomy 与 人工审计 设计成正式实验对象，而不是写成附带步骤。
 
 paper2 的差异化可以是：从金融摘要分类转向 SE/AI4SE 文献中的 multi-stage evidence synthesis；从 abstract-level labels 转向 claim-to-source/page/table provenance；从 upon-request 可用性转向完整 run record 和可复现审计包；从 RAG knowledge base 分析转向自动生成 Related Work/SLR report 的可靠性评价。
 

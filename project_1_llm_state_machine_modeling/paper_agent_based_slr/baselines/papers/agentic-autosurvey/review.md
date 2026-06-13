@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | Agentic AutoSurvey: Let LLMs Survey LLMs |
 | 年份 | 2025，arXiv:2509.18661 |
-| 分层 | 全文建议 P1-/P2+：强 survey generation 近邻，但不是 SLR/SMS 全流程论文 |
+| 作者 / venue / 出版状态 | Yixin Liu、Yonghui Wu 等；arXiv:2509.18661; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
+| 近邻强度备注 | 多 agent survey 生成 近邻；因目标是 broad academic survey 生成 而非 SLR/SMS 全流程，SUMMARY 保持 P2。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
-| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--29，文件含 NUL，阅读时临时去除 NUL |
+| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--29；已清理 PDF 提取残留 NUL 后阅读 |
+| 研究脉络 | 自动 survey / literature review 生成与评价 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 用户研究主题；Semantic Scholar 与 arXiv 检索结果；论文标题、摘要、年份、引用数等元数据 |
 | 输出 | 自动生成的长篇 survey、聚类报告、12 维 agent-as-judge 质量评估结果 |
 | 方法/系统形态 | Claude Code 编排的四 agent 流水线：Paper Search Specialist、Topic Mining & Clustering、Academic Survey Writer、Quality Evaluator |
 | 覆盖阶段 | 查询扩展、检索、去重、质量过滤、语义聚类、survey 写作、自动质量评价；未覆盖 SLR/SMS 的人工筛选、编码、抽取表和报告级证据审计 |
-| 人审/审计机制 | 无正式 human audit gate；有 Quality Evaluator agent、引用覆盖目标、缓存和重试；附录给出 subagent prompt，但部分参考文献元数据仍标为待补 |
+| 不覆盖阶段 | 不覆盖 SLR/SMS 的双人筛选、纳入/排除审计、抽取表、编码协议、质量评价和系统综述级报告审计。 |
+| 人审/审计机制 | 无正式 人工审计 gate；有 Quality Evaluator agent、引用覆盖目标、缓存和重试；附录给出 subagent prompt，但部分参考文献元数据仍标为待补 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 运行前 + 运行后复核 |
+| 主张追踪状态 | 引用覆盖与 evaluator 线索；无正式 claim-to-source ledger 或人工审计 gate。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | 6 个 COLM 2024 LLM 主题，75--443 篇/主题，847 篇总量；与 AutoSurvey 对比；12 维评分聚合为 Core/Writing/Depth；报告 8.18/10 vs 4.77/10 |
+| 模型/API 设置 | Claude、Sonnet、Opus、Llama、Meta-Llama；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | 多 agent 分工在自动评分中优于 AutoSurvey；大语料主题 RLHF 出现 1334 检索但仅 80 引用的瓶颈；人类深层批判分析仍被作者列为不足 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 可作为“多 agent 生成 survey”强近邻，提醒 paper2 必须把 novelty 放在 SLR/SMS workflow、run record、人审 gate、claim-to-source 证据链，而非泛称 agentic survey writing |
+| 受影响主张 ID | C1,C5,C6,C7 |
+| 威胁类型 | 局部覆盖 + 禁用 claim 证据 |
+| 威胁的 paper2 主张 | 可作为“多 agent 生成 survey”强近邻，提醒 paper2 必须把 novelty 放在 SLR/SMS workflow、run record、人审 gate、claim-to-source 证据链，而非泛称 agentic survey writing |
+| 支持的 paper2 主张 | 支持 paper2 把报告生成 claim 收窄为“生成必须可审计”，并把 citation validity、unsupported claim 和 有证据支撑的断言 纳入评价。 |
+| paper2 应避免的主张 | 避免声称自动 survey / review generation 尚无人研究；避免把文本流畅度、引用准确率或 LLM-as-Judge 总分等同于 SLR/SMS 方法学可靠性。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 / survey生成局部近邻 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 / survey生成局部近邻 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | 维度 | 评分 |
@@ -32,19 +64,19 @@
 
 | 维度 | 评分 | 全文证据锚点 | 判定理由 |
 |---|---|---|---|
-| D1 | 🟢 | `paper_content.txt` Page 1 摘要；Page 2 Introduction | 论文直接研究 LLM/agent 自动生成学术 survey，问题设定与 automated literature survey generation 高度贴合。 |
+| D1 | 🟢 | `paper_content.txt` Page 1 摘要；Page 2 Introduction | 论文直接研究 LLM/agent 自动生成学术 survey，问题设定与 automated literature survey 生成 高度贴合。 |
 | D2 | 🟡 | Page 2--5 系统架构；Page 25--29 subagent prompts | 覆盖检索、聚类、综合写作和评价，但没有 SLR/SMS 的纳入排除流程、双人筛选、抽取表、编码和正式综述报告约束。 |
-| D3 | 🟢 | Page 2--5 四类 agent；Page 25--29 Task prompt | 四个专门 agent 分工明确，包含输入输出、检索、聚类、写作和评价任务，是实质性多阶段 agent workflow。 |
+| D3 | 🟢 | Page 2--5 四类 agent；Page 25--29 Task prompt | 四个专门 agent 分工明确，包含输入输出、检索、聚类、写作和评价任务，是实质性多阶段 agent 工作流。 |
 | D4 | 🟠 | Page 6 evaluator；Page 9 broader impact；Page 16--19 reference list note | 只有 agent-as-judge 和引用覆盖目标；没有人工复核流程、claim-to-source 审计包或逐条决策日志。参考列表中多条还写着作者元数据待补，说明证据链未闭合。 |
 | D5 | 🟡 | Page 5--8 实验；Table 2；Page 20--24 附录统计 | 有 6 个主题、baseline 和指标，但核心结论依赖自动 evaluator，AutoSurvey baseline 因预算被替换底层模型，缺少人类专家评价和显著性分析。 |
-| D6 | 🟠 | `bibtex.bib` primaryClass cs.IR；Page 5 主题均为 LLM research | arXiv 预印本，主要面向 LLM 研究 survey generation；与软件工程 SLR 或 CCF SE venue 没有直接绑定。 |
+| D6 | 🟠 | `bibtex.bib` primaryClass cs.IR；Page 5 主题均为 LLM research | arXiv 预印本，主要面向 LLM 研究 survey 生成；与软件工程 SLR 或 CCF SE venue 没有直接绑定。 |
 | D7 | 🟡 | Page 1--2 contributions；Page 25--29 prompts | 对 paper2 的“agent 化多阶段生成”和“自动质量评价”有局部威胁，但不覆盖 SLR/SMS 证据抽取、人审 gate、run record 和 report-level claim traceability。 |
 
 ## 3. 论文解决的问题与背景
 
 论文的出发点是 LLM 领域文献增长过快，传统人工 survey 难以及时覆盖快速变化主题。作者认为已有 AutoSurvey、SurveyAgent、PaSa、LitSearch 等系统仍存在 synthesis 不足、引用覆盖有限、评价维度简单、缺少专门 agent 协作等问题。论文因此把问题定义为：如何用多 agent 架构把检索、主题组织、长文 survey 写作和质量评价拆成可执行的自动化流程。
 
-需要注意的是，原文讨论的是 broad academic survey generation，而不是严格意义上的 systematic literature review 或 systematic mapping。它没有定义研究问题、检索式审计、纳入/排除标准、质量评价表、编码协议或证据综合表。因此它适合支撑 paper2 的 related work 背景，但不能作为“已有工作已完成 agent-based SLR”的证据。
+需要注意的是，原文讨论的是 broad academic survey 生成，而不是严格意义上的 systematic literature review 或 systematic mapping。它没有定义研究问题、检索式审计、纳入/排除标准、质量评价表、编码协议或证据综合表。因此它适合支撑 paper2 的 related work 背景，但不能作为“已有工作已完成 agent-based SLR”的证据。
 
 ## 4. 方法 / 系统拆解
 
@@ -74,13 +106,13 @@ Table 2 报告 Agentic AutoSurvey 平均 8.18/10，AutoSurvey baseline 为 4.77/
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-paper2 不能再把“多 agent 自动生成 survey”作为未被探索的空白来写。更稳妥的 story 是：已有工作已经在 survey generation 中采用 agent decomposition、semantic clustering 和 LLM-as-judge，但这些系统主要优化长文生成质量，而不是把 SLR/SMS 的筛选、抽取、编码、综合与报告 claim 绑定到可审计证据链。
+paper2 不能再把“多 agent 自动生成 survey”作为未被探索的空白来写。更稳妥的 story 是：已有工作已经在 survey 生成 中采用 agent decomposition、semantic clustering 和 LLM-as-judge，但这些系统主要优化长文生成质量，而不是把 SLR/SMS 的筛选、抽取、编码、综合与报告 主张绑定到可审计证据链。
 
 实验设计上，paper2 应避免只用 LLM-as-judge 总分证明质量。Agentic AutoSurvey 的弱点说明 paper2 需要报告 citation/claim 粒度的可追踪率、unsupported claim 率、人工 audit workload、错误类型和 run record 完整性。对于大 corpus，应专门评估 long-tail 文献是否被筛选、抽取和综合，而不是只看最终报告长度或整体评分。
 
 ## 9. 可用于写作的引用角度
 
-1. Agentic AutoSurvey 可作为近期多 agent survey generation 的代表：它把检索、聚类、写作和自动评价拆成四个 Claude Code subagent。
+1. Agentic AutoSurvey 可作为近期多 agent survey 生成 的代表：它把检索、聚类、写作和自动评价拆成四个 Claude Code subagent。
 2. 该工作说明 agent decomposition 能提升自动评估下的 survey synthesis 质量，但其证据链主要停留在生成级和 agent-as-judge 级。
 3. 其 RLHF 案例显示，较大候选语料会导致引用覆盖瓶颈，这支持 paper2 将 coverage audit 和 run record 作为实验指标。
 4. 与 paper2 的差异应写成“从 survey text generation 转向 SLR/SMS evidence workflow and audit”，不要写成先前工作完全没有覆盖 agentic survey/SLR。
@@ -90,4 +122,4 @@ paper2 不能再把“多 agent 自动生成 survey”作为未被探索的空�
 - 未人工打开 PDF 图表；若要引用 Figure 2--7 的具体数值，应回 PDF 核对图表版式。
 - 需要核验是否存在公开代码仓库或数据包；正文未明确给出。
 - AutoSurvey baseline 替换为 Llama-3.1-8B 的公平性需要在 related work 中标注，不宜直接引用为通用 SOTA 差距。
-- 若 SUMMARY 后续同步，建议标注为 P1-/P2+，并说明它是 survey generation 近邻而非 SLR/SMS 全流程 baseline。
+- SUMMARY 已保持 P2；使用时应说明其是 survey 生成 近邻而非 SLR/SMS 全流程 baseline。

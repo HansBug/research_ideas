@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | SLRMentor: An LLM-Based Tool Supporting Learning of SLR in Software Engineering |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Rodolfo Gil-Pereira、Ronnie de Souza Santos 等；arXiv:2606.07831; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 核对图表 |
+| 研究脉络 | SLR/SMS 筛选、语料过滤与规划 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 未见可执行 provenance；只能作为背景或弱审计证据。 |
 | 输入 | 用户提出的 SLR 学习问题、研究目标、搜索目标和 inclusion/exclusion criteria 草案 |
 | 输出 | 解释型问答、search string 建议、criteria 解释、学习支持与 planning scaffold |
 | 方法/系统形态 | LLM-based conversational assistant + RAG + structured chat components；不是 screening / extraction / synthesis agent |
 | 覆盖阶段 | 只覆盖 SLR planning 早期阶段：概念理解、search string construction、criteria reasoning |
+| 不覆盖阶段 | 不覆盖检索策略冻结、全文抽取、编码、综合、报告生成和报告级 claim-to-source。 |
 | 人审/审计机制 | 以 guideline-grounded explanations 和学生自评为主；无正式审计链、无判定日志、无证据包 |
+| 人类角色 | 无正式人审 gate；若有评价者仅作实验评价 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 无明确 claim-to-source trace 或本轮未核验 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 8 名课程学生中 4 名自愿参与；Likert + open-ended feedback；无统计显著性主实验 |
+| 模型/API 设置 | Gemini；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | 工具主要被当作 learning-oriented scaffold，而非最终规划器；有助于解释方法、构造搜索式和理解 criteria，但仍需主动判断 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 只可作为教育型 SLR assistant 背景，不能作为 screening 或 evidence synthesis 强 baseline |
+| 受影响主张 ID | C4,C5 |
+| 威胁类型 | 背景定位 |
+| 威胁的 paper2 主张 | 只可作为教育型 SLR assistant 背景，不能作为 screening 或 evidence synthesis 强 baseline |
+| 支持的 paper2 主张 | 支持 paper2 把筛选阶段评价扩展到 false negative、模型变异、人工复核路由、成本和决策日志，而不是只报告 accuracy/F1。 |
+| paper2 应避免的主张 | 避免把筛选 accuracy/F1 当作完整 SLR 自动化贡献；避免忽视 false negative、模型变异和人工复核成本。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 仅related-work背景 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。

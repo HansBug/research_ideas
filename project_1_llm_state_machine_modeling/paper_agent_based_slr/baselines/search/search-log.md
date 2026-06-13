@@ -12,7 +12,7 @@
 | `Q4` | LLM + evidence synthesis | 42 | 42 | 41 |
 | `Q5` | LLM + research synthesis + automation/workflow | 7 | 7 | 7 |
 | `Q6` | automated literature review + LLM | 6 | 6 | 6 |
-| `Q7` | survey generation + LLM | 23 | 23 | 20 |
+| `Q7` | survey 生成 + LLM | 23 | 23 | 20 |
 
 复核汇总：query 原始快照 `raw_rows=354`；2024--2026 去重候选池 `dedup=291`；纳入 `34` 条，其中 `25` 条建立本地 PDF / `paper_content.txt` / `bibtex.bib` / `review.md` 文库。若后续 arXiv API 漂移，以本次 JSONL 快照作为 PR-B0 审计基线。
 

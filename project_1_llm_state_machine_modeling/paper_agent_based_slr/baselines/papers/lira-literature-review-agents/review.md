@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | LiRA: A Multi-Agent Framework for Reliable and Readable Literature Review Generation |
 | 年份 | 2025 |
-| 分层 | P0-报告生成与 citation-quality 强近邻 |
+| 作者 / venue / 出版状态 | Gregory Hok Tjoan Go、Khang Ly 等；arXiv:2510.05138; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
+| 近邻强度备注 | 报告生成与 citation-quality 强近邻；SUMMARY 归 P1 而非 P0，因为其主线是 review generation，不覆盖完整 SLR/SMS protocol。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | 自动 survey / literature review 生成与评价 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 综述主题、参考文献标题/摘要或全文；实验中主要使用给定 gold references，另有 retrieval setting |
 | 输出 | 长篇 literature review，包括 outline、正文、标题、摘要、结论、编号引用 |
 | 方法/系统形态 | LangGraph 多 agent 写作流水线：outline drafter、subsection writer、editor、reviewer、citation grounding/post-processing |
 | 覆盖阶段 | 结构规划、分节写作、编辑、LLM reviewer 反馈、citation grounding、有限 retrieval；不覆盖完整检索策略、筛选、risk-of-bias 或数据抽取 |
+| 不覆盖阶段 | 不覆盖完整检索策略、筛选、risk-of-bias 或数据抽取。 |
 | 人审/审计机制 | Reviewer agent 按改写的 SLR guideline 给反馈；SME 做输出偏好/打分；引用质量用 CQF1 评估。未见 claim-to-source 审计包或人工裁决日志 |
+| 人类角色 | 运行中审查者 / 冲突裁决者 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 引用质量评价级；无 claim-to-source 审计包。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 有模型/人工冲突处理线索；裁决规则需按全文复核 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | SciReviewGen 125 篇、ScienceDirect internal 125 篇；DP、MASS-Survey、AutoSurvey；ROUGE、hsr/her/aer、Prometheus 2 writing quality、SME evaluation、CQF1、retrieval ablation |
+| 模型/API 设置 | GPT-4、GPT-4o、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | LiRA 在 ROUGE、平均写作质量和 CQF1 上整体领先；AutoSurvey 在部分 recall 类指标上因输出更长占优；retrieval setting 中仅少数指标显著下降 |
-| 对 paper2 的作用 | 必须作为 agentic survey/report generation 强 baseline；paper2 若主张多 agent 生成综述，需避开“只做写作质量和引用质量”的已覆盖区域，强调 SE 场景、可审计证据链和更完整 SLR 流程 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 必须作为 agentic survey/报告生成 强 baseline；paper2 若主张多 agent 生成综述，需避开“只做写作质量和引用质量”的已覆盖区域，强调 SE 场景、可审计证据链和更完整 SLR 流程 |
+| 受影响主张 ID | C1,C3,C5,C6,C7 |
+| 威胁类型 | 局部覆盖 + 禁用 claim 证据 |
+| 威胁的 paper2 主张 | 必须作为 agentic survey/报告生成 强 baseline；paper2 若主张多 agent 生成综述，需避开“只做写作质量和引用质量”的已覆盖区域，强调 SE 场景、可审计证据链和更完整 SLR 流程 |
+| 支持的 paper2 主张 | 支持 paper2 把报告生成 claim 收窄为“生成必须可审计”，并把 citation validity、unsupported claim 和 有证据支撑的断言 纳入评价。 |
+| paper2 应避免的主张 | 避免声称自动 survey / review generation 尚无人研究；避免把文本流畅度、引用准确率或 LLM-as-Judge 总分等同于 SLR/SMS 方法学可靠性。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline / survey生成强近邻 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline / survey生成强近邻 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
@@ -30,11 +62,11 @@ emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
 |---|---:|---|---|
 | D1 主题贴合度 | 🟢 | Abstract；§1 Introduction；§3 The LiRA Framework | 论文直接研究 LLM 多 agent 自动生成 literature review，并把问题放在 SLR 写作阶段不足、可读性和事实准确性语境下。 |
 | D2 SLR/SMS 流程覆盖度 | 🟡 | §3.1 outline、§3.2 subsection writing、§3.4 reviewer、§5.2 retrieval、§7 limitations | 覆盖结构规划、综合写作、编辑、引用和有限 retrieval，但 §7 明确当前未覆盖 primary studies、risk of bias、screening 和 search criteria definition，因此不能评为完整流程。 |
-| D3 LLM/agent 自动化深度 | 🟢 | §3.1-§3.6；LangGraph implementation | 多个专门 agent 串联并带反馈、记忆、并行写作、引用 grounding，输入输出链条明确，属于实质性 agent workflow。 |
+| D3 LLM/agent 自动化深度 | 🟢 | §3.1-§3.6；LangGraph implementation | 多个专门 agent 串联并带反馈、记忆、并行写作、引用 grounding，输入输出链条明确，属于实质性 agent 工作流。 |
 | D4 人工审计与可追踪性 | 🟡 | §3.4 Reviewer Agent；§3.5 Citation Behavior；§4.2 SME evaluation；Appendix D CQF1 | 有 LLM reviewer、引用标题锚定、CQF1 和专家评价，但没有逐 claim/page provenance、人工裁决日志或可导出的 audit packet；只能算中等审计能力。 |
 | D5 评价严谨性 | 🟢 | §4.1 baselines；§4.2 metrics；§4.3 datasets；Tables 1-5 | 两个数据集、多个公开 baseline、自动与人工指标、retriever 变体和不同 reviewer model 检查，实验设计较扎实；局限是 ScienceDirect 数据集不可公开。 |
 | D6 SE / CCF 相关性 | 🟠 | bibtex: arXiv cs.CL；§4.3 数据集为 CS/ScienceDirect 泛学科 | 该文是 NLP/ASG 方向，不是软件工程 SLR，也未给 CCF/peer-reviewed 版本证据；只能作为跨域方法学 baseline。 |
-| D7 对本文 novelty 的威胁强度 | 🟢 | §3 multi-agent writing；§4 baselines/results；§7 future work | 对 paper2 的“agent-based literature review generation、citation quality、writer-reviewer loop”构成强威胁；但 paper2 可从完整 SLR/SMS 流程、SE 任务、claim-level 审计和可复现实验记录区分。 |
+| D7 对本文 novelty 的威胁强度 | 🟢 | §3 multi-agent writing；§4 baselines/results；§7 future work | 对 paper2 的“agent-based literature review generation、引用质量、writer-reviewer loop”构成强威胁；但 paper2 可从完整 SLR/SMS 流程、SE 任务、claim-level 审计和可复现实验记录区分。 |
 
 ## 3. 论文解决的问题与背景
 
@@ -68,7 +100,7 @@ Table 4 显示把 reviewer model 换成 `gemma3:4b` 后总体指标差异很小�
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-LiRA 会直接压缩 paper2 在“多 agent 综述写作”和“citation quality”上的 novelty 空间。paper2 如果也做 report generation，必须至少比较 LiRA 或复刻其关键思想：outline planning、section-level writer、reviewer loop、citation grounding，以及 CQF1/写作质量指标。
+LiRA 会直接压缩 paper2 在“多 agent 综述写作”和“引用质量”上的 novelty 空间。paper2 如果也做 报告生成，必须至少比较 LiRA 或复刻其关键思想：outline planning、section-level writer、reviewer loop、citation grounding，以及 CQF1/写作质量指标。
 
 更好的 story 是把 paper2 定位为：面向 SE SLR/SMS 的 agentic evidence workflow，而不是单纯自动写综述。差异应落在可追踪筛选决策、结构化 evidence extraction、claim-to-source 审计、人类复核记录、run record 和 SE benchmark 上。实验上可借用 LiRA 的写作质量/CQF1 指标，但要新增 process-level correctness 和 auditability 指标。
 

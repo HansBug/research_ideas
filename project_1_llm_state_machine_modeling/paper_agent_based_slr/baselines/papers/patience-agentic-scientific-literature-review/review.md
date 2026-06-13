@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | Patience is all you need! An agentic system for performing scientific literature review |
 | 年份 | 2025，arXiv:2504.08752 |
-| 分层 | 全文建议 P1：不是 survey generation，但直接研究 agentic scientific literature retrieval/review coverage |
+| 作者 / venue / 出版状态 | David Brett、Anniek Myatt；arXiv:2504.08752; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
+| 近邻强度备注 | agentic retrieval / 来源归因 强近邻；因不覆盖 SLR/SMS 报告生成、抽取编码和人审协议，SUMMARY 保持 P2。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
-| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--10，文件含 NUL，阅读时临时去除 NUL |
+| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--10；已清理 PDF 提取残留 NUL 后阅读 |
+| 研究脉络 | 文献综述的检索、组织与来源归因 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 生物医学开放文献库 PubMed/PubMed Central；用户科学问题；NER 识别的 genes/diseases；LLM 生成的搜索词、同义词和候选答案 |
 | 输出 | 带来源归因的问答/长文回答；用于 review generation 的扩展问题和更广文献覆盖；benchmark recall/accuracy/coverage/precision |
 | 方法/系统形态 | Claude 3.5 Sonnet + Elasticsearch + HunFlair/TrendyGenes + BM25L + reciprocal rank fusion + CoVe 的 agentic retrieval/distillation 系统 |
 | 覆盖阶段 | 文献检索、chunk re-ranking、信息抽取/摘要、去重、答案生成、Chain-of-Verification 扩展；未覆盖正式 SLR 的筛选、编码、报告写作 |
-| 人审/审计机制 | 有 source attribution、CoVe fact-checking 和 benchmark source recall；无人工审计 gate 或 claim-level 审计包 |
+| 不覆盖阶段 | 不覆盖 SLR/SMS 的双人筛选、纳入/排除审计、抽取表、编码协议、质量评价和系统综述级报告审计。 |
+| 人审/审计机制 | 有 来源归因、CoVe fact-checking 和 benchmark source recall；无人工审计 gate 或 claim-level 审计包 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 来源归因/source recall 级；无人工审计 gate 或 claim ledger。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | LitQA2、PubMedQA 子集、10 篇 Nature review reference recall；报告 source article recall、key passage recall、accuracy/coverage/precision、CoVe reference coverage |
+| 模型/API 设置 | Claude、Sonnet；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 重复；正式复现前需回原文核对 |
 | 主要发现 | sparse retrieval + LLM query expansion 可接近 PaperQA2 水平；LitQA2 中最终 available subset workflow accuracy 60.4%、precision 90.3%；CoVe 将 Nature review primary+secondary reference mean coverage 从 6% 提升到 25% |
-| 对 paper2 的作用 | 强烈提醒 paper2：检索覆盖和 source attribution 是核心 evidence 风险；但该文不是 SLR/SMS 报告生成或编码综合系统 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 强烈提醒 paper2：检索覆盖和 来源归因 是核心 evidence 风险；但该文不是 SLR/SMS 报告生成或编码综合系统 |
+| 受影响主张 ID | C3,C5,C6 |
+| 威胁类型 | 负面证据 + 背景定位 |
+| 威胁的 paper2 主张 | 强烈提醒 paper2：检索覆盖和 来源归因 是核心 evidence 风险；但该文不是 SLR/SMS 报告生成或编码综合系统 |
+| 支持的 paper2 主张 | 支持 paper2 把 retrieval coverage、来源归因 和长尾文献遗漏作为 evidence workflow 的关键风险。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | 维度 | 评分 |
@@ -35,10 +67,10 @@
 | D1 | 🟢 | `paper_content.txt` Page 1 摘要；Page 2 “literature review generation” | 直接处理 scientific literature review 中的检索、信息蒸馏、来源归因和覆盖扩展，主题贴合度高。 |
 | D2 | 🟡 | Page 3 Methodology；Page 4--5 Results | 覆盖检索、re-ranking、抽取摘要、verification/diversification，但没有 SLR/SMS 的筛选标准、数据抽取表、编码、综合报告结构。 |
 | D3 | 🟢 | Page 2 agentic system definition；Page 3 retrieval steps | 多个 LLM-augmented agents 串联，含 NER agent、search terms agent、document retrieval agent、re-ranking 和 CoVe，自动化深度强。 |
-| D4 | 🟡 | Page 1 source attributions；Page 4 CoVe；Tables 1--3 | 有来源归因、source article recall 和 CoVe 验证扩展，可追踪到论文/段落；但没有人类 audit、claim-to-source table 或可复查运行包。 |
+| D4 | 🟡 | Page 1 来源归因s；Page 4 CoVe；Tables 1--3 | 有来源归因、source article recall 和 CoVe 验证扩展，可追踪到论文/段落；但没有人类 audit、claim-to-source table 或可复查运行包。 |
 | D5 | 🟢 | Page 4--5 Tables 1--3；Appendix analysis | 有公开 benchmark、baseline、置信区间、重复运行和 Nature review reference recall，实证严谨性在本批中较强。 |
 | D6 | 🟠 | `bibtex.bib` primaryClass cs.IR；Page 1 biomedical domain | arXiv 预印本，主要在 biomedical literature QA/review；对 SE/CCF 只提供方法背景。 |
-| D7 | 🟡 | Page 2--3 method；Page 5 discussion | 威胁 paper2 的检索覆盖、source attribution 和 verification/diversification claim，但不覆盖 agent-based SLR 端到端报告、human audit gate 或 run record。 |
+| D7 | 🟡 | Page 2--3 method；Page 5 discussion | 威胁 paper2 的检索覆盖、来源归因 和 verification/diversification claim，但不覆盖 agent-based SLR 端到端报告、人工审计 gate 或 run record。 |
 
 ## 3. 论文解决的问题与背景
 
@@ -72,19 +104,19 @@ Table 3 和 discussion 报告 CoVe 在 10 篇 Nature review 上将 primary+secon
 
 ## 7. 局限与可复现性
 
-论文的证据链比一般 survey generation 论文更实：有 benchmark、baseline、置信区间、重复次数和附录例子。但可复现仍受限制：没有在正文给出代码/数据链接；PubMed Central OA 只覆盖 LitQA2 的一部分；商业或受版权限制文献不能机器读取；系统依赖 Claude 3.5 Sonnet 和特定 biomedical NER/Elasticsearch pipeline。
+论文的证据链比一般 survey 生成 论文更实：有 benchmark、baseline、置信区间、重复次数和附录例子。但可复现仍受限制：没有在正文给出代码/数据链接；PubMed Central OA 只覆盖 LitQA2 的一部分；商业或受版权限制文献不能机器读取；系统依赖 Claude 3.5 Sonnet 和特定 biomedical NER/Elasticsearch pipeline。
 
 方法局限包括：多选 QA benchmark 不能充分代表真实长文 literature review；source specificity 假设在实验中被发现不总成立；文献 coverage benchmark 依赖 Nature review 作者引用集合，而这些集合本身有作者知识和 affiliation bias；系统没有正式人工审核流程，也没有把最终长文 claim 逐条绑定到 source evidence。
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-这篇文献对 paper2 的最大影响是强调“检索召回是 evidence workflow 的第一瓶颈”。如果检索阶段漏掉 source paper，后续 LLM 抽取、编码和综合再强也无法恢复证据。因此 paper2 的实验应显式报告 retrieval candidate coverage、screening false negative、source attribution precision/coverage，以及 verification/secondary-query 是否能扩展文献覆盖。
+这篇文献对 paper2 的最大影响是强调“检索召回是 evidence workflow 的第一瓶颈”。如果检索阶段漏掉 source paper，后续 LLM 抽取、编码和综合再强也无法恢复证据。因此 paper2 的实验应显式报告 retrieval candidate coverage、screening false negative、来源归因 precision/coverage，以及 verification/secondary-query 是否能扩展文献覆盖。
 
-同时，它也提示 paper2 不应把 citation network 或 dense retrieval 当成唯一方案。Patience 证明 sparse retrieval + LLM query expansion + long-context chunk reranking 可以是强 baseline。paper2 若面向 SE/LLM4SE/SMS，需要说明自己的 retrieval stack、query expansion、human audit gate 和 eligibility filter 如何处理 coverage 风险。
+同时，它也提示 paper2 不应把 citation network 或 dense retrieval 当成唯一方案。Patience 证明 sparse retrieval + LLM query expansion + long-context chunk reranking 可以是强 baseline。paper2 若面向 SE/LLM4SE/SMS，需要说明自己的 retrieval stack、query expansion、人工审计 gate 和 eligibility filter 如何处理 coverage 风险。
 
 ## 9. 可用于写作的引用角度
 
-1. Patience 可用于说明 scientific literature review automation 的关键瓶颈不只是生成，而是全文检索、source attribution 和 coverage expansion。
+1. Patience 可用于说明 scientific literature review automation 的关键瓶颈不只是生成，而是全文检索、来源归因 和 coverage expansion。
 2. 该文通过 LitQA2 和 PubMedQA 表明，初始检索阶段造成最大 recall 损失，这支持 paper2 把检索证据链纳入 run record。
 3. CoVe 扩展 review references 的结果可作为“verification questions can broaden evidence coverage”的相关工作，但不能写成已经解决 SLR 综合。
 4. 与 paper2 的差异是：Patience 支持 question answering/review support，paper2 应覆盖 SLR/SMS 的筛选、抽取、编码、综合、报告与人工审计闭环。
@@ -94,5 +126,5 @@ Table 3 和 discussion 报告 CoVe 在 10 篇 Nature review 上将 primary+secon
 - 未人工打开 PDF 图表；Figure 2--5 曲线如需精确引用，应回 PDF 核对。
 - 需核验作者是否发布代码或实验配置；正文未明确给出。
 - LitQA2/LAB-Bench 名称在正文中有 LitAQ2/LitQA2 混写，正式写作时应回原基准核对名称。
-- 若后续 SUMMARY 更新，建议标为 P1，因为它直接威胁 retrieval/evidence coverage，而不是普通 survey generation 背景。
+- 若后续 SUMMARY 更新，建议标为 P1，因为它直接威胁 retrieval/evidence coverage，而不是普通 survey 生成 背景。
 

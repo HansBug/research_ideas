@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | LLM-Assisted Empirical Software Engineering: Systematic Literature Review and Research Agenda |
 | 年份 | 2026 |
-| 分层 | P2 背景相关 |
+| 作者 / venue / 出版状态 | Victoria Gomes、Delaney Selb 等；arXiv:2604.26192; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt) |
+| 研究脉络 | 软件工程 / LLM4SE SLR 语境与方法学 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | citation/来源归因 级；需复核是否能到 claim/page/table-cell。 |
 | 输入 | 2020-2025 年 12 个软件工程会议/期刊中的论文全文，先下载 8,641 篇，再用 LLM 关键词做全文过滤。 |
 | 输出 | 50 篇 primary studies、69 个 LLM-assisted ESE tasks、角色/阶段/收益/局限/可复现报告实践分类，以及研究议程。 |
 | 方法/系统形态 | 软件工程领域的系统文献综述，不是 LLM/agent 自动执行 SLR 的工具。 |
 | 覆盖阶段 | 作为 SLR 方法覆盖 venue 选择、全文关键词过滤、人工筛选、数据抽取、编码、综合和报告；作为研究对象，分析 LLM 在 ESE 生命周期中的任务分布。 |
+| 不覆盖阶段 | 不覆盖 paper2 设想的完整 agent evidence workflow；主要提供 SE 场景或筛选/方法学边界。 |
 | 人审/审计机制 | 两名研究者校准筛选与抽取，争议经讨论解决；提供 replication package 和数据可用性说明，但没有 claim-to-source 自动追踪系统。 |
+| 人类角色 | 无正式人审 gate；若有评价者仅作实验评价 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 传统 SLR 人工校准与 replication package；无自动 claim-to-source trace。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 8,641 篇下载论文、1,882 篇关键词命中、80 篇候选、50 篇最终纳入；抽取 pilot 中 39 个编码决策、6 个分歧、84.6% agreement。 |
+| 模型/API 设置 | 原文未给出或本轮未抽取模型清单 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | LLM 在 ESE 中主要用于分类、过滤和评价；集中在 data processing 与 analysis/synthesis；automation 占主导，decision support 很少；prompt、配置、human validation 等报告不完整。 |
-| 对 paper2 的作用 | 提供 SE 场景的背景证据和 research gap 支撑，尤其支持 paper2 强调 agentic workflow、human audit、透明报告和 reproducibility；但它本身不是 agent-based SLR baseline。 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 提供 SE 场景的背景证据和 research gap 支撑，尤其支持 paper2 强调 agentic workflow、人工审计、透明报告和 reproducibility；但它本身不是 agent-based SLR baseline。 |
+| 受影响主张 ID | C4 |
+| 威胁类型 | 背景定位 |
+| 威胁的 paper2 主张 | 提供 SE 场景的背景证据和 research gap 支撑，尤其支持 paper2 强调 agentic workflow、人工审计、透明报告和 reproducibility；但它本身不是 agent-based SLR baseline。 |
+| 支持的 paper2 主张 | 支持 paper2 采用 SE SLR/SMS 场景定位，并把透明报告、prompt/model 配置、人类验证和 reproducibility 作为论文主线。 |
+| paper2 应避免的主张 | 避免写 SE 社区尚未讨论 LLM-assisted SLR/SMS；应改写为缺少面向 SE SLR/SMS 的可审计 agent evidence workflow。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
@@ -32,7 +63,7 @@
 | D4 人工审计与可追踪性 | 🟡 | `paper_content.txt:365-401`, `paper_content.txt:389-395`, `paper_content.txt:441-442`, `paper_content.txt:1612-1615` | 该 SLR 有人工校准、分歧讨论、结构化抽取表和 replication package，属于可复核的研究流程证据；但它没有报告级 claim-to-source trace、per-cell provenance 或 agent run record。 |
 | D5 评价严谨性 | 🟢 | `paper_content.txt:433-441`, `paper_content.txt:688-690`, `paper_content.txt:1173-1189`, `paper_content.txt:1461-1526` | 有明确语料、筛选链条、编码流程、频次分析、透明度评估和 validity threats。虽然是二次研究而非系统实验，但证据链足以作为 SE 背景综述。 |
 | D6 SE / CCF 相关性 | 🟢 | `paper_content.txt:15-16`, `paper_content.txt:324-337`, `paper_content.txt:1493-1507` | 直接面向 empirical software engineering，来源限定在 ICSE/FSE/EASE/MSR/ESEM/CAIN/SANER 及 EMSE/IST/JSS/TSE/TOSEM 等软件工程 venue。注意本地 BibTeX 是 arXiv 版本，不能写成已正式 CCF 发表。 |
-| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:1340-1398`, `paper_content.txt:1410-1420`, `paper_content.txt:1603-1611` | 它不会威胁 paper2 的 agent workflow 实现本身，但会约束 SE 语境下的 story：paper2 应正面承认 LLM-assisted ESE 已有综述，并把 novelty 收窄到可审计 agent 工作流、证据链和 human audit gate。 |
+| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:1340-1398`, `paper_content.txt:1410-1420`, `paper_content.txt:1603-1611` | 它不会威胁 paper2 的 agent 工作流 实现本身，但会约束 SE 语境下的 story：paper2 应正面承认 LLM-assisted ESE 已有综述，并把 novelty 收窄到可审计 agent 工作流、证据链和 人工审计 gate。 |
 
 ## 3. 论文解决的问题与背景
 

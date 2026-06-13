@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | SurveyLens: A Discipline-Aware Benchmark for Automatic Survey Generation |
 | 年份 | 2026 |
-| 分层 | P0-评价协议与 benchmark 强近邻 |
+| 作者 / venue / 出版状态 | Beichen Guo、Zhiyuan Wen 等；arXiv:2602.11238; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
+| 近邻强度备注 | 评价协议与 benchmark 强近邻；SUMMARY 归 P1 而非 P0，因为它评测 survey 生成，不执行 SLR/SMS workflow。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
-| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；`paper_content.txt` 含少量 NUL，已容错读取；未人工打开 PDF 图表 |
+| 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | LLM 辅助文献综述与证据综合 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | 原文未给出明确 LLM/agent 执行角色；按相关工作背景处理。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | 1000 篇人写 survey 的结构化表示、100 个生成 topic、11 个 ASG/LLM/Deep Research 系统输出 |
 | 输出 | SurveyLens-1k benchmark、discipline-aware rubric、reference-based alignment metrics、跨系统评价结果 |
 | 方法/系统形态 | benchmark/evaluation framework，不是新的 ASG 生成器；包含数据构建、structured survey representation、rubric lens 和 human-reference alignment lens |
 | 覆盖阶段 | 评价覆盖 outline/content/reference 三类组件；生成侧覆盖 retrieval/organization/synthesis 的评估，不执行 SLR screening 或 evidence extraction |
+| 不覆盖阶段 | 不覆盖 SLR/SMS 的双人筛选、纳入/排除审计、抽取表、编码协议、质量评价和系统综述级报告审计。 |
 | 人审/审计机制 | human verification PDF/outline/reference；30 名 PhD-level expert validation；retrieval leakage audit；annotation platform 和 audit logging |
+| 人类角色 | 领域专家gold / 标注者 / 事后评价者（具体角色见人审机制字段） |
+| 审计时机 | 仅评价阶段 / 运行后审计 |
+| 主张追踪状态 | 无明确 claim-to-source trace 或本轮未核验 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 10 学科、1000 survey、11 系统；discipline-aware rubric 1-5 分、RA-AlignF1、τ-MaxSim、structural ratios、human Spearman/Concordance、leakage audit |
+| 模型/API 设置 | Gemini、Qwen；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | Deep Research agents 跨 10 学科最稳；ASG 系统结构强、DR 内容强；reference quality 是所有范式共同瓶颈；naive recall/word count 会奖励文本膨胀 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 是 paper2 评价设计的重要证据来源：可借鉴 component-level evaluation、discipline-aware rubric、human alignment、leakage audit 和 reference-quality 风险分析 |
+| 受影响主张 ID | C5,C6,C7 |
+| 威胁类型 | 评价协议约束 |
+| 威胁的 paper2 主张 | 是 paper2 评价设计的重要证据来源：可借鉴 component-level evaluation、discipline-aware rubric、human alignment、leakage audit 和 reference-quality 风险分析 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
@@ -34,11 +66,11 @@ emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
 | D4 人工审计与可追踪性 | 🟢 | §3.1 hybrid LLM-plus-human filtering；Appendix B.3 human verification；§4.3 human evaluation；Appendix D.2 leakage audit | 有数据构建人工核验、专家验证、annotation platform、原始 annotation 发布说明和 leakage audit，审计意识强，虽然不是 claim-level provenance。 |
 | D5 评价严谨性 | 🟢 | §4.1 setup；Tables 2-6；Appendix C/D | 大规模 benchmark、11 系统、3 paradigms、专家评估、method ablation、多 judge 鲁棒性和 leakage audit，评价严谨性强。 |
 | D6 SE / CCF 相关性 | 🟠 | bibtex: arXiv cs.CL；10 disciplines 含 CS 但非 SE | 泛学科 ASG/NLP benchmark，不是 SE/CCF venue，也不面向软件工程 SLR。 |
-| D7 对本文 novelty 的威胁强度 | 🟡 | §3 dual-lens framework；§4 findings；Limitations | 对 paper2 的“评价协议、reference quality、human alignment、leakage audit”构成中强威胁；但不威胁 agent workflow 生成方法或 SE evidence pipeline 主体。 |
+| D7 对本文 novelty 的威胁强度 | 🟡 | §3 dual-lens framework；§4 findings；Limitations | 对 paper2 的“评价协议、reference quality、human alignment、leakage audit”构成中强威胁；但不威胁 agent 工作流 生成方法或 SE evidence pipeline 主体。 |
 
 ## 3. 论文解决的问题与背景
 
-SurveyLens 解决的不是“如何生成 survey”，而是“如何公平评价不同学科中的 automatic survey generation”。作者指出现有 benchmark 多集中在 Computer Science，且使用通用指标或泛化 LLM-as-a-judge 标准，无法捕捉不同学科的写作规范。例如物理综述强调公式和推导，社会学综述更依赖定性叙事综合。
+SurveyLens 解决的不是“如何生成 survey”，而是“如何公平评价不同学科中的 automatic survey 生成”。作者指出现有 benchmark 多集中在 Computer Science，且使用通用指标或泛化 LLM-as-a-judge 标准，无法捕捉不同学科的写作规范。例如物理综述强调公式和推导，社会学综述更依赖定性叙事综合。
 
 因此本文构建 SurveyLens-1k：10 个学科，每个学科 100 篇人写 survey。评价方法上提出双视角：一是 reference-free 的 discipline-aware rubric，二是 reference-based 的 human-reference alignment。该背景对 paper2 有直接启发：如果 paper2 只用通用 LLM judge 或 ROUGE 类指标评价自动综述，容易被该文指出的 discipline mismatch 和 paragraph bloat 问题击中。
 
@@ -76,7 +108,7 @@ paper2 若面向 SE SLR/SMS，可以借鉴 SurveyLens 的 dual-lens 结构，但
 
 ## 9. 可用于写作的引用角度
 
-可引用为“最新 ASG 评价工作表明，跨学科 survey generation 的评价不能只依赖 CS benchmark 或通用写作指标，outline/content/reference 组件应分开评估”。也可引用为“reference quality 是 ASG、vanilla LLM 和 DR agents 的共同瓶颈，且 DR outputs 可能受 paired survey leakage 影响，需要显式审计”。
+可引用为“最新 ASG 评价工作表明，跨学科 survey 生成 的评价不能只依赖 CS benchmark 或通用写作指标，outline/content/reference 组件应分开评估”。也可引用为“reference quality 是 ASG、vanilla LLM 和 DR agents 的共同瓶颈，且 DR outputs 可能受 paired survey leakage 影响，需要显式审计”。
 
 不应引用为“提出新的 agentic SLR generation method”。它的核心贡献是 benchmark 和评价，不是一个可作为生成 baseline 直接运行的 agent。
 

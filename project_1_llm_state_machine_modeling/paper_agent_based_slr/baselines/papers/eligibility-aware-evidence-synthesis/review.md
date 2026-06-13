@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Eligibility-Aware Evidence Synthesis: An Agentic Framework for Clinical Trial Meta-Analysis |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Yao Zhao、Zhiyue Zhang 等；arXiv:2604.02678; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
-| 阅读状态 | 已读全文文本-paper_content核验；`paper_content.txt` 含 NUL，已用 `Path.read_text(errors="replace")` 临时核验；未人工打开 PDF 图表 |
+| 阅读状态 | 已读全文文本-paper_content核验；未人工打开 PDF 图表 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
+| 研究脉络 | agent式证据综合与闭环文献总结 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | 自然语言临床问题、ClinicalTrials.gov 记录、free-text eligibility criteria、目标 trial eligibility profile、二分类 outcome event data |
 | 输出 | 显式 selection rules、function plans、过滤后的 trial set、结构化 trial summaries、eligibility weights、eligibility-weighted meta-analysis estimates |
 | 方法/系统形态 | EligMeta：LLM-assisted reasoning + deterministic execution 的 agentic evidence synthesis framework |
 | 覆盖阶段 | trial discovery/selection、criteria structuring、eligibility-aware statistical synthesis；不覆盖传统 SLR 的题摘筛选、PDF 全文抽取、质量评价或综述报告写作 |
+| 不覆盖阶段 | 不覆盖传统 SLR 的题摘筛选、PDF 全文抽取、质量评价或综述报告写作。 |
 | 人审/审计机制 | 规则集在执行前 surfaced for expert review；rules/function plans/parsed values/filtering outcomes logged；penalty rule 可解释，但没有正式用户研究或逐条人工审计实验 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 规则/function/filtering log 级；无报告级 claim-to-source trace。 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | gastric cancer landscape case：4,044 trials 到 39 eligible，13 guideline-cited；olaparib AE meta-analysis：4 RCT，对比 MH 与 EW-MH risk ratio；与 GPT-5.4 Deep Research 和 Codex 作 landscape 对比 |
+| 模型/API 设置 | GPT-5、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | eligibility weighting 将 vomiting pooled RR 从 2.18 调整为 1.97；Golan 2019 display weight 从 13.6% 到 34.6%；GPT-5.4 找 11 trials，Codex 找 28 trials，EligMeta 找 39 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 强约束“agentic evidence synthesis + deterministic/auditable execution”叙事；但其统计 meta-analysis 任务和医学 registry 输入与 SE SLR paper2 不同 |
+| 受影响主张 ID | C1,C2,C5,C7 |
+| 威胁类型 | 局部覆盖 + 评价协议约束 |
+| 威胁的 paper2 主张 | 强约束“agentic evidence synthesis + deterministic/auditable execution”叙事；但其统计 meta-analysis 任务和医学 registry 输入与 SE SLR paper2 不同 |
+| 支持的 paper2 主张 | 支持 paper2 强调阶段化 evidence package、deterministic execution boundary、人类反馈闭环和 run record，而不是单次生成报告。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
@@ -72,7 +103,6 @@ EligMeta 对 paper2 最大影响不是 SLR 流程覆盖，而是“LLM 负责语
 
 ## 10. 待复核清单
 
-- `paper_content.txt` 含 NUL，正式引用前建议重新用仓库 PDF extractor 或 OCR 核验一次全文。
 - 人工打开 PDF 核对 Figure 1-5、Table 1-2 的公式、流程图和数值。
 - 访问 GitHub 仓库确认代码、license、commit、可运行脚本和案例数据。
 - 若用于 Related Work，需要核验 GPT-5.4/Codex baseline 输出是否在仓库中可得，以及比较是否公平。

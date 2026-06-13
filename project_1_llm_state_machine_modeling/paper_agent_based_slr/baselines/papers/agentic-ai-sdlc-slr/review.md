@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Assistance to Autonomy: A Systematic Literature Review of Agentic AI across the Software Development Life Cycle |
 | 年份 | 2026 |
-| 分层 | P1：SE 场景强相关；对 paper2 的主要威胁来自 multi-agent screening pipeline，而不是综述主题本身 |
+| 作者 / venue / 出版状态 | Spyridon Alvanakis Apostolou、Jan Bosch 等；arXiv:2605.15245; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | 软件工程 / LLM4SE SLR 语境与方法学 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | 四个数据库导出的 raw publication metadata、研究目标/RQ/选择标准 prompt、inclusion/exclusion criteria |
 | 输出 | 去重后的候选、quality-control/screening/relevance labels、agent reasoning/dialogue、92 篇人工确认 primary studies、SDLC thematic synthesis |
 | 方法/系统形态 | Kitchenham-style SLR + model/domain-agnostic six-step LLM multi-agent screening pipeline；Assistant/Evaluator 双 agent 独立判断并通过 argumentation 解决冲突 |
 | 覆盖阶段 | 传统 SLR 覆盖 search、criteria、manual full-text reading、coding、thematic synthesis；LLM 自动化主要覆盖 metadata curation、QC、screening、relevance selection |
+| 不覆盖阶段 | 不覆盖 paper2 设想的完整 agent evidence workflow；主要提供 SE 场景或筛选/方法学边界。 |
 | 人审/审计机制 | reviewer approve prompts；agent decisions、reasoning、dialogue 透明；unresolved conflicts default to inclusion；127 篇候选经人工 abstract/full-text two-pass verification；抽样核验 false negatives |
+| 人类角色 | 原文有人类参与线索；角色需在正式写作前复核 |
+| 审计时机 | 运行前 + 运行后复核 |
+| 主张追踪状态 | 无明确 claim-to-source trace 或本轮未核验 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有 trace/log/dialogue 或 protocol 线索；是否可作为 run record 导出待 artifact audit。 |
 | 实验/指标 | 1609 raw records、1331 processed、796 valid、265 screening pass、127 relevance candidates、92 final studies；100 篇 excluded sample false-negative audit |
+| 模型/API 设置 | GPT-5、Opus、DeepSeek、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | SDLC 中 Testing & QA、Maintenance、Deployment、Coding 等后期或可执行反馈阶段更成熟；Planner-Executor-Reviewer 是主导模式；工业缓解策略集中在 bounded/verifiable spaces |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 强约束 paper2 的 SE positioning 和 screening audit：已有 SE SLR 使用 multi-agent screening、dialogue、默认 include、人工 two-pass verification 和 false-negative 抽样 |
+| 受影响主张 ID | C4,C5,C7 |
+| 威胁类型 | 局部覆盖 + 背景定位 |
+| 威胁的 paper2 主张 | 强约束 paper2 的 SE positioning 和 screening audit：已有 SE SLR 使用 multi-agent screening、dialogue、默认 include、人工 two-pass verification 和 false-negative 抽样 |
+| 支持的 paper2 主张 | 支持 paper2 采用 SE SLR/SMS 场景定位，并把透明报告、prompt/model 配置、人类验证和 reproducibility 作为论文主线。 |
+| paper2 应避免的主张 | 避免写 SE 社区尚未讨论 LLM-assisted SLR/SMS；应改写为缺少面向 SE SLR/SMS 的可审计 agent evidence workflow。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
@@ -40,7 +71,7 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
 
 论文主问题是：agentic AI 在软件产品开发生命周期中哪些阶段更成熟、哪些架构模式更常见、工业部署面对哪些挑战和缓解策略。由于 2023 年以后相关论文快速增长，作者认为手工筛选大量文献非常耗时，所以构建了一个多 agent screening pipeline 作为方法学贡献。
 
-这篇论文对 paper2 的价值有两层。第一层是内容背景：它总结 SE 中 agentic AI 的成熟度和 verifiability 规律。第二层更关键：它已经在 SE SLR 中真实使用 multi-agent LLM pipeline 完成高容量筛选，并报告人工核验和 false-negative 风险。这是 paper2 在“agentic SLR workflow” story 里必须正面区分的近邻。
+这篇论文对 paper2 的价值有两层。第一层是内容背景：它总结 SE 中 agentic AI 的成熟度和 verifiability 规律。第二层更关键：它已经在 SE SLR 中真实使用 multi-agent LLM pipeline 完成高容量筛选，并报告人工核验和 false-negative 风险。这是 paper2 在“agent 式 SLR 工作流” story 里必须正面区分的近邻。
 
 ## 4. 方法 / 系统拆解
 
@@ -79,7 +110,7 @@ paper2 不能声称 SE SLR 中尚未有人用 multi-agent LLM 做筛选。已有
 ## 9. 可用于写作的引用角度
 
 - 作为 SE 场景近邻：已有 agentic AI across SDLC 的 SLR 使用 multi-agent pipeline 处理高容量筛选，并公开强调 false-negative minimization。
-- 作为 human audit 设计参照：该工作把 agent conflict、argumentation、default inclusion 和人工 two-pass verification 组合起来，是 paper2 screening gate 的直接对照。
+- 作为 人工审计 设计参照：该工作把 agent conflict、argumentation、default inclusion 和人工 two-pass verification 组合起来，是 paper2 screening gate 的直接对照。
 - 作为 story 支撑：SE agentic systems 的工业采用依赖可验证输出，paper2 可以把 SLR 阶段证据链设计为一种 verifiability mechanism。
 
 ## 10. 待复核清单

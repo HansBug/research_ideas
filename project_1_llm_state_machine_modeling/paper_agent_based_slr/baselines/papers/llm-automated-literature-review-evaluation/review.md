@@ -7,30 +7,59 @@
 | 标题 | Large Language Models for Automated Literature Review: An Evaluation of Reference Generation, Abstract Writing, and Review Composition |
 | 年份 | 2024 / arXiv v5 显示 2025-08-21 更新时间 |
 | 作者 / venue / 出版状态 | Xuemei Tang、Xufeng Duan、Zhenguang G. Cai；arXiv 预印本，未在本轮核验正式 peer-reviewed venue |
-| 分层 | P0：评价协议强 baseline / 自动综述生成风险基线 |
+| 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
-| 证据等级 | fulltext-text；未人工回 PDF 核对 Figure 1--6 与附录表格 |
+| 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| line of work | LLM 自动 literature review 评价；reference hallucination；review composition evaluation |
-| citation role | evaluation baseline / claims-to-avoid / 自动综述生成风险证据 |
+| 研究脉络 | LLM 自动 literature review 评价；reference hallucination；review composition evaluation |
+| 引用角色 | 评价 baseline / 禁用 claim / 自动综述生成风险证据 |
 | 研究任务 | 评估 LLM 在文献综述写作中的三类能力：生成参考文献、写摘要、写短综述 |
 | 输入 | Annual Reviews 2023 年 51 个 review journals 中 1,105 篇综述的 title、keywords、abstract、context、reference set |
 | 输出 | LLM 生成的 10 条参考文献、摘要、约 1000 词 literature review 及配套引用 |
 | 覆盖阶段 | reporting、reference generation、review composition、evaluation；不覆盖真实 SLR 检索/筛选/抽取/编码流程 |
-| 方法/系统形态 | 自动评价框架；非 agent workflow；用 human-written review 作 gold standard，结合 Semantic Scholar、NLI、embedding、ROUGE、KPR 评价 |
+| 不覆盖阶段 | 不覆盖真实 SLR 检索/筛选/抽取/编码流程。 |
+| 方法/系统形态 | 自动评价框架；非 agent 工作流；用 human-written review 作 gold standard，结合 Semantic Scholar、NLI、embedding、ROUGE、KPR 评价 |
 | LLM/agent 角色 | LLM 只作为被评测生成器；没有多 agent 协作、规划 agent 或执行型 reviewer agent |
-| 人审/审计机制 | 自动引用核验方法用 100 条生成引用做三人多数投票验证；没有 report-level human audit gate 或 claim-to-source 审计包 |
-| provenance 粒度 | reference metadata matching 与 human-written article comparison；没有 per-claim page-level provenance |
+| 人审/审计机制 | 自动引用核验方法用 100 条生成引用做三人多数投票验证；没有 report-level 人工审计 gate 或 claim-to-source 审计包 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | reference metadata matching 级；无 report-level claim-to-source 审计包。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
+| 证据溯源粒度 | reference metadata matching 与 human-written article comparison；没有 per-claim page-level provenance |
 | 实验对象/数据集 | 1,105 篇 Annual Reviews 2023 综述，跨 Biology、Chemistry、Mathematics、Physics、Social Science、Technology 等类别 |
 | baselines / metrics | 5 个 LLM；reference precision/recall/F1/title search rate、TRUE/GPT-4o NLI、embedding similarity、ROUGE、KPR、ANOVA、100 条引用人工验证 |
 | 主要结果 | Claude-3.5-Sonnet 在 reference generation / KPR 等指标上较强，但所有模型仍有明显 reference hallucination；模型表现随学科变化 |
 | 可复现资产 | 摘要称数据和代码在 anonymous repository；本轮未访问仓库与 license |
 | 主要局限 | 评价指标不覆盖 fluency/结构完整性；可能有训练数据重叠；Semantic Scholar 检索可能漏召回；未评价完整 SLR methodology compliance |
-| 威胁的 paper2 claim | 威胁“自动生成综述文本/引用即可可靠”的宽泛 claim；约束 paper2 的 evaluation metrics 与 unsupported-claim 控制 |
-| 支持的 paper2 claim | 支持 paper2 需要 claim-to-source、citation verification、human audit gate 与多指标评价，而不能只看生成文本流畅度 |
-| claims to avoid | 避免声称 vanilla LLM 能可靠完成 literature review；避免把引用生成准确率和综述质量混为一谈 |
+| 威胁的 paper2 主张 | 威胁“自动生成综述文本/引用即可可靠”的宽泛 claim；约束 paper2 的 evaluation metrics 与 unsupported-claim 控制 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
 | 差异化要求 | paper2 必须区别于“评价 LLM 写综述”的任务，强调 SE SLR/SMS 工作流、阶段证据链、人工审计和 claim-level provenance |
 | 对 paper2 实验设计的启发 | 应加入 reference hallucination、citation validity、semantic coverage、factual consistency、unsupported claim rate、人工审计一致性等指标 |
+
+| 威胁的 paper2 主张 | 见 §8 对 paper2 story / 实验设计的影响；正式写作前需回到本 review 的证据锚点核验。 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
+| 模型/API 设置 | GPT-4、GPT-4o、Claude、Sonnet、Llama、DeepSeek、Qwen、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | temperature 0；正式复现前需回原文核对 |
+
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+
+| 受影响主张 ID | C5,C6,C7 |
+| 威胁类型 | 评价协议约束 + 禁用 claim 证据 |
 
 ## 2. D1-D7 全文核验评分
 
@@ -42,8 +71,8 @@
 |---|---:|---|---|---|
 | D1 主题贴合度 | 🟢 | `paper_content.txt` Abstract 与 §1：评估 LLM 自动 literature review writing，包括 reference generation、abstract writing、review composition | 主题直接落在 LLM 自动文献综述写作与可靠性评价上，和 paper2 报告生成 / 证据可靠性高度相关 | 保持强 |
 | D2 SLR/SMS 流程覆盖度 | 🟠 | §3.2 Task Design：三项任务只围绕 reference generation、abstract writing、review composition | 它不执行 SLR/SMS 的检索、筛选、抽取、编码和研究质量评价，只评估写作端输出；流程覆盖应降为单端 reporting/evaluation | 从粗筛的中降为弱 |
-| D3 LLM/agent 自动化深度 | 🟡 | §4.1：5 个 LLM 用官方 API、temperature 0 生成任务输出 | LLM 是生成器和被评测对象，但没有 agent workflow、工具调用规划或人机协作流程；自动化深度是单轮/任务级生成 | 保持中但明确非 agent |
-| D4 人工审计与可追踪性 | 🟠 | §4.5：100 条生成 reference 由 3 名 annotator 多数投票验证自动评价；§3.3 用 Semantic Scholar / NLI 自动核验 | 有人工验证自动引用评价可靠性的抽样，但没有可用于真实综述生产的 human audit gate、decision log 或 claim-to-source provenance | 从粗筛的弱保持弱，理由更明确 |
+| D3 LLM/agent 自动化深度 | 🟡 | §4.1：5 个 LLM 用官方 API、temperature 0 生成任务输出 | LLM 是生成器和被评测对象，但没有 agent 工作流、工具调用规划或人机协作流程；自动化深度是单轮/任务级生成 | 保持中但明确非 agent |
+| D4 人工审计与可追踪性 | 🟠 | §4.5：100 条生成 reference 由 3 名 annotator 多数投票验证自动评价；§3.3 用 Semantic Scholar / NLI 自动核验 | 有人工验证自动引用评价可靠性的抽样，但没有可用于真实综述生产的 人工审计 gate、decision log 或 claim-to-source provenance | 从粗筛的弱保持弱，理由更明确 |
 | D5 评价严谨性 | 🟢 | §4：1,105 篇 Annual Reviews，5 个 LLM，多任务、多指标、跨学科 ANOVA，100 条人工验证 kappa 0.71 / accuracy 86% | 评价规模和指标体系较完整，尤其适合作为 paper2 的 evaluation baseline 和 hallucination 风险证据 | 保持强 |
 | D6 SE/CCF 相关性 | 🟠 | 数据来自 Annual Reviews，跨自然科学/社科/技术，不是 SE SLR；arXiv 预印本 | 方法学重要但不是软件工程 / CCF venue 直接 baseline | 保持弱 |
 | D7 对本文 novelty 的威胁 | 🟡 | §3--4 给出自动评估框架和 LLM 写综述可靠性结论 | 它不威胁 paper2 的 agentic SE SLR workflow 主体，但强约束“自动综述生成”和“引用可靠性评价”部分；paper2 必须正面讨论其指标与风险 | 保持中 |
@@ -101,14 +130,14 @@
 | 评价指标 | 作者承认没有覆盖 fluency、topic coverage、结构 coherent 等传统质量维度 | paper2 需要补 unsupported claim、traceability、人工审计和透明报告指标 |
 | 搜索/引用验证 | 主要依赖 Semantic Scholar API；Google Scholar 因无开放 API 未作为主工具 | paper2 citation checking 应记录检索源、失败和漏召回风险 |
 | 人工验证 | 100 条引用，3 名 annotator，多数投票；未报告更大规模人工审计 | paper2 若主打 audit，需要更系统的人审协议和错误分类 |
-| code/data | Abstract 说匿名仓库公开数据和代码，本轮未访问验证 | 正式引用前需核验仓库、license、数据可用性和版本 |
+| 代码 / 数据 | Abstract 说匿名仓库公开数据和代码，本轮未访问验证 | 正式引用前需核验仓库、license、数据可用性和版本 |
 | 模型漂移 | 固定列出模型和日期版本；但 LLM 快速迭代 | paper2 run record 必须保存精确 model_id、调用日期和 endpoint |
 
 ## 8. 对 paper2 story / 实验设计的影响
 
 | paper2 claim | 该文作用 | 证据锚点 | 写作处理 |
 |---|---|---|---|
-| agent workflow 能生成最终报告 | 削弱宽泛生成 claim | Table 1/3 显示引用生成仍有大量 hallucination | 必须改写为“生成需被审计”，不能写“可靠自动生成” |
+| agent 工作流 能生成最终报告 | 削弱宽泛生成 claim | Table 1/3 显示引用生成仍有大量 hallucination | 必须改写为“生成需被审计”，不能写“可靠自动生成” |
 | claim-to-source / citation verification 是必要模块 | 支持 | §3.3 reference hallucination metrics 与 §4.5 人工验证 | 把 citation validity / unsupported claim 率设为核心指标 |
 | paper2 是首次 LLM automated literature review | 禁止 | §2 Related Work 和本文自身就是 automated literature review evaluation | 不得使用 firstness；改写为 SE 场景 + 可审计 workflow 的组合差异 |
 | 多指标评价比单一文本相似度更合理 | 支持 | §3.3 同时使用 precision/recall/F1、NLI、embedding、ROUGE、KPR | paper2 evaluation 应至少覆盖 citation、coverage、factuality、audit cost |
@@ -125,7 +154,7 @@
 
 | 优先级 | 待复核项 | 原因 |
 |---|---|---|
-| 高 | 打开 PDF 核对 Table 1--4、Figure 2--4 与 Appendix prompt / data distribution | `paper_content.txt` 含 NUL，表格解析可能有格式误差 |
+| 高 | 打开 PDF 核对 Table 1--4、Figure 2--4 与 Appendix prompt / data distribution | `paper_content.txt` 已清理 PDF 提取残留 NUL；表格解析仍可能有格式误差 |
 | 高 | 访问 anonymous repository，确认代码、数据、license、commit / snapshot | Abstract 声称公开，但本轮未在线核验 |
 | 中 | 核验是否已有正式发表版本或后续 leaderboard | arXiv v5 更新时间为 2025-08-21，可能存在新版本或正式 venue |
 | 中 | 复核 TRUE / GPT-4o / KPR 的实现细节和 prompt | 若 paper2 采用类似指标，需要可复现细节 |

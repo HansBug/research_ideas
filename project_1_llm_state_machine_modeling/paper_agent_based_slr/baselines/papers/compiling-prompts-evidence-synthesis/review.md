@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Compiling Prompts, Not Crafting Them: A Reproducible Workflow for AI-Assisted Evidence Synthesis |
 | 年份 | 2025 |
-| 分层 | P1/P2 边界：prompt compilation 概念蓝图值得引用，但全文证据不足以作为强实证 baseline |
+| 作者 / venue / 出版状态 | Teo Susnjak；arXiv:2509.00038; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | agent式证据综合与闭环文献总结 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | 原文未给出明确 LLM/agent 执行角色；按相关工作背景处理。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | SLR task declaration、context file / criteria、gold-standard labelled abstracts、metric、fixed model settings |
 | 输出 | compiled screener artefact、prompt/exemplars/config/metrics/run log 的可审计 bundle、示例 screening decision |
 | 方法/系统形态 | Research-in-brief preprint；提出 declarative LM-program tuning / prompt compilation workflow，并给 DSPy MIPROv2 abstract-screening code example |
 | 覆盖阶段 | 概念上说适用于 SLR stages；正文可执行例子只展示 abstract screening module |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
 | 人审/审计机制 | 设计层面要求 versioned context、gold-standard examples、metric、prompt/data hashes、model ID、decoding params、run log；没有真实人工 audit study |
+| 人类角色 | 领域专家gold / 标注者 / 事后评价者（具体角色见人审机制字段） |
+| 审计时机 | 仅评价阶段 / 运行后审计 |
+| 主张追踪状态 | benchmark/gold 级；不等同生产期 claim trace |
+| 决策日志状态 | per-stage 叙述级；结构化日志待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有 trace/log/dialogue 或 protocol 线索；是否可作为 run record 导出待 artifact audit。 |
 | 实验/指标 | 无完整实证 benchmark；Appendix 给最小代码例子和 toy-like gold examples；没有报告真实数据集上的 accuracy/recall/F1 |
+| 模型/API 设置 | 原文未给出或本轮未抽取模型清单 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | seed、重复；正式复现前需回原文核对 |
 | 主要发现 | 主要是方法倡议：把 brittle manual prompts 改为 task declaration + test suite + automated prompt tuning + packaged artefact |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 可作为 prompt/workflow reproducibility 的早期背景；不能作为已验证 agent-based SLR 系统或强性能证据 |
+| 受影响主张 ID | C7 |
+| 威胁类型 | 背景定位 + 评价协议约束 |
+| 威胁的 paper2 主张 | 可作为 prompt/workflow reproducibility 的早期背景；不能作为已验证 agent-based SLR 系统或强性能证据 |
+| 支持的 paper2 主张 | 支持 paper2 强调阶段化 evidence package、deterministic execution boundary、人类反馈闭环和 run record，而不是单次生成报告。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 仅related-work背景 / reproducibility参照 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 / reproducibility参照 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
@@ -30,11 +61,11 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
 |---|---:|---|---|
 | D1 主题贴合度 | 🟢 | Page 1 Abstract：AI-assisted evidence synthesis、SLR automation；Page 2 Introduction：abstract screening、data extraction、quality assessment、evidence syntheses | 主题直接是 SLR/evidence synthesis LLM workflow 的 reproducibility。 |
 | D2 SLR/SMS 流程覆盖度 | 🟠 | Page 3 Box 1：Abstract Screening Example；Page 4：framework applicable to all stages but example is abstract screening | 正文只有 abstract screening module 的蓝图和代码，其他阶段是倡议/展望，不能按多阶段覆盖计分。 |
-| D3 LLM/agent 自动化深度 | 🟠 | Page 4 Appendix A：DSPy MIPROv2 code compiles ChainOfThought(ScreenAbstract)；没有真实 workflow 运行结果表 | 有 programmatic LLM module 示例，但缺少真实多阶段自动化或 agent workflow，实证深度弱。 |
+| D3 LLM/agent 自动化深度 | 🟠 | Page 4 Appendix A：DSPy MIPROv2 code compiles ChainOfThought(ScreenAbstract)；没有真实 workflow 运行结果表 | 有 programmatic LLM module 示例，但缺少真实多阶段自动化或 agent 工作流，实证深度弱。 |
 | D4 人工审计与可追踪性 | 🟡 | Page 3 Box 1：config.yaml、prompt.txt、exemplars.json、metrics.json、run log、hashes、model ID、decoding params | 审计设计很清楚，但主要是 blueprint；未展示真实 run record 或人工 audit protocol，因此中等。 |
 | D5 评价严谨性 | 🟠 | Page 4：functional Python implementation / code example；Appendix A：minimal example，未给 benchmark metrics | 没有真实数据集、baseline、指标结果或统计分析，只能弱分。 |
 | D6 SE/CCF 相关性 | 🟠 | `bibtex.bib`：arXiv cs.CL；正文示例是医学 PICOS / digital CBT abstract screening | 方法学相关，但不是 SE venue，也没有 SE dataset 验证。 |
-| D7 对本文 novelty 的威胁 | 🟠 | Page 4 Conclusion：conceptual blueprint and working implementation；未来需 fully test and expand to other SLR stages | 对 paper2 的 prompt reproducibility claim 有背景约束，但不威胁 agent workflow、audit gate、SE evaluation 的核心组合。 |
+| D7 对本文 novelty 的威胁 | 🟠 | Page 4 Conclusion：conceptual blueprint and working implementation；未来需 fully test and expand to other SLR stages | 对 paper2 的 prompt reproducibility claim 有背景约束，但不威胁 agent 工作流、audit gate、SE evaluation 的核心组合。 |
 
 ## 3. 论文解决的问题与背景
 
@@ -70,7 +101,7 @@ Appendix 的代码例子使用 digital CBT / MDD 的 PICOS criteria 和少量示
 
 paper2 应吸收它的两个设计原则。第一，prompt 不是临时文本，而是应作为 versioned artefact 管理，和 criteria、examples、metric、model settings、run logs 一起保存。第二，SLR 阶段任务应先形式化为输入/输出 schema 和 metric，再谈自动化。
 
-但 paper2 不能把这篇当作 full baseline。它没有 agent roles、没有 multi-stage SLR execution、没有 human audit gate 的实证记录，也没有 SE 数据集验证。若 novelty matrix 中纳入它，应标注为 “prompt reproducibility / artefact packaging background”，而不是 “agentic SLR workflow baseline”。
+但 paper2 不能把这篇当作 完整 baseline。它没有 agent roles、没有 multi-stage SLR execution、没有 人工审计 gate 的实证记录，也没有 SE 数据集验证。若 novelty matrix 中纳入它，应标注为 “prompt reproducibility / artefact packaging background”，而不是 “agent 式 SLR 工作流 baseline”。
 
 ## 9. 可用于写作的引用角度
 

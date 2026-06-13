@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | AutoSurvey2: Empowering Researchers with Next Level Automated Literature Surveys |
 | 年份 | 2025，arXiv:2510.26012 v3 |
-| 分层 | 全文建议 P1-/P2+：结构化 survey generation pipeline 近邻，非严格 SLR/SMS |
+| 作者 / venue / 出版状态 | Siyi Wu、Chiaxin Liang 等；arXiv:2510.26012; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
+| 近邻强度备注 | 结构化 survey 生成 pipeline 近邻；因不是严格 SLR/SMS evidence workflow，SUMMARY 保持 P2。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
-| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--15，文件含 NUL，阅读时临时去除 NUL |
+| 核验入口 | `bibtex.bib`；`paper_content.txt` Page 1--15；已清理 PDF 提取残留 NUL 后阅读 |
+| 研究脉络 | 自动 survey / literature review 生成与评价 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | 原文未给出明确 LLM/agent 执行角色；按相关工作背景处理。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 用户 topic；arXiv 元数据/摘要库；配置中的 LLM provider、embedding model、检索参数 |
 | 输出 | IEEE 风格 `survey.tex`、`survey.bib`、`state.json`、research log/状态文件 |
 | 方法/系统形态 | PostgreSQL + pgvector 检索库；DAG/state-machine 式四阶段 pipeline；OutlineGeneration、PaperSearch、ContentAnalysis、ContentSynthesis、PaperGeneration、post-processing 节点 |
 | 覆盖阶段 | 数据库构建、outline planning、section-level retrieval/analysis/synthesis、LaTeX 生成、citation extraction、BibTeX/DBLP enhancement、Judge Agent 评价 |
+| 不覆盖阶段 | 不覆盖 SLR/SMS 的双人筛选、纳入/排除审计、抽取表、编码协议、质量评价和系统综述级报告审计。 |
 | 人审/审计机制 | 有状态快照和引用后处理，鼓励 human review；没有生成中人工 gate、双人审计或逐 claim 证据包 |
+| 人类角色 | 无正式人审 gate；若有评价者仅作实验评价 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 引用后处理与状态快照线索；无正式 SLR claim-to-source ledger。 |
+| 决策日志状态 | per-stage 叙述级；结构化日志待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | 10 个代表性主题；top-k 100、threshold 0.7、最多 1500 reference papers、8 sections、20 papers/section；Judge Agent 评价 Coverage/Structure/Relevance |
+| 模型/API 设置 | GPT-4、GPT-4.1、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | AutoSurvey2 平均 4.76，高于 AutoSurvey 4.60 和 Naive RAG 4.23；移除 planner 时 Structure 明显下降；局限承认仍需 verification modules 和 human-in-the-loop review |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 可作为“stateful automated survey writing pipeline”近邻；paper2 需在 SLR/SMS 语境、人工审计、claim evidence 和可复现实验记录上差异化 |
+| 受影响主张 ID | C5,C6,C7 |
+| 威胁类型 | 局部覆盖 + 禁用 claim 证据 |
+| 威胁的 paper2 主张 | 可作为“stateful automated survey writing pipeline”近邻；paper2 需在 SLR/SMS 语境、人工审计、claim evidence 和可复现实验记录上差异化 |
+| 支持的 paper2 主张 | 支持 paper2 把报告生成 claim 收窄为“生成必须可审计”，并把 citation validity、unsupported claim 和 有证据支撑的断言 纳入评价。 |
+| paper2 应避免的主张 | 避免声称自动 survey / review generation 尚无人研究；避免把文本流畅度、引用准确率或 LLM-as-Judge 总分等同于 SLR/SMS 方法学可靠性。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 / survey生成局部近邻 |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 / survey生成局部近邻 |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | 维度 | 评分 |
@@ -74,16 +106,16 @@ Table 1 显示 AutoSurvey2 在 Coverage 4.72、Structure 4.68、Relevance 4.88�
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-AutoSurvey2 迫使 paper2 不要把“保存中间状态”写成完全新颖点。更稳妥的差异化是：AutoSurvey2 保存的是生成流水线状态，而 paper2 应保存 SLR/SMS 决策证据，包括 query、screening decision、extraction cell、coding decision、claim support、human audit action 和 failed/partial run eligibility。
+AutoSurvey2 迫使 paper2 不要把“保存中间状态”写成完全新颖点。更稳妥的差异化是：AutoSurvey2 保存的是生成流水线状态，而 paper2 应保存 SLR/SMS 决策证据，包括 query、screening decision、extraction cell、coding decision、claim support、人工审计 action 和 failed/partial run eligibility。
 
 实验上，paper2 可以借鉴其 ablation 设计，但评价不能只用 LLM judge 的 Coverage/Structure/Relevance。应加入人工审计一致性、claim support precision/recall、unsupported claim 分类、citation grounding、run record completeness 和 reviewer workload。对于引用后处理，paper2 可以借鉴 arXiv/DBLP normalization，但必须保留“引用支持了哪个 claim”的证据，而不仅是 BibTeX 能生成。
 
 ## 9. 可用于写作的引用角度
 
 1. AutoSurvey2 展示了自动 survey 写作可以被组织成 state-machine/DAG 式 pipeline，并输出 LaTeX、BibTeX 与 serialized state。
-2. 其 citation extraction 和 DBLP enhancement 说明引用格式标准化是 survey generation 系统的重要后处理，但不等价于 claim-level evidence verification。
+2. 其 citation extraction 和 DBLP enhancement 说明引用格式标准化是 survey 生成 系统的重要后处理，但不等价于 claim-level evidence verification。
 3. 其限制段落可用于支撑 paper2 的论点：仅靠 LLM 生成和 LLM 评价仍会留下事实错误、引用错误和 bias，需要 verification 和 human-in-the-loop。
-4. paper2 可将其定位为 long-form academic survey generation baseline，而非 SLR/SMS evidence synthesis baseline。
+4. paper2 可将其定位为 long-form academic survey 生成 baseline，而非 SLR/SMS evidence synthesis baseline。
 
 ## 10. 待复核清单
 

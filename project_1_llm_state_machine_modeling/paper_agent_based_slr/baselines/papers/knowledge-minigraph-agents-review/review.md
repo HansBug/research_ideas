@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | Mixture of Knowledge Minigraph Agents for Literature Review Generation |
 | 年份 | 2024 |
-| 分层 | P1-结构化综合/related-work generation 近邻 |
+| 作者 / venue / 出版状态 | Zhi Zhang、Yan Liu 等；arXiv:2411.06159; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
+| 近邻强度备注 | 结构化综合 / related-work generation 近邻；SUMMARY 归 P1，主要用于 synthesis/report-generation 定性对照。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | 自动 survey / literature review 生成与评价 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | query paper abstract、被引用 reference abstracts；实验数据为 Multi-Xscience、TAD、TAS2 |
 | 输出 | related work / literature review 段落摘要，带 `@cite_id` 引用 |
 | 方法/系统形态 | CKMAs：Knowledge Minigraph Construction Agent + Multiple Path Summarization Agent；prompt-based graph extraction + multi-path summary routing |
 | 覆盖阶段 | 给定参考文献后的关系建模与综合写作；不做检索、筛选、人类审计、完整报告生成 |
+| 不覆盖阶段 | 不覆盖 SLR/SMS 的双人筛选、纳入/排除审计、抽取表、编码协议、质量评价和系统综述级报告审计。 |
 | 人审/审计机制 | 输出 JSON minigraph、ROUGE/FineSurE/case study；无 human-in-the-loop audit 或 claim-level provenance |
+| 人类角色 | 无正式人审 gate；若有评价者仅作实验评价 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | minigraph 结构级；无人工审计或 claim-level provenance。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | 3 个 MSDS 数据集；graph/PLM/LLM baselines；ROUGE-1/ROUGE-2；ablation；reference-number 分组；FineSurE faithfulness/completeness/conciseness |
+| 模型/API 设置 | GPT-4、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | CKMAs 在三数据集 ROUGE-1/2 上超过 graph、PLM、GPT-3.5/GPT-4、3A-COT、SumBlogger；ablation 显示 KMCA 和 MPSA 均贡献性能 |
-| 对 paper2 的作用 | 可作为 synthesis/related-work paragraph generation 的结构化 LLM baseline；对完整 agentic SLR workflow 威胁有限，但其 minigraph 思路可用于 evidence relation representation |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 可作为 综合 / 相关工作段落生成 的结构化 LLM baseline；对完整 agent 式 SLR 工作流 威胁有限，但其 minigraph 思路可用于 evidence relation representation |
+| 受影响主张 ID | C3,C5,C6 |
+| 威胁类型 | 局部覆盖 |
+| 威胁的 paper2 主张 | 可作为 综合 / 相关工作段落生成 的结构化 LLM baseline；对完整 agent 式 SLR 工作流 威胁有限，但其 minigraph 思路可用于 evidence relation representation |
+| 支持的 paper2 主张 | 支持 paper2 把报告生成 claim 收窄为“生成必须可审计”，并把 citation validity、unsupported claim 和 有证据支撑的断言 纳入评价。 |
+| paper2 应避免的主张 | 避免声称自动 survey / review generation 尚无人研究；避免把文本流畅度、引用准确率或 LLM-as-Judge 总分等同于 SLR/SMS 方法学可靠性。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
@@ -34,7 +66,7 @@ emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
 | D4 人工审计与可追踪性 | 🟠 | Table 1 JSON constraints；Case Studies；Discussion | 有结构化 JSON minigraph 和引用标记，但没有人工复核、审计日志、claim-to-source 验证或可导出 evidence packet。 |
 | D5 评价严谨性 | 🟢 | Experiments；Tables 2-3；Figures 3/5 | 三个公开数据集、大量 baselines、ablation、case study 和 FineSurE 补充评价，评价扎实；但主要是自动指标。 |
 | D6 SE / CCF 相关性 | 🟠 | bibtex: arXiv cs.CL；数据集为 MSDS/科学文献 | 泛 NLP/科学文献摘要，不是 SE SLR 或 CCF SE venue。 |
-| D7 对本文 novelty 的威胁强度 | 🟡 | Method；Experiments；Conclusions | 威胁 paper2 的“结构化综合/关系建模辅助 related work 生成”局部模块；不覆盖多阶段 SLR workflow、human audit 或 SE evidence synthesis。 |
+| D7 对本文 novelty 的威胁强度 | 🟡 | Method；Experiments；Conclusions | 威胁 paper2 的“结构化综合/关系建模辅助 related work 生成”局部模块；不覆盖多阶段 SLR workflow、人工审计 或 SE evidence synthesis。 |
 
 ## 3. 论文解决的问题与背景
 

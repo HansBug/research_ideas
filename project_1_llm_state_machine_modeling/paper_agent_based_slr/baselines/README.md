@@ -23,7 +23,7 @@
 | 文件 / 目录 | 作用 |
 |---|---|
 | [GUIDE.md](./GUIDE.md) | 固化检索、筛选、七维评分、PDF 获取、人工下载、SUMMARY 回填与 `review.md` 写作规则。 |
-| [SUMMARY.md](./SUMMARY.md) | PR-B0 baseline 总账：候选统计、阅读状态 / 证据等级、输入输出方法主表、D1-D7 七维总表、强 baseline 威胁、story 调整建议和风险。 |
+| [SUMMARY.md](./SUMMARY.md) | PR-B0 baseline 总账：候选统计、阅读状态 / 证据等级、输入输出方法主表、D1-D7 七维总表、主张绑定表、审计/provenance 表、可复现资产表、强 baseline 威胁、story 调整建议和风险。 |
 | [search/](./search/) | 检索日志、arXiv query 原始快照、去重候选池、CCF coverage / gap、CCF 粗筛、DBLP title 扫描原始快照与人工下载 BibTeX。 |
 | [papers/](./papers/) | 单篇 baseline 目录；每篇至少包含 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`。 |
 

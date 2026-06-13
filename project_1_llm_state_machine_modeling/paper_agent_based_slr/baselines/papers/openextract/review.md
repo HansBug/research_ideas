@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | OpenExtract: Automated Data Extraction for Systematic Reviews in Health |
 | 年份 | 2026 |
-| 分层 | P2 背景相关 |
+| 作者 / venue / 出版状态 | Jim Achterberg、Bram Van Dijk 等；arXiv:2603.13338; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P2 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt) |
+| 研究脉络 | 证据抽取、证据溯源与审计 |
+| 引用角色 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | SLR 中的论文全文、待抽取的数据条目、候选输出标签；评测案例来自 digital health SLR。 |
 | 输出 | 每个 data entry 的结构化 JSON 标签选择，以及不同 LLM 与人工抽取结果的一致性/precision/recall。 |
-| 方法/系统形态 | 开源 RAG pipeline，面向 SLR data extraction 的单阶段自动化工具，不是完整 SLR agent workflow。 |
+| 方法/系统形态 | 开源 RAG pipeline，面向 SLR data extraction 的单阶段自动化工具，不是完整 SLR agent 工作流。 |
 | 覆盖阶段 | 主要覆盖 data extraction；评测案例中使用 ASReview 做 title/abstract screening，但 OpenExtract 本身不负责检索、筛选、综合或报告。 |
+| 不覆盖阶段 | 不覆盖检索、题摘筛选、编码综合和完整报告生成；主要威胁证据抽取 / provenance 环节。 |
 | 人审/审计机制 | 两名人工研究者抽取数据作为比较参照；pipeline 取 top-3 相关 chunks 作为 LLM 上下文，但原文未说明 per-answer provenance 或人工审计门。 |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | chunk 上下文级；无 per-answer provenance 或人工审计 gate。 |
+| 决策日志状态 | per-stage 叙述级；结构化日志待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | 数字健康 SLR 初始检索 7,323 篇，ASReview 筛到 249 篇 relevant；随机抽 50 篇用于评估，本文报告前 10 篇、150 个数据点；指标含 Cohen's kappa、precision、recall。 |
+| 模型/API 设置 | DeepSeek、Qwen；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | DeepSeek V3.1 与 Qwen2.5 72B 的 precision/recall 均约 0.8；Qwen2.5 7B 明显较低；LLM 之间一致性高于 LLM 与人工之间一致性。 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 可作为 SLR extraction 阶段的局部 baseline，提醒 paper2 的抽取模块必须处理人类解释差异、结构化输出和表格/图像证据缺失。 |
+| 受影响主张 ID | C3,C5 |
+| 威胁类型 | 局部覆盖 + 禁用 claim 证据 |
+| 威胁的 paper2 主张 | 可作为 SLR extraction 阶段的局部 baseline，提醒 paper2 的抽取模块必须处理人类解释差异、结构化输出和表格/图像证据缺失。 |
+| 支持的 paper2 主张 | 支持 paper2 将 claim-to-source trace、page/table/cell 级证据定位和 人工审计 gate 作为核心贡献与指标。 |
+| paper2 应避免的主张 | 避免声称 page/table/cell 级 evidence provenance 是空白；避免只保存最终答案而缺少证据定位。 |
+| baseline 可用性 | 仅related-work背景或局部强近邻；不作为主流程可运行 baseline。 |
+| 对比方式 | 仅related-work背景 / extraction 局部baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 仅related-work背景 / extraction 局部baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
@@ -32,13 +63,13 @@
 | D4 人工审计与可追踪性 | 🟠 | `paper_content.txt:88-100`, `paper_content.txt:137-146`, `paper_content.txt:155-164` | 原文用两名人工研究者抽取结果作为评测参照，并要求 LLM 基于上下文 chunks 输出结构化 JSON；但没有说明系统保存每个答案对应 chunk、人工审核决策日志或 claim-to-source trace。 |
 | D5 评价严谨性 | 🟡 | `paper_content.txt:128-140`, `paper_content.txt:147-169` | 有真实 SLR 场景、人工参照、Cohen's kappa、precision/recall 和多 LLM 比较；但当前论文只报告前 10 篇、150 个数据点，样本较小，且不含误差分类或跨领域复现。 |
 | D6 SE / CCF 相关性 | 🟠 | `paper_content.txt:3-4`, `paper_content.txt:105-114` | 领域是 health/digital health systematic review，方法学对 SLR 自动抽取有用，但不是软件工程、LLM4SE 或 MDE 场景。 |
-| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:181-190` | 它威胁 paper2 的 data extraction 局部能力，尤其是 RAG 抽取和结构化标签输出；但不覆盖 agent-based multi-stage workflow、human audit gate、报告级 claim 绑定或 SE 评价。 |
+| D7 对本文 novelty 的威胁强度 | 🟠 | `paper_content.txt:181-190` | 它威胁 paper2 的 data extraction 局部能力，尤其是 RAG 抽取和结构化标签输出；但不覆盖 agent-based multi-stage workflow、人工审计 gate、报告级 主张绑定或 SE 评价。 |
 
 ## 3. 论文解决的问题与背景
 
 OpenExtract 的问题背景很清楚：系统综述中的 data extraction 工作量大，特别是当综述主题很宽、纳入论文很多、需要抽取的字段又很细时，人工逐篇阅读成本高。作者认为已有 ASReview 这类工具能辅助 literature screening，但如果把 SLR 每一步都抽象给 LLM，研究者会失去对范围和流程的控制。因此本文刻意只聚焦 data extraction 阶段，目标是在不牺牲粒度的情况下，用 LLM 从论文文本中自动预测结构化 data entries。
 
-这个定位对 paper2 有价值，因为它代表一种谨慎的局部自动化路径：不声称端到端替代 SLR，而是把一个明确可评测的环节抽出来，使用人工抽取结果做参照。它也说明 paper2 若要做端到端 agent workflow，必须解释为什么多阶段组合不会降低研究者对 scope、criteria 和证据解释的控制。
+这个定位对 paper2 有价值，因为它代表一种谨慎的局部自动化路径：不声称端到端替代 SLR，而是把一个明确可评测的环节抽出来，使用人工抽取结果做参照。它也说明 paper2 若要做端到端 agent 工作流，必须解释为什么多阶段组合不会降低研究者对 scope、criteria 和证据解释的控制。
 
 ## 4. 方法 / 系统拆解
 
@@ -83,7 +114,7 @@ Table 2 显示，DeepSeek precision/recall 均为 0.820，Qwen 72B precision 为
 1. 可作为 extraction-stage baseline：OpenExtract 用 RAG 从 SLR 论文文本中选择结构化 data entry labels，并与两名人工研究者抽取结果比较。
 2. 可作为 evaluation design 参照：系统综述抽取字段可能没有单一 ground truth，评价需要显式处理人工分歧。
 3. 可作为局限引用：仅解析正文文本会遗漏图表中的关键信息，这会影响自动抽取系统的证据完整性。
-4. 不应把它写成完整 SLR 自动化或 agentic SLR workflow；它有意限定在 data extraction 阶段。
+4. 不应把它写成完整 SLR 自动化或 agent 式 SLR 工作流；它有意限定在 data extraction 阶段。
 
 ## 10. 待复核清单
 

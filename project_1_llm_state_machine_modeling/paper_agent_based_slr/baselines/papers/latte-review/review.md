@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | LatteReview: A Multi-Agent Framework for Systematic Review Automation Using Large Language Models |
 | 年份 | 2025 |
+| 作者 / venue / 出版状态 | Pouria Rouzrokh、Bardia Khosravi 等；arXiv:2501.05468; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)；未人工逐页打开 PDF 图表 |
+| 研究脉络 | agent式 SLR 工作流与评价基准 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | citation/来源归因 级；需复核是否能到 claim/page/table-cell。 |
 | 输入 | 文献标题、摘要、可选图像/多模态输入、纳入/排除标准、用户自定义 schema、可选 RAG 上下文 |
 | 输出 | dataframe 增强列、结构化 JSON、评分、理由、certainty、抽取字段、工作流中间结果 |
 | 方法/系统形态 | Python 包；LLM provider + reviewer agents + ReviewWorkflow 的多 agent 工作流框架 |
 | 覆盖阶段 | 标题/摘要筛选、相关性评分、结构化抽取、条件过滤、并行/串行 reviewer 协作；不覆盖正式报告写作全流程 |
+| 不覆盖阶段 | 不覆盖正式报告写作全流程。 |
 | 人审/审计机制 | 有 senior reviewer 裁决、用户反馈迭代、Pydantic 结构校验、reasoning/certainty 字段；未见 claim-to-source 或逐单元 provenance 证据包 |
+| 人类角色 | 运行中审查者 / 冲突裁决者 |
+| 审计时机 | 运行中 + 运行后复核 |
+| 主张追踪状态 | 无明确 claim-to-source trace；reasoning/certainty 只能支撑 reviewer decision 解释，不能写成页面/单元格级 provenance。 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 有模型/人工冲突处理线索；裁决规则需按全文复核 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | SYNERGY 六个数据集 + 自定义心胸影像 scoping review 数据；AUC、accuracy、recall、precision；给出运行成本/速度示例 |
+| 模型/API 设置 | GPT-4、GPT-4o、Gemini、Llama、Ollama、LiteLLM、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 重复；正式复现前需回原文核对 |
 | 主要发现 | SYNERGY AUC 约 0.77--0.95，自定义数据 AUC 约 0.79--0.94；性能强依赖纳入/排除标准清晰度和阈值设定 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 强 baseline：直接威胁“多 agent SLR screening/extraction 工作流”claim；paper2 需要把 SE 场景、run record、claim-to-source audit 与失败分类作为差异化 |
+| 受影响主张 ID | C1,C2,C5,C7 |
+| 威胁类型 | 直接覆盖 |
+| 威胁的 paper2 主张 | 强 baseline：直接威胁“多 agent SLR screening/extraction 工作流”claim；paper2 需要把 SE 场景、run record、claim-to-source audit 与失败分类作为差异化 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 可复现需改造 / 定性强baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 可复现需改造 / 定性强baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
@@ -34,7 +65,7 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 | D4 人工审计与可追踪性 | 🟡 | `paper_content.txt` Page 1 lines 396--412；Page 19--20 validation / human oversight practical tips | 有用户反馈、senior reviewer、人类小样本验证和 Pydantic 结构校验，也输出 reasoning/certainty；但没有看到 claim-to-source trace、per-cell provenance、审计日志或可导出证据包。 |
 | D5 评价严谨性 | 🟢 | `paper_content.txt` Page 10--16；Table 2、Table 4；GitHub line 10331 | 使用 SYNERGY collection 六个真实 review 数据集和自定义数据集，报告 AUC/accuracy/recall/precision，并给出阈值策略、成本与速度；评价比普通 demo 更扎实。 |
 | D6 SE/CCF 相关性 | 🟠 | `bibtex.bib` arXiv cs.CL；正文数据主要来自医学/影像 review | 这是泛科学/医学系统综述自动化工具，不是 SE/CCF venue，也不直接面向软件工程 SLR；只能作为跨域方法学强 baseline。 |
-| D7 对本文 novelty 的威胁 | 🟢 | `paper_content.txt` Page 1 lines 278--498；Page 12--16 evaluation | 已覆盖多 agent reviewer workflow、筛选/抽取、结构化输出和真实数据评价，对 paper2 的 agent workflow 与 screening/extraction claim 构成直接威胁；paper2 必须转向 SE-specific evidence chain 和审计协议差异化。 |
+| D7 对本文 novelty 的威胁 | 🟢 | `paper_content.txt` Page 1 lines 278--498；Page 12--16 evaluation | 已覆盖多 agent reviewer workflow、筛选/抽取、结构化输出和真实数据评价，对 paper2 的 agent 工作流 与 screening/extraction claim 构成直接威胁；paper2 必须转向 SE-specific evidence chain 和审计协议差异化。 |
 
 ## 3. 论文解决的问题与背景
 
@@ -62,7 +93,7 @@ LLM/agent 角色比较清楚：junior reviewer 可用低成本模型并行筛选
 
 SYNERGY 六个数据集上的 AUC 约为 0.77 到 0.95，但 precision/recall 随阈值和数据集严重波动。低纳入率数据集中，sensitive threshold 能保 recall，但 precision 很低；specific threshold 可提高 precision，但会牺牲 recall。这说明 LatteReview 不是“自动替代 reviewer”，而是提供可校准的筛选工作流。
 
-自定义数据集上，三组策略的 AUC 约为 0.79、0.82、0.94。作者解释为：清晰、结构化的 criteria 更适合 LLM reviewer 执行，balanced/specific 策略表现更接近。结论部分强调 LatteReview 的价值在于 customizable multi-agent workflow、provider 兼容、RAG/多模态扩展和实际 review 降本增效潜力。
+自定义数据集上，三组策略的 AUC 约为 0.79、0.82、0.94。作者解释为：清晰、结构化的 criteria 更适合 LLM reviewer 执行，balanced/specific 策略表现更接近。结论部分强调 LatteReview 的价值在于 customizable multi-agent 工作流、provider 兼容、RAG/多模态扩展和实际 review 降本增效潜力。
 
 ## 7. 局限与可复现性
 
@@ -74,7 +105,7 @@ SYNERGY 六个数据集上的 AUC 约为 0.77 到 0.95，但 precision/recall �
 
 paper2 不能再把“LLM 多 agent 支持系统综述筛选/抽取”写成宽泛 novelty。LatteReview 已经提供了多 agent reviewer、junior/senior 裁决、结构化输出和公开评价。
 
-paper2 应将差异化压到更细的证据链：面向 SE/AI4SE 文献场景；每个 claim、抽取字段、分类决策都有 source span/page/table provenance；run record 保存 prompt、model、usage、错误、重试和 human audit decision；评价不仅看 AUC/accuracy，也看 hallucination/error taxonomy、audit workload、复核成本和 downstream writing correctness。
+paper2 应将差异化压到更细的证据链：面向 SE/AI4SE 文献场景；每个 claim、抽取字段、分类决策都有 source span/page/table provenance；run record 保存 prompt、model、usage、错误、重试和 人工审计 decision；评价不仅看 AUC/accuracy，也看 hallucination/error taxonomy、audit workload、复核成本和 downstream writing correctness。
 
 实验上，LatteReview 可以作为 workflow baseline 或 design baseline。若 paper2 做 screening/extraction，应比较相同数据集、相同纳入/排除标准、相同 LLM budget 下的 recall/precision、uncertain-case routing、人工复核负担和 provenance completeness。
 
@@ -82,7 +113,7 @@ paper2 应将差异化压到更细的证据链：面向 SE/AI4SE 文献场景；
 
 - LatteReview 可作为近期 LLM multi-agent 系统综述自动化工具代表，说明筛选、评分和结构化抽取已经能通过 configurable reviewer workflow 实现。
 - 可用它支撑“现有工具强调 reviewer orchestration 与 structured outputs，但通常缺少 claim-to-source 级证据包和面向 SE 综述写作的审计闭环”这一定位。
-- 可在实验设计中引用其 junior/senior reviewer 和 threshold calibration 思路，作为 paper2 human audit gate 的对照。
+- 可在实验设计中引用其 junior/senior reviewer 和 threshold calibration 思路，作为 paper2 人工审计 gate 的对照。
 - 不应把 paper2 写成“首个 agentic SLR 工具”；更稳妥的说法是 paper2 聚焦 SE 文献综述中的 evidence-traceable review generation 和审计记录。
 
 ## 10. 待复核清单

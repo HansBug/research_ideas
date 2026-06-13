@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | On the Use of a Large Language Model to Support the Conduction of a Systematic Mapping Study: A Brief Report from a Practitioner's View |
 | 年份 | 2026 |
-| 分层 | P1：SE/SMS 直接相关的 practitioner experience baseline，但系统形态较轻 |
+| 作者 / venue / 出版状态 | Cauã Ferreira Barros、Marcos Kalinowski 等；arXiv:2602.10147; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | LLM 辅助文献综述与证据综合 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM 参与单阶段或少数阶段任务；未形成完整 agent 式 SLR 工作流。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 已有 SMS 的 219 篇 first-selection studies、13 篇 selected articles、预定义 protocol、inclusion/exclusion criteria、questionnaire extraction templates |
 | 输出 | ChatGPT-4 的 screening decisions、data extraction answers、manual comparison、time/accuracy estimates、prompt adjustment lessons |
 | 方法/系统形态 | 单 LLM prompt-based SMS support experience report；主模型 ChatGPT-4，附加测试 Gemini PRO、Manus、Copilot |
 | 覆盖阶段 | protocol/search 仍由人工定义；LLM 支持 title/abstract screening 与 data extraction；analysis/synthesis 被认为不可靠 |
+| 不覆盖阶段 | 不覆盖 paper2 设想的完整 agent evidence workflow；主要提供 SE 场景或筛选/方法学边界。 |
 | 人审/审计机制 | 每项自动抽取由至少一名 human reviewer 检查；manual vs automated discrepancies 被记录并在 full-text reading 后讨论 |
+| 人类角色 | 原文有人类参与线索；角色需在正式写作前复核 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | manual-vs-automated discrepancy 级；无自动 claim-to-source ledger。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | manual vs LLM time comparison；screening 219 studies，data extraction 13 studies；其他模型用 50 / 10 study subsets |
+| 模型/API 设置 | GPT-4、Gemini、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 重复；正式复现前需回原文核对 |
 | 主要发现 | ChatGPT-4 screening 约 95% agreement（208/219，11 hallucinations），extraction 约 92.3% agreement（12/13，1 error）；时间从约 30 天降至约 10 小时，但 prompt design time 未计入 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 强调 hybrid workflow、manual verification、prompt documentation、task-specific validation；也提醒 paper2 不应把 time saving 当作 methodological quality |
+| 受影响主张 ID | C4,C5,C7 |
+| 威胁类型 | 局部覆盖 + 背景定位 |
+| 威胁的 paper2 主张 | 强调 hybrid workflow、manual verification、prompt documentation、task-specific validation；也提醒 paper2 不应把 time saving 当作 methodological quality |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
@@ -30,11 +61,11 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。
 |---|---:|---|---|
 | D1 主题贴合度 | 🟢 | Page 1 Abstract：experience report on conduction of a systematic mapping study with LLM support；Keywords 含 Systematic Review / Mapping | 直接讨论 LLM 支持 SMS/SLR 执行，是 paper2 的直接近邻。 |
 | D2 SLR/SMS 流程覆盖度 | 🟡 | Page 3 §3：protocol、search/selection、data extraction、verification；Page 4 §4.2：analysis extracted data 超过半数从其他来源取信息，不能可靠自动化 | 实际自动化覆盖 screening 和 data extraction 两个核心环节；protocol/search/analysis/synthesis 仍以人工为主。 |
-| D3 LLM/agent 自动化深度 | 🟡 | Page 3：ChatGPT-4 structured prompt；Page 4 §4.3：Gemini PRO、Manus、Copilot subset tests | 有真实 LLM 执行和多模型试测，但不是 agent workflow，也没有工具链/run record。 |
+| D3 LLM/agent 自动化深度 | 🟡 | Page 3：ChatGPT-4 structured prompt；Page 4 §4.3：Gemini PRO、Manus、Copilot subset tests | 有真实 LLM 执行和多模型试测，但不是 agent 工作流，也没有工具链/run record。 |
 | D4 人工审计与可追踪性 | 🟡 | Page 3 §Verification and Risk Mitigation：每项自动抽取至少一名 human reviewer 检查，manual/automated discrepancies recorded and discussed | 有人工核验和 discrepancy 记录，但缺少可导出的 source-level provenance、claim trace 或完整审计日志。 |
 | D5 评价严谨性 | 🟡 | Page 4 Table 1：219 screening、13 extraction、time/accuracy；Page 5 §5.2：样本和 scope limitations | 有真实 SMS、人工参考、时间/准确率比较；但 single researcher、单 SMS、小抽取样本、非并行对照，故中等。 |
 | D6 SE/CCF 相关性 | 🟢 | Page 1 ACM reference：WSESE '26；CCS Software and its engineering；Page 2：Software Engineering systematic reviews/mappings | 直接面向 SE systematic mapping，并有 ACM workshop DOI。 |
-| D7 对本文 novelty 的威胁 | 🟡 | Page 6 Conclusion：LLMs support screening and data extraction but require hybrid workflows；Page 5 Lessons：human supervision、structured templates、prompt documentation | 威胁 paper2 的 screening/extraction support 和 human verification claim；不覆盖 agentic multi-stage workflow、claim-to-source report generation 和完整 evaluation harness。 |
+| D7 对本文 novelty 的威胁 | 🟡 | Page 6 Conclusion：LLMs support screening and data extraction but require hybrid workflows；Page 5 Lessons：human supervision、structured templates、prompt documentation | 威胁 paper2 的 screening/extraction support 和 human verification claim；不覆盖 agentic multi-stage workflow、claim-to-source 报告生成 和完整 评价基准。 |
 
 ## 3. 论文解决的问题与背景
 

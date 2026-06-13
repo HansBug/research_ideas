@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | A Multi-Agent Human-LLM Collaborative Framework for Closed-Loop Scientific Literature Summarization |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Maxwell J. Jacobson、Daniel Xie 等；arXiv:2604.01452; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)；未人工逐页打开 PDF 图表 |
+| 研究脉络 | agent式证据综合与闭环文献总结 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 人类科学家的 scientific query、data definition、领域文献 corpus、候选模型库、低置信数据人工检查 |
 | 输出 | 过滤后文献、结构化数据点、ICS confidence、拟合模型和指标、图表、方程、文本报告、可迭代反馈 |
 | 方法/系统形态 | Elhuyar：multi-agent human-in-the-loop scientific literature summarization framework |
 | 覆盖阶段 | 文献过滤、数据抽取、置信度/人审、模型选择、模型拟合/评价、报告生成、闭环 refinement |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
 | 人审/审计机制 | scientist 提供问题与变量定义；inspector 检查低置信数据；ICS 多次抽取一致性评分；实验中所有未过滤值人工检查 |
+| 人类角色 | 原文有人类参与线索；角色需在正式写作前复核 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | 数据点/置信度级检查线索；是否能导出 source-span / report-claim 链待核验。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 材料科学 pilot：64 篇 tungsten irradiation 文献；GPT-4o-mini，k=10；14 个有效数据点；R2；synthetic evaluation 250 文档和 ablation |
+| 模型/API 设置 | GPT-4、GPT-4o、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | k=10；正式复现前需回原文核对 |
 | 主要发现 | tungsten pilot 中 5 篇论文产生 14 个有效数据点，ICS>3 均人工核对正确；指数模型 R2=0.695，高于线性模型 R2=0.503；synthetic 中抽取正确率报告为 100% |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 最强 human-in-the-loop / audit 近邻之一；直接威胁“agent + extraction + confidence + report + human correction”组合，但领域不是 SE，且缺少 claim-level provenance |
+| 受影响主张 ID | C1,C2,C3,C5,C7 |
+| 威胁类型 | 直接覆盖 + 局部覆盖 |
+| 威胁的 paper2 主张 | 最强 human-in-the-loop / audit 近邻之一；直接威胁“agent + extraction + confidence + report + human correction”组合，但领域不是 SE，且缺少 claim-level provenance |
+| 支持的 paper2 主张 | 支持 paper2 强调阶段化 evidence package、deterministic execution boundary、人类反馈闭环和 run record，而不是单次生成报告。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 定性强baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 定性强baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
@@ -70,7 +101,7 @@ pipeline 包含三条路径。Extraction path 先由 yes-no filtering agent 通�
 
 ## 8. 对 paper2 story / 实验设计的影响
 
-这篇对 paper2 的影响很大。它已经把 agent pipeline、human feedback、low-confidence flagging、multi-run consensus、model evaluation 和 report generation 串成闭环。paper2 若主打“agent-loop 生成综述/证据综合”，必须说明与 Elhuyar 的差异：SE 文献而非材料科学；文献综述中的 claim-to-source/page/table provenance；run record 与 eligibility filter；LLM-as-judge 或专家审计如何记录；失败 run 是否进入统计。
+这篇对 paper2 的影响很大。它已经把 agent pipeline、human feedback、low-confidence flagging、multi-run consensus、model evaluation 和 报告生成 串成闭环。paper2 若主打“agent-loop 生成综述/证据综合”，必须说明与 Elhuyar 的差异：SE 文献而非材料科学；文献综述中的 claim-to-source/page/table provenance；run record 与 eligibility filter；LLM-as-judge 或专家审计如何记录；失败 run 是否进入统计。
 
 实验上，paper2 可以借鉴 ICS 思路，但应扩展到文本 claim 与分类标签：同一字段多次抽取的一致性、低一致性触发人工 gate、最终报告中每个结论都能回溯到 source span。评价指标也应不只看模型 R2 或 extraction correctness，还要看 evidence trace completeness、unsupported claim rate、人工修复成本和 downstream related-work 可用性。
 

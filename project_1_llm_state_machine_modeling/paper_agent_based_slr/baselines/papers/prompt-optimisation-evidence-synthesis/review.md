@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | A Reproducible Optimisation Protocol for Calibrating Prompt-Based Large Language Model Workflows in Evidence Synthesis |
 | 年份 | 2026 |
-| 分层 | P1：prompt calibration / reproducibility 强方法学 baseline；不是完整 SLR agent 系统 |
+| 作者 / venue / 出版状态 | Teo Susnjak；arXiv:2605.06937; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | agent式证据综合与闭环文献总结 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | 原文未给出明确 LLM/agent 执行角色；按相关工作背景处理。 |
+| 证据溯源粒度 | decision-log / trace 级 provenance；需核验是否能导出完整证据包。 |
 | 输入 | 固定 task contract、machine-readable interface、labelled/reference examples、task metric、student LLM、reflection LLM、train/val/test splits |
 | 输出 | GEPA/DSPy compiled prompt harness、saved JSON artefact、evaluation traces、prediction logs、reproducibility checklist、held-out screening metrics |
 | 方法/系统形态 | Methods article；用 DSPy + GEPA 把 prompt optimisation 视为科学仪器校准；student model 执行任务，reflection model 只在 calibration 中修订 prompt |
 | 覆盖阶段 | 实证验证只覆盖 title/abstract screening；方法上讨论 extraction、coding、risk-of-bias、domain mapping、query generation、tool routing 等可适配任务 |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
 | 人审/审计机制 | 固定 criteria / task contract；metric 要求 checks trace；保存 specification、metric、settings、traces、environment、logs；专家判断仍保留给 borderline / synthesis decisions |
+| 人类角色 | 领域专家gold / 标注者 / 事后评价者（具体角色见人审机制字段） |
+| 审计时机 | 运行前 + 运行后复核 |
+| 主张追踪状态 | 无明确 claim-to-source trace 或本轮未核验 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有 trace/log/dialogue 或 protocol 线索；是否可作为 run record 导出待 artifact audit。 |
 | 实验/指标 | SESR-Eval Study 41，1194 records；Qwen-2.5-7B student、GPT-5-mini reflection；5 seeds；GEPA budgets 2/6/12/24；held-out N=1076 |
+| 模型/API 设置 | GPT-5、Qwen、LiteLLM、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | seed、seeds；正式复现前需回原文核对 |
 | 主要发现 | structured baseline F1 0.840；max_eval=12 F1 0.848、utility 0.855，提升很小；max_eval=24 反而低于 baseline，说明 budget 不是单调收益 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 约束 paper2 的 prompt / LLM workflow reproducibility：必须固定 task contract、metric、seeds、model IDs、traces、artefacts 和 run logs，不能只报告最终 prompt |
+| 受影响主张 ID | C5,C7 |
+| 威胁类型 | 评价协议约束 + 负面证据 |
+| 威胁的 paper2 主张 | 约束 paper2 的 prompt / LLM workflow reproducibility：必须固定 task contract、metric、seeds、model IDs、traces、artefacts 和 run logs，不能只报告最终 prompt |
+| 支持的 paper2 主张 | 支持 paper2 强调阶段化 evidence package、deterministic execution boundary、人类反馈闭环和 run record，而不是单次生成报告。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)。

@@ -8,8 +8,8 @@
 
 1. 将 SLR / SMS 的检索、筛选、抽取、编码、综合、报告组织为 agent 工作流。
 2. 为每个阶段保存可审计证据链和 run record。
-3. 把报告级 claim 绑定到论文来源、筛选决策、抽取记录和编码决策。
-4. 通过 human audit gate 控制幻觉、unsupported claim 和错误证据定位。
+3. 把报告级 主张绑定到论文来源、筛选决策、抽取记录和编码决策。
+4. 通过 人工审计 gate 控制幻觉、unsupported claim 和错误证据定位。
 5. 在软件工程 / LLM4SE / MDE 语境中评价该工作流。
 
 本目录可以先保存 title / abstract 粗筛，但只要 PDF 已获取，`review.md` 必须逐步升级为全文核验稿。正式写 paper 的 Related Work / novelty 对比时，不能引用粗筛结论替代全文证据。
@@ -20,7 +20,7 @@
 
 1. LLM-based systematic literature review / systematic mapping。
 2. LLM-assisted screening、corpus filtration、data extraction、coding、evidence synthesis、review composition。
-3. agentic / multi-agent literature review、survey generation、scientific knowledge synthesis。
+3. agentic / multi-agent literature review、survey 生成、scientific knowledge synthesis。
 4. human-in-the-loop evidence synthesis、provenance-aware extraction、claim-to-source traceability。
 5. 软件工程、LLM4SE、MDE、empirical SE 中与 SLR/SMS 自动化直接相关的论文。
 6. 虽不直接自动化 SLR，但会影响本文 evaluation design、survey quality evaluation、citation grounding、LLM variability、false negative 风险或 SE community positioning 的论文。
@@ -30,7 +30,7 @@
 1. 只做普通摘要、问答、RAG 写作，没有 SLR / SMS 任务语境的工作。
 2. 只研究 LLM4SE 任务本身、没有文献综述自动化流程的工作。
 3. 只有宣传网页、无论文 / DOI / arXiv / 官方仓库的工具。
-4. 与本文 novelty 无关的通用 survey generation 工作；除非其 agent / evaluation / citation 机制强到足以影响本文报告生成 claim。
+4. 与本文 novelty 无关的通用 survey 生成 工作；除非其 agent / evaluation / citation 机制强到足以影响本文报告生成 claim。
 
 ## 3. 分层口径
 
@@ -60,8 +60,33 @@ emoji 列在正式表格中只写 emoji；中文解释集中写在本节。每�
 1. `粗筛评分` 可以来自 title / abstract；`全文评分` 必须来自 `paper_content.txt` 或 PDF 的方法、实验、系统描述、结论等正文证据。
 2. 若全文没有支持某个维度的证据，应降级评分，而不是沿用粗筛推测。
 3. 若 PDF 文本提取缺页、乱码或图表缺失，应在该维度写“证据不足 / 待 PDF 核对”，不能脑补。
-4. D7 必须和本文 paper2 的具体 claim 绑定：威胁的是 agent workflow、human audit、claim-to-source、SE setting、evaluation protocol，还是报告生成。
+4. D7 必须和本文 paper2 的具体 主张绑定：威胁的是 agent 工作流、人工审计、claim-to-source、SE setting、evaluation protocol，还是报告生成。
 5. 对 arXiv 论文，D6 不能写成 CCF/peer-reviewed；若后续发现正式版本，必须补充 venue 和核验日期。
+
+### 4.2 paper2 主张 ID 与威胁类型
+
+按 `$ai-research-writing-skill` 的 claim-evidence 口径，baseline 不是只判断“相关 / 不相关”，而是要回答它影响 paper2 哪一条可写 claim。每篇 `review.md` 与 [SUMMARY.md](./SUMMARY.md) 至少应使用下列 主张 ID；若后续 story 调整，可新增 ID，但不得复用旧 ID 表示新语义。
+
+| 主张 ID | 当前含义 | baseline 审查时要问的问题 |
+|---|---|---|
+| C1 | agent 化多阶段 SLR/SMS 工作流 | 该论文是否已经覆盖检索、筛选、抽取、编码、综合、报告中的多个阶段，并以 agent / workflow 形式组织？ |
+| C2 | 人工审计 gate / human-in-the-loop | 该论文的人类角色是标注、运行中裁决、事后评价，还是只在论文实验里做 human reference？ |
+| C3 | claim-to-source / provenance 证据链 | 该论文是否能把输出 claim、表格单元、引用或筛选决策追溯到源文献位置、页面、段落、表格或运行记录？ |
+| C4 | SE / LLM4SE / MDE 场景定位 | 该论文是否直接发生在软件工程、LLM4SE、MDE 或目标 venue 语境中？ |
+| C5 | 阶段化评价协议与指标 | 该论文是否提供可复用的筛选、抽取、编码、报告、引用质量、unsupported claim、成本或人工负担指标？ |
+| C6 | 报告生成 / survey writing 可靠性 | 该论文是否已经覆盖自动 survey / review composition、citation validity、veracity 或 LLM-as-Judge 评价？ |
+| C7 | 可复现 LLM workflow / run record | 该论文是否记录模型、prompt、温度、seed、重复运行、成本、代码、数据、版本和日志，足以支撑复现或公平 baseline？ |
+
+`威胁类型` 必须使用受控口径之一：
+
+| 威胁类型 | 含义 | 写作影响 |
+|---|---|---|
+| 直接覆盖 | baseline 已覆盖 paper2 某条候选 claim 的核心组合 | 该 claim 必须降级、重写或增加强差异化证据。 |
+| 局部覆盖 | baseline 覆盖某个阶段、模块或评价维度 | paper2 可保留组合贡献，但必须在 Related Work 中承认局部近邻。 |
+| 负面证据 | baseline 暴露 LLM/agent 在该环节的失败、变异或不可靠性 | paper2 可把它转化为方法动机或实验指标，但不能忽略风险。 |
+| 评价协议约束 | baseline 提供了 reviewer 会期待的指标、gold、人工评审或成本口径 | paper2 实验应对齐或解释为什么不可比。 |
+| 禁用 claim 证据 | baseline 直接证明某个宽泛 claim 不能写 | 对应 claim 应进入 claims-to-avoid。 |
+| 背景定位 | baseline 只提供领域背景或弱近邻 | 可用于 Related Work，但不能作为主 novelty 对手。 |
 
 ## 5. 检索策略
 
@@ -77,7 +102,7 @@ emoji 列在正式表格中只写 emoji；中文解释集中写在本节。每�
 ### 5.2 arXiv 粗筛
 
 1. 保留 query、检索时间、原始记录、去重数量、纳入数量。
-2. 初始 query 至少覆盖：`LLM + systematic literature review`、`LLM + screening/extraction/synthesis`、`agentic literature review`、`automated literature review`、`evidence synthesis`、`survey generation`。
+2. 初始 query 至少覆盖：`LLM + systematic literature review`、`LLM + screening/extraction/synthesis`、`agentic literature review`、`automated literature review`、`evidence synthesis`、`survey 生成`。
 3. 原始 arXiv query 快照写入 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)，2024--2026 去重候选池写入 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)。
 4. 正式纳入候选元数据写入 [search/arxiv-query-results.jsonl](./search/arxiv-query-results.jsonl)，粗筛总表写入 [search/arxiv-2024-2026-title-abstract-screening.md](./search/arxiv-2024-2026-title-abstract-screening.md)。
 5. 每条未纳入候选至少保留 `screening_decision=excluded` 与中文排除理由；否则不能把 291→34 这类筛选链条写成可审计。
@@ -129,9 +154,21 @@ papers/<slug>/
 
 如果一篇论文只是粗略 review，必须在快速结论卡片和 SUMMARY 中如实标注；如果已经全文阅读，也必须写清楚阅读入口和范围，避免后续把不同证据等级混在一起。
 
+快速结论卡片的字段必须按 `$ai-research-writing-skill` 的 claim-evidence 口径维护。最低字段分为七组：
+
+1. **元信息与证据状态**：标题、作者、年份、venue / arXiv / DOI / peer-reviewed 状态、SUMMARY 事实分层 P0/P1/P2、阅读状态、证据等级、核验入口、核验日期或待 PDF 图表核对状态。
+2. **任务边界与方法事实**：研究脉络、引用角色、研究任务、输入、输出、覆盖 SLR/SMS 阶段、不覆盖阶段、方法/系统形态、LLM/agent 角色、人类角色与 human-in-the-loop 位置。
+3. **审计与 provenance**：人工审计机制、人类角色、审计发生时机、证据溯源粒度、主张追踪状态、决策日志状态、冲突处理机制、审计记录是否可导出。
+4. **评价与结果**：RQ 或评价问题、数据集/案例/领域、gold/reference/human label、baselines/comparators、metrics 与方向、主要结果数字、关键结果锚点、数值使用许可、failure/error analysis。若原文未给某项，必须写“原文未给出”，不能省略后让读者误以为已核验。
+5. **LLM workflow 与可复现资产**：模型/API 设置、提示词状态、温度/重复/随机种子、token/成本、代码状态、数据状态、许可状态、artifact URL / 本地路径、运行可行性。若只是看到论文声称有代码或数据，但未打开核验，应写“声称有；本轮未核验”，不能写成已可复现。
+6. **paper2 claim-evidence 影响**：受影响主张 ID、威胁类型、威胁的 paper2 主张、支持的 paper2 主张、paper2 应避免的主张、差异化要求、对 paper2 evaluation design 的启发、对比方式 / baseline 可用性。
+7. **写作与待复核**：可用于 Related Work 的引用角度、可支持的写作强度、局限与可复现性、代码/数据/prompt/license/artifact 状态、按优先级排序的待复核清单。
+
+`分层` 字段只写 SUMMARY 事实分层 P0/P1/P2，不写“全文建议 P0/P1”这类和总账冲突的判断。若单篇作者认为该论文虽被归入 P2 但对某个模块威胁很强，应另设 `近邻强度备注`，并在 SUMMARY 的 claim / 可用性表中解释降级理由。
+
 每篇全文 review 至少包含以下章节，顺序保持稳定，便于后续汇总脚本和人工阅读：
 
-1. **快速结论卡片**：用一个紧凑表格给出标题、年份、分层、阅读状态、证据等级、核验入口、输入、输出、方法形态、覆盖阶段、评价强度、审计强度、对 paper2 的作用。
+1. **快速结论卡片**：用一个紧凑表格给出上述七组最低字段；字段名应尽量稳定，便于后续汇总脚本抽取。
 2. **D1-D7 全文核验评分**：emoji 单值列 + 每维中文理由 + 证据锚点；明确哪些评分相对粗筛发生变化。
 3. **论文解决的问题与背景**：说明原文为什么认为该问题重要，以及与 SLR/SMS/evidence synthesis 的关系。
 4. **方法 / 系统拆解**：必须写清输入、输出、阶段、LLM/agent 角色、prompt/RAG/检索/抽取/编码/生成模块、人机交互与异常处理。
@@ -158,21 +195,48 @@ papers/<slug>/
 
 1. 当前候选总数、本地建库数、P0/P1/P2 数量、全文核验数量、PDF 图表级核对数量、人工下载数量。
 2. **主表不能只有 D1-D7**。主表必须同时包含描述性维度，让读者不打开单篇 `review.md` 也能直观看到每篇论文状况。
-3. 主表最低字段：年份、分层、标题、venue/状态、阅读状态、证据等级、输入、输出、覆盖阶段、方法/系统形态、人审/审计机制、实验/指标、主要发现、D1-D7、对 paper2 的作用、本地链接。
-4. 推荐增强字段：是否同行评审、line of work、citation role、LLM/agent 角色、provenance 粒度、实验对象/数据集、gold/reference、baselines/metrics、代码/数据/提示词可得性、威胁的 paper2 claim、支持的 paper2 claim、claims to avoid、差异化要求。
-5. 若 GitHub 单张表过宽，可拆成“主表 A：方法事实与证据等级”和“主表 B：D1-D7 与 claim 影响”，但两张表必须覆盖同一批本地条目，并都保留标题到单篇 `review.md` 的相对链接。
-6. 以下字段缺失应按 I 级学术风险处理：阅读状态 / 证据等级、venue/状态、输入、输出、覆盖阶段、方法/系统形态、人审/审计机制、provenance 粒度或其缺失说明、实验对象/指标、主要发现、D1-D7、威胁的 paper2 claim 或对 paper2 的作用、本地证据入口。
-7. 分组总结必须覆盖：多 agent / agentic SLR workflow、human audit / provenance、screening / corpus filtration、survey generation / review composition、SE 场景近邻、evaluation benchmark / prompt reproducibility。
-8. P2 若已建本地目录，应进入主表或背景表，并说明为什么不是 P0/P1。
+3. 主表最低字段：年份、分层、标题、venue/状态、peer-reviewed/预印本状态、阅读状态、证据等级、PDF 图表核对状态、研究脉络 / 引用角色、输入、输出、覆盖阶段、方法/系统形态、LLM/agent 角色、人审/审计机制、证据溯源粒度、实验对象/数据集、gold/reference、baselines/metrics/main result、代码/数据/prompt/artifact 可用性、D1-D7、威胁的 paper2 主张、支持的 paper2 主张、paper2 应避免的主张、差异化要求 / paper2 action item、未解决阻塞项、本地链接。
+4. `baseline 可用性` 必须使用受控口径之一：`可运行baseline待复现`、`协议/指标baseline`、`定性强baseline`、`仅related-work背景`、`全文不可得待补`。若代码、数据或 prompt 未核验，应写入 可用性或阻塞项，而不是留空。
+5. 若 GitHub 单张表过宽，可拆成“主表 A：方法事实与证据等级”“主表 B：D1-D7 与 claim 影响”“主表 C：claim-evidence / 可复现性可用性”。三张表必须覆盖同一批本地条目，并都保留标题到单篇 `review.md` 的相对链接。
+6. 以下字段缺失应按 I 级学术风险处理：阅读状态 / 证据等级、venue/状态、peer-reviewed/预印本状态、输入、输出、覆盖阶段、方法/系统形态、LLM/agent 角色、人审/审计机制、证据溯源粒度或其缺失说明、实验对象/指标、主要发现、D1-D7、威胁的 paper2 主张、支持的 paper2 主张、paper2 应避免的主张、差异化要求、baseline 可用性、本地证据入口。
+7. 分组总结必须覆盖：多 agent / agent 式 SLR 工作流、人工审计 / provenance、screening / corpus filtration、survey 生成 / review composition、SE 场景近邻、evaluation benchmark / prompt reproducibility。
+8. P2 若已建本地目录，应进入主表或背景表，并说明为什么不是 P0/P1；如果 D7=🟢 但仍归 P2，必须在 `差异化要求 / 阻塞项` 中解释它威胁的是 survey 生成 / evaluation 等局部 claim，而非 SLR/SMS evidence workflow 主线。
 9. CCF coverage / gap 与人工下载入口必须保留，不能把 coverage gap 写成负证据。
 10. `SUMMARY.md` 应给出总体定调结论：哪些 claim 必须禁用，哪些 claim 可以保守保留，后续实验必须补哪些证据。
 
-### 7.1 字段命名风险
+### 7.1 CCF-A 级字段补强口径
+
+若本 baseline 文库要支撑 CCF A 类标准的 Related Work、novelty matrix、实验设计或 rebuttal 预案，`SUMMARY.md` 不应只复述单篇 quick card，而应额外维护下列 reviewer 会直接追问的字段。字段可拆成主表 D / E，避免把主表 A/B/C 扩到不可读。
+
+1. **主张绑定字段**：`受影响主张 ID`、`威胁类型`、`对比方式`、`paper2 必须采取的动作`。这四项用于把 baseline 结论接到 paper story 和 claim-evidence map，避免“相关但不知道威胁什么”。
+2. **阶段边界字段**：`覆盖阶段` 与 `不覆盖阶段` 必须分开；只有写清 baseline 不覆盖什么，才能支撑 paper2 的保守 gap claim。
+3. **审计/provenance 字段**：至少拆出 `人类角色`、`审计时机`、`主张追踪状态`、`决策日志状态`、`冲突处理机制`。不能把 expert label、human evaluation、运行中人工裁决和 claim-level provenance 混在一列。
+4. **LLM 设置字段**：至少记录 `模型/API 设置`、`提示词状态`、`温度/重复/随机种子`、`成本/token`；若原文未给出，写“原文未给出”。这类缺失本身就是 paper2 可复现性设计的动机。
+5. **资产可复现字段**：至少记录 `代码状态`、`数据状态`、`许可状态`、`制品入口`、`运行可行性`。不要用一句“代码/数据/prompt 待复核”覆盖所有论文；它无法支持是否能作为 executable baseline 的决策。
+6. **数字证据字段**：凡 `SUMMARY.md` 写入 AUC、F1、accuracy、cost、win-rate、time saving 等数字，必须同时写 `关键结果锚点` 与 `数值使用许可`。当前没有人工 PDF 图表级核对时，默认写“仅文本级引用；正式写作前需 PDF 图表核对”。
+
+推荐受控口径：
+
+| 字段 | 允许值 / 写法 |
+|---|---|
+| `代码状态` | `未提及` / `声称有；未核验` / `URL已核验` / `已clone未运行` / `已smoke运行` |
+| `数据状态` | `未提及` / `公开；未核验license` / `公开且license已核验` / `需申请` / `部分公开` / `不可得` |
+| `提示词状态` | `未给出` / `附录片段` / `repo提供` / `完整可复用` / `版本未定` |
+| `运行可行性` | `可运行baseline待复现` / `可复现需改造` / `协议/指标baseline` / `定性强baseline` / `仅related-work背景` |
+| `人类角色` | `无` / `标注者` / `运行中审查者` / `冲突裁决者` / `事后评价者` / `领域专家gold` / `用户反馈` |
+| `审计时机` | `无` / `运行前` / `运行中` / `运行后` / `仅评价阶段` |
+| `主张追踪状态` | `无` / `引用级` / `段落级` / `source-span级` / `页面/表格/单元格级` / `报告级claim链` |
+| `决策日志状态` | `无` / `per-record` / `per-stage` / `full run record` / `仅论文叙述` |
+| `数值使用许可` | `可直接引用` / `仅文本级引用` / `需PDF图表核对` / `原文未给明确数值` |
+
+### 7.2 字段命名风险
 
 1. 避免在主表使用单列 `初步判断` 承载所有信息；它会混淆题摘粗筛与全文结论。应拆为 `主要发现`、`对 paper2 的作用`、`差异化要求`。
 2. 避免只写 `核验阶段`；应写成 `阅读状态` + `证据等级`。
 3. D6 的正式含义是 `SE / 目标 venue 相关性`，不能把 arXiv 或非同行评审工作写成 CCF / peer-reviewed 事实。
 4. P0/P1/P2 表示 novelty 威胁强度，不等同“可复现实验 baseline”或“正式发表等级”。
+5. 避免把 `分层` 写成“全文建议 P0/P1”这类自由文本；事实分层与近邻强度备注应分列，便于 SUMMARY 数量闭合。
+6. 避免把 `可复现性` 只写在长文末尾；快速结论卡片和 SUMMARY 必须有 代码/数据/prompt/artifact 可用性 或 阻塞项。
 
 ## 8. 验证与验收
 

@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Beyond Accuracy: LLM Variability in Evidence Screening for Software Engineering SLRs |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Gilberto Sussumu Hida、Danilo Monteiro Ribeiro 等；arXiv:2604.27006; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 核对图表 |
+| 研究脉络 | SLR/SMS 筛选、语料过滤与规划 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM 主要作为生成器、评价器或被综述对象；非多 agent 执行 workflow。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | 2 个真实 SE SLR 的题名、摘要、关键词与人工 inclusion/exclusion 标签；完整记录 126 + 392 篇 |
 | 输出 | LLM / 传统分类器的 screening 决策、准确率 / F1、跨轮一致性、metadata 组合影响、采用 LLM screening 的实践 checklist |
 | 方法/系统形态 | 受控实验；12 个 API LLM + 4 个传统 ML 分类器；固定 prompt、温度 0、5 次重复运行；非 agent 系统 |
 | 覆盖阶段 | 主要覆盖 SLR study screening；附带讨论元数据准备、人工复核路由和采用前 pilot validation |
+| 不覆盖阶段 | 不覆盖检索策略冻结、全文抽取、编码、综合、报告生成和报告级 claim-to-source。 |
 | 人审/审计机制 | 原文提出 unanimity 自动化 + disagreement 送人工复核 + verification sampling；但没有提供 claim-to-source 或 per-record 审计包 |
+| 人类角色 | 运行中审查者 / 冲突裁决者 |
+| 审计时机 | 运行中 + 运行后复核 |
+| 主张追踪状态 | screening gold/一致性级；无 per-record provenance 或 claim trace。 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 有模型/人工冲突处理线索；裁决规则需按全文复核 |
+| 审计导出性 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 | 实验/指标 | 2 个 SE SLR、518 条完整记录；accuracy、F1、Gwet AC2、bootstrap CI、随机效应 meta-analysis、SESOI |
+| 模型/API 设置 | GPT-4、GPT-4o、GPT-4.1、Gemini、Llama、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 温度 0、5 次、重复；正式复现前需回原文核对 |
 | 主要发现 | LLM 在温度 0 下仍有残余变异；摘要是关键输入；LLM 对传统 ML 没有稳定可泛化优势；采用时应以治理、成本、可复现和元数据约束为依据 |
-| 对 paper2 的作用 | 强约束 paper2 的 screening evaluation、模型变异、human audit gate 和 run record 设计；不覆盖多阶段 agent SLR 或报告级 claim-to-source |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 强约束 paper2 的 screening evaluation、模型变异、人工审计 gate 和 run record 设计；不覆盖多阶段 agent SLR 或报告级 claim-to-source |
+| 受影响主张 ID | C4,C5,C7 |
+| 威胁类型 | 评价协议约束 + 负面证据 |
+| 威胁的 paper2 主张 | 强约束 paper2 的 screening evaluation、模型变异、人工审计 gate 和 run record 设计；不覆盖多阶段 agent SLR 或报告级 claim-to-source |
+| 支持的 paper2 主张 | 支持 paper2 把筛选阶段评价扩展到 false negative、模型变异、人工复核路由、成本和决策日志，而不是只报告 accuracy/F1。 |
+| paper2 应避免的主张 | 避免把筛选 accuracy/F1 当作完整 SLR 自动化贡献；避免忽视 false negative、模型变异和人工复核成本。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
@@ -34,13 +65,13 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 | D4 人工审计与可追踪性 | 🟡 | `paper_content.txt` §5 / Page 12--13 | 原文建议多轮推理、一致决策自动化、冲突样本送人工复核、自动筛选样本抽检，并要求记录模型/API 标识和环境配置；这是有用的治理建议，但未交付可复查的 per-record provenance 或 claim-to-source 证据链。 |
 | D5 评价严谨性 | 🟢 | `paper_content.txt` §3.1--3.5 / Page 3--6；§4 / Page 7--12；§6 / Page 13 | 有真实 SE SLR 数据、12 个 LLM、4 个传统 ML baseline、重复运行、一致性分析、bootstrap CI、元数据消融和限制讨论。局限是仅 2 个 SLR、5 次迭代、无成本收益分析。 |
 | D6 SE / CCF 相关性 | 🟢 | `paper_content.txt` Page 1 keywords；§1 / Page 1--2；§6 / Page 13 | 论文直接面向 Software Engineering SLR screening，数据来自 HCI-AI 与教育游戏化相关 SE review，虽然是 arXiv preprint，主题社区强相关。 |
-| D7 novelty 威胁强度 | 🟡 | `paper_content.txt` §5 checklist / Page 12--13；§7 / Page 13--14 | 对 paper2 的威胁集中在 screening 模块：它已经证明模型变异、摘要依赖、传统 ML 对照和 human-review routing 的必要性。它不覆盖 agent workflow、抽取/综合/报告、run record 或报告级证据绑定，因此不是完整 P0 竞品，但必须作为 screening 强基线正面对比。 |
+| D7 novelty 威胁强度 | 🟡 | `paper_content.txt` §5 checklist / Page 12--13；§7 / Page 13--14 | 对 paper2 的威胁集中在 screening 模块：它已经证明模型变异、摘要依赖、传统 ML 对照和 human-review routing 的必要性。它不覆盖 agent 工作流、抽取/综合/报告、run record 或报告级证据绑定，因此不是完整 P0 竞品，但必须作为 screening 强基线正面对比。 |
 
 ## 3. 论文解决的问题与背景
 
 论文的出发点是 SE SLR 的 study screening 成本高、容易不一致，且 false negative 会直接损害综述有效性。作者指出，传统双人独立筛选加交叉验证虽能降低风险，但当候选文献达到数千条时，人力成本仍然很高。LLM 被视为可降低成本的候选方案，但原文认为已有研究仍缺少三个关键证据：不同 LLM 在同一协议下表现如何、题名/摘要/关键词不同组合对结果有什么影响、LLM 相比传统监督分类器是否有稳定收益。
 
-这篇论文的定位不是提出新的 SLR agent，而是做 screening 阶段的受控评价和治理建议。它尤其强调“accuracy 之外”的问题：温度设为 0 也不等于完全可复现，API 模型版本会漂移，输入元数据缺失会改变结果，单一模型在一个 SLR 上表现好不能直接外推到另一个 SLR。这个问题设定对 paper2 很关键，因为 paper2 若声称 agent workflow 能可靠接管筛选阶段，必须回答这类变异和审计问题。
+这篇论文的定位不是提出新的 SLR agent，而是做 screening 阶段的受控评价和治理建议。它尤其强调“accuracy 之外”的问题：温度设为 0 也不等于完全可复现，API 模型版本会漂移，输入元数据缺失会改变结果，单一模型在一个 SLR 上表现好不能直接外推到另一个 SLR。这个问题设定对 paper2 很关键，因为 paper2 若声称 agent 工作流 能可靠接管筛选阶段，必须回答这类变异和审计问题。
 
 ## 4. 方法 / 系统拆解
 
@@ -76,14 +107,14 @@ Phase 3 显示 LLM 与传统方法没有稳定可泛化的性能分离。SLR1 �
 
 paper2 必须避免笼统声称 LLM screening 比传统方法更好。这篇论文直接说明 LLM 的优势依赖数据集、模型、输入元数据和指标，且传统 Logistic Regression 在某些设置下可接近 top LLM。paper2 若包含 screening 模块，应把传统 ML、trivial exclude、单模型 LLM、多轮一致性策略作为 baseline 或 sanity check。
 
-paper2 的 human audit gate 可以借鉴其 unanimity + disagreement routing，但要进一步做出差异化：不仅记录冲突，还要保存每条文献的输入、模型输出、阶段决策、人工裁决、错误类别和下游 claim 影响。paper2 也应在 run record 中显式记录模型 ID、调用时间、prompt、温度、输入 metadata 是否完整，并把 title/abstract/keywords 缺失作为 eligibility 或 risk 字段。
+paper2 的 人工审计 gate 可以借鉴其 unanimity + disagreement routing，但要进一步做出差异化：不仅记录冲突，还要保存每条文献的输入、模型输出、阶段决策、人工裁决、错误类别和下游 claim 影响。paper2 也应在 run record 中显式记录模型 ID、调用时间、prompt、温度、输入 metadata 是否完整，并把 title/abstract/keywords 缺失作为 eligibility 或 risk 字段。
 
 ## 9. 可用于写作的引用角度
 
 - 在 SE SLR screening 中，近期研究显示不同 LLM 即使在统一协议和温度 0 下也存在明显模型间差异和跨轮变异，因此自动化筛选不能只报告单次 accuracy。
 - Hida 等人的结果提示，abstract availability 是 LLM screening 的关键条件，title+keywords-only 设置会显著退化；这支持本文把输入完整性纳入 run record 和 eligibility gate。
 - 该工作将 LLM 与传统 ML 分类器置于同一 screening 协议下，发现 LLM 没有稳定可泛化优势；本文因此把 agentic workflow 的贡献限定在多阶段证据链和审计机制，而不是单纯声称筛选分类器更强。
-- 其 unanimity 自动化与人工复核建议可作为本文 human audit gate 的前置相关工作，但本文需要进一步覆盖 per-stage provenance 和 report-level claim-to-source。
+- 其 unanimity 自动化与人工复核建议可作为本文 人工审计 gate 的前置相关工作，但本文需要进一步覆盖 per-stage provenance 和 report-level claim-to-source。
 
 ## 10. 待复核清单
 

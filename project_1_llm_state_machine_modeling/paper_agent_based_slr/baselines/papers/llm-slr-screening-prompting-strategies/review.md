@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | Evaluating Prompting Strategies and Large Language Models in Systematic Literature Review Screening: Relevance and Task-Stage Classification |
 | 年份 | 2025 |
+| 作者 / venue / 出版状态 | Binglan Han、Anuradha Mathrani 等；arXiv:2510.16091; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P1 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 核对图表 |
+| 研究脉络 | SLR/SMS 筛选、语料过滤与规划 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM 主要作为生成器、评价器或被综述对象；非多 agent 执行 workflow。 |
+| 证据溯源粒度 | 未见可执行 provenance；只能作为背景或弱审计证据。 |
 | 输入 | 2014--2024 年 SLR automation 相关候选文献；去重筛选后 1,376 条，人工标注出 491 条 relevant 记录 |
 | 输出 | relevance yes/no、五类 SLR stage 自动化标签、是否使用 LLM 标签、prompt/model 指标和每 1,000 abstracts 成本 |
 | 方法/系统形态 | 6 个 LLM × 5 类 prompt 的系统评价；两层分类任务；非 agent 系统 |
 | 覆盖阶段 | 实质执行 relevance screening 与 task-stage coding；其他 SLR 阶段只是被分类为标签对象 |
+| 不覆盖阶段 | 不覆盖检索策略冻结、全文抽取、编码、综合、报告生成和报告级 claim-to-source。 |
 | 人审/审计机制 | 两名研究者独立标注并 consensus；prompt 模板和 CI 报告较完整；无 per-record provenance 或审计日志 |
+| 人类角色 | 无正式人审 gate；若有评价者仅作实验评价 |
+| 审计时机 | 运行前 + 运行后复核 |
+| 主张追踪状态 | 无明确 claim-to-source trace 或本轮未核验 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | accuracy、precision、recall、F1、Wilson CI、bootstrap F1 CI、Friedman / Nemenyi、成本分析 |
+| 模型/API 设置 | GPT-4、GPT-4o、Claude、Opus、Gemini、Llama、DeepSeek、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | CoT-few-shot 在 relevance classification 中整体均衡；zero-shot 适合高召回初筛；self-reflection 过度纳入且不稳定；GPT-4o / DeepSeek 强，GPT-4o-mini 成本低 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | 支撑 paper2 的 prompt/model/cost baseline 和分层筛选策略；不应被写成端到端 SLR 自动化竞品 |
+| 受影响主张 ID | C5,C7 |
+| 威胁类型 | 评价协议约束 |
+| 威胁的 paper2 主张 | 支撑 paper2 的 prompt/model/cost baseline 和分层筛选策略；不应被写成端到端 SLR 自动化竞品 |
+| 支持的 paper2 主张 | 支持 paper2 把筛选阶段评价扩展到 false negative、模型变异、人工复核路由、成本和决策日志，而不是只报告 accuracy/F1。 |
+| paper2 应避免的主张 | 避免把筛选 accuracy/F1 当作完整 SLR 自动化贡献；避免忽视 false negative、模型变异和人工复核成本。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。
@@ -31,7 +62,7 @@ emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji�
 | D1 主题贴合度 | 🟢 | `paper_content.txt` Abstract / Page 1；§1 / Page 2 | 论文直接研究 LLM 与 prompt strategy 在 SLR screening / stage classification 中的表现，和 paper2 的筛选与分类模块高度相关。 |
 | D2 SLR/SMS 流程覆盖度 | 🟡 | `paper_content.txt` §3.1 / Page 4--5；§4.2 / Page 11--18 | LLM 实际执行 relevance screening 和 Level-2 task-stage coding；虽然标签覆盖 searching、screening、retrieval、synthesis、writing，但模型并未执行这些阶段，因此按两个核心环节计。 |
 | D3 LLM/agent 自动化深度 | 🟡 | `paper_content.txt` §3.2--3.4 / Page 5--7；Appendix B / Page 31--35 | 有清楚的 prompt、模型、JSON 输出和批量分类流程，但没有 agent、工具链、迭代审计或跨阶段状态传递。 |
-| D4 人工审计与可追踪性 | 🟠 | `paper_content.txt` §3.1 / Page 4--5；§5.4 / Page 20 | 数据集由两名研究者独立标注并 consensus，prompt 附录可复核；但自动化流程没有 human audit gate、决策日志、claim-to-source 或 per-cell provenance。 |
+| D4 人工审计与可追踪性 | 🟠 | `paper_content.txt` §3.1 / Page 4--5；§5.4 / Page 20 | 数据集由两名研究者独立标注并 consensus，prompt 附录可复核；但自动化流程没有 人工审计 gate、决策日志、claim-to-source 或 per-cell provenance。 |
 | D5 评价严谨性 | 🟢 | `paper_content.txt` §4 / Page 7--18；Table 2--9；Appendix A / Page 25--30 | 评价覆盖 6 个 LLM、5 类 prompt、两层分类任务、置信区间、显著性检验、成本表和附录细表，实验设计扎实。 |
 | D6 SE / CCF 相关性 | 🟠 | `paper_content.txt` BibTeX / arXiv cs.CL；§2 / Page 2--4 | 论文属于泛 SLR automation / NLP 评价，不是 SE venue，也不是直接面向 SE SLR；可作为方法学和评价设计背景。 |
 | D7 novelty 威胁强度 | 🟡 | `paper_content.txt` §5.1--5.5 / Page 18--21 | 对 paper2 的 prompt selection、model-cost tradeoff、分层筛选 workflow 构成局部威胁；但没有多 agent SLR workflow、证据链、报告生成或 SE 场景。 |

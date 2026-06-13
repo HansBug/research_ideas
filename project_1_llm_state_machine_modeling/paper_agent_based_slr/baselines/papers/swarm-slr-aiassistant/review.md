@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | SWARM-SLR AIssistant: A Unified Framework for Scalable Systematic Literature Review Automation |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Tim Wittenborg、Allard Oelen 等；arXiv:2603.05177; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)；未人工逐页打开 PDF 图表 |
+| 研究脉络 | agent式 SLR 工作流与评价基准 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | SWARM-SLR requirements、research interest、research questions、keywords、search queries、local corpus/metadata、工具注释 schema |
 | 输出 | AIssistant 中的 guided workflow、persistent data layer、中间/最终结果、tool registry metadata、用户可选工具目录 |
 | 方法/系统形态 | 将 SWARM-SLR 的结构化 SLR 方法接入 agent-based AIssistant，并提出 centralized tool registry |
 | 覆盖阶段 | 当前实现主要覆盖 SWARM-SLR stage I 的前 5 个步骤；论文还讨论 literature search 和 corpus creation 支持，但不是完整系统评价 |
-| 人审/审计机制 | persistent storage 支持人机共享中间结果；工具 registry 有 submitted/verified 等状态概念；未见 claim-level provenance 或正式 human audit gate |
+| 不覆盖阶段 | 不覆盖阶段需按全文方法章节复核；当前不得据此写“完整覆盖 SLR 生命周期”。 |
+| 人审/审计机制 | persistent storage 支持人机共享中间结果；工具 registry 有 submitted/verified 等状态概念；未见 claim-level provenance 或正式 人工审计 gate |
+| 人类角色 | 运行中审查者或用户反馈；需区分是否为正式审计 gate |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | persistent storage / tool registry 级；无 claim-level provenance。 |
+| 决策日志状态 | 无或仅论文叙述 |
+| 冲突处理机制 | 原文未给出明确冲突处理或不适用 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | 18 名参与者基于截图/问卷评价前 5 个步骤；UEQ-S、free-text feedback、参与者意愿统计 |
+| 模型/API 设置 | 原文未给出或本轮未抽取模型清单 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | 参与者总体认为 AIssistant 比 Jupyter Notebook 更易用/支持性更强；作者承认样本小、系统未发布、缺少长期真实部署 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 | 对 paper2 的作用 | workflow/tool registry 近邻 baseline：威胁 paper2 的 SLR workflow guidance 与 tool integration claim，但评价和证据链弱于 LatteReview/Elhuyar |
+| 受影响主张 ID | C1,C2,C5,C7 |
+| 威胁类型 | 局部覆盖 |
+| 威胁的 paper2 主张 | workflow/tool registry 近邻 baseline：威胁 paper2 的 SLR workflow guidance 与 tool integration claim，但评价和证据链弱于 LatteReview/Elhuyar |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 定性强baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 定性强baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径见 [../../GUIDE.md](../../GUIDE.md)；本表单元格只放 emoji。

@@ -6,18 +6,49 @@
 |---|---|
 | 标题 | EviSearch: A Human in the Loop System for Extracting and Auditing Clinical Evidence for Systematic Reviews |
 | 年份 | 2026 |
+| 作者 / venue / 出版状态 | Naman Ahuja、Saniya Mulla 等；arXiv:2604.14165; 本轮未核验正式 peer-reviewed / CCF 状态 |
 | 分层 | P0 |
 | 阅读状态 | 已读全文文本-paper_content核验；未人工打开 PDF 图表，不写图表级核对结论 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
+| 研究脉络 | 证据抽取、证据溯源与审计 |
+| 引用角色 | 直接新颖性门槛 / 强 baseline |
+| LLM/agent 角色 | LLM/agent 执行部分检索、筛选、抽取、组织、生成或评价环节；具体阶段见方法/覆盖阶段字段。 |
+| 证据溯源粒度 | cell/page/verbatim quote 级 provenance；适合审计 evidence extraction claim。 |
 | 输入 | 原生 clinical trial PDF、133 列 ontology-aligned evidence table schema、clinician-curated mCSPC gold attribution |
 | 输出 | 结构化 evidence table；每个 cell 的 value、reasoning、page/modality/verbatim quote provenance；reconciler 判断与 reviewer edits |
 | 方法/系统形态 | 多阶段双 agent extraction pipeline：PDF Query Agent + Search Agent + Reconciliation Agent + human review web interface |
 | 覆盖阶段 | 主要覆盖系统综述中的全文证据抽取、结构化表填充、证据归因和人工审计；不覆盖检索、题摘筛选、meta-analysis 或完整综述写作 |
+| 不覆盖阶段 | 不覆盖检索、题摘筛选、meta-analysis 或完整综述写作。 |
 | 人审/审计机制 | per-cell provenance、disagreement forced page-level verification、low-confidence surfaced to reviewer、reviewer edits logged |
+| 人类角色 | 运行中审查者 / 冲突裁决者 |
+| 审计时机 | 运行中 + 运行后复核 |
+| 主张追踪状态 | 页面/表格/单元格级 provenance；可支撑 evidence extraction claim，但正式写作前仍需 PDF 图表核对。 |
+| 决策日志状态 | per-stage 叙述级；结构化日志待核验 |
+| 冲突处理机制 | 有模型/人工冲突处理线索；裁决规则需按全文复核 |
+| 审计导出性 | per-cell / reviewer edits 有导出线索；格式与可复现资产仍待 artifact audit。 |
 | 实验/指标 | clinician-curated oncology trial benchmark；numeric/free-text correctness、completeness、overall；按 text/table/figure modality 分析；token/API cost |
+| 模型/API 设置 | GPT-4、GPT-4.1、Gemini、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 附录/正文给出 prompt 或片段；完整可复用性待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | EviSearch overall 91.3%，best parsed baseline GPT-4.1 为 84.1%；667 字段中 46% 以上来自 table/figure；figure evidence 上 EviSearch 86.7%，parsed Gemini 51.6% |
-| 对 paper2 的作用 | 对 paper2 的 traceability/evidence package 是强威胁；但它不是完整 SLR agent workflow，paper2 可从 SE 场景、多阶段 run record 和报告级 claim trace 区分 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 对 paper2 的 traceability/evidence package 是强威胁；但它不是完整 SLR agent 工作流，paper2 可从 SE 场景、多阶段 run record 和报告级 claim trace 区分 |
+| 受影响主张 ID | C2,C3,C5,C7 |
+| 威胁类型 | 直接覆盖 + 评价协议约束 |
+| 威胁的 paper2 主张 | 对 paper2 的 traceability/evidence package 是强威胁；但它不是完整 SLR agent 工作流，paper2 可从 SE 场景、多阶段 run record 和报告级 claim trace 区分 |
+| 支持的 paper2 主张 | 支持 paper2 将 claim-to-source trace、page/table/cell 级证据定位和 人工审计 gate 作为核心贡献与指标。 |
+| paper2 应避免的主张 | 避免声称 page/table/cell 级 evidence provenance 是空白；避免只保存最终答案而缺少证据定位。 |
+| baseline 可用性 | 定性强baseline；若代码/数据可得，后续再判定是否可运行复现。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 | D1 主题 | D2 流程 | D3 自动化 | D4 审计 | D5 评价 | D6 SE | D7 威胁 |
@@ -68,7 +99,7 @@ EviSearch 是 paper2 证据链部分的强近邻。若 paper2 声称“可审计
 
 ## 9. 可用于写作的引用角度
 
-- EviSearch 可引用为“clinical evidence table extraction 中以 per-cell provenance 和 human audit 为核心设计”的代表。
+- EviSearch 可引用为“clinical evidence table extraction 中以 per-cell provenance 和 人工审计 为核心设计”的代表。
 - 它说明多模态证据源会显著影响抽取可靠性，table/figure 中的信息不能用纯文本 RAG 假设轻易覆盖。
 - 它也提醒 paper2 不应只报告抽取准确率，还应报告 provenance coverage、人工纠错入口和审计成本。
 

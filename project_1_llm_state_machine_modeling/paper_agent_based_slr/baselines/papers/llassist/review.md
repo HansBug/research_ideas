@@ -6,18 +6,50 @@
 |---|---|
 | 标题 | LLAssist: Simple Tools for Automating Literature Review Using Large Language Models |
 | 年份 | 2024 |
-| 分层 | P1-开源 screening/relevance 工具近邻 |
+| 作者 / venue / 出版状态 | Christoforus Yoga Haryanto；arXiv:2407.13993; 本轮未核验正式 peer-reviewed / CCF 状态 |
+| 分层 | P1 |
+| 近邻强度备注 | 开源 screening / relevance 工具近邻；SUMMARY 归 P1，主要用于 lightweight tool 与局部筛选对照。 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)；未人工打开 PDF 图表 |
+| 研究脉络 | LLM 辅助文献综述与证据综合 |
+| 引用角色 | 模块级 baseline / 重要相关工作定位 |
+| LLM/agent 角色 | LLM 参与单阶段或少数阶段任务；未形成完整 agent 式 SLR 工作流。 |
+| 证据溯源粒度 | 人工核验或 benchmark/gold 级；未必有 claim-level provenance。 |
 | 输入 | CSV 格式论文元数据/标题/摘要、用户给定 research questions 文本 |
 | 输出 | 每篇文章的 key semantics、RQ relevance/contribution TRUE/FALSE、0-1 分数、reasoning、must-read 标记；JSON 与 CSV |
 | 方法/系统形态 | C# console tool；单 LLM 后端进行语义抽取和相关性/贡献评估；支持本地 Ollama 与 OpenAI API |
 | 覆盖阶段 | 初筛/优先阅读列表；不做检索策略生成、全文抽取、编码、综合或报告写作 |
+| 不覆盖阶段 | 不覆盖检索策略冻结、全文抽取、编码、综合、报告生成和报告级 claim-to-source。 |
 | 人审/审计机制 | 输出 reasoning 和 CSV/JSON 供人审；作者强调 human-in-the-loop 和 PRISMA；无正式审计日志或金标裁决机制 |
+| 人类角色 | 运行中审查者 / 冲突裁决者 |
+| 审计时机 | 原文未给出清晰审计时机或本轮未抽取 |
+| 主张追踪状态 | reasoning/CSV/JSON 供人审；无来源位置级 claim trace。 |
+| 决策日志状态 | per-record / reasoning 级线索；导出格式待核验 |
+| 冲突处理机制 | 有模型/人工冲突处理线索；裁决规则需按全文复核 |
+| 审计导出性 | 有表格/JSON/schema 输出线索；是否形成可审计证据包待 artifact audit。 |
 | 实验/指标 | IEEE Xplore/Scopus cybersecurity 数据；17、37、115、2576 篇；Gemma 2、GPT-3.5、GPT-4o、Llama 3；分类分布、must-read ratio、时间/成本；人工定性检查 reasoning |
+| 模型/API 设置 | GPT-4、GPT-4o、Opus、Llama、Ollama、GPT；具体版本/调用日期按原文与 artifact 待复核 |
+| 提示词状态 | 正文提到 prompt；完整模板待核验 |
+| 温度/重复/随机种子 | 原文未给出或本轮未抽取 temperature / seed / repeats |
 | 主要发现 | Gemma 2 较有区分度，GPT-3.5 过度包容，GPT-4o 较平衡，Llama 3 binary/score 不一致；大数据集 Gemma 2 标出 324 must-read、100 contributing |
-| 对 paper2 的作用 | 可作为 lightweight screening / transparent open-source tool 对照；对完整 agentic SLR workflow novelty 威胁中等偏低 |
+| 关键结果锚点 | review.md §2 D1-D7 证据锚点 + §5/§6 实验与结果；SUMMARY 数字不得脱离单篇锚点引用 |
+| 数值使用许可 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
+| 对 paper2 的作用 | 可作为 轻量级筛选 / 透明开源工具 对照；对完整 agent 式 SLR 工作流 novelty 威胁中等偏低 |
+| 受影响主张 ID | C5,C7 |
+| 威胁类型 | 局部覆盖 |
+| 威胁的 paper2 主张 | 可作为 轻量级筛选 / 透明开源工具 对照；对完整 agent 式 SLR 工作流 novelty 威胁中等偏低 |
+| 支持的 paper2 主张 | 支持 paper2 将贡献收窄到可审计 evidence workflow、run record、人工审计 gate 与 claim-to-source trace，而非泛称自动综述生成。 |
+| paper2 应避免的主张 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
+| baseline 可用性 | 协议/指标baseline或局部强baseline；主要用于模块级对照与写作定位。 |
+| 对比方式 | 协议/指标baseline |
+| 代码状态 | 声称有/正文出现 GitHub 或 code 线索；本轮未打开核验 |
+| 数据状态 | 声称有/正文出现 dataset 或 data availability 线索；license 未核验 |
+| 许可状态 | 未核验；不得据此承诺可复现或可再分发 |
+| 制品入口 | 本轮仅从 paper_content/review 识别线索；URL、commit、license 和 smoke 运行留待下一轮 artifact audit |
+| 运行可行性 | 协议/指标baseline |
+| 可复现资产 / 阻塞项 | 代码、数据、prompt、license、正式 venue/DOI 与 PDF 图表级数值均按 §7 / §10 待复核清单处理；未核验项不得支撑强实验比较。 |
+
 ## 2. D1-D7 全文核验评分
 
 emoji 口径：🟢 强，🟡 中，🟠 弱，⚪ 无 / 背景。
