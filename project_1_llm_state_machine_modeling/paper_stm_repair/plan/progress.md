@@ -4,13 +4,15 @@
 
 | 字段 | 状态 |
 |---|---|
+| 2026-06-14 03:10:00 | 启动 PR-R1.6 / #107：strict seed 扩展检索与主候选补足；已完成 PR-R1.6 contract-first empty PR、三路 body review、I 级闭合复审与 task packet 建档。 |
+| 2026-06-14 03:55:00 | PR-R1.6 完成 bounded snapshot v2：36 candidates、36 screening、15 fulltext/artifact dirs、4 主/条件主 handoff、11 manual queue；已根据只读复审补齐 search_rounds 可复查字段、exclusion/manual queue 对齐和 `fsm-bench-20` SA 口径。 |
 | 2026-06-14 00:16:15 | 按最新讨论补充 strict seed 大规模文献调研协议：定义 `NL -> T0（无关键时间语义）FSM/HSM/EFSM/statechart` 四谓词、硬排除码、多维指标、分级标准、337 条 `sources/` strict-source 子池统计，以及 direct baseline / reproduction / reviewer corpus 的 strict 使用边界。 |
 | 2026-06-13 01:18:00 | 按人工审阅意见补充 R1 是阶段性资产候选证据而非最终论文论证；扩充九个 direct baseline 的候选级证据闭合表，并明确 R2--R6 可按真实实验结果回填 / 局部校准链路。 |
 | 2026-06-13 00:57:00 | 修复 deepseek reviewer 指出的 R1 evidence forbidden wording；补充 `sources/` 715 篇 `🟢 直接可用` 的统计口径说明和 R1 本地检查记录。 |
-| PR | [#104](https://github.com/HansBug/research_ideas/pull/104) |
+| PR | [#107](https://github.com/HansBug/research_ideas/pull/107) |
 | 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| 当前阶段 | R1 implementation / strict seed 调研协议补充后 review iteration |
-| 四例真实运行 | 不需要；R1 是文档 / 资产审计 / seed 调研协议。 |
+| 当前阶段 | PR-R1.6 implementation 完成，进入实现复审 / merge 收口。 |
+| 四例真实运行 | 不需要；R1.6 是文献 / artifact 审计 / seed 候选补足。 |
 | 真实 LLM 调用 | 不需要。 |
 | method runtime 修改 | 不涉及。 |
 | `path1_foundation/` 修改 | 不允许。 |
@@ -186,3 +188,58 @@
 - Artifacts produced: `paper_stm_repair/seed_corpus/` bounded snapshot v1、10 个单篇目录、人工下载队列、统计闭合台账。
 - Verification run: body 三路 review、implementation 三路 review、统计脚本、Markdown 链接检查、`git diff --check`、GitHub `feedback-smoke`。
 - Remaining risk: 当前主 seed 仅 3 条，四例下限交给 PR-R2 作为 blocker；外部下载 / IEEE / ACM / DBLP / snowballing 仍待补。
+
+## 10. PR-R1.6 进度
+
+| 字段 | 状态 |
+|---|---|
+| PR | [#107](https://github.com/HansBug/research_ideas/pull/107) |
+| 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
+| 当前阶段 | implementation 完成；待三路 review |
+| 四例真实运行 | 不需要；本 PR 只做文献与 artifact 审计。 |
+| 真实 LLM 调用 | 不需要。 |
+| `sources/` 构造 | 本 PR 不执行，只作 fallback handoff。 |
+| 当前 bounded snapshot | PR-R1.6 已有 36 candidates / 36 screening / 15 fulltext/artifact dirs / 4 主或条件主 handoff / 11 manual queue。 |
+| 目标 | 已补足 PR-R2 可人工裁决的 `>=4` 主 / 条件主候选；R1.6 不冻结最终四例。 |
+
+### 10.1 PR-R1.6 已消费输入
+
+| 输入 | 用途 |
+|---|---|
+| PR #107 body | R1.6 目标、硬边界、query refinement、negative evidence 门。 |
+| PR #100 body | 上游伞 PR 合同与 R1.6 依赖。 |
+| PR #106 / PR-R1.5 body | bounded snapshot v1 与 blocker handoff。 |
+| [../seed_corpus/SUMMARY.md](../seed_corpus/SUMMARY.md) | 当前 27/27/10/3/6 统计与风险口径。 |
+| [../seed_corpus/search_log.md](../seed_corpus/search_log.md) | 早停噪声 query 与 refinement 依据。 |
+| [./task-packets/r1.6-strict-seed-expansion.md](./task-packets/r1.6-strict-seed-expansion.md) | 本轮任务包与验收门。 |
+
+### 10.2 PR-R1.6 已产出文件
+
+| 文件 / 目录 | 状态 |
+|---|---|
+| [../seed_corpus/search_rounds/](../seed_corpus/search_rounds/) | 已初始化并补 3 轮 R1.6 检索记录 |
+| [../seed_corpus/seed_selection_candidates.md](../seed_corpus/seed_selection_candidates.md) | 已创建；交接 4 条主 / 条件主候选与 fallback |
+| [../seed_corpus/candidate_matrix.md](../seed_corpus/candidate_matrix.md) | 已扩展到 36 条候选 |
+| [../seed_corpus/screening_ledger.md](../seed_corpus/screening_ledger.md) | 已扩展到 36 条，与 candidate matrix 对齐 |
+| [../seed_corpus/manual_download_queue.md](../seed_corpus/manual_download_queue.md) | 已扩展到 11 条 pending / manual queue |
+| [../seed_corpus/SUMMARY.md](../seed_corpus/SUMMARY.md) | 已更新为 bounded snapshot v2 |
+| 新增单篇 `papers/<paper-slug>/` 目录 | 新增 5 个：`fsm-gen-iec-61499`、`completion-sysml-gwt`、`fsm-bench-20`、`ijisrt-uml-state-diagrams-llm`、`unified-uml-multimodal-validation` |
+
+### 10.3 PR-R1.6 本地检查记录
+
+| 检查 | 命令 / 口径 | 结果 |
+|---|---|---|
+| 四例真实运行 | 按 PR #107 合同 | 不执行；本 PR 是文献与 artifact 审计。 |
+| 真实 LLM / `.env` | 按 PR #107 合同 | 未调用真实 LLM，未读取 `.env`。 |
+| candidate/screening ID 对齐 | 自定义 Python 表格检查 | 通过；36 / 36 且 ID 顺序一致。 |
+| Markdown diff whitespace | `git diff --check` | 通过。 |
+| Markdown 相对链接 | 自定义 Python 链接检查 | 通过；missing links = 0。 |
+
+### 10.4 R1.6 剩余风险
+
+| 风险 | 处理 |
+|---|---|
+| `unified-uml-multimodal-validation` 是 synthetic requirements 且 HF license 不清 | 只作为 PR-R2 条件候选；PR-R2 必须 row-level / license 裁决。 |
+| `designing-fsm-gpt4` 有 oracle / repair 泄漏风险 | 只允许 initial-generation-only。 |
+| `fsm-bench-20` 没有公开 generated outputs | 作为 pipeline fallback；需 PR-R2 复跑冻结后升级。 |
+| manual queue 仍有 closed PDF | 记录为 pending，不影响 R1.6 bounded snapshot ready。 |

@@ -49,3 +49,12 @@
 | 2026-06-14 | external search planner | 设计外部检索 query plan | Semantic Scholar / arXiv / OpenAlex / Google 替代 query 与 20 个候选线索 | completed |
 | 2026-06-14 | paper-reader agents | 高优先单篇全文核验 | 10 个候选目录的 `seed_desc.md` / `artifacts.md` | completed |
 | 2026-06-14 | implementation reviewers #106 | 三路实现强审与修复迭代 | 统计闭合、TTool timing、`designing-fsm-gpt4` initial-only、`req-mermaid-statechart` 目录补齐 | completed / C-I fixed / awaiting final ready check |
+
+## PR-R1.6 / #107 agent provenance
+
+| 时间 | agent / 来源 | 任务 | 输出 / 状态 |
+|---|---|---|---|
+| 2026-06-14 03:10:00 | main session | 创建 PR-R1.6 empty PR、更新 body、完成 body review C/I 修复 | PR [#107](https://github.com/HansBug/research_ideas/pull/107)；body review C/I 闭合后进入实现。 |
+| 2026-06-14 03:12:00 | paper-reader agents A-F | 分别核验 completion/GWT、use-case/UML SM、behavior-tree/state-machine、scenario/statechart、LLM recent、classic requirements/statechart 候选 | completed；结果已由主 session 复核后回填 `seed_corpus`。 |
+
+| 2026-06-14 03:55:00 | main session + R1.6 subagents | 整合 Crossref / Zenodo / GitHub / HF / PDF 证据，新增 5 个单篇目录与 `seed_selection_candidates.md` | 36 candidates / 36 screening / 15 dirs / 4 handoff；待 implementation review。 |

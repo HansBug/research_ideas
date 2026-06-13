@@ -2,54 +2,66 @@
 
 ## 当前状态
 
-本 PR 当前处于 **PR-R1.5 bounded snapshot v1**：已建立 seed 文库结构、strict seed 编码字段、初始本地候选矩阵、人工下载队列和负例 sentinel，并完成 `10` 个本地单篇目录的全文 / artifact 编码。该 snapshot 用于向 PR-R2 交接候选与 blocker，**不声称完成全域 census，也不声称已冻结四例样本**。
+本目录当前处于 **PR-R1.6 bounded snapshot v2**：在 PR-R1.5 的 27 条候选 / 10 个单篇目录 / 3 条保守主候选基础上，继续完成 recent LLM、classic use-case、completion/scenario 边界、Crossref refined search、Zenodo/GitHub/HuggingFace artifact 核验与逐候选回填。
 
-## 当前统计（bounded snapshot v1）
+R1.6 的核心结论是：**已把可交接给 PR-R2 人工裁决的主 / 条件主 seed 候选从 3 条扩展到 4 条**，但仍不冻结最终四例、不跑真实例子、不调用 LLM。若 PR-R2 拒绝任一条件候选，则优先走 `fsm-bench-20` 复跑冻结、`sources/` 构造或低配 prompt / 学生人工构造的 fallback，并单独记录 provenance。
+
+## 当前统计（bounded snapshot v2）
 
 | 指标 | 数量 | 说明 |
 |---|---:|---|
-| `candidate_matrix.md` 去重候选 | 27 | 来自 R1 baseline / reproduction、external planner、sources scout 与 OpenAlex 初始检索。 |
-| `screening_ledger.md` 已入账候选 | 27 | 已补齐与 candidate matrix 一一对应的 title/abstract / fulltext / artifact 层级记录。 |
-| 已完成单篇全文 / artifact 编码目录 | 10 | 10 个 `papers/<slug>/` 目录均含 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`seed_desc.md`、`artifacts.md`。 |
-| 当前可作为 PR-R2 主 seed 的候选 | 3 | `sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4`；其中 `designing-fsm-gpt4` 仅限 initial-generation-only。 |
-| converter / timed boundary 候选 | 1 | `ttool-ai-smd-subset` 含 `after (5, 5)` 时间语义，当前降为 `ES-C + SA-2`，不计入主 seed 下限。 |
-| 文献证据 / related-work-only 候选 | 5 | `umple-nl-state-machine`、`req-mermaid-statechart`、`from-use-cases-to-statecharts`、`beyond-scenarios-state-models`、`executable-state-machines-structured-text`。 |
-| 明确负例 / 边界 sentinel | 10 | 见 [exclusion_ledger.md](./exclusion_ledger.md)，覆盖 protocol、process、formal-spec、repair-only、sequence/scenario、completion、T1+ 等边界。 |
-| 人工下载队列 | 6 | 见 [manual_download_queue.md](./manual_download_queue.md)，均为外部候选待人工下载 / 进一步核验。 |
+| `candidate_matrix.md` 去重候选 | 36 | PR-R1.5 27 条 + R1.6 新增 / 拆分 9 条。 |
+| `screening_ledger.md` 已入账候选 | 36 | 与 candidate matrix 一一对应。 |
+| 已完成单篇全文 / artifact 编码目录 | 15 | PR-R1.5 的 10 个 + R1.6 新增 5 个：`fsm-gen-iec-61499`、`completion-sysml-gwt`、`fsm-bench-20`、`ijisrt-uml-state-diagrams-llm`、`unified-uml-multimodal-validation`。 |
+| 可交接 PR-R2 的主 / 条件主候选 | 4 | `sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4`、`unified-uml-multimodal-validation`。后两者必须按条件候选处理。 |
+| 保守强主候选 | 2 | `sefm-llm-state-machine`、`llms-emp-stm-subset`。 |
+| 条件主候选 | 2 | `designing-fsm-gpt4` initial-generation-only；`unified-uml-multimodal-validation` synthetic requirements + HF state subset。 |
+| pipeline fallback 候选 | 1 | `fsm-bench-20`：dataset/prompt/schema/code 可冻结，但 generated outputs / gold 未公开冻结，需要 PR-R2 复跑。 |
+| converter / timed / extended 候选 | 2 | `ttool-ai-smd-subset`、`fsm-gen-iec-61499`；均不计 R1.6 四例下限。 |
+| paper-only / private / manual 候选 | 10+ | `umple-nl-state-machine`、`req-mermaid-statechart`、classic use-case 论文等。 |
+| 明确负例 / 边界 sentinel | 14+ | protocol、process、formal-spec、repair-only、sequence/scenario、completion-only、standard/protocol 等。 |
+| 人工下载队列 | 11 | 见 [manual_download_queue.md](./manual_download_queue.md)。 |
 
-## 初步候选分组
-
-当前按 hard gate 保守计数，**PR-R2 主 seed 可交接候选只有 3 条，未达到 4 条四例冻结下限**。因此本 PR-R1.5 的交付形式是“bounded snapshot + blocker handoff”：PR-R2 需要继续外部检索 / 人工下载、从 `sources/` 构造可追踪 `STM_0`、或用低配 prompt / 学生人工构造补足样本，并记录 provenance 与 leakage control。
+## PR-R2 handoff 分组
 
 | 分组 | 候选 | 当前用途 |
 |---|---|---|
-| R2 主 seed 候选 | `sefm-llm-state-machine`、`llms-emp-stm-subset` | 最优先进入 PR-R2 四例候选池；仍需冻结 artifact、license/hash、case-level 输入输出。 |
-| R2 条件主 seed 候选 | `designing-fsm-gpt4` | 只可隔离初始 `NL description -> DFSM/Mealy CSV` 生成链路；repair/oracle 部分全部排除。 |
-| converter / timed-SMD boundary | `ttool-ai-smd-subset` | 公开 artifact 有价值，但含 `after (5, 5)` 等时间语义；除非后续完成 case-level T0 isolation，否则不计入 R2 主 seed 下限。 |
-| private / paper-only related work | `umple-nl-state-machine`、`req-mermaid-statechart`、`from-use-cases-to-statecharts`、`beyond-scenarios-state-models`、`executable-state-machines-structured-text` | 用于 related work、任务边界、manual reconstruction 线索，不直接冻结为 R2 主样本。 |
-| hard exclusion sentinel | `protocol-flowfsm-sentinel`、`3gpp-protocol-sentinel`、`completion-sysml-gwt`、`generating-statechart-designs-from-scenarios` 等 | 校准 strict seed 排除门，避免把 protocol、sequence diagram、completion-only 或 formal-spec-only 误收。 |
-| source candidate | `source-autonomous-driving-hsm`、`source-rotorcraft-uas-hsm`、`source-smarthand-hsm`、`source-hfsm-human-robot`、`source-avp-hsm` | 只证明本项目有真实控制系统 NL / HSM 描述池；若用于 R2，需要另行构造 `STM_0` 并记录防泄漏。 |
+| 强主 seed 候选 | `sefm-llm-state-machine`、`llms-emp-stm-subset` | 最优先进入 PR-R2 四例候选池；仍需逐 case 冻结 artifact、license/hash、输入输出切片。 |
+| 条件主 seed 候选 | `designing-fsm-gpt4`、`unified-uml-multimodal-validation` | 可补足四例候选数，但必须在 PR-R2 人工裁决：前者只能 initial-generation-only，后者必须标 synthetic requirements + license caveat。 |
+| pipeline fallback | `fsm-bench-20` | 任务关系强、MIT / Zenodo / GitHub 可用；但公开包未冻结 generated outputs，需要 R2 复跑并保存 run record 后才可能升级。 |
+| extended / converter pressure | `ttool-ai-smd-subset`、`fsm-gen-iec-61499`、`execution-nl-req-bt-sm` | 对 converter、控制系统相关性和 feedback story 有价值，但因 timing / private artifact / intermediate BT 不计主 seed。 |
+| paper-only classic seed | `from-use-cases-to-statecharts`、`beyond-scenarios-state-models`、`executable-state-machines-structured-text`、`maritaca-use-case-behavior-models` 等 | related work、manual reconstruction 线索和 strict gate 边界；不计主 seed。 |
+| hard exclusion / sentinel | protocol / sequence / completion / formal-spec / standard 风险项 | 供 reviewer 防误收。 |
+| source candidate | `source-*` 五条代表项 | 只作为 fallback handoff；R1.6 不构造 `STM_0`，也不计 strict literature seed。 |
+
+## R1.6 新增关键发现
+
+1. **`unified-uml-multimodal-validation` 是当前最有价值的新条件候选**：HF `UMLCode_StateDiagram` 数据集公开、999 rows、state subset 可隔离；但输入由 LLaMA 合成，license 口径需 PR-R2 记录。
+2. **`fsm-bench-20` 任务关系强但 outputs 未冻结**：Zenodo/GitHub/MIT、dataset/prompt/schema/code 都可用；但公开 ZIP 中 gold 是 placeholder，`outputs/` / `results/` 未包含，不能直接计四例。
+3. **recent LLM paper-only 论文不能凑数**：`ijisrt-uml-state-diagrams-llm` 关系清楚但只有 PDF 内 prompt/listing/figure，`SA-3` 不计主 seed。
+4. **classic use-case 方向仍主要是 paper-only / closed**：MARITACA、product-family use-case 等题名高度相关，但 metadata/abstract 级核验显示无公开 artifact，需人工下载且不能计数。
+5. **completion/scenario 负例边界更清楚**：`completion-sysml-gwt` 是 partial-model completion；Whittle/LSC 等 scenario/statechart 工作输入不是 NL requirements。
 
 ## 关键风险
 
-1. **四例下限 blocker**：当前保守可交接主 seed 为 `3` 条，不足 `4` 条；PR-R1.5 只交接 blocker，不得声称已具备四例冻结输入。
-2. **SA-3 / SA-4 不计入主 seed 下限**：paper-only、私有数据或不可再分发 artifact 只能作文献证据 / related work。
-3. **TTool timing caveat**：`ttool-ai-smd-subset` 当前不计主 seed；若后续要升级，必须证明所选 case 的 `after` / signal / guard-action 语义可被 PR-R3 converter 无损或有审计地规范化。
-4. **`designing-fsm-gpt4` 只限 initial generation**：只能取 `NL -> DFSM/Mealy CSV` 初始生成链路；oracle repair、distinguishing / checking sequence 和 fault-model repair 只作方法参考。
-5. **`sources/` 宽池不等于 strict seed**：`sources/` 可提供真实控制系统描述，但其 `STM_0` 必须由本项目另行构造或记录来源，不能自动等同于文献 strict seed。
-6. **外部检索尚未闭合**：IEEE / ACM / DBLP / publisher exact search、snowballing、人工下载和 license/hash 冻结仍需后续执行。
+1. **四例候选不是四例冻结样本**：R1.6 只把可交接候选补到 4 条；PR-R2 仍需逐 case 冻结。
+2. **条件候选可能被 PR-R2 拒绝**：`designing-fsm-gpt4` 有 oracle/repair 泄漏风险；`unified-uml-multimodal-validation` 是 synthetic requirements 且 license 不清。
+3. **`fsm-bench-20` 不可直接算 generated seed**：没有已公开冻结的 generated FSM outputs；若使用必须复跑。
+4. **manual queue 仍有 11 条**：closed IEEE / Springer / SSRN / AIAA PDF 可能改变 weak seed/related-work 结论，但不会自动放宽 hard gate。
+5. **本 snapshot 不是全域 census**：R1.6 覆盖多轮 refined search 与 snowballing，但仍只声称 bounded snapshot。
 
 ## 下一步
 
-1. PR-R2 先处理四例下限 blocker：从本 PR 的 3 条主候选出发，继续查外部候选、人工下载队列和 `sources/` 构造方案。
-2. 对 `designing-fsm-gpt4` 建立 initial-generation-only 的独立 seed 切片，避免 repair/oracle 信息泄漏。
-3. 若考虑 `ttool-ai-smd-subset`，先在 PR-R3 converter contract 中定义 timed-SMD 到 T0/EFSM 的保留、抽象或剔除策略，再决定是否升级。
-4. 执行 IEEE / ACM / DBLP / publisher 与 snowballing 检索，补外部候选下载、BibTeX、PDF 和全文编码。
-5. 对人工下载队列完成后，按 [GUIDE.md](./GUIDE.md) 补单篇目录、`screening_ledger.md`、`candidate_matrix.md` 与本总账。
+1. PR-R2 基于 [seed_selection_candidates.md](./seed_selection_candidates.md) 先裁决 4 条主 / 条件主候选。
+2. 对 `unified-uml-multimodal-validation` 做 row-level parse/render 抽检、license 记录和 case-level freeze。
+3. 对 `designing-fsm-gpt4` 建立 initial-generation-only 切片，排除 repair/oracle/fault-model 信息。
+4. 若四例仍不足，优先尝试 `fsm-bench-20` 复跑冻结，再考虑 `sources/` / student / manual / low-end prompt fallback。
+5. 人工下载队列按优先级处理：classic use-case 与 `rscharter` 高于 protocol/standard sentinel。
 
 ## 更新日志
 
 | 时间 | 更新 |
 |---|---|
-| 2026-06-14 02:22:00 | 修复 implementation review C/I：补 `req-mermaid-statechart` 单篇目录，补齐 27 条 screening ledger，修正人工下载队列 6 条、主 seed 保守计数 3 条、TTool timing 降级和 R2 blocker 交接口径。 |
+| 2026-06-14 03:55:00 | PR-R1.6 bounded snapshot v2：扩展到 36 条候选、15 个单篇目录、4 条可交接主 / 条件主候选；新增 Zenodo/GitHub/HF artifact 核验、search_rounds 与 PR-R2 handoff。 |
+| 2026-06-14 02:22:00 | 修复 PR-R1.5 implementation review C/I：补 `req-mermaid-statechart` 单篇目录，补齐 27 条 screening ledger，修正人工下载队列 6 条、主 seed 保守计数 3 条、TTool timing 降级和 R2 blocker 交接口径。 |
 | 2026-06-14 01:40:00 | 初始化 seed 文库总账、候选矩阵、筛查台账、排除台账、人工下载队列和 agent provenance。 |
