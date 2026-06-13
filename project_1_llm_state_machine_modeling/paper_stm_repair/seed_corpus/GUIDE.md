@@ -1,0 +1,78 @@
+# strict seed 文库工作指南
+
+## 1. 工作边界
+
+本指南约束 PR-R1.5 的 seed 文献调研和文库建设。所有结论必须服务于第一篇论文的 `<NL, STM_0> -> STM_k / Better STM` 任务，不得把 `NL -> STM` 初始生成重新包装成论文主贡献，也不得把 `fcstm` / `pyfcstm` / DSL 当成贡献点。
+
+## 2. 检索策略
+
+### 2.1 数据源
+
+必须覆盖：
+
+- 本地：`baselines/`、`sources/`、`reproduction/results/`、project_ex1 reviewer corpus、PR #73/#82/#92/#94 线索。
+- 外部：Semantic Scholar、arXiv、OpenAlex、IEEE Xplore、ACM Digital Library、DBLP、publisher 页面；必要时记录 Google Scholar / 手工网页检索线索。
+- snowballing：对 `SS-A? / SS-B? / ES-C?` 候选执行至少一轮 references / cited-by 追踪；无法访问时记录 blocker。
+
+### 2.2 关键词簇
+
+推荐从以下 query cluster 起步，记录实际检索式、日期、source、top-k / page cap、命中、去重、失败与早停理由：
+
+1. `natural language requirements state machine generation`
+2. `use case statechart generation`
+3. `scenario to state machine synthesis`
+4. `textual requirements UML state machine`
+5. `requirements to finite state machine`
+6. `natural language to statechart`
+7. `LLM state machine modeling requirements`
+8. `end-user scenarios state machine synthesis`
+9. `structured textual requirements executable state machine`
+10. `control system requirements finite state machine`
+
+## 3. 筛查流程
+
+1. title / abstract 初筛：只决定是否进入全文，不得标 `SS-A`。
+2. fulltext 核验：读取 PDF / `paper_content.txt`，确认输入、输出、生成关系和排除码。
+3. artifact 核验：查代码、dataset、demo、结果输出、license、URL 稳定性。
+4. 单篇编码：写 `seed_desc.md` 与 `artifacts.md`，并回填矩阵。
+5. reviewer 复查：对 `SS-A/SS-B/ES-C` 与边界负例做事实复核。
+
+## 4. SS/SA 双轴
+
+| 轴 | 等级 | 用途 |
+|---|---|---|
+| strict seed literature eligibility | `SS-A` / `SS-B` / `ES-C` / `NN-D` / `EX-E` / `pending` | 文献是否满足 strict seed 定义。 |
+| seed artifact usability | `SA-1` / `SA-2` / `SA-3` / `SA-4` / `SA-5` | artifact 是否可进入可复验实验样本。 |
+
+`SS-A + SA-1/SA-2` 是 PR-R2 主 seed 的优先候选；`SS-A + SA-3/SA-4` 只能作为文献证据或 related work。
+
+## 5. 单论文目录规范
+
+每个进入全文核验的候选建议建立：
+
+```text
+papers/<paper-slug>/
+├── paper.pdf
+├── paper_content.txt
+├── bibtex.bib
+├── seed_desc.md
+└── artifacts.md
+```
+
+生成 / 重写单篇文件时必须遵循：`bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md / artifacts.md`。
+
+## 6. 人工下载队列
+
+无法自动下载 PDF / artifact 的条目写入 [manual_download_queue.md](./manual_download_queue.md)，使用 Markdown 表格 + BibTeX 代码块。不要把它当正式 `references.bib`。
+
+## 7. agent 纪律
+
+- 批次筛查 agent 只能给候选与初筛，不写最终 `SS-A`。
+- 单篇全文 agent 原则上一篇一 agent，必须记录输入、输出、失败和证据指针。
+- 审稿 agent 复查事实性错误、排除码误收、SS/SA 混淆和过强 claim。
+- 所有 agent 禁止 sub-subagent。
+- [agent_provenance.md](./agent_provenance.md) 记录本目录细账；[../plan/agent_provenance.md](../plan/agent_provenance.md) 只写跨 PR 摘要。
+
+## 8. 完成门
+
+本 PR 最低 bounded snapshot：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验，不少于 `4` 条达到 `SS-A/SS-B + SA-1/SA-2`，才可称为可交接 PR-R2 的主 seed 候选；`SA-3` 只能作为文献证据 / related work。若不足 4 条，必须记录客观 blocker。最终只能声称“当前 bounded snapshot”，不得写成全域 census。

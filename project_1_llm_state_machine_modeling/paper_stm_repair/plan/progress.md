@@ -166,3 +166,22 @@
 | 未冻结四例 seed | R2 才能基于本审计选择样本；`sources/` 的 337 条 strict-source 子池仍需构造 / 冻结 `STM_0`。 |
 | 未验证转换器 | R3 才能把“可转换性评估”变成 schema / fixture / adapter。 |
 | 未复跑外部 artifact | 活链接、仓库 HEAD、Drive / 4open / 3GPP dynareport 等正式实验前仍需冻结。 |
+
+## PR-R1.5：strict seed 文献调研与 seed 文库（进行中）
+
+- 时间：2026-06-14 01:40:00
+- PR：[#106](https://github.com/HansBug/research_ideas/pull/106)
+- 当前状态：PR body 三路初审发现 C=0/I>0 后已修复；codex / deepseek 快速复审无 C/I；claude 复审指出 `SA-3` 不应计入主 seed 可交接下限，已修复 PR body 与本地 GUIDE/SUMMARY。
+- 已产出：`seed_corpus/README.md`、`GUIDE.md`、`SUMMARY.md`、`candidate_matrix.md`、`search_log.md`、`screening_ledger.md`、`exclusion_ledger.md`、`manual_download_queue.md`、`agent_provenance.md` 与 9 个初始单篇候选目录。
+- 初始 bounded snapshot：candidate_matrix 已超过 20 条候选；本地 baseline/reproduction 初筛超过 8 条 fulltext/artifact 候选；主 seed 可交接候选仍需单篇 agent 复核到 `SS-A/SS-B + SA-1/SA-2`。
+- 检索风险：OpenAlex 两条宽 query 噪声很高，已记录为失败/早停经验；后续需 exact phrase、排除词、IEEE/ACM/DBLP/publisher 与 snowballing 补强。
+- 四例运行：本 PR 不跑四例、不调用真实 LLM、不读取 `.env`。
+
+### Capability-use audit
+
+- Required references/scripts: `ai-research-writing-skill` task-state gate、`literature-search` OpenAlex 脚本、`sub-agents` 外部 reviewer/reader。
+- Inputs consumed: PR #100 body、PR #104 strict seed 协议、baseline/reproduction/sources scout 结果、外部 search planner 结果。
+- Inputs not used and why: IEEE/ACM/DBLP 正式检索尚未执行，需要后续联网或人工检索补齐。
+- Artifacts produced: `paper_stm_repair/seed_corpus/` 初始文库结构与候选矩阵。
+- Verification run: body 三路 review 与快速复审；本地文件尚待 markdown/link 检查。
+- Remaining risk: 单篇全文 reader 仍在运行，9 个高优先本地候选已由 paper-reader agent 完成单篇编码；外部下载 / IEEE / ACM / DBLP / snowballing 仍待补。
