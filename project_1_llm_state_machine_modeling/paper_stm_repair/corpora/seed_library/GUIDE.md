@@ -11,12 +11,14 @@
 [SUMMARY.md](./SUMMARY.md) 是唯一横向事实真源。它必须直接可复算：
 
 - 候选 / 筛查：`47/47`；
-- 单条目证据目录：`24 dirs`；
+- 单条目证据目录：`36 dirs`；
 - 旧九生成基线 crosswalk：`9/9`；
 - R2 主 / 条件主可计候选：`4`；
-- 人工下载队列：`2 已下载后排除；2 元数据排除；10 仍受阻；2 新增待人工`。
+- 人工下载队列：`10 已下载并复核；2 已下载后排除；2 元数据排除；2 仍受阻`。
 
 新增条目时，不得只创建目录或只改单篇文件；必须同步更新 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表、人工队列 / 排除证据 / 检索摘要 / 更新日志等相关章节。
+
+人工下载的 BibTeX 起点应集中维护在 [manual_download_queue.bib](./manual_download_queue.bib)；当 PDF 尚未拿到时，只在该文件追加可复制条目，`SUMMARY.md` 只保留状态与路径，不再保留长 BibTeX 代码块。
 
 ## 3. emoji / enum 标准
 
@@ -87,7 +89,7 @@
 3. 必要时核对 `paper.pdf`。
 4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2 角色、风险和证据指针。
 5. 更新 `artifacts.md`：外部资源可获取性，包括论文本体、来源文档、生成/复现实验代码、NL 数据、STM_0 数据、作者原生 `<NL, STM_0>` pair、可重建 `<NL, STM_0>` pair、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希、人工阻塞项、复跑风险。写这些字段前必须阅读全文，并逐项打开外部 artifact / code / dataset / license / release 页面核验；若只能看到本地缓存或二手摘要，一律标为待核或受阻。
-6. 回填 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表和更新日志。人工下载队列需要补 BibTeX 时，优先更新 [SUMMARY.md](./SUMMARY.md) §9 的可复制 BibTeX 片段，不新增根层横向台账。
+6. 回填 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表和更新日志。人工下载队列需要补 BibTeX 时，优先更新 [manual_download_queue.bib](./manual_download_queue.bib)，并在 [SUMMARY.md](./SUMMARY.md) §9 只保留状态与链接，不新增根层横向台账。
 
 仅制品 条目可以缺 `paper.pdf` / `paper_content.txt`，但必须有 `seed_desc.md` 与 `artifacts.md`，并在 [SUMMARY.md](./SUMMARY.md) 的本地证据容器表中解释；这不等于其外部 `STM_0` 输出已经可用。
 
@@ -108,6 +110,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 21:30:00 | PR-R1.8-B：接入人工下载后的 36 dirs 口径，规定人工下载 BibTeX 放入 `manual_download_queue.bib`，SUMMARY 只保留状态链接。 |
 | 2026-06-14 20:50:00 | 进一步明确资源页受阻时的 ❓ / 🔴 边界，避免把可定位但暂时打不开与确实不可得混淆。 |
 | 2026-06-14 20:45:00 | 补充全文阅读 + 外部资源页核验硬约束，并规定人工下载 BibTeX 片段集中维护在 SUMMARY §9。 |
 | 2026-06-14 20:35:00 | 修复 pair 口径同步问题，补入可重建 pair、作者原生 pair、配对索引与 R2 交接列，并把 R2 实验输入可用性标为派生汇总项。 |

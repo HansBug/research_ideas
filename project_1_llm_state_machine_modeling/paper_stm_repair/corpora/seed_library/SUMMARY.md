@@ -2,7 +2,7 @@
 
 ## 1. 当前状态一句话
 
-本 SUMMARY 是 PR-R1.8-B 迁移后的种子文库当前横向事实真源；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)，当前事实以本文件和 24 个单条目目录为准。
+本 SUMMARY 是 PR-R1.8-B 迁移后的种子文库当前横向事实真源；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)，当前事实以本文件和 36 个单条目目录为准。
 
 核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；R2 四例样本还需要后续 逐案例冻结。
 
@@ -12,11 +12,11 @@
 |---|---:|---|---|
 | 去重候选 | 47 | §5 候选全集；[归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/candidate_matrix.md) | R1.7 有界快照 v4。 |
 | 筛查入账 | 47 | [归档 screening_ledger.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/screening_ledger.md)；§14 迁移表 | 与候选 ID 一一对应。 |
-| 单条目证据目录 | 24 | §8 本地证据容器表；`find corpora/seed_library -mindepth 1 -maxdepth 1 -type d` | `fsm-bench-20` 是 仅制品 / 流水线备选。 |
+| 单条目证据目录 | 36 | §8 本地证据容器表；`find corpora/seed_library -mindepth 1 -maxdepth 1 -type d` | `fsm-bench-20` 是 仅制品 / 流水线备选。 |
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
 | 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
 | R2 主 / 条件主可计候选 | 4 | §4 / §6；R2资格为 🟢 或 🟡 | 2 强主 + 2 条件主，仍需 R2 裁决。 |
-| 人工下载队列状态 | 2 / 2 / 10 / 2 | §9 人工队列 | 已下载后排除 / 元数据排除 / 仍受阻 / 新增待人工。 |
+| 人工下载队列状态 | 10 / 2 / 2 / 2 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径
 
@@ -123,21 +123,21 @@
 | `from-use-cases-to-statecharts` | 2001 | 旧基线 | 用例 | UML statechart | 🟡 | 🟡 | 🟡 | 🔴 | 经典文献 | statechart 是中间产物 | [seed_desc](./from-use-cases-to-statecharts/seed_desc.md) |
 | `beyond-scenarios-state-models` | 2004 | 旧基线 | 受限英语用例 | HFSTM | 🟢 | 🟡 | 🟡 | 🔴 | 经典文献 | `paper_content` 质量差，需 PDF 核验 | [seed_desc](./beyond-scenarios-state-models/seed_desc.md) |
 | `executable-state-machines-structured-text` | 2019 | 旧基线 | 结构化需求 / SPS | executable FSM | 🟢 | 🟠 | 🟡 | 🔴 | NL->SPS 有人工步骤 | 弱 seed 相关工作 | [seed_desc](./executable-state-machines-structured-text/seed_desc.md) |
-| `maritaca-use-case-behavior-models` | 2017 | R1.6 经典检索 | 半结构化用例 | UML statechart? | ❓ | 🟡 | ❓ | 🔴 | 人工队列 | 需 IEEE 全文和 制品核验 | https://doi.org/10.1109/DSN-W.2017.33 |
-| `dependable-product-families-usecases-state-machines` | 2016 | R1.6 经典检索 | 受限用例 + variability | UML statechart? | ❓ | 🟡 | ❓ | 🔴 | 人工队列 | product-family variability 待核 | https://doi.org/10.1109/LADC.2016.28 |
-| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | 🟢 | 🟡 | ❓ | 🔴 | 人工队列 | 需全文确认输出与用例格式 | https://doi.org/10.1007/978-3-642-21470-7_9 |
-| `execution-nl-req-bt-sm` | 2012 | 外部检索 | 需求文本 | 行为树 -> FSM | 🟠 | 🟠 | 🟠 | 🔴 | BT 中间产物 边界 | JSS PDF 受限 | https://doi.org/10.1016/j.jss.2012.06.013 |
+| `maritaca-use-case-behavior-models` | 2017 | R1.6 经典检索 | 半结构化用例 | UML state machine | 🟢 | 🟢 | 🟢 | 🔴 | strict seed / 传统 NLP baseline | 作者 artifact 403；pair/代码未冻结 | [seed_desc](./maritaca-use-case-behavior-models/seed_desc.md) |
+| `dependable-product-families-usecases-state-machines` | 2016 | R1.6 经典检索 | 受限用例 + variability | UML state machine / EFSM | 🟡 | 🟢 | 🟡 | 🔴 | conditional strict / product-family sentinel | variability 需切片；pair/code未公开 | [seed_desc](./dependable-product-families-usecases-state-machines/seed_desc.md) |
+| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | ❓ | ❓ | ❓ | 🔴 | BibTeX-only / PDF 仍受阻 | Springer 付费墙；人工下载队列 | [seed_desc](./automated-transition-use-cases-uml-sm/seed_desc.md) |
+| `execution-nl-req-bt-sm` | 2012 | 外部检索 | 需求文本 | 行为树 -> FSM | 🟢 | 🟠 | 🟠 | 🔴 | BT 中间产物 / 转换链证据 | BT2SMExamples 链接不稳定；不计主 seed | [seed_desc](./execution-nl-req-bt-sm/seed_desc.md) |
 | `completion-sysml-gwt` | 2024 | 外部 / 旧基线 | GWT需求 + partial model | SysML transitions | 🟠 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 依赖已有 partial model | [seed_desc](./completion-sysml-gwt/seed_desc.md) |
 | `towards-automatic-model-completion` | 2022 | R1.7人工复查 | GWT需求 + partial SMD | SysML STM 片段 | 🔴 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 不是 initial `NL -> STM_0` | [seed_desc](./towards-automatic-model-completion/seed_desc.md) |
 | `scenarios-statecharts-interrelated` | 待核 | 旧基线 | 结构化 scenario / event trace | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_SEQUENCE_CLASS` | 输入不是自然语言需求文本 | [seed_desc](./scenarios-statecharts-interrelated/seed_desc.md) |
 | `generating-statechart-designs-from-scenarios` | 2000 | 外部检索 | sequence / scenario | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_SEQUENCE_CLASS` | sequence/scenario 输入 | https://doi.org/10.1145/337180.337217 |
 | `synthesis-revisited-scenario-based` | 2005 | 外部 / 旧基线 | LSC / MSC 形式化场景 | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_FORMAL_SPEC` / `X_SEQUENCE_CLASS` | — | https://doi.org/10.1007/978-3-540-31847-7_18 |
-| `requirements-analysis-prototyping-scenarios-statecharts` | 待核 | 外部检索 | scenario / co-evolution | statechart | ❓ | 🔴 | 🔴 | 🔴 | 方向疑似 statechart -> scenario，不是 `NL -> STM` | — | 外部检索线索; Wayback PDF line |
-| `nl-standard-docs-state-machines` | 2018 | 外部检索 | 标准文档 | state machine | 🟠 | ❓ | ❓ | 🔴 | 标准 / 协议哨兵 | 需全文确认 | https://doi.org/10.2514/1.I010525 |
-| `semi-auto-efsm-standard-docs` | 2015 | R1.6 protocol search | 标准文档 | EFSM | 🟠 | ❓ | ❓ | 🔴 | 标准 / 协议哨兵 | 控制标准例外待核 | https://doi.org/10.1109/DSN-W.2015.17 |
-| `statechart-use-case-validation-event-driven` | 2012 | R1.6 Crossref | use-case model | UML statechart? | ❓ | ❓ | ❓ | 🔴 | 验证 vs 生成 边界 | — | https://doi.org/10.1145/2245276.2231947 |
-| `rscharter-statechart-elements` | 待核 | R1.6 Crossref | 需求规格 | UML statechart 元素 | ❓ | ❓ | ❓ | 🔴 | SSRN CLI 403 | 需人工浏览器下载 | https://doi.org/10.2139/ssrn.4964857 |
-| `most-states-modes` | 2024 | 外部检索 | 需求文本 | 状态/模式形式化模型 | 🟠 | ❓ | 🟠 | 🔴 | 相关工作 | 需查是否输出 STM family | 外部检索规划 |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 待核 | 外部检索 | scenario / co-evolution | statechart | ❓ | 🔴 | 🔴 | 🔴 | reverse-direction sentinel | 正式 PDF 未定位；方向疑似反 | [seed_desc](./requirements-analysis-prototyping-scenarios-statecharts/seed_desc.md) |
+| `nl-standard-docs-state-machines` | 2018 | 外部检索 | 标准文档 | state machine | 🟡 | 🟢 | 🟠 | 🔴 | standard-doc sentinel | 标准文档可定位；AIAA 全文受限 | [seed_desc](./nl-standard-docs-state-machines/seed_desc.md) |
+| `semi-auto-efsm-standard-docs` | 2015 | R1.6 protocol search | 标准文档 | EFSM | 🟢 | 🟢 | 🟠 | 🔴 | standard-doc sentinel | ECSS/PUS 可定位；code/data 未公开 | [seed_desc](./semi-auto-efsm-standard-docs/seed_desc.md) |
+| `statechart-use-case-validation-event-driven` | 2012 | R1.6 Crossref | use-case model | UML statechart | 🟢 | 🟢 | 🟡 | 🔴 | conditional seed / validation-oriented | 图示可重建 pair；RealState 入口已失效 | [seed_desc](./statechart-use-case-validation-event-driven/seed_desc.md) |
+| `rscharter-statechart-elements` | 待核 | R1.6 Crossref | 需求规格 | UML statechart 元素 | 🟢 | 🟡 | 🟡 | 🔴 | conditional seed / FOPL bridge | PuRE dataset 可用；增强 pair 未公开 | [seed_desc](./rscharter-statechart-elements/seed_desc.md) |
+| `most-states-modes` | 2024 | 外部检索 | 需求文本 | 状态/模式形式化模型 | 🟠 | ❓ | 🟠 | 🔴 | related work / formalization | GitHub repo 与例子可访问；不是直连 NL->STM | [seed_desc](./most-states-modes/seed_desc.md) |
 | `sysmlv2-formalized-requirements` | 2025 | 外部 / 旧基线 | 需求 + temporal logic | SysML v2 / 形式化模型? | 🟠 | 🟠 | 🟠 | 🔴 | LTL / 形式化 风险高 | — | `baselines/enhancing-model-based-development-formalized-requirements/` |
 | `protocol-flowfsm-sentinel` | 2024 | 旧基线 / 协议域 | RFC / 协议文本 | 协议 FSM | 🟠 | 🟡 | 🔴 | 🔴 | `X_PROTOCOL` | 保留方法证据，不计控制系统四例 | `baselines/agentic-flow-finite-state-machine-extraction-prompt-chaining/` |
 | `3gpp-protocol-sentinel` | 2024 | 旧基线 / 协议域 | 3GPP标准文本 | 协议 FSM | 🟠 | 🟡 | 🔴 | 🔴 | `X_PROTOCOL` | 保留 ensemble / span grounding 线索 | `baselines/automated-extraction-protocol-state-machines-3gpp-specifications/` |
@@ -153,8 +153,8 @@
 | `object-models-uml-embedded` | 2004 | R1.7 经典全文 | textual use case | UML statechart | 🟢 | 🟡 | 🟡 | 🔴 | 仅论文 | object-model 目标且无制品 | [seed_desc](./object-models-uml-embedded/seed_desc.md) |
 | `integrating-graphical-nl-specifications` | 2016 | R1.7 边界全文 | NL + 已有图形表示 | 图形表示输入 | 🔴 | 🔴 | 🔴 | 🔴 | `X_COEXIST_ONLY` | 类 statechart 对象 不是目标输出 | [seed_desc](./integrating-graphical-nl-specifications/seed_desc.md) |
 | `specification-based-verification-usecase-sm` | 2008 | R1.7 边界全文 | 半形式化用例 | 验证用 state machine | 🔴 | 🔴 | 🔴 | 🔴 | `X_COEXIST_ONLY` | state machine 是验证执行机制 | [seed_desc](./specification-based-verification-usecase-sm/seed_desc.md) |
-| `executable-use-cases-domain-machine-specifications` | 2004 | R1.7 manual 候选 | executable use cases | machine specifications | ❓ | ❓ | ❓ | 🔴 | 新 manual 候选 | 需确认是否 STM family | https://doi.org/10.1049/ic:20040231 |
-| `web-tool-goal-statechart-derivation` | 2015 | R1.7 manual 候选 | 目标模型 / 需求模型 | statechart | ❓ | 🟠 | ❓ | 🔴 | 目标模型 边界 | 不一定是 NL 输入 | https://doi.org/10.1109/RE.2015.7320444 |
+| `executable-use-cases-domain-machine-specifications` | 2004 | R1.7 manual 候选 | executable use cases | machine specifications | ❓ | ❓ | ❓ | 🔴 | BibTeX-only / PDF 仍受阻 | 出版商封闭；人工下载队列 | [seed_desc](./executable-use-cases-domain-machine-specifications/seed_desc.md) |
+| `web-tool-goal-statechart-derivation` | 2015 | R1.7 manual 候选 | 目标模型 / 需求模型 | statechart | ❓ | 🟠 | ❓ | 🔴 | goal/statechart sentinel | supplement/tool 可访问；非 NL-only | [seed_desc](./web-tool-goal-statechart-derivation/seed_desc.md) |
 | `ucgen-usecase-descriptions` | 2026 | R1.7 排除 | 需求规格 | 用例文本 | ⚪ | 🔴 | 🔴 | 🔴 | 输出非 STM | 不进入 seed | Crossref textual usecase round |
 
 ## 6. R2 交接 / 可计候选明细
@@ -188,21 +188,21 @@
 | `from-use-cases-to-statecharts` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 仅论文示例 / 手工推导线索。 |
 | `beyond-scenarios-state-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文示例可读；本地 text 提取质量差，需 PDF 核验。 |
 | `executable-state-machines-structured-text` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 仅论文示例；无可直接复验数据包。 |
-| `maritaca-use-case-behavior-models` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | IEEE 访问受限，制品未发现。 |
-| `dependable-product-families-usecases-state-machines` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | IEEE 访问受限，制品未发现。 |
-| `automated-transition-use-cases-uml-sm` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | Springer 受限；需人工全文确认。 |
-| `execution-nl-req-bt-sm` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ScienceDirect 受限；行为树中间产物边界。 |
+| `maritaca-use-case-behavior-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；作者网页 `http://www.students.ic.unicamp.br/~ra161251/` 已定位但 403；只能从论文例子重建 pair，原生数据包、代码和许可未冻结。 |
+| `dependable-product-families-usecases-state-machines` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；只能从论文中的 use case / variability / traceability matrix 重建 pair，原生代码、数据、许可、hash 未公开。 |
+| `automated-transition-use-cases-uml-sm` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 仅 BibTeX；Springer 付费墙，PDF / 全文仍待人工下载。 |
+| `execution-nl-req-bt-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf`、`paper_content.txt` 和 ScienceDirect HTML 快照可读；论文示例可重建 NL/BT/SM，`BT2SMExamples.pdf` 入口不稳定。 |
 | `completion-sysml-gwt` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文可读但为 partial-model completion，不是 seed pair。 |
 | `towards-automatic-model-completion` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文可读但为 repair-only / completion-only。 |
 | `scenarios-statecharts-interrelated` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 结构化 scenario / event trace，不是 NL seed pair。 |
 | `generating-statechart-designs-from-scenarios` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | sequence/scenario 输入；不作为 seed pair。 |
 | `synthesis-revisited-scenario-based` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 形式化 scenario 输入；不作为 seed pair。 |
-| `requirements-analysis-prototyping-scenarios-statecharts` | ❓ | ⚪ | 🔴 | ❓ | ❓ | 🔴 | 🔴 | 🔴 | ❓ | ❓ | ❓ | ❓ | 正式 PDF 未定位，方向疑似反。 |
-| `nl-standard-docs-state-machines` | ❓ | 🟡 | 🔴 | 🟡 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 标准文档可能公开，但 AIAA 全文 / 输出受阻。 |
-| `semi-auto-efsm-standard-docs` | ❓ | 🟡 | 🔴 | 🟡 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 标准文档可能公开；IEEE 全文 / 制品受阻。 |
-| `statechart-use-case-validation-event-driven` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ACM 受限；生成 vs 验证边界待核。 |
-| `rscharter-statechart-elements` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | SSRN CLI 403，需人工浏览器下载。 |
-| `most-states-modes` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ACM/HAL CLI 受阻；是否 STM-family 待核。 |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 🟢 | ⚪ | 🔴 | ❓ | ❓ | 🔴 | 🔴 | 🔴 | ❓ | ❓ | ❓ | ❓ | 本地 `paper.pdf` / `paper_content.txt` 可读；正式 DOI 未定位，方向疑似反，未发现可直接复用的 NL->STM pair。 |
+| `nl-standard-docs-state-machines` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；ECSS 标准可定位，原始 TXT2SMM 输出包未公开。 |
+| `semi-auto-efsm-standard-docs` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；ECSS/PUS 标准入口可定位，TXT2SMM / case data / generated EFSM package 未公开。 |
+| `statechart-use-case-validation-event-driven` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | PDF 可读；RealState 入口已失效，但图示可重建 pair。 |
+| `rscharter-statechart-elements` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟢 | 🟢 | 本地 `paper.pdf` / `paper_content.txt` 可读；PuRE Zenodo 数据集可定位，RSCharter 增强 pair / code 未公开。 |
+| `most-states-modes` | 🟢 | ⚪ | 🟢 | 🟢 | 🟢 | ❓ | 🟠 | 🟢 | 🟢 | 🟢 | ❓ | 🟢 | 本地 `paper.pdf` / `paper_content.txt` 可读；GitHub `liuyinling/MoSt-Modeling-Tool`、Example 文件和 commit hash 可定位，但不是直连 NL->STM。 |
 | `sysmlv2-formalized-requirements` | 🟠 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 目前更像形式化 / LTL 相关证据。 |
 | `protocol-flowfsm-sentinel` | 🟢 | 🟢 | 🔴 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | RFC 输入公开；作者 规则书 / 标注答案 / 抽取迁移 未公开。 |
 | `3gpp-protocol-sentinel` | 🟢 | 🟡 | 🔴 | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 3GPP 文档需锁版本；SpecGPT 代码 / 标注答案 / 输出未公开。 |
@@ -218,8 +218,8 @@
 | `object-models-uml-embedded` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内 textual use case / statechart 示例可重建。 |
 | `integrating-graphical-nl-specifications` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | NL 与 graphical notation 共现，不是 `NL -> STM` 输出资源。 |
 | `specification-based-verification-usecase-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | state machine 是 testbench 执行机制，不是目标 STM 数据。 |
-| `executable-use-cases-domain-machine-specifications` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 出版商封闭；需人工全文确认。 |
-| `web-tool-goal-statechart-derivation` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | IEEE 封闭；需确认 input 是否自然语言。 |
+| `executable-use-cases-domain-machine-specifications` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 仅 BibTeX；出版商封闭，PDF / 全文仍待人工下载。 |
+| `web-tool-goal-statechart-derivation` | 🟢 | 🟡 | 🔴 | ❓ | 🟠 | ❓ | ❓ | ❓ | 🟠 | 🟠 | ❓ | 🟠 | 本地 `paper.pdf` / `paper_content.txt` 可读；supplement 与 GATO 工具入口可定位，但输入不是 NL-only。 |
 | `ucgen-usecase-descriptions` | 🟠 | ⚪ | 🔴 | 🟠 | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | 🟠 | 🔴 | 🔴 | 输出是 use case descriptions，不是 STM。 |
 
 ## 8. 旧九生成基线映射与本地证据容器
@@ -241,7 +241,7 @@
 | FlowFSM / Agentic Flow | `protocol-flowfsm-seed-method` | `protocol-flowfsm-sentinel` | 仅旧基线 | RFC 协议文档 | 协议 FSM / rulebook | LLM agent / CrewAI；prompt chaining、CoT | 🔴 | RFC 输入公开；作者 规则书 / 标注答案 / 抽取迁移 未公开 | 协议域方法证据；不计控制系统四例 |
 | SpecGPT / 3GPP extraction | `specgpt-3gpp-seed-method` | `3gpp-protocol-sentinel` | 仅旧基线 | 3GPP Release 17 标准文档 | 协议 FSM | GPT-4o、DeepSeek V3、Qwen Turbo、Claude Sonnet 4、Gemini 2.5 Pro | 🔴 | 3GPP 输入可定位但需锁版本；代码 / 标注答案 / 输出 未公开 | 协议域 ensemble / span grounding 参考 |
 
-### 8.2 24 个本地证据容器完整性表
+### 8.2 36 个本地证据容器完整性表
 
 本表只检查本地证据容器是否完整，不代表外部资源可用性；外部资源以 §7 为准。
 
@@ -271,6 +271,18 @@
 | `umple-nl-state-machine` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
 | `unified-uml-multimodal-validation` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | HF dataset files |
 | `unified-use-case-statecharts` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `automated-transition-use-cases-uml-sm` | ⚪ | ⚪ | 🟢 | 🟢 | 🟢 | BibTeX-only / PDF 仍受阻 |
+| `dependable-product-families-usecases-state-machines` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `executable-use-cases-domain-machine-specifications` | ⚪ | ⚪ | 🟢 | 🟢 | 🟢 | BibTeX-only / PDF 仍受阻 |
+| `execution-nl-req-bt-sm` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `maritaca-use-case-behavior-models` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `most-states-modes` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `nl-standard-docs-state-machines` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `rscharter-statechart-elements` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `semi-auto-efsm-standard-docs` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `statechart-use-case-validation-event-driven` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
+| `web-tool-goal-statechart-derivation` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
 
 ## 9. 人工下载队列 / 阻塞项
 
@@ -278,184 +290,27 @@
 
 | 状态 | 数量 | ID | R2影响 |
 |---|---:|---|---|
+| 已下载并复核 | 10 | `execution-nl-req-bt-sm`、`maritaca-use-case-behavior-models`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`semi-auto-efsm-standard-docs`、`rscharter-statechart-elements`、`nl-standard-docs-state-machines`、`requirements-analysis-prototyping-scenarios-statecharts`、`most-states-modes`、`web-tool-goal-statechart-derivation` | 已下载全文并回填到候选 / 资源表，不再阻塞 R2。 |
 | 已下载后排除 | 2 | `completion-sysml-gwt`、`towards-automatic-model-completion` | 已有全文并确认为 repair-only，不阻塞 R2。 |
 | 元数据已足够排除 | 2 | `generating-statechart-designs-from-scenarios`、`ucgen-usecase-descriptions` | 元数据已足够排除，不阻塞 R2。 |
-| 仍受阻 | 10 | `automated-transition-use-cases-uml-sm`、`execution-nl-req-bt-sm`、`maritaca-use-case-behavior-models`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`semi-auto-efsm-standard-docs`、`rscharter-statechart-elements`、`nl-standard-docs-state-machines`、`requirements-analysis-prototyping-scenarios-statecharts`、`most-states-modes` | 可后续人工下载 / 相关工作，不应阻塞 R2。 |
-| 新增待人工 | 2 | `executable-use-cases-domain-machine-specifications`、`web-tool-goal-statechart-derivation` | 新候选待人工全文确认，不作为 R2 阻塞项。 |
+| 仍受阻 | 2 | `automated-transition-use-cases-uml-sm`、`executable-use-cases-domain-machine-specifications` | 仍需人工下载全文；不作为 R2 阻塞项。 |
 
-### 9.2 当前 待核 明细
+### 9.2 当前 仍受阻 明细
 
-本节只列人工下载 / 待核状态；可复制 BibTeX 片段见 §9.3。下载全文后，必须重新阅读全文并核验外部 artifact / code / dataset / license 页面，再更新 §5、§7 和必要单条目文件。
+本节只列仍需人工下载 / 仍受阻状态；下载全文后请继续回填 §5、§7 和单条目文件。
 
 | ID | 标题 | 来源URL | 状态 |
 |---|---|---|---|
-| `automated-transition-use-cases-uml-sm` | Automated Transition from Use Cases to UML State Machines to Support State-Based Testing | https://doi.org/10.1007/978-3-642-21470-7_9 | 仍受阻：Springer 付费墙 / 未发现公开 制品；PR-R2 可暂不依赖。 |
-| `execution-nl-req-bt-sm` | Execution of Natural Language Requirements using State Machines Synthesised from Behavior Trees | https://doi.org/10.1016/j.jss.2012.06.013 | 仍受阻：ScienceDirect 访问受限；BT 中间产物 使其不作为主 seed。 |
-| `maritaca-use-case-behavior-models` | MARITACA: From Textual Use Case Descriptions to Behavior Models | https://doi.org/10.1109/DSN-W.2017.33 | 仍受阻：IEEE 付费墙 / 未发现制品；高优先人工下载。 |
-| `dependable-product-families-usecases-state-machines` | Modeling Dependable Product-Families: From Use Cases to State Machine Models | https://doi.org/10.1109/LADC.2016.28 | 仍受阻：IEEE 付费墙 / 未发现制品。 |
-| `statechart-use-case-validation-event-driven` | Statechart-based use case requirement validation of event-driven systems | https://doi.org/10.1145/2245276.2231947 | 仍受阻：ACM 付费墙 / generation-vs-validation 边界。 |
-| `semi-auto-efsm-standard-docs` | Semi-automatic Generation of Extended Finite State Machines from Natural Language Standard Documents | https://doi.org/10.1109/DSN-W.2015.17 | 仍受阻：IEEE 付费墙；默认 标准/协议 sentinel。 |
-| `rscharter-statechart-elements` | Rscharter: A Framework for Extracting Statechart Diagram Elements from the Requirements Specification | https://doi.org/10.2139/ssrn.4964857 | 仍受阻 / 开放但需浏览器：SSRN CLI 403；需人工浏览器下载。 |
-| `nl-standard-docs-state-machines` | From Natural Language Standard Documents to State Machines: Advantages and Drawbacks | https://doi.org/10.2514/1.I010525 | 仍受阻：AIAA 访问受限；默认 标准/协议 sentinel。 |
-| `requirements-analysis-prototyping-scenarios-statecharts` | Requirements Analysis and Prototyping Using Scenarios and Statecharts | 待定位 | 仍受阻 / low priority：正式 PDF 未定位；方向疑似反。 |
-| `most-states-modes` | Modeling and Verification of Natural Language Requirements based on States and Modes | https://doi.org/10.1145/3640822 | 仍受阻 / 开放但需浏览器：ACM/HAL CLI 受阻；默认 相关工作 不计 seed。 |
-| `executable-use-cases-domain-machine-specifications` | Executable use cases as links between application domain requirements and machine specifications | https://doi.org/10.1049/ic:20040231 | 新增待人工：出版商封闭；非 R2 阻塞项。 |
-| `web-tool-goal-statechart-derivation` | Web tool for Goal modelling and statechart derivation | https://doi.org/10.1109/RE.2015.7320444 | 新增待人工：IEEE 封闭；需确认 input 是否 NL。 |
-
+| `automated-transition-use-cases-uml-sm` | Automated Transition from Use Cases to UML State Machines to Support State-Based Testing | https://doi.org/10.1007/978-3-642-21470-7_9 | 仍受阻：Springer 付费墙 / 未发现公开制品；PDF 仍待人工下载。 |
+| `executable-use-cases-domain-machine-specifications` | Executable use cases as links between application domain requirements and machine specifications | https://doi.org/10.1049/ic:20040231 | 仍受阻：出版商封闭；PDF 仍待人工下载。 |
 
 ### 9.3 人工下载 BibTeX 队列
 
-本节给人工下载与补全文献时直接复制用；位置就是本文件 [§9.3](#93-人工下载-bibtex-队列) 的 `bibtex` 代码块，可整段复制到临时 `.bib` 文件或按单条复制到下载记录中。来源主要为 DOI/Crossref BibTeX，**不是最终正式引用库**。下载成功后应在对应单条目目录补 `paper.pdf`、用仓库 PDF 提取工具生成 `paper_content.txt`、以全文核验 `bibtex.bib`，并重新判断 §7 的资源列。`requirements-analysis-prototyping-scenarios-statecharts` 目前缺正式 DOI / 出版页，只保留占位，不能进入正式参考文献。
+人工下载用的 BibTeX 已集中到 [manual_download_queue.bib](./manual_download_queue.bib)。这是临时复制起点，不是正式引用库；下载成功后应在对应条目目录补 `paper.pdf` / `paper_content.txt`，并全文核验后再回填 `SUMMARY.md` §5 / §7 / §16。
 
-```bibtex
-% 人工下载队列临时 BibTeX；正式引用以下载后的出版页/全文核验为准。
-
-@inbook{Yue_2011_automated_transition_use_cases_uml_sm,
-  title = {Automated Transition from Use Cases to UML State Machines to Support State-Based Testing},
-  ISBN = {9783642214707},
-  ISSN = {1611-3349},
-  url = {https://doi.org/10.1007/978-3-642-21470-7_9},
-  DOI = {10.1007/978-3-642-21470-7_9},
-  booktitle = {Modelling Foundations and Applications},
-  publisher = {Springer Berlin Heidelberg},
-  author = {Yue, Tao and Ali, Shaukat and Briand, Lionel},
-  year = {2011},
-  pages = {115--131}
-}
-
-@article{Kim_2012_execution_nl_requirements_behavior_trees_sm,
-  title = {Execution of Natural Language Requirements Using State Machines Synthesised from Behavior Trees},
-  volume = {85},
-  ISSN = {0164-1212},
-  url = {https://doi.org/10.1016/j.jss.2012.06.013},
-  DOI = {10.1016/j.jss.2012.06.013},
-  number = {11},
-  journal = {Journal of Systems and Software},
-  publisher = {Elsevier BV},
-  author = {Kim, Soon-Kyeong and Myers, Toby and Wendland, Marc-Florian and Lindsay, Peter A.},
-  year = {2012},
-  month = nov,
-  pages = {2652--2664}
-}
-
-@inproceedings{Erazo_2017_maritaca,
-  title = {MARITACA: From Textual Use Case Descriptions to Behavior Models},
-  url = {https://doi.org/10.1109/DSN-W.2017.33},
-  DOI = {10.1109/DSN-W.2017.33},
-  booktitle = {2017 47th Annual IEEE/IFIP International Conference on Dependable Systems and Networks Workshops (DSN-W)},
-  publisher = {IEEE},
-  author = {Erazo, Leydi and Martins, Eliane and Greghi, Juliana Galvani},
-  year = {2017},
-  month = jun,
-  pages = {83--90}
-}
-
-@inproceedings{Erazo_2016_dependable_product_families,
-  title = {Modeling Dependable Product-Families: From Use Cases to State Machine Models},
-  url = {https://doi.org/10.1109/LADC.2016.28},
-  DOI = {10.1109/LADC.2016.28},
-  booktitle = {2016 Seventh Latin-American Symposium on Dependable Computing (LADC)},
-  publisher = {IEEE},
-  author = {Erazo, Leydi and Martins, Eliane and Greghi, Juliana Galvani},
-  year = {2016},
-  month = oct,
-  pages = {131--134}
-}
-
-@inproceedings{Tiwari_2012_statechart_use_case_validation,
-  series = {SAC 2012},
-  title = {Statechart-Based Use Case Requirement Validation of Event-Driven Systems},
-  url = {https://doi.org/10.1145/2245276.2231947},
-  DOI = {10.1145/2245276.2231947},
-  booktitle = {Proceedings of the 27th Annual ACM Symposium on Applied Computing},
-  publisher = {ACM},
-  author = {Tiwari, Saurabh and Gupta, Atul},
-  year = {2012},
-  month = mar,
-  pages = {1091--1093},
-  collection = {SAC 2012}
-}
-
-@inproceedings{Greghi_2015_semi_automatic_efsm_standard_docs,
-  title = {Semi-Automatic Generation of Extended Finite State Machines from Natural Language Standard Documents},
-  url = {https://doi.org/10.1109/DSN-W.2015.17},
-  DOI = {10.1109/DSN-W.2015.17},
-  booktitle = {2015 IEEE International Conference on Dependable Systems and Networks Workshops},
-  publisher = {IEEE},
-  author = {Greghi, Juliana Galvani and Martins, Eliane and Carvalho, Ariadne Maria Brito Rizzoni},
-  year = {2015},
-  month = jun,
-  pages = {45--50}
-}
-
-@article{Bhatt_2024_rscharter,
-  title = {Rscharter: A Framework for Extracting Statechart Diagram Elements from the Requirements Specification},
-  url = {https://doi.org/10.2139/ssrn.4964857},
-  DOI = {10.2139/ssrn.4964857},
-  publisher = {Elsevier BV},
-  author = {Bhatt, Janvi and Dasgupta, Sourish and Tiwari, Saurabh and Sharma, Akhilesh},
-  year = {2024}
-}
-
-@article{Greghi_2018_nl_standard_docs_state_machines,
-  title = {From Natural Language Standard Documents to State Machines: Advantages and Drawbacks},
-  volume = {15},
-  ISSN = {2327-3097},
-  url = {https://doi.org/10.2514/1.I010525},
-  DOI = {10.2514/1.I010525},
-  number = {5},
-  journal = {Journal of Aerospace Information Systems},
-  publisher = {American Institute of Aeronautics and Astronautics (AIAA)},
-  author = {Greghi, Juliana Galvani and Martins, Eliane and Carvalho, Ariadne M. B. R. and Ambrosio, Ana Maria and Villani, Emília},
-  year = {2018},
-  month = may,
-  pages = {271--281}
-}
-
-@article{Liu_2024_states_modes,
-  title = {Modeling and Verification of Natural Language Requirements Based on States and Modes},
-  volume = {36},
-  ISSN = {1433-299X},
-  url = {https://doi.org/10.1145/3640822},
-  DOI = {10.1145/3640822},
-  number = {2},
-  journal = {Formal Aspects of Computing},
-  publisher = {Association for Computing Machinery (ACM)},
-  author = {Liu, Yinling and Bruel, Jean-Michel},
-  year = {2024},
-  month = jun,
-  pages = {1--47}
-}
-
-@inproceedings{Jorgensen_2004_executable_use_cases_domain_machine_specs,
-  title = {Executable Use Cases as Links Between Application Domain Requirements and Machine Specifications},
-  volume = {2004},
-  url = {https://doi.org/10.1049/ic:20040231},
-  DOI = {10.1049/ic:20040231},
-  booktitle = {Third International Workshop on Scenarios and State Machines: Models, Algorithms, and Tools (SCESM04), W5S Workshop - 26th International Conference on Software Engineering},
-  publisher = {IEE},
-  author = {Jorgensen, J. B.},
-  year = {2004},
-  pages = {8--13}
-}
-
-@inproceedings{Pimentel_2015_goal_statechart_derivation,
-  title = {Web Tool for Goal Modelling and Statechart Derivation},
-  url = {https://doi.org/10.1109/RE.2015.7320444},
-  DOI = {10.1109/RE.2015.7320444},
-  booktitle = {2015 IEEE 23rd International Requirements Engineering Conference (RE)},
-  publisher = {IEEE},
-  author = {Pimentel, Joao and Vilela, Jessyka and Castro, Jaelson},
-  year = {2015},
-  month = aug,
-  pages = {292--293}
-}
-
-@misc{requirements_analysis_prototyping_scenarios_statecharts_todo,
-  title = {Requirements Analysis and Prototyping Using Scenarios and Statecharts},
-  note = {人工下载队列占位：正式 DOI、作者、年份、venue 与 PDF 入口待核；不得作为正式引用使用。}
-}
-```
+| 文件 | 内容 |
+|---|---|
+| [manual_download_queue.bib](./manual_download_queue.bib) | `Yue_2011_automated_transition_use_cases_uml_sm`、`Jorgensen_2004_executable_use_cases_domain_machine_specifications` |
 
 ## 10. 排除证据 / 硬排除
 
@@ -504,7 +359,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 | `r17-02-crossref-refined-usecase-statechart` | Crossref | use-case / statechart / requirements 精细检索 | 50 | 1 | 无全文/制品 / 精确 DOI/标题发现 | 详见 [round-r17-02-crossref-refined-usecase-statechart.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-02-crossref-refined-usecase-statechart.md) |
 | `r17-03-crossref-textual-usecase-behavior` | Crossref | textual 用例文本 / behavior models / state machine | 30 | 0 | 输出非 STM 噪声 / MARITACA 仍留人工队列 | 详见 [round-r17-03-crossref-textual-usecase-behavior.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-03-crossref-textual-usecase-behavior.md) |
 | `r17-04-arxiv-llm-requirements` | arXiv | LLM + state machine / state diagram / requirements | 40 | 0 | 需求质量 / 切片 / 非 STM LLM 噪声 / 无新增 SA-1/2 种子 | 详见 [round-r17-04-arxiv-llm-requirements.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-04-arxiv-llm-requirements.md) |
-| `r17-05-semanticscholar-阻塞项` | Semantic Scholar API | 6 检索簇 | 6 个错误 | 0 | HTTP 429 频率限制 / 降级到 OpenAlex/Crossref/arXiv/DBLP | 详见 [round-r17-05-semanticscholar-阻塞项.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-05-semanticscholar-阻塞项.md) |
+| `r17-05-semanticscholar-阻塞项` | Semantic Scholar API | 6 检索簇 | 6 个错误 | 0 | HTTP 429 频率限制 / 降级到 OpenAlex/Crossref/arXiv/DBLP | 详见 [round-r17-05-semanticscholar-blocker.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-05-semanticscholar-blocker.md) |
 | `r17-06-dblp-exact-title` | DBLP API | 12 精确标题人工 / 经典候选 | 429 / 连接限制前确认 3 条 | 0 | DBLP 频率/连接限制 / 仅元数据互证 | 详见 [round-r17-06-dblp-exact-title.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-06-dblp-exact-title.md) |
 | `r17-07-classic-fulltext-wave` | 开放/出版商 PDF | 经典用例 / 嵌入式 / 测试生成全文波次 | 7 | 7 dirs | 均仅论文 / 两个硬边界 / 强化排除证据; 无新增 SA-1/2 | 详见 [round-r17-07-classic-fulltext-wave.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-07-classic-fulltext-wave.md) |
 | `r17-08-manual-queue-artifact-recheck` | 出版商精确检索 + 制品检索 | R1.6 人工队列 + R1.7 新增人工候选 | 13 | 1 个新增下载目录 | 付费墙 / 需浏览器访问的开放入口 / 无制品 / 人工队列状态分布已更新 | 详见 [round-r17-08-manual-queue-artifact-recheck.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-08-manual-queue-artifact-recheck.md) |
@@ -518,7 +373,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 
 ## 12. 文献筛查与全文阅读 provenance 摘要
 
-旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 24 单条目目录；主 / 条件主可计候选仍为 4；Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
+旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 36 单条目目录；主 / 条件主可计候选仍为 4；Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
 
 ## 13. 关键风险与 R2 建议
 
@@ -545,20 +400,52 @@ R2 最小动作：先冻结 `sefm-llm-state-machine` 与 `llms-emp-stm-subset`�
 | `seed_selection_candidates.md` | `archive/.../legacy_ledgers/seed_selection_candidates.md；R2 交接进入 SUMMARY §4/§6` | corpora/seed_library/SUMMARY.md | R2=4 交接可直接读取。 |
 | `search_log.md / search_rounds/ / search_results/` | `archive/.../legacy_ledgers/search_log.md`、`archive/.../search_rounds/`、`archive/.../search_results/`；摘要进入 SUMMARY §11 | corpora/seed_library/SUMMARY.md | 原始检索归档，搜索覆盖摘要当前可读。 |
 | `agent_provenance.md` | `archive/.../legacy_ledgers/agent_provenance.md；研究性审计摘要进入 SUMMARY §12` | corpora/seed_library/SUMMARY.md | 保留文献筛查 provenance，但不记录 PR 流程状态。 |
-| `seed_corpus/papers/<slug>/` | `corpora/seed_library/<slug>/；本地证据容器表进入 SUMMARY §8` | corpora/seed_library/<slug>/ + SUMMARY §8 | 24 个单篇 / 制品证据容器迁入当前 seed library。 |
+| `seed_corpus/papers/<slug>/` | `corpora/seed_library/<slug>/；本地证据容器表进入 SUMMARY §8` | corpora/seed_library/<slug>/ + SUMMARY §8 | 36 个单篇 / 制品证据容器迁入当前 seed library。 |
 
 ## 15. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-14 21:30:00 | PR-R1.8-B：接入 vpn-lab 人工下载 PDF/BibTeX，新增 12 个 evidence 目录，移除 SUMMARY 长 BibTeX 块并改链到 `manual_download_queue.bib`，补充 seed / 资源可用性结论总表。 |
 | 2026-06-14 20:45:00 | PR-R1.8-B：补充人工下载 BibTeX 队列，明确资源可获取性必须基于全文阅读与外部资源页核验，不能只看本地 repo 资源。 |
 | 2026-06-14 20:35:00 | PR-R1.8-B：修复 review 指出的 pair 口径同步问题，补入可重建 pair、作者原生 pair、配对索引与 R2 交接列，并把 R2 实验输入可用性标为派生汇总项。 |
 | 2026-06-14 20:10:00 | PR-R1.8-B：按 review I 级意见继续拆分资源矩阵，新增来源文档、STM_0 数据、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希等列，并说明 R2 实验输入可用性不能由单个资源 emoji 代替。 |
 | 2026-06-14 19:30:00 | PR-R1.8-B：继续中文化 SUMMARY，新增资源可获取性分级说明，细化候选矩阵中的当前角色与主要风险，并把资源盘点范围明确到论文本体、源码、NL 数据、STM 数据、作者原生 pair、实验结果和许可 / 版本 / 哈希。 |
 | 2026-06-14 18:45:00 | PR-R1.8-B：按最新审阅意见中文化 SUMMARY，拆分耦合列，新增 emoji 枚举口径与外部资源可获取性矩阵；明确本地证据容器表不等同于资源可用性。 |
-| 2026-06-14 17:55:00 | PR-R1.8-B：迁移旧 `seed_corpus/` 到 `corpora/seed_library/`；建立三件套；旧横向 ledger、检索轮次 / results 进入 archive；当前 SUMMARY 可复算 `47/47`、`24 dirs`、`9/9 映射`、R2=4 和 人工队列状态。 |
+| 2026-06-14 17:55:00 | PR-R1.8-B：迁移旧 `seed_corpus/` 到 `corpora/seed_library/`；建立三件套；旧横向 ledger、检索轮次 / results 进入 archive；当前 SUMMARY 可复算 `47/47`、`36 dirs`、`9/9 映射`、R2=4 和 人工队列状态。 |
 | 2026-06-14 13:20:00 | PR-R1.7 有界快照 v4：纠正 seed 方法集合 vs R2 四例计数口径，补齐旧九 旧基线直接映射，新增 `pushing-generative-envelope-mbse`，扩展到 47 候选 / 47 筛查 / 24 单条目目录；主 / 条件主可计候选仍为 4 条。 |
 | 2026-06-14 12:10:00 | PR-R1.7 有界快照 v3：扩展到 46 候选 / 46 筛查 / 23 单条目目录 / 8 R1.7 检索轮次；新增 经典全文波次、人工队列状态分布和 排除证据；主 / 条件主可计候选仍为 4 条。 |
 | 2026-06-14 03:55:00 | PR-R1.6 有界快照 v2：扩展到 36 条候选、15 个单篇目录、4 条可交接主 / 条件主候选；新增 Zenodo/GitHub/HF 制品核验、search_rounds 与 PR-R2 交接。 |
 | 2026-06-14 02:22:00 | 补齐 `req-mermaid-statechart` 单篇目录与 27 条 screening ledger，修正人工下载队列 6 条、主 seed 保守计数 3 条、TTool timing 降级和 R2 阻塞项交接口径。 |
 | 2026-06-14 01:40:00 | 初始化 seed 文库总账、候选矩阵、筛查台账、排除台账、人工下载队列和 agent provenance。 |
+
+
+## 16. seed / 资源可用性结论总表
+
+本表给后续快速判断用的最终结论速览；细表仍以 §5 / §7 / §9 为准，R2 四例仍仅以 §6 为准。
+
+### 16.1 可作为 seed 的文献
+
+| ID | 最终结论 | 真实 NL | STM family | NL->STM 方式 | 关键资源获取方式 | 备注 |
+|---|---|---|---|---|---|---|
+| `sefm-llm-state-machine` | strict seed | 是 | 是 | LLM；单轮提示、结构/事件驱动、混合策略 | 4open 制品；代码 / 数据 / 输出已入库，仍需冻结许可 / 哈希 | 当前最强主 seed |
+| `llms-emp-stm-subset` | strict seed | 是 | 是 | LLM；requirements + prompt + 检查/反馈再生成 | 本地 parquet / result 强；流水线代码未公开，Drive/许可待核 | 当前最强主 seed |
+| `designing-fsm-gpt4` | conditional seed | 是（合成） | 是 | GPT-4 / GPT-4o 初始生成 + oracle / 检查 / 修正 | GitHub 样例可见；需隔离初始生成输出 | 只取初始生成 |
+| `unified-uml-multimodal-validation` | conditional seed | 是（合成） | 是 | 多模型流水线 | HF parquet 可用；需确认许可与合成数据边界 | 条件主候选 |
+| `maritaca-use-case-behavior-models` | strict seed | 是（受限 use case） | 是 | 半自动 NLP + template / 规则 + 人工特征选择 | PDF 可读；作者 artifact 入口 403，原生 pair/code 未冻结 | 传统 NLP seed |
+| `dependable-product-families-usecases-state-machines` | conditional seed | 是（受限 use case） | 是 | 半自动，含 variability / traceability matrix | PDF 可读；论文例子可重建，但原生代码/数据/许可未公开 | product-family 边界 |
+| `statechart-use-case-validation-event-driven` | conditional seed | 是（结构化 use case） | 是 | use case 文档 -> statechart -> combined statechart | PDF 可读；图示可重建 pair，RealState 入口已失效 | validation-oriented |
+| `rscharter-statechart-elements` | conditional seed | 是（NL SRS） | 是（statechart elements） | NL SRS -> FOPL -> statechart elements | SSRN PDF 和 PuRE 数据集入口可访问；增强 pair/code 未公开 | FOPL bridge |
+
+### 16.2 边界 / related work / metadata-only
+
+| ID | 最终结论 | 真实 NL | STM family | NL->STM 关系 | 关键资源获取方式 | 备注 |
+|---|---|---|---|---|---|---|
+| `execution-nl-req-bt-sm` | boundary / related work | 是 | 是 | NL -> BT -> UML SM | PDF + HTML 快照可读；BT2SMExamples 入口不稳定 | 中间产物边界 |
+| `semi-auto-efsm-standard-docs` | boundary sentinel | 是（标准文档） | 是 | standard doc -> EFSM | PDF 可读；ECSS/PUS 可定位；code/data 未公开 | 标准/协议边界 |
+| `nl-standard-docs-state-machines` | boundary sentinel | 是（标准文档） | 是 | standard doc -> state machine | PDF 可读；ECSS 标准可定位；原始输出包未公开 | 标准/协议边界 |
+| `most-states-modes` | related work / formalization | 是（controlled NL） | 否（更偏 formal model） | NL requirements -> MoSt DSL -> NuSMV | GitHub repo、example 与 commit hash 可访问；不是直连 NL->STM | 不计主 seed |
+| `web-tool-goal-statechart-derivation` | boundary sentinel | 否（goal model 不是 NL-only） | 是 | goal model -> statechart | PDF / supplement / tool 入口可访问；非 NL-only | 不作为 seed |
+| `requirements-analysis-prototyping-scenarios-statecharts` | reverse-direction sentinel | 否 | 是 | statechart -> scenarios / prototype | PDF 已人工保存；方向疑似反 | 防误收证据 |
+| `automated-transition-use-cases-uml-sm` | metadata-only | 待全文 | 待核 | 待核 | 仅 BibTeX；Springer 付费墙，PDF / 全文仍待人工下载 | 人工队列 |
+| `executable-use-cases-domain-machine-specifications` | metadata-only | 待全文 | 待核 | 待核 | 仅 BibTeX；出版商封闭，PDF / 全文仍待人工下载 | 人工队列 |

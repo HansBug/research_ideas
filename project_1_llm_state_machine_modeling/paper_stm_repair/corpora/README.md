@@ -4,7 +4,7 @@
 
 `corpora/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线下的论文级文库入口。它只负责解释三类文库的分工、阅读顺序、与 project_1 既有长期文库的关系；**不承载事实总账**。
 
-本文件冻结三类文库的入口纪律。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。其余 `repair_baselines/` 与 `nl_datasets/` 子库待后续 PR 落地。三类子库的长期作用如下：
+本文件冻结三类文库的入口纪律。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、manual queue 与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。其余 `repair_baselines/` 与 `nl_datasets/` 子库待后续 PR 落地。三类子库的长期作用如下：
 
 | 子库 | 作用 |
 |---|---|
@@ -53,5 +53,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 21:40:00 | PR-R1.8-B 同步 seed library 最新 `36 dirs`、manual queue 与资源结论口径；横向事实仍以 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md) 为准。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 落地 [seed_library/](./seed_library/) 三件套，旧 `seed_corpus/` 迁入 archive。 |
 | 2026-06-14 13:34:18 | PR-R1.8-A 创建 `corpora/` 入口 README；本轮不创建三类子库内容本体。 |
