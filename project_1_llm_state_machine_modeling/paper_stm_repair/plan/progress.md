@@ -4,18 +4,15 @@
 
 | 字段 | 状态 |
 |---|---|
-| 2026-06-14 03:10:00 | 启动 PR-R1.6 / #107：strict seed 扩展检索与主候选补足；已完成 PR-R1.6 contract-first empty PR、三路 body review、I 级闭合复审与 task packet 建档。 |
-| 2026-06-14 03:55:00 | PR-R1.6 完成 bounded snapshot v2：36 candidates、36 screening、15 fulltext/artifact dirs、4 主/条件主 handoff、11 manual queue；已根据只读复审补齐 search_rounds 可复查字段、exclusion/manual queue 对齐和 `fsm-bench-20` SA 口径。 |
-| 2026-06-14 00:16:15 | 按最新讨论补充 strict seed 大规模文献调研协议：定义 `NL -> T0（无关键时间语义）FSM/HSM/EFSM/statechart` 四谓词、硬排除码、多维指标、分级标准、337 条 `sources/` strict-source 子池统计，以及 direct baseline / reproduction / reviewer corpus 的 strict 使用边界。 |
-| 2026-06-13 01:18:00 | 按人工审阅意见补充 R1 是阶段性资产候选证据而非最终论文论证；扩充九个 direct baseline 的候选级证据闭合表，并明确 R2--R6 可按真实实验结果回填 / 局部校准链路。 |
-| 2026-06-13 00:57:00 | 修复 deepseek reviewer 指出的 R1 evidence forbidden wording；补充 `sources/` 715 篇 `🟢 直接可用` 的统计口径说明和 R1 本地检查记录。 |
-| PR | [#107](https://github.com/HansBug/research_ideas/pull/107) |
-| 上游 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| 当前阶段 | PR-R1.6 implementation 完成，进入实现复审 / merge 收口。 |
-| 四例真实运行 | 不需要；R1.6 是文献 / artifact 审计 / seed 候选补足。 |
-| 真实 LLM 调用 | 不需要。 |
-| method runtime 修改 | 不涉及。 |
-| `path1_foundation/` 修改 | 不允许。 |
+| PR | [#110](https://github.com/HansBug/research_ideas/pull/110) |
+| 上游结构计划 PR | [#109](https://github.com/HansBug/research_ideas/pull/109) |
+| 上游论文伞 PR | [#100](https://github.com/HansBug/research_ideas/pull/100) |
+| 当前阶段 | PR-R1.8-A implementation：结构纪律冻结文件已落地，待三路 implementation review。 |
+| 本轮目标 | 冻结三类文库分工、root 三件套、SUMMARY-first、fact-union 哨兵、project-level 边界和 R1.8-B/C/D/E 移交门。 |
+| 四例真实运行 | 不需要；R1.8-A 是 docs-only 结构纪律 PR。 |
+| 真实 LLM / `.env` | 不调用真实 LLM，不读取 `.env`。 |
+| 事实迁移 | 不执行；不移动 `seed_corpus/`、`evidence/`、`search_rounds/`、`search_results/` 或单篇目录。 |
+| 当前产物 | [../GUIDE.md](../GUIDE.md)、[../corpora/README.md](../corpora/README.md)、[./task-packets/r1.8-a-structure-discipline-freeze.md](./task-packets/r1.8-a-structure-discipline-freeze.md)。 |
 
 ## 2. 已消费输入
 
@@ -47,6 +44,9 @@
 | [../experiment_design/evaluation_gate.md](../experiment_design/evaluation_gate.md) | 已创建 |
 | [./README.md](./README.md) | 已创建 |
 | [./agent_provenance.md](./agent_provenance.md) | 已创建 |
+| [../GUIDE.md](../GUIDE.md) | R1.8-A 已创建 |
+| [../corpora/README.md](../corpora/README.md) | R1.8-A 已创建 |
+| [./task-packets/r1.8-a-structure-discipline-freeze.md](./task-packets/r1.8-a-structure-discipline-freeze.md) | R1.8-A 已创建 |
 
 ## 4. Plan review 状态
 
@@ -107,6 +107,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 13:34:18 | PR-R1.8-A：冻结三类文库入口、fact-union 哨兵、project-level 边界与 task packet；已创建 `paper_stm_repair/GUIDE.md`、`corpora/README.md`、`plan/task-packets/r1.8-a-structure-discipline-freeze.md`。 |
 | 2026-06-14 00:16:15 | PR-R1 补充 strict seed 大规模文献调研协议、初始统计和 review gate；等待补充后多智能体复审。 |
 | 2026-06-13 00:45:00 | PR-R1 创建 baseline 资产审计文档：source coverage、branch-local trace、候选矩阵、artifact 可获取性与格式转换压力；本轮不改写 R0 completion 结论。 |
 | 2026-06-13 00:19:18 | 按人工审阅意见补充 R0 是可执行论文工作基线而非最终论证链；后续 R1--R6 可按真实实验结果回填并局部校准 story / RQ / claim。 |

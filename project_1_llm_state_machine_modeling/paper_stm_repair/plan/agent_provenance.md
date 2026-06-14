@@ -69,3 +69,13 @@
 | 2026-06-14 12:00:00 | seed-structure-reviewer | 只读结构审查 | 指出 9 个 C 级 gap：round 缺失、central ledger 未同步、manual queue 未收口、SUMMARY/selection 未更新等；已由主 session 修复。 |
 | 2026-06-14 12:10:00 | main session | R1.7 实现整合 | 46 candidates / 46 screening / 23 dirs / 8 R1.7 rounds / manual queue 状态分布；negative evidence 表明新增主候选仍不足 6。 |
 | 2026-06-14 13:20:00 | main session + sidecar reviewer | R1.7 seed 方法集合口径纠偏 | 补齐旧九个 direct baseline crosswalk，新增 `pushing-generative-envelope-mbse`，更新为 47 candidates / 47 screening / 24 dirs；R2 四例可计候选仍为 4。 |
+
+## PR-R1.8-A / #110 agent provenance
+
+| 时间 | agent / 来源 | 任务 | 输出 / 状态 |
+|---|---|---|---|
+| 2026-06-14 13:22:30 | claude reviewer | PR body 一致性 / 可执行性 / 可验收性审查 | PR comment：C=0 / I=2 / M=3；要求明确目录骨架边界、task packet 完整承载迁移裁决表。 |
+| 2026-06-14 13:22:59 | deepseek reviewer | PR body 一致性 / fact-union gate 审查 | PR comment：C=0 / I=1 / M=2；要求执行前 fact-union 兜底审计。 |
+| 2026-06-14 13:23:01 | codex reviewer | PR body 一致性 / 学术证据链审查 | PR comment：C=0 / I=1 / M=3；要求写入 R1.7 终态哨兵与 project-level 回链纪律。 |
+| 2026-06-14 13:34:18 | sidecar subagent Kant | 只读整理 #109 必须固化的硬约束与当前 #110 漏项 | 返回 C=0 / I=5 / M=3；输出已用于修正 PR body 与 task packet。 |
+| 2026-06-14 13:34:18 | main session | R1.8-A 最小结构纪律冻结实现 | 创建 `GUIDE.md`、`corpora/README.md` 与 `plan/task-packets/r1.8-a-structure-discipline-freeze.md`；未迁移事实文件、未创建三类子库内容本体；待三路 implementation review。 |

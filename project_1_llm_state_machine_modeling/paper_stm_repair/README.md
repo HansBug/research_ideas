@@ -29,22 +29,27 @@ R1 已开始把历史 baseline / prior artifact 改写为 seed、转换压力和
 4. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：确认每条 claim 的证据门与降级写法。
 5. [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md)：确认 `Better STM` 的最小操作化定义。
 6. [experiment_design/research_questions.md](./experiment_design/research_questions.md)：确认 RQ 草案和后续 PR 依赖。
-7. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
-8. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 PR-R1 对 baseline / seed / artifact 的分层审计结论。
-9. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
-10. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
-11. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
-12. [plan/progress.md](./plan/progress.md)：确认当前 PR 执行状态。
+7. [corpora/README.md](./corpora/README.md)：确认三类文库入口、README/GUIDE/SUMMARY 纪律和 project-level 边界。
+8. [plan/task-packets/r1.8-a-structure-discipline-freeze.md](./plan/task-packets/r1.8-a-structure-discipline-freeze.md)：确认 R1.8-A 的迁移裁决、执行前审计和后续移交条件。
+9. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
+10. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 PR-R1 对 baseline / seed / artifact 的分层审计结论。
+11. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
+12. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
+13. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
+14. [plan/progress.md](./plan/progress.md)：确认当前 PR 执行状态。
 
 ## 3. 目录结构
 
 ```text
 paper_stm_repair/
 ├── README.md
+├── GUIDE.md
 ├── story/
+├── corpora/
 ├── evidence/
 ├── experiment_design/
 └── plan/
+    └── task-packets/
 ```
 
 ## 4. 与旧目录 / 旧 PR 的关系
