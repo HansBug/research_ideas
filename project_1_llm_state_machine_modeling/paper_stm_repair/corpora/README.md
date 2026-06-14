@@ -4,13 +4,13 @@
 
 `corpora/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线下的论文级文库入口。它只负责解释三类文库的分工、阅读顺序、与 project_1 既有长期文库的关系；**不承载事实总账**。
 
-R1.8-A 阶段只创建本文件来冻结入口纪律。⚠️ 在 R1.8-B/C/D/E 完成迁移前，当前事实源仍是上级 [../seed_corpus/](../seed_corpus/) 与 [../evidence/](../evidence/)；`corpora/` 目前只提供入口与纪律。下面三个子库目录由后续 PR 分别创建和填充：
+本文件只冻结三类文库的入口纪律。⚠️ 在后续迁移完成前，当前事实源仍是上级 [../seed_corpus/](../seed_corpus/) 与 [../evidence/](../evidence/)；`corpora/` 目前只提供入口与纪律。三个子库的长期作用如下：
 
-| 子库 | 负责 PR | 作用 |
-|---|---|---|
-| `seed_library/` | R1.8-B | 上游 `NL -> STM_0` seed 方法 / 来源文库。 |
-| `repair_baselines/` | R1.8-C | 本论文 `STM_0 -> STM_k` 修正任务 baseline / 近邻文库。 |
-| `nl_datasets/` | R1.8-D | 控制系统纯 NL 数据源文库。 |
+| 子库 | 作用 |
+|---|---|
+| `seed_library/` | 上游 `NL -> STM_0` seed 方法 / 来源文库。 |
+| `repair_baselines/` | 本论文 `STM_0 -> STM_k` 修正任务 baseline / 近邻文库。 |
+| `nl_datasets/` | 控制系统纯 NL 数据源文库。 |
 
 ## 1. 三类文库一句话边界
 
@@ -24,7 +24,7 @@ R1.8-A 阶段只创建本文件来冻结入口纪律。⚠️ 在 R1.8-B/C/D/E �
 
 1. 先读上级 [../README.md](../README.md) 和 [../GUIDE.md](../GUIDE.md)。
 2. 再读本文件确认 `corpora/` 的入口边界。
-3. R1.8-B/C/D 完成后，进入对应子库的 `README.md -> GUIDE.md -> SUMMARY.md`。
+3. 后续三类子库落地后，进入对应子库的 `README.md -> GUIDE.md -> SUMMARY.md`。
 4. 需要旧事实时，回到迁移前 [../seed_corpus/](../seed_corpus/) 与 [../evidence/](../evidence/)；迁移完成后应以新三类 `SUMMARY.md` 为横向事实真源。
 
 ## 3. 根层三件套纪律
@@ -48,16 +48,7 @@ R1.8-A 阶段只创建本文件来冻结入口纪律。⚠️ 在 R1.8-B/C/D/E �
 
 原则：project-level 文库继续作为长期事实源；paper1 `corpora/` 只维护论文级选用、裁决、实验角色与风险总账。不得让两边同时维护同一统计口径。
 
-## 5. R1.8-A 后续移交
-
-R1.8-A 完成后，本目录只应包含本 `README.md`。三类子库由后续 PR 建立：
-
-- R1.8-B：创建 `seed_library/` 三件套并迁移旧 [../seed_corpus/](../seed_corpus/)。
-- R1.8-C：创建 `repair_baselines/` 三件套并初始化 repair / feedback 近邻文库。
-- R1.8-D：创建 `nl_datasets/` 三件套并初始化控制系统纯 NL 数据源总账。
-- R1.8-E：复算三类文库统计、修复链接、同步上游 PR 与后续 R2 入口。
-
-## 6. 更新日志
+## 5. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|

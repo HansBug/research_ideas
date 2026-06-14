@@ -136,9 +136,9 @@
 | Survey-4 | 负例 sentinel 复查：protocol、BPMN/process、formal spec、T1+、co-exist only、repair-only 各抽至少 1 例。 | 排除门自检记录。 | sentinel 不得误入 strict。 |
 | Survey-5 | 与 PR-R2/R3/R6 交接。 | R2 seed 候选、R3 converter pressure、R6 related-work / comparison 分层。 | 不从 R1 直接推出实验效果 claim。 |
 
-## 8. Review gate
+## 8. 长期复核门
 
-PR #104 重新 ready 前，reviewer 至少检查以下事项：
+后续复用、迁移或扩展本 strict seed 筛选协议前，至少检查以下事项：
 
 1. 是否明确写出 strict seed 四谓词与 `T0（无关键时间语义）` 定义。
 2. 是否把 `sources/` 的 `337` 条 T0-family 案例写成 **source pool / strict-source 子池**，而不是已闭合 paired strict seed。

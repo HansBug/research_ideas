@@ -156,6 +156,19 @@
 5. branch-local 统计、中间组合统计和当前 main 统计必须区分；历史日志可以保留旧口径，但当前正文与总账必须使用合流后的最新口径。
 6. 任何会覆盖上游已核验 facts、把旧统计写回当前正文、或把待建 / 未核验条目写成已完成的冲突处理，都应按 C/I 风险审查。
 
+### 9. GitHub PR / issue 动态流程信息归位原则
+
+GitHub PR / issue 的 body 与 comment 是施工流程、review 状态和协作进度的主事实源；仓库文件是长期研究事实、稳定方法规范、可复用数据总账和论文材料的主事实源。两者必须分工清楚，避免把短期施工状态写成长期仓库事实。
+
+默认规则如下：
+
+1. PR / issue 的执行计划、子 PR 拆分、review gate、C/I/M 处理状态、ready-to-merge 状态、CI / Codecov 状态、commit / push 汇报、merge 进度、冲突处理过程、watch / polling 进展和 assignee / label 等动态流程信息，默认维护在对应 GitHub PR / issue 的 body 与 comment 中。
+2. 仓库内文档不得维护“当前 PR 已 ready”“某 reviewer comment 已处理”“本次 push 做了什么”“某 sub PR 正在等待 merge”“本轮 CI / Codecov 状态”等动态施工台账；也不应新增 `progress.md`、`task-packets/`、`agent_provenance.md` 等文件来充当 PR / issue 流程真源。
+3. 若 PR / issue comment 中的内容具有长期研究价值，应先抽象为稳定规则、字段口径、事实表、文库 GUIDE、SUMMARY 或正式讨论纪要，再写入仓库；写入时只保留长期有效结论，并附 GitHub 链接作为来源，不复制动态 review 流水账。
+4. 论文工作区或文库可以记录稳定研究阶段、实验协议、数据 eligibility、文献筛选标准、run record 和可复现证据链；但这些记录必须服务于研究复核，而不是替代 GitHub PR / issue 的施工流程状态。
+5. 若已有仓库文件与 GitHub PR / issue 对同一施工状态说法不一致，动态流程状态以 GitHub PR / issue 为准；仓库文件应删除、收敛或改写为长期规则，不能形成第二流程真源。
+6. 后续伞 PR 与子 PR 的进度同步应优先更新 GitHub body / comment；仓库正文只在需要沉淀新的长期研究事实、结构纪律或数据总账时修改。
+
 ## 工具使用说明
 
 ### PDF文本提取工具（tools/pdf_extractor.py）

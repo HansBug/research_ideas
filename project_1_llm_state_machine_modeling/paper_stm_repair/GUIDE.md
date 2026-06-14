@@ -13,15 +13,16 @@
 3. **文库边界**：`seed library`、`repair baselines`、`NL datasets` 是三类不同资产，不得混名、混表或共用同一统计口径。
 4. **事实保全边界**：R1--R1.7 已核验事实不得静默删除、覆盖或改写；迁移必须保留旧路径、旧 ID、新路径 / 新章节、迁移理由和影响范围。
 5. **四例运行边界**：R1.8-A/B/C/D/E 均为文档和文库结构 PR，不跑四例真实运行，不调用真实 LLM，不读取 `.env`。
+6. **流程信息边界**：PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报与 merge 进度只维护在 GitHub body / comment；本路径只保留长期结构纪律、事实总账和论文材料，不新增 `progress.md`、`task-packets/` 或跨 PR `agent_provenance.md` 作为动态流程真源。
 
 ## 2. 阅读顺序
 
 1. 先读 [README.md](./README.md)：理解当前论文主线与路径总入口。
-2. 再读本文件：确认文库分工、root 三件套纪律、fact-union 与 review gate。
+2. 再读本文件：确认文库分工、root 三件套纪律、fact-union 与长期验收口径。
 3. 再读 [corpora/README.md](./corpora/README.md)：确认三类文库入口与 project-level 文库边界。
-4. 再读 [plan/task-packets/r1.8-a-structure-discipline-freeze.md](./plan/task-packets/r1.8-a-structure-discipline-freeze.md)：确认 R1.8-A 已冻结的迁移裁决、执行前审计和后续 R1.8-B/C/D/E 移交条件。
-5. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
-6. 需要理解 R1.7 之前的旧事实时，只能把 [seed_corpus/](./seed_corpus/) 和 [evidence/](./evidence/) 当作迁移前旧事实源；后续 R1.8-B/C/D/E 完成后应优先读 `corpora/` 下三类新 SUMMARY。
+4. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
+5. 需要理解 R1.7 之前的旧事实时，只能把 [seed_corpus/](./seed_corpus/) 和 [evidence/](./evidence/) 当作迁移前旧事实源；后续 R1.8-B/C/D/E 完成后应优先读 `corpora/` 下三类新 SUMMARY。
+6. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
 
 ## 3. 三类文库分工
 
@@ -133,27 +134,29 @@
 
 原则：project-level 文库继续作为长期事实源；paper1 `corpora/` 是论文级选用、裁决、实验角色与风险总账。不得让两边同时维护同一统计口径；paper1 若引用 project-level 条目，应以可点击路径和核验日期追踪，而不是复制成未标来源的第二事实。
 
-## 8. R1.8 子 PR 拆分与四例运行要求
+## 8. R1.8 结构阶段边界与四例运行要求
 
-| 子 PR | 目标 | 四例真实运行 | 关键验收 |
+下表只记录长期结构阶段的研究边界和四例运行要求；具体 PR 编号、review gate、执行进度和 ready 状态以 GitHub PR / issue body 与 comment 为准，不在仓库文件中维护。
+
+| 阶段 | 目标 | 四例真实运行 | 长期验收口径 |
 |---|---|---|---|
-| R1.8-A | 冻结结构纪律、root 三件套、SUMMARY-first、fact-union、project-level 边界和任务包。 | 否 | 本文件、[corpora/README.md](./corpora/README.md)、[task packet](./plan/task-packets/r1.8-a-structure-discipline-freeze.md) 完成且 review C/I 清零。 |
+| R1.8-A | 冻结结构纪律、root 三件套、SUMMARY-first、fact-union 和 project-level 边界。 | 否 | 本文件与 [corpora/README.md](./corpora/README.md) 能指导后续三类文库重整，且不引入动态流程真源。 |
 | R1.8-B | seed library 实际重构与旧 `seed_corpus/` 归档 / 迁移。 | 否 | seed `SUMMARY.md` 可复算 `47/47`、`24 dirs`、旧九 crosswalk seed 部分。 |
 | R1.8-C | repair baselines 文库初始化。 | 否 | 不把旧 generation baseline 误当 repair baseline；只按实际 repair / feedback 能力登记。 |
 | R1.8-D | NL-datasets 文库初始化。 | 否 | 纯 NL 数据源与 seed 生成关系分离；不把只有 NL 的对象提前计为 seed。 |
 | R1.8-E | 三类文库总账一致性与上游同步。 | 否 | 三类 SUMMARY 一致、链接可用、#100 / 后续 R2 入口同步，所有哨兵可复算。 |
 
-## 9. Review gate
+## 9. 后续审查口径
 
-三路 reviewer 必须重点检查：
+后续维护三类文库或执行结构迁移时，审查者应重点检查：
 
 1. 是否和 2026-06-12 导师定调、PR #100 新主线、PR #109 结构合同一致。
 2. 是否把 seed、repair baselines、NL datasets 三类文库分清。
 3. 是否把旧 generation baseline 当作 seed / 历史资产，而不是直接改名为 repair baseline。
-4. 是否保留 R1.7 事实哨兵、manual blocker、negative evidence、agent provenance 与 R2 handoff。
+4. 是否保留 R1.7 事实哨兵、manual blocker、negative evidence 与 R2 handoff。
 5. 是否维护 project-level 回链，而不是制造第二事实源。
 6. 是否明确四例真实运行不属于 R1.8-A/B/C/D/E。
-7. 是否只做本 PR 允许的结构纪律冻结，未迁移事实文件。
+7. 是否把 PR / issue 的执行状态留在 GitHub body / comment，而不是写入仓库正文。
 
 ## 10. 更新日志
 
