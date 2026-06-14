@@ -7,7 +7,7 @@
 | 年份 | 2024 |
 | venue | SSRN preprint |
 | URL / DOI | https://doi.org/10.2139/ssrn.4964857 |
-| strict seed 结论 | 🟡 / 条件 strict |
+| 种子结论 | 🟡 / 条件种子 |
 | 当前角色 | statechart-element extraction related work |
 
 ## 一句话总结
@@ -29,4 +29,4 @@ preprint not peer reviewed；增强数据未公开；代码/完整 pair/license/
 
 ## 使用建议
 
-作为近期 rule-based/NLP 相关工作与条件 seed，不计 R2。
+作为近期 rule-based/NLP 相关工作与条件种子 / 方法证据，不计当前 R2 四例。PuRE 的许可 / 版本只覆盖原始来源数据，不覆盖 RSCharter 增强 pair / code。

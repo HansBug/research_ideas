@@ -5,7 +5,7 @@
 | PDF | present | `paper.pdf`，SHA-256 `238ab5965a2c2e4127330e3101486e199a9a4e1fb185c380bcc20aac72a2643c`；论文页 DOI URL 为 `https://dl.acm.org/doi/10.1145/3755881.3755926`。 | 可作为全文证据源。 |
 | paper_content.txt | present | `paper_content.txt`，SHA-256 `2cc4fbb56737da224790f95640bdcd78b6ee3ed2e85ffdb9025718c1780bb62f`；与源 baseline 行数一致，为 1189 行。 | 可作为证据指针主来源。 |
 | BibTeX | present | `bibtex.bib`，SHA-256 `42d75cba2de1d935d87bd5ed43a423c77fd1ce61d40d6d03488a975b61442e5f`；DOI `10.1145/3755881.3755926`。 | 元数据可用。 |
-| Code / artifact | absent | 源 `ASSETS.md` 明确未发现公开生成脚本或模型调用脚本；论文正文也未给出 GitHub/Zenodo 代码入口。 | 不能复现作者 pipeline；R2 需自建 prompt/RAG/checker/regeneration。 |
+| Code / artifact | absent | 源 `ASSETS.md` 明确未发现公开生成脚本或模型调用脚本；论文正文也未给出 GitHub/Zenodo 代码入口。 | 不能复现作者 pipeline；R2 需自建 prompt/RAG/checker/regeneration。只冻结初始/指定版本 `STM_0`，不得把作者后续 human review / feedback 结果当作本方法的改进输入或收益。 |
 | Dataset / outputs | usable | 论文脚注与正文给出 Google Drive：`https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link`；源 `ASSETS.md` 记录本仓库 parquet 冻结：raw samples 107 行 SHA-256 `69e5123174f976bf7504eaa334e0670da22b2e0c67329c57539b3866dfe5b045`，complete samples 98 行 SHA-256 `d8c0dca59c650149c7c16e433fc54440fc72509c82d57676ca6238f2182fdf2e`，human-review 192 行 SHA-256 `7b54b06ead32e0a5b6c6d4f2244d11a8e2439c64ad421f01a1b8a9175f16a427`。 | STM 数据级 seed 可用；正式统计应以本地冻结文件和 eligibility filter 为准。 |
 | License / redistribution | partial | 论文正文 `paper_content.txt:113-115` 声明论文为 Creative Commons Attribution 4.0 International License；允许读取材料未定位数据集单独 license。 | 论文可引用；数据二次分发需后续人工核验。 |
 | URL stability | mixed | ACM DOI 稳定；Google Drive 文件夹入口可用性和内容可能漂移，源 `ASSETS.md` 也将其列为需复查风险。 | R2 run record 必须记录下载/抽取日期、hash、行数与来源 URL。 |

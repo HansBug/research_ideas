@@ -7,7 +7,7 @@
 | 年份 | 2024 |
 | venue | Formal Aspects of Computing |
 | URL / DOI | https://doi.org/10.1145/3640822 |
-| strict seed 结论 | 🟠 / 非 STM 输出 |
+| 种子结论 | 🟠 / 非 STM 输出 |
 | 当前角色 | requirements formalization / model checking related work |
 
 ## 一句话总结
@@ -29,4 +29,4 @@
 
 ## 使用建议
 
-作为 formalization/model-checking related work，不计 R2。
+作为 formalization/model-checking related work，不计当前 R2 四例。

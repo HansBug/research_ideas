@@ -7,7 +7,7 @@
 | 年份 | 2002 |
 | venue | ICSE Workshop: Scenarios and State Machines |
 | URL / DOI | https://www.academia.edu/download/31191491/1.pdf |
-| strict seed 结论 | 🔴 / 方向相反 |
+| 种子结论 | 🔴 / 方向相反 |
 | 当前角色 | co-evolution / reverse-direction sentinel |
 
 ## 一句话总结
@@ -25,7 +25,7 @@
 
 ## 风险与 caveat
 
-方向疑似反；不是 initial NL -> STM seed。
+已判定为非 `NL -> STM_0`，更接近 statechart / scenario 协同或 reverse-direction sentinel；不是 initial NL -> STM seed。
 
 ## 使用建议
 

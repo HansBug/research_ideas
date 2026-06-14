@@ -16,26 +16,29 @@
 
 ## 1.5 结论速览
 
+目前的横向结论是：**严格种子 3 条、条件种子 / 方法证据 6 条、边界 / 相关工作 6 条、元数据-only 1 条**。
+
 | 结论级别 | 代表条目 | 一句话判断 | 详情 |
 |---|---|---|---|
-| strict seed | `sefm-llm-state-machine`、`llms-emp-stm-subset`、`maritaca-use-case-behavior-models` | 真实 `NL -> STM` 关系清楚，且 STM family 在 T0 内 | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
-| conditional seed | `designing-fsm-gpt4`、`unified-uml-multimodal-validation`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`rscharter-statechart-elements` | 关系成立但带 synthetic / variability / validation / 中间层边界 | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
-| boundary / related work | `execution-nl-req-bt-sm`、`semi-auto-efsm-standard-docs`、`nl-standard-docs-state-machines`、`most-states-modes`、`web-tool-goal-statechart-derivation`、`requirements-analysis-prototyping-scenarios-statecharts` | 可做方法证据或边界证据，但不作为主 seed | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
-| metadata-only | `automated-transition-use-cases-uml-sm`、`executable-use-cases-domain-machine-specifications` | 目前只补到 BibTeX，PDF 仍待人工下载 | 见 [manual_download_queue.bib](./manual_download_queue.bib) |
+| 严格种子（3） | `sefm-llm-state-machine`、`llms-emp-stm-subset`、`maritaca-use-case-behavior-models` | 真实 `NL -> STM` 关系清楚，且 STM family 在 T0 内 | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
+| 条件种子 / 方法证据（6） | `automated-transition-use-cases-uml-sm`、`designing-fsm-gpt4`、`unified-uml-multimodal-validation`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`rscharter-statechart-elements` | 关系成立但带合成、可变性、验证导向或中间层边界；不等于当前 R2 全部可计 | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
+| 边界 / 相关工作（6） | `execution-nl-req-bt-sm`、`semi-auto-efsm-standard-docs`、`nl-standard-docs-state-machines`、`most-states-modes`、`web-tool-goal-statechart-derivation`、`requirements-analysis-prototyping-scenarios-statecharts` | 可做方法证据或边界证据，但不作为主 seed | 以 [SUMMARY.md](./SUMMARY.md) §16 为准 |
+| 元数据-only（1） | `executable-use-cases-domain-machine-specifications` | 目前只补到 BibTeX，PDF 仍待人工下载 | 见 [manual_download_queue.bib](./manual_download_queue.bib) |
 
 
 ## 1.6 具体 seed 结论表
 
-| ID | 结论 | 真实 NL | STM family | 生成方式 | 资源获取方式 |
-|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | strict seed | 是 | 是 | LLM | 4open 制品；许可 / 哈希待冻结 |
-| `llms-emp-stm-subset` | strict seed | 是 | 是 | LLM | 本地 parquet / result 强；流水线代码未公开 |
-| `maritaca-use-case-behavior-models` | strict seed | 是 | 是 | 半自动 NLP / 规则 | 本地全文；作者 artifact 403；论文例子可重建 |
-| `designing-fsm-gpt4` | conditional seed | 是 | 是 | LLM | GitHub 样例；只取初始生成 |
-| `unified-uml-multimodal-validation` | conditional seed | 是 | 是 | 多模型流水线 | HF parquet；许可待核 |
-| `dependable-product-families-usecases-state-machines` | conditional seed | 是 | 是 | 半自动 NLP / 规则 | 本地全文；论文例子可重建 |
-| `statechart-use-case-validation-event-driven` | conditional seed | 是 | 是 | validation + statechart synthesis | 本地全文；图示可重建 |
-| `rscharter-statechart-elements` | conditional seed | 是 | 是 | NLP / FOPL bridge | 本地全文；PuRE 可定位；增强 pair 未公开 |
+| ID | 文献结论 | R2用途 | 真实 NL | STM family | 生成方式 | 资源获取方式 |
+|---|---|---|---|---|---|---|
+| `sefm-llm-state-machine` | 严格种子 | 强主候选；需冻结 | 是 | 是 | LLM | 4open 制品；许可 / 哈希待冻结 |
+| `llms-emp-stm-subset` | 严格种子 | 强主候选；只冻结初始/指定 `STM_0` | 是 | 是 | LLM | 本地 parquet / result 强；流水线代码未公开 |
+| `maritaca-use-case-behavior-models` | 严格种子 | 文献种子；不计当前四例 | 是 | 是 | 半自动 NLP / 规则 | 本地全文；作者 artifact 403；论文例子可重建 |
+| `automated-transition-use-cases-uml-sm` | 条件种子 / 方法证据 | 不计当前四例；后续重建冻结后再裁决 | 是 | 是 | RUCM + aToucan / 规则 + NLP | 本地全文；Appendix 局部可重建，完整原生包未冻结 |
+| `designing-fsm-gpt4` | 条件种子 | 条件主候选；只取初始生成 | 是 | 是 | LLM | GitHub 样例；只取初始生成 |
+| `unified-uml-multimodal-validation` | 条件种子 | 条件主候选；需许可与合成边界 | 是 | 是 | 多模型流水线 | HF parquet；许可待核 |
+| `dependable-product-families-usecases-state-machines` | 条件种子 / 方法证据 | 文献种子；不计当前四例 | 是 | 是 | 半自动 NLP / 规则 | 本地全文；论文例子可重建 |
+| `statechart-use-case-validation-event-driven` | 条件种子 / 方法证据 | 文献种子；不计当前四例 | 是 | 是 | validation + statechart synthesis | 本地全文；案例入口可访问，图示可重建 |
+| `rscharter-statechart-elements` | 条件种子 / 方法证据 | 文献种子；不计当前四例 | 是 | 是 | NLP / FOPL bridge | 本地全文；PuRE 可定位；增强 pair 未公开 |
 
 详情以 [SUMMARY.md](./SUMMARY.md) §16 为准，本表只作入口速览。
 
@@ -73,5 +76,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 23:40:00 | PR-R1.8-B：补入 Yue 2011 的本地全文章节后，`automated-transition-use-cases-uml-sm` 升级为 conditional seed；`manual_download_queue.bib` 只保留 Jørgensen 2004。 |
 | 2026-06-14 21:30:00 | PR-R1.8-B：同步 36 个目录口径、README 结论速览和 manual queue 外链；详情以 SUMMARY §16 为准。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 将旧 `seed_corpus/` 重构为 `corpora/seed_library/`，建立 README/GUIDE/SUMMARY 三件套，旧横向 ledger 与 raw search 归档。 |
