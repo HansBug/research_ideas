@@ -92,20 +92,26 @@ emoji 列在正式表格中只写 emoji；中文解释集中写在本节。每�
 
 ### 5.1 CCF A/B/C venue 粗筛
 
-1. 范围以 [../../../ccf_venues/01-venue-scope.md](../../../ccf_venues/01-venue-scope.md) 和 [../../../ccf_venues/SUMMARY.md](../../../ccf_venues/SUMMARY.md) 当前 venue 为基线。
+1. CCF 检索分两层维护：
+   - **本地已建档 venue 层**：以 [../../../ccf_venues/01-venue-scope.md](../../../ccf_venues/01-venue-scope.md) 和 [../../../ccf_venues/SUMMARY.md](../../../ccf_venues/SUMMARY.md) 当前 venue 为基线，用于可追溯 official / publisher / DBLP 年度入口核验。
+   - **全 CCF A/B/C 扩展层**：以 [search/ccf-all-abc-2026-scope-snapshot.md](./search/ccf-all-abc-2026-scope-snapshot.md) 记录的 CCF 2026 目录分母为 discovery scope；未进入 `ccf_venues/` 的 venue 也要纳入 title / abstract 级搜索，不得因本地未建档而漏掉。
 2. 优先级：年度 README 已维护 paper list → 官方 accepted/program/proceedings → publisher TOC → DBLP 年度页 → 搜索线索。
 3. 多数 CCF venue 不提供可批量获取 abstract；若只有标题，必须写成 title-level discovery，不能写成 abstract screening。
 4. 遇到 429、403、WAF、尚未出版、DBLP 未归档，应写入 [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md)，不得解释为“无相关论文”。
 5. 每个 venue-year 的最低审计字段为：入口 URL、检查日期、coverage emoji、是否拿到 title list、命中 title 数、排除理由或 gap 原因；能自动扫描的原始命中应保留到 [search/ccf-dblp-title-scan-raw.md](./search/ccf-dblp-title-scan-raw.md)。
 6. 若发现 CCF-adjacent workshop / companion 命中，必须标注 track / source，不得冒充 main track。
+7. CCF 扩展搜索必须显式记录 `ccf_scope_source`、`ccf_rank`、`venue_area`、`venue_in_ccf_venues`、`scan_status`、`source_url`、`abstract_availability`、`hit_count`、`gap_reason` 与 `negative_claim_allowed`。默认 `negative_claim_allowed = false`；只有逐 venue accepted list + abstract/fulltext 充分核验后才允许更强负证据。
+8. 已发现 arXiv 高密度分类对应的重点方向包括 `cs.AI`、`cs.DL`、`cs.IR`、`cs.CL`、`cs.SE`；其对应 CCF 领域分别为人工智能、数据库/数据挖掘/内容检索、软件工程/系统软件/程序设计语言、人机交互与交叉新兴等。每轮扩搜应优先复核这些方向的 CCF A/B/C 会议和期刊。
 
 ### 5.2 arXiv 粗筛
 
 1. 保留 query、检索时间、原始记录、去重数量、纳入数量。
-2. 初始 query 至少覆盖：`LLM + systematic literature review`、`LLM + screening/extraction/synthesis`、`agentic literature review`、`automated literature review`、`evidence synthesis`、`survey 生成`。
-3. 原始 arXiv query 快照写入 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)，2024--2026 去重候选池写入 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)。
-4. 正式纳入候选元数据写入 [search/arxiv-query-results.jsonl](./search/arxiv-query-results.jsonl)，粗筛总表写入 [search/arxiv-2024-2026-title-abstract-screening.md](./search/arxiv-2024-2026-title-abstract-screening.md)。
-5. 每条未纳入候选至少保留 `screening_decision=excluded` 与中文排除理由；否则不能把 291→34 这类筛选链条写成可审计。
+2. 每条 arXiv 候选必须保留 `primary_category`、`categories` 和 `分类中文释义`；常见分类：`cs.AI` = 人工智能，`cs.SE` = 软件工程，`cs.CL` = 计算与语言 / 自然语言处理，`cs.IR` = 信息检索，`cs.DL` = 数字图书馆，`cs.LG` = 机器学习，`stat.ME` = 统计方法论。
+3. arXiv 分类只用于学科入口和后续 CCF 方向映射，不得替代 peer-reviewed / CCF / venue 判断；`cs.SE` 也不能自动升级为 SE 顶会证据。
+4. 初始 query 至少覆盖：`LLM + systematic literature review`、`LLM + screening/extraction/synthesis`、`agentic literature review`、`automated literature review`、`evidence synthesis`、`survey 生成`。
+5. 原始 arXiv query 快照写入 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)，2024--2026 去重候选池写入 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)。
+6. 正式纳入候选元数据写入 [search/arxiv-query-results.jsonl](./search/arxiv-query-results.jsonl)，粗筛总表写入 [search/arxiv-2024-2026-title-abstract-screening.md](./search/arxiv-2024-2026-title-abstract-screening.md)。
+7. 每条未纳入候选至少保留 `screening_decision=excluded` 与中文排除理由；否则不能把 291→34 这类筛选链条写成可审计。
 
 ## 6. 单篇目录规则
 

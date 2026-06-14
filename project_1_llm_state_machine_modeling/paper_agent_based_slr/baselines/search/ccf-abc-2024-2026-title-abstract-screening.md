@@ -1,7 +1,7 @@
 # CCF A/B/C 2024-2026 title-level 粗筛记录
 
 > 检索时间：`2026-06-13 01:20:00` 初筛，`2026-06-13 12:40:00` 补齐审计记录（Asia/Shanghai）
-> 来源：本仓库 `ccf_venues/` 年度 README 的 official / publisher / DBLP 入口；DBLP search/API 命中作为 title-level discovery。
+> 来源：本仓库 `ccf_venues/` 年度 README 的 official / publisher / DBLP 入口；DBLP search/API 命中作为 title-level discovery。全 CCF A/B/C 扩展 discovery 另见 [ccf-all-abc-2024-2026-expanded-screening.md](./ccf-all-abc-2024-2026-expanded-screening.md)。
 > 注意：多数 CCF venue 不提供可批量获取 abstract，本表不能替代全文或 abstract-level systematic screening；coverage 缺口见 [ccf-venue-coverage-gaps.md](./ccf-venue-coverage-gaps.md)，DBLP 原始命中快照见 [ccf-dblp-title-scan-raw.md](./ccf-dblp-title-scan-raw.md)。
 
 ## 1. 直接相关候选
@@ -45,7 +45,8 @@ ASE 是本轮少数自动抓取成功的 CCF A 主会样本。下表保留 LLM /
 
 | 文件 | 作用 |
 |---|---|
-| [ccf-venue-coverage-gaps.md](./ccf-venue-coverage-gaps.md) | 42 个 venue × 2024/2025/2026 的 coverage / gap；标注 🔵/🟠/🔴 与风险。 |
+| [ccf-venue-coverage-gaps.md](./ccf-venue-coverage-gaps.md) | 本地已建档 42 个相关 venue × 2024/2025/2026 的 coverage / gap；标注 🔵/🟠/🔴 与风险。 |
+| [ccf-all-abc-2024-2026-expanded-screening.md](./ccf-all-abc-2024-2026-expanded-screening.md) | 全 CCF A/B/C 681 条 venue 分母 + 重点 cs.AI/cs.DL/cs.IR/cs.CL/cs.SE 方向扩展 discovery；不等同 full systematic screening。 |
 | [ccf-dblp-title-scan-raw.md](./ccf-dblp-title-scan-raw.md) | DBLP mirror 自动扫描命中和 coverage 原始快照；含 ASE 2024/2025 的 LLM/agent title 命中。 |
 | [manual-download-needed.bib](./manual-download-needed.bib) | CCF-adjacent 但未自动获取全文的论文。 |
 
