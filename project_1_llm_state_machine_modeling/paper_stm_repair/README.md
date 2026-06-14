@@ -45,7 +45,7 @@ paper_stm_repair/
 ├── README.md
 ├── GUIDE.md
 ├── story/
-├── corpora/
+├── corpora/        # R1.8-A 当前仅落地 corpora/README.md；三类子库由 R1.8-B/C/D 创建
 ├── evidence/
 ├── experiment_design/
 └── plan/

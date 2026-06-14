@@ -63,7 +63,7 @@
 
 1. `corpora/` 是三类文库的论文级入口，不做事实总账，不维护跨条目统计。
 2. `corpora/seed_library/`、`corpora/repair_baselines/`、`corpora/nl_datasets/` 的根层横向 Markdown 文件只允许：`README.md`、`GUIDE.md`、`SUMMARY.md`。
-3. 单论文、单 baseline、单 dataset 子目录可以存在，但只能承载该条目的原文、全文、BibTeX、单篇分析、artifact / dataset card，不得承载跨条目总账。
+3. 单论文、单 baseline、单 dataset 子目录可以存在，但只能承载该条目的原文、全文、BibTeX、单篇分析、artifact / dataset card，不得承载跨条目总账。单篇 seed / baseline 默认“五件套”指 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、对应 `seed_desc.md` / `baseline_desc.md`、`artifacts.md`；dataset 条目可用 `dataset_card.md`、`source_refs.md` 与可追溯样本目录替代。
 4. 候选矩阵、排除记录、manual queue、crosswalk、统计结论、风险、handoff、更新日志等跨条目信息，必须进入对应 `SUMMARY.md`，不得拆成根层 `candidate_matrix.md`、`screening_ledger.md`、`dataset_queue.md` 等第二事实源。
 5. `search_rounds/`、`search_results/` 等过程性证据不得作为当前文库根事实源；若仍需留痕，应整体迁入 `archive/` 或 `runs/` 并在 `SUMMARY.md` 写明过程证据入口。
 6. `SUMMARY.md` 必须做到：读完后几乎能掌握文库现状，包括数量、分级、候选 / 排除、manual blocker、negative evidence、实验角色、风险和待办。

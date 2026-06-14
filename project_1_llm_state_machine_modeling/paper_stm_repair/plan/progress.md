@@ -48,37 +48,39 @@
 | [../corpora/README.md](../corpora/README.md) | R1.8-A 已创建 |
 | [./task-packets/r1.8-a-structure-discipline-freeze.md](./task-packets/r1.8-a-structure-discipline-freeze.md) | R1.8-A 已创建 |
 
-## 4. Plan review 状态
+## 4. PR-R1.8-A plan review 状态
 
-| reviewer | comment | 结论 |
-|---|---|---|
-| codex reviewer | [路径修正后复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692686352) | C=0 / I=0 |
-| claude reviewer | [路径修正后复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692678198) | C=0 / I=0 |
-| deepseek reviewer | [路径修正后复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692683224) | C=0 / I=0 |
-| 主 session | [plan review 收口](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692696625) | 已进入实现 |
+| reviewer | comment | 结论 | 处理状态 |
+|---|---|---|---|
+| claude reviewer | [PR body 审查](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700794121) | C=0 / I=2 / M=3，No-Go-Until-I | I 已在 PR body、GUIDE、task packet 中闭合：目录骨架边界与迁移裁决表已固化。 |
+| deepseek reviewer | [PR body 审查](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700795067) | C=0 / I=1 / M=2 | I 已在 task packet §5 执行前 fact-union 审计中闭合。 |
+| codex reviewer | [PR body 审查](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700795122) | C=0 / I=1 / M=3 | I 已在 GUIDE §6、task packet §3、PR body §1.2/§4/§7 中闭合。 |
+| 主 session | [implementation 第一轮汇报](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700906411) | 已进入 implementation review | 已 push 提交 `b0e5ce0c`，等待三路复审。 |
 
+## 4.1 PR-R1.8-A implementation review 状态
 
-## 4.1 Implementation review 状态
+| reviewer | comment | 结论 | 处理状态 |
+|---|---|---|---|
+| claude reviewer | [implementation review](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700931671) | C=0 / I=0 / M=3，ready | 无阻塞；M 级建议作为可选优化。 |
+| deepseek reviewer | [implementation review](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700934990) | C=0 / I=0 / M=3，ready | 无阻塞；M 级建议作为可选优化。 |
+| codex reviewer | [implementation review](https://github.com/HansBug/research_ideas/pull/110#issuecomment-4700935110) | C=0 / I=1 / M=1，not ready | I-1 指出本文件仍引用 #102 / R0 review/check 作为当前证据链；本次修复将 #110 review/check 写入当前 gate，并将 #102 记录降级为历史。 |
 
-| reviewer | comment | 结论 |
-|---|---|---|
-| deepseek reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692946713) | C=0 / I=0 / M=0，implementation ready |
-| claude reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692952218) | C=0 / I=0 / M=3，implementation ready |
-| codex reviewer | [最终复审](https://github.com/HansBug/research_ideas/pull/102#issuecomment-4692966223) | C=0 / I=0 / M=2，implementation ready |
-
-上一轮 implementation review 发现的旧 `paper_v1/better_stm_repair_loop/` 双事实源问题已通过提交 `f8bc3408` 修复：旧目录已从 diff 消失，PR body 目录树已收敛到 `paper_stm_repair/`。
-
-## 5. 本地检查记录
+## 5. PR-R1.8-A 本地检查记录
 
 | 检查 | 命令 / 口径 | 结果 |
 |---|---|---|
-| Markdown 相对链接 | 自定义 Python 链接检查脚本 | 通过；missing links = 0。 |
+| diff 范围 | `git diff --name-status origin/paper1/r1.8-corpus-architecture-reorg...HEAD` | 仅 6 个允许文件：`GUIDE.md`、`README.md`、`corpora/README.md`、`plan/agent_provenance.md`、`plan/progress.md`、`plan/task-packets/r1.8-a-structure-discipline-freeze.md`。 |
 | Markdown diff whitespace | `git diff --check` | 通过。 |
-| forbidden wording grep | `grep -RIn "首个\|最强\|new DSL\|完整形式化验证\|model checking\|NL -> STM.*主贡献" project_1_llm_state_machine_modeling/paper_stm_repair` | 命中均位于 forbidden / 降级 / 自检语境；未发现旧 story 回流。 |
-| `path1_foundation` 修改 | `git diff --name-only origin/paper1/better-stm-repair-loop-umbrella...HEAD | grep path1_foundation` | 通过；无命中。 |
-| 四例真实运行 | 按 PR #100 / #102 R0 合同 | 不执行。 |
-| 真实 LLM 调用 | 按 R0 范围 | 不执行。 |
-| CI / feedback-smoke | `gh pr checks 102` | 通过；`feedback-smoke` success。 |
+| Markdown 相对链接 | 自定义 Python 链接检查，范围 `paper_stm_repair` | 通过；missing links = 0。 |
+| 旧事实目录 diff | `git diff --name-only ... | grep -E 'paper_stm_repair/(seed_corpus|evidence)/'` | 通过；无 `seed_corpus/` / `evidence/` 文件进入 diff。 |
+| `corpora/` 物理边界 | `find paper_stm_repair/corpora -maxdepth 2 -print` | 仅 `corpora/README.md`；未创建 `seed_library/`、`repair_baselines/`、`nl_datasets/` 内容子库。 |
+| R1.7 单篇目录哨兵 | `ls -d seed_corpus/papers/*/ | wc -l` | 24，与 task packet §5.4 对齐。 |
+| R1.7 search rounds 哨兵 | `ls seed_corpus/search_rounds/ | wc -l` | 12，与 task packet §5.2 对齐。 |
+| R1.7 raw search results 哨兵 | `find seed_corpus/search_results/ -name '*.jsonl' | wc -l` | 20，与 task packet §5.3 对齐。 |
+| R1.7 candidate / screening 哨兵 | reviewer dry-run 解析 `candidate_matrix.md` / `screening_ledger.md` | 47 / 47 且 ID 顺序一致。 |
+| 旧九 crosswalk 哨兵 | reviewer dry-run 检查 `baseline_seed_method_crosswalk.md` | 旧九 generation baseline seed-method 入账关系保留为后续迁移哨兵。 |
+| 四例真实运行 | 按 PR #110 / #109 R1.8-A 合同 | 不执行；本 PR 是 docs-only 结构纪律冻结，不调用真实 LLM，不读取 `.env`。 |
+| CI / feedback-smoke | `gh pr checks 110` | `feedback-smoke` pass。 |
 | Codecov / coverage | PR comments / checks | 未发现 Codecov 覆盖率评论；本 PR 为 docs-only，无单测覆盖率变化，未虚构 coverage。 |
 
 ## 6. 剩余风险
