@@ -28,7 +28,7 @@
 
 | 时间 | 动作 | 结果 | 风险 / 备注 |
 |---|---|---|---|
-| `2026-06-14 18:35:00` | 扩展全 CCF A/B/C 与重点 AI/DL/IR/NLP/SE 方向检索 | 解析 CCF 2026 mirror 得到 681 条 A/B/C venue 分母；OpenAlex 扩展查询形成 668 条去重候选，人工摘要列出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等新增线索 | 仍是 discovery，不可写成完整 CCF 负证据；强候选需后续 PDF / artifact audit 后再升级。 |
+| `2026-06-14 18:35:00` | 扩展全 CCF A/B/C 与重点 AI/DL/IR/NLP/SE 方向检索 | 解析 CCF 2026 mirror 得到 681 条 A/B/C venue 分母；OpenAlex 原始 814 条结果，按 title+doi 粗去重为 669 组，仓库内保留 ranked top-220 发现；人工摘要列出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等新增线索 | 仍是 discovery，不可写成完整 CCF 负证据；强候选需后续 PDF / artifact audit 后再升级。 |
 | `2026-06-13 12:40:00` | 补齐实现后 review 指出的审计缺口 | 新增 arXiv 原始快照、去重候选池、CCF DBLP 原始扫描快照、ASE 排除理由表，并更新单篇逐维证据锚点 | 仍是粗筛，不替代 P0 全文细读；CCF 负证据仍须保守。 |
 | `2026-06-13 02:55:00` | 复核 arXiv query 计数 | 7 组 query 的 2024--2026 去重并集约 291 条；粗筛纳入 34 条 | arXiv 持续更新，计数会漂移；正式论文写作前需刷新。 |
 | `2026-06-13 02:40:00` | 同步第二批 arXiv 候选与本地文库 | arXiv 粗筛表扩展为 34 篇；本地 P0/P1 建库 25 篇；ARISE 升级为 P1 并纳入本地目录 | 仍属于 title / abstract 粗筛 + PDF 获取，不得写成最终全文结论。 |

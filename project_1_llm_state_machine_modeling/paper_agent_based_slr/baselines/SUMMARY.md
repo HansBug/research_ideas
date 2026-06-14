@@ -9,7 +9,7 @@
 
 | 问题 | 当前答案 | 对 paper2 的直接影响 |
 |---|---|---|
-| 现在到底收了什么？ | 34 篇 2024--2026 arXiv 近邻 + 1 篇 2025 WSESE@ICSE workshop 近邻已建立 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`；另新增全 CCF A/B/C 681 条 venue 分母与 668 条 OpenAlex 扩展候选 discovery。 | 已可支撑 Related Work、novelty matrix 和实验指标设计；全 CCF 扩展只作为 discovery，不等于正式 PRISMA 式 SLR。 |
+| 现在到底收了什么？ | 34 篇 2024--2026 arXiv 近邻 + 1 篇 2025 WSESE@ICSE workshop 近邻已建立 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`；另新增全 CCF A/B/C 681 条 venue 分母、OpenAlex 原始 814 条结果、title+doi 去重 669 组和 ranked top-220 发现。 | 已可支撑 Related Work、novelty matrix 和实验指标设计；全 CCF 扩展只作为 discovery，不等于正式 PRISMA 式 SLR。 |
 | 年份结构是什么？ | arXiv：2024 年 6 篇、2025 年 13 篇、2026 年 15 篇；非 arXiv 本地条目：2025 年 WSESE@ICSE workshop 1 篇。 | 说明该方向是 2024--2026 快速涌现的新近邻；正式写作必须显式标注年份和预印本/ workshop 状态。 |
 | 最大 novelty 威胁是什么？ | 多 agent SLR、clinical evidence synthesis、HITL provenance、screening / extraction、survey generation 都已有强近邻；扩展 CCF discovery 又补出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等正式发表或待核验线索。 | 禁止写“首次 LLM 自动化 SLR / 首次 agentic SLR / 完整覆盖 SLR 生命周期 / 全 CCF 无相关工作”。 |
 | 仍然能讲什么 story？ | 已有工作多分散在跨域 evidence synthesis、screening/extraction、survey generation 或 SE 方法学讨论；在当前已建库证据边界下，较稳的差异化空间是“SE SLR/SMS 场景 + 阶段化 evidence package + 报告级 claim trace + 人工审计 gate”的组合。 | story 应从“能自动写综述”转为“让综述证据可追踪、可审计、可复核”。 |
@@ -19,7 +19,7 @@
 
 ## 1. 当前总览
 
-**本节速读**：当前文库不是“待整理候选列表”，而是 35 篇已建本地目录、已完成全文文本级 review 的 baseline 总账，外加全 CCF A/B/C 681 venue 分母与 668 条 OpenAlex 扩展候选 discovery；其中本地 P0/P1 合计 26 篇，已经足以对 paper2 的宽泛 novelty 形成实质约束。最关键的信息不是“数量很多”，而是这些条目覆盖了不同威胁面：P0 多来自端到端或多阶段工作流、HITL evidence synthesis 和 clinical / financial / material science 场景，P1 补上 SE screening、SMS support、prompt reproducibility 和 survey-generation evaluation；扩展 discovery 则提醒我们还必须关注 AI/DL/IR/NLP/SE 正式 venue 的新增线索。**建议**：后续 Related Work 先按威胁组写，而不是按年份流水账写；实验设计先覆盖 P0/P1 暴露出的缺口，同时把扩展 discovery 的强候选列入全文复核队列。
+**本节速读**：当前文库不是“待整理候选列表”，而是 35 篇已建本地目录、已完成全文文本级 review 的 baseline 总账，外加全 CCF A/B/C 681 venue 分母、OpenAlex 原始 814 条结果、title+doi 去重 669 组与 ranked top-220 发现；其中本地 P0/P1 合计 26 篇，已经足以对 paper2 的宽泛 novelty 形成实质约束。最关键的信息不是“数量很多”，而是这些条目覆盖了不同威胁面：P0 多来自端到端或多阶段工作流、HITL evidence synthesis 和 clinical / financial / material science 场景，P1 补上 SE screening、SMS support、prompt reproducibility 和 survey-generation evaluation；扩展 discovery 则提醒我们还必须关注 AI/DL/IR/NLP/SE 正式 venue 的新增线索。**建议**：后续 Related Work 先按威胁组写，而不是按年份流水账写；实验设计先覆盖 P0/P1 暴露出的缺口，同时把扩展 discovery 的强候选列入全文复核队列。
 
 | 项 | 数量 / 状态 |
 |---|---:|
@@ -34,7 +34,7 @@
 | 已完成 PDF 图表级人工核对 | 0；WSESE@ICSE 2025 已保存 PDF，但仅按全文文本级使用 |
 | 本地 `ccf_venues` title-level 命中 | 1 条 CCF-adjacent / WSESE@ICSE 2025 线索；已人工下载并全文建库 |
 | 全 CCF A/B/C 扩展分母 | 681 条 CCF 2026 A/B/C venue 条目；会议 386、期刊 295 |
-| 全 CCF 扩展 OpenAlex 去重候选 | 668 条；已人工摘要出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等重点线索 |
+| 全 CCF 扩展 OpenAlex 去重候选 | 原始 814 条结果；title+doi 去重 669 组；ranked top-220 发现已人工摘要出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等重点线索 |
 | 人工下载清单 | 0 条待下载；历史清单见 [search/manual-download-needed.bib](./search/manual-download-needed.bib) |
 
 ### 1.1 来源与年份口径总表
@@ -43,7 +43,7 @@
 |---|---|---:|---|---|---|
 | arXiv 预印本 | 2024 年 6 篇；2025 年 13 篇；2026 年 15 篇 | 34 | 已完成 title/abstract 粗筛、PDF 获取、`paper_content.txt` 提取与全文文本级 `review.md` | 可说“2024--2026 预印本中已经密集出现 LLM/agent SLR、evidence synthesis、survey generation 近邻” | 不得写成 peer-reviewed / CCF / 正式发表事实 |
 | 本地 `ccf_venues` title-level scan | 2024--2026；2026 多数 venue 尚未完整归档 | 0 个主会/期刊完整组合 baseline；1 个 CCF-adjacent workshop 命中 | 已保留 coverage/gap、DBLP title scan 和 ASE 2024/2025 title-level 审计 | 可说“当前已建档 CCF venue title-level scan 中尚未观察到完整组合 baseline，且存在 coverage gap” | 不得写“近三年 CCF 完全没有相关工作” |
-| 全 CCF A/B/C 扩展 discovery | 2024--2026；CCF 2026 mirror 分母 681 条 venue | 不新增本地全文条目；形成 668 条 OpenAlex 去重候选与重点候选摘要 | 已保留全 CCF 分母、OpenAlex 原始结果、重点 cs.AI/cs.DL/cs.IR/cs.CL/cs.SE 候选筛选表 | 可说“扩展 discovery 发现 AI/DL/IR/NLP/SE 方向已有多条正式发表或预印本近邻，但尚未观察到完整组合 baseline” | 不得写成逐 venue accepted-list exhaustive audit 或完整负证据 |
+| 全 CCF A/B/C 扩展 discovery | 2024--2026；CCF 2026 mirror 分母 681 条 venue | 不新增本地全文条目；OpenAlex 原始 814 条结果，title+doi 去重 669 组；ranked top-220 发现保留在仓库 | 已保留全 CCF 分母、OpenAlex 原始结果、重点 cs.AI/cs.DL/cs.IR/cs.CL/cs.SE 候选筛选表 | 可说“扩展 discovery 发现 AI/DL/IR/NLP/SE 方向已有多条正式发表或预印本近邻，但尚未观察到完整组合 baseline” | 不得写成逐 venue accepted-list exhaustive audit 或完整负证据 |
 | WSESE@ICSE workshop | 2025 | 1 | 用户人工下载 PDF 后已建本地全文文本级 review | 可作为 SE 方法学社区已讨论 LLM-SLR conducting / replication difficulties 的直接近邻 | 不得写成 ICSE main track 或 CCF A 主会论文 |
 | 人工下载清单 | 截至 2026-06-14 17:06:55 | 0 待下载 | `manual-download-needed.bib` 保留历史入口，当前需要用户下载的条目已清零 | 可说“本轮已把当前人工下载项纳入本地文库” | 不得据此说后续不再需要补 PDF / artifact audit |
 
@@ -418,7 +418,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 - arXiv query 原始快照见 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)：本轮按 2024--2026 年预印本候选处理，arXiv 条目均不得直接写成同行评审或 CCF 事实。
 - arXiv 2024--2026 去重候选池见 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)：354 条原始快照去重为 291 条候选，最终 34 条进入本地 arXiv 近邻建库。
 - 全 CCF A/B/C 分母快照见 [search/ccf-all-abc-2026-scope-snapshot.md](./search/ccf-all-abc-2026-scope-snapshot.md)：CCF 2026 mirror 共 681 条 A/B/C venue，重点映射 `cs.AI` / `cs.DL` / `cs.IR` / `cs.CL` / `cs.SE`。
-- 全 CCF 扩展候选筛选见 [search/ccf-all-abc-2024-2026-expanded-screening.md](./search/ccf-all-abc-2024-2026-expanded-screening.md)：OpenAlex 去重 668 条，摘要出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等新增线索。
+- 全 CCF 扩展候选筛选见 [search/ccf-all-abc-2024-2026-expanded-screening.md](./search/ccf-all-abc-2024-2026-expanded-screening.md)：OpenAlex 原始 814 条结果，title+doi 去重 669 组，ranked top-220 发现摘要出 IST/TOSEM/CHI/TKDD/ACL/EMNLP/JAMIA 等新增线索。
 
 ### 11.1 全 CCF A/B/C 扩展 discovery
 
@@ -437,7 +437,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 | arXiv 去重候选池 | 2024--2026 | 291 | 元数据 / title / abstract | 可用于说明筛选漏斗；未纳入条目仍需排除理由审计。 |
 | arXiv 本地建库条目 | 2024--2026 | 34 | 全文文本级 review | 可用于 Related Work 与 novelty matrix；正式数字仍需 PDF 图表核对。 |
 | 本地 `ccf_venues` title-level scan | 2024--2026 | 42 个已建档 venue 的 coverage/gap | title-level discovery | 可用于 gap-aware 检索说明；不能作为完整负证据。 |
-| 全 CCF A/B/C 扩展 discovery | 2024--2026 | 681 条 CCF venue 分母；668 条 OpenAlex 去重候选 | title / abstract / metadata discovery | 可用于提示 AI/DL/IR/NLP/SE 方向仍有新增近邻需追踪；不能作为完整负证据。 |
+| 全 CCF A/B/C 扩展 discovery | 2024--2026 | 681 条 CCF venue 分母；OpenAlex 原始 814 条结果、title+doi 去重 669 组、ranked top-220 发现 | title / abstract / metadata discovery | 可用于提示 AI/DL/IR/NLP/SE 方向仍有新增近邻需追踪；不能作为完整负证据。 |
 | WSESE@ICSE workshop 全文 | 2025 | 1 | 全文文本级 review | 可用于 SE LLM-SLR 方法学近邻；不能升级为 ICSE main track。 |
 | 人工下载清单 | 截至 2026-06-14 17:06:55 | 0 待下载；历史清单见 [manual-download-needed.bib](./search/manual-download-needed.bib) | 清单 / 本地建库状态 | 只说明本轮待下载项清零，不代表后续无需 PDF 图表核对或 artifact audit。 |
 
@@ -476,7 +476,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-14 18:35:00` | 按用户要求扩展全 CCF A/B/C 与重点 `cs.AI` / `cs.DL` / `cs.IR` / `cs.CL` / `cs.SE` 方向 discovery：新增 CCF 2026 全量 681 venue 分母、OpenAlex 668 去重候选、重点候选筛选表，并在 SUMMARY / arXiv 表 / GUIDE 中补充 arXiv 分类中文释义与证据边界。 |
+| `2026-06-14 18:35:00` | 按用户要求扩展全 CCF A/B/C 与重点 `cs.AI` / `cs.DL` / `cs.IR` / `cs.CL` / `cs.SE` 方向 discovery：新增 CCF 2026 全量 681 venue 分母、OpenAlex 原始 814 条结果、title+doi 去重 669 组、ranked top-220 发现，并在 SUMMARY / arXiv 表 / GUIDE 中补充 arXiv 分类中文释义与证据边界。 |
 | `2026-06-14 17:06:55` | 按用户反馈重构 SUMMARY 阅读入口：新增 §0 速读定调，给主要小节前置“本节速读”，补充来源与年份口径总表、证据链年份表，并把速读/结论加厚为“局部判断 + paper2 建议动作 + 证据边界”；在主表 B 前补充 D1-D7 与 emoji 等级随表速查口径，避免读者来回跳转。 |
 | `2026-06-14 14:45:30` | 用户补充 WSESE@ICSE 2025 PDF 后，将该 CCF-adjacent SE 方法学近邻升级为本地全文文本级条目；SUMMARY 增加 D1-D7 速查表、各主表本节结论、证据链时间口径和全体 story 定调，人工下载清单清零。 |
 | `2026-06-14 03:02:11` | 修复复审指出的 artifact 状态误标风险：清理 SUMMARY 与 34 篇 `review.md` 中模板化“正文出现 GitHub/code/dataset 线索”说法；逐篇改为未提及、给出 URL 待打开、需申请、占位承诺、匿名仓库、Colab/补充材料等保守状态；新增 §8.1 总结方法假设、负面证据、伦理/license 风险与 paper2 指标要求。 |

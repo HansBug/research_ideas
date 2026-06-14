@@ -2,7 +2,7 @@
 
 > 检索时间：`2026-06-14 18:14:00`--`2026-06-14 18:35:00`（Asia/Shanghai）  
 > CCF 分母来源：`ccf-all-abc-2026-scope-snapshot.json` / [ccf-all-abc-2026-scope-snapshot.md](./ccf-all-abc-2026-scope-snapshot.md)。  
-> 扩展检索入口：OpenAlex API；原始结果见 [ccf-all-abc-openalex-expanded-raw.json](./ccf-all-abc-openalex-expanded-raw.json)，去重候选见 [ccf-all-abc-openalex-expanded-ranked.jsonl](./ccf-all-abc-openalex-expanded-ranked.jsonl)。
+> 扩展检索入口：OpenAlex API；原始结果见 [ccf-all-abc-openalex-expanded-raw.json](./ccf-all-abc-openalex-expanded-raw.json)。本轮 raw 结果共 `814` 条，按 `title+doi` 粗去重为 `669` 组；仓库内 [ccf-all-abc-openalex-expanded-ranked.jsonl](./ccf-all-abc-openalex-expanded-ranked.jsonl) 只保留 `local_score` 排序后的 top-220 发现，不能误读为全量去重候选。
 
 ## 1. 本轮为什么重点看 cs.AI / cs.DL / cs.IR / cs.CL / cs.SE
 
