@@ -214,6 +214,9 @@ papers/<slug>/
 8. P2 若已建本地目录，应进入主表或背景表，并说明为什么不是 P0/P1；如果 D7=🟢 但仍归 P2，必须在 `差异化要求 / 阻塞项` 中解释它威胁的是 survey 生成 / evaluation 等局部 claim，而非 SLR/SMS evidence workflow 主线。
 9. CCF coverage / gap 与人工下载入口必须保留，不能把 coverage gap 写成负证据。
 10. `SUMMARY.md` 应给出总体定调结论：哪些 claim 必须禁用，哪些 claim 可以保守保留，后续实验必须补哪些证据。
+11. `SUMMARY.md` 不能只罗列大表。每个主要表格或主要小节后必须有一段中文“本节结论”，说明该表对 paper2 story、实验设计或证据边界的实际含义。
+12. `SUMMARY.md` 必须内置 D1-D7 速查表，便于读者不跳转 [GUIDE.md](./GUIDE.md) 也能理解评分；[GUIDE.md](./GUIDE.md) 仍保留完整维护规则。
+13. `SUMMARY.md` 的 CCF / arXiv / workshop / manual-download 线索必须写清年份、检索或核验时间、同行评审状态和当前处理状态；已下载条目必须从“待人工下载”升级为本地单篇目录链接，并同步从 `manual-download-needed.bib` 中清零。
 
 ### 7.1 CCF-A 级字段补强口径
 

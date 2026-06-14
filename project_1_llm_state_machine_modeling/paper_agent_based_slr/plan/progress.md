@@ -71,9 +71,9 @@
 
 ### 已完成（B0 强化）
 
-- [../baselines/README.md](../baselines/README.md) 已更新为 34 篇本地建库、P0/P1/P2 全部 `paper_content.txt` 全文文本核验口径。
+- [../baselines/README.md](../baselines/README.md) 已更新为 35 篇本地建库、P0/P1/P2 全部 `paper_content.txt` 全文文本核验口径。
 - [../baselines/GUIDE.md](../baselines/GUIDE.md) 已新增 `阅读状态` + `证据等级`、SUMMARY 最小 / 增强 schema、I 级必需字段与字段命名风险。
-- [../baselines/SUMMARY.md](../baselines/SUMMARY.md) 已拆成“主表 A：方法事实与证据等级”“主表 B：D1-D7 与 paper2 主张影响”“主表 C：主张绑定与 baseline 可用性”“主表 D：阶段边界、人工审计与 provenance”“主表 E：LLM 设置、可复现资产与数值使用许可”，覆盖 34 篇本地条目。
+- [../baselines/SUMMARY.md](../baselines/SUMMARY.md) 已拆成“主表 A：方法事实与证据等级”“主表 B：D1-D7 与 paper2 主张影响”“主表 C：主张绑定与 baseline 可用性”“主表 D：阶段边界、人工审计与 provenance”“主表 E：LLM 设置、可复现资产与数值使用许可”，覆盖 35 篇本地条目。
 - 9 篇 P2 已补齐 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`。
 - 34 篇本地 `review.md` 均包含快速结论卡片、阅读状态、证据等级、D1-D7、方法/实验/结果/局限/paper2 影响和待复核清单；并已按 `$ai-research-writing-skill` 字段审阅补齐作者/venue/出版状态、研究脉络、引用角色、LLM/agent 角色、证据溯源粒度、威胁/支持 paper2 主张、paper2 应避免的主张、baseline 可用性与可复现资产阻塞项。
 - 2026-06-14 继续吸收字段体系审稿意见：34 篇快速结论卡片新增受影响主张 ID、威胁类型、阶段边界、人类角色、审计时机、主张追踪状态、决策日志状态、审计导出性、模型/API 设置、提示词状态、温度/重复/随机种子、代码/数据/许可状态、运行可行性、关键结果锚点与数值使用许可。
@@ -91,7 +91,7 @@
 
 - Required references/scripts：`ai-research-writing-skill` 的主张-证据、story gate、reviewer gate；仓库 `tools.pdf_extractor`；本地 schema 审核子agent。
 - Inputs consumed：PR #105 body、用户关于全文 review / SUMMARY 描述性维度的追加要求、字段 schema 审核意见、字段 hardening 子agent 审阅输出、字段体系复审意见、当前 baseline PDF / `paper_content.txt` / `bibtex.bib`、arXiv query results。
-- Inputs not used and why：WSESE@ICSE 2025 PDF 仍未获取，不能全文核验；关键 P0 的 PDF 图表尚未逐页人工核对，因此当前证据等级为“全文文本级；图表待人工核对”。
+- Inputs not used and why：WSESE@ICSE 2025 PDF 已由用户人工下载并完成全文文本级核验；关键 P0 的 PDF 图表尚未逐页人工核对，因此当前证据等级仍以“全文文本级；图表待人工核对”为主。
 - Artifacts produced：更新 [../baselines/README.md](../baselines/README.md)、[../baselines/GUIDE.md](../baselines/GUIDE.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)、补 P2 本地目录、重写单篇 `review.md`、补齐主张-证据 / baseline 可用性 / artifact readiness 字段、清理 `paper_content.txt` 提取残留、更新 [task-packets/b0-fulltext-baseline-review.md](./task-packets/b0-fulltext-baseline-review.md)。
 - Verification run：已运行 B0 sanity、字段 hardening sanity 与 `git diff --check`。
-- Remaining risk：自动文本提取可能遗漏图表细节；正式写 Related Work 前，关键 P0 仍建议人工打开 PDF 复核图表/表格/数值，WSESE@ICSE 2025 仍需人工全文；当前代码/数据/许可只完成文本级线索识别，未打开 URL、未 clone、未核验 license、未 smoke，不能写成可运行 baseline。
+- Remaining risk：自动文本提取可能遗漏图表细节；正式写 Related Work 前，关键 P0 仍建议人工打开 PDF 复核图表/表格/数值，WSESE@ICSE 2025 已完成全文文本级 review；当前代码/数据/许可只完成文本级线索识别，未打开 URL、未 clone、未核验 license、未 smoke，不能写成可运行 baseline。

@@ -8,7 +8,7 @@
 
 | 年份 | Venue | 标题 | 来源 | 分层 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | 处理 |
 |---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 2025 | WSESE@ICSE | On the Difficulties of Conducting and Replicating Systematic Literature Reviews Studies Using LLMs in Software Engineering | [DBLP](https://dblp.org/rec/conf/wsese/FelizardoDCGMGS25) | P1 | 🟢 | 🟡 | 🟡 | 🟡 | 🟠 | 🟢 | 🟡 | 待人工下载；写入 [manual-download-needed.bib](./manual-download-needed.bib)。 |
+| 2025 | WSESE@ICSE | On the Difficulties of Conducting and Replicating Systematic Literature Reviews Studies Using LLMs in Software Engineering | [DBLP](https://dblp.org/rec/conf/wsese/FelizardoDCGMGS25) | P1 | 🟢 | 🟡 | 🟡 | 🟡 | 🟠 | 🟢 | 🟡 | 已由用户人工下载并建库：[../papers/wsese-difficulties-replicating-slr-llms-se/review.md](../papers/wsese-difficulties-replicating-slr-llms-se/review.md)。 |
 
 ## 2. ASE 2024/2025 title-level 审计摘要
 

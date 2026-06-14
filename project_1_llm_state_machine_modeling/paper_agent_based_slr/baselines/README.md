@@ -4,18 +4,18 @@
 
 本目录服务于第二篇 **agent-based SLR** 论文的 Related Work、novelty gate 与审稿风险控制。它不是最终系统综述结果，而是用于回答一个前置问题：近三年 CCF A/B/C 软件工程及邻近 venue、近两年 arXiv 中，是否已经存在足以打穿本文 story 的 **LLM-based SLR / LLM-assisted evidence synthesis / agentic literature-review workflow**。
 
-当前 PR-B0 的结论必须保守使用：本轮已把 34 篇可得 PDF 条目升级为 `paper_content.txt` 全文文本核验与七维评分，但多数条目尚未人工逐页核对 PDF 图表；正式写入 Related Work / novelty matrix 前，仍需回到单篇 `review.md`、`paper_content.txt` 和关键 PDF 图表做最终复核。
+当前 PR-B0 的结论必须保守使用：本轮已把 35 篇可得 PDF 条目升级为 `paper_content.txt` 全文文本核验与七维评分，但多数条目尚未人工逐页核对 PDF 图表；正式写入 Related Work / novelty matrix 前，仍需回到单篇 `review.md`、`paper_content.txt` 和关键 PDF 图表做最终复核。
 
 ## 2. 当前状态
 
 | 项 | 数量 / 状态 |
 |---|---:|
 | arXiv 近邻候选 | 34 |
-| 本地建库候选 | 34 |
+| 本地建库候选 | 35 |
 | P0 强 baseline | 10（本地 10，全文文本核验 10） |
-| P1 高度关注 | 15（本地 15，全文文本核验 15） |
+| P1 高度关注 | 16（本地 16，全文文本核验 16） |
 | P2 背景相关 | 9（本地 9，全文文本核验 9） |
-| CCF title-level 命中 | 1 条 CCF-adjacent / ICSE workshop 线索，仍需人工全文 |
+| CCF title-level 命中 | 1 条 CCF-adjacent / WSESE@ICSE 2025 线索，已人工下载并全文建库 |
 | 人工下载清单 | [search/manual-download-needed.bib](./search/manual-download-needed.bib) |
 
 ## 3. 文件说明

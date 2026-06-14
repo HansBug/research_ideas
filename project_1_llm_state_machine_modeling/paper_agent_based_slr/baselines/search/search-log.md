@@ -27,4 +27,4 @@
 | `2026-06-13 01:20:00` | arXiv API 按 PR body §4.1 query 骨架检索 | 形成 [arxiv-query-results.jsonl](./arxiv-query-results.jsonl) 与 [arxiv-2024-2026-title-abstract-screening.md](./arxiv-2024-2026-title-abstract-screening.md)；P0/P1 候选建立本地单篇目录 | arXiv 是预印本来源；需要后续核验是否已有正式 venue 版本。 |
 | `2026-06-13 01:20:00` | 自动下载 P0/P1 arXiv PDF 并提取文本 | 候选目录包含 `paper.pdf` / `paper_content.txt` / `bibtex.bib` / `review.md` | `paper_content.txt` 为文字模式提取；若后续发现公式/表格缺失，应回到 PDF 核对。 |
 | `2026-06-13 01:20:00` | CCF venue title-level 粗筛 | 形成 [ccf-venue-coverage-gaps.md](./ccf-venue-coverage-gaps.md) 与 [ccf-abc-2024-2026-title-abstract-screening.md](./ccf-abc-2024-2026-title-abstract-screening.md) | 多数 CCF 年度页缺 abstract；未命中不能写成最终负证据。 |
-| `2026-06-13 01:20:00` | 人工下载清单 | 生成 [manual-download-needed.bib](./manual-download-needed.bib) | 至少包含 ICSE workshop 相关命中，待用户 / Zotero 获取全文。 |
+| `2026-06-13 01:20:00` | 人工下载清单 | 生成 [manual-download-needed.bib](./manual-download-needed.bib) | 原 ICSE workshop 相关命中已由用户 / Zotero 获取全文，人工下载清单清零。 |

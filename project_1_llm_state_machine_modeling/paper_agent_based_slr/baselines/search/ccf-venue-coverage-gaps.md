@@ -57,7 +57,7 @@ coverage emoji：🔵 = 本轮拿到可复核 title list；🟠 = 只能 coarse 
 
 | 年份 | Venue | 标题 | 来源 | 分层 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | 备注 |
 |---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 2025 | WSESE@ICSE | On the Difficulties of Conducting and Replicating Systematic Literature Reviews Studies Using LLMs in Software Engineering | [DBLP](https://dblp.org/rec/conf/wsese/FelizardoDCGMGS25) | P1 | 🟢 | 🟡 | 🟡 | 🟡 | 🟠 | 🟢 | 🟡 | CCF-adjacent / ICSE workshop 命中，PDF 未自动获取，已写入 [manual-download-needed.bib](./manual-download-needed.bib)。 |
+| 2025 | WSESE@ICSE | On the Difficulties of Conducting and Replicating Systematic Literature Reviews Studies Using LLMs in Software Engineering | [DBLP](https://dblp.org/rec/conf/wsese/FelizardoDCGMGS25) | P1 | 🟢 | 🟡 | 🟡 | 🟡 | 🟠 | 🟢 | 🟡 | CCF-adjacent / ICSE workshop 命中，PDF 已由用户人工下载并建库。 |
 
 ## 3. 缺口说明
 
