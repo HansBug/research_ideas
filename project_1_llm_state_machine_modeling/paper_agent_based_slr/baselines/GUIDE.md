@@ -85,7 +85,7 @@ emoji 列在正式表格中只写 emoji；中文解释集中写在本节。每�
 | 局部覆盖 | baseline 覆盖某个阶段、模块或评价维度 | paper2 可保留组合贡献，但必须在 Related Work 中承认局部近邻。 |
 | 负面证据 | baseline 暴露 LLM/agent 在该环节的失败、变异或不可靠性 | paper2 可把它转化为方法动机或实验指标，但不能忽略风险。 |
 | 评价协议约束 | baseline 提供了 reviewer 会期待的指标、gold、人工评审或成本口径 | paper2 实验应对齐或解释为什么不可比。 |
-| 禁用 claim 证据 | baseline 直接证明某个宽泛 claim 不能写 | 对应 claim 应进入 claims-to-avoid。 |
+| 禁用 claim 证据 | baseline 直接提示某个宽泛 claim 不能写，或使该 claim 需要显著降级 | 对应 claim 应进入 claims-to-avoid。 |
 | 背景定位 | baseline 只提供领域背景或弱近邻 | 可用于 Related Work，但不能作为主 novelty 对手。 |
 
 ## 5. 检索策略
@@ -214,9 +214,10 @@ papers/<slug>/
 8. P2 若已建本地目录，应进入主表或背景表，并说明为什么不是 P0/P1；如果 D7=🟢 但仍归 P2，必须在 `差异化要求 / 阻塞项` 中解释它威胁的是 survey 生成 / evaluation 等局部 claim，而非 SLR/SMS evidence workflow 主线。
 9. CCF coverage / gap 与人工下载入口必须保留，不能把 coverage gap 写成负证据。
 10. `SUMMARY.md` 应给出总体定调结论：哪些 claim 必须禁用，哪些 claim 可以保守保留，后续实验必须补哪些证据。
-11. `SUMMARY.md` 不能只罗列大表。每个主要表格或主要小节后必须有一段中文“本节结论”，说明该表对 paper2 story、实验设计或证据边界的实际含义。
-12. `SUMMARY.md` 必须内置 D1-D7 速查表，便于读者不跳转 [GUIDE.md](./GUIDE.md) 也能理解评分；[GUIDE.md](./GUIDE.md) 仍保留完整维护规则。
-13. `SUMMARY.md` 的 CCF / arXiv / workshop / manual-download 线索必须写清年份、检索或核验时间、同行评审状态和当前处理状态；已下载条目必须从“待人工下载”升级为本地单篇目录链接，并同步从 `manual-download-needed.bib` 中清零。
+11. `SUMMARY.md` 不能只罗列大表。每个主要表格或主要小节前必须给出一段中文“本节速读”或等价结论先行说明，先回答“这节对 paper2 story / 实验设计 / 证据边界意味着什么”；每个主要表格或主要小节后还必须有一段中文“本节结论”，避免读者只能看到信息罗列而看不出总体判断。
+12. `SUMMARY.md` 顶部必须有“速读定调”或等价全局摘要，压缩说明当前 baseline 文库的规模、年份结构、最大 novelty 威胁、仍可保守主张的 story、实验硬要求和禁用主张。
+13. `SUMMARY.md` 必须内置 D1-D7 速查表，便于读者不跳转 [GUIDE.md](./GUIDE.md) 也能理解评分；[GUIDE.md](./GUIDE.md) 仍保留完整维护规则。
+14. `SUMMARY.md` 的 CCF / arXiv / workshop / manual-download 线索必须写清年份、检索或核验时间、同行评审状态和当前处理状态；已下载条目必须从“待人工下载”升级为本地单篇目录链接，并同步从 `manual-download-needed.bib` 中清零。来源类型、年份覆盖、条目数量、证据等级和写作结论边界应放在独立表格中，不能散落在长段落里。
 
 ### 7.1 CCF-A 级字段补强口径
 
@@ -299,8 +300,11 @@ git diff --check
 
 1. `review.md` 是否包含快速结论卡片、D1-D7、方法、实验、结果、局限、paper2 影响。
 2. `SUMMARY.md` 主表是否包含输入、输出、方法、阶段、审计、实验、发现等描述性列。
-3. 是否仍有“粗筛”“待全文核验”字样残留在已全文阅读的核心 P0/P1 条目里；若有，必须解释原因。
-4. 是否存在“首次性 / 完整覆盖 / PRISMA 合规”等未经证据支撑的强 claim。
+3. `SUMMARY.md` 每个主要小节 / 主表是否有前置“本节速读”或等价局部判断，并且内容不能只是复述表名，必须包含“局部判断 + 对 paper2 的建议动作 + 证据边界 / 风险”。
+4. `SUMMARY.md` 每个主要小节 / 主表是否有后置“本节结论”或等价总结，并且能回答该节对 paper2 story、实验设计、证据边界或后续任务的实际含义。
+5. arXiv / CCF / workshop / manual-download 线索是否均写清年份、证据等级、同行评审状态、处理状态和结论边界；人工下载清单清零不得被写成 artifact audit 完成。
+6. 是否仍有“粗筛”“待全文核验”字样残留在已全文阅读的核心 P0/P1 条目里；若有，必须解释原因。
+7. 是否存在“首次性 / 完整覆盖 / PRISMA 合规 / CCF 无相关工作 / 已经证明 / 保证”等未经证据支撑或容易被复制进 paper2 的强 claim；若存在，必须降级为“当前已建库证据中尚未观察到 / 需后续 audit 后升级”。
 
 如果 reviewer 要求 dry-run，至少选 1 个 P0、1 个 P1、1 个 P2 场景，检查是否能从 README → GUIDE → SUMMARY → search → paper dir 找到证据链。
 

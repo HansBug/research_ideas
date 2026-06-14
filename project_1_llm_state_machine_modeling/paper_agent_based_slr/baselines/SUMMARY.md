@@ -1,9 +1,25 @@
 # baselines/SUMMARY.md：PR-B0 近邻 baseline 总账
 
-> 更新时间：`2026-06-14 14:45:30`（Asia/Shanghai）
+> 更新时间：`2026-06-14 17:06:55`（Asia/Shanghai）
 > 本文件记录 LLM-based SLR / agentic literature-review 近邻 baseline 的全文文本核验结果。它仍不是 PRISMA 式完整系统综述；所有写入论文正文的强结论，后续仍需回到单篇 `review.md`、`paper_content.txt` 与必要的 PDF 图表核对。
 
+## 0. 速读定调（先看这节）
+
+**全局结论**：当前 35 篇本地全文文本级 baseline 已经给出充分风险信号：LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility 都已有强近邻，paper2 不能再依赖宽泛 firstness 立论。更稳妥的主线是**面向软件工程 SLR/SMS 的可审计 agent evidence workflow**：把阶段化 run record、claim-to-source trace、人审 gate、unsupported claim 控制和 failure taxonomy 作为核心贡献。**建议**：后续 story / outline / 讨论材料应先冻结“禁用主张—可保守主张—必须实验证据”三层结构；所有强表述都必须回到 P0/P1 对手、单篇 `review.md` 和后续 A3/A5 指标核验。
+
+| 问题 | 当前答案 | 对 paper2 的直接影响 |
+|---|---|---|
+| 现在到底收了什么？ | 34 篇 2024--2026 arXiv 近邻 + 1 篇 2025 WSESE@ICSE workshop 近邻，均已建立 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`review.md`。 | 已可支撑 Related Work、novelty matrix 和实验指标设计；尚不能宣称完成正式 PRISMA 式 SLR。 |
+| 年份结构是什么？ | arXiv：2024 年 6 篇、2025 年 13 篇、2026 年 15 篇；非 arXiv 本地条目：2025 年 WSESE@ICSE workshop 1 篇。 | 说明该方向是 2024--2026 快速涌现的新近邻；正式写作必须显式标注年份和预印本/ workshop 状态。 |
+| 最大 novelty 威胁是什么？ | 多 agent SLR、clinical evidence synthesis、HITL provenance、screening / extraction、survey generation 都已有强近邻。 | 禁止写“首次 LLM 自动化 SLR / 首次 agentic SLR / 完整覆盖 SLR 生命周期”。 |
+| 仍然能讲什么 story？ | 已有工作多分散在跨域 evidence synthesis、screening/extraction、survey generation 或 SE 方法学讨论；在当前已建库证据边界下，较稳的差异化空间是“SE SLR/SMS 场景 + 阶段化 evidence package + 报告级 claim trace + 人工审计 gate”的组合。 | story 应从“能自动写综述”转为“让综述证据可追踪、可审计、可复核”。 |
+| 实验必须补什么？ | evidence 定位、unsupported claim、false negative、模型变异、人工复核成本、run record 完整性、报告透明度。 | 只展示生成报告、节省时间或单一 F1 不足以支撑 CCF A 类贡献。 |
+
+**本节结论**：这份 SUMMARY 的用途不是继续堆论文，而是把 baseline 暴露出的 claim 风险转成 paper2 的安全叙事边界和实验义务。当前最应采取的动作是：一是在 story 中主动承认已有 agentic SLR / evidence synthesis / survey generation 近邻；二是把贡献锚定到 SE SLR/SMS、证据链、审计门和可复现记录；三是在实验计划中预留 unsupported claim、evidence 定位、false negative、模型变异和人工复核成本等指标。若后续新增 baseline 或实验结果改变判断，应先更新本节，再改上游 story。
+
 ## 1. 当前总览
+
+**本节速读**：当前文库不是“待整理候选列表”，而是 35 篇已建本地目录、已完成全文文本级 review 的 baseline 总账；其中 P0/P1 合计 26 篇，已经足以对 paper2 的宽泛 novelty 形成实质约束。最关键的信息不是“数量很多”，而是这些条目覆盖了不同威胁面：P0 多来自端到端或多阶段工作流、HITL evidence synthesis 和 clinical / financial / material science 场景，P1 则补上 SE screening、SMS support、prompt reproducibility 和 survey-generation evaluation。**建议**：后续 Related Work 先按威胁组写，而不是按年份流水账写；实验设计先覆盖 P0/P1 暴露出的缺口，再考虑扩大 P2 背景。
 
 | 项 | 数量 / 状态 |
 |---|---:|
@@ -19,9 +35,20 @@
 | CCF title-level 命中 | 1 条 CCF-adjacent / WSESE@ICSE 2025 线索；已人工下载并全文建库 |
 | 人工下载清单 | 0 条待下载；历史清单见 [search/manual-download-needed.bib](./search/manual-download-needed.bib) |
 
-**本节结论**：当前总账已经从“34 篇 arXiv 近邻粗筛”扩展为“34 篇 arXiv 近邻 + 1 篇 WSESE@ICSE 2025 软件工程方法学近邻”的 35 篇本地全文文本级 baseline 文库。最重要的现实含义是：近邻工作已经足以禁止宽泛 firstness claim，但多数条目仍不是可运行 baseline，后续 paper2 必须把可审计 evidence package、run record 和 claim-to-source trace 作为差异化主线。
+### 1.1 来源与年份口径总表
+
+| 来源类型 | 年份覆盖 | 本地条目数 | 当前处理状态 | 写作时允许的结论 | 禁止升级成的结论 |
+|---|---|---:|---|---|---|
+| arXiv 预印本 | 2024 年 6 篇；2025 年 13 篇；2026 年 15 篇 | 34 | 已完成 title/abstract 粗筛、PDF 获取、`paper_content.txt` 提取与全文文本级 `review.md` | 可说“2024--2026 预印本中已经密集出现 LLM/agent SLR、evidence synthesis、survey generation 近邻” | 不得写成 peer-reviewed / CCF / 正式发表事实 |
+| CCF A/B/C venue title-level scan | 2024--2026；2026 多数 venue 尚未完整归档 | 0 个主会/期刊完整组合 baseline；1 个 CCF-adjacent workshop 命中 | 已保留 coverage/gap、DBLP title scan 和 ASE 2024/2025 title-level 审计 | 可说“当前已建档 CCF venue title-level scan 中尚未观察到完整组合 baseline，且存在 coverage gap” | 不得写“近三年 CCF 完全没有相关工作” |
+| WSESE@ICSE workshop | 2025 | 1 | 用户人工下载 PDF 后已建本地全文文本级 review | 可作为 SE 方法学社区已讨论 LLM-SLR conducting / replication difficulties 的直接近邻 | 不得写成 ICSE main track 或 CCF A 主会论文 |
+| 人工下载清单 | 截至 2026-06-14 17:06:55 | 0 待下载 | `manual-download-needed.bib` 保留历史入口，当前需要用户下载的条目已清零 | 可说“本轮已把当前人工下载项纳入本地文库” | 不得据此说后续不再需要补 PDF / artifact audit |
+
+**本节结论**：当前总账已经从“34 篇 arXiv 近邻粗筛”扩展为“34 篇 arXiv 近邻 + 1 篇 WSESE@ICSE 2025 软件工程方法学近邻”的 35 篇本地全文文本级 baseline 文库。最重要的现实含义是：近邻工作已经足以禁止宽泛 firstness claim，但多数条目仍不是可运行 baseline，后续 paper2 必须把可审计 evidence package、run record 和 claim-to-source trace 作为差异化主线。**局部建议**：短期内不要再把精力平均投入新检索，而应优先把 P0/P1 中“能变成 reviewer 质疑”的条目做 PDF 图表核对与 artifact audit；WSESE@ICSE 2025 则应作为 SE 方法学动机，而不是作为主会负证据。
 
 ## 2. 口径说明
+
+**本节速读**：本文件所有判断必须同时看“分层、D1-D7、阅读状态/证据等级、baseline 可用性”四个口径；单看 P0/P1 或单看 emoji 都不足以支撑论文主张。比如 D7=🟢 只能说明 novelty 风险高，不代表该 work 可运行复现；D6=🟢 说明 SE/目标 venue 相关，不代表它已经覆盖 paper2 的完整组合；全文文本级 review 能支撑方法/实验概述，但涉及精确数字、表格、图示和 artifact 时仍要再核。**建议**：后续写作时每个强主张至少引用一个事实分层、一个维度判断、一个证据等级和一个本地证据入口，避免把筛选直觉写成论文结论。
 
 - 分层：P0 = 强 baseline / 直接 novelty 威胁；P1 = 高度关注 / 局部强 baseline；P2 = 背景相关 / 方法参照。分层表示对 paper2 novelty 的威胁强度，不等同正式可复现实验 baseline。
 - D1-D7：D1 主题、D2 流程、D3 自动化、D4 审计、D5 评价、D6 SE/目标 venue 相关性、D7 novelty 威胁；本文件 §2.1 给出速查表，完整维护规则仍以 [GUIDE.md](./GUIDE.md) 为准。
@@ -30,7 +57,7 @@
 - `venue/状态` 中的 arXiv 只表示预印本来源；除非后续补充 DOI / proceedings / journal issue，否则不得写成 peer-reviewed 或 CCF 事实。
 - `baseline 可用性` 区分可运行复现、协议/指标、定性强 baseline、仅 related-work 背景和全文不可得；代码、数据、提示词、许可、正式 venue/DOI 与 PDF 图表核对缺口必须在 §7 拆开记录，不能只写一条泛化阻塞项。 §7 的 `代码状态` / `数据状态` 只表示本轮从原文识别到的 artifact 线索，不表示 URL 已打开、license 已核验或可运行复现；只有后续 artifact audit 完成后，才允许升级为可运行 baseline。
 
-**本节结论**：读者应把本文件理解为 paper2 的 story 风险总账，而不是系统综述最终证据。凡是要进入论文 Abstract / Introduction 的强主张，至少要同时通过“分层 + D1-D7 + 阅读状态/证据等级 + baseline 可用性”四个口径；其中任一口径不够强，都必须降级成背景或限制。
+**本节结论**：读者应把本文件理解为 paper2 的 story 风险总账，而不是系统综述最终证据。凡是要进入论文 Abstract / Introduction 的强主张，至少要同时通过“分层 + D1-D7 + 阅读状态/证据等级 + baseline 可用性”四个口径；其中任一口径不够强，都必须降级成背景或限制。**局部建议**：后续维护时优先补“证据等级”和“baseline 可用性”两列，因为它们直接决定某篇论文能否进入实验 baseline、Related Work 强对比或只作为 motivation；不要只为了提高 novelty 压力而上调 P0/P1。
 
 ### 2.1 D1-D7 维度划分速查表
 
@@ -46,9 +73,11 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | D6 | SE / CCF / 目标 venue 相关性 | 发表在 CCF A/B/C SE/AI4SE/MDE 强相关 venue 或直接面向软件工程 SLR | 非 CCF 但与 SE / LLM4SE / MDE 强相关 | 泛 AI / 医学 / 社科综述自动化，可提供方法背景 | 与本仓库主题或目标 venue 关联弱 |
 | D7 | 对 paper2 novelty 的威胁强度 | 已经覆盖 agent-based + SLR 多阶段 + audit/traceability/evaluation 的核心组合 | 覆盖其中多个关键点，需要本文明确差异化 | 只覆盖局部点，可作为 related work 背景 | 不构成 novelty 威胁 |
 
-**本节结论**：D1/D3/D7 解决“是不是近邻、是不是自动化、是否打穿 novelty”，D4/D5/C7 相关字段解决“能否支撑可审计与可复现主张”，D6 解决“是否足以支撑 SE/CCF 语境”。paper2 后续写作不能只看总分或 P0/P1/P2，而必须逐维解释为什么某篇论文是强对手、模块对手或仅背景。
+**本节结论**：D1/D3/D7 解决“是不是近邻、是不是自动化、是否打穿 novelty”，D4/D5 与 C7 相关字段解决“能否支撑可审计与可复现主张”，D6 解决“是否足以支撑 SE/CCF 语境”。paper2 后续写作不能只看总分或 P0/P1/P2，而必须逐维解释为什么某篇论文是强对手、模块对手或仅背景。**局部建议**：Related Work 表格可直接沿用 D1-D7 的列，但正文叙述应按 D4/D5/C7 的缺口展开，因为 CCF A reviewer 更关心证据链、评价协议和复现可靠性，而不是“又一个 agent pipeline”。
 
 ## 3. 主表 A：单篇方法事实与证据等级
+
+**本节速读**：主表 A 的核心结论是，P0/P1 论文已经分别覆盖了多阶段 agent workflow、screening/extraction、HITL audit、survey/report generation 和 SE 方法学讨论；paper2 后续不能只说“我们也用 LLM 做综述”，必须说清输入、输出、阶段、审计和实验证据如何不同。表中最值得关注的是“输入/输出”和“覆盖阶段”两组字段：跨域工作通常有结构化 registry、临床 trial、金融 taxonomy 或材料科学变量定义，SE SLR/SMS 则更依赖开放文本、人工标准、协议冻结和报告 trace。**建议**：method story 应把“SE 文献综述证据对象更开放、更难结构化、更需要审计链”写成技术挑战，而非泛泛说领域不同。
 
 本表是总账主表的一半，保证读者不打开单篇文件也能看到每篇 baseline 的输入、输出、方法、阶段、审计、实验和主要发现。为避免 GitHub 超宽表不可读，D1-D7 与主张影响放在 §4，主张绑定、审计/provenance 与可复现资产拆到 §5--§7。
 
@@ -91,18 +120,20 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | 2024 | P2 | [Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation](./papers/automated-literature-review-rag/review.md) | arXiv:2411.18583; cs.CL; 未按同行评审处理 | 已读全文文本 | 全文文本级；图表/表格细节待人工 PDF 核对 | 多篇 research paper PDFs；部分 pipeline 还使用 DOI；SciTLDR dataset 用于训练/测试/知识库。 | 自动生成的 literature review segment；最终实现为基于 GPT-3.5-TURBO-0125 的 GUI tool。 | 主要覆盖从 PDF 文本抽取、单篇 summarization、合并为 literature review 段落；不覆盖系统检索、筛选、质量评价、编码或证据审计。 | 比较 spaCy frequency-based、Simple T5、GPT-3.5-TURBO-0125 RAG/OpenAI Assistant 三种生成管线。 | 没有系统性 人工审计、provenance、claim-to-source trace；仅有 4 篇论文的 UI 示例输出。 | SciTLDR 数据集，ROUGE-1/2/L/Lsum 比较三种方法；UI demo 使用 4 篇 healthcare/IoT 论文。 | GPT-3.5-TURBO-0125 在 ROUGE-1 和 ROUGE-2 上最高；T5 在 ROUGE-L 和 ROUGE-Lsum 上高于 GPT；作者仍把 LLM pipeline 作为最终系统。 | [review.md](./papers/automated-literature-review-rag/review.md) |
 
 
-**本节结论**：主表 A 显示，35 篇近邻中真正覆盖多阶段 workflow 的强对手主要来自临床/医学、金融、材料科学与自动 survey 生成；SE 直接近邻虽少，但已经覆盖 screening、SMS support、SLR 学习辅助、方法学困难和 LLM-assisted ESE SLR。也就是说，paper2 不能靠“SE 还没人用 LLM 做 SLR”立论，而应靠“SE SLR/SMS 的阶段化证据包与报告级审计链”立论。
+**本节结论**：主表 A 显示，35 篇近邻中真正覆盖多阶段 workflow 的强对手主要来自临床/医学、金融、材料科学与自动 survey 生成；SE 直接近邻虽少，但已经覆盖 screening、SMS support、SLR 学习辅助、方法学困难和 LLM-assisted ESE SLR。也就是说，paper2 不能靠“SE 还没人用 LLM 做 SLR”立论，而应靠“SE SLR/SMS 的阶段化证据包与报告级审计链”立论。**局部建议**：后续应选 4--6 篇 P0 作为“完整工作流/审计强近邻”，再选 3--5 篇 SE P1 作为“目标社区近邻”，形成双轴对比；这样比把 35 篇全部等权讨论更利于论文 story。
 
 ## 4. 主表 B：七维评分与 paper2 主张影响
 
-本表与 §3 使用同一批 34 篇本地条目，专门服务 novelty matrix、主张-证据 map 与实验设计。
+**本节速读**：D1/D3/D7 显示近邻密度已经很高，D4/D5 则暴露出本文仍可切入的审计与评价空间；后续 novelty 不能按“总等级”一刀切，而要逐维说明哪些能力被已有工作覆盖、哪些组合仍缺口明显。当前最有用的读法是：D1/D2/D3 高的论文负责压低“自动化流程”novelty，D4 高的论文负责压低“可追踪/人审”novelty，D5 高的论文负责约束实验标准，D6 高的论文负责约束 SE 定位。**建议**：后续 novelty matrix 不要只列“我们的不同点”，而要逐维列出“已有覆盖—本文保守差异—必须补的实验”。
+
+本表与 §3 使用同一批 35 篇本地条目，专门服务 novelty matrix、主张-证据 map 与实验设计。
 
 | 年份 | 分层 | 标题 | D1 | D2 | D3 | D4 | D5 | D6 | D7 | 对 paper2 的作用 / 差异化要求 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026 | P0 | [A Multi-Agent Human-LLM Collaborative Framework for Closed-Loop Scientific Literature Summarization](./papers/closed-loop-literature-summarization/review.md) | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟠 | 🟢 | 最强 human-in-the-loop / audit 近邻之一；直接威胁“agent + extraction + confidence + report + human correction”组合，但领域不是 SE，且缺少 claim-level provenance |
 | 2026 | P0 | [Beyond Accuracy: LLM Variability in Evidence Screening for Software Engineering SLRs](./papers/llm-variability-se-slr-screening/review.md) | 🟢 | 🟠 | 🟡 | 🟡 | 🟢 | 🟢 | 🟡 | 强约束 paper2 的 screening evaluation、模型变异、人工审计 gate 和 run record 设计；不覆盖多阶段 agent SLR 或报告级 claim-to-source |
 | 2026 | P0 | [Eligibility-Aware Evidence Synthesis: An Agentic Framework for Clinical Trial Meta-Analysis](./papers/eligibility-aware-evidence-synthesis/review.md) | 🟢 | 🟡 | 🟢 | 🟡 | 🟡 | 🟠 | 🟢 | 强约束“agentic evidence synthesis + deterministic/auditable execution”叙事；但其统计 meta-analysis 任务和医学 registry 输入与 SE SLR paper2 不同 |
-| 2026 | P0 | [Evaluating AI-based Scientific Knowledge Synthesis with Epidemiological Systematic Reviews](./papers/agent-slr-evaluation-harness/review.md) | 🟢 | 🟢 | 🟢 | 🟡 | 🟢 | 🟠 | 🟢 | 强约束 paper2 的 evaluation story：不能只声称自动化 SLR，而要证明 SE 场景、证据链、run record、人审 gate 和失败分类的差异 |
+| 2026 | P0 | [Evaluating AI-based Scientific Knowledge Synthesis with Epidemiological Systematic Reviews](./papers/agent-slr-evaluation-harness/review.md) | 🟢 | 🟢 | 🟢 | 🟡 | 🟢 | 🟠 | 🟢 | 强约束 paper2 的 evaluation story：不能只声称自动化 SLR，而要展示并验证 SE 场景、证据链、run record、人审 gate 和失败分类的差异 |
 | 2026 | P0 | [EviSearch: A Human in the Loop System for Extracting and Auditing Clinical Evidence for Systematic Reviews](./papers/evisearch/review.md) | 🟢 | 🟠 | 🟢 | 🟢 | 🟡 | 🟠 | 🟢 | 对 paper2 的 traceability/evidence package 是强威胁；但它不是完整 SLR agent 工作流，paper2 可从 SE 场景、多阶段 run record 和报告级 claim trace 区分 |
 | 2026 | P0 | [LR-Robot: An Human-in-the-Loop LLM Framework for Systematic Literature Reviews with Applications in Financial Research](./papers/lr-robot/review.md) | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟠 | 🟢 | 强约束 human-in-the-loop + taxonomy/prompt/evaluation story；但领域是金融文献分类，不是 SE SLR 报告生成 |
 | 2026 | P0 | [SWARM-SLR AIssistant: A Unified Framework for Scalable Systematic Literature Review Automation](./papers/swarm-slr-aiassistant/review.md) | 🟢 | 🟡 | 🟡 | 🟡 | 🟠 | 🟠 | 🟡 | workflow/tool registry 近邻 baseline：威胁 paper2 的 SLR workflow guidance 与 tool integration claim，但评价和证据链弱于 LatteReview/Elhuyar |
@@ -137,9 +168,11 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 
 
 
-**本节结论**：D1/D3 高分条目很多，说明“LLM/agent + 文献综述自动化”已是拥挤赛道；D6 高分条目集中在 SE arXiv / WSESE / ESEM-adjacent 线索，说明目标社区已经开始关注 LLM-SLR/SMS，但还没有在本轮证据中形成“SE + 多阶段 agent workflow + report-level claim trace + run record”的完整组合。D7 高分不等于可运行 baseline；它只表示 novelty 风险，需要再结合 §5--§7 判断能否运行、能否公平比较。
+**本节结论**：D1/D3 高分条目很多，说明“LLM/agent + 文献综述自动化”已是拥挤赛道；D6 高分条目集中在 SE arXiv / WSESE / ESEM-adjacent 线索，说明目标社区已经开始关注 LLM-SLR/SMS；但在当前已建库近邻与已建档 CCF title-level scan 中，尚未观察到同时覆盖 SE SLR/SMS 场景、阶段化 evidence package、报告级 claim trace 与完整 run record 的可审计组合。D7 高分不等于可运行 baseline；它只表示 novelty 风险，需要再结合 §5--§7 判断能否运行、能否公平比较。**局部建议**：A5 评测应优先补 D4/D5/C7 指标，而不是只追求 D1/D3 能力展示。
 
 ## 5. 主表 C：主张绑定与 baseline 可用性
+
+**本节速读**：主表 C 把每篇 baseline 直接映射到 paper2 可写/不可写的 claim；当前最危险的是 C1/C2/C5/C7 的宽泛表述，最稳妥的是把贡献限定到 SE SLR/SMS 可审计 evidence workflow。这里的关键不是给每篇论文贴“竞争对手”标签，而是决定 paper2 哪些句子必须降级、哪些实验必须补证、哪些 baseline 只能定性对比。**建议**：写作时把 C1/C2/C5/C7 拆成 claim-evidence map：每条 claim 后面都列“已有 baseline 覆盖点、本文差异、实验/证据锚点、禁用措辞”。
 
 本表按 `$ai-research-writing-skill` 的主张-证据口径补齐每篇 baseline 对 paper2 的直接写作约束。它回答“这篇论文威胁 paper2 哪条主张、威胁类型是什么、后续如何差异化”。正式写作时仍需回到单篇 `review.md` 的证据锚点和 PDF 图表核对。
 
@@ -148,7 +181,7 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | P0 | [A Multi-Agent Human-LLM Collaborative Framework for Closed-Loop Scientific Literature Summarization](./papers/closed-loop-literature-summarization/review.md) | C1,C2,C3,C5,C7 | 直接覆盖 + 局部覆盖 | 直接新颖性门槛 / 强 baseline | 定性强baseline | 最强 human-in-the-loop / audit 近邻之一；直接威胁“agent + extraction + confidence + report + human correction”组合，但领域不是 SE，且缺少 claim-level provenance | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
 | P0 | [Beyond Accuracy: LLM Variability in Evidence Screening for Software Engineering SLRs](./papers/llm-variability-se-slr-screening/review.md) | C4,C5,C7 | 评价协议约束 + 负面证据 | 直接新颖性门槛 / 强 baseline | 协议/指标baseline | 强约束 paper2 的 screening evaluation、模型变异、人工审计 gate 和 run record 设计；不覆盖多阶段 agent SLR 或报告级 claim-to-source | 避免把筛选 accuracy/F1 当作完整 SLR 自动化贡献；避免忽视 false negative、模型变异和人工复核成本。 |
 | P0 | [Eligibility-Aware Evidence Synthesis: An Agentic Framework for Clinical Trial Meta-Analysis](./papers/eligibility-aware-evidence-synthesis/review.md) | C1,C2,C5,C7 | 局部覆盖 + 评价协议约束 | 直接新颖性门槛 / 强 baseline | 协议/指标baseline | 强约束“agentic evidence synthesis + deterministic/auditable execution”叙事；但其统计 meta-analysis 任务和医学 registry 输入与 SE SLR paper2 不同 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
-| P0 | [Evaluating AI-based Scientific Knowledge Synthesis with Epidemiological Systematic Reviews](./papers/agent-slr-evaluation-harness/review.md) | C1,C2,C5,C7 | 直接覆盖 + 评价协议约束 | 直接新颖性门槛 / 强 baseline | 可复现需改造 / 阶段化评价协议baseline | 强约束 paper2 的 evaluation story：不能只声称自动化 SLR，而要证明 SE 场景、证据链、run record、人审 gate 和失败分类的差异 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
+| P0 | [Evaluating AI-based Scientific Knowledge Synthesis with Epidemiological Systematic Reviews](./papers/agent-slr-evaluation-harness/review.md) | C1,C2,C5,C7 | 直接覆盖 + 评价协议约束 | 直接新颖性门槛 / 强 baseline | 可复现需改造 / 阶段化评价协议baseline | 强约束 paper2 的 evaluation story：不能只声称自动化 SLR，而要展示并验证 SE 场景、证据链、run record、人审 gate 和失败分类的差异 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
 | P0 | [EviSearch: A Human in the Loop System for Extracting and Auditing Clinical Evidence for Systematic Reviews](./papers/evisearch/review.md) | C2,C3,C5,C7 | 直接覆盖 + 评价协议约束 | 直接新颖性门槛 / 强 baseline | 协议/指标baseline | 对 paper2 的 traceability/evidence package 是强威胁；但它不是完整 SLR agent 工作流，paper2 可从 SE 场景、多阶段 run record 和报告级 claim trace 区分 | 避免声称 page/table/cell 级 evidence provenance 是空白；避免只保存最终答案而缺少证据定位。 |
 | P0 | [LR-Robot: An Human-in-the-Loop LLM Framework for Systematic Literature Reviews with Applications in Financial Research](./papers/lr-robot/review.md) | C1,C2,C4,C5,C7 | 直接覆盖 + 局部覆盖 | 直接新颖性门槛 / 强 baseline | 定性强baseline | 强约束 human-in-the-loop + taxonomy/prompt/evaluation story；但领域是金融文献分类，不是 SE SLR 报告生成 | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
 | P0 | [SWARM-SLR AIssistant: A Unified Framework for Scalable Systematic Literature Review Automation](./papers/swarm-slr-aiassistant/review.md) | C1,C2,C5,C7 | 局部覆盖 | 直接新颖性门槛 / 强 baseline | 定性强baseline | workflow/tool registry 近邻 baseline：威胁 paper2 的 SLR workflow guidance 与 tool integration claim，但评价和证据链弱于 LatteReview/Elhuyar | 避免写“首次 agentic SLR / 首次自动化 evidence synthesis”；必须承认跨域强近邻并收窄到 SE 场景和可审计证据包。 |
@@ -182,9 +215,11 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | P2 | [Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation](./papers/automated-literature-review-rag/review.md) | C6 | 背景定位 + 禁用 claim 证据 | 背景近邻 / 局部 claim 风险或禁用 claim 证据 | 仅related-work背景 | 是 报告生成/RAG 的弱背景 baseline，可用于说明仅靠 PDF summarization 和 ROUGE 不足以支撑可审计 SLR claim。 | 避免声称“首次 LLM/agent 自动化 SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”，也不得把 arXiv 预印本当作 CCF/peer-reviewed 事实。 |
 
 
-**本节结论**：主表 C 把 paper2 的风险压缩成一句话：C1/C2/C5/C7 的宽泛版本几乎都已有强近邻，C4 的 SE 定位也已有方法学讨论；唯一较稳的主张空间是把这些能力组合成“面向 SE SLR/SMS 的可审计 evidence workflow”。因此后续 story 应主动承认 prior work 覆盖了 screening、抽取、survey generation 和 HITL 局部能力，再强调本文的阶段化 run record、claim-to-source、unsupported claim 控制和 failure taxonomy。
+**本节结论**：主表 C 把 paper2 的风险压缩成一句话：C1/C2/C5/C7 的宽泛版本几乎都已有强近邻，C4 的 SE 定位也已有方法学讨论；较稳的主张空间是在当前 evidence boundary 下提出“面向 SE SLR/SMS 的可审计 evidence workflow”组合，并用后续实验验证其必要性和有效性。因此后续 story 应主动承认 prior work 覆盖了 screening、抽取、survey generation 和 HITL 局部能力，再强调本文的阶段化 run record、claim-to-source、unsupported claim 控制和 failure taxonomy。**局部建议**：把每篇 P0/P1 的 `paper2 必须动作` 转成实验/写作 checklist，不要只作为 Related Work 描述。
 
 ## 6. 主表 D：阶段边界、人工审计与 provenance
+
+**本节速读**：已有工作并非没有 HITL 或 provenance，但多数停留在筛选记录、结构化抽取、评价 gold、引用级追踪或 per-cell evidence；paper2 若要成立，必须展示报告级 claim、筛选、抽取、编码和人工裁决之间的证据链没有断。对 reviewer 来说，“有人参与”不是充分条件，关键是人类在何时介入、看到什么证据、修改是否被记录、修改如何影响最终报告。**建议**：method 设计中应把 human audit gate 定义成可导出对象，而不是 UI/流程描述；实验中应测 audit gate 拦截了什么错误。
 
 本表专门回应 reviewer 可能提出的“你所谓可审计 workflow 和已有 human-in-the-loop/provenance 工作到底差在哪里”。`主张追踪状态` 若写“无明确”或“评价级”，不得在 paper 正文中升级为已有 / 本文对比的 claim-to-source 事实；若写“页面/表格/单元格级”，正式写作前仍必须 PDF 图表核对。
 
@@ -227,9 +262,11 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | P2 | [Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation](./papers/automated-literature-review-rag/review.md) | 主要覆盖从 PDF 文本抽取、单篇 summarization、合并为 literature review 段落；不覆盖系统检索、筛选、质量评价、编码或证据审计。 | 不覆盖系统检索、筛选、质量评价、编码或证据审计。 | 运行中审查者或用户反馈；需区分是否为正式审计 gate | 原文未给出清晰审计时机或本轮未抽取 | 无明确 claim-to-source trace；仅 RAG/UI 示例，不能支撑审计 claim。 | 无或仅论文叙述 | 不可导出或仅论文叙述；正式写作不得承诺可审计 artifact。 |
 
 
-**本节结论**：主表 D 说明，已有工作常见的人类参与是标注、裁决、事后评价、低置信检查或 per-cell provenance；这些机制不等同于报告级 claim-to-source 链，也不等同于完整 run record。paper2 可保守主张的技术缺口是：把筛选决策、抽取记录、编码依据、报告 claim、人工审计 gate 和最终叙述输出放进同一套可导出的 evidence package。
+**本节结论**：主表 D 说明，已有工作常见的人类参与是标注、裁决、事后评价、低置信检查或 per-cell provenance；这些机制不等同于报告级 claim-to-source 链，也不等同于完整 run record。paper2 可保守探索的技术缺口是：把筛选决策、抽取记录、编码依据、报告 claim、人工审计 gate 和最终叙述输出放进同一套可导出的 evidence package。**局部建议**：后续实现至少要输出 per-stage decision log、source anchor、claim ledger、human edit log 和 eligibility filter；缺少任一项都应在 limitations 里提前承认。
 
 ## 7. 主表 E：LLM 设置、可复现资产与数值使用许可
+
+**本节速读**：当前多数条目只有代码/数据/prompt 线索，尚未完成 URL、license、commit、smoke run 或模型版本核验；因此它们现在主要是 Related Work / protocol / metric baseline，不是已经可运行复现的实验 baseline。这个区别直接影响论文实验：能运行的 baseline 可以进入 quantitative comparison，只有协议/指标的 baseline 只能进入 metric alignment 或 qualitative comparison，只有论文叙述的条目只能进入 Related Work。**建议**：下一轮 artifact audit 应按“代码可访问—数据可访问—许可可用—prompt/model 可复验—最小 smoke 可跑”五级推进。
 
 本表用于防止把“论文声称有代码/数据”误写成“可运行 baseline”。当前本轮只做全文文本级 baseline review，没有 clone / smoke 这些 artifact audit；因此多数条目的代码、数据和许可仍是待核验状态。凡 `数值使用许可` 不是“可直接引用”，正式写论文前不得直接从 SUMMARY 复制数字作强结论。
 
@@ -272,14 +309,16 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | P2 | [Automated Literature Review Using NLP Techniques and LLM-Based Retrieval-Augmented Generation](./papers/automated-literature-review-rag/review.md) | Gemini、Llama、GPT；具体版本/调用日期按原文与 artifact 待复核 | 正文提到 prompt；完整模板待核验 | 原文未给出或本轮未抽取 temperature / seed / repeats | 未提及本研究源码；只识别到 Hugging Face 数据/模型线索 | 使用 SciTLDR / Hugging Face 数据集；本研究数据处理与 license 待核验 | 未核验；不得据此承诺可复现或可再分发 | 仅文本级引用；正式写作前需 PDF 图表/表格核对 |
 
 
-**本节结论**：主表 E 是当前最需要保守的一张表：多数论文即便给出 GitHub、Zenodo、Colab、匿名仓库或 data availability 线索，本轮也尚未打开 URL、核验 license、clone 代码或 smoke run。因此当前 baseline 文库能支撑 Related Work、novelty matrix 和实验指标设计，但不能支撑“我们已经复现/运行所有 baseline”的说法。
+**本节结论**：主表 E 是当前最需要保守的一张表：多数论文即便给出 GitHub、Zenodo、Colab、匿名仓库或 data availability 线索，本轮也尚未打开 URL、核验 license、clone 代码或 smoke run。因此当前 baseline 文库能支撑 Related Work、novelty matrix 和实验指标设计，但不能支撑“我们已经复现/运行所有 baseline”的说法。**局部建议**：上游 PR 若要安排 baseline 实验，应先从 LatteReview、AgentSLR、EviSearch、LLMSurver、SurveyLens 等有 artifact 线索的条目开始做可运行性分级；无法运行的条目仍可作为 protocol / metric 对照，不能硬塞进实验表。
 
 ## 8. 强 baseline 对 story 的威胁
+
+**本节速读**：五类近邻共同给出一个清晰信号：自动化、agent、多阶段、HITL、survey generation 任一单点都不再够新；paper2 的差异化必须落到 SE 场景下可导出、可复核、可审计的 evidence package。每一组 baseline 都对应一个审稿人可能提出的反问：多 agent 组会问“你和 LatteReview/AgentSLR 差在哪”，provenance 组会问“你和 EviSearch 的证据追踪差在哪”，survey generation 组会问“你是不是只是在自动写综述”。**建议**：Introduction 应把这些反问提前转化为 problem gap，而不是等 Related Work 被动防御。
 
 | baseline 组 | 代表论文 | 威胁的主张 | 后续差异化要求 |
 |---|---|---|---|
 | 多 agent / agent 式 SLR 工作流 | LatteReview、LR-Robot、SWARM-SLR AIssistant、AgentSLR、Elhuyar closed-loop | “agent 工作流 自动化 SLR”本身已不是充分 novelty | 必须把 story 收窄到 SE/SMS 场景、阶段化 run record、claim-to-source 不断链、透明报告和人工审计门。 |
-| 人工参与与 provenance / audit | EviSearch、LR-Robot、Elhuyar、Prompt optimisation protocol、SurveyLens | “human-in-the-loop + 可追踪证据综合”已有强近邻 | 必须证明本文审计链覆盖报告级 claim、筛选决策、抽取记录、编码和证据定位，而不是只保存用户反馈。 |
+| 人工参与与 provenance / audit | EviSearch、LR-Robot、Elhuyar、Prompt optimisation protocol、SurveyLens | “human-in-the-loop + 可追踪证据综合”已有强近邻 | 必须展示并验证本文审计链覆盖报告级 claim、筛选决策、抽取记录、编码和证据定位，而不是只保存用户反馈。 |
 | SLR screening / corpus filtration | LLM variability in SE SLR screening、LLM abstract screening ensembles、LLMSurver、prompting strategies、OpenExtract | 局部筛选/抽取模块已有系统评价 | 本文不能把 screening accuracy 当唯一贡献；若评估筛选，需比较 false negative、模型变异、人工复核、成本与 provenance completeness。 |
 | 自动 survey / review generation | LiRA、ARISE、SurveyG、SurveyGen、SurveyLens、Agentic AutoSurvey、AutoSurvey2 | “自动生成综述文本 / survey”已有密集工作 | 本文若写报告生成，重点必须落在证据链、unsupported claim 控制、透明报告和 SLR/SMS protocol conformance，而非只比文本质量。 |
 | SE 场景近邻 | Beyond Accuracy、Felizardo WSESE difficulties、SLRMentor、LLM-assisted empirical SE SLR、LLM support SMS brief report、Agentic AI across SDLC SLR | SE 社区已有 LLM+SLR/SMS 讨论 | 本文应定位为面向 SE 综述的可审计 agent evidence package，而不是泛泛 LLM 辅助 SE SLR。 |
@@ -287,9 +326,11 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 自动 survey / review generation 组中，SurveyG/SurveyGen/AutoSurvey2/Agentic AutoSurvey/Patience 虽保留 P2 事实分层，但部分条目 D7=🟢 或具有 P1 近邻强度；降级理由是它们主要威胁 survey 生成 / retrieval / citation-quality 局部主张，不覆盖 SLR/SMS 筛选、抽取、编码、报告审计协议的主线组合。ARISE/LiRA/SurveyLens 归 P1 而非 P0，也基于同一原则：它们是报告生成或评价强近邻，而非完整 SLR/SMS evidence workflow。
 
 
-**本节结论**：§8 的定调是，paper2 的正面 story 不应再追求“更会自动写综述”，而应追求“更能让综述证据被追踪、被审计、被复核”。其中 WSESE@ICSE 2025 新增条目把 SE 方法学社区的痛点进一步前置：prompt、随机性、模型消失、成本和数据仓库缺口不是工程细节，而是 paper2 必须正面回答的学术问题。
+**本节结论**：§8 的定调是，paper2 的正面 story 不应再追求“更会自动写综述”，而应追求“更能让综述证据被追踪、被审计、被复核”。其中 WSESE@ICSE 2025 新增条目把 SE 方法学社区的痛点进一步前置：prompt、随机性、模型消失、成本和数据仓库缺口不是工程细节，而是 paper2 必须正面回答的学术问题。**局部建议**：后续 paper story 可采用“已有自动化能力很多，但当前已建库近邻尚未观察到完整覆盖该组合的 SE SLR/SMS 审计型证据工程”这一叙事；Related Work 建议按五组威胁组织，每组最后明确本文如何响应。
 
 ## 8.1 方法假设、负面证据与后续评价指标
+
+**本节速读**：prior work 已经报告了结构化抽取瓶颈、温度 0 残余变异、prompt/consensus 敏感、引用质量薄弱和 artifact 不完整等负面证据；这些不是背景噪声，而是 paper2 必须显式测量的实验指标。尤其要注意，负面证据不是削弱 paper2 的理由，反而可以成为本文方法设计的动机：如果模型会变、prompt 会漂、引用会错、artifact 不完整，那么 run record、audit gate 和 evidence package 就是必要机制。**建议**：实验章节至少设置一张“risk-to-metric mapping”表，把每类 prior failure 映射到本文评价指标。
 
 本表按 `$ai-research-writing-skill` 的 reviewer gate 口径压缩记录 CCF A 类 reviewer 会追问的三类问题：baseline 是否和 paper2 公平可比、prior work 已报告哪些失败或负面证据、paper2 因此必须测哪些指标。详细证据仍回到单篇 `review.md`。
 
@@ -302,17 +343,23 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | prompt / workflow reproducibility | Prompt calibration 类工作可能只验证单阶段 title/abstract screening，且依赖固定 metric / seeds / model access。 | GEPA/DSPy 类协议显示 budget 增加不一定单调提升；prompt、seed、模型版本和 trace 缺失会导致不可复验。 | 必须固定 model_id、provider、prompt、seed/repeats、cost/token、trace、redaction 和 eligibility filter。 | hosted API 使用、prompt/data 再分发和补充材料 license 待核验。 |
 
 
-**本节结论**：§8.1 把 prior work 的负面结果转化成 paper2 的实验义务：后续 A3/A5 至少要覆盖 false negative、模型变异、人工复核成本、evidence 定位、unsupported claim、报告透明度和 artifact 可复现性。若这些指标缺失，paper2 即使能生成报告，也很难支撑 CCF A 类 reviewer 对 soundness / reproducibility / significance 的要求。
+**本节结论**：§8.1 把 prior work 的负面结果转化成 paper2 的实验义务：后续 A3/A5 至少要覆盖 false negative、模型变异、人工复核成本、evidence 定位、unsupported claim、报告透明度和 artifact 可复现性。若这些指标缺失，paper2 即使能生成报告，也很难支撑 CCF A 类 reviewer 对 soundness / reproducibility / significance 的要求。**局部建议**：不要把 evaluation 写成“生成质量 + 人工打分”两项；更稳的设计是 stage-wise metrics + audit metrics + cost/reproducibility metrics + qualitative failure taxonomy。
 
 ## 9. 当前总体判断
+
+**本节速读**：当前判断可以压缩为“禁用 firstness，保留可审计 SE evidence workflow；禁用完整生命周期，保留明确定义的阶段子集；禁用可复现 baseline 泛称，保留下一轮 artifact audit 计划”。这不是保守到没有贡献，而是把贡献从泛化口号转成可被实验支撑的对象：阶段边界、证据链、人工审计、错误分类和复现资产。**建议**：上游 story 中每个 contribution 都应能对应到这里的一条“仍可保守主张”与一个后续评价指标，否则先降级为 future work 或 system feature。
 
 1. **必须禁用的强主张**：不能写“首次 LLM 自动化 SLR”“首次 agentic SLR”“完整覆盖 SLR 全流程”“PRISMA 合规”。当前 P0/P1 已覆盖多 agent 工作流、human-in-the-loop、screening/extraction、survey 生成 与评价 benchmark。
 2. **仍可保守主张的空间**：若后续实现与实验成立，可以主张“面向软件工程 SLR/SMS 的可审计 agent 工作流”，核心在于阶段化 evidence package、run record、claim-to-source trace、人工审计门和错误传播/失败分类。
 3. **实验必须支撑审计可靠性**：A3/A5 不能只展示生成报告；至少要评价证据定位正确性、unsupported claim 率、审计拦截率、筛选 false negative、人工复核成本、run record 完整性和最终报告透明度。
 4. **可复现 baseline 仍需下一轮 artifact audit**：本 PR 已识别代码/数据/提示词线索，但尚未 clone、许可核验或 smoke 运行；因此当前多数 baseline 只能作为协议、指标或定性对照，不能写成已可运行复现。
-5. **CCF 负证据必须保守**：本轮 CCF 主会/期刊仅能支持“当前 title-level 未发现完整组合 baseline 且存在 coverage gap”，不能写成近三年 CCF 完全没有相关工作。
+5. **CCF 负证据必须保守**：本轮 CCF 主会/期刊仅能支持“当前 title-level 尚未观察到完整组合 baseline 且存在 coverage gap”，不能写成近三年 CCF 完全没有相关工作。
+
+**本节结论**：paper2 的当前安全边界已经很清楚：主张必须从“是否能自动化 SLR”转为“是否能在 SE SLR/SMS 中提供可审计、可复核、可导出的 evidence workflow”，并且实验必须围绕这个边界设计。**局部建议**：如果后续实现范围收缩，应优先保住 evidence trace / audit gate / run record，而不是优先保住更多自动化阶段；因为前者是当前 baseline 缺口和 CCF A 审稿价值所在。
 
 ## 10. 禁用主张与主张-证据写作提示
+
+**本节速读**：本节是后续写 Abstract / Introduction / Related Work 时的“红线表”。凡是要写 firstness、完整覆盖、PRISMA、CCF 负证据或可复现对比，都必须先从这里改成保守版本。红线表的作用不是削弱论文，而是避免 reviewer 用一篇 P0/P1 近邻直接击穿全文可信度。**建议**：写作时把“不应写法”变成内部 lint checklist；每次改 story 或 PR body，都查一遍是否出现“首次、完整、证明、保证、PRISMA 合规、CCF 没有”这类高风险词。
 
 | 类型 | 不应写法 | 可替代写法 | 证据来源 |
 |---|---|---|---|
@@ -320,13 +367,14 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 | coverage | “覆盖完整 SLR 生命周期” | “覆盖本 PR / 实验中定义的检索、筛选、抽取、编码、综合、报告生成子集；未覆盖的环节显式列为限制” | 后续 method 与 run record |
 | reliability | “保证无幻觉” | “通过 claim-to-source trace 与 人工审计 gate 降低 unsupported claim，并报告残余错误率” | A5 指标与 audit log |
 | PRISMA | “PRISMA 合规” | “PRISMA 风格清单 / PRISMA 启发式报告提示；是否合规需人工系统综述专家核验” | Agents-judge-SLR、PRISMA 原始规范 |
-| venue evidence | “CCF 近三年没有相关工作” | “在当前已建档 CCF venue title-level scan 中未发现完整组合 baseline，但 coverage gap 仍存在” | [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md) |
+| venue evidence | “CCF 近三年没有相关工作” | “在当前已建档 CCF venue title-level scan 中尚未观察到完整组合 baseline，但 coverage gap 仍存在” | [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md) |
 | reproducibility | “我们将复现所有强 baseline” | “本轮完成可复现资产线索识别；是否可运行复现需下一轮 code/data/license/prompt artifact audit” | §7 与单篇 `review.md` |
 
-
-**本节结论**：§10 是后续写作的安全阀。凡是涉及 firstness、完整生命周期、PRISMA、CCF 负证据、可复现 baseline 的句子，都应先在本表里找可替代表述；找不到可替代表述时，默认先降级为“当前证据尚不足”。
+**本节结论**：§10 是后续写作的安全阀。凡是涉及 firstness、完整生命周期、PRISMA、CCF 负证据、可复现 baseline 的句子，都应先在本表里找可替代表述；找不到可替代表述时，默认先降级为“当前证据尚不足”。**局部建议**：在 paper draft 中可直接维护一个 claims-to-avoid 小节或审稿风险表，把本节禁用主张映射到替代表述和证据来源；这会显著降低后续 Related Work / Introduction 重写成本。
 
 ## 11. CCF、arXiv 与人工下载证据链
+
+**本节速读**：时间和来源必须分开写：arXiv 是 2024--2026 预印本近邻，CCF 是当前已建档 venue 的 title-level 粗筛，WSESE@ICSE 2025 是 workshop 全文；三者不能合并成“正式发表近三年 CCF 证据”。这部分直接关系到论文写作的证据合法性：arXiv 支撑“近期趋势和并行工作压力”，CCF title-level scan 支撑“当前已建档 venue 中未观察到完整组合的初步线索”，WSESE 支撑“SE 社区已有方法学痛点”。**建议**：正式 Related Work 前必须把这三类来源分段写，避免把预印本密度误写成正式发表格局。
 
 - CCF coverage / gap 见 [search/ccf-venue-coverage-gaps.md](./search/ccf-venue-coverage-gaps.md)。
 - CCF DBLP title 扫描原始快照见 [search/ccf-dblp-title-scan-raw.md](./search/ccf-dblp-title-scan-raw.md)。
@@ -334,10 +382,20 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 - arXiv query 原始快照见 [search/arxiv-query-raw-snapshot.jsonl](./search/arxiv-query-raw-snapshot.jsonl)：本轮按 2024--2026 年预印本候选处理，arXiv 条目均不得直接写成同行评审或 CCF 事实。
 - arXiv 2024--2026 去重候选池见 [search/arxiv-dedup-candidate-pool.jsonl](./search/arxiv-dedup-candidate-pool.jsonl)：354 条原始快照去重为 291 条候选，最终 34 条进入本地 arXiv 近邻建库。
 
+| 证据链 | 年份 | 条目 / 记录数 | 当前证据等级 | 当前结论边界 |
+|---|---|---:|---|---|
+| arXiv query 原始快照 | 2024--2026 | 354 | 元数据 / title / abstract | 可用于说明检索覆盖和去重来源；不能直接支撑全文方法对比。 |
+| arXiv 去重候选池 | 2024--2026 | 291 | 元数据 / title / abstract | 可用于说明筛选漏斗；未纳入条目仍需排除理由审计。 |
+| arXiv 本地建库条目 | 2024--2026 | 34 | 全文文本级 review | 可用于 Related Work 与 novelty matrix；正式数字仍需 PDF 图表核对。 |
+| CCF A/B/C title-level scan | 2024--2026 | 42 个已建档 venue 的 coverage/gap | title-level discovery | 可用于 gap-aware 检索说明；不能作为完整负证据。 |
+| WSESE@ICSE workshop 全文 | 2025 | 1 | 全文文本级 review | 可用于 SE LLM-SLR 方法学近邻；不能升级为 ICSE main track。 |
+| 人工下载清单 | 截至 2026-06-14 17:06:55 | 0 待下载；历史清单见 [manual-download-needed.bib](./search/manual-download-needed.bib) | 清单 / 本地建库状态 | 只说明本轮待下载项清零，不代表后续无需 PDF 图表核对或 artifact audit。 |
 
-**本节结论**：§11 说明时间信息必须拆开看：arXiv 覆盖 2024--2026 预印本，CCF 是当前已建档 venue 的 title-level scan，WSESE@ICSE 2025 是已人工下载的 workshop 全文。三者证据等级不同，后续 paper2 不能把它们混成“近三年正式发表文献”的单一口径。
+**本节结论**：§11 说明时间信息必须拆开看：arXiv 覆盖 2024--2026 预印本，CCF 是当前已建档 venue 的 title-level scan，WSESE@ICSE 2025 是已人工下载的 workshop 全文，人工下载清单当前清零但不代表 artifact audit 完成。三者证据等级不同，后续 paper2 不能把它们混成“近三年正式发表文献”的单一口径。**局部建议**：论文中涉及时间趋势时建议用“近期预印本密集出现”“当前已建档 CCF title-level scan 尚未观察到完整组合”“SE workshop 已出现复现性讨论”三种分离表述。
 
 ## 12. 后续工作建议
+
+**本节速读**：下一步优先级不是继续扩大候选池，而是对关键 P0/P1 做 PDF 图表核对与 artifact audit，并把这些证据回写到 story、evaluation design 和 limitations。当前 35 篇已经足够暴露主张风险，继续盲目扩库会降低推进效率；更有价值的是把关键 baseline 的数字、artifact、license、prompt、数据和失败模式核实到能支撑论文对比的程度。**建议**：下一轮任务拆成三条线并行：P0/P1 PDF 数字核验、artifact 可运行性分级、story/metric 回填。
 
 1. 正式 Related Work 写作前，优先对 P0 中图表/表格/实验数字做 PDF 逐页核对，至少覆盖 AgentSLR、LatteReview、EviSearch、LR-Robot、Elhuyar、TrialMind；同时补核 SurveyG/ARISE/LiRA（虽非 P0，但对报告生成 / 引用质量 / evaluation design 的局部威胁强）。
 2. 开一轮 artifact audit：对 §7 中代码/数据/提示词线索逐一打开 URL，记录 commit/version/license，能运行的做 smoke，不能运行的转为协议或定性 baseline。
@@ -347,21 +405,26 @@ emoji 释义：🟢 = 强，🟡 = 中，🟠 = 弱，⚪ = 无或背景。正�
 6. 若后续要冲 CCF A 类期刊/会议，建议再做一次正式 SLR-style related work audit：冻结检索式、双人筛选样本、抽取表、inter-rater agreement 和漏筛复核。
 
 
-**本节结论**：后续工作应按“先核关键 P0/P1 图表与 artifact，再回写 story 和实验设计”的顺序推进。最紧急的不是继续堆更多文献，而是把当前 35 篇已经暴露出的 claim 风险转化为 paper2 的方法约束、实验指标和 limitations。
+**本节结论**：后续工作应按“先核关键 P0/P1 图表与 artifact，再回写 story 和实验设计”的顺序推进。最紧急的不是继续堆更多文献，而是把当前 35 篇已经暴露出的 claim 风险转化为 paper2 的方法约束、实验指标和 limitations。**局部建议**：建议把 AgentSLR、LatteReview、EviSearch、LR-Robot、Elhuyar、TrialMind 作为第一批 PDF/artifact audit；SurveyLens、ARISE、LiRA、SurveyG 作为报告生成与评价协议补充组；WSESE@ICSE 2025 作为 SE 方法学风险引用。
 
 ## 13. 全体总结：用于 paper2 story 的定调
 
-1. **现状一句话**：当前 baseline 文库已经证明“LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility”都有强近邻；paper2 若继续写宽泛自动化 story，会被 P0/P1 baseline 轻易打穿。
+**全体速读**：paper2 的安全写法是“面向软件工程 SLR/SMS 的可审计 agent evidence workflow”，危险写法是“首次/完整/自动化/PRISMA 合规”。下面六点是后续上游 story 和讨论材料应直接继承的定调，但仍要保留证据边界：这些判断来自当前本地 35 篇全文文本级 review、arXiv/CCF title-level 证据链和 WSESE workshop 条目，尚未等同正式 SLR 或 artifact 复现实验。**建议**：把本节作为下一次导师讨论的 story baseline，讨论重点放在“是否接受该收窄后的 story”和“实验能否支撑审计型贡献”。
+
+1. **现状一句话**：当前 35 篇全文文本级近邻审计已经提供充分风险信号：LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility 都有强近邻；paper2 若继续写宽泛自动化 story，会被 P0/P1 baseline 轻易打穿。
 2. **最稳 story**：paper2 应定位为“面向软件工程 SLR/SMS 的可审计 agent evidence workflow”，而不是“首次 LLM 自动化 SLR”。核心贡献应围绕阶段化 run record、claim-to-source trace、human audit gate、unsupported claim 控制、failure taxonomy 和 SE 场景适配展开。
-3. **SE 证据状态**：SE 直接近邻已经从 arXiv cs.SE 扩展到 WSESE@ICSE 2025 workshop 全文；它们说明 SE 社区已经讨论 LLM-SLR/SMS 的筛选、方法学、复现性和教学/实践支持。可保守写“缺少完整的 SE SLR/SMS 可审计 evidence workflow”，不能写“SE 社区尚未关注 LLM-SLR”。
+3. **SE 证据状态**：SE 直接近邻已经从 arXiv cs.SE 扩展到 WSESE@ICSE 2025 workshop 全文；它们说明 SE 社区已经讨论 LLM-SLR/SMS 的筛选、方法学、复现性和教学/实践支持。可保守写“在当前已建库近邻与已建档 CCF title-level scan 中，尚未观察到同时覆盖 SE SLR/SMS 场景、阶段化 evidence package、报告级 claim trace 与人工审计 gate 的完整组合；该表述仍需正式 Related Work audit 后再升级”，不能写“SE 社区尚未关注 LLM-SLR”。
 4. **实验硬要求**：后续实验必须测 evidence 定位正确性、unsupported claim 率、审计拦截率、screening false negative、模型变异、人工复核成本、run record 完整性和报告透明度；只展示生成报告或 time saving 不足以支撑 CCF A 类 story。
 5. **证据等级边界**：当前 35 篇均是全文文本级 review，关键 P0 的 PDF 图表/表格级数字仍需人工核对；代码、数据、prompt、license 和 smoke run 仍需 artifact audit。SUMMARY 中的数字可用于内部定调和 Related Work 草稿，正式写作前必须回到单篇 review、paper_content 和必要 PDF/URL 核验。
-6. **禁用主张**：禁止写“首次 LLM 自动化 SLR”“首次 agentic SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”“近三年 CCF 没有相关工作”“所有强 baseline 已可运行复现”。这些主张要么已被近邻 work 否定，要么当前证据等级不足。
+6. **禁用主张**：禁止写“首次 LLM 自动化 SLR”“首次 agentic SLR”“完整覆盖 SLR 生命周期”“PRISMA 合规”“近三年 CCF 没有相关工作”“所有强 baseline 已可运行复现”。这些主张要么已被强近邻显著削弱、变得不安全，要么当前证据等级不足。
+
+**全体结论**：当前 baseline 调研已经把 paper2 的方向从“做一个 LLM/agent 自动综述系统”推向“做一个能经受 SE/CCF 审稿质疑的可审计 evidence workflow”。如果后续方法与实验不能显式回应 evidence traceability、人工审计、失败模式、复现资产和 SE 场景适配，那么即使系统能生成综述文本，也不足以形成稳固论文贡献。**总体建议**：接下来应优先冻结一个保守但可打的论文叙事：问题不是“自动化综述能不能做”，而是“在 SE SLR/SMS 中，如何让 LLM/agent 产生的筛选、抽取、编码和报告主张形成可审计证据链，并用实验检验该证据链是否能降低实际错误和复核成本”。
 
 ## 14. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-14 17:06:55` | 按用户反馈重构 SUMMARY 阅读入口：新增 §0 速读定调，给主要小节前置“本节速读”，补充来源与年份口径总表、证据链年份表，并把速读/结论加厚为“局部判断 + paper2 建议动作 + 证据边界”，避免总账只罗列信息而不能直接支撑 paper2 story 决策。 |
 | `2026-06-14 14:45:30` | 用户补充 WSESE@ICSE 2025 PDF 后，将该 CCF-adjacent SE 方法学近邻升级为本地全文文本级条目；SUMMARY 增加 D1-D7 速查表、各主表本节结论、证据链时间口径和全体 story 定调，人工下载清单清零。 |
 | `2026-06-14 03:02:11` | 修复复审指出的 artifact 状态误标风险：清理 SUMMARY 与 34 篇 `review.md` 中模板化“正文出现 GitHub/code/dataset 线索”说法；逐篇改为未提及、给出 URL 待打开、需申请、占位承诺、匿名仓库、Colab/补充材料等保守状态；新增 §8.1 总结方法假设、负面证据、伦理/license 风险与 paper2 指标要求。 |
 | `2026-06-14 01:58:00` | 按 `$ai-research-writing-skill` 与字段体系审阅意见继续补强：单篇 `review.md` 快速卡片新增受影响主张 ID、威胁类型、阶段边界、人工角色、审计时机、主张追踪、决策日志、LLM 设置、提示词/随机种子、代码/数据/许可、数值使用许可等字段；SUMMARY 新增主表 C/D/E，避免只用 D1-D7 或泛化“代码/数据待复核”支撑 CCF-A 级写作。 |
