@@ -2,59 +2,103 @@
 
 ## 1. 目标与边界
 
-本 GUIDE 约束 seed library 的后续维护。seed library 只回答一个问题：哪些上游工作或来源能提供、描述或帮助构造 `<NL, STM_0>`，且其中 `STM_0` 与 `NL` 存在可追踪的生成 / 派生 / 人工建模关系。
+本 GUIDE 约束种子文库的后续维护。种子文库只回答一个问题：哪些上游工作或来源能提供、描述或帮助构造 `<NL, STM_0>`，且其中 `STM_0` 与 `NL` 存在可追踪的生成 / 派生 / 人工建模关系。
 
-不得把 seed library 写成本论文 repair baseline 文库；若同一工作也包含 repair / feedback / completion 环节，应在后续 `repair_baselines/` 另行登记其修正能力，并在两边交叉链接。
+不得把种子文库写成本论文修正基线文库；若同一工作也包含 repair / feedback / completion 环节，应在后续 `repair_baselines/` 另行登记其修正能力，并在两边交叉链接。
 
-## 2. 分级口径
-
-| 轴 | 等级 | 用途 |
-|---|---|---|
-| strict seed literature eligibility | `SS-A` / `SS-B` / `ES-C` / `NN-D` / `EX-E` / `pending` | 文献是否满足 `NL -> T0 STM-family` seed 定义。 |
-| seed artifact usability | `SA-1` / `SA-2` / `SA-3` / `SA-4` / `SA-5` | artifact 是否可进入可复验实验样本。 |
-| R2 计数资格 | `yes-main` / `yes-conditional` / `no-*` | 是否可进入当前 R2 四例主 / 条件主候选计数。 |
-
-`SA-3/SA-4/SA-5` 不计四例，并不等于不属于 seed 方法集合。`fsm-bench-20` 这类 pipeline 可复跑但 generated outputs 未冻结的对象不得直接计为已有 `STM_0` 四例。
-
-## 3. SUMMARY-first 规则
+## 2. SUMMARY-first 规则
 
 [SUMMARY.md](./SUMMARY.md) 是唯一横向事实真源。它必须直接可复算：
 
-- candidate / screening：`47/47`；
-- 单条目目录：`24 dirs`；
-- 旧九 generation baseline crosswalk：`9/9`；
+- 候选 / 筛查：`47/47`；
+- 单条目证据目录：`24 dirs`；
+- 旧九生成基线 crosswalk：`9/9`；
 - R2 主 / 条件主可计候选：`4`；
-- manual queue：`2 downloaded/excluded；2 excluded-by-metadata；10 still-blocked；2 new-manual-pending`。
+- 人工下载队列：`2 已下载后排除；2 元数据排除；10 仍受阻；2 新增待人工`。
 
-新增条目时，不得只创建目录或只改单篇文件；必须同步更新 `SUMMARY.md` 的候选全集表、资产表、manual / negative / search / 更新日志等相关章节。
+新增条目时，不得只创建目录或只改单篇文件；必须同步更新 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表、人工队列 / 排除证据 / 检索摘要 / 更新日志等相关章节。
 
-## 4. 单条目维护
+## 3. emoji / enum 标准
+
+正式总账表中，emoji 列只写 emoji，中文释义集中写在本节和 [SUMMARY.md](./SUMMARY.md)。有偏序关系的维度默认按 **🟢 > 🟡 > 🟠 > 🔴** 表达，❓表示待核，⚪表示不适用。
+
+### 3.1 偏序型 emoji 口径
+
+| 维度 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
+|---|---|---|---|---|---|---|
+| 文献资格 | 强种子：清楚满足 `NL -> T0 STM-family` | 条件种子：关系清楚但有 synthetic / 制品 / T0 等 边界说明 | 扩展 / 边界证据：对方法或转换压力有价值 | 不满足或明确排除 | 待核 | 不适用 |
+| T0 适配 | T0 明确 | 大体 T0，但需切片或少量格式转换 | 存在 timed / hybrid / protocol / 中间产物 风险 | 非 STM family 或不可隔离 | 待核 | 不适用 |
+| 生成关系 | 明确 `NL -> STM_0` | 方向基本成立但需切片 / 初始输出隔离 | 只有间接、中间模型或 paper-level 重建线索 | 不是 `NL -> STM_0` | 待核 | 不适用 |
+| 资源可用性 | 公开且可直接用于后续实验 / 复核 | 公开但需抽取、切片、冻结版本或补 许可 / hash | 仅论文可重建 / 只有示例 / 需要人工整理 | 私有、未公开、不可获得或当前不能用 | 待核 / 访问受阻 | 对该条目不适用 |
+| R2 资格 | 主候选 | 条件主候选 | 备选 / 相关工作 / 转换器压力 | 不计入当前四例 | 待核 | 不适用 |
+| 泄漏风险 | 未见明显泄漏 | 需隔离 reference / repair / oracle 字段 | 泄漏风险高，必须强约束使用 | 无法隔离 | 待核 | 不适用 |
+| 本地证据容器 | 本地文件存在且可读 | 本地文件存在但需修复 / 质量较弱 | 只有替代证据或待整理 | 缺失且应补 | 待核 | 该条目按设计不需要 |
+
+### 3.2 外部资源可获取性口径
+
+资源盘点面向后续实验和论文证据链能否直接使用，不等于本地文档是否齐全。每个条目至少要分别判断：论文本体、源码、NL 数据、STM 数据、原生 `<NL, STM>` pair、实验结果 / 原始输出、许可 / 版本 / 哈希。
+
+| 资源对象 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
+|---|---|---|---|---|---|---|
+| 论文本体 | 官方 PDF / 预印本 / 出版页可直接读取 | 需少量跳转、页面不稳或要登录 | 只能借助二手摘要、镜像或零散转引 | 当前无法获取 | 待核 | 不适用 |
+| 源码 | 官方仓库可直接拉取并复用 | 可获取但需版本冻结、子模块或许可确认 | 仅有脚本片段、补丁或非完整复现材料 | 未公开或不可得 | 待核 | 不适用 |
+| NL 数据 | 原始自然语言需求、用例或场景文本可直接使用 | 需抽取、切片或冻结版本 | 只能从论文或附录重建 | 不可得 | 待核 | 不适用 |
+| STM 数据 | 原始 `STM_0` / 结构化输出可直接使用 | 需解析、切片或冻结版本 | 只能从图表、示例或截图重建 | 不可得 | 待核 | 不适用 |
+| 原生 `<NL, STM>` pair | 原始配对可直接拿到 | 能重建但需注意版本、切片或泄漏隔离 | 只能半自动恢复 | 不可得 | 待核 | 不适用 |
+| 实验结果 / 原始输出 | 原始结果表、日志、清单、原始输出 可直接使用 | 部分公开，需补整理或补切片 | 只有论文聚合结果 | 不可得 | 待核 | 不适用 |
+| 许可 / 版本 / 哈希 | 许可、发布版本、hash / commit 明确且可追踪 | 许可存在但版本信息需补齐 | 许可不明但作者或仓库可追踪 | 无法确认 | 待核 | 不适用 |
+
+### 3.3 分类型枚举口径
+
+| 字段 | 允许值 / 写法 | 说明 |
+|---|---|---|
+| 生成者 | 人工 / 规则算法 / NLP工具 / LLM / 多阶段流水线 / 混合 | 只描述 `STM_0` 的产生方式；不要把本论文后续修正循环混入种子阶段。 |
+| LLM参与 | 是 / 否 / 可能 / 不适用 | “可能”必须在说明列给出证据不足原因。 |
+| NL类型 | 需求文本 / 用例 / 场景文本 / 系统描述 / 标准文档 / 合成需求 / 来源文档 / 非NL | 用中文写，不再使用 `non-structured` 等英文短语。 |
+| STM类型 | FSM / HSM / EFSM / UML statechart / SysML STM / PlantUML / Mermaid / Umple / 协议FSM / 非STM | 协议FSM、非STM默认不计控制系统四例。 |
+| 资源列 | 论文 / 源码 / NL 数据 / STM 数据 / 原生 pair / 实验结果 / 许可版本 | 资源可获取性面向后续实验可用资源，不等同于本地 `seed_desc.md` 是否存在。 |
+| 排除码 | `X_PROTOCOL_FSM` / `X_PROCESS_MODEL` / `X_NON_STM_FORMALISM` / `X_T1PLUS_TIMED_HYBRID` / `X_SEQUENCE_ONLY` / `X_REPAIR_ONLY` / `X_COEXIST_ONLY` | 排除码用于防误收；不能因为“看起来有 state machine”就绕过生成关系与 T0 范围。 |
+
+## 4. SUMMARY 表格字段纪律
+
+[SUMMARY.md](./SUMMARY.md) 的横向表应拆分维度，避免一列塞入多个概念：
+
+1. **候选全集表**：至少拆出 `ID`、`年份`、`来源批次`、`NL类型`、`STM类型`、`T0`、`关系`、`文献资格`、`R2资格`、`当前角色`、`主要风险`、`证据`。
+2. **R2 交接表**：至少拆出 `NL公开`、`NL唯一输入`、`STM格式`、`T0`、`生成者`、`LLM`、`原生pair`、`泄漏`、`转换`、`R2`。
+3. **外部资源可获取性表**：必须面向后续可用资源，至少覆盖 `论文本体 / 来源`、`源码`、`NL 数据`、`STM 数据`、`原生 pair`、`实验结果 / 原始输出`、`许可 / 版本 / 哈希`、`获取性说明`。
+4. **本地证据容器表**：可以检查 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`seed_desc.md`、`artifacts.md`，但必须明确它不是外部资源可用性表。
+5. emoji 列只写 emoji；若需要解释，放到相邻说明列或标准表中。
+
+## 5. 单条目维护
 
 生成或重写单条目派生文件时遵循：
 
 1. 先读 `bibtex.bib` 核定元信息。
 2. 再尽量完整读 `paper_content.txt`；若缺失或异常，按仓库 PDF 提取规范处理。
 3. 必要时核对 `paper.pdf`。
-4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、SS/SA、R2 角色、风险和证据指针。
-5. 更新 `artifacts.md`：代码、数据、raw output、license、hash / release、manual blocker、复跑风险。
-6. 回填 [SUMMARY.md](./SUMMARY.md)。
+4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2 角色、风险和证据指针。
+5. 更新 `artifacts.md`：外部资源可获取性，包括论文本体、源码、NL 数据、STM 数据、原生 `<NL, STM>` pair、实验结果 / 原始输出、许可、版本 / hash、人工阻塞项、复跑风险。
+6. 回填 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表和更新日志。
 
-artifact-only 条目可以缺 `paper.pdf` / `paper_content.txt`，但必须有 `seed_desc.md` 与 `artifacts.md`，并在 `SUMMARY.md` 资产表中解释。
+仅制品 条目可以缺 `paper.pdf` / `paper_content.txt`，但必须有 `seed_desc.md` 与 `artifacts.md`，并在 [SUMMARY.md](./SUMMARY.md) 的本地证据容器表中解释；这不等于其外部 `STM_0` 输出已经可用。
 
-## 5. archive 使用规则
+## 6. archive 使用规则
 
-[../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/) 只保留 R1.5--R1.7 旧 ledger、search rounds 和 raw search results。archive 内旧链接按历史快照保留，可能指向迁移前的 `papers/` 或 ledger 路径；需要当前事实时必须回到 [SUMMARY.md](./SUMMARY.md) 和本目录单条目。
+[../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/) 只保留 R1.5--R1.7 旧台账、检索轮次和原始检索结果。archive 内旧链接按历史快照保留，可能指向迁移前的 `papers/` 或台账路径；需要当前事实时必须回到 [SUMMARY.md](./SUMMARY.md) 和本目录单条目。
 
-## 6. 禁止事项
+## 7. 禁止事项
 
-- 禁止新增根层横向 ledger 作为第二事实源。
-- 禁止把旧 generation baseline 改写成本论文 repair baseline。
+- 禁止新增根层横向台账作为第二事实源。
+- 禁止把旧 `NL -> STM` 生成基线改写成本论文修正基线。
 - 禁止把 protocol / standard FSM、BPMN/process、Petri/CSP/Event-B/TLA+/LTL/STL、repair-only、co-exist-only、sequence/formal scenario 等误计为主 seed。
+- 禁止把“本地有 `seed_desc.md` / `artifacts.md`”误写成“作者公开了原生 `<NL, STM>` pair”。
 - 禁止在仓库文件中维护 PR 流程状态、review 状态、ready gate、commit / push / merge 进度。
 - R1.8-B 不跑四例真实运行，不调用真实 LLM，不读取 `.env`。
 
-## 7. 更新日志
+## 8. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-14 17:55:00 | PR-R1.8-B 建立 seed_library 维护规则，冻结 SUMMARY-first 与 archive 边界。 |
+| 2026-06-14 19:30:00 | 继续细化资源可获取性分级，明确资产盘点应覆盖论文本体、源码、NL 数据、STM 数据、原生 pair、实验结果 / 原始输出和许可 / 版本 / 哈希；同步候选全集拆列纪律。 |
+| 2026-06-14 18:45:00 | 补充 emoji / enum 标准、中文字段纪律和外部资源可获取性规则，明确资产盘点面向论文、源码、NL 数据、STM 数据、原生 pair、实验结果与许可版本。 |
+| 2026-06-14 17:55:00 | PR-R1.8-B 建立种子文库维护规则，冻结 SUMMARY-first 与 archive 边界。 |
