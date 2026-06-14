@@ -1,0 +1,330 @@
+--- Page 1 ---
+Speciﬁcation-based Veriﬁcation of Embedded
+Systems by Automated Test Case Generation
+Christoph M. Kirchsteiger, Christoph Trummer, Christian Steger, Reinhold Weiss,
+and Markus Pistauer
+Abstract It is time and resource intensive to derive test cases manually from the re-
+quirements speciﬁcation to fully verify that the embedded system design fulﬁlls its
+speciﬁcation. However, automatic parsing to generate test cases is often not possible
+due to the informal, non-machine readable structure of the speciﬁcation document.
+Formal speciﬁcation languages would ease the parsing process, however they are
+difﬁcult to use and rarely accepted. A promising trade-off are semi-formal speciﬁ-
+cation languages, which are both easy-to-parse and easy-to-use.
+This paper presents a novel approach developed in the SIMBA1project to tightly
+integrate a semi-formal requirements speciﬁcation document into the design ﬂow
+of embedded system designs. It considers the speciﬁcation as a series of semi-
+formal textual use cases and automatically generates speciﬁcation-based SystemC
+test cases. During a simulation with the System-under-Veriﬁcation (SuV) the test
+cases are executed to determine whether the SuV fulﬁlls the speciﬁcation. A demon-
+stration is given by a case study of an RFID controller. It shows that errors in the
+speciﬁcation and discrepancies between the design and its speciﬁcation are detected.
+Christoph M. Kirchsteiger ·Christoph Trummer ·Christian Steger ·Reinhold Weiss
+Institute for Technical Informatics, Graz University of Technology, Inffeldgasse 16/1, 8010 Graz,
+Austria
+e-mail: (c.kirchsteiger, trummer, steger, rweiss)@tugraz.at
+Markus Pistauer
+CISC Semiconductor Design & Consulting GmbH, Lakeside B07, 9020 Klagenfurt, Austria
+e-mail: m.pistauer@cisc.at
+1This project has been funded by the Austrian Federal Ministry for Transport, Innovation, and
+Technology under the FFG contract FFG 812424
+35
+
+--- Page 2 ---
+36 C.M. Kirchsteiger, C. Trummer, C. Steger, R. Weiss, M. Pistauer
+1 Introduction
+In today’s design of embedded systems, 70% of the entire design effort is spent on
+functional veriﬁcation. Functional veriﬁcation is mainly driven by ﬁnding adequate
+test cases to verify that the modeled system behaves according to its speciﬁcation
+[21]. Clearly, deriving test cases manually by reading the large system speciﬁcation
+document is very time and resource intensive and error-prone. On the other hand,
+it is infeasible to perform this task automatically due to the informal non-machine
+readable structure of the speciﬁcation.
+The approach presented here focuses on semi-formal description formats to spec-
+ify requirements. A very promising and well-known semi-formal speciﬁcation style
+are textual use cases [4]. Although they are similar to graphical UML use cases
+enhanced by UML sequence diagrams, they can be extended much more easily
+to cover additional domain-speciﬁc information (e.g. by inserting additional ﬁelds
+for non-functional requirements). Textual use cases are both widely accepted to
+communicate with a customer and suitable for automatic post-processing. They
+deﬁne the interaction and the behavior of a system under certain conditions (pre-
+/postconditions, trigger) as a sequence of interaction steps with the environment
+(=actors). Their structure is formal, table-based and composed of several ﬁelds for
+the name, the pre-/postconditions and the interaction scenarios. However, within
+each ﬁeld the description is entirely informal. Thus, textual use cases are similar to
+natural language but used in a structured way, which makes them easy-to-learn for
+stakeholders from various domains.
+A common textual use case description contains the following ﬁelds:
+•Actor (communicates with the speciﬁed system)
+•Pre-/postcondition and trigger
+•Main success scenario (i.e. main interaction sequence)
+•Extensions (i.e. alternative ﬂows to the main scenario)
+In this paper, we propose a novel design methodology (see Fig. 1) for the
+speciﬁcation-based functional veriﬁcation of embedded system models by simu-
+lation. We use simulation for veriﬁcation without being concerned with the state-
+space explosion problem as in static veriﬁcation techniques. The main steps of our
+approach as shown in Fig. 1 are highly automated and encompass both the error-
+correction of the original speciﬁcation document and the functional veriﬁcation of
+the system model. The generated test cases are based upon the SystemC Veriﬁcation
+Library (SCV) [20] and can be used to verify both transaction-level models and RTL
+hardware designs [18].
+The remainder of this paper is organized as follows: We start with an overview of
+related work in section 2. In section 3 we present our methodology and describe its
+implementation in section 4. Section 5 provides a case study of an Radio Frequency
+Identiﬁcation controller (=RFID tag) to present the applicability of our methodology
+and its results. Finally we give a conclusion and list further work in section 6.
+
+--- Page 3 ---
+Speciﬁcation-based Veriﬁcation by Automated Test Generation 37
+SystemC Testbench GeneratorInvalidGrammar
+Check ResponseGenerate StimuliSystem-under-VerificationFunctional Verificationby SimulationDetermine the type of each TermCheck grammar structureRemove ambiguity termsLexicon(Terms, Types)Grammar
+User InteractionUnknown TermsRequirements Engineering
+  . . .  . . .  . . .  . . .Specify Use CasesUse Case Specification
+Corrected SpecificationUser (Stakeholder)Parser
+Fig. 1 Novel highly automated approach from textual use cases to a SystemC testbench for func-
+tional veriﬁcation.
+2 Related Work
+Test case generation from the speciﬁcation has been widely studied in the research
+community. Most of them, like [24], [13] and [1] favor formal speciﬁcation lan-
+guages as UML or SDL. However, in the hardware domain, which constitutes an
+important portion of embedded systems, most of the designs are speciﬁed in a
+document-based way. UML and other formal speciﬁcation languages are hardly
+used and are considered as a large burden, which confronts time-to-market. Al-
+though these speciﬁcation formats are unambiguous, precise and consistent, it is
+very difﬁcult for stakeholders from various domains, who specify requirements, to
+get familiar with these formats. In contrast, our approach is based on semi-formal
+textual use case-based descriptions as deﬁned in [4]. They are both widely accepted
+and easy-to-use by stakeholders and suitable for automatic post-processing.
+There are a number of approaches, which are dealing with textual use case-based
+descriptions for test case generation. Most of them, like [9] and [10] focus on the for-
+mal transformation of use cases to UML state, message sequence or activity charts,
+which are then used to generate the test cases. Whereas, the automatic test case gen-
+eration from UML charts is widely studied in the research community [16], [15],
+
+--- Page 4 ---
+38 C.M. Kirchsteiger, C. Trummer, C. Steger, R. Weiss, M. Pistauer
+[11] the formal transformation of the use cases to UML charts, apart from the ap-
+proaches stated below, is usually done by hand. However, this requires a lot of in-
+teraction effort since the number of use cases can be very large. Our work resolves
+this issue by generating the test cases directly from the use case speciﬁcation with a
+high degree of automation and without the need for a transformation to UML charts.
+Signiﬁcant approaches related to our work are [22], [5], [3] and [7]. In [22] and [7]
+the use case speciﬁcation of a computer system is used to automatically generate
+test cases. However, only the ﬁrst step consisting of transforming the use cases to
+UML activity diagrams is described. Nevertheless, as described in [3], the gener-
+ated activity diagrams lack relevant information on the used message types and the
+connection to the SuV’s interface, which is required to derive the test cases automat-
+ically from the diagrams. The same is true for [5], which requires the test designer
+to specify the test purpose of each test he wants to execute. In contrast, our approach
+automatically generates a veriﬁcation environment consisting of stimuli generation
+and response checking and randomly selects and executes the test cases.
+3 Novel Approach
+We propose a novel speciﬁcation-based functional veriﬁcation by simulation method-
+ology that aims for:
+•Check the speciﬁcation to remove ambiguities and incorrect grammar.
+•Automate the functional test case generation from textual use case speciﬁcations.
+•Provide a functional veriﬁcation by executing the test cases to determine the
+discrepancies between the embedded system model and its speciﬁcation.
+As shown in Fig. 1 our approach starts with a semi-formal use case speciﬁcation of
+the System-under-Veriﬁcation (SuV). The common textual use case descriptions [4]
+are extended by additional ﬁelds to cover constants, like message types or time de-
+lay constants. During the parsing of the use case speciﬁcation we deal with typical
+natural language issues [8]. Therefore, we deﬁne a grammar and a lexical subset of
+the natural language to be used for specifying the use cases. This is done in collabo-
+ration with our industry partner, who has strong experience with common grammar
+structures and terms used for the speciﬁcation. A list of guidelines is provided to
+keep the stakeholder to the given grammar structure and focus on terms from the
+lexical subset. It is not mandatory for the stakeholder to stick to these guidelines,
+although it decreases the required user interaction signiﬁcantly. The interactions are
+also decreasing with the number of processed requirements as in the case of a miss-
+ing term, which requires the user to specify the type of this unknown term. This
+decision is remembered the next time this term is analyzed without the need for an
+interaction by the user. After the parsing, the speciﬁcation document is corrected
+and it is used as the input for the SystemC testbench generator, which generates
+the speciﬁcation-based test cases. During a SystemC simulation these test cases are
+applied to the SuV to check if it corresponds to the speciﬁcation. Output messages
+
+--- Page 5 ---
+Speciﬁcation-based Veriﬁcation by Automated Test Generation 39JAXB
+Automatic Verification Platform GeneratorLexicon (terms, types)
+Generates a SystemC Testbench  . . .  . . .  . . .  . . .Use case-based SpecificationTransforms XML Specification into Java Class instancesJFLEXParses each term to identify its typeLR ParserCheck Grammar
+Semantic AnalyzerDetermines the meaning of each term
+Apply test cases randomly to the SuVSpecification checkingCUP Parser
+Syntax TreeInvokeInvokeGrammar(valid syntax)Generate
+SystemC Co-simulationError-correctedXML specificationFig. 2 Our implementation uses JAXB to extract data from the speciﬁcation. The CUP Parser
+invokes the LR Parser and JFLEX to generate a syntax tree [2]. The semantic analyzer uses the
+syntax tree to provide the input for the test case generator.
+convey information on the test progress, the test coverage as well as the test results
+to inform the veriﬁcation engineer on-line about the current status of the simulation-
+based veriﬁcation.
+
+--- Page 6 ---
+40 C.M. Kirchsteiger, C. Trummer, C. Steger, R. Weiss, M. Pistauer
+TC1TC2TC3...TCn-1TCnUC1UC3...UCn-1UC2UCn
+TC1TC2...TCn-1TC3TCnRandomSelection (SCV)
+RandomSelection (SCV)
+TC3Execute Testcase Select Use CaseStart with 1st elementProcess Testcase ListSelect Alternative TestcaseExecuteTestcaseStop SimulationExecute pre-condition use cases
+Fig. 3 Proposed algorithm for the random selection of the generated test cases during a SystemC
+simulation.
+4 Implementation
+Figure 2 shows the implementation of our approach. JAXB [23] is used to generate
+Java classes and ﬁlls the instances of these classes with information from the XML-
+based use case speciﬁcation. These instances are analyzed by the Java CUP parser
+[12], which invokes JFlex [17] to identify the type of each term. The CUP parser
+uses an LR-Parser [19] to check the grammar and generates a syntax tree [2] from
+each phrase stored in the use case instances. This is used by the semantic analyzer
+to determine the meaning of each term and to generate the error-corrected XML
+speciﬁcation. Finally, the Automatic Veriﬁcation Platform Generator uses this XML
+speciﬁcation to generate the SystemC testbench.
+The SystemC testbench selects and executes SystemC test cases during a simu-
+lation and consists of the two threads: random test case selection and test execution.
+The algorithm of the random test case selection thread is shown in Fig. 3. The en-
+tire process in Fig. 3 is reiterated until each use case has been selected by a user-
+speciﬁed number of times or the simulation is stopped by the veriﬁcation engineer.
+In each iteration our algorithm uses SCV constructs to randomly select a use case
+from the list of use cases. This list is generated each time the Automatic Veriﬁca-
+tion Platform Generator reads the error-corrected XML speciﬁcation input ﬁle and
+generates the SystemC testbench module. Each use case may contain a list of pre-
+decessor use cases. These are deﬁned in the use case’s precondition statement and
+are executed before the current use case is processed. Each use case contains a list
+
+--- Page 7 ---
+Speciﬁcation-based Veriﬁcation by Automated Test Generation 41
+of test cases, which correspond to the steps in its scenarios. Each test case may also
+contain a list of alternative test cases speciﬁed in the extension scenarios. When a
+use case is processed our algorithm goes through its test cases sequentially starting
+at the ﬁrst element in the list. For each test case it determines if the test case has a
+list of alternative test cases. If so, it uses the SCV constructs to randomly select a
+test case from the list for execution. Otherwise, the current test case is selected and
+executed by the test execution thread, which generates the stimuli, estimates and
+stores the SuV’s internal state, checks the SuV response and prints the test case’s
+name and status for veriﬁcation reporting. The test execution thread is a veriﬁca-
+tion state machine generated from the input XML use case speciﬁcation as shown
+in Fig. 4. For each step in the use case scenario, which corresponds to a test case,
+the veriﬁcation state machine contains a case block to execute this step. The case
+block SETUPTAG1RECEIVES ACTION in Fig. 4 corresponds to the speciﬁed
+use case step
+Tag receives Query Message with matching SL Flag
+from Fig. 5 and generates the corresponding stimuli to apply this step to the
+SuV. The case block SETUPTAG10TRANSMITS ACTION checks the system re-
+sponse at step
+Tag transmits 16bit Random Number
+from Fig. 5. The functions marked as grey-tone are the corresponding transactor
+functions. A transactor component is also automatically generated by our method-
+ology and is inserted between the SystemC testbench module and the SuV to map
+the test cases to the SuV. Since the interface of the SuV can change the transactor
+is adapted by the veriﬁcation engineer to connect it to the interface of the SuV. The
+mapping of the transaction-level test cases to the SuV’s interface would go beyond
+the topic of this paper and is not explained here any further.
+5 A Case Study of an Radio-Frequency Identiﬁcation Controller
+To demonstrate our methodology we have implemented it in the HW/SW co-design
+toolSyADR(System Architect Designer) [14]. SyADRenables the development of
+system-level HW/SW co-designs and supports a multi-language and multi-level co-
+simulation framework of SystemC, VHDL, VHDL-AMS and MATLAB Simulink.
+As a case study we have considered a use case-based speciﬁcation of an Radio-
+Frequency Identiﬁcation controller (= RFID tag) state machine provided by our in-
+dustrial cooperation partner. The speciﬁcation document is derived from the con-
+troller state diagram speciﬁed in the EPCGlobal Class-1 Generation-2 UHF RFID
+protocol for communications [6]. The use case-based speciﬁcation document cov-
+ers the entire tag state diagram (see Fig. 6.19. in [6]) and encompasses 53 use case
+scenarios. Fig. 5 shows a small excerpt from the use case-based speciﬁcation docu-
+ment. We applied our methodology implemented in SyADRto the entire use case
+
+--- Page 8 ---
+42 C.M. Kirchsteiger, C. Trummer, C. Steger, R. Weiss, M. Pistauerint testbench::test_execution(){switch(state){case  SET_UP_TAG_1_RECEIVES_ACTION :      transmit_Message->set_value(QUERY_MESSAGE, SL_FLAG);send_to_DUT(transmit_Message);      break;    case  case  SET_UP_TAG_10_TRANSMITS_ACTION :      message *received_message;receive_from_DUT(received_message, PC_EPC_CRC_MSG);      if(check_message(received_message))        return TB_PASSED;      else        return TB_FAILED;      break;    }}Fig. 4 Automatically generated source code of the test execution thread.Name: Set up TagDescription: Use case accessed when tag enters the Reader field.Scope:UHF RFID Tag (=Tag).Primary actor:Interrogator (=Reader)Precondition/Trigger:Tag (re)-enters the Reader FieldMain Success Scenario:1. Tag receives Query command with matching SL Flag from Reader ...10. Tag transmits 16bit Random number11. Tag exits use case and goes to “Reply Tag” Use CaseAlternate Flows:1a. Tag receives Select command from Reader...LocNonfunctional Requirements: Timing Constraints: Step 1 until step 11 shall be done within t1.Fig. 5 Use case derived from the protocol speciﬁcation of an RFID controller state machine.
+speciﬁcation and discovered 6 syntax errors (due to invalid grammar and missing
+verbs and articles) and added 8 unknown terms to the lexicon during the parsing
+steps. In a next step our Automatic Veriﬁcation Platform Generator generated the
+SystemC testbench module consisting of 131 test cases derived from the use case
+speciﬁcation document. Fig. 6 demonstrates the results of the simulation of the Sys-
+temC testbench with the SuV for 5, 10, 15 and 20 iterations of the SystemC test case
+selection algorithm from Fig. 3. Use case 1 (UC 1) is executed most of all, since it is
+in the precondition list of all other use cases. In contrast, UC 5 is less often executed
+since it does not occur in the precondition list of any other use case. The ratio of
+executed use case scenarios to the total number of use case scenarios speciﬁes the
+covered amount of the speciﬁcation by the simulated test cases. The left diagram in
+Fig. 3 shows a comparison of the number of identiﬁed errors and the veriﬁed portion
+of the speciﬁcation for 5, 10, 15 and 20 iterations. A 80% functional coverage de-
+
+--- Page 9 ---
+Speciﬁcation-based Veriﬁcation by Automated Test Generation 43
+0100200300400500600
+1 5 10 15 20Number of iterationsNumber of executionsUC1 executionsUC2 executionsUC3 executionsUC4 executionsUC5 executionsexecuted tests 27,2055,9869,7474,6180,04
+481113140,0010,0020,0030,0040,0050,0060,0070,0080,0090,00
+1 5 10 15 20Number of iterationsVerified amount of the specification (%)Number of detected errors% Covered functionalityDetected errors
+Fig. 6 Simulation results for 5, 10, 15 and 20 iterations of the proposed test case selection algo-
+rithm applied to the RFID controller model.
+tects 14 errors and requires 20 iterations of the test case selection algorithm, which
+results in more than 600 executed tests as illustrated in Fig. 3
+6 Conclusion and Further Work
+In this paper we presented a novel functional veriﬁcation methodology for embed-
+ded system designs. The methodology supports both the correction of errors in the
+speciﬁcation document and the automated test case generation from the speciﬁca-
+tion. The test cases are used to verify whether the system model fulﬁlls its speciﬁ-
+cation (=functional veriﬁcation) and close the gap between the speciﬁcation and the
+design.
+Our approach focuses on textual case-based speciﬁcations, which are suitable for
+black-box test case generation. We used a case study based on the semi-formal spec-
+iﬁcation of a higher class RFID controller to demonstrate and prove our method-
+ology. We showed that our methodology can be used to correct the speciﬁcation
+document and to automatically generate SystemC test cases, which are executed
+randomly during simulation to determine the discrepancies between the design and
+its speciﬁcation. As a further step we plan to improve the veriﬁcation reporting by
+introducing functional coverage monitors into our design ﬂow. This provides on-line
+information on how much functionality has been veriﬁed.
+
+--- Page 10 ---
+44 C.M. Kirchsteiger, C. Trummer, C. Steger, R. Weiss, M. Pistauer
+References
+1.J.R. Abrial. The B-book : assigning programs to meanings . Cambridge University Press,
+August 1996.
+2.S. Bird, E. Klein, and E. Loper. Introduction to Natural Language Processing . 2001.
+3.L.C Briand and Y. Labiche. A uml-based approach to system testing. In Proceedings of
+the 4th International Conference on The Uniﬁed Modeling Language, Modeling Languages,
+Concepts, and Tools , pages 194–208, London, UK, 2001. Springer-Verlag.
+4.A. Cockburn. Writing Effective Use Cases . Addison-Wesley Professional, 2001.
+5.A.L.L. de Figueiredo, W.L. Andrade, and P.D.L. Machado. Generating interaction test cases
+for mobile phone systems from use case speciﬁcations. SIGSOFT Softw. Eng. Notes , 31(6):1–
+10, 2006.
+6.EPCGlobal. EPC Radio-Frequency Identity Protocols Class-1 Generation-2 UHF RFID Pro-
+tocol for Communications at 860 MHz 960 MHz, 1.0.9.
+7.A. Fantechi, S. Gnesi, G. Lami, and A. Maccari. Application of Linguistic Techniques for Use
+Case Analysis. In Requirements Engineering, 2002. Proceedings. IEEE Joint International
+Conference on , pages 157–164, 9-13 Sept. 2002.
+8.Centre for Language Technology. Controlled Natural Languages, 2007.
+9.M. Friske and H. Schlingloff. Von use cases zu test cases: Eine systematische vorgehensweise.
+2005.
+10.P. Fr ¨ohlich and J. Link. Automated test case generation from dynamic models. In ECOOP
+’00: Proceedings of the 14th European Conference on Object-Oriented Programming , pages
+472–492, London, UK, 2000. Springer-Verlag.
+11.J. Hartmann, C. Imoberdorf, and M. Meisinger. Uml-based integration testing. In ISSTA ’00:
+Proceedings of the 2000 ACM SIGSOFT international symposium on Software testing and
+analysis , pages 60–70, New York, NY, USA, 2000. ACM.
+12.S. Hudson. Cup - lalr parser generator for java, 2007.
+13.Y. JinShan, L. Tun, and T. QingPing. The Use of UML Sequence Diagram for System-on-Chip
+System Level Transaction-based Functional Veriﬁcation. In Intelligent Control and Automa-
+tion, 2006. WCICA 2006. The Sixth World Congress on , volume 2, pages 6173–6177, 21-23
+June 2006.
+14.S. Kajtazovic, C. Steger, A. Schuhai, and M. Pistauer. Automatic generation of a veriﬁca-
+tion platform for heterogeneous system designs. In Advances in Design and Speciﬁcation
+Languages for SoCs - Selected Contributions from FDL’05 , 2005.
+15.S. Kansomkeat and W. Rivepiboon. Automated-generating test case using uml statechart
+diagrams. In SAICSIT ’03: Proceedings of the 2003 annual research conference of the South
+African institute of computer scientists and information technologists on Enablement through
+technology , pages 296–300, , Republic of South Africa, 2003. South African Institute for
+Computer Scientists and Information Technologists.
+16.Y.G. Kim, H.S. Hong, D.H. Bae, and S.D. Cha. Test cases generation from uml state diagrams.
+Software, IEE Proceedings - , 146(4):187–192, Aug 1999.
+17.G. Klein. Jﬂex - the fast scanner generator for java, 2007.
+18.Cadence Labs. The Transaction-Based Veriﬁcation Methodology. Technical report, 2000.
+19.Naumann and B.G. Lang. Parsing . 1994.
+20.C. Norris and S. Swan. A tutorial introduction on the new systemc veriﬁcation standard.
+Technical report, 2003.
+21.A. Piziali. Functional Veriﬁcation Coverage Measurement and Analysis . Kluwer Academic
+Publishers, 2004.
+22.M. Riebisch and M. Hubner. Traceability-driven Model Reﬁnement for Test Case Genera-
+tion. In Engineering of Computer-Based Systems, 2005. ECBS ’05. 12th IEEE International
+Conference and Workshops on the , pages 113–120, 4-7 April 2005.
+23.Sun. Java architecture for xml binding (jaxb), 2003.
+24.Q. Zhu, R. Oishi, T. Hasenawa, and T. Nakata. System-On-Chip Validation using UML and
+CWL. In Hardware/Software Codesign and System Synthesis, 2004. CODES + ISSS 2004.
+International Conference on , pages 92–97, 2004.

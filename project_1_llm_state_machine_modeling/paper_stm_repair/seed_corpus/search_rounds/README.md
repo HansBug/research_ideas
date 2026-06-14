@@ -1,6 +1,6 @@
 # search rounds
 
-本目录保存 PR-R1.6 每轮检索的可复查事实源。`search_log.md` 只存总账，`search_rounds/` 负责每轮原始细节。
+本目录保存 PR-R1.6 / PR-R1.7 每轮检索的可复查事实源。`search_log.md` 只存总账，`search_rounds/` 负责每轮原始细节。
 
 ## 每轮最低字段
 

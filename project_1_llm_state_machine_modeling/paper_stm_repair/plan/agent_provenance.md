@@ -58,3 +58,14 @@
 | 2026-06-14 03:12:00 | paper-reader agents A-F | 分别核验 completion/GWT、use-case/UML SM、behavior-tree/state-machine、scenario/statechart、LLM recent、classic requirements/statechart 候选 | completed；结果已由主 session 复核后回填 `seed_corpus`。 |
 
 | 2026-06-14 03:55:00 | main session + R1.6 subagents | 整合 Crossref / Zenodo / GitHub / HF / PDF 证据，新增 5 个单篇目录与 `seed_selection_candidates.md` | 36 candidates / 36 screening / 15 dirs / 4 handoff；待 implementation review。 |
+
+## PR-R1.7 / #108 agent provenance
+
+| 时间 | agent / 来源 | 任务 | 输出 / 状态 |
+|---|---|---|---|
+| 2026-06-14 04:45:00 | main session | 创建 PR-R1.7 empty PR、完成 body review C/I 修复与复审 | PR [#108](https://github.com/HansBug/research_ideas/pull/108)；contract ready 后进入实现。 |
+| 2026-06-14 12:00:00 | seed-scout-agent-A | 只读广域文献 scout | 18 个候选、query/source、5 个优先全文对象、噪声模式；无 edits。 |
+| 2026-06-14 12:00:00 | seed-scout-agent-B | 只读 artifact/manual queue scout | R1.6 11 条 manual queue 资源状态、6 个新增目录 SS/SA 建议、manual/排除建议；无 edits。 |
+| 2026-06-14 12:00:00 | seed-structure-reviewer | 只读结构审查 | 指出 9 个 C 级 gap：round 缺失、central ledger 未同步、manual queue 未收口、SUMMARY/selection 未更新等；已由主 session 修复。 |
+| 2026-06-14 12:10:00 | main session | R1.7 实现整合 | 46 candidates / 46 screening / 23 dirs / 8 R1.7 rounds / manual queue 状态分布；negative evidence 表明新增主候选仍不足 6。 |
+| 2026-06-14 13:20:00 | main session + sidecar reviewer | R1.7 seed 方法集合口径纠偏 | 补齐旧九个 direct baseline crosswalk，新增 `pushing-generative-envelope-mbse`，更新为 47 candidates / 47 screening / 24 dirs；R2 四例可计候选仍为 4。 |
