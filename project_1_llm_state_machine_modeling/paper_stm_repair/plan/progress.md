@@ -291,8 +291,8 @@
 ### 11.4 PR-R1.7 Capability-use audit
 
 - Required references/scripts: `$ai-research-writing-skill` 的 claim-evidence / artifact discipline、`$sub-agents` 的 sidecar review、`gh` PR contract。
-- Inputs consumed: PR #108 body、PR #100 伞 PR、PR-R1.6 bounded snapshot v2、R1.7 scout / structure reviewer 输出、OpenAlex/Crossref/arXiv/Semantic Scholar/DBLP raw dumps、8 篇新增全文目录。
+- Inputs consumed: PR #108 body、PR #100 伞 PR、PR-R1.6 bounded snapshot v2、R1.7 scout / structure reviewer 输出、OpenAlex/Crossref/arXiv/Semantic Scholar/DBLP raw dumps、9 篇新增全文目录。
 - Inputs not used and why: 受 paywall / browser-only / API 429 阻塞的 manual queue 项未强行下载；已在 [../seed_corpus/manual_download_queue.md](../seed_corpus/manual_download_queue.md) 记录 blocker 与 PR-R2 影响。
 - Artifacts produced: 47-row candidate / screening ledger、24 个全文 / artifact 编码目录、旧九个 direct baseline crosswalk、8 个 R1.7 search rounds、manual queue 状态分布、R2 handoff negative evidence。
-- Verification run: `git diff --check`、candidate/screening ID 对齐、Markdown 相对链接检查、8 个新增单篇目录五件套检查。
+- Verification run: `git diff --check`、candidate/screening ID 对齐、Markdown 相对链接检查、9 个新增单篇目录五件套检查。
 - Remaining risk: seed 方法集合已补齐，但按 `计数资格` 可计主 / 条件主候选仍只有 4 条且其中 2 条为条件候选；R2 需要 case-level freeze，并准备 `fsm-bench-20` 复跑或 `sources/` / 低配 prompt / 学生人工 fallback。
