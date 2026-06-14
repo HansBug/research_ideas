@@ -170,7 +170,7 @@
 
 ## 7. 外部资源可获取性矩阵（47 行）
 
-本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。
+本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。**资源可获取性升级为 🟢/🟡 前，必须基于全文阅读与外部资源页核验**，包括 DOI / 出版页、作者仓库、数据集 / artifact 页面、附录、补充材料和许可页；不能只因为本地有 `seed_desc.md`、`artifacts.md` 或 PDF 缓存就判断作者公开了可复用资产。若全文或资源页受阻，应保持 ❓/🔴 并在说明列写明阻塞来源。
 
 | ID | 论文本体 | 来源文档 | 生成/复现实验代码 | NL 数据 | STM_0 数据 | 作者原生 pair | 可重建 pair | 配对索引 | 原始生成输出 | 评测结果 / 日志 | 许可 | 版本 / 哈希 | 获取性说明 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -285,6 +285,8 @@
 
 ### 9.2 当前 待核 明细
 
+本节只列人工下载 / 待核状态；可复制 BibTeX 片段见 §9.3。下载全文后，必须重新阅读全文并核验外部 artifact / code / dataset / license 页面，再更新 §5、§7 和必要单条目文件。
+
 | ID | 标题 | 来源URL | 状态 |
 |---|---|---|---|
 | `automated-transition-use-cases-uml-sm` | Automated Transition from Use Cases to UML State Machines to Support State-Based Testing | https://doi.org/10.1007/978-3-642-21470-7_9 | 仍受阻：Springer 付费墙 / 未发现公开 制品；PR-R2 可暂不依赖。 |
@@ -299,6 +301,161 @@
 | `most-states-modes` | Modeling and Verification of Natural Language Requirements based on States and Modes | https://doi.org/10.1145/3640822 | 仍受阻 / 开放但需浏览器：ACM/HAL CLI 受阻；默认 相关工作 不计 seed。 |
 | `executable-use-cases-domain-machine-specifications` | Executable use cases as links between application domain requirements and machine specifications | https://doi.org/10.1049/ic:20040231 | 新增待人工：出版商封闭；非 R2 阻塞项。 |
 | `web-tool-goal-statechart-derivation` | Web tool for Goal modelling and statechart derivation | https://doi.org/10.1109/RE.2015.7320444 | 新增待人工：IEEE 封闭；需确认 input 是否 NL。 |
+
+
+### 9.3 人工下载 BibTeX 队列
+
+本节给人工下载与补全文献时直接复制用；位置就是本文件 [§9.3](#93-人工下载-bibtex-队列) 的 `bibtex` 代码块，可整段复制到临时 `.bib` 文件或按单条复制到下载记录中。来源主要为 DOI/Crossref BibTeX，**不是最终正式引用库**。下载成功后应在对应单条目目录补 `paper.pdf`、用仓库 PDF 提取工具生成 `paper_content.txt`、以全文核验 `bibtex.bib`，并重新判断 §7 的资源列。`requirements-analysis-prototyping-scenarios-statecharts` 目前缺正式 DOI / 出版页，只保留占位，不能进入正式参考文献。
+
+```bibtex
+% 人工下载队列临时 BibTeX；正式引用以下载后的出版页/全文核验为准。
+
+@inbook{Yue_2011_automated_transition_use_cases_uml_sm,
+  title = {Automated Transition from Use Cases to UML State Machines to Support State-Based Testing},
+  ISBN = {9783642214707},
+  ISSN = {1611-3349},
+  url = {https://doi.org/10.1007/978-3-642-21470-7_9},
+  DOI = {10.1007/978-3-642-21470-7_9},
+  booktitle = {Modelling Foundations and Applications},
+  publisher = {Springer Berlin Heidelberg},
+  author = {Yue, Tao and Ali, Shaukat and Briand, Lionel},
+  year = {2011},
+  pages = {115--131}
+}
+
+@article{Kim_2012_execution_nl_requirements_behavior_trees_sm,
+  title = {Execution of Natural Language Requirements Using State Machines Synthesised from Behavior Trees},
+  volume = {85},
+  ISSN = {0164-1212},
+  url = {https://doi.org/10.1016/j.jss.2012.06.013},
+  DOI = {10.1016/j.jss.2012.06.013},
+  number = {11},
+  journal = {Journal of Systems and Software},
+  publisher = {Elsevier BV},
+  author = {Kim, Soon-Kyeong and Myers, Toby and Wendland, Marc-Florian and Lindsay, Peter A.},
+  year = {2012},
+  month = nov,
+  pages = {2652--2664}
+}
+
+@inproceedings{Erazo_2017_maritaca,
+  title = {MARITACA: From Textual Use Case Descriptions to Behavior Models},
+  url = {https://doi.org/10.1109/DSN-W.2017.33},
+  DOI = {10.1109/DSN-W.2017.33},
+  booktitle = {2017 47th Annual IEEE/IFIP International Conference on Dependable Systems and Networks Workshops (DSN-W)},
+  publisher = {IEEE},
+  author = {Erazo, Leydi and Martins, Eliane and Greghi, Juliana Galvani},
+  year = {2017},
+  month = jun,
+  pages = {83--90}
+}
+
+@inproceedings{Erazo_2016_dependable_product_families,
+  title = {Modeling Dependable Product-Families: From Use Cases to State Machine Models},
+  url = {https://doi.org/10.1109/LADC.2016.28},
+  DOI = {10.1109/LADC.2016.28},
+  booktitle = {2016 Seventh Latin-American Symposium on Dependable Computing (LADC)},
+  publisher = {IEEE},
+  author = {Erazo, Leydi and Martins, Eliane and Greghi, Juliana Galvani},
+  year = {2016},
+  month = oct,
+  pages = {131--134}
+}
+
+@inproceedings{Tiwari_2012_statechart_use_case_validation,
+  series = {SAC 2012},
+  title = {Statechart-Based Use Case Requirement Validation of Event-Driven Systems},
+  url = {https://doi.org/10.1145/2245276.2231947},
+  DOI = {10.1145/2245276.2231947},
+  booktitle = {Proceedings of the 27th Annual ACM Symposium on Applied Computing},
+  publisher = {ACM},
+  author = {Tiwari, Saurabh and Gupta, Atul},
+  year = {2012},
+  month = mar,
+  pages = {1091--1093},
+  collection = {SAC 2012}
+}
+
+@inproceedings{Greghi_2015_semi_automatic_efsm_standard_docs,
+  title = {Semi-Automatic Generation of Extended Finite State Machines from Natural Language Standard Documents},
+  url = {https://doi.org/10.1109/DSN-W.2015.17},
+  DOI = {10.1109/DSN-W.2015.17},
+  booktitle = {2015 IEEE International Conference on Dependable Systems and Networks Workshops},
+  publisher = {IEEE},
+  author = {Greghi, Juliana Galvani and Martins, Eliane and Carvalho, Ariadne Maria Brito Rizzoni},
+  year = {2015},
+  month = jun,
+  pages = {45--50}
+}
+
+@article{Bhatt_2024_rscharter,
+  title = {Rscharter: A Framework for Extracting Statechart Diagram Elements from the Requirements Specification},
+  url = {https://doi.org/10.2139/ssrn.4964857},
+  DOI = {10.2139/ssrn.4964857},
+  publisher = {Elsevier BV},
+  author = {Bhatt, Janvi and Dasgupta, Sourish and Tiwari, Saurabh and Sharma, Akhilesh},
+  year = {2024}
+}
+
+@article{Greghi_2018_nl_standard_docs_state_machines,
+  title = {From Natural Language Standard Documents to State Machines: Advantages and Drawbacks},
+  volume = {15},
+  ISSN = {2327-3097},
+  url = {https://doi.org/10.2514/1.I010525},
+  DOI = {10.2514/1.I010525},
+  number = {5},
+  journal = {Journal of Aerospace Information Systems},
+  publisher = {American Institute of Aeronautics and Astronautics (AIAA)},
+  author = {Greghi, Juliana Galvani and Martins, Eliane and Carvalho, Ariadne M. B. R. and Ambrosio, Ana Maria and Villani, Emília},
+  year = {2018},
+  month = may,
+  pages = {271--281}
+}
+
+@article{Liu_2024_states_modes,
+  title = {Modeling and Verification of Natural Language Requirements Based on States and Modes},
+  volume = {36},
+  ISSN = {1433-299X},
+  url = {https://doi.org/10.1145/3640822},
+  DOI = {10.1145/3640822},
+  number = {2},
+  journal = {Formal Aspects of Computing},
+  publisher = {Association for Computing Machinery (ACM)},
+  author = {Liu, Yinling and Bruel, Jean-Michel},
+  year = {2024},
+  month = jun,
+  pages = {1--47}
+}
+
+@inproceedings{Jorgensen_2004_executable_use_cases_domain_machine_specs,
+  title = {Executable Use Cases as Links Between Application Domain Requirements and Machine Specifications},
+  volume = {2004},
+  url = {https://doi.org/10.1049/ic:20040231},
+  DOI = {10.1049/ic:20040231},
+  booktitle = {Third International Workshop on Scenarios and State Machines: Models, Algorithms, and Tools (SCESM04), W5S Workshop - 26th International Conference on Software Engineering},
+  publisher = {IEE},
+  author = {Jorgensen, J. B.},
+  year = {2004},
+  pages = {8--13}
+}
+
+@inproceedings{Pimentel_2015_goal_statechart_derivation,
+  title = {Web Tool for Goal Modelling and Statechart Derivation},
+  url = {https://doi.org/10.1109/RE.2015.7320444},
+  DOI = {10.1109/RE.2015.7320444},
+  booktitle = {2015 IEEE 23rd International Requirements Engineering Conference (RE)},
+  publisher = {IEEE},
+  author = {Pimentel, Joao and Vilela, Jessyka and Castro, Jaelson},
+  year = {2015},
+  month = aug,
+  pages = {292--293}
+}
+
+@misc{requirements_analysis_prototyping_scenarios_statecharts_todo,
+  title = {Requirements Analysis and Prototyping Using Scenarios and Statecharts},
+  note = {人工下载队列占位：正式 DOI、作者、年份、venue 与 PDF 入口待核；不得作为正式引用使用。}
+}
+```
 
 ## 10. 排除证据 / 硬排除
 
@@ -394,6 +551,7 @@ R2 最小动作：先冻结 `sefm-llm-state-machine` 与 `llms-emp-stm-subset`�
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-14 20:45:00 | PR-R1.8-B：补充人工下载 BibTeX 队列，明确资源可获取性必须基于全文阅读与外部资源页核验，不能只看本地 repo 资源。 |
 | 2026-06-14 20:35:00 | PR-R1.8-B：修复 review 指出的 pair 口径同步问题，补入可重建 pair、作者原生 pair、配对索引与 R2 交接列，并把 R2 实验输入可用性标为派生汇总项。 |
 | 2026-06-14 20:10:00 | PR-R1.8-B：按 review I 级意见继续拆分资源矩阵，新增来源文档、STM_0 数据、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希等列，并说明 R2 实验输入可用性不能由单个资源 emoji 代替。 |
 | 2026-06-14 19:30:00 | PR-R1.8-B：继续中文化 SUMMARY，新增资源可获取性分级说明，细化候选矩阵中的当前角色与主要风险，并把资源盘点范围明确到论文本体、源码、NL 数据、STM 数据、作者原生 pair、实验结果和许可 / 版本 / 哈希。 |
