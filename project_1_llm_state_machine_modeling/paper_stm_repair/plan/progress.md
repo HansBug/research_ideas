@@ -253,8 +253,8 @@
 | 当前阶段 | implementation completed；待三路 implementation review |
 | 四例真实运行 | 不需要；本 PR 只做文献与 artifact 审计。 |
 | 真实 LLM 调用 | 不需要，未读取 `.env`。 |
-| 当前 bounded snapshot | R1.7 已有 46 candidates / 46 screening / 23 fulltext dirs / 8 R1.7 rounds / manual queue 状态分布。 |
-| 关键结论 | 新增 classic paper-only evidence 与 boundary sentinel，但未新增 `计数资格=yes-main/yes-conditional` 主 / 条件主候选；PR-R2 仍需裁决 R1.6 四条并准备 fallback。 |
+| 当前 bounded snapshot | R1.7 v4 已有 47 candidates / 47 screening / 24 fulltext dirs / 8 R1.7 rounds / manual queue 状态分布；旧九个 direct baseline 方法层覆盖 9/9。 |
+| 关键结论 | seed 方法集合层已补齐旧九个 direct baseline 与 Pushing Envelope；R2 四例样本计数层仍未新增 `计数资格=yes-main/yes-conditional` 主 / 条件主候选；PR-R2 仍需裁决 R1.6 四条并准备 fallback。 |
 
 ### 11.1 PR-R1.7 已产出文件
 
@@ -262,13 +262,13 @@
 |---|---|
 | [../seed_corpus/search_rounds/](../seed_corpus/search_rounds/) | 已新增 8 个 R1.7 round |
 | [../seed_corpus/search_results/](../seed_corpus/search_results/) | 已新增 R1.7 OpenAlex/Crossref/arXiv/Semantic Scholar/DBLP raw dump |
-| [../seed_corpus/candidate_matrix.md](../seed_corpus/candidate_matrix.md) | 已扩展到 46 条候选，增加 priority 列 |
-| [../seed_corpus/screening_ledger.md](../seed_corpus/screening_ledger.md) | 已扩展到 46 条，与 candidate matrix 对齐，增加 priority 列 |
+| [../seed_corpus/candidate_matrix.md](../seed_corpus/candidate_matrix.md) | 已扩展到 47 条候选，增加 priority 列，并补 `pushing-generative-envelope-mbse` |
+| [../seed_corpus/screening_ledger.md](../seed_corpus/screening_ledger.md) | 已扩展到 47 条，与 candidate matrix 对齐，增加 priority 列 |
 | [../seed_corpus/exclusion_ledger.md](../seed_corpus/exclusion_ledger.md) | 已补 R1.7 boundary / exclusion rows |
 | [../seed_corpus/manual_download_queue.md](../seed_corpus/manual_download_queue.md) | 已补 R1.7 状态分布和处理队列 |
-| [../seed_corpus/SUMMARY.md](../seed_corpus/SUMMARY.md) | 已更新为 bounded snapshot v3 |
-| [../seed_corpus/seed_selection_candidates.md](../seed_corpus/seed_selection_candidates.md) | 已更新 R2 handoff 与 negative evidence |
-| 新增单篇 `papers/<paper-slug>/` 目录 | 新增 8 个：`nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`、`integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion` |
+| [../seed_corpus/SUMMARY.md](../seed_corpus/SUMMARY.md) | 已更新为 bounded snapshot v4 |
+| [../seed_corpus/seed_selection_candidates.md](../seed_corpus/seed_selection_candidates.md) | 已更新 R2 handoff、negative evidence，并明确其不是 seed 方法全集 |
+| 新增单篇 `papers/<paper-slug>/` 目录 | 新增 9 个：`nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`、`integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion`、`pushing-generative-envelope-mbse` |
 
 ### 11.2 PR-R1.7 本地检查记录
 
@@ -276,7 +276,7 @@
 |---|---|---|
 | 四例真实运行 | 按 PR #108 合同 | 不执行；本 PR 是文献与 artifact 审计。 |
 | 真实 LLM / `.env` | 按 PR #108 合同 | 未调用真实 LLM，未读取 `.env`。 |
-| candidate/screening ID 对齐 | 自定义 Python 表格检查 | 通过；46 / 46 且 ID 顺序一致。 |
+| candidate/screening ID 对齐 | 自定义 Python 表格检查 | 通过；47 / 47 且 ID 顺序一致。 |
 | Markdown diff whitespace | `git diff --check` | 通过。 |
 | Markdown 相对链接 | 自定义 Python 链接检查 | 通过；missing links = 0。 |
 
@@ -293,6 +293,6 @@
 - Required references/scripts: `$ai-research-writing-skill` 的 claim-evidence / artifact discipline、`$sub-agents` 的 sidecar review、`gh` PR contract。
 - Inputs consumed: PR #108 body、PR #100 伞 PR、PR-R1.6 bounded snapshot v2、R1.7 scout / structure reviewer 输出、OpenAlex/Crossref/arXiv/Semantic Scholar/DBLP raw dumps、8 篇新增全文目录。
 - Inputs not used and why: 受 paywall / browser-only / API 429 阻塞的 manual queue 项未强行下载；已在 [../seed_corpus/manual_download_queue.md](../seed_corpus/manual_download_queue.md) 记录 blocker 与 PR-R2 影响。
-- Artifacts produced: 46-row candidate / screening ledger、23 个全文 / artifact 编码目录、8 个 R1.7 search rounds、manual queue 状态分布、R2 handoff negative evidence。
+- Artifacts produced: 47-row candidate / screening ledger、24 个全文 / artifact 编码目录、旧九个 direct baseline crosswalk、8 个 R1.7 search rounds、manual queue 状态分布、R2 handoff negative evidence。
 - Verification run: `git diff --check`、candidate/screening ID 对齐、Markdown 相对链接检查、8 个新增单篇目录五件套检查。
-- Remaining risk: 按 `计数资格` 可计主 / 条件主候选仍只有 4 条且其中 2 条为条件候选；R2 需要 case-level freeze，并准备 `fsm-bench-20` 复跑或 `sources/` / 低配 prompt / 学生人工 fallback。
+- Remaining risk: seed 方法集合已补齐，但按 `计数资格` 可计主 / 条件主候选仍只有 4 条且其中 2 条为条件候选；R2 需要 case-level freeze，并准备 `fsm-bench-20` 复跑或 `sources/` / 低配 prompt / 学生人工 fallback。

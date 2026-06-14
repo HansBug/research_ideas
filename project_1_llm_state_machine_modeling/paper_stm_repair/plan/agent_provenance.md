@@ -68,3 +68,4 @@
 | 2026-06-14 12:00:00 | seed-scout-agent-B | 只读 artifact/manual queue scout | R1.6 11 条 manual queue 资源状态、6 个新增目录 SS/SA 建议、manual/排除建议；无 edits。 |
 | 2026-06-14 12:00:00 | seed-structure-reviewer | 只读结构审查 | 指出 9 个 C 级 gap：round 缺失、central ledger 未同步、manual queue 未收口、SUMMARY/selection 未更新等；已由主 session 修复。 |
 | 2026-06-14 12:10:00 | main session | R1.7 实现整合 | 46 candidates / 46 screening / 23 dirs / 8 R1.7 rounds / manual queue 状态分布；negative evidence 表明新增主候选仍不足 6。 |
+| 2026-06-14 13:20:00 | main session + sidecar reviewer | R1.7 seed 方法集合口径纠偏 | 补齐旧九个 direct baseline crosswalk，新增 `pushing-generative-envelope-mbse`，更新为 47 candidates / 47 screening / 24 dirs；R2 四例可计候选仍为 4。 |

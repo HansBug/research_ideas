@@ -14,6 +14,7 @@
 | ijisrt-uml-state-diagrams-llm | include recent LLM | pass paper-level relation | paper-only | fulltext | 文本描述 -> UML state diagram 清楚；无数据/代码/raw outputs，`SA-3` | related work；不计主 seed | P1 |
 | umple-nl-state-machine | include | pass | paper-only | fulltext | NL->Umple state machine 成立，但无 benchmark/output/license | 仅作文献证据；若使用需手工重建 | P1 |
 | req-mermaid-statechart | include related-work-only | pass | private / unavailable | artifact | 汽车需求 -> Mermaid statechart 任务贴合，但 Volvo/Car Weaver 数据私有 | 不计 R2 主 seed；仅 related work / private-data boundary | P1 |
+| pushing-generative-envelope-mbse | include paper-only seed method | pass | paper-only / no public raw outputs | fulltext | 两个自然语言 MBSE 题项经 local LLM prompt/temperature 设置生成 SysML v2 state machine diagrams；属于 seed 方法集合，但 `SA-3` | 保留 prompt/temperature seed 方法证据；不计 R2 主四例 | P1 |
 | from-use-cases-to-statecharts | include | pass | paper-only | fulltext | classic use-case -> statechart 候选；含 timing caveat 且无机器可读 artifact | 仅 manual transcription / related work | P1 |
 | beyond-scenarios-state-models | include | pass via PDF | paper-only | fulltext | restricted NL use case -> hierarchical FSTM；无 UCEd/code/license | 仅 manual transcription / snowball parent | P1 |
 | executable-state-machines-structured-text | include weak | pass with NL->SPS caveat | paper-only | fulltext | structured text -> executable FSM；第一步 NL->SPS 为人工 | related work；不计主 seed | P1 |
@@ -33,8 +34,8 @@
 | rscharter-statechart-elements | pending candidate | manual pending | SSRN / unknown | metadata | requirements -> statechart diagram elements，需确认是否完整 statechart | 人工下载 SSRN 全文 | P1 |
 | most-states-modes | related-work | pending | pending | title/abstract | states/modes formalization 线索，未确认 STM family | 下载全文，确认是否 strict seed 或 formalization-only | P2 |
 | sysmlv2-formalized-requirements | related-work / formal-spec boundary | pending | local paper | title/abstract | temporal logic + SysML v2，LTL/formalization 风险高 | 读取全文，可能保持 `X_FORMAL_SPEC` | P2 |
-| protocol-flowfsm-sentinel | exclude main strict | confirmed negative | pending | fulltext | RFC / protocol FSM，触发 `X_PROTOCOL` | 写入 exclusion ledger | P3 |
-| 3gpp-protocol-sentinel | exclude main strict | confirmed negative | pending | fulltext | 3GPP protocol FSM，触发 `X_PROTOCOL` | 写入 exclusion ledger | P3 |
+| protocol-flowfsm-sentinel | include as protocol-domain seed method / exclude control-system sample | confirmed protocol boundary | paper/code/output incomplete | fulltext | RFC 文档到 protocol FSM / rulebook 的 seed 方法成立，但触发 `X_PROTOCOL`，不默认进入控制系统四例 | 保留为 protocol-domain seed method 与长文档 agentic extraction 参考；不计 R2 控制系统样本 | P3 |
+| 3gpp-protocol-sentinel | include as protocol-domain seed method / exclude control-system sample | confirmed protocol boundary | private / no GT-output package | fulltext | 3GPP 标准文档到 protocol FSM 的 extraction 方法成立，但触发 `X_PROTOCOL`，不默认进入控制系统四例 | 保留为 protocol-domain seed method 与 ensemble/span grounding 参考；不计 R2 控制系统样本 | P3 |
 | source-autonomous-driving-hsm | source candidate | pending | local | title/abstract | HSM T0 A/A 高优先；但 `sources/` 是 NL 描述池，不自动 strict | 若用于 seed，需单独构造 STM0 并防泄漏 | P3 |
 | source-rotorcraft-uas-hsm | source candidate | pending | local | title/abstract | UAS mission HSM T0 A/A 高优先 | 同上 | P3 |
 | source-smarthand-hsm | source candidate | pending | local | title/abstract | 医疗假肢 HSM T0 A/A 高优先 | 同上 | P3 |
