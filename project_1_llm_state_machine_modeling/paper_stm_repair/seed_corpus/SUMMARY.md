@@ -63,5 +63,5 @@ R1.7 的核心结论需要分成两层：**方法集合层**已经补齐旧九�
 | 2026-06-14 13:20:00 | PR-R1.7 bounded snapshot v4：纠正 seed 方法集合 vs R2 四例计数口径，补齐旧九个 direct baseline crosswalk，新增 `pushing-generative-envelope-mbse`，扩展到 47 candidates / 47 screening / 24 single-paper dirs；主 / 条件主可计候选仍为 4 条。 |
 | 2026-06-14 12:10:00 | PR-R1.7 bounded snapshot v3：扩展到 46 candidates / 46 screening / 23 single-paper dirs / 8 R1.7 search rounds；新增 classic fulltext wave、manual queue 状态分布和 negative evidence；主 / 条件主可计候选仍为 4 条。 |
 | 2026-06-14 03:55:00 | PR-R1.6 bounded snapshot v2：扩展到 36 条候选、15 个单篇目录、4 条可交接主 / 条件主候选；新增 Zenodo/GitHub/HF artifact 核验、search_rounds 与 PR-R2 handoff。 |
-| 2026-06-14 02:22:00 | 修复 PR-R1.5 implementation review C/I：补 `req-mermaid-statechart` 单篇目录，补齐 27 条 screening ledger，修正人工下载队列 6 条、主 seed 保守计数 3 条、TTool timing 降级和 R2 blocker 交接口径。 |
+| 2026-06-14 02:22:00 | 补齐 `req-mermaid-statechart` 单篇目录与 27 条 screening ledger，修正人工下载队列 6 条、主 seed 保守计数 3 条、TTool timing 降级和 R2 blocker 交接口径。 |
 | 2026-06-14 01:40:00 | 初始化 seed 文库总账、候选矩阵、筛查台账、排除台账、人工下载队列和 agent provenance。 |

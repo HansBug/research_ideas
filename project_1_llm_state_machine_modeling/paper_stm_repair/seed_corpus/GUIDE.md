@@ -76,7 +76,7 @@ papers/<paper-slug>/
 - 单篇全文 agent 原则上一篇一 agent，必须记录输入、输出、失败和证据指针。
 - 审稿 agent 复查事实性错误、排除码误收、SS/SA 混淆和过强 claim。
 - 所有 agent 禁止 sub-subagent。
-- [agent_provenance.md](./agent_provenance.md) 记录本目录细账；[../plan/agent_provenance.md](../plan/agent_provenance.md) 只写跨 PR 摘要。
+- [agent_provenance.md](./agent_provenance.md) 仅记录本目录内与文献筛查、全文阅读、证据等级判断直接相关的审计细账；跨 PR / issue 的执行进度、review 状态、ready gate 和 merge 进度以 GitHub PR / issue body 与 comment 为准，不在仓库内另建动态流程总账。
 
 ## 8. R1.6 / R1.7 补充纪律
 
@@ -88,9 +88,9 @@ papers/<paper-slug>/
 6. 旧九个 direct baseline 必须通过 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md) 入账；crosswalk 中每个 seed 方法必须能在 [candidate_matrix.md](./candidate_matrix.md) 与 [screening_ledger.md](./screening_ledger.md) 中找到对应 ID 或显式 alias。
 7. 不得因为 paper-only、private-data、protocol-domain、pipeline-output-missing 或 `sources/` fallback 就静默删除方法层条目；只能在 `计数资格`、SS/SA、后续角色和 caveat 中降级。
 
-## 9. 完成门
+## 9. 研究快照最低门
 
-本 PR 最低 bounded snapshot：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验，并显式统计 `SS-A/SS-B + SA-1/SA-2 + 计数资格=yes-main/yes-conditional` 可计主 / 条件主候选数量。`>=4` 只表示可交接 PR-R2 的四例候选池达到最低裁决起点，不等于四例已经冻结；`>=6` 是 R1.7 希望通过广域检索达到的更稳健缓冲目标。若未达到 `>=6`，本 PR 仍可 ready，但必须以“bounded snapshot + negative evidence + fallback handoff”交接：明确当前可计候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入或全域穷尽。`SA-3/SA-4/SA-5` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。
+当前 bounded snapshot 的长期复核门：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验，并显式统计 `SS-A/SS-B + SA-1/SA-2 + 计数资格=yes-main/yes-conditional` 可计主 / 条件主候选数量。`>=4` 只表示可交接后续四例样本冻结的候选池达到最低裁决起点，不等于四例已经冻结；`>=6` 是广域检索希望达到的更稳健缓冲目标。若未达到 `>=6`，只能以“bounded snapshot + negative evidence + fallback handoff”作为后续样本冻结前置资料：明确当前可计候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入或全域穷尽。`SA-3/SA-4/SA-5` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。
 
 额外 crosswalk 完成门：旧九个 direct baseline 必须达到 `9/9` 方法层覆盖；若某条不在 `candidate_matrix.md` / `screening_ledger.md`，必须在 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md) 写明 alias、排除理由和不进入矩阵的原因。默认不允许“因为不计四例所以不入账”。
 
