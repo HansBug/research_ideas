@@ -23,12 +23,11 @@
 
 | 类型 | 链接 | 作用 |
 |---|---|---|
-| 导师讨论 PR | [#112](https://github.com/HansBug/research_ideas/pull/112) | 本次讨论的主入口；PR body / comments 已沉淀现状、story、Q 和 follow-up。 |
+| 导师讨论 PR / body | [#112](https://github.com/HansBug/research_ideas/pull/112) | 本次讨论的主入口；PR body / comments 已沉淀现状、story、Q 和 follow-up；后续重写 story / outline / claim-evidence map 时也应回看 PR body。 |
 | PR #112 长 comment | [#112 comment](https://github.com/HansBug/research_ideas/pull/112#issuecomment-4706323481) | 本记录的直接来源之一，记录“researcher-guided, finding-oriented, auditable agentic SLR support workflow”主线。 |
 | project_1 正式导师讨论库 | [README.md](./README.md) | 本记录的归档入口；后续 project_1 路线优先按这里的正式记录读取。 |
 | 既有正式导师讨论记录 | [2026-06-12 记录](./2026-06-12-导师-两篇论文转向与模型修正定调.md)；[2026-06-04 记录](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | 作为 project_1 讨论文库的既有上下文，帮助理解第一篇 / 第二篇路线已经如何演化。 |
 | baselines 文库 | [../paper_agent_based_slr/baselines/](../paper_agent_based_slr/baselines/) | 第二篇路线的强近邻与差异化基础。 |
-| story 相关 PR / comment | [#112 comment](https://github.com/HansBug/research_ideas/pull/112#issuecomment-4706323481) | 用于后续重写 story / outline / claim-evidence map。 |
 
 ### 2.1 来源边界与约束等级 ledger
 
@@ -36,8 +35,7 @@
 
 | 条目 | 约束等级 | 来源证据 | 后续处理 |
 |---|---|---|---|
-| meta-model 是起点，应由人来设定 | 【正式定调 / 用户会后确认】 | 用户会后转述的导师原意；#112 comment 及后续确认 | 作为第二篇 story 的硬约束。 |
-| meta-model 更应由使用该 work 的 researcher 在具体综述任务中设定 / 裁剪 / 实例化 | 【正式定调 / 用户会后确认】 | 用户对导师意思的明确追问与确认；#112 comment 相关段落 | 这意味着本文作者不固定定义一套 universal SE ontology。 |
+| meta-model 是起点，应由使用该 work 的 researcher 基于 scaffold 设定、裁剪并实例化 | 【正式定调 / 用户会后确认】 | 用户会后转述的导师原意；#112 comment 及后续确认 | 作为第二篇 story 的硬约束；不预设作者替所有人固定一套 universal SE ontology。 |
 | SLR 不只是文献整理，还应形成 research findings | 【正式定调 / 用户会后确认】 | 用户会后对导师批示的整理 | 这次讨论的核心升维点。 |
 | 需要 finding pattern 来约束 LLM / agent | 【正式定调 / 用户会后确认】 | 用户会后整理 + #112 comment | 作为方法设计的一部分，但仍需操作化。 |
 | researcher 可以围绕 finding 质疑证据、要求补证、找反例 | 【正式定调 / 用户会后确认】 | 用户会后整理 + #112 comment | 引入 challenge / refinement loop。 |
@@ -53,9 +51,10 @@
 | topic-specific review meta-model | 本研究新造工作口径 | researcher 针对某个具体 SLR/SMS 主题裁剪和确认后的工作模型。 | 它由 researcher 设定，不由 LLM 自动最终决定。 |
 | researcher-approved executable schema | 本研究新造工作口径 | 由系统辅助生成、经 researcher 确认后供 agent 执行的字段和任务约束。 | 这里的“转换”不是自动化万能编译，而是系统辅助 + researcher 确认。 |
 | finding pattern scaffold | 本研究新造工作口径 | 用于指导 agent 提出候选 research findings 的模式集合。 | 它不保证 finding 真实性，只规定候选发现的类型和组织方式。 |
-| candidate finding | 本研究新造工作口径 | agent 基于 evidence objects 和 finding pattern 提出的候选研究发现。 | 只有经过 evidence chain + researcher audit 才能升级为 final finding。 |
+| candidate finding | 本研究新造工作口径 | agent 基于 evidence objects 和 finding pattern 提出的候选研究发现，默认状态为 `candidate`。 | 只有经过 evidence chain + researcher audit 才能升级为 final finding；否则应保留为 tentative / unresolved / downgraded。 |
+| final finding | 本研究新造工作口径 | researcher 接受其 claim strength、supporting / counter evidence 已被审计且 scope 已限定的研究发现，默认状态为 `accepted`。 | final 不是 LLM 直接生成状态，而是 candidate finding 经证据审计后的结果。 |
 | evidence object | 本研究新造工作口径 | 从论文中抽取出的可追踪证据单元。 | 不是普通摘要；必须能回到 source anchor 或明确缺口。 |
-| researcher challenge loop | 本研究新造工作口径 | researcher 围绕 candidate finding 发起质疑，系统补证、找反例、修订 finding 的协议。 | 不等于必须立即实现交互式 UI；PR-S0 可以先做 protocol + log schema + examples。 |
+| researcher challenge loop | 本研究新造工作口径 | researcher 围绕 candidate finding 发起质疑，系统补证、找反例、修订 finding 的协议。 | 不等于必须立即实现交互式 UI；PR-S0 只冻结其 story 角色、最小术语与 follow-up gate，完整 protocol / log schema / examples 由后续 scaffold 子 PR 落地。 |
 | claim strength | 本研究新造工作口径 | finding / claim 的强弱等级。 | 不能只由 LLM confidence 决定，最终要由 researcher + evidence 共同确认。 |
 
 ## 4. 新 story：研究者引导、面向发现、可审计的 agentic SLR 支持方法
@@ -98,7 +97,7 @@
 2. **System-assisted executable schema preparation**
    - 输入：topic-specific review meta-model。
    - 输出：researcher-approved executable schema。
-   - 约束：可由 deterministic validator 检查完整性，但不声称系统能全自动编译任意自然语言 meta-model。
+   - 约束：可通过 schema 完整性检查验证输入是否齐备；具体实现方式（deterministic / hybrid / human-audited）待 PR-S0 确定。
 
 3. **Evidence extraction and coding**
    - agent 从论文中抽取 evidence objects：topic、method、artifact、dataset、metric、result、claim、threat、code/data/prompt availability、source anchor 等。
@@ -116,6 +115,8 @@
 
 ### 5.2 最小 challenge protocol
 
+> **来源等级说明**：导师正式定调到“researcher 可以围绕 finding 质疑、补证、找反例”这一闭环方向；下表中的 input / operation / output / stop 只是本记录给出的 AI 衍生操作化方案。
+
 | 环节 | 内容 |
 |---|---|
 | Challenge input | 证据不足、反例要求、scope 过宽、claim strength 过强、检索偏差、coding 错误、finding 模糊 |
@@ -123,13 +124,17 @@
 | Output | revised finding、downgraded claim、counter-evidence list、unresolved uncertainty、challenge log |
 | Stop condition | researcher accept、标记 unresolved、或触发新 review iteration |
 
-PR-S0 阶段可以先把这个 protocol 写成规则、日志 schema 和实例，不必立即实现交互式 UI。
+PR-S0 阶段只需明确 challenge protocol 在 story / outline / claim-evidence map 中的角色、最小术语与 follow-up gate；完整规则、日志 schema 和 examples 应由后续 scaffold 子 PR 落地，不必在 PR-S0 完成，也不必立即实现交互式 UI。
+
+**Candidate-to-final 最小转移规则（候选）**：candidate finding 只有同时满足 `supporting evidence 已回链到 source anchors`、`counter-evidence / uncertainty 已被显式检查或标记缺口`、`scope 与 claim strength 已经 researcher 确认` 三个条件，才可转为 final finding；否则必须继续保留为 `candidate / tentative / unresolved / downgraded` 之一。该规则是 PR-S0 的最小术语门槛，不等价于完整 finding artifact schema。
 
 ---
 
 ## 6. Finding pattern scaffold：不只找 gap，也找结构与趋势
 
 > 状态：`[候选设计；PR-S0 只需冻结初版，不应写成已验证结果]`
+>
+> **来源等级说明**：导师正式定调到“需要 finding pattern 来约束 LLM / agent”这一抽象层级；下表 11 项为本记录提出的候选实例，后续应在 survey-of-surveys 中校验保留、删减或合并。
 
 导师强调 SLR 的 research finding 功能后，finding pattern 不应只剩“找不足清单”。当前候选 pattern 包括：
 
@@ -193,9 +198,11 @@ PR-S0 阶段可以先把这个 protocol 写成规则、日志 schema 和实例�
 
 ---
 
-## 8. Evaluation obligation：只评价 candidate finding，不预设正收益
+## 8. Evaluation obligation：围绕 candidate finding 与证据过程评价，不预设正收益
 
 > 状态：`[AI 衍生建议；PR-S0 可写入 evaluation obligation，但不能写成结果]`
+>
+> **来源等级说明**：导师确认的是“candidate finding 需要 evidence chain + researcher audit 才能升级”为 final finding；RQ / 指标 / ablation 的具体形态为本记录衍生方案。
 
 以下是候选评测设计，不代表已有结果，也不应被写成已完成实验：
 
@@ -203,7 +210,7 @@ PR-S0 阶段可以先把这个 protocol 写成规则、日志 schema 和实例�
 |---|---|---|
 | RQ1 | researcher-instantiated meta-model 是否提高抽取 / 编码结构化程度？ | extraction correctness、schema coverage、coding consistency |
 | RQ2 | finding patterns 是否帮助产生更有用、更可审计的 candidate findings？ | relevance、actionability、evidence-groundedness、non-triviality judged by domain researchers、finding type coverage |
-| RQ3 | evidence chain 是否降低 unsupported / overclaimed findings？ | unsupported finding rate、claim-to-source accuracy、counter-evidence coverage |
+| RQ3 | evidence chain 是否降低 unsupported / overclaimed findings？ | 无证据支撑 finding 比例、claim-to-source accuracy、counter-evidence coverage |
 | RQ4 | researcher challenge loop 对 finding 修订有什么影响？ | challenge resolution / unresolved rate、claim downgrade / revision count、new evidence found、audit time；这些是过程指标，不天然代表正收益 |
 | RQ5 | 相比 generic agentic SLR workflow，meta-model + finding pattern scaffold 的影响与代价是什么？ | ablation：without scaffold / without finding patterns / without challenge protocol；成本、错误类型变化 |
 
@@ -262,13 +269,15 @@ PR-S0 阶段可以先把这个 protocol 写成规则、日志 schema 和实例�
 | 任务 | 建议落点 | 产物 | 验收标准 | PR-S0 不做事项 |
 |---|---|---|---|---|
 | Task A：重写 story | [paper_story.md](../paper_agent_based_slr/story/paper_story.md)、[story/README.md](../paper_agent_based_slr/story/README.md) | 新 thesis、gap、method insight、claims-to-avoid | 明确 researcher-guided / finding-oriented / auditable；删除“自动化 SLR 首创”风险 | 不写最终 abstract；不声称实验已完成 |
-| Task B：更新 outline | [paper_outline.md](../paper_agent_based_slr/story/paper_outline.md) | 新章节结构和 RQ | 加入 survey-of-surveys、finding patterns、challenge protocol、evaluation obligation | 不冻结最终实验数字 |
+| Task B：更新 outline | [paper_outline.md](../paper_agent_based_slr/story/paper_outline.md) | 新章节结构和 RQ | 标出 survey-of-surveys、finding patterns、challenge protocol、evaluation obligation 的章节位置与 follow-up gate | 不冻结最终实验数字；不展开完整 protocol / schema |
 | Task C：更新 claim-evidence map | [claim_evidence_map.md](../paper_agent_based_slr/story/claim_evidence_map.md) | claims-to-make / careful / avoid | 禁用完整自动化、PRISMA、通用 meta-model、替代专家等强 claim | 不把候选 contribution 写成已验证结果 |
 | Task D：新增 survey-of-surveys 子 PR | 可在 `paper_agent_based_slr/survey_of_surveys/` 或类似路径 | README/GUIDE/SUMMARY + 初筛协议 | 有 source pool、inclusion criteria、extraction fields、coding/audit procedure、更新日志 | PR-S0 不直接完成完整 survey-of-surveys |
-| Task E：新增 scaffold 设计子 PR | 可在 `paper_agent_based_slr/scaffolds/` 或 [method/](../method/) 下规划 | meta-model scaffold、finding pattern scaffold、challenge log schema 草案 | 明确 scaffold 可配置、researcher-approved、非 universal ontology | 不实现完整 agent runtime |
+| Task E：新增 scaffold 设计子 PR | `paper_agent_based_slr/scaffolds/` 或 paper2 专属 method 子目录 | meta-model scaffold、finding pattern scaffold、challenge log schema 草案 | 明确 scaffold 可配置、researcher-approved、非 universal ontology | PR-S0 不创建该目录；目录创建与总账同步由独立子 PR 负责；不实现完整 agent runtime |
 | Task F：重新定义 evaluation obligation | [paper_outline.md](../paper_agent_based_slr/story/paper_outline.md) / [claim_evidence_map.md](../paper_agent_based_slr/story/claim_evidence_map.md) | RQ、指标、ablation、人工评估维度 | 指标围绕 finding usefulness、evidence-groundedness、unsupported rate、challenge revision | 不承诺已有结果，不虚构数据 |
 
 ## 12. 当前总判断
+
+> **说明**：本节为综合判断，具体子句的来源等级以 §2.1 ledger 为准。
 
 这次导师反馈把 paper2 的中心进一步收紧：
 
