@@ -156,6 +156,19 @@
 | novelty / claim reviewer | C：`claim_evidence_map.md` 与 `differential_novelty_matrix.md` 未显式吸收 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等 B0 强近邻。 | 已重写 [../story/claim_evidence_map.md](../story/claim_evidence_map.md) 与 [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)，新增 P0 强近邻和禁止 claim。 |
 | outline / RQ reviewer | I：`paper_outline.md` 缺少 PR #101 RQ1--RQ7 ↔ evaluation dimension ↔ downstream gate 显式映射。 | 已在 [../story/paper_outline.md](../story/paper_outline.md) §6.1 新增 RQ 显式映射表。 |
 
+### PR-S0 RQ gate 显式映射
+
+| RQ | 当前文档落点 | PR-S0 状态 |
+|---|---|---|
+| RQ1 traceability | `story/paper_outline.md` §6.1、`story/claim_evidence_map.md` C1/C7 | 冻结为 downstream gate，未运行实验。 |
+| RQ2 factuality / extraction consistency | `story/paper_outline.md` §6.1、`experiment_design/evaluation_dimensions_seed.md` | 冻结为 downstream gate，需 A2/A3/A5。 |
+| RQ3a unsupported / overclaimed findings | `story/paper_outline.md` §6.1、`story/claim_evidence_map.md` C9/C15/C16 | 冻结为 downstream gate，需 trap papers / gold-silver facts。 |
+| RQ3b challenge interception | `story/paper_outline.md` §6.1、`experiment_design/evaluation_dimensions_seed.md` | 冻结为 downstream gate，需 challenge log 与审计统计。 |
+| RQ4 cost / efficiency | `story/paper_outline.md` §6.1、`experiment_design/evaluation_dimensions_seed.md` | 冻结为 downstream gate，需 run record / 人审成本。 |
+| RQ5 scenario differences | `story/paper_outline.md` §6.1、`story/paper_story.md` §7 | 冻结为 downstream gate，需 A3 场景。 |
+| RQ6 novelty / related work | `story/paper_outline.md` §6.1、`story/differential_novelty_matrix.md` | 冻结为 downstream gate，需 A6 写作时复核。 |
+| RQ7 transparency / coverage proxy | `story/paper_outline.md` §6.1、`experiment_design/evaluation_dimensions_seed.md` | 冻结为 downstream gate，需 A5 指标与 checklist。 |
+
 ### 已完成的实现修改
 
 - [../story/paper_story.md](../story/paper_story.md)：从“带人工审计门的 agent-based SLR workflow”重写为“researcher-defined meta-model + finding patterns + finding-centered evidence chain + researcher challenge loop”。
@@ -184,3 +197,19 @@
 - Artifacts produced：本节列出的 story / claim / novelty / outline / evaluation / risk 文档更新。
 - Verification run：`git diff --check`、文件存在性检查、Markdown 相对链接检查、禁用强 claim grep。
 - Remaining risk：仍需三路正式 reviewer 在 PR #114 上做 adversarial review；若出现 C/I，必须继续修复。
+
+### 三路正式 review 后的修复记录（2026-06-15）
+
+| reviewer | comment | C/I/M | 处理 |
+|---|---|---:|---|
+| deepseek reviewer | [comment](https://github.com/HansBug/research_ideas/pull/114#issuecomment-4709893199) | 0 / 4 / 3 | 已修复 I1--I4，并顺手处理 M1/M3；M2 为 CI pending，继续等待。 |
+| claude reviewer | [comment](https://github.com/HansBug/research_ideas/pull/114#issuecomment-4709897976) | 0 / 0 / 3 | 无 C/I；M 级建议不阻塞。 |
+| codex reviewer | [comment](https://github.com/HansBug/research_ideas/pull/114#issuecomment-4709926155) | 0 / 0 / 1 | 无 C/I；`protocol.md` 旧 A0 线性 workflow 口径作为 M 级 follow-up，后续 A2 接走。 |
+
+### Review 修复 verification（2026-06-15）
+
+| 命令 | 结果 |
+|---|---|
+| `git diff --check` | 通过。 |
+| I/M remediation sanity：检查 `differential_novelty_matrix.md` 含 `researcher-guided` / `final finding`，`paper_outline.md` 含 `auditable` / `source .env`，`plan/progress.md` 含 RQ2--RQ6，`terminology_policy.md` 含强近邻误用防范 | 通过，输出 `I/M remediation sanity ok`。 |
+| Markdown 相对链接检查 | 通过，输出 `link check done`。 |

@@ -6,7 +6,7 @@
 
 本文件冻结 PR-S0 阶段的差异化 novelty gate。它不是完整 Related Work，也不声称已经排除所有 direct competitor；它用于防止第二篇论文误写成 first automated SLR、first agentic SLR、PRISMA-compliant 工具、自动 survey generation paper 或 `sources/` corpus paper。
 
-PR-B0 已完成 35 篇本地全文文本级 baseline review 与全 CCF A/B/C 扩展 discovery。后续 story 不能继续写“待 A1 才知道是否有强近邻”；当前已知事实是：多 agent SLR、clinical evidence synthesis、HITL provenance、screening / extraction、survey generation 和 SE LLM-SLR 方法学风险都已有强近邻。
+PR-B0 已完成 35 篇本地全文文本级 baseline review 与全 CCF A/B/C 扩展 discovery。后续 story 不能继续写“待 A1 才知道是否有强近邻”；当前已知事实是：多 agent SLR、clinical evidence synthesis、HITL provenance、screening / extraction、survey generation 和 SE LLM-SLR 方法学风险都已有强近邻。本文差异化不能再用“无人自动综述”来表述，而必须显式体现 researcher-guided 与 finding lifecycle。
 
 ## 2. 矩阵口径
 
@@ -35,17 +35,17 @@ PR-B0 已完成 35 篇本地全文文本级 baseline review 与全 CCF A/B/C 扩
 
 PR-S0 后，本文可尝试成立的差异化不再是“agent 也能做 SLR”，而是以下组合是否能被后续 A2/A3/A5/A6 证据支撑：
 
-1. **Researcher-instantiated review meta-model scaffold**：让使用该 work 的 researcher 先显式化 review frame，而不是作者预设一套 universal SE ontology，也不是 LLM 自动决定 schema。
+1. **Researcher-guided / Researcher-instantiated review meta-model scaffold**：让使用该 work 的 researcher 先显式化 review frame，而不是作者预设一套 universal SE ontology，也不是 LLM 自动决定 schema；researcher 还要亲自裁剪、实例化和批准。
 2. **Finding pattern scaffold**：把 SLR 的 research finding 功能结构化为 topic gap、method gap、evidence gap、contradiction、trend、consensus、taxonomy、maturity、transferability 等候选 pattern。
 3. **Finding-centered evidence chain**：每个 candidate finding 必须回到 evidence objects、source anchors、supporting / counter evidence、uncertainty、scope 和 claim strength。
-4. **Researcher challenge loop**：researcher 可以质疑 finding，系统补证、找反例、修订、降级或标 unresolved，并留下 challenge log。
+4. **Researcher challenge loop**：researcher 可以质疑 finding，系统补证、找反例、修订、降级或标 unresolved，并留下 challenge log；最终接受仍由 researcher 作出 final finding 决策。
 5. **SE SLR/SMS 场景约束**：把上述机制落到 SE / LLM4Modeling / MDE 等软件工程综述场景，而不是泛医学 / 金融 / 材料科学 evidence synthesis。
 
 ## 4. 最低 related-work gate
 
 后续任何 story / outline / manuscript 若要写 novelty，必须至少回答：
 
-1. 为什么本文不是 first automated SLR / first agentic SLR？
+1. 为什么本文不是 first automated SLR / first agentic SLR，而是 researcher-guided / finding-oriented / auditable support workflow？
 2. 与 AgentSLR 的 stage-isolated evaluation 和 expert reference 有什么差别？
 3. 与 LatteReview 的 multi-agent screening / extraction workflow 有什么差别？
 4. 与 EviSearch 的 per-cell provenance / HITL audit 有什么差别？

@@ -13,7 +13,7 @@
 1. 软件工程 SLR / systematic mapping 不只是文献整理，也是在特定研究主题上形成 research findings。
 2. 现有自动化工具和新近 LLM / agent 工作已经覆盖筛选、抽取、evidence synthesis、survey generation、human-in-the-loop 和局部 provenance；因此本文不能写成 firstness。
 3. 本文不追求 agent 替代专家，而是研究由 researcher 先定义 / 裁剪 / 实例化 review meta-model scaffold 的 support workflow。
-4. 核心主张：从“生成综述文本 / evidence package”转向“围绕 candidate findings 形成可挑战、可修订、可降级、可接受的证据过程”。
+4. 核心主张：从“生成综述文本 / evidence package”转向“围绕 candidate findings 形成可审计（auditable）、可挑战、可修订、可降级、可接受的证据过程”。
 5. 贡献草案必须保持 candidate 性质，等待 A2/A3/A5/A6 证据闭合。
 
 ## 3. Background and Related Work
@@ -47,7 +47,7 @@
 6. evidence-chain construction：组织 supporting / counter evidence、source anchors、claim strength 与 uncertainty。
 7. researcher challenge / refinement：researcher 发起质疑，系统补证、找反例、修订或降级。
 8. final finding decision and report projection：researcher 接受、降级或保留 unresolved findings，并投影到报告草案。
-9. transparency artifacts：PRISMA-style flow、排除理由、协议偏离记录、审计日志。
+9. transparency artifacts：PRISMA-style flow、排除理由、协议偏离记录、审计日志；若后续真实运行，必须 `source .env` 并保存 run record。
 
 关键写法：强调接口、证据包、finding lifecycle 和审计门，不把工程日志写成方法贡献。
 

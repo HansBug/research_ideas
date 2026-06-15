@@ -65,6 +65,7 @@
 | PRISMA-compliant | 未完成 checklist 前禁止作为正向 claim。 |
 | `sources/` corpus paper | 禁止作为第二篇主线；只能作为 case / scenario / evidence source。 |
 | PR #97 已合入资产 | 禁止，除非 PR #97 状态变化并经 fact drift policy 更新。 |
+| AgentSLR / LatteReview / EviSearch / LR-Robot / TrialMind / WSESE@ICSE 2025 | 必须正面对齐的强近邻，不能写成与本文无关或仅做背景。 |
 | LLM defines the review meta-model | 改为 system may suggest; researcher instantiates / approves. |
 | generated findings | 若无 audit，必须写 candidate findings。 |
 | final findings produced by agents | 禁止；final requires researcher audit。 |
