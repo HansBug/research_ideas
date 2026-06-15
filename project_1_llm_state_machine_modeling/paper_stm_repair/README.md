@@ -30,11 +30,12 @@
 5. [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md)：确认 `Better STM` 的最小操作化定义。
 6. [experiment_design/research_questions.md](./experiment_design/research_questions.md)：确认 RQ 草案和后续 PR 依赖。
 7. [corpora/README.md](./corpora/README.md)：确认三类文库入口、README/GUIDE/SUMMARY 纪律和 project-level 边界。
-8. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
-9. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 baseline / seed / artifact 的分层审计结论。
-10. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
-11. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
-12. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
+8. [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)：确认当前 seed library 的 `47/47`、`24 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 和 negative evidence。
+9. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
+10. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 baseline / seed / artifact 的分层审计结论。
+11. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
+12. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
+13. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
 
 ## 3. 目录结构
 
@@ -78,6 +79,7 @@ paper_stm_repair/
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 17:55:00 | PR-R1.8-B 将旧 `seed_corpus/` 迁移为 [corpora/seed_library/](./corpora/seed_library/) SUMMARY-first 三件套，并归档 R1.5--R1.7 旧 ledger / raw search。 |
 | 2026-06-14 00:16:15 | PR-R1 补充 strict seed 大规模文献调研口径、排除码、多维指标、分级标准与执行方案，明确不局限旧 direct baseline 且不把宽口径 `<NL, STM>` 共现误作 strict seed。 |
 | 2026-06-13 00:45:00 | PR-R1 新增 baseline 资产审计、候选矩阵、artifact 可获取性、格式转换压力、分支局部资产追踪与 source coverage ledger。 |
 | 2026-06-12 23:42:20 | 初始化 PR-R0 新工作区，冻结 `<NL, STM_0> -> STM_k / Better STM` 主线、路径结构与后续子 PR 接口。 |

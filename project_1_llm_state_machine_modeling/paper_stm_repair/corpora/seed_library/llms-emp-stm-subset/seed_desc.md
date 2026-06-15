@@ -9,7 +9,7 @@
 | local_source | [`baselines/llms_emp/`](../../../../baselines/llms_emp/) |
 | strict_seed_grade | `SS-A` |
 | artifact_usability | `SA-2` |
-| 当前结论 | 入选 strict seed；仅取 STM 子集。该论文充分支持 `NL requirements -> SysML/PlantUML state machine` 生成与反馈式再生成，但公开资产偏数据/结果表，不是完整 pipeline 复现包。 |
+| 当前结论 | 入选 strict seed；仅取 STM 子集。该论文充分支持 `NL requirements -> SysML/PlantUML state machine` 生成与反馈式再生成；R2 只冻结初始 / 指定 `STM_0`，不要混入作者后续 human review / feedback 改进结果。公开资产偏数据/结果表，不是完整 pipeline 复现包。 |
 
 ## P1/P2/P3/P4 全文核验
 
@@ -41,7 +41,7 @@
 
 可用方向：
 
-1. 从公开数据或本地 parquet 冻结中抽取 STM 样例，构造 `NL requirement -> PlantUML/SysML STM` 的 R2 seed。
+1. 从公开数据或本地 parquet 冻结中抽取 STM 样例，构造 `NL requirement -> PlantUML/SysML STM` 的 R2 seed；只冻结初始/指定版本 `STM_0`，不要混入作者后续 human review / feedback 改进结果。
 2. 用 human-review / generated-output 结果表做 LLM-as-Judge、hallucination taxonomy、repair benchmark 的对照材料。
 3. 使用论文 Table 8-11 的 STM hallucination 与 checking-rule 分类作为 repair 任务的错误类型参考。
 

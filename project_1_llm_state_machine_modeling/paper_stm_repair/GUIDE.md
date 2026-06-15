@@ -21,8 +21,9 @@
 2. 再读本文件：确认文库分工、root 三件套纪律、fact-union 与长期验收口径。
 3. 再读 [corpora/README.md](./corpora/README.md)：确认三类文库入口与 project-level 文库边界。
 4. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
-5. 需要理解 R1.7 之前的旧事实时，只能把 [seed_corpus/](./seed_corpus/) 和 [evidence/](./evidence/) 当作迁移前旧事实源；后续 R1.8-B/C/D/E 完成后应优先读 `corpora/` 下三类新 SUMMARY。
-6. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
+5. 需要理解 seed 当前事实时，优先读 [corpora/seed_library/README.md](./corpora/seed_library/README.md)、[corpora/seed_library/GUIDE.md](./corpora/seed_library/GUIDE.md)、[corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)。
+6. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
+7. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
 
 ## 3. 三类文库分工
 
@@ -116,7 +117,7 @@
 | 哨兵 | 口径 | 不通过含义 |
 |---|---|---|
 | `47/47` | seed candidate matrix 与 screening ledger 对齐。 | 候选或筛选事实在迁移中丢失 / 重复 / 口径漂移。 |
-| `24 dirs` | 迁移前 `seed_corpus/papers/` 下 24 个单篇全文 / artifact 编码目录全部有去向。 | 单篇证据容器丢失或未登记新路径。 |
+| `24 dirs` | 迁移前 `seed_corpus/papers/` 下 24 个单篇全文 / artifact 编码目录已迁移到 [corpora/seed_library/](./corpora/seed_library/)，并在其 [SUMMARY.md](./corpora/seed_library/SUMMARY.md) 资产表中有去向。 | 单篇证据容器丢失或未登记新路径。 |
 | `9/9 crosswalk` | 旧九个 direct generation baseline 的 seed-method 入账关系保留。 | 旧 generation baseline 被误删、误归 repair baseline 或 crosswalk 丢失。 |
 | `R2 handoff` | `seed_selection_candidates.md` 作为 R2 四例候选 handoff 保留，但不得被误读为 seed 方法全集。 | R2 样本冻结前置信息被误读。 |
 | project-level 回链 | paper1 条目保留到 project_1 `baselines/`、`sources/`、`data/`、`reproduction/` 的来源指针和核验日期。 | paper1 制造第二事实源或整体搬迁长期文库。 |
@@ -162,4 +163,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-14 17:55:00 | PR-R1.8-B 更新 seed 当前入口为 [corpora/seed_library/](./corpora/seed_library/)，旧 `seed_corpus/` 降级为 redirect，旧 ledger / raw search 迁入 archive。 |
 | 2026-06-14 13:34:18 | PR-R1.8-A 新增 paper1 路径级 GUIDE，冻结三类文库、SUMMARY-first、fact-union 哨兵与 project-level 边界。 |

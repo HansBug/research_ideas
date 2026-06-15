@@ -1,0 +1,183 @@
+--- Page 1 ---
+Web Tool for Goal Model ling and Statechart 
+Derivation  
+João Pimentel, Jéssyka Vilela, Jaelson Castro  
+Universidade Federal de Pernambuco  
+Recife, Brazil  
+{jhcp, jffv, jbc}@cin.ufpe.br  
+ 
+ 
+Abstract—Creating and maintaining visual models is a time -con-
+suming step in software engineering processes. In order to support 
+the creation of some of these  models,  we have developed the Goal 
+to Architecture tool (GATO). This web tool handles the creation 
+and edit ion of goal models, as well as the derivation of statecharts. 
+The particular variation of goal modelling supported by this tool 
+contains four views: requirements view, design view, delegation 
+view, and behavioural view.     
+Index  Terms—Goal model ling tool, Web tool, Statechart 
+Derivation, Requirements -driven software adaptation.  
+I. INTRODUCTION  
+Requirements engineering and architectural design, while 
+addressing the system specification at different abstraction lev-
+els, comprise intertwined activities. The former focuses on the 
+problem at hand, whereas the latter provides solutio ns for that 
+problem [1]. One of the challenges in Software Engineer ing is to 
+determin e whether a system specification is actually a solution 
+to the given requirements. We propose to tackle this challenge 
+by systematically deriving the latter from the former. In earlier 
+work we proposed a process for deriving architectural models 
+from requi rements [2][3]. However, these proposals handle only 
+the structural view (e.g., components -and-connectors) of the ar-
+chitectural design, lacking any behavioural  specification of the 
+system -to-be. The behavio ural view  (e.g., statecharts)  accounts 
+for the order of execution of tasks that fulfils  requirements, in-
+cluding concurrency and time dep endencies for the system -to-be 
+[4], allow ing further refine ment  of the system and supports rea-
+soning to detect potential deadlocks, termination and efficient 
+use of scarce resources.  
+In recent  work [5][6] we have propose d the MULAS frame-
+work for designing adaptive systems. This framework includes 
+a systematic process for deriving behavio ural models – ex-
+pressed as statecha rts [7] – from goal models through a series of 
+refinements that introduce into the de sign: (i) design tasks , de-
+sign constraints  and design assumptions , (ii) assignments  of re-
+sponsibility, and (iii) behavio ural refinements . Design tasks  al-
+low the architect to define tasks that, although not relevant for 
+the stake holders – thus not expressed in the requirements – are 
+important in defining the b ehavio ur of the system (e.g., connect 
+to server , log in , and check connection speed ). Design con-
+straints  refine requirements quality constraints into more con-
+crete con straints  (e.g., use 128 -bits encryption  may be a refine-
+ment of a security  requirement) . Design assumptions  represent 
+                                                           
+1 Available at http://www.cin.ufpe.br/~ler/supplement/re2015/  situations assumed during system design, often allowing some 
+simplification of the system (e.g.,  no more than 100 users will 
+access the system simultaneously ). Assignments  lead to an initial 
+structuring of the system, in accorda nce with who/what (e.g., hu-
+man actors, organizations, software components, etc.) is respon-
+sible for performing its different tasks. Lastly, behavio ural re-
+finements  define the execution flows of the system and open the 
+door for the transformation of require ments into statecharts.  
+Considering the effort required for creating and maintaining 
+the different models of the process, we identified the need for 
+creating a supporting tool. This Goal to Architecture  tool 
+(GATO)1 is described in the following sections.  
+II. REQUIREMENTS  
+The requirements for our supporting tool are presented in Fig. 
+1. The functional requirements were elicited based on what is 
+necessary for supporting the enactment of the process proposed 
+on [5][6]. The quality constraints we re elicited from the needs of 
+the authors when conducting and reporting case studies. It sup-
+ports the edition of requirements elements (goals, tasks, domain 
+assumptions, and quality constraints), as well as of the edition of 
+design elements (design tasks, design constraints, design as-
+sumption, assignments, and behavioural refinements) and the 
+edition of adaptation elements (awareness requirements and pa-
+rameters). After included in the model, each element may be 
+moved, renamed, or deleted.  
+Besides editing an d managing goal models, it is also possible 
+to create adaptation specifications (adaptation strategies and pa-
+rameters) and to specify transitions (events and conditions). The 
+tool also supports the derivation of statecharts from the design 
+goal model . Last ly, the functionality of Export to Zanshin was 
+included in order to facilitate the integration with a software ad-
+aptation compon ent [8]. 
+The GATO tool has t hree main quality constraints: Portabil-
+ity of model editing, Reliability  of model manag ing, and High 
+Quality  of saved images. By portability we mean the ability to 
+run ove r different operating systems: Windows, Mac, and Linux. 
+Reliability, which is too abstract, was made con crete with an Au-
+tosave  task. I.e., if the tool presents an auto save functionality, 
+the system is conside red to be sufficiently reliable. L astly, in or-
+der to satisfy the High Quality  constraint, it was decided to Pro-
+vide Vector ial Format , such as SVG  (Scalable Vector Graphics).  
+978-1-4673-6905-3/15/$31.00 c2015 IEEERE 2015, Ottawa, ON, Canada
+Demos and Posters
+52292
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 14,2026 at 12:49:32 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 2 ---
+III. DESIGN AND IMPLEMENTATION  
+The tool client was developed with web -based technologies, 
+taking advantage of recent advances on web browser perfor-
+mance. A diagram is a SVG  image that is rendered natively by 
+web browsers. The creation and updating of said image was de-
+veloped using the JointJS2 library . The user interface of the cli-
+ent was developed using the Bootstrap framework3 and the 
+jQuery4 library. The goal model is displayed with four different 
+views, which facilitates its visualization. This feature was in-
+spired by the STS -Tool [9]. 
+On the server side, t he module for deriving statecharts from 
+flow expressions was built using the SableCC tool5 , which au-
+tomatically generates Java code for parsing an input text, as well 
+as for creating and traversing an abstract syntax tree of the parsed 
+text. The code is generated by SableCC taking as input a custom -
+defined grammar, which specifies the tokens and production 
+rules of the language that will be parsed.  
+The code for actually identifying the states, transitions and 
+concurrent states that  should be derived from a given flow ex-
+pression was developed on top of the depth -first tree traverser 
+generated with SableCC. This mapper was wrapped up as a rest-
+ful service  using Jersey6, allo wing  it to be invoked from our web -
+based client. The result of the  derivation is then displayed back 
+in the web client.  
+The use of a grammar -based approach for performing the 
+goal model – statechart  transformation was selected in detriment 
+of model transfo rmation languages such as ATL  (ATL Transfor-
+mation Language)  and QVT  (Query / View  / Transformation ), 
+since the most relevant information for this transformation is the 
+flow expression, which is textual. In order to verify the imple-
+mentation of this algorit hm we  developed automatic tests com-
+paring the results for given expressions to their expected  results.  
+The result of the derivation is displayed back in two ways: as 
+a list of states, their  hierarchy, and transitions; and  as a visual 
+diagram.  The creation of visual diagrams, from this output, is 
+                                                           
+2 Javascript library, a vailable at http://www.jointjs.com/  
+3 Available at http://getbootstrap.com/2.3.2/  
+4 Javascript library, a vailable at https://jquery.com/  still in early development. Currently,  the tool generates a 
+statechart only with the atomic states; in future developments we  
+expect to be able to include th e super -states on the diagram . 
+ACKNOWLEDGEMENTS  
+Work  suppo rted by the ERC advanced grant 267856 “Lucre-
+tius: Foundations for Software Evolution”; as well as by the fol-
+lowing Brazilian institutions: CAPES, CNPQ, and FACEPE.  
+REFERENCES  
+[1] B. Nuseibeh, “Weaving together requirements and architectures,” 
+Computer (Long. B each. Calif)., vol. 34, no. 3, pp. 115 –119, Mar. 
+2001.  
+[2] J. Castro, M. Lucena, C. Silva, F. Alencar, E. Santos, and J. Pi-
+mentel, “Changing attitudes towards the generation of architec-
+tural models,” Journal of Systems and Software, vol. 85, pp. 463 –
+479, Mar. 2012.  
+[3] J. Pimentel, M. Lucena, J. Castro, C. Silva, E. Santos, and F. 
+Alencar, “Deriving software architectural models from require-
+ments models for adaptive systems: the STREAM -A approach,” 
+Requirements Engineering, vol. 17, pp. 259 –281, June 2012 . 
+[4] F. Bachm ann, L. Bass, P. Clements, D. Garlan, J. Ivers, R. Little, 
+R. Nord, and J. Stafford, “Documenting Software Architecture : 
+Documenting Behavior,” Tech. Rep. January, 2002  
+[5] J. Pimentel, “Systematic Design of Adaptive Systems — A Con-
+trol-Based Framework,” Ph.D . thesis, Universidade Federal de 
+Pernambuco, 2015. Available at http://www.cin.ufpe.br/~ler/sup-
+plement/re2015/  
+[6] J. Pimentel, J.  Castro, J. Mylopoulos, K. Angelopoulos, and V. 
+E. S. Souza, “From Requirements to Statecharts via Design Re -
+finement,” Proceedi ngs of the 29th Annual ACM Symposium on 
+Applied Computing - SAC 2014, pp. 995 -1000, 2014.  
+[7] D. Harel, “Statecharts: A visual formalism for complex systems,” 
+Science of computer programming, vol. 8, no. 3, pp. 231 –274, 
+1987.  
+[8] V. Souza, “Requirements -based software system adaptation”, 
+Ph.D. thesis, University of Trento, 2012.  
+[9] E. Paja, F. Dalpiaz, M. Poggianella, P. Roberti, and P. Giorgini, 
+“STS -Tool: Specifying and Reasoning over Socio -Technical Se-
+curity Requirements”, 6th International i* Workshop (iStar'1 3), 
+2013, pages 131 –133, Valencia, Spain . 
+5 Available at http://sablecc.org  
+6 Java library, available at http://jersey.java.net   
+Fig. 1. Requirements of the Goal to Architecture tool  (GATO)  
+ 
+293
+Authorized licensed use limited to: BEIHANG UNIVERSITY. Downloaded on June 14,2026 at 12:49:32 UTC from IEEE Xplore.  Restrictions apply. 

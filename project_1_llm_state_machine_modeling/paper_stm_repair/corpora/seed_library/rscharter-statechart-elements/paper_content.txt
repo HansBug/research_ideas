@@ -1,0 +1,191 @@
+--- Page 1 ---
+RSCharter : A Framework for Extracting Statechart Diagram
+Elements from the Requirements Specification
+Janvi Bhatta,1, Sourish Dasguptab,∗,2, Saurabh Tiwaric,3and Akhilesh Sharmad,4
+aSoftware Engineering Research Lab, DA-IICT, Gandhinagar, India
+bKnowledge Discovery & Management Lab, DA-IICT, Gandhinagar, India
+cSoftware Engineering Research Lab, DA-IICT, Gandhinagar, India
+dSAC ISRO, Government of India, Ahmedabad, India
+ARTICLE INFO
+Keywords :
+Analysis and Modeling
+State Diagram
+Natural Language Processing (NLP)
+Requirement Templates (RTs)ABSTRACT
+Context: Theautomatedtranslationofdesignmodelsfromtherequirementswritteninnatural
+language (NL) textual format is tedious. An NL is inherently ambiguous, whereas a formal
+language is unambiguous.
+Objective: In this paper, we propose a framework, Requirement Specification Charter
+(RSCharter), for translating NL textual specifications into formal First-Order Predicate Logic
+(FOPL) by identifying and representing them as state diagram elements.
+Method: The framework used a classical NLP rule-based baseline model for identifying the
+statechart diagram elements from the NL.
+Results:We found that the proposed approach generates FOPL and develops a state diagram
+with an average precision of 89% and a recall of 87%.
+Conclusion: Our results depend on the complexity levels of the evaluation datasets, the
+dependency parser accuracy, and the coverage of the FOPL conversion rules.
+1. Background and Motivation
+Manual derivation of behavioral modelsfrom natural language (NL) requirements is time-consuming, error-prone,
+and typically performed by experienced analysts Arora et al. (2016), Bozyigit et al. (2024). Various methods have been
+proposed for generating UML diagrams from NL specifications using rule-based NLP techniques, but these are manual
+and rely on heuristic rules. Ahmed et al. Ahmed et al. (2022) reviewed systems for automatically transforming NL
+intoUMLmodels,identifyinglimitationsduetoNLPcapabilitiesandheuristic-basedapproaches.Aroraetal.Arora
+etal.(2016)notedthelaboriousnatureofmanualdomainmodelcreation,whileautomaticextractiontechniquesface
+challenges in industrial settings. Bozyigit et al. Bozyigit et al. (2024) evaluated two text-to-model tools—ChatGPT and
+txt2Model—both of which showed lower performance and high variance for relation types.
+In this paper, we propose a framework called Requirement Specification Charter (RSCharter ) for automated
+extractionofelementsofthestatechartdiagram(suchasconditions,events,actions,andstates)fromtheNLtextual
+specifications. RSCharter converts an NL SRS document (RUPP or EARS compliant) into equivalent First Order
+PredicateLogic(FOPL)expressionsbeforegeneratingthestatechartdiagramusinganyconventionalgenerator.The
+motivation is to develop a framework for describing system behaviours and exhibit formalization with precisely defined
+syntax and semantics by understanding the behavioural pattern through state variables and transitions.
+2. System Overview
+This section describes the RSCharter pipeline consisting of three modules: (i) Action & Trigger Extractor (ATE),
+(ii)First-Order Predicate Logic Converter (FLC), and (iii) State Diagram Generator (SDG). An SRS document is first
+processedbyaRequirementTemplateNormalizer(RTN)toproduceaRUPPorEARScompliantRequirementTemplate
+∗Corresponding author
+janvi_bhatt@daiict.ac.in (J. Bhatt); sourish_dasgupta@daiict.ac.in (S. Dasgupta); saurabh_t@daiict.ac.in (S. Tiwari);
+akhilesh@sac.isro.gov.in (A. Sharma)
+(J. Bhatt); https://sites.google.com/view/saurabhtiwari (S. Tiwari)
+ORCID(s):
+Janvi Bhatt et al.: Preprint submitted to Elsevier Page 1 of 4
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=4964857Preprint not peer reviewed
+
+--- Page 2 ---
+RSCharter : A Framework for Extracting Statechart Diagram Elements from the Requirements Specification
+Main word (all other words depend 
+on this)Condition 
+Termination<opt><opt><rel = non_mark_rel>. . . . <rel = advcl>
+<rel = advcl><rel = non_vp_rel><rel = non_vp_root_rel>non_mark_rel = [advcl, nsubj, neg, auxpass, cc]
+non_vp_root_rel = [pcomp, ccomp]
+non_vp_rel = [nsubj, advcl]
+
+NOYESif ROOT is a 
+VB/VPBody 
+Termination<rel = mark><rel = non_mark_rel><rel = mark><rel = advcl><rel = non_mark_rel><opt>
+Figure 1: Action & Trigger Extractor (ATE) :𝑡: token; subscript: position from root token (-ve: left-traversal); superscript :
+{con: conditional token (e.g., " if", "when", "while", "in case of "),conj: conjunctive/disjunctive token (e.g., " and, or"),
+[TRG]: terminating token of trigger-clause, [ ACT]: starting token of action-clause}, edge: dependency relation ( rel) as per
+Universal Dependency Tag Scheme (de Marneffe et al., 2014).
+(RT)1.RSCharter thenusesATEtoextractActionsandConditions(Triggers),FLCtogenerateFOPLexpressions,
+and SDG to create the statechart diagram with a standard tool. Detailed functionality of each module follows.
+2.1. Action & Trigger Extractor (ATE)
+The ATE module uses a dependency parser-based algorithm for extracting conditional clauses (i.e., the antecedent )
+andcorrespondingbodyclauses(i.e., consequent ).InthecontextofSRS,theconditionclauserepresentsthe trigger
+clause, outlining preconditions for actions described in the body clause (i.e., action clause ). Dependency parsing
+identifies the causal relationship between these clauses and clarifies inter-phrase associations, helping to identify
+compound triggers/actions involving multiple sub-clauses (see Figure 1).
+Trigger Clause: TherearetwotypesoftriggerclausesinaconditionalSRS:(i) existential ,whereatruthvalueis
+assignedtotheexistenceofasystemstate,and(ii) comparative ,whereatruthvalueisassignedtoacomparisonbetween
+states.In bothcases, ifthe conditionistrue, ittriggers systemactions. ATEextracts triggerclauses bytraversingleft
+from the root token to find the start and right from the right token to find the end.
+Action Clause: The action clause consists of what the system is supposed to perform, which amounts to the new state
+in which the system should transition if the trigger occurs. The action clause is extracted by traversal to the right of the
+token that denotes the termination of the trigger clause.
+2.2. First-Order Predicate Logic Converter (FLC)
+The FLC module converts the extracted action clause and associated trigger clauses (if any) into FOPL expressions.
+Therearethreetypesof trigger rules-oneforcomparativetriggerclauseandtwofor existentialtriggerclause(one
+for the case where the subject-object relation is " is-a" and the other for " non is-a" subject-object relation). We use
+threereservedpredicates-(i) AGENT(∙)todenoteanysystemwhosenameidentityisunknown(orunresolved),(ii)
+STATUS (∙) to denote a property that is a state-value of an agent (e.g.: " Database x is open" implies STATUS (open)),
+and (iii)hasStatus( ∙,∙)to denote the relation between the agent and its state-value (see Table 1).
+2.3. State Diagram Generator (SDG)
+TheSDGmoduleprocessestheFOPLexpressionsoftheactionandtriggerclauses,convertingthemintoastatechart
+diagram. States are represented as nodes, and actions (with their conditions) are represented as edges. Each action has
+an initial state and a subsequent next state. If a trigger is present, the edge represents an implication (see Figure 2).
+3. Evaluation of RSCharter
+3.1. Evaluation Measure: Accuracy
+We evaluate RSCharter in terms of accuracy performance. We propose two accuracy measures as follows:
+1We assume an existing RTN module for this translation
+Janvi Bhatt et al.: Preprint submitted to Elsevier Page 2 of 4
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=4964857Preprint not peer reviewed
+
+--- Page 3 ---
+RSCharter : A Framework for Extracting Statechart Diagram Elements from the Requirements Specification
+Table 1
+FLC Rule Table : Rules for converting extracted Trigger and Action Clauses (in NL) into First-Order-Predicate expressions.
+FOPL Conversion of Trigger Clause
+FOPL Conversion of Existential Trigger ClauseFOPL Conversion of Comparative Trigger ClauseCASE 1: is-a CASE 2: Non is-a
+𝑋is a𝑦𝑃𝑂𝑆 ∶𝐽𝐽 𝑋 <action>𝑃𝑂𝑆 ∶𝑉𝐵𝑦𝑃𝑂𝑆 ∶𝐽𝐽∕𝐴𝐷𝐽 𝑥<comparative >𝑃𝑂𝑆 ∶𝐽𝐽𝑅 ∕𝑅𝐵𝑅𝑦𝑃𝑂𝑆 ∶𝐽𝐽∕𝐴𝐷𝐽
+∃𝑥,𝑦(𝑋(𝑥) ∧STATUS (𝑦) ∧hasStatus (𝑥,𝑦)) ∃𝑥,𝑦(𝑋(𝑥) ∧STATUS (𝑦) ∧action (𝑥,𝑦)) ∃ 𝑥,𝑦(𝑋(𝑥) ∧𝑌𝑃𝑂𝑆 ∶noun-form (𝑦) ∧𝑐𝑜𝑚𝑝𝑎𝑟𝑎𝑡𝑖𝑣𝑒 (𝑥,𝑦))
+𝑥𝑃𝑂𝑆 ∶𝑃𝑅𝑃is a𝑦𝑃𝑂𝑆 ∶𝑃𝑅𝑃 𝑥𝑃𝑂𝑆 ∶𝑃𝑅𝑃<action>𝑃𝑂𝑆 ∶𝑉𝐵𝑦𝑃𝑂𝑆 ∶𝑃𝑅𝑃 𝑥𝑃𝑂𝑆 ∶𝑃𝑅𝑃<comparative >𝑃𝑂𝑆 ∶𝐽𝐽𝑅 ∕𝑅𝐵𝑅𝑦𝑃𝑂𝑆 ∶𝑃𝑅𝑃
+∀𝑥(AGENT-1 (𝑥)→AGENT-2 (𝑥)) ∃ 𝑥,𝑦(AGENT-1 (𝑥) ∧AGENT-2 (𝑦) ∧action (𝑥,𝑦)) ∃𝑥,𝑦(AGENT-1 (𝑥) ∧AGENT-2 (𝑦) ∧𝑐𝑜𝑚𝑝𝑎𝑟𝑎𝑡𝑖𝑣𝑒 (𝑥,𝑦))
+𝑋𝑃𝑂𝑆≠𝐽𝐽∕𝑃𝑅𝑃is a𝑌𝑃𝑂𝑆≠𝐽𝐽∕𝑃𝑅𝑃 𝑋𝑃𝑂𝑆≠𝐽𝐽∕𝑃𝑅𝑃<action>𝑃𝑂𝑆 ∶𝑉𝐵𝑌𝑃𝑂𝑆≠𝐽𝐽∕𝐴𝐷𝐽 ∕𝑃𝑅𝑃𝑋𝑃𝑂𝑆≠𝐽𝐽∕𝑃𝑅𝑃<comparative >𝑃𝑂𝑆 ∶𝐽𝐽𝑅 ∕𝑅𝐵𝑅𝑌𝑃𝑂𝑆≠𝐽𝐽∕𝐴𝐷𝐽 ∕𝑃𝑅𝑃
+∀𝑥(𝑋(𝑥)→𝑌(𝑥)) ∃ 𝑥,𝑦(𝑋(𝑥) ∧𝑌(𝑦) ∧action (𝑥,𝑦)) ∃ 𝑥,𝑦(𝑋(𝑥) ∧𝑌(𝑦) ∧𝑐𝑜𝑚𝑝𝑎𝑟𝑎𝑡𝑖𝑣𝑒 (𝑥,𝑦))
+FOPL Conversion of Action Clause
+𝑋 <token>𝑃𝑂𝑆 ∶𝑀𝐷<action>𝑃𝑂𝑆 ∶𝑉𝐵𝑌
+Initial State: ∃𝑥,𝑦 𝑋 (𝑥) ∧𝑌(𝑦) ∧ ¬𝑎𝑐𝑡𝑖𝑜𝑛 (𝑥,𝑦)Action (Edge): 𝑎𝑐𝑡𝑖𝑜𝑛 (𝑥,𝑦) Next State: ∃𝑥,𝑦 𝑋 (𝑥) ∧𝑌(𝑦)∧<has⊕actionPOS:participle-form >(𝑥,𝑦)
+Figure 2: Example output of SDG given Trigger FOPL expression (edge label) and Action FOPL expressions (initial and
+final states; see Table 1.)
+Table 2
+Evaluation Dataset: Statistics with corresponding FOPL complexity & Accuracy Performance of RSCharter-R1
+SRS documents SRS domain Conditional Reqs. Non-Conditional Reqs.Ground-truth FOPL ComplexityExact Precision Exact RecallNo. of Operators No. of Operands
+home 1.3 Digital Home 05 20 126 (avg.: 5.04) 166 (avg.: 6.64) 0.84 0.81
+hats Assur. Transformation Sys. 44 70 557 (avg.: 4.88) 708 (avg.: 6.21) 0.91 0.90
+esa Space Data Mgmt. 01 08 37 (avg. 4.11) 54 (avg.: 6.00) 0.83 0.78
+agentmom Multi-agent Sys. 00 24 106 (avg.: 4.41) 141 (avg.: 5.87) 0.90 0.92
+sprat Goals & Scenario Mgmt. 09 126 590 (avg.: 4.37) 793 (avg.: 5.87) 0.94 0.93
+blit draft Laboratory Info. Sys. 08 26 154 (avg.: 4.52) 179 (avg.: 5.26) 0.92 0.90
+Total 67 274 1570 (avg.: 4.6) 2041 (avg.: 5.98) (avg.:) 0.89 (avg.:) 0.87
+Definition 1 (Exact Precision (EP)) .Exact Precision (EP) is the ratio between the number of exact predictions ( 𝛼) and
+the total number of predictions by RSCharter (including incorrect ones denoted as 𝛽), where exact prediction means
+anexact match between predicted and ground-truth. Hence, 𝐸𝑃=𝛼
+𝛼+𝛽.
+Itistobenotedthatintheabovedefinition,an exactmatch impliesa complete match over the entire syntax ofthe
+predicted and target FOPL expression, including predicates and their corresponding arguments.
+Definition2 (ExactRecall(ER)) .Exact Recall (ER) is the ratio between the number of exact predictions by RSCharter
+(𝛼) and the total number of ground-truth FOPL expressions (including missed ones denoted as 𝛾). Hence,𝐸𝑅=𝛼
+𝛼+𝛾.
+3.2. Evaluation Dataset
+Toevaluate RSCharter accuracy,weusethePuREdataset(Ferrarietal.,2017),whichcontainssixSRSdocuments
+from various domains2(see Table 2). RT compliance normalization is performed with AutoReco by Balwani et al.
+(2023). Ground-truth FOPL expressions were manually created, categorized as functional vs. non-functional and
+conditional (60) vs. non-conditional (299)3. Complexity is assessed by the number of logical operators and predicates
+(see Table 2).
+3.3. Baseline Model
+Asapartofapreliminarycasestudyanalysisoftheefficacyofthe RSCharter framework,wehavedevelopeda
+rule-based baseline model, called RSCharter-R14, along the design principles of RSCharter . We implement the ATE
+module of RSCharter-R1 using spaCy dependency parser v3.7.15. The FLC module of RSCharter-R1 follows the
+rule-set defined in Table 1. We use GraphWalker v4.3.26as a state-chart diagram generator to implement the SDG
+module of RSCharter-R1 .
+2Including public companies, product standards, and university projects
+3The augmented dataset will be open-sourced upon manuscript acceptance
+4R-1 stands for Rule-based v1.0
+5spaCy Dependency Parser v3.7.1
+6GraphWalker v4.3.2
+Janvi Bhatt et al.: Preprint submitted to Elsevier Page 3 of 4
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=4964857Preprint not peer reviewed
+
+--- Page 4 ---
+RSCharter : A Framework for Extracting Statechart Diagram Elements from the Requirements Specification
+3.4. Preliminary Observations
+We observe that RSCharter-R1 exhibits very high EP (best: 0.94; avg.: 0.89) and ER (best: 0.93; avg.: 0.87) on all
+the SRS documents except esaand, to a certain extent, Home1.3. On further analysis, we find that the overall drop
+inaccuracycanbeattributedtoalackofaccuracyindependencyparsingofmorecomplexstatementshavingmore
+logical operands.
+4. Discussions and Future Work
+This paper presents RSCharter a framework for generating statechart diagrams from natural language require-
+ment specifications by translating them into First-Order Predicate Logic (FOPL) expressions. The framework is
+implementation-agnostic, with accuracy dependent on dataset complexity, parser accuracy, and FOPL conversion rules.
+Futureworkaimstoimprove RSCharter withenhanceddatasets,advancedaugmentationtechniques,andabroader
+metric suite for evaluating statechart diagram generators.
+Acknowledgement
+This work is supported by the Space Applications Centre (SAC), Indian Space Research Organisation (ISRO) under
+the ‘RESPOND’ program.
+References
+Ahmed, S., Ahmed, A., Eisty, N.U., 2022. Automatic transformation of natural to unified modeling language: A systematic review, in: 2022
+IEEE/ACIS 20th International Conference on Software Engineering Research, Management and Applications (SERA), pp. 112–119.
+Arora,C.,Sabetzadeh,M.,Briand,L.,Zimmer,F.,2016. Extracting domainmodelsfromnatural-language requirements:approachand industrial
+evaluation, in: Proceedings of the ACM/IEEE 19th International Conference on Model Driven Engineering Languages and Systems, Association
+for Computing Machinery, New York, NY, USA. p. 250–260.
+Balwani,S.,Tiwari,S.,Dasgupta,S.,Sharma,A.,2023. Autoreco:Atoolforrecommendingrequirementsfortheirnon-conformancewithrequirement
+templates (rts), in: 2023 IEEE 31st International Requirements Engineering Conference (RE), pp. 365–366.
+Bozyigit, F., Bardakci, T., Khalilipour, A., Challenger, M., Ramackers, G., Babur, Ö., Chaudron, M.R., 2024. Generating domain models from
+natural language text using nlp: a benchmark dataset and experimental comparison of tools. Software and Systems Modeling , 1–19.
+Ferrari,A.,Spagnolo,G.O.,Gnesi,S.,2017. Pure:Adatasetofpublicrequirementsdocuments,in:2017IEEE25thInternationalRequirements
+Engineering Conference (RE), pp. 502–505.
+deMarneffe,M.C.,Dozat,T.,Silveira,N.,Haverinen,K.,Ginter,F.,Nivre,J.,Manning,C.D.,2014.UniversalStanforddependencies:Across-linguistic
+typology,in:ProceedingsoftheNinthInternationalConferenceonLanguageResourcesandEvaluation(LREC’14),EuropeanLanguageResources
+Association (ELRA), Reykjavik, Iceland. pp. 4585–4592.
+Janvi Bhatt et al.: Preprint submitted to Elsevier Page 4 of 4
+This preprint research paper has not been peer reviewed. Electronic copy available at: https://ssrn.com/abstract=4964857Preprint not peer reviewed
