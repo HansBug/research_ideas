@@ -8,7 +8,7 @@
 | 标题 | Automated BPMN Model Generation from Textual Process Descriptions: A Multi-Stage LLM-Driven Approach |
 | 年份 / venue | 2026 / arXiv |
 | 当前角色 | BPMN diagnostics-to-repair 方法近邻 |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、SpiffWorkflow repair、pipeline、validation failure correction loop、750->387 corpus；独立全文阅读任务核验。
+`paper_content.txt` 摘要、SpiffWorkflow repair、pipeline、validation failure correction loop、750->387 corpus；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

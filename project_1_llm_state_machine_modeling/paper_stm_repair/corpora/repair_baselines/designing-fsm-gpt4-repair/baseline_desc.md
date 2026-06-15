@@ -8,7 +8,7 @@
 | 标题 | Designing FSMs Specifications from Requirements with GPT 4.0 |
 | 年份 / venue | 2026 / arXiv |
 | 当前角色 | seed + repair 分段共存；本目录只登记 repair slice |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` DFSM 定义、repair 方法四节、实验结果与局限；独立全文阅读任务核验。
+`paper_content.txt` DFSM 定义、repair 方法四节、实验结果与局限；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

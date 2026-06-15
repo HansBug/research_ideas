@@ -8,7 +8,7 @@
 | 标题 | Generating SysML Behavior Models via Large Language Models: an Empirical Study |
 | 年份 / venue | 2025 / Internetware |
 | 当前角色 | STM 子集 feedback-regeneration baseline |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@ P1：比 TTool-AI 更直接报告 feedback regeneration 效果，特别适合 re
 
 ## 4. 证据位置
 
-`paper_content.txt` RQ、两阶段流程、prompt Error(E)、STM 错误类型、Phase-II 修复率；独立全文阅读任务核验。
+`paper_content.txt` RQ、两阶段流程、prompt Error(E)、STM 错误类型、Phase-II 修复率；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

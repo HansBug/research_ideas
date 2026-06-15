@@ -8,7 +8,7 @@
 | 标题 | System Architects Are not Alone Anymore: Automatic System Modeling with AI |
 | 年份 / venue | 2024 / MODELSWARD |
 | 当前角色 | 生成链内 feedback-regeneration baseline |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@ P1：说明工具检查反馈能改善 LLM 生成模型，但反馈深度主要�
 
 ## 4. 证据位置
 
-`paper_content.txt` 框架、feedback loop、state machine identification、GitHub artifact；独立全文阅读任务核验。
+`paper_content.txt` 框架、feedback loop、state machine identification、GitHub artifact；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

@@ -8,7 +8,7 @@
 | 标题 | Towards using Few-Shot Prompt Learning for Automating Model Completion |
 | 年份 / venue | 2023 / ICSE-NIER |
 | 当前角色 | 弱近邻 model completion |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 任务、partial model prompt、class/activity examples、GitHub replication；独立全文阅读任务核验。
+`paper_content.txt` 任务、partial model prompt、class/activity examples、GitHub replication；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

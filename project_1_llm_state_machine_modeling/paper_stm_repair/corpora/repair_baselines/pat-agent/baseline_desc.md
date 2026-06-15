@@ -8,7 +8,7 @@
 | 标题 | PAT-Agent: Autoformalization for Model Checking |
 | 年份 / venue | 2025 / arXiv / ASE 2025 accepted |
 | 当前角色 | 异构形式化 repair 强近邻 |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、框架、verification-repair loop、case、实验、ablation、结论；独立全文阅读任务核验。
+`paper_content.txt` 摘要、框架、verification-repair loop、case、实验、ablation、结论；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

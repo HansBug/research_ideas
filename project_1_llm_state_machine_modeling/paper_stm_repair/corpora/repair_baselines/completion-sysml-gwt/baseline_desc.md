@@ -8,7 +8,7 @@
 | 标题 | Completion of SysML state machines from Given-When-Then requirements |
 | 年份 / venue | 2024 / SoSyM |
 | 当前角色 | 直接/强条件 baseline |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、§4--§7、结论与 GPT-3.5 讨论；独立全文阅读任务核验。
+`paper_content.txt` 摘要、§4--§7、结论与 GPT-3.5 讨论；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

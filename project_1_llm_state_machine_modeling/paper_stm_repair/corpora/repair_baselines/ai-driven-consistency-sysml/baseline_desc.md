@@ -8,7 +8,7 @@
 | 标题 | AI-Driven Consistency of SysML Diagrams |
 | 年份 / venue | 2024 / MODELS |
 | 当前角色 | SysML consistency repair 近邻 |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、UCD/BD scope、rules、correction loop、69 inconsistency / 60.5 repair；独立全文阅读任务核验。
+`paper_content.txt` 摘要、UCD/BD scope、rules、correction loop、69 inconsistency / 60.5 repair；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

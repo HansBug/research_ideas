@@ -8,7 +8,7 @@
 | 标题 | Automatic Debugging Support for UML Designs |
 | 年份 / venue | 2000 / AADEBUG / arXiv |
 | 当前角色 | 经典 statechart debugging 近邻 |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、synthesis/backward checking、statechart 定义、conflict detection、debugging statechart、implementation；独立全文阅读任务核验。
+`paper_content.txt` 摘要、synthesis/backward checking、statechart 定义、conflict detection、debugging statechart、implementation；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 

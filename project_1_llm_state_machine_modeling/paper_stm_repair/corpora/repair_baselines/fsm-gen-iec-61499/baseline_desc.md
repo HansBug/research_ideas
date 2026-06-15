@@ -8,7 +8,7 @@
 | 标题 | LLM-based iterative requirements refinement in FSM with IEC 61499 code generation |
 | 年份 / venue | 2025 / IEEE INDIN |
 | 当前角色 | 仿真/用户 refinement 近邻 |
-| 阅读来源 | 本地 `paper_content.txt` + 独立全文阅读任务结果 |
+| 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
 
@@ -27,7 +27,7 @@
 
 ## 4. 证据位置
 
-`paper_content.txt` 摘要、工作流、用户 correction + simulation、案例 refinement、未来形式化验证；独立全文阅读任务核验。
+`paper_content.txt` 摘要、工作流、用户 correction + simulation、案例 refinement、未来形式化验证；旁路核验材料复核。
 
 ## 5. 主要风险与使用边界
 
