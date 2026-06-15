@@ -101,8 +101,8 @@
 
 | 字段 | 状态 |
 |---|---|
-| PR | [#101](https://github.com/HansBug/research_ideas/pull/101) 下的 PR-S0 |
-| 当前阶段 | 空 PR / 合同冻结 / 待 body review |
+| PR | [#114](https://github.com/HansBug/research_ideas/pull/114) / [#101](https://github.com/HansBug/research_ideas/pull/101) 下的 PR-S0 |
+| 当前阶段 | 空 PR / 合同冻结 / body review 进行中 |
 | 上游导师讨论 | [PR #112](https://github.com/HansBug/research_ideas/pull/112) 已合入，正式导师讨论记录已归档 |
 | 真实 LLM | 未运行 |
 | 四个真实例子 | 不运行 |
@@ -127,6 +127,7 @@
 |---|---|---|
 | 2026-06-15 | `git status --short --branch`、`git log --oneline -5` | 通过，当前分支为 `paper2/s0-story-recalibration`。 |
 | 2026-06-15 | 已将 PR #112 合并到本伞 PR 分支，并将 PR #101 body 同步更新为包含 PR-S0-pre 已完成状态。 | 通过。 |
+| 2026-06-15 | PR #114 empty PR body 完成三路计划 review 并进入合同修正；计划阶段无 C/I 阻塞，但 task packet 与 outline/terminology 的精度需要进一步对齐。 | 进行中。 |
 
 ### Capability-use audit（PR-S0 预备）
 

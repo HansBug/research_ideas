@@ -6,6 +6,18 @@
 
 本 PR 的目标不是继续扩 baseline 搜索，也不是实现 agent runtime；它的目标是把 B0 已经击穿的宽泛自动化 story 收紧为 **researcher-guided, finding-oriented, auditable agentic SLR support workflow** 的论文主线，并把所有后续 PR-A2 / PR-A3 / PR-A5 / PR-A6 的前提条件重新冻结。
 
+## 1.1 本轮问题到落点文件的映射
+
+PR-S0 不是“再写一版讨论稿”，而是把上游已经确定的 story 分歧转成后续子 PR 可执行的阻塞合同。每个待回答问题都必须落到具体文件：
+
+| 待回答问题 | 主要落点 | 验收方式 |
+|---|---|---|
+| A0 中哪些 story / claim 被 B0 baseline 击穿或降级？ | [../../story/claim_evidence_map.md](../../story/claim_evidence_map.md)、[../../story/differential_novelty_matrix.md](../../story/differential_novelty_matrix.md) | 至少拆分“可保守主张 / 需实验支撑 / 禁止主张 / 依赖 snapshot 主张”，并明确对应证据来源或阻塞项。 |
+| 新 story 的一句话 thesis、任务边界和禁用旧 claim 是什么？ | [../../story/paper_story.md](../../story/paper_story.md) | thesis 必须同时包含 researcher-guided、finding-oriented、auditable evidence workflow 三个要素；禁止 firstness / 完整自动化 / PRISMA-compliant。 |
+| `meta-model`、`candidate finding`、`final finding`、`researcher audit` 的最小术语边界是什么？ | [../../story/terminology_policy.md](../../story/terminology_policy.md)、[../../story/paper_story.md](../../story/paper_story.md) | 必须写清 meta-model 由 researcher 基于 scaffold 实例化；candidate finding 不能直接升级为 final finding。 |
+| B0 D1--D7 结果如何映射到 novelty matrix？ | [../../story/differential_novelty_matrix.md](../../story/differential_novelty_matrix.md) | 必须正面对齐至少 `AgentSLR`、`LatteReview`、`EviSearch`、`LR-Robot`、`TrialMind`、`WSESE@ICSE 2025` 这 6 个 P0 强近邻，并说明 paper2 仍可成立的差异化不是“无人自动综述”，而是 meta-model 驱动、发现导向、可审计证据链。 |
+| A2/A3/A5/A6 需要新增或调整哪些 gate？ | [../../story/paper_outline.md](../../story/paper_outline.md)、[../../experiment_design/reviewer_risk_register.md](../../experiment_design/reviewer_risk_register.md)、[../progress.md](../progress.md) | 不用承诺本 PR 未来跑实验；但必须把后续实验 / schema / audit / reporting 义务登记为可追踪 blocker 或 downstream gate，并要求 outline 显式标注 PR #101 RQ1--RQ7 的对应评价维度。 |
+
 ## 2. 允许修改文件
 
 - `project_1_llm_state_machine_modeling/paper_agent_based_slr/README.md`
@@ -43,6 +55,14 @@
 - 不能把 PR #97 OPEN / 未合入资产写成 `main` fact。
 - 不能把 PR-S0 的任务扩展成完整 protocol / log schema / examples、survey-of-surveys 或 scaffold 目录落地；这些只可作为后续子 PR。
 - 不能运行真实 LLM；如后续真实运行必须 `source .env` 并保留 run record。
+
+## 5.1 术语与大纲更新强制项
+
+若本 PR 进入实现阶段，必须将下列事项视为硬门槛，而不是“必要时同步”：
+
+1. `story/terminology_policy.md` 必须新增 `meta-model`、`candidate finding`、`final finding`、`researcher audit` 的定义与误用防范。
+2. `story/paper_outline.md` 必须为每个 evaluation dimension 显式标注状态，并对照 PR #101 的 RQ1--RQ7 给出 downstream gate。
+3. `story/paper_story.md` 必须把 B0 已完成的 baseline 结论写进成熟度说明，避免继续使用“后续 A1 可能发现”这种过时口径。
 
 ## 6. 验证命令
 
