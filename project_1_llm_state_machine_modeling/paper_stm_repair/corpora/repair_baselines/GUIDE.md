@@ -29,7 +29,8 @@
 
 | 类别 | 收录口径 |
 |---|---|
-| 主 baseline 候选 | 明确存在 `<NL, STM_0> -> STM_k`，且 `STM_0` 可追溯为由同一 `NL` 生成 / 派生。 |
+| 路线近邻 / 条件对照 | 本库里最接近 `<NL, STM_0> -> STM_k` 主任务、且适合作为写作与汇报优先展开的条目。它**不**表示严格 baseline 已成立；若仍有关键条件待核，必须在 [SUMMARY.md](./SUMMARY.md) 中单独写出缺口，不能因“条件对照”四字自动升级。 |
+| 前驱 / 条件线索 | 与主任务存在方法史或任务史上的前后承接关系，但通常只提供生成前史、历史原型或术语线索，不直接满足 `<NL, STM_0> -> STM_k`。 |
 | 直接 STM 修正近邻 | 明确存在 `STM_0 -> STM_k`、state machine repair、statechart repair、transition completion、guard/action correction，但缺少 NL 或 `NL -> STM_0` 关系。 |
 | 模型制品补全 / 修复 | UML / SysML / Stateflow / IEC 61499 / behavioral model artifact 的 completion、refinement、consistency fixing。 |
 | 反馈驱动修复 | checker、verification、simulation、testing、diagnostic、counterexample、proof feedback 进入模型修正。 |
@@ -68,11 +69,11 @@
 
 | 字段 | 推荐取值 |
 |---|---|
-| 当前角色 | 严格 baseline / P0 条件 baseline 候选 / 生成链内 feedback / repair-engine 近邻 / 异构形式化近邻 / 模型一致性近邻 / 方法近邻 / negative evidence / 待核 |
+| 当前角色 | 严格 baseline / P0 路线近邻 / 条件对照 / 前驱 / 条件线索 / 生成链内 feedback / repair-engine 近邻 / 异构形式化近邻 / 模型一致性近邻 / 方法近邻 / negative evidence / 待核 |
 | NL 类型 | 需求文本 / 用例 / 场景 / 系统描述 / 无 NL / 合成需求 / 待核 |
 | STM 类型 | FSM / DFSM / HSM / EFSM / UML statechart / SysML SMD / IEC 61499 ECC / Stateflow / Timed automata / CSP# / Event-B / BPMN / 非目标 |
 | feedback 类型 | 语法 / 结构 / 语义 / 需求一致性 / 仿真 / 测试 / 模型检查 / 反例 / 证明 / 用户反馈 / oracle / 无 |
-| 使用方式 | 主 baseline 候选 / 条件对照 / 消融参考 / related work / 转换压力 / negative sentinel / manual queue / 排除 |
+| 使用方式 | 路线近邻 / 条件对照 / 前驱线索 / 消融参考 / related work / 转换压力 / negative sentinel / manual queue / 排除 |
 
 ## 5. 资源可获取性规则
 
