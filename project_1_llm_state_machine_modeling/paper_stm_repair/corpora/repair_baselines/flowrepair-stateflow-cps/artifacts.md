@@ -23,4 +23,4 @@
 - 需下载并检查 Zenodo replication package，确认是否包含 faulty Stateflow models、passing/failing tests、oracles、patch archives 与 evaluation scripts。
 - 需确认 GitHub 仓库当前是否可访问、license 是否允许研究复现、是否能对应论文使用的 Zenodo specific version。
 - 复现依赖 MATLAB 2022b、Simulink、Stateflow、Windows 10 等商业 / 平台环境；这会影响本文后续是否能把它作为实验 baseline。
-- FlowRepair 不接收 NL，也不输出通用文本 STM；若用于本文，只能经转换层或作为 mechanism baseline，而不能直接与 pyfcstm textual repair loop 比公平结果。
+- FlowRepair 不接收 NL，也不输出通用文本 STM；若用于本文，只能经转换层作为 repair-engine / mechanism 近邻，而不能直接与 pyfcstm textual repair loop 比公平结果。

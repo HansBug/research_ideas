@@ -7,7 +7,7 @@
 | baseline_id | `execution-partial-state-machine-models` |
 | 标题 | Execution of Partial State Machine Models |
 | 年份 / venue | 2022 / IEEE Transactions on Software Engineering；arXiv 2021 |
-| 当前角色 | partial STM refinement / execution 条件 baseline |
+| 当前角色 | partial STM refinement / execution 近邻 |
 | 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
@@ -23,7 +23,7 @@
 
 ## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
 
-这是 `STM_0 -> executable / refined STM` 的强条件近邻：它不含 NL，也不做 LLM 修复，但直接处理 partial state machine，并把不可执行 / 不完整状态机转成可执行、可调试、可由输入规则继续推进的 refined HSM。它适合支撑本文的一个关键边界：已有 MDE 工作已经能对 partial STM 做语义保持的 refinement / execution support，但并未解决 `<NL, STM_0>` 语义诊断、需求一致性与无人化 LLM repair loop。
+这是 `STM_0 -> executable / refined STM` 的强近邻：它不含 NL，也不做 LLM 修复，但直接处理 partial state machine，并把不可执行 / 不完整状态机转成可执行、可调试、可由输入规则继续推进的 refined HSM。它适合支撑本文的一个关键边界：已有 MDE 工作已经能对 partial STM 做语义保持的 refinement / execution support，但并未解决 `<NL, STM_0>` 语义诊断、需求一致性与无人化 LLM repair loop。
 
 ## 4. 证据位置
 
@@ -39,7 +39,7 @@
 
 ## 5. 主要风险与使用边界
 
-- 无 NL 输入，不能作为 `<NL, STM_0> -> STM_k` 的完整 direct baseline；更适合作为 `STM_0 -> executable/refined STM` 条件 baseline。
+- 无 NL 输入，也没有 `NL -> STM_0` 关系，不能作为 `<NL, STM_0> -> STM_k` baseline；更适合作为 `STM_0 -> executable/refined STM` 的 repair-engine / execution-semantics 近邻。
 - refinement 的目标是使 partial model 可执行 / 可调试，不是基于需求语义或形式化性质自动修复模型错误。
 - 缺失信息仍由用户交互或 batch script 补充；不属于无人化 repair loop。
 - 目标语言是 UML-RT / Papyrus-RT HSM，迁移到本文目标 STM DSL 需要转换和语义裁剪。

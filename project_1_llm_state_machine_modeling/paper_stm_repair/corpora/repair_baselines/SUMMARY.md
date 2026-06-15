@@ -2,21 +2,25 @@
 
 ## 0. 论文集整体概况
 
-本目录服务于第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线，记录 STM 修正任务 baseline 与近邻工作。当前阶段性结论是：**完全同构的 `<NL, STM_0> -> STM_k` 自动 repair baseline 很少；更稳妥的学术定位是分层比较 direct/conditional baseline、生成链内 feedback、异构形式化 repair、模型一致性/补全近邻与 negative evidence**。
+本目录服务于第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线，记录 STM 修正任务 baseline 与近邻工作。当前按更严格的实验 baseline 硬定义重新收紧：**真正 baseline 必须同时满足输入含 `NL` 与 `STM_0`，且 `STM_0` 能明确追溯为由同一 `NL` 生成 / 派生；仅有 `STM + error / tests / oracle / diagnostics` 的工作不能称为本文 baseline。**
+
+阶段性结论因此改为：**当前 14 个入库条目中，严格全绿 baseline 尚未确认；`completion-sysml-gwt` 是唯一 P0 条件 baseline 候选，其余条目应降级为 generation-feedback、repair-engine near-neighbor、异构形式化近邻、模型一致性 / completion 近邻或 negative evidence。**
 
 | 指标 | 当前值 |
 |---|---:|
 | 已建单篇目录 | 14 |
 | 已完成全文阅读 / 旁路核验条目 | 14 |
-| 直接 / 强条件 baseline | 4 + 1 precursor |
-| 生成链内 feedback / refinement 近邻 | 3 |
+| 严格全绿 baseline | 0（当前证据尚未确认） |
+| P0 条件 baseline 候选 | 1（`completion-sysml-gwt`） |
+| 生成链内 feedback / refinement 近邻 | 4（含 `designing-fsm-gpt4-repair`） |
+| repair-engine / partial-STM 近邻 | 2 |
 | 异构形式化 repair 强近邻 | 2 |
 | 模型一致性 / 补全 / diagnostics 近邻 | 4 |
 | 人工下载 / 待全文队列 | 10 条 |
 
 > 注：本目录不替代 [../seed_library/](../seed_library/)；`designing-fsm-gpt4`、`ttool-ai`、`llms-emp`、`fsm-gen-iec-61499` 等若同时具备 seed 与 repair/feedback 线索，必须按“seed 关系”和“repair 能力”分开记录。
-> 注：`towards-automatic-model-completion` 与 `completion-sysml-gwt` 属同一 SysML/GWT completion 簇的早期版本 / precursor，因此只作交叉登记，不把它计为独立 direct baseline。
-> 注：`flowrepair-stateflow-cps` 已从人工队列升级为 Stateflow / CPS controller repair 强条件 baseline；它不含 NL、依赖 Simulink/Stateflow 与仿真 oracle，不能直接写成本文完整同构 baseline。
+> 注：`completion-sysml-gwt` 明确使用 GWT/Gherkin 需求 + partial SysML state machine 并补全 transitions，是当前唯一进入主 baseline 候选的 P0 条目；但其 `STM_0` / partial SMD 是否严格由同一组 NL 生成仍需二次核验，因此暂列“条件 baseline 候选”。
+> 注：`flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、`designing-fsm-gpt4-repair` 等虽有强 repair / refinement 机制，但不满足“repair 输入同时含 NL 与由该 NL 生成的 STM_0”的硬门槛，不能写成本文 baseline。
 
 ## 1. emoji / enum 标准
 
@@ -24,13 +28,15 @@
 
 | 维度 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
 |---|---|---|---|---|---|---|
-| 修正任务匹配 | 明确同构 `STM_0 -> STM_k` repair / completion | 模型制品 repair，可较清楚映射到 STM | 局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
+| NL 参与 | repair 输入同时含 NL 与 STM | 初始生成阶段含 NL，repair 阶段主要看模型 | 有 NL 但与 repair 输入关系弱，或仅作背景 | 与 NL/STM 无关 | 待核 | 不适用 |
+| `STM_0` 输入 | repair / completion 输入明确包含初始 STM 或 partial STM | 有初始模型制品，但是否为 STM 或 repair 输入需重建 | 只有非 STM 模型制品或弱初始制品 | 无初始 STM / 模型输入 | 待核 | 不适用 |
+| `NL -> STM_0` 关系 | `STM_0` 明确由同一 NL 生成 / 派生，且作为 repair 输入 | NL 与 `STM_0` 有强 trace / 补全关系，但骨架或生成过程需人工重建 | 只有 NL 或只有 STM，或二者关系弱 | 无 `NL -> STM_0` 关系 | 待核 | 不适用 |
+| 修正任务匹配 | 明确同构 `<NL, STM_0> -> STM_k` repair / completion | `STM_0 -> STM_k` 或模型制品 repair，可较清楚映射到 STM | 局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
 | STM 谱系匹配 | T0+FSM/HSM/EFSM/statechart 明确 | UML/SysML/Stateflow/IEC 61499 等可转换模型 | 状态机边界弱或需大量转换 | 非目标形式主义 / 非模型制品 | 待核 | 不适用 |
-| NL 参与 | repair 输入同时含 NL 与 STM | 初始生成阶段含 NL，repair 阶段主要看模型 | 无 NL，但 repair 机制重要 | 与 NL/STM 无关 | 待核 | 不适用 |
 | 反馈来源 | 结构化 diagnostics / verification / simulation / counterexample / proof | rule / test / consistency feedback | 人工审阅、弱反馈或非结构化反馈 | 无反馈 | 待核 | 不适用 |
 | 自动化程度 | 无人化自动闭环 | 半自动，少量人工配置或选择 | 人在回路强依赖 | 手工方法 | 待核 | 不适用 |
 | LLM / agent loop | 明确 LLM agentic repair loop | LLM self-refine / feedback regeneration | LLM 只做局部建议或前处理 | 无 LLM | 待核 | 不适用 |
-| 可作为 baseline | 代码 / 数据 / 输入输出 / 许可基本可复验 | 可论文级重建或部分复现 | 只能概念对照 | 不可作为 baseline | 待核 | 不适用 |
+| 可作为 baseline | 满足硬定义且代码 / 数据 / 输入输出 / 许可基本可复验 | 满足主要任务结构但存在条件缺口，可论文级重建或部分复现 | 只能概念对照或 related work | 不可作为 baseline | 待核 | 不适用 |
 | 资源可获取性 | 论文、代码、数据、输入输出、许可、版本清楚 | 关键资源部分公开 | 只能从论文图表 / 附录重建 | 关键资源不可得 | 待核 | 不适用 |
 
 ## 2. 检索覆盖表
@@ -42,7 +48,7 @@
 | `W-LOCAL` | 2026-06-15 | 本地 `baselines/`、[../seed_library/](../seed_library/)、`evidence/` | `repair / feedback / completion / checker / counterexample / simulation` 交叉核验 | 20+ | 12 | 12 | 0 | 0 | 0 | 识别 seed+repair 分段共存与旧 baseline repair slice |
 | `W-SE` | 2026-06-15 | SE / Modeling / Requirements venue 与本地候选 | state machine / UML / SysML + repair / completion / consistency | 20 | 9 | 4 | 3 | 1 | 1 | SoSyM、ICSE、ASE、EASE、SANER 等候选；已补入 `execution-partial-state-machine-models` |
 | `W-FM` | 2026-06-15 | FM / CAV / TACAS / TAP / STTT / FMSD | timed automata / model checking / counterexample + repair | 15+ | 9 | 3 | 4 | 2 | 0 | PAT/Event-B 已入库；timed automata repair 簇待全文后再决定是否升级 |
-| `W-ME` | 2026-06-15 | Maintenance / Evolution / empirical / quality | model consistency / model completion / model evolution | 10+ | 11 | 2 | 6 | 3 | 0 | LLM model evolution、model completion、inconsistency repair 多为条件 baseline 或待核 |
+| `W-ME` | 2026-06-15 | Maintenance / Evolution / empirical / quality | model consistency / model completion / model evolution | 10+ | 11 | 2 | 6 | 3 | 0 | LLM model evolution、model completion、inconsistency repair 多为 near-neighbor 或待核 |
 | `W-ARXIV` | 2026-06-15 | arXiv 近三年 + OpenAlex / Crossref 辅助 | LLM state machine repair、Simulink-Stateflow repair、model completion LLM | 76 | 9 | 5 | 1 | 1 | 2 | 噪声很高；`flowrepair-stateflow-cps` 已全文入库，仍保留 formal spec repair / model completion 待核 |
 
 ## 2.1 候选池 / 筛查账
@@ -53,7 +59,7 @@
 |---|---:|---|---|---|---|---|---|
 | Completion of SysML state machines from Given-When-Then requirements | 2024 | W-SE / W-LOCAL | SoSyM | P0 | 入库：`completion-sysml-gwt` | direct completion；但依赖 GWT + partial SysML | [DOI](https://doi.org/10.1007/s10270-024-01228-3) |
 | Towards Automatic Model Completion | 2022 | W-SE / W-LOCAL | arXiv | P1 | 入库：`towards-automatic-model-completion` | 同簇 precursor，不重复计数 | [arXiv](https://arxiv.org/abs/2210.03388) |
-| Execution of Partial State Machine Models | 2022 | W-SE | TSE / arXiv | P0/P1 | 入库：`execution-partial-state-machine-models` | 无 NL；作为 `STM_0 -> executable/refined STM` 条件 baseline | [DOI](https://doi.org/10.1109/TSE.2020.3008850) / [arXiv](https://arxiv.org/abs/2103.17194) |
+| Execution of Partial State Machine Models | 2022 | W-SE | TSE / arXiv | P0/P1 | 入库：`execution-partial-state-machine-models` | 无 NL，也无 `NL -> STM_0` 关系；只能作为 `STM_0 -> executable/refined STM` 近邻 | [DOI](https://doi.org/10.1109/TSE.2020.3008850) / [arXiv](https://arxiv.org/abs/2103.17194) |
 | Designing FSMs Specifications from Requirements with GPT 4.0 | 2026 | W-LOCAL / W-ARXIV | arXiv | P0/P1 | 入库：`designing-fsm-gpt4-repair` | seed + repair 分段共存；只登记 repair slice | [arXiv](https://arxiv.org/abs/2603.29140) |
 | System Architects Are not Alone Anymore | 2024 | W-LOCAL | MODELSWARD | P1 | 入库：`ttool-ai-feedback` | 生成链内 feedback，非独立 repair-only 方法 | [HAL](https://telecom-paris.hal.science/hal-04483279) |
 | Generating SysML Behavior Models via LLMs | 2025 | W-LOCAL | MODELSWARD / ACM | P1 | 入库：`llms-emp-feedback` | 只取 STM 子集；checking 含人工 | [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926) |
@@ -88,49 +94,50 @@
 
 ### 3.1 当前推荐关键词簇
 
-- `state machine repair` / `statechart repair` / `SysML state machine completion` / `UML state machine repair`。
-- `model completion` / `model repair` / `model consistency fixing` + `UML` / `SysML` / `Stateflow`。
-- `counterexample-guided repair` / `verification-guided repair` / `simulation-guided repair` / `proof-guided repair`。
-- `LLM model repair` / `LLM model completion` / `agentic repair formal model`。
+- `requirements-derived state machine repair` / `generated state machine repair requirements` / `natural language requirements state machine refinement`。
+- `Given-When-Then state machine completion` / `Gherkin SysML state machine completion` / `requirements traceability state machine repair`。
+- `SysML state machine requirements completion` / `UML state machine requirements repair` / `statechart requirements consistency repair`。
+- `LLM state machine repair requirements` / `NL2FSM repair` / `counterexample requirements state machine repair`。
 
 ### 3.2 高命中特征
 
-- `partial SysML state machine + GWT requirements` 是最贴近本论文 repair/completion 任务的 direct cluster。
-- `Stateflow / Simulink + simulation-based repair` 能形成强条件 baseline，但通常不含 NL，且依赖仿真 oracle。
-- `generation pipeline + checker feedback` 常见于 LLM4Modeling 工作，适合作为 feedback-regeneration 近邻。
-- `PAT/Event-B/timed automata` 不是 STM family，但 checker / counterexample / proof feedback 的方法学价值高。
-- UML multi-view inconsistency repair 能提供 repair action、recommendation、repair tree 等经典背景。
+- `partial SysML state machine + GWT requirements` 是目前唯一接近 `<NL, STM_0> -> STM_k` 的主 baseline cluster。
+- 最有价值的新检索方向不是泛化 `state machine repair`，而是先确认 `NL -> STM_0` 生成 / 派生关系，再检查是否有 repair / completion / refinement。
+- `generation pipeline + checker feedback` 常见于 LLM4Modeling 工作，适合作为 feedback-regeneration 近邻，但只有当 repair 输入保留 NL 与 `STM_0` 时才可能升级为 baseline。
+- `Stateflow / Simulink + simulation-based repair`、`PAT/Event-B/timed automata` 的方法学价值高，但通常缺少 NL 或超出 STM family，只能作为 near-neighbor。
 
 ### 3.3 低命中特征 / 易误收模式
 
 - 单纯 `model repair` 会大量命中 CAD、ML model、program repair、data repair 等非目标对象。
-- 单纯 `state machine` 会命中 protocol FSM、automata learning、runtime workflow FSM，不一定是控制系统 STM。
+- 单纯 `state machine repair` 会命中 `STM + tests / oracle / error`，若没有 NL 与 `NL -> STM_0` 关系，不能作为本文 baseline。
 - arXiv `LLM repair` 噪声极高，多为 program/code/math/citation repair。
-- BPMN / process model 与 STM 语义不同，只能作方法近邻，不能升级为 direct baseline。
+- BPMN / process model、Event-B / CSP#、timed automata 与 STM 语义不同，只能作方法近邻，不能升级为同构 baseline。
 
 ## 4. 最终结论类型
 
 | 类型 | 定义 | 代表 |
 |---|---|---|
-| 直接 / 强条件 baseline | 明确以已有状态机或 partial state machine 为输入，输出补全或修正后的 state machine；或 repair slice 可以清楚切出。 | `completion-sysml-gwt`、`designing-fsm-gpt4-repair`、`execution-partial-state-machine-models`、`flowrepair-stateflow-cps`；`towards-automatic-model-completion` 为同簇 precursor，不重复计数 |
-| 生成链内 feedback baseline | `NL -> STM` 生成 pipeline 内含检查、错误反馈、再生成或 refinement，但不是独立 `STM_0 -> STM_k` repair 方法。 | `ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` |
+| 严格全绿 baseline | 明确满足 `<NL, STM_0> -> STM_k`，输入同时含 NL 与 `STM_0`，且 `STM_0` 明确由同一 NL 生成 / 派生；资源足以支撑可复验对照。 | 当前未确认 |
+| P0 条件 baseline 候选 | 最接近硬定义，但至少一个关键条件仍需二次核验或资源不完整。 | `completion-sysml-gwt` |
+| 生成链内 feedback / refinement 近邻 | `NL -> STM` 生成 pipeline 内含检查、错误反馈、再生成或 refinement，但不是独立 `<NL, STM_0> -> STM_k` repair baseline。 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` |
+| repair-engine / partial-STM 近邻 | repair / completion / refinement 机制较强，但输入不含 NL 或缺少 `NL -> STM_0` 关系。 | `execution-partial-state-machine-models`、`flowrepair-stateflow-cps` |
 | 异构形式化 repair 强近邻 | 目标工件不是本论文 STM family，但具备形式化 checker / prover / counterexample / proof feedback repair loop。 | `pat-agent`、`event-b-agent`、timed automata repair 簇 |
-| 模型一致性 / 补全近邻 | repair 对象是 UML/SysML/BPMN/class/activity 等模型制品，提供 consistency / completion / diagnostics 维度。 | `automatic-debugging-support-uml-designs`、`ai-driven-consistency-sysml`、`few-shot-model-completion`、`automated-bpmn-diagnostic-repair` |
-| negative evidence | 标题或关键词相似，但对象、任务或资源不满足本论文 repair baseline 要求。 | 纯 `NL -> STM` seed、program repair、protocol FSM、DL model repair |
+| 模型一致性 / 补全近邻 | repair 对象是 UML/SysML/BPMN/class/activity 等模型制品，提供 consistency / completion / diagnostics 维度，但不满足本文 baseline 硬门槛。 | `automatic-debugging-support-uml-designs`、`ai-driven-consistency-sysml`、`few-shot-model-completion`、`automated-bpmn-diagnostic-repair` |
+| negative evidence | 标题或关键词相似，但对象、任务或资源不满足本论文 repair baseline 要求。 | 纯 `NL -> STM` seed、`STM + error/tests` 无 NL、program repair、protocol FSM、DL model repair |
 
 ## 5. 首批入库条目索引
 
 | ID | 目录 | 标题 | 年份 | 当前角色 | 交叉链接 |
 |---|---|---|---:|---|---|
-| `completion-sysml-gwt` | [completion-sysml-gwt/](./completion-sysml-gwt/) | Completion of SysML state machines from Given-When-Then requirements | 2024 | 直接/强条件 baseline | seed 文库中按 repair-only 边界记录：[../seed_library/completion-sysml-gwt/](../seed_library/completion-sysml-gwt/) |
-| `towards-automatic-model-completion` | [towards-automatic-model-completion/](./towards-automatic-model-completion/) | Towards Automatic Model Completion | 2022 | precursor | [../seed_library/towards-automatic-model-completion/](../seed_library/towards-automatic-model-completion/) |
-| `designing-fsm-gpt4-repair` | [designing-fsm-gpt4-repair/](./designing-fsm-gpt4-repair/) | Designing FSMs Specifications from Requirements with GPT 4.0 | 2026 | repair slice | seed 部分在 [../seed_library/designing-fsm-gpt4/](../seed_library/designing-fsm-gpt4/) |
-| `ttool-ai-feedback` | [ttool-ai-feedback/](./ttool-ai-feedback/) | System Architects Are not Alone Anymore | 2024 | feedback-regeneration | seed/SMD 部分在 [../seed_library/ttool-ai-smd-subset/](../seed_library/ttool-ai-smd-subset/) |
+| `completion-sysml-gwt` | [completion-sysml-gwt/](./completion-sysml-gwt/) | Completion of SysML state machines from Given-When-Then requirements | 2024 | P0 条件 baseline 候选 | seed 文库中按 repair-only 边界记录：[../seed_library/completion-sysml-gwt/](../seed_library/completion-sysml-gwt/) |
+| `towards-automatic-model-completion` | [towards-automatic-model-completion/](./towards-automatic-model-completion/) | Towards Automatic Model Completion | 2022 | precursor / 条件线索 | [../seed_library/towards-automatic-model-completion/](../seed_library/towards-automatic-model-completion/) |
+| `designing-fsm-gpt4-repair` | [designing-fsm-gpt4-repair/](./designing-fsm-gpt4-repair/) | Designing FSMs Specifications from Requirements with GPT 4.0 | 2026 | 生成链内 repair slice | seed 部分在 [../seed_library/designing-fsm-gpt4/](../seed_library/designing-fsm-gpt4/) |
+| `ttool-ai-feedback` | [ttool-ai-feedback/](./ttool-ai-feedback/) | System Architects Are not Alone Anymore | 2024 | 生成链内 feedback-regeneration | seed/SMD 部分在 [../seed_library/ttool-ai-smd-subset/](../seed_library/ttool-ai-smd-subset/) |
 | `llms-emp-feedback` | [llms-emp-feedback/](./llms-emp-feedback/) | Generating SysML Behavior Models via LLMs | 2025 | STM 子集 feedback-regeneration | seed/STM 部分在 [../seed_library/llms-emp-stm-subset/](../seed_library/llms-emp-stm-subset/) |
 | `fsm-gen-iec-61499` | [fsm-gen-iec-61499/](./fsm-gen-iec-61499/) | LLM-based iterative requirements refinement in FSM with IEC 61499 code generation | 2025 | 仿真/用户 refinement 近邻 | seed 线索在 [../seed_library/fsm-gen-iec-61499/](../seed_library/fsm-gen-iec-61499/) |
-| `execution-partial-state-machine-models` | [execution-partial-state-machine-models/](./execution-partial-state-machine-models/) | Execution of Partial State Machine Models | 2022 | partial STM refinement / execution 条件 baseline | 无 seed 交叉；无 NL 输入，作为 `STM_0 -> executable/refined STM` 近邻 |
-| `flowrepair-stateflow-cps` | [flowrepair-stateflow-cps/](./flowrepair-stateflow-cps/) | FlowRepair: Search-based automated program repair of CPS controllers modeled in Simulink-Stateflow | 2026 | Stateflow repair 强条件 baseline | 无 seed 交叉；无 NL 输入，作为 `Stateflow STM_0 -> patched Stateflow` 近邻 |
-| `automatic-debugging-support-uml-designs` | [automatic-debugging-support-uml-designs/](./automatic-debugging-support-uml-designs/) | Automatic Debugging Support for UML Designs | 2000 | 经典 statechart debugging | project baseline 来源：[../../../baselines/automatic-debugging-support-for-uml-designs/](../../../baselines/automatic-debugging-support-for-uml-designs/) |
+| `execution-partial-state-machine-models` | [execution-partial-state-machine-models/](./execution-partial-state-machine-models/) | Execution of Partial State Machine Models | 2022 | partial STM refinement / execution 近邻 | 无 seed 交叉；无 NL 输入，作为 `STM_0 -> executable/refined STM` 近邻 |
+| `flowrepair-stateflow-cps` | [flowrepair-stateflow-cps/](./flowrepair-stateflow-cps/) | FlowRepair: Search-based automated program repair of CPS controllers modeled in Simulink-Stateflow | 2026 | Stateflow repair-engine 近邻 | 无 seed 交叉；无 NL 输入，作为 `Stateflow STM_0 -> patched Stateflow` 近邻 |
+| `automatic-debugging-support-uml-designs` | [automatic-debugging-support-uml-designs/](./automatic-debugging-support-uml-designs/) | Automatic Debugging Support for UML Designs | 2000 | 经典 statechart debugging 近邻 | project baseline 来源：[../../../baselines/automatic-debugging-support-for-uml-designs/](../../../baselines/automatic-debugging-support-for-uml-designs/) |
 | `pat-agent` | [pat-agent/](./pat-agent/) | PAT-Agent: Autoformalization for Model Checking | 2025 | 异构形式化 repair 强近邻 | project baseline 来源：[../../../baselines/pat-agent-autoformalization-model-checking/](../../../baselines/pat-agent-autoformalization-model-checking/) |
 | `event-b-agent` | [event-b-agent/](./event-b-agent/) | Event-B Agent | 2026 | 异构 formal-state repair 强近邻 | project baseline 来源：[../../../baselines/event-b-agent/](../../../baselines/event-b-agent/) |
 | `ai-driven-consistency-sysml` | [ai-driven-consistency-sysml/](./ai-driven-consistency-sysml/) | AI-Driven Consistency of SysML Diagrams | 2024 | SysML consistency repair 近邻 | project baseline 来源：[../../../baselines/ai-driven-consistency-sysml-diagrams/](../../../baselines/ai-driven-consistency-sysml-diagrams/) |
@@ -139,22 +146,24 @@
 
 ## 6. 多维 baseline / related work 总表
 
-| ID | 年份 | NL类型 | STM / 模型类型 | 修正输入 | 修正输出 | repair / feedback 方法 | 反馈来源 | 自动化 | LLM | Agent | 反馈 | 修正 | 谱系 | baseline | 资源 | 当前角色 | 主要风险 |
-|---|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `completion-sysml-gwt` | 2024 | GWT 需求 | SysML SMD | GWT + partial SysML model / states | completed SMD transitions | MetaReq / MetaFragment / refinement rules | rule / feasibility / analyst | 半自动 | 前处理 | 否 | 🟡 | 🟢 | 🟢 | 🟡 | 🟠 | 直接/强条件 | 依赖结构化 GWT 和预置模型；无公开机读数据包 |
-| `towards-automatic-model-completion` | 2022 | BDD/GWT | SysML SMD | GWT + partial architecture / states | SMD fragments | ClauseExtractor + AST + completion rules | modeller check | 概念半自动 | 否 | 否 | 🟠 | 🟢 | 🟢 | 🟠 | 🟠 | precursor | 早期构想；工具链未落地 |
-| `designing-fsm-gpt4-repair` | 2026 | 合成 DFSM 描述 | CSV DFSM / Mealy | generated DFSM + oracle / trace / fault model | repaired DFSM | oracle diff、distinguishing/checking sequence、mutation repair | oracle / expert / trace | 半自动 | GPT-4/4o | 否 | 🟢 | 🟢 | 🟢 | 🟡 | 🟠 | repair slice | 合成数据、oracle 依赖、语义弱 |
-| `ttool-ai-feedback` | 2024 | 系统规范 | SysML/TTool SMD | generated SysML/TTool model + errors | regenerated model | TTool-AI feedback loop | JSON/syntax/constraint | 自动为主 | GPT-3.5 | 否 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 生成链内 feedback | 反馈偏语法/约束；复现依赖 TTool/OpenAI |
-| `llms-emp-feedback` | 2025 | behavior requirements | SysML/PlantUML STM | generated model + Error(E) | regenerated behavior model | Phase-II checking feedback regeneration | format/grammar/semantic/requirements | 半自动 | 多模型 | 否 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | STM 子集 feedback | checking 含人工；需只取 STM 子集 |
-| `fsm-gen-iec-61499` | 2025 | 控制需求 | FSM / IEC 61499 ECC | FSM + user request + simulation observation | refined FSM / FB | NL refinement + simulation validation | user/simulation | 人在回路 | 未明确 | 否 | 🟠 | 🟡 | 🟢 | 🟠 | 🔴 | 仿真/用户 refinement | 代码/数据未公开；非无人闭环 |
-| `automatic-debugging-support-uml-designs` | 2000 | 无直接 NL | UML Statecharts | statecharts + annotated SD/domain theory | conflict explanations / patch search | backward consistency debugging | logical conflict/unification | 半自动 | 无 | 否 | 🟡 | 🟡 | 🟡 | 🟠 | 🔴 | 经典 debugging | 输入不是 NL；工具不可复现 |
-| `execution-partial-state-machine-models` | 2022 | 无 | UML-RT HSM / partial state machine | partial UML-RT model + completeness setting | refined executable HSM + decision points / execution rules | static analysis + automatic refinement + input-driven execution | semantics diagnostics / stuck config / reachability | 自动 + 交互/脚本输入 | 无 | 否 | 🟢 | 🟡 | 🟢 | 🟡 | 🟡 | partial STM refinement | 无 NL；目标是可执行/调试而非需求语义 repair |
-| `flowrepair-stateflow-cps` | 2026 | 无 | Simulink/Stateflow | buggy Stateflow model + tests/oracle + SBFL ranking | plausible / partial patches | SBFL/Tarantula + global/local search + 15 mutation operators | simulation / oracle / repair objectives | 自动生成 + 人工确认 valid patch | 无 | 否 | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | Stateflow repair 强条件 | 无 NL；依赖 MATLAB/Simulink/Stateflow 与仿真 oracle，plausible patch 需人工验证 |
-| `pat-agent` | 2025 | 系统描述 + properties | PAT/CSP# | generated CSP# + failed property | repaired CSP# | model checking counterexample repair | counterexample | 自动 | o3-mini / Claude / DeepSeek | 是 | 🟢 | 🟡 | 🔴 | 🟠 | 🟡 | 异构形式化近邻 | 非 STM family；额外 property supervision |
-| `event-b-agent` | 2026 | requirements | Event-B | Event-B model/proof + failures | repaired/refined Event-B | ProB/Rodin/proof-guided repair | proof / counterexample | 自动 | GPT-5 | 是 | 🟢 | 🟡 | 🔴 | 🟠 | 🟢 | 异构 formal-state 近邻 | 非 STM family；运行成本高 |
-| `ai-driven-consistency-sysml` | 2024 | system specification | SysML UCD/BD | inconsistent UCD/BD | corrected UCD/BD | rules + LLM inconsistency correction | consistency rules / TTool / user | 半自动 | OpenAI GPT | 否 | 🟡 | 🟠 | 🟠 | 🟠 | 🟡 | consistency 近邻 | 实验主体不是 SMD |
-| `few-shot-model-completion` | 2023 | 无 | class/activity diagram | partial model | suggested model elements | few-shot sequence completion | 无 formal feedback | 部分自动 | GPT-3 | 否 | 🔴 | 🟠 | 🔴 | 🟠 | 🟡 | 弱近邻 | activity/class 不是 STM，无 repair loop |
-| `automated-bpmn-diagnostic-repair` | 2026 | process description | BPMN XML | non-compliant BPMN | repaired BPMN | SpiffWorkflow diagnostics + LLM localized repair | execution diagnostics | 自动为主 | GPT-4o / Gemini | 否 | 🟢 | 🟠 | 🔴 | 🟠 | 🟠 | 方法近邻 | BPMN 非 STM，数据/代码未公开 |
+本表把硬门槛拆开显示，避免把“强 repair 机制”误读成“本文 baseline”。其中 `NL -> STM_0` 是新增核心维度：若该列为 🔴，即使 repair 很强，也不能写成本文 `<NL, STM_0> -> STM_k` baseline。
+
+| ID | 年份 | NL类型 | STM / 模型类型 | 修正输入 | 修正输出 | 方法 | feedback类型 | NL | STM0 | NL->STM0 | 修正 | 谱系 | 反馈 | 自动化 | LLM/Agent | baseline | 资源 | 当前角色 | 使用方式 | 主要风险 |
+|---|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `completion-sysml-gwt` | 2024 | GWT 需求 | SysML SMD | GWT + partial SysML model / states | completed SMD transitions | MetaReq / MetaFragment / refinement rules | rule / feasibility / analyst | 🟢 | 🟢 | 🟡 | 🟢 | 🟢 | 🟡 | 🟡 | 🟠 | 🟡 | 🟠 | P0 条件 baseline 候选 | 主 baseline 候选 | partial SMD / states 是否严格由同一 NL 生成仍需二次核验；无公开机读数据包 |
+| `towards-automatic-model-completion` | 2022 | BDD/GWT | SysML SMD | GWT + partial architecture / states | SMD fragments | ClauseExtractor + AST + completion rules | modeller check | 🟢 | 🟢 | 🟡 | 🟡 | 🟢 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | precursor / 条件线索 | related / 历史线索 | 早期构想，工具链未落地；不独立计 baseline |
+| `designing-fsm-gpt4-repair` | 2026 | 合成 DFSM 描述 | CSV DFSM / Mealy | generated DFSM + oracle / trace / fault model | repaired DFSM | oracle diff、distinguishing/checking sequence、mutation repair | oracle / expert / trace | 🟡 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟠 | 🟠 | 🟠 | 生成链内 repair slice | feedback / repair 近邻 | repair 阶段主要是 STM + oracle/trace，不是 `<NL, STM_0>` 输入；合成数据、oracle 依赖 |
+| `ttool-ai-feedback` | 2024 | 系统规范 | SysML/TTool SMD | generated SysML/TTool model + errors | regenerated model | TTool-AI feedback loop | JSON/syntax/constraint | 🟡 | 🟢 | 🟢 | 🟠 | 🟡 | 🟡 | 🟢 | 🟡 | 🟠 | 🟡 | 生成链内 feedback | related / 消融参考 | 反馈偏语法/约束；不是独立 repair task；复现依赖 TTool/OpenAI |
+| `llms-emp-feedback` | 2025 | behavior requirements | SysML/PlantUML STM | generated model + Error(E) | regenerated behavior model | Phase-II checking feedback regeneration | format/grammar/semantic/requirements | 🟡 | 🟢 | 🟢 | 🟠 | 🟡 | 🟡 | 🟡 | 🟡 | 🟠 | 🟡 | STM 子集 feedback | related / 消融参考 | checking 含人工；需只取 STM 子集；不是独立 `<NL, STM_0>` baseline |
+| `fsm-gen-iec-61499` | 2025 | 控制需求 + 用户 refinement | FSM / IEC 61499 ECC | FSM + user request + simulation observation | refined FSM / FB | NL refinement + simulation validation | user/simulation | 🟢 | 🟢 | 🟡 | 🟠 | 🟢 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 仿真/用户 refinement 近邻 | related / 工业动机 | 人在回路强；代码/数据未公开；非无人闭环 |
+| `automatic-debugging-support-uml-designs` | 2000 | 无直接 NL | UML Statecharts | statecharts + annotated SD/domain theory | conflict explanations / patch search | backward consistency debugging | logical conflict/unification | 🔴 | 🟢 | 🔴 | 🟠 | 🟢 | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | 经典 debugging 近邻 | related / 历史背景 | 输入不是 NL；工具不可复现；更像 debug/explanation |
+| `execution-partial-state-machine-models` | 2022 | 无 | UML-RT HSM / partial state machine | partial UML-RT model + completeness setting | refined executable HSM + decision points / execution rules | static analysis + automatic refinement + input-driven execution | semantics diagnostics / stuck config / reachability | 🔴 | 🟢 | 🔴 | 🟡 | 🟢 | 🟢 | 🟡 | 🔴 | 🔴 | 🟡 | partial STM refinement 近邻 | related / 执行语义参考 | 无 NL；目标是可执行/调试而非需求语义 repair |
+| `flowrepair-stateflow-cps` | 2026 | 无 | Simulink/Stateflow | buggy Stateflow model + tests/oracle + SBFL ranking | plausible / partial patches | SBFL/Tarantula + global/local search + 15 mutation operators | simulation / oracle / repair objectives | 🔴 | 🟢 | 🔴 | 🟢 | 🟡 | 🟢 | 🟡 | 🔴 | 🔴 | 🟡 | Stateflow repair-engine 近邻 | related / repair 引擎参考 | 无 NL；依赖 MATLAB/Simulink/Stateflow 与仿真 oracle，plausible patch 需人工验证 |
+| `pat-agent` | 2025 | 系统描述 + properties | PAT/CSP# | generated CSP# + failed property | repaired CSP# | model checking counterexample repair | counterexample | 🟡 | 🟠 | 🔴 | 🟡 | 🔴 | 🟢 | 🟢 | 🟢 | 🔴 | 🟡 | 异构形式化近邻 | related / 方法上界 | 非 STM family；额外 property supervision |
+| `event-b-agent` | 2026 | requirements | Event-B | Event-B model/proof + failures | repaired/refined Event-B | ProB/Rodin/proof-guided repair | proof / counterexample | 🟡 | 🟠 | 🔴 | 🟡 | 🔴 | 🟢 | 🟢 | 🟢 | 🔴 | 🟢 | 异构 formal-state 近邻 | related / 方法上界 | 非 STM family；运行成本高 |
+| `ai-driven-consistency-sysml` | 2024 | system specification | SysML UCD/BD | inconsistent UCD/BD | corrected UCD/BD | rules + LLM inconsistency correction | consistency rules / TTool / user | 🟡 | 🟠 | 🔴 | 🟠 | 🟠 | 🟡 | 🟡 | 🟠 | 🔴 | 🟡 | consistency 近邻 | related / taxonomy | 实验主体不是 SMD / STM repair |
+| `few-shot-model-completion` | 2023 | 无 | class/activity diagram | partial model | suggested model elements | few-shot sequence completion | 无 formal feedback | 🔴 | 🟠 | 🔴 | 🟠 | 🔴 | 🔴 | 🟡 | 🟠 | 🔴 | 🟡 | 弱近邻 model completion | related / 低优先 | activity/class 不是 STM，无 repair loop |
+| `automated-bpmn-diagnostic-repair` | 2026 | process description | BPMN XML | non-compliant BPMN | repaired BPMN | SpiffWorkflow diagnostics + LLM localized repair | execution diagnostics | 🟡 | 🟠 | 🔴 | 🟠 | 🔴 | 🟢 | 🟢 | 🟡 | 🔴 | 🟠 | BPMN 方法近邻 | related / diagnostics 参考 | BPMN 非 STM，数据/代码未公开 |
 
 ## 7. 资源可获取性表
 
@@ -208,16 +217,18 @@
 
 | 结论 | 条目 | 对本文的直接用途 | 写作边界 |
 |---|---|---|---|
-| direct / strong conditional baseline 很少但存在 | `completion-sysml-gwt`、`designing-fsm-gpt4-repair`、`execution-partial-state-machine-models`、`flowrepair-stateflow-cps`；`towards-automatic-model-completion` 为 precursor | 支撑“已有方法可做 partial STM completion、FSM repair slice、partial STM executable refinement 或 Stateflow simulation-guided repair” | 不要声称已有大量同构无人 repair baseline；FlowRepair 无 NL 且依赖 Simulink/仿真 oracle；precursor 不重复计数 |
-| generation feedback 是最贴近 LLM4Modeling 的可比线 | `ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 可对比我们 feedback 的结构化程度、自动化程度、仿真/诊断深度 | 必须说明它们多为生成链内 feedback，不是独立 repair task |
-| formal repair 说明闭环范式正在出现 | `pat-agent`、`event-b-agent`、timed automata repair | 支撑 story：从 one-shot generation 转向 checker/prover/verifier-mediated repair | 目标工件不同，不能作为同格式实验 baseline |
-| 模型一致性 / completion 文献提供 repair taxonomy | UML inconsistency、SysML consistency、model completion、BPMN diagnostics repair | 用于 Related Work、评价维度和风险讨论 | 不要把非 STM 模型补全写成 STM repair |
-| 实验 baseline 需要谨慎降级 | 当前多数条目资源不全或对象不匹配 | 后续 RQ/实验应采用主 baseline + related + ablation 分层 | 可复现实验必须等待 R2/R3/R6 冻结输入、转换器和评价门 |
+| 严格 baseline 暂未确认 | 当前 0 条 | 不能在论文中声称已有同构 baseline 已充分存在 | 后续若要升级，必须证明 `NL`、`STM_0`、`NL -> STM_0`、`STM_0 -> STM_k` 与资源可复验同时成立 |
+| 唯一 P0 条件 baseline 候选 | `completion-sysml-gwt` | 可作为 completion baseline 的首要候选，用于对比“GWT/NL + partial SysML SMD -> completed SMD transitions” | 需明确它不是无人化 repair loop；还需核验 partial SMD / states 是否严格由同一组 GWT/NL 生成或仅为预置骨架 |
+| 生成链内 feedback 只能支撑 story / 消融 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需 feedback / refinement”的论文动机，可对比反馈类型、自动化与 LLM 使用 | 不能替代 `<NL, STM_0> -> STM_k` baseline；特别是 `designing-fsm-gpt4-repair` 的 repair 阶段主要依赖 oracle/trace/fault-model |
+| 强 repair engine 只能作近邻 | `flowrepair-stateflow-cps`、`execution-partial-state-machine-models` | 提供 Stateflow mutation/search、partial STM execution/refinement 等机制参考 | 无 NL 或无 `NL -> STM_0` 关系，不能作为本文 baseline；只能在 Related Work / ablation 设计中谨慎引用 |
+| 异构形式化 repair 说明闭环范式正在出现 | `pat-agent`、`event-b-agent`、timed automata repair | 支撑 story：从 one-shot generation 转向 checker/prover/verifier-mediated repair | 目标工件不同，不能作为同格式实验 baseline |
+| 模型一致性 / completion 文献提供 repair taxonomy | UML inconsistency、SysML consistency、model completion、BPMN diagnostics repair | 用于 Related Work、评价维度和风险讨论 | 不要把非 STM 模型补全或 BPMN diagnostics 写成 STM repair baseline |
 
 ## 11. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-15 17:40:00 | 将 `flowrepair-stateflow-cps` 从人工队列升级为全文入库条目，补充 Stateflow repair 强条件 baseline、资源入口、筛查账可复算统计与最终结论边界。 |
-| 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正 direct baseline 计数口径。 |
+| 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 baseline 口径；新增 `STM_0` 与 `NL -> STM_0` emoji 维度，并将除 `completion-sysml-gwt` 外的条目降级为 near-neighbor / related work。 |
+| 2026-06-15 17:40:00 | 将 `flowrepair-stateflow-cps` 从人工队列升级为全文入库条目，补充 Stateflow repair-engine 近邻、资源入口、筛查账可复算统计与最终结论边界。 |
+| 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正旧 direct baseline 计数口径。 |
 | 2026-06-15 16:20:00 | 初始化 repair baseline SUMMARY，整合首批全文阅读条目、检索覆盖、人工下载队列、负例证据与最终结论。 |

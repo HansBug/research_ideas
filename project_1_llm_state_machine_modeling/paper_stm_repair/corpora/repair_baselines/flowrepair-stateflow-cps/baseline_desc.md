@@ -7,7 +7,7 @@
 | baseline_id | `flowrepair-stateflow-cps` |
 | 标题 | FlowRepair: Search-based automated program repair of CPS controllers modeled in Simulink-Stateflow |
 | 年份 / venue | 2026 / Information and Software Technology；arXiv 2024 |
-| 当前角色 | Stateflow / CPS controller repair 强条件 baseline |
+| 当前角色 | Stateflow / CPS controller repair-engine 近邻 |
 | 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
@@ -23,9 +23,9 @@
 
 ## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
 
-FlowRepair 是目前本库中最强的 Stateflow/Simulink repair 近邻之一：它直接修复 statechart-like CPS controller，repair operators 作用于 states、transitions、guard/condition、variable/action 等模型元素，反馈来自测试、仿真、oracle 与 fault localization。若本文后续把目标 STM 映射到 Stateflow/Simulink 且能提供仿真 oracle，它可作为 strong conditional baseline。
+FlowRepair 是目前本库中最强的 Stateflow/Simulink repair 近邻之一：它直接修复 statechart-like CPS controller，repair operators 作用于 states、transitions、guard/condition、variable/action 等模型元素，反馈来自测试、仿真、oracle 与 fault localization。若本文后续把目标 STM 映射到 Stateflow/Simulink 且能提供仿真 oracle，它可作为 repair-engine / ablation 近邻。
 
-但它不是完整同构 baseline：任务输入不含 NL，不处理 `NL` 与 `STM_0` 的需求一致性，不使用 LLM，也不面向文本式 pyfcstm/通用状态机 DSL。更稳妥的写法是将其定位为 “Stateflow/CPS simulation-guided repair 条件 baseline + mutation/feedback/objective 设计参照”，不能声称已有方法已经解决本文的 `<NL, STM_0> -> STM_k` 闭环任务。
+但它不是完整同构 baseline：任务输入不含 NL，不处理 `NL` 与 `STM_0` 的需求一致性，不使用 LLM，也不面向文本式 pyfcstm/通用状态机 DSL。更稳妥的写法是将其定位为 “Stateflow/CPS simulation-guided repair-engine 近邻 + mutation/feedback/objective 设计参照”，不能声称已有方法已经解决本文的 `<NL, STM_0> -> STM_k` 闭环任务。
 
 ## 4. 证据位置
 

@@ -19,4 +19,4 @@
 
 - 若代码、数据、许可或版本为待核，后续不得把该条目写成可直接复跑 baseline。
 - 若目标工件不是 STM family，后续只能作为异构 related work / 方法近邻使用。
-- 若 repair 依赖 oracle、专家、人机选择或私有数据，实验对比时必须降级为条件 baseline 或 related work。
+- 若 repair 依赖 oracle、专家、人机选择或私有数据，实验对比时必须降级为条件对照或 related work；若缺少 NL 或 `NL -> STM_0` 关系，不得称为本文 baseline。

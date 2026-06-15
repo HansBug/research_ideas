@@ -4,7 +4,7 @@
 
 本目录是第一篇论文 `paper_stm_repair` 的 **repair baselines / near-miss related work** 文库，服务于 `<NL, STM_0> -> STM_k / Better STM` 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
 
-**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；纯控制系统自然语言来源应留给后续 `nl_datasets/`。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
+**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `<NL, STM_0> -> STM_k / Better STM`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给后续 `nl_datasets/`。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
 
 ## 1. 阅读顺序
 
@@ -15,31 +15,32 @@
 
 ## 2. 结论速览
 
-当前文库的阶段性判断是：**完全同构的 `<NL, STM_0> -> STM_k` 自动 repair baseline 很少**；更可靠的写法是把候选分成“直接/条件 baseline、生成链内反馈、异构形式化 repair 强近邻、模型一致性/补全近邻、negative evidence”。
+当前文库的阶段性判断是：**严格同构 baseline 尚未确认；`completion-sysml-gwt` 是唯一 P0 条件 baseline 候选，其余已入库条目都不能直接写成本文 baseline**。更可靠的写法是把候选分成“P0 条件 baseline 候选、生成链内 feedback、repair-engine / partial-STM 近邻、异构形式化 repair 近邻、模型一致性/补全近邻、negative evidence”。
 
 | 结论层级 | 当前代表 | 一句话判断 | 详情 |
 |---|---|---|---|
-| 直接 / 强条件 baseline | `completion-sysml-gwt`、`designing-fsm-gpt4-repair`、`execution-partial-state-machine-models`、`flowrepair-stateflow-cps`；`towards-automatic-model-completion` 为 precursor | 最接近“已有 STM 后补全 / 修复 / 产生更好 STM”的文献证据；其中 4 项独立、1 项为同簇早期版本不重复计数 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
-| 生成链内 feedback-regeneration | `ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 不是独立 repair-only 方法，但能说明 LLM 生成模型后用 checker / rule / user / simulation feedback 迭代改进 | 见 [SUMMARY.md](./SUMMARY.md) §6 |
-| 异构形式化 repair 强近邻 | `pat-agent`、`event-b-agent`、timed automata repair 簇 | 目标工件不是本论文 STM family，但 checker / counterexample / proof feedback loop 对 story 很关键 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 [manual_download_queue.bib](./manual_download_queue.bib) |
-| 模型一致性 / 补全近邻 | `automatic-debugging-support-uml-designs`、`ai-driven-consistency-sysml`、`few-shot-model-completion`、`automated-bpmn-diagnostic-repair` | 支撑 model repair / completion / diagnostics-to-repair 维度，但不能写成同构 STM baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §9 |
+| 严格全绿 baseline | 暂无 | 尚无条目同时闭合 `NL`、`STM_0`、`NL -> STM_0`、`STM_0 -> STM_k` 与资源可复验 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
+| P0 条件 baseline 候选 | `completion-sysml-gwt` | 最接近“GWT/NL + partial SysML SMD -> completed SMD transitions”；但 `STM_0` 是否严格由同一 NL 生成仍需核验 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
+| 生成链内 feedback / refinement | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需反馈修正”的 story，但不能替代 `<NL, STM_0> -> STM_k` baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 |
+| repair-engine / partial-STM 近邻 | `flowrepair-stateflow-cps`、`execution-partial-state-machine-models` | repair/refinement 机制较强，但缺少 NL 或 `NL -> STM_0` 关系 | 见 [SUMMARY.md](./SUMMARY.md) §6 |
+| 异构形式化 / 模型一致性近邻 | `pat-agent`、`event-b-agent`、UML/SysML consistency、BPMN diagnostics 等 | 对 feedback loop、diagnostics、repair taxonomy 有参考价值，但不能写成同构 STM baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §9 |
 
-## 3. 核心 baseline / 资源结论表
+## 3. 核心文献 + 资源结论表
 
 本表只给入口速览；正式资源状态、风险和证据以 [SUMMARY.md](./SUMMARY.md) 为准。资源链接只记录论文或作者提供的一手入口；本仓库本地缓存不算公开资源。
 
-| ID | 当前角色 | 输入是什么 | 输出是什么 | 修正 / feedback 核心 | 一手资源入口 | 结论 |
-|---|---|---|---|---|---|---|
-| `completion-sysml-gwt` | 直接/强条件 baseline | GWT/Gherkin 需求 + partial SysML model / SMD states | 补全 transitions 的 SysML SMD | 规则解析、MetaReq/MetaFragment、traceability、检查与 analyst review | [DOI](https://doi.org/10.1007/s10270-024-01228-3) | 可作为 completion baseline；非无人 repair loop |
-| `towards-automatic-model-completion` | precursor | BDD/GWT 需求 + partial SysML architecture / SMD | SysML SMD transition fragments | Clause extraction + model completion 概念流程 | [arXiv](https://arxiv.org/abs/2210.03388) | 与上条交叉登记，避免重复计数 |
-| `designing-fsm-gpt4-repair` | repair slice | 合成 DFSM 描述生成的初始 CSV DFSM + oracle/trace/fault-model | 修正后的 DFSM | oracle comparison、distinguishing/checking sequence、fault-model repair | [arXiv](https://arxiv.org/abs/2603.29140) | seed 与 repair 分段共存，只登记 repair slice |
-| `ttool-ai-feedback` | 生成链内 feedback baseline | NL 系统规范 + SysML/TTool 约束 + 已生成上下文 | TTool/SysML SMD 等模型 | JSON / syntax / TTool constraint feedback regeneration | [HAL](https://telecom-paris.hal.science/hal-04483279)、[GitHub](https://github.com/zebradile/ttool-ai) | P1；反馈偏语法/约束 |
-| `llms-emp-feedback` | STM 子集 feedback baseline | SysML 行为模型需求 + PlantUML/SysML 规则 + Error feedback | PlantUML/SysML STM 子集 | format / grammar / semantic / requirement inconsistency feedback regeneration | [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)、[Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | P1；必须只取 STM 子集 |
-| `fsm-gen-iec-61499` | 仿真/用户 refinement 近邻 | 控制系统 NL + I/O + 用户 refinement 请求 | FSM / IEC 61499 ECC / FB | 用户自然语言 feedback + 闭环仿真观察 | [IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11279575/) | 工业近邻；非无人自动 repair |
-| `execution-partial-state-machine-models` | partial STM refinement 条件 baseline | 无 NL；partial UML-RT/HSM + completeness setting | refined executable HSM / decision points / execution rules | execution-semantics static analysis + automatic refinement + input-driven execution | [DOI](https://doi.org/10.1109/TSE.2020.3008850)、[arXiv](https://arxiv.org/abs/2103.17194)、[Bitbucket](https://bitbucket.org/moji1/partialmodels) | 可作为 `STM_0 -> executable/refined STM` 条件 baseline；非 NL/LLM repair |
-| `flowrepair-stateflow-cps` | Stateflow repair 强条件 baseline | 无 NL；buggy Simulink/Stateflow model + tests/oracle + SBFL suspiciousness | plausible / partial patches for Stateflow CPS controllers | SBFL/Tarantula + global/local search + simulation repair objectives + Stateflow mutation operators | [DOI](https://doi.org/10.1016/j.infsof.2025.108010)、[arXiv](https://arxiv.org/abs/2404.04688)、[GitHub](https://github.com/aitorarrietamarcos/StateflowRepairTool)、[Zenodo](https://zenodo.org/records/10936238) | 强 Stateflow/CPS repair 近邻；依赖 Simulink/Stateflow 与仿真 oracle，非 NL/LLM repair |
-| `pat-agent` | 异构形式化 repair 强近邻 | NL 系统描述 + assertion / expected result | PAT/CSP# model | PAT model-checking counterexample repair loop | [arXiv](http://arxiv.org/abs/2509.23675)、[GitHub](https://github.com/ZuoXinyue/PAT-Agent) | 强方法参照；非 STM family |
-| `event-b-agent` | 异构形式化 repair 强近邻 | NL requirements | Event-B machines / refinements / proofs | ProB/Rodin/SMT/proof feedback + atomic repair | [arXiv](http://arxiv.org/abs/2605.17475)、[GitHub](https://github.com/HongshuW/EventB_Agent)、[Zenodo](https://doi.org/10.5281/zenodo.19642103) | 强方法参照；非 STM family |
+| ID | 是否真 baseline | NL->STM | 修正 | 谱系 | baseline | 资源 | 一手资源入口 | 结论 |
+|---|---|---|---|---|---|---|---|---|
+| `completion-sysml-gwt` | P0 条件候选 | 🟡 | 🟢 | 🟢 | 🟡 | 🟠 | [DOI](https://doi.org/10.1007/s10270-024-01228-3) | 唯一主 baseline 候选；仍需核验 partial SMD / states 是否严格由同一 GWT/NL 生成 |
+| `towards-automatic-model-completion` | 否 | 🟡 | 🟡 | 🟢 | 🟠 | 🟠 | [arXiv](https://arxiv.org/abs/2210.03388) | 同簇 precursor / 条件线索，不独立计 baseline |
+| `designing-fsm-gpt4-repair` | 否 | 🟢 | 🟢 | 🟢 | 🟠 | 🟠 | [arXiv](https://arxiv.org/abs/2603.29140) | seed 与 repair 分段共存；repair 阶段主要是 `STM + oracle/trace/fault-model`，只能作近邻 |
+| `ttool-ai-feedback` | 否 | 🟢 | 🟠 | 🟡 | 🟠 | 🟡 | [HAL](https://telecom-paris.hal.science/hal-04483279)、[GitHub](https://github.com/zebradile/ttool-ai) | 生成链内 feedback-regeneration，适合作 related / 消融参考 |
+| `llms-emp-feedback` | 否 | 🟢 | 🟠 | 🟡 | 🟠 | 🟡 | [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)、[Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | STM 子集 feedback 近邻，不能混入 ACT/SD |
+| `fsm-gen-iec-61499` | 否 | 🟡 | 🟠 | 🟢 | 🟠 | 🔴 | [IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11279575/) | 工业仿真/用户 refinement 近邻，非无人自动 baseline |
+| `execution-partial-state-machine-models` | 否 | 🔴 | 🟡 | 🟢 | 🔴 | 🟡 | [DOI](https://doi.org/10.1109/TSE.2020.3008850)、[arXiv](https://arxiv.org/abs/2103.17194)、[Bitbucket](https://bitbucket.org/moji1/partialmodels) | partial STM execution/refinement 近邻；无 NL |
+| `flowrepair-stateflow-cps` | 否 | 🔴 | 🟢 | 🟡 | 🔴 | 🟡 | [DOI](https://doi.org/10.1016/j.infsof.2025.108010)、[arXiv](https://arxiv.org/abs/2404.04688)、[GitHub](https://github.com/aitorarrietamarcos/StateflowRepairTool)、[Zenodo](https://zenodo.org/records/10936238) | 强 Stateflow repair-engine 近邻；无 NL，依赖仿真 oracle |
+| `pat-agent` | 否 | 🔴 | 🟡 | 🔴 | 🔴 | 🟡 | [arXiv](http://arxiv.org/abs/2509.23675)、[GitHub](https://github.com/ZuoXinyue/PAT-Agent) | 异构形式化 repair 近邻；非 STM family |
+| `event-b-agent` | 否 | 🔴 | 🟡 | 🔴 | 🔴 | 🟢 | [arXiv](http://arxiv.org/abs/2605.17475)、[GitHub](https://github.com/HongshuW/EventB_Agent)、[Zenodo](https://doi.org/10.5281/zenodo.19642103) | 异构 formal-state repair 近邻；非 STM family |
 
 ## 4. 单篇目录结构
 
@@ -66,6 +67,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-15 17:40:00 | 补入 `flowrepair-stateflow-cps`，将其从人工队列升级为 Stateflow repair 强条件 baseline，并同步修正检索账与资源表。 |
-| 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正 direct baseline 计数口径。 |
+| 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 README 结论，明确当前只有 `completion-sysml-gwt` 是 P0 条件 baseline 候选。 |
+| 2026-06-15 17:40:00 | 补入 `flowrepair-stateflow-cps`，将其从人工队列升级为 Stateflow repair-engine 近邻，并同步修正检索账与资源表。 |
+| 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正旧 direct baseline 计数口径。 |
 | 2026-06-15 16:20:00 | PR-R1.8-C 初始化 repair_baselines 文库三件套、首批全文阅读条目、检索覆盖表与人工下载队列。 |

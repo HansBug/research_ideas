@@ -7,7 +7,7 @@
 | baseline_id | `completion-sysml-gwt` |
 | 标题 | Completion of SysML state machines from Given-When-Then requirements |
 | 年份 / venue | 2024 / SoSyM |
-| 当前角色 | 直接/强条件 baseline |
+| 当前角色 | P0 条件 baseline 候选 |
 | 阅读来源 | 本地 `paper_content.txt` 全文阅读 + 旁路核验材料 |
 
 ## 2. 任务、输入与输出
@@ -23,7 +23,7 @@
 
 ## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
 
-可作为 completion baseline：`<GWT requirements, partial SysML SMD> -> completed SMD`；不是 seed，也不是无人化 formal repair loop。
+可作为当前唯一 P0 条件 baseline 候选：`<GWT requirements, partial SysML SMD> -> completed SMD`；但 partial SMD / states 是否严格由同一组 GWT/NL 生成仍需二次核验。它不是 seed，也不是无人化 formal repair loop。
 
 ## 4. 证据位置
 
