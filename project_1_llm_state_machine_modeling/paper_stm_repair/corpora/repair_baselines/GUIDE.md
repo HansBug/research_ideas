@@ -84,18 +84,19 @@
 
 **硬约束**：本仓库已有 PDF、parquet、ZIP、代码缓存，只能证明本地审计材料存在，不能自动算作论文一手公开资源。资源列必须给论文、作者、出版商、Zenodo、GitHub、OSF、Hugging Face 等一手链接；无法核验时写 `❓` 或 `🔴`。
 
-## 6. 独立全文阅读规则
+## 6. 全文阅读与旁路核验规则
 
-1. 凡进入 [SUMMARY.md](./SUMMARY.md) 正式 baseline / related 表且全文可获取的论文，默认必须由独立全文阅读任务完成全文阅读，产出可追踪要点。
-2. 全文阅读必须覆盖摘要、引言、方法、实验/案例、artifact/data availability、结论，以及和 repair baseline 相关的关键段落。
-3. 没有完成全文阅读的候选不得升级为 🟢 结论；只能留在候选池 / manual queue / 待核表。
-4. 阅读结果写入单篇 `baseline_desc.md` 与 `artifacts.md`；横向结论再汇总到 [SUMMARY.md](./SUMMARY.md)。
-5. 单篇 `baseline_desc.md` 必须写明：任务类型、输入、输出、STM 谱系、repair 机制、feedback 来源、自动化程度、LLM 角色、与本文关系、为什么可作为 baseline / related / negative、证据位置、风险。
-6. 单篇 `artifacts.md` 必须写明：论文入口、作者资源、代码、数据、NL、STM、repair case、许可、版本、可复现阻塞、人工下载需求。
+1. 凡进入 [SUMMARY.md](./SUMMARY.md) 正式 baseline / related 表且全文可获取的论文，最低要求是完成可追溯全文阅读，并在单篇文件中给出证据位置；阅读可以来自主 session 全文阅读、独立 subagent 全文阅读，或二者组合。
+2. P0/P1 强候选与后续可能进入实验 baseline 的论文，优先安排独立 subagent 复核；若本轮只完成“主 session 全文阅读 + 旁路核验材料”，应在单篇 `baseline_desc.md` 的“阅读来源”中如实标注。
+3. 全文阅读必须覆盖摘要、引言、方法、实验/案例、artifact/data availability、结论，以及和 repair baseline 相关的关键段落。
+4. 没有完成全文阅读或可靠 HTML 全文核验的候选不得升级为正式结论；只能留在候选池 / manual queue / 待核表。
+5. 阅读结果写入单篇 `baseline_desc.md` 与 `artifacts.md`；横向结论再汇总到 [SUMMARY.md](./SUMMARY.md)。后续若某条目被选为可复现实验 baseline，应补充 reader / task ID、版本和复验命令。
+6. 单篇 `baseline_desc.md` 必须写明：任务类型、输入、输出、STM 谱系、repair 机制、feedback 来源、自动化程度、LLM 角色、与本文关系、为什么可作为 baseline / related / negative、证据位置、风险。
+7. 单篇 `artifacts.md` 必须写明：论文入口、作者资源、代码、数据、NL、STM、repair case、许可、版本、可复现阻塞、人工下载需求。
 
 ## 7. 检索覆盖与去重规则
 
-每轮大范围检索必须在 [SUMMARY.md](./SUMMARY.md) 的检索覆盖表中记录：`检索切片`、`日期`、`来源/venue`、`query`、`命中数`、`初筛留存`、`全文入库`、`排除数`、`manual queue 增项`、`备注`。
+每轮大范围检索必须在 [SUMMARY.md](./SUMMARY.md) 的检索覆盖表中记录：`检索切片`、`日期`、`来源/venue`、`query`、`粗略命中`、`§2.1 去重候选`、`入库`、`人工队列`、`待核`、`降级/negative`、`备注`。其中粗略命中可保留检索噪声估计，不参与精确复算；其余统计必须能从候选池 / 筛查账按来源切片复算。
 
 去重优先级：DOI / arXiv ID > 标准化标题 > 标题 + 作者 + 年份。同一论文被多个切片命中时，正式候选表只保留一行，并在 `来源切片` 列合并 worker ID。
 
@@ -123,4 +124,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-15 17:40:00 | 放宽全文阅读合同为“可追溯全文阅读 + P0/P1 优先独立复核”，避免把 PR 施工调度误写成不可满足的长期文库硬约束。 |
 | 2026-06-15 16:20:00 | PR-R1.8-C 初始化本 GUIDE，冻结 repair baseline 收录、emoji、资源、全文阅读和 crosslink 规则。 |

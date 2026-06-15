@@ -19,7 +19,7 @@
 
 | 结论层级 | 当前代表 | 一句话判断 | 详情 |
 |---|---|---|---|
-| 直接 / 强条件 baseline | `completion-sysml-gwt`、`designing-fsm-gpt4-repair`、`execution-partial-state-machine-models`；`towards-automatic-model-completion` 为 precursor | 最接近“已有 STM 后补全 / 修复 / 产生更好 STM”的文献证据；其中 3 项独立、1 项为同簇早期版本不重复计数 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
+| 直接 / 强条件 baseline | `completion-sysml-gwt`、`designing-fsm-gpt4-repair`、`execution-partial-state-machine-models`、`flowrepair-stateflow-cps`；`towards-automatic-model-completion` 为 precursor | 最接近“已有 STM 后补全 / 修复 / 产生更好 STM”的文献证据；其中 4 项独立、1 项为同簇早期版本不重复计数 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
 | 生成链内 feedback-regeneration | `ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 不是独立 repair-only 方法，但能说明 LLM 生成模型后用 checker / rule / user / simulation feedback 迭代改进 | 见 [SUMMARY.md](./SUMMARY.md) §6 |
 | 异构形式化 repair 强近邻 | `pat-agent`、`event-b-agent`、timed automata repair 簇 | 目标工件不是本论文 STM family，但 checker / counterexample / proof feedback loop 对 story 很关键 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 [manual_download_queue.bib](./manual_download_queue.bib) |
 | 模型一致性 / 补全近邻 | `automatic-debugging-support-uml-designs`、`ai-driven-consistency-sysml`、`few-shot-model-completion`、`automated-bpmn-diagnostic-repair` | 支撑 model repair / completion / diagnostics-to-repair 维度，但不能写成同构 STM baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §9 |
@@ -37,6 +37,7 @@
 | `llms-emp-feedback` | STM 子集 feedback baseline | SysML 行为模型需求 + PlantUML/SysML 规则 + Error feedback | PlantUML/SysML STM 子集 | format / grammar / semantic / requirement inconsistency feedback regeneration | [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)、[Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) | P1；必须只取 STM 子集 |
 | `fsm-gen-iec-61499` | 仿真/用户 refinement 近邻 | 控制系统 NL + I/O + 用户 refinement 请求 | FSM / IEC 61499 ECC / FB | 用户自然语言 feedback + 闭环仿真观察 | [IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11279575/) | 工业近邻；非无人自动 repair |
 | `execution-partial-state-machine-models` | partial STM refinement 条件 baseline | 无 NL；partial UML-RT/HSM + completeness setting | refined executable HSM / decision points / execution rules | execution-semantics static analysis + automatic refinement + input-driven execution | [DOI](https://doi.org/10.1109/TSE.2020.3008850)、[arXiv](https://arxiv.org/abs/2103.17194)、[Bitbucket](https://bitbucket.org/moji1/partialmodels) | 可作为 `STM_0 -> executable/refined STM` 条件 baseline；非 NL/LLM repair |
+| `flowrepair-stateflow-cps` | Stateflow repair 强条件 baseline | 无 NL；buggy Simulink/Stateflow model + tests/oracle + SBFL suspiciousness | plausible / partial patches for Stateflow CPS controllers | SBFL/Tarantula + global/local search + simulation repair objectives + Stateflow mutation operators | [DOI](https://doi.org/10.1016/j.infsof.2025.108010)、[arXiv](https://arxiv.org/abs/2404.04688)、[GitHub](https://github.com/aitorarrietamarcos/StateflowRepairTool)、[Zenodo](https://zenodo.org/records/10936238) | 强 Stateflow/CPS repair 近邻；依赖 Simulink/Stateflow 与仿真 oracle，非 NL/LLM repair |
 | `pat-agent` | 异构形式化 repair 强近邻 | NL 系统描述 + assertion / expected result | PAT/CSP# model | PAT model-checking counterexample repair loop | [arXiv](http://arxiv.org/abs/2509.23675)、[GitHub](https://github.com/ZuoXinyue/PAT-Agent) | 强方法参照；非 STM family |
 | `event-b-agent` | 异构形式化 repair 强近邻 | NL requirements | Event-B machines / refinements / proofs | ProB/Rodin/SMT/proof feedback + atomic repair | [arXiv](http://arxiv.org/abs/2605.17475)、[GitHub](https://github.com/HongshuW/EventB_Agent)、[Zenodo](https://doi.org/10.5281/zenodo.19642103) | 强方法参照；非 STM family |
 
@@ -65,5 +66,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-15 17:40:00 | 补入 `flowrepair-stateflow-cps`，将其从人工队列升级为 Stateflow repair 强条件 baseline，并同步修正检索账与资源表。 |
 | 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正 direct baseline 计数口径。 |
 | 2026-06-15 16:20:00 | PR-R1.8-C 初始化 repair_baselines 文库三件套、首批全文阅读条目、检索覆盖表与人工下载队列。 |
