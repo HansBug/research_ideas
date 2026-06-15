@@ -54,7 +54,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-15 23:20:00 | PR-R1.8-D 落地 [nl_datasets/](./nl_datasets/) 三件套脚手架，明确当前只登记纯 NL 数据源入口与字段纪律；9 系统 / 101 需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索作为后续填充锚点。 |
+| 2026-06-15 23:20:00 | PR-R1.8-D 落地 [nl_datasets/](./nl_datasets/) 三件套脚手架，明确当前只登记纯 NL 数据源入口与字段纪律；来自 [../../../CLAUDE.md](../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索作为后续填充锚点。 |
 | 2026-06-15 20:55:00 | 同步 [repair_baselines/](./repair_baselines/) 为 24 个全文入库条目，人工下载队列清空，并收紧严格 baseline 仍为 0、`completion-sysml-gwt` 只是 P0 路线近邻 / 条件对照的结论。 |
 | 2026-06-15 16:50:00 | 同步 [repair_baselines/](./repair_baselines/) 为首批全文条目并补候选池筛查账。 |
 | 2026-06-15 16:20:00 | PR-R1.8-C 落地 [repair_baselines/](./repair_baselines/) 三件套，repair baseline 横向事实以 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md) 为准。 |

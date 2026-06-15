@@ -4,7 +4,7 @@
 
 本目录当前处于 **初始化脚手架阶段**：已冻结 NL-datasets 的边界、入口和字段纪律，但尚未开展大规模外部检索或逐条填充 dataset 目录。
 
-当前阶段最重要的结论是：**9 系统 / 101 功能安全需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索，都是后续 NL-datasets 首批填充锚点；但在 `STM_0` 生成关系闭合前，它们仍只算 NL 数据源，不算 seed。**
+当前阶段最重要的结论是：**来自 [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 功能安全需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索，都是后续 NL-datasets 首批填充锚点；但在 `STM_0` 生成关系闭合前，它们仍只算 NL 数据源，不算 seed。**
 
 ## 1. 三类文库中的角色
 
@@ -46,8 +46,8 @@ emoji 列只写 emoji，释义如下。
 
 | 锚点 | 来源路径 | 已知规模 / 事实 | 当前角色 | 关键 caveat |
 |---|---|---|---|---|
-| 9 系统 / 101 功能安全需求 | 仓库级数据集说明；[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) | 9 个控制系统、101 条功能安全需求 | 首批 canonical NL 数据集锚点 | 若已有 STM 生成关系未闭合，仍只算 NL-dataset |
-| `sources/` 真实控制系统 NL 池 | [../../../sources/](../../../sources/)；[../../evidence/source_coverage_ledger.md](../../evidence/source_coverage_ledger.md) | 787 篇来源；source coverage ledger 记录 337 条 `T0+FSM/HSM/EFSM` 子池 | 后续弱 seed / 学生 seed 的主要 NL 来源池 | `sources/` 中 STM.md 是整理结果，不自动证明 `NL -> STM_0` seed 关系 |
+| 9 系统 / 101 功能安全需求 | [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息；[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 仅作 NL→STM generation 输入特征 dry-run | 9 个控制系统、101 条功能安全需求 | 首批 canonical NL 数据集锚点 | 若已有 STM 生成关系未闭合，仍只算 NL-dataset；101 条原始 NL 文本的逐条入口留给后续填充 PR |
+| `sources/` 真实控制系统 NL 池 | [../../../sources/](../../../sources/)；[../../evidence/source_coverage_ledger.md](../../evidence/source_coverage_ledger.md) | 787 篇来源、337 条 `T0+FSM/HSM/EFSM` 子池，均为上游 ledger 转述统计 | 后续弱 seed / 学生 seed 的主要 NL 来源池 | `sources/` 中 STM.md 是整理结果，不自动证明 `NL -> STM_0` seed 关系 |
 | 旧 Path-1 `sources/` T0+🟢 线索 | [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) | 历史 Path-1 曾规划从 `sources/` T0+🟢 子集分层抽样 | 历史回链与后续候选参考 | 旧 Path-1 story 不再作为当前第一篇事实真源，只保留可追溯线索 |
 | 公开 NL→STM generation 数据集分析 | [../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) | `llms_emp`、`ttool_ai`、`light_control_nimbus`、`structure_event_driven` 的 NL 输入特征分析 | 作为 dataset 字段 dry-run 与对照参考 | 其中部分对象已属于 seed 或 baseline 语境，不能混入当前纯 NL 角色 |
 
@@ -55,6 +55,7 @@ emoji 列只写 emoji，释义如下。
 
 - 先基于已有 sources/data 搭建 NL-datasets 入口，不做大规模外部检索。
 - 只有 NL 不等于 seed；需要明确 `STM_0` 生成关系后才 crosslink。
+- `seed_library crosslink` 是本库侧的出链字段；seed library 侧反向回链字段待后续一致性 PR 统一补齐。
 - 后续如果确有新数据源，再逐条补充 summary 与单条目目录。
 - 许可不明或敏感数据不直接复制正文样本，只登记可追溯指针。
 

@@ -17,7 +17,7 @@
 
 | 类别 | 收录口径 | 首批可定位锚点 |
 |---|---|---|
-| 控制系统需求 | 功能安全需求、系统需求、用例、场景、标准片段 | 仓库级数据集说明中的 9 系统 / 101 功能安全需求；[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) |
+| 控制系统需求 | 功能安全需求、系统需求、用例、场景、标准片段 | [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息中的 9 系统 / 101 功能安全需求；[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 仅作 NL→STM generation 输入特征 dry-run |
 | `sources/` 真实控制系统 NL 池 | paper-level 选用或候选使用的真实控制系统论文 NL 来源 | [../../../sources/](../../../sources/)；[../../evidence/source_coverage_ledger.md](../../evidence/source_coverage_ledger.md) |
 | 旧 Path-1 线索 | 历史 Path-1 中仍可追溯、但尚未转成当前 seed 的 NL 候选 | [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) |
 | 弱 seed 入口 | 适合弱模型 / 弱 prompt / 学生人工建模的 NL 来源 | 后续逐条登记 |

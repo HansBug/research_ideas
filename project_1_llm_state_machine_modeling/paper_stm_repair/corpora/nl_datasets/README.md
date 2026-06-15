@@ -11,7 +11,7 @@
 - 这是三类文库之一：[../seed_library/](../seed_library/) / [../repair_baselines/](../repair_baselines/) / [./](./)。
 - 本库只维护纯 NL 数据源，不维护 repair baseline，也不维护 seed 方法本体。
 - 当前 PR-R1.8-D 只做脚手架与字段纪律冻结，不创建具体 `<dataset-slug>/` 子目录，不开展大规模外部检索。
-- 后续首批填充锚点包括：9 系统 / 101 功能安全需求、[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 中分析的公开 NL→STM generation 数据集、[../../../sources/](../../../sources/) 真实控制系统 NL 池，以及旧 [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) 中的 `sources/` T0+🟢 线索。
+- 后续首批填充锚点包括：来自 [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 功能安全需求、[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 中分析的公开 NL→STM generation 数据集、[../../../sources/](../../../sources/) 真实控制系统 NL 池，以及旧 [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) 中的 `sources/` T0+🟢 线索。
 
 ## 2. 阅读顺序
 
@@ -38,7 +38,7 @@
 - [../seed_library/](../seed_library/) 负责 `NL -> STM_0` 的 seed 方法 / 来源。
 - [../repair_baselines/](../repair_baselines/) 负责 `STM_0 -> STM_k / Better STM` 的修正近邻。
 - 本库只负责纯 NL 数据源；不把只有 NL 的对象提前当 seed。
-- 若某个 NL 来源后续完成 `STM_0` 构造，应在本库 `SUMMARY.md` 的 `seed_library crosslink` 字段记录对应 seed slug，并在 seed library 反向回链。
+- 若某个 NL 来源后续完成 `STM_0` 构造，应在本库 `SUMMARY.md` 的 `seed_library crosslink` 字段记录对应 seed slug；seed library 侧反向回链字段由后续一致性 PR 统一补齐，避免本脚手架 PR 单方面改写 seed 总账。
 
 ## 5. 更新日志
 
