@@ -95,3 +95,44 @@
 - Artifacts produced：更新 [../baselines/README.md](../baselines/README.md)、[../baselines/GUIDE.md](../baselines/GUIDE.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)、补 P2 本地目录、重写单篇 `review.md`、补齐主张-证据 / baseline 可用性 / artifact readiness 字段、清理 `paper_content.txt` 提取残留、更新 [task-packets/b0-fulltext-baseline-review.md](./task-packets/b0-fulltext-baseline-review.md)。
 - Verification run：已运行 B0 sanity、字段 hardening sanity 与 `git diff --check`。
 - Remaining risk：自动文本提取可能遗漏图表细节；正式写 Related Work 前，关键 P0 仍建议人工打开 PDF 复核图表/表格/数值，WSESE@ICSE 2025 已完成全文文本级 review；当前代码/数据/许可只完成文本级线索识别，未打开 URL、未 clone、未核验 license、未 smoke，不能写成可运行 baseline。
+
+
+## 8. PR-S0 预备：story 重新勘定（2026-06-15）
+
+| 字段 | 状态 |
+|---|---|
+| PR | [#101](https://github.com/HansBug/research_ideas/pull/101) 下的 PR-S0 |
+| 当前阶段 | 空 PR / 合同冻结 / 待 body review |
+| 上游导师讨论 | [PR #112](https://github.com/HansBug/research_ideas/pull/112) 已合入，正式导师讨论记录已归档 |
+| 真实 LLM | 未运行 |
+| 四个真实例子 | 不运行 |
+| Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
+
+### 已完成的合同输入
+
+- PR-A0 与 PR-B0 已合入本伞 PR 的上游分支证据。
+- PR-S0-pre（PR #112）已归档为正式导师讨论记录。
+- 新的 PR-S0 任务包已建立：[`task-packets/s0-story-recalibration.md`](./task-packets/s0-story-recalibration.md)。
+
+### PR-S0 要求
+
+- 重写 `story/paper_story.md`、`story/claim_evidence_map.md`、`story/differential_novelty_matrix.md`、`story/paper_outline.md`。
+- 必要时同步 `experiment_design/reviewer_risk_register.md` 与 `plan/README.md` / `plan/progress.md`。
+- 禁止把被 B0 打穿的旧自动化 story 继续写成主叙事。
+- 禁止将 PR-S0 扩展为完整 protocol / schema / examples 或真正的 workflow runtime。
+
+### Verification log（PR-S0 预备）
+
+| 时间 | 命令 | 结果 |
+|---|---|---|
+| 2026-06-15 | `git status --short --branch`、`git log --oneline -5` | 通过，当前分支为 `paper2/s0-story-recalibration`。 |
+| 2026-06-15 | 已将 PR #112 合并到本伞 PR 分支，并将 PR #101 body 同步更新为包含 PR-S0-pre 已完成状态。 | 通过。 |
+
+### Capability-use audit（PR-S0 预备）
+
+- Required references/scripts：`ai-research-writing-skill` 的 story gate / reviewer gate；`sub-agents` 三路 review；PR #101 / PR #112 / PR-B0 的已合入证据。
+- Inputs consumed：PR #101 body、PR #112 talk record、PR-B0 summary、PR-A0 story / claim map、导师讨论记录、上游合流状态。
+- Inputs not used and why：真实 LLM、四个真实例子、workflow runtime、`runs/**`，因为 PR-S0 仍是合同冻结。
+- Artifacts produced：PR-S0 任务包、PR-S0 预备进度段。
+- Verification run：本轮只做文档 / 链接 / 证据边界检查，不做真实运行。
+- Remaining risk：PR-S0 body 若仍保留旧宽泛自动化 story，必须在 reviewer 后收紧。
