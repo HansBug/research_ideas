@@ -40,7 +40,7 @@
 
 资源盘点面向后续实验和论文证据链能否直接使用，不等于本地文档是否齐全。每个条目至少要分别判断：论文本体、来源文档、生成/复现实验代码、NL 数据、STM_0 数据、作者原生 `<NL, STM_0>` pair、可重建 `<NL, STM_0>` pair、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希。整体 R2 实验输入可用性是派生汇总项，不能由单个“资源可用”emoji 代替，至少要同时检查 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`。
 
-**硬约束**：资源可获取性必须由全文阅读和外部资源页共同支撑。可用证据包括 DOI / 出版页、官方 PDF、作者或项目仓库、Zenodo / OSF / Hugging Face / Figshare 等数据页、补充材料、artifact 页面、许可文件、release / commit / hash。只看本地 `paper.pdf`、`paper_content.txt`、`seed_desc.md`、`artifacts.md` 或历史 PR 评论，不足以把外部资源列升级为 🟢/🟡；全文或资源页受阻时必须保留 ❓/🔴 并写明阻塞。
+**硬约束**：资源可获取性必须由全文阅读和外部资源页共同支撑。可用证据包括 DOI / 出版页、官方 PDF、论文正文 / 脚注 / Data Availability 明确指向的作者或项目仓库、Zenodo / OSF / Hugging Face / Figshare 等数据页、补充材料、artifact 页面、许可文件、release / commit / hash。只看本地 `paper.pdf`、`paper_content.txt`、`seed_desc.md`、`artifacts.md` 或历史 PR 评论，不足以把外部资源列升级为 🟢/🟡；全文或资源页受阻时必须保留 ❓/🔴 并写明阻塞。
 
 **状态边界**：入口已定位但因 403 / WAF / CAPTCHA / 登录 / SPA 壳 / 网络超时等暂时无法核验时，优先记为 `❓`，说明列写 `入口 URL + 访问日期 + 受阻类型 + 待人工核验`；只有官方页面明确声明未公开、404 且无替代入口、或全文核验后确认不可得时，才记为 `🔴`。
 
@@ -67,8 +67,20 @@
 | LLM参与 | 是 / 否 / 可能 / 不适用 | “可能”必须在说明列给出证据不足原因。 |
 | NL类型 | 需求文本 / 用例 / 场景文本 / 系统描述 / 标准文档 / 合成需求 / 来源文档 / 非NL | 用中文写，不再使用 `non-structured` 等英文短语。 |
 | STM类型 | FSM / HSM / EFSM / UML statechart / SysML STM / PlantUML / Mermaid / Umple / 协议FSM / 非STM | 协议FSM、非STM默认不计控制系统四例。 |
-| 资源列 | 论文 / 来源文档 / 生成代码 / NL 数据 / STM_0 数据 / 作者原生 pair / 可重建 pair / 配对索引 / 原始生成输出 / 评测结果 / 许可 / 版本 / 哈希 | 资源可获取性面向后续实验可用资源，不等同于本地 `seed_desc.md` 是否存在。 |
+| 资源列 | 论文 / 来源文档 / 生成代码 / NL 数据 / STM_0 数据 / 作者原生 pair / 可重建 pair / 配对索引 / 原始生成输出 / 评测结果 / 许可 / 版本 / 哈希 | 资源可获取性面向后续实验可用资源，不等同于本地 `seed_desc.md` 是否存在；只统计论文正文 / 脚注 / Data Availability / 参考文献、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口，本仓库缓存的 parquet、ZIP、代码、PDF 或 hash 只作本地证据。 |
 | 排除码 | `X_PROTOCOL_FSM` / `X_PROCESS_MODEL` / `X_NON_STM_FORMALISM` / `X_T1PLUS_TIMED_HYBRID` / `X_SEQUENCE_ONLY` / `X_REPAIR_ONLY` / `X_COEXIST_ONLY` | 排除码用于防误收；不能因为“看起来有 state machine”就绕过生成关系与 T0 范围。 |
+
+
+### 3.4 结论总表的 NL / STM / 时间列口径
+
+[README.md](./README.md) 核心表与 [SUMMARY.md](./SUMMARY.md) §16 不得只写“真实 NL=是 / STM family=是”。必须拆出：
+
+1. `NL输入是什么`：说明输入是需求、系统描述、use case、SRS、标准文档、goal model、scenario，还是合成文本；若不是 NL-only 必须明说。
+2. `STM输出是什么`：说明输出是 UML state machine、SysML / PlantUML STM、DFSM/Mealy CSV、EFSM、statechart elements、MoSt/NuSMV 等具体制品。
+3. `STM关键特性`：说明状态机是否含层次、区域、伪状态、guard、action、变量、exception、variability、组合/合并、输入输出等对后续转换和修正有影响的特征。
+4. `STM谱系`：说明属于 FSM、HSM/statechart、EFSM、SysML/UML state machine，还是中间/边界/非目标形式化模型。
+5. `时间特性等级`：只按全文和制品证据判断。默认用“未见显式时钟”表达没有发现 timed automata clock、连续时间或 hybrid dynamics；用“数据/守卫级”表达变量、guard、exception 或 EFSM 数据状态；证据不足时写“待核”。不要为了表格完整臆测时钟或时间约束。
+6. `资源获取方式` / `关键资源获取方式`：必须给出可点击的一手入口链接；若只有本仓库本地缓存、历史 agent 另行找到的非论文链接、未确认与论文对应的仓库、或当前 repo 中已有的 parquet / 代码 / PDF / hash，只能写作“本地证据 / 线索”，不得计为作者公开资源。
 
 ## 4. SUMMARY 表格字段纪律
 
@@ -110,6 +122,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-15 14:23:39 | PR-R1.8-B：规定 README 核心表与 SUMMARY §16 必须显式拆出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系和时间特性等级，并要求资源列只写一手可点击入口，本地 parquet / 代码缓存不计资源。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：Yue 2011 已补全文并转正到 seed 目录；人工下载 BibTeX 队列只保留 Jørgensen 2004。 |
 | 2026-06-14 21:30:00 | PR-R1.8-B：接入人工下载后的 36 dirs 口径，规定人工下载 BibTeX 放入 `manual_download_queue.bib`，SUMMARY 只保留状态链接。 |
 | 2026-06-14 20:50:00 | 进一步明确资源页受阻时的 ❓ / 🔴 边界，避免把可定位但暂时打不开与确实不可得混淆。 |

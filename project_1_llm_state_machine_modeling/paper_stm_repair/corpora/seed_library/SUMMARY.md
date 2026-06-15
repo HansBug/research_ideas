@@ -46,7 +46,7 @@
 
 ### 3.3 资源可获取性分级
 
-本节专门解释第 7 节资产盘点里用到的资源状态。盘点对象包括论文本体、来源文档、生成/复现实验代码、NL 原始数据、STM_0 原始数据、作者原生 `<NL, STM_0>` pair、可重建 pair、配对索引、原始生成输出、评测结果 / 日志，以及许可、版本 / 哈希信息；**不是**本地 `seed_desc.md`、`artifacts.md` 是否存在。整体 R2 实验输入可用性是派生汇总项，不能用单个“资源可用”emoji 代替，至少要同时检查 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`。
+本节专门解释第 7 节资产盘点里用到的资源状态。盘点对象包括论文本体、来源文档、生成/复现实验代码、NL 原始数据、STM_0 原始数据、作者原生 `<NL, STM_0>` pair、可重建 pair、配对索引、原始生成输出、评测结果 / 日志，以及许可、版本 / 哈希信息；**不是**本地 `seed_desc.md`、`artifacts.md` 是否存在。资源列只统计论文正文 / 脚注 / Data Availability / 参考文献、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口；本仓库已经缓存的 parquet、ZIP、代码、PDF、hash、截图或复现副本只能作为本地审计证据，不能把资源等级从 ❓/🔴 升成 🟡/🟢。整体 R2 实验输入可用性是派生汇总项，不能用单个“资源可用”emoji 代替，至少要同时检查 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`。
 
 | 资源对象 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
 |---|---|---|---|---|---|---|
@@ -71,7 +71,7 @@
 | LLM参与 | 是 / 否 / 可能 / 不适用 | “可能”必须有证据不足说明。 |
 | NL类型 | 需求文本 / 用例 / 场景文本 / 系统描述 / 标准文档 / 合成需求 / 来源文档 / 非NL | 用中文写，不再使用 `非结构化` 等英文短语。 |
 | STM类型 | FSM / HSM / EFSM / UML statechart / SysML STM / PlantUML / Mermaid / Umple / 协议FSM / 非STM | 协议FSM、非STM默认不计控制系统四例。 |
-| 资源列 | 论文 / 来源文档 / 生成代码 / NL 数据 / STM_0 数据 / 作者原生 pair / 可重建 pair / 配对索引 / 原始生成输出 / 评测结果 / 许可 / 版本 / 哈希 | 资源可获取性面向后续实验可用资源，不等同于本地 `seed_desc.md` 是否存在。 |
+| 资源列 | 论文 / 来源文档 / 生成代码 / NL 数据 / STM_0 数据 / 作者原生 pair / 可重建 pair / 配对索引 / 原始生成输出 / 评测结果 / 许可 / 版本 / 哈希 | 资源可获取性面向后续实验可用资源，不等同于本地 `seed_desc.md` 是否存在；必须给论文正文 / 脚注 / Data Availability / 参考文献、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手可点击入口；本地缓存只作审计证据。 |
 
 ### 3.5 R2 交接表列口径
 
@@ -123,21 +123,21 @@
 | `from-use-cases-to-statecharts` | 2001 | 旧基线 | 用例 | UML statechart | 🟡 | 🟡 | 🟡 | 🔴 | 经典文献 | statechart 是中间产物 | [seed_desc](./from-use-cases-to-statecharts/seed_desc.md) |
 | `beyond-scenarios-state-models` | 2004 | 旧基线 | 受限英语用例 | HFSTM | 🟢 | 🟡 | 🟡 | 🔴 | 经典文献 | `paper_content` 质量差，需 PDF 核验 | [seed_desc](./beyond-scenarios-state-models/seed_desc.md) |
 | `executable-state-machines-structured-text` | 2019 | 旧基线 | 结构化需求 / SPS | executable FSM | 🟢 | 🟠 | 🟡 | 🔴 | NL->SPS 有人工步骤 | 弱 seed 相关工作 | [seed_desc](./executable-state-machines-structured-text/seed_desc.md) |
-| `maritaca-use-case-behavior-models` | 2017 | R1.6 经典检索 | 半结构化用例 | UML state machine | 🟢 | 🟢 | 🟢 | 🔴 | strict seed / 传统 NLP baseline | 作者 artifact 403；pair/代码未冻结 | [seed_desc](./maritaca-use-case-behavior-models/seed_desc.md) |
-| `dependable-product-families-usecases-state-machines` | 2016 | R1.6 经典检索 | 受限用例 + variability | UML state machine / EFSM | 🟡 | 🟢 | 🟡 | 🔴 | conditional strict / product-family sentinel | variability 需切片；pair/code未公开 | [seed_desc](./dependable-product-families-usecases-state-machines/seed_desc.md) |
-| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | 🟡 | 🟢 | 🟡 | 🔴 | conditional seed / RUCM seed evidence | 本地全文可读；aToucan / RUCM 链路可定位，原生 pair / 代码 / 许可未冻结 | [seed_desc](./automated-transition-use-cases-uml-sm/seed_desc.md) |
+| `maritaca-use-case-behavior-models` | 2017 | R1.6 经典检索 | 半结构化用例 | UML state machine | 🟢 | 🟢 | 🟢 | 🔴 | 严格种子 / 传统 NLP 基线 | 作者 artifact 403；pair/代码未冻结 | [seed_desc](./maritaca-use-case-behavior-models/seed_desc.md) |
+| `dependable-product-families-usecases-state-machines` | 2016 | R1.6 经典检索 | 受限用例 + variability | UML state machine / EFSM | 🟡 | 🟢 | 🟡 | 🔴 | 条件严格种子 / 产品族哨兵 | variability 需切片；pair/code未公开 | [seed_desc](./dependable-product-families-usecases-state-machines/seed_desc.md) |
+| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | 🟡 | 🟢 | 🟡 | 🔴 | 条件种子 / RUCM 方法证据 | 论文 [DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；附录可重建局部 pair，原生 pair / 代码 / 许可未冻结 | [seed_desc](./automated-transition-use-cases-uml-sm/seed_desc.md) |
 | `execution-nl-req-bt-sm` | 2012 | 外部检索 | 需求文本 | 行为树 -> FSM | 🟢 | 🟠 | 🟠 | 🔴 | BT 中间产物 / 转换链证据 | BT2SMExamples 链接不稳定；不计主 seed | [seed_desc](./execution-nl-req-bt-sm/seed_desc.md) |
 | `completion-sysml-gwt` | 2024 | 外部 / 旧基线 | GWT需求 + partial model | SysML transitions | 🟠 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 依赖已有 partial model | [seed_desc](./completion-sysml-gwt/seed_desc.md) |
 | `towards-automatic-model-completion` | 2022 | R1.7人工复查 | GWT需求 + partial SMD | SysML STM 片段 | 🔴 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 不是 initial `NL -> STM_0` | [seed_desc](./towards-automatic-model-completion/seed_desc.md) |
 | `scenarios-statecharts-interrelated` | 待核 | 旧基线 | 结构化 scenario / event trace | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_SEQUENCE_CLASS` | 输入不是自然语言需求文本 | [seed_desc](./scenarios-statecharts-interrelated/seed_desc.md) |
 | `generating-statechart-designs-from-scenarios` | 2000 | 外部检索 | sequence / scenario | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_SEQUENCE_CLASS` | sequence/scenario 输入 | https://doi.org/10.1145/337180.337217 |
 | `synthesis-revisited-scenario-based` | 2005 | 外部 / 旧基线 | LSC / MSC 形式化场景 | statechart | 🟢 | 🔴 | 🔴 | 🔴 | `X_FORMAL_SPEC` / `X_SEQUENCE_CLASS` | — | https://doi.org/10.1007/978-3-540-31847-7_18 |
-| `requirements-analysis-prototyping-scenarios-statecharts` | 2002 | 外部检索 | scenario / co-evolution | statechart | ❓ | 🔴 | 🔴 | 🔴 | reverse-direction sentinel | 本地 `paper.pdf` / `paper_content.txt` 可读；方向是 statechart/scenario 协同与原型验证，不是 NL->STM | [seed_desc](./requirements-analysis-prototyping-scenarios-statecharts/seed_desc.md) |
-| `nl-standard-docs-state-machines` | 2018 | 外部检索 | 标准文档 | state machine | 🟡 | 🟢 | 🟠 | 🔴 | standard-doc sentinel | 本地 `paper.pdf` / `paper_content.txt` 可读；ECSS 标准可定位，原始输出包未公开 | [seed_desc](./nl-standard-docs-state-machines/seed_desc.md) |
-| `semi-auto-efsm-standard-docs` | 2015 | R1.6 protocol search | 标准文档 | EFSM | 🟢 | 🟢 | 🟠 | 🔴 | standard-doc sentinel | ECSS/PUS 可定位；code/data 未公开 | [seed_desc](./semi-auto-efsm-standard-docs/seed_desc.md) |
-| `statechart-use-case-validation-event-driven` | 2012 | R1.6 Crossref | use-case model | UML statechart | 🟢 | 🟢 | 🟡 | 🔴 | conditional seed / validation-oriented | RealState 入口可访问；图示可重建 pair；原生数据包/代码未公开 | [seed_desc](./statechart-use-case-validation-event-driven/seed_desc.md) |
-| `rscharter-statechart-elements` | 待核 | R1.6 Crossref | 需求规格 | UML statechart 元素 | 🟢 | 🟡 | 🟡 | 🔴 | conditional seed / FOPL bridge | PuRE dataset 可用；增强 pair 未公开 | [seed_desc](./rscharter-statechart-elements/seed_desc.md) |
-| `most-states-modes` | 2024 | 外部检索 | 需求文本 | 状态/模式形式化模型 | 🟠 | ❓ | 🟠 | 🔴 | related work / formalization | GitHub repo 与例子可访问；不是直连 NL->STM | [seed_desc](./most-states-modes/seed_desc.md) |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 2002 | 外部检索 | scenario / co-evolution | statechart | ❓ | 🔴 | 🔴 | 🔴 | 反向边界哨兵 | 仅二手 Academia PDF；方向是 statechart/scenario 协同与原型验证，不是 NL->STM | [seed_desc](./requirements-analysis-prototyping-scenarios-statecharts/seed_desc.md) |
+| `nl-standard-docs-state-machines` | 2018 | 外部检索 | 标准文档 | state machine | 🟡 | 🟢 | 🟠 | 🔴 | 标准文档哨兵 | 论文 [DOI](https://doi.org/10.2514/1.I010525)；ECSS/PUS 标准为引用来源文档，原始输出包未公开 | [seed_desc](./nl-standard-docs-state-machines/seed_desc.md) |
+| `semi-auto-efsm-standard-docs` | 2015 | R1.6 protocol search | 标准文档 | EFSM | 🟢 | 🟢 | 🟠 | 🔴 | 标准文档哨兵 | 论文 [DOI](https://doi.org/10.1109/DSN-W.2015.17)；ECSS/PUS 为引用标准，code/data 未公开 | [seed_desc](./semi-auto-efsm-standard-docs/seed_desc.md) |
+| `statechart-use-case-validation-event-driven` | 2012 | R1.6 Crossref | use-case model | UML statechart | 🟢 | 🟢 | 🟡 | 🔴 | 条件种子 / 验证导向 | 论文 [DOI](https://doi.org/10.1145/2245276.2231947)；[RealState](http://openseminar.org/se/) 为案例入口，图示可重建 pair；原生数据包/代码未公开 | [seed_desc](./statechart-use-case-validation-event-driven/seed_desc.md) |
+| `rscharter-statechart-elements` | 待核 | R1.6 Crossref | 需求规格 | UML statechart 元素 | 🟢 | 🟡 | 🟡 | 🔴 | 条件种子 / FOPL 桥接 | 论文 [SSRN](https://papers.ssrn.com/abstract=4964857)；PuRE 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.1414117)；增强 pair 未公开 | [seed_desc](./rscharter-statechart-elements/seed_desc.md) |
+| `most-states-modes` | 2024 | 外部检索 | 需求文本 | 状态/模式形式化模型 | 🟠 | ❓ | 🟠 | 🔴 | 相关工作 / 形式化 | 论文 [DOI](https://doi.org/10.1145/3640822)；工具 [GitHub](https://github.com/liuyinling/MoSt-Modeling-Tool.git) 与例子支撑 MoSt/NuSMV，不是直连 NL->STM | [seed_desc](./most-states-modes/seed_desc.md) |
 | `sysmlv2-formalized-requirements` | 2025 | 外部 / 旧基线 | 需求 + temporal logic | SysML v2 / 形式化模型? | 🟠 | 🟠 | 🟠 | 🔴 | LTL / 形式化 风险高 | — | `baselines/enhancing-model-based-development-formalized-requirements/` |
 | `protocol-flowfsm-sentinel` | 2024 | 旧基线 / 协议域 | RFC / 协议文本 | 协议 FSM | 🟠 | 🟡 | 🔴 | 🔴 | `X_PROTOCOL` | 保留方法证据，不计控制系统四例 | `baselines/agentic-flow-finite-state-machine-extraction-prompt-chaining/` |
 | `3gpp-protocol-sentinel` | 2024 | 旧基线 / 协议域 | 3GPP标准文本 | 协议 FSM | 🟠 | 🟡 | 🔴 | 🔴 | `X_PROTOCOL` | 保留 ensemble / span grounding 线索 | `baselines/automated-extraction-protocol-state-machines-3gpp-specifications/` |
@@ -154,7 +154,7 @@
 | `integrating-graphical-nl-specifications` | 2016 | R1.7 边界全文 | NL + 已有图形表示 | 图形表示输入 | 🔴 | 🔴 | 🔴 | 🔴 | `X_COEXIST_ONLY` | 类 statechart 对象 不是目标输出 | [seed_desc](./integrating-graphical-nl-specifications/seed_desc.md) |
 | `specification-based-verification-usecase-sm` | 2008 | R1.7 边界全文 | 半形式化用例 | 验证用 state machine | 🔴 | 🔴 | 🔴 | 🔴 | `X_COEXIST_ONLY` | state machine 是验证执行机制 | [seed_desc](./specification-based-verification-usecase-sm/seed_desc.md) |
 | `executable-use-cases-domain-machine-specifications` | 2004 | R1.7 manual 候选 | executable use cases | machine specifications | ❓ | ❓ | ❓ | 🔴 | BibTeX-only / PDF 仍受阻 | 出版商封闭；人工下载队列 | [seed_desc](./executable-use-cases-domain-machine-specifications/seed_desc.md) |
-| `web-tool-goal-statechart-derivation` | 2015 | R1.7 manual 候选 | 目标模型 / 需求模型 | statechart | ❓ | 🟠 | ❓ | 🔴 | goal/statechart sentinel | supplement/tool 可访问；非 NL-only | [seed_desc](./web-tool-goal-statechart-derivation/seed_desc.md) |
+| `web-tool-goal-statechart-derivation` | 2015 | R1.7 manual 候选 | 目标模型 / 需求模型 | statechart | ❓ | 🟠 | ❓ | 🔴 | 目标模型 / statechart 哨兵 | 论文 [DOI](https://doi.org/10.1109/RE.2015.7320444)；[supplement](http://www.cin.ufpe.br/~ler/supplement/re2015/) 可定位；非 NL-only | [seed_desc](./web-tool-goal-statechart-derivation/seed_desc.md) |
 | `ucgen-usecase-descriptions` | 2026 | R1.7 排除 | 需求规格 | 用例文本 | ⚪ | 🔴 | 🔴 | 🔴 | 输出非 STM | 不进入 seed | Crossref textual usecase round |
 
 ## 6. R2 交接 / 可计候选明细
@@ -163,83 +163,83 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `sefm-llm-state-machine` | 🟡 | 🟢 | ⚪ | UML statechart | Umple / UML | 🟢 | LLM | 是 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 🟢 | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
 | `llms-emp-stm-subset` | 🟢 | 🟢 | 🟡 | SysML / PlantUML STM | PlantUML | 🟢 | LLM | 是 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 🟢 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
-| `designing-fsm-gpt4` | 🟡 | 🟢 | ⚪ | CSV DFSM / Mealy | CSV | 🟢 | LLM | 是 | 🟡 | 🟡 | 🟡 | 🟠 | 🟡 | 🟡 | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
+| `designing-fsm-gpt4` | 🟠 | 🟢 | ⚪ | CSV DFSM / Mealy | CSV | 🟢 | LLM | 是 | 🔴 | 🟠 | 🟠 | 🟠 | 🟡 | 🟡 | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
 | `unified-uml-multimodal-validation` | 🟢 | 🟡 | 🟡 | PlantUML state diagram | PlantUML | 🟢 | 多模型流水线 | 是 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 🟡 | [seed_desc](./unified-uml-multimodal-validation/seed_desc.md) |
 
-说明：`sefm-llm-state-machine` 的 4open 制品 可用但仍需正式冻结版本 / 许可 / 哈希；`designing-fsm-gpt4` 必须只取初始生成输出；`unified-uml-multimodal-validation` 必须记录合成 NL 和 HF 许可边界说明。
+说明：`sefm-llm-state-machine` 的 [4open 制品](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) 可用但仍需正式冻结版本 / 许可 / 哈希；`designing-fsm-gpt4` 只按论文 [arXiv](https://arxiv.org/abs/2603.29140) 中 Listing 可重建的初始生成口径处理；`unified-uml-multimodal-validation` 必须记录论文 [Data Availability](https://www.techscience.com/CMES/v146n1/65740/html) 指向的 [HF 数据集](https://huggingface.co/nguyenvanviet/datasets) 许可边界和合成 NL 风险。
 
 ## 7. 外部资源可获取性矩阵（47 行）
 
-本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。**资源可获取性升级为 🟢/🟡 前，必须基于全文阅读与外部资源页核验**，包括 DOI / 出版页、作者仓库、数据集 / artifact 页面、附录、补充材料和许可页；不能只因为本地有 `seed_desc.md`、`artifacts.md` 或 PDF 缓存就判断作者公开了可复用资产。若全文或资源页受阻，应保持 ❓/🔴 并在说明列写明阻塞来源。
+本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。**资源可获取性升级为 🟢/🟡 前，必须基于全文阅读与外部资源页核验**，包括 DOI / 出版页、论文明确指向的作者仓库、数据集 / artifact 页面、附录、补充材料和许可页；不能只因为本地有 `seed_desc.md`、`artifacts.md`、PDF 缓存、parquet 缓存、ZIP 缓存、代码副本或本地 hash 就判断作者公开了可复用资产。若全文或资源页受阻，应保持 ❓/🔴 并在说明列写明阻塞来源。凡说明列提到可获取的一手资源，必须给出可点击链接。
 
 | ID | 论文本体 | 来源文档 | 生成/复现实验代码 | NL 数据 | STM_0 数据 | 作者原生 pair | 可重建 pair | 配对索引 | 原始生成输出 | 评测结果 / 日志 | 许可 | 版本 / 哈希 | 获取性说明 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | 🟢 | ⚪ | 🟡 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 4open 制品含 descriptions / reference / 生成输出；需冻结许可、版本和哈希。 |
-| `llms-emp-stm-subset` | 🟢 | ⚪ | 🔴 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 本地 parquet / result 强；生成流水线代码未公开，Drive / 许可待核。 |
-| `designing-fsm-gpt4` | 🟢 | ⚪ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ❓ | ❓ | GitHub 有样例、部分输出与评分；无正式发布版本 / 许可，需隔离初始输出。 |
-| `unified-uml-multimodal-validation` | 🟢 | ⚪ | ❓ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | ❓ | ❓ | HF parquet 可用；需确认许可、逐行可解析性与合成数据边界。 |
-| `fsm-bench-20` | ⚪ | ⚪ | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | ⚪ | 🟢 | 🟢 | Zenodo/GitHub/MIT 可用；作者冻结的生成 `STM_0` 输出未公开。 |
-| `ttool-ai-smd-subset` | 🟢 | ⚪ | 🟢 | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟢 | ❓ | 🟡 | 仓库有 specification / XML / results.ods；SMD 需从联合 SysML 模型中切片。 |
-| `fsm-gen-iec-61499` | 🟢 | ⚪ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 核心实验数据 / 输出私有；只能作相关工作 / 私有边界。 |
-| `ijisrt-uml-state-diagrams-llm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内示例可读，无原始输出、代码或数据包。 |
-| `umple-nl-state-machine` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | thesis 给需求和示例，完整 benchmark、输出包、评测脚本未公开。 |
-| `req-mermaid-statechart` | 🟢 | ⚪ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | Volvo / Car Weaver 核心 NL、人工 statecharts、评分与输出私有。 |
-| `pushing-generative-envelope-mbse` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内题项 / 表格可读，无逐次输出包、代码、数据包或补充材料。 |
-| `from-use-cases-to-statecharts` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 仅论文示例 / 手工推导线索。 |
-| `beyond-scenarios-state-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文示例可读；本地 text 提取质量差，需 PDF 核验。 |
-| `executable-state-machines-structured-text` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 仅论文示例；无可直接复验数据包。 |
-| `maritaca-use-case-behavior-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；作者网页 `http://www.students.ic.unicamp.br/~ra161251/` 已定位但 403；只能从论文例子重建 pair，原生数据包、代码和许可未冻结。 |
-| `dependable-product-families-usecases-state-machines` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；只能从论文中的 use case / variability / traceability matrix 重建 pair，原生代码、数据、许可、hash 未公开。 |
-| `automated-transition-use-cases-uml-sm` | 🟢 | ⚪ | 🟠 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | ❓ | ❓ | 本地正文可读；Appendix A/B 可重建局部 RUCM use case 与生成 state machine；仅能定位 aToucan / RUCM 链路，原生 pair 包、完整代码、许可、hash 未冻结。 |
-| `execution-nl-req-bt-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf`、`paper_content.txt` 和 ScienceDirect HTML 快照可读；论文示例可重建 NL/BT/SM，`BT2SMExamples.pdf` 入口不稳定。 |
-| `completion-sysml-gwt` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文可读但为 partial-model completion，不是 seed pair。 |
-| `towards-automatic-model-completion` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文可读但为 repair-only / completion-only。 |
-| `scenarios-statecharts-interrelated` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 结构化 scenario / event trace，不是 NL seed pair。 |
-| `generating-statechart-designs-from-scenarios` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | sequence/scenario 输入；不作为 seed pair。 |
-| `synthesis-revisited-scenario-based` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 形式化 scenario 输入；不作为 seed pair。 |
-| `requirements-analysis-prototyping-scenarios-statecharts` | 🟢 | ⚪ | 🔴 | ❓ | ❓ | 🔴 | 🔴 | 🔴 | ❓ | ❓ | ❓ | ❓ | 本地 `paper.pdf` / `paper_content.txt` 可读；正式 DOI 未定位，已判定为非 `NL -> STM_0`，更接近 statechart / scenario 协同或 reverse-direction sentinel，未发现可直接复用的 NL->STM pair。 |
-| `nl-standard-docs-state-machines` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；ECSS 标准可定位，原始 TXT2SMM 输出包未公开。 |
-| `semi-auto-efsm-standard-docs` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 本地 `paper.pdf` / `paper_content.txt` 可读；ECSS/PUS 标准入口可定位，TXT2SMM / case data / generated EFSM package 未公开。 |
-| `statechart-use-case-validation-event-driven` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | PDF 可读；RealState 入口可访问，但只作为案例入口；图示可重建 pair，完整代码/数据/许可/hash 未公开。 |
-| `rscharter-statechart-elements` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟡 | 🟡 | 本地 `paper.pdf` / `paper_content.txt` 可读；PuRE Zenodo 数据集可定位，许可 / 版本仅覆盖 PuRE 来源数据，不覆盖 RSCharter 增强 pair / code。 |
-| `most-states-modes` | 🟢 | ⚪ | 🟢 | 🟢 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟢 | ❓ | 🟢 | 本地 `paper.pdf` / `paper_content.txt` 可读；GitHub `liuyinling/MoSt-Modeling-Tool`、Example 文件和 commit hash 可定位，但这些是 MoSt / NuSMV 形式化模型资源，非目标 T0 `STM_0`。 |
-| `sysmlv2-formalized-requirements` | 🟠 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 目前更像形式化 / LTL 相关证据。 |
-| `protocol-flowfsm-sentinel` | 🟢 | 🟢 | 🔴 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | RFC 输入公开；作者 规则书 / 标注答案 / 抽取迁移 未公开。 |
-| `3gpp-protocol-sentinel` | 🟢 | 🟡 | 🔴 | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 3GPP 文档需锁版本；SpecGPT 代码 / 标注答案 / 输出未公开。 |
-| `source-autonomous-driving-hsm` | ⚪ | 🟡 | ⚪ | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源文档 / HSM 可作本项目构造 seed，但无作者原生生成 pair。 |
-| `source-rotorcraft-uas-hsm` | ⚪ | 🟡 | ⚪ | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源文档 / HSM 可作本项目构造 seed；需后续构造并冻结。 |
-| `source-smarthand-hsm` | ⚪ | 🟡 | ⚪ | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源文档 / HSM 可作本项目构造 seed；目录名与证据待核。 |
-| `source-hfsm-human-robot` | ⚪ | 🟡 | ⚪ | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源文档 / HSM 可作本项目构造 seed；需构造 STM0。 |
-| `source-avp-hsm` | ⚪ | 🟡 | ⚪ | 🟡 | 🟡 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源文档 / HSM 可作本项目构造 seed；需防停车场景趋同。 |
-| `nlp-req-formalization-testcase-generation` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内例子可重建，IRDL/sequence 中间产物与无机读输出限制使用。 |
-| `statistical-usage-testing-uml` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内 textual/tabular use case 与 statechart 示例可重建。 |
-| `unified-use-case-statecharts` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内 SRS use case / UCUM 示例可重建。 |
-| `statechart-codesign-usecases` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内示例可重建；sequence 路径边界。 |
-| `object-models-uml-embedded` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文内 textual use case / statechart 示例可重建。 |
-| `integrating-graphical-nl-specifications` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | NL 与 graphical notation 共现，不是 `NL -> STM` 输出资源。 |
-| `specification-based-verification-usecase-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | state machine 是 testbench 执行机制，不是目标 STM 数据。 |
-| `executable-use-cases-domain-machine-specifications` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 仅 BibTeX；出版商封闭，PDF / 全文仍待人工下载。 |
-| `web-tool-goal-statechart-derivation` | 🟢 | 🟡 | 🔴 | ❓ | 🟠 | ❓ | ❓ | ❓ | 🟠 | 🟠 | ❓ | 🟠 | 本地 `paper.pdf` / `paper_content.txt` 可读；supplement 与 GATO 工具入口可定位，但输入不是 NL-only。 |
-| `ucgen-usecase-descriptions` | 🟠 | ⚪ | 🔴 | 🟠 | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | 🟠 | 🔴 | 🔴 | 输出是 use case descriptions，不是 STM。 |
+| `sefm-llm-state-machine` | 🟢 | ⚪ | 🟡 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) / [ZIP](https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip) 含 descriptions / reference / 生成输出；需冻结许可、版本和哈希。 |
+| `llms-emp-stm-subset` | 🟢 | ⚪ | 🔴 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文正文/脚注给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)；生成流水线代码未公开，数据许可待核。 |
+| `designing-fsm-gpt4` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | ❓ | ❓ | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 1.1/1.2 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 不计入资源可获取性。 |
+| `unified-uml-multimodal-validation` | 🟢 | ⚪ | ❓ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | ❓ | ❓ | 论文 [TechScience HTML](https://www.techscience.com/CMES/v146n1/65740/html) 的 Data Availability 给 [HF datasets](https://huggingface.co/nguyenvanviet/datasets)，StateDiagram 子集 [UMLCode_StateDiagram](https://huggingface.co/datasets/nguyenvanviet/UMLCode_StateDiagram)，许可、逐行可解析性与合成边界待核。 |
+| `fsm-bench-20` | ⚪ | ⚪ | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | ⚪ | 🟢 | 🟢 | 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.20517969) 与 [GitHub tag](https://github.com/cesar-andress/llm-fsm-local-benchmark/tree/v1.0.0) / [release](https://github.com/cesar-andress/llm-fsm-local-benchmark/releases/tag/v1.0.0) 可用；作者冻结的生成 `STM_0` 输出未公开。 |
+| `ttool-ai-smd-subset` | 🟢 | ⚪ | 🟢 | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟢 | ❓ | 🟡 | 论文 [HAL](https://telecom-paris.hal.science/hal-04483279) / [DOI](https://doi.org/10.5220/0012320100003645)；论文给出作者仓库 [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai)，含 specification / XML / results.ods；SMD 需从联合 SysML 模型中切片。 |
+| `fsm-gen-iec-61499` | 🟢 | ⚪ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11279575/)；核心实验数据 / 输出私有，只能作相关工作 / 私有边界。 |
+| `ijisrt-uml-state-diagrams-llm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.38124/ijisrt/26feb1435)；仅论文内示例可重建，无原始输出、代码或数据包。 |
+| `umple-nl-state-machine` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 学位论文 [uOttawa record](https://ruor.uottawa.ca/items/b3679a91-5445-45ce-b289-bfddba3010f6)；论文给需求和示例，完整 benchmark、输出包、评测脚本未公开。 |
+| `req-mermaid-statechart` | 🟢 | ⚪ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 学位论文 [Chalmers record/PDF](https://odr.chalmers.se/bitstreams/7c06ef2c-d1ae-40b4-b13c-a35087077bce/download)；Volvo / Car Weaver 核心 NL、人工 statecharts、评分与输出私有。 |
+| `pushing-generative-envelope-mbse` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ACL Anthology](https://aclanthology.org/2025.ranlp-1.137/) / [DOI](https://doi.org/10.26615/978-954-452-098-4-137)；论文内题项 / 表格可读，无逐次输出包、代码、数据包或补充材料。 |
+| `from-use-cases-to-statecharts` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.2498/cit.2004.03.04) / 官方 [HRČAK PDF](https://hrcak.srce.hr/file/69340)；仅论文示例 / 手工推导线索，无作者原生机读 pair。 |
+| `beyond-scenarios-state-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 PDF [uOttawa](https://www.site.uottawa.ca/~ssome/UCEdWeb/publis/ICSE02_Scenario_Workshop.pdf)；仅论文示例可读，无公开 UCEd 下载 / 机读 pair。 |
+| `executable-state-machines-structured-text` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.5220/0007236601930200)；仅论文示例，无可直接复验数据包。 |
+| `maritaca-use-case-behavior-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2017.33)；论文引用作者网页 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按 403/受阻处理；只能从论文例子重建 pair，原生数据包、代码和许可未冻结。 |
+| `dependable-product-families-usecases-state-machines` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/LADC.2016.28)；论文引用作者站点 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按受阻处理；只能从论文中的 use case / variability / traceability matrix 重建 pair，原生代码、数据、许可、hash 未公开。 |
+| `automated-transition-use-cases-uml-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | ❓ | ❓ | 论文 [Springer DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；Appendix A/B 可重建局部 RUCM use case 与生成 state machine；未见论文一手原生 pair 包、完整代码、许可或 hash。 |
+| `execution-nl-req-bt-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0164121212001690) / [DOI](https://doi.org/10.1016/j.jss.2012.06.013)；论文示例可重建 NL/BT/SM，`BT2SMExamples.pdf` 入口不稳定。 |
+| `completion-sysml-gwt` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/s10270-024-01228-3)；任务为 partial-model completion，不是 seed pair。 |
+| `towards-automatic-model-completion` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2210.03388) / [DOI](https://doi.org/10.48550/arXiv.2210.03388)；任务为 repair-only / completion-only。 |
+| `scenarios-statecharts-interrelated` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 PDF [Tsukuba](https://www.iplab.cs.tsukuba.ac.jp/paper/international/simona-isfst2001.pdf)；结构化 scenario / event trace，不是 NL seed pair。 |
+| `generating-statechart-designs-from-scenarios` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1145/337180.337217)；sequence/scenario 输入，不作为 seed pair。 |
+| `synthesis-revisited-scenario-based` | 🟠 | ⚪ | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/978-3-540-31847-7_18)；形式化 scenario 输入，不作为 seed pair。 |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 🟠 | ⚪ | 🔴 | ❓ | ❓ | 🔴 | 🔴 | 🔴 | ❓ | ❓ | ❓ | ❓ | 仅定位到二手 [Academia PDF](https://www.academia.edu/download/31191491/1.pdf)，正式 DOI / 作者页 / 出版页未定位；非 `NL -> STM_0`，未发现可直接复用的 pair。 |
+| `nl-standard-docs-state-machines` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [AIAA DOI](https://doi.org/10.2514/1.I010525)；ECSS/PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；原始 TXT2SMM 输出包未公开。 |
+| `semi-auto-efsm-standard-docs` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2015.17)；ECSS/PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；TXT2SMM / case data / generated EFSM package 未公开。 |
+| `statechart-use-case-validation-event-driven` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ACM DOI](https://doi.org/10.1145/2245276.2231947)；论文引用案例来源 [RealState](http://openseminar.org/se/)；图示可重建 pair，完整代码/数据/许可/hash 未公开。 |
+| `rscharter-statechart-elements` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟡 | 🟡 | 论文 [SSRN](https://papers.ssrn.com/abstract=4964857)；输入来源 PuRE 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.1414117)；PuRE 许可 / 版本仅覆盖来源数据，不覆盖 RSCharter 增强 pair/code。 |
+| `most-states-modes` | 🟢 | ⚪ | 🟢 | 🟢 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟢 | ❓ | 🟡 | 论文 [ACM DOI](https://doi.org/10.1145/3640822)；论文给出工具 [GitHub](https://github.com/liuyinling/MoSt-Modeling-Tool.git) 和相关 example；这些是 MoSt / NuSMV 形式化模型资源，非目标 T0 `STM_0`；仓库可定位但 release / tag / commit 尚未冻结。 |
+| `sysmlv2-formalized-requirements` | 🟠 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/s10010-025-00806-1)；目前更像形式化 / LTL 相关证据。 |
+| `protocol-flowfsm-sentinel` | 🟢 | 🟢 | 🔴 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2507.11222)；输入 [RFC 959](https://www.rfc-editor.org/rfc/rfc959) 公开；论文给出的 [FlowFSM GitHub](https://github.com/YoussefMaklad/FlowFSM) 当前仅为仓库壳，作者 rulebook / GT / 输出未公开。 |
+| `3gpp-protocol-sentinel` | 🟢 | 🟡 | 🔴 | 🟡 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2510.14348)；3GPP 输入规格 [TS 24.501](https://www.3gpp.org/dynareport/24501.htm)、[TS 38.413](https://www.3gpp.org/dynareport/38413.htm)、[TS 29.244](https://www.3gpp.org/dynareport/29244.htm) 需锁版本；SpecGPT 代码 / GT / 输出未公开。 |
+| `source-autonomous-driving-hsm` | ⚪ | 🟡 | ⚪ | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源论文 [DOI](https://doi.org/10.3390/app10103543)；仅可从论文正文 / 图表抽取系统描述与 HSM 线索，不是独立公开 NL/STM 数据集，也无作者原生生成 pair。 |
+| `source-rotorcraft-uas-hsm` | ⚪ | 🟡 | ⚪ | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源论文 [DOI](https://doi.org/10.1002/rob.21898)；仅可从论文正文 / 图表抽取任务描述与 HSM 线索，不是独立公开 NL/STM 数据集；若使用需本项目后续构造并冻结。 |
+| `source-smarthand-hsm` | ⚪ | 🟡 | ⚪ | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源论文 [DOI](https://doi.org/10.1186/1743-0003-8-29)；仅可从论文正文 / 图表抽取设备行为与 HSM 线索，不是独立公开 NL/STM 数据集；目录名与证据仍待核。 |
+| `source-hfsm-human-robot` | ⚪ | 🟡 | ⚪ | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源论文 [DOI](https://doi.org/10.1109/IROS47612.2022.9981618)；仅可从论文正文 / 图表抽取协作装配任务与 HFSM 线索，不是独立公开 NL/STM 数据集；需本项目构造 `STM_0`。 |
+| `source-avp-hsm` | ⚪ | 🟡 | ⚪ | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | ⚪ | ⚪ | ❓ | ❓ | 来源论文 [汽车工程](https://www.qichegongcheng.com/CN/abstract/abstract1407.shtml) / [DOI](https://doi.org/10.19562/j.chinasae.qcgc.2023.02.009)；仅可从论文正文 / 图表抽取 AVP 决策规划与 FSM/HSM 线索，不是独立公开 NL/STM 数据集；需防停车场景趋同。 |
+| `nlp-req-formalization-testcase-generation` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 PDF [CEUR](https://ceur-ws.org/Vol-2951/paper15.pdf)；论文内例子可重建，IRDL/sequence 中间产物与无机读输出限制使用。 |
+| `statistical-usage-testing-uml` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 PDF [Uni Hamburg](https://www.inf.uni-hamburg.de/en/inst/ab/swk/research/publications/pdf/2003-sci2003-paper.pdf)；论文内 textual/tabular use case 与 statechart 示例可重建。 |
+| `unified-use-case-statecharts` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/s00766-007-0053-1)；论文内 SRS use case / UCUM 示例可重建。 |
+| `statechart-codesign-usecases` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1109/MEMCOD.2003.1210083)；论文内示例可重建，sequence 路径边界。 |
+| `object-models-uml-embedded` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.2498/cit.2004.03.04) / [PDF](https://hrcak.srce.hr/file/69340)；论文内 textual use case / statechart 示例可重建。 |
+| `integrating-graphical-nl-specifications` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1109/REW.2017.50)；NL 与 graphical notation 共现，不是 `NL -> STM` 输出资源。 |
+| `specification-based-verification-usecase-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/978-0-387-09661-2_4)；state machine 是 testbench 执行机制，不是目标 STM 数据。 |
+| `executable-use-cases-domain-machine-specifications` | ❓ | ⚪ | 🔴 | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | 仅 [DOI](https://doi.org/10.1049/ic:20040231) / BibTeX；出版商封闭，PDF / 全文仍待人工下载。 |
+| `web-tool-goal-statechart-derivation` | 🟢 | 🟡 | 🔴 | ❓ | 🟠 | ❓ | ❓ | ❓ | 🟠 | 🟠 | ❓ | 🟠 | 论文 [IEEE DOI](https://doi.org/10.1109/RE.2015.7320444)；论文给出 [supplement](http://www.cin.ufpe.br/~ler/supplement/re2015/)；输入不是 NL-only。 |
+| `ucgen-usecase-descriptions` | 🟠 | ⚪ | 🔴 | 🟠 | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1145/3796563.3796606)；输出是 use case descriptions，不是 STM。 |
 
 ## 8. 旧九生成基线映射与本地证据容器
 
 ### 8.1 旧九生成基线映射（9/9）
 
-本节是旧九生成方法与 seed 文库条目的摘要映射；`资源摘要（非原子）` 只是阅读提示，正式资源状态以 §7 的原子列为准。
+本节是旧九生成方法与 seed 文库条目的摘要映射；`资源摘要（非原子）` 只是阅读提示，正式资源状态以 §7 的原子列为准。`作者原生 pair` 只表示作者是否公开了原始 `<NL, STM_0>` 配对；论文 Listing / 图表 / 题项可重建但没有原始数据包时必须记为 🔴，可重建性另见 §7 的 `可重建 pair`。
 
 
-| 原基线 | 种子方法 ID | 矩阵 ID | 单条目 | 输入 NL | 输出 STM | 生成方法 | 作者原生 pair | 资源摘要（非原子） | R2 用途 |
+| 原基线 | 种子方法 ID | 矩阵 ID | 单条目 | 输入 NL | 输出 STM | 生成方法 | 作者原生 pair | 资源摘要（非原子；一手入口） | R2 用途 |
 |---|---|---|---|---|---|---|---|---|---|
-| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 8 个 reactive-system / system descriptions | UML state machine / statechart | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟢 | 4open 制品 含代码 / 数据 / F1 workbook；许可 / 哈希 待冻结 | 强主 seed 候选 |
-| LLMS EMP / SysML Behavior Models | `llms-emp-stm-subset` | `llms-emp-stm-subset` | [llms-emp-stm-subset](./llms-emp-stm-subset/) | 107 个 SysML 行为模型需求描述；只取 `diagram_type=stm` 子集 | PlantUML / SysML STM | LLM；requirements + prompt；含检查 / 反馈再生成设计 | 🟢 | 数据 / human review / results 强；流水线 代码未公开；Drive/许可 待核 | 强主 seed / judge 校准 |
-| Designing FSM with GPT-4 | `designing-fsm-gpt4` | `designing-fsm-gpt4` | [designing-fsm-gpt4](./designing-fsm-gpt4/) | 合成英文 DFSM / Mealy 需求描述 | CSV DFSM / Mealy | GPT-4/GPT-4o；初始生成 + oracle / 检查 / 修正实验 | 🟡 | GitHub 有样例、generated text、部分 Graphviz / score；无 发布版本/许可 | 条件主；仅初始生成 |
-| TTool-AI | `ttool-ai-smd-subset` | `ttool-ai-smd-subset` | [ttool-ai-smd-subset](./ttool-ai-smd-subset/) | platooning、spacebasedsystem、AutomatedBraking 等自然语言系统规范 | SysML/TTool state-machine diagram subset | ChatGPT 3.5；语法/语义检查、JSON→TTool XML | 🟡 | GitHub 制品 强；需从联合 SysML 模型中分离 SMD；provider drift/许可 待核 | 转换器压力 / 条件 seed |
-| Umple thesis | `umple-nl-state-machine` | `umple-nl-state-machine` | [umple-nl-state-machine](./umple-nl-state-machine/) | 5 个自然语言 requirements 系统 | Umple textual state machine code | Llama 3；zero-shot、one-shot、RAG | 🟠 | PDF / thesis 稳定；完整 benchmark、输出包、评测脚本未公开 | 仅论文 种子证据 |
-| REQ automotive thesis | `req-mermaid-statechart` | `req-mermaid-statechart` | [req-mermaid-statechart](./req-mermaid-statechart/) | Volvo Cars / Car Weaver 产品功能自然语言需求 | Mermaid.js statechart | GPT-3.5/GPT-4/GPT-4o；数据增强 / 微调 / prompt | 🔴 | 核心 NL、人工 statecharts、专家评分和输出样本未公开 | 私有数据 相关工作 |
-| Pushing the Generative Envelope | `pushing-generative-envelope-mbse` | `pushing-generative-envelope-mbse` | [pushing-generative-envelope-mbse](./pushing-generative-envelope-mbse/) | air purifier、vacuum 两个简短 MBSE 题项 | SysML STM diagrams | local LLM；Mixtral、Llama-3-Smaug；shot / CoT / temperature 消融 | 🟠 | 论文公开；无代码、数据包、原始输出 或 许可 | 仅论文 prompt / temperature 参考 |
-| FlowFSM / Agentic Flow | `protocol-flowfsm-seed-method` | `protocol-flowfsm-sentinel` | 仅旧基线 | RFC 协议文档 | 协议 FSM / rulebook | LLM agent / CrewAI；prompt chaining、CoT | 🔴 | RFC 输入公开；作者 规则书 / 标注答案 / 抽取迁移 未公开 | 协议域方法证据；不计控制系统四例 |
-| SpecGPT / 3GPP extraction | `specgpt-3gpp-seed-method` | `3gpp-protocol-sentinel` | 仅旧基线 | 3GPP Release 17 标准文档 | 协议 FSM | GPT-4o、DeepSeek V3、Qwen Turbo、Claude Sonnet 4、Gemini 2.5 Pro | 🔴 | 3GPP 输入可定位但需锁版本；代码 / 标注答案 / 输出 未公开 | 协议域 ensemble / span grounding 参考 |
+| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 8 个 reactive-system / system descriptions | UML state machine / statechart | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟢 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) 含代码 / 数据 / F1 workbook；许可 / 哈希待冻结 | 强主 seed 候选 |
+| LLMS EMP / SysML Behavior Models | `llms-emp-stm-subset` | `llms-emp-stm-subset` | [llms-emp-stm-subset](./llms-emp-stm-subset/) | 107 个 SysML 行为模型需求描述；只取 `diagram_type=stm` 子集 | PlantUML / SysML STM | LLM；requirements + prompt；含检查 / 反馈再生成设计 | 🟢 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)，流水线代码未公开，许可待核 | 强主 seed / judge 校准 |
+| Designing FSM with GPT-4 | `designing-fsm-gpt4` | `designing-fsm-gpt4` | [designing-fsm-gpt4](./designing-fsm-gpt4/) | 合成英文 DFSM / Mealy 需求描述 | CSV DFSM / Mealy | GPT-4/GPT-4o；初始生成 + oracle / 检查 / 修正实验 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 只作线索 | 条件主；仅初始生成 |
+| TTool-AI | `ttool-ai-smd-subset` | `ttool-ai-smd-subset` | [ttool-ai-smd-subset](./ttool-ai-smd-subset/) | platooning、spacebasedsystem、AutomatedBraking 等自然语言系统规范 | SysML/TTool state-machine diagram subset | ChatGPT 3.5；语法/语义检查、JSON→TTool XML | 🟡 | 论文 [HAL](https://telecom-paris.hal.science/hal-04483279) / [DOI](https://doi.org/10.5220/0012320100003645)；论文给出作者仓库 [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai)，需分离 SMD；provider drift/许可待核 | 转换器压力 / 条件 seed |
+| Umple thesis | `umple-nl-state-machine` | `umple-nl-state-machine` | [umple-nl-state-machine](./umple-nl-state-machine/) | 5 个自然语言 requirements 系统 | Umple textual state machine code | Llama 3；zero-shot、one-shot、RAG | 🔴 | 学位论文 [uOttawa record](https://ruor.uottawa.ca/items/b3679a91-5445-45ce-b289-bfddba3010f6)；完整 benchmark、输出包、评测脚本未公开；仅论文示例可重建 | 仅论文 种子证据 |
+| REQ automotive thesis | `req-mermaid-statechart` | `req-mermaid-statechart` | [req-mermaid-statechart](./req-mermaid-statechart/) | Volvo Cars / Car Weaver 产品功能自然语言需求 | Mermaid.js statechart | GPT-3.5/GPT-4/GPT-4o；数据增强 / 微调 / prompt | 🔴 | 学位论文 [Chalmers PDF](https://odr.chalmers.se/bitstreams/7c06ef2c-d1ae-40b4-b13c-a35087077bce/download)；核心 NL、人工 statecharts、专家评分和输出样本未公开 | 私有数据 相关工作 |
+| Pushing the Generative Envelope | `pushing-generative-envelope-mbse` | `pushing-generative-envelope-mbse` | [pushing-generative-envelope-mbse](./pushing-generative-envelope-mbse/) | air purifier、vacuum 两个简短 MBSE 题项 | SysML STM diagrams | local LLM；Mixtral、Llama-3-Smaug；shot / CoT / temperature 消融 | 🔴 | 论文 [ACL Anthology](https://aclanthology.org/2025.ranlp-1.137/) / [DOI](https://doi.org/10.26615/978-954-452-098-4-137)；无代码、数据包、原始输出或许可；仅论文题项 / 表格可重建 | 仅论文 prompt / temperature 参考 |
+| FlowFSM / Agentic Flow | `protocol-flowfsm-seed-method` | `protocol-flowfsm-sentinel` | 仅旧基线 | RFC 协议文档 | 协议 FSM / rulebook | LLM agent / CrewAI；prompt chaining、CoT | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2507.11222)；输入 [RFC 959](https://www.rfc-editor.org/rfc/rfc959) 公开；论文给出 [FlowFSM GitHub](https://github.com/YoussefMaklad/FlowFSM)，但作者 rulebook / GT / 输出未公开 | 协议域方法证据；不计控制系统四例 |
+| SpecGPT / 3GPP extraction | `specgpt-3gpp-seed-method` | `3gpp-protocol-sentinel` | 仅旧基线 | 3GPP Release 17 标准文档 | 协议 FSM | GPT-4o、DeepSeek V3、Qwen Turbo、Claude Sonnet 4、Gemini 2.5 Pro | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2510.14348)；3GPP 输入规格 [TS 24.501](https://www.3gpp.org/dynareport/24501.htm)、[TS 38.413](https://www.3gpp.org/dynareport/38413.htm)、[TS 29.244](https://www.3gpp.org/dynareport/29244.htm) 需锁版本；代码 / GT / 输出未公开 | 协议域 ensemble / span grounding 参考 |
 
 ### 8.2 36 个本地证据容器完整性表
 
@@ -269,9 +269,9 @@
 | `towards-automatic-model-completion` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
 | `ttool-ai-smd-subset` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
 | `umple-nl-state-machine` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
-| `unified-uml-multimodal-validation` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | HF dataset files |
+| `unified-uml-multimodal-validation` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 本地缓存只作审计线索；外部 HF 资源以 §7 链接为准 |
 | `unified-use-case-statecharts` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
-| `automated-transition-use-cases-uml-sm` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 本地新增 17 页章抽取 |
+| `automated-transition-use-cases-uml-sm` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 本地章抽取只作全文审计线索；外部资源以 §7 链接为准 |
 | `dependable-product-families-usecases-state-machines` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
 | `executable-use-cases-domain-machine-specifications` | ⚪ | ⚪ | 🟢 | 🟢 | 🟢 | BibTeX-only / PDF 仍受阻 |
 | `execution-nl-req-bt-sm` | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | - |
@@ -405,6 +405,7 @@ R2 最小动作：先冻结 `sefm-llm-state-machine` 与 `llms-emp-stm-subset`�
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-15 14:23:39 | PR-R1.8-B：补强 §16 结论总表，显式列出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系与时间特性等级；将资源列改为一手可点击链接，并统一 `作者原生 pair` 与 `可重建 pair` 口径，避免本地缓存或论文级重建线索冒充公开原生资源。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：从 vpn-lab 全书 PDF 中抽取 Yue 2011 章节，`automated-transition-use-cases-uml-sm` 从 BibTeX-only 升级为 conditional seed；人工队列更新为 `11/2/2/1`，剩余队列只保留 Jørgensen 2004。 |
 | 2026-06-14 21:30:00 | PR-R1.8-B：接入 vpn-lab 人工下载 PDF/BibTeX，新增 12 个 evidence 目录，移除 SUMMARY 长 BibTeX 块并改链到 `manual_download_queue.bib`，补充 seed / 资源可用性结论总表。 |
 | 2026-06-14 20:45:00 | PR-R1.8-B：补充人工下载 BibTeX 队列，明确资源可获取性必须基于全文阅读与外部资源页核验，不能只看本地 repo 资源。 |
@@ -424,28 +425,36 @@ R2 最小动作：先冻结 `sefm-llm-state-machine` 与 `llms-emp-stm-subset`�
 
 本表给后续快速判断用的最终结论速览；细表仍以 §5 / §7 / §9 为准，R2 四例仍仅以 §6 为准。
 
+**列口径**：
+
+- `NL输入是什么` 要说明自然语言材料的实际形态，例如非结构化需求、系统描述、use case、SRS、标准文档、goal model 或 scenario，而不是只写“是”。
+- `STM输出是什么` 要说明输出制品的具体形态，例如 UML state machine、SysML / PlantUML STM、DFSM/Mealy CSV、EFSM、statechart elements、MoSt/NuSMV 等。
+- `STM关键特性` 用于说明状态机是否含层次、区域、伪状态、guard、action、变量、exception、variability、组合/合并、输入输出等对后续转换和修正有影响的特征。
+- `STM谱系` 用于说明该输出落在 FSM/HSM/EFSM/statechart 哪个谱系，或为什么只是中间 / 边界 / 非目标形式化模型。
+- `时间特性等级` 只按当前全文 / 制品证据判断：`未见显式时钟` 表示未发现 timed automata clock、连续时间或 hybrid dynamics；`数据/守卫级` 表示存在变量、guard、exception 或 EFSM 数据状态，但未冻结时钟语义；`待核` 表示缺全文或输出制品不足。
+
 ### 16.1 可作为 seed 的文献
 
-| ID | 最终结论 | 真实 NL | STM family | NL->STM 方式 | 关键资源获取方式 | 备注 |
-|---|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | strict seed | 是 | 是 | LLM；单轮提示、结构/事件驱动、混合策略 | 4open 制品；代码 / 数据 / 输出已入库，仍需冻结许可 / 哈希 | 当前最强主 seed |
-| `llms-emp-stm-subset` | strict seed | 是 | 是 | LLM；requirements + prompt；R2 只冻结初始/指定 `STM_0` | 本地 parquet / result 强；流水线代码未公开，Drive/许可待核 | 当前最强主 seed；隔离作者反馈阶段 |
-| `designing-fsm-gpt4` | conditional seed | 是（合成） | 是 | GPT-4 / GPT-4o 初始生成 + oracle / 检查 / 修正 | GitHub 样例可见；需隔离初始生成输出 | 只取初始生成 |
-| `unified-uml-multimodal-validation` | conditional seed | 是（合成） | 是 | 多模型流水线 | HF parquet 可用；需确认许可与合成数据边界 | 条件主候选 |
-| `maritaca-use-case-behavior-models` | strict seed | 是（受限 use case） | 是 | 半自动 NLP + template / 规则 + 人工特征选择 | PDF 可读；作者 artifact 入口 403，原生 pair/code 未冻结 | 传统 NLP seed |
-| `automated-transition-use-cases-uml-sm` | conditional seed / 方法证据 | 是（RUCM use case） | 是 | RUCM + aToucan / rule-based | 本地正文可读；Appendix A/B 可重建局部 pair，原生 pair / 代码 / 许可未冻结 | 不计当前四例；后续冻结或可审计重建后再裁决 |
-| `dependable-product-families-usecases-state-machines` | conditional seed | 是（受限 use case） | 是 | 半自动，含 variability / traceability matrix | PDF 可读；论文例子可重建，但原生代码/数据/许可未公开 | product-family 边界 |
-| `statechart-use-case-validation-event-driven` | conditional seed | 是（结构化 use case） | 是 | use case 文档 -> statechart -> combined statechart | PDF 可读；案例入口可访问；图示可重建 pair，完整代码/数据/许可/hash 未公开 | validation-oriented |
-| `rscharter-statechart-elements` | conditional seed / 方法证据 | 是（NL SRS） | 是（statechart elements） | NL SRS -> FOPL -> statechart elements | SSRN PDF 和 PuRE 数据集入口可访问；PuRE 许可 / 版本不覆盖增强 pair/code | FOPL bridge；不计当前四例 |
+| ID | 最终结论 | NL输入是什么 | STM输出是什么 | STM关键特性 | STM谱系 | 时间特性等级 | NL->STM 方式 | 关键资源获取方式 | 备注 |
+|---|---|---|---|---|---|---|---|---|---|
+| `sefm-llm-state-machine` | 严格种子 | 非结构化 reactive-system 系统描述 / 行为需求 | UML state machine | 显式 state / transition / guard / action；评估 hierarchy / parallel / history | UML statechart / HSM-capable | T0-结构化离散；未见显式时钟 / 连续动力学 | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) / [ZIP](https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip)；许可 / 哈希待冻结 | 当前最强主 seed |
+| `llms-emp-stm-subset` | 严格种子 | SysML 行为模型需求描述 / requirements descriptions；只取 STM 子集 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；仅冻结初始/指定输出 | SysML state machine / UML statechart | T0-结构化离散；未见 timed / hybrid 目标模型 | LLM；requirements + prompt；R2 只冻结初始/指定 `STM_0` | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文给出的数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)；流水线代码未公开，许可待核 | 当前最强主 seed；隔离作者反馈阶段 |
+| `designing-fsm-gpt4` | 条件种子 | 模板合成的英文 DFSM / Mealy 自然语言描述 | CSV DFSM / Mealy machine | 字段为 State、Input、Output、Next_State；确定性、平坦、输入/输出驱动 | 平坦 FSM / Mealy | T0-平坦离散；未见显式时钟 / 时间变量 | GPT-4 / GPT-4o 初始生成 + oracle / 检查 / 修正；R2 只取初始生成 | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 1.1/1.2 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 只作线索不计入资源列 | 只取初始生成 |
+| `unified-uml-multimodal-validation` | 条件种子 | LLaMA 生成的 synthetic user-focused requirements / feature descriptions | PlantUML StateDiagram / `UMLCode_StateDiagram` | PlantUML 状态图文本；需抽检非状态图污染和合成数据泄漏 | UML state diagram / PlantUML statechart | T0-离散；未见显式时钟，需抽检非状态图污染 | 多模型流水线：requirements -> PlantUML | 论文 [TechScience HTML](https://www.techscience.com/CMES/v146n1/65740/html)；论文 Data Availability 给 [HF datasets](https://huggingface.co/nguyenvanviet/datasets)，StateDiagram 子集 [UMLCode_StateDiagram](https://huggingface.co/datasets/nguyenvanviet/UMLCode_StateDiagram) | 条件主候选 |
+| `maritaca-use-case-behavior-models` | 严格种子 | 半结构化 textual use case descriptions | UML state machine / behavior model | use-case step 到状态/迁移的模板化行为模型；需人工特征选择 | UML state machine / 用例行为模型 | T0-离散事件；未见显式时钟 | 半自动 NLP + template / 规则 + 人工特征选择 | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2017.33)；论文引用作者站点 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但当前按 403/受阻处理；论文例子可重建 | 传统 NLP seed |
+| `automated-transition-use-cases-uml-sm` | 条件种子 / 方法证据 | RUCM textual use case specifications，受限自然语言 use case | UML State Machine | 从 RUCM flow / transition 信息生成 state-based testing 用状态机；Appendix A/B 可重建局部 pair | UML state machine / state-based testing | T0-离散事件；未见显式时钟 | RUCM + aToucan / rule-based | 论文 [Springer DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；Appendix A/B 可重建局部 pair；未见论文一手原生 pair 包、完整代码、许可或 hash | 不计当前四例；后续冻结或可审计重建后再裁决 |
+| `dependable-product-families-usecases-state-machines` | 条件种子 | 受限格式 use cases，含 variability、exception handling、traceability matrix | product-specific state machine / EFSM | 处理 product-line variability、exception 和 traceability；需切片为具体产品 seed | EFSM / product-line state machine | T0-数据/守卫级；variability 需切片，未见显式时钟 | 半自动，含 variability / traceability matrix | 论文 [IEEE DOI](https://doi.org/10.1109/LADC.2016.28)；论文引用作者站点 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按受阻处理；论文例子可重建，原生代码/数据/许可未公开 | product-family 边界 |
+| `statechart-use-case-validation-event-driven` | 条件种子 | 结构化 use case 模板，含 pre/postconditions、events、main flow | 单 use-case UML Statechart 与 combined Statechart | 事件驱动；支持将多个 use-case statechart 合并用于 validation | UML Statechart / validation-oriented | T0-离散事件；未见显式时钟 | use case 文档 -> statechart -> combined statechart | 论文 [ACM DOI](https://doi.org/10.1145/2245276.2231947)；案例来源 [RealState](http://openseminar.org/se/)；论文图示可重建，完整代码/数据/许可/hash 未公开 | validation-oriented |
+| `rscharter-statechart-elements` | 条件种子 / 方法证据 | PuRE dataset 中 RUPP/EARS 风格 SRS / NL requirements | statechart diagram elements / state diagram；经 FOPL 中间层 | 主要抽取状态图元素并经 FOPL 桥接；完整图与 pair 需另行冻结 | statechart elements + FOPL bridge | T0-元素级待核；未冻结完整状态图时间语义 | NL SRS -> FOPL -> statechart elements | 论文 [SSRN](https://papers.ssrn.com/abstract=4964857)；输入来源 PuRE 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.1414117)；RSCharter 增强 pair/code 未公开 | FOPL bridge；不计当前四例 |
 
-### 16.2 边界 / related work / metadata-only
+### 16.2 边界 / 相关工作 / 仅元数据
 
-| ID | 最终结论 | 真实 NL | STM family | NL->STM 关系 | 关键资源获取方式 | 备注 |
-|---|---|---|---|---|---|---|
-| `execution-nl-req-bt-sm` | boundary / related work | 是 | 是 | NL -> BT -> UML SM | PDF + HTML 快照可读；BT2SMExamples 入口不稳定 | 中间产物边界 |
-| `semi-auto-efsm-standard-docs` | boundary sentinel | 是（标准文档） | 是 | standard doc -> EFSM | PDF 可读；ECSS/PUS 可定位；code/data 未公开 | 标准/协议边界 |
-| `nl-standard-docs-state-machines` | boundary sentinel | 是（标准文档） | 是 | standard doc -> state machine | PDF 可读；ECSS 标准可定位；原始输出包未公开 | 标准/协议边界 |
-| `most-states-modes` | related work / formalization | 是（controlled NL） | 否（更偏 formal model） | NL requirements -> MoSt DSL -> NuSMV | GitHub repo、example 与 commit hash 可访问；提供 MoSt/NuSMV 资源而非 T0 `STM_0` | 不计主 seed |
-| `web-tool-goal-statechart-derivation` | boundary sentinel | 否（goal model 不是 NL-only） | 是 | goal model -> statechart | PDF / supplement / tool 入口可访问；非 NL-only | 不作为 seed |
-| `requirements-analysis-prototyping-scenarios-statecharts` | reverse-direction sentinel | 否 | 是 | statechart -> scenarios / prototype | PDF 已人工保存；已判定为非 `NL -> STM_0`，更接近 statechart / scenario 协同或 reverse-direction sentinel | 防误收证据 |
-| `executable-use-cases-domain-machine-specifications` | metadata-only | 待全文 | 待核 | 待核 | 仅 BibTeX；出版商封闭，PDF / 全文仍待人工下载 | 人工队列 |
+| ID | 最终结论 | NL输入是什么 | STM输出是什么 | STM关键特性 | 边界原因 | STM谱系 | 时间特性等级 | 关系 | 关键资源获取方式 | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `execution-nl-req-bt-sm` | 边界 / 相关工作 | 自然语言系统需求；安全报警系统案例列出 7 条需求 | Behavior Tree 中间产物再转换为 UML state machine | BT 是必要中间层；UML SM 输出可切 | 非直接 NL-only，且 BT 中间层必须先冻结 | BT -> UML state machine | T0-离散事件；BT 中间层未冻结时钟语义 | NL -> BT -> UML SM | 论文 [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0164121212001690) / [DOI](https://doi.org/10.1016/j.jss.2012.06.013)；论文示例可重建，BT2SMExamples 入口不稳定 | 中间产物边界 |
+| `semi-auto-efsm-standard-docs` | 边界哨兵 | 自然语言 standard documents；ECSS/PUS space standard | EFSM，可供 SMC / Graphviz / DiVinE 等工具 | 变量与 transition extraction，含人工数据库步骤 | 标准/协议服务边界，非控制系统 seed 优先级 | EFSM / 标准文档 | T0-数据/守卫级；标准/协议时间语义未冻结 | standard doc -> EFSM | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2015.17)；PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；TXT2SMM/case data/generated EFSM package 未公开 | 标准/协议边界 |
+| `nl-standard-docs-state-machines` | 边界哨兵 | ECSS Packet Utilization Standard 需求文本 | 半自动生成 EFSM，并与人工 FSM 比较 | 标准条款到 EFSM/FSM，含人工比较 | 标准服务 / 协议式行为，代码/原生输出未公开 | EFSM / FSM | T0-数据/守卫级；标准/协议时间语义未冻结 | standard doc -> state machine | 论文 [AIAA DOI](https://doi.org/10.2514/1.I010525)；ECSS/PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；原始输出包未公开 | 标准/协议边界 |
+| `most-states-modes` | 相关工作 / 形式化 | 自然语言需求经 MoSt DSL 重写 / 建模；案例含车状态、洗衣机手册等 | MoSt model / NuSMV model，不是目标 STM family | 强形式化 transition relation，可启发 check | 非 FSM/HSM/EFSM/statechart seed，不能直接当 `STM_0` | MoSt DSL / NuSMV formal model | 非目标形式化模型；NuSMV transition relation 不能直接等同目标 `STM_0` | NL requirements -> MoSt DSL -> NuSMV | 论文 [ACM DOI](https://doi.org/10.1145/3640822)；论文给出工具 [GitHub](https://github.com/liuyinling/MoSt-Modeling-Tool.git) 和 examples；这些不是目标 T0 `STM_0` | 不计主 seed |
+| `web-tool-goal-statechart-derivation` | 边界哨兵 | goal model / requirements view / flow expressions，不是 NL-only | atomic-state statecharts | 生成 atomic-state statecharts | 输入是 goal model / flow expressions，不是自然语言唯一输入 | goal-model-derived statechart | T0-平坦离散；未见显式时钟 | goal model -> statechart | 论文 [IEEE DOI](https://doi.org/10.1109/RE.2015.7320444)；论文给出 [supplement](http://www.cin.ufpe.br/~ler/supplement/re2015/)；非 NL-only | 不作为 seed |
+| `requirements-analysis-prototyping-scenarios-statecharts` | 反向边界 | scenarios / action descriptions；不是直接自然语言需求文档唯一输入 | statecharts / state machines，同时生成 scenarios / prototype | statechart 与 scenario/prototype 协同 | 方向和 seed 定义不一致 | statechart / scenario co-evolution；方向相反 | T0-离散；时间语义未冻结 | statechart -> scenarios / prototype | 仅定位到二手 [Academia PDF](https://www.academia.edu/download/31191491/1.pdf)，正式 DOI / 作者页 / 出版页未定位；非 `NL -> STM_0` | 防误收证据 |
+| `executable-use-cases-domain-machine-specifications` | 仅元数据 | application domain requirements / executable use cases，待全文确认 | machine specifications，是否为 FSM/HSM/EFSM/statechart 待核 | 缺全文，不能判断是否含状态/迁移、层次、guard 或时间语义 | 出版商封闭，全文仍受阻 | 待核 | 待核 | 待核 | 仅 [DOI](https://doi.org/10.1049/ic:20040231) / BibTeX；出版商封闭，PDF / 全文仍待人工下载 | 人工队列 |
