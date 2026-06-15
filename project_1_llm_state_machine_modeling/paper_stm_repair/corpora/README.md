@@ -4,7 +4,7 @@
 
 `corpora/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线下的论文级文库入口。它只负责解释三类文库的分工、阅读顺序、与 project_1 既有长期文库的关系；**不承载事实总账**。
 
-本文件冻结三类文库的入口纪律。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、manual queue 与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。其余 `repair_baselines/` 与 `nl_datasets/` 子库待后续 PR 落地。三类子库的长期作用如下：
+本文件冻结三类文库的入口纪律。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、人工下载队列与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。R1.8-C 已落地 [repair_baselines/](./repair_baselines/) 三件套，当前 repair baseline 事实源为 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)，其中记录 12 个首批全文阅读条目、检索覆盖、人工下载队列、negative evidence 与最终结论。`nl_datasets/` 子库待后续 PR 落地。三类子库的长期作用如下：
 
 | 子库 | 作用 |
 |---|---|
@@ -17,16 +17,17 @@
 | 文库 | 收什么 | 不是什么 |
 |---|---|---|
 | [seed library](./seed_library/) | 能证明 `STM_0` 由 `NL` 生成、派生或人工构造得到的 `NL -> T0 FSM/HSM/EFSM/statechart` 来源。 | 不是本论文 repair baseline，不是 R2 四例样本集合本身。 |
-| repair baselines | 状态机 / UML / SysML / model artifact 的 repair、completion、refinement、feedback-guided correction 等近邻工作。 | 不是旧 `NL -> STM` generation baseline 的改名。 |
+| [repair baselines](./repair_baselines/) | 状态机 / UML / SysML / model artifact 的 repair、completion、refinement、feedback-guided correction 等近邻工作。 | 不是旧 `NL -> STM` generation baseline 的改名。 |
 | NL datasets | 控制系统自然语言需求、用例、场景、系统描述、标准片段、教学案例等纯 NL 输入来源。 | 只有 NL 不等于 seed；只有生成并记录 `STM_0` 后才可 crosslink 到 seed。 |
 
 ## 2. 阅读顺序
 
 1. 先读上级 [../README.md](../README.md) 和 [../GUIDE.md](../GUIDE.md)。
 2. 再读本文件确认 `corpora/` 的入口边界。
-3. 后续三类子库落地后，进入对应子库的 `README.md -> GUIDE.md -> SUMMARY.md`。
-4. 需要 seed 当前事实时，读 [seed_library/README.md](./seed_library/README.md)、[seed_library/GUIDE.md](./seed_library/GUIDE.md)、[seed_library/SUMMARY.md](./seed_library/SUMMARY.md)。
-5. 需要 R1.5--R1.7 旧 ledger / raw search 时，读 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
+3. 需要 seed 当前事实时，读 [seed_library/README.md](./seed_library/README.md)、[seed_library/GUIDE.md](./seed_library/GUIDE.md)、[seed_library/SUMMARY.md](./seed_library/SUMMARY.md)。
+4. 需要 repair baseline 当前事实时，读 [repair_baselines/README.md](./repair_baselines/README.md)、[repair_baselines/GUIDE.md](./repair_baselines/GUIDE.md)、[repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)。
+5. 后续 `nl_datasets/` 落地后，进入对应子库的 `README.md -> GUIDE.md -> SUMMARY.md`。
+6. 需要 R1.5--R1.7 旧 ledger / raw search 时，读 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
 
 ## 3. 根层三件套纪律
 
@@ -53,6 +54,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-15 16:20:00 | PR-R1.8-C 落地 [repair_baselines/](./repair_baselines/) 三件套，repair baseline 横向事实以 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md) 为准。 |
 | 2026-06-14 21:40:00 | PR-R1.8-B 同步 seed library 最新 `36 dirs`、manual queue 与资源结论口径；横向事实仍以 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md) 为准。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 落地 [seed_library/](./seed_library/) 三件套，旧 `seed_corpus/` 迁入 archive。 |
 | 2026-06-14 13:34:18 | PR-R1.8-A 创建 `corpora/` 入口 README；本轮不创建三类子库内容本体。 |
