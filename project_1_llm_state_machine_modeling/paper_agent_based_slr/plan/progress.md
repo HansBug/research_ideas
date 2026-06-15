@@ -137,3 +137,50 @@
 - Artifacts produced：PR-S0 任务包、PR-S0 预备进度段。
 - Verification run：本轮只做文档 / 链接 / 证据边界检查，不做真实运行。
 - Remaining risk：PR-S0 body 若仍保留旧宽泛自动化 story，必须在 reviewer 后收紧。
+
+## 9. PR-S0 实现：story 重新勘定（2026-06-15）
+
+| 字段 | 状态 |
+|---|---|
+| PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
+| 当前阶段 | story / claim / novelty / outline / risk 文档实现后待三路 adversarial review |
+| 真实 LLM | 未运行 |
+| 四个真实例子 | 不运行；PR-S0 只做 story / claim / gate 文档 |
+| Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
+
+### 已吸收的内部 sidecar review
+
+| sidecar | 主要发现 | 处理 |
+|---|---|---|
+| story gate reviewer | C：`paper_story.md` 仍停在旧的 workflow / evidence-package 主线，未吸收 2026-06-15 导师定调。 | 已整体重写 [../story/paper_story.md](../story/paper_story.md)，改为 researcher-guided、finding-oriented、auditable agentic SLR support workflow。 |
+| novelty / claim reviewer | C：`claim_evidence_map.md` 与 `differential_novelty_matrix.md` 未显式吸收 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等 B0 强近邻。 | 已重写 [../story/claim_evidence_map.md](../story/claim_evidence_map.md) 与 [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)，新增 P0 强近邻和禁止 claim。 |
+| outline / RQ reviewer | I：`paper_outline.md` 缺少 PR #101 RQ1--RQ7 ↔ evaluation dimension ↔ downstream gate 显式映射。 | 已在 [../story/paper_outline.md](../story/paper_outline.md) §6.1 新增 RQ 显式映射表。 |
+
+### 已完成的实现修改
+
+- [../story/paper_story.md](../story/paper_story.md)：从“带人工审计门的 agent-based SLR workflow”重写为“researcher-defined meta-model + finding patterns + finding-centered evidence chain + researcher challenge loop”。
+- [../story/claim_evidence_map.md](../story/claim_evidence_map.md)：新增 meta-model、finding pattern、candidate/final finding、challenge loop、B0 强近邻、SE LLM-SLR 方法学讨论和完整自动化禁用 claim。
+- [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)：正面对齐 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025、Beyond Accuracy、closed-loop summarization 与 survey generation。
+- [../story/paper_outline.md](../story/paper_outline.md)：重构为 finding-centered outline，并新增 PR #101 RQ1--RQ7 到 PR-S0 evaluation gates 的映射。
+- [../story/terminology_policy.md](../story/terminology_policy.md)：收紧 researcher 基于 scaffold 裁剪 / 实例化 meta-model 的表述。
+- [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)：补入 meta-model usefulness、finding relevance、challenge effectiveness 等维度。
+- [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)：补入 workflow-only 回滑、B0 强近邻遗漏、candidate/final finding 混淆和 challenge loop 口号化风险。
+- [../README.md](../README.md) 与 [../story/README.md](../story/README.md)：同步入口叙事。
+
+### Verification log（PR-S0 实现）
+
+| 时间 | 命令 | 结果 |
+|---|---|---|
+| 2026-06-15 | `git diff --check` | 通过。 |
+| 2026-06-15 | Python 文件存在性检查：`paper_agent_based_slr PR-S0 packet ok` | 通过。 |
+| 2026-06-15 | Markdown 相对链接检查：检查 `paper_story.md`、`paper_outline.md`、`claim_evidence_map.md`、`differential_novelty_matrix.md` 中的相对 `.md` 链接 | 通过，输出 `link check done`。 |
+| 2026-06-15 | 禁用强 claim grep：`first automated SLR`、`first agentic SLR`、`PRISMA-compliant`、`complete coverage`、`agent 完全替代`、`LLM 自动定义可靠 meta-model`、`final findings produced by agents` | 命中均位于禁止 / 不能 claim / 风险语境；未发现正向 claim。 |
+
+### Capability-use audit（PR-S0 实现）
+
+- Required references/scripts：`ai-research-writing-skill` 的 paper story / claim-evidence gate；native sidecar subagents；PR #101 / PR #112 / PR-B0 证据。
+- Inputs consumed：2026-06-15 正式导师讨论记录、PR-B0 [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、PR #101 RQ1--RQ7、PR-S0 task packet、三位内部 sidecar review 输出。
+- Inputs not used and why：真实 LLM、四个真实例子、workflow runtime、`runs/**`；PR-S0 明确不运行、不实现。
+- Artifacts produced：本节列出的 story / claim / novelty / outline / evaluation / risk 文档更新。
+- Verification run：`git diff --check`、文件存在性检查、Markdown 相对链接检查、禁用强 claim grep。
+- Remaining risk：仍需三路正式 reviewer 在 PR #114 上做 adversarial review；若出现 C/I，必须继续修复。

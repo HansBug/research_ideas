@@ -1,12 +1,12 @@
 # story/：论文主线、协议、术语与 claim 控制
 
-本目录维护第二篇 agent-based SLR 论文的 story 真源。A0 阶段，它回答：这篇论文到底讲什么、采用什么流程协议、哪些术语如何使用、哪些 claim 可以写、哪些 claim 必须避免、与已有工具和方法学如何区分。
+本目录维护第二篇 researcher-guided agentic SLR support workflow 论文的 story 真源。PR-S0 后，它回答：这篇论文如何从宽泛“自动化 SLR / evidence package workflow”收紧为 researcher-defined meta-model、finding patterns、candidate / final finding lifecycle、evidence challenge loop 与 finding-centered evaluation；哪些术语如何使用，哪些 claim 可以写，哪些 claim 必须避免，与已有工具和方法学如何区分。
 
 ## 文件说明
 
 | 文件 | 作用 |
 |---|---|
-| [paper_story.md](./paper_story.md) | A0 后的 thesis、task boundary、gap、technical challenge、method insight、contributions、evidence plan 和 reviewer risks。 |
+| [paper_story.md](./paper_story.md) | PR-S0 后的 thesis、task boundary、gap、technical challenge、method insight、finding-centered contributions、evidence plan 和 reviewer risks。 |
 | [protocol.md](./protocol.md) | agent-based SLR / systematic mapping 的最小 workflow 协议与 human audit gates。 |
 | [terminology_policy.md](./terminology_policy.md) | SLR、systematic mapping、agent、audit gate、PRISMA-style、traceability、hallucination 等术语口径。 |
 | [claim_evidence_map.md](./claim_evidence_map.md) | 每类潜在 claim 的证据状态、禁止写法、安全写法和后续所需证据。 |
@@ -30,4 +30,6 @@
 - 禁止在 checklist 未闭合前写 PRISMA-compliant。
 - 禁止写 complete coverage 或 first automated SLR。
 - 不把 PR #97 OPEN / 未合入资产写成 `main` 已有事实。
-- 不把 A0 的评价维度种子写成 A5 已冻结指标协议。
+- 不把 PR-S0 的 finding-centered 评价义务写成 A5 已冻结指标协议。
+- 不把 candidate finding 直接写成 final finding。
+- 不把 researcher-defined meta-model 写成 LLM 自动生成或作者预设 universal SE ontology。

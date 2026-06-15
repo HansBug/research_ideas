@@ -4,7 +4,7 @@
 
 本目录是第二篇论文 **agent-based SLR / systematic mapping 方法学论文** 的工作区。它接续伞 PR [#101](https://github.com/HansBug/research_ideas/pull/101) 与 PR-0 / PR-A0 [#103](https://github.com/HansBug/research_ideas/pull/103)，用于把 2026-06-12 导师讨论后的第二篇新主线落成可维护、可审计、可继续迭代的 paper planning / evidence workspace。
 
-本目录不是传统论文集，不收录 PDF，也不是 `sources/` 文库的替代入口。它的目标是服务一篇方法学论文：研究如何将软件工程系统文献综述 / systematic mapping 的检索、筛选、全文获取状态记录、抽取、编码、综合与报告环节组织成带 human audit gates 的 agent-executed workflow，并用可追踪性、事实准确性、幻觉控制、筛选一致性、透明报告、覆盖代理、成本效率和人工审计通过率评价其可靠性。
+本目录不是传统论文集，不收录 PDF，也不是 `sources/` 文库的替代入口。它的目标是服务一篇方法学论文：研究一种 **researcher-guided, finding-oriented, auditable agentic SLR support workflow**。在这条主线中，使用该 work 的 researcher 基于 review meta-model scaffold 裁剪并实例化 topic-specific review meta-model，agent 在 researcher-approved schema 与 finding patterns 约束下提出 candidate findings 并构建 evidence chains，researcher 再通过 audit / challenge loop 对 finding 的证据、反例、scope 和 claim strength 进行修订、降级、保留 unresolved 或接受。
 
 ## 2. 当前 A0 结论
 
@@ -15,7 +15,7 @@ A0 阶段冻结以下口径：
 3. PR #97 当前仍为 OPEN / 未合入，其 438→69→25 与 25 篇全文文库只能作为 **PR #97 snapshot / 分支局部证据** 使用，不能写成 `main` fact。
 4. A0 只冻结 story、协议、术语、claim 边界、事实漂移政策、相关工作边界、评价维度种子和 reviewer 风险；不跑真实 LLM，不跑四个真实例子，不实现 pipeline。
 5. A0 不冻结评价指标公式、阈值、统计协议或最终评价脚本；这些留给 PR-A5。
-6. A0 的 story / outline 是**可继续演化的 v0 种子**，不应被当成最终论文叙事；后续 A1 baseline 调研、A3 场景设计、A4/A5 真实运行和评价结果若改变 novelty、贡献强度或风险判断，必须回写 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
+6. PR-S0 后的 story / outline 是**可继续演化的 v1 种子**：B0 已经击穿宽泛自动化 story，因此后续 A2/A3/A5/A6 必须围绕 researcher-defined meta-model、finding patterns、candidate / final finding 边界、evidence challenge loop 和 finding-centered evaluation 继续落地；若新增 baseline、survey-of-surveys、真实运行或评价结果改变 novelty、贡献强度或风险判断，必须回写 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
 
 ## 3. 目录分层
 
