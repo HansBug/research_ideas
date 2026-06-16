@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | Mermaid 方法图盲读迭代后待正式复审 |
+| 当前阶段 | Mermaid 方法图正式复审 C/I 修复中 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -72,10 +72,13 @@
 | 中文化与方法图复审 | codex reviewer | 0C / 0I / 0M | 通过 |
 | 中文化与方法图复审 | claude reviewer | 0C / 0I / 3M | 已收敛低成本 M：方法图 A3 过研究者 schema 门；其余 M 不阻塞 |
 | 中文化与方法图复审 | deepseek reviewer | 0C / 0I / 2M | 已收敛低成本 M：补“类 PRISMA”术语映射；Mermaid 前缀共享不阻塞 |
+| 序列图最终复审 | codex reviewer | 0C / 1I / 0M | I1 指出 §7 提前写“三路最终复审无 C/I”，本提交改为不预判并等待复审闭合 |
+| 序列图最终复审 | claude reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为字号 / A4 命名一致性 |
+| 序列图最终复审 | deepseek reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为 §6 复审表补记与候选→最终提示 |
 
 ## 7. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。三路最终复审无 C/I，剩余仅为不阻塞的可复现脚本化 / 命名风格类 M 级建议。
+1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审结论以 PR comments 与本节后续更新为准；若无 C/I，再将剩余项降为不阻塞 M 级建议。
 2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
