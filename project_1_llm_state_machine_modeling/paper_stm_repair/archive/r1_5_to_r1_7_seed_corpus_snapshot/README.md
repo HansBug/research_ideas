@@ -25,7 +25,7 @@ archive 内文件按历史快照保留，部分相对链接仍可能指向迁移
 | 哨兵 | 当前状态 |
 |---|---|
 | 候选 / screening | `47/47`，见当前 [SUMMARY.md](../../corpora/seed_library/SUMMARY.md) §2 / §5。 |
-| 单条目目录 | 24 个目录已迁移到 [../../corpora/seed_library/](../../corpora/seed_library/)。 |
+| 单条目目录 | R1.7 历史快照口径为 24 个单篇目录；post-R1.8-B 当前口径为 36 个单条目证据目录，见当前 [SUMMARY.md](../../corpora/seed_library/SUMMARY.md) §2 / §8。 |
 | 旧九 crosswalk | `9/9`，见当前 [SUMMARY.md](../../corpora/seed_library/SUMMARY.md) §7.1。 |
 | R2 handoff | 4 个主 / 条件主候选，见当前 [SUMMARY.md](../../corpora/seed_library/SUMMARY.md) §4 / §6。 |
 | manual queue | `2 downloaded/excluded；2 excluded-by-metadata；10 still-blocked；2 new-manual-pending`，见当前 [SUMMARY.md](../../corpora/seed_library/SUMMARY.md) §8。 |
