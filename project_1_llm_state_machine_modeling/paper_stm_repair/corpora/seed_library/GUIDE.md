@@ -4,7 +4,7 @@
 
 本 GUIDE 约束种子文库的后续维护。种子文库只回答一个问题：哪些上游工作或来源能提供、描述或帮助构造 `<NL, STM_0>`，且其中 `STM_0` 与 `NL` 存在可追踪的生成 / 派生 / 人工建模关系。
 
-不得把种子文库写成本论文修正基线文库；若同一工作也包含 repair / feedback / completion 环节，应在后续 `repair_baselines/` 另行登记其修正能力，并在两边交叉链接。
+不得把种子文库写成本论文修正基线文库；若同一工作也包含 repair / feedback / completion 环节，应在 [../repair_baselines/](../repair_baselines/) 另行登记其修正能力，并在两边交叉链接。若对象只有控制系统 NL 输入、尚未闭合 `NL -> STM_0`，应留在 [../nl_datasets/](../nl_datasets/)。
 
 ## 2. SUMMARY-first 规则
 

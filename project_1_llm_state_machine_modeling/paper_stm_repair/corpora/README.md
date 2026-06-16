@@ -4,7 +4,7 @@
 
 `corpora/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线下的论文级文库入口。它只负责解释三类文库的分工、阅读顺序、与 project_1 既有长期文库的关系；**不承载事实总账**。
 
-本文件冻结三类文库的入口纪律。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、人工下载队列与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。R1.8-C 已落地 [repair_baselines/](./repair_baselines/) 三件套，当前 repair baseline 事实源为 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)，其中记录 24 个全文入库条目、检索覆盖、候选池筛查账、人工下载队列清空状态、negative evidence 与最终结论。R1.8-D 已落地 [nl_datasets/](./nl_datasets/) 初步脚手架，当前只冻结入口、字段与边界，尚未逐条填充数据。三类子库的长期作用如下：
+本文件冻结三类文库的入口纪律。PR-R1.8-E 后，后续 R2 的 seed 冻结入口统一为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，repair baseline 与 NL dataset 只分别提供对照/近邻和纯 NL 来源，不替代 seed 入口。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、人工下载队列与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。R1.8-C 已落地 [repair_baselines/](./repair_baselines/) 三件套，当前 repair baseline 事实源为 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)，其中记录 24 个全文入库条目、检索覆盖、候选池筛查账、人工下载队列清空状态、negative evidence 与最终结论。R1.8-D 已落地 [nl_datasets/](./nl_datasets/) 初步脚手架，当前只冻结入口、字段与边界，尚未逐条填充数据。三类子库的长期作用如下：
 
 | 子库 | 作用 |
 |---|---|
@@ -28,6 +28,17 @@
 4. 需要 repair baseline 当前事实时，读 [repair_baselines/README.md](./repair_baselines/README.md)、[repair_baselines/GUIDE.md](./repair_baselines/GUIDE.md)、[repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)。
 5. 需要控制系统纯 NL 数据源当前入口时，读 [nl_datasets/README.md](./nl_datasets/README.md)、[nl_datasets/GUIDE.md](./nl_datasets/GUIDE.md)、[nl_datasets/SUMMARY.md](./nl_datasets/SUMMARY.md)。
 6. 需要 R1.5--R1.7 旧 ledger / raw search 时，读 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
+
+## 2.1 R2 读取链路
+
+后续 R2 / R3 / R4 默认按以下链路读取事实：
+
+| 需求 | 当前入口 | 禁止误读 |
+|---|---|---|
+| 冻结 `<NL, STM_0>` seed 候选 | [seed_library/SUMMARY.md](./seed_library/SUMMARY.md) | 不从旧 `seed_corpus/` 或 `evidence/baseline_*` 直接冻结样本。 |
+| 查修正任务 baseline / 近邻 | [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md) | 不把 near-neighbor 或 completion-style 工作写成严格 baseline。 |
+| 查纯 NL 数据源 | [nl_datasets/SUMMARY.md](./nl_datasets/SUMMARY.md) | 不把只有 NL 的数据源提前计为 seed。 |
+| 追溯旧检索 / ledger | [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/) 与 [../evidence/README.md](../evidence/README.md) | archive / evidence 只作审计，不是当前横向事实源。 |
 
 ## 3. 根层三件套纪律
 
@@ -54,6 +65,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 补充 R2 读取链路：seed 从 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md) 读取，repair / NL / archive / evidence 均只按各自角色使用。 |
 | 2026-06-15 23:20:00 | PR-R1.8-D 落地 [nl_datasets/](./nl_datasets/) 三件套脚手架，明确当前只登记纯 NL 数据源入口与字段纪律；来自 [../../../CLAUDE.md](../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索作为后续填充锚点。 |
 | 2026-06-15 20:55:00 | 同步 [repair_baselines/](./repair_baselines/) 为 24 个全文入库条目，人工下载队列清空，并收紧严格 baseline 仍为 0、`completion-sysml-gwt` 只是 P0 路线近邻 / 条件对照的结论。 |
 | 2026-06-15 16:50:00 | 同步 [repair_baselines/](./repair_baselines/) 为首批全文条目并补候选池筛查账。 |

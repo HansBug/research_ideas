@@ -4,7 +4,7 @@
 
 本目录是第一篇论文 `paper_stm_repair` 的 **repair baselines / near-miss related work** 文库，服务于 `<NL, STM_0> -> STM_k / Better STM` 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
 
-**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `<NL, STM_0> -> STM_k / Better STM`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给后续 `nl_datasets/`。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
+**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `<NL, STM_0> -> STM_k / Better STM`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给 [../nl_datasets/](../nl_datasets/)。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
 
 ## 1. 阅读顺序
 
@@ -76,6 +76,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 补充与 seed_library / nl_datasets 的交叉边界，强调 repair_baselines 不提供 R2 seed。 |
 | 2026-06-15 20:55:00 | 用户补齐人工下载队列 10 篇 PDF 后，补入 timed automata repair、UML/model consistency repair、LLM/multi-location model completion 近邻速览；严格 baseline 仍为 0。 |
 | 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 README 结论，明确当前只有 `completion-sysml-gwt` 是 P0 路线近邻 / 条件对照。 |
 | 2026-06-15 17:40:00 | 补入 `flowrepair-stateflow-cps`，将其从人工队列升级为 Stateflow repair-engine 近邻，并同步修正检索账与资源表。 |

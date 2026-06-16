@@ -23,6 +23,7 @@
 > 注：本目录不替代 [../seed_library/](../seed_library/)；`designing-fsm-gpt4`、`ttool-ai`、`llms-emp`、`fsm-gen-iec-61499` 等若同时具备 seed 与 repair/feedback 线索，必须按“seed 关系”和“repair 能力”分开记录。
 > 注：`completion-sysml-gwt` 明确使用 GWT/Gherkin 需求 + partial SysML state machine 并补全 transitions，是当前唯一进入路线近邻 / 条件对照的 P0 条目；但其 `STM_0` / partial SMD 是否严格由同一组 NL 生成仍需二次核验，因此暂列“路线近邻 / 条件对照”。
 > 注：`flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、`designing-fsm-gpt4-repair` 等虽有强 repair / refinement 机制，但不满足“repair 输入同时含 NL 与由该 NL 生成的 STM_0”的硬门槛，不能写成本文 baseline。
+> 注：纯 NL 数据源不在本 SUMMARY 中入账，应回到 [../nl_datasets/](../nl_datasets/)；只有闭合 `NL -> STM_0` 后才可再 crosslink 到 [../seed_library/](../seed_library/)。
 
 ## 1. emoji / enum 标准
 
@@ -274,6 +275,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 补充纯 NL 与 seed crosslink 边界，强调本 SUMMARY 只承载 repair baseline / 近邻事实。 |
 | 2026-06-15 20:55:00 | 用户补齐人工下载队列 10 篇 PDF 后全部全文入库，补充 timed automata repair、UML/model consistency repair、LLM/multi-location model completion 近邻；严格 baseline 仍为 0，`completion-sysml-gwt` 仍为唯一 P0 路线近邻 / 条件对照。 |
 | 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 baseline 口径；新增 `STM_0` 与 `NL -> STM_0` emoji 维度，并将除 `completion-sysml-gwt` 外的条目降级为 near-neighbor / related work。 |
 | 2026-06-15 17:40:00 | 将 `flowrepair-stateflow-cps` 从人工队列升级为全文入库条目，补充 Stateflow repair-engine 近邻、资源入口、筛查账可复算统计与最终结论边界。 |

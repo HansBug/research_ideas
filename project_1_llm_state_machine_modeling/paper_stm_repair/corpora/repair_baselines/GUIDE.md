@@ -6,7 +6,7 @@
 
 **硬定义**：能被写成本文 baseline 的工作必须同时满足：输入含 `NL` 与 `STM_0`；`STM_0` 明确由同一 `NL` 生成 / 派生；任务目标是从 `<NL, STM_0>` 得到 `STM_k / Better STM`。只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作，即使机制很强，也只能作为 repair-engine near-neighbor 或 related work。
 
-不得把本目录写成旧 `NL -> STM` generation baseline 文库。若某工作只证明 `STM_0` 可由 `NL` 生成，但没有修正或 feedback 环节，应进入 [../seed_library/](../seed_library/)；若某工作只有控制系统 NL 数据，应留给后续 `nl_datasets/`。
+不得把本目录写成旧 `NL -> STM` generation baseline 文库。若某工作只证明 `STM_0` 可由 `NL` 生成，但没有修正或 feedback 环节，应进入 [../seed_library/](../seed_library/)；若某工作只有控制系统 NL 数据，应留给 [../nl_datasets/](../nl_datasets/)。
 
 ## 2. SUMMARY-first 规则
 
@@ -44,7 +44,7 @@
 | 只做 `NL -> STM_0` 且无修正环节 | 排除出本库核心，回到 seed 文库。 |
 | `STM + error / tests / oracle / diagnostics` 但无 NL 或无 `NL -> STM_0` 关系 | 只可作为 repair-engine near-neighbor / related work，不能称本文 baseline。 |
 | 纯 program repair / test repair / build repair | 只可作为远背景，不入正式 baseline 表。 |
-| 纯 NL requirement rewriting | 不入本库；如有 NL 数据价值留给 `nl_datasets/`。 |
+| 纯 NL requirement rewriting | 不入本库；如有 NL 数据价值留给 [../nl_datasets/](../nl_datasets/)。 |
 | BPMN / Petri / CSP / Event-B / TLA+ / Alloy 等非 STM family | 只有当 repair feedback 机制对本文非常关键时，作为异构 related / negative evidence 入账，不能写成同构 baseline。 |
 | protocol FSM / 3GPP / RFC FSM | 默认 out-of-domain；只保留少量哨兵，避免混入控制系统 STM 任务。 |
 

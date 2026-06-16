@@ -49,7 +49,7 @@ emoji 列只写 emoji；本库 emoji / enum 释义统一以 [GUIDE.md §5](./GUI
 
 - 先基于已有 sources/data 搭建 NL-datasets 入口，不做大规模外部检索。
 - 只有 NL 不等于 seed；需要明确 `STM_0` 生成关系后才 crosslink。
-- `seed_library crosslink` 是本库侧的出链字段；seed library 侧反向回链字段待后续一致性 PR 统一补齐。
+- `seed_library crosslink` 是本库侧的出链字段；只有生成并记录 `STM_0` 后才可填写 seed slug、生成方式、批次、输出位置 / 版本和 caveat；未闭合时保持 `-` 或 `待闭合`。
 - 后续如果确有新数据源，再逐条补充 summary 与单条目目录。
 - 许可不明或敏感数据不直接复制正文样本，只登记可追溯指针。
 
@@ -57,4 +57,5 @@ emoji 列只写 emoji；本库 emoji / enum 释义统一以 [GUIDE.md §5](./GUI
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 补充 seed crosslink 入账纪律：纯 NL 条目未生成 `STM_0` 前保持 `-` 或 `待闭合`，生成后的 `<NL, STM_0>` 再登记到 seed library。 |
 | 2026-06-15 23:20:00 | 初始化 NL-datasets 三件套脚手架，补充首批填充锚点、字段组、emoji 口径与 seed crosslink 规则。 |

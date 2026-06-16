@@ -8,4 +8,4 @@
 - 当前 seed library 总账：[../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)
 - R1.5--R1.7 历史审计快照：[../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)
 
-如需读取当前 `47/47`、`24 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 或 negative evidence，请直接读 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)。
+如需读取当前 `47/47`、`36 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 或 negative evidence，请直接读 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)。本 redirect 页不再维护任何当前统计；若数字与 SUMMARY 不一致，一律以 SUMMARY 为准。
