@@ -51,7 +51,7 @@
 | 术语 | 使用规则 |
 |---|---|
 | PRISMA-compliant | 禁止在检查清单未闭合前作为正向主张；只能出现在禁止主张或风险语境中。 |
-| PRISMA-style | 可用于描述类似 PRISMA flow、排除理由台账、透明报告材料，但必须说明不是合规声明。 |
+| 类 PRISMA（PRISMA-style） | 可用于描述类似 PRISMA flow、排除理由台账、透明报告材料；“类 PRISMA”是 PRISMA-style 的中文写法，必须说明不是合规声明。 |
 | PRISMA-informed | 可用于说明设计受 PRISMA 透明报告思想启发，但不替代检查清单。 |
 
 ## 5. 禁止或高风险写法

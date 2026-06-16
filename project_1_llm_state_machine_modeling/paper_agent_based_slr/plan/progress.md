@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | 中文化、方法总览图、证据盘点更新、文档去历史痕迹后待复审 |
+| 当前阶段 | 三路复审无 C/I，低成本 M 级建议已收敛，ready 待用户指示 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -43,6 +43,7 @@
 4. 在 [../story/paper_story.md](../story/paper_story.md) §6.1 新增 Mermaid 方法总览图，展示研究者责任边界、智能体辅助边界、候选研究发现、证据链、质疑闭环、最终研究发现和报告投影之间的关系。
 5. 清理当前 PR 文档中的纯历史流水账，保留必要证据链接，让各 Markdown 尽量自包含、干净、可直接指导后续 PR。
 6. 更新 [../evidence/project_inventory.md](../evidence/project_inventory.md)、[../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md) 与 [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，避免证据盘点继续停留在旧 A0 / PR #103 口径。
+7. 收敛三路复审的低成本 M 级建议：让证据链状态模板通过研究者批准的 schema 门，并补充“类 PRISMA（PRISMA-style）”术语映射。
 
 ## 5. 验证记录
 
@@ -52,11 +53,12 @@
 | 2026-06-15 | 文件存在性检查：确认 `README.md`、`story/*`、`experiment_design/*`、`plan/*` 等 PR-S0 必需文件存在 | 通过 |
 | 2026-06-15 | Markdown 相对链接检查 | 通过 |
 | 2026-06-15 | 禁用强主张 grep：首次自动化 SLR、PRISMA 合规、完整覆盖、智能体替代专家等 | 命中均位于禁止 / 风险语境 |
-| 2026-06-16 | 中文化与自包含性检查 | 已清理英文骨架、旧 A0 证据盘点和纯历史流水；待三路复审确认 |
-| 2026-06-16 | Mermaid 方法图检查：`mmdc -p /tmp/puppeteer-no-sandbox.json -i /tmp/pr114_method.mmd -o /tmp/pr114_method.svg` | 通过；已修复节点 / 子图 ID 冲突 |
+| 2026-06-16 | 中文化与自包含性检查 | 已清理英文骨架、旧 A0 证据盘点和纯历史流水；三路复审无 C/I |
+| 2026-06-16 | Mermaid 方法图检查：`mmdc -p /tmp/puppeteer-no-sandbox.json -i /tmp/pr114_method.mmd -o /tmp/pr114_method.svg` | 通过；已修复节点 / 子图 ID 冲突，并让证据链状态模板进入研究者批准的 schema 门 |
 | 2026-06-16 | `git diff --check origin/paper2/agent-based-slr-umbrella...HEAD` | 通过 |
 | 2026-06-16 | Markdown 相对链接检查 | 通过 |
 | 2026-06-16 | PR-S0 文件存在性检查 | 通过 |
+| 2026-06-16 | 低成本 M 级建议收敛检查：A3 进入 R4、补“类 PRISMA”术语映射、更新 review 状态 | 通过 |
 
 ## 6. Review 状态
 
@@ -65,11 +67,13 @@
 | 第一轮正式复审 | deepseek reviewer | 0C / 4I / 3M | 已修复 I1--I4；M 级不阻塞 |
 | 第一轮正式复审 | claude reviewer | 0C / 0I / 3M | 无阻塞问题 |
 | 第一轮正式复审 | codex reviewer | 0C / 0I / 1M | `protocol.md` 旧线性口径留给后续 A2 |
-| 中文化与方法图复审 | codex / claude / deepseek reviewer | 待启动 | 必须检查中文化、Mermaid 图、自包含性、证据盘点当前性和去历史痕迹 |
+| 中文化与方法图复审 | codex reviewer | 0C / 0I / 0M | 通过 |
+| 中文化与方法图复审 | claude reviewer | 0C / 0I / 3M | 已收敛低成本 M：方法图 A3 过研究者 schema 门；其余 M 不阻塞 |
+| 中文化与方法图复审 | deepseek reviewer | 0C / 0I / 2M | 已收敛低成本 M：补“类 PRISMA”术语映射；Mermaid 前缀共享不阻塞 |
 
 ## 7. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。
+1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。三路最终复审无 C/I，剩余仅为不阻塞的可复现脚本化 / 命名风格类 M 级建议。
 2. Mermaid 图是方法总览草案，不表示运行时已经实现。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
