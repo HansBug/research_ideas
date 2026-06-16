@@ -15,8 +15,9 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-import zipfile
 from pathlib import Path
+
+import pyzipper
 
 ARCHIVE = Path(__file__).resolve().parents[1] / "encrypted_archives" / "2026-06-16-degree-requirements-raw-archive.zip"
 ENV_NAME = "DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD"
@@ -29,10 +30,10 @@ def archive_password() -> bytes:
     return value.encode("utf-8")
 
 
-def open_archive() -> zipfile.ZipFile:
+def open_archive() -> pyzipper.AESZipFile:
     if not ARCHIVE.exists():
         raise SystemExit(f"找不到归档文件：{ARCHIVE}")
-    return zipfile.ZipFile(ARCHIVE)
+    return pyzipper.AESZipFile(ARCHIVE)
 
 
 def list_archive() -> int:

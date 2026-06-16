@@ -33,7 +33,7 @@
 ## 4. 原始档案入库原则
 
 - 原始邮件与聊天记录必须完整保存。
-- 原始档案以加密 zip 入库，密码不写入仓库；本地通过 `.env` 的 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 配置。
+- 原始档案以 AES-256 加密 zip 入库，密码不写入仓库；本地通过 `.env` 的 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 配置。
 - Markdown 只写语义索引、关键结论、证据等级、SHA256 和 zip 内文件名；不逐字展开邮件/聊天原文。
 - 复核原文时先执行 `source .env`，再运行：
 

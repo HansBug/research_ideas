@@ -2,13 +2,13 @@
 
 > 信息更新时间：`2026-06-16 14:45:00`（Asia/Shanghai）
 
-本目录保存邮件与聊天原始档案的加密 zip。zip 内原文完整保留，不做脱敏、不改写。zip 口令不写入仓库，由本地 `.env` 的 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 环境变量提供。
+本目录保存邮件与聊天原始档案的加密 zip。zip 内原文完整保留，不做脱敏、不改写。zip 使用 AES-256 加密；口令不写入仓库，由本地 `.env` 的 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 环境变量提供。
 
 ## 1. 档案文件
 
 | 文件 | SHA256 | 生成时间 | 加密方式 | 内容 |
 |---|---|---|---|---|
-| [2026-06-16-degree-requirements-raw-archive.zip](./2026-06-16-degree-requirements-raw-archive.zip) | `bd9d0d37657b87bd965883cf4eb219712c2ed2bcf1f620778ba959ab8bc77947` | 2026-06-16 14:38:00 | Info-ZIP password encryption | 三封邮件 raw、邮件 meta/body、fetch summary、高年级同学/学长讨论 raw、MANIFEST、SHA256SUMS |
+| [2026-06-16-degree-requirements-raw-archive.zip](./2026-06-16-degree-requirements-raw-archive.zip) | `339054de371380e3aa88148c84f29a0f9b67fe7f040e943b005c2d52283a6db4` | 2026-06-16 15:24:00 | AES-256 ZIP（pyzipper WZ_AES） | 三封邮件 raw、邮件 meta/body、fetch summary、高年级同学/学长讨论 raw、MANIFEST、SHA256SUMS |
 
 ## 2. 读取方式
 

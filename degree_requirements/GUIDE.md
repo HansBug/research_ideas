@@ -40,7 +40,7 @@
 ## 4. 加密 raw 档案规则
 
 1. 邮件与聊天原始信息必须完整保存。
-2. raw 文件以加密 zip 入库到 [encrypted_archives/](./encrypted_archives/)。
+2. raw 文件以 AES-256 加密 zip 入库到 [encrypted_archives/](./encrypted_archives/)。
 3. zip 密码不写入仓库；本地 `.env` 中使用 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 环境变量保存。
 4. 使用前必须在仓库根目录执行：
 
@@ -48,7 +48,7 @@
 source .env
 ```
 
-5. 读取 raw 档案统一使用 [scripts/archive_tool.py](./scripts/archive_tool.py)，其中 `show --member` 用于不落盘读取单个 zip 内文件，`extract` 用于显式解压到本地临时目录：
+5. 读取 raw 档案统一使用 [scripts/archive_tool.py](./scripts/archive_tool.py)，脚本依赖 `pyzipper` 读取 AES-256 zip；其中 `show --member` 用于不落盘读取单个 zip 内文件，`extract` 用于显式解压到本地临时目录：
 
 ```bash
 python degree_requirements/scripts/archive_tool.py list
