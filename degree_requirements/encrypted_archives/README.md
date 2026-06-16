@@ -14,11 +14,14 @@
 
 ```bash
 source .env
+python degree_requirements/scripts/archive_tool.py archives
 python degree_requirements/scripts/archive_tool.py list
 python degree_requirements/scripts/archive_tool.py test
 python degree_requirements/scripts/archive_tool.py show --member MANIFEST.txt
 python degree_requirements/scripts/archive_tool.py extract --output /tmp/degree_raw_check
 ```
+
+当前只有一个加密 zip 时脚本会自动选择；未来本目录可以保存多个加密 zip，届时使用 `--archive <zip 文件名>` 或本地 `.env` 中的 `DEGREE_REQUIREMENTS_ARCHIVE_FILE` 指定目标档案。脚本和文档不得假定只有 `2026-06-16-degree-requirements-raw-archive.zip` 这一份档案。
 
 ## 3. zip 内文件清单
 
@@ -38,4 +41,5 @@ python degree_requirements/scripts/archive_tool.py extract --output /tmp/degree_
 
 | 时间 | 修改 | 说明 |
 |---|---|---|
+| 2026-06-16 15:32:00 | 升级多档案与 AES 说明 | 记录 AES-256 加密方式、多 zip 选择规则和脚本读取方式 |
 | 2026-06-16 14:45:00 | 初始化加密 raw 档案 | 原始邮件和讨论 raw 以加密 zip 入库 |

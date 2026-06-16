@@ -42,23 +42,26 @@
 1. 邮件与聊天原始信息必须完整保存。
 2. raw 文件以 AES-256 加密 zip 入库到 [encrypted_archives/](./encrypted_archives/)。
 3. zip 密码不写入仓库；本地 `.env` 中使用 `DEGREE_REQUIREMENTS_ARCHIVE_PASSWORD` 环境变量保存。
-4. 使用前必须在仓库根目录执行：
+4. 加密 zip 不是单文件假设；后续可按日期、线程或材料批次新增多个 zip。脚本不得硬编码某一个 zip 文件名；多 zip 时必须通过 `--archive <zip 文件名>` 或本地 `.env` 中的 `DEGREE_REQUIREMENTS_ARCHIVE_FILE` 指定目标档案。
+5. 仓库文档、PR body、PR comment、review comment 不得写出口令明文，也不得写任何可复制的口令赋值样式；只允许写变量名和安全描述。
+6. 使用前必须在仓库根目录执行：
 
 ```bash
 source .env
 ```
 
-5. 读取 raw 档案统一使用 [scripts/archive_tool.py](./scripts/archive_tool.py)，脚本依赖 `pyzipper` 读取 AES-256 zip；其中 `show --member` 用于不落盘读取单个 zip 内文件，`extract` 用于显式解压到本地临时目录：
+7. 读取 raw 档案统一使用 [scripts/archive_tool.py](./scripts/archive_tool.py)，脚本依赖 `pyzipper` 读取 AES-256 zip；其中 `archives` 列出当前可用 zip，`show --member` 用于不落盘读取单个 zip 内文件，`extract` 用于显式解压到本地临时目录：
 
 ```bash
+python degree_requirements/scripts/archive_tool.py archives
 python degree_requirements/scripts/archive_tool.py list
 python degree_requirements/scripts/archive_tool.py test
 python degree_requirements/scripts/archive_tool.py show --member MANIFEST.txt
 python degree_requirements/scripts/archive_tool.py extract --output /tmp/degree_raw_check
 ```
 
-6. Markdown 文件只写语义索引，不写逐字原文；每条索引必须能指向 zip 内 raw 文件名、SHA256 和证据等级。
-7. 不维护“脱敏原文副本”，避免出现多个原文版本。
+8. Markdown 文件只写语义索引，不写逐字原文；每条索引必须能指向 zip 内 raw 文件名、SHA256 和证据等级。
+9. 不维护“脱敏原文副本”，避免出现多个原文版本。
 
 ## 5. 邮件归档规则
 
@@ -76,7 +79,7 @@ python degree_requirements/scripts/archive_tool.py extract --output /tmp/degree_
 ## 7. 2014 版缺口规则
 
 1. 未拿到 2014 原文前，相关内容必须标为“原文暂缺 / 待官方确认”。
-2. 2 SCI 或 1 SCI + 2 EI只能作为非正式线索，不得写成官方事实。
+2. 2 SCI 或 1 SCI + 2 EI 只能作为非正式线索，不得写成官方事实。
 3. 拿到 2014 原文后，必须同步更新 [SUMMARY.md](./SUMMARY.md)、[2014_policy/README.md](./2014_policy/README.md) 和判定矩阵。
 
 ## 8. 外部论文保守规划规则
@@ -87,7 +90,9 @@ python degree_requirements/scripts/archive_tool.py extract --output /tmp/degree_
 
 每份政策文件必须记录：正式文件名、适用对象、发布/生效日期（若原文有）、来源路径或 URL、抓取时间、SHA256、提取方式、页数/行数、是否被确认为截至核验日的最新版。若无法确认最新版，统一写为“2024 版 / 当前已取得新版候选”。
 
-## 10. SUMMARY 纪律
+## 10. README 与 SUMMARY 纪律
+
+[README.md](./README.md) 必须承担“入口即可决策”的职责：开头保留核心结论速览表，让读者不跳转也能看到身份口径、可选政策版本、2014 缺口、新版候选主依据、外部论文保守口径、新版关键硬约束、raw 复核方式与后续动作。后续新增政策或邮件时，若改变任何毕业规划结论，必须同步更新 README 速览表。
 
 [SUMMARY.md](./SUMMARY.md) 只做总账，不堆 PR 流水。至少保留：当前总览、政策版本总表、8 维判定矩阵、待问问题、更新日志。
 
