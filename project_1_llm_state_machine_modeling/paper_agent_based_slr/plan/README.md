@@ -6,6 +6,6 @@
 
 | 文件 | 作用 |
 |---|---|
-| [task-packets/a0-story-protocol-freeze.md](./task-packets/a0-story-protocol-freeze.md) | 本 PR 的范围、允许修改文件、拒收检查、验证命令和 review gate。 |
-| [task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | PR-S0：基于 PR-B0 + PR #112 重新勘定第二篇 story、禁用 claim、novelty matrix、RQ 与实验义务的阻塞任务包。 |
+| [task-packets/a0-story-protocol-freeze.md](./task-packets/a0-story-protocol-freeze.md) | 本 PR 的范围、允许修改文件、拒收检查、验证命令和 审查门槛。 |
+| [task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | PR-S0：基于 PR-B0 + PR #112 重新勘定第二篇 story、禁用 claim、新颖性差异矩阵、RQ 与实验义务的阻塞任务包。 |
 | [progress.md](./progress.md) | 当前 PR 实现进度、已运行检查、review 记录和剩余风险。 |

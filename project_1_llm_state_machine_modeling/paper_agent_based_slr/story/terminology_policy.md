@@ -1,50 +1,50 @@
-# 术语策略：agent-based SLR 论文
+# 术语策略：智能体辅助 SLR 论文
 
 ## 1. 目的
 
-本文术语容易与传统 SLR、systematic mapping、PRISMA reporting、自动筛选工具、LLM 生成综述文本混淆。本文件冻结 A0 / PR-S0 阶段的术语口径，后续写 abstract、introduction、method、protocol、evaluation 或 PR comment 时应优先遵守。
+本文术语容易与传统 SLR、systematic mapping、PRISMA reporting、自动筛选工具、LLM 生成综述文本混淆。本文件冻结 A0 / PR-S0 阶段的术语口径，后续写摘要、引言、方法、协议、评价或 PR comment 时应优先遵守。
 
 ## 2. 推荐术语
 
 | 术语 | 推荐口径 | 避免误读 |
 |---|---|---|
-| agent-based SLR | 将 SLR / systematic mapping 的多个环节组织成 agent-executed workflow，并设置 human audit gates。 | 不等于端到端无人自动 SLR。 |
-| researcher-guided agentic SLR support workflow | researcher 基于 review meta-model scaffold 裁剪并实例化 topic-specific review meta-model，再让 agent 在该框架下提出 candidate findings 并接受审计。 | 不等于系统自动定义最终研究结论。 |
-| review meta-model scaffold | 帮助 researcher 声明 / 裁剪 review objects、relations、evidence fields、finding types、scope constraints 的可配置模板。 | 不是 UML/MDE 意义上的完整 metamodel；不是作者预设的 universal SE ontology。 |
-| topic-specific review meta-model | researcher 针对具体 SLR/SMS 主题实例化后的工作模型。 | 不是 LLM 自动最终决定的 schema。 |
-| researcher-approved executable schema | 由系统辅助生成、经 researcher 确认后供 agent 执行的字段和约束。 | 不是自动编译出的不可审计黑箱规则。 |
-| evidence object | 从论文中抽取、带 source anchor 的可复核证据单元。 | 不是普通摘要或模型自由总结。 |
-| finding pattern scaffold | 约束 candidate finding 类型、结构和证据要求的模式集合。 | 不保证 finding 为真，只约束候选发现生成。 |
-| candidate finding | agent 基于 evidence objects 和 finding patterns 提出的候选研究发现。 | 不能直接写成 final finding。 |
-| final finding | researcher 接受 claim strength、scope、supporting/counter evidence 后确认的 finding。 | 不是 LLM 输出后的默认状态。 |
-| researcher audit | researcher 对 schema、evidence chain、candidate finding、claim strength 的显式审计。 | 不等于最后润色报告。 |
-| researcher challenge loop | researcher 对 candidate finding 发起质疑，系统补证、找反例、修订或降级的闭环。 | 不要求 PR-S0 实现 UI，但必须作为方法闭环。 |
-| claim strength | finding 的主张强度等级，由 evidence 与 researcher audit 决定。 | 不是 LLM confidence。 |
-| agent-executed workflow | agent 执行或辅助 query、screening、extraction、coding、finding proposal、evidence-chain construction、report projection。 | 不等于单个 prompt 或单次 LLM response。 |
-| human audit gate | 人类在 protocol approval、meta-model approval、evidence audit、finding audit、final claim review 的显式审计节点。 | 不等于人工全文重做所有 SLR 环节。 |
+| 智能体辅助 SLR（agent-based SLR） | 将 SLR / systematic mapping 的多个环节组织成智能体执行的工作流，并设置人工审计门。 | 不等于端到端无人自动 SLR。 |
+| 研究者引导的智能体式 SLR 支持工作流（researcher-guided agentic SLR support workflow） | 研究者基于综述元模型脚手架裁剪并实例化主题特定综述元模型，再让智能体在该框架下提出候选研究发现并接受审计。 | 不等于系统自动定义最终研究结论。 |
+| 综述元模型脚手架（review meta-model scaffold） | 帮助研究者声明 / 裁剪综述对象、关系、证据字段、研究发现类型、范围约束的可配置模板。 | 不是 UML/MDE 意义上的完整 metamodel；不是作者预设的 universal SE ontology。 |
+| 主题特定综述元模型（topic-specific review meta-model） | 研究者针对具体 SLR/SMS 主题实例化后的工作模型。 | 不是 LLM 自动最终决定的 schema。 |
+| 研究者批准的可执行 schema（researcher-approved executable schema） | 由系统辅助生成、经研究者确认后供智能体执行的字段和约束。 | 不是自动编译出的不可审计黑箱规则。 |
+| 证据对象（evidence object） | 从论文中抽取、带来源锚点的可复核证据单元。 | 不是普通摘要或模型自由总结。 |
+| 研究发现模式脚手架（finding pattern scaffold） | 约束候选研究发现类型、结构和证据要求的模式集合。 | 不保证 finding 为真，只约束候选发现生成。 |
+| 候选研究发现（candidate finding） | 智能体基于证据对象和研究发现模式提出的候选研究发现。 | 不能直接写成最终研究发现。 |
+| 最终研究发现（final finding） | 研究者接受主张强度、范围、支持性 / 反向证据后确认的 finding。 | 不是 LLM 输出后的默认状态。 |
+| 研究者审计（researcher audit） | 研究者对 schema、证据链、候选研究发现、主张强度的显式审计。 | 不等于最后润色报告。 |
+| 研究者质疑闭环（researcher challenge loop） | 研究者对候选研究发现发起质疑，系统补证、找反例、修订或降级的闭环。 | 不要求 PR-S0 实现 UI，但必须作为方法闭环。 |
+| 主张强度（claim strength） | finding 的主张强度等级，由证据与研究者审计决定。 | 不是 LLM confidence。 |
+| 智能体执行的工作流（agent-executed workflow） | 智能体执行或辅助检索、筛选、抽取、编码、研究发现提出、证据链构建、报告投影。 | 不等于单个 prompt 或单次 LLM response。 |
+| 人工审计门（human audit gate） | 人类在 protocol approval、meta-model approval、evidence audit、finding audit、final claim review 的显式审计节点。 | 不等于人工全文重做所有 SLR 环节。 |
 | SLR | 围绕明确 RQ 系统识别、筛选、评价、抽取和综合证据的方法。 | 不等于普通 narrative review。 |
 | systematic mapping | 更偏分类、taxonomy、覆盖分布和领域结构刻画。 | 不等于完整效果综合或 meta-analysis。 |
-| evidence package | 围绕 candidate findings 组织的可复核证据制品，包括 evidence objects、source anchors、supporting / counter evidence、coding decisions、challenge logs、revision history 和 final status。 | 不等于普通运行日志。 |
-| traceability | 每个报告级 claim 能追溯到论文、检索、筛选、抽取、编码、证据定位与审计状态。 | 不等于只在文末放参考文献。 |
-| provenance | 记录数据、全文、metadata、query、run、人工审计的来源和版本。 | 不等同于最终 claim 正确性。 |
-| auditability | 第三方能复查流程、证据链、分歧、失败与修正。 | 不等于完全自动验证正确。 |
-| factuality | 抽取字段、引用、venue、DOI、结论与来源事实一致。 | 不等于研究问题已被完整回答。 |
-| hallucination | 生成不存在论文、错误引用、错误事实或无证据 claim 的问题统称。 | 应进一步分类，不要只泛泛写幻觉。 |
-| unsupported claim | 没有可定位来源、抽取记录或审计状态支撑的 claim。 | 可能不是编造，但仍不可进入强结论。 |
-| gold fact | 人工高置信核验或官方来源确认的事实锚点。 | 不等于完整 oracle。 |
-| silver fact | 由可信 metadata、全文证据或半自动核验形成但仍需抽检的事实。 | 不等于可无条件作为最终真值。 |
-| coverage proxy | known-item recall、seed recovery、database overlap 等覆盖代理。 | 禁止把它写成真实 recall 或 complete coverage。 |
+| 证据包（evidence package） | 围绕候选研究发现组织的可复核证据制品，包括证据对象、来源锚点、支持性 / 反向证据、编码决策、质疑日志、修订历史和最终状态。 | 不等于普通运行日志。 |
+| 可追踪性（traceability） | 每个报告级 claim 能追溯到论文、检索、筛选、抽取、编码、证据定位与审计状态。 | 不等于只在文末放参考文献。 |
+| 来源追溯（provenance） | 记录数据、全文、metadata、query、run、人工审计的来源和版本。 | 不等同于最终 claim 正确性。 |
+| 可审计性（auditability） | 第三方能复查流程、证据链、分歧、失败与修正。 | 不等于完全自动验证正确。 |
+| 事实准确性（factuality） | 抽取字段、引用、venue、DOI、结论与来源事实一致。 | 不等于研究问题已被完整回答。 |
+| 幻觉（hallucination） | 生成不存在论文、错误引用、错误事实或无证据 claim 的问题统称。 | 应进一步分类，不要只泛泛写幻觉。 |
+| 无证据支撑的主张（unsupported claim） | 没有可定位来源、抽取记录或审计状态支撑的 claim。 | 可能不是编造，但仍不可进入强结论。 |
+| 金事实（gold fact） | 人工高置信核验或官方来源确认的事实锚点。 | 不等于完整 oracle。 |
+| 银事实（silver fact） | 由可信 metadata、全文证据或半自动核验形成但仍需抽检的事实。 | 不等于可无条件作为最终真值。 |
+| 覆盖代理（coverage proxy） | known-item recall、seed recovery、database overlap 等覆盖代理。 | 禁止把它写成真实 recall 或 complete coverage。 |
 
-## 3. finding lifecycle 术语
+## 3. 研究发现生命周期术语
 
 | 术语 | 推荐口径 | 避免误读 |
 |---|---|---|
-| candidate | 处于候选状态、待审计的 finding 或 claim。 | 不是最终结论。 |
-| challenged | researcher 已对证据、范围或主张强度提出质疑。 | 不是失败；只是进入复核。 |
-| revised | 系统在 challenge 后补证、找反例或收窄 scope。 | 不是自动升级为 final。 |
-| downgraded | finding 不能支撑原始强度，需弱化主张或缩小范围。 | 不是无价值；只是不能写强 claim。 |
-| accepted | researcher 认可该 finding 及其 evidence chain。 | 只有此状态才可写成 final finding。 |
-| unresolved | 证据不足或冲突过大，暂不进入结论。 | 不是错误；是审计结果的一种。 |
+| 候选（candidate） | 处于候选状态、待审计的 finding 或 claim。 | 不是最终结论。 |
+| 已质疑（challenged） | 研究者已对证据、范围或主张强度提出质疑。 | 不是失败；只是进入复核。 |
+| 已修订（revised） | 系统在 challenge 后补证、找反例或收窄 scope。 | 不是自动升级为 final。 |
+| 已降级（downgraded） | finding 不能支撑原始强度，需弱化主张或缩小范围。 | 不是无价值；只是不能写强 claim。 |
+| 已接受（accepted） | 研究者认可该 finding 及其 evidence chain。 | 只有此状态才可写成 final finding。 |
+| 未解决（unresolved） | 证据不足或冲突过大，暂不进入结论。 | 不是错误；是审计结果的一种。 |
 
 ## 4. PRISMA 相关术语
 
@@ -58,7 +58,7 @@
 
 | 写法 | 处理 |
 |---|---|
-| agent 完全替代 SLR 专家 | 禁止 claim。 |
+| 智能体完全替代 SLR 专家 | 禁止 claim。 |
 | 端到端无人自动产出合格 SLR | 禁止 claim。 |
 | first automated SLR | 禁止 claim；已有 ASReview、RobotReviewer、review automation 等相关工作。 |
 | complete coverage | 禁止 claim；只能报告 coverage proxy。 |

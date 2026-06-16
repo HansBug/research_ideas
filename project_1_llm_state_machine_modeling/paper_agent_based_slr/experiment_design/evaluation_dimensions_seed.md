@@ -1,34 +1,34 @@
-# Evaluation Dimensions Seed：PR-S0 评价维度种子
+# 评价维度种子：PR-S0 评价维度
 
 ## 1. 边界
 
 本文件只冻结 PR-S0 阶段的评价维度种子和后续 A5 接口，不冻结指标公式、阈值、统计协议或最终脚本。若某段需要精确公式，应移到 PR-A5。
 
-PR-S0 后，评价中心从“workflow 是否能生成证据包 / 报告”收紧为：**researcher-defined meta-model、finding patterns、candidate findings、evidence chain、researcher challenge loop 与 final finding decision 是否可审计、可复核、可降级**。
+PR-S0 后，评价中心从“工作流是否能生成证据包 / 报告”收紧为：**研究者定义的元模型、研究发现模式、候选研究发现、证据链、研究者质疑闭环与最终研究发现决策是否可审计、可复核、可降级**。
 
 ## 2. 维度种子
 
 | 维度 | PR-S0 定义 | 后续可能证据 | A5 接口 |
 |---|---|---|---|
-| Meta-model / schema usefulness | researcher-instantiated meta-model 是否帮助结构化抽取、编码和 finding proposal。 | schema coverage、字段缺失、researcher approval log。 | A5 冻结 schema coverage 与实例化质量评估。 |
-| Finding relevance / usefulness | candidate finding 是否与 researcher 的 RQ 和领域问题相关、有研究意义、非平凡且可审计。 | domain researcher rating、finding type coverage、非平凡性评分。 | A5 冻结 finding-level 人工评价 rubric。 |
-| Traceability / 可追踪性 | candidate / final finding 能否回溯到 search、screening、extraction、coding、evidence locator 和 audit status。 | finding-to-source chain、断链记录。 | A5 冻结断链率、定位错误率。 |
-| Factuality / 事实准确性 | metadata、venue、DOI、抽取字段、证据定位是否与来源一致。 | gold / silver facts、人工核验样本。 | A5 冻结字段级准确率和错误分类。 |
-| Hallucination / unsupported finding | 不存在论文、错误来源、无证据 finding、过度综合、scope 过宽。 | trap papers、unsupported finding log、overclaim taxonomy。 | A5 冻结 hallucination / overclaim taxonomy、拦截率、残余错误。 |
-| Screening consistency | 纳排决策与理由在重复运行 / 人工抽检 / 多 agent 下是否稳定。 | screening ledger、分歧裁决。 | A5 冻结 agreement / adjudication 统计。 |
-| Extraction / coding consistency | 抽取字段和编码标签是否稳定、可解释、可裁决。 | extraction table、coding decision、uncertain 标记。 | A5 冻结字段级/标签级一致性。 |
-| Challenge effectiveness | researcher challenge 是否导致补证、找反例、修订、降级、unresolved 或接受。 | challenge log、revision / downgrade / unresolved / accepted count。 | A5 冻结 challenge outcome 和 stop-condition 统计。 |
-| Transparency / 透明报告 | 是否能生成 PRISMA-style flow、排除理由、协议偏离日志和 finding status ledger。 | report artifacts、exclusion ledger、challenge/revision ledger。 | A5 冻结透明报告 checklist；不得写 PRISMA-compliant。 |
-| Coverage proxy | known-item recall、seed recovery、database overlap 等覆盖代理。 | seed set、database result overlap。 | A5 冻结 proxy 计算口径；不得写 complete coverage。 |
-| Cost / efficiency | agent 时间、token / API cost、人工审计时间、challenge 修订成本、失败重试成本。 | run record、usage、人工审计日志。 | A5 冻结成本统计口径。 |
-| Audit effectiveness | human audit / researcher challenge gates 拦截了多少错误，留下多少残余问题。 | audit log、false positive、false negative。 | A5 冻结拦截率、误报率、残余 unsupported finding 率。 |
+| 元模型 / schema 可用性 | 研究者实例化的元模型是否帮助结构化抽取、编码和候选研究发现提出。 | schema 覆盖、字段缺失、研究者批准日志。 | A5 冻结 schema 覆盖与实例化质量评估。 |
+| 研究发现相关性 / 可用性 | 候选研究发现是否与研究者的 RQ 和领域问题相关、有研究意义、非平凡且可审计。 | 领域研究者评分、研究发现类型覆盖、非平凡性评分。 | A5 冻结研究发现级人工评价 rubric。 |
+| 可追踪性（traceability） | 候选 / 最终研究发现能否回溯到检索、筛选、抽取、编码、证据定位和审计状态。 | 研究发现到来源链、断链记录。 | A5 冻结断链率、定位错误率。 |
+| 事实准确性（factuality） | 元数据、venue、DOI、抽取字段、证据定位是否与来源一致。 | gold / silver facts、人工核验样本。 | A5 冻结字段级准确率和错误分类。 |
+| 幻觉 / 无证据支撑研究发现 | 不存在论文、错误来源、无证据研究发现、过度综合、范围过宽。 | 陷阱论文、无证据支撑研究发现日志、过强主张 taxonomy。 | A5 冻结 hallucination / overclaim taxonomy、拦截率、残余错误。 |
+| 筛选一致性 | 纳排决策与理由在重复运行、人工抽检、多智能体条件下是否稳定。 | 筛选台账、分歧裁决。 | A5 冻结 agreement / adjudication 统计。 |
+| 抽取 / 编码一致性 | 抽取字段和编码标签是否稳定、可解释、可裁决。 | 抽取表、编码决策、不确定标记。 | A5 冻结字段级 / 标签级一致性。 |
+| 质疑闭环有效性 | 研究者质疑是否导致补证、找反例、修订、降级、未解决或接受。 | 质疑日志、修订 / 降级 / 未解决 / 接受计数。 | A5 冻结 challenge outcome 和停止条件统计。 |
+| 透明报告 | 是否能生成 PRISMA-style（类 PRISMA）flow、排除理由、协议偏离日志和研究发现状态台账。 | 报告制品、排除理由台账、质疑 / 修订台账。 | A5 冻结透明报告 checklist；不得写 PRISMA-compliant。 |
+| 覆盖代理（coverage proxy） | known-item recall、seed recovery、database overlap 等覆盖代理。 | 种子集、数据库结果重叠。 | A5 冻结覆盖代理计算口径；不得写 complete coverage。 |
+| 成本 / 效率 | 智能体时间、token / API cost、人工审计时间、质疑修订成本、失败重试成本。 | 运行记录、usage、人工审计日志。 | A5 冻结成本统计口径。 |
+| 审计有效性 | 人工审计 / 研究者质疑门拦截了多少错误，留下多少残余问题。 | 审计日志、误报、漏报。 | A5 冻结拦截率、误报率、残余无证据支撑研究发现率。 |
 
 ## 3. PR-S0 不做的事
 
 - 不把上述维度写成已运行结果。
 - 不冻结公式或阈值。
-- 不比较人类最终 SLR 与 agent 输出谁更好。
-- 不声称 challenge loop 必然提高 quality。
+- 不比较人类最终 SLR 与智能体输出谁更好。
+- 不声称质疑闭环必然提高 quality。
 - 不把 candidate finding 写成 final finding。
 - 禁止声称 complete coverage。
 - 禁止声称 PRISMA-compliant。
@@ -37,8 +37,8 @@ PR-S0 后，评价中心从“workflow 是否能生成证据包 / 报告”收�
 
 | 后续 PR | 需要接走的内容 |
 |---|---|
-| A2 | 把 meta-model、executable schema、candidate finding、challenge log 和 finding status 写成 stage contract。 |
-| A3 | 把维度映射到具体 replay / prospective scenarios、gold / silver facts、trap papers、audit subset 和 finding-type tasks。 |
-| A4 | 让 workflow 写出这些维度需要的 run record / finding-centered evidence package 字段。 |
+| A2 | 把 meta-model、可执行 schema、候选研究发现、质疑日志和研究发现状态写成阶段契约。 |
+| A3 | 把维度映射到具体 replay / prospective scenarios、gold / silver facts、陷阱论文、审计子集和研究发现类型任务。 |
+| A4 | 让工作流写出这些维度需要的运行记录和以研究发现为中心的证据包字段。 |
 | A5 | 冻结指标公式、阈值、统计协议、失败分类和报告格式。 |
 | A6 | 把评价维度映射到论文 RQ、实验表格和 limitations，不把 planned obligation 写成结果。 |
