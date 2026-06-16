@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | Mermaid 方法图严格盲读、小 diff 复审与当前 HEAD `feedback-smoke` 均已闭合；ready 待用户指示 |
+| 当前阶段 | Mermaid 方法图严格盲读与文档小 diff 复审已闭合；最终合并前 CI 状态以 PR checks 最新结果为准 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -64,7 +64,7 @@
 | 2026-06-17 | 方法图严格盲读补验：subagent 只获得渲染 PNG 与原文临近图的少量文字，未获得 Mermaid 源码；盲读复述确认研究者 schema 批准权、智能体仅执行已批准 schema、候选发现不等于最终发现、schema 问题回批准门、透明材料非自动写作；无 C/I，仅有候选泳道位置、透明材料提示和字号密度类 M | 通过 |
 | 2026-06-17 | `a5d9f6ac` 对应的 `feedback-smoke`（run `27634299413`） | completed / success；仅证明 `a5d9f6ac` 小 diff 复审后的 CI 已通过 |
 | 2026-06-17 | `c1d6d568` 对应的 `feedback-smoke`（run `27634909596`） | completed / success |
-| 2026-06-17 | `5c6ade50` 对应的 `feedback-smoke`（run `27635323585`） | completed / success；当前 HEAD 合并前仍以 PR checks 最新状态为准 |
+| 2026-06-17 | `5c6ade50` 对应的 `feedback-smoke`（run `27635323585`） | completed / success；后续提交会触发新 run，最终合并前不在本文档固化“当前 HEAD CI 已闭合”，以 PR checks 最新结果为准 |
 
 ## 6. Review 状态
 
@@ -91,7 +91,7 @@
 
 ## 7. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审、严格 PNG 盲读补验和当前 HEAD `5c6ade50` 对应的 `feedback-smoke` 均已闭合；剩余 M 均为字号、密度、命名和可读性类建议，不阻塞。
+1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审与严格 PNG 盲读补验均已闭合，无 C/I；剩余 M 均为字号、密度、命名和可读性类建议，不阻塞。最终合并前的 CI 状态不在本文件写死，以 GitHub PR checks 最新结果为准。
 2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
