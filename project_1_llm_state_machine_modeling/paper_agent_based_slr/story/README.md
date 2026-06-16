@@ -1,35 +1,35 @@
 # story/：论文主线、协议、术语与主张控制
 
-本目录维护第二篇 researcher-guided agentic SLR support workflow 论文的 story 真源。PR-S0 后，它回答：这篇论文如何从宽泛“自动化 SLR / evidence package workflow”收紧为 研究者定义的 meta-model、finding patterns（研究发现模式）、candidate / final finding（候选 / 最终研究发现） lifecycle、evidence challenge loop（证据质疑闭环） 与 finding-centered evaluation（以研究发现为中心的评价）；哪些术语如何使用，哪些 claim 可以写，哪些 claim 必须避免，与已有工具和方法学如何区分。
+本目录维护第二篇论文的叙事真源。PR-S0 后，本论文不再主打“自动化生成综述”或“多智能体流水线本身”，而是研究：**研究者如何借助可配置脚手架显式化综述元模型，智能体如何在该框架下提出候选研究发现并组织证据链，研究者如何通过质疑闭环修订、降级、保留未解决或确认最终研究发现**。
 
 ## 文件说明
 
 | 文件 | 作用 |
 |---|---|
-| [paper_story.md](./paper_story.md) | PR-S0 后的核心论点、任务边界、问题缺口、技术挑战、方法洞察、以研究发现为中心的候选贡献、证据计划和审稿风险。 |
-| [protocol.md](./protocol.md) | 智能体辅助 SLR / systematic mapping 的最小工作流协议与人工审计门。 |
-| [terminology_policy.md](./terminology_policy.md) | SLR、systematic mapping、agent、audit gate、PRISMA-style、traceability、hallucination 等术语口径。 |
+| [paper_story.md](./paper_story.md) | PR-S0 后的核心论点、任务边界、方法总览图、阶段契约、候选贡献、证据计划和审稿风险。 |
+| [protocol.md](./protocol.md) | 发现导向的最小工作流协议；用于约束后续 A2/A3/A4/A5 的阶段输入、输出、审计门和证据链。 |
+| [terminology_policy.md](./terminology_policy.md) | SLR/SMS、元模型、候选 / 最终研究发现、质疑闭环、类 PRISMA、可追踪性等术语口径。 |
 | [claim_evidence_map.md](./claim_evidence_map.md) | 每类潜在主张的证据状态、禁止写法、安全写法和后续所需证据。 |
-| [differential_novelty_matrix.md](./differential_novelty_matrix.md) | 与 SLR/SMS、PRISMA、ASReview、RobotReviewer、review automation、LLM-assisted evidence synthesis 的差异化新颖性矩阵。 |
-| [paper_outline.md](./paper_outline.md) | 面向后续 论文稿 的 章节级架构，正文说明以中文为主。 |
+| [differential_novelty_matrix.md](./differential_novelty_matrix.md) | 与 SLR/SMS 方法学、PRISMA、ASReview、RobotReviewer、AgentSLR、LatteReview、EviSearch 等近邻的差异化边界。 |
+| [paper_outline.md](./paper_outline.md) | 后续论文稿的章节级架构和 RQ 到评价义务的映射。 |
 
 ## 使用顺序
 
-1. 先读 [paper_story.md](./paper_story.md)，确认主线是带人工审计门的智能体辅助 SLR 方法学，而不是 `sources/` corpus paper。
-2. 再读 [terminology_policy.md](./terminology_policy.md)，避免 PRISMA、audit、traceability、hallucination 等术语漂移；这些英文保留为术语锚点。
-3. 写任何 protocol 或方法 描述前读 [protocol.md](./protocol.md)。
-4. 写任何 摘要 / 贡献 / 结论 句子前必须查 [claim_evidence_map.md](./claim_evidence_map.md)。
-5. 写 相关工作 前读 [differential_novelty_matrix.md](./differential_novelty_matrix.md)。
-6. 组织论文大纲时读 [paper_outline.md](./paper_outline.md)。
+1. 先读 [paper_story.md](./paper_story.md)，确认主线、图示、候选贡献和禁用主张。
+2. 再读 [terminology_policy.md](./terminology_policy.md)，避免元模型、候选研究发现、最终研究发现、审计门、类 PRISMA 等术语漂移。
+3. 写任何方法或阶段契约前读 [protocol.md](./protocol.md)。
+4. 写摘要、引言、贡献或结论前查 [claim_evidence_map.md](./claim_evidence_map.md)。
+5. 写相关工作前读 [differential_novelty_matrix.md](./differential_novelty_matrix.md)。
+6. 组织论文结构或后续实验 PR 时读 [paper_outline.md](./paper_outline.md)。
 
-## A0 硬约束
+## PR-S0 硬约束
 
-- 不把第二篇写成 `sources/` corpus / mapping / dataset paper。
-- 禁止写 智能体完全替代 SLR 专家。
-- 不写端到端无人自动产出合格 SLR。
-- 禁止在 checklist 未闭合前写 PRISMA-compliant。
-- 禁止写 complete coverage 或 first automated SLR。
+- 不把第二篇写成 `sources/` 语料、映射或数据集论文。
+- 禁止写智能体完全替代 SLR 专家。
+- 禁止写端到端无人自动产出合格 SLR。
+- 禁止在检查清单未闭合前写 PRISMA 合规。
+- 禁止写完整覆盖、首次自动化 SLR 或首次智能体式 SLR。
 - 不把 PR #97 OPEN / 未合入资产写成 `main` 已有事实。
-- 不把 PR-S0 的 finding-centered 评价义务写成 A5 已冻结指标协议。
-- 不把 candidate finding 直接写成 final finding。
-- 不把 研究者定义的 meta-model 写成 LLM 自动生成或作者预设 universal SE ontology。
+- 不把 PR-S0 的评价维度种子写成 A5 已验证指标协议。
+- 不把候选研究发现直接写成最终研究发现。
+- 不把研究者定义的元模型写成 LLM 自动生成或作者预设通用软件工程本体。

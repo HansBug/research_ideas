@@ -1,66 +1,65 @@
-# Agent-based SLR 最小流程协议
+# 发现导向的智能体辅助 SLR 最小协议
 
 ## 1. 协议目标
 
-本协议定义 A0 阶段的 agent-based SLR / systematic mapping workflow 边界。它不是最终实现，也不是 A5 评价指标协议；它只规定后续 A2/A3/A4/A5 必须保留哪些输入、输出、人工审计门和证据链。
+本协议定义 PR-S0 阶段的最小方法边界。它不是最终实现、不是 A5 指标协议，也不是完整 PRISMA 合规流程；它只规定后续 A2/A3/A4/A5 必须保留哪些输入、输出、研究者审计门和研究发现级证据链。
+
+核心原则：**智能体只能产生候选研究发现；最终研究发现必须经过研究者审计、证据链核验、反向证据检查和主张强度确认。**
 
 ## 2. 流程总览
 
 ```text
-RQ / scope seed
-  -> protocol draft
-  -> human protocol approval
-  -> query planning and search
-  -> deduplication and screening
-  -> fulltext availability logging
-  -> extraction and evidence location
-  -> coding and taxonomy
-  -> synthesis and claim-evidence map
-  -> PRISMA-style transparency material
-  -> final claim review
+方法提供的脚手架
+  -> 研究者实例化综述元模型与研究发现模式
+  -> 研究者批准可执行 schema
+  -> 智能体检索、筛选、抽取、编码
+  -> 智能体提出候选研究发现
+  -> 构建支持性证据、反向证据、来源锚点和主张强度
+  -> 研究者发起质疑、要求补证、修订或降级
+  -> 研究者确认最终研究发现或保留未解决状态
+  -> 投影为报告草案、主张-证据映射和类 PRISMA 透明材料
 ```
 
-## 3. Stage Contract
+## 3. 阶段契约
 
-| Stage ID | 阶段 | 输入 | 输出 | 必需审计信息 |
+| 阶段 ID | 阶段 | 输入 | 输出 | 必需审计信息 |
 |---|---|---|---|---|
-| S0 | Protocol setup | topic、RQ seed、scope constraints | protocol draft、纳排标准、数据库范围 | human approval、版本、偏离日志。 |
-| S1 | Query planning | approved protocol、数据库范围 | query strings、search plan | 查询式理由、日期、数据库、限制条件。 |
-| S2 | Search logging | query strings | raw result、metadata cache | source、时间、命中数、失败记录。 |
-| S3 | Deduplication | raw result | candidate pool | 去重键、冲突处理、保留理由。 |
-| S4 | Screening | candidate pool、纳排标准 | include / exclude ledger | 理由、置信度、人工抽检、分歧。 |
-| S5 | Fulltext status | included pool | fulltext availability log | legal source、用户提供、下载失败、版权边界。 |
-| S6 | Extraction | fulltext / metadata | extraction table | 字段来源、页 / 段定位、uncertain、负证据。 |
-| S7 | Coding | extraction table、coding schema | coding decisions | 标签定义、证据、分歧、裁决。 |
-| S8 | Synthesis | coded corpus | matrices、draft claims | claim-evidence map、unsupported claim check。 |
-| S9 | Reporting | synthesis、audit log | report draft、PRISMA-style materials | final claim review、threats、artifact checklist。 |
+| S0 | 脚手架选择 | 综述主题、初始 RQ、领域关注点、种子论文 | 可配置综述元模型脚手架、研究发现模式候选 | 选择理由、适用范围、不适用范围 |
+| S1 | 研究者实例化 | 脚手架、研究者领域知识、范围约束 | 主题特定综述元模型、研究发现模式选择 | 研究者批准记录、版本、修改意见 |
+| S2 | 可执行 schema 准备 | 主题特定综述元模型、纳排标准、字段定义 | 研究者批准的可执行 schema | 字段来源、必填 / 可选、失败状态、批准时间 |
+| S3 | 检索与筛选 | schema、检索范围、数据库、查询式 | 候选论文池、纳排台账、全文可获取性记录 | 查询式、命中数、排除理由、分歧和裁决 |
+| S4 | 抽取与编码 | 全文 / 元数据、schema、证据定位要求 | 证据对象表、编码决策、不确定标记 | 页 / 段定位、负证据、字段置信度、人工抽检 |
+| S5 | 候选研究发现提出 | 证据对象、研究发现模式、编码结果 | 候选研究发现台账 | 研究发现类型、范围、支持性证据、初始主张强度 |
+| S6 | 证据链构建 | 候选研究发现、证据对象、来源锚点 | 支持性证据、反向证据、不确定性、断链标记 | 主张到来源链、反例检索、无证据支撑检查 |
+| S7 | 研究者质疑与修订 | 候选研究发现、证据链、研究者问题 | 补证、反例、修订、降级、未解决或接受建议 | 质疑内容、系统响应、停止条件、成本 |
+| S8 | 最终研究发现决策 | 修订后证据链、质疑日志、研究者判断 | 最终研究发现、降级研究发现、未解决研究发现 | 接受 / 降级理由、范围、主张强度、残余风险 |
+| S9 | 报告投影 | 最终 / 降级 / 未解决研究发现 | 报告草案、主张-证据映射、类 PRISMA 透明材料 | 最终主张复核、排除理由、协议偏离、制品清单 |
 
-## 4. Human Audit Gates
+## 4. 研究者审计门
 
-| Gate | 位置 | 目的 | 最小记录 |
+| 审计门 | 位置 | 目的 | 最小记录 |
 |---|---|---|---|
-| G0 Protocol approval | S0 后 | 防止 scope 和 RQ 一开始漂移。 | 审批人、时间、批准版本、修改意见。 |
-| G1 Screening audit | S4 中 / 后 | 检查 inclusion / exclusion 理由是否可接受。 | 抽样策略、分歧率、裁决日志。 |
-| G2 Gold / silver fact audit | S6 / S7 | 为抽取和编码提供事实锚点。 | fact ID、来源、证据定位、置信等级。 |
-| G3 Disagreement adjudication | S7 / S8 | 处理 agent / reviewer 分歧。 | 分歧类型、裁决结果、理由。 |
-| G4 Final claim review | S9 前 | 拦截无证据 claim 和过强 conclusion。 | claim ID、支持证据、降级或删除记录。 |
+| G0 综述框架批准 | S1 后 | 防止研究问题、对象和范围一开始漂移 | 批准人、时间、版本、修改意见 |
+| G1 schema 批准 | S2 后 | 防止字段、状态和失败语义不可审计 | 字段清单、必填规则、失败状态、批准记录 |
+| G2 筛选 / 抽取抽检 | S3/S4 中 | 检查纳排理由、抽取字段和来源定位是否可信 | 抽样策略、分歧率、裁决日志 |
+| G3 候选研究发现审计 | S5/S6 后 | 防止候选研究发现缺证据、范围过宽或主张过强 | 研究发现 ID、支持证据、反向证据、不确定性 |
+| G4 质疑闭环裁决 | S7 后 | 记录研究者质疑带来的补证、修订、降级或未解决状态 | 质疑内容、响应、修改、成本、停止条件 |
+| G5 最终主张复核 | S9 前 | 防止报告级主张断链或误把候选发现写成最终结论 | 主张 ID、证据链、降级 / 删除记录、残余风险 |
 
-## 5. Claim-to-source 不可断链要求
+## 5. 研究发现到来源不可断链要求
 
-每个报告级 claim 必须至少能追溯到：
+每个报告级主张至少应能追溯到：
 
 ```text
-claim -> synthesis row -> coding decision -> extraction record -> evidence locator -> paper metadata -> screening decision -> query/search batch -> audit status
+报告级主张 -> 最终 / 降级 / 未解决研究发现 -> 候选研究发现 -> 证据链 -> 编码决策 -> 抽取记录 -> 来源定位 -> 论文元数据 -> 筛选决策 -> 检索批次 -> 审计状态
 ```
 
-若任一环节缺失，应标记为 `断链`，不得进入摘要或主要结论。
+若任一环节缺失，应标记为“断链”或“未解决”，不得进入摘要或主要结论。
 
-## 6. A0 不冻结的内容
+## 6. PR-S0 不冻结的内容
 
-A0 不冻结以下内容：
-
-1. 每个 stage 的 JSON schema 细节；这由 A2 冻结。
-2. 具体 benchmark scenarios；这由 A3 冻结。
-3. 真实 agent 实现和 provider；这由 A4 冻结。
-4. 指标公式、阈值、统计协议；这由 A5 冻结。
-5. 真实 LLM 调用；后续若调用必须 `source .env` 并保存 run record。
+1. 每个阶段的 JSON schema 细节；由 A2 冻结。
+2. 具体场景和样本；由 A3 冻结。
+3. 真实智能体实现、provider 和模型；由 A4 冻结。
+4. 指标公式、阈值和统计协议；由 A5 冻结。
+5. 真实 LLM 调用；后续若调用必须 `source .env` 并保存运行记录。
