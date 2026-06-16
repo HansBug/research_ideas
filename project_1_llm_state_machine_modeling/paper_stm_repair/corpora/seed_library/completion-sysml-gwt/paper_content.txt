@@ -1,0 +1,1937 @@
+--- Page 1 ---
+Software and Systems Modeling (2024) 23:1455–1491
+https://doi.org/10.1007/s10270-024-01228-3
+THEME SECTION PAPER
+Completion of SysML state machines from Given–When–Then
+requirements
+Maria Stella de Biase1·Simona Bernardi2·Stefano Marrone1·José Merseguer2·Angelo Palladino3
+Received: 14 August 2023 / Revised: 16 September 2024 / Accepted: 2 October 2024 / Published online: 27 November 2024
+© The Author(s) 2024
+Abstract
+MDE enables the centrality of the models in semi-automated development processes. However, its level of usage in industrial
+settings is still not adequate for the beneﬁts MDE can introduce. This paper proposes a semi-automatic approach for the
+completion of high-level models in the lifecycle of critical systems, which exhibit an event-driven behaviour. The proposalsuggests a speciﬁcation guideline that starts from a partial SysML model of a system and on a set of requirements, expressed
+in the well-known Given–When–Then paradigm. On the basis of such requirements, the approach enables the semi-automatic
+generation of new SysML state machines model elements. Accordingly, the approach focuses on the completion of thestate machines by adding proper transitions (with triggers, guards and effects) among pre-existing states. Also, traceability
+modelling elements are added to the model. Two case studies demonstrate the feasibility of the proposed approach.
+Keywords Behaviour-driven development ·Requirements engineering ·SysML ·Critical systems design ·Event-driven
+systems design
+Communicated by Lano, Kolahdouz-Rahimi, Yassipour-Tehrani,
+Burgueño and Uma.
+B Simona Bernardisimonab@unizar.es
+Maria Stella de Biase
+mariastella.debiase@unicampania.it
+Stefano Marrone
+stefano.marrone@unicampania.it
+José Merseguer
+jmerse@unizar.es
+Angelo Palladino
+angelo.palladino@kineton.it
+1Dipartimento di Matematica e Fisica, Università dellaCampania “Luigi V anvitelli”, viale Lincoln, 5, 81100 Caserta,Italy
+2Department de Informática e Ingeniería de Sistemas Escuelade Ingeniería y Arquitectura, Universidad de Zaragoza,Ediﬁcio Ada Byron Calle María de Luna 1, 50018 Zaragoza,
+Spain
+3Aerospace Business Unit, Kineton SRL, via Emanuele
+Gianturco, 23, 80146 Napoli, Italy1 Introduction
+Model-driven development is a research ﬁeld that advocates
+the use of models as ﬁrst-class citizens in the software devel-opment process [ 9,22]. A primary interest is the automatic
+creation of software artefacts (including models) from mod-
+els. Among the latter, behavioural models play a prominent
+role, for many important reasons. For example, they arefundamental for carrying out all kinds of non-functional anal-
+yses, e.g. security [ 4], performance [ 15] or dependability [ 6,
+7], also behavioural speciﬁcations provide the means for exe-
+cutable speciﬁcations [ 49]. Behaviour-driven development
+(BDD),
+1as an evolution of Test-driven development (TDD)
+[5], elevates behavioural speciﬁcations to guide develop-
+ment, system testing and communication with stakeholders.
+Behavioural models, such as the System Modelling Lan-
+guage (SysML) [ 40] or the Uniﬁed Modelling Language
+(UML) [ 39] state machines, are often created manually,
+which is a costly and error-prone task. However, we are
+conﬁdent in taking advantage of much of the information
+gathered during the early stages of the development pro-cess, mainly requirements and architectural diagrams. In our
+1https://dannorth.net/introducing-bdd/ .
+123
+
+--- Page 2 ---
+1456 M. Stella de Biase et al.
+view, all these models and information may help to create
+behavioural models automatically.
+Because the automatic creation of behavioural models is
+highly challenging, this work starts exploring autocomple-
+tion as an initial step in that direction. Model autocompletionwas introduced by Burgueño et al. [ 12] as a new feature for a
+future generation of modelling tools. In their opinion, auto-
+completion could signiﬁcantly improve the modelling task
+and also modelling assistant tools [ 38], such as OutSystems
+[41] or Mendix.
+2
+This paper contributes to two goals. As a ﬁrst goal, it
+leverages SysML block diagrams and class diagrams tosemicomplete SysML state machines. Hence, proposing an
+approach that identiﬁes patterns in the system requirements
+(expressed using Gherkin [ 53], as usual in BDD), so to
+assist the autocompletion process. As a second goal, thepaper illustrates these ﬁndings in two case studies. The
+ﬁrst one in European Rail Trafﬁc Management System
+(ERTMS)/European Train Control System (ETCS). The sec-ond one, proposed by Douglass in [ 18], considers a speciﬁc
+critical event in the healthcare domain.
+This work builds on previous results, described in the pre-
+print [ 8] where a preliminary idea was sketched. Herein, in
+pursuing the mentioned goals, our approach entails the fol-
+lowing original contributions:
+– Deﬁnition of a mechanism for a dynamically adapted
+grammar, so to analyse system requirements;
+– Deﬁnition of a knowledge base of possible requirement
+schemes and related SysML model adaptations;
+– Creation of a toolchain, open to integrate Natural Lan-
+guage Processing (NLP) techniques that improve ﬂexi-
+bility.
+The scope of this work is in the ﬁeld of event-driven sys-
+tems, which are usually modelled using State Machines. On
+the other hand, the proposed approach requires modellingwith SysML, the usage of some requirements guidelines andrequirements traceability and all these characteristics often
+found in critical systems. Certainly, both case studies, nicely
+represent an intersection between these two categories of sys-tems, the event-driven ones and the critical ones. The ﬁrst
+system using a messaging between vital ends in the ERTM-
+S/ETCS speciﬁcation. The second system focuses on thedesign of a system to detect and respond to critical events
+in an operational environment.
+The rest of the paper is organized as follows. Sec-
+tion 2introduces necessary background, and Sect. 3reviews
+related works. Section 4explains the proposed methodol-
+ogy. The next sections deﬁne the technical details. Section 5
+2https://www.mendix.com/platform/#assist .reports on modelling. Sections 6,7and 8report on knowl-
+edge representation. Section 9describes a supporting process
+and toolchain. The previous sections use a software con-
+trolled lamp as a running example. Section 10illustrates the
+approach with a case study based on ETCS Level 3 (ETCS-L3). Section 11evaluates the approach using the healthcare
+case study. The paper concludes with remarks and observa-
+tions in Sect. 12.
+2 Background
+This section introduces basic concepts that help to focus on
+the context of the paper.
+2.1 Behaviour-driven development
+BDD is a software development methodology that aims to
+improve communication between all involved stakehold-ers through the formulation of use and test scenarios [ 49].
+BDD focuses on the behaviours that the system should have,
+rather than just on the desired functionality. Thus, the sys-tem behaviours must be clearly and unambiguously deﬁned
+through Scenarios —presented in Sect. 3. The Gherkin lan-
+guage is mainly associated with BDD, and it employs aplain-text format to deﬁne the expected behaviour of the
+software system. Gherkin is typically implemented in com-
+bination with frameworks and tools, such as Cucumber [ 53],
+and allows the deﬁnition of scenarios, which are described ina simple, non-redundant and understandable way by different
+teams, without source of ambiguity. Scenarios, in addition to
+describing a behaviour or functionality, are executable spec-iﬁcations, i.e. they deﬁne the skeleton of acceptance tests
+that are useful during the system veriﬁcation phase. They,
+therefore, help to ensure the correct behaviour of the system.
+Gherkin was chosen for this work primarily because of one
+powerful characteristic: the linguistic structure’s simplicity
+(Given–When–Then) combined with its capability for veri-ﬁcation. The authors in [ 2] highlight:
+The popularity of the Gherkin language is, in large
+part, due to its ability to enforce the use of high-level,domain-speciﬁc terms and supporting traceability fromAC (acceptance criteria) to executable test cases. More
+precisely, the Gherkin syntax enables the automated
+generation of executable test cases based on matchingAC text to APIs, thus leading to test case traceability.
+2.2 ERTMS/ETCS-L3
+The standard ERTMS has been designed to improve efﬁ-ciency, interoperability and safety in railway operations [ 21].
+In particular, ERTMS establishes mandatory speciﬁcations
+123
+
+--- Page 3 ---
+Completion of SysML state machines... 1457
+speed
+distanceBTS
+RBC
+Movement AuthoritySafety
+MarginPR
+MA
+Fig. 1 The ETCS control reference schema
+on Trans European Network Routes. The main components
+of the ERTMS are (1) European Trafﬁc Management Layer(ETML); (2) ETCS, in charge of the movement of the train;
+and (3) Global System for Mobile Communications for Rail-
+ways (GSM-R), responsible for the radio communication.
+Different uses of ERTMS—resulting in different perfor-
+mance system proﬁles—are made possible on the basis of the
+selected technologies. In particular, ETCS considers three
+levels—deﬁning how trackside, lineside and on-board con-trollers are related to each other—which play a crucial role
+in the determination of system overall performance.
+The ﬁrst two levels—i.e. ETCS Level 1 (ETCS-L1) and
+ETCS Level 2 (ETCS-L2)—use ﬁxed block signalling, i.e.
+are based on “adding up” hardware equipment to better con-
+trol the train running and the delivery of the MovementAuthority (MA), which authorizes a train to run safely fora certain space. In particular, in ETCS-L2, the calculation of
+such distance is computed by the Radio Block Centre (RBC)
+which receives the position of the train via radio message (i.e.the Position Report (PR)) and sends the authorization with
+another message (i.e. the MA
+3). This situation is depicted in
+Fig. 1.
+One of the future challenges of the railway industry is con-
+stituted by increasing the movement of goods on railways,
+which can be pursued by increasing network capacity (andnot only train speed). Thus, extending the railway infrastruc-ture is not always feasible due to the high costs of extra track
+construction, especially in populous territories [ 24]. ETCS-
+L3 introduces moving block as an answer to the problemof “adding” new hardware; in ETCS-L3 the role played by
+determining the exact position of a train by the train itself is
+crucial not only for performance but also for safety purposes.
+3 Related Work
+Scenarios and requirements, when expressed in Natural Lan-guage (NL), pose advantages, especially in the industrial
+3In this paper, the term MA both denotes the safe distance and the
+radio message.setting, since this is an easy way for engineers to commu-
+nicate with stakeholders [ 30]. Consequently, the research
+around Requirement Engineering (RE) and NL has advanced
+remarkably, as surveyed in [ 56] and in [ 31], the latter to
+include literature on Machine Learning (ML) for NLP. Theseadvances span many heterogeneous ﬁelds, from UML spec-iﬁcations [ 32,43] to temporal logic formulae [ 11,13,23]
+through grammar-based approaches [ 19]. However, there are
+still many open challenges in the ﬁeld of RE and NL, as inves-tigated in [ 16] and in [ 31]. The latter identiﬁes the need of
+introducing deep learning techniques in the ﬁeld, since cur-
+rently classical ML are predominant, and also the difﬁcultyof comparing different approaches due to the lack of bench-
+mark cases.
+More speciﬁcally, Controlled Natural Language (CNL)
+techniques [ 33] provide templates, such as those of the
+Gherkin language [ 53], that assist in capturing requirements
+while describing BDD scenarios. BDD, as mentioned above,
+builds upon TDD, and there is extensive literature that auto-matically produces tests from BDD speciﬁcations, e.g. [ 29].
+The Gherkin language deﬁnes the desired behaviour of the
+software system in plain-text format. Listing 1shows the
+Gherkin syntax format, also called Scenario . Therefore,
+through the use of the Gherkin Scenario, it is possible to detail
+every behaviour of the system. In particular, every Scenario ismade up of special keywords—some are optional and othersare mandatory—the three initial keywords represent different
+information: (1) Feature , which brieﬂy expresses the system
+characteristic to be deﬁned, it can be used to group relatedScenarios; (2) Rule , an optional keyword that serves as a
+representation of a single business rule that needs to be fol-
+lowed; and (3) Scenario , a description of the Scenario itself,
+here, the behaviour of the system—that the Scenario wants
+to introduce—can be expressed extensively and using NL.
+The Gherkin syntax requires, after the description of the
+Scenario keyword, three mandatory and fundamental key-words: (1) Given ,( 2 ) When and (3) Then .T h e Given keyword
+describes the initial context of the Scenario. The Given sen-
+tence is designed to identify the system in a known statebefore possible interactions between the system and the user
+or other systems. The When sentence represents an event or
+an action—for example, an action can be a user interactingwith the system, or an event can be the receiving of a mes-
+sage from another system. The last keyword, the Then one,
+expresses the desired ﬁnal state of the system after the event,depicted by the previous keyword, has occurred.
+Listing 1 Gherkin Scenario
+Feature: <<software feature>>
+Rule: << business rule to implement
+>>
+Scenario: <<description>>
+123
+
+--- Page 4 ---
+1458 M. Stella de Biase et al.
+Given <<an initial context
+>>
+When <<an event>>
+Then <<an expected outcome
+>>
+The Gherkin language, in combination with the Cucum-
+ber tool, has been of primary importance in most of these
+test automation processes [ 36,53], even in the ﬁeld of formal
+methods to produce and execute acceptance tests [ 50]. Thus,
+BDD and TDD are very mature ﬁelds regarding test automa-
+tion, and its beneﬁts, challenges and tools have been reviewedin [34,42]. However, to automatically produce behavioural
+speciﬁcations from requirements, e.g. in Gherkin, is still a
+task which requires mature scientiﬁc and technical propos-
+als.
+Reviewing the BDD literature to better learn how to lever-
+age the Gherkin language to produce software artefacts, we
+have found works in different domains. In the web domain,Dimanidis et al. [ 17] aim at producing RESTful [ 44]w e bs e r -
+vices from Gherkin templates. Rocha [ 45] develops, based on
+Gherkin, a domain-speciﬁc language to specify interactionscenarios to produce web-based graphical user interfaces.Similar to Rocha, Hesenius et al. [ 25] create a language,
+based on Gherkin, in this case to test multimodal applica-
+tions. The fact that both, the application domain and the typeof artefacts created by these three approaches, are so differ-
+ent from ours makes it difﬁcult to reuse these approaches in
+our context, which aims to autocomplete models.
+In the automotive domain, Wiecher et al. [ 52] propose a
+scenarios-in-the-loop approach to automatically execute and
+analyse requirements expressed in Gherkin. The ultimategoal is to validate the implemented system through auto-mated tests, but not to create behavioural models as in our
+approach.
+In the ﬁeld of autocompleting models, where our work
+also places, we have found the work of Burgueño et al. [ 12].
+They propose an architecture based on NLP to autocomplete
+domain models, like class diagrams, instead of behaviouralmodels as we do. Then, the automatic analysis of available
+textual project and historical information provides model
+autocompletion suggestions. The work, although not in theBDD ﬁeld and taking a different approach to ours, leveragesstate-of-the-art NLP techniques instead of patterns. Also, the
+work in [ 47] transforms NL requirements into domain mod-
+els, in this case using machine learning techniques.
+Among the works that transform requirements into design
+models, we have found the one from Colombo et al. [ 14], that
+uses SysML and “transformation rules”, as in our work. How-ever, in their approach the transformation is entirely model
+driven, providing transformation rules in A TL [ 28], while our
+approach uses a grammar to generate fragments in the statemachine semi-automatically. Moreover, our approach usesthe Gherkin syntax to express the requirements. Finally, this
+work considers architecture aspects (data and communica-tion), whereas we focus on system behaviour.
+The work of Bruel et al. [ 10] discusses the effectiveness of
+different existing approaches to specify requirements. First,the work classiﬁes the approaches in ﬁve categories: natural-language, semi-formal, automata/graphs, mathematical and
+seamless (programming language-based). The authors chose
+22 different representative languages of these categories,e.g. Relax [ 51] for natural-language or Petri nets [ 37]f o r
+automata/graphs. The effectiveness of these categories and
+languages is assessed according to nine criteria: systemvs. environment, audience, level of abstraction, associated
+method, traceability support, non-functional requirements
+support, semantic deﬁnition, tool support and veriﬁability.The most salient criteria regarding to formalize requirementsare, in our opinion, audience, traceability support, semantic
+deﬁnition, tool support and veriﬁability. Regarding audience ,
+the approaches based on NL are the only ones that do notrequire the use of special background, hence addressing a
+larger audience. Traceability support is offered by Relax [ 51]
+and NL2OWL [ 35] among NL approaches; however, semi-
+formal approaches are the best for this criterion. Semantic
+deﬁnition is the strong point for automata/graph, mathemat-
+ical and seamless, which are also the categories best scoringinveriﬁability , but some NL approaches also score in this
+criterion, e.g. Relax, Stimulus, NL2OCL [ 27] and NL2STD
+[1]. Regarding tool support almost all the approaches are
+supported except for NL2OWL and NL2STD.
+4 Methodology
+The approach proposed aims to support system analysts inthe early stages of development. In particular, starting from apreliminary system model, the approach semi-automaticallycompletes the speciﬁcation of the architecture, leveraging a
+set of requirements. Figure 2depicts, at-a-glance, the con-
+ceptual architecture of the methodology, which relies uponthree layers: User, Knowledge and Tool.
+User layer. The System Analyst , as responsible for this layer,
+must provide a preliminary SysML model, which is made ofthree views.
+The Requirements view. Requirements can be either
+expressed using the SysML’s Requirement Diagram (RD)or a textual notation. In any case, they need to comply witha notation, detailed in Sect. 6.
+The Structural and Behavioural views. They specify the
+system architecture. The former can be a SysML’s BlockDeﬁnition Diagram (BD).
+4The latter includes a set of State
+4Since BDD is used as an acronym for Behaviour-driven development,
+we prefer to use BD for Block Deﬁnition Diagram.
+123
+
+--- Page 5 ---
+Completion of SysML state machines... 1459
+User layerKnowledge layer
+System
+AnalystTool
+LayerRequirements
+Guideline
+Modelling
+Guideline
+MetaFragmentY<<input>> <<refinement>>
+<<input>>
+<<relies on>>
+<<relies on>>MetaReqX
+Model Refinement Rules
+MetaReqX ->
+MetaFragmentYRequirements view
+2 <<requirement>>
+switching_on
+text =  "Given  the Switch in
+closed, When  the Switch
+receives a push, Then  the
+Switch sends to Lamp a turn
+with on LampAction and theSwitch goes in open."
+Structural viewBehavioural view
+Switch State Machine
+Closed Openpush / Lamp.turn(on)
+pushP:
+push<<block>>
+Lamp
+turn()LampAction<<block>>
+SwitchlampP:
+turn<<satisfy>>
+<<enumeration>>
+LampAction
+on
+offownedBehavior
+Fig. 2 A conceptual architecture
+Machine Diagrams (SMDs), which represent preliminary
+owned behaviours of the blocks in the BD. By preliminary,
+we mean that only states are deﬁned in the SMD (i.e. whiteparts in the Behavioural view of Fig. 2).
+Knowledge layer. It represents the knowledge base, that is
+leveraged by the Tool layer to semi-automatically autocom-
+plete the preliminary model. This autocompletion processcarries out a detect-and-translate approach. Concretely,
+requirement patterns are detected in the Requirements
+view and then transformed into model fragments in theBehavioural view. A model fragment can be a single model
+element—i.e. a state machine transition—or a set of model
+elements—i.e. a transition with a trigger and an effect. Fur-thermore, traceability information can be added to the model
+using a <<satisfy >> relationship stereotype from the added
+model fragment to the generating requirement.
+This layer includes two guidelines— Requirements and
+Modelling —and a set of Model Reﬁnement Rules that rely
+on the former. The Requirements guideline includes require-
+ment patterns ( MetaReqX ,…), i.e. requirement templates that
+conform to the Given–When–Then structure. The Modelling
+guideline consists of a set of meta-fragments ( MetaFrag-
+mentY ,…), where each one is related to a requirement pattern
+and it is deﬁned in terms of the roles played by SysML model
+elements in the requirement pattern. The model reﬁnement
+rules are aimed at matching a requirement pattern, given aconcrete requirement in the Requirement view, and reﬁningthe User Layer model by adding new model elements.
+From the System Analyst’s perspective, the two guidelines
+support him/her in the creation of the SysML model.Tool layer. The tool implements the proposed approach.
+It needs as input both, the SysML model of the system,
+from the User layer, and the Model Reﬁnement Rules, fromthe Knowledge layer. Then, the tool instantiates the meta-
+fragment with the elements of the SysML model and deﬁnes
+the traceability information.
+Figure 3summarizes the workﬂow implemented by the
+tool, as follows.
+1.Model Element Extractor is the ﬁrst phase of the work-
+ﬂow. It retrieves lists of the element names of the SysML
+model which are known a-priori. In such named entity
+lists, there are the names of blocks, states, signals, prop-erties, operations, events and data types, which are allmodel elements considered in the Knowledge Layer.
+2. During the Processor Building phase, the named entities
+already computed, in the previous step, are merged witha model-independent
+Extended Backus-Naur Form (EBNF) grammar. The lat-
+ter deﬁnes the production rules describing the requirementpatterns.
+Then, a parser is generated from the resulting model-
+speciﬁc grammar.
+3. For each requirement rin the Requirements view, the
+Processing phase is carried out:
+(a)ris parsed and an Abstract Syntax Tree (AST) is
+generated ( Parsing );
+(b) The AST is explored and the model reﬁnement rule
+that matches with the requirement is detected ( Rule
+Matching );
+123
+
+--- Page 6 ---
+1460 M. Stella de Biase et al.
+Processor
+BuildingModel Element
+Extractioncomps: String[0..*];
+states: String[0..*];
+signals: String[0..*];
+properties: String[0..*];
+operations: String[0..*];
+events: String[0..*];
+datatypes: String[0..*];
+modelFragments:
+NamedElement[0..*];<<loop>> Processing
+for each
+requirementUser
+Layer
+requirements: String[0..*];Knowledge
+Layer
+Parsingrules: ModelRefinementRules[0..*];
+Rule Matching
+Model
+Refinement
+Fig. 3 Tool layer workﬂow
+(c) The matched rule determines the model fragment to
+apply, and the Model Reﬁnement phase is enacted.
+5 User Layer
+As described in Sect. 4, methodological overview, the SysML
+model is structured into three views.
+Requirements View. This is the simplest view considered in
+this work, whose aim is to report into SysML’s classes tagged
+with the <<requirement >> stereotype, the text of the sys-
+tem requirements, formatted according to the requirementpatterns described in Sect. 6. The requirements can be col-
+lected into a SysML’s RD, where allocation information is
+reported, related to the mapping between the requirements
+and which part of the model fulﬁls each requirement. Thismapping can also take the form of a Requirement Allocation
+Table (RA T).
+Structural View. This is a component-based view of the sys-
+tem in terms of a SysML’s BD/Internal Block Diagram (IBD).
+In such a view, blocks represent physical or software com-
+ponents. Blocks communicate with each other through portsand signals. Ports can be Output Ports and Input Ports accord-ing to the direction of the item ﬂows that connect two blocks.
+Input Ports—e.g. target ports of the item ﬂows—are charac-terized by a SysML’s signal. Item ﬂows are characterized by
+a property conveyed onto them. This property represents the
+type of the data transported by the ﬂow.Behavioural View. Each component of the structural view has
+a SMD associated, which models its behaviour. We assume
+that the states of the SMD are known by the system ana-
+lyst, whereas the transitions need to be semi-automaticallycreated according to the speciﬁed requirements. In our mod-
+elling approach, signals and operations link the Structural
+and the Behavioural views via signal and call events, respec-tively. Considering the interaction via signal events, in the
+Structural view, the sending and receiving components are
+characterized by an output and input port, respectively, oftype “Signal”. The two ports are connected by an item ﬂowwhich conveys the signal property. In the Behavioural view,
+the SMD of the sending component can include one or more
+transitions with effect the generation of a signal event and theSMD of the receiving component can include one or more
+transitions triggered by a signal event of type “Signal”. Alter-
+natively, the interaction can be carried out via call events; insuch a case, in the Structural view, an operation is deﬁned
+in the block representing the callee component, and the item
+ﬂow between the caller and the callee conveys the operationparameter types. In this view the operation call is modelledas the effect of a transition in the SMD of the caller compo-
+nent, where the actual parameters of the operation conform
+to the property of the item ﬂow. In the SMD of the calleecomponent, the operation call is modelled as a trigger call
+event of one or more transitions.
+Modelling the running example. The User Layer in Fig. 2
+represents a SysML model of a switch and a lamp, as follows.
+– The BDD requirement view, with the switching_on
+requirement related to the behaviour of the Switch block;
+– The structural view, speciﬁed by a BD, that consists of
+two blocks: Switch , which is the source of an item ﬂow to
+theLamp block. The Switch receives push signals via its
+input port pushP and interacts with the Lamp viaturn()
+operation calls. In particular, turn() operation has an input
+parameter of enumeration type LampAction —i.e. on/off
+values—and the item ﬂow between the two blocks con-
+veys the LampAction property;
+– The SMD represents the behaviour of the Switch and,
+in the preliminary model, only the two states Closed
+and Open are deﬁned. The transition between them,
+together with its trigger ( push ) and effect (i.e. the opera-
+tion call Lamp.turn(on) ) is automatically generated from
+the requirement by following the proposed methodology.
+123
+
+--- Page 7 ---
+Completion of SysML state machines... 1461Table 1 Given–When–Then clause templates
+Given
+G1 a <<Block as gContext >> in<<State as gSource >>
+G2 a <<Block as gContext >>
+WhenW1 the <<Block as wReceiver >> receives <<Signal as wEvent >>
+W2 the <<Block as wContext >> << Operation as wAction >>
+W3 the <<Property as wV ar >> of<<Block as wContext >> << comp_op >> << V alueSpeciﬁcation as wV alue >>
+W4 the <<Block as receiver >> receives an <<Signal as wEvent >> with <<Property as wV ar >>
+W5 the <<Property as wV ar >> of<<Block as wContext >> << comp_op >> << Property as wV ar2 >> of<<Block as wContext2 >>/<<Signal as wContext3 >>
+W6 the <<Property as wV ar >> of<<Block as wContext >> << comp_op >> << alias >>
+W7 the <<Block as wReceiver >> receives an <<Signal as wEvent >> with <<Property as wV ar >> as<<alias >>
+ThenT1 the <<Block as tContext
+>> << Operation as tAction >>
+T2 the <<Block as tContext >> goes into <<State as tTarget >>
+T3 the <<Block as tSender >> sends to <<Block as tReceiver >> a<<Signal as tMessage >> with <<V alueSpeciﬁcation as tV alue >> << DataType as tType >>
+T4 the <<Block as tSetter >> sets the <<Property as tV ar >> of the <<Block as tV ariableowner >> to<<V alueSpeciﬁcation as tV alue >>
+T5 the <<Block as tSetter >> sets the <<Property as tV ar >> of the <<Block as tV arOwner >> to<<Property as tV ar2 >> of<<Block as tV arOwner2 >>
+T6 the <<Block as tSetter >> sets the <<Property as tV ar >> of the <<Block as tV arOwner >> to<<alias >>
+T7 the <<Block as tSender >> sends a <<Signal as tMessage >> to<<Block as tReceiver >>
+T8 the <<Block as tCaller >> calls the <<CallEvent as tCall >> of<<Block as tCalled >>
+T9 <<Block as tCaller >> calls the <<CallEvent as tCall >> of<<Block as tCalled >> with <<V alueSpeciﬁcation as tV alue >> << DataType as tType >>
+123
+
+--- Page 8 ---
+1462 M. Stella de Biase et al.
+6 Requirements Guideline
+The Requirements guideline, in the Knowledge layer (Fig. 2),
+offers a set of requirements patterns. A requirement pattern
+consists of a triplet <G,W,T >. Each triplet is a logical com-
+bination (and, or, not) of clause templates (Given, When,Then). Table 1reports the allowed clause templates.
+Clause templates are characterized by <<metaclass as
+role >> ﬁelds. Metaclass indicates a SysML metaclass (e.g.
+Block), while role refers the role played by this metaclass in
+the template. In Table 1,<<comp_op >>—in clauses W3,
+W5 and W6—means any generic comparison operator, e.g.≥,≤,/negationslash=, =. It should be noted that not all combinations of
+clause templates are allowed, as some of them may contain
+inconsistencies, e.g.:
+– a triplet <G,W,T2 and T2 >with repetition of T2 template
+in the Then clause, each with different target states;
+– using an alias (as in T6) without having deﬁned it (as
+example with a proper W6 clause template).
+Clause templates are coded into proper production rules
+of the EBNF grammar in Listing 2. As an example, T2 clause
+template in Table 1is deﬁned in the grammar at line 36 of
+Listing 2. The EBNF grammar deﬁnes the requirements pat-
+terns without freezing them to a speciﬁc model. In particular,the BDD and clause keywords (lines 5–10), the requirement
+pattern structure (lines 22–26) and clause template structure
+(lines 27–37) are model independent.
+Listing 2 MetaReq grammar
+1Helpers
+2 ...
+3
+4Tokens
+5 when_tok = ’ when’ | ’When ’;
+6 given_tok = ’ given’ | ’Given ’;
+7 then_tok = ’ then’ | ’Then ’;
+8 ...
+9 receives_tok = ’ receives ’;
+10 goes_tok = ’ goes ’;
+11 ...
+12 <<comp_toks >>
+13 <<state_toks >>
+14 <<signal_toks >>
+15 <<operation_toks >>
+16 <<property_toks >>
+17 <<event_toks >>
+18 <<datatype_toks >>
+19 ...
+20
+21 Productions
+22 reqs =
+23 {req} req semicolon |
+24 {list} req semicolon reqs;
+25 req =
+26 {req} given [comma1]:comma when
+[comma2]:comma then;27 given = ...
+28 when = ...
+29 then =
+30 {simple} then_tok then_body;
+31 then_body =
+32 {unary} then_single |
+33 {binary} [ then_one]:then_single
+bin_op [then_two]:
+then_single;
+34 then_single =
+35 {then_case1} article_tok
+block_name operation_name |
+36 {then_case2} article_tok
+block_name goes_tok in_tok
+state_name |
+37 {then_case3} [ art1]: article_tok
+[sender ]:block_name
+sends_tok to_tok [ art2]:
+article_tok? [receiver]:
+block_name [ art3]:
+article_tok signal_name
+with_tok? with_not_tok?
+datatype_name |
+38 ...
+39 <<comp_rules >>
+40 <<state_rules >>
+41 <<signal_rules >>
+42 <<operation_rules >>
+43 <<property_rules >>
+44 <<event_rules >>
+45 <<datatype_rules >>
+46 ...
+6.1 User Layer knowledge enrichment
+The EBNF grammar template in Listing 2needs to be
+enriched with information from the User Layer. In order tomake it workable for a speciﬁc model.
+Concretely, those parts enclosed by “ <<” and “ >>”—
+lines 12–18 and lines 39–45—are considered placeholders.Hence, they need to be substituted with model-speciﬁc infor-
+mation. Hence, during the Model Element Extraction and
+Processor Building phases, see Fig. 3, the lists of elements in
+the SysML model are obtained from the User Layer, then for-
+matted according to the concrete EBNF grammar and ﬁnally
+substituted in the grammar template.
+Considering the running example, the list of block
+names—the comps: String[0..*]; from the SysML
+model, Switch, Lamp —is transformed into two strings
+and substituted in two points of the grammar:
+–<<comp_toks >> at line 12 is substituted by the content
+of Listing 3;
+–<<comp_rules >> at line 39 is substituted by the content
+of Listing 4.
+123
+
+--- Page 9 ---
+Completion of SysML state machines... 1463
+Listing 3 Component Names
+comp1 = ’ Switch ’;
+comp2 = ’ Lamp ’;
+Listing 4 Component Rules
+block_name =
+{block1} comp1 |
+{block2} comp2;
+The Processor Building is a speciﬁc tool supporting this
+task. It receives model element names from the Model Ele-
+ment Extraction tool, and it leverages a template engine
+technology, such as Apache Freemarker5or Te4j.6
+7 Modelling Guideline
+The Modelling Guideline establishes the way for reﬁning theSysML model. Concretely, how to create transitions amongthe already predeﬁned states. For this task, a meta-fragment
+is speciﬁed for each requirement pattern deﬁned in Sect. 6.
+Let us consider a requirement pattern <G,W,T >.Am e t a -
+fragment deﬁnes a mapping, between the roles of a clause and
+the SysML model elements, that conforms to the metaclasses .
+Table 2summarizes the mappings associated with the clause
+templates of Table 1.
+In general, the Given clause determines the source of
+the transition to add, the When clause determines the trig-
+gers and/or the guards of the transition, and the Then clausedetects the target state associated with the transition and
+determines its effects.
+Given clause. The Given rows of Table 2show the mappings
+associated with the clauses G1 and G2, respectively. Theﬁrst case indicates both the block framing the context of the
+requirement and the state associated with the context, and the
+G2 clause case does not specify the source state, intendingas default that the requirement (and hence the transition) can
+be applied in each state of the context.
+When clause. The next seven rows in the table show the map-
+pings associated with the When clause templates:
+– Clauses W1, W2 and W4 are translated into transition
+triggers, respectively; in particular, W1 generates a trig-
+ger from a signal (wEvent), whereas W2 generates a
+trigger from an operation call (wAction). On the otherhand, the difference between W1 and W4 is reﬂected bythe trigger, that in the W4 case includes the signal actual
+parameter (wV ar).
+– W3 and W5 are translated into transition guards;
+5https://freemarker.apache.org/index.html .
+6https://github.com/whilein/te4j .– W6 extends W3, considering an alias, i.e. a variable
+deﬁned at SysML level as a local property of the statemachine or ,in case of the presence of the Modelling
+and Analysis of Real-Time and Embedded Systems
+(MARTE) proﬁle), according to the V alue SpeciﬁcationLanguage (VSL);
+– W7 extends W4 by adding the deﬁnition of an alias into
+theentry section of the target state where the transition
+ends, containing the deﬁnition of the alias according tothe used notation.
+Then clause. Finally, the remaining rows of the table describe
+the Then clauses: while the T2 clause is related to the targetof the generated transition, the others clauses impact the tran-
+sition effects.
+8 Model Reﬁnement Rules
+The model reﬁnement rules are aimed at: 1) matching a
+requirement pattern given a concrete requirement, which is
+textually speciﬁed in the Requirement view of the User Layer
+model, and 2) reﬁning the User Layer model by adding newmodel elements.
+The pseudo-algorithm, in Listing 5(expressed in a Python-
+like notation), speciﬁes the procedure implementing the rule
+matching and model reﬁnement. In particular, the design ofthe algorithm follows a detect-and-translate approach, which
+is detailed in the following.
+A concrete requirement req is ﬁrstly parsed to get its
+abstract syntax tree ast (line 2). The latter is then used to
+detect a requirement pattern mtreq that matches with the
+concrete requirement (lines 4–7).
+Listing 5 MetaReq2MetaFragment procedure
+1def metareq2metafragment(req,mdl):
+2 ast = parse(req)
+3 # --- Detect ---
+4 mtreq = getMetaRequirement(ast)
+5 isvalid = checkFeasibility( mtreq)
+6 isvalid &= checkRoles (mtreq)
+7 isvalid &= mtreq. checkmodel(mdl)
+8 ifisvalid:
+9 # --- Translate ---
+10 t = Transition()
+11 t.source = mtreq. getSource(mdl)
+12 t.target = mtreq. getTarget(mdl)
+13 t.trigger = mtreq .getTrigger(
+mdl)
+14 t.guard = mtreq. getGuard(mdl)
+15 t.effect = mtreq. getEffect(mdl)
+16 mdl.add(t)
+17 reqblock = mdl .getRequirement(
+req)
+18 traceinfo = trace( reqblock ,t)
+19 mdl.add(traceinfo)
+20 return mdl
+123
+
+--- Page 10 ---
+1464 M. Stella de Biase et al.
+Table 2 Role-to-SysML model
+element mappings associated
+with clause templates of Table 1
+The matching problem is tackled in four steps: ﬁrst, a
+candidate requirement pattern mtreq is identiﬁed (line 4);
+second, its feasibility is checked (line 5). Indeed, mtreq
+should be structured as a triplet <G,W,T >consisting of alegal combination of Given, When and Then clause tem-
+plates, as observed in Sect. 6.T h i r d , mtreq is checked
+against a possible mismatching of roles in the matched clausetemplates (line 6). A mismatching may occur, for example,
+123
+
+--- Page 11 ---
+Completion of SysML state machines... 1465
+when mtreq is identiﬁed as the legal triplet <G1,W1,T2 >,
+but the roles <<gContext >> (in G1) and <<tContext >>
+(in T2) are different.
+Finally, a check of the semantic consistency of mtreq
+regarding the User Layer model mdl is done (line 7). The
+checking is carried out by using the mapping deﬁned by themeta-fragment associated with the detected requirement pat-
+tern. In particular, this checking aims at solving the matching
+between the SysML model and the detected requirementpattern; in fact, some of the matched roles in the clause
+templates in mtreq —which syntactically belong to the
+correct SysML’s metaclass, according to the mechanism ofthe model-aware grammar—can violate the way the SysML
+model itself is built. For example, let mtreq be the legal
+triplet <G1,W1,T2 >, where “a <<Block as gContext >>
+in<<State as gSource >>” (G1) does not imply that the
+gContext’s Block has an associated SMD with a state named
+gSource.
+In case the detection of the requirement pattern succeeds,
+then the translation phase follows (lines 9–19), where the
+User Layer model is possibly reﬁned by adding new model
+elements.
+A candidate transition tis ﬁrstly created (line 10) and,
+then, tis reﬁned with references to model elements—like,
+source and target states—named in the detected requirementpattern (lines 11–15), and it is added to the model mdl
+(line 16). Also, mdl is enriched with traceability informa-
+tion between the requirement, speciﬁed in the Requirement
+view of the model, and the newly added transition (lines 17–19).
+Discussion of translation strategies
+In the design of the pseudo-algorithm (Listing 5) a pes-
+simistic strategy is adopted: in fact, the translation phase is
+not performed when the set of checks (lines 5–7) does not
+succeed. However, other strategies could be followed wherethe translation phase is always present, as:
+– optimistic: the transition is partially generated from the
+parts of the requirement that are correct and missing val-ues are present (e.g. guards, triggers);
+– default: the missing transition parts are substituted with
+default arguments.
+The strategy can be chosen by the System Analyst, and it
+should be set according to the level of automation to pursue.
+As an example, for critical application, the risk of using anoptimistic or a default strategy is not negligible; these two
+possibilities could, in fact, bring to inconsistent model, chal-
+lenging to debug later. On the other hand, using an optimisticapproach could be useful in the case of a set of require-
+ments at their very early stage of writing, since a throw-away
+model could improve the level of understanding and allow arewriting of the same requirement set. In any case, detectedviolations should be signalled to the System Analyst with
+proper warnings.Application to the running example.
+Let us consider the switching_on requirement of the
+running example, of which Fig. 2depicts the three views
+presented in Sect. 5. Table 3shows the application of the
+Knowledge Layer matching concepts to the requirement.
+In the upper part, the requirement (left side) and the
+matching MetaReq (right side) are reported. This matchingis possible after considering the lower part of the table. Con-
+cretely, the lower part shows the terminal symbols (left side)
+present in the model-speciﬁc grammar—deﬁned according
+to the techniques described in Sect. 6—matching the list of
+the roles deﬁned in the ﬁelds of the MetaReq (right side).
+Once the matching is done, and the veriﬁcation of the
+above-mentioned constraints passes, the model fragment isgenerated, reﬁning the SysML model by adding the yellow
+part of the User Layer in Fig. 2.
+7.
+9 Tool Layer
+This section reports a reference architecture for the Tool
+Layer proposed in Fig. 2. This architecture, based on the
+content of Sects. 5–8, is able to automate the proposed
+methodology.
+The components and artefacts of the architecture are
+grouped in three sets, see Fig. 4. At the centre of the archi-
+tecture, a master control component, the Core , orchestrates
+and schedules the proper sequence of service invocations.
+The Model Processing is an interface for reading and writ-
+ing the SysML model elements. It groups a component, theModel Handler , and an <<artifact >>,t h e SysML Model .
+TheParser Generator analyses the models, hence it imple-
+ments the phases Model Element Extraction and ProcessorBuilding in Fig. 3, as follows:
+–T h e Processor Builder , which retrieves the lists of SysML
+metaclasses, according to the substitution mechanism
+reported in Sect. 6, detailed in Subsection 6.1.T h e ya r e
+substituted in the Grammar Template to generate the
+Model-Speciﬁc Grammar .
+–T h e Parser Generator , which uses the Model-Speciﬁc
+Grammar to generate a parser for this EBNF grammar.Practically, a set of software classes are generated (i.e. the
+Parser ), able to be integrated with the rest of the software
+components. Many parser generators are available for thistask, e.g. SableCC.
+8
+7In the ﬁgure, traceability is simpliﬁed by a dependency across two
+views As it is reported in the case study, a dedicated diagram—an RD—best shows such dependencies.
+8https://sablecc.org/
+123
+
+--- Page 12 ---
+1466 M. Stella de Biase et al.
+Table 3 Textual BDD requirement, meta-requirement and elements matching
+Requirement MetaReq ( <G1,W1,T3 and T2 >)
+Given the Switch in closed Given <<Block as gContext >> in<<State as gSource >>
+When the Switch receives push When <<Block as wContext >> receives <<Signal as wEvent >>
+Then the Switch sends to Lamp Then the <<Block as tSender >> sends to <<Block as tReceiver >>
+at u r nw i t ho nL a m p A c t i o n a <<Signal as tMessage >> with <<V alueSpeciﬁcation as tV alue >> << DataType as tType >>
+and andthe Switch goes in open <<Block as tContext >> goes in <<State as tTarget >>
+Role Matching
+Va l u e Role
+Switch gContext (Block)
+Closed gSource (State)
+Switch wContext (Block)
+push wEvent (Signal)
+Switch tSender (Block)
+Lamp tReceiver (Block)
+turn tMessage (Signal)
+on tV alue (V alueSpeciﬁcation)
+LampAction tType (DataType)
+Switch tContext (State)
+Open tTarget (State)
+Fig. 4 Tool layer architecture
+Model Processing
+Requirement ProcessingParser Generation
+Model
+HandlerParser
+GeneratorProcessor
+Builder<<artifact>>
+Grammar template<<artifact>>
+Model Specific
+Grammar
+ValidatorParser
+Model
+Generator
+<<artifact>>
+MetaReq<<artifact>>
+SysML
+model
+<<artifact>>
+Model
+Fragment<<uses>>
+<<generates>>
+<<uses>>
+<<generates>><<uses>>
+<<generates>>
+<<generates>>
+<<uses>><<uses>><<artifact>>
+Requirement
+<<uses>>
+query
+addElementCorebuildgenerate
+refineparse validate
+The Requirement Processing automates those phases that
+iterate each requirement, see Fig. 3. Its three components are:
+–T h e Parser , generated in previous stages, that detects the
+candidate requirement pattern (lines 2 of Listing 5).
+–T h e Validator performs a comparison between the meta-
+requirement (obtained in line 3 of Listing 5) and theformal grammar’s rules (lines 4–7 of Listing 5). Only
+if the validation is successful it is possible to move on to
+the translation phase.
+–T h e Model Generator , that is able to generate the model
+fragment to add to the SysML model (lines 11–19 of
+Listing 5).
+123
+
+--- Page 13 ---
+Completion of SysML state machines... 1467
+10 The ETCS-L3 Case Study
+This section introduces a case study that demonstrates how
+to apply the proposed methodology. The case study, from
+the railway domain, is an excerpt of the ETCS-L3 trackside-train communication and control mechanisms presented inSubsection 2.2.
+The System Model. Let us consider two on-board macro-
+functionalities of ETCS-L3:
+– the braking supervision, which controls the speed of the
+train and, in case of emergency, activates the train brakes;
+– the movement supervision, which controls the position of
+the train, on the base of what is received from the track-side and on the actual position, commands an emergency
+brake.
+The system structural view, for these two macro-functionalities,
+is given in Fig. 5by an IBD and in Fig. 6by a Class Dia-
+gram (CD). In addition, Fig. 7reports details of the blocks,
+presenting relevant properties and operations.
+The BD in Fig. 5presents four main components: Track-
+side,Train ,Brake and Odometer . The latter is responsible
+for providing exact kinematic information—i.e. speed and
+position—to the other components. Internal to the Traincomponent, we identify the Braking Supervision and the
+Movement Supervision . The BD also reports the ports, signals
+and exchanged data on the item ﬂows, used by the compo-
+nents in their interactions. Some of these interactions includethe following:
+– Braking Supervision communicates braking intentions to
+Brake via the command signal (from cmd port to getCmd
+port), the ﬂow conveys the BrakeCommand type;
+– Movement Supervision asks for an emergency stop to
+Braking Supervision via the emergencyStop signal (from
+sendBrake port to recvES port), the ﬂow conveys the
+EmergencyStop type;
+– Odometer sends two ﬂoat values respectively to:
+– Movement Supervision, this is the case of the position
+(from updtPosition togetPosition via the updatedPo-
+sition signal);
+– Braking Supervision, this is the case of the speed
+(from updtSpeed togetSpeed via the updatedSpeed
+signal).
+Figures 8and 9depict initial SMDs for both, the Move-
+ment Supervision and Braking Supervision, offering theBehavioural view. To complete this initial model, four
+ETCS-L3 requirements make up the Requirements view, see
+Listings 6,7,8and9. These requirements are expressed using
+the Given–When–Then Gherkin syntax.Table 4 Requirements and patterns
+Requirement Matching MetaReq
+REQ-1 <G1,W1,T1 and T2 >
+REQ-2 <G2,W2,T3 >
+REQ-3 <G1,W3,T3 and T2 >
+REQ-4 <G2,W4,T5 >
+Listing 6 ETCS-L3 requirements: REQ-1
+Given a Braking Supervision in running,
+When the Movement Supervision
+sends an Emergency Stop, Then the
+Braking Supervision brakes and goes
+in braking.
+Listing 7 ETCS-L3 requirements: REQ-2
+Given a Braking Supervision , When the
+Braking Supervision brakes, Then
+the Braking Supervision sends to
+Brake a command with active
+BrakeCommand.
+Listing 8 ETCS-L3 requirements: REQ-3
+Given a Braking Supervision in braking,
+When the speed of the Train is 0,
+Then the Braking Supervision sends
+to Brake a command with NonActive
+BrakeCommand and goes in running.
+Listing 9 ETCS-L3 requirements: REQ-4
+Given a Movement Supervision , When the
+Movement Supervision receives an
+updated position with a position ,
+Then Movement Supervision sets the
+position of the Train to the
+position value of updated position.
+Starting from this initial model, the model element names
+are extracted to make the concrete grammar and enable the
+matching of the requirements:
+– Blocks: Train, Braking supervision, Brake, Movement
+Supervision, Odometer and Trackside.
+– States: running, braking, updateWaiting and waiting.
+– Signals: Emergency Stop Message and Acknowledge.– Operations: activates, deactivates and brake.
+– Properties: speed, position and safetyDistance.
+Matching the requirements. Starting from the four require-
+ments, Table 4reports the meta-requirements matched by the
+Tool Layer.
+123
+
+--- Page 14 ---
+1468 M. Stella de Biase et al.
+Fig. 5 System blocks
+Fig. 6 Exchanged data
+Fig. 7 Block property
+Model Completion. Given all the working hypotheses, it is
+now possible to apply the second part of the workﬂow inFig. 3, as described in Sect. 4. Hence, analysing and translat-
+ing each requirement. Figures 10and 11report the reﬁned
+SMDs of the Braking Supervision and the Movement Super-vision components, respectively.
+123
+
+--- Page 15 ---
+Completion of SysML state machines... 1469
+Fig. 8 Braking supervision: SMD
+Fig. 9 Movement supervision: SMD
+Fig. 10 Braking supervision: reﬁned SMD
+In the SMD of Fig. 10, the following transitions have been
+created:
+–TR-1 : it starts from the running state (G1), ends in the
+braking state (T2), is triggered by emergencyStop (W1)
+and activates the brake() operation (T1);
+–TR-2a : self-transition on the braking state (G2), trig-
+gered by the activation of the brake() operation (W2),
+Fig. 11 Movement supervision: reﬁned SMD
+Fig. 12 RD of the case study
+and sending a braking command to the Brake with the
+Active parameter value (T3). It is important to underline
+that other two transitions are generated (T2b, from/to the
+running state, and T2c, from/to the updateWaiting state);
+these transitions are not reported in the diagram for sim-plicity.
+–TR-3 : it starts from the braking state (G1) and ends
+in the running state (T2), is guarded by the condition
+Train.speed == 0.0 and, when executed, sends a
+message via the command signal (T3);
+The SMD of Fig. 11has been enriched with the self-transition
+TR-4 that concerns the waiting state of the Movement Super-
+vision component (G2), and it is triggered by the reception
+of the updatePosition signal with value p(W4) and assigns
+such a value to the position property of the Train block (T5).
+To complete the application, the RD showing the <<satisfy >>
+relationships between generated transitions and systemrequirements is reported in Fig. 12.
+123
+
+--- Page 16 ---
+1470 M. Stella de Biase et al.
+Fig. 13 UML state machine from [ 18] with traced requirements annotated
+11 The Alarm on Critical Events Case Study
+This case study leverages a critical event-based system, in the
+medical domain, taken from the literature [ 18]. The objec-
+tive of this section is to demonstrate the effectiveness of the
+approach. We do this by (qualitatively) measuring how close
+the models obtained by the proposed methodology are to themodel presented in the literature. The following steps are
+taken:
+1. Application of the methodology to the case study, and
+2. discussion of the results.
+11.1 Application of the methodology
+The case study is an alarming system that visually and audi-bly alerts the attending anaesthesiologist when the patient
+is at imminent risk, so to take appropriate action. In [ 18],
+behavioural requirements (Table 5) are introduced and par-
+tially mapped to a UML state machine (Fig. 13). The aim
+in [18] is to demonstrate the suitability of the UML state
+machines in capturing and analysing non-trivial cause–effectrelationships in reactive systems. In particular, the UML
+state machine includes annotations “ACE-n”, which trace
+the requirements in Table 5. These annotations have been
+deﬁned by interpreting the informal mapping provided in[18]. Observe that all the requirements, but “ACE-2”—which
+addresses multiple alarms—are considered in the UML state
+machine. Also, all the requirements, but “ACE-3”—whichstates a negation of an event occurrence—express cause–effect relations and are mapped to transitions in the state
+machine.
+Requirements view. To apply our approach, we had to
+pre-process the original requirements: 1) rephrase them as
+Given–When–Then statements and 2) reﬁne them by taken
+contextual information into account.
+Speciﬁcally, the rephrasing was carried out with the help
+of ChatGPT, where the following prompt was posed:
+Write the following requirement in Given–When–
+Then form: “original requirement (see Table 5)”
+The resulting GWT requirements were manually reﬁned
+considering the contextual information in the SysML
+model. Table 6shows the results of the pre-processing
+for the “ACE-1” requirement presented in Table 5. “ACE-
+1”, in Table 6, appears as rephrased by ChatGPT, and
+“REQ−1.1-REQ −1.4” represent its contextualized require-
+ments. Appendix Acontains an exhaustive description of the
+pre-processing results for the remaining requirements.
+123
+
+--- Page 17 ---
+Completion of SysML state machines... 1471
+Table 5 Behavioural
+requirements from [ 18]Req. ID Description
+ACE-1 When an alarming condition occurs, it shall be annunciated—that is, a
+meaningful alarm message (including the time of occurrence, thetype of alarm, the source of the alarm and the likely cause of thealarm) shall be displayed and an alarming tone shall be sounded
+ACE-2 When multiple alarms are being annunciated, they shall be displayed
+in order of severity ﬁrst, then in order of occurrence, newest ﬁrst
+ACE-3 If an annunciated alarm isn’t displayed (because higher criticality
+alarms are being displayed and there is insufﬁcient space to displaythe alarm in question), then it cannot be acknowledged without ﬁrstbeing displayed on the screen
+ACE-4 Alarms must be explicitly acknowledged by the user pressing the
+Alarm Ack button after they have occurred even if the originatingalarming condition has been corrected
+ACE-5 If the originating condition of an alarm has been corrected but the
+alarm has not yet been acknowledged, then the display of the alarmmessage shall be greyed out. All other alarm messages shall bedisplayed in the normal colour
+ACE-6 The Alarm Ack button shall cause the audible alarm sound to be
+silenced but does not affect the visual display of the alarm message.The silence shall hold for 2 min. If the alarm condition ceases afterthe acknowledgement but before the silence period times out, then
+the alarm shall be dismissed. If, after the silence period has elapsed,
+the originating condition is still valid or if it has reasserted itselfduring the silence period, then the alarm shall be reannunciated
+Table 6 Pre-processing ACE-1: Alarming Condition Occurrence
+Step: ChatGPT
+ACE-1’ Given an alarming condition, when the condition occurs, then it shall
+be annunciated by displaying a meaningful alarm message (including
+the time of occurrence, the type of alarm, the source of the alarm andthe likely cause of the alarm) and sounding an alarming tone.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−1.1 AlarmingCondition, ConditionInactive, conditionActivate,
+regular, DisplayStyle, ConditionActiveGiven an AlarmingCondition in ConditionInactive, when the
+AlarmingCondition receives a conditionActivate, then theAlarmingCondition sends a regular event to DisplayStyle andthe AlarmingCondition goes into ConditionActive
+REQ−1.2 DisplayStyle, GreyedOut, regular, alarmDisplay,
+Acknowledgement, RegularDisplayGiven a DisplayStyle in GreyedOut, when the DisplayStyle
+receives a regular event, then the DisplayStyle sends analarmDisplay to Acknowledgement and the alarmDisplaygoes into RegularDisplay
+REQ−1.3 Sound, AlarmToneInactive, conditionActivate,
+setAlarmTone(ON), AlarmToneActiveToneOnGiven a Sound in AlarmToneInactive, when the Sound receives
+a conditionActivate, then the Sound calls setAlarmTone withON and the Sound goes into AlarmToneActiveToneOn
+REQ−1.4 Acknowledgement, WaitForAcknowledgementNotViewed,
+alarmDisplay, WaitForAcknowledgementViewedGiven an Acknowledgement in
+WaitForAcknowledgementNotViewed, when theAcknowledgement receives an alarmDisplay, then theAcknowledgement goes intoWaitForAcknowledgementViewed
+The automation of this pre-processing step goes beyond
+the scope of this work, but certainly it could be improved by
+applying prompt engineering techniques.Structural view. The structural view has been deﬁned from
+scratch, as it is not developed in [ 18]. The system is made of
+four main components: AlarmingCondition, Sound, DisplayStyle and Acknowledgement, as modelled in Fig. 14.N o t e
+123
+
+--- Page 18 ---
+1472 M. Stella de Biase et al.
+Fig. 14 Structural view: block diagram
+that with the aim of eventually facilitating the comparison
+of the results, these components have been named using the(ﬁrst part of the) names of the parallel regions in Fig. 13—
+e.g. AlarmingCondition component from AlarmingCondi-
+tion _Status region. The components interact through signalsending and reception: signal types correspond to the triggersin Fig. 13—e.g. conditionActivate triggers in the Alarm-
+ingCondition_Processing and Sound_Processing concurrent
+regions.Behavioural view. The initial behavioural view consists of
+four state machines, each one representing the behaviour of
+a component in Fig. 14. They only include initial and sim-
+ple states—see Fig. 16in Appendix A. The names of the
+model elements of the state machines are similar to those
+of the original model in Fig. 13. On the other hand, since
+our approach does not currently support composite states,we have considered nested states to keep trace of the original
+composite state. The name of a nested state is obtained by
+concatenating the name of the parent state with the name ofthe nested state—e.g. AlarmToneActive concatenated with
+ToneOn then resulting in AlarmToneActiveToneOn.
+Matching the requirements. Once obtained the requirements,
+the meta-requirements identiﬁcation phase begins. In partic-
+ular, the objective is to identify those clause templates, listed
+in Table 1, that make up the requirements. As mentioned
+in Sect. 7, the clause templates work as a relation between
+the behavioural model’s components and the requirements’
+contextual information.
+Then, to perform the identiﬁcation, the workﬂow, shown
+in Fig. 3, is applied to each requirement. The result is the
+mapping of each requirement with a meta-requirement and
+the extrapolation of roles as shown in Tables 12-17.
+Considering Table 12, REQ −1.1 matches with meta-
+requirement <G1,W1,T7 and T2 >and it provides infor-
+mation regarding the behaviour and change of state of theAlarmingCondition when it receives the conditionActivesignal. REQ −1.2 matches the same meta-requirement as
+REQ−1.1, but it expresses the transition from the starting
+state GreyedOut to the ﬁnal state RegularDisplay of the Dis-
+playStyle component when the regular signal is received.
+The meta-requirement identiﬁed for REQ −1.3 is differ-
+ent, and in fact it groups the clause templates <G1,W1,T1
+and T2 >. In this requirement, the Sound component under-
+goes a change of state after receiving the conditionActive
+signal, and in addition, the setAlarmTone method is called.
+Finally, REQ −1.4 matches with <
+G1, W1,T2 >, then
+describing the behaviour of the Acknowledgement compo-
+nent.Model Completion. Once the matching of REQ-1.x require-
+ments is completed, a model fragment is created from them
+for each state machine. These new model elements are addedto the initial SysML model, augmenting it.
+The creation of the transitions is obtained using the infor-
+mation outlined by the meta-requirements and applying the
+mapping rules collected in Table 2.
+The ﬁrst state machine depicted in Fig. 16is the initial
+state machine of the AlarmCondition block. The states to be
+connected by a transition are ConditionActive and Condi-
+tionInactive . REQ −1.1 comes into play here (see Table 12)
+since the contextual block is precisely AlarmingCondition .
+Moreover, the clause template G1suggests as initial state
+ConditionInactive andT2suggests as ﬁnal state Condition-
+Active . Consequently, the transition is created following the
+order of the states and enriched by the information of the
+clause templates W1andT7. The trigger is the signal con-
+ditionActive , and the action is the event regular (affecting
+DisplayStyle block). The result is the ﬁrst state machine
+depicted in Fig. 15.
+The second state machine, of Fig. 16, represents the
+behaviour of Sound_Processing . The initial states are Alarm-
+ToneInactive ,AlarmToneActiveToneOff and AlarmToneAc-
+tiveToneOn . The requirement for expressing the correct
+behaviour of the Sound component is REQ −1.3. Proceeding
+in order and considering Table 12, the meta-requirement sug-
+gests that one behaviour of Sound_Processing is the change
+of states between AlarmToneInactive andAlarmToneActive-
+ToneOn (clause templates G1andT2). As a result, the new
+transition connects these two states. Moreover, it is initi-ated by the signal conditionActive and calls the function
+setalarmTone() (clause templates W1 andT1). Once the
+meta-requirements are translated, the complete and detailed
+state machine, shown in Fig. 15, is obtained.
+The DisplayStyle component is the subject of the next
+state machine to be completed. Here the relationship between
+theRegularDisplay state and the GreyedOut state needs to
+be deﬁned employing the meta-requirement of REQ −1.2.
+The GreyedOut is, indeed, detected as the source state of
+the translation ( G1), and T2indicates RegularDisplay as the
+target state. Moreover, the clause template W1indicates that
+123
+
+--- Page 19 ---
+Completion of SysML state machines... 1473
+Fig. 15 Behavioural view: state machines of AlarmingCondition, Sound, DisplayStyle and Acknowledgement, respectively, after the application
+of the approach
+the transition occurs as it is generated by the reception of the
+regular signal and, in turn, triggers another signal affecting
+theAcknowledgement block (clause template T7).TheAcknowledgement block in fact shifts from state Wait-
+ForAcknowledgementNotViewed toWaitForAcknowledgement
+Viewed according to REQ −1.4, in particular according to G1
+123
+
+--- Page 20 ---
+1474 M. Stella de Biase et al.
+andT2. Finally, W1completes the creation of the SysML
+transition as in Fig. 15.
+11.2 Discussion of the case study results
+We have evaluated the effectiveness of the approach by mea-
+suring how close the resulting state machines are to thestate machine presented in the literature [ 18]. Speciﬁcally,
+we compare the added transitions with the model elements
+(transitions and states) of the original model.
+Quantitatively, 12 out of 15 transitions and the two states
+of the original model (Fig. 13) have a counterpart in the cre-
+ated model, which is a promising result of the automaticgeneration capability of the proposed approach
+9.
+From a qualitative point of view, we carried out a ﬁne
+grained analysis with the aim of evaluating the semantic
+equivalence between the model elements of the two models.In particular, the analysis relies in Table 18, which details
+the mapping between the elements of the two models. The
+detailed results of such analysis are reported in Appendix(subsection A.4).
+As a global assessment, we can conclude that the semantic
+equivalence holds for a few transitions (rows 1, 2, 11 and 14 ofTable 18), whereas the remaining transitions in the derived
+model are even more informative than the mapped model
+elements in the original model. For example, effect or guard
+elements are added in the transitions of the derived model,while there were not in the corresponding transitions of the
+original model (e.g. rows 5, 6, 8–10 of Table 18). This result
+is not surprising, since the pre-processing of the originalrequirements entails the inclusion of contextual information
+in the derived requirements, resulting in more precise speci-
+ﬁcations.
+12 Discussion and Conclusions
+This paper develops an approach to semi-automatically com-plete SysML models, on the basis of system-level require-ments expressed using the Given–When–Then paradigm.
+Hence, the paper shows, using a running example and two
+case studies from different application domains, how to com-plete a SysML model by adding transitions in an SMDbetween pre-existing states.
+The ﬁnal impact, that the semi-automation of the approach
+can achieve, is the creation of a Computer Aided Modelling(CAM)-like tool that supports System Analysts. Also, the
+work aims to propose a technically sound approach able to be
+integrated into current industrial processes. Notwithstanding
+9Observe that the three transitions—annotated with ACE-6 in Fig. 13—
+which have the join node (or the ﬁnal state) as source (or target), haveno counterpart in the new model, as the join node and the ﬁnal stateswere not considered in the initial behavioural view.these aims, the paper opens questions, not fully addressed
+here, that deserve a brief discussion, also to understand futureareas of investigation.
+The most important question, for us, is related to the
+role of the Parsing phase of the workﬂow. Our text-based
+requirement speciﬁcation relies on the deﬁnition of a for-mal EBNF-based grammar. However, real-world industrial
+practice should keep a balance between ﬂexibility and the
+existence of internal speciﬁcations and/or design standards.To this aim, a balance between a grammar and the usage of
+NLP techniques is needed. In future work, we will research
+a way of harnessing these two needs.
+To improve the ﬂexibility of the parsing phase, some tech-
+niques could be used in cooperation with the formal parsing
+one. Two examples are the usage of lexical and syntacticaltools proposed in NLP—e.g. lemmatization, Part-of-Speech(POS) tagging—and/or the application of probabilistic pars-
+ing techniques to boost the capability of compilers to
+recognize patterns [ 55].
+Another important open point is the need to trans-
+form requirements into the BDD paradigm. Even if BDD
+is widespread and has demonstrated its easy and effec-tive application in industrial settings—like emphasized in
+Sect. 2.1—we know that, in some legacy systems, the require-
+ments should be rewritten from scratch, then limiting theapplicability of the approach. To this aim, generative tech-nologies can help. The Alarm on Critical Event system
+case study has shown the capabilities of current transform-
+ers for this task. The non-BDD original requirements havebeen transformed using the well-known OpenAI’s Genera-
+tive Pre-trained Transformer (GPT −3.5),
+10by means of a
+given prompt . Furthermore, prompt engineering techniques,
+when ﬁne-tuned with system contextual information, help
+to enrich the requirements, hence improving the two pre-
+processing stages. In our view, this approach could lead toa more precise and efﬁcient automation of the methodology.Consequently, the Alarm on Critical Event case study illus-
+trates a practical and effective application of requirements
+pre-processing using a Large Language Model.
+There are several scientiﬁc papers addressing the consis-
+tency and completeness of requirements. They span from
+checking the consistency—at both, textual level (e.g. in [ 48])
+and involved model (e.g. in [ 26])—to verify completeness
+aspects, as in [ 20]o ri n[ 3], where SysML model is involved.
+Even if this paper does not explicitly address these twofeatures, the proposed approach enables the veriﬁcation ofboth properties. As an example, the veriﬁcation of com-
+pleteness could be addressed by constructing some SysML
+model queries that retrieve “model anomalies” as isolatedstates, transitions that are not mapped on any requirements or
+requirements that are not satisﬁed by any model element. On
+10https://chat.openai.com/
+123
+
+--- Page 21 ---
+Completion of SysML state machines... 1475
+the other hand, consistency of requirements could be checked
+using Gherkin, by means of static semantics checkers on theconstructed ASTs. As a further consideration, the approach
+should rely on such tools in this phase since in the develop-
+ment processes of critical systems the usage of “AI-based”approaches is hard to certiﬁcate. This is also another moti-vation to the semi-automatic nature of the approach itself.
+A third point of discussion is related to the possibility
+of non-optimal model reﬁnement in the case of complexrequirements. If considering a G2 given clause, the approach
+prescribes the generation of a transition for each state of the
+component. However, this could be optimized, for example,by considering hierarchical states. As in classical compilers,
+optimization techniques could be explored to improve the
+readability of the improved model.
+Finally, full automation and its impact on the end user
+must be taken into account. Our main goal is not to build an
+interactive tool that reﬁnes the model, while the user carries
+out the modelling activity, but to develop a back-end tool, thatis able to transform a SysML model into another model. To
+develop such a tool, developers would rely on existing tech-
+nologies, spanning from parser generators (e.g. SableCC),to template engines (e.g. Te4j), to SysML model query and
+manipulation libraries (e.g. the ones in the Eclipse Modelling
+Framework (EMF) ecosystem). For the Knowledge layer, onthe other hand, a document-oriented database as MongoDBis suggested. Papyrus
+11is an open-source tool that serves a
+valid front-end to build the User layer. As it is based on the
+Eclipse platform, the entire approach can be implemented asan Eclipse plugin. Further, investigations could be oriented
+to develop a sort of co-pilot, which improves productivity
+and user experience.
+Summarizing, future work will be oriented to:
+– the completion of Tool Layer prototyping and tuning of
+the proposed approach;
+– injection of NL-based techniques into the Parser compo-
+nent;
+– study of the possible optimization on reﬁned SysML
+model;
+– training of Large Language Models (LLMs) to transform
+free-expressed requirements to the BDD paradigm.
+Another long-term research will also be oriented to reduc-
+ing as much as possible the pre-existing, manually made
+model part needed to enable the approach. As an example,
+the ﬁrst step could be constituted by inferring automaticallythe states and adding them to the SysML model. Then, alsoclass/block diagrams could be inferred according to some
+existing scientiﬁc papers (e.g. [ 46,54]).
+11https://eclipse.dev/papyrus/Acknowledgements The work of Maria Stella de Biase is granted by
+PON Ricerca e Innovazione 2014 /2020 MUR—Ministero dell’Università
+e della Ricerca (Italy)—with the PhD programme XXXVI cycle.This research has been supported by the Shift2Rail Joint Undertak-ing under the European Union’s Horizon 2020 research and innovationprogramme under Grant agreement no. 101015416 PERFORMIN-GRAIL. S. Bernardi and J. Merseguer were supported by the SpanishMinistry of Science and Innovation (Damocles project, ref. PID2020-113969RB-I00) and the Aragonese Government (Disco research group,ref. T21-23R).
+Funding Open Access funding provided thanks to the CRUE-CSIC
+agreement with Springer Nature.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+A Alarm on Critical Event system (detailed)
+This appendix reports the intermediate results of the
+pre-processing steps (subsection A.1), the initial SysML
+behavioural view (subsection A.2), the mapping of reﬁned
+GWT requirements to meta-requirements (subsection A.3)
+and the mapping of the model elements in the original modelto the transitions in the derived model (subsection A.4).
+A.1 Pre-processing of original requirements
+The results of the pre-processing are shown in Tables 6,7-
+11. Each table details:
+– The rephrasing of each requirement—labelled ACE-n’,
+where ACE-n is the original requirement in Table 5, and
+– the reﬁnement of the rephrased requirement that con-
+siders the contextual information in the structural and
+behavioural views—Figs. 14and 16, respectively.
+Observe that a rephrased requirement ACE-n’ can be reﬁned
+in a set of m contextualized requirements, which are labelled
+REQ-n.1 …REQ-n.m.ACE-2 The requirement ACE-2 concerns multiple alarms
+occurrence, and it was not considered in the original state
+machine of [ 18]( s e eF i g . 13). For completeness, we also con-
+sider this requirement and Table 7details the corresponding
+123
+
+--- Page 22 ---
+1476 M. Stella de Biase et al.
+Table 7 Pre-processing ACE-2: Multiple Alarms Occurrence
+Step: ChatGPT
+ACE-2’ Given multiple alarms are being annunciated, when displaying the
+alarms, then they shall be displayed in the following order: First byseverity (from highest to lowest), then by occurrence, with the newestalarms displayed ﬁrst.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−2.1 DisplayStyle, GreyedOut, regular, numberOfAlarms, ordering Given a DisplayStyle in GreyedOut, when DisplayStyle
+receives a regular event and the number of alarms ofDisplayStyle is greater than zero, then the DisplayStyleorders the alarms by severity ﬁrst, then in order ofoccurrence, newest ﬁrst
+Table 8 Pre-processing ACE-3: Not Displayed Alarm
+Step: ChatGPT
+ACE-3’ Given an annunciated alarm is displayed (because there is sufﬁcient
+space to display the alarm in question), when attempting to acknowledgethe alarm, then it can be acknowledged.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−3.1 DisplayStyle, GreyedOut, regular, sufﬁcientSpace,
+higherCriticalityAlarms, alarmDisplay, Acknowledgement,RegularDisplayGiven a DisplayStyle in GreyedOut, when the DisplayStyle
+receives a regular event and the sufﬁcient space ofDisplayStyle is true, then the DisplayStyle sends analarmDisplay to Acknowledgement and the DisplayStylegoes into RegularDisplay
+REQ−3.2 Acknowledgement, WaitForAcknowledgementViewed, silence,
+AcknowledgedGiven an Acknowledgement in
+WaitForAcknowledgementViewed, when theAcknowledgement receives a silence, then theAcknowledgement goes in Acknowledged
+Table 9 Pre-processing ACE-4: Explicit Acknowledgement Alarm
+Step: ChatGPT
+ACE-4’ Given an alarm has occurred, when the user presses the Alarm Ack
+button, then the alarm must be explicitly acknowledged, even if theoriginating alarming condition has been corrected.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−4.1 silence, Acknowledgement Given an Alarm Ack button in alarm occurred, when the user
+presses the Alarm Ack button, then the Alarm Ack buttonsends a silence to Acknowledgement
+REQ−4.2 Acknowledgement, WaitForAcknowledgementViewed, silence,
+AcknowledgedGiven an Acknowledgement in
+WaitForAcknowledgementViewed, when theAcknowledgement receives a silence, then theAcknowledgement goes into Acknowledged
+reﬁned requirement REQ −2.1. Nevertheless, the application
+of the proposed approach considering also REQ −2.1 pro-
+duces inconsistencies in the state machine of DisplayStyle
+component which will be discussed in subsection A.3.ACE-3 The requirement ACE-3 is stated as a negation of
+an event—i.e. an alarm is not displayed—and, despite the
+rest of the requirements in Table 5, it was mapped onto
+states of the involved regions (see Fig. 13, state “RegularDis-
+123
+
+--- Page 23 ---
+Completion of SysML state machines... 1477
+play” of DisplayStyle_Processing and state “NotViewed” of
+Acknowledgement_Processing). Since our approach enablesto enrich state machines with transitions, which represent
+cause–effect relations, we have considered the negation of
+ACE-3 as follows:
+If an annunciated alarm is displayed (because there
+is sufﬁcient space to display the alarm in question), thenit can be acknowledged.
+Table 8shows the rephrased and reﬁned requirements of
+such negation.ACE-4 The requirement ACE-4 states the explicit acknowl-
+edgement of an alarm occurrence by the user through “Alarm
+Ack button” pressing, and it has been partially mapped in the
+original state machine (see Fig. 13, transition from “Viewed”
+to “Acknowledged” of the Acknowledgement_Processing
+region). Indeed, the original state machine does not include
+the behaviour of the user interface. Although we fully reﬁnedthis requirement for completeness purposes (see Table 9),
+observe that REQ −4.1 cannot be mapped by applying the
+proposed approach since contextual information is miss-ing in the structural and behavioural views of Figs. 14
+and 16, respectively (e.g. Alarm Ack button). Therefore,
+only REQ −4.2—which is the same as REQ −3.2—has been
+mapped by applying the proposed approach.ACE-5 The requirement ACE-5 deals with the ceasing of
+an alarm condition and its reﬁnement leads to two require-
+ments REQ −5.1 and REQ −5.2 (see Table 10). In particular,
+REQ−5.1 states the occurrence of the alarm correction and,
+therefore the ceasing of the alarm condition (the “given” part
+of ACE-5’). REQ −5.2 involves the DisplayStyle component,
+which has the visibility on the states of AlarmConditionand Acknowledgement components (see Fig. 14, attributes
+“alarm” and “ack” of the DisplayStyle block).
+ACE-6 The requirement ACE-6 is the most complex: it con-
+cerns silencing an audible alarm for a time period, and it is
+partially reﬁned as shown in Table 11. Indeed the ACE-6’
+part “if the alarm condition ceases after the ack but beforethe silence period time-out then the alarm shall be dismissed”
+has not been reﬁned since it involves global states/node in the
+original state machine (Fig. 13) which we have not consid-
+ered in the initial behavioural view (Fig. 16).
+A.2 Initial SysML behavioural view
+Figure 16shows the initial behavioural view, where a
+state machine is associated with each component. The state
+machines only include simple states, since the proposedapproach does not currently deal with composite states.A.3 Mapping refined requirements to
+meta-fragments
+Reﬁned requirements REQ-n.m have been matched to
+requirement patterns. Tables 12,13,14,15,16, and 17present
+such matching.
+In particular, each table details requirements REQ-n.1-
+REQ-n.x corresponding to the original requirement ACE-n.For each reﬁned requirement, the table reports the detected
+requirement pattern ( MetaReq ) with the matching of the
+contextual information in the initial model to the roles inthe pattern ( Role matching ). All the reﬁned requirements,
+but REQ −4.1, have been fully matched. REQ −4.1 is only
+partially matched due to the absence of contextual informa-tion related to the user interface in the initial SysML model(see Table 15).
+The translation of all the detected requirement patterns but
+the REQ −2.1 leads to the resulting state machines of Fig. 15,
+where the tracing of the added model elements (transitions,
+trigger, effects, guards) to the reﬁned requirements is shown
+as annotations. In particular, there is a one-to-one mappingbetween the reﬁned requirements and transitions for almost
+all the requirements. The exceptions are the following:
+– REQ −6.2, where the translation produces multiple tran-
+sitions; and
+– REQ −1.2, REQ −3.1, REQ −3.2, REQ −4.1 and REQ −6.1,
+where the translations produce reﬁnements of transitions.
+Creation of multiple transitions. REQ−6.2 matches the meta-
+requirement <G1,W1,T2 and T4 >(Table 17) which is
+translated to three transitions, one for each simple stateof Sound_Processing state machine according to the meta-
+fragment associated with the G1clause in Table 2. All the
+transitions have the same trigger, effect and target state.Reﬁnement of transitions. Let us consider requirements
+REQ−1.2 and REQ −3.1 ﬁrst, which concern the Dis-
+playStyle_Processing state machine. They match the meta-requirements <G1,W1,T7 and T2 >(Table 12) and <G1,W1
+and W3, T7 and T2 >(Table 14), respectively, where
+the second is a reﬁnement of the ﬁrst one. Therefore,the translation of the second meta-requirement reﬁnes thealready created transition from GreyedOut to RegularState
+by adding the guard.
+Requirements REQ −3.2, REQ −
+4.1 and REQ −6.1 con-
+cern the Acknowledgement_Processing state machine. In
+particular, REQ −3.2 and REQ −4.1 are identical and they
+match the meta-requirement <G1,W1,T2 >(Tables 14
+and 15). Therefore, the transition from WaitForAcknowl-
+edgementViewed to Acknowledged with the trigger event
+(silence) is created after the ﬁrst occurrence of the meta-requirement detection. The second occurrence of meta-
+123
+
+--- Page 24 ---
+1478 M. Stella de Biase et al.
+Fig. 16 Behavioural view: initial state machines of AlarmingCondition, Sound, DisplayStyle and Acknowledgement, respectively
+123
+
+--- Page 25 ---
+Completion of SysML state machines... 1479
+Table 10 Pre-processing ACE-5: Alarm Condition Ceases
+Step: ChatGPT
+ACE-5’ Given the originating condition of an alarm has been corrected, when
+the alarm has not yet been acknowledged, then the display of the alarmmessage shall be greyed out, and all other alarm messages shall bedisplayed in the normal colour.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−5.1 AlarmingCondition, ConditionActive, conditionCeases,
+DisplayStyle, greyOut, ConditionInactiveGiven an AlarmingCondition in ConditionActive, when the
+AlarmingCondition receives a conditionCeases, then theAlarmingCondition sends a greyOut to DisplayStyle and theAlarmingCondition goes into ConditionInactive
+REQ−5.2 DisplayStyle, RegularDisplay, alarm, ConditionInactive,
+ack, Acknowledged, greyOut, GreyedOutGiven a DisplayStyle in RegularDisplay, when the alarm of
+DisplayStyle is equal to ConditionInactive and the ack ofDisplayStyle is not equal to Acknowledged and DisplayStylereceives a greyOut, then the DisplayStyle goes into GreyedOut
+Table 11 Pre-processing ACE-6: Silencing audible alarm for a time period and possible reannunciation
+Step: ChatGPT
+ACE-6’ Given an alarm is being acknowledged using the Alarm Ack button,
+when the button is pressed, then the audible alarm sound shall be silencedfor 2 min, and the visual display of the alarm message shall remainunaffected. If the alarm condition ceases within the 2-minute silenceperiod, then the alarm shall be dismissed. If the originating conditionremains valid or reasserts itself after the silence period, then the alarmshall be reannunciated.
+Step: ReﬁnementREQ ID Contextual information Description
+REQ−6.1 Acknowledgement, WaitForAcknowledgementViewed,
+silence, Sound, AcknowledgedGiven an Acknowledgement in WaitForAcknowledgementViewed,
+when the Acknowledgement receives a silence, then the
+Acknowledgement sends a silence to the Sound and goes into
+Acknowledged
+REQ−6.2 Sound, AlarmToneActiveOn, silence,
+AlarmToneInactive, setTimer(2min)Given a Sound in AlarmToneActiveOn, when the Sound receives a
+silence, then the Sound calls setTimer with 2min and the Sound goesinto AlarmToneInactive
+REQ−6.3 Sound, AlarmToneInactive, timer, alarm,
+ConditionActive, Acknowledgement, stopSilence,AlarmToneActiveToneOffGiven a Sound in AlarmToneInactive, when the timer of the Sound is
+equal to 2 min and the alarm of the Sound is equal toConditionActive, then the Sound sends a stopSilence to theAcknowledgement and the Sound goes intoAlarmToneActiveToneOff
+REQ−6.4 Acknowledgement, Acknowledged, stopSilence,
+WaitForAcknowledgementNotViewedGiven an Acknowledgement in Acknowledged, when the
+Acknowledgement receives a stopSilence, then theAcknowledgement goes into WaitForAcknowledgementNotViewed
+requirement detection does not produce any further reﬁne-
+ments. Requirement REQ −6.1 matches the meta-requirement
+<G1,W1,T7 and T2 >(Table 17), and it is a reﬁnement
+of the previous meta-requirement. Therefore, the translation
+of this meta-requirement reﬁnes the already created transi-tion by adding the effect.
+Observe that the order of translation of the requirements
+involving the same transition does not affect the results.Mapping of multiple alarm occurrence requirement. If
+REQ−2.1 is also considered (Table 13), the resulting state
+machine of DisplayStyle component does not behave as
+intended (Fig. 17). Indeed, the occurrence of the internal
+transition (added by translating the instantiated requirementpatterns of REQ −2.1) and of the outgoing transition (from
+GreyedOut to RegularDisplay) is not deterministic since the
+two guards are not in mutex. This not intended behaviour
+123
+
+--- Page 26 ---
+1480 M. Stella de Biase et al.
+Table 12 Mapping REQ −1.1-REQ −1.4: Alarming Condition Occurrence
+REQ−1.1 MetaReq ( <G1,W1,T7 and T2 >)
+Given an AlarmingCondition in ConditionInactive Given a <<Block as gContext >> in<<State as gSource >>
+when the AlarmingCondition receives a conditionActivate When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+then the AlarmingCondition sends a regular event to
+DisplayStyleThen the <<Block as tSender >> sends a <<Signal as tMessage >> to
+<<Block as tReceiver >>
+and andthe AlarmingCondition goes into ConditionActive the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+AlarmingCondition Block as: gContext, wReceiver, tSender, tContext
+ConditionInactive State as gSourceconditionActivate Signal as wEventregular Signal as tMessageDisplayStyle Block as tReceiverConditionActive State as tTarget
+REQ−1.2 MetaReq ( <G1,W1,T7 and T2 >)
+Given a DisplayStyle in GreyedOut Given a <<Block as gContext >> in<<State as gSource >>
+when the DisplayStyle receives a regular event When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+then the DisplayStyle sends an alarmDisplay to
+AcknowledgementThen the <<Block as tSender >> sends a <<Signal as tMessage >> to
+<<Block as tReceiver >>
+and and
+the DisplayStyle goes into RegularDisplay the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+DisplayStyle Block as: gContext, wReceiver, tSender, tContext
+GreyedOut State as gSourceregular Signal as wEventalarmDisplay Signal as tMessageAcknowledgement Block as tReceiverRegularDisplay State as tTarget
+REQ−1.3 MetaReq ( <G1,W1,T1 and T2 >)
+Given a Sound in AlarmToneInactive Given a <<Block as gContext >> in<<State as gSource >>
+when the Sound receives a conditionActivate When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+then the Sound calls setAlarmTone with ON Then the <<Block as tContext1 >> << Operation as tAction >>
+and and
+Fig. 17 Behavioural view: state machines of DisplayStyle considering reﬁned requirement REQ −2.1
+123
+
+--- Page 27 ---
+Completion of SysML state machines... 1481
+Table 12 continued
+REQ−1.3 MetaReq ( <G1,W1,T1 and T2 >)
+the Sound goes into AlarmToneActiveToneOn the <<Block as tContext2 >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+Sound Block as: gContext, wReceiver, tContext1, tContext2
+AlarmToneInactive State as gSourceconditionActivate Signal as wEventalarmingTone(ON) Operation as tActionAlarmToneActiveToneOn State as tTarget
+REQ−1.4 MetaReq ( <G1,W1,T2 >)
+Given an Acknowledgement in wait for
+WaitForAcknowledgementNotViewedGiven a <<Block as gContext >> in<<State as gSource >>
+when the Acknowledgement receives an alarmDisplay When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+then the Acknowledgement goes in
+WaitForAcknowledgementViewedThen the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+Acknowledgement Block as: gContext, wReceiver, tContext
+WaitForAcknowledgementNotViewed State as gSourcealarmDisplay Signal as wEventWaitForAcknowledgementViewed State as tTarget
+Table 13 Mapping REQ −2.1: Multiple Alarms Occurrence
+REQ−2.1 MetaReq ( <G1, W1 and W3, T1 >)
+Given a DisplayStyle in GreyedOut Given a <<Block as gContext >> in<<State as gSource >>
+when DisplayStyle receives a regular event When the <<Block as wReceiver >> receives <<Signal as
+wEvent >>
+and andthe number of alarms of DisplayStyle is greater than zero the <<Property as wV ar >> of<<Block as wContext >>
+<<comp_op >> << V alueSpeciﬁcation as wV alue >>
+then the DisplayStyle orders the alarms (by severity ﬁrst, then in
+order of occurrence, newest ﬁrst)Then the <<Block as tContext >> << Operation as tAction >>
+Role Matching
+Va l u e R o l e
+DisplayStyle Block as: gContext, wReceiver, wContext, tContext
+GreyedOut State as gSourceregular Signal as wEventnumberOfAlarms Property as wV argreater than comp_opzero V alueSpeciﬁcation as wV alueordering Operation as tAction
+123
+
+--- Page 28 ---
+1482 M. Stella de Biase et al.
+Table 14 Mapping REQ −3.1-REQ −3.2: Not Displayed Alarm
+REQ−3.1 MetaReq ( <G1, W1 and W3, T7 and T2 >)
+Given a DisplayStyle in GreyedOut Given a <<Block as gContext >> in<<State as gSource >>
+when the DisplayStyle receives a regular event When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+and andthe sufﬁcient space of DisplayStyle is true the <<Property as wV ar >> of<<Block as wContext >> << comp_op >>
+<<V alueSpeciﬁcation as wV alue >>
+then the DisplayStyle sends an alarmDisplay to
+AcknowledgementThen the <<Block as tSender >> sends a <<Signal as tMessage >> to
+<<Block as tReceiver >>
+and andthe DisplayStyle goes into RegularDisplay the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+DisplayStyle Block as: gContext, wReceiver, wContext, tSender, tContext
+GreyedOut State as gSourceregular Signal as wEventsufﬁcientSpace Property as wV aris (equal to) <<comp_op >>
+true V alueSpeciﬁcation as wV alue1alarmDisplay Signal as tMessageAcknowledgement tReceiverRegularDisplay State as tTarget
+REQ−3.2 MetaReq ( <G1, W1, T2 >)
+Given an Acknowledgement in
+WaitForAcknowledgementViewedGiven a <<Block as gContext >> in<<State as gSource >>
+When the Acknowledgement receives a silence When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+Then the Acknowledgement goes in Acknowledged Then the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+Acknowledgement Block as: gContext, wReceiver, tContext
+WaitForAcknowledgementViewed State as gSourcesilence Signal as wEventAcknowledged State as tTarget
+could detected by model checking the state machine and
+manually corrected.
+A.4 Evaluation
+We evaluate the effectiveness of the approach by compar-
+ing the transitions of the resulting SM models and the model
+elements (transitions and states) annotated with ACE-n in the
+original model [ 18].
+Table 18summarizes the mapping of the transitions and
+places–annotated with requirements ACE-n –in the original
+state machine to the transitions—annotated with the derivedrequirements REQ-n.m —in the derived model of Fig. 15.I nthe following, we consider each concurrent region in Fig. 13–
+respectively, each state machine in Fig. 15and, informally,
+discuss about the semantic equivalence of the mapping.AlarmingCondition_Status There is a one-to-one mapping
+between the transitions in the concurrent region and those
+in the corresponding state machine—see Table 18,r o w s1
+and 2. The derived transitions are behavioural equivalent to
+the mapped transitions: in particular, the effects produce the
+same events (trigger event of DisplayStyle_Processing)—regular (row 1) and greyOut (row 2).Sound_Processing Considering rows 3 and 4 (Table 18), the
+transitions in the original model have been mapped to a
+unique transition in the derived model, which has a simi-lar (but not the same) semantics of the former. Indeed, while
+123
+
+--- Page 29 ---
+Completion of SysML state machines... 1483
+Table 15 Mapping REQ −4.1-REQ −4.2: Explicit Acknowledgement Alarm
+REQ−4.1 MetaReq ( <G1, W2, T7 >)
+G i v e na nA l a r mA c kb u t t o ni na l a r mo c c u r r e d G i v e na <<Block as gContext >> in<<State as gSource >>
+When the user presses the Alarm Ack button When the <<Block as wContext >> << Operation as wAction >>
+Then the Alarm Ack button sends a silence to
+AcknowledgementThen the <<Block as tSender >> sends a <<Signal as tMessage >> to
+<<Block as tReceiver >>
+Role Matching
+Va l u e R o l e
+silence Signal as tMessage
+Acknowledgement Block as tReceiver
+REQ−4.2 MetaReq ( <G1, W1, T2 >)
+Given an Acknowledgement in
+WaitForAcknowledgementViewedGiven a <<Block as gContext >> in<<State as gSource >>
+When the Acknowledgement receives a silence When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+Then the Acknowledgement goes into Acknowledged Then the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+Acknowledgement Block as: gContext, wReceiver, tContext
+WaitForAcknowledgementViewed State as gSourcesilence Signal as wEventAcknowledged State as tTarget
+Table 16 Mapping REQ −5.1-REQ −5.2: Alarm Condition Ceases
+REQ−5.1 MetaReq ( <G1, W1, T7 and T2 >)
+Given an AlarmingCondition in ConditionActive Given a <<Block as gContext >> in<<State as gSource >>
+when the AlarmingCondition receives a conditionCeases When the <<Block as wReceiver >> receives <<Signal as wEvent >>
+then the AlarmingCondition sends a greyOut to DisplayStyle Then the <<Block as tSender >> sends a <<Signal as tMessage >> to
+<<Block as tReceiver >>
+and andthe AlarmingCondition goes into ConditionInactive the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+AlarmingCondition Block as: gContext, wReceiver, tSender, tContext
+ConditionActive State as gSourceconditionCeases Signal as wEventDisplayStyle Block as tReceivergreyOut Signal as tMessageConditionInactive State as tTarget
+the trigger “conditionActivate”—row 3—is present in the
+derived transition, the time-out trigger “tm(IN_TIME)”—
+row 4—is not; the reason is that no information about the
+time-out is given in the original requirement ACE-1 , and
+therefore in the derived requirement REQ−1.3.
+The original transitions, in rows 5 and 6, have been
+mapped to more informative transitions in the derived model:indeed, the latter are characterized by the same effect as the
+former and, additionally, by an effect (i.e. the time-out set-
+ting to 2 min) which was speciﬁed in the reﬁned requirement
+REQ−6.2but not in the original one ACE-6 .
+The original transition in row 7 has been mapped to a
+transition with similar semantics in the derived model; the
+time-out trigger “tm(SILENCE_TIME)” is speciﬁed as part
+123
+
+--- Page 30 ---
+1484 M. Stella de Biase et al.
+Table 16 continued
+REQ-5.2 MetaReq ( <G 1 ,W 3a n dW 3a n dW 1 ,T 2 >)
+Given a DisplayStyle in RegularDisplay, Given a <<Block as gContext >> in<<State as gSource >>,
+when the alarm of DisplayStyle is equal to ConditionInactive When the <<Property as wV ar1 >> of<<Block as wContext1 >>
+<<comp_op1 >> << V alueSpeciﬁcation as wV alue1 >>
+and andthe ack of DisplayStyle is not equal to Acknowledged the <<Property as wV ar2 >> of<<Block as wContext2 >>
+<<comp_op2 >> << V alueSpeciﬁcation as wV alue2 >>
+and andDisplayStyle receives a greyOut, the <<Block as wReceiver >> receives <<Signal as wEvent >>,
+Then the DisplayStyle goes into GreyedOut. Then the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+DisplayStyle Block as: gContext, wContext1, wContext2, wReceiver, tContext
+RegularDisplay State as gSourcealarm Property as wV ar1is equal to comp_op1ConditionInactive V alueSpeciﬁcation as wV alue1ack Property as wV ar2is not equal to comp_op2Acknowledged V alueSpeciﬁcation as wV alue2greyOut Signal as wEventGreyedOut State as tTarget
+of the guard (“timer == 2min”) in the mapped transition.
+Observe that the guard also includes a further restriction(“alarm == ConditionActive”) which is not explicitly spec-
+iﬁed in the original model but it is stated in the original
+requirement ACE-6 and in the derived requirement REQ-6-3 .
+The effect of the original transition is semantically equivalent
+to the effect in the derived transition.
+DisplayStyle_Processing A one-to-one mapping exists
+between the transitions in the concurrent region and thosein the corresponding state machine. However, the derived
+transitions are more informative than the mapped transi-
+tions: indeed they have the same trigger as the correspondingtransitions in the original model—“regular” (row 8) and
+“greyOut” (row 10)—but, additionally, they are character-ized by effects and/or guards. In particular, the requirement
+REQ−3.1 enables to add the guard to the transition from
+GreyedOut to RegularDisplay (row 10).
+Acknowledgement_Processing The transitions, in the derived
+model, indicated in rows 11 and 14, are semantically equiv-alent to the corresponding mapped transitions in the original
+model. Rows 12 and 13 both concern the transition from
+WaitForAckViewed to Acknowledged, in the derived model,which is more informative than the state (NotViewed, row 12)and the transition (from Viewed to Acknowledged, row 13) in
+the original model. In particular, the derived transition is char-
+acterized by the same trigger as in the mapped transition (row13) but, additionally, an effect is added—by translating the
+reﬁned requirement REQ−6.1—which explicitly represents
+the cause–effect relation between the Acknowledgement andthe Sound components.
+123
+
+--- Page 31 ---
+Completion of SysML state machines... 1485
+Table 17 Mapping REQ −6.1-REQ −6.4: Silencing audible alarm for a time period and possible reannunciation
+REQ−6.1 MetaReq ( <G1, W1, T7 and T2 >)
+Given an Acknowledgement in
+WaitForAcknowledgementViewedGiven a <<Block as gContext >> in<<State as gSource >>
+when the Acknowledgement receives a silence When the <<Block as wReceiver >> receives <<Signal as
+wEvent >>
+then the Acknowledgement sends a silence to the Sound Then the <<Block as tSender >> sends a <<Signal as tMessage >>
+to<<Block as tReceiver >>
+and andthe Acknowledgement goes into Acknowledged the <<Block as tContext >> goes into <<State as tTarget >>
+Role Matching
+Va l u e R o l e
+Acknowledgement Block as: gContext, wReceiver, tSender, tContext
+WaitForAcknowledgementViewed State as gSourcesilence Signal as: wEvent, tMessageSound Block as tReceiverAcknowledged State as tTarget
+REQ−6.2 MetaReq ( <G1, W1, T1 and T2 >)
+Given a Sound in AlarmToneActiveToneOn a <<Block as gContext >> in<<State as gSource >>
+when the Sound receives a silence When the <<Block as wReceiver >> receives <<Signal as
+wEvent >>
+then the Sound calls setTimer with 2min the <<Block as tContext1 >> << Operation as tAction >>
+and andthe Sound goes into AlarmToneInactive Then, the <<Block as tContext2 >> goes into <<State as tTarget >>
+Sound Block as: gContext, wReceiver, tContext1, tContext2
+AlarmToneActiveToneOn State as gSource
+silence Signal as wEventAlarmToneInactive State as tTargetsetTimer(2min) Operation as tAction
+REQ-6.3 MetaReq ( <G1, W3 and W3, T7 and T2 >)
+Given a Sound in AlarmToneInactive, Given a <<Block as gContext >> in<<State as gSource >>,
+when the timer of the Sound is equal to 2 minutes When the <<Property as wV ar1 >> of<<Block as wContext1 >>
+<<comp_op1 >> << V alueSpeciﬁcation as wV alue1 >>
+and andthe alarm of the Sound is equal to ConditionActive, the <<Property as wV ar2 >> of<<Block as wContext2 >>
+<<comp_op2 >> << V alueSpeciﬁcation as wV alue2 >>,
+then the Sound sends a stopSilence to the
+AcknowledgementThen, the <<Block as tSender >> sends a <<Signal as tMessage >>
+to<<Block as tReceiver >>
+and andthe Sound goes into AlarmToneActiveToneOff. the <<Block as tContext >> goes into <<State as tTarget >>
+123
+
+--- Page 32 ---
+1486 M. Stella de Biase et al.
+Table 17 continued
+Role Matching
+Va l u e R o l e
+Sound Block as: gContext, wContext1, wContext2, tSender, tContext
+AlarmToneInactive State as gSourcetimer Property as wV ar1is equal to comp_op12 minutes V alueSpeciﬁcation as wV alue1alarm Property as wV ar2is equal to comp_op2ConditionActive V alueSpeciﬁcation as wV alue2stopSilence Signal as tMessageAcknowledgement Block as tReceiverAlarmToneActiveToneOff State as tTarget
+REQ-6.4 MetaReq ( <G1, W1, T2 >)
+Given an Acknowledgement in Acknowledged, Given a <<Block as gContext >> in<<State as gSource >>
+when the Acknowledgement receives a stopSilence, When the <<Block as wReceiver >> receives <<Signal as
+wEvent >>,
+then the Acknowledgement goes into WaitForAcknowledgementNotViewed. Then, the <<Block as tContext >> goes into <<State as
+tTarget >>
+Role Matching
+Va l u e R o l e
+Acknowledgement Block as: gContext, wReceiver, tContext
+Acknowledged State as gSource
+stopSilence Signal as wEventWaitForAcknowledgementNotViewed State as tTarget
+123
+
+--- Page 33 ---
+Completion of SysML state machines... 1487Table 18 Mapping transitions and places from the original model (O) to the derived model (D)
+AlarmingCondition_Status
+N M Req Source Target Trigger Effect Guard
+1 O ACE-1 ConditionInactive ConditionActive conditionActivate GEN(regular)
+DR E Q −1.1 ConditionInactive ConditionActive conditionActivate DS.regular
+2 O ACE-5 ConditionActive ConditionInactive conditionCeases GEN(greyOut)
+DR E Q −5.1 ConditionActive ConditionInactive conditionCeases DS.greyOut
+Sound_Processing
+M Req Source Target Trigger Effect Guard
+3 O ACE-1 AlarmToneInactive AlarmToneActive conditionActivate
+DR E Q −1.3 AlarmToneInactive AlarmToneActiveToneOn conditionActivate setAlarmTone(ON)
+4 O ACE-1 ToneOff ToneOn tm(IN_TIME) sound(ON)
+DR E Q −1.3 AlarmToneInactive AlarmToneActiveToneOn conditionActivate setAlarmTone(ON)
+5 O ACE-6 AlarmToneActive AlarmToneInactive silence
+DR E Q −6.2 AlarmToneActiveToneOn AlarmToneInactive silence setTimer(2min)
+DR E Q −6.2 AlarmToneActiveToneOff AlarmToneInactive silence setTimer(2min)
+6 O ACE-6 AlarmToneInactive AlarmToneInactive silence
+DR E Q −6.2 AlarmToneInactive AlarmToneInactive silence setTimer(2min)
+7 O ACE-6 AlarmToneInactive AlarmToneActive tm(SILENCE_TIME) GEN(stopSilence)
+DR E Q −6.3 AlarmToneInactive AlarmToneActiveToneOff Ack.stopSilence timer == 2min and alarm == ConditionActive
+DisplayStyle_Processing
+M Req Source Target Trigger Effect Guard
+8 O ACE-1 GreyedOut RegularDisplay regular
+123
+
+--- Page 34 ---
+1488 M. Stella de Biase et al.Table 18 continued
+DisplayStyle_Processing
+M Req Source Target Trigger Effect Guard
+D REQ1.2 GreyedOut RegularDisplay regular Ack.alarmDisplay
+9 O ACE-3 state: RegularDisplay
+DR E Q −3.1 GreyedOut RegularDisplay regular Ack.alarmDisplay sufﬁcientSpace
+10 O ACE-5 RegularDisplay GreyedOut greyOut
+DR E Q −5.2 RegularDisplay GreyedOut greyOut alarm == ConditionInactive and ack != Acknowledged
+Acknowledgement_Processing
+M Req Source Target Trigger Effect Guard
+11 O ACE-1 NotViewed Viewed alarmDisplay
+DR E Q −1.4 WaitForAckNotViewed WaitForAckViewed alarmDisplay
+12 O ACE-3 state: NotViewed
+DR E Q −3.2 WaitForAckViewed Acknowledged silence
+13 O ACE-4 Viewed Acknowledged silence
+DR E Q −4.1, REQ −6.1 WaitForAckViewed Acknowledged silence Sound.silence
+14 O ACE-6 Acknowledged NotViewed stopSilence
+DR E Q −6.4 Acknowledged WaitForAckNotViewed stopSilence
+123
+
+--- Page 35 ---
+Completion of SysML state machines... 1489
+References
+1. Aceituna, D., Do, H., Walia, G.S., Lee, S.W.: Evaluating the use of
+model-based requirements veriﬁcation method: a feasibility study(2011). https://doi.org/10.1109/EmpiRE.2011.6046248
+2. Alferez, M., Pastore, F., Sabetzadeh, M., Briand, L., Riccardi, J.R.:
+Bridging the gap between requirements modeling and behavior-driven development. In: 2019 ACM/IEEE 22nd InternationalConference on Model Driven Engineering Languages and Systems(MODELS), pp. 239–249. IEEE (2019)
+3. Bankauskaite, J., Morkevicius, A.: An approach: SysML-based
+automated completeness evaluation of the system requirementsspeciﬁcation. pp. 66–72 (2018)
+4. Basin, D., Clavel, M., Egea, M.: A decade of model-driven security.
+In: Proceedings of ACM Symposium on Access Control Models
+and Technologies, SACMA T, pp. 1–10 (2011). https://doi.org/10.
+1145/1998441.1998443
+5. Beck, K.: Test-Driven Development: By Example. Addison-
+Wesley Professional, Boston (2003)
+6. Bernardi, S., Merseguer, J., Petriu, D.C.: Dependability modeling
+and analysis of software systems speciﬁed with uml. ACM Comput.Surv. 45(1) (2012). https://doi.org/10.1145/2379776.2379778
+7. Bernardi, S., Merseguer, J., Petriu, D.C.: Model-Driven Depend-
+ability Assessment of Software Systems. Springer Berlin Heidel-berg (2013). https://doi.org/10.1007/978-3-642-39512-3
+8. de Biase, M.S., Marrone, S., Palladino, A.: Towards Automatic
+Model Completion: from Requirements to SysML State Machines.arXiv preprint arXiv:2210.03388 (2022). https://doi.org/10.48550/
+arXiv.2210.03388
+9. Brambilla, M., Cabot, J., Wimmer, M.: Model-Driven Software
+Engineering in Practice, Second Edition. Synthesis Lectures onSoftware Engineering. Morgan & Claypool Publishers (2017).https://doi.org/10.2200/S00751ED2V01Y201701SWE004
+10. Bruel, J.M., Ebersold, S., Galinier, F., Mazzara, M., Naumchev, A.,
+Meyer, B.: The role of formalism in system requirements. ACMComput. Surv 54(2021). https://doi.org/10.1145/3448975
+11. Brunello, A., Montanari, A., Reynolds, M.: Synthesis of LTL for-
+mulas from natural language texts: State of the art and researchdirections. In: J. Gamper, S. Pinchinat, G. Sciavicco (eds.) LeibnizInternational Proceedings in Informatics, LIPIcs, pp. 171–1719.
+Germany (2019). https://doi.org/10.4230/LIPIcs.TIME.2019.17
+12. Burgueño, L., Clarisó, R., Gérard, S., Li, S., Cabot, J.: An NLP-
+based architecture for the autocompletion of partial domain models.In: International Conference on Advanced Information SystemsEngineering (CAiSE 2021), pp. 91–106. Springer (2021)
+13. Buzhinsky, I.: Formalization of natural language requirements into
+temporal logics: a survey. In: 2019 IEEE 17th international confer-ence on industrial informatics (INDIN), vol. 1, pp. 400–406. IEEE(2019)
+14. Colombo, P ., Khendek, F., Lavazza, L.: Bridging the gap between
+requirements and design: An approach based on problem framesa n ds y s m l .J .S y s t .S o f t w . 85(3), 717–745 (2012). https://doi.org/
+10.1016/j.jss.2011.09.046
+15. Cortellessa, V ., Marco, A.D., Inverardi, P .: Model-Based Software
+Performance Analysis. Springer, Berlin Heidelberg (2011)
+16. Dalpiaz, F., Ferrari, A., Franch, X., Palomares, C.: Natural language
+processing for requirements engineering: The best is yet to come.IEEE Softw. 35(5), 115–119 (2018). https://doi.org/10.1109/MS.
+2018.3571242
+17. Dimanidis, A., Chatzidimitriou, K.C., Symeonidis, A.L.: A Natural
+Language Driven Approach for Automated Web API Develop-ment: Gherkin2OAS. WWW ’18. In: Companion Proceedingsof The Web Conference 2018. International World Wide WebConferences Steering Committee (2018). https://doi.org/10.1145/
+3184558.319165418. Douglass, B.P .: Real-time UML - developing efﬁcient objects
+for embedded systems. Addison-Wesley object technology series,Addison-Wesley-Longman (1998)
+19. Fantechi, A., Gnesi, S., Ristori, G., Carenini, M., V anocchi, M.,
+Moreschini, P .: Assisting requirement formalization by means ofnatural language translation. Formal Methods in System Design 4,
+243–263 (1994). https://doi.org/10.1007/BF01384048
+20. Ferrari, A., Dell’Orletta, F., Spagnolo, G.O., Gnesi, S.: Measuring
+and improving the completeness of natural language requirements.Lecture Notes in Computer Science (including subseries LectureNotes in Artiﬁcial Intelligence and Lecture Notes in Bioinformat-ics) 8396 LNCS , 23 - 38 (2014). https://doi.org/10.1007/978-3-
+319-05843-6_3
+21. Flammini, F., Marrone, S., Iacono, M., Mazzocca, N., Vit-
+torini, V .: A Multiformalism Modular Approach to ERTMS/ETCSFailure Modelling, vol. 21. International Journal of Reliability,Quality and Safety Engineering (2014) https://doi.org/10.1142/
+S0218539314500016
+22. France, R., Rumpe, B.: Model-driven development of complex
+software: A research roadmap. In: Future of Software Engineer-ing (FOSE ’07), pp. 37–54 (2007). https://doi.org/10.1109/FOSE.
+2007.14
+23. Frederiksen, S.J., Aromando, J., Hsiao, M.S.: Automated assertion
+generation from natural language speciﬁcations. In: 2020 IEEEInternational Test Conference (ITC), pp. 1–5. IEEE (2020)
+24. Furness, N., van Houten, H., Arenas, L., Maarten, B.: ERTMS level
+3: the game-changer (2017)
+25. Hesenius, M., Griebe, T., Gruhn, V .: Towards a behavior-oriented
+speciﬁcation and testing language for multimodal applications. In:Proceedings of the 2014 ACM SIGCHI Symposium on Engineer-ing Interactive Computing Systems, p. 117-122. ACM, New Y ork,NY , USA (2014). https://doi.org/10.1145/2607023.2610278
+26. Horváth, B., Molnár, V ., Graics, B., Hajdu, Á., Ráth, I., Horváth, Á.,
+Karban, R., Trancho, G., Micskei, Z.: Pragmatic veriﬁcation andvalidation of industrial executable sysml models. Systems Engi-neering (2023)
+27. Hähnle, R., Johannisson, K., Ranta, A.: An authoring tool for infor-
+mal and formal requirements speciﬁcations (2002). https://doi.org/
+10.1007/3-540-45923-5_16
+28. Jouault, F., Allilaire, F., Bézivin, J., Kurtev, I.: Atl: A model trans-
+formation tool. Sci. Comput. Program. 72, 31–39 (2008). https://
+doi.org/10.1016/j.scico.2007.08.002
+29. Kamalakar, S., Edwards, S.H., Dao, T.M.: Automatically generat-
+ing tests from natural language descriptions of software behavior.In: Proceedings of the 8th International Conference on Evalua-tion of Novel Approaches to Software Engineering - V olume 1:ENASE„ pp. 238–245. INSTICC, SciTePress (2013). https://doi.
+org/10.5220/0004566002380245
+30. Kassab, M., Neill, C., Laplante, P .: State of practice in requirements
+engineering: Contemporary data. Innov. Syst. Softw. Eng. 10(4),
+235–241 (2014). https://doi.org/10.1007/s11334-014-0232-4
+31. Kolahdouz-Rahimi, S., Lano, K., Lin, C.: Requirement formali-
+sation using natural language processing and machine learning:A systematic review. In: Proceedings of the 11th InternationalConference on Model-Based Software and Systems Engineer-ing, MODELSW ARD 2023, Lisbon, Portugal, February 19-21, pp. 237–244. SCITEPRESS (2023). https://doi.org/10.5220/
+0011789700003402
+32. Konrad, S., Cheng, B.H.: Automated analysis of Natural Language
+properties for UML models. International Conference on ModelDriven Engineering Languages and Systems (2005)
+33. Kuhn, T.: A survey and classiﬁcation of controlled natural lan-
+guages. Comput. Linguist. 40(1), 121–170 (2014). https://doi.org/
+10.1162/COLI_a_00168
+34. Lenka, R.K., Kumar, S., Mamgain, S.: Behavior driven devel-
+opment: Tools and challenges. In: 2018 International Confer-
+123
+
+--- Page 36 ---
+1490 M. Stella de Biase et al.
+ence on Advances in Computing, Communication Control and
+Networking (ICACCCN), pp. 1032–1037 (201 https://doi.org/10.
+1109/ICACCCN.2018.8748595
+35. Li, F.L., Horkoff, J., Borgida, A., Guizzardi, G., Liu, L., Mylopou-
+los, J.: From stakeholder requirements to formal speciﬁcationsthrough reﬁnement (2015). https://doi.org/10.1007/978-3-319-
+16101-3_11
+36. Li, N., Escalona, A., Kamal, T.: Skyﬁre: Model-based testing
+with Cucumber. In: 2016 IEEE International Conference on Soft-ware Testing, V eriﬁcation and V alidation (ICST), pp. 393–400(2016) https://doi.org/10.1109/ICST.2016.41
+37. Murata, T.: Petri nets: Properties, analysis and applications. Pro-
+ceedings of the IEEE 77(1989). https://doi.org/10.1109/5.24143
+38. Mussbacher, G., Combemale, B., Kienzle, J., Abrahão, S., Ali,
+H., Bencomo, N., Búr, M., Burgueño, L., Engels, G., Jeanjean,P ., Jézéquel, J.M., Kühn, T., Mosser, S., Sahraoui, H., Syriani,E., V arro, D., Weyssow, M.: Opportunities in intelligent model-ing assistance. Softw. Syst. Model. (2020). https://doi.org/10.1007/
+s10270-020-00814-5
+39. (OMG), O.M.G.: OMG Uniﬁed Modeling Language (UML) Super-
+structure V ersion 2.4.1 (2011). http://www.omg.org/spec/UML/2.
+4.1/Superstructure
+40. (OMG), O.M.G.: OMG Systems Modeling Language (OMG
+SysML
+TM) V ersion 1.6 (2019). https://www.omg.org/spec/
+SysML/1.6/
+41. OutSystems: Outsystems (2022). https://www.outsystems.com/p/
+low-code-platform/
+42. Pereira, L., Sharp, H., de Souza, C., Oliveira, G., Marczak, S.,
+Bastos, R.: Behavior-driven development beneﬁts and challenges:reports from an industrial study. XP ’18. ACM (2018). https://doi.
+org/10.1145/3234152.3234167
+43. Ramackers, G.J., Grifﬁoen, P .P ., Schouten, M.B., Chaudron, M.R.:
+From prose to prototype: Synthesising executable UML modelsfrom natural language. 2021 ACM/IEEE International Conferenceon Model Driven Engineering Languages and Systems Companion(MODELS-C) (2021)
+44. Richardson, L., Ruby, S.: RESTful Web Services. O’Reilly Media
+Inc, Sebastopol (2008)
+45. Rocha Silva, T.: Towards a domain-speciﬁc language to specify
+interaction scenarios for web-based graphical user interfaces. In:Companion of the 2022 ACM SIGCHI Symposium on EngineeringInteractive Computing Systems, EICS ’22 Companion, pp. 48–53. ACM, New Y ork, NY , USA (2022). https://doi.org/10.1145/
+3531706.3536463
+46. Saini, R.: Automated, traceable, and interactive domain modelling.
+pp. 217–220 (2022). https://doi.org/10.1145/3550356.3552372
+47. Saini, R., Mussbacher, G., Guo, J.L., Kienzle, J.: Automated, inter-
+active, and traceable domain modelling empowered by artiﬁcial
+intelligence. Softw. Syst. Model. 21(3), 1015–1045 (2022)
+48. Sayar, I., Souquières, J.: Bridging the gap between requirements
+document and formal speciﬁcations using development patterns.In: 2019 IEEE 27th International Requirements Engineering Con-ference Workshops (REW), pp. 116–122 (2019). https://doi.org/
+10.1109/REW.2019.00026
+49. Smart, J.F., Molak, J.: BDD in Action: Behavior-driven develop-
+ment for the whole software lifecycle. Simon and Schuster (2023)50. Snook, C., Hoang, T.S., Dghyam, D., Butler, M., Fischer, T.,
+Schlick, R., Wang, K.: Behaviour-driven formal model develop-ment. In: Sun, J., Sun, M. (eds.) Formal Methods and SoftwareEngineering, pp. 21–36. Springer International Publishing, Cham(2018)
+51. Whittle, J., Sawyer, P ., Bencomo, N., Chengy, B.H., Bruelz, J.M.:
+Relax: Incorporating uncertainty into the speciﬁcation of self-adaptive systems (2009). https://doi.org/10.1109/RE.2009.36
+52. Wiecher, C., Japs, S., Kaiser, L., Greenyer, J., Dumitrescu, R.,
+Wolff, C.: Scenarios in the loop: Integrated requirements analy-sis and automotive system validation. In: Proceedings of the 23rdACM/IEEE International Conference on Model Driven Engineer-ing Languages and Systems: Companion Proceedings, MODELS’20. ACM, New Y ork, NY , USA (2020). https://doi.org/10.1145/
+3417990.3421264
+53. Wynne, M., Hellesøy, A., Tooke, S.: The Cucumber Book:
+Behaviour-driven Development for Testers and Developers. Prag-matic programmers. Pragmatic Bookshelf (2017). https://books.
+google.it/books?id=zzOqnQAACAAJ
+54. Yang, S., Sahraoui, H.: Towards automatically extracting UML
+class diagrams from natural language speciﬁcations. pp. 396–403(2022). https://doi.org/10.1145/3550356.3561592
+55. Yang, S., Zhao, Y ., Tu, K.: PCFGS can do better: inducing proba-
+bilistic context-free grammars with many symbols. pp 1487–1498(2021)
+56. Zhao, L., Alhoshan, W., Ferrari, A., Letsholo, K.J., Ajagbe, M.A.,
+Chioasca, E.V ., Batista-Navarro, R.T.: Natural language process-ing for requirements engineering: a systematic mapping study.ACM Comput. Surv. 54(3), 1–41 (2021). https://doi.org/10.1145/
+3444689
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+Maria Stella de Biase is a
+researcher in the Department ofMathematics at Universitá degliStudi della Campania “L. V an-vitelli”. She holds a MS degree inmathematics and a Ph.D. degreein Mathematics, Physics, and Engi-neering Applications both fromthe Universitá degli Studi dellaCampania “L. V anvitelli”. Herexpertise spans software engineer-ing, natural language processing,and climate change resilience, witha focus on multidisciplinaryapproaches. The research she is
+conducting focuses about advancing and improving the integration ofartiﬁcial intelligence in system design. She has contributed to severalinternational conferences and holds certiﬁcations in Python for datascience, NLP , and UML fundamentals.
+123
+
+--- Page 37 ---
+Completion of SysML state machines... 1491
+Simona Bernardi is an Assis-
+tant Professor in the Departmentof Computer Science and SystemsEngineering at the University ofZaragoza, Spain. She received aMS degree in mathematics anda PhD degree in computer sci-ence, in 1997 and 2003, respec-tively, both from the University ofTorino, Italy. Her research inter-ests are in the area of softwareengineering, in particular modeldriven engineering, veriﬁcationand validation of performance,dependability and survivability soft-
+ware requirements, and formal methods for the modelling and anal-ysis of software systems. She is also interested in the application ofanomaly detection techniques in energy frauds. She has served as areferee for international journals and as a program committee memberfor several international conferences and workshops.
+Stefano Marrone is an asso-
+ciate professor in Computer Sci-ence at Universit’ della Campa-nia “Luigi V anvitelli”, Italy. Hisinterests include the deﬁnition ofmodel-driven processes for thedesign and the analysis of trans-portation control systems, com-plex communication networks andcritical infrastructures. He isinvolved in research projects withboth academic and industrial part-ners. He co-authored more than120 papers in international jour-nals and conference proceedings.
+José Merseguer is a Full Profes-
+sor of Software Engineering withthe Department of Computer Sci-ence and Systems Engineering atthe University of Zaragoza, Spain.He was the director of the PhDProgram in Computer Science andof the Computer Science Mas-ter, both at the University ofZaragoza. His main research inter-ests include performance anddependability analysis of software
+systems, he served as Program
+Chair for ICPE. He developed post-doctoral research with Prof. M.
+Woodside and Prof. D. Petriu at Carleton University, Canada, withProf. R. Lutz at Iowa State University, USA. He has been a Visit-ing Researcher with the University of Turin, with the University ofCagliari and with the Politecnico di Milano, Italy. He is a co-authorof the book ‘Model-driven dependability assessment of software-systems,’ Springer, and has advised three PhD thesis.
+Angelo Palladino is head of
+Aerospace business unit in Kine-ton srl-Societ’ Beneﬁt. He hasdeveloped consulting activities fordifferent companies as projectstechnical responsible in aerospaceand automotive ﬁelds. The mainexpertise have been developed asbusiness manager and project man-ager for the development and appli-cation of innovative methodolo-gies in the propulsion modelling
+and electronic control systems
+design. The consulting topics gofrom the spark ignition internal
+combustion engine modelling and control to the three-way catalyticconverters modelling and identiﬁcation, to the hybrid vehicles. Dur-ing the consulting activities are been used advanced techniques aboutautomotive ﬁelds, including control strategies for delayed systems,“receding horizon” algorithms and “sliding mode” technique, orderreduction techniques, genetic algorithms for parameters identiﬁcation,neural network, Hardware-In-the-Loop testing environment systemand co-simulation application, Petri Net technicques organization andoptimization. Several of these topics have been inspired by collab-orations with research centers of companies such as AnsaldoBreda,Magneti Marelli, Centro Ricerche Fiat, General Motors and Fiat Pow-ertrain Technologies. On May 2006, he got a PhD title in collaborationwith Fiat Powertrain Technologies - ELASIS FIA T Research Group onthe NARMAX identiﬁcation and engine calibration.
+123
