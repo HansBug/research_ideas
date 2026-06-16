@@ -48,7 +48,7 @@
 | [source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf](./source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf) | 官方附件 PDF | `8eef9889dc2cca6b7c8b61cfd12914e6dfc9ec0aa6dc1e7616987134350737de` | 从自动化学院官方附件入口通过验证码下载；PDF 元数据显示 WPS 文字，7 页 |
 | [extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt](./extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt) | PDF 提取文本 | `bdded02c16ac0903b427ee02d22a20afb129b63c1f9efaea454496e916bfbc5b` | 使用 `tools.pdf_extractor.py -m text` 提取 |
 | [source_pdfs/2014-policy-photo-bundle-nonofficial.pdf](./source_pdfs/2014-policy-photo-bundle-nonofficial.pdf) | 照片合订 PDF（非官方） | `c091fa9d1f582f56eb41de78233d7ab3afe3874fa17f04cccc2b8f39551c6848` | 由 12 张用户拍照图片合成，方便翻阅，不替代官方 PDF |
-| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `5204e8ff790dea10c339d888fccdd1a4df657845ad1229fc4ffa2897f62784ae` | 仅转录印刷原文，未转录手写批注 |
+| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `8aab6f54be41dd53301e39c4da1fc53f8409c7695fc4e09040bda1355369f700` | 仅转录印刷原文，未转录手写批注 |
 | [extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt](./extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt) | 研究生院 Wayback 页面抽取文本 | `0a32652be8fcb80abaa504d6e277ae7b57f1d1d1f7a52f5f5f6d629bde790fd2` | 官方页面快照抽取，包含页面正文与附表文本 |
 | [web_evidence/web_search_2026-06-16.md](./web_evidence/web_search_2026-06-16.md) | 线上检索记录 | `7970a327d73357ac2bc8a199d45551b35285f412fae6d67cab00b81b142aebe9` | 记录研究生院列表、Wayback、自动化学院附件、验证码阻塞与人工验证码下载成功 |
 
@@ -82,6 +82,7 @@
 
 | 时间 | 修改 | 说明 |
 |---|---|---|
+| 2026-06-16 18:20:00 | 修正照片转录数学学科条款 | 根据 claude reviewer 视觉逐字核对补回 `MEDLINE 收录源刊物` 的“源”字，并同步转录 SHA256 |
 | 2026-06-16 17:20:00 | 补齐检索记录 hash 与复核规则 | 明确 web evidence SHA256、研究生院 docx 待补与视觉逐字复核要求 |
 | 2026-06-16 16:45:00 | 入库 2014 版政策 PDF、照片、Wayback 快照与转录 | 自动化学院附件 PDF 已下载；研究生院 Wayback 页面与用户照片作为交叉证据 |
 | 2026-06-16 14:45:00 | 初始化 2014 版待补记录 | 明确当时官方原件待补与非正式线索边界 |
