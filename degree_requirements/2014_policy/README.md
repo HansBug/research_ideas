@@ -8,7 +8,7 @@
 
 1. **官方附件 PDF（当前主依据）**：从自动化学院官方通知附件下载得到 [source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf](./source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf)，文件头为 `PDF-1.7`，共 7 页；已用仓库 `venv` 与 `tools.pdf_extractor.py` 文字模式提取为 [extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt](./extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt)。
 2. **研究生院官方页面快照**：研究生院原页面 `https://graduate.buaa.edu.cn/info/1039/6007.htm` 当前 404，但 Wayback 快照仍可见正文与官方 `.docx` 附件入口；本地快照见 [web_evidence/wayback_graduate_6007_20240727053355.html](./web_evidence/wayback_graduate_6007_20240727053355.html)，抽取文本见 [extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt](./extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt)。
-3. **用户拍照原文证据**：12 张纸质文件照片已入库到 [source_images/](./source_images/)，并合成为非官方便读 PDF [source_pdfs/2014-policy-photo-bundle-nonofficial.pdf](./source_pdfs/2014-policy-photo-bundle-nonofficial.pdf)；照片逐字转录见 [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md)。
+| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `5204e8ff790dea10c339d888fccdd1a4df657845ad1229fc4ffa2897f62784ae` | 仅转录印刷原文，未转录手写批注 |
 
 当前毕业规划可引用 2014 版条款，但仍建议后续向学院老师索取研究生院官方 `.docx` 或 PDF 原件，用于替代自动化学院附件副本与 Wayback 快照。
 
@@ -48,7 +48,7 @@
 | [source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf](./source_pdfs/2014-buaa-phd-publication-requirements-official-attachment.pdf) | 官方附件 PDF | `8eef9889dc2cca6b7c8b61cfd12914e6dfc9ec0aa6dc1e7616987134350737de` | 从自动化学院官方附件入口通过验证码下载；PDF 元数据显示 WPS 文字，7 页 |
 | [extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt](./extracted_text/2014-buaa-phd-publication-requirements-official-attachment.txt) | PDF 提取文本 | `bdded02c16ac0903b427ee02d22a20afb129b63c1f9efaea454496e916bfbc5b` | 使用 `tools.pdf_extractor.py -m text` 提取 |
 | [source_pdfs/2014-policy-photo-bundle-nonofficial.pdf](./source_pdfs/2014-policy-photo-bundle-nonofficial.pdf) | 照片合订 PDF（非官方） | `c091fa9d1f582f56eb41de78233d7ab3afe3874fa17f04cccc2b8f39551c6848` | 由 12 张用户拍照图片合成，方便翻阅，不替代官方 PDF |
-| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `c14dd5d48e1132147435e1e17f7dd9609a7e26f069e357e8395dfab3215557ce` | 仅转录印刷原文，未转录手写批注 |
+| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `5204e8ff790dea10c339d888fccdd1a4df657845ad1229fc4ffa2897f62784ae` | 仅转录印刷原文，未转录手写批注 |
 | [extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt](./extracted_text/2014-buaa-phd-publication-requirements-wayback-text.txt) | 研究生院 Wayback 页面抽取文本 | `0a32652be8fcb80abaa504d6e277ae7b57f1d1d1f7a52f5f5f6d629bde790fd2` | 官方页面快照抽取，包含页面正文与附表文本 |
 | [web_evidence/web_search_2026-06-16.md](./web_evidence/web_search_2026-06-16.md) | 线上检索记录 | `7970a327d73357ac2bc8a199d45551b35285f412fae6d67cab00b81b142aebe9` | 记录研究生院列表、Wayback、自动化学院附件、验证码阻塞与人工验证码下载成功 |
 
@@ -73,7 +73,7 @@
 
 | 优先级 | 待办 | 原因 | 状态 |
 |---|---|---|---|
-| P0 | 后续 reviewer 对 [source_images/](./source_images/) 与 [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) 做逐字视觉复核 | 用户明确要求 codex / claude reviewer 做视觉核对 | 待 review |
+| [extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md](./extracted_text/2014-buaa-phd-publication-requirements-photo-transcription.md) | 照片逐字转录 | `5204e8ff790dea10c339d888fccdd1a4df657845ad1229fc4ffa2897f62784ae` | 仅转录印刷原文，未转录手写批注 |
 | P0 | 用官方附件 PDF 文本与照片转录交叉核对计算机学院条款、第一署名单位、录用/刊出、共同一作等关键段落 | 这些条款直接影响毕业规划 | 待 review |
 | P1 | 向老师索取研究生院官方 `.docx` 或 PDF 原件 | 研究生院附件入口存在但自动下载未成功 | 待邮件 |
 | P1 | 如获得官方 `.docx`，重新提取并更新本目录 | 形成更高可信主源 | 待文件 |
