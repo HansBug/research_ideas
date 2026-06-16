@@ -56,7 +56,7 @@
 
 | 维度 | 口径 |
 |---|---|
-| 收什么 | 控制系统 NL 需求集、公开 requirements corpus、案例系统描述、旧 Path-1 纯 NL 候选、项目已有 9 系统 / 101 功能安全需求、可授权学生建模的教学 / 工程文本。 |
+| 收什么 | 控制系统 NL 需求集、公开 requirements corpus、案例系统描述、旧 Path-1 纯 NL 候选、来自 [../../CLAUDE.md](../../CLAUDE.md) § 数据集信息的 9 系统 / 101 功能安全需求、可授权学生建模的教学 / 工程文本。 |
 | 不收什么 | 原始只有 NL 的对象仍归 NL datasets，不因未来可能生成 STM 而提前算 seed；只有在后续通过明确流程生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 条目才可 crosslink 到 seed library。 |
 | 主要用途 | 后续用弱模型 / 弱 prompt / 旧模型 / 学生人工生成 `STM_0`，形成 project-constructed seed；为主实验或 fallback 数据提供 NL 入口。 |
 | 与 seed library 的关系 | 当某个 NL dataset 通过明确流程生成了 `STM_0`，并保留生成配置 / 人工记录 / 输出时，生成后的 `<NL, STM_0>` 可以进入 seed registry；原始 NL 数据源仍留在 NL datasets。 |
