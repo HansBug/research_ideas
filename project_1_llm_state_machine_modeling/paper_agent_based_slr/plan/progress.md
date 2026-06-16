@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | Mermaid 方法图正式复审 C/I 修复中 |
+| 当前阶段 | Mermaid 方法图严格盲读与小 diff 复审均无 C/I，ready 待用户指示 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -61,6 +61,8 @@
 | 2026-06-16 | 低成本 M 级建议收敛检查：A3 进入 R4、补“类 PRISMA”术语映射、更新 review 状态 | 通过 |
 | 2026-06-17 | Mermaid 方法图视觉迭代：改为两列紧凑 block 图，真实渲染 PNG 为 584×322，长宽比约 1.81，并人工检查图文一致性 | 通过 |
 | 2026-06-17 | Mermaid 方法图二次视觉迭代：两轮 2×3 block 图盲读均发现跨行箭头 / 回边存在 I 级误读风险，改为时序 / 泳道式 sequence 图；最终 v7 真实渲染 PNG 为 784×499，长宽比约 1.57，盲读复述确认 schema 批准权、候选发现边界、schema 回批准门和非自动写作边界均可理解，仅剩字号 / 密度类 M 级建议 | 通过 |
+| 2026-06-17 | 方法图严格盲读补验：subagent 只获得渲染 PNG 与原文临近图的少量文字，未获得 Mermaid 源码；盲读复述确认研究者 schema 批准权、智能体仅执行已批准 schema、候选发现不等于最终发现、schema 问题回批准门、透明材料非自动写作；无 C/I，仅有候选泳道位置、透明材料提示和字号密度类 M | 通过 |
+| 2026-06-17 | `gh run view 27634299413 --json status,conclusion,jobs` | `project1-pyfcstm-feedback / feedback-smoke` completed / success |
 
 ## 6. Review 状态
 
@@ -75,10 +77,14 @@
 | 序列图最终复审 | codex reviewer | 0C / 1I / 0M | I1 指出 §7 提前写“三路最终复审无 C/I”，本提交改为不预判并等待复审闭合 |
 | 序列图最终复审 | claude reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为字号 / A4 命名一致性 |
 | 序列图最终复审 | deepseek reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为 §6 复审表补记与候选→最终提示 |
+| `a5d9f6ac` 小 diff 复审 | deepseek reviewer | 0C / 0I / 1M | 确认 codex I1 已修复；M 为当前阶段措辞可更精确，不阻塞 |
+| `a5d9f6ac` 小 diff 复审 | claude reviewer | 0C / 0I / 1M | 确认 codex I1 已修复；M 为当前阶段措辞可更精确，不阻塞 |
+| `a5d9f6ac` 小 diff 复审 | codex reviewer | 0C / 0I / 0M | 小 diff ready；整体合并等待 CI，后续已确认 CI success |
+| 严格 PNG 盲读补验 | vision subagent | 0C / 0I / 3M | 仅提供渲染 PNG 与少量邻近文字，不提供 Mermaid 源码；无责任边界 / 证据链误读，M 均为可读性提示 |
 
 ## 7. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审结论以 PR comments 与本节后续更新为准；若无 C/I，再将剩余项降为不阻塞 M 级建议。
+1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审、严格 PNG 盲读补验和 `feedback-smoke` 均已闭合，无 C/I；剩余仅为不阻塞的字号、密度、命名和可读性类 M 级建议。
 2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
