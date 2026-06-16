@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | 三路复审无 C/I，低成本 M 级建议已收敛，ready 待用户指示 |
+| 当前阶段 | Mermaid 方法图视觉迭代后待复验 / ready 汇总 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -59,6 +59,7 @@
 | 2026-06-16 | Markdown 相对链接检查 | 通过 |
 | 2026-06-16 | PR-S0 文件存在性检查 | 通过 |
 | 2026-06-16 | 低成本 M 级建议收敛检查：A3 进入 R4、补“类 PRISMA”术语映射、更新 review 状态 | 通过 |
+| 2026-06-17 | Mermaid 方法图视觉迭代：改为两列紧凑 block 图，真实渲染 PNG 为 584×322，长宽比约 1.81，并人工检查图文一致性 | 通过 |
 
 ## 6. Review 状态
 
@@ -74,6 +75,6 @@
 ## 7. 剩余风险
 
 1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。三路最终复审无 C/I，剩余仅为不阻塞的可复现脚本化 / 命名风格类 M 级建议。
-2. Mermaid 图是方法总览草案，不表示运行时已经实现。
+2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
