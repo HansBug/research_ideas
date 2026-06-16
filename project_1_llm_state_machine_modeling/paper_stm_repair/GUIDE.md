@@ -21,9 +21,12 @@
 2. 再读本文件：确认文库分工、root 三件套纪律、fact-union 与长期验收口径。
 3. 再读 [corpora/README.md](./corpora/README.md)：确认三类文库入口与 project-level 文库边界。
 4. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
-5. 需要理解 seed 当前事实时，优先读 [corpora/seed_library/README.md](./corpora/seed_library/README.md)、[corpora/seed_library/GUIDE.md](./corpora/seed_library/GUIDE.md)、[corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)。
-6. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
-7. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
+5. 需要理解 seed 当前事实时，优先读 [corpora/seed_library/README.md](./corpora/seed_library/README.md)、[corpora/seed_library/GUIDE.md](./corpora/seed_library/GUIDE.md)、[corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)；后续 R2 seed 冻结以该 SUMMARY 为当前入口。
+6. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
+7. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
+8. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
+9. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
+10. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
 
 ## 3. 三类文库分工
 
@@ -112,12 +115,12 @@
 
 ## 6. fact-union 与迁移哨兵
 
-后续 R1.8-B/C/D/E 必须能从新三类 `SUMMARY.md` 和迁移记录复算或解释以下 R1.7 终态：
+后续 R1.8-B/C/D/E 必须能从新三类 `SUMMARY.md` 和迁移记录复算或解释以下当前结构哨兵；其中 seed 证据目录以 post-R1.8-B 的 `36 dirs` 为准，R1.5--R1.7 旧口径只作为 archive 审计背景：
 
 | 哨兵 | 口径 | 不通过含义 |
 |---|---|---|
 | `47/47` | seed candidate matrix 与 screening ledger 对齐。 | 候选或筛选事实在迁移中丢失 / 重复 / 口径漂移。 |
-| `24 dirs` | 迁移前 `seed_corpus/papers/` 下 24 个单篇全文 / artifact 编码目录已迁移到 [corpora/seed_library/](./corpora/seed_library/)，并在其 [SUMMARY.md](./corpora/seed_library/SUMMARY.md) 资产表中有去向。 | 单篇证据容器丢失或未登记新路径。 |
+| `36 dirs` | post-R1.8-B 当前 [corpora/seed_library/](./corpora/seed_library/) 下 36 个单条目证据目录已在 [SUMMARY.md](./corpora/seed_library/SUMMARY.md) 资产表和迁移表中有去向；旧 `seed_corpus/` 只保留 redirect。 | 单篇证据容器丢失、旧路径被误当当前事实源，或 24/36 口径漂移。 |
 | `9/9 crosswalk` | 旧九个 direct generation baseline 的 seed-method 入账关系保留。 | 旧 generation baseline 被误删、误归 repair baseline 或 crosswalk 丢失。 |
 | `R2 handoff` | `seed_selection_candidates.md` 作为 R2 四例候选 handoff 保留，但不得被误读为 seed 方法全集。 | R2 样本冻结前置信息被误读。 |
 | project-level 回链 | paper1 条目保留到 project_1 `baselines/`、`sources/`、`data/`、`reproduction/` 的来源指针和核验日期。 | paper1 制造第二事实源或整体搬迁长期文库。 |
@@ -142,10 +145,20 @@
 | 阶段 | 目标 | 四例真实运行 | 长期验收口径 |
 |---|---|---|---|
 | R1.8-A | 冻结结构纪律、root 三件套、SUMMARY-first、fact-union 和 project-level 边界。 | 否 | 本文件与 [corpora/README.md](./corpora/README.md) 能指导后续三类文库重整，且不引入动态流程真源。 |
-| R1.8-B | seed library 实际重构与旧 `seed_corpus/` 归档 / 迁移。 | 否 | seed `SUMMARY.md` 可复算 `47/47`、`24 dirs`、旧九 crosswalk seed 部分。 |
+| R1.8-B | seed library 实际重构与旧 `seed_corpus/` 归档 / 迁移。 | 否 | seed `SUMMARY.md` 可复算 `47/47`、`36 dirs`、旧九 crosswalk seed 部分。 |
 | R1.8-C | repair baselines 文库初始化。 | 否 | 不把旧 generation baseline 误当 repair baseline；只按实际 repair / feedback 能力登记。 |
 | R1.8-D | NL-datasets 文库初始化。 | 否 | 纯 NL 数据源与 seed 生成关系分离；不把只有 NL 的对象提前计为 seed。 |
 | R1.8-E | 三类文库总账一致性与上游同步。 | 否 | 三类 SUMMARY 一致、链接可用、#100 / 后续 R2 入口同步，所有哨兵可复算。 |
+
+### 8.1 R1.8-E 一致性闭合门
+
+R1.8-E 的长期验收不是新增文献或冻结四例，而是确保后续 R2 / R3 / R4 不再被旧路径误导：
+
+1. **R2 seed 入口唯一化**：后续 R2 默认从 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md) 读取 seed 候选、R2=4 handoff、资源 caveat 和旧九 crosswalk；不得直接从旧 [seed_corpus/](./seed_corpus/) 或 `evidence/baseline_*` 冻结样本。
+2. **repair baseline 降级清楚**：[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md) 只提供修正任务 baseline / 近邻 / negative evidence，不提供 R2 seed；严格 baseline = 0 与 `completion-sysml-gwt` 的 P0 近邻身份必须保持可追踪。
+3. **纯 NL 数据源不提前计 seed**：[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md) 只提供控制系统 NL 来源；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
+4. **旧入口只作审计**：[seed_corpus/](./seed_corpus/) 是 redirect，[evidence/](./evidence/) 是 PR-R1 generation-era 历史审计入口，[archive/](./archive/) 是旧 ledger / raw search 快照；这些路径不得作为当前横向事实真源。
+5. **上游 GitHub 同步**：相关 GitHub PR body/comment 应在对应流程中同步到 A/B/C/D/E 闭合状态和 R2 读取新 seed library 的口径；未完成前不得在上游写成完成事实。
 
 ## 9. 后续审查口径
 
@@ -163,5 +176,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 收敛总账一致性门：R2 当前入口统一为 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)，旧 `seed_corpus/` / `evidence/` / `archive/` 降级为 redirect 或历史审计入口，并将 seed 哨兵统一为 `36 dirs`。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 更新 seed 当前入口为 [corpora/seed_library/](./corpora/seed_library/)，旧 `seed_corpus/` 降级为 redirect，旧 ledger / raw search 迁入 archive。 |
 | 2026-06-14 13:34:18 | PR-R1.8-A 新增 paper1 路径级 GUIDE，冻结三类文库、SUMMARY-first、fact-union 哨兵与 project-level 边界。 |

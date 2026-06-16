@@ -29,13 +29,12 @@
 4. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：确认每条 claim 的证据门与降级写法。
 5. [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md)：确认 `Better STM` 的最小操作化定义。
 6. [experiment_design/research_questions.md](./experiment_design/research_questions.md)：确认 RQ 草案和后续 PR 依赖。
-7. [corpora/README.md](./corpora/README.md)：确认三类文库入口、README/GUIDE/SUMMARY 纪律和 project-level 边界。
-8. [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)：确认当前 seed library 的 `47/47`、`24 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 和 negative evidence。
-9. [evidence/upstream_fact_ledger.md](./evidence/upstream_fact_ledger.md)：确认上游事实源等级。
-10. [evidence/baseline_asset_audit.md](./evidence/baseline_asset_audit.md)：确认 baseline / seed / artifact 的分层审计结论。
-11. [evidence/baseline_candidate_matrix.md](./evidence/baseline_candidate_matrix.md)：确认九个五绿 direct baseline 与强近邻如何进入 R2/R3/R6 候选。
-12. [evidence/source_coverage_ledger.md](./evidence/source_coverage_ledger.md)：确认来源覆盖、去重与未逐篇深审边界。
-13. [evidence/strict_seed_literature_survey.md](./evidence/strict_seed_literature_survey.md)：确认大规模 strict seed 文献调研的定义、排除码、指标、分级和执行方案。
+7. [corpora/README.md](./corpora/README.md)：确认三类文库入口、README/GUIDE/SUMMARY 纪律、project-level 边界和 R2 读取链路。
+8. [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)：确认当前 seed library 的 `47/47`、`36 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 和 negative evidence；这是后续 R2 seed 冻结的当前入口。
+9. [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)：确认当前 STM repair baseline / 近邻结论；它不提供 R2 seed，只服务 related work、对照与消融边界。
+10. [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)：确认纯 NL 数据源入口；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
+11. 需要追溯 PR-R1 generation-era 资产审计时，再读 [evidence/README.md](./evidence/README.md) 及其子文件；这些文件是历史审计入口，不替代当前三类 corpora 总账。
+12. 需要追溯 R1.5--R1.7 旧 seed ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
 
 ## 3. 目录结构
 
@@ -44,9 +43,14 @@ paper_stm_repair/
 ├── README.md
 ├── GUIDE.md
 ├── story/
-├── corpora/        # 三类论文级文库入口；当前先保留入口纪律，后续再落地子库
-├── evidence/
-└── experiment_design/
+├── experiment_design/
+├── corpora/        # 当前三类论文级文库入口与事实总账读取链路
+│   ├── seed_library/
+│   ├── repair_baselines/
+│   └── nl_datasets/
+├── seed_corpus/    # 旧入口 redirect；不再承载当前事实
+├── evidence/       # PR-R1 generation-era 历史审计入口；不替代当前 corpora 总账
+└── archive/        # R1.5--R1.7 旧 ledger / raw search 审计快照
 ```
 
 ## 4. 与旧目录 / 旧 PR 的关系
@@ -79,6 +83,7 @@ paper_stm_repair/
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 收敛三类文库总账一致性：R2 当前 seed 入口统一为 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)，旧 [seed_corpus/](./seed_corpus/) 与 [evidence/](./evidence/) 降级为 redirect / 历史审计入口，并将 seed 哨兵统一为 `36 dirs`。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 将旧 `seed_corpus/` 迁移为 [corpora/seed_library/](./corpora/seed_library/) SUMMARY-first 三件套，并归档 R1.5--R1.7 旧 ledger / raw search。 |
 | 2026-06-14 00:16:15 | PR-R1 补充 strict seed 大规模文献调研口径、排除码、多维指标、分级标准与执行方案，明确不局限旧 direct baseline 且不把宽口径 `<NL, STM>` 共现误作 strict seed。 |
 | 2026-06-13 00:45:00 | PR-R1 新增 baseline 资产审计、候选矩阵、artifact 可获取性、格式转换压力、分支局部资产追踪与 source coverage ledger。 |

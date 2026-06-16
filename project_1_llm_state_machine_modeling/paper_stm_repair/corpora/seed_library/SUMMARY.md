@@ -6,6 +6,14 @@
 
 核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；R2 四例样本还需要后续 逐案例冻结。
 
+### 1.1 三类文库关系
+
+| 文库 | 当前角色 | 本 SUMMARY 的使用边界 |
+|---|---|---|
+| [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 后续 R2 seed 冻结的当前事实入口；仍需逐案例冻结许可、版本、哈希和泄漏边界。 |
+| [../repair_baselines/](../repair_baselines/) | `STM_0 -> STM_k / Better STM` repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供 R2 seed。 |
+| [../nl_datasets/](../nl_datasets/) | 只有 NL、尚未闭合 `STM_0` 生成关系的数据源 | 不提前计为 seed；生成并记录 `STM_0` 后才可 crosslink 到本库。 |
+
 ## 2. 关键统计表
 
 | 指标 | 数量 | 可复算位置 | 注意事项 |

@@ -6,6 +6,8 @@
 
 **核心边界**：seed library 不是本论文的 repair baseline，也不是 R2 四例样本集合本身。旧 `NL -> STM` generation baseline 在这里作为上游 seed 方法集合、转换压力、相关工作 和 R2 候选来源入账；本论文主贡献仍是后续的无人化反馈驱动修正循环。
 
+三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录 `STM_0 -> STM_k / Better STM` 的 repair / feedback 近邻；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
+
 ## 1. 阅读顺序
 
 1. 先读本 [README.md](./README.md) 理解文库边界。
@@ -78,6 +80,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-16 23:08:00 | PR-R1.8-E 补充三类文库交叉入口，明确 repair_baselines 与 nl_datasets 不能替代 seed 事实源。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：补强 README 核心表，显式列出每个核心 seed 的 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系和时间特性等级。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：补入 Yue 2011 的本地全文章节后，`automated-transition-use-cases-uml-sm` 升级为条件种子；`manual_download_queue.bib` 只保留 Jørgensen 2004。 |
 | 2026-06-14 21:30:00 | PR-R1.8-B：同步 36 个目录口径、README 结论速览和 manual queue 外链；详情以 SUMMARY §16 为准。 |

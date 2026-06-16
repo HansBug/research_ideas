@@ -61,10 +61,22 @@
 ## 6. 更新规则
 
 - 只要条目仍然只有 NL，就继续留在 NL-datasets。
-- 只有当 `STM_0` 生成关系被明确证明，才 crosslink 到 seed library。
+- 只有当 `STM_0` 生成关系被明确证明，才 crosslink 到 [../seed_library/](../seed_library/)；若同一对象还存在 repair / feedback 能力，再另行 crosslink 到 [../repair_baselines/](../repair_baselines/)。
 - 单条目证据必须可点击、可追溯；不得只写“见论文”。
 - 许可不明的数据默认不把正文样本写入 `samples/`；只写来源说明、哈希、本地路径或待授权状态。
 - 后续新增条目后，必须同步更新 [SUMMARY.md](./SUMMARY.md) 的总账、风险和更新日志。
+
+## 6.1 seed crosslink 入账模板
+
+当某个 NL 来源后续通过弱模型、弱 prompt、旧模型、学生人工或其他明确流程生成 `STM_0` 时，必须先在本库保持原始 NL 条目，再把生成后的 `<NL, STM_0>` 作为 seed 候选登记到 [../seed_library/SUMMARY.md](../seed_library/SUMMARY.md)。本库 `SUMMARY.md` 的 `seed_library crosslink` 字段至少写：
+
+1. seed slug 或待建 seed slug；
+2. 生成方式（弱模型 / 弱 prompt / 学生人工 / 旧模型 / 其他）；
+3. 生成日期或批次；
+4. 输出 `STM_0` 的存放位置、版本或哈希；
+5. 许可 / 泄漏 / 人工参与 caveat。
+
+没有上述生成记录时，`seed_library crosslink` 必须保持 `-` 或 `待闭合`，不得把纯 NL 来源提前计为 seed。
 
 ## 7. PR-R1.8-D 阶段验收
 
