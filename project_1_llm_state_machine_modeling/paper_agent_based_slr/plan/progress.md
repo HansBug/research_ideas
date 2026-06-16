@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | Mermaid 方法图视觉迭代后待复验 / ready 汇总 |
+| 当前阶段 | Mermaid 方法图盲读迭代后待正式复审 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -60,6 +60,7 @@
 | 2026-06-16 | PR-S0 文件存在性检查 | 通过 |
 | 2026-06-16 | 低成本 M 级建议收敛检查：A3 进入 R4、补“类 PRISMA”术语映射、更新 review 状态 | 通过 |
 | 2026-06-17 | Mermaid 方法图视觉迭代：改为两列紧凑 block 图，真实渲染 PNG 为 584×322，长宽比约 1.81，并人工检查图文一致性 | 通过 |
+| 2026-06-17 | Mermaid 方法图二次视觉迭代：两轮 2×3 block 图盲读均发现跨行箭头 / 回边存在 I 级误读风险，改为时序 / 泳道式 sequence 图；最终 v7 真实渲染 PNG 为 784×499，长宽比约 1.57，盲读复述确认 schema 批准权、候选发现边界、schema 回批准门和非自动写作边界均可理解，仅剩字号 / 密度类 M 级建议 | 通过 |
 
 ## 6. Review 状态
 
