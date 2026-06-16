@@ -16,7 +16,7 @@
 - **研究笔记本**：记录研究想法、讨论摘要、技术方案，以及与导师/他人的讨论纪要。
 - **开题材料库**：博士开题报告、文献综述等正式文档。
 - **工具箱**：研究过程中开发的辅助工具、实验脚本和运行记录。
-- **外部情报入口**：维护 LLM 模型现状、CCF venue、投稿时间线等会随时间变化且影响研究决策的信息。
+- **外部情报入口**：维护 LLM 模型现状、CCF venue、投稿时间线、博士毕业要求等会随时间变化且影响研究决策的信息。
 
 ## 目录结构
 
@@ -36,6 +36,7 @@
 │
 ├── llm_model_landscape/                        # LLM 模型能力、价格、上下文窗口与 baseline 情报库
 ├── ccf_venues/                                 # CCF venue、deadline、年度主页与投稿 TIMELINE 情报库
+├── degree_requirements/                        # 博士毕业要求、政策文件、邮件证据与加密 raw 档案情报库
 ├── open_explore/                               # 探索型专题入口（暂未归属具体 project 的专题文库）
 ├── talks/                                      # 与导师/同门/合作者等人类对象的讨论纪要工作区
 ├── runs/                                       # 实验、smoke、handoff 等运行记录与可复现证据链入口
@@ -95,6 +96,10 @@
 ### [ccf_venues/README.md](./ccf_venues/README.md)、[ccf_venues/GUIDE.md](./ccf_venues/GUIDE.md)、[ccf_venues/SUMMARY.md](./ccf_venues/SUMMARY.md) 与 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md)
 
 用于维护 CCF 会议 / 期刊、年度主页、CFP、important dates、投稿窗口、论文名录、核心人员情报与跨 venue 时间线。涉及投稿决策、deadline、special issue、accepted papers、proceedings 或年度状态更新时，应按本库 GUIDE 与 TIMELINE 的常态化刷新流程处理。
+
+### [degree_requirements/README.md](./degree_requirements/README.md)、[degree_requirements/GUIDE.md](./degree_requirements/GUIDE.md) 与 [degree_requirements/SUMMARY.md](./degree_requirements/SUMMARY.md)
+
+用于维护 2022 级学术型博士毕业 / 学位申请创新成果要求、政策版本、邮件往来证据、2014 版缺口、2024 版 / 新版候选政策文件和加密 raw 原始档案。涉及毕业成果规划、政策适用、外部论文是否可计入或向老师索取原文时，应先读这三个入口，再进入具体证据目录。
 
 ### [talks/README.md](./talks/README.md) 与 [talks/GUIDE.md](./talks/GUIDE.md)
 
@@ -166,6 +171,7 @@ python ~/.codex/skills/deck-workflow/scripts/render_review.py \
 - LLM 模型、价格、上下文窗口：先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md)，再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)，最后读 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md)。
 - CCF venue、deadline、投稿窗口：先读 [ccf_venues/README.md](./ccf_venues/README.md)，再读 [ccf_venues/GUIDE.md](./ccf_venues/GUIDE.md)，并结合 [ccf_venues/SUMMARY.md](./ccf_venues/SUMMARY.md) 与 [ccf_venues/TIMELINE.md](./ccf_venues/TIMELINE.md)。
 - 外部事实默认官方来源优先；WAF、403、404、CAPTCHA、candidate URL 或第三方聚合页只能降级记录，不能写成已核验官方事实。
+- 博士毕业要求、政策文件、邮件证据与加密 raw 档案：先读 [degree_requirements/README.md](./degree_requirements/README.md)，再读 [degree_requirements/GUIDE.md](./degree_requirements/GUIDE.md)，最后读 [degree_requirements/SUMMARY.md](./degree_requirements/SUMMARY.md)。
 
 ### 环境设置
 
