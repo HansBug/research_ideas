@@ -10,6 +10,8 @@ extracted NL/STM text and hashes really round-trip to the committed raw asset.
 At the moment the strongest supported raw-text traces are:
 
 - ``source_locator_type=parquet_row_columns`` for HF/parquet style datasets.
+- ``source_locator_type=xlsx_sheet_row_columns`` for spreadsheet rows such as
+  Google Drive workbook exports.
 - ``source_locator_type=zip_python_symbol_and_text_file`` for a committed ZIP
   asset where the NL comes from a Python string symbol and ``STM_0`` comes from
   a text file member in the same ZIP.
@@ -52,6 +54,7 @@ class RawTableCache:
 
     def __init__(self) -> None:
         self._parquet: dict[Path, Any] = {}
+        self._xlsx: dict[tuple[Path, str], Any] = {}
         self._zip_text: dict[tuple[Path, str], str] = {}
 
     def parquet(self, path: Path):
@@ -62,6 +65,16 @@ class RawTableCache:
                 raise RuntimeError("pandas/pyarrow are required for parquet locator validation") from exc
             self._parquet[path] = pd.read_parquet(path)
         return self._parquet[path]
+
+    def xlsx(self, path: Path, sheet: str):
+        key = (path, sheet)
+        if key not in self._xlsx:
+            try:
+                import pandas as pd
+            except Exception as exc:  # pragma: no cover - environment guard
+                raise RuntimeError("pandas/openpyxl are required for xlsx locator validation") from exc
+            self._xlsx[key] = pd.read_excel(path, sheet_name=sheet)
+        return self._xlsx[key]
 
     def zip_text(self, path: Path, member: str) -> str:
         key = (path, member)
@@ -354,6 +367,103 @@ def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, 
         if row.get("stm0_sha256") != expected_stm_hash:
             result.errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
             text_ok = False
+        if row.get("source_local_path") and seed_dir / "assets" / row.get("source_local_path") != raw_path:
+            result.errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
+            text_ok = False
+        result.text_or_hash_match = text_ok
+        result.trace_verified = result.source_hash_match and result.locator_resolved and result.text_or_hash_match
+        result.eligible_generated = (
+            result.trace_verified
+            and bool(row.get("is_generated_stm0"))
+            and not bool(row.get("is_reference"))
+            and not bool(row.get("is_postprocessed"))
+        )
+        result.repo_or_external_reproducible_eligible = (
+            result.eligible_generated and storage_mode == "committed" and download_status == "downloaded"
+        )
+        return result
+
+    if locator_type == "xlsx_sheet_row_columns":
+        fields = _parse_kv_locator(locator)
+        sheet = fields.get("sheet", "")
+        row_value = fields.get("row", "")
+        columns_value = fields.get("columns", "")
+        if not sheet or not row_value.isdigit() or not columns_value:
+            result.errors.append(f"pair {pair_id} invalid XLSX locator: {locator}")
+            return result
+        row_index = int(row_value)
+        columns = [c.strip() for c in columns_value.split(",") if c.strip()]
+        nl_col = row.get("nl_source_column") or "Requirement Description"
+        stm_col = row.get("stm0_source_column") or "Generation PlantUML"
+        try:
+            table = cache.xlsx(raw_path, sheet)
+        except Exception as exc:
+            result.errors.append(f"pair {pair_id} cannot read XLSX raw asset {raw_path}: {exc}")
+            return result
+        if row_index < 0 or row_index >= len(table):
+            result.errors.append(f"pair {pair_id} XLSX row out of range: {row_index}")
+            return result
+        missing = [c for c in (nl_col, stm_col) if c not in table.columns]
+        if missing:
+            result.errors.append(f"pair {pair_id} XLSX raw missing required columns: {','.join(missing)}")
+            return result
+        for required_col in (nl_col, stm_col):
+            if required_col not in columns:
+                result.errors.append(f"pair {pair_id} locator columns missing {required_col}: {columns}")
+                return result
+        result.locator_resolved = True
+
+        raw_row = table.iloc[row_index]
+        raw_nl = _as_text(raw_row[nl_col])
+        raw_stm = _as_text(raw_row[stm_col])
+        text_ok = True
+        if row.get("nl_text") != raw_nl:
+            result.errors.append(f"pair {pair_id} nl_text does not match raw XLSX row {row_index}")
+            text_ok = False
+        if row.get("stm0_text") != raw_stm:
+            result.errors.append(f"pair {pair_id} stm0_text does not match raw XLSX row {row_index}")
+            text_ok = False
+        expected_nl_hash = sha256_text(raw_nl)
+        expected_stm_hash = sha256_text(raw_stm)
+        if row.get("nl_sha256") != expected_nl_hash:
+            result.errors.append(f"pair {pair_id} nl_sha256 mismatch: {row.get('nl_sha256')} != {expected_nl_hash}")
+            text_ok = False
+        if row.get("stm0_sha256") != expected_stm_hash:
+            result.errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
+            text_ok = False
+
+        # The XLSX seed entries carry case identity and reference-boundary
+        # evidence in addition to NL/STM_0 text.  Validate these fields too so
+        # that LLM distribution, case mapping, and reference leakage controls
+        # cannot drift silently while the raw generated pair still passes.
+        metadata_checks = {
+            "llm": "LLMs",
+            "model_source": "Model Source",
+            "model_name": "Model Name",
+        }
+        for row_key, col_name in metadata_checks.items():
+            if row_key in row:
+                if col_name not in table.columns:
+                    result.errors.append(f"pair {pair_id} XLSX raw missing metadata column: {col_name}")
+                    text_ok = False
+                    continue
+                raw_value = _as_text(raw_row[col_name])
+                if row.get(row_key) != raw_value:
+                    result.errors.append(f"pair {pair_id} {row_key} does not match raw XLSX row {row_index}")
+                    text_ok = False
+        if "reference_plantuml_sha256" in row:
+            ref_col = "PlantUML"
+            if ref_col not in table.columns:
+                result.errors.append(f"pair {pair_id} XLSX raw missing reference column: {ref_col}")
+                text_ok = False
+            else:
+                expected_ref_hash = sha256_text(_as_text(raw_row[ref_col]))
+                if row.get("reference_plantuml_sha256") != expected_ref_hash:
+                    result.errors.append(
+                        f"pair {pair_id} reference_plantuml_sha256 mismatch: "
+                        f"{row.get('reference_plantuml_sha256')} != {expected_ref_hash}"
+                    )
+                    text_ok = False
         if row.get("source_local_path") and seed_dir / "assets" / row.get("source_local_path") != raw_path:
             result.errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
             text_ok = False

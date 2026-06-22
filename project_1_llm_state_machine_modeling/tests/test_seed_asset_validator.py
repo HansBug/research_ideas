@@ -13,6 +13,7 @@ SEED_LIBRARY = REPO_ROOT / "project_1_llm_state_machine_modeling" / "paper_stm_r
 VALIDATOR = SEED_LIBRARY / "tools" / "validate_seed_assets.py"
 UNIFIED = "unified-uml-multimodal-validation"
 SEFM = "sefm-llm-state-machine"
+LLMS_EMP = "llms-emp-stm-subset"
 
 
 def _copy_seed_library_subset(tmp_path: Path, *seed_ids: str) -> Path:
@@ -42,9 +43,9 @@ def test_seed_asset_validator_accepts_unmodified_unified_trace(tmp_path: Path) -
     payload = json.loads(result.stdout.strip())
     assert payload == {
         "seed_id": UNIFIED,
-        "pair_count": 3,
-        "trace_verified_pair_count": 3,
-        "eligible_generated_pair_count": 3,
+        "pair_count": 999,
+        "trace_verified_pair_count": 999,
+        "eligible_generated_pair_count": 989,
     }
 
 
@@ -82,11 +83,11 @@ def test_seed_asset_validator_rejects_tampered_validation_summary_counts(tmp_pat
     summary_path = base / UNIFIED / "assets" / "extracted" / "validation_summary.json"
     summary = json.loads(summary_path.read_text())
     summary["raw_asset_count"] = 999
-    summary["pair_count"] = 999
-    summary["hash_match_count"] = 999
-    summary["locator_resolved_count"] = 999
-    summary["text_or_hash_match_count"] = 999
-    summary["repo_or_external_reproducible_eligible_count"] = 999
+    summary["pair_count"] = 12345
+    summary["hash_match_count"] = 12345
+    summary["locator_resolved_count"] = 12345
+    summary["text_or_hash_match_count"] = 12345
+    summary["repo_or_external_reproducible_eligible_count"] = 12345
     summary["local_only_trace_count"] = 999
     summary["metadata_only_trace_count"] = 999
     summary["failed_pair_ids"] = ["fake_failure"]
@@ -114,6 +115,84 @@ def test_seed_asset_validator_rejects_tampered_validation_summary_counts(tmp_pat
     assert "validation_summary local_only_trace_count mismatch" in result.stderr
     assert "validation_summary metadata_only_trace_count mismatch" in result.stderr
     assert "validation_summary failed_pair_ids mismatch" in result.stderr
+
+
+def test_seed_asset_validator_accepts_unmodified_llms_emp_xlsx_trace(tmp_path: Path) -> None:
+    base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), LLMS_EMP],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload == {
+        "seed_id": LLMS_EMP,
+        "pair_count": 60,
+        "trace_verified_pair_count": 60,
+        "eligible_generated_pair_count": 60,
+    }
+
+
+def test_seed_asset_validator_rejects_tampered_llms_emp_metadata(tmp_path: Path) -> None:
+    base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
+    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
+    rows[0]["llm"] = "BROKEN_LLM"
+    rows[0]["model_source"] = "BROKEN_SOURCE"
+    rows[0]["model_name"] = "BROKEN_NAME"
+    rows[0]["reference_plantuml_sha256"] = "0" * 64
+    pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), LLMS_EMP],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "llm does not match raw XLSX row" in result.stderr
+    assert "model_source does not match raw XLSX row" in result.stderr
+    assert "model_name does not match raw XLSX row" in result.stderr
+    assert "reference_plantuml_sha256 mismatch" in result.stderr
+
+
+def test_seed_asset_validator_rejects_tampered_llms_emp_xlsx_locator(tmp_path: Path) -> None:
+    base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
+    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
+    rows[0]["source_locator"] = rows[0]["source_locator"].replace("row=0", "row=9999")
+    pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), LLMS_EMP],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "XLSX row out of range" in result.stderr
+    assert "claims trace_verified but raw trace validation failed" in result.stderr
 
 
 def test_seed_asset_validator_accepts_unmodified_sefm_zip_trace(tmp_path: Path) -> None:

@@ -98,8 +98,9 @@
 4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 种子 / 资源候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，可计生成数量视为 0，不得被 R2 直接选用。
 5. 有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
 6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
-7. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。
-8. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
+7. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。若 raw 中存在生成失败行（例如 `No valid PlantUML code found.`），应保留为审计行但设置 `is_generated_stm0=false`，不得静默丢弃或计入 eligible。
+8. 当前 validator 已支持 `parquet_row_columns`、`xlsx_sheet_row_columns`、`zip_python_symbol_and_text_file` 三类 locator。新增 locator 类型前必须先扩展 validator 与负向测试，再把对应 pair 计入 trace verified。
+9. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
 
 校验入口：
 
@@ -149,6 +150,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-22 19:40:00 | PR-R2.0：补充全量 parquet / xlsx locator 纪律，明确生成失败行需保留但不计 eligible，validator 已支持 `xlsx_sheet_row_columns`。 |
 | 2026-06-22 19:10:00 | PR-R2.0：补充 REGISTRY 维护纪律，规定条目列直链 `assets/README.md`、不另设 assets 列、主表能中文尽量中文。 |
 | 2026-06-22 18:30:00 | PR-R2.0：对齐一手 registry 口径，明确 `final_pool_ready=0`、未建 registry 目录默认不可入池，并补强 validator 的 raw locator / 文本 hash 回溯校验。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：规定 README 核心表与 SUMMARY §16 必须显式拆出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系和时间特性等级，并要求资源列只写一手可点击入口，本地 parquet / 代码缓存不计资源。 |
