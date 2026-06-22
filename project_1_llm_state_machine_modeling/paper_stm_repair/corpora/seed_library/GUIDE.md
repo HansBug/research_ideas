@@ -26,11 +26,11 @@
 
 | 维度 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
 |---|---|---|---|---|---|---|
-| 文献资格 | 强种子：清楚满足 `NL -> T0 STM-family` | 条件种子：关系清楚但有 synthetic / 制品 / T0 等 边界说明 | 扩展 / 边界证据：对方法或转换压力有价值 | 不满足或明确排除 | 待核 | 不适用 |
+| 文献资格（非 R2 eligibility） | 强方法证据：清楚满足 `NL -> T0 STM-family` | 条件方法证据：关系清楚但有 synthetic / 制品 / T0 等边界说明 | 扩展 / 边界证据：对方法或转换压力有价值 | 不满足或明确排除 | 待核 | 不适用 |
 | T0 适配 | T0 明确 | 大体 T0，但需切片或少量格式转换 | 存在 timed / hybrid / protocol / 中间产物 风险 | 非 STM family 或不可隔离 | 待核 | 不适用 |
 | 生成关系 | 明确 `NL -> STM_0` | 方向基本成立但需切片 / 初始输出隔离 | 只有间接、中间模型或 paper-level 重建线索 | 不是 `NL -> STM_0` | 待核 | 不适用 |
 | R2 实验输入可用性（派生汇总） | 关键输入可直接冻结：NL 数据、STM_0 数据、作者原生 pair、可重建 pair、配对索引、许可、版本 / 哈希均可支撑实验 | 关键输入基本可用但需抽取、切片或冻结版本 | 只可论文级重建或需要大量人工整理 | 关键输入不可得，不能直接做 R2 样本 | 待核 / 访问受阻 | 对该条目不适用 |
-| R2 资格 | 主候选 | 条件主候选 | 备选 / 相关工作 / 转换器压力 | 不计入当前四例 | 待核 | 不适用 |
+| R2.0 registry 角色 | `final_pool_ready` | `conditional_final_pool` | `pipeline_only` / `paper_reconstructable` | `related_only` / `excluded` | 待核 | 不适用 |
 | 泄漏风险 | 未见明显泄漏 | 需隔离 reference / repair / oracle 字段 | 泄漏风险高，必须强约束使用 | 无法隔离 | 待核 | 不适用 |
 | 本地证据容器 | 本地文件存在且可读 | 本地文件存在但需修复 / 质量较弱 | 只有替代证据或待整理 | 缺失且应补 | 待核 | 该条目按设计不需要 |
 
@@ -87,10 +87,11 @@
 1. [REGISTRY.md](./REGISTRY.md) 是逐条资源明细主表；[SUMMARY.md](./SUMMARY.md) 只保留研究结论、统计摘要与风险，不复制全量明细。
 2. 单条目 `assets/` 是短名，但语义必须是**一手来源资产目录**。只有论文 / 作者 artifact / 官方数据集 / 作者仓库 / 出版页 Data Availability / 可版本化 release 中直接取得的文件，及其从 raw 直接抽取得到的审计产物，可以进入 `assets/`。
 3. 本仓库历史 parquet、旧缓存、人工复写、论文图示重建、PR comment 摘要只能写入 `legacy_audit_refs` 或 blocker，不能升级为 current first-source asset。
-4. 每个重点条目必须有 `seed_resource_registry.json`；有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
-5. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
-6. 只有 `trace_verified=true` 且 `is_generated_stm0=true` 且 `is_reference=false` 且 `is_postprocessed=false` 的 pair 才能计入 eligible generated seed count。
-7. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
+4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 seed/resource 候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，generated eligible count 视为 0，不得被 R2 直接选用。
+5. 有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
+6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
+7. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。
+8. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
 
 校验入口：
 
@@ -104,8 +105,8 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 [SUMMARY.md](./SUMMARY.md) 的横向表应拆分维度，避免一列塞入多个概念：
 
-1. **候选全集表**：至少拆出 `ID`、`年份`、`来源批次`、`NL类型`、`STM类型`、`T0`、`关系`、`文献资格`、`R2资格`、`当前角色`、`主要风险`、`证据`。
-2. **R2 交接表**：至少拆出 `NL公开`、`NL唯一输入`、`前置制品`、`STM格式`、`输出方言`、`T0`、`生成者`、`LLM`、`作者原生 pair`、`可重建 pair`、`配对索引`、`泄漏`、`转换`、`R2`。
+1. **候选全集表**：至少拆出 `ID`、`年份`、`来源批次`、`NL类型`、`STM类型`、`T0`、`关系`、`文献资格`、`R2.0 registry 角色 / 状态`、`当前角色`、`主要风险`、`证据`。
+2. **R2 交接 / registry queue 表**：至少拆出 `recommended_role`、`generated_eligible_count`、`trace_verified_count`、`first_source_status`、`NL 数据`、`STM_0 数据`、`blocker`、`下一步`；旧 `R2` 单列不得替代一手 registry 判断。
 3. **外部资源可获取性表**：必须面向后续可用资源，至少覆盖 `论文本体`、`来源文档`、`生成/复现实验代码`、`NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`原始生成输出`、`评测结果 / 日志`、`许可`、`版本 / 哈希`、`获取性说明`。
 4. **本地证据容器表**：可以检查 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`seed_desc.md`、`artifacts.md`，但必须明确它不是外部资源可用性表。
 5. emoji 列只写 emoji；若需要解释，放到相邻说明列或标准表中。
@@ -117,7 +118,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 1. 先读 `bibtex.bib` 核定元信息。
 2. 再尽量完整读 `paper_content.txt`；若缺失或异常，按仓库 PDF 提取规范处理。
 3. 必要时核对 `paper.pdf`。
-4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2 角色、风险和证据指针。
+4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2.0 `recommended_role`、blocker、是否 generated eligible、风险和证据指针。
 5. 更新 `artifacts.md`：外部资源可获取性，包括论文本体、来源文档、生成/复现实验代码、NL 数据、STM_0 数据、作者原生 `<NL, STM_0>` pair、可重建 `<NL, STM_0>` pair、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希、人工阻塞项、复跑风险。写这些字段前必须阅读全文，并逐项打开外部 artifact / code / dataset / license / release 页面核验；若只能看到本地缓存或二手摘要，一律标为待核或受阻。
 6. 回填 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表和更新日志。人工下载队列需要补 BibTeX 时，优先更新 [manual_download_queue.bib](./manual_download_queue.bib)，并在 [SUMMARY.md](./SUMMARY.md) §9 只保留状态与链接，不新增根层横向台账。
 
@@ -131,15 +132,16 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 - 禁止新增根层横向台账作为第二事实源。
 - 禁止把旧 `NL -> STM` 生成基线改写成本论文修正基线。
-- 禁止把 protocol / standard FSM、BPMN/process、Petri/CSP/Event-B/TLA+/LTL/STL、repair-only、co-exist-only、sequence/formal scenario 等误计为主 seed。
+- 禁止把 protocol / standard FSM、BPMN/process、Petri/CSP/Event-B/TLA+/LTL/STL、repair-only、co-exist-only、sequence/formal scenario 等误计为 `final_pool_ready` 或 `conditional_final_pool`。
 - 禁止把“本地有 `seed_desc.md` / `artifacts.md`”误写成“作者公开了 `<NL, STM_0>` 原生配对”。
 - 禁止在仓库文件中维护 PR 流程状态、review 状态、ready gate、commit / push / merge 进度。
-- R1.8-B 不跑四例真实运行，不调用真实 LLM，不读取 `.env`。
+- registry 文档维护和 validator 测试不调用真实 LLM，不读取 `.env`；若后续复跑构造 seed，必须按 run record 规则单独记录。
 
 ## 8. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-22 18:30:00 | PR-R2.0：对齐一手 registry 口径，明确 `final_pool_ready=0`、未建 registry 目录默认不可入池，并补强 validator 的 raw locator / 文本 hash 回溯校验。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：规定 README 核心表与 SUMMARY §16 必须显式拆出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系和时间特性等级，并要求资源列只写一手可点击入口，本地 parquet / 代码缓存不计资源。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：Yue 2011 已补全文并转正到 seed 目录；人工下载 BibTeX 队列只保留 Jørgensen 2004。 |
 | 2026-06-14 21:30:00 | PR-R1.8-B：接入人工下载后的 36 dirs 口径，规定人工下载 BibTeX 放入 `manual_download_queue.bib`，SUMMARY 只保留状态链接。 |
