@@ -516,6 +516,36 @@ def test_seed_asset_validator_rejects_source_inventory_pair_set_drift(tmp_path: 
     assert "source_inventory nl_only_count mismatch" in result.stderr
 
 
+
+
+def test_seed_asset_validator_rejects_invalid_manifest_schema_enum(tmp_path: Path) -> None:
+    """assets_manifest.schema.json must be enforced, not only documented."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    manifest_path = base / SEFM / "assets" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["assets"][0]["source_url_type"] = "stale_source_type"
+    manifest["assets"][0]["download_status"] = "almost_downloaded"
+    manifest["assets"][0]["storage_mode"] = "floating_cache"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "assets_manifest.schema.json validation error" in result.stderr
+    assert "assets[0] unknown download_status" in result.stderr
+    assert "assets[0] unknown storage_mode" in result.stderr
+
 def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Path) -> None:
     """The JSON Schema must be enforced, including license / redistribution enums."""
 
@@ -540,7 +570,7 @@ def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Pat
     )
 
     assert result.returncode != 0
-    assert "schema validation error" in result.stderr
+    assert "seed_resource_registry.schema.json validation error" in result.stderr
     assert "unknown asset_summary license_status" in result.stderr
     assert "unknown asset_summary redistribution_status" in result.stderr
     assert "unknown r2_smoke_recommendation strong" in result.stderr

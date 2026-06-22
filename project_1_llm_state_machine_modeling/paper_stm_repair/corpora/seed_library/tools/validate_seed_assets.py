@@ -642,25 +642,33 @@ def validate_manifest_shape(manifest: dict, errors: list[str]):
             errors.append(f"assets[{i}] unknown redistribution_status {asset.get('redistribution_status')}")
 
 
-def validate_registry_against_schema(reg: dict[str, Any], errors: list[str]) -> None:
-    """Run the JSON Schema when jsonschema is available.
+def _validate_against_json_schema(obj: dict[str, Any], schema_name: str, errors: list[str]) -> None:
+    """Run a JSON Schema when jsonschema is available.
 
-    The hand-written checks below provide friendly diagnostics and preserve old
-    environments.  The schema check prevents enum / field drift in PR review so
-    that ``seed_resource_registry.schema.json`` is not merely documentation.
+    Hand-written checks below provide friendly diagnostics and local semantic
+    invariants.  The schema check prevents enum / field drift in PR review so
+    that schema files are not merely documentation.
     """
 
-    schema_path = BASE / "schemas" / "seed_resource_registry.schema.json"
+    schema_path = BASE / "schemas" / schema_name
     if not schema_path.exists():
         return
     if Draft202012Validator is None:
-        errors.append("jsonschema is required to validate seed_resource_registry.schema.json")
+        errors.append(f"jsonschema is required to validate {schema_name}")
         return
     schema = load_json(schema_path)
     validator = Draft202012Validator(schema)
-    for error in sorted(validator.iter_errors(reg), key=lambda e: list(e.absolute_path)):
+    for error in sorted(validator.iter_errors(obj), key=lambda e: list(e.absolute_path)):
         path = ".".join(str(p) for p in error.absolute_path) or "<root>"
-        errors.append(f"schema validation error at {path}: {error.message}")
+        errors.append(f"{schema_name} validation error at {path}: {error.message}")
+
+
+def validate_registry_against_schema(reg: dict[str, Any], errors: list[str]) -> None:
+    _validate_against_json_schema(reg, "seed_resource_registry.schema.json", errors)
+
+
+def validate_manifest_against_schema(manifest: dict[str, Any], errors: list[str]) -> None:
+    _validate_against_json_schema(manifest, "assets_manifest.schema.json", errors)
 
 
 def _parse_parquet_locator(locator: str) -> tuple[int, list[str]] | None:
@@ -1140,6 +1148,7 @@ def validate_seed(seed_id: str) -> int:
         manifest = {"assets": []}
     elif manifest_path:
         manifest = load_json(manifest_path)
+        validate_manifest_against_schema(manifest, errors)
         validate_manifest_shape(manifest, errors)
     else:
         manifest = {"assets": []}
