@@ -34,6 +34,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+try:  # Optional in old local envs, required by requirements.txt for CI.
+    from jsonschema import Draft202012Validator
+except Exception:  # pragma: no cover - dependency guard
+    Draft202012Validator = None
+
 BASE = Path(os.environ.get("SEED_LIBRARY_BASE", Path(__file__).resolve().parent.parent)).resolve()
 ROLE_ENUM = {
     "final_pool_ready",
@@ -44,6 +49,34 @@ ROLE_ENUM = {
     "related_only",
     "excluded",
 }
+LICENSE_STATUS_ENUM = {
+    "clear",
+    "paper_only",
+    "unknown",
+    "missing",
+    "restricted",
+    "proprietary",
+    "not_applicable",
+    "paper_public_resource",
+}
+REDISTRIBUTION_STATUS_ENUM = {
+    "redistributable",
+    "local_only",
+    "metadata_only",
+    "restricted",
+    "unknown",
+    "not_applicable",
+    "cite_original_work",
+}
+R2_SMOKE_ENUM = {
+    "prefer",
+    "usable_with_caveat",
+    "rerun_required",
+    "do_not_use_as_seed",
+    "reference_only",
+}
+
+UNKNOWN_COUNT_VALUES = {"unknown", "未知"}
 
 ROLE_EMOJI_BY_ROLE = {
     "final_pool_ready": "🟢",
@@ -152,8 +185,15 @@ def _pair_set_nl_count_label(reg: dict[str, Any]) -> str:
 
 
 def _nl_only_label(reg: dict[str, Any]) -> str:
+    inv = reg.get("source_inventory", {})
+    if "nl_only_count" in inv and "nl_only_unique_count" in inv:
+        count = inv["nl_only_count"]
+        unique = inv["nl_only_unique_count"]
+        if count in {"unknown", "未知"} and unique in {"unknown", "未知"}:
+            return "未知 / 未知"
+        return f"{count} / {unique}"
     if not reg.get("pair_sets"):
-        return "未知"
+        return "未知 / 未知"
     total = 0
     known = False
     for pair_set in reg.get("pair_sets", []):
@@ -167,7 +207,7 @@ def _nl_only_label(reg: dict[str, Any]) -> str:
             total += value
             known = True
     if known:
-        return str(total)
+        return f"{total} / {total}"
     eligible = reg.get("extracted_summary", {}).get("eligible_generated_pair_count")
     raw = None
     label = _pair_set_nl_count_label(reg)
@@ -176,8 +216,9 @@ def _nl_only_label(reg: dict[str, Any]) -> str:
         if maybe_raw.isdigit():
             raw = int(maybe_raw)
     if isinstance(raw, int) and isinstance(eligible, int):
-        return str(max(0, raw - eligible))
-    return "未知"
+        value = max(0, raw - eligible)
+        return f"{value} / {value}"
+    return "未知 / 未知"
 
 
 def _reference_count(reg: dict[str, Any]) -> int:
@@ -185,6 +226,49 @@ def _reference_count(reg: dict[str, Any]) -> int:
     if refs:
         return refs
     return sum(int(p.get("reference_pair_count", 0)) for p in reg.get("pair_sets", []))
+
+
+def _count_value_from_nl_count(pair_set: dict[str, Any], *keys: str) -> Any:
+    counts = pair_set.get("nl_count", {})
+    for key in keys:
+        if key in counts:
+            return counts[key]
+    return None
+
+
+def _sum_known_counts(values: list[Any]) -> Any:
+    if not values:
+        return None
+    if all(isinstance(v, int) for v in values):
+        return sum(values)
+    if any(v in UNKNOWN_COUNT_VALUES for v in values):
+        return "unknown"
+    return None
+
+
+def _normalise_nl(text: Any) -> str:
+    return " ".join(_as_text(text).split())
+
+
+def _unknown_equivalent(value: Any) -> bool:
+    return value in UNKNOWN_COUNT_VALUES
+
+
+def _compare_inventory_count(
+    seed_id: str,
+    key: str,
+    actual: Any,
+    expected: Any,
+    errors: list[str],
+) -> None:
+    if expected is None:
+        return
+    if expected == "unknown":
+        if not _unknown_equivalent(actual):
+            errors.append(f"source_inventory {key} mismatch for {seed_id}: {actual} != {expected}")
+        return
+    if actual != expected:
+        errors.append(f"source_inventory {key} mismatch for {seed_id}: {actual} != {expected}")
 
 
 def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: Path, errors: list[str]) -> None:
@@ -363,6 +447,9 @@ def validate_registry_shape(reg: dict, errors: list[str]):
             "seed_id",
             "source_work",
             "asset_summary",
+            "source_inventory",
+            "data_construction",
+            "quality_audit",
             "pair_sets",
             "reference_sets",
             "extracted_summary",
@@ -387,6 +474,89 @@ def validate_registry_shape(reg: dict, errors: list[str]):
     )
     if asset_summary.get("first_source_status") not in ASSET_STATUS_ENUM:
         errors.append(f"unknown first_source_status {asset_summary.get('first_source_status')}")
+    if asset_summary.get("license_status") not in LICENSE_STATUS_ENUM:
+        errors.append(f"unknown asset_summary license_status {asset_summary.get('license_status')}")
+    if asset_summary.get("redistribution_status") not in REDISTRIBUTION_STATUS_ENUM:
+        errors.append(
+            f"unknown asset_summary redistribution_status {asset_summary.get('redistribution_status')}"
+        )
+    source_inventory = reg.get("source_inventory", {})
+    require(
+        source_inventory,
+        [
+            "raw_nl_count",
+            "unique_nl_count",
+            "nl_only_count",
+            "nl_only_unique_count",
+            "generated_pair_count",
+            "eligible_generated_pair_count",
+            "reference_pair_count",
+            "canonical_case_count",
+            "unique_generated_stm0_count",
+            "one_to_many_shape",
+            "count_status",
+            "count_basis",
+            "notes",
+        ],
+        "source_inventory",
+        errors,
+    )
+    if source_inventory.get("count_status") not in {
+        "verified",
+        "unknown",
+        "paper_only",
+        "not_applicable",
+        "artifact_reviewed",
+    }:
+        errors.append(f"unknown source_inventory count_status {source_inventory.get('count_status')}")
+    if source_inventory.get("eligible_generated_pair_count") != reg.get("extracted_summary", {}).get(
+        "eligible_generated_pair_count"
+    ):
+        errors.append(
+            "source_inventory eligible_generated_pair_count mismatch: "
+            f"{source_inventory.get('eligible_generated_pair_count')} != "
+            f"{reg.get('extracted_summary', {}).get('eligible_generated_pair_count')}"
+        )
+    if source_inventory.get("reference_pair_count") != _reference_count(reg):
+        errors.append(
+            "source_inventory reference_pair_count mismatch: "
+            f"{source_inventory.get('reference_pair_count')} != {_reference_count(reg)}"
+        )
+    data_construction = reg.get("data_construction", {})
+    require(
+        data_construction,
+        [
+            "paper_read_status",
+            "paper_claim_summary",
+            "artifact_source",
+            "generation_or_construction_pipeline",
+            "what_is_raw_nl",
+            "what_is_stm0",
+            "evidence_paths",
+        ],
+        "data_construction",
+        errors,
+    )
+    if not isinstance(data_construction.get("evidence_paths", []), list):
+        errors.append("data_construction evidence_paths must be a list")
+    quality_audit = reg.get("quality_audit", {})
+    require(
+        quality_audit,
+        [
+            "audit_status",
+            "sample_size",
+            "sampled_items",
+            "quality_findings",
+            "domain_fit_caveat",
+            "evidence_paths",
+        ],
+        "quality_audit",
+        errors,
+    )
+    if not isinstance(quality_audit.get("sampled_items", []), list):
+        errors.append("quality_audit sampled_items must be a list")
+    if not isinstance(quality_audit.get("evidence_paths", []), list):
+        errors.append("quality_audit evidence_paths must be a list")
     ds = reg.get("downstream_selection", {})
     require(
         ds,
@@ -401,6 +571,8 @@ def validate_registry_shape(reg: dict, errors: list[str]):
         "downstream_selection",
         errors,
     )
+    if ds.get("r2_smoke_recommendation") not in R2_SMOKE_ENUM:
+        errors.append(f"unknown r2_smoke_recommendation {ds.get('r2_smoke_recommendation')}")
     for i, pair_set in enumerate(reg.get("pair_sets", [])):
         require(
             pair_set,
@@ -464,6 +636,31 @@ def validate_manifest_shape(manifest: dict, errors: list[str]):
             errors.append(f"assets[{i}] unknown download_status {asset.get('download_status')}")
         if asset.get("storage_mode") not in STORAGE_ENUM:
             errors.append(f"assets[{i}] unknown storage_mode {asset.get('storage_mode')}")
+        if asset.get("license_status") not in LICENSE_STATUS_ENUM:
+            errors.append(f"assets[{i}] unknown license_status {asset.get('license_status')}")
+        if asset.get("redistribution_status") not in REDISTRIBUTION_STATUS_ENUM:
+            errors.append(f"assets[{i}] unknown redistribution_status {asset.get('redistribution_status')}")
+
+
+def validate_registry_against_schema(reg: dict[str, Any], errors: list[str]) -> None:
+    """Run the JSON Schema when jsonschema is available.
+
+    The hand-written checks below provide friendly diagnostics and preserve old
+    environments.  The schema check prevents enum / field drift in PR review so
+    that ``seed_resource_registry.schema.json`` is not merely documentation.
+    """
+
+    schema_path = BASE / "schemas" / "seed_resource_registry.schema.json"
+    if not schema_path.exists():
+        return
+    if Draft202012Validator is None:
+        errors.append("jsonschema is required to validate seed_resource_registry.schema.json")
+        return
+    schema = load_json(schema_path)
+    validator = Draft202012Validator(schema)
+    for error in sorted(validator.iter_errors(reg), key=lambda e: list(e.absolute_path)):
+        path = ".".join(str(p) for p in error.absolute_path) or "<root>"
+        errors.append(f"schema validation error at {path}: {error.message}")
 
 
 def _parse_parquet_locator(locator: str) -> tuple[int, list[str]] | None:
@@ -791,6 +988,141 @@ def compare_validation_summary(
             errors.append(f"validation_summary {key} mismatch: {actual} != {expected_value}")
 
 
+def derive_inventory_from_pairs(
+    reg: dict[str, Any],
+    pairs: list[dict[str, Any]],
+    eligible: int,
+) -> dict[str, Any]:
+    """Derive auditable source_inventory counts from extracted pairs/pair_sets.
+
+    This intentionally uses only committed structured evidence.  For paper-only
+    entries with no extracted pairs, it falls back to the registry pair_set
+    counts so that unknown values remain explicit instead of guessed.
+    """
+
+    pair_sets = reg.get("pair_sets", [])
+    if pairs:
+        raw_values = [
+            _count_value_from_nl_count(
+                pair_set,
+                "raw",
+                "raw_rows",
+                "raw_requirements",
+                "raw_nl_descriptions_in_zip",
+            )
+            for pair_set in pair_sets
+        ]
+        unique_values = [
+            _count_value_from_nl_count(
+                pair_set,
+                "unique",
+                "unique_requirement_descriptions",
+                "unique_requirements",
+                "unique_nl_descriptions_in_zip",
+            )
+            for pair_set in pair_sets
+        ]
+        nl_only_values = [
+            _count_value_from_nl_count(
+                pair_set,
+                "nl_only_generation_failure",
+                "nl_only_without_generated_output",
+                "nl_only_pipeline_requirements",
+            )
+            for pair_set in pair_sets
+        ]
+        raw_values = [v for v in raw_values if v is not None]
+        unique_values = [v for v in unique_values if v is not None]
+        nl_only_values = [v for v in nl_only_values if v is not None]
+        raw_nl_count = _sum_known_counts(raw_values) if raw_values else len(pairs)
+        unique_nl_count = (
+            _sum_known_counts(unique_values)
+            if unique_values
+            else len({_normalise_nl(row.get("nl_text")) for row in pairs})
+        )
+        nl_only_rows = [row for row in pairs if not bool(row.get("is_generated_stm0"))]
+        eligible_rows = [
+            row
+            for row in pairs
+            if bool(row.get("is_generated_stm0"))
+            and not bool(row.get("is_reference"))
+            and not bool(row.get("is_postprocessed"))
+        ]
+        # ``unique_generated_stm0_count`` is defined as unique raw generated
+        # output texts, including excluded/failure sentinel texts when they are
+        # present in pairs.jsonl. ``eligible_generated_pair_count`` remains the
+        # valid-pair count.
+        return {
+            "raw_nl_count": raw_nl_count,
+            "unique_nl_count": unique_nl_count,
+            "nl_only_count": _sum_known_counts(nl_only_values) if nl_only_values else len(nl_only_rows),
+            "nl_only_unique_count": _sum_known_counts(nl_only_values)
+            if nl_only_values
+            else len({_normalise_nl(row.get("nl_text")) for row in nl_only_rows}),
+            "generated_pair_count": sum(int(pair_set.get("raw_pair_count", 0)) for pair_set in pair_sets),
+            "eligible_generated_pair_count": eligible,
+            "reference_pair_count": _reference_count(reg),
+            "canonical_case_count": _sum_known_counts(
+                [pair_set.get("canonical_case_count") for pair_set in pair_sets if "canonical_case_count" in pair_set]
+            ),
+            "unique_generated_stm0_count": len({_as_text(row.get("stm0_text")) for row in pairs}),
+        }
+
+    raw_values = [
+        _count_value_from_nl_count(pair_set, "raw", "raw_rows", "raw_requirements", "raw_nl_descriptions_in_zip")
+        for pair_set in pair_sets
+    ]
+    unique_values = [
+        _count_value_from_nl_count(
+            pair_set,
+            "unique",
+            "unique_requirement_descriptions",
+            "unique_requirements",
+            "unique_nl_descriptions_in_zip",
+        )
+        for pair_set in pair_sets
+    ]
+    nl_only_values = [
+        _count_value_from_nl_count(
+            pair_set,
+            "nl_only_generation_failure",
+            "nl_only_without_generated_output",
+            "nl_only_pipeline_requirements",
+        )
+        for pair_set in pair_sets
+    ]
+    raw_values = [v for v in raw_values if v is not None]
+    unique_values = [v for v in unique_values if v is not None]
+    nl_only_values = [v for v in nl_only_values if v is not None]
+
+    return {
+        "raw_nl_count": _sum_known_counts(raw_values) if raw_values else 0,
+        "unique_nl_count": _sum_known_counts(unique_values) if unique_values else "unknown",
+        "nl_only_count": _sum_known_counts(nl_only_values) if nl_only_values else "unknown",
+        "nl_only_unique_count": _sum_known_counts(nl_only_values) if nl_only_values else "unknown",
+        "generated_pair_count": sum(int(pair_set.get("raw_pair_count", 0)) for pair_set in pair_sets),
+        "eligible_generated_pair_count": eligible,
+        "reference_pair_count": _reference_count(reg),
+        "canonical_case_count": sum(int(pair_set.get("canonical_case_count", 0)) for pair_set in pair_sets),
+        "unique_generated_stm0_count": 0,
+    }
+
+
+def validate_source_inventory_counts(
+    seed_id: str,
+    reg: dict[str, Any],
+    pairs: list[dict[str, Any]],
+    eligible: int,
+    errors: list[str],
+) -> None:
+    """Keep machine source_inventory counts tied to extracted evidence."""
+
+    inventory = reg.get("source_inventory", {})
+    expected = derive_inventory_from_pairs(reg, pairs, eligible)
+    for key, expected_value in expected.items():
+        _compare_inventory_count(seed_id, key, inventory.get(key), expected_value, errors)
+
+
 def validate_seed(seed_id: str) -> int:
     seed_dir = BASE / seed_id
     reg_path = seed_dir / "seed_resource_registry.json"
@@ -799,6 +1131,7 @@ def validate_seed(seed_id: str) -> int:
         print(f"ERROR missing registry: {reg_path}", file=sys.stderr)
         return 1
     reg = load_json(reg_path)
+    validate_registry_against_schema(reg, errors)
     validate_registry_shape(reg, errors)
     manifest_rel = reg.get("asset_summary", {}).get("manifest_path", "")
     manifest_path = seed_dir / manifest_rel if manifest_rel else None
@@ -900,6 +1233,7 @@ def validate_seed(seed_id: str) -> int:
         errors.append(f"registry eligible count mismatch: {reg.get('extracted_summary', {}).get('eligible_generated_pair_count')} != {eligible}")
     if reg.get("extracted_summary", {}).get("trace_verified_pair_count") != trace_verified:
         errors.append(f"registry trace count mismatch: {reg.get('extracted_summary', {}).get('trace_verified_pair_count')} != {trace_verified}")
+    validate_source_inventory_counts(seed_id, reg, pairs, eligible, errors)
     validate_registry_markdown_row(seed_id, reg, seed_dir, errors)
     if reg.get("recommended_role") == "final_pool_ready":
         if eligible == 0:

@@ -29,6 +29,16 @@
 
 硬性结论：四例 smoke panel 仍需在 R2 基于一手 registry 再冻结；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
 
+### 1.6.1 NL 数量与数据质量摘要
+
+| 条目 | NL raw / unique | NL-only raw / unique | generated pair | 数据构造与质量结论 |
+|---|---:|---:|---:|---|
+| `unified-uml-multimodal-validation` | 999 / 999 | 10 / 10 | 989 | LLaMA-3.2-1B 合成 feature description，DeepSeek 生成 PlantUML；无重复 NL / 无 1×N；10 行生成失败只作审计；适合 synthetic smoke/stress，不是控制系统真实需求。 |
+| `llms-emp-stm-subset` | 60 / 10 | 0 / 0 | 60 | `Experiment Results.xlsx` / `STM Results`；10 个需求描述 × 6 个 LLM 输出；只取 `Generation PlantUML`，reference/checking 列必须隔离。 |
+| `sefm-llm-state-machine` | 9 / 9 | 8 / 8 | 1 | 4open ZIP 有 9 个 NL、8 个 reference、1 个 SSC7 generated text output；只有 SSC7 可计 generated pair，其余 NL 不得冒充 generated `STM_0`。 |
+| `fsm-bench-20` | 252 / 252 | 252 / 252 | 0 | Zenodo/GitHub release 有 requirements/prompt/schema/code，但未公开 generated `STM_0`；全部 NL 当前只能作为 pipeline-only / 复跑来源。 |
+
+
 ## 2. 关键统计表
 
 | 指标 | 数量 | 可复算位置 | 注意事项 |

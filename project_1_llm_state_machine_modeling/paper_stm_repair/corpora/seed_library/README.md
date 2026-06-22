@@ -89,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-22 21:30:00 | PR-R2.0：补强 REGISTRY/JSON 机器字段，所有登记条目都记录 NL raw/unique/NL-only、数据构造说明与质量抽检状态；SEFM / unified / llms-emp / fsm-bench 的一手资源真实状况和 NL 计数已再次核对。 |
 | 2026-06-22 19:40:00 | PR-R2.0：修正 unified 不应按 3 行计数的口径，全量抽取 HF parquet 999 行并计 989 条有效 PlantUML；用 gdown 下载 llms-emp Google Drive workbook 并抽取 60 条 generated PlantUML。 |
 | 2026-06-22 18:55:00 | PR-R2.0：补齐 `sefm-llm-state-machine` 4open ZIP raw、1 组 SSC7 `NL + generated STM_0` trace verified pair，以及 assets README 真实示例输出；已改按公开学术资源引用原作口径处理，当前该 pair 为 `final_pool_ready`。 |
 | 2026-06-22 18:30:00 | PR-R2.0：初始化一手 registry 口径，明确未建 registry 目录默认不可入池，并补强 validator 的 raw locator / 文本 hash 回溯校验；后续本轮已更新为 `final_pool_ready=3`。 |

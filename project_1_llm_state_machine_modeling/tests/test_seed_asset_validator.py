@@ -22,6 +22,7 @@ def _copy_seed_library_subset(tmp_path: Path, *seed_ids: str) -> Path:
     # REGISTRY.md is the human-facing decision table.  Copy it into fixture
     # bases so validator tests also exercise markdown/JSON count consistency.
     shutil.copy2(SEED_LIBRARY / "REGISTRY.md", base / "REGISTRY.md")
+    shutil.copytree(SEED_LIBRARY / "schemas", base / "schemas")
     for seed_id in seed_ids or (UNIFIED,):
         shutil.copytree(SEED_LIBRARY / seed_id, base / seed_id)
     return base
@@ -355,8 +356,8 @@ def test_seed_asset_validator_rejects_registry_markdown_count_drift(tmp_path: Pa
     base = _copy_seed_library_subset(tmp_path, UNIFIED)
     registry_md = base / "REGISTRY.md"
     text = registry_md.read_text()
-    text = text.replace("| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 |",
-                        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 |")
+    text = text.replace("| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 / 10 |",
+                        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 / 10 |")
     registry_md.write_text(text)
 
     env = os.environ.copy()
@@ -398,3 +399,123 @@ def test_seed_asset_validator_rejects_registry_missing_assets_link(tmp_path: Pat
 
     assert result.returncode != 0
     assert "must link to ./sefm-llm-state-machine/assets/README.md" in result.stderr
+
+
+def test_seed_asset_validator_rejects_missing_source_inventory(tmp_path: Path) -> None:
+    """Registry entries must carry machine-readable NL inventory facts."""
+
+    base = _copy_seed_library_subset(tmp_path, UNIFIED)
+    registry_path = base / UNIFIED / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    registry.pop("source_inventory", None)
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), UNIFIED],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "registry missing required field source_inventory" in result.stderr
+
+
+def test_seed_asset_validator_rejects_source_inventory_count_drift(tmp_path: Path) -> None:
+    """source_inventory counts must be derived from pairs/pair_sets, not trusted."""
+
+    base = _copy_seed_library_subset(tmp_path, UNIFIED)
+    registry_path = base / UNIFIED / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    inventory = registry["source_inventory"]
+    inventory["raw_nl_count"] = 998
+    inventory["unique_nl_count"] = 998
+    inventory["nl_only_count"] = 9
+    inventory["nl_only_unique_count"] = 9
+    inventory["generated_pair_count"] = 123
+    inventory["unique_generated_stm0_count"] = 123
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), UNIFIED],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "source_inventory raw_nl_count mismatch" in result.stderr
+    assert "source_inventory unique_nl_count mismatch" in result.stderr
+    assert "source_inventory nl_only_count mismatch" in result.stderr
+    assert "source_inventory nl_only_unique_count mismatch" in result.stderr
+    assert "source_inventory generated_pair_count mismatch" in result.stderr
+    assert "source_inventory unique_generated_stm0_count mismatch" in result.stderr
+
+
+def test_seed_asset_validator_rejects_source_inventory_pair_set_drift(tmp_path: Path) -> None:
+    """SEFM has 9 NL descriptions even though pairs.jsonl currently has one row."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    registry_path = base / SEFM / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    registry["source_inventory"]["raw_nl_count"] = 1
+    registry["source_inventory"]["unique_nl_count"] = 1
+    registry["source_inventory"]["nl_only_count"] = 0
+    registry["source_inventory"]["nl_only_unique_count"] = 0
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "source_inventory raw_nl_count mismatch" in result.stderr
+    assert "source_inventory nl_only_count mismatch" in result.stderr
+
+
+def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Path) -> None:
+    """The JSON Schema must be enforced, including license / redistribution enums."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    registry_path = base / SEFM / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    registry["asset_summary"]["license_status"] = "STALE_LICENSE_BLOCKER"
+    registry["asset_summary"]["redistribution_status"] = "STALE_REDIS_BLOCKER"
+    registry["downstream_selection"]["r2_smoke_recommendation"] = "strong"
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "schema validation error" in result.stderr
+    assert "unknown asset_summary license_status" in result.stderr
+    assert "unknown asset_summary redistribution_status" in result.stderr
+    assert "unknown r2_smoke_recommendation strong" in result.stderr

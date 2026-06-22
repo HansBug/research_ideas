@@ -99,10 +99,15 @@
 4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 种子 / 资源候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，可计生成数量视为 0，不得被 R2 直接选用。
 5. 有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
 6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `pair_set_id`、`eligibility_state`、`exclusion_reason`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
-7. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。eligible generated row 的 `eligibility_state` 必须与所属 `pair_sets[].eligibility_state` 一致，且 `exclusion_reason` 必须为空；非阻塞 caveat 写入 registry / README，而不是写成 row-level exclusion。若 raw 中存在生成失败行（例如 `No valid PlantUML code found.`），应保留为审计行但设置 `is_generated_stm0=false`、`eligibility_state=excluded`、`exclusion_reason` 明确原因，不得静默丢弃或计入 eligible。
-8. 当前 validator 已支持 `parquet_row_columns`、`xlsx_sheet_row_columns`、`zip_python_symbol_and_text_file` 三类 locator。新增 locator 类型前必须先扩展 validator 与负向测试，再把对应 pair 计入 trace verified。
-9. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
-10. 公开学术资源的 license / redistribution 不再作为 `final_pool_ready` blocker；维护时可在 `license_status` / `redistribution_status` 中写 `paper_public_resource` / `cite_original_work`，并在论文中规范引用原作。
+7. `seed_resource_registry.json` 必须维护 `source_inventory`、`data_construction`、`quality_audit` 三组机器可读字段：
+   - `source_inventory` 至少写清 `raw_nl_count`、`unique_nl_count`、`nl_only_count`、`nl_only_unique_count`、`generated_pair_count`、`eligible_generated_pair_count`、`reference_pair_count`、`canonical_case_count`、`unique_generated_stm0_count`、`one_to_many_shape`、`count_status`、`count_basis`、`notes`；`REGISTRY.md` 的 `NL 数` 与 `NL-only` 必须可由这些字段解释，并且这些字段会被 validator 从 `pair_sets[].nl_count`、`pairs.jsonl`、raw locator 或 pipeline raw 结构复算，不能只靠人工填表。
+   - 计数语义固定为：`raw_nl_count / unique_nl_count` 表示一手资源中可定位的 NL 原始条目数与去重数；`generated_pair_count` 表示作者一手资源中已登记的生成输出行数（可包含被明确排除的 failure 行）；`eligible_generated_pair_count` 表示可进入 seed 的有效生成对；`unique_generated_stm0_count` 表示登记生成输出文本去重数，若保留 failure sentinel，应在 `notes` 中解释它为何不同于 `eligible_generated_pair_count`。
+   - `data_construction` 必须说明论文如何描述数据来源 / 构造流程、artifact 实际来源、`raw_nl` 是什么、`STM_0` 是什么，并给出证据路径；不得只写“见论文”。
+   - `quality_audit` 必须记录抽检状态、样本数、样本标识、质量发现、领域适配 caveat 与证据路径；没有一手 pair 的 paper-only 条目也必须明确写 `not_applicable_no_first_source_pair`，避免后续误以为未审。
+8. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。eligible generated row 的 `eligibility_state` 必须与所属 `pair_sets[].eligibility_state` 一致，且 `exclusion_reason` 必须为空；非阻塞 caveat 写入 registry / README，而不是写成 row-level exclusion。若 raw 中存在生成失败行（例如 `No valid PlantUML code found.`），应保留为审计行但设置 `is_generated_stm0=false`、`eligibility_state=excluded`、`exclusion_reason` 明确原因，不得静默丢弃或计入 eligible。
+9. 当前 validator 已支持 `parquet_row_columns`、`xlsx_sheet_row_columns`、`zip_python_symbol_and_text_file` 三类 locator。新增 locator 类型前必须先扩展 validator 与负向测试，再把对应 pair 计入 trace verified。
+10. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
+11. 公开学术资源的 license / redistribution 不再作为 `final_pool_ready` blocker；维护时可在 `license_status` / `redistribution_status` 中写 `paper_public_resource` / `cite_original_work`，并在论文中规范引用原作。
 
 校验入口：
 
@@ -152,6 +157,8 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-22 22:10:00 | PR-R2.0：补强 validator 对 `source_inventory` 派生计数与 JSON Schema enum 的校验要求，防止 REGISTRY 与 JSON 同步篡改后仍通过。 |
+| 2026-06-22 21:30:00 | PR-R2.0：将 `source_inventory` / `data_construction` / `quality_audit` 纳入 registry 必填纪律，明确所有登记条目都要写 NL raw/unique/NL-only 与数据构造 / 抽检状态；公开学术资源许可不作为升绿 blocker。 |
 | 2026-06-22 20:30:00 | PR-R2.0：补充 pair-level eligibility 与 registry pair-set 状态一致性纪律，明确 eligible row 不得携带 `exclusion_reason`，非阻塞 caveat 只能写 registry / README。 |
 | 2026-06-22 19:40:00 | PR-R2.0：补充全量 parquet / xlsx locator 纪律，明确生成失败行需保留但不计 eligible，validator 已支持 `xlsx_sheet_row_columns`。 |
 | 2026-06-22 19:10:00 | PR-R2.0：补充 REGISTRY 维护纪律，规定条目列直链 `assets/README.md`、不另设 assets 列、主表能中文尽量中文。 |
