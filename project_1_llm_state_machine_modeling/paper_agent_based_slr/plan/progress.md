@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | Mermaid 方法图严格盲读与文档小 diff 复审已闭合；最终合并前 CI 状态以 PR checks 最新结果为准 |
+| 当前阶段 | 方法图边界强化与 `7e3f3742` 三路复审已闭合；最终合并前 CI 状态以 PR checks 最新结果为准 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -65,6 +65,8 @@
 | 2026-06-17 | `a5d9f6ac` 对应的 `feedback-smoke`（run `27634299413`） | completed / success；仅证明 `a5d9f6ac` 小 diff 复审后的 CI 已通过 |
 | 2026-06-17 | `c1d6d568` 对应的 `feedback-smoke`（run `27634909596`） | completed / success |
 | 2026-06-17 | `5c6ade50` 对应的 `feedback-smoke`（run `27635323585`） | completed / success；后续提交会触发新 run，最终合并前不在本文档固化“当前 HEAD CI 已闭合”，以 PR checks 最新结果为准 |
+| 2026-06-22 | `7e3f3742` 方法图边界强化：真实渲染 PNG（本地 784×807；reviewer 放大渲染 1568×1662）+ 两轮 PNG 盲读复验 + 图前说明补强 | 通过；审批门 1/2、候选工作区、schema 暂停回门、非自动写作边界均被盲读正确理解，无 C/I |
+| 2026-06-22 | `7e3f3742` 对应的 `feedback-smoke`（run `27935893637`） | completed / success；仅记录该历史 commit 的 CI 事实，后续同步提交仍以 PR checks 最新状态为准 |
 
 ## 6. Review 状态
 
@@ -88,10 +90,13 @@
 | `c1d6d568` 最终小 diff 复审 | codex reviewer | 0C / 0I / 0M | 文档小 diff ready；明确合并前仍需等待当时 HEAD CI 完成 |
 | `5c6ade50` I 修复小 diff 复审 | deepseek reviewer | 0C / 1I / 2M | 指出 `c1d6d568` run 已 success、当前 HEAD 应为 `5c6ade50`；本轮修复 stale CI 记录 |
 | `5c6ade50` I 修复小 diff 复审 | claude reviewer | 0C / 2I / 1M | 同样指出 `c1d6d568` 状态过期和当前 HEAD 指代错误；本轮修复 stale CI 记录 |
+| `7e3f3742` 方法图边界强化复审 | claude reviewer | 0C / 0I / 1M | 确认 7 条方法边界和 Mermaid 渲染均通过；M 为图像可读性 / 投影场景建议，不阻塞 |
+| `7e3f3742` 方法图边界强化复审 | codex reviewer | 0C / 0I / 3M | 确认方法边界无 C/I；M1 要求回填本轮 progress / PR body，本提交处理；M2/M3 为后续排版与 cross-doc follow-up |
+| `7e3f3742` 方法图边界强化复审 | deepseek reviewer | 0C / 0I / 0M | 以 deepseek reviewer 身份直接 PR comment；确认 7 条边界均满足，ready 不阻塞 merge |
 
 ## 7. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审与严格 PNG 盲读补验均已闭合，无 C/I；剩余 M 均为字号、密度、命名和可读性类建议，不阻塞。最终合并前的 CI 状态不在本文件写死，以 GitHub PR checks 最新结果为准。
+1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审、严格 PNG 盲读补验与 `7e3f3742` 方法图边界强化复审均已闭合，无 C/I；剩余 M 均为字号、密度、命名、排版和 cross-doc follow-up 类建议，不阻塞。最终合并前的 CI 状态不在本文件写死，以 GitHub PR checks 最新结果为准。
 2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
 3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
 4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
