@@ -45,3 +45,7 @@
 ## 当前 artifact grade
 
 `SA-2`：资源可访问且有代码/数据/结果证据，足以支持冻结和后续 R2 准备；但 license、长期 URL 稳定性、commit/release/DOI 和真实复跑证据不足，暂不升级为 `SA-1`。
+
+## R2.0 registry 口径更新
+
+一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目 `assets/` 只登记 4open metadata pointer，ZIP 尚未 committed，因此 eligible generated seed count 仍为 0；reference solutions 只能作为评价参考。

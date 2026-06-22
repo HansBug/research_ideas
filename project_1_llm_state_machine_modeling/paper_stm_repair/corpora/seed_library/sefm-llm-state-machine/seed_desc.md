@@ -69,3 +69,7 @@ artifact 对复现实验有实际价值，但暂不应标为 SA-1。源目录 `A
 ## reviewer 结论
 
 纳入 `SS-A / SA-2 / NONE`。该论文可以作为 strict seed 中最贴近“非结构化自然语言到状态机生成”的样本之一；但在进入正式 R2 或四例冻结样本前，应完成 artifact 本地冻结、license 核验、逐文件 hash、运行环境和真实 smoke 记录。
+
+## R2.0 registry 口径更新
+
+一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目 `assets/` 只登记 4open metadata pointer，ZIP 尚未 committed，因此 eligible generated seed count 仍为 0；reference solutions 只能作为评价参考。

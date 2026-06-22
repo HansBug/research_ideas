@@ -2,7 +2,7 @@
 
 ## 1. 当前状态一句话
 
-本 SUMMARY 是 PR-R1.8-B 迁移后的种子文库当前横向事实真源；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)，当前事实以本文件和 36 个单条目目录为准。
+本 SUMMARY 是种子文库的研究结论与统计摘要入口；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 和单条目 `seed_resource_registry.json` 为准。
 
 核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；R2 四例样本还需要后续 逐案例冻结。
 
@@ -13,6 +13,21 @@
 | [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 后续 R2 seed 冻结的当前事实入口；仍需逐案例冻结许可、版本、哈希和泄漏边界。 |
 | [../repair_baselines/](../repair_baselines/) | `STM_0 -> STM_k / Better STM` repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供 R2 seed。 |
 | [../nl_datasets/](../nl_datasets/) | 只有 NL、尚未闭合 `STM_0` 生成关系的数据源 | 不提前计为 seed；生成并记录 `STM_0` 后才可 crosslink 到本库。 |
+
+
+## 1.6 一手 seed resource registry 摘要
+
+从一手 registry 口径起，逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 为准；本 SUMMARY 只保留研究结论、统计摘要与风险，不复制全量资源表。当前 registry 的稳定结论如下：
+
+| recommended_role | 数量 | 当前含义 | R2 影响 |
+|---|---:|---|---|
+| 🟢 `final_pool_ready` | 0 | 尚无同时满足 committed raw、许可/再分发清楚、trace verified 的 generated seed | 不能直接冻结最终 smoke |
+| 🟡 `conditional_final_pool` | 3 | `unified-uml-multimodal-validation` 有 committed HF 样例但 synthetic/license caveat；`llms-emp-stm-subset` 与 `sefm-llm-state-machine` 仍需 workbook/ZIP 落盘 | 可作为 R2 优先清 blocker 对象 |
+| 🟠 `pipeline_only` | 1 | `fsm-bench-20` 有 NL/prompt/schema/code，但没有作者公开 generated `STM_0` | 只能后续本项目复跑另建 seed |
+| ⚪ `paper_reconstructable` | 10 | 多数传统 use-case/statechart 工作只有论文示例 / 附录 | 不计现成 seed；可做 related / 手工构造线索 |
+| 🔴 `related_only` | 1 | `designing-fsm-gpt4` 当前无稳定一手 pair / license / release | 不进 final pool |
+
+硬性结论：四例 smoke panel 仍需在 R2 基于一手 registry 再冻结；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。
 
 ## 2. 关键统计表
 

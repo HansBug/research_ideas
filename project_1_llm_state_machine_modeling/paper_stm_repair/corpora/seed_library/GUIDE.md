@@ -6,17 +6,15 @@
 
 不得把种子文库写成本论文修正基线文库；若同一工作也包含 repair / feedback / completion 环节，应在 [../repair_baselines/](../repair_baselines/) 另行登记其修正能力，并在两边交叉链接。若对象只有控制系统 NL 输入、尚未闭合 `NL -> STM_0`，应留在 [../nl_datasets/](../nl_datasets/)。
 
-## 2. SUMMARY-first 规则
+## 2. REGISTRY + SUMMARY 分工规则
 
-[SUMMARY.md](./SUMMARY.md) 是唯一横向事实真源。它必须直接可复算：
+从一手 registry 口径起，本目录有两个互补事实层：
 
-- 候选 / 筛查：`47/47`；
-- 单条目证据目录：`36 dirs`；
-- 旧九生成基线 crosswalk：`9/9`；
-- R2 主 / 条件主可计候选：`4`；
-- 人工下载队列：`11 已下载并复核；2 已下载后排除；2 元数据排除；1 仍受阻`。
+1. [REGISTRY.md](./REGISTRY.md) 是逐条一手资源明细主表，负责 `seed_id`、一手入口、assets 链接、pair 统计、eligible count、blocker、R2 选择建议和单条目 `seed_resource_registry.json` 跳转。
+2. [SUMMARY.md](./SUMMARY.md) 是研究结论与统计摘要入口，负责候选全集、文献资格、资源分布、风险、迁移关系和面向 R2 的摘要；它不复制 [REGISTRY.md](./REGISTRY.md) 的全量逐条资源明细。
+3. [README.md](./README.md) 只做定位、阅读顺序和最小速览，不维护独立事实表或第二套统计。
 
-新增条目时，不得只创建目录或只改单篇文件；必须同步更新 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表、人工队列 / 排除证据 / 检索摘要 / 更新日志等相关章节。
+新增条目时，不得只创建目录或只改单篇文件；必须同步更新单条目 `seed_desc.md` / `artifacts.md`、必要的 `seed_resource_registry.json` / `assets/` 审计链，以及 [SUMMARY.md](./SUMMARY.md) 中对应的统计摘要或风险结论。若新增的是一手资源或 pair 明细，必须优先回写 [REGISTRY.md](./REGISTRY.md)，再更新 [SUMMARY.md](./SUMMARY.md) 摘要。
 
 人工下载的 BibTeX 起点应集中维护在 [manual_download_queue.bib](./manual_download_queue.bib)；当 PDF 尚未拿到时，只在该文件追加可复制条目，`SUMMARY.md` 只保留状态与路径，不再保留长 BibTeX 代码块。
 
@@ -81,6 +79,26 @@
 4. `STM谱系`：说明属于 FSM、HSM/statechart、EFSM、SysML/UML state machine，还是中间/边界/非目标形式化模型。
 5. `时间特性等级`：只按全文和制品证据判断。默认用“未见显式时钟”表达没有发现 timed automata clock、连续时间或 hybrid dynamics；用“数据/守卫级”表达变量、guard、exception 或 EFSM 数据状态；证据不足时写“待核”。不要为了表格完整臆测时钟或时间约束。
 6. `资源获取方式` / `关键资源获取方式`：必须给出可点击的一手入口链接；若只有本仓库本地缓存、历史 agent 另行找到的非论文链接、未确认与论文对应的仓库、或当前 repo 中已有的 parquet / 代码 / PDF / hash，只能写作“本地证据 / 线索”，不得计为作者公开资源。
+
+### 3.5 一手资源 registry 与 assets 纪律
+
+从一手 registry 口径起，seed library 采用 **REGISTRY 明细 + SUMMARY 摘要 + 单条目 assets 审计链**：
+
+1. [REGISTRY.md](./REGISTRY.md) 是逐条资源明细主表；[SUMMARY.md](./SUMMARY.md) 只保留研究结论、统计摘要与风险，不复制全量明细。
+2. 单条目 `assets/` 是短名，但语义必须是**一手来源资产目录**。只有论文 / 作者 artifact / 官方数据集 / 作者仓库 / 出版页 Data Availability / 可版本化 release 中直接取得的文件，及其从 raw 直接抽取得到的审计产物，可以进入 `assets/`。
+3. 本仓库历史 parquet、旧缓存、人工复写、论文图示重建、PR comment 摘要只能写入 `legacy_audit_refs` 或 blocker，不能升级为 current first-source asset。
+4. 每个重点条目必须有 `seed_resource_registry.json`；有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
+5. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
+6. 只有 `trace_verified=true` 且 `is_generated_stm0=true` 且 `is_reference=false` 且 `is_postprocessed=false` 的 pair 才能计入 eligible generated seed count。
+7. `storage_mode=committed` 可支撑仓库内直接复验；`local_only` 只能 conditional；`metadata_only` 不得标为 `final_pool_ready`。
+
+校验入口：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library/tools/validate_seed_assets.py unified-uml-multimodal-validation
+```
+
+JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_resource_registry.schema.json) 与 [schemas/assets_manifest.schema.json](./schemas/assets_manifest.schema.json)。
 
 ## 4. SUMMARY 表格字段纪律
 

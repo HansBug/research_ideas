@@ -12,9 +12,10 @@
 
 1. 先读本 [README.md](./README.md) 理解文库边界。
 2. 再读 [GUIDE.md](./GUIDE.md) 理解收录、分级、更新和验收规则。
-3. 重点读 [SUMMARY.md](./SUMMARY.md)：这是当前唯一横向事实真源，包含 `47/47`、`36 dirs`、旧九 `9/9` crosswalk、R2=4 handoff、manual queue、negative evidence、搜索覆盖和迁移表。
-4. 进入单条目目录时，默认读取 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md -> artifacts.md`；artifact-only 条目按 `seed_desc.md -> artifacts.md -> 原始 metadata / package` 顺序。
-5. 需要旧 R1.5--R1.7 ledger / raw search 时，进入 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 只作审计，不是当前事实真源。
+3. 重点读 [SUMMARY.md](./SUMMARY.md)：这是研究结论与统计摘要入口。
+4. 需要逐条资源明细时读 [REGISTRY.md](./REGISTRY.md)：它是一手 `NL + generated STM_0` 资源明细主表，包含每个 seed 的一手入口、pair 统计、blocker、assets 链接和 R2 选择建议。
+5. 进入单条目目录时，默认读取 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md -> artifacts.md`；artifact-only 条目按 `seed_desc.md -> artifacts.md -> 原始 metadata / package` 顺序。
+6. 需要旧 R1.5--R1.7 ledger / raw search 时，进入 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 只作审计，不是当前事实真源。
 
 ## 1.5 结论速览
 
@@ -30,7 +31,7 @@
 
 ## 1.6 核心文献 + 资源结论表
 
-本表用于快速回答“这个 seed 的 NL 到底是什么、STM 到底是什么、能否直接给 R2 用”。时间特性只按当前全文 / 制品证据判断：`未见显式时钟` 表示未发现 timed automata clock、连续时间或 hybrid dynamics；不代表原系统现实中没有时间约束。资源获取方式只记录论文正文 / 脚注 / Data Availability、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口；当前 repo 已缓存的 parquet、代码、PDF、ZIP、hash 或 agent 复现副本只作本地审计证据，不计入资源可获取性。
+本表用于快速回答“这个 seed 的 NL 到底是什么、STM 到底是什么、能否直接给 R2 用”。它不是逐条资源明细事实源；资源可用性、pair 统计和 blocker 以 [REGISTRY.md](./REGISTRY.md) 为准。时间特性只按当前全文 / 制品证据判断：`未见显式时钟` 表示未发现 timed automata clock、连续时间或 hybrid dynamics；不代表原系统现实中没有时间约束。资源获取方式只记录论文正文 / 脚注 / Data Availability、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口；当前 repo 已缓存的 parquet、代码、PDF、ZIP、hash 或 agent 复现副本只作本地审计证据，不计入资源可获取性。
 
 | ID | 文献结论 | R2用途 | NL输入是什么 | STM输出是什么 | STM关键特性 | STM谱系 | 时间特性等级 | 生成方式 | 资源获取方式 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -45,6 +46,14 @@
 | `rscharter-statechart-elements` | 条件种子 / 方法证据 | 文献种子；不计当前四例 | PuRE dataset 中 RUPP/EARS 风格 SRS / NL requirements | statechart diagram elements / state diagram，经 FOPL 中间层 | 主要抽取状态图元素并经 FOPL 桥接；完整图与 pair 需另行冻结 | statechart elements + FOPL bridge | T0-元素级待核；未冻结完整状态图时间语义 | NLP / 规则 -> FOPL -> State Diagram Generator | 论文 [SSRN](https://papers.ssrn.com/abstract=4964857)；输入来源 PuRE 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.1414117)；RSCharter 增强 pair/code 未公开 |
 
 详情以 [SUMMARY.md](./SUMMARY.md) §16 为准，本表只作入口速览。
+
+
+## 1.7 一手资源 registry 入口
+
+- [REGISTRY.md](./REGISTRY.md) 是逐条一手资源明细主表。
+- [SUMMARY.md](./SUMMARY.md) 只保留研究结论与统计摘要；若 `REGISTRY.md` 与 `SUMMARY.md` 细节冲突，以 `REGISTRY.md` 的逐条资源明细和单条目 `seed_resource_registry.json` 为准。
+- [GUIDE.md](./GUIDE.md) §3.5 规定 `assets/` 一手来源纪律、trace validator 与 `storage_mode` 分级。
+- 每个重点条目的 `assets/README.md` 必须中文说明 raw / extracted 映射、Python 加载方法和审计不变量。
 
 ## 2. 收录范围
 
