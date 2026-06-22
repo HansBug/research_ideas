@@ -10,4 +10,4 @@
 
 ## 3. 风险
 
-同一 sheet 同时含 reference `PlantUML`、format/grammar/semantic checking 后结果和评测列；抽取时只允许把 `Generation PlantUML` 作为原始 `STM_0`，其它列只可作 reference / leakage 风险说明。数据许可和再分发状态仍未知，因此条目保持 `conditional_final_pool`。
+同一 sheet 同时含 reference `PlantUML`、format/grammar/semantic checking 后结果和评测列；抽取时只允许把 `Generation PlantUML` 作为原始 `STM_0`，其它列只可作 reference / leakage 风险说明。公开学术资源按引用原作处理，许可 / 再分发不再作为升绿 blocker；本条目当前为 `final_pool_ready`，核心 caveat 是 reference / checking 列隔离。

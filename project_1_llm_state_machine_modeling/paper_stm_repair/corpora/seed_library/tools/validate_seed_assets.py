@@ -44,6 +44,222 @@ ROLE_ENUM = {
     "related_only",
     "excluded",
 }
+
+ROLE_EMOJI_BY_ROLE = {
+    "final_pool_ready": "🟢",
+    "conditional_final_pool": "🟡",
+    "pipeline_only": "🟠",
+    "reference_only": "🔵",
+    "paper_reconstructable": "⚪",
+    "related_only": "🔴",
+    "excluded": "🔴",
+}
+
+
+def _strip_md(cell: str) -> str:
+    """Return a compact cell value for simple REGISTRY.md table checks."""
+
+    return cell.strip().replace("<br>", "\n")
+
+
+def _extract_registry_seed_id(cell: str) -> str | None:
+    """Extract seed_id from a REGISTRY.md first column cell.
+
+    Supported forms are `` `seed-id` `` and ``[`seed-id`](./seed-id/assets/README.md)``.
+    """
+
+    link_match = re.search(r"\[`([^`]+)`\]\(([^)]+)\)", cell)
+    if link_match:
+        return link_match.group(1)
+    code_match = re.search(r"`([^`]+)`", cell)
+    if code_match:
+        return code_match.group(1)
+    return None
+
+
+def _parse_markdown_table(path: Path, heading: str) -> tuple[list[str], list[dict[str, str]]]:
+    """Parse the first markdown table after ``heading``.
+
+    This intentionally supports only the simple pipe-table shape used by
+    REGISTRY.md; it is not a general Markdown parser.
+    """
+
+    lines = path.read_text().splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == heading:
+            start = i + 1
+            break
+    if start is None:
+        return [], []
+    header_index = None
+    for i in range(start, len(lines)):
+        if lines[i].lstrip().startswith("| "):
+            header_index = i
+            break
+    if header_index is None or header_index + 1 >= len(lines):
+        return [], []
+    headers = [h.strip() for h in lines[header_index].strip().strip("|").split("|")]
+    rows: list[dict[str, str]] = []
+    for line in lines[header_index + 2 :]:
+        if not line.lstrip().startswith("|"):
+            break
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != len(headers):
+            continue
+        rows.append(dict(zip(headers, cells)))
+    return headers, rows
+
+
+def _pair_set_nl_count_label(reg: dict[str, Any]) -> str:
+    """Derive the human REGISTRY 'NL 数' label from structured registry facts."""
+
+    if not reg.get("pair_sets"):
+        return "0 / 未知"
+    # Current R2 registries have one pair set per seed.  If future entries carry
+    # multiple sets, use source_inventory when present; otherwise sum best-known
+    # raw/unique fields conservatively.
+    inv = reg.get("source_inventory", {})
+    if "raw_nl_count" in inv and "unique_nl_count" in inv:
+        return f"{inv['raw_nl_count']} / {inv['unique_nl_count']}"
+    raw_total = 0
+    unique_total = 0
+    raw_known = False
+    unique_known = False
+    for pair_set in reg.get("pair_sets", []):
+        counts = pair_set.get("nl_count", {})
+        raw = (
+            counts.get("raw")
+            or counts.get("raw_rows")
+            or counts.get("raw_requirements")
+            or counts.get("raw_nl_descriptions_in_zip")
+        )
+        unique = (
+            counts.get("unique")
+            or counts.get("unique_requirement_descriptions")
+            or counts.get("unique_requirements")
+            or counts.get("unique_nl_descriptions_in_zip")
+        )
+        if isinstance(raw, int):
+            raw_total += raw
+            raw_known = True
+        if isinstance(unique, int):
+            unique_total += unique
+            unique_known = True
+    raw_label = str(raw_total) if raw_known else "0"
+    unique_label = str(unique_total) if unique_known else "未知"
+    return f"{raw_label} / {unique_label}"
+
+
+def _nl_only_label(reg: dict[str, Any]) -> str:
+    if not reg.get("pair_sets"):
+        return "未知"
+    total = 0
+    known = False
+    for pair_set in reg.get("pair_sets", []):
+        counts = pair_set.get("nl_count", {})
+        value = (
+            counts.get("nl_only_without_generated_output")
+            or counts.get("nl_only_generation_failure")
+            or counts.get("nl_only_pipeline_requirements")
+        )
+        if isinstance(value, int):
+            total += value
+            known = True
+    if known:
+        return str(total)
+    eligible = reg.get("extracted_summary", {}).get("eligible_generated_pair_count")
+    raw = None
+    label = _pair_set_nl_count_label(reg)
+    if " / " in label:
+        maybe_raw = label.split(" / ", 1)[0]
+        if maybe_raw.isdigit():
+            raw = int(maybe_raw)
+    if isinstance(raw, int) and isinstance(eligible, int):
+        return str(max(0, raw - eligible))
+    return "未知"
+
+
+def _reference_count(reg: dict[str, Any]) -> int:
+    refs = sum(int(r.get("reference_pair_count", 0)) for r in reg.get("reference_sets", []))
+    if refs:
+        return refs
+    return sum(int(p.get("reference_pair_count", 0)) for p in reg.get("pair_sets", []))
+
+
+def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: Path, errors: list[str]) -> None:
+    """Check REGISTRY.md's human-facing row against structured facts.
+
+    The JSON + raw assets remain the machine source of truth.  This check exists
+    because REGISTRY.md is the human-facing decision table; stale counts or links
+    would mislead R2 sample selection even if raw trace validation still passes.
+    """
+
+    registry_md = BASE / "REGISTRY.md"
+    if not registry_md.exists():
+        return
+    headers, rows = _parse_markdown_table(registry_md, "## 2. 一手资源主表")
+    if not rows:
+        errors.append("REGISTRY.md missing parsable §2 resource table")
+        return
+    required_headers = {
+        "条目",
+        "角色",
+        "NL 数",
+        "可计生成对",
+        "已回溯验证",
+        "参考解",
+        "NL-only",
+        "结构化记录",
+        "备注",
+    }
+    missing_headers = required_headers.difference(headers)
+    if missing_headers:
+        errors.append(f"REGISTRY.md table missing required columns: {sorted(missing_headers)}")
+        return
+    row = next((r for r in rows if _extract_registry_seed_id(r.get("条目", "")) == seed_id), None)
+    if row is None:
+        errors.append(f"REGISTRY.md missing row for {seed_id}")
+        return
+
+    expected_role = ROLE_EMOJI_BY_ROLE.get(reg.get("recommended_role"))
+    if expected_role and _strip_md(row.get("角色", "")) != expected_role:
+        errors.append(f"REGISTRY.md role mismatch for {seed_id}: {row.get('角色')} != {expected_role}")
+
+    assets_readme = seed_dir / "assets" / "README.md"
+    item_cell = row.get("条目", "")
+    expected_assets_link = f"./{seed_id}/assets/README.md"
+    if assets_readme.exists() and expected_assets_link not in item_cell:
+        errors.append(f"REGISTRY.md item cell for {seed_id} must link to {expected_assets_link}")
+    if not assets_readme.exists() and "assets/README.md" in item_cell:
+        errors.append(f"REGISTRY.md item cell for {seed_id} links to missing assets/README.md")
+
+    expected_nl = _pair_set_nl_count_label(reg)
+    if _strip_md(row.get("NL 数", "")) != expected_nl:
+        errors.append(f"REGISTRY.md NL 数 mismatch for {seed_id}: {row.get('NL 数')} != {expected_nl}")
+    expected_eligible = str(reg.get("extracted_summary", {}).get("eligible_generated_pair_count", 0))
+    if _strip_md(row.get("可计生成对", "")) != expected_eligible:
+        errors.append(
+            f"REGISTRY.md 可计生成对 mismatch for {seed_id}: "
+            f"{row.get('可计生成对')} != {expected_eligible}"
+        )
+    expected_trace = str(reg.get("extracted_summary", {}).get("trace_verified_pair_count", 0))
+    if _strip_md(row.get("已回溯验证", "")) != expected_trace:
+        errors.append(
+            f"REGISTRY.md 已回溯验证 mismatch for {seed_id}: "
+            f"{row.get('已回溯验证')} != {expected_trace}"
+        )
+    expected_ref = str(_reference_count(reg))
+    if _strip_md(row.get("参考解", "")) != expected_ref:
+        errors.append(f"REGISTRY.md 参考解 mismatch for {seed_id}: {row.get('参考解')} != {expected_ref}")
+    expected_nl_only = _nl_only_label(reg)
+    if _strip_md(row.get("NL-only", "")) != expected_nl_only:
+        errors.append(f"REGISTRY.md NL-only mismatch for {seed_id}: {row.get('NL-only')} != {expected_nl_only}")
+    expected_json_link = f"./{seed_id}/seed_resource_registry.json"
+    if expected_json_link not in row.get("结构化记录", ""):
+        errors.append(f"REGISTRY.md structured record for {seed_id} must link to {expected_json_link}")
+    if not _strip_md(row.get("备注", "")):
+        errors.append(f"REGISTRY.md 备注 must be non-empty for {seed_id}")
 ASSET_STATUS_ENUM = {"downloaded", "partially_downloaded", "metadata_only", "blocked", "not_applicable"}
 STORAGE_ENUM = {"committed", "local_only", "metadata_only", "skipped"}
 DOWNLOAD_ENUM = {"downloaded", "skipped", "blocked", "metadata_only", "local_only"}
@@ -204,6 +420,7 @@ def validate_registry_shape(reg: dict, errors: list[str]):
                 "must_not_count_as_generated",
                 "excluded_outputs",
                 "extracted_pairs_path",
+                "nl_count",
             ],
             f"pair_sets[{i}]",
             errors,
@@ -594,6 +811,11 @@ def validate_seed(seed_id: str) -> int:
     else:
         manifest = {"assets": []}
     asset_by_id = {a["asset_id"]: a for a in manifest.get("assets", []) if "asset_id" in a}
+    pair_set_role_by_id = {
+        pair_set.get("pair_set_id"): pair_set.get("eligibility_state")
+        for pair_set in reg.get("pair_sets", [])
+        if pair_set.get("pair_set_id")
+    }
     raw_hash_cache: dict[str, str] = {}
     for asset in manifest.get("assets", []):
         if asset.get("storage_mode") == "committed" and asset.get("download_status") == "downloaded":
@@ -623,6 +845,31 @@ def validate_seed(seed_id: str) -> int:
         row_result = validate_pair_trace(seed_dir, row, asset, raw_path, cache)
         pair_results.append(row_result)
         errors.extend(row_result.errors)
+        pair_id = row.get("pair_id") or "<missing_pair_id>"
+        row_state = row.get("eligibility_state")
+        if row_state not in ROLE_ENUM:
+            errors.append(f"pair {pair_id} unknown eligibility_state {row_state}")
+        pair_set_id = row.get("pair_set_id")
+        expected_pair_set_state = pair_set_role_by_id.get(pair_set_id)
+        if row_result.eligible_generated and not pair_set_id:
+            errors.append(f"pair {pair_id} eligible generated row must carry pair_set_id")
+        if pair_set_id and expected_pair_set_state is None:
+            errors.append(f"pair {pair_id} references unknown pair_set_id {pair_set_id}")
+        if row_result.eligible_generated:
+            if expected_pair_set_state is None:
+                errors.append(f"pair {pair_id} eligible generated row must reference a known pair_set_id")
+            elif row_state != expected_pair_set_state:
+                errors.append(
+                    f"pair {pair_id} eligibility_state mismatch with pair set: "
+                    f"{row_state} != {expected_pair_set_state}"
+                )
+            if row.get("exclusion_reason") not in (None, ""):
+                errors.append(f"pair {pair_id} eligible generated row must not carry exclusion_reason")
+        else:
+            if row_state in {"final_pool_ready", "conditional_final_pool"}:
+                errors.append(f"pair {pair_id} is not eligible generated but uses pool eligibility_state {row_state}")
+            if row_state == "excluded" and row.get("exclusion_reason") in (None, ""):
+                errors.append(f"pair {pair_id} excluded row must carry exclusion_reason")
         if row.get("trace_verified") and not row_result.trace_verified:
             errors.append(f"pair {row.get('pair_id')} claims trace_verified but raw trace validation failed")
         if (not row.get("trace_verified")) and row_result.trace_verified:
@@ -653,11 +900,10 @@ def validate_seed(seed_id: str) -> int:
         errors.append(f"registry eligible count mismatch: {reg.get('extracted_summary', {}).get('eligible_generated_pair_count')} != {eligible}")
     if reg.get("extracted_summary", {}).get("trace_verified_pair_count") != trace_verified:
         errors.append(f"registry trace count mismatch: {reg.get('extracted_summary', {}).get('trace_verified_pair_count')} != {trace_verified}")
+    validate_registry_markdown_row(seed_id, reg, seed_dir, errors)
     if reg.get("recommended_role") == "final_pool_ready":
         if eligible == 0:
             errors.append("final_pool_ready registry must have at least one eligible generated pair")
-        if reg.get("asset_summary", {}).get("redistribution_status") in {"metadata_only", "unknown", "restricted"}:
-            errors.append("final_pool_ready cannot use metadata_only/unknown/restricted redistribution status")
     if errors:
         for e in errors:
             print("ERROR", seed_id, e, file=sys.stderr)

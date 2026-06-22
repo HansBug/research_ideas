@@ -7,16 +7,16 @@
 - 论文：Wang et al., *Generating SysML Behavior Models via Large Language Models: an Empirical Study*, ACM/IEEE MODELS-C 2025, DOI <https://dl.acm.org/doi/10.1145/3755881.3755926>。
 - 一手数据入口：论文给出的 Google Drive folder <https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link>。
 - 当前状态：已用 `gdown.download_folder` 下载并提交 seed registry 所需最小一手资源：`Experiment Results.xlsx`、`Dataset.xlsx`、Drive `README.md` 与下载元数据。
-- caveat：数据许可与再分发状态未知；同一 workbook 中同时存在 reference `PlantUML` 和检查后结果列，后续使用必须严格只取 `Generation PlantUML` 作为原始 $STM_0$，避免 reference / repair leakage。
+- 当前角色：Google Drive 一手 workbook、row locator 与 hash 已提交并可复验，60 条 `Requirement Description + Generation PlantUML` 按 `final_pool_ready` 处理；公开学术资源后续在论文中引用原作即可。caveat 是同一 workbook 中同时存在 reference `PlantUML` 和检查后结果列，后续使用必须严格只取 `Generation PlantUML` 作为原始 $STM_0$，避免 reference / repair leakage。
 
 ## 2. 资源盘点表
 
 | asset_id | 角色 | local_path | sha256 | bytes | storage | license | 说明 |
 |---|---|---|---|---:|---|---|---|
-| `llms_emp_drive_metadata` | 下载元数据 | `raw/google_drive_metadata.json` | 见 `manifest.json` | 849 | committed | unknown | 记录 Drive folder、下载工具、提交最小资产和跳过项 |
-| `llms_emp_experiment_results_xlsx` | `NL + STM_0` 实验主表 | `raw/drive_download/Experiment Results.xlsx` | 见 `manifest.json` | 11561182 | committed | unknown | `STM Results` sheet 含 60 行 `Requirement Description + Generation PlantUML` |
-| `llms_emp_dataset_xlsx` | 数据集上下文 | `raw/drive_download/Dataset.xlsx` | 见 `manifest.json` | 36392 | committed | unknown | 记录模型名称、来源和原始需求 / PlantUML 上下文 |
-| `llms_emp_drive_readme` | Drive 说明 | `raw/drive_download/README.md` | 见 `manifest.json` | 1239 | committed | unknown | Drive 文件夹说明 |
+| `llms_emp_drive_metadata` | 下载元数据 | `raw/google_drive_metadata.json` | 见 `manifest.json` | 849 | committed | paper_public_resource | 记录 Drive folder、下载工具、提交最小资产和跳过项 |
+| `llms_emp_experiment_results_xlsx` | `NL + STM_0` 实验主表 | `raw/drive_download/Experiment Results.xlsx` | 见 `manifest.json` | 11561182 | committed | paper_public_resource | `STM Results` sheet 含 60 行 `Requirement Description + Generation PlantUML` |
+| `llms_emp_dataset_xlsx` | 数据集上下文 | `raw/drive_download/Dataset.xlsx` | 见 `manifest.json` | 36392 | committed | paper_public_resource | 记录模型名称、来源和原始需求 / PlantUML 上下文 |
+| `llms_emp_drive_readme` | Drive 说明 | `raw/drive_download/README.md` | 见 `manifest.json` | 1239 | committed | paper_public_resource | Drive 文件夹说明 |
 
 `llm4sysml_exp/` demo 代码、向量索引、`visualization code/` 与重复 / 二级 `ESE Expriment Results.xlsx` 不进入 committed seed assets；跳过理由写在 `manifest.json.skipped_assets` 与 `raw/google_drive_metadata.json`。
 
@@ -32,7 +32,15 @@
 | reference | `STM Results` / `PlantUML`，只能进 reference，不计原始 $STM_0$ |
 | postprocessed | `Result with Format/Grammar/Semantic Checking`，不得作为原始 $STM_0$ |
 
-当前 `pairs.jsonl` 已覆盖 `STM Results` 全量 60 行：Claude、DeepSeek、GPT-4、GPT-4o、Kimi、Llama 各 10 行。
+当前 `pairs.jsonl` 已覆盖 `STM Results` 全量 60 行：Claude、DeepSeek、GPT-4、GPT-4o、Kimi、Llama 各 10 行。`Requirement Description` 为 60 raw / 10 unique；`Generation PlantUML` 非空 60 行，exact unique 为 59（HSTBS 中 GPT-4 与 Kimi 输出完全相同），但 pair 数按 raw row / LLM 输出仍为 60。
+
+## 3.1 抽检样例
+
+| row | pair_id | NL / 模型 | 核查结论 |
+|---:|---|---|---|
+| 0 | `llms_emp_stm_results_0000` | high-level driving module / GPT-4o | `Requirement Description` 与 `Generation PlantUML` 可由 workbook row=0 回溯；generated 与 reference `PlantUML` 不相等 |
+| 17 | `llms_emp_stm_results_0017` | collision avoidance sub-machine / GPT-4 | row=17 可回 raw；只取 `Generation PlantUML`，reference 列隔离 |
+| 59 | `llms_emp_stm_results_0059` | autonomous mode / Claude | row=59 可回 raw；含 guard 条件与嵌套 autonomous mode 片段 |
 
 ## 4. Python 加载方法
 

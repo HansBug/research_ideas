@@ -16,9 +16,9 @@
 
 没有抽取 8 个 reference solution 作为 generated pair；它们仅保留在 registry 的 `reference_sets`。当前只登记 SSC7 generated pair，不声称整个 4open artifact 的所有生成策略 / 所有系统均已完成抽取。
 
-## 4. 不可提交内容说明（redaction、local_only、license blocked）
+## 4. 不可提交内容说明（redaction、local_only、公开资源引用）
 
-ZIP 已提交到 `assets/raw/` 用于仓库内复验；但 4open artifact 未见独立 license / DOI / release pin，正式论文使用前仍需补充许可与再分发说明。本条目因此保持 `conditional_final_pool`，不升级为 `final_pool_ready`。
+ZIP 已提交到 `assets/raw/` 用于仓库内复验；公开学术 artifact 按引用原作处理，许可 / 再分发不再作为升绿 blocker。本条目当前为 `final_pool_ready`，但只表示 SSC7 这一组 generated pair 可回溯复验；其余 8 个 NL 描述缺 generated text output，不能计为 generated pair。
 
 ## 5. 校验结果摘要
 

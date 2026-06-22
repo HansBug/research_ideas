@@ -6,13 +6,30 @@
 
 - 论文：Abdulkarim et al., arXiv:2604.00275, <https://arxiv.org/abs/2604.00275>。
 - 一手制品入口：4open artifact <https://anonymous.4open.science/#!/r/llm_state_machine_modeling/>，ZIP API <https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip>。
-- 当前状态：4open ZIP 已 committed 到 `assets/raw/`，并已抽取 1 组 SSC7 `NL + generated STM_0`。该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 和文本 hash 回溯；但 artifact license / redistribution / release pin 仍未闭合，因此本条目仍是 `conditional_final_pool`，不是 `final_pool_ready`。
+- 当前状态：4open ZIP 已 committed 到 `assets/raw/`，并已抽取 1 组 SSC7 `NL + generated STM_0`。该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 和文本 hash 回溯，因此按 `final_pool_ready` 处理；公开学术 artifact 后续在论文中引用原作即可，许可 / 再分发不再作为升绿 blocker。
+- caveat：论文实验口径是 8 个 reactive-system problem descriptions + 8 个 expert reference UML state-machine ground truths；当前 ZIP 真实资源结构是 9 个 NL descriptions（多出 `ATAS_fall_2022` NL-only）、8 个 reference solutions、1 个 generated text output。只有 SSC7 同时有 NL 和 Claude Sonnet 3.5 single-prompt generated Umple 文本；其余 8 个 NL 不能计为 generated pair。
 
 ## 2. 资源盘点表
 
 | asset_id | 角色 | local_path | sha256 | bytes | storage | license | 说明 |
 |---|---|---|---|---:|---|---|---|
-| `sefm_4open_zip` | 作者 4open artifact ZIP | `raw/llm_state_machine_modeling_4open.zip` | `0e553383b5bd03702d29e5f68a3624fcc143a51da1fd0c9156b32ba51a5b61b4` | 3357298 | committed | unknown | 含 `state_machine_descriptions.py`、Final Single Prompt generated output、reference solutions、代码和 F1 workbook；license / release / DOI 未闭合 |
+| `sefm_4open_zip` | 作者 4open artifact ZIP | `raw/llm_state_machine_modeling_4open.zip` | `0e553383b5bd03702d29e5f68a3624fcc143a51da1fd0c9156b32ba51a5b61b4` | 3357298 | committed | paper_public_resource | 含 9 个 NL descriptions、8 个 reference solutions、1 个 generated SSC7 text output、代码和 F1 workbook；公开学术 artifact，论文中引用原作 |
+
+## 2.1 ZIP 内部资源结构补充说明
+
+- `backend/resources/state_machine_descriptions.py` 中共有 9 个 NL descriptions：`printer_winter_2017`、`spa_manager_winter_2018`、`dishwasher_winter_2019`、`chess_clock_fall_2019`、`automatic_bread_maker_fall_2020`、`thermomix_fall_2021`、`ATAS_fall_2022`、`WUMPLE_fall_2023`、`SSC7_fall_2024`。
+- `Paper Experiment Resources/Reference Solutions/*.txt` 中共有 8 个 reference solutions：bread-maker、chess-clock、dishwasher、printer、spa-manager、ssc7、thermomix、wumple。reference solution 只作评价 / 参考，不得冒充 generated `STM_0`。
+- 目前 ZIP 中只找到 1 个 generated STM text output：`Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_f700645345f84b5acffd751f426344ed704910d9.txt`。
+- 因此当前可计 generated pair 只有 SSC7；其余 8 个 NL 中，7 个有 reference solution 但没有 generated text output，ATAS 只有 NL 描述。
+- `Final Detailed F1-Scores.xlsx` 中可见 63 个单元格图片引用、47 个唯一图片文件名引用，但工作簿没有可恢复的 embedded PNG / drawing media（ZIP / XLSX 均无 `xl/media`），也不包含对应 STM 文本；不能从 workbook 反推出 generated `STM_0`。
+
+## 2.2 抽检样例
+
+| 对象 | locator | 核查结论 |
+|---|---|---|
+| SSC7 generated pair | `state_machine_descriptions.py::SSC7_fall_2024` + `Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` | NL、generated Umple 文本与 ZIP sha256 均可回溯；可计 1 个 generated pair |
+| Printer reference-only | `state_machine_descriptions.py::printer_winter_2017` + `Reference Solutions/printer.txt` | 有 NL 与 reference solution，但未找到 generated `.txt` 输出；不得计 generated pair |
+| ATAS NL-only | `state_machine_descriptions.py::ATAS_fall_2022` | 有 NL description；未找到 reference solution 或 generated output；只作 NL-only 资产 |
 
 ## 3. raw → extracted 映射
 
@@ -56,7 +73,7 @@ source_locator_type: zip_python_symbol_and_text_file
 source_locator: nl_member=backend/resources/state_machine_descriptions.py; nl_symbol=SSC7_fall_2024; stm0_member=Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_f700645345f84b5acffd751f426344ed704910d9.txt
 source_sha256: 0e553383b5bd03702d29e5f68a3624fcc143a51da1fd0c9156b32ba51a5b61b4
 trace_verified: True
-eligibility_state: conditional_final_pool
+eligibility_state: final_pool_ready
 NL snippet: The Self-Service Checkout SSC7 is used by supermarkets to allow customers to scan their purchases and pay for them, often without any help of supermarket staff. As shown in the figure on the right, the SSC7 consists of the following parts...
 STM_0 snippet:  | class SSC7S { |   sm { |     Ready { |       scanBarcode [isValidBarcode] -> SecurityCheck; |       scanBarcode [!isValidBarcode] -> /{showError();} Ready; |       enterCode [isValidCode] -> WeighingItem; ...
 ```
@@ -67,4 +84,4 @@ STM_0 snippet:  | class SSC7S { |   sm { |     Ready { |       scanBarcode [isVa
 
 ## 6. 审计不变量
 
-任一 `sefm` generated pair 必须能用 `source_asset_id + source_locator + source_sha256` 回到 committed raw ZIP。reference solutions 永远不能冒充 generated `STM_0`。若后续继续抽取其他系统或其他策略输出，必须逐条补 ZIP member locator、hash 与 `validation_summary.json`，并保持 license / redistribution caveat 可见。
+任一 `sefm` generated pair 必须能用 `source_asset_id + source_locator + source_sha256` 回到 committed raw ZIP。reference solutions 永远不能冒充 generated `STM_0`。若后续继续抽取其他系统或其他策略输出，必须逐条补 ZIP member locator、hash 与 `validation_summary.json`，并保持“reference 不可冒充 generated STM_0、仅 SSC7 当前可计”的 caveat 可见。

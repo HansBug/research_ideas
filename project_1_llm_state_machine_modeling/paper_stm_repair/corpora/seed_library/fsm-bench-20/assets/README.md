@@ -8,6 +8,7 @@
 - 作者仓库：<https://github.com/cesar-andress/llm-fsm-local-benchmark/tree/v1.0.0>。
 - 许可：MIT（由 Zenodo/GitHub release metadata 与 LICENSE 指示）。
 - 关键结论：公开包提供 NL requirements、prompt、schema、run/eval 脚本，但**未提供作者生成的 `STM_0` 输出**，因此本条目是 `pipeline_only`，不能直接作为现成 seed。
+- NL 数量：release ZIP 中 `dataset/systems/*.json` 共 20 个系统、252 条 requirements，exact / whitespace-normalized 去重后仍为 252 条。`benchmark/gold/*.json` 共 20 个文件但内容为空 `{}` placeholder，不能冒充 reference 或 generated `STM_0`。
 
 ## 2. 资源盘点表
 
@@ -20,7 +21,7 @@
 
 ## 3. raw → extracted 映射
 
-当前 registry 条目未生成 `assets/extracted/pairs.jsonl`，因为没有一手 generated `STM_0`。ZIP 中 `dataset/systems/*.json` 只提供 NL requirements；`benchmark/gold/*.json` 不能冒充 generated seed。
+当前 registry 条目未生成可计 pair，因为没有一手 generated `STM_0`。ZIP 中 `dataset/systems/*.json` 只提供 NL requirements；`benchmark/gold/*.json` 为空 `{}` placeholder，不能冒充 generated seed 或 reference seed。
 
 ## 4. Python 加载方法
 
@@ -33,13 +34,24 @@ raw = Path('assets/raw/llm-fsm-local-benchmark-v1.0.0.zip')
 print('actual_sha256:', hashlib.sha256(raw.read_bytes()).hexdigest())
 with zipfile.ZipFile(raw) as zf:
     names = zf.namelist()
-    print('dataset_system_count:', sum('/dataset/systems/' in n and n.endswith('.json') for n in names))
+    system_files = [n for n in names if '/dataset/systems/' in n and n.endswith('.json')]
+    gold_files = [n for n in names if '/benchmark/gold/' in n and n.endswith('.json')]
+    requirements = []
+    for name in system_files:
+        import json
+        data = json.loads(zf.read(name))
+        requirements.extend(data.get('requirements', []))
+    print('dataset_system_count:', len(system_files))
+    print('requirement_count:', len(requirements))
+    print('unique_requirement_count:', len(set(r.strip() for r in requirements)))
+    print('gold_file_count:', len(gold_files))
+    print('first_gold_content:', zf.read(gold_files[0]).decode('utf-8').strip() if gold_files else None)
     print('generated_output_files:', [n for n in names if '/outputs/' in n or '/results/' in n][:5])
 ```
 
 ## 5. 期望输出字段
 
-期望看到 `dataset_system_count > 0` 且 `generated_output_files` 为空或不含可用 `STM_0`；这正是 `pipeline_only` 结论的依据。
+期望看到 `dataset_system_count=20`、`requirement_count=252`、`unique_requirement_count=252`、`gold_file_count=20`、`first_gold_content={}`，且 `generated_output_files` 为空或不含可用 `STM_0`；这正是 `pipeline_only` 结论的依据。
 
 ## 6. 审计不变量
 

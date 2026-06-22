@@ -32,7 +32,7 @@
 |---|---|---|
 | `EX-ACT-SD` | active | 本候选只取 STM 子集；ACT 与 SD 样例不进入 STM repair seed。 |
 | `EX-PIPELINE-CODE-ABSENT` | active | 论文与源 `ASSETS.md` 均未定位公开生成/修复 pipeline 源码，不能标为完整方法复现包。 |
-| `EX-DATA-LICENSE-PENDING` | active | 论文正文给出论文 CC BY 4.0 许可，但允许读取材料中未定位数据集单独 license；Drive 数据二次分发权限需后续人工核验。 |
+| `EX-DATA-LICENSE-PENDING` | inactive for R2.0 eligibility | 公开学术 Drive 数据后续论文引用原作即可；R2.0 不再把 license / 再分发作为升绿 blocker。 |
 | `EX-PROTOCOL-ONLY` | inactive | 证据显示为 SysML state machine diagrams，不是协议-only trace/spec。 |
 | `EX-T1-TIMED-HYBRID` | inactive | 未见 timed automata / hybrid automata 作为目标模型；“Hybrid Sport Utility Vehicle”只是案例名称，不改变模型族。 |
 | `EX-IMAGE-ONLY` | inactive | 论文说明原始来源多为图像，但作者已重建为 PlantUML，并配套需求描述。 |
@@ -53,6 +53,5 @@
 
 ## Pending / blocker
 
-- `pending:data_license`：数据集 Drive 文件夹 license 未在允许读取材料中定位；正式公开再分发前需人工核验。
 - `pending:file_level_drive_audit`：本轮未逐文件打开 Drive；使用源 `ASSETS.md` 的 2026-06-10 记录和本地 parquet hash 作为资产证据。
 - `blocker:pipeline_reproduction`：若 R2 目标是复现作者完整两阶段 LLM + RAG + checker + feedback pipeline，则公开代码缺失构成 blocker；若 R2 目标是抽取 STM seed 数据，则不阻塞。

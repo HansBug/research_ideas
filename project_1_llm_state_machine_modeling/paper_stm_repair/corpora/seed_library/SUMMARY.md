@@ -10,7 +10,7 @@
 
 | 文库 | 当前角色 | 本 SUMMARY 的使用边界 |
 |---|---|---|
-| [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 后续 R2 seed 冻结的当前事实入口；仍需逐案例冻结许可、版本、哈希和泄漏边界。 |
+| [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 后续 R2 seed 冻结的当前事实入口；仍需逐案例冻结版本、哈希、泄漏边界和数据质量 caveat。 |
 | [../repair_baselines/](../repair_baselines/) | `STM_0 -> STM_k / Better STM` repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供 R2 seed。 |
 | [../nl_datasets/](../nl_datasets/) | 只有 NL、尚未闭合 `STM_0` 生成关系的数据源 | 不提前计为 seed；生成并记录 `STM_0` 后才可 crosslink 到本库。 |
 
@@ -21,13 +21,13 @@
 
 | recommended_role | 数量 | 当前含义 | R2 影响 |
 |---|---:|---|---|
-| 🟢 `final_pool_ready` | 0 | 尚无同时满足 committed raw、许可/再分发清楚、trace verified 的 generated seed | 不能直接冻结最终 smoke |
-| 🟡 `conditional_final_pool` | 3 | `unified-uml-multimodal-validation` 已全量回溯 HF parquet 999 行、989 条有效 PlantUML但有 synthetic/license/非控制系统 caveat；`llms-emp-stm-subset` 已下载 Google Drive workbook 并回溯 60 条 generated PlantUML但 license / redistribution / leakage 未闭合；`sefm-llm-state-machine` 已有 committed 4open ZIP 的 1 组 SSC7 pair但 license / redistribution 未闭合 | 可作为 R2 优先清 blocker 对象 |
+| 🟢 `final_pool_ready` | 3 | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` 已具备 committed raw、typed locator 与 trace verified generated pair；许可/再分发不再作为升绿 blocker，后续论文引用原作即可 | 可作为 R2 seed 候选，但需按各自 caveat 选样 |
+| 🟡 `conditional_final_pool` | 0 | 当前无条目停留在 conditional；若后续发现一手入口明确但缺 raw / locator / generated 输出 / 泄漏隔离 / 质量审计，则再放入该类 | 暂无 |
 | 🟠 `pipeline_only` | 1 | `fsm-bench-20` 有 NL/prompt/schema/code，但没有作者公开 generated `STM_0` | 只能后续本项目复跑另建 seed |
 | ⚪ `paper_reconstructable` | 10 | 多数传统 use-case/statechart 工作只有论文示例 / 附录 | 不计现成 seed；可做 related / 手工构造线索 |
-| 🔴 `related_only` | 1 | `designing-fsm-gpt4` 当前无稳定一手 pair / license / release | 不进 final pool |
+| 🔴 `related_only` | 1 | `designing-fsm-gpt4` 当前无稳定一手 pair | 不进 final pool |
 
-硬性结论：四例 smoke panel 仍需在 R2 基于一手 registry 再冻结；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。
+硬性结论：四例 smoke panel 仍需在 R2 基于一手 registry 再冻结；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
 
 ## 2. 关键统计表
 
@@ -38,7 +38,7 @@
 | 单条目证据目录 | 36 | §8 本地证据容器表；`find corpora/seed_library -mindepth 1 -maxdepth 1 -type d` | `fsm-bench-20` 是 仅制品 / 流水线备选。 |
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
 | 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
-| R2.0 一手 registry 状态 | 0 / 3 / 1 / 10 / 1 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=0；🟡 conditional_final_pool=3；🟠 pipeline_only=1；⚪ paper_reconstructable=10；🔴 related_only=1。 |
+| R2.0 一手 registry 状态 | 3 / 0 / 1 / 10 / 1 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=3；🟡 conditional_final_pool=0；🟠 pipeline_only=1；⚪ paper_reconstructable=10；🔴 related_only=1。 |
 | 人工下载队列状态 | 11 / 2 / 2 / 1 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径
@@ -52,14 +52,14 @@
 | 作者原生 `<NL, STM_0>` pair | 作者或原始制品直接提供的输入 NL 与生成出的 $STM_0$ 配对；不是我们后续复跑、人工补造或从论文截图猜出的 pair。 |
 | 可重建 `<NL, STM_0>` pair | 可以根据论文、附录、示例、图表或代码重建出来的配对，但作者未直接提供原始 pair。 |
 | 配对索引 / case 对齐 | case id、文件名、表格编号或显式映射能稳定把 NL 与 STM_0 对齐。 |
-| R2 可计候选 | 后续可作为 `<NL, STM_0> -> Better STM` 实验输入来源；必须再做 逐案例冻结、许可 / 哈希 和泄漏检查。 |
+| R2 可计候选 | 后续可作为 `<NL, STM_0> -> Better STM` 实验输入来源；必须再做逐案例冻结、哈希、泄漏检查和数据质量 caveat 标注。 |
 
 **R2.0 一手 registry 角色定义**：从 PR-R2.0 起，是否可作为现成 generated seed 只看 [REGISTRY.md](./REGISTRY.md) 的 `recommended_role` 与 validator 输出；旧“严格种子 / 条件种子”只保留为文献层 `NL -> STM_0` 方法证据标签，不能直接决定 R2 实验输入。
 
 | recommended_role | 含义 | R2 默认态度 |
 |---|---|---|
-| 🟢 `final_pool_ready` | committed 一手 `NL + generated STM_0` 可直接复验，许可 / 再分发 / locator / hash 均闭合 | 可进入现成 seed pool；当前数量为 0 |
-| 🟡 `conditional_final_pool` | 一手入口强相关，但仍有 license、redistribution、synthetic、release pin、leakage 或质量抽检等 blocker | 只能作为清 blocker 优先对象；当前为 `unified`、`llms-emp`、`sefm` |
+| 🟢 `final_pool_ready` | committed 一手 `NL + generated STM_0` 可通过 raw hash / locator / 文本回溯复验；许可 / 再分发不再作为升绿 blocker，论文中引用原作即可 | 可进入现成 seed pool；当前数量为 3 |
+| 🟡 `conditional_final_pool` | 一手入口强相关，但仍缺关键 raw、locator、generated 输出、泄漏隔离或质量抽检等 blocker | 当前数量为 0；后续新增时再使用 |
 | 🟠 `pipeline_only` | 有 NL、prompt、schema 或代码，但作者未公开 generated `STM_0` | 不计现成 seed；可后续由本项目复跑另建 seed |
 | 🔵 `reference_only` | 有 `NL + reference STM`，不是 generated `STM_0` | 可做参考解 / 评价线索，不计 generated seed |
 | ⚪ `paper_reconstructable` | 只有论文图示、附录或示例可重建 | 可做方法证据 / 人工构造线索，不计现成 seed |
@@ -69,8 +69,8 @@
 
 | 类型 | 定义 | 典型用途 | 进入 R2 的默认态度 |
 |---|---|---|---|
-| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、许可和泄漏风险也可冻结，则最接近真实实验 seed。 | 作为 `<NL, STM_0> -> Better STM` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
-| 条件种子 / 方法证据 | `NL -> STM_0` 关系基本成立，但存在合成 NL、只可论文级重建、需要切片、验证导向、中间层、可变性、许可待核、完整原生 pair 未公开等限制。 | 作为候选 seed、方法证据、转换器压力或 related work 论证；用于说明上游 seed 生态比严格可用样本更宽。 | 不能自动进入 R2；必须先解决具体限制，或明确只作为方法证据 / 备选。 |
+| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、泄漏风险和数据质量 caveat 也可冻结，则最接近真实实验 seed。 | 作为 `<NL, STM_0> -> Better STM` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
+| 条件种子 / 方法证据 | `NL -> STM_0` 关系基本成立，但存在合成 NL、只可论文级重建、需要切片、验证导向、中间层、可变性、完整原生 pair 未公开等限制。 | 作为候选 seed、方法证据、转换器压力或 related work 论证；用于说明上游 seed 生态比严格可用样本更宽。 | 不能自动进入 R2；必须先解决具体限制，或明确只作为方法证据 / 备选。 |
 | 边界 / 相关工作 / 哨兵 | 与 `NL -> STM` 或状态机建模相关，但不满足当前 seed 定义；常见原因包括输入不是 NL-only、输出不是目标 STM family、方向相反、只是 protocol / standard-doc / behavior-tree / goal-model / sequence / formal-spec 中间链路。 | 用于 related work、边界论证和防误收，帮助说明哪些工作不能冒充本论文 seed。 | 默认不进入 R2；除非后续有独立证据证明可切出合格 `<NL, STM_0>` pair。 |
 | 仅元数据 | 目前只有 BibTeX、DOI、标题或少量元信息，全文或关键制品未拿到，无法判断是否满足 `NL -> T0 STM-family`。 | 保留人工下载 / 后续核验队列，避免遗漏潜在证据。 | 不进入 R2，也不作为正向结论；只能标记为待核。 |
 
@@ -83,13 +83,13 @@
 | 文献资格（非 R2 eligibility） | 强方法证据：清楚满足 `NL -> T0 STM-family` | 条件方法证据：关系清楚但有 synthetic / 制品 / T0 等边界说明 | 扩展 / 边界证据：对方法或转换压力有价值 | 不满足或明确排除 | 待核 | 不适用 |
 | T0 适配 | T0 明确 | 大体 T0，但需切片或少量格式转换 | 存在 timed / hybrid / protocol / 中间产物 风险 | 非 STM family 或不可隔离 | 待核 | 不适用 |
 | 生成关系 | 明确 `NL -> STM_0` | 方向基本成立但需切片 / 初始输出隔离 | 只有间接、中间模型或 paper-level 重建线索 | 不是 `NL -> STM_0` | 待核 | 不适用 |
-| R2 实验输入可用性（派生汇总） | 关键输入可直接冻结：NL 数据、STM_0 数据、作者原生 pair、可重建 pair、配对索引、许可、版本 / 哈希均可支撑实验 | 关键输入基本可用但需抽取、切片或冻结版本 | 只可论文级重建或需要大量人工整理 | 关键输入不可得，不能直接做 R2 样本 | 待核 / 访问受阻 | 对该条目不适用 |
+| R2 实验输入可用性（派生汇总） | 关键输入可直接冻结：NL 数据、STM_0 数据、作者原生 pair、可重建 pair、配对索引、版本 / 哈希均可支撑实验 | 关键输入基本可用但需抽取、切片或冻结版本 | 只可论文级重建或需要大量人工整理 | 关键输入不可得，不能直接做 R2 样本 | 待核 / 访问受阻 | 对该条目不适用 |
 | R2.0 registry 角色 | `final_pool_ready` | `conditional_final_pool` | `pipeline_only` / `paper_reconstructable` | `related_only` / `excluded` | 待核 | 不适用 |
 | 泄漏风险 | 未见明显泄漏 | 需隔离 reference / repair / oracle 字段 | 泄漏风险高，必须强约束使用 | 无法隔离 | 待核 | 不适用 |
 
 ### 3.3 资源可获取性分级
 
-本节专门解释第 7 节资产盘点里用到的资源状态。盘点对象包括论文本体、来源文档、生成/复现实验代码、NL 原始数据、STM_0 原始数据、作者原生 `<NL, STM_0>` pair、可重建 pair、配对索引、原始生成输出、评测结果 / 日志，以及许可、版本 / 哈希信息；**不是**本地 `seed_desc.md`、`artifacts.md` 是否存在。资源列只统计论文正文 / 脚注 / Data Availability / 参考文献、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口；本仓库已经缓存的 parquet、ZIP、代码、PDF、hash、截图或复现副本只能作为本地审计证据，不能把资源等级从 ❓/🔴 升成 🟡/🟢。整体 R2 实验输入可用性是派生汇总项，不能用单个“资源可用”emoji 代替，至少要同时检查 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`。
+本节专门解释第 7 节资产盘点里用到的资源状态。盘点对象包括论文本体、来源文档、生成/复现实验代码、NL 原始数据、STM_0 原始数据、作者原生 `<NL, STM_0>` pair、可重建 pair、配对索引、原始生成输出、评测结果 / 日志，以及许可、版本 / 哈希信息；**不是**本地 `seed_desc.md`、`artifacts.md` 是否存在。资源列只统计论文正文 / 脚注 / Data Availability / 参考文献、作者官方制品页、出版商页、数据集页或论文明确指向的作者仓库等一手入口；本仓库已经缓存的 parquet、ZIP、代码、PDF、hash、截图或复现副本只能作为本地审计证据，不能把资源等级从 ❓/🔴 升成 🟡/🟢。整体 R2 实验输入可用性是派生汇总项，不能用单个“资源可用”emoji 代替，至少要同时检查 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引` 和 `版本 / 哈希`；许可 / 再分发只作来源说明和论文引用提醒，不作为升绿 blocker。
 
 | 资源对象 | 🟢 | 🟡 | 🟠 | 🔴 | ❓ | ⚪ |
 |---|---|---|---|---|---|---|
@@ -103,7 +103,7 @@
 | 配对索引 / case 对齐 | case id、文件名或表格能稳定对齐 NL 与 STM_0 | 对齐关系存在但需脚本或人工核验 | 只能从论文示例推断 | 无法对齐 | 待核 | 不适用 |
 | 原始生成输出 | 作者生成的 STM_0 文本、PlantUML、JSON、CSV 等原始输出可直接拿到 | 部分公开或需抽取 | 只有截图 / 图表 / 示例 | 不可得 | 待核 | 不适用 |
 | 评测结果 / 日志 | 原始结果表、日志、评分表或运行记录可直接复核 | 部分公开，需补整理或补切片 | 只有论文聚合指标 | 不可得 | 待核 | 不适用 |
-| 许可 | 许可明确且允许后续研究使用 | 许可存在但需确认适用范围 | 许可不明但可追踪作者或仓库 | 无法确认或明确不可用 | 待核 | 不适用 |
+| 许可 / 引用说明 | 官方许可明确或公开学术资源可引用原作 | 许可说明需补来源，但不影响一手 trace eligibility | 许可不明但来源可追踪，记录为 caveat | 来源不可追踪或非公开资源 | 待核 | 不适用 |
 | 版本 / 哈希 | 发布版本、commit / 哈希或数据快照明确可追踪 | 可补冻结但当前未完全记录 | 只能以下载日期或页面状态弱冻结 | 无法冻结 | 待核 | 不适用 |
 
 ### 3.4 方法与资源枚举
@@ -137,24 +137,25 @@
 
 ## 4. R2.0 一手 registry 交接分组
 
-本节只给 R2 后续动作分组；逐条事实、eligible count、trace count 和 blocker 以 [REGISTRY.md](./REGISTRY.md) 为准。**当前没有 🟢 `final_pool_ready` 条目**，因此四例 smoke panel 不能从旧“严格种子”表直接冻结。
+本节只给 R2 后续动作分组；逐条事实、eligible count、trace count、NL 数与 caveat 以 [REGISTRY.md](./REGISTRY.md) 为准。当前已有 3 个 🟢 `final_pool_ready` 条目；这表示一手 `NL + generated STM_0` 可回溯复验，不表示没有 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。四例 smoke panel 仍需后续逐案例冻结，四例也不是最终实验规模上限。
 
 | 分组 | 候选 | 当前用途 | 进入 R2 前必须满足 |
 |---|---|---|---|
-| 🟡 清 blocker 优先 | `unified-uml-multimodal-validation`、`llms-emp-stm-subset`、`sefm-llm-state-machine` | 已有一手 raw 与 trace validator 的条目优先清 license / redistribution / leakage / quality caveat；只有清完 blocker 才可能进入 final pool | `unified` 已全量 999 行回溯、989 条有效 PlantUML，但需 license / synthetic / 非控制系统质量抽检；`llms-emp` 已下载 workbook 并回溯 60 条，但需 license / redistribution 与 reference/checking 列隔离；`sefm` 需 license / redistribution / release pin 与更多 generated pair 抽取 |
+| 🟢 可直接复验但需按 caveat 选样 | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` | 已有 committed 一手 raw、typed locator、hash / 文本回溯和 validator 复算，可作为 R2 seed 候选池 | `llms-emp` 必须隔离 reference/checking 列；`sefm` 只能计 SSC7 generated pair，其余 NL 只作 NL-only/reference；`unified` 必须标注 synthetic / 非控制系统 / 无逐行 validation score |
 | 🟠 复跑构造候选 | `fsm-bench-20` | 有 NL / prompt / schema / code，但无作者公开 generated `STM_0`；可由本项目复跑另建 seed | 复跑必须保存 run record、模型、prompt、raw output、hash 与 eligibility，不得冒充作者原生 seed |
 | ⚪ 论文级重建 / 方法证据 | `automated-transition-use-cases-uml-sm`、`maritaca-use-case-behavior-models`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`rscharter-statechart-elements` 等 | 支撑 related work、转换器压力、人工构造线索 | 若要升级为 seed，必须新建 registry + assets + validator，而不是只引用论文图示 |
 | 🔴 相关工作 / 排除哨兵 | `designing-fsm-gpt4`、repair-only、protocol / standard-doc / sequence / formal-spec 等 | 防误收与 related work 定位 | 默认不进入 R2 现成 seed；除非后续找到一手 generated pair 并重新登记 |
+
 ## 5. 候选全集：基础事实与资格矩阵（47 行）
 
 本节把旧宽表拆成多张窄表。§5 只记录元数据、输入输出、生成关系和资格；§7 另列资源可获取性；§8 只列本地证据容器完整性。更细历史原表见 [归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/candidate_matrix.md)。 `证据` 列只提供来源指针或本地分析入口，不代表对应外部资源已经可获取，资源状态必须回到 §7 判读。
 
 | ID | 年份 | 来源批次 | NL类型 | STM类型 | T0 | 关系 | 文献资格 | R2资格 | 当前角色 | 主要风险 | 证据 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | 2026 | 旧基线 / 复现 | 系统描述 | UML statechart / Umple | 🟢 | 🟢 | 🟢 | 🟡 | R2.0 `conditional_final_pool` | 4open ZIP 已 committed，SSC7 generated pair trace verified；license / redistribution / release pin 未闭合，eligible=1；assets 见 [assets/README.md](./sefm-llm-state-machine/assets/README.md) | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
-| `llms-emp-stm-subset` | 2024 | 旧基线 / 复现 | 需求文本 | SysML / PlantUML STM | 🟢 | 🟢 | 🟢 | 🟡 | R2.0 `conditional_final_pool` | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；license / redistribution unknown，需隔离 reference / checking 列 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
-| `designing-fsm-gpt4` | 2026 | 旧基线 | 合成需求 | DFSM / Mealy CSV | 🟢 | 🟢 | 🟡 | 🔴 | R2.0 `related_only` | 无稳定一手 pair / release / license；只作 related / toy-line evidence | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
-| `unified-uml-multimodal-validation` | 2026 | R1.6 + HF 制品 | 合成需求 | PlantUML | 🟢 | 🟢 | 🟡 | 🟡 | R2.0 `conditional_final_pool` | HF parquet 999 行已全量 trace verified，989 条有效 PlantUML；license / synthetic / 非控制系统质量 caveat | [seed_desc](./unified-uml-multimodal-validation/seed_desc.md) |
+| `sefm-llm-state-machine` | 2026 | 旧基线 / 复现 | 系统描述 | UML statechart / Umple | 🟢 | 🟢 | 🟢 | 🟢 | R2.0 `final_pool_ready` | 4open ZIP 已 committed，SSC7 generated pair trace verified，eligible=1；另有 8 个 NL-only / reference-only caveat；assets 见 [assets/README.md](./sefm-llm-state-machine/assets/README.md) | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
+| `llms-emp-stm-subset` | 2024 | 旧基线 / 复现 | 需求文本 | SysML / PlantUML STM | 🟢 | 🟢 | 🟢 | 🟢 | R2.0 `final_pool_ready` | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；10 个唯一 NL × 6 个 LLM；需隔离 reference / checking 列 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
+| `designing-fsm-gpt4` | 2026 | 旧基线 | 合成需求 | DFSM / Mealy CSV | 🟢 | 🟢 | 🟡 | 🔴 | R2.0 `related_only` | 无稳定一手 pair / release / 引用说明；只作 related / toy-line evidence | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
+| `unified-uml-multimodal-validation` | 2026 | R1.6 + HF 制品 | 合成需求 | PlantUML | 🟢 | 🟢 | 🟡 | 🟢 | R2.0 `final_pool_ready` | HF parquet 999 行已全量 trace verified，989 条有效 PlantUML；synthetic / 非控制系统 / 无逐行 validation score caveat | [seed_desc](./unified-uml-multimodal-validation/seed_desc.md) |
 | `fsm-bench-20` | 2026 | R1.6 + Zenodo/GitHub | 需求文本 | FSM JSON | 🟢 | 🟢 | 🟢 | 🟠 | R2.0 `pipeline_only` | 公开包缺作者 generated `STM_0`；需本项目复跑另建 seed | [seed_desc](./fsm-bench-20/seed_desc.md) |
 | `ttool-ai-smd-subset` | 2024 | 旧基线 / 复现 | 系统规范 | SysML STM | 🟡 | 🟡 | 🟠 | 🟠 | 转换器压力 | 需切出 SMD 并处理时间 / 信号边界说明 | [seed_desc](./ttool-ai-smd-subset/seed_desc.md) |
 | `fsm-gen-iec-61499` | 2025 | 旧基线 / R1.6全文 | 工业自动化需求 | FSM / IEC 61499 ECC | 🟡 | 🟡 | 🟡 | 🔴 | 私有制品边界 | 初始 STM 与 refinement 难隔离 | [seed_desc](./fsm-gen-iec-61499/seed_desc.md) |
@@ -167,7 +168,7 @@
 | `executable-state-machines-structured-text` | 2019 | 旧基线 | 结构化需求 / SPS | executable FSM | 🟢 | 🟠 | 🟡 | 🔴 | NL->SPS 有人工步骤 | 弱 seed 相关工作 | [seed_desc](./executable-state-machines-structured-text/seed_desc.md) |
 | `maritaca-use-case-behavior-models` | 2017 | R1.6 经典检索 | 半结构化用例 | UML state machine | 🟢 | 🟢 | 🟢 | 🔴 | R2.0 `paper_reconstructable` | 作者 artifact 403；machine-readable native pair / 代码未冻结 | [seed_desc](./maritaca-use-case-behavior-models/seed_desc.md) |
 | `dependable-product-families-usecases-state-machines` | 2016 | R1.6 经典检索 | 受限用例 + variability | UML state machine / EFSM | 🟡 | 🟢 | 🟡 | 🔴 | R2.0 `paper_reconstructable` | variability 需切片；pair/code 未公开 | [seed_desc](./dependable-product-families-usecases-state-machines/seed_desc.md) |
-| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | 🟡 | 🟢 | 🟡 | 🔴 | R2.0 `paper_reconstructable` | 论文 [DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；附录可重建局部 pair，原生 pair / 代码 / 许可未冻结 | [seed_desc](./automated-transition-use-cases-uml-sm/seed_desc.md) |
+| `automated-transition-use-cases-uml-sm` | 2011 | 外部检索 | 用例 | UML state machine | 🟡 | 🟢 | 🟡 | 🔴 | R2.0 `paper_reconstructable` | 论文 [DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；附录可重建局部 pair，原生 pair / 代码 / 版本未冻结 | [seed_desc](./automated-transition-use-cases-uml-sm/seed_desc.md) |
 | `execution-nl-req-bt-sm` | 2012 | 外部检索 | 需求文本 | 行为树 -> FSM | 🟢 | 🟠 | 🟠 | 🔴 | BT 中间产物 / 转换链证据 | BT2SMExamples 链接不稳定；不计主 seed | [seed_desc](./execution-nl-req-bt-sm/seed_desc.md) |
 | `completion-sysml-gwt` | 2024 | 外部 / 旧基线 | GWT需求 + partial model | SysML transitions | 🟠 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 依赖已有 partial model | [seed_desc](./completion-sysml-gwt/seed_desc.md) |
 | `towards-automatic-model-completion` | 2022 | R1.7人工复查 | GWT需求 + partial SMD | SysML STM 片段 | 🔴 | 🔴 | 🔴 | 🔴 | `X_REPAIR_ONLY` | 不是 initial `NL -> STM_0` | [seed_desc](./towards-automatic-model-completion/seed_desc.md) |
@@ -199,28 +200,29 @@
 | `web-tool-goal-statechart-derivation` | 2015 | R1.7 manual 候选 | 目标模型 / 需求模型 | statechart | ❓ | 🟠 | ❓ | 🔴 | 目标模型 / statechart 哨兵 | 论文 [DOI](https://doi.org/10.1109/RE.2015.7320444)；[supplement](http://www.cin.ufpe.br/~ler/supplement/re2015/) 可定位；非 NL-only | [seed_desc](./web-tool-goal-statechart-derivation/seed_desc.md) |
 | `ucgen-usecase-descriptions` | 2026 | R1.7 排除 | 需求规格 | 用例文本 | ⚪ | 🔴 | 🔴 | 🔴 | 输出非 STM | 不进入 seed | Crossref textual usecase round |
 
-## 6. R2.0 registry blocker queue / 可清理候选明细
+## 6. R2.0 registry handoff / caveat 明细
 
-本节替代旧“R2 可计候选 4 条”口径。当前 **final_pool_ready=0**；以下对象只是 R2 清 blocker / 复跑构造队列，不是已冻结最终实验样本。
+本节替代旧“R2 可计候选 4 条”口径。当前 **final_pool_ready=3**；以下前三项是可回溯复验的现成 generated seed 候选，但仍必须在选样时保留质量 / 泄漏 / 领域 caveat。
 
-| ID | registry role | generated eligible | trace verified | 当前一手入口状态 | NL 数据 | STM_0 数据 | 主要 blocker | 下一步 |
+| ID | registry role | generated eligible | trace verified | 当前一手入口状态 | NL 数据 | STM_0 数据 | 主要 caveat | 下一步 |
 |---|---:|---:|---:|---|---|---|---|---|
-| `unified-uml-multimodal-validation` | 🟡 `conditional_final_pool` | 989 | 999 | `downloaded` | HF parquet `input`；synthetic feature descriptions | HF parquet `uml_code`；PlantUML StateDiagram；999 行中 10 行为 `No valid PlantUML code found.` 已排除 | dataset_license_unknown；synthetic_requirements_caveat；non_control_domain_quality_audit_needed；10_generation_failure_rows_excluded | 可作条件 smoke / stress seed；先补许可说明、合成 / 非控制系统 caveat 与质量抽检 |
-| `llms-emp-stm-subset` | 🟡 `conditional_final_pool` | 60 | 60 | `downloaded` | Google Drive `Experiment Results.xlsx` / `STM Results` / `Requirement Description` | `Generation PlantUML`；reference `PlantUML` 与 checking outputs 必须排除 | data_license_unknown；redistribution_unknown；reference_and_postprocessed_columns_must_be_isolated | 可作条件 smoke 候选；必须保留许可 / 再分发 caveat，并在转换器输入中只取 `Generation PlantUML` |
-| `sefm-llm-state-machine` | 🟡 `conditional_final_pool` | 1 | 1 | `downloaded` | committed 4open ZIP 中 `SSC7_fall_2024` description | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | license_unknown；redistribution_unknown；anonymous_4open_no_release_or_doi；only_ssc7_generated_pair_extracted_so_far | 补 license / redistribution / release pin；必要时继续抽取其他 generated outputs；reference solutions 继续只标 reference_only |
+| `unified-uml-multimodal-validation` | 🟢 `final_pool_ready` | 989 | 999 | `downloaded` | HF parquet `input`；999 条 synthetic feature descriptions，989 条 eligible NL 均唯一，10 条 generation failure 为 NL-only | HF parquet `uml_code`；PlantUML StateDiagram；10 行 `No valid PlantUML code found.` 已排除 | synthetic_requirements_caveat；non_control_domain_quality_caveat；no_per_row_vlm_or_human_score；10_generation_failure_rows_excluded | 可作 synthetic UML state-diagram smoke / stress seed；不得包装为控制系统真实需求 |
+| `llms-emp-stm-subset` | 🟢 `final_pool_ready` | 60 | 60 | `downloaded` | Google Drive `Experiment Results.xlsx` / `STM Results` / `Requirement Description`；60 raw / 10 unique，10×6 LLM 输出 | `Generation PlantUML`；reference `PlantUML` 与 checking outputs 必须排除 | reference_and_postprocessed_columns_must_be_isolated | 可作强相关 LLM seed；转换器输入必须白名单只取 `Requirement Description + Generation PlantUML` |
+| `sefm-llm-state-machine` | 🟢 `final_pool_ready` | 1 | 1 | `downloaded` | committed 4open ZIP 中 9 个 NL descriptions；只有 `SSC7_fall_2024` 有 generated 输出，其余 8 个为 NL-only / reference-only | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | only_ssc7_generated_pair_extracted_so_far；missing_generated_outputs_for_8_other_nl_descriptions；workbook_image_refs_without_actual_png_or_stm_text | 可作单例强相关 LLM seed；reference solutions 继续只标 reference_only |
 | `fsm-bench-20` | 🟠 `pipeline_only` | 0 | 0 | `downloaded` | Zenodo/GitHub benchmark systems / prompts | 作者未公开 generated `STM_0` | no_published_generated_stm0；rerun_required_before_seed | 若使用，必须由本项目复跑生成 `STM_0`，并写完整 run record；不能冒充作者原生 pair |
+
 ## 7. 外部资源可获取性矩阵（47 行）
 
 本节保留 R1.8 外部入口盘点，用于说明论文 / 数据页 / artifact 页面是否可定位；它不等同于 R2.0 committed first-source eligibility。当前是否能计为一手 generated seed 必须回到 [REGISTRY.md](./REGISTRY.md) 的 role、eligible count、trace validator 与 blocker。
 
-本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`许可`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。**资源可获取性升级为 🟢/🟡 前，必须基于全文阅读与外部资源页核验**，包括 DOI / 出版页、论文明确指向的作者仓库、数据集 / artifact 页面、附录、补充材料和许可页；不能只因为本地有 `seed_desc.md`、`artifacts.md`、PDF 缓存、parquet 缓存、ZIP 缓存、代码副本或本地 hash 就判断作者公开了可复用资产。若全文或资源页受阻，应保持 ❓/🔴 并在说明列写明阻塞来源。凡说明列提到可获取的一手资源，必须给出可点击链接。
+本表盘点“后续环节能否直接使用”的外部资源，而不是本地 `README.md`、`seed_desc.md`、`artifacts.md` 是否存在。资源状态口径见 §3.2 和 §3.3。R2 实验输入至少要同时看 `NL 数据`、`STM_0 数据`、`作者原生 pair`、`可重建 pair`、`配对索引`、`版本 / 哈希`；论文本体、生成代码和评测结果主要支撑复核、复现和相关工作分析。**资源可获取性升级为 🟢/🟡 前，必须基于全文阅读与外部资源页核验**，包括 DOI / 出版页、论文明确指向的作者仓库、数据集 / artifact 页面、附录、补充材料和许可页；不能只因为本地有 `seed_desc.md`、`artifacts.md`、PDF 缓存、parquet 缓存、ZIP 缓存、代码副本或本地 hash 就判断作者公开了可复用资产。若全文或资源页受阻，应保持 ❓/🔴 并在说明列写明阻塞来源。凡说明列提到可获取的一手资源，必须给出可点击链接。
 
-| ID | 论文本体 | 来源文档 | 生成/复现实验代码 | NL 数据 | STM_0 数据 | 作者原生 pair | 可重建 pair | 配对索引 | 原始生成输出 | 评测结果 / 日志 | 许可 | 版本 / 哈希 | 获取性说明 |
+| ID | 论文本体 | 来源文档 | 生成/复现实验代码 | NL 数据 | STM_0 数据 | 作者原生 pair | 可重建 pair | 配对索引 | 原始生成输出 | 评测结果 / 日志 | 许可 / 引用说明 | 版本 / 哈希 | 获取性说明 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | 🟢 | ⚪ | 🟡 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) / [ZIP](https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip) 含 descriptions / reference / 生成输出；需冻结许可、版本和哈希。 |
-| `llms-emp-stm-subset` | 🟢 | ⚪ | 🔴 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文正文/脚注给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)；生成流水线代码未公开，数据许可待核。 |
+| `sefm-llm-state-machine` | 🟢 | ⚪ | 🟡 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) / [ZIP](https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip) 含 descriptions / reference / 生成输出；需冻结版本和哈希；公开学术资源按引用原作处理。 |
+| `llms-emp-stm-subset` | 🟢 | ⚪ | 🔴 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | 🟡 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文正文/脚注给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)；生成流水线代码未公开；公开学术资源按引用原作处理，主要风险是 reference/checking 列隔离。 |
 | `designing-fsm-gpt4` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | ❓ | ❓ | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 1.1/1.2 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 不计入资源可获取性。 |
-| `unified-uml-multimodal-validation` | 🟢 | ⚪ | ❓ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | ❓ | ❓ | 论文 [TechScience HTML](https://www.techscience.com/CMES/v146n1/65740/html) 的 Data Availability 给 [HF datasets](https://huggingface.co/nguyenvanviet/datasets)，StateDiagram 子集 [UMLCode_StateDiagram](https://huggingface.co/datasets/nguyenvanviet/UMLCode_StateDiagram)，许可、逐行可解析性与合成边界待核。 |
+| `unified-uml-multimodal-validation` | 🟢 | ⚪ | ❓ | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 🟡 | ❓ | ❓ | 论文 [TechScience HTML](https://www.techscience.com/CMES/v146n1/65740/html) 的 Data Availability 给 [HF datasets](https://huggingface.co/nguyenvanviet/datasets)，StateDiagram 子集 [UMLCode_StateDiagram](https://huggingface.co/datasets/nguyenvanviet/UMLCode_StateDiagram)，合成边界、逐行可解析性与非控制系统适用性需标注；HF parquet 无逐行 VLM/human score。 |
 | `fsm-bench-20` | ⚪ | ⚪ | 🟢 | 🟢 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | ⚪ | 🟢 | 🟢 | 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.20517969) 与 [GitHub tag](https://github.com/cesar-andress/llm-fsm-local-benchmark/tree/v1.0.0) / [release](https://github.com/cesar-andress/llm-fsm-local-benchmark/releases/tag/v1.0.0) 可用；作者冻结的生成 `STM_0` 输出未公开。 |
 | `ttool-ai-smd-subset` | 🟢 | ⚪ | 🟢 | 🟢 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟢 | ❓ | 🟡 | 论文 [HAL](https://telecom-paris.hal.science/hal-04483279) / [DOI](https://doi.org/10.5220/0012320100003645)；论文给出作者仓库 [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai)，含 specification / XML / results.ods；SMD 需从联合 SysML 模型中切片。 |
 | `fsm-gen-iec-61499` | 🟢 | ⚪ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11279575/)；核心实验数据 / 输出私有，只能作相关工作 / 私有边界。 |
@@ -232,7 +234,7 @@
 | `beyond-scenarios-state-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 PDF [uOttawa](https://www.site.uottawa.ca/~ssome/UCEdWeb/publis/ICSE02_Scenario_Workshop.pdf)；仅论文示例可读，无公开 UCEd 下载 / 机读 pair。 |
 | `executable-state-machines-structured-text` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.5220/0007236601930200)；仅论文示例，无可直接复验数据包。 |
 | `maritaca-use-case-behavior-models` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2017.33)；论文引用作者网页 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按 403/受阻处理；只能从论文例子重建 pair，原生数据包、代码和许可未冻结。 |
-| `dependable-product-families-usecases-state-machines` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/LADC.2016.28)；论文引用作者站点 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按受阻处理；只能从论文中的 use case / variability / traceability matrix 重建 pair，原生代码、数据、许可、hash 未公开。 |
+| `dependable-product-families-usecases-state-machines` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/LADC.2016.28)；论文引用作者站点 [MARITACA](http://www.students.ic.unicamp.br/~ra161251/) 但按受阻处理；只能从论文中的 use case / variability / traceability matrix 重建 pair，原生代码、数据、版本 / hash 未公开。 |
 | `automated-transition-use-cases-uml-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | ❓ | ❓ | 论文 [Springer DOI](https://doi.org/10.1007/978-3-642-21470-7_9)；Appendix A/B 可重建局部 RUCM use case 与生成 state machine；未见论文一手原生 pair 包、完整代码、许可或 hash。 |
 | `execution-nl-req-bt-sm` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0164121212001690) / [DOI](https://doi.org/10.1016/j.jss.2012.06.013)；论文示例可重建 NL/BT/SM，`BT2SMExamples.pdf` 入口不稳定。 |
 | `completion-sysml-gwt` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/s10270-024-01228-3)；任务为 partial-model completion，不是 seed pair。 |
@@ -243,7 +245,7 @@
 | `requirements-analysis-prototyping-scenarios-statecharts` | 🟠 | ⚪ | 🔴 | ❓ | ❓ | 🔴 | 🔴 | 🔴 | ❓ | ❓ | ❓ | ❓ | 仅定位到二手 [Academia PDF](https://www.academia.edu/download/31191491/1.pdf)，正式 DOI / 作者页 / 出版页未定位；非 `NL -> STM_0`，未发现可直接复用的 pair。 |
 | `nl-standard-docs-state-machines` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [AIAA DOI](https://doi.org/10.2514/1.I010525)；ECSS/PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；原始 TXT2SMM 输出包未公开。 |
 | `semi-auto-efsm-standard-docs` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [IEEE DOI](https://doi.org/10.1109/DSN-W.2015.17)；ECSS/PUS 输入来源为 [ECSS-E-ST-70-41C 官方标准页](https://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) / [官方 PDF](https://ecss.nl/wp-content/uploads/2016/06/ECSS-E-ST-70-41C15April2016.pdf)；TXT2SMM / case data / generated EFSM package 未公开。 |
-| `statechart-use-case-validation-event-driven` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ACM DOI](https://doi.org/10.1145/2245276.2231947)；论文引用案例来源 [RealState](http://openseminar.org/se/)；图示可重建 pair，完整代码/数据/许可/hash 未公开。 |
+| `statechart-use-case-validation-event-driven` | 🟢 | ⚪ | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🟠 | 🔴 | 🔴 | 论文 [ACM DOI](https://doi.org/10.1145/2245276.2231947)；论文引用案例来源 [RealState](http://openseminar.org/se/)；图示可重建 pair，完整代码/数据/版本 / hash 未公开。 |
 | `rscharter-statechart-elements` | 🟢 | 🟢 | 🔴 | 🟠 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟠 | 🟡 | 🟡 | 论文 [SSRN](https://papers.ssrn.com/abstract=4964857)；输入来源 PuRE 数据集 [Zenodo DOI](https://doi.org/10.5281/zenodo.1414117)；PuRE 许可 / 版本仅覆盖来源数据，不覆盖 RSCharter 增强 pair/code。 |
 | `most-states-modes` | 🟢 | ⚪ | 🟢 | 🟢 | 🟠 | 🔴 | 🟠 | 🟠 | 🟠 | 🟢 | ❓ | 🟡 | 论文 [ACM DOI](https://doi.org/10.1145/3640822)；论文给出工具 [GitHub](https://github.com/liuyinling/MoSt-Modeling-Tool.git) 和相关 example；这些是 MoSt / NuSMV 形式化模型资源，非目标 T0 `STM_0`；仓库可定位但 release / tag / commit 尚未冻结。 |
 | `sysmlv2-formalized-requirements` | 🟠 | ⚪ | 🔴 | 🟠 | 🟠 | 🔴 | 🔴 | 🔴 | 🔴 | 🟠 | 🔴 | 🔴 | 论文 [DOI](https://doi.org/10.1007/s10010-025-00806-1)；目前更像形式化 / LTL 相关证据。 |
@@ -274,8 +276,8 @@
 
 | 原基线 | 种子方法 ID | 矩阵 ID | 单条目 | 输入 NL | 输出 STM | 生成方法 | 作者原生 pair | 资源摘要（非原子；一手入口） | R2 用途 |
 |---|---|---|---|---|---|---|---|---|---|
-| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 8 个 reactive-system / system descriptions | UML state machine / statechart | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) 含代码 / 数据 / F1 workbook；本 PR 已冻结 ZIP hash，许可 / release 稳定性仍待核 | R2.0 `conditional_final_pool`；ZIP 已落盘且 SSC7 trace verified，eligible=1；license / redistribution 未闭合 |
-| LLMS EMP / SysML Behavior Models | `llms-emp-stm-subset` | `llms-emp-stm-subset` | [llms-emp-stm-subset](./llms-emp-stm-subset/) | `STM Results` 中 60 条 SysML 行为模型需求描述；6 个 LLM 各 10 条 | PlantUML / SysML STM | LLM；requirements + prompt；含 reference / checking 后结果，需隔离 | 🟡 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)，已用 gdown 下载 workbook，许可待核 | R2.0 `conditional_final_pool`；60 条 generated PlantUML trace verified，但 license / redistribution unknown |
+| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 9 个 reactive-system / system descriptions；仅 SSC7 有 generated 输出 | UML state machine / statechart / Umple | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟢 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) / [ZIP](https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip) 含代码 / 数据 / F1 workbook；本 PR 已冻结 ZIP hash | R2.0 `final_pool_ready`；ZIP 已落盘且 SSC7 trace verified，eligible=1；其余 8 个 NL 不计 generated pair |
+| LLMS EMP / SysML Behavior Models | `llms-emp-stm-subset` | `llms-emp-stm-subset` | [llms-emp-stm-subset](./llms-emp-stm-subset/) | `STM Results` 中 60 条 SysML 行为模型需求描述；10 个唯一 NL × 6 个 LLM 输出 | PlantUML / SysML STM | LLM；requirements + prompt；含 reference / checking 后结果，需隔离 | 🟢 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)，已用 gdown 下载 workbook | R2.0 `final_pool_ready`；60 条 generated PlantUML trace verified，使用时只取 `Generation PlantUML` |
 | Designing FSM with GPT-4 | `designing-fsm-gpt4` | `designing-fsm-gpt4` | [designing-fsm-gpt4](./designing-fsm-gpt4/) | 合成英文 DFSM / Mealy 需求描述 | CSV DFSM / Mealy | GPT-4/GPT-4o；初始生成 + oracle / 检查 / 修正实验 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 只作线索 | R2.0 `related_only`；不作为 seed |
 | TTool-AI | `ttool-ai-smd-subset` | `ttool-ai-smd-subset` | [ttool-ai-smd-subset](./ttool-ai-smd-subset/) | platooning、spacebasedsystem、AutomatedBraking 等自然语言系统规范 | SysML/TTool state-machine diagram subset | ChatGPT 3.5；语法/语义检查、JSON→TTool XML | 🟡 | 论文 [HAL](https://telecom-paris.hal.science/hal-04483279) / [DOI](https://doi.org/10.5220/0012320100003645)；论文给出作者仓库 [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai)，需分离 SMD；provider drift/许可待核 | 转换器压力 / 条件 seed |
 | Umple thesis | `umple-nl-state-machine` | `umple-nl-state-machine` | [umple-nl-state-machine](./umple-nl-state-machine/) | 5 个自然语言 requirements 系统 | Umple textual state machine code | Llama 3；zero-shot、one-shot、RAG | 🔴 | 学位论文 [uOttawa record](https://ruor.uottawa.ca/items/b3679a91-5445-45ce-b289-bfddba3010f6)；完整 benchmark、输出包、评测脚本未公开；仅论文示例可重建 | 仅论文 种子证据 |
@@ -415,18 +417,20 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 
 ## 12. 文献筛查与全文阅读 provenance 摘要
 
-旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 36 单条目目录；当时旧口径的主 / 条件主可计候选为 4；R2.0 后当前一手 registry 口径改为 final_pool_ready=0、conditional_final_pool=3、pipeline_only=1。Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
+旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 36 单条目目录；当时旧口径的主 / 条件主可计候选为 4；R2.0 后当前一手 registry 口径改为 final_pool_ready=3、conditional_final_pool=0、pipeline_only=1。Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
 
 ## 13. 关键风险与 R2 建议
 
-1. **当前无 🟢 `final_pool_ready`**：不能把 R1.8 “严格种子 / 条件主候选”直接拿去冻结四例 smoke；必须先清 [REGISTRY.md](./REGISTRY.md) 中 `unified`、`llms-emp`、`sefm` 的 blocker，或明确走 `fsm-bench-20` 复跑构造。
-2. **`llms-emp-stm-subset` 已从 metadata-only 升级为 downloaded conditional；`sefm-llm-state-machine` 仍是 committed ZIP conditional**：`llms-emp` 当前已有 60 条 workbook trace verified generated pair，但不得因许可 / 再分发不明、reference / checking 列共存而升级为 final_pool_ready；`sefm` 当前已有 1 组 trace verified pair，但同样不得因许可/再分发不明升级为 final_pool_ready。
-3. **`unified-uml-multimodal-validation` 只能条件使用**：HF parquet 999 行已全量 trace verified，其中 989 行是有效 PlantUML generated pair，10 行是 `No valid PlantUML code found.` 并已排除；但数据集 license unknown、synthetic NL、非控制系统场景和质量抽检仍未闭合，不应被写成 final_pool_ready。
-4. **`fsm-bench-20` 不能直接算作者 generated seed**：公开包有 dataset / prompt / schema / code / MIT，但缺作者冻结的 generated `STM_0` 输出；若使用必须由本项目复跑并保存 run record、prompt、模型、raw output、hash 与 eligibility。
-5. **paper-reconstructable / related-only 不能替代现成样本**：论文图示、附录、旧缓存、人工重建、protocol / standard / sequence / repair-only 线索都不能绕过 registry + assets + validator。
-6. **四例只是 R3--R6 开发 smoke panel，不是最终实验规模上限**：最终实验池应继续扩大，但每个入池 pair 都必须满足一手来源和可审计 trace。
+1. **当前有 3 个 🟢 `final_pool_ready`，但它们不是同质高质量控制系统池**：`llms-emp` 最贴近控制 / SysML 行为模型；`sefm` 只有 1 个 SSC7 generated pair；`unified` 规模大但 synthetic 且偏通用软件 feature。
+2. **许可 / 再分发不再作为升绿 blocker**：这些对象来自公开论文、作者 artifact、HF、Google Drive 或 Zenodo 等公开学术资源，论文中规范引用原作即可；后续风险评估应集中在一手 trace、泄漏隔离、数据质量和领域适配。
+3. **`llms-emp-stm-subset` 的主要风险是泄漏隔离**：60 条 workbook trace verified generated pair 可用，但必须只取 `Requirement Description + Generation PlantUML`；reference `PlantUML` 和 `Result with * Checking` 不得进入原始 `STM_0`。
+4. **`sefm-llm-state-machine` 的主要风险是样本少和 reference/generated 边界**：ZIP 有 9 个 NL descriptions、8 个 reference solutions、1 个 generated text output；当前只有 SSC7 可计 generated pair，其余 8 个 NL 只能作 NL-only / reference 资产。
+5. **`unified-uml-multimodal-validation` 的主要风险是 synthetic / 非控制系统 / 无逐行 validation score**：HF parquet 999 行全量 trace verified，其中 989 行是有效 PlantUML generated pair，10 行生成失败已排除；可作 synthetic smoke / stress seed，不得包装为真实控制系统需求。
+6. **`fsm-bench-20` 不能直接算作者 generated seed**：公开包有 dataset / prompt / schema / code，但缺作者冻结的 generated `STM_0` 输出；若使用必须由本项目复跑并保存 run record、prompt、模型、raw output、hash 与 eligibility。
+7. **paper-reconstructable / related-only 不能替代现成样本**：论文图示、附录、旧缓存、人工重建、protocol / standard / sequence / repair-only 线索都不能绕过 registry + assets + validator。
+8. **四例只是 R3--R6 开发 smoke panel，不是最终实验规模上限**：最终实验池应继续扩大，但每个入池 pair 都必须满足一手来源和可审计 trace。
 
-R2 建议顺序：先围绕 `llms-emp` / `unified` / `sefm` 三个 conditional 来源清 license、redistribution、leakage 与质量抽检 caveat；`llms-emp` 已可用 60 条 workbook generated pair，`unified` 已可用 989 条有效 PlantUML 条件 pair，`sefm` 仍需视需要抽取更多 generated outputs；最后视真实控制系统覆盖缺口决定是否用 `fsm-bench-20` rerun 构造补 smoke。
+R2 建议顺序：先从 `llms-emp` 选取若干控制 / SysML 行为模型样例，再用 `sefm` 的 SSC7 覆盖非结构化 reactive-system 描述与 Umple 转换压力，必要时引入 `unified` 做 synthetic PlantUML stress；若真实控制系统覆盖不足，再用 `fsm-bench-20` 复跑构造补充 seed，并保留完整 run record。
 
 ## 14. 迁移表
 
@@ -449,7 +453,7 @@ R2 建议顺序：先围绕 `llms-emp` / `unified` / `sefm` 三个 conditional �
 
 | 时间 | 更新 |
 |---|---|
-| 2026-06-22 19:40:00 | PR-R2.0：修正 unified 计数口径为 raw=999、trace=999、eligible=989；用 gdown 下载 llms-emp Google Drive workbook 并抽取 60 条 generated PlantUML，仍保持 conditional。 |
+| 2026-06-22 19:40:00 | PR-R2.0：修正 unified 计数口径为 raw=999、trace=999、eligible=989；用 gdown 下载 llms-emp Google Drive workbook 并抽取 60 条 generated PlantUML；公开学术资源按引用原作处理后，三条一手资源均为 final_pool_ready，并保留各自 caveat。 |
 | 2026-06-15 15:05:00 | PR-R1.8-B：补充 §3.1 最终结论类型定义，明确严格种子、条件种子 / 方法证据、边界 / 相关工作 / 哨兵、仅元数据四类与 R2 进入态度。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：补强 §16 结论总表，显式列出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系与时间特性等级；将资源列改为一手可点击链接，并统一 `作者原生 pair` 与 `可重建 pair` 口径，避免本地缓存或论文级重建线索冒充公开原生资源。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：从 vpn-lab 全书 PDF 中抽取 Yue 2011 章节，`automated-transition-use-cases-uml-sm` 从 BibTeX-only 升级为 conditional seed；人工队列更新为 `11/2/2/1`，剩余队列只保留 Jørgensen 2004。 |
@@ -457,7 +461,7 @@ R2 建议顺序：先围绕 `llms-emp` / `unified` / `sefm` 三个 conditional �
 | 2026-06-14 20:45:00 | PR-R1.8-B：补充人工下载 BibTeX 队列，明确资源可获取性必须基于全文阅读与外部资源页核验，不能只看本地 repo 资源。 |
 | 2026-06-14 20:35:00 | PR-R1.8-B：修复 review 指出的 pair 口径同步问题，补入可重建 pair、作者原生 pair、配对索引与 R2 交接列，并把 R2 实验输入可用性标为派生汇总项。 |
 | 2026-06-14 20:10:00 | PR-R1.8-B：按 review I 级意见继续拆分资源矩阵，新增来源文档、STM_0 数据、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希等列，并说明 R2 实验输入可用性不能由单个资源 emoji 代替。 |
-| 2026-06-14 19:30:00 | PR-R1.8-B：继续中文化 SUMMARY，新增资源可获取性分级说明，细化候选矩阵中的当前角色与主要风险，并把资源盘点范围明确到论文本体、源码、NL 数据、STM 数据、作者原生 pair、实验结果和许可 / 版本 / 哈希。 |
+| 2026-06-14 19:30:00 | PR-R1.8-B：继续中文化 SUMMARY，新增资源可获取性分级说明，细化候选矩阵中的当前角色与主要风险，并把资源盘点范围明确到论文本体、源码、NL 数据、STM 数据、作者原生 pair、实验结果和引用说明 / 版本 / 哈希。 |
 | 2026-06-14 18:45:00 | PR-R1.8-B：按最新审阅意见中文化 SUMMARY，拆分耦合列，新增 emoji 枚举口径与外部资源可获取性矩阵；明确本地证据容器表不等同于资源可用性。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B：迁移旧 `seed_corpus/` 到 `corpora/seed_library/`；建立三件套；旧横向 ledger、检索轮次 / results 进入 archive；当前 SUMMARY 可复算 `47/47`、`36 dirs`、`9/9 映射`、R2=4 和 人工队列状态。 |
 | 2026-06-14 13:20:00 | PR-R1.7 有界快照 v4：纠正 seed 方法集合 vs R2 四例计数口径，补齐旧九 旧基线直接映射，新增 `pushing-generative-envelope-mbse`，扩展到 47 候选 / 47 筛查 / 24 单条目目录；主 / 条件主可计候选仍为 4 条。 |
@@ -473,15 +477,15 @@ R2 建议顺序：先围绕 `llms-emp` / `unified` / `sefm` 三个 conditional �
 
 | ID | 文献层判断 | R2.0 registry role | NL输入是什么 | STM输出是什么 | STM关键特性 | STM谱系 | 时间特性等级 | NL->STM 方式 | 当前资源结论 |
 |---|---|---:|---|---|---|---|---|---|---|
-| `unified-uml-multimodal-validation` | 条件方法证据 | 🟡 `conditional_final_pool` | LLaMA 生成的 synthetic user-focused requirements / feature descriptions | PlantUML StateDiagram / `UMLCode_StateDiagram` | PlantUML 状态图文本；需抽检非状态图污染和合成数据泄漏 | UML state diagram / PlantUML statechart | T0-离散；未见显式时钟 | 多模型流水线：requirements -> PlantUML | HF parquet 999 行全量 trace verified，989 条有效 PlantUML；license / synthetic / 非控制系统质量 caveat 未闭合 |
-| `llms-emp-stm-subset` | 强相关 LLM seed 方法证据 | 🟡 `conditional_final_pool` | SysML 行为模型需求描述 / requirements descriptions；只取 STM 子集 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；只允许初始 `Generation PlantUML` | SysML state machine / UML statechart | T0-结构化离散；未见 timed / hybrid 目标模型 | LLM；requirements + prompt；6 个 LLM 各 10 条 | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；license / redistribution unknown，reference / checking 列需隔离 |
-| `sefm-llm-state-machine` | 强相关 LLM seed 方法证据 | 🟡 `conditional_final_pool` | 非结构化 reactive-system 系统描述 / 行为需求 | UML state machine / Umple 输出 | 显式 state / transition / guard / action；评估 hierarchy / parallel / history | UML statechart / HSM-capable | T0-结构化离散；未见显式时钟 / 连续动力学 | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 4open ZIP 已 committed，SSC7 generated pair trace verified；但 license / redistribution / release pin 未闭合且仅抽取 1 组 generated pair |
+| `unified-uml-multimodal-validation` | 条件方法证据 | 🟢 `final_pool_ready` | LLaMA 生成的 synthetic user-focused requirements / feature descriptions | PlantUML StateDiagram / `UMLCode_StateDiagram` | PlantUML 状态图文本；需标注 synthetic、非控制系统和无逐行 validation score caveat | UML state diagram / PlantUML statechart | T0-离散；未见显式时钟 | 多模型流水线：requirements -> PlantUML | HF parquet 999 行全量 trace verified，989 条有效 PlantUML；可作 synthetic smoke/stress，不作真实控制系统需求 |
+| `llms-emp-stm-subset` | 强相关 LLM seed 方法证据 | 🟢 `final_pool_ready` | SysML 行为模型需求描述 / requirements descriptions；10 个唯一 NL × 6 个 LLM 输出 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；只允许初始 `Generation PlantUML` | SysML state machine / UML statechart | T0-结构化离散；未见 timed / hybrid 目标模型 | LLM；requirements + prompt；6 个 LLM 各 10 条 | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；reference / checking 列需隔离 |
+| `sefm-llm-state-machine` | 强相关 LLM seed 方法证据 | 🟢 `final_pool_ready` | 非结构化 reactive-system 系统描述 / 行为需求；ZIP 共 9 个 NL descriptions | UML state machine / Umple 输出 | 显式 state / transition / guard / action；评估 hierarchy / parallel / history；SSC7 generated 输出含 `after(60)` 类 timer-like transition | UML statechart / HSM-capable | T0-结构化离散；不是 timed automata / hybrid model | LLM；当前可计 pair 为 Claude Sonnet 3.5 single prompt | 4open ZIP 已 committed，SSC7 generated pair trace verified；仅 1 组 generated pair，其余 8 个 NL 不计 generated pair |
 | `fsm-bench-20` | pipeline 相关证据 | 🟠 `pipeline_only` | 控制系统需求、prompt、schema | FSM JSON schema / gold systems；作者 generated `STM_0` 缺失 | 平坦 FSM schema、可复跑 prompt/code | FSM JSON / T0 | T0-离散；未见显式时钟 | 作者 benchmark pipeline；需本项目 rerun | Zenodo/GitHub release 可用，但 no published generated `STM_0`；不计现成 seed |
 | `maritaca-use-case-behavior-models` | 传统 NLP / 半自动方法证据 | ⚪ `paper_reconstructable` | 半结构化 textual use case descriptions | UML state machine / behavior model | use-case step 到状态/迁移的模板化行为模型；需人工特征选择 | UML state machine / 用例行为模型 | T0-离散事件；未见显式时钟 | 半自动 NLP + template / 规则 + 人工特征选择 | 作者站点 403；无 machine-readable native pair，论文例子只可重建 |
-| `automated-transition-use-cases-uml-sm` | 传统规则方法证据 | ⚪ `paper_reconstructable` | RUCM textual use case specifications | UML State Machine | RUCM flow / transition 到 state-based testing 用状态机 | UML state machine / state-based testing | T0-离散事件；未见显式时钟 | RUCM + aToucan / rule-based | 附录可重建局部 pair；无一手原生 pair 包 / 代码 / license |
+| `automated-transition-use-cases-uml-sm` | 传统规则方法证据 | ⚪ `paper_reconstructable` | RUCM textual use case specifications | UML State Machine | RUCM flow / transition 到 state-based testing 用状态机 | UML state machine / state-based testing | T0-离散事件；未见显式时钟 | RUCM + aToucan / rule-based | 附录可重建局部 pair；无一手原生 pair 包 / 代码 / 引用说明 |
 | `dependable-product-families-usecases-state-machines` | 传统规则 / product-line 方法证据 | ⚪ `paper_reconstructable` | 受限格式 use cases，含 variability、exception handling、traceability matrix | product-specific state machine / EFSM | product-line variability、exception、traceability | EFSM / product-line state machine | T0-数据/守卫级；未见显式时钟 | 半自动规则 / traceability matrix | 作者站点受阻；例子可重建，原生代码/数据/许可未公开 |
 | `statechart-use-case-validation-event-driven` | validation-oriented 方法证据 | ⚪ `paper_reconstructable` | 结构化 use case 模板，含 pre/postconditions、events、main flow | 单 use-case UML Statechart 与 combined Statechart | 事件驱动，多 use-case statechart 合并 | UML Statechart / validation-oriented | T0-离散事件；未见显式时钟 | use case 文档 -> statechart -> combined statechart | 案例入口可定位，图示可重建；完整代码/数据/hash 未公开 |
 | `rscharter-statechart-elements` | statechart elements / FOPL 桥接证据 | ⚪ `paper_reconstructable` | PuRE dataset 中 RUPP/EARS 风格 SRS / NL requirements | statechart diagram elements / state diagram；经 FOPL 中间层 | 元素抽取 + FOPL bridge，完整图需另行冻结 | statechart elements + FOPL bridge | T0-元素级待核 | NL SRS -> FOPL -> statechart elements | PuRE 输入公开，但 RSCharter 增强 pair/code 未公开 |
-| `designing-fsm-gpt4` | LLM toy-line / related work | 🔴 `related_only` | 模板合成的英文 DFSM / Mealy 自然语言描述 | CSV DFSM / Mealy machine | 平坦、确定性、输入/输出驱动 | 平坦 FSM / Mealy | T0-平坦离散；未见显式时钟 | GPT-4 / GPT-4o 初始生成，论文含 oracle / repair | 当前无稳定一手 pair / release / license；只作 related，不进 final pool |
+| `designing-fsm-gpt4` | LLM toy-line / related work | 🔴 `related_only` | 模板合成的英文 DFSM / Mealy 自然语言描述 | CSV DFSM / Mealy machine | 平坦、确定性、输入/输出驱动 | 平坦 FSM / Mealy | T0-平坦离散；未见显式时钟 | GPT-4 / GPT-4o 初始生成，论文含 oracle / repair | 当前无稳定一手 pair / release；只作 related，不进 final pool |
 
 边界 / 哨兵类（如 `execution-nl-req-bt-sm`、`semi-auto-efsm-standard-docs`、`nl-standard-docs-state-machines`、`most-states-modes`、`web-tool-goal-statechart-derivation`、`requirements-analysis-prototyping-scenarios-statecharts` 等）默认按 [REGISTRY.md](./REGISTRY.md) §4 或 §10 排除码处理：它们可支撑 related work 和防误收，但不能绕过一手 registry 成为现成 generated seed。

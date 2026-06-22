@@ -28,10 +28,10 @@
 ## SS / SA 解释
 
 - `SS-B`：生成关系和 T0 state diagram subset 很强，但输入需求由 LLaMA 合成，不是现实控制系统 NL，也不是人工需求文档；因此不能标 `SS-A`。
-- `SA-2`：state subset 可机器下载和冻结，适合作为 R2 条件候选；但 license 不清、需进一步抽样检查 PlantUML 可解析率和非状态图污染，不能标 `SA-1`。
+- `SA-2`：state subset 可机器下载和冻结，适合作为 R2 synthetic smoke / stress seed；需进一步抽样检查 PlantUML 可解析率、非状态图污染和非控制系统适用性，不能标 `SA-1`。
 
 ## R2 使用建议
 
-1. 若四例下限仍不足，可把该数据集作为第四个 **conditional main seed**：先抽样 1--2 个 state rows，冻结 `input`、`uml_code`、row index、parquet hash、HF commit sha，再转换为本项目统一格式。
-2. 明确标注 synthetic requirement 与 dataset-generation pipeline，不把它包装成真实工业需求。
-3. PR-R2 前必须记录 dataset license caveat；若 license 阻塞，则降为 related work / robustness seed。
+1. 可把该数据集作为 **synthetic smoke / stress seed**：抽样时冻结 `input`、`uml_code`、row index、parquet hash、HF commit sha，再转换为本项目统一格式。
+2. 明确标注 synthetic requirement 与 dataset-generation pipeline，不把它包装成真实工业 / 控制系统需求。
+3. 当前一手 registry 口径为 `final_pool_ready`，但使用时必须保留 synthetic、非控制系统和无逐行 VLM/human score caveat。

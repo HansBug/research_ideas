@@ -7,8 +7,8 @@
 - 源 ZIP SHA-256：`0e553383b5bd03702d29e5f68a3624fcc143a51da1fd0c9156b32ba51a5b61b4`
 - NL hash：`a9803b9514ffe57d80c266a3c390298ca04e471d300c690045bb4479872ec1a8`
 - STM_0 hash：`22aa85b151d2802084a41096bb9f3bec6a6d3c6c8d50e7c63626db2f0f66e8b4`
-- eligibility：`conditional_final_pool`
-- caveat：ZIP 已 committed 且 locator 可回溯；但 4open 制品 license / redistribution 未明确，因此仍不能升为 `final_pool_ready`。
+- eligibility：`final_pool_ready`
+- caveat：ZIP 已 committed 且 locator 可回溯；公开学术 artifact 按引用原作处理。当前只证明 SSC7 有 generated STM_0，其余 8 个 NL 描述缺 generated text output，不能计为 generated pair。
 
 ### NL：SSC7 reactive-system description（节选）
 

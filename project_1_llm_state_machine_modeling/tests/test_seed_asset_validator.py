@@ -19,6 +19,9 @@ LLMS_EMP = "llms-emp-stm-subset"
 def _copy_seed_library_subset(tmp_path: Path, *seed_ids: str) -> Path:
     base = tmp_path / "seed_library"
     base.mkdir()
+    # REGISTRY.md is the human-facing decision table.  Copy it into fixture
+    # bases so validator tests also exercise markdown/JSON count consistency.
+    shutil.copy2(SEED_LIBRARY / "REGISTRY.md", base / "REGISTRY.md")
     for seed_id in seed_ids or (UNIFIED,):
         shutil.copytree(SEED_LIBRARY / seed_id, base / seed_id)
     return base
@@ -244,3 +247,154 @@ def test_seed_asset_validator_rejects_tampered_sefm_locator(tmp_path: Path) -> N
     assert result.returncode != 0
     assert "cannot resolve ZIP locator" in result.stderr
     assert "claims trace_verified but raw trace validation failed" in result.stderr
+
+
+def test_seed_asset_validator_rejects_pair_state_drift_from_registry(tmp_path: Path) -> None:
+    """Eligible generated rows must not silently keep stale conditional state."""
+
+    base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
+    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
+    rows[0]["eligibility_state"] = "conditional_final_pool"
+    pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), LLMS_EMP],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "eligibility_state mismatch with pair set" in result.stderr
+
+
+def test_seed_asset_validator_rejects_exclusion_reason_on_eligible_row(tmp_path: Path) -> None:
+    """Non-blocking caveats belong in registry/docs, not eligible row exclusion_reason."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    pairs_path = base / SEFM / "assets" / "extracted" / "pairs.jsonl"
+    row = json.loads(pairs_path.read_text().strip())
+    row["exclusion_reason"] = "stale_license_blocker"
+    pairs_path.write_text(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "eligible generated row must not carry exclusion_reason" in result.stderr
+
+
+def test_seed_asset_validator_allows_unknown_redistribution_for_trace_ready_public_assets(tmp_path: Path) -> None:
+    """Redistribution/license notes are not final_pool_ready blockers once trace evidence is complete."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    registry_path = base / SEFM / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    registry["asset_summary"]["redistribution_status"] = "unknown"
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_seed_asset_validator_rejects_missing_pair_set_id_on_eligible_row(tmp_path: Path) -> None:
+    """Eligible generated rows must be anchored to a registry pair_set."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    pairs_path = base / SEFM / "assets" / "extracted" / "pairs.jsonl"
+    row = json.loads(pairs_path.read_text().strip())
+    row.pop("pair_set_id", None)
+    pairs_path.write_text(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "eligible generated row must carry pair_set_id" in result.stderr
+    assert "eligible generated row must reference a known pair_set_id" in result.stderr
+
+
+def test_seed_asset_validator_rejects_registry_markdown_count_drift(tmp_path: Path) -> None:
+    """Human REGISTRY.md counts must not drift from structured registry facts."""
+
+    base = _copy_seed_library_subset(tmp_path, UNIFIED)
+    registry_md = base / "REGISTRY.md"
+    text = registry_md.read_text()
+    text = text.replace("| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 |",
+                        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 |")
+    registry_md.write_text(text)
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), UNIFIED],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "REGISTRY.md NL 数 mismatch" in result.stderr
+
+
+def test_seed_asset_validator_rejects_registry_missing_assets_link(tmp_path: Path) -> None:
+    """Rows with assets/README.md must link seed_id directly to that README."""
+
+    base = _copy_seed_library_subset(tmp_path, SEFM)
+    registry_md = base / "REGISTRY.md"
+    text = registry_md.read_text()
+    text = text.replace("[`sefm-llm-state-machine`](./sefm-llm-state-machine/assets/README.md)", "`sefm-llm-state-machine`")
+    registry_md.write_text(text)
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), SEFM],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "must link to ./sefm-llm-state-machine/assets/README.md" in result.stderr

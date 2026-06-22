@@ -9,7 +9,7 @@
 | BibTeX | present | 与源目录 `bibtex.bib` 一致：arXiv preprint, 2026, `cs.SE`。 |
 | Code / artifact | usable with risk | 源目录 `ASSETS.md` 已核到 4open hashbang 浏览入口、README/API 文件端点、ZIP 入口、源码、prompt/example 和依赖文件。 |
 | Dataset / outputs | usable with risk | 已核到 8 个 reference solutions、`state_machine_descriptions.py`、生成图片和 `Final Detailed F1-Scores.xlsx`。 |
-| License / redistribution | blocker | 未见源目录确认正式 license、Git commit、release 或 DOI；正式复用前必须补核。 |
+| License / redistribution | citation note | 公开学术 artifact 后续论文引用原作即可；不作为 R2.0 升绿 blocker。 |
 | Conversion readiness | pending | 可作为 R2 输入候选，但需先冻结 artifact、本地清单、逐文件 hash 和最小 smoke。 |
 
 ## 已核 artifact 指针
@@ -38,14 +38,14 @@
 
 1. 下载并冻结 ZIP 到 run record 或 artifact cache，不只依赖远程 4open URL。
 2. 生成完整文件清单与逐文件 SHA-256；整包 hash 只作辅助。
-3. 核验是否存在 license 文件、README license 文本或作者许可；若没有，标记 redistribution blocker。
+3. 记录公开学术 artifact 的引用入口、访问日期和版本 / hash；许可 / 再分发不作为升绿 blocker。
 4. 建立最小 smoke：读取 8 个 system descriptions/reference solutions、检查 prompt/example、打开 F1 workbook sheet。
 5. 若要复跑，必须记录 API provider、精确 model id、调用日期、temperature、max tokens、依赖版本、Java/Graphviz/Umple 状态和 `.env` redaction。
 
 ## 当前 artifact grade
 
-`SA-2`：资源可访问且有代码/数据/结果证据，足以支持冻结和后续 R2 准备；但 license、长期 URL 稳定性、commit/release/DOI 和真实复跑证据不足，暂不升级为 `SA-1`。
+`SA-2`：资源可访问且有代码/数据/结果证据，足以支持冻结和后续 R2 准备；但长期 URL 稳定性、commit/release/DOI 和真实复跑证据不足，暂不升级为 `SA-1`。
 
 ## R2.0 registry 口径更新
 
-一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目已在 [assets/README.md](./assets/README.md) 下 committed 4open ZIP，并抽取 1 组 SSC7 `NL + Claude Sonnet 3.5 single-prompt generated Umple` pair；该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 与文本 hash 回溯，eligible generated seed count 为 1。但 4open 制品 license / redistribution / release pin 仍未闭合，因此仍保持 `conditional_final_pool`，不能升级为 `final_pool_ready`；reference solutions 只能作为评价参考。
+一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目已在 [assets/README.md](./assets/README.md) 下 committed 4open ZIP，并抽取 1 组 SSC7 `NL + Claude Sonnet 3.5 single-prompt generated Umple` pair；该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 与文本 hash 回溯，eligible generated seed count 为 1。公开学术 artifact 按引用原作处理后，该 pair 当前为 `final_pool_ready`；但只有 SSC7 具备 generated text output，其余 8 个 NL 不能计为 generated pair，reference solutions 只能作为评价参考。

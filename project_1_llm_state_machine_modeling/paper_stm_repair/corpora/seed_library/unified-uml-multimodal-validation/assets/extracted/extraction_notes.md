@@ -11,13 +11,13 @@
 - 可计生成 STM_0 行数：989。
 - 不计 eligible 的生成失败行：10，索引为 `[60, 101, 162, 194, 309, 418, 607, 785, 838, 890]`，`uml_code` 内容为 `No valid PlantUML code found.`。
 
-## 3. 异常与降级
+## 3. 异常与 caveat
 
-HF dataset license 未在当前 metadata 中明确出现，且 NL 是 synthetic feature description / 非控制系统场景；因此条目只能是 `conditional_final_pool`，不能标为 `final_pool_ready`。
+公开学术资源按引用原作处理，许可 / 再分发不再作为升绿 blocker；本条目当前为 `final_pool_ready`。需要保留的学术 caveat 是：NL 为 synthetic feature description / 非控制系统场景，HF parquet 没有逐行 VLM / human validation score，10 行生成失败必须继续排除。
 
 ## 4. 不可提交内容说明
 
-当前 parquet 已在仓库中提交；若后续发现 license 限制，需改为 metadata/hash/local_only 口径。
+当前 parquet 已在仓库中提交；后续若替换或重下 raw，必须同步更新 SHA-256、HF revision、`pairs.jsonl`、`validation_summary.json` 与 [REGISTRY.md](../../REGISTRY.md)。
 
 ## 5. 校验结果摘要
 
