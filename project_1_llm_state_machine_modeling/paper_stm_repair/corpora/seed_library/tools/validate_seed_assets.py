@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,27 @@ class RawTableCache:
                 raise RuntimeError("pandas/pyarrow are required for parquet locator validation") from exc
             self._parquet[path] = pd.read_parquet(path)
         return self._parquet[path]
+
+
+@dataclass
+class PairTraceResult:
+    """Granular trace outcome for one extracted pair.
+
+    The validator uses these fields to recompute ``validation_summary.json``.
+    They intentionally separate hash, locator, and text/hash checks so that a
+    summary cannot claim stronger audit evidence than the raw trace supports.
+    """
+
+    pair_id: str
+    source_hash_match: bool = False
+    locator_resolved: bool = False
+    text_or_hash_match: bool = False
+    trace_verified: bool = False
+    eligible_generated: bool = False
+    repo_or_external_reproducible_eligible: bool = False
+    local_only_trace: bool = False
+    metadata_only_trace: bool = False
+    errors: list[str] = field(default_factory=list)
 
 
 def sha256_text(text: str) -> str:
@@ -214,75 +236,132 @@ def _as_text(value: Any) -> str:
     return str(value)
 
 
-def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, cache: RawTableCache, errors: list[str]) -> bool:
-    """Return whether this row is independently trace-verified.
+def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, cache: RawTableCache) -> PairTraceResult:
+    """Return granular independent trace evidence for this row.
 
     A row's self-reported ``trace_verified`` flag is treated as a claim to audit,
     not as evidence. For eligible count, the validator uses this function's
     result instead of the row's self-report.
     """
 
-    pair_id = row.get("pair_id")
+    pair_id = row.get("pair_id") or "<missing_pair_id>"
+    result = PairTraceResult(pair_id=pair_id)
     locator_type = row.get("source_locator_type")
     locator = row.get("source_locator", "")
+    storage_mode = asset.get("storage_mode")
+    download_status = asset.get("download_status")
 
-    if asset.get("storage_mode") != "committed" or asset.get("download_status") != "downloaded":
+    if storage_mode == "local_only":
+        result.local_only_trace = bool(row.get("trace_verified"))
+    if storage_mode == "metadata_only" or download_status == "metadata_only":
+        result.metadata_only_trace = bool(row.get("trace_verified"))
+
+    if storage_mode != "committed" or download_status != "downloaded":
         if row.get("trace_verified"):
-            errors.append(f"pair {pair_id} claims trace_verified but source asset is not committed/downloaded")
-        return False
+            result.errors.append(f"pair {pair_id} claims trace_verified but source asset is not committed/downloaded")
+        return result
+
+    if not raw_path.exists() or raw_path.is_dir():
+        result.errors.append(f"pair {pair_id} source raw asset missing: {raw_path}")
+        return result
 
     if row.get("source_sha256") != sha256_file(raw_path):
-        errors.append(f"pair {pair_id} source_sha256 mismatch")
-        return False
+        result.errors.append(f"pair {pair_id} source_sha256 mismatch")
+        return result
+    result.source_hash_match = True
 
     if locator_type != "parquet_row_columns":
         if row.get("trace_verified"):
-            errors.append(f"pair {pair_id} claims trace_verified with unsupported locator type {locator_type}")
-        return False
+            result.errors.append(f"pair {pair_id} claims trace_verified with unsupported locator type {locator_type}")
+        return result
 
     parsed = _parse_parquet_locator(locator)
     if parsed is None:
-        errors.append(f"pair {pair_id} invalid parquet locator: {locator}")
-        return False
+        result.errors.append(f"pair {pair_id} invalid parquet locator: {locator}")
+        return result
     row_index, columns = parsed
     try:
         table = cache.parquet(raw_path)
     except Exception as exc:
-        errors.append(f"pair {pair_id} cannot read parquet raw asset {raw_path}: {exc}")
-        return False
+        result.errors.append(f"pair {pair_id} cannot read parquet raw asset {raw_path}: {exc}")
+        return result
     if row_index < 0 or row_index >= len(table):
-        errors.append(f"pair {pair_id} parquet row out of range: {row_index}")
-        return False
+        result.errors.append(f"pair {pair_id} parquet row out of range: {row_index}")
+        return result
     missing = [c for c in ("input", "uml_code") if c not in table.columns]
     if missing:
-        errors.append(f"pair {pair_id} parquet raw missing required columns: {','.join(missing)}")
-        return False
+        result.errors.append(f"pair {pair_id} parquet raw missing required columns: {','.join(missing)}")
+        return result
     for required_col in ("input", "uml_code"):
         if required_col not in columns:
-            errors.append(f"pair {pair_id} locator columns missing {required_col}: {columns}")
-            return False
+            result.errors.append(f"pair {pair_id} locator columns missing {required_col}: {columns}")
+            return result
+    result.locator_resolved = True
 
     raw_nl = _as_text(table.iloc[row_index]["input"])
     raw_stm = _as_text(table.iloc[row_index]["uml_code"])
-    ok = True
+    text_ok = True
     if row.get("nl_text") != raw_nl:
-        errors.append(f"pair {pair_id} nl_text does not match raw parquet row {row_index}")
-        ok = False
+        result.errors.append(f"pair {pair_id} nl_text does not match raw parquet row {row_index}")
+        text_ok = False
     if row.get("stm0_text") != raw_stm:
-        errors.append(f"pair {pair_id} stm0_text does not match raw parquet row {row_index}")
-        ok = False
+        result.errors.append(f"pair {pair_id} stm0_text does not match raw parquet row {row_index}")
+        text_ok = False
     expected_nl_hash = sha256_text(raw_nl)
     expected_stm_hash = sha256_text(raw_stm)
     if row.get("nl_sha256") != expected_nl_hash:
-        errors.append(f"pair {pair_id} nl_sha256 mismatch: {row.get('nl_sha256')} != {expected_nl_hash}")
-        ok = False
+        result.errors.append(f"pair {pair_id} nl_sha256 mismatch: {row.get('nl_sha256')} != {expected_nl_hash}")
+        text_ok = False
     if row.get("stm0_sha256") != expected_stm_hash:
-        errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
-        ok = False
+        result.errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
+        text_ok = False
     if row.get("source_local_path") and seed_dir / "assets" / row.get("source_local_path") != raw_path:
-        errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
-        ok = False
-    return ok
+        result.errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
+        text_ok = False
+    result.text_or_hash_match = text_ok
+    result.trace_verified = result.source_hash_match and result.locator_resolved and result.text_or_hash_match
+    result.eligible_generated = (
+        result.trace_verified
+        and bool(row.get("is_generated_stm0"))
+        and not bool(row.get("is_reference"))
+        and not bool(row.get("is_postprocessed"))
+    )
+    result.repo_or_external_reproducible_eligible = (
+        result.eligible_generated and storage_mode == "committed" and download_status == "downloaded"
+    )
+    return result
+
+
+def expected_raw_asset_count(manifest: dict) -> int:
+    """Count raw assets that the repo can currently re-check by hash.
+
+    Metadata-only and skipped assets are intentionally not counted here: they
+    can be recorded in the manifest, but cannot support committed raw evidence.
+    """
+
+    return sum(
+        1
+        for asset in manifest.get("assets", [])
+        if asset.get("storage_mode") == "committed" and asset.get("download_status") == "downloaded"
+    )
+
+
+def compare_validation_summary(
+    seed_id: str,
+    vs: dict,
+    expected: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """Compare validation_summary.json against independently recomputed facts."""
+
+    if vs.get("schema_version") != "seed-validation-summary.v1":
+        errors.append(f"validation_summary schema_version mismatch: {vs.get('schema_version')}")
+    if vs.get("seed_id") != seed_id:
+        errors.append(f"validation_summary seed_id mismatch: {vs.get('seed_id')} != {seed_id}")
+    for key, expected_value in expected.items():
+        actual = vs.get(key)
+        if actual != expected_value:
+            errors.append(f"validation_summary {key} mismatch: {actual} != {expected_value}")
 
 
 def validate_seed(seed_id: str) -> int:
@@ -319,33 +398,47 @@ def validate_seed(seed_id: str) -> int:
     pairs_rel = reg.get("extracted_summary", {}).get("pairs_jsonl", "")
     pairs_path = seed_dir / pairs_rel if pairs_rel else Path("")
     pairs = iter_pairs(pairs_path)
-    trace_verified = 0
-    eligible = 0
+    pair_results: list[PairTraceResult] = []
     cache = RawTableCache()
     for row in pairs:
         aid = row.get("source_asset_id")
         asset = asset_by_id.get(aid)
         if not asset:
-            errors.append(f"pair {row.get('pair_id')} unknown source_asset_id {aid}")
+            pair_id = row.get("pair_id") or "<missing_pair_id>"
+            pair_error = f"pair {pair_id} unknown source_asset_id {aid}"
+            errors.append(pair_error)
+            pair_results.append(PairTraceResult(pair_id=pair_id, errors=[pair_error]))
             continue
         raw_path = seed_dir / "assets" / asset.get("local_path", "")
-        row_trace_verified = validate_pair_trace(seed_dir, row, asset, raw_path, cache, errors)
-        if row.get("trace_verified") and not row_trace_verified:
+        row_result = validate_pair_trace(seed_dir, row, asset, raw_path, cache)
+        pair_results.append(row_result)
+        errors.extend(row_result.errors)
+        if row.get("trace_verified") and not row_result.trace_verified:
             errors.append(f"pair {row.get('pair_id')} claims trace_verified but raw trace validation failed")
-        if (not row.get("trace_verified")) and row_trace_verified:
+        if (not row.get("trace_verified")) and row_result.trace_verified:
             errors.append(f"pair {row.get('pair_id')} has valid raw trace but trace_verified is false")
-        if row_trace_verified:
-            trace_verified += 1
-        if row_trace_verified and row.get("is_generated_stm0") and not row.get("is_reference") and not row.get("is_postprocessed"):
-            eligible += 1
+    trace_verified = sum(1 for r in pair_results if r.trace_verified)
+    eligible = sum(1 for r in pair_results if r.eligible_generated)
+    expected_summary = {
+        "raw_asset_count": expected_raw_asset_count(manifest),
+        "pair_count": len(pairs),
+        "hash_match_count": sum(1 for r in pair_results if r.source_hash_match),
+        "locator_resolved_count": sum(1 for r in pair_results if r.locator_resolved),
+        "text_or_hash_match_count": sum(1 for r in pair_results if r.text_or_hash_match),
+        "trace_verified_pair_count": trace_verified,
+        "eligible_generated_pair_count": eligible,
+        "repo_or_external_reproducible_eligible_count": sum(
+            1 for r in pair_results if r.repo_or_external_reproducible_eligible
+        ),
+        "local_only_trace_count": sum(1 for r in pair_results if r.local_only_trace),
+        "metadata_only_trace_count": sum(1 for r in pair_results if r.metadata_only_trace),
+        "failed_pair_ids": [r.pair_id for r in pair_results if r.errors],
+    }
     vs_rel = reg.get("extracted_summary", {}).get("validation_summary", "")
     vs_path = seed_dir / vs_rel if vs_rel else Path("")
     if vs_path and str(vs_path) != "." and vs_path.exists():
         vs = load_json(vs_path)
-        if vs.get("trace_verified_pair_count") != trace_verified:
-            errors.append(f"validation_summary trace count mismatch: {vs.get('trace_verified_pair_count')} != {trace_verified}")
-        if vs.get("eligible_generated_pair_count") != eligible:
-            errors.append(f"validation_summary eligible count mismatch: {vs.get('eligible_generated_pair_count')} != {eligible}")
+        compare_validation_summary(seed_id, vs, expected_summary, errors)
     if reg.get("extracted_summary", {}).get("eligible_generated_pair_count") != eligible:
         errors.append(f"registry eligible count mismatch: {reg.get('extracted_summary', {}).get('eligible_generated_pair_count')} != {eligible}")
     if reg.get("extracted_summary", {}).get("trace_verified_pair_count") != trace_verified:

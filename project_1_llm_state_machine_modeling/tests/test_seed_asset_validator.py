@@ -71,3 +71,44 @@ def test_seed_asset_validator_rejects_tampered_extracted_nl(tmp_path: Path) -> N
     assert result.returncode != 0
     assert "nl_text does not match raw parquet" in result.stderr
     assert "nl_sha256 mismatch" in result.stderr
+
+
+def test_seed_asset_validator_rejects_tampered_validation_summary_counts(tmp_path: Path) -> None:
+    """validation_summary.json must be derived from raw/pairs evidence, not trusted."""
+
+    base = _copy_seed_library_subset(tmp_path)
+    summary_path = base / UNIFIED / "assets" / "extracted" / "validation_summary.json"
+    summary = json.loads(summary_path.read_text())
+    summary["raw_asset_count"] = 999
+    summary["pair_count"] = 999
+    summary["hash_match_count"] = 999
+    summary["locator_resolved_count"] = 999
+    summary["text_or_hash_match_count"] = 999
+    summary["repo_or_external_reproducible_eligible_count"] = 999
+    summary["local_only_trace_count"] = 999
+    summary["metadata_only_trace_count"] = 999
+    summary["failed_pair_ids"] = ["fake_failure"]
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), UNIFIED],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "validation_summary raw_asset_count mismatch" in result.stderr
+    assert "validation_summary pair_count mismatch" in result.stderr
+    assert "validation_summary hash_match_count mismatch" in result.stderr
+    assert "validation_summary locator_resolved_count mismatch" in result.stderr
+    assert "validation_summary text_or_hash_match_count mismatch" in result.stderr
+    assert "validation_summary repo_or_external_reproducible_eligible_count mismatch" in result.stderr
+    assert "validation_summary local_only_trace_count mismatch" in result.stderr
+    assert "validation_summary metadata_only_trace_count mismatch" in result.stderr
+    assert "validation_summary failed_pair_ids mismatch" in result.stderr
