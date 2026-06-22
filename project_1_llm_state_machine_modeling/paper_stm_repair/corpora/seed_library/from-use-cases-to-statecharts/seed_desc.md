@@ -25,7 +25,7 @@
 ## SS/SA 判定
 
 - `SS-B`：输入是自然语言 use case，输出链路中确有 statechart，且论文给出较完整的手工 derivation procedure；但最终研究目标是 object model，statechart 是桥梁产物，不是论文的最终评测对象。
-- `SA-3`：只有论文 PDF、文本提取和 BibTeX；未发现公开代码、XMI、statechart 源文件、数据集、supplementary artifact 或 license 声明。图 5-8 可人工转写，但不可直接自动 ingest。
+- `SA-3`：只有论文 PDF、文本提取和 BibTeX；未发现公开代码、XMI、statechart 源文件、数据集或 supplementary artifact。图 5-8 可人工转写，但不可直接自动 ingest。许可 / 再分发不作为额外升绿阻塞。
 
 ## R2 可用性
 
@@ -36,7 +36,7 @@
 | 主要限制 | Fig. 6-8 是论文图，不是机器可读模型；timing constraints 和缺失操作来自正文叙述，R2 转换时需要人工建立 trace。 |
 | 建议角色 | 作为“NL use case -> intermediate statechart”的历史/经典方法 seed；用于修复/验证实验时只适合做人工标注样例，不适合作为自动复现实验单元。 |
 
-## pending / blocker
+## 待补 / 主要阻塞
 
-- blocker：无公开 machine-readable artifact 与 license；不得标 `SS-A`。
-- pending：如后续需要 publisher DOI、正式出版社页面或可授权再分发状态，需要人工再核验外部来源；本轮未发现本地 `ASSETS.md`。
+- 主要阻塞：无公开 machine-readable artifact；不得标 `SS-A`。许可 / 再分发不作为额外升绿阻塞。
+- 待补：如后续需要 publisher DOI 或正式出版社页面，需要人工再核验外部来源；本轮未发现本地 `ASSETS.md`。

@@ -10,8 +10,8 @@
 | paper_title | `Executable State Machines Derived from Structured Textual Requirements - Connecting Requirements and Formal System Design` |
 | strict_seed_grade | `SS-B` |
 | artifact_usability | `SA-3` |
-| 排除码 | `NONE`；soft risk: `R_STRUCTURED_INPUT`, `R_MANUAL_NL_TO_SPS`, `NO_CODE_OR_MACHINE_READABLE_ARTIFACT`, `LICENSE_UNKNOWN` |
-| 当前结论 | 可作为“结构化文本需求 -> 可执行 FSM”的经典弱 seed / related-work 证据；不应作为 R2 主冻结样本，因为入口依赖人工 `NL -> SPS` 结构化步骤，且未发现公开机器可读 artifact、代码、AOLC 数据包、eTrice 模型或 license。 |
+| 排除码 | `NONE`；soft risk: `R_STRUCTURED_INPUT`, `R_MANUAL_NL_TO_SPS`, `NO_CODE_OR_MACHINE_READABLE_ARTIFACT`, `R_CITATION_HASH_TODO` |
+| 当前结论 | 可作为“结构化文本需求 -> 可执行 FSM”的经典弱 seed / related-work 证据；不应作为 R2 主冻结样本，因为入口依赖人工 `NL -> SPS` 结构化步骤，且未发现公开机器可读 artifact、代码、AOLC 数据包或 eTrice 模型。 |
 
 ## P1/P2/P3/P4 全文核验
 
@@ -34,7 +34,7 @@
 
 ### SA-3
 
-artifact 不足以进入 R2 主样本。论文公开了方法、图示、AOLC 规模统计和测试步结果，但本地材料与源 `DESC.md` 均未给出公开代码、数据集下载、eTrice / Design Cockpit 模型、ReqIF、XML/XMI、完整测试用例、license、commit、release 或 DOI artifact。
+artifact 不足以进入 R2 主样本。论文公开了方法、图示、AOLC 规模统计和测试步结果，但本地材料与源 `DESC.md` 均未给出公开代码、数据集下载、eTrice / Design Cockpit 模型、ReqIF、XML/XMI、完整测试用例、commit、release 或 DOI artifact。
 
 ## 排除码与边界
 
@@ -46,7 +46,7 @@ artifact 不足以进入 R2 主样本。论文公开了方法、图示、AOLC �
 | `X_REPAIR_ONLY` | no | 该文是初始建模与执行化，不是 repair-only。 |
 | `X_COEXIST_ONLY` | no | 文中给出从需求到 FSM 的 derivation/synthesis 链路，不只是需求和模型共存。 |
 | `NO_CODE_OR_MACHINE_READABLE_ARTIFACT` | yes for artifact | 不影响文献相关性，但阻止进入可复验 R2 主样本。 |
-| `LICENSE_UNKNOWN` | yes for artifact | 未发现代码/数据/model artifact license，不能推断可再分发。 |
+| `R_CITATION_HASH_TODO` | yes for artifact | 未整理到代码/数据/model artifact 的稳定来源、版本与 hash；许可 / 再分发不作为额外升绿阻塞。 |
 
 ## R2 可用性
 
@@ -57,7 +57,7 @@ artifact 不足以进入 R2 主样本。论文公开了方法、图示、AOLC �
 | 主要限制 | 无公开机器可读 AOLC requirement/test/model bundle；`NL -> SPS` 人工步骤无法从 artifact 复验；`eTrice` 接口存在 bounded-existence counter 限制。 |
 | 建议角色 | 作为 structured-requirements-to-executable-FSM 的经典方法基线；不计入 `SS-A/SS-B + SA-1/SA-2` 的 R2 主 seed 下限。 |
 
-## pending / blocker
+## 待补 / 主要阻塞
 
-- blocker：无公开代码、AOLC 数据包、ReqIF、eTrice 模型、完整测试用例、machine-readable FSM 和 artifact license。
-- pending：若后续要人工重建，可从论文图 2-7 与 AOLC 统计出发，但需要另建数据来源、转写记录、hash 清单和授权口径。
+- 主要阻塞：无公开代码、AOLC 数据包、ReqIF、eTrice 模型、完整测试用例和 machine-readable FSM。许可 / 再分发不作为额外升绿阻塞。
+- 待补：若后续要人工重建，可从论文图 2-7 与 AOLC 统计出发，但需要另建数据来源、转写记录、hash 清单和引用说明。

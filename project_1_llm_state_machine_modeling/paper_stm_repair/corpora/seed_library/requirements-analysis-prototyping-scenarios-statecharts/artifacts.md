@@ -7,9 +7,9 @@
 | BibTeX | 已补 `bibtex.bib`。 |
 | 输入制品 | scenarios / action descriptions；不是直接自然语言需求文档作为唯一输入。 |
 | 输出制品 | statecharts / state machines；T0 形式存在。 |
-| 代码 / 数据 / 模型输出 | PDF 已人工保存；正式 DOI 未定位；无代码、数据、pair、许可、hash。 |
-| license / hash | 未形成可复验 release / hash；若后续使用，需重新冻结外部资源版本与许可。 |
+| 代码 / 数据 / 模型输出 | PDF 已人工保存；正式 DOI 未定位；无代码、数据、pair、版本、hash。 |
+| 来源 / 版本 / hash | 未形成可复验 release / hash；若后续使用，需重新冻结外部资源版本与许可。 |
 
 ## 可获取性结论
 
-PDF 已人工保存；正式 DOI 未定位；无代码、数据、pair、许可、hash。
+PDF 已人工保存；正式 DOI 未定位；无代码、数据、pair、版本、hash。

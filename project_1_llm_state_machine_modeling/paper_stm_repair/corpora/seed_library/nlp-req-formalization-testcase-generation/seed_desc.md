@@ -29,7 +29,7 @@
 
 - 不是 raw NL 直接到 STM：存在 IRDL / sequence model intermediate，且用户需要 validate intermediate model。
 - 目标是 automatic test case generation，state machine 是中间 specification model。
-- 未发现公开 ReForm / ModGen code、requirement dataset、生成 UML state machine 的机器可读输出或 license，因此为 `SA-3`，不得计入 R1.7 主 / 条件主 seed 成功门。
+- 未发现公开 ReForm / ModGen code、requirement dataset 或生成 UML state machine 的机器可读输出，因此为 `SA-3`，不得计入 R1.7 主 / 条件主 seed 成功门。
 
 ## R1.7 使用建议
 

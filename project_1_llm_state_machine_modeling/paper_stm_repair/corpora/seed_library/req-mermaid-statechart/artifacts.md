@@ -8,7 +8,7 @@
 | 代码 | 未公开 | [`baselines/req/ASSETS.md`](../../../../baselines/req/ASSETS.md) | 未发现公开仓库、训练脚本或评估脚本。 |
 | 原始数据 / benchmark | 私有 | Volvo Cars / Car Weaver | 20 个 product functions、人工 statecharts、12 个 expert test cases 与合成扩充数据均未公开。 |
 | 输出 statecharts | 未公开 | 论文内示例 / 评估描述 | 无机器可读 Mermaid 输出包或逐样本结果表。 |
-| license / redistribution | 未知 / 受限 | 无公开说明 | 不能把私有工业数据再分发或纳入可复验主样本。 |
+| 引用 / 来源说明 | 私有数据未公开 | 无公开下载入口 | 核心问题是工业需求、人工 statecharts 与专家测试未公开，无法形成一手 trace；许可 / 再分发不作为额外升绿阻塞。 |
 
 ## R2 使用建议
 

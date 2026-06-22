@@ -17,7 +17,7 @@
 | `P1_NL_INPUT` | 通过 | Zenodo 描述称包含 20 个 natural-language requirement specifications；ZIP `dataset/systems/*.json` 中含英文编号需求。 |
 | `P2_T0_STM_FAMILY` | 任务 / schema 通过，实际输出未冻结 | `schema.py` / prompt 定义 deterministic FSM JSON，含 states、initial_state、events、transitions、guard、action、target、requirement；未见关键时间 / hybrid 语义。但公开 release 未包含可直接复用的 generated STM outputs，不能把 schema 通过误读为已有 `STM_0` seed。 |
 | `P3_GENERATION_RELATION` | 通过 | `experimental_prompts.md` 要求将自然语言软件需求转换为 deterministic FSM；README / Zenodo 均以 deterministic FSM generation 为任务。 |
-| `P4_EVIDENCE_POINTER` | 部分通过 | DOI、GitHub tag、MIT license、dataset、prompt、schema、run scripts 已本地冻结；但 outputs / gold 在公开 ZIP 中不可直接作为已生成 STM seed。 |
+| `P4_EVIDENCE_POINTER` | 部分通过 | DOI、GitHub tag、dataset、prompt、schema、run scripts 已本地冻结；许可 / 再分发不作为升绿阻塞。但 outputs / gold 在公开 ZIP 中不可直接作为已生成 STM seed。 |
 
 ## LLM / 方法信息
 
@@ -29,7 +29,7 @@
 ## SS / SA 解释
 
 - `SS-A`：任务关系本身非常清楚，确实是自然语言需求到确定性 FSM JSON。
-- `SA-2`（带条件备注）：MIT license、Zenodo v1.0.0、GitHub tag、dataset、prompt、schema、脚本均可冻结，适合 PR-R2 做复跑型 seed；但公开 release 中 `benchmark/gold/*.json` 是空 placeholder，`outputs/` / `results/` 不在 ZIP 内，不能把 headline 140-run campaign 直接当作可用 STM seed。
+- `SA-2`（带条件备注）：Zenodo v1.0.0、GitHub tag、dataset、prompt、schema、脚本均可冻结，适合 PR-R2 做复跑型 seed；许可 / 再分发不作为升绿阻塞。但公开 release 中 `benchmark/gold/*.json` 是空 placeholder，`outputs/` / `results/` 不在 ZIP 内，不能把 headline 140-run campaign 直接当作可用 STM seed。
 
 ## R2 使用建议
 

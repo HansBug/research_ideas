@@ -11,7 +11,7 @@
 | strict_seed_grade | `SS-A` |
 | artifact_usability | `SA-3` |
 | exclusion_code | `NONE` |
-| 当前结论 | 纳入 strict seed 文献证据；不作为 R2 主冻结样本，因为论文专属 benchmark bundle、逐次生成输出、评测脚本和 license 未公开。 |
+| 当前结论 | 纳入 strict seed 文献证据；不作为 R2 主冻结样本，因为论文专属 benchmark bundle、逐次生成输出和评测脚本未公开，无法形成一手 `NL + generated STM_0` trace。 |
 
 ## P1/P2/P3/P4 核验
 
@@ -36,7 +36,7 @@
 
 ### SA-3
 
-artifact 不足以进入 R2 主样本。论文公开了 PDF 与正文中的 5 个系统 requirements、若干图示、聚合表和方法说明；源目录记录可从 Umple 官方手册 / UmpleOnline 近似重建部分示例。但未发现论文专属实验仓库、RAG 文档库、逐次 Llama 3 输出、人工 corrected references、评测脚本、完整 benchmark bundle、license 或可冻结 commit / DOI artifact。
+artifact 不足以进入 R2 主样本。论文公开了 PDF 与正文中的 5 个系统 requirements、若干图示、聚合表和方法说明；源目录记录可从 Umple 官方手册 / UmpleOnline 近似重建部分示例。但未发现论文专属实验仓库、RAG 文档库、逐次 Llama 3 输出、人工 corrected references、评测脚本、完整 benchmark bundle或可冻结 commit / DOI artifact。
 
 因此当前可用性为 paper-only / reconstructable clues：可支撑文献叙述和手工重建参考，不应声称为可复验 R2 seed pair。
 
@@ -63,10 +63,10 @@ artifact 不足以进入 R2 主样本。论文公开了 PDF 与正文中的 5 �
 | 参考解 / STM 输出 | 不完整；论文有图示和局部示例，但没有可机器消费的完整 ground truth / corrected reference bundle。 |
 | 生成输出 | 不可用；未公开逐次 zero-shot / one-shot / RAG Llama 3 输出。 |
 | 评测脚本 | 不可用；论文只描述 ICP/EUCP/Levenshtein/CodeBLEU/Pass@K，未给脚本。 |
-| license / redistribution | blocker；论文 PDF 公开，实验数据和脚本无 license / redistribution 口径。 |
+| 引用 / 来源说明 | 论文 PDF 属公开学术材料，后续引用原作即可；实验数据和脚本未公开，因此缺的是一手 trace / 版本 / hash，不是许可阻塞。 |
 | URL 稳定性 | paper stable；artifact weak。RUOR item / DOI 稳定；Umple 官方示例是活网页，不能替代 thesis benchmark bundle。 |
-| 运行复现 | pending / high effort；需要自行重建 Llama 3 8B、Nomic embeddings、prompt、示例库、Umple 编译和人工修正评测。 |
+| 运行复现 | 待补 / 高成本；需要自行重建 Llama 3 8B、Nomic embeddings、prompt、示例库、Umple 编译和人工修正评测。 |
 
 ## reviewer 结论
 
-纳入 `SS-A / SA-3 / NONE`。该论文可作为“LLM requirements-to-Umple state machine generation”的 strong literature seed，但不能计入 `SS-A + SA-1/SA-2` 的 R2 主 seed 下限。若后续要复用，只能先作为手工重建任务：录入 5 组 requirements，另行建立 reference STM、license 口径、hash 清单和最小 smoke，不得把论文聚合表当作可复验 artifact。
+纳入 `SS-A / SA-3 / NONE`。该论文可作为“LLM requirements-to-Umple state machine generation”的 strong literature seed，但不能计入 `SS-A + SA-1/SA-2` 的 R2 主 seed 下限。若后续要复用，只能先作为手工重建任务：录入 5 组 requirements，另行建立 reference STM、来源说明、hash 清单和最小 smoke，不得把论文聚合表当作可复验 artifact。

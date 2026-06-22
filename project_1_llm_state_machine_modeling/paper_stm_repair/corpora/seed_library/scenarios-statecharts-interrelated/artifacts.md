@@ -8,7 +8,7 @@
 | `paper_content.txt` | present | `f05d2860e40acb832b6d3cfbcae57ce803106badfd7ff64600e24e9f359496c4` | 448 lines；全文文本足以支持 P1/P2/P3/P4 判定，存在少量 PDF 抽取乱码。 |
 | `paper.pdf` | present | `5bec09030159dedfe68424baa1dc24b3422c10b93d8a081f46d0e8163166c5bf` | 本地 PDF 已复制；本轮未因证据不足打开 PDF。 |
 
-## 外部 artifact / license / URL 稳定性
+## 外部 artifact / 引用 / URL 稳定性
 
 | 项 | 判定 | 证据与风险 |
 |---|---|---|
@@ -16,7 +16,7 @@
 | Code / tool | not found | 论文 Page 6 lines 379-381 说集成规则的 system 仍处于 early phases of development；Page 6 lines 399-401 将 automatic generation/testing system 作为 future work。 |
 | Dataset / examples | paper-only | 论文只有 ATM event trace diagrams 与 statechart 图示；未给出机器可读 scenario/statechart 文件或 benchmark。 |
 | Supplementary bundle | not found | 全文、BibTeX、源 DESC 均未出现 supplementary / repository / dataset bundle。 |
-| License / redistribution | unknown | PDF 页面与论文文本未声明开源或再分发 license；只能记录本地研究副本，不应视作可再发布数据集。 |
+| 引用 / 来源说明 | citation note | PDF 页面可作为公开学术来源线索；核心问题是未公开机器可读 scenario/statechart bundle，许可 / 再分发不作为额外升绿阻塞。 |
 
 ## R2 转换可用性
 

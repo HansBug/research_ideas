@@ -25,7 +25,7 @@
 
 ## 风险与 caveat
 
-standard/protocol risk；人工数据库步骤显著；作者原生 pair/代码/license/hash 未公开。
+standard/protocol risk；人工数据库步骤显著；作者原生 pair/代码/version/hash 未公开。
 
 ## 使用建议
 

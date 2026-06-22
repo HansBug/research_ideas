@@ -48,8 +48,8 @@
 
 `related-work-only / private-data-boundary`。该文不应计入 `SS-A/SS-B + SA-1/SA-2` 主 seed 下限。若后续需要类似工业风格样本，应在本项目另行构造可公开、可授权、可追踪的 `<NL, STM_0>` pair，而不是声称复现该论文私有数据。
 
-## pending / blocker
+## 待补 / 主要阻塞
 
-- blocker：核心需求、人工 statecharts、专家测试与评分表未公开。
-- blocker：无公开代码、训练脚本、模型版本锁定、数据 license 或 artifact DOI。
-- pending：若未来作者公开数据或给出明确申请渠道，可重新评估 `SA-4 -> SA-2/SA-1`；当前不得主动假定可获取。
+- 主要阻塞：核心需求、人工 statecharts、专家测试与评分表未公开。
+- 主要阻塞：无公开代码、训练脚本、模型版本锁定或 artifact DOI；许可 / 再分发不再单独作为升绿阻塞。
+- 待补：若未来作者公开数据或给出明确申请渠道，可重新评估 `SA-4 -> SA-2/SA-1`；当前不得主动假定可获取。

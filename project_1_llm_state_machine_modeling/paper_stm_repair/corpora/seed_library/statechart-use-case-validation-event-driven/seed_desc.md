@@ -25,7 +25,7 @@
 
 ## 风险与 caveat
 
-偏 validation，不是一般生成 benchmark；作者原生 pair/代码/license/hash 未公开。
+偏 validation，不是一般生成 benchmark；作者原生 pair/代码/version/hash 未公开。
 
 ## 使用建议
 

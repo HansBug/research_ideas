@@ -17,10 +17,10 @@
 [REGISTRY.md](./REGISTRY.md) 的维护纪律：
 
 1. 主表第一列必须叫“条目”，若该条目存在 `assets/README.md`，条目名本身必须直接链接到该文件，例如 [`sefm-llm-state-machine`](./sefm-llm-state-machine/assets/README.md)；没有 `assets/` 的条目才保留普通文本。
-2. 不再单独设置 `assets` 列；资源入口必须通过左侧条目链接进入，机器可读记录继续放在“机器记录”列。
+2. 不再单独设置 `assets` 列；资源入口必须通过左侧条目链接进入，机器可读记录继续放在“结构化记录”列。
 3. 表头、说明列、R2 建议、阻塞项、状态描述能用中文就用中文；`recommended_role`、`source_status`、hash、文件路径、schema 字段等机器枚举可以保留反引号英文，但解释文本必须中文化。
 4. `generated eligible`、`trace verified` 等英文统计含义在表头中写作“可计生成对”“已回溯验证”；不要让读者必须理解英文才能读懂主表。
-5. 主表必须维护 `NL 数` 与 `NL-only`：`NL 数` 写作 `raw / unique`；`raw` 是一手资源中可定位的 NL 行/条目数，`unique` 是按 NL 文本去重后的数量；`NL-only` 是有 NL 但无可计 generated `STM_0` 的数量。paper-only / 未机读条目统一写 `0 / 未知`，不得把论文图示数冒充一手资源数。
+5. 主表必须维护 `NL 数` 与 `NL-only`：`NL 数` 写作 `raw / unique`；`raw` 是一手资源中可定位的 NL 行/条目数，`unique` 是按 NL 文本去重后的数量；`NL-only` 是有 NL 但无可计 generated `STM_0` 的数量。paper-only / 未机读条目统一写 `0 / 未知`，不得把论文图示数冒充一手资源数。§4 未建 registry 条目的处置表也必须保留 `NL 数`、`NL-only`、`可计生成对` 三列，默认按当前一手机读资源写 `0 / 未知`、`未知 / 未知`、`0`。
 6. 每次新增或修改 `assets/README.md`、`seed_resource_registry.json`、`assets/manifest.json`、`validation_summary.json` 后，都必须同步核对 [REGISTRY.md](./REGISTRY.md) 主表的条目链接、计数、状态、NL 数、阻塞项 / caveat 和 [SUMMARY.md](./SUMMARY.md) 的摘要。
 
 新增条目时，不得只创建目录或只改单篇文件；必须同步更新单条目 `seed_desc.md` / `artifacts.md`、必要的 `seed_resource_registry.json` / `assets/` 审计链，以及 [SUMMARY.md](./SUMMARY.md) 中对应的统计摘要或风险结论。若新增的是一手资源或 pair 明细，必须优先回写 [REGISTRY.md](./REGISTRY.md)，再更新 [SUMMARY.md](./SUMMARY.md) 摘要。
@@ -101,7 +101,7 @@
 6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `pair_set_id`、`eligibility_state`、`exclusion_reason`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
 7. `seed_resource_registry.json` 必须维护 `source_inventory`、`data_construction`、`quality_audit` 三组机器可读字段：
    - `source_inventory` 至少写清 `raw_nl_count`、`unique_nl_count`、`nl_only_count`、`nl_only_unique_count`、`generated_pair_count`、`eligible_generated_pair_count`、`reference_pair_count`、`canonical_case_count`、`unique_generated_stm0_count`、`one_to_many_shape`、`count_status`、`count_basis`、`notes`；`REGISTRY.md` 的 `NL 数` 与 `NL-only` 必须可由这些字段解释，并且这些字段会被 validator 从 `pair_sets[].nl_count`、`pairs.jsonl`、raw locator 或 pipeline raw 结构复算，不能只靠人工填表。
-   - 计数语义固定为：`raw_nl_count / unique_nl_count` 表示一手资源中可定位的 NL 原始条目数与去重数；`generated_pair_count` 表示作者一手资源中已登记的生成输出行数（可包含被明确排除的 failure 行）；`eligible_generated_pair_count` 表示可进入 seed 的有效生成对；`unique_generated_stm0_count` 表示登记生成输出文本去重数，若保留 failure sentinel，应在 `notes` 中解释它为何不同于 `eligible_generated_pair_count`。
+   - 计数语义固定为：`raw_nl_count / unique_nl_count` 表示一手资源中可定位的 NL 原始条目数与去重数；`generated_pair_count` 表示作者一手资源中已登记的生成输出行数（可包含被明确排除的 failure 行）；`eligible_generated_pair_count` 表示可进入 seed 的有效生成对；`unique_generated_stm0_count` 表示真实 generated `STM_0` 输出文本去重数；明确排除的 failure sentinel（如 `No valid PlantUML code found.`）只进入 `nl_only_count`、`validation_summary.excluded_pair_ids` / `notes` 与 `extraction_notes.md` 审计，不得抬高 generated `STM_0` diversity。
    - `data_construction` 必须说明论文如何描述数据来源 / 构造流程、artifact 实际来源、`raw_nl` 是什么、`STM_0` 是什么，并给出证据路径；不得只写“见论文”。
    - `quality_audit` 必须记录抽检状态、样本数、样本标识、质量发现、领域适配 caveat 与证据路径；没有一手 pair 的 paper-only 条目也必须明确写 `not_applicable_no_first_source_pair`，避免后续误以为未审。
 8. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。eligible generated row 的 `eligibility_state` 必须与所属 `pair_sets[].eligibility_state` 一致，且 `exclusion_reason` 必须为空；非阻塞 caveat 写入 registry / README，而不是写成 row-level exclusion。若 raw 中存在生成失败行（例如 `No valid PlantUML code found.`），应保留为审计行但设置 `is_generated_stm0=false`、`eligibility_state=excluded`、`exclusion_reason` 明确原因，不得静默丢弃或计入 eligible。

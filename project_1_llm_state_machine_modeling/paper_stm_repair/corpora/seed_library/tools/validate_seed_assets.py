@@ -1048,10 +1048,10 @@ def derive_inventory_from_pairs(
             and not bool(row.get("is_reference"))
             and not bool(row.get("is_postprocessed"))
         ]
-        # ``unique_generated_stm0_count`` is defined as unique raw generated
-        # output texts, including excluded/failure sentinel texts when they are
-        # present in pairs.jsonl. ``eligible_generated_pair_count`` remains the
-        # valid-pair count.
+        # ``unique_generated_stm0_count`` is defined as unique real generated
+        # STM_0 texts. Excluded failure sentinels such as
+        # ``No valid PlantUML code found.`` are NL-only audit rows and must not
+        # inflate generated STM_0 diversity.
         return {
             "raw_nl_count": raw_nl_count,
             "unique_nl_count": unique_nl_count,
@@ -1065,7 +1065,7 @@ def derive_inventory_from_pairs(
             "canonical_case_count": _sum_known_counts(
                 [pair_set.get("canonical_case_count") for pair_set in pair_sets if "canonical_case_count" in pair_set]
             ),
-            "unique_generated_stm0_count": len({_as_text(row.get("stm0_text")) for row in pairs}),
+            "unique_generated_stm0_count": len({_as_text(row.get("stm0_text")) for row in eligible_rows}),
         }
 
     raw_values = [
@@ -1223,6 +1223,11 @@ def validate_seed(seed_id: str) -> int:
         "local_only_trace_count": sum(1 for r in pair_results if r.local_only_trace),
         "metadata_only_trace_count": sum(1 for r in pair_results if r.metadata_only_trace),
         "failed_pair_ids": [r.pair_id for r in pair_results if r.errors],
+        "excluded_pair_ids": [
+            row.get("pair_id") or "<missing_pair_id>"
+            for row, result in zip(pairs, pair_results)
+            if not result.eligible_generated and row.get("eligibility_state") == "excluded"
+        ],
     }
     vs_rel = reg.get("extracted_summary", {}).get("validation_summary", "")
     vs_path = seed_dir / vs_rel if vs_rel else Path("")

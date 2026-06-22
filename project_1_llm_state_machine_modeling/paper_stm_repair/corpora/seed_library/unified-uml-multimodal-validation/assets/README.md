@@ -23,7 +23,7 @@
 - 论文流程：LLaMA-3.2-1B-Instruct 生成 user-focused feature descriptions；DeepSeek-R1-Distill-Qwen-32B 生成 PlantUML；随后进入渲染、多 VLM ensemble 与人类专家相关性验证。
 - 论文级 validation：论文报告渲染 / VLM / expert validation，包括 Qwen2.5-VL-3B、LLaMA-3.2-11B-Vision-Instruct、Aya-Vision-8B 等 VLM ensemble，以及 94 位专家 validation、Fleiss' Kappa 0.78、Pearson r 0.82。
 - 当前 HF parquet 只含 `input`、`reasoning`、`uml_code` 三列；本地抽取物没有逐行 VLM / human score。因此当前 eligible 判定只证明 raw locator、hash 与 PlantUML block 结构可回溯，不等于逐行人工质量验收。
-- NL 数量：raw 999 条、unique 999 条；其中 989 条 eligible generated pair 的 NL exact / whitespace-normalized 去重后均唯一，未发现少量 NL 对多个 STM 的 1×N 形态。10 个生成失败行索引为 `[60, 101, 162, 194, 309, 418, 607, 785, 838, 890]`。
+- NL 数量：raw 999 条、unique 999 条；其中 989 条 eligible generated pair 的 NL exact / whitespace-normalized 去重后均唯一，未发现少量 NL 对多个 STM 的 1×N 形态。10 个生成失败行索引为 `[60, 101, 162, 194, 309, 418, 607, 785, 838, 890]`，已在 `assets/extracted/validation_summary.json` 的 `excluded_pair_ids` 中列出；这些行共享同一个 `No valid PlantUML code found.` sentinel，只作 NL-only / failure 审计，不参与 unique generated `STM_0` 统计。
 - 质量抽检：抽检 row 0--4，NL 分别是餐厅下单 / 菜单管理、自动标签、个性化产品推荐、内容管理、任务管理等通用软件 feature，不是控制系统需求；5 行均可由 locator 回到 raw parquet，均含 `@startuml` / `@enduml` 与状态迁移箭头。
 
 ## 2.2 抽检样例

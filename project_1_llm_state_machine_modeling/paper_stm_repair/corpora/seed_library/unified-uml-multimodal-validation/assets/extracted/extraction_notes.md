@@ -9,7 +9,7 @@
 - raw 行数：999。
 - validator 可回溯行数：999。
 - 可计生成 STM_0 行数：989。
-- 不计 eligible 的生成失败行：10，索引为 `[60, 101, 162, 194, 309, 418, 607, 785, 838, 890]`，`uml_code` 内容为 `No valid PlantUML code found.`。
+- 不计 eligible 的生成失败行：10，索引为 `[60, 101, 162, 194, 309, 418, 607, 785, 838, 890]`，`uml_code` 内容均为同一个 sentinel：`No valid PlantUML code found.`。这 10 行已在 `validation_summary.excluded_pair_ids` 中列出，只作 NL-only / failure 审计，不参与 eligible pair 或 unique generated `STM_0` 统计；若把失败 sentinel 误当输出一起去重，会得到 990 个 `uml_code` unique，这是错误口径。
 
 ## 3. 异常与 caveat
 

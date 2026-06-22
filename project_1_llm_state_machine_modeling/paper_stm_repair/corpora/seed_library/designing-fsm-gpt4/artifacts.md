@@ -9,9 +9,9 @@
 | BibTeX | present | arXiv preprint；未见 DOI。 |
 | Code / artifact | partial | 论文正文未给代码 URL；baseline `ASSETS.md` 额外核到 GitHub 仓库 `Paul3246/nl2fsm`。 |
 | Dataset / outputs | partial | GitHub 仓库含示例数据、`generated_text.csv`、Graphviz 输出和若干 score 文本；不是冻结 benchmark。 |
-| License / redistribution | blocker | GitHub 仓库无 license；不能默认再分发或纳入自动下载复现包。 |
+| 引用 / 来源说明 | citation note | 论文 / GitHub 作为公开学术线索引用原作；核心缺口是无 release/tag、未冻结数据 hash 与论文版本关系未确认，许可 / 再分发不作为升绿阻塞。 |
 | URL stability | medium-low | arXiv 稳定；GitHub 无 release/tag，需固定 commit。 |
-| Conversion readiness | exploratory | 可手工抽取 Page 4 Listing 1.1 与 CSV 输出格式做 seed；正式 converter 需先冻结样例与 license 策略。 |
+| Conversion readiness | exploratory | 可手工抽取 Page 4 Listing 1.1 与 CSV 输出格式做 seed；正式 converter 需先冻结样例、commit/hash 与论文版本关系。 |
 
 ## 本地证据文件
 
@@ -36,7 +36,7 @@
 |---|---|---|
 | 初始 NL description | high | Page 4 Listing 1.1 给出完整英文 DFSM 描述；Appendix Listing 1.5-1.7 给出描述生成 pattern。 |
 | 目标输出 schema | high | Page 6 Listing 1.2 固定 `State,Input,Output,Next_State` CSV。 |
-| 生成代码 | medium | GitHub 仓库含 `v1`-`v5` 与 `pipeline.py`，但无 release、license、依赖锁。 |
+| 生成代码 | medium | GitHub 仓库含 `v1`-`v5` 与 `pipeline.py`，但无 release、依赖锁，且论文版本关系需确认。 |
 | 合成数据 | medium | 仓库含 `v5/data`、`generated_text.csv` 等线索；论文只描述随机生成过程，没有冻结 split。 |
 | 论文结果复现 | low-medium | 仓库含 score 文本和输出目录，但表格结果与代码版本需人工对齐。 |
 | 真实 LLM 调用复现 | low | 需要 OpenAI API 环境；必须按仓库 `.env` 与 run record 规范记录 model_id、日期、usage、prompt 和 raw output。 |
@@ -56,12 +56,12 @@
 - fault-model 实验中 repair domain 有时被特定转移增强，以保证 oracle 被包含。
 - 这些修复输出不应作为初始 strict seed 的目标模型。
 
-## License / hash / URL 稳定性判断
+## 引用 / hash / URL 稳定性判断
 
 | 维度 | 判断 | 处理建议 |
 |---|---|---|
-| Paper license | pending | arXiv 页面可公开访问；若要再分发 PDF，后续仍需查 arXiv license 元数据。 |
-| Code license | blocker | GitHub 仓库无 license；仅可作为阅读和手工复现实验线索，不能默认复制代码进入本仓库。 |
+| Paper citation | citation note | arXiv 页面可公开访问，后续论文引用原作即可；不作为升绿阻塞。 |
+| Code citation | citation note | GitHub 仓库作为公开线索可引用原作；当前不把许可 / 再分发作为升绿阻塞，仍需冻结 commit/hash 与论文版本关系。 |
 | Commit stability | partial | 已记录 HEAD `354f9aacf51b5121abb8a2e04718232185e71928`；后续复现必须固定 commit 或等待 release。 |
 | Dataset hash | pending | 仓库数据未本地冻结，本轮未计算逐文件 hash。 |
 | URL stability | partial | arXiv 稳定；GitHub main 分支可漂移。 |
@@ -70,11 +70,11 @@
 
 | 等级 | 项 | 影响 |
 |---|---|---|
-| pending | arXiv license 元数据未写入本文件 | 影响 PDF 再分发口径，不影响本地阅读。 |
-| pending | GitHub repo 与论文最终版本关系未由作者确认 | 影响正式复现引用。 |
-| pending | 未冻结 GitHub 数据和输出文件 hash | 影响 benchmark 复现。 |
-| blocker | GitHub repo 无 license | 阻止代码/数据直接纳入正式 artifact 包。 |
-| blocker | 无 release/tag/依赖锁 | 阻止标记为 `SA-1` 或 `SS-A`。 |
+| 待补 | arXiv 引用元数据未整理完整 | 不影响本地阅读或文献相关性。 |
+| 待补 | GitHub repo 与论文最终版本关系未由作者确认 | 影响正式复现引用。 |
+| 待补 | 未冻结 GitHub 数据和输出文件 hash | 影响 benchmark 复现。 |
+| 主要阻塞 | 无稳定一手 pair / 无 release/tag | 阻止纳入 `final_pool_ready`。 |
+| 主要阻塞 | 无 release/tag/依赖锁 | 阻止标记为 `SA-1` 或 `SS-A`。 |
 
 ## initial-generation-only 冻结建议
 

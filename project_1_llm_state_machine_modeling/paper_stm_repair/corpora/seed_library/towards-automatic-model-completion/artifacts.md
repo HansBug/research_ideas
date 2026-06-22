@@ -8,7 +8,7 @@
 | 输入制品 | GWT requirements + partial SysML architecture / partial State Machine Diagram。 |
 | 输出制品 | Completed SysML State Machine Diagram fragments / transitions。 |
 | 代码 / 数据 / 模型输出 | 未发现公开 code/model output package；论文为 preprint。 |
-| license / hash | arXiv PDF 可获取；无独立 code/data/model license。 |
+| 来源 / 版本 / hash | arXiv PDF 可获取；无独立 code/data/model release。 |
 
 ## 可获取性结论
 

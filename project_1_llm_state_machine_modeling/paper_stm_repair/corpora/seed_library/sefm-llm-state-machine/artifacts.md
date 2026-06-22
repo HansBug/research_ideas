@@ -21,7 +21,7 @@
 | 4open 浏览器入口 | <https://anonymous.4open.science/#!/r/llm_state_machine_modeling/> | 当前可访问；源目录已记录普通 `/r/...` 路由会误入 API/401，不应作为人工入口。 |
 | README API | <https://anonymous.4open.science/api/repo/llm_state_machine_modeling/file/README.md> | 当前可作为 raw fallback；仍是 anonymous artifact 端点。 |
 | ZIP 入口 | <https://anonymous.4open.science/api/repo/llm_state_machine_modeling/zip> | 当前可下载；源目录记录 126 个条目、约 3.36 MB，但整包 hash 可能受 ZIP 元数据影响。 |
-| 源目录资源账本 | [`ASSETS.md`](../../../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/ASSETS.md) | 本次 artifact/license/hash/URL 判断的主要本地证据源。 |
+| 源目录资源账本 | [`ASSETS.md`](../../../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/ASSETS.md) | 本次 artifact/version/hash/URL 判断的主要本地证据源。 |
 
 ## 源目录已记录的关键 hash
 

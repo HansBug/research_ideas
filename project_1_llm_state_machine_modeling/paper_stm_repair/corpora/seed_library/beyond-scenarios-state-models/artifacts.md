@@ -17,7 +17,7 @@
 | URL 类型 | 作者/学校页面托管 PDF，非 DOI / ACM DL canonical page。 |
 | URL 稳定性 | medium-low：个人/课题组路径可读性风险高于 publisher DOI；当前本地 PDF 已冻结 sha256。 |
 | DOI | 未在 BibTeX、PDF 正文或源 `DESC.md` 中发现。 |
-| Publisher license | PDF p.1 底部为 ACM workshop copy notice；允许 personal/classroom copy，其他复制/发布需 permission/fee。 |
+| 引用 / 来源说明 | PDF p.1 底部为 ACM workshop copy notice；本研究按公开学术论文引用原作处理，许可 / 再分发不作为 R2 升绿阻塞。 |
 | Repository / code | 未发现公开仓库、源码包或 release URL。 |
 | Dataset / benchmark | 未发现公开 benchmark；论文只给 Patient Monitoring System 的说明性 use case 示例。 |
 
@@ -39,8 +39,8 @@
 | R2 可直接运行 | no |
 | R2 可手工转录 | yes |
 | 转换建议 | 仅在需要历史 seed 时，手工转录 Figure 1、Figure 3、Figure 5；输出标注 `manual_transcription_from_pdf`。 |
-| 统计资格 | 不进入需要公开 artifact、license 明确、机器可读输入输出的主结果统计。 |
-| blocker | 缺公开 UCEd 工具、缺机器可读 use case/domain model/FSM、缺 artifact license、`paper_content.txt` 不可读。 |
+| 统计资格 | 不进入需要一手机器可读输入输出的主结果统计。 |
+| 主要阻塞 | 缺公开 UCEd 工具、缺机器可读 use case/domain model/FSM，且 `paper_content.txt` 不可读；许可 / 再分发不作为额外升绿阻塞。 |
 
 ## 复核日志
 

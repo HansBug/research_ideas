@@ -25,7 +25,7 @@
 
 ## 风险与 caveat
 
-variability 和 product family 特性可能超出当前四例 T0；原生 pair / 许可 / hash 未公开。
+variability 和 product family 特性可能超出当前四例 T0；原生 pair / 版本 / hash 未公开。
 
 ## 使用建议
 

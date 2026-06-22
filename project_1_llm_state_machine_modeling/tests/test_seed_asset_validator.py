@@ -121,6 +121,31 @@ def test_seed_asset_validator_rejects_tampered_validation_summary_counts(tmp_pat
     assert "validation_summary failed_pair_ids mismatch" in result.stderr
 
 
+def test_seed_asset_validator_rejects_tampered_excluded_pair_ids(tmp_path: Path) -> None:
+    """Excluded failure rows must stay auditable rather than disappearing from summaries."""
+
+    base = _copy_seed_library_subset(tmp_path, UNIFIED)
+    summary_path = base / UNIFIED / "assets" / "extracted" / "validation_summary.json"
+    summary = json.loads(summary_path.read_text())
+    summary["excluded_pair_ids"] = []
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), UNIFIED],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "validation_summary excluded_pair_ids mismatch" in result.stderr
+
+
 def test_seed_asset_validator_accepts_unmodified_llms_emp_xlsx_trace(tmp_path: Path) -> None:
     base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
     env = os.environ.copy()

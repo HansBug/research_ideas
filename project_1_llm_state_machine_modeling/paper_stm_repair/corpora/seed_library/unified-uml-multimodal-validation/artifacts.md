@@ -9,7 +9,7 @@
 | `hf_state_dataset_record.json` | present | HF dataset API record。 |
 | `hf_state_dataset_tree.json` | present | HF repo tree。 |
 | `umlcode_state_diagram_train.parquet` | present | HF state diagram train split，999 rows。 |
-| `hf_state_dataset_sample.json` | present | 前 5 行 preview；含 `uml_code_complete` 标记，便于 reviewer 快速检查，但 row-level parse/render 仍以 parquet 本体为准。 |
+| `hf_state_dataset_sample.json` | present | 前 5 行 preview；含 `uml_code_complete` 标记，便于 reviewer 快速检查，但 R2.0 事实以 parquet 本体、`assets/extracted/pairs.jsonl` 与 validator 为准。 |
 
 ## 外部入口
 
@@ -22,4 +22,4 @@
 
 ## artifact 判定
 
-当前为 `SA-2`：公开、可下载、可 hash、state subset 可隔离；但 dataset license 未在 HF API card 中明确出现，且正式进入 R2 前仍需 row-level parse / render / duplication 抽检。
+当前为 `final_pool_ready` / `SA-2`：公开、可下载、可 hash、state subset 可隔离；本轮已完成 NL 去重、failure 行识别、locator/hash 回溯与 validator 复验。许可 / 再分发不作为升绿阻塞；仍需保留 synthetic、非控制系统、无逐行 VLM/human score 等学术 caveat，后续主实验可继续做 PlantUML parser/render 抽检。
