@@ -22,7 +22,7 @@
 | recommended_role | 数量 | 当前含义 | R2 影响 |
 |---|---:|---|---|
 | 🟢 `final_pool_ready` | 0 | 尚无同时满足 committed raw、许可/再分发清楚、trace verified 的 generated seed | 不能直接冻结最终 smoke |
-| 🟡 `conditional_final_pool` | 3 | `unified-uml-multimodal-validation` 有 committed HF 样例但 synthetic/license caveat；`llms-emp-stm-subset` 与 `sefm-llm-state-machine` 仍需 workbook/ZIP 落盘 | 可作为 R2 优先清 blocker 对象 |
+| 🟡 `conditional_final_pool` | 3 | `unified-uml-multimodal-validation` 有 committed HF 样例但 synthetic/license caveat；`sefm-llm-state-machine` 已有 committed 4open ZIP 的 1 组 SSC7 pair 但 license / redistribution 未闭合；`llms-emp-stm-subset` 仍需 workbook 落盘 | 可作为 R2 优先清 blocker 对象 |
 | 🟠 `pipeline_only` | 1 | `fsm-bench-20` 有 NL/prompt/schema/code，但没有作者公开 generated `STM_0` | 只能后续本项目复跑另建 seed |
 | ⚪ `paper_reconstructable` | 10 | 多数传统 use-case/statechart 工作只有论文示例 / 附录 | 不计现成 seed；可做 related / 手工构造线索 |
 | 🔴 `related_only` | 1 | `designing-fsm-gpt4` 当前无稳定一手 pair / license / release | 不进 final pool |
@@ -59,7 +59,7 @@
 | recommended_role | 含义 | R2 默认态度 |
 |---|---|---|
 | 🟢 `final_pool_ready` | committed 一手 `NL + generated STM_0` 可直接复验，许可 / 再分发 / locator / hash 均闭合 | 可进入现成 seed pool；当前数量为 0 |
-| 🟡 `conditional_final_pool` | 一手入口强相关，但仍有 license、metadata-only、local_only、raw 未落盘、synthetic 等 blocker | 只能作为清 blocker 优先对象；当前为 `unified`、`llms-emp`、`sefm` |
+| 🟡 `conditional_final_pool` | 一手入口强相关，但仍有 license、redistribution、metadata-only、synthetic、release pin 或 full-parse 等 blocker | 只能作为清 blocker 优先对象；当前为 `unified`、`llms-emp`、`sefm` |
 | 🟠 `pipeline_only` | 有 NL、prompt、schema 或代码，但作者未公开 generated `STM_0` | 不计现成 seed；可后续由本项目复跑另建 seed |
 | 🔵 `reference_only` | 有 `NL + reference STM`，不是 generated `STM_0` | 可做参考解 / 评价线索，不计 generated seed |
 | ⚪ `paper_reconstructable` | 只有论文图示、附录或示例可重建 | 可做方法证据 / 人工构造线索，不计现成 seed |
@@ -141,7 +141,7 @@
 
 | 分组 | 候选 | 当前用途 | 进入 R2 前必须满足 |
 |---|---|---|---|
-| 🟡 清 blocker 优先 | `unified-uml-multimodal-validation`、`llms-emp-stm-subset`、`sefm-llm-state-machine` | 优先补全一手 raw、license、hash、locator、trace validator；只有清完 blocker 才可能进入 smoke | `unified` 需 license / synthetic / full parse；`llms-emp` 需 workbook 落盘；`sefm` 需 4open ZIP 落盘与 SSC7 trace 验证 |
+| 🟡 清 blocker 优先 | `unified-uml-multimodal-validation`、`llms-emp-stm-subset`、`sefm-llm-state-machine` | 优先补全一手 raw、license、hash、locator、trace validator；只有清完 blocker 才可能进入 smoke | `unified` 需 license / synthetic / full parse；`sefm` 需 license / redistribution / release pin 与更多 generated pair 抽取；`llms-emp` 需 workbook 落盘 |
 | 🟠 复跑构造候选 | `fsm-bench-20` | 有 NL / prompt / schema / code，但无作者公开 generated `STM_0`；可由本项目复跑另建 seed | 复跑必须保存 run record、模型、prompt、raw output、hash 与 eligibility，不得冒充作者原生 seed |
 | ⚪ 论文级重建 / 方法证据 | `automated-transition-use-cases-uml-sm`、`maritaca-use-case-behavior-models`、`dependable-product-families-usecases-state-machines`、`statechart-use-case-validation-event-driven`、`rscharter-statechart-elements` 等 | 支撑 related work、转换器压力、人工构造线索 | 若要升级为 seed，必须新建 registry + assets + validator，而不是只引用论文图示 |
 | 🔴 相关工作 / 排除哨兵 | `designing-fsm-gpt4`、repair-only、protocol / standard-doc / sequence / formal-spec 等 | 防误收与 related work 定位 | 默认不进入 R2 现成 seed；除非后续找到一手 generated pair 并重新登记 |
@@ -151,7 +151,7 @@
 
 | ID | 年份 | 来源批次 | NL类型 | STM类型 | T0 | 关系 | 文献资格 | R2资格 | 当前角色 | 主要风险 | 证据 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `sefm-llm-state-machine` | 2026 | 旧基线 / 复现 | 系统描述 | UML statechart | 🟢 | 🟢 | 🟢 | 🟡 | R2.0 `conditional_final_pool` | 4open ZIP 未 committed，SSC7 pair 未 trace verified，eligible=0 | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
+| `sefm-llm-state-machine` | 2026 | 旧基线 / 复现 | 系统描述 | UML statechart / Umple | 🟢 | 🟢 | 🟢 | 🟡 | R2.0 `conditional_final_pool` | 4open ZIP 已 committed，SSC7 generated pair trace verified；license / redistribution / release pin 未闭合，eligible=1；assets 见 [assets/README.md](./sefm-llm-state-machine/assets/README.md) | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
 | `llms-emp-stm-subset` | 2024 | 旧基线 / 复现 | 需求文本 | SysML / PlantUML STM | 🟢 | 🟢 | 🟢 | 🟡 | R2.0 `conditional_final_pool` | Drive workbook 未 committed，license unknown，eligible=0 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
 | `designing-fsm-gpt4` | 2026 | 旧基线 | 合成需求 | DFSM / Mealy CSV | 🟢 | 🟢 | 🟡 | 🔴 | R2.0 `related_only` | 无稳定一手 pair / release / license；只作 related / toy-line evidence | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
 | `unified-uml-multimodal-validation` | 2026 | R1.6 + HF 制品 | 合成需求 | PlantUML | 🟢 | 🟢 | 🟡 | 🟡 | R2.0 `conditional_final_pool` | committed 前三行 trace verified；license / synthetic / full parse blocker | [seed_desc](./unified-uml-multimodal-validation/seed_desc.md) |
@@ -207,7 +207,7 @@
 |---|---:|---:|---:|---|---|---|---|---|
 | `unified-uml-multimodal-validation` | 🟡 `conditional_final_pool` | 3 | 3 | `downloaded` | HF parquet `input`；synthetic feature descriptions | HF parquet `uml_code`；PlantUML StateDiagram | dataset_license_unknown；synthetic_requirements_caveat；full_999_row_parse_not_yet_run | 若保留，先全量 parse / 渲染抽检、许可说明和 synthetic caveat；只作条件 smoke |
 | `llms-emp-stm-subset` | 🟡 `conditional_final_pool` | 0 | 0 | `metadata_only` | Google Drive workbook 中 `Requirement Description` | `Generation PlantUML`；reference / checking outputs 必须排除 | drive_workbook_not_committed；data_license_unknown；old_parquet_not_first_source | 下载并落盘一手 workbook；抽取 hash / sheet / row / column locator；跑 validator 后再决定 smoke |
-| `sefm-llm-state-machine` | 🟡 `conditional_final_pool` | 0 | 0 | `metadata_only` | 4open ZIP 中 `SSC7_fall_2024` description | 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | 4open_zip_not_committed；license_unknown；ssc7_pair_not_trace_verified | 下载并落盘 4open ZIP；只登记 generated SSC7，reference solutions 标 reference_only |
+| `sefm-llm-state-machine` | 🟡 `conditional_final_pool` | 1 | 1 | `downloaded` | committed 4open ZIP 中 `SSC7_fall_2024` description | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | license_unknown；redistribution_unknown；anonymous_4open_no_release_or_doi；only_ssc7_generated_pair_extracted_so_far | 补 license / redistribution / release pin；必要时继续抽取其他 generated outputs；reference solutions 继续只标 reference_only |
 | `fsm-bench-20` | 🟠 `pipeline_only` | 0 | 0 | `downloaded` | Zenodo/GitHub benchmark systems / prompts | 作者未公开 generated `STM_0` | no_published_generated_stm0；rerun_required_before_seed | 若使用，必须由本项目复跑生成 `STM_0`，并写完整 run record；不能冒充作者原生 pair |
 ## 7. 外部资源可获取性矩阵（47 行）
 
@@ -274,7 +274,7 @@
 
 | 原基线 | 种子方法 ID | 矩阵 ID | 单条目 | 输入 NL | 输出 STM | 生成方法 | 作者原生 pair | 资源摘要（非原子；一手入口） | R2 用途 |
 |---|---|---|---|---|---|---|---|---|---|
-| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 8 个 reactive-system / system descriptions | UML state machine / statechart | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) 含代码 / 数据 / F1 workbook；许可 / 哈希待冻结 | R2.0 `conditional_final_pool`；ZIP 未落盘前 eligible=0 |
+| Structure- and Event-Driven Frameworks | `sefm-llm-state-machine` | `sefm-llm-state-machine` | [sefm-llm-state-machine](./sefm-llm-state-machine/) | 8 个 reactive-system / system descriptions | UML state machine / statechart | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 🟡 | 论文 [arXiv](https://arxiv.org/abs/2604.00275)；作者制品 [4open](https://anonymous.4open.science/#!/r/llm_state_machine_modeling/) 含代码 / 数据 / F1 workbook；本 PR 已冻结 ZIP hash，许可 / release 稳定性仍待核 | R2.0 `conditional_final_pool`；ZIP 已落盘且 SSC7 trace verified，eligible=1；license / redistribution 未闭合 |
 | LLMS EMP / SysML Behavior Models | `llms-emp-stm-subset` | `llms-emp-stm-subset` | [llms-emp-stm-subset](./llms-emp-stm-subset/) | 107 个 SysML 行为模型需求描述；只取 `diagram_type=stm` 子集 | PlantUML / SysML STM | LLM；requirements + prompt；含检查 / 反馈再生成设计 | 🟡 | 论文 [ACM DOI](https://dl.acm.org/doi/10.1145/3755881.3755926)；论文给出数据 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link)，流水线代码未公开，许可待核 | R2.0 `conditional_final_pool`；workbook 未落盘前 eligible=0 |
 | Designing FSM with GPT-4 | `designing-fsm-gpt4` | `designing-fsm-gpt4` | [designing-fsm-gpt4](./designing-fsm-gpt4/) | 合成英文 DFSM / Mealy 需求描述 | CSV DFSM / Mealy | GPT-4/GPT-4o；初始生成 + oracle / 检查 / 修正实验 | 🔴 | 论文 [arXiv](https://arxiv.org/abs/2603.29140)；论文内 Listing 可重建初始 NL/CSV；论文未给一手代码/数据链接，论文外 GitHub 只作线索 | R2.0 `related_only`；不作为 seed |
 | TTool-AI | `ttool-ai-smd-subset` | `ttool-ai-smd-subset` | [ttool-ai-smd-subset](./ttool-ai-smd-subset/) | platooning、spacebasedsystem、AutomatedBraking 等自然语言系统规范 | SysML/TTool state-machine diagram subset | ChatGPT 3.5；语法/语义检查、JSON→TTool XML | 🟡 | 论文 [HAL](https://telecom-paris.hal.science/hal-04483279) / [DOI](https://doi.org/10.5220/0012320100003645)；论文给出作者仓库 [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai)，需分离 SMD；provider drift/许可待核 | 转换器压力 / 条件 seed |
@@ -420,13 +420,13 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 ## 13. 关键风险与 R2 建议
 
 1. **当前无 🟢 `final_pool_ready`**：不能把 R1.8 “严格种子 / 条件主候选”直接拿去冻结四例 smoke；必须先清 [REGISTRY.md](./REGISTRY.md) 中 `unified`、`llms-emp`、`sefm` 的 blocker，或明确走 `fsm-bench-20` 复跑构造。
-2. **`llms-emp-stm-subset` / `sefm-llm-state-machine` 目前仍是 metadata-only**：一手入口很强，但 workbook / ZIP 没有 committed raw、hash、locator 与 validator 闭环前，eligible generated count 必须保持 0。
+2. **`llms-emp-stm-subset` 目前仍是 metadata-only；`sefm-llm-state-machine` 已升级为 committed ZIP 但仍是 conditional**：`llms-emp` workbook 没有 committed raw、hash、locator 与 validator 闭环前，eligible generated count 必须保持 0；`sefm` 当前已有 1 组 trace verified pair，但不得因许可/再分发不明升级为 final_pool_ready。
 3. **`unified-uml-multimodal-validation` 只能条件使用**：前三行 committed HF parquet 样例已 trace verified，但数据集 license unknown、synthetic NL、非控制系统场景和 full 999 rows parse 未闭合，不应被写成 final_pool_ready。
 4. **`fsm-bench-20` 不能直接算作者 generated seed**：公开包有 dataset / prompt / schema / code / MIT，但缺作者冻结的 generated `STM_0` 输出；若使用必须由本项目复跑并保存 run record、prompt、模型、raw output、hash 与 eligibility。
 5. **paper-reconstructable / related-only 不能替代现成样本**：论文图示、附录、旧缓存、人工重建、protocol / standard / sequence / repair-only 线索都不能绕过 registry + assets + validator。
 6. **四例只是 R3--R6 开发 smoke panel，不是最终实验规模上限**：最终实验池应继续扩大，但每个入池 pair 都必须满足一手来源和可审计 trace。
 
-R2 建议顺序：先下载 / 固化 `llms-emp` workbook 与 `sefm` 4open ZIP，再对 `unified` 做全量 parse 与 license caveat，最后视缺口决定是否用 `fsm-bench-20` rerun 构造补 smoke。
+R2 建议顺序：先下载 / 固化 `llms-emp` workbook；对 `sefm` 继续补 license / redistribution / release pin 并视需要抽取更多 generated outputs；再对 `unified` 做全量 parse 与 license caveat，最后视缺口决定是否用 `fsm-bench-20` rerun 构造补 smoke。
 
 ## 14. 迁移表
 
@@ -474,7 +474,7 @@ R2 建议顺序：先下载 / 固化 `llms-emp` workbook 与 `sefm` 4open ZIP，
 |---|---|---:|---|---|---|---|---|---|---|
 | `unified-uml-multimodal-validation` | 条件方法证据 | 🟡 `conditional_final_pool` | LLaMA 生成的 synthetic user-focused requirements / feature descriptions | PlantUML StateDiagram / `UMLCode_StateDiagram` | PlantUML 状态图文本；需抽检非状态图污染和合成数据泄漏 | UML state diagram / PlantUML statechart | T0-离散；未见显式时钟 | 多模型流水线：requirements -> PlantUML | HF parquet 前三行 committed 且 trace verified；license / synthetic / full parse 未闭合 |
 | `llms-emp-stm-subset` | 强相关 LLM seed 方法证据 | 🟡 `conditional_final_pool` | SysML 行为模型需求描述 / requirements descriptions；只取 STM 子集 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；只允许初始 `Generation PlantUML` | SysML state machine / UML statechart | T0-结构化离散；未见 timed / hybrid 目标模型 | LLM；requirements + prompt | Google Drive 一手入口明确，但 workbook 未 committed、license unknown、eligible=0 |
-| `sefm-llm-state-machine` | 强相关 LLM seed 方法证据 | 🟡 `conditional_final_pool` | 非结构化 reactive-system 系统描述 / 行为需求 | UML state machine / Umple 输出 | 显式 state / transition / guard / action；评估 hierarchy / parallel / history | UML statechart / HSM-capable | T0-结构化离散；未见显式时钟 / 连续动力学 | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 4open 一手入口明确，但 ZIP 未 committed、SSC7 未 trace verified、eligible=0 |
+| `sefm-llm-state-machine` | 强相关 LLM seed 方法证据 | 🟡 `conditional_final_pool` | 非结构化 reactive-system 系统描述 / 行为需求 | UML state machine / Umple 输出 | 显式 state / transition / guard / action；评估 hierarchy / parallel / history | UML statechart / HSM-capable | T0-结构化离散；未见显式时钟 / 连续动力学 | LLM；单轮提示、结构驱动、事件驱动、混合策略 | 4open ZIP 已 committed，SSC7 generated pair trace verified；但 license / redistribution / release pin 未闭合且仅抽取 1 组 generated pair |
 | `fsm-bench-20` | pipeline 相关证据 | 🟠 `pipeline_only` | 控制系统需求、prompt、schema | FSM JSON schema / gold systems；作者 generated `STM_0` 缺失 | 平坦 FSM schema、可复跑 prompt/code | FSM JSON / T0 | T0-离散；未见显式时钟 | 作者 benchmark pipeline；需本项目 rerun | Zenodo/GitHub release 可用，但 no published generated `STM_0`；不计现成 seed |
 | `maritaca-use-case-behavior-models` | 传统 NLP / 半自动方法证据 | ⚪ `paper_reconstructable` | 半结构化 textual use case descriptions | UML state machine / behavior model | use-case step 到状态/迁移的模板化行为模型；需人工特征选择 | UML state machine / 用例行为模型 | T0-离散事件；未见显式时钟 | 半自动 NLP + template / 规则 + 人工特征选择 | 作者站点 403；无 machine-readable native pair，论文例子只可重建 |
 | `automated-transition-use-cases-uml-sm` | 传统规则方法证据 | ⚪ `paper_reconstructable` | RUCM textual use case specifications | UML State Machine | RUCM flow / transition 到 state-based testing 用状态机 | UML state machine / state-based testing | T0-离散事件；未见显式时钟 | RUCM + aToucan / rule-based | 附录可重建局部 pair；无一手原生 pair 包 / 代码 / license |

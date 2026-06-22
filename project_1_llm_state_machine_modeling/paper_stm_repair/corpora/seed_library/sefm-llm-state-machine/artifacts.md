@@ -48,4 +48,4 @@
 
 ## R2.0 registry 口径更新
 
-一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目 `assets/` 只登记 4open metadata pointer，ZIP 尚未 committed，因此 eligible generated seed count 仍为 0；reference solutions 只能作为评价参考。
+一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目已在 [assets/README.md](./assets/README.md) 下 committed 4open ZIP，并抽取 1 组 SSC7 `NL + Claude Sonnet 3.5 single-prompt generated Umple` pair；该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 与文本 hash 回溯，eligible generated seed count 为 1。但 4open 制品 license / redistribution / release pin 仍未闭合，因此仍保持 `conditional_final_pool`，不能升级为 `final_pool_ready`；reference solutions 只能作为评价参考。

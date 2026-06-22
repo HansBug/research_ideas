@@ -10,9 +10,17 @@
 
 从一手 registry 口径起，本目录有两个互补事实层：
 
-1. [REGISTRY.md](./REGISTRY.md) 是逐条一手资源明细主表，负责 `seed_id`、一手入口、assets 链接、pair 统计、eligible count、blocker、R2 选择建议和单条目 `seed_resource_registry.json` 跳转。
+1. [REGISTRY.md](./REGISTRY.md) 是逐条一手资源明细主表，负责条目、一手入口、`assets/README.md` 直链、pair 统计、eligible count、blocker、R2 选择建议和单条目 `seed_resource_registry.json` 跳转。
 2. [SUMMARY.md](./SUMMARY.md) 是研究结论与统计摘要入口，负责候选全集、文献资格、资源分布、风险、迁移关系和面向 R2 的摘要；它不复制 [REGISTRY.md](./REGISTRY.md) 的全量逐条资源明细。
 3. [README.md](./README.md) 只做定位、阅读顺序和最小速览，不维护独立事实表或第二套统计。
+
+[REGISTRY.md](./REGISTRY.md) 的维护纪律：
+
+1. 主表第一列必须叫“条目”，若该条目存在 `assets/README.md`，条目名本身必须直接链接到该文件，例如 [`sefm-llm-state-machine`](./sefm-llm-state-machine/assets/README.md)；没有 `assets/` 的条目才保留普通文本。
+2. 不再单独设置 `assets` 列；资源入口必须通过左侧条目链接进入，机器可读记录继续放在“机器记录”列。
+3. 表头、说明列、R2 建议、阻塞项、状态描述能用中文就用中文；`recommended_role`、`source_status`、hash、文件路径、schema 字段等机器枚举可以保留反引号英文，但解释文本必须中文化。
+4. `generated eligible`、`trace verified` 等英文统计含义在表头中写作“可计生成对”“已回溯验证”；不要让读者必须理解英文才能读懂主表。
+5. 每次新增或修改 `assets/README.md`、`seed_resource_registry.json`、`assets/manifest.json`、`validation_summary.json` 后，都必须同步核对 [REGISTRY.md](./REGISTRY.md) 主表的条目链接、计数、状态、阻塞项和 [SUMMARY.md](./SUMMARY.md) 的摘要。
 
 新增条目时，不得只创建目录或只改单篇文件；必须同步更新单条目 `seed_desc.md` / `artifacts.md`、必要的 `seed_resource_registry.json` / `assets/` 审计链，以及 [SUMMARY.md](./SUMMARY.md) 中对应的统计摘要或风险结论。若新增的是一手资源或 pair 明细，必须优先回写 [REGISTRY.md](./REGISTRY.md)，再更新 [SUMMARY.md](./SUMMARY.md) 摘要。
 
@@ -84,10 +92,10 @@
 
 从一手 registry 口径起，seed library 采用 **REGISTRY 明细 + SUMMARY 摘要 + 单条目 assets 审计链**：
 
-1. [REGISTRY.md](./REGISTRY.md) 是逐条资源明细主表；[SUMMARY.md](./SUMMARY.md) 只保留研究结论、统计摘要与风险，不复制全量明细。
+1. [REGISTRY.md](./REGISTRY.md) 是逐条资源明细主表；[SUMMARY.md](./SUMMARY.md) 只保留研究结论、统计摘要与风险，不复制全量明细。REGISTRY 主表必须用“条目”列直接链接到对应 `assets/README.md`，不得另设 assets 列。
 2. 单条目 `assets/` 是短名，但语义必须是**一手来源资产目录**。只有论文 / 作者 artifact / 官方数据集 / 作者仓库 / 出版页 Data Availability / 可版本化 release 中直接取得的文件，及其从 raw 直接抽取得到的审计产物，可以进入 `assets/`。
 3. 本仓库历史 parquet、旧缓存、人工复写、论文图示重建、PR comment 摘要只能写入 `legacy_audit_refs` 或 blocker，不能升级为 current first-source asset。
-4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 seed/resource 候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，generated eligible count 视为 0，不得被 R2 直接选用。
+4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 种子 / 资源候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，可计生成数量视为 0，不得被 R2 直接选用。
 5. 有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
 6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
 7. 只有 validator 能按 raw hash + locator + 文本 / 文本 hash 回溯成功，且 `trace_verified=true`、`is_generated_stm0=true`、`is_reference=false`、`is_postprocessed=false` 的 pair 才能计入 eligible generated seed count；不能只信任 `pairs.jsonl` 自报。
@@ -118,7 +126,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 1. 先读 `bibtex.bib` 核定元信息。
 2. 再尽量完整读 `paper_content.txt`；若缺失或异常，按仓库 PDF 提取规范处理。
 3. 必要时核对 `paper.pdf`。
-4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2.0 `recommended_role`、blocker、是否 generated eligible、风险和证据指针。
+4. 更新 `seed_desc.md`：生成关系、T0 / STM-family 边界、文献资格、R2.0 `recommended_role`、blocker、是否可计为生成 pair、风险和证据指针。
 5. 更新 `artifacts.md`：外部资源可获取性，包括论文本体、来源文档、生成/复现实验代码、NL 数据、STM_0 数据、作者原生 `<NL, STM_0>` pair、可重建 `<NL, STM_0>` pair、配对索引、原始生成输出、评测结果 / 日志、许可、版本 / 哈希、人工阻塞项、复跑风险。写这些字段前必须阅读全文，并逐项打开外部 artifact / code / dataset / license / release 页面核验；若只能看到本地缓存或二手摘要，一律标为待核或受阻。
 6. 回填 [SUMMARY.md](./SUMMARY.md) 的候选全集表、外部资源可获取性表、本地证据容器表和更新日志。人工下载队列需要补 BibTeX 时，优先更新 [manual_download_queue.bib](./manual_download_queue.bib)，并在 [SUMMARY.md](./SUMMARY.md) §9 只保留状态与链接，不新增根层横向台账。
 
@@ -141,6 +149,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-22 19:10:00 | PR-R2.0：补充 REGISTRY 维护纪律，规定条目列直链 `assets/README.md`、不另设 assets 列、主表能中文尽量中文。 |
 | 2026-06-22 18:30:00 | PR-R2.0：对齐一手 registry 口径，明确 `final_pool_ready=0`、未建 registry 目录默认不可入池，并补强 validator 的 raw locator / 文本 hash 回溯校验。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：规定 README 核心表与 SUMMARY §16 必须显式拆出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系和时间特性等级，并要求资源列只写一手可点击入口，本地 parquet / 代码缓存不计资源。 |
 | 2026-06-14 23:40:00 | PR-R1.8-B：Yue 2011 已补全文并转正到 seed 目录；人工下载 BibTeX 队列只保留 Jørgensen 2004。 |

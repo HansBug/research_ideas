@@ -48,7 +48,20 @@ print('STM_0:', df.loc[idx, 'uml_code'][:300])
 
 ## 5. 期望输出字段
 
-示例必须输出 `pair_id`、`source_asset_id`、`source_locator`、`source_sha256`、`actual_sha256`、`sha256_match=True`、`NL` 与 `STM_0`。
+示例必须输出 `pair_id`、`source_asset_id`、`source_locator`、`source_sha256`、`actual_sha256`、`sha256_match=True`、`NL` 与 `STM_0`。人类读者应能直接看出：NL 是 synthetic restaurant menu feature description，`STM_0` 是对应的 PlantUML state diagram。
+
+期望输出形态如下（片段截断不影响审计，完整文本在 `pairs.jsonl` 与 raw parquet 对应行中）：
+
+```text
+pair_id: unified_uml_state_train_0000
+source_asset_id: hf_state_train_parquet
+source_locator: row=0; columns=input,uml_code,reasoning
+source_sha256: 02e99eef50ef722aa0c020fccbaeb59daa7cca0e303c247f50450c0eb26bc80d
+actual_sha256: 02e99eef50ef722aa0c020fccbaeb59daa7cca0e303c247f50450c0eb26bc80d
+sha256_match: True
+NL: Imagine you're at a restaurant and you're trying to order a meal. You want to order a burger...
+STM_0: @startuml | [*] --> "Menu Created" | "Menu Created" --> "Adding Items" | "Adding Items" --> "Viewing Menu" ...
+```
 
 ## 6. 审计不变量
 

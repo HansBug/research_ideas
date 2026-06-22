@@ -7,19 +7,27 @@ source_asset_id/source_sha256 consistency, validation_summary count
 consistency, and—when a supported locator type is used—verifies that the
 extracted NL/STM text and hashes really round-trip to the committed raw asset.
 
-At the moment the strongest supported raw-text trace is
-``source_locator_type=parquet_row_columns``. Unsupported locator types are
-accepted only for non-trace-verified rows; a row cannot count as trace-verified
-or eligible unless this validator can independently check its raw locator.
+At the moment the strongest supported raw-text traces are:
+
+- ``source_locator_type=parquet_row_columns`` for HF/parquet style datasets.
+- ``source_locator_type=zip_python_symbol_and_text_file`` for a committed ZIP
+  asset where the NL comes from a Python string symbol and ``STM_0`` comes from
+  a text file member in the same ZIP.
+
+Unsupported locator types are accepted only for non-trace-verified rows; a row
+cannot count as trace-verified or eligible unless this validator can
+independently check its raw locator.
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
 import re
 import sys
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -44,6 +52,7 @@ class RawTableCache:
 
     def __init__(self) -> None:
         self._parquet: dict[Path, Any] = {}
+        self._zip_text: dict[tuple[Path, str], str] = {}
 
     def parquet(self, path: Path):
         if path not in self._parquet:
@@ -53,6 +62,13 @@ class RawTableCache:
                 raise RuntimeError("pandas/pyarrow are required for parquet locator validation") from exc
             self._parquet[path] = pd.read_parquet(path)
         return self._parquet[path]
+
+    def zip_text(self, path: Path, member: str) -> str:
+        key = (path, member)
+        if key not in self._zip_text:
+            with zipfile.ZipFile(path) as zf:
+                self._zip_text[key] = zf.read(member).decode("utf-8")
+        return self._zip_text[key]
 
 
 @dataclass
@@ -230,6 +246,42 @@ def _parse_parquet_locator(locator: str) -> tuple[int, list[str]] | None:
     return int(row_match.group(1)), cols
 
 
+def _parse_kv_locator(locator: str) -> dict[str, str]:
+    """Parse a semicolon-separated locator with key=value fragments."""
+
+    result: dict[str, str] = {}
+    for part in locator.split(";"):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        result[key.strip()] = value.strip()
+    return result
+
+
+def _python_string_symbol(source: str, symbol: str) -> str:
+    """Extract a module-level Python string literal assigned to ``symbol``."""
+
+    tree = ast.parse(source)
+    for node in tree.body:
+        targets = []
+        value = None
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+            value = node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+            value = node.value
+        if value is None:
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == symbol for t in targets):
+            continue
+        literal = ast.literal_eval(value)
+        if not isinstance(literal, str):
+            raise ValueError(f"symbol {symbol} is not a string literal")
+        return literal
+    raise KeyError(f"symbol {symbol} not found")
+
+
 def _as_text(value: Any) -> str:
     if value is None:
         return ""
@@ -269,6 +321,54 @@ def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, 
         result.errors.append(f"pair {pair_id} source_sha256 mismatch")
         return result
     result.source_hash_match = True
+
+    if locator_type == "zip_python_symbol_and_text_file":
+        fields = _parse_kv_locator(locator)
+        nl_member = fields.get("nl_member", "")
+        nl_symbol = fields.get("nl_symbol", "")
+        stm0_member = fields.get("stm0_member", "")
+        if not nl_member or not nl_symbol or not stm0_member:
+            result.errors.append(f"pair {pair_id} invalid ZIP locator: {locator}")
+            return result
+        try:
+            nl_source = cache.zip_text(raw_path, nl_member)
+            raw_nl = _python_string_symbol(nl_source, nl_symbol)
+            raw_stm = cache.zip_text(raw_path, stm0_member)
+        except Exception as exc:
+            result.errors.append(f"pair {pair_id} cannot resolve ZIP locator {locator}: {exc}")
+            return result
+        result.locator_resolved = True
+
+        text_ok = True
+        if row.get("nl_text") != raw_nl:
+            result.errors.append(f"pair {pair_id} nl_text does not match ZIP Python symbol {nl_symbol}")
+            text_ok = False
+        if row.get("stm0_text") != raw_stm:
+            result.errors.append(f"pair {pair_id} stm0_text does not match ZIP member {stm0_member}")
+            text_ok = False
+        expected_nl_hash = sha256_text(raw_nl)
+        expected_stm_hash = sha256_text(raw_stm)
+        if row.get("nl_sha256") != expected_nl_hash:
+            result.errors.append(f"pair {pair_id} nl_sha256 mismatch: {row.get('nl_sha256')} != {expected_nl_hash}")
+            text_ok = False
+        if row.get("stm0_sha256") != expected_stm_hash:
+            result.errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
+            text_ok = False
+        if row.get("source_local_path") and seed_dir / "assets" / row.get("source_local_path") != raw_path:
+            result.errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
+            text_ok = False
+        result.text_or_hash_match = text_ok
+        result.trace_verified = result.source_hash_match and result.locator_resolved and result.text_or_hash_match
+        result.eligible_generated = (
+            result.trace_verified
+            and bool(row.get("is_generated_stm0"))
+            and not bool(row.get("is_reference"))
+            and not bool(row.get("is_postprocessed"))
+        )
+        result.repo_or_external_reproducible_eligible = (
+            result.eligible_generated and storage_mode == "committed" and download_status == "downloaded"
+        )
+        return result
 
     if locator_type != "parquet_row_columns":
         if row.get("trace_verified"):
