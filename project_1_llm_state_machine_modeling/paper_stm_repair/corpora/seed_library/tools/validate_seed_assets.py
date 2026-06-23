@@ -15,6 +15,8 @@ At the moment the strongest supported raw-text traces are:
 - ``source_locator_type=zip_python_symbol_and_text_file`` for a committed ZIP
   asset where the NL comes from a Python string symbol and ``STM_0`` comes from
   a text file member in the same ZIP.
+- ``source_locator_type=zip_member_pair`` for a committed ZIP asset where both
+  NL and ``STM_0`` are stored as explicit archive members.
 
 Unsupported locator types are accepted only for non-trace-verified rows; a row
 cannot count as trace-verified or eligible unless this validator can
@@ -74,6 +76,73 @@ R2_SMOKE_ENUM = {
     "rerun_required",
     "do_not_use_as_seed",
     "reference_only",
+}
+RESOURCE_CATEGORY_ENUM = {
+    "first_source_nl_stm",
+    "nl_only",
+    "nl_code_reproducible",
+    "reference_only",
+    "paper_reconstructable",
+    "related_only",
+    "excluded",
+}
+RESOURCE_CATEGORY_LABEL = {
+    "first_source_nl_stm": "NL+STM一手",
+    "nl_only": "仅NL",
+    "nl_code_reproducible": "NL+源码可复跑",
+    "reference_only": "仅参考STM",
+    "paper_reconstructable": "论文可重建",
+    "related_only": "仅相关",
+    "excluded": "排除",
+}
+SOURCE_CODE_AVAILABILITY_ENUM = {
+    "available_pinned",
+    "available_unpinned",
+    "partial_or_snippet",
+    "not_published",
+    "blocked",
+    "not_applicable",
+    "unknown",
+}
+SOURCE_CODE_LABEL = {
+    "available_pinned": "🟢固定源码",
+    "available_unpinned": "🟡源码未冻",
+    "partial_or_snippet": "🟠片段/部分",
+    "not_published": "🔴未公开",
+    "blocked": "❓受阻",
+    "not_applicable": "⚪不适用",
+    "unknown": "❓待核",
+}
+PAPER_USES_LLM_ENUM = {"yes", "no", "possible", "not_applicable", "unknown"}
+LLM_AVAILABILITY_ENUM = {
+    "available_same_model",
+    "available_alias_or_successor",
+    "api_discontinued",
+    "proxy_or_compatible_endpoint_required",
+    "local_weight_available",
+    "local_weight_or_proxy_available",
+    "mixed_available_and_retired",
+    "not_applicable",
+    "unknown",
+}
+LLM_AVAILABILITY_LABEL = {
+    "available_same_model": "🟢原模型可用",
+    "available_alias_or_successor": "🟡继任/别名",
+    "api_discontinued": "🔴已退役",
+    "proxy_or_compatible_endpoint_required": "🟠需代理/替代",
+    "local_weight_available": "🟢开权重可用",
+    "local_weight_or_proxy_available": "🟡本地/代理可用",
+    "mixed_available_and_retired": "🟡混合",
+    "not_applicable": "⚪不适用",
+    "unknown": "❓待核",
+}
+CODE_REPRODUCIBILITY_ENUM = {
+    "not_applicable",
+    "not_attempted",
+    "initial_generation_smoke_ok_via_openai_compatible_proxy",
+    "single_system_smoke_ok_via_ollama_compatible_proxy",
+    "blocked",
+    "failed",
 }
 
 UNKNOWN_COUNT_VALUES = {"unknown", "未知"}
@@ -289,6 +358,9 @@ def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: 
     required_headers = {
         "条目",
         "角色",
+        "资源类别",
+        "源码",
+        "论文LLM",
         "NL 数",
         "可计生成对",
         "已回溯验证",
@@ -317,6 +389,20 @@ def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: 
         errors.append(f"REGISTRY.md item cell for {seed_id} must link to {expected_assets_link}")
     if not assets_readme.exists() and "assets/README.md" in item_cell:
         errors.append(f"REGISTRY.md item cell for {seed_id} links to missing assets/README.md")
+
+    profile = reg.get("resource_profile", {})
+    expected_resource_category = RESOURCE_CATEGORY_LABEL.get(profile.get("resource_category"))
+    if expected_resource_category and _strip_md(row.get("资源类别", "")) != expected_resource_category:
+        errors.append(
+            f"REGISTRY.md 资源类别 mismatch for {seed_id}: "
+            f"{row.get('资源类别')} != {expected_resource_category}"
+        )
+    expected_source_code = SOURCE_CODE_LABEL.get(profile.get("source_code_availability"))
+    if expected_source_code and _strip_md(row.get("源码", "")) != expected_source_code:
+        errors.append(f"REGISTRY.md 源码 mismatch for {seed_id}: {row.get('源码')} != {expected_source_code}")
+    expected_llm = LLM_AVAILABILITY_LABEL.get(profile.get("paper_llm_availability_status"))
+    if expected_llm and _strip_md(row.get("论文LLM", "")) != expected_llm:
+        errors.append(f"REGISTRY.md 论文LLM mismatch for {seed_id}: {row.get('论文LLM')} != {expected_llm}")
 
     expected_nl = _pair_set_nl_count_label(reg)
     if _strip_md(row.get("NL 数", "")) != expected_nl:
@@ -557,6 +643,55 @@ def validate_registry_shape(reg: dict, errors: list[str]):
         errors.append("quality_audit sampled_items must be a list")
     if not isinstance(quality_audit.get("evidence_paths", []), list):
         errors.append("quality_audit evidence_paths must be a list")
+    resource_profile = reg.get("resource_profile", {})
+    require(
+        resource_profile,
+        [
+            "resource_category",
+            "source_code_availability",
+            "paper_uses_llm",
+            "paper_llm_models",
+            "paper_llm_availability_status",
+            "paper_llm_availability_checked_at",
+            "paper_llm_availability_evidence_urls",
+            "code_reproducibility",
+            "code_reproducibility_evidence_paths",
+            "resource_profile_notes",
+        ],
+        "resource_profile",
+        errors,
+    )
+    if resource_profile.get("resource_category") not in RESOURCE_CATEGORY_ENUM:
+        errors.append(f"unknown resource_category {resource_profile.get('resource_category')}")
+    if resource_profile.get("source_code_availability") not in SOURCE_CODE_AVAILABILITY_ENUM:
+        errors.append(f"unknown source_code_availability {resource_profile.get('source_code_availability')}")
+    if resource_profile.get("paper_uses_llm") not in PAPER_USES_LLM_ENUM:
+        errors.append(f"unknown paper_uses_llm {resource_profile.get('paper_uses_llm')}")
+    if resource_profile.get("paper_llm_availability_status") not in LLM_AVAILABILITY_ENUM:
+        errors.append(
+            f"unknown paper_llm_availability_status {resource_profile.get('paper_llm_availability_status')}"
+        )
+    if resource_profile.get("code_reproducibility") not in CODE_REPRODUCIBILITY_ENUM:
+        errors.append(f"unknown code_reproducibility {resource_profile.get('code_reproducibility')}")
+    if not isinstance(resource_profile.get("paper_llm_models", []), list):
+        errors.append("resource_profile paper_llm_models must be a list")
+    if not isinstance(resource_profile.get("paper_llm_availability_evidence_urls", []), list):
+        errors.append("resource_profile paper_llm_availability_evidence_urls must be a list")
+    if not isinstance(resource_profile.get("code_reproducibility_evidence_paths", []), list):
+        errors.append("resource_profile code_reproducibility_evidence_paths must be a list")
+    if resource_profile.get("paper_uses_llm") == "yes" and not resource_profile.get("paper_llm_models"):
+        errors.append("resource_profile paper_uses_llm=yes requires non-empty paper_llm_models")
+    if resource_profile.get("paper_uses_llm") == "yes" and resource_profile.get("paper_llm_availability_status") == "not_applicable":
+        errors.append("resource_profile paper_uses_llm=yes cannot use paper_llm_availability_status=not_applicable")
+    if resource_profile.get("paper_uses_llm") in {"no", "not_applicable"} and resource_profile.get("paper_llm_availability_status") not in {"not_applicable", "unknown"}:
+        errors.append("resource_profile non-LLM work should use LLM availability not_applicable/unknown")
+    if resource_profile.get("resource_category") == "first_source_nl_stm" and reg.get("extracted_summary", {}).get("eligible_generated_pair_count", 0) <= 0:
+        errors.append("resource_category first_source_nl_stm requires eligible generated pairs")
+    if resource_profile.get("resource_category") == "nl_code_reproducible":
+        if resource_profile.get("source_code_availability") in {"not_published", "not_applicable"}:
+            errors.append("resource_category nl_code_reproducible requires available source code")
+        if not reg.get("source_work", {}).get("code_urls"):
+            errors.append("resource_category nl_code_reproducible requires source_work.code_urls")
     ds = reg.get("downstream_selection", {})
     require(
         ds,
@@ -777,6 +912,52 @@ def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, 
         text_ok = True
         if row.get("nl_text") != raw_nl:
             result.errors.append(f"pair {pair_id} nl_text does not match ZIP Python symbol {nl_symbol}")
+            text_ok = False
+        if row.get("stm0_text") != raw_stm:
+            result.errors.append(f"pair {pair_id} stm0_text does not match ZIP member {stm0_member}")
+            text_ok = False
+        expected_nl_hash = sha256_text(raw_nl)
+        expected_stm_hash = sha256_text(raw_stm)
+        if row.get("nl_sha256") != expected_nl_hash:
+            result.errors.append(f"pair {pair_id} nl_sha256 mismatch: {row.get('nl_sha256')} != {expected_nl_hash}")
+            text_ok = False
+        if row.get("stm0_sha256") != expected_stm_hash:
+            result.errors.append(f"pair {pair_id} stm0_sha256 mismatch: {row.get('stm0_sha256')} != {expected_stm_hash}")
+            text_ok = False
+        if row.get("source_local_path") and seed_dir / "assets" / row.get("source_local_path") != raw_path:
+            result.errors.append(f"pair {pair_id} source_local_path does not match manifest raw path")
+            text_ok = False
+        result.text_or_hash_match = text_ok
+        result.trace_verified = result.source_hash_match and result.locator_resolved and result.text_or_hash_match
+        result.eligible_generated = (
+            result.trace_verified
+            and bool(row.get("is_generated_stm0"))
+            and not bool(row.get("is_reference"))
+            and not bool(row.get("is_postprocessed"))
+        )
+        result.repo_or_external_reproducible_eligible = (
+            result.eligible_generated and storage_mode == "committed" and download_status == "downloaded"
+        )
+        return result
+
+    if locator_type == "zip_member_pair":
+        fields = _parse_kv_locator(locator)
+        nl_member = fields.get("nl_member", "")
+        stm0_member = fields.get("stm0_member", "")
+        if not nl_member or not stm0_member:
+            result.errors.append(f"pair {pair_id} invalid ZIP member-pair locator: {locator}")
+            return result
+        try:
+            raw_nl = cache.zip_text(raw_path, nl_member)
+            raw_stm = cache.zip_text(raw_path, stm0_member)
+        except Exception as exc:
+            result.errors.append(f"pair {pair_id} cannot resolve ZIP member-pair locator {locator}: {exc}")
+            return result
+        result.locator_resolved = True
+
+        text_ok = True
+        if row.get("nl_text") != raw_nl:
+            result.errors.append(f"pair {pair_id} nl_text does not match ZIP member {nl_member}")
             text_ok = False
         if row.get("stm0_text") != raw_stm:
             result.errors.append(f"pair {pair_id} stm0_text does not match ZIP member {stm0_member}")

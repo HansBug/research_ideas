@@ -14,6 +14,7 @@ VALIDATOR = SEED_LIBRARY / "tools" / "validate_seed_assets.py"
 UNIFIED = "unified-uml-multimodal-validation"
 SEFM = "sefm-llm-state-machine"
 LLMS_EMP = "llms-emp-stm-subset"
+TTOOL_AI = "ttool-ai-smd-subset"
 
 
 def _copy_seed_library_subset(tmp_path: Path, *seed_ids: str) -> Path:
@@ -275,6 +276,59 @@ def test_seed_asset_validator_rejects_tampered_sefm_locator(tmp_path: Path) -> N
     assert "claims trace_verified but raw trace validation failed" in result.stderr
 
 
+def test_seed_asset_validator_accepts_unmodified_ttool_zip_member_pair_trace(tmp_path: Path) -> None:
+    """TTool-AI conditional pairs must round-trip to explicit ZIP members."""
+
+    base = _copy_seed_library_subset(tmp_path, TTOOL_AI)
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), TTOOL_AI],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload == {
+        "seed_id": TTOOL_AI,
+        "pair_count": 6,
+        "trace_verified_pair_count": 6,
+        "eligible_generated_pair_count": 6,
+    }
+
+
+def test_seed_asset_validator_rejects_tampered_ttool_zip_member_locator(tmp_path: Path) -> None:
+    """A ZIP member-pair row must resolve both NL and generated XML members."""
+
+    base = _copy_seed_library_subset(tmp_path, TTOOL_AI)
+    pairs_path = base / TTOOL_AI / "assets" / "extracted" / "pairs.jsonl"
+    rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
+    rows[0]["source_locator"] = rows[0]["source_locator"].replace("automatedbraking.md", "missing.md")
+    pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), TTOOL_AI],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "cannot resolve ZIP member-pair locator" in result.stderr
+    assert "claims trace_verified but raw trace validation failed" in result.stderr
+
+
 def test_seed_asset_validator_rejects_pair_state_drift_from_registry(tmp_path: Path) -> None:
     """Eligible generated rows must not silently keep stale conditional state."""
 
@@ -381,8 +435,10 @@ def test_seed_asset_validator_rejects_registry_markdown_count_drift(tmp_path: Pa
     base = _copy_seed_library_subset(tmp_path, UNIFIED)
     registry_md = base / "REGISTRY.md"
     text = registry_md.read_text()
-    text = text.replace("| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 / 10 |",
-                        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 / 10 |")
+    text = text.replace(
+        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 / 10 |",
+        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 / 10 |",
+    )
     registry_md.write_text(text)
 
     env = os.environ.copy()
