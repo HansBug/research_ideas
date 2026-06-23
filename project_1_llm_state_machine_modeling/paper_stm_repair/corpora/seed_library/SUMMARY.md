@@ -27,7 +27,7 @@
 | ⚪ `paper_reconstructable` | 10 | 多数传统 use-case/statechart 工作只有论文示例 / 附录 | 不计现成 seed；可做 related / 手工构造线索 |
 | 🔴 `related_only` | 0 | 当前主表无 related-only 登记条目；排除/哨兵留在未登记处置或相关文献区 | 不进 final pool |
 
-硬性结论：四例 smoke panel 仍需在 R2 基于一手 registry 再冻结；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
+硬性结论：R2 已在 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) 冻结四例开发 smoke panel；四例只是 R3--R6 开发 smoke，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
 
 ### 1.6.1 NL 数量与数据质量摘要
 

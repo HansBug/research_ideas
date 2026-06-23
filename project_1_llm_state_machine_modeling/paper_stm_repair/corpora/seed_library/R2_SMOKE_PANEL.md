@@ -13,7 +13,7 @@
 | pipeline-only supplement | [`fsm-bench-20`](./fsm-bench-20/assets/README.md)、[`designing-fsm-gpt4`](./designing-fsm-gpt4/assets/README.md) | 不进入 author first-source final pool | 只作后续本项目复跑构造 seed 的补充来源；复跑必须另建 run record。 |
 | paper-reconstructable | `automated-transition-use-cases-uml-sm` 等 10 条 | 不进入本轮 smoke panel | 只作 related work / 手工重建线索。 |
 
-固定 smoke panel 暂定 4 个样本：
+固定 4 个开发 smoke 样本：
 
 | smoke_id | seed_id | R2 角色 | 覆盖意图 | 后续主用途 |
 |---|---|---|---|---|
