@@ -1199,6 +1199,84 @@ def validate_pair_trace(seed_dir: Path, row: dict, asset: dict, raw_path: Path, 
     return result
 
 
+def _source_zip_contains_generated_run_artifacts(seed_dir: Path, manifest: dict[str, Any]) -> bool:
+    """Return true when a committed source archive contains unpaired run outputs.
+
+    This is intentionally conservative and only looks for the artifact names
+    that triggered the R2.0 audit correction for code-reproducible seeds.  The
+    point is not to parse these outputs, but to force registries to acknowledge
+    that they are excluded run artifacts rather than claiming the archive has no
+    generated output at all.
+    """
+
+    for asset in manifest.get("assets", []):
+        role = str(asset.get("role", "")).lower()
+        if "source" not in role and "code" not in role:
+            continue
+        if asset.get("storage_mode") != "committed" or asset.get("download_status") != "downloaded":
+            continue
+        local = asset.get("local_path", "")
+        raw_path = seed_dir / "assets" / local
+        if not raw_path.exists() or raw_path.is_dir() or raw_path.suffix.lower() != ".zip":
+            continue
+        try:
+            with zipfile.ZipFile(raw_path) as zf:
+                for name in zf.namelist():
+                    lowered = name.lower()
+                    if "generated_text.csv" in lowered or "repertoire-sortie/generated" in lowered:
+                        return True
+        except zipfile.BadZipFile:
+            continue
+    return False
+
+
+def validate_unpaired_run_artifact_disclosure(
+    seed_id: str,
+    reg: dict[str, Any],
+    manifest: dict[str, Any],
+    seed_dir: Path,
+    errors: list[str],
+) -> None:
+    """Code-reproducible entries must explicitly exclude unpaired run outputs."""
+
+    profile = reg.get("resource_profile", {})
+    if profile.get("resource_category") != "nl_code_reproducible":
+        return
+    if not _source_zip_contains_generated_run_artifacts(seed_dir, manifest):
+        return
+    skipped_text = "\n".join(
+        f"{item.get('source_url', '')}\n{item.get('reason', '')}"
+        for item in manifest.get("skipped_assets", [])
+    ).lower()
+    registry_text = "\n".join(
+        str(value)
+        for value in [
+            reg.get("source_inventory", {}).get("count_basis", ""),
+            reg.get("source_inventory", {}).get("notes", ""),
+            reg.get("data_construction", {}).get("what_is_stm0", ""),
+            reg.get("resource_profile", {}).get("resource_profile_notes", ""),
+            reg.get("downstream_selection", {}).get("selection_caveat", ""),
+        ]
+    ).lower()
+    blockers = {str(item) for item in reg.get("blockers", [])}
+    has_skipped_notice = "generated_text.csv" in skipped_text and "not counted" in skipped_text
+    has_registry_notice = ("unpaired" in registry_text or "未配对" in registry_text) and ("not counted" in registry_text or "不计" in registry_text)
+    has_blocker = "unpaired_run_artifacts_excluded_from_author_pair_count" in blockers
+    if not has_skipped_notice:
+        errors.append(
+            "source ZIP contains generated run artifacts but manifest skipped_assets does not explicitly exclude them"
+        )
+    if not has_registry_notice:
+        errors.append(
+            "source ZIP contains generated run artifacts but registry text does not state they are unpaired/not counted"
+        )
+    if not has_blocker:
+        errors.append(
+            "source ZIP contains generated run artifacts but blockers lacks "
+            "unpaired_run_artifacts_excluded_from_author_pair_count"
+        )
+
+
 def expected_raw_asset_count(manifest: dict) -> int:
     """Count raw assets that the repo can currently re-check by hash.
 
@@ -1387,6 +1465,7 @@ def validate_seed(seed_id: str) -> int:
         validate_manifest_shape(manifest, errors)
     else:
         manifest = {"assets": []}
+    validate_unpaired_run_artifact_disclosure(seed_id, reg, manifest, seed_dir, errors)
     asset_by_id = {a["asset_id"]: a for a in manifest.get("assets", []) if "asset_id" in a}
     pair_set_role_by_id = {
         pair_set.get("pair_set_id"): pair_set.get("eligibility_state")

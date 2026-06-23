@@ -631,6 +631,45 @@ def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Pat
     assert "unknown asset_summary redistribution_status" in result.stderr
     assert "unknown r2_smoke_recommendation strong" in result.stderr
 
+
+
+def test_seed_asset_validator_rejects_unpaired_run_artifact_disclosure_drift(tmp_path: Path) -> None:
+    """Pipeline-only source archives with generated run artifacts must explicitly exclude them."""
+
+    base = _copy_seed_library_subset(tmp_path, "designing-fsm-gpt4")
+    registry_path = base / "designing-fsm-gpt4" / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    registry["blockers"] = [
+        item for item in registry["blockers"] if item != "unpaired_run_artifacts_excluded_from_author_pair_count"
+    ]
+    registry["source_inventory"]["notes"] = "源码可用，但无作者冻结 pair。"
+    registry["resource_profile"]["resource_profile_notes"] = "源码已 smoke，后续复跑输出必须另建 run record。"
+    registry["downstream_selection"]["selection_caveat"] = "后续复跑必须另建 run record。"
+    registry["data_construction"]["what_is_stm0"] = "运行时 LLM 生成的 CSV Mealy/DFSM 文本。"
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    manifest_path = base / "designing-fsm-gpt4" / "assets" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["skipped_assets"] = []
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), "designing-fsm-gpt4"],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "manifest skipped_assets does not explicitly exclude" in result.stderr
+    assert "registry text does not state they are unpaired/not counted" in result.stderr
+    assert "unpaired_run_artifacts_excluded_from_author_pair_count" in result.stderr
+
 def test_seed_asset_validator_rejects_resource_profile_semantic_drift(tmp_path: Path) -> None:
     """LLM/code reproducibility profile must remain auditable and cannot upgrade pipeline-only to final pool."""
 

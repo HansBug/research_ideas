@@ -71,7 +71,7 @@
 |---|---|---|
 | 🟢 `final_pool_ready` | committed 一手 `NL + generated STM_0` 可通过 raw hash / locator / 文本回溯复验；许可 / 再分发不再作为升绿 blocker，论文中引用原作即可 | 可进入现成 seed pool；当前数量为 3 |
 | 🟡 `conditional_final_pool` | 一手入口与 trace 强相关，但仍缺 SMD/T0 切片、泄漏隔离或质量抽检等 blocker | 当前数量为 1：`ttool-ai-smd-subset`；不计现成 final pool |
-| 🟠 `pipeline_only` | 有 NL、prompt、schema 或代码，但作者未公开 generated `STM_0` | 不计现成 seed；可后续由本项目复跑另建 seed |
+| 🟠 `pipeline_only` | 有 NL、prompt、schema 或代码，但作者未公开可回溯的 `<NL, generated STM_0>` pair；若源码包含未配对 run artifacts，也只能作审计线索 | 不计现成 seed；可后续由本项目复跑另建 seed |
 | 🔵 `reference_only` | 有 `NL + reference STM`，不是 generated `STM_0` | 可做参考解 / 评价线索，不计 generated seed |
 | ⚪ `paper_reconstructable` | 只有论文图示、附录或示例可重建 | 可做方法证据 / 人工构造线索，不计现成 seed |
 | 🔴 `related_only` / `excluded` | 不满足当前一手 seed 条件 | 只作 related work / sentinel |
@@ -223,7 +223,7 @@
 | `sefm-llm-state-machine` | 🟢 `final_pool_ready` | NL+STM一手 | 🟢固定源码 | 🟡混合 | ⚪不适用 | 1 | 1 | `downloaded` | committed 4open ZIP 中 9 个 NL descriptions；只有 `SSC7_fall_2024` 有 generated 输出，其余 8 个无 generated 输出的 NL 中 7 个为 reference-only、1 个 ATAS 为纯 NL-only | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | only_ssc7_generated_pair_extracted_so_far；missing_generated_outputs_for_8_other_nl_descriptions；workbook_image_refs_without_actual_png_or_stm_text | 可作单例强相关 LLM seed；7 个 reference-only 与 1 个纯 NL-only 继续不可计 generated pair |
 | `ttool-ai-smd-subset` | 🟡 `conditional_final_pool` | NL+STM一手 | 🟠片段/部分 | 🟡混合 | ⚪未尝试 | 6 | 6 | `downloaded` | 作者 GitHub 工件中的 `*.md` / `specification_*.md`；6 raw / 4 unique，主案例与 `incoherencies/` 变体分开 | 作者 GitHub 工件中的 TTool `.xml` generated artifacts；完整 TTool/SysML/AVATAR XML，非纯 T0 STM | requires_smd_t0_slice_contract；full_ttool_xml_not_pure_t0_stm；incoherency_outputs_may_mix_repair_scope；legacy_or_retired_model_drift | 条件可作 converter pressure；进入实验前必须另建 SMD/T0 切片 run record，不计现成 final pool |
 | `fsm-bench-20` | 🟠 `pipeline_only` | NL+源码可复跑 | 🟢固定源码 | 🟡本地/代理可用 | 🟢单系统smoke | 0 | 0 | `downloaded` | Zenodo/GitHub benchmark systems / prompts | 作者未公开 generated `STM_0` | no_published_generated_stm0；rerun_required_before_seed | 若使用，必须由本项目复跑生成 `STM_0`，并写完整 run record；不能冒充作者原生 pair |
-| `designing-fsm-gpt4` | 🟠 `pipeline_only` | NL+源码可复跑 | 🟢固定源码 | 🟠需代理/替代 | 🟢初始smoke | 0 | 0 | `downloaded` | 作者源码运行时合成 DFSM / Mealy 英文描述；没有冻结 NL corpus | 作者未公开 generated `STM_0`；本地 smoke 只证明初始生成调用可走通 | no_published_generated_stm0；runtime_synthetic_nl_not_frozen；full_pipeline_timeout_risk；rerun_required_before_seed | 只作源码复跑线索；后续若使用必须记录随机种子、prompt、模型、raw output 与 run record |
+| `designing-fsm-gpt4` | 🟠 `pipeline_only` | NL+源码可复跑 | 🟢固定源码 | 🟠需代理/替代 | 🟢初始smoke | 0 | 0 | `downloaded` | 作者源码运行时合成 DFSM / Mealy 英文描述；没有冻结 NL corpus | 作者仓库含未配对 `generated_text.csv` / Graphviz run artifacts，但无冻结 `<NL, STM_0>` pair / locator；本地 smoke 只证明初始生成调用可走通 | unpaired_run_artifacts_excluded；runtime_synthetic_nl_not_frozen；no_frozen_pair_index；full_pipeline_timeout_risk；rerun_required_before_seed | 只作源码复跑线索；后续若使用必须记录随机种子、prompt、模型、raw output 与 run record |
 
 ## 7. 外部资源可获取性矩阵（47 行）
 
