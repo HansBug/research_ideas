@@ -22,6 +22,7 @@
 4. `generated eligible`、`trace verified` 等英文统计含义在表头中写作“可计生成对”“已回溯验证”；不要让读者必须理解英文才能读懂主表。
 5. 主表必须维护 `NL 数` 与 `NL-only`：`NL 数` 写作 `raw / unique`；`raw` 是一手资源中可定位的 NL 行/条目数，`unique` 是按 NL 文本去重后的数量；`NL-only` 是有 NL 但无可计 generated `STM_0` 的数量。paper-only / 未机读条目统一写 `0 / 未知`，不得把论文图示数冒充一手资源数。§4 未建 registry 条目的处置表也必须保留 `NL 数`、`NL-only`、`可计生成对` 三列，默认按当前一手机读资源写 `0 / 未知`、`未知 / 未知`、`0`。
 6. 每次新增或修改 `assets/README.md`、`seed_resource_registry.json`、`assets/manifest.json`、`validation_summary.json` 后，都必须同步核对 [REGISTRY.md](./REGISTRY.md) 主表的条目链接、计数、状态、NL 数、阻塞项 / caveat 和 [SUMMARY.md](./SUMMARY.md) 的摘要。
+7. 若依据旧 `reproduction/`、旧 parquet、旧 predictions、旧 discussion assets 或 `project_ex1` review corpus 发现候选，只能把它们登记为 `legacy_audit_refs` / “发现入口”；不得把这些二手文件写入 `assets/`，不得用它们提升资源可获取性、pair 数、`trace_verified` 或 `recommended_role`。升级任何条目必须回到论文、作者 artifact、官方数据集、作者仓库、出版页 Data Availability、可版本化 release 等一手入口重新下载 / 核验，并用 raw hash + locator + validator 回写 [REGISTRY.md](./REGISTRY.md)。
 
 新增条目时，不得只创建目录或只改单篇文件；必须同步更新单条目 `seed_desc.md` / `artifacts.md`、必要的 `seed_resource_registry.json` / `assets/` 审计链，以及 [SUMMARY.md](./SUMMARY.md) 中对应的统计摘要或风险结论。若新增的是一手资源或 pair 明细，必须优先回写 [REGISTRY.md](./REGISTRY.md)，再更新 [SUMMARY.md](./SUMMARY.md) 摘要。
 
@@ -95,7 +96,7 @@
 
 1. [REGISTRY.md](./REGISTRY.md) 是逐条资源明细主表；[SUMMARY.md](./SUMMARY.md) 只保留研究结论、统计摘要与风险，不复制全量明细。REGISTRY 主表必须用“条目”列直接链接到对应 `assets/README.md`，不得另设 assets 列。
 2. 单条目 `assets/` 是短名，但语义必须是**一手来源资产目录**。只有论文 / 作者 artifact / 官方数据集 / 作者仓库 / 出版页 Data Availability / 可版本化 release 中直接取得的文件，及其从 raw 直接抽取得到的审计产物，可以进入 `assets/`。
-3. 本仓库历史 parquet、旧缓存、人工复写、论文图示重建、PR comment 摘要只能写入 `legacy_audit_refs` 或 blocker，不能升级为 current first-source asset。
+3. 本仓库历史 parquet、旧缓存、人工复写、论文图示重建、PR comment 摘要、`reproduction/` 输出和 `project_ex1` review extraction 只能写入 `legacy_audit_refs` 或 blocker，不能升级为 current first-source asset；这些二手线索最多用于定位应重新核验的一手入口。
 4. “重点条目”指 [REGISTRY.md](./REGISTRY.md) §2 已纳入一手资源主表、或后续准备升级为 R2.0 种子 / 资源候选的条目；这些条目必须有 `seed_resource_registry.json`。尚未建 registry 的既有目录默认按 [REGISTRY.md](./REGISTRY.md) §4 的 `paper_reconstructable` / `related_only` 处置，可计生成数量视为 0，不得被 R2 直接选用。
 5. 有一手 raw 或 conditional pair 的条目还必须有 `assets/manifest.json`、中文 `assets/README.md`、`assets/raw/`、`assets/extracted/`。
 6. `assets/extracted/pairs.jsonl` 的每个 pair 必须至少记录 `pair_set_id`、`eligibility_state`、`exclusion_reason`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_text` / `nl_sha256`、`stm0_text` / `stm0_sha256`、`is_generated_stm0`、`is_reference`、`is_postprocessed`、`trace_verified`。
@@ -157,6 +158,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-23 12:10:59 | PR-R2.0：补充旧 `reproduction/`、旧 parquet 与 `project_ex1` 只能作为发现入口的 REGISTRY 维护纪律，要求所有升级回到一手入口和 validator，不得把二手资源写入 `assets/` 或用于升绿。 |
 | 2026-06-22 22:10:00 | PR-R2.0：补强 validator 对 `source_inventory` 派生计数与 JSON Schema enum 的校验要求，防止 REGISTRY 与 JSON 同步篡改后仍通过。 |
 | 2026-06-22 21:30:00 | PR-R2.0：将 `source_inventory` / `data_construction` / `quality_audit` 纳入 registry 必填纪律，明确所有登记条目都要写 NL raw/unique/NL-only 与数据构造 / 抽检状态；公开学术资源许可不作为升绿 blocker。 |
 | 2026-06-22 20:30:00 | PR-R2.0：补充 pair-level eligibility 与 registry pair-set 状态一致性纪律，明确 eligible row 不得携带 `exclusion_reason`，非阻塞 caveat 只能写 registry / README。 |

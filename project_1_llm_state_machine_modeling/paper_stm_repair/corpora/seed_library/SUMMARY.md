@@ -439,6 +439,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 6. **`fsm-bench-20` 不能直接算作者 generated seed**：公开包有 dataset / prompt / schema / code，但缺作者冻结的 generated `STM_0` 输出；若使用必须由本项目复跑并保存 run record、prompt、模型、raw output、hash 与 eligibility。
 7. **paper-reconstructable / related-only 不能替代现成样本**：论文图示、附录、旧缓存、人工重建、protocol / standard / sequence / repair-only 线索都不能绕过 registry + assets + validator。
 8. **四例只是 R3--R6 开发 smoke panel，不是最终实验规模上限**：最终实验池应继续扩大，但每个入池 pair 都必须满足一手来源和可审计 trace。
+9. **旧 reproduction / project_ex1 只能作发现入口，不能作事实源**：本轮已在 [REGISTRY.md](./REGISTRY.md) §3.5 基于旧线索回到论文、作者制品、官方仓库、Google Drive、4open、HF 等一手入口，补充 LLMS-EMP、SEFM、TTool-AI、Nimbus、PSMBench、RFCNLP、Hermes 的追溯结论；旧 parquet / predictions / review extraction 不计入资源可用性、pair 数或升绿依据。LLMS-EMP 与 SEFM 已被当前 registry 通过一手来源正确吸收；TTool-AI 仍是条件 / 转换器压力源，不计现成 seed；Nimbus 更适合 NL dataset / related work；protocol / RFC / cellular FSM corpus 不进入 paper1 seed 主池。
 
 R2 建议顺序：先从 `llms-emp` 选取若干控制 / SysML 行为模型样例，再用 `sefm` 的 SSC7 覆盖非结构化 reactive-system 描述与 Umple 转换压力，必要时引入 `unified` 做 synthetic PlantUML stress；若真实控制系统覆盖不足，再用 `fsm-bench-20` 复跑构造补充 seed，并保留完整 run record。
 
@@ -463,6 +464,7 @@ R2 建议顺序：先从 `llms-emp` 选取若干控制 / SysML 行为模型样�
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-23 12:02:20 | PR-R2.0：在 [REGISTRY.md](./REGISTRY.md) §3.5 基于旧 reproduction / project_ex1 线索回到一手入口，补充 LLMS-EMP、SEFM、TTool-AI、Nimbus、PSMBench、RFCNLP、Hermes 的追溯结论；明确旧 parquet / predictions / review extraction 只能作发现入口，不作资源事实源、pair 计数或升绿依据；TTool-AI 保持条件 / 转换器压力源，不改变 final_pool_ready=3 的统计。 |
 | 2026-06-22 19:40:00 | PR-R2.0：修正 unified 计数口径为 raw=999、trace=999、eligible=989；用 gdown 下载 llms-emp Google Drive workbook 并抽取 60 条 generated PlantUML；公开学术资源按引用原作处理后，三条一手资源均为 final_pool_ready，并保留各自 caveat。 |
 | 2026-06-15 15:05:00 | PR-R1.8-B：补充 §3.1 最终结论类型定义，明确严格种子、条件种子 / 方法证据、边界 / 相关工作 / 哨兵、仅元数据四类与 R2 进入态度。 |
 | 2026-06-15 14:23:39 | PR-R1.8-B：补强 §16 结论总表，显式列出 NL 输入对象、STM 输出对象、STM 关键特性、STM 谱系与时间特性等级；将资源列改为一手可点击链接，并统一 `作者原生 pair` 与 `可重建 pair` 口径，避免本地缓存或论文级重建线索冒充公开原生资源。 |
