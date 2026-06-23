@@ -4,7 +4,7 @@
 
 本 SUMMARY 是种子文库的研究结论与统计摘要入口；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 和单条目 `seed_resource_registry.json` 为准。
 
-核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；R2 四例样本还需要后续 逐案例冻结。
+核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；PR-R2 已在 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) 冻结当前开发 smoke panel，但四例不是最终实验规模上限。
 
 ### 1.1 三类文库关系
 
@@ -39,6 +39,17 @@
 | `fsm-bench-20` | 252 / 252 | 252 / 252 | 0 | Zenodo/GitHub release 有 requirements/prompt/schema/code，但未公开 generated `STM_0`；全部 NL 当前只能作为 pipeline-only / 复跑来源。 |
 | `designing-fsm-gpt4` | 0 / 未知 | 未知 / 未知 | 0 | 作者源码可运行时合成 DFSM / Mealy 英文描述并调用 LLM 生成 CSV；无冻结 NL corpus、无作者一手 generated pair。当前只登记源码与初始调用 smoke，若后续使用需本项目 run record 记录随机种子与生成出的 NL。 |
 
+## 1.7 R2 seed 池与 smoke panel 摘要
+
+R2 主裁决见 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md)。本 SUMMARY 只保留结论摘要：
+
+| R2 分组 | 条目 | 裁决 | 关键 caveat |
+|---|---|---|---|
+| final seed pool | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` | 进入当前一手 seed 池 | 分别保留 reference/checking 隔离、SEFM 单例、synthetic/non-control-domain caveat。 |
+| conditional seed pool | `ttool-ai-smd-subset` | 条件进入 smoke panel | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
+| pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
+
+固定 smoke panel：`r2-smoke-llms-emp-gpt4o-hldcs`、`r2-smoke-sefm-ssc7-umple`、`r2-smoke-unified-uml-synthetic`、`r2-smoke-ttool-automatedbraking-xml`。后续 R3--R6 默认复用这组样本；若替换必须按 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) §7 记录替换原因。
 
 ## 2. 关键统计表
 
@@ -50,6 +61,7 @@
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
 | 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
 | R2.0 一手 registry 状态 | 3 / 1 / 2 / 10 / 0 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=3；🟡 conditional_final_pool=1；🟠 pipeline_only=2；⚪ paper_reconstructable=10；🔴 related_only=0。 |
+| R2 smoke panel | 4 | [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) | 3 个 final-pool-ready + 1 个 conditional XML；仅作 R3--R6 开发 smoke，不是最终实验规模。 |
 | 人工下载队列状态 | 11 / 2 / 2 / 1 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径

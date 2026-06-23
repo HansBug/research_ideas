@@ -40,6 +40,8 @@
 
 ## 3. 当前结论
 
+R2 seed 池裁决与固定 smoke panel 见 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md)。本 REGISTRY 继续作为逐条一手资源事实源，R2 文件只引用本表和单条目 JSON，不复制全量资源事实。
+
 - `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` 均已有 committed 一手 raw、typed locator、文本 / hash 回溯和 validator 复算，因此本轮按 `final_pool_ready` 处理；后续论文中规范引用原工作即可，不再把许可 / 再分发写作升绿 blocker。
 - `llms-emp-stm-subset` 已用 `gdown` 下载论文 Google Drive 一手 workbook，并从 `Experiment Results.xlsx` / `STM Results` 全量抽取 60 条 `Requirement Description + Generation PlantUML` 生成配对；它实际是 **10 个唯一 NL × 6 个 LLM 输出** 的 1×N 形态，使用时必须只读 `Generation PlantUML`，不得混入 reference `PlantUML` 或 checking 后结果。
 - `sefm-llm-state-machine` 的论文实验口径是 8 个 reactive-system descriptions + 8 个 expert reference；当前 raw ZIP 真实结构是 **9 个 NL descriptions（多出 ATAS NL-only）、8 个 reference solutions、1 个 generated text output、63 个 workbook image-ref cells / 47 个唯一图片名但无 embedded PNG / STM 文本**。只有 SSC7 同时具备 NL 与 Claude Sonnet 3.5 single-prompt generated Umple 文本，因此只有 1 个可计 generated pair。其他 8 个无 generated 输出的 NL 中 7 个有 reference solution、1 个 ATAS 为纯 NL-only；它们都不可计为 $NL + STM_0$ generated pair。

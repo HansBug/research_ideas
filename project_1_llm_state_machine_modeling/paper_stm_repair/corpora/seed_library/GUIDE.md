@@ -151,6 +151,17 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 5. 若 exact 原模型退役但有 successor / proxy / OpenAI-compatible endpoint 可用于复跑，应标为 `🟠需代理/替代` 或 `🟡继任/别名`，并在 notes 中写清 provider drift；不要把替代复跑等同于论文原结果复现。
 6. `code_reproducibility` 若写成 smoke-ok / blocked / failed，必须在 `code_reproducibility_evidence_paths` 中给出本条目内存在的证据路径；若 `source_code_availability=available_pinned`，还必须有非空 `asset_summary.version_pin`。`resource_category=nl_code_reproducible` 不得与 `recommended_role=final_pool_ready` 并存，且 `eligible_generated_pair_count` 必须为 0，避免把本项目复跑潜力误读成作者一手 generated pair。
 
+### 3.7 R2 seed 池与 smoke panel 维护纪律
+
+[R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) 是 R2 裁决与后续 R3--R6 开发面板入口；它不得复制 [REGISTRY.md](./REGISTRY.md) 全量事实表，只能引用 registry、单条目 JSON、`assets/README.md` 与 `pairs.jsonl` 的证据入口。维护规则：
+
+1. final seed pool 只能来自 `recommended_role=final_pool_ready` 且 validator 可回溯的一手 `NL + generated STM_0`。
+2. `conditional_final_pool` 可进入 smoke panel 作为转换压力，但必须显式写出阻塞、降级和不计现成 final pool 的原因。
+3. `pipeline_only` 只能作为复跑补充，不得进入 author first-source final pool；复跑输出必须另建 run record。
+4. smoke panel 必须维护 `source_coverage_class`、`input_format_class`、`conversion_pressure`、`defect_risk_class`、`selection_caveat`、选择理由、同类替代候选和替换条件。
+5. panel-level coverage matrix 必须说明来源、格式、风险、数据形态和 R3--R6 复用覆盖；无法覆盖时写 `coverage_gap_reason` 与后续影响。
+6. 四例 smoke panel 只服务开发冒烟，不是最终实验规模或主结果样本上限。
+
 ## 4. SUMMARY 表格字段纪律
 
 [SUMMARY.md](./SUMMARY.md) 的横向表应拆分维度，避免一列塞入多个概念：
@@ -191,6 +202,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-24 00:30:00 | PR-R2：新增 R2 seed 池与 smoke panel 维护纪律，明确 R2_SMOKE_PANEL 只做裁决入口，不复制 REGISTRY 全量事实，四例只作开发 smoke。 |
 | 2026-06-23 21:20:00 | PR-R2.0：REGISTRY 主表新增 `复跑` 列，validator 增加 LLM 证据 URL、核验日期、源码 version pin、smoke 证据路径与 `nl_code_reproducible` 不得误升 final pool 的一致性检查。 |
 | 2026-06-23 19:45:00 | PR-R2.0：新增 `resource_profile` 纪律，要求 REGISTRY/JSON 统一维护资源类别、源码可用性、论文 LLM 可用性与 NL+code 可复跑边界；补充固定输入型 / 运行时合成型区分和 `zip_member_pair` locator 纪律。 |
 | 2026-06-23 12:10:59 | PR-R2.0：补充旧 `reproduction/`、旧 parquet 与 `project_ex1` 只能作为发现入口的 REGISTRY 维护纪律，要求所有升级回到一手入口和 validator，不得把二手资源写入 `assets/` 或用于升绿。 |

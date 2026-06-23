@@ -14,8 +14,9 @@
 2. 再读 [GUIDE.md](./GUIDE.md) 理解收录、分级、更新和验收规则。
 3. 重点读 [SUMMARY.md](./SUMMARY.md)：这是研究结论与统计摘要入口。
 4. 需要逐条资源明细时读 [REGISTRY.md](./REGISTRY.md)：它是一手 `NL + generated STM_0` 资源明细主表，包含每个 seed 的一手入口、NL 数量、pair 统计、caveat、assets 链接和 R2 选择建议。
-5. 进入单条目目录时，默认读取 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md -> artifacts.md`；artifact-only 条目按 `seed_desc.md -> artifacts.md -> 原始 metadata / package` 顺序。
-6. 需要旧 R1.5--R1.7 ledger / raw search 时，进入 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 只作审计，不是当前事实真源。
+5. 需要 R2 seed 池裁决和四例开发面板时读 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md)。
+6. 进入单条目目录时，默认读取 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md -> artifacts.md`；artifact-only 条目按 `seed_desc.md -> artifacts.md -> 原始 metadata / package` 顺序。
+7. 需要旧 R1.5--R1.7 ledger / raw search 时，进入 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 只作审计，不是当前事实真源。
 
 ## 1.5 结论速览
 
@@ -56,6 +57,18 @@
 - [GUIDE.md](./GUIDE.md) §3.5 规定 `assets/` 一手来源纪律、trace validator 与 `storage_mode` 分级。
 - 每个重点条目的 `assets/README.md` 必须中文说明 raw / extracted 映射、Python 加载方法和审计不变量。
 
+## 1.8 R2 seed 池与 smoke panel 入口
+
+PR-R2 后，后续转换器、诊断、修正 loop 与评价协议默认从 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) 读取固定 smoke panel。当前 R2 裁决：
+
+| 分组 | 条目 | 作用 |
+|---|---|---|
+| final seed pool | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` | 当前可用的一手 `NL + NL-generated STM_0` 来源。 |
+| conditional seed pool | `ttool-ai-smd-subset` | TTool XML / SMD/T0 切片压力源；不计现成 final pool。 |
+| pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 后续可复跑构造 seed，但复跑前不计 author first-source pair。 |
+
+固定开发 smoke panel 为 `r2-smoke-llms-emp-gpt4o-hldcs`、`r2-smoke-sefm-ssc7-umple`、`r2-smoke-unified-uml-synthetic`、`r2-smoke-ttool-automatedbraking-xml`。这 4 个样本只是 R3--R6 开发冒烟面板，不是最终实验规模上限。
+
 ## 2. 收录范围
 
 | 类别 | 收录口径 |
@@ -90,6 +103,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-24 00:30:00 | PR-R2：新增 [R2_SMOKE_PANEL.md](./R2_SMOKE_PANEL.md) 入口，冻结当前 seed 池裁决和四例开发 smoke panel。 |
 | 2026-06-23 21:20:00 | PR-R2.0：核心表与 REGISTRY 增加 `复跑` 可见列，明确 `designing-fsm-gpt4` 只完成初始生成 smoke、`fsm-bench-20` 完成单系统 smoke，二者仍是 pipeline-only / NL+源码可复跑而非作者一手 pair。 |
 | 2026-06-23 19:45:00 | PR-R2.0：核心表新增资源类别、源码与论文 LLM 可用性口径，`designing-fsm-gpt4` 调整为 NL+源码可复跑 / pipeline-only，`fsm-bench-20` 增加 OpenAI-compatible proxy smoke 记录，`ttool-ai-smd-subset` 以条件一手 `NL+TTool XML` 纳入 registry。 |
 | 2026-06-22 21:30:00 | PR-R2.0：补强 REGISTRY/JSON 机器字段，所有登记条目都记录 NL raw/unique/NL-only、数据构造说明与质量抽检状态；SEFM / unified / llms-emp / fsm-bench 的一手资源真实状况和 NL 计数已再次核对。 |
