@@ -121,7 +121,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 ### 3.6 资源类别、源码可用性与论文 LLM 可用性口径
 
-从 R2.0 registry 扩展起，每个 `seed_resource_registry.json` 必须维护 `resource_profile`，并在 [REGISTRY.md](./REGISTRY.md) §2 用紧凑中文列展示：`资源类别`、`源码`、`论文LLM`。这三列服务于后续区分三类资源：
+从 R2.0 registry 扩展起，每个 `seed_resource_registry.json` 必须维护 `resource_profile`，并在 [REGISTRY.md](./REGISTRY.md) §2 用紧凑中文列展示：`资源类别`、`源码`、`论文LLM`、`复跑`。这四列服务于后续区分三类资源：
 
 | 字段 | 机器枚举 | REGISTRY 中文短形 | 判定口径 |
 |---|---|---|---|
@@ -140,15 +140,16 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 `source_locator_type` 当前至少支持 committed 文件 locator、表格行列 locator 与 `zip_member_pair`。使用 `zip_member_pair` 时，`source_locator` 必须同时写 `nl_member=...;stm0_member=...`，validator 会从同一 committed ZIP 复读 NL 与 $STM_0$，核对文本和 hash；这类模式适合 TTool-AI 这类作者仓库 ZIP 中成对保存规格与 XML 工件的场景。
 
-`source_code_availability` 的 REGISTRY 短形固定为：`🟢固定源码`、`🟡源码未冻`、`🟠片段/部分`、`🔴未公开`、`❓受阻`、`⚪不适用`、`❓待核`。`paper_llm_availability_status` 的短形固定为：`🟢原模型可用`、`🟡继任/别名`、`🔴已退役`、`🟠需代理/替代`、`🟢开权重可用`、`🟡本地/代理可用`、`🟡混合`、`⚪不适用`、`❓待核`。
+`source_code_availability` 的 REGISTRY 短形固定为：`🟢固定源码`、`🟡源码未冻`、`🟠片段/部分`、`🔴未公开`、`❓受阻`、`⚪不适用`、`❓待核`。`paper_llm_availability_status` 的短形固定为：`🟢原模型可用`、`🟡继任/别名`、`🔴已退役`、`🟠需代理/替代`、`🟢开权重可用`、`🟡本地/代理可用`、`🟡混合`、`⚪不适用`、`❓待核`。`code_reproducibility` 的 REGISTRY 短形固定为：`⚪不适用`、`⚪未尝试`、`🟢初始smoke`、`🟢单系统smoke`、`❓受阻`、`🔴失败`。
 
 维护纪律：
 
 1. `NL+STM一手` 才能作为“现成 generated seed”进入 final pool；`NL+源码可复跑` 只能说明可由本项目另行复跑构造 seed，复跑输出必须有 run record、模型精确 ID、prompt、raw output、usage / 错误与 eligibility，不得冒充作者一手 pair。运行时合成型还必须记录生成出的 NL 与随机性控制。
 2. 源码可用性必须来自论文明确指向的作者仓库、作者制品页、release / DOI / Zenodo / 4open / HF 等一手入口；本仓库旧 reproduction、旧 parquet、旧 predictions 只能作发现线索。
-3. 论文 LLM 可用性必须给出官方或模型发布页链接。OpenAI / Anthropic / DeepSeek 等 hosted API 的可用性属于快速变化外部事实，更新时必须重新核验；开权重模型至少链接到 Hugging Face / 官方发布页。
+3. 论文 LLM 可用性必须给出官方或模型发布页链接。OpenAI / Anthropic / DeepSeek 等 hosted API 的可用性属于快速变化外部事实，更新时必须重新核验；开权重模型至少链接到 Hugging Face / 官方发布页。`paper_uses_llm=yes` 时，validator 要求 `paper_llm_models` 与 `paper_llm_availability_evidence_urls` 非空，并要求 `paper_llm_availability_checked_at` 使用 `yyyy-mm-dd`。
 4. validator 只检查字段、枚举、REGISTRY 与 JSON 一致性及本地证据路径，不联网实时判断模型是否下架；模型状态事实由人工/agent 在更新时核验并写入 `paper_llm_availability_checked_at` 与 `paper_llm_availability_evidence_urls`。
 5. 若 exact 原模型退役但有 successor / proxy / OpenAI-compatible endpoint 可用于复跑，应标为 `🟠需代理/替代` 或 `🟡继任/别名`，并在 notes 中写清 provider drift；不要把替代复跑等同于论文原结果复现。
+6. `code_reproducibility` 若写成 smoke-ok / blocked / failed，必须在 `code_reproducibility_evidence_paths` 中给出本条目内存在的证据路径；若 `source_code_availability=available_pinned`，还必须有非空 `asset_summary.version_pin`。`resource_category=nl_code_reproducible` 不得与 `recommended_role=final_pool_ready` 并存，且 `eligible_generated_pair_count` 必须为 0，避免把本项目复跑潜力误读成作者一手 generated pair。
 
 ## 4. SUMMARY 表格字段纪律
 
@@ -190,6 +191,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-23 21:20:00 | PR-R2.0：REGISTRY 主表新增 `复跑` 列，validator 增加 LLM 证据 URL、核验日期、源码 version pin、smoke 证据路径与 `nl_code_reproducible` 不得误升 final pool 的一致性检查。 |
 | 2026-06-23 19:45:00 | PR-R2.0：新增 `resource_profile` 纪律，要求 REGISTRY/JSON 统一维护资源类别、源码可用性、论文 LLM 可用性与 NL+code 可复跑边界；补充固定输入型 / 运行时合成型区分和 `zip_member_pair` locator 纪律。 |
 | 2026-06-23 12:10:59 | PR-R2.0：补充旧 `reproduction/`、旧 parquet 与 `project_ex1` 只能作为发现入口的 REGISTRY 维护纪律，要求所有升级回到一手入口和 validator，不得把二手资源写入 `assets/` 或用于升绿。 |
 | 2026-06-22 22:10:00 | PR-R2.0：补强 validator 对 `source_inventory` 派生计数与 JSON Schema enum 的校验要求，防止 REGISTRY 与 JSON 同步篡改后仍通过。 |

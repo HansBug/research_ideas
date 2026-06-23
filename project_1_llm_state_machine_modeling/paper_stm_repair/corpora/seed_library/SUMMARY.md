@@ -17,7 +17,7 @@
 
 ## 1.6 一手 seed resource registry 摘要
 
-从一手 registry 口径起，逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 为准；本 SUMMARY 只保留研究结论、统计摘要与风险，不复制全量资源表。当前 registry 的稳定结论如下：
+从一手 registry 口径起，逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 为准；本 SUMMARY 只保留研究结论、统计摘要与风险，不复制全量资源表。当前 registry 的稳定结论如下。源码、论文 LLM 与复跑证据的逐条可见列在 [REGISTRY.md](./REGISTRY.md) §2；机器字段为 `resource_profile`，其中 `code_reproducibility` 只表示本项目对作者一手代码的连通性 smoke，不会把 pipeline-only 条目升级为作者一手 generated seed。
 
 | recommended_role | 数量 | 当前含义 | R2 影响 |
 |---|---:|---|---|
@@ -37,6 +37,7 @@
 | `llms-emp-stm-subset` | 60 / 10 | 0 / 0 | 60 | `Experiment Results.xlsx` / `STM Results`；10 个需求描述 × 6 个 LLM 输出；只取 `Generation PlantUML`，reference/checking 列必须隔离；reference canonical case=10，exact unique reference PlantUML=11。 |
 | `sefm-llm-state-machine` | 9 / 9 | 8 / 8 | 1 | 4open ZIP 有 9 个 NL、8 个 reference、1 个 SSC7 generated text output；只有 SSC7 可计 generated pair，其余 8 个无 generated 输出的 NL 中 7 个是 reference-only、1 个 ATAS 是纯 NL-only，不得冒充 generated `STM_0`。 |
 | `fsm-bench-20` | 252 / 252 | 252 / 252 | 0 | Zenodo/GitHub release 有 requirements/prompt/schema/code，但未公开 generated `STM_0`；全部 NL 当前只能作为 pipeline-only / 复跑来源。 |
+| `designing-fsm-gpt4` | 0 / 未知 | 未知 / 未知 | 0 | 作者源码可运行时合成 DFSM / Mealy 英文描述并调用 LLM 生成 CSV；无冻结 NL corpus、无作者一手 generated pair。当前只登记源码与初始调用 smoke，若后续使用需本项目 run record 记录随机种子与生成出的 NL。 |
 
 
 ## 2. 关键统计表
@@ -213,15 +214,16 @@
 
 ## 6. R2.0 registry handoff / caveat 明细
 
-本节替代旧“R2 可计候选 4 条”口径。当前 **final_pool_ready=3，conditional_final_pool=1，pipeline_only=2**；前三项是可回溯复验的现成 generated seed 候选，TTool-AI 是条件一手 XML 候选，pipeline-only 条目只能由本项目复跑后另建 seed。
+本节替代旧“R2 可计候选 4 条”口径。当前 **final_pool_ready=3，conditional_final_pool=1，pipeline_only=2**；前三项是可回溯复验的现成 generated seed 候选，TTool-AI 是条件一手 XML 候选，pipeline-only 条目只能由本项目复跑后另建 seed。`复跑` 列只记录当前本项目对一手代码的最小连通性证据：`fsm-bench-20` 为单系统 smoke，`designing-fsm-gpt4` 为初始生成 smoke；二者仍不计现成 generated seed。
 
-| ID | registry role | generated eligible | trace verified | 当前一手入口状态 | NL 数据 | STM_0 数据 | 主要 caveat | 下一步 |
-|---|---:|---:|---:|---|---|---|---|---|
-| `unified-uml-multimodal-validation` | 🟢 `final_pool_ready` | 989 | 999 | `downloaded` | HF parquet `input`；999 条 synthetic feature descriptions，989 条 eligible NL 均唯一，10 条 generation failure 为 NL-only / excluded | HF parquet `uml_code`；PlantUML StateDiagram；10 行 `No valid PlantUML code found.` 已列入 `excluded_pair_ids` 并排除 | synthetic_requirements_caveat；non_control_domain_quality_caveat；no_per_row_vlm_or_human_score；10_generation_failure_rows_excluded | 可作 synthetic UML state-diagram smoke / stress seed；不得包装为控制系统真实需求 |
-| `llms-emp-stm-subset` | 🟢 `final_pool_ready` | 60 | 60 | `downloaded` | Google Drive `Experiment Results.xlsx` / `STM Results` / `Requirement Description`；60 raw / 10 unique，10×6 LLM 输出 | `Generation PlantUML`；reference `PlantUML` 与 checking outputs 必须排除 | reference_and_postprocessed_columns_must_be_isolated | 可作强相关 LLM seed；转换器输入必须白名单只取 `Requirement Description + Generation PlantUML` |
-| `sefm-llm-state-machine` | 🟢 `final_pool_ready` | 1 | 1 | `downloaded` | committed 4open ZIP 中 9 个 NL descriptions；只有 `SSC7_fall_2024` 有 generated 输出，其余 8 个无 generated 输出的 NL 中 7 个为 reference-only、1 个 ATAS 为纯 NL-only | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | only_ssc7_generated_pair_extracted_so_far；missing_generated_outputs_for_8_other_nl_descriptions；workbook_image_refs_without_actual_png_or_stm_text | 可作单例强相关 LLM seed；7 个 reference-only 与 1 个纯 NL-only 继续不可计 generated pair |
-| `ttool-ai-smd-subset` | 🟡 `conditional_final_pool` | 6 | 6 | `downloaded` | 作者 GitHub 工件中的 `*.md` / `specification_*.md`；6 raw / 4 unique，主案例与 `incoherencies/` 变体分开 | 作者 GitHub 工件中的 TTool `.xml` generated artifacts；完整 TTool/SysML/AVATAR XML，非纯 T0 STM | requires_smd_t0_slice_contract；full_ttool_xml_not_pure_t0_stm；incoherency_outputs_may_mix_repair_scope；legacy_or_retired_model_drift | 条件可作 converter pressure；进入实验前必须另建 SMD/T0 切片 run record，不计现成 final pool |
-| `fsm-bench-20` | 🟠 `pipeline_only` | 0 | 0 | `downloaded` | Zenodo/GitHub benchmark systems / prompts | 作者未公开 generated `STM_0` | no_published_generated_stm0；rerun_required_before_seed | 若使用，必须由本项目复跑生成 `STM_0`，并写完整 run record；不能冒充作者原生 pair |
+| ID | registry role | resource category | code | LLM | rerun | generated eligible | trace verified | 当前一手入口状态 | NL 数据 | STM_0 数据 | 主要 caveat | 下一步 |
+|---|---:|---|---|---|---|---:|---:|---|---|---|---|---|
+| `unified-uml-multimodal-validation` | 🟢 `final_pool_ready` | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | ⚪不适用 | 989 | 999 | `downloaded` | HF parquet `input`；999 条 synthetic feature descriptions，989 条 eligible NL 均唯一，10 条 generation failure 为 NL-only / excluded | HF parquet `uml_code`；PlantUML StateDiagram；10 行 `No valid PlantUML code found.` 已列入 `excluded_pair_ids` 并排除 | synthetic_requirements_caveat；non_control_domain_quality_caveat；no_per_row_vlm_or_human_score；10_generation_failure_rows_excluded | 可作 synthetic UML state-diagram smoke / stress seed；不得包装为控制系统真实需求 |
+| `llms-emp-stm-subset` | 🟢 `final_pool_ready` | NL+STM一手 | 🔴未公开 | 🟡混合 | ⚪不适用 | 60 | 60 | `downloaded` | Google Drive `Experiment Results.xlsx` / `STM Results` / `Requirement Description`；60 raw / 10 unique，10×6 LLM 输出 | `Generation PlantUML`；reference `PlantUML` 与 checking outputs 必须排除 | reference_and_postprocessed_columns_must_be_isolated | 可作强相关 LLM seed；转换器输入必须白名单只取 `Requirement Description + Generation PlantUML` |
+| `sefm-llm-state-machine` | 🟢 `final_pool_ready` | NL+STM一手 | 🟢固定源码 | 🟡混合 | ⚪不适用 | 1 | 1 | `downloaded` | committed 4open ZIP 中 9 个 NL descriptions；只有 `SSC7_fall_2024` 有 generated 输出，其余 8 个无 generated 输出的 NL 中 7 个为 reference-only、1 个 ATAS 为纯 NL-only | committed 4open ZIP 中 `SSC7_single_prompt_*.txt` generated Umple / UML SM | only_ssc7_generated_pair_extracted_so_far；missing_generated_outputs_for_8_other_nl_descriptions；workbook_image_refs_without_actual_png_or_stm_text | 可作单例强相关 LLM seed；7 个 reference-only 与 1 个纯 NL-only 继续不可计 generated pair |
+| `ttool-ai-smd-subset` | 🟡 `conditional_final_pool` | NL+STM一手 | 🟠片段/部分 | 🟡混合 | ⚪未尝试 | 6 | 6 | `downloaded` | 作者 GitHub 工件中的 `*.md` / `specification_*.md`；6 raw / 4 unique，主案例与 `incoherencies/` 变体分开 | 作者 GitHub 工件中的 TTool `.xml` generated artifacts；完整 TTool/SysML/AVATAR XML，非纯 T0 STM | requires_smd_t0_slice_contract；full_ttool_xml_not_pure_t0_stm；incoherency_outputs_may_mix_repair_scope；legacy_or_retired_model_drift | 条件可作 converter pressure；进入实验前必须另建 SMD/T0 切片 run record，不计现成 final pool |
+| `fsm-bench-20` | 🟠 `pipeline_only` | NL+源码可复跑 | 🟢固定源码 | 🟡本地/代理可用 | 🟢单系统smoke | 0 | 0 | `downloaded` | Zenodo/GitHub benchmark systems / prompts | 作者未公开 generated `STM_0` | no_published_generated_stm0；rerun_required_before_seed | 若使用，必须由本项目复跑生成 `STM_0`，并写完整 run record；不能冒充作者原生 pair |
+| `designing-fsm-gpt4` | 🟠 `pipeline_only` | NL+源码可复跑 | 🟢固定源码 | 🟠需代理/替代 | 🟢初始smoke | 0 | 0 | `downloaded` | 作者源码运行时合成 DFSM / Mealy 英文描述；没有冻结 NL corpus | 作者未公开 generated `STM_0`；本地 smoke 只证明初始生成调用可走通 | no_published_generated_stm0；runtime_synthetic_nl_not_frozen；full_pipeline_timeout_risk；rerun_required_before_seed | 只作源码复跑线索；后续若使用必须记录随机种子、prompt、模型、raw output 与 run record |
 
 ## 7. 外部资源可获取性矩阵（47 行）
 

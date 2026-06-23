@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import datetime as _dt
 import hashlib
 import json
 import os
@@ -143,6 +144,14 @@ CODE_REPRODUCIBILITY_ENUM = {
     "single_system_smoke_ok_via_ollama_compatible_proxy",
     "blocked",
     "failed",
+}
+CODE_REPRODUCIBILITY_LABEL = {
+    "not_applicable": "⚪不适用",
+    "not_attempted": "⚪未尝试",
+    "initial_generation_smoke_ok_via_openai_compatible_proxy": "🟢初始smoke",
+    "single_system_smoke_ok_via_ollama_compatible_proxy": "🟢单系统smoke",
+    "blocked": "❓受阻",
+    "failed": "🔴失败",
 }
 
 UNKNOWN_COUNT_VALUES = {"unknown", "未知"}
@@ -361,6 +370,7 @@ def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: 
         "资源类别",
         "源码",
         "论文LLM",
+        "复跑",
         "NL 数",
         "可计生成对",
         "已回溯验证",
@@ -403,6 +413,9 @@ def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: 
     expected_llm = LLM_AVAILABILITY_LABEL.get(profile.get("paper_llm_availability_status"))
     if expected_llm and _strip_md(row.get("论文LLM", "")) != expected_llm:
         errors.append(f"REGISTRY.md 论文LLM mismatch for {seed_id}: {row.get('论文LLM')} != {expected_llm}")
+    expected_repro = CODE_REPRODUCIBILITY_LABEL.get(profile.get("code_reproducibility"))
+    if expected_repro and _strip_md(row.get("复跑", "")) != expected_repro:
+        errors.append(f"REGISTRY.md 复跑 mismatch for {seed_id}: {row.get('复跑')} != {expected_repro}")
 
     expected_nl = _pair_set_nl_count_label(reg)
     if _strip_md(row.get("NL 数", "")) != expected_nl:
@@ -525,7 +538,7 @@ def require(obj: dict, keys: list[str], label: str, errors: list[str]):
             errors.append(f"{label} missing required field {key}")
 
 
-def validate_registry_shape(reg: dict, errors: list[str]):
+def validate_registry_shape(reg: dict, seed_dir: Path, errors: list[str]):
     require(
         reg,
         [
@@ -655,6 +668,7 @@ def validate_registry_shape(reg: dict, errors: list[str]):
             "paper_llm_availability_checked_at",
             "paper_llm_availability_evidence_urls",
             "code_reproducibility",
+            "code_reproducibility_label",
             "code_reproducibility_evidence_paths",
             "resource_profile_notes",
         ],
@@ -673,18 +687,54 @@ def validate_registry_shape(reg: dict, errors: list[str]):
         )
     if resource_profile.get("code_reproducibility") not in CODE_REPRODUCIBILITY_ENUM:
         errors.append(f"unknown code_reproducibility {resource_profile.get('code_reproducibility')}")
+    expected_code_repro_label = CODE_REPRODUCIBILITY_LABEL.get(resource_profile.get("code_reproducibility"))
+    if expected_code_repro_label and resource_profile.get("code_reproducibility_label") != expected_code_repro_label:
+        errors.append(
+            "resource_profile code_reproducibility_label mismatch: "
+            f"{resource_profile.get('code_reproducibility_label')} != {expected_code_repro_label}"
+        )
     if not isinstance(resource_profile.get("paper_llm_models", []), list):
         errors.append("resource_profile paper_llm_models must be a list")
     if not isinstance(resource_profile.get("paper_llm_availability_evidence_urls", []), list):
         errors.append("resource_profile paper_llm_availability_evidence_urls must be a list")
     if not isinstance(resource_profile.get("code_reproducibility_evidence_paths", []), list):
         errors.append("resource_profile code_reproducibility_evidence_paths must be a list")
+    checked_at = resource_profile.get("paper_llm_availability_checked_at")
+    if isinstance(checked_at, str) and checked_at and checked_at != "not_applicable":
+        try:
+            _dt.date.fromisoformat(checked_at)
+        except ValueError:
+            errors.append("resource_profile paper_llm_availability_checked_at must use yyyy-mm-dd")
     if resource_profile.get("paper_uses_llm") == "yes" and not resource_profile.get("paper_llm_models"):
         errors.append("resource_profile paper_uses_llm=yes requires non-empty paper_llm_models")
+    if resource_profile.get("paper_uses_llm") == "yes" and not resource_profile.get("paper_llm_availability_evidence_urls"):
+        errors.append("resource_profile paper_uses_llm=yes requires paper_llm_availability_evidence_urls")
     if resource_profile.get("paper_uses_llm") == "yes" and resource_profile.get("paper_llm_availability_status") == "not_applicable":
         errors.append("resource_profile paper_uses_llm=yes cannot use paper_llm_availability_status=not_applicable")
     if resource_profile.get("paper_uses_llm") in {"no", "not_applicable"} and resource_profile.get("paper_llm_availability_status") not in {"not_applicable", "unknown"}:
         errors.append("resource_profile non-LLM work should use LLM availability not_applicable/unknown")
+    for url in resource_profile.get("paper_llm_availability_evidence_urls", []):
+        if not isinstance(url, str) or not (url.startswith("https://") or url.startswith("http://")):
+            errors.append("resource_profile paper_llm_availability_evidence_urls must contain URL strings")
+    code_availability = resource_profile.get("source_code_availability")
+    if code_availability in {"available_pinned", "available_unpinned", "partial_or_snippet"}:
+        if not reg.get("source_work", {}).get("code_urls"):
+            errors.append("resource_profile available source code requires source_work.code_urls")
+    if code_availability == "available_pinned":
+        version_pin = str(reg.get("asset_summary", {}).get("version_pin", "")).strip()
+        if version_pin in {"", "unknown", "not_applicable"}:
+            errors.append("resource_profile available_pinned requires non-empty asset_summary.version_pin")
+    code_reproducibility = resource_profile.get("code_reproducibility")
+    if code_reproducibility in {"initial_generation_smoke_ok_via_openai_compatible_proxy", "single_system_smoke_ok_via_ollama_compatible_proxy", "blocked", "failed"}:
+        evidence_paths = resource_profile.get("code_reproducibility_evidence_paths") or []
+        if not evidence_paths:
+            errors.append("resource_profile code_reproducibility evidence_paths required for attempted/blocked/failed runs")
+        for rel in evidence_paths:
+            if not isinstance(rel, str) or not rel.strip():
+                errors.append("resource_profile code_reproducibility_evidence_paths must contain non-empty strings")
+                continue
+            if not (seed_dir / rel).exists():
+                errors.append(f"resource_profile code_reproducibility evidence path missing: {rel}")
     if resource_profile.get("resource_category") == "first_source_nl_stm" and reg.get("extracted_summary", {}).get("eligible_generated_pair_count", 0) <= 0:
         errors.append("resource_category first_source_nl_stm requires eligible generated pairs")
     if resource_profile.get("resource_category") == "nl_code_reproducible":
@@ -692,6 +742,10 @@ def validate_registry_shape(reg: dict, errors: list[str]):
             errors.append("resource_category nl_code_reproducible requires available source code")
         if not reg.get("source_work", {}).get("code_urls"):
             errors.append("resource_category nl_code_reproducible requires source_work.code_urls")
+        if reg.get("recommended_role") == "final_pool_ready":
+            errors.append("resource_category nl_code_reproducible cannot be recommended_role final_pool_ready")
+        if reg.get("extracted_summary", {}).get("eligible_generated_pair_count", 0) != 0:
+            errors.append("resource_category nl_code_reproducible must not carry eligible generated pairs")
     ds = reg.get("downstream_selection", {})
     require(
         ds,
@@ -1321,7 +1375,7 @@ def validate_seed(seed_id: str) -> int:
         return 1
     reg = load_json(reg_path)
     validate_registry_against_schema(reg, errors)
-    validate_registry_shape(reg, errors)
+    validate_registry_shape(reg, seed_dir, errors)
     manifest_rel = reg.get("asset_summary", {}).get("manifest_path", "")
     manifest_path = seed_dir / manifest_rel if manifest_rel else None
     if manifest_rel and (not manifest_path or not manifest_path.exists() or manifest_path.is_dir()):

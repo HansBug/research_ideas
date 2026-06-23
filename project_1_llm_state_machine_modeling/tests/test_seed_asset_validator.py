@@ -436,8 +436,8 @@ def test_seed_asset_validator_rejects_registry_markdown_count_drift(tmp_path: Pa
     registry_md = base / "REGISTRY.md"
     text = registry_md.read_text()
     text = text.replace(
-        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 / 10 |",
-        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 / 10 |",
+        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | ⚪不适用 | 已下载 | 999 / 999 | 989 | 999 | 0 | 10 / 10 |",
+        "| [`unified-uml-multimodal-validation`](./unified-uml-multimodal-validation/assets/README.md) | 🟢 | NL+STM一手 | 🔴未公开 | 🟢开权重可用 | ⚪不适用 | 已下载 | 3 / 3 | 989 | 999 | 0 | 10 / 10 |",
     )
     registry_md.write_text(text)
 
@@ -630,3 +630,36 @@ def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Pat
     assert "unknown asset_summary license_status" in result.stderr
     assert "unknown asset_summary redistribution_status" in result.stderr
     assert "unknown r2_smoke_recommendation strong" in result.stderr
+
+def test_seed_asset_validator_rejects_resource_profile_semantic_drift(tmp_path: Path) -> None:
+    """LLM/code reproducibility profile must remain auditable and cannot upgrade pipeline-only to final pool."""
+
+    base = _copy_seed_library_subset(tmp_path, "designing-fsm-gpt4")
+    registry_path = base / "designing-fsm-gpt4" / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    profile = registry["resource_profile"]
+    profile["paper_llm_availability_checked_at"] = "2026/06/23"
+    profile["paper_llm_availability_evidence_urls"] = []
+    profile["code_reproducibility_evidence_paths"] = ["assets/extracted/missing.json"]
+    profile["code_reproducibility_label"] = "⚪不适用"
+    registry["recommended_role"] = "final_pool_ready"
+    registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
+
+    env = os.environ.copy()
+    env["SEED_LIBRARY_BASE"] = str(base)
+    result = subprocess.run(
+        [sys.executable, str(VALIDATOR), "designing-fsm-gpt4"],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "paper_llm_availability_checked_at must use yyyy-mm-dd" in result.stderr
+    assert "paper_uses_llm=yes requires paper_llm_availability_evidence_urls" in result.stderr
+    assert "code_reproducibility evidence path missing" in result.stderr
+    assert "code_reproducibility_label mismatch" in result.stderr
+    assert "nl_code_reproducible cannot be recommended_role final_pool_ready" in result.stderr
