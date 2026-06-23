@@ -28,7 +28,7 @@
 | 维度 | 判断 | 说明 |
 |---|---|---|
 | SS | `SS-B` | 初始生成链路严格满足 P1-P4，但输入是模板合成英文描述，不是真实控制系统需求；输出是平坦 DFSM/Mealy，不含层次、并发、guard、action、time；代码入口不是论文正文给出，artifact 稳定性不足。 |
-| SA | `SA-2` | 有本地论文材料与额外核到的 GitHub 代码/样例数据，可用于探索复现；但无 release、无 license、无依赖锁、无标准 split，结果表与仓库文件仍需人工对齐。 |
+| SA | `SA-2` | 有本地论文材料与额外核到的 GitHub 代码/样例数据，可用于探索复现；但无 release、无依赖锁、无标准 split，结果表与仓库文件仍需人工对齐。许可 / 再分发不作为额外升绿阻塞。 |
 | 排除码 | none for initial seed | 初始 `NL -> DFSM CSV` 不触发 protocol-only、trace-only、T1+ only、non-STM、no-generation 排除。 |
 | 局部排除 | `EX-REPAIR-ORACLE-AS-SEED` | 论文的 syntactic fault、distinguishing sequence、checking sequence、fault-model repair 依赖 oracle/专家反馈或修复域搜索，只能作为 R2/repair 方法参考，不能替代初始 seed 样本。 |
 
@@ -50,7 +50,7 @@
 
 ## R2 seed 可用性
 
-`initial-generation-only conditional seed candidate`。可交接给 PR-R2 的仅是初始 `NL description -> DFSM/Mealy CSV` seed 切片：输入为英文自然语言 DFSM 描述，输出 schema 为 `State,Input,Output,Next_State` CSV，形式化对象为 deterministic finite state machine / Mealy machine。该切片仍带合成数据、license pending、无 release / split 冻结等 caveat。
+`initial-generation-only conditional seed candidate`。可交接给 PR-R2 的仅是初始 `NL description -> DFSM/Mealy CSV` seed 切片：输入为英文自然语言 DFSM 描述，输出 schema 为 `State,Input,Output,Next_State` CSV，形式化对象为 deterministic finite state machine / Mealy machine。该切片仍带合成数据、无 release / split 冻结等 caveat；许可 / 再分发不作为额外升绿阻塞。
 
 ### repair / oracle 部分只作参考，不作 seed
 
@@ -71,18 +71,18 @@
 | `paper_content.txt` | `6d90ebc9e302574df1cb4ba033a9a348b1110388109495146956dc478eefb947` |
 | `paper.pdf` | `d49fd30733aaa7c7d6dd7aeb9f28f72ecc59d0594dcf7bd9da373bbe9ac1628f` |
 
-## Pending / blocker
+## 待补 / 主要阻塞
 
 | 等级 | 项 | 影响 |
 |---|---|---|
-| pending | GitHub repo 与论文版本关系需作者确认或 release 固化 | 影响复现实验严谨性，不影响 P1-P4 seed 判定。 |
-| pending | license 缺失 | 影响代码/数据再分发与自动化集成。 |
-| pending | 合成数据未冻结 split | 影响把该工作纳入正式 baseline matrix 的统计复现。 |
-| blocker-for-SS-A | 非真实控制系统需求、无冻结 artifact、无 license/release | 阻止升为 `SS-A`。 |
+| 待补 | GitHub repo 与论文版本关系需作者确认或 release 固化 | 影响复现实验严谨性，不影响 P1-P4 seed 判定。 |
+| 引用说明 | 许可 / 再分发不作为升绿阻塞 | 后续使用公开学术资源时引用原作，并优先补 commit/hash。 |
+| 待补 | 合成数据未冻结 split | 影响把该工作纳入正式 baseline matrix 的统计复现。 |
+| blocker-for-SS-A | 非真实控制系统需求、无冻结 artifact / release | 阻止升为 `SS-A`。 |
 
 ## 全文阅读状态
 
 - `bibtex.bib`：已核，arXiv preprint，无 DOI。
 - `paper_content.txt`：已通读 Page 1-21，正文、表格、附录和参考文献完整覆盖本轮判定。
 - `paper.pdf`：本地存在；因文本提取已覆盖关键证据，本轮未额外 OCR。
-- `ASSETS.md` / `DESC.md`：已读；采纳其中 GitHub 资产、HEAD、license/release 风险判断。
+- `ASSETS.md` / `DESC.md`：已读；采纳其中 GitHub 资产、HEAD、release / 版本冻结风险判断。

@@ -10,5 +10,5 @@
 
 ## artifact 判定
 
-- 公开论文可用，但未见公开 fbAssistant 代码、案例数据集、逐轮 prompt/output、IEC 61499 代码包或 license。
+- 公开论文可用，但未见公开 fbAssistant 代码、案例数据集、逐轮 prompt/output 或 IEC 61499 代码包。
 - 当前等级：`SA-4`；只作 related work / private artifact boundary。

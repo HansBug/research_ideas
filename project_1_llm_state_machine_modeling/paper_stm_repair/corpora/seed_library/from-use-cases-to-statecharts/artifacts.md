@@ -17,7 +17,7 @@
 | venue | Journal of Computing and Information Technology, 12(3), 223-235, 2004。 |
 | publisher / official page | 本地材料未提供可核验官方页面。 |
 | URL 稳定性 | Semantic Scholar PDF URL 可作为发现/备份线索；不是 publisher DOI 级稳定入口。 |
-| license / redistribution | 未发现 license 或 artifact license 声明；只能记录本地研究副本，不能推断再分发许可。 |
+| 引用 / 来源说明 | 论文可作为公开学术来源引用；当前缺口是无机器可读 artifact 与稳定 publisher/DOI 入口，许可 / 再分发不作为额外升绿阻塞。 |
 
 ## 可复现实验制品
 
@@ -32,6 +32,6 @@
 ## artifact 判定
 
 - artifact_usability: `SA-3`
-- 排除码: `NO_CODE_OR_MACHINE_READABLE_ARTIFACT`; `PAPER_ONLY_CASE_STUDY`; `LICENSE_UNKNOWN`
-- blocker: 无公开机器可读 artifact、无 license、无 DOI/publisher 稳定入口。
-- pending: 若后续要进入可复现 benchmark，需要补人工转写模型、转写校验记录和可引用的授权/来源说明。
+- 排除码: `NO_CODE_OR_MACHINE_READABLE_ARTIFACT`; `PAPER_ONLY_CASE_STUDY`; `R_CITATION_HASH_TODO`
+- 主要阻塞: 无公开机器可读 artifact、无 DOI/publisher 稳定入口；许可 / 再分发不作为额外升绿阻塞。
+- 待补: 若后续要进入可复现 benchmark，需要补人工转写模型、转写校验记录和可引用的来源说明。

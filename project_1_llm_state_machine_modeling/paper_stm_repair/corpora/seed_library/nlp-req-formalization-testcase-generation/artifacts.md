@@ -8,7 +8,7 @@
 | 输入制品 | 自然语言功能需求 / text documents；案例为 charging approval system。 |
 | 输出制品 | IRDL requirement model / sequence model / UML state machine / test cases；UML state machine 为本文 relevant STM 输出。 |
 | 代码 / 数据 / 模型输出 | 未发现公开 ReForm / ModGen package、原始需求集、机器可读 UML state machine 或测试输出包。 |
-| license / hash | CEUR paper page 标注 CC BY 4.0；未发现可冻结 code/data/model release。 |
+| 来源 / 版本 / hash | CEUR paper page 标注 CC BY 4.0；未发现可冻结 code/data/model release。 |
 
 ## 可获取性结论
 

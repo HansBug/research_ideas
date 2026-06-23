@@ -25,7 +25,7 @@ MARITACA 使用 NLP 技术从半结构化 textual use case descriptions 抽取 s
 
 ## 风险与 caveat
 
-作者网页 artifact 当前 403；代码 / 完整 pair / license / hash 未公开冻结。
+作者网页 artifact 当前 403；代码 / 完整 pair / 来源 / 版本 / hash 未公开冻结。
 
 ## 使用建议
 

@@ -11,5 +11,5 @@
 ## artifact 判定
 
 - PDF 内有 prompt、若干 PlantUML listings、渲染图和评价表，可人工核验任务关系。
-- 未发现公开 GitHub、Zenodo、supplementary dataset、raw outputs、license 或可机器读取的完整结果包。
+- 未发现公开 GitHub、Zenodo、supplementary dataset、raw outputs 或可机器读取的完整结果包。
 - 当前等级：`SA-3`，不计主 seed。

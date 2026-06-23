@@ -36,14 +36,14 @@
 
 排除原因在于输入侧。论文虽然把 scenario 视为需求捕获手段，但明确采用 OMT event trace diagrams 作为本文表示，ATM 示例也是对象生命线和事件箭头构成的结构化场景图。该输入已经是半形式化/图式化需求表示，不满足 strict seed 对 NL_INPUT 的要求。
 
-## Pending / Blocker
+## 待补 / 主要阻塞
 
 | 项 | 状态 |
 |---|---|
-| DOI | pending；BibTeX 与源 DESC 均未提供 DOI。 |
-| Artifact/license | blocker；论文未给出代码、仓库、数据集、supplementary 或 license。 |
-| URL 稳定性 | pending；BibTeX URL 是筑波大学实验室 PDF 页面，属于机构主页链接，不是 DOI / publisher landing page / archival artifact。 |
-| R2 输入输出样例 | blocker；只有论文图示，缺少机器可读 scenario/statechart 文件。 |
+| DOI | 待补；BibTeX 与源 DESC 均未提供 DOI。 |
+| Artifact / 数据 | 主要阻塞；论文未给出代码、仓库、数据集或 supplementary。许可 / 再分发不作为额外升绿阻塞。 |
+| URL 稳定性 | 待补；BibTeX URL 是筑波大学实验室 PDF 页面，属于机构主页链接，不是 DOI / publisher landing page / archival artifact。 |
+| R2 输入输出样例 | 主要阻塞；只有论文图示，缺少机器可读 scenario/statechart 文件。 |
 
 ## 复核顺序
 

@@ -7,9 +7,9 @@
 | BibTeX | 已补 `bibtex.bib`。 |
 | 输入制品 | 输入为 use cases / use case diagram；功能以 informal way 捕获。 |
 | 输出制品 | 输出 statechart / set of sub-statecharts / top-level statechart model。 |
-| 代码 / 数据 / 模型输出 | paper-only；无 code/model files/license。 |
-| license / hash | 未发现可冻结 release/license/hash；paper-only 按 `SA-3` 或边界处理。 |
+| 代码 / 数据 / 模型输出 | paper-only；无 code/model files。 |
+| 来源 / 版本 / hash | 未发现可冻结 release/version/hash；paper-only 按 `SA-3` 或边界处理。 |
 
 ## 可获取性结论
 
-paper-only；无 code/model files/license。
+paper-only；无 code/model files。

@@ -10,7 +10,7 @@
 | 核验顺序 | `bibtex.bib` -> `paper_content.txt` -> `paper.pdf` -> `DESC.md` |
 | strict_seed_grade | `SS-B` |
 | artifact_usability | `SA-3` |
-| R2 可用性 | `low`：论文内有可读用例、domain model、生成算法和 FSM 图；无公开代码、数据包、可下载 UCEd、机器可读输出或 license。 |
+| R2 可用性 | `low`：论文内有可读用例、domain model、生成算法和 FSM 图；无公开代码、数据包、可下载 UCEd 或机器可读输出。 |
 | 当前结论 | 可作为“结构化 use case / restricted NL -> hierarchical finite state transition machine”的历史前身 seed；不应冻结为 SS-A/R2 可复现样本。 |
 
 ## P1/P2/P3/P4 判定
@@ -49,4 +49,4 @@
 
 1. 可用于 R1/R2 讨论中的“早期结构化需求到状态模型”对照样本。
 2. 若进入转换实验，应手工转录 PDF p.2 Figure 1、PDF p.3 Figure 3、PDF p.4 Figure 5，并在 run record 中标注为 manual transcription。
-3. 不建议纳入需要公开 artifact/license/机器可读输出的 R2 主统计。
+3. 不建议纳入需要公开 artifact / 机器可读输出的 R2 主统计。

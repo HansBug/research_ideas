@@ -11,7 +11,7 @@
 | strict_seed_grade | `SS-A` |
 | artifact_usability | `SA-2` |
 | exclusion_code | `NONE` |
-| 当前结论 | 纳入 strict seed；适合作为“非结构化 NL -> UML state machine”直接生成 baseline，但 artifact 需先冻结并补 license/稳定性审计后再进入正式 R2。 |
+| 当前结论 | 纳入 strict seed；适合作为“非结构化 NL -> UML state machine”直接生成 baseline，但 artifact 需先冻结版本 / hash、区分 generated 与 reference，并记录稳定性审计后再进入正式 R2。 |
 
 ## P1/P2/P3/P4 核验
 
@@ -37,9 +37,9 @@
 
 ### SA-2
 
-artifact 对复现实验有实际价值，但暂不应标为 SA-1。源目录 `ASSETS.md` 已核到 4open 浏览器入口、ZIP 下载入口、源码、prompt/example、8 个 reference solutions、生成图片和 F1 workbook；还记录了关键文件大小和 SHA-256。主要风险是 artifact 位于 Anonymous Github / 4open，未见稳定 Git commit、正式 release、Zenodo DOI 或 license 文件快照，且尚未在本仓库真实安装复跑。
+artifact 对复现实验有实际价值，但暂不应标为 SA-1。源目录 `ASSETS.md` 已核到 4open 浏览器入口、ZIP 下载入口、源码、prompt/example、8 个 reference solutions、生成图片和 F1 workbook；还记录了关键文件大小和 SHA-256。主要风险是 artifact 位于 Anonymous Github / 4open，未见稳定 Git commit、正式 release 或 Zenodo DOI，且尚未在本仓库真实安装复跑。
 
-因此当前可用性为：可下载、可冻结、可人工/脚本审计，适合进入 R2 前准备；但正式 R2 需要先冻结本地副本、补全逐文件 hash、确认 license/redistribution，并记录 LLM API/model drift。
+因此当前可用性为：可下载、可冻结、可人工/脚本审计，适合进入 R2 前准备；但正式 R2 需要先冻结本地副本、补全逐文件 hash、确认 generated/reference 边界，并记录 LLM API/model drift。
 
 ## 排除码
 
@@ -62,10 +62,14 @@ artifact 对复现实验有实际价值，但暂不应标为 SA-1。源目录 `A
 | 参考解 | 可用；8 个 reference solutions 含 `.txt` 与 `.png`。 |
 | 生成代码 | 可用但待复跑；源目录核到 Python code、prompt、examples、后处理与依赖。 |
 | 结果对账 | 可用；`Final Detailed F1-Scores.xlsx` 已核到大小与 hash，含 TP/FN/FP、precision、recall、F-score。 |
-| license / redistribution | blocker；源目录未记录已确认 license 文件或正式发布许可。 |
+| license / redistribution | 不作为 R2.0 升绿 blocker；公开学术 artifact 后续论文引用原作即可。 |
 | URL 稳定性 | risk；4open hashbang 和 ZIP 当前可用，但不是 DOI/release 级长期归档。 |
 | 运行复现 | pending；未安装运行，真实复跑需要 API key、provider 版本、Graphviz/Java/Umple 等环境记录。 |
 
 ## reviewer 结论
 
-纳入 `SS-A / SA-2 / NONE`。该论文可以作为 strict seed 中最贴近“非结构化自然语言到状态机生成”的样本之一；但在进入正式 R2 或四例冻结样本前，应完成 artifact 本地冻结、license 核验、逐文件 hash、运行环境和真实 smoke 记录。
+纳入 `SS-A / SA-2 / NONE`。该论文可以作为 strict seed 中最贴近“非结构化自然语言到状态机生成”的样本之一；进入正式 R2 或四例冻结样本前，应完成逐案例选择、版本 / hash、运行环境和真实 smoke 记录；许可 / 再分发按公开学术资源引用原作处理。
+
+## R2.0 registry 口径更新
+
+一手 registry 口径起，本条目不得把 `Reference Solutions/*.txt` 计为 generated `STM_0`。真正可候选的 generated seed 必须来自 4open ZIP 中 `backend/resources/state_machine_descriptions.py` 的 NL 描述与 `Paper Experiment Resources/Final Single Prompt/Claude Sonnet 3.5/SSC7_single_prompt_*.txt` 等作者生成输出的可回溯配对。当前本条目已在 [assets/README.md](./assets/README.md) 下 committed 4open ZIP，并抽取 1 组 SSC7 `NL + Claude Sonnet 3.5 single-prompt generated Umple` pair；该 pair 已通过 raw ZIP hash、ZIP member locator、Python symbol 与文本 hash 回溯，eligible generated seed count 为 1。公开学术 artifact 按引用原作处理后，该 pair 当前为 `final_pool_ready`；但只有 SSC7 具备 generated text output，其余 8 个 NL 不能计为 generated pair，reference solutions 只能作为评价参考。

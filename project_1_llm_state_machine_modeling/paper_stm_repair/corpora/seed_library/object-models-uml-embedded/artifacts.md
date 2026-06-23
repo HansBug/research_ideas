@@ -8,7 +8,7 @@
 | 输入制品 | 输入为 use case textual description，use case 由 name/actor/pre/postconditions/normal steps/exceptional steps 构成。 |
 | 输出制品 | 输出为 UML statechart/extended statechart，states/events/transitions/guards 描述 controlled parts。 |
 | 代码 / 数据 / 模型输出 | paper-only；可人工重建，不能直接可复验。 |
-| license / hash | 未发现可冻结 release/license/hash；paper-only 按 `SA-3` 或边界处理。 |
+| 来源 / 版本 / hash | 未发现可冻结 release/version/hash；paper-only 按 `SA-3` 或边界处理。 |
 
 ## 可获取性结论
 

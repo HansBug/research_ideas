@@ -25,8 +25,8 @@ RSCharter 从 RUPP/EARS 风格 NL SRS 中抽取 statechart diagram elements，�
 
 ## 风险与 caveat
 
-preprint not peer reviewed；增强数据未公开；代码/完整 pair/license/hash 未公开。
+preprint not peer reviewed；增强数据未公开；代码/完整 pair/version/hash 未公开。
 
 ## 使用建议
 
-作为近期 rule-based/NLP 相关工作与条件种子 / 方法证据，不计当前 R2 四例。PuRE 的许可 / 版本只覆盖原始来源数据，不覆盖 RSCharter 增强 pair / code。
+作为近期 rule-based/NLP 相关工作与条件种子 / 方法证据，不计当前 R2 四例。PuRE 的来源 / 版本只覆盖原始来源数据，不覆盖 RSCharter 增强 pair / code。

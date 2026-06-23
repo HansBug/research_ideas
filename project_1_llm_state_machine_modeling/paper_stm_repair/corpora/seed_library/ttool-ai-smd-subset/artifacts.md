@@ -10,7 +10,7 @@
 | Paper URL | stable | HAL: <https://telecom-paris.hal.science/hal-04483279>; DOI: <https://doi.org/10.5220/0012320100003645>。 |
 | Code / artifact | public, partial | 论文§5.2给出公开GitHub仓库 <https://github.com/zebradile/ttool-ai>；源`ASSETS.md`记录default branch `main`、HEAD `f2c52282cb7a826c31e7ab512356d42230c6d321`。仓库主要是实验工件，不是完整TTool-AI源码。 |
 | Dataset / outputs | public | 论文§5.2说明`platooning`、`spacebasedsystem`、`AutomatedBraking`目录包含系统规格和TTool-AI生成的`.xml`模型；源`ASSETS.md`还记录`results.ods`和补充工件目录。 |
-| License / redistribution | pending | 本轮允许读取材料未给出GitHub仓库license，不能判定可再分发；R2若要搬运XML/desc到本仓库，需先人工核验license或仅记录URL与hash。 |
+| 引用 / 来源说明 | citation note | 公开 GitHub artifact 可作为论文引用与来源入口；R2 若搬运 XML/desc 到本仓库，重点记录 URL、commit/hash 与引用原作，许可 / 再分发不作为升绿阻塞。 |
 | URL stability | medium-high | HAL/DOI稳定；GitHub URL公开，源`ASSETS.md`已记录pinned HEAD和`results.ods` raw ETag，但本轮未重新联网核验。 |
 | Conversion readiness | boundary | 可从公开 `.desc` / `.xml` 抽取 NL 规格与生成 SMD；但 `after` 时间约束、signal send/receive、guard/action 赋值和 LLM 生成残余错误是 PR-R3 converter blocker。当前不计入 PR-R2 主 seed 下限。 |
 
@@ -27,7 +27,7 @@ R2建议入口：
 
 ## artifact风险
 
-1. **license pending**：从本地`bibtex.bib`、`paper_content.txt`、源`ASSETS.md`和`DESC.md`无法确认artifact license。
+1. **引用说明待补**：从本地 `bibtex.bib`、`paper_content.txt`、源 `ASSETS.md` 和 `DESC.md` 尚未整理出完整引用 / commit / hash 说明；这不作为许可阻塞。
 2. **完整源码不足**：公开仓库主要保存实验输入/输出/结果，TTool-AI能力在TTool工具中；如要改造baseline，需要另查TTool本体。
 3. **provider drift**：论文实验绑定TTool nightly build October 2023与ChatGPT 3.5 turbo，复跑会受模型版本、temperature和API行为变化影响。
 4. **SMD语义转换**：公开模型可能包含guards、actions、signals和`after`时间约束；若目标repair pipeline只接受简化FSM，必须显式转换并保留审计记录。

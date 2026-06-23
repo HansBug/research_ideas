@@ -17,7 +17,7 @@
 | publisher / official page | DOI 指向 SCITEPRESS 论文入口；本轮只使用本地 BibTeX / 全文 / PDF / 源 `DESC.md`。 |
 | source `ASSETS.md` | absent：源目录未发现 `ASSETS.md`。 |
 | URL 稳定性 | DOI URL 稳定；未发现 artifact DOI、Zenodo、GitHub release、commit 或长期数据集入口。 |
-| license / redistribution | 未发现代码、数据或模型 artifact license；PDF / 论文版权归 publisher，不得推断数据或模型可再分发。 |
+| 引用 / 来源说明 | 论文可作为公开学术来源引用；缺口是没有代码、数据或模型 artifact 一手包与版本/hash，许可 / 再分发不作为额外升绿阻塞。 |
 
 ## 可复现实验制品
 
@@ -33,5 +33,5 @@
 
 - artifact_usability: `SA-3`
 - R2 status: `not_main_seed`; `related_work_or_manual_reconstruction_only`
-- 主要 blocker: 无公开代码、无机器可读数据/模型、无完整测试用例、无 license、无 artifact hash/commit/release。
+- 主要阻塞: 无公开代码、无机器可读数据/模型、无完整测试用例、无 artifact hash/commit/release。许可 / 再分发不作为额外升绿阻塞。
 - 可保留价值: 方法链和案例统计可支撑 related work、baseline taxonomy 与 structured-requirements-to-FSM 对照。

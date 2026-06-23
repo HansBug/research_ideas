@@ -11,7 +11,7 @@
 | strict_seed_grade | `ES-C` |
 | 主 seed 计数 | 不计入 PR-R2 主 seed 下限，除非后续完成 case-level T0 isolation 或 PR-R3 timing 规范化合同。 |
 | artifact_usability | `SA-2` |
-| exclusion_code | `EX-none`; hard-for-main risk: `R-TIME-AFTER`; soft risk: `R-REPAIR-SCOPE`, `R-LICENSE-PENDING`, `R-LLM-DRIFT` |
+| exclusion_code | `EX-none`; hard-for-main risk: `R-TIME-AFTER`; soft risk: `R-REPAIR-SCOPE`, `R-CITATION-HASH-TODO`, `R-LLM-DRIFT` |
 | 当前结论 | 可作为“自然语言系统规格到SysML State Machine Diagram初始生成/反馈修正”的 extended seed / converter pressure；当前不计入主 seed，因为示例和公开 SMD 含 `after (5, 5)` 等时间语义，尚未证明可抽取 T0-only case。 |
 
 ## P1/P2/P3/P4核验
@@ -27,7 +27,7 @@
 
 **ES-C**：该候选满足 NL 输入、SMD 输出和生成关系，且全文有明确方法、示例、评估和公开实验工件；但 strict seed hard gate 要求 T0（无关键时间语义），而 TTool SMD 示例含 `after (5, 5)`、signal send/receive、guard/action 赋值等语义。当前只能作为 extended seed / converter pressure，不计入 `SS-A/SS-B + SA-1/SA-2` 主 seed 下限。若后续逐 case 证明所选公开模型不依赖时间语义，或 PR-R3 冻结了可审计的 timed-SMD 规范化策略，才可重新评估为条件 `SS-B`。
 
-**SA-2**：公开artifact可支撑R2复查：GitHub仓库含测试系统规格、TTool XML模型和`results.ods`。但从允许读取材料中无法核验license；真实重跑依赖TTool nightly、OpenAI key、GPT-3.5 turbo和随机性，不能保证bit-for-bit复现。
+**SA-2**：公开 artifact 可支撑 R2 复查：GitHub 仓库含测试系统规格、TTool XML 模型和 `results.ods`。许可 / 再分发不作为升绿阻塞；真正风险是需补 commit/hash 证据、真实重跑依赖 TTool nightly、OpenAI key、GPT-3.5 turbo 和随机性，不能保证 bit-for-bit 复现。
 
 ## 适用边界
 
@@ -36,9 +36,9 @@
 - 不宜单独作为Project 4“已知缺陷驱动迭代修复”的核心SS-A样本；若纳入repair corpus，应标注为“feedback-based generation correction / syntactic-semantic constraint repair”，而非counterexample-driven repair。
 - 若后续只处理T0 FSM，需对TTool SMD中的`after`、signal send/receive、guard/action赋值做转换策略，不应默认它们已经是纯T0 FSM。
 
-## Pending / blocker
+## 待补 / 主要阻塞
 
-1. `R-LICENSE-PENDING`：允许读取的本地材料未给出artifact仓库license；不能写成license已核验。
+1. `R-CITATION-HASH-TODO`：需补 artifact 仓库的引用、commit/hash 与文件级来源说明；许可 / 再分发不作为升绿阻塞。
 2. `R-LLM-DRIFT`：论文实验使用TTool nightly build October 2023与ChatGPT 3.5 turbo；真实复跑会受provider/model漂移影响。
 3. `R-REPAIR-SCOPE`：论文反馈环能修正格式、约束和部分语法/语义错误，但不是以已知缺陷或模型检查反例为输入的repair pipeline。
 4. `R-TIME-AFTER`：示例 state machine 带 `after (5, 5)` 时间约束；这是当前不计主 seed 的直接原因。PR-R3 converter 需要明确保留、抽象或剔除时间语义，并记录信息损失。

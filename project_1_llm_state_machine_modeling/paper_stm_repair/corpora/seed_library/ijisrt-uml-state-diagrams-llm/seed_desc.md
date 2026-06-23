@@ -7,7 +7,7 @@
 | bibliographic_id | DOI `10.38124/ijisrt/26feb1435`，2026-03-13 |
 | strict_seed_grade | `SS-A` for task relation |
 | artifact_usability | `SA-3` |
-| 是否计入主 seed | 不计入。全文和 PDF 有 prompt、PlantUML listing 与结果图，但未见公开代码、数据包、原始输出 release 或 license。 |
+| 是否计入主 seed | 不计入。全文和 PDF 有 prompt、PlantUML listing 与结果图，但未见公开代码、数据包或原始输出 release。 |
 
 ## P1/P2/P3/P4 核验
 
