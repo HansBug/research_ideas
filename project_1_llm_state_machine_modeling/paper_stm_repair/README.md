@@ -32,10 +32,11 @@
 7. [corpora/README.md](./corpora/README.md)：确认三类文库入口、README/GUIDE/SUMMARY 纪律、project-level 边界和 R2 读取链路。
 8. [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)：确认当前 seed library 的 `47/47`、`36 dirs`、旧九 `9/9` crosswalk、R2=4、manual queue 和 negative evidence；这是后续 R2 seed 冻结的当前入口。
 9. [selected_seed_examples/README.md](./selected_seed_examples/README.md)：查看静态 smoke 用代表性 `<NL, STM_0>` 样例；它只服务转换器 / 诊断器 / 修正循环的最小连通性自检，不是最终实验集合或主结果样本上限。
-10. [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)：确认当前 STM repair baseline / 近邻结论；它不提供 R2 seed，只服务 related work、对照与消融边界。
-11. [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)：确认纯 NL 数据源入口；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
-12. 需要追溯 PR-R1 generation-era 资产审计时，再读 [evidence/README.md](./evidence/README.md) 及其子文件；这些文件是历史审计入口，不替代当前三类 corpora 总账。
-13. 需要追溯 R1.5--R1.7 旧 seed ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
+10. [conversion/README.md](./conversion/README.md)：查看 R3 开发 / 审计级 converter v0、schema、四例裁决报告和 loss ledger；它不是正式实验级转换器。
+11. [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)：确认当前 STM repair baseline / 近邻结论；它不提供 R2 seed，只服务 related work、对照与消融边界。
+12. [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)：确认纯 NL 数据源入口；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
+13. 需要追溯 PR-R1 generation-era 资产审计时，再读 [evidence/README.md](./evidence/README.md) 及其子文件；这些文件是历史审计入口，不替代当前三类 corpora 总账。
+14. 需要追溯 R1.5--R1.7 旧 seed ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
 
 ## 3. 目录结构
 
@@ -50,6 +51,7 @@ paper_stm_repair/
 │   ├── repair_baselines/
 │   └── nl_datasets/
 ├── selected_seed_examples/  # smoke 用代表性 <NL, STM_0> 静态样例；不是最终实验集合
+├── conversion/     # R3 converter v0 / schema / report / loss ledger；不是正式实验级转换器
 ├── seed_corpus/    # 旧入口 redirect；不再承载当前事实
 ├── evidence/       # PR-R1 generation-era 历史审计入口；不替代当前 corpora 总账
 └── archive/        # R1.5--R1.7 旧 ledger / raw search 审计快照
@@ -68,7 +70,7 @@ paper_stm_repair/
 |---|---|
 | 逐篇 baseline 资产盘点、代码 / artifact 可获取性台账 | 后续资产整理 |
 | seed registry 与最终实验样本冻结 | 后续样本整理；当前 [selected_seed_examples/](./selected_seed_examples/) 只保存 smoke 用代表性静态样例 |
-| 多格式转换器 schema / fixture / 归因实现 | 后续转换器整理 |
+| 多格式转换器 schema / fixture / 归因实现 | [conversion/](./conversion/) 已提供 R3 开发 / 审计级 converter v0；正式实验级转换仍待 R7/R8 冻结 |
 | 诊断、场景、评价量表 v0 与统计表骨架冻结 | 后续评价门整理 |
 | 无人化修正循环 runtime / prompt / LLM 调用 | 后续 runtime 整理 |
 | 主实验协议、对照矩阵、端到端四例预演 | 后续实验整理 |
@@ -85,6 +87,7 @@ paper_stm_repair/
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-24 17:45:00 | PR-R3 新增 [conversion/](./conversion/) 开发 / 审计级 converter v0，落地四例 smoke 转换裁决、schema、toolchain survey、canonical report 与 loss ledger；正式实验级转换仍待 R7/R8 冻结。 |
 | 2026-06-24 10:25:00 | 将 smoke 用代表性样例迁至 [selected_seed_examples/](./selected_seed_examples/) 根路径，明确其不是最终实验集合，并在顶层入口中加入读取指引。 |
 | 2026-06-16 23:08:00 | PR-R1.8-E 收敛三类文库总账一致性：R2 当前 seed 入口统一为 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)，旧 [seed_corpus/](./seed_corpus/) 与 [evidence/](./evidence/) 降级为 redirect / 历史审计入口，并将 seed 哨兵统一为 `36 dirs`。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 将旧 `seed_corpus/` 迁移为 [corpora/seed_library/](./corpora/seed_library/) SUMMARY-first 三件套，并归档 R1.5--R1.7 旧 ledger / raw search。 |
