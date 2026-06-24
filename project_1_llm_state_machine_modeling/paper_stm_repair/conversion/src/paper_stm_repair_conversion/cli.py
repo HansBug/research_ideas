@@ -115,7 +115,7 @@ def _apply_toolchain_preflight(result: Any, preflight: dict[str, Any]) -> None:
             "tool_name": preflight.get("tool_name"),
             "structured_export_status": structured_status,
             "structured_export_path": preflight.get("structured_export_path"),
-            "message": "Official/mature toolchain syntax preflight succeeded before R3 canonical fallback/crosscheck extraction.",
+            "message": "Official/mature toolchain syntax preflight succeeded before R3 canonical structured extraction.",
         })
     elif syntax_status and syntax_status.startswith("xml_wellformed"):
         result.diagnostics.append({
@@ -129,7 +129,7 @@ def _apply_toolchain_preflight(result: Any, preflight: dict[str, Any]) -> None:
     else:
         if result.status == "converted":
             result.status = "partial"
-        reason = preflight.get("fallback_reason") or "Official/mature toolchain preflight did not succeed; fallback parser output is smoke/debug evidence only."
+        reason = preflight.get("fallback_reason") or "Official/mature toolchain preflight did not succeed; no regex/text parser output may be used as canonical conversion."
         result.blocking_reason = reason if not result.blocking_reason else result.blocking_reason
         loss_id = f"{result.example_id}:{result.adapter}:official_preflight_failed"
         result.diagnostics.append({
@@ -174,9 +174,9 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
     preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
     kwargs = {"example_id": example_dir.name, "seed_id": meta["seed_id"], "source_format": fmt}
     if fmt == "plantuml":
-        result = convert_plantuml(stm_path, **kwargs)
+        result = convert_plantuml(stm_path, preflight=preflight, repo_root=repo_root, **kwargs)
     elif fmt == "umple":
-        result = convert_umple(stm_path, **kwargs)
+        result = convert_umple(stm_path, preflight=preflight, repo_root=repo_root, **kwargs)
     elif fmt == "ttool_xml":
         result = convert_ttool_xml(stm_path, **kwargs)
     else:
@@ -186,7 +186,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
     canonical_dir = reports_dir / "canonical"
     canonical_output_path: Path | None = None
     canonical_output_sha256: str | None = None
-    if result.status in {"converted", "partial"}:
+    if result.status in {"converted", "partial"} and result.metadata.get("conversion_source") != "no_canonical_conversion":
         canonical_output_path = canonical_dir / f"{example_dir.name}.canonical_stm.json"
         canonical_output_sha256 = write_json(canonical_output_path, result.to_canonical_dict())
 
@@ -249,6 +249,11 @@ def convert_selected(args: argparse.Namespace) -> int:
     selected_dir = repo_root / args.selected_dir
     reports_dir = repo_root / args.reports_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
+    # Avoid stale canonical fixtures when a formerly partial example becomes blocked after stricter structured-export gates.
+    canonical_dir = reports_dir / "canonical"
+    if canonical_dir.exists():
+        for old in canonical_dir.glob("*.canonical_stm.json"):
+            old.unlink()
     audit = audit_inputs(repo_root, selected_dir)
     if not all(
         row["nl_hash_match"]

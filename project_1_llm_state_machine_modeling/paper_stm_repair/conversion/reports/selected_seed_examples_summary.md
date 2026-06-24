@@ -4,11 +4,11 @@
 
 | example_id | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | losses | 说明 |
 |---|---|---|---:|---:|---|---|---:|---|
-| `llms-emp-gpt4o-hldcs` | `plantuml` | `converted` | 9 | 7 | `none` | `hierarchical` | 0 |  |
-| `sefm-ssc7-umple` | `umple` | `partial` | 7 | 22 | `qualitative` | `flat` | 1 | Umple adapter preserved after(...) timer-like transitions but R3 canonical T0 semantics does not execute timing. |
+| `llms-emp-gpt4o-hldcs` | `plantuml` | `converted` | 7 | 7 | `none` | `hierarchical` | 0 |  |
+| `sefm-ssc7-umple` | `umple` | `partial` | 7 | 22 | `qualitative` | `flat` | 1 | Umple official SCXML rewrites after(...) timer-like transitions; R3 preserves this as targeted timing loss while canonical structure remains SCXML-derived. |
 | `ttool-automatedbraking-xml` | `ttool_xml` | `partial` | 245 | 233 | `timed_constraints` | `concurrent` | 2 | TTool XML adapter performs XML/SMD inventory only: it extracts AVATAR SMD panels, state/start components and transition connector records, but does not yet resolve graphical connecting points to exact source/target states or slice a pure T0 state machine from the full SysML/AVATAR artifact. |
-| `unified-uml-synthetic-0000` | `plantuml` | `partial` | 7 | 7 | `none` | `flat` | 1 | Official PlantUML syntax check failed; R3 keeps minimal parser output only as smoke/debug evidence, not experiment-grade conversion. |
+| `unified-uml-synthetic-0000` | `plantuml` | `partial` | 0 | 0 | `none` | `flat` | 2 | Official PlantUML syntax check failed; R3 does not use text regex as canonical conversion source. Any text inspection is limited to debug/audit probe and the example cannot be marked converted. |
 
-Loss ledger 行数：4
+Loss ledger 行数：5
 
 所有 `partial` / `blocked` 裁决必须回到 JSON report 与 loss ledger 查看 source/ref、code 与 blocking reason。

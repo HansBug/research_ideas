@@ -52,11 +52,16 @@ def test_cli_regenerates_four_example_report(tmp_path):
     )
     assert '"examples": 4' in completed.stdout
     report = json.loads((out / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
-    statuses = {item["example_id"]: item["status"] for item in report["items"]}
-    assert statuses["llms-emp-gpt4o-hldcs"] in {"converted", "partial"}
-    assert statuses["unified-uml-synthetic-0000"] in {"converted", "partial"}
-    assert statuses["sefm-ssc7-umple"] == "partial"
-    assert statuses["ttool-automatedbraking-xml"] == "partial"
+    by_id = {item["example_id"]: item for item in report["items"]}
+    assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
+    assert by_id["llms-emp-gpt4o-hldcs"]["conversion_source"] == "official_scxml"
+    assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
+    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "no_canonical_conversion"
+    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"] is None
+    assert by_id["sefm-ssc7-umple"]["status"] == "partial"
+    assert by_id["sefm-ssc7-umple"]["conversion_source"] == "official_scxml"
+    assert by_id["ttool-automatedbraking-xml"]["status"] == "partial"
+    assert by_id["ttool-automatedbraking-xml"]["conversion_source"] == "official_xml"
     assert all("tool_preflight" in item for item in report["items"])
 
 
@@ -68,6 +73,10 @@ def test_committed_report_keeps_r3_smoke_boundary_and_losses():
     assert by_id["llms-emp-gpt4o-hldcs"]["hierarchy_level"] == "hierarchical"
     assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
     assert by_id["unified-uml-synthetic-0000"]["hierarchy_level"] == "flat"
+    assert by_id["unified-uml-synthetic-0000"]["states_count"] == 0
+    assert by_id["unified-uml-synthetic-0000"]["transitions_count"] == 0
+    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "no_canonical_conversion"
+    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"] is None
     assert by_id["sefm-ssc7-umple"]["timing_level"] == "qualitative"
     assert by_id["ttool-automatedbraking-xml"]["timing_level"] == "timed_constraints"
     losses = (REPORTS / "selected_seed_examples_loss_ledger.jsonl").read_text(encoding="utf-8")
@@ -87,22 +96,22 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
 
 
 
-def test_plantuml_label_split_handles_guard_action_combo():
-    from paper_stm_repair_conversion.adapters.plantuml import _split_label
-
-    assert _split_label("evt [g] / doIt()") == ("evt", "g", "doIt()")
-    assert _split_label("[g] / doIt()") == (None, "g", "doIt()")
-
-
-def test_committed_outputs_link_state_body_and_timing_losses():
+def test_committed_outputs_use_official_structured_sources_and_timing_audit_only():
     plant = json.loads((REPORTS / "canonical" / "llms-emp-gpt4o-hldcs.canonical_stm.json").read_text(encoding="utf-8"))
-    assert any(d["code"] == "R3.PUML.STATE_BODY_PRESERVED" for d in plant["diagnostics"])
-    assert any(s["attributes"].get("plantuml_state_body_lines") for s in plant["model"]["states"])
+    assert plant["metadata"]["conversion_source"] == "official_scxml"
+    assert plant["metadata"]["fallback_used"] is False
+    assert all("stm0.scxml:" in s["raw_ref"] for s in plant["model"]["states"])
+    assert all("stm0.scxml:" in t["raw_ref"] for t in plant["model"]["transitions"])
+    assert any(d["code"] == "R3.STRUCTURED_EXPORT.CANONICAL_FROM_SCXML" for d in plant["diagnostics"])
 
     umple = json.loads((REPORTS / "canonical" / "sefm-ssc7-umple.canonical_stm.json").read_text(encoding="utf-8"))
-    timing = [t for t in umple["model"]["transitions"] if t.get("event") == "after(60)"]
-    assert timing and timing[0]["attributes"]["timing_loss_ref"] == "sefm-ssc7-umple:umple:timing_after"
-    assert any(d["code"] == "R3.UMPLE.TIMING_TRANSITION_PARTIAL" for d in umple["diagnostics"])
+    assert umple["metadata"]["conversion_source"] == "official_scxml"
+    assert umple["metadata"]["fallback_used"] is True
+    assert "targeted raw timing/loss audit" in umple["metadata"]["fallback_scope"]
+    assert all("stm0.scxml:" in s["raw_ref"] for s in umple["model"]["states"])
+    assert all("stm0.scxml:" in t["raw_ref"] for t in umple["model"]["transitions"])
+    assert any(d["code"] == "R3.UMPLE.TIMING_RAW_AUDIT" for d in umple["diagnostics"])
+    assert any(t.get("event") == "timeoutTimeoutToReady" for t in umple["model"]["transitions"])
 
 
 def test_input_audit_records_source_pair_hashes_and_documented_divergence():
@@ -145,6 +154,7 @@ def test_committed_report_records_official_toolchain_preflight():
     assert sefm["structured_export_status"] == "scxml_export_ok"
     assert sefm["structured_export_path"].endswith("toolchain_exports/sefm-ssc7-umple/stm0.scxml")
     assert (REPO / sefm["structured_export_path"]).exists()
+    assert by_id["sefm-ssc7-umple"]["conversion_source"] == "official_scxml"
 
     ttool = by_id["ttool-automatedbraking-xml"]["tool_preflight"]
     assert ttool["tool_name"] == "TTool / AVATAR XML artifact"

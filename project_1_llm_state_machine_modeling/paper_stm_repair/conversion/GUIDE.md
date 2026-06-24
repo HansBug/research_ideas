@@ -30,19 +30,19 @@
 
 ## 4. 官方工具链与 adapter v0 纪律
 
-R3 的默认顺序是 **官方/成熟工具链 preflight -> 结构化导出证据保留 -> 必要时最小 fallback parser/inventory -> loss ledger**。不得把 fallback parser 写成首选方案，也不得在官方工具失败时仍标 `converted`。
+R3 的默认顺序是 **官方/成熟工具链 preflight -> 官方结构化导出 -> 以结构化导出作为 canonical 主转换路径 -> targeted fallback audit -> loss ledger**。不得把 regex/string parser 写成 canonical 主路径，也不得在官方工具失败时仍标 `converted`。
+
+每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。`fallback_used=true` 时必须说明 fallback 只是 debug / targeted loss audit，还是导致无 canonical conversion；不得让 reviewer 误以为文本 parser 是主转换链。
 
 ### 4.1 PlantUML
 
-v0 只覆盖四例所需子集：
+v0 不再用 regex/string parser 作为 PlantUML canonical 主路径。PlantUML canonical 主路径是 `-tscxml` 官方 SCXML：
 
-- `@startuml` / `@enduml`
-- `state X { ... }`
-- `A --> B : label`
-- quoted state name
-- `[*]` 初始 / 终止伪状态
+- states / transitions / hierarchy 从 SCXML XML 节点抽取；
+- canonical element `raw_ref` 指向 `stm0.scxml:...` 节点路径；
+- 源 `.puml` 文本最多用于 debug / 人工定位，不得重建整机结构。
 
-PlantUML v0 不能假定所有图都是 flat；`llms-emp-gpt4o-hldcs` 有局部 scope 和重复状态名。
+PlantUML v0 不能假定所有图都是 flat；`llms-emp-gpt4o-hldcs` 有局部 scope 和重复状态名，必须依赖 SCXML 层级证据。
 
 必须先通过 PlantUML CLI / jar 做 syntax preflight，并在可行时导出 SCXML：
 
@@ -51,16 +51,15 @@ java -jar plantuml.jar -checkonly selected_seed_examples/<id>/stm0.puml
 java -jar plantuml.jar -tscxml selected_seed_examples/<id>/stm0.puml
 ```
 
-若官方 syntax check 失败，该样例最多只能标 `partial`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` diagnostic 与 `R3.LOSS.tooling.high` loss。
+若官方 syntax check 或 SCXML export 失败，该样例最多只能标 `partial/blocked`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` 或等价 diagnostic 与 tooling loss；不得用 regex fallback 产出 canonical states/transitions。
 
 ### 4.2 Umple
 
-v0 只覆盖 `class { sm { state { transition; } } }` 子集，至少解析：
+v0 不再用 regex/string parser 作为 Umple canonical 主路径。Umple canonical 主路径是 `-g Scxml` 官方 SCXML：
 
-- state block
-- `event [guard] -> /{action} Target;`
-- `entry /{...}`
-- `after(n)` timer-like transition
+- state / transition / guard / script 从 SCXML XML 节点抽取；
+- canonical element `raw_ref` 指向 `stm0.scxml:...` 节点路径；
+- 原始 `.ump` 文本只允许用于 targeted audit，例如发现 `after(n)` 被 SCXML 改写后记录 timing loss。
 
 `after(60)` 必须进入 timing loss，不得静默丢弃或当成普通无时间迁移。
 
@@ -71,7 +70,7 @@ java -jar umple.jar -g Nothing selected_seed_examples/<id>/stm0.ump
 java -jar umple.jar -g Scxml selected_seed_examples/<id>/stm0.ump
 ```
 
-Umple 官方 SCXML 若重写 `after(60)` 等原始 timing 语法，R3 可继续用最小 parser 作为 canonical smoke fixture，但必须把官方 SCXML 保存在 `reports/toolchain_exports/` 作为 crosscheck evidence，并说明 fallback reason。
+Umple 官方 SCXML 若重写 `after(60)` 等原始 timing 语法，R3 只能用原始 `.ump` 做 targeted timing/loss audit；canonical states/transitions 仍必须来自官方 SCXML。
 
 ### 4.3 TTool XML
 
@@ -105,6 +104,6 @@ R3 最低验收：
 1. schema JSON 可由 `jsonschema` 校验。
 2. 四例均有 conversion report。
 3. PlantUML 两例必须有官方 syntax preflight；syntax fail 的样例不得标 `converted`。
-4. Umple 至少 partial，并对 timer-like loss 入账；若 `umple.jar` 可用，必须保存官方 SCXML crosscheck。
+4. Umple 至少 partial，并对 timer-like loss 入账；若 `umple.jar` 可用，canonical states/transitions 必须来自官方 SCXML。
 5. TTool XML 至少 partial / blocked 且不得静默跳过；必须说明官方 headless structured export 是否有证据。
 6. 本地 pytest 通过；如果没有 Codecov comment，不虚构覆盖率。

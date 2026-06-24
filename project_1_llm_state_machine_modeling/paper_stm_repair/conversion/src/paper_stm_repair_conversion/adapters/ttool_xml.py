@@ -51,6 +51,13 @@ def convert_ttool_xml(path: Path, *, example_id: str, seed_id: str, source_forma
         )
         return result
 
+    result.metadata["conversion_source"] = "official_xml"
+    result.metadata["canonical_extraction_method"] = "xml.etree.ElementTree inventory over official TTool/AVATAR XML artifact"
+    result.metadata["structured_export_path"] = path.name
+    result.metadata["structured_export_sha256"] = None
+    result.metadata["fallback_used"] = False
+    result.metadata["fallback_scope"] = None
+    result.metadata["source_text_used_for_canonical"] = False
     result.metadata["xml_root"] = root.tag
     result.metadata["ttool_version"] = root.attrib.get("version")
     result.metadata["consider_timing_operators"] = root.attrib.get("considerTimingOperators")

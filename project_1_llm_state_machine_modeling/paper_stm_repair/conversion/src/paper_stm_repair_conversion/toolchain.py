@@ -83,8 +83,29 @@ def _rel(path: Path | None, repo_root: Path) -> str | None:
         return f"external-local-tool/{path.name}"
 
 
+def _rel_or_abs(path: Path | None, repo_root: Path) -> str | None:
+    if path is None:
+        return None
+    try:
+        return str(path.resolve().relative_to(repo_root.resolve()))
+    except ValueError:
+        return str(path.resolve())
+
+
 def _display_source(example_id: str, stm_path: Path) -> str:
     return f"selected_seed_examples/{example_id}/{stm_path.name}"
+
+
+def _reuse_committed_scxml_export(*, example_id: str, repo_root: Path, reports_dir: Path) -> tuple[Path | None, str | None]:
+    committed = repo_root / "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/toolchain_exports" / example_id / "stm0.scxml"
+    if not committed.exists() or committed.stat().st_size == 0:
+        return None, None
+    out_dir = reports_dir / "toolchain_exports" / example_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target = out_dir / committed.name
+    if committed.resolve() != target.resolve():
+        target.write_bytes(committed.read_bytes())
+    return target, sha256_file(target)
 
 
 def _plantuml_jar_candidates(repo_root: Path) -> list[Path]:
@@ -121,14 +142,29 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
         "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in jar_candidates) if candidate}),
     }
     if not jar_candidates and not shutil.which("plantuml"):
+        reused, reused_sha = _reuse_committed_scxml_export(example_id=example_id, repo_root=repo_root, reports_dir=reports_dir)
+        if reused is not None:
+            return ToolPreflight(
+                tool_name="PlantUML CLI",
+                tool_version=None,
+                tool_source_url=source_url,
+                invocation_status="tool_missing_reused_committed_official_scxml",
+                syntax_status="not_run_tool_missing_reused_official_export",
+                structured_export_status="scxml_export_reused_tool_missing",
+                structured_export_format="scxml",
+                structured_export_sha256=reused_sha,
+                structured_export_path=_rel_or_abs(reused, repo_root),
+                fallback_reason="No plantuml executable or plantuml.jar candidate was available in this environment; R3 reused a committed PlantUML official SCXML export fixture for canonical structured extraction instead of regex/text parsing.",
+                evidence={**evidence, "reused_committed_official_export": _rel(reused, repo_root)},
+            )
         return ToolPreflight(
             tool_name="PlantUML CLI",
             tool_version=None,
             tool_source_url=source_url,
-            invocation_status="not_available_fallback_parser_used",
+            invocation_status="not_available_no_canonical_conversion",
             syntax_status="not_run_tool_missing",
             structured_export_status="not_run_tool_missing",
-            fallback_reason="No plantuml executable or plantuml.jar candidate was available; R3 used minimal parser fallback only after recording this absence.",
+            fallback_reason="No plantuml executable or plantuml.jar candidate was available; R3 cannot produce PlantUML canonical conversion without official SCXML. Text inspection is debug/audit only.",
             evidence=evidence,
         )
 
@@ -176,17 +212,17 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
     syntax_ok = check_cp.returncode == 0
     export_ok = persisted_scxml is not None
     if syntax_ok and export_ok:
-        invocation_status = "official_cli_syntax_and_scxml_ok_then_minimal_parser_crosscheck"
+        invocation_status = "official_cli_syntax_and_scxml_ok_canonical_source"
         structured_status = "scxml_export_ok"
-        fallback = "PlantUML SCXML exists and is retained as official structured evidence; R3 still uses the minimal parser as canonical extractor because SCXML omits/normalizes some raw labels/body lines needed by the audit ledger."
+        fallback = None
     elif syntax_ok:
-        invocation_status = "official_cli_syntax_ok_scxml_failed_fallback_parser_used"
+        invocation_status = "official_cli_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official syntax check passed but SCXML export did not produce a usable file; R3 used minimal parser fallback and records PlantUML diagnostics."
+        fallback = "Official syntax check passed but SCXML export did not produce a usable file; R3 does not use text regex as canonical conversion source and marks the example blocked/partial with tooling loss."
     else:
-        invocation_status = "official_cli_syntax_failed_fallback_parser_still_used_for_audit"
+        invocation_status = "official_cli_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official PlantUML syntax check failed; R3 keeps minimal parser output only as smoke/debug evidence, not experiment-grade conversion."
+        fallback = "Official PlantUML syntax check failed; R3 does not use text regex as canonical conversion source. Any text inspection is limited to debug/audit probe and the example cannot be marked converted."
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
 
@@ -199,7 +235,7 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
         structured_export_status=structured_status,
         structured_export_format="scxml" if export_ok else None,
         structured_export_sha256=scxml_sha,
-        structured_export_path=_rel(persisted_scxml, repo_root),
+        structured_export_path=_rel_or_abs(persisted_scxml, repo_root),
         command=[*base_cmd[:2], tool_ref, "-checkonly", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-checkonly", _display_source(example_id, stm_path)],
         returncode=check_cp.returncode,
         stdout_tail=_sanitize_output((check_cp.stdout or "") + "\n" + (scxml_cp.stdout or ""), replacements),
@@ -218,6 +254,7 @@ def _umple_jar_candidates(repo_root: Path) -> list[Path]:
     candidates.extend([
         repo_root / "tools/umple.jar",
         Path.home() / "umple.jar",
+        Path.home() / "下载/llm_state_machine_modeling/backend/resources/umple.jar",
     ])
     seen: set[str] = set()
     out = []
@@ -240,14 +277,29 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
         "download_hint": "https://cruise.umple.org/umpleonline/scripts/umple.jar",
     }
     if not candidates:
+        reused, reused_sha = _reuse_committed_scxml_export(example_id=example_id, repo_root=repo_root, reports_dir=reports_dir)
+        if reused is not None:
+            return ToolPreflight(
+                tool_name="Umple compiler CLI",
+                tool_version=None,
+                tool_source_url=source_url,
+                invocation_status="tool_missing_reused_committed_official_scxml",
+                syntax_status="not_run_tool_missing_reused_official_export",
+                structured_export_status="scxml_export_reused_tool_missing",
+                structured_export_format="scxml",
+                structured_export_sha256=reused_sha,
+                structured_export_path=_rel_or_abs(reused, repo_root),
+                fallback_reason="No local umple.jar was available in this environment; R3 reused a committed Umple official SCXML export fixture for canonical structured extraction. Raw .ump text remains targeted timing/loss audit only.",
+                evidence={**evidence, "reused_committed_official_export": _rel(reused, repo_root)},
+            )
         return ToolPreflight(
             tool_name="Umple compiler CLI",
             tool_version=None,
             tool_source_url=source_url,
-            invocation_status="not_available_fallback_parser_used",
+            invocation_status="not_available_no_canonical_conversion",
             syntax_status="not_run_tool_missing",
             structured_export_status="not_run_tool_missing",
-            fallback_reason="No local umple.jar was available. R3 records official CLI/download evidence but uses minimal parser fallback; rerun with UMPLE_JAR or tools/umple.jar for official preflight.",
+            fallback_reason="No local umple.jar was available. R3 cannot produce Umple canonical conversion without official structured export; rerun with UMPLE_JAR or tools/umple.jar for official SCXML extraction.",
             evidence=evidence,
         )
 
@@ -289,17 +341,17 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
     syntax_ok = syntax_cp.returncode == 0
     export_ok = persisted_scxml is not None
     if syntax_ok and export_ok:
-        invocation_status = "official_compiler_syntax_and_scxml_ok_then_minimal_parser_crosscheck"
+        invocation_status = "official_compiler_syntax_and_scxml_ok_canonical_source"
         structured_status = "scxml_export_ok"
-        fallback = "Umple SCXML is retained as official structured evidence; R3 keeps minimal parser output as canonical smoke fixture because official SCXML marks itself experimental and rewrites after(60) into timeoutTimeoutToReady, losing raw timing syntax needed for loss attribution."
+        fallback = "Canonical structure is extracted from official Umple SCXML. Raw .ump text is used only for targeted timing/loss audit because official SCXML rewrites after(60) into timeoutTimeoutToReady."
     elif syntax_ok:
-        invocation_status = "official_compiler_syntax_ok_scxml_failed_fallback_parser_used"
+        invocation_status = "official_compiler_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official Umple syntax check passed but SCXML export did not produce a usable file; R3 used minimal parser fallback with loss ledger."
+        fallback = "Official Umple syntax check passed but SCXML export did not produce a usable file; R3 does not use regex parser as canonical conversion source."
     else:
-        invocation_status = "official_compiler_syntax_failed_fallback_parser_still_used_for_audit"
+        invocation_status = "official_compiler_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official Umple compiler rejected the file; R3 minimal parser output is only smoke/debug evidence."
+        fallback = "Official Umple compiler rejected the file; R3 does not use regex parser as canonical conversion source."
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
 
@@ -312,7 +364,7 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
         structured_export_status=structured_status,
         structured_export_format="scxml" if export_ok else None,
         structured_export_sha256=scxml_sha,
-        structured_export_path=_rel(persisted_scxml, repo_root),
+        structured_export_path=_rel_or_abs(persisted_scxml, repo_root),
         command=["java", "-jar", _rel(jar, repo_root) or "umple.jar", "-g", "Nothing", _display_source(example_id, stm_path)],
         returncode=syntax_cp.returncode,
         stdout_tail=_sanitize_output((syntax_cp.stdout or "") + "\n" + (scxml_cp.stdout or ""), replacements),

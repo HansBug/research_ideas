@@ -2,149 +2,127 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
-from ..models import ConversionResult, Loss, State, Transition
+from ..models import ConversionResult, Loss
+from .scxml import ScxmlOptions, convert_scxml
 
-_CLASS_RE = re.compile(r"^class\s+(?P<name>[A-Za-z_][\w]*)\s*\{")
-_STATE_START_RE = re.compile(r"^(?P<name>[A-Za-z_][\w]*)\s*\{\s*$")
-_TRANSITION_RE = re.compile(
-    r"^(?P<event>[A-Za-z_][\w]*(?:\([^)]*\))?)?\s*"
-    r"(?:\[(?P<guard>[^\]]+)\])?\s*->\s*"
-    r"(?:(?:/\{(?P<action>.*?)\}\s*)|(?:/(?P<action2>.*?)\s+))?"
-    r"(?P<target>[A-Za-z_][\w]*)\s*;\s*$"
-)
-_ENTRY_RE = re.compile(r"^entry\s*/\{(?P<action>.*?)\}\s*$")
+_AFTER_RE = re.compile(r"after\s*\(\s*[^)]+\s*\)")
 
 
-def convert_umple(path: Path, *, example_id: str, seed_id: str, source_format: str = "umple") -> ConversionResult:
+def _audit_umple_timing(path: Path, result: ConversionResult) -> None:
     text = path.read_text(encoding="utf-8")
+    matches = [(i, m.group(0)) for i, line in enumerate(text.splitlines(), start=1) for m in _AFTER_RE.finditer(line)]
+    if not matches:
+        return
+    result.status = "partial"
+    result.timing_level = "qualitative"
+    result.blocking_reason = "Umple official SCXML rewrites after(...) timer-like transitions; R3 preserves this as targeted timing loss while canonical structure remains SCXML-derived."
+    for lineno, token in matches:
+        loss_id = f"{result.example_id}:umple:timing_after:{lineno}"
+        result.losses.append(
+            Loss(
+                loss_id=loss_id,
+                example_id=result.example_id,
+                source_ref=f"{path.name}:{lineno}:{token}",
+                canonical_ref=result.metadata.get("structured_export_path"),
+                loss_type="timing",
+                severity="medium",
+                rationale="Raw Umple after(...) timing syntax is not preserved verbatim by official SCXML export; recorded as qualitative timing loss, not as timed-automata clock semantics.",
+                needs_manual_review=True,
+            )
+        )
+        result.diagnostics.append(
+            {
+                "code": "R3.UMPLE.TIMING_RAW_AUDIT",
+                "severity": "medium",
+                "raw_ref": f"{path.name}:{lineno}",
+                "loss_ref": loss_id,
+                "message": f"Targeted raw Umple audit found timer-like syntax {token}; canonical structure remains official SCXML-derived.",
+            }
+        )
+    result.metadata["fallback_used"] = True
+    result.metadata["fallback_scope"] = "targeted raw timing/loss audit only; states/transitions remain official SCXML-derived"
+    result.metadata["source_text_used_for_canonical"] = False
+
+
+def convert_umple(
+    path: Path,
+    *,
+    example_id: str,
+    seed_id: str,
+    source_format: str = "umple",
+    preflight: dict[str, Any] | None = None,
+    repo_root: Path | None = None,
+) -> ConversionResult:
+    structured_path = (preflight or {}).get("structured_export_path")
+    syntax_status = (preflight or {}).get("syntax_status")
+    structured_status = (preflight or {}).get("structured_export_status")
+    if syntax_status == "ok" and structured_status in {"scxml_export_ok", "scxml_export_reused_tool_missing"} and structured_path:
+        scxml_path = (repo_root / structured_path) if repo_root and not Path(structured_path).is_absolute() else Path(structured_path)
+        result = convert_scxml(
+            scxml_path,
+            example_id=example_id,
+            seed_id=seed_id,
+            options=ScxmlOptions(
+                adapter="umple",
+                source_format=source_format,
+                conversion_source="official_scxml",
+                canonical_extraction_method="Umple -g Scxml export parsed by xml.etree.ElementTree",
+                status_on_success="converted",
+                fallback_used=False,
+                fallback_scope=None,
+                timing_level="none",
+                source_language="Umple textual state machine",
+            ),
+            structured_export_relpath=structured_path,
+            structured_export_sha256=(preflight or {}).get("structured_export_sha256"),
+        )
+        result.metadata["source_text_path"] = path.name
+        result.metadata["source_text_used_for_canonical"] = False
+        _audit_umple_timing(path, result)
+        return result
+
+    reason = (preflight or {}).get("fallback_reason") or "Umple official structured export was unavailable; regex/text parser is not allowed as canonical conversion source."
     result = ConversionResult(
         example_id=example_id,
         seed_id=seed_id,
         source_format=source_format,
         adapter="umple",
-        status="converted",
+        status="blocked",
         canonical_model_name=example_id,
+        blocking_reason=reason,
     )
-    state_map: dict[str, State] = {}
-    current_state: str | None = None
-    brace_depth = 0
-    in_sm = False
-    class_name = None
-    transition_count = 0
-    timing_seen = False
-
-    def ensure_state(label: str, raw_ref: str | None = None) -> str:
-        sid = label.strip()
-        if sid not in state_map:
-            state_map[sid] = State(id=sid, label=sid, kind="state", raw_ref=raw_ref)
-        return sid
-
-    for lineno, original in enumerate(text.splitlines(), start=1):
-        line = original.strip()
-        if not line:
-            continue
-        m_class = _CLASS_RE.match(line)
-        if m_class:
-            class_name = m_class.group("name")
-            brace_depth += line.count("{") - line.count("}")
-            continue
-        if line == "sm {":
-            in_sm = True
-            brace_depth += 1
-            continue
-        if not in_sm:
-            brace_depth += line.count("{") - line.count("}")
-            continue
-        if line == "}":
-            if current_state is not None:
-                current_state = None
-            else:
-                in_sm = False
-            continue
-        m_state = _STATE_START_RE.match(line)
-        if m_state:
-            current_state = ensure_state(m_state.group("name"), raw_ref=f"{path.name}:{lineno}")
-            if not result.initial_states:
-                result.initial_states.append(current_state)
-            continue
-        if current_state is None:
-            result.diagnostics.append({"code": "R3.UMPLE.OUTSIDE_STATE", "severity": "info", "raw_ref": f"{path.name}:{lineno}", "message": line})
-            continue
-        m_entry = _ENTRY_RE.match(line)
-        if m_entry:
-            state_map[current_state].attributes.setdefault("entry_actions", []).append(m_entry.group("action"))
-            continue
-        m_transition = _TRANSITION_RE.match(line)
-        if m_transition:
-            target = ensure_state(m_transition.group("target"), raw_ref=f"{path.name}:{lineno}")
-            event = (m_transition.group("event") or "").strip() or None
-            action = (m_transition.group("action") or m_transition.group("action2") or "").strip() or None
-            guard = (m_transition.group("guard") or "").strip() or None
-            timing_loss_ref = None
-            if event and event.startswith("after("):
-                timing_seen = True
-                timing_loss_ref = f"{example_id}:umple:timing_after"
-            transition_count += 1
-            attributes = {"raw": original}
-            if timing_loss_ref:
-                attributes["timing_loss_ref"] = timing_loss_ref
-                result.diagnostics.append({
-                    "code": "R3.UMPLE.TIMING_TRANSITION_PARTIAL",
-                    "severity": "medium",
-                    "raw_ref": f"{path.name}:{lineno}",
-                    "transition_id": f"tr_{transition_count:04d}",
-                    "loss_ref": timing_loss_ref,
-                    "message": "after(...) timing transition is preserved as an event string but not interpreted as timed automata semantics in R3.",
-                })
-            result.transitions.append(
-                Transition(
-                    id=f"tr_{transition_count:04d}",
-                    source=current_state,
-                    target=target,
-                    event=event,
-                    guard=guard,
-                    action=action,
-                    label=line.rstrip(";"),
-                    raw_ref=f"{path.name}:{lineno}",
-                    attributes=attributes,
-                )
-            )
-            continue
-        result.diagnostics.append({"code": "R3.UMPLE.IGNORED_LINE", "severity": "info", "raw_ref": f"{path.name}:{lineno}", "message": line})
-
-    result.states = list(state_map.values())
-    result.hierarchy_level = "flat"
-    result.timing_level = "qualitative" if timing_seen else "none"
-    result.metadata["class_name"] = class_name
-    if timing_seen:
-        result.status = "partial"
-        result.blocking_reason = "Umple adapter preserved after(...) timer-like transitions but R3 canonical T0 semantics does not execute timing."
-        result.losses.append(
-            Loss(
-                loss_id=f"{example_id}:umple:timing_after",
-                example_id=example_id,
-                source_ref=f"{path.name}:after(...) transition",
-                canonical_ref=None,
-                loss_type="timing",
-                severity="medium",
-                rationale="after(...) timing construct is recorded as qualitative timing and not interpreted as timed automata clock semantics in R3.",
-                needs_manual_review=True,
-            )
+    result.metadata.update(
+        {
+            "conversion_source": "no_canonical_conversion",
+            "canonical_extraction_method": "none; official Umple structured export unavailable or not trusted",
+            "structured_export_path": structured_path,
+            "structured_export_sha256": (preflight or {}).get("structured_export_sha256"),
+            "fallback_used": True,
+            "fallback_scope": "debug/audit probe only; not used to populate canonical states/transitions",
+            "source_text_used_for_canonical": False,
+        }
+    )
+    result.diagnostics.append(
+        {
+            "code": "R3.UMPLE.NO_OFFICIAL_STRUCTURED_CANONICAL",
+            "severity": "blocking",
+            "syntax_status": syntax_status,
+            "structured_export_status": structured_status,
+            "message": reason,
+        }
+    )
+    result.losses.append(
+        Loss(
+            loss_id=f"{example_id}:umple:no_official_structured_canonical",
+            example_id=example_id,
+            source_ref=path.name,
+            canonical_ref=None,
+            loss_type="tooling",
+            severity="blocking",
+            rationale=reason,
+            needs_manual_review=True,
         )
-    if not result.states or not result.transitions:
-        result.status = "blocked"
-        result.blocking_reason = "Umple adapter could not extract states or transitions."
-        result.losses.append(
-            Loss(
-                loss_id=f"{example_id}:umple:blocking",
-                example_id=example_id,
-                source_ref=path.name,
-                canonical_ref=None,
-                loss_type="structure",
-                severity="blocking",
-                rationale=result.blocking_reason,
-                needs_manual_review=True,
-            )
-        )
+    )
     return result
