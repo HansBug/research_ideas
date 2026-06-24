@@ -33,6 +33,17 @@ def _load_meta(example_dir: Path) -> dict[str, Any]:
     return json.loads((example_dir / "source_meta.json").read_text(encoding="utf-8"))
 
 
+def _load_source_pair_record(example_dir: Path, meta: dict[str, Any]) -> dict[str, Any]:
+    source_pairs = (example_dir / meta["source_pairs_jsonl"]).resolve()
+    for line in source_pairs.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if record.get("pair_id") == meta["pair_id"]:
+            return record
+    raise ValueError(f"{example_dir.name}: pair_id {meta['pair_id']} not found in {source_pairs}")
+
+
 def _rel(path: Path, repo_root: Path) -> str:
     try:
         return str(path.resolve().relative_to(repo_root.resolve()))
@@ -48,17 +59,33 @@ def audit_inputs(repo_root: Path, selected_dir: Path) -> list[dict[str, Any]]:
         stm_path = _find_stm(example_dir)
         nl_hash = sha256_file(nl_path)
         stm_hash = sha256_file(stm_path)
+        pair_record = _load_source_pair_record(example_dir, meta)
+        source_pair_nl_sha256 = pair_record.get("nl_sha256")
+        source_pair_stm0_sha256 = pair_record.get("stm0_sha256")
+        meta_source_nl_sha256 = meta.get("source_nl_sha256", meta.get("nl_sha256"))
+        meta_source_stm0_sha256 = meta.get("source_stm0_sha256", meta.get("stm0_sha256"))
+        source_stm0_hash_match = stm_hash == source_pair_stm0_sha256
+        normalization_documented = bool(meta.get("hash_scope")) and meta_source_stm0_sha256 == source_pair_stm0_sha256
         row = {
             "example_id": example_dir.name,
             "nl_path": _rel(nl_path, repo_root),
             "stm0_path": _rel(stm_path, repo_root),
             "stm_format": meta["stm_format"],
+            "pair_id": meta["pair_id"],
             "nl_sha256": nl_hash,
             "stm0_sha256": stm_hash,
             "expected_nl_sha256": meta["nl_sha256"],
             "expected_stm0_sha256": meta["stm0_sha256"],
+            "source_pair_nl_sha256": source_pair_nl_sha256,
+            "source_pair_stm0_sha256": source_pair_stm0_sha256,
+            "meta_source_nl_sha256": meta_source_nl_sha256,
+            "meta_source_stm0_sha256": meta_source_stm0_sha256,
             "nl_hash_match": nl_hash == meta["nl_sha256"],
             "stm0_hash_match": stm_hash == meta["stm0_sha256"],
+            "source_nl_hash_match": nl_hash == source_pair_nl_sha256,
+            "source_stm0_hash_match": source_stm0_hash_match,
+            "source_hash_divergence_documented": source_stm0_hash_match or normalization_documented,
+            "hash_scope": meta.get("hash_scope"),
             "source_pairs_jsonl": _rel((example_dir / meta["source_pairs_jsonl"]).resolve(), repo_root),
         }
         row["source_pairs_exists"] = (repo_root / row["source_pairs_jsonl"]).exists()
@@ -95,7 +122,7 @@ def _tool_info(adapter: str, meta: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: str, conversion_command: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: str, conversion_command: str, created_at: str | None) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     meta = _load_meta(example_dir)
     stm_path = _find_stm(example_dir)
     fmt = meta["stm_format"]
@@ -129,6 +156,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
         repo_root=repo_root,
         run_id=run_id,
         conversion_command=conversion_command,
+        created_at=created_at,
         tool_info=_tool_info(result.adapter, meta),
     )
     return report, loss_rows
@@ -175,7 +203,14 @@ def convert_selected(args: argparse.Namespace) -> int:
     reports_dir = repo_root / args.reports_dir
     reports_dir.mkdir(parents=True, exist_ok=True)
     audit = audit_inputs(repo_root, selected_dir)
-    if not all(row["nl_hash_match"] and row["stm0_hash_match"] and row["source_pairs_exists"] for row in audit):
+    if not all(
+        row["nl_hash_match"]
+        and row["stm0_hash_match"]
+        and row["source_pairs_exists"]
+        and row["source_nl_hash_match"]
+        and row["source_hash_divergence_documented"]
+        for row in audit
+    ):
         raise SystemExit("selected_seed_examples input audit failed; inspect selected_seed_examples_input_audit.json")
     write_json(reports_dir / "selected_seed_examples_input_audit.json", {"items": audit})
 
@@ -184,7 +219,7 @@ def convert_selected(args: argparse.Namespace) -> int:
     reports: list[dict[str, Any]] = []
     loss_rows: list[dict[str, Any]] = []
     for example_dir in sorted(p for p in selected_dir.iterdir() if p.is_dir()):
-        report, losses = convert_one(repo_root, example_dir, reports_dir, run_id, conversion_command)
+        report, losses = convert_one(repo_root, example_dir, reports_dir, run_id, conversion_command, args.created_at)
         reports.append(report)
         loss_rows.extend(losses)
     loss_sha = _write_loss_ledger(reports_dir / "selected_seed_examples_loss_ledger.jsonl", loss_rows)
@@ -193,7 +228,7 @@ def convert_selected(args: argparse.Namespace) -> int:
         "run_id": run_id,
         "items": reports,
         "loss_ledger_sha256": loss_sha,
-        "note": "R3 smoke fixture only; not main experiment evidence. Item report_sha256 is the SHA-256 of the report document before embedding that hash into item rows, avoiding a misleading self-referential hash.",
+        "note": "R3 smoke fixture only; not main experiment evidence. repo_commit records the clean converter-code commit used before writing committed report artifacts; item report_sha256 is the SHA-256 of the report document before embedding that hash into item rows, avoiding a misleading self-referential hash.",
     }
     pre_embed_report_sha = write_json(reports_dir / "selected_seed_examples_conversion_report.json", report_doc)
     for item in report_doc["items"]:
@@ -211,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     conv.add_argument("--selected-dir", default=str(REPO_REL_BASE), help="selected_seed_examples directory relative to repo root")
     conv.add_argument("--reports-dir", default=str(CONVERSION_REL_BASE / "reports"), help="conversion reports directory relative to repo root")
     conv.add_argument("--run-id", default="r3-selected-seed-examples-v0", help="stable run id for committed smoke fixture")
+    conv.add_argument("--created-at", default=None, help="optional ISO timestamp for deterministic committed fixtures")
     conv.set_defaults(func=convert_selected)
     args = parser.parse_args(argv)
     return args.func(args)

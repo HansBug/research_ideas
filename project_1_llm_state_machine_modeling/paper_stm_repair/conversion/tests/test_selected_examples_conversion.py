@@ -81,3 +81,38 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
         text = path.read_text(encoding="utf-8")
         assert "/home/" not in text
 
+
+
+def test_plantuml_label_split_handles_guard_action_combo():
+    from paper_stm_repair_conversion.adapters.plantuml import _split_label
+
+    assert _split_label("evt [g] / doIt()") == ("evt", "g", "doIt()")
+    assert _split_label("[g] / doIt()") == (None, "g", "doIt()")
+
+
+def test_committed_outputs_link_state_body_and_timing_losses():
+    plant = json.loads((REPORTS / "canonical" / "llms-emp-gpt4o-hldcs.canonical_stm.json").read_text(encoding="utf-8"))
+    assert any(d["code"] == "R3.PUML.STATE_BODY_PRESERVED" for d in plant["diagnostics"])
+    assert any(s["attributes"].get("plantuml_state_body_lines") for s in plant["model"]["states"])
+
+    umple = json.loads((REPORTS / "canonical" / "sefm-ssc7-umple.canonical_stm.json").read_text(encoding="utf-8"))
+    timing = [t for t in umple["model"]["transitions"] if t.get("event") == "after(60)"]
+    assert timing and timing[0]["attributes"]["timing_loss_ref"] == "sefm-ssc7-umple:umple:timing_after"
+    assert any(d["code"] == "R3.UMPLE.TIMING_TRANSITION_PARTIAL" for d in umple["diagnostics"])
+
+
+def test_input_audit_records_source_pair_hashes_and_documented_divergence():
+    audit = json.loads((REPORTS / "selected_seed_examples_input_audit.json").read_text(encoding="utf-8"))
+    by_id = {row["example_id"]: row for row in audit["items"]}
+    assert all(row["source_nl_hash_match"] for row in audit["items"])
+    assert all(row["source_hash_divergence_documented"] for row in audit["items"])
+    assert by_id["sefm-ssc7-umple"]["source_stm0_hash_match"] is False
+    assert "whitespace normalization" in by_id["sefm-ssc7-umple"]["hash_scope"]
+
+
+def test_ttool_partial_inventory_has_zero_resolved_counts():
+    report = json.loads((REPORTS / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
+    ttool = next(item for item in report["items"] if item["example_id"] == "ttool-automatedbraking-xml")
+    assert ttool["states_count"] > 0
+    assert ttool["resolved_states_count"] == 0
+    assert ttool["resolved_transitions_count"] == 0

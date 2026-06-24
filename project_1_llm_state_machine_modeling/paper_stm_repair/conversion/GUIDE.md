@@ -24,6 +24,7 @@
 - canonical schema 中 `timing_level` 只能取：`none / qualitative / clock / timed_constraints / unknown`。
 - canonical schema 中 `hierarchy_level` 只能取：`flat / hierarchical / concurrent / unknown`。
 - conversion report 必须记录 run-level 字段：`run_id`、`created_at`、`conversion_command`、`repo_commit`、`schema_version`、`adapter_version`、`tool_*`、`source_locator`、`raw_locator`、`source_meta_path`、`loss_ledger_path`、`manual_edit_allowed=false`、`eligibility`。
+- `states_count` / `transitions_count` 是 adapter inventory 规模；TTool XML 等 partial inventory 不得被 R4/R5 直接当作已解析 STM 规模使用。下游若需要只统计可语义消费的元素，应读 `resolved_states_count` / `resolved_transitions_count`。
 - `blocked` / `unsupported` 不得伪造空 canonical 输出；`canonical_output_path` 和 `canonical_output_sha256` 应为 `null`。
 
 ## 4. adapter v0 纪律

@@ -134,6 +134,8 @@ def convert_ttool_xml(path: Path, *, example_id: str, seed_id: str, source_forma
 
     result.metadata["extracted_state_component_count"] = state_count
     result.metadata["extracted_transition_connector_count"] = transition_count
+    result.metadata["resolved_states_count"] = 0
+    result.metadata["resolved_transitions_count"] = 0
     result.blocking_reason = (
         "TTool XML adapter performs XML/SMD inventory only: it extracts AVATAR SMD panels, state/start components "
         "and transition connector records, but does not yet resolve graphical connecting points to exact source/target states "

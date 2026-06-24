@@ -29,18 +29,18 @@ def _split_label(label: str | None) -> tuple[str | None, str | None, str | None]
     if not label:
         return None, None, None
     raw = label.strip()
-    guard = None
+    event_part = raw
     action = None
-    event = raw
-    if "[" in raw and "]" in raw:
-        before, rest = raw.split("[", 1)
-        guard, after = rest.split("]", 1)
+    if "/" in event_part:
+        event_part, action_part = event_part.split("/", 1)
+        action = action_part.strip() or None
+    guard = None
+    event = event_part.strip() or None
+    if event_part and "[" in event_part and "]" in event_part:
+        before, rest = event_part.split("[", 1)
+        guard_text, after = rest.split("]", 1)
+        guard = guard_text.strip() or None
         event = (before + after).strip() or None
-        guard = guard.strip() or None
-    if "/" in raw:
-        before, after = raw.split("/", 1)
-        event = before.strip() or event
-        action = after.strip() or None
     return event, guard, action
 
 
@@ -141,7 +141,17 @@ def convert_plantuml(path: Path, *, example_id: str, seed_id: str, source_format
             continue
         m_state_body = _STATE_BODY_RE.match(line)
         if m_state_body:
-            ensure_state(m_state_body.group("name"), parent=stack[-1] if stack else None, raw_ref=f"{path.name}:{lineno}")
+            state_id = ensure_state(m_state_body.group("name"), parent=stack[-1] if stack else None, raw_ref=f"{path.name}:{lineno}")
+            body = (m_state_body.group("body") or "").strip()
+            if body:
+                state_map[state_id].attributes.setdefault("plantuml_state_body_lines", []).append({"body": body, "raw_ref": f"{path.name}:{lineno}"})
+                result.diagnostics.append({
+                    "code": "R3.PUML.STATE_BODY_PRESERVED",
+                    "severity": "info",
+                    "raw_ref": f"{path.name}:{lineno}",
+                    "state_id": state_id,
+                    "message": "PlantUML state body line preserved as state attribute; it is not interpreted as executable behavior in R3.",
+                })
             continue
         result.diagnostics.append({"code": "R3.PUML.IGNORED_LINE", "severity": "info", "raw_ref": f"{path.name}:{lineno}", "message": line})
 

@@ -31,9 +31,7 @@ def write_json(path: Path, data: dict[str, Any]) -> str:
 
 def repo_commit(repo_root: Path) -> str:
     try:
-        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True).strip()
-        dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True).strip()
-        return f"{commit}+dirty" if dirty else commit
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True).strip()
     except Exception:
         return "unknown"
 
@@ -59,6 +57,7 @@ def make_example_report(
     repo_root: Path,
     run_id: str,
     conversion_command: str,
+    created_at: str | None,
     tool_info: dict[str, Any],
 ) -> dict[str, Any]:
     status_reason_code = f"R3.STATUS.{result.status}"
@@ -72,6 +71,8 @@ def make_example_report(
         "states_count": len(result.states),
         "transitions_count": len(result.transitions),
         "variables_count": len(result.variables),
+        "resolved_states_count": int(result.metadata.get("resolved_states_count", len(result.states))),
+        "resolved_transitions_count": int(result.metadata.get("resolved_transitions_count", len(result.transitions))),
         "timing_level": result.timing_level,
         "hierarchy_level": result.hierarchy_level,
         "losses_count": len(result.losses),
@@ -81,7 +82,7 @@ def make_example_report(
         "canonical_output_path": _rel(canonical_output_path, repo_root),
         "report_version": "r3.conversion_report.v0",
         "run_id": run_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": created_at or datetime.now(timezone.utc).isoformat(),
         "conversion_command": conversion_command,
         "repo_commit": repo_commit(repo_root),
         "input_version": sha256_file(source_meta_path),

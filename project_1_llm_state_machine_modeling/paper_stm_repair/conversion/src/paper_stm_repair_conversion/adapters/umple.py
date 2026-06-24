@@ -81,9 +81,22 @@ def convert_umple(path: Path, *, example_id: str, seed_id: str, source_format: s
             event = (m_transition.group("event") or "").strip() or None
             action = (m_transition.group("action") or m_transition.group("action2") or "").strip() or None
             guard = (m_transition.group("guard") or "").strip() or None
+            timing_loss_ref = None
             if event and event.startswith("after("):
                 timing_seen = True
+                timing_loss_ref = f"{example_id}:umple:timing_after"
             transition_count += 1
+            attributes = {"raw": original}
+            if timing_loss_ref:
+                attributes["timing_loss_ref"] = timing_loss_ref
+                result.diagnostics.append({
+                    "code": "R3.UMPLE.TIMING_TRANSITION_PARTIAL",
+                    "severity": "medium",
+                    "raw_ref": f"{path.name}:{lineno}",
+                    "transition_id": f"tr_{transition_count:04d}",
+                    "loss_ref": timing_loss_ref,
+                    "message": "after(...) timing transition is preserved as an event string but not interpreted as timed automata semantics in R3.",
+                })
             result.transitions.append(
                 Transition(
                     id=f"tr_{transition_count:04d}",
@@ -94,7 +107,7 @@ def convert_umple(path: Path, *, example_id: str, seed_id: str, source_format: s
                     action=action,
                     label=line.rstrip(";"),
                     raw_ref=f"{path.name}:{lineno}",
-                    attributes={"raw": original},
+                    attributes=attributes,
                 )
             )
             continue
