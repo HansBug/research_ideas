@@ -4,7 +4,7 @@
 
 本 SUMMARY 是种子文库的研究结论与统计摘要入口；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 和单条目 `seed_resource_registry.json` 为准。
 
-核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；[selected_seed_examples/README.md](./selected_seed_examples/README.md) 已将当前四个代表性种子样例整理为迷你文库，但四例不是最终实验规模上限。
+核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；[selected_seed_examples/README.md](../../selected_seed_examples/README.md) 已将当前四个 smoke 用代表性种子样例整理到 `paper_stm_repair/` 根路径，但四例不是最终实验集合或主结果样本上限。
 
 ### 1.1 三类文库关系
 
@@ -27,7 +27,7 @@
 | ⚪ `paper_reconstructable` | 10 | 多数传统 use-case/statechart 工作只有论文示例 / 附录 | 不计现成 seed；可做 related / 手工构造线索 |
 | 🔴 `related_only` | 0 | 当前主表无 related-only 登记条目；排除/哨兵留在未登记处置或相关文献区 | 不进 final pool |
 
-硬性结论：[selected_seed_examples/README.md](./selected_seed_examples/README.md) 已保存四个代表性种子样例；四例只是后续开发验证，不是最终实验规模上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
+硬性结论：上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md) 已保存四个 smoke 用代表性种子样例；四例只是后续工具链最小连通性自检输入，不是最终实验集合或主结果样本上限。旧 parquet / 缓存 / PR comment 只能作审计线索，不能替代一手 `assets/raw/`。🟢 表示可回溯复验，不表示无 synthetic、非控制系统、样本少或泄漏隔离等学术 caveat。
 
 ### 1.6.1 NL 数量与数据质量摘要
 
@@ -41,7 +41,7 @@
 
 ## 1.7 代表性种子样例摘要
 
-代表性样例目录见 [selected_seed_examples/README.md](./selected_seed_examples/README.md)。本 SUMMARY 只保留结论摘要：
+smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md)。本 SUMMARY 只保留结论摘要：
 
 | 分组 | 条目 | 裁决 | 关键 caveat |
 |---|---|---|---|
@@ -49,7 +49,7 @@
 | conditional seed pool | `ttool-ai-smd-subset` | 条件进入代表性样例集合 | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
 | pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
 
-固定代表性样例集合：[llms-emp-gpt4o-hldcs](./selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](./selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](./selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](./selected_seed_examples/ttool-automatedbraking-xml/)。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
+固定 smoke 用代表性样例集合：[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](../../selected_seed_examples/ttool-automatedbraking-xml/)。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
 
 ## 2. 关键统计表
 
@@ -61,7 +61,7 @@
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
 | 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
 | 一手 registry 状态 | 3 / 1 / 2 / 10 / 0 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=3；🟡 conditional_final_pool=1；🟠 pipeline_only=2；⚪ paper_reconstructable=10；🔴 related_only=0。 |
-| 代表性样例集合 | 4 | [selected_seed_examples/README.md](./selected_seed_examples/README.md) | 3 个 final-pool-ready + 1 个 conditional XML；仅作后续开发验证，不是最终实验规模。 |
+| smoke 用代表性样例集合 | 4 | [selected_seed_examples/README.md](../../selected_seed_examples/README.md) | 3 个 final-pool-ready + 1 个 conditional XML；仅作后续工具链最小连通性自检，不是最终实验集合。 |
 | 人工下载队列状态 | 11 / 2 / 2 / 1 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径

@@ -14,7 +14,7 @@
 2. 再读 [GUIDE.md](./GUIDE.md) 理解收录、分级、更新和验收规则。
 3. 重点读 [SUMMARY.md](./SUMMARY.md)：这是研究结论与统计摘要入口。
 4. 需要逐条资源明细时读 [REGISTRY.md](./REGISTRY.md)：它是一手 `NL + generated STM_0` 资源明细主表，包含每个 seed 的一手入口、NL 数量、pair 统计、caveat、assets 链接和使用建议。
-5. 需要查看代表性种子样例时读 [selected_seed_examples/README.md](./selected_seed_examples/README.md)。
+5. 需要查看 smoke 用代表性静态样例时读上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md)；它不属于本 seed registry 文库内部事实总账。
 6. 进入单条目目录时，默认读取 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> seed_desc.md -> artifacts.md`；artifact-only 条目按 `seed_desc.md -> artifacts.md -> 原始 metadata / package` 顺序。
 7. 需要早期 ledger / raw search 时，进入 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 只作审计，不是当前事实真源。
 
@@ -57,17 +57,17 @@
 - [GUIDE.md](./GUIDE.md) §3.5 规定 `assets/` 一手来源纪律、trace validator 与 `storage_mode` 分级。
 - 每个重点条目的 `assets/README.md` 必须中文说明 raw / extracted 映射、Python 加载方法和审计不变量。
 
-## 1.8 代表性种子样例入口
+## 1.8 smoke 用代表性样例入口
 
-[selected_seed_examples/](./selected_seed_examples/) 是当前固定维护的代表性种子样例迷你文库。它把少量已核验的一手 `<NL, STM_0>` pair 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件，并为每个样例补充中文说明、NL 中文完整翻译、原始论文目录链接、生成关系和 caveat。当前样例不是最终实验规模上限，只是后续转换器、诊断器、修正循环和评价协议的最小开发验证入口。
+上级 [selected_seed_examples/](../../selected_seed_examples/) 是当前固定维护的 smoke 用代表性种子样例迷你文库。它故意放在 `paper_stm_repair/` 根路径下，而不是放在本 `seed_library/` 内：本目录继续作为上游 seed 方法 / 来源事实总账，`selected_seed_examples/` 只把少量已核验的一手 `<NL, STM_0>` pair 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件，服务后续转换器、诊断器、修正循环和评价协议的最小连通性自检。当前样例不是最终实验集合，也不是主结果样本规模上限。
 
 | 分组 | 条目 | 作用 |
 |---|---|---|
-| final seed pool | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` | 当前可用的一手 `NL + NL-generated STM_0` 来源。 |
-| conditional seed pool | `ttool-ai-smd-subset` | TTool XML / SMD/T0 切片压力源；不计现成 final pool。 |
-| pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 后续可复跑构造 seed，但复跑前不计 author first-source pair。 |
+| 现成一手种子来源 | `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` | 当前可用的一手 `NL + NL-generated STM_0` 来源。 |
+| 条件 XML 样例 | `ttool-ai-smd-subset` | TTool XML / SMD/T0 切片压力源；不计现成 final pool。 |
+| 仅复跑线索补充 | `fsm-bench-20`、`designing-fsm-gpt4` | 后续可复跑构造 seed，但复跑前不计 author first-source pair。 |
 
-当前代表性样例为 [llms-emp-gpt4o-hldcs](./selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](./selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](./selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](./selected_seed_examples/ttool-automatedbraking-xml/)。
+当前 smoke 用代表性样例为 [llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](../../selected_seed_examples/ttool-automatedbraking-xml/)。
 
 ## 2. 收录范围
 
@@ -103,7 +103,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-24 00:30:00 | 新增 [selected_seed_examples/README.md](./selected_seed_examples/README.md) 入口，把四个代表性种子样例整理为迷你文库。 |
+| 2026-06-24 00:30:00 | 新增上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md) 入口，把四个 smoke 用代表性种子样例整理为根路径迷你文库。 |
 | 2026-06-23 21:20:00 | 一手 registry：核心表与 REGISTRY 增加 `复跑` 可见列，明确 `designing-fsm-gpt4` 只完成初始生成连通性检查、`fsm-bench-20` 完成单系统连通性检查，二者仍是 pipeline-only / NL+源码可复跑而非作者一手 pair。 |
 | 2026-06-23 19:45:00 | 一手 registry：核心表新增资源类别、源码与论文 LLM 可用性口径，`designing-fsm-gpt4` 调整为 NL+源码可复跑 / pipeline-only，`fsm-bench-20` 增加 OpenAI-compatible proxy 连通性记录，`ttool-ai-smd-subset` 以条件一手 `NL+TTool XML` 纳入 registry。 |
 | 2026-06-22 21:30:00 | 一手 registry：补强 REGISTRY/JSON 机器字段，所有登记条目都记录 NL raw/unique/NL-only、数据构造说明与质量抽检状态；SEFM / unified / llms-emp / fsm-bench 的一手资源真实状况和 NL 计数已再次核对。 |

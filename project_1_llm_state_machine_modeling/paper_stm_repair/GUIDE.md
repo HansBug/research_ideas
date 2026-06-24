@@ -12,8 +12,9 @@
 2. **表示边界**：语义增强、可机检、可执行的状态机表示是 feedback 的必要载体；`fcstm` / `pyfcstm` / DSL 不进入标题、摘要或贡献位。
 3. **文库边界**：`seed library`、`repair baselines`、`NL datasets` 是三类不同资产，不得混名、混表或共用同一统计口径。
 4. **事实保全边界**：R1--R1.7 已核验事实不得静默删除、覆盖或改写；迁移必须保留旧路径、旧 ID、新路径 / 新章节、迁移理由和影响范围。
-5. **四例运行边界**：R1.8-A/B/C/D/E 均为文档和文库结构 PR，不跑四例真实运行，不调用真实 LLM，不读取 `.env`。
-6. **流程信息边界**：PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报与 merge 进度只维护在 GitHub body / comment；本路径只保留长期结构纪律、事实总账和论文材料，不新增 `progress.md`、`task-packets/` 或跨 PR `agent_provenance.md` 作为动态流程真源。
+5. **smoke 样例边界**：[selected_seed_examples/](./selected_seed_examples/) 只保存后续转换器 / 诊断器 / 修正循环做最小连通性自检的静态输入样例；它不是最终实验集合、不是主结果样本上限，也不是 seed registry 的一手事实主表。
+6. **四例运行边界**：R1.8-A/B/C/D/E 均为文档和文库结构 PR，不跑四例真实运行，不调用真实 LLM，不读取 `.env`；后续若用 [selected_seed_examples/](./selected_seed_examples/) 真正执行 smoke，应另建 run record。
+7. **流程信息边界**：PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报与 merge 进度只维护在 GitHub body / comment；本路径只保留长期结构纪律、事实总账和论文材料，不新增 `progress.md`、`task-packets/` 或跨 PR `agent_provenance.md` 作为动态流程真源。
 
 ## 2. 阅读顺序
 
@@ -22,11 +23,12 @@
 3. 再读 [corpora/README.md](./corpora/README.md)：确认三类文库入口与 project-level 文库边界。
 4. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
 5. 需要理解 seed 当前事实时，优先读 [corpora/seed_library/README.md](./corpora/seed_library/README.md)、[corpora/seed_library/GUIDE.md](./corpora/seed_library/GUIDE.md)、[corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)；后续 R2 seed 冻结以该 SUMMARY 为当前入口。
-6. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
-7. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
-8. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
-9. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
-10. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态。
+6. 需要查看 smoke 用静态样例时，读 [selected_seed_examples/README.md](./selected_seed_examples/README.md)；该目录只保存少量可读 `<NL, STM_0>` 输入和来源元数据，不能替代 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)，也不能被写成最终实验集合。
+7. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
+8. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
+9. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
+10. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
+11. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态.
 
 ## 3. 三类文库分工
 
@@ -66,7 +68,7 @@
 
 ## 4. `corpora/` 根目录纪律
 
-1. `corpora/` 是三类文库的论文级入口，不做事实总账，不维护跨条目统计。
+1. `corpora/` 是三类文库的论文级入口，不做事实总账，不维护跨条目统计；smoke 用静态样例放在同级根路径 [selected_seed_examples/](./selected_seed_examples/)，不得放入 `seed_library/` 根层造成 registry 文库职责混淆。
 2. `corpora/seed_library/`、`corpora/repair_baselines/`、`corpora/nl_datasets/` 的根层横向 Markdown 文件只允许：`README.md`、`GUIDE.md`、`SUMMARY.md`。
 3. 单论文、单 baseline、单 dataset 子目录可以存在，但只能承载该条目的原文、全文、BibTeX、单篇分析、artifact / dataset card，不得承载跨条目总账。单篇 seed / baseline 默认“五件套”指 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、对应 `seed_desc.md` / `baseline_desc.md`、`artifacts.md`；dataset 条目可用 `dataset_card.md`、`source_refs.md` 与可追溯样本目录替代。
 4. 候选矩阵、排除记录、manual queue、crosswalk、统计结论、风险、handoff、更新日志等跨条目信息，必须进入对应 `SUMMARY.md`，不得拆成根层 `candidate_matrix.md`、`screening_ledger.md`、`dataset_queue.md` 等第二事实源。
@@ -176,6 +178,7 @@ R1.8-E 的长期验收不是新增文献或冻结四例，而是确保后续 R2 
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-24 10:25:00 | 增加 [selected_seed_examples/](./selected_seed_examples/) 根路径纪律：该目录只服务 smoke / 连通性自检，不是 seed registry 事实源或最终实验集合。 |
 | 2026-06-16 23:08:00 | PR-R1.8-E 收敛总账一致性门：R2 当前入口统一为 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)，旧 `seed_corpus/` / `evidence/` / `archive/` 降级为 redirect 或历史审计入口，并将 seed 哨兵统一为 `36 dirs`。 |
 | 2026-06-14 17:55:00 | PR-R1.8-B 更新 seed 当前入口为 [corpora/seed_library/](./corpora/seed_library/)，旧 `seed_corpus/` 降级为 redirect，旧 ledger / raw search 迁入 archive。 |
 | 2026-06-14 13:34:18 | PR-R1.8-A 新增 paper1 路径级 GUIDE，冻结三类文库、SUMMARY-first、fact-union 哨兵与 project-level 边界。 |

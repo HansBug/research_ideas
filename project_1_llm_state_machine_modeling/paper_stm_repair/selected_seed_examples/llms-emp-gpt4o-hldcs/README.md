@@ -2,13 +2,13 @@
 
 ## 1. 来源
 
-- 原始条目：[llms-emp-stm-subset](../../llms-emp-stm-subset/)
-- 论文 PDF：[paper.pdf](../../llms-emp-stm-subset/paper.pdf)
-- 论文全文提取：[paper_content.txt](../../llms-emp-stm-subset/paper_content.txt)
-- BibTeX：[bibtex.bib](../../llms-emp-stm-subset/bibtex.bib)
-- 单篇说明：[seed_desc.md](../../llms-emp-stm-subset/seed_desc.md)
-- 一手资产说明：[assets/README.md](../../llms-emp-stm-subset/assets/README.md)
-- 资源 registry：[seed_resource_registry.json](../../llms-emp-stm-subset/seed_resource_registry.json)
+- 原始条目：[llms-emp-stm-subset](../../corpora/seed_library/llms-emp-stm-subset/)
+- 论文 PDF：[paper.pdf](../../corpora/seed_library/llms-emp-stm-subset/paper.pdf)
+- 论文全文提取：[paper_content.txt](../../corpora/seed_library/llms-emp-stm-subset/paper_content.txt)
+- BibTeX：[bibtex.bib](../../corpora/seed_library/llms-emp-stm-subset/bibtex.bib)
+- 单篇说明：[seed_desc.md](../../corpora/seed_library/llms-emp-stm-subset/seed_desc.md)
+- 一手资产说明：[assets/README.md](../../corpora/seed_library/llms-emp-stm-subset/assets/README.md)
+- 资源 registry：[seed_resource_registry.json](../../corpora/seed_library/llms-emp-stm-subset/seed_resource_registry.json)
 - 原始 pair：`llms_emp_stm_results_0000`
 
 ## 2. 文件

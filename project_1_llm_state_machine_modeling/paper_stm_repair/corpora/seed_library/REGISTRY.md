@@ -40,7 +40,7 @@
 
 ## 3. 当前结论
 
-代表性种子样例见 [selected_seed_examples/README.md](./selected_seed_examples/README.md)。本 REGISTRY 继续作为逐条一手资源事实源，代表性样例目录只引用本表和单条目 JSON，不复制全量资源事实。
+smoke 用代表性种子样例见上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md)。本 REGISTRY 继续作为逐条一手资源事实源，代表性样例目录只引用本表和单条目 JSON，不复制全量资源事实，也不代表最终实验集合。
 
 - `llms-emp-stm-subset`、`sefm-llm-state-machine`、`unified-uml-multimodal-validation` 均已有 committed 一手 raw、typed locator、文本 / hash 回溯和 validator 复算，因此本轮按 `final_pool_ready` 处理；后续论文中规范引用原工作即可，不再把许可 / 再分发写作升绿 blocker。
 - `llms-emp-stm-subset` 已用 `gdown` 下载论文 Google Drive 一手 workbook，并从 `Experiment Results.xlsx` / `STM Results` 全量抽取 60 条 `Requirement Description + Generation PlantUML` 生成配对；它实际是 **10 个唯一 NL × 6 个 LLM 输出** 的 1×N 形态，使用时必须只读 `Generation PlantUML`，不得混入 reference `PlantUML` 或 checking 后结果。

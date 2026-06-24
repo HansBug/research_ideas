@@ -2,13 +2,13 @@
 
 ## 1. 来源
 
-- 原始条目：[sefm-llm-state-machine](../../sefm-llm-state-machine/)
-- 论文 PDF：[paper.pdf](../../sefm-llm-state-machine/paper.pdf)
-- 论文全文提取：[paper_content.txt](../../sefm-llm-state-machine/paper_content.txt)
-- BibTeX：[bibtex.bib](../../sefm-llm-state-machine/bibtex.bib)
-- 单篇说明：[seed_desc.md](../../sefm-llm-state-machine/seed_desc.md)
-- 一手资产说明：[assets/README.md](../../sefm-llm-state-machine/assets/README.md)
-- 资源 registry：[seed_resource_registry.json](../../sefm-llm-state-machine/seed_resource_registry.json)
+- 原始条目：[sefm-llm-state-machine](../../corpora/seed_library/sefm-llm-state-machine/)
+- 论文 PDF：[paper.pdf](../../corpora/seed_library/sefm-llm-state-machine/paper.pdf)
+- 论文全文提取：[paper_content.txt](../../corpora/seed_library/sefm-llm-state-machine/paper_content.txt)
+- BibTeX：[bibtex.bib](../../corpora/seed_library/sefm-llm-state-machine/bibtex.bib)
+- 单篇说明：[seed_desc.md](../../corpora/seed_library/sefm-llm-state-machine/seed_desc.md)
+- 一手资产说明：[assets/README.md](../../corpora/seed_library/sefm-llm-state-machine/assets/README.md)
+- 资源 registry：[seed_resource_registry.json](../../corpora/seed_library/sefm-llm-state-machine/seed_resource_registry.json)
 - 原始 pair：`sefm_ssc7_single_prompt_claude_sonnet35_0001`
 
 ## 2. 文件

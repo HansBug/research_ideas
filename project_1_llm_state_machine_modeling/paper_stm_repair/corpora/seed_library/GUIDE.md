@@ -153,7 +153,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 ### 3.7 代表性种子样例维护纪律
 
-[selected_seed_examples/README.md](./selected_seed_examples/README.md) 是少量代表性 `<NL, STM_0>` 样例的迷你文库入口；它不得复制 [REGISTRY.md](./REGISTRY.md) 全量事实表，也不得记录 PR 流程状态。维护规则：
+上级 [selected_seed_examples/README.md](../../selected_seed_examples/README.md) 是少量 smoke 用代表性 `<NL, STM_0>` 静态样例的迷你文库入口；它故意不放在本 `seed_library/` 内，以免被误读为 registry 事实主表。本 `seed_library` 继续维护一手资源、分级、数量与 caveat，`selected_seed_examples/` 只服务最小连通性自检，不得复制 [REGISTRY.md](./REGISTRY.md) 全量事实表，也不得记录 PR 流程状态。维护规则：
 
 1. 代表性样例只能来自已在 [REGISTRY.md](./REGISTRY.md) 登记、且可由 validator 回溯的一手 `NL + generated STM_0`；条件样例必须显式写出切片、降级和不计现成 final pool 的原因。
 2. 每个子目录必须包含 `README.md`、`nl.txt`、一个 `stm0.*` 源文件和 `source_meta.json`；`stm0.*` 后缀应反映原始方言，如 `.puml`、`.ump` 或 `.xml`。
