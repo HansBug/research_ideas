@@ -3,6 +3,9 @@
 ## 1. 来源
 
 - 原始条目：[unified-uml-multimodal-validation](../../unified-uml-multimodal-validation/)
+- 论文 PDF：[paper.pdf](../../unified-uml-multimodal-validation/paper.pdf)
+- 论文全文提取：[paper_content.txt](../../unified-uml-multimodal-validation/paper_content.txt)
+- BibTeX：[bibtex.bib](../../unified-uml-multimodal-validation/bibtex.bib)
 - 单篇说明：[seed_desc.md](../../unified-uml-multimodal-validation/seed_desc.md)
 - 一手资产说明：[assets/README.md](../../unified-uml-multimodal-validation/assets/README.md)
 - 资源 registry：[seed_resource_registry.json](../../unified-uml-multimodal-validation/seed_resource_registry.json)

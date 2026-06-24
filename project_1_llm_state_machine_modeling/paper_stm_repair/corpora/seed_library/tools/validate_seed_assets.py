@@ -71,7 +71,7 @@ REDISTRIBUTION_STATUS_ENUM = {
     "not_applicable",
     "cite_original_work",
 }
-R2_SMOKE_ENUM = {
+SEED_USE_RECOMMENDATION_ENUM = {
     "prefer",
     "usable_with_caveat",
     "rerun_required",
@@ -140,16 +140,16 @@ LLM_AVAILABILITY_LABEL = {
 CODE_REPRODUCIBILITY_ENUM = {
     "not_applicable",
     "not_attempted",
-    "initial_generation_smoke_ok_via_openai_compatible_proxy",
-    "single_system_smoke_ok_via_ollama_compatible_proxy",
+    "initial_generation_connectivity_ok_via_openai_compatible_proxy",
+    "single_system_connectivity_ok_via_ollama_compatible_proxy",
     "blocked",
     "failed",
 }
 CODE_REPRODUCIBILITY_LABEL = {
     "not_applicable": "⚪不适用",
     "not_attempted": "⚪未尝试",
-    "initial_generation_smoke_ok_via_openai_compatible_proxy": "🟢初始连通",
-    "single_system_smoke_ok_via_ollama_compatible_proxy": "🟢单系统连通",
+    "initial_generation_connectivity_ok_via_openai_compatible_proxy": "🟢初始连通",
+    "single_system_connectivity_ok_via_ollama_compatible_proxy": "🟢单系统连通",
     "blocked": "❓受阻",
     "failed": "🔴失败",
 }
@@ -227,7 +227,7 @@ def _pair_set_nl_count_label(reg: dict[str, Any]) -> str:
 
     if not reg.get("pair_sets"):
         return "0 / 未知"
-    # Current R2 registries have one pair set per seed.  If future entries carry
+    # Current seed registries have one pair set per seed.  If future entries carry
     # multiple sets, use source_inventory when present; otherwise sum best-known
     # raw/unique fields conservatively.
     inv = reg.get("source_inventory", {})
@@ -354,7 +354,7 @@ def validate_registry_markdown_row(seed_id: str, reg: dict[str, Any], seed_dir: 
 
     The JSON + raw assets remain the machine source of truth.  This check exists
     because REGISTRY.md is the human-facing decision table; stale counts or links
-    would mislead R2 sample selection even if raw trace validation still passes.
+    would mislead representative sample selection even if raw trace validation still passes.
     """
 
     registry_md = BASE / "REGISTRY.md"
@@ -725,7 +725,7 @@ def validate_registry_shape(reg: dict, seed_dir: Path, errors: list[str]):
         if version_pin in {"", "unknown", "not_applicable"}:
             errors.append("resource_profile available_pinned requires non-empty asset_summary.version_pin")
     code_reproducibility = resource_profile.get("code_reproducibility")
-    if code_reproducibility in {"initial_generation_smoke_ok_via_openai_compatible_proxy", "single_system_smoke_ok_via_ollama_compatible_proxy", "blocked", "failed"}:
+    if code_reproducibility in {"initial_generation_connectivity_ok_via_openai_compatible_proxy", "single_system_connectivity_ok_via_ollama_compatible_proxy", "blocked", "failed"}:
         evidence_paths = resource_profile.get("code_reproducibility_evidence_paths") or []
         if not evidence_paths:
             errors.append("resource_profile code_reproducibility evidence_paths required for attempted/blocked/failed runs")
@@ -750,7 +750,7 @@ def validate_registry_shape(reg: dict, seed_dir: Path, errors: list[str]):
     require(
         ds,
         [
-            "r2_smoke_recommendation",
+            "representative_sample_recommendation",
             "source_coverage_class",
             "input_format_class",
             "conversion_pressure",
@@ -760,8 +760,8 @@ def validate_registry_shape(reg: dict, seed_dir: Path, errors: list[str]):
         "downstream_selection",
         errors,
     )
-    if ds.get("r2_smoke_recommendation") not in R2_SMOKE_ENUM:
-        errors.append(f"unknown r2_smoke_recommendation {ds.get('r2_smoke_recommendation')}")
+    if ds.get("representative_sample_recommendation") not in SEED_USE_RECOMMENDATION_ENUM:
+        errors.append(f"unknown representative_sample_recommendation {ds.get('representative_sample_recommendation')}")
     for i, pair_set in enumerate(reg.get("pair_sets", [])):
         require(
             pair_set,
@@ -1203,7 +1203,7 @@ def _source_zip_contains_generated_run_artifacts(seed_dir: Path, manifest: dict[
     """Return true when a committed source archive contains unpaired run outputs.
 
     This is intentionally conservative and only looks for the artifact names
-    that triggered the R2.0 audit correction for code-reproducible seeds.  The
+    that triggered the registry audit correction for code-reproducible seeds.  The
     point is not to parse these outputs, but to force registries to acknowledge
     that they are excluded run artifacts rather than claiming the archive has no
     generated output at all.

@@ -8,7 +8,7 @@
 - 每个样例必须至少包含：`README.md`、`nl.txt`、一个 `stm0.*` 源文件，以及 `source_meta.json`。
 - `nl.txt` 必须是作者一手资源中参与生成的原始自然语言输入；不能使用本仓库旧缓存、二手 parquet、人工改写摘要或后续复跑时新写的 NL。
 - `stm0.*` 必须是与该 NL 对齐的作者一手生成输出；不能混入 reference model、checking 后结果、人工修正版或本项目后续修正输出。
-- `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
+- `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式、格式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`generation_actor`、`generation_model_or_method`、`stm_format`、`source_asset_id`、`source_local_path`、`source_locator_type`、`source_locator`、`source_sha256`、`source_pairs_jsonl`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
 - 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [REGISTRY.md](../REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。
 
 ## 2. 当前样例清单
@@ -33,7 +33,7 @@
 
 1. 本目录不复制 [REGISTRY.md](../REGISTRY.md) 的全量事实表；每个样例只保存最小可读输入、源文件和中文解释。
 2. 逐条资源数量、哈希、locator、raw 文件和 validator 结果以 [REGISTRY.md](../REGISTRY.md)、单条目 `seed_resource_registry.json` 与对应 `assets/README.md` 为准。
-3. 子目录 `README.md` 必须包含：系统说明、NL 文件说明、STM 文件说明、NL 中文完整翻译、原始论文 / 文库相对路径、生成关系和 caveat。
+3. 子目录 `README.md` 必须包含：系统说明、NL 文件说明、STM 文件说明、NL 中文完整翻译、原始论文 PDF / 全文提取 / BibTeX / 文库相对路径、生成关系和 caveat。
 4. 后续真实运行应另建 run record，记录使用的样例版本、输入、输出、错误、工具版本和 eligibility；不要把运行状态写回本目录作为流程台账。
 
 ## 5. 最小一致性检查
@@ -53,7 +53,9 @@ for d in sorted(p for p in base.iterdir() if p.is_dir()):
     meta = json.loads((d / 'source_meta.json').read_text())
     assert hashlib.sha256((d / 'nl.txt').read_bytes()).hexdigest() == meta['nl_sha256'], d
     assert hashlib.sha256(stms[0].read_bytes()).hexdigest() == meta['stm0_sha256'], d
+    for field in ['generation_actor', 'generation_model_or_method', 'stm_format', 'source_pairs_jsonl', 'source_local_path']:
+        assert meta.get(field), f'{d}: missing {field}'
     assert meta['trace_verified'] is True, d
-    print(d.name, stms[0].name, 'ok')
+    print(d.name, stms[0].name, meta['stm_format'], 'ok')
 PY
 ```

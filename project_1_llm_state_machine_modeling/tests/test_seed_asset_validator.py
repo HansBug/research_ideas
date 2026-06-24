@@ -610,7 +610,7 @@ def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Pat
     registry = json.loads(registry_path.read_text())
     registry["asset_summary"]["license_status"] = "STALE_LICENSE_BLOCKER"
     registry["asset_summary"]["redistribution_status"] = "STALE_REDIS_BLOCKER"
-    registry["downstream_selection"]["r2_smoke_recommendation"] = "strong"
+    registry["downstream_selection"]["representative_sample_recommendation"] = "strong"
     registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")
 
     env = os.environ.copy()
@@ -629,7 +629,7 @@ def test_seed_asset_validator_rejects_invalid_registry_schema_enum(tmp_path: Pat
     assert "seed_resource_registry.schema.json validation error" in result.stderr
     assert "unknown asset_summary license_status" in result.stderr
     assert "unknown asset_summary redistribution_status" in result.stderr
-    assert "unknown r2_smoke_recommendation strong" in result.stderr
+    assert "unknown representative_sample_recommendation strong" in result.stderr
 
 
 
@@ -643,7 +643,7 @@ def test_seed_asset_validator_rejects_unpaired_run_artifact_disclosure_drift(tmp
         item for item in registry["blockers"] if item != "unpaired_run_artifacts_excluded_from_author_pair_count"
     ]
     registry["source_inventory"]["notes"] = "源码可用，但无作者冻结 pair。"
-    registry["resource_profile"]["resource_profile_notes"] = "源码已 smoke，后续复跑输出必须另建 run record。"
+    registry["resource_profile"]["resource_profile_notes"] = "源码已做连通性检查，后续复跑输出必须另建 run record。"
     registry["downstream_selection"]["selection_caveat"] = "后续复跑必须另建 run record。"
     registry["data_construction"]["what_is_stm0"] = "运行时 LLM 生成的 CSV Mealy/DFSM 文本。"
     registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n")

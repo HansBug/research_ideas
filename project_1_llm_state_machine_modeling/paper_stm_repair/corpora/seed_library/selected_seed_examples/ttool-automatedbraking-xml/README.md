@@ -3,6 +3,9 @@
 ## 1. 来源
 
 - 原始条目：[ttool-ai-smd-subset](../../ttool-ai-smd-subset/)
+- 论文 PDF：[paper.pdf](../../ttool-ai-smd-subset/paper.pdf)
+- 论文全文提取：[paper_content.txt](../../ttool-ai-smd-subset/paper_content.txt)
+- BibTeX：[bibtex.bib](../../ttool-ai-smd-subset/bibtex.bib)
 - 单篇说明：[seed_desc.md](../../ttool-ai-smd-subset/seed_desc.md)
 - 一手资产说明：[assets/README.md](../../ttool-ai-smd-subset/assets/README.md)
 - 资源 registry：[seed_resource_registry.json](../../ttool-ai-smd-subset/seed_resource_registry.json)
