@@ -27,6 +27,7 @@
 - `tool_preflight` 必须写清楚成熟/官方工具是否真正运行、syntax status、structured export status、导出证据路径/hash、fallback reason；不能只写“已调研”。
 - `states_count` / `transitions_count` 是 adapter inventory 规模；TTool XML 等 partial inventory 不得被 R4/R5 直接当作已解析 STM 规模使用。下游若需要只统计可语义消费的元素，应读 `resolved_states_count` / `resolved_transitions_count`。
 - `blocked` / `unsupported` 不得伪造空 canonical 输出；`canonical_output_path` 和 `canonical_output_sha256` 应为 `null`。
+- canonical STM JSON 的 `metadata.conversion_source` 只允许 `official_scxml / official_xml`。`no_canonical_conversion` 只能出现在 conversion report item 中，用于说明某个样例没有可信 canonical 输出；它不得写入 canonical JSON。
 
 ## 4. 官方工具链与 adapter v0 纪律
 
@@ -107,3 +108,4 @@ R3 最低验收：
 4. Umple 至少 partial，并对 timer-like loss 入账；若 `umple.jar` 可用，canonical states/transitions 必须来自官方 SCXML。
 5. TTool XML 至少 partial / blocked 且不得静默跳过；必须说明官方 headless structured export 是否有证据。
 6. 本地 pytest 通过；如果没有 Codecov comment，不虚构覆盖率。
+7. `test_cli_regenerates_four_example_report` 与 `test_cli_invokes_configured_external_toolchains` 会真实触发 PlantUML / Umple toolchain 路径；本地应提供 `plantuml.jar` / `UMPLE_JAR`，或依赖已提交的官方 SCXML fixture 进行结构化抽取复验。CI 若不安装第三方 jar，应至少保留 schema/report/canonical fixture 校验。
