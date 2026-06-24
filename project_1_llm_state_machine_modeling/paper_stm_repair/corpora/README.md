@@ -4,7 +4,9 @@
 
 `corpora/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线下的论文级文库入口。它只负责解释三类文库的分工、阅读顺序、与 project_1 既有长期文库的关系；**不承载事实总账**。
 
-本文件冻结三类文库的入口纪律。PR-R1.8-E 后，后续 R2 的 seed 冻结入口统一为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，repair baseline 与 NL dataset 只分别提供对照/近邻和纯 NL 来源，不替代 seed 入口。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、人工下载队列与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。R1.8-C 已落地 [repair_baselines/](./repair_baselines/) 三件套，当前 repair baseline 事实源为 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)，其中记录 24 个全文入库条目、检索覆盖、候选池筛查账、人工下载队列清空状态、negative evidence 与最终结论。R1.8-D 已落地 [nl_datasets/](./nl_datasets/) 初步脚手架，当前只冻结入口、字段与边界，尚未逐条填充数据。三类子库的长期作用如下：
+本文件冻结三类文库的入口纪律。PR-R1.8-E 后，后续 R2 的 seed 冻结入口统一为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，repair baseline 与 NL dataset 只分别提供对照/近邻和纯 NL 来源，不替代 seed 入口。PR-R1.8-B 已落地 seed library，当前 seed 事实源为 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md)，其中可复算 `47/47` 候选 / 筛查、`36 dirs` 本地证据目录、旧九 `9/9` crosswalk、R2=4 handoff、人工下载队列与 seed / 资源可用性结论；R1.5--R1.7 旧 ledger / raw search 只作为历史审计快照保存在 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。R1.8-C 已落地 [repair_baselines/](./repair_baselines/) 三件套，当前 repair baseline 事实源为 [repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)，其中记录 24 个全文入库条目、检索覆盖、候选池筛查账、人工下载队列清空状态、negative evidence 与最终结论。R1.8-D 已落地 [nl_datasets/](./nl_datasets/) 初步脚手架，当前只冻结入口、字段与边界，尚未逐条填充数据。注意：smoke 用代表性样例不放在 `seed_library/` 内，而放在上级 [selected_seed_examples/](../selected_seed_examples/)；它只保存少量静态 `<NL, STM_0>` 输入用于工具连通性自检，不是第四类文库，也不是最终实验集合。
+
+三类子库的长期作用如下：
 
 | 子库 | 作用 |
 |---|---|
@@ -25,9 +27,10 @@
 1. 先读上级 [../README.md](../README.md) 和 [../GUIDE.md](../GUIDE.md)。
 2. 再读本文件确认 `corpora/` 的入口边界。
 3. 需要 seed 当前事实时，读 [seed_library/README.md](./seed_library/README.md)、[seed_library/GUIDE.md](./seed_library/GUIDE.md)、[seed_library/SUMMARY.md](./seed_library/SUMMARY.md)。
-4. 需要 repair baseline 当前事实时，读 [repair_baselines/README.md](./repair_baselines/README.md)、[repair_baselines/GUIDE.md](./repair_baselines/GUIDE.md)、[repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)。
-5. 需要控制系统纯 NL 数据源当前入口时，读 [nl_datasets/README.md](./nl_datasets/README.md)、[nl_datasets/GUIDE.md](./nl_datasets/GUIDE.md)、[nl_datasets/SUMMARY.md](./nl_datasets/SUMMARY.md)。
-6. 需要 R1.5--R1.7 旧 ledger / raw search 时，读 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
+4. 需要 smoke 用静态样例时，读上级 [selected_seed_examples/README.md](../selected_seed_examples/README.md)；不要把它误读成 seed registry 全量事实源或最终实验集合。
+5. 需要 repair baseline 当前事实时，读 [repair_baselines/README.md](./repair_baselines/README.md)、[repair_baselines/GUIDE.md](./repair_baselines/GUIDE.md)、[repair_baselines/SUMMARY.md](./repair_baselines/SUMMARY.md)。
+6. 需要控制系统纯 NL 数据源当前入口时，读 [nl_datasets/README.md](./nl_datasets/README.md)、[nl_datasets/GUIDE.md](./nl_datasets/GUIDE.md)、[nl_datasets/SUMMARY.md](./nl_datasets/SUMMARY.md)。
+7. 需要 R1.5--R1.7 旧 ledger / raw search 时，读 [../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
 
 ## 2.1 R2 读取链路
 
@@ -65,6 +68,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-24 10:25:00 | 补充上级 [selected_seed_examples/](../selected_seed_examples/) 定位：smoke 用静态样例不放入 seed registry 文库，不作为最终实验集合。 |
 | 2026-06-16 23:08:00 | PR-R1.8-E 补充 R2 读取链路：seed 从 [seed_library/SUMMARY.md](./seed_library/SUMMARY.md) 读取，repair / NL / archive / evidence 均只按各自角色使用。 |
 | 2026-06-15 23:20:00 | PR-R1.8-D 落地 [nl_datasets/](./nl_datasets/) 三件套脚手架，明确当前只登记纯 NL 数据源入口与字段纪律；来自 [../../../CLAUDE.md](../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 需求、`sources/` 真实控制系统 NL 池、旧 Path-1 `sources/` T0+🟢 线索作为后续填充锚点。 |
 | 2026-06-15 20:55:00 | 同步 [repair_baselines/](./repair_baselines/) 为 24 个全文入库条目，人工下载队列清空，并收紧严格 baseline 仍为 0、`completion-sysml-gwt` 只是 P0 路线近邻 / 条件对照的结论。 |

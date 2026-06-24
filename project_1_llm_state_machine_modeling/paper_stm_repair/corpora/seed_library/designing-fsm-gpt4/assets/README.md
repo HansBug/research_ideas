@@ -22,12 +22,12 @@
 
 | extracted 文件 | 说明 |
 |---|---|
-| `extracted/openai_compatible_smoke_record.json` | 本地用未修改源码 `err_lim/model.py::generate_text` 接入 OpenAI-compatible proxy 的最小 smoke 记录；证明初始 LLM 生成调用路径可走通 |
-| `extracted/openai_compatible_smoke_output.csv` | smoke 输出的两状态 Mealy CSV 片段；只作代码连通性证据，不是作者发布 seed |
+| `extracted/openai_compatible_connectivity_check_record.json` | 本地用未修改源码 `err_lim/model.py::generate_text` 接入 OpenAI-compatible proxy 的最小连通性检查记录；证明初始 LLM 生成调用路径可走通 |
+| `extracted/openai_compatible_connectivity_check_output.csv` | 连通性检查输出的两状态 Mealy CSV 片段；只作代码连通性证据，不是作者发布 seed |
 
 ## 4. Python 加载方法
 
-在本条目目录运行，检查源码快照和 smoke 记录：
+在本条目目录运行，检查源码快照和连通性检查记录：
 
 ```python
 from pathlib import Path
@@ -47,18 +47,18 @@ with zipfile.ZipFile(raw) as zf:
     model_py = zf.read([n for n in names if n.endswith('err_lim/model.py')][0]).decode('utf-8')
     print('source_contains_gpt4o_literal:', 'model="gpt-4o"' in model_py)
 
-record = json.loads((base / 'extracted/openai_compatible_smoke_record.json').read_text())
-print('smoke_status:', record['status'])
+record = json.loads((base / 'extracted/openai_compatible_connectivity_check_record.json').read_text())
+print('connectivity_status:', record['status'])
 print('source_code_modified:', record['source_code_modified'])
 print('source_model_literal:', record['source_model_literal'])
 print('mock_model:', record['mock_model'])
 print('expected_csv_header_seen:', record['expected_csv_header_seen'])
-print('output_preview:', record['output_preview'])
+print('output_preview:', record['output'].splitlines()[0])
 ```
 
 ## 5. 期望输出字段
 
-示例必须输出 `source_commit=git_commit:354f9aacf51b5121abb8a2e04718232185e71928`、`source_archive_sha256_match=True`、`has_err_lim_model=True`、`source_contains_gpt4o_literal=True`、`smoke_status=ok`、`source_code_modified=False`、`source_model_literal=gpt-4o`、`mock_model=gpt-5.5`、`expected_csv_header_seen=True`。人类读者应能直接看出：这只是 **作者未修改源码的初始 NL→CSV 调用路径 smoke**，不是作者公开的 `<NL, STM_0>` 数据集。
+示例必须输出 `source_commit=git_commit:354f9aacf51b5121abb8a2e04718232185e71928`、`source_archive_sha256_match=True`、`has_err_lim_model=True`、`source_contains_gpt4o_literal=True`、`connectivity_status=ok`、`source_code_modified=False`、`source_model_literal=gpt-4o`、`mock_model=gpt-5.5`、`expected_csv_header_seen=True`。人类读者应能直接看出：这只是 **作者未修改源码的初始 NL→CSV 调用路径连通性检查**，不是作者公开的 `<NL, STM_0>` 数据集。
 
 期望输出片段：
 
@@ -67,7 +67,7 @@ source_commit: git_commit:354f9aacf51b5121abb8a2e04718232185e71928
 source_archive_sha256_match: True
 has_err_lim_model: True
 source_contains_gpt4o_literal: True
-smoke_status: ok
+connectivity_status: ok
 source_code_modified: False
 source_model_literal: gpt-4o
 mock_model: gpt-5.5
@@ -77,9 +77,9 @@ S0,a,0,S1
 S1,a,1,S0
 ```
 
-## 6. 最小 smoke / 复跑说明
+## 6. 最小连通性检查 / 复跑说明
 
-本地 smoke 的可复验思路：
+本地连通性检查的可复验思路：
 
 ```bash
 # 1) 不修改作者源码，解压或 clone 作者仓库到临时目录。
@@ -102,6 +102,6 @@ export OPENAI_BASE_URL="${LLM_ENDPOINT%/}/v1"
 ## 7. 审计不变量
 
 1. 本条目的 `assets/raw/` 只能保存作者 GitHub commit / release 等一手源码快照；不得把本仓库旧 parquet、旧 predictions 或人工修补结果放入 raw。
-2. `extracted/` 中的 smoke 输出只作代码可连通证据，不计 `eligible_generated_pair_count`。
+2. `extracted/` 中的连通性检查输出只作代码可连通证据，不计 `eligible_generated_pair_count`。
 3. 若后续要把本条目升级为 seed，必须另建 run record：记录随机种子、生成的 NL、prompt、模型精确 ID、endpoint、raw output、CSV、hash、错误、重试和 eligibility；且必须剥离 oracle / repair 输出。
 4. 源码 ZIP 内已有 `generated_text.csv` / Graphviz outputs 也只能作为未配对 run artifacts 审计线索；任何复跑得到的 `STM_0` 都是**本项目生成的新 seed**，不是作者已经公开的一手 pair。
