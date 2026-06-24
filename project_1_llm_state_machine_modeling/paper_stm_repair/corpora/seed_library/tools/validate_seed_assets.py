@@ -148,8 +148,8 @@ CODE_REPRODUCIBILITY_ENUM = {
 CODE_REPRODUCIBILITY_LABEL = {
     "not_applicable": "⚪不适用",
     "not_attempted": "⚪未尝试",
-    "initial_generation_smoke_ok_via_openai_compatible_proxy": "🟢初始smoke",
-    "single_system_smoke_ok_via_ollama_compatible_proxy": "🟢单系统smoke",
+    "initial_generation_smoke_ok_via_openai_compatible_proxy": "🟢初始连通",
+    "single_system_smoke_ok_via_ollama_compatible_proxy": "🟢单系统连通",
     "blocked": "❓受阻",
     "failed": "🔴失败",
 }
