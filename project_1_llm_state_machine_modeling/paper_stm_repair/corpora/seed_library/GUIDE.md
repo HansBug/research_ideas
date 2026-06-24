@@ -158,7 +158,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 1. 代表性样例只能来自已在 [REGISTRY.md](./REGISTRY.md) 登记、且可由 validator 回溯的一手 `NL + generated STM_0`；条件样例必须显式写出切片、降级和不计现成 final pool 的原因。
 2. 每个子目录必须包含 `README.md`、`nl.txt`、一个 `stm0.*` 源文件和 `source_meta.json`；`stm0.*` 后缀应反映原始方言，如 `.puml`、`.ump` 或 `.xml`。
 3. 子目录 `README.md` 必须写清系统说明、NL 文件说明、STM 文件说明、NL 中文完整翻译、原始论文 / 文库相对路径、生成关系和 caveat。
-4. `nl.txt` 和 `stm0.*` 必须直接来自对应条目的 `assets/extracted/pairs.jsonl` 与一手 raw locator；不得用二手缓存、人工摘要、reference model、checking 后结果或本项目修正输出替代。`source_meta.json` 至少包含 `pair_id`、`pair_set_id`、`seed_id`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`，且 `nl_sha256` / `stm0_sha256` 必须能直接校验当前样例目录内 `nl.txt` / `stm0.*` 的 UTF-8 字节。
+4. `nl.txt` 和 `stm0.*` 必须直接来自对应条目的 `assets/extracted/pairs.jsonl` 与一手 raw locator；不得用二手缓存、人工摘要、reference model、checking 后结果或本项目修正输出替代。`source_meta.json` 至少包含 `pair_id`、`pair_set_id`、`seed_id`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`，且 `nl_sha256` / `stm0_sha256` 必须能直接校验当前样例目录内 `nl.txt` / `stm0.*` 的 UTF-8 字节。
 5. 若样例替换或文件内容变化，必须同步更新对应一手条目的 `assets/README.md`、`seed_resource_registry.json`、[REGISTRY.md](./REGISTRY.md)、本目录 README 和 `source_meta.json`，并保留替换原因。
 6. 四个代表性样例只服务最小开发验证，不是最终实验规模或主结果样本上限。
 

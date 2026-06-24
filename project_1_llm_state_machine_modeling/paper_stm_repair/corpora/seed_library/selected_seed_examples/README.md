@@ -8,7 +8,7 @@
 - 每个样例必须至少包含：`README.md`、`nl.txt`、一个 `stm0.*` 源文件，以及 `source_meta.json`。
 - `nl.txt` 必须是作者一手资源中参与生成的原始自然语言输入；不能使用本仓库旧缓存、二手 parquet、人工改写摘要或后续复跑时新写的 NL。
 - `stm0.*` 必须是与该 NL 对齐的作者一手生成输出；不能混入 reference model、checking 后结果、人工修正版或本项目后续修正输出。
-- `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节。
+- `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`source_asset_id`、`source_locator_type`、`source_locator`、`source_sha256`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
 - 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [REGISTRY.md](../REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。
 
 ## 2. 当前样例清单
