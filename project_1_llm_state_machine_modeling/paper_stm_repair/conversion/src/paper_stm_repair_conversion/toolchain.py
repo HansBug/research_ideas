@@ -15,6 +15,12 @@ class ToolchainSetupError(RuntimeError):
     """Raised when a required external conversion tool/runtime is unavailable or misconfigured."""
 
 
+NO_TEXT_FALLBACK_POLICY_ZH = (
+    "R3 不允许在官方工具链缺失、不可执行、syntax check 失败或结构化导出失败时，"
+    "静默退回 regex/string/source-text parser，也不允许复用已提交 SCXML fixture 冒充本次转换证据。"
+)
+
+
 @dataclass
 class ToolPreflight:
     tool_name: str
@@ -196,12 +202,13 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
         "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in jar_candidates) if candidate}),
         "download_hint": "https://github.com/plantuml/plantuml/releases ; https://plantuml.com/download",
         "setup_hint": setup_hint,
+        "no_text_fallback_policy": NO_TEXT_FALLBACK_POLICY_ZH,
         "committed_export_reuse_allowed": False,
     }
     if not jar_candidates and not plantuml_cmd:
         raise ToolchainSetupError(
             "R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没有 `plantuml` 命令，也没有可用 plantuml.jar。\n"
-            "不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。\n"
+            f"{NO_TEXT_FALLBACK_POLICY_ZH}\n请按下面步骤配置后重试。\n"
             f"{setup_hint}"
         )
 
@@ -220,13 +227,13 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
     except Exception as exc:
         raise ToolchainSetupError(
             f"PlantUML 命令无法启动：{exc}\n"
-            "请确认 PlantUML/Java 安装可用，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"请确认 PlantUML/Java 安装可用。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
             f"{setup_hint}"
         ) from exc
     if version_cp.returncode != 0:
         raise ToolchainSetupError(
             f"PlantUML `-version` 返回 {version_cp.returncode}，工具链不可用。输出：\n{version_text}\n"
-            "请按下列方式修复，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"请按下列方式修复。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
             f"{setup_hint}"
         )
 
@@ -257,13 +264,39 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
     elif syntax_ok:
         invocation_status = "official_cli_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official syntax check passed but SCXML export did not produce a usable file; R3 does not use any source-text parser as canonical conversion source and marks the example blocked/partial with tooling loss."
+        fallback = (
+            "Official syntax check passed but SCXML export did not produce a usable file; "
+            "R3 does not use any source-text parser as canonical conversion source and marks the example blocked/partial with tooling loss. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
     else:
         invocation_status = "official_cli_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official PlantUML syntax check failed; R3 does not use any source-text parser as canonical conversion source. The example cannot be marked converted."
+        fallback = (
+            "Official PlantUML syntax check failed; R3 does not use any source-text parser as canonical conversion source. "
+            "The example cannot be marked converted. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
+    stdout_tail = _sanitize_output((check_cp.stdout or "") + "\n" + (scxml_cp.stdout or ""), replacements)
+    stderr_tail = _sanitize_output((check_cp.stderr or "") + "\n" + (scxml_cp.stderr or ""), replacements)
+    failure_observation: dict[str, Any] | None = None
+    if not syntax_ok or not export_ok:
+        failure_observation = {
+            "check_command": ([*base_cmd[:2], tool_ref, "-checkonly", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-checkonly", _display_source(example_id, stm_path)]),
+            "check_returncode": check_cp.returncode,
+            "scxml_command": ([*base_cmd[:2], tool_ref, "-tscxml", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-tscxml", _display_source(example_id, stm_path)]),
+            "scxml_returncode": scxml_cp.returncode,
+            "stdout_tail": stdout_tail,
+            "stderr_tail": stderr_tail,
+            "canonical_decision": "no canonical JSON is emitted unless official PlantUML SCXML exists and is trusted",
+            "replacement_probe_path": (
+                "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/unified_uml_plantuml_candidate_probe.json"
+                if example_id == "unified-uml-synthetic-0000"
+                else None
+            ),
+        }
 
     return ToolPreflight(
         tool_name="PlantUML CLI",
@@ -277,10 +310,16 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
         structured_export_path=_rel_or_abs(persisted_scxml, repo_root),
         command=[*base_cmd[:2], tool_ref, "-checkonly", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-checkonly", _display_source(example_id, stm_path)],
         returncode=check_cp.returncode,
-        stdout_tail=_sanitize_output((check_cp.stdout or "") + "\n" + (scxml_cp.stdout or ""), replacements),
-        stderr_tail=_sanitize_output((check_cp.stderr or "") + "\n" + (scxml_cp.stderr or ""), replacements),
+        stdout_tail=stdout_tail,
+        stderr_tail=stderr_tail,
         fallback_reason=fallback,
-        evidence={**evidence, "selected_tool": tool_ref, "scxml_command": ([*base_cmd[:2], tool_ref, "-tscxml", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-tscxml", _display_source(example_id, stm_path)]), "scxml_returncode": scxml_cp.returncode},
+        evidence={
+            **evidence,
+            "selected_tool": tool_ref,
+            "scxml_command": ([*base_cmd[:2], tool_ref, "-tscxml", _display_source(example_id, stm_path)] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-tscxml", _display_source(example_id, stm_path)]),
+            "scxml_returncode": scxml_cp.returncode,
+            "failure_observation": failure_observation,
+        },
     )
 
 
@@ -318,12 +357,13 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
         "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in candidates) if candidate}),
         "download_hint": "https://cruise.umple.org/umpleonline/scripts/umple.jar",
         "setup_hint": setup_hint,
+        "no_text_fallback_policy": NO_TEXT_FALLBACK_POLICY_ZH,
         "committed_export_reuse_allowed": False,
     }
     if not candidates:
         raise ToolchainSetupError(
             "R3 Umple 转换需要真实运行 Umple 官方 compiler，但当前没有可用 umple.jar。\n"
-            "不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。\n"
+            f"{NO_TEXT_FALLBACK_POLICY_ZH}\n请按下面步骤配置后重试。\n"
             f"{setup_hint}"
         )
 
@@ -336,13 +376,13 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
     except Exception as exc:
         raise ToolchainSetupError(
             f"Umple 命令无法启动：{exc}\n"
-            "请确认 Umple/Java 安装可用，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"请确认 Umple/Java 安装可用。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
             f"{setup_hint}"
         ) from exc
     if version_cp.returncode != 0:
         raise ToolchainSetupError(
             f"Umple `--version` 返回 {version_cp.returncode}，工具链不可用。输出：\n{version_text}\n"
-            "请按下列方式修复，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"请按下列方式修复。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
             f"{setup_hint}"
         )
 
@@ -373,11 +413,18 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
     elif syntax_ok:
         invocation_status = "official_compiler_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official Umple syntax check passed but SCXML export did not produce a usable file; R3 does not use any source-text parser as canonical conversion source."
+        fallback = (
+            "Official Umple syntax check passed but SCXML export did not produce a usable file; "
+            "R3 does not use any source-text parser as canonical conversion source. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
     else:
         invocation_status = "official_compiler_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official Umple compiler rejected the file; R3 does not use any source-text parser as canonical conversion source."
+        fallback = (
+            "Official Umple compiler rejected the file; R3 does not use any source-text parser as canonical conversion source. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
 

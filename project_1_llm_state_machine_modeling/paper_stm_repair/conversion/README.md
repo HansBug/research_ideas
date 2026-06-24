@@ -45,6 +45,7 @@ R3 的转换链路是“Python 编排器 + 外部成熟工具链 + 结构化 XML
    - 缺工具 / Java runtime / jar 路径错误：命令 **loudly fail**，错误信息会给出下载与配置建议。
    - 官方 syntax/export 失败：该样例只可标 `partial/blocked`，不得生成 canonical JSON。
    - R3 不复用 committed SCXML，不做 source-text parser fallback，不用正则/字符串从 `.puml` / `.ump` 重建 states/transitions。
+   - conversion report 会保留官方命令、return code、stderr/stdout tail、structured export status 与 no-fallback 裁决，方便 reviewer 复核失败不是被静默吞掉。
 5. 成功或部分成功后生成 canonical STM JSON、conversion report、loss ledger 和 markdown summary。
 
 ## 4. 运行环境与依赖配置
@@ -88,7 +89,8 @@ R3 需要真实外部工具链。缺少这些工具时会直接失败并给出�
 ```text
 R3 conversion toolchain setup failed for llms-emp-gpt4o-hldcs:
 R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没有 `plantuml` 命令，也没有可用 plantuml.jar。
-不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。
+R3 不允许在官方工具链缺失、不可执行、syntax check 失败或结构化导出失败时，静默退回 regex/string/source-text parser，也不允许复用已提交 SCXML fixture 冒充本次转换证据。
+请按下面步骤配置后重试。
 ... PLANTUML_JAR ...
 ```
 
@@ -108,6 +110,7 @@ R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没�
 - [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status、setup hint 与 failure reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。
 - [reports/selected_seed_examples_loss_ledger.jsonl](./reports/selected_seed_examples_loss_ledger.jsonl)：所有 loss / 降级 / partial 原因。
 - [reports/selected_seed_examples_summary.md](./reports/selected_seed_examples_summary.md)：便于人工浏览的概览。
+- [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：针对 `unified-uml-synthetic-0000` 失败样例的同源替换候选初筛；只读探测同一 unified-uml `pairs.jsonl` 前 80 行，其中 40 行可通过 PlantUML `-checkonly` 并导出 SCXML。本 PR 暂不替换样例，只保留可替换方向。
 - [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON。
 - [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；PlantUML / Umple 成功样例的 canonical 主结构必须来自这些 SCXML，而不是源文本解析。
 - `blocked` / `unsupported` 样例允许 `canonical_output_path` 和 `canonical_output_sha256` 为 `null`；不得生成空 canonical STM 冒充转换成功。
@@ -134,3 +137,9 @@ export UMPLE_JAR=/path/to/umple.jar
 ```
 
 本仓库不把大型第三方 jar 作为源码提交；report 中只保留命令、版本、hash/路径 evidence 与官方来源链接。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
+
+## 9. 当前失败样例与替换策略
+
+`unified-uml-synthetic-0000` 当前故意保留为“官方工具失败边界”样例：它的一手 PlantUML 在本地 PlantUML `1.2024.7` 上 syntax check 失败，SCXML export 抛出 `UnsupportedOperationException: SCXML`。这能覆盖一个重要审计场景：**官方工具失败时，converter 不得凭正则 / 文本 parser 伪造 canonical STM**。
+
+如果后续用户决定让四例 smoke 全部走通结构化转换，可从同一 seed 的 [../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl](../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl) 中替换该例。当前候选初筛见 [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：前 80 行中 40 行可导出 SCXML，较早候选为 `unified_uml_state_train_0003`、`0005`、`0007`。替换时必须同步更新 [../selected_seed_examples/](../selected_seed_examples/) 下该例的 `nl.txt`、`stm0.puml`、`source_meta.json`、`README.md`，并重新运行 hash audit 与 conversion report。

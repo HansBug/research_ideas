@@ -159,9 +159,32 @@ def test_cli_fails_loudly_when_required_toolchains_missing(tmp_path):
     err = completed.stderr + completed.stdout
     assert "R3 conversion toolchain setup failed" in err
     assert "PlantUML" in err
-    assert "不会复用已提交 SCXML" in err
-    assert "不会退回到正则/文本解析" in err
+    assert "静默退回 regex/string/source-text parser" in err
+    assert "不允许复用已提交 SCXML fixture" in err
     assert "PLANTUML_JAR" in err
+
+
+def test_cli_fails_loudly_when_configured_plantuml_path_is_invalid(tmp_path):
+    out = tmp_path / "reports"
+    cmd = [
+        sys.executable,
+        "-m",
+        "paper_stm_repair_conversion.cli",
+        "convert-selected",
+        "--reports-dir",
+        str(out),
+        "--run-id",
+        "pytest-r3-invalid-plantuml-path",
+    ]
+    env = {**_fake_toolchain_env(tmp_path)}
+    env["PLANTUML_JAR"] = str(tmp_path / "missing-plantuml.jar")
+    completed = subprocess.run(cmd, cwd=REPO, env=env, text=True, capture_output=True, check=False)
+    assert completed.returncode != 0
+    err = completed.stderr + completed.stdout
+    assert "PlantUML 已通过环境变量配置，但路径无效" in err
+    assert "PLANTUML_JAR" in err
+    assert "missing-plantuml.jar" in err
+    assert "下载官方 plantuml.jar" in err
 
 
 def test_committed_report_keeps_r3_smoke_boundary_and_losses():
@@ -189,6 +212,8 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
         REPORTS / "selected_seed_examples_conversion_report.json",
         REPORTS / "selected_seed_examples_input_audit.json",
         REPORTS / "selected_seed_examples_loss_ledger.jsonl",
+        REPORTS / "selected_seed_examples_summary.md",
+        REPORTS / "unified_uml_plantuml_candidate_probe.json",
     ]:
         text = path.read_text(encoding="utf-8")
         assert "/home/" not in text
@@ -256,6 +281,11 @@ def test_committed_report_records_official_toolchain_preflight():
     assert unified["tool_name"] == "PlantUML CLI"
     assert unified["syntax_status"] == "failed"
     assert unified["structured_export_status"] == "scxml_not_trusted_after_syntax_failure"
+    assert unified["evidence"]["failure_observation"]["check_returncode"] == unified["returncode"]
+    assert unified["evidence"]["failure_observation"]["scxml_returncode"] == unified["evidence"]["scxml_returncode"]
+    assert "UnsupportedOperationException: SCXML" in unified["stderr_tail"]
+    assert "unified_uml_plantuml_candidate_probe.json" in unified["evidence"]["failure_observation"]["replacement_probe_path"]
+    assert "静默退回 regex/string/source-text parser" in unified["fallback_reason"]
     assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
 
     sefm = by_id["sefm-ssc7-umple"]["tool_preflight"]
@@ -303,3 +333,16 @@ def test_cli_invokes_configured_external_toolchains(tmp_path):
     finally:
         plant_log.unlink(missing_ok=True)
         umple_log.unlink(missing_ok=True)
+
+
+def test_unified_uml_candidate_probe_records_same_source_replacement_options():
+    probe_path = REPORTS / "unified_uml_plantuml_candidate_probe.json"
+    probe = json.loads(probe_path.read_text(encoding="utf-8"))
+    assert probe["report_version"] == "r3.unified_uml_plantuml_candidate_probe.v0"
+    assert probe["probe_scope"].startswith("first 80 JSONL rows only")
+    assert probe["summary"]["rows_checked"] == 80
+    assert probe["summary"]["candidate_scxml_ok"] == 40
+    first = probe["summary"]["earliest_candidates"][0]
+    assert first["row"] == 3
+    assert first["pair_id"] == "unified_uml_state_train_0003"
+    assert first["scxml_bytes"] > 0

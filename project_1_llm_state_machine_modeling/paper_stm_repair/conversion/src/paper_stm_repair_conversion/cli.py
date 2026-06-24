@@ -227,15 +227,18 @@ def _write_summary(path: Path, reports: list[dict[str, Any]], loss_rows: list[di
         "",
         "本文件由 `python -m paper_stm_repair_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。",
         "",
-        "| example_id | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | losses | 说明 |",
-        "|---|---|---|---:|---:|---|---|---:|---|",
+        "| example_id | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | syntax | structured export | losses | 说明 |",
+        "|---|---|---|---:|---:|---|---|---|---|---:|---|",
     ]
     for report in reports:
         reason = (report.get("blocking_reason") or "").replace("|", "/")
+        preflight = report.get("tool_preflight") or {}
+        syntax_status = (preflight.get("syntax_status") or "").replace("|", "/")
+        structured_status = (preflight.get("structured_export_status") or "").replace("|", "/")
         lines.append(
             f"| `{report['example_id']}` | `{report['source_format']}` | `{report['status']}` | "
             f"{report['states_count']} | {report['transitions_count']} | `{report['timing_level']}` | "
-            f"`{report['hierarchy_level']}` | {report['losses_count']} | {reason} |"
+            f"`{report['hierarchy_level']}` | `{syntax_status}` | `{structured_status}` | {report['losses_count']} | {reason} |"
         )
     lines.extend([
         "",
@@ -244,6 +247,37 @@ def _write_summary(path: Path, reports: list[dict[str, Any]], loss_rows: list[di
         "所有 `partial` / `blocked` 裁决必须回到 JSON report 与 loss ledger 查看 source/ref、code 与 blocking reason。",
         "",
     ])
+    failures = [
+        report
+        for report in reports
+        if (report.get("tool_preflight") or {}).get("syntax_status") not in {"ok", "xml_wellformed_checked_by_python_etree"}
+        or (report.get("tool_preflight") or {}).get("structured_export_status") in {"scxml_export_failed", "scxml_not_trusted_after_syntax_failure"}
+    ]
+    if failures:
+        lines.extend([
+            "## 官方工具链失败细节",
+            "",
+            "以下内容记录的是官方/成熟工具链返回值与截断后的输出；R3 不会因此退回正则或 source-text parser，也不会复用 committed SCXML。",
+            "",
+        ])
+        for report in failures:
+            preflight = report.get("tool_preflight") or {}
+            lines.extend([
+                f"### `{report['example_id']}`",
+                "",
+                f"- tool: `{preflight.get('tool_name')}`",
+                f"- command: `{preflight.get('command')}`",
+                f"- returncode: `{preflight.get('returncode')}`",
+                f"- structured_export_status: `{preflight.get('structured_export_status')}`",
+                f"- fallback_used: `{report.get('fallback_used')}`；canonical_output_path: `{report.get('canonical_output_path')}`",
+                "",
+                "stderr tail:",
+                "",
+                "```text",
+                (preflight.get("stderr_tail") or "").strip() or "<empty>",
+                "```",
+                "",
+            ])
     path.write_text("\n".join(lines), encoding="utf-8")
 
 

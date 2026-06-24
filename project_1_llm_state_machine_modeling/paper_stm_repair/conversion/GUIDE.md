@@ -33,9 +33,9 @@
 
 R3 的默认顺序是 **官方/成熟工具链 preflight -> 官方结构化导出 -> 以结构化导出作为 canonical 主转换路径 -> targeted audit -> loss ledger**。不得把 regex/string parser 写成 canonical 主路径，也不得在官方工具失败时仍标 `converted`。
 
-缺少 PlantUML / Umple / Java runtime 或显式 jar 路径无效时，CLI 必须 loudly fail，并在错误信息中给出下载、环境变量与复验命令建议；不得复用 committed SCXML，不得静默 fallback 到 regex/string parser，不得把旧 report fixture 当作当前转换 evidence。
+缺少 PlantUML / Umple / Java runtime 或显式 jar 路径无效时，CLI 必须 loudly fail，并在错误信息中给出下载、环境变量与复验命令建议；不得复用 committed SCXML，不得静默 fallback 到 regex/string/source-text parser，不得把旧 report fixture 当作当前转换 evidence。错误信息与 report evidence 中应明确出现 no-fallback 裁决，避免 reviewer 误以为转换器会“摆烂”或悄悄降级。
 
-每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。R3 目前不允许 source-text fallback；Umple 的 `after(...)` 扫描属于 `targeted_audit_used`，不能写成 fallback，也不能参与 states/transitions canonical 抽取。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
+每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。`tool_preflight.evidence` 应保留官方命令、return code、stderr/stdout tail、setup hint、no-fallback policy；官方 syntax/export 失败的样例还应保留 `failure_observation`。R3 目前不允许 source-text fallback；Umple 的 `after(...)` 扫描属于 `targeted_audit_used`，不能写成 fallback，也不能参与 states/transitions canonical 抽取。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
 
 ### 4.1 PlantUML
 
@@ -55,6 +55,8 @@ java -jar plantuml.jar -tscxml selected_seed_examples/<id>/stm0.puml
 ```
 
 若缺少 PlantUML / Java runtime / jar 路径错误，CLI 必须直接失败并给出配置建议。若官方 syntax check 或 SCXML export 失败，该样例最多只能标 `partial/blocked`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` 或等价 diagnostic 与 tooling loss；不得用 source-text parser 产出 canonical states/transitions。
+
+若某个 PlantUML smoke 样例被官方工具判为 syntax/export 失败，R3 可以另外维护只读候选探测报告，用于后续人工决定是否替换同源样例；候选探测不得自动改写 [../selected_seed_examples/](../selected_seed_examples/)。
 
 ### 4.2 Umple
 
@@ -112,3 +114,4 @@ R3 最低验收：
 6. 本地 pytest 通过；如果没有 Codecov comment，不虚构覆盖率。
 7. `test_cli_regenerates_four_example_report` 与 `test_cli_invokes_configured_external_toolchains` 使用 fake Java / fake PlantUML / fake Umple 验证 CLI 会真实调用外部工具链；`test_cli_fails_loudly_when_required_toolchains_missing` 验证缺工具时必须 loud fail。
 8. 本地真实重生成 report 时必须配置 `PLANTUML_JAR` 与 `UMPLE_JAR`，不能依赖已提交的 SCXML fixture。CI 若不安装第三方 jar，应至少保留 schema/report/canonical fixture 校验和 fake-toolchain 回归。
+9. `unified-uml-synthetic-0000` 当前作为官方工具失败边界样例保留；若未来替换为同源可导出 SCXML 的候选，必须同步更新 `nl.txt`、`stm0.puml`、`source_meta.json`、样例 README、hash audit、conversion report 和 [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)。
