@@ -44,6 +44,7 @@
 维护者新增或替换样例后，至少应执行下列检查，确认每个样例具备必需文件，且 `source_meta.json` 中的 hash 能直接校验当前 `nl.txt` / `stm0.*`：
 
 ```bash
+# 请在仓库根目录运行。
 python - <<'PY'
 from pathlib import Path
 import hashlib, json
@@ -58,6 +59,10 @@ for d in sorted(p for p in base.iterdir() if p.is_dir()):
     assert hashlib.sha256(stms[0].read_bytes()).hexdigest() == meta['stm0_sha256'], d
     for field in ['generation_actor', 'generation_model_or_method', 'stm_format', 'source_pairs_jsonl', 'source_local_path']:
         assert meta.get(field), f'{d}: missing {field}'
+    source_pairs = (d / meta['source_pairs_jsonl']).resolve()
+    assert source_pairs.exists(), f'{d}: missing source pairs {source_pairs}'
+    assert any(json.loads(line).get('pair_id') == meta['pair_id'] for line in source_pairs.read_text().splitlines()), \
+        f'{d}: pair_id not found in {source_pairs}'
     assert meta['trace_verified'] is True, d
     print(d.name, stms[0].name, meta['stm_format'], 'ok')
 PY

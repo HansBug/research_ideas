@@ -49,3 +49,7 @@ SSC7 软件（SSC7S）与第（ii）到第（viii）部分交互。条码扫描�
 - 谱系：UML statechart / HSM-capable 的 textual state machine。
 - 时间特性：整体按 T0 离散状态机处理，但生成文本含 `after(60)` 这类 timer-like transition，后续转换时必须显式标注或降级。
 - 重要 caveat：该论文制品中当前只有 SSC7 有 generated output；另外 8 个 NL 不能当作 generated `<NL, STM_0>` pair 使用。
+
+### 5.1 哈希差异说明
+
+[source_meta.json](./source_meta.json) 同时记录两组哈希：`source_stm0_sha256` 是 [pairs.jsonl](../../corpora/seed_library/sefm-llm-state-machine/assets/extracted/pairs.jsonl) 中作者一手生成文本的原文哈希，`stm0_sha256` 是本目录 [stm0.ump](./stm0.ump) 当前文件的 UTF-8 字节哈希。二者不同的原因仅是空白规范化：从 `pairs.jsonl` 原文落盘为 `stm0.ump` 时，将若干只含缩进空格的空白行规范化为空行，并去掉文件末尾额外空行；状态、迁移、guard、action、事件名、`after(60)` 等语义字符未改动。后续若需要逐字节复核来源，应以 `source_stm0_sha256` 和原始 `pairs.jsonl` 为准；若需要复核本 smoke 输入文件，应以 `stm0_sha256` 为准。
