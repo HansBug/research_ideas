@@ -32,7 +32,7 @@
 
 R3 的默认顺序是 **官方/成熟工具链 preflight -> 官方结构化导出 -> 以结构化导出作为 canonical 主转换路径 -> targeted fallback audit -> loss ledger**。不得把 regex/string parser 写成 canonical 主路径，也不得在官方工具失败时仍标 `converted`。
 
-每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。`fallback_used=true` 时必须说明 fallback 只是 debug / targeted loss audit，还是导致无 canonical conversion；不得让 reviewer 误以为文本 parser 是主转换链。
+每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。`fallback_used=true` 时必须说明 fallback 只是 debug / targeted loss audit，还是导致无 canonical conversion；不得让 reviewer 误以为文本 parser 是主转换链。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
 
 ### 4.1 PlantUML
 

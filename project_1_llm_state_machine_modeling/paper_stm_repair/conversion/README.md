@@ -86,4 +86,4 @@ R3 当前不是“直接手写 parser 即可”的实现。每次转换必须先
 export UMPLE_JAR=/path/to/umple.jar
 ```
 
-本仓库不把大型第三方 jar 作为源码提交；report 中只保留命令、版本、hash/路径 evidence 与官方来源链接。
+本仓库不把大型第三方 jar 作为源码提交；report 中只保留命令、版本、hash/路径 evidence 与官方来源链接。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。

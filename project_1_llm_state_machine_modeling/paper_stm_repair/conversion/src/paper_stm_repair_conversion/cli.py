@@ -186,7 +186,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
     canonical_dir = reports_dir / "canonical"
     canonical_output_path: Path | None = None
     canonical_output_sha256: str | None = None
-    if result.status in {"converted", "partial"} and result.metadata.get("conversion_source") != "no_canonical_conversion":
+    if result.status in {"converted", "partial"} and result.metadata.get("conversion_source") in {"official_scxml", "official_xml"}:
         canonical_output_path = canonical_dir / f"{example_dir.name}.canonical_stm.json"
         canonical_output_sha256 = write_json(canonical_output_path, result.to_canonical_dict())
 

@@ -114,6 +114,16 @@ def test_committed_outputs_use_official_structured_sources_and_timing_audit_only
     assert any(t.get("event") == "timeoutTimeoutToReady" for t in umple["model"]["transitions"])
 
 
+def test_canonical_outputs_never_use_text_fallback_conversion_source():
+    canonical_dir = REPORTS / "canonical"
+    names = {p.name for p in canonical_dir.glob("*.canonical_stm.json")}
+    assert "unified-uml-synthetic-0000.canonical_stm.json" not in names
+    for path in canonical_dir.glob("*.canonical_stm.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        assert doc["metadata"]["conversion_source"] in {"official_scxml", "official_xml"}
+        assert doc["metadata"]["conversion_source"] != "fallback_text_probe"
+
+
 def test_input_audit_records_source_pair_hashes_and_documented_divergence():
     audit = json.loads((REPORTS / "selected_seed_examples_input_audit.json").read_text(encoding="utf-8"))
     by_id = {row["example_id"]: row for row in audit["items"]}
