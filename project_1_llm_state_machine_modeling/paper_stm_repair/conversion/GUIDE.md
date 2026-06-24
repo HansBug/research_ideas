@@ -23,11 +23,14 @@
 
 - canonical schema 中 `timing_level` 只能取：`none / qualitative / clock / timed_constraints / unknown`。
 - canonical schema 中 `hierarchy_level` 只能取：`flat / hierarchical / concurrent / unknown`。
-- conversion report 必须记录 run-level 字段：`run_id`、`created_at`、`conversion_command`、`repo_commit`、`schema_version`、`adapter_version`、`tool_*`、`source_locator`、`raw_locator`、`source_meta_path`、`loss_ledger_path`、`manual_edit_allowed=false`、`eligibility`。
+- conversion report 必须记录 run-level 字段：`run_id`、`created_at`、`conversion_command`、`repo_commit`、`schema_version`、`adapter_version`、`tool_*`、`tool_preflight`、`source_locator`、`raw_locator`、`source_meta_path`、`loss_ledger_path`、`manual_edit_allowed=false`、`eligibility`。
+- `tool_preflight` 必须写清楚成熟/官方工具是否真正运行、syntax status、structured export status、导出证据路径/hash、fallback reason；不能只写“已调研”。
 - `states_count` / `transitions_count` 是 adapter inventory 规模；TTool XML 等 partial inventory 不得被 R4/R5 直接当作已解析 STM 规模使用。下游若需要只统计可语义消费的元素，应读 `resolved_states_count` / `resolved_transitions_count`。
 - `blocked` / `unsupported` 不得伪造空 canonical 输出；`canonical_output_path` 和 `canonical_output_sha256` 应为 `null`。
 
-## 4. adapter v0 纪律
+## 4. 官方工具链与 adapter v0 纪律
+
+R3 的默认顺序是 **官方/成熟工具链 preflight -> 结构化导出证据保留 -> 必要时最小 fallback parser/inventory -> loss ledger**。不得把 fallback parser 写成首选方案，也不得在官方工具失败时仍标 `converted`。
 
 ### 4.1 PlantUML
 
@@ -41,6 +44,15 @@ v0 只覆盖四例所需子集：
 
 PlantUML v0 不能假定所有图都是 flat；`llms-emp-gpt4o-hldcs` 有局部 scope 和重复状态名。
 
+必须先通过 PlantUML CLI / jar 做 syntax preflight，并在可行时导出 SCXML：
+
+```bash
+java -jar plantuml.jar -checkonly selected_seed_examples/<id>/stm0.puml
+java -jar plantuml.jar -tscxml selected_seed_examples/<id>/stm0.puml
+```
+
+若官方 syntax check 失败，该样例最多只能标 `partial`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` diagnostic 与 `R3.LOSS.tooling.high` loss。
+
 ### 4.2 Umple
 
 v0 只覆盖 `class { sm { state { transition; } } }` 子集，至少解析：
@@ -51,6 +63,15 @@ v0 只覆盖 `class { sm { state { transition; } } }` 子集，至少解析：
 - `after(n)` timer-like transition
 
 `after(60)` 必须进入 timing loss，不得静默丢弃或当成普通无时间迁移。
+
+必须优先用 Umple compiler 做 syntax/compile preflight，并在可行时导出 SCXML：
+
+```bash
+java -jar umple.jar -g Nothing selected_seed_examples/<id>/stm0.ump
+java -jar umple.jar -g Scxml selected_seed_examples/<id>/stm0.ump
+```
+
+Umple 官方 SCXML 若重写 `after(60)` 等原始 timing 语法，R3 可继续用最小 parser 作为 canonical smoke fixture，但必须把官方 SCXML 保存在 `reports/toolchain_exports/` 作为 crosscheck evidence，并说明 fallback reason。
 
 ### 4.3 TTool XML
 
@@ -63,6 +84,8 @@ v0 只做 XML inventory：
 - guard / afterMin / afterMax 等字段原样保留
 
 R3 不承诺把 TTool XML 无损切片为 T0 FSM/HSM/EFSM/statechart；未解析 graphical connecting points 到 exact source/target 时必须标 `partial` 并写 loss。
+
+TTool/AVATAR 当前只确认官方 XML artifact 与 ttool-cli/MCP 入口，未确认稳定 headless SMD -> SCXML/JSON/AST 导出；因此 R3 必须显式记录 `official_xml_available_no_scxml_json_ast_export_documented`，并把 `resolved_states_count` / `resolved_transitions_count` 保持为语义可消费计数。
 
 ## 5. 输入审计
 
@@ -81,7 +104,7 @@ R3 最低验收：
 
 1. schema JSON 可由 `jsonschema` 校验。
 2. 四例均有 conversion report。
-3. PlantUML 两例达到 `converted` 或给出证据充分的 `partial/blocked`。
-4. Umple 至少 partial，并对 timer-like loss 入账。
-5. TTool XML 至少 partial / blocked 且不得静默跳过。
+3. PlantUML 两例必须有官方 syntax preflight；syntax fail 的样例不得标 `converted`。
+4. Umple 至少 partial，并对 timer-like loss 入账；若 `umple.jar` 可用，必须保存官方 SCXML crosscheck。
+5. TTool XML 至少 partial / blocked 且不得静默跳过；必须说明官方 headless structured export 是否有证据。
 6. 本地 pytest 通过；如果没有 Codecov comment，不虚构覆盖率。

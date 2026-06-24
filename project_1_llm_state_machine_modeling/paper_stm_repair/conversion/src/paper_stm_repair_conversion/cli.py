@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from .adapters import convert_plantuml, convert_ttool_xml, convert_umple
+from .models import Loss
 from .report import make_example_report, sha256_file, write_json
+from .toolchain import preflight_for_format
 
 REPO_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples")
 CONVERSION_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/conversion")
@@ -93,32 +95,75 @@ def audit_inputs(repo_root: Path, selected_dir: Path) -> list[dict[str, Any]]:
     return audit
 
 
-def _tool_info(adapter: str, meta: dict[str, Any]) -> dict[str, Any]:
-    if adapter == "plantuml":
-        return {
-            "tool_name": "PlantUML syntax / minimal R3 adapter",
-            "tool_version": "local-minimal-parser-v0; external plantuml jar not required for AST",
-            "tool_source_url": "https://plantuml.com/command-line",
-            "tool_invocation_status": "fallback_parser_used_after_toolchain_survey_no_stable_ast",
-            "raw_locator": meta.get("source_locator"),
-            "manual_normalization": False,
-        }
-    if adapter == "umple":
-        return {
-            "tool_name": "Umple textual syntax / minimal R3 adapter",
-            "tool_version": "local-minimal-parser-v0; official Umple compiler surveyed",
-            "tool_source_url": "https://cruise.umple.org/umple/",
-            "tool_invocation_status": "fallback_parser_used_for_smoke_after_official_toolchain_survey",
-            "raw_locator": meta.get("source_locator"),
-            "manual_normalization": False,
-        }
+def _apply_toolchain_preflight(result: Any, preflight: dict[str, Any]) -> None:
+    result.metadata["tool_preflight_summary"] = {
+        "tool_name": preflight.get("tool_name"),
+        "tool_invocation_status": preflight.get("tool_invocation_status"),
+        "syntax_status": preflight.get("syntax_status"),
+        "structured_export_status": preflight.get("structured_export_status"),
+        "structured_export_format": preflight.get("structured_export_format"),
+        "structured_export_path": preflight.get("structured_export_path"),
+        "structured_export_sha256": preflight.get("structured_export_sha256"),
+        "fallback_reason": preflight.get("fallback_reason"),
+    }
+    syntax_status = preflight.get("syntax_status")
+    structured_status = preflight.get("structured_export_status") or ""
+    if syntax_status == "ok":
+        result.diagnostics.append({
+            "code": "R3.TOOLCHAIN.OFFICIAL_SYNTAX_OK",
+            "severity": "info",
+            "tool_name": preflight.get("tool_name"),
+            "structured_export_status": structured_status,
+            "structured_export_path": preflight.get("structured_export_path"),
+            "message": "Official/mature toolchain syntax preflight succeeded before R3 canonical fallback/crosscheck extraction.",
+        })
+    elif syntax_status and syntax_status.startswith("xml_wellformed"):
+        result.diagnostics.append({
+            "code": "R3.TOOLCHAIN.XML_ARTIFACT_WELLFORMED",
+            "severity": "info",
+            "tool_name": preflight.get("tool_name"),
+            "structured_export_status": structured_status,
+            "structured_export_path": preflight.get("structured_export_path"),
+            "message": "TTool/AVATAR official XML artifact is well-formed; no documented headless SCXML/JSON/AST export was evidenced in R3.",
+        })
+    else:
+        if result.status == "converted":
+            result.status = "partial"
+        reason = preflight.get("fallback_reason") or "Official/mature toolchain preflight did not succeed; fallback parser output is smoke/debug evidence only."
+        result.blocking_reason = reason if not result.blocking_reason else result.blocking_reason
+        loss_id = f"{result.example_id}:{result.adapter}:official_preflight_failed"
+        result.diagnostics.append({
+            "code": "R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED",
+            "severity": "high",
+            "tool_name": preflight.get("tool_name"),
+            "syntax_status": syntax_status,
+            "structured_export_status": structured_status,
+            "loss_ref": loss_id,
+            "message": reason,
+        })
+        result.losses.append(
+            Loss(
+                loss_id=loss_id,
+                example_id=result.example_id,
+                source_ref=preflight.get("command")[-1] if preflight.get("command") else result.source_format,
+                canonical_ref=None,
+                loss_type="tooling",
+                severity="high",
+                rationale=reason,
+                needs_manual_review=True,
+            )
+        )
+
+
+def _tool_info(meta: dict[str, Any], preflight: dict[str, Any]) -> dict[str, Any]:
     return {
-        "tool_name": "TTool / AVATAR XML inventory adapter",
-        "tool_version": "local-xml-inventory-v0; official TTool surveyed",
-        "tool_source_url": "https://ttool.telecom-paris.fr/",
-        "tool_invocation_status": "partial_inventory_only_no_t0_slice",
+        "tool_name": preflight.get("tool_name"),
+        "tool_version": preflight.get("tool_version"),
+        "tool_source_url": preflight.get("tool_source_url"),
+        "tool_invocation_status": preflight.get("tool_invocation_status"),
         "raw_locator": meta.get("source_locator"),
         "manual_normalization": False,
+        "tool_preflight": preflight,
     }
 
 
@@ -126,6 +171,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
     meta = _load_meta(example_dir)
     stm_path = _find_stm(example_dir)
     fmt = meta["stm_format"]
+    preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
     kwargs = {"example_id": example_dir.name, "seed_id": meta["seed_id"], "source_format": fmt}
     if fmt == "plantuml":
         result = convert_plantuml(stm_path, **kwargs)
@@ -135,6 +181,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
         result = convert_ttool_xml(stm_path, **kwargs)
     else:
         raise ValueError(f"Unsupported stm_format for R3: {fmt}")
+    _apply_toolchain_preflight(result, preflight)
 
     canonical_dir = reports_dir / "canonical"
     canonical_output_path: Path | None = None
@@ -157,7 +204,7 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
         run_id=run_id,
         conversion_command=conversion_command,
         created_at=created_at,
-        tool_info=_tool_info(result.adapter, meta),
+        tool_info=_tool_info(meta, preflight),
     )
     return report, loss_rows
 

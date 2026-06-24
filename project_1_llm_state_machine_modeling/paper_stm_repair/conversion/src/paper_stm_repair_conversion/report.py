@@ -92,6 +92,7 @@ def make_example_report(
         "tool_version": tool_info.get("tool_version"),
         "tool_source_url": tool_info.get("tool_source_url"),
         "tool_invocation_status": tool_info.get("tool_invocation_status"),
+        "tool_preflight": tool_info.get("tool_preflight"),
         "source_locator": f"selected_seed_examples/{example_dir.name}/{stm_path.name}",
         "raw_locator": tool_info.get("raw_locator"),
         "source_meta_path": _rel(source_meta_path, repo_root),

@@ -25,6 +25,7 @@ conversion/
 │   ├── models.py
 │   ├── report.py
 │   ├── schema.py
+│   ├── toolchain.py
 │   └── adapters/
 ├── tests/
 └── reports/
@@ -42,24 +43,26 @@ python -m paper_stm_repair_conversion.cli convert-selected
 该命令会：
 
 1. 校验四例 `nl.txt`、`stm0.*` 与 `source_meta.json` 的 SHA-256 是否一致。
-2. 调用 PlantUML / Umple / TTool XML adapter。
-3. 生成 canonical STM JSON、conversion report、loss ledger 和 markdown summary。
+2. 先做成熟工具链 / 官方工件 preflight：PlantUML CLI、Umple compiler、TTool/AVATAR XML evidence。
+3. 在官方工具能提供结构化输出时保留 `reports/toolchain_exports/` 证据；官方工具不足或失败时才使用最小 parser / inventory fallback。
+4. 生成 canonical STM JSON、conversion report、loss ledger 和 markdown summary。
 
 ## 4. 当前四例裁决
 
 | 样例 | 格式 | R3 status | 说明 |
 |---|---|---|---|
 | `llms-emp-gpt4o-hldcs` | PlantUML | `converted` | 层次化 PlantUML；v0 解析状态、局部 scope、迁移 label。 |
-| `unified-uml-synthetic-0000` | PlantUML | `converted` | flat synthetic PlantUML；仅用于格式跑通，不支撑控制系统有效性 claim。 |
+| `unified-uml-synthetic-0000` | PlantUML | `partial` | 最小 parser 可抽取 flat transitions，但 PlantUML 官方 `-checkonly` 失败；只保留为 smoke/debug evidence，不得进入 experiment-grade conversion。 |
 | `sefm-ssc7-umple` | Umple | `partial` | 状态 / 迁移可抽取；`after(60)` 作为 qualitative timing loss 入账。 |
 | `ttool-automatedbraking-xml` | TTool XML | `partial` | 只做 AVATAR SMD inventory；不解析 graphical connector 到精确 endpoint，不切出纯 T0 STM。 |
 
 ## 5. 输出解释
 
-- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report。
+- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status 与 fallback reason。
 - [reports/selected_seed_examples_loss_ledger.jsonl](./reports/selected_seed_examples_loss_ledger.jsonl)：所有 loss / 降级 / partial 原因。
 - [reports/selected_seed_examples_summary.md](./reports/selected_seed_examples_summary.md)：便于人工浏览的概览。
 - [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON。
+- [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；这些是 crosscheck evidence，不自动等同于 R3 canonical。
 - `blocked` / `unsupported` 样例允许 `canonical_output_path` 和 `canonical_output_sha256` 为 `null`；不得生成空 canonical STM 冒充转换成功。
 
 ## 6. 与后续阶段关系
@@ -67,3 +70,19 @@ python -m paper_stm_repair_conversion.cli convert-selected
 - R4 可消费 R3 的 `R3.STATUS.*` 与 `R3.LOSS.*` code，但不得改写 R3 裁决语义。
 - R5 应用 deterministic dry-run 检查 R3 输出是否足以支撑诊断 / 场景。
 - R7/R8 才冻结正式实验格式范围与 experiment-grade conversion；R3 不提前承担该职责。
+
+## 7. 官方工具链优先纪律
+
+R3 当前不是“直接手写 parser 即可”的实现。每次转换必须先尝试或记录成熟工具链 preflight：
+
+- PlantUML：优先使用 `plantuml` 或 `plantuml.jar` 做 syntax check，并在可行时导出 SCXML；若官方 syntax fail，最小 parser 输出只能是 `partial` smoke/debug evidence。
+- Umple：优先使用 `umple.jar` 做 `-g Nothing` syntax/compile preflight，并在可行时导出 SCXML；若本机没有 `umple.jar`，报告必须写明 `not_available_fallback_parser_used`。
+- TTool/AVATAR：当前只确认 XML artifact 与 ttool-cli/MCP 入口，未找到稳定 headless AVATAR SMD -> SCXML/JSON/AST 导出；因此只能做 XML inventory 并标 `partial`。
+
+本地若需要复现官方 Umple preflight，可临时设置：
+
+```bash
+export UMPLE_JAR=/path/to/umple.jar
+```
+
+本仓库不把大型第三方 jar 作为源码提交；report 中只保留命令、版本、hash/路径 evidence 与官方来源链接。
