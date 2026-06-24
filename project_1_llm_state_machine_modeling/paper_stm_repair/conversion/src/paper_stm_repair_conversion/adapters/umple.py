@@ -1,18 +1,38 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
 from ..models import ConversionResult, Loss
 from .scxml import ScxmlOptions, convert_scxml
 
-_AFTER_RE = re.compile(r"after\s*\(\s*[^)]+\s*\)")
+
+def _find_after_tokens(line: str) -> list[str]:
+    """Find simple Umple `after(...)` timing tokens without parsing state structure."""
+    tokens: list[str] = []
+    pos = 0
+    lower = line.lower()
+    while True:
+        start = lower.find("after", pos)
+        if start < 0:
+            return tokens
+        cursor = start + len("after")
+        while cursor < len(line) and line[cursor].isspace():
+            cursor += 1
+        if cursor >= len(line) or line[cursor] != "(":
+            pos = cursor
+            continue
+        end = line.find(")", cursor + 1)
+        if end < 0:
+            pos = cursor + 1
+            continue
+        tokens.append(line[start : end + 1])
+        pos = end + 1
 
 
 def _audit_umple_timing(path: Path, result: ConversionResult) -> None:
     text = path.read_text(encoding="utf-8")
-    matches = [(i, m.group(0)) for i, line in enumerate(text.splitlines(), start=1) for m in _AFTER_RE.finditer(line)]
+    matches = [(i, token) for i, line in enumerate(text.splitlines(), start=1) for token in _find_after_tokens(line)]
     if not matches:
         return
     result.status = "partial"
@@ -41,8 +61,8 @@ def _audit_umple_timing(path: Path, result: ConversionResult) -> None:
                 "message": f"Targeted raw Umple audit found timer-like syntax {token}; canonical structure remains official SCXML-derived.",
             }
         )
-    result.metadata["fallback_used"] = True
-    result.metadata["fallback_scope"] = "targeted raw timing/loss audit only; states/transitions remain official SCXML-derived"
+    result.metadata["targeted_audit_used"] = True
+    result.metadata["targeted_audit_scope"] = "raw Umple timing token audit only; states/transitions remain official SCXML-derived"
     result.metadata["source_text_used_for_canonical"] = False
 
 
@@ -58,7 +78,7 @@ def convert_umple(
     structured_path = (preflight or {}).get("structured_export_path")
     syntax_status = (preflight or {}).get("syntax_status")
     structured_status = (preflight or {}).get("structured_export_status")
-    if syntax_status == "ok" and structured_status in {"scxml_export_ok", "scxml_export_reused_tool_missing"} and structured_path:
+    if syntax_status == "ok" and structured_status == "scxml_export_ok" and structured_path:
         scxml_path = (repo_root / structured_path) if repo_root and not Path(structured_path).is_absolute() else Path(structured_path)
         result = convert_scxml(
             scxml_path,
@@ -83,7 +103,7 @@ def convert_umple(
         _audit_umple_timing(path, result)
         return result
 
-    reason = (preflight or {}).get("fallback_reason") or "Umple official structured export was unavailable; regex/text parser is not allowed as canonical conversion source."
+    reason = (preflight or {}).get("fallback_reason") or "Umple official structured export was unavailable; source-text parser is not allowed as canonical conversion source."
     result = ConversionResult(
         example_id=example_id,
         seed_id=seed_id,
@@ -99,8 +119,8 @@ def convert_umple(
             "canonical_extraction_method": "none; official Umple structured export unavailable or not trusted",
             "structured_export_path": structured_path,
             "structured_export_sha256": (preflight or {}).get("structured_export_sha256"),
-            "fallback_used": True,
-            "fallback_scope": "debug/audit probe only; not used to populate canonical states/transitions",
+            "fallback_used": False,
+            "fallback_scope": None,
             "source_text_used_for_canonical": False,
         }
     )

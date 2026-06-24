@@ -8,7 +8,7 @@ from typing import Any
 from .adapters import convert_plantuml, convert_ttool_xml, convert_umple
 from .models import Loss
 from .report import make_example_report, sha256_file, write_json
-from .toolchain import preflight_for_format
+from .toolchain import ToolchainSetupError, preflight_for_format
 
 REPO_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples")
 CONVERSION_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/conversion")
@@ -129,7 +129,7 @@ def _apply_toolchain_preflight(result: Any, preflight: dict[str, Any]) -> None:
     else:
         if result.status == "converted":
             result.status = "partial"
-        reason = preflight.get("fallback_reason") or "Official/mature toolchain preflight did not succeed; no regex/text parser output may be used as canonical conversion."
+        reason = preflight.get("fallback_reason") or "Official/mature toolchain preflight did not succeed; no source-text parser output may be used as canonical conversion."
         result.blocking_reason = reason if not result.blocking_reason else result.blocking_reason
         loss_id = f"{result.example_id}:{result.adapter}:official_preflight_failed"
         result.diagnostics.append({
@@ -171,7 +171,10 @@ def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: s
     meta = _load_meta(example_dir)
     stm_path = _find_stm(example_dir)
     fmt = meta["stm_format"]
-    preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
+    try:
+        preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
+    except ToolchainSetupError as exc:
+        raise SystemExit(f"R3 conversion toolchain setup failed for {example_dir.name}:\n{exc}") from None
     kwargs = {"example_id": example_dir.name, "seed_id": meta["seed_id"], "source_format": fmt}
     if fmt == "plantuml":
         result = convert_plantuml(stm_path, preflight=preflight, repo_root=repo_root, **kwargs)

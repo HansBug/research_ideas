@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +19,23 @@ class ScxmlOptions:
     fallback_scope: str | None = None
     timing_level: str = "none"
     source_language: str | None = None
+
+
+
+
+def _strip_leading_xml_comments(text: str) -> str:
+    """Strip only leading XML comments/whitespace before XML declaration for ElementTree.
+
+    Some official SCXML exporters prepend comments before `<?xml ...?>`; this is
+    normalization for XML parsing, not a source-language parser fallback.
+    """
+    out = text.lstrip()
+    while out.startswith("<!--"):
+        end = out.find("-->")
+        if end < 0:
+            return text
+        out = out[end + 3:].lstrip()
+    return out
 
 
 def _local_name(tag: str) -> str:
@@ -97,7 +113,7 @@ def convert_scxml(
         # ElementTree requires the XML declaration to be at the beginning of the entity, so
         # we strip leading comments/whitespace only in memory while preserving the persisted
         # official SCXML file as the auditable source artifact.
-        parse_text = re.sub(r"\A(?:\s*<!--.*?-->\s*)+", "", raw_scxml_text, flags=re.DOTALL)
+        parse_text = _strip_leading_xml_comments(raw_scxml_text)
         root = ET.fromstring(parse_text)
     except ET.ParseError as exc:
         result.status = "blocked"
@@ -241,7 +257,7 @@ def convert_scxml(
             "code": "R3.STRUCTURED_EXPORT.CANONICAL_FROM_SCXML",
             "severity": "info",
             "structured_export_path": structured_export_relpath or str(scxml_path),
-            "message": "Canonical states/transitions were extracted from official SCXML structured export, not from regex over source text.",
+            "message": "Canonical states/transitions were extracted from official SCXML structured export, not from source-text parsing.",
         }
     )
     return result

@@ -18,6 +18,78 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _fake_toolchain_env(tmp_path: Path) -> dict[str, str]:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_plantuml = fake_bin / "plantuml.jar"
+    fake_umple = fake_bin / "umple.jar"
+    fake_plantuml.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "log = os.environ.get('PLANTUML_CALL_LOG')\n"
+        "if log:\n"
+        "    pathlib.Path(log).open('a').write(' '.join(args) + '\\n')\n"
+        "if '-version' in args:\n"
+        "    print('Fake PlantUML 0.0')\n"
+        "    raise SystemExit(0)\n"
+        "src = pathlib.Path(args[-1])\n"
+        "text = src.read_text(encoding='utf-8')\n"
+        "if '\"Menu Created\"' in text:\n"
+        "    sys.stderr.write('Some diagram description contains errors\\n')\n"
+        "    raise SystemExit(200 if '-checkonly' in args else 1)\n"
+        "if '-checkonly' in args:\n"
+        "    raise SystemExit(0)\n"
+        "if '-tscxml' in args:\n"
+        "    src.with_suffix('.scxml').write_text('<scxml version=\"1.0\" initial=\"S1\"><state id=\"S1\"><transition target=\"S2\" event=\"go\"/></state><state id=\"S2\"/></scxml>', encoding='utf-8')\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(0)\n",
+        encoding="utf-8",
+    )
+    fake_umple.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, pathlib, sys\n"
+        "args = sys.argv[1:]\n"
+        "log = os.environ.get('UMPLE_CALL_LOG')\n"
+        "if log:\n"
+        "    pathlib.Path(log).open('a').write(' '.join(args) + '\\n')\n"
+        "if '--version' in args:\n"
+        "    print('Fake Umple 0.0')\n"
+        "    raise SystemExit(0)\n"
+        "if '-g' in args and 'Scxml' in args:\n"
+        "    src = pathlib.Path(args[-1])\n"
+        "    src.with_suffix('.scxml').write_text('<!-- official fake scxml --><scxml version=\"1.0\" initial=\"Ready\"><state id=\"Ready\"><transition target=\"Timeout\" event=\"timeout\"/></state><state id=\"Timeout\"><transition target=\"Ready\" event=\"timeoutTimeoutToReady\"/></state></scxml>', encoding='utf-8')\n"
+        "raise SystemExit(0)\n",
+        encoding="utf-8",
+    )
+    fake_plantuml.chmod(0o755)
+    fake_umple.chmod(0o755)
+
+    fake_java = fake_bin / "java"
+    fake_java.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, subprocess, sys\n"
+        "args = sys.argv[1:]\n"
+        "if args[:2] == ['-jar', os.environ['PLANTUML_JAR']]:\n"
+        "    raise SystemExit(subprocess.call([os.environ['PLANTUML_JAR'], *args[2:]]))\n"
+        "if args[:2] == ['-jar', os.environ['UMPLE_JAR']]:\n"
+        "    raise SystemExit(subprocess.call([os.environ['UMPLE_JAR'], *args[2:]]))\n"
+        "if args == ['-version']:\n"
+        "    sys.stderr.write('fake java 1.8\\n')\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    fake_java.chmod(0o755)
+    return {
+        **os.environ,
+        "PYTHONPATH": str(SRC),
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ.get('PATH', '')}",
+        "PLANTUML_JAR": str(fake_plantuml),
+        "UMPLE_JAR": str(fake_umple),
+    }
+
+
 def test_selected_examples_hashes_match_source_meta():
     for d in sorted(p for p in SELECTED.iterdir() if p.is_dir()):
         meta = json.loads((d / "source_meta.json").read_text(encoding="utf-8"))
@@ -45,7 +117,7 @@ def test_cli_regenerates_four_example_report(tmp_path):
     completed = subprocess.run(
         cmd,
         cwd=REPO,
-        env={**os.environ, "PYTHONPATH": str(SRC)},
+        env=_fake_toolchain_env(tmp_path),
         text=True,
         capture_output=True,
         check=True,
@@ -63,6 +135,33 @@ def test_cli_regenerates_four_example_report(tmp_path):
     assert by_id["ttool-automatedbraking-xml"]["status"] == "partial"
     assert by_id["ttool-automatedbraking-xml"]["conversion_source"] == "official_xml"
     assert all("tool_preflight" in item for item in report["items"])
+
+
+def test_cli_fails_loudly_when_required_toolchains_missing(tmp_path):
+    out = tmp_path / "reports"
+    cmd = [
+        sys.executable,
+        "-m",
+        "paper_stm_repair_conversion.cli",
+        "convert-selected",
+        "--reports-dir",
+        str(out),
+        "--run-id",
+        "pytest-r3-missing-tools",
+    ]
+    empty_path = tmp_path / "empty-path"
+    empty_path.mkdir()
+    env = {**os.environ, "PYTHONPATH": str(SRC), "PATH": str(empty_path)}
+    for key in ("PLANTUML_JAR", "PLANTUML_PATH", "UMPLE_JAR", "UMPLE_PATH"):
+        env.pop(key, None)
+    completed = subprocess.run(cmd, cwd=REPO, env=env, text=True, capture_output=True, check=False)
+    assert completed.returncode != 0
+    err = completed.stderr + completed.stdout
+    assert "R3 conversion toolchain setup failed" in err
+    assert "PlantUML" in err
+    assert "不会复用已提交 SCXML" in err
+    assert "不会退回到正则/文本解析" in err
+    assert "PLANTUML_JAR" in err
 
 
 def test_committed_report_keeps_r3_smoke_boundary_and_losses():
@@ -106,8 +205,9 @@ def test_committed_outputs_use_official_structured_sources_and_timing_audit_only
 
     umple = json.loads((REPORTS / "canonical" / "sefm-ssc7-umple.canonical_stm.json").read_text(encoding="utf-8"))
     assert umple["metadata"]["conversion_source"] == "official_scxml"
-    assert umple["metadata"]["fallback_used"] is True
-    assert "targeted raw timing/loss audit" in umple["metadata"]["fallback_scope"]
+    assert umple["metadata"]["fallback_used"] is False
+    assert umple["metadata"]["targeted_audit_used"] is True
+    assert "raw Umple timing token audit" in umple["metadata"]["targeted_audit_scope"]
     assert all("stm0.scxml:" in s["raw_ref"] for s in umple["model"]["states"])
     assert all("stm0.scxml:" in t["raw_ref"] for t in umple["model"]["transitions"])
     assert any(d["code"] == "R3.UMPLE.TIMING_RAW_AUDIT" for d in umple["diagnostics"])
@@ -173,61 +273,6 @@ def test_committed_report_records_official_toolchain_preflight():
 
 
 def test_cli_invokes_configured_external_toolchains(tmp_path):
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    fake_plantuml = fake_bin / "plantuml.jar"
-    fake_umple = fake_bin / "umple.jar"
-    fake_plantuml.write_text(
-        "#!/usr/bin/env python3\n"
-        "import os, pathlib, sys\n"
-        "args = sys.argv[1:]\n"
-        "pathlib.Path(os.environ['PLANTUML_CALL_LOG']).open('a').write(' '.join(args) + '\\n')\n"
-        "if '-version' in args:\n"
-        "    print('Fake PlantUML 0.0')\n"
-        "    raise SystemExit(0)\n"
-        "if '-checkonly' in args:\n"
-        "    raise SystemExit(0)\n"
-        "if '-tscxml' in args:\n"
-        "    src = pathlib.Path(args[-1])\n"
-        "    src.with_suffix('.scxml').write_text('<scxml version=\\\"1.0\\\"/>', encoding='utf-8')\n"
-        "    raise SystemExit(0)\n"
-        "raise SystemExit(0)\n",
-        encoding="utf-8",
-    )
-    fake_umple.write_text(
-        "#!/usr/bin/env python3\n"
-        "import os, pathlib, sys\n"
-        "args = sys.argv[1:]\n"
-        "pathlib.Path(os.environ['UMPLE_CALL_LOG']).open('a').write(' '.join(args) + '\\n')\n"
-        "if '--version' in args:\n"
-        "    print('Fake Umple 0.0')\n"
-        "    raise SystemExit(0)\n"
-        "if '-g' in args and 'Scxml' in args:\n"
-        "    src = pathlib.Path(args[-1])\n"
-        "    src.with_suffix('.scxml').write_text('<scxml version=\\\"1.0\\\"/>', encoding='utf-8')\n"
-        "raise SystemExit(0)\n",
-        encoding="utf-8",
-    )
-    fake_plantuml.chmod(0o755)
-    fake_umple.chmod(0o755)
-
-    fake_java = fake_bin / "java"
-    fake_java.write_text(
-        "#!/usr/bin/env python3\n"
-        "import os, subprocess, sys\n"
-        "args = sys.argv[1:]\n"
-        "if args[:2] == ['-jar', os.environ['PLANTUML_JAR']]:\n"
-        "    raise SystemExit(subprocess.call([os.environ['PLANTUML_JAR'], *args[2:]]))\n"
-        "if args[:2] == ['-jar', os.environ['UMPLE_JAR']]:\n"
-        "    raise SystemExit(subprocess.call([os.environ['UMPLE_JAR'], *args[2:]]))\n"
-        "if args == ['-version']:\n"
-        "    sys.stderr.write('fake java 1.8\\n')\n"
-        "    raise SystemExit(0)\n"
-        "raise SystemExit(2)\n",
-        encoding="utf-8",
-    )
-    fake_java.chmod(0o755)
-
     out = tmp_path / "reports"
     cmd = [
         sys.executable,
@@ -242,11 +287,7 @@ def test_cli_invokes_configured_external_toolchains(tmp_path):
     plant_log = tmp_path / "plantuml_calls.log"
     umple_log = tmp_path / "umple_calls.log"
     env = {
-        **os.environ,
-        "PYTHONPATH": str(SRC),
-        "PATH": f"{fake_bin}{os.pathsep}{os.environ.get('PATH', '')}",
-        "PLANTUML_JAR": str(fake_plantuml),
-        "UMPLE_JAR": str(fake_umple),
+        **_fake_toolchain_env(tmp_path),
         "PLANTUML_CALL_LOG": str(plant_log),
         "UMPLE_CALL_LOG": str(umple_log),
     }

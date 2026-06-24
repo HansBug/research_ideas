@@ -11,6 +11,10 @@ from typing import Any
 from .report import sha256_file
 
 
+class ToolchainSetupError(RuntimeError):
+    """Raised when a required external conversion tool/runtime is unavailable or misconfigured."""
+
+
 @dataclass
 class ToolPreflight:
     tool_name: str
@@ -96,36 +100,78 @@ def _display_source(example_id: str, stm_path: Path) -> str:
     return f"selected_seed_examples/{example_id}/{stm_path.name}"
 
 
-def _reuse_committed_scxml_export(*, example_id: str, repo_root: Path, reports_dir: Path) -> tuple[Path | None, str | None]:
-    committed = repo_root / "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/toolchain_exports" / example_id / "stm0.scxml"
-    if not committed.exists() or committed.stat().st_size == 0:
-        return None, None
-    out_dir = reports_dir / "toolchain_exports" / example_id
-    out_dir.mkdir(parents=True, exist_ok=True)
-    target = out_dir / committed.name
-    if committed.resolve() != target.resolve():
-        target.write_bytes(committed.read_bytes())
-    return target, sha256_file(target)
+def _configured_path(env_name: str) -> Path | None:
+    val = os.environ.get(env_name)
+    return Path(val).expanduser() if val else None
+
+
+def _configured_missing(env_names: tuple[str, ...]) -> list[tuple[str, Path]]:
+    missing = []
+    for env_name in env_names:
+        path = _configured_path(env_name)
+        if path is not None and not path.exists():
+            missing.append((env_name, path))
+    return missing
+
+
+def _format_missing_env_paths(missing: list[tuple[str, Path]]) -> str:
+    return "; ".join(f"{name}={path} 不存在" for name, path in missing)
+
+
+def _require_java_runtime(*, tool_name: str, setup_hint: str) -> str:
+    if shutil.which("java") is None:
+        raise ToolchainSetupError(
+            f"{tool_name} 需要 Java runtime，但当前 PATH 中找不到 `java`。\n"
+            f"请先安装 JRE/JDK 并确认 `java -version` 可运行；然后按以下方式配置工具：\n{setup_hint}"
+        )
+    try:
+        cp = _run(["java", "-version"], timeout=10)
+    except Exception as exc:
+        raise ToolchainSetupError(
+            f"{tool_name} 需要 Java runtime，但执行 `java -version` 失败：{exc}\n"
+            f"请修复 Java 安装后重试；工具配置方式：\n{setup_hint}"
+        ) from exc
+    version_text = _tail((cp.stderr or "") + "\n" + (cp.stdout or ""), 400)
+    if cp.returncode != 0:
+        raise ToolchainSetupError(
+            f"{tool_name} 需要 Java runtime，但 `java -version` 返回 {cp.returncode}。输出：\n{version_text}\n"
+            f"请修复 Java 安装后重试；工具配置方式：\n{setup_hint}"
+        )
+    return version_text
+
+
+def _plantuml_setup_hint(repo_root: Path) -> str:
+    return (
+        "PlantUML 配置建议：\n"
+        "1. 下载官方 plantuml.jar： https://github.com/plantuml/plantuml/releases 或 https://plantuml.com/download\n"
+        "2. 设置环境变量： `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或放到仓库 `tools/plantuml.jar`。\n"
+        "3. 也可安装 PATH 中可执行的 `plantuml` 命令。\n"
+        "4. 复验命令： `java -jar $PLANTUML_JAR -version`、`java -jar $PLANTUML_JAR -checkonly selected_seed_examples/<id>/stm0.puml`、`java -jar $PLANTUML_JAR -tscxml selected_seed_examples/<id>/stm0.puml`。\n"
+        "当前仓库候选显式路径：tools/plantuml.jar"
+    )
+
+
+def _umple_setup_hint(repo_root: Path) -> str:
+    return (
+        "Umple 配置建议：\n"
+        "1. 下载官方 umple.jar： https://cruise.umple.org/umpleonline/scripts/umple.jar （入口说明见 https://cruise.umple.org/umple/UmpleTools.html）\n"
+        "2. 设置环境变量： `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到仓库 `tools/umple.jar`。\n"
+        "3. 复验命令： `java -jar $UMPLE_JAR --version`、`java -jar $UMPLE_JAR -g Nothing selected_seed_examples/<id>/stm0.ump`、`java -jar $UMPLE_JAR -g Scxml selected_seed_examples/<id>/stm0.ump`。\n"
+        "当前仓库候选显式路径：tools/umple.jar"
+    )
 
 
 def _plantuml_jar_candidates(repo_root: Path) -> list[Path]:
     candidates: list[Path] = []
     for env_name in ("PLANTUML_JAR", "PLANTUML_PATH"):
-        val = os.environ.get(env_name)
-        if val:
-            candidates.append(Path(val))
-    if shutil.which("plantuml"):
-        # command mode, represented by a sentinel string in evidence only; jar candidates remain paths.
-        pass
-    candidates.extend([
-        Path.home() / "pyplantuml-poc/src/pyplantuml/plantuml.jar",
-        Path.home() / "oo-projects/fcstm-ui/docs/plantuml.jar",
-        repo_root / "tools/plantuml.jar",
-    ])
+        path = _configured_path(env_name)
+        if path is not None and path.exists():
+            candidates.append(path)
+    candidates.append(repo_root / "tools/plantuml.jar")
     seen: set[str] = set()
     out = []
     for c in candidates:
-        key = str(c)
+        key = str(c.resolve()) if c.exists() else str(c)
         if key not in seen and c.exists():
             seen.add(key)
             out.append(c)
@@ -134,61 +180,54 @@ def _plantuml_jar_candidates(repo_root: Path) -> list[Path]:
 
 def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, reports_dir: Path) -> ToolPreflight:
     source_url = "https://plantuml.com/command-line"
+    setup_hint = _plantuml_setup_hint(repo_root)
+    missing = _configured_missing(("PLANTUML_JAR", "PLANTUML_PATH"))
+    if missing:
+        raise ToolchainSetupError(
+            "PlantUML 已通过环境变量配置，但路径无效："
+            f"{_format_missing_env_paths(missing)}\n{setup_hint}"
+        )
     java_info = _java_version()
     jar_candidates = _plantuml_jar_candidates(repo_root)
+    plantuml_cmd = shutil.which("plantuml")
     evidence: dict[str, Any] = {
         "official_capability": "headless syntax check/render; state diagram SCXML; XMI is for class diagrams; no documented AST export",
         "java_version": java_info,
         "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in jar_candidates) if candidate}),
+        "download_hint": "https://github.com/plantuml/plantuml/releases ; https://plantuml.com/download",
+        "setup_hint": setup_hint,
+        "committed_export_reuse_allowed": False,
     }
-    if not jar_candidates and not shutil.which("plantuml"):
-        reused, reused_sha = _reuse_committed_scxml_export(example_id=example_id, repo_root=repo_root, reports_dir=reports_dir)
-        if reused is not None:
-            return ToolPreflight(
-                tool_name="PlantUML CLI",
-                tool_version=None,
-                tool_source_url=source_url,
-                invocation_status="tool_missing_reused_committed_official_scxml",
-                syntax_status="not_run_tool_missing_reused_official_export",
-                structured_export_status="scxml_export_reused_tool_missing",
-                structured_export_format="scxml",
-                structured_export_sha256=reused_sha,
-                structured_export_path=_rel_or_abs(reused, repo_root),
-                fallback_reason="No plantuml executable or plantuml.jar candidate was available in this environment; R3 reused a committed PlantUML official SCXML export fixture for canonical structured extraction instead of regex/text parsing.",
-                evidence={**evidence, "reused_committed_official_export": _rel(reused, repo_root)},
-            )
-        return ToolPreflight(
-            tool_name="PlantUML CLI",
-            tool_version=None,
-            tool_source_url=source_url,
-            invocation_status="not_available_no_canonical_conversion",
-            syntax_status="not_run_tool_missing",
-            structured_export_status="not_run_tool_missing",
-            fallback_reason="No plantuml executable or plantuml.jar candidate was available; R3 cannot produce PlantUML canonical conversion without official SCXML. Text inspection is debug/audit only.",
-            evidence=evidence,
+    if not jar_candidates and not plantuml_cmd:
+        raise ToolchainSetupError(
+            "R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没有 `plantuml` 命令，也没有可用 plantuml.jar。\n"
+            "不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。\n"
+            f"{setup_hint}"
         )
 
     if jar_candidates:
         jar = jar_candidates[0]
+        _require_java_runtime(tool_name="PlantUML CLI", setup_hint=setup_hint)
         base_cmd = ["java", "-jar", str(jar)]
         tool_ref = _rel(jar, repo_root)
     else:
-        base_cmd = [shutil.which("plantuml") or "plantuml"]
+        base_cmd = [plantuml_cmd or "plantuml"]
         tool_ref = base_cmd[0]
 
     try:
         version_cp = _run(base_cmd + ["-version"], timeout=20)
         version_text = _tail((version_cp.stdout or "") + "\n" + (version_cp.stderr or ""), 800)
     except Exception as exc:
-        return ToolPreflight(
-            tool_name="PlantUML CLI",
-            tool_version=None,
-            tool_source_url=source_url,
-            invocation_status="failed_before_syntax_fallback_parser_used",
-            syntax_status="not_run_tool_error",
-            structured_export_status="not_run_tool_error",
-            fallback_reason=f"PlantUML command could not be invoked: {exc}",
-            evidence={**evidence, "selected_tool": tool_ref},
+        raise ToolchainSetupError(
+            f"PlantUML 命令无法启动：{exc}\n"
+            "请确认 PlantUML/Java 安装可用，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"{setup_hint}"
+        ) from exc
+    if version_cp.returncode != 0:
+        raise ToolchainSetupError(
+            f"PlantUML `-version` 返回 {version_cp.returncode}，工具链不可用。输出：\n{version_text}\n"
+            "请按下列方式修复，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"{setup_hint}"
         )
 
     with tempfile.TemporaryDirectory(prefix=f"r3_plantuml_{example_id}_") as td:
@@ -218,11 +257,11 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
     elif syntax_ok:
         invocation_status = "official_cli_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official syntax check passed but SCXML export did not produce a usable file; R3 does not use text regex as canonical conversion source and marks the example blocked/partial with tooling loss."
+        fallback = "Official syntax check passed but SCXML export did not produce a usable file; R3 does not use any source-text parser as canonical conversion source and marks the example blocked/partial with tooling loss."
     else:
         invocation_status = "official_cli_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official PlantUML syntax check failed; R3 does not use text regex as canonical conversion source. Any text inspection is limited to debug/audit probe and the example cannot be marked converted."
+        fallback = "Official PlantUML syntax check failed; R3 does not use any source-text parser as canonical conversion source. The example cannot be marked converted."
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
 
@@ -248,18 +287,14 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
 def _umple_jar_candidates(repo_root: Path) -> list[Path]:
     candidates: list[Path] = []
     for env_name in ("UMPLE_JAR", "UMPLE_PATH"):
-        val = os.environ.get(env_name)
-        if val:
-            candidates.append(Path(val))
-    candidates.extend([
-        repo_root / "tools/umple.jar",
-        Path.home() / "umple.jar",
-        Path.home() / "下载/llm_state_machine_modeling/backend/resources/umple.jar",
-    ])
+        path = _configured_path(env_name)
+        if path is not None and path.exists():
+            candidates.append(path)
+    candidates.append(repo_root / "tools/umple.jar")
     seen: set[str] = set()
     out = []
     for c in candidates:
-        key = str(c)
+        key = str(c.resolve()) if c.exists() else str(c)
         if key not in seen and c.exists():
             seen.add(key)
             out.append(c)
@@ -268,6 +303,13 @@ def _umple_jar_candidates(repo_root: Path) -> list[Path]:
 
 def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports_dir: Path) -> ToolPreflight:
     source_url = "https://cruise.umple.org/umple/UmpleTools.html"
+    setup_hint = _umple_setup_hint(repo_root)
+    missing = _configured_missing(("UMPLE_JAR", "UMPLE_PATH"))
+    if missing:
+        raise ToolchainSetupError(
+            "Umple 已通过环境变量配置，但路径无效："
+            f"{_format_missing_env_paths(missing)}\n{setup_hint}"
+        )
     java_info = _java_version()
     candidates = _umple_jar_candidates(repo_root)
     evidence: dict[str, Any] = {
@@ -275,49 +317,33 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
         "java_version": java_info,
         "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in candidates) if candidate}),
         "download_hint": "https://cruise.umple.org/umpleonline/scripts/umple.jar",
+        "setup_hint": setup_hint,
+        "committed_export_reuse_allowed": False,
     }
     if not candidates:
-        reused, reused_sha = _reuse_committed_scxml_export(example_id=example_id, repo_root=repo_root, reports_dir=reports_dir)
-        if reused is not None:
-            return ToolPreflight(
-                tool_name="Umple compiler CLI",
-                tool_version=None,
-                tool_source_url=source_url,
-                invocation_status="tool_missing_reused_committed_official_scxml",
-                syntax_status="not_run_tool_missing_reused_official_export",
-                structured_export_status="scxml_export_reused_tool_missing",
-                structured_export_format="scxml",
-                structured_export_sha256=reused_sha,
-                structured_export_path=_rel_or_abs(reused, repo_root),
-                fallback_reason="No local umple.jar was available in this environment; R3 reused a committed Umple official SCXML export fixture for canonical structured extraction. Raw .ump text remains targeted timing/loss audit only.",
-                evidence={**evidence, "reused_committed_official_export": _rel(reused, repo_root)},
-            )
-        return ToolPreflight(
-            tool_name="Umple compiler CLI",
-            tool_version=None,
-            tool_source_url=source_url,
-            invocation_status="not_available_no_canonical_conversion",
-            syntax_status="not_run_tool_missing",
-            structured_export_status="not_run_tool_missing",
-            fallback_reason="No local umple.jar was available. R3 cannot produce Umple canonical conversion without official structured export; rerun with UMPLE_JAR or tools/umple.jar for official SCXML extraction.",
-            evidence=evidence,
+        raise ToolchainSetupError(
+            "R3 Umple 转换需要真实运行 Umple 官方 compiler，但当前没有可用 umple.jar。\n"
+            "不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。\n"
+            f"{setup_hint}"
         )
 
     jar = candidates[0]
+    _require_java_runtime(tool_name="Umple compiler CLI", setup_hint=setup_hint)
     base_cmd = ["java", "-jar", str(jar)]
     try:
         version_cp = _run(base_cmd + ["--version"], timeout=20)
         version_text = _tail((version_cp.stdout or "") + "\n" + (version_cp.stderr or ""), 800)
     except Exception as exc:
-        return ToolPreflight(
-            tool_name="Umple compiler CLI",
-            tool_version=None,
-            tool_source_url=source_url,
-            invocation_status="failed_before_syntax_fallback_parser_used",
-            syntax_status="not_run_tool_error",
-            structured_export_status="not_run_tool_error",
-            fallback_reason=f"Umple command could not be invoked: {exc}",
-            evidence={**evidence, "selected_tool": _rel(jar, repo_root)},
+        raise ToolchainSetupError(
+            f"Umple 命令无法启动：{exc}\n"
+            "请确认 Umple/Java 安装可用，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"{setup_hint}"
+        ) from exc
+    if version_cp.returncode != 0:
+        raise ToolchainSetupError(
+            f"Umple `--version` 返回 {version_cp.returncode}，工具链不可用。输出：\n{version_text}\n"
+            "请按下列方式修复，不会自动 fallback 到正则或 committed SCXML。\n"
+            f"{setup_hint}"
         )
 
     with tempfile.TemporaryDirectory(prefix=f"r3_umple_{example_id}_") as td:
@@ -343,15 +369,15 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
     if syntax_ok and export_ok:
         invocation_status = "official_compiler_syntax_and_scxml_ok_canonical_source"
         structured_status = "scxml_export_ok"
-        fallback = "Canonical structure is extracted from official Umple SCXML. Raw .ump text is used only for targeted timing/loss audit because official SCXML rewrites after(60) into timeoutTimeoutToReady."
+        fallback = None
     elif syntax_ok:
         invocation_status = "official_compiler_syntax_ok_scxml_failed_no_canonical_conversion"
         structured_status = "scxml_export_failed"
-        fallback = "Official Umple syntax check passed but SCXML export did not produce a usable file; R3 does not use regex parser as canonical conversion source."
+        fallback = "Official Umple syntax check passed but SCXML export did not produce a usable file; R3 does not use any source-text parser as canonical conversion source."
     else:
         invocation_status = "official_compiler_syntax_failed_no_canonical_conversion"
         structured_status = "scxml_not_trusted_after_syntax_failure"
-        fallback = "Official Umple compiler rejected the file; R3 does not use regex parser as canonical conversion source."
+        fallback = "Official Umple compiler rejected the file; R3 does not use any source-text parser as canonical conversion source."
 
     replacements = {str(local): _display_source(example_id, stm_path), str(tmp): "<tmp>"}
 

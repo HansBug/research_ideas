@@ -31,13 +31,15 @@
 
 ## 4. 官方工具链与 adapter v0 纪律
 
-R3 的默认顺序是 **官方/成熟工具链 preflight -> 官方结构化导出 -> 以结构化导出作为 canonical 主转换路径 -> targeted fallback audit -> loss ledger**。不得把 regex/string parser 写成 canonical 主路径，也不得在官方工具失败时仍标 `converted`。
+R3 的默认顺序是 **官方/成熟工具链 preflight -> 官方结构化导出 -> 以结构化导出作为 canonical 主转换路径 -> targeted audit -> loss ledger**。不得把 regex/string parser 写成 canonical 主路径，也不得在官方工具失败时仍标 `converted`。
 
-每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。`fallback_used=true` 时必须说明 fallback 只是 debug / targeted loss audit，还是导致无 canonical conversion；不得让 reviewer 误以为文本 parser 是主转换链。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
+缺少 PlantUML / Umple / Java runtime 或显式 jar 路径无效时，CLI 必须 loudly fail，并在错误信息中给出下载、环境变量与复验命令建议；不得复用 committed SCXML，不得静默 fallback 到 regex/string parser，不得把旧 report fixture 当作当前转换 evidence。
+
+每个 conversion report item 必须写清：`conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。R3 目前不允许 source-text fallback；Umple 的 `after(...)` 扫描属于 `targeted_audit_used`，不能写成 fallback，也不能参与 states/transitions canonical 抽取。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
 
 ### 4.1 PlantUML
 
-v0 不再用 regex/string parser 作为 PlantUML canonical 主路径。PlantUML canonical 主路径是 `-tscxml` 官方 SCXML：
+v0 不再用 regex/string parser 作为 PlantUML canonical 主路径。PlantUML canonical 主路径只能是 `-tscxml` 官方 SCXML：
 
 - states / transitions / hierarchy 从 SCXML XML 节点抽取；
 - canonical element `raw_ref` 指向 `stm0.scxml:...` 节点路径；
@@ -52,11 +54,11 @@ java -jar plantuml.jar -checkonly selected_seed_examples/<id>/stm0.puml
 java -jar plantuml.jar -tscxml selected_seed_examples/<id>/stm0.puml
 ```
 
-若官方 syntax check 或 SCXML export 失败，该样例最多只能标 `partial/blocked`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` 或等价 diagnostic 与 tooling loss；不得用 regex fallback 产出 canonical states/transitions。
+若缺少 PlantUML / Java runtime / jar 路径错误，CLI 必须直接失败并给出配置建议。若官方 syntax check 或 SCXML export 失败，该样例最多只能标 `partial/blocked`，并必须写入 `R3.TOOLCHAIN.OFFICIAL_SYNTAX_FAILED` 或等价 diagnostic 与 tooling loss；不得用 source-text parser 产出 canonical states/transitions。
 
 ### 4.2 Umple
 
-v0 不再用 regex/string parser 作为 Umple canonical 主路径。Umple canonical 主路径是 `-g Scxml` 官方 SCXML：
+v0 不再用 regex/string parser 作为 Umple canonical 主路径。Umple canonical 主路径只能是 `-g Scxml` 官方 SCXML：
 
 - state / transition / guard / script 从 SCXML XML 节点抽取；
 - canonical element `raw_ref` 指向 `stm0.scxml:...` 节点路径；
@@ -71,7 +73,7 @@ java -jar umple.jar -g Nothing selected_seed_examples/<id>/stm0.ump
 java -jar umple.jar -g Scxml selected_seed_examples/<id>/stm0.ump
 ```
 
-Umple 官方 SCXML 若重写 `after(60)` 等原始 timing 语法，R3 只能用原始 `.ump` 做 targeted timing/loss audit；canonical states/transitions 仍必须来自官方 SCXML。
+若缺少 Umple / Java runtime / jar 路径错误，CLI 必须直接失败并给出配置建议。Umple 官方 SCXML 若重写 `after(60)` 等原始 timing 语法，R3 只能用原始 `.ump` 做 targeted timing/loss audit；canonical states/transitions 仍必须来自官方 SCXML。
 
 ### 4.3 TTool XML
 
@@ -108,4 +110,5 @@ R3 最低验收：
 4. Umple 至少 partial，并对 timer-like loss 入账；若 `umple.jar` 可用，canonical states/transitions 必须来自官方 SCXML。
 5. TTool XML 至少 partial / blocked 且不得静默跳过；必须说明官方 headless structured export 是否有证据。
 6. 本地 pytest 通过；如果没有 Codecov comment，不虚构覆盖率。
-7. `test_cli_regenerates_four_example_report` 与 `test_cli_invokes_configured_external_toolchains` 会真实触发 PlantUML / Umple toolchain 路径；本地应提供 `plantuml.jar` / `UMPLE_JAR`，或依赖已提交的官方 SCXML fixture 进行结构化抽取复验。CI 若不安装第三方 jar，应至少保留 schema/report/canonical fixture 校验。
+7. `test_cli_regenerates_four_example_report` 与 `test_cli_invokes_configured_external_toolchains` 使用 fake Java / fake PlantUML / fake Umple 验证 CLI 会真实调用外部工具链；`test_cli_fails_loudly_when_required_toolchains_missing` 验证缺工具时必须 loud fail。
+8. 本地真实重生成 report 时必须配置 `PLANTUML_JAR` 与 `UMPLE_JAR`，不能依赖已提交的 SCXML fixture。CI 若不安装第三方 jar，应至少保留 schema/report/canonical fixture 校验和 fake-toolchain 回归。

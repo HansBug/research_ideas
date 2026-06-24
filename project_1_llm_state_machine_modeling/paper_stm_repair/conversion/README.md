@@ -31,58 +31,105 @@ conversion/
 └── reports/
 ```
 
-## 3. 运行方式
+## 3. How it works
 
-请在仓库根目录运行：
+R3 的转换链路是“Python 编排器 + 外部成熟工具链 + 结构化 XML/SCXML adapter”，不是手写 PlantUML/Umple 文本 parser：
+
+1. `cli.py` 先校验四例 `nl.txt`、`stm0.*` 与 `source_meta.json` 的 SHA-256。
+2. `toolchain.py` 对不同格式执行真实 preflight：
+   - PlantUML：运行 `plantuml` 或 `java -jar plantuml.jar`，先 `-checkonly`，再 `-tscxml`。
+   - Umple：运行 `java -jar umple.jar`，先 `-g Nothing`，再 `-g Scxml`。
+   - TTool XML：检查一手 XML artifact，R3 不声明存在稳定 headless SMD -> SCXML/JSON/AST 导出。
+3. adapter 只消费官方结构化产物：PlantUML / Umple 解析 `reports/toolchain_exports/` 里的 SCXML，TTool 解析一手 XML。
+4. 若工具缺失、工具不可执行、官方 syntax fail 或 SCXML export fail：
+   - 缺工具 / Java runtime / jar 路径错误：命令 **loudly fail**，错误信息会给出下载与配置建议。
+   - 官方 syntax/export 失败：该样例只可标 `partial/blocked`，不得生成 canonical JSON。
+   - R3 不复用 committed SCXML，不做 source-text parser fallback，不用正则/字符串从 `.puml` / `.ump` 重建 states/transitions。
+5. 成功或部分成功后生成 canonical STM JSON、conversion report、loss ledger 和 markdown summary。
+
+## 4. 运行环境与依赖配置
+
+### 4.1 Python 依赖
+
+在仓库根目录使用已有环境安装依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+运行 R3 CLI：
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/conversion/src \
 python -m paper_stm_repair_conversion.cli convert-selected
 ```
 
-该命令会：
+### 4.2 Java / PlantUML / Umple
 
-1. 校验四例 `nl.txt`、`stm0.*` 与 `source_meta.json` 的 SHA-256 是否一致。
-2. 先做成熟工具链 / 官方工件 preflight：PlantUML CLI、Umple compiler、TTool/AVATAR XML evidence。
-3. **以官方结构化导出作为 canonical 主转换路径**：PlantUML / Umple 解析 `reports/toolchain_exports/` 中的 SCXML，TTool 解析一手 XML artifact。
-4. 若官方 SCXML / XML 不可用或不可置信，文本 fallback 只能作为 debug / targeted loss audit，不得生成 regex 主导的 canonical STM。
-5. 生成 canonical STM JSON、conversion report、loss ledger 和 markdown summary。
+R3 需要真实外部工具链。缺少这些工具时会直接失败并给出操作建议，不会静默退回 committed fixture 或文本解析。
 
-## 4. 当前四例裁决
+| 工具 | 何时需要 | 配置方式 | 复验命令 |
+|---|---|---|---|
+| Java runtime | PlantUML jar / Umple jar | 安装 JRE/JDK，确保 `java -version` 可用 | `java -version` |
+| PlantUML | 转换 `.puml` smoke 样例 | 推荐 `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或安装 PATH 中的 `plantuml`；或放到 `tools/plantuml.jar` | `java -jar $PLANTUML_JAR -version`；`java -jar $PLANTUML_JAR -checkonly project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml`；`java -jar $PLANTUML_JAR -tscxml .../stm0.puml` |
+| Umple | 转换 `.ump` smoke 样例 | 推荐 `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到 `tools/umple.jar` | `java -jar $UMPLE_JAR --version`；`java -jar $UMPLE_JAR -g Nothing project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/sefm-ssc7-umple/stm0.ump`；`java -jar $UMPLE_JAR -g Scxml .../stm0.ump` |
+
+官方下载入口：
+
+- PlantUML：<https://plantuml.com/download> / <https://github.com/plantuml/plantuml/releases>
+- Umple：<https://cruise.umple.org/umpleonline/scripts/umple.jar> / <https://cruise.umple.org/umple/UmpleTools.html>
+
+本仓库不提交第三方大型 jar；report 只保留工具名称、版本、命令、官方来源、结构化导出 hash/path 与失败原因。
+
+### 4.3 缺工具时的预期错误
+
+如果未配置 PlantUML，CLI 会类似这样失败：
+
+```text
+R3 conversion toolchain setup failed for llms-emp-gpt4o-hldcs:
+R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没有 `plantuml` 命令，也没有可用 plantuml.jar。
+不会复用已提交 SCXML，也不会退回到正则/文本解析。请按下面步骤配置后重试。
+... PLANTUML_JAR ...
+```
+
+如果设置了 `PLANTUML_JAR` / `UMPLE_JAR` 但路径不存在，也会直接报出对应环境变量与路径，要求修复后重试。
+
+## 5. 当前四例裁决
 
 | 样例 | 格式 | R3 status | 说明 |
 |---|---|---|---|
 | `llms-emp-gpt4o-hldcs` | PlantUML | `converted` | PlantUML `-tscxml` 成功；canonical states/transitions 来自官方 SCXML。 |
-| `unified-uml-synthetic-0000` | PlantUML | `partial` | PlantUML 官方 `-checkonly` 失败且无可信 SCXML；不再用 regex fallback 生成 canonical，`canonical_output_path=null`。 |
+| `unified-uml-synthetic-0000` | PlantUML | `partial` | PlantUML 官方 `-checkonly` 返回 `200`，`-tscxml` 返回 `1`，stderr 含 `Some diagram description contains errors` 与 `UnsupportedOperationException: SCXML`；无可信 SCXML；不生成 canonical，`canonical_output_path=null`。 |
 | `sefm-ssc7-umple` | Umple | `partial` | Umple `-g Scxml` 成功；canonical states/transitions 来自官方 SCXML，原始 `.ump` 仅用于 `after(60)` targeted timing loss audit。 |
 | `ttool-automatedbraking-xml` | TTool XML | `partial` | 解析一手 TTool/AVATAR XML artifact 做 SMD inventory；connector endpoint 未解析完整，不切出纯 T0 STM。 |
 
-## 5. 输出解释
+## 6. 输出解释
 
-- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status 与 fallback reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。
+- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status、setup hint 与 failure reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。
 - [reports/selected_seed_examples_loss_ledger.jsonl](./reports/selected_seed_examples_loss_ledger.jsonl)：所有 loss / 降级 / partial 原因。
 - [reports/selected_seed_examples_summary.md](./reports/selected_seed_examples_summary.md)：便于人工浏览的概览。
 - [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON。
-- [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；PlantUML / Umple 成功样例的 canonical 主结构必须来自这些 SCXML，而不是源文本 regex。
+- [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；PlantUML / Umple 成功样例的 canonical 主结构必须来自这些 SCXML，而不是源文本解析。
 - `blocked` / `unsupported` 样例允许 `canonical_output_path` 和 `canonical_output_sha256` 为 `null`；不得生成空 canonical STM 冒充转换成功。
 
-## 6. 与后续阶段关系
+## 7. 与后续阶段关系
 
 - R4 可消费 R3 的 `R3.STATUS.*` 与 `R3.LOSS.*` code，但不得改写 R3 裁决语义。
 - R5 应用 deterministic dry-run 检查 R3 输出是否足以支撑诊断 / 场景。
 - R7/R8 才冻结正式实验格式范围与 experiment-grade conversion；R3 不提前承担该职责。
 
-## 7. 官方工具链优先纪律
+## 8. 官方工具链优先纪律
 
 R3 当前不是“直接手写 parser 即可”的实现。每次转换必须先尝试或记录成熟工具链 preflight，并且 canonical conversion 主路径必须优先消费官方结构化导出：
 
-- PlantUML：优先使用 `plantuml` 或 `plantuml.jar` 做 syntax check，并在可行时导出 SCXML；syntax/export 成功时 canonical 来自 SCXML；若官方 syntax fail，不得凭 regex fallback 标为 `converted`。
-- Umple：优先使用 `umple.jar` 做 `-g Nothing` syntax/compile preflight，并在可行时导出 SCXML；canonical 来自 SCXML；原始 `.ump` 仅允许用于 `after(...)` 等 targeted loss audit。
+- PlantUML：必须使用 `plantuml` 或 `plantuml.jar` 做 syntax check，并在可行时导出 SCXML；syntax/export 成功时 canonical 来自 SCXML；若工具缺失则 loudly fail；若官方 syntax fail，不得凭文本解析标为 `converted`。
+- Umple：必须使用 `umple.jar` 做 `-g Nothing` syntax/compile preflight，并在可行时导出 SCXML；canonical 来自 SCXML；原始 `.ump` 仅允许用于 `after(...)` 等 targeted loss audit。
 - TTool/AVATAR：当前只确认 XML artifact 与 ttool-cli/MCP 入口，未找到稳定 headless AVATAR SMD -> SCXML/JSON/AST 导出；因此基于官方 XML artifact 做 inventory 并标 `partial`。
 
-本地若需要复现官方 Umple preflight，可临时设置：
+本地若需要复现官方 preflight，可临时设置：
 
 ```bash
+export PLANTUML_JAR=/path/to/plantuml.jar
 export UMPLE_JAR=/path/to/umple.jar
 ```
 

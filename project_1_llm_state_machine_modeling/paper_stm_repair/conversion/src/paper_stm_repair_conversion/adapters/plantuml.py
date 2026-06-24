@@ -19,7 +19,7 @@ def convert_plantuml(
     structured_path = (preflight or {}).get("structured_export_path")
     syntax_status = (preflight or {}).get("syntax_status")
     structured_status = (preflight or {}).get("structured_export_status")
-    if syntax_status == "ok" and structured_status in {"scxml_export_ok", "scxml_export_reused_tool_missing"} and structured_path:
+    if syntax_status == "ok" and structured_status == "scxml_export_ok" and structured_path:
         scxml_path = (repo_root / structured_path) if repo_root and not Path(structured_path).is_absolute() else Path(structured_path)
         result = convert_scxml(
             scxml_path,
@@ -43,7 +43,7 @@ def convert_plantuml(
         result.metadata["source_text_used_for_canonical"] = False
         return result
 
-    reason = (preflight or {}).get("fallback_reason") or "PlantUML official SCXML export was unavailable; regex/text parser is not allowed as canonical conversion source."
+    reason = (preflight or {}).get("fallback_reason") or "PlantUML official SCXML export was unavailable; source-text parser is not allowed as canonical conversion source."
     result = ConversionResult(
         example_id=example_id,
         seed_id=seed_id,
@@ -59,8 +59,8 @@ def convert_plantuml(
             "canonical_extraction_method": "none; official SCXML unavailable or not trusted",
             "structured_export_path": structured_path,
             "structured_export_sha256": (preflight or {}).get("structured_export_sha256"),
-            "fallback_used": True,
-            "fallback_scope": "debug/audit probe only; not used to populate canonical states/transitions",
+            "fallback_used": False,
+            "fallback_scope": None,
             "source_text_used_for_canonical": False,
         }
     )
