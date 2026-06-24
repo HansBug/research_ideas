@@ -118,7 +118,7 @@ def preflight_plantuml(stm_path: Path, *, example_id: str, repo_root: Path, repo
     evidence: dict[str, Any] = {
         "official_capability": "headless syntax check/render; state diagram SCXML; XMI is for class diagrams; no documented AST export",
         "java_version": java_info,
-        "jar_candidates": [_rel(p, repo_root) for p in jar_candidates],
+        "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in jar_candidates) if candidate}),
     }
     if not jar_candidates and not shutil.which("plantuml"):
         return ToolPreflight(
@@ -236,7 +236,7 @@ def preflight_umple(stm_path: Path, *, example_id: str, repo_root: Path, reports
     evidence: dict[str, Any] = {
         "official_capability": "headless compiler; documented generators include Json, Scxml, Ecore, Xmi, StateTables; no separate AST export found",
         "java_version": java_info,
-        "jar_candidates": [_rel(p, repo_root) for p in candidates],
+        "jar_candidates": sorted({candidate for candidate in (_rel(p, repo_root) for p in candidates) if candidate}),
         "download_hint": "https://cruise.umple.org/umpleonline/scripts/umple.jar",
     }
     if not candidates:
