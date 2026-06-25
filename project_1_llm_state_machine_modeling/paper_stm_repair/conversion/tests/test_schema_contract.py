@@ -47,6 +47,15 @@ def test_committed_recovery_report_validates_against_schema():
     report_path = REPORTS / "plantuml_recovery_report.json"
     report = load_json(report_path)
     jsonschema.Draft202012Validator(schema).validate(report)
+    assert report["repo_commit"] == report["generator_code_commit"]
+    assert report["generator_code_commit"] not in {"unknown", "8ed7607ab20f828ade4aefb4ef4d60dfb5996558"}
+    assert report["generator_worktree_dirty"] is False
+    assert report["generator_git_status_porcelain"] == []
+    assert "artifact commit" in report["artifact_commit_note"]
+    assert "clean" in report["repo_commit_semantics"].lower()
+    assert isinstance(report["generator_worktree_dirty"], bool)
+    assert isinstance(report["generator_git_status_porcelain"], list)
+    assert "recover-plantuml" in report["generation_command"]
     assert report["summary"]["raw_total"] == 1049
     assert report["summary"]["failed_before"] == 499
     assert "technical_scxml_pass_all_rules" in report["summary"]

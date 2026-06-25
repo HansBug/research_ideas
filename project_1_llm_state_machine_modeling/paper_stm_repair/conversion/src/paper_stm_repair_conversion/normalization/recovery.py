@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -143,6 +144,14 @@ def _source_file_immutability(repo_root: Path, paths: Iterable[Path], before: di
     return rows
 
 
+def _git_status_porcelain(repo_root: Path) -> list[str]:
+    try:
+        out = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True)
+    except Exception:
+        return ["<git-status-unavailable>"]
+    return [line for line in out.splitlines() if line.strip()]
+
+
 def _canonical_parse_pass(canonical: dict[str, Any] | None) -> bool:
     if not canonical:
         return False
@@ -281,12 +290,15 @@ def run_recovery(
     pair_sources: Iterable[Path] | None = None,
     limit: int | None = None,
     created_at: str | None = None,
+    generation_command: str | None = None,
 ) -> dict[str, Any]:
     reports_dir.mkdir(parents=True, exist_ok=True)
     run_dir.mkdir(parents=True, exist_ok=True)
     normalized_dir = run_dir / "normalized_candidates"
     normalized_dir.mkdir(parents=True, exist_ok=True)
     pairs = load_plantuml_pairs(repo_root, pair_sources, limit=limit)
+    generator_code_commit = repo_commit(repo_root)
+    generator_git_status = _git_status_porcelain(repo_root)
     source_file_sha_before = {
         str(path.resolve()): sha256_file(path)
         for path in {pair.source_pairs_path for pair in pairs}
@@ -444,7 +456,13 @@ def run_recovery(
         "report_version": RECOVERY_REPORT_VERSION,
         "run_id": run_id,
         "created_at": created,
-        "repo_commit": repo_commit(repo_root),
+        "repo_commit": generator_code_commit,
+        "repo_commit_semantics": "Clean generator-code commit captured before writing report/run artifacts; the PR head that commits this report can be a later artifact commit.",
+        "generator_code_commit": generator_code_commit,
+        "generator_worktree_dirty": bool(generator_git_status),
+        "generator_git_status_porcelain": generator_git_status,
+        "artifact_commit_note": "If this committed report is reviewed at a later PR head, compare generator_code_commit with the parent/code commit used to generate artifacts rather than requiring repo_commit to equal the artifact commit itself.",
+        "generation_command": generation_command or "python -m paper_stm_repair_conversion.cli recover-plantuml",
         "schema_version": "r3.1.plantuml_recovery.v0",
         "conversion_contract": "R3.1 only normalizes PlantUML before official -tscxml; canonical STM must still come from official SCXML.",
         "temporary_probe_reference": {
@@ -640,6 +658,8 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         "",
         "- JSON report: `plantuml_recovery_report.json`",
         f"- normalization ledger: `{report['normalization_ledger_path']}`",
+        f"- generator code commit: `{report['generator_code_commit']}`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。",
+        f"- generator worktree dirty: `{report['generator_worktree_dirty']}`",
         "- canonical STM 不由 normalizer 直接生成；所有 recovered 判定均基于官方 PlantUML SCXML。",
         "",
     ])

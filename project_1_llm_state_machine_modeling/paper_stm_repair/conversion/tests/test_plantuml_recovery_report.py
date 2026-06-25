@@ -177,6 +177,11 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     report = json.loads((reports / "plantuml_recovery_report.json").read_text(encoding="utf-8"))
     ledger_rows = [json.loads(line) for line in (reports / "plantuml_normalization_ledger.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     jsonschema.Draft202012Validator(json.loads((ROOT / "schemas" / "recovery_report.schema.json").read_text(encoding="utf-8"))).validate(report)
+    assert report["repo_commit"] == report["generator_code_commit"]
+    assert isinstance(report["generator_worktree_dirty"], bool)
+    assert isinstance(report["generator_git_status_porcelain"], list)
+    assert "recover-plantuml" in report["generation_command"]
+    assert "artifact commit" in report["artifact_commit_note"]
     ledger_schema = json.loads((ROOT / "schemas" / "normalization_ledger.schema.json").read_text(encoding="utf-8"))
     for row in ledger_rows:
         jsonschema.Draft202012Validator(ledger_schema).validate(row)

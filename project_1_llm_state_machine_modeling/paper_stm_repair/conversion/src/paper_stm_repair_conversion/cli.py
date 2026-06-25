@@ -331,6 +331,7 @@ def convert_selected(args: argparse.Namespace) -> int:
 
 def recover_plantuml(args: argparse.Namespace) -> int:
     repo_root = _repo_root_from_cwd()
+    generation_command = "python -m paper_stm_repair_conversion.cli recover-plantuml"
     report = run_recovery(
         repo_root=repo_root,
         reports_dir=repo_root / args.reports_dir,
@@ -339,6 +340,7 @@ def recover_plantuml(args: argparse.Namespace) -> int:
         pair_sources=[Path(p) for p in args.pair_source] if args.pair_source else None,
         limit=args.limit,
         created_at=args.created_at,
+        generation_command=generation_command,
     )
     summary = report["summary"]
     print(json.dumps({
