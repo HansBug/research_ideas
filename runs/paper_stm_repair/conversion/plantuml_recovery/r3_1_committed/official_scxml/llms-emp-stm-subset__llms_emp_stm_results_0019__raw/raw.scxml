@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><scxml xmlns="http://www.w3.org/2005/07/scxml" initial="start" version="1.0">
+<state id="start">
+<transition event="Autonomous mode start" target="AutonomousMode"/>
+</state>
+<state id="AutonomousMode">
+<state id="startAutonomousMode">
+<transition event="Start of autonomous driving mode" target="InitialState"/>
+</state>
+<state id="InitialState">
+<transition target="GMN8"/>
+<transition event="high_way=true" target="HighwayMode"/>
+<transition event="urban_way=true" target="UrbanMode"/>
+</state>
+<state id="GMN8" stereotype="note">
+<!--Autonomous driving mode-->
+</state>
+<state id="FinishState"/>
+<state id="HighwayMode">
+<transition event="urban_way=true" target="UrbanMode"/>
+<state id="startHighwayMode">
+<transition target="enter_hwy"/>
+</state>
+<state id="enter_hwy">
+<transition event="dist_to_front&lt;25 &amp; extra_lane=true" target="cruise"/>
+<transition event="dist_to_front&lt;25 &amp; extra_lane=true" target="lane_change"/>
+</state>
+<state id="cruise">
+<transition event="dist_to_front&lt;25 &amp; extra_lane=true" target="lane_change"/>
+<transition event="dist_to_exit&lt;2" target="ExitHighway"/>
+</state>
+<state id="lane_change">
+<transition event="Lane change completed" target="cruise"/>
+<transition event="dist_to_exit&lt;2" target="ExitHighway"/>
+</state>
+<state id="ExitHighway">
+<transition event="auto_finished=true" target="FinishState"/>
+</state>
+</state>
+<state id="UrbanMode">
+<transition event="high_way=true" target="HighwayMode"/>
+<state id="startUrbanMode">
+<transition target="enter_urban"/>
+</state>
+<state id="enter_urban">
+<transition event="dist_to_front&lt;15 &amp; extra_lane=true" target="lane_change_urban"/>
+<transition event="Road ahead is clear" target="straight"/>
+<transition event="intersection=true" target="intersection"/>
+</state>
+<state id="lane_change_urban">
+<transition event="Lane change completed" target="straight"/>
+<transition event="dist_to_exit&lt;0.7" target="exit_urban"/>
+</state>
+<state id="straight">
+<transition event="intersection=true" target="intersection"/>
+<transition event="dist_to_front&lt;15 &amp; extra_lane=true" target="lane_change_urban"/>
+</state>
+<state id="intersection"/>
+<state id="exit_urban">
+<transition event="auto_finished=true" target="FinishState"/>
+</state>
+</state>
+</state>
+<state id="CollisionAvoidanceSystem">
+<state id="collision_avoidance_deactive">
+<transition event="pedestrian_detected | (dist_to_rear&lt;5 &amp; vel&gt;30) | (dist_to_front&lt;15 in hwy mode or &lt;10 in urban mode)" target="collision_avoidance_active"/>
+</state>
+<state id="collision_avoidance_active">
+<transition event="front_inactive &amp; rear_inactive &amp; pedestrian_inactive" target="collision_avoidance_deactive"/>
+</state>
+</state>
+</scxml>

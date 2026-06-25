@@ -9,6 +9,7 @@ from .adapters import convert_plantuml, convert_ttool_xml, convert_umple
 from .models import Loss
 from .report import make_example_report, sha256_file, write_json
 from .toolchain import ToolchainSetupError, preflight_for_format
+from .normalization.recovery import run_recovery
 
 REPO_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples")
 CONVERSION_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/conversion")
@@ -328,6 +329,30 @@ def convert_selected(args: argparse.Namespace) -> int:
     return 0
 
 
+def recover_plantuml(args: argparse.Namespace) -> int:
+    repo_root = _repo_root_from_cwd()
+    report = run_recovery(
+        repo_root=repo_root,
+        reports_dir=repo_root / args.reports_dir,
+        run_dir=repo_root / args.run_dir,
+        run_id=args.run_id,
+        pair_sources=[Path(p) for p in args.pair_source] if args.pair_source else None,
+        limit=args.limit,
+        created_at=args.created_at,
+    )
+    summary = report["summary"]
+    print(json.dumps({
+        "reports_dir": str(repo_root / args.reports_dir),
+        "run_dir": str(repo_root / args.run_dir),
+        "raw_total": summary["raw_total"],
+        "failed_before": summary["failed_before"],
+        "technical_scxml_pass_all_rules": summary["technical_scxml_pass_all_rules"],
+        "low_risk_scxml_pass": summary["low_risk_scxml_pass"],
+        "main_eligibility_included": summary["main_eligibility_included"],
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="R3 paper_stm_repair conversion v0 CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -337,6 +362,20 @@ def main(argv: list[str] | None = None) -> int:
     conv.add_argument("--run-id", default="r3-selected-seed-examples-v0", help="stable run id for committed smoke fixture")
     conv.add_argument("--created-at", default=None, help="optional ISO timestamp for deterministic committed fixtures")
     conv.set_defaults(func=convert_selected)
+
+    rec = sub.add_parser("recover-plantuml", help="run R3.1 PlantUML pre-SCXML normalization/recovery audit")
+    rec.add_argument("--reports-dir", default=str(CONVERSION_REL_BASE / "reports"), help="conversion reports directory relative to repo root")
+    rec.add_argument("--run-dir", default="runs/paper_stm_repair/conversion/plantuml_recovery/r3_1_committed", help="run artifact directory relative to repo root")
+    rec.add_argument("--run-id", default="r3.1-plantuml-recovery-v0", help="stable run id for recovery audit")
+    rec.add_argument("--created-at", default=None, help="optional ISO timestamp for deterministic committed fixtures")
+    rec.add_argument("--limit", type=int, default=None, help="optional maximum number of PlantUML pairs for smoke/debug")
+    rec.add_argument(
+        "--pair-source",
+        action="append",
+        default=None,
+        help="PlantUML pairs.jsonl source relative to repo root; may be repeated; defaults to LLMS-EMP and Unified UML seed pairs",
+    )
+    rec.set_defaults(func=recover_plantuml)
     args = parser.parse_args(argv)
     return args.func(args)
 

@@ -143,3 +143,24 @@ export UMPLE_JAR=/path/to/umple.jar
 `unified-uml-synthetic-0000` 当前故意保留为“官方工具失败边界”样例：它的一手 PlantUML 在本地 PlantUML `1.2024.7` 上 syntax check 失败，SCXML export 抛出 `UnsupportedOperationException: SCXML`。这能覆盖一个重要审计场景：**官方工具失败时，converter 不得凭正则 / 文本 parser 伪造 canonical STM**。
 
 如果后续用户决定让四例 smoke 全部走通结构化转换，可从同一 seed 的 [../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl](../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl) 中替换该例。当前候选初筛见 [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：前 80 行中 40 行可导出 SCXML，较早候选为 `unified_uml_state_train_0003`、`0005`、`0007`。替换时必须同步更新 [../selected_seed_examples/](../selected_seed_examples/) 下该例的 `nl.txt`、`stm0.puml`、`source_meta.json`、`README.md`，并重新运行 hash audit 与 conversion report。
+
+## 10. R3.1 PlantUML pre-SCXML normalization / recovery
+
+R3.1 在本目录下新增 [normalization/](./normalization/) 微型工作区，用于回答 failed PlantUML 样本能否在 **不修改一手 raw assets** 的前提下，通过转换前规范化恢复为 official-toolchain-compatible STM。
+
+关键纪律：
+
+1. normalization 只生成 run/report 路径中的候选 `.puml`，不覆盖 seed library assets、`pairs.jsonl` 或 [selected_seed_examples/](../selected_seed_examples/)。
+2. recovered 判定仍必须来自官方 PlantUML `-checkonly` / `-tscxml` 产物；normalizer 不直接生成 canonical STM。
+3. 恢复率必须同时报告 `technical_scxml_pass_all_rules`、`low_risk_scxml_pass`、`main_eligibility_included`；论文主 claim 只能使用低风险 / 主 eligibility 口径。
+4. 高风险 action/guard/hierarchy/concurrency loss 默认不得进入主 repair eligibility；`fork_join_decl_to_state` 必须标 `concurrency_degraded=true`。
+
+主要输出：
+
+- [normalization/README.md](./normalization/README.md)：工作方式与复验命令。
+- [normalization/GUIDE.md](./normalization/GUIDE.md)：规则、ledger 与 eligibility gate 纪律。
+- [reports/plantuml_recovery_report.json](./reports/plantuml_recovery_report.json)：R3.1 committed 恢复报告。
+- [reports/plantuml_recovery_summary.md](./reports/plantuml_recovery_summary.md)：人工阅读摘要。
+- [reports/plantuml_normalization_ledger.jsonl](./reports/plantuml_normalization_ledger.jsonl)：逐变换 ledger。
+
+R3 report 仍是四例 converter v0 smoke fixture；R3.1 report 是 failed PlantUML recovery / eligibility audit。两者事实合流应通过 PR body/comment 或后续合流 commit 处理，避免恢复率形成第二事实真源。

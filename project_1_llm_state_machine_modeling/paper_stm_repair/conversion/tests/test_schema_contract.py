@@ -40,3 +40,36 @@ def test_loss_ledger_rows_validate_against_schema():
     for row in rows:
         jsonschema.Draft202012Validator(schema).validate(row)
         assert row["repair_contribution_allowed"] is False
+
+
+def test_committed_recovery_report_validates_against_schema():
+    schema = load_json(SCHEMAS / "recovery_report.schema.json")
+    report_path = REPORTS / "plantuml_recovery_report.json"
+    report = load_json(report_path)
+    jsonschema.Draft202012Validator(schema).validate(report)
+    assert report["summary"]["raw_total"] == 1049
+    assert report["summary"]["failed_before"] == 499
+    assert "technical_scxml_pass_all_rules" in report["summary"]
+    assert "low_risk_scxml_pass" in report["summary"]
+    assert "main_eligibility_included" in report["summary"]
+
+
+def test_committed_normalization_ledger_validates_against_schema():
+    schema = load_json(SCHEMAS / "normalization_ledger.schema.json")
+    rows = [json.loads(line) for line in (REPORTS / "plantuml_normalization_ledger.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert rows
+    for row in rows:
+        jsonschema.Draft202012Validator(schema).validate(row)
+        assert row["repair_contribution_allowed"] is False
+    assert any(row["rule_id"] == "PUML.NORM.fork_join_decl_to_state" and row["concurrency_degraded"] for row in rows)
+
+
+def test_committed_recovery_outputs_do_not_embed_local_absolute_paths():
+    for path in [
+        REPORTS / "plantuml_recovery_report.json",
+        REPORTS / "plantuml_recovery_summary.md",
+        REPORTS / "plantuml_normalization_ledger.jsonl",
+    ]:
+        text = path.read_text(encoding="utf-8")
+        assert "/home/" not in text
+        assert "/tmp/" not in text

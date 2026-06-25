@@ -115,3 +115,14 @@ R3 最低验收：
 7. `test_cli_regenerates_four_example_report` 与 `test_cli_invokes_configured_external_toolchains` 使用 fake Java / fake PlantUML / fake Umple 验证 CLI 会真实调用外部工具链；`test_cli_fails_loudly_when_required_toolchains_missing` 验证缺工具时必须 loud fail。
 8. 本地真实重生成 report 时必须配置 `PLANTUML_JAR` 与 `UMPLE_JAR`，不能依赖已提交的 SCXML fixture。CI 若不安装第三方 jar，应至少保留 schema/report/canonical fixture 校验和 fake-toolchain 回归。
 9. `unified-uml-synthetic-0000` 当前作为官方工具失败边界样例保留；若未来替换为同源可导出 SCXML 的候选，必须同步更新 `nl.txt`、`stm0.puml`、`source_meta.json`、样例 README、hash audit、conversion report 和 [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)。
+
+## 7. R3.1 PlantUML normalization / recovery 纪律
+
+当任务涉及 [normalization/](./normalization/) 时，除本 GUIDE 的 R3 no-fallback 纪律外，还必须遵守：
+
+1. normalization 必须发生在 PlantUML `-tscxml` 之前；不得在 adapter 内部从源文本直接构造 canonical states/transitions。
+2. 每条变换必须写入 [reports/plantuml_normalization_ledger.jsonl](./reports/plantuml_normalization_ledger.jsonl)，包含 rule id、line/span、before/after、raw hash、normalized hash、risk tier 与 eligibility 口径。
+3. 任何高风险规则（comment-out、entry/do/exit loss、dependency 注释、fork/join 降级等）默认只能作为 supplementary / manual-review；不得进入主 repair / verification statistics。
+4. R3.1 report 必须保留三种恢复率：`technical_scxml_pass_all_rules` / `low_risk_scxml_pass` / `main_eligibility_included`。
+5. LLMS-EMP cross-LLM claim gate 必须计算：每个 LLM `eligible_after >= 5` 且 max/min ratio <= 2 才允许谨慎 aggregate claim；否则只能写 coverage audit 或 negative finding。
+6. recovered vs naturally-converted profile comparison 必须至少覆盖状态数、迁移数、层级、transition label 长度、alias 数和 semantic risk 分布。
