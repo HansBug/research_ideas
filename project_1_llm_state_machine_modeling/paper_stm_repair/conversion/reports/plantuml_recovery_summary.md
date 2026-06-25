@@ -74,4 +74,6 @@
 
 - JSON report: `plantuml_recovery_report.json`
 - normalization ledger: `project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/plantuml_normalization_ledger.jsonl`
+- generator code commit: `90f9ff0b772cd9b5c1b942950c8dfeec3df56f6b`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。
+- generator worktree dirty: `False`
 - canonical STM 不由 normalizer 直接生成；所有 recovered 判定均基于官方 PlantUML SCXML。
