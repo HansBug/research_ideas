@@ -15,6 +15,8 @@ class ToolchainSetupError(RuntimeError):
     """Raised when a required external conversion tool/runtime is unavailable or misconfigured."""
 
 
+_PLANTUML_BASE_CACHE: dict[str, tuple[list[str], str, str]] = {}
+
 NO_TEXT_FALLBACK_POLICY_ZH = (
     "R3 不允许在官方工具链缺失、不可执行、syntax check 失败或结构化导出失败时，"
     "静默退回 regex/string/source-text parser，也不允许复用已提交 SCXML fixture 冒充本次转换证据。"
@@ -104,6 +106,13 @@ def _rel_or_abs(path: Path | None, repo_root: Path) -> str | None:
 
 def _display_source(example_id: str, stm_path: Path) -> str:
     return f"selected_seed_examples/{example_id}/{stm_path.name}"
+
+
+def _display_candidate(path: Path, repo_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(repo_root.resolve()))
+    except ValueError:
+        return f"external-run-artifact/{path.name}"
 
 
 def _configured_path(env_name: str) -> Path | None:
@@ -472,6 +481,160 @@ def preflight_ttool_xml(stm_path: Path, *, example_id: str, repo_root: Path, rep
             "documented_structured_model_asset": "TTool/AVATAR XML file",
             "not_evidenced_in_r3": "documented batch export from AVATAR XML/SMD to SCXML/JSON/AST",
         },
+    )
+
+
+def plantuml_command_base(repo_root: Path) -> tuple[list[str], str, str]:
+    """Return a validated PlantUML command base, display ref, and version text.
+
+    This helper is shared by R3 selected-example conversion and R3.1 recovery.
+    It validates the same environment variables and emits the same loud setup
+    errors; callers still decide which input file to pass to -checkonly/-tscxml.
+    """
+    cache_key = str(repo_root.resolve()) + "|" + (os.environ.get("PLANTUML_JAR") or "") + "|" + (os.environ.get("PLANTUML_PATH") or "")
+    if cache_key in _PLANTUML_BASE_CACHE:
+        return _PLANTUML_BASE_CACHE[cache_key]
+    setup_hint = _plantuml_setup_hint(repo_root)
+    missing = _configured_missing(("PLANTUML_JAR", "PLANTUML_PATH"))
+    if missing:
+        raise ToolchainSetupError(
+            "PlantUML 已通过环境变量配置，但路径无效："
+            f"{_format_missing_env_paths(missing)}\n{setup_hint}"
+        )
+    jar_candidates = _plantuml_jar_candidates(repo_root)
+    plantuml_cmd = shutil.which("plantuml")
+    if not jar_candidates and not plantuml_cmd:
+        raise ToolchainSetupError(
+            "R3 PlantUML 转换需要真实运行 PlantUML 官方工具链，但当前既没有 `plantuml` 命令，也没有可用 plantuml.jar。\n"
+            f"{NO_TEXT_FALLBACK_POLICY_ZH}\n请按下面步骤配置后重试。\n"
+            f"{setup_hint}"
+        )
+    if jar_candidates:
+        jar = jar_candidates[0]
+        _require_java_runtime(tool_name="PlantUML CLI", setup_hint=setup_hint)
+        base_cmd = ["java", "-jar", str(jar)]
+        tool_ref = _rel(jar, repo_root) or str(jar)
+    else:
+        base_cmd = [plantuml_cmd or "plantuml"]
+        tool_ref = base_cmd[0]
+    try:
+        version_cp = _run(base_cmd + ["-version"], timeout=20)
+        version_text = _tail((version_cp.stdout or "") + "\n" + (version_cp.stderr or ""), 800)
+    except Exception as exc:
+        raise ToolchainSetupError(
+            f"PlantUML 命令无法启动：{exc}\n"
+            f"请确认 PlantUML/Java 安装可用。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
+            f"{setup_hint}"
+        ) from exc
+    if version_cp.returncode != 0:
+        raise ToolchainSetupError(
+            f"PlantUML `-version` 返回 {version_cp.returncode}，工具链不可用。输出：\n{version_text}\n"
+            f"请按下列方式修复。{NO_TEXT_FALLBACK_POLICY_ZH}\n"
+            f"{setup_hint}"
+        )
+    _PLANTUML_BASE_CACHE[cache_key] = (base_cmd, tool_ref, version_text)
+    return base_cmd, tool_ref, version_text
+
+
+def run_plantuml_on_candidate(
+    candidate_path: Path,
+    *,
+    example_id: str,
+    repo_root: Path,
+    reports_dir: Path,
+    export_subdir: str = "toolchain_exports",
+    output_stem: str | None = None,
+    timeout: int = 30,
+) -> ToolPreflight:
+    """Run official PlantUML -checkonly/-tscxml on a concrete candidate file.
+
+    The candidate can be raw or normalized PlantUML.  A successful caller still
+    must parse the persisted SCXML; this function does not inspect source text to
+    produce canonical STM.
+    """
+    source_url = "https://plantuml.com/command-line"
+    setup_hint = _plantuml_setup_hint(repo_root)
+    base_cmd, tool_ref, version_text = plantuml_command_base(repo_root)
+    with tempfile.TemporaryDirectory(prefix=f"r3_plantuml_{example_id}_") as td:
+        tmp = Path(td)
+        local = tmp / candidate_path.name
+        local.write_bytes(candidate_path.read_bytes())
+        check_cmd = base_cmd + ["-checkonly", str(local)]
+        check_cp = _run(check_cmd, timeout=timeout)
+        scxml_cmd = base_cmd + ["-tscxml", str(local)]
+        scxml_cp = _run(scxml_cmd, timeout=timeout)
+        scxml_path = local.with_suffix(".scxml")
+        persisted_scxml: Path | None = None
+        scxml_sha: str | None = None
+        if scxml_path.exists() and scxml_path.stat().st_size > 0:
+            out_dir = reports_dir / export_subdir / example_id
+            out_dir.mkdir(parents=True, exist_ok=True)
+            persisted_scxml = out_dir / f"{output_stem or candidate_path.stem}.scxml"
+            persisted_scxml.write_bytes(scxml_path.read_bytes())
+            scxml_sha = sha256_file(persisted_scxml)
+    syntax_ok = check_cp.returncode == 0
+    export_ok = persisted_scxml is not None
+    if syntax_ok and export_ok:
+        invocation_status = "official_cli_syntax_and_scxml_ok_canonical_source"
+        structured_status = "scxml_export_ok"
+        fallback = None
+    elif syntax_ok:
+        invocation_status = "official_cli_syntax_ok_scxml_failed_no_canonical_conversion"
+        structured_status = "scxml_export_failed"
+        fallback = (
+            "Official syntax check passed but SCXML export did not produce a usable file; "
+            "R3 does not use any source-text parser as canonical conversion source and marks the example blocked/partial with tooling loss. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
+    else:
+        invocation_status = "official_cli_syntax_failed_no_canonical_conversion"
+        structured_status = "scxml_not_trusted_after_syntax_failure"
+        fallback = (
+            "Official PlantUML syntax check failed; R3 does not use any source-text parser as canonical conversion source. "
+            "The example cannot be marked converted. "
+            + NO_TEXT_FALLBACK_POLICY_ZH
+        )
+    replacements = {str(local): _display_source(example_id, candidate_path), str(tmp): "<tmp>"}
+    stdout_tail = _sanitize_output((check_cp.stdout or "") + "\n" + (scxml_cp.stdout or ""), replacements)
+    stderr_tail = _sanitize_output((check_cp.stderr or "") + "\n" + (scxml_cp.stderr or ""), replacements)
+    display = _display_candidate(candidate_path, repo_root)
+    evidence: dict[str, Any] = {
+        "official_capability": "headless syntax check/render; state diagram SCXML; XMI is for class diagrams; no documented AST export",
+        "java_version": _java_version(),
+        "download_hint": "https://github.com/plantuml/plantuml/releases ; https://plantuml.com/download",
+        "setup_hint": setup_hint,
+        "no_text_fallback_policy": NO_TEXT_FALLBACK_POLICY_ZH,
+        "committed_export_reuse_allowed": False,
+        "selected_tool": tool_ref,
+        "scxml_command": ([*base_cmd[:2], tool_ref, "-tscxml", display] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-tscxml", display]),
+        "scxml_returncode": scxml_cp.returncode,
+    }
+    if not syntax_ok or not export_ok:
+        evidence["failure_observation"] = {
+            "check_command": ([*base_cmd[:2], tool_ref, "-checkonly", display] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-checkonly", display]),
+            "check_returncode": check_cp.returncode,
+            "scxml_command": evidence["scxml_command"],
+            "scxml_returncode": scxml_cp.returncode,
+            "stdout_tail": stdout_tail,
+            "stderr_tail": stderr_tail,
+            "canonical_decision": "no canonical JSON is emitted unless official PlantUML SCXML exists and is trusted",
+        }
+    return ToolPreflight(
+        tool_name="PlantUML CLI",
+        tool_version=version_text,
+        tool_source_url=source_url,
+        invocation_status=invocation_status,
+        syntax_status="ok" if syntax_ok else "failed",
+        structured_export_status=structured_status,
+        structured_export_format="scxml" if export_ok else None,
+        structured_export_sha256=scxml_sha,
+        structured_export_path=_rel_or_abs(persisted_scxml, repo_root),
+        command=[*base_cmd[:2], tool_ref, "-checkonly", display] if base_cmd[:2] == ["java", "-jar"] else [base_cmd[0], "-checkonly", display],
+        returncode=check_cp.returncode,
+        stdout_tail=stdout_tail,
+        stderr_tail=stderr_tail,
+        fallback_reason=fallback,
+        evidence=evidence,
     )
 
 

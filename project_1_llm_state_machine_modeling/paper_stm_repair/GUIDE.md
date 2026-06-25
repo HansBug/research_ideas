@@ -15,6 +15,7 @@
 5. **smoke 样例边界**：[selected_seed_examples/](./selected_seed_examples/) 只保存后续转换器 / 诊断器 / 修正循环做最小连通性自检的静态输入样例；它不是最终实验集合、不是主结果样本上限，也不是 seed registry 的一手事实主表。
 6. **四例运行边界**：R1.8-A/B/C/D/E 均为文档和文库结构 PR，不跑四例真实运行，不调用真实 LLM，不读取 `.env`；后续若用 [selected_seed_examples/](./selected_seed_examples/) 真正执行 smoke，应另建 run record。
 7. **流程信息边界**：PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报与 merge 进度只维护在 GitHub body / comment；本路径只保留长期结构纪律、事实总账和论文材料，不新增 `progress.md`、`task-packets/` 或跨 PR `agent_provenance.md` 作为动态流程真源。
+8. **R3.1 PlantUML 恢复边界**：PlantUML normalization / recovery 只回答转换器 eligibility，不能写成 Better STM repair 效果；normalization 必须发生在官方 PlantUML `-tscxml` 前，不修改一手 raw assets，canonical STM 只能来自官方 SCXML；高基数 raw / normalized `.puml` 与官方 `.scxml` 必须压缩进 [conversion/artifacts/](./conversion/artifacts/) 下的 archive，不得提交根目录 `runs/` 散文件；主 eligibility 必须通过 source-level semantic preservation gate，高风险 action / guard / hierarchy / concurrency / pseudo-state 降级样本只能作 supplementary evidence。
 
 ## 2. 阅读顺序
 
@@ -24,7 +25,7 @@
 4. 需要 story / RQ / Better STM 口径时，转入 [story/](./story/) 与 [experiment_design/](./experiment_design/)。
 5. 需要理解 seed 当前事实时，优先读 [corpora/seed_library/README.md](./corpora/seed_library/README.md)、[corpora/seed_library/GUIDE.md](./corpora/seed_library/GUIDE.md)、[corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)；后续 R2 seed 冻结以该 SUMMARY 为当前入口。
 6. 需要查看 smoke 用静态样例时，读 [selected_seed_examples/README.md](./selected_seed_examples/README.md)；该目录只保存少量可读 `<NL, STM_0>` 输入和来源元数据，不能替代 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)，也不能被写成最终实验集合。
-7. 需要运行或审计 R3 converter v0 时，读 [conversion/README.md](./conversion/README.md)、[conversion/GUIDE.md](./conversion/GUIDE.md) 与 [conversion/toolchain_survey.md](./conversion/toolchain_survey.md)；该层只服务四例 smoke / R4-R5 dry-run，不是 R7/R8 正式实验级转换器。
+7. 需要运行或审计 R3 converter v0 时，读 [conversion/README.md](./conversion/README.md)、[conversion/GUIDE.md](./conversion/GUIDE.md) 与 [conversion/toolchain_survey.md](./conversion/toolchain_survey.md)；若审计 R3.1 PlantUML recovery / normalization，还必须继续读 [conversion/normalization/README.md](./conversion/normalization/README.md)、[conversion/normalization/GUIDE.md](./conversion/normalization/GUIDE.md)、[conversion/reports/plantuml_recovery_summary.md](./conversion/reports/plantuml_recovery_summary.md) 和 [conversion/artifacts/plantuml_recovery/r3_1_committed/README.md](./conversion/artifacts/plantuml_recovery/r3_1_committed/README.md)。该层只服务四例 smoke / R4-R5 dry-run 和 conversion eligibility audit，不是 R7/R8 正式实验级转换器。
 8. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
 9. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
 10. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
@@ -179,6 +180,7 @@ R1.8-E 的长期验收不是新增文献或冻结四例，而是确保后续 R2 
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-25 23:55:00 | 增加 R3.1 PlantUML normalization / recovery 读取链路与边界：它只服务 conversion eligibility audit；高基数制品必须以 [conversion/artifacts/](./conversion/artifacts/) archive 归档，主 eligibility 必须通过 source-level semantic preservation gate。 |
 | 2026-06-24 17:45:00 | 增加 [conversion/](./conversion/) 读取链路与 R3 converter v0 边界：只服务四例 smoke / R4-R5 dry-run，不是 R7/R8 正式实验级转换器。 |
 | 2026-06-24 10:25:00 | 增加 [selected_seed_examples/](./selected_seed_examples/) 根路径纪律：该目录只服务 smoke / 连通性自检，不是 seed registry 事实源或最终实验集合。 |
 | 2026-06-16 23:08:00 | PR-R1.8-E 收敛总账一致性门：R2 当前入口统一为 [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md)，旧 `seed_corpus/` / `evidence/` / `archive/` 降级为 redirect 或历史审计入口，并将 seed 哨兵统一为 `36 dirs`。 |
