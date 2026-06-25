@@ -32,6 +32,7 @@
 - `rule_id / line / span / before / after / kind / rationale`
 - `semantic_risk / risk_tier / loss_type / needs_manual_review`
 - `technical_scxml_pass_all_rules / low_risk_scxml_pass / main_eligibility_included`
+- `semantic_preservation_pass / semantic_preservation_audit_status`
 - `concurrency_degraded / repair_contribution_allowed=false`
 
 ## 4. Eligibility gate
@@ -39,7 +40,8 @@
 | 条件 | 结果 |
 |---|---|
 | raw already SCXML-pass | 作为 naturally-converted profile；不计 recovered |
-| normalized SCXML-pass + only low-risk rules | `low_risk_scxml_pass=true`，可进入 `main_eligibility_included` |
+| normalized SCXML-pass + only low-risk rules + source-level semantic audit pass | `low_risk_scxml_pass=true`，可进入 `main_eligibility_included` |
+| normalized SCXML-pass + only low-risk rules + semantic audit fail / missing | 只能作为待复核风险，不得进入 `main_eligibility_included` |
 | normalized SCXML-pass + high-risk rules | 只计 `technical_scxml_pass_all_rules`，不得默认进入主 eligibility |
 | fork/join 降级 | 必须 `concurrency_degraded=true` 且 `main_eligibility_included=false` |
 | normalized 后仍失败 | 保留失败 preflight，不生成 canonical |
@@ -47,5 +49,13 @@
 ## 5. 测试要求
 
 - normalizer 单元测试必须覆盖 quoted endpoint、多词 endpoint、`stm` heading、高风险 action/guard/dependency/fork 规则。
-- recovery report 测试必须验证 schema、三种恢复率字段、高风险排除、LLMS-EMP gate、raw immutability。
+- recovery report 测试必须验证 schema、三种恢复率字段、高风险排除、semantic preservation gate、LLMS-EMP gate、raw immutability。
 - fake PlantUML 测试必须证明 CLI 真调用 `-checkonly` / `-tscxml`，而不是复用 fixture。
+- committed report 测试必须证明 `main_eligibility_included=true` 的条目均有 `semantic_preservation_pass=true`，并且高基数 artifact 只以 `workdir.zip` 进入 [../artifacts/](../artifacts/)。
+
+## 6. Artifact 归档纪律
+
+- R3.1 全量 raw / normalized `.puml` 与官方 `.scxml` 必须保存在 [../artifacts/plantuml_recovery/r3_1_committed/workdir.zip](../artifacts/plantuml_recovery/r3_1_committed/workdir.zip)。
+- [../artifacts/plantuml_recovery/r3_1_committed/manifest.json](../artifacts/plantuml_recovery/r3_1_committed/manifest.json) 必须记录 file count、目录分布、后缀分布、report / ledger 路径和复验命令。
+- 解压态 `workdir/` 只用于本地人工检查，必须被忽略，不得提交。
+- 根目录 `runs/` 不再作为 R3.1 committed recovery artifact 路径；若存在旧散文件，应迁移为 archive 或删除。

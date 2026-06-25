@@ -63,11 +63,30 @@ def test_committed_recovery_report_validates_against_schema():
     assert "main_eligibility_included" in report["summary"]
     assert "by_seed_class" in report["summary"]
     assert "eligible_after_composition_by_llm" in report["summary"]["llms_emp_cross_llm_gate"]
+    assert "semantic_preservation_audit_summary" in report
+    assert report["semantic_preservation_audit_summary"]["main_eligibility_requires_pass"] is True
+    assert report["semantic_preservation_audit_summary"]["low_risk_fail_total"] == 0
     assert report["source_file_immutability"]
     assert all(row["source_file_unchanged"] for row in report["source_file_immutability"])
     assert all(row["source_line_unchanged"] and row["source_file_unchanged"] for row in report["raw_immutability"])
     assert all(
         item["main_eligibility_included"] <= item["normalized_conversion_pass"]
+        for item in report["items"]
+    )
+    assert all(
+        (not item["main_eligibility_included"]) or item.get("semantic_preservation_pass") is True
+        for item in report["items"]
+    )
+    assert all(
+        (not item["main_eligibility_included"]) or "when" not in json.dumps(item.get("semantic_preservation_audit"), ensure_ascii=False).lower()
+        for item in report["items"]
+    )
+    assert all(
+        not str(item.get("raw_candidate_path", "")).startswith("runs/")
+        for item in report["items"]
+    )
+    assert all(
+        not str(item.get("normalized_candidate_path", "")).startswith("runs/")
         for item in report["items"]
     )
     assert all(

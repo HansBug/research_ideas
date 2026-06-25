@@ -167,6 +167,8 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
         str(reports),
         "--run-dir",
         str(run_dir),
+        "--archive-dir",
+        str(tmp_path / "archive"),
         "--run-id",
         "pytest-r3.1-recovery",
         "--created-at",
@@ -174,6 +176,10 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     ]
     completed = subprocess.run(cmd, cwd=REPO, env=_fake_plantuml_env(tmp_path), text=True, capture_output=True, check=True)
     assert '"raw_total": 6' in completed.stdout
+    assert (tmp_path / "archive" / "workdir.zip").exists()
+    assert (tmp_path / "archive" / "workdir.zip.sha256").exists()
+    assert (tmp_path / "archive" / "manifest.json").exists()
+    assert not run_dir.exists(), "default CLI should archive then remove high-cardinality loose workdir"
     report = json.loads((reports / "plantuml_recovery_report.json").read_text(encoding="utf-8"))
     ledger_rows = [json.loads(line) for line in (reports / "plantuml_normalization_ledger.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     jsonschema.Draft202012Validator(json.loads((ROOT / "schemas" / "recovery_report.schema.json").read_text(encoding="utf-8"))).validate(report)
@@ -197,6 +203,8 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     assert by_id["p_low"]["technical_scxml_pass_all_rules"] is True
     assert by_id["p_low"]["low_risk_scxml_pass"] is True
     assert by_id["p_low"]["main_eligibility_included"] is True
+    assert by_id["p_low"]["semantic_preservation_pass"] is True
+    assert by_id["p_low"]["semantic_preservation_audit"]["status"] == "pass"
     assert by_id["p_empty_scxml"]["normalized_scxml_pass"] is True
     assert by_id["p_empty_scxml"]["normalized_canonical_parse_pass"] is False
     assert by_id["p_empty_scxml"]["normalized_conversion_pass"] is False
@@ -214,6 +222,8 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     assert report["summary"]["technical_scxml_pass_all_rules"] == 3
     assert report["summary"]["low_risk_scxml_pass"] == 2
     assert report["summary"]["main_eligibility_included"] == 2
+    assert report["semantic_preservation_audit_summary"]["audited_total"] == 5
+    assert report["semantic_preservation_audit_summary"]["low_risk_fail_total"] == 0
     assert set(report["summary"]["by_seed_class"]) == {"llms_emp_cross_llm", "unified_synthetic"}
     assert report["summary"]["by_seed_class"]["unified_synthetic"]["main_eligibility_included"] == 1
     gate = report["summary"]["llms_emp_cross_llm_gate"]

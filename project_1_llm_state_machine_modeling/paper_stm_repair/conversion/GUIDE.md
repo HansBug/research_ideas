@@ -124,5 +124,8 @@ R3 最低验收：
 2. 每条变换必须写入 [reports/plantuml_normalization_ledger.jsonl](./reports/plantuml_normalization_ledger.jsonl)，包含 rule id、line/span、before/after、raw hash、normalized hash、risk tier 与 eligibility 口径。
 3. 任何高风险规则（comment-out、entry/do/exit loss、dependency 注释、fork/join 降级等）默认只能作为 supplementary / manual-review；不得进入主 repair / verification statistics。
 4. R3.1 report 必须保留三种恢复率：`technical_scxml_pass_all_rules` / `low_risk_scxml_pass` / `main_eligibility_included`。
-5. LLMS-EMP cross-LLM claim gate 必须计算：每个 LLM `eligible_after >= 5` 且 max/min ratio <= 2 才允许谨慎 aggregate claim；否则只能写 coverage audit 或 negative finding。
-6. recovered vs naturally-converted profile comparison 必须至少覆盖状态数、迁移数、层级、transition label 长度、alias 数和 semantic risk 分布。
+5. `main_eligibility_included=true` 必须同时满足低风险规则、normalized official SCXML 可解析、`semantic_preservation_pass=true`；任何未审计或审计失败项不得进入主 eligibility。
+6. semantic preservation audit 是 source-level raw-vs-normalized signature audit，不是定理级严格语义等价证明；文档和论文写作应使用“source-signature-preserving / 结构签名保持”这类措辞。
+7. LLMS-EMP cross-LLM claim gate 必须计算：每个 LLM `eligible_after >= 5` 且 max/min ratio <= 2 才允许谨慎 aggregate claim；否则只能写 coverage audit 或 negative finding。
+8. recovered vs naturally-converted profile comparison 必须至少覆盖状态数、迁移数、层级、transition label 长度、alias 数和 semantic risk 分布。
+9. 高基数候选 `.puml` 与官方 `.scxml` 必须归档到 [artifacts/plantuml_recovery/r3_1_committed/](./artifacts/plantuml_recovery/r3_1_committed/) 的 `workdir.zip`；解压态 `workdir/` 和根目录 `runs/` 散文件不得提交。

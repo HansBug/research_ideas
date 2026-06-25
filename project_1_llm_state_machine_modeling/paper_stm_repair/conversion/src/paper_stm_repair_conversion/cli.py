@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -9,10 +10,12 @@ from .adapters import convert_plantuml, convert_ttool_xml, convert_umple
 from .models import Loss
 from .report import make_example_report, sha256_file, write_json
 from .toolchain import ToolchainSetupError, preflight_for_format
+from .normalization.archive import build_recovery_workdir_archive
 from .normalization.recovery import run_recovery
 
 REPO_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples")
 CONVERSION_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/conversion")
+RECOVERY_ARTIFACT_REL_BASE = CONVERSION_REL_BASE / "artifacts" / "plantuml_recovery" / "r3_1_committed"
 
 
 def _repo_root_from_cwd() -> Path:
@@ -332,20 +335,32 @@ def convert_selected(args: argparse.Namespace) -> int:
 def recover_plantuml(args: argparse.Namespace) -> int:
     repo_root = _repo_root_from_cwd()
     generation_command = "python -m paper_stm_repair_conversion.cli recover-plantuml"
+    run_dir = repo_root / args.run_dir
     report = run_recovery(
         repo_root=repo_root,
         reports_dir=repo_root / args.reports_dir,
-        run_dir=repo_root / args.run_dir,
+        run_dir=run_dir,
         run_id=args.run_id,
         pair_sources=[Path(p) for p in args.pair_source] if args.pair_source else None,
         limit=args.limit,
         created_at=args.created_at,
         generation_command=generation_command,
     )
+    archive_manifest = None
+    if args.archive_dir:
+        archive_manifest = build_recovery_workdir_archive(
+            repo_root=repo_root,
+            workdir=run_dir,
+            archive_dir=repo_root / args.archive_dir,
+            report=report,
+        )
+        if not args.keep_workdir:
+            shutil.rmtree(run_dir, ignore_errors=True)
     summary = report["summary"]
     print(json.dumps({
         "reports_dir": str(repo_root / args.reports_dir),
-        "run_dir": str(repo_root / args.run_dir),
+        "run_dir": str(run_dir),
+        "archive": archive_manifest["archive_path"] if archive_manifest else None,
         "raw_total": summary["raw_total"],
         "failed_before": summary["failed_before"],
         "technical_scxml_pass_all_rules": summary["technical_scxml_pass_all_rules"],
@@ -367,7 +382,9 @@ def main(argv: list[str] | None = None) -> int:
 
     rec = sub.add_parser("recover-plantuml", help="run R3.1 PlantUML pre-SCXML normalization/recovery audit")
     rec.add_argument("--reports-dir", default=str(CONVERSION_REL_BASE / "reports"), help="conversion reports directory relative to repo root")
-    rec.add_argument("--run-dir", default="runs/paper_stm_repair/conversion/plantuml_recovery/r3_1_committed", help="run artifact directory relative to repo root")
+    rec.add_argument("--run-dir", default=str(RECOVERY_ARTIFACT_REL_BASE / "workdir"), help="run artifact directory relative to repo root")
+    rec.add_argument("--archive-dir", default=str(RECOVERY_ARTIFACT_REL_BASE), help="directory for committed zipped run artifacts relative to repo root; set empty string to skip archive packaging")
+    rec.add_argument("--keep-workdir", action="store_true", help="preserve extracted high-cardinality recovery workdir after archive packaging; default deletes it so PRs only carry zip artifacts")
     rec.add_argument("--run-id", default="r3.1-plantuml-recovery-v0", help="stable run id for recovery audit")
     rec.add_argument("--created-at", default=None, help="optional ISO timestamp for deterministic committed fixtures")
     rec.add_argument("--limit", type=int, default=None, help="optional maximum number of PlantUML pairs for smoke/debug")

@@ -19,7 +19,15 @@ conversion/
 ├── schemas/
 │   ├── canonical_stm.schema.json
 │   ├── conversion_report.schema.json
-│   └── loss_ledger.schema.json
+│   ├── loss_ledger.schema.json
+│   ├── normalization_ledger.schema.json
+│   └── recovery_report.schema.json
+├── artifacts/
+│   └── plantuml_recovery/r3_1_committed/
+│       ├── README.md
+│       ├── manifest.json
+│       ├── workdir.zip
+│       └── workdir.zip.sha256
 ├── src/paper_stm_repair_conversion/
 │   ├── cli.py
 │   ├── models.py
@@ -154,6 +162,8 @@ R3.1 在本目录下新增 [normalization/](./normalization/) 微型工作区，
 2. recovered 判定仍必须来自官方 PlantUML `-checkonly` / `-tscxml` 产物；normalizer 不直接生成 canonical STM。
 3. 恢复率必须同时报告 `technical_scxml_pass_all_rules`、`low_risk_scxml_pass`、`main_eligibility_included`；论文主 claim 只能使用低风险 / 主 eligibility 口径。
 4. 高风险 action/guard/hierarchy/concurrency loss 默认不得进入主 repair eligibility；`fork_join_decl_to_state` 必须标 `concurrency_degraded=true`。
+5. 主 eligibility 还必须通过 source-level semantic preservation audit；该 audit 证明的是 raw-vs-normalized source signature 保持，不是定理级严格语义等价证明。
+6. raw / normalized candidate 与官方 SCXML 这类高基数制品必须归档为 `artifacts/plantuml_recovery/r3_1_committed/workdir.zip`，不得提交根目录 `runs/` 下的散文件。
 
 主要输出：
 
@@ -162,5 +172,8 @@ R3.1 在本目录下新增 [normalization/](./normalization/) 微型工作区，
 - [reports/plantuml_recovery_report.json](./reports/plantuml_recovery_report.json)：R3.1 committed 恢复报告。
 - [reports/plantuml_recovery_summary.md](./reports/plantuml_recovery_summary.md)：人工阅读摘要。
 - [reports/plantuml_normalization_ledger.jsonl](./reports/plantuml_normalization_ledger.jsonl)：逐变换 ledger。
+- [artifacts/README.md](./artifacts/README.md)：conversion workspace 下的长期运行制品入口。
+- [artifacts/plantuml_recovery/r3_1_committed/README.md](./artifacts/plantuml_recovery/r3_1_committed/README.md)：全量 raw / normalized `.puml` 与官方 `.scxml` archive 的路径映射、校验和复验说明。
+- [artifacts/plantuml_recovery/r3_1_committed/workdir.zip](./artifacts/plantuml_recovery/r3_1_committed/workdir.zip)：高基数运行制品压缩包；PR 中不得提交解压后的几千个散文件。
 
 R3 report 仍是四例 converter v0 smoke fixture；R3.1 report 是 failed PlantUML recovery / eligibility audit。两者事实合流应通过 PR body/comment 或后续合流 commit 处理，避免恢复率形成第二事实真源。

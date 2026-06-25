@@ -13,6 +13,7 @@ from ..adapters.scxml import ScxmlOptions, convert_scxml
 from ..report import repo_commit, sha256_file, sha256_text, write_json
 from ..toolchain import ToolPreflight, ToolchainSetupError, run_plantuml_on_candidate
 from .plantuml import RULES, NormalizationResult, classify_plantuml_issue, normalize_plantuml
+from .semantic_audit import audit_plantuml_semantic_preservation
 
 RECOVERY_REPORT_VERSION = "r3.1.plantuml_recovery_report.v0"
 NORMALIZATION_LEDGER_VERSION = "r3.1.normalization_ledger.v0"
@@ -186,7 +187,30 @@ def _sanitize_rel_string(value: str | None, repo_root: Path) -> str | None:
         return value
 
 
-def _preflight_summary(preflight: ToolPreflight | None, repo_root: Path) -> dict[str, Any] | None:
+def _run_member(path: Path | str | None, repo_root: Path, run_dir: Path) -> str | None:
+    if path is None:
+        return None
+    p = Path(path)
+    if not p.is_absolute():
+        p = repo_root / p
+    try:
+        return str(p.resolve().relative_to(run_dir.resolve()))
+    except ValueError:
+        return _rel(p, repo_root)
+
+
+def _sanitize_run_or_repo_rel_string(value: str | None, repo_root: Path, run_dir: Path) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    try:
+        return _run_member(Path(value), repo_root, run_dir)
+    except Exception:
+        return value
+
+
+def _preflight_summary(preflight: ToolPreflight | None, repo_root: Path, run_dir: Path) -> dict[str, Any] | None:
     if preflight is None:
         return None
     meta = preflight.to_metadata()
@@ -203,7 +227,7 @@ def _preflight_summary(preflight: ToolPreflight | None, repo_root: Path) -> dict
         "structured_export_status": meta.get("structured_export_status"),
         "structured_export_format": meta.get("structured_export_format"),
         "structured_export_sha256": meta.get("structured_export_sha256"),
-        "structured_export_path": _sanitize_rel_string(meta.get("structured_export_path"), repo_root),
+        "structured_export_path": _sanitize_run_or_repo_rel_string(meta.get("structured_export_path"), repo_root, run_dir),
         "command": meta.get("command"),
         "returncode": meta.get("returncode"),
         "stdout_tail": _tail(meta.get("stdout_tail") or "", 300),
@@ -226,6 +250,14 @@ def _recovery_bucket(raw_converted: bool, normalized_converted: bool, norm: Norm
 
 def _main_eligibility(raw_converted: bool, normalized_converted: bool, norm: NormalizationResult) -> bool:
     return (not raw_converted) and normalized_converted and norm.low_risk_candidate
+
+
+def _main_eligibility_with_semantic_audit(raw_converted: bool, normalized_converted: bool, norm: NormalizationResult, semantic_audit: dict[str, Any] | None) -> bool:
+    return (
+        _main_eligibility(raw_converted, normalized_converted, norm)
+        and semantic_audit is not None
+        and bool(semantic_audit.get("pass"))
+    )
 
 
 def _profile(canonical: dict[str, Any] | None, norm: NormalizationResult) -> dict[str, Any]:
@@ -367,8 +399,16 @@ def run_recovery(
             normalized_canonical_parse_pass = _canonical_parse_pass(canonical)
         raw_converted = raw_ok and raw_canonical_parse_pass
         normalized_converted = normalized_ok and normalized_canonical_parse_pass
+        semantic_audit = None
+        if not raw_converted and norm.changes:
+            semantic_audit = audit_plantuml_semantic_preservation(
+                raw_text,
+                norm.normalized_text,
+                introduced_alias_declarations=norm.alias_declarations,
+                rule_ids=norm.rule_ids,
+            )
         bucket = _recovery_bucket(raw_converted, normalized_converted, norm)
-        main_included = _main_eligibility(raw_converted, normalized_converted, norm)
+        main_included = _main_eligibility_with_semantic_audit(raw_converted, normalized_converted, norm, semantic_audit)
         issue_category = classify_plantuml_issue(raw_text, norm)
         profile = _profile(canonical, norm)
         item = {
@@ -384,8 +424,8 @@ def run_recovery(
             "stm0_sha256": pair.stm0_sha256,
             "llm": pair.llm,
             "generation_model_or_method": pair.generation_model_or_method,
-            "raw_candidate_path": _rel(raw_candidate, repo_root),
-            "normalized_candidate_path": _rel(normalized_candidate, repo_root) if not raw_ok else None,
+            "raw_candidate_path": _run_member(raw_candidate, repo_root, run_dir),
+            "normalized_candidate_path": _run_member(normalized_candidate, repo_root, run_dir) if not raw_ok else None,
             "raw_sha256": norm.raw_sha256,
             "normalized_sha256": norm.normalized_sha256,
             "raw_scxml_pass": raw_ok,
@@ -400,13 +440,15 @@ def run_recovery(
             "main_eligibility_included": main_included,
             "has_high_risk_loss": norm.has_high_risk_loss,
             "concurrency_degraded": norm.concurrency_degraded,
+            "semantic_preservation_audit": semantic_audit,
+            "semantic_preservation_pass": bool(semantic_audit and semantic_audit.get("pass")),
             "issue_category": issue_category,
             "rule_ids": norm.rule_ids,
             "changes_count": len(norm.changes),
             "normalization_noop": len(norm.changes) == 0,
             "no_regression_guard_pass": pair.pair_id in selected_pair_ids and raw_converted and len(norm.changes) == 0,
-            "raw_preflight": _preflight_summary(raw_preflight, repo_root),
-            "normalized_preflight": _preflight_summary(normalized_preflight, repo_root),
+            "raw_preflight": _preflight_summary(raw_preflight, repo_root, run_dir),
+            "normalized_preflight": _preflight_summary(normalized_preflight, repo_root, run_dir),
             "raw_setup_error": raw_setup_error,
             "normalized_setup_error": normalized_setup_error,
             "canonical_profile": profile,
@@ -439,10 +481,12 @@ def run_recovery(
                 "change_index": seq,
                 "raw_sha256": norm.raw_sha256,
                 "normalized_sha256": norm.normalized_sha256,
-                "normalized_candidate_path": _rel(normalized_candidate, repo_root),
+                "normalized_candidate_path": _run_member(normalized_candidate, repo_root, run_dir),
                 "technical_scxml_pass_all_rules": item["technical_scxml_pass_all_rules"],
                 "low_risk_scxml_pass": item["low_risk_scxml_pass"],
                 "main_eligibility_included": item["main_eligibility_included"],
+                "semantic_preservation_pass": item["semantic_preservation_pass"],
+                "semantic_preservation_audit_status": (semantic_audit or {}).get("status"),
                 "repair_contribution_allowed": False,
                 **change.to_dict(),
             }
@@ -477,6 +521,14 @@ def run_recovery(
         "source_file_immutability": _source_file_immutability(repo_root, (pair.source_pairs_path for pair in pairs), source_file_sha_before),
         "raw_immutability": raw_immutability,
         "summary": summary,
+        "semantic_preservation_audit_summary": _semantic_preservation_summary(items),
+        "artifact_archive": {
+            "policy": "High-cardinality raw/normalized PlantUML and official SCXML files are preserved as a single committed zip archive under the conversion workspace, not as thousands of loose PR files.",
+            "archive_path": "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip",
+            "archive_sha256_path": "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip.sha256",
+            "manifest_path": "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/manifest.json",
+            "zip_member_path_semantics": "Item paths under raw_candidate_path, normalized_candidate_path and preflight.structured_export_path use zip member paths relative to workdir.zip root; extract the zip under a temporary directory to inspect exact candidate/SCXML artifacts.",
+        },
         "items": items,
     }
     report_path = reports_dir / "plantuml_recovery_report.json"
@@ -563,6 +615,35 @@ def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[s
     }
 
 
+def _semantic_preservation_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
+    audited = [i for i in items if i.get("semantic_preservation_audit")]
+    failed = [i for i in audited if not i.get("semantic_preservation_pass")]
+    low_risk_failed = [
+        i for i in failed
+        if i.get("low_risk_scxml_pass") or (i.get("normalized_conversion_pass") and not i.get("has_high_risk_loss"))
+    ]
+    by_status = dict(Counter((i.get("semantic_preservation_audit") or {}).get("status", "not_audited") for i in audited))
+    by_rule: dict[str, dict[str, int]] = {}
+    for item in audited:
+        status = "pass" if item.get("semantic_preservation_pass") else "fail"
+        for rule_id in item.get("rule_ids") or ["<no_rule>"]:
+            row = by_rule.setdefault(rule_id, {"audited": 0, "pass": 0, "fail": 0})
+            row["audited"] += 1
+            row[status] += 1
+    return {
+        "audit_version": "r3.1.plantuml_semantic_preservation.v0",
+        "audited_total": len(audited),
+        "pass_total": len(audited) - len(failed),
+        "fail_total": len(failed),
+        "low_risk_fail_total": len(low_risk_failed),
+        "main_eligibility_requires_pass": True,
+        "by_status": by_status,
+        "by_rule": by_rule,
+        "failed_pair_ids": [i["pair_id"] for i in failed],
+        "low_risk_failed_pair_ids": [i["pair_id"] for i in low_risk_failed],
+    }
+
+
 def _eligible_composition_by_llm(items: list[dict[str, Any]], expected_llms: set[str]) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for llm in sorted(expected_llms):
@@ -621,6 +702,7 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         f"- normalization 后仍失败：{s['failed_after']}。",
         f"- LLMS-EMP cross-LLM gate：{'通过' if s['llms_emp_cross_llm_gate']['passed'] else '未通过'}；ratio={s['llms_emp_cross_llm_gate']['max_min_ratio']}。",
         "- 临时 v2 probe 的 250/499 只是早期 prototype estimate；本文件中的 production report 已取代该估计，论文主 claim 只能使用 low-risk / main eligibility 口径。",
+        f"- source-level semantic preservation audit：审计 {report['semantic_preservation_audit_summary']['audited_total']} 个 normalized candidates；通过 {report['semantic_preservation_audit_summary']['pass_total']}；失败 {report['semantic_preservation_audit_summary']['fail_total']}；低风险失败 {report['semantic_preservation_audit_summary']['low_risk_fail_total']}。",
         "",
     ]
     lines.extend(_md_table_counts("按 seed 统计", s["by_seed"]))
@@ -654,6 +736,24 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         "",
         "解释：recovered subset 是 normalized eligibility subset，不是原始生成分布的无偏代表；若后续论文引用，必须保留该限制。",
         "",
+        "## source-level semantic preservation audit",
+        "",
+        "该审计逐项比较 raw PlantUML 与 normalized PlantUML 的状态声明、状态注释、迁移 source/target/label 与结构残留行；normalizer 新增的 alias declaration 会被反解回原始 label，非 PlantUML `stm` heading 与 normalizer comment 只作为语法修复痕迹忽略。它证明的是转换前规范化的 source-signature-preserving / 结构签名保持，不是定理级严格语义等价证明；任何低风险修复若未通过该审计，均不得进入主 eligibility。",
+        "",
+        "| 指标 | 数量 |",
+        "|---|---:|",
+        f"| audited_total | {report['semantic_preservation_audit_summary']['audited_total']} |",
+        f"| pass_total | {report['semantic_preservation_audit_summary']['pass_total']} |",
+        f"| fail_total | {report['semantic_preservation_audit_summary']['fail_total']} |",
+        f"| low_risk_fail_total | {report['semantic_preservation_audit_summary']['low_risk_fail_total']} |",
+        "",
+        "| rule_id | audited | pass | fail |",
+        "|---|---:|---:|---:|",
+    ])
+    for rule_id, row in sorted(report["semantic_preservation_audit_summary"]["by_rule"].items()):
+        lines.append(f"| `{rule_id}` | {row['audited']} | {row['pass']} | {row['fail']} |")
+    lines.extend([
+        "",
         "## 文件与证据",
         "",
         "- JSON report: `plantuml_recovery_report.json`",
@@ -661,6 +761,7 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         f"- generator code commit: `{report['generator_code_commit']}`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。",
         f"- generator worktree dirty: `{report['generator_worktree_dirty']}`",
         "- canonical STM 不由 normalizer 直接生成；所有 recovered 判定均基于官方 PlantUML SCXML。",
+        f"- full workdir archive: `{report['artifact_archive']['archive_path']}`；report 中 `raw_candidate_path` / `normalized_candidate_path` / `structured_export_path` 对应 zip 内 member 路径。",
         "",
     ])
     path.write_text("\n".join(lines), encoding="utf-8")

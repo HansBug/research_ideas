@@ -56,7 +56,8 @@ RULES: dict[str, dict[str, Any]] = {
     },
 }
 
-ARROW_TOKENS = ["-left->", "-right->", "-up->", "-down->", "-->", "->", "<--", "<-"]
+ARROW_TOKENS = ["-right->", "-left->", "-down->", "-up->", "-->", "->"]
+UNSUPPORTED_ARROW_TOKENS = ["<-->", "<->", "<--", "<-", "<..", "..>"]
 SIMPLE_ID_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$.]*$")
 STATE_AS_RE = re.compile(r'^\s*state\s+"(?P<label>[^"]+)"\s+as\s+(?P<alias>[A-Za-z_][A-Za-z0-9_]*)')
 STM_BLOCK_RE = re.compile(r"^(?P<indent>\s*)stm\s+(?P<name>.+?)\s*\{\s*$", re.IGNORECASE)
@@ -213,20 +214,20 @@ def _split_transition(line: str) -> tuple[str, str, str, str, str] | None:
     This is only a line-level normalizer for official-toolchain input. It is not
     used to construct canonical states/transitions.
     """
-    if line.lstrip().startswith("'") or "<.." in line or "..>" in line:
+    if line.lstrip().startswith("'") or any(token in line for token in UNSUPPORTED_ARROW_TOKENS):
         return None
     # Do not treat declaration / action lines as transitions merely because the label contains arrows.
     first_word = line.strip().split(None, 1)[0].lower() if line.strip() else ""
     if first_word in {"state", "note", "title", "skinparam", "hide", "show", "scale", "left", "right", "top", "bottom"}:
         return None
-    best: tuple[int, str] | None = None
-    for token in ARROW_TOKENS:
-        idx = line.find(token)
-        if idx >= 0 and (best is None or idx < best[0]):
-            best = (idx, token)
-    if best is None:
+    arrow_pattern = re.compile("|".join(re.escape(token) for token in sorted(ARROW_TOKENS, key=len, reverse=True)))
+    occurrences = [(match.start(), match.group(0)) for match in arrow_pattern.finditer(line)]
+    # A single source-to-target transition line is the only low-risk syntax
+    # repair scope.  Multi-arrow chains such as `A --> [Error] --> B` are
+    # semantically ambiguous and must not be collapsed into an endpoint alias.
+    if len(occurrences) != 1:
         return None
-    idx, arrow = best
+    idx, arrow = occurrences[0]
     prefix_match = re.match(r"^(\s*)", line)
     prefix = prefix_match.group(1) if prefix_match else ""
     source = line[:idx].strip()
@@ -239,6 +240,12 @@ def _split_transition(line: str) -> tuple[str, str, str, str, str] | None:
     else:
         target, suffix = rest, ""
     target = target.strip()
+    if any(token in source for token in ARROW_TOKENS + UNSUPPORTED_ARROW_TOKENS):
+        return None
+    if any(token in target for token in ARROW_TOKENS + UNSUPPORTED_ARROW_TOKENS):
+        return None
+    if re.search(r"\bwhen\b", source, flags=re.IGNORECASE) or re.search(r"\bwhen\b", target, flags=re.IGNORECASE):
+        return None
     return prefix, source, arrow, target, suffix
 
 
