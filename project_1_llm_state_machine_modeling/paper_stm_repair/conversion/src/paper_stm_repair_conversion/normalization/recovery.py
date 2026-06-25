@@ -35,6 +35,8 @@ class PlantumlPair:
     generation_model_or_method: str | None
     source_pairs_path: Path
     source_locator: str | None
+    source_line_sha256: str
+    source_file_sha256: str
 
 
 def _rel(path: Path | None, repo_root: Path) -> str | None:
@@ -74,7 +76,9 @@ def load_plantuml_pairs(repo_root: Path, pair_sources: Iterable[Path] | None = N
         source_path = source if source.is_absolute() else repo_root / source
         if not source_path.exists():
             continue
-        for row_index, line in enumerate(source_path.read_text(encoding="utf-8").splitlines()):
+        source_text = source_path.read_text(encoding="utf-8")
+        source_file_sha = sha256_file(source_path)
+        for row_index, line in enumerate(source_text.splitlines()):
             if not line.strip():
                 continue
             record = json.loads(line)
@@ -93,6 +97,8 @@ def load_plantuml_pairs(repo_root: Path, pair_sources: Iterable[Path] | None = N
                     generation_model_or_method=record.get("generation_model_or_method"),
                     source_pairs_path=source_path,
                     source_locator=record.get("source_locator"),
+                    source_line_sha256=sha256_text(line),
+                    source_file_sha256=source_file_sha,
                 )
             )
             if limit is not None and len(pairs) >= limit:
@@ -111,6 +117,49 @@ def selected_example_pairs(repo_root: Path) -> set[str]:
         if meta.get("stm_format") == "plantuml" and meta.get("pair_id"):
             out.add(meta["pair_id"])
     return out
+
+
+def _source_line_sha256(path: Path, row_index: int) -> str | None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return None
+    if row_index < 0 or row_index >= len(lines):
+        return None
+    return sha256_text(lines[row_index])
+
+
+def _source_file_immutability(repo_root: Path, paths: Iterable[Path], before: dict[str, str]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in sorted({p.resolve() for p in paths}, key=str):
+        after = sha256_file(path) if path.exists() else None
+        before_sha = before.get(str(path))
+        rows.append({
+            "source_pairs_path": _rel(path, repo_root),
+            "source_file_sha256_before": before_sha,
+            "source_file_sha256_after": after,
+            "source_file_unchanged": before_sha == after,
+        })
+    return rows
+
+
+def _canonical_parse_pass(canonical: dict[str, Any] | None) -> bool:
+    if not canonical:
+        return False
+    model = canonical.get("model", {})
+    return bool(
+        canonical.get("status") == "converted"
+        and model.get("states")
+        and model.get("transitions")
+    )
+
+
+def _seed_class(seed_id: str) -> str:
+    if seed_id == "llms-emp-stm-subset":
+        return "llms_emp_cross_llm"
+    if seed_id == "unified-uml-multimodal-validation":
+        return "unified_synthetic"
+    return "other"
 
 
 def _safe_name(value: str) -> str:
@@ -156,18 +205,18 @@ def _preflight_summary(preflight: ToolPreflight | None, repo_root: Path) -> dict
     }
 
 
-def _recovery_bucket(raw_ok: bool, normalized_ok: bool, norm: NormalizationResult) -> str:
-    if raw_ok:
+def _recovery_bucket(raw_converted: bool, normalized_converted: bool, norm: NormalizationResult) -> str:
+    if raw_converted:
         return "already_converted_before_normalization"
-    if not normalized_ok:
+    if not normalized_converted:
         return "failed_after_normalization"
     if norm.low_risk_candidate:
         return "low_risk_scxml_pass"
     return "high_risk_scxml_pass"
 
 
-def _main_eligibility(raw_ok: bool, normalized_ok: bool, norm: NormalizationResult) -> bool:
-    return (not raw_ok) and normalized_ok and norm.low_risk_candidate
+def _main_eligibility(raw_converted: bool, normalized_converted: bool, norm: NormalizationResult) -> bool:
+    return (not raw_converted) and normalized_converted and norm.low_risk_candidate
 
 
 def _profile(canonical: dict[str, Any] | None, norm: NormalizationResult) -> dict[str, Any]:
@@ -238,6 +287,11 @@ def run_recovery(
     normalized_dir = run_dir / "normalized_candidates"
     normalized_dir.mkdir(parents=True, exist_ok=True)
     pairs = load_plantuml_pairs(repo_root, pair_sources, limit=limit)
+    source_file_sha_before = {
+        str(path.resolve()): sha256_file(path)
+        for path in {pair.source_pairs_path for pair in pairs}
+        if path.exists()
+    }
     selected_pair_ids = selected_example_pairs(repo_root)
     created = created_at or datetime.now(timezone.utc).isoformat()
     ledger_rows: list[dict[str, Any]] = []
@@ -291,20 +345,29 @@ def run_recovery(
                 and normalized_preflight.structured_export_status == "scxml_export_ok"
             )
         canonical = None
+        raw_canonical_parse_pass = False
+        normalized_canonical_parse_pass = False
         if raw_ok and raw_preflight:
             canonical = _parse_scxml_canonical(raw_preflight, pair=pair, repo_root=repo_root)
+            raw_canonical_parse_pass = _canonical_parse_pass(canonical)
         elif normalized_ok and normalized_preflight:
             canonical = _parse_scxml_canonical(normalized_preflight, pair=pair, repo_root=repo_root)
-        bucket = _recovery_bucket(raw_ok, normalized_ok, norm)
-        main_included = _main_eligibility(raw_ok, normalized_ok, norm)
+            normalized_canonical_parse_pass = _canonical_parse_pass(canonical)
+        raw_converted = raw_ok and raw_canonical_parse_pass
+        normalized_converted = normalized_ok and normalized_canonical_parse_pass
+        bucket = _recovery_bucket(raw_converted, normalized_converted, norm)
+        main_included = _main_eligibility(raw_converted, normalized_converted, norm)
         issue_category = classify_plantuml_issue(raw_text, norm)
         profile = _profile(canonical, norm)
         item = {
             "seed_id": pair.seed_id,
+            "seed_class": _seed_class(pair.seed_id),
             "pair_id": pair.pair_id,
             "row_index": pair.row_index,
             "source_pairs_path": _rel(pair.source_pairs_path, repo_root),
             "source_locator": pair.source_locator,
+            "source_line_sha256": pair.source_line_sha256,
+            "source_file_sha256": pair.source_file_sha256,
             "nl_sha256": pair.nl_sha256,
             "stm0_sha256": pair.stm0_sha256,
             "llm": pair.llm,
@@ -315,9 +378,13 @@ def run_recovery(
             "normalized_sha256": norm.normalized_sha256,
             "raw_scxml_pass": raw_ok,
             "normalized_scxml_pass": normalized_ok,
+            "raw_canonical_parse_pass": raw_canonical_parse_pass,
+            "normalized_canonical_parse_pass": normalized_canonical_parse_pass,
+            "raw_conversion_pass": raw_converted,
+            "normalized_conversion_pass": normalized_converted,
             "recovery_bucket": bucket,
-            "technical_scxml_pass_all_rules": (not raw_ok) and normalized_ok,
-            "low_risk_scxml_pass": (not raw_ok) and normalized_ok and norm.low_risk_candidate,
+            "technical_scxml_pass_all_rules": (not raw_converted) and normalized_converted,
+            "low_risk_scxml_pass": (not raw_converted) and normalized_converted and norm.low_risk_candidate,
             "main_eligibility_included": main_included,
             "has_high_risk_loss": norm.has_high_risk_loss,
             "concurrency_degraded": norm.concurrency_degraded,
@@ -325,15 +392,17 @@ def run_recovery(
             "rule_ids": norm.rule_ids,
             "changes_count": len(norm.changes),
             "normalization_noop": len(norm.changes) == 0,
-            "no_regression_guard_pass": pair.pair_id in selected_pair_ids and raw_ok and len(norm.changes) == 0,
+            "no_regression_guard_pass": pair.pair_id in selected_pair_ids and raw_converted and len(norm.changes) == 0,
             "raw_preflight": _preflight_summary(raw_preflight, repo_root),
             "normalized_preflight": _preflight_summary(normalized_preflight, repo_root),
             "raw_setup_error": raw_setup_error,
             "normalized_setup_error": normalized_setup_error,
             "canonical_profile": profile,
-            "selected_seed_example_no_regression": pair.pair_id in selected_pair_ids and raw_ok,
+            "selected_seed_example_no_regression": pair.pair_id in selected_pair_ids and raw_converted,
         }
         items.append(item)
+        source_line_sha_after = _source_line_sha256(pair.source_pairs_path, pair.row_index)
+        source_file_sha_after = sha256_file(pair.source_pairs_path) if pair.source_pairs_path.exists() else None
         raw_immutability.append({
             "seed_id": pair.seed_id,
             "pair_id": pair.pair_id,
@@ -341,6 +410,12 @@ def run_recovery(
             "raw_sha256_after": sha256_text(raw_text),
             "raw_text_unchanged": raw_sha_before == sha256_text(raw_text),
             "source_pairs_path": _rel(pair.source_pairs_path, repo_root),
+            "source_line_sha256_before": pair.source_line_sha256,
+            "source_line_sha256_after": source_line_sha_after,
+            "source_line_unchanged": pair.source_line_sha256 == source_line_sha_after,
+            "source_file_sha256_before": pair.source_file_sha256,
+            "source_file_sha256_after": source_file_sha_after,
+            "source_file_unchanged": pair.source_file_sha256 == source_file_sha_after,
         })
         for seq, change in enumerate(norm.changes, start=1):
             row = {
@@ -381,6 +456,7 @@ def run_recovery(
         "normalization_rules_path": "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/normalization/plantuml_rules.json",
         "normalization_ledger_path": _rel(ledger_path, repo_root),
         "normalization_ledger_sha256": sha256_text(ledger_text),
+        "source_file_immutability": _source_file_immutability(repo_root, (pair.source_pairs_path for pair in pairs), source_file_sha_before),
         "raw_immutability": raw_immutability,
         "summary": summary,
         "items": items,
@@ -397,7 +473,7 @@ def _count_by(items: list[dict[str, Any]], key: str) -> dict[str, dict[str, int]
         val = str(item.get(key) if item.get(key) is not None else "NA")
         row = out.setdefault(val, {"raw_total": 0, "converted_before": 0, "failed_before": 0, "technical_scxml_pass_all_rules": 0, "low_risk_scxml_pass": 0, "main_eligibility_included": 0, "failed_after": 0})
         row["raw_total"] += 1
-        if item["raw_scxml_pass"]:
+        if item["raw_conversion_pass"]:
             row["converted_before"] += 1
         else:
             row["failed_before"] += 1
@@ -407,26 +483,28 @@ def _count_by(items: list[dict[str, Any]], key: str) -> dict[str, dict[str, int]
                 row["low_risk_scxml_pass"] += 1
             if item["main_eligibility_included"]:
                 row["main_eligibility_included"] += 1
-            if not item["normalized_scxml_pass"]:
+            if not item["normalized_conversion_pass"]:
                 row["failed_after"] += 1
     return out
 
 
 def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[str, Any]:
     raw_total = len(items)
-    converted_before = sum(1 for i in items if i["raw_scxml_pass"])
+    converted_before = sum(1 for i in items if i["raw_conversion_pass"])
     failed_before = raw_total - converted_before
     technical = sum(1 for i in items if i["technical_scxml_pass_all_rules"])
     low_risk = sum(1 for i in items if i["low_risk_scxml_pass"])
     main = sum(1 for i in items if i["main_eligibility_included"])
-    failed_after = sum(1 for i in items if (not i["raw_scxml_pass"] and not i["normalized_scxml_pass"]))
+    failed_after = sum(1 for i in items if (not i["raw_conversion_pass"] and not i["normalized_conversion_pass"]))
     by_llm = _count_by(items, "llm")
+    by_seed_class = _count_by(items, "seed_class")
     # Cross-LLM gate is meaningful only for LLMS-EMP, whose rows carry an explicit `llm` field.
     # Rows without LLM labels (for example Unified synthetic data) are excluded from this claim gate.
     llms_emp_rows = {k: v for k, v in by_llm.items() if k != "NA"}
     expected_llms = {"Claude", "DeepSeek", "GPT-4", "GPT-4o", "Kimi", "Llama"}
+    eligible_composition_by_llm = _eligible_composition_by_llm(items, expected_llms)
     eligible_by_llm = {
-        llm: (llms_emp_rows.get(llm, {}).get("converted_before", 0) + llms_emp_rows.get(llm, {}).get("main_eligibility_included", 0))
+        llm: eligible_composition_by_llm[llm]["eligible_after"]
         for llm in sorted(expected_llms)
     }
     eligible_values = list(eligible_by_llm.values())
@@ -435,7 +513,7 @@ def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[s
     else:
         ratio = None
     llm_gate_pass = all(v >= 5 for v in eligible_values) and ratio is not None and ratio <= 2
-    naturally = [i["canonical_profile"] for i in items if i["raw_scxml_pass"]]
+    naturally = [i["canonical_profile"] for i in items if i["raw_conversion_pass"]]
     recovered = [i["canonical_profile"] for i in items if i["main_eligibility_included"]]
     return {
         "raw_total": raw_total,
@@ -448,11 +526,13 @@ def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[s
         "high_risk_scxml_pass": technical - low_risk,
         "failed_after": failed_after,
         "by_seed": _count_by(items, "seed_id"),
+        "by_seed_class": by_seed_class,
         "by_issue_category": _count_by(items, "issue_category"),
         "by_llm": by_llm,
         "llms_emp_cross_llm_gate": {
             "passed": llm_gate_pass,
             "eligible_after_by_llm": eligible_by_llm,
+            "eligible_after_composition_by_llm": eligible_composition_by_llm,
             "eligible_after_values": eligible_values,
             "max_min_ratio": ratio,
             "rule": "每个 LLM eligible_after >= 5 且 max/min <= 2 才允许谨慎 cross-LLM aggregate claim；否则只能 coverage/eligibility audit 或 negative finding。",
@@ -463,6 +543,28 @@ def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[s
             "interpretation": "Recovered subset is a normalized eligibility subset, not an unbiased representative of the original generation distribution.",
         },
     }
+
+
+def _eligible_composition_by_llm(items: list[dict[str, Any]], expected_llms: set[str]) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for llm in sorted(expected_llms):
+        rows = [i for i in items if i.get("seed_class") == "llms_emp_cross_llm" and i.get("llm") == llm]
+        natural = sum(1 for i in rows if i["raw_conversion_pass"])
+        recovered_main = sum(1 for i in rows if i["main_eligibility_included"])
+        high_risk = sum(1 for i in rows if i["technical_scxml_pass_all_rules"] and not i["low_risk_scxml_pass"])
+        failed_after = sum(1 for i in rows if not i["raw_conversion_pass"] and not i["normalized_conversion_pass"])
+        eligible_after = natural + recovered_main
+        rescue_share = round(recovered_main / eligible_after, 3) if eligible_after else None
+        out[llm] = {
+            "raw_total": len(rows),
+            "naturally_converted": natural,
+            "recovered_main": recovered_main,
+            "recovered_high_risk_supplementary": high_risk,
+            "eligible_after": eligible_after,
+            "failed_after": failed_after,
+            "rescue_share_of_eligible_after": rescue_share,
+        }
+    return out
 
 
 def _profile_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -504,8 +606,22 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         "",
     ]
     lines.extend(_md_table_counts("按 seed 统计", s["by_seed"]))
+    lines.extend(_md_table_counts("按 seed class 统计", s["by_seed_class"]))
     lines.extend(_md_table_counts("按错误类别统计", s["by_issue_category"]))
     lines.extend(_md_table_counts("按 LLM 统计", s["by_llm"]))
+    lines.extend([
+        "## LLMS-EMP eligible_after 组成",
+        "",
+        "| LLM | raw | naturally converted | recovered main | high-risk supplementary | eligible after | failed after | rescue share |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    for llm, row in s["llms_emp_cross_llm_gate"]["eligible_after_composition_by_llm"].items():
+        lines.append(f"| `{llm}` | {row['raw_total']} | {row['naturally_converted']} | {row['recovered_main']} | {row['recovered_high_risk_supplementary']} | {row['eligible_after']} | {row['failed_after']} | {row['rescue_share_of_eligible_after']} |")
+    lines.extend([
+        "",
+        "解释：该表只说明 LLMS-EMP 在 conversion eligibility 层面恢复到可谨慎 aggregate 的平衡；不同 LLM 的 eligible_after 由 naturally-converted 与 recovered-main 的比例不同，不能直接当作原始 STM 质量同分布证据。",
+        "",
+    ])
     lines.extend([
         "## recovered vs naturally-converted profile",
         "",

@@ -18,6 +18,13 @@
 | `llms-emp-stm-subset` | 60 | 33 | 27 | 25 | 20 | 20 | 2 |
 | `unified-uml-multimodal-validation` | 989 | 517 | 472 | 463 | 460 | 460 | 9 |
 
+## 按 seed class 统计
+
+| 维度 | raw | before converted | before failed | technical pass | low-risk pass | main eligible | failed after |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `llms_emp_cross_llm` | 60 | 33 | 27 | 25 | 20 | 20 | 2 |
+| `unified_synthetic` | 989 | 517 | 472 | 463 | 460 | 460 | 9 |
+
 ## 按错误类别统计
 
 | 维度 | raw | before converted | before failed | technical pass | low-risk pass | main eligible | failed after |
@@ -40,6 +47,19 @@
 | `Kimi` | 10 | 5 | 5 | 4 | 2 | 2 | 1 |
 | `Llama` | 10 | 0 | 10 | 9 | 8 | 8 | 1 |
 | `NA` | 989 | 517 | 472 | 463 | 460 | 460 | 9 |
+
+## LLMS-EMP eligible_after 组成
+
+| LLM | raw | naturally converted | recovered main | high-risk supplementary | eligible after | failed after | rescue share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `Claude` | 10 | 9 | 0 | 1 | 9 | 0 | 0.0 |
+| `DeepSeek` | 10 | 1 | 9 | 0 | 10 | 0 | 0.9 |
+| `GPT-4` | 10 | 9 | 1 | 0 | 10 | 0 | 0.1 |
+| `GPT-4o` | 10 | 9 | 0 | 1 | 9 | 0 | 0.0 |
+| `Kimi` | 10 | 5 | 2 | 2 | 7 | 1 | 0.286 |
+| `Llama` | 10 | 0 | 8 | 1 | 8 | 1 | 1.0 |
+
+解释：该表只说明 LLMS-EMP 在 conversion eligibility 层面恢复到可谨慎 aggregate 的平衡；不同 LLM 的 eligible_after 由 naturally-converted 与 recovered-main 的比例不同，不能直接当作原始 STM 质量同分布证据。
 
 ## recovered vs naturally-converted profile
 

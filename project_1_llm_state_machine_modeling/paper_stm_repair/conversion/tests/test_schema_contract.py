@@ -52,6 +52,19 @@ def test_committed_recovery_report_validates_against_schema():
     assert "technical_scxml_pass_all_rules" in report["summary"]
     assert "low_risk_scxml_pass" in report["summary"]
     assert "main_eligibility_included" in report["summary"]
+    assert "by_seed_class" in report["summary"]
+    assert "eligible_after_composition_by_llm" in report["summary"]["llms_emp_cross_llm_gate"]
+    assert report["source_file_immutability"]
+    assert all(row["source_file_unchanged"] for row in report["source_file_immutability"])
+    assert all(row["source_line_unchanged"] and row["source_file_unchanged"] for row in report["raw_immutability"])
+    assert all(
+        item["main_eligibility_included"] <= item["normalized_conversion_pass"]
+        for item in report["items"]
+    )
+    assert all(
+        item["normalized_conversion_pass"] == (item["normalized_scxml_pass"] and item["normalized_canonical_parse_pass"])
+        for item in report["items"]
+    )
 
 
 def test_committed_normalization_ledger_validates_against_schema():
