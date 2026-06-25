@@ -47,5 +47,6 @@ python -m paper_stm_repair_conversion.cli recover-plantuml \
 - raw assets、`pairs.jsonl`、selected smoke examples 不得覆盖。
 - 高风险规则默认只进入 supplementary / manual-review bucket。
 - 主 eligibility 必须通过 source-level semantic preservation audit；该 audit 只能支撑“结构签名保持”表述，不能写成无条件严格语义等价。
+- transition endpoint 若含内嵌 `[*]`（如 `Closed [*]`、`Final [*]`），必须视为伪状态标记语义歧义；即使 alias 后官方 SCXML 可导出，也只能作为 supplementary / manual-review，不得进入主 eligibility。
 - `fork_join_decl_to_state` 必须标注 `concurrency_degraded=true` 且 `main_eligibility_included=false`。
 - LLMS-EMP 的 cross-LLM claim 只有在每个 LLM `eligible_after >= 5` 且 max/min ratio <= 2 时才允许；否则只能写 coverage audit / negative finding。

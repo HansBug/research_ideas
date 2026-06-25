@@ -78,6 +78,10 @@ def test_committed_recovery_report_validates_against_schema():
         for item in report["items"]
     )
     assert all(
+        (not item["main_eligibility_included"]) or "PUML.NORM.alias_embedded_pseudostate_marker" not in item.get("rule_ids", [])
+        for item in report["items"]
+    )
+    assert all(
         (not item["main_eligibility_included"]) or "when" not in json.dumps(item.get("semantic_preservation_audit"), ensure_ascii=False).lower()
         for item in report["items"]
     )

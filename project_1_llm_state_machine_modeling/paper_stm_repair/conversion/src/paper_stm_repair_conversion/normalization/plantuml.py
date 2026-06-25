@@ -18,6 +18,12 @@ RULES: dict[str, dict[str, Any]] = {
         "main_eligibility_default": True,
         "description": "对 quoted transition endpoint 生成 PlantUML state alias，保留显示 label。",
     },
+    "PUML.NORM.alias_embedded_pseudostate_marker": {
+        "semantic_risk": "high",
+        "risk_tier": "high_risk",
+        "main_eligibility_default": False,
+        "description": "对含有内嵌 [*] 伪状态标记的 endpoint 生成 alias；可能把初始/终止伪状态误降级为普通状态名。",
+    },
     "PUML.NORM.remove_stm_heading": {
         "semantic_risk": "medium",
         "risk_tier": "low_risk",
@@ -271,8 +277,34 @@ def _rewrite_endpoint(endpoint: str, aliases: dict[str, str], used_aliases: set[
         alias = _alias_for(label, used_aliases)
         aliases[label] = alias
         declarations.append(f'state "{label}" as {alias}')
-    rule_id = "PUML.NORM.alias_quoted_endpoint" if endpoint.strip().startswith('"') else "PUML.NORM.alias_multiword_endpoint"
+    if "[*]" in label and label.strip() != "[*]":
+        rule_id = "PUML.NORM.alias_embedded_pseudostate_marker"
+    else:
+        rule_id = "PUML.NORM.alias_quoted_endpoint" if endpoint.strip().startswith('"') else "PUML.NORM.alias_multiword_endpoint"
     return aliases[label], rule_id, label
+
+
+def _select_endpoint_rule(source_rule: str | None, target_rule: str | None) -> str | None:
+    rules = [r for r in (source_rule, target_rule) if r]
+    if not rules:
+        return None
+    if "PUML.NORM.alias_embedded_pseudostate_marker" in rules:
+        return "PUML.NORM.alias_embedded_pseudostate_marker"
+    return rules[0]
+
+
+def _select_endpoint_label(
+    *,
+    source_rule: str | None,
+    source_label: str | None,
+    target_rule: str | None,
+    target_label: str | None,
+) -> str:
+    if source_rule == "PUML.NORM.alias_embedded_pseudostate_marker" and source_label:
+        return source_label
+    if target_rule == "PUML.NORM.alias_embedded_pseudostate_marker" and target_label:
+        return target_label
+    return source_label or target_label or "spacing"
 
 
 def normalize_plantuml(raw_text: str) -> NormalizationResult:
@@ -373,17 +405,27 @@ def normalize_plantuml(raw_text: str) -> NormalizationResult:
                     new_target, target_rule, target_label = _rewrite_endpoint(target, aliases, used_aliases, declarations)
                     if source_rule or target_rule or source != new_source or target != new_target or not re.search(r"\s" + re.escape(arrow) + r"\s", line):
                         new_line = f"{prefix}{new_source} {arrow} {new_target}{suffix}"
-                        rule_id = source_rule or target_rule or "PUML.NORM.alias_multiword_endpoint"
-                        label = source_label or target_label or "spacing"
+                        rule_id = _select_endpoint_rule(source_rule, target_rule) or "PUML.NORM.alias_multiword_endpoint"
+                        label = _select_endpoint_label(
+                            source_rule=source_rule,
+                            source_label=source_label,
+                            target_rule=target_rule,
+                            target_label=target_label,
+                        )
+                        loss_type = "semantic" if rule_id == "PUML.NORM.alias_embedded_pseudostate_marker" else "syntax"
                         changes.append(_change(
                             rule_id,
                             line=idx,
                             before=line,
                             after=new_line,
                             kind="transition_endpoint_to_alias",
-                            rationale=f"transition endpoint `{label}` 改写为稳定 alias/标准间距；canonical 仍必须来自官方 SCXML。",
+                            rationale=(
+                                f"transition endpoint `{label}` 改写为稳定 alias/标准间距；canonical 仍必须来自官方 SCXML。"
+                                if rule_id != "PUML.NORM.alias_embedded_pseudostate_marker"
+                                else f"transition endpoint `{label}` 含内嵌 [*] 伪状态标记，alias 化可能把初始/终止伪状态语义误读为普通状态名；默认只作 supplementary/manual-review。"
+                            ),
                             span="transition_endpoint",
-                            loss_type="syntax",
+                            loss_type=loss_type,
                         ))
         out_lines.append(new_line)
 
@@ -396,6 +438,8 @@ def normalize_plantuml(raw_text: str) -> NormalizationResult:
 
 def classify_plantuml_issue(raw_text: str, result: NormalizationResult | None = None) -> str:
     text = raw_text
+    if result and "PUML.NORM.alias_embedded_pseudostate_marker" in result.rule_ids:
+        return "G_embedded_pseudostate_marker"
     if re.search(r"^\s*stm\s+", text, flags=re.IGNORECASE | re.MULTILINE):
         return "A_non_plantuml_stm_directive"
     if re.search(r"^\s*(entry|do|exit)\s*/", text, flags=re.IGNORECASE | re.MULTILINE):

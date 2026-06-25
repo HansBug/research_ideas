@@ -44,6 +44,7 @@
 | normalized SCXML-pass + only low-risk rules + semantic audit fail / missing | 只能作为待复核风险，不得进入 `main_eligibility_included` |
 | normalized SCXML-pass + high-risk rules | 只计 `technical_scxml_pass_all_rules`，不得默认进入主 eligibility |
 | fork/join 降级 | 必须 `concurrency_degraded=true` 且 `main_eligibility_included=false` |
+| endpoint 内嵌 `[*]` 伪状态标记 | 必须按 `PUML.NORM.alias_embedded_pseudostate_marker` 记为高风险；即使 source signature 字面保持，也不得进入 `main_eligibility_included` |
 | normalized 后仍失败 | 保留失败 preflight，不生成 canonical |
 
 ## 5. 测试要求

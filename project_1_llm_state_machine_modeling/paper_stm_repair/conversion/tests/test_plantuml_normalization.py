@@ -24,6 +24,22 @@ def test_multiword_endpoint_alias_is_low_risk():
     assert "PUML.NORM.alias_multiword_endpoint" in result.rule_ids
 
 
+def test_embedded_pseudostate_marker_endpoint_is_high_risk():
+    raw = "@startuml\nResolved --> Closed [*]\nSuggestRoutine --> Final [*]\n@enduml\n"
+    result = normalize_plantuml(raw)
+    assert 'state "Closed [*]" as ' in result.normalized_text
+    assert 'state "Final [*]" as ' in result.normalized_text
+    assert "PUML.NORM.alias_embedded_pseudostate_marker" in result.rule_ids
+    assert result.has_high_risk_loss is True
+    assert result.low_risk_candidate is False
+    assert result.main_eligibility_default is False
+    assert all(
+        change.risk_tier == "high_risk"
+        for change in result.changes
+        if change.rule_id == "PUML.NORM.alias_embedded_pseudostate_marker"
+    )
+
+
 def test_ambiguous_arrow_patterns_are_not_collapsed_into_low_risk_aliases():
     raw = "@startuml\n[*] <--> [*]\nPreparingToShare --> [Error] --> SelectingPlatform\nchoice2 --> Join1 when : sunny=true\n@enduml\n"
     result = normalize_plantuml(raw)
