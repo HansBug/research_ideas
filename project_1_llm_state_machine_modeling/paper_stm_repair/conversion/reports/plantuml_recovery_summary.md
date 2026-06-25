@@ -6,7 +6,7 @@
 
 - PlantUML 一手 pair 总数：1049；unique NL：999。
 - 原始 PlantUML 官方 SCXML 已可转换：550；原始失败：499。
-- all-rules 技术通过：476；其中低风险通过：468；主 eligibility 纳入：468；高风险仅 supplementary：8。
+- all-rules 技术通过：476；其中低风险通过：466；主 eligibility 纳入：466；高风险仅 supplementary：10。
 - normalization 后仍失败：23。
 - LLMS-EMP cross-LLM gate：通过；ratio=1.429。
 - 临时 v2 probe 的 250/499 只是早期 prototype estimate；本文件中的 production report 已取代该估计，论文主 claim 只能使用 low-risk / main eligibility 口径。
@@ -17,14 +17,14 @@
 | 维度 | raw | before converted | before failed | technical pass | low-risk pass | main eligible | failed after |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | `llms-emp-stm-subset` | 60 | 33 | 27 | 24 | 19 | 19 | 3 |
-| `unified-uml-multimodal-validation` | 989 | 517 | 472 | 452 | 449 | 449 | 20 |
+| `unified-uml-multimodal-validation` | 989 | 517 | 472 | 452 | 447 | 447 | 20 |
 
 ## 按 seed class 统计
 
 | 维度 | raw | before converted | before failed | technical pass | low-risk pass | main eligible | failed after |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | `llms_emp_cross_llm` | 60 | 33 | 27 | 24 | 19 | 19 | 3 |
-| `unified_synthetic` | 989 | 517 | 472 | 452 | 449 | 449 | 20 |
+| `unified_synthetic` | 989 | 517 | 472 | 452 | 447 | 447 | 20 |
 
 ## 按错误类别统计
 
@@ -34,7 +34,8 @@
 | `B_entry_do_exit_action_syntax` | 1 | 0 | 1 | 1 | 0 | 0 | 0 |
 | `D_activity_or_pseudostate_syntax_mixed_in_state_diagram` | 4 | 0 | 4 | 4 | 0 | 0 | 0 |
 | `E_quoted_transition_state_names` | 191 | 0 | 191 | 191 | 191 | 191 | 0 |
-| `F_unquoted_state_names_with_spaces` | 270 | 1 | 269 | 258 | 258 | 258 | 11 |
+| `F_unquoted_state_names_with_spaces` | 267 | 1 | 266 | 256 | 256 | 256 | 10 |
+| `G_embedded_pseudostate_marker` | 3 | 0 | 3 | 2 | 0 | 0 | 1 |
 | `Y_other_or_contextual` | 559 | 549 | 10 | 0 | 0 | 0 | 10 |
 
 ## 按 LLM 统计
@@ -47,7 +48,7 @@
 | `GPT-4o` | 10 | 9 | 1 | 1 | 0 | 0 | 0 |
 | `Kimi` | 10 | 5 | 5 | 4 | 2 | 2 | 1 |
 | `Llama` | 10 | 0 | 10 | 9 | 8 | 8 | 1 |
-| `NA` | 989 | 517 | 472 | 452 | 449 | 449 | 20 |
+| `NA` | 989 | 517 | 472 | 452 | 447 | 447 | 20 |
 
 ## LLMS-EMP eligible_after 组成
 
@@ -67,7 +68,7 @@
 | subset | count | avg states | avg transitions | avg transition label chars | hierarchy counts | avg alias count |
 |---|---:|---:|---:|---:|---|---:|
 | `naturally_converted` | 550 | 7.89 | 10.23 | 9.22 | `{'hierarchical': 28, 'flat': 522}` | 0.0 |
-| `main_recovered` | 468 | 7.2 | 8.57 | 6.64 | `{'hierarchical': 9, 'flat': 459}` | 4.83 |
+| `main_recovered` | 466 | 7.2 | 8.58 | 6.67 | `{'hierarchical': 9, 'flat': 457}` | 4.83 |
 
 解释：recovered subset 是 normalized eligibility subset，不是原始生成分布的无偏代表；若后续论文引用，必须保留该限制。
 
@@ -84,7 +85,8 @@
 
 | rule_id | audited | pass | fail |
 |---|---:|---:|---:|
-| `PUML.NORM.alias_multiword_endpoint` | 270 | 269 | 1 |
+| `PUML.NORM.alias_embedded_pseudostate_marker` | 3 | 3 | 0 |
+| `PUML.NORM.alias_multiword_endpoint` | 268 | 267 | 1 |
 | `PUML.NORM.alias_quoted_endpoint` | 191 | 191 | 0 |
 | `PUML.NORM.comment_dependency_arrow` | 3 | 0 | 3 |
 | `PUML.NORM.comment_orphan_when` | 1 | 0 | 1 |
@@ -97,7 +99,7 @@
 
 - JSON report: `plantuml_recovery_report.json`
 - normalization ledger: `project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/plantuml_normalization_ledger.jsonl`
-- generator code commit: `0d0271505f2a3fbc11ab2654a0ea5d7d6a4da5f8`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。
+- generator code commit: `fa41615839c446b6847c43c26a45852cbdc18a05`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。
 - generator worktree dirty: `False`
 - canonical STM 不由 normalizer 直接生成；所有 recovered 判定均基于官方 PlantUML SCXML。
 - full workdir archive: `project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip`；report 中 `raw_candidate_path` / `normalized_candidate_path` / `structured_export_path` 对应 zip 内 member 路径。

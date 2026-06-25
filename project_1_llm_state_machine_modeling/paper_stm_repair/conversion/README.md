@@ -161,7 +161,7 @@ R3.1 在本目录下新增 [normalization/](./normalization/) 微型工作区，
 1. normalization 只生成 run/report 路径中的候选 `.puml`，不覆盖 seed library assets、`pairs.jsonl` 或 [selected_seed_examples/](../selected_seed_examples/)。
 2. recovered 判定仍必须来自官方 PlantUML `-checkonly` / `-tscxml` 产物；normalizer 不直接生成 canonical STM。
 3. 恢复率必须同时报告 `technical_scxml_pass_all_rules`、`low_risk_scxml_pass`、`main_eligibility_included`；论文主 claim 只能使用低风险 / 主 eligibility 口径。
-4. 高风险 action/guard/hierarchy/concurrency loss 默认不得进入主 repair eligibility；`fork_join_decl_to_state` 必须标 `concurrency_degraded=true`。
+4. 高风险 action/guard/hierarchy/concurrency/pseudo-state loss 默认不得进入主 repair eligibility；`fork_join_decl_to_state` 必须标 `concurrency_degraded=true`，endpoint 内嵌 `[*]` 伪状态标记必须作为 supplementary / manual-review。
 5. 主 eligibility 还必须通过 source-level semantic preservation audit；该 audit 证明的是 raw-vs-normalized source signature 保持，不是定理级严格语义等价证明。
 6. raw / normalized candidate 与官方 SCXML 这类高基数制品必须归档为 `artifacts/plantuml_recovery/r3_1_committed/workdir.zip`，不得提交根目录 `runs/` 下的散文件。
 

@@ -122,7 +122,7 @@ R3 最低验收：
 
 1. normalization 必须发生在 PlantUML `-tscxml` 之前；不得在 adapter 内部从源文本直接构造 canonical states/transitions。
 2. 每条变换必须写入 [reports/plantuml_normalization_ledger.jsonl](./reports/plantuml_normalization_ledger.jsonl)，包含 rule id、line/span、before/after、raw hash、normalized hash、risk tier 与 eligibility 口径。
-3. 任何高风险规则（comment-out、entry/do/exit loss、dependency 注释、fork/join 降级等）默认只能作为 supplementary / manual-review；不得进入主 repair / verification statistics。
+3. 任何高风险规则（comment-out、entry/do/exit loss、dependency 注释、fork/join 降级、endpoint 内嵌 `[*]` 伪状态标记等）默认只能作为 supplementary / manual-review；不得进入主 repair / verification statistics。
 4. R3.1 report 必须保留三种恢复率：`technical_scxml_pass_all_rules` / `low_risk_scxml_pass` / `main_eligibility_included`。
 5. `main_eligibility_included=true` 必须同时满足低风险规则、normalized official SCXML 可解析、`semantic_preservation_pass=true`；任何未审计或审计失败项不得进入主 eligibility。
 6. semantic preservation audit 是 source-level raw-vs-normalized signature audit，不是定理级严格语义等价证明；文档和论文写作应使用“source-signature-preserving / 结构签名保持”这类措辞。

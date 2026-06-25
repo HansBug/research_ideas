@@ -15,7 +15,7 @@
 5. **smoke 样例边界**：[selected_seed_examples/](./selected_seed_examples/) 只保存后续转换器 / 诊断器 / 修正循环做最小连通性自检的静态输入样例；它不是最终实验集合、不是主结果样本上限，也不是 seed registry 的一手事实主表。
 6. **四例运行边界**：R1.8-A/B/C/D/E 均为文档和文库结构 PR，不跑四例真实运行，不调用真实 LLM，不读取 `.env`；后续若用 [selected_seed_examples/](./selected_seed_examples/) 真正执行 smoke，应另建 run record。
 7. **流程信息边界**：PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报与 merge 进度只维护在 GitHub body / comment；本路径只保留长期结构纪律、事实总账和论文材料，不新增 `progress.md`、`task-packets/` 或跨 PR `agent_provenance.md` 作为动态流程真源。
-8. **R3.1 PlantUML 恢复边界**：PlantUML normalization / recovery 只回答转换器 eligibility，不能写成 Better STM repair 效果；normalization 必须发生在官方 PlantUML `-tscxml` 前，不修改一手 raw assets，canonical STM 只能来自官方 SCXML；高基数 raw / normalized `.puml` 与官方 `.scxml` 必须压缩进 [conversion/artifacts/](./conversion/artifacts/) 下的 archive，不得提交根目录 `runs/` 散文件；主 eligibility 必须通过 source-level semantic preservation gate，高风险 action / guard / hierarchy / concurrency 降级样本只能作 supplementary evidence。
+8. **R3.1 PlantUML 恢复边界**：PlantUML normalization / recovery 只回答转换器 eligibility，不能写成 Better STM repair 效果；normalization 必须发生在官方 PlantUML `-tscxml` 前，不修改一手 raw assets，canonical STM 只能来自官方 SCXML；高基数 raw / normalized `.puml` 与官方 `.scxml` 必须压缩进 [conversion/artifacts/](./conversion/artifacts/) 下的 archive，不得提交根目录 `runs/` 散文件；主 eligibility 必须通过 source-level semantic preservation gate，高风险 action / guard / hierarchy / concurrency / pseudo-state 降级样本只能作 supplementary evidence。
 
 ## 2. 阅读顺序
 
