@@ -2,11 +2,18 @@
 
 ## 0. 定位
 
-`evaluation/` 是 PR-R4 为第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线建立的评价门工作区。它在真实修正循环、真实 LLM 调用和正式主实验之前，先冻结一套可审计的 **诊断 taxonomy、场景 / 回归 schema、Better STM 五条件 checklist、eligibility policy 与人工裁决 rubric v0**。
+`evaluation/` 是第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线的评价门工作区。它在真实修正循环、真实 LLM 调用和正式主实验之前，冻结一套可审计的 R4 v0 规则：样例准入、诊断分类、场景 / 回归门、Better STM 五条件、人工裁决草案和后续指标表。
 
-本目录只支撑 R4 v0 dry-run 与后续 R5/R6/R7 的接口，不产生论文主结果，不证明 repair loop 有效，也不把四例 smoke panel 写成最终实验集合。
+本目录只支撑 R4 dry-run 与后续 R5/R6/R7 的接口，不产生论文主结果，不证明 repair loop 有效，也不把四例 smoke 写成最终实验集合。
 
-## 1. 与上游目录的关系
+## 1. 阅读顺序
+
+1. [EVALUATION_GATE.md](./EVALUATION_GATE.md)：核心规则总表；优先阅读它来理解 R4 到底制定了什么规则。
+2. [DRY_RUNS.md](./DRY_RUNS.md)：四个静态样例的 dry-run 总结、输入链接和 JSON fixture 入口。
+3. [GUIDE.md](./GUIDE.md)：后续维护纪律、新增 dry-run 样例流程和验收命令。
+4. [schemas/](./schemas/) 与 [tests/](./tests/)：machine-readable contract 与回归测试。
+
+## 2. 与上游目录的关系
 
 | 上游 / 下游 | 关系 |
 |---|---|
@@ -16,35 +23,17 @@
 | [../experiment_design/evaluation_gate.md](../experiment_design/evaluation_gate.md) | 上游顺序约束：评价门必须先于真实修正预演冻结。 |
 | R5/R6/R7/R8 | R5/R6 复用本目录 schema 做 deterministic dry-run / loop skeleton；R7 才冻结正式实验 protocol；R8 才执行主实验。 |
 
-## 2. 阅读顺序
-
-1. [GUIDE.md](./GUIDE.md)：先确认 R4 工作纪律、证据等级和禁止 claim。
-2. [diagnostic_taxonomy.md](./diagnostic_taxonomy.md)：查看诊断 code、severity、source stage 和 R3 映射规则。
-3. [scenario_schema.md](./scenario_schema.md)：查看场景 / 回归 suite 的最小结构。
-4. [better_stm_checklist.md](./better_stm_checklist.md)：查看五条件 checklist 与聚合判定。
-5. [eligibility_policy.md](./eligibility_policy.md)：查看 R3 `converted / partial / blocked` 如何进入 R4/R5。
-6. [human_rubric.md](./human_rubric.md)：查看人工裁决 rubric v0。
-7. [metrics_table_plan.md](./metrics_table_plan.md)：查看 R7/R8 结果表骨架。
-8. [dry_run_examples/](./dry_run_examples/)：查看四例 dry-run fixture 与 R4 decision。
-9. [schemas/](./schemas/) 与 [tests/](./tests/)：查看 machine-readable contract 与回归测试。
-
 ## 3. 路径结构
 
 ```text
 evaluation/
 ├── README.md
 ├── GUIDE.md
-├── diagnostic_taxonomy.md
-├── better_stm_checklist.md
-├── scenario_schema.md
-├── eligibility_policy.md
-├── human_rubric.md
-├── metrics_table_plan.md
+├── EVALUATION_GATE.md
+├── DRY_RUNS.md
+├── human_rubric_v0.json
 ├── dry_run_examples/
-│   ├── README.md
-│   ├── r4_dry_run_summary.md
 │   └── <example_id>/
-│       ├── README.md
 │       ├── diagnostic_draft.json
 │       ├── scenario_draft.json
 │       ├── eligibility_decision.json
@@ -60,14 +49,16 @@ evaluation/
     └── test_r4_selected_examples_dry_run.py
 ```
 
-## 4. R4 dry-run 总结
+## 4. 四例 dry-run 总览
 
 | 样例 | R3 裁决 | R4 decision | 用途 |
 |---|---|---|---|
-| [llms-emp-gpt4o-hldcs](./dry_run_examples/llms-emp-gpt4o-hldcs/README.md) | `converted` / official SCXML canonical | `complete` | 完整跑通 diagnostic + scenario + checklist 字段。 |
-| [sefm-ssc7-umple](./dry_run_examples/sefm-ssc7-umple/README.md) | `partial` / official SCXML + timing loss | `focused` | 验证 partial canonical 与 timing caveat 的表达。 |
-| [ttool-automatedbraking-xml](./dry_run_examples/ttool-automatedbraking-xml/README.md) | `partial` / official XML inventory | `focused` | 验证 inventory-only / unresolved connector / timed AVATAR 的降级策略。 |
-| [unified-uml-synthetic-0000](./dry_run_examples/unified-uml-synthetic-0000/README.md) | `partial` / no canonical conversion | `blocked` | 验证 no-canonical 输入只能进入 blocked / toolchain-boundary analysis。 |
+| `llms-emp-gpt4o-hldcs` | `converted` / official SCXML canonical | `complete` | 完整跑通 diagnostic + scenario + checklist 字段。 |
+| `sefm-ssc7-umple` | `partial` / official SCXML + timing loss | `focused` | 验证 partial canonical 与 timing caveat 的表达。 |
+| `ttool-automatedbraking-xml` | `partial` / official XML inventory | `focused` | 验证 inventory-only / unresolved connector / timed AVATAR 的降级策略。 |
+| `unified-uml-synthetic-0000` | `partial` / no canonical conversion | `blocked` | 验证 no-canonical 输入只能进入 blocked / toolchain-boundary analysis。 |
+
+详情见 [DRY_RUNS.md](./DRY_RUNS.md)。
 
 ## 5. 禁止 claim
 

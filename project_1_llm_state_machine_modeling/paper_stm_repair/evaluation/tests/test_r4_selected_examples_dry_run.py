@@ -30,9 +30,10 @@ def test_all_four_r4_dry_run_examples_have_required_files_and_validate():
         "eligibility_decision.json": load_json(SCHEMAS / "eligibility_decision.schema.json"),
         "better_stm_checklist.json": load_json(SCHEMAS / "better_stm_checklist.schema.json"),
     }
+    dry_runs_doc = (ROOT / "DRY_RUNS.md").read_text(encoding="utf-8")
     for example_id in EXPECTED:
+        assert example_id in dry_runs_doc
         example_dir = DRY_RUN / example_id
-        assert (example_dir / "README.md").exists()
         for filename, schema in schemas.items():
             path = example_dir / filename
             assert path.exists(), path
