@@ -25,14 +25,15 @@
 - `project_1_llm_state_machine_modeling/paper_agent_based_slr/evidence/project_inventory.md`
 - `project_1_llm_state_machine_modeling/paper_agent_based_slr/evidence/fact_drift_policy.md`
 - `project_1_llm_state_machine_modeling/paper_agent_based_slr/plan/**`
+- `project_1_llm_state_machine_modeling/paper_agent_based_slr/baselines/SUMMARY.md`（仅允许为消除旧 S0 story 正向残留做窄口径同步，不新增论文、不重打 baseline 分数、不改单篇 `review.md`）
 - PR #101 / PR #114 body 与 comments
 
 ## 4. 不在本 PR 中修改
 
 | 路径或资产 | 原因 |
 |---|---|
-| `project_1_llm_state_machine_modeling/paper_agent_based_slr/baselines/**` | PR-B0 已建立 baseline 文库；本 PR 只消费结论。 |
-| `project_1_llm_state_machine_modeling/paper_agent_based_slr/dataset_selection/**` | 场景选择属于后续 A3。 |
+| `project_1_llm_state_machine_modeling/paper_agent_based_slr/baselines/**` | PR-B0 已建立 baseline 文库；本 PR 默认只消费结论。例外：若正式 review 发现 `baselines/SUMMARY.md` 中仍有旧 S0 正向 story 口径，可仅同步 SUMMARY 的总账定调和更新日志，不新增论文、不改单篇 review。 |
+| `project_1_llm_state_machine_modeling/paper_agent_based_slr/dataset_selection/**` | 本轮 S0-v2 不新增或冻结场景；历史 PR-S0 已做入口口径同步，后续 A3 才能深化场景。 |
 | `project_1_llm_state_machine_modeling/method/**` | 本 PR 不实现工作流代码。 |
 | `runs/**` | 本 PR 不跑真实 LLM，不新增 run record。 |
 | `.env` | 本 PR 不触发 provider 调用，也不修改密钥配置。 |

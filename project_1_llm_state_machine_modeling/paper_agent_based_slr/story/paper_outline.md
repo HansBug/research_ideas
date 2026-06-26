@@ -62,7 +62,7 @@ agent 在 approved schema 下抽取 source anchors、quotes、tables、figures�
 
 ### 5.5 Statistical analysis as intermediate observation
 
-在稳定字段表上做频次、分布、交叉表、趋势、coverage proxy 和 contradiction signal。统计分析只产生 statistical observations，不直接产生 final research findings。
+在稳定 evidence table 上做频次、分布、交叉表、趋势、coverage proxy 和 contradiction signal。这里的 evidence table 指已按批准 schema 填充并带 source anchors 的数据表，不是一次性字段清单；统计分析只产生 statistical observations，不直接产生 final research findings。
 
 ### 5.6 Candidate finding signals and finding heuristics
 

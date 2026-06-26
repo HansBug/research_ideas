@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 文档大修已完成本地验证；等待 push 后正式三路 reviewer 复审 |
+| 当前阶段 | S0-v2 文档大修与首轮正式复审 I/M 修复已完成本地验证；等待 push 后三路小 diff 复审 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -39,7 +39,7 @@
 
 ## 4. 已完成修改
 
-1. 将第二篇论文主线从旧“研究者引导、发现导向、可审计 evidence workflow”升级为“研究者引导、模式演化、证据支撑、发现导向的智能体式 SLR/SMS 支持方法”。
+1. 将第二篇论文主线从旧“研究者引导、发现导向、可审计证据流”升级为“研究者引导、模式演化、证据支撑、发现导向的智能体式 SLR/SMS 支持方法”。
 2. 将真实 SLR 明确拆成三层：论文收集与初步处理、维度 pattern 驱动的论文分析、统计分析与 research finding 形成。
 3. 在 [../story/paper_story.md](../story/paper_story.md) 中更新 Mermaid 方法总览图，显式包含 L0--L7、G0--G6、content evidence、statistical analysis、candidate finding、final adjudication 与 process evidence boundary。
 4. 在 [../story/protocol.md](../story/protocol.md) 中明确 dimension pattern lifecycle、schema revision / impact analysis / backfill、statistical-analysis-to-finding 转移规则、survey-of-surveys scaffold 边界、pilot 与学生过程数据边界。
@@ -77,6 +77,7 @@ Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动
 | 2026-06-26 | 禁止强主张 grep | 通过；命中均位于禁止 / 风险 / 安全边界 / grep 规则语境中，不是正向主张 |
 | 2026-06-26 | Markdown 相对链接检查 | 通过；`markdown relative links ok` |
 | 2026-06-26 | Mermaid 渲染检查：`mmdc -p /tmp/puppeteer-no-sandbox-pr114.json -i /tmp/pr114_s0v2_method.mmd -o /tmp/pr114_s0v2_method.svg` | 通过；SVG 已生成，本地大小 44619 bytes |
+| 2026-06-26 | 首轮正式复审修复验证：`git diff --check`、必需文件检查、Markdown 相对链接检查、Mermaid 渲染、旧 story grep | 通过；`baselines/SUMMARY.md` 旧 S0 正向 story 口径已同步为 S0-v2，grep 无旧正向叙事命中 |
 
 ## 7. Review 状态
 
@@ -87,7 +88,7 @@ Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动
 | PR body 计划阶段 | claude reviewer | 0C / 0I / 少量 M | 可进入实现 |
 | 内部实现中只读检查 | verifier subagent | C/I：多数落点旧 S0、L8/G6 不一致、方法图缺 G6；PR body / progress 状态与验证记录曾不同步 | 已重写 claim / outline / eval / risk / README / task / progress，并修正 L8/G6；本轮验证记录已回填，PR body 待 push 后同步 |
 | 内部实现中学术审查 | critic subagent | C/I：outline、claim map、evaluation、risk、novelty matrix、project inventory 未同步 S0-v2；旧 evidence-package 叙事残留 | 已逐项修复，并把旧叙事 grep 标为人工审查线索而非硬 gate |
-| 正式三路复审 | codex / claude / deepseek | 待执行 | push 后启动，reviewer 需直接 PR comment |
+| 正式三路复审 | codex / claude / deepseek | 首轮已执行：codex 0C/0I/2M，claude 0C/0I/4M；deepseek 路发现 baselines 旧 story 口径 I 且身份 comment 需重发 | 已修复 deepseek I 与低成本 M；push 后重新触发三路小 diff 复审 |
 
 ## 8. 剩余风险
 
@@ -95,4 +96,4 @@ Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动
 2. Mermaid 方法图是方法总览草案；若 A2/A3/A4/A5 改变阶段契约、schema 或证据字段，必须同步更新。
 3. survey-of-surveys scaffold 仍是计划证据；后续若执行，必须避免写成目标 evidence pool 或 complete tertiary review。
 4. 学生 process data 仍是计划；A5 前必须冻结 consent、匿名化、脱敏、教学关系隔离和访问权限。
-5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
+5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / artifact audit。

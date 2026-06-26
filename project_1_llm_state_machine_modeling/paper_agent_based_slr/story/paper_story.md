@@ -93,6 +93,7 @@ sequenceDiagram
   R->>E: G5：研究者 final adjudication (accept / downgrade / reject / unresolved)
   E-->>R: researcher-adjudicated target-domain findings + transparency package
 
+  Note over P: 横切 L0--L7 的过程证据集合，非顺序阶段
   R-->>P: process evidence only for method evaluation: approvals, challenge, adjudication, redaction decisions
   A-->>P: process evidence only: prompts, runs, cost, errors, schema revision / backfill logs
   E-->>P: process evidence only: evidence table versions, analysis protocol, candidate ledger status
