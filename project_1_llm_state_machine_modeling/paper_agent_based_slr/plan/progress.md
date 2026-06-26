@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 文档大修与首轮正式复审 I/M 修复已推送为 `1cc50aca`，状态同步提交为 `ed55b912`；当前复审目标为 `ed55b912`，`feedback-smoke` 已通过 |
+| 当前阶段 | S0-v2 文档大修与首轮正式复审 I/M 修复已推送为 `1cc50aca`；后续状态同步提交只更新进度/复审目标说明，不改变 S0-v2 方法合同；当前复审目标以 PR 当前 HEAD 与 PR checks 为准 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -78,7 +78,7 @@ Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动
 | 2026-06-26 | Markdown 相对链接检查 | 通过；`markdown relative links ok` |
 | 2026-06-26 | Mermaid 渲染检查：`mmdc -p /tmp/puppeteer-no-sandbox-pr114.json -i /tmp/pr114_s0v2_method.mmd -o /tmp/pr114_s0v2_method.svg` | 通过；SVG 已生成，本地大小 44619 bytes |
 | 2026-06-26 | 首轮正式复审修复验证：`git diff --check`、必需文件检查、Markdown 相对链接检查、Mermaid 渲染、旧 story grep | 通过；`baselines/SUMMARY.md` 旧 S0 正向 story 口径已同步为 S0-v2，grep 无旧正向叙事命中 |
-| 2026-06-26 | `ed55b912` 状态同步提交复核 | 通过；该提交仅修改 `plan/progress.md` 当前阶段 1 行，不改变 S0-v2 方法合同；当前复审目标为 `ed55b912` |
+| 2026-06-26 | 状态同步提交复核 | 通过；`ed55b912` / `397b6d05` 均仅修改 `plan/progress.md` 当前阶段或复审目标说明，不改变 S0-v2 方法合同；当前复审对象以 PR 当前 HEAD 为准 |
 
 ## 7. Review 状态
 
@@ -87,9 +87,9 @@ Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动
 | PR body 计划阶段 | deepseek reviewer | 0C / 0I / 3M | 可进入实现；M 已吸收为术语和风险补强 |
 | PR body 计划阶段 | codex reviewer | 0C / 0I | 可进入实现 |
 | PR body 计划阶段 | claude reviewer | 0C / 0I / 少量 M | 可进入实现 |
-| 内部实现中只读检查 | verifier subagent | C/I：多数落点旧 S0、L8/G6 不一致、方法图缺 G6；PR body / progress 状态与验证记录曾不同步 | 已重写 claim / outline / eval / risk / README / task / progress，并修正 L8/G6；本轮验证记录与 PR body 已同步到 `ed55b912` |
+| 内部实现中只读检查 | verifier subagent | C/I：多数落点旧 S0、L8/G6 不一致、方法图缺 G6；PR body / progress 状态与验证记录曾不同步 | 已重写 claim / outline / eval / risk / README / task / progress，并修正 L8/G6；验证记录与 PR body 已同步，当前复审对象以 PR 当前 HEAD 为准 |
 | 内部实现中学术审查 | critic subagent | C/I：outline、claim map、evaluation、risk、novelty matrix、project inventory 未同步 S0-v2；旧 evidence-package 叙事残留 | 已逐项修复，并把旧叙事 grep 标为人工审查线索而非硬 gate |
-| 正式三路复审 | codex / claude / deepseek | 首轮已执行：codex 0C/0I/2M，claude 0C/0I/4M；deepseek 路发现 baselines 旧 story 口径 I 且身份 comment 需重发 | 已修复 deepseek I 与低成本 M；当前以 `ed55b912` 作为小 diff 复审对象 |
+| 正式三路复审 | codex / claude / deepseek | 首轮已执行：codex 0C/0I/2M，claude 0C/0I/4M；deepseek 路发现 baselines 旧 story 口径 I 且身份 comment 需重发 | 已修复 deepseek I 与低成本 M；当前以 PR 当前 HEAD 作为小 diff 复审对象 |
 
 ## 8. 剩余风险
 
