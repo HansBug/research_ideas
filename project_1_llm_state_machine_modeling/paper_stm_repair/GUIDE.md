@@ -181,6 +181,7 @@ R1.8-E 的长期验收不是新增文献或冻结四例，而是确保后续 R2 
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-27 01:20:00 | 增加 [representation/](./representation/) R4.5 读取链路与边界：R4.5 只负责 canonical STM JSON -> `.fcstm` / pyfcstm inspect report 的表示桥，loss ledger 全部归因到 representation/conversion，不计 repair gain。 |
 | 2026-06-26 12:35:00 | 增加 [evaluation/](./evaluation/) R4 读取链路与边界：R4 只冻结 diagnostic / scenario / Better STM checklist / eligibility / human rubric v0，并用四例做 gate dry-run；没有 `STM_k` 时不得 claim Better。 |
 | 2026-06-25 23:55:00 | 增加 R3.1 PlantUML normalization / recovery 读取链路与边界：它只服务 conversion eligibility audit；高基数制品必须以 [conversion/artifacts/](./conversion/artifacts/) archive 归档，主 eligibility 必须通过 source-level semantic preservation gate。 |
 | 2026-06-24 17:45:00 | 增加 [conversion/](./conversion/) 读取链路与 R3 converter v0 边界：只服务四例 smoke / R4-R5 dry-run，不是 R7/R8 正式实验级转换器。 |

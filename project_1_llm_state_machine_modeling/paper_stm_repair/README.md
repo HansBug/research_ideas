@@ -34,10 +34,11 @@
 9. [selected_seed_examples/README.md](./selected_seed_examples/README.md)：查看静态 smoke 用代表性 `<NL, STM_0>` 样例；它只服务转换器 / 诊断器 / 修正循环的最小连通性自检，不是最终实验集合或主结果样本上限。
 10. [conversion/README.md](./conversion/README.md)：查看 R3 开发 / 审计级 converter v0、schema、四例裁决报告和 loss ledger；若关注 R3.1 PlantUML 转换前规范化 / 恢复，还应继续读 [conversion/normalization/README.md](./conversion/normalization/README.md)、[conversion/normalization/GUIDE.md](./conversion/normalization/GUIDE.md)、[conversion/reports/plantuml_recovery_summary.md](./conversion/reports/plantuml_recovery_summary.md) 与 [conversion/artifacts/plantuml_recovery/r3_1_committed/README.md](./conversion/artifacts/plantuml_recovery/r3_1_committed/README.md)。conversion 层不是正式实验级转换器，R3.1 的恢复收益只属于 conversion eligibility，不属于 Better STM repair 收益。
 11. [evaluation/README.md](./evaluation/README.md)：查看 R4 诊断 / 场景 / Better STM 评价门 v0、四例 dry-run fixture、schema 与 pytest contract。evaluation 层只冻结评价门草案，不调用真实 LLM、不执行 repair loop、不产生主实验结果。
-12. [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)：确认当前 STM repair baseline / 近邻结论；它不提供 R2 seed，只服务 related work、对照与消融边界。
-13. [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)：确认纯 NL 数据源入口；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
-14. 需要追溯 PR-R1 generation-era 资产审计时，再读 [evidence/README.md](./evidence/README.md) 及其子文件；这些文件是历史审计入口，不替代当前三类 corpora 总账。
-15. 需要追溯 R1.5--R1.7 旧 seed ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
+12. [representation/README.md](./representation/README.md)：查看 R4.5 canonical STM JSON 到 `.fcstm` / pyfcstm inspect report 的表示桥；representation 层只服务 R5 deterministic smoke 的可机检输入，不把转换收益计入 repair gain。
+13. [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)：确认当前 STM repair baseline / 近邻结论；它不提供 R2 seed，只服务 related work、对照与消融边界。
+14. [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)：确认纯 NL 数据源入口；只有生成并记录 `STM_0` 后，生成后的 `<NL, STM_0>` 才能 crosslink 到 seed。
+15. 需要追溯 PR-R1 generation-era 资产审计时，再读 [evidence/README.md](./evidence/README.md) 及其子文件；这些文件是历史审计入口，不替代当前三类 corpora 总账。
+16. 需要追溯 R1.5--R1.7 旧 seed ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；archive 不作为当前事实真源。
 
 ## 3. 目录结构
 
@@ -54,6 +55,7 @@ paper_stm_repair/
 ├── selected_seed_examples/  # smoke 用代表性 <NL, STM_0> 静态样例；不是最终实验集合
 ├── conversion/     # R3 converter v0 + R3.1 PlantUML recovery eligibility audit；不是正式实验级转换器
 ├── evaluation/     # R4 诊断 / 场景 / Better STM 评价门 v0；只做 dry-run 与 schema contract
+├── representation/ # R4.5 canonical JSON -> .fcstm / pyfcstm inspect 表示桥；不计 repair gain
 ├── seed_corpus/    # 旧入口 redirect；不再承载当前事实
 ├── evidence/       # PR-R1 generation-era 历史审计入口；不替代当前 corpora 总账
 └── archive/        # R1.5--R1.7 旧 ledger / raw search 审计快照
@@ -89,6 +91,7 @@ paper_stm_repair/
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-27 01:20:00 | PR-R4.5 新增 [representation/](./representation/) 表示桥工作区，落地 canonical STM JSON 到 `.fcstm` / pyfcstm inspect report 的 exporter、schema、loss ledger 与 pytest contract；R4.5 只服务 R5 deterministic smoke，不计 repair gain。 |
 | 2026-06-26 12:35:00 | PR-R4 新增 [evaluation/](./evaluation/) 评价门工作区，落地 diagnostic / scenario / Better STM checklist / eligibility / human rubric schema、四例 dry-run fixture 与 pytest contract；R4 只做 gate dry-run，不产生 repair 或主实验结果。 |
 | 2026-06-25 23:55:00 | PR-R3.1 在 [conversion/](./conversion/) 下新增 PlantUML 转换前规范化 / 恢复入口、source-level semantic preservation gate 与高基数制品归档；全量 raw / normalized `.puml` 与官方 `.scxml` 只以 [workdir.zip](./conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip) 保存，论文主 claim 只能引用 low-risk / main eligibility 口径。 |
 | 2026-06-24 17:45:00 | PR-R3 新增 [conversion/](./conversion/) 开发 / 审计级 converter v0，落地四例 smoke 转换裁决、schema、toolchain survey、canonical report 与 loss ledger；正式实验级转换仍待 R7/R8 冻结。 |
