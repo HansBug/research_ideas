@@ -23,11 +23,13 @@
 
 当前已收录：
 
-1. [2026-06-15-导师-PR112-发现导向SLR与meta-model边界.md](./2026-06-15-导师-PR112-发现导向SLR与meta-model边界.md)
+1. [2026-06-26-导师-三阶段SLR与human-in-the-loop-finding.md](./2026-06-26-导师-三阶段SLR与human-in-the-loop-finding.md)
+   - 记录 2026-06-24/26 围绕 PR #123 的三阶段 SLR、维度 pattern、field-level evidence、统计分析 / research finding 分层、survey-of-surveys scaffold、human-in-the-loop 方法流程图、planned pilot run 与后续硕士生过程数据收集的导师讨论；进一步将第二篇收敛为 researcher-guided、pattern-evolving、evidence-backed、finding-oriented 的 agentic SLR 支持方法。
+2. [2026-06-15-导师-PR112-发现导向SLR与meta-model边界.md](./2026-06-15-导师-PR112-发现导向SLR与meta-model边界.md)
    - 记录 2026-06-15 关于 PR #112 第二篇论文从“SE review meta-model 驱动 evidence workflow”进一步转向 researcher-guided、finding-oriented、auditable agentic SLR support workflow 的导师讨论；明确 meta-model 应由使用该方法的 researcher 基于 scaffold 实例化，agent 先产出 candidate research findings，只有经 evidence chain 与 researcher audit 后才可升级为 final finding，并引入 researcher challenge / refinement loop。
-2. [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md)
+3. [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md)
    - 记录 2026-06-12 关于第一篇从 `NL -> STM` 生成转向 `<NL, STM_0> -> STM_k / Better STM` 无人化反馈驱动修正、弱化 `fcstm` / DSL 名头、baseline 角色重排、多格式转换器需求，以及第二篇从 `sources` 文库综述转向 agent-based SLR 方法学论文的导师讨论与会后定调。
-3. [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+4. [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md)
    - 记录 2026-06-04 关于 project_1 第一篇论文主线、Path-1/Path-2 分工、E1/E2 定位、核心贡献、baseline、数据选择、变量角色、LangChain/LangGraph、BMC/LTL 与 survey 可能性的导师意见；其中第一篇主任务边界已被 2026-06-12 记录更新。
 
 ## 4. 维护边界
