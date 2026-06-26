@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:paper-stm-repair:r4:eligibility-decision:v0",
+  "title": "R4 eligibility decision v0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "example_id",
+    "r3_status",
+    "r3_status_reason_code",
+    "canonical_available",
+    "canonical_output_path",
+    "r4_dry_run_decision",
+    "allow_diagnostic_dry_run",
+    "allow_scenario_dry_run",
+    "allow_model_level_evaluation",
+    "allow_repair_loop_smoke",
+    "gain_attribution",
+    "conversion_gain_counted_as_repair",
+    "required_caveats",
+    "evidence_locator",
+    "decision_rationale"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "r4.eligibility_decision.v0"
+    },
+    "example_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "r3_status": {
+      "enum": [
+        "converted",
+        "partial",
+        "blocked",
+        "unsupported"
+      ]
+    },
+    "r3_status_reason_code": {
+      "type": "string"
+    },
+    "canonical_available": {
+      "type": "boolean"
+    },
+    "canonical_output_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "r4_dry_run_decision": {
+      "enum": [
+        "complete",
+        "focused",
+        "blocked",
+        "supplementary"
+      ]
+    },
+    "allow_diagnostic_dry_run": {
+      "type": "boolean"
+    },
+    "allow_scenario_dry_run": {
+      "type": "boolean"
+    },
+    "allow_model_level_evaluation": {
+      "type": "boolean"
+    },
+    "allow_repair_loop_smoke": {
+      "type": "boolean"
+    },
+    "gain_attribution": {
+      "enum": [
+        "none",
+        "conversion_normalization",
+        "repair_loop",
+        "human_completion",
+        "unknown"
+      ]
+    },
+    "conversion_gain_counted_as_repair": {
+      "const": false
+    },
+    "required_caveats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_locator": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidenceLocator"
+      }
+    },
+    "decision_rationale": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "evidenceLocator": {
+      "type": "object",
+      "required": [
+        "kind",
+        "path",
+        "description"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "nl",
+            "stm0",
+            "canonical",
+            "r3_report",
+            "r3_loss_ledger",
+            "r3_summary",
+            "source_meta",
+            "rubric",
+            "scenario",
+            "pr_comment",
+            "other"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "json_pointer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "r4_dry_run_decision": {
+            "const": "blocked"
+          }
+        },
+        "required": [
+          "r4_dry_run_decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "allow_model_level_evaluation": {
+            "const": false
+          },
+          "allow_repair_loop_smoke": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "canonical_available": {
+            "const": false
+          }
+        },
+        "required": [
+          "canonical_available"
+        ]
+      },
+      "then": {
+        "properties": {
+          "canonical_output_path": {
+            "type": "null"
+          },
+          "allow_model_level_evaluation": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}
