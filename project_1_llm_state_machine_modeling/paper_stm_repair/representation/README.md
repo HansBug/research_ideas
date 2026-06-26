@@ -26,7 +26,7 @@ representation/
 ├── src/paper_stm_repair_representation/
 │   ├── __init__.py
 │   ├── cli.py
-│   ├── lowering.py
+│   ├── lowering.py              # canonical view / lowering / .fcstm render / report 主入口
 │   └── pyfcstm_names.py
 ├── reports/
 │   ├── fcstm_export_report.json
@@ -38,7 +38,12 @@ representation/
 │       ├── lowering_inventory.json
 │       └── parse_inspect_report.json
 └── tests/
+    ├── test_r45_export_contract.py
+    ├── test_r45_name_mapping.py
+    └── test_r45_schema_contract.py
 ```
+
+其中 `lowering.py` 是 R4.5 的主实现入口，同时承担 canonical model view、lowering 策略、`.fcstm` 渲染、loss ledger 与 export report 生成；本 PR 未单独拆出 `canonical_to_fcstm.py`。
 
 ## 3. 运行方式
 

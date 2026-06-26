@@ -104,6 +104,7 @@ class NameRegistry:
                 "to_identifier.keyword_safe_for": KEYWORD_SAFE_FOR,
             }
 
+        requested_base = base
         base, dsl_keyword_adjusted = fcstm_keyword_safe(base)
 
         scope_used = self._used_by_scope.setdefault(scope, {})
@@ -119,7 +120,12 @@ class NameRegistry:
             collision_group = None
 
         is_keyword_adjusted = dsl_keyword_adjusted
-        path = emitted_path or (f"{scope}.{emitted}" if scope else emitted)
+        if emitted_path is None:
+            path = f"{scope}.{emitted}" if scope else emitted
+        elif emitted_path.endswith(requested_base):
+            path = emitted_path[: -len(requested_base)] + emitted
+        else:
+            path = emitted_path
         self.rows.append(
             NameMappingRow(
                 raw_text=raw_text,

@@ -3,6 +3,7 @@
 ## 1. 目标与边界
 
 本目录只维护 R3 canonical STM JSON 到 pyfcstm `.fcstm` 的 deterministic lowering。它不负责重新转换 PlantUML / Umple / TTool，也不负责 repair、LLM 调用或正式实验统计。
+代码入口上，`src/paper_stm_repair_representation/lowering.py` 是当前 canonical view、lowering、render 与 report 生成的合并主入口；`cli.py` 只负责命令行封装，`pyfcstm_names.py` 只负责命名合法化与 mapping。
 
 实现与 review 必须遵守：
 

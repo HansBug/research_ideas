@@ -107,3 +107,40 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
             text = path.read_text(encoding="utf-8")
             assert "/" + "home/" not in text
             assert "/" + "tmp/" not in text
+
+
+def test_guard_variable_uses_fcstm_safe_identifier_for_special_token():
+    from paper_stm_repair_representation.lowering import FCSTMExporter, inspect_fcstm
+
+    canonical = {
+        "schema_version": "r3.canonical_stm.v0",
+        "example_id": "mini-e-guard",
+        "seed_id": "mini",
+        "source_format": "plantuml",
+        "adapter": "plantuml",
+        "status": "converted",
+        "status_reason_code": "R3.STATUS.converted",
+        "metadata": {"conversion_source": "official_scxml"},
+        "diagnostics": [],
+        "model": {
+            "name": "Mini",
+            "states": [
+                {"id": "A", "label": "A", "kind": "state", "parent": None, "raw_ref": "raw:A", "attributes": {}},
+                {"id": "B", "label": "B", "kind": "state", "parent": None, "raw_ref": "raw:B", "attributes": {}},
+            ],
+            "transitions": [
+                {"id": "tr_0001", "source": "A", "target": "B", "event": "E", "guard": "E", "action": None, "label": "E [E]", "scope": None, "raw_ref": "raw:t1", "attributes": {}},
+            ],
+            "variables": [],
+            "initial_states": ["A"],
+            "final_states": [],
+            "timing_level": "none",
+            "hierarchy_level": "flat",
+        },
+    }
+    result = FCSTMExporter(canonical).export()
+    fcstm = result["fcstm"]
+    assert "def int E_ = 0;" in fcstm
+    assert "if [E_ > 0]" in fcstm
+    assert "def int E = 0;" not in fcstm
+    assert inspect_fcstm(fcstm, Path("mini.fcstm"))["parse_status"] == "ok"

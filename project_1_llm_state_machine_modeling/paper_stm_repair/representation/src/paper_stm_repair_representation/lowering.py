@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Optional
 
 from pyfcstm.diagnostics.inspect import inspect_model
 from pyfcstm.model.load import load_state_machine_from_text
@@ -146,18 +146,21 @@ class CanonicalModelView:
         return list(reversed(parts))
 
 
-def map_guard(raw_guard: Optional[str]) -> tuple[Optional[str], list[str], str, str]:
+def map_guard(raw_guard: Optional[str], emitted_vars: Optional[Dict[str, str]] = None) -> tuple[Optional[str], list[str], str, str]:
     if raw_guard is None:
         return None, [], "none", "R45.GUARD.none"
     guard = raw_guard.strip()
     if not guard:
         return None, [], "empty", "R45.GUARD.empty"
+    emitted_vars = emitted_vars or {}
     if guard.startswith("!") and guard[1:].replace("_", "").isalnum():
-        var = NameRegistry.base_identifier(guard[1:])
-        return f"{var} == 0", [var], "negated_bool_as_int_zero", "R45.GUARD.negated_bool_supported"
+        raw_var = NameRegistry.base_identifier(guard[1:])
+        emitted_var = emitted_vars.get(raw_var, raw_var)
+        return f"{emitted_var} == 0", [raw_var], "negated_bool_as_int_zero", "R45.GUARD.negated_bool_supported"
     if guard.replace("_", "").isalnum():
-        var = NameRegistry.base_identifier(guard)
-        return f"{var} > 0", [var], "bool_as_int_positive", "R45.GUARD.bool_supported"
+        raw_var = NameRegistry.base_identifier(guard)
+        emitted_var = emitted_vars.get(raw_var, raw_var)
+        return f"{emitted_var} > 0", [raw_var], "bool_as_int_positive", "R45.GUARD.bool_supported"
     return None, [], "unsupported_complex_expression", "R45.GUARD.unsupported_complex_expression"
 
 
@@ -297,7 +300,7 @@ class FCSTMExporter:
         return self.event_map[key]
 
     def declare_guard_vars(self, raw_guard: Optional[str], transition: Dict[str, Any]) -> Optional[str]:
-        mapped, vars_, _, code = map_guard(raw_guard)
+        mapped, vars_, _, code = map_guard(raw_guard, self.guard_vars)
         if mapped is None and raw_guard:
             self.add_loss(
                 reason_code=code,
@@ -311,24 +314,25 @@ class FCSTMExporter:
             return None
         for var in vars_:
             if var not in self.guard_vars:
-                self.guard_vars[var] = var
-                self.registry.reserve(
+                emitted = self.registry.reserve(
                     raw_text=var,
                     canonical_ref=f"canonical:{self.view.example_id}:guard:{transition.get('id')}",
                     object_type="guard_variable",
                     scope="variables",
-                    emitted_path=f"def.{var}",
+                    emitted_path=f"def.{NameRegistry.base_identifier(var)}",
                     generated_reason="bool_guard_int_variable",
                 )
+                self.guard_vars[var] = emitted
                 self.add_loss(
                     reason_code=LOSS_BOOL_DEFAULT,
                     severity="known_semantic_approximation",
-                    message=f"Boolean-like guard variable {var} is declared as int with default 0; raw undefined/init semantics are not recovered in R4.5.",
+                    message=f"Boolean-like guard variable {emitted} is declared as int with default 0; raw undefined/init semantics are not recovered in R4.5.",
                     canonical_ref=transition.get("raw_ref"),
                     affected_item_id=transition.get("id"),
                     loss_type="variable_default",
-                    extra={"variable": var, "default_value": 0, "raw_guard": raw_guard},
+                    extra={"raw_variable": var, "emitted_variable": emitted, "default_value": 0, "raw_guard": raw_guard},
                 )
+        mapped, _, _, _ = map_guard(raw_guard, self.guard_vars)
         return mapped
 
     def effect_for_action(self, action: Optional[str], transition: Dict[str, Any]) -> tuple[str, Optional[str]]:
@@ -525,8 +529,8 @@ class FCSTMExporter:
         guards = []
         for t in self.view.transitions:
             if t.get("guard"):
-                mapped, vars_, strategy, code = map_guard(t.get("guard"))
-                guards.append({"transition_id": t["id"], "raw_guard": t.get("guard"), "mapped_expression": mapped, "declared_variables": vars_, "strategy": strategy, "reason_code": code, "supported": mapped is not None})
+                mapped, vars_, strategy, code = map_guard(t.get("guard"), self.guard_vars)
+                guards.append({"transition_id": t["id"], "raw_guard": t.get("guard"), "mapped_expression": mapped, "declared_variables": [self.guard_vars.get(v, v) for v in vars_], "raw_variables": vars_, "strategy": strategy, "reason_code": code, "supported": mapped is not None})
         actions = []
         for t in self.view.transitions:
             if t.get("action"):
@@ -576,7 +580,6 @@ class FCSTMExporter:
             raw = self.view.model.get("name") or self.view.example_id
             lines.append(f"state {name} named {dsl_string(raw)} {{")
             body_indent = indent + 4
-            current_scope_key = "__root__"
         else:
             state = self.view.state_by_id[scope_id]
             name = self.state_id_map[scope_id]
@@ -586,7 +589,6 @@ class FCSTMExporter:
             if self.view.is_composite(scope_id):
                 lines.append(f"{pad}{keyword} {name} named {dsl_string(raw)} {{")
                 body_indent = indent + 4
-                current_scope_key = scope_id
             else:
                 # Entry action heuristic for Umple Override state: R3 SCXML loses entry actions,
                 # so R4.5 keeps only explicitly known action from the R3 targeted audit context.
@@ -642,7 +644,7 @@ class FCSTMExporter:
         for transition in self.view.transitions:
             self.render_transition(transition)
         lines: list[str] = []
-        for var in sorted(self.guard_vars):
+        for var in sorted(set(self.guard_vars.values())):
             lines.append(f"def int {var} = 0;")
         for flag in sorted(set(self.action_flags.values())):
             lines.append(f"def int {flag} = 0;")
