@@ -1,54 +1,71 @@
-# 主张-证据映射：研究者引导的智能体式 SLR 支持工作流
+# 主张-证据映射：S0-v2 智能体式 SLR 支持方法
 
 ## 1. 使用规则
 
-本文件是第二篇论文 PR-S0 阶段的主张审查门。任何摘要、引言、贡献、结论、PR body 或 PR comment 中的强主张，都必须先在本文件中找到对应的证据状态和安全写法。
+本文件是第二篇论文 PR-S0-v2 阶段的主张审查门。任何摘要、引言、贡献、结论、PR body 或 PR comment 中的强主张，都必须先在本文件中找到对应的证据状态和安全写法。若后续实验或相关工作新增证据，本文件必须同步更新。
 
 状态口径：
 
-- 🟢：PR-S0 可作为任务定义 / 方法设计主张使用，但仍需避免结果化表述。
+- 🟢：PR-S0-v2 可作为任务定义、方法设计或边界约束使用，但不能写成已验证结果。
 - 🟡：方向合理，但需要后续 A2/A3/A5/A6 补证后才能写成论文主结论。
 - 🔴：禁止主张，只能出现在风险、限制或禁止写法语境。
-- 🟣：依赖 PR #97 OPEN / 未合入 / 快照 / 分支局部证据，不能写成 `main` 事实。
+- 🟣：依赖 PR #97 OPEN / 未合入 / snapshot / 分支局部证据，不能写成 `main` fact。
 
-重要边界：PR-B0 基线文库已经形成 35 篇全文文本级近邻 review，并明确暴露 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。后续不能再把 LLM / 智能体辅助 SLR、人在回路、来源追溯、筛选 / 抽取或综述生成写成空白。
+最高优先级边界：PR-B0 baseline 已经发现 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；2026-06-15 与 2026-06-26 导师讨论进一步确认，第二篇不能写成“LLM/agent 自动完成 SLR”，而应写成 **researcher-guided、pattern-evolving、evidence-backed、finding-oriented agentic SLR support approach**。
 
 ## 2. 主张映射
 
 | ID | 主张类型 | 状态 | 当前可写安全表述 | 当前证据 | 后续所需证据 | 禁止写法 |
 |---|---|---:|---|---|---|---|
-| C1 | 论文任务定义 | 🟢 | 本文研究研究者引导、发现导向、可审计的智能体式 SLR 支持工作流：研究者基于脚手架实例化综述元模型，智能体提出候选研究发现，研究者通过证据质疑闭环审计与修订。 | PR #101、PR #112 导师讨论记录、[paper_story.md](./paper_story.md)、[terminology_policy.md](./terminology_policy.md)。 | A2 脚手架 / schema、A3 场景、A4/A5 运行与评价。 | 本文已经证明智能体可端到端生成合格 SLR；本文首次提出智能体辅助 SLR 工作流。 |
-| C2 | `sources/` 资产角色 | 🟢 | `sources/` 可作为领域场景、压力测试或证据包来源。 | `main` 已有 `sources/` 文库与导师定调。 | A3 场景定义。 | `sources/` 文库规模本身就是第二篇论文新颖性。 |
-| C3 | PR #97 资产角色 | 🟣 | PR #97 提供 OPEN / 未合入 / 快照 / 分支局部的相关工作筛选与全文抽取证据线索。 | [PR #97 comment](https://github.com/HansBug/research_ideas/pull/97#issuecomment-4682737117)、当前 OPEN 状态与快照 `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727`。 | PR #97 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经是 `main` 已有正式资产。 |
-| C4 | 研究者定义的元模型 | 🟡 | 论文计划把研究者基于脚手架裁剪并实例化主题特定综述元模型作为综述框架起点；这一步由研究者审计把关。 | PR #112 导师讨论记录；[terminology_policy.md](./terminology_policy.md)。 | survey-of-surveys、脚手架字段、实例化案例、研究者批准日志。 | 禁止写：LLM 自动定义可靠元模型；禁止写：本文定义通用软件工程综述本体。 |
-| C5 | 研究发现模式脚手架 | 🟡 | 论文计划用研究发现模式约束候选研究发现的类型、结构和证据要求。 | PR #112 导师讨论记录；[paper_story.md](./paper_story.md)。 | 模式来源、示例、人工审计可理解性、研究发现类型覆盖。 | 智能体自由生成最终研究发现；研究发现模式已被证明提高质量。 |
-| C6 | 候选 / 最终研究发现边界 | 🟢 | 候选研究发现只有经过来源锚定证据、反向证据 / 不确定性检查、范围和主张强度由研究者确认后，才可升级为最终研究发现。 | PR #112 导师讨论记录；[terminology_policy.md](./terminology_policy.md)。 | A2/A5 研究发现台账 schema、审计示例、接受 / 降级 / 未解决记录。 | LLM / 智能体直接产出最终研究发现。 |
-| C7 | 以研究发现为中心的证据包 | 🟡 | 论文计划围绕候选研究发现组织支持性 / 反向证据、来源锚点、质疑日志、修订历史和最终状态；最终研究发现仍需研究者审计。 | PR #112、[paper_story.md](./paper_story.md)、B0 关于来源追溯 / 审计近邻的风险结论。 | A2 schema、A4 写出器、A5 断链率 / 定位错误率 / 无证据支撑研究发现统计。 | 我们已经实现每条研究发现完全可追踪；证据链证明研究发现为真。 |
-| C8 | 研究者质疑闭环 | 🟡 | 论文计划让研究者对候选研究发现发起证据不足、范围过宽、反例缺失或主张强度过强等质疑，并记录修订、降级、未解决或接受。 | PR #112 导师讨论记录；[terminology_policy.md](./terminology_policy.md)。 | 质疑协议、日志 schema、修订 / 降级 / 未解决率、审计成本。 | 质疑闭环必然提高研究发现质量；人工审计保证最终报告完全正确。 |
-| C9 | 幻觉 / 无证据支撑研究发现控制 | 🟡 | 论文计划通过金事实 / 银事实、陷阱论文、主张到来源审计与质疑闭环评估无证据支撑或过强候选研究发现。 | PR #101、PR-B0 基线总账、A0/PR-S0 评价维度。 | A3 事实 / 陷阱集、A5 分类体系、残余无证据支撑研究发现统计。 | 智能体式 SLR 完全无幻觉；所有无证据支撑主张都能自动消除。 |
-| C10 | 透明报告 | 🟡 | 论文计划生成类 PRISMA 流程、排除理由、协议偏离日志等透明报告材料；合规性需 checklist 与人工专家核验。 | PR #101、[protocol.md](./protocol.md)。 | A2 schema、A5 checklist / 报告制品。 | 禁止写：本文 PRISMA-compliant。 |
-| C11 | 覆盖代理 | 🟡 | 论文计划报告已知条目召回、种子论文恢复、数据库重叠等覆盖代理。 | PR #101 RQ7、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)。 | A3 已知集合、A5 计算协议。 | 禁止写：本文实现完整覆盖。 |
-| C12 | 成本效率 | 🟡 | 论文计划记录智能体时间、token / API 成本、人工审计时间、质疑成本和修正成本。 | PR #101 RQ4、B0 基线对成本差异和人工复核成本的提醒。 | A4 运行记录、A5 成本分析。 | 智能体一定显著降低总成本；质疑闭环免费。 |
-| C13 | 与 P0 强近邻差异 | 🟡 | 已有 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 等强近邻；本文差异只能收窄为 SE SLR/SMS 中研究者实例化的元模型、研究发现模式、研究发现级证据链与质疑闭环的组合。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、各单篇 `review.md`。 | A1/A6 相关工作深化、PDF 图表核对、制品审计。 | 已有工作没有智能体式 SLR / 人在回路 / 来源追溯 / 证据综合。 |
-| C14 | SE 社区已有 LLM-SLR 风险讨论 | 🟢 | WSESE@ICSE 2025 已讨论在 SE 中使用 LLM 支持 SLR 执行与复现的困难；本文应把提示词敏感性、随机性、模型漂移、成本、透明性和数据仓库缺口转成方法与评价义务。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[WSESE review](../baselines/papers/wsese-difficulties-replicating-slr-llms-se/review.md)。 | A1/A6 相关工作写作；必要时核对 PDF。 | SE 社区尚未讨论 LLM-assisted SLR difficulties。 |
-| C15 | 完整自动化 / 全生命周期 | 🔴 | 只能写“覆盖后续实验中明确定义的阶段子集，并将未覆盖环节列为 limitation”。 | B0 基线已发现多个多阶段 pipeline；PR-S0 不实现运行时。 | 若未来声称生命周期覆盖，必须逐阶段 schema、运行、评价和 limitation 闭合。 | fully automated SLR；complete lifecycle automation；end-to-end qualified SLR。 |
-| C16 | 首创性 | 🔴 | 只能写“面向研究发现级审计与研究者质疑的研究”，不能写首次。 | 已知 ASReview、RobotReviewer、综述自动化、AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、综述生成等近邻。 | 若未来要写新颖性，必须经系统性相关工作 gate。 | first automated SLR；first agentic SLR；first LLM-based systematic review。 |
-| C17 | 专家替代 | 🔴 | 本文保留研究者所有权和人工审计门，研究人机分工。 | 导师定调与 PR-S0 story。 | 不适用。 | 智能体完全替代 SLR 专家；研究者只做最终润色。 |
+| C1 | 论文任务定义 | 🟢 | 本文研究一种面向 SE SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法：研究者定义 topic / RQ / scope / meta-model，agent 只在研究者批准的 dimension schema 下辅助收集、抽取、统计和提出候选发现信号，final target-domain findings 必须由研究者裁决。 | [paper_story.md](./paper_story.md)、[protocol.md](./protocol.md)、[terminology_policy.md](./terminology_policy.md)、PR #112 与 PR #123 导师记录。 | A2 schema、A3 pilot 场景、A4/A5 运行与评价。 | 本文证明 agent 可端到端自动生成合格 SLR；本文首次提出 agentic SLR。 |
+| C2 | 三阶段 SLR 实践 | 🟢 | 本文把真实 SLR 实践拆为论文收集、维度模式驱动的论文分析、统计分析与 research finding 形成，并分别设置人机分工和证据边界。 | 2026-06-26 导师记录；[paper_story.md](./paper_story.md)。 | A2/A3 把三层拆成可执行 schema 与 pilot 制品。 | SLR 只是文献摘要；本文直接自动生成最终 research findings。 |
+| C3 | Dimension pattern lifecycle | 🟡 | 论文计划把 dimension pattern / extraction schema 作为一等制品，记录字段、取值、证据要求、缺失值语义、schema revision、impact analysis 与 backfill 状态。 | PR #123 导师记录；[protocol.md](./protocol.md) §4。 | survey-of-surveys scaffold、seed-paper dry-run、schema revision log、backfill burden。 | 维度 pattern 是一次性平铺字段表；agent 可自行改 schema 后继续运行。 |
+| C4 | Survey-of-surveys scaffold | 🟡 | survey-of-surveys 只作为低成本 scaffold mining / pattern prior，用于识别常见 dimension / finding / evidence-presentation patterns；其 pattern 需经研究者采纳才进入 operative schema。 | 2026-06-26 导师原话；[protocol.md](./protocol.md) §7。 | 后续 scaffold PR 抽样 SE / AI4SE / MDE / LLM4SE surveys 并审计 pattern。 | survey-of-surveys 是目标 SLR evidence pool；本文完成 PRISMA tertiary review；survey-of-surveys 证明目标领域结论。 |
+| C5 | Field-level content evidence | 🟡 | 字段值、统计分析和 target-domain findings 必须回到目标论文中的 section/page/quote/table/figure/artifact URL/缺失原因/不确定说明等 content evidence。 | [terminology_policy.md](./terminology_policy.md)、[protocol.md](./protocol.md) §2。 | A2 evidence object schema、A5 source-anchor 准确性与断链统计。 | 普通摘要即可支撑字段值；无 source anchor 的强主张可进入结论。 |
+| C6 | Process evidence 边界 | 🟢 | process evidence / audit trail 只支撑 method-evaluation findings，如可用性、审计性、交互成本、失败模式；不能支撑目标领域 findings。 | 2026-06-26 导师记录中 pilot / 硕士生过程数据建议；[protocol.md](./protocol.md) §8。 | A5 ethics / consent / redaction / interaction-log 评价协议。 | 用学生交互日志证明某个 SE 领域研究现状；process evidence supports target-domain finding。 |
+| C7 | Statistical analysis 与 finding 分层 | 🟢 | statistical analysis 只产生频次、分布、交叉表、趋势、覆盖代理和矛盾信号等统计观察；进入 research finding 前必须经过 finding heuristic、content evidence、反例检查、主张强度控制和研究者裁决。 | 2026-06-26 导师原话；[paper_story.md](./paper_story.md) §8；[protocol.md](./protocol.md) §5。 | A5 统计协议、candidate finding ledger、challenge/adjudication 记录。 | statistical analysis reveals final finding；频次表直接等于 research finding。 |
+| C8 | Candidate finding signal / final finding 边界 | 🟢 | agent 只能生成 candidate finding signals；final target-domain finding 必须由 content evidence、counter-evidence、uncertainty、scope、claim strength 与研究者 final adjudication 共同确定。 | PR #112 与 PR #123 导师记录；[terminology_policy.md](./terminology_policy.md)。 | A2/A5 finding 状态机、accepted/downgraded/rejected/unresolved 记录。 | LLM / agent produces final findings；candidate signal 直接进入摘要或结论。 |
+| C9 | Human-in-the-loop gate | 🟢 | researcher 不是末端 reviewer，而是在 G0 meta-model、G1 schema、G2 revision/backfill、G3 statistical protocol、G4 challenge、G5 final adjudication、G6 process evidence boundary 中持续拥有裁决权。 | 2026-06-26 导师原话；[protocol.md](./protocol.md) §6。 | A2 gate schema、A3/A5 gate dry-run 与成本记录。 | researcher merely validates final report；人工只负责最后润色。 |
+| C10 | 透明报告材料 | 🟡 | 论文计划生成 claim-evidence map、排除理由、schema revision、audit log、类 PRISMA flow 等透明材料；它们是审计投影，不是自动生成最终论文。 | [paper_story.md](./paper_story.md)、[protocol.md](./protocol.md)。 | A2/A5 checklist、报告制品与人工核验。 | 本文 PRISMA-compliant；透明材料等于自动写作。 |
+| C11 | Pilot run 边界 | 🟡 | pilot run 用于验证 L0--L7 闭环、制品完整性、schema/backfill 可操作性和 finding challenge 可执行性。 | 2026-06-26 导师建议；[paper_outline.md](./paper_outline.md)。 | A3 主题选择、A4/A5 run record 与制品审计。 | pilot 证明方法跨主题泛化；pilot 证明优于人工 SLR。 |
+| C12 | 硕士生过程数据 | 🟡 | 后续硕士生使用数据可用于 method-evaluation：交互轮次、人工修改、拒绝建议、时间成本、理解难点、失败模式；必须处理 consent、匿名化、脱敏与教学关系隔离。 | 2026-06-26 导师建议；[reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。 | A5 ethics / data boundary / redaction protocol。 | 学生日志证明目标领域 research findings；无脱敏即可发布 raw prompt log。 |
+| C13 | 与强近邻差异 | 🟡 | 已有工作覆盖多阶段 SLR automation、HITL、provenance、screening/extraction、evidence synthesis 和 survey generation；本文安全差异收敛为 SE SLR/SMS 中 researcher-defined meta-model、pattern-evolving dimension schema、field-level content evidence、statistical/finding separation、researcher challenge/adjudication 与 process-evidence-based method evaluation 的组合。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[differential_novelty_matrix.md](./differential_novelty_matrix.md)。 | A6 related work 深化、PDF 图表核对、制品审计。 | 已有工作没有 agentic SLR / HITL / provenance；本文是 first agentic SLR。 |
+| C14 | SE 社区 LLM-SLR 风险讨论 | 🟢 | WSESE@ICSE 2025 已讨论 SE 中用 LLM 支持 SLR conducting / replication 的困难；本文应把 prompt 敏感、随机性、模型漂移、成本、透明性和数据仓库缺口转成方法与评价义务。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[WSESE review](../baselines/papers/wsese-difficulties-replicating-slr-llms-se/review.md)。 | A6 related work；必要时核对 PDF。 | SE 社区尚未意识到 LLM-assisted SLR difficulties。 |
+| C15 | PR #97 资产角色 | 🟣 | PR #97 只提供 OPEN / 未合入 / snapshot / 分支局部证据线索；不能写成 `main` 已有文库。 | [../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)。 | PR #97 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经合入 main。 |
+| C16 | 完整自动化 / 全生命周期 | 🔴 | 只能写“覆盖后续实验中明确定义的阶段子集，并报告未覆盖环节为 limitation”。 | B0 强近邻与 PR-S0-v2 不实现 runtime。 | 若未来声称阶段覆盖，必须逐阶段 schema、运行、评价和 limitation 闭合。 | fully automated SLR；complete lifecycle automation；end-to-end qualified SLR。 |
+| C17 | 首创性 | 🔴 | 只能写“面向研究者裁决、维度模式演化和发现形成审计的研究”，不能写首次。 | ASReview、RobotReviewer、AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、survey generation 等。 | 若未来要写强新颖性，必须经 A6 related-work gate。 | first automated SLR；first agentic SLR；first LLM-based systematic review。 |
 
 ## 3. 摘要 / 引言安全句式
 
 可以作为后续英文稿前的中文安全句式：
 
-1. 本文研究如何让研究者在 SE SLR/SMS 中显式化综述框架，并让智能体在该框架下提出可审计的候选研究发现。
-2. 本文不把报告生成视为核心贡献；报告只是已接受 / 已降级 / 未解决研究发现的下游投影。
-3. 本文以研究发现为中心的证据包为核心，要求每个候选研究发现能追溯到证据对象、来源锚点、支持性 / 反向证据、质疑历史和最终状态。
-4. 本文把类 PRISMA 流程和排除理由台账作为透明报告材料；禁止在 checklist 未闭合前声称 PRISMA-compliant。
-5. 本文使用覆盖代理描述覆盖情况；禁止声称完整覆盖。
+1. 本文研究如何让 SE SLR/SMS 中的研究者把 topic / RQ / scope / meta-model 显式转化为可执行、可修订、可审计的 dimension schema，并让 agent 在该 schema 下辅助抽取字段级内容证据。
+2. 本文区分统计观察、候选发现信号和最终目标领域研究发现；agent 只能提出 candidate finding signals，final findings 必须经过研究者 challenge 与 adjudication。
+3. 本文把 process evidence 用于评价方法自身的可用性、审计性、人机协同成本和失败模式，而不是替代目标论文 content evidence。
+4. 本文不把报告生成视为核心贡献；报告只是已接受 / 已降级 / 未解决 findings 的透明投影。
+5. 本文只生成类 PRISMA 透明材料；禁止在 checklist 未闭合前声称 PRISMA-compliant。
 
-## 4. 后续更新规则
+## 4. 禁止短语与 grep 线索
 
-- PR #97 状态变化时必须更新 C3。
-- A2 若冻结元模型 / 研究发现 / 质疑 schema，必须更新 C4--C8。
-- A3 若构造场景、金事实 / 银事实与陷阱论文，必须更新 C9 / C11。
+以下短语若出现在正向主张语境，至少应列为 I 级问题；若出现在摘要、贡献或结论，通常应列为 C 级问题：
+
+- `first automated SLR`
+- `first agentic SLR`
+- `complete coverage`
+- `PRISMA-compliant`
+- `LLM final finding`
+- `agent-generated final finding`
+- `statistical finding`（除非明确说明不是 research finding）
+- `process evidence supports target-domain finding`
+- `student data shows field state`
+- `pilot proves generalization`
+- `tertiary review`（若指 survey-of-surveys scaffold）
+- `fully automated SLR`
+
+## 5. 后续更新规则
+
+- PR #97 状态变化时必须更新 C15 与 [../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)。
+- A2 若冻结 meta-model / dimension schema / finding ledger / gate schema，必须更新 C3--C10。
+- A3 若构造 pilot 场景、金事实 / 银事实与陷阱论文，必须更新 C5/C7/C8/C11。
 - A4/A5 若产生真实运行与指标，才能把 🟡 中部分主张升级为结果主张。
-- A6 / 相关工作若新增直接竞争工作，必须更新 C13--C16。
+- A6 / related work 若新增直接竞争工作，必须更新 C13--C17。

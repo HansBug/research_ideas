@@ -1,4 +1,4 @@
-# 进度记录：PR-S0 论文主线重新勘定
+# 进度记录：PR-S0-v2 论文主线重新勘定
 
 ## 1. 当前状态
 
@@ -7,96 +7,92 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | 方法图边界强化与 `7e3f3742` 三路复审已闭合；最终合并前 CI 状态以 PR checks 最新结果为准 |
+| 当前阶段 | S0-v2 文档大修已完成本地验证；等待 push 后正式三路 reviewer 复审 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
-| 四个真实例子 | 不运行；本 PR 只冻结论文主线和下游评价义务 |
+| 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
 
 ## 2. 本 PR 的输入来源
 
 | 来源 | 用途 | 当前口径 |
 |---|---|---|
-| PR-A0 / PR [#103](https://github.com/HansBug/research_ideas/pull/103) | 提供初始目录结构、初始故事、术语和证据政策 | 已合入上游，作为历史输入，不再在当前文档中重复展开 |
-| PR-B0 / PR [#105](https://github.com/HansBug/research_ideas/pull/105) | 提供 35 篇全文文本级基线调研和“宽泛自动化叙事被击穿”的证据 | 当前 PR-S0 必须吸收其结论 |
-| PR-S0-pre / PR [#112](https://github.com/HansBug/research_ideas/pull/112) | 提供 2026-06-15 导师定调：元模型由使用者定义，SLR 应服务研究发现，研究者可质疑证据 | 当前 PR-S0 的核心约束 |
-| PR [#97](https://github.com/HansBug/research_ideas/pull/97) | 提供 sources 相关工作筛选线索 | 仍为 OPEN / 未合入，只能写成快照 / 分支局部证据 |
+| PR-A0 / PR [#103](https://github.com/HansBug/research_ideas/pull/103) | 提供初始目录结构、初始 story 与协议雏形 | 历史输入；当前 story 以 S0-v2 为准 |
+| PR-B0 / PR [#105](https://github.com/HansBug/research_ideas/pull/105) | 提供 35 篇全文文本级近邻 baseline 和“宽泛自动化 story 被击穿”的证据 | 当前 PR-S0-v2 必须吸收其结论 |
+| PR-S0-pre / PR [#112](https://github.com/HansBug/research_ideas/pull/112) | 提供 2026-06-15 导师定调：meta-model 由使用者定义、SLR 需要 research finding、agent 只能提出 candidate findings | S0-v2 的正式上游约束 |
+| PR-S0B / PR [#123](https://github.com/HansBug/research_ideas/pull/123) | 提供 2026-06-24/26 导师定调：三阶段 SLR、dimension pattern、statistical analysis / research finding 分层、human-in-the-loop、pilot 与 process data | S0-v2 的最高优先级新增约束 |
+| PR [#97](https://github.com/HansBug/research_ideas/pull/97) | 提供 sources 相关工作筛选线索 | 仍为 OPEN / 未合入，只能写成 snapshot / 分支局部证据 |
 
 ## 3. 当前交付物
 
 | 文件 | 当前作用 |
 |---|---|
-| [../README.md](../README.md) | 工作区入口、当前结论、目录导航和禁止主张 |
-| [../story/paper_story.md](../story/paper_story.md) | 论文核心论点、任务边界、方法总览图、阶段契约、候选贡献和禁用主张 |
-| [../story/terminology_policy.md](../story/terminology_policy.md) | 中英术语锚点、误用防范和高风险写法 |
-| [../story/claim_evidence_map.md](../story/claim_evidence_map.md) | 可写 / 谨慎 / 禁止主张与证据状态 |
-| [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md) | 与强近邻工作的差异化边界 |
-| [../story/paper_outline.md](../story/paper_outline.md) | 后续论文结构和 PR #101 RQ1--RQ7 到评价义务的映射 |
-| [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md) | PR-S0 只冻结评价维度种子，不冻结公式或阈值 |
+| [../README.md](../README.md) | 工作区入口、S0-v2 当前结论、目录导航和禁止主张 |
+| [../story/paper_story.md](../story/paper_story.md) | S0-v2 论文核心论点、任务边界、方法总览图、L0--L7、候选贡献和禁用主张 |
+| [../story/protocol.md](../story/protocol.md) | 模式演化、字段证据、统计观察、finding challenge 与 G0--G6 gate 的最小协议 |
+| [../story/terminology_policy.md](../story/terminology_policy.md) | 术语、证据类型、finding 状态和高风险写法 |
+| [../story/claim_evidence_map.md](../story/claim_evidence_map.md) | 可写 / 谨慎 / 禁止主张与证据状态，特别约束 statistical/finding、content/process、pilot/student data 边界 |
+| [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md) | 与强近邻工作的 S0-v2 差异化边界 |
+| [../story/paper_outline.md](../story/paper_outline.md) | 后续论文结构、pilot、multi-user process evaluation 与 RQ 到评价义务映射 |
+| [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md) | S0-v2 评价维度种子，不冻结公式或阈值 |
 | [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md) | 当前最高优先级审稿风险和缓解入口 |
 | [./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | 本 PR 的任务范围、拒收检查和验证命令 |
 
 ## 4. 已完成修改
 
-1. 将第二篇论文主线从“自动生成综述 / 多阶段证据包工作流”收紧为“研究者引导、发现导向、可审计的智能体式 SLR 支持工作流”。
-2. 明确元模型由使用本文方法的研究者基于脚手架裁剪并实例化，而不是作者预设通用本体，也不是 LLM 自动决定。
-3. 明确智能体只能提出候选研究发现；最终研究发现必须经过证据链和研究者审计。
-4. 在 [../story/paper_story.md](../story/paper_story.md) §6.1 新增 Mermaid 方法总览图，展示研究者责任边界、智能体辅助边界、候选研究发现、证据链、质疑闭环、最终研究发现和报告投影之间的关系。
-5. 清理当前 PR 文档中的纯历史流水账，保留必要证据链接，让各 Markdown 尽量自包含、干净、可直接指导后续 PR。
-6. 更新 [../evidence/project_inventory.md](../evidence/project_inventory.md)、[../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md) 与 [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，避免证据盘点继续停留在旧 A0 / PR #103 口径。
-7. 收敛三路复审的低成本 M 级建议：让证据链状态模板通过研究者批准的 schema 门，并补充“类 PRISMA（PRISMA-style）”术语映射。
+1. 将第二篇论文主线从旧“研究者引导、发现导向、可审计 evidence workflow”升级为“研究者引导、模式演化、证据支撑、发现导向的智能体式 SLR/SMS 支持方法”。
+2. 将真实 SLR 明确拆成三层：论文收集与初步处理、维度 pattern 驱动的论文分析、统计分析与 research finding 形成。
+3. 在 [../story/paper_story.md](../story/paper_story.md) 中更新 Mermaid 方法总览图，显式包含 L0--L7、G0--G6、content evidence、statistical analysis、candidate finding、final adjudication 与 process evidence boundary。
+4. 在 [../story/protocol.md](../story/protocol.md) 中明确 dimension pattern lifecycle、schema revision / impact analysis / backfill、statistical-analysis-to-finding 转移规则、survey-of-surveys scaffold 边界、pilot 与学生过程数据边界。
+5. 在 [../story/terminology_policy.md](../story/terminology_policy.md) 中新增 dimension pattern、pattern-evolving、content/process evidence、statistical analysis、candidate finding signal、target-domain finding、method-evaluation finding、G0--G6 等术语。
+6. 重写 [../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)、[../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)，修复内部 reviewer 指出的旧 S0 落点不同步问题。
+7. 更新入口 README、story README、task packet 和 project inventory，使下一位 agent 能直接按 S0-v2 接手。
 
-## 5. 验证记录
+## 5. LLM4STM / LLM4Modeling dry-run 口径检查
+
+本 PR 不运行真实 LLM；这里只做文档可执行性 dry-run，检查 S0-v2 文档是否能指导一个贴近博士主线的主题。
+
+| Step | LLM4STM dry-run 示例 | 文档是否能指导 |
+|---|---|---|
+| L0 meta-model | 研究者定义 topic=`LLM-based STM generation`，RQ 包含输入材料、输出 STM 谱系、方法/agent 使用、评价与复现资产 | [paper_story.md](../story/paper_story.md) 与 [protocol.md](../story/protocol.md) 能说明研究者拥有 meta-model |
+| L1 scaffold / seed probing | 从既有 LLM4SE / MDE survey 与少量 STM generation 种子论文提取候选字段 | [protocol.md](../story/protocol.md) 明确 survey-of-surveys 只是 scaffold |
+| L2 dimension schema | 字段树可含输入材料类型、输出 STM 类型、状态/迁移/guard/action/clock、LLM/agent 类型、评价指标、artifact 可用性 | [terminology_policy.md](../story/terminology_policy.md) 定义 dimension pattern 与 pattern-evolving |
+| L4 field evidence | 每篇论文字段必须带 page/section/quote/table/artifact URL 或 missing/uncertainty | [protocol.md](../story/protocol.md) §2/§4 能指导 content evidence |
+| L5 statistical analysis | 统计不同 STM 输出谱系、agent 使用程度、公开 artifact 比例、评价方式分布 | [protocol.md](../story/protocol.md) §5 禁止统计结果直接升级 finding |
+| L6 candidate signal | 例如“多数 LLM4STM 论文缺少 machine-checkable evaluation”只能作为 candidate signal | [claim_evidence_map.md](../story/claim_evidence_map.md) 明确 candidate/final 边界 |
+| L7 adjudication | 研究者检查反例、范围、强度；可能降级为“在当前样本中观察到 artifact/evaluation 透明度不足” | [paper_outline.md](../story/paper_outline.md) 与 risk register 能指导 challenge/adjudication |
+| Process evidence | 记录 schema 修订、backfill、challenge 和人工时间，用于 method-evaluation | [evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md) 已把 process metrics 分离 |
+
+Dry-run 结论：当前文档已经能把 LLM4STM 主题从“普通综述自动化”导向 dimension schema、field evidence、统计观察、candidate signal 与 researcher adjudication 的闭环；后续 A3/A5 仍需真实 pilot 和 run record 才能写结果。
+
+## 6. 验证记录
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
-| 2026-06-15 | `git diff --check` | 通过 |
-| 2026-06-15 | 文件存在性检查：确认 `README.md`、`story/*`、`experiment_design/*`、`plan/*` 等 PR-S0 必需文件存在 | 通过 |
-| 2026-06-15 | Markdown 相对链接检查 | 通过 |
-| 2026-06-15 | 禁用强主张 grep：首次自动化 SLR、PRISMA 合规、完整覆盖、智能体替代专家等 | 命中均位于禁止 / 风险语境 |
-| 2026-06-16 | 中文化与自包含性检查 | 已清理英文骨架、旧 A0 证据盘点和纯历史流水；三路复审无 C/I |
-| 2026-06-16 | Mermaid 方法图检查：`mmdc -p /tmp/puppeteer-no-sandbox.json -i /tmp/pr114_method.mmd -o /tmp/pr114_method.svg` | 通过；已修复节点 / 子图 ID 冲突，并让证据链状态模板进入研究者批准的 schema 门 |
-| 2026-06-16 | `git diff --check origin/paper2/agent-based-slr-umbrella...HEAD` | 通过 |
-| 2026-06-16 | Markdown 相对链接检查 | 通过 |
-| 2026-06-16 | PR-S0 文件存在性检查 | 通过 |
-| 2026-06-16 | 低成本 M 级建议收敛检查：A3 进入 R4、补“类 PRISMA”术语映射、更新 review 状态 | 通过 |
-| 2026-06-17 | Mermaid 方法图视觉迭代：改为两列紧凑 block 图，真实渲染 PNG 为 584×322，长宽比约 1.81，并人工检查图文一致性 | 通过 |
-| 2026-06-17 | Mermaid 方法图二次视觉迭代：两轮 2×3 block 图盲读均发现跨行箭头 / 回边存在 I 级误读风险，改为时序 / 泳道式 sequence 图；最终 v7 真实渲染 PNG 为 784×499，长宽比约 1.57，盲读复述确认 schema 批准权、候选发现边界、schema 回批准门和非自动写作边界均可理解，仅剩字号 / 密度类 M 级建议 | 通过 |
-| 2026-06-17 | 方法图严格盲读补验：subagent 只获得渲染 PNG 与原文临近图的少量文字，未获得 Mermaid 源码；盲读复述确认研究者 schema 批准权、智能体仅执行已批准 schema、候选发现不等于最终发现、schema 问题回批准门、透明材料非自动写作；无 C/I，仅有候选泳道位置、透明材料提示和字号密度类 M | 通过 |
-| 2026-06-17 | `a5d9f6ac` 对应的 `feedback-smoke`（run `27634299413`） | completed / success；仅证明 `a5d9f6ac` 小 diff 复审后的 CI 已通过 |
-| 2026-06-17 | `c1d6d568` 对应的 `feedback-smoke`（run `27634909596`） | completed / success |
-| 2026-06-17 | `5c6ade50` 对应的 `feedback-smoke`（run `27635323585`） | completed / success；后续提交会触发新 run，最终合并前不在本文档固化“当前 HEAD CI 已闭合”，以 PR checks 最新结果为准 |
-| 2026-06-22 | `7e3f3742` 方法图边界强化：真实渲染 PNG（本地 784×807；reviewer 放大渲染 1568×1662）+ 两轮 PNG 盲读复验 + 图前说明补强 | 通过；审批门 1/2、候选工作区、schema 暂停回门、非自动写作边界均被盲读正确理解，无 C/I |
-| 2026-06-22 | `7e3f3742` 对应的 `feedback-smoke`（run `27935893637`） | completed / success；仅记录该历史 commit 的 CI 事实，后续同步提交仍以 PR checks 最新状态为准 |
+| 2026-06-26 | 合入 `origin/paper2/agent-based-slr-umbrella` | 通过；merge commit `47ce6cc3`，无冲突 |
+| 2026-06-26 | 三路 PR body 计划阶段 review | 0C/0I，可进入实现；M 级建议已吸收进 S0-v2 文档方向 |
+| 2026-06-26 | 内部 subagent 只读检查 | 发现 C/I：多份 downstream 文档仍旧 S0、L8/G6 不一致、方法图缺 G6；本轮已修复 |
+| 2026-06-26 | LLM4STM / LLM4Modeling dry-run 口径检查 | 通过；文档能指导 dimension pattern → field evidence → statistical analysis → candidate signal → adjudication |
+| 2026-06-26 | `git diff --check` | 通过 |
+| 2026-06-26 | PR-S0-v2 必需文件存在性检查 | 通过；`paper_agent_based_slr PR-S0-v2 packet ok` |
+| 2026-06-26 | 禁止强主张 grep | 通过；命中均位于禁止 / 风险 / 安全边界 / grep 规则语境中，不是正向主张 |
+| 2026-06-26 | Markdown 相对链接检查 | 通过；`markdown relative links ok` |
+| 2026-06-26 | Mermaid 渲染检查：`mmdc -p /tmp/puppeteer-no-sandbox-pr114.json -i /tmp/pr114_s0v2_method.mmd -o /tmp/pr114_s0v2_method.svg` | 通过；SVG 已生成，本地大小 44619 bytes |
 
-## 6. Review 状态
+## 7. Review 状态
 
 | 阶段 | reviewer | 结果 | 处理 |
 |---|---|---|---|
-| 第一轮正式复审 | deepseek reviewer | 0C / 4I / 3M | 已修复 I1--I4；M 级不阻塞 |
-| 第一轮正式复审 | claude reviewer | 0C / 0I / 3M | 无阻塞问题 |
-| 第一轮正式复审 | codex reviewer | 0C / 0I / 1M | `protocol.md` 旧线性口径留给后续 A2 |
-| 中文化与方法图复审 | codex reviewer | 0C / 0I / 0M | 通过 |
-| 中文化与方法图复审 | claude reviewer | 0C / 0I / 3M | 已收敛低成本 M：方法图 A3 过研究者 schema 门；其余 M 不阻塞 |
-| 中文化与方法图复审 | deepseek reviewer | 0C / 0I / 2M | 已收敛低成本 M：补“类 PRISMA”术语映射；Mermaid 前缀共享不阻塞 |
-| 序列图最终复审 | codex reviewer | 0C / 1I / 0M | I1 指出 §7 提前写“三路最终复审无 C/I”，本提交改为不预判并等待复审闭合 |
-| 序列图最终复审 | claude reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为字号 / A4 命名一致性 |
-| 序列图最终复审 | deepseek reviewer | 0C / 0I / 2M | 无阻塞问题；M 级为 §6 复审表补记与候选→最终提示 |
-| `a5d9f6ac` 小 diff 复审 | deepseek reviewer | 0C / 0I / 1M | 确认 codex I1 已修复；M 为当前阶段措辞可更精确，不阻塞 |
-| `a5d9f6ac` 小 diff 复审 | claude reviewer | 0C / 0I / 1M | 确认 codex I1 已修复；M 为当前阶段措辞可更精确，不阻塞 |
-| `a5d9f6ac` 小 diff 复审 | codex reviewer | 0C / 0I / 0M | 小 diff ready；整体合并当时等待 CI，后续已确认 `a5d9f6ac` 对应的 `feedback-smoke` success |
-| 严格 PNG 盲读补验 | vision subagent | 0C / 0I / 3M | 仅提供渲染 PNG 与少量邻近文字，不提供 Mermaid 源码；无责任边界 / 证据链误读，M 均为可读性提示 |
-| `c1d6d568` 最终小 diff 复审 | deepseek reviewer | 0C / 3I / 1M | 指出 PR body 与 CI run 归属模糊；后续 `5c6ade50` 显式区分历史 run，但仍需再修 stale CI 状态 |
-| `c1d6d568` 最终小 diff 复审 | claude reviewer | 0C / 0I / 1M | 文档内容 ready；提示当前阶段与 PR body 的 CI 等待措辞略错位 |
-| `c1d6d568` 最终小 diff 复审 | codex reviewer | 0C / 0I / 0M | 文档小 diff ready；明确合并前仍需等待当时 HEAD CI 完成 |
-| `5c6ade50` I 修复小 diff 复审 | deepseek reviewer | 0C / 1I / 2M | 指出 `c1d6d568` run 已 success、当前 HEAD 应为 `5c6ade50`；本轮修复 stale CI 记录 |
-| `5c6ade50` I 修复小 diff 复审 | claude reviewer | 0C / 2I / 1M | 同样指出 `c1d6d568` 状态过期和当前 HEAD 指代错误；本轮修复 stale CI 记录 |
-| `7e3f3742` 方法图边界强化复审 | claude reviewer | 0C / 0I / 1M | 确认 7 条方法边界和 Mermaid 渲染均通过；M 为图像可读性 / 投影场景建议，不阻塞 |
-| `7e3f3742` 方法图边界强化复审 | codex reviewer | 0C / 0I / 3M | 确认方法边界无 C/I；M1 要求回填本轮 progress / PR body，本提交处理；M2/M3 为后续排版与 cross-doc follow-up |
-| `7e3f3742` 方法图边界强化复审 | deepseek reviewer | 0C / 0I / 0M | 以 deepseek reviewer 身份直接 PR comment；确认 7 条边界均满足，ready 不阻塞 merge |
+| PR body 计划阶段 | deepseek reviewer | 0C / 0I / 3M | 可进入实现；M 已吸收为术语和风险补强 |
+| PR body 计划阶段 | codex reviewer | 0C / 0I | 可进入实现 |
+| PR body 计划阶段 | claude reviewer | 0C / 0I / 少量 M | 可进入实现 |
+| 内部实现中只读检查 | verifier subagent | C/I：多数落点旧 S0、L8/G6 不一致、方法图缺 G6；PR body / progress 状态与验证记录曾不同步 | 已重写 claim / outline / eval / risk / README / task / progress，并修正 L8/G6；本轮验证记录已回填，PR body 待 push 后同步 |
+| 内部实现中学术审查 | critic subagent | C/I：outline、claim map、evaluation、risk、novelty matrix、project inventory 未同步 S0-v2；旧 evidence-package 叙事残留 | 已逐项修复，并把旧叙事 grep 标为人工审查线索而非硬 gate |
+| 正式三路复审 | codex / claude / deepseek | 待执行 | push 后启动，reviewer 需直接 PR comment |
 
-## 7. 剩余风险
+## 8. 剩余风险
 
-1. PR-S0 仍是论文主线和合同冻结，不提供真实运行证据；后续不能把当前候选贡献写成结果。`e86faf38` 后的正式复审、`a5d9f6ac` 小 diff 复审、严格 PNG 盲读补验与 `7e3f3742` 方法图边界强化复审均已闭合，无 C/I；剩余 M 均为字号、密度、命名、排版和 cross-doc follow-up 类建议，不阻塞。最终合并前的 CI 状态不在本文件写死，以 GitHub PR checks 最新结果为准。
-2. Mermaid 图是方法总览草案，不表示运行时已经实现；当前图已通过真实渲染和视觉检查，但后续 A2/A3/A4/A5 若改变阶段契约仍需同步更新。
-3. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。
-4. 评价公式、阈值、统计协议、真实场景和运行记录必须由后续 A2/A3/A4/A5 接走。
+1. 当前 PR-S0-v2 仍是 story 和合同冻结，不提供真实运行证据；后续不得把候选贡献写成结果。
+2. Mermaid 方法图是方法总览草案；若 A2/A3/A4/A5 改变阶段契约、schema 或证据字段，必须同步更新。
+3. survey-of-surveys scaffold 仍是计划证据；后续若执行，必须避免写成目标 evidence pool 或 complete tertiary review。
+4. 学生 process data 仍是计划；A5 前必须冻结 consent、匿名化、脱敏、教学关系隔离和访问权限。
+5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。

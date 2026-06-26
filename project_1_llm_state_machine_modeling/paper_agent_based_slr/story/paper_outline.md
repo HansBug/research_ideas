@@ -1,134 +1,173 @@
-# 论文大纲：第二篇研究者引导的智能体式 SLR 支持工作流
+# 论文大纲：研究者引导、模式演化、证据支撑的智能体式 SLR 支持方法
 
 ## 1. 使用说明
 
-本文件给出后续论文稿的章节级架构。章节标题可以保留必要英文术语，便于后续转英文稿；每节内容说明以中文为主。PR-S0 不写完整论文正文，也不写结果型主张。
+本文件给出后续论文稿的章节级架构。PR-S0-v2 不写完整论文正文，也不写结果型主张；它只冻结章节功能、论证顺序、证据义务和禁止误读。章节标题可保留必要英文术语锚点，说明文字以中文为主。
 
-## 2. 引言
+## 2. Introduction / 引言
 
-目标：解释为什么“LLM / 智能体自动化综述”这个宽泛叙事已经不够，以及为什么 SE SLR/SMS 需要围绕研究发现形成过程来重新设计智能体支持。
+目标：解释为什么宽泛的“LLM / agent 自动化综述”叙事已经被近邻工作压缩，为什么 SE SLR/SMS 更需要围绕 **dimension pattern lifecycle、field-level content evidence、statistical-analysis-to-finding transition、human-in-the-loop adjudication** 来设计智能体支持。
 
-建议结构：
+建议叙事顺序：
 
-1. SE SLR/SMS 的核心价值：不是只整理文献，而是形成可解释、可复核的研究发现。
-2. LLM / 智能体机会：检索、筛选、抽取、编码、综合、报告生成都可被部分支持。
-3. 已有近邻压力：AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025、综述生成工作已经覆盖很多自动化环节。
-4. 核心主张：从“生成综述文本 / 证据包”转向“围绕候选研究发现形成可审计、可挑战、可修订、可降级、可接受的证据过程”。
-5. 贡献预告必须谨慎：PR-S0 只定义候选贡献，后续 A2/A3/A5/A6 用真实 schema、场景、运行记录和评价闭合。
+1. SE SLR/SMS 的核心价值不是只整理文献，而是形成可解释、可复核、能指导后续研究的 research findings。
+2. LLM/agent 已经能辅助检索、筛选、抽取、总结、证据综合和报告生成；因此“自动化某个环节”不是足够强的新颖性。
+3. B0 baseline 表明 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等近邻已经覆盖多阶段 workflow、HITL、provenance、screening/extraction 和 SE LLM-SLR 风险。
+4. 真实 SLR 可拆为三层：论文收集与初步处理、维度模式驱动的论文分析、统计分析与 research finding 形成。
+5. 本文的核心主张：让研究者定义 meta-model 与 schema，让 agent 在批准 schema 下工作，让统计观察经过 finding heuristics 与研究者 challenge 才进入 final findings，并保留 content/process evidence 的分层审计链。
+6. 贡献预告必须谨慎：所有贡献在 PR-S0-v2 只是候选，后续 A2/A3/A5/A6 用真实 schema、pilot、process data、related work 和评价闭合。
 
-## 3. 背景与相关工作
+## 3. Background and Related Work / 背景与相关工作
 
 建议分组：
 
-1. **软件工程 SLR 与系统映射研究**：介绍协议、检索、筛选、抽取、综合、报告的基本规范。
-2. **PRISMA 与透明报告**：说明类 PRISMA、受 PRISMA 启发、PRISMA 合规的区别。
-3. **综述自动化工具**：至少覆盖 ASReview、RobotReviewer、AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 和 SE 方法学讨论。
-4. **LLM 辅助证据综合与综述生成**：讨论幻觉、来源追溯、无证据支撑主张、报告级过强主张风险。
-5. **发现导向的 SLR 支持**：本文定位，明确研究者定义的综述元模型、研究发现模式、以研究发现为中心的证据链与研究者质疑闭环的差异。
+1. **SE SLR / SMS 方法学**：protocol、search、screening、data extraction、synthesis、reporting、threats to validity。
+2. **PRISMA 与透明报告**：解释 PRISMA-style、PRISMA-informed、PRISMA-compliant 的边界。
+3. **传统 review automation**：ASReview、RobotReviewer 等，说明筛选与特定证据自动化早已有基础。
+4. **LLM / agentic SLR 近邻**：AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、Closed-loop summarization、survey generation 等。
+5. **SE LLM-SLR 方法学风险**：WSESE@ICSE 2025、screening variability、prompt reproducibility、model drift、transparency gap。
+6. **本文定位**：不主张首次自动化；本文关注 SE SLR/SMS 中研究者定义 meta-model、可演化 dimension schema、字段级 content evidence、统计观察到 research finding 的转移，以及 researcher challenge/adjudication。
 
-## 4. 问题定义
+## 4. Problem Definition / 问题定义
 
-建议定义：
+建议明确定义：
 
-1. 输入：综述主题、RQ、种子论文、候选论文池、全文状态、研究者关注点。
-2. 输出：主题特定综述元模型、研究者批准的可执行 schema、证据对象表、候选研究发现台账、质疑 / 修订 / 降级 / 未解决日志、类 PRISMA 透明材料、报告投影。
-3. 人工 / 研究者审计门：元模型批准、schema 批准、研究发现质疑、最终研究发现复核；英文可在后续 schema / stage 名称中作为锚点保留。
-4. 不属于任务目标：禁止写完全自动 SLR、PRISMA 合规、完整覆盖、首次自动化 / 首次智能体式 SLR。
+| 要素 | 内容 |
+|---|---|
+| 输入 | topic、RQ、scope、seed papers、候选论文池、全文状态、研究者关注点、可用 survey-of-surveys scaffold。 |
+| 研究者拥有的决策 | meta-model、dimension schema approval、schema revision/backfill、statistical analysis protocol、candidate finding challenge、final adjudication、process evidence boundary。 |
+| agent 辅助对象 | 元数据、全文、overview card、field-level content evidence、统计视图、candidate finding signals、support/counter evidence draft。 |
+| 输出 | approved dimension schema、overview cards、evidence table、schema revision/backfill log、statistical analysis table、candidate finding ledger、challenge/adjudication log、transparency package、process evidence。 |
+| 非目标 | 端到端无人 SLR、PRISMA 合规、完整覆盖、首次 agentic SLR、LLM final findings。 |
 
-## 5. 方法 / 工作流
+## 5. Method / 方法
 
-应按 [paper_story.md](./paper_story.md) 的阶段契约展开：
+本节应以 [paper_story.md](./paper_story.md) 的 Mermaid 方法图和 [protocol.md](./protocol.md) 的阶段契约为准。建议小节如下：
 
-1. **综述元模型实例化**：研究者基于脚手架设定综述对象、关系、证据字段、范围约束与研究发现类型。
-2. **可执行 schema 准备**：系统辅助将主题特定综述元模型转成研究者批准的可执行 schema。
-3. **证据获取**：检索、去重、筛选、全文状态记录和合法获取状态管理。
-4. **证据抽取与编码**：从全文 / 元数据抽取证据对象并按 schema 编码。
-5. **候选研究发现提出**：智能体根据研究发现模式脚手架从证据对象中提出候选研究发现。
-6. **证据链构建**：组织支持性 / 反向证据、来源锚点、主张强度与不确定性。
-7. **研究者质疑 / 细化**：研究者发起质疑，系统补证、找反例、修订、降级或标为未解决。
-8. **最终研究发现决策与报告投影**：研究者接受、降级或保留未解决研究发现，并投影到报告草案。
+### 5.1 Researcher-defined review meta-model
 
-本节必须明确：智能体只提出候选研究发现；最终研究发现必须由研究者审计后确认。
+研究者根据 topic / RQ / scope 定义综述对象、关系、证据类型、纳排范围和潜在 finding 类型。agent 可以建议，但不能决定 operative meta-model。
 
-## 6. 评价设计
+### 5.2 Survey-of-surveys scaffold and seed-paper probing
 
-PR-S0 只冻结评价义务，不写结果。评价维度种子见 [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)。后续 A5 至少要考虑：
+从既有 SE / AI4SE / MDE / LLM4SE survey、SLR、SMS 中低成本提取 dimension patterns、finding patterns 和 evidence-presentation patterns，并用 seed papers 做可执行性压力测试。必须强调：survey-of-surveys 是 scaffold，不是目标 evidence pool，也不是 PRISMA tertiary review。
 
-1. 研究发现相关性与非平凡性；
-2. 证据支撑度与主张到来源可追踪性；
-3. 元数据、venue、DOI、抽取字段事实准确性；
-4. 无证据支撑 / 过强主张研究发现率；
-5. 质疑闭环的拦截、修订、降级、未解决和接受比例；
-6. 人工审计时间、token / API 成本与失败重试成本；
-7. 筛选、抽取、编码一致性；
-8. 覆盖代理：已知条目召回、种子论文恢复、数据库重叠；
-9. 类 PRISMA 透明材料、排除理由、协议偏离日志；
-10. 不同 SE / LLM4Modeling / MDE 场景间的差异。
+### 5.3 Pattern-evolving dimension schema
 
-### 6.1 PR #101 RQ1--RQ7 到 PR-S0 评价门槛的显式映射
+将 meta-model 投影为树状/类型化 extraction schema，定义字段、取值、证据要求、缺失值语义和版本。新类型或抽取失败触发 schema revision proposal、impact analysis 和 backfill gate。
 
-| PR #101 RQ | PR-S0 后的解释 | 对应评价维度 | 后续门槛 | PR-S0 状态 |
-|---|---|---|---|---|
-| RQ1 证据包可追踪性 | 研究者引导的工作流能否让候选 / 最终研究发现回溯到检索、筛选、抽取、编码、证据定位与审计状态？ | 可追踪性、以研究发现为中心的证据链、透明性 | A2 定义主张到来源 / 研究发现到来源 schema；A5 统计断链率、定位错误率和未闭合研究发现。 | PR-S0 冻结口径 |
-| RQ2 事实准确性 / 抽取一致性 | 论文元数据、全文字段、编码与证据定位是否与来源一致？ | 事实准确性、抽取 / 编码一致性 | A3/A5 构造金事实 / 银事实与人工核验样本。 | PR-S0 冻结口径 |
-| RQ3a 幻觉 / 无证据支撑主张 | 智能体提出的候选研究发现中会出现哪些无证据支撑、过强主张、错误引用或范围漂移？ | 无证据支撑 / 过强主张研究发现、事实准确性、幻觉分类体系 | A3 设计陷阱论文 / 已知无关集合；A5 报告无证据支撑研究发现率、过强主张类型和残余错误。 | PR-S0 冻结口径 |
-| RQ3b 人工审计拦截 | 研究者质疑 / 审计闭环能拦截、修订、降级或标未解决多少候选研究发现？ | 质疑闭环有效性、审计有效性、残余无证据支撑研究发现 | A2 定义质疑日志；A5 统计拦截、修订、降级、未解决、误报 / 漏报。 | PR-S0 冻结口径 |
-| RQ4 成本收益 | 元模型、研究发现模式与质疑闭环带来的人工成本、智能体成本与可靠性权衡是什么？ | 成本 / 效率、审计时间、修订成本 | A4 运行记录写用量 / 时间；A5 统计 token/API、人审时间、修订成本；禁止预设正收益。 | PR-S0 冻结口径 |
-| RQ5 场景差异 | 不同 SE / LLM4Modeling / MDE / `sources` 场景下研究发现类型、错误模式和质疑结果有何差异？ | 场景级差异、研究发现类型覆盖、覆盖代理 | A3 冻结回放型 / 前瞻型场景、已知条目集合和范围限制；A5 分场景报告。 | PR-S0 冻结口径 |
-| RQ6 与手工 SLR / 已有自动化工具关系 | 相比 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 和传统手工流程，本文的定位是什么？ | 差异化新颖性、基线能力矩阵、人在回路边界 | A6 相关工作必须引用 B0 P0/P1；A5 若做对比只能比明确阶段子任务，不硬比“优于人类”。 | PR-S0 冻结口径 |
-| RQ7 透明报告与覆盖代理 | 工作流能否生成类 PRISMA 透明材料和覆盖代理指标，同时避免 PRISMA 合规 / 完整覆盖过强主张？ | 透明性、覆盖代理、协议偏离日志 | A2 定义报告制品；A3 定义种子 / 已知集合；A5 冻结代理指标公式与检查清单。 | PR-S0 冻结口径 |
+### 5.4 Field-level content evidence extraction
 
-## 7. 基准 / 案例研究场景
+agent 在 approved schema 下抽取 source anchors、quotes、tables、figures、artifact links、missing/uncertainty，并生成 evidence table。字段级证据是统计分析和 target-domain finding 的基础。
 
-PR-S0 不冻结场景。候选资产总账见 [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，后续 A3 应考虑：
+### 5.5 Statistical analysis as intermediate observation
 
-1. 小型已知领域场景，便于金事实 / 银事实构造。
-2. 中型系统映射场景，检验 taxonomy / coding 和质疑闭环。
-3. LLM4SE / LLM4Modeling 场景，贴近博士主题。
-4. 控制系统 STM / `sources/` 场景，作为压力测试。
+在稳定字段表上做频次、分布、交叉表、趋势、coverage proxy 和 contradiction signal。统计分析只产生 statistical observations，不直接产生 final research findings。
 
-注意：场景数量不是 PR-S0 的硬要求；不要把“四个真实例子”写成当前已冻结要求。
+### 5.6 Candidate finding signals and finding heuristics
 
-## 8. 结果计划
+agent 基于统计观察、finding heuristics 与 content evidence 提出 candidate finding signals。finding heuristics 可以包括 gap、trend、consensus、contradiction、maturity、method weakness、evidence weakness 等。
 
-PR-S0 不写结果。后续结果应围绕：
+### 5.7 Researcher challenge and final adjudication
 
-1. 证据包完整性：证据包字段是否齐全，哪些环节最容易缺证据。
-2. 可追踪性失败模式：主张到来源链条在哪些阶段断裂。
-3. 事实准确性 / 无证据支撑研究发现错误：元数据、引用、抽取和综合中的事实错误或无证据研究发现。
-4. 质疑闭环效果：人工质疑产生了哪些修订、降级、未解决或新证据。
-5. 覆盖代理：已知条目召回、种子论文恢复和数据库重叠等覆盖代理。
-6. 成本 / 效率权衡：智能体时间、token / API 成本、人工审计成本之间的权衡。
-7. 场景级差异：不同场景下错误模式和审计收益是否不同。
+研究者检查证据、反例、范围、主张强度和 schema 适配性；系统补证、找反例、修订、降级、拒绝或标记 unresolved。只有经过 final adjudication 的 finding 才能进入 target-domain findings。
 
-## 9. 效度威胁 / 局限性
+### 5.8 Process evidence for method evaluation
+
+记录 schema revision、approval、challenge、adjudication、interaction turns、time cost、人工修改、拒绝建议、prompt/raw log redaction。process evidence 只支撑 method-evaluation findings。
+
+## 6. Artifact Schema and Implementation Plan / 制品与实现计划
+
+后续 A2/A4 应把方法落为可审计制品，而不是只写 prompt：
+
+1. review meta-model brief；
+2. dimension schema registry；
+3. search/screening ledger；
+4. overview cards；
+5. field-level evidence table；
+6. schema revision/backfill log；
+7. statistical analysis table；
+8. candidate finding ledger；
+9. challenge/adjudication log；
+10. transparency package；
+11. process evidence / redaction report；
+12. run record（真实 LLM 运行前必须 `source .env`，并记录 model_id、provider、usage、raw output、错误与脱敏报告）。
+
+## 7. Pilot Study / 单主题 pilot
+
+PR-S0-v2 不冻结 pilot 主题，但建议优先考虑 LLM4STM / LLM4Modeling，因为它贴近博士主线且已有 baseline / sources 资产可作为压力测试线索。pilot 目标不是证明泛化，而是验证：
+
+1. L0--L7 是否能闭环；
+2. dimension pattern 是否能从 scaffold / seed papers 进入 approved schema；
+3. 字段级 content evidence 是否能支撑统计观察；
+4. candidate finding signals 是否能被 challenge、降级、拒绝或接受；
+5. schema revision 是否能触发 impact analysis 与 backfill；
+6. transparency package 是否能让第三方复核。
+
+## 8. Multi-user Process Evaluation / 多使用者过程评价
+
+后续让硕士生使用方法时，应明确数据用途：评价方法自身，而不是证明目标领域结论。建议记录：
+
+1. 每个 gate 的交互轮次、时间、修改和拒绝建议；
+2. schema revision / backfill 次数和原因；
+3. 研究者 challenge 的类型、补证量和裁决结果；
+4. 学生对 schema、证据链和 finding 边界的理解难点；
+5. prompt/raw log 的脱敏、匿名化和访问控制；
+6. 教学关系隔离、同意书和数据使用范围。
+
+## 9. Evaluation Design / 评价设计
+
+评价维度种子见 [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)。后续 A5 至少覆盖：
+
+1. dimension pattern stability / evolution；
+2. backfill completeness / cost；
+3. field-level evidence accuracy；
+4. statistical analysis correctness；
+5. candidate finding usefulness；
+6. challenge outcome：accepted / downgraded / rejected / unresolved；
+7. content/process evidence separation；
+8. method-evaluation process metrics；
+9. transparency package completeness；
+10. cost / burden / failure modes。
+
+## 10. PR #101 RQ 到 S0-v2 评价门槛的映射
+
+| PR #101 RQ | S0-v2 解释 | 对应评价维度 | 后续门槛 |
+|---|---|---|---|
+| RQ1 可追踪性 | final / downgraded / unresolved findings 能否回到 field-level content evidence、统计观察、challenge 和 adjudication？ | content evidence accuracy、claim-evidence traceability、transparency package | A2 定义 trace schema；A5 统计断链和定位错误。 |
+| RQ2 事实准确性 | 元数据、字段值、source anchor、统计输入和输出是否与来源一致？ | field-level factuality、statistical correctness | A3/A5 构造 gold/silver facts 与人工核验样本。 |
+| RQ3a 无证据 / 过强主张 | candidate signals 中有多少缺证据、范围过宽、统计外推或引用错误？ | unsupported / over-strong finding classification | A3 设计 traps；A5 报告残余错误与降级。 |
+| RQ3b 研究者 challenge | challenge 能否发现证据不足、反例、schema 问题和主张强度问题？ | accepted/downgraded/rejected/unresolved rate、challenge cost | A2 定义 log；A5 统计修订、降级、未解决和成本。 |
+| RQ4 成本收益 | pattern evolution、evidence anchoring 与 challenge 带来的成本/收益是什么？ | audit time、token/API、backfill burden、process friction | A4 run record；A5 成本分析，不预设正收益。 |
+| RQ5 场景差异 | 不同 SE / LLM4Modeling / MDE 主题下 schema 演化、证据缺失和 finding 类型有何差异？ | scenario-level difference、pattern stability、finding type coverage | A3 冻结场景与限制；A5 分场景报告。 |
+| RQ6 与已有工具关系 | 相比 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 等，本文的真正差异是什么？ | novelty matrix、baseline capability mapping | A6 相关工作必须正面对齐 B0 P0/P1。 |
+| RQ7 透明报告与覆盖代理 | 方法能否产生类 PRISMA 透明材料和覆盖代理，同时避免合规/完整覆盖过强主张？ | transparency completeness、coverage proxy、protocol deviation log | A2/A5 定义制品与检查清单。 |
+
+## 11. Results Plan / 结果计划
+
+PR-S0-v2 不写结果。未来结果应围绕：
+
+1. schema 演化次数、原因、backfill 范围和完成率；
+2. 字段级证据定位正确性、缺失类型和不确定性；
+3. 统计观察与字段版本的一致性；
+4. candidate finding signals 的接受、降级、拒绝、未解决比例；
+5. challenge 带来的补证、反例、修订和主张强度变化；
+6. process evidence 中的人机交互成本、失败模式和隐私/脱敏负担；
+7. 与强近邻相比，本方法在哪些主张上更安全，哪些仍然只是候选。
+
+## 12. Limitations / 效度威胁
 
 必须提前承认：
 
-1. 覆盖代理不等于完整覆盖；禁止把覆盖代理写成完整覆盖；
-2. 类 PRISMA 不等于 PRISMA 合规；禁止写合规主张；
-3. 人工 / 研究者审计门不保证完全正确；
-4. 场景数量和领域会限制泛化；
-5. LLM provider drift 和模型版本会影响复现；
-6. PR #97 若未合入，只能作为快照证据；
-7. 版权 / 全文可获取性会限制制品发布；
-8. 质疑闭环可能增加成本并产生未解决研究发现，不能预设正收益。
+1. survey-of-surveys scaffold 不等于 complete survey-of-surveys，也不进入目标 findings evidence pool；
+2. coverage proxy 不等于完整覆盖；
+3. 类 PRISMA 不等于 PRISMA 合规；
+4. final finding 仍依赖研究者判断，不能保证绝对正确；
+5. pilot 只验证闭环与可执行性，不能证明泛化；
+6. 学生 process data 只能支撑方法评估，且有 consent / anonymization / teaching relationship 风险；
+7. LLM provider drift、模型版本和 prompt drift 会影响复现；
+8. 版权 / 全文可获取性会限制制品发布。
 
-## 10. 制品与可复现性
+## 13. Conclusion / 结论
 
-应说明后续制品包括：
-
-1. 工作流 schema：每个阶段的输入、输出、状态和失败字段。
-2. 检索日志：检索式、数据库、时间、结果数和异常记录。
-3. 筛选台账：纳排决策、理由、分歧和裁决。
-4. 抽取 / 编码表：字段抽取、证据定位、编码标签和不确定标记。
-5. 候选研究发现台账：候选研究发现、支持性证据、反向证据、不确定性、修订 / 降级 / 未解决 / 接受状态。
-6. 质疑日志：研究者的质疑、系统补证、反例、修订、降级和停止条件。
-7. 主张-证据映射：报告级主张与来源、抽取、编码、审计状态的映射。
-8. 审计日志：人工审计样本、发现的问题、裁决和修正。
-9. 运行记录：模型、prompt、usage、错误、重试和 redaction 记录；若后续触发真实 LLM 运行，必须先 `source .env`，并把精确模型 ID、调用日期、用量和脱敏报告写入 run record。
-10. 脱敏 / 版权安全政策：版权安全发布、全文不可发布时的替代证据策略。
-
-## 11. 结论
-
-结论应回到谨慎主张：本文研究研究者引导的智能体式 SLR 支持工作流与以研究发现为中心的证据包；不声称智能体替代 SLR 专家。
+结论应回到谨慎口径：本文研究 researcher-guided、pattern-evolving、evidence-backed、finding-oriented 的智能体式 SLR/SMS 支持方法；它的目标是让 dimension schema、content evidence、statistical analysis、candidate finding signals、researcher challenge 和 final adjudication 可审计，而不是让 agent 替代 SLR 专家或自动生成最终综述。
