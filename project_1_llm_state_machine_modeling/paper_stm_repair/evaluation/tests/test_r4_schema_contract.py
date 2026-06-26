@@ -88,3 +88,18 @@ def test_repair_result_with_all_pass_conditions_can_claim_better_stm_contractual
         condition["status"] = "pass"
         condition["missing_evidence_reason"] = None
     jsonschema.Draft202012Validator(schema).validate(candidate)
+
+
+def test_better_stm_claim_requires_repair_loop_gain_attribution():
+    schema = load_json(SCHEMAS / "better_stm_checklist.schema.json")
+    valid = load_json(DRY_RUN / "llms-emp-gpt4o-hldcs" / "better_stm_checklist.json")
+    invalid = json.loads(json.dumps(valid))
+    invalid["evaluation_context"] = "repair_result"
+    invalid["can_claim_better_stm"] = True
+    invalid["overall_decision"] = "better"
+    invalid["gain_attribution"] = "conversion_normalization"
+    for condition in invalid["conditions"].values():
+        condition["status"] = "pass"
+        condition["missing_evidence_reason"] = None
+    with __import__("pytest").raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(schema).validate(invalid)
