@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 文档大修与首轮正式复审 I/M 修复已完成本地验证；等待 push 后三路小 diff 复审 |
+| 当前阶段 | S0-v2 文档大修与首轮正式复审 I/M 修复已推送为 `1cc50aca`；本地验证与 `feedback-smoke` 已通过，当前进入三路小 diff 复审 |
 | 真实 LLM | 未运行；本 PR 不触发 provider 调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
