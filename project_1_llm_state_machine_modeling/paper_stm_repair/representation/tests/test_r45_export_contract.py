@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ REPO = ROOT.parents[2]
 SRC = ROOT / "src"
 REPORTS = ROOT / "reports"
 CONVERSION_CANONICAL = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/canonical"
+SELECTED = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples"
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -18,6 +20,10 @@ if str(SRC) not in sys.path:
 
 def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_cli_regenerates_export_reports_in_tmp_path(tmp_path):
@@ -220,3 +226,92 @@ def test_guard_variable_uses_fcstm_safe_identifier_for_special_token():
     assert "if [E_ > 0]" in fcstm
     assert "def int E = 0;" not in fcstm
     assert inspect_fcstm(fcstm, Path("mini.fcstm"))["parse_status"] == "ok"
+
+
+def test_cli_syncs_selected_seed_example_fcstm_snapshots_in_tmp_path(tmp_path):
+    reports_out = tmp_path / "reports"
+    selected_out = tmp_path / "selected"
+    cmd_export = [
+        sys.executable,
+        "-m",
+        "paper_stm_repair_representation.cli",
+        "export-selected",
+        "--reports-dir",
+        str(reports_out),
+    ]
+    cmd_sync = [
+        sys.executable,
+        "-m",
+        "paper_stm_repair_representation.cli",
+        "sync-selected-fcstm",
+        "--reports-dir",
+        str(reports_out),
+        "--selected-dir",
+        str(selected_out),
+    ]
+    env = {**os.environ, "PYTHONPATH": str(SRC)}
+    subprocess.run(cmd_export, cwd=REPO, env=env, text=True, capture_output=True, check=True)
+    completed = subprocess.run(cmd_sync, cwd=REPO, env=env, text=True, capture_output=True, check=True)
+    assert '"synced": 4' in completed.stdout
+    for example_id in [
+        "llms-emp-deepseek-microwave",
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+    ]:
+        selected_fcstm = selected_out / example_id / "model.fcstm"
+        meta = load_json(selected_out / example_id / "fcstm_meta.json")
+        report_fcstm = reports_out / "fcstm_exports" / example_id / "model.fcstm"
+        assert selected_fcstm.read_text(encoding="utf-8") == report_fcstm.read_text(encoding="utf-8")
+        assert meta["selected_fcstm_sha256"] == sha256(selected_fcstm)
+        assert meta["synchronized_from_fcstm_sha256"] == sha256(report_fcstm)
+        assert meta["selected_fcstm_sha256"] == meta["synchronized_from_fcstm_sha256"]
+        assert meta["parse_status"] == "ok"
+        assert meta["inspect_status"] == "ok"
+        assert meta["repair_contribution_allowed"] is False
+
+
+def test_committed_selected_seed_examples_include_synced_fcstm_snapshots():
+    report = load_json(REPORTS / "fcstm_export_report.json")
+    by_id = {item["example_id"]: item for item in report["items"]}
+    assert set(by_id) == {
+        "llms-emp-deepseek-microwave",
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+    }
+    for example_id, item in by_id.items():
+        selected_dir = SELECTED / example_id
+        selected_fcstm = selected_dir / "model.fcstm"
+        selected_meta = selected_dir / "fcstm_meta.json"
+        source_fcstm = REPO / item["fcstm_path"]
+        meta = load_json(selected_meta)
+        assert selected_fcstm.is_file()
+        assert selected_meta.is_file()
+        assert selected_fcstm.read_text(encoding="utf-8") == source_fcstm.read_text(encoding="utf-8")
+        assert meta["schema_version"] == "selected_seed_examples.fcstm_snapshot.v0"
+        assert meta["artifact_role"] == "r4_5_smoke_converted_fcstm_snapshot"
+        assert meta["selected_fcstm_path"] == f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}/model.fcstm"
+        assert meta["selected_fcstm_sha256"] == sha256(selected_fcstm)
+        assert meta["synchronized_from_fcstm_path"] == item["fcstm_path"]
+        assert meta["synchronized_from_fcstm_sha256"] == sha256(source_fcstm)
+        assert meta["selected_fcstm_sha256"] == meta["synchronized_from_fcstm_sha256"]
+        direct_item_keys = {
+            "source_nl_path",
+            "source_stm0_path",
+            "source_meta_path",
+            "canonical_output_path",
+            "lowering_inventory_path",
+            "name_mapping_path",
+            "parse_inspect_report_path",
+        }
+        for key in direct_item_keys:
+            assert meta[key] == item[key]
+            assert (REPO / meta[key]).exists(), (example_id, key, meta[key])
+        assert meta["parse_status"] == item["parse_status"] == "ok"
+        assert meta["inspect_status"] == item["inspect_status"] == "ok"
+        assert meta["repair_contribution_allowed"] is False
+        assert meta["attribution"] == "representation_lowering_not_repair"
+        from paper_stm_repair_representation.lowering import inspect_fcstm
+
+        assert inspect_fcstm(selected_fcstm.read_text(encoding="utf-8"), selected_fcstm)["parse_status"] == "ok"

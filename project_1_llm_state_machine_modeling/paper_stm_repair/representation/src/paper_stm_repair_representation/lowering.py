@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -64,6 +65,12 @@ def display_path(path: Path) -> str:
         return str(resolved.relative_to(REPO_ROOT))
     except ValueError:
         return str(resolved)
+
+
+def sha256_file(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def canonical_path_for(example_id: str) -> Path:
@@ -886,3 +893,83 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
         for row in all_losses:
             f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     return report
+
+
+def sync_selected_fcstm_snapshots(
+    *,
+    reports_dir: Path = PAPER_ROOT / "representation/reports",
+    selected_dir: Path = PAPER_ROOT / "selected_seed_examples",
+) -> Dict[str, Any]:
+    """Copy R4.5 ``model.fcstm`` exports into selected smoke examples.
+
+    The selected seed example directories are the handoff surface consumed by
+    downstream smoke stages.  They should be self-contained enough for a human
+    or R5 script to see the upstream NL, raw ``STM_0`` and the current R4.5
+    pyfcstm snapshot together.  The snapshot is still a derived representation
+    artifact; this function keeps that attribution explicit in
+    ``fcstm_meta.json`` and refuses to invent files for non-converted examples.
+    """
+
+    reports_dir = reports_dir.resolve()
+    selected_dir = selected_dir.resolve()
+    report_path = reports_dir / "fcstm_export_report.json"
+    report = load_json(report_path)
+    items = []
+    for item in report["items"]:
+        example_id = item["example_id"]
+        example_dir = selected_dir / example_id
+        example_dir.mkdir(parents=True, exist_ok=True)
+        src_fcstm = REPO_ROOT / item["fcstm_path"] if not Path(item["fcstm_path"]).is_absolute() else Path(item["fcstm_path"])
+        dst_fcstm = example_dir / "model.fcstm"
+        if item.get("status") != "converted" or item.get("parse_status") != "ok" or item.get("inspect_status") != "ok":
+            raise RuntimeError(f"{example_id}: only converted parse/inspect-ok examples may be synchronized")
+        if not src_fcstm.is_file():
+            raise FileNotFoundError(src_fcstm)
+        shutil.copyfile(src_fcstm, dst_fcstm)
+        src_hash = sha256_file(src_fcstm)
+        dst_hash = sha256_file(dst_fcstm)
+        meta = {
+            "schema_version": "selected_seed_examples.fcstm_snapshot.v0",
+            "example_id": example_id,
+            "artifact_role": "r4_5_smoke_converted_fcstm_snapshot",
+            "artifact_status": item["status"],
+            "parse_status": item["parse_status"],
+            "inspect_status": item["inspect_status"],
+            "repair_contribution_allowed": False,
+            "attribution": "representation_lowering_not_repair",
+            "selected_example_dir": display_path(example_dir),
+            "selected_fcstm_path": display_path(dst_fcstm),
+            "selected_fcstm_sha256": dst_hash,
+            "synchronized_from_fcstm_path": item["fcstm_path"],
+            "synchronized_from_fcstm_sha256": src_hash,
+            "synchronized_from_report_path": display_path(report_path),
+            "lowering_inventory_path": item["lowering_inventory_path"],
+            "name_mapping_path": item["name_mapping_path"],
+            "parse_inspect_report_path": item["parse_inspect_report_path"],
+            "source_nl_path": item["source_nl_path"],
+            "source_stm0_path": item["source_stm0_path"],
+            "source_meta_path": item["source_meta_path"],
+            "canonical_output_path": item["canonical_output_path"],
+            "upstream_source_format": item["upstream_source_format"],
+            "upstream_conversion_source": item["upstream_conversion_source"],
+            "upstream_r3_status": item["upstream_r3_status"],
+            "upstream_r3_status_reason_code": item["upstream_r3_status_reason_code"],
+            "loss_count": item["loss_count"],
+            "sync_policy": "This file is a committed smoke convenience snapshot copied from representation/reports/fcstm_exports/<example_id>/model.fcstm. Regenerate R4.5 first, then resync this copy; do not edit it by hand.",
+        }
+        write_json(example_dir / "fcstm_meta.json", meta)
+        items.append(
+            {
+                "example_id": example_id,
+                "selected_fcstm_path": meta["selected_fcstm_path"],
+                "selected_fcstm_sha256": dst_hash,
+                "synchronized_from_fcstm_path": item["fcstm_path"],
+                "synchronized_from_fcstm_sha256": src_hash,
+                "status": "synced",
+            }
+        )
+    return {
+        "schema_version": "selected_seed_examples.fcstm_snapshot_sync.v0",
+        "summary": {"examples": len(items), "synced": len(items)},
+        "items": items,
+    }
