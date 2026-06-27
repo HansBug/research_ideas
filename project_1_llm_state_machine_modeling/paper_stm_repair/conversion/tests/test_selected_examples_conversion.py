@@ -313,10 +313,16 @@ def test_canonical_outputs_never_use_text_fallback_conversion_source():
 def test_input_audit_records_source_pair_hashes_and_documented_divergence():
     audit = json.loads((REPORTS / "selected_seed_examples_input_audit.json").read_text(encoding="utf-8"))
     by_id = {row["example_id"]: row for row in audit["items"]}
-    assert all(row["source_nl_hash_match"] for row in audit["items"])
     assert all(row["source_hash_divergence_documented"] for row in audit["items"])
+    assert by_id["llms-emp-deepseek-microwave"]["source_nl_hash_match"] is False
+    assert by_id["llms-emp-deepseek-microwave"]["source_nl_hash_divergence_documented"] is True
+    assert by_id["llms-emp-kimi-autonomous-collision"]["source_nl_hash_match"] is False
+    assert by_id["llms-emp-kimi-autonomous-collision"]["source_nl_hash_divergence_documented"] is True
+    assert by_id["sefm-ssc7-umple"]["source_nl_hash_match"] is True
     assert by_id["sefm-ssc7-umple"]["source_stm0_hash_match"] is False
-    assert "whitespace normalization" in by_id["sefm-ssc7-umple"]["hash_scope"]
+    assert by_id["sefm-ssc7-umple"]["source_stm0_hash_divergence_documented"] is True
+    for example_id in ["llms-emp-deepseek-microwave", "llms-emp-kimi-autonomous-collision", "sefm-ssc7-umple"]:
+        assert "whitespace normalization" in by_id[example_id]["hash_scope"]
 
 
 def test_committed_report_contains_only_current_selected_examples():

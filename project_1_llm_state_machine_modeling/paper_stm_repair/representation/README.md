@@ -106,5 +106,6 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 ## 7. 学术注意点
 
 - `.fcstm` 是内部可机检载体，论文中只能弱化为 implementation representation，不进标题、摘要或贡献列表。
+- R4.5 只降低 R3 canonical 已承载的语义；例如 SEFM raw Umple 中若存在 entry action 但 R3 canonical 未证明/未保留，R4.5 不从 raw source 私自补回，只能在上游 conversion caveat 中解释。
 - `fcstm_export_loss_ledger.jsonl` 中所有 `repair_contribution_allowed=false`；任何表示转换带来的可解析性改善都不能算作 repair loop 改进。
 - R5/R6/R7 引用 R4.5 输出时，应同时读取 `lowering_inventory.json` 和 loss ledger，避免把 representation approximation 当作 STM 语义真实变化。

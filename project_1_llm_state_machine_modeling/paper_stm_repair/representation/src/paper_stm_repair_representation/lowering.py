@@ -700,18 +700,7 @@ class FCSTMExporter:
                 lines.append(f"{pad}{keyword} {name} named {dsl_string(raw)} {{")
                 body_indent = indent + 4
             else:
-                # Entry action heuristic for Umple Override state: R3 SCXML loses entry actions,
-                # so R4.5 keeps only explicitly known action from the R3 targeted audit context.
-                if self.view.example_id == "sefm-ssc7-umple" and scope_id == "Override":
-                    act = self.abstract_actions.get("turnLightOn();")
-                    if not act:
-                        act = abstract_action_identifier(self.registry, "turnLightOn();", state.get("raw_ref") or scope_id)
-                        self.abstract_actions["turnLightOn();"] = act
-                    lines.append(f"{pad}{keyword} {name} named {dsl_string(raw)} {{")
-                    lines.append(f"{' ' * (indent + 4)}enter abstract {act};")
-                    lines.append(f"{pad}}}")
-                else:
-                    lines.append(f"{pad}{keyword} {name} named {dsl_string(raw)};")
+                lines.append(f"{pad}{keyword} {name} named {dsl_string(raw)};")
                 return lines
 
         body_pad = " " * body_indent

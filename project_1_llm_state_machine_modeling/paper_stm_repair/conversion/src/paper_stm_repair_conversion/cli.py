@@ -72,8 +72,11 @@ def audit_inputs(repo_root: Path, selected_dir: Path) -> list[dict[str, Any]]:
         source_pair_stm0_sha256 = pair_record.get("stm0_sha256")
         meta_source_nl_sha256 = meta.get("source_nl_sha256", meta.get("nl_sha256"))
         meta_source_stm0_sha256 = meta.get("source_stm0_sha256", meta.get("stm0_sha256"))
+        source_nl_hash_match = nl_hash == source_pair_nl_sha256
         source_stm0_hash_match = stm_hash == source_pair_stm0_sha256
-        normalization_documented = bool(meta.get("hash_scope")) and meta_source_stm0_sha256 == source_pair_stm0_sha256
+        hash_scope = meta.get("hash_scope") or ""
+        nl_normalization_documented = bool(hash_scope) and meta_source_nl_sha256 == source_pair_nl_sha256
+        stm0_normalization_documented = bool(hash_scope) and meta_source_stm0_sha256 == source_pair_stm0_sha256
         row = {
             "example_id": example_dir.name,
             "nl_path": _rel(nl_path, repo_root),
@@ -92,10 +95,12 @@ def audit_inputs(repo_root: Path, selected_dir: Path) -> list[dict[str, Any]]:
             "meta_source_stm0_sha256": meta_source_stm0_sha256,
             "nl_hash_match": nl_hash == meta["nl_sha256"],
             "stm0_hash_match": stm_hash == meta["stm0_sha256"],
-            "source_nl_hash_match": nl_hash == source_pair_nl_sha256,
+            "source_nl_hash_match": source_nl_hash_match,
             "source_stm0_hash_match": source_stm0_hash_match,
-            "source_hash_divergence_documented": source_stm0_hash_match or normalization_documented,
-            "hash_scope": meta.get("hash_scope"),
+            "source_nl_hash_divergence_documented": source_nl_hash_match or nl_normalization_documented,
+            "source_stm0_hash_divergence_documented": source_stm0_hash_match or stm0_normalization_documented,
+            "source_hash_divergence_documented": (source_nl_hash_match or nl_normalization_documented) and (source_stm0_hash_match or stm0_normalization_documented),
+            "hash_scope": hash_scope,
             "source_pairs_jsonl": _rel((example_dir / meta["source_pairs_jsonl"]).resolve(), repo_root),
         }
         row["source_pairs_exists"] = (repo_root / row["source_pairs_jsonl"]).exists()
@@ -434,7 +439,6 @@ def convert_selected(args: argparse.Namespace) -> int:
         row["nl_hash_match"]
         and row["stm0_hash_match"]
         and row["source_pairs_exists"]
-        and row["source_nl_hash_match"]
         and row["source_hash_divergence_documented"]
         for row in audit
     ):

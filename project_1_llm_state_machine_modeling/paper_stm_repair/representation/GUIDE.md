@@ -56,7 +56,7 @@ ready_scan_barcode_is_valid_barcode_security_check_relay -> SecurityCheck : if [
 ## 5. action / timing / hierarchy
 
 - transition action 降为 `def int act_x = 0` + `effect { act_x = 1; }`。
-- entry action 只在有明确 evidence 的情况下映射为 `enter abstract Foo;`。
+- entry action 只在 R3 canonical 中有明确 evidence 的情况下映射为 `enter abstract Foo;`；禁止在 representation 阶段从 raw `stm0.*` 手工补回 canonical 未承载的 entry action。
 - bool-like guard variable 默认值 `0` 是 R4.5 表示近似，必须写入 loss ledger。
 - timeout/timing 仅按 event 降低，不恢复 clock semantics。
 - HSM hierarchy 默认保留；跨层级 transition 只能在可解释的 boundary lifting / forced transition 下处理，并记录 loss。

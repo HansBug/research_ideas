@@ -83,7 +83,8 @@ def test_name_mapping_covers_required_emitted_identifier_types():
     kimi = load_json(REPORTS / "fcstm_exports/llms-emp-kimi-autonomous-collision/name_mapping.json")
     microwave = load_json(REPORTS / "fcstm_exports/llms-emp-deepseek-microwave/name_mapping.json")
     object_types = {item["object_type"] for item in sefm["items"] + llms["items"] + kimi["items"] + microwave["items"]}
-    assert {"root_state", "state", "event", "pseudo_relay", "guard_variable", "action_flag", "abstract_action"} <= object_types
+    assert {"root_state", "state", "event", "pseudo_relay", "guard_variable", "action_flag"} <= object_types
+    assert "abstract_action" not in object_types
     assert any(item["raw_text"] == "Front Distance > 10" and item["emitted_identifier"] == "Front_Distance_10" for item in llms["items"])
     assert any(item["raw_text"] == "showError()" and item["object_type"] == "action_flag" for item in sefm["items"])
     assert any(item["raw_text"] == "AutonomousMode" and item["object_type"] == "state" for item in kimi["items"])
