@@ -24,7 +24,13 @@ def test_committed_export_report_validates_against_schema():
     schema = load_json(SCHEMAS / "fcstm_export_report.schema.json")
     report = load_json(REPORTS / "fcstm_export_report.json")
     jsonschema.Draft202012Validator(schema).validate(report)
-    assert report["summary"] == {"examples": 4, "converted": 2, "partial": 0, "blocked": 2}
+    assert report["summary"] == {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
+    assert {item["example_id"] for item in report["items"]} == {
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    }
     assert all(item["repair_contribution_allowed"] is False for item in report["items"])
 
 

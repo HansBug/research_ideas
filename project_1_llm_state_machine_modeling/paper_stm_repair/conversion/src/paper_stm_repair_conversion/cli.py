@@ -3,13 +3,15 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any
 
 from .adapters import convert_plantuml, convert_ttool_xml, convert_umple
 from .models import Loss
 from .report import make_example_report, sha256_file, write_json
-from .toolchain import ToolchainSetupError, preflight_for_format
+from .toolchain import ToolchainSetupError, preflight_for_format, run_plantuml_on_candidate
 from .normalization.archive import build_recovery_workdir_archive
 from .normalization.recovery import run_recovery
 
@@ -171,17 +173,141 @@ def _tool_info(meta: dict[str, Any], preflight: dict[str, Any]) -> dict[str, Any
     }
 
 
+def _load_recovery_item(repo_root: Path, pair_id: str) -> dict[str, Any] | None:
+    report_path = repo_root / CONVERSION_REL_BASE / "reports" / "plantuml_recovery_report.json"
+    if not report_path.exists():
+        return None
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    for item in report.get("items", []):
+        if item.get("pair_id") == pair_id:
+            return item
+    return None
+
+
+def _replay_r31_normalized_preflight(
+    *,
+    repo_root: Path,
+    example_id: str,
+    meta: dict[str, Any],
+    reports_dir: Path,
+    original_preflight: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Re-run official PlantUML on a committed R3.1 normalized candidate.
+
+    This is intentionally narrow: it is not a regex/source parser fallback and it
+    does not parse the selected raw PlantUML text.  It only replays an R3.1
+    deterministic normalization artifact that already passed the committed
+    semantic-preservation audit, and then obtains a fresh SCXML export from the
+    configured PlantUML toolchain in this run.
+    """
+
+    recovery_item = _load_recovery_item(repo_root, meta.get("pair_id", ""))
+    if not recovery_item:
+        return None
+    if not (
+        recovery_item.get("main_eligibility_included")
+        and recovery_item.get("normalized_conversion_pass")
+        and recovery_item.get("semantic_preservation_pass") is True
+    ):
+        return None
+    normalized_member = recovery_item.get("normalized_candidate_path")
+    if not normalized_member:
+        return None
+    recovery_report = json.loads((repo_root / CONVERSION_REL_BASE / "reports" / "plantuml_recovery_report.json").read_text(encoding="utf-8"))
+    archive_info = recovery_report.get("artifact_archive") or {}
+    archive_rel = archive_info.get("archive_path")
+    if not archive_rel:
+        return None
+    archive_path = repo_root / archive_rel
+    if not archive_path.exists():
+        return None
+    with tempfile.TemporaryDirectory(prefix=f"r3_1_replay_{example_id}_") as td:
+        candidate_path = Path(td) / Path(normalized_member).name
+        with zipfile.ZipFile(archive_path) as zf:
+            candidate_path.write_bytes(zf.read(normalized_member))
+        replay = run_plantuml_on_candidate(
+            candidate_path,
+            example_id=example_id,
+            repo_root=repo_root,
+            reports_dir=reports_dir,
+            export_subdir="toolchain_exports",
+            output_stem="stm0.r3_1_normalized",
+        ).to_metadata()
+    replay.setdefault("evidence", {})
+    replay["evidence"].update({
+        "r3_1_normalization_replay": True,
+        "r3_1_recovery_report_path": str((CONVERSION_REL_BASE / "reports" / "plantuml_recovery_report.json")),
+        "r3_1_recovery_archive_path": archive_info.get("archive_path"),
+        "r3_1_normalized_candidate_member": normalized_member,
+        "r3_1_original_raw_preflight": {
+            "syntax_status": original_preflight.get("syntax_status"),
+            "structured_export_status": original_preflight.get("structured_export_status"),
+            "fallback_reason": original_preflight.get("fallback_reason"),
+        },
+        "semantic_preservation_pass": recovery_item.get("semantic_preservation_pass"),
+        "rule_ids": recovery_item.get("rule_ids", []),
+        "raw_candidate_path": recovery_item.get("raw_candidate_path"),
+        "source_line_sha256": recovery_item.get("source_line_sha256"),
+    })
+    replay["tool_invocation_status"] = "official_cli_syntax_and_scxml_ok_after_r3_1_normalization_replay"
+    return replay
+
+
+def _maybe_apply_r31_recovery_preflight(
+    *,
+    repo_root: Path,
+    example_dir: Path,
+    meta: dict[str, Any],
+    reports_dir: Path,
+    preflight: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    if meta.get("stm_format") != "plantuml":
+        return preflight, None
+    if preflight.get("syntax_status") == "ok" and preflight.get("structured_export_status") == "scxml_export_ok":
+        return preflight, None
+    replay = _replay_r31_normalized_preflight(
+        repo_root=repo_root,
+        example_id=example_dir.name,
+        meta=meta,
+        reports_dir=reports_dir,
+        original_preflight=preflight,
+    )
+    if replay and replay.get("syntax_status") == "ok" and replay.get("structured_export_status") == "scxml_export_ok":
+        return replay, preflight
+    return preflight, None
+
+
 def convert_one(repo_root: Path, example_dir: Path, reports_dir: Path, run_id: str, conversion_command: str, created_at: str | None) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     meta = _load_meta(example_dir)
     stm_path = _find_stm(example_dir)
     fmt = meta["stm_format"]
     try:
-        preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
+        raw_preflight = preflight_for_format(fmt, stm_path, example_id=example_dir.name, repo_root=repo_root, reports_dir=reports_dir).to_metadata()
     except ToolchainSetupError as exc:
         raise SystemExit(f"R3 conversion toolchain setup failed for {example_dir.name}:\n{exc}") from None
+    preflight, original_preflight = _maybe_apply_r31_recovery_preflight(
+        repo_root=repo_root,
+        example_dir=example_dir,
+        meta=meta,
+        reports_dir=reports_dir,
+        preflight=raw_preflight,
+    )
     kwargs = {"example_id": example_dir.name, "seed_id": meta["seed_id"], "source_format": fmt}
     if fmt == "plantuml":
         result = convert_plantuml(stm_path, preflight=preflight, repo_root=repo_root, **kwargs)
+        if original_preflight is not None:
+            result.metadata["r3_1_normalization_replay_used"] = True
+            result.metadata["selected_raw_source_path"] = _rel(stm_path, repo_root)
+            result.metadata["source_text_used_for_canonical"] = False
+            result.diagnostics.append({
+                "code": "R3.R31.NORMALIZED_SCXML_REPLAY_USED",
+                "severity": "info",
+                "message": "Raw selected PlantUML failed official SCXML export, so R3 replayed a committed R3.1 deterministic normalized candidate and re-ran official PlantUML -tscxml. This is conversion normalization only, not repair gain.",
+                "raw_syntax_status": original_preflight.get("syntax_status"),
+                "raw_structured_export_status": original_preflight.get("structured_export_status"),
+                "normalized_structured_export_path": preflight.get("structured_export_path"),
+                "recovery_report_path": str(CONVERSION_REL_BASE / "reports" / "plantuml_recovery_report.json"),
+            })
     elif fmt == "umple":
         result = convert_umple(stm_path, preflight=preflight, repo_root=repo_root, **kwargs)
     elif fmt == "ttool_xml":

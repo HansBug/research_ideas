@@ -67,7 +67,7 @@
 | 条件 XML 样例 | `ttool-ai-smd-subset` | TTool XML / SMD/T0 切片压力源；不计现成 final pool。 |
 | 仅复跑线索补充 | `fsm-bench-20`、`designing-fsm-gpt4` | 后续可复跑构造 seed，但复跑前不计 author first-source pair。 |
 
-当前 smoke 用代表性样例为 [llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](../../selected_seed_examples/ttool-automatedbraking-xml/)。
+当前 smoke 用代表性样例为 [llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/) 和 [unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/)。其中 `ttool-automatedbraking-xml` 已从当前四例 selected smoke 移除，只保留在 registry / evidence 中作为未来 TTool XML / SMD 切片专项线索；当前四例均来自一手 `NL + generated STM_0` pair。
 
 ## 2. 收录范围
 

@@ -12,6 +12,9 @@ SRC = ROOT / "src"
 REPORTS = ROOT / "reports"
 CONVERSION_CANONICAL = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/canonical"
 
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
 
 def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
@@ -31,15 +34,18 @@ def test_cli_regenerates_export_reports_in_tmp_path(tmp_path):
     completed = subprocess.run(cmd, cwd=REPO, env=env, text=True, capture_output=True, check=True)
     assert '"examples": 4' in completed.stdout
     report = load_json(out / "fcstm_export_report.json")
+    assert report["summary"] == {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
     by_id = {item["example_id"]: item for item in report["items"]}
-    assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
-    assert by_id["llms-emp-gpt4o-hldcs"]["parse_status"] == "ok"
-    assert by_id["sefm-ssc7-umple"]["status"] == "converted"
-    assert by_id["sefm-ssc7-umple"]["parse_status"] == "ok"
-    assert by_id["ttool-automatedbraking-xml"]["status"] == "blocked"
-    assert by_id["ttool-automatedbraking-xml"]["fcstm_path"] is None
-    assert by_id["unified-uml-synthetic-0000"]["status"] == "blocked"
-    assert by_id["unified-uml-synthetic-0000"]["fcstm_path"] is None
+    assert set(by_id) == {
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    }
+    for example_id in by_id:
+        assert by_id[example_id]["status"] == "converted"
+        assert by_id[example_id]["parse_status"] == "ok"
+        assert by_id[example_id]["fcstm_path"] is not None
 
 
 def test_llms_hierarchy_and_composite_initials_are_preserved():
@@ -74,14 +80,23 @@ def test_sefm_event_guard_transitions_use_pseudo_relay_not_event_flags():
 def test_name_mapping_covers_required_emitted_identifier_types():
     sefm = load_json(REPORTS / "fcstm_exports/sefm-ssc7-umple/name_mapping.json")
     llms = load_json(REPORTS / "fcstm_exports/llms-emp-gpt4o-hldcs/name_mapping.json")
-    object_types = {item["object_type"] for item in sefm["items"] + llms["items"]}
+    kimi = load_json(REPORTS / "fcstm_exports/llms-emp-kimi-autonomous-collision/name_mapping.json")
+    unified = load_json(REPORTS / "fcstm_exports/unified-uml-synthetic-0000/name_mapping.json")
+    object_types = {item["object_type"] for item in sefm["items"] + llms["items"] + kimi["items"] + unified["items"]}
     assert {"root_state", "state", "event", "pseudo_relay", "guard_variable", "action_flag", "abstract_action"} <= object_types
     assert any(item["raw_text"] == "Front Distance > 10" and item["emitted_identifier"] == "Front_Distance_10" for item in llms["items"])
     assert any(item["raw_text"] == "showError()" and item["object_type"] == "action_flag" for item in sefm["items"])
+    assert any(item["raw_text"] == "AutonomousMode" and item["object_type"] == "state" for item in kimi["items"])
+    assert any(item["raw_text"] == "Menu_Created_4778a0" and item["object_type"] == "state" for item in unified["items"])
 
 
 def test_lowering_inventory_counts_align_with_r3_canonical_for_converted_examples():
-    for example_id in ["llms-emp-gpt4o-hldcs", "sefm-ssc7-umple"]:
+    for example_id in [
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    ]:
         canonical = load_json(CONVERSION_CANONICAL / f"{example_id}.canonical_stm.json")
         inv = load_json(REPORTS / f"fcstm_exports/{example_id}/lowering_inventory.json")
         assert inv["counts"]["canonical_states"] == len(canonical["model"]["states"])
@@ -90,15 +105,32 @@ def test_lowering_inventory_counts_align_with_r3_canonical_for_converted_example
         assert inv["counts"]["hierarchy_items"] == len(canonical["model"]["states"])
 
 
-def test_blocked_examples_do_not_emit_fake_fcstm_models():
+def test_all_selected_examples_emit_parseable_fcstm_models_without_repair_credit():
     report = load_json(REPORTS / "fcstm_export_report.json")
     by_id = {item["example_id"]: item for item in report["items"]}
-    for example_id in ["ttool-automatedbraking-xml", "unified-uml-synthetic-0000"]:
-        assert by_id[example_id]["status"] == "blocked"
-        assert by_id[example_id]["fcstm_path"] is None
-        assert not (REPORTS / f"fcstm_exports/{example_id}/model.fcstm").exists()
+    assert report["summary"] == {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
+    for example_id in by_id:
+        assert by_id[example_id]["status"] == "converted"
+        assert by_id[example_id]["parse_status"] == "ok"
+        assert by_id[example_id]["repair_contribution_allowed"] is False
+        assert (REPORTS / f"fcstm_exports/{example_id}/model.fcstm").exists()
         inv = load_json(REPORTS / f"fcstm_exports/{example_id}/lowering_inventory.json")
-        assert inv["blocked_supplementary"]
+        assert inv["blocked_supplementary"] == []
+
+
+def test_unified_fcstm_is_from_r31_replay_canonical_and_not_repair_gain():
+    canonical = load_json(CONVERSION_CANONICAL / "unified-uml-synthetic-0000.canonical_stm.json")
+    assert canonical["metadata"]["r3_1_normalization_replay_used"] is True
+    assert canonical["metadata"]["source_text_used_for_canonical"] is False
+    assert any(d["code"] == "R3.R31.NORMALIZED_SCXML_REPLAY_USED" for d in canonical["diagnostics"])
+    parse_report = load_json(REPORTS / "fcstm_exports/unified-uml-synthetic-0000/parse_inspect_report.json")
+    assert parse_report["parse_status"] == "ok"
+    states = {state["path"]: state for state in parse_report["states"]}
+    assert "unified_uml_synthetic_0000.Menu_Created_4778a0" in states
+    report = load_json(REPORTS / "fcstm_export_report.json")
+    unified = {item["example_id"]: item for item in report["items"]}["unified-uml-synthetic-0000"]
+    assert unified["status"] == "converted"
+    assert unified["repair_contribution_allowed"] is False
 
 
 def test_committed_reports_do_not_embed_local_absolute_paths():

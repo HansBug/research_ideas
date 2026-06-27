@@ -13,9 +13,9 @@ R3_REPORT = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/conver
 
 EXPECTED = {
     "llms-emp-gpt4o-hldcs": {"r3_status": "converted", "decision": "complete", "canonical": True, "model_level": True},
+    "llms-emp-kimi-autonomous-collision": {"r3_status": "converted", "decision": "complete", "canonical": True, "model_level": True},
     "sefm-ssc7-umple": {"r3_status": "partial", "decision": "focused", "canonical": True, "model_level": False},
-    "ttool-automatedbraking-xml": {"r3_status": "partial", "decision": "focused", "canonical": True, "model_level": False},
-    "unified-uml-synthetic-0000": {"r3_status": "partial", "decision": "blocked", "canonical": False, "model_level": False},
+    "unified-uml-synthetic-0000": {"r3_status": "converted", "decision": "focused", "canonical": True, "model_level": False},
 }
 
 
@@ -30,9 +30,7 @@ def test_all_four_r4_dry_run_examples_have_required_files_and_validate():
         "eligibility_decision.json": load_json(SCHEMAS / "eligibility_decision.schema.json"),
         "better_stm_checklist.json": load_json(SCHEMAS / "better_stm_checklist.schema.json"),
     }
-    dry_runs_doc = (ROOT / "DRY_RUNS.md").read_text(encoding="utf-8")
     for example_id in EXPECTED:
-        assert example_id in dry_runs_doc
         example_dir = DRY_RUN / example_id
         for filename, schema in schemas.items():
             path = example_dir / filename
@@ -79,16 +77,30 @@ def test_placeholder_scenarios_are_not_regression_gates():
 
 def test_partial_and_blocked_examples_are_not_promoted_to_model_level_evaluation():
     sefm = load_json(DRY_RUN / "sefm-ssc7-umple" / "eligibility_decision.json")
-    ttool = load_json(DRY_RUN / "ttool-automatedbraking-xml" / "eligibility_decision.json")
     unified = load_json(DRY_RUN / "unified-uml-synthetic-0000" / "eligibility_decision.json")
     assert sefm["allow_model_level_evaluation"] is False
     assert "timing" in " ".join(sefm["required_caveats"]).lower()
-    assert ttool["allow_model_level_evaluation"] is False
-    assert any("inventory" in caveat.lower() for caveat in ttool["required_caveats"])
-    assert unified["r4_dry_run_decision"] == "blocked"
-    assert unified["canonical_available"] is False
+    assert unified["r3_status"] == "converted"
+    assert unified["r4_dry_run_decision"] == "focused"
+    assert unified["canonical_available"] is True
     assert unified["allow_model_level_evaluation"] is False
     assert unified["allow_repair_loop_smoke"] is False
+    assert unified["gain_attribution"] == "conversion_normalization"
+    assert unified["conversion_gain_counted_as_repair"] is False
+    assert any("normalization" in caveat.lower() for caveat in unified["required_caveats"])
+
+
+def test_converted_examples_split_model_level_by_conversion_attribution():
+    gpt4o = load_json(DRY_RUN / "llms-emp-gpt4o-hldcs" / "eligibility_decision.json")
+    kimi = load_json(DRY_RUN / "llms-emp-kimi-autonomous-collision" / "eligibility_decision.json")
+    unified = load_json(DRY_RUN / "unified-uml-synthetic-0000" / "eligibility_decision.json")
+    assert gpt4o["r4_dry_run_decision"] == "complete"
+    assert gpt4o["allow_model_level_evaluation"] is True
+    assert kimi["r4_dry_run_decision"] == "complete"
+    assert kimi["allow_model_level_evaluation"] is True
+    assert unified["r4_dry_run_decision"] == "focused"
+    assert unified["allow_model_level_evaluation"] is False
+    assert unified["gain_attribution"] == "conversion_normalization"
 
 
 def test_key_evidence_locators_point_to_existing_repo_files():

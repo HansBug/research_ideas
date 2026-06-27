@@ -35,7 +35,7 @@ def _fake_toolchain_env(tmp_path: Path) -> dict[str, str]:
         "    raise SystemExit(0)\n"
         "src = pathlib.Path(args[-1])\n"
         "text = src.read_text(encoding='utf-8')\n"
-        "if '\"Menu Created\"' in text:\n"
+        "if '[*] --> \"Menu Created\"' in text:\n"
         "    sys.stderr.write('Some diagram description contains errors\\n')\n"
         "    raise SystemExit(200 if '-checkonly' in args else 1)\n"
         "if '-checkonly' in args:\n"
@@ -125,15 +125,23 @@ def test_cli_regenerates_four_example_report(tmp_path):
     assert '"examples": 4' in completed.stdout
     report = json.loads((out / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
     by_id = {item["example_id"]: item for item in report["items"]}
+    assert set(by_id) == {
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    }
     assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
     assert by_id["llms-emp-gpt4o-hldcs"]["conversion_source"] == "official_scxml"
-    assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
-    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "no_canonical_conversion"
-    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"] is None
+    assert by_id["llms-emp-kimi-autonomous-collision"]["status"] == "converted"
+    assert by_id["llms-emp-kimi-autonomous-collision"]["conversion_source"] == "official_scxml"
     assert by_id["sefm-ssc7-umple"]["status"] == "partial"
     assert by_id["sefm-ssc7-umple"]["conversion_source"] == "official_scxml"
-    assert by_id["ttool-automatedbraking-xml"]["status"] == "partial"
-    assert by_id["ttool-automatedbraking-xml"]["conversion_source"] == "official_xml"
+    assert by_id["unified-uml-synthetic-0000"]["status"] == "converted"
+    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "official_scxml"
+    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"]
+    unified_codes = {d["code"] for d in by_id["unified-uml-synthetic-0000"]["diagnostics"]}
+    assert "R3.R31.NORMALIZED_SCXML_REPLAY_USED" in unified_codes
     assert all("tool_preflight" in item for item in report["items"])
 
 
@@ -190,21 +198,27 @@ def test_cli_fails_loudly_when_configured_plantuml_path_is_invalid(tmp_path):
 def test_committed_report_keeps_r3_smoke_boundary_and_losses():
     report = json.loads((REPORTS / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
     by_id = {item["example_id"]: item for item in report["items"]}
+    assert set(by_id) == {
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    }
     assert all(item["eligibility"] == "r3_smoke_fixture_only_not_main_experiment" for item in report["items"])
     assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
     assert by_id["llms-emp-gpt4o-hldcs"]["hierarchy_level"] == "hierarchical"
-    assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
-    assert by_id["unified-uml-synthetic-0000"]["hierarchy_level"] == "flat"
-    assert by_id["unified-uml-synthetic-0000"]["states_count"] == 0
-    assert by_id["unified-uml-synthetic-0000"]["transitions_count"] == 0
-    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "no_canonical_conversion"
-    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"] is None
+    assert by_id["llms-emp-kimi-autonomous-collision"]["status"] == "converted"
+    assert by_id["llms-emp-kimi-autonomous-collision"]["hierarchy_level"] == "hierarchical"
     assert by_id["sefm-ssc7-umple"]["timing_level"] == "qualitative"
-    assert by_id["ttool-automatedbraking-xml"]["timing_level"] == "timed_constraints"
+    assert by_id["unified-uml-synthetic-0000"]["status"] == "converted"
+    assert by_id["unified-uml-synthetic-0000"]["hierarchy_level"] == "flat"
+    assert by_id["unified-uml-synthetic-0000"]["states_count"] == 7
+    assert by_id["unified-uml-synthetic-0000"]["transitions_count"] == 7
+    assert by_id["unified-uml-synthetic-0000"]["conversion_source"] == "official_scxml"
+    assert by_id["unified-uml-synthetic-0000"]["canonical_output_path"]
     losses = (REPORTS / "selected_seed_examples_loss_ledger.jsonl").read_text(encoding="utf-8")
     assert "sefm-ssc7-umple:umple:timing_after" in losses
-    assert "ttool-automatedbraking-xml:ttool_xml:unresolved_connectors" in losses
-    assert "unified-uml-synthetic-0000:plantuml:official_preflight_failed" in losses
+    assert "unified-uml-synthetic-0000:plantuml:official_preflight_failed" not in losses
 
 
 def test_committed_reports_do_not_embed_local_absolute_paths():
@@ -228,6 +242,14 @@ def test_committed_outputs_use_official_structured_sources_and_timing_audit_only
     assert all("stm0.scxml:" in t["raw_ref"] for t in plant["model"]["transitions"])
     assert any(d["code"] == "R3.STRUCTURED_EXPORT.CANONICAL_FROM_SCXML" for d in plant["diagnostics"])
 
+    kimi = json.loads((REPORTS / "canonical" / "llms-emp-kimi-autonomous-collision.canonical_stm.json").read_text(encoding="utf-8"))
+    assert kimi["metadata"]["conversion_source"] == "official_scxml"
+    assert kimi["metadata"]["fallback_used"] is False
+    assert kimi["metadata"]["source_text_used_for_canonical"] is False
+    assert all("stm0.scxml:" in s["raw_ref"] for s in kimi["model"]["states"])
+    assert all("stm0.scxml:" in t["raw_ref"] for t in kimi["model"]["transitions"])
+    assert any(d["code"] == "R3.STRUCTURED_EXPORT.CANONICAL_FROM_SCXML" for d in kimi["diagnostics"])
+
     umple = json.loads((REPORTS / "canonical" / "sefm-ssc7-umple.canonical_stm.json").read_text(encoding="utf-8"))
     assert umple["metadata"]["conversion_source"] == "official_scxml"
     assert umple["metadata"]["fallback_used"] is False
@@ -239,14 +261,37 @@ def test_committed_outputs_use_official_structured_sources_and_timing_audit_only
     assert any(t.get("event") == "timeoutTimeoutToReady" for t in umple["model"]["transitions"])
 
 
+def test_unified_uses_r31_normalized_scxml_replay_without_source_text_fallback():
+    unified_path = REPORTS / "canonical" / "unified-uml-synthetic-0000.canonical_stm.json"
+    assert unified_path.exists()
+    unified = json.loads(unified_path.read_text(encoding="utf-8"))
+    assert unified["status"] == "converted"
+    assert unified["metadata"]["conversion_source"] == "official_scxml"
+    assert unified["metadata"]["fallback_used"] is False
+    assert unified["metadata"]["r3_1_normalization_replay_used"] is True
+    assert unified["metadata"]["source_text_used_for_canonical"] is False
+    assert "stm0.r3_1_normalized.scxml" in unified["metadata"]["structured_export_path"]
+    assert all("stm0.r3_1_normalized.scxml:" in s["raw_ref"] for s in unified["model"]["states"])
+    assert all("stm0.r3_1_normalized.scxml:" in t["raw_ref"] for t in unified["model"]["transitions"])
+    codes = {d["code"] for d in unified["diagnostics"]}
+    assert "R3.STRUCTURED_EXPORT.CANONICAL_FROM_SCXML" in codes
+    assert "R3.R31.NORMALIZED_SCXML_REPLAY_USED" in codes
+
+
 def test_canonical_outputs_never_use_text_fallback_conversion_source():
     canonical_dir = REPORTS / "canonical"
     names = {p.name for p in canonical_dir.glob("*.canonical_stm.json")}
-    assert "unified-uml-synthetic-0000.canonical_stm.json" not in names
+    assert names == {
+        "llms-emp-gpt4o-hldcs.canonical_stm.json",
+        "llms-emp-kimi-autonomous-collision.canonical_stm.json",
+        "sefm-ssc7-umple.canonical_stm.json",
+        "unified-uml-synthetic-0000.canonical_stm.json",
+    }
     for path in canonical_dir.glob("*.canonical_stm.json"):
         doc = json.loads(path.read_text(encoding="utf-8"))
-        assert doc["metadata"]["conversion_source"] in {"official_scxml", "official_xml"}
+        assert doc["metadata"]["conversion_source"] == "official_scxml"
         assert doc["metadata"]["conversion_source"] != "fallback_text_probe"
+        assert doc["metadata"].get("source_text_used_for_canonical") is False
 
 
 def test_input_audit_records_source_pair_hashes_and_documented_divergence():
@@ -258,12 +303,15 @@ def test_input_audit_records_source_pair_hashes_and_documented_divergence():
     assert "whitespace normalization" in by_id["sefm-ssc7-umple"]["hash_scope"]
 
 
-def test_ttool_partial_inventory_has_zero_resolved_counts():
+def test_committed_report_contains_only_current_selected_examples():
     report = json.loads((REPORTS / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
-    ttool = next(item for item in report["items"] if item["example_id"] == "ttool-automatedbraking-xml")
-    assert ttool["states_count"] > 0
-    assert ttool["resolved_states_count"] == 0
-    assert ttool["resolved_transitions_count"] == 0
+    by_id = {item["example_id"]: item for item in report["items"]}
+    assert set(by_id) == {
+        "llms-emp-gpt4o-hldcs",
+        "llms-emp-kimi-autonomous-collision",
+        "sefm-ssc7-umple",
+        "unified-uml-synthetic-0000",
+    }
 
 
 def test_committed_report_records_official_toolchain_preflight():
@@ -277,16 +325,26 @@ def test_committed_report_records_official_toolchain_preflight():
     assert llms["structured_export_path"].endswith("toolchain_exports/llms-emp-gpt4o-hldcs/stm0.scxml")
     assert (REPO / llms["structured_export_path"]).exists()
 
+    kimi = by_id["llms-emp-kimi-autonomous-collision"]["tool_preflight"]
+    assert kimi["tool_name"] == "PlantUML CLI"
+    assert kimi["syntax_status"] == "ok"
+    assert kimi["structured_export_status"] == "scxml_export_ok"
+    assert kimi["structured_export_path"].endswith("toolchain_exports/llms-emp-kimi-autonomous-collision/stm0.scxml")
+    assert (REPO / kimi["structured_export_path"]).exists()
+
     unified = by_id["unified-uml-synthetic-0000"]["tool_preflight"]
     assert unified["tool_name"] == "PlantUML CLI"
-    assert unified["syntax_status"] == "failed"
-    assert unified["structured_export_status"] == "scxml_not_trusted_after_syntax_failure"
-    assert unified["evidence"]["failure_observation"]["check_returncode"] == unified["returncode"]
-    assert unified["evidence"]["failure_observation"]["scxml_returncode"] == unified["evidence"]["scxml_returncode"]
-    assert "UnsupportedOperationException: SCXML" in unified["stderr_tail"]
-    assert "unified_uml_plantuml_candidate_probe.json" in unified["evidence"]["failure_observation"]["replacement_probe_path"]
-    assert "静默退回 regex/string/source-text parser" in unified["fallback_reason"]
-    assert by_id["unified-uml-synthetic-0000"]["status"] == "partial"
+    assert unified["syntax_status"] == "ok"
+    assert unified["structured_export_status"] == "scxml_export_ok"
+    assert unified["tool_invocation_status"] == "official_cli_syntax_and_scxml_ok_after_r3_1_normalization_replay"
+    assert unified["structured_export_path"].endswith("toolchain_exports/unified-uml-synthetic-0000/stm0.r3_1_normalized.scxml")
+    assert (REPO / unified["structured_export_path"]).exists()
+    assert unified["evidence"]["r3_1_normalization_replay"] is True
+    raw = unified["evidence"]["r3_1_original_raw_preflight"]
+    assert raw["syntax_status"] == "failed"
+    assert raw["structured_export_status"] == "scxml_not_trusted_after_syntax_failure"
+    assert "静默退回 regex/string/source-text parser" in raw["fallback_reason"]
+    assert by_id["unified-uml-synthetic-0000"]["status"] == "converted"
 
     sefm = by_id["sefm-ssc7-umple"]["tool_preflight"]
     assert sefm["tool_name"] == "Umple compiler CLI"
@@ -295,11 +353,6 @@ def test_committed_report_records_official_toolchain_preflight():
     assert sefm["structured_export_path"].endswith("toolchain_exports/sefm-ssc7-umple/stm0.scxml")
     assert (REPO / sefm["structured_export_path"]).exists()
     assert by_id["sefm-ssc7-umple"]["conversion_source"] == "official_scxml"
-
-    ttool = by_id["ttool-automatedbraking-xml"]["tool_preflight"]
-    assert ttool["tool_name"] == "TTool / AVATAR XML artifact"
-    assert ttool["syntax_status"] == "xml_wellformed_checked_by_python_etree"
-    assert ttool["structured_export_status"] == "official_xml_available_no_scxml_json_ast_export_documented"
 
 
 def test_cli_invokes_configured_external_toolchains(tmp_path):

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,7 +12,7 @@ from typing import Any, Iterable
 from ..adapters.scxml import ScxmlOptions, convert_scxml
 from ..report import repo_commit, sha256_file, sha256_text, write_json
 from ..toolchain import ToolPreflight, ToolchainSetupError, run_plantuml_on_candidate
-from .plantuml import RULES, NormalizationResult, classify_plantuml_issue, normalize_plantuml
+from .plantuml import NormalizationResult, classify_plantuml_issue, normalize_plantuml
 from .semantic_audit import audit_plantuml_semantic_preservation
 
 RECOVERY_REPORT_VERSION = "r3.1.plantuml_recovery_report.v0"
@@ -570,7 +570,6 @@ def _summarize(items: list[dict[str, Any]], pairs: list[PlantumlPair]) -> dict[s
     by_seed_class = _count_by(items, "seed_class")
     # Cross-LLM gate is meaningful only for LLMS-EMP, whose rows carry an explicit `llm` field.
     # Rows without LLM labels (for example Unified synthetic data) are excluded from this claim gate.
-    llms_emp_rows = {k: v for k, v in by_llm.items() if k != "NA"}
     expected_llms = {"Claude", "DeepSeek", "GPT-4", "GPT-4o", "Kimi", "Llama"}
     eligible_composition_by_llm = _eligible_composition_by_llm(items, expected_llms)
     eligible_by_llm = {

@@ -738,6 +738,11 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
         write_json(example_dir / "lowering_inventory.json", result["lowering_inventory"])
         all_inventories.append(result["lowering_inventory"])
         all_losses.extend(result["loss_rows"])
+        source_locator = item.get("source_locator")
+        selected_example_dir = PAPER_ROOT / "selected_seed_examples" / example_id
+        source_nl_path = selected_example_dir / "nl.txt"
+        source_stm0_path = PAPER_ROOT / source_locator if source_locator else None
+        source_meta_path = selected_example_dir / "source_meta.json"
         items.append({
             "example_id": example_id,
             "seed_id": result.get("seed_id"),
@@ -747,6 +752,10 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
             "name_mapping_path": display_path(example_dir / "name_mapping.json"),
             "lowering_inventory_path": display_path(example_dir / "lowering_inventory.json"),
             "parse_inspect_report_path": display_path(example_dir / "parse_inspect_report.json"),
+            "source_nl_path": display_path(source_nl_path),
+            "source_stm0_path": display_path(source_stm0_path) if source_stm0_path else None,
+            "source_meta_path": display_path(source_meta_path),
+            "canonical_output_path": item.get("canonical_output_path"),
             "parse_status": parse_report.get("parse_status"),
             "inspect_status": parse_report.get("inspect_status"),
             "blocked_transitions_count": len(result.get("blocked_transitions", [])),

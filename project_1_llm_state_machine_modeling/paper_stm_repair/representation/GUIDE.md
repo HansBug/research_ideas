@@ -2,7 +2,7 @@
 
 ## 1. 目标与边界
 
-本目录只维护 R3 canonical STM JSON 到 pyfcstm `.fcstm` 的 deterministic lowering。它不负责重新转换 PlantUML / Umple / TTool，也不负责 repair、LLM 调用或正式实验统计。
+本目录只维护 R3 canonical STM JSON 到 pyfcstm `.fcstm` 的 deterministic lowering。它不负责重新转换 PlantUML / Umple / TTool，也不负责 repair、LLM 调用或正式实验统计。当前 selected examples 是 smoke 迷你文库，不是最终实验集合；TTool XML 不在当前四例 smoke 中，只能作为未来 / 补充 adapter 方向。
 代码入口上，`src/paper_stm_repair_representation/lowering.py` 是当前 canonical view、lowering、render 与 report 生成的合并主入口；`cli.py` 只负责命令行封装，`pyfcstm_names.py` 只负责命名合法化与 mapping。
 
 实现与 review 必须遵守：
@@ -25,7 +25,7 @@
 | `initial_final` | root + 每个 composite | initial child 推导方法；不能默认无证据选第一个 child 而不记 loss。 |
 | `timing` | timed/timeout event 或 timing_level 非 none 的 transitions | `after(...)` / timeout event 的降低与 loss。 |
 | `hierarchy` | canonical states | parent/child 保留情况。 |
-| `blocked_supplementary` | model-level blocked examples | TTool/unified blocked 原因与补充 skeleton 范围。 |
+| `source_traceability` | 每个 report item | `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path` 必须齐全，便于从 `.fcstm` 追溯回 selected smoke 输入与 R3 canonical。 |
 
 ## 3. 命名纪律
 
@@ -33,7 +33,7 @@
 - 多段合成名使用 `pyfcstm.utils.sequence_safe([...])` 后再过 `to_identifier(...)`。`sequence_safe` 会用双下划线连接 segment，R4.5 再经 `to_identifier` 折叠为 pyfcstm 可读单 token；此行为必须在 `name_mapping.json.tool_parameters` 中可见。
 - R4.5 依赖 pyfcstm submodule `v0.4.0`（当前 commit `5f811a0f`）的 DSL grammar、`to_identifier`、`sequence_safe` 与 inspect API；后续升级 pyfcstm 时必须重跑本目录 pytest 并检查 name mapping 是否漂移。
 - FCSTM lexer 中 `event`、`continue`、`E`、`if` 等保留词 / 特殊 token 不能直接作为 emitted identifier；R4.5 在 pyfcstm 工具后追加 FCSTM keyword-safe suffix，并在 `is_dsl_keyword_adjusted=true` 中记录。
-- 所有 emitted identifiers 都必须进入 `name_mapping.json`：root / wrapper state、state、event、pseudo relay、guard variable、action flag、abstract action、blocked skeleton node。
+- 所有 emitted identifiers 都必须进入 `name_mapping.json`：root / wrapper state、state、event、pseudo relay、guard variable、action flag、abstract action。若未来重新出现 blocked / supplementary skeleton node，也必须入账。
 - state / pseudo state 在 DSL 中用 `named` 保留 raw label；event 在当前 committed 四例中也用 `named` 保留 raw label。
 - 若未来 event identifier 与 pyfcstm lexer 特殊 token 冲突导致 `event ... named ...` 无法解析，必须 blocked 或在 loss ledger 中显式记录，并以 `name_mapping.json` 保留 raw event；不得静默丢原名。
 
@@ -75,8 +75,9 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/representation/t
 
 验收重点：
 
-1. `llms-emp-gpt4o-hldcs` 与 `sefm-ssc7-umple` parse/inspect 均为 `ok`。
-2. `ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 保持 blocked，不产生伪造 `model.fcstm`。
-3. `repair_contribution_allowed` 始终为 `false`。
-4. `name_mapping.json` 与 `lowering_inventory.json` 可追溯到 R3 canonical ref。
-5. 所有本目录 schema 与 committed reports 通过 pytest contract。
+1. 四例 `llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`、`unified-uml-synthetic-0000` parse/inspect 均为 `ok`，report summary 为 `{"examples": 4, "converted": 4, "partial": 0, "blocked": 0}`。
+2. `unified-uml-synthetic-0000` 必须明确追溯到 R3.1 pre-SCXML normalization replay 后的 canonical；raw `stm0.puml` 不得覆盖，normalization / representation gain 不得计入 repair gain。
+3. TTool XML 不在当前四例 smoke 中；若未来恢复为补充 adapter，必须重新定义 partial/blocked honesty，不得混入当前 R4.5 summary。
+4. `repair_contribution_allowed` 始终为 `false`。
+5. `name_mapping.json`、`lowering_inventory.json` 与 report item 中的 `source_nl_path` / `source_stm0_path` / `source_meta_path` / `canonical_output_path` 可追溯到 R3 canonical ref。
+6. 所有本目录 schema 与 committed reports 通过 pytest contract。

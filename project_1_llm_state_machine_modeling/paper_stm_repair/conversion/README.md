@@ -4,8 +4,9 @@
 
 ## 1. 定位
 
-- R3 是 **开发 / 审计级最小转换链路 v0**，只服务四例 smoke panel、R4/R5 dry-run 与 schema/ledger 接口验证。
-- R3 不是通用 UML / SysML / PlantUML / Umple / TTool 转换器。
+- R3 是 **开发 / 审计级最小转换链路 v0**，只服务四例 smoke panel、R4/R4.5/R5 dry-run 与 schema/ledger 接口验证。
+- [selected_seed_examples/](../selected_seed_examples/) 是 smoke 迷你文库，不是最终实验集合、样本上限或论文主结果集合。
+- R3 不是通用 UML / SysML / PlantUML / Umple / TTool 转换器；TTool XML 已从当前四例 selected smoke 中移除，只保留为未来 / 补充 adapter 方向。
 - R3 committed report 只是 reviewer fixture / contract evidence，不是 R7/R8 experiment-grade conversion，也不是主实验结果。
 - 转换收益、人工规范化和后续 repair loop 收益必须分离；loss ledger 中所有 `repair_contribution_allowed` 均为 `false`。
 
@@ -47,8 +48,8 @@ R3 的转换链路是“Python 编排器 + 外部成熟工具链 + 结构化 XML
 2. `toolchain.py` 对不同格式执行真实 preflight：
    - PlantUML：运行 `plantuml` 或 `java -jar plantuml.jar`，先 `-checkonly`，再 `-tscxml`。
    - Umple：运行 `java -jar umple.jar`，先 `-g Nothing`，再 `-g Scxml`。
-   - TTool XML：检查一手 XML artifact，R3 不声明存在稳定 headless SMD -> SCXML/JSON/AST 导出。
-3. adapter 只消费官方结构化产物：PlantUML / Umple 解析 `reports/toolchain_exports/` 里的 SCXML，TTool 解析一手 XML。
+   - TTool XML：当前不在四例 selected smoke 中；未来 / 补充 adapter 若重新启用，仍必须检查一手 XML artifact，且不得宣称已有稳定 headless SMD -> SCXML/JSON/AST 导出。
+3. adapter 只消费官方结构化产物：PlantUML / Umple 解析 `reports/toolchain_exports/` 里的 SCXML；TTool 若作为未来补充 adapter 进入，只能从一手 XML 或官方结构化导出取证。
 4. 若工具缺失、工具不可执行、官方 syntax fail 或 SCXML export fail：
    - 缺工具 / Java runtime / jar 路径错误：命令 **loudly fail**，错误信息会给出下载与配置建议。
    - 官方 syntax/export 失败：该样例只可标 `partial/blocked`，不得生成 canonical JSON。
@@ -109,17 +110,17 @@ R3 不允许在官方工具链缺失、不可执行、syntax check 失败或结�
 | 样例 | 格式 | R3 status | 说明 |
 |---|---|---|---|
 | `llms-emp-gpt4o-hldcs` | PlantUML | `converted` | PlantUML `-tscxml` 成功；canonical states/transitions 来自官方 SCXML。 |
-| `unified-uml-synthetic-0000` | PlantUML | `partial` | PlantUML 官方 `-checkonly` 返回 `200`，`-tscxml` 返回 `1`，stderr 含 `Some diagram description contains errors` 与 `UnsupportedOperationException: SCXML`；无可信 SCXML；不生成 canonical，`canonical_output_path=null`。 |
-| `sefm-ssc7-umple` | Umple | `partial` | Umple `-g Scxml` 成功；canonical states/transitions 来自官方 SCXML，原始 `.ump` 仅用于 `after(60)` targeted timing loss audit。 |
-| `ttool-automatedbraking-xml` | TTool XML | `partial` | 解析一手 TTool/AVATAR XML artifact 做 SMD inventory；connector endpoint 未解析完整，不切出纯 T0 STM。 |
+| `llms-emp-kimi-autonomous-collision` | PlantUML | `converted` | Kimi 自动驾驶 / 碰撞规避 PlantUML 样例加入当前 selected smoke；PlantUML `-tscxml` 成功，canonical 来自官方 SCXML。 |
+| `sefm-ssc7-umple` | Umple | `partial` | Umple `-g Scxml` 成功；canonical states/transitions 来自官方 SCXML，原始 `.ump` 仅用于 `after(60)` targeted timing loss audit，因此保留 timing loss。 |
+| `unified-uml-synthetic-0000` | PlantUML | `converted` | 通过 R3.1 pre-SCXML normalization replay 后再走 PlantUML 官方 SCXML；raw `stm0.puml` 不覆盖，normalization / conversion gain 不得计入 repair gain。 |
 
 ## 6. 输出解释
 
 - [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status、setup hint 与 failure reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。
 - [reports/selected_seed_examples_loss_ledger.jsonl](./reports/selected_seed_examples_loss_ledger.jsonl)：所有 loss / 降级 / partial 原因。
 - [reports/selected_seed_examples_summary.md](./reports/selected_seed_examples_summary.md)：便于人工浏览的概览。
-- [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：针对 `unified-uml-synthetic-0000` 失败样例的同源替换候选初筛；只读探测同一 unified-uml `pairs.jsonl` 前 80 行，其中 40 行可通过 PlantUML `-checkonly` 并导出 SCXML。本 PR 暂不替换样例，只保留可替换方向。
-- [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON。
+- [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：历史上针对 `unified-uml-synthetic-0000` 官方导出失败边界做过同源候选初筛；当前四例 smoke 不再替换该例，而是通过 R3.1 pre-SCXML normalization replay 取得 official SCXML canonical。
+- [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON；当前四例均有 canonical 输出，其中 `sefm-ssc7-umple` 仍因 timing loss 标为 `partial`。
 - [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；PlantUML / Umple 成功样例的 canonical 主结构必须来自这些 SCXML，而不是源文本解析。
 - `blocked` / `unsupported` 样例允许 `canonical_output_path` 和 `canonical_output_sha256` 为 `null`；不得生成空 canonical STM 冒充转换成功。
 
@@ -135,7 +136,7 @@ R3 当前不是“直接手写 parser 即可”的实现。每次转换必须先
 
 - PlantUML：必须使用 `plantuml` 或 `plantuml.jar` 做 syntax check，并在可行时导出 SCXML；syntax/export 成功时 canonical 来自 SCXML；若工具缺失则 loudly fail；若官方 syntax fail，不得凭文本解析标为 `converted`。
 - Umple：必须使用 `umple.jar` 做 `-g Nothing` syntax/compile preflight，并在可行时导出 SCXML；canonical 来自 SCXML；原始 `.ump` 仅允许用于 `after(...)` 等 targeted loss audit。
-- TTool/AVATAR：当前只确认 XML artifact 与 ttool-cli/MCP 入口，未找到稳定 headless AVATAR SMD -> SCXML/JSON/AST 导出；因此基于官方 XML artifact 做 inventory 并标 `partial`。
+- TTool/AVATAR：当前已从四例 selected smoke 中移除；未来若作为补充 adapter 重新进入，仍只确认 XML artifact 与 ttool-cli/MCP 入口，未找到稳定 headless AVATAR SMD -> SCXML/JSON/AST 导出时不得标为完整转换。
 
 本地若需要复现官方 preflight，可临时设置：
 
@@ -146,11 +147,17 @@ export UMPLE_JAR=/path/to/umple.jar
 
 本仓库不把大型第三方 jar 作为源码提交；report 中只保留命令、版本、hash/路径 evidence 与官方来源链接。canonical output 只允许 `conversion_source=official_scxml/official_xml`；`no_canonical_conversion` 只能出现在 report item 中，不能写出 canonical JSON。
 
-## 9. 当前失败样例与替换策略
+## 9. 当前四例 smoke 与历史 TTool 边界
 
-`unified-uml-synthetic-0000` 当前故意保留为“官方工具失败边界”样例：它的一手 PlantUML 在本地 PlantUML `1.2024.7` 上 syntax check 失败，SCXML export 抛出 `UnsupportedOperationException: SCXML`。这能覆盖一个重要审计场景：**官方工具失败时，converter 不得凭正则 / 文本 parser 伪造 canonical STM**。
+当前 selected smoke 四例固定为：`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`、`unified-uml-synthetic-0000`。它们只是 smoke 迷你文库，用于验证转换、表示桥和评价门接口，不是最终实验集合。
 
-如果后续用户决定让四例 smoke 全部走通结构化转换，可从同一 seed 的 [../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl](../corpora/seed_library/unified-uml-multimodal-validation/assets/extracted/pairs.jsonl) 中替换该例。当前候选初筛见 [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：前 80 行中 40 行可导出 SCXML，较早候选为 `unified_uml_state_train_0003`、`0005`、`0007`。替换时必须同步更新 [../selected_seed_examples/](../selected_seed_examples/) 下该例的 `nl.txt`、`stm0.puml`、`source_meta.json`、`README.md`，并重新运行 hash audit 与 conversion report。
+`unified-uml-synthetic-0000` 的当前 `converted` 依赖 R3.1 pre-SCXML normalization replay：normalization 发生在 PlantUML `-tscxml` 之前，随后仍以官方 SCXML 作为 canonical 来源。必须保留以下边界：
+
+1. [../selected_seed_examples/unified-uml-synthetic-0000/stm0.puml](../selected_seed_examples/unified-uml-synthetic-0000/stm0.puml) 是一手 raw 输入，不得覆盖。
+2. normalized candidate / official SCXML 是 run/report artifact，不得回写替换 raw `stm0.puml`。
+3. 该例的 conversion / normalization gain 只能归入 conversion attribution，不能计入 repair gain、Better STM gain 或模型修复收益。
+
+历史 `ttool-automatedbraking-xml` 已从当前 selected smoke 移除。TTool XML 仍可作为未来 / 补充 adapter 方向，用来研究 SysML / AVATAR XML inventory、connector endpoint、timing fields 等问题；但它不再属于当前四例 smoke，也不应出现在当前 R4/R4.5 四例统计中。
 
 ## 10. R3.1 PlantUML pre-SCXML normalization / recovery
 

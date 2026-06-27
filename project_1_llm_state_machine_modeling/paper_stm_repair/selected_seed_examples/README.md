@@ -21,16 +21,16 @@
 | [高层驾驶模块 PlantUML](./llms-emp-gpt4o-hldcs/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](./llms-emp-gpt4o-hldcs/stm0.puml) | 人工驾驶 / 自动驾驶模式切换的高层驾驶模块 | 强相关 LLM + SysML / PlantUML 样例；必须隔离 reference 与 checking 列。 |
 | [自助结账系统 Umple](./sefm-ssc7-umple/README.md) | [sefm-llm-state-machine](../corpora/seed_library/sefm-llm-state-machine/) | [nl.txt](./sefm-ssc7-umple/nl.txt) | [stm0.ump](./sefm-ssc7-umple/stm0.ump) | 超市自助结账机 SSC7 的交互式 reactive system | 真实长系统描述 + Umple 输出；当前该论文制品中只有 SSC7 有生成输出。 |
 | [合成点餐菜单 PlantUML](./unified-uml-synthetic-0000/README.md) | [unified-uml-multimodal-validation](../corpora/seed_library/unified-uml-multimodal-validation/) | [nl.txt](./unified-uml-synthetic-0000/nl.txt) | [stm0.puml](./unified-uml-synthetic-0000/stm0.puml) | 餐厅点餐菜单的合成功能描述 | 大规模 synthetic PlantUML 数据的代表行；不能包装成真实控制系统需求。 |
-| [自动制动告警 TTool XML](./ttool-automatedbraking-xml/README.md) | [ttool-ai-smd-subset](../corpora/seed_library/ttool-ai-smd-subset/) | [nl.txt](./ttool-automatedbraking-xml/nl.txt) | [stm0.xml](./ttool-automatedbraking-xml/stm0.xml) | 车辆危险事件告警与车车通信系统 | 条件样例；XML 是完整 TTool/SysML/AVATAR 工件，后续需切出可用状态机子集。 |
+| [自主驾驶与碰撞规避 PlantUML](./llms-emp-kimi-autonomous-collision/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](./llms-emp-kimi-autonomous-collision/stm0.puml) | 自动驾驶高速 / 城市模式切换与碰撞规避 | 较高难度 LLM PlantUML 样例；官方 SCXML 可导出，条件标签只作转换/表示桥 smoke，不自动解释为严格 guard。 |
 
 ## 3. 覆盖关系
 
 | 覆盖维度 | 当前覆盖 | 仍需注意的限制 |
 |---|---|---|
-| 来源形态 | 三个可直接回溯的一手 `NL + generated STM_0` 来源，加一个条件 XML 压力样例 | 不包含只有源码可复跑、但作者未公开生成输出的条目。 |
-| STM 方言 | PlantUML、Umple、TTool XML | 尚未覆盖作者一手公开的 FSM JSON / CSV generated pair。 |
-| 数据形态 | 1×N 多模型输出、单例长 NL、大规模 synthetic、条件 XML 多案例 | 四例只是 smoke 用最小静态样例，不是主实验池规模上限。 |
-| 风险覆盖 | reference/checking 泄漏隔离、长 NL、timer-like 语法、synthetic caveat、XML 切片 | TTool 样例可能只能作为转换阻塞与降级说明。 |
+| 来源形态 | 四个可直接回溯的一手 `NL + generated STM_0` 来源 | 不包含只有源码可复跑、但作者未公开生成输出的条目。 |
+| STM 方言 | PlantUML、Umple | 尚未覆盖作者一手公开的 FSM JSON / CSV generated pair；TTool XML 暂不进入四例正向 smoke。 |
+| 数据形态 | 1×N 多模型输出、单例长 NL、大规模 synthetic、较高难度自动驾驶多条件 PlantUML | 四例只是 smoke 用最小静态样例，不是主实验池规模上限。 |
+| 风险覆盖 | reference/checking 泄漏隔离、长 NL、timer-like 语法、synthetic caveat、R3.1 normalization 回灌、较高难度多条件 PlantUML | TTool XML 仍保留在 seed registry / evidence 中作为后续专项对象，但不再作为当前四例 smoke。 |
 
 ## 4. 维护纪律
 
