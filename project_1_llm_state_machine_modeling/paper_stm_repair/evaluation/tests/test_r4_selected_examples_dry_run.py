@@ -12,10 +12,10 @@ SCHEMAS = ROOT / "schemas"
 R3_REPORT = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/conversion/reports/selected_seed_examples_conversion_report.json"
 
 EXPECTED = {
+    "llms-emp-deepseek-microwave": {"r3_status": "converted", "decision": "complete", "canonical": True, "model_level": True},
     "llms-emp-gpt4o-hldcs": {"r3_status": "converted", "decision": "complete", "canonical": True, "model_level": True},
     "llms-emp-kimi-autonomous-collision": {"r3_status": "converted", "decision": "complete", "canonical": True, "model_level": True},
     "sefm-ssc7-umple": {"r3_status": "partial", "decision": "focused", "canonical": True, "model_level": False},
-    "unified-uml-synthetic-0000": {"r3_status": "converted", "decision": "focused", "canonical": True, "model_level": False},
 }
 
 
@@ -75,32 +75,35 @@ def test_placeholder_scenarios_are_not_regression_gates():
                 assert item["blocking_on_failure"] is False
 
 
-def test_partial_and_blocked_examples_are_not_promoted_to_model_level_evaluation():
+def test_partial_examples_are_not_promoted_to_model_level_evaluation():
     sefm = load_json(DRY_RUN / "sefm-ssc7-umple" / "eligibility_decision.json")
-    unified = load_json(DRY_RUN / "unified-uml-synthetic-0000" / "eligibility_decision.json")
     assert sefm["allow_model_level_evaluation"] is False
     assert "timing" in " ".join(sefm["required_caveats"]).lower()
-    assert unified["r3_status"] == "converted"
-    assert unified["r4_dry_run_decision"] == "focused"
-    assert unified["canonical_available"] is True
-    assert unified["allow_model_level_evaluation"] is False
-    assert unified["allow_repair_loop_smoke"] is False
-    assert unified["gain_attribution"] == "conversion_normalization"
-    assert unified["conversion_gain_counted_as_repair"] is False
-    assert any("normalization" in caveat.lower() for caveat in unified["required_caveats"])
+
+
+def test_microwave_records_conversion_normalization_without_repair_credit():
+    microwave = load_json(DRY_RUN / "llms-emp-deepseek-microwave" / "eligibility_decision.json")
+    assert microwave["r3_status"] == "converted"
+    assert microwave["r4_dry_run_decision"] == "complete"
+    assert microwave["canonical_available"] is True
+    assert microwave["allow_model_level_evaluation"] is True
+    assert microwave["allow_repair_loop_smoke"] is True
+    assert microwave["gain_attribution"] == "conversion_normalization"
+    assert microwave["conversion_gain_counted_as_repair"] is False
+    assert any("normalization" in caveat.lower() or "规范化" in caveat for caveat in microwave["required_caveats"])
 
 
 def test_converted_examples_split_model_level_by_conversion_attribution():
     gpt4o = load_json(DRY_RUN / "llms-emp-gpt4o-hldcs" / "eligibility_decision.json")
     kimi = load_json(DRY_RUN / "llms-emp-kimi-autonomous-collision" / "eligibility_decision.json")
-    unified = load_json(DRY_RUN / "unified-uml-synthetic-0000" / "eligibility_decision.json")
+    microwave = load_json(DRY_RUN / "llms-emp-deepseek-microwave" / "eligibility_decision.json")
     assert gpt4o["r4_dry_run_decision"] == "complete"
     assert gpt4o["allow_model_level_evaluation"] is True
     assert kimi["r4_dry_run_decision"] == "complete"
     assert kimi["allow_model_level_evaluation"] is True
-    assert unified["r4_dry_run_decision"] == "focused"
-    assert unified["allow_model_level_evaluation"] is False
-    assert unified["gain_attribution"] == "conversion_normalization"
+    assert microwave["r4_dry_run_decision"] == "complete"
+    assert microwave["allow_model_level_evaluation"] is True
+    assert microwave["gain_attribution"] == "conversion_normalization"
 
 
 def test_r4_artifacts_have_top_level_source_traceability_matching_r3_report():
@@ -117,6 +120,7 @@ def test_r4_artifacts_have_top_level_source_traceability_matching_r3_report():
             artifact = load_json(DRY_RUN / example_id / filename)
             assert artifact["traceability"] == expected_trace
             for key, value in expected_trace.items():
+                assert artifact[key] == value
                 if value is not None:
                     assert (REPO / value).exists(), (example_id, filename, key, value)
 

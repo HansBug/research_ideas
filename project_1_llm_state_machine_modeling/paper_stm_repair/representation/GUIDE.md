@@ -2,13 +2,13 @@
 
 ## 1. 目标与边界
 
-本目录只维护 R3 canonical STM JSON 到 pyfcstm `.fcstm` 的 deterministic lowering。它不负责重新转换 PlantUML / Umple / TTool，也不负责 repair、LLM 调用或正式实验统计。当前 selected examples 是 smoke 迷你文库，不是最终实验集合；TTool XML 不在当前四例 smoke 中，只能作为未来 / 补充 adapter 方向。
+本目录只维护 R3 canonical STM JSON 到 pyfcstm `.fcstm` 的 deterministic lowering。它不负责重新转换 PlantUML / Umple / TTool，也不负责 repair、LLM 调用或正式实验统计。当前 selected examples 是 smoke 迷你文库，不是最终实验集合；当前四例固定为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`。TTool XML 与 `unified-uml-synthetic-0000` 不在当前四例 smoke 中，只能作为未来 / 补充 adapter / registry 方向。
 代码入口上，`src/paper_stm_repair_representation/lowering.py` 是当前 canonical view、lowering、render 与 report 生成的合并主入口；`cli.py` 只负责命令行封装，`pyfcstm_names.py` 只负责命名合法化与 mapping。
 
 实现与 review 必须遵守：
 
 1. 不读取 `.env`，不调用真实 LLM。
-2. 不把 R4.5 lowering / normalization / representation gain 计入 Better STM 或 repair gain。
+2. 不把 R4.5 lowering / normalization / representation gain 计入 Better STM 或 repair gain；`llms-emp-deepseek-microwave` 的 R3.1 pre-SCXML normalization replay 也只属于 conversion attribution。
 3. 不在论文贡献层面强调 `fcstm` / pyfcstm / DSL。
 4. 对无法可信降低的对象必须 `blocked` / `partial` + loss ledger，不允许静默伪造。
 
@@ -75,9 +75,9 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/representation/t
 
 验收重点：
 
-1. 四例 `llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`、`unified-uml-synthetic-0000` parse/inspect 均为 `ok`，report summary 为 `{"examples": 4, "converted": 4, "partial": 0, "blocked": 0}`。
-2. `unified-uml-synthetic-0000` 必须明确追溯到 R3.1 pre-SCXML normalization replay 后的 canonical；raw `stm0.puml` 不得覆盖，normalization / representation gain 不得计入 repair gain。
-3. TTool XML 不在当前四例 smoke 中；若未来恢复为补充 adapter，必须重新定义 partial/blocked honesty，不得混入当前 R4.5 summary。
+1. 四例 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple` parse/inspect 均为 `ok`，report summary 为 `{"examples": 4, "converted": 4, "partial": 0, "blocked": 0}`。
+2. `llms-emp-deepseek-microwave` 必须明确追溯到 R3.1 pre-SCXML normalization replay 后的 canonical；raw `stm0.puml` 不得覆盖，normalization / representation gain 不得计入 repair gain。
+3. TTool XML 与 `unified-uml-synthetic-0000` 不在当前四例 smoke 中；若未来恢复为补充 adapter / registry case，必须重新定义 partial/blocked honesty，不得混入当前 R4.5 summary。
 4. `repair_contribution_allowed` 始终为 `false`。
 5. `name_mapping.json`、`lowering_inventory.json` 与 report item 中的 `source_nl_path` / `source_stm0_path` / `source_meta_path` / `canonical_output_path` 可追溯到 R3 canonical ref。
 6. 所有本目录 schema 与 committed reports 通过 pytest contract。

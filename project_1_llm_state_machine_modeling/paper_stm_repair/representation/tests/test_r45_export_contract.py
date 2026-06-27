@@ -37,10 +37,10 @@ def test_cli_regenerates_export_reports_in_tmp_path(tmp_path):
     assert report["summary"] == {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
     by_id = {item["example_id"]: item for item in report["items"]}
     assert set(by_id) == {
+        "llms-emp-deepseek-microwave",
         "llms-emp-gpt4o-hldcs",
         "llms-emp-kimi-autonomous-collision",
         "sefm-ssc7-umple",
-        "unified-uml-synthetic-0000",
     }
     for example_id in by_id:
         assert by_id[example_id]["status"] == "converted"
@@ -81,21 +81,22 @@ def test_name_mapping_covers_required_emitted_identifier_types():
     sefm = load_json(REPORTS / "fcstm_exports/sefm-ssc7-umple/name_mapping.json")
     llms = load_json(REPORTS / "fcstm_exports/llms-emp-gpt4o-hldcs/name_mapping.json")
     kimi = load_json(REPORTS / "fcstm_exports/llms-emp-kimi-autonomous-collision/name_mapping.json")
-    unified = load_json(REPORTS / "fcstm_exports/unified-uml-synthetic-0000/name_mapping.json")
-    object_types = {item["object_type"] for item in sefm["items"] + llms["items"] + kimi["items"] + unified["items"]}
+    microwave = load_json(REPORTS / "fcstm_exports/llms-emp-deepseek-microwave/name_mapping.json")
+    object_types = {item["object_type"] for item in sefm["items"] + llms["items"] + kimi["items"] + microwave["items"]}
     assert {"root_state", "state", "event", "pseudo_relay", "guard_variable", "action_flag", "abstract_action"} <= object_types
     assert any(item["raw_text"] == "Front Distance > 10" and item["emitted_identifier"] == "Front_Distance_10" for item in llms["items"])
     assert any(item["raw_text"] == "showError()" and item["object_type"] == "action_flag" for item in sefm["items"])
     assert any(item["raw_text"] == "AutonomousMode" and item["object_type"] == "state" for item in kimi["items"])
-    assert any(item["raw_text"] == "Menu_Created_4778a0" and item["object_type"] == "state" for item in unified["items"])
+    assert any(item["raw_text"] == "DoorShutWithItem" and item["object_type"] == "state" for item in microwave["items"])
+    assert any(item["raw_text"] == "Cooking Time Entered" and item["object_type"] == "event" for item in microwave["items"])
 
 
 def test_lowering_inventory_counts_align_with_r3_canonical_for_converted_examples():
     for example_id in [
+        "llms-emp-deepseek-microwave",
         "llms-emp-gpt4o-hldcs",
         "llms-emp-kimi-autonomous-collision",
         "sefm-ssc7-umple",
-        "unified-uml-synthetic-0000",
     ]:
         canonical = load_json(CONVERSION_CANONICAL / f"{example_id}.canonical_stm.json")
         inv = load_json(REPORTS / f"fcstm_exports/{example_id}/lowering_inventory.json")
@@ -158,19 +159,21 @@ def test_kimi_condition_like_labels_are_loss_ledgered_as_events_not_guards():
     assert all(row["repair_contribution_allowed"] is False for row in condition_losses)
 
 
-def test_unified_fcstm_is_from_r31_replay_canonical_and_not_repair_gain():
-    canonical = load_json(CONVERSION_CANONICAL / "unified-uml-synthetic-0000.canonical_stm.json")
+def test_microwave_fcstm_is_from_r31_replay_canonical_and_not_repair_gain():
+    canonical = load_json(CONVERSION_CANONICAL / "llms-emp-deepseek-microwave.canonical_stm.json")
     assert canonical["metadata"]["r3_1_normalization_replay_used"] is True
     assert canonical["metadata"]["source_text_used_for_canonical"] is False
     assert any(d["code"] == "R3.R31.NORMALIZED_SCXML_REPLAY_USED" for d in canonical["diagnostics"])
-    parse_report = load_json(REPORTS / "fcstm_exports/unified-uml-synthetic-0000/parse_inspect_report.json")
+    parse_report = load_json(REPORTS / "fcstm_exports/llms-emp-deepseek-microwave/parse_inspect_report.json")
     assert parse_report["parse_status"] == "ok"
     states = {state["path"]: state for state in parse_report["states"]}
-    assert "unified_uml_synthetic_0000.Menu_Created_4778a0" in states
+    assert "llms_emp_deepseek_microwave.DoorShut" in states
+    assert "llms_emp_deepseek_microwave.DoorShut.DoorOpen.DoorOpenWithItem" in states
+    assert "llms_emp_deepseek_microwave.DoorShut.DoorOpen.ReadytoCook.Cooking.CookingIdle" in states
     report = load_json(REPORTS / "fcstm_export_report.json")
-    unified = {item["example_id"]: item for item in report["items"]}["unified-uml-synthetic-0000"]
-    assert unified["status"] == "converted"
-    assert unified["repair_contribution_allowed"] is False
+    microwave = {item["example_id"]: item for item in report["items"]}["llms-emp-deepseek-microwave"]
+    assert microwave["status"] == "converted"
+    assert microwave["repair_contribution_allowed"] is False
 
 
 def test_committed_reports_do_not_embed_local_absolute_paths():

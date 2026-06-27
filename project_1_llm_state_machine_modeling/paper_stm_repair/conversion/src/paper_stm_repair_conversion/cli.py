@@ -78,6 +78,8 @@ def audit_inputs(repo_root: Path, selected_dir: Path) -> list[dict[str, Any]]:
             "example_id": example_dir.name,
             "nl_path": _rel(nl_path, repo_root),
             "stm0_path": _rel(stm_path, repo_root),
+            "source_nl_path": _rel(nl_path, repo_root),
+            "source_stm0_path": _rel(stm_path, repo_root),
             "stm_format": meta["stm_format"],
             "pair_id": meta["pair_id"],
             "nl_sha256": nl_hash,

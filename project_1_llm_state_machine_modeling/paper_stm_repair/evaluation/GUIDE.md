@@ -9,7 +9,7 @@
 ## 1. 维护纪律
 
 1. **不改写 R3 裁决**：R4 只能引用或映射 R3 `status_reason_code`、diagnostic code 与 loss code；不能把 R3 `partial` 写成 `converted`。
-2. **不混淆 conversion 与 repair**：R3.1 `main_eligibility_included=466` 只属于 conversion eligibility recovery，不属于 Better STM repair 收益。
+2. **不混淆 conversion 与 repair**：R3.1 `main_eligibility_included=466` 只属于 conversion eligibility recovery，不属于 Better STM repair 收益；当前四例中的 `llms-emp-deepseek-microwave` 也只能把 pre-SCXML normalization replay 计入 conversion attribution。
 3. **不伪造 canonical**：no-canonical 样例只能 blocked / diagnostic-only，不得用 source-text regex、旧 fixture 或人工脑补生成模型级评价输入。
 4. **不把 `unknown` 当 `pass`**：Better STM checklist 中任一关键 `unknown` 不能支持 Better STM claim。
 5. **不把 `placeholder` oracle 当回归门**：`oracle_type=placeholder` 只能用于字段占位或设计讨论，不能作为 `is_regression_gate=true` 的关键场景。
@@ -27,7 +27,8 @@
 4. 生成 `diagnostic_draft.json`，每个 diagnostic 必须有 evidence locator。
 5. 生成 `scenario_draft.json`；若只有 placeholder oracle，必须 `is_regression_gate=false`。
 6. 生成 `better_stm_checklist.json`；R4 无 repair candidate 时 `can_claim_better_stm=false`。
-7. 更新 [DRY_RUNS.md](./DRY_RUNS.md) 的总览与单例详情，并补充或更新测试。
+7. 四类 JSON fixture 顶层必须都有 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，且必须与内部 `traceability` 对象和 R3 conversion report 对齐；这样 R4 report 不需要先解析 scenario/evidence locator 就能直接追溯到上游 NL 与原始 `STM_0`。当前四例必须是 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 只能作为历史 / 后续专项 / registry 线索。
+8. 更新 [DRY_RUNS.md](./DRY_RUNS.md) 的总览与单例详情，并补充或更新测试。
 
 ## 3. 验收检查
 
@@ -40,7 +41,7 @@ python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/evaluatio
 推荐同时抽查：
 
 ```bash
-python -m json.tool project_1_llm_state_machine_modeling/paper_stm_repair/evaluation/dry_run_examples/llms-emp-gpt4o-hldcs/eligibility_decision.json >/dev/null
+python -m json.tool project_1_llm_state_machine_modeling/paper_stm_repair/evaluation/dry_run_examples/llms-emp-deepseek-microwave/eligibility_decision.json >/dev/null
 ```
 
 若测试失败，先判断是否破坏学术证据链：例如 R3 status 不一致、`unknown` 被计为 pass、placeholder oracle 被当作回归门，应按 C/I 修复；纯格式或措辞问题通常为 M。

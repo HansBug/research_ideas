@@ -109,17 +109,17 @@ R3 不允许在官方工具链缺失、不可执行、syntax check 失败或结�
 
 | 样例 | 格式 | R3 status | 说明 |
 |---|---|---|---|
+| `llms-emp-deepseek-microwave` | PlantUML | `converted` | DeepSeek microwave PlantUML raw `STM_0` 依赖 R3.1 pre-SCXML normalization replay 后再走 PlantUML 官方 SCXML；raw `stm0.puml` 不覆盖，normalization / conversion gain 不得计入 repair gain。 |
 | `llms-emp-gpt4o-hldcs` | PlantUML | `converted` | PlantUML `-tscxml` 成功；canonical states/transitions 来自官方 SCXML。 |
 | `llms-emp-kimi-autonomous-collision` | PlantUML | `converted` | Kimi 自动驾驶 / 碰撞规避 PlantUML 样例加入当前 selected smoke；PlantUML `-tscxml` 成功，canonical 来自官方 SCXML。 |
 | `sefm-ssc7-umple` | Umple | `partial` | Umple `-g Scxml` 成功；canonical states/transitions 来自官方 SCXML，原始 `.ump` 仅用于 `after(60)` targeted timing loss audit，因此保留 timing loss。 |
-| `unified-uml-synthetic-0000` | PlantUML | `converted` | 通过 R3.1 pre-SCXML normalization replay 后再走 PlantUML 官方 SCXML；raw `stm0.puml` 不覆盖，normalization / conversion gain 不得计入 repair gain。 |
 
 ## 6. 输出解释
 
-- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status、setup hint 与 failure reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。
+- [reports/selected_seed_examples_conversion_report.json](./reports/selected_seed_examples_conversion_report.json)：四例 conversion report；其中每条 `tool_preflight` 记录官方/成熟工具链命令、版本、syntax status、structured export status、setup hint 与 failure reason；每条 item 还显式记录 `conversion_source`、`canonical_extraction_method`、`structured_export_path`、`fallback_used`、`fallback_scope`。每条 item 还必须显式保留 `source_nl_path`、`source_stm0_path`、`source_meta_path` 与 `canonical_output_path`，让 R3 report 自身可追溯到上游 NL 与原始 `STM_0`。
 - [reports/selected_seed_examples_loss_ledger.jsonl](./reports/selected_seed_examples_loss_ledger.jsonl)：所有 loss / 降级 / partial 原因。
 - [reports/selected_seed_examples_summary.md](./reports/selected_seed_examples_summary.md)：便于人工浏览的概览。
-- [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：历史上针对 `unified-uml-synthetic-0000` 官方导出失败边界做过同源候选初筛；当前四例 smoke 不再替换该例，而是通过 R3.1 pre-SCXML normalization replay 取得 official SCXML canonical。
+- [reports/unified_uml_plantuml_candidate_probe.json](./reports/unified_uml_plantuml_candidate_probe.json)：历史上针对 `unified-uml-synthetic-0000` 官方导出失败边界做过同源候选初筛；该 synthetic 样例现在只作为历史 / registry 线索，不属于当前四例 smoke。当前 microwave 样例通过 R3.1 pre-SCXML normalization replay 取得 official SCXML canonical。
 - [reports/canonical/](./reports/canonical/)：`converted` / `partial` 样例的 canonical STM JSON；当前四例均有 canonical 输出，其中 `sefm-ssc7-umple` 仍因 timing loss 标为 `partial`。
 - [reports/toolchain_exports/](./reports/toolchain_exports/)：官方工具链能导出的结构化证据，例如 PlantUML / Umple SCXML；PlantUML / Umple 成功样例的 canonical 主结构必须来自这些 SCXML，而不是源文本解析。
 - `blocked` / `unsupported` 样例允许 `canonical_output_path` 和 `canonical_output_sha256` 为 `null`；不得生成空 canonical STM 冒充转换成功。
@@ -149,15 +149,15 @@ export UMPLE_JAR=/path/to/umple.jar
 
 ## 9. 当前四例 smoke 与历史 TTool 边界
 
-当前 selected smoke 四例固定为：`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`、`unified-uml-synthetic-0000`。它们只是 smoke 迷你文库，用于验证转换、表示桥和评价门接口，不是最终实验集合。
+当前 selected smoke 四例固定为：`llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`。它们只是 smoke 迷你文库，用于验证转换、表示桥和评价门接口，不是最终实验集合。
 
-`unified-uml-synthetic-0000` 的当前 `converted` 依赖 R3.1 pre-SCXML normalization replay：normalization 发生在 PlantUML `-tscxml` 之前，随后仍以官方 SCXML 作为 canonical 来源。必须保留以下边界：
+`llms-emp-deepseek-microwave` 的当前 `converted` 依赖 R3.1 pre-SCXML normalization replay：normalization 发生在 PlantUML `-tscxml` 之前，随后仍以官方 SCXML 作为 canonical 来源。必须保留以下边界：
 
-1. [../selected_seed_examples/unified-uml-synthetic-0000/stm0.puml](../selected_seed_examples/unified-uml-synthetic-0000/stm0.puml) 是一手 raw 输入，不得覆盖。
+1. [../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 是一手 raw 输入，不得覆盖。
 2. normalized candidate / official SCXML 是 run/report artifact，不得回写替换 raw `stm0.puml`。
 3. 该例的 conversion / normalization gain 只能归入 conversion attribution，不能计入 repair gain、Better STM gain 或模型修复收益。
 
-历史 `ttool-automatedbraking-xml` 已从当前 selected smoke 移除。TTool XML 仍可作为未来 / 补充 adapter 方向，用来研究 SysML / AVATAR XML inventory、connector endpoint、timing fields 等问题；但它不再属于当前四例 smoke，也不应出现在当前 R4/R4.5 四例统计中。
+历史 `ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前 selected smoke 移除。TTool XML 仍可作为未来 / 补充 adapter 方向，用来研究 SysML / AVATAR XML inventory、connector endpoint、timing fields 等问题；`unified-uml-synthetic-0000` 只保留为 registry / 历史 probe 线索。二者都不应出现在当前 R4/R4.5 四例统计中。
 
 ## 10. R3.1 PlantUML pre-SCXML normalization / recovery
 

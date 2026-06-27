@@ -68,7 +68,7 @@ python -m paper_stm_repair_representation.cli export-selected
 {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
 ```
 
-R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability` 都已包含 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，用于把 `.fcstm` 输出追溯回 selected smoke 输入与 R3 canonical。也就是说，R4.5 阶段 report 自身就能直接定位上游 NL、原始 `STM_0` 文件、`source_meta.json` 与 R3 canonical JSON。
+R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability` 都已包含 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，用于把 `.fcstm` 输出追溯回 selected smoke 输入与 R3 canonical。也就是说，R4.5 阶段 report 自身就能直接定位上游 NL、原始 `STM_0` 文件、`source_meta.json` 与 R3 canonical JSON。当前四例固定为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`。
 
 运行 R4.5 tests：
 
@@ -79,12 +79,14 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/representation/t
 
 ## 4. 当前四例输出
 
-| example_id | R4.5 状态 | 输出 |
-|---|---|---|
-| `llms-emp-gpt4o-hldcs` | `converted` | 保留 HSM 层次，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm) 与 inspect report。 |
-| `llms-emp-kimi-autonomous-collision` | `converted` | Kimi 自动驾驶 / 碰撞规避样例加入当前 selected smoke，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-kimi-autonomous-collision/model.fcstm) 与 inspect report。 |
-| `sefm-ssc7-umple` | `converted` | event+guard 通过 pseudo relay，bool guard 降为 int guard，action 降为 flag；R3 timing loss 继续只作 caveat，输出 [model.fcstm](./reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)。 |
-| `unified-uml-synthetic-0000` | `converted` | R4.5 消费 R3.1 pre-SCXML normalization replay 后得到的 canonical，输出 [model.fcstm](./reports/fcstm_exports/unified-uml-synthetic-0000/model.fcstm)；raw `stm0.puml` 不覆盖，normalization gain 不计入 repair gain。 |
+R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `上游 NL` 与 `原始 STM_0` 链接对应 `fcstm_export_report.json` item 里的 `source_nl_path` / `source_stm0_path`，不是二手 parquet 或转换后中间产物。
+
+| example_id | 上游 NL | 原始 STM_0 | R4.5 状态 | 输出 |
+|---|---|---|---|---|
+| `llms-emp-deepseek-microwave` | [nl.txt](../selected_seed_examples/llms-emp-deepseek-microwave/nl.txt) | [stm0.puml](../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) | `converted` | R4.5 消费 R3.1 pre-SCXML normalization replay 后得到的 canonical，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-deepseek-microwave/model.fcstm)；raw `stm0.puml` 不覆盖，normalization / representation gain 不计入 repair gain。 |
+| `llms-emp-gpt4o-hldcs` | [nl.txt](../selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](../selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml) | `converted` | 保留 HSM 层次，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm) 与 inspect report。 |
+| `llms-emp-kimi-autonomous-collision` | [nl.txt](../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) | `converted` | Kimi 自动驾驶 / 碰撞规避 EMPirical 样例替代 TTool 进入当前 selected smoke，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-kimi-autonomous-collision/model.fcstm) 与 inspect report。 |
+| `sefm-ssc7-umple` | [nl.txt](../selected_seed_examples/sefm-ssc7-umple/nl.txt) | [stm0.ump](../selected_seed_examples/sefm-ssc7-umple/stm0.ump) | `converted` | event+guard 通过 pseudo relay，bool guard 降为 int guard，action 降为 flag；R3 timing loss 继续只作 caveat，输出 [model.fcstm](./reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)。 |
 
 ## 5. 关键语义策略
 
@@ -93,7 +95,7 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/representation/t
 3. **event+guard**：pyfcstm 不允许同一 transition 同时出现 event 与 guard；R4.5 必须通过 pseudo relay 降低为 `source -> relay : Event; relay -> target : if [guard];`。
 4. **层次**：默认保留 hierarchy，不 flatten。跨层级 transition 只在可审计的 boundary lifting / forced transition 模式下降低，并写入 loss ledger。
 5. **timing**：`after(60)` 等时间语义不恢复 clock，只使用 R3 SCXML 中已有 timeout event，并记录 timing lowering / loss。
-6. **raw 与 attribution honesty**：`unified-uml-synthetic-0000` 的可导出性来自 R3.1 pre-SCXML normalization replay；R4.5 只消费其 canonical，不覆盖 raw `stm0.puml`，也不把 normalization / representation 可解析性计入 repair gain。TTool XML 不在当前四例 smoke 中，只能作为未来 / 补充 adapter 方向。
+6. **raw 与 attribution honesty**：`llms-emp-deepseek-microwave` 的可导出性来自 R3.1 pre-SCXML normalization replay；R4.5 只消费其 canonical，不覆盖 raw `stm0.puml`，也不把 normalization / representation 可解析性计入 repair gain。TTool XML 与 `unified-uml-synthetic-0000` 不在当前四例 smoke 中，只能作为历史 / 未来补充 adapter / registry 线索。
 
 ## 6. 与上下游关系
 

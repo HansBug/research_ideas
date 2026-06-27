@@ -26,10 +26,10 @@ def test_committed_export_report_validates_against_schema():
     jsonschema.Draft202012Validator(schema).validate(report)
     assert report["summary"] == {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
     assert {item["example_id"] for item in report["items"]} == {
+        "llms-emp-deepseek-microwave",
         "llms-emp-gpt4o-hldcs",
         "llms-emp-kimi-autonomous-collision",
         "sefm-ssc7-umple",
-        "unified-uml-synthetic-0000",
     }
     assert all(item["repair_contribution_allowed"] is False for item in report["items"])
 

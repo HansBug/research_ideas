@@ -34,7 +34,7 @@ def test_committed_rubric_validates_against_schema():
 
 def test_negative_placeholder_oracle_cannot_be_regression_gate():
     schema = load_json(SCHEMAS / "scenario.schema.json")
-    valid = load_json(DRY_RUN / "unified-uml-synthetic-0000" / "scenario_draft.json")
+    valid = load_json(DRY_RUN / "llms-emp-deepseek-microwave" / "scenario_draft.json")
     invalid = json.loads(json.dumps(valid))
     invalid["scenarios"][0]["oracle_type"] = "placeholder"
     invalid["scenarios"][0]["is_regression_gate"] = True

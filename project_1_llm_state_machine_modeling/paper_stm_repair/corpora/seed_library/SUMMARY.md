@@ -49,7 +49,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | conditional seed pool | `ttool-ai-smd-subset` | 条件进入代表性样例集合 | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
 | pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
 
-固定 smoke 用代表性样例集合：[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/) 和 [unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/)。`ttool-automatedbraking-xml` 已从当前四例 selected smoke 移除，只保留为未来 TTool XML / SMD 切片专项线索。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
+固定 smoke 用代表性样例集合：[llms-emp-deepseek-microwave](../../selected_seed_examples/llms-emp-deepseek-microwave/)、[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/) 和 [sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)。`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前四例 selected smoke 移除，只保留为未来 TTool XML / SMD 切片或 synthetic probe 专项线索。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
 
 ## 2. 关键统计表
 
