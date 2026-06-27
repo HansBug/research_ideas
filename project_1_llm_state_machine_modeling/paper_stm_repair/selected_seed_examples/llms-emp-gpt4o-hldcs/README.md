@@ -18,6 +18,8 @@
 | [nl.txt](./nl.txt) | workbook `STM Results` sheet 中的 `Requirement Description`，描述高层驾驶模块的自然语言需求。 |
 | [stm0.puml](./stm0.puml) | 同一行 `Generation PlantUML` 字段中的 GPT-4o 初始生成 PlantUML。 |
 | [source_meta.json](./source_meta.json) | 从 `pairs.jsonl` 抽出的 pair id、locator、哈希、生成方式与 trace 字段。 |
+| [model.fcstm](./model.fcstm) | R4.5 表示桥导出的 pyfcstm smoke 快照；同步自 [representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm](../../representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm)，不是一手资源或 repair 后模型。 |
+| [fcstm_meta.json](./fcstm_meta.json) | `model.fcstm` 的同步来源、hash、parse/inspect 状态、上游 NL / 原始 STM_0 / canonical / loss 归因记录。 |
 
 ## 3. 系统说明
 
@@ -38,3 +40,12 @@
 - 谱系：SysML / UML state machine 风格的层次化状态机。
 - 时间特性：未见 timed automata clock 或 hybrid dynamics；当前按 T0 离散状态机处理。
 - 重要 caveat：该论文制品同时提供 reference PlantUML 和 checking 后结果，本样例只允许使用 `Generation PlantUML` 作为 `STM_0`，不得混入 reference 或 checking 列。
+
+## 6. R4.5 FCSTM 派生快照
+
+- 派生文件：[model.fcstm](./model.fcstm)。
+- 元数据：[fcstm_meta.json](./fcstm_meta.json)。
+- 上游 R4.5 输出：[representation model.fcstm](../../representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm)、[name_mapping.json](../../representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/name_mapping.json)、[lowering_inventory.json](../../representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/lowering_inventory.json)、[parse_inspect_report.json](../../representation/reports/fcstm_exports/llms-emp-gpt4o-hldcs/parse_inspect_report.json)。
+- 当前状态：`fcstm_meta.json` 中 `parse_status=ok`、`inspect_status=ok`、`repair_contribution_allowed=false`。
+- 口径说明：R4.5 从官方 SCXML canonical 保留层次结构并导出可被 pyfcstm parse/inspect 的 smoke `.fcstm`；`Front Distance > 10` 这类条件式标签仍按 named event 保留。
+- 维护纪律：若 R3 canonical、R4.5 exporter 或 [../../representation/reports/fcstm_export_report.json](../../representation/reports/fcstm_export_report.json) 变化，必须先重新生成 R4.5 reports，再运行 `python -m paper_stm_repair_representation.cli sync-selected-fcstm` 同步本目录；不得手工只改本目录 [model.fcstm](./model.fcstm)。

@@ -17,7 +17,7 @@
 
 | 上游 / 下游 | 关系 |
 |---|---|
-| [../selected_seed_examples/](../selected_seed_examples/) | R4 dry-run 固定复用的四个静态 `<NL, STM_0>` smoke 样例；不是最终实验集合。 |
+| [../selected_seed_examples/](../selected_seed_examples/) | R4 dry-run 固定复用的四个静态 `<NL, STM_0>` smoke 样例；这是 smoke 迷你文库，不是最终实验集合、样本上限或论文主结果集合。当前四例为 `llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`；TTool 与 `unified-uml-synthetic-0000` 已从 selected smoke 移除，只能作为历史 / 后续专项 / registry 线索。 |
 | [../conversion/](../conversion/) | R3 converter v0 与 R3.1 PlantUML recovery eligibility audit；R4 只能引用其 status / loss / canonical 裁决，不得改写 R3 转换语义。 |
 | [../experiment_design/better_stm_definition.md](../experiment_design/better_stm_definition.md) | Better STM 五条件的上游定义；本目录将其落成 checklist 与 schema。 |
 | [../experiment_design/evaluation_gate.md](../experiment_design/evaluation_gate.md) | 上游顺序约束：评价门必须先于真实修正预演冻结。 |
@@ -51,12 +51,19 @@ evaluation/
 
 ## 4. 四例 dry-run 总览
 
+每个 `dry_run_examples/<example_id>/` 下的四类 JSON fixture 都必须同时保留两层追溯字段：
+
+1. 顶层 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，方便后续脚本和人工 review 直接定位上游 NL、原始 `STM_0`、source meta 与 R3 canonical。
+2. `traceability` 对象，保存同一组字段，作为 schema 统一入口和后续聚合逻辑的稳定字段。
+
+二者必须与 R3 conversion report 中对应 `example_id` 的路径一致；不能只在 scenario / evidence locator 中间接出现，否则会削弱 R4 评价门证据链。
+
 | 样例 | R3 裁决 | R4 decision | 用途 |
 |---|---|---|---|
+| `llms-emp-deepseek-microwave` | `converted` / official SCXML via R3.1 normalization replay | `complete` | microwave 依赖 R3.1 pre-SCXML normalization replay；raw `stm0.puml` 不覆盖，conversion / normalization gain 不计入 repair gain。 |
 | `llms-emp-gpt4o-hldcs` | `converted` / official SCXML canonical | `complete` | 完整跑通 diagnostic + scenario + checklist 字段。 |
+| `llms-emp-kimi-autonomous-collision` | `converted` / official SCXML canonical | `complete` | 新加入 Kimi 自动驾驶 / 碰撞规避样例，验证较复杂 PlantUML canonical 的 gate 字段链路。 |
 | `sefm-ssc7-umple` | `partial` / official SCXML + timing loss | `focused` | 验证 partial canonical 与 timing caveat 的表达。 |
-| `ttool-automatedbraking-xml` | `partial` / official XML inventory | `focused` | 验证 inventory-only / unresolved connector / timed AVATAR 的降级策略。 |
-| `unified-uml-synthetic-0000` | `partial` / no canonical conversion | `blocked` | 验证 no-canonical 输入只能进入 blocked / toolchain-boundary analysis。 |
 
 详情见 [DRY_RUNS.md](./DRY_RUNS.md)。
 
@@ -70,7 +77,9 @@ R4 不能声称：
 2. 正式实验 protocol 已冻结；R7 才冻结。
 3. 四例 dry-run 是主实验结果或最终样本上限。
 4. R3/R3.1 conversion / normalization recovery 是 Better STM repair 收益。
-5. `partial` / `blocked` / no-canonical 样例可直接进入模型级 Better STM 判定。
+5. `partial` / `blocked` / no-canonical / normalization-recovered 样例可直接进入模型级 Better STM 判定。
+6. `llms-emp-deepseek-microwave` 的 R3.1 pre-SCXML normalization replay 可计入 conversion eligibility，但不能计入 repair gain；raw `stm0.puml` 不得覆盖。
+7. TTool 与 `unified-uml-synthetic-0000` 已不属于当前四例 dry-run；若未来恢复，只能作为补充 adapter / registry case 重新准入。
 
 ## 6. 验证命令
 

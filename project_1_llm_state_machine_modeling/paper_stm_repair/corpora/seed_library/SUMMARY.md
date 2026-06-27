@@ -49,7 +49,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | conditional seed pool | `ttool-ai-smd-subset` | 条件进入代表性样例集合 | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
 | pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
 
-固定 smoke 用代表性样例集合：[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)、[unified-uml-synthetic-0000](../../selected_seed_examples/unified-uml-synthetic-0000/) 和 [ttool-automatedbraking-xml](../../selected_seed_examples/ttool-automatedbraking-xml/)。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
+固定 smoke 用代表性样例集合：[llms-emp-deepseek-microwave](../../selected_seed_examples/llms-emp-deepseek-microwave/)、[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/) 和 [sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)。`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前四例 selected smoke 移除，只保留为未来 TTool XML / SMD 切片或 synthetic probe 专项线索。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
 
 ## 2. 关键统计表
 
@@ -61,7 +61,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
 | 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
 | 一手 registry 状态 | 3 / 1 / 2 / 10 / 0 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=3；🟡 conditional_final_pool=1；🟠 pipeline_only=2；⚪ paper_reconstructable=10；🔴 related_only=0。 |
-| smoke 用代表性样例集合 | 4 | [selected_seed_examples/README.md](../../selected_seed_examples/README.md) | 3 个 final-pool-ready + 1 个 conditional XML；仅作后续工具链最小连通性自检，不是最终实验集合。 |
+| smoke 用代表性样例集合 | 4 | [selected_seed_examples/README.md](../../selected_seed_examples/README.md) | 当前 4 例均来自一手 `NL + generated STM_0` pair：LLMS-EMP 2 例、SEFM 1 例、Unified UML 1 例；仅作后续工具链最小连通性自检，不是最终实验集合。 |
 | 人工下载队列状态 | 11 / 2 / 2 / 1 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径
