@@ -27,11 +27,12 @@
 6. 需要查看 smoke 用静态样例时，读 [selected_seed_examples/README.md](./selected_seed_examples/README.md)；该目录只保存少量可读 `<NL, STM_0>` 输入、来源元数据和 R4.5 `model.fcstm` 派生快照，不能替代 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)，也不能被写成最终实验集合。
 7. 需要运行或审计 R3 converter v0 时，读 [conversion/README.md](./conversion/README.md)、[conversion/GUIDE.md](./conversion/GUIDE.md) 与 [conversion/toolchain_survey.md](./conversion/toolchain_survey.md)；若审计 R3.1 PlantUML recovery / normalization，还必须继续读 [conversion/normalization/README.md](./conversion/normalization/README.md)、[conversion/normalization/GUIDE.md](./conversion/normalization/GUIDE.md)、[conversion/reports/plantuml_recovery_summary.md](./conversion/reports/plantuml_recovery_summary.md) 和 [conversion/artifacts/plantuml_recovery/r3_1_committed/README.md](./conversion/artifacts/plantuml_recovery/r3_1_committed/README.md)。该层只服务四例 smoke / R4-R5 dry-run 和 conversion eligibility audit，不是 R7/R8 正式实验级转换器。
 8. 需要运行或审计 R4 诊断 / 场景 / Better STM 评价门时，读 [evaluation/README.md](./evaluation/README.md)、[evaluation/EVALUATION_GATE.md](./evaluation/EVALUATION_GATE.md)、[evaluation/DRY_RUNS.md](./evaluation/DRY_RUNS.md) 与 [evaluation/GUIDE.md](./evaluation/GUIDE.md)。该层只做 gate dry-run 与 schema contract，不调用真实 LLM、不执行 repair loop、不把四例写成主实验结果。
-9. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
-10. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
-11. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
-12. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
-13. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态.
+9. 需要运行或审计 R5 selected smoke / seed library sweep 时，读 [smoke/README.md](./smoke/README.md) 与 [smoke/GUIDE.md](./smoke/GUIDE.md)。该层只做 pre-repair readiness audit、conversion eligibility census、archive/index 复验和 R6/R7/R8 handoff，不运行 repair loop、不生成 `STM_k`、不调用真实 LLM。
+10. 需要理解 repair baseline / 近邻当前事实时，读 [corpora/repair_baselines/README.md](./corpora/repair_baselines/README.md)、[corpora/repair_baselines/GUIDE.md](./corpora/repair_baselines/GUIDE.md)、[corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md)；它不提供 R2 seed。
+11. 需要理解纯 NL 数据源当前入口时，读 [corpora/nl_datasets/README.md](./corpora/nl_datasets/README.md)、[corpora/nl_datasets/GUIDE.md](./corpora/nl_datasets/GUIDE.md)、[corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md)；只有生成并记录 `STM_0` 后才 crosslink 到 seed。
+12. 需要追溯 PR-R1 generation-era 资产审计时，读 [evidence/README.md](./evidence/README.md)；这些旧台账不替代当前三类 corpora 总账。
+13. 需要追溯 R1.5--R1.7 旧 ledger / raw search 时，读 [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/)；旧 [seed_corpus/](./seed_corpus/) 只保留 redirect。
+14. 需要确认当前 PR / 子 PR 计划、review 状态或 ready gate 时，回到 GitHub PR / issue body 与 comment；不要在仓库文件中寻找动态施工状态.
 
 ## 3. 三类文库分工
 
@@ -181,6 +182,7 @@ R1.8-E 的长期验收不是新增文献或冻结四例，而是确保后续 R2 
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-28 14:20:00 | 增加 [smoke/](./smoke/) R5 读取链路与边界：R5 只做 selected 四例 deterministic smoke 与 seed library 全量转换摸排，输出 archive/index/manifest 和 handoff，不运行 repair loop、不生成 `STM_k`、不调用 LLM。 |
 | 2026-06-28 00:26:00 | 更新 [selected_seed_examples/](./selected_seed_examples/) 纪律：四例必须同时保存一手 NL、原始 `STM_0`、R4.5 `model.fcstm` 派生快照与 `fcstm_meta.json`，selected copy 必须由 representation reports 同步，不得手工漂移。 |
 | 2026-06-27 01:20:00 | 增加 [representation/](./representation/) R4.5 读取链路与边界：R4.5 只负责 canonical STM JSON -> `.fcstm` / pyfcstm inspect report 的表示桥，loss ledger 全部归因到 representation/conversion，不计 repair gain。 |
 | 2026-06-26 12:35:00 | 增加 [evaluation/](./evaluation/) R4 读取链路与边界：R4 只冻结 diagnostic / scenario / Better STM checklist / eligibility / human rubric v0，并用四例做 gate dry-run；没有 `STM_k` 时不得 claim Better。 |
