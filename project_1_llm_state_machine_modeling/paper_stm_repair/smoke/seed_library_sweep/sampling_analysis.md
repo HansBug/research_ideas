@@ -1,6 +1,6 @@
 # R5 seed sweep 抽样分析
 
-抽样规则：按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。高基数全量明细仍以 archive / records_index 为准。
+抽样规则：每个状态组内按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。高基数全量明细仍以 archive / records_index 为准。
 
 ## converted
 
@@ -36,12 +36,21 @@
 | `llms-emp-stm-subset` | `llms_emp_stm_results_0028` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | 当前工具链负证据；优先归入 R8 negative evidence 或 converter follow-up。 |
 | `llms-emp-stm-subset` | `llms_emp_stm_results_0037` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | 当前工具链负证据；优先归入 R8 negative evidence 或 converter follow-up。 |
 
-## not_applicable_or_needs_generation
+## not_applicable
 
-- machine count: 22
+- machine count: 20
+
+| entry | pair | status | reason | 学术解释 |
+|---|---|---|---|---|
+| `automated-transition-use-cases-uml-sm` | `None` | `not_applicable` | `R5.SWEEP.not_applicable_no_extracted_pairs_jsonl` | 不是作者一手 generated seed；只保留为相关工作或排除证据。 |
+| `dependable-product-families-usecases-state-machines` | `None` | `not_applicable` | `R5.SWEEP.not_applicable_no_extracted_pairs_jsonl` | 不是作者一手 generated seed；只保留为相关工作或排除证据。 |
+| `from-use-cases-to-statecharts` | `None` | `not_applicable` | `R5.SWEEP.not_applicable_no_extracted_pairs_jsonl` | 不是作者一手 generated seed；只保留为相关工作或排除证据。 |
+
+## needs_generation
+
+- machine count: 2
 
 | entry | pair | status | reason | 学术解释 |
 |---|---|---|---|---|
 | `designing-fsm-gpt4` | `None` | `needs_generation` | `R5.SWEEP.needs_generation_pipeline_only_no_author_generated_stm0` | 需另开 generation PR 复跑；R5 不生成。 |
 | `fsm-bench-20` | `None` | `needs_generation` | `R5.SWEEP.needs_generation_pipeline_only_no_author_generated_stm0` | 需另开 generation PR 复跑；R5 不生成。 |
-| `automated-transition-use-cases-uml-sm` | `None` | `not_applicable` | `R5.SWEEP.not_applicable_no_extracted_pairs_jsonl` | 不是作者一手 generated seed；只保留为相关工作或排除证据。 |

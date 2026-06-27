@@ -127,7 +127,7 @@ python -m paper_stm_repair_smoke.cli validate
 
 ## 9. 抽样分析
 
-[./seed_library_sweep/sampling_analysis.md](./seed_library_sweep/sampling_analysis.md) 必须覆盖 converted、partial、blocked-or-missing、not_applicable-or-needs-generation。抽样规则必须与 PR body 一致：按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。若某类为空，必须说明来自 `sweep_report.json` 的机器统计证据。
+[./seed_library_sweep/sampling_analysis.md](./seed_library_sweep/sampling_analysis.md) 必须覆盖 converted、partial、blocked-or-missing、not_applicable、needs_generation。抽样规则必须与 PR body 一致：每个状态组内按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。若某类为空，必须说明来自 `sweep_report.json` 的机器统计证据。
 
 ## 10. 禁止回写
 

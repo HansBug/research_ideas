@@ -1125,12 +1125,13 @@ def write_sampling_analysis(path: Path, pair_records: list[dict[str, Any]]) -> N
         "converted": [r for r in pair_records if r.get("status") == "converted"],
         "partial": [r for r in pair_records if r.get("status") == "partial"],
         "blocked_or_missing": [r for r in pair_records if r.get("status") in {"blocked", "missing_asset"}],
-        "not_applicable_or_needs_generation": [r for r in pair_records if r.get("status") in {"not_applicable", "needs_generation"}],
+        "not_applicable": [r for r in pair_records if r.get("status") == "not_applicable"],
+        "needs_generation": [r for r in pair_records if r.get("status") == "needs_generation"],
     }
     lines = [
         "# R5 seed sweep 抽样分析",
         "",
-        "抽样规则：按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。高基数全量明细仍以 archive / records_index 为准。",
+        "抽样规则：每个状态组内按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。高基数全量明细仍以 archive / records_index 为准。",
         "",
     ]
     for name, rows in groups.items():

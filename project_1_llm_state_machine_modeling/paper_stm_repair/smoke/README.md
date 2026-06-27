@@ -96,6 +96,7 @@ Markdown summary 只做人类入口，不成为第二事实真源；所有统计
 ## 5. 验收命令
 
 ```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/conversion/src \
 python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/smoke/tests
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/conversion/src \

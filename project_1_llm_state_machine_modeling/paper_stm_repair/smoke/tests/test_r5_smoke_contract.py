@@ -164,9 +164,14 @@ def test_handoff_counts_match_seed_sweep_records():
 def test_sampling_markdown_uses_pr_body_contract():
     text = (SMOKE / "seed_library_sweep/sampling_analysis.md").read_text(encoding="utf-8")
     assert "超过 100 条，再追加中位与末尾各 1 条" in text
+    assert "## not_applicable" in text
+    assert "## needs_generation" in text
     assert "unified_uml_state_train_0468" in text
     assert "unified_uml_state_train_0997" in text
     assert "unified_uml_state_train_0462" in text
     assert "unified_uml_state_train_0998" in text
+    assert "automated-transition-use-cases-uml-sm" in text
+    assert "designing-fsm-gpt4" in text
+    assert "fsm-bench-20" in text
     partial_cases = (SMOKE / "seed_library_sweep/partial_cases.md").read_text(encoding="utf-8")
     assert "仅列出前 40 条抽样记录（40/504）" in partial_cases
