@@ -25,7 +25,7 @@
 | `initial_final` | root + 每个 composite | initial child 推导方法；不能默认无证据选第一个 child 而不记 loss。 |
 | `timing` | timed/timeout event 或 timing_level 非 none 的 transitions | `after(...)` / timeout event 的降低与 loss。 |
 | `hierarchy` | canonical states | parent/child 保留情况。 |
-| `source_traceability` | 每个 report item | `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path` 必须齐全，便于从 `.fcstm` 追溯回 selected smoke 输入与 R3 canonical。 |
+| `source_traceability` | 每个 report item 与每个样例的 `lowering_inventory.json` | `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`、上游 R3 状态与 R3.1 replay 标记必须齐全，便于从 `.fcstm` 追溯回 selected smoke 输入、原始 `STM_0` 与 R3 canonical。 |
 
 ## 3. 命名纪律
 

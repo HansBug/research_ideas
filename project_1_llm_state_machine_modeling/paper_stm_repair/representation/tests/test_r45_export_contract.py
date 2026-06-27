@@ -118,6 +118,46 @@ def test_all_selected_examples_emit_parseable_fcstm_models_without_repair_credit
         assert inv["blocked_supplementary"] == []
 
 
+def test_r45_report_keeps_upstream_nl_and_raw_stm_traceability():
+    report = load_json(REPORTS / "fcstm_export_report.json")
+    for item in report["items"]:
+        assert item["upstream_source_nl_path"] == item["source_nl_path"]
+        assert item["upstream_source_stm0_path"] == item["source_stm0_path"]
+        assert item["upstream_source_meta_path"] == item["source_meta_path"]
+        assert item["upstream_r3_status"] in {"converted", "partial"}
+        assert item["upstream_source_format"] in {"plantuml", "umple"}
+        assert (REPO / item["source_nl_path"]).is_file()
+        assert (REPO / item["source_stm0_path"]).is_file()
+        assert (REPO / item["source_meta_path"]).is_file()
+        assert (REPO / item["canonical_output_path"]).is_file()
+        inv = load_json(REPORTS / f"fcstm_exports/{item['example_id']}/lowering_inventory.json")
+        trace = inv["source_traceability"]
+        assert trace["source_nl_path"] == item["source_nl_path"]
+        assert trace["source_stm0_path"] == item["source_stm0_path"]
+        assert trace["source_meta_path"] == item["source_meta_path"]
+        assert trace["canonical_output_path"] == item["canonical_output_path"]
+        assert trace["upstream_r3_status"] == item["upstream_r3_status"]
+        assert trace["repair_contribution_allowed"] is False
+
+
+def test_kimi_condition_like_labels_are_loss_ledgered_as_events_not_guards():
+    losses = [
+        json.loads(line)
+        for line in (REPORTS / "fcstm_export_loss_ledger.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    condition_losses = [
+        row
+        for row in losses
+        if row["example_id"] == "llms-emp-kimi-autonomous-collision"
+        and row["reason_code"] == "R45.LOSS.condition_like_label_lowered_as_event"
+    ]
+    assert len(condition_losses) >= 10
+    assert any("dist_to_front<25" in row["extra"]["raw_event"] for row in condition_losses)
+    assert all(row["extra"]["guard_field"] is None for row in condition_losses)
+    assert all(row["repair_contribution_allowed"] is False for row in condition_losses)
+
+
 def test_unified_fcstm_is_from_r31_replay_canonical_and_not_repair_gain():
     canonical = load_json(CONVERSION_CANONICAL / "unified-uml-synthetic-0000.canonical_stm.json")
     assert canonical["metadata"]["r3_1_normalization_replay_used"] is True

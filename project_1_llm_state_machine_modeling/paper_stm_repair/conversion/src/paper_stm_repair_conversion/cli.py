@@ -357,16 +357,22 @@ def _write_summary(path: Path, reports: list[dict[str, Any]], loss_rows: list[di
         "",
         "本文件由 `python -m paper_stm_repair_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。",
         "",
-        "| example_id | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | syntax | structured export | losses | 说明 |",
-        "|---|---|---|---:|---:|---|---|---|---|---:|---|",
+        "| example_id | 上游 NL | 原始 STM_0 | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | syntax | structured export | losses | 说明 |",
+        "|---|---|---|---|---|---:|---:|---|---|---|---|---:|---|",
     ]
     for report in reports:
         reason = (report.get("blocking_reason") or "").replace("|", "/")
+        diagnostic_codes = {diag.get("code") for diag in report.get("diagnostics", [])}
+        if "R3.R31.NORMALIZED_SCXML_REPLAY_USED" in diagnostic_codes:
+            r31_note = "R3.1 normalization replay 后重新走官方 SCXML；raw STM_0 不覆盖，不计 repair gain。"
+            reason = f"{reason} {r31_note}".strip()
         preflight = report.get("tool_preflight") or {}
         syntax_status = (preflight.get("syntax_status") or "").replace("|", "/")
         structured_status = (preflight.get("structured_export_status") or "").replace("|", "/")
         lines.append(
-            f"| `{report['example_id']}` | `{report['source_format']}` | `{report['status']}` | "
+            f"| `{report['example_id']}` | [{Path(report['source_nl_path']).name}](../../../../{report['source_nl_path']}) | "
+            f"[{Path(report['source_stm0_path']).name}](../../../../{report['source_stm0_path']}) | "
+            f"`{report['source_format']}` | `{report['status']}` | "
             f"{report['states_count']} | {report['transitions_count']} | `{report['timing_level']}` | "
             f"`{report['hierarchy_level']}` | `{syntax_status}` | `{structured_status}` | {report['losses_count']} | {reason} |"
         )

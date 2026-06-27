@@ -22,6 +22,7 @@ LOSS_PARENT_TARGET = "R45.LOSS.composite_target_lowered_to_initial_child"
 LOSS_BOOL_DEFAULT = "R45.LOSS.bool_guard_variable_default_zero"
 LOSS_TIMING_EVENT = "R45.LOSS.timing_event_without_clock_semantics"
 LOSS_INITIAL_INFERRED = "R45.LOSS.initial_inferred_from_source_order_or_start_state"
+LOSS_CONDITION_EVENT = "R45.LOSS.condition_like_label_lowered_as_event"
 
 
 @dataclass
@@ -67,6 +68,84 @@ def display_path(path: Path) -> str:
 
 def canonical_path_for(example_id: str) -> Path:
     return CANONICAL_DIR / f"{example_id}.canonical_stm.json"
+
+
+def fcstm_metrics_from_parse_report(parse_report: Dict[str, Any]) -> Dict[str, Any]:
+    metrics = parse_report.get("metrics") or {}
+    if parse_report.get("parse_status") != "ok":
+        return {
+            "fcstm_parse_status": parse_report.get("parse_status"),
+            "fcstm_inspect_status": parse_report.get("inspect_status"),
+        }
+    return {
+        "fcstm_parse_status": parse_report.get("parse_status"),
+        "fcstm_inspect_status": parse_report.get("inspect_status"),
+        "fcstm_states_leaf": metrics.get("n_states_leaf"),
+        "fcstm_states_composite": metrics.get("n_states_composite"),
+        "fcstm_states_pseudo": metrics.get("n_states_pseudo"),
+        "fcstm_transitions_normal": metrics.get("n_transitions_normal"),
+        "fcstm_transitions_forced": metrics.get("n_transitions_forced"),
+        "fcstm_events": metrics.get("n_events"),
+        "fcstm_variables": metrics.get("n_variables"),
+        "fcstm_max_hierarchy_depth": metrics.get("max_hierarchy_depth"),
+    }
+
+
+def source_traceability_from_conversion_item(
+    *,
+    example_id: str,
+    conversion_item: Dict[str, Any],
+    selected_example_dir: Path,
+    source_nl_path: Path,
+    source_stm0_path: Optional[Path],
+    source_meta_path: Path,
+) -> Dict[str, Any]:
+    return {
+        "example_id": example_id,
+        "upstream_r3_status": conversion_item.get("status"),
+        "upstream_r3_status_reason_code": conversion_item.get("status_reason_code"),
+        "upstream_source_format": conversion_item.get("source_format"),
+        "upstream_conversion_source": conversion_item.get("conversion_source"),
+        "upstream_source_nl_path": conversion_item.get("source_nl_path"),
+        "upstream_source_stm0_path": conversion_item.get("source_stm0_path"),
+        "upstream_source_meta_path": conversion_item.get("source_meta_path"),
+        "selected_example_dir": display_path(selected_example_dir),
+        "source_nl_path": display_path(source_nl_path),
+        "source_stm0_path": display_path(source_stm0_path) if source_stm0_path else None,
+        "source_meta_path": display_path(source_meta_path),
+        "canonical_output_path": conversion_item.get("canonical_output_path"),
+        "canonical_output_sha256": conversion_item.get("canonical_output_sha256"),
+        "source_sha256": conversion_item.get("source_sha256"),
+        "raw_locator": conversion_item.get("raw_locator"),
+        "r3_1_normalization_replay_used": any(
+            diag.get("code") == "R3.R31.NORMALIZED_SCXML_REPLAY_USED"
+            for diag in conversion_item.get("diagnostics", [])
+        ),
+        "repair_contribution_allowed": False,
+        "attribution": "representation_lowering_not_repair",
+    }
+
+
+def is_condition_like_event_label(raw_event: Optional[str]) -> bool:
+    """Return whether a PlantUML/SCXML event label looks like a condition.
+
+    R3 obtains PlantUML canonical models through official SCXML export.  In
+    that structured export, labels such as ``dist_to_front<25 && extra_lane=true``
+    or ``Front Distance > 10`` arrive as SCXML ``event`` attributes rather than
+    as guard expressions.  R4.5 must preserve them as named events for
+    traceability, but it also has to record the semantic caveat explicitly so
+    later repair/evaluation stages do not mistake the emitted event for a
+    recovered pyfcstm guard.
+    """
+
+    if not raw_event:
+        return False
+    text = raw_event.strip()
+    condition_tokens = ("&&", "||", "<=", ">=", "==", "!=", "<", ">")
+    if any(token in text for token in condition_tokens):
+        return True
+    lowered = text.lower()
+    return "=true" in lowered or "=false" in lowered
 
 
 class CanonicalModelView:
@@ -299,6 +378,35 @@ class FCSTMExporter:
             self.event_map[key] = ident
         return self.event_map[key]
 
+    def record_condition_like_event_loss(self, transition: Dict[str, Any], event_ident: Optional[str]) -> None:
+        raw_event = transition.get("event")
+        if not raw_event or not is_condition_like_event_label(raw_event):
+            return
+        loss_id = f"{self.view.example_id}:{LOSS_CONDITION_EVENT}:{transition.get('id')}"
+        if any(row["loss_id"] == loss_id for row in self.loss_rows):
+            return
+        self.loss_rows.append({
+            "schema_version": "r4_5.fcstm_export_loss_ledger.v0",
+            "example_id": self.view.example_id,
+            "loss_id": loss_id,
+            "reason_code": LOSS_CONDITION_EVENT,
+            "severity": "known_semantic_approximation",
+            "loss_type": "condition_label_as_event",
+            "message": "Official PlantUML/SCXML export exposed a condition-like transition label as an event; R4.5 preserves it as a named event and does not claim recovered guard semantics.",
+            "canonical_ref": transition.get("raw_ref"),
+            "affected_item_id": transition.get("id"),
+            "repair_contribution_allowed": False,
+            "attribution": "representation_lowering_not_repair",
+            "extra": {
+                "raw_event": raw_event,
+                "emitted_event": event_ident,
+                "source_format": self.view.doc.get("source_format"),
+                "conversion_source": self.view.doc.get("metadata", {}).get("conversion_source"),
+                "guard_field": transition.get("guard"),
+                "rationale": "PlantUML labels with comparison/logical syntax are kept as trigger labels because R3 canonical did not prove they are executable guards.",
+            },
+        })
+
     def declare_guard_vars(self, raw_guard: Optional[str], transition: Dict[str, Any]) -> Optional[str]:
         mapped, vars_, _, code = map_guard(raw_guard, self.guard_vars)
         if mapped is None and raw_guard:
@@ -465,6 +573,7 @@ class FCSTMExporter:
         # stoppable relay state.
         if self.view.is_composite(source) and target in self._scope_children_ids(source):
             event_ident = self.event_identifier(event, source, transition["id"]) if event else None
+            self.record_condition_like_event_loss(transition, event_ident)
             if effect:
                 self.add_loss(reason_code="R45.LOSS.forced_transition_effect_not_supported", severity="blocking_transition", message="pyfcstm forced transitions do not support effect blocks; transition action prevents forced composite lowering.", canonical_ref=transition.get("raw_ref"), affected_item_id=transition["id"], loss_type="transition_action", extra={"action": transition.get("action")})
                 self.rendered_transitions.append(RenderedTransition(transition["id"], source, None, "blocked", "R45.BLOCKED.forced_effect", source, target, event, transition.get("guard"), transition.get("action")))
@@ -492,6 +601,7 @@ class FCSTMExporter:
             )
         event_scope = render_scope if event else "__root__"
         event_ident = self.event_identifier(event, event_scope, transition["id"]) if event else None
+        self.record_condition_like_event_loss(transition, event_ident)
 
         if not self.can_render_in_scope(source2, target2, render_scope):
             self.add_loss(reason_code=LOSS_CROSS_SCOPE, severity="blocking_transition", message="Transition cannot be represented without flattening because source and target are not siblings in the selected pyfcstm scope.", canonical_ref=transition.get("raw_ref"), affected_item_id=transition["id"], loss_type="cross_scope_reference", extra={"source": source, "target": target, "chosen_source": source2, "chosen_target": target2, "render_scope": render_scope, "source_parent": self.view.state_parent(source), "target_parent": self.view.state_parent(target2)})
@@ -734,28 +844,45 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
         else:
             parse_report = {"schema_version": "r4_5.parse_inspect_report.v0", "parse_status": "not_run", "inspect_status": "not_run", "reason_code": result["status_reason_code"]}
             write_json(example_dir / "parse_inspect_report.json", parse_report)
-        write_json(example_dir / "name_mapping.json", result["name_mapping"])
-        write_json(example_dir / "lowering_inventory.json", result["lowering_inventory"])
-        all_inventories.append(result["lowering_inventory"])
-        all_losses.extend(result["loss_rows"])
+        result["lowering_inventory"]["counts"].update(fcstm_metrics_from_parse_report(parse_report))
         source_locator = item.get("source_locator")
         selected_example_dir = PAPER_ROOT / "selected_seed_examples" / example_id
         source_nl_path = selected_example_dir / "nl.txt"
         source_stm0_path = PAPER_ROOT / source_locator if source_locator else None
         source_meta_path = selected_example_dir / "source_meta.json"
+        source_traceability = source_traceability_from_conversion_item(
+            example_id=example_id,
+            conversion_item=item,
+            selected_example_dir=selected_example_dir,
+            source_nl_path=source_nl_path,
+            source_stm0_path=source_stm0_path,
+            source_meta_path=source_meta_path,
+        )
+        result["lowering_inventory"]["source_traceability"] = source_traceability
+        write_json(example_dir / "name_mapping.json", result["name_mapping"])
+        write_json(example_dir / "lowering_inventory.json", result["lowering_inventory"])
+        all_inventories.append(result["lowering_inventory"])
+        all_losses.extend(result["loss_rows"])
         items.append({
             "example_id": example_id,
             "seed_id": result.get("seed_id"),
+            "upstream_r3_status": source_traceability["upstream_r3_status"],
+            "upstream_r3_status_reason_code": source_traceability["upstream_r3_status_reason_code"],
+            "upstream_source_format": source_traceability["upstream_source_format"],
+            "upstream_conversion_source": source_traceability["upstream_conversion_source"],
+            "upstream_source_nl_path": source_traceability["upstream_source_nl_path"],
+            "upstream_source_stm0_path": source_traceability["upstream_source_stm0_path"],
+            "upstream_source_meta_path": source_traceability["upstream_source_meta_path"],
             "status": result["status"],
             "status_reason_code": result["status_reason_code"],
             "fcstm_path": display_path(example_dir / "model.fcstm") if result.get("fcstm") else None,
             "name_mapping_path": display_path(example_dir / "name_mapping.json"),
             "lowering_inventory_path": display_path(example_dir / "lowering_inventory.json"),
             "parse_inspect_report_path": display_path(example_dir / "parse_inspect_report.json"),
-            "source_nl_path": display_path(source_nl_path),
-            "source_stm0_path": display_path(source_stm0_path) if source_stm0_path else None,
-            "source_meta_path": display_path(source_meta_path),
-            "canonical_output_path": item.get("canonical_output_path"),
+            "source_nl_path": source_traceability["source_nl_path"],
+            "source_stm0_path": source_traceability["source_stm0_path"],
+            "source_meta_path": source_traceability["source_meta_path"],
+            "canonical_output_path": source_traceability["canonical_output_path"],
             "parse_status": parse_report.get("parse_status"),
             "inspect_status": parse_report.get("inspect_status"),
             "blocked_transitions_count": len(result.get("blocked_transitions", [])),

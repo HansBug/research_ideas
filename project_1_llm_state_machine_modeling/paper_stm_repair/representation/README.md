@@ -68,7 +68,7 @@ python -m paper_stm_repair_representation.cli export-selected
 {"examples": 4, "converted": 4, "partial": 0, "blocked": 0}
 ```
 
-R4.5 report item 已包含 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，用于把 `.fcstm` 输出追溯回 selected smoke 输入与 R3 canonical。
+R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability` 都已包含 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`，用于把 `.fcstm` 输出追溯回 selected smoke 输入与 R3 canonical。也就是说，R4.5 阶段 report 自身就能直接定位上游 NL、原始 `STM_0` 文件、`source_meta.json` 与 R3 canonical JSON。
 
 运行 R4.5 tests：
 
