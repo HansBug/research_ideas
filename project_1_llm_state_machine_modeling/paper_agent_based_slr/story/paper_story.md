@@ -1,192 +1,256 @@
-# 论文主线：研究者引导、模式演化、证据支撑、发现导向的智能体式 SLR 支持方法
+# 论文主线：研究者引导、模式演化、证据支撑、发现导向的智能体式系统综述支持方法
 
 ## 1. 工作标题
 
-候选中文标题：**面向软件工程 SLR/SMS 的研究者引导、模式演化与证据支撑的智能体式综述支持方法**。
+候选中文标题：**面向软件工程系统综述的研究者引导、模式演化与证据支撑的智能体式支持方法**。
 
-候选英文标题仅作为后续英文稿锚点：**Researcher-Guided, Pattern-Evolving, and Evidence-Backed Agentic Support for Software Engineering Reviews**。
+标题边界：不得暗示端到端无人、完全自动、完整覆盖、首次智能体式系统综述或 PRISMA 合规。正式叙事优先使用“研究者引导的智能体式系统综述支持方法”，而不是“自动生成综述”。后续英文稿标题单独处理，本文件只保留必要术语锚点。
 
-标题边界：不得暗示端到端无人、完全自动、完整覆盖、首次智能体式 SLR 或 PRISMA 合规。正式叙事优先使用“研究者引导的智能体式 SLR/SMS 支持方法”，而不是“自动生成综述”。
+## 2. 术语首次出现规则
 
-## 2. 一句话论点
+本文件采用“首次出现写作 `中文术语（English term / abbreviation）`，后续一律写中文术语”的规则。下表给出本文件后续默认使用的中文简称；除论文名、工具名、路径、命令、阶段编号和必要缩写外，正文不再成片使用英文。
 
-本文研究一种面向 SE SLR/SMS 的 **researcher-guided、pattern-evolving、evidence-backed、finding-oriented agentic SLR support approach**：研究者定义 topic / RQ / scope / meta-model，LLM/agent 基于 survey-of-surveys scaffold 与 seed-paper probing 提出候选 dimension / finding patterns；在研究者批准的 dimension schema 下，agent 支持论文收集、overview card、字段级内容证据抽取、dimension pattern 修订与 backfill、统计分析和候选 finding signal 生成；最终 target-domain findings 必须经过研究者的 challenge、counter-evidence search、补证、降级和 adjudication，同时保留 process evidence / audit trail 以支撑后续方法评估。
+| 首次出现写法 | 后续默认写法 | 本文含义 |
+|---|---|---|
+| 软件工程（Software Engineering, SE） | 软件工程 | 本文目标领域，后续不再单独展开英文。 |
+| 系统综述（Systematic Literature Review, SLR） | 系统综述 | 按可追溯协议综合某领域研究证据的综述活动。 |
+| 系统映射研究（Systematic Mapping Study, SMS） | 系统映射研究 | 更偏领域结构、主题分布和证据地图的系统化综述活动。 |
+| 大语言模型（Large Language Model, LLM） | 大语言模型 | 可用于筛选、抽取、摘要、归类和生成候选线索的模型能力来源。 |
+| 智能体（agent） | 智能体 | 围绕任务、工具、提示和状态进行协作执行的软件代理；不是最终研究裁决者。 |
+| 综述元模型（review meta-model） | 综述元模型 | 研究者为具体综述主题设定的对象、关系、问题、证据类型和发现类型框架。 |
+| 维度模式（dimension pattern / extraction schema） | 维度模式 | 把综述元模型投影到单篇论文分析上的字段树、取值空间、证据要求和缺失语义。 |
+| 模式演化（pattern-evolving） | 模式演化 | 维度模式随着种子论文、真实抽取失败、新类别和研究者理解深化而版本化修订。 |
+| 综述之综述脚手架（survey-of-surveys scaffold） | 脚手架 | 从既有综述、系统综述和系统映射研究中抽取维度、发现和证据呈现模式的低成本先验。 |
+| 种子论文探测（seed-paper probing） | 种子探测 | 用少量代表性论文压力测试候选维度模式是否可执行。 |
+| 字段级内容证据（field-level content evidence） | 内容证据 | 来自目标论文全文、表格、图、制品链接或缺失说明的可定位证据。 |
+| 过程证据（process evidence / audit trail） | 过程证据 | 人机交互、批准、修订、回填、质疑、裁决、提示和脱敏记录。 |
+| 统计分析（statistical analysis） | 统计分析 | 对字段证据表做频次、分布、交叉表、趋势、覆盖率和矛盾信号分析。 |
+| 候选发现信号（candidate finding signal） | 候选发现 | 智能体基于统计观察、启发式和内容证据提出的待审计线索。 |
+| 目标领域研究发现（target-domain research finding） | 领域发现 | 经过内容证据、反向证据、不确定性和研究者裁决支撑的领域主张。 |
+| 方法评估发现（method-evaluation finding） | 方法发现 | 由试运行、使用过程和交互日志支撑的关于方法可用性、审计性、成本和失败模式的主张。 |
+| 人工门控（human gate） | 人工门控 | 带输入制品、决策类型、理由、版本变化、影响范围和后续动作的研究者裁决点。 |
+| 类 PRISMA 透明材料（PRISMA-style transparency artifacts） | 类 PRISMA 材料 | 受透明报告思想启发的流程、排除理由和审计材料；不是 PRISMA 合规声明。 |
 
-## 3. 任务边界
+## 3. 一句话论点
 
-| 项 | PR-S0-v2 冻结口径 |
+本文研究一种面向软件工程系统综述 / 系统映射研究的**研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法**：研究者先定义主题、研究问题、范围和综述元模型；大语言模型与智能体只负责提出可审查的维度候选、执行研究者批准后的论文收集、字段级内容证据抽取、统计分析和候选发现生成；最终领域发现必须经过研究者质疑、反向证据检查、补证、降级和裁决；全过程同时保留过程证据，用于后续评价方法本身。
+
+## 4. 任务边界
+
+| 项 | 当前冻结口径 |
 |---|---|
-| 输入 | 综述主题、RQ、scope、种子论文、候选论文池、全文状态、研究者关注点、可用 survey-of-surveys scaffold。 |
-| 研究者拥有的输入 | topic / RQ / scope / meta-model、dimension schema 审批、finding heuristic 选择、统计分析解释、candidate finding challenge、final adjudication、process logging 边界。 |
-| 智能体处理对象 | 元数据、全文、overview card、字段级内容证据、抽取字段、统计视图、候选 finding signal、支持/反向证据、审计日志草案。 |
-| 输出 | 研究者批准的 dimension schema、overview card 表、字段级 evidence table、schema revision / backfill log、statistical analysis table、candidate finding ledger、challenge / adjudication log、透明报告材料、process evidence。 |
-| 最终 finding 条件 | final target-domain finding 必须由 content evidence、统计观察、反向证据 / 不确定性检查和研究者裁决共同支撑；agent 输出只能是 candidate finding signal。 |
-| 不属于 PR-S0-v2 | 真实 agent runtime、真实 LLM 调用、完整 survey-of-surveys、完整 JSON schema、UI、四个真实例子、最终指标公式、最终英文论文。 |
-| 禁止主张 | first / fully automated / PRISMA-compliant / complete coverage / LLM final findings / process data 支撑目标领域结论 / pilot 证明泛化。 |
+| 输入 | 综述主题、研究问题、范围、种子论文、候选论文池、全文状态、研究者关注点、可用脚手架。 |
+| 研究者拥有的输入 | 主题、研究问题、范围、综述元模型、维度模式审批、发现启发式选择、统计分析解释、候选发现质疑、最终裁决和过程记录边界。 |
+| 智能体处理对象 | 元数据、全文、概览卡、内容证据、抽取字段、统计视图、候选发现、支持证据、反向证据和审计日志草案。 |
+| 输出 | 研究者批准的维度模式、概览卡表、字段证据表、模式修订 / 回填日志、统计分析表、候选发现台账、质疑 / 裁决日志、透明报告材料和过程证据。 |
+| 最终领域发现条件 | 领域发现必须由内容证据、统计观察、反向证据 / 不确定性检查和研究者裁决共同支撑；智能体输出只能是候选发现。 |
+| 不属于本阶段 | 真实智能体运行时、真实大语言模型调用、完整脚手架研究、完整数据结构、用户界面、四个真实例子、最终指标公式、最终英文论文。 |
+| 禁止主张 | 首次、完全自动、PRISMA 合规、完整覆盖、大语言模型自动产出最终发现、过程证据支撑领域发现、试运行证明泛化。 |
 
-## 4. 问题缺口
+## 5. 问题缺口
 
-传统 SE SLR/SMS 的价值不是把论文整理成列表，而是形成可解释、可复核的研究发现：哪些主题受到关注，哪些方法存在系统性不足，哪些证据相互矛盾，哪些结论只在特定范围内成立。近年的 LLM / agent 工作已经覆盖筛选、抽取、分类、证据综合、报告生成、来源追溯和人在回路复核。因此，paper2 不能把新颖性放在“agent 也能做 SLR”或“自动生成综述文本”上。
+传统软件工程系统综述 / 系统映射研究的价值不是把论文整理成列表，而是形成可解释、可复核的研究发现：哪些主题受到关注，哪些方法存在系统性不足，哪些证据相互矛盾，哪些结论只在特定范围内成立。近年的大语言模型与智能体工作已经覆盖筛选、抽取、分类、证据综合、报告生成、来源追溯和人在回路复核。因此，第二篇论文不能把新颖性放在“智能体也能做系统综述”或“自动生成综述文本”上。
 
-当前缺口是：**当 LLM/agent 参与 SE SLR/SMS 时，如何让研究者的概念框架、可演化维度模式、字段级内容证据、统计分析、候选研究发现、反向证据、降级与最终裁决成为显式、可审计、可迭代的研究制品。**
+当前缺口是：**当大语言模型与智能体参与软件工程系统综述 / 系统映射研究时，如何让研究者的概念框架、可演化维度模式、字段级内容证据、统计分析、候选发现、反向证据、降级与最终裁决成为显式、可审计、可迭代的研究制品。**
 
-## 5. 技术挑战
+## 6. 技术挑战
 
-1. **维度模式初期必然不完整**：真实 SLR 开始时很难一次性定义完整抽取字段；随着阅读更多论文，输出类型、方法类型、评价方式、证据形式和缺失值语义都会变化。
-2. **统计观察容易被误写成研究发现**：频次、分布、交叉表和趋势只是字段表上的归纳结果；若缺少解释、反例和主张强度控制，容易把统计事实包装成过强 finding。
-3. **证据类型容易混用**：目标领域 finding 需要目标论文原文中的 content evidence；pilot / student interaction log 等 process evidence 只能支撑方法可用性、审计性和人机协同成本。
-4. **human-in-the-loop 不能只做末端审核**：如果研究者只在最后看报告，meta-model、schema、统计解释和 candidate finding 都已经可能漂移；必须把研究者裁决放进多个 gate。
-5. **人工审计不是免费 oracle**：challenge loop 会产生成本、分歧、降级和 unresolved finding；这些过程本身要记录为方法评估证据。
+1. **维度模式初期必然不完整**：真实系统综述开始时很难一次性定义完整抽取字段；随着阅读更多论文，输出类型、方法类型、评价方式、证据形式和缺失值语义都会变化。
+2. **统计观察容易被误写成研究发现**：频次、分布、交叉表和趋势只是字段表上的归纳结果；若缺少解释、反例和主张强度控制，容易把统计事实包装成过强发现。
+3. **证据类型容易混用**：领域发现需要目标论文原文中的内容证据；试运行和学生交互日志等过程证据只能支撑方法可用性、审计性和人机协同成本。
+4. **人在回路不能只做末端审核**：如果研究者只在最后看报告，综述元模型、维度模式、统计解释和候选发现都可能已经漂移；必须把研究者裁决放进多个门控。
+5. **人工审计不是免费答案机**：质疑闭环会产生成本、分歧、降级和未解决发现；这些过程本身要记录为方法评估证据。
 
-## 6. 方法洞察
+## 7. 方法洞察
 
-核心设计原则是：**把 SLR 中“论文收集 → 维度模式驱动的论文分析 → 统计分析与研究发现形成”显式拆开，并把每一层都绑定到研究者 gate 和可审计证据。**
+核心设计原则是：**把系统综述中的“论文收集 → 维度模式驱动的论文分析 → 统计分析与研究发现形成”显式拆开，并把每一层都绑定到研究者门控和可审计证据。**
 
 这带来四个方法约束：
 
-1. dimension pattern 是方法的一等制品，不是隐藏在 prompt 里的字段清单；
-2. statistical analysis 是 finding 的证据基础，不是 final finding 本身；
-3. content evidence 和 process evidence 分别服务不同类型主张；
-4. final finding 是研究者裁决状态，不是 agent 输出状态。
+1. 维度模式是方法的一等制品，不是隐藏在提示词里的字段清单；
+2. 统计分析是研究发现的证据基础，不是最终研究发现本身；
+3. 内容证据和过程证据分别服务不同类型主张；
+4. 最终领域发现是研究者裁决状态，不是智能体输出状态。
 
-## 7. 方法总览图
+## 8. 方法总览图
 
-下图是 PR-S0-v2 的方法图草案。它不是运行结果图，也不表示本 PR 已实现 agent runtime。图采用时序 / 泳道式表达，重点展示研究者、schema / scaffold、agent 执行层、证据 / 统计 / findings 制品、process evidence 之间的责任边界。读图时应注意：agent 输出停留在 candidate finding signals，final target-domain findings 只能由研究者裁决；process evidence 经过 G6 后只用于方法评价。
+本节给出两张图。第一张是普通流程图，用于快速看清阶段、参与者、制品和反馈关系；第二张是时序 / 泳道图，用于看清每个门控的责任边界。两图均为方法草案，不表示本 PR 已实现运行时。
+
+### 8.1 普通流程图：阶段、参与者与制品关系
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 36, "rankSpacing": 42, "curve": "basis"}}}%%
+flowchart TB
+  A["阶段一：问题设定与模式准备<br/>研究者：主题 / 研究问题 / 范围 / 综述元模型<br/>智能体：脚手架挖掘与种子探测<br/>阶段内门控：G0 / G1<br/>产物：维度模式"]
+  B["阶段二：论文收集与字段分析<br/>智能体：检索 / 去重 / 筛选 / 概览<br/>智能体：按批准模式抽取内容证据<br/>研究者：抽查证据并批准统计协议 G3<br/>产物：字段证据表与统计观察"]
+  C["阶段三：发现形成与透明输出<br/>智能体：提出候选发现与反向证据<br/>研究者：质疑 / 补证 / 裁决 / 降级<br/>阶段内门控：G4 / G5<br/>产物：领域发现与透明材料"]
+
+  A -->|批准后的维度模式| B
+  B -->|字段证据表与统计观察| C
+
+  R1["反馈一：G2 模式演化<br/>触发：新类型或字段失效<br/>动作：修订、影响分析、回填"]
+  R2["反馈二：G4 发现质疑<br/>触发：证据不足或主张过强<br/>动作：补证或降低候选强度"]
+  B -.->|触发| R1
+  R1 -.->|回到阶段一：研究者批准后修订模式| A
+  C -.->|触发| R2
+  R2 -.->|回到阶段二：补证或重抽取| B
+
+  P["旁注：G6 过程证据边界门控<br/>横切 L0--L7，记录批准、修订、回填、质疑、裁决、脱敏与成本<br/>只支撑方法评价，不支撑领域发现"]
+  A -.->|过程证据记录| P
+  B -.->|过程证据记录| P
+  C -.->|过程证据记录| P
+
+  classDef phase fill:#eef5ff,stroke:#3b6ea8,color:#111;
+  classDef feedback fill:#fdecea,stroke:#b23b3b,color:#111;
+  classDef process fill:#f3e8ff,stroke:#7e57c2,color:#111;
+  class A,B,C phase;
+  class R1,R2 feedback;
+  class P process;
+  linkStyle 6,7,8 stroke:#999999,stroke-width:1px,stroke-dasharray: 3 3;
+```
+
+读图要点：
+
+1. 三层结构对应真实系统综述实践：先设定问题与模式，再围绕字段证据分析论文，最后从统计观察进入发现形成。
+2. 研究者不是末端审核者，而是在 G0、G1、G2、G3、G4、G5 和 G6 等关键门控中持续裁决。
+3. G0/G1/G3/G5 是阶段内人工门控；G2 和 G4 是反馈门控，只在模式不足或发现质疑触发时回跳。
+4. 模式演化反馈从阶段二的抽取失败触发，回到阶段一修订维度模式；发现质疑反馈从阶段三触发，回到阶段二补证或降低候选发现强度。
+5. G6 是旁注式横切门控：它通过较浅虚线记录过程证据并用于方法评价，不能替代内容证据来支撑领域发现。
+
+### 8.2 时序 / 泳道图：门控责任边界
 
 ```mermaid
 %%{init: {"sequence": {"mirrorActors": false, "wrap": true, "width": 150, "actorMargin": 80, "messageMargin": 45, "noteMargin": 10}}}%%
 sequenceDiagram
   autonumber
   actor R as 研究者
-  participant S as Scaffold / Schema
-  participant A as Agent 执行层
-  participant E as Evidence / Analysis / Findings
-  participant P as Process evidence
+  participant S as 脚手架与维度模式
+  participant A as 智能体执行层
+  participant E as 证据、统计与发现制品
+  participant P as 过程证据
 
-  R->>S: L0 / G0：研究者批准 topic、RQ、scope、meta-model
-  S-->>R: L1：survey-of-surveys scaffold + seed probing 的候选 patterns
-  R->>S: L2 / G1：研究者批准可执行 dimension schema
-  R->>A: 下发 approved schema、scope 与 evidence 要求
-  A->>E: L3：检索、筛选、全文状态、overview cards
-  A->>E: L4：抽取 field-level content evidence 与 source anchors
+  R->>S: L0 / G0：批准主题、研究问题、范围和综述元模型
+  S-->>R: L1：脚手架与种子探测给出候选维度和启发式
+  R->>S: L2 / G1：批准可执行维度模式
+  R->>A: 下发已批准模式、范围和证据要求
+  A->>E: L3：检索、筛选、全文状态和概览卡
+  A->>E: L4：抽取字段级内容证据与来源锚点
 
-  alt 新类型、抽取失败或 schema 不足
-    A-->>R: G2：任何 schema revision / backfill 必须回研究者批准门
-    Note over R,S: 任何 schema revision / backfill 都必须经 G2 批准后才可恢复正式抽取
-    R->>S: 批准 / 拒绝 / 暂缓 revision 与 backfill；未批准不得继续正式抽取
-    S-->>A: 仅在 G2 批准后更新 schema 并恢复抽取
-    A->>E: 按批准 schema 回填受影响论文
+  alt 新类型、抽取失败或模式不足
+    A-->>R: G2：模式修订 / 回填必须回到研究者批准门
+    Note over R,S: 任何模式修订或回填都必须经 G2 批准后才可恢复正式抽取
+    R->>S: 批准、拒绝或暂缓修订与回填；未批准不得继续正式抽取
+    S-->>A: 仅在 G2 批准后更新模式并恢复抽取
+    A->>E: 按批准后的模式回填受影响论文
   else 字段表稳定
-    E-->>R: evidence table 与缺失 / 不确定性报告
+    E-->>R: 字段证据表与缺失 / 不确定性报告
   end
 
-  R->>E: L5 / G3：批准 statistical analysis protocol
-  E->>E: 生成统计观察 only：频次、分布、交叉表、趋势、覆盖率、矛盾信号；not findings
-  A->>E: L6：由 heuristics 把统计观察转成 candidate finding signals（not final）
+  R->>E: L5 / G3：批准统计分析协议
+  E->>E: 生成统计观察：频次、分布、交叉表、趋势、覆盖率、矛盾信号；不是最终发现
+  A->>E: L6：把统计观察转为候选发现；仍不是最终发现
 
-  loop L7 / G4：researcher challenge
-    E-->>R: candidate finding signal (not final)+ supporting / counter evidence + claim strength
+  loop L7 / G4：研究者质疑
+    E-->>R: 候选发现 + 支持 / 反向证据 + 主张强度
     R->>A: 质疑证据、反例、范围或主张强度
-    A->>E: 补证、找反例、修订、降级或标记 unresolved
+    A->>E: 补证、找反例、修订、降级或标记未解决
   end
 
-  R->>E: G5：研究者 final adjudication (accept / downgrade / reject / unresolved)
-  E-->>R: researcher-adjudicated target-domain findings + transparency package
+  R->>E: G5：最终裁决：接受、降级、拒绝或未解决
+  E-->>R: 经研究者裁决的领域发现与透明材料
 
-  Note over P: 横切 L0--L7 的过程证据集合，非顺序阶段
-  R-->>P: process evidence only for method evaluation: approvals, challenge, adjudication, redaction decisions
-  A-->>P: process evidence only: prompts, runs, cost, errors, schema revision / backfill logs
-  E-->>P: process evidence only: evidence table versions, analysis protocol, candidate ledger status
-  R->>P: G6 process evidence boundary approve redact restrict method evaluation only
-  P-->>R: method evaluation findings only not admissible as target domain evidence
+  Note over P: 横切 L0--L7 的过程证据集合，不是新的顺序阶段
+  R-->>P: 记录批准、质疑、裁决和脱敏决策，只用于方法评价
+  A-->>P: 记录提示、运行、成本、错误、模式修订和回填日志，只用于方法评价
+  E-->>P: 记录证据表版本、统计协议和候选发现状态，只用于方法评价
+  R->>P: G6：批准过程证据的脱敏、访问权限和发布边界
+  P-->>R: 只形成方法发现，不能作为领域发现证据
 ```
-
-
 
 读图要点：
 
-1. **G0/G1 决定 operative schema**：LLM/agent 可以建议候选 pattern，但研究者不批准就不能进入正式抽取。
-2. **G2 处理 pattern evolution**：如果新论文暴露 schema 不足，必须记录 change trigger、影响字段、受影响论文和 backfill 状态。
-3. **G3 把统计协议显式化**：统计分析是字段表上的归纳操作；统计结果只能作为 candidate finding 的证据基础。
-4. **G4/G5 区分 candidate 与 final**：agent 只生成 candidate finding signals；final target-domain finding 必须经过研究者 challenge 与裁决。
-5. **G6 管住 process evidence 发布边界**：process evidence 用于 method-evaluation findings，不能替代目标论文 content evidence，也不能支撑 target-domain findings。
+1. **G0/G1 决定可执行模式**：大语言模型和智能体可以建议候选模式，但研究者不批准就不能进入正式抽取。
+2. **G2 处理模式演化**：如果新论文暴露模式不足，必须记录触发原因、影响字段、受影响论文和回填状态。
+3. **G3 把统计协议显式化**：统计分析是字段表上的归纳操作；统计结果只能作为候选发现的证据基础。
+4. **G4/G5 区分候选与最终**：智能体只生成候选发现；最终领域发现必须经过研究者质疑与裁决。
+5. **G6 管住过程证据发布边界**：过程证据用于方法发现，不能替代目标论文的内容证据，也不能支撑领域发现。
 
-## 8. 方法阶段
+## 9. 方法阶段
 
-| 阶段 | 目标 | 关键产物 | 研究者 gate |
+| 阶段 | 目标 | 关键产物 | 研究者门控 |
 |---|---|---|---|
-| L0 主题与 meta-model 设定 | 明确 topic、RQ、scope、核心对象、关系和证据类型 | topic brief、review meta-model | G0 meta-model approval |
-| L1 scaffold mining / seed probing | 从既有 survey 与少量种子论文获得候选 pattern prior | 候选 dimension / finding / evidence-presentation patterns | scaffold 采纳/拒绝理由 |
-| L2 dimension schema 批准 | 把 meta-model 投影为可执行抽取 schema | dimension registry、字段定义、取值空间、缺失值语义 | G1 schema approval |
-| L3 论文收集与 overview | 检索、去重、筛选、全文状态和 overview card | search log、screening ledger、overview cards | screening audit |
-| L4 字段级证据抽取与 pattern evolution | 抽取 field-level content evidence，并根据失败修订 schema | evidence table、source anchors、revision/backfill log | G2 revision/backfill approval |
-| L5 statistical analysis | 在字段表上形成统计观察 | distribution、cross-tab、trend、coverage proxy、contradiction signal | G3 analysis protocol check |
-| L6 candidate finding signal | 用 finding heuristics 提出候选发现线索 | candidate finding ledger、support/counter evidence draft | G4 challenge |
-| L7 final adjudication 与透明投影 | 接受、降级、拒绝或保留 unresolved finding | final/downgraded/unresolved findings、透明材料、audit trail | G5 final adjudication |
+| L0 主题与综述元模型设定 | 明确主题、研究问题、范围、核心对象、关系和证据类型 | 主题说明、综述元模型 | G0 综述元模型批准 |
+| L1 脚手架挖掘与种子探测 | 从既有综述和少量种子论文获得候选模式先验 | 候选维度、候选发现启发式、证据呈现模式 | 采纳 / 拒绝理由 |
+| L2 维度模式批准 | 把综述元模型投影为可执行抽取模式 | 维度登记表、字段定义、取值空间、缺失值语义 | G1 模式批准 |
+| L3 论文收集与概览 | 检索、去重、筛选、全文状态和概览卡 | 检索日志、筛选台账、概览卡 | 筛选抽查 |
+| L4 字段级证据抽取与模式演化 | 抽取内容证据，并根据失败修订模式 | 字段证据表、来源锚点、修订 / 回填日志 | G2 修订 / 回填批准 |
+| L5 统计分析 | 在字段表上形成统计观察 | 分布、交叉表、趋势、覆盖率代理、矛盾信号 | G3 分析协议检查 |
+| L6 候选发现形成 | 用发现启发式提出候选发现线索 | 候选发现台账、支持 / 反向证据草案 | G4 质疑 |
+| L7 最终裁决与透明投影 | 接受、降级、拒绝或保留未解决发现 | 最终 / 降级 / 未决发现、透明材料、审计轨迹 | G5 最终裁决 |
 
-## 9. 候选贡献
+## 10. 候选贡献
 
-PR-S0-v2 只冻结候选贡献，后续必须由 A2/A3/A5/A6 用 schema、pilot、process data 和评价结果支撑。
+本文件只冻结候选贡献，后续必须由后续设计、试运行、真实运行、评价与相关工作用数据结构、试运行、过程数据和评价结果支撑。
 
 | 候选贡献 | 当前状态 | 需要的后续证据 |
 |---|---|---|
-| 研究者引导的 meta-model 与 dimension pattern scaffold | 方法设计候选 | survey-of-surveys scaffold、实例化案例、研究者批准记录。 |
-| 可演化的论文分析 schema 生命周期 | 方法设计候选 | schema revision log、impact analysis、backfill burden、stability/freeze 记录。 |
-| 字段级 content evidence 到 finding 级证据链 | 方法设计候选 | source anchor 准确性、unsupported field rate、claim-to-source audit。 |
-| statistical-analysis-to-finding 分层协议 | 方法设计候选 | 统计结果、candidate finding ledger、challenge / downgrade / unresolved 记录。 |
-| process evidence 支撑的方法评估 | 评价候选 | pilot run、硕士生 human-LLM interaction logs、consent / anonymization / redaction 记录。 |
+| 研究者引导的综述元模型与维度脚手架 | 方法设计候选 | 脚手架抽样、实例化案例、研究者批准记录。 |
+| 可演化的论文分析模式生命周期 | 方法设计候选 | 模式修订日志、影响分析、回填负担、稳定 / 冻结记录。 |
+| 字段级内容证据到发现级主张的证据链 | 方法设计候选 | 来源锚点准确性、无支撑字段比例、主张到来源审计。 |
+| 统计分析到研究发现的分层协议 | 方法设计候选 | 统计结果、候选发现台账、质疑 / 降级 / 未解决记录。 |
+| 过程证据支撑的方法评估 | 评价候选 | 试运行、硕士生人机交互日志、同意 / 匿名化 / 脱敏记录。 |
 
-## 10. 证据计划
+## 11. 证据计划
 
 | 证据类型 | 当前状态 | 后续落点 |
 |---|---|---|
-| PR-B0 baseline | 已有 35 篇全文文本级 review 与全 CCF discovery，证明宽泛自动化 story 被击穿 | A6 related work 与 novelty matrix |
-| PR-S0-pre / PR-S0B 导师记录 | 已合入上游，提供最高优先级 story 约束 | 本文件与所有 S0-v2 文档 |
-| survey-of-surveys scaffold | 计划证据；不在本 PR 执行 | 后续 scaffold / design-basis PR |
-| LLM4STM / LLM4Modeling dry-run | 本 PR 只做文档可执行性 dry-run，不运行真实 LLM | `plan/progress.md` |
-| pilot run | 后续计划，用于 closure / feasibility / artifact completeness | A3/A4/A5 |
-| 硕士生 process data | 后续计划，用于 method-evaluation findings | A5 / ethics-data-boundary PR |
+| 当前基线调研 | 已有 35 篇全文文本级评审与全 CCF 检索，证明宽泛自动化叙事会被击穿 | 相关工作与差异化矩阵 |
+| 导师讨论记录 | 已合入上游，提供最高优先级主线约束 | 本文件与所有 S0-v2 文档 |
+| 脚手架研究 | 计划证据；不在本 PR 执行 | 后续脚手架 / 设计依据 PR |
+| LLM4STM / LLM4Modeling 试读检查 | 本文档只做文档可执行性试读检查，不运行真实大语言模型 | [../plan/progress.md](../plan/progress.md) |
+| 试运行 | 后续计划，用于闭环可行性和制品完整性 | 后续试运行、真实运行与评价 |
+| 硕士生过程数据 | 后续计划，用于方法发现 | 后续评价与伦理 / 数据边界 PR |
 
-## 11. 相关工作定位
+## 12. 相关工作定位
 
-本文必须主动承认：AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025、ASReview、RobotReviewer 和自动综述生成工作已经覆盖多阶段 SLR 自动化、筛选/抽取、人在回路、来源追溯、临床证据综合、报告生成和 SE LLM-SLR 风险讨论。本文不能声称这些能力空白。
+本文必须主动承认：AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025、ASReview、RobotReviewer 和自动综述生成工作已经覆盖多阶段系统综述自动化、筛选 / 抽取、人在回路、来源追溯、临床证据综合、报告生成和软件工程中的大语言模型辅助系统综述风险讨论。本文不能声称这些能力空白。
 
-安全差异化应压缩为：**面向 SE SLR/SMS 的研究者定义 meta-model、可演化 dimension pattern、字段级 content evidence、statistical analysis 与 research finding 分层、研究者 challenge/adjudication、以及 process evidence 支撑的方法评估**。
+安全差异化应压缩为：**面向软件工程系统综述 / 系统映射研究的研究者定义综述元模型、可演化维度模式、字段级内容证据、统计分析与研究发现分层、研究者质疑 / 裁决、以及过程证据支撑的方法评估**。
 
-## 12. Claims to make / be careful / avoid
+## 13. 可以主张、谨慎主张与禁止主张
 
-### 12.1 可以尝试主张
+### 13.1 可以尝试主张
 
-- 本文研究如何把 SE SLR/SMS 中研究者的 topic / RQ / scope / meta-model 显式转化为 agent 可执行、研究者批准的 dimension schema。
-- 本文把 dimension pattern 演化、schema revision、impact analysis 和 backfill 作为 SLR 论文分析层的可审计制品。
-- 本文区分 statistical analysis、candidate finding signal 和 final target-domain finding，避免 agent 直接生成最终发现。
-- 本文把 process evidence 用于方法评估，而不是目标领域 finding 证据。
+- 本文研究如何把软件工程系统综述 / 系统映射研究中的研究者问题框架显式转化为智能体可执行、研究者批准的维度模式。
+- 本文把维度模式演化、模式修订、影响分析和回填作为论文分析层的可审计制品。
+- 本文区分统计分析、候选发现和最终领域发现，避免智能体直接生成最终发现。
+- 本文把过程证据用于方法评估，而不是目标领域发现证据。
 
-### 12.2 需要谨慎主张
+### 13.2 需要谨慎主张
 
-- “提高 finding quality”：需要人工评价、challenge 结果和残余错误统计。
-- “降低人力成本”：需要记录研究者审计时间、schema revision/backfill burden 和 token/API 成本。
-- “适用于 SE SLR/SMS”：若 pilot 只覆盖 LLM4STM / LLM4Modeling，必须限定范围。
-- “survey-of-surveys scaffold 有效”：需要后续抽样、审计和使用案例支撑。
+- “提高发现质量”：需要人工评价、质疑结果和残余错误统计。
+- “降低人力成本”：需要记录研究者审计时间、模式修订 / 回填负担和调用成本。
+- “适用于软件工程系统综述 / 系统映射研究”：若试运行只覆盖 LLM4STM / LLM4Modeling，必须限定范围。
+- “脚手架有效”：需要后续抽样、审计和使用案例支撑。
 
-### 12.3 禁止主张
+### 13.3 禁止主张
 
-- 首次 LLM / agent SLR、first agentic SLR、完整自动化 SLR。
-- LLM 自动定义可靠 meta-model 或 final findings。
-- PRISMA-compliant 或 complete coverage。
-- survey-of-surveys 是目标 SLR evidence pool 或 tertiary review。
-- process evidence 支撑 target-domain findings。
-- pilot run 或硕士生数据证明方法跨主题泛化。
+- 首次大语言模型 / 智能体系统综述、首次智能体式系统综述、完整自动化系统综述。
+- 大语言模型自动定义可靠综述元模型或最终发现。
+- PRISMA 合规或完整覆盖。
+- 脚手架是目标系统综述证据池或三级综述。
+- 过程证据支撑领域发现。
+- 试运行或硕士生数据证明方法跨主题泛化。
 - 研究者只做末端审核或润色。
 
-## 13. 审稿风险
+## 14. 审稿风险
 
-最高优先级风险见 [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。PR-S0-v2 阶段尤其要防止：
+最高优先级风险见 [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。当前阶段尤其要防止：
 
-1. 叙事双头：一边讲 SE-specific meta-model，一边讲 evidence chain，却没有用 dimension pattern lifecycle 和 finding formation 串起来；
-2. 统计分析和 research finding 混淆；
-3. content evidence 与 process evidence 混用；
-4. survey-of-surveys 被误写成完整 tertiary review；
-5. human-in-the-loop 被降级为末端人工复核；
-6. pilot / student data 被过度外推；
-7. 强近邻 related work 被弱化或遗漏。
+1. 叙事双头：一边讲软件工程特化综述元模型，一边讲证据链，却没有用维度模式生命周期和发现形成串起来；
+2. 统计分析和研究发现混淆；
+3. 内容证据与过程证据混用；
+4. 脚手架被误写成完整三级综述；
+5. 人在回路被降级为末端人工复核；
+6. 试运行 / 学生数据被过度外推；
+7. 强近邻相关工作被弱化或遗漏。
