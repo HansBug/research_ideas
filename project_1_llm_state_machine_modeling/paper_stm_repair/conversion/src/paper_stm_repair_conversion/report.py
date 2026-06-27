@@ -80,6 +80,8 @@ def make_example_report(
         "source_sha256": sha256_file(stm_path),
         "canonical_output_sha256": canonical_output_sha256,
         "canonical_output_path": _rel(canonical_output_path, repo_root),
+        "source_nl_path": _rel(example_dir / "nl.txt", repo_root),
+        "source_stm0_path": _rel(stm_path, repo_root),
         "report_version": "r3.conversion_report.v0",
         "run_id": run_id,
         "created_at": created_at or datetime.now(timezone.utc).isoformat(),

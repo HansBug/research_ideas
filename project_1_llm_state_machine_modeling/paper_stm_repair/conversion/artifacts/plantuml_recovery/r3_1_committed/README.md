@@ -1,6 +1,6 @@
 # R3.1 PlantUML recovery archive
 
-本目录保存 R3.1 PlantUML pre-SCXML normalization / recovery 的高基数运行制品。它对应 [../../../../reports/plantuml_recovery_report.json](../../../../reports/plantuml_recovery_report.json) 与 [../../../../reports/plantuml_normalization_ledger.jsonl](../../../../reports/plantuml_normalization_ledger.jsonl)，用于在不把几千个散文件暴露到 PR diff 的前提下，完整保留 raw / normalized candidate 与官方 PlantUML SCXML 证据。
+本目录保存 R3.1 PlantUML pre-SCXML normalization / recovery 的高基数运行制品。它对应 [../../../reports/plantuml_recovery_report.json](../../../reports/plantuml_recovery_report.json) 与 [../../../reports/plantuml_normalization_ledger.jsonl](../../../reports/plantuml_normalization_ledger.jsonl)，用于在不把几千个散文件暴露到 PR diff 的前提下，完整保留 raw / normalized candidate 与官方 PlantUML SCXML 证据。
 
 ## 文件说明
 

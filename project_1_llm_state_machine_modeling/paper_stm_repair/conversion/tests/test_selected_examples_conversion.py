@@ -143,6 +143,12 @@ def test_cli_regenerates_four_example_report(tmp_path):
     unified_codes = {d["code"] for d in by_id["unified-uml-synthetic-0000"]["diagnostics"]}
     assert "R3.R31.NORMALIZED_SCXML_REPLAY_USED" in unified_codes
     assert all("tool_preflight" in item for item in report["items"])
+    for example_id, item in by_id.items():
+        selected = f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}"
+        assert item["source_nl_path"] == f"{selected}/nl.txt"
+        assert item["source_stm0_path"].startswith(f"{selected}/stm0.")
+        assert item["source_meta_path"] == f"{selected}/source_meta.json"
+        assert item["canonical_output_path"]
 
 
 def test_cli_fails_loudly_when_required_toolchains_missing(tmp_path):
@@ -205,6 +211,14 @@ def test_committed_report_keeps_r3_smoke_boundary_and_losses():
         "unified-uml-synthetic-0000",
     }
     assert all(item["eligibility"] == "r3_smoke_fixture_only_not_main_experiment" for item in report["items"])
+    for example_id, item in by_id.items():
+        selected = f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}"
+        assert item["source_nl_path"] == f"{selected}/nl.txt"
+        assert item["source_stm0_path"].startswith(f"{selected}/stm0.")
+        assert item["source_meta_path"] == f"{selected}/source_meta.json"
+        assert (REPO / item["source_nl_path"]).exists()
+        assert (REPO / item["source_stm0_path"]).exists()
+        assert (REPO / item["source_meta_path"]).exists()
     assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
     assert by_id["llms-emp-gpt4o-hldcs"]["hierarchy_level"] == "hierarchical"
     assert by_id["llms-emp-kimi-autonomous-collision"]["status"] == "converted"

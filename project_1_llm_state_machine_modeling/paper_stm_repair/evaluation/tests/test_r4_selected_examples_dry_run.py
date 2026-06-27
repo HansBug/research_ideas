@@ -103,6 +103,24 @@ def test_converted_examples_split_model_level_by_conversion_attribution():
     assert unified["gain_attribution"] == "conversion_normalization"
 
 
+def test_r4_artifacts_have_top_level_source_traceability_matching_r3_report():
+    r3_by_id = {item["example_id"]: item for item in load_json(R3_REPORT)["items"]}
+    for example_id in EXPECTED:
+        r3 = r3_by_id[example_id]
+        expected_trace = {
+            "source_nl_path": r3["source_nl_path"],
+            "source_stm0_path": r3["source_stm0_path"],
+            "source_meta_path": r3["source_meta_path"],
+            "canonical_output_path": r3["canonical_output_path"],
+        }
+        for filename in ["diagnostic_draft.json", "scenario_draft.json", "eligibility_decision.json", "better_stm_checklist.json"]:
+            artifact = load_json(DRY_RUN / example_id / filename)
+            assert artifact["traceability"] == expected_trace
+            for key, value in expected_trace.items():
+                if value is not None:
+                    assert (REPO / value).exists(), (example_id, filename, key, value)
+
+
 def test_key_evidence_locators_point_to_existing_repo_files():
     for example_id in EXPECTED:
         for filename in ["diagnostic_draft.json", "scenario_draft.json", "eligibility_decision.json", "better_stm_checklist.json"]:
