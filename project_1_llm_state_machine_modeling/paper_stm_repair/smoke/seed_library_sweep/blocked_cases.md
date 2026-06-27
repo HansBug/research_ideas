@@ -1,5 +1,7 @@
 # R5 blocked / missing_asset cases
 
+> 本文件列出该类别全部记录（23/23）；机器事实源仍以 [records_index.json](./records_index.json) 和 [sweep_report.json](./sweep_report.json) 为准。
+
 事实源为 [sweep_report.json](./sweep_report.json) 与 [records_index.json](./records_index.json)。
 
 | entry | pair | status | reason | handoff |

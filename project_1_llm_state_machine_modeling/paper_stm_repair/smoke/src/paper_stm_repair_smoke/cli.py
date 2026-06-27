@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import signal
-import shutil
 import tempfile
 import threading
 import zipfile
@@ -327,6 +327,7 @@ def run_selected(_: argparse.Namespace) -> int:
 
 
 def write_selected_summary(path: Path, report: dict[str, Any]) -> None:
+    all_checks_ok = all(all(item.get("checks", {}).values()) for item in report.get("items", []))
     lines = [
         "# R5 selected 四例 deterministic smoke 摘要",
         "",
@@ -337,9 +338,17 @@ def write_selected_summary(path: Path, report: dict[str, Any]) -> None:
         f"- partial: {report['summary']['partial']}",
         f"- blocked: {report['summary']['blocked']}",
         "",
+    ]
+    if report["summary"]["partial"] == report["summary"]["examples"] and all_checks_ok:
+        lines.extend([
+            "> 当前 4 例全部落为 `partial` 是预期的 pre-repair baseline state，不表示 smoke 未跑通；每例 R5 contract checks 均通过。",
+            "> `partial` 仅表示上游 R3/R4/R4.5 已记录 conversion / representation loss 或 caveat，R5 不能把这些 loss 当作 repair gain 清零。",
+            "",
+        ])
+    lines.extend([
         "| example_id | status | seed | 格式 | R3 | R4.5 parse/inspect | loss | 关键原因 | record |",
         "|---|---|---|---|---|---|---:|---|---|",
-    ]
+    ])
     for item in report["items"]:
         lines.append(
             f"| `{item['example_id']}` | `{item['status']}` | `{item.get('seed_id')}` | "
@@ -868,6 +877,8 @@ def run_seed_sweep(args: argparse.Namespace) -> int:
                                 "pair_id": pair_id,
                                 "status": "not_applicable",
                                 "status_reason_code": "R5.SWEEP.not_applicable_pair_not_eligible_generated_stm0",
+                                "resource_role": role,
+                                "source_category": category,
                                 "eligibility_state": row.get("eligibility_state"),
                                 "is_generated_stm0": row.get("is_generated_stm0"),
                                 "is_reference": row.get("is_reference"),
@@ -1012,7 +1023,16 @@ def run_seed_sweep(args: argparse.Namespace) -> int:
     }
     write_json(out_dir / "sweep_report.json", report)
     write_json(out_dir / "records_index.json", {"schema_version": "r5.records_index.v0", "records": sorted(index_records, key=lambda x: x["record_id"])})
-    write_json(out_dir / "archive_manifest.json", {"schema_version": "r5.archive_manifest.v0", "archives": archives, "policy": "High-cardinality pair records are stored in per-entry zip archives when record count > 50 or serialized bytes > 5 MiB."})
+    write_json(out_dir / "archive_manifest.json", {
+        "schema_version": "r5.archive_manifest.v0",
+        "archives": archives,
+        "policy": {
+            "record_archiving_rule": "High-cardinality pair records are stored in per-entry zip archives when record count > 50 or serialized bytes > 5 MiB.",
+            "archive_path_base": "repository_root",
+            "path_resolution": "archive_path values are relative to repository root; path_in_zip values are relative to archive internal_root.",
+            "repair_contribution_allowed": False,
+        },
+    })
     write_sweep_summaries(out_dir, report, pair_records_all, archives)
     write_handoffs(pair_records_all, entry_records)
     print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
@@ -1021,6 +1041,35 @@ def run_seed_sweep(args: argparse.Namespace) -> int:
 
 def rows_for_status(records: list[dict[str, Any]], statuses: set[str], limit: int = 20) -> list[dict[str, Any]]:
     return [r for r in sorted(records, key=lambda x: (x.get("status") or "", x.get("entry_id") or "", str(x.get("pair_id") or ""))) if r.get("status") in statuses][:limit]
+
+
+def sorted_status_rows(records: list[dict[str, Any]], statuses: set[str]) -> list[dict[str, Any]]:
+    return [
+        r
+        for r in sorted(records, key=lambda x: (x.get("status") or "", x.get("entry_id") or "", str(x.get("pair_id") or "")))
+        if r.get("status") in statuses
+    ]
+
+
+def pr_body_sampling_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Implement the R5 PR-body sampling contract: first 3, plus median/tail for >100."""
+    if len(rows) <= 3:
+        return rows
+    indices = {0, 1, 2}
+    if len(rows) > 100:
+        indices.update({len(rows) // 2, len(rows) - 1})
+    return [rows[i] for i in sorted(indices)]
+
+
+def bounded_even_sample(rows: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    """Bounded representative handoff sample; includes head/tail and spreads rows across the sorted list."""
+    if len(rows) <= limit:
+        return rows
+    if limit <= 1:
+        return rows[:limit]
+    n = len(rows)
+    indices = sorted({round(i * (n - 1) / (limit - 1)) for i in range(limit)})
+    return [rows[i] for i in indices]
 
 
 def write_sweep_summaries(out_dir: Path, report: dict[str, Any], pair_records: list[dict[str, Any]], archives: list[dict[str, Any]]) -> None:
@@ -1053,8 +1102,13 @@ def write_sweep_summaries(out_dir: Path, report: dict[str, Any], pair_records: l
     (out_dir / "sweep_summary.md").write_text("\n".join(lines), encoding="utf-8")
 
     def case_md(title: str, statuses: set[str], filename: str) -> None:
-        rows = rows_for_status(pair_records, statuses, 40)
-        text = [f"# {title}", "", "事实源为 [sweep_report.json](./sweep_report.json) 与 [records_index.json](./records_index.json)。", "", "| entry | pair | status | reason | handoff |", "|---|---|---|---|---|"]
+        all_rows = sorted_status_rows(pair_records, statuses)
+        rows = all_rows[:40]
+        if len(all_rows) > len(rows):
+            scope_note = f"> 本文件仅列出前 {len(rows)} 条抽样记录（{len(rows)}/{len(all_rows)}）；完整清单以 [records_index.json](./records_index.json) 和 [sweep_report.json](./sweep_report.json) 为准。"
+        else:
+            scope_note = f"> 本文件列出该类别全部记录（{len(rows)}/{len(all_rows)}）；机器事实源仍以 [records_index.json](./records_index.json) 和 [sweep_report.json](./sweep_report.json) 为准。"
+        text = [f"# {title}", "", scope_note, "", "事实源为 [sweep_report.json](./sweep_report.json) 与 [records_index.json](./records_index.json)。", "", "| entry | pair | status | reason | handoff |", "|---|---|---|---|---|"]
         if not rows:
             text.append("| `<none>` | `<none>` | `<none>` | 该类别为空，见 sweep_report.json 机器统计。 | `<none>` |")
         for r in rows:
@@ -1076,13 +1130,12 @@ def write_sampling_analysis(path: Path, pair_records: list[dict[str, Any]]) -> N
     lines = [
         "# R5 seed sweep 抽样分析",
         "",
-        "抽样规则：按 `status -> entry_id -> pair_id` 排序，每类取固定前若干条；高基数全量明细仍以 archive / records_index 为准。",
+        "抽样规则：按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。高基数全量明细仍以 archive / records_index 为准。",
         "",
     ]
     for name, rows in groups.items():
         rows = sorted(rows, key=lambda x: (x.get("status") or "", x.get("entry_id") or "", str(x.get("pair_id") or "")))
-        need = 2 if name == "converted" else 1
-        sample = rows[: max(need, min(3, len(rows)))]
+        sample = pr_body_sampling_rows(rows)
         lines.extend([f"## {name}", "", f"- machine count: {len(rows)}", ""])
         if not sample:
             lines.append("该类别为空；为空依据是 pair-level machine count 为 0。\n")
@@ -1108,9 +1161,28 @@ def write_handoffs(pair_records: list[dict[str, Any]], entry_records: list[dict[
     converted = [r for r in pair_records if r.get("status") == "converted"]
     partial = [r for r in pair_records if r.get("status") == "partial"]
     negative = [r for r in pair_records if r.get("status") in {"blocked", "missing_asset", "not_applicable", "needs_generation"}]
+    converted_sorted = sorted_status_rows(converted, {"converted"})
+    partial_sorted = sorted_status_rows(partial, {"partial"})
+    converted_sample = bounded_even_sample(converted_sorted, 50)
+    partial_sample = bounded_even_sample(partial_sorted, 100)
     common = {"schema_version": "r5.handoff.v0", "created_at": now_iso(), "repo_commit": git_commit(), "repair_contribution_allowed": False}
     write_json(handoff_dir / "r5_to_r6_repair_inputs.json", {**common, "handoff_target": "r6_candidate", "summary": {"converted": len(converted)}, "items": converted, "notes": "Only pre-repair converted candidates. R6 still must run its own eligibility gates; R5 does not execute repair."})
-    write_json(handoff_dir / "r5_to_r7_seed_eligibility.json", {**common, "handoff_target": "r7_seed_eligibility_review", "summary": {"converted": len(converted), "partial": len(partial), "entries": len(entry_records)}, "converted_sample": converted[:50], "partial_items": partial[:100]})
+    write_json(handoff_dir / "r5_to_r7_seed_eligibility.json", {
+        **common,
+        "handoff_target": "r7_seed_eligibility_review",
+        "summary": {"converted": len(converted), "partial": len(partial), "entries": len(entry_records)},
+        "sample_policy": "bounded_even_sample over rows sorted by status -> entry_id -> pair_id; samples are navigation aids, not full eligibility lists",
+        "sample_limits": {"converted_sample": 50, "partial_sample": 100},
+        "sample_counts": {"converted_sample": len(converted_sample), "partial_sample": len(partial_sample)},
+        "sample_truncated": {"converted": len(converted_sorted) > len(converted_sample), "partial": len(partial_sorted) > len(partial_sample)},
+        "full_list_via": {
+            "records_index": rel(SMOKE_ROOT / "seed_library_sweep/records_index.json"),
+            "archive_manifest": rel(SMOKE_ROOT / "seed_library_sweep/archive_manifest.json"),
+            "filter": "record_type == 'pair' and status in {'converted', 'partial'}",
+        },
+        "converted_sample": converted_sample,
+        "partial_sample": partial_sample,
+    })
     write_json(handoff_dir / "r5_to_r8_negative_evidence.json", {**common, "handoff_target": "r8_negative_evidence", "summary": dict(Counter(r.get("status") for r in negative)), "items": negative[:300]})
 
 
@@ -1141,6 +1213,85 @@ def load_index_payloads(index: dict[str, Any]) -> list[dict[str, Any]]:
 
 def nonzero_status_dict(values: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in sorted(values.items()) if v}
+
+
+FORBIDDEN_CODE_PATTERNS = [
+    ("env_access", re.compile(r"\bos\.environ\b|\bgetenv\s*\(")),
+    ("dotenv", re.compile(r"dotenv|load_dotenv", re.IGNORECASE)),
+    ("env_file_literal", re.compile(r"[\"']\.env[\"']")),
+    ("openai_provider", re.compile(r"\bopenai\b|OpenAI\s*\(", re.IGNORECASE)),
+    ("anthropic_provider", re.compile(r"\banthropic\b|Anthropic\s*\(", re.IGNORECASE)),
+    ("google_genai_provider", re.compile(r"google\.generativeai|genai\.Client|GenerativeModel", re.IGNORECASE)),
+    ("http_client", re.compile(r"\brequests\b|\bhttpx\b|urllib\.request|aiohttp", re.IGNORECASE)),
+]
+
+FORBIDDEN_RUNTIME_KEYS = {
+    "api_key",
+    "api_token",
+    "bearer_token",
+    "provider_usage",
+    "provider_endpoint",
+    "runtime_provider",
+    "llm_runtime_provider",
+    "raw_output",
+    "raw_response",
+    "prompt",
+    "retry_log",
+    "usage",
+}
+
+
+def validate_no_llm_or_env_boundary(errors: list[str], indexed_payloads: list[dict[str, Any]], handoff_docs: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Machine gate for the R5 deterministic/no-provider boundary.
+
+    R5 may record that original authors used LLMs, but R5 itself must not read
+    `.env`, call hosted providers, or write runtime LLM usage artifacts.
+    """
+    scanned_files: list[str] = []
+    for root in [SMOKE_ROOT / "src", SMOKE_ROOT / "tests"]:
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            scanned_files.append(rel(path) or str(path))
+            text = path.read_text(encoding="utf-8")
+            if path.resolve() == Path(__file__).resolve():
+                text = re.sub(
+                    r"FORBIDDEN_CODE_PATTERNS = \[.*?\n\]\n\nFORBIDDEN_RUNTIME_KEYS = \{.*?\n\}\n",
+                    "",
+                    text,
+                    flags=re.DOTALL,
+                )
+            for code, pattern in FORBIDDEN_CODE_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"R5 deterministic boundary violation in {rel(path)}: {code}")
+
+    scanned_docs = 0
+
+    def visit(obj: Any, where: str) -> None:
+        nonlocal scanned_docs
+        if isinstance(obj, dict):
+            scanned_docs += 1
+            for key, value in obj.items():
+                key_s = str(key).lower()
+                if key_s in FORBIDDEN_RUNTIME_KEYS:
+                    errors.append(f"R5 runtime LLM/provider key is not allowed at {where}.{key}")
+                visit(value, f"{where}.{key}")
+        elif isinstance(obj, list):
+            for i, value in enumerate(obj):
+                visit(value, f"{where}[{i}]")
+
+    for i, payload in enumerate(indexed_payloads):
+        visit(payload, f"records_index_payload[{i}]")
+    for name, doc in handoff_docs.items():
+        visit(doc, f"handoff.{name}")
+
+    return {
+        "status": "ok",
+        "scanned_python_files": scanned_files,
+        "scanned_json_dicts": scanned_docs,
+        "forbidden_code_patterns": [code for code, _ in FORBIDDEN_CODE_PATTERNS],
+        "forbidden_runtime_keys": sorted(FORBIDDEN_RUNTIME_KEYS),
+    }
 
 
 def validate(_: argparse.Namespace) -> int:
@@ -1284,6 +1435,7 @@ def validate(_: argparse.Namespace) -> int:
                 if payload.get("repair_contribution_allowed") is not False:
                     errors.append(f"{payload.get('record_id')} repair_contribution_allowed must be false")
         handoff_docs = {hp.name: load_json(hp) for hp in handoff_paths}
+        boundary_report = validate_no_llm_or_env_boundary(errors, indexed_payloads, handoff_docs)
         r6 = handoff_docs["r5_to_r6_repair_inputs.json"]
         if len(r6.get("items", [])) != pair_counts.get("converted", 0):
             errors.append("R6 handoff items must include all converted pair payloads")
@@ -1294,6 +1446,12 @@ def validate(_: argparse.Namespace) -> int:
             errors.append("R7 handoff converted summary does not match pair counts")
         if (r7.get("summary") or {}).get("partial") != pair_counts.get("partial", 0):
             errors.append("R7 handoff partial summary does not match pair counts")
+        if "partial_items" in r7:
+            errors.append("R7 handoff must use partial_sample, not misleading partial_items")
+        if not r7.get("sample_policy") or not r7.get("full_list_via"):
+            errors.append("R7 handoff must document sample policy and full_list_via")
+        if r7.get("sample_truncated") != {"converted": pair_counts.get("converted", 0) > len(r7.get("converted_sample", [])), "partial": pair_counts.get("partial", 0) > len(r7.get("partial_sample", []))}:
+            errors.append("R7 handoff sample_truncated flags do not match sample lengths")
         r8 = handoff_docs["r5_to_r8_negative_evidence.json"]
         r8_expected = dict(Counter(p.get("status") for p in pair_payloads if p.get("status") in {"blocked", "missing_asset", "not_applicable", "needs_generation"}))
         if r8.get("summary") != r8_expected:
@@ -1305,7 +1463,11 @@ def validate(_: argparse.Namespace) -> int:
         for e in errors:
             print(f"ERROR: {e}")
         return 1
-    print(json.dumps({"status": "ok", "validated": [rel(p) for p in [selected_report_path, sweep_report_path, index_path, manifest_path, *handoff_paths]]}, ensure_ascii=False, indent=2))
+    print(json.dumps({
+        "status": "ok",
+        "validated": [rel(p) for p in [selected_report_path, sweep_report_path, index_path, manifest_path, *handoff_paths]],
+        "deterministic_boundary": boundary_report if "boundary_report" in locals() else None,
+    }, ensure_ascii=False, indent=2))
     return 0
 
 

@@ -5,6 +5,11 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 
+# R5 tests intentionally include snapshot counts for the current frozen seed_library
+# census. If seed_library entries/assets/pairs change in later PRs, rerun
+# `paper_stm_repair_smoke.cli run-seed-sweep` and update these numbers together
+# with the committed sweep artifacts; do not silently relax the evidence contract.
+
 def repo_root() -> Path:
     cur = Path(__file__).resolve()
     for parent in [cur, *cur.parents]:
@@ -69,6 +74,7 @@ def test_seed_sweep_denominator_and_archive_contract():
     assert report["meta"]["generation_context"]["schema_sha256"]
     manifest = load(SMOKE / "seed_library_sweep/archive_manifest.json")
     assert manifest["schema_version"] == "r5.archive_manifest.v0"
+    assert manifest["policy"]["archive_path_base"] == "repository_root"
     assert len(manifest["archives"]) == 2
     for archive in manifest["archives"]:
         path = ROOT / archive["archive_path"]
@@ -111,6 +117,27 @@ def test_handoff_files_are_pre_repair_only():
         assert "STM_k" not in json.dumps(doc, ensure_ascii=False)
 
 
+def test_validate_reports_no_llm_or_env_boundary():
+    from paper_stm_repair_smoke.cli import load_index_payloads as cli_load_index_payloads
+    from paper_stm_repair_smoke.cli import validate_no_llm_or_env_boundary
+
+    index = load(SMOKE / "seed_library_sweep/records_index.json")
+    handoff_docs = {
+        name: load(SMOKE / "handoff" / name)
+        for name in [
+            "r5_to_r6_repair_inputs.json",
+            "r5_to_r7_seed_eligibility.json",
+            "r5_to_r8_negative_evidence.json",
+        ]
+    }
+    errors: list[str] = []
+    report = validate_no_llm_or_env_boundary(errors, cli_load_index_payloads(index), handoff_docs)
+    assert errors == []
+    assert report["status"] == "ok"
+    assert "env_access" in report["forbidden_code_patterns"]
+    assert "provider_usage" in report["forbidden_runtime_keys"]
+
+
 def test_handoff_counts_match_seed_sweep_records():
     payloads = load_index_payloads()
     pair_payloads = [p for p in payloads if p["schema_version"] == "r5.seed_sweep_pair_record.v0"]
@@ -123,7 +150,23 @@ def test_handoff_counts_match_seed_sweep_records():
     r7 = load(SMOKE / "handoff/r5_to_r7_seed_eligibility.json")
     assert r7["summary"]["converted"] == pair_counts["converted"]
     assert r7["summary"]["partial"] == pair_counts["partial"]
+    assert "partial_items" not in r7
+    assert r7["sample_truncated"] == {"converted": True, "partial": True}
+    assert len(r7["converted_sample"]) == r7["sample_counts"]["converted_sample"] == 50
+    assert len(r7["partial_sample"]) == r7["sample_counts"]["partial_sample"] == 100
+    assert r7["full_list_via"]["records_index"].endswith("records_index.json")
 
     r8 = load(SMOKE / "handoff/r5_to_r8_negative_evidence.json")
     expected_negative = dict(Counter(p["status"] for p in pair_payloads if p["status"] in {"blocked", "missing_asset", "not_applicable", "needs_generation"}))
     assert r8["summary"] == expected_negative
+
+
+def test_sampling_markdown_uses_pr_body_contract():
+    text = (SMOKE / "seed_library_sweep/sampling_analysis.md").read_text(encoding="utf-8")
+    assert "超过 100 条，再追加中位与末尾各 1 条" in text
+    assert "unified_uml_state_train_0468" in text
+    assert "unified_uml_state_train_0997" in text
+    assert "unified_uml_state_train_0462" in text
+    assert "unified_uml_state_train_0998" in text
+    partial_cases = (SMOKE / "seed_library_sweep/partial_cases.md").read_text(encoding="utf-8")
+    assert "仅列出前 40 条抽样记录（40/504）" in partial_cases

@@ -82,7 +82,7 @@ Markdown summary 只做人类入口，不成为第二事实真源；所有统计
 
 | 状态 | 含义 | 是否失败 | 默认 handoff_target |
 |---|---|---:|---|
-| `converted` | 一手 / 条件 `NL + generated STM_0` 可定位，且能走到 `.fcstm` parse / inspect。 | 否 | `r6_candidate` / `r7_eligible_review` |
+| `converted` | 一手 / 条件 `NL + generated STM_0` 可定位，且能走到 `.fcstm` parse / inspect。 | 否 | `r6_candidate` / `r7_eligibility_review` |
 | `partial` | 有一手资源并能部分转换，但存在语义 loss、切片不足、格式 caveat 或只适合作 supplementary。 | 否，但需风险入账 | `r7_eligibility_review` |
 | `blocked` | 理论上有一手 `STM_0`，但当前工具链无法完成转换。 | 是 | `r8_negative_evidence` / `converter_followup` |
 | `not_applicable` | related-only、paper-reconstructable、无 generated `STM_0`、非目标形式主义等。 | 否 | `related_work_or_excluded` |
@@ -90,6 +90,8 @@ Markdown summary 只做人类入口，不成为第二事实真源；所有统计
 | `missing_asset` | registry 指向的一手资源本地缺失或 hash / locator 无法核验。 | 是 | `asset_repair_required` |
 
 `pipeline_only` 不是 R5 census status；registry 中 `pipeline_only` / `NL+code` 条目在 R5 统一落为 `needs_generation`，并保留原始 `resource_role`。
+
+> selected 四例当前不预期出现 `pass`：若 22 项 R5 contract checks 全部通过但上游 R3/R4/R4.5 已记录 loss / caveat，则应保持 `partial`。这是一种 pre-repair readiness 事实，而不是 R5 smoke 失败。
 
 ## 5. 验收命令
 
@@ -105,6 +107,7 @@ python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/smoke/src \
 python -m paper_stm_repair_smoke.cli validate
 
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/conversion/src \
 python -m pytest \
   project_1_llm_state_machine_modeling/paper_stm_repair/conversion/tests \
   project_1_llm_state_machine_modeling/paper_stm_repair/evaluation/tests \

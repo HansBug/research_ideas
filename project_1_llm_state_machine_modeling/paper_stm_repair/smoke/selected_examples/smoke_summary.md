@@ -7,6 +7,9 @@
 - partial: 4
 - blocked: 0
 
+> 当前 4 例全部落为 `partial` 是预期的 pre-repair baseline state，不表示 smoke 未跑通；每例 R5 contract checks 均通过。
+> `partial` 仅表示上游 R3/R4/R4.5 已记录 conversion / representation loss 或 caveat，R5 不能把这些 loss 当作 repair gain 清零。
+
 | example_id | status | seed | 格式 | R3 | R4.5 parse/inspect | loss | 关键原因 | record |
 |---|---|---|---|---|---|---:|---|---|
 | `llms-emp-gpt4o-hldcs` | `partial` | `llms-emp-stm-subset` | `plantuml` | `converted` | `ok/ok` | 3 | `R5.SELECTED.partial_upstream_caveat_or_loss` | [record](./smoke_records/llms-emp-gpt4o-hldcs.json) |

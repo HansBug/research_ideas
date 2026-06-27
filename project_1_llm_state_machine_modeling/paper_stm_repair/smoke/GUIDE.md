@@ -80,7 +80,7 @@ sweep 必须扫描 [../corpora/seed_library/](../corpora/seed_library/) 当前�
 
 ### 4.3 entry-level 聚合
 
-`pair_status` / `asset_status` 是主事实，`entry_status` 是派生汇总。`primary_entry_status` precedence 固定为：无 registry -> `not_applicable`；asset 缺失 -> `missing_asset`；`pipeline_only` -> `needs_generation`；混合 converted/blocked/partial -> `partial`；全 converted -> `converted`；全 blocked -> `blocked`；其余 -> `partial`。
+`status_counts_by_pair` / `status_counts_by_asset` 是 JSON 中的主事实字段（概念上可简称 pair status / asset status），`entry_statuses` / `primary_entry_status` 是派生汇总。`primary_entry_status` precedence 固定为：无 registry -> `not_applicable`；asset 缺失 -> `missing_asset`；`pipeline_only` -> `needs_generation`；混合 converted/blocked/partial -> `partial`；全 converted -> `converted`；全 blocked -> `blocked`；其余 -> `partial`。
 
 ### 4.4 loss 归因字段
 
@@ -93,7 +93,7 @@ sweep 必须扫描 [../corpora/seed_library/](../corpora/seed_library/) 当前�
 3. 明细不超过 50 个 record 且总量不超过 5 MiB 时，可以落在 `audit_records/`。
 4. 明细超过 50 个 record 或 5 MiB 时，必须写入 `archives/<entry_id>_records.zip`。
 5. `records_index.json` 每条至少包含 `record_type`、`record_id`、`entry_id`、`asset_id`、`pair_id`、`status`、`path_on_disk` 或 `path_in_zip`、`sha256`；其中 `record_type` 必须区分 `pair` 与 `asset`，不能只索引 pair 而丢弃资产证据链。
-6. `archive_manifest.json` 每个 archive 至少包含 `archive_path`、`sha256`、`record_count`、`schema_version`、`internal_root`、`generation_command`。
+6. `archive_manifest.json` 每个 archive 至少包含 `archive_path`、`sha256`、`record_count`、`schema_version`、`internal_root`、`generation_command`。`archive_path` 统一按仓库根目录相对路径解析。
 7. archive 内部路径必须稳定，不得依赖临时绝对路径。
 
 ## 6. handoff 规则
@@ -121,13 +121,13 @@ python -m paper_stm_repair_smoke.cli validate
 
 ## 8. validate 必须检查什么
 
-`validate` 至少检查 selected 四例 record、上游路径、hash、R3/R4/R4.5 example_id、direct `parse_inspect_report.json` 状态、summary 复算、sweep schema、entry / asset / pair denominator、`records_index.json` 全量 payload、archive manifest、handoff 三件套与 sweep 计数一致性、loss 归因字段、`repair_contribution_allowed=false`，并确认不存在 `.env` 读取、真实 provider usage 或 LLM 调用记录。
+`validate` 至少检查 selected 四例 record、上游路径、hash、R3/R4/R4.5 example_id、direct `parse_inspect_report.json` 状态、summary 复算、sweep schema、entry / asset / pair denominator、`records_index.json` 全量 payload、archive manifest、handoff 三件套与 sweep 计数一致性、loss 归因字段、`repair_contribution_allowed=false`，并通过 `validate_no_llm_or_env_boundary` 扫描 `smoke/src`、`smoke/tests` 与 indexed payload / handoff，确认不存在 `.env` 读取、真实 provider usage、provider SDK / network client 调用或 LLM runtime 记录。
 
 报告中的 `generation_context` 必须保留生成命令、base commit、工作区 dirty 状态、CLI hash 与 schema hash。由于生成器和产物通常在同一 PR 中提交，`repo_commit` 不能单独作为复现锚点；复验必须同时使用 PR diff + `generator_cli_sha256` + schema hash + machine-readable records。
 
 ## 9. 抽样分析
 
-[./seed_library_sweep/sampling_analysis.md](./seed_library_sweep/sampling_analysis.md) 必须覆盖 converted、partial、blocked-or-missing、not_applicable-or-needs-generation。若某类为空，必须说明来自 `sweep_report.json` 的机器统计证据。
+[./seed_library_sweep/sampling_analysis.md](./seed_library_sweep/sampling_analysis.md) 必须覆盖 converted、partial、blocked-or-missing、not_applicable-or-needs-generation。抽样规则必须与 PR body 一致：按 `status -> entry_id -> pair_id` 排序，每类至少取前 3 条；若该类超过 100 条，再追加中位与末尾各 1 条。若某类为空，必须说明来自 `sweep_report.json` 的机器统计证据。
 
 ## 10. 禁止回写
 
