@@ -4,7 +4,7 @@
 
 本文件给出后续论文稿的章节级架构。PR-S0-v2 不写完整论文正文，也不写结果型主张；它只冻结章节功能、论证顺序、证据义务和禁止误读。
 
-首次出现的核心术语按“中文术语（English term / abbreviation）”写法固定：软件工程（Software Engineering, SE）、系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、大语言模型（Large Language Model, LLM）、综述元模型（review meta-model）、维度模式（dimension pattern / extraction schema）、字段级内容证据（field-level content evidence）、过程证据（process evidence / audit trail）、统计分析（statistical analysis）、候选发现信号（candidate finding signal）、目标领域研究发现（target-domain research finding）和方法评估发现（method-evaluation finding）。本节之后除论文名、工具名、路径、命令、缩写锚点和代码标识外，正文优先使用中文术语。
+本文件首次锚定核心术语：软件工程（Software Engineering, SE）、系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、大语言模型（Large Language Model, LLM）、智能体（agent）、综述元模型（review meta-model）、维度模式（dimension pattern / extraction schema）、内容证据（field-level content evidence）、过程证据（process evidence / audit trail）、统计分析（statistical analysis）、候选发现（candidate finding signal）、领域发现（target-domain research finding）、方法发现（method-evaluation finding）和 PRISMA 透明报告框架（Preferred Reporting Items for Systematic Reviews and Meta-Analyses, PRISMA）。上述术语完整定义以 [terminology_policy.md](./terminology_policy.md) 为准；本节之后除论文名、工具名、路径、命令和固定缩写外，正文优先使用中文术语。
 
 ## 2. 引言
 
@@ -24,7 +24,7 @@
 建议分组：
 
 1. **软件工程系统综述 / 系统映射研究方法学**：介绍协议、检索、筛选、数据抽取、综合、报告和效度威胁。
-2. **PRISMA 与透明报告**：解释类 PRISMA、受 PRISMA 启发和 PRISMA 合规之间的边界。
+2. **PRISMA 透明报告框架与透明报告**：解释类 PRISMA 材料、受 PRISMA 透明报告框架启发和合规声明之间的边界。
 3. **传统综述自动化工具**：介绍 ASReview、RobotReviewer 等，说明筛选与特定证据自动化早已有基础。
 4. **大语言模型 / 智能体式系统综述近邻**：介绍 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、Closed-loop scientific literature summarization、自动综述生成等。
 5. **软件工程大语言模型辅助系统综述方法学风险**：介绍 WSESE@ICSE 2025、筛选变异性、提示可复现性、模型漂移和透明性缺口。
@@ -40,11 +40,11 @@
 | 研究者拥有的决策 | 综述元模型、维度模式批准、模式修订 / 回填、统计分析协议、候选发现质疑、最终裁决、过程证据边界。 |
 | 智能体辅助对象 | 元数据、全文、概览卡、内容证据、统计视图、候选发现、支持 / 反向证据草案。 |
 | 输出 | 批准后的维度模式、概览卡、字段证据表、模式修订 / 回填日志、统计分析表、候选发现台账、质疑 / 裁决日志、透明材料和过程证据。 |
-| 非目标 | 端到端无人系统综述、PRISMA 合规、完整覆盖、首次智能体式系统综述、大语言模型最终发现。 |
+| 非目标 | 端到端无人系统综述、PRISMA 透明报告框架合规、完整覆盖、首次智能体式系统综述、大语言模型最终发现。 |
 
 ## 5. 方法
 
-本节应以 [paper_story.md](./paper_story.md) 的两张 Mermaid 方法图和 [protocol.md](./protocol.md) 的阶段契约为准。建议小节如下。
+本节应以 [paper_story.md](./paper_story.md) 的 SVG 普通流程图、Mermaid 时序 / 泳道图和 [protocol.md](./protocol.md) 的阶段契约为准。建议小节如下。
 
 ### 5.1 研究者定义综述元模型
 
@@ -52,7 +52,7 @@
 
 ### 5.2 脚手架挖掘与种子探测
 
-从既有软件工程、人工智能辅助软件工程（AI4SE）、模型驱动工程（Model-Driven Engineering, MDE）和大语言模型辅助软件工程（LLM4SE）的综述、系统综述和系统映射研究中低成本提取维度模式、发现启发式和证据呈现模式，并用种子论文做可执行性压力测试。必须强调：脚手架不是目标证据池，也不是 PRISMA 合规三级综述。
+从既有软件工程、人工智能辅助软件工程（AI4SE）、模型驱动工程（Model-Driven Engineering, MDE）和大语言模型辅助软件工程（LLM4SE）的综述、系统综述和系统映射研究中低成本提取维度模式、发现启发式和证据呈现模式，并用种子论文做可执行性压力测试。必须强调：脚手架不是目标证据池，也不是 PRISMA 透明报告框架合规三级综述。
 
 ### 5.3 可演化维度模式
 
@@ -97,7 +97,7 @@
 
 ## 7. 单主题试运行
 
-PR-S0-v2 不冻结试运行主题，但建议优先考虑 LLM4STM / LLM4Modeling，因为它贴近博士主线且已有基线 / `sources/` 资产可作为压力测试线索。试运行目标不是证明泛化，而是验证：
+PR-S0-v2 不冻结试运行主题，但建议优先考虑基于大语言模型的状态机建模主题（LLM4STM / LLM4Modeling），因为它贴近博士主线且已有基线 / `sources/` 资产可作为压力测试线索。试运行目标不是证明泛化，而是验证：
 
 1. L0--L7 是否能闭环；
 2. 维度模式是否能从脚手架 / 种子论文进入批准模式；
@@ -163,7 +163,7 @@ PR-S0-v2 不写结果。未来结果应围绕：
 
 1. 脚手架不等于完整综述之综述，也不进入目标领域发现的证据池；
 2. 覆盖代理不等于完整覆盖；
-3. 类 PRISMA 不等于 PRISMA 合规；
+3. 类 PRISMA 材料不等于 PRISMA 透明报告框架合规；
 4. 最终发现仍依赖研究者判断，不能保证绝对正确；
 5. 试运行只验证闭环与可执行性，不能证明泛化；
 6. 学生过程数据只能支撑方法评估，且有同意、匿名化和教学关系风险；

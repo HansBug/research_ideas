@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 文档大修、首轮正式复审 I/M 修复与 2026-06-27 术语中文化 / 双图补强已完成本地验证；当前等待推送后进入 PR 当前提交复审 |
+| 当前阶段 | S0-v2 文档大修、首轮正式复审 I/M 修复、2026-06-27 术语中文化与双图补强已完成本地验证和内部最终复核；当前等待推送后进入正式三路复审 |
 | 真实大语言模型 | 未运行；本 PR 不触发提供商调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -41,14 +41,14 @@
 
 1. 将第二篇论文主线从旧“研究者引导、发现导向、可审计证据流”升级为“研究者引导、模式演化、证据支撑、发现导向的智能体式系统综述 / 系统映射研究支持方法”。
 2. 将真实系统综述明确拆成三层：论文收集与初步处理、维度模式驱动的论文分析、统计分析与研究发现形成。
-3. 在 [../story/paper_story.md](../story/paper_story.md) 中更新 Mermaid 方法总览图，显式包含 L0--L7、G0--G6、内容证据、统计分析、候选发现、最终裁决与过程证据边界。
+3. 在 [../story/paper_story.md](../story/paper_story.md) 中更新 SVG 普通流程图与 Mermaid 时序 / 泳道图，显式包含 L0--L7、G0--G6、内容证据、统计分析、候选发现、最终裁决与过程证据边界。
 4. 在 [../story/protocol.md](../story/protocol.md) 中明确维度模式生命周期、模式修订 / 影响分析 / 回填、统计分析到研究发现的转移规则、脚手架边界、试运行与学生过程数据边界。
 5. 在 [../story/terminology_policy.md](../story/terminology_policy.md) 中新增并中文化维度模式、模式演化、内容证据 / 过程证据、统计分析、候选发现、领域发现、方法发现、G0--G6 等术语。
 6. 重写 [../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)、[../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)，修复内部审查者指出的旧 S0 落点不同步问题。
 7. 更新入口 README、story README、任务包和 项目证据清单，使下一位智能体能直接按 S0-v2 接手。
-8. 按 2026-06-27 新增要求，补强术语首次出现规则：关键术语首次出现采用“中文术语（English term / abbreviation）”，后续正文优先使用中文主称；同时在 [../story/paper_story.md](../story/paper_story.md) 新增普通流程图，与原时序 / 泳道图互补说明阶段、参与者、制品、反馈和过程证据边界。
+8. 按 2026-06-27 新增要求，补强术语首次出现规则：关键术语首次出现采用“中文术语（英文术语 / 缩写）”，后续正文优先使用中文主称；同时在 [../story/paper_story.md](../story/paper_story.md) 引入可控 SVG 普通流程图，与原 Mermaid 时序 / 泳道图互补说明阶段、参与者、制品、反馈和过程证据边界。
 
-## 5. LLM4STM / LLM4Modeling 试读检查口径
+## 5. 基于大语言模型的状态机建模主题（LLM4STM / LLM4Modeling）试读检查口径
 
 本 PR 不运行真实大语言模型；这里只做文档可执行性试读检查，检查 S0-v2 文档是否能指导一个贴近博士主线的主题。
 
@@ -59,7 +59,7 @@
 | L2 维度模式 | 字段树可含输入材料类型、输出状态机类型、状态 / 迁移 / 守卫 / 动作 / 时钟、大语言模型 / 智能体类型、评价指标、制品可用性 | [terminology_policy.md](../story/terminology_policy.md) 定义维度模式与模式演化 |
 | L4 字段证据 | 每篇论文字段必须带页码、章节、短引文、表格、制品链接或缺失 / 不确定说明 | [protocol.md](../story/protocol.md) §2/§4 能指导内容证据 |
 | L5 统计分析 | 统计不同状态机输出谱系、智能体使用程度、公开制品比例、评价方式分布 | [protocol.md](../story/protocol.md) §5 禁止统计结果直接升级为发现 |
-| L6 候选发现 | 例如“多数 LLM4STM 论文缺少 machine-checkable 评价”只能作为候选发现 | [claim_evidence_map.md](../story/claim_evidence_map.md) 明确候选 / 最终边界 |
+| L6 候选发现 | 例如“多数 LLM4STM 论文缺少 机器可检查评价（machine-checkable evaluation）”只能作为候选发现 | [claim_evidence_map.md](../story/claim_evidence_map.md) 明确候选 / 最终边界 |
 | L7 裁决 | 研究者检查反例、范围、强度；可能降级为“在当前样本中观察到制品 / 评价透明度不足” | [paper_outline.md](../story/paper_outline.md) 与风险登记能指导质疑 / 裁决 |
 | 过程证据 | 记录模式修订、回填、质疑和人工时间，用于方法评价 | [evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md) 已把过程指标分离 |
 
@@ -72,7 +72,7 @@
 | 2026-06-26 | 合入 `origin/paper2/agent-based-slr-umbrella` | 通过；merge commit `47ce6cc3`，无冲突 |
 | 2026-06-26 | 三路 PR 正文 计划阶段审查 | 0C/0I，可进入实现；M 级建议已吸收进 S0-v2 文档方向 |
 | 2026-06-26 | 内部子代理只读检查 | 发现 C/I：多份下游文档仍旧 S0、L8/G6 不一致、方法图缺 G6；本轮已修复 |
-| 2026-06-26 | LLM4STM / LLM4Modeling 试读检查口径检查 | 通过；文档能指导维度模式 → 字段证据 → 统计分析 → 候选发现 → 裁决 |
+| 2026-06-26 | 基于大语言模型的状态机建模主题试读检查口径检查 | 通过；文档能指导维度模式 → 字段证据 → 统计分析 → 候选发现 → 裁决 |
 | 2026-06-26 | `git diff --check` | 通过 |
 | 2026-06-26 | PR-S0-v2 必需文件存在性检查 | 通过；`paper_agent_based_slr PR-S0-v2 packet ok` |
 | 2026-06-26 | 禁止强主张 grep | 通过；命中均位于禁止 / 风险 / 安全边界 / grep 规则语境中，不是正向主张 |
@@ -80,10 +80,11 @@
 | 2026-06-26 | Mermaid 渲染检查：`mmdc -p /tmp/puppeteer-no-sandbox-pr114.json -i /tmp/pr114_s0v2_method.mmd -o /tmp/pr114_s0v2_method.svg` | 通过；SVG 已生成，本地大小 44619 bytes |
 | 2026-06-26 | 首轮正式复审修复验证：`git diff --check`、必需文件检查、Markdown 相对链接检查、Mermaid 渲染、旧 story grep | 通过；`baselines/SUMMARY.md` 旧 S0 正向 story 口径已同步为 S0-v2，grep 无旧正向叙事命中 |
 | 2026-06-26 | 状态同步提交复核 | 通过；`ed55b912` / `397b6d05` 均仅修改 `plan/progress.md` 当前阶段或复审目标说明，不改变 S0-v2 方法合同；当前复审对象以 PR 当前提交为准 |
-| 2026-06-27 | 术语中文化与双图补强 | 通过；修复 `paper_outline.md` / `differential_novelty_matrix.md` 中英混杂与坏链接，补强术语首次出现规则，普通流程图与时序图均已渲染；普通流程图尺寸 784×828、比例 0.947，时序图尺寸 784×1037、比例 0.756 |
+| 2026-06-27 | 术语中文化与双图补强 | 通过；修复 `paper_outline.md` / `differential_novelty_matrix.md` 中英混杂与坏链接，补强术语首次出现规则，普通流程图与时序图均已渲染；普通流程图 SVG 已渲染为 1260×780、比例 1.615，时序图白底渲染为 784×1037、比例 0.756；普通流程图已在图内补充 L0--L7 映射、颜色图例和 G6“仅审计记录 / 不作为领域发现证据”边界 |
 | 2026-06-27 | 内部子代理术语审查 | 首轮发现 0C/3I/2M，主要为大纲中英混杂、坏链接和新颖性矩阵误替换；已修复后重新检查 |
-| 2026-06-27 | 普通流程图视觉盲读 | 两轮视觉子代理盲读：首轮指出 G6 横切关系和反馈路径歧义；修订后复读为 0C/0I，仅余 M 级旁注化建议，已吸收为较浅过程证据虚线与更明确回跳标签 |
+| 2026-06-27 | 普通流程图视觉盲读 | 视觉检查发现 Mermaid 普通流程图会被自动布局成倒序、过扁或过高；已改为可控 SVG 普通流程图。多轮盲读指出 G6 与 G4 反馈歧义；当前 SVG 已调整为三阶段主流程居中、G2/G4 左侧反馈、回 L2 / 回 L4 标签、颜色图例和“G6 仅审计记录 / 不作为领域发现证据”说明；等待最终只读复核 |
 | 2026-06-27 | Markdown 相对链接检查 | 通过；`markdown relative links ok`，此前因中文化误替换产生的若干错误文件链接均已恢复 |
+| 2026-06-27 | 最终内部复核：术语 / SVG / 链接 / 渲染 | 通过；视觉盲读确认普通流程图 0C/0I，仅余 M 级视觉微调；只读 verifier 确认 SVG 已可被 git 跟踪、`baselines/GUIDE.md` 不再越界、任务包已改为 SVG + Mermaid 分离验收、`git diff --check` / Markdown 相对链接 / Mermaid 渲染 / SVG 渲染均通过 |
 
 ## 7. 审查状态
 
@@ -99,7 +100,7 @@
 ## 8. 剩余风险
 
 1. 当前 PR-S0-v2 仍是主线和合同冻结，不提供真实运行证据；后续不得把候选贡献写成结果。
-2. Mermaid 方法图是方法总览草案；若后续设计、试运行、真实运行或评价改变阶段契约、维度模式或证据字段，必须同步更新。
+2. SVG 普通流程图与 Mermaid 时序 / 泳道图是方法总览草案；若后续设计、试运行、真实运行或评价改变阶段契约、维度模式或证据字段，必须同步更新。
 3. 脚手架仍是计划证据；后续若执行，必须避免写成目标证据池或完整三级综述。
 4. 学生过程数据仍是计划；评价前必须冻结同意、匿名化、脱敏、教学关系隔离和访问权限。
-5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / artifact audit。
+5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / 制品审计。
