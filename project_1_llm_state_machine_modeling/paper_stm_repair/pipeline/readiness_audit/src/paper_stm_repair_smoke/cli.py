@@ -347,7 +347,7 @@ def write_selected_summary(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Migration notice: `smoke_summary.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
@@ -1077,7 +1077,7 @@ def write_sweep_summaries(out_dir: Path, report: dict[str, Any], pair_records: l
     lines = [
         "# Migration notice: `sweep_summary.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
@@ -1102,7 +1102,7 @@ def write_sweep_summaries(out_dir: Path, report: dict[str, Any], pair_records: l
         text = [
             f"# Migration notice: `{filename}`",
             "",
-            "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+            "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
             "",
             "## Canonical human-facing report",
             "",
@@ -1130,7 +1130,7 @@ def write_sampling_analysis(path: Path, pair_records: list[dict[str, Any]]) -> N
     lines = [
         "# Migration notice: `sampling_analysis.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
@@ -1791,7 +1791,7 @@ def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], cluster
     lines = [
         "# Migration notice: `llms_emp_deep_profile.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
@@ -1817,7 +1817,7 @@ def write_llms_emp_blocked_probe(path: Path, blocked: list[dict[str, Any]]) -> N
     lines = [
         "# Migration notice: `llms_emp_blocked_probe.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
@@ -1841,7 +1841,7 @@ def write_llms_emp_r56_handoff(path: Path, cases: list[dict[str, Any]], clusters
     lines = [
         "# Migration notice: `llms_emp_r56_handoff.md`",
         "",
-        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。PR #131 已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
+        "> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。",
         "",
         "## Canonical human-facing report",
         "",
