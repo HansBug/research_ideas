@@ -13,14 +13,14 @@
 | 原始模型到规范化 JSON | 已跑通四例，并完成 PlantUML 全量恢复摸排 | 入口：[pipeline/conversion/README.md](./pipeline/conversion/README.md) |
 | 规范化 JSON 到 `.fcstm` | 四例均可导出并通过 parse / inspect | 入口：[pipeline/representation/README.md](./pipeline/representation/README.md) |
 | 评价门 v0 | 已定义并 dry-run 四例 | 入口：[pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
-| R5 全量摸排 | 已完成 | 入口：[pipeline/smoke/README.md](./pipeline/smoke/README.md) |
-| R5.5 `llms-emp` 主 seed 池深度画像 | 已完成 | 入口：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)、[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
+| R5 全量摸排 | 已完成 | 入口：[pipeline/readiness_audit/README.md](./pipeline/readiness_audit/README.md) |
+| R5.5 `llms-emp` 主 seed 池深度画像 | 已完成 | 入口：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
 | 真实修正循环 | 未完成 | 后续阶段实现；当前没有 `STM_k` 主实验结果 |
 | Better STM 主结果 | 未完成 | 需要真实修正、回归、人工/结构化裁决后才能判定 |
 
 ## 2. Seed 资源现状
 
-R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm-subset` 展开。它是当前最符合 `<NL, LLM-generated STM_0>` 硬边界的一手资源，且具备 10 个唯一 NL × 6 个 LLM 输出的可比较结构。完整 60 case 状态表与问题谱系见 [pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)；R5.5 深度画像与边界交接见 [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md)。
+R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm-subset` 展开。它是当前最符合 `<NL, LLM-generated STM_0>` 硬边界的一手资源，且具备 10 个唯一 NL × 6 个 LLM 输出的可比较结构。完整 60 case 状态表与问题谱系见 [reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)；R5.5 深度画像与边界交接见 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)。
 
 | 角色 | 条目 | 可用数量 / 特征 | 当前处理 |
 |---|---|---|---|
@@ -64,7 +64,7 @@ R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm
 
 ## 4. R5 全量摸排结果
 
-事实源：[pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json)。
+事实源：[pipeline/readiness_audit/seed_sweep/sweep_report.json](./pipeline/readiness_audit/seed_sweep/sweep_report.json)。
 
 | 指标 | 数量 |
 |---|---:|
@@ -96,7 +96,7 @@ R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm
 
 ### 4.3 R5.5 `llms-emp` 深度画像
 
-事实源：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)。其中 §1.1 是 10 个唯一 NL cluster 的完整指标结论表，§1.2 是 10 NL × 6 LLM 输出状态矩阵，§1.3 是行为特征矩阵；远程只看结论时优先读这三节。
+事实源：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。其中 §1.1 是 10 个唯一 NL cluster 的完整指标结论表，§1.2 是 10 NL × 6 LLM 输出状态矩阵，§1.3 是行为特征矩阵；机器事实源仍是 pipeline 下对应 JSONL。
 
 | 指标 | 数量 / 结论 |
 |---|---|
@@ -111,7 +111,7 @@ R5.5 的结论是：主线可以继续围绕 T0/T0.5 离散 FSM/HSM/statechart a
 
 ## 5. 四例冒烟结果
 
-事实源：[pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json)。
+事实源：[pipeline/readiness_audit/selected_examples/smoke_report.json](./pipeline/readiness_audit/selected_examples/smoke_report.json)。
 
 | 指标 | 数量 |
 |---|---:|
@@ -135,8 +135,8 @@ R5.5 的结论是：主线可以继续围绕 T0/T0.5 离散 FSM/HSM/statechart a
 
 | 后续方向 | 需要做什么 | 依赖当前产物 |
 |---|---|---|
-| R6 修正循环骨架 | 优先围绕 `llms-emp-stm-subset` 选 12–18 条分层样本，真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/smoke/handoff/r5_to_r6_repair_inputs.json](./pipeline/smoke/handoff/r5_to_r6_repair_inputs.json)、[pipeline/smoke/handoff/llms_emp_main_seed_handoff.md](./pipeline/smoke/handoff/llms_emp_main_seed_handoff.md) |
-| R5.6 story / model scope 回填 | 基于 R5.5 冻结 T0/T0.5 离散 FSM/HSM/UML-SysML statechart 主线、Digital Camera supplementary stress、blocked negative evidence，并把 guard/action/data-condition 仅写作 caveat 与 R5.7 候选画像 | [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)、[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
-| R7 协议 / eligibility freeze | 冻结 `llms-emp-stm-subset` A/B/C/D 分层、10-NL clustered reporting 与 conversion-aware attribution；再决定 supplementary seed 角色 | [pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json](./pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json)、[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)、[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md) |
-| R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [pipeline/smoke/handoff/r5_to_r8_negative_evidence.json](./pipeline/smoke/handoff/r5_to_r8_negative_evidence.json) |
+| R6 修正循环骨架 | 优先围绕 `llms-emp-stm-subset` 选 12–18 条分层样本，真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json](./pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md) |
+| R5.6 story / model scope 回填 | 基于 R5.5 冻结 T0/T0.5 离散 FSM/HSM/UML-SysML statechart 主线、Digital Camera supplementary stress、blocked negative evidence，并把 guard/action/data-condition 仅写作 caveat 与 R5.7 候选画像 | [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| R7 协议 / eligibility freeze | 冻结 `llms-emp-stm-subset` A/B/C/D 分层、10-NL clustered reporting 与 conversion-aware attribution；再决定 supplementary seed 角色 | [pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json](./pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) |
+| R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json](./pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json) |
 | generation follow-up | 对 `fsm-bench-20` / `designing-fsm-gpt4` 这类 NL+code 来源复跑并建立 run record | seed registry 中的 仅流水线 条目 |

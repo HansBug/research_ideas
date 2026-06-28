@@ -41,7 +41,7 @@ emoji 列只写 emoji；本库 emoji / enum 释义统一以 [GUIDE.md §5](./GUI
 | 锚点 | 来源路径 | 已知规模 / 事实 | 当前角色 | 关键 caveat |
 |---|---|---|---|---|
 | 9 系统 / 101 功能安全需求 | [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息；[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 仅作 NL→STM generation 输入特征 dry-run | 9 个控制系统、101 条功能安全需求 | 首批 canonical NL 数据集锚点 | 若已有 STM 生成关系未闭合，仍只算 NL-dataset；101 条原始 NL 文本的逐条入口留给后续填充 PR |
-| `sources/` 真实控制系统 NL 池 | [../../../sources/](../../../sources/)；[../../evidence/source_coverage_ledger.md](../../evidence/source_coverage_ledger.md) | 787 篇来源、337 条 `T0+FSM/HSM/EFSM` 子池，均为上游 ledger 转述统计 | 后续弱 seed / 学生 seed 的主要 NL 来源池 | `sources/` 中 STM.md 是整理结果，不自动证明 `NL -> STM_0` seed 关系 |
+| `sources/` 真实控制系统 NL 池 | [../../../sources/](../../../sources/)；[../../evidence/ledgers/source_coverage_ledger.md](../../evidence/ledgers/source_coverage_ledger.md) | 787 篇来源、337 条 `T0+FSM/HSM/EFSM` 子池，均为上游 ledger 转述统计 | 后续弱 seed / 学生 seed 的主要 NL 来源池 | `sources/` 中 STM.md 是整理结果，不自动证明 `NL -> STM_0` seed 关系 |
 | 旧 Path-1 `sources/` T0+🟢 线索 | [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) | 历史 Path-1 曾规划从 `sources/` T0+🟢 子集分层抽样 | 历史回链与后续候选参考 | 旧 Path-1 story 不再作为当前第一篇事实真源，只保留可追溯线索 |
 | 公开 NL→STM generation 数据集分析 | [../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) | `llms_emp`、`ttool_ai`、`light_control_nimbus`、`structure_event_driven` 的 NL 输入特征分析 | 作为 dataset 字段 dry-run 与对照参考 | 其中部分对象已属于 seed 或 baseline 语境，不能混入当前纯 NL 角色 |
 

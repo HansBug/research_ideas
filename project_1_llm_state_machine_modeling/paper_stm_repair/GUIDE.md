@@ -23,10 +23,10 @@
 | 原始模型到规范化 JSON | [pipeline/conversion/reports/selected_seed_examples_conversion_report.json](./pipeline/conversion/reports/selected_seed_examples_conversion_report.json)、[pipeline/conversion/reports/plantuml_recovery_report.json](./pipeline/conversion/reports/plantuml_recovery_report.json) | [pipeline/conversion/README.md](./pipeline/conversion/README.md) |
 | canonical 到 `.fcstm` | [pipeline/representation/reports/fcstm_export_report.json](./pipeline/representation/reports/fcstm_export_report.json) | [pipeline/representation/README.md](./pipeline/representation/README.md) |
 | 评价门规则 | [pipeline/evaluation/EVALUATION_GATE.md](./pipeline/evaluation/EVALUATION_GATE.md) | [pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
-| R5 四例冒烟 | [pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json) | [pipeline/smoke/selected_examples/smoke_summary.md](./pipeline/smoke/selected_examples/smoke_summary.md) |
-| R5 全量摸排 | [pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json) | [pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md) |
-| R5.5 `llms-emp` 主 seed 池画像 | [pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl) | [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)、[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
-| 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[archive/](./archive/) | 不作为当前横向事实源 |
+| R5 四例冒烟 | [pipeline/readiness_audit/selected_examples/smoke_report.json](./pipeline/readiness_audit/selected_examples/smoke_report.json) | [reports/2026-06-28-03-42-24-selected-smoke-summary.md](./reports/2026-06-28-03-42-24-selected-smoke-summary.md) |
+| R5 全量摸排 | [pipeline/readiness_audit/seed_sweep/sweep_report.json](./pipeline/readiness_audit/seed_sweep/sweep_report.json) | [reports/2026-06-28-04-03-18-seed-readiness-report.md](./reports/2026-06-28-04-03-18-seed-readiness-report.md) |
+| R5.5 `llms-emp` 主 seed 池画像 | [pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[evidence/SUMMARY.md](./evidence/SUMMARY.md)、[evidence/GUIDE.md](./evidence/GUIDE.md)、[archive/](./archive/) | 不作为当前横向事实源 |
 
 Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、registry 或 ledger 复算。
 
@@ -54,7 +54,7 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 
 ### 3.4 Better STM 主张
 
-只有满足 [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md) 的五条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM。任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
+只有满足 [experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md) 的五条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM。任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
 
 ## 4. 禁止写法
 

@@ -14,7 +14,7 @@ R4 可以声称：本目录定义并用四个静态样例 dry-run 了诊断、�
 |---|---|---|
 | A | [../conversion/reports/selected_seed_examples_conversion_report.json](../conversion/reports/selected_seed_examples_conversion_report.json)、规范化中间表示 JSON、loss ledger | R3 status / loss / 规范化中间表示事实真源。 |
 | A | [../../selected_seed_examples/](../../selected_seed_examples/) 中 `nl.txt`、`stm0.*`、`source_meta.json` | 四例 dry-run 输入事实真源。 |
-| A | [../../experiment_design/better_stm_definition.md](../../experiment_design/better_stm_definition.md) | Better STM 五条件定义真源。 |
+| A | [../../experiment_design/quality_model/better_stm_definition.md](../../experiment_design/quality_model/better_stm_definition.md) | Better STM 五条件定义真源。 |
 | B | R3/R3.1 summary Markdown | 便于阅读的摘要；数字仍应回到 JSON / ledger 复核。 |
 | C | PR comment / review comment | 施工与审查线索；长期规则需抽象进仓库文档后才可作为仓库事实。 |
 
@@ -143,7 +143,7 @@ R4 scenario schema 只定义后续 R5/R6/R7 可复用的最小场景结构。它
 
 ## 5. Better STM checklist：什么时候可以说变好了
 
-本 checklist 直接操作化 [../../experiment_design/better_stm_definition.md](../../experiment_design/better_stm_definition.md) 中的定义：$Better(STM_k, STM_0 \mid NL, S, D, R)$。
+本 checklist 直接操作化 [../../experiment_design/quality_model/better_stm_definition.md](../../experiment_design/quality_model/better_stm_definition.md) 中的定义：$Better(STM_k, STM_0 \mid NL, S, D, R)$。
 
 R4 没有 `STM_k`，因此本目录中的 checklist 是评价门 dry-run：验证字段、证据与聚合逻辑可执行，而不是声称任何样例已经 Better。
 
