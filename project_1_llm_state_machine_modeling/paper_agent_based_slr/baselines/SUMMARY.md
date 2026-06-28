@@ -5,7 +5,7 @@
 
 ## 0. 速读定调（先看这节）
 
-**全局结论**：当前 35 篇本地全文文本级 baseline + 全 CCF A/B/C 扩展 discovery 已经给出充分风险信号：LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility 都已有强近邻，paper2 不能再依赖宽泛 firstness 立论。更稳妥的主线是**面向软件工程 SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法**：把 researcher-defined meta-model、可演化 dimension schema、field-level content evidence、statistical-analysis-to-finding 分层、researcher challenge / adjudication 与 process evidence 作为核心贡献边界。**建议**：后续 story / outline / 讨论材料应先冻结“禁用主张—可保守主张—必须实验证据”三层结构；所有强表述都必须回到 P0/P1 对手、单篇 `review.md` 和后续阶段化生成与审计评测指标核验。
+**全局结论**：当前 35 篇本地全文文本级 baseline + 全 CCF A/B/C 扩展 discovery 已经给出充分风险信号：LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility 都已有强近邻，paper2 不能再依赖宽泛 firstness 立论。更稳妥的主线是**面向软件工程 SLR/SMS 的审计优先证据工程方法**：把 researcher-defined meta-model、可演化 dimension schema、field-level content evidence、statistical-analysis-to-finding 分层、researcher challenge / adjudication 与 process evidence 作为核心贡献边界。**建议**：后续 story / outline / 讨论材料应先冻结“禁用主张—可保守主张—必须实验证据”三层结构；所有强表述都必须回到 P0/P1 对手、单篇 `review.md` 和后续阶段化生成与审计评测指标核验。
 
 | 问题 | 当前答案 | 对 paper2 的直接影响 |
 |---|---|---|
@@ -386,7 +386,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 **本节速读**：当前判断可以压缩为“禁用 firstness，保留研究者引导的模式演化与证据支撑制品链；禁用完整生命周期，保留明确定义的阶段子集；禁用可复现 baseline 泛称，保留下一轮 artifact audit 计划”。这不是保守到没有贡献，而是把贡献从泛化口号转成可被实验支撑的对象：阶段边界、证据链、人工审计、错误分类和复现资产。**建议**：上游 story 中每个 contribution 都应能对应到这里的一条“仍可保守主张”与一个后续评价指标，否则先降级为 future work 或 system feature。
 
 1. **必须禁用的强主张**：不能写“首次 LLM 自动化 SLR”“首次 agentic SLR”“完整覆盖 SLR 全流程”“PRISMA 透明报告框架合规”。当前 P0/P1 已覆盖多 agent 工作流、human-in-the-loop、screening/extraction、survey 生成 与评价 benchmark。
-2. **仍可保守主张的空间**：若后续实现与实验成立，可以主张“面向软件工程 SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法”，核心在于 researcher-defined meta-model、dimension schema、evidence table、candidate finding ledger、researcher challenge/adjudication log、process evidence 与错误传播、schema/backfill burden 与 unresolved finding 分析。
+2. **仍可保守主张的空间**：若后续实现与实验成立，可以主张“面向软件工程 SLR/SMS 的审计优先证据工程方法”，核心在于 researcher-defined meta-model、dimension schema、evidence table、candidate finding ledger、researcher challenge/adjudication log、process evidence 与错误传播、schema/backfill burden 与 unresolved finding 分析。
 3. **实验必须支撑审计可靠性**：后续阶段化生成与审计评测实验不能只展示生成报告；至少要评价证据定位正确性、unsupported claim 率、审计拦截率、筛选 false negative、人工复核成本、process evidence / audit trail 完整性和最终报告透明度。
 4. **可复现 baseline 仍需下一轮 artifact audit**：本 PR 已识别代码/数据/提示词线索，但尚未 clone、许可核验或 smoke 运行；因此当前多数 baseline 只能作为协议、指标或定性对照，不能写成已可运行复现。
 5. **CCF 负证据必须保守**：本轮 CCF 主会/期刊仅能支持“当前 title-level 尚未观察到完整组合 baseline 且存在 coverage gap”，不能写成近三年 CCF 完全没有相关工作。
@@ -399,7 +399,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 
 | 类型 | 不应写法 | 可替代写法 | 证据来源 |
 |---|---|---|---|
-| novelty | “首次自动化 / agentic SLR” | “我们研究面向 SE SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法，并与近期 LLM-assisted SLR / ASG / evidence synthesis 工作区分” | §3--§8 P0/P1 baseline |
+| novelty | “首次自动化 / agentic SLR” | “我们研究面向 SE SLR/SMS 的审计优先证据工程方法，并与近期 LLM-assisted SLR / ASG / evidence synthesis 工作区分” | §3--§8 P0/P1 baseline |
 | coverage | “覆盖完整 SLR 生命周期” | “覆盖本 PR / 实验中定义的检索、筛选、抽取、编码、综合、报告生成子集；未覆盖的环节显式列为限制” | 后续 method artifact 与 process evidence |
 | reliability | “保证无幻觉” | “通过 field-level content evidence、source anchors 与 researcher challenge/adjudication gate 降低 unsupported claim，并报告残余错误率” | 后续审计评测指标与 audit log |
 | PRISMA | “PRISMA 透明报告框架合规” | “PRISMA 风格清单 / PRISMA 启发式报告提示；是否合规需人工系统综述专家核验” | Agents-judge-SLR、PRISMA 原始规范 |
@@ -459,16 +459,16 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 
 ## 13. 全体总结：用于 paper2 story 的定调
 
-**全体速读**：paper2 的安全写法是“面向软件工程 SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法”，危险写法是“首次/完整/自动化/PRISMA 透明报告框架合规”。下面六点是后续上游 story 和讨论材料应直接继承的定调，但仍要保留证据边界：这些判断来自当前本地 35 篇全文文本级 review、arXiv 证据链、本地 CCF title-level scan、全 CCF A/B/C 扩展 discovery 和 WSESE workshop 条目，尚未等同正式 SLR 或 artifact 复现实验。**建议**：把本节作为下一次导师讨论的 story baseline，讨论重点放在“是否接受该收窄后的 story”和“实验能否支撑审计型贡献”。
+**全体速读**：paper2 的安全写法是“面向软件工程 SLR/SMS 的审计优先证据工程方法”，危险写法是“首次/完整/自动化/PRISMA 透明报告框架合规”。下面六点是后续上游 story 和讨论材料应直接继承的定调，但仍要保留证据边界：这些判断来自当前本地 35 篇全文文本级 review、arXiv 证据链、本地 CCF title-level scan、全 CCF A/B/C 扩展 discovery 和 WSESE workshop 条目，尚未等同正式 SLR 或 artifact 复现实验。**建议**：把本节作为下一次导师讨论的 story baseline，讨论重点放在“是否接受该收窄后的 story”和“实验能否支撑审计型贡献”。
 
 1. **现状一句话**：当前 35 篇全文文本级近邻审计与全 CCF A/B/C 扩展 discovery 已经提供充分风险信号：LLM/agent 辅助 SLR、evidence synthesis、survey generation、screening/extraction、human-in-the-loop 与 prompt reproducibility 都有强近邻；paper2 若继续写宽泛自动化 story，会被 P0/P1 baseline 轻易打穿。
-2. **最稳 story**：paper2 应定位为“面向软件工程 SLR/SMS 的研究者引导、模式演化、证据支撑、发现导向的智能体式支持方法”，而不是“首次 LLM 自动化 SLR”。核心贡献应围绕 researcher-defined meta-model、可演化 dimension schema、field-level content evidence、statistical-analysis-to-finding 分层、researcher challenge/adjudication、process evidence、unsupported claim 控制、schema revision/backfill log、unresolved finding ledger 和 SE 场景适配展开。
+2. **最稳 story**：paper2 应定位为“面向软件工程 SLR/SMS 的审计优先证据工程方法”，而不是“首次 LLM 自动化 SLR”。核心贡献应围绕 researcher-defined meta-model、可演化 dimension schema、field-level content evidence、statistical-analysis-to-finding 分层、researcher challenge/adjudication、process evidence、unsupported claim 控制、schema revision/backfill log、unresolved finding ledger 和 SE 场景适配展开。
 3. **SE 证据状态**：SE 直接近邻已经从 arXiv cs.SE 扩展到 WSESE@ICSE 2025 workshop 全文；它们说明 SE 社区已经讨论 LLM-SLR/SMS 的筛选、方法学、复现性和教学/实践支持。可保守写“在当前已建库近邻、本地已建档 CCF title-level scan 与全 CCF 扩展 discovery 中，尚未观察到同时覆盖 SE SLR/SMS 场景、可演化 dimension schema、字段级 content evidence、统计观察到 research finding 的分层、researcher challenge/adjudication 与 process evidence 的完整组合；该表述仍需正式 Related Work audit 后再升级”，不能写“SE 社区尚未关注 LLM-SLR”。
 4. **实验硬要求**：后续实验必须测 evidence 定位正确性、unsupported claim 率、审计拦截率、screening false negative、模型变异、人工复核成本、process evidence / audit trail 完整性和报告透明度；只展示生成报告或 time saving 不足以支撑 CCF A 类 story。
 5. **证据等级边界**：当前 35 篇均是全文文本级 review，关键 P0 的 PDF 图表/表格级数字仍需人工核对；代码、数据、prompt、license 和 smoke run 仍需 artifact audit。SUMMARY 中的数字可用于内部定调和 Related Work 草稿，正式写作前必须回到单篇 review、paper_content 和必要 PDF/URL 核验。
 6. **禁用主张**：禁止写“首次 LLM 自动化 SLR”“首次 agentic SLR”“完整覆盖 SLR 生命周期”“PRISMA 透明报告框架合规”“近三年 CCF 没有相关工作”“所有强 baseline 已可运行复现”。这些主张要么已被强近邻显著削弱、变得不安全，要么当前证据等级不足。
 
-**本节结论**：当前总账已经足以把 paper2 的安全故事边界压实为“研究者引导、模式演化、证据支撑、发现导向的 SE SLR/SMS 智能体式支持方法”，而不是“更强、更自动、完全覆盖”的泛化主张。下一步如果 story 或 evaluation 方向再变，应优先回写本节，再改正文。
+**本节结论**：当前总账已经足以把 paper2 的安全故事边界压实为“面向 SE SLR/SMS 的审计优先证据工程方法”，而不是“更强、更自动、完全覆盖”的泛化主张。下一步如果 story 或 evaluation 方向再变，应优先回写本节，再改正文。
 
 **全体结论**：当前 baseline 调研已经把 paper2 的方向从“做一个 LLM/agent 自动综述系统”推向“做一个能经受 SE/CCF 审稿质疑的 researcher-guided、pattern-evolving、evidence-backed、finding-oriented 方法”。如果后续方法与实验不能显式回应 evidence traceability、人工审计、失败模式、复现资产和 SE 场景适配，那么即使系统能生成综述文本，也不足以形成稳固论文贡献。**总体建议**：接下来应优先冻结一个保守但可打的论文叙事：问题不是“自动化综述能不能做”，而是“在 SE SLR/SMS 中，如何让 LLM/agent 产生的筛选、抽取、编码、统计观察和候选研究发现形成可审计制品链，并用实验检验该制品链是否能降低实际错误、主张漂移和复核成本”。
 
@@ -476,7 +476,7 @@ emoji 等级定义：🟢 = 强，表示该维度已经形成直接、明确、�
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-26 17:02:08` | 按 PR-S0-v2 正式复审意见同步 SUMMARY 中的 story 定调：将旧“可审计证据流 / 证据包”正面口径收敛为“研究者引导、模式演化、证据支撑、发现导向”的 S0-v2 口径，并保留 baseline fact / traceability descriptor 的证据边界。 |
+| `2026-06-26 17:02:08` | 按 PR-S0-v2 正式复审意见同步 SUMMARY 中的 story 定调：将旧“可审计证据流 / 证据包”正面口径收敛为 S0-v2 口径，并保留 baseline fact / traceability descriptor 的证据边界。 |
 | `2026-06-14 18:35:00` | 按用户要求扩展全 CCF A/B/C 与重点 `cs.AI` / `cs.DL` / `cs.IR` / `cs.CL` / `cs.SE` 方向 discovery：新增 CCF 2026 全量 681 venue 分母、OpenAlex 原始 814 条结果、title+doi 去重 669 组、ranked top-220 发现，并在 SUMMARY / arXiv 表 / GUIDE 中补充 arXiv 分类中文释义与证据边界。 |
 | `2026-06-14 17:06:55` | 按用户反馈重构 SUMMARY 阅读入口：新增 §0 速读定调，给主要小节前置“本节速读”，补充来源与年份口径总表、证据链年份表，并把速读/结论加厚为“局部判断 + paper2 建议动作 + 证据边界”；在主表 B 前补充 D1-D7 与 emoji 等级随表速查口径，避免读者来回跳转。 |
 | `2026-06-14 14:45:30` | 用户补充 WSESE@ICSE 2025 PDF 后，将该 CCF-adjacent SE 方法学近邻升级为本地全文文本级条目；SUMMARY 增加 D1-D7 速查表、各主表本节结论、证据链时间口径和全体 story 定调，人工下载清单清零。 |

@@ -47,7 +47,7 @@
 
 | 问题 | 文件落点 | 验收方式 |
 |---|---|---|
-| 新的一句话论文主线是什么？ | [../../story/paper_story.md](../../story/paper_story.md) | 必须同时体现研究者引导、模式演化、证据支撑、发现导向。 |
+| 新的一句话论文主线是什么？ | [../../story/paper_story.md](../../story/paper_story.md) | 必须体现审计优先证据工程主线，并把研究者引导、模式演化、内容证据、统计分析、候选发现、最终裁决和过程证据串成同一条证据链。 |
 | 三阶段系统综述 如何转成 L0--L7 方法合同？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/protocol.md](../../story/protocol.md) | 必须包含论文收集、维度模式、字段证据、统计分析、候选发现、质疑 / 裁决。 |
 | 维度模式生命周期 如何表达？ | [../../story/protocol.md](../../story/protocol.md)、[../../story/terminology_policy.md](../../story/terminology_policy.md) | 必须有 模式版本、变更触发、影响分析、回填状态。 |
 | 统计分析与研究发现 如何拆分？ | [../../story/claim_evidence_map.md](../../story/claim_evidence_map.md)、[../../story/paper_outline.md](../../story/paper_outline.md) | 禁止频次 / 分布 / 交叉表直接升级 最终发现。 |
@@ -57,9 +57,12 @@
 | 文档是否足够干净、自包含？ | [../progress.md](../progress.md)、本任务包、各入口 README | 删除纯历史流水账；必要历史只保留为证据链接和当前事实来源。 |
 | 方法图是否足够完整？ | [../../story/paper_story.md](../../story/paper_story.md) | 除时序 / 泳道图外，必须有普通流程图说明阶段、参与者、制品、反馈关系和过程证据横切边界；图的长宽比需适中，不能为了压缩而牺牲可读性；普通流程图必须能从渲染图本身读出阶段、参与者、制品、反馈和 G6 横切边界。 |
 
-| 审计优先证据工程对象是什么？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) | 必须列出维度模式与修订 / 回填日志、字段级内容证据表、候选发现台账、质疑 / 裁决日志、过程证据包，并绑定评价入口。 |
+| 审计优先证据工程对象是什么？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) | 必须列出维度模式与修订 / 回填日志、字段级内容证据表、统计分析表（字段版本、纳入样本、统计方法、限制）、候选发现台账、质疑 / 裁决日志、过程证据包，并绑定评价入口。 |
 | 最小闭环样例如何要求？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/paper_outline.md](../../story/paper_outline.md) | 必须要求 LLM4STM / LLM4Modeling 3--5 篇种子论文 dry-run，展示模式修订、回填、统计观察、候选发现、裁决与证据分离。 |
 | risk-to-metric 评价矩阵如何落地？ | [../../experiment_design/evaluation_dimensions_seed.md](../../experiment_design/evaluation_dimensions_seed.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) | 必须把近邻威胁和审稿风险转成可评价指标，而不是只写效率或生成质量。 |
+
+| 最小闭环样例如何防止 cherry-pick？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/paper_outline.md](../../story/paper_outline.md) | 种子论文应覆盖至少 2 类方法或输出形态；至少包含一个预设风险触发点；必须定义 pass/fail gate：若无字段证据表、模式修订 / 回填日志、统计分析表、候选发现台账、质疑 / 裁决日志和过程证据记录则 fail；若无反向证据或无降级 / 拒绝 / 未解决案例，不得声称质疑闭环有效。 |
+| 核心指标的最小定义是什么？ | [../../experiment_design/evaluation_dimensions_seed.md](../../experiment_design/evaluation_dimensions_seed.md) | S0 只冻结方向，但必须给 A5 指定至少三个优先公式候选：来源锚点准确性、无支撑 / 过强候选发现率、回填完成率。 |
 
 ## 6. 拒收检查
 

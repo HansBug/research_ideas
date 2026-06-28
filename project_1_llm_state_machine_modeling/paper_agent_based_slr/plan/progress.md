@@ -7,7 +7,7 @@
 | PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 文档大修、首轮正式复审 I/M 修复、2026-06-27 术语中文化与双图补强已完成本地验证、内部最终复核并已推送；正式三路复审围绕 PR 当前 HEAD 进行，GitHub checks 以 PR 页面最新状态为准 |
+| 当前阶段 | S0-v2 已补强为“审计优先证据工程方法”；已修复 2026-06-28 新一轮复审指出的旧主线残留、入口合同缺统计分析表、mini-case / 指标执行性不足问题；等待最新 HEAD 复验，GitHub checks 以 PR 页面最新状态为准 |
 | 真实大语言模型 | 未运行；本 PR 不触发提供商调用 |
 | 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -39,7 +39,7 @@
 
 ## 4. 已完成修改
 
-1. 将第二篇论文主线从旧“研究者引导、发现导向、可审计证据流”升级为“研究者引导、模式演化、证据支撑、发现导向的智能体式系统综述 / 系统映射研究支持方法”。
+1. 将第二篇论文主线从早期“发现导向 / 证据流”口径升级为“审计优先证据工程方法”。
 2. 将真实系统综述明确拆成三层：论文收集与初步处理、维度模式驱动的论文分析、统计分析与研究发现形成。
 3. 在 [../story/paper_story.md](../story/paper_story.md) 中更新 SVG 普通流程图与 Mermaid 时序 / 泳道图，显式包含 L0--L7、G0--G6、内容证据、统计分析、候选发现、最终裁决与过程证据边界。
 4. 在 [../story/protocol.md](../story/protocol.md) 中明确维度模式生命周期、模式修订 / 影响分析 / 回填、统计分析到研究发现的转移规则、脚手架边界、试运行与学生过程数据边界。
@@ -85,6 +85,7 @@
 | 2026-06-27 | 普通流程图视觉盲读 | 视觉检查发现 Mermaid 普通流程图会被自动布局成倒序、过扁或过高；已改为可控 SVG 普通流程图。多轮盲读指出 G6 与 G4 反馈歧义；当前 SVG 已调整为三阶段主流程居中、G2/G4 左侧反馈、回 L2 / 回 L4 标签、颜色图例和“G6 仅审计记录 / 不作为领域发现证据”说明；最终内部只读复核已闭合 |
 | 2026-06-27 | Markdown 相对链接检查 | 通过；`markdown relative links ok`，此前因中文化误替换产生的若干错误文件链接均已恢复 |
 | 2026-06-27 | 最终内部复核：术语 / SVG / 链接 / 渲染 | 通过；视觉盲读确认普通流程图 0C/0I，仅余不阻塞的 M 级视觉微调；只读 verifier 确认 SVG 已可被 git 跟踪、`baselines/GUIDE.md` 不再越界、任务包已改为 SVG + Mermaid 分离验收、`git diff --check` / Markdown 相对链接 / Mermaid 渲染 / SVG 渲染均通过；随后复核“术语首次中文锚点、后续中文主称、普通流程图 + 时序图双图并存”要求，未发现新的 C/I 缺口 |
+| 2026-06-28 | 审计优先补强后的复审修复 | 修复旧主线残留、补齐统计分析表、补充最小闭环样例 pass/fail gate、补充 A5 核心指标候选；注意 `origin/main...HEAD` 中基线全文和 CCF 搜索文件 trailing whitespace 来自上游伞 PR 历史差异，当前 subPR 验证应以 `origin/paper2/agent-based-slr-umbrella...HEAD` 为 diff base。 |
 
 ## 7. 审查状态
 
@@ -95,7 +96,7 @@
 | PR 正文 计划阶段 | claude 审查者 | 0C / 0I / 少量 M | 可进入实现 |
 | 内部实现中只读检查 | verifier 子代理 | C/I：多数落点旧 S0、L8/G6 不一致、方法图缺 G6；PR 正文 / 进度状态与验证记录曾不同步 | 已重写 主张-证据映射 / 大纲 / 评价 / 风险 / README / 任务包 / 进度，并修正 L8/G6；验证记录与 PR 正文已同步，当前复审对象以 PR 当前提交为准 |
 | 内部实现中学术审查 | critic 子代理 | C/I：大纲、主张-证据映射、评价、风险、新颖性矩阵、项目证据清单未同步 S0-v2；旧证据包叙事残留 | 已逐项修复，并把旧叙事 grep 标为人工审查线索而非硬 gate |
-| 正式三路复审 | codex / claude / deepseek 审查者 | 最新轮已进入当前 HEAD 复审：deepseek 0C/0I；codex 指出 progress 推送前口径 I；claude 等待当前轮评论 | 本提交修复 codex 指出的 progress stale 口径；修复后需针对 PR 当前 HEAD 复验 |
+| 正式三路复审 | codex / claude / deepseek 审查者 | 旧 HEAD `83f899f9` 轮次为 0C/0I；新 HEAD `189d8554` 轮次发现 C/I：PR body / progress stale、入口合同漏统计分析表、mini-case / 指标仍需更可执行 | 本轮已修复旧主线残留、补齐统计分析表、补充最小闭环 pass/fail gate、补充 A5 核心指标候选，并等待最新 HEAD 复验 |
 
 ## 8. 剩余风险
 
@@ -122,4 +123,4 @@
 - Inputs consumed: [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)。
 - Artifacts produced: [../story/figures/README.md](../story/figures/README.md)、更新后的 [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/terminology_policy.md](../story/terminology_policy.md)、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)、[../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)、[./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) 与本进度记录；外部检索临时结果保存在 `/tmp/s0_story_litsearch/`，不作为仓库事实源。
 - Verification run: `git diff --check`、修改文件 Markdown 链接检查、`rsvg-convert` SVG 渲染检查。
-- Remaining risk: 本轮已修改 paper story 主线并补强当前合同；但仍未执行真实 pilot，也未冻结 A5 指标公式、阈值、统计协议或最终数据结构。
+- Remaining risk: 本轮已修改 paper story 主线并补强当前合同；已修复三路只读审查指出的统计分析表漏项、mini-case gate、回填指标单位、程序资格 / 实质支撑区分和 PR body stale 风险；但仍未执行真实 pilot，也未冻结 A5 指标公式、阈值、统计协议或最终数据结构。

@@ -1,4 +1,4 @@
-# 第二篇论文：智能体辅助系统综述工作区
+# 第二篇论文：审计优先证据工程工作区
 
 ## 1. 定位
 
@@ -21,7 +21,7 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 9. PR-S0-v2 不实现运行时代码，不跑真实大语言模型，不跑四个真实例子，不冻结最终指标公式；这些分别留给后续设计、试运行、真实运行、评价和相关工作。
 10. 后续若新增基线、脚手架、真实运行或评价结果，必须同步更新 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
 
-11. 为避免主线停留在“强协议 / 弱证据”，当前 PR 进一步要求后续 A2/A3/A5 至少实例化一组审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包；并用 LLM4STM / LLM4Modeling 的 3--5 篇种子论文完成最小闭环样例。
+11. 为避免主线停留在“强协议 / 弱证据”，当前 PR 进一步要求后续 A2/A3/A5 至少实例化一组审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包；并用 LLM4STM / LLM4Modeling 的 3--5 篇种子论文完成最小闭环样例。
 
 ## 3. 目录分层
 
