@@ -34,6 +34,9 @@
 | R22 | 强协议 / 弱证据 | 只把 L0--L7 和 G0--G6 写成流程图，缺少可导出审计制品链、最小闭环样例和评价指标。 | C | 摘要 / 方法声称审计优先，但没有字段证据表、候选发现台账、质疑 / 裁决日志或样例。 | [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md)。 | 本轮已把审计制品链和最小闭环样例列为后续阻塞性义务。 |
 | R23 | 评价错位 | 只报告效率、文本质量或主观满意度，没有把强近邻威胁转成证据锚点、断链、过强主张、回填负担和质疑拦截等指标。 | C | A5 评价指标只看时间、token 或用户满意度。 | [evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md)。 | 本轮已新增 risk-to-metric 口径，A5 需冻结公式和阈值。 |
 | R24 | 领域换皮 | 只说软件工程场景不同，但没有用 LLM4STM / LLM4Modeling 等主题展示 SE 文献对象为何需要模式演化和审计链。 | I | 引言只强调领域不同，缺少种子论文 dry-run 或抽取对象差异。 | [../story/paper_story.md](../story/paper_story.md)、[../story/paper_outline.md](../story/paper_outline.md)。 | 本轮要求最小闭环样例优先用 LLM4STM / LLM4Modeling。 |
+| R25 | A1 cherry-picking | 只挑公开制品最顺滑论文，隐藏私有数据、代码缺失或领域偏移候选。 | C | A1 / A3 种子表无备选 / 排除候选，或没有困难样本。 | [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)、[../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md)。 | A1 已记录 5 篇正选、3 篇备选和 1 篇排除。 |
+| R26 | 资产等级误读 | 把“本地有 PDF / TXT / DESC”误写成“有可复现实验包”。 | C | 论文 PDF 可读但代码、数据、license、release 或 ground truth 缺失时仍写成可复现。 | [../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md)、[../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)。 | A1 已区分公开论文、公开数据、公开代码、匿名 artifact、私有数据。 |
+| R27 | A2/A3/A5a 空接 | A1 只列题名，没有把每篇种子的字段压力、幻觉陷阱和指标义务交给下游。 | I | A2 仍需重新猜测字段，A3 无法选择 mini-case，A5a 无 risk-to-metric。 | [../plan/task-packets/a1-evidence-assets-seed-selection.md](../plan/task-packets/a1-evidence-assets-seed-selection.md)。 | A1 已新增交接清单，但后续必须实际消费。 |
 
 ## 3. 高风险 grep 线索
 

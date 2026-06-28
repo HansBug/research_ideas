@@ -9,6 +9,7 @@
 | 文件 | 作用 |
 |---|---|
 | [sample_assets.md](./sample_assets.md) | PR-S0 阶段的候选场景和证据资产总账，区分 `main` 事实、PR #97 快照、历史评论和计划证据。 |
+| [a1_seed_papers.md](./a1_seed_papers.md) | PR-A1 的 5 篇 LLM4STM / LLM4Modeling 最小闭环种子、备选 / 排除候选、覆盖矩阵与 A2/A3/A5a 交接。 |
 
 ## 3. 使用规则
 

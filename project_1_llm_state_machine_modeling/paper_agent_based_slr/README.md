@@ -6,7 +6,7 @@
 
 本工作区不收录 PDF，不替代 `sources/` 文库，也不把语料规模作为论文贡献。它的作用是沉淀论文主线、术语、主张边界、证据来源、基线威胁、候选场景、评价义务和后续 PR 计划。后续任何实现、实验、写作或相关工作补充，都应先回到本目录确认当前合同。
 
-## 2. 当前 PR-S0-v2 结论
+## 2. 当前主线结论（PR-S0-v2 冻结）
 
 PR-S0-v2 将第二篇论文主线收紧为以下口径：
 
@@ -18,10 +18,10 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 6. 内容证据支撑字段值、统计分析和领域发现；过程证据只支撑方法发现，如方法可用性、审计性、成本和失败模式。
 7. 综述之综述脚手架只作为模式先验；不得写成目标证据池、完整三级综述或 PRISMA 透明报告框架（Preferred Reporting Items for Systematic Reviews and Meta-Analyses, PRISMA）合规三级综述。
 8. 试运行只验证闭环可行性与制品完整性；后续硕士生人机交互数据只用于方法评估，并需同意、匿名化、脱敏与教学关系隔离。
-9. PR-S0-v2 不实现运行时代码，不跑真实大语言模型，不跑四个真实例子，不冻结最终指标公式；这些分别留给后续设计、试运行、真实运行、评价和相关工作。
+9. PR-S0-v2 本身不实现运行时代码，不跑真实大语言模型，不跑四个真实例子，不冻结最终指标公式；这些分别留给后续设计、试运行、真实运行、评价和相关工作。
 10. 后续若新增基线、脚手架、真实运行或评价结果，必须同步更新 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
 
-11. 为避免主线停留在“强协议 / 弱证据”，当前 PR 进一步要求后续 A2/A3/A5 至少实例化一组审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包；并用 LLM4STM / LLM4Modeling 的 3--5 篇种子论文完成最小闭环样例。
+11. 为避免主线停留在“强协议 / 弱证据”，PR-S0-v2 进一步要求后续 A2/A3/A5 至少实例化一组审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包；并用 LLM4STM / LLM4Modeling 的 3--5 篇种子论文完成最小闭环样例。
 
 ## 3. 目录分层
 
@@ -42,9 +42,11 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 4. [story/differential_novelty_matrix.md](./story/differential_novelty_matrix.md)：确认与 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等近邻的边界。
 5. [baselines/SUMMARY.md](./baselines/SUMMARY.md)：查看已核验近邻与 B0 基线结论。
 6. [evidence/fact_drift_policy.md](./evidence/fact_drift_policy.md)：引用 PR #97、`sources/` 或历史评论 前必须检查。
-7. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 PR-S0-v2 只冻结哪些评价义务。
-8. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前最高优先级审稿风险。
-9. [plan/progress.md](./plan/progress.md)：查看本 PR 当前状态、检查和剩余风险。
+7. [evidence/a1_asset_inventory.md](./evidence/a1_asset_inventory.md)：查看 PR-A1 冻结的资产层级、公开性、允许 / 禁止用途与漂移触发。
+8. [dataset_selection/a1_seed_papers.md](./dataset_selection/a1_seed_papers.md)：查看 PR-A1 的 5 篇 LLM4STM / LLM4Modeling 最小闭环种子、备选 / 排除候选和 A2/A3/A5a 交接。
+9. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 PR-S0-v2 与 PR-A1 暴露的评价义务。
+10. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前最高优先级审稿风险。
+11. [plan/progress.md](./plan/progress.md)：查看本 PR 当前状态、检查和剩余风险。
 
 ## 5. 文档卫生要求
 

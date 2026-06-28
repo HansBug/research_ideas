@@ -1,15 +1,15 @@
-# 进度记录：PR-S0-v2 论文主线重新勘定
+# 进度记录：Paper2 审计优先证据工程工作区
 
 ## 1. 当前状态
 
 | 字段 | 状态 |
 |---|---|
-| PR | [#114](https://github.com/HansBug/research_ideas/pull/114) |
+| PR | [#129](https://github.com/HansBug/research_ideas/pull/129) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
-| 当前分支 | `paper2/s0-story-recalibration` |
-| 当前阶段 | S0-v2 已补强为“审计优先证据工程方法”；已修复 2026-06-28 新一轮复审指出的旧主线残留、入口合同缺统计分析表、mini-case / 指标执行性不足问题；等待最新 HEAD 复验，GitHub checks 以 PR 页面最新状态为准 |
+| 当前分支 | `paper2/a1-evidence-assets-seed-selection` |
+| 当前阶段 | PR-A1 实现中：已新增资产登记、5 篇最小闭环种子选择、备选 / 排除候选和 A2/A3/A5a 交接入口；等待本 PR 实现后复审，GitHub checks 以 PR 页面最新状态为准 |
 | 真实大语言模型 | 未运行；本 PR 不触发提供商调用 |
-| 四个真实例子 | 不运行；本 PR 只冻结论文主线、术语和下游评价义务 |
+| 四个真实例子 | 不运行；本 PR-A1 只冻结证据资产与最小闭环种子，真实场景设计留给 A3 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
 
 ## 2. 本 PR 的输入来源
@@ -17,12 +17,12 @@
 | 来源 | 用途 | 当前口径 |
 |---|---|---|
 | PR-A0 / PR [#103](https://github.com/HansBug/research_ideas/pull/103) | 提供初始目录结构、初始主线与协议雏形 | 历史输入；当前主线以 S0-v2 为准 |
-| PR-B0 / PR [#105](https://github.com/HansBug/research_ideas/pull/105) | 提供 35 篇全文文本级近邻基线和“宽泛自动化主线被击穿”的证据 | 当前 PR-S0-v2 必须吸收其结论 |
+| PR-B0 / PR [#105](https://github.com/HansBug/research_ideas/pull/105) | 提供 35 篇全文文本级近邻基线和“宽泛自动化主线被击穿”的证据 | PR-S0-v2 已吸收其结论；A1 继续受其新颖性边界约束 |
 | PR-S0-pre / PR [#112](https://github.com/HansBug/research_ideas/pull/112) | 提供 2026-06-15 导师定调：综述元模型由使用者定义，系统综述需要研究发现，智能体只能提出候选发现 | S0-v2 的正式上游约束 |
 | PR-S0B / PR [#123](https://github.com/HansBug/research_ideas/pull/123) | 提供 2026-06-24/26 导师定调：三阶段系统综述、维度模式、统计分析 / 研究发现分层、人在回路、试运行与过程数据 | S0-v2 的最高优先级新增约束 |
 | PR [#97](https://github.com/HansBug/research_ideas/pull/97) | 提供 sources 相关工作筛选线索 | 仍为 未合入，只能写成快照 / 分支局部证据 |
 
-## 3. 当前交付物
+## 3. 当前工作区关键交付物
 
 | 文件 | 当前作用 |
 |---|---|
@@ -35,9 +35,29 @@
 | [../story/paper_outline.md](../story/paper_outline.md) | 后续论文结构、试运行、多用户过程评价与研究问题到评价义务的映射 |
 | [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md) | S0-v2 评价维度种子，不冻结公式或阈值 |
 | [../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md) | 当前最高优先级审稿风险和缓解入口 |
-| [./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | 本 PR 的任务范围、拒收检查和验证命令 |
+| [./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | PR-S0-v2 的任务范围、拒收检查和验证命令 |
+
+
+### 3.1 PR-A1 当前交付物
+
+| 文件 | 当前作用 |
+|---|---|
+| [./task-packets/a1-evidence-assets-seed-selection.md](./task-packets/a1-evidence-assets-seed-selection.md) | A1 任务合同：范围、非目标、输入、种子选择规则、A2/A3/A5a 交接和验收检查。 |
+| [../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md) | A1 资产登记：资产层级、公开性、允许 / 禁止用途、统计资格、漂移触发和下游消费者。 |
+| [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md) | A1 5 篇 LLM4STM / LLM4Modeling 正选种子、备选 / 排除候选、覆盖矩阵、风险触发和下游交接。 |
+
+PR-A1 只冻结资产与种子；不运行真实大语言模型、不读取 `.env`、不跑四个真实例子、不构造金事实 / 银事实。
 
 ## 4. 已完成修改
+
+### 4.1 PR-A1 资产与种子
+
+1. 新增 [./task-packets/a1-evidence-assets-seed-selection.md](./task-packets/a1-evidence-assets-seed-selection.md)，冻结 A1 的范围、非目标、输入证据、选择规则和验收命令。
+2. 新增 [../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md)，把 Paper2 story、事实漂移政策、Project 1 baseline 文库、sources 文库、PR #97 快照、B0 基线和 A1 种子表分层登记。
+3. 新增 [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)，选择 5 篇正选种子：`structure-and-event...`、`ttool-ai`、`llms_emp`、`designing-fsm...`、`req`，并记录 `SpecGPT 3GPP`、`FlowFSM`、`Umple` 备选和 `Pushing the Generative Envelope` 排除。
+4. 更新入口 README、项目证据清单、候选资产总账、评价维度种子、审稿风险登记和事实漂移政策，保证 A2/A3/A5a 能直接找到 A1 交接物。
+
+### 4.2 PR-S0-v2 历史修改
 
 1. 将第二篇论文主线从早期“发现导向 / 证据流”口径升级为“审计优先证据工程方法”。
 2. 将真实系统综述明确拆成三层：论文收集与初步处理、维度模式驱动的论文分析、统计分析与研究发现形成。
@@ -86,6 +106,7 @@
 | 2026-06-27 | Markdown 相对链接检查 | 通过；`markdown relative links ok`，此前因中文化误替换产生的若干错误文件链接均已恢复 |
 | 2026-06-27 | 最终内部复核：术语 / SVG / 链接 / 渲染 | 通过；视觉盲读确认普通流程图 0C/0I，仅余不阻塞的 M 级视觉微调；只读 verifier 确认 SVG 已可被 git 跟踪、`baselines/GUIDE.md` 不再越界、任务包已改为 SVG + Mermaid 分离验收、`git diff --check` / Markdown 相对链接 / Mermaid 渲染 / SVG 渲染均通过；随后复核“术语首次中文锚点、后续中文主称、普通流程图 + 时序图双图并存”要求，未发现新的 C/I 缺口 |
 | 2026-06-28 | 审计优先补强后的复审修复 | 修复旧主线残留、补齐统计分析表、补充最小闭环样例 pass/fail gate、补充 A5 核心指标候选；注意 `origin/main...HEAD` 中基线全文和 CCF 搜索文件 trailing whitespace 来自上游伞 PR 历史差异，当前 subPR 验证应以 `origin/paper2/agent-based-slr-umbrella...HEAD` 为 diff base。 |
+| 2026-06-28 | PR-A1 资产与种子落盘 | 新增 A1 任务包、资产登记和种子选择表；复核 PR #97 仍为 OPEN / `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727`，PR #101 仍为 OPEN / CLEAN；本 PR 不运行真实大语言模型、不读取 `.env`、不跑四个真实例子。 |
 
 ## 7. 审查状态
 
@@ -100,14 +121,15 @@
 
 ## 8. 剩余风险
 
-1. 当前 PR-S0-v2 仍是主线和合同冻结，不提供真实运行证据；后续不得把候选贡献写成结果。
-2. SVG 普通流程图与 Mermaid 时序 / 泳道图是方法总览草案；若后续设计、试运行、真实运行或评价改变阶段契约、维度模式或证据字段，必须同步更新。
-3. 脚手架仍是计划证据；后续若执行，必须避免写成目标证据池或完整三级综述。
-4. 学生过程数据仍是计划；评价前必须冻结同意、匿名化、脱敏、教学关系隔离和访问权限。
-5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / 制品审计。
+1. PR-A1 只完成资产与种子冻结，尚未被 A2 schema、A3 mini-case 或 A5a 指标实际消费；后续若消费时发现字段不足，必须回填 [../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md) 与 [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)。
+2. 当前 PR-S0-v2 仍是主线和合同冻结，不提供真实运行证据；后续不得把候选贡献写成结果。
+3. SVG 普通流程图与 Mermaid 时序 / 泳道图是方法总览草案；若后续设计、试运行、真实运行或评价改变阶段契约、维度模式或证据字段，必须同步更新。
+4. 脚手架仍是计划证据；后续若执行，必须避免写成目标证据池或完整三级综述。
+5. 学生过程数据仍是计划；评价前必须冻结同意、匿名化、脱敏、教学关系隔离和访问权限。
+6. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / 制品审计。
 
 
-## 9. 本轮补充：SVG 源稿说明与 story 再审查
+## 9. 历史补充：SVG 源稿说明与 story 再审查
 
 - 已新增 [../story/figures/README.md](../story/figures/README.md)，明确普通方法流程图 [../story/figures/s0_method_flow.svg](../story/figures/s0_method_flow.svg) 是手写 / 直接维护的可控 SVG，文件本身就是当前源稿，不是 Mermaid 生成。
 - 已在 [../story/README.md](../story/README.md) 增加图源维护说明入口。
@@ -115,12 +137,21 @@
 - OMX spawn 三路只读审查结论一致：当前 S0-v2 方向正确，但 story 仍偏“强协议 / 弱证据”，正面贡献需要从流程门控收敛为“审计优先证据工程”或等价的可验证技术对象，并用完整闭环 pilot、可执行评价协议、可导出审计制品链和 risk-to-metric 结果闭合；本轮已将该要求落入 story、protocol、outline、claim map、评价维度、风险登记和任务包。
 - 轻量文献检索已覆盖 arXiv / OpenAlex 四组查询共 160 条结果，用于确认近邻压力；新检索主要强化既有结论：自动综述、agentic SLR、HITL provenance、SE LLM-SLR screening / replication 风险均已有近邻，后续不能回到宽泛自动化或 firstness 叙事。
 
-- 已完成当前 PR 内文档迭代：将工作标题 / 一句话论点收敛为“审计优先证据工程方法”，新增审计制品链、最小闭环样例、risk-to-metric 评价矩阵、强协议 / 弱证据风险，以及图源维护说明；这些内容现在属于当前 PR-S0-v2 合同，而不是留给外部口头建议。
+- 已完成 PR-S0-v2 文档迭代：将工作标题 / 一句话论点收敛为“审计优先证据工程方法”，新增审计制品链、最小闭环样例、risk-to-metric 评价矩阵、强协议 / 弱证据风险，以及图源维护说明；这些内容现在属于 PR-S0-v2 合同，而不是留给外部口头建议。
 
-### Capability-use audit
+### PR-S0-v2 capability-use audit
 
 - Required references/scripts: `ai-research-writing-skill/references/paper-story.md`，`research-planning/references/planning-prompts.md`，`research-planning/references/output-schemas.md`，`literature-search` / `systematic-review` 检索脚本，`autoresearch` artifact-gated 审查口径。
 - Inputs consumed: [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)。
 - Artifacts produced: [../story/figures/README.md](../story/figures/README.md)、更新后的 [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/terminology_policy.md](../story/terminology_policy.md)、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)、[../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)、[./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) 与本进度记录；外部检索临时结果保存在 `/tmp/s0_story_litsearch/`，不作为仓库事实源。
 - Verification run: `git diff --check`、修改文件 Markdown 链接检查、`rsvg-convert` SVG 渲染检查。
 - Remaining risk: 本轮已修改 paper story 主线并补强当前合同；已修复三路只读审查指出的统计分析表漏项、mini-case gate、回填指标单位、程序资格 / 实质支撑区分和 PR body stale 风险；但仍未执行真实 pilot，也未冻结 A5 指标公式、阈值、统计协议或最终数据结构。
+
+
+## 10. PR-A1 capability-use audit
+
+- Required references/scripts: `ai-research-writing-skill` 的 claim-evidence / reviewer gate、`research-planning` 的 dependency / testing plan、`autoresearch` / `autoresearch-goal` 的 artifact-gated / critic-gated 口径、仓库级 `CLAUDE.md` 的 run record / 活情报库 / 伞 PR 合流规范。
+- Inputs consumed: [../README.md](../README.md)、[../story/paper_story.md](../story/paper_story.md)、[../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)、[../evidence/project_inventory.md](../evidence/project_inventory.md)、[../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)、[../../baselines/SUMMARY.md](../../baselines/SUMMARY.md)、[../../sources/SUMMARY.md](../../sources/SUMMARY.md)，以及 PR #97 / PR #101 的 `gh pr view` 状态。
+- Artifacts produced: [./task-packets/a1-evidence-assets-seed-selection.md](./task-packets/a1-evidence-assets-seed-selection.md)、[../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md)、[../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)，并更新入口 README、候选资产、评价维度、审稿风险与事实漂移政策。
+- Verification run: `gh pr view 101`、`gh pr view 97`、A1 文档 smoke、`git diff --check`、Markdown 相对链接检查、禁用强主张防御语境检查。
+- Remaining risk: A1 只冻结资产与种子；A2/A3/A5a 必须实际消费这些字段并在 schema、mini-case 和指标公式里闭合，不能把 A1 选择表直接写成最终实验结果。

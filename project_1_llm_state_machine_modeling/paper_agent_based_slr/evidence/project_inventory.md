@@ -16,6 +16,8 @@
 | [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md) | PR-S0-v2 新颖性边界 | 对齐 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。 | 相关工作和贡献写作必须引用。 |
 | [../story/terminology_policy.md](../story/terminology_policy.md) | PR-S0-v2 术语政策 | 固定维度模式、内容证据 / 过程证据、统计分析、候选发现 / 最终发现、G0--G6、类 PRISMA 等术语。 | 防止术语漂移。 |
 | [../plan/progress.md](../plan/progress.md) | 当前 PR 进度 | 记录本 PR 最新状态、验证和剩余风险。 | 只作为进度入口，不替代 论文主线真源。 |
+| [a1_asset_inventory.md](./a1_asset_inventory.md) | PR-A1 资产登记 | 记录 A1 可用资产、证据层级、公开性、允许 / 禁止用途、统计资格、漂移触发和下游消费者。 | A2/A3/A5a 应先读；不能把资产登记写成已运行结果。 |
+| [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md) | PR-A1 最小闭环种子 | 记录 5 篇 LLM4STM / LLM4Modeling 正选种子、备选 / 排除候选、覆盖矩阵和风险触发点。 | 作为 A2/A3/A5a 输入，不是最终 benchmark。 |
 
 ## 3. 上游事实源
 
@@ -38,6 +40,7 @@
 | PR [#97](https://github.com/HansBug/research_ideas/pull/97) | OPEN / 未合入 / 快照 / 分支局部证据 | 相关工作筛选、全文抽取和候选案例线索。 | 必须按 [fact_drift_policy.md](./fact_drift_policy.md) 引用；不能写成 `main` 事实。 |
 | issue [#85](https://github.com/HansBug/research_ideas/issues/85) | 历史讨论 / 规划线索 | 旧 corpus / benchmark-source landscape 规划与转向背景。 | 不能替代仓库文件、PR body 或可复验数据。 |
 | [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md) | PR-S0-v2 候选资产总账 | 汇总后续 A3 可用场景和前置要求。 | 不冻结最终 benchmark。 |
+| [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md) | PR-A1 种子表 | 选择 5 篇最小闭环种子，并保留备选 / 排除候选。 | 不代表最终 benchmark；不允许 cherry-picking 隐去未选候选。 |
 
 ## 5. 方法证据状态
 
@@ -85,6 +88,7 @@ PR-S0-v2 不跑真实例子，也不运行真实大语言模型。
 |---|---|---|
 | 完整相关工作语料 | 新颖性不可最终确认 | A1 / A6 / 相关工作 PR。 |
 | PR #97 合并或快照复核 | 资产当前性不稳 | 按 [fact_drift_policy.md](./fact_drift_policy.md) 处理。 |
+| A1 资产和种子 | 若缺失会导致 A2/A3/A5a 空转 | 已由 [a1_asset_inventory.md](./a1_asset_inventory.md) 与 [../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md) 初步冻结；后续若资产漂移必须回填。 |
 | 基准场景 | 无法支撑实证主张 | A3。 |
 | 金事实 / 银事实 | 无法评价事实准确性 / 幻觉 | A3。 |
 | 真实运行记录 | 无法报告成本、错误和审计率 | A4/A5。 |

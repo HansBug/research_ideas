@@ -7,5 +7,6 @@
 | 文件 | 作用 |
 |---|---|
 | [task-packets/a0-story-protocol-freeze.md](./task-packets/a0-story-protocol-freeze.md) | 已合入 PR-A0 的初始合同，仅作历史参考。 |
-| [task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | 当前 PR-S0 的任务合同：重新勘定第二篇论文主线、主张边界、新颖性矩阵、RQ 与实验义务。 |
-| [progress.md](./progress.md) | 当前 PR-S0 的最新进度、验证命令、复审状态和剩余风险；应保持简洁、可审计、不过度堆积历史流水。 |
+| [task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) | PR-S0-v2 的任务合同：重新勘定第二篇论文主线、主张边界、新颖性矩阵、RQ 与实验义务。 |
+| [task-packets/a1-evidence-assets-seed-selection.md](./task-packets/a1-evidence-assets-seed-selection.md) | PR-A1 的任务合同：证据资产盘点、3--5 篇最小闭环种子选择、备选 / 排除候选和 A2/A3/A5a 交接。 |
+| [progress.md](./progress.md) | 当前阶段最新进度、验证命令、复审状态和剩余风险；应保持简洁、可审计、不过度堆积历史流水。 |
