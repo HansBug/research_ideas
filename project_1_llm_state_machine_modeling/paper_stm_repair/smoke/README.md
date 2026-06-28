@@ -1,22 +1,22 @@
-# R5 deterministic smoke 与 seed library readiness audit
+# R5 确定性冒烟与 seed library 准备度审计
 
 ## 0. 定位
 
-本目录是 `paper_stm_repair/` 的 **R5 pre-repair readiness audit** 工作区，用于在进入 R6 修正循环骨架前，审计 `<NL, STM_0>` 输入能否稳定走到内部可机检 `.fcstm` 表示，并把可进入后续阶段的证据、阻塞原因和 handoff 目标结构化写盘。
+本目录是 `paper_stm_repair/` 的 **R5 修正前准备度审计** 工作区，用于在进入 R6 修正循环骨架前，审计 `<NL, STM_0>` 输入能否稳定走到内部可机检 `.fcstm` 表示，并把可进入后续阶段的证据、阻塞原因和交接目标结构化写盘。
 
 R5 只回答：当前 seed 资源池中哪些原装 `STM_0` 能进入内部可机检 `.fcstm` 表示，哪些只能 `partial` / `blocked` / `not_applicable` / `needs_generation` / `missing_asset`，以及这些状态的原因是什么。
 
-R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不调用真实 LLM，不读取 `.env`，不把 conversion / normalization / representation gain 计入 repair gain。
+R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不调用真实 LLM，不读取 `.env`，不把 conversion / normalization / 表示转换收益计入修正收益。
 
 ## 1. 输入来源
 
-### 1.1 selected 四例 smoke
+### 1.1 选定四例冒烟
 
-selected 四例来自 [../selected_seed_examples/](../selected_seed_examples/)，每例必须消费 committed 上游制品，不在 R5 重写上游事实。
+选定四例来自 [../selected_seed_examples/](../selected_seed_examples/)，每例必须消费 committed 上游制品，不在 R5 重写上游事实。
 
 | example_id | 原始格式 | R5 审计重点 |
 |---|---|---|
-| `llms-emp-gpt4o-hldcs` | PlantUML | `nl.txt` / `stm0.puml` / `model.fcstm` / `fcstm_meta.json` / R3 canonical / R4 fixture / R4.5 report 是否一致。 |
+| `llms-emp-gpt4o-hldcs` | PlantUML | `nl.txt` / `stm0.puml` / `model.fcstm` / `fcstm_meta.json` / R3 canonical / R4 固化样例 / R4.5 report 是否一致。 |
 | `sefm-ssc7-umple` | Umple | 同上，并保留 R3 timing loss 与 R4 focused caveat。 |
 | `llms-emp-deepseek-microwave` | PlantUML | 同上，并保留 R3.1 pre-SCXML normalization replay caveat；raw `stm0.puml` 不得覆盖。 |
 | `llms-emp-kimi-autonomous-collision` | PlantUML | 同上，并保留 condition-like label / event 降级 caveat。 |
@@ -37,7 +37,6 @@ R5 sweep 只处理 deterministic、本地可核验的一手资源：
 ```text
 smoke/
 ├── README.md
-├── GUIDE.md
 ├── selected_examples/
 │   ├── smoke_report.json
 │   ├── smoke_summary.md
@@ -69,7 +68,7 @@ smoke/
 
 ## 3. 输出职责
 
-- [./selected_examples/smoke_report.json](./selected_examples/smoke_report.json) 是 selected 四例 R5 审计事实源。
+- [./selected_examples/smoke_report.json](./selected_examples/smoke_report.json) 是 选定四例 R5 审计事实源。
 - [./seed_library_sweep/sweep_report.json](./seed_library_sweep/sweep_report.json) 是 seed library 全量摸排事实源。
 - [./seed_library_sweep/records_index.json](./seed_library_sweep/records_index.json) 与 [./seed_library_sweep/archive_manifest.json](./seed_library_sweep/archive_manifest.json) 是高基数明细复验入口。
 - [./handoff/](./handoff/) 保存 R5 向 R6/R7/R8 传递的稳定证据。
@@ -80,7 +79,7 @@ Markdown summary 只做人类入口，不成为第二事实真源；所有统计
 
 ## 4. 状态口径
 
-| 状态 | 含义 | 是否失败 | 默认 handoff_target |
+| 状态 | 含义 | 是否失败 | 默认交接目标 |
 |---|---|---:|---|
 | `converted` | 一手 / 条件 `NL + generated STM_0` 可定位，且能走到 `.fcstm` parse / inspect。 | 否 | `r6_candidate` / `r7_eligibility_review` |
 | `partial` | 有一手资源并能部分转换，但存在语义 loss、切片不足、格式 caveat 或只适合作 supplementary。 | 否，但需风险入账 | `r7_eligibility_review` |
@@ -91,9 +90,27 @@ Markdown summary 只做人类入口，不成为第二事实真源；所有统计
 
 `pipeline_only` 不是 R5 census status；registry 中 `pipeline_only` / `NL+code` 条目在 R5 统一落为 `needs_generation`，并保留原始 `resource_role`。
 
-> selected 四例当前不预期出现 `pass`：若 22 项 R5 contract checks 全部通过但上游 R3/R4/R4.5 已记录 loss / caveat，则应保持 `partial`。这是一种 pre-repair readiness 事实，而不是 R5 smoke 失败。
+> 选定四例当前不预期出现 `pass`：若 22 项 R5 contract checks 全部通过但上游 R3/R4/R4.5 已记录 loss / caveat，则应保持 `partial`。这是一种修正前准备度事实，而不是 R5 冒烟失败。
 
-## 5. 验收命令
+## 5. 一致性与归因纪律
+
+### 5.1 四例冒烟一致性
+
+每例必须核验：`source_meta.json` 可校验 `nl.txt` 与 `stm0.*`，`trace_verified=true`，`fcstm_meta.json` 可校验 selected `model.fcstm`，selected `model.fcstm` 与 [../representation/reports/fcstm_exports/](../representation/reports/fcstm_exports/) 对应副本一致，R3 canonical、R4 固化样例和 R4.5 `parse_inspect_report.json` 均存在且 `example_id` 对齐。
+
+R5 发现不一致时，只记录 R5 blocker；不得在 R5 静默修改 selected、conversion、evaluation 或 representation 上游制品。
+
+### 5.2 全量摸排规则
+
+`sweep_report.meta` 必须输出 entry 目录数、registry 数、被排除非条目目录和被排除辅助文件。`status_counts_by_pair` / `status_counts_by_asset` 是主事实字段，`primary_entry_status` 是派生汇总。每个 `converted` / `partial` pair record 必须保留 `loss_count`、`loss_categories`、`loss_reason_codes`、`irrecoverable_fields`、`conversion_attribution`、`representation_attribution` 与 `repair_contribution_allowed=false`。
+
+### 5.3 归档 / 交接
+
+`records_index.json` 始终索引所有 record；`archive_manifest.json` 始终存在。明细超过 50 个 record 或 5 MiB 时必须写入 `archives/<entry_id>_records.zip`，archive 内部路径必须稳定，不得依赖临时绝对路径。
+
+[./handoff/](./handoff/) 只传递后续阶段输入：`r5_to_r6_repair_inputs.json` 不得声称已生成 `STM_k`；`r5_to_r7_seed_eligibility.json` 面向资格冻结；`r5_to_r8_negative_evidence.json` 汇总 blocked、missing、not_applicable 和 needs_generation。
+
+## 6. 验收命令
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/conversion/src \
@@ -119,13 +136,13 @@ git diff --check
 
 `run-seed-sweep` 默认采用 `--continue-on-error` 语义：单个 pair 的 tool exception / timeout 会进入该 pair record，不中断全量摸排；如需调试工具 bug，可使用 `--no-continue-on-error` 让异常 fail-fast。
 
-## 6. 禁止事项
+## 7. 禁止事项
 
 1. 不运行 repair / fix loop。
 2. 不生成 `STM_k`。
 3. 不调用真实 LLM，不读取 `.env`。
 4. 不把 old `method/` agent loop 冒充为 paper1 新修正循环。
-5. 不把 conversion / normalization / representation gain 计入 repair gain。
-6. 不把 selected 四例或 seed sweep 结果写成主实验结果。
+5. 不把 conversion / normalization / 表示转换收益计入修正收益。
+6. 不把 选定四例或 seed sweep 结果写成主实验结果。
 7. 不把 `pipeline_only`、paper-reconstructable、related-only 条目冒充为作者一手 generated seed。
 8. 不把 Markdown summary 当作事实源。

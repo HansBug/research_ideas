@@ -8,11 +8,11 @@
 
 | entry | pair | status | reason | 学术解释 |
 |---|---|---|---|---|
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0001` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 attribution。 |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0002` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 attribution。 |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0003` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 attribution。 |
-| `unified-uml-multimodal-validation` | `unified_uml_state_train_0468` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 attribution。 |
-| `unified-uml-multimodal-validation` | `unified_uml_state_train_0997` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 attribution。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0001` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 归因。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0002` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 归因。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0003` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 归因。 |
+| `unified-uml-multimodal-validation` | `unified_uml_state_train_0468` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 归因。 |
+| `unified-uml-multimodal-validation` | `unified_uml_state_train_0997` | `converted` | `R5.SWEEP.converted_fcstm_parse_inspect_ok` | 可进入 pre-repair `.fcstm` 表示，但仍需保留 loss 与 归因。 |
 
 ## partial
 
