@@ -463,7 +463,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 
 | 旧路径 / 对象 | 新路径 / 新章节 | 当前事实真源 | 迁移理由 |
 |---|---|---|---|
-| `seed_corpus/README.md` | `seed_corpus/README.md redirect + corpora/seed_library/README.md` | corpora/seed_library/README.md | 旧入口降级为跳转，避免第二事实源。 |
+| `seed_corpus/README.md` | 已删除纯跳转入口；历史材料保留在 archive | corpora/seed_library/README.md | 删除前向兼容壳，避免第二事实源。 |
 | `seed_corpus/GUIDE.md` | `archive/.../legacy_ledgers/seed_corpus_GUIDE.md + corpora/seed_library/GUIDE.md` | corpora/seed_library/GUIDE.md | 旧规则归档，新规则按 SUMMARY-first 重写。 |
 | `seed_corpus/SUMMARY.md` | `archive/.../legacy_ledgers/seed_corpus_SUMMARY.md + corpora/seed_library/SUMMARY.md` | corpora/seed_library/SUMMARY.md | 旧总账归档，新总账承载所有横向事实。 |
 | `candidate_matrix.md` | `archive/.../legacy_ledgers/candidate_matrix.md；摘要进入 SUMMARY §5` | corpora/seed_library/SUMMARY.md | 47 条候选进入单一横向总账。 |

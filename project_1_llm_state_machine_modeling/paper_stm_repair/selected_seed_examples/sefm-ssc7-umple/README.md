@@ -18,7 +18,7 @@
 | [nl.txt](./nl.txt) | 4open ZIP 中 `SSC7_fall_2024` 的自助结账系统自然语言描述。 |
 | [stm0.ump](./stm0.ump) | Claude Sonnet 3.5 single-prompt 生成的 Umple 状态机文本。 |
 | [source_meta.json](./source_meta.json) | 从 `pairs.jsonl` 抽出的 pair id、ZIP locator、哈希、生成方式与 trace 字段。 |
-| [model.fcstm](./model.fcstm) | R4.5 表示桥导出的 pyfcstm smoke 快照；同步自 [representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm](../../representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)，不是一手资源或 repair 后模型。 |
+| [model.fcstm](./model.fcstm) | R4.5 表示桥导出的 pyfcstm smoke 快照；同步自 [pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)，不是一手资源或 repair 后模型。 |
 | [fcstm_meta.json](./fcstm_meta.json) | `model.fcstm` 的同步来源、hash、parse/inspect 状态、上游 NL / 原始 STM_0 / canonical / loss 归因记录。 |
 
 ## 3. 系统说明
@@ -57,10 +57,10 @@ SSC7 软件（SSC7S）与第（ii）到第（viii）部分交互。条码扫描�
 
 - 派生文件：[model.fcstm](./model.fcstm)。
 - 元数据：[fcstm_meta.json](./fcstm_meta.json)。
-- 上游 R4.5 输出：[representation model.fcstm](../../representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)、[name_mapping.json](../../representation/reports/fcstm_exports/sefm-ssc7-umple/name_mapping.json)、[lowering_inventory.json](../../representation/reports/fcstm_exports/sefm-ssc7-umple/lowering_inventory.json)、[parse_inspect_report.json](../../representation/reports/fcstm_exports/sefm-ssc7-umple/parse_inspect_report.json)。
+- 上游 R4.5 输出：[pipeline representation model.fcstm](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)、[name_mapping.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/name_mapping.json)、[lowering_inventory.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/lowering_inventory.json)、[parse_inspect_report.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/parse_inspect_report.json)。
 - 当前状态：`fcstm_meta.json` 中 `parse_status=ok`、`inspect_status=ok`、`repair_contribution_allowed=false`。
 - 口径说明：R4.5 从 Umple 官方 SCXML canonical 导出可被 pyfcstm parse/inspect 的 smoke `.fcstm`；event+guard 经 pseudo relay 降低，`after(60)` 等 timing loss 继续只作 caveat。
-- 维护纪律：若 R3 canonical、R4.5 exporter 或 [../../representation/reports/fcstm_export_report.json](../../representation/reports/fcstm_export_report.json) 变化，必须先重新生成 R4.5 reports，再运行 `python -m paper_stm_repair_representation.cli sync-selected-fcstm` 同步本目录；不得手工只改本目录 [model.fcstm](./model.fcstm)。
+- 维护纪律：若 R3 canonical、R4.5 exporter 或 [../../pipeline/representation/reports/fcstm_export_report.json](../../pipeline/representation/reports/fcstm_export_report.json) 变化，必须先重新生成 R4.5 reports，再运行 `python -m paper_stm_repair_representation.cli sync-selected-fcstm` 同步本目录；不得手工只改本目录 [model.fcstm](./model.fcstm)。
 
 ### 6.1 哈希差异说明
 

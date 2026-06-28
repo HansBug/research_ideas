@@ -17,7 +17,7 @@
 
 ## 4. 不可提交内容说明
 
-当前 parquet 已在仓库中提交；后续若替换或重下 raw，必须同步更新 SHA-256、HF revision、`pairs.jsonl`、`validation_summary.json` 与 [REGISTRY.md](../../REGISTRY.md)。
+当前 parquet 已在仓库中提交；后续若替换或重下 raw，必须同步更新 SHA-256、HF revision、`pairs.jsonl`、`validation_summary.json` 与 [REGISTRY.md](../../../REGISTRY.md)。
 
 ## 5. 校验结果摘要
 

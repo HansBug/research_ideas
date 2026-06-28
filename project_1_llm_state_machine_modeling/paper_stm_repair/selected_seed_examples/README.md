@@ -12,8 +12,8 @@
 - `nl.txt` 必须是作者一手资源中参与生成的原始自然语言输入；不能使用本仓库旧缓存、二手 parquet、人工改写摘要或后续复跑时新写的 NL。
 - `stm0.*` 必须是与该 NL 对齐的作者一手生成输出；不能混入 reference model、checking 后结果、人工修正版或本项目后续修正输出。
 - `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式、格式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`generation_actor`、`generation_model_or_method`、`stm_format`、`source_asset_id`、`source_local_path`、`source_locator_type`、`source_locator`、`source_sha256`、`source_pairs_jsonl`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
-- `model.fcstm` 是 R4.5 表示桥从 R3 canonical 生成的 **smoke convenience snapshot**，不是作者一手资源、不是人工修正版、不是 repair 后模型；它必须逐字节同步自 [../representation/reports/fcstm_exports/](../representation/reports/fcstm_exports/) 对应 `model.fcstm`，并由 `fcstm_meta.json` 记录来源 report、hash、parse/inspect 状态和 loss 归因。
-- 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。若只刷新 R4.5 表示桥，则必须先重新生成 [../representation/reports/fcstm_export_report.json](../representation/reports/fcstm_export_report.json)，再同步本目录的 `model.fcstm` / `fcstm_meta.json`。
+- `model.fcstm` 是 R4.5 表示桥从 R3 canonical 生成的 **smoke convenience snapshot**，不是作者一手资源、不是人工修正版、不是 repair 后模型；它必须逐字节同步自 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 对应 `model.fcstm`，并由 `fcstm_meta.json` 记录来源 report、hash、parse/inspect 状态和 loss 归因。
+- 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。若只刷新 R4.5 表示桥，则必须先重新生成 [../representation/reports/fcstm_export_report.json](../pipeline/representation/reports/fcstm_export_report.json)，再同步本目录的 `model.fcstm` / `fcstm_meta.json`。
 
 ## 2. 当前样例清单
 
@@ -39,7 +39,7 @@
 1. 本目录不复制 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 的全量事实表；每个样例只保存最小可读输入、源文件、R4.5 `.fcstm` smoke 快照和中文解释。
 2. 逐条资源数量、哈希、locator、raw 文件和 validator 结果以 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` 与对应 `assets/README.md` 为准。
 3. 子目录 `README.md` 必须包含：系统说明、NL 文件说明、原始 STM_0 文件说明、R4.5 `model.fcstm` 说明、NL 中文完整翻译、原始论文 PDF / 全文提取 / BibTeX / 文库相对路径、生成关系和 caveat。
-4. `model.fcstm` 只能由 [../representation/reports/fcstm_exports/](../representation/reports/fcstm_exports/) 同名样例同步而来；若 R4.5 exporter、canonical、loss ledger 或 selected 输入变化，必须同时更新 `model.fcstm`、`fcstm_meta.json` 和相关 report，不允许手工只改 selected copy。
+4. `model.fcstm` 只能由 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 同名样例同步而来；若 R4.5 exporter、canonical、loss ledger 或 selected 输入变化，必须同时更新 `model.fcstm`、`fcstm_meta.json` 和相关 report，不允许手工只改 selected copy。
 5. `fcstm_meta.json` 是 selected copy 与 R4.5 report 的连接件，至少记录 selected / representation 双方 hash、parse/inspect 状态、source NL、原始 STM_0、source meta、canonical、loss count、attribution 和 `repair_contribution_allowed=false`。
 6. 后续真实运行应另建 run record，记录使用的样例版本、输入、输出、错误、工具版本和 eligibility；不要把运行状态写回本目录作为流程台账。
 
