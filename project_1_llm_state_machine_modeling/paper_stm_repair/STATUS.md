@@ -19,9 +19,11 @@
 
 ## 2. Seed 资源现状
 
+R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm-subset` 展开。它是当前最符合 `<NL, LLM-generated STM_0>` 硬边界的一手资源，且具备 10 个唯一 NL × 6 个 LLM 输出的可比较结构。完整 60 case 状态表与问题谱系见 [pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)。
+
 | 角色 | 条目 | 可用数量 / 特征 | 当前处理 |
 |---|---|---|---|
-| 可直接复验的一手 `NL + STM_0` | `llms-emp-stm-subset` | 60 个 LLM-generated PlantUML pair；10 个唯一 NL × 6 个 LLM 输出 | 可作主要 LLM seed；必须隔离 reference / checking 后结果 |
+| 可直接复验的一手 `NL + STM_0` | `llms-emp-stm-subset` | 60 个 LLM-generated PlantUML pair；10 个唯一 NL × 6 个 LLM 输出；R5：16 converted / 41 partial / 3 blocked | 作为 R6/R7 主实验优先 seed 池；必须隔离 reference / checking 后结果，并按 10 个 NL cluster 报告 |
 | 可直接复验的一手 `NL + STM_0` | `sefm-llm-state-machine` | 9 个 NL description，但只有 1 个 SSC7 generated Umple 输出 | 可作可读冒烟 / 小样例；不能按 8 或 9 个 generated pair 计算 |
 | 可直接复验的一手 `NL + STM_0` | `unified-uml-multimodal-validation` | 999 行 raw；989 个有效 generated PlantUML pair；10 个 generation failure | 可作 synthetic stress；不能包装成真实控制系统需求 |
 | 条件候选 | `ttool-ai-smd-subset` | 6 个 `NL + generated TTool XML` 条件 pair，4 个唯一 NL | 可作转换压力源；进入主实验前需冻结 T0/SMD 切片和泄漏边界 |
@@ -116,7 +118,7 @@
 
 | 后续方向 | 需要做什么 | 依赖当前产物 |
 |---|---|---|
-| R6 修正循环骨架 | 真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/smoke/handoff/r5_to_r6_repair_inputs.json](./pipeline/smoke/handoff/r5_to_r6_repair_inputs.json) |
-| R7 协议 / eligibility freeze | 决定 converted / partial / needs_generation 如何进入正式实验 | [pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json](./pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json) |
+| R6 修正循环骨架 | 优先围绕 `llms-emp-stm-subset` 选 12–18 条分层样本，真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/smoke/handoff/r5_to_r6_repair_inputs.json](./pipeline/smoke/handoff/r5_to_r6_repair_inputs.json)、[pipeline/smoke/handoff/llms_emp_main_seed_handoff.md](./pipeline/smoke/handoff/llms_emp_main_seed_handoff.md) |
+| R7 协议 / eligibility freeze | 冻结 `llms-emp-stm-subset` A/B/C/D 分层、10-NL clustered reporting 与 conversion-aware attribution；再决定 supplementary seed 角色 | [pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json](./pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json)、[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md) |
 | R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [pipeline/smoke/handoff/r5_to_r8_negative_evidence.json](./pipeline/smoke/handoff/r5_to_r8_negative_evidence.json) |
 | generation follow-up | 对 `fsm-bench-20` / `designing-fsm-gpt4` 这类 NL+code 来源复跑并建立 run record | seed registry 中的 仅流水线 条目 |

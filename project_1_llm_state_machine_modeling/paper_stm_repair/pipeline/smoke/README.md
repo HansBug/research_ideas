@@ -48,12 +48,15 @@ smoke/
 │   ├── blocked_cases.md
 │   ├── partial_cases.md
 │   ├── sampling_analysis.md
+│   ├── llms_emp_main_seed_analysis.md
 │   ├── audit_records/
 │   ├── records_index.json
 │   ├── archives/
 │   │   └── <entry_id>_records.zip
 │   └── archive_manifest.json
 ├── handoff/
+│   ├── README.md
+│   ├── llms_emp_main_seed_handoff.md
 │   ├── r5_to_r6_repair_inputs.json
 │   ├── r5_to_r7_seed_eligibility.json
 │   └── r5_to_r8_negative_evidence.json
@@ -71,7 +74,8 @@ smoke/
 - [./selected_examples/smoke_report.json](./selected_examples/smoke_report.json) 是 选定四例 R5 审计事实源。
 - [./seed_library_sweep/sweep_report.json](./seed_library_sweep/sweep_report.json) 是 seed library 全量摸排事实源。
 - [./seed_library_sweep/records_index.json](./seed_library_sweep/records_index.json) 与 [./seed_library_sweep/archive_manifest.json](./seed_library_sweep/archive_manifest.json) 是高基数明细复验入口。
-- [./handoff/](./handoff/) 保存 R5 向 R6/R7/R8 传递的稳定证据。
+- [./seed_library_sweep/llms_emp_main_seed_analysis.md](./seed_library_sweep/llms_emp_main_seed_analysis.md) 是 R5 后对 `llms-emp-stm-subset` 主实验 seed 方向的长期归纳，含 60 case 状态表、问题谱系与 R6/R7 建议。
+- [./handoff/](./handoff/) 保存 R5 向 R6/R7/R8 传递的稳定证据，其中 [./handoff/llms_emp_main_seed_handoff.md](./handoff/llms_emp_main_seed_handoff.md) 固化 `llms-emp-stm-subset` 优先路线。
 
 Markdown summary 只做人类入口，不成为第二事实真源；所有统计必须能从 machine-readable JSON 复算。
 

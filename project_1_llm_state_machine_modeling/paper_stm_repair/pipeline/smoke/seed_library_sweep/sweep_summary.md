@@ -2,6 +2,8 @@
 
 本文件由 `run-seed-sweep` 生成。事实源是 [sweep_report.json](./sweep_report.json)，本 Markdown 只做人类入口。
 
+R5 后对主实验 seed 方向的归纳见 [llms_emp_main_seed_analysis.md](./llms_emp_main_seed_analysis.md)：当前建议后续 R6/R7 优先围绕 `llms-emp-stm-subset` 展开，并按 10 个唯一 NL cluster 报告。
+
 ## 1. denominator
 
 - entry directories: 36
