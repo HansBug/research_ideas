@@ -1661,6 +1661,9 @@ def run_llms_emp_profile(_: argparse.Namespace) -> int:
                 "raw_conversion_pass": recovery.get("raw_conversion_pass"),
                 "normalized_conversion_pass": recovery.get("normalized_conversion_pass"),
                 "render_status": "unknown_from_committed_r5_evidence",
+                "renderability_recheck_status": "not_reproducible_from_committed_evidence",
+                "renderability_recheck_blocker": "PlantUML jar、normalized candidate 文件与完整 stdout/stderr log 未作为 R5.5 committed evidence 保存；R5.5 只能复用 R3.1 -checkonly/-tscxml 摘要证据，完整 render probe 应另开 converter follow-up。",
+                "render_probe_recommended": True,
                 "pre_scxml_recovery_possible": bool(recovery.get("normalized_conversion_pass")),
                 "evidence_path": rel(RECOVERY_REPORT_PATH),
                 "evidence_anchor": f"/items[pair_id={pair_id}]/normalized_preflight",
@@ -1708,6 +1711,48 @@ def md_counter_table(counter: Counter | dict[str, int], key_name: str = "项", v
 
 def status_symbol(status: str) -> str:
     return {"converted": "🟢", "partial": "🟡", "blocked": "🔴"}.get(status, "⚪")
+
+
+def md_cell(value: Any) -> str:
+    """Render a generated Markdown table cell without leaking line breaks.
+
+    Some upstream workbook cells contain embedded newlines, for example
+    ``Microwave Oven Control with entry and \n exit actions``.  R5.5 tables
+    are evidence indexes, not raw-data containers, so cell rendering must keep
+    the semantic text while avoiding trailing whitespace / broken table rows.
+    """
+    text = "" if value is None else str(value)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.replace("|", r"\|")
+
+
+def loss_policy_note(code: str, item: dict[str, Any]) -> str:
+    if code == "R45.LOSS.condition_like_label_lowered_as_event":
+        return "只进入 R5.7 候选；必须逐例回到 NL 与原始 PlantUML，不能自动把 event label 升级为 guard。"
+    if code == "R5.LOSS.r3_1_normalization_replay_not_repair":
+        return "只说明 R3.1 预处理让 official SCXML 路径可走；不得计入 repair gain。"
+    if code == "R5.LOSS.official_scxml_unavailable":
+        return "blocked / negative evidence；优先做 converter follow-up，不归因给 repair loop。"
+    if item.get("primary_attribution") == "fcstm_lowering":
+        return "表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。"
+    return "保守记录为 attribution caveat；后续必须用一手证据再裁决。"
+
+
+def loss_attribution_policy_table() -> list[str]:
+    lines = [
+        "| loss code | 观察到的问题 | 来源阶段 | 主归因 | 次级归因 | pipeline artifact | R5.7候选 | 置信度 | R5.7纪律 |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for code in LOSS_PRIORITY:
+        item = LOSS_ATTRIBUTION_MAP[code]
+        secondary = ", ".join(f"`{x}`" for x in item.get("secondary_attributions", [])) or "无"
+        lines.append(
+            f"| `{code}` | {md_cell(item.get('observed_issue'))} | `{md_cell(item.get('source_stage'))}` | "
+            f"`{md_cell(item.get('primary_attribution'))}` | {secondary} | "
+            f"`{bool(item.get('pipeline_artifact'))}` | `{bool(item.get('r5_7_candidate_only'))}` | "
+            f"`{md_cell(item.get('confidence'))}` | {loss_policy_note(code, item)} |"
+        )
+    return lines
 
 
 def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], clusters: list[dict[str, Any]], partials: list[dict[str, Any]], blocked: list[dict[str, Any]]) -> None:
@@ -1762,7 +1807,7 @@ def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], cluster
         for llm in LLM_FAMILY_ORDER:
             c = by_cluster[cluster["nl_cluster_id"]].get(llm)
             cells.append(f"{status_symbol(c['conversion_status'])} `{c['raw_pair_id'][-4:]}`" if c else "⚪")
-        lines.append(f"| `{cluster['nl_cluster_id']}` | {cluster['model_name']} / {cluster['model_source']} | `{cluster['time_level']}` | `{cluster['structure_family']}` | " + " | ".join(cells) + " |")
+        lines.append(f"| `{cluster['nl_cluster_id']}` | {md_cell(cluster['model_name'])} / {md_cell(cluster['model_source'])} | `{md_cell(cluster['time_level'])}` | `{md_cell(cluster['structure_family'])}` | " + " | ".join(cells) + " |")
     lines += ["", "## 4. LLM 维度状态", "", "| LLM | converted | partial | blocked |", "|---|---:|---:|---:|"]
     for llm in LLM_FAMILY_ORDER:
         cnt = llm_status[llm]
@@ -1771,15 +1816,34 @@ def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], cluster
     for cluster in clusters:
         losses = ", ".join(f"`{k}`×{v}" for k, v in cluster.get("loss_code_counts", {}).items()) or "无"
         features = ", ".join(f"`{k}`" for k, v in (cluster.get("behavior_feature_profile") or {}).items() if v) or "无"
-        lines.append(f"| `{cluster['nl_cluster_id']}` | `{cluster['r5_6_story_role']}` | {cluster['task_type']} | {features} | {cluster['time_level_note']} | {cluster['status_counts']} | {losses} |")
+        lines.append(f"| `{cluster['nl_cluster_id']}` | `{md_cell(cluster['r5_6_story_role'])}` | {md_cell(cluster['task_type'])} | {features} | {md_cell(cluster['time_level_note'])} | {md_cell(cluster['status_counts'])} | {losses} |")
     lines += ["", "## 6. partial 归因摘要", "", "| primary_attribution | count |", "|---|---:|"]
     for key, value in sorted(Counter(p["primary_attribution"] for p in partials).items()):
         lines.append(f"| `{key}` | {value} |")
-    lines += ["", "## 7. blocked 摘要", "", "| raw_pair_id | cluster | LLM | issue_category | 当前结论 |", "|---|---|---|---|---|"]
+    lines += [
+        "",
+        "`pipeline_artifact=True` 表示该症状在 conversion / canonicalization / lowering pipeline 中被观察或暴露；它不等价于“pipeline 是唯一根因”，也不排除 R5.7 逐例判定为 seed-side guard/event/action 缺陷。",
+        "",
+        "## 7. loss code 到 R5.5 归因策略",
+        "",
+        "本节把机器 ledger 中的 `loss_reason_codes` 显式映射到 R5.5 学术归因，避免后续把 conversion / normalization / lowering 收益误写成 repair loop 收益。该表是长期阅读入口；机器事实源仍以 [llms_emp_partial_attribution_ledger.jsonl](./llms_emp_partial_attribution_ledger.jsonl) 与 R5 sweep archive 为准。",
+        "",
+    ]
+    lines += loss_attribution_policy_table()
+    lines += ["", "## 8. blocked 摘要", "", "| raw_pair_id | cluster | LLM | issue_category | renderability | 当前结论 |", "|---|---|---|---|---|---|"]
     for b in blocked:
         conclusion = "raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。"
-        lines.append(f"| `{b['raw_pair_id']}` | `{b['nl_cluster_id']}` | `{b['llm_family']}` | `{b.get('issue_category')}` | {conclusion} |")
-    lines += ["", "## 8. 给 R5.6/R5.7 的学术含义", "", "1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的 FSM/HSM/EFSM-lite/statechart 子族。", "2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。", "3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。", "4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。", ""]
+        lines.append(f"| `{b['raw_pair_id']}` | `{b['nl_cluster_id']}` | `{b['llm_family']}` | `{md_cell(b.get('issue_category'))}` | `{md_cell(b.get('renderability_recheck_status'))}` | {conclusion} |")
+    lines += [
+        "",
+        "## 9. 给 R5.6/R5.7 的学术含义",
+        "",
+        "1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的离散 FSM/HSM/UML-SysML statechart artifacts。guard/action/data-condition 只作为 caveat 与 R5.7 候选画像，不作为已确认扩展状态机覆盖 claim。",
+        "2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。",
+        "3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。",
+        "4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。",
+        "",
+    ]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -1793,7 +1857,7 @@ def write_llms_emp_blocked_probe(path: Path, blocked: list[dict[str, Any]]) -> N
         "",
         "3 个 blocked 样例均有作者一手 `NL + generated PlantUML`，但 R3.1 的 raw 与 normalized official PlantUML probe 均未获得可信 SCXML。当前 committed evidence 未证明它们可渲染；只能说明 `-checkonly` / `-tscxml` 路径失败，且当前 normalization rules 未修复。",
         "",
-        "注意：当前 committed evidence 只保存 JSON 中的 stdout / stderr tail，没有完整 stdout/stderr log 文件；如后续需要精确错误行，应另开 converter follow-up probe。",
+        "注意：当前 committed evidence 只保存 JSON 中的 stdout / stderr tail，没有完整 stdout/stderr log 文件；本仓库快照也未提交 PlantUML jar 与 normalized candidate 单文件。因此 R5.5 对“是否可渲染”的结论是 `not_reproducible_from_committed_evidence`，而不是“已证明不可渲染”。如后续需要精确错误行和渲染性，应另开 converter follow-up probe。",
         "",
     ]
     for b in blocked:
@@ -1809,6 +1873,9 @@ def write_llms_emp_blocked_probe(path: Path, blocked: list[dict[str, Any]]) -> N
             f"- raw candidate: `{b.get('raw_candidate_path')}`",
             f"- normalized candidate: `{b.get('normalized_candidate_path')}`",
             f"- render status: `{b.get('render_status')}`",
+            f"- renderability recheck: `{b.get('renderability_recheck_status')}`",
+            f"- renderability blocker: {b.get('renderability_recheck_blocker')}",
+            f"- render probe recommended: `{b.get('render_probe_recommended')}`",
             f"- pre-SCXML recovery possible: `{b.get('pre_scxml_recovery_possible')}`",
             f"- evidence: `{b.get('evidence_path')}#{b.get('evidence_anchor')}`",
             "",
@@ -1907,6 +1974,10 @@ def validate_llms_emp_profile(errors: list[str]) -> None:
             errors.append(f"R5.5 blocked {row.get('raw_pair_id')} must use pre_scxml_recovery_possible, not normalization_repair_possible")
         if "pre_scxml_recovery_possible" not in row:
             errors.append(f"R5.5 blocked {row.get('raw_pair_id')} missing pre_scxml_recovery_possible")
+        if row.get("renderability_recheck_status") != "not_reproducible_from_committed_evidence":
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} must state committed-evidence renderability is not reproducible")
+        if not row.get("renderability_recheck_blocker"):
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} missing renderability_recheck_blocker")
     for row in clusters:
         features = row.get("behavior_feature_profile")
         if not isinstance(features, dict) or not features:
@@ -1945,6 +2016,15 @@ def validate_llms_emp_profile(errors: list[str]) -> None:
     for required_phrase in ["行为特征画像", "cluster 口径 story role", "feature census"]:
         if required_phrase not in deep_text:
             errors.append(f"R5.5 deep profile missing {required_phrase}")
+    if "EFSM" + "-lite" in deep_text:
+        errors.append("R5.5 deep profile must not claim unsupported extended-state-machine-lite coverage")
+    if "loss code 到 R5.5 归因策略" not in deep_text:
+        errors.append("R5.5 deep profile missing loss-code attribution policy section")
+    for code in sorted({code for row in cases for code in row.get("r5_loss_codes", [])}):
+        if code not in deep_text:
+            errors.append(f"R5.5 deep profile missing loss-code policy for {code}")
+    if "它不等价于“pipeline 是唯一根因”" not in deep_text:
+        errors.append("R5.5 deep profile must explain pipeline_artifact semantics")
 
 def load_index_payloads(index: dict[str, Any]) -> list[dict[str, Any]]:
     payloads: list[dict[str, Any]] = []

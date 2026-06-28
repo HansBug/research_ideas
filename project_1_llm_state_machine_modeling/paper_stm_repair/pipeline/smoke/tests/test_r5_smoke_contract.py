@@ -229,11 +229,18 @@ def test_r55_llms_emp_deep_profile_contract():
     for row in blocked:
         assert "pre_scxml_recovery_possible" in row
         assert "normalization_repair_possible" not in row
+        assert row["renderability_recheck_status"] == "not_reproducible_from_committed_evidence"
+        assert row["renderability_recheck_blocker"]
 
     deep_text = (base / "llms_emp_deep_profile.md").read_text(encoding="utf-8")
     assert "60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出" in deep_text
     assert "cluster 口径 story role" in deep_text
     assert "行为特征画像" in deep_text
     assert "不能直接把某个特征计为 R5.7 已确认 repair target" in deep_text
+    assert "EFSM-lite" not in deep_text
+    assert "loss code 到 R5.5 归因策略" in deep_text
+    assert "它不等价于“pipeline 是唯一根因”" in deep_text
+    for code in sorted({code for row in cases for code in row["r5_loss_codes"]}):
+        assert code in deep_text
     handoff = (base / "llms_emp_r56_handoff.md").read_text(encoding="utf-8")
     assert "proceed_with_supplementary" in handoff

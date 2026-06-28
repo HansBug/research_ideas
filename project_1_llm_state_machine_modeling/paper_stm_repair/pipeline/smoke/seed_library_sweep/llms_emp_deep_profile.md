@@ -85,11 +85,10 @@
 | `llms_emp_nl_02_real_time_softwa_pump_control_state_machine` | Pump Control state machine / Real-Time Software Design for Embedded Systems | `T0` | `HSM` | 🟢 `0002` | 🟢 `0013` | 🟡 `0023` | 🟡 `0033` | 🟡 `0043` | 🟢 `0053` |
 | `llms_emp_nl_03_hsuv_hybrid_sport_utility_vehicle_hsuv` | Hybrid Sport Utility Vehicle, HSUV / HSUV | `T0` | `HSM` | 🟢 `0003` | 🟢 `0012` | 🟡 `0022` | 🟡 `0032` | 🟡 `0042` | 🟢 `0052` |
 | `llms_emp_nl_04_real_time_softwa_state_machine_for_train_control` | state machine for Train Control / Real-Time Software Design for Embedded Systems | `T0` | `HSM` | 🟡 `0004` | 🟡 `0014` | 🟡 `0024` | 🟡 `0034` | 🟡 `0044` | 🟢 `0054` |
-| `llms_emp_nl_05_mocv_microwave_oven_control_with_entry` | Microwave Oven Control with entry and 
- exit actions / MOCV | `T0.5` | `UML-SysML statechart` | 🟡 `0005` | 🟡 `0015` | 🟡 `0025` | 🟡 `0035` | 🟡 `0045` | 🟢 `0055` |
+| `llms_emp_nl_05_mocv_microwave_oven_control_with_entry` | Microwave Oven Control with entry and exit actions / MOCV | `T0.5` | `UML-SysML statechart` | 🟡 `0005` | 🟡 `0015` | 🟡 `0025` | 🟡 `0035` | 🟡 `0045` | 🟢 `0055` |
 | `llms_emp_nl_06_dscs_uav_swarm_state_machine_diagram` | UAV swarm state machine diagram / DSCS | `T0` | `HSM` | 🟢 `0006` | 🟡 `0016` | 🟡 `0026` | 🟢 `0036` | 🟡 `0046` | 🟢 `0056` |
 | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | Collision avoidance sub-machine state diagram / HLDCS | `T0` | `UML-SysML statechart` | 🟢 `0007` | 🟡 `0017` | 🟡 `0027` | 🔴 `0037` | 🟡 `0047` | 🟡 `0057` |
-| `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` |  Digital camera state machine diagrams / DCS | `T1` | `UML-SysML statechart` | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` |
+| `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | Digital camera state machine diagrams / DCS | `T1` | `UML-SysML statechart` | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` |
 | `llms_emp_nl_09_hldcs_autonomous_mode` | autonomous mode / HLDCS | `T0` | `HSM` | 🟡 `0009` | 🟡 `0019` | 🟡 `0029` | 🟡 `0039` | 🟡 `0049` | 🟡 `0059` |
 
 ## 4. LLM 维度状态
@@ -126,17 +125,34 @@
 | `pipeline_artifact` | 19 |
 | `r5_7_candidate_only` | 16 |
 
-## 7. blocked 摘要
+`pipeline_artifact=True` 表示该症状在 conversion / canonicalization / lowering pipeline 中被观察或暴露；它不等价于“pipeline 是唯一根因”，也不排除 R5.7 逐例判定为 seed-side guard/event/action 缺陷。
 
-| raw_pair_id | cluster | LLM | issue_category | 当前结论 |
-|---|---|---|---|---|
-| `llms_emp_stm_results_0018` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `gpt-4` | `F_unquoted_state_names_with_spaces` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
-| `llms_emp_stm_results_0028` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `llama` | `A_non_plantuml_stm_directive` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
-| `llms_emp_stm_results_0037` | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `kimi` | `A_non_plantuml_stm_directive` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+## 7. loss code 到 R5.5 归因策略
 
-## 8. 给 R5.6/R5.7 的学术含义
+本节把机器 ledger 中的 `loss_reason_codes` 显式映射到 R5.5 学术归因，避免后续把 conversion / normalization / lowering 收益误写成 repair loop 收益。该表是长期阅读入口；机器事实源仍以 [llms_emp_partial_attribution_ledger.jsonl](./llms_emp_partial_attribution_ledger.jsonl) 与 R5 sweep archive 为准。
 
-1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的 FSM/HSM/EFSM-lite/statechart 子族。
+| loss code | 观察到的问题 | 来源阶段 | 主归因 | 次级归因 | pipeline artifact | R5.7候选 | 置信度 | R5.7纪律 |
+|---|---|---|---|---|---|---|---|---|
+| `R5.LOSS.official_scxml_unavailable` | official PlantUML SCXML export was unavailable after raw and normalized probes | `plantuml_toolchain` | `plantuml_toolchain` | `unknown` | `True` | `False` | `high` | blocked / negative evidence；优先做 converter follow-up，不归因给 repair loop。 |
+| `R45.LOSS.condition_like_label_lowered_as_event` | condition-like transition label was preserved as an event label rather than a verified guard | `fcstm_lowering` | `r5_7_candidate_only` | `seed_defect`, `fcstm_lowering` | `True` | `True` | `medium` | 只进入 R5.7 候选；必须逐例回到 NL 与原始 PlantUML，不能自动把 event label 升级为 guard。 |
+| `R5.LOSS.r3_1_normalization_replay_not_repair` | pre-SCXML normalization replay was required; this is conversion readiness, not repair gain | `plantuml_toolchain` | `pipeline_artifact` | `plantuml_toolchain` | `True` | `False` | `high` | 只说明 R3.1 预处理让 official SCXML 路径可走；不得计入 repair gain。 |
+| `R45.LOSS.cross_scope_transition_unrepresentable` | cross-scope transition could not be represented without hierarchy approximation | `fcstm_lowering` | `fcstm_lowering` | `scxml_canonical` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
+| `R45.LOSS.source_lifted_to_composite_boundary` | source endpoint was lifted to a composite-state boundary during representation lowering | `fcstm_lowering` | `fcstm_lowering` | `scxml_canonical` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
+| `R45.LOSS.target_lifted_to_composite_boundary` | target endpoint was lifted to a composite-state boundary during representation lowering | `fcstm_lowering` | `fcstm_lowering` | `scxml_canonical` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
+| `R45.LOSS.composite_target_lowered_to_initial_child` | transition into a composite target was lowered to an initial child | `fcstm_lowering` | `fcstm_lowering` | `scxml_canonical` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
+| `R45.LOSS.initial_inferred_from_source_order_or_start_state` | initial child was inferred from source order or start-state convention | `fcstm_lowering` | `fcstm_lowering` | `pipeline_artifact` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
+
+## 8. blocked 摘要
+
+| raw_pair_id | cluster | LLM | issue_category | renderability | 当前结论 |
+|---|---|---|---|---|---|
+| `llms_emp_stm_results_0018` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `gpt-4` | `F_unquoted_state_names_with_spaces` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+| `llms_emp_stm_results_0028` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `llama` | `A_non_plantuml_stm_directive` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+| `llms_emp_stm_results_0037` | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `kimi` | `A_non_plantuml_stm_directive` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+
+## 9. 给 R5.6/R5.7 的学术含义
+
+1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的离散 FSM/HSM/UML-SysML statechart artifacts。guard/action/data-condition 只作为 caveat 与 R5.7 候选画像，不作为已确认扩展状态机覆盖 claim。
 2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。
 3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。
 4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。
