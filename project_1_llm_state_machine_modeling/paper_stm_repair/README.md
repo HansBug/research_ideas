@@ -22,6 +22,8 @@
 - 四例冒烟结果：[pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json)
 - 全量 seed sweep 结果：[pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json)
 - R5 后主实验 seed 方向分析：[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)
+- R5.5 `llms-emp` 主 seed 池深度画像：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)
+- R5.5 向 R5.6 的边界交接：[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md)
 - R5 交接：[pipeline/smoke/handoff/](./pipeline/smoke/handoff/)
 
 ## 3. 数据流
@@ -63,12 +65,13 @@ flowchart TD
 3. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
 4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
 5. 想看转换和表示链路：读 [pipeline/conversion/README.md](./pipeline/conversion/README.md) 与 [pipeline/representation/README.md](./pipeline/representation/README.md)。
-6. 想看全量摸排：读 [pipeline/smoke/README.md](./pipeline/smoke/README.md)、[pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)。
+6. 想看全量摸排：读 [pipeline/smoke/README.md](./pipeline/smoke/README.md)、[pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md)、[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)。
 
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-29 00:35:00 | R5.5 新增 [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md)，把 `llms-emp-stm-subset` 收敛为 10 个 NL cluster × 6 个 LLM 输出的主 seed 池画像，并明确 T0/T0.5 主线 + Digital Camera supplementary stress。 |
 | 2026-06-28 23:45:00 | 基于 R5 全量摸排新增 [pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)，明确 `llms-emp-stm-subset` 作为后续主实验优先 seed 池。 |
 | 2026-06-28 22:20:00 | 将 `conversion/`、`evaluation/`、`representation/`、`smoke/` 整体迁入 [pipeline/](./pipeline/)，使 pipeline 成为真实阶段路径而非文档概念。 |
 | 2026-06-28 20:10:00 | 简化顶层阅读结构：新增 [STATUS.md](./STATUS.md)，将数据流、目录地图和当前边界收敛到本 README；旧流程式阅读路径不再作为主入口。 |

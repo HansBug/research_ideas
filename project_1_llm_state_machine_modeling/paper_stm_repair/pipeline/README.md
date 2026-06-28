@@ -15,7 +15,7 @@
 | R3 转换 | [conversion/](./conversion/) | `selected_seed_examples/*/stm0.*` 与 seed registry 中的一手原始 STM | 规范化 STM JSON、conversion report、loss ledger、PlantUML recovery audit | 把 PlantUML / Umple 等作者生成 STM_0 转成可供后续消费的 canonical JSON；不证明模型已修好。 |
 | R4 评价门 | [evaluation/](./evaluation/) | R3 canonical JSON、四例 `<NL, STM_0>` | diagnostic / scenario / eligibility / Better STM checklist schema 与四例 dry-run | 冻结后续 repair loop 的评价字段和禁止主张，尚不评估真实 `STM_k`。 |
 | R4.5 表示桥 | [representation/](./representation/) | R3 canonical JSON | `.fcstm`、name mapping、lowering inventory、parse/inspect report | 将 canonical JSON 降到 pyfcstm 可机检表示；loss 必须入账。 |
-| R5 冒烟与摸排 | [smoke/](./smoke/) | 四例静态样例、seed library registry、R3/R4/R4.5 制品 | 四例 smoke report、seed sweep report、handoff JSON | 复验当前数据池中哪些样本可进入后续 R6/R7/R8，仍不执行修正循环。 |
+| R5 冒烟与摸排 | [smoke/](./smoke/) | 四例静态样例、seed library registry、R3/R4/R4.5 制品 | 四例 smoke report、seed sweep report、handoff JSON、R5.5 `llms-emp` 深度画像 | 复验当前数据池中哪些样本可进入后续 R6/R7/R8，并把主 seed 池按 10 NL cluster × 6 LLM 输出画像；仍不执行修正循环。 |
 
 ## 3. 数据流
 
@@ -42,6 +42,7 @@ flowchart TD
 | canonical 到 `.fcstm` | [representation/reports/fcstm_export_report.json](./representation/reports/fcstm_export_report.json) |
 | 四例 smoke | [smoke/selected_examples/smoke_report.json](./smoke/selected_examples/smoke_report.json) |
 | seed library 全量摸排 | [smoke/seed_library_sweep/sweep_report.json](./smoke/seed_library_sweep/sweep_report.json)、[smoke/seed_library_sweep/records_index.json](./smoke/seed_library_sweep/records_index.json) |
+| `llms-emp` 主 seed 池深度画像 | [smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl)、[smoke/seed_library_sweep/llms_emp_deep_profile.md](./smoke/seed_library_sweep/llms_emp_deep_profile.md)、[smoke/seed_library_sweep/llms_emp_r56_handoff.md](./smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
 | 后续阶段交接 | [smoke/handoff/](./smoke/handoff/) |
 
 Markdown summary 只做人类阅读入口；统计、资格判断和路径证据应能回到 JSON / ledger / registry 复算。
@@ -58,6 +59,9 @@ Markdown summary 只做人类阅读入口；统计、资格判断和路径证据
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
 python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/tests
+
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src \
+python -m paper_stm_repair_smoke.cli run-llms-emp-profile
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src \
 python -m paper_stm_repair_smoke.cli validate

@@ -1197,6 +1197,755 @@ def write_handoffs(pair_records: list[dict[str, Any]], entry_records: list[dict[
     write_json(handoff_dir / "r5_to_r8_negative_evidence.json", {**common, "handoff_target": "r8_negative_evidence", "summary": dict(Counter(r.get("status") for r in negative)), "items": negative[:300]})
 
 
+
+LLMS_EMP_ENTRY_ID = "llms-emp-stm-subset"
+LLMS_EMP_SWEEP_DIR = SMOKE_ROOT / "seed_library_sweep"
+LLMS_EMP_PAIRS_PATH = SEED_LIBRARY_DIR / "llms-emp-stm-subset/assets/extracted/pairs.jsonl"
+LLMS_EMP_ARCHIVE_PATH = LLMS_EMP_SWEEP_DIR / "archives/llms-emp-stm-subset_records.zip"
+LLMS_EMP_STATUS_ORDER = {"converted": 0, "partial": 1, "blocked": 2}
+LLM_FAMILY_NORMALIZED = {
+    "GPT-4o": "gpt-4o",
+    "GPT-4": "gpt-4",
+    "Llama": "llama",
+    "Kimi": "kimi",
+    "DeepSeek": "deepseek",
+    "Claude": "claude",
+}
+LLM_FAMILY_ORDER = ["gpt-4o", "gpt-4", "llama", "kimi", "deepseek", "claude"]
+SELECTED_R55_SMOKE_EXAMPLES = [
+    "llms-emp-gpt4o-hldcs",
+    "sefm-ssc7-umple",
+    "llms-emp-deepseek-microwave",
+    "llms-emp-kimi-autonomous-collision",
+]
+LOSS_ATTRIBUTION_MAP = {
+    "R5.LOSS.r3_1_normalization_replay_not_repair": {
+        "observed_issue": "pre-SCXML normalization replay was required; this is conversion readiness, not repair gain",
+        "source_stage": "plantuml_toolchain",
+        "primary_attribution": "pipeline_artifact",
+        "secondary_attributions": ["plantuml_toolchain"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R45.LOSS.condition_like_label_lowered_as_event": {
+        "observed_issue": "condition-like transition label was preserved as an event label rather than a verified guard",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "r5_7_candidate_only",
+        "secondary_attributions": ["seed_defect", "fcstm_lowering"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": True,
+        "confidence": "medium",
+    },
+    "R45.LOSS.source_lifted_to_composite_boundary": {
+        "observed_issue": "source endpoint was lifted to a composite-state boundary during representation lowering",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "fcstm_lowering",
+        "secondary_attributions": ["scxml_canonical"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R45.LOSS.target_lifted_to_composite_boundary": {
+        "observed_issue": "target endpoint was lifted to a composite-state boundary during representation lowering",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "fcstm_lowering",
+        "secondary_attributions": ["scxml_canonical"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R45.LOSS.composite_target_lowered_to_initial_child": {
+        "observed_issue": "transition into a composite target was lowered to an initial child",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "fcstm_lowering",
+        "secondary_attributions": ["scxml_canonical"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R45.LOSS.cross_scope_transition_unrepresentable": {
+        "observed_issue": "cross-scope transition could not be represented without hierarchy approximation",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "fcstm_lowering",
+        "secondary_attributions": ["scxml_canonical"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R45.LOSS.initial_inferred_from_source_order_or_start_state": {
+        "observed_issue": "initial child was inferred from source order or start-state convention",
+        "source_stage": "fcstm_lowering",
+        "primary_attribution": "fcstm_lowering",
+        "secondary_attributions": ["pipeline_artifact"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+    "R5.LOSS.official_scxml_unavailable": {
+        "observed_issue": "official PlantUML SCXML export was unavailable after raw and normalized probes",
+        "source_stage": "plantuml_toolchain",
+        "primary_attribution": "plantuml_toolchain",
+        "secondary_attributions": ["unknown"],
+        "pipeline_artifact": True,
+        "r5_7_candidate_only": False,
+        "confidence": "high",
+    },
+}
+LOSS_PRIORITY = [
+    "R5.LOSS.official_scxml_unavailable",
+    "R45.LOSS.condition_like_label_lowered_as_event",
+    "R5.LOSS.r3_1_normalization_replay_not_repair",
+    "R45.LOSS.cross_scope_transition_unrepresentable",
+    "R45.LOSS.source_lifted_to_composite_boundary",
+    "R45.LOSS.target_lifted_to_composite_boundary",
+    "R45.LOSS.composite_target_lowered_to_initial_child",
+    "R45.LOSS.initial_inferred_from_source_order_or_start_state",
+]
+
+
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+
+
+def slugify(text: str, max_len: int = 48) -> str:
+    s = re.sub(r"[^0-9A-Za-z]+", "_", text.strip().lower()).strip("_")
+    return (s[:max_len].strip("_") or "unknown")
+
+
+def llms_emp_cluster_id(index: int, row: dict[str, Any]) -> str:
+    source = slugify(str(row.get("model_source") or "source"), 16)
+    name = slugify(str(row.get("model_name") or "model"), 34)
+    return f"llms_emp_nl_{index:02d}_{source}_{name}"
+
+
+def normalize_llm_family(value: str | None) -> str:
+    return LLM_FAMILY_NORMALIZED.get(str(value or ""), slugify(str(value or "unknown"), 20))
+
+
+def load_llms_emp_pairs() -> list[dict[str, Any]]:
+    return read_jsonl(LLMS_EMP_PAIRS_PATH)
+
+
+def load_llms_emp_sweep_records() -> list[dict[str, Any]]:
+    if not LLMS_EMP_ARCHIVE_PATH.exists():
+        return []
+    with zipfile.ZipFile(LLMS_EMP_ARCHIVE_PATH) as zf:
+        return [json.loads(zf.read(name).decode("utf-8")) for name in sorted(zf.namelist()) if name.endswith(".json")]
+
+
+def load_llms_emp_index_records() -> dict[str, dict[str, Any]]:
+    index_path = LLMS_EMP_SWEEP_DIR / "records_index.json"
+    if not index_path.exists():
+        return {}
+    index = load_json(index_path)
+    return {str(r.get("pair_id")): r for r in index.get("records", []) if r.get("entry_id") == LLMS_EMP_ENTRY_ID and r.get("record_type") == "pair"}
+
+
+
+def llms_emp_behavior_features(nl_text: str, model_name: str, model_source: str) -> dict[str, bool]:
+    """Cluster-level behavior-feature profile used by R5.6 scope decisions.
+
+    This is intentionally a conservative feature census, not a repair-target
+    adjudication. R5.7 must still inspect NL and raw STM_0 before confirming
+    any guard/event/action defect.
+    """
+    lower = f"{model_source} {model_name} {nl_text}".lower()
+    has_explicit_time = any(token in lower for token in [" second", " seconds", "timer", "cooking time", "execution time", "maximum of", "minimum of"])
+    has_guard_like_condition = any(token in lower for token in [" if ", " when ", "condition", "based on", "detected", "receives", "receive", "=true", "<", ">", "less than", "front_distance", "dist_to_"])
+    has_action_or_entry_exit = any(token in lower for token in ["entry", "exit", "send", "start", "stop", "accelerate", "decelerate", "brake", "cancel", "open", "close", "attack", "search"])
+    has_variables_or_data_conditions = any(token in lower for token in ["front_distance", "dist_to_front", "dist_to_exit", "memfull", "sunny", "charged", "prob", "=true", "<", ">", "zero time", "timer"])
+    has_hierarchy = any(token in lower for token in ["sub-state", "substates", "substate", "sub-machine", "sub machine", "within", "regions", "orthogonal", "operate state", "highwaymode", "urbanmode"])
+    has_pseudostate = any(token in lower for token in ["initialstate", "initial state", "finalstate", "final state", "finishstate", "fork", "join", "choice", "junction", "[*]"])
+    has_concurrency_or_regions = any(token in lower for token in ["parallel", "orthogonal", "concurrent", "regions", "fork", "join"])
+    return {
+        "has_guard_like_condition": has_guard_like_condition,
+        "has_action_or_entry_exit": has_action_or_entry_exit,
+        "has_variables_or_data_conditions": has_variables_or_data_conditions,
+        "has_hierarchy": has_hierarchy,
+        "has_pseudostate": has_pseudostate,
+        "has_explicit_time": has_explicit_time,
+        "has_concurrency_or_regions": has_concurrency_or_regions,
+    }
+
+def llms_emp_cluster_specs(pairs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    first_by_nl: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    for row in pairs:
+        sha = str(row.get("nl_sha256"))
+        if sha not in first_by_nl:
+            first_by_nl[sha] = row
+            order.append(sha)
+    specs: dict[str, dict[str, Any]] = {}
+    for index, sha in enumerate(order):
+        row = first_by_nl[sha]
+        name = str(row.get("model_name") or "")
+        source = str(row.get("model_source") or "")
+        cid = llms_emp_cluster_id(index, row)
+        lower = f"{source} {name}".lower()
+        if "digital camera" in lower:
+            structure = "UML-SysML statechart"
+            time_level = "T1"
+            role = "supplementary_stress"
+            task_type = "相机控制：显式执行时间与伪状态压力样例"
+            time_note = "NL 含秒级执行时间、fork/join 与概率/守卫式线索；不能作为 T0 主结论证据。"
+        elif "microwave" in lower:
+            structure = "UML-SysML statechart"
+            time_level = "T0.5"
+            role = "main_candidate"
+            task_type = "微波炉控制：timer-like caveat"
+            time_note = "NL 提到 cooking time 与 timer expires，但没有形式化 clock 语义；本阶段按 T0.5 timer-like caveat 处理。"
+        elif "collision" in lower:
+            structure = "UML-SysML statechart"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "碰撞规避模式控制"
+            time_note = "无显式 clock / duration；主要 caveat 是并发/正交区域语义。"
+        elif "high-level driving" in lower or "autonomous mode" in lower:
+            structure = "HSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "自动驾驶模式控制"
+            time_note = "距离/模式条件是离散守卫式线索；无显式 clock。"
+        elif "pump" in lower:
+            structure = "HSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "泵子系统模式控制"
+            time_note = "离散模式/状态切换；无显式 timing。"
+        elif "hybrid sport" in lower or "hsuv" in lower:
+            structure = "HSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "车辆运行模式控制"
+            time_note = "用户/动作驱动的离散模式切换；无显式 timing。"
+        elif "train control" in lower:
+            structure = "HSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "列车运动控制"
+            time_note = "存在 entry/action-like 标签，但无 clock/duration 语义。"
+        elif "brake" in lower:
+            structure = "FSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "制动子系统控制"
+            time_note = "“after entering”等顺序短语是 ordering cue，不是 clock 约束。"
+        elif "uav" in lower:
+            structure = "HSM"
+            time_level = "T0"
+            role = "main_candidate"
+            task_type = "无人机群任务控制"
+            time_note = "离散任务状态迁移；无显式 timing。"
+        else:
+            structure = "unknown"
+            time_level = "unknown"
+            role = "unknown"
+            task_type = "unknown"
+            time_note = "没有命中 R5.5 cluster 规则；保持保守。"
+        nl_text = str(row.get("nl_text") or "")
+        specs[sha] = {
+            "nl_cluster_id": cid,
+            "nl_cluster_index": index,
+            "nl_sha256": sha,
+            "model_source": source,
+            "model_name": name,
+            "task_type": task_type,
+            "structure_family": structure,
+            "time_level": time_level,
+            "time_level_note": time_note,
+            "control_system_type": "control_system",
+            "r5_6_story_role": role,
+            "nl_source_locator": row.get("source_locator"),
+            "nl_text_excerpt": nl_text[:800],
+            "behavior_feature_profile": llms_emp_behavior_features(nl_text, name, source),
+            "behavior_feature_note": "R5.5 feature census only; R5.7 must adjudicate guard/event/action targets case by case from NL + raw STM_0.",
+        }
+    return specs
+
+
+def primary_loss_code(codes: list[str]) -> str:
+    for code in LOSS_PRIORITY:
+        if code in codes:
+            return code
+    return codes[0] if codes else "none"
+
+
+def attribution_for_codes(codes: list[str]) -> dict[str, Any]:
+    code = primary_loss_code(codes)
+    base = LOSS_ATTRIBUTION_MAP.get(code)
+    if base is None:
+        if not codes:
+            return {
+                "r5_loss_code": "none",
+                "observed_issue": "none",
+                "source_stage": "raw_seed",
+                "primary_attribution": "unknown",
+                "secondary_attributions": [],
+                "pipeline_artifact": False,
+                "r5_7_candidate_only": False,
+                "attribution_confidence": "unknown",
+            }
+        return {
+            "r5_loss_code": code,
+            "observed_issue": "unmapped loss code; keep in risk table",
+            "source_stage": "unknown",
+            "primary_attribution": "unknown",
+            "secondary_attributions": [],
+            "pipeline_artifact": True,
+            "r5_7_candidate_only": False,
+            "attribution_confidence": "unknown",
+        }
+    secondary = set(base.get("secondary_attributions", []))
+    for extra_code in codes:
+        extra = LOSS_ATTRIBUTION_MAP.get(extra_code)
+        if extra:
+            secondary.update(extra.get("secondary_attributions", []))
+            if extra.get("primary_attribution") != base.get("primary_attribution"):
+                secondary.add(str(extra.get("primary_attribution")))
+    return {
+        "r5_loss_code": code,
+        "observed_issue": base["observed_issue"],
+        "source_stage": base["source_stage"],
+        "primary_attribution": base["primary_attribution"],
+        "secondary_attributions": sorted(s for s in secondary if s and s != base.get("primary_attribution")),
+        "pipeline_artifact": bool(base["pipeline_artifact"] or any((LOSS_ATTRIBUTION_MAP.get(c) or {}).get("pipeline_artifact") for c in codes)),
+        "r5_7_candidate_only": bool(base["r5_7_candidate_only"] or any((LOSS_ATTRIBUTION_MAP.get(c) or {}).get("r5_7_candidate_only") for c in codes)),
+        "attribution_confidence": base["confidence"],
+    }
+
+
+def story_role_for_pair(status: str, cluster: dict[str, Any], codes: list[str], attribution: dict[str, Any]) -> str:
+    if status == "blocked":
+        return "negative_evidence"
+    if cluster.get("time_level") in {"T1", "T2+ out-of-scope"}:
+        return "supplementary_stress"
+    # R5.5 is a pre-repair census. T0/T0.5 partial rows remain main-pool
+    # candidates with attribution caveats; conversion/representation loss is
+    # excluded from repair gain later instead of excluding the seed here.
+    return "main_candidate"
+
+
+def llms_emp_record_evidence_anchor(index_rec: dict[str, Any] | None, pointer: str) -> str:
+    if not index_rec:
+        return pointer
+    if index_rec.get("path_in_zip"):
+        return f"{index_rec.get('archive_path')}::{index_rec.get('path_in_zip')}#{pointer}"
+    return f"{index_rec.get('path_on_disk')}#{pointer}"
+
+
+def recovery_item_index() -> dict[str, dict[str, Any]]:
+    if not RECOVERY_REPORT_PATH.exists():
+        return {}
+    doc = load_json(RECOVERY_REPORT_PATH)
+    return {str(item.get("pair_id")): item for item in doc.get("items", []) if item.get("seed_id") == LLMS_EMP_ENTRY_ID}
+
+
+def run_llms_emp_profile(_: argparse.Namespace) -> int:
+    pairs = load_llms_emp_pairs()
+    sweep_records = {r["pair_id"]: r for r in load_llms_emp_sweep_records()}
+    index_records = load_llms_emp_index_records()
+    recovery_items = recovery_item_index()
+    clusters = llms_emp_cluster_specs(pairs)
+    out_dir = LLMS_EMP_SWEEP_DIR
+
+    case_rows: list[dict[str, Any]] = []
+    cluster_matrix_rows: list[dict[str, Any]] = []
+    partial_rows: list[dict[str, Any]] = []
+    blocked_rows: list[dict[str, Any]] = []
+    for row in sorted(pairs, key=lambda x: x["pair_id"]):
+        pair_id = str(row["pair_id"])
+        rec = sweep_records[pair_id]
+        index_rec = index_records.get(pair_id)
+        cluster = clusters[str(row["nl_sha256"])]
+        codes = list(rec.get("loss_reason_codes") or [])
+        attr = attribution_for_codes(codes)
+        status = str(rec.get("status"))
+        llm_family = normalize_llm_family(row.get("llm"))
+        observed_issue = "none" if status == "converted" and not codes else attr["observed_issue"]
+        source_stage = "raw_seed" if status == "converted" and not codes else attr["source_stage"]
+        story_role = story_role_for_pair(status, cluster, codes, attr)
+        evidence_path = index_rec.get("archive_path") if index_rec else rel(LLMS_EMP_ARCHIVE_PATH)
+        evidence_anchor = llms_emp_record_evidence_anchor(index_rec, "/loss_reason_codes")
+        case = {
+            "schema_version": "r5_5.llms_emp_case_matrix.v0",
+            "seed_id": LLMS_EMP_ENTRY_ID,
+            "nl_cluster_id": cluster["nl_cluster_id"],
+            "nl_cluster_index": cluster["nl_cluster_index"],
+            "raw_pair_id": pair_id,
+            "llm_family": llm_family,
+            "llm_output_id": pair_id,
+            "generation_model_or_method": row.get("generation_model_or_method"),
+            "nl_source_locator": row.get("source_locator"),
+            "stm_source_locator": row.get("source_locator"),
+            "nl_sha256": row.get("nl_sha256"),
+            "stm0_sha256": row.get("stm0_sha256"),
+            "source_sha256": row.get("source_sha256"),
+            "conversion_status": status,
+            "status_reason_code": rec.get("status_reason_code"),
+            "structure_family": cluster["structure_family"],
+            "time_level": cluster["time_level"],
+            "control_system_type": cluster["control_system_type"],
+            "observed_issue": observed_issue,
+            "source_stage": source_stage,
+            "r5_loss_codes": codes,
+            "canonical_status": rec.get("canonical_status"),
+            "parse_status": rec.get("parse_status"),
+            "inspect_status": rec.get("inspect_status"),
+            "fcstm_sha256": rec.get("fcstm_sha256"),
+            "repair_contribution_allowed": False,
+            "r5_6_story_role": story_role,
+            "evidence_path": evidence_path,
+            "evidence_anchor": evidence_anchor,
+        }
+        case_rows.append(case)
+        cluster_matrix_rows.append({
+            "schema_version": "r5_5.llms_emp_cluster_llm_matrix.v0",
+            "nl_cluster_id": cluster["nl_cluster_id"],
+            "nl_cluster_index": cluster["nl_cluster_index"],
+            "llm_family": llm_family,
+            "raw_pair_id": pair_id,
+            "conversion_status": status,
+            "structure_family": cluster["structure_family"],
+            "time_level": cluster["time_level"],
+            "primary_issue": observed_issue,
+            "r5_loss_codes": codes,
+            "r5_6_story_role": story_role,
+        })
+        if status == "partial":
+            partial_rows.append({
+                "schema_version": "r5_5.llms_emp_partial_attribution.v0",
+                "seed_id": LLMS_EMP_ENTRY_ID,
+                "nl_cluster_id": cluster["nl_cluster_id"],
+                "raw_pair_id": pair_id,
+                "llm_family": llm_family,
+                "conversion_status": status,
+                "observed_issue": observed_issue,
+                "source_stage": source_stage,
+                "r5_loss_code": attr["r5_loss_code"],
+                "r5_loss_codes": codes,
+                "primary_attribution": attr["primary_attribution"],
+                "secondary_attributions": attr["secondary_attributions"],
+                "evidence_path": evidence_path,
+                "evidence_anchor": evidence_anchor,
+                "diagnostic_or_tool_code": attr["r5_loss_code"],
+                "pipeline_artifact": attr["pipeline_artifact"],
+                "r5_7_candidate_only": attr["r5_7_candidate_only"],
+                "attribution_confidence": attr["attribution_confidence"],
+                "r5_6_story_role": story_role,
+                "notes": "R5.5 attribution is pre-repair only; do not count conversion or lowering gain as repair gain.",
+            })
+        if status == "blocked":
+            recovery = recovery_items.get(pair_id, {})
+            raw_preflight = recovery.get("raw_preflight") or {}
+            normalized_preflight = recovery.get("normalized_preflight") or {}
+            blocked_rows.append({
+                "raw_pair_id": pair_id,
+                "nl_cluster_id": cluster["nl_cluster_id"],
+                "llm_family": llm_family,
+                "model_name": row.get("model_name"),
+                "issue_category": recovery.get("issue_category"),
+                "raw_command": raw_preflight.get("command"),
+                "normalized_command": normalized_preflight.get("command"),
+                "tool_name": normalized_preflight.get("tool_name") or raw_preflight.get("tool_name"),
+                "tool_version_head": normalized_preflight.get("tool_version_head") or raw_preflight.get("tool_version_head"),
+                "raw_syntax_status": raw_preflight.get("syntax_status"),
+                "normalized_syntax_status": normalized_preflight.get("syntax_status"),
+                "raw_scxml_returncode": raw_preflight.get("scxml_returncode"),
+                "normalized_scxml_returncode": normalized_preflight.get("scxml_returncode"),
+                "stderr_tail": normalized_preflight.get("stderr_tail") or raw_preflight.get("stderr_tail"),
+                "stdout_tail": normalized_preflight.get("stdout_tail") or raw_preflight.get("stdout_tail"),
+                "raw_candidate_path": recovery.get("raw_candidate_path"),
+                "normalized_candidate_path": recovery.get("normalized_candidate_path"),
+                "raw_conversion_pass": recovery.get("raw_conversion_pass"),
+                "normalized_conversion_pass": recovery.get("normalized_conversion_pass"),
+                "render_status": "unknown_from_committed_r5_evidence",
+                "pre_scxml_recovery_possible": bool(recovery.get("normalized_conversion_pass")),
+                "evidence_path": rel(RECOVERY_REPORT_PATH),
+                "evidence_anchor": f"/items[pair_id={pair_id}]/normalized_preflight",
+            })
+
+    cluster_profiles: list[dict[str, Any]] = []
+    for sha, cluster in sorted(clusters.items(), key=lambda kv: kv[1]["nl_cluster_index"]):
+        rows = [c for c in case_rows if c["nl_cluster_id"] == cluster["nl_cluster_id"]]
+        cluster_profiles.append({
+            "schema_version": "r5_5.llms_emp_cluster_profile.v0",
+            **cluster,
+            "raw_pair_count": len(rows),
+            "llm_families": sorted({r["llm_family"] for r in rows}, key=lambda x: LLM_FAMILY_ORDER.index(x) if x in LLM_FAMILY_ORDER else 99),
+            "status_counts": dict(sorted(Counter(r["conversion_status"] for r in rows).items())),
+            "time_level_counts": dict(sorted(Counter(r["time_level"] for r in rows).items())),
+            "structure_family_counts": dict(sorted(Counter(r["structure_family"] for r in rows).items())),
+            "loss_code_counts": dict(sorted(Counter(code for r in rows for code in r["r5_loss_codes"]).items())),
+            "story_role_counts": dict(sorted(Counter(r["r5_6_story_role"] for r in rows).items())),
+        })
+
+    write_jsonl(out_dir / "llms_emp_case_matrix.jsonl", case_rows)
+    write_jsonl(out_dir / "llms_emp_cluster_profiles.jsonl", cluster_profiles)
+    write_jsonl(out_dir / "llms_emp_cluster_llm_matrix.jsonl", cluster_matrix_rows)
+    write_jsonl(out_dir / "llms_emp_partial_attribution_ledger.jsonl", partial_rows)
+    write_llms_emp_deep_profile(out_dir / "llms_emp_deep_profile.md", case_rows, cluster_profiles, partial_rows, blocked_rows)
+    write_llms_emp_blocked_probe(out_dir / "llms_emp_blocked_probe.md", blocked_rows)
+    write_jsonl(out_dir / "llms_emp_blocked_probe.jsonl", blocked_rows)
+    write_llms_emp_r56_handoff(out_dir / "llms_emp_r56_handoff.md", case_rows, cluster_profiles, partial_rows, blocked_rows)
+    print(json.dumps({
+        "cases": len(case_rows),
+        "clusters": len(cluster_profiles),
+        "partial": len(partial_rows),
+        "blocked": len(blocked_rows),
+        "decision": "proceed_with_supplementary",
+    }, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def md_counter_table(counter: Counter | dict[str, int], key_name: str = "项", value_name: str = "数量") -> list[str]:
+    lines = [f"| {key_name} | {value_name} |", "|---|---:|"]
+    for key, value in sorted(dict(counter).items()):
+        lines.append(f"| `{key}` | {value} |")
+    return lines
+
+
+def status_symbol(status: str) -> str:
+    return {"converted": "🟢", "partial": "🟡", "blocked": "🔴"}.get(status, "⚪")
+
+
+def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], clusters: list[dict[str, Any]], partials: list[dict[str, Any]], blocked: list[dict[str, Any]]) -> None:
+    status_counts = Counter(c["conversion_status"] for c in cases)
+    llm_status = defaultdict(Counter)
+    time_counts = Counter(c["time_level"] for c in cases)
+    family_counts = Counter(c["structure_family"] for c in cases)
+    role_counts = Counter(c["r5_6_story_role"] for c in cases)
+    loss_counts = Counter(code for c in cases for code in c["r5_loss_codes"])
+    for c in cases:
+        llm_status[c["llm_family"]][c["conversion_status"]] += 1
+    by_cluster = defaultdict(dict)
+    for c in cases:
+        by_cluster[c["nl_cluster_id"]][c["llm_family"]] = c
+    lines = [
+        "# R5.5 `llms-emp-stm-subset` 主 seed 池深度画像",
+        "",
+        "本文件由 `python -m paper_stm_repair_smoke.cli run-llms-emp-profile` 生成。机器事实源是 [llms_emp_case_matrix.jsonl](./llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](./llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](./llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](./llms_emp_partial_attribution_ledger.jsonl)。本 Markdown 只做人类阅读入口。",
+        "",
+        "## 1. 结论",
+        "",
+        "`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线可围绕 T0/T0.5 离散状态机族展开；Digital Camera cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up。",
+        "",
+        "关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain。",
+        "",
+        "## 2. 总体统计",
+        "",
+    ]
+    lines += md_counter_table(status_counts, "conversion_status", "pairs")
+    lines += ["", "### 2.1 时间等级", ""]
+    lines += md_counter_table(time_counts, "time_level", "pairs")
+    lines += ["", "### 2.2 结构家族", ""]
+    lines += md_counter_table(family_counts, "structure_family", "pairs")
+    lines += ["", "### 2.3 R5.6 story role", ""]
+    lines += md_counter_table(role_counts, "r5_6_story_role", "pairs")
+    cluster_role_counts = Counter(c["r5_6_story_role"] for c in clusters)
+    lines += ["", "### 2.4 cluster 口径 story role", ""]
+    lines += md_counter_table(cluster_role_counts, "r5_6_story_role", "clusters")
+    lines += ["", "### 2.5 行为特征画像", "", "本节是 R5.5 的保守 feature census，只支撑 R5.6 scope 决策；不能直接把某个特征计为 R5.7 已确认 repair target。", "", "| feature | clusters |", "|---|---:|"]
+    feature_counts = Counter()
+    for cluster in clusters:
+        for key, value in (cluster.get("behavior_feature_profile") or {}).items():
+            if value:
+                feature_counts[key] += 1
+    for key, value in sorted(feature_counts.items()):
+        lines.append(f"| `{key}` | {value} |")
+    lines += ["", "### 2.6 loss code", ""]
+    lines += md_counter_table(loss_counts, "loss code", "count")
+    lines += ["", "## 3. cluster × LLM 交叉矩阵", "", "符号：🟢 = converted；🟡 = partial；🔴 = blocked。emoji 列只编码状态，具体含义见本段。", "", "| cluster | 模型 / 来源 | time | family | GPT-4o | GPT-4 | Llama | Kimi | DeepSeek | Claude |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for cluster in clusters:
+        cells = []
+        for llm in LLM_FAMILY_ORDER:
+            c = by_cluster[cluster["nl_cluster_id"]].get(llm)
+            cells.append(f"{status_symbol(c['conversion_status'])} `{c['raw_pair_id'][-4:]}`" if c else "⚪")
+        lines.append(f"| `{cluster['nl_cluster_id']}` | {cluster['model_name']} / {cluster['model_source']} | `{cluster['time_level']}` | `{cluster['structure_family']}` | " + " | ".join(cells) + " |")
+    lines += ["", "## 4. LLM 维度状态", "", "| LLM | converted | partial | blocked |", "|---|---:|---:|---:|"]
+    for llm in LLM_FAMILY_ORDER:
+        cnt = llm_status[llm]
+        lines.append(f"| `{llm}` | {cnt.get('converted', 0)} | {cnt.get('partial', 0)} | {cnt.get('blocked', 0)} |")
+    lines += ["", "## 5. cluster 画像", "", "| cluster | role | 控制语义 | 行为特征 | time note | 状态分布 | 主要 loss |", "|---|---|---|---|---|---|---|"]
+    for cluster in clusters:
+        losses = ", ".join(f"`{k}`×{v}" for k, v in cluster.get("loss_code_counts", {}).items()) or "无"
+        features = ", ".join(f"`{k}`" for k, v in (cluster.get("behavior_feature_profile") or {}).items() if v) or "无"
+        lines.append(f"| `{cluster['nl_cluster_id']}` | `{cluster['r5_6_story_role']}` | {cluster['task_type']} | {features} | {cluster['time_level_note']} | {cluster['status_counts']} | {losses} |")
+    lines += ["", "## 6. partial 归因摘要", "", "| primary_attribution | count |", "|---|---:|"]
+    for key, value in sorted(Counter(p["primary_attribution"] for p in partials).items()):
+        lines.append(f"| `{key}` | {value} |")
+    lines += ["", "## 7. blocked 摘要", "", "| raw_pair_id | cluster | LLM | issue_category | 当前结论 |", "|---|---|---|---|---|"]
+    for b in blocked:
+        conclusion = "raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。"
+        lines.append(f"| `{b['raw_pair_id']}` | `{b['nl_cluster_id']}` | `{b['llm_family']}` | `{b.get('issue_category')}` | {conclusion} |")
+    lines += ["", "## 8. 给 R5.6/R5.7 的学术含义", "", "1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的 FSM/HSM/EFSM-lite/statechart 子族。", "2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。", "3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。", "4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。", ""]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_llms_emp_blocked_probe(path: Path, blocked: list[dict[str, Any]]) -> None:
+    lines = [
+        "# R5.5 `llms-emp` blocked probe",
+        "",
+        "本文件记录 3 个 `R5.LOSS.official_scxml_unavailable` 样例的可复核失败证据。事实源是 [plantuml_recovery_report.json](../../conversion/reports/plantuml_recovery_report.json) 与 [llms_emp_case_matrix.jsonl](./llms_emp_case_matrix.jsonl)。",
+        "",
+        "## 1. 总结",
+        "",
+        "3 个 blocked 样例均有作者一手 `NL + generated PlantUML`，但 R3.1 的 raw 与 normalized official PlantUML probe 均未获得可信 SCXML。当前 committed evidence 未证明它们可渲染；只能说明 `-checkonly` / `-tscxml` 路径失败，且当前 normalization rules 未修复。",
+        "",
+        "注意：当前 committed evidence 只保存 JSON 中的 stdout / stderr tail，没有完整 stdout/stderr log 文件；如后续需要精确错误行，应另开 converter follow-up probe。",
+        "",
+    ]
+    for b in blocked:
+        lines += [
+            f"## {b['raw_pair_id']} / {b['llm_family']}",
+            "",
+            f"- cluster: `{b['nl_cluster_id']}`",
+            f"- model: {b.get('model_name')}",
+            f"- issue_category: `{b.get('issue_category')}`",
+            f"- tool: {b.get('tool_name')} / {b.get('tool_version_head')}",
+            f"- raw syntax status: `{b.get('raw_syntax_status')}`; normalized syntax status: `{b.get('normalized_syntax_status')}`",
+            f"- raw scxml returncode: `{b.get('raw_scxml_returncode')}`; normalized scxml returncode: `{b.get('normalized_scxml_returncode')}`",
+            f"- raw candidate: `{b.get('raw_candidate_path')}`",
+            f"- normalized candidate: `{b.get('normalized_candidate_path')}`",
+            f"- render status: `{b.get('render_status')}`",
+            f"- pre-SCXML recovery possible: `{b.get('pre_scxml_recovery_possible')}`",
+            f"- evidence: `{b.get('evidence_path')}#{b.get('evidence_anchor')}`",
+            "",
+            "```text",
+            str(b.get("stderr_tail") or "<no stderr tail captured>")[-1200:],
+            "```",
+            "",
+        ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_llms_emp_r56_handoff(path: Path, cases: list[dict[str, Any]], clusters: list[dict[str, Any]], partials: list[dict[str, Any]], blocked: list[dict[str, Any]]) -> None:
+    status_counts = Counter(c["conversion_status"] for c in cases)
+    time_counts = Counter(c["time_level"] for c in cases)
+    cluster_time = Counter(c["time_level"] for c in clusters)
+    role_counts = Counter(c["r5_6_story_role"] for c in cases)
+    lines = [
+        "# R5.5 -> R5.6 story / model scope handoff",
+        "",
+        "## 1. boundary_decision",
+        "",
+        "`proceed_with_supplementary`",
+        "",
+        "理由：10 个 NL cluster 中 8 个为 T0、1 个为 T0.5、1 个为 T1；60 个 pair 中 57 个可进入 `.fcstm` 级别，3 个 blocked 有负证据。主实验可以围绕 T0/T0.5 离散状态机族继续推进，但 Digital Camera cluster 与 blocked pair 应进入 supplementary / stress / negative evidence，而不是主 claim 证据。",
+        "",
+        "## 2. supporting_counts",
+        "",
+        f"- pair status: `{dict(sorted(status_counts.items()))}`",
+        f"- pair time level: `{dict(sorted(time_counts.items()))}`",
+        f"- cluster time level: `{dict(sorted(cluster_time.items()))}`",
+        f"- story roles: `{dict(sorted(role_counts.items()))}`",
+        f"- partial ledger rows: `{len(partials)}`",
+        f"- blocked rows: `{len(blocked)}`",
+        "",
+        "## 3. blocking_evidence",
+        "",
+        "- 3 个 blocked 均为 `R5.LOSS.official_scxml_unavailable`，详见 [llms_emp_blocked_probe.md](./llms_emp_blocked_probe.md)。",
+        "- Digital Camera cluster 含显式秒级执行时间与复杂 pseudo-state，应避免支撑 T0 主 claim。",
+        "- 大量 partial 来自 conversion / representation attribution，不能计入 repair gain。",
+        "",
+        "## 4. confidence",
+        "",
+        "`medium-high`：一手 pair / R5 sweep / R3.1 recovery / R4.5 loss 证据完整；但 time level 与 repair target taxonomy 仍需 R5.6/R5.7 正式冻结。",
+        "",
+        "## 5. r5_7_candidate_summary",
+        "",
+        "- `R45.LOSS.condition_like_label_lowered_as_event` 是主要 repair target 候选，但必须逐例有 NL 证据。",
+        "- 层次 lowering、scope lifting、initial inference 默认是 representation caveat，不直接进入 repair target。",
+        "- blocked official SCXML unavailable 是 converter follow-up / negative evidence，不是 repair loop 能直接声称修复的问题。",
+        "",
+        "## 6. recommended_next_action",
+        "",
+        "R5.6 应在 `story/model_scope.md` 中冻结 main / supplementary-stress / negative evidence 的模型范围，并把主实验 claim 限定到 T0/T0.5 离散状态机族；R5.7 再定义 guard/event/action/hierarchy 的 repair target。",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def validate_llms_emp_profile(errors: list[str]) -> None:
+    out_dir = LLMS_EMP_SWEEP_DIR
+    paths = {
+        "case": out_dir / "llms_emp_case_matrix.jsonl",
+        "cluster": out_dir / "llms_emp_cluster_profiles.jsonl",
+        "matrix": out_dir / "llms_emp_cluster_llm_matrix.jsonl",
+        "partial": out_dir / "llms_emp_partial_attribution_ledger.jsonl",
+        "deep": out_dir / "llms_emp_deep_profile.md",
+        "blocked": out_dir / "llms_emp_blocked_probe.md",
+        "blocked_jsonl": out_dir / "llms_emp_blocked_probe.jsonl",
+        "handoff": out_dir / "llms_emp_r56_handoff.md",
+    }
+    for name, p in paths.items():
+        if not p.exists():
+            errors.append(f"missing R5.5 artifact {name}: {rel(p)}")
+    if any(not p.exists() for p in paths.values()):
+        return
+    cases = read_jsonl(paths["case"])
+    clusters = read_jsonl(paths["cluster"])
+    matrix = read_jsonl(paths["matrix"])
+    partials = read_jsonl(paths["partial"])
+    if len(cases) != 60:
+        errors.append("R5.5 case matrix must contain 60 rows")
+    if len(clusters) != 10:
+        errors.append("R5.5 cluster profiles must contain 10 rows")
+    if len(matrix) != 60:
+        errors.append("R5.5 cluster×LLM matrix must contain 60 rows")
+    status_counts = Counter(c.get("conversion_status") for c in cases)
+    if status_counts != {"converted": 16, "partial": 41, "blocked": 3}:
+        errors.append(f"R5.5 case status counts mismatch: {dict(status_counts)}")
+    if len(partials) != status_counts.get("partial", 0):
+        errors.append("R5.5 partial attribution rows must equal partial case count")
+    blocked_rows = read_jsonl(paths["blocked_jsonl"])
+    if len(blocked_rows) != status_counts.get("blocked", 0):
+        errors.append("R5.5 blocked probe jsonl rows must equal blocked case count")
+    for row in blocked_rows:
+        if "normalization_repair_possible" in row:
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} must use pre_scxml_recovery_possible, not normalization_repair_possible")
+        if "pre_scxml_recovery_possible" not in row:
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} missing pre_scxml_recovery_possible")
+    for row in clusters:
+        features = row.get("behavior_feature_profile")
+        if not isinstance(features, dict) or not features:
+            errors.append(f"R5.5 cluster {row.get('nl_cluster_id')} missing behavior_feature_profile")
+        for key in ["has_guard_like_condition", "has_action_or_entry_exit", "has_variables_or_data_conditions", "has_hierarchy", "has_pseudostate", "has_explicit_time"]:
+            if key not in features:
+                errors.append(f"R5.5 cluster {row.get('nl_cluster_id')} missing behavior feature {key}")
+    cluster_ids = {c.get("nl_cluster_id") for c in clusters}
+    if len(cluster_ids) != 10:
+        errors.append("R5.5 cluster ids must be unique")
+    matrix_pairs = {m.get("raw_pair_id") for m in matrix}
+    case_pairs = {c.get("raw_pair_id") for c in cases}
+    if matrix_pairs != case_pairs:
+        errors.append("R5.5 cluster×LLM matrix pair ids must match case matrix")
+    for cluster_id in cluster_ids:
+        rows = [m for m in matrix if m.get("nl_cluster_id") == cluster_id]
+        if len(rows) != 6:
+            errors.append(f"R5.5 cluster {cluster_id} must have 6 LLM outputs")
+        if sorted(r.get("llm_family") for r in rows) != sorted(LLM_FAMILY_ORDER):
+            errors.append(f"R5.5 cluster {cluster_id} does not cover all 6 LLM families")
+    required_partial = {"observed_issue", "source_stage", "r5_loss_code", "evidence_anchor", "attribution_confidence", "r5_6_story_role"}
+    for row in partials:
+        missing = [k for k in required_partial if row.get(k) in {None, ""}]
+        if missing:
+            errors.append(f"R5.5 partial {row.get('raw_pair_id')} missing {missing}")
+        if row.get("conversion_status") != "partial":
+            errors.append(f"R5.5 partial ledger includes non-partial row {row.get('raw_pair_id')}")
+    blocked_text = paths["blocked"].read_text(encoding="utf-8")
+    for pid in ["llms_emp_stm_results_0018", "llms_emp_stm_results_0028", "llms_emp_stm_results_0037"]:
+        if pid not in blocked_text:
+            errors.append(f"R5.5 blocked probe missing {pid}")
+    handoff_text = paths["handoff"].read_text(encoding="utf-8")
+    if "proceed_with_supplementary" not in handoff_text:
+        errors.append("R5.5 handoff must state proceed_with_supplementary")
+    deep_text = paths["deep"].read_text(encoding="utf-8")
+    for required_phrase in ["行为特征画像", "cluster 口径 story role", "feature census"]:
+        if required_phrase not in deep_text:
+            errors.append(f"R5.5 deep profile missing {required_phrase}")
+
 def load_index_payloads(index: dict[str, Any]) -> list[dict[str, Any]]:
     payloads: list[dict[str, Any]] = []
     archive_cache: dict[str, zipfile.ZipFile] = {}
@@ -1446,6 +2195,7 @@ def validate(_: argparse.Namespace) -> int:
                 if payload.get("repair_contribution_allowed") is not False:
                     errors.append(f"{payload.get('record_id')} repair_contribution_allowed must be false")
         handoff_docs = {hp.name: load_json(hp) for hp in handoff_paths}
+        validate_llms_emp_profile(errors)
         boundary_report = validate_no_llm_or_env_boundary(errors, indexed_payloads, handoff_docs)
         r6 = handoff_docs["r5_to_r6_repair_inputs.json"]
         if len(r6.get("items", [])) != pair_counts.get("converted", 0):
@@ -1492,6 +2242,8 @@ def main(argv: list[str] | None = None) -> int:
     p_sweep.add_argument("--continue-on-error", dest="continue_on_error", action="store_true", default=True, help="Keep sweeping after per-pair conversion errors/timeouts (default).")
     p_sweep.add_argument("--no-continue-on-error", dest="continue_on_error", action="store_false", help="Fail fast on per-pair tool exceptions/timeouts for strict debugging; not used for committed R5 census.")
     p_sweep.set_defaults(func=run_seed_sweep)
+    p_llms = sub.add_parser("run-llms-emp-profile", help="generate R5.5 llms-emp deep profile artifacts")
+    p_llms.set_defaults(func=run_llms_emp_profile)
     p_validate = sub.add_parser("validate", help="validate R5 smoke/sweep artifacts")
     p_validate.set_defaults(func=validate)
     args = parser.parse_args(argv)

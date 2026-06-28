@@ -25,6 +25,7 @@
 | 评价门规则 | [pipeline/evaluation/EVALUATION_GATE.md](./pipeline/evaluation/EVALUATION_GATE.md) | [pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
 | R5 四例冒烟 | [pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json) | [pipeline/smoke/selected_examples/smoke_summary.md](./pipeline/smoke/selected_examples/smoke_summary.md) |
 | R5 全量摸排 | [pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json) | [pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md) |
+| R5.5 `llms-emp` 主 seed 池画像 | [pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl) | [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)、[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
 | 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[archive/](./archive/) | 不作为当前横向事实源 |
 
 Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、registry 或 ledger 复算。
@@ -42,7 +43,7 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 - 真实 LLM 调用前必须在 shell 中 `source .env`；代码只读 `os.environ`。
 - 真实调用必须保留 provider、model id、日期、prompt、raw output、usage、错误、重试和脱敏报告。
 - fake / replay / 固化样例不能冒充真实 LLM 结果。
-- R5 和之前的 dry-run 层均不得读取 `.env` 或调用真实 provider。
+- R5/R5.5 和之前的 dry-run 层均不得读取 `.env` 或调用真实 provider。
 
 ### 3.3 转换与表示归因
 

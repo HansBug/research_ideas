@@ -1,0 +1,142 @@
+# R5.5 `llms-emp-stm-subset` 主 seed 池深度画像
+
+本文件由 `python -m paper_stm_repair_smoke.cli run-llms-emp-profile` 生成。机器事实源是 [llms_emp_case_matrix.jsonl](./llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](./llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](./llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](./llms_emp_partial_attribution_ledger.jsonl)。本 Markdown 只做人类阅读入口。
+
+## 1. 结论
+
+`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线可围绕 T0/T0.5 离散状态机族展开；Digital Camera cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up。
+
+关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain。
+
+## 2. 总体统计
+
+| conversion_status | pairs |
+|---|---:|
+| `blocked` | 3 |
+| `converted` | 16 |
+| `partial` | 41 |
+
+### 2.1 时间等级
+
+| time_level | pairs |
+|---|---:|
+| `T0` | 48 |
+| `T0.5` | 6 |
+| `T1` | 6 |
+
+### 2.2 结构家族
+
+| structure_family | pairs |
+|---|---:|
+| `FSM` | 6 |
+| `HSM` | 36 |
+| `UML-SysML statechart` | 18 |
+
+### 2.3 R5.6 story role
+
+| r5_6_story_role | pairs |
+|---|---:|
+| `main_candidate` | 53 |
+| `negative_evidence` | 3 |
+| `supplementary_stress` | 4 |
+
+### 2.4 cluster 口径 story role
+
+| r5_6_story_role | clusters |
+|---|---:|
+| `main_candidate` | 9 |
+| `supplementary_stress` | 1 |
+
+### 2.5 行为特征画像
+
+本节是 R5.5 的保守 feature census，只支撑 R5.6 scope 决策；不能直接把某个特征计为 R5.7 已确认 repair target。
+
+| feature | clusters |
+|---|---:|
+| `has_action_or_entry_exit` | 8 |
+| `has_concurrency_or_regions` | 2 |
+| `has_explicit_time` | 2 |
+| `has_guard_like_condition` | 10 |
+| `has_hierarchy` | 8 |
+| `has_pseudostate` | 4 |
+| `has_variables_or_data_conditions` | 4 |
+
+### 2.6 loss code
+
+| loss code | count |
+|---|---:|
+| `R45.LOSS.composite_target_lowered_to_initial_child` | 6 |
+| `R45.LOSS.condition_like_label_lowered_as_event` | 16 |
+| `R45.LOSS.cross_scope_transition_unrepresentable` | 5 |
+| `R45.LOSS.initial_inferred_from_source_order_or_start_state` | 12 |
+| `R45.LOSS.source_lifted_to_composite_boundary` | 12 |
+| `R45.LOSS.target_lifted_to_composite_boundary` | 8 |
+| `R5.LOSS.official_scxml_unavailable` | 3 |
+| `R5.LOSS.r3_1_normalization_replay_not_repair` | 24 |
+
+## 3. cluster × LLM 交叉矩阵
+
+符号：🟢 = converted；🟡 = partial；🔴 = blocked。emoji 列只编码状态，具体含义见本段。
+
+| cluster | 模型 / 来源 | time | family | GPT-4o | GPT-4 | Llama | Kimi | DeepSeek | Claude |
+|---|---|---|---|---|---|---|---|---|---|
+| `llms_emp_nl_00_hldcs_high_level_driving_module` | high-level driving module / HLDCS | `T0` | `HSM` | 🟡 `0000` | 🟡 `0010` | 🟡 `0020` | 🟡 `0030` | 🟡 `0040` | 🟡 `0050` |
+| `llms_emp_nl_01_hstbs_state_machine_diagram_of_the_base` | State machine diagram of the base brake subsystem / HSTBS | `T0` | `FSM` | 🟢 `0001` | 🟢 `0011` | 🟡 `0021` | 🟢 `0031` | 🟡 `0041` | 🟢 `0051` |
+| `llms_emp_nl_02_real_time_softwa_pump_control_state_machine` | Pump Control state machine / Real-Time Software Design for Embedded Systems | `T0` | `HSM` | 🟢 `0002` | 🟢 `0013` | 🟡 `0023` | 🟡 `0033` | 🟡 `0043` | 🟢 `0053` |
+| `llms_emp_nl_03_hsuv_hybrid_sport_utility_vehicle_hsuv` | Hybrid Sport Utility Vehicle, HSUV / HSUV | `T0` | `HSM` | 🟢 `0003` | 🟢 `0012` | 🟡 `0022` | 🟡 `0032` | 🟡 `0042` | 🟢 `0052` |
+| `llms_emp_nl_04_real_time_softwa_state_machine_for_train_control` | state machine for Train Control / Real-Time Software Design for Embedded Systems | `T0` | `HSM` | 🟡 `0004` | 🟡 `0014` | 🟡 `0024` | 🟡 `0034` | 🟡 `0044` | 🟢 `0054` |
+| `llms_emp_nl_05_mocv_microwave_oven_control_with_entry` | Microwave Oven Control with entry and 
+ exit actions / MOCV | `T0.5` | `UML-SysML statechart` | 🟡 `0005` | 🟡 `0015` | 🟡 `0025` | 🟡 `0035` | 🟡 `0045` | 🟢 `0055` |
+| `llms_emp_nl_06_dscs_uav_swarm_state_machine_diagram` | UAV swarm state machine diagram / DSCS | `T0` | `HSM` | 🟢 `0006` | 🟡 `0016` | 🟡 `0026` | 🟢 `0036` | 🟡 `0046` | 🟢 `0056` |
+| `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | Collision avoidance sub-machine state diagram / HLDCS | `T0` | `UML-SysML statechart` | 🟢 `0007` | 🟡 `0017` | 🟡 `0027` | 🔴 `0037` | 🟡 `0047` | 🟡 `0057` |
+| `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` |  Digital camera state machine diagrams / DCS | `T1` | `UML-SysML statechart` | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` |
+| `llms_emp_nl_09_hldcs_autonomous_mode` | autonomous mode / HLDCS | `T0` | `HSM` | 🟡 `0009` | 🟡 `0019` | 🟡 `0029` | 🟡 `0039` | 🟡 `0049` | 🟡 `0059` |
+
+## 4. LLM 维度状态
+
+| LLM | converted | partial | blocked |
+|---|---:|---:|---:|
+| `gpt-4o` | 5 | 5 | 0 |
+| `gpt-4` | 3 | 6 | 1 |
+| `llama` | 0 | 9 | 1 |
+| `kimi` | 2 | 7 | 1 |
+| `deepseek` | 0 | 10 | 0 |
+| `claude` | 6 | 4 | 0 |
+
+## 5. cluster 画像
+
+| cluster | role | 控制语义 | 行为特征 | time note | 状态分布 | 主要 loss |
+|---|---|---|---|---|---|---|
+| `llms_emp_nl_00_hldcs_high_level_driving_module` | `main_candidate` | 自动驾驶模式控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_variables_or_data_conditions`, `has_hierarchy`, `has_pseudostate` | 距离/模式条件是离散守卫式线索；无显式 clock。 | {'partial': 6} | `R45.LOSS.composite_target_lowered_to_initial_child`×1, `R45.LOSS.condition_like_label_lowered_as_event`×6, `R45.LOSS.source_lifted_to_composite_boundary`×2, `R5.LOSS.r3_1_normalization_replay_not_repair`×2 |
+| `llms_emp_nl_01_hstbs_state_machine_diagram_of_the_base` | `main_candidate` | 制动子系统控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_pseudostate` | “after entering”等顺序短语是 ordering cue，不是 clock 约束。 | {'converted': 4, 'partial': 2} | `R5.LOSS.r3_1_normalization_replay_not_repair`×2 |
+| `llms_emp_nl_02_real_time_softwa_pump_control_state_machine` | `main_candidate` | 泵子系统模式控制 | `has_guard_like_condition`, `has_hierarchy` | 离散模式/状态切换；无显式 timing。 | {'converted': 3, 'partial': 3} | `R45.LOSS.initial_inferred_from_source_order_or_start_state`×1, `R5.LOSS.r3_1_normalization_replay_not_repair`×3 |
+| `llms_emp_nl_03_hsuv_hybrid_sport_utility_vehicle_hsuv` | `main_candidate` | 车辆运行模式控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_hierarchy` | 用户/动作驱动的离散模式切换；无显式 timing。 | {'converted': 3, 'partial': 3} | `R5.LOSS.r3_1_normalization_replay_not_repair`×3 |
+| `llms_emp_nl_04_real_time_softwa_state_machine_for_train_control` | `main_candidate` | 列车运动控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_hierarchy` | 存在 entry/action-like 标签，但无 clock/duration 语义。 | {'converted': 1, 'partial': 5} | `R45.LOSS.composite_target_lowered_to_initial_child`×2, `R45.LOSS.initial_inferred_from_source_order_or_start_state`×3, `R45.LOSS.target_lifted_to_composite_boundary`×1, `R5.LOSS.r3_1_normalization_replay_not_repair`×4 |
+| `llms_emp_nl_05_mocv_microwave_oven_control_with_entry` | `main_candidate` | 微波炉控制：timer-like caveat | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_variables_or_data_conditions`, `has_explicit_time` | NL 提到 cooking time 与 timer expires，但没有形式化 clock 语义；本阶段按 T0.5 timer-like caveat 处理。 | {'converted': 1, 'partial': 5} | `R45.LOSS.composite_target_lowered_to_initial_child`×2, `R45.LOSS.initial_inferred_from_source_order_or_start_state`×1, `R45.LOSS.source_lifted_to_composite_boundary`×3, `R45.LOSS.target_lifted_to_composite_boundary`×1, `R5.LOSS.r3_1_normalization_replay_not_repair`×3 |
+| `llms_emp_nl_06_dscs_uav_swarm_state_machine_diagram` | `main_candidate` | 无人机群任务控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_hierarchy` | 离散任务状态迁移；无显式 timing。 | {'converted': 3, 'partial': 3} | `R45.LOSS.source_lifted_to_composite_boundary`×1, `R5.LOSS.r3_1_normalization_replay_not_repair`×2 |
+| `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `main_candidate` | 碰撞规避模式控制 | `has_guard_like_condition`, `has_hierarchy`, `has_concurrency_or_regions` | 无显式 clock / duration；主要 caveat 是并发/正交区域语义。 | {'blocked': 1, 'converted': 1, 'partial': 4} | `R45.LOSS.cross_scope_transition_unrepresentable`×1, `R45.LOSS.initial_inferred_from_source_order_or_start_state`×3, `R45.LOSS.source_lifted_to_composite_boundary`×2, `R45.LOSS.target_lifted_to_composite_boundary`×1, `R5.LOSS.official_scxml_unavailable`×1, `R5.LOSS.r3_1_normalization_replay_not_repair`×2 |
+| `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `supplementary_stress` | 相机控制：显式执行时间与伪状态压力样例 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_variables_or_data_conditions`, `has_hierarchy`, `has_pseudostate`, `has_explicit_time`, `has_concurrency_or_regions` | NL 含秒级执行时间、fork/join 与概率/守卫式线索；不能作为 T0 主结论证据。 | {'blocked': 2, 'partial': 4} | `R45.LOSS.composite_target_lowered_to_initial_child`×1, `R45.LOSS.condition_like_label_lowered_as_event`×4, `R45.LOSS.cross_scope_transition_unrepresentable`×2, `R45.LOSS.initial_inferred_from_source_order_or_start_state`×2, `R45.LOSS.source_lifted_to_composite_boundary`×3, `R45.LOSS.target_lifted_to_composite_boundary`×2, `R5.LOSS.official_scxml_unavailable`×2, `R5.LOSS.r3_1_normalization_replay_not_repair`×2 |
+| `llms_emp_nl_09_hldcs_autonomous_mode` | `main_candidate` | 自动驾驶模式控制 | `has_guard_like_condition`, `has_action_or_entry_exit`, `has_variables_or_data_conditions`, `has_hierarchy`, `has_pseudostate` | 距离/模式条件是离散守卫式线索；无显式 clock。 | {'partial': 6} | `R45.LOSS.condition_like_label_lowered_as_event`×6, `R45.LOSS.cross_scope_transition_unrepresentable`×2, `R45.LOSS.initial_inferred_from_source_order_or_start_state`×2, `R45.LOSS.source_lifted_to_composite_boundary`×1, `R45.LOSS.target_lifted_to_composite_boundary`×3, `R5.LOSS.r3_1_normalization_replay_not_repair`×1 |
+
+## 6. partial 归因摘要
+
+| primary_attribution | count |
+|---|---:|
+| `fcstm_lowering` | 6 |
+| `pipeline_artifact` | 19 |
+| `r5_7_candidate_only` | 16 |
+
+## 7. blocked 摘要
+
+| raw_pair_id | cluster | LLM | issue_category | 当前结论 |
+|---|---|---|---|---|
+| `llms_emp_stm_results_0018` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `gpt-4` | `F_unquoted_state_names_with_spaces` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+| `llms_emp_stm_results_0028` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `llama` | `A_non_plantuml_stm_directive` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+| `llms_emp_stm_results_0037` | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `kimi` | `A_non_plantuml_stm_directive` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+
+## 8. 给 R5.6/R5.7 的学术含义
+
+1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的 FSM/HSM/EFSM-lite/statechart 子族。
+2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。
+3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。
+4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。

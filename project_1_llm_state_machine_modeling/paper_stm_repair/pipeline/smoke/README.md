@@ -4,7 +4,7 @@
 
 本目录是 `paper_stm_repair/` 的 **R5 修正前准备度审计** 工作区，用于在进入 R6 修正循环骨架前，审计 `<NL, STM_0>` 输入能否稳定走到内部可机检 `.fcstm` 表示，并把可进入后续阶段的证据、阻塞原因和交接目标结构化写盘。
 
-R5 只回答：当前 seed 资源池中哪些原装 `STM_0` 能进入内部可机检 `.fcstm` 表示，哪些只能 `partial` / `blocked` / `not_applicable` / `needs_generation` / `missing_asset`，以及这些状态的原因是什么。
+R5 只回答：当前 seed 资源池中哪些原装 `STM_0` 能进入内部可机检 `.fcstm` 表示，哪些只能 `partial` / `blocked` / `not_applicable` / `needs_generation` / `missing_asset`，以及这些状态的原因是什么。R5.5 在 R5 事实源之上，只对 `llms-emp-stm-subset` 这一主 seed 池做 60 pair / 10 NL cluster 深度画像、partial 归因、blocked probe 与 R5.6 边界交接。
 
 R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不调用真实 LLM，不读取 `.env`，不把 conversion / normalization / 表示转换收益计入修正收益。
 
@@ -49,6 +49,14 @@ smoke/
 │   ├── partial_cases.md
 │   ├── sampling_analysis.md
 │   ├── llms_emp_main_seed_analysis.md
+│   ├── llms_emp_deep_profile.md
+│   ├── llms_emp_case_matrix.jsonl
+│   ├── llms_emp_cluster_profiles.jsonl
+│   ├── llms_emp_cluster_llm_matrix.jsonl
+│   ├── llms_emp_partial_attribution_ledger.jsonl
+│   ├── llms_emp_blocked_probe.md
+│   ├── llms_emp_blocked_probe.jsonl
+│   ├── llms_emp_r56_handoff.md
 │   ├── audit_records/
 │   ├── records_index.json
 │   ├── archives/
@@ -75,6 +83,8 @@ smoke/
 - [./seed_library_sweep/sweep_report.json](./seed_library_sweep/sweep_report.json) 是 seed library 全量摸排事实源。
 - [./seed_library_sweep/records_index.json](./seed_library_sweep/records_index.json) 与 [./seed_library_sweep/archive_manifest.json](./seed_library_sweep/archive_manifest.json) 是高基数明细复验入口。
 - [./seed_library_sweep/llms_emp_main_seed_analysis.md](./seed_library_sweep/llms_emp_main_seed_analysis.md) 是 R5 后对 `llms-emp-stm-subset` 主实验 seed 方向的长期归纳，含 60 case 状态表、问题谱系与 R6/R7 建议。
+- [./seed_library_sweep/llms_emp_deep_profile.md](./seed_library_sweep/llms_emp_deep_profile.md) 是 R5.5 后续优先入口；机器事实源是 [./seed_library_sweep/llms_emp_case_matrix.jsonl](./seed_library_sweep/llms_emp_case_matrix.jsonl)、[./seed_library_sweep/llms_emp_cluster_profiles.jsonl](./seed_library_sweep/llms_emp_cluster_profiles.jsonl)、[./seed_library_sweep/llms_emp_cluster_llm_matrix.jsonl](./seed_library_sweep/llms_emp_cluster_llm_matrix.jsonl)、[./seed_library_sweep/llms_emp_partial_attribution_ledger.jsonl](./seed_library_sweep/llms_emp_partial_attribution_ledger.jsonl) 和 [./seed_library_sweep/llms_emp_blocked_probe.jsonl](./seed_library_sweep/llms_emp_blocked_probe.jsonl)。
+- [./seed_library_sweep/llms_emp_r56_handoff.md](./seed_library_sweep/llms_emp_r56_handoff.md) 是 R5.5 交给 R5.6 story / model scope 的裁决输入；它只提供边界建议，不替代 R5.6 正式冻结。
 - [./handoff/](./handoff/) 保存 R5 向 R6/R7/R8 传递的稳定证据，其中 [./handoff/llms_emp_main_seed_handoff.md](./handoff/llms_emp_main_seed_handoff.md) 固化 `llms-emp-stm-subset` 优先路线。
 
 Markdown summary 只做人类入口，不成为第二事实真源；所有统计必须能从 machine-readable JSON 复算。
@@ -125,6 +135,9 @@ python -m paper_stm_repair_smoke.cli run-selected
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
 python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error
+
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+python -m paper_stm_repair_smoke.cli run-llms-emp-profile
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/smoke/src \
 python -m paper_stm_repair_smoke.cli validate

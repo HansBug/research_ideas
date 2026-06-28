@@ -175,3 +175,65 @@ def test_sampling_markdown_uses_pr_body_contract():
     assert "fsm-bench-20" in text
     partial_cases = (SMOKE / "seed_library_sweep/partial_cases.md").read_text(encoding="utf-8")
     assert "仅列出前 40 条抽样记录（40/504）" in partial_cases
+
+
+def load_jsonl(path: Path):
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def test_r55_llms_emp_deep_profile_contract():
+    base = SMOKE / "seed_library_sweep"
+    cases = load_jsonl(base / "llms_emp_case_matrix.jsonl")
+    clusters = load_jsonl(base / "llms_emp_cluster_profiles.jsonl")
+    matrix = load_jsonl(base / "llms_emp_cluster_llm_matrix.jsonl")
+    partials = load_jsonl(base / "llms_emp_partial_attribution_ledger.jsonl")
+    blocked = load_jsonl(base / "llms_emp_blocked_probe.jsonl")
+
+    assert len(cases) == 60
+    assert len(clusters) == 10
+    assert len(matrix) == 60
+    assert len(partials) == 41
+    assert len(blocked) == 3
+    assert Counter(row["conversion_status"] for row in cases) == {"converted": 16, "partial": 41, "blocked": 3}
+    assert Counter(row["time_level"] for row in clusters) == {"T0": 8, "T0.5": 1, "T1": 1}
+    assert Counter(row["r5_6_story_role"] for row in clusters) == {"main_candidate": 9, "supplementary_stress": 1}
+
+    for cluster in clusters:
+        features = cluster["behavior_feature_profile"]
+        for key in [
+            "has_guard_like_condition",
+            "has_action_or_entry_exit",
+            "has_variables_or_data_conditions",
+            "has_hierarchy",
+            "has_pseudostate",
+            "has_explicit_time",
+        ]:
+            assert key in features, cluster["nl_cluster_id"]
+    assert sum(1 for c in clusters if c["behavior_feature_profile"]["has_explicit_time"]) == 2
+    assert sum(1 for c in clusters if c["behavior_feature_profile"]["has_guard_like_condition"]) == 10
+
+    for cluster_id in {row["nl_cluster_id"] for row in clusters}:
+        rows = [row for row in matrix if row["nl_cluster_id"] == cluster_id]
+        assert len(rows) == 6
+        assert {row["llm_family"] for row in rows} == {"gpt-4o", "gpt-4", "llama", "kimi", "deepseek", "claude"}
+
+    for row in partials:
+        assert row["conversion_status"] == "partial"
+        assert row["observed_issue"]
+        assert row["source_stage"]
+        assert row["r5_loss_code"]
+        assert row["evidence_anchor"]
+        assert row["attribution_confidence"] in {"high", "medium", "low", "unknown"}
+        assert row["r5_6_story_role"] in {"main_candidate", "supplementary_stress", "negative_evidence", "exclude_or_defer", "unknown"}
+
+    for row in blocked:
+        assert "pre_scxml_recovery_possible" in row
+        assert "normalization_repair_possible" not in row
+
+    deep_text = (base / "llms_emp_deep_profile.md").read_text(encoding="utf-8")
+    assert "60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出" in deep_text
+    assert "cluster 口径 story role" in deep_text
+    assert "行为特征画像" in deep_text
+    assert "不能直接把某个特征计为 R5.7 已确认 repair target" in deep_text
+    handoff = (base / "llms_emp_r56_handoff.md").read_text(encoding="utf-8")
+    assert "proceed_with_supplementary" in handoff
