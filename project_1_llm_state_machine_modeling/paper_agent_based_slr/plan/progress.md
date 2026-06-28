@@ -104,3 +104,22 @@
 3. 脚手架仍是计划证据；后续若执行，必须避免写成目标证据池或完整三级综述。
 4. 学生过程数据仍是计划；评价前必须冻结同意、匿名化、脱敏、教学关系隔离和访问权限。
 5. 相关工作仍需 A6 深化，尤其是 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；`baselines/SUMMARY.md` 已完成 S0-v2 方向性同步，但正式论文写作前仍需逐篇 PDF / 制品审计。
+
+
+## 9. 本轮补充：SVG 源稿说明与 story 再审查
+
+- 已新增 [../story/figures/README.md](../story/figures/README.md)，明确普通方法流程图 [../story/figures/s0_method_flow.svg](../story/figures/s0_method_flow.svg) 是手写 / 直接维护的可控 SVG，文件本身就是当前源稿，不是 Mermaid 生成。
+- 已在 [../story/README.md](../story/README.md) 增加图源维护说明入口。
+- 已按 `ai-research-writing-skill` / `research-planning` / `literature-search` / `autoresearch` 口径完成本轮 story 薄弱点复核；当前不运行真实大语言模型 API，不触发 `.env`。
+- OMX spawn 三路只读审查结论一致：当前 S0-v2 方向正确，但 story 仍偏“强协议 / 弱证据”，正面贡献需要从流程门控收敛为“审计优先证据工程”或等价的可验证技术对象，并用完整闭环 pilot、可执行评价协议、可导出审计制品链和 risk-to-metric 结果闭合；本轮已将该要求落入 story、protocol、outline、claim map、评价维度、风险登记和任务包。
+- 轻量文献检索已覆盖 arXiv / OpenAlex 四组查询共 160 条结果，用于确认近邻压力；新检索主要强化既有结论：自动综述、agentic SLR、HITL provenance、SE LLM-SLR screening / replication 风险均已有近邻，后续不能回到宽泛自动化或 firstness 叙事。
+
+- 已完成当前 PR 内文档迭代：将工作标题 / 一句话论点收敛为“审计优先证据工程方法”，新增审计制品链、最小闭环样例、risk-to-metric 评价矩阵、强协议 / 弱证据风险，以及图源维护说明；这些内容现在属于当前 PR-S0-v2 合同，而不是留给外部口头建议。
+
+### Capability-use audit
+
+- Required references/scripts: `ai-research-writing-skill/references/paper-story.md`，`research-planning/references/planning-prompts.md`，`research-planning/references/output-schemas.md`，`literature-search` / `systematic-review` 检索脚本，`autoresearch` artifact-gated 审查口径。
+- Inputs consumed: [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md)、[../baselines/SUMMARY.md](../baselines/SUMMARY.md)。
+- Artifacts produced: [../story/figures/README.md](../story/figures/README.md)、更新后的 [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[../story/paper_outline.md](../story/paper_outline.md)、[../story/claim_evidence_map.md](../story/claim_evidence_map.md)、[../story/terminology_policy.md](../story/terminology_policy.md)、[../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)、[../experiment_design/reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)、[./task-packets/s0-story-recalibration.md](./task-packets/s0-story-recalibration.md) 与本进度记录；外部检索临时结果保存在 `/tmp/s0_story_litsearch/`，不作为仓库事实源。
+- Verification run: `git diff --check`、修改文件 Markdown 链接检查、`rsvg-convert` SVG 渲染检查。
+- Remaining risk: 本轮已修改 paper story 主线并补强当前合同；但仍未执行真实 pilot，也未冻结 A5 指标公式、阈值、统计协议或最终数据结构。

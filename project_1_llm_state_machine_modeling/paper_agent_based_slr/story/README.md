@@ -1,6 +1,6 @@
 # 主线/：论文主线、协议、术语与主张控制
 
-本目录维护第二篇论文的叙事真源。关键术语以 [terminology_policy.md](./terminology_policy.md) 为正式定义；本 README 仅作为导航，首次集中定义后使用中文主称。当前阶段后，本论文不再主打“自动化生成综述”“多智能体流水线本身”或旧的“多阶段证据制品工作流”，而是研究：**研究者如何定义主题、研究问题、范围和综述元模型，如何把它投影为可演化维度模式，智能体如何在批准模式下抽取字段级内容证据、生成统计观察和候选发现，研究者如何通过质疑、反向证据和裁决形成最终领域发现，同时用过程证据评价方法自身**。
+本目录维护第二篇论文的叙事真源。关键术语以 [terminology_policy.md](./terminology_policy.md) 为正式定义；本 README 仅作为导航，首次集中定义后使用中文主称。当前阶段后，本论文不再主打“自动化生成综述”“多智能体流水线本身”或旧的“多阶段证据制品工作流”，而是研究：**一种面向软件工程系统综述 / 系统映射研究的审计优先证据工程方法**——研究者如何定义主题、研究问题、范围和综述元模型，如何把它投影为可演化维度模式，智能体如何在批准模式下抽取字段级内容证据、生成统计观察和候选发现，研究者如何通过质疑、反向证据和裁决形成最终领域发现，同时用过程证据评价方法自身。
 
 术语写作规则：首次出现必须采用“中文术语（英文术语 / 缩写）”格式，例如“系统综述（Systematic Literature Review, SLR）”；首次定义后，除论文名、工具名、路径、命令、阶段编号和必要缩写外，一律优先使用中文术语。完整术语表见 [terminology_policy.md](./terminology_policy.md)。
 
@@ -14,6 +14,7 @@
 | [claim_evidence_map.md](./claim_evidence_map.md) | 每类潜在主张的证据状态、禁止写法、安全写法和后续所需证据；写摘要、引言、贡献和结论前必须检查。 |
 | [differential_novelty_matrix.md](./differential_novelty_matrix.md) | 与系统综述 / 系统映射研究方法学、PRISMA、ASReview、RobotReviewer、AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等近邻的差异化边界。 |
 | [paper_outline.md](./paper_outline.md) | 后续论文稿的章节级架构、试运行 / 多用户过程评价入口和 PR #101 研究问题到 S0-v2 评价义务的映射。 |
+| [figures/README.md](./figures/README.md) | S0 普通方法流程图的源稿口径、SVG 维护规则和渲染验收命令；说明普通流程图不是 Mermaid 生成。 |
 
 ## 使用顺序
 

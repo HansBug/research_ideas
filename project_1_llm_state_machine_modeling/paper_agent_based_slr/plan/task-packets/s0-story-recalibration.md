@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-本 PR 是第二篇论文伞 PR [#101](https://github.com/HansBug/research_ideas/pull/101) 下的阻塞性 PR-S0-v2。目标是把论文主线从旧的“自动化综述 / 证据制品工作流 / 候选发现工作流”重新勘定为：**面向软件工程系统综述 / 系统映射研究的研究者引导、模式演化、证据支撑、发现导向的智能体式系统综述支持方法**。
+本 PR 是第二篇论文伞 PR [#101](https://github.com/HansBug/research_ideas/pull/101) 下的阻塞性 PR-S0-v2。目标是把论文主线从旧的“自动化综述 / 证据制品工作流 / 候选发现工作流”重新勘定为：**面向软件工程系统综述 / 系统映射研究的审计优先证据工程方法：研究者引导的维度模式演化与发现裁决**。
 
 本 PR 只冻结论文主线、术语、主张边界、新颖性差异、评价义务和后续 PR 门槛；不实现运行时、不跑真实大语言模型、不跑四个真实例子、不冻结最终指标公式。
 
@@ -18,6 +18,8 @@
 | 导师建议 综述之综述可放宽范围，用于提取维度模式，是低复杂度工作 | 综述之综述只作为脚手架 / 模式先验，不是目标证据池或三级综述。 |
 | 导师建议先设定主题试运行，再让硕士生使用方法并收集人机交互过程数据 | 试运行只验证闭环可行性；学生数据只支撑方法发现，需伦理、匿名化、脱敏和教学关系隔离边界。 |
 | PR #97 仍 未合入 | 只能作为 快照 / 分支局部证据，不能写成 `main` fact。 |
+
+| 2026-06-28 story 再审查发现当前主线仍偏“强协议 / 弱证据”，需要更硬的论文级技术对象 | 本 PR 必须把正面贡献压缩为可导出审计制品链，并把最小闭环样例、risk-to-metric 评价矩阵列为后续阻塞性义务。 |
 
 ## 3. 允许修改范围
 
@@ -55,6 +57,10 @@
 | 文档是否足够干净、自包含？ | [../progress.md](../progress.md)、本任务包、各入口 README | 删除纯历史流水账；必要历史只保留为证据链接和当前事实来源。 |
 | 方法图是否足够完整？ | [../../story/paper_story.md](../../story/paper_story.md) | 除时序 / 泳道图外，必须有普通流程图说明阶段、参与者、制品、反馈关系和过程证据横切边界；图的长宽比需适中，不能为了压缩而牺牲可读性；普通流程图必须能从渲染图本身读出阶段、参与者、制品、反馈和 G6 横切边界。 |
 
+| 审计优先证据工程对象是什么？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) | 必须列出维度模式与修订 / 回填日志、字段级内容证据表、候选发现台账、质疑 / 裁决日志、过程证据包，并绑定评价入口。 |
+| 最小闭环样例如何要求？ | [../../story/paper_story.md](../../story/paper_story.md)、[../../story/paper_outline.md](../../story/paper_outline.md) | 必须要求 LLM4STM / LLM4Modeling 3--5 篇种子论文 dry-run，展示模式修订、回填、统计观察、候选发现、裁决与证据分离。 |
+| risk-to-metric 评价矩阵如何落地？ | [../../experiment_design/evaluation_dimensions_seed.md](../../experiment_design/evaluation_dimensions_seed.md)、[../../story/claim_evidence_map.md](../../story/claim_evidence_map.md) | 必须把近邻威胁和审稿风险转成可评价指标，而不是只写效率或生成质量。 |
+
 ## 6. 拒收检查
 
 - 不能把第二篇写回 `sources` 语料 / 基准来源论文。
@@ -71,6 +77,8 @@
 - 不能运行真实大语言模型；后续真实运行必须 `source .env` 并保存运行记录。
 - 不能让核心 Markdown 出现成片英文叙事；术语首次定义后应回到中文主称。
 - 不能只有时序 / 泳道图而缺少普通流程图；普通流程图必须让读者一眼看出阶段、参与者、制品和反馈路径。
+
+- 不能让本 PR 停留在“流程门控清单”：必须把审计对象、最小闭环样例和 risk-to-metric 后续义务写入当前合同。
 
 ## 7. 验证命令
 
@@ -154,3 +162,7 @@ file /tmp/pr114_s0_method_flow.png
 - 术语首次出现规则在 [../../story/paper_story.md](../../story/paper_story.md) 与 [../../story/terminology_policy.md](../../story/terminology_policy.md) 中明确；正文后续使用中文主称。
 - [../../story/paper_story.md](../../story/paper_story.md) 同时包含普通流程图和时序 / 泳道图，二者在阶段、参与者、制品、门控和证据边界上互相一致；普通流程图的渲染结果应长宽比正常、无大面积空白、文字可读。
 - 当前 Markdown 应尽量干净、自包含：保留必要证据链接和当前合同，清除纯历史痕迹、过期状态和已修复 review 流水。
+
+- [../../story/paper_story.md](../../story/paper_story.md) 必须把正面贡献从流程门控收敛为“审计优先证据工程”的可导出对象链，而不是只列 L0--L7。
+- [../../story/paper_story.md](../../story/paper_story.md) 与 [../../story/paper_outline.md](../../story/paper_outline.md) 必须明确最小闭环样例要求，避免后续 A2/A3/A5 继续停留在抽象协议。
+- [../../experiment_design/evaluation_dimensions_seed.md](../../experiment_design/evaluation_dimensions_seed.md) 必须包含 risk-to-metric 口径，说明近邻威胁和审稿风险如何转成可评价指标。

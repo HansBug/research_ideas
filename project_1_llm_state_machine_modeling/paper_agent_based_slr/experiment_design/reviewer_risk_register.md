@@ -31,6 +31,9 @@
 | R19 | 引用蔓延 / 未核验引用扩张 | 用搜索摘要或未核验元数据写相关工作。 | I | 引用种子未分层或 BibTeX 伪造。 | [../evidence/citation_seed_inventory.md](../evidence/citation_seed_inventory.md)。 | 需 A6 审。 |
 | R20 | 工程日志冒充贡献 | 把运行日志、提示或智能体框架写成论文新颖性。 | M | 方法过度描述工具实现而非研究问题。 | [../story/paper_story.md](../story/paper_story.md)、A4/A5。 | 后续关注。 |
 | R21 | 场景越界 | 把后续场景或“四个真实例子”误写成当前已冻结基准。 | M | A3/A4 直接继承候选场景且无审计计划。 | [../story/paper_outline.md](../story/paper_outline.md)、[../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)。 | S0-v2 已声明不冻结。 |
+| R22 | 强协议 / 弱证据 | 只把 L0--L7 和 G0--G6 写成流程图，缺少可导出审计制品链、最小闭环样例和评价指标。 | C | 摘要 / 方法声称审计优先，但没有字段证据表、候选发现台账、质疑 / 裁决日志或样例。 | [../story/paper_story.md](../story/paper_story.md)、[../story/protocol.md](../story/protocol.md)、[evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md)。 | 本轮已把审计制品链和最小闭环样例列为后续阻塞性义务。 |
+| R23 | 评价错位 | 只报告效率、文本质量或主观满意度，没有把强近邻威胁转成证据锚点、断链、过强主张、回填负担和质疑拦截等指标。 | C | A5 评价指标只看时间、token 或用户满意度。 | [evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md)。 | 本轮已新增 risk-to-metric 口径，A5 需冻结公式和阈值。 |
+| R24 | 领域换皮 | 只说软件工程场景不同，但没有用 LLM4STM / LLM4Modeling 等主题展示 SE 文献对象为何需要模式演化和审计链。 | I | 引言只强调领域不同，缺少种子论文 dry-run 或抽取对象差异。 | [../story/paper_story.md](../story/paper_story.md)、[../story/paper_outline.md](../story/paper_outline.md)。 | 本轮要求最小闭环样例优先用 LLM4STM / LLM4Modeling。 |
 
 ## 3. 高风险 grep 线索
 
