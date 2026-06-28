@@ -1,120 +1,202 @@
-# Paper Outline：第二篇 agent-based SLR
+# 论文大纲：面向软件工程系统综述的审计优先证据工程方法
 
-## 1. 使用说明
+## 1. 使用说明与术语口径
 
-本文件给出后续 manuscript 的 section-level 架构。section heading 可保留必要英文术语，便于后续转英文稿；每节内容说明以中文为主。A0 不写完整论文正文，也不写结果型 claim。
+本文件给出后续论文稿的章节级架构。PR-S0-v2 不写完整论文正文，也不写结果型主张；它只冻结章节功能、论证顺序、证据义务和禁止误读。
 
-## 2. Introduction
+本文件首次锚定核心术语：软件工程（Software Engineering, SE）、系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、大语言模型（Large Language Model, LLM）、智能体（agent）、综述元模型（review meta-model）、维度模式（dimension pattern / extraction schema）、内容证据（field-level content evidence）、过程证据（process evidence / audit trail）、统计分析（statistical analysis）、候选发现（candidate finding signal）、领域发现（target-domain research finding）、方法发现（method-evaluation finding）和 PRISMA 透明报告框架（Preferred Reporting Items for Systematic Reviews and Meta-Analyses, PRISMA）。上述术语完整定义以 [terminology_policy.md](./terminology_policy.md) 为准；本节之后除论文名、工具名、路径、命令和固定缩写外，正文优先使用中文术语。
 
-目标：解释为什么 agent-based SLR 是一个值得研究的问题，而不是把它写成又一篇 `sources/` 文库综述。
+## 2. 引言
 
-应覆盖：
+目标：解释为什么宽泛的“大语言模型 / 智能体自动化综述”叙事已经被近邻工作压缩，以及为什么软件工程系统综述 / 系统映射研究更需要围绕**审计优先证据工程**来设计智能体支持：研究者定义综述元模型，方法导出可演化维度模式、字段级内容证据、统计观察、候选发现、研究者质疑 / 裁决和过程证据。
 
-1. 软件工程 SLR / systematic mapping 成本高、过程长、需要透明报告和可审计证据链。
-2. LLM / agent 带来自动化机会，但同时引入事实错误、无证据 claim、scope drift 和不可复核风险。
-3. 本文不追求 agent 替代专家，而是研究带 human audit gates 的 agent-executed workflow。
-4. 核心主张：从生成综述文本转向生成可审计 evidence package。
-5. 贡献草案必须保持候选性质，等待 A3/A5 证据闭合。
+建议叙事顺序：
 
-## 3. Background and Related Work
+1. 软件工程系统综述 / 系统映射研究的核心价值不是只整理文献，而是形成可解释、可复核、能指导后续研究的研究发现。
+2. 大语言模型与智能体已经能辅助检索、筛选、抽取、总结、证据综合和报告生成；因此“自动化某个环节”不是足够强的新颖性。
+3. B0 基线表明 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等近邻已经覆盖多阶段工作流、人在回路、来源追溯、筛选 / 抽取和软件工程大语言模型辅助系统综述风险。
+4. 真实系统综述可拆为三层：论文收集与初步处理、维度模式驱动的论文分析、统计分析与研究发现形成。
+5. 本文的核心主张：研究者定义综述元模型与维度模式，智能体在批准后的模式下工作，统计观察经过发现启发式与研究者质疑后才可能进入最终发现，并保留可导出的内容证据 / 过程证据分层审计链。
+6. 贡献预告必须谨慎：所有贡献在 PR-S0-v2 只是候选，后续 A2/A3/A5/A6 需要用真实模式、最小闭环样例、过程数据、相关工作和 risk-to-metric 评价闭合。
 
-建议分成以下小节：
+## 3. 背景与相关工作
 
-1. Software Engineering SLR and Systematic Mapping：软件工程系统综述与系统映射研究，重点介绍 protocol、search、screening、extraction、synthesis、reporting 的基本规范。
-2. PRISMA and Transparent Reporting：PRISMA 与透明报告，说明它是 flow / checklist / exclusion ledger 参考，不等于本文默认合规。
-3. Review Automation Tools：综述自动化工具，覆盖 ASReview、RobotReviewer 和 systematic review automation practical guide。
-4. LLM-assisted Evidence Synthesis：LLM 辅助筛选、抽取与综合，重点讨论幻觉、provenance 和 unsupported claim 风险。
-5. Positioning：本文定位，明确多阶段 agent workflow、claim-to-source evidence package 与 human audit gates 的差异。
+建议分组：
 
-## 4. Problem Definition
+1. **软件工程系统综述 / 系统映射研究方法学**：介绍协议、检索、筛选、数据抽取、综合、报告和效度威胁。
+2. **PRISMA 透明报告框架与透明报告**：解释类 PRISMA 材料、受 PRISMA 透明报告框架启发和合规声明之间的边界。
+3. **传统综述自动化工具**：介绍 ASReview、RobotReviewer 等，说明筛选与特定证据自动化早已有基础。
+4. **大语言模型 / 智能体式系统综述近邻**：介绍 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、Closed-loop scientific literature summarization、自动综述生成等。
+5. **软件工程大语言模型辅助系统综述方法学风险**：介绍 WSESE@ICSE 2025、筛选变异性、提示可复现性、模型漂移和透明性缺口。
+6. **本文定位**：不主张首次自动化；本文关注软件工程系统综述 / 系统映射研究中的研究者定义综述元模型、可演化维度模式、字段级内容证据、统计观察到研究发现的转移，以及研究者质疑 / 裁决。
 
-应定义：
+## 4. 问题定义
 
-1. 输入：研究主题、RQ seed、检索协议、候选论文、全文状态、抽取 schema、编码 schema、审计政策。
-2. 输出：query log、screening ledger、fulltext status、extraction table、coding decisions、claim-evidence map、PRISMA-style materials、report draft。
-3. human audit gates：protocol approval、screening audit、gold / silver fact audit、disagreement adjudication、final claim review。
-4. 不属于任务目标：禁止写完全自动 SLR、PRISMA-compliant、complete coverage。
+建议明确定义：
 
-## 5. Agent-Based SLR Workflow
+| 要素 | 内容 |
+|---|---|
+| 输入 | 主题、研究问题、范围、种子论文、候选论文池、全文状态、研究者关注点、可用脚手架。 |
+| 研究者拥有的决策 | 综述元模型、维度模式批准、模式修订 / 回填、统计分析协议、候选发现质疑、最终裁决、过程证据边界。 |
+| 智能体辅助对象 | 元数据、全文、概览卡、内容证据、统计视图、候选发现、支持 / 反向证据草案。 |
+| 输出 | 批准后的维度模式、概览卡、字段证据表、模式修订 / 回填日志、统计分析表、候选发现台账、质疑 / 裁决日志、透明材料和过程证据。 |
+| 非目标 | 端到端无人系统综述、PRISMA 透明报告框架合规、完整覆盖、首次智能体式系统综述、大语言模型最终发现。 |
 
-应按 [protocol.md](./protocol.md) 的 stage contract 展开：
+## 5. 方法
 
-1. protocol setup：定义 RQ、范围、纳排标准、数据库和人工审计门。
-2. query planning and search logging：生成检索式并记录数据库、时间、结果数和失败。
-3. deduplication and screening：去重、标题摘要筛选、保留 include / exclude 理由。
-4. fulltext availability logging：记录全文获取状态、版权边界和人工下载需求。
-5. extraction with evidence locator：抽取字段时保留页码、段落或原文定位。
-6. coding and taxonomy：把抽取结果映射到 taxonomy，并标注 uncertain / disagreement。
-7. synthesis and claim-evidence map：综合结论必须回连证据链和审计状态。
-8. PRISMA-style reporting：生成 flow、排除理由和协议偏离记录，但不声称合规。
-9. audit / rollback / claim downgrade：人工审计发现问题后回滚、降级或删除 claim。
+本节应以 [paper_story.md](./paper_story.md) 的 SVG 普通流程图、Mermaid 时序 / 泳道图和 [protocol.md](./protocol.md) 的阶段契约为准。建议小节如下。
 
-关键写法：强调接口、证据包和审计门，不把工程日志写成方法贡献。
+### 5.1 研究者定义综述元模型
 
-## 6. Evaluation Design
+研究者根据主题、研究问题和范围定义综述对象、关系、证据类型、纳排范围和潜在发现类型。智能体可以建议候选项，但不能决定实际生效的综述元模型。
 
-A0 只列维度，不写最终公式。后续 A5 冻结指标。
+### 5.2 脚手架挖掘与种子探测
 
-维度包括：
+从既有软件工程、人工智能辅助软件工程（AI4SE）、模型驱动工程（Model-Driven Engineering, MDE）和大语言模型辅助软件工程（LLM4SE）的综述、系统综述和系统映射研究中低成本提取维度模式、发现启发式和证据呈现模式，并用种子论文做可执行性压力测试。必须强调：脚手架不是目标证据池，也不是 PRISMA 透明报告框架合规三级综述。
 
-1. traceability：claim-to-source chain 是否断链；
-2. factuality：metadata、venue、DOI、抽取字段是否正确；
-3. hallucination / unsupported claim：不存在论文、错误来源、无证据 claim；
-4. screening consistency：include / exclude 决策与理由稳定性；
-5. extraction / coding consistency：字段和标签的一致性；
-6. coverage proxy：known-item recall、seed recovery、database overlap；
-7. transparency：PRISMA-style flow、排除理由、协议偏离日志；
-8. cost and efficiency：agent 时间、token / API cost、人工审计时间；
-9. audit effectiveness：审计拦截率、误报率、剩余 unsupported claim。
+### 5.3 可演化维度模式
 
-## 7. Benchmark / Case Study Scenarios
+将综述元模型投影为树状 / 类型化抽取模式，定义字段、取值、证据要求、缺失值语义和版本。新类型或抽取失败触发模式修订提案、影响分析和回填门控。
 
-A0 不冻结场景。候选资产总账见 [../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)，后续 A3 应考虑：
+### 5.4 字段级内容证据抽取
 
-1. 小型已知领域场景，便于 gold / silver fact 构造。
-2. 中型 systematic mapping 场景，检验 taxonomy / coding。
-3. LLM4SE / LLM4Modeling 场景，贴近博士主题。
-4. 控制系统 STM / `sources/` 场景，作为 stress test。
+智能体在批准后的维度模式下抽取来源锚点、短引文、表格、图、制品链接、缺失说明和不确定说明，并生成字段证据表。字段级证据是统计分析和领域发现的基础。
 
-注意：场景数量不是 A0 的硬要求；不要把“四个真实例子”写成 PR #101 的已冻结要求。
+### 5.5 统计分析作为中间观察
 
-## 8. Results Plan
+在稳定字段证据表上做频次、分布、交叉表、趋势、覆盖代理和矛盾信号分析。这里的字段证据表指已按批准模式填充并带来源锚点的数据表，不是一次性字段清单；统计分析只产生统计观察，不直接产生最终研究发现。
 
-A0 不写结果。后续结果应围绕：
+### 5.6 候选发现与发现启发式
 
-1. evidence package completeness：证据包字段是否齐全，哪些环节最容易缺证据。
-2. traceability failure modes：claim-to-source 链条在哪些阶段断裂。
-3. factuality / hallucination errors：metadata、引用、抽取和综合中的事实错误或无证据 claim。
-4. audit gate interception：人工审计门拦截了哪些错误，仍残留哪些风险。
-5. coverage proxy：known-item、seed recovery 和 database overlap 等覆盖代理。
-6. cost / efficiency trade-off：agent 时间、token / API 成本、人工审计成本之间的权衡。
-7. scenario-level differences：不同场景下错误模式和审计收益是否不同。
+智能体基于统计观察、发现启发式与内容证据提出候选发现。发现启发式可以包括缺口、趋势、共识、矛盾、成熟度、方法弱点和证据弱点等。
 
-## 9. Threats to Validity / Limitations
+### 5.7 研究者质疑与最终裁决
+
+研究者检查证据、反例、范围、主张强度和模式适配性；系统补证、找反例、修订、降级、拒绝或标记未解决。只有经过最终裁决的发现才能进入领域发现。
+
+### 5.8 用于方法评价的过程证据
+
+记录模式修订、批准、质疑、裁决、交互轮次、时间成本、人工修改、拒绝建议、提示 / 原始日志脱敏等。过程证据只支撑方法发现，不能支撑领域发现。
+
+## 6. 制品与实现计划
+
+后续 A2/A4 应把方法落为可审计制品，而不是只写提示词或流程图。制品链本身是审计优先证据工程的核心技术对象：
+
+1. 综述元模型简报；
+2. 维度模式登记表；
+3. 检索 / 筛选台账；
+4. 概览卡；
+5. 字段证据表；
+6. 模式修订 / 回填日志；
+7. 统计分析表；
+8. 候选发现台账；
+9. 质疑 / 裁决日志；
+10. 透明材料；
+11. 过程证据与脱敏报告；
+12. 运行记录。若后续触发真实大语言模型运行，必须先 `source .env`，并记录模型 ID、提供商、用量、原始输出、错误与脱敏报告。
+
+这些制品不是附录材料，而是后续方法、实验和写作的主证据：若无法导出字段证据表、候选发现台账或质疑 / 裁决日志，就不能在论文中主张方法具备审计优先能力。
+
+
+## 7. 单主题试运行
+
+PR-S0-v2 不冻结最终试运行主题，但把最小闭环样例列为后续阻塞性义务。建议优先考虑基于大语言模型的状态机建模主题（LLM4STM / LLM4Modeling），因为它贴近博士主线且已有基线 / `sources/` 资产可作为压力测试线索。最小样例建议先选 3--5 篇种子论文，目标不是证明泛化，而是验证：
+
+1. L0--L7 是否能闭环；
+2. 维度模式是否能从脚手架 / 种子论文进入批准模式；
+3. 内容证据是否能支撑统计观察；
+4. 候选发现是否能被质疑、降级、拒绝或接受；
+5. 模式修订是否能触发影响分析与回填；
+6. 透明材料是否能让第三方复核。
+
+最小闭环样例的验收表：
+
+| 检查项 | 最小要求 | 不满足时的处理 |
+|---|---|---|
+| 样本规模 | 3--5 篇种子论文 | 不得写成实验结论，只能写成准备材料。 |
+| 样本覆盖 | 至少覆盖 2 类方法或输出形态 | 若只能覆盖单一类型，只能作为制品链 smoke，不能作为 mini-case pass 或质疑闭环有效性证据。 |
+| 预设风险触发点 | 至少包含 1 个会触发模式修订或证据质疑的风险点，例如公开制品缺失、评价指标不清、状态机对象边界模糊、输出形态不一致或证据锚点不足 | 若没有风险触发点，只能说明顺序流程可走通，不能说明审计机制有效。 |
+| pass gate | 必须产出综述元模型、维度模式版本、字段证据表、模式修订 / 回填日志、统计分析表、候选发现台账、质疑 / 裁决日志和过程证据记录 | 任一关键制品缺失则 mini-case fail，并记录阻塞原因。 |
+| fail / 降级 gate | 若无模式修订 / 回填、无反向证据检查、无降级 / 拒绝 / 未解决案例，不得声称质疑闭环有效 | 最多写成“制品链试读”或“流程 smoke”，不能写成审计优先证据工程已验证。 |
+| 人工裁决记录 | 每个候选发现都记录裁决人、裁决理由、实质证据来源、残余风险和是否影响统计或文本主张 | 无记录则候选发现不得升级为领域发现。 |
+
+## 8. 多使用者过程评价
+
+后续让硕士生使用方法时，应明确数据用途：评价方法自身，而不是证明目标领域结论。建议记录：
+
+1. 每个人工门控的交互轮次、时间、修改和拒绝建议；
+2. 模式修订 / 回填次数和原因；
+3. 研究者质疑的类型、补证量和裁决结果；
+4. 学生对模式、证据链和发现边界的理解难点；
+5. 提示 / 原始日志的脱敏、匿名化和访问控制；
+6. 教学关系隔离、同意书和数据使用范围。
+
+## 9. 评价设计
+
+评价维度种子见 [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)。后续 A5 至少覆盖：
+
+1. 维度模式稳定性 / 演化；
+2. 回填完整性 / 成本；
+3. 内容证据准确性；
+4. 统计分析正确性；
+5. 候选发现有用性；
+6. 质疑结果：接受 / 降级 / 拒绝 / 未解决；
+7. 内容证据 / 过程证据分离；
+8. 方法评价过程指标；
+9. 透明材料完整性；
+10. 成本、负担和失败模式。
+
+
+
+评价设计应采用 risk-to-metric 口径，而不是只看效率、生成质量或主观满意度：
+
+| 风险 | 评价方向 |
+|---|---|
+| 证据断链 | 来源锚点准确性、断链率、字段错误分类 |
+| 模式漂移 | 修订次数、触发原因、影响论文数、回填完成率和成本 |
+| 过强 / 无证据候选发现 | 无支撑 / 过强主张率、反向证据检查率、降级 / 拒绝 / 未解决比例 |
+| 人工门控失效 | 质疑次数、质疑类型、质疑拦截错误比例、门控耗时 |
+| 过程证据误用 | 主张-证据类型匹配率、跨证据类型误用数、脱敏完整性 |
+| 强近邻压力 | 与 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 等按能力维度对齐后的差异矩阵 |
+
+## 10. PR #101 研究问题到 S0-v2 评价门槛的映射
+
+| PR #101 研究问题 | S0-v2 解释 | 对应评价维度 | 后续门槛 |
+|---|---|---|---|
+| 研究问题1 可追踪性 | 最终、降级或未解决发现能否回到内容证据、统计观察、质疑和裁决？ | 内容证据准确性、主张-证据可追踪性、透明材料 | A2 定义追踪模式；A5 统计断链和定位错误。 |
+| 研究问题2 事实准确性 | 元数据、字段值、来源锚点、统计输入和输出是否与来源一致？ | 字段级事实准确性、统计正确性 | A3/A5 构造金事实 / 银事实与人工核验样本。 |
+| 研究问题3a 无证据 / 过强主张 | 候选发现中有多少缺证据、范围过宽、统计外推或引用错误？ | 无支撑 / 过强发现分类 | A3 设计陷阱；A5 报告残余错误与降级。 |
+| 研究问题3b 研究者质疑 | 质疑能否发现证据不足、反例、模式问题和主张强度问题？ | 接受 / 降级 / 拒绝 / 未解决比例、质疑成本 | A2 定义日志；A5 统计修订、降级、未解决和成本。 |
+| 研究问题4 成本收益 | 模式演化、证据锚定与质疑带来的成本 / 收益是什么？ | 审计时间、调用成本、回填负担、过程摩擦 | A4 运行记录；A5 成本分析，不预设正收益。 |
+| 研究问题5 场景差异 | 不同软件工程 / LLM4Modeling / 模型驱动工程主题下，模式演化、证据缺失和发现类型有何差异？ | 场景级差异、模式稳定性、发现类型覆盖 | A3 冻结场景与限制；A5 分场景报告。 |
+| 研究问题6 与已有工具关系 | 相比 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 等，本文的真正差异是什么？ | 新颖性矩阵、基线能力映射 | A6 相关工作必须正面对齐 B0 P0/P1。 |
+| 研究问题7 透明报告与覆盖代理 | 方法能否产生类 PRISMA 透明材料和覆盖代理，同时避免合规 / 完整覆盖过强主张？ | 透明材料完整性、覆盖代理、协议偏离日志 | A2/A5 定义制品与检查清单。 |
+
+## 11. 结果计划
+
+PR-S0-v2 不写结果。未来结果应围绕：
+
+1. 模式演化次数、原因、回填范围和完成率；
+2. 字段级证据定位正确性、缺失类型和不确定性；
+3. 统计观察与字段版本的一致性；
+4. 候选发现的接受、降级、拒绝、未解决比例；
+5. 质疑带来的补证、反例、修订和主张强度变化；
+6. 过程证据中的人机交互成本、失败模式和隐私 / 脱敏负担；
+7. 与强近邻相比，本方法在哪些主张上更安全，哪些仍然只是候选。
+
+## 12. 效度威胁
 
 必须提前承认：
 
-1. coverage proxy 不等于 complete coverage；禁止把覆盖代理写成完整覆盖；
-2. PRISMA-style 不等于 PRISMA-compliant；禁止写合规 claim；
-3. human audit gates 不保证完全正确；
-4. scenario 数量和领域会限制泛化；
-5. LLM provider drift 和模型版本会影响复现；
-6. PR #97 若未合入，只能作为 snapshot evidence；
-7. copyright / fulltext availability 会限制 artifact release。
+1. 脚手架不等于完整综述之综述，也不进入目标领域发现的证据池；
+2. 覆盖代理不等于完整覆盖；
+3. 类 PRISMA 材料不等于 PRISMA 透明报告框架合规；
+4. 最终发现仍依赖研究者判断，不能保证绝对正确；
+5. 试运行只验证闭环与可执行性，不能证明泛化；
+6. 学生过程数据只能支撑方法评估，且有同意、匿名化和教学关系风险；
+7. 大语言模型提供商、模型版本和提示漂移会影响复现；
+8. 版权 / 全文可获取性会限制制品发布。
 
-## 10. Artifact and Reproducibility
+## 13. 结论
 
-应说明后续 artifact 包括：
-
-1. workflow schema：每个阶段的输入、输出、状态和失败字段。
-2. query logs：检索式、数据库、时间、结果数和异常记录。
-3. screening ledger：纳排决策、理由、分歧和裁决。
-4. extraction / coding tables：字段抽取、证据定位、编码标签和不确定标记。
-5. claim-evidence map：报告级 claim 与来源、抽取、编码、审计状态的映射。
-6. audit logs：人工审计样本、发现的问题、裁决和修正。
-7. run records：模型、prompt、usage、错误、重试和 redaction 记录。
-8. redaction / copyright-safe policy：版权安全发布、全文不可发布时的替代证据策略。
-
-## 11. Conclusion
-
-结论应回到谨慎主张：本文研究可审计 agent-based SLR workflow 与 evidence package；不声称 agent 替代 SLR 专家。
+结论应回到谨慎口径：本文研究审计优先证据工程方法；它的目标是让维度模式、内容证据、统计分析、候选发现、研究者质疑和最终裁决可审计，而不是让智能体替代系统综述专家或自动生成最终综述。

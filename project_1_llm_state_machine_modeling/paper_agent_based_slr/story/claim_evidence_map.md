@@ -1,46 +1,78 @@
-# Claim-Evidence Map：agent-based SLR
+# 主张-证据映射：S0-v2 审计优先证据工程方法
 
 ## 1. 使用规则
 
-本文件是第二篇论文 A0 阶段的 claim gate。任何 abstract、Introduction、contribution、Conclusion 或 PR comment 中的强主张，都必须先在本文件中找到对应的证据状态和安全写法。
+本文件是第二篇论文当前阶段的主张审查门。任何摘要、引言、贡献、结论、PR 正文 或 PR 评论 中的强主张，都必须先在本文件中找到对应的证据状态和安全写法。若后续实验或相关工作新增证据，本文件必须同步更新。
+
+术语写作沿用 [terminology_policy.md](./terminology_policy.md)：首次出现采用“中文术语（英文术语 / 缩写）”，后续使用中文主称。
 
 状态口径：
 
-- 🟢：A0 可作为任务定义 / 方法设计 claim 使用，但仍需避免结果化表述。
-- 🟡：方向合理，但需要 A1-A5 补证后才能写成论文主结论。
-- 🔴：禁止 claim，只能出现在风险、限制或禁止写法语境。
-- 🟣：依赖 PR #97 OPEN / 未合入 / snapshot / 分支局部证据，不能写成 `main` fact。
+- 🟢：当前阶段可作为任务定义、方法设计或边界约束使用，但不能写成已验证结果。
+- 🟡：方向合理，但需要后续设计、试运行、评价或相关工作补证后才能写成论文主结论。
+- 🔴：禁止主张，只能出现在风险、限制或禁止写法语境。
+- 🟣：依赖 PR #97 未合入 / 快照 / 分支局部证据，不能写成 `main` fact。
 
-## 2. Claim map
+最高优先级边界：PR-B0 基线已经发现 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻；2026-06-15 与 2026-06-26 导师讨论进一步确认，第二篇不能写成“大语言模型 / 智能体自动完成系统综述”，而应写成**面向软件工程系统综述 / 系统映射研究的审计优先证据工程方法**。
 
-| ID | Claim 类型 | 状态 | 当前可写安全表述 | 当前证据 | 后续所需证据 | 禁止写法 |
+## 2. 主张映射
+
+| ID | 主张类型 | 状态 | 当前可写安全表述 | 当前证据 | 后续所需证据 | 禁止写法 |
 |---|---|---:|---|---|---|---|
-| C1 | 论文任务定义 | 🟢 | 本文研究带 human audit gates 的 agent-based SLR / systematic mapping workflow。 | PR #101、2026-06-12 导师讨论记录、A0 story。 | A2 工作流合同、A3 场景、A4/A5 运行与评价。 | 本文已经证明 agent 可端到端生成合格 SLR。 |
-| C2 | `sources/` 资产角色 | 🟢 | `sources/` 可作为 domain scenario / stress test / evidence package 来源。 | `main` 已有 `sources/` 文库与导师定调。 | A1 资产盘点、A3 场景定义。 | `sources/` 文库规模本身就是第二篇论文 novelty。 |
-| C3 | PR #97 资产角色 | 🟣 | PR #97 提供 OPEN / 未合入 / snapshot / 分支局部的 related-work screening 与全文抽取证据线索。 | [PR #97 comment](https://github.com/HansBug/research_ideas/pull/97#issuecomment-4682737117)、当前 OPEN 状态与 snapshot `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727`。 | A1 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经是 `main` 已有正式资产。 |
-| C4 | 可追踪 evidence package | 🟡 | 论文计划把 claim-to-source traceability 作为核心评价维度。 | PR #101 §5、A0 protocol。 | A2 schema、A4 写出器、A5 断链率 / 定位错误率统计。 | 我们已经实现每条 claim 完全可追踪。 |
-| C5 | 幻觉控制 | 🟡 | 论文计划通过 gold / silver facts、trap papers 和 human audit gates 评估 unsupported claims。 | PR #101 §5.2、A0 protocol。 | A3 fact/trap set、A5 hallucination taxonomy 和残余错误统计。 | agent-based SLR 完全无幻觉。 |
-| C6 | 人工审计门 | 🟡 | 人工审计门用于 protocol approval、抽样审计、分歧裁决和 final claim review。 | 导师定调、A0 protocol。 | A3/A5 审计日志、成本、分歧率、裁决记录。 | 人工审计门保证最终报告完全正确。 |
-| C7 | 透明报告 | 🟡 | 论文计划生成 PRISMA-style flow、排除理由、协议偏离日志等透明报告材料。 | PR #101、A0 protocol。 | A2 schema、A5 checklist / report artifact。 | 禁止写本文 PRISMA-compliant。 |
-| C8 | 覆盖代理 | 🟡 | 论文计划报告 known-item recall、seed recovery、database overlap 等 coverage proxy。 | PR #101 RQ7、A0 evaluation dimensions。 | A3 known set、A5 计算协议。 | 禁止写本文实现 complete coverage。 |
-| C9 | 成本效率 | 🟡 | 论文计划记录 agent time、token / API cost、人工审计时间和修正成本。 | PR #101 RQ4、A0 evaluation dimensions。 | A4 run record、A5 cost analysis。 | agent 一定显著降低总成本。 |
-| C10 | 与 ASReview 的差异 | 🟡 | ASReview 是重要筛选自动化近邻；本文关注多环节 evidence package 与 human audit gates。 | citation seed、novelty matrix。 | A0/A1 进一步核验 ASReview 文献与功能边界。 | ASReview 不能做系统综述自动化。 |
-| C11 | 与 RobotReviewer 的差异 | 🟡 | RobotReviewer 源于 clinical trials / risk-of-bias 自动化，本文不是单一偏倚分类器。 | citation seed、novelty matrix。 | A0/A1 核验 RobotReviewer 论文和适用领域。 | RobotReviewer 是 SE SLR 同域直接 competitor。 |
-| C12 | 首创性 | 🔴 | 只能写“面向可审计 agent workflow 与 evidence package 的研究”，不能写首次。 | 已知 ASReview、RobotReviewer、review automation。 | 若未来要写 novelty，必须经 systematic related-work gate。 | 禁止写本文是 first automated SLR。 |
-| C13 | 专家替代 | 🔴 | 本文保留 human audit gates，研究人机分工。 | 导师定调与 A0 protocol。 | 不适用。 | 禁止写 agent 完全替代 SLR 专家。 |
+| C1 | 论文任务定义 | 🟢 | 本文研究一种面向软件工程系统综述 / 系统映射研究的审计优先证据工程方法：研究者定义主题、研究问题、范围和综述元模型；方法把综述元模型投影为可版本化、可修订、可回填的维度模式；智能体只在批准模式下辅助收集、抽取、统计和提出候选发现；全过程导出维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决日志和过程证据包。 | [paper_story.md](./paper_story.md)、[protocol.md](./protocol.md)、[terminology_policy.md](./terminology_policy.md)、PR #112 与 PR #123 导师记录。 | 后续设计的数据结构、最小闭环样例、真实运行与评价。 | 本文证明智能体可端到端自动生成合格系统综述；本文首次提出智能体式系统综述；流程图本身已经证明审计链有效。 |
+| C2 | 三阶段系统综述实践 | 🟢 | 本文把真实系统综述实践拆为论文收集、维度模式驱动的论文分析、统计分析与研究发现形成，并分别设置人机分工和证据边界。 | 2026-06-26 导师记录；[paper_story.md](./paper_story.md)。 | 后续设计 / 试运行把三层拆成可执行数据结构与试运行制品。 | 系统综述只是文献摘要；本文直接自动生成最终研究发现。 |
+| C3 | 维度模式生命周期 | 🟡 | 论文计划把维度模式作为一等制品，记录字段、取值、证据要求、缺失值语义、模式修订、影响分析与回填状态。 | PR #123 导师记录；[protocol.md](./protocol.md) §4。 | 脚手架抽样、种子论文试读检查、模式修订日志、回填负担。 | 维度模式是一次性平铺字段表；智能体可自行改模式后继续运行。 |
+| C4 | 脚手架 | 🟡 | 综述之综述只作为低成本脚手架和模式先验，用于识别常见维度、发现启发式和证据呈现模式；其结果需经研究者采纳才进入可执行维度模式。 | 2026-06-26 导师原话；[protocol.md](./protocol.md) §7。 | 后续脚手架 PR 抽样软件工程、AI4SE、模型驱动工程和 LLM4SE 综述并审计模式。 | 脚手架是目标系统综述证据池；本文完成 PRISMA 透明报告框架合规三级综述；脚手架证明目标领域结论。 |
+| C5 | 内容证据 | 🟡 | 字段值、统计分析和领域发现必须回到目标论文中的章节、页码、原文短引、表格、图、制品链接、缺失原因或不确定说明。 | [terminology_policy.md](./terminology_policy.md)、[protocol.md](./protocol.md) §2。 | 后续设计证据对象数据结构、后续评价来源锚点准确性与断链统计。 | 普通摘要即可支撑字段值；无来源锚点的强主张可进入结论。 |
+| C6 | 过程证据边界 | 🟢 | 过程证据只支撑方法发现，例如可用性、审计性、交互成本和失败模式；其中质疑 / 裁决记录只证明候选发现获得程序资格和最终状态，不能作为领域事实的实质证据。 | 2026-06-26 导师记录中试运行 / 硕士生过程数据建议；[protocol.md](./protocol.md) §8。 | 后续评价同意、脱敏、交互日志和数据边界协议。 | 用学生交互日志证明某个软件工程领域研究现状；过程证据支撑领域发现。 |
+| C7 | 统计分析与研究发现分层 | 🟢 | 统计分析只产生频次、分布、交叉表、趋势、覆盖代理和矛盾信号等统计观察；进入研究发现前必须经过发现启发式、内容证据、反例检查、主张强度控制和研究者裁决。 | 2026-06-26 导师原话；[paper_story.md](./paper_story.md) §8；[protocol.md](./protocol.md) §5。 | 后续评价统计协议、候选发现台账、质疑 / 裁决记录。 | 统计分析直接给出最终发现；频次表直接等于研究发现。 |
+| C8 | 候选发现与最终发现边界 | 🟢 | 智能体只能生成候选发现；最终领域发现的实质支撑来自内容证据、反向证据、不确定性、范围和主张强度检查，研究者最终裁决提供程序资格和最终状态。 | PR #112 与 PR #123 导师记录；[terminology_policy.md](./terminology_policy.md)。 | 后续设计 / 评价发现状态机、接受 / 降级 / 拒绝 / 未解决记录。 | 大语言模型或智能体产出最终发现；候选发现直接进入摘要或结论。 |
+| C9 | 人工门控 | 🟢 | 研究者不是末端复核者，而是在 G0 综述元模型、G1 维度模式、G2 修订 / 回填、G3 统计协议、G4 质疑、G5 最终裁决、G6 过程证据边界中持续拥有裁决权。 | 2026-06-26 导师原话；[protocol.md](./protocol.md) §6。 | 后续设计门控数据结构、后续试运行 / 评价门控试读检查与成本记录。 | 研究者只是验证最终报告；人工只负责最后润色。 |
+| C10 | 透明材料 | 🟡 | 论文计划生成主张-证据映射、排除理由、模式修订记录、审计日志和类 PRISMA 流程材料；这些是审计投影，不是自动生成最终论文。 | [paper_story.md](./paper_story.md)、[protocol.md](./protocol.md)。 | 后续设计 / 评价检查清单、报告制品与人工核验。 | 本文已经 PRISMA 透明报告框架合规；透明材料等于自动写作。 |
+| C11 | 试运行边界 | 🟡 | 试运行用于验证 L0--L7 闭环、制品完整性、模式修订 / 回填可操作性和发现质疑可执行性。 | 2026-06-26 导师建议；[paper_outline.md](./paper_outline.md)。 | 后续试运行主题选择、后续真实运行 / 评价运行记录与制品审计。 | 试运行证明方法跨主题泛化；试运行证明优于人工系统综述。 |
+| C12 | 硕士生过程数据 | 🟡 | 后续硕士生使用数据可用于方法评估：交互轮次、人工修改、拒绝建议、时间成本、理解难点和失败模式；必须处理同意、匿名化、脱敏与教学关系隔离。 | 2026-06-26 导师建议；[reviewer_risk_register.md](../experiment_design/reviewer_risk_register.md)。 | 后续评价伦理边界、数据边界和脱敏协议。 | 学生日志证明目标领域研究发现；无脱敏即可发布原始提示日志。 |
+| C13 | 与强近邻差异 | 🟡 | 已有工作覆盖多阶段系统综述自动化、人在回路、来源追溯、筛选 / 抽取、证据综合和综述生成；本文安全差异收敛为软件工程场景中的研究者定义综述元模型、可演化维度模式、内容证据、统计 / 发现分层、研究者质疑 / 裁决和基于过程证据的方法评估。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[differential_novelty_matrix.md](./differential_novelty_matrix.md)。 | 相关工作深化、PDF 图表核对和制品审计。 | 已有工作没有智能体式系统综述、人在回路或来源追溯；本文是首次智能体式系统综述。 |
+| C14 | 软件工程社区风险讨论 | 🟢 | WSESE@ICSE 2025 已讨论软件工程中使用大语言模型支持系统综述执行 / 复现的困难；本文应把提示敏感性、随机性、模型漂移、成本、透明性和数据仓库缺口转成方法与评价义务。 | [../baselines/SUMMARY.md](../baselines/SUMMARY.md)、[WSESE review](../baselines/papers/wsese-difficulties-replicating-slr-llms-se/review.md)。 | 相关工作；必要时核对 PDF。 | 软件工程社区尚未意识到大语言模型辅助系统综述困难。 |
+| C15 | PR #97 资产角色 | 🟣 | PR #97 只提供未合入 / 快照 / 分支局部证据线索；不能写成 `main` 已有文库。 | [../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)。 | PR #97 merge 或冻结 SHA 后复核。 | PR #97 25 篇全文文库已经合入 main。 |
+| C16 | 完整自动化 / 全生命周期 | 🔴 | 只能写“覆盖后续实验中明确定义的阶段子集，并报告未覆盖环节为局限”。 | B0 强近邻与当前阶段不实现运行时。 | 若未来声称阶段覆盖，必须逐阶段闭合数据结构、运行、评价和局限。 | 完全自动系统综述；完整生命周期自动化；端到端合格系统综述。 |
+| C17 | 首创性 | 🔴 | 只能写“面向研究者裁决、维度模式演化和发现形成审计的研究”，不能写首次。 | ASReview、RobotReviewer、AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind 和综述生成等。 | 若未来要写强新颖性，必须经相关工作门控。 | 首次自动化系统综述；首次智能体式系统综述；首次大语言模型系统综述。 |
+| C18 | 审计优先证据工程对象 | 🟡 | 本文把正面贡献压缩为可导出审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包。 | [paper_story.md](./paper_story.md) §7.1；2026-06-28 story 再审查。 | 后续 A2/A3/A5 需要实例化这些对象，冻结数据结构、最小字段和检查命令。 | 本文已经证明完整审计链有效；只列流程图即可构成方法贡献。 |
+| C19 | 最小闭环样例 | 🟡 | 后续必须用 LLM4STM / LLM4Modeling 3--5 篇种子论文完成 L0--L7 dry-run，展示模式修订、影响分析、回填、统计观察、候选发现、反向证据、裁决和证据类型分离。 | [paper_story.md](./paper_story.md) §11.1；[paper_outline.md](./paper_outline.md)。 | 后续试运行产出综述元模型、维度模式版本、字段证据表、候选发现台账、质疑 / 裁决日志和过程证据。 | 最小样例证明泛化；最小样例证明优于人工；没有样例也能写强方法主张。 |
+| C20 | risk-to-metric 评价矩阵 | 🟡 | 后续评价必须把近邻威胁和审稿风险转成可测指标，例如来源锚点准确性、断链率、无支撑 / 过强主张率、回填负担、质疑拦截率、候选发现状态分布和过程证据完整性。 | [../experiment_design/evaluation_dimensions_seed.md](../experiment_design/evaluation_dimensions_seed.md)；B0 基线总账；2026-06-28 story 再审查。 | A5 冻结指标公式、阈值、统计协议、错误分类和报告格式。 | 只用效率、生成质量或主观满意度证明 CCF-A 级贡献。 |
 
 ## 3. 摘要 / 引言安全句式
 
 可以作为后续英文稿前的中文安全句式：
 
-1. 本文研究如何将软件工程 SLR / systematic mapping 的多阶段流程组织为可审计的 agent-executed workflow；禁止声称 agent 完全替代人类综述专家。
-2. 本文以证据包为中心，要求报告级 claim 能追溯到检索、筛选、抽取、编码、证据定位和审计状态。
-3. 本文把 PRISMA-style flow 和排除理由台账作为透明报告材料；禁止在 checklist 未闭合前声称 PRISMA-compliant。
-4. 本文使用 coverage proxy 描述覆盖情况；禁止声称 complete coverage。
+1. 本文研究如何让软件工程系统综述 / 系统映射研究中的研究者把主题、研究问题、范围和综述元模型显式转化为可执行、可修订、可审计的维度模式，并让智能体在该模式下辅助抽取字段级内容证据。
+2. 本文区分统计观察、候选发现和最终领域发现；智能体只能提出候选发现，最终领域发现必须经过研究者质疑与裁决。
+3. 本文把过程证据用于评价方法自身的可用性、审计性、人机协同成本和失败模式，而不是替代目标论文内容证据。
+4. 本文不把报告生成视为核心贡献；报告只是已接受、已降级或未解决发现的透明投影。
+5. 本文只生成类 PRISMA 透明材料；禁止在检查清单未闭合前声称 PRISMA 透明报告框架合规。
 
-## 4. 后续更新规则
+## 4. 禁止短语与人工审查线索
 
-- A1 若合入或冻结 PR #97 snapshot，必须更新 C3。
-- A2 若冻结 workflow schema，必须更新 C4 / C7。
-- A3 若构造 gold / silver facts 与 trap papers，必须更新 C5 / C8。
-- A4/A5 若产生真实运行与指标，才能把 🟡 中部分 claim 升级为结果 claim。
+以下英文短语若出现在正向主张语境，至少应列为 I 级问题；若出现在摘要、贡献或结论，通常应列为 C 级问题。它们允许出现在本节、风险、局限或禁止写法语境中。
+
+- `first automated SLR`
+- `first 智能体式系统综述`
+- `complete coverage`
+- `PRISMA-compliant`
+- `LLM final finding`
+- `agent-generated final finding`
+- `statistical finding`（除非明确说明不是研究发现）
+- `process evidence supports target-domain finding`
+- `student data shows field state`
+- `pilot proves generalization`
+- `tertiary review`（若指脚手架）
+- `fully automated SLR`
+
+对应中文禁用表达包括：首次自动化系统综述、首次智能体式系统综述、完整覆盖、PRISMA 透明报告框架合规、智能体生成最终发现、过程证据支撑领域发现、学生数据证明领域现状、试运行证明泛化。
+
+## 5. 后续更新规则
+
+- PR #97 状态变化时必须更新 C15 与 [../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)。
+- 后续设计若冻结综述元模型、维度模式、发现台账或门控数据结构，必须更新 C3--C10 与 C18。
+- 后续试运行若构造试运行场景、金事实 / 银事实与陷阱论文，必须更新 C5/C7/C8/C11/C19。
+- 后续真实运行 / 评价若产生真实运行与指标，必须更新 C20，才能把 🟡 中部分主张升级为结果主张。
+- 相关工作若新增直接竞争工作，必须更新 C13--C17。

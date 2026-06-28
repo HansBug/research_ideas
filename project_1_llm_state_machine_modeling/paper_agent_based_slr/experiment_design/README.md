@@ -1,16 +1,20 @@
 # experiment_design/：评价维度种子与审稿风险
 
-本目录在 A0 阶段只冻结评价维度种子与 reviewer 风险登记，不实现实验，不跑真实 LLM，不冻结最终指标公式、阈值或统计协议。
+本目录在 PR-S0-v2 阶段只冻结评价维度种子与审稿风险登记，不实现实验，不跑真实大语言模型，不冻结最终指标公式、阈值或统计协议。
 
 ## 文件说明
 
 | 文件 | 作用 |
 |---|---|
-| [evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md) | 从 PR #101 中抽取 traceability、factuality、hallucination、screening consistency、coverage proxy、透明报告、成本效率等维度种子，并说明留给 A5 的接口。 |
-| [reviewer_risk_register.md](./reviewer_risk_register.md) | 登记 A0 阶段可预见的 C/I/M 审稿风险、触发条件、影响和缓解入口。 |
+| [evaluation_dimensions_seed.md](./evaluation_dimensions_seed.md) | 冻结 S0-v2 评价维度种子：维度模式稳定性、回填成本、内容证据准确性、统计正确性、候选发现到最终裁决的转移、内容证据 / 过程证据分离、过程数据指标 等，并说明留给 A5 的接口。 |
+| [reviewer_risk_register.md](./reviewer_risk_register.md) | 登记 PR-S0-v2 阶段可预见的 C/I/M 审稿风险、触发条件、影响和缓解入口。 |
 
 ## 边界
 
-- A0 不跑四个真实例子；真实场景设计留给 A3。
-- A0 不冻结指标公式 / 阈值 / 统计协议；这些留给 A5。
-- A0 不启动真实 LLM。后续若真实调用，必须先 `source .env` 并保留 run record。
+- PR-S0-v2 不跑四个真实例子；真实场景设计和 试运行主题留给 A3。
+- PR-S0-v2 不冻结指标公式、阈值或统计协议；这些留给 A5。
+- PR-S0-v2 不启动真实大语言模型。后续若真实调用，必须先 `source .env` 并保留 运行记录。
+
+## S0-v2 特别注意
+
+评价设计必须区分 目标领域研究发现与方法评估发现：前者只能由目标论文 内容证据、统计观察、反向证据和研究者裁决支撑；后者才使用 过程证据、试运行制品和人类-大语言模型交互日志。
