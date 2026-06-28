@@ -112,7 +112,7 @@ emoji 口径：🟢 = A1 已采纳为后续候选字段；🟡 = 候选但需 A2
 |---|---|---|---|
 | 🟢 | `review_type` | guideline / tertiary / SMS / metadata-only 样本 | 已采纳，避免把 guideline 当成普通 tertiary study。 |
 | 🟢 | `target_se_subfield` | RE、ML4SE、Agile RE | 已采纳，支撑领域专门化综述元模型。 |
-| 🟢 | `predecessor_relation` | da Silva 2011、Petersen 2015 metadata | 已采纳，记录 update / extends / integrates 关系。 |
+| 🟢 | `predecessor_relation` | da Silva 2011 全文文本级；Petersen 2015 metadata 仅作待核验触发线索 | 已采纳字段语义来自 da Silva 2011 的 update/extends/integrates 关系；Petersen 2015 不升级为已读全文 pattern，只提醒 A2a 复核 mapping-guideline update 关系。 |
 | 🟡 | `challenge_action_pattern` | Kotti 2023 | 候选，A2a 需从更多现代 tertiary 中验证。 |
 | 🟡 | `taxonomy_axis` / `problem_solution_pattern` | Heikkilä 2015 | 候选，适合 SMS 样本；A2a 再决定是否拆成更细的 benefit/problem/solution 子字段。 |
 | ⏳ | `app_review_slr_dimension` | app reviews SLR 2022 | 待全文下载后核验。 |

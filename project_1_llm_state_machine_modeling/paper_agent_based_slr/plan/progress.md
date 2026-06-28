@@ -68,6 +68,7 @@
 | 2026-06-29 02:18:07 | `git diff --check` | 通过。 |
 | 2026-06-29 02:18:07 | PDF 类型检查 | 通过；6 个 `paper.pdf` 均为 PDF，非 PDF / HTML 伪文件已删除。 |
 | 2026-06-29 02:35:56 | sidecar 只读审查后复验 | 通过；修复 dry-run 数量入口口径、单篇 review 不可迁移列、schema 字段 ID 一致性和 `plan/README.md` PR-A1 状态说明；新增 `review limit columns ok` 检查。 |
+| 2026-06-29 02:54:44 | 实现阶段 codex reviewer I 级修复复验 | 通过；修复入口 README 旧 #129/LLM4STM 阻塞路线残留，清理新增 `paper_content.txt` trailing whitespace 使 `git diff --check` 可复现，并澄清 `predecessor_relation` 字段来源中 Petersen 2015 metadata 仅作待核验线索。 |
 
 ## 7. 审查状态
 
