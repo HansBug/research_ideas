@@ -7,7 +7,7 @@
 | PR | [#129](https://github.com/HansBug/research_ideas/pull/129) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/a1-evidence-assets-seed-selection` |
-| 当前阶段 | PR-A1 实现中：已新增资产登记、5 篇最小闭环种子选择、备选 / 排除候选和 A2/A3/A5a 交接入口；等待本 PR 实现后复审，GitHub checks 以 PR 页面最新状态为准 |
+| 当前阶段 | PR-A1 实现阶段复审通过：已新增资产登记、5 篇最小闭环种子选择、备选 / 排除候选和 A2/A3/A5a 交接入口；三路实现 review 为 0C/0I，M 级建议已低成本吸收；GitHub checks 以 PR 页面最新状态为准 |
 | 真实大语言模型 | 未运行；本 PR 不触发提供商调用 |
 | 四个真实例子 | 不运行；本 PR-A1 只冻结证据资产与最小闭环种子，真实场景设计留给 A3 |
 | Codecov | 纯文档 PR，无可执行代码，Codecov 不适用 |
@@ -107,6 +107,7 @@ PR-A1 只冻结资产与种子；不运行真实大语言模型、不读取 `.en
 | 2026-06-27 | 最终内部复核：术语 / SVG / 链接 / 渲染 | 通过；视觉盲读确认普通流程图 0C/0I，仅余不阻塞的 M 级视觉微调；只读 verifier 确认 SVG 已可被 git 跟踪、`baselines/GUIDE.md` 不再越界、任务包已改为 SVG + Mermaid 分离验收、`git diff --check` / Markdown 相对链接 / Mermaid 渲染 / SVG 渲染均通过；随后复核“术语首次中文锚点、后续中文主称、普通流程图 + 时序图双图并存”要求，未发现新的 C/I 缺口 |
 | 2026-06-28 | 审计优先补强后的复审修复 | 修复旧主线残留、补齐统计分析表、补充最小闭环样例 pass/fail gate、补充 A5 核心指标候选；注意 `origin/main...HEAD` 中基线全文和 CCF 搜索文件 trailing whitespace 来自上游伞 PR 历史差异，当前 subPR 验证应以 `origin/paper2/agent-based-slr-umbrella...HEAD` 为 diff base。 |
 | 2026-06-28 | PR-A1 资产与种子落盘 | 新增 A1 任务包、资产登记和种子选择表；复核 PR #97 仍为 OPEN / `b8b7e72dbb1d5d2b7b09a6b9d1b40268c2f1a727`，PR #101 仍为 OPEN / CLEAN；本 PR 不运行真实大语言模型、不读取 `.env`、不跑四个真实例子。 |
+| 2026-06-28 | PR-A1 实现阶段三路复审与 M 级吸收 | codex / claude / deepseek 实现阶段 review 均为 0C/0I；已吸收困难样本分级、arXiv 预印本标注、FlowFSM 备选降级条件、字段映射、外部制品冻结前置步骤和 ready 状态台账。 |
 
 ## 7. 审查状态
 
@@ -153,5 +154,5 @@ PR-A1 只冻结资产与种子；不运行真实大语言模型、不读取 `.en
 - Required references/scripts: `ai-research-writing-skill` 的 claim-evidence / reviewer gate、`research-planning` 的 dependency / testing plan、`autoresearch` / `autoresearch-goal` 的 artifact-gated / critic-gated 口径、仓库级 `CLAUDE.md` 的 run record / 活情报库 / 伞 PR 合流规范。
 - Inputs consumed: [../README.md](../README.md)、[../story/paper_story.md](../story/paper_story.md)、[../evidence/fact_drift_policy.md](../evidence/fact_drift_policy.md)、[../evidence/project_inventory.md](../evidence/project_inventory.md)、[../dataset_selection/sample_assets.md](../dataset_selection/sample_assets.md)、[../../baselines/SUMMARY.md](../../baselines/SUMMARY.md)、[../../sources/SUMMARY.md](../../sources/SUMMARY.md)，以及 PR #97 / PR #101 的 `gh pr view` 状态。
 - Artifacts produced: [./task-packets/a1-evidence-assets-seed-selection.md](./task-packets/a1-evidence-assets-seed-selection.md)、[../evidence/a1_asset_inventory.md](../evidence/a1_asset_inventory.md)、[../dataset_selection/a1_seed_papers.md](../dataset_selection/a1_seed_papers.md)，并更新入口 README、候选资产、评价维度、审稿风险与事实漂移政策。
-- Verification run: `gh pr view 101`、`gh pr view 97`、A1 文档 smoke、`git diff --check`、Markdown 相对链接检查、禁用强主张防御语境检查。
+- Verification run: `gh pr view 101`、`gh pr view 97`、A1 文档 smoke、`git diff --check`、Markdown 相对链接检查、禁用强主张防御语境检查、三路实现阶段 review 复核。
 - Remaining risk: A1 只冻结资产与种子；A2/A3/A5a 必须实际消费这些字段并在 schema、mini-case 和指标公式里闭合，不能把 A1 选择表直接写成最终实验结果。
