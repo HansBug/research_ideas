@@ -8,6 +8,57 @@
 
 关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain。
 
+### 1.1 十个 NL cluster 的完整结论表
+
+本表是远程快速决策入口：每行是一条唯一 NL，而不是单个 LLM 输出；`6 个 LLM 输出状态` 按该 NL 对应的 GPT-4o / GPT-4 / Llama / Kimi / DeepSeek / Claude 六个生成结果汇总。
+
+| # | NL / seed | 来源 | 控制语义 | 时间等级 | 结构族 | 行为特征 | 6 个 LLM 输出状态 | story 角色 | 主要风险 / 结论 |
+|---:|---|---|---|---|---|---|---|---|---|
+| 0 | `llms_emp_nl_00_hldcs_high_level_driving_module`<br>high-level driving module | HLDCS | 自动驾驶模式控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、变量/数据条件、层级、伪状态 | 🟡6 | `main_candidate` | 条件标签仍作事件；需 R3.1 规范化回放；层级 lowering caveat |
+| 1 | `llms_emp_nl_01_hstbs_state_machine_diagram_of_the_base`<br>State machine diagram of the base brake subsystem | HSTBS | 制动子系统控制 | `T0` | `FSM` | 守卫式条件、动作/entry-exit、伪状态 | 🟢4 / 🟡2 | `main_candidate` | 需 R3.1 规范化回放 |
+| 2 | `llms_emp_nl_02_real_time_softwa_pump_control_state_machine`<br>Pump Control state machine | Real-Time Software Design for Embedded Systems | 泵子系统模式控制 | `T0` | `HSM` | 守卫式条件、层级 | 🟢3 / 🟡3 | `main_candidate` | 需 R3.1 规范化回放；层级 lowering caveat |
+| 3 | `llms_emp_nl_03_hsuv_hybrid_sport_utility_vehicle_hsuv`<br>Hybrid Sport Utility Vehicle, HSUV | HSUV | 车辆运行模式控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、层级 | 🟢3 / 🟡3 | `main_candidate` | 需 R3.1 规范化回放 |
+| 4 | `llms_emp_nl_04_real_time_softwa_state_machine_for_train_control`<br>state machine for Train Control | Real-Time Software Design for Embedded Systems | 列车运动控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、层级 | 🟢1 / 🟡5 | `main_candidate` | 需 R3.1 规范化回放；层级 lowering caveat |
+| 5 | `llms_emp_nl_05_mocv_microwave_oven_control_with_entry`<br>Microwave Oven Control with entry and exit actions | MOCV | 微波炉控制：timer-like caveat | `T0.5` | `UML-SysML statechart` | 守卫式条件、动作/entry-exit、变量/数据条件、显式时间 | 🟢1 / 🟡5 | `main_candidate` | 需 R3.1 规范化回放；层级 lowering caveat |
+| 6 | `llms_emp_nl_06_dscs_uav_swarm_state_machine_diagram`<br>UAV swarm state machine diagram | DSCS | 无人机群任务控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、层级 | 🟢3 / 🟡3 | `main_candidate` | 需 R3.1 规范化回放；层级 lowering caveat |
+| 7 | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st`<br>Collision avoidance sub-machine state diagram | HLDCS | 碰撞规避模式控制 | `T0` | `UML-SysML statechart` | 守卫式条件、层级、并发/区域 | 🟢1 / 🟡4 / 🔴1 | `main_candidate` | 需 R3.1 规范化回放；跨层级迁移表示损失；官方 SCXML 不可得；层级 lowering caveat |
+| 8 | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr`<br>Digital camera state machine diagrams | DCS | 相机控制：显式执行时间与伪状态压力样例 | `T1` | `UML-SysML statechart` | 守卫式条件、动作/entry-exit、变量/数据条件、层级、伪状态、并发/区域、显式时间 | 🟡4 / 🔴2 | `supplementary_stress` | 条件标签仍作事件；需 R3.1 规范化回放；跨层级迁移表示损失；官方 SCXML 不可得；层级 lowering caveat |
+| 9 | `llms_emp_nl_09_hldcs_autonomous_mode`<br>autonomous mode | HLDCS | 自动驾驶模式控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、变量/数据条件、层级、伪状态 | 🟡6 | `main_candidate` | 条件标签仍作事件；需 R3.1 规范化回放；跨层级迁移表示损失；层级 lowering caveat |
+
+### 1.2 十个 NL × 六个 LLM 输出状态矩阵
+
+本矩阵用于定位具体 raw pair。四位编号是 `llms_emp_stm_results_XXXX` 的后缀；完整 row 级事实见 [llms_emp_case_matrix.jsonl](./llms_emp_case_matrix.jsonl)。
+
+| # | NL / seed | GPT-4o | GPT-4 | Llama | Kimi | DeepSeek | Claude |
+|---:|---|---|---|---|---|---|---|
+| 0 | high-level driving module | 🟡 `0000` | 🟡 `0010` | 🟡 `0020` | 🟡 `0030` | 🟡 `0040` | 🟡 `0050` |
+| 1 | State machine diagram of the base brake subsystem | 🟢 `0001` | 🟢 `0011` | 🟡 `0021` | 🟢 `0031` | 🟡 `0041` | 🟢 `0051` |
+| 2 | Pump Control state machine | 🟢 `0002` | 🟢 `0013` | 🟡 `0023` | 🟡 `0033` | 🟡 `0043` | 🟢 `0053` |
+| 3 | Hybrid Sport Utility Vehicle, HSUV | 🟢 `0003` | 🟢 `0012` | 🟡 `0022` | 🟡 `0032` | 🟡 `0042` | 🟢 `0052` |
+| 4 | state machine for Train Control | 🟡 `0004` | 🟡 `0014` | 🟡 `0024` | 🟡 `0034` | 🟡 `0044` | 🟢 `0054` |
+| 5 | Microwave Oven Control with entry and exit actions | 🟡 `0005` | 🟡 `0015` | 🟡 `0025` | 🟡 `0035` | 🟡 `0045` | 🟢 `0055` |
+| 6 | UAV swarm state machine diagram | 🟢 `0006` | 🟡 `0016` | 🟡 `0026` | 🟢 `0036` | 🟡 `0046` | 🟢 `0056` |
+| 7 | Collision avoidance sub-machine state diagram | 🟢 `0007` | 🟡 `0017` | 🟡 `0027` | 🔴 `0037` | 🟡 `0047` | 🟡 `0057` |
+| 8 | Digital camera state machine diagrams | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` |
+| 9 | autonomous mode | 🟡 `0009` | 🟡 `0019` | 🟡 `0029` | 🟡 `0039` | 🟡 `0049` | 🟡 `0059` |
+
+### 1.3 十个 NL 的行为特征矩阵
+
+这些特征只表示 R5.5 对 NL 与原始 STM_0 的保守画像，不等于 R5.7 已确认 repair target。
+
+| # | NL / seed | 守卫式条件 | 动作/entry-exit | 变量/数据条件 | 层级 | 伪状态 | 并发/区域 | 显式时间 |
+|---:|---|---|---|---|---|---|---|---|
+| 0 | high-level driving module | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| 1 | State machine diagram of the base brake subsystem | ✅ | ✅ | — | — | ✅ | — | — |
+| 2 | Pump Control state machine | ✅ | — | — | ✅ | — | — | — |
+| 3 | Hybrid Sport Utility Vehicle, HSUV | ✅ | ✅ | — | ✅ | — | — | — |
+| 4 | state machine for Train Control | ✅ | ✅ | — | ✅ | — | — | — |
+| 5 | Microwave Oven Control with entry and exit actions | ✅ | ✅ | ✅ | — | — | — | ✅ |
+| 6 | UAV swarm state machine diagram | ✅ | ✅ | — | ✅ | — | — | — |
+| 7 | Collision avoidance sub-machine state diagram | ✅ | — | — | ✅ | — | ✅ | — |
+| 8 | Digital camera state machine diagrams | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 9 | autonomous mode | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+
 ## 2. 总体统计
 
 | conversion_status | pairs |

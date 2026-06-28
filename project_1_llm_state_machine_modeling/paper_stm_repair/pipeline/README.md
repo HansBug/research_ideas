@@ -42,7 +42,7 @@ flowchart TD
 | canonical 到 `.fcstm` | [representation/reports/fcstm_export_report.json](./representation/reports/fcstm_export_report.json) |
 | 四例 smoke | [smoke/selected_examples/smoke_report.json](./smoke/selected_examples/smoke_report.json) |
 | seed library 全量摸排 | [smoke/seed_library_sweep/sweep_report.json](./smoke/seed_library_sweep/sweep_report.json)、[smoke/seed_library_sweep/records_index.json](./smoke/seed_library_sweep/records_index.json) |
-| `llms-emp` 主 seed 池深度画像 | [smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl)、[smoke/seed_library_sweep/llms_emp_deep_profile.md](./smoke/seed_library_sweep/llms_emp_deep_profile.md)、[smoke/seed_library_sweep/llms_emp_r56_handoff.md](./smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
+| `llms-emp` 主 seed 池深度画像 | [smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl)、[smoke/seed_library_sweep/llms_emp_deep_profile.md](./smoke/seed_library_sweep/llms_emp_deep_profile.md)、[smoke/seed_library_sweep/llms_emp_r56_handoff.md](./smoke/seed_library_sweep/llms_emp_r56_handoff.md)；远程快速看 10 个例子的完整指标时，优先读 `llms_emp_deep_profile.md` §1.1–§1.3。 |
 | 后续阶段交接 | [smoke/handoff/](./smoke/handoff/) |
 
 Markdown summary 只做人类阅读入口；统计、资格判断和路径证据应能回到 JSON / ledger / registry 复算。

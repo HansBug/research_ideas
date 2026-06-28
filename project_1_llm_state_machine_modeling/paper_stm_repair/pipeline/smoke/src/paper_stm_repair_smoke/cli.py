@@ -1726,6 +1726,52 @@ def md_cell(value: Any) -> str:
     return text.replace("|", r"\|")
 
 
+FEATURE_ZH_LABELS = {
+    "has_guard_like_condition": "守卫式条件",
+    "has_action_or_entry_exit": "动作/entry-exit",
+    "has_variables_or_data_conditions": "变量/数据条件",
+    "has_hierarchy": "层级",
+    "has_pseudostate": "伪状态",
+    "has_concurrency_or_regions": "并发/区域",
+    "has_explicit_time": "显式时间",
+}
+
+
+def cluster_feature_summary(cluster: dict[str, Any]) -> str:
+    profile = cluster.get("behavior_feature_profile") or {}
+    labels = [label for key, label in FEATURE_ZH_LABELS.items() if profile.get(key)]
+    return "、".join(labels) or "无"
+
+
+def cluster_status_summary(rows: list[dict[str, Any]]) -> str:
+    counter = Counter(r["conversion_status"] for r in rows)
+    parts = []
+    for status in ("converted", "partial", "blocked"):
+        if counter.get(status):
+            parts.append(f"{status_symbol(status)}{counter[status]}")
+    return " / ".join(parts) or "⚪0"
+
+
+def cluster_risk_summary(cluster: dict[str, Any]) -> str:
+    losses = cluster.get("loss_code_counts") or {}
+    risks: list[str] = []
+    if losses.get("R45.LOSS.condition_like_label_lowered_as_event"):
+        risks.append("条件标签仍作事件")
+    if losses.get("R5.LOSS.r3_1_normalization_replay_not_repair"):
+        risks.append("需 R3.1 规范化回放")
+    if losses.get("R45.LOSS.cross_scope_transition_unrepresentable"):
+        risks.append("跨层级迁移表示损失")
+    if losses.get("R5.LOSS.official_scxml_unavailable"):
+        risks.append("官方 SCXML 不可得")
+    if (
+        losses.get("R45.LOSS.source_lifted_to_composite_boundary")
+        or losses.get("R45.LOSS.target_lifted_to_composite_boundary")
+        or losses.get("R45.LOSS.composite_target_lowered_to_initial_child")
+        or losses.get("R45.LOSS.initial_inferred_from_source_order_or_start_state")
+    ):
+        risks.append("层级 lowering caveat")
+    return "；".join(dict.fromkeys(risks)) or "无明显 loss"
+
 def loss_policy_note(code: str, item: dict[str, Any]) -> str:
     if code == "R45.LOSS.condition_like_label_lowered_as_event":
         return "只进入 R5.7 候选；必须逐例回到 NL 与原始 PlantUML，不能自动把 event label 升级为 guard。"
@@ -1777,6 +1823,51 @@ def write_llms_emp_deep_profile(path: Path, cases: list[dict[str, Any]], cluster
         "`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线可围绕 T0/T0.5 离散状态机族展开；Digital Camera cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up。",
         "",
         "关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain。",
+        "",
+        "### 1.1 十个 NL cluster 的完整结论表",
+        "",
+        "本表是远程快速决策入口：每行是一条唯一 NL，而不是单个 LLM 输出；`6 个 LLM 输出状态` 按该 NL 对应的 GPT-4o / GPT-4 / Llama / Kimi / DeepSeek / Claude 六个生成结果汇总。",
+        "",
+        "| # | NL / seed | 来源 | 控制语义 | 时间等级 | 结构族 | 行为特征 | 6 个 LLM 输出状态 | story 角色 | 主要风险 / 结论 |",
+        "|---:|---|---|---|---|---|---|---|---|---|",
+    ]
+    for cluster in clusters:
+        rows = [c for c in cases if c["nl_cluster_id"] == cluster["nl_cluster_id"]]
+        lines.append(
+            f"| {cluster['nl_cluster_index']} | `{cluster['nl_cluster_id']}`<br>{md_cell(cluster['model_name'])} | "
+            f"{md_cell(cluster['model_source'])} | {md_cell(cluster['task_type'])} | `{md_cell(cluster['time_level'])}` | "
+            f"`{md_cell(cluster['structure_family'])}` | {cluster_feature_summary(cluster)} | {cluster_status_summary(rows)} | "
+            f"`{md_cell(cluster['r5_6_story_role'])}` | {cluster_risk_summary(cluster)} |"
+        )
+    lines += [
+        "",
+        "### 1.2 十个 NL × 六个 LLM 输出状态矩阵",
+        "",
+        "本矩阵用于定位具体 raw pair。四位编号是 `llms_emp_stm_results_XXXX` 的后缀；完整 row 级事实见 [llms_emp_case_matrix.jsonl](./llms_emp_case_matrix.jsonl)。",
+        "",
+        "| # | NL / seed | GPT-4o | GPT-4 | Llama | Kimi | DeepSeek | Claude |",
+        "|---:|---|---|---|---|---|---|---|",
+    ]
+    for cluster in clusters:
+        cells = []
+        for llm in LLM_FAMILY_ORDER:
+            c = by_cluster[cluster["nl_cluster_id"]].get(llm)
+            cells.append(f"{status_symbol(c['conversion_status'])} `{c['raw_pair_id'][-4:]}`" if c else "⚪")
+        lines.append(f"| {cluster['nl_cluster_index']} | {md_cell(cluster['model_name'])} | " + " | ".join(cells) + " |")
+    lines += [
+        "",
+        "### 1.3 十个 NL 的行为特征矩阵",
+        "",
+        "这些特征只表示 R5.5 对 NL 与原始 STM_0 的保守画像，不等于 R5.7 已确认 repair target。",
+        "",
+        "| # | NL / seed | 守卫式条件 | 动作/entry-exit | 变量/数据条件 | 层级 | 伪状态 | 并发/区域 | 显式时间 |",
+        "|---:|---|---|---|---|---|---|---|---|",
+    ]
+    for cluster in clusters:
+        profile = cluster.get("behavior_feature_profile") or {}
+        feature_cells = ["✅" if profile.get(key) else "—" for key in FEATURE_ZH_LABELS]
+        lines.append(f"| {cluster['nl_cluster_index']} | {md_cell(cluster['model_name'])} | " + " | ".join(feature_cells) + " |")
+    lines += [
         "",
         "## 2. 总体统计",
         "",

@@ -96,7 +96,7 @@ R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm
 
 ### 4.3 R5.5 `llms-emp` 深度画像
 
-事实源：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)。
+事实源：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)。其中 §1.1 是 10 个唯一 NL cluster 的完整指标结论表，§1.2 是 10 NL × 6 LLM 输出状态矩阵，§1.3 是行为特征矩阵；远程只看结论时优先读这三节。
 
 | 指标 | 数量 / 结论 |
 |---|---|

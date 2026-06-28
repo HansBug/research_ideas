@@ -236,6 +236,10 @@ def test_r55_llms_emp_deep_profile_contract():
     assert "60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出" in deep_text
     assert "cluster 口径 story role" in deep_text
     assert "行为特征画像" in deep_text
+    assert "十个 NL cluster 的完整结论表" in deep_text
+    assert "十个 NL × 六个 LLM 输出状态矩阵" in deep_text
+    assert "十个 NL 的行为特征矩阵" in deep_text
+    assert "每行是一条唯一 NL，而不是单个 LLM 输出" in deep_text
     assert "不能直接把某个特征计为 R5.7 已确认 repair target" in deep_text
     assert "EFSM-lite" not in deep_text
     assert "loss code 到 R5.5 归因策略" in deep_text

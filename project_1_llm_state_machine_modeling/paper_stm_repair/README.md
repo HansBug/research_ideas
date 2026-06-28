@@ -22,7 +22,7 @@
 - 四例冒烟结果：[pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json)
 - 全量 seed sweep 结果：[pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json)
 - R5 后主实验 seed 方向分析：[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md)
-- R5.5 `llms-emp` 主 seed 池深度画像：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)
+- R5.5 `llms-emp` 主 seed 池深度画像：[pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)，其中 §1.1 是 10 个唯一 NL cluster 的完整结论表，§1.2 是 10 NL × 6 LLM 输出状态矩阵，§1.3 是行为特征矩阵。
 - R5.5 向 R5.6 的边界交接：[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md)
 - R5 交接：[pipeline/smoke/handoff/](./pipeline/smoke/handoff/)
 
@@ -65,7 +65,7 @@ flowchart TD
 3. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
 4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
 5. 想看转换和表示链路：读 [pipeline/conversion/README.md](./pipeline/conversion/README.md) 与 [pipeline/representation/README.md](./pipeline/representation/README.md)。
-6. 想看全量摸排：读 [pipeline/smoke/README.md](./pipeline/smoke/README.md)、[pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md)、[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)。
+6. 想看全量摸排：读 [pipeline/smoke/README.md](./pipeline/smoke/README.md)、[pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md)、[pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md](./pipeline/smoke/seed_library_sweep/llms_emp_main_seed_analysis.md) 与 [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)；若只想远程快速看 10 个例子的指标，直接跳到 `llms_emp_deep_profile.md` 的 §1.1–§1.3。
 
 ## 6. 更新日志
 
