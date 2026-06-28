@@ -20,11 +20,11 @@
 | 一手 seed 资格和数量 | [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` | [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md) |
 | 修正基线 / 近邻 | [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md) | 单篇 `baseline_desc.md` |
 | 纯 NL 数据源 | [corpora/nl_datasets/SUMMARY.md](./corpora/nl_datasets/SUMMARY.md) | 单条目说明 |
-| 原始模型到规范化 JSON | [conversion/reports/selected_seed_examples_conversion_report.json](./conversion/reports/selected_seed_examples_conversion_report.json)、[conversion/reports/plantuml_recovery_report.json](./conversion/reports/plantuml_recovery_report.json) | [conversion/README.md](./conversion/README.md) |
-| canonical 到 `.fcstm` | [representation/reports/fcstm_export_report.json](./representation/reports/fcstm_export_report.json) | [representation/README.md](./representation/README.md) |
-| 评价门规则 | [evaluation/EVALUATION_GATE.md](./evaluation/EVALUATION_GATE.md) | [evaluation/README.md](./evaluation/README.md) |
-| R5 四例冒烟 | [smoke/selected_examples/smoke_report.json](./smoke/selected_examples/smoke_report.json) | [smoke/selected_examples/smoke_summary.md](./smoke/selected_examples/smoke_summary.md) |
-| R5 全量摸排 | [smoke/seed_library_sweep/sweep_report.json](./smoke/seed_library_sweep/sweep_report.json) | [smoke/seed_library_sweep/sweep_summary.md](./smoke/seed_library_sweep/sweep_summary.md) |
+| 原始模型到规范化 JSON | [pipeline/conversion/reports/selected_seed_examples_conversion_report.json](./pipeline/conversion/reports/selected_seed_examples_conversion_report.json)、[pipeline/conversion/reports/plantuml_recovery_report.json](./pipeline/conversion/reports/plantuml_recovery_report.json) | [pipeline/conversion/README.md](./pipeline/conversion/README.md) |
+| canonical 到 `.fcstm` | [pipeline/representation/reports/fcstm_export_report.json](./pipeline/representation/reports/fcstm_export_report.json) | [pipeline/representation/README.md](./pipeline/representation/README.md) |
+| 评价门规则 | [pipeline/evaluation/EVALUATION_GATE.md](./pipeline/evaluation/EVALUATION_GATE.md) | [pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
+| R5 四例冒烟 | [pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json) | [pipeline/smoke/selected_examples/smoke_summary.md](./pipeline/smoke/selected_examples/smoke_summary.md) |
+| R5 全量摸排 | [pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json) | [pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md) |
 | 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[archive/](./archive/) | 不作为当前横向事实源 |
 
 Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、registry 或 ledger 复算。

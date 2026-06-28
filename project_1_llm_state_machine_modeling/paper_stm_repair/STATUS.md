@@ -10,10 +10,10 @@
 |---|---|---|
 | 一手 seed registry | 已建立 | 入口：[corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md) |
 | 四例静态冒烟样例 | 已建立 | 入口：[selected_seed_examples/README.md](./selected_seed_examples/README.md) |
-| 原始模型到规范化 JSON | 已跑通四例，并完成 PlantUML 全量恢复摸排 | 入口：[conversion/README.md](./conversion/README.md) |
-| 规范化 JSON 到 `.fcstm` | 四例均可导出并通过 parse / inspect | 入口：[representation/README.md](./representation/README.md) |
-| 评价门 v0 | 已定义并 dry-run 四例 | 入口：[evaluation/README.md](./evaluation/README.md) |
-| R5 全量摸排 | 已完成 | 入口：[smoke/README.md](./smoke/README.md) |
+| 原始模型到规范化 JSON | 已跑通四例，并完成 PlantUML 全量恢复摸排 | 入口：[pipeline/conversion/README.md](./pipeline/conversion/README.md) |
+| 规范化 JSON 到 `.fcstm` | 四例均可导出并通过 parse / inspect | 入口：[pipeline/representation/README.md](./pipeline/representation/README.md) |
+| 评价门 v0 | 已定义并 dry-run 四例 | 入口：[pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
+| R5 全量摸排 | 已完成 | 入口：[pipeline/smoke/README.md](./pipeline/smoke/README.md) |
 | 真实修正循环 | 未完成 | 后续阶段实现；当前没有 `STM_k` 主实验结果 |
 | Better STM 主结果 | 未完成 | 需要真实修正、回归、人工/结构化裁决后才能判定 |
 
@@ -61,7 +61,7 @@
 
 ## 4. R5 全量摸排结果
 
-事实源：[smoke/seed_library_sweep/sweep_report.json](./smoke/seed_library_sweep/sweep_report.json)。
+事实源：[pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json)。
 
 | 指标 | 数量 |
 |---|---:|
@@ -92,7 +92,7 @@
 
 ## 5. 四例冒烟结果
 
-事实源：[smoke/selected_examples/smoke_report.json](./smoke/selected_examples/smoke_report.json)。
+事实源：[pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json)。
 
 | 指标 | 数量 |
 |---|---:|
@@ -116,7 +116,7 @@
 
 | 后续方向 | 需要做什么 | 依赖当前产物 |
 |---|---|---|
-| R6 修正循环骨架 | 真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [smoke/handoff/r5_to_r6_repair_inputs.json](./smoke/handoff/r5_to_r6_repair_inputs.json) |
-| R7 协议 / eligibility freeze | 决定 converted / partial / needs_generation 如何进入正式实验 | [smoke/handoff/r5_to_r7_seed_eligibility.json](./smoke/handoff/r5_to_r7_seed_eligibility.json) |
-| R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [smoke/handoff/r5_to_r8_negative_evidence.json](./smoke/handoff/r5_to_r8_negative_evidence.json) |
+| R6 修正循环骨架 | 真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/smoke/handoff/r5_to_r6_repair_inputs.json](./pipeline/smoke/handoff/r5_to_r6_repair_inputs.json) |
+| R7 协议 / eligibility freeze | 决定 converted / partial / needs_generation 如何进入正式实验 | [pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json](./pipeline/smoke/handoff/r5_to_r7_seed_eligibility.json) |
+| R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [pipeline/smoke/handoff/r5_to_r8_negative_evidence.json](./pipeline/smoke/handoff/r5_to_r8_negative_evidence.json) |
 | generation follow-up | 对 `fsm-bench-20` / `designing-fsm-gpt4` 这类 NL+code 来源复跑并建立 run record | seed registry 中的 仅流水线 条目 |

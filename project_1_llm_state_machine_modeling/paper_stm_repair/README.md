@@ -18,20 +18,21 @@
 核心数字见 [STATUS.md](./STATUS.md)。当前最重要的机器事实源是：
 
 - 一手种子主表：[corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)
-- 四例冒烟结果：[smoke/selected_examples/smoke_report.json](./smoke/selected_examples/smoke_report.json)
-- 全量 seed sweep 结果：[smoke/seed_library_sweep/sweep_report.json](./smoke/seed_library_sweep/sweep_report.json)
-- R5 交接：[smoke/handoff/](./smoke/handoff/)
+- 阶段链路入口：[pipeline/README.md](./pipeline/README.md)
+- 四例冒烟结果：[pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json)
+- 全量 seed sweep 结果：[pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json)
+- R5 交接：[pipeline/smoke/handoff/](./pipeline/smoke/handoff/)
 
 ## 3. 数据流
 
 ```mermaid
 flowchart TD
   A[一手资源文库<br/>corpora/seed_library] --> B[四例静态样例<br/>selected_seed_examples]
-  A --> C[全量种子摸排<br/>smoke/seed_library_sweep]
-  B --> D[格式转换<br/>conversion: raw STM0 -> 规范化 JSON]
-  D --> E[评价门草案<br/>evaluation]
-  D --> F[表示桥<br/>representation: 规范化 JSON -> fcstm]
-  F --> G[四例冒烟<br/>smoke/selected_examples]
+  A --> C[全量种子摸排<br/>pipeline/smoke/seed_library_sweep]
+  B --> D[格式转换<br/>pipeline/conversion: raw STM0 -> 规范化 JSON]
+  D --> E[评价门草案<br/>pipeline/evaluation]
+  D --> F[表示桥<br/>pipeline/representation: 规范化 JSON -> fcstm]
+  F --> G[四例冒烟<br/>pipeline/smoke/selected_examples]
   C --> H[后续样本资格冻结<br/>R7 protocol]
   G --> I[后续修正循环<br/>R6/R8 修正循环]
 ```
@@ -44,34 +45,35 @@ flowchart TD
 |---|---|---|---|
 | [STATUS.md](./STATUS.md) | 当前研究总账 | 本文件汇总关键数字和下一步 | 不替代 JSON / registry 事实源 |
 | [GUIDE.md](./GUIDE.md) | 全局纪律 | 边界、事实源优先级、禁止主张 | 不记录 PR 动态流程 |
+| [pipeline/](./pipeline/) | R3–R5 真实阶段链路：conversion / evaluation / representation / smoke | [pipeline/README.md](./pipeline/README.md) | 不执行真实 repair loop，不产生 `STM_k` |
 | [story/](./story/) | 论文定位、任务边界、术语和主张门 | [story/README.md](./story/README.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) | 不写成最终正文 |
 | [experiment_design/](./experiment_design/) | 研究问题、评价顺序、Better STM 定义 | [experiment_design/README.md](./experiment_design/README.md)、[experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md) | 不替代正式主实验协议 |
 | [corpora/](./corpora/) | 种子、修正近邻、纯 NL 数据源 | [corpora/README.md](./corpora/README.md) | 三类资产不能混表 |
 | [selected_seed_examples/](./selected_seed_examples/) | 四个冒烟用静态 `<NL, STM_0>` 样例 | [selected_seed_examples/README.md](./selected_seed_examples/README.md) | 不是最终实验集合 |
-| [conversion/](./conversion/) | 原始 PlantUML / Umple 等转规范化 STM JSON | [conversion/README.md](./conversion/README.md) | 转换 / normalization 收益不是 repair 收益 |
-| [representation/](./representation/) | 规范化 JSON 转 `.fcstm` 并生成 inspect report | [representation/README.md](./representation/README.md) | `.fcstm` 不是论文贡献 |
-| [evaluation/](./evaluation/) | 诊断、场景、Better STM 评价门 v0 | [evaluation/README.md](./evaluation/README.md)、[evaluation/EVALUATION_GATE.md](./evaluation/EVALUATION_GATE.md) | 不证明修正循环有效 |
-| [smoke/](./smoke/) | R5 四例冒烟与 seed library 全量摸排 | [smoke/README.md](./smoke/README.md) | 不执行修正循环，不产生主实验结果 |
 | [evidence/](./evidence/) | R0/R1 历史审计材料 | [evidence/README.md](./evidence/README.md) | 不是当前横向事实源 |
 | [archive/](./archive/) | 旧 ledger、旧检索和迁移快照 | [archive/r1_5_to_r1_7_seed_corpus_snapshot/](./archive/r1_5_to_r1_7_seed_corpus_snapshot/) | 不是当前事实真源 |
+
+`conversion/`、`evaluation/`、`representation/`、`smoke/` 不再位于工作区根目录；它们已整体迁入 [pipeline/](./pipeline/)，根目录不保留 redirect 壳。
 
 ## 5. 推荐阅读路径
 
 1. 想快速知道现在做到哪一步：读 [STATUS.md](./STATUS.md)。
-2. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
-3. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
-4. 想看转换和表示链路：读 [conversion/README.md](./conversion/README.md) 与 [representation/README.md](./representation/README.md)。
-5. 想看全量摸排：读 [smoke/README.md](./smoke/README.md) 与 [smoke/seed_library_sweep/sweep_summary.md](./smoke/seed_library_sweep/sweep_summary.md)。
+2. 想理解阶段链路：读 [pipeline/README.md](./pipeline/README.md)。
+3. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
+4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
+5. 想看转换和表示链路：读 [pipeline/conversion/README.md](./pipeline/conversion/README.md) 与 [pipeline/representation/README.md](./pipeline/representation/README.md)。
+6. 想看全量摸排：读 [pipeline/smoke/README.md](./pipeline/smoke/README.md) 与 [pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md)。
 
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-28 22:20:00 | 将 `conversion/`、`evaluation/`、`representation/`、`smoke/` 整体迁入 [pipeline/](./pipeline/)，使 pipeline 成为真实阶段路径而非文档概念。 |
 | 2026-06-28 20:10:00 | 简化顶层阅读结构：新增 [STATUS.md](./STATUS.md)，将数据流、目录地图和当前边界收敛到本 README；旧流程式阅读路径不再作为主入口。 |
-| 2026-06-28 14:20:00 | 新增 [smoke/](./smoke/) R5 修正前准备度审计入口，落地选定四例冒烟、seed library sweep、archive / index / manifest、handoff 三件套与 CLI contract；R5 不执行修正循环、不调用 LLM、不计主实验结果。 |
+| 2026-06-28 14:20:00 | 新增 R5 修正前准备度审计入口，落地选定四例冒烟、seed library sweep、archive / index / manifest、handoff 三件套与 CLI contract；R5 不执行修正循环、不调用 LLM、不计主实验结果。 |
 | 2026-06-28 00:26:00 | [selected_seed_examples/](./selected_seed_examples/) 补齐四例 R4.5 `model.fcstm` 派生快照与 `fcstm_meta.json`，并明确该目录是 smoke 迷你文库，不是 seed registry 或最终实验集合。 |
-| 2026-06-27 01:20:00 | PR-R4.5 新增 [representation/](./representation/) 表示桥工作区，落地规范化 STM JSON 到 `.fcstm` / pyfcstm inspect report 的 exporter、schema、loss ledger 与 pytest contract。 |
-| 2026-06-26 12:35:00 | PR-R4 新增 [evaluation/](./evaluation/) 评价门工作区，落地 diagnostic / scenario / Better STM checklist / eligibility / human rubric schema、四例 dry-run 固化样例与 pytest contract。 |
-| 2026-06-25 23:55:00 | PR-R3.1 在 [conversion/](./conversion/) 下新增 PlantUML 转换前规范化 / 恢复入口、source-level semantic preservation gate 与高基数制品归档。 |
-| 2026-06-24 17:45:00 | PR-R3 新增 [conversion/](./conversion/) 开发 / 审计级转换器 v0，落地四例冒烟转换裁决、schema、toolchain survey、canonical report 与 loss ledger。 |
+| 2026-06-27 01:20:00 | PR-R4.5 新增表示桥工作区，落地规范化 STM JSON 到 `.fcstm` / pyfcstm inspect report 的 exporter、schema、loss ledger 与 pytest contract。 |
+| 2026-06-26 12:35:00 | PR-R4 新增评价门工作区，落地 diagnostic / scenario / Better STM checklist / eligibility / human rubric schema、四例 dry-run 固化样例与 pytest contract。 |
+| 2026-06-25 23:55:00 | PR-R3.1 新增 PlantUML 转换前规范化 / 恢复入口、source-level semantic preservation gate 与高基数制品归档。 |
+| 2026-06-24 17:45:00 | PR-R3 新增开发 / 审计级转换器 v0，落地四例冒烟转换裁决、schema、toolchain survey、canonical report 与 loss ledger。 |
 | 2026-06-12 23:42:20 | 初始化当前工作区，冻结 `<NL, STM_0> -> STM_k / Better STM` 主线、路径结构与后续阶段接口。 |
