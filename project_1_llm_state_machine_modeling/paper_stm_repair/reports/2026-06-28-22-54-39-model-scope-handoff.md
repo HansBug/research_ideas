@@ -27,7 +27,7 @@
 
 ### 3. blocking_evidence
 
-- 3 个 blocked 均为 `R5.LOSS.official_scxml_unavailable`，详见 [llms_emp_blocked_probe.md](./2026-06-28-23-18-32-negative-evidence-report.md)。
+- 3 个 blocked 均为 `R5.LOSS.official_scxml_unavailable`，详见 [negative evidence report](./2026-06-28-23-18-32-negative-evidence-report.md)（内含 blocked probe 分析）。
 - Digital Camera cluster 含显式秒级执行时间与复杂 pseudo-state，应避免支撑 T0 主 claim。
 - 大量 partial 来自 conversion / representation attribution，不能计入 repair gain。
 
@@ -43,4 +43,4 @@
 
 ### 6. recommended_next_action
 
-R5.6 应在 `story/model_scope.md` 中冻结 main / supplementary-stress / negative evidence 的模型范围，并把主实验 claim 限定到 T0/T0.5 离散状态机族；R5.7 再定义 guard/event/action/hierarchy 的 repair target。
+R5.6 应在 [experiment_design/scope/](../experiment_design/scope/) 中冻结 main / supplementary-stress / negative evidence 的模型范围，并由 `story/` 只引用该 scope 决策，不另建第二事实真源；主实验 claim 应限定到 T0/T0.5 离散状态机族，R5.7 再定义 guard/event/action/hierarchy 的 repair target。
