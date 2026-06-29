@@ -38,6 +38,7 @@
 - [x] `survey_of_surveys/search/manual-download-needed.bib`
 - [x] `survey_of_surveys/patterns/README.md`
 - [x] `survey_of_surveys/patterns/pattern-field-schema.md`
+- [x] `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 四字段已同步到 SUMMARY、candidate-pool 和单篇 review。
 - [x] 至少 3 篇全文文本级 dry-run；本轮完成 6 篇。
 - [x] 至少 1 个 manual-download / metadata-only 失败路径；本轮完成 3 篇。
 
@@ -47,13 +48,14 @@
 2. 如果 metadata-only 条目进入已采纳 pattern，应拒收。
 3. 如果 schema 回修没有记录触发条目、受影响字段和回填状态，应拒收。
 4. 如果 `plan/progress.md` 仍停留在旧 PR-S0 当前阶段，应拒收。
+5. 如果 `SUMMARY.md`、`search/candidate-pool.md` 或单篇 `review.md` 缺少出版形态、venue 短名链接、CCF 官方大类、CCF 官方等级四字段，应拒收。
 
 ## 7. dry-run 验收
 
 A1 dry-run 必须满足：
 
 - 至少 2 类综述类型。
-- 至少 1 篇高等级来源。
+- 至少 1 篇高等级来源；同时区分高等级来源与 CCF 官方等级，不能把非 CCF venue 写成 CCF A/B/C。
 - 至少 1 篇非顶级来源。
 - 至少 1 篇非 LLM4SE 的 SE 子领域。
 - 六类 pattern 中至少 4 类被实际填充。

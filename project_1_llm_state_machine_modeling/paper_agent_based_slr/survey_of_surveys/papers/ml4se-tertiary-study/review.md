@@ -7,7 +7,11 @@
 | 标题 | Machine Learning for Software Engineering: A Tertiary Study |
 | 年份 | 2023 |
 | 类型 | tertiary study |
-| 来源等级 | 高等级综述期刊；ACM Computing Surveys；arXiv 开放 PDF |
+| 出版形态 | 期刊 |
+| 期刊/会议/预印本 | [CSUR](https://dl.acm.org/journal/csur) |
+| CCF 官方大类 | -- |
+| CCF 官方等级 | -- |
+| 来源等级 | 高等级综述期刊；ACM Computing Surveys；arXiv 开放 PDF；CCF 官方等级不填写 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |

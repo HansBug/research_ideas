@@ -30,6 +30,13 @@ emoji 口径：🟢 = 已完成全文文本级 dry-run；🟡 = metadata-only / 
 
 **本节结论**：当前 6 篇全文样本可以支撑 A1 字段 dry-run；3 篇 metadata-only 样本只用于失败路径和人工下载队列，不进入已采纳 pattern。
 
+
+### 2.1 出版形态、Venue 与 CCF 官方字段口径
+
+本总账从 A1 起固定 4 个来源字段：`出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`。其中 `期刊/会议/预印本` 必须使用可点击短名链接；预印本条目统一写 `[arXiv](https://arxiv.org/)`。CCF 字段必须以 CCF 官方最新推荐目录为准，不能只按本仓库 [../../../ccf_venues/](../../../ccf_venues/) 是否已建档判断；`ccf_venues/` 只作为本地情报缓存和二次跳转入口。非 CCF venue、技术报告、预印本或未收录 workshop 的 `CCF 官方大类` 与 `CCF 官方等级` 统一写 `--`。
+
+**本节结论**：A1 现有样本中，IST / ESE / EASE 能落到 CCF 软件工程 / 系统软件 / 程序设计语言大类；CSUR、EmpiRE、SEAA 与 EBSE 技术报告在本轮总账中不写 CCF 等级，避免把“高质量综述期刊”或“有 DOI 的 workshop”误读为 CCF A/B/C。
+
 ## 3. 检索关键词簇分析
 
 ### 3.1 当前推荐关键词簇
@@ -61,17 +68,17 @@ A2a 应优先扩展 2020 年后的 SE tertiary / survey，覆盖 Requirements En
 
 ## 4. 论文列表
 
-| 状态 | 年份 | 标题 | 类型 | 来源等级 | 关键价值 | 目录 |
-|---|---:|---|---|---|---|---|
-| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | guideline | 技术报告 | SLR protocol / search / selection / extraction / synthesis / reporting 基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
-| 🟡 | 2008 | Systematic Mapping Studies in Software Engineering | SMS 方法 | EASE / BCS | mapping study 方法学候选；本轮 PDF 未获取。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
-| 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | tertiary-like SLR | IST | 早期 SE SLR 总览，RQ/finding/report 结构完整。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
-| 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | updated tertiary | IST | update / integration / 前序研究关系 pattern。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
-| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | tertiary | EmpiRE | RE 子领域 tertiary，提供领域专门化模式。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
-| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | SMS | SEAA | SMS taxonomy / benefit / problem / solution pattern。 | [review.md](./papers/re-agile-sms-2015/review.md) |
-| 🟡 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | guideline update | IST | SMS guideline update；本轮 PDF 未获取。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
-| 🟡 | 2022 | Analysing app reviews for software engineering: a systematic literature review | SLR | ESE | 现代高等级 SLR 候选；本轮 Springer 链接返回 HTML。 | [review.md](./papers/app-reviews-slr-se/review.md) |
-| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | tertiary | ACM Computing Surveys | 现代高等级 tertiary，提供大规模分类、挑战和行动建议 pattern。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
+| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 官方大类 | CCF 官方等级 | 类型 | 来源等级 | 关键价值 | 目录 |
+|---|---:|---|---|---|---|---|---|---|---|---|
+| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | guideline | 技术报告 | SLR protocol / search / selection / extraction / synthesis / reporting 基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+| 🟡 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | SMS 方法 | EASE / BCS | mapping study 方法学候选；本轮 PDF 未获取。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
+| 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | tertiary-like SLR | IST | 早期 SE SLR 总览，RQ/finding/report 结构完整。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
+| 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | updated tertiary | IST | update / integration / 前序研究关系 pattern。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
+| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | tertiary | EmpiRE | RE 子领域 tertiary，提供领域专门化模式。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
+| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | SMS | SEAA | SMS taxonomy / benefit / problem / solution pattern。 | [review.md](./papers/re-agile-sms-2015/review.md) |
+| 🟡 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | guideline update | IST | SMS guideline update；本轮 PDF 未获取。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
+| 🟡 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | SLR | ESE | 现代高等级 SLR 候选；本轮 Springer 链接返回 HTML。 | [review.md](./papers/app-reviews-slr-se/review.md) |
+| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | -- | -- | tertiary | ACM Computing Surveys | 现代高等级 tertiary，提供大规模分类、挑战和行动建议 pattern；arXiv 只作为开放全文来源。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
 
 **本节结论**：A1 样本已覆盖 guideline、tertiary、updated tertiary、SMS 和 metadata-only SLR；仍缺正式全文级现代 ESE SLR 和更多 2020 年后 SE 子领域综述，这正是 A2a 的首要补强方向。
 
@@ -82,7 +89,7 @@ A2a 应优先扩展 2020 年后的 SE tertiary / survey，覆盖 Requirements En
 | 3--5 篇 dry-run | 6 篇全文文本级 + 3 篇 metadata-only；主 dry-run 取 5 篇，补充 4 篇用于失败/早期样本 | 通过；不声称完整覆盖 |
 | 至少 3 篇全文文本级 | ML4SE tertiary、RE tertiary、Agile RE SMS、Kitchenham guideline、Kitchenham 2009、da Silva 2011 | 通过 |
 | 至少 2 类综述类型 | guideline、tertiary、updated tertiary、SMS、metadata-only SLR | 通过 |
-| 至少 1 篇高等级来源 | ACM Computing Surveys、IST、ESE metadata-only | 通过 |
+| 至少 1 篇高等级来源 | ACM Computing Surveys、IST、ESE metadata-only；其中 IST / ESE 为 CCF B，CSUR 不写 CCF 等级 | 通过 |
 | 至少 1 篇非 A / 非顶级来源 | EmpiRE、SEAA、EBSE 技术报告 | 通过 |
 | 至少 1 篇非 LLM4SE 子领域 | ML4SE、RE、Agile RE、EBSE 方法学 | 通过 |
 | 至少 1 个失败 / 降级路径 | app reviews SLR、Petersen 2008、Petersen 2015 | 通过 |
@@ -163,4 +170,5 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
+| 2026-06-29 13:20:00 | 按用户新增要求补充 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 四列，并同步单篇 review 快速卡片、候选池和字段 schema。 | CCF 字段按官方完整目录口径管理；非 CCF venue 写 `--`，不以 `ccf_venues/` 是否建档作为范围边界。 |
 | 2026-06-29 02:18:07 | 建立 `survey_of_surveys/` README/GUIDE/SUMMARY/search/papers/patterns；完成 6 篇全文文本级 dry-run 和 3 篇 metadata-only 失败路径；回修 schema 字段。 | A1 奠基；未运行真实 LLM，未读取 `.env`，不跑四个真实例子。 |

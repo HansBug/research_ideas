@@ -7,6 +7,10 @@
 | 标题 | Six years of systematic literature reviews in software engineering: An updated tertiary study |
 | 年份 | 2011 |
 | 类型 | updated tertiary study |
+| 出版形态 | 期刊 |
+| 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
+| CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
+| CCF 官方等级 | B |
 | 来源等级 | 高等级 SE 期刊；Information and Software Technology |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |

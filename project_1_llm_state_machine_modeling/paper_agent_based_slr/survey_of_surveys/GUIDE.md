@@ -58,6 +58,24 @@ A1 只做种子检索和 dry-run；A2a/A2b 才做大规模闭合。A1 检索记�
 | `PDF图表级` | 已打开 PDF 核对关键图表/表格 | 可支撑图表/数值级 pattern。 |
 | `全文不可得` | PDF 未获取或无法合法访问 | 只进入 manual-download / metadata-only。 |
 
+## 4.1 出版形态、Venue 与 CCF 官方字段
+
+后续 [SUMMARY.md](./SUMMARY.md)、[search/candidate-pool.md](./search/candidate-pool.md) 和每篇 `papers/<slug>/review.md` 的快速结论卡片必须显式维护以下 4 个字段，不能只写泛化的“来源等级”：
+
+| 字段 | 填写规则 |
+|---|---|
+| `出版形态` | 写 `期刊`、`会议`、`预印本`、`技术报告`、`工作坊` 或其他可审计形态。若同一论文有 arXiv 预印本和正式出版版本，优先按正式出版版本填写，并在备注中说明 arXiv 只作为开放全文来源。 |
+| `期刊/会议/预印本` | 写可点击的短名链接，例如 `[IST](https://www.sciencedirect.com/journal/information-and-software-technology)`、`[ESE](https://link.springer.com/journal/10664)`、`[EASE](https://conf.researchr.org/series/ease)`；预印本写 `[arXiv](https://arxiv.org/)`。若不是期刊 / 会议 / 预印本，应写最接近的可审计入口；实在没有稳定入口时写 `--` 并说明原因。 |
+| `CCF 官方大类` | 必须从 CCF 官方最新国际推荐目录核验，默认先查 [CCF 推荐国际学术刊物目录](https://www.ccf.org.cn/Academic_Evaluation/By_category/2024-06-28/825349.shtml) 及其各大类页面，例如 [软件工程 / 系统软件 / 程序设计语言](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)。不得只因为本仓库 [../../../ccf_venues/](../../../ccf_venues/) 未建档就写未知；`ccf_venues/` 只能作为本地缓存和二次跳转入口。非 CCF venue 写 `--`。 |
+| `CCF 官方等级` | 写 `A` / `B` / `C` / `--`。只有官方目录明确收录时才写等级；预印本、技术报告、非 CCF workshop / conference / journal 写 `--`。若 CCF 官方页面访问异常或需人工核验，临时写 `待核验` 并在失败记录中说明，不能用第三方镜像升级为官方事实。 |
+
+执行纪律：
+
+1. CCF 大类和等级的范围必须来自 CCF 官方完整目录视角，不局限于当前 [../../../ccf_venues/](../../../ccf_venues/) 已收录的 42 个 venue。
+2. 若一个 venue 属于 CCF 官方目录但本库尚未建档，仍应填写官方大类和等级，并把“本库未建档”作为后续情报库补链线索。
+3. 第三方 CCF 镜像、博客、个人主页、学校主页或搜索摘要只能作为发现线索；正式字段必须回到 CCF 官方目录或显式标为 `待核验`。
+4. [SUMMARY.md](./SUMMARY.md) 的总表、[search/candidate-pool.md](./search/candidate-pool.md) 的候选表和单篇 `review.md` 的快速结论卡片必须使用同一组字段，避免总账与单篇事实脱节。
+
 ## 5. 单篇目录规则
 
 单篇目录最低结构：

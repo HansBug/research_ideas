@@ -30,6 +30,10 @@
 | `evidence_presentation_pattern` | 证据呈现模式 | evidence presentation pattern | 论文用哪些表格、分母、搜索日志、质量表、抽取表或图形支撑结论。 | 搜索分母、筛选流程、质量表、主题表、引用表、报告结构 | 全文文本级 | `文本提取缺失` / `尚未阅读` | 必须 |
 | `validity_threat_pattern` | 效度威胁模式 | validity / threat pattern | 论文如何报告搜索偏倚、纳排可靠性、质量评价、protocol 偏离、外推限制等。 | bias、selection、quality、protocol deviation、external validity、publication bias | 全文文本级 | `原文未报告` / `尚未阅读` | 必须 |
 | `report_structure_pattern` | 报告结构模式 | report structure pattern | 论文整体章节如何组织，以及 RQ 与结果/讨论如何映射。 | IMRaD、Previous studies + Method + Results、Guideline sections 等 | 全文文本级或目录级 | `文本提取缺失` / `尚未阅读` | 建议必须 |
+| `publication_type` | 出版形态 | publication type | 条目正式发表或发布形态；正式出版优先于预印本。 | `期刊` / `会议` / `预印本` / `技术报告` / `工作坊` / `其他` | 题摘级 | `无法判定` | 必须 |
+| `venue_short_link` | 期刊/会议/预印本短名链接 | venue short link | 用短名 Markdown 链接记录具体 venue 或预印本平台，例如 `[IST](...)`、`[EASE](...)`、`[arXiv](...)`。 | Markdown 链接或 `--` | 题摘级 | `无稳定入口` | 必须 |
+| `ccf_official_category` | CCF 官方大类 | CCF official category | 按 CCF 官方最新国际推荐目录记录 venue 所属大类，不受本地 `ccf_venues/` 建档范围限制。 | CCF 官方大类名或 `--` / `待核验` | 官方目录核验；异常时记录待核验 | `--` / `待核验` | 必须 |
+| `ccf_official_rank` | CCF 官方等级 | CCF official rank | 按 CCF 官方最新国际推荐目录记录 A/B/C；非 CCF venue 写 `--`。 | `A` / `B` / `C` / `--` / `待核验` | 官方目录核验；异常时记录待核验 | `--` / `待核验` | 必须 |
 | `review_type` | 综述 / 指南类型 | review type | 条目属于 SLR、SMS、tertiary study、guideline、mapping guideline update 等哪类。 | `SLR` / `SMS` / `tertiary study` / `guideline` / `mapping guideline update` / `other` | 题摘级 | `尚未阅读` | 必须 |
 | `predecessor_relation` | 前序综述关系 | predecessor relation | 是否扩展、复现、更新、整合已有综述或 guideline。 | `none` / `extends` / `updates` / `replicates` / `integrates` / `unknown` | 全文文本级；metadata 可候选 | `原文未报告` / `尚未阅读` | 建议必须 |
 | `target_se_subfield` | 目标软件工程子领域 | target SE subfield | 论文面向哪个 SE 子领域或横向方法学主题。 | RE、Testing、MDE、ML4SE / AI4SE、LLM4SE、Empirical SE、EBSE guideline 等 | 题摘级可候选；全文文本级可采纳 | `尚未阅读` / `横向方法学` / `无法判定` | 必须 |
@@ -47,6 +51,7 @@
 3. `target_se_subfield`：Bano 2014、Heikkilä 2015、Kotti 2023 表明不同 SE 子领域会产生不同维度模式，必须显式记录。
 4. `challenge_action_pattern`：Kotti 2023 显示现代 tertiary study 常把统计观察升级为挑战和行动建议，需要与 Paper2 后续 finding ledger 衔接。
 5. `taxonomy_axis` / `problem_solution_pattern`：Heikkilä 2015 暴露 SMS 常见的 taxonomy、problem、solution 结构；A1 先列为候选字段，A2a 用更多 SMS 样本确认取值空间。
+6. `publication_type` / `venue_short_link` / `ccf_official_category` / `ccf_official_rank`：用户新增要求需要把“来源等级”拆成可审计的出版形态、可点击 venue、CCF 官方大类和 CCF 官方等级；这些字段必须同步到 SUMMARY、候选池和单篇 review。
 
 ## 6. 回填规则
 

@@ -7,7 +7,7 @@
 | PR | [#132](https://github.com/HansBug/research_ideas/pull/132) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/a1-survey-of-surveys-scaffold` |
-| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；等待正式三路实现审查 |
+| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；本轮按用户要求补充出版形态、venue 短名链接、CCF 官方大类和 CCF 官方等级字段 |
 | 真实大语言模型 | 未运行；本 PR 不触发 provider 调用 |
 | `.env` | 未读取；本 PR 不需要 key |
 | 四个真实例子 | 不运行；上游 #101 对 A1 只要求 3--5 篇文库 dry-run |
@@ -44,6 +44,7 @@
 6. 在 [../survey_of_surveys/patterns/pattern-field-schema.md](../survey_of_surveys/patterns/pattern-field-schema.md) 中回修 `review_type`、`target_se_subfield`、`predecessor_relation`、`challenge_action_pattern` 等字段。
 7. 更新 [../README.md](../README.md) 和 [./README.md](./README.md)，增加 A1 入口和任务包。
 8. 更新 [../evidence/references.bib](../evidence/references.bib)，加入 A1 中正式核验的核心 BibTeX 种子。
+9. 按用户新增要求，把来源字段拆为 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`，并同步到 SUMMARY、candidate-pool、9 篇单篇 review 和 schema。
 
 ## 5. dry-run 验收摘要
 
@@ -51,7 +52,7 @@
 |---|---|
 | 至少 3 篇全文文本级 | 6 篇，满足 |
 | 至少 2 类综述类型 | guideline / tertiary / updated tertiary / SMS / metadata-only SLR，满足 |
-| 至少 1 篇高等级来源 | ACM Computing Surveys、IST、ESE metadata-only，满足 |
+| 至少 1 篇高等级来源 | ACM Computing Surveys、IST、ESE metadata-only，满足；其中 IST / ESE 为 CCF B，CSUR 不写 CCF 等级 |
 | 至少 1 篇非 A / 非顶级来源 | EmpiRE、SEAA、技术报告，满足 |
 | 至少 1 篇非 LLM4SE 子领域 | ML4SE、RE、Agile RE、EBSE 方法学，满足 |
 | 至少 1 个降级 / 失败路径 | 3 个 metadata-only，满足 |
@@ -68,6 +69,7 @@
 | 2026-06-29 02:18:07 | `git diff --check` | 通过。 |
 | 2026-06-29 02:18:07 | PDF 类型检查 | 通过；6 个 `paper.pdf` 均为 PDF，非 PDF / HTML 伪文件已删除。 |
 | 2026-06-29 02:35:56 | sidecar 只读审查后复验 | 通过；修复 dry-run 数量入口口径、单篇 review 不可迁移列、schema 字段 ID 一致性和 `plan/README.md` PR-A1 状态说明；新增 `review limit columns ok` 检查。 |
+| 2026-06-29 13:20:00 | 用户新增来源字段要求落实 | 已同步 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 到总账、候选池、单篇 review 和 schema；CCF 字段不局限 `ccf_venues/`。 |
 | 2026-06-29 02:54:44 | 实现阶段 codex reviewer I 级修复复验 | 通过；修复入口 README 旧 #129/LLM4STM 阻塞路线残留，清理新增 `paper_content.txt` trailing whitespace 使 `git diff --check` 可复现，并澄清 `predecessor_relation` 字段来源中 Petersen 2015 metadata 仅作待核验线索。 |
 
 ## 7. 审查状态

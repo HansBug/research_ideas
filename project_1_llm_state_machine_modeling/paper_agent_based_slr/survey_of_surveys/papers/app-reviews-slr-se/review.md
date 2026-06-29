@@ -7,6 +7,10 @@
 | 标题 | Analysing app reviews for software engineering: a systematic literature review |
 | 年份 | 2022 |
 | 类型 | SLR |
+| 出版形态 | 期刊 |
+| 期刊/会议/预印本 | [ESE](https://link.springer.com/journal/10664) |
+| CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
+| CCF 官方等级 | B |
 | 来源等级 | Empirical Software Engineering；正式 DOI 已核验；PDF 本轮未自动获取成功 |
 | 阅读状态 | 全文不可得-待人工下载 |
 | 证据等级 | 题摘级 / metadata-only；不得写方法细节为全文事实 |

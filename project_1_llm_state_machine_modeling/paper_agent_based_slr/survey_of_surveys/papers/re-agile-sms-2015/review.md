@@ -7,6 +7,10 @@
 | 标题 | A Mapping Study on Requirements Engineering in Agile Software Development |
 | 年份 | 2015 |
 | 类型 | systematic mapping study |
+| 出版形态 | 会议 |
+| 期刊/会议/预印本 | [SEAA](https://dsd-seaa.com/) |
+| CCF 官方大类 | -- |
+| CCF 官方等级 | -- |
 | 来源等级 | Euromicro SEAA 2015；非 A / 一般国际会议；作者/机构镜像 PDF |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |

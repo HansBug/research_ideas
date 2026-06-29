@@ -7,6 +7,10 @@
 | 标题 | Systematic Mapping Studies in Software Engineering |
 | 年份 | 2008 |
 | 类型 | systematic mapping study 方法论文 |
+| 出版形态 | 会议 |
+| 期刊/会议/预印本 | [EASE](https://conf.researchr.org/series/ease) |
+| CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
+| CCF 官方等级 | C |
 | 来源等级 | EASE 2008 / BCS Electronic Workshops in Computing；正式 DOI 已核验；PDF 本轮未自动获取 |
 | 阅读状态 | 全文不可得-待人工下载 |
 | 证据等级 | 题摘级 / metadata-only；不得写方法细节为全文事实 |
