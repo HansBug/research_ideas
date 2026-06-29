@@ -19,7 +19,7 @@
 
 本 report 迁移自 R5 `run-seed-sweep` 生成的旧 human summary；当前事实源是 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json)，本 Markdown 只做人类入口。
 
-R5 后对主实验 seed 方向的归纳见 [llms_emp_main_seed_analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)：当前建议后续 R6/R7 优先围绕 `llms-emp-stm-subset` 展开，并按 10 个唯一 NL cluster 报告。
+R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)：当前建议后续 R6/R7 优先围绕 `llms-emp-stm-subset` 展开，并按 10 个唯一 NL cluster 报告。
 
 ### 1. denominator
 
