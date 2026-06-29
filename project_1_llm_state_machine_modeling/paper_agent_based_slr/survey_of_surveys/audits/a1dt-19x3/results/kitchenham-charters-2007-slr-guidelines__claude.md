@@ -224,4 +224,3 @@ EBSE-2007-01 是 **方法学 guideline / 技术报告**，不是 SLR/SMS/tertiar
 **NEEDS FIX**。
 
 降级理由：当前 `review.md` 满足 GUIDE §6.3.7 的 A1-DT 证据强度边界（全部 `not_verified` / `weak` / `schema_seed`），不破坏 Paper2 已采纳事实链；但当前维度树是 19 篇通用接口的复用，**没有完成原文 schema 复原**，"原文模式候选叶子映射"4 行无法支撑后续 A2a 把 EBSE-2007-01 作为方法学 schema seed 使用。两项 C 级问题必须在合并前修复或在 PR body 中显式记录为 follow-up，并把当前文件标注为"A1-DT 维度树骨架，原文 schema 30+ 叶子待 A2a 补全"，避免下游误把当前 6 叶子接口当成 EBSE-2007-01 的原文叶子全集。
-

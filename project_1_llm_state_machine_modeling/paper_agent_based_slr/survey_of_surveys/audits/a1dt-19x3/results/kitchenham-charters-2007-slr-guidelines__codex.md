@@ -163,4 +163,3 @@ Appendix 3 给出最接近“finding path”的实例：先按 year/source 统�
 - I：8。核心问题是原文 schema 复原过小、主干分支不完整、叶子取值不可执行、关系边缺失、Appendix 2/3 的 evidence table / tertiary protocol / finding path 未入树、A.2/A.3 证据链泛定位。这会实质影响 Paper2 的 A2a/A2b 维度模式演化和证据链可审计性。
 - M：2。根节点 wording 中有 roadmap action 等不贴切术语；A.4 `passed` 需要改成有命令证据或人工状态。
 - 最终建议：NEEDS FIX。
-
