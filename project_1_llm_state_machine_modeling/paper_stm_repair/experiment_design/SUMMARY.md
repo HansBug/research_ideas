@@ -2,7 +2,7 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：主线限于 T0 离散 FSM/HSM/EFSM-lite/离散 UML-SysML statechart 子集，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 仅作为当前 0 独立样例的候选范围上限，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
 
 ## 2. 研究问题草案
 
