@@ -163,4 +163,3 @@ A1-M0--M6 是对六类 pattern 的上层组织，用于把 researcher-defined me
 ### 8.6 A1-DT 阶段的临时降级规则
 
 A1-DT 当前只冻结维度树结构和审计附录合同。若 A.2 证据仍是泛定位或待核验状态，必须使用 `not_verified`，并且 A.3 只允许 `schema_seed`、`boundary_anchor`、`candidate_finding`、`risk_only` 或 `do_not_use`。`statistical_synthesis` 只允许在 A2a 完成精确页码、表格、图和 supplementary 核验后使用。
-
