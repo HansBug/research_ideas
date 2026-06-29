@@ -49,6 +49,7 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 | [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
 | [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json` 和 `review.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。 |
 | [patterns/](./patterns/) | 字段 schema、字段变更和后续 A2a/A2b 汇总入口。 |
+| [audits/](./audits/) | 专项审计批次入口；当前包含 A1-DT 19×3 三路全文审计，用于追踪 reviewer 输入、结果、返修边界和结构门禁。 |
 
 ## 5. 推荐阅读顺序
 
@@ -67,6 +68,13 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 本轮将 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 中 10 篇与本论文方法高度相关的现代 survey / SLR / SMS / roadmap 纳入 A1 文库，目的不是扩成完整文库，而是让脚手架接受现代软件工程综述、LLM4SE、MDE、RE、DevSecOps 和开放制品研究的真实检验。每篇新增条目必须有独立单论文目录，并在全文可得时保留 `paper.pdf` 与 `paper_content.txt`；全文不可得时必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。
 
 这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；后续新增条目若全文不可得，仍必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 并在补齐后清零 active 状态。
+
+
+## 6.2 A1-DT 19×3 三路全文审计
+
+PR-A1-DT 已对当前 19 篇 `review.md` 形成 57 份 codex / claude / deepseek 全文审计，入口见 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，逐篇审计汇总见 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。这轮审计的结论已经回填为每篇 `review.md` 的“原文 schema 主树（19×3 审计后返修）”。
+
+注意：这仍是 A1-DT 结构化返修，不等于 A2a 精确页码、表号、图号和 supplementary 核验完成。所有 `schema_seed`、`not_verified`、`needs_manual_check` 口径必须保留，不能被 SUMMARY 或论文写作误读成已完成统计证据。
 
 ## 7. 禁止误读
 

@@ -245,6 +245,21 @@ PR-A1-DT 的目标是先建立维度树和审计附录结构，不要求完成�
 
 SUMMARY 的跨论文归纳必须维护 `SUMMARY 结论-证据映射` 表，使用 `[sum-A1DT-*]` 归纳标识，列出分母、纳入 / 排除的单篇结论标识、证据强度过滤、外推限制和允许用途。凡进入 SUMMARY 定量统计的单篇结论，其 A.3 结论强度不得为 `weak` / `unknown`，允许用途必须与统计用途一致。
 
+### 6.3.9 A1-DT 19×3 审计批次与结构门禁
+
+当前 PR-A1-DT 已将 19 篇论文逐篇交给 codex / claude / deepseek 三路审计，批次入口见 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，审计总账见 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。后续维护时必须遵守：
+
+1. 单篇 `review.md` 的维度树事实源必须是“原文 schema 主树 + 通用接口投影”，不得退回只写六个通用 leaf。
+2. 三路审计结果只能作为返修输入；若审计建议与原文冲突，以 `paper_content.txt`、`paper.pdf`、附录和复现实验包为准，并在 A.3 记录替代 / 废弃结论。
+3. `schema_seed`、`not_verified`、`needs_manual_check` 的降级状态不得被 SUMMARY 或论文写作误读为完成型统计证据。
+4. ready 前必须运行结构门禁：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-19x3/check_structure.py
+```
+
+5. 若补跑审计，优先使用 [audits/a1dt-19x3/run_audit.py](./audits/a1dt-19x3/run_audit.py)；codex / claude 路径经 `$sub-agents` 稳定 runner，deepseek 路径使用 `codex-deepseek exec`，不得用普通 codex 冒充 deepseek。
+
 ## 7. schema 回修闭环
 
 `patterns/pattern-field-schema.md` 是 A1 的脚手架字段合同，但不是不可改的先验。dry-run 暴露缺口时必须执行：

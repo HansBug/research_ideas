@@ -271,6 +271,8 @@ roadmap_item
 
 旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
+**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-ai-native-se-roadmap-source-schema-candidates]
+
 ### 根问题 / RQ 到主干分支映射
 
 | 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
@@ -305,6 +307,65 @@ roadmap_item
 | [leaf-ai-native-se-roadmap-evidence] | 评价、证据与复现资产 | [dim-ai-native-se-roadmap-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ai-native-se-roadmap-leaf-evidence] |
 | [leaf-ai-native-se-roadmap-finding] | 统计观察与候选发现 | [dim-ai-native-se-roadmap-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ai-native-se-roadmap-leaf-finding] |
 
+### 原文模式候选叶子映射（A1 种子）
+
+本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
+
+| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
+|---|---|---|---|---|---|---|
+| [leaf-ai-native-se-roadmap-orig-vision-object] | [dim-ai-native-se-roadmap-b1] | SE 3.0 愿景对象 | SE 3.0 软件工程新范式、AI-native process、AI teammate / IDE / toolchain 等愿景对象；取值先保持开放文本。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ai-native-se-roadmap-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| [leaf-ai-native-se-roadmap-orig-stack-layer] | [dim-ai-native-se-roadmap-b2] | 技术栈层级 | 作者提出的软件工程技术栈 / 层级，例如需求、设计、编码、测试、维护、协作或平台层；A2a 需按原图复核层级名称。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ai-native-se-roadmap-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| [leaf-ai-native-se-roadmap-orig-challenge] | [dim-ai-native-se-roadmap-b3] | AI-native challenge | 面向 AI-native SE 的挑战类别、开放问题和约束条件；取值为空间化 challenge / risk / capability。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| [leaf-ai-native-se-roadmap-orig-roadmap-action] | [dim-ai-native-se-roadmap-b4] | action roadmap | 路线图行动项、研究议题和未来工作建议；只作候选启发。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| [leaf-ai-native-se-roadmap-orig-boundary-risk] | [dim-ai-native-se-roadmap-b5] | boundary risk | 愿景外推风险、可信性、人类角色、组织采纳和评估边界；不进入主统计池。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+
+### 原文 schema 主树（19×3 审计后返修）
+
+本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
+
+审计入口：[codex](../../audits/a1dt-19x3/results/ai-native-se-roadmap__codex.md)、[claude](../../audits/a1dt-19x3/results/ai-native-se-roadmap__claude.md)、[deepseek](../../audits/a1dt-19x3/results/ai-native-se-roadmap__deepseek.md)。 [clm-ai-native-se-roadmap-a1dt-19x3-repair]
+
+| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
+|---|---|---|---|---|---|
+| [dim-ai-native-se-roadmap-orig-era-baseline] | 软件工程时代与问题框架 | SE 1.0 人工中心、SE 2.0 AI 辅助、SE 3.0 AI-native；既有流程约束、工具边界、角色变化 | 不进入主统计池；仅用于 vision 论文边界和概念演化 schema seed | 无系统语料分母；缺失时写非系统 vision | 核对引言、背景和时代划分段落；A2a 补具体页码与图号 |
+| [dim-ai-native-se-roadmap-orig-se2-critique] | SE 2.0 局限与转折点 | 工具碎片化、局部自动化、人仍承担 orchestration、反馈闭环弱、软件知识表示不足 | 候选 problem framing；不得写成实证统计 finding | 作者观点与引用证据分开；未报告则写 not_reported | 核对 critique 小节及引用文献边界 |
+| [dim-ai-native-se-roadmap-orig-principles] | SE 3.0 原则 | 自然语言优先、智能体协作、持续适应、软件工件可执行化、知识驱动开发等原则候选 | 候选方法原则；供 Paper2 meta-model-first story 对照 | 开放文本需标明作者愿景 | 核对 principle 列表或 roadmap 图，确认是否封闭枚举 |
+| [dim-ai-native-se-roadmap-orig-stack] | AI-native 技术栈与角色层级 | 需求、设计、编码、测试、维护、协作、平台、智能体、工具链、知识库等层次 | 可作为树状方法架构 seed；不作频次统计 | 未出现的生命周期阶段不得补齐 | 核对技术栈图和相邻说明 |
+| [dim-ai-native-se-roadmap-orig-challenge-oq] | 挑战、开放问题与行动方向 | 开放问题、挑战、研究议程、benchmark、human role、trustworthiness、tool ecosystem | 候选 finding heuristic；需要研究者裁决 | vision action 与实证 gap 必须区分 | 核对 open question / challenge / roadmap action 小节 |
+| [dim-ai-native-se-roadmap-orig-evidence-boundary] | 证据基础与外推边界 | 引用综述、案例、作者观点、非系统检索、未来工作 | 边界锚点；禁止进入完成型 SLR 统计池 | 缺系统检索分母时写 not_applicable | 核对 evidence base 与 limitations，补强统计池排除理由 |
+
+#### 三路审计综合返修结论
+
+| 审计共同问题 | 本轮返修动作 | 剩余风险 |
+|---|---|---|
+| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
+| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
+| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
+
+#### 审计返修口径
+
+- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
+- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
+- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
+#### 通用接口投影
+
+下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
+
+| 通用接口 | 在本文中的投影对象 | 使用边界 |
+|---|---|---|
+| 研究范围与单位对象 | `SE 1.0 / SE 2.0 / SE 3.0 演进基线` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
+| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
+| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
+| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
+| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
+| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
+
+#### 返修后仍需 A2a 精核
+
+1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
+2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
+3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
+
 ### 统计与候选发现链路
 
 | 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
@@ -336,7 +397,7 @@ roadmap_item
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | EV-ai-native-se-roadmap-001 | [ev-ai-native-se-roadmap-root] | [src-ai-native-se-roadmap-text], [src-ai-native-se-roadmap-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-ai-native-se-roadmap-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
 | EV-ai-native-se-roadmap-002 | [ev-ai-native-se-roadmap-taxonomy] | [src-ai-native-se-roadmap-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-ai-native-se-roadmap-b1], [dim-ai-native-se-roadmap-b2], [dim-ai-native-se-roadmap-b3], [dim-ai-native-se-roadmap-b4], [dim-ai-native-se-roadmap-b5], [leaf-ai-native-se-roadmap-taxonomy], [leaf-ai-native-se-roadmap-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-ai-native-se-roadmap-003 | [ev-ai-native-se-roadmap-stat] | [src-ai-native-se-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作 boundary / candidate seed，待 A2a 精确页码 / 表图核验后才能升级。 | author_claim | not_verified | [leaf-ai-native-se-roadmap-evidence], [leaf-ai-native-se-roadmap-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
+| EV-ai-native-se-roadmap-003 | [ev-ai-native-se-roadmap-stat] | [src-ai-native-se-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作 boundary / candidate seed，待 A2a 精确页码 / 表图核验后才能升级。 | author_claim | not_verified | [leaf-ai-native-se-roadmap-evidence], [leaf-ai-native-se-roadmap-finding], [leaf-ai-native-se-roadmap-orig-vision-object], [leaf-ai-native-se-roadmap-orig-stack-layer], [leaf-ai-native-se-roadmap-orig-challenge], [leaf-ai-native-se-roadmap-orig-roadmap-action], [leaf-ai-native-se-roadmap-orig-boundary-risk] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
 | EV-ai-native-se-roadmap-004 | [ev-ai-native-se-roadmap-risk] | [src-ai-native-se-roadmap-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-ai-native-se-roadmap-root], [leaf-ai-native-se-roadmap-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
@@ -354,6 +415,8 @@ roadmap_item
 | [clm-ai-native-se-roadmap-transfer] | A1DT-ai-native-se-roadmap-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-ai-native-se-roadmap-root] | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
 | [clm-ai-native-se-roadmap-finding-boundary] | A1DT-ai-native-se-roadmap-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-ai-native-se-roadmap-finding] | EV-ai-native-se-roadmap-003, EV-ai-native-se-roadmap-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
+| [clm-ai-native-se-roadmap-source-schema-candidates] | A1DT-ai-native-se-roadmap-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-ai-native-se-roadmap-orig-vision-object], [leaf-ai-native-se-roadmap-orig-stack-layer], [leaf-ai-native-se-roadmap-orig-challenge], [leaf-ai-native-se-roadmap-orig-roadmap-action], [leaf-ai-native-se-roadmap-orig-boundary-risk] | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
+| [clm-ai-native-se-roadmap-a1dt-19x3-repair] | A1DT-ai-native-se-roadmap-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-ai-native-se-roadmap-root] | EV-ai-native-se-roadmap-002, EV-ai-native-se-roadmap-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
