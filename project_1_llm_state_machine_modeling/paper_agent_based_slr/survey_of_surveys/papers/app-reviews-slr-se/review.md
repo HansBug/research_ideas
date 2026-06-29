@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [ESE](https://link.springer.com/journal/10664) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
+| CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 来源等级 | Empirical Software Engineering；正式 DOI 已核验；PDF 本轮未自动获取成功 |
 | 阅读状态 | 全文不可得-待人工下载 |
 | 证据等级 | 题摘级 / metadata-only；不得写方法细节为全文事实 |
@@ -42,3 +43,15 @@
 
 - 需要人工下载或通过机构访问正式 PDF。
 - 全文补齐后应生成 `paper_content.txt` 并重写本 review。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 当前状态 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | 题摘级可判断主题为 app reviews for software engineering 的 SLR。 | 仅候选；未读全文前不能采纳 RQ / scope 细节。 |
+| A1-M1 语料收集与纳排 | 未取得全文，无法核验检索式、纳排、筛选分母和质量评价。 | 不采纳。 |
+| A1-M2 研究对象与主题语义 | 只能从标题判断与 app review / mobile feedback 相关。 | 不采纳。 |
+| A1-M3 方法 / 技术 / 干预 | 未读全文。 | 不采纳。 |
+| A1-M4 评价、证据与复现资产 | 未读全文；只记录 DOI 与 PDF 获取失败。 | 只用于失败路径和人工下载清单。 |
+| A1-M5 统计分析就绪 | 无全文字段表和分母。 | 不进入统计池。 |
+| A1-M6 research finding 形成与裁决 | 无全文 findings。 | 不采纳。 |

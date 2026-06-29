@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
+| CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 来源等级 | 高等级 SE 期刊；Information and Software Technology |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
@@ -43,3 +44,15 @@
 
 - 正式引用质量/数量表前需 PDF 表格核对。
 - 后续 A2a/A2b 需要补近十年 SE SLR/SMS/survey，以避免 A1 仅受早期 EBSE 文献影响。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | updated tertiary study 展示如何定义“更新 / 扩展 / 整合前序综述”。 | 可迁移 predecessor_relation 字段。 |
+| A1-M1 语料收集与纳排 | 展示沿用和扩展前序检索边界的方式。 | 可迁移 update protocol 字段；具体语料年代需降级。 |
+| A1-M2 研究对象与主题语义 | 继续组织 SE SLR topic、质量与报告维度。 | 可作为历史对比字段，不支撑现代结论。 |
+| A1-M3 方法 / 技术 / 干预 | 主要贡献是二次研究更新方法，不是技术 taxonomy。 | 只作弱候选。 |
+| A1-M4 评价、证据与复现资产 | 体现质量评价、报告质量和前序研究对齐。 | 可迁移到“复用前序证据时如何记录差异”。 |
+| A1-M5 统计分析就绪 | 可形成跨年份 update / trend / quality 分布。 | 必须标注年份窗口。 |
+| A1-M6 research finding 形成与裁决 | 从 update 对比中生成方法学 gap 和改进建议。 | 可迁移为“前序差异 -> 新 finding”的启发式。 |

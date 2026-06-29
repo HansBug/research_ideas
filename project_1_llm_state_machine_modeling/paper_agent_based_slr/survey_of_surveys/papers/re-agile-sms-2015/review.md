@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [SEAA](https://dsd-seaa.com/) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
+| CCF 复核状态 | -- |
 | 来源等级 | Euromicro SEAA 2015；非 A / 一般国际会议；作者/机构镜像 PDF |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
@@ -42,3 +43,15 @@
 
 - PDF 来自作者/课程镜像，不是出版社直链；正式引用仍以 DOI 为准。
 - 表格和分类轴需 PDF 核对后才能进入 A2a 统计。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | 将 Agile Software Development 中的 Requirements Engineering 定义为系统映射主题。 | 可迁移子领域化 SMS scope 设定。 |
+| A1-M1 语料收集与纳排 | 提供 SMS 检索、筛选和研究分类流程。 | 可迁移为 mapping-study 概览字段。 |
+| A1-M2 研究对象与主题语义 | benefit / problem / solution taxonomy 是清晰的主题语义样本。 | 可迁移问题-方案字段模式，不迁移 Agile RE 结论。 |
+| A1-M3 方法 / 技术 / 干预 | 方案分类可作为 intervention / practice taxonomy 样式。 | 需 A2a 用更多 SMS 样本验证。 |
+| A1-M4 评价、证据与复现资产 | 用分类表和研究分布支撑结论。 | 表格数值正式引用前需核对。 |
+| A1-M5 统计分析就绪 | 系统映射的分布统计适合生成 topic / solution coverage。 | 只能支撑候选观察。 |
+| A1-M6 research finding 形成与裁决 | 从 benefit/problem/solution 分布形成研究空白。 | 可迁移 finding heuristic。 |

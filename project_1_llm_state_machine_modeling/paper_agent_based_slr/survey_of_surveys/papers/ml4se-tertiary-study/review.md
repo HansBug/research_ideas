@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [CSUR](https://dl.acm.org/journal/csur) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
+| CCF 复核状态 | -- |
 | 来源等级 | 高等级综述期刊；ACM Computing Surveys；arXiv 开放 PDF；CCF 官方等级不填写 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
@@ -42,3 +43,15 @@
 
 - 需进一步定位 RQ、threats、classification 表和 challenge 表的页码。
 - DOI/最终出版页已记录；正式写作前应核对 ACM 版与 arXiv 版差异。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | 把 ML4SE 三级研究定义为“收集、质量评价、汇总、分类 reviews 并追溯 primary studies”。 | 可迁移三级研究的 scope / unit-of-analysis 设计；不能迁移 ML4SE 具体结论。 |
+| A1-M1 语料收集与纳排 | 提供 reviews / primary studies 双层分母、质量评价和纳排边界。 | 可作为二次研究语料台账字段候选。 |
+| A1-M2 研究对象与主题语义 | 以 SE 生命周期活动、ML technique、研究挑战组织 taxonomy。 | 可候选为“生命周期 + 技术 + 任务”字段树样式。 |
+| A1-M3 方法 / 技术 / 干预 | 抽取 ML 方法族与 SE 活动之间的关系。 | 只迁移“方法与任务交叉分类”模式。 |
+| A1-M4 评价、证据与复现资产 | 使用质量评价、review / primary-study 数量和分类表支撑结论。 | 正式引用具体数值前需 PDF 图表核对。 |
+| A1-M5 统计分析就绪 | 大规模 tertiary 能形成跨 review / primary-study 的分布与覆盖统计。 | 可作为 A2a 大样本统计字段候选。 |
+| A1-M6 research finding 形成与裁决 | 从分布统计进一步形成 challenges 和 action recommendations。 | 可作为 candidate finding heuristic，不作为 Paper2 目标领域 finding。 |

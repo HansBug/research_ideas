@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
+| CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 来源等级 | 高等级 SE 期刊；Information and Software Technology |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
@@ -43,3 +44,15 @@
 
 - Table / quality score 数值正式使用前需回 PDF 核对。
 - 该文是早期 SE tertiary study；A2a/A2b 需要补近年样本，避免 pattern 过拟合早期 EBSE。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | 把 SE SLR 自身作为研究对象，适合作为 tertiary-like scope 样本。 | 可迁移“二次研究的二次研究”元模型。 |
+| A1-M1 语料收集与纳排 | 提供早期 SE SLR 的检索、纳排和质量评价过程。 | 可作为历史 baseline；不代表现代检索生态。 |
+| A1-M2 研究对象与主题语义 | 提供早期 SE SLR topic / quality / reporting 分类。 | 可迁移分类方式，不迁移领域覆盖结论。 |
+| A1-M3 方法 / 技术 / 干预 | 主要是综述方法和主题分类，不是技术干预 taxonomy。 | 对 A1-M3 只作弱候选。 |
+| A1-M4 评价、证据与复现资产 | 强调 reporting quality、search bias、质量评价等证据呈现。 | 可迁移到 validity / audit 字段。 |
+| A1-M5 统计分析就绪 | 可形成 review 数量、主题、质量等统计观察。 | 分母年代久远；需标注历史边界。 |
+| A1-M6 research finding 形成与裁决 | 从早期 SE SLR 质量问题形成方法学改进建议。 | 可迁移 finding 写法，不迁移 2009 年状态结论。 |

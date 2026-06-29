@@ -38,9 +38,13 @@
 - [x] `survey_of_surveys/search/manual-download-needed.bib`
 - [x] `survey_of_surveys/patterns/README.md`
 - [x] `survey_of_surveys/patterns/pattern-field-schema.md`
-- [x] `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 四字段已同步到 SUMMARY、candidate-pool 和单篇 review。
-- [x] 至少 3 篇全文文本级 dry-run；本轮完成 6 篇。
+- [x] `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`、`CCF 复核状态` 字段已同步到 SUMMARY、candidate-pool 和单篇 review。
+- [x] 至少 3 篇全文文本级 dry-run；本轮累计完成 16 篇全文文本级（初始 6 篇 + #95 十篇）。
 - [x] 至少 1 个 manual-download / metadata-only 失败路径；本轮完成 3 篇。
+- [x] #95 十篇现代维度锚点已建立单篇目录、BibTeX、metadata、PDF 和 `paper_content.txt`。
+- [x] #95 十篇现代维度锚点已完成一篇一 subagent 全文 `review.md` 并回填 SUMMARY；roadmap / proposal 条目已机器可读排除出统计池。
+- [x] A1-M0--M6 元维度字段已写入 GUIDE、schema、SUMMARY、candidate-pool 和 19 篇单篇 review。
+- [x] issue #95 十篇来源审计已写入 `survey_of_surveys/search/issue95-selection-audit.md`。
 
 ## 6. 拒收检查
 
@@ -48,7 +52,9 @@
 2. 如果 metadata-only 条目进入已采纳 pattern，应拒收。
 3. 如果 schema 回修没有记录触发条目、受影响字段和回填状态，应拒收。
 4. 如果 `plan/progress.md` 仍停留在旧 PR-S0 当前阶段，应拒收。
-5. 如果 `SUMMARY.md`、`search/candidate-pool.md` 或单篇 `review.md` 缺少出版形态、venue 短名链接、CCF 官方大类、CCF 官方等级四字段，应拒收。
+5. 如果 `SUMMARY.md`、`search/candidate-pool.md` 或单篇 `review.md` 缺少出版形态、venue 短名链接、CCF 官方大类、CCF 官方等级、CCF 复核状态字段，应拒收。
+6. 如果新增 #95 十篇锚点未明确阅读状态，或把 roadmap / vision 条目当成 SLR/SMS 已采纳 pattern，应拒收。
+7. 如果 GUIDE / schema / SUMMARY 未同步 A1-M0--M6 元维度，或单篇 review 只写六类 pattern 不写 A1-M0--M6，应拒收。
 
 ## 7. dry-run 验收
 
@@ -81,8 +87,13 @@ if missing:
     raise SystemExit(f'missing files: {missing}')
 reviews = list((root / 'papers').glob('*/review.md'))
 texts = list((root / 'papers').glob('*/paper_content.txt'))
-if len(reviews) < 5 or len(texts) < 3:
-    raise SystemExit('dry-run assets are insufficient')
+if len(reviews) != 19 or len(texts) != 16:
+    raise SystemExit(f'unexpected dry-run asset counts: reviews={len(reviews)}, texts={len(texts)}')
+for f in reviews:
+    t = f.read_text(encoding='utf-8')
+    for marker in ['出版形态', '期刊/会议/预印本', 'CCF 官方大类', 'CCF 官方等级', 'A1-M0', 'A1-M6']:
+        if marker not in t:
+            raise SystemExit(f'{f} missing {marker}')
 print('survey_of_surveys A1 skeleton and dry-run assets ok')
 PY
 rg -n "首次自动化|PRISMA-compliant|完整覆盖|替代专家|100\+ 篇完整文库完成" project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys || true

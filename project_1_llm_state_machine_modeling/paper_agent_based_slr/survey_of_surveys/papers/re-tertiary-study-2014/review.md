@@ -11,6 +11,7 @@
 | 期刊/会议/预印本 | [EmpiRE](https://empire2014.wordpress.com/) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
+| CCF 复核状态 | -- |
 | 来源等级 | EmpiRE 2014 workshop；非顶级会议；IEEE DOI |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |
@@ -42,3 +43,15 @@
 
 - PDF 表格与质量评价细节待人工核对。
 - EmpiRE 是 workshop，不能写成顶级 venue。
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
+|---|---|---|
+| A1-M0 研究意图与综述元模型 | 将 Requirements Engineering 二次研究作为 tertiary study 对象。 | 可迁移“SE 子领域 tertiary”元模型。 |
+| A1-M1 语料收集与纳排 | 提供 RE 三级研究的搜索与选择流程。 | EmpiRE workshop 来源需标注非顶级 venue。 |
+| A1-M2 研究对象与主题语义 | 提供 RE 子领域 topic / evidence 分类样本。 | 可作为 RE 子领域 schema seed。 |
+| A1-M3 方法 / 技术 / 干预 | 主要关注 RE review 类型和主题，不是具体技术干预。 | 只作弱候选。 |
+| A1-M4 评价、证据与复现资产 | 可迁移 quality / reporting / evidence-presentation 字段。 | 表格需后续核对。 |
+| A1-M5 统计分析就绪 | 可形成 RE secondary studies 的分布统计。 | 小样本与 workshop 语境需降级。 |
+| A1-M6 research finding 形成与裁决 | 可从 RE review 覆盖缺口形成候选 finding。 | 不支撑 Paper2 目标领域结论。 |
