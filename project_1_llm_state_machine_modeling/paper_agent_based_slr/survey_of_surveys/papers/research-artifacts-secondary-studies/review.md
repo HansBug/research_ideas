@@ -95,7 +95,7 @@
 
 ## 3. 六类 pattern 抽取
 
-| pattern | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
+| 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | 以“artifact 是否存在、存放在哪里、如何声明、年份/venue 如何影响”为核心；属于 evidence-asset audit 型 RQ。 | `paper_content.txt` Page 2--4 的 RQ1--RQ4。 | 高度可迁移到 Paper2：可把审计制品链拆成 availability、persistence、reporting、trend/context 四类问题。 | 不迁移具体比例到 Paper2 目标领域；该文对象是 SE secondary studies。 |
 | dimension pattern | 字段包括 publication venue、year、artifact availability Yes/No、permanent repo、by request、dead link、dedicated section。 | `paper_content.txt` Page 2 Data extraction；Page 3 Table 1；PDF layout Table 1。 | 可直接作为 Paper2 制品资产字段树的初始锚点。 | 字段较粗，只统计有无与位置，不评估工件是否完整、可执行、脱敏、版本化。 |
@@ -198,3 +198,110 @@ research_artifact_asset
 4. `paper_content.txt` 中 RQ3 写 50 / 169 有 artifact 的论文包含 dedicated section，而 Table 1 Dedicated section 总计 72 / 537；使用时必须说明分母差异。
 5. 摘要称提供 comprehensive list of artifacts，但正文未展开清单；该清单可能在 Zenodo 工件中，待复核后再决定是否迁移 artifact type 字段。
 6. 当前未比较 arXiv v3 与 IST 最终排版版本差异；正式引用页码和表格前应以出版商版本为准。
+
+## 维度树复原
+
+### 一句话结论
+
+本文的维度树主类型为“证据资产审计树”，辅助类型为“artifact availability 统计树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-research-artifacts-secondary-studies-tree-type]
+
+旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+
+### 根问题 / RQ 到主干分支映射
+
+| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
+|---|---|---|---|---|---|
+| [dim-research-artifacts-secondary-studies-root] | Research artifacts in secondary studies 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-research-artifacts-secondary-studies-b1] secondary study corpus；[dim-research-artifacts-secondary-studies-b2] artifact type；[dim-research-artifacts-secondary-studies-b3] availability status；[dim-research-artifacts-secondary-studies-b4] repository / DOI evidence；[dim-research-artifacts-secondary-studies-b5] reproducibility gap | [ev-research-artifacts-secondary-studies-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+
+### 维度树结构
+
+```text
+[dim-research-artifacts-secondary-studies-root] Research artifacts in secondary studies
+├── [dim-research-artifacts-secondary-studies-b1] secondary study corpus
+│   └── [leaf-research-artifacts-secondary-studies-scope] 研究范围与单位对象
+├── [dim-research-artifacts-secondary-studies-b2] artifact type
+│   └── [leaf-research-artifacts-secondary-studies-corpus] 语料与纳排链条
+├── [dim-research-artifacts-secondary-studies-b3] availability status
+│   └── [leaf-research-artifacts-secondary-studies-taxonomy] 主题与维度分类
+├── [dim-research-artifacts-secondary-studies-b4] repository / DOI evidence
+│   └── [leaf-research-artifacts-secondary-studies-method] 方法 / 技术 / 干预分类
+└── [dim-research-artifacts-secondary-studies-b5] reproducibility gap
+    └── [leaf-research-artifacts-secondary-studies-evidence] 评价、证据与复现资产
+    └── [leaf-research-artifacts-secondary-studies-finding] 统计观察与候选发现
+```
+
+### 叶子维度表
+
+| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [leaf-research-artifacts-secondary-studies-scope] | 研究范围与单位对象 | [dim-research-artifacts-secondary-studies-b1] | 定义 secondary study artifacts 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-scope] |
+| [leaf-research-artifacts-secondary-studies-corpus] | 语料与纳排链条 | [dim-research-artifacts-secondary-studies-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-corpus] |
+| [leaf-research-artifacts-secondary-studies-taxonomy] | 主题与维度分类 | [dim-research-artifacts-secondary-studies-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-taxonomy] |
+| [leaf-research-artifacts-secondary-studies-method] | 方法 / 技术 / 干预分类 | [dim-research-artifacts-secondary-studies-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-method] |
+| [leaf-research-artifacts-secondary-studies-evidence] | 评价、证据与复现资产 | [dim-research-artifacts-secondary-studies-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-evidence] |
+| [leaf-research-artifacts-secondary-studies-finding] | 统计观察与候选发现 | [dim-research-artifacts-secondary-studies-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-research-artifacts-secondary-studies-leaf-finding] |
+
+### 关系边表
+
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+|---|---|---|---|---|---|---|---|
+| [edge-research-artifacts-secondary-studies-method-evidence] | [leaf-research-artifacts-secondary-studies-method] | 支撑 / 度量 | [leaf-research-artifacts-secondary-studies-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-research-artifacts-secondary-studies-taxonomy] | [clm-research-artifacts-secondary-studies-edge-method-evidence] |
+| [edge-research-artifacts-secondary-studies-taxonomy-finding] | [leaf-research-artifacts-secondary-studies-taxonomy] | 导出候选发现 | [leaf-research-artifacts-secondary-studies-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-research-artifacts-secondary-studies-stat] | [clm-research-artifacts-secondary-studies-edge-taxonomy-finding] |
+
+### 统计与候选发现链路
+
+| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
+|---|---|---|---|---|---|
+| [dim-research-artifacts-secondary-studies-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
+| [leaf-research-artifacts-secondary-studies-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [leaf-research-artifacts-secondary-studies-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+
+### 可迁移与不可迁移边界
+
+| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
+|---|---|---|---|---|
+| [dim-research-artifacts-secondary-studies-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | secondary study artifacts 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-research-artifacts-secondary-studies-transfer] |
+| [leaf-research-artifacts-secondary-studies-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-research-artifacts-secondary-studies-finding-boundary] |
+
+## 审计附录：证据链与结论-证据映射
+
+### A.1 论文与本地文件来源
+
+| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+|---|---|---|---|---|---|
+| [src-research-artifacts-secondary-studies-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
+| [src-research-artifacts-secondary-studies-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
+| [src-research-artifacts-secondary-studies-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+
+### A.2 维度树证据账本
+
+| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| EV-research-artifacts-secondary-studies-001 | [ev-research-artifacts-secondary-studies-root] | [src-research-artifacts-secondary-studies-text], [src-research-artifacts-secondary-studies-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-research-artifacts-secondary-studies-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-research-artifacts-secondary-studies-002 | [ev-research-artifacts-secondary-studies-taxonomy] | [src-research-artifacts-secondary-studies-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-research-artifacts-secondary-studies-b1], [dim-research-artifacts-secondary-studies-b2], [dim-research-artifacts-secondary-studies-b3], [dim-research-artifacts-secondary-studies-b4], [dim-research-artifacts-secondary-studies-b5], [leaf-research-artifacts-secondary-studies-taxonomy], [leaf-research-artifacts-secondary-studies-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-research-artifacts-secondary-studies-003 | [ev-research-artifacts-secondary-studies-stat] | [src-research-artifacts-secondary-studies-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-research-artifacts-secondary-studies-evidence], [leaf-research-artifacts-secondary-studies-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-research-artifacts-secondary-studies-004 | [ev-research-artifacts-secondary-studies-risk] | [src-research-artifacts-secondary-studies-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-research-artifacts-secondary-studies-root], [leaf-research-artifacts-secondary-studies-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-research-artifacts-secondary-studies-005 | [ev-research-artifacts-secondary-studies-relation] | [src-research-artifacts-secondary-studies-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边。 | taxonomy | medium | [edge-research-artifacts-secondary-studies-method-evidence], [edge-research-artifacts-secondary-studies-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+
+### A.3 结论-证据映射
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [clm-research-artifacts-secondary-studies-tree-type] | A1DT-research-artifacts-secondary-studies-C01 | 本文的维度树主类型为“证据资产审计树”，辅助类型为“artifact availability 统计树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-research-artifacts-secondary-studies-tree-type] | tree_type | [dim-research-artifacts-secondary-studies-root] | EV-research-artifacts-secondary-studies-001, EV-research-artifacts-secondary-studies-004 | 树型判断仅限本文，不代表所有 secondary study artifacts 综述。 | strong | statistical_synthesis | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-scope] | A1DT-research-artifacts-secondary-studies-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-scope] | EV-research-artifacts-secondary-studies-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-corpus] | A1DT-research-artifacts-secondary-studies-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-corpus] | EV-research-artifacts-secondary-studies-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-taxonomy] | A1DT-research-artifacts-secondary-studies-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-taxonomy] | EV-research-artifacts-secondary-studies-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-method] | A1DT-research-artifacts-secondary-studies-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-method] | EV-research-artifacts-secondary-studies-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-evidence] | A1DT-research-artifacts-secondary-studies-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-evidence] | EV-research-artifacts-secondary-studies-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-research-artifacts-secondary-studies-leaf-finding] | A1DT-research-artifacts-secondary-studies-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-research-artifacts-secondary-studies-finding] | EV-research-artifacts-secondary-studies-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-research-artifacts-secondary-studies-transfer] | A1DT-research-artifacts-secondary-studies-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-research-artifacts-secondary-studies-root] | EV-research-artifacts-secondary-studies-002, EV-research-artifacts-secondary-studies-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
+| [clm-research-artifacts-secondary-studies-finding-boundary] | A1DT-research-artifacts-secondary-studies-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-research-artifacts-secondary-studies-finding] | EV-research-artifacts-secondary-studies-003, EV-research-artifacts-secondary-studies-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-research-artifacts-secondary-studies-edge-method-evidence] | A1DT-research-artifacts-secondary-studies-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-research-artifacts-secondary-studies-method-evidence] | EV-research-artifacts-secondary-studies-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | medium | schema_seed | false | -- |
+| [clm-research-artifacts-secondary-studies-edge-taxonomy-finding] | A1DT-research-artifacts-secondary-studies-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-research-artifacts-secondary-studies-taxonomy-finding] | EV-research-artifacts-secondary-studies-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | medium | candidate_finding | false | -- |
+
+### A.4 本地复验命令与人工核验清单
+
+| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+|---|---|---|---|---|
+| [cmd-research-artifacts-secondary-studies-structure-check] | [dim-research-artifacts-secondary-studies-root], A1DT-research-artifacts-secondary-studies-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
+| [cmd-research-artifacts-secondary-studies-visual-check] | EV-research-artifacts-secondary-studies-002, EV-research-artifacts-secondary-studies-003, EV-research-artifacts-secondary-studies-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |

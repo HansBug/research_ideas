@@ -147,7 +147,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 ## 3. 六类 pattern 抽取
 
-| pattern | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
+| 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | 四个 RQ 按“对象模型—数据—优化/评价—应用任务”展开，形成完整 field schema。 | Section 2.1；RQ1--RQ4。 | 可迁移为 Paper2 的 A1-M0 综述元模型设计范式。 | RQ 内容是 LLM4SE 特有，不能迁移为目标领域结论。 |
 | dimension pattern | 核心维度包括 LLM architecture、dataset source/type/preprocessing/input form、tuning/prompt/eval metric、SDLC activity、problem type、specific task。 | Table 5；Sections 3--6；Appendix A--E。 | 高度可迁移为字段树。 | 取值空间偏 code-centric，对状态机/形式化方法需重新扩展。 |
@@ -264,3 +264,110 @@ review_record
 4. 复核 QAC3 与二次研究纳排规则是否存在版本/表述歧义。
 5. 若要在 Paper2 正文引用精确比例，应回到 PDF 或 artifact 表格确认分母：例如 374 篇显式说明 dataset、355 篇显式说明 input form、software development 的 paper count 与 task-instance count 差异。
 6. A2a 若把该文纳入 `survey_of_surveys` 总账，应同步回填 `target_se_subfield=LLM4SE`、`challenge_action_pattern`、`artifact_anchor_pattern`，但不得改写为目标领域 finding。
+
+## 维度树复原
+
+### 一句话结论
+
+本文的维度树主类型为“大规模 RQ 驱动分类树”，辅助类型为“LLM4SE task-method-evidence 树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-llm4se-systematic-review-tree-type]
+
+旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+
+### 根问题 / RQ 到主干分支映射
+
+| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
+|---|---|---|---|---|---|
+| [dim-llm4se-systematic-review-root] | Large Language Models for Software Engineering 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-llm4se-systematic-review-b1] 综述范围与研究问题；[dim-llm4se-systematic-review-b2] 语料收集与纳排；[dim-llm4se-systematic-review-b3] 主题 / 对象分类；[dim-llm4se-systematic-review-b4] 方法 / 技术 / 干预；[dim-llm4se-systematic-review-b5] 评价、统计与候选发现 | [ev-llm4se-systematic-review-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+
+### 维度树结构
+
+```text
+[dim-llm4se-systematic-review-root] Large Language Models for Software Engineering
+├── [dim-llm4se-systematic-review-b1] 综述范围与研究问题
+│   └── [leaf-llm4se-systematic-review-scope] 研究范围与单位对象
+├── [dim-llm4se-systematic-review-b2] 语料收集与纳排
+│   └── [leaf-llm4se-systematic-review-corpus] 语料与纳排链条
+├── [dim-llm4se-systematic-review-b3] 主题 / 对象分类
+│   └── [leaf-llm4se-systematic-review-taxonomy] 主题与维度分类
+├── [dim-llm4se-systematic-review-b4] 方法 / 技术 / 干预
+│   └── [leaf-llm4se-systematic-review-method] 方法 / 技术 / 干预分类
+└── [dim-llm4se-systematic-review-b5] 评价、统计与候选发现
+    └── [leaf-llm4se-systematic-review-evidence] 评价、证据与复现资产
+    └── [leaf-llm4se-systematic-review-finding] 统计观察与候选发现
+```
+
+### 叶子维度表
+
+| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [leaf-llm4se-systematic-review-scope] | 研究范围与单位对象 | [dim-llm4se-systematic-review-b1] | 定义 LLM4SE 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-scope] |
+| [leaf-llm4se-systematic-review-corpus] | 语料与纳排链条 | [dim-llm4se-systematic-review-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-corpus] |
+| [leaf-llm4se-systematic-review-taxonomy] | 主题与维度分类 | [dim-llm4se-systematic-review-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-taxonomy] |
+| [leaf-llm4se-systematic-review-method] | 方法 / 技术 / 干预分类 | [dim-llm4se-systematic-review-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-method] |
+| [leaf-llm4se-systematic-review-evidence] | 评价、证据与复现资产 | [dim-llm4se-systematic-review-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-evidence] |
+| [leaf-llm4se-systematic-review-finding] | 统计观察与候选发现 | [dim-llm4se-systematic-review-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm4se-systematic-review-leaf-finding] |
+
+### 关系边表
+
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+|---|---|---|---|---|---|---|---|
+| [edge-llm4se-systematic-review-method-evidence] | [leaf-llm4se-systematic-review-method] | 支撑 / 度量 | [leaf-llm4se-systematic-review-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-llm4se-systematic-review-taxonomy] | [clm-llm4se-systematic-review-edge-method-evidence] |
+| [edge-llm4se-systematic-review-taxonomy-finding] | [leaf-llm4se-systematic-review-taxonomy] | 导出候选发现 | [leaf-llm4se-systematic-review-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-llm4se-systematic-review-stat] | [clm-llm4se-systematic-review-edge-taxonomy-finding] |
+
+### 统计与候选发现链路
+
+| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
+|---|---|---|---|---|---|
+| [dim-llm4se-systematic-review-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
+| [leaf-llm4se-systematic-review-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [leaf-llm4se-systematic-review-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+
+### 可迁移与不可迁移边界
+
+| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
+|---|---|---|---|---|
+| [dim-llm4se-systematic-review-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | LLM4SE 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-llm4se-systematic-review-transfer] |
+| [leaf-llm4se-systematic-review-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-llm4se-systematic-review-finding-boundary] |
+
+## 审计附录：证据链与结论-证据映射
+
+### A.1 论文与本地文件来源
+
+| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+|---|---|---|---|---|---|
+| [src-llm4se-systematic-review-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
+| [src-llm4se-systematic-review-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
+| [src-llm4se-systematic-review-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+
+### A.2 维度树证据账本
+
+| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| EV-llm4se-systematic-review-001 | [ev-llm4se-systematic-review-root] | [src-llm4se-systematic-review-text], [src-llm4se-systematic-review-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-llm4se-systematic-review-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-llm4se-systematic-review-002 | [ev-llm4se-systematic-review-taxonomy] | [src-llm4se-systematic-review-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-llm4se-systematic-review-b1], [dim-llm4se-systematic-review-b2], [dim-llm4se-systematic-review-b3], [dim-llm4se-systematic-review-b4], [dim-llm4se-systematic-review-b5], [leaf-llm4se-systematic-review-taxonomy], [leaf-llm4se-systematic-review-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-llm4se-systematic-review-003 | [ev-llm4se-systematic-review-stat] | [src-llm4se-systematic-review-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-llm4se-systematic-review-evidence], [leaf-llm4se-systematic-review-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-llm4se-systematic-review-004 | [ev-llm4se-systematic-review-risk] | [src-llm4se-systematic-review-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-llm4se-systematic-review-root], [leaf-llm4se-systematic-review-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-llm4se-systematic-review-005 | [ev-llm4se-systematic-review-relation] | [src-llm4se-systematic-review-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边。 | taxonomy | medium | [edge-llm4se-systematic-review-method-evidence], [edge-llm4se-systematic-review-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+
+### A.3 结论-证据映射
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [clm-llm4se-systematic-review-tree-type] | A1DT-llm4se-systematic-review-C01 | 本文的维度树主类型为“大规模 RQ 驱动分类树”，辅助类型为“LLM4SE task-method-evidence 树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-llm4se-systematic-review-tree-type] | tree_type | [dim-llm4se-systematic-review-root] | EV-llm4se-systematic-review-001, EV-llm4se-systematic-review-004 | 树型判断仅限本文，不代表所有 LLM4SE 综述。 | strong | statistical_synthesis | false | -- |
+| [clm-llm4se-systematic-review-leaf-scope] | A1DT-llm4se-systematic-review-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-scope] | EV-llm4se-systematic-review-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-llm4se-systematic-review-leaf-corpus] | A1DT-llm4se-systematic-review-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-corpus] | EV-llm4se-systematic-review-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-llm4se-systematic-review-leaf-taxonomy] | A1DT-llm4se-systematic-review-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-taxonomy] | EV-llm4se-systematic-review-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-llm4se-systematic-review-leaf-method] | A1DT-llm4se-systematic-review-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-method] | EV-llm4se-systematic-review-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-llm4se-systematic-review-leaf-evidence] | A1DT-llm4se-systematic-review-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-evidence] | EV-llm4se-systematic-review-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-llm4se-systematic-review-leaf-finding] | A1DT-llm4se-systematic-review-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm4se-systematic-review-finding] | EV-llm4se-systematic-review-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-llm4se-systematic-review-transfer] | A1DT-llm4se-systematic-review-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-llm4se-systematic-review-root] | EV-llm4se-systematic-review-002, EV-llm4se-systematic-review-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
+| [clm-llm4se-systematic-review-finding-boundary] | A1DT-llm4se-systematic-review-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-llm4se-systematic-review-finding] | EV-llm4se-systematic-review-003, EV-llm4se-systematic-review-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-llm4se-systematic-review-edge-method-evidence] | A1DT-llm4se-systematic-review-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-llm4se-systematic-review-method-evidence] | EV-llm4se-systematic-review-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | medium | schema_seed | false | -- |
+| [clm-llm4se-systematic-review-edge-taxonomy-finding] | A1DT-llm4se-systematic-review-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-llm4se-systematic-review-taxonomy-finding] | EV-llm4se-systematic-review-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | medium | candidate_finding | false | -- |
+
+### A.4 本地复验命令与人工核验清单
+
+| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+|---|---|---|---|---|
+| [cmd-llm4se-systematic-review-structure-check] | [dim-llm4se-systematic-review-root], A1DT-llm4se-systematic-review-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
+| [cmd-llm4se-systematic-review-visual-check] | EV-llm4se-systematic-review-002, EV-llm4se-systematic-review-003, EV-llm4se-systematic-review-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |

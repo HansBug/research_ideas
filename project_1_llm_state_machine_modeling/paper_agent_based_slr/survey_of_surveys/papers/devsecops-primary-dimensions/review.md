@@ -145,7 +145,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 ## 3. 六类 pattern 抽取
 
-| Pattern | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
+| 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | 采用“现状 + aspects + themes + links”作为 RQ1，并用 RQ2 专门检查特定 context 的缺失。 | `paper_content.txt` §3.3 Objectives and research questions；§4.1；§4.2。 | 可迁移到 Paper2：RQ 不只问“有哪些论文”，还问“字段树是什么、字段间如何链接、缺失 context 是什么”。 | DevSecOps/GSE 的领域内容不可迁移为 Paper2 目标发现。 |
 | Dimension pattern | 五大 aspect -> text segments/codes/themes -> OPC/PC/Technology/Business -> Gartner lifecycle -> CPTM。 | §4.1.1、§4.1.2、Tables 5--19、§4.1.3、Table 21、Figs. 5--9。 | 强可迁移：支持多层字段树、编号化主题、source type、frequency、category、stage、cross-link。 | 图表连线与 full CPTM 需 PDF / Zenodo 核对；不能把 CPTM 直接变成所有 SE SLR 的通用 schema。 |
@@ -299,3 +299,110 @@ ReviewRecord
 - [ ] 复核 “104 WL + 43 GL” 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL。
 - [ ] 如后续把本文纳入 [patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md) 的正式字段来源，需要另开任务更新 schema / SUMMARY；本次按用户约束只编辑本 `review.md`。
 - [ ] 若 Paper2 后续选择 DevSecOps / security-oriented SE 作为 pilot topic，需要重新检索 2022--2026 文献，不能用本文的 2012--2021 样本当作当前全貌。
+
+## 维度树复原
+
+### 一句话结论
+
+本文的维度树主类型为“关系型维度树”，辅助类型为“多声部证据树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-devsecops-primary-dimensions-tree-type]
+
+旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+
+### 根问题 / RQ 到主干分支映射
+
+| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
+|---|---|---|---|---|---|
+| [dim-devsecops-primary-dimensions-root] | Identifying the primary dimensions of DevSecOps 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-devsecops-primary-dimensions-b1] DevSecOps aspect；[dim-devsecops-primary-dimensions-b2] theme / category；[dim-devsecops-primary-dimensions-b3] CPTM item；[dim-devsecops-primary-dimensions-b4] lifecycle stage；[dim-devsecops-primary-dimensions-b5] GSE context gap | [ev-devsecops-primary-dimensions-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+
+### 维度树结构
+
+```text
+[dim-devsecops-primary-dimensions-root] Identifying the primary dimensions of DevSecOps
+├── [dim-devsecops-primary-dimensions-b1] DevSecOps aspect
+│   └── [leaf-devsecops-primary-dimensions-scope] 研究范围与单位对象
+├── [dim-devsecops-primary-dimensions-b2] theme / category
+│   └── [leaf-devsecops-primary-dimensions-corpus] 语料与纳排链条
+├── [dim-devsecops-primary-dimensions-b3] CPTM item
+│   └── [leaf-devsecops-primary-dimensions-taxonomy] 主题与维度分类
+├── [dim-devsecops-primary-dimensions-b4] lifecycle stage
+│   └── [leaf-devsecops-primary-dimensions-method] 方法 / 技术 / 干预分类
+└── [dim-devsecops-primary-dimensions-b5] GSE context gap
+    └── [leaf-devsecops-primary-dimensions-evidence] 评价、证据与复现资产
+    └── [leaf-devsecops-primary-dimensions-finding] 统计观察与候选发现
+```
+
+### 叶子维度表
+
+| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [leaf-devsecops-primary-dimensions-scope] | 研究范围与单位对象 | [dim-devsecops-primary-dimensions-b1] | 定义 DevSecOps dimensions 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-scope] |
+| [leaf-devsecops-primary-dimensions-corpus] | 语料与纳排链条 | [dim-devsecops-primary-dimensions-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-corpus] |
+| [leaf-devsecops-primary-dimensions-taxonomy] | 主题与维度分类 | [dim-devsecops-primary-dimensions-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-taxonomy] |
+| [leaf-devsecops-primary-dimensions-method] | 方法 / 技术 / 干预分类 | [dim-devsecops-primary-dimensions-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-method] |
+| [leaf-devsecops-primary-dimensions-evidence] | 评价、证据与复现资产 | [dim-devsecops-primary-dimensions-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-evidence] |
+| [leaf-devsecops-primary-dimensions-finding] | 统计观察与候选发现 | [dim-devsecops-primary-dimensions-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-finding] |
+
+### 关系边表
+
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+|---|---|---|---|---|---|---|---|
+| [edge-devsecops-primary-dimensions-method-evidence] | [leaf-devsecops-primary-dimensions-method] | 支撑 / 度量 | [leaf-devsecops-primary-dimensions-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-devsecops-primary-dimensions-taxonomy] | [clm-devsecops-primary-dimensions-edge-method-evidence] |
+| [edge-devsecops-primary-dimensions-taxonomy-finding] | [leaf-devsecops-primary-dimensions-taxonomy] | 导出候选发现 | [leaf-devsecops-primary-dimensions-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-devsecops-primary-dimensions-stat] | [clm-devsecops-primary-dimensions-edge-taxonomy-finding] |
+
+### 统计与候选发现链路
+
+| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
+|---|---|---|---|---|---|
+| [dim-devsecops-primary-dimensions-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
+| [leaf-devsecops-primary-dimensions-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [leaf-devsecops-primary-dimensions-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+
+### 可迁移与不可迁移边界
+
+| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
+|---|---|---|---|---|
+| [dim-devsecops-primary-dimensions-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | DevSecOps dimensions 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-devsecops-primary-dimensions-transfer] |
+| [leaf-devsecops-primary-dimensions-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-devsecops-primary-dimensions-finding-boundary] |
+
+## 审计附录：证据链与结论-证据映射
+
+### A.1 论文与本地文件来源
+
+| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+|---|---|---|---|---|---|
+| [src-devsecops-primary-dimensions-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
+| [src-devsecops-primary-dimensions-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
+| [src-devsecops-primary-dimensions-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+
+### A.2 维度树证据账本
+
+| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| EV-devsecops-primary-dimensions-001 | [ev-devsecops-primary-dimensions-root] | [src-devsecops-primary-dimensions-text], [src-devsecops-primary-dimensions-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-devsecops-primary-dimensions-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-devsecops-primary-dimensions-002 | [ev-devsecops-primary-dimensions-taxonomy] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-devsecops-primary-dimensions-b1], [dim-devsecops-primary-dimensions-b2], [dim-devsecops-primary-dimensions-b3], [dim-devsecops-primary-dimensions-b4], [dim-devsecops-primary-dimensions-b5], [leaf-devsecops-primary-dimensions-taxonomy], [leaf-devsecops-primary-dimensions-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-devsecops-primary-dimensions-003 | [ev-devsecops-primary-dimensions-stat] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-devsecops-primary-dimensions-evidence], [leaf-devsecops-primary-dimensions-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-devsecops-primary-dimensions-004 | [ev-devsecops-primary-dimensions-risk] | [src-devsecops-primary-dimensions-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-devsecops-primary-dimensions-root], [leaf-devsecops-primary-dimensions-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-devsecops-primary-dimensions-005 | [ev-devsecops-primary-dimensions-relation] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边。 | taxonomy | medium | [edge-devsecops-primary-dimensions-method-evidence], [edge-devsecops-primary-dimensions-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+
+### A.3 结论-证据映射
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [clm-devsecops-primary-dimensions-tree-type] | A1DT-devsecops-primary-dimensions-C01 | 本文的维度树主类型为“关系型维度树”，辅助类型为“多声部证据树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-devsecops-primary-dimensions-tree-type] | tree_type | [dim-devsecops-primary-dimensions-root] | EV-devsecops-primary-dimensions-001, EV-devsecops-primary-dimensions-004 | 树型判断仅限本文，不代表所有 DevSecOps dimensions 综述。 | strong | statistical_synthesis | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-scope] | A1DT-devsecops-primary-dimensions-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-scope] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-corpus] | A1DT-devsecops-primary-dimensions-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-corpus] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-taxonomy] | A1DT-devsecops-primary-dimensions-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-taxonomy] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-method] | A1DT-devsecops-primary-dimensions-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-method] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-evidence] | A1DT-devsecops-primary-dimensions-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-evidence] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
+| [clm-devsecops-primary-dimensions-leaf-finding] | A1DT-devsecops-primary-dimensions-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-finding] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-devsecops-primary-dimensions-transfer] | A1DT-devsecops-primary-dimensions-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-devsecops-primary-dimensions-root] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
+| [clm-devsecops-primary-dimensions-finding-boundary] | A1DT-devsecops-primary-dimensions-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-devsecops-primary-dimensions-finding] | EV-devsecops-primary-dimensions-003, EV-devsecops-primary-dimensions-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-devsecops-primary-dimensions-edge-method-evidence] | A1DT-devsecops-primary-dimensions-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-devsecops-primary-dimensions-method-evidence] | EV-devsecops-primary-dimensions-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | medium | schema_seed | false | -- |
+| [clm-devsecops-primary-dimensions-edge-taxonomy-finding] | A1DT-devsecops-primary-dimensions-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-devsecops-primary-dimensions-taxonomy-finding] | EV-devsecops-primary-dimensions-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | medium | candidate_finding | false | -- |
+
+### A.4 本地复验命令与人工核验清单
+
+| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+|---|---|---|---|---|
+| [cmd-devsecops-primary-dimensions-structure-check] | [dim-devsecops-primary-dimensions-root], A1DT-devsecops-primary-dimensions-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
+| [cmd-devsecops-primary-dimensions-visual-check] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-003, EV-devsecops-primary-dimensions-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |

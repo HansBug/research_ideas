@@ -15,12 +15,12 @@
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 来源等级 | EASE 2008 / BCS Electronic Workshops in Computing；DOI 与用户本地 Zotero PDF 已核验。 |
 | 阅读状态 | 已读 `bibtex.bib`、`paper_content.txt` 全文；已用 `pdfinfo` 核对 `paper.pdf` 为 10 页；未做图表视觉级人工核对。 |
-| 证据等级 | 全文文本级；图表 / 表格布局待 A2a 人工 PDF 核对。 |
+| 证据等级 | 全文文本级；图表 / 表格布局待 A2a 人工原文核对。 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)、DOI: <https://doi.org/10.14236/ewic/EASE2008.8> |
 | 综述类型 | SMS 方法论文 / systematic mapping 方法学 seed。 |
 | SE 子领域 | 软件工程 systematic mapping 方法学。 |
 | A1 角色 | 从失败路径升级为全文级方法学种子：提供 SMS 流程、keywording、三维分类 facet、频数 / bubble plot 呈现、map 与 review 的互补边界。 |
-| 是否目标证据池 | 否；只作为 `survey_of_surveys/` 的方法学 schema seed，不作为某个 SE 主题领域事实。 |
+| 是否目标证据池 | 否；只作为 `survey_of_surveys/` 的方法学 模式种子，不作为某个 SE 主题领域事实。 |
 | 是否统计池 | 不进入普通 SLR/SMS 领域统计池；其内部频数和 map/review 对照只可作为方法学描述性统计 seed。 |
 | 一句话结论 | 这篇论文最适合支撑 Paper2 的“维度模式会随阅读演化、字段值要有 rationale、统计观察主要来自类别频数和交叉覆盖”的方法故事。 |
 
@@ -76,11 +76,11 @@
 
 本文没有独立的传统 threats 章节，但在比较和 guideline 讨论中反复提到：摘要可能不足以支持分类；术语使用不稳定；过窄纳排会损害 breadth；过细分类会放大判断错误；mapping 通常不做与 systematic review 同等深度的质量评价。作者提出的缓解方式包括自适应阅读深度、使用较高层级分类、保留 rationale、必要时查看引言或结论。
 
-这些都适合转化为 Paper2 的证据等级规则：题摘级只能候选；全文文本级才可采纳字段；图表级数值要回 PDF 核对；每个字段都要有 source anchor 和裁决记录。
+这些都适合转化为 Paper2 的证据等级规则：题摘级只能候选；全文文本级才可采纳字段；图表级数值要回原文核对；每个字段都要有 source anchor 和裁决记录。
 
 ## 3. 六类 pattern 抽取
 
-| pattern | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
+| 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | RQ 主要面向 overview、topic coverage、publication trend、venue/forum、research type，而非 effect size。 | `paper_content.txt` §2.1、Table 1。 | 可迁移为 A2a 的 mapping 型 RQ 模板。 | 不适合直接回答技术有效性或 causal outcome。 |
 | dimension pattern | 三个核心 facet：topic、contribution、research type；分类方案通过 keywording 从论文中演化。 | §2.4、Figure 2、Table 3。 | 高度可迁移到 researcher-defined meta-model 的字段树。 | 具体 topic facet 来自 product-line variability 示例，不能直接迁移到 LLM4STM。 |
@@ -162,3 +162,102 @@ mapping_study_pattern
 3. A2a 若要复用 bubble plot 模式，需视觉核对 Figure 3（p.5）。
 4. Table 3 的 Wieringa research type 与 Table 5 的 review characteristics 若用于正式字段定义，需核对跨列表格排版。
 5. `file` 与 `pdfinfo` 页数显示不一致；当前以 `pdfinfo` 和 `paper_content.txt` 的 10 页为准。
+
+## 维度树复原
+
+### 一句话结论
+
+本文的维度树主类型为“方法流程树”，辅助类型为“topic-independent taxonomy 示例树”。不进入主统计池：方法论文 / guideline-like seed；其内部频数和 map/review 对照只用于方法学描述性统计，不进入普通领域统计合成池；仅作 schema_seed。 [clm-petersen-2008-systematic-mapping-tree-type]
+
+旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+
+### 根问题 / RQ 到主干分支映射
+
+| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
+|---|---|---|---|---|---|
+| [dim-petersen-2008-systematic-mapping-root] | Systematic Mapping Studies in Software Engineering 的研究目标 / RQ / 贡献声明 | roadmap action / guideline item / schema seed | [dim-petersen-2008-systematic-mapping-b1] mapping planning；[dim-petersen-2008-systematic-mapping-b2] keywording；[dim-petersen-2008-systematic-mapping-b3] classification scheme；[dim-petersen-2008-systematic-mapping-b4] map visualization；[dim-petersen-2008-systematic-mapping-b5] research gap identification | [ev-petersen-2008-systematic-mapping-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+
+### 维度树结构
+
+```text
+[dim-petersen-2008-systematic-mapping-root] Systematic Mapping Studies in Software Engineering
+├── [dim-petersen-2008-systematic-mapping-b1] mapping planning
+│   └── [leaf-petersen-2008-systematic-mapping-scope] 研究范围与单位对象
+├── [dim-petersen-2008-systematic-mapping-b2] keywording
+│   └── [leaf-petersen-2008-systematic-mapping-corpus] 语料与纳排链条
+├── [dim-petersen-2008-systematic-mapping-b3] classification scheme
+│   └── [leaf-petersen-2008-systematic-mapping-taxonomy] 主题与维度分类
+├── [dim-petersen-2008-systematic-mapping-b4] map visualization
+│   └── [leaf-petersen-2008-systematic-mapping-method] 方法 / 技术 / 干预分类
+└── [dim-petersen-2008-systematic-mapping-b5] research gap identification
+    └── [leaf-petersen-2008-systematic-mapping-evidence] 评价、证据与复现资产
+    └── [leaf-petersen-2008-systematic-mapping-finding] 统计观察与候选发现
+```
+
+### 叶子维度表
+
+| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [leaf-petersen-2008-systematic-mapping-scope] | 研究范围与单位对象 | [dim-petersen-2008-systematic-mapping-b1] | 定义 SMS 方法学 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-scope] |
+| [leaf-petersen-2008-systematic-mapping-corpus] | 语料与纳排链条 | [dim-petersen-2008-systematic-mapping-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-corpus] |
+| [leaf-petersen-2008-systematic-mapping-taxonomy] | 主题与维度分类 | [dim-petersen-2008-systematic-mapping-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-taxonomy] |
+| [leaf-petersen-2008-systematic-mapping-method] | 方法 / 技术 / 干预分类 | [dim-petersen-2008-systematic-mapping-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-method] |
+| [leaf-petersen-2008-systematic-mapping-evidence] | 评价、证据与复现资产 | [dim-petersen-2008-systematic-mapping-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-evidence] |
+| [leaf-petersen-2008-systematic-mapping-finding] | 统计观察与候选发现 | [dim-petersen-2008-systematic-mapping-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 不进入主统计池；只作 schema seed / boundary anchor。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-petersen-2008-systematic-mapping-leaf-finding] |
+
+### 统计与候选发现链路
+
+| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
+|---|---|---|---|---|---|
+| [dim-petersen-2008-systematic-mapping-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否 | 识别可迁移的维度模式类型 | 不进入主统计池：方法论文 / guideline-like seed；其内部频数和 map/review 对照只用于方法学描述性统计，不进入普通领域统计合成池；仅作 schema_seed。 |
+| [leaf-petersen-2008-systematic-mapping-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | not_applicable | 否 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [leaf-petersen-2008-systematic-mapping-finding] | 候选发现台账，不直接作为 final finding | discussion / conclusion / roadmap action | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+
+### 可迁移与不可迁移边界
+
+| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
+|---|---|---|---|---|
+| [dim-petersen-2008-systematic-mapping-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | SMS 方法学 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-petersen-2008-systematic-mapping-transfer] |
+| [leaf-petersen-2008-systematic-mapping-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-petersen-2008-systematic-mapping-finding-boundary] |
+
+## 审计附录：证据链与结论-证据映射
+
+### A.1 论文与本地文件来源
+
+| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+|---|---|---|---|---|---|
+| [src-petersen-2008-systematic-mapping-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
+| [src-petersen-2008-systematic-mapping-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
+| [src-petersen-2008-systematic-mapping-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+
+### A.2 维度树证据账本
+
+| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| EV-petersen-2008-systematic-mapping-001 | [ev-petersen-2008-systematic-mapping-root] | [src-petersen-2008-systematic-mapping-text], [src-petersen-2008-systematic-mapping-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-petersen-2008-systematic-mapping-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-petersen-2008-systematic-mapping-002 | [ev-petersen-2008-systematic-mapping-taxonomy] | [src-petersen-2008-systematic-mapping-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-petersen-2008-systematic-mapping-b1], [dim-petersen-2008-systematic-mapping-b2], [dim-petersen-2008-systematic-mapping-b3], [dim-petersen-2008-systematic-mapping-b4], [dim-petersen-2008-systematic-mapping-b5], [leaf-petersen-2008-systematic-mapping-taxonomy], [leaf-petersen-2008-systematic-mapping-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-petersen-2008-systematic-mapping-003 | [ev-petersen-2008-systematic-mapping-stat] | [src-petersen-2008-systematic-mapping-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | author_claim | medium | [leaf-petersen-2008-systematic-mapping-evidence], [leaf-petersen-2008-systematic-mapping-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
+| EV-petersen-2008-systematic-mapping-004 | [ev-petersen-2008-systematic-mapping-risk] | [src-petersen-2008-systematic-mapping-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-petersen-2008-systematic-mapping-root], [leaf-petersen-2008-systematic-mapping-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+
+
+### A.3 结论-证据映射
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [clm-petersen-2008-systematic-mapping-tree-type] | A1DT-petersen-2008-systematic-mapping-C01 | 本文的维度树主类型为“方法流程树”，辅助类型为“topic-independent taxonomy 示例树”。不进入主统计池：方法论文 / guideline-like seed；其内部频数和 map/review 对照只用于方法学描述性统计，不进入普通领域统计合成池；仅作 schema_seed。 [clm-petersen-2008-systematic-mapping-tree-type] | tree_type | [dim-petersen-2008-systematic-mapping-root] | EV-petersen-2008-systematic-mapping-001, EV-petersen-2008-systematic-mapping-004 | 树型判断仅限本文，不代表所有 SMS 方法学 综述。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-scope] | A1DT-petersen-2008-systematic-mapping-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-scope] | EV-petersen-2008-systematic-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-corpus] | A1DT-petersen-2008-systematic-mapping-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-corpus] | EV-petersen-2008-systematic-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-taxonomy] | A1DT-petersen-2008-systematic-mapping-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-taxonomy] | EV-petersen-2008-systematic-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-method] | A1DT-petersen-2008-systematic-mapping-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-method] | EV-petersen-2008-systematic-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-evidence] | A1DT-petersen-2008-systematic-mapping-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-evidence] | EV-petersen-2008-systematic-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-leaf-finding] | A1DT-petersen-2008-systematic-mapping-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-petersen-2008-systematic-mapping-finding] | EV-petersen-2008-systematic-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-transfer] | A1DT-petersen-2008-systematic-mapping-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-petersen-2008-systematic-mapping-root] | EV-petersen-2008-systematic-mapping-002, EV-petersen-2008-systematic-mapping-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
+| [clm-petersen-2008-systematic-mapping-finding-boundary] | A1DT-petersen-2008-systematic-mapping-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-petersen-2008-systematic-mapping-finding] | EV-petersen-2008-systematic-mapping-003, EV-petersen-2008-systematic-mapping-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+
+
+### A.4 本地复验命令与人工核验清单
+
+| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+|---|---|---|---|---|
+| [cmd-petersen-2008-systematic-mapping-structure-check] | [dim-petersen-2008-systematic-mapping-root], A1DT-petersen-2008-systematic-mapping-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
+| [cmd-petersen-2008-systematic-mapping-visual-check] | EV-petersen-2008-systematic-mapping-002, EV-petersen-2008-systematic-mapping-003 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |

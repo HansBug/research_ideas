@@ -1,5 +1,18 @@
 # 进度记录：PR-A1 综述之综述脚手架文库
 
+
+## 0. PR-A1-DT 子 PR 进度补充
+
+| 字段 | 状态 |
+|---|---|
+| 子 PR | [#135](https://github.com/HansBug/research_ideas/pull/135) |
+| 直接上游 | [#132](https://github.com/HansBug/research_ideas/pull/132) |
+| 当前分支 | `paper2/a1-dimension-tree-inventory` |
+| 当前阶段 | 已按 PR body contract 进入实现：19/19 篇 `review.md` 新增 `维度树复原` 和 A.1--A.4 审计附录；GUIDE / schema / SUMMARY 已补维度树、关系边、roadmap 降级、结论-证据映射和 SUMMARY 回链规则；等待 push 后三路 reviewer 学术审计。 |
+| 验证状态 | `python /tmp/check_a1dt.py` 通过；`git diff --check` 通过；未运行真实 LLM，未读取 `.env`。 |
+| 任务包 | [task-packets/a1-dimension-tree-inventory.md](./task-packets/a1-dimension-tree-inventory.md) |
+
+
 ## 1. 当前状态
 
 | 字段 | 状态 |

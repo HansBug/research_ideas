@@ -132,6 +132,58 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 
 **本节结论**：19 篇已经逐篇抽取 A1-M0--M6，并在单篇 `review.md` 中保留详细证据。SUMMARY 级矩阵说明当前样本已经覆盖元模型、检索分母、主题语义、方法干预、评价证据、统计就绪和 finding 裁决七层，但图表级证据和字段取值饱和仍需 A2a 深化。
 
+
+## 6.1 维度树模式总览
+
+本节是 PR-A1-DT 后新增的跨论文入口：A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中新增 `维度树复原` 与 A.1--A.4 审计附录；下表只做总览和跳转，具体证据以单篇为准。
+
+| 年份 | 论文 | 主类型 | 辅助类型 | 是否进入主统计池 | 允许用途 | 单篇结论标识 | 详情 |
+|---:|---|---|---|---|---|---|---|
+| 2026 | [The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study](./papers/llm-assistants-developer-productivity/review.md) | RQ 驱动分类树 | 生产力 benefit-risk 评价树 | 是 | `statistical_synthesis` | `A1DT-llm-assistants-developer-productivity-C01` | [review](./papers/llm-assistants-developer-productivity/review.md#维度树复原) |
+| 2026 | [Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap](./papers/ai-native-se-roadmap/review.md) | roadmap / challenge 树 | 理论 / 元模型概念树 | 否 | `boundary_anchor` | `A1DT-ai-native-se-roadmap-C01` | [review](./papers/ai-native-se-roadmap/review.md#维度树复原) |
+| 2025 | [Research artifacts in secondary studies: A systematic mapping in software engineering](./papers/research-artifacts-secondary-studies/review.md) | 证据资产审计树 | artifact availability 统计树 | 是 | `statistical_synthesis` | `A1DT-research-artifacts-secondary-studies-C01` | [review](./papers/research-artifacts-secondary-studies/review.md#维度树复原) |
+| 2025 | [On the road to interactive LLM-based systematic mapping studies](./papers/interactive-llm-systematic-mapping/review.md) | 方法流程树 | human-in-the-loop boundary 树 | 否 | `boundary_anchor` | `A1DT-interactive-llm-systematic-mapping-C01` | [review](./papers/interactive-llm-systematic-mapping/review.md#维度树复原) |
+| 2025 | [Formal requirements engineering and large language models: A two-way roadmap](./papers/formal-re-llm-roadmap/review.md) | roadmap / concern / action-point 树 | trustworthiness 边界树 | 否 | `boundary_anchor` | `A1DT-formal-re-llm-roadmap-C01` | [review](./papers/formal-re-llm-roadmap/review.md#维度树复原) |
+| 2024 | [Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping](./papers/mdse-modelling-assistants-mapping/review.md) | systematic mapping 分类树 | assistant strategy-goal-metric-user 树 | 是 | `statistical_synthesis` | `A1DT-mdse-modelling-assistants-mapping-C01` | [review](./papers/mdse-modelling-assistants-mapping/review.md#维度树复原) |
+| 2024 | [Model driven engineering for machine learning components: A systematic literature review](./papers/mde-ml-components-slr/review.md) | MDE4ML 生命周期分类树 | 解决方案 / 动机 / 评价树 | 是 | `statistical_synthesis` | `A1DT-mde-ml-components-slr-C01` | [review](./papers/mde-ml-components-slr/review.md#维度树复原) |
+| 2024 | [Large Language Models for Software Engineering: A Systematic Literature Review](./papers/llm4se-systematic-review/review.md) | 大规模 RQ 驱动分类树 | LLM4SE task-method-evidence 树 | 是 | `statistical_synthesis` | `A1DT-llm4se-systematic-review-C01` | [review](./papers/llm4se-systematic-review/review.md#维度树复原) |
+| 2024 | [Identifying the primary dimensions of DevSecOps: A multi-vocal literature review](./papers/devsecops-primary-dimensions/review.md) | 关系型维度树 | 多声部证据树 | 是 | `statistical_synthesis` | `A1DT-devsecops-primary-dimensions-C01` | [review](./papers/devsecops-primary-dimensions/review.md#维度树复原) |
+| 2023 | [Requirements quality research: a harmonized theory, evaluation, and roadmap](./papers/requirements-quality-theory-roadmap/review.md) | 理论 / 元模型概念树 | requirements quality roadmap 树 | 否 | `boundary_anchor` | `A1DT-requirements-quality-theory-roadmap-C01` | [review](./papers/requirements-quality-theory-roadmap/review.md#维度树复原) |
+| 2023 | [Machine Learning for Software Engineering: A Tertiary Study](./papers/ml4se-tertiary-study/review.md) | tertiary 主题 / 挑战树 | action recommendation 树 | 是 | `statistical_synthesis` | `A1DT-ml4se-tertiary-study-C01` | [review](./papers/ml4se-tertiary-study/review.md#维度树复原) |
+| 2022 | [Analysing app reviews for software engineering: a systematic literature review](./papers/app-reviews-slr-se/review.md) | RQ 驱动分类树 | 评价 / 复现资产审计树 | 是 | `statistical_synthesis` | `A1DT-app-reviews-slr-se-C01` | [review](./papers/app-reviews-slr-se/review.md#维度树复原) |
+| 2015 | [A Mapping Study on Requirements Engineering in Agile Software Development](./papers/re-agile-sms-2015/review.md) | SMS problem-benefit-solution 树 | Agile RE 主题分类树 | 是 | `statistical_synthesis` | `A1DT-re-agile-sms-2015-C01` | [review](./papers/re-agile-sms-2015/review.md#维度树复原) |
+| 2015 | [Guidelines for conducting systematic mapping studies in software engineering: An update](./papers/petersen-2015-mapping-guidelines-update/review.md) | mapping guideline update 方法树 | topic-independent dimensions 树 | 是 | `statistical_synthesis` | `A1DT-petersen-2015-mapping-guidelines-update-C01` | [review](./papers/petersen-2015-mapping-guidelines-update/review.md#维度树复原) |
+| 2014 | [Systematic Reviews in Requirements Engineering: A Tertiary Study](./papers/re-tertiary-study-2014/review.md) | RE tertiary 主题统计树 | 质量 / impact 树 | 是 | `statistical_synthesis` | `A1DT-re-tertiary-study-2014-C01` | [review](./papers/re-tertiary-study-2014/review.md#维度树复原) |
+| 2011 | [Six years of systematic literature reviews in software engineering: An updated tertiary study](./papers/da-silva-2011-six-years-slr/review.md) | tertiary 更新统计树 | 质量 / 实践影响树 | 是 | `statistical_synthesis` | `A1DT-da-silva-2011-six-years-slr-C01` | [review](./papers/da-silva-2011-six-years-slr/review.md#维度树复原) |
+| 2009 | [Systematic literature reviews in software engineering – A systematic literature review](./papers/kitchenham-2009-slr-tertiary/review.md) | tertiary 生态统计树 | 质量评价树 | 是 | `statistical_synthesis` | `A1DT-kitchenham-2009-slr-tertiary-C01` | [review](./papers/kitchenham-2009-slr-tertiary/review.md#维度树复原) |
+| 2008 | [Systematic Mapping Studies in Software Engineering](./papers/petersen-2008-systematic-mapping/review.md) | 方法流程树 | topic-independent taxonomy 示例树 | 否 | `schema_seed` | `A1DT-petersen-2008-systematic-mapping-C01` | [review](./papers/petersen-2008-systematic-mapping/review.md#维度树复原) |
+| 2007 | [Guidelines for performing Systematic Literature Reviews in Software Engineering](./papers/kitchenham-charters-2007-slr-guidelines/review.md) | 方法流程树 | 质量 / 效度 guideline 树 | 否 | `schema_seed` | `A1DT-kitchenham-charters-2007-slr-guidelines-C01` | [review](./papers/kitchenham-charters-2007-slr-guidelines/review.md#维度树复原) |
+
+**本节结论**：当前 19 篇不是一个同质字段表，而是至少覆盖六类可迁移树型：RQ 驱动分类树、方法流程树、关系型维度树、证据资产审计树、理论 / 元模型概念树、roadmap / challenge 树。对 Paper2 来说，这说明“维度模式”必须允许研究者从树和关系边中选择、批准和演化，而不能预设为单层表格。
+
+## 6.2 维度树类型与 Paper2 L0--L7 的关系
+
+| 维度树类型 | 支撑的 Paper2 阶段 | 当前样本 | 方法启发 |
+|---|---|---|---|
+| RQ 驱动分类树 | L0 主题与综述元模型设定；L4 字段级证据抽取；L5 统计分析 | app reviews、LLM4SE、LLM assistants | 先由 RQ 确定对象 / 方法 / 评价 / 结果层，再要求每个叶子绑定证据与分母。 |
+| 方法流程树 | L1 脚手架挖掘；L2 维度模式批准；L3 论文收集与概览 | Kitchenham guideline、Petersen mapping guideline、interactive LLM mapping | 用流程阶段和 researcher gate 定义 agent-human 协同，而不是把 SLR 写成一次性自动化。 |
+| 关系型维度树 | L4 字段抽取；L5 交叉统计；L6 候选发现形成 | DevSecOps、MDSE assistants、research artifacts | 主干树之外必须保留边表；缺失关系本身可成为 gap 候选。 |
+| 证据资产审计树 | L4 证据链；L7 透明投影 | research artifacts、app reviews、DevSecOps | artifact、replication package、open science material 应是一等字段。 |
+| 理论 / 元模型概念树 | L0 元模型设定；L6 候选发现启发 | requirements quality、AI-native SE | 可启发概念节点，但需降级为 schema seed / boundary anchor。 |
+| roadmap / challenge 树 | L6 候选发现；L7 研究者裁决 | formal RE + LLM、AI-native SE、interactive mapping | action point 只能是候选启发，不能污染主统计池或 final finding。 |
+
+**本节结论**：Paper2 后续实验不应只测“AI 能否抽字段”，而应测研究者如何定义 / 修改维度树、AI 如何给出证据链、统计观察如何被降级为候选发现并交给研究者裁决。
+
+## 6.3 SUMMARY 结论-证据映射
+
+| 归纳标识 | 引用键 | 归纳内容 | 归纳类型 | 分母 | 纳入结论标识列表 | 排除结论标识列表 | 证据强度过滤 | 外推限制 | 允许用于论文的位置 | 当前状态 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [sum-A1DT-tree-types] | [sum-A1DT-tree-types] | 当前 19 篇已形成六类维度树类型，总体说明 survey-of-surveys 需要树型 schema 而不是单层字段表。 | tree_type_inventory | 19 篇 `review.md` | A1DT-llm-assistants-developer-productivity-C01, A1DT-ai-native-se-roadmap-C01, A1DT-research-artifacts-secondary-studies-C01, A1DT-interactive-llm-systematic-mapping-C01, A1DT-formal-re-llm-roadmap-C01, A1DT-mdse-modelling-assistants-mapping-C01, A1DT-mde-ml-components-slr-C01, A1DT-llm4se-systematic-review-C01, A1DT-devsecops-primary-dimensions-C01, A1DT-requirements-quality-theory-roadmap-C01, A1DT-ml4se-tertiary-study-C01, A1DT-app-reviews-slr-se-C01, A1DT-re-agile-sms-2015-C01, A1DT-petersen-2015-mapping-guidelines-update-C01, A1DT-re-tertiary-study-2014-C01, A1DT-da-silva-2011-six-years-slr-C01, A1DT-kitchenham-2009-slr-tertiary-C01, A1DT-petersen-2008-systematic-mapping-C01, A1DT-kitchenham-charters-2007-slr-guidelines-C01 | -- | 本行是树型索引，不作定量统计；允许纳入 `weak` 的 boundary / roadmap C01，但它们只可用于 `schema_seed` / `boundary_anchor`，不得进入主统计池或 final finding。 | 这是 A1 样本的结构归纳，不代表 100+ 完整文库已饱和；弱证据只用于边界或启发。 | schema_seed | active |
+| [sum-A1DT-statistical-pool] | [sum-A1DT-statistical-pool] | 允许进入主统计池的维度树只来自已执行 SLR / SMS / tertiary / MLR / systematic mapping 且有系统性证据的条目。 | pool_eligibility | 19 篇 `review.md` | A1DT-llm-assistants-developer-productivity-C01, A1DT-research-artifacts-secondary-studies-C01, A1DT-mdse-modelling-assistants-mapping-C01, A1DT-mde-ml-components-slr-C01, A1DT-llm4se-systematic-review-C01, A1DT-devsecops-primary-dimensions-C01, A1DT-ml4se-tertiary-study-C01, A1DT-app-reviews-slr-se-C01, A1DT-re-agile-sms-2015-C01, A1DT-petersen-2015-mapping-guidelines-update-C01, A1DT-re-tertiary-study-2014-C01, A1DT-da-silva-2011-six-years-slr-C01, A1DT-kitchenham-2009-slr-tertiary-C01 | A1DT-ai-native-se-roadmap-C01, A1DT-interactive-llm-systematic-mapping-C01, A1DT-formal-re-llm-roadmap-C01, A1DT-requirements-quality-theory-roadmap-C01, A1DT-petersen-2008-systematic-mapping-C01, A1DT-kitchenham-charters-2007-slr-guidelines-C01 | 过滤 `weak` / `not_verified`；仅纳入允许用途为 `statistical_synthesis` 的单篇结论。 | 统计池资格是 survey-of-surveys 内部方法统计，不支撑目标领域 final finding。 | statistical_synthesis | active |
+| [sum-A1DT-boundary-anchor] | [sum-A1DT-boundary-anchor] | roadmap / vision / proposal / guideline 的维度树可提供边界锚点和候选启发，但不得进入主统计池。 | downgrade_decision | 19 篇 `review.md` | A1DT-ai-native-se-roadmap-C01, A1DT-interactive-llm-systematic-mapping-C01, A1DT-formal-re-llm-roadmap-C01, A1DT-requirements-quality-theory-roadmap-C01, A1DT-petersen-2008-systematic-mapping-C01, A1DT-kitchenham-charters-2007-slr-guidelines-C01 | A1DT-llm-assistants-developer-productivity-C01, A1DT-research-artifacts-secondary-studies-C01, A1DT-mdse-modelling-assistants-mapping-C01, A1DT-mde-ml-components-slr-C01, A1DT-llm4se-systematic-review-C01, A1DT-devsecops-primary-dimensions-C01, A1DT-ml4se-tertiary-study-C01, A1DT-app-reviews-slr-se-C01, A1DT-re-agile-sms-2015-C01, A1DT-petersen-2015-mapping-guidelines-update-C01, A1DT-re-tertiary-study-2014-C01, A1DT-da-silva-2011-six-years-slr-C01, A1DT-kitchenham-2009-slr-tertiary-C01 | 本行专门记录降级后的 boundary 结论；允许 `weak`，但只用于边界锚点 / 风险提示 / 候选启发，不进入主统计池、SUMMARY 定量统计或 final finding。 | 这些结论仅用于方法设计和风险提示，不能写成经验事实。 | boundary_anchor | active |
+
+**本节结论**：SUMMARY 的跨论文归纳已经显式回链单篇 A.3 结论标识。后续若新增论文或修改树型，必须同步更新本表，否则 SUMMARY 归纳将失去证据链闭环。
+
 ## 7. 当前 pattern 总结与 A2a 接力建议
 
 | pattern | 当前观察 | 来源样本 | A2a 处理建议 |
@@ -151,6 +203,7 @@ A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视�
 
 | 时间 | 触发条目 / 样本 | 受影响字段 | 修订内容 | 回填状态 | 冻结理由 / 后续处理 |
 |---|---|---|---|---|---|
+| 2026-06-29 21:10:00 | PR-A1-DT 逐篇维度树复原；19 篇全文样本 | 维度树、叶子取值空间、关系边、结论-证据映射、SUMMARY 归纳回链 | 新增 GUIDE 维度树纪律、schema 字段合同、19 篇 `review.md` 的 `维度树复原` 与 A.1--A.4 审计附录；SUMMARY 新增维度树模式总览和 `[sum-A1DT-*]` 结论-证据映射 | 已回填 19/19 篇 review、GUIDE、pattern schema 与 SUMMARY | Paper2 方法贡献需要可审计维度树，而不是平铺字段矩阵；A2a 继续做页码 / 图表精核与样本扩展。 |
 | 2026-06-29 17:48:49 | 用户复核 SUMMARY 批次化问题；19 篇全文样本 | SUMMARY 主表、证据池、A1-M0--M6 总账矩阵 | 取消按 PR 批次拆分主表，改为统一年份降序表；明确三类证据池主归属；新增 19 篇 × A1-M0--M6 覆盖矩阵 | 已回填 SUMMARY、GUIDE、progress 与 task packet | 长期文库必须按对象和当前事实维护，不能按施工批次维护；A2a/A2b 继续沿用统一总账结构。 |
 | 2026-06-29 17:58:30 | 三路复审 C/I：CCF 复核状态、三池计数、schema 回修入口 | `ccf_verification_status`、三类证据池计数、schema change ledger | 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数；恢复本结构化 schema 修订 / 回填日志 | 已回填 SUMMARY、GUIDE、pattern schema、task packet 和 progress | 防止复制主表时丢失 CCF disclaimer；防止方法学样本与边界 seed 重复计数；保留字段回修可审计入口。 |
 | 2026-06-29 16:59:12 | 用户补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 PDF | 阅读状态、`eligible_for_statistical_synthesis`、manual-download 状态 | 历史 metadata-only / manual-download 条目升级为全文文本级；active manual-download 清零；Petersen 2008 保持方法学参考池，Petersen 2015 作为方法学统计样本进入主统计池 | 已回填 3 篇 `paper.pdf`、`paper_content.txt`、`review.md`、`metadata.json`、SUMMARY 与 search log | 补齐全文后才能把题摘级候选升级为全文级 pattern；统计池仍按主归属和系统性证据状态控制。 |
@@ -191,6 +244,7 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
+| 2026-06-29 21:10:00 | 完成 PR-A1-DT 实现：补充 GUIDE 维度树复原规则、pattern schema 字段合同、19 篇单篇 `review.md` 的维度树复原与 A.1--A.4 审计附录，并在 SUMMARY 增加维度树模式总览和 SUMMARY 结论-证据映射。 | 未运行真实 LLM，未读取 `.env`；后续需运行结构检查与三路 reviewer 学术审计。 |
 | 2026-06-29 17:40:27 | 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 SUMMARY 为长期文库总账：取消批次化主表，改为统一年份降序论文表；补充三类证据池标准；新增 19 篇 × A1-M0--M6 覆盖矩阵；把历史过程下沉为风险 / 日志。 | 本轮只重构总账和规则，不新增论文；后续需同步 GUIDE 与 PR body，并复验 19/19/19/19、active manual=0。 |
 | 2026-06-29 16:59:12 | 用户提供 3 篇历史 manual-download PDF 后，补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 的 `paper.pdf`、`paper_content.txt`、全文级 `review.md` 和 `metadata.json`，并将 active 人工下载清单清零。 | 文件系统统计更新为 19 个 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`；3 篇历史失败路径已闭环，剩余风险转为 A2a 图表视觉核对和 CCF 官方人工复核。 |
 | 2026-06-29 16:13:28 | 修复三路 reviewer 复审提出的 C/I：补齐早期 9 篇 `metadata.json`，统一 19 篇机器可读字段，修正 CSUR CCF 待核验口径，并清理 `paper_content.txt` 行尾空白。 | `git diff --check` 两点工作区口径通过；提交后需再用 PR 三点 diff 复验。 |
