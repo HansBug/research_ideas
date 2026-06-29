@@ -2,7 +2,7 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前只有 Better STM 质量模型具备明确文本定义；scope、eligibility、protocols、metrics 只冻结职责入口，不伪造尚未完成的主实验协议。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，用于 R5.6 开工前冻结 T0 主线 / T0.5 caveat / supplementary / negative evidence 的实验范围入口。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
 
 ## 2. 研究问题草案
 
@@ -50,7 +50,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 ## 4. 未完成项
 
-1. `scope/` 尚未冻结最终样本层、系统类别、T0/T0.5/T1 边界和 RQ 版本。
+1. `scope/` 已有 R5.5 handoff 草案，但尚未冻结最终样本层、最终 RQ 版本或主实验 protocol。
 2. `eligibility/` 尚未冻结 run eligibility、failure handling 和 provider drift 规则。
 3. `protocols/` 尚未冻结真实 LLM 修正、对照、人工裁决或回滚协议。
 4. `metrics/` 尚未冻结最终指标阈值、统计表字段或显著性 / 效应量口径。
@@ -59,4 +59,5 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-29 17:33:35 | 新增 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，把 R5.5 `proceed_with_supplementary` scope decision 落到 experiment design 路径。 |
 | 2026-06-29 01:54:30 | 按 R5.5.1 路径重构建立 `experiment_design/` 三件套和五个子路径，将 Better STM 定义移动到 `quality_model/`。 |

@@ -14,7 +14,7 @@
 | 规范化 JSON 到 `.fcstm` | 四例均可导出并通过 parse / inspect | 入口：[pipeline/representation/README.md](./pipeline/representation/README.md) |
 | 评价门 v0 | 已定义并 dry-run 四例 | 入口：[pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
 | R5 全量摸排 | 已完成 | 入口：[pipeline/readiness_audit/README.md](./pipeline/readiness_audit/README.md) |
-| R5.5 `llms-emp` 主 seed 池深度画像 | 已完成 | 入口：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| R5.5 `llms-emp` 主 seed 池深度画像 | 已完成 | 入口：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)、[experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md) |
 | 真实修正循环 | 未完成 | 后续阶段实现；当前没有 `STM_k` 主实验结果 |
 | Better STM 主结果 | 未完成 | 需要真实修正、回归、人工/结构化裁决后才能判定 |
 
@@ -136,7 +136,7 @@ R5.5 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推�
 | 后续方向 | 需要做什么 | 依赖当前产物 |
 |---|---|---|
 | R6 修正循环骨架 | 优先围绕 `llms-emp-stm-subset` 选 12–18 条分层样本，真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json](./pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md) |
-| R5.6 story / model scope 回填 | 基于 R5.5 冻结 T0 离散 FSM/HSM/UML-SysML statechart 主线、T0.5 timer-like caveat、Digital Camera supplementary stress、blocked negative evidence，并把 guard/action/data-condition 仅写作 caveat 与 R5.7 候选画像 | [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| R5.6 story / model scope 回填 | 基于 R5.5 冻结 T0 离散 FSM/HSM/UML-SysML statechart 主线、T0.5 timer-like caveat、Digital Camera supplementary stress、blocked negative evidence，并把 guard/action/data-condition 仅写作 caveat 与 R5.7 候选画像 | [experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
 | R7 协议 / eligibility freeze | 冻结 `llms-emp-stm-subset` A/B/C/D 分层、10-NL clustered reporting 与 conversion-aware attribution；再决定 supplementary seed 角色 | [pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json](./pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) |
 | R8 负证据 / 主实验前清理 | 处理 blocked、missing、not_applicable、needs_generation | [pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json](./pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json) |
 | generation follow-up | 对 `fsm-bench-20` / `designing-fsm-gpt4` 这类 NL+code 来源复跑并建立 run record | seed registry 中的 仅流水线 条目 |

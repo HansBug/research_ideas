@@ -6,7 +6,7 @@
 |---|---|
 | 原始来源 | R0 `task_boundary.md`，后在 R5 简化时折叠进 [README.md](./README.md) |
 | 本轮恢复目的 | 恢复独立任务边界入口，避免方法内外、人类角色、停止/回滚策略被 README 隐藏 |
-| 当前证据入口 | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md)、[../experiment_design/README.md](../experiment_design/README.md)、[../STATUS.md](../STATUS.md) |
+| 当前证据入口 | [../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md)、[../STATUS.md](../STATUS.md) |
 | 当前性 | 本文件冻结 story-level 边界；正式 model scope / eligibility / protocol 仍应在 `experiment_design/` 后续文件中冻结 |
 
 ## 1. 任务定义
@@ -75,7 +75,7 @@ Output: <STM_k, diagnostics ledger, scenario ledger, repair ledger, acceptance /
 
 ## 7. R5.5 后的 model scope 暂定边界
 
-R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯一 NL × 6 个 LLM 输出。当前 story-level 暂定为：
+R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯一 NL × 6 个 LLM 输出。当前 story-level 暂定边界已落到 [../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，本节只保留写作侧摘要：
 
 | 层级 | 暂定角色 | 证据入口 | 说明 |
 |---|---|---|---|
@@ -84,7 +84,7 @@ R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯�
 | Digital Camera / T1-ish stress | supplementary stress | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 T0 主 claim，只作压力/负证据。 |
 | data-rich EFSM / timed automata / full verification | 暂不作为主线 | 后续 scope 决策 | 当前证据和工具链不足以支撑强 claim。 |
 
-正式冻结仍应落到 [../experiment_design/scope/](../experiment_design/scope/)；本节只是 story handoff，不是最终协议。
+若后续 R5.6/R5.7/R6 进一步冻结或修订 scope，应优先更新 [../experiment_design/scope/](../experiment_design/scope/) 下的正式 scope 文件，再回写本 story 摘要；不要让 story 成为第二 scope 真源。
 
 ## 8. R0 不冻结的内容
 

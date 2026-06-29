@@ -46,6 +46,19 @@
 | 8 | Digital camera state machine diagrams | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` |
 | 9 | autonomous mode | 🟡 `0009` | 🟡 `0019` | 🟡 `0029` | 🟡 `0039` | 🟡 `0049` | 🟡 `0059` |
 
+#### 1.2.1 LLM family 维度状态汇总
+
+本表从上一节同一 10×6 矩阵按 LLM family 聚合，用于快速判断 `converted / partial / blocked` 是否呈现模型族差异；它仍然是 pre-repair readiness census，不是 LLM 能力排行，也不能计入 repair gain [clm-profile-llm-family][clm-profile-no-repair-gain]。
+
+| LLM family | converted | partial | blocked | 读取 caveat |
+|---|---:|---:|---:|---|
+| GPT-4o | 5 | 5 | 0 | converted/partial 对半，仍需逐例看 loss code。 |
+| GPT-4 | 3 | 6 | 1 | 含 1 个 Digital Camera blocked；blocked 进入 negative evidence。 |
+| Llama | 0 | 9 | 1 | 以 partial 为主，含 1 个 Digital Camera blocked。 |
+| Kimi | 2 | 7 | 1 | 含 1 个 collision avoidance blocked。 |
+| DeepSeek | 0 | 10 | 0 | 全部 partial；主要用于 R5.7 画像，不代表 repair 失败。 |
+| Claude | 6 | 4 | 0 | converted 数最多，但仍保留 partial caveat。 |
+
 #### 1.3 十个 NL 的行为特征矩阵
 
 这些特征只表示 R5.5 对 NL 与原始 STM_0 的保守画像，不等于 R5.7 已确认 repair target [clm-profile-feature-census]。
@@ -241,6 +254,7 @@
 |---|---|---|---|---|---|---|---|
 | [clm-profile-denominator] | `R5.5-PROFILE-C1` | 主 seed 池为 60 raw pairs = 10 NL clusters × 6 LLM outputs。 | `count` | `case_matrix` fields `nl_cluster_id,llm_family`; `pairs_jsonl` fields `nl_sha256,llm`; record archive hash [src-profile-records-zip] | [cmd-profile-summary] | `high` | 不能当作 60 个独立需求样本。 |
 | [clm-profile-status] | `R5.5-PROFILE-C2` | pair 状态为 `converted=16 / partial=41 / blocked=3`。 | `count` | `case_matrix.conversion_status`; record archive status [src-profile-records-zip] | [cmd-profile-summary] | `high` | conversion status 是 pre-repair readiness。 |
+| [clm-profile-llm-family] | `R5.5-PROFILE-C2B` | LLM family 维度状态为 GPT-4o `5/5/0`、GPT-4 `3/6/1`、Llama `0/9/1`、Kimi `2/7/1`、DeepSeek `0/10/0`、Claude `6/4/0`，顺序为 `converted/partial/blocked`。 | `count` | `cluster_llm_matrix` fields `llm_family,conversion_status`; `case_matrix` same fields | [cmd-profile-summary] | `high` | 这是 readiness / conversion status 聚合，不是 LLM 能力排行或 repair 结果。 |
 | [clm-profile-time-role] | `R5.5-PROFILE-C3` | time / structure / story role 统计来自 row-level case matrix 与 cluster profiles。 | `classification` | `case_matrix.{time_level,structure_family,r5_6_story_role}`、`cluster_profiles.{time_level,r5_6_story_role}` | [cmd-profile-story-split] | `high` | T0.5 仅作 timer-like cue under event abstraction；T1 不支撑主 claim。 |
 | [clm-profile-feature-census] | `R5.5-PROFILE-C4` | 行为特征矩阵是 R5.5 feature census，不等于 repair target。 | `classification` | `cluster_profiles.behavior_feature_profile` | [cmd-profile-summary] | `medium` | 需 R5.7 逐例由 NL + raw STM_0 adjudicate。 |
 | [clm-profile-no-repair-gain] | `R5.5-PROFILE-C5` | loss code 与 partial attribution 不得计入 repair gain。 | `risk` | `case_matrix.r5_loss_codes`、`partial_ledger.{r5_loss_code,primary_attribution,attribution_confidence}` | [cmd-profile-partial-ledger] | `high` | conversion / normalization / lowering 只作 attribution。 |

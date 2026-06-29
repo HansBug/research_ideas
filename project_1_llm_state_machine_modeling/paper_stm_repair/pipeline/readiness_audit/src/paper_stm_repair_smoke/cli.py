@@ -1629,6 +1629,7 @@ def run_llms_emp_profile(_: argparse.Namespace) -> int:
                 "nl_cluster_id": cluster["nl_cluster_id"],
                 "llm_family": llm_family,
                 "model_name": row.get("model_name"),
+                "r5_loss_codes": codes,
                 "issue_category": recovery.get("issue_category"),
                 "raw_command": raw_preflight.get("command"),
                 "normalized_command": normalized_preflight.get("command"),
@@ -1896,6 +1897,10 @@ def validate_llms_emp_profile(errors: list[str]) -> None:
     if len(blocked_rows) != status_counts.get("blocked", 0):
         errors.append("R5.5 blocked probe jsonl rows must equal blocked case count")
     for row in blocked_rows:
+        if "r5_loss_codes" not in row:
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} missing r5_loss_codes")
+        elif row.get("r5_loss_codes") != ["R5.LOSS.official_scxml_unavailable"]:
+            errors.append(f"R5.5 blocked {row.get('raw_pair_id')} must carry R5.LOSS.official_scxml_unavailable")
         if "normalization_repair_possible" in row:
             errors.append(f"R5.5 blocked {row.get('raw_pair_id')} must use pre_scxml_recovery_possible, not normalization_repair_possible")
         if "pre_scxml_recovery_possible" not in row:

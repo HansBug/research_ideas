@@ -222,6 +222,7 @@ def test_r55_llms_emp_deep_profile_contract():
         assert row["r5_6_story_role"] in {"main_candidate", "supplementary_stress", "negative_evidence", "exclude_or_defer", "unknown"}
 
     for row in blocked:
+        assert row["r5_loss_codes"] == ["R5.LOSS.official_scxml_unavailable"]
         assert "pre_scxml_recovery_possible" in row
         assert "normalization_repair_possible" not in row
         assert row["renderability_recheck_status"] == "not_reproducible_from_committed_evidence"

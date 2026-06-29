@@ -107,7 +107,7 @@ ceforge.plantuml.PSystemUtils.exportDiagramsDefault(PSystemUtils.java:207)
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
-| [src-neg-blocked] | `blocked_probe` | [llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) | `jsonl` | 支撑 3 个 llms-emp blocked case 的 issue、syntax/scxml status 与 renderability caveat | rows: `raw_pair_id in {0018,0028,0037}` |
+| [src-neg-blocked] | `blocked_probe` | [llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) | `jsonl` | 支撑 3 个 llms-emp blocked case 的 issue、syntax/scxml status、`r5_loss_codes` 与 renderability caveat | rows: `raw_pair_id in {0018,0028,0037}`；field: `r5_loss_codes=["R5.LOSS.official_scxml_unavailable"]` |
 | [src-neg-recovery] | `plantuml_recovery` | [plantuml_recovery_report.json](../pipeline/conversion/reports/plantuml_recovery_report.json) | `json` | 支撑 raw / normalized official PlantUML preflight 与 artifact archive policy | `#/items[] where pair_id=...`、`#/artifact_archive` |
 | [src-neg-workdir-zip] | `workdir_zip` | [workdir.zip](../pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip) | `zip` | 保存 raw / normalized candidate members；避免提交数千 loose files | `normalized_candidates/0018...{raw,normalized}.puml` 等；`sha256=500955e1c6d7d5b33b92a5915f8f93ee6099335a32a9f7d73dae2a12acbc7750`；hash file: [workdir.zip.sha256](../pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip.sha256) |
 | [src-neg-case] | `case_matrix` | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | `jsonl` | 支撑 blocked pair 的 cluster / LLM / negative evidence role | rows: `raw_pair_id in {0018,0028,0037}` |
@@ -117,7 +117,7 @@ ceforge.plantuml.PSystemUtils.exportDiagramsDefault(PSystemUtils.java:207)
 
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
-| [clm-neg-probe-failure] | `R5-NEG-C1` | 3 个 llms-emp blocked 样例均为一手 `NL + generated PlantUML`，但 raw / normalized official SCXML probe 均未获得可信 SCXML。 | `trace` | `blocked_probe` fields `raw_syntax_status`、`normalized_syntax_status`、`raw_scxml_returncode`、`normalized_scxml_returncode`; `plantuml_recovery.items[].{raw_preflight,normalized_preflight}` | [cmd-neg-probe] | `high` | 只说明 committed R3.1/R5.5 evidence 下失败，不证明永远不可渲染。 |
+| [clm-neg-probe-failure] | `R5-NEG-C1` | 3 个 llms-emp blocked 样例均为一手 `NL + generated PlantUML`，但 raw / normalized official SCXML probe 均未获得可信 SCXML。 | `trace` | `blocked_probe` fields `r5_loss_codes`、`raw_syntax_status`、`normalized_syntax_status`、`raw_scxml_returncode`、`normalized_scxml_returncode`; `plantuml_recovery.items[].{raw_preflight,normalized_preflight}` | [cmd-neg-probe] | `high` | 只说明 committed R3.1/R5.5 evidence 下失败，不证明永远不可渲染。 |
 | [clm-neg-workdir-members] | `R5-NEG-C2` | candidate loose files 未单独提交，但 raw / normalized candidate 可从 committed `workdir.zip` members 复验。 | `trace` | `plantuml_recovery#/artifact_archive`、`workdir_zip` member pattern、`workdir.zip.sha256` | [cmd-neg-workdir] | `high` | 仍缺 PlantUML jar、完整 stdout/stderr log 与独立 render probe。 |
 | [clm-neg-returncode-risk] | `R5-NEG-C3` | `returncode=200` 与 `scxml_returncode=1` 需区分；最终信任 `syntax_status=failed` 与 `structured_export_status=scxml_not_trusted_after_syntax_failure`。 | `risk` | `plantuml_recovery.items[].raw_preflight` / `normalized_preflight` | [cmd-neg-probe] | `high` | 不应只引用单一 returncode 作结论。 |
 | [clm-neg-handoff] | `R5-NEG-C4` | 这些 case 进入 negative evidence / converter follow-up，而不是 repair loop 已修复或可直接主实验。 | `decision` | `case_matrix.r5_6_story_role=negative_evidence`、`r8_handoff` | [cmd-neg-probe] | `high` | 后续若补完整 probe，可更新分类；当前不进入主 claim。 |
@@ -133,8 +133,9 @@ probe=[json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/l
 recovery=json.load(open(base/'pipeline/conversion/reports/plantuml_recovery_report.json'))
 by_pair={i['pair_id']: i for i in recovery['items']}
 for r in probe:
+    assert r['r5_loss_codes'] == ['R5.LOSS.official_scxml_unavailable'], r
     item=by_pair[r['raw_pair_id']]
-    print(r['raw_pair_id'], r['issue_category'], r['raw_syntax_status'], r['normalized_syntax_status'], r['renderability_recheck_status'])
+    print(r['raw_pair_id'], r['r5_loss_codes'], r['issue_category'], r['raw_syntax_status'], r['normalized_syntax_status'], r['renderability_recheck_status'])
     for stage in ['raw_preflight','normalized_preflight']:
         pf=item[stage]
         print(' ', stage, {'returncode': pf['returncode'], 'scxml_returncode': pf['scxml_returncode'], 'syntax_status': pf['syntax_status'], 'structured_export_status': pf['structured_export_status']})
