@@ -156,19 +156,39 @@ issue #95 的 10 篇现代锚点必须遵守“一篇一 subagent”原则：每
 
 ## 8. SUMMARY.md 回填规则
 
+[SUMMARY.md](./SUMMARY.md) 是长期文库总账，不是 PR 施工记录。后续更新必须优先呈现“当前文库事实、当前规则、当前结论和后续接力入口”，把批次来源、下载失败细节和检索过程主要下沉到 [search/search-log.md](./search/search-log.md)、[search/candidate-pool.md](./search/candidate-pool.md) 或专项审计文件。
+
 [SUMMARY.md](./SUMMARY.md) 必须至少维护：
 
-1. 当前状态和 A1 边界。
-2. 证据等级口径。
-3. 检索关键词簇分析。
-4. 论文列表和相对路径链接。
-5. dry-run 覆盖矩阵。
-6. 脚手架模式总表。
-7. schema 修订 / 回填日志。
-8. 失败、阻塞与人工下载清单。
+1. 当前文库状态和总判断：明确当前收录数量、全文状态、manual-download 状态、A1 能支撑什么、不能支撑什么。
+2. 核心口径：阅读状态、证据等级、schema seed、主统计池、方法学参考池、schema seed / boundary pool、CCF / venue 字段。
+3. 统一论文总表：所有入账论文必须在一个主表中维护，不得按 PR 批次拆成多个主表；本目录显式 override 根级默认排序，主表按年份从高到低排列。
+4. 证据池 / 统计池分布：至少区分主统计池、方法学参考池、schema seed / boundary pool、待下载 / metadata-only。
+5. A1-M0--M6 元维度定义：解释每层的操作化问题、最低证据和当前主要启发。
+6. A1-M0--M6 逐篇覆盖矩阵：每篇论文至少给出 7 个元维度的短语级贡献，并链接到单篇 `review.md`。
+7. 当前 pattern 总结与 A2a 接力建议：说明 RQ、dimension、finding、evidence、validity、report structure 的当前观察和下一步处理方式。
+8. 当前风险与待复核：只保留影响后续工作的风险，例如图表视觉核对、CCF 官方 WAF、publisher final 差异、统计池误混风险。
 9. 更新时间降序日志，时间格式为 `yyyy-mm-dd hh:mm:ss`。
 
+主表建议字段：`状态`、`年份`、`标题`、`出版形态`、`期刊/会议/预印本`、`CCF 大类`、`CCF 等级`、`综述类型`、`schema seed`、`主统计池`、`证据角色`、`关键价值`、`详情`。
+
 emoji 列只写 emoji；中文释义放在表格外。
+
+### 8.1 三类证据池规则
+
+`eligible_for_statistical_synthesis` 只表示“是否进入主统计池”，不表示论文是否有学术价值。后续维护必须区分以下三类池：
+
+| 池 | 可进入条件 | 当前用途 |
+|---|---|---|
+| 主统计池 | 论文自身已经执行完成 SLR / SMS / tertiary / MLR / systematic mapping；有系统检索或等价语料构造、纳排 / 编码 / 数据抽取、可统计字段或结果；本地至少全文文本级 | A2a/A2b 统计字段频次、覆盖度、维度饱和度和 finding 支撑 |
+| 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 |
+| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 |
+
+当 `eligible_for_statistical_synthesis=false` 时，`metadata.json` 必须填写 `statistical_pool_exclusion_reason`；若条目仍可作 schema seed，应保留 `eligible_for_schema_seed=true` 并说明其证据角色。
+
+### 8.2 禁止按 PR 批次维护主表
+
+`SUMMARY.md` 的主论文表不得按“初始 dry-run”“#95 十篇”“本轮新增”等来源批次拆分。批次信息可记录在检索日志、候选池、审计文件或更新日志中；长期总账只按文库对象组织。若后续确需展示批次来源，应作为主表中的辅助字段或附录，不得替代统一主表。
 
 ## 9. dry-run 验收规则
 

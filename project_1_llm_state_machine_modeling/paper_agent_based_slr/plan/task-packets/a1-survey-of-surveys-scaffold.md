@@ -45,6 +45,9 @@
 - [x] #95 十篇现代维度锚点已完成一篇一 subagent 全文 `review.md` 并回填 SUMMARY；roadmap / proposal 条目已机器可读排除出统计池。
 - [x] A1-M0--M6 元维度字段已写入 GUIDE、schema、SUMMARY、candidate-pool 和 19 篇单篇 review。
 - [x] issue #95 十篇来源审计已写入 `survey_of_surveys/search/issue95-selection-audit.md`。
+- [x] `survey_of_surveys/SUMMARY.md` 已按长期文库总账重构：统一论文主表按年份降序排列，不再按 PR 批次拆分。
+- [x] `survey_of_surveys/SUMMARY.md` 与 `survey_of_surveys/GUIDE.md` 已明确主统计池、方法学参考池、schema seed / boundary pool 三类证据池标准。
+- [x] `survey_of_surveys/SUMMARY.md` 已包含 19 篇 × A1-M0--M6 逐篇覆盖矩阵，作为后续 A2a/A2b 接力的 SUMMARY 级总账视图。
 
 ## 6. 拒收检查
 
@@ -55,6 +58,9 @@
 5. 如果 `SUMMARY.md`、`search/candidate-pool.md` 或单篇 `review.md` 缺少出版形态、venue 短名链接、CCF 官方大类、CCF 官方等级、CCF 复核状态字段，应拒收。
 6. 如果新增 #95 十篇锚点未明确阅读状态，或把 roadmap / vision 条目当成 SLR/SMS 已采纳 pattern，应拒收。
 7. 如果 GUIDE / schema / SUMMARY 未同步 A1-M0--M6 元维度，或单篇 review 只写六类 pattern 不写 A1-M0--M6，应拒收。
+8. 如果 `SUMMARY.md` 主论文表仍按“初始 dry-run”“#95 十篇”“本轮新增”等 PR 批次拆分，而不是一个长期统一主表，应拒收。
+9. 如果 `SUMMARY.md` 没有明确主统计池、方法学参考池、schema seed / boundary pool 的进入标准，或把 roadmap / proposal / guideline 与完成型 SLR/SMS/MLR 统计池混算，应拒收。
+10. 如果 `SUMMARY.md` 没有提供 19 篇 × A1-M0--M6 的逐篇覆盖矩阵，应拒收。
 
 ## 7. dry-run 验收
 
@@ -68,7 +74,7 @@ A1 dry-run 必须满足：
 - 至少 1 个“不适用 / 证据不足”降级记录。
 - schema 缺口已回修或明确留给 A2a/A2b。
 
-当前验收记录见 [../../survey_of_surveys/SUMMARY.md](../../survey_of_surveys/SUMMARY.md) §5 和 §8。
+当前验收记录见 [../../survey_of_surveys/SUMMARY.md](../../survey_of_surveys/SUMMARY.md) §1、§3、§4、§5、§6、§7、§8，其中 §3 是统一年份降序主表，§4 是证据池 / 统计池解释，§5 是 A1-M0--M6 定义，§6 是逐篇覆盖矩阵，§7 是 pattern 总结，§8 是风险。
 
 ## 8. 验证命令
 
@@ -99,6 +105,45 @@ for f in reviews:
 print('survey_of_surveys A1 skeleton and dry-run assets ok')
 PY
 rg -n "首次自动化|PRISMA-compliant|完整覆盖|替代专家|100\+ 篇完整文库完成" project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys || true
+```
+
+SUMMARY 总账结构返工复验：
+
+```bash
+python - <<'PY'
+from pathlib import Path
+import re
+root = Path('project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys')
+summary = (root / 'SUMMARY.md').read_text(encoding='utf-8')
+for bad in ['### 5.1 A1 初始 dry-run', '### 5.2 #95 十篇现代维度锚点', 'A1 初始 dry-run 与失败路径', '#95 十篇现代维度锚点']:
+    if bad in summary:
+        raise SystemExit(f'batch table residue: {bad}')
+sec = re.search(r'## 3\. 统一论文总表.*?(?=\n## 4\.)', summary, re.S).group(0)
+years = [int(m.group(1)) for m in re.finditer(r'\| 🟢 \| (\d{4}) \|', sec)]
+if len(years) != 19 or years != sorted(years, reverse=True):
+    raise SystemExit(f'unexpected year order: {years}')
+mat = re.search(r'## 6\. A1-M0--M6 逐篇覆盖矩阵.*?(?=\n## 7\.)', summary, re.S).group(0)
+rows = [line for line in mat.splitlines() if line.startswith('| [')]
+if len(rows) != 19:
+    raise SystemExit(f'unexpected matrix rows: {len(rows)}')
+manual = (root / 'search/manual-download-needed.bib').read_text(encoding='utf-8')
+active = [line for line in manual.splitlines() if line.lstrip().startswith('@')]
+counts = (
+    len(list((root / 'papers').glob('*/review.md'))),
+    len(list((root / 'papers').glob('*/metadata.json'))),
+    len(list((root / 'papers').glob('*/paper.pdf'))),
+    len(list((root / 'papers').glob('*/paper_content.txt'))),
+    len(active),
+)
+if counts != (19, 19, 19, 19, 0):
+    raise SystemExit(f'unexpected asset counts: {counts}')
+for d in (root / 'papers').iterdir():
+    if d.is_dir():
+        txt = (d / 'review.md').read_text(encoding='utf-8')
+        if not all(f'A1-M{i}' in txt for i in range(7)):
+            raise SystemExit(f'{d} missing A1-M0--M6')
+print('summary long-term ledger structure ok')
+PY
 ```
 
 ## 9. 完成标准

@@ -7,7 +7,7 @@
 | PR | [#132](https://github.com/HansBug/research_ideas/pull/132) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/a1-survey-of-surveys-scaffold` |
-| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；本轮已纳入 #95 十篇现代维度锚点，补充 A1-M0--M6 元维度字段，并在用户补齐历史 PDF 后完成 19 篇 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`、0 个 active manual-download 条目的总账 |
+| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；本轮已纳入 #95 十篇现代维度锚点，补充 A1-M0--M6 元维度字段，并在用户补齐历史 PDF 后完成 19 篇 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`、0 个 active manual-download 条目的总账；最新返工已将 SUMMARY / GUIDE 重构为长期文库总账，统一年份降序主表、三类证据池和 19 × A1-M0--M6 覆盖矩阵已成为后续维护合同 |
 | 真实大语言模型 | 未运行；本 PR 不触发 provider 调用 |
 | `.env` | 未读取；本 PR 不需要 key |
 | 四个真实例子 | 不运行；上游 #101 对 A1 只要求 3--5 篇文库 dry-run |
@@ -28,7 +28,7 @@
 |---|---|
 | [../survey_of_surveys/README.md](../survey_of_surveys/README.md) | 文库入口、边界、文件说明和禁止误读。 |
 | [../survey_of_surveys/GUIDE.md](../survey_of_surveys/GUIDE.md) | 检索、筛选、证据等级、单篇目录、schema 回修、SUMMARY 回填和 dry-run 规则。 |
-| [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) | A1 总账、论文列表、覆盖矩阵、模式总表、schema 回修日志、失败路径和后续入口。 |
+| [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) | 长期文库总账：统一年份降序主表、三类证据池、A1-M0--M6 定义、19 篇逐篇覆盖矩阵、pattern 总结、风险和 A2a/A2b 接力入口。 |
 | [../survey_of_surveys/search/](../survey_of_surveys/search/) | 检索日志、候选池、issue #95 十篇来源审计和 BibTeX 格式人工下载清单。 |
 | [../survey_of_surveys/patterns/pattern-field-schema.md](../survey_of_surveys/patterns/pattern-field-schema.md) | 六类 pattern、证据等级、字段总表、缺失值语义和回修规则。 |
 | [../survey_of_surveys/papers/](../survey_of_surveys/papers/) | 19 个单篇目录；19 个含 `metadata.json`、`paper.pdf`、`paper_content.txt` 和 `review.md`；当前无 active metadata-only / 需人工下载条目。 |
@@ -47,6 +47,7 @@
 9. 按用户新增要求，把来源字段拆为 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`、`CCF 复核状态`，并同步到 SUMMARY、candidate-pool、19 篇单篇 review 和 schema。
 10. 按用户新增要求，从 issue #95 纳入 10 篇现代维度锚点，已建立 `metadata.json` / `bibtex.bib` / `paper.pdf` / `paper_content.txt` / `review.md`，并按一篇一 subagent 原则完成全文 review 与 SUMMARY 回填。
 11. 在 GUIDE、schema、patterns README、search log、候选池和 [../survey_of_surveys/search/issue95-selection-audit.md](../survey_of_surveys/search/issue95-selection-audit.md) 中补充 A1-M0--M6 元维度规则、#95 锚点状态、年份口径和统计池资格。
+12. 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) 与 [../survey_of_surveys/GUIDE.md](../survey_of_surveys/GUIDE.md)：取消“初始 dry-run / #95 十篇”等批次化主表，改为统一年份降序论文总表；明确主统计池、方法学参考池、schema seed / boundary pool 三类证据池；新增 19 篇 × A1-M0--M6 覆盖矩阵；要求后续 SUMMARY 按长期文库对象维护而非按 PR 施工批次维护。
 
 ## 5. dry-run 验收摘要
 
@@ -59,11 +60,13 @@
 | 至少 1 篇非 LLM4SE 子领域 | ML4SE、RE、Agile RE、EBSE 方法学、MDE4ML、MDSE、DevSecOps、secondary-study artifacts，满足 |
 | 至少 1 个降级 / 失败路径 | 3 个历史 metadata-only / manual-download-needed 已闭环；另有 roadmap / proposal 统计池排除，满足 |
 | schema 回修 | 已记录 review type、前序关系、SE 子领域、挑战/行动、来源字段、统计池资格、证据角色、年份口径等多类回修，满足 |
+| SUMMARY 长期总账 | 已取消批次化主表，19 篇统一按年份降序排列；三类证据池与 19 × A1-M0--M6 覆盖矩阵已写入 SUMMARY / GUIDE，满足 |
 
 ## 6. 验证记录
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
+| 2026-06-29 17:48:49 | SUMMARY / GUIDE 长期文库总账化返工复验 | 通过结构自检：旧分批标题已移除；统一论文总表 19 行且年份降序；A1-M0--M6 覆盖矩阵 19 行；19 个 `review.md` 均含 A1-M0--M6；19 review / 19 metadata / 19 PDF / 19 text / active manual-download=0；本轮等待三路 reviewer 复审。 |
 | 2026-06-29 16:59:12 | 用户本地 Zotero PDF 补齐复验 | 通过；app reviews SLR 2022、Petersen 2008、Petersen 2015 已复制 `paper.pdf`、生成 `paper_content.txt`、重写 `review.md` / `metadata.json`；文件系统统计更新为 19 review / 19 metadata / 19 PDF / 19 text；active manual-download=0。 |
 | 2026-06-29 16:13:28 | 三路 reviewer C/I 修复复验 | 通过；当时 19 篇均有 `metadata.json` 必填字段，16 个 PDF/text、3 个 manual-download 条目一致；SUMMARY §9/§12 降序；`git diff --check` 两点工作区口径通过；非 CCF venue 的复核状态已从 `--` 改为明确说明。后续 16:59 已升级为 19/19/19/19 与 active manual-download=0。 |
 | 2026-06-29 15:41:07 | #95 十篇现代维度锚点扩展 | 已获取 10 篇公开 PDF / 开放预印本并生成 `paper_content.txt`；已补 A1-M0--M6 元维度规则；10 篇均已完成 `review.md` 并回填 SUMMARY；早期 9 篇也已补齐 `metadata.json`，使 19 篇具备统一机器可读字段。 |
@@ -89,6 +92,7 @@
 | 内部 sidecar 实现预审 | codex sidecar | 0C / 3I / 2M | 已修 dry-run 数量口径、review 不可迁移字段、schema 字段名漂移和 `plan/README.md` 状态说明；M2 记录为人工解释型 grep 风险，不阻塞。 |
 | 内部 sidecar 预审 | codex sidecar（Boole the 2nd） | 0C / 3I / 1M | 已修 progress 19/16/3 口径、task packet 勾选、interactive 年份、`git diff --check` EOF 问题。 |
 | 实现阶段正式审查 | codex / claude / deepseek reviewer | 已发现并修复 I 级问题 | 修复 `git diff --check`、19 篇 metadata、TOSEM 年份口径、SUMMARY 日志降序、CSUR/非 CCF 复核状态；等待本次 push 后复审。 |
+| SUMMARY / GUIDE 总账化返工复审 | codex / claude / deepseek reviewer | 待执行 | 复审重点改为：SUMMARY 是否已脱离 PR 批次施工记录、三类证据池是否可执行、19 × A1-M0--M6 矩阵是否完整、GUIDE 是否能约束后续 A2a/A2b。 |
 
 ## 8. 剩余风险
 
@@ -103,5 +107,5 @@
 - Required references/scripts: `sub-agents`、`ai-research-writing-skill` story/reviewer references、`research-planning` planning references、`tools.pdf_extractor.py`。
 - Inputs consumed: PR #101 / #132 body、A0/S0/B0/S0B 文档、现有 baselines/GUIDE/SUMMARY、subagent dry-run 样本建议。
 - Artifacts produced: `survey_of_surveys/` 文库、19 个单篇 `review.md`、19 个 `paper_content.txt`、19 个 `paper.pdf`、0 条 active manual-download BibTeX、A1 task packet、更新后的 progress / README / references。
-- Verification run: PDF 提取、`git diff --check`、文件存在性、Markdown 相对链接、PDF 类型、#95 年份/统计池资格、manual-download-needed 条目数和禁用强主张检查均已运行；最新复验见 §6。
+- Verification run: PDF 提取、`git diff --check`、文件存在性、Markdown 相对链接、PDF 类型、#95 年份/统计池资格、manual-download-needed 条目数、SUMMARY 统一主表 / 年份降序 / A1-M0--M6 矩阵结构和禁用强主张检查均已运行；最新复验见 §6。
 - Remaining risk: 文库规模和现代覆盖仍不足以写完整 paper 结论；必须留给 A2a/A2b。
