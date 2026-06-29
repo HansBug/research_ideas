@@ -6,8 +6,8 @@
 
 | 约束 ID | 约束 | R5.7 行动 |
 |---|---|---|
-| R56-H1 | 主实验 headline scope 限定为 T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集。 | taxonomy 只能在该范围内定义 main repair target。 |
-| R56-H2 | T0.5 timer-like cue 只能是 caveat / annotation。 | 可定义为 monitor / caveat，不得定义 timed automata repair target。 |
+| R56-H1 | 主实验 headline scope 的 R5.6 上限限定为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 仅作为当前无独立样例的候选范围上限。 | taxonomy 只能在该范围内定义 main repair target；若 R7 无 EFSM-lite eligible 样例，headline wording 必须收窄为 FSM/HSM/离散 statechart。 |
+| R56-H2 | T0.5 timer-like cue 已排除出 T0 headline denominator，只能是 caveat / annotation。 | 可定义为 monitor / caveat，不得定义 timed automata repair target，也不得进入 main metric denominator。 |
 | R56-H3 | Digital Camera / T1-ish case 只作 supplementary stress / limitation。 | 可作 stress dry-run，不支撑 T0 主 claim。 |
 | R56-H4 | timed automata、hybrid automata、arbitrary UML、protocol FSM 不进入 main claim。 | taxonomy 中如出现，只能列 `out_of_scope` / `related_work_only`。 |
 | R56-H5 | conversion / normalization / `.fcstm` lowering 不计 repair gain。 | repair target 必须从转换后 `STM_0` 出发，三阶段归因不可省略。 |
@@ -35,7 +35,7 @@ R5.7 若新增 repair target taxonomy，至少应包含以下字段：
 | `semantic_element` | event / trigger / guard / action / hierarchy / pseudo-state / temporal cue / NL traceability 等。 |
 | `scope_status` | `main` / `caveat` / `supplementary_stress` / `excluded`。 |
 | `time_level` | T0 / T0.5 / T1+。 |
-| `structure_family` | FSM / HSM / EFSM-lite / discrete statechart subset / excluded family。 |
+| `structure_family` | FSM / HSM / discrete statechart subset / EFSM-lite-candidate / excluded family。 |
 | `nl_evidence_required` | 是否需要 NL 明示证据。 |
 | `representation_evidence_required` | 是否需要 raw `STM_0` / canonical / `.fcstm` / loss ledger 证据。 |
 | `repair_action_allowed` | must_fix / should_fix / monitor / not_repair_target / out_of_scope。 |
@@ -72,9 +72,9 @@ R5.7 定义 taxonomy 时必须给每类 target 同时写出 claim 强度和降�
 1. `condition_like_label_lowered_as_event` 到底是 trigger、guard、action、acceptable abstraction，还是 conversion artifact？
 2. entry / exit / do activity 文本应进入 must-fix、should-fix、monitor，还是仅作为 loss ledger？
 3. pseudo-state relay 与 composite target lowering 是否影响 behavior trace，还是只影响 representation readability？
-4. T0.5 microwave cluster 在主实验中是仅作 caveat、单独 annotation stratum，还是从 headline denominator 中排除？
+4. T0.5 microwave cluster 已排除出 T0 headline denominator；R5.7 只需决定其呈现为 caveat-only、单独 annotation stratum、stress dry-run，还是完全不进入 R7 主协议。
 5. Digital Camera / T1-ish cluster 是否只保留 stress dry-run，还是完全排除出 R7 主协议？
-6. `EFSM-lite` 的变量 / guard / action 边界是否能被 pyfcstm diagnostics 与 human rubric 可靠裁决？
+6. `EFSM-lite` 当前没有独立 cluster denominator；R5.7 需要判断变量 / guard / action 边界是否能被 pyfcstm diagnostics 与 human rubric 可靠裁决，若不能则只能保留为 taxonomy candidate 或从 headline claim 删除。
 
 ## 7. 交接给 R6 / R7 的提醒
 

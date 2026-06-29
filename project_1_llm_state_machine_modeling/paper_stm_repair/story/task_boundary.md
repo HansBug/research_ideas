@@ -79,7 +79,7 @@ R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯�
 
 | 层级 | R5.6 角色 | 证据入口 | 说明 |
 |---|---|---|---|
-| T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集 | 主线范围 | [model_scope.md](./model_scope.md)、[../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 可支撑后续主实验 headline scope，但不自动证明 repair 效果。 |
+| T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 候选上限 | 主线范围 / pre-eligibility envelope | [model_scope.md](./model_scope.md)、[../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 可支撑后续主实验 headline scope 的上限，但不自动证明 repair 效果；当前无独立 EFSM-lite cluster，R7 若无 eligible 样例必须收窄。 |
 | T0.5 timer-like cue under event abstraction | caveat / annotation | [model_scope.md](./model_scope.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 timed automata 主 claim；只用于说明边界或 loss/annotation。 |
 | Digital Camera / T1-ish stress | supplementary stress / limitation | [model_scope.md](./model_scope.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 T0 主 claim，只作压力、负证据或 appendix。 |
 | timed automata / hybrid automata / arbitrary UML / protocol FSM | excluded / related-work-only | [model_scope.md](./model_scope.md) | 不进入 headline claim；不得通过 R5.7 taxonomy 重新打开。 |

@@ -8,10 +8,10 @@
 
 | 问题 | R5.6 冻结结论 | 证据 |
 |---|---|---|
-| 主实验优先 seed 池 | `llms-emp-stm-subset` 是当前第一优先主 seed 池。 | [src-case]、[src-cluster]、[src-profile-report] |
+| 主实验优先 seed 池 | `llms-emp-stm-subset` 是 R5.5/R5.6 阶段经设计决策优先深度画像的主 seed 池；这不是对所有候选池做 pairwise ranking 后得到的事实排名。 | [src-case]、[src-cluster]、[src-profile-report] |
 | 主池规模 | 60 raw pairs = 10 个唯一 NL clusters × 6 个 LLM-generated `STM_0`。 | [clm-denominator] |
 | 当前链路状态 | 16 converted / 44 partial / 0 blocked；60/60 canonical converted、parse ok、inspect ok。 | [clm-status] |
-| 主线模型范围 | T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集。 | [clm-main-scope] |
+| 主线模型范围 | T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；`EFSM-lite` 作为 in-scope envelope / candidate mode 保留，但当前 `llms-emp` 主池没有被独立标为 `EFSM-lite` 的 cluster。 | [clm-main-scope] |
 | caveat | T0.5 timer-like cue 只作为 caveat / annotation，不支撑 timed automata claim。 | [clm-t05-caveat] |
 | supplementary stress | Digital Camera / T1-ish case 只作 supplementary stress / limitation / negative evidence。 | [clm-t1-stress] |
 | 禁止外推 | 不外推到 timed automata、hybrid automata、arbitrary UML、protocol FSM、完整形式化验证或任意 UML 修复。 | [clm-forbidden-scope] |
@@ -23,7 +23,7 @@ R5.6 的范围判定必须把**时间等级**和**结构家族**拆成正交维�
 
 | 时间等级 / 结构家族 | FSM | HSM | EFSM-lite | 离散 UML-SysML statechart 子集 | protocol FSM | timed automata | hybrid automata | arbitrary UML |
 |---|---|---|---|---|---|---|---|---|
-| T0 离散 | main | main | main | main，仅限 §3 子集 | excluded / related-work-only | excluded | excluded | excluded |
+| T0 离散 | main | main | main envelope；当前主池 0 个独立 `EFSM-lite` cluster | main，仅限 §3 子集 | excluded / related-work-only | excluded | excluded | excluded |
 | T0.5 timer-like cue | caveat / annotation | caveat / annotation | caveat / annotation | caveat / annotation | excluded | excluded | excluded | excluded |
 | T1+ / 真时间语义 | supplementary-stress 或 excluded | supplementary-stress 或 excluded | supplementary-stress 或 excluded | supplementary-stress 或 excluded | excluded | excluded | excluded | excluded |
 
@@ -36,11 +36,11 @@ R5.6 的范围判定必须把**时间等级**和**结构家族**拆成正交维�
 
 ### 2.2 Denominator 与证据入口
 
-R5.6 对 `llms-emp-stm-subset` 使用两个 denominator，避免把 timer-like cue 或 stress case 混入 T0 headline：
+R5.6 对 `llms-emp-stm-subset` 使用四个报告口径，其中主结果分母与 caveat / stress / 全量资源分母必须区分，避免把 timer-like cue 或 stress case 混入 T0 headline：
 
 | 口径 | cluster | pair | 用途 | 证据 |
 |---|---:|---:|---|---|
-| `T0 headline main` | 8 | 48 | R7/R8 主结果优先 denominator；只能覆盖离散 FSM/HSM/EFSM-lite/离散 statechart 子集。 | [src-case]、[src-cluster]、[cmd-r56-counts] |
+| `T0 headline main` | 8 | 48 | R7/R8 主结果优先 denominator；当前覆盖离散 FSM/HSM/离散 statechart 子集，不包含独立 `EFSM-lite` cluster。 | [src-case]、[src-cluster]、[cmd-r56-counts] |
 | `T0.5 caveat / annotation` | 1 | 6 | 可作为 timer-like cue caveat、annotation 或 loss 讨论；不得进入 timed automata claim。 | [src-case]、[src-cluster]、[cmd-r56-role-time] |
 | `T1-ish supplementary stress` | 1 | 6 | Digital Camera / T1-ish 只作 stress、limitation 或 appendix。 | [src-case]、[src-cluster]、[cmd-r56-role-time] |
 | `all llms-emp raw pairs` | 10 | 60 | seed 池总规模、转换 readiness、资源画像；不是 60 个独立需求。 | [clm-denominator] |
@@ -51,9 +51,9 @@ R5.6 对 `llms-emp-stm-subset` 使用两个 denominator，避免把 timer-like c
 
 | 判定类 | 适用单元格 | 为什么这样判定 | 证据 / 后续检查 |
 |---|---|---|---|
-| `main` | T0 × FSM/HSM/EFSM-lite/离散 statechart 子集 | 当前主 seed 池中 8/10 cluster、48/60 pair 是 T0；这些制品可经 canonical / parse / inspect 链路进入后续 repair 前置表示。 | [src-case]、[src-cluster]、[cmd-r56-counts]；R7 仍需 eligibility 复核。 |
-| `caveat / annotation` | T0.5 × FSM/HSM/EFSM-lite/离散 statechart 子集 | timer-like cue 只体现文本时间提示或 event abstraction，不具备 clocks / timed automata 语义。 | [cmd-r56-role-time]；R5.7 只能定义 monitor / annotation / loss，不得定义 timed repair target。 |
-| `supplementary-stress 或 excluded` | T1+ × FSM/HSM/EFSM-lite/离散 statechart 子集 | Digital Camera / T1-ish cluster 可暴露范围压力，但不能支撑 T0 headline 或 timed semantics。 | [cmd-r56-role-time]；R7 若纳入只能列 supplementary/stress，不进主 denominator。 |
+| `main` | T0 × FSM/HSM/离散 statechart 子集；T0 × EFSM-lite 仅作 in-scope envelope / candidate mode | 当前主 seed 池中 8/10 cluster、48/60 pair 是 T0；这些制品可经 canonical / parse / inspect 链路进入后续 repair 前置表示。当前 `cluster_profiles.structure_family` 没有独立 `EFSM-lite` 取值，R7 若无新增证据应收窄 headline wording。 | [src-case]、[src-cluster]、[cmd-r56-counts]；R7 仍需 eligibility 复核。 |
+| `caveat / annotation` | T0.5 × FSM/HSM/离散 statechart 子集；EFSM-lite-candidate 仍仅为 annotation / monitor | timer-like cue 只体现文本时间提示或 event abstraction，不具备 clocks / timed automata 语义。 | [cmd-r56-role-time]；R5.7 只能定义 monitor / annotation / loss，不得定义 timed repair target。 |
+| `supplementary-stress 或 excluded` | T1+ × FSM/HSM/离散 statechart 子集；EFSM-lite-candidate 不改变 stress / excluded 角色 | Digital Camera / T1-ish cluster 可暴露范围压力，但不能支撑 T0 headline 或 timed semantics。 | [cmd-r56-role-time]；R7 若纳入只能列 supplementary/stress，不进主 denominator。 |
 | `excluded / related-work-only` | protocol FSM / timed automata / hybrid automata / arbitrary UML 所有时间等级 | 当前数据、表示桥和评价门都未冻结这些模型族的语义、diagnostics 或 repair target。 | [clm-forbidden-scope]；若后续出现相关样例，只能作 related work、limitation 或 negative evidence。 |
 
 ## 3. `UML-SysML statechart` 的 in-scope 子集
@@ -72,7 +72,7 @@ R5.6 对 `llms-emp-stm-subset` 使用两个 denominator，避免把 timer-like c
 
 以下构造显式不属于 main scope：orthogonal region、并发 / fork / join、deep history、deferred event、submachine state、复杂 signal / change / time event 语义、连续时间约束、混成动态、跨 diagram 组合语义。若后续样例出现这些构造，只能进入 caveat / supplementary-stress / excluded，不得提升为 main claim [clm-statechart-subset]。
 
-### 3.1 `EFSM-lite` 的工作定义
+### 3.1 `EFSM-lite` 的工作定义与当前证据状态
 
 R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**离散变量、文本 guard / action 与有限状态控制流**，不是完整 data-rich EFSM 或协议状态机。进入 main scope 的 `EFSM-lite` 必须同时满足：
 
@@ -82,11 +82,13 @@ R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**
 
 若某个样例的变量、数据结构或消息协议需要独立数据语义才能判定行为正确性，R5.6 只能把它标为 caveat / supplementary-stress / excluded；R5.7 可把相关现象列为 candidate target，但不得把它升级为 main repair claim。
 
+当前证据状态需要特别区分：`EFSM-lite` 是 R5.6 为后续 taxonomy 预留的**范围上限 / 候选模式**，不是 `llms_emp_cluster_profiles.jsonl` 中已经出现的独立 `structure_family` 标签。当前 10 个 cluster 的结构族只有 6 HSM / 3 UML-SysML statechart / 1 FSM，独立 `EFSM-lite` cluster 数为 0 [src-cluster]、[cmd-r56-counts]。因此 R7 若不能补充或裁决出可审计的 EFSM-lite eligible 样例，paper headline 必须收窄为 FSM/HSM/离散 statechart 子集，不得把 EFSM-lite 写成已有数据覆盖的模型族。
+
 ## 4. 资源角色冻结
 
 | 资源 / 样例族 | R5.6 角色 | 主体证据 | 可写内容 | 禁止写法 |
 |---|---|---|---|---|
-| `llms-emp-stm-subset` | main seed pool | 60 pair / 10 NL / 16 converted / 44 partial / 0 blocked | 主实验优先围绕其 T0 离散 FSM/HSM/statechart artifacts 设计。 | 不写成 60 个独立需求；不把 partial 当失败；不把 conversion readiness 当 repair result。 |
+| `llms-emp-stm-subset` | main seed pool | 60 pair / 10 NL / 16 converted / 44 partial / 0 blocked | 主实验优先围绕其 T0 离散 FSM/HSM/statechart artifacts 设计；离散 guard/action/变量线索可作为 R5.7 `EFSM-lite` 候选，但当前没有独立 `EFSM-lite` cluster denominator。 | 不写成 60 个独立需求；不把 partial 当失败；不把 conversion readiness 当 repair result；不把 EFSM-lite 写成已有独立样本族。 |
 | selected smoke examples | dry-run / sanity panel | 4 个静态 `<NL, STM_0, fcstm>` 样例 | 用于 R5.6/R5.7/R6 最小连通性和读者理解。 | 不作为最终实验上限或主结果替代。 |
 | `sefm-llm-state-machine` | readable smoke / small example | 1 个 SSC7 generated Umple 输出 + 9 个 NL description | 可作可读补充案例或格式差异说明。 | 不按 9 个 generated pair 计算。 |
 | `unified-uml-multimodal-validation` | synthetic stress / negative evidence | 989 个有效 generated PlantUML pair | 可作合成压力源，说明跨来源泛化风险。 | 不包装成真实控制系统需求主池。 |
@@ -99,7 +101,7 @@ R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**
 |---|---|---|---|---|
 | 任务定义 | “We study feedback-driven repair of initial state-machine artifacts conditioned on NL requirements.” | main evidence supports | 若 R7/R8 样本不足，改为 “pilot study of ...”。 | 不写 “first/strongest NL-to-STM generator”。 |
 | 主 seed 池 | “We use an auditable seed pool of 10 NL clusters and 60 LLM-generated initial state machines.” | main evidence supports | 若 eligibility 缩小，按 eligible subset 报告。 | 不写成 60 独立需求。 |
-| 模型范围 | “Our main scope is discrete T0 FSM/HSM/EFSM-lite/statechart artifacts.” | main evidence supports | 若 R7 排除 EFSM-lite / statechart 子集，按更窄范围降级。 | 不外推到 timed / hybrid / arbitrary UML / protocol FSM。 |
+| 模型范围 | “Our main scope is discrete T0 FSM/HSM/statechart artifacts, with EFSM-lite kept as a candidate in-scope envelope pending R7 eligibility.” | scope upper envelope / narrowing risk；FSM/HSM/statechart 有当前样例支撑，EFSM-lite pending / zero-current-example | 若 R7 排除 EFSM-lite / statechart 子集，按更窄范围降级。 | 不外推到 timed / hybrid / arbitrary UML / protocol FSM；不把 EFSM-lite 写成当前已有独立数据覆盖。 |
 | Better STM | “Better STM is an evaluation target under pre-registered diagnostics, scenarios, regression and adjudication.” | current support = definition only | R8 前只能写 “will be evaluated”。 | 不写已证明 improvement。 |
 | Repair loop 效果 | “The workflow is designed to support structured repair feedback.” | current support = design only | R8 前写设计，不写效果。 | 不写 repair loop 已提升质量。 |
 | Conversion attribution | “We separate conversion readiness from repair gain.” | main evidence supports | 若 R8 台账不完整，只作 case analysis。 | 不把 normalization / lowering / parsing success 算 repair gain。 |
@@ -132,7 +134,7 @@ R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**
 |---|---|---|---|---|---|---|---|
 | [clm-denominator] | `R5.6-SCOPE-C1` | `llms-emp` denominator 是 60 raw pairs = 10 unique NL clusters × 6 LLM outputs。 | count | [src-case]、[src-cluster] | [cmd-r56-counts] | high | 不可写成 60 独立需求。 |
 | [clm-status] | `R5.6-SCOPE-C2` | 当前状态为 16 converted / 44 partial / 0 blocked；60/60 canonical converted、parse ok、inspect ok。 | count | [src-case]、[src-r552-report] | [cmd-r56-counts] | high | 只能说明 pre-repair readiness。 |
-| [clm-main-scope] | `R5.6-SCOPE-C3` | 主线模型范围是 T0 离散 FSM/HSM/EFSM-lite/离散 statechart 子集。 | decision | [src-cluster]、[src-scope-handoff] | [cmd-r56-counts] | medium | R7 eligibility 可进一步收窄。 |
+| [clm-main-scope] | `R5.6-SCOPE-C3` | 主线模型范围上限是 T0 离散 FSM/HSM/离散 statechart 子集，并把 EFSM-lite 作为候选 in-scope envelope 保留。 | decision | [src-cluster]、[src-scope-handoff] | [cmd-r56-counts] | medium | 当前主池 0 个独立 EFSM-lite cluster；R7 eligibility 可进一步收窄到 FSM/HSM/离散 statechart。 |
 | [clm-t05-caveat] | `R5.6-SCOPE-C4` | T0.5 只作为 timer-like caveat / annotation。 | classification | [src-case]、[src-cluster] | [cmd-r56-counts] | high | 不支撑 timed automata。 |
 | [clm-t1-stress] | `R5.6-SCOPE-C5` | Digital Camera / T1-ish cluster 只作 supplementary stress。 | classification | [src-case]、[src-cluster] | [cmd-r56-counts] | high | 不支撑 T0 main claim。 |
 | [clm-forbidden-scope] | `R5.6-SCOPE-C6` | timed / hybrid / arbitrary UML / protocol FSM 均不进入 headline claim。 | prohibition | [src-scope-handoff]、本文件 §2–§3 | 人工复验 | high | related work 可讨论，但不作结果外推。 |
