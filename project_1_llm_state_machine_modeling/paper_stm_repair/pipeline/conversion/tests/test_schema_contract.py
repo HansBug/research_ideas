@@ -81,10 +81,14 @@ def test_committed_recovery_report_validates_against_schema():
         (not item["main_eligibility_included"]) or "PUML.NORM.alias_embedded_pseudostate_marker" not in item.get("rule_ids", [])
         for item in report["items"]
     )
-    assert all(
-        (not item["main_eligibility_included"]) or "when" not in json.dumps(item.get("semantic_preservation_audit"), ensure_ascii=False).lower()
-        for item in report["items"]
-    )
+    # Orphan `when` lines are high-risk and must not enter main eligibility,
+    # but R5.5.2 intentionally permits the narrow low-risk
+    # `SRC --> TGT when : guard` cleanup as `transition_when_label`.
+    for item in report["items"]:
+        if item["main_eligibility_included"]:
+            assert "PUML.NORM.comment_orphan_when" not in item.get("rule_ids", [])
+            if "when" in json.dumps(item.get("semantic_preservation_audit"), ensure_ascii=False).lower():
+                assert "PUML.NORM.transition_when_label" in item.get("rule_ids", [])
     assert all(
         not str(item.get("raw_candidate_path", "")).startswith("runs/")
         for item in report["items"]
@@ -106,6 +110,10 @@ def test_committed_normalization_ledger_validates_against_schema():
     for row in rows:
         jsonschema.Draft202012Validator(schema).validate(row)
         assert row["repair_contribution_allowed"] is False
+        assert row["source_pairs_path"].endswith("assets/extracted/pairs.jsonl")
+        assert row["source_locator"]
+        assert len(row["source_line_sha256"]) == 64
+        assert len(row["source_file_sha256"]) == 64
     assert any(row["rule_id"] == "PUML.NORM.fork_join_decl_to_state" and row["concurrency_degraded"] for row in rows)
 
 

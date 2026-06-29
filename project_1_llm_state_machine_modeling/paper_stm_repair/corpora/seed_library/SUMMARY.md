@@ -55,13 +55,13 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 
 | 指标 | 数量 | 可复算位置 | 注意事项 |
 |---|---|---|---|
-| 去重候选 | 47 | §5 候选全集；[归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/candidate_matrix.md) | R1.7 有界快照 v4。 |
-| 筛查入账 | 47 | [归档 screening_ledger.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/screening_ledger.md)；§14 迁移表 | 与候选 ID 一一对应。 |
+| 去重候选 | 47 | §5 候选全集；[归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-candidate-matrix.md) | R1.7 有界快照 v4。 |
+| 筛查入账 | 47 | [归档 screening_ledger.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-screening-ledger.md)；§14 迁移表 | 与候选 ID 一一对应。 |
 | 单条目证据目录 | 36 | §8 本地证据容器表；`find corpora/seed_library -mindepth 1 -maxdepth 1 -type d` | `fsm-bench-20` 是 仅制品 / 流水线备选。 |
 | R1.7 检索轮次哨兵 | 8 | §11 检索覆盖摘要；[归档 search_rounds/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/) | archive 另含 R1.6 与早期检索记录。 |
-| 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/baseline_seed_method_crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
+| 旧九生成基线映射 | 9/9 | §8.1 旧九映射；[归档 baseline_seed_method_crosswalk.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-baseline-seed-method-crosswalk.md) | 这是 seed 方法集合，不是 修正基线。 |
 | 一手 registry 状态 | 3 / 1 / 2 / 10 / 0 | [REGISTRY.md](./REGISTRY.md) §2 | 🟢 final_pool_ready=3；🟡 conditional_final_pool=1；🟠 pipeline_only=2；⚪ paper_reconstructable=10；🔴 related_only=0。 |
-| smoke 用代表性样例集合 | 4 | [selected_seed_examples/README.md](../../selected_seed_examples/README.md) | 当前 4 例均来自一手 `NL + generated STM_0` pair：LLMS-EMP 2 例、SEFM 1 例、Unified UML 1 例；仅作后续工具链最小连通性自检，不是最终实验集合。 |
+| smoke 用代表性样例集合 | 4 | [selected_seed_examples/README.md](../../selected_seed_examples/README.md) | 当前 4 例均来自一手 `NL + generated STM_0` pair：LLMS-EMP 3 例、SEFM 1 例；Unified UML 与 TTool XML 已退出当前四例 selected smoke，只保留为后续 synthetic / XML 专项线索。仅作后续工具链最小连通性自检，不是最终实验集合。 |
 | 人工下载队列状态 | 11 / 2 / 2 / 1 | §9 人工队列 | 已下载并复核 / 已下载后排除 / 元数据排除 / 仍受阻。 |
 
 ## 3. 定义、枚举与 emoji 口径
@@ -172,12 +172,12 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 
 ## 5. 候选全集：基础事实与资格矩阵（47 行）
 
-本节把旧宽表拆成多张窄表。§5 只记录元数据、输入输出、生成关系和资格；§7 另列资源可获取性；§8 只列本地证据容器完整性。更细历史原表见 [归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/candidate_matrix.md)。 `证据` 列只提供来源指针或本地分析入口，不代表对应外部资源已经可获取，资源状态必须回到 §7 判读。
+本节把旧宽表拆成多张窄表。§5 只记录元数据、输入输出、生成关系和资格；§7 另列资源可获取性；§8 只列本地证据容器完整性。更细历史原表见 [归档 candidate_matrix.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-candidate-matrix.md)。 `证据` 列只提供来源指针或本地分析入口，不代表对应外部资源已经可获取，资源状态必须回到 §7 判读。
 
 | ID | 年份 | 来源批次 | NL类型 | STM类型 | T0 | 关系 | 文献资格 | 入池资格 | 当前角色 | 主要风险 | 证据 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | `sefm-llm-state-machine` | 2026 | 旧基线 / 复现 | 系统描述 | UML statechart / Umple | 🟢 | 🟢 | 🟢 | 🟢 | 一手 registry `final_pool_ready` | 4open ZIP 已 committed，SSC7 generated pair trace verified，eligible=1；另有 7 个 reference-only + 1 个 ATAS 纯 NL-only caveat；assets 见 [assets/README.md](./sefm-llm-state-machine/assets/README.md) | [seed_desc](./sefm-llm-state-machine/seed_desc.md) |
-| `llms-emp-stm-subset` | 2024 | 旧基线 / 复现 | 需求文本 | SysML / PlantUML STM | 🟢 | 🟢 | 🟢 | 🟢 | 一手 registry `final_pool_ready` | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；10 个唯一 NL × 6 个 LLM；需隔离 reference / checking 列；reference canonical case=10、exact unique reference PlantUML=11 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
+| `llms-emp-stm-subset` | 2024 | 旧基线 / 复现 | 需求文本 | SysML / PlantUML STM | 🟡 | 🟢 | 🟢 | 🟢 | 一手 registry `final_pool_ready` | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；10 个唯一 NL × 6 个 LLM；R5.5 复核为 mixed：8 T0 / 1 T0.5 / 1 T1，Digital Camera 仅作 supplementary stress；详见 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)；需隔离 reference / checking 列；reference canonical case=10、exact unique reference PlantUML=11 | [seed_desc](./llms-emp-stm-subset/seed_desc.md) |
 | `designing-fsm-gpt4` | 2026 | 旧基线 | 运行时合成需求 | DFSM / Mealy CSV | 🟢 | 🟢 | 🟡 | 🟠 | 一手 registry `pipeline_only` / NL+源码条件可复跑 | 作者源码已按 commit 固定并完成连通性检查；NL 是 runtime synthetic，不是冻结 corpus；无作者发布 pair，复跑输出需 run record | [seed_desc](./designing-fsm-gpt4/seed_desc.md) |
 | `unified-uml-multimodal-validation` | 2026 | R1.6 + HF 制品 | 合成需求 | PlantUML | 🟢 | 🟢 | 🟡 | 🟢 | 一手 registry `final_pool_ready` | HF parquet 999 行已全量 trace verified，989 条有效 PlantUML；synthetic / 非控制系统 / 无逐行 validation score caveat | [seed_desc](./unified-uml-multimodal-validation/seed_desc.md) |
 | `fsm-bench-20` | 2026 | R1.6 + Zenodo/GitHub | 需求文本 | FSM JSON | 🟢 | 🟢 | 🟢 | 🟠 | 一手 registry `pipeline_only` | 公开包缺作者 generated `STM_0`；需本项目复跑另建 seed | [seed_desc](./fsm-bench-20/seed_desc.md) |
@@ -402,8 +402,8 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 |---|---|---|---|---|
 | `protocol-flowfsm-sentinel` | `X_PROTOCOL` | RFC / network 协议 FSM；非控制系统 T0 seed | 协议域方法证据 / 防误收 | §5 / §7；旧基线 path |
 | `3gpp-protocol-sentinel` | `X_PROTOCOL` | 3GPP 标准协议 FSM；非控制系统四例 | 协议域 ensemble / span grounding 线索 | §5 / §7；旧基线 path |
-| `bpmn-process-sentinel` | `X_PROCESS` | BPMN / workflow / resource-flow 与 STM-family 不同 | 防误收 | [exclusion_ledger](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/exclusion_ledger.md) |
-| `formal-spec-sentinel` | `X_FORMAL_SPEC` | Petri / CSP / Event-B / TLA+ / LTL/STL 或 形式化 scenario | 防误收 | [exclusion_ledger](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/exclusion_ledger.md) |
+| `bpmn-process-sentinel` | `X_PROCESS` | BPMN / workflow / resource-flow 与 STM-family 不同 | 防误收 | [exclusion_ledger](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-06-18-24-exclusion-ledger.md) |
+| `formal-spec-sentinel` | `X_FORMAL_SPEC` | Petri / CSP / Event-B / TLA+ / LTL/STL 或 形式化 scenario | 防误收 | [exclusion_ledger](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-06-18-24-exclusion-ledger.md) |
 | `repair-only-sentinel` | `X_REPAIR_ONLY` | partial model completion / repair-only，不是 initial seed | 防误收 | `completion-sysml-gwt` / `towards-automatic-model-completion` |
 | `most-states-modes` | `X_FORMAL_SPEC?` | states/modes 形式化，STM-family 未确认 | 相关工作 / 待核 | §5 / §7 |
 | `sysmlv2-formalized-requirements` | `X_FORMAL_SPEC` / `X_T1_PLUS?` | requirements + temporal logic / 形式化 风险 | extended 边界 | §5 / §7 |
@@ -425,14 +425,14 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 
 | 轮次 | 来源 | 检索式 / 入口 | 原始命中 | 全文/制品 | 阻塞 / 早停 | 结论 |
 |---|---|---|---|---|---|---|
-| `r17-01-openalex-broad-nl-requirements` | OpenAlex | 宽口径 NL requirements / statechart / use-case 检索簇 | 95 | 0 | 宽检索噪声高 / 宽检索保留为排除证据 | 详见 [round-r17-01-openalex-broad-nl-requirements.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-01-openalex-broad-nl-requirements.md) |
-| `r17-02-crossref-refined-usecase-statechart` | Crossref | use-case / statechart / requirements 精细检索 | 50 | 1 | 无全文/制品 / 精确 DOI/标题发现 | 详见 [round-r17-02-crossref-refined-usecase-statechart.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-02-crossref-refined-usecase-statechart.md) |
-| `r17-03-crossref-textual-usecase-behavior` | Crossref | textual 用例文本 / behavior models / state machine | 30 | 0 | 输出非 STM 噪声为主；MARITACA 已由人工下载全文入库，旧轮次仅作历史发现入口 | 详见 [round-r17-03-crossref-textual-usecase-behavior.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-03-crossref-textual-usecase-behavior.md) |
-| `r17-04-arxiv-llm-requirements` | arXiv | LLM + state machine / state diagram / requirements | 40 | 0 | 需求质量 / 切片 / 非 STM LLM 噪声 / 无新增 SA-1/2 种子 | 详见 [round-r17-04-arxiv-llm-requirements.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-04-arxiv-llm-requirements.md) |
-| `r17-05-semanticscholar-阻塞项` | Semantic Scholar API | 6 检索簇 | 6 个错误 | 0 | HTTP 429 频率限制 / 降级到 OpenAlex/Crossref/arXiv/DBLP | 详见 [round-r17-05-semanticscholar-blocker.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-05-semanticscholar-blocker.md) |
-| `r17-06-dblp-exact-title` | DBLP API | 12 精确标题人工 / 经典候选 | 429 / 连接限制前确认 3 条 | 0 | DBLP 频率/连接限制 / 仅元数据互证 | 详见 [round-r17-06-dblp-exact-title.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-06-dblp-exact-title.md) |
-| `r17-07-classic-fulltext-wave` | 开放/出版商 PDF | 经典用例 / 嵌入式 / 测试生成全文波次 | 7 | 7 dirs | 均仅论文 / 两个硬边界 / 强化排除证据; 无新增 SA-1/2 | 详见 [round-r17-07-classic-fulltext-wave.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-07-classic-fulltext-wave.md) |
-| `r17-08-manual-queue-artifact-recheck` | 出版商精确检索 + 制品检索 | R1.6 人工队列 + R1.7 新增人工候选 | 13 | 1 个新增下载目录 | 付费墙 / 需浏览器访问的开放入口 / 无制品 / 人工队列状态分布已更新 | 详见 [round-r17-08-manual-queue-artifact-recheck.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/round-r17-08-manual-queue-artifact-recheck.md) |
+| `r17-01-openalex-broad-nl-requirements` | OpenAlex | 宽口径 NL requirements / statechart / use-case 检索簇 | 95 | 0 | 宽检索噪声高 / 宽检索保留为排除证据 | 详见 [round-r17-01-openalex-broad-nl-requirements.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-01-openalex-broad-nl-requirements.md) |
+| `r17-02-crossref-refined-usecase-statechart` | Crossref | use-case / statechart / requirements 精细检索 | 50 | 1 | 无全文/制品 / 精确 DOI/标题发现 | 详见 [round-r17-02-crossref-refined-usecase-statechart.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-02-crossref-refined-usecase-statechart.md) |
+| `r17-03-crossref-textual-usecase-behavior` | Crossref | textual 用例文本 / behavior models / state machine | 30 | 0 | 输出非 STM 噪声为主；MARITACA 已由人工下载全文入库，旧轮次仅作历史发现入口 | 详见 [round-r17-03-crossref-textual-usecase-behavior.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-03-crossref-textual-usecase-behavior.md) |
+| `r17-04-arxiv-llm-requirements` | arXiv | LLM + state machine / state diagram / requirements | 40 | 0 | 需求质量 / 切片 / 非 STM LLM 噪声 / 无新增 SA-1/2 种子 | 详见 [round-r17-04-arxiv-llm-requirements.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-04-arxiv-llm-requirements.md) |
+| `r17-05-semanticscholar-阻塞项` | Semantic Scholar API | 6 检索簇 | 6 个错误 | 0 | HTTP 429 频率限制 / 降级到 OpenAlex/Crossref/arXiv/DBLP | 详见 [round-r17-05-semanticscholar-blocker.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-05-semanticscholar-blocker.md) |
+| `r17-06-dblp-exact-title` | DBLP API | 12 精确标题人工 / 经典候选 | 429 / 连接限制前确认 3 条 | 0 | DBLP 频率/连接限制 / 仅元数据互证 | 详见 [round-r17-06-dblp-exact-title.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-06-dblp-exact-title.md) |
+| `r17-07-classic-fulltext-wave` | 开放/出版商 PDF | 经典用例 / 嵌入式 / 测试生成全文波次 | 7 | 7 dirs | 均仅论文 / 两个硬边界 / 强化排除证据; 无新增 SA-1/2 | 详见 [round-r17-07-classic-fulltext-wave.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-07-classic-fulltext-wave.md) |
+| `r17-08-manual-queue-artifact-recheck` | 出版商精确检索 + 制品检索 | R1.6 人工队列 + R1.7 新增人工候选 | 13 | 1 个新增下载目录 | 付费墙 / 需浏览器访问的开放入口 / 无制品 / 人工队列状态分布已更新 | 详见 [round-r17-08-manual-queue-artifact-recheck.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-06-18-24-round-r17-08-manual-queue-artifact-recheck.md) |
 
 归档入口：
 
@@ -443,7 +443,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 
 ## 12. 文献筛查与全文阅读 provenance 摘要
 
-旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/agent_provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 36 单条目目录；当时旧口径的主 / 条件主可计候选为 4；一手 registry 后当前一手 registry 口径改为 final_pool_ready=3、conditional_final_pool=1、pipeline_only=2。Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
+旧 `agent_provenance.md` 已归档为 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-15-49-35-agent-provenance.md](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-15-49-35-agent-provenance.md)。其记录范围仅限文献筛查、全文阅读、证据等级调整和研究性 阻塞项；不记录 PR review / ready / merge 进度。R1.7 最终整合输出为：47 候选 / 47 筛查 / 36 单条目目录；当时旧口径的主 / 条件主可计候选为 4；一手 registry 后当前一手 registry 口径改为 final_pool_ready=3、conditional_final_pool=1、pipeline_only=2。Semantic Scholar API 429 已记录并由 OpenAlex/Crossref/arXiv/DBLP exact-title 替代。
 
 ## 13. 关键风险与 使用建议
 
@@ -464,16 +464,16 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 | 旧路径 / 对象 | 新路径 / 新章节 | 当前事实真源 | 迁移理由 |
 |---|---|---|---|
 | `seed_corpus/README.md` | 已删除纯跳转入口；历史材料保留在 archive | corpora/seed_library/README.md | 删除前向兼容壳，避免第二事实源。 |
-| `seed_corpus/GUIDE.md` | `archive/.../legacy_ledgers/seed_corpus_GUIDE.md + corpora/seed_library/GUIDE.md` | corpora/seed_library/GUIDE.md | 旧规则归档，新规则按 SUMMARY-first 重写。 |
-| `seed_corpus/SUMMARY.md` | `archive/.../legacy_ledgers/seed_corpus_SUMMARY.md + corpora/seed_library/SUMMARY.md` | corpora/seed_library/SUMMARY.md | 旧总账归档，新总账承载所有横向事实。 |
-| `candidate_matrix.md` | `archive/.../legacy_ledgers/candidate_matrix.md；摘要进入 SUMMARY §5` | corpora/seed_library/SUMMARY.md | 47 条候选进入单一横向总账。 |
-| `screening_ledger.md` | `archive/.../legacy_ledgers/screening_ledger.md；47/47 进入 SUMMARY §2/§5/§14` | corpora/seed_library/SUMMARY.md | 候选 / 筛查 对齐哨兵可复算。 |
-| `exclusion_ledger.md` | `archive/.../legacy_ledgers/exclusion_ledger.md；摘要进入 SUMMARY §10` | corpora/seed_library/SUMMARY.md | 排除证据 直接可见。 |
-| `manual_download_queue.md` | `archive/.../legacy_ledgers/manual_download_queue.md；摘要进入 SUMMARY §9` | corpora/seed_library/SUMMARY.md | manual 阻塞项 直接可见。 |
-| `baseline_seed_method_crosswalk.md` | `archive/.../legacy_ledgers/baseline_seed_method_crosswalk.md；9/9 表进入 SUMMARY §8` | corpora/seed_library/SUMMARY.md | 旧九生成基线进入 seed 方法集合，不误作 修正基线。 |
-| `seed_selection_candidates.md` | `archive/.../legacy_ledgers/seed_selection_candidates.md；资源交接进入 SUMMARY §4/§6` | corpora/seed_library/SUMMARY.md | 代表性样例=4 交接可直接读取。 |
-| `search_log.md / search_rounds/ / search_results/` | `archive/.../legacy_ledgers/search_log.md`、`archive/.../search_rounds/`、`archive/.../search_results/`；摘要进入 SUMMARY §11 | corpora/seed_library/SUMMARY.md | 原始检索归档，搜索覆盖摘要当前可读。 |
-| `agent_provenance.md` | `archive/.../legacy_ledgers/agent_provenance.md；研究性审计摘要进入 SUMMARY §12` | corpora/seed_library/SUMMARY.md | 保留文献筛查 provenance，但不记录 PR 流程状态。 |
+| `seed_corpus/GUIDE.md` | `archive/.../legacy_ledgers/2026-06-14-15-49-35-seed-corpus-guide.md + corpora/seed_library/GUIDE.md` | corpora/seed_library/GUIDE.md | 旧规则归档，新规则按 SUMMARY-first 重写。 |
+| `seed_corpus/SUMMARY.md` | `archive/.../legacy_ledgers/2026-06-14-15-49-35-seed-corpus-summary.md + corpora/seed_library/SUMMARY.md` | corpora/seed_library/SUMMARY.md | 旧总账归档，新总账承载所有横向事实。 |
+| `candidate_matrix.md` | `archive/.../legacy_ledgers/2026-06-14-11-18-35-candidate-matrix.md；摘要进入 SUMMARY §5` | corpora/seed_library/SUMMARY.md | 47 条候选进入单一横向总账。 |
+| `screening_ledger.md` | `archive/.../legacy_ledgers/2026-06-14-11-18-35-screening-ledger.md；47/47 进入 SUMMARY §2/§5/§14` | corpora/seed_library/SUMMARY.md | 候选 / 筛查 对齐哨兵可复算。 |
+| `exclusion_ledger.md` | `archive/.../legacy_ledgers/2026-06-14-06-18-24-exclusion-ledger.md；摘要进入 SUMMARY §10` | corpora/seed_library/SUMMARY.md | 排除证据 直接可见。 |
+| `manual_download_queue.md` | `archive/.../legacy_ledgers/2026-06-14-06-18-24-manual-download-queue.md；摘要进入 SUMMARY §9` | corpora/seed_library/SUMMARY.md | manual 阻塞项 直接可见。 |
+| `baseline_seed_method_crosswalk.md` | `archive/.../legacy_ledgers/2026-06-14-11-18-35-baseline-seed-method-crosswalk.md；9/9 表进入 SUMMARY §8` | corpora/seed_library/SUMMARY.md | 旧九生成基线进入 seed 方法集合，不误作 修正基线。 |
+| `seed_selection_candidates.md` | `archive/.../legacy_ledgers/2026-06-14-11-18-35-seed-selection-candidates.md；资源交接进入 SUMMARY §4/§6` | corpora/seed_library/SUMMARY.md | 代表性样例=4 交接可直接读取。 |
+| `search_log.md / search_rounds/ / search_results/` | `archive/.../legacy_ledgers/2026-06-14-06-18-24-search-log.md`、`archive/.../search_rounds/`、`archive/.../search_results/`；摘要进入 SUMMARY §11 | corpora/seed_library/SUMMARY.md | 原始检索归档，搜索覆盖摘要当前可读。 |
+| `agent_provenance.md` | `archive/.../legacy_ledgers/2026-06-14-15-49-35-agent-provenance.md；研究性审计摘要进入 SUMMARY §12` | corpora/seed_library/SUMMARY.md | 保留文献筛查 provenance，但不记录 PR 流程状态。 |
 | `seed_corpus/papers/<slug>/` | `corpora/seed_library/<slug>/；本地证据容器表进入 SUMMARY §8` | corpora/seed_library/<slug>/ + SUMMARY §8 | 36 个单篇 / 制品证据容器迁入当前 seed library。 |
 
 ## 15. 更新日志
@@ -507,7 +507,7 @@ R1.7 检索轮次哨兵为 8；归档中还保留 R1.6 与早期检索记录。�
 | ID | 文献层判断 | 一手 registry role | NL输入是什么 | STM输出是什么 | STM关键特性 | STM谱系 | 时间特性等级 | NL->STM 方式 | 当前资源结论 |
 |---|---|---:|---|---|---|---|---|---|---|
 | `unified-uml-multimodal-validation` | 条件方法证据 | 🟢 `final_pool_ready` | LLaMA 生成的 synthetic user-focused requirements / feature descriptions | PlantUML StateDiagram / `UMLCode_StateDiagram` | PlantUML 状态图文本；需标注 synthetic、非控制系统和无逐行 validation score caveat | UML state diagram / PlantUML statechart | T0-离散；未见显式时钟 | 多模型流水线：requirements -> PlantUML | HF parquet 999 行全量 trace verified，989 条有效 PlantUML；可作 synthetic stress，不作真实控制系统需求 |
-| `llms-emp-stm-subset` | 强相关 LLM seed 方法证据 | 🟢 `final_pool_ready` | SysML 行为模型需求描述 / requirements descriptions；10 个唯一 NL × 6 个 LLM 输出 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；只允许初始 `Generation PlantUML` | SysML state machine / UML statechart | T0-结构化离散；未见 timed / hybrid 目标模型 | LLM；requirements + prompt；6 个 LLM 各 10 条 | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；reference / checking 列需隔离；reference canonical case=10、exact unique reference PlantUML=11 |
+| `llms-emp-stm-subset` | 强相关 LLM seed 方法证据 | 🟢 `final_pool_ready` | SysML 行为模型需求描述 / requirements descriptions；10 个唯一 NL × 6 个 LLM 输出 | SysML / PlantUML STM | State、Region、Pseudostate、Transition 等 SysML STM 子集；只允许初始 `Generation PlantUML` | SysML state machine / UML statechart | R5.5 复核为 mixed：8 个 T0、Microwave 为 T0.5 timer-like caveat、Digital Camera 为 T1 supplementary stress | LLM；requirements + prompt；6 个 LLM 各 10 条 | Google Drive workbook 已 committed，60 条 generated PlantUML trace verified；reference / checking 列需隔离；reference canonical case=10、exact unique reference PlantUML=11 |
 | `sefm-llm-state-machine` | 强相关 LLM seed 方法证据 | 🟢 `final_pool_ready` | 非结构化 reactive-system 系统描述 / 行为需求；ZIP 共 9 个 NL descriptions | UML state machine / Umple 输出 | 显式 state / transition / guard / action；评估 hierarchy / parallel / history；SSC7 generated 输出含 `after(60)` 类 timer-like transition | UML statechart / HSM-capable | T0-结构化离散；不是 timed automata / hybrid model | LLM；当前可计 pair 为 Claude Sonnet 3.5 single prompt | 4open ZIP 已 committed，SSC7 generated pair trace verified；仅 1 组 generated pair，其余 8 个无 generated 输出的 NL 不计 generated pair（7 个 reference-only + 1 个 ATAS 纯 NL-only） |
 | `fsm-bench-20` | pipeline 相关证据 | 🟠 `pipeline_only` | 控制系统需求、prompt、schema | FSM JSON schema / gold systems；作者 generated `STM_0` 缺失 | 平坦 FSM schema、可复跑 prompt/code | FSM JSON / T0 | T0-离散；未见显式时钟 | 作者 benchmark pipeline；需本项目 rerun | Zenodo/GitHub release 可用，但 no published generated `STM_0`；不计现成 seed |
 | `ttool-ai-smd-subset` | 条件一手 / 转换器压力证据 | 🟡 `conditional_final_pool` | 作者 GitHub 工件中的系统规格；6 raw / 4 unique | TTool/SysML/AVATAR XML generated artifacts | 完整 TTool XML，需切出 SMD/T0 子集；可能含时间、信号、guard/action 和 incoherency correction 上下文 | SysML/TTool state-machine diagram subset / XML | T1-含时间/信号语义线索；需转换器明确处理 | TTool + ChatGPT 3.5 | 一手 GitHub artifact 已 committed 并 trace verified 6 组条件 pair；不计现成 final pool，进入实验前需切片 run record |

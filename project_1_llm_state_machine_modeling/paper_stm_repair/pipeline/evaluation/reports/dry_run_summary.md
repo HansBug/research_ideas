@@ -1,3 +1,5 @@
+> **工具输出摘要 / 非 canonical report。** 本文件只作为 R4 evaluation dry-run fixture 的机器邻近摘要；论文写作、人类审查和跨阶段学术结论请回到 `paper_stm_repair/reports/` 下的秒级 canonical report，row-level facts 以 `dry_run_examples/*/*.json` 与相关 schema 为准。
+
 # R4 四例评价门 dry-run 摘要
 
 ## 0. 定位
@@ -38,7 +40,7 @@
 | canonical JSON | [llms-emp-deepseek-microwave.canonical_stm.json](../../conversion/reports/canonical/llms-emp-deepseek-microwave.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
-| repair-loop smoke | `true` |
+| repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
@@ -61,7 +63,7 @@
 | canonical JSON | [llms-emp-gpt4o-hldcs.canonical_stm.json](../../conversion/reports/canonical/llms-emp-gpt4o-hldcs.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
-| repair-loop smoke | `true` |
+| repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
@@ -83,7 +85,7 @@
 | canonical JSON | [llms-emp-kimi-autonomous-collision.canonical_stm.json](../../conversion/reports/canonical/llms-emp-kimi-autonomous-collision.canonical_stm.json) |
 | R4 decision | `complete` |
 | model-level evaluation | `true` |
-| repair-loop smoke | `true` |
+| repair-loop contract dry-run eligibility | `true` |
 
 输入与证据：
 
@@ -105,7 +107,7 @@
 | canonical JSON | [sefm-ssc7-umple.canonical_stm.json](../../conversion/reports/canonical/sefm-ssc7-umple.canonical_stm.json) |
 | R4 decision | `focused` |
 | model-level evaluation | `false` |
-| repair-loop smoke | `false` |
+| repair-loop contract dry-run eligibility | `false` |
 
 输入与证据：
 

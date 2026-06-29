@@ -479,6 +479,10 @@ def run_recovery(
                 "pair_id": pair.pair_id,
                 "row_index": pair.row_index,
                 "change_index": seq,
+                "source_pairs_path": _rel(pair.source_pairs_path, repo_root),
+                "source_locator": pair.source_locator,
+                "source_line_sha256": pair.source_line_sha256,
+                "source_file_sha256": pair.source_file_sha256,
                 "raw_sha256": norm.raw_sha256,
                 "normalized_sha256": norm.normalized_sha256,
                 "normalized_candidate_path": _run_member(normalized_candidate, repo_root, run_dir),
@@ -689,11 +693,13 @@ def _md_table_counts(title: str, rows: dict[str, dict[str, int]]) -> list[str]:
 def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
     s = report["summary"]
     lines = [
+        "> **工具输出摘要 / 非 canonical report。** 本文件由 conversion CLI / tests 维护，只能作为 pipeline 运行上下文与 fixture 摘要；论文写作、人类审查和跨阶段学术结论请回到 [R5 seed readiness report](../../../reports/2026-06-28-04-03-18-seed-readiness-report.md)；R5.5 主 seed 解释见 [llms-emp main seed profile](../../../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。row-level facts 以 `plantuml_recovery_report.json` 与 `plantuml_normalization_ledger.jsonl` 为准。",
+        "",
         "# R3.1 PlantUML pre-SCXML normalization / recovery 摘要",
         "",
         "本文件由 `python -m paper_stm_repair_conversion.cli recover-plantuml` 生成。它是 R3.1 conversion eligibility 证据，不是 Better STM repair 实验结果。",
         "",
-        "## 核心结论",
+        "## 机器摘要快照（非 canonical 结论源）",
         "",
         f"- PlantUML 一手 pair 总数：{s['raw_total']}；unique NL：{s['unique_nl_total']}。",
         f"- 原始 PlantUML 官方 SCXML 已可转换：{s['converted_before']}；原始失败：{s['failed_before']}。",

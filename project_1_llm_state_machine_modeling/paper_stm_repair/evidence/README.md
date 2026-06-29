@@ -1,35 +1,35 @@
-# evidence/ — 上游事实与旧资产边界
+# evidence/ — 历史审计与证据索引入口
 
-## 1. 职责
+`evidence/` 只保存 R0/R1 以来形成的历史审计材料、上游证据索引、候选矩阵和分支追踪。它不是当前 corpus 事实真源，也不负责冻结 seed、repair baseline、NL dataset、转换器协议或主实验结果。
 
-`evidence/` 记录 R0/R1 阶段依赖的上游事实源、旧资产继承边界、generation-era baseline / seed 资产审计和使用限制。PR-R1.8-E 后，本目录只作为历史审计入口：当前 seed、repair baseline 与纯 NL 数据源事实分别以 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)、[../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)、[../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md) 为准；本目录不替代后续 PR-R2 seed registry、PR-R3 转换器 fixture 或 PR-R6 实验结果。
+当前事实源必须回到：
 
-## 1.1 当前读取纪律
+| 需要判断什么 | 当前事实源 | evidence 中对应旧材料的角色 |
+|---|---|---|
+| `<NL, STM_0>` seed / seed library | [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) | 只解释 R1 如何形成候选与筛选口径。 |
+| STM repair baseline / near-neighbor | [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md) | 只保留 generation-era baseline 与旧近邻审计。 |
+| 控制系统纯 NL 数据源 | [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md) | 只保留来源覆盖、可用性与历史统计线索。 |
+| 转换 / 表示 / readiness 机器事实源 | [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md) | 只解释旧格式压力和转换候选来源；不替代当前 pipeline 事实源。 |
+| 人类阅读报告和 story handoff | [../reports/SUMMARY.md](../reports/SUMMARY.md) | 只作历史证据背景；当前结论以 reports 总账和具体报告为准。 |
 
-1. 需要冻结 R2 `<NL, STM_0>` seed 时，必须回到 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)，不能直接使用本目录的 `baseline_candidate_matrix.md` 或 `strict_seed_literature_survey.md`。
-2. 需要判断 STM repair baseline / near-neighbor 时，必须回到 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，不能把本目录旧 generation baseline 台账改名为 repair baseline。
-3. 需要控制系统纯 NL 数据源时，必须回到 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)，不能把只有 NL 的 source pool 提前计为 seed。
-4. 本目录保留 PR-R1 的历史证据、分支局部来源和旧口径，主要用于审计“为什么后来这样重分工”，不是当前横向总账。
+## 1. 子路径
 
-## 2. 文件说明
+| 子路径 | 职责 | 入口 |
+|---|---|---|
+| [ledgers/](./ledgers/) | 上游事实、来源覆盖、artifact 可获取性和旧资产继承边界台账。 | [ledgers/README.md](./ledgers/README.md) |
+| [audits/](./audits/) | R1 baseline / strict seed 审计口径和执行方案。 | [audits/README.md](./audits/README.md) |
+| [matrices/](./matrices/) | 候选 baseline 与格式转换压力矩阵。 | [matrices/README.md](./matrices/README.md) |
+| [traces/](./traces/) | 分支局部资产与消费决策追踪。 | [traces/README.md](./traces/README.md) |
 
-| 文件 | 作用 |
-|---|---|
-| [upstream_fact_ledger.md](./upstream_fact_ledger.md) | 记录 PR #100、#99、talks、#93/#94/#96、#73/#82/#92、sources/baselines 的事实等级与使用方式。 |
-| [legacy_asset_inheritance.md](./legacy_asset_inheritance.md) | 记录旧 `paper_v1/`、`path1_foundation/` 和 baseline 资产哪些可参考、哪些不可继承。 |
-| [baseline_asset_audit.md](./baseline_asset_audit.md) | PR-R1 对 baseline / seed / converter / comparison 资产的分层审计总账。 |
-| [baseline_candidate_matrix.md](./baseline_candidate_matrix.md) | PR-R1 对九个五绿 direct generation baseline 与强近邻的历史候选矩阵；当前 R2 seed 资格需回到 `corpora/seed_library/SUMMARY.md` 重新读取。 |
-| [artifact_availability_ledger.md](./artifact_availability_ledger.md) | PR-R1 对论文、代码、数据、结果和 artifact 可获取性的紧凑台账。 |
-| [format_conversion_matrix.md](./format_conversion_matrix.md) | PR-R1 对 prior output formats 与 R3 转换压力的矩阵化记录。 |
-| [branch_asset_trace.md](./branch_asset_trace.md) | PR-R1 对 #93/#94/#96 分支局部资产的状态、消费决策与使用限制。 |
-| [source_coverage_ledger.md](./source_coverage_ledger.md) | PR-R1 对来源覆盖、去重闭合和未逐篇深审边界的记录。 |
-| [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) | PR-R1 对大规模 strict seed 文献调研的硬定义、排除码、多维指标、分级标准和初始事实台账；当前 seed 事实已迁入 `corpora/seed_library/SUMMARY.md`。 |
+## 2. 三件套
 
-## 3. R0 / R1 边界
+1. 本文件：说明 `evidence/` 的定位、边界和子路径。
+2. [SUMMARY.md](./SUMMARY.md)：维护历史审计材料总账、当前事实源跳转和风险提示。
+3. [GUIDE.md](./GUIDE.md)：规定后续如何读取、移动、补充或引用本目录材料。
 
-1. R0 只做事实等级和继承边界；R1 可以做候选级 baseline / seed / artifact 审计，但仍不冻结最终 seed。
-2. strict seed 调研采用“广搜、严入、分层使用”口径：历史 direct baseline 不是封闭全集，`sources/` 也只是 source pool，不得把宽口径正例直接写成 strict paired seed。
-3. 不把 PR #93/#94/#96 的分支局部文件写成 `main` 已有事实。
-4. 不复制 `path1_foundation/`，不在其中新增、移动或修改文件。
-5. 不决定具体 seed_id、转换格式或实验样本；这些由 PR-R2 / PR-R3 冻结。
-6. R1 虽然新增 baseline 资产审计和 strict seed 调研协议，但仍不冻结四例 seed、不实现转换器、不运行真实 LLM、不跑主实验；PR-R1.8-E 后，R2 入口以 `corpora/seed_library/SUMMARY.md` 为准。
+## 3. 读取纪律
+
+1. 需要冻结 R2 seed 时，回到 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)，不能直接从 [matrices/baseline_candidate_matrix.md](./matrices/baseline_candidate_matrix.md) 或 [audits/strict_seed_literature_survey.md](./audits/strict_seed_literature_survey.md) 选样本。
+2. 需要判断 repair baseline 时，回到 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，不能把旧 generation baseline 台账改写成当前 repair baseline 事实。
+3. 需要控制系统 NL 数据源时，回到 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)，不能把只有 NL 的 source pool 提前计为 paired seed。
+4. 本目录可以解释“为什么后来这样分工”，但不得替代 `corpora/`、`repair_baselines/`、`nl_datasets/` 的当前总账。
