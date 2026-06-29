@@ -53,6 +53,7 @@
 | 原始失败 | 499 |
 | all-rules 技术通过 | 480 |
 | low-risk / main eligibility 通过 | 470 |
+| normalization ledger source-trace 完整行数 | 3908/3908 |
 | normalization 后仍失败 | 19 |
 | `llms-emp-stm-subset` failed after | 0 |
 
@@ -102,7 +103,7 @@
 | [clm-r552-no-regression] | `R5.5.2-C3` | 相对 R5.5 base，`llms-emp` 只有三个目标样例从 `blocked` 改为 `partial`，其余 57 条无状态退化且 source trace 不变。 | `trace` | `git show origin/paper1/r5.5-llms-emp-deep-profile:...case_matrix.jsonl` vs [src-r552-case]。 | [cmd-r552-no-regression] | `high` | 只比较 case matrix 的状态和 source trace 字段；不证明模型语义完全等价，也不承诺派生 `.fcstm` hash 完全不漂移。 |
 | [clm-r552-derived-drift] | `R5.5.2-C3b` | 完整重跑中 `llms_emp_stm_results_0024` 出现非状态派生漂移：`fcstm_sha256` 与 `r5_loss_codes` 更新，但 `conversion_status=partial`、source trace 与 repair-gain 禁止口径不变。 | `trace` | R5.5 base case matrix vs [src-r552-case] row `llms_emp_stm_results_0024`。 | [cmd-r552-no-regression] 的补充 diff 检查 | `medium` | 这说明 no-regression gate 是“状态/source trace 不退化”，不是 bit-for-bit artifact freeze。`target_lifted_to_composite_boundary` 到 `composite_target_lowered_to_initial_child` 的归因方向变化对后续 repair target 可能有语义影响；R5.7/R6 若依赖 0024，应回到 raw STM/SCXML/FCSTM 做逐例复核。 |
 | [clm-r552-global] | `R5.5.2-C4` | 全 seed sweep 当前为 `converted=529 / partial=508 / blocked=19 / not_applicable=20 / needs_generation=2`，其中 `unified_uml_state_train_0265` 是 collateral `blocked -> partial`。 | `count` | [src-r552-sweep] `summary.pair_status_counts`；[src-r552-index] record status diff。 | [cmd-r552-no-regression] | `high` | unified synthetic collateral 不进入主 seed claim。 |
-| [clm-r552-recovery] | `R5.5.2-C5` | PlantUML recovery 后 `llms-emp-stm-subset.failed_after=0`，全局 low-risk/main eligibility 为 470。 | `count` | [src-r552-recovery] `summary.by_seed.llms-emp-stm-subset` 与 `summary.main_eligibility_included`。 | [cmd-r552-recovery] | `high` | conversion eligibility，不是 repair success。 |
+| [clm-r552-recovery] | `R5.5.2-C5` | PlantUML recovery 后 `llms-emp-stm-subset.failed_after=0`，全局 low-risk/main eligibility 为 470，normalization ledger 3908 行均带 source locator、源行 hash 与源文件 hash。 | `count/trace` | [src-r552-recovery] `summary.by_seed.llms-emp-stm-subset` 与 `summary.main_eligibility_included`；[src-r552-ledger] 全行 `source_pairs_path/source_locator/source_line_sha256/source_file_sha256`。 | [cmd-r552-recovery] | `high` | conversion eligibility，不是 repair success。 |
 | [clm-r552-no-repair-gain] | `R5.5.2-C6` | R5.5.2 recovery 不得计入 repair gain。 | `prohibition` | [src-r552-partial] `R5.LOSS.r3_1_normalization_replay_not_repair`；[src-r552-recovery] `conversion_contract`。 | [cmd-r552-status] | `high` | 后续 paper 只能把它写成输入可用性恢复。 |
 | [clm-r552-scope] | `R5.5.2-C7` | 当前 scope 仍应保持 T0 主线 + Digital Camera supplementary stress；只是 `llms-emp` blocked negative evidence 不再作为当前事实。 | `decision` | [src-r552-case] `time_level`、`r5_6_story_role`、target rows；[src-r552-partial] caveat。 | [cmd-r552-status] | `medium` | R5.6/R5.7 仍需正式 story/protocol 冻结。 |
 
@@ -157,12 +158,12 @@ PY
 [cmd-r552-recovery]
 
 ```bash
-export PLANTUML_JAR=/tmp/paper1_tools/plantuml.jar
+export PLANTUML_JAR=/path/to/plantuml.jar  # 本次实测使用本机 bundled PlantUML jar；新环境需按 README/GUIDE 配置。
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
 python -m paper_stm_repair_conversion.cli recover-plantuml \
   --reports-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/reports \
   --run-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir \
   --archive-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed \
   --run-id r5.5.2-plantuml-blocked-recovery \
-  --created-at 2026-06-29T20:18:00+08:00
+  --created-at 2026-06-29T21:14:14+08:00
 ```
