@@ -41,7 +41,7 @@ def test_embedded_pseudostate_marker_endpoint_is_high_risk():
 
 
 def test_ambiguous_arrow_patterns_are_not_collapsed_into_low_risk_aliases():
-    raw = "@startuml\n[*] <--> [*]\nPreparingToShare --> [Error] --> SelectingPlatform\nchoice2 --> Join1 when : sunny=true\n@enduml\n"
+    raw = "@startuml\n[*] <--> [*]\nPreparingToShare --> [Error] --> SelectingPlatform\n@enduml\n"
     result = normalize_plantuml(raw)
     assert result.changes == []
     assert result.normalized_text == raw
@@ -117,3 +117,63 @@ def test_code_rules_match_documented_plantuml_rules_registry():
         assert code_row["risk_tier"] == doc_row["risk_tier"]
         assert code_row["main_eligibility_default"] == doc_row["main_eligibility_default"]
     assert documented["PUML.NORM.fork_join_decl_to_state"]["concurrency_degraded"] is True
+
+
+def test_when_transition_label_is_normalized_without_dropping_guard_cue():
+    raw = "@startuml\nchoice2 --> Join1 when : sunny=true\n@enduml\n"
+    result = normalize_plantuml(raw)
+    assert "choice2 --> Join1 : when sunny=true" in result.normalized_text
+    assert "choice2 --> Join1 when : sunny=true" not in result.normalized_text
+    assert "PUML.NORM.transition_when_label" in result.rule_ids
+    assert result.low_risk_candidate is True
+    change = next(c for c in result.changes if c.rule_id == "PUML.NORM.transition_when_label")
+    assert change.span == "transition_label"
+    assert "guard-like cue" in change.rationale
+
+
+def test_empty_transition_label_colon_is_removed_as_low_risk_syntax_cleanup():
+    raw = "@startuml\nchoice1 --> choice3:\nFlash --> Terminate:\n@enduml\n"
+    result = normalize_plantuml(raw)
+    assert "choice1 --> choice3\n" in result.normalized_text
+    assert "Flash --> Terminate\n" in result.normalized_text
+    assert "choice1 --> choice3:" not in result.normalized_text
+    assert result.rule_ids == ["PUML.NORM.remove_empty_transition_label"]
+    assert result.low_risk_candidate is True
+    assert all(c.kind == "remove_empty_transition_label" for c in result.changes)
+
+
+def test_non_star_bracket_endpoint_alias_preserves_star_pseudostate():
+    raw = "@startuml\n[FrontendCollision] -down-> [BrakingControl] : Brake Signal Received\n[BrakingControl] --> [*] : Collision Avoided\n@enduml\n"
+    result = normalize_plantuml(raw)
+    assert 'state "FrontendCollision" as ' in result.normalized_text
+    assert 'state "BrakingControl" as ' in result.normalized_text
+    assert "--> [*] : Collision Avoided" in result.normalized_text
+    assert "PUML.NORM.alias_bracket_endpoint" in result.rule_ids
+    assert "PUML.NORM.alias_embedded_pseudostate_marker" not in result.rule_ids
+    assert result.low_risk_candidate is True
+
+
+def test_r5_5_2_blocked_patterns_are_low_risk_normalized_together():
+    raw = """@startuml
+stm CameraSystem
+[*] --> TurnOn
+TurnOn --> fork1: after 2s
+choice1 --> choice3:
+choice2 --> Join1 when : sunny=true
+[FrontendCollision] -down-> [BrakingControl] : Brake Signal Received
+[BrakingControl] --> [*] : Collision Avoided
+@enduml
+"""
+    result = normalize_plantuml(raw)
+    assert "normalization removed non-PlantUML stm heading" in result.normalized_text
+    assert "choice1 --> choice3\n" in result.normalized_text
+    assert "choice2 --> Join1 : when sunny=true" in result.normalized_text
+    assert "--> [*] : Collision Avoided" in result.normalized_text
+    assert {
+        "PUML.NORM.remove_stm_heading",
+        "PUML.NORM.remove_empty_transition_label",
+        "PUML.NORM.transition_when_label",
+        "PUML.NORM.alias_bracket_endpoint",
+    }.issubset(set(result.rule_ids))
+    assert result.has_high_risk_loss is False
+    assert result.main_eligibility_default is True

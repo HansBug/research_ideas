@@ -24,6 +24,24 @@ RULES: dict[str, dict[str, Any]] = {
         "main_eligibility_default": False,
         "description": "对含有内嵌 [*] 伪状态标记的 endpoint 生成 alias；可能把初始/终止伪状态误降级为普通状态名。",
     },
+    "PUML.NORM.transition_when_label": {
+        "semantic_risk": "low_medium",
+        "risk_tier": "low_risk",
+        "main_eligibility_default": True,
+        "description": "将 transition target 后的 `when : guard` 伪语法规范化为 PlantUML label，并保留 when 线索。",
+    },
+    "PUML.NORM.remove_empty_transition_label": {
+        "semantic_risk": "low",
+        "risk_tier": "low_risk",
+        "main_eligibility_default": True,
+        "description": "删除 transition 末尾空 label 冒号。",
+    },
+    "PUML.NORM.alias_bracket_endpoint": {
+        "semantic_risk": "low_medium",
+        "risk_tier": "low_risk",
+        "main_eligibility_default": True,
+        "description": "对非 [*] 的 bracket endpoint 生成 PlantUML state alias，保留显示 label。",
+    },
     "PUML.NORM.remove_stm_heading": {
         "semantic_risk": "medium",
         "risk_tier": "low_risk",
@@ -204,7 +222,10 @@ def _needs_alias(endpoint: str) -> tuple[bool, str | None]:
     if not ep or ep in {"[*]", "[ * ]"}:
         return False, None
     if ep.startswith("[") and ep.endswith("]"):
-        return False, None
+        inner = ep[1:-1].strip()
+        if inner == "*" or not inner:
+            return False, None
+        return True, inner
     if ep.startswith('"') and ep.endswith('"') and len(ep) >= 2:
         return True, ep[1:-1]
     if SIMPLE_ID_RE.match(ep):
@@ -246,6 +267,15 @@ def _split_transition(line: str) -> tuple[str, str, str, str, str] | None:
     else:
         target, suffix = rest, ""
     target = target.strip()
+    # LLM outputs sometimes write `A --> B when : guard`, which is not
+    # accepted by official PlantUML.  Treat the trailing `when` as part of
+    # the transition label while preserving the guard-like cue for downstream
+    # audits.  This remains a pre-SCXML syntax normalization only.
+    when_match = re.match(r"^(?P<target>.+?)\s+when\s*$", target, flags=re.IGNORECASE)
+    if when_match and suffix.startswith(" :"):
+        target = when_match.group("target").strip()
+        label = suffix[2:].strip()
+        suffix = " : when" + (f" {label}" if label else "")
     if any(token in source for token in ARROW_TOKENS + UNSUPPORTED_ARROW_TOKENS):
         return None
     if any(token in target for token in ARROW_TOKENS + UNSUPPORTED_ARROW_TOKENS):
@@ -277,10 +307,13 @@ def _rewrite_endpoint(endpoint: str, aliases: dict[str, str], used_aliases: set[
         alias = _alias_for(label, used_aliases)
         aliases[label] = alias
         declarations.append(f'state "{label}" as {alias}')
+    endpoint_stripped = endpoint.strip()
     if "[*]" in label and label.strip() != "[*]":
         rule_id = "PUML.NORM.alias_embedded_pseudostate_marker"
+    elif endpoint_stripped.startswith("[") and endpoint_stripped.endswith("]"):
+        rule_id = "PUML.NORM.alias_bracket_endpoint"
     else:
-        rule_id = "PUML.NORM.alias_quoted_endpoint" if endpoint.strip().startswith('"') else "PUML.NORM.alias_multiword_endpoint"
+        rule_id = "PUML.NORM.alias_quoted_endpoint" if endpoint_stripped.startswith('"') else "PUML.NORM.alias_multiword_endpoint"
     return aliases[label], rule_id, label
 
 
@@ -290,6 +323,8 @@ def _select_endpoint_rule(source_rule: str | None, target_rule: str | None) -> s
         return None
     if "PUML.NORM.alias_embedded_pseudostate_marker" in rules:
         return "PUML.NORM.alias_embedded_pseudostate_marker"
+    if "PUML.NORM.alias_bracket_endpoint" in rules:
+        return "PUML.NORM.alias_bracket_endpoint"
     return rules[0]
 
 
@@ -403,28 +438,51 @@ def normalize_plantuml(raw_text: str) -> NormalizationResult:
                     prefix, source, arrow, target, suffix = split
                     new_source, source_rule, source_label = _rewrite_endpoint(source, aliases, used_aliases, declarations)
                     new_target, target_rule, target_label = _rewrite_endpoint(target, aliases, used_aliases, declarations)
-                    if source_rule or target_rule or source != new_source or target != new_target or not re.search(r"\s" + re.escape(arrow) + r"\s", line):
-                        new_line = f"{prefix}{new_source} {arrow} {new_target}{suffix}"
-                        rule_id = _select_endpoint_rule(source_rule, target_rule) or "PUML.NORM.alias_multiword_endpoint"
-                        label = _select_endpoint_label(
+                    new_suffix = suffix
+                    suffix_rule: str | None = None
+                    suffix_label: str | None = None
+                    if re.search(r"\s+when\s*:", line, flags=re.IGNORECASE) and suffix.strip().lower().startswith(": when"):
+                        suffix_rule = "PUML.NORM.transition_when_label"
+                        suffix_label = suffix[2:].strip()
+                    elif suffix.strip() == ":":
+                        suffix_rule = "PUML.NORM.remove_empty_transition_label"
+                        suffix_label = "empty_label"
+                        new_suffix = ""
+                    spacing_changed = not re.search(r"\s" + re.escape(arrow) + r"\s", line)
+                    if source_rule or target_rule or suffix_rule or source != new_source or target != new_target or new_suffix != suffix or spacing_changed:
+                        new_line = f"{prefix}{new_source} {arrow} {new_target}{new_suffix}"
+                        rule_id = suffix_rule or _select_endpoint_rule(source_rule, target_rule) or "PUML.NORM.alias_multiword_endpoint"
+                        label = suffix_label or _select_endpoint_label(
                             source_rule=source_rule,
                             source_label=source_label,
                             target_rule=target_rule,
                             target_label=target_label,
                         )
                         loss_type = "semantic" if rule_id == "PUML.NORM.alias_embedded_pseudostate_marker" else "syntax"
+                        if rule_id == "PUML.NORM.transition_when_label":
+                            kind = "transition_when_label_normalization"
+                            rationale = f"transition 的 `when :` 伪语法被规范化为 PlantUML label `{label}`；保留 guard-like cue，canonical 仍必须来自官方 SCXML。"
+                            span = "transition_label"
+                        elif rule_id == "PUML.NORM.remove_empty_transition_label":
+                            kind = "remove_empty_transition_label"
+                            rationale = "transition 末尾空 label 冒号不含可见语义内容，删除以通过 official PlantUML syntax。"
+                            span = "transition_label"
+                        else:
+                            kind = "transition_endpoint_to_alias"
+                            rationale = (
+                                f"transition endpoint `{label}` 改写为稳定 alias/标准间距；canonical 仍必须来自官方 SCXML。"
+                                if rule_id != "PUML.NORM.alias_embedded_pseudostate_marker"
+                                else f"transition endpoint `{label}` 含内嵌 [*] 伪状态标记，alias 化可能把初始/终止伪状态语义误读为普通状态名；默认只作 supplementary/manual-review。"
+                            )
+                            span = "transition_endpoint"
                         changes.append(_change(
                             rule_id,
                             line=idx,
                             before=line,
                             after=new_line,
-                            kind="transition_endpoint_to_alias",
-                            rationale=(
-                                f"transition endpoint `{label}` 改写为稳定 alias/标准间距；canonical 仍必须来自官方 SCXML。"
-                                if rule_id != "PUML.NORM.alias_embedded_pseudostate_marker"
-                                else f"transition endpoint `{label}` 含内嵌 [*] 伪状态标记，alias 化可能把初始/终止伪状态语义误读为普通状态名；默认只作 supplementary/manual-review。"
-                            ),
-                            span="transition_endpoint",
+                            kind=kind,
+                            rationale=rationale,
+                            span=span,
                             loss_type=loss_type,
                         ))
         out_lines.append(new_line)

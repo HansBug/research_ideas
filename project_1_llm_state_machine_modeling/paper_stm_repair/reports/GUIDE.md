@@ -141,7 +141,7 @@ git blame --date=iso -- <source-file>
 1. report 中的完整派生表必须由 canonical JSON/JSONL 生成或能被脚本复算。
 2. 修改 report 表格后必须确认 machine source 未变，或同步更新 machine source。
 3. `run-llms-emp-profile` 当前只生成 [../pipeline/readiness_audit/llms_emp_profile/](../pipeline/readiness_audit/llms_emp_profile/) 下的 machine artifacts 与 redirect notice；canonical 完整阅读表保存在 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。
-4. 复验时至少确认 60 / 10 / 16 / 41 / 3，以及 10 cluster 表、10×6 LLM 矩阵、行为特征矩阵与 JSONL 一致。
+4. 复验时至少确认 denominator `60 / 10`，并按 report 当前性区分旧 R5.5 快照 `16 / 41 / 3` 与 R5.5.2 当前状态 `16 / 44 / 0`；同时确认 10 cluster 表、10×6 LLM 矩阵、行为特征矩阵与 JSONL 一致。
 5. report 的 Claim-evidence map 若引用 JSONL，必须用 row filter 表达清楚 denominator，例如 `nl_cluster_id=...`、`raw_pair_id=...`、`conversion_status=partial`。
 6. report 若引用 ZIP archive，必须写清 ZIP 文件、member pattern 和 hash 字段；不要只说“见 archive”。
 7. 正文引用不得只出现在审计附录：报告正文中的核心表格标题、结论句和风险句必须带 `[clm-*]` / `[src-*]` key，确保远程阅读时能直接跳到文末证据链。

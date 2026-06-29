@@ -14,4 +14,4 @@
 
 ## 迁移说明
 
-旧 R5.5 -> R5.6 story/model scope handoff 已迁移到 canonical model scope handoff report；machine counts 为 cases=60 / clusters=10 / partial=41 / blocked=3。
+旧 R5.5 -> R5.6 story/model scope handoff 已迁移到 canonical model scope handoff report；machine counts 为 cases=60 / clusters=10 / partial=44 / blocked=0。

@@ -1889,8 +1889,8 @@ def validate_llms_emp_profile(errors: list[str]) -> None:
     if len(matrix) != 60:
         errors.append("R5.5 cluster×LLM matrix must contain 60 rows")
     status_counts = Counter(c.get("conversion_status") for c in cases)
-    if status_counts != {"converted": 16, "partial": 41, "blocked": 3}:
-        errors.append(f"R5.5 case status counts mismatch: {dict(status_counts)}")
+    if status_counts != {"converted": 16, "partial": 44}:
+        errors.append(f"R5.5 case status counts mismatch after R5.5.2 blocked recovery: {dict(status_counts)}")
     if len(partials) != status_counts.get("partial", 0):
         errors.append("R5.5 partial attribution rows must equal partial case count")
     blocked_rows = read_jsonl(paths["blocked_jsonl"])

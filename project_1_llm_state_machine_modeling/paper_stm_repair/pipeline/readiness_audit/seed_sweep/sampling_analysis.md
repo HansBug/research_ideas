@@ -10,7 +10,8 @@
 
 - [sweep_report.json](./sweep_report.json)
 - [records_index.json](./records_index.json)
+- [archive_manifest.json](../artifact_archives/archive_manifest.json)
 
 ## 迁移说明
 
-旧抽样展示已并入 seed readiness report 的“抽样分析”部分。
+旧抽样展示已并入 seed readiness report；当前 pair status counts={'blocked': 19, 'converted': 529, 'needs_generation': 2, 'not_applicable': 20, 'partial': 508}。

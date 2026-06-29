@@ -6,7 +6,7 @@
 
 | 子路径 | 职责 | 当前状态 |
 |---|---|---|
-| [scope/](./scope/) | 维护实验范围、RQ 草案和 story / experiment scope 边界。 | 已有 R5.5 handoff 草案：[scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)；尚未冻结最终主实验协议。 |
+| [scope/](./scope/) | 维护实验范围、RQ 草案和 story / experiment scope 边界。 | 已有 R5.5 handoff 草案：[scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)；R5.5.2 当前状态更新见 [../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)；尚未冻结最终主实验协议。 |
 | [quality_model/](./quality_model/) | 维护 Better STM 等质量判定模型。 | 已迁入 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md)。 |
 | [eligibility/](./eligibility/) | 预留 run / seed / conversion / provider failure 的纳入排除规则入口。 | 只有职责 README，未冻结 eligibility 协议。 |
 | [protocols/](./protocols/) | 预留主实验、对照、人工裁决、修正循环协议入口。 | 只有职责 README，未冻结正式协议。 |
