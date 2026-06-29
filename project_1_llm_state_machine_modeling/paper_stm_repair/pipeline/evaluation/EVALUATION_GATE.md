@@ -43,7 +43,7 @@ Eligibility policy 决定 R3 输出能否进入 R4/R5/R6 的不同层级 dry-run
 
 R3.1 `main_eligibility_included=466` 表示 PlantUML 转换前 normalization/recovery 后的主 eligibility 线索。它可用于 R7/R8 扩大候选池，但不能在 R4/R5/R6 中被写成 Better STM 修正收益。
 
-每个 dry-run 样例必须有 `eligibility_decision.json`，至少说明 R3 `status` 与 `status_reason_code`、规范化中间表示是否存在、`r4_dry_run_decision`、diagnostic / scenario / model-level / repair-loop smoke 是否允许、required caveats 与 evidence locators。Schema 见 [schemas/eligibility_decision.schema.json](./schemas/eligibility_decision.schema.json)。
+每个 dry-run 样例必须有 `eligibility_decision.json`，至少说明 R3 `status` 与 `status_reason_code`、规范化中间表示是否存在、`r4_dry_run_decision`、diagnostic / scenario / model-level / repair-loop contract dry-run eligibility 是否允许、required caveats 与 evidence locators。Schema 见 [schemas/eligibility_decision.schema.json](./schemas/eligibility_decision.schema.json)。
 
 ## 3. Diagnostic taxonomy：问题如何分类
 

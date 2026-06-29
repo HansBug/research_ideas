@@ -46,7 +46,7 @@
 3. 再读 [SUMMARY.md](./SUMMARY.md)，从总表选择当前要看的 report。
 4. 想看 R5.5 主结论：读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 的 10 cluster 表、10×6 LLM 矩阵与行为特征矩阵。
 5. 想解释后续 R6/R7 为什么优先 `llms-emp-stm-subset`：读 [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。
-6. 需要复算或审计时，回到每个 report 开头声明的 machine source。
+6. 需要复算或审计时，回到每个 report 文末“审计附录：证据链与事实源”中的上游事实源清单、Claim-evidence map 与复验命令。
 
 ## 6. 命名纪律
 
@@ -56,4 +56,4 @@
 yyyy-mm-dd-hh-mm-ss-short-slug.md
 ```
 
-时间前缀表示报告核心学术结论冻结时间；迁移、路径重命名和链接修正不得改变该时间，但必须进入 report 头部来源考据表。
+时间前缀表示报告核心学术结论冻结时间；迁移、路径重命名和链接修正不得改变该时间，但必须进入 report 文末审计附录的 A.1 来源考据表。

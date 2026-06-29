@@ -35,7 +35,7 @@
 |---|---|---|---|
 | 主 seed 方向 | `llms-emp-stm-subset` 是当前优先主 seed 池，含 10 个唯一 NL × 6 个 LLM 输出。 | [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 只能写 seed readiness / profile，不得写 repair loop 效果。 |
 | 转换状态 | R5.5 画像中 60 pair / 10 cluster / 16 converted / 41 partial / 3 blocked。 | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 转换成功率不是修正成功率。 |
-| model scope handoff | T0/T0.5 主线、Digital Camera supplementary stress、blocked negative evidence 需要 R5.6 冻结。 | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | story 可预埋边界，但最终 scope 真源应在 `experiment_design/scope/`。 |
+| model scope handoff | T0 主线、T0.5 timer-like caveat、Digital Camera supplementary stress、blocked negative evidence 需要 R5.6 冻结。 | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | story 可预埋边界，但最终 scope 真源应在 `experiment_design/scope/`。 |
 | Better STM | 定义已迁到 experiment design。 | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) | 没有真实 `STM_0` vs `STM_k` 前，不得声称 Better STM 主结果。 |
 | repair loop | 尚未真实运行。 | [../STATUS.md](../STATUS.md) | 不得写已经产生 `STM_k` 或证明 improvement。 |
 

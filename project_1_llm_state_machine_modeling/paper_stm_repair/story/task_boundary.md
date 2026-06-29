@@ -79,7 +79,8 @@ R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯�
 
 | 层级 | 暂定角色 | 证据入口 | 说明 |
 |---|---|---|---|
-| T0 / T0.5 离散 FSM/HSM/statechart | 主线候选 | [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 更适合当前 repair loop 先跑通。 |
+| T0 离散 FSM/HSM/statechart | 主线候选 | [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 更适合当前 repair loop 先跑通。 |
+| T0.5 timer-like caveat under event abstraction | caveat / 补充层 | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 timed automata 主 claim；只用于说明边界。 |
 | Digital Camera / T1-ish stress | supplementary stress | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 T0 主 claim，只作压力/负证据。 |
 | data-rich EFSM / timed automata / full verification | 暂不作为主线 | 后续 scope 决策 | 当前证据和工具链不足以支撑强 claim。 |
 

@@ -92,7 +92,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 
 | 风险 | 需要后续 PR 闭合 |
 |---|---|
-| T0/T0.5/T1+ model scope 仍需正式冻结。 | R5.6 `experiment_design/scope/` |
+| T0 主线、T0.5 timer-like caveat 与 T1/supplementary model scope 仍需正式冻结。 | R5.6 `experiment_design/scope/` |
 | 哪些 pair / cluster 可进入主实验仍需资格冻结。 | R5.7 eligibility / protocol |
 | 修正循环是否稳定有效尚未实证。 | R6/R8 真实 repair loop |
 | Better STM 是否成立尚无主结果。 | 真实 `STM_0` vs `STM_k`、场景、诊断与人工/结构化裁决 |

@@ -75,7 +75,7 @@ flowchart TD
 |---|---|
 | 2026-06-29 03:25:00 | R5.5.1 加固 evidence 子路径 README、archive cold/deprecated 可追溯归档和 story 专题入口。 |
 | 2026-06-29 01:48:34 | 新增 [reports/](./reports/) 文库并迁移 R5/R5.5 human-facing reports；旧 pipeline Markdown 仅保留 redirect notice，避免第二事实源。 |
-| 2026-06-29 00:35:00 | R5.5 新增 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)，把 `llms-emp-stm-subset` 收敛为 10 个 NL cluster × 6 个 LLM 输出的主 seed 池画像，并明确 T0/T0.5 主线 + Digital Camera supplementary stress。 |
+| 2026-06-29 00:35:00 | R5.5 新增 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)，把 `llms-emp-stm-subset` 收敛为 10 个 NL cluster × 6 个 LLM 输出的主 seed 池画像，并明确 T0 主线 + T0.5 timer-like caveat + Digital Camera supplementary stress。 |
 | 2026-06-28 23:45:00 | 基于 R5 全量摸排新增 [reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)，明确 `llms-emp-stm-subset` 作为后续主实验优先 seed 池。 |
 | 2026-06-28 22:20:00 | 将 `conversion/`、`evaluation/`、`representation/`、`smoke/` 整体迁入 [pipeline/](./pipeline/)，使 pipeline 成为真实阶段路径而非文档概念。 |
 | 2026-06-28 20:10:00 | 简化顶层阅读结构：新增 [STATUS.md](./STATUS.md)，将数据流、目录地图和当前边界收敛到本 README；旧流程式阅读路径不再作为主入口。 |

@@ -1,26 +1,20 @@
 # R5.5 `llms-emp-stm-subset` main seed profile
 
-## 事实源与复验 / 来源考据
-
-| source path | source creation commit | prefix commit | substantive fact commit 判定理由 | non-prefix revision/migration commit | canonical machine source |
-|---|---|---|---|---|---|
-| `pipeline/readiness_audit/llms_emp_profile/llms_emp_deep_profile.md` | `ee35e44407c85835dc4f3ec669477e298d89cb8a` (2026-06-28 22:54:39 +0800) | `49f34c39b8f8ecf037c60d8ab54d9c33ea1c443a` (2026-06-29 00:03:56 +0800, main seed profile fact freeze) | `49f34c39b8f8ecf037c60d8ab54d9c33ea1c443a` (2026-06-29 00:03:56 +0800)：补齐 10 cluster 指标表、10×6 LLM 状态矩阵与行为特征矩阵；这是当前主 seed profile 的事实快照。 | `1ab6af18eda24cf35a10eb9e99e1f59ca9b6b616` (2026-06-29 02:41:50 +0800, R5.5.1 reports/readiness 路径迁移)；后续修正只补 CI 路径、full SHA 与人类入口链接，不改 canonical machine facts。 | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)；[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)；[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl)；[llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)；[llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) |
-
-> 本节是本 report 的事实绑定入口：Markdown 只做人类阅读与论文写作 handoff，不替代 canonical JSON/JSONL/ZIP/committed run artifacts。复验时优先回到最后一列机器事实源。
+> 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
 ## R5.5 `llms-emp-stm-subset` 主 seed 池深度画像
 
-本 report 迁移自 R5.5 `run-llms-emp-profile` 生成的旧 human summary；当前机器事实源是 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)。本 Markdown 只做人类阅读入口。
+本 report 迁移自 R5.5 `run-llms-emp-profile` 生成的旧 human summary；当前机器事实源是 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)。本 Markdown 只做人类阅读入口 [src-profile-case][src-profile-clusters][src-profile-llm-matrix][src-profile-partial-ledger]。
 
 ### 1. 结论
 
-`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线可围绕 T0/T0.5 离散状态机族展开；Digital Camera cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up。
+`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线应以 T0 离散状态机族为核心展开；T0.5 只作为 timer-like cue under event abstraction 的 caveat 样本单独标注。Digital Camera/T1 cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up [clm-profile-scope-decision][clm-profile-time-role][clm-profile-blocked]。
 
-关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain。
+关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain [clm-profile-denominator][clm-profile-no-repair-gain]。
 
 #### 1.1 十个 NL cluster 的完整结论表
 
-本表是远程快速决策入口：每行是一条唯一 NL，而不是单个 LLM 输出；`6 个 LLM 输出状态` 按该 NL 对应的 GPT-4o / GPT-4 / Llama / Kimi / DeepSeek / Claude 六个生成结果汇总。
+本表是远程快速决策入口：每行是一条唯一 NL，而不是单个 LLM 输出；`6 个 LLM 输出状态` 按该 NL 对应的 GPT-4o / GPT-4 / Llama / Kimi / DeepSeek / Claude 六个生成结果汇总 [clm-profile-denominator][src-profile-clusters]。
 
 | # | NL / seed | 来源 | 控制语义 | 时间等级 | 结构族 | 行为特征 | 6 个 LLM 输出状态 | story 角色 | 主要风险 / 结论 |
 |---:|---|---|---|---|---|---|---|---|---|
@@ -37,7 +31,7 @@
 
 #### 1.2 十个 NL × 六个 LLM 输出状态矩阵
 
-本矩阵用于定位具体 raw pair。四位编号是 `llms_emp_stm_results_XXXX` 的后缀；完整 row 级事实见 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)。
+本矩阵用于定位具体 raw pair。四位编号是 `llms_emp_stm_results_XXXX` 的后缀；完整 row 级事实见 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) [src-profile-case][src-profile-llm-matrix]。
 
 | # | NL / seed | GPT-4o | GPT-4 | Llama | Kimi | DeepSeek | Claude |
 |---:|---|---|---|---|---|---|---|
@@ -54,7 +48,7 @@
 
 #### 1.3 十个 NL 的行为特征矩阵
 
-这些特征只表示 R5.5 对 NL 与原始 STM_0 的保守画像，不等于 R5.7 已确认 repair target。
+这些特征只表示 R5.5 对 NL 与原始 STM_0 的保守画像，不等于 R5.7 已确认 repair target [clm-profile-feature-census]。
 
 | # | NL / seed | 守卫式条件 | 动作/entry-exit | 变量/数据条件 | 层级 | 伪状态 | 并发/区域 | 显式时间 |
 |---:|---|---|---|---|---|---|---|---|
@@ -110,7 +104,7 @@
 
 #### 2.5 行为特征画像
 
-本节是 R5.5 的保守 feature census，只支撑 R5.6 scope 决策；不能直接把某个特征计为 R5.7 已确认 repair target。
+本节是 R5.5 的保守 feature census，只支撑 R5.6 scope 决策；不能直接把某个特征计为 R5.7 已确认 repair target [clm-profile-feature-census]。
 
 | feature | clusters |
 |---|---:|
@@ -186,11 +180,11 @@
 | `pipeline_artifact` | 19 |
 | `r5_7_candidate_only` | 16 |
 
-`pipeline_artifact=True` 表示该症状在 conversion / canonicalization / lowering pipeline 中被观察或暴露；它不等价于“pipeline 是唯一根因”，也不排除 R5.7 逐例判定为 seed-side guard/event/action 缺陷。
+`pipeline_artifact=True` 表示该症状在 conversion / canonicalization / lowering pipeline 中被观察或暴露；它不等价于“pipeline 是唯一根因”，也不排除 R5.7 逐例判定为 seed-side guard/event/action 缺陷 [clm-profile-no-repair-gain][clm-profile-condition-candidate]。
 
 ### 7. loss code 到 R5.5 归因策略
 
-本节把机器 ledger 中的 `loss_reason_codes` 显式映射到 R5.5 学术归因，避免后续把 conversion / normalization / lowering 收益误写成 repair loop 收益。该表是长期阅读入口；机器事实源仍以 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) 与 R5 sweep archive 为准。
+本节把机器 ledger 中的 `loss_reason_codes` 显式映射到 R5.5 学术归因，避免后续把 conversion / normalization / lowering 收益误写成 repair loop 收益。该表是长期阅读入口；机器事实源仍以 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) 与 R5 sweep archive 为准 [src-profile-partial-ledger][clm-profile-no-repair-gain]。
 
 | loss code | 观察到的问题 | 来源阶段 | 主归因 | 次级归因 | pipeline artifact | R5.7候选 | 置信度 | R5.7纪律 |
 |---|---|---|---|---|---|---|---|---|
@@ -213,7 +207,85 @@
 
 ### 9. 给 R5.6/R5.7 的学术含义
 
-1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0/T0.5 的离散 FSM/HSM/UML-SysML statechart artifacts。guard/action/data-condition 只作为 caveat 与 R5.7 候选画像，不作为已确认扩展状态机覆盖 claim。
-2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard。
-3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善。
-4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机。
+1. 当前主线不宜声称覆盖 timed automata 或任意 UML；主实验应保守限定为 T0 离散 FSM/HSM/UML-SysML statechart artifacts。T0.5 只能作为 timer-like cue under event abstraction 的 caveat 样本，guard/action/data-condition 只作为 caveat 与 R5.7 候选画像，不作为已确认扩展状态机覆盖 claim [clm-profile-time-role][clm-profile-scope-decision]。
+2. `condition_like_label_lowered_as_event` 是最接近 R5.7 repair target 的候选问题，但必须逐例回到 NL 证据，不能把所有 event label 都自动升级为 guard [clm-profile-condition-candidate]。
+3. `r3_1_normalization_replay`、scope lifting、initial inference 等主要是 conversion / representation attribution，不得写成 repair loop 改善 [clm-profile-no-repair-gain]。
+4. Digital Camera cluster 可保留为 supplementary / stress，用于说明当前边界为什么不外推到显式时间状态机 [clm-profile-time-role][clm-profile-scope-decision]。
+
+## 审计附录：证据链与事实源
+
+### A.1 来源考据表
+
+| source path | source creation commit | prefix commit | substantive fact commit 判定理由 | non-prefix revision/migration commit | canonical machine source |
+|---|---|---|---|---|---|
+| `pipeline/readiness_audit/llms_emp_profile/llms_emp_deep_profile.md` | `ee35e44407c85835dc4f3ec669477e298d89cb8a` (2026-06-28 22:54:39 +0800) | `49f34c39b8f8ecf037c60d8ab54d9c33ea1c443a` (2026-06-29 00:03:56 +0800, main seed profile fact freeze) | `49f34c39b8f8ecf037c60d8ab54d9c33ea1c443a` (2026-06-29 00:03:56 +0800)：补齐 10 cluster 指标表、10×6 LLM 状态矩阵与行为特征矩阵；这是当前主 seed profile 的事实快照。 | `1ab6af18eda24cf35a10eb9e99e1f59ca9b6b616` (2026-06-29 02:41:50 +0800, R5.5.1 reports/readiness 路径迁移)；后续修正只补 CI 路径、full SHA 与人类入口链接，不改 canonical machine facts。 | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)；[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)；[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl)；[llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)；[llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) |
+
+> 本节是本 report 的事实绑定入口：Markdown 只做人类阅读与论文写作 handoff，不替代 canonical JSON/JSONL/ZIP/committed run artifacts。复验时优先回到最后一列机器事实源。
+
+### A.2 上游事实源清单
+
+| 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
+|---|---|---|---|---|---|
+| [src-profile-case] | `case_matrix` | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | `jsonl` | 支撑 60 pair row-level status、LLM、time、role、loss、hash 与 archive evidence | `raw_pair_id`、`nl_cluster_id`、`conversion_status`、`r5_loss_codes` |
+| [src-profile-clusters] | `cluster_profiles` | [llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | `jsonl` | 支撑 10 cluster 画像、time level、结构族、行为特征、loss counts | `nl_cluster_index`、`behavior_feature_profile`、`loss_code_counts` |
+| [src-profile-llm-matrix] | `cluster_llm_matrix` | [llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl) | `jsonl` | 支撑 10×6 LLM 状态矩阵与具体 raw pair 定位 | `nl_cluster_id` × `llm_family` |
+| [src-profile-partial-ledger] | `partial_ledger` | [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | `jsonl` | 支撑 partial attribution、confidence、R5.7 candidate-only 边界 | `r5_loss_code`、`primary_attribution`、`attribution_confidence` |
+| [src-profile-blocked] | `blocked_probe` | [llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) | `jsonl` | 支撑 blocked 摘要与 renderability caveat | rows: `raw_pair_id in {0018,0028,0037}` |
+| [src-profile-pairs] | `pairs_jsonl` | [pairs.jsonl](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) | `xlsx-derived-jsonl` | 支撑 10 NL × 6 LLM 一手来源、hash 与 source locator | `pair_id`、`nl_sha256`、`stm0_sha256`、`source_locator` |
+| [src-profile-records-zip] | `records_zip` | [llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | `zip` | 支撑 60 条 per-pair record、`.fcstm` hash、structured export hash 与 archive-level evidence | member pattern: `llms-emp-stm-subset_records/*.json`；`sha256=f3ee8bf5755aae3b5021cf49e119a235c1de7db0b5e02af8f4b81f7044fe7d8f` |
+| [src-profile-workdir-zip] | `conversion_workdir_zip` | [workdir.zip](../pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip) | `zip` | 支撑 PlantUML raw / normalized candidates 与 official SCXML intermediate 的 archive-level evidence | `normalized_candidates/*`、`official_scxml/*`；`sha256=500955e1c6d7d5b33b92a5915f8f93ee6099335a32a9f7d73dae2a12acbc7750` |
+
+### A.3 Claim-evidence map
+
+| 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
+|---|---|---|---|---|---|---|---|
+| [clm-profile-denominator] | `R5.5-PROFILE-C1` | 主 seed 池为 60 raw pairs = 10 NL clusters × 6 LLM outputs。 | `count` | `case_matrix` fields `nl_cluster_id,llm_family`; `pairs_jsonl` fields `nl_sha256,llm`; record archive hash [src-profile-records-zip] | [cmd-profile-summary] | `high` | 不能当作 60 个独立需求样本。 |
+| [clm-profile-status] | `R5.5-PROFILE-C2` | pair 状态为 `converted=16 / partial=41 / blocked=3`。 | `count` | `case_matrix.conversion_status`; record archive status [src-profile-records-zip] | [cmd-profile-summary] | `high` | conversion status 是 pre-repair readiness。 |
+| [clm-profile-time-role] | `R5.5-PROFILE-C3` | time / structure / story role 统计来自 row-level case matrix 与 cluster profiles。 | `classification` | `case_matrix.{time_level,structure_family,r5_6_story_role}`、`cluster_profiles.{time_level,r5_6_story_role}` | [cmd-profile-story-split] | `high` | T0.5 仅作 timer-like cue under event abstraction；T1 不支撑主 claim。 |
+| [clm-profile-feature-census] | `R5.5-PROFILE-C4` | 行为特征矩阵是 R5.5 feature census，不等于 repair target。 | `classification` | `cluster_profiles.behavior_feature_profile` | [cmd-profile-summary] | `medium` | 需 R5.7 逐例由 NL + raw STM_0 adjudicate。 |
+| [clm-profile-no-repair-gain] | `R5.5-PROFILE-C5` | loss code 与 partial attribution 不得计入 repair gain。 | `risk` | `case_matrix.r5_loss_codes`、`partial_ledger.{r5_loss_code,primary_attribution,attribution_confidence}` | [cmd-profile-partial-ledger] | `high` | conversion / normalization / lowering 只作 attribution。 |
+| [clm-profile-condition-candidate] | `R5.5-PROFILE-C6` | `condition_like_label_lowered_as_event` 只是 R5.7 候选。 | `risk` | `partial_ledger` rows with `r5_loss_code=R45.LOSS.condition_like_label_lowered_as_event` | [cmd-profile-partial-ledger] | `medium` | 不能自动把所有 event label 升级为 guard。 |
+| [clm-profile-blocked] | `R5.5-PROFILE-C7` | 3 个 blocked 只能进入 negative evidence / converter follow-up。 | `decision` | `blocked_probe` + `case_matrix.r5_6_story_role=negative_evidence` | [cmd-profile-summary] | `high` | 当前只是不具备可信 SCXML committed evidence，不证明永远不可渲染。 |
+| [clm-profile-scope-decision] | `R5.5-PROFILE-C8` | `proceed_with_supplementary` 是 scope decision。 | `decision` | `case_matrix` + `cluster_profiles` + blocked probe | [cmd-profile-story-split] | `medium` | 对 scope decision 的证据较完整，但 R5.6/R5.7 仍需冻结 taxonomy；不是对 repair effectiveness 的 claim。 |
+
+### A.4 复验命令
+
+```bash
+# [cmd-profile-summary] / [cmd-profile-story-split] / [cmd-profile-partial-ledger] CMD-PROFILE-1 / CMD-PROFILE-2 / CMD-PROFILE-3 / CMD-PROFILE-4 / CMD-PROFILE-5 / CMD-PROFILE-6 / CMD-PROFILE-7 / CMD-PROFILE-8
+python - <<'PY'
+import json, collections, pathlib
+import zipfile, hashlib
+base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_repair')
+manifest=json.load(open(base/'pipeline/readiness_audit/artifact_archives/archive_manifest.json'))
+records_zip=base/'pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip'
+records_expected=[a['sha256'] for a in manifest['archives'] if a['archive_path'].endswith('llms-emp-stm-subset_records.zip')][0]
+records_actual=hashlib.sha256(records_zip.read_bytes()).hexdigest()
+workdir=base/'pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip'
+workdir_expected=(base/'pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip.sha256').read_text().split()[0]
+workdir_actual=hashlib.sha256(workdir.read_bytes()).hexdigest()
+case=[json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl').read_text().splitlines() if l.strip()]
+clusters=[json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl').read_text().splitlines() if l.strip()]
+partial=[json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl').read_text().splitlines() if l.strip()]
+blocked=[json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl').read_text().splitlines() if l.strip()]
+pairs=[json.loads(l) for l in (base/'corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl').read_text().splitlines() if l.strip()]
+loss=collections.Counter()
+features=collections.Counter()
+for r in case: loss.update(r.get('r5_loss_codes') or [])
+for c in clusters:
+    for k,v in c['behavior_feature_profile'].items():
+        if v: features[k]+=1
+print('pairs', len(pairs), 'unique_nl_hash', len({r['nl_sha256'] for r in pairs}), 'llm', collections.Counter(r['llm'] for r in pairs))
+print('case_rows', len(case), 'clusters', len({r['nl_cluster_id'] for r in case}), 'status', collections.Counter(r['conversion_status'] for r in case))
+print('pair_time', collections.Counter(r['time_level'] for r in case), 'cluster_time', collections.Counter(r['time_level'] for r in clusters))
+print('structure', collections.Counter(r['structure_family'] for r in case), 'role', collections.Counter(r['r5_6_story_role'] for r in case))
+print('features', dict(sorted(features.items())))
+print('loss', dict(sorted(loss.items())))
+print('partial_attribution', collections.Counter(r['primary_attribution'] for r in partial), collections.Counter(r['attribution_confidence'] for r in partial))
+print('condition_like_candidate_rows', sum(1 for r in partial if r.get('r5_loss_code')=='R45.LOSS.condition_like_label_lowered_as_event'))
+print('blocked', len(blocked), [r['raw_pair_id'] for r in blocked])
+print('records_zip_sha_ok', records_actual == records_expected, records_actual)
+print('workdir_zip_sha_ok', workdir_actual == workdir_expected, workdir_actual)
+with zipfile.ZipFile(records_zip) as z:
+    print('records_zip_members', len(z.namelist()))
+PY
+```
