@@ -47,7 +47,7 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 | [GUIDE.md](./GUIDE.md) | 检索、筛选、单篇目录、证据等级、schema 回修和 dry-run 维护规则。 |
 | [SUMMARY.md](./SUMMARY.md) | 当前总账、候选池、dry-run 覆盖矩阵、脚手架模式、schema 缺口和更新日志。 |
 | [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
-| [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib` 和 `review.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。 |
+| [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json` 和 `review.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。 |
 | [patterns/](./patterns/) | 字段 schema、字段变更和后续 A2a/A2b 汇总入口。 |
 
 ## 5. 推荐阅读顺序

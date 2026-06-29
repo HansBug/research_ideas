@@ -13,7 +13,7 @@
 | 完成 `paper.pdf` + `paper_content.txt` | 16 |
 | #95 现代锚点 | 10 |
 | #95 已获取 PDF / 开放预印本并生成文本 | 10 |
-| 机器可读统计池排除字段 | 已补入 10 个 `metadata.json` |
+| 机器可读统计池 / 证据角色字段 | 已补入 19 个 `metadata.json` |
 | schema 回修记录 | 8 类 |
 | 真实 LLM / `.env` | 未运行 / 未读取 |
 | 四个真实例子 | 不运行；A1 只做文库 dry-run |
@@ -46,7 +46,7 @@ emoji 口径：🟢 = 已完成全文文本级 dry-run；🟡 = metadata-only / 
 
 CCF 字段的目标口径是 **CCF 官方最新推荐目录**，不应局限于本仓库 [../../../ccf_venues/](../../../ccf_venues/) 已建档范围。本轮在 2026-06-29 访问 CCF 官方 [软件工程 / 系统软件 / 程序设计语言目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) 时，HTTP/CLI 均返回 Aliyun WAF 壳，无法从正文自动核验 TOSEM / IST / JSS / Requirements Engineering / ESE / EASE。当前表格暂采用本仓库 [../../../ccf_venues/01-venue-scope.md](../../../ccf_venues/01-venue-scope.md) 与 [../../../ccf_venues/SUMMARY.md](../../../ccf_venues/SUMMARY.md) 的已建档缓存作为工作口径；正式写作或投稿前必须人工打开 CCF 官方目录复核。
 
-**本节结论**：A1 现有样本中，TOSEM、IST、JSS、Requirements Engineering、ESE、EASE 的等级按本地 CCF 情报库缓存填写，并显式标注官方待人工复核；CSUR、EmpiRE、SEAA 与 EBSE 技术报告本轮不写 CCF 等级。这个口径比直接留空更便于投稿决策，但不能在论文或投稿材料中写成“官方页面已自动核验”。
+**本节结论**：A1 现有样本中，TOSEM、IST、JSS、Requirements Engineering、ESE、EASE 的等级按本地 CCF 情报库缓存填写，并显式标注官方待人工复核；CSUR 本轮改为 `待核验` 而不是 `--`，因为它不属于当前已建档的软件工程 venue 缓存但可能存在于 CCF 其他大类；EmpiRE、SEAA 与 EBSE 技术报告仍按非 CCF / 未定位 CCF venue 处理。这个口径比直接留空更便于投稿决策，但不能在论文或投稿材料中写成“官方页面已自动核验”。
 
 ## 3. A1-M0--M6 元维度设计
 
@@ -102,15 +102,15 @@ A2a 应从当前 19 篇出发，优先扩展 2020 年后的 SE tertiary / SLR / 
 
 | 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 官方大类 | CCF 官方等级 | CCF 复核状态 | 类型 | 关键价值 | 目录 |
 | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | -- | guideline | SLR protocol / search / selection / extraction / synthesis / reporting 基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | 非 CCF venue；技术报告 | guideline | SLR protocol / search / selection / extraction / synthesis / reporting 基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
 | 🟡 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | 本地缓存；官方待人工复核（WAF） | SMS 方法 | mapping study 方法学候选；PDF 未获取。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
 | 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | tertiary-like SLR | 早期 SE SLR 总览，RQ/finding/report 结构完整。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
 | 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | updated tertiary | update / integration / 前序研究关系 pattern。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
-| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | -- | tertiary | RE 子领域 tertiary，提供领域专门化模式。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
-| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | -- | SMS | SMS taxonomy / benefit / problem / solution pattern。 | [review.md](./papers/re-agile-sms-2015/review.md) |
+| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | 非 CCF venue / workshop | tertiary | RE 子领域 tertiary，提供领域专门化模式。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
+| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | 本轮未定位 CCF 目录条目 | SMS | SMS taxonomy / benefit / problem / solution pattern。 | [review.md](./papers/re-agile-sms-2015/review.md) |
 | 🟡 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | guideline update | SMS guideline update；PDF 未获取。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
 | 🟡 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | SLR | 现代高等级 SLR 候选；Springer 链接返回 HTML。 | [review.md](./papers/app-reviews-slr-se/review.md) |
-| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | -- | -- | -- | tertiary | 现代高等级 tertiary，提供大规模分类、挑战和行动建议 pattern。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
+| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | 待核验（疑似非软件工程大类；官方页 WAF） | 待核验 | 官方待人工复核（WAF）；本地未建 CSUR 条目 | tertiary | 现代高等级 tertiary，提供大规模分类、挑战和行动建议 pattern。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
 
 **本节结论**：初始 9 篇负责证明最小 GUIDE / schema / failure path 可执行；其中 3 篇 metadata-only 不进入已采纳 pattern，只保留为人工下载清单和失败路径样本。
 
@@ -138,7 +138,7 @@ A2a 应从当前 19 篇出发，优先扩展 2020 年后的 SE tertiary / SLR / 
 | 3--5 篇 dry-run | 16 篇全文文本级 + 3 篇 metadata-only；A1 主验收仍按 3--5 篇判断，#95 十篇用于 hardening | 通过；不声称完整覆盖 |
 | 至少 3 篇全文文本级 | 初始 6 篇 + #95 10 篇 | 通过 |
 | 至少 2 类综述类型 | guideline、tertiary、updated tertiary、SLR、SMS、systematic mapping、MLR、solution proposal、vision/roadmap、theory/evaluation/roadmap | 通过 |
-| 至少 1 篇高等级来源 | TOSEM、IST、JSS、ESE metadata-only、Requirements Engineering；CCF 字段按本地缓存，官方目录待人工复核 | 通过 |
+| 至少 1 篇高等级来源 | TOSEM、IST、JSS、ESE metadata-only、Requirements Engineering、CSUR；TOSEM/IST/JSS/ESE/RE 按本地缓存，CSUR 待人工复核，官方目录受 WAF | 通过 |
 | 至少 1 篇非 A / 非顶级来源 | EmpiRE、SEAA、EBSE 技术报告 | 通过 |
 | 至少 1 篇非 LLM4SE 子领域 | ML4SE、RE、Agile RE、MDE4ML、MDSE、DevSecOps、requirements quality、secondary-study artifacts | 通过 |
 | 至少 1 个失败 / 降级路径 | app reviews SLR、Petersen 2008、Petersen 2015；roadmap/proposal 的统计池排除 | 通过 |
@@ -183,11 +183,12 @@ emoji 口径：🟢 = A1 已采纳为后续候选字段；🟡 = 候选但需 A2
 
 | 时间 | 触发条目 | 修订 | 回填状态 | 冻结理由 |
 |---|---|---|---|---|
-| 2026-06-29 20:10:00 | #95 十篇现代锚点 | 将脚手架元维度统一为 `A1-M0--M6`，避免与 S0 方法阶段或单篇原文 L1--L6 limitation cluster 混淆 | 已回填 GUIDE、schema、SUMMARY、patterns README、单篇 review | 命名漂移会影响后续 agent 聚合与审查。 |
-| 2026-06-29 20:10:00 | #95 roadmap / proposal / commentary | 新增 `eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`statistical_pool_exclusion_reason` | 已回填 10 个 `metadata.json` | schema seed 和统计池必须分离，否则会污染 finding 统计。 |
-| 2026-06-29 20:10:00 | LLM4SE / MDSE / formal RE 三篇 | 拆分 `legacy_issue95_fulltext_status` 与 `current_fulltext_status` | 已回填 3 个 metadata 状态矛盾条目 | 保留历史获取失败记录，同时让当前本地全文状态可机读。 |
-| 2026-06-29 20:30:00 | CCF 官方目录访问异常 | HTTP/CLI 访问 CCF 官方软件工程 / 系统软件 / 程序设计语言目录返回 Aliyun WAF 壳，无法自动核验正文 | 已回填 SUMMARY、candidate-pool、单篇 review 和 metadata 复核状态为“本地缓存；官方待人工复核” | 不能把本地缓存口径冒充官方页面已核验。 |
-| 2026-06-29 16:30:00 | issue #95 十篇现代锚点 | 扩展 `review_type`：`SLR+SMS`、`systematic mapping`、`multivocal literature review`、`solution proposal`、`vision/roadmap`、`theory/evaluation/roadmap` | 已回填候选池、SUMMARY 与 metadata | 现代样本类型比初始 guideline/tertiary/SMS 更复杂。 |
+| 2026-06-29 16:13:28 | 三路复审 C/I 修复 | 早期 9 篇补齐 `metadata.json`，使 19 篇都有 `publication_year_basis`、`online_first_date`、统计池资格、证据角色与 CCF 复核状态；CSUR 改为待核验 / 官方待人工复核；同步清理 `paper_content.txt` 行尾空白 | 已回填 19 个 metadata、SUMMARY、candidate-pool、GUIDE、task packet 和 progress | 机器可读字段断层与不可复现 `git diff --check` 会影响 A2a/A2b 聚合和审计。 |
+| 2026-06-29 15:41:07 | CCF 官方目录访问异常 | HTTP/CLI 访问 CCF 官方软件工程 / 系统软件 / 程序设计语言目录返回 Aliyun WAF 壳，无法自动核验正文 | 已回填 SUMMARY、candidate-pool、单篇 review 和 metadata 复核状态为“本地缓存；官方待人工复核”；CSUR 因本地未建档改为待核验 | 不能把本地缓存口径冒充官方页面已核验。 |
+| 2026-06-29 15:41:07 | #95 十篇现代锚点 | 将脚手架元维度统一为 `A1-M0--M6`，避免与 S0 方法阶段或单篇原文 L1--L6 limitation cluster 混淆 | 已回填 GUIDE、schema、SUMMARY、patterns README、单篇 review | 命名漂移会影响后续 agent 聚合与审查。 |
+| 2026-06-29 15:41:07 | #95 roadmap / proposal / commentary | 新增 `eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`statistical_pool_exclusion_reason` | 已回填 10 个 `metadata.json`，后续复审已扩展为 19 个统一 metadata | schema seed 和统计池必须分离，否则会污染 finding 统计。 |
+| 2026-06-29 15:41:07 | LLM4SE / MDSE / formal RE 三篇 | 拆分 `legacy_issue95_fulltext_status` 与 `current_fulltext_status` | 已回填 3 个 metadata 状态矛盾条目 | 保留历史获取失败记录，同时让当前本地全文状态可机读。 |
+| 2026-06-29 15:37:22 | issue #95 十篇现代锚点 | 扩展 `review_type`：`SLR+SMS`、`systematic mapping`、`multivocal literature review`、`solution proposal`、`vision/roadmap`、`theory/evaluation/roadmap` | 已回填候选池、SUMMARY 与 metadata | 现代样本类型比初始 guideline/tertiary/SMS 更复杂。 |
 | 2026-06-29 13:20:00 | 用户新增来源字段要求 | 新增 `publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank` | 已回填总账、候选池、单篇 review 和 schema | 来源等级必须拆成可审计字段。 |
 | 2026-06-29 02:18:07 | Kitchenham & Charters 2007 | 新增 `review_type=guideline` 与 `guideline不适用` 缺失值语义 | 已回填全部初始 review 卡片 | guideline 不生成普通领域 finding，必须允许不适用。 |
 | 2026-06-29 02:18:07 | da Silva 2011 / Petersen 2015 | 新增 `predecessor_relation` | da Silva 已全文回填；Petersen 2015 metadata-only 待全文 | update/extends/integrates 关系是 tertiary/guideline update 的核心。 |
@@ -231,8 +232,8 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
+| 2026-06-29 16:13:28 | 修复三路 reviewer 复审提出的 C/I：补齐早期 9 篇 `metadata.json`，统一 19 篇机器可读字段，修正 CSUR CCF 待核验口径，并清理 `paper_content.txt` 行尾空白。 | `git diff --check` 两点工作区口径通过；提交后需再用 PR 三点 diff 复验。 |
+| 2026-06-29 15:41:07 | 根据内部复核修复 A1-M0--M6 命名、SUMMARY 19/16/3 总账、#95 metadata 全文状态、roadmap / proposal 统计池排除字段，并记录 CCF 官方页面 WAF 风险。 | 文件系统统计：19 个 `review.md`、19 个 `metadata.json`、16 个 `paper.pdf`、16 个 `paper_content.txt`、3 个 manual-download BibTeX 条目；CCF 等级按本地缓存并标注官方待人工复核。 |
 | 2026-06-29 15:37:22 | 完成 #95 十篇现代锚点一致性复验：补 `issue95-selection-audit.md`，统一 `interactive-llm-systematic-mapping` 年份为正式卷期 2025，修复 progress / task packet 19/16/3 总账，保持 CCF 字段为“本地缓存；官方待人工复核（WAF）”。 | `git diff --check` 与 A1 consistency 脚本通过；manual-download-needed 仍为 3 条旧失败路径。 |
-| 2026-06-29 20:10:00 | 根据内部复核修复 A1-M0--M6 命名、SUMMARY 19/16/3 总账、#95 metadata 全文状态、roadmap / proposal 统计池排除字段，并记录 CCF 官方页面 WAF 风险。 | 文件系统统计：19 个 `review.md`、16 个 `paper.pdf`、16 个 `paper_content.txt`、3 个 manual-download BibTeX 条目；CCF 等级按本地缓存并标注官方待人工复核。 |
-| 2026-06-29 16:30:00 | 纳入 issue #95 十篇现代维度锚点，建立单篇目录、BibTeX、metadata、PDF、`paper_content.txt` 与全文 review。 | 10 篇均已获取公开 PDF 或开放预印本版本；无新增人工下载条目。 |
 | 2026-06-29 13:20:00 | 按用户新增要求补充 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 四列，并同步单篇 review 快速卡片、候选池和字段 schema。 | CCF 字段按官方完整目录口径设计；本轮 HTTP/CLI 访问官方页受 WAF 限制，工作表暂用本地缓存并标注正式写作前需人工复核。 |
 | 2026-06-29 02:18:07 | 建立 `survey_of_surveys/` README/GUIDE/SUMMARY/search/papers/patterns；完成 6 篇全文文本级 dry-run 和 3 篇 metadata-only 失败路径；回修 schema 字段。 | A1 奠基；未运行真实 LLM，未读取 `.env`，不跑四个真实例子。 |

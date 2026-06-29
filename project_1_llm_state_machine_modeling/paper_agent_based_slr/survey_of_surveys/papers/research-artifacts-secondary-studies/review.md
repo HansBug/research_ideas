@@ -169,7 +169,7 @@ research_artifact_asset
 3. **报告位置要独立统计**：Data availability section 是定位信号，不保证真的有可复现工件。
 4. **分母必须写死**：全部论文、提供 artifact 的论文、某一年论文是不同分母。
 5. **链接检查要有时间戳**：dead link 是随时间变化的事实，必须保留 checked_at。
-6. **工件质量另设字段**：本文没有评估 artifact quality；Paper2 若要支撑审计制品链，必须继续记录完整性、可执行性、版本、脱敏、README、字段覆盖率。 
+6. **工件质量另设字段**：本文没有评估 artifact quality；Paper2 若要支撑审计制品链，必须继续记录完整性、可执行性、版本、脱敏、README、字段覆盖率。
 
 ## 6. 对 Paper2 的启发与风险
 

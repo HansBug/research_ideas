@@ -86,6 +86,7 @@ A1 只做种子检索和 dry-run；A2a/A2b 才做大规模闭合。A1 检索记�
 ```text
 papers/<slug>/
 ├── bibtex.bib
+├── metadata.json          # 机器可读事实、证据角色、统计池资格与年份/CCF口径
 ├── review.md
 ├── paper.pdf              # 全文可得时必须有
 └── paper_content.txt      # 全文可得时必须由 tools/pdf_extractor.py 生成
@@ -99,6 +100,8 @@ python -m tools.pdf_extractor -i papers/<slug>/paper.pdf -o papers/<slug>/paper_
 ```
 
 若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文，必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。若一轮新增条目全部成功获取 PDF，也必须在 [search/search-log.md](./search/search-log.md) 中记录“无新增人工下载”。
+
+`metadata.json` 是 A1 之后的机器可读事实入口，必须至少包含：`slug`、`title`、`authors`、`year`、`publication_year_basis`、`online_first_date`、`publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank`、`ccf_verification_status`、`review_type`、`se_subfield`、`current_fulltext_status`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`systematic_evidence_status`、`statistical_pool_exclusion_reason`。若字段不适用，必须显式写 `null`、`--` 或 `待核验`，不能缺键。
 
 ## 6. 模式字段抽取规则
 

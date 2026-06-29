@@ -11,7 +11,7 @@
 | 期刊/会议/预印本 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
-| CCF 复核状态 | -- |
+| CCF 复核状态 | 非 CCF venue；技术报告 |
 | 来源等级 | 方法学基准；非 CCF 论文；技术报告 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |

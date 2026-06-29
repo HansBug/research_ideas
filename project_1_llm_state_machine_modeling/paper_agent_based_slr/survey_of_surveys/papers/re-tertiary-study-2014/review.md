@@ -11,7 +11,7 @@
 | 期刊/会议/预印本 | [EmpiRE](https://empire2014.wordpress.com/) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
-| CCF 复核状态 | -- |
+| CCF 复核状态 | 非 CCF venue / workshop |
 | 来源等级 | EmpiRE 2014 workshop；非顶级会议；IEEE DOI |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工 PDF 核对 |

@@ -87,11 +87,13 @@ if missing:
     raise SystemExit(f'missing files: {missing}')
 reviews = list((root / 'papers').glob('*/review.md'))
 texts = list((root / 'papers').glob('*/paper_content.txt'))
-if len(reviews) != 19 or len(texts) != 16:
-    raise SystemExit(f'unexpected dry-run asset counts: reviews={len(reviews)}, texts={len(texts)}')
+metas = list((root / 'papers').glob('*/metadata.json'))
+pdfs = list((root / 'papers').glob('*/paper.pdf'))
+if len(reviews) != 19 or len(metas) != 19 or len(texts) != 16 or len(pdfs) != 16:
+    raise SystemExit(f'unexpected dry-run asset counts: reviews={len(reviews)}, metas={len(metas)}, pdfs={len(pdfs)}, texts={len(texts)}')
 for f in reviews:
     t = f.read_text(encoding='utf-8')
-    for marker in ['出版形态', '期刊/会议/预印本', 'CCF 官方大类', 'CCF 官方等级', 'A1-M0', 'A1-M6']:
+    for marker in ['出版形态', '期刊/会议/预印本', 'CCF 官方大类', 'CCF 官方等级', 'CCF 复核状态', 'A1-M0', 'A1-M6']:
         if marker not in t:
             raise SystemExit(f'{f} missing {marker}')
 print('survey_of_surveys A1 skeleton and dry-run assets ok')

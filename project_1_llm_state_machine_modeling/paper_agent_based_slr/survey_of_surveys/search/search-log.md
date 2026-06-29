@@ -21,7 +21,7 @@
 本轮是种子检索，不是 A2b 的完整闭合检索。A2a/A2b 需要继续扩展近年 SE SLR/SMS/survey、软件工程各子领域 survey 和最新 guideline / reporting checklist。
 
 
-## 2026-06-29 16:30:00
+## 2026-06-29 15:41:07
 
 本轮目的：按用户要求，把 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 的 10 篇现代维度锚点纳入 A1 文库，用于加固 A1-M0--M6 元维度和现代 CCF-A/B 综述 / roadmap 样本覆盖。候选总表来自公开 Gist：<https://gist.github.com/HansBug/2310896ff4921f3d4809001571228820>；全文审计表包括 `issue95_fulltext_download_audit_438papers.csv` 和 `issue95_fulltext_structure_analysis_87papers.csv`。
 

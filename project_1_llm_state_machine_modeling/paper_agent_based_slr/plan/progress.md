@@ -7,7 +7,7 @@
 | PR | [#132](https://github.com/HansBug/research_ideas/pull/132) |
 | 上游 | [#101](https://github.com/HansBug/research_ideas/pull/101) |
 | 当前分支 | `paper2/a1-survey-of-surveys-scaffold` |
-| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；本轮已纳入 #95 十篇现代维度锚点，补充 A1-M0--M6 元维度字段，并完成 19 篇 `review.md`、16 篇全文文本级、3 篇 metadata-only 失败路径总账 |
+| 当前阶段 | A1 已建立 `survey_of_surveys/` 文库骨架、字段 schema、候选池、人工下载清单和 dry-run；本轮已纳入 #95 十篇现代维度锚点，补充 A1-M0--M6 元维度字段，并完成 19 篇 `review.md`、19 个 `metadata.json`、16 篇全文文本级、3 篇 metadata-only 失败路径总账 |
 | 真实大语言模型 | 未运行；本 PR 不触发 provider 调用 |
 | `.env` | 未读取；本 PR 不需要 key |
 | 四个真实例子 | 不运行；上游 #101 对 A1 只要求 3--5 篇文库 dry-run |
@@ -31,7 +31,7 @@
 | [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) | A1 总账、论文列表、覆盖矩阵、模式总表、schema 回修日志、失败路径和后续入口。 |
 | [../survey_of_surveys/search/](../survey_of_surveys/search/) | 检索日志、候选池、issue #95 十篇来源审计和 BibTeX 格式人工下载清单。 |
 | [../survey_of_surveys/patterns/pattern-field-schema.md](../survey_of_surveys/patterns/pattern-field-schema.md) | 六类 pattern、证据等级、字段总表、缺失值语义和回修规则。 |
-| [../survey_of_surveys/papers/](../survey_of_surveys/papers/) | 19 个单篇目录；16 个含 PDF + `paper_content.txt`，3 个 metadata-only / 需人工下载。 |
+| [../survey_of_surveys/papers/](../survey_of_surveys/papers/) | 19 个单篇目录；19 个含 `metadata.json`，16 个含 PDF + `paper_content.txt`，3 个 metadata-only / 需人工下载。 |
 | [./task-packets/a1-survey-of-surveys-scaffold.md](./task-packets/a1-survey-of-surveys-scaffold.md) | 当前 PR 任务合同、验收门和验证命令。 |
 
 ## 4. 已完成修改
@@ -64,17 +64,18 @@
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
-| 2026-06-29 15:37:22 | A1 现代锚点一致性复验 | 通过；`git diff --check` 通过；文件系统统计为 19 个 `review.md`、16 个 `paper.pdf`、16 个 `paper_content.txt`；#95 十篇均具备 `bibtex.bib` / `metadata.json` / PDF / 文本 / review；`interactive-llm-systematic-mapping` 年份统一为正式卷期 2025，并保留 online-first 2024-11-01；manual-download-needed 保持 3 条旧失败路径。 |
+| 2026-06-29 16:13:28 | 三路 reviewer C/I 修复复验 | 通过；19 篇均有 `metadata.json` 必填字段，16 个 PDF/text、3 个 manual-download 条目一致；SUMMARY §9/§12 降序；`git diff --check` 两点工作区口径通过；非 CCF venue 的复核状态已从 `--` 改为明确说明。 |
+| 2026-06-29 15:41:07 | #95 十篇现代维度锚点扩展 | 已获取 10 篇公开 PDF / 开放预印本并生成 `paper_content.txt`；已补 A1-M0--M6 元维度规则；10 篇均已完成 `review.md` 并回填 SUMMARY；早期 9 篇也已补齐 `metadata.json`，使 19 篇具备统一机器可读字段。 |
+| 2026-06-29 15:37:22 | A1 现代锚点一致性复验 | 通过；`git diff --check` 通过；文件系统统计为 19 个 `review.md`、19 个 `metadata.json`、16 个 `paper.pdf`、16 个 `paper_content.txt`；#95 十篇均具备 `bibtex.bib` / `metadata.json` / PDF / 文本 / review；`interactive-llm-systematic-mapping` 年份统一为正式卷期 2025，并保留 online-first 2024-11-01；manual-download-needed 保持 3 条旧失败路径。 |
+| 2026-06-29 13:20:00 | 用户新增来源字段要求落实 | 已同步 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`、`CCF 复核状态` 到总账、候选池、单篇 review 和 schema；CCF 字段目标不局限 `ccf_venues/`，但本轮官方页受 WAF，当前使用本地缓存并显式标注。 |
+| 2026-06-29 02:54:44 | 实现阶段 codex reviewer I 级修复复验 | 通过；修复入口 README 旧 #129/LLM4STM 阻塞路线残留，清理新增 `paper_content.txt` trailing whitespace 使 `git diff --check` 可复现，并澄清 `predecessor_relation` 字段来源中 Petersen 2015 metadata 仅作待核验线索。 |
+| 2026-06-29 02:35:56 | sidecar 只读审查后复验 | 通过；修复 dry-run 数量入口口径、单篇 review 不可迁移列、schema 字段 ID 一致性和 `plan/README.md` PR-A1 状态说明；新增 `review limit columns ok` 检查。 |
 | 2026-06-29 02:18:07 | `python -m tools.pdf_extractor ... -m text` | 6 篇 PDF 成功提取；Springer HTML 伪 PDF 被识别并删除。 |
 | 2026-06-29 02:18:07 | 文件存在性 / dry-run 数量检查 | 通过；`reviews=9, texts=6, pdfs=6`。 |
 | 2026-06-29 02:18:07 | 禁止强主张 grep | 通过；命中均位于“禁止写法 / 不声称 / grep 规则”语境，不是正向主张。 |
 | 2026-06-29 02:18:07 | Markdown 相对链接检查 | 通过；`markdown relative links ok`。 |
 | 2026-06-29 02:18:07 | `git diff --check` | 通过。 |
 | 2026-06-29 02:18:07 | PDF 类型检查 | 通过；6 个 `paper.pdf` 均为 PDF，非 PDF / HTML 伪文件已删除。 |
-| 2026-06-29 02:35:56 | sidecar 只读审查后复验 | 通过；修复 dry-run 数量入口口径、单篇 review 不可迁移列、schema 字段 ID 一致性和 `plan/README.md` PR-A1 状态说明；新增 `review limit columns ok` 检查。 |
-| 2026-06-29 16:30:00 | #95 十篇现代维度锚点扩展 | 已获取 10 篇公开 PDF / 开放预印本并生成 `paper_content.txt`；已补 A1-M0--M6 元维度规则；10 篇均已完成 `review.md` 并回填 SUMMARY。 |
-| 2026-06-29 13:20:00 | 用户新增来源字段要求落实 | 已同步 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`、`CCF 复核状态` 到总账、候选池、单篇 review 和 schema；CCF 字段目标不局限 `ccf_venues/`，但本轮官方页受 WAF，当前使用本地缓存并显式标注。 |
-| 2026-06-29 02:54:44 | 实现阶段 codex reviewer I 级修复复验 | 通过；修复入口 README 旧 #129/LLM4STM 阻塞路线残留，清理新增 `paper_content.txt` trailing whitespace 使 `git diff --check` 可复现，并澄清 `predecessor_relation` 字段来源中 Petersen 2015 metadata 仅作待核验线索。 |
 
 ## 7. 审查状态
 
@@ -86,7 +87,7 @@
 | PR body 复审 | codex / claude / deepseek reviewer | 0C / 0I | 已进入实现阶段。 |
 | 内部 sidecar 实现预审 | codex sidecar | 0C / 3I / 2M | 已修 dry-run 数量口径、review 不可迁移字段、schema 字段名漂移和 `plan/README.md` 状态说明；M2 记录为人工解释型 grep 风险，不阻塞。 |
 | 内部 sidecar 预审 | codex sidecar（Boole the 2nd） | 0C / 3I / 1M | 已修 progress 19/16/3 口径、task packet 勾选、interactive 年份、`git diff --check` EOF 问题。 |
-| 实现阶段正式审查 | 待运行 | 待三路审查 | 当前等待 push 后正式 review。 |
+| 实现阶段正式审查 | codex / claude / deepseek reviewer | 已发现并修复 I 级问题 | 修复 `git diff --check`、19 篇 metadata、TOSEM 年份口径、SUMMARY 日志降序、CSUR/非 CCF 复核状态；等待本次 push 后复审。 |
 
 ## 8. 剩余风险
 
