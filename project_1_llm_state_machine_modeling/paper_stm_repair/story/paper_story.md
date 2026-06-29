@@ -6,7 +6,7 @@
 |---|---|
 | 原始来源 | R0 `paper_story.md`，后在 R5 简化时折叠进 [README.md](./README.md) |
 | 本轮恢复目的 | 恢复独立 paper story 入口，避免 thesis / gap / contribution 藏在 README 中 |
-| 当前证据入口 | [../STATUS.md](../STATUS.md)、[../reports/SUMMARY.md](../reports/SUMMARY.md)、[../pipeline/README.md](../pipeline/README.md)、[../experiment_design/README.md](../experiment_design/README.md) |
+| 当前证据入口 | [model_scope.md](./model_scope.md)、[../STATUS.md](../STATUS.md)、[../reports/SUMMARY.md](../reports/SUMMARY.md)、[../pipeline/README.md](../pipeline/README.md)、[../experiment_design/README.md](../experiment_design/README.md) |
 | 证据边界 | 当前仅有 seed readiness、conversion/profile/evaluation gate；尚无真实 repair-loop 主结果 |
 
 ## 1. 一句话 thesis
@@ -52,6 +52,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 |---|---|---|---|
 | seed registry | R5.5 snapshot：`llms-emp-stm-subset` 为一手 `<NL, LLM-generated STM_0>` 主 seed 池候选；canonical source 见 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 | 支撑“可围绕同一 NL 多模型初始制品做比较”的实验机会。 | 不等于主实验已完成。 |
 | readiness / conversion | R5.5 snapshot：conversion status 见 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 与 main seed profile report。 | 暴露真实 seed 的转换压力和缺陷谱系。 | 不能把 converted 数字写成 repair success。 |
+| R5.6 model scope | [model_scope.md](./model_scope.md) 冻结主线为 T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。 | 支撑后续 R5.7/R6/R7 在明确模型边界内定义 taxonomy、protocol 和 eligibility。 | 不外推到 timed automata、hybrid automata、arbitrary UML 或 protocol FSM。 |
 | selected smoke | 四例静态 `<NL, STM_0, fcstm>` smoke 输入。 | 支撑工程链路冒烟，不是最终实验集合。 | 不能把四例当主结论。 |
 | evaluation gate | Better STM checklist / human rubric schema / dry-run examples。 | 支撑后续 repair-loop 评价设计。 | 目前不是结果裁决。 |
 | negative evidence | blocked / partial / conversion attribution。 | 支撑 honest limitations 和 scope 决策。 | 不能隐藏 blocked / partial。 |
@@ -60,7 +61,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 
 | 贡献草案 | 当前证据状态 | 后续证据门 |
 |---|---|---|
-| 定义 `<NL, STM_0> -> STM_k` 的反馈驱动状态机修正任务。 | story / task boundary 已恢复，R5.5 提供主 seed 池画像。 | R5.6 冻结 model scope；R7 写作时不可扩大为 `NL -> STM`。 |
+| 定义 `<NL, STM_0> -> STM_k` 的反馈驱动状态机修正任务。 | story / task boundary 已恢复，R5.5 提供主 seed 池画像；R5.6 已在 [model_scope.md](./model_scope.md) 冻结 model scope / claim boundary。 | R5.7 冻结 repair target taxonomy；R7 写作时不可扩大为 `NL -> STM` 或 timed / arbitrary UML repair。 |
 | 提出无人化 repair run 协议：诊断、场景反馈、候选修正、回归检查、接受 / 拒绝 / 回滚。 | 当前仅定义边界与评价门；真实 loop 尚未运行。 | R6/R8 必须有真实 repair ledger、回归、拒绝/回滚证据。 |
 | 操作化 Better STM，区分转换规范化收益与修正循环收益。 | Better STM 定义已迁入 `experiment_design/quality_model/`。 | 需要同一 `STM_0` 下的 before/after 诊断、场景和裁决。 |
 | 将 prior artifact 重排为 seed source、converter pressure、error taxonomy 和有限对照。 | seed registry、reports、conversion profile 已有。 | R5.7 eligibility 和 R6/R7 对照矩阵仍需冻结。 |
@@ -92,7 +93,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 
 | 风险 | 需要后续 PR 闭合 |
 |---|---|
-| T0 主线、T0.5 timer-like caveat 与 T1/supplementary model scope 仍需正式冻结。 | R5.6 `experiment_design/scope/` |
+| T0 主线、T0.5 timer-like caveat 与 T1/supplementary model scope 已在 R5.6 冻结，但 R5.7 仍需把这些边界转成 repair target taxonomy 和 eligibility 前置条件。 | R5.7 taxonomy / R7 eligibility |
 | 哪些 pair / cluster 可进入主实验仍需资格冻结。 | R5.7 eligibility / protocol |
 | 修正循环是否稳定有效尚未实证。 | R6/R8 真实 repair loop |
 | Better STM 是否成立尚无主结果。 | 真实 `STM_0` vs `STM_k`、场景、诊断与人工/结构化裁决 |

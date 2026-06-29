@@ -52,7 +52,7 @@ flowchart TD
 | [GUIDE.md](./GUIDE.md) | 全局纪律 | 边界、事实源优先级、禁止主张 | 不记录 PR 动态流程 |
 | [pipeline/](./pipeline/) | R3–R5 真实阶段链路：conversion / evaluation / representation / readiness_audit | [pipeline/README.md](./pipeline/README.md) | 不执行真实 repair loop，不产生 `STM_k` |
 | [reports/](./reports/) | R5/R5.5 human-facing report 文库 | [reports/README.md](./reports/README.md)、[reports/SUMMARY.md](./reports/SUMMARY.md)、[reports/GUIDE.md](./reports/GUIDE.md) | 不替代 pipeline JSON/JSONL/ZIP 机器事实源 |
-| [story/](./story/) | 论文定位、任务边界、术语和主张门 | [story/README.md](./story/README.md)、[story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) | 不写成最终正文 |
+| [story/](./story/) | 论文定位、任务边界、模型范围、术语和主张门 | [story/README.md](./story/README.md)、[story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) | 不写成最终正文，不替代 R7 eligibility |
 | [experiment_design/](./experiment_design/) | 研究问题、评价顺序、Better STM 定义 | [experiment_design/README.md](./experiment_design/README.md)、[experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/GUIDE.md](./experiment_design/GUIDE.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md) | 不替代正式主实验协议 |
 | [corpora/](./corpora/) | 种子、修正近邻、纯 NL 数据源 | [corpora/README.md](./corpora/README.md) | 三类资产不能混表 |
 | [selected_seed_examples/](./selected_seed_examples/) | 四个冒烟用静态 `<NL, STM_0>` 样例 | [selected_seed_examples/README.md](./selected_seed_examples/README.md) | 不是最终实验集合 |
@@ -65,7 +65,7 @@ flowchart TD
 
 1. 想按统一入口导航：先读 [SUMMARY.md](./SUMMARY.md)；想快速知道现在做到哪一步：读 [STATUS.md](./STATUS.md)。
 2. 想理解阶段链路：读 [pipeline/README.md](./pipeline/README.md)。
-3. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md)，再按需读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/terminology_policy.md](./story/terminology_policy.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
+3. 想理解论文问题、模型范围和禁止主张：读 [story/README.md](./story/README.md)，再按需读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
 4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
 5. 想看转换和表示链路：读 [pipeline/conversion/README.md](./pipeline/conversion/README.md) 与 [pipeline/representation/README.md](./pipeline/representation/README.md)。
 6. 想看全量摸排与 R5.5 画像：读 [reports/README.md](./reports/README.md)；readiness 入口是 [reports/2026-06-28-04-03-18-seed-readiness-report.md](./reports/2026-06-28-04-03-18-seed-readiness-report.md)，主 seed profile 入口是 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。
@@ -74,6 +74,7 @@ flowchart TD
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-30 00:35:38 | R5.6 新增 [story/model_scope.md](./story/model_scope.md) 与 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 paper story 的模型范围、claim boundary 和 R5.7 交接约束；不代表真实 repair loop 已运行。 |
 | 2026-06-29 15:43:00 | 新增 [SUMMARY.md](./SUMMARY.md) 作为顶层轻量总账入口，明确 [STATUS.md](./STATUS.md) 仍是当前状态与关键数字事实源。 |
 | 2026-06-29 03:25:00 | R5.5.1 加固 evidence 子路径 README、archive cold/deprecated 可追溯归档和 story 专题入口。 |
 | 2026-06-29 01:48:34 | 新增 [reports/](./reports/) 文库并迁移 R5/R5.5 human-facing reports；旧 pipeline Markdown 仅保留 redirect notice，避免第二事实源。 |

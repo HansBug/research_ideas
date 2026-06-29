@@ -2,7 +2,7 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，用于 R5.6 开工前冻结 T0 主线 / T0.5 caveat / supplementary 的实验范围入口；R5.5.2 已将 `llms-emp` 三个 blocked 恢复为 partial，当前 blocked 状态见 [../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](../reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：主线限于 T0 离散 FSM/HSM/EFSM-lite/离散 UML-SysML statechart 子集，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
 
 ## 2. 研究问题草案
 
@@ -50,7 +50,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 ## 4. 未完成项
 
-1. `scope/` 已有 R5.5 handoff 草案，但尚未冻结最终样本层、最终 RQ 版本或主实验 protocol。
+1. `scope/` 已有 R5.6 story-level model scope 与 R5.7 handoff constraints，但尚未冻结最终样本层、最终 RQ 版本或主实验 protocol。
 2. `eligibility/` 尚未冻结 run eligibility、failure handling 和 provider drift 规则。
 3. `protocols/` 尚未冻结真实 LLM 修正、对照、人工裁决或回滚协议。
 4. `metrics/` 尚未冻结最终指标阈值、统计表字段或显著性 / 效应量口径。
@@ -59,6 +59,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-30 00:35:38 | R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 model scope / claim boundary 与 R5.7 继承约束；该更新不代表 repair loop 已运行。 |
 | 2026-06-29 19:55:45 | R5.5.2 更新当前 scope 事实：`llms-emp` 当前 16 converted / 44 partial / 0 blocked；T0 主线与 Digital Camera supplementary stress 不变。 |
 | 2026-06-29 17:33:35 | 新增 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，把 R5.5 `proceed_with_supplementary` scope decision 落到 experiment design 路径。 |
 | 2026-06-29 01:54:30 | 按 R5.5.1 路径重构建立 `experiment_design/` 三件套和五个子路径，将 Better STM 定义移动到 `quality_model/`。 |

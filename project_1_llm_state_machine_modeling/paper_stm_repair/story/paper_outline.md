@@ -2,7 +2,7 @@
 
 ## 0. 说明
 
-本文件只冻结第一篇论文的大纲方向和写作约束，不写最终正文。后续 PR-R7 必须根据 R1--R8 的真实证据重写或降级；R5.5 当前只提供 seed profile / readiness / conversion pressure，不提供 repair-loop 主结果。
+本文件只冻结第一篇论文的大纲方向和写作约束，不写最终正文。后续 PR-R7 必须根据 R1--R8 的真实证据重写或降级；R5.5 当前只提供 seed profile / readiness / conversion pressure，R5.6 只冻结 model scope / claim boundary，二者都不提供 repair-loop 主结果。
 
 ## 1. Abstract
 
@@ -10,16 +10,18 @@
 - 问题：一次性生成模型往往留下语义、guard/action、行为场景和可执行性缺陷。
 - 方法：给定 `<NL, STM_0>`，使用 diagnostics、scenario feedback、repair 和 regression checks 构成无人化修正循环。
 - 结果：只在 R6 后填写真实结果；若无充分证据，不写强提升。
-- 限制：报告失败、回滚、振荡、转换损失和人工裁决边界。
+- 范围：主线限定在 T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集；T0.5 / T1-ish 仅作 caveat 或 supplementary stress。
+- 限制：报告失败、回滚、振荡、转换损失、人工裁决边界，并禁止外推到 timed / hybrid / arbitrary UML / protocol FSM。
 
 ## 2. Introduction
 
 1. 控制系统状态机建模的现实需求：不仅要生成图，还要可机检、可执行、可复核。
 2. 旧 `NL -> STM` 生成路线的局限：初始 artifact 质量不稳，且后续缺少闭环修正。
 3. 新任务定义：`<NL, STM_0> -> STM_k / Better STM`。
-4. 方法直觉：结构化 diagnostics + scenario feedback + accept/reject/rollback。
-5. 贡献列表：任务定义、修正协议、Better STM 操作化、seed / converter / baseline 重排、实证评价。
-6. 明确非贡献：不主张新 DSL，不主张完整形式化验证，不主张首个 `NL -> STM`。
+4. R5.6 模型范围：T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集，明确 T0.5 / T1-ish / arbitrary UML 的降级角色。
+5. 方法直觉：结构化 diagnostics + scenario feedback + accept/reject/rollback。
+6. 贡献列表：任务定义、修正协议、Better STM 操作化、seed / converter / baseline 重排、实证评价。
+7. 明确非贡献：不主张新 DSL，不主张完整形式化验证，不主张首个 `NL -> STM`，不主张 timed automata / arbitrary UML repair。
 
 ## 3. Background and Motivation
 
@@ -33,6 +35,7 @@
 - 输入输出形式：`NL`、`STM_0`、`STM_k`、diagnostics ledger、scenario ledger、repair ledger。
 - 方法内外边界：seed construction 在方法外，repair loop 在方法内。
 - no-human-in-the-loop 限定：只限定 repair run 内。
+- 模型范围：引用 [model_scope.md](./model_scope.md)，把 main / caveat / supplementary-stress / excluded 作为任务定义的一部分而不是实验后解释。
 - Better STM 最小必要条件。
 
 ## 5. Method
@@ -46,7 +49,8 @@
 
 ## 6. Experimental Design
 
-- 数据来源与 seed registry：R1/R2/R5.5 已形成主 seed 方向，但 eligibility 仍待 R5.7 冻结。
+- 数据来源与 seed registry：R1/R2/R5.5 已形成 `llms-emp-stm-subset` 主 seed 方向；R5.6 已冻结 model scope；最终 eligibility 仍待 R5.7 / R7 冻结。
+- Scope matrix：主结果只面向 T0 离散 FSM / HSM / EFSM-lite / 离散 UML-SysML statechart 子集；T0.5 timer-like cue 作 caveat；Digital Camera / T1-ish 作 supplementary stress。
 - 四例预演与主实验样本区分。
 - RQ1--RQ6。
 - 指标与评价门：由 R4/R6/R8 冻结。
@@ -66,8 +70,9 @@ R0/R5.5 不写 repair 结果，也不写 `STM_0 -> STM_k` 改善结论。R5.5 �
 
 ## 9. Threats and Limitations
 
-- seed 来源偏差。
-- 转换器信息损失。
+- seed 来源偏差，尤其 `llms-emp` 60 pair 只是 10 个唯一 NL × 6 个模型输出，不是 60 个独立需求。
+- 转换器信息损失，以及 conversion / normalization / lowering 不计 repair gain。
+- T0/T0.5/T1 与 FSM/HSM/EFSM-lite/statechart 子集的范围限制；不能外推到 timed automata、hybrid automata、arbitrary UML 或 protocol FSM。
 - LLM provider drift。
 - 人工裁决一致性。
 - 轻量诊断不等于完整形式化验证。
