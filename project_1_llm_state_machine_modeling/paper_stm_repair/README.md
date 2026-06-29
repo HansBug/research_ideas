@@ -15,7 +15,7 @@
 
 当前已经完成到 **修正前准备度审计**：一手种子登记、四例静态样例、格式转换、`.fcstm` 表示桥、评价门草案和 R5 全量摸排均已就位；尚未执行真实修正循环、尚未生成 `STM_k`，也尚未形成 Better STM 主实验结果。
 
-核心数字见 [STATUS.md](./STATUS.md)。当前最重要的机器事实源是：
+顶层轻量总账见 [SUMMARY.md](./SUMMARY.md)，核心数字见 [STATUS.md](./STATUS.md)。当前最重要的机器事实源是：
 
 - 一手种子主表：[corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)
 - 阶段链路入口：[pipeline/README.md](./pipeline/README.md)
@@ -47,7 +47,8 @@ flowchart TD
 
 | 路径 | 职责 | 当前事实源 / 入口 | 不能声称 |
 |---|---|---|---|
-| [STATUS.md](./STATUS.md) | 当前研究总账 | 本文件汇总关键数字和下一步 | 不替代 JSON / registry 事实源 |
+| [SUMMARY.md](./SUMMARY.md) | 顶层轻量总账入口 | 统一 `README -> SUMMARY -> GUIDE` 导航；事实回到 STATUS / reports / pipeline | 不复制完整数字、不形成第二事实源 |
+| [STATUS.md](./STATUS.md) | 当前研究状态总账 | 本文件汇总关键数字和下一步 | 不替代 JSON / registry 事实源 |
 | [GUIDE.md](./GUIDE.md) | 全局纪律 | 边界、事实源优先级、禁止主张 | 不记录 PR 动态流程 |
 | [pipeline/](./pipeline/) | R3–R5 真实阶段链路：conversion / evaluation / representation / readiness_audit | [pipeline/README.md](./pipeline/README.md) | 不执行真实 repair loop，不产生 `STM_k` |
 | [reports/](./reports/) | R5/R5.5 human-facing report 文库 | [reports/README.md](./reports/README.md)、[reports/SUMMARY.md](./reports/SUMMARY.md)、[reports/GUIDE.md](./reports/GUIDE.md) | 不替代 pipeline JSON/JSONL/ZIP 机器事实源 |
@@ -62,7 +63,7 @@ flowchart TD
 
 ## 5. 推荐阅读路径
 
-1. 想快速知道现在做到哪一步：读 [STATUS.md](./STATUS.md)。
+1. 想按统一入口导航：先读 [SUMMARY.md](./SUMMARY.md)；想快速知道现在做到哪一步：读 [STATUS.md](./STATUS.md)。
 2. 想理解阶段链路：读 [pipeline/README.md](./pipeline/README.md)。
 3. 想理解论文问题和禁止主张：读 [story/README.md](./story/README.md)，再按需读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/terminology_policy.md](./story/terminology_policy.md) 与 [story/claim_evidence_map.md](./story/claim_evidence_map.md)。
 4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
@@ -73,6 +74,7 @@ flowchart TD
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-06-29 15:43:00 | 新增 [SUMMARY.md](./SUMMARY.md) 作为顶层轻量总账入口，明确 [STATUS.md](./STATUS.md) 仍是当前状态与关键数字事实源。 |
 | 2026-06-29 03:25:00 | R5.5.1 加固 evidence 子路径 README、archive cold/deprecated 可追溯归档和 story 专题入口。 |
 | 2026-06-29 01:48:34 | 新增 [reports/](./reports/) 文库并迁移 R5/R5.5 human-facing reports；旧 pipeline Markdown 仅保留 redirect notice，避免第二事实源。 |
 | 2026-06-29 00:35:00 | R5.5 新增 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)，把 `llms-emp-stm-subset` 收敛为 10 个 NL cluster × 6 个 LLM 输出的主 seed 池画像，并明确 T0 主线 + T0.5 timer-like caveat + Digital Camera supplementary stress。 |

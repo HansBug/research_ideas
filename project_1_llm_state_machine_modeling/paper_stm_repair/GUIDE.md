@@ -1,6 +1,6 @@
 # paper_stm_repair 工作纪律
 
-本文件只保留全局硬规则。当前研究状态请读 [STATUS.md](./STATUS.md)，目录地图请读 [README.md](./README.md)。
+本文件只保留全局硬规则。顶层轻量总账请读 [SUMMARY.md](./SUMMARY.md)，当前研究状态和关键数字请读 [STATUS.md](./STATUS.md)，目录地图请读 [README.md](./README.md)。[SUMMARY.md](./SUMMARY.md) 只做导航，不替代 [STATUS.md](./STATUS.md) 或 pipeline / corpus / reports 事实源。
 
 ## 1. 最高边界
 
@@ -16,6 +16,7 @@
 
 | 问题 | 优先事实源 | 辅助入口 |
 |---|---|---|
+| 顶层导航总账 | [SUMMARY.md](./SUMMARY.md) | [README.md](./README.md) |
 | 当前总体状态 | [STATUS.md](./STATUS.md) | [README.md](./README.md) |
 | 一手 seed 资格和数量 | [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` | [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md) |
 | 修正基线 / 近邻 | [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md) | 单篇 `baseline_desc.md` |
