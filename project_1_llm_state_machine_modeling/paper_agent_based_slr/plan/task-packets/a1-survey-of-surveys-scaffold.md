@@ -25,7 +25,7 @@
 - 不冻结 A3 schema / validator。
 - 不做 100+ 完整文库。
 - 不把 survey_of_surveys 样本写成目标领域 evidence pool。
-- 不把 metadata-only 条目写成已读全文。
+- 不把 metadata-only 条目写成已读全文；当前历史 metadata-only 条目已补齐全文并完成证据升级。
 
 ## 5. 必须交付
 
@@ -39,8 +39,8 @@
 - [x] `survey_of_surveys/patterns/README.md`
 - [x] `survey_of_surveys/patterns/pattern-field-schema.md`
 - [x] `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级`、`CCF 复核状态` 字段已同步到 SUMMARY、candidate-pool 和单篇 review。
-- [x] 至少 3 篇全文文本级 dry-run；本轮累计完成 16 篇全文文本级（初始 6 篇 + #95 十篇）。
-- [x] 至少 1 个 manual-download / metadata-only 失败路径；本轮完成 3 篇。
+- [x] 至少 3 篇全文文本级 dry-run；本轮累计完成 19 篇全文文本级（初始 9 篇 + #95 十篇）。
+- [x] 至少 1 个 manual-download / metadata-only 失败路径；本轮历史 3 篇已完成“下载失败 → 用户补 PDF → 全文升级 → active 清零”闭环。
 - [x] #95 十篇现代维度锚点已建立单篇目录、BibTeX、metadata、PDF 和 `paper_content.txt`。
 - [x] #95 十篇现代维度锚点已完成一篇一 subagent 全文 `review.md` 并回填 SUMMARY；roadmap / proposal 条目已机器可读排除出统计池。
 - [x] A1-M0--M6 元维度字段已写入 GUIDE、schema、SUMMARY、candidate-pool 和 19 篇单篇 review。
@@ -49,7 +49,7 @@
 ## 6. 拒收检查
 
 1. 如果 `SUMMARY.md` 声称完整 tertiary review、PRISMA 合规或目标 evidence pool，应拒收。
-2. 如果 metadata-only 条目进入已采纳 pattern，应拒收。
+2. 如果 active metadata-only 条目进入已采纳 pattern，应拒收；已经补齐全文并重写 review / metadata 的历史条目不再视为 metadata-only。
 3. 如果 schema 回修没有记录触发条目、受影响字段和回填状态，应拒收。
 4. 如果 `plan/progress.md` 仍停留在旧 PR-S0 当前阶段，应拒收。
 5. 如果 `SUMMARY.md`、`search/candidate-pool.md` 或单篇 `review.md` 缺少出版形态、venue 短名链接、CCF 官方大类、CCF 官方等级、CCF 复核状态字段，应拒收。
@@ -89,7 +89,7 @@ reviews = list((root / 'papers').glob('*/review.md'))
 texts = list((root / 'papers').glob('*/paper_content.txt'))
 metas = list((root / 'papers').glob('*/metadata.json'))
 pdfs = list((root / 'papers').glob('*/paper.pdf'))
-if len(reviews) != 19 or len(metas) != 19 or len(texts) != 16 or len(pdfs) != 16:
+if len(reviews) != 19 or len(metas) != 19 or len(texts) != 19 or len(pdfs) != 19:
     raise SystemExit(f'unexpected dry-run asset counts: reviews={len(reviews)}, metas={len(metas)}, pdfs={len(pdfs)}, texts={len(texts)}')
 for f in reviews:
     t = f.read_text(encoding='utf-8')
@@ -109,4 +109,4 @@ rg -n "首次自动化|PRISMA-compliant|完整覆盖|替代专家|100\+ 篇完�
 
 ## 10. 后续接力
 
-A2a 应从本目录种子出发扩展到 30--50 篇核心样本，优先补齐现代高等级 SE SLR/SMS/survey 与当前 manual-download-needed 条目。
+A2a 应从本目录 19 篇全文文本级种子出发扩展到 30--50 篇核心样本；当前没有 active manual-download-needed 条目，下一步重点是图表视觉核对、页码 / 表号证据锚定和继续补齐现代高等级 SE SLR/SMS/survey。

@@ -21,8 +21,8 @@
 | 方向 | 条目 | 状态 | 当前入口 | A0 可用法 | 后续要求 |
 |---|---|---:|---|---|---|
 | SE SLR 方法学 | Kitchenham & Charters 2007 SLR guideline | 🟢 | [../survey_of_surveys/papers/kitchenham-charters-2007-slr-guidelines/review.md](../survey_of_surveys/papers/kitchenham-charters-2007-slr-guidelines/review.md) | A1 已全文文本级 dry-run；方法学背景。 | 技术报告不是 peer-reviewed venue，正式写作需说明来源性质。 |
-| Systematic mapping | Petersen et al. 2008 | 🟡 | [../survey_of_surveys/papers/petersen-2008-systematic-mapping/review.md](../survey_of_surveys/papers/petersen-2008-systematic-mapping/review.md) | SMS 背景；A1 已保留 metadata-only 和人工下载清单。 | PDF 未自动获取，A2a 优先补全文后再抽取模式。 |
-| Systematic mapping | Petersen et al. 2015 | 🟡 | [../survey_of_surveys/papers/petersen-2015-mapping-guidelines-update/review.md](../survey_of_surveys/papers/petersen-2015-mapping-guidelines-update/review.md) | mapping guideline update；A1 已保留 metadata-only 和人工下载清单。 | PDF 未自动获取，A2a 优先补全文后再抽取模式。 |
+| Systematic mapping | Petersen et al. 2008 | 🟢 | [../survey_of_surveys/papers/petersen-2008-systematic-mapping/review.md](../survey_of_surveys/papers/petersen-2008-systematic-mapping/review.md) | SMS 方法学背景；A1 已由用户本地 Zotero PDF 补齐并完成全文文本级 review。 | A2a 正式写作前核对图表 / 分类 facet 和页码锚点。 |
+| Systematic mapping | Petersen et al. 2015 | 🟢 | [../survey_of_surveys/papers/petersen-2015-mapping-guidelines-update/review.md](../survey_of_surveys/papers/petersen-2015-mapping-guidelines-update/review.md) | mapping guideline update；A1 已由用户本地 Zotero PDF 补齐并完成全文文本级 review。 | A2a 正式写作前核对复杂图表 / 附录矩阵和页码锚点。 |
 | PRISMA | PRISMA 2020 statement | 🟢 | <https://www.prisma-statement.org/prisma-2020-statement> / <https://doi.org/10.1136/bmj.n71> | 透明报告参考。 | BibTeX seed 已入 [references.bib](./references.bib)；仅支持 PRISMA-style / informed，不能支持合规 claim。 |
 | PRISMA | PRISMA 2020 explanation and elaboration | 🟢 | <https://www.prisma-statement.org/prisma-2020-explanation-elaboration> / <https://doi.org/10.1136/bmj.n160> | checklist 解释。 | BibTeX seed 已入 [references.bib](./references.bib)；A5 才能决定 checklist 口径。 |
 | Screening automation | ASReview | 🟢 | <https://www.nature.com/articles/s42256-020-00287-7> / <https://asreview.nl/> / <https://github.com/asreview/asreview> | 主动学习筛选近邻。 | BibTeX seed 已入 [references.bib](./references.bib)；A1 继续核验工具版本。 |
@@ -34,12 +34,12 @@
 | SE tertiary study | Kotti et al. 2023 ML4SE tertiary study | 🟢 | [../survey_of_surveys/papers/ml4se-tertiary-study/review.md](../survey_of_surveys/papers/ml4se-tertiary-study/review.md) | A1 已全文文本级 dry-run。 | A2a 深读 RQ、threats 与分类表。 |
 | Requirements Engineering tertiary study | Bano et al. 2014 | 🟢 | [../survey_of_surveys/papers/re-tertiary-study-2014/review.md](../survey_of_surveys/papers/re-tertiary-study-2014/review.md) | A1 已全文文本级 dry-run。 | A2a 深读质量评价表。 |
 | Agile RE SMS | Heikkilä et al. 2015 | 🟢 | [../survey_of_surveys/papers/re-agile-sms-2015/review.md](../survey_of_surveys/papers/re-agile-sms-2015/review.md) | A1 已全文文本级 dry-run。 | 需核对出版社版本与表格。 |
-| App reviews SLR | Martin et al. 2022 | 🟡 | [../survey_of_surveys/papers/app-reviews-slr-se/review.md](../survey_of_surveys/papers/app-reviews-slr-se/review.md) | 本轮未获取 PDF；进入人工下载清单。 | A2a 优先补全文。 |
+| App reviews SLR | Dąbrowski et al. 2022 | 🟢 | [../survey_of_surveys/papers/app-reviews-slr-se/review.md](../survey_of_surveys/papers/app-reviews-slr-se/review.md) | A1 已由用户本地 Zotero PDF 补齐并完成全文文本级 review；旧 Martin 作者口径已修正。 | A2a 正式写作前核对复杂表格、搜索式和页码锚点。 |
 | SE tertiary study | 更多 SE 领域自动化综述 / tertiary study | 🟡 | 待 A2a/A2b 扩展 | A1 已完成种子 dry-run，但不构成完整文库。 | A2a / A2b 补齐。 |
 
 ## 4. 禁止用法
 
 - 不得用搜索摘要作为正文事实来源。
-- 不得把 🟡 条目写成已核验引用。
+- 不得把 🟡 条目写成已核验引用；本轮 3 条历史 🟡 已补齐全文后才升级为 🟢。
 - 不得在未读原文或可靠 metadata 前拼造 BibTeX；A0 [references.bib](./references.bib) 只收录已从 DOI / 出版页 metadata 获取的种子。
 - 不得把 ASReview / RobotReviewer 写成“无关”，它们必须进入 novelty boundary。

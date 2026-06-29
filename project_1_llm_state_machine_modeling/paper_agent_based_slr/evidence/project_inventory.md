@@ -16,7 +16,7 @@
 | [../story/differential_novelty_matrix.md](../story/differential_novelty_matrix.md) | PR-S0-v2 新颖性边界 | 对齐 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等强近邻。 | 相关工作和贡献写作必须引用。 |
 | [../story/terminology_policy.md](../story/terminology_policy.md) | PR-S0-v2 术语政策 | 固定维度模式、内容证据 / 过程证据、统计分析、候选发现 / 最终发现、G0--G6、类 PRISMA 等术语。 | 防止术语漂移。 |
 | [../plan/progress.md](../plan/progress.md) | 当前 PR 进度 | 记录本 PR 最新状态、验证和剩余风险。 | 只作为进度入口，不替代 论文主线真源。 |
-| [../survey_of_surveys/](../survey_of_surveys/) | A1 已建立脚手架 / 6 篇全文 dry-run + 3 篇 metadata-only | 综述之综述模式先验文库，用于后续 A2a/A2b/A3 构造 RQ、维度、finding、证据呈现、validity 和报告结构模式。 | 只作模式先验，不作目标领域证据池；完整文库留给 A2a/A2b。 |
+| [../survey_of_surveys/](../survey_of_surveys/) | A1 已建立脚手架 / 19 篇全文文本级 / 0 个 active metadata-only | 综述之综述模式先验文库，用于后续 A2a/A2b/A3 构造 RQ、维度、finding、证据呈现、validity 和报告结构模式。 | 只作模式先验，不作目标领域证据池；完整文库留给 A2a/A2b；历史 3 条下载失败已闭环。 |
 
 ## 3. 上游事实源
 
@@ -46,7 +46,7 @@ PR-S0-v2 阶段尚未实现 智能体式系统综述运行时；当前只冻结 
 
 | 未来证据 | 当前状态 | 后续 PR |
 |---|---|---|
-| 综述之综述模式先验 | A1 已奠基；6 篇全文 dry-run + 3 篇 metadata-only | A1/A2a/A2b |
+| 综述之综述模式先验 | A1 已奠基；19 篇全文文本级；0 个 active metadata-only / manual-download | A1/A2a/A2b |
 | 模式修订 / 影响分析 / 回填日志 | 待构造 | A2/A5 |
 | 候选发现台账与最终裁决状态机 | 待构造 | A2/A5 |
 | 智能体执行骨架 | 待构造 | A4 |

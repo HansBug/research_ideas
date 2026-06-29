@@ -8,7 +8,7 @@
 
 - 本 schema 只服务脚手架模式先验，不支撑目标领域发现。
 - 字段定义必须可执行：读者应能判断一篇论文是否能填该字段。
-- `metadata-only` 条目不能把字段升级为已采纳，只能进入候选或待核验。
+- `metadata-only` 条目不能把字段升级为已采纳，只能进入候选或待核验；当前 A1 历史 3 条 metadata-only 已补齐全文并升级，active metadata-only=0。
 - 缺失值必须区分 `原文未报告`、`文本提取缺失`、`尚未阅读`、`不适用`，不得统一写成 `无`。
 
 ## 3. 证据等级枚举
@@ -87,14 +87,14 @@ A1-M0--M6 是对六类 pattern 的上层组织，用于把 researcher-defined me
 ## 6. 回填规则
 
 1. 新字段加入后，必须检查所有 A1 dry-run 条目是否需要回填。
-2. metadata-only 条目只能回填题摘级字段，例如标题、年份、来源、review type 候选。
+2. active metadata-only 条目只能回填题摘级字段，例如标题、年份、来源、review type 候选；补齐 PDF/text 并重写 review 后才可升级为全文级字段。
 3. 已读全文文本条目至少回填六类 pattern 中 4 类。
 4. 若回填失败，必须在 [../SUMMARY.md](../SUMMARY.md) 的 schema 修订 / 回填日志中记录。
 
 ## 7. dry-run 检查清单
 
 - [x] 至少 3 篇全文文本级 dry-run。
-- [x] 至少 1 个 metadata-only / manual-download-needed 失败路径。
+- [x] 至少 1 个 metadata-only / manual-download-needed 失败路径；本轮历史 3 条已闭环，当前 active manual-download=0。
 - [x] 六类 pattern 中至少 4 类被实际填充。
 - [x] 至少 1 个“不适用 / 证据不足”降级记录。
 - [x] dry-run 暴露 schema 缺口并已回修字段合同。

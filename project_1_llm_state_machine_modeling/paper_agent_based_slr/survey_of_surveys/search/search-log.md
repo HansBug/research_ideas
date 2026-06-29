@@ -38,4 +38,17 @@
 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | 10.1016/j.jss.2024.112063 | https://openrepository.aut.ac.nz/bitstreams/4f4965ea-029e-4a47-92c8-e13352e273b9/download | PDF + `paper_content.txt` 已生成；已完成一篇一 subagent 全文 review |
 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 10.1007/s00766-023-00405-y | https://link.springer.com/content/pdf/10.1007/s00766-023-00405-y.pdf | PDF + `paper_content.txt` 已生成；已完成一篇一 subagent 全文 review |
 
-本轮 10 篇均已找到公开 PDF 或开放预印本版本并用 `tools.pdf_extractor.py` 生成 `paper_content.txt`，因此 `manual-download-needed.bib` 暂无新增条目；原有 3 篇 metadata-only 失败路径继续保留。
+本轮 10 篇均已找到公开 PDF 或开放预印本版本并用 `tools.pdf_extractor.py` 生成 `paper_content.txt`，因此 `manual-download-needed.bib` 暂无新增条目；原有 3 篇 metadata-only 失败路径在 2026-06-29 16:59:12 已由用户本地 Zotero PDF 补齐。
+
+
+## 2026-06-29 16:59:12
+
+本轮目的：根据用户提供的 `/home/zhangshaoang/文档/xxxx/xxxx.bib` 与其 `files/` 目录，补齐 A1 历史 3 条 manual-download 条目，并把 active 人工下载清单清零。
+
+| 条目 | 本地 PDF 来源 | 处理 | 当前状态 |
+|---|---|---|---|
+| Systematic Mapping Studies in Software Engineering | `/home/zhangshaoang/文档/xxxx/files/8115/Petersen 等 - 2008 - Systematic Mapping Studies in Software Engineering.pdf` | 复制为单篇 `paper.pdf`；用 `tools.pdf_extractor.py -m text` 生成 `paper_content.txt`；按全文文本级重写 `review.md` 与 `metadata.json` | 已从 metadata-only 升级为全文级；图表视觉核对留给 A2a |
+| Guidelines for conducting systematic mapping studies in software engineering: An update | `/home/zhangshaoang/文档/xxxx/files/8118/Petersen 等 - 2015 - Guidelines for conducting systematic mapping studies in software engineering An update.pdf` | 复制为单篇 `paper.pdf`；用 `tools.pdf_extractor.py -m text` 生成 `paper_content.txt`；按全文文本级重写 `review.md` 与 `metadata.json` | 已从 metadata-only 升级为全文级；复杂图表 / 附录矩阵视觉核对留给 A2a |
+| Analysing app reviews for software engineering: a systematic literature review | `/home/zhangshaoang/文档/xxxx/files/8120/Dąbrowski 等 - 2022 - Analysing app reviews for software engineering a systematic literature review.pdf` | 复制为单篇 `paper.pdf`；用 `tools.pdf_extractor.py -m text` 生成 `paper_content.txt`；修正旧作者错误并按全文文本级重写 `review.md` 与 `metadata.json` | 已从 metadata-only 升级为全文级；作者以 Dąbrowski / Letier / Perini / Susi 为准 |
+
+当前结论：A1 文件系统统计已变为 19 个 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`；[manual-download-needed.bib](./manual-download-needed.bib) 当前无 active BibTeX 条目，只保留历史说明。
