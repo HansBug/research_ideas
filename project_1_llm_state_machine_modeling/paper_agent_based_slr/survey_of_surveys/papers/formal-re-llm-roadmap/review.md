@@ -21,7 +21,7 @@
 | 主题 | formal requirements engineering / formal methods 与 LLM 的双向赋能：LLM 提高 FM 可用性，FM 提高 LLM-based RE 的可靠性、正确性、公平性和可信性。 |
 | A1 角色 | roadmap 边界锚点：证明本脚手架需要容纳非 SLR/SMS 的高价值 vision / roadmap 文献，但其贡献应作为字段树、concern taxonomy 和 finding heuristic 先验，不可升级为目标领域经验发现。 |
 | 是否目标证据池 | 否；只作为 Paper2 综述元模型、维度模式、trustworthiness concern 与候选发现启发式的先验。 |
-| schema 缺口 | 现有六类 SLR/SMS pattern 不足以表达 roadmap 文的双向路线、concern、action point、trustworthiness constraint；建议仅在本条记录为候选字段树，若后续 A2a 采纳再回修 schema。 |
+| schema 历史观察 | 现有六类 SLR/SMS pattern 不足以表达 roadmap 文的双向路线、concern、action point、trustworthiness constraint；建议仅在本条记录为候选字段树，若后续 A2a 采纳再回修 schema。 |
 
 ## 2. 阅读范围与证据锚点
 
@@ -151,9 +151,13 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | A1-M5 统计分析 | 主要贡献是负面边界：本文不支撑分布统计，不应纳入频次结论。 | 在统计分析协议中增加 `eligible_for_statistical_synthesis` 或 `evidence_role` 字段。 | 若混入统计，会污染目标综述 findings。 |
 | A1-M6 候选发现形成 | 启发候选发现从“某技术常见”升级为“某 concern 在某 artefact/task 中出现，现有 mechanism 能部分缓解，但需要某类验证”。 | 适合生成 finding heuristic：concern-first、mechanism-linked、risk-aware、human-gated。 | 只能生成候选发现线索，不能直接接受为最终领域发现。 |
 
-## 6. 可迁移 roadmap / concern / trustworthiness 字段树
+## 历史草稿（已迁移，不作事实真源）：旧第 6 节迁移来源
 
-### 6.1 Roadmap 字段树
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+
+### 历史草稿（已迁移，不作事实真源）：旧第 6.1 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 - `roadmap_id`
   - `LLM_for_FM_usability`：LLM 支持 FM-based development。
@@ -190,7 +194,9 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 - `evaluation_need`
   - benchmark with ground truth / qualitative expert review / case study / robustness test / formal proof / runtime monitoring / human-centred evaluation
 
-### 6.2 Concern 字段树
+### 历史草稿（已迁移，不作事实真源）：旧第 6.2 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 - `FM_usability_concern`
   - formal language difficulty
@@ -220,7 +226,9 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
   - scalability and computational cost
   - technological evolution / model drift / tool drift
 
-### 6.3 Trustworthiness 字段树
+### 历史草稿（已迁移，不作事实真源）：旧第 6.3 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 - `trustworthiness_target`
   - generated requirements
@@ -284,7 +292,9 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 6. **人类角色不能被弱化**：原文 Fig. 2 / Fig. 4 有意省略 human actors，但 Section 7 反而强调 requirements engineers 的核心性。Paper2 必须坚持 G0--G5 研究者门控，避免被误读为自动化替代专家。
 7. **模型/工具漂移**：本文示例基于 2024 年前后的技术状态；Paper2 若引用具体 LLM 能力，应避免写成稳定事实，应记录 model version、调用时间和可复核输出。
 
-## 8. schema 缺口 / 建议处理
+## 历史草稿（已迁移，不作事实真源）：旧第 8 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 - 当前 `survey_of_surveys` 六类 pattern 可容纳本条，但不足以表达 roadmap 文的核心贡献。建议后续 A2a 若继续纳入 vision / roadmap 文，新增或复用以下字段：
   - `review_type = vision/roadmap`
@@ -295,7 +305,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
   - `trustworthiness_property`
   - `assurance_mechanism`
   - `eligible_for_statistical_synthesis = false`
-- 本轮不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)，因为用户只允许编辑本 `review.md`；以上先作为单篇 schema 缺口记录。
+- 本轮不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)，因为用户只允许编辑本 `review.md`；以上先作为单篇 schema 历史观察记录。
 
 ## 9. 待复核
 
@@ -311,7 +321,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 本文的维度树主类型为“roadmap / concern / action-point 树”，辅助类型为“trustworthiness 边界树”。不进入主统计池：vision/roadmap；没有系统检索、纳排、质量评价或数据综合；仅作 boundary_anchor。 [clm-formal-re-llm-roadmap-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -376,10 +386,10 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-formal-re-llm-roadmap-001 | [ev-formal-re-llm-roadmap-root] | [src-formal-re-llm-roadmap-text], [src-formal-re-llm-roadmap-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-formal-re-llm-roadmap-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-formal-re-llm-roadmap-002 | [ev-formal-re-llm-roadmap-taxonomy] | [src-formal-re-llm-roadmap-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-formal-re-llm-roadmap-b1], [dim-formal-re-llm-roadmap-b2], [dim-formal-re-llm-roadmap-b3], [dim-formal-re-llm-roadmap-b4], [dim-formal-re-llm-roadmap-b5], [leaf-formal-re-llm-roadmap-taxonomy], [leaf-formal-re-llm-roadmap-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-formal-re-llm-roadmap-003 | [ev-formal-re-llm-roadmap-stat] | [src-formal-re-llm-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | author_claim | weak | [leaf-formal-re-llm-roadmap-evidence], [leaf-formal-re-llm-roadmap-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
-| EV-formal-re-llm-roadmap-004 | [ev-formal-re-llm-roadmap-risk] | [src-formal-re-llm-roadmap-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-formal-re-llm-roadmap-root], [leaf-formal-re-llm-roadmap-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-formal-re-llm-roadmap-001 | [ev-formal-re-llm-roadmap-root] | [src-formal-re-llm-roadmap-text], [src-formal-re-llm-roadmap-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-formal-re-llm-roadmap-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-formal-re-llm-roadmap-002 | [ev-formal-re-llm-roadmap-taxonomy] | [src-formal-re-llm-roadmap-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-formal-re-llm-roadmap-b1], [dim-formal-re-llm-roadmap-b2], [dim-formal-re-llm-roadmap-b3], [dim-formal-re-llm-roadmap-b4], [dim-formal-re-llm-roadmap-b5], [leaf-formal-re-llm-roadmap-taxonomy], [leaf-formal-re-llm-roadmap-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-formal-re-llm-roadmap-003 | [ev-formal-re-llm-roadmap-stat] | [src-formal-re-llm-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作 boundary / candidate seed，待 A2a 精确页码 / 表图核验后才能升级。 | author_claim | not_verified | [leaf-formal-re-llm-roadmap-evidence], [leaf-formal-re-llm-roadmap-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
+| EV-formal-re-llm-roadmap-004 | [ev-formal-re-llm-roadmap-risk] | [src-formal-re-llm-roadmap-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-formal-re-llm-roadmap-root], [leaf-formal-re-llm-roadmap-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
 ### A.3 结论-证据映射
@@ -387,14 +397,14 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | [clm-formal-re-llm-roadmap-tree-type] | A1DT-formal-re-llm-roadmap-C01 | 本文的维度树主类型为“roadmap / concern / action-point 树”，辅助类型为“trustworthiness 边界树”。不进入主统计池：vision/roadmap；没有系统检索、纳排、质量评价或数据综合；仅作 boundary_anchor。 [clm-formal-re-llm-roadmap-tree-type] | tree_type | [dim-formal-re-llm-roadmap-root] | EV-formal-re-llm-roadmap-001, EV-formal-re-llm-roadmap-004 | 树型判断仅限本文，不代表所有 formal RE + LLM 综述。 | weak | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-scope] | A1DT-formal-re-llm-roadmap-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-scope] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-corpus] | A1DT-formal-re-llm-roadmap-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-corpus] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-taxonomy] | A1DT-formal-re-llm-roadmap-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-taxonomy] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-method] | A1DT-formal-re-llm-roadmap-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-method] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-evidence] | A1DT-formal-re-llm-roadmap-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-evidence] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-leaf-finding] | A1DT-formal-re-llm-roadmap-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-finding] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-formal-re-llm-roadmap-transfer] | A1DT-formal-re-llm-roadmap-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-formal-re-llm-roadmap-root] | EV-formal-re-llm-roadmap-002, EV-formal-re-llm-roadmap-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-formal-re-llm-roadmap-finding-boundary] | A1DT-formal-re-llm-roadmap-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-formal-re-llm-roadmap-finding] | EV-formal-re-llm-roadmap-003, EV-formal-re-llm-roadmap-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-scope] | A1DT-formal-re-llm-roadmap-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-scope] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-corpus] | A1DT-formal-re-llm-roadmap-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-corpus] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-taxonomy] | A1DT-formal-re-llm-roadmap-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-taxonomy] | EV-formal-re-llm-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-method] | A1DT-formal-re-llm-roadmap-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-method] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-evidence] | A1DT-formal-re-llm-roadmap-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-evidence] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-leaf-finding] | A1DT-formal-re-llm-roadmap-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-formal-re-llm-roadmap-finding] | EV-formal-re-llm-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-formal-re-llm-roadmap-transfer] | A1DT-formal-re-llm-roadmap-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-formal-re-llm-roadmap-root] | EV-formal-re-llm-roadmap-002, EV-formal-re-llm-roadmap-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-formal-re-llm-roadmap-finding-boundary] | A1DT-formal-re-llm-roadmap-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-formal-re-llm-roadmap-finding] | EV-formal-re-llm-roadmap-003, EV-formal-re-llm-roadmap-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
 
 ### A.4 本地复验命令与人工核验清单

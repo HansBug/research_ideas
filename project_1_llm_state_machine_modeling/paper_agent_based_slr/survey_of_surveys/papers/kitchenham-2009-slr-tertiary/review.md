@@ -20,7 +20,7 @@
 | SE 子领域 | EBSE / SE 二级研究方法学 |
 | A1 角色 | 提供 RQ、搜索范围、纳排、质量评价、数据抽取、数据分析、limitations 都较清晰的 tertiary-study 样例。 |
 | 是否目标证据池 | 否；只作为脚手架模式先验。 |
-| schema 缺口 | 无硬缺口；但 quality score 数值需 原文图表级核对后才能进入正式统计。 |
+| schema 历史观察 | 无硬缺口；但 quality score 数值需 原文图表级核对后才能进入正式统计。 |
 
 ## 2. 六类 pattern 抽取
 
@@ -61,9 +61,9 @@
 
 ### 一句话结论
 
-本文的维度树主类型为“tertiary 生态统计树”，辅助类型为“质量评价树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-kitchenham-2009-slr-tertiary-tree-type]
+本文的维度树主类型为“tertiary 生态统计树”，辅助类型为“质量评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-kitchenham-2009-slr-tertiary-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -103,8 +103,8 @@
 
 | 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
 |---|---|---|---|---|---|
-| [dim-kitchenham-2009-slr-tertiary-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
-| [leaf-kitchenham-2009-slr-tertiary-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [dim-kitchenham-2009-slr-tertiary-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
+| [leaf-kitchenham-2009-slr-tertiary-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
 | [leaf-kitchenham-2009-slr-tertiary-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
 
 ### 可迁移与不可迁移边界
@@ -128,25 +128,25 @@
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-kitchenham-2009-slr-tertiary-001 | [ev-kitchenham-2009-slr-tertiary-root] | [src-kitchenham-2009-slr-tertiary-text], [src-kitchenham-2009-slr-tertiary-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-kitchenham-2009-slr-tertiary-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-kitchenham-2009-slr-tertiary-002 | [ev-kitchenham-2009-slr-tertiary-taxonomy] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-kitchenham-2009-slr-tertiary-b1], [dim-kitchenham-2009-slr-tertiary-b2], [dim-kitchenham-2009-slr-tertiary-b3], [dim-kitchenham-2009-slr-tertiary-b4], [dim-kitchenham-2009-slr-tertiary-b5], [leaf-kitchenham-2009-slr-tertiary-taxonomy], [leaf-kitchenham-2009-slr-tertiary-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-kitchenham-2009-slr-tertiary-003 | [ev-kitchenham-2009-slr-tertiary-stat] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-kitchenham-2009-slr-tertiary-evidence], [leaf-kitchenham-2009-slr-tertiary-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-kitchenham-2009-slr-tertiary-004 | [ev-kitchenham-2009-slr-tertiary-risk] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-kitchenham-2009-slr-tertiary-root], [leaf-kitchenham-2009-slr-tertiary-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-kitchenham-2009-slr-tertiary-001 | [ev-kitchenham-2009-slr-tertiary-root] | [src-kitchenham-2009-slr-tertiary-text], [src-kitchenham-2009-slr-tertiary-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-kitchenham-2009-slr-tertiary-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-kitchenham-2009-slr-tertiary-002 | [ev-kitchenham-2009-slr-tertiary-taxonomy] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-kitchenham-2009-slr-tertiary-b1], [dim-kitchenham-2009-slr-tertiary-b2], [dim-kitchenham-2009-slr-tertiary-b3], [dim-kitchenham-2009-slr-tertiary-b4], [dim-kitchenham-2009-slr-tertiary-b5], [leaf-kitchenham-2009-slr-tertiary-taxonomy], [leaf-kitchenham-2009-slr-tertiary-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-kitchenham-2009-slr-tertiary-003 | [ev-kitchenham-2009-slr-tertiary-stat] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-kitchenham-2009-slr-tertiary-evidence], [leaf-kitchenham-2009-slr-tertiary-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-kitchenham-2009-slr-tertiary-004 | [ev-kitchenham-2009-slr-tertiary-risk] | [src-kitchenham-2009-slr-tertiary-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-kitchenham-2009-slr-tertiary-root], [leaf-kitchenham-2009-slr-tertiary-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
 ### A.3 结论-证据映射
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-kitchenham-2009-slr-tertiary-tree-type] | A1DT-kitchenham-2009-slr-tertiary-C01 | 本文的维度树主类型为“tertiary 生态统计树”，辅助类型为“质量评价树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-kitchenham-2009-slr-tertiary-tree-type] | tree_type | [dim-kitchenham-2009-slr-tertiary-root] | EV-kitchenham-2009-slr-tertiary-001, EV-kitchenham-2009-slr-tertiary-004 | 树型判断仅限本文，不代表所有 EBSE / SE SLR 状态 综述。 | strong | statistical_synthesis | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-scope] | A1DT-kitchenham-2009-slr-tertiary-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-scope] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-corpus] | A1DT-kitchenham-2009-slr-tertiary-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-corpus] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-taxonomy] | A1DT-kitchenham-2009-slr-tertiary-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-taxonomy] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-method] | A1DT-kitchenham-2009-slr-tertiary-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-method] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-evidence] | A1DT-kitchenham-2009-slr-tertiary-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-evidence] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-leaf-finding] | A1DT-kitchenham-2009-slr-tertiary-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-finding] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-transfer] | A1DT-kitchenham-2009-slr-tertiary-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-kitchenham-2009-slr-tertiary-root] | EV-kitchenham-2009-slr-tertiary-002, EV-kitchenham-2009-slr-tertiary-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-kitchenham-2009-slr-tertiary-finding-boundary] | A1DT-kitchenham-2009-slr-tertiary-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-kitchenham-2009-slr-tertiary-finding] | EV-kitchenham-2009-slr-tertiary-003, EV-kitchenham-2009-slr-tertiary-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-tree-type] | A1DT-kitchenham-2009-slr-tertiary-C01 | 本文的维度树主类型为“tertiary 生态统计树”，辅助类型为“质量评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-kitchenham-2009-slr-tertiary-tree-type] | tree_type | [dim-kitchenham-2009-slr-tertiary-root] | EV-kitchenham-2009-slr-tertiary-001, EV-kitchenham-2009-slr-tertiary-004 | 树型判断仅限本文，不代表所有 EBSE / SE SLR 状态 综述。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-scope] | A1DT-kitchenham-2009-slr-tertiary-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-scope] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-corpus] | A1DT-kitchenham-2009-slr-tertiary-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-corpus] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-taxonomy] | A1DT-kitchenham-2009-slr-tertiary-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-taxonomy] | EV-kitchenham-2009-slr-tertiary-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-method] | A1DT-kitchenham-2009-slr-tertiary-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-method] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-evidence] | A1DT-kitchenham-2009-slr-tertiary-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-evidence] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-leaf-finding] | A1DT-kitchenham-2009-slr-tertiary-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-kitchenham-2009-slr-tertiary-finding] | EV-kitchenham-2009-slr-tertiary-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-transfer] | A1DT-kitchenham-2009-slr-tertiary-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-kitchenham-2009-slr-tertiary-root] | EV-kitchenham-2009-slr-tertiary-002, EV-kitchenham-2009-slr-tertiary-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-kitchenham-2009-slr-tertiary-finding-boundary] | A1DT-kitchenham-2009-slr-tertiary-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-kitchenham-2009-slr-tertiary-finding] | EV-kitchenham-2009-slr-tertiary-003, EV-kitchenham-2009-slr-tertiary-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
 
 ### A.4 本地复验命令与人工核验清单

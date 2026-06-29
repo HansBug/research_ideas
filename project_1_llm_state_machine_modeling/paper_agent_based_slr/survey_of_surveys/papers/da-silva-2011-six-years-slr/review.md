@@ -20,7 +20,7 @@
 | SE 子领域 | EBSE / SE 二级研究方法学 |
 | A1 角色 | 提供“扩展旧 tertiary study + 自动/人工搜索 + 质量/覆盖/影响分析”的更新型模式。 |
 | 是否目标证据池 | 否；只作为脚手架模式先验。 |
-| schema 缺口 | 暴露“更新型 tertiary study”需要记录与先前研究的合并/对比字段；已在 schema 中加入 `前序综述关系` 候选字段。 |
+| schema 历史观察 | 暴露“更新型 tertiary study”需要记录与先前研究的合并/对比字段；已在 schema 中加入 `前序综述关系` 候选字段。 |
 
 ## 2. 六类 pattern 抽取
 
@@ -61,9 +61,9 @@
 
 ### 一句话结论
 
-本文的维度树主类型为“tertiary 更新统计树”，辅助类型为“质量 / 实践影响树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-da-silva-2011-six-years-slr-tree-type]
+本文的维度树主类型为“tertiary 更新统计树”，辅助类型为“质量 / 实践影响树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-da-silva-2011-six-years-slr-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -103,8 +103,8 @@
 
 | 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
 |---|---|---|---|---|---|
-| [dim-da-silva-2011-six-years-slr-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
-| [leaf-da-silva-2011-six-years-slr-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [dim-da-silva-2011-six-years-slr-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
+| [leaf-da-silva-2011-six-years-slr-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
 | [leaf-da-silva-2011-six-years-slr-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
 
 ### 可迁移与不可迁移边界
@@ -128,25 +128,25 @@
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-da-silva-2011-six-years-slr-001 | [ev-da-silva-2011-six-years-slr-root] | [src-da-silva-2011-six-years-slr-text], [src-da-silva-2011-six-years-slr-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-da-silva-2011-six-years-slr-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-da-silva-2011-six-years-slr-002 | [ev-da-silva-2011-six-years-slr-taxonomy] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-da-silva-2011-six-years-slr-b1], [dim-da-silva-2011-six-years-slr-b2], [dim-da-silva-2011-six-years-slr-b3], [dim-da-silva-2011-six-years-slr-b4], [dim-da-silva-2011-six-years-slr-b5], [leaf-da-silva-2011-six-years-slr-taxonomy], [leaf-da-silva-2011-six-years-slr-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-da-silva-2011-six-years-slr-003 | [ev-da-silva-2011-six-years-slr-stat] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-da-silva-2011-six-years-slr-evidence], [leaf-da-silva-2011-six-years-slr-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-da-silva-2011-six-years-slr-004 | [ev-da-silva-2011-six-years-slr-risk] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-da-silva-2011-six-years-slr-root], [leaf-da-silva-2011-six-years-slr-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-da-silva-2011-six-years-slr-001 | [ev-da-silva-2011-six-years-slr-root] | [src-da-silva-2011-six-years-slr-text], [src-da-silva-2011-six-years-slr-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-da-silva-2011-six-years-slr-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-da-silva-2011-six-years-slr-002 | [ev-da-silva-2011-six-years-slr-taxonomy] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-da-silva-2011-six-years-slr-b1], [dim-da-silva-2011-six-years-slr-b2], [dim-da-silva-2011-six-years-slr-b3], [dim-da-silva-2011-six-years-slr-b4], [dim-da-silva-2011-six-years-slr-b5], [leaf-da-silva-2011-six-years-slr-taxonomy], [leaf-da-silva-2011-six-years-slr-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-da-silva-2011-six-years-slr-003 | [ev-da-silva-2011-six-years-slr-stat] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-da-silva-2011-six-years-slr-evidence], [leaf-da-silva-2011-six-years-slr-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-da-silva-2011-six-years-slr-004 | [ev-da-silva-2011-six-years-slr-risk] | [src-da-silva-2011-six-years-slr-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-da-silva-2011-six-years-slr-root], [leaf-da-silva-2011-six-years-slr-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
 ### A.3 结论-证据映射
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-da-silva-2011-six-years-slr-tree-type] | A1DT-da-silva-2011-six-years-slr-C01 | 本文的维度树主类型为“tertiary 更新统计树”，辅助类型为“质量 / 实践影响树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-da-silva-2011-six-years-slr-tree-type] | tree_type | [dim-da-silva-2011-six-years-slr-root] | EV-da-silva-2011-six-years-slr-001, EV-da-silva-2011-six-years-slr-004 | 树型判断仅限本文，不代表所有 EBSE / SE SLR 状态 综述。 | strong | statistical_synthesis | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-scope] | A1DT-da-silva-2011-six-years-slr-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-scope] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-corpus] | A1DT-da-silva-2011-six-years-slr-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-corpus] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-taxonomy] | A1DT-da-silva-2011-six-years-slr-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-taxonomy] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-method] | A1DT-da-silva-2011-six-years-slr-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-method] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-evidence] | A1DT-da-silva-2011-six-years-slr-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-evidence] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-da-silva-2011-six-years-slr-leaf-finding] | A1DT-da-silva-2011-six-years-slr-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-finding] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-da-silva-2011-six-years-slr-transfer] | A1DT-da-silva-2011-six-years-slr-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-da-silva-2011-six-years-slr-root] | EV-da-silva-2011-six-years-slr-002, EV-da-silva-2011-six-years-slr-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-da-silva-2011-six-years-slr-finding-boundary] | A1DT-da-silva-2011-six-years-slr-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-da-silva-2011-six-years-slr-finding] | EV-da-silva-2011-six-years-slr-003, EV-da-silva-2011-six-years-slr-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-da-silva-2011-six-years-slr-tree-type] | A1DT-da-silva-2011-six-years-slr-C01 | 本文的维度树主类型为“tertiary 更新统计树”，辅助类型为“质量 / 实践影响树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-da-silva-2011-six-years-slr-tree-type] | tree_type | [dim-da-silva-2011-six-years-slr-root] | EV-da-silva-2011-six-years-slr-001, EV-da-silva-2011-six-years-slr-004 | 树型判断仅限本文，不代表所有 EBSE / SE SLR 状态 综述。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-scope] | A1DT-da-silva-2011-six-years-slr-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-scope] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-corpus] | A1DT-da-silva-2011-six-years-slr-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-corpus] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-taxonomy] | A1DT-da-silva-2011-six-years-slr-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-taxonomy] | EV-da-silva-2011-six-years-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-method] | A1DT-da-silva-2011-six-years-slr-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-method] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-evidence] | A1DT-da-silva-2011-six-years-slr-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-evidence] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-leaf-finding] | A1DT-da-silva-2011-six-years-slr-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-da-silva-2011-six-years-slr-finding] | EV-da-silva-2011-six-years-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-transfer] | A1DT-da-silva-2011-six-years-slr-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-da-silva-2011-six-years-slr-root] | EV-da-silva-2011-six-years-slr-002, EV-da-silva-2011-six-years-slr-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-da-silva-2011-six-years-slr-finding-boundary] | A1DT-da-silva-2011-six-years-slr-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-da-silva-2011-six-years-slr-finding] | EV-da-silva-2011-six-years-slr-003, EV-da-silva-2011-six-years-slr-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
 
 ### A.4 本地复验命令与人工核验清单

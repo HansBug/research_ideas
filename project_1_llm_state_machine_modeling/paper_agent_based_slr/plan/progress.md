@@ -80,6 +80,7 @@
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
+| 2026-06-29 22:18:00 | codex reviewer 实现阶段 I 级修复 | 已修 A.2/A.3 证据强度与用途口径：泛定位 / 待 A2a 精确锚定的证据统一降级为 `not_verified`，A.3 当前无 `statistical_synthesis`；旧字段树 / schema 缺口标题统一标为历史草稿迁移来源；SUMMARY 改为“后续主统计池候选 / A1-DT 当前 schema seed”。 |
 | 2026-06-29 18:05:48 | 三路 reviewer C/I 修复复验 | 已修复 codex reviewer 1I 与 claude reviewer 2I：SUMMARY 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数并解释 Petersen 2015 次级方法学价值；恢复结构化 schema 修订 / 回填日志并同步 GUIDE / pattern schema / task packet；本地结构验证、`git diff --check` 与 PDF 类型检查已通过，待三路 reviewer 复审确认。 |
 | 2026-06-29 17:48:49 | SUMMARY / GUIDE 长期文库总账化返工复验 | 通过结构自检：旧分批标题已移除；统一论文总表 19 行且年份降序；A1-M0--M6 覆盖矩阵 19 行；19 个 `review.md` 均含 A1-M0--M6；19 review / 19 metadata / 19 PDF / 19 text / active manual-download=0；本轮等待三路 reviewer 复审。 |
 | 2026-06-29 16:59:12 | 用户本地 Zotero PDF 补齐复验 | 通过；app reviews SLR 2022、Petersen 2008、Petersen 2015 已复制 `paper.pdf`、生成 `paper_content.txt`、重写 `review.md` / `metadata.json`；文件系统统计更新为 19 review / 19 metadata / 19 PDF / 19 text；active manual-download=0。 |

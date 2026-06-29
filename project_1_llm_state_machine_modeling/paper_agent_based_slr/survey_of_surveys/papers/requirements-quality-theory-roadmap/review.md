@@ -20,7 +20,7 @@
 | SE 子领域 | Requirements Engineering / requirements quality |
 | A1 角色 | 为 Paper2 的 researcher-defined meta-model、字段树、gap-to-roadmap 结构提供强脚手架先验。 |
 | 是否目标证据池 | 否；只作为综述/路线图写法与元模型设计的脚手架样本。 |
-| schema 缺口 | 暴露 `theory / evaluation / roadmap` 类型：不是普通 SLR/SMS，也不是纯 guideline；六类 pattern 需要允许“research commentary 不适用 / 转译后适用”。 |
+| schema 历史观察 | 暴露 `theory / evaluation / roadmap` 类型：不是普通 SLR/SMS，也不是纯 guideline；六类 pattern 需要允许“research commentary 不适用 / 转译后适用”。 |
 
 **一句话结论**：这篇文献最值得迁移的不是 requirements quality 的具体结论，而是“先定义理论对象与关系 → 用对象级 codebook 评价现有研究 → 把缺口组织成 roadmap 与 tool-support 架构”的三段式。它可以直接启发 Paper2 如何把 researcher-defined meta-model 做成一等制品，而不是把抽取字段表当作临时表格。
 
@@ -153,9 +153,13 @@ roadmap 基于 Femmer 等人的旧路线图，并结合本次状态评价扩展�
 | A1-M5 统计分析 | 本文用 descriptive statistics 展示 concept coverage，并区分统计结果和解释。 | Paper2 的分布、交叉表、覆盖率代理应记录字段版本、样本范围和分析限制；统计观察不能直接升级为最终发现。 | 图表数字需 PDF/数据包核对；统计覆盖不等于理论正确或实践有效。 |
 | A1-M6 候选发现形成 | 本文把 coverage gap 转成 roadmap streams：activity model、quality factor ontology、impact framework、context、economic impact、tool support。 | Paper2 可把统计缺口转成候选 finding / action item / roadmap，而不是停留在“某字段出现率低”。 | roadmap 是候选行动，不是已经验证的解决方案；后续仍需研究者质疑和裁决。 |
 
-## 5. 可迁移理论 / 评价 / roadmap 字段树
+## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
-### 5.1 理论元模型字段树（迁移版）
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+
+### 历史草稿（已迁移，不作事实真源）：旧第 5.1 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
 theory_meta_model
@@ -185,7 +189,9 @@ theory_meta_model
     └── cost_link              # activity_fact 到 resource cost 的关系
 ```
 
-### 5.2 状态评价字段树（迁移版）
+### 历史草稿（已迁移，不作事实真源）：旧第 5.2 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
 state_evaluation
@@ -222,7 +228,9 @@ state_evaluation
     └── practical_relevance_risk
 ```
 
-### 5.3 Roadmap 字段树（迁移版）
+### 历史草稿（已迁移，不作事实真源）：旧第 5.3 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
 roadmap_stream
@@ -302,7 +310,7 @@ roadmap_stream
 
 本文的维度树主类型为“理论 / 元模型概念树”，辅助类型为“requirements quality roadmap 树”。不进入主统计池：theory/evaluation/roadmap；非标准 SLR/SMS，样本/编码可启发字段但不进入 SLR/SMS 统计池；仅作 boundary_anchor。 [clm-requirements-quality-theory-roadmap-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -367,10 +375,10 @@ roadmap_stream
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-requirements-quality-theory-roadmap-001 | [ev-requirements-quality-theory-roadmap-root] | [src-requirements-quality-theory-roadmap-text], [src-requirements-quality-theory-roadmap-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-requirements-quality-theory-roadmap-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-requirements-quality-theory-roadmap-002 | [ev-requirements-quality-theory-roadmap-taxonomy] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-requirements-quality-theory-roadmap-b1], [dim-requirements-quality-theory-roadmap-b2], [dim-requirements-quality-theory-roadmap-b3], [dim-requirements-quality-theory-roadmap-b4], [dim-requirements-quality-theory-roadmap-b5], [leaf-requirements-quality-theory-roadmap-taxonomy], [leaf-requirements-quality-theory-roadmap-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-requirements-quality-theory-roadmap-003 | [ev-requirements-quality-theory-roadmap-stat] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | author_claim | weak | [leaf-requirements-quality-theory-roadmap-evidence], [leaf-requirements-quality-theory-roadmap-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
-| EV-requirements-quality-theory-roadmap-004 | [ev-requirements-quality-theory-roadmap-risk] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-requirements-quality-theory-roadmap-root], [leaf-requirements-quality-theory-roadmap-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-requirements-quality-theory-roadmap-001 | [ev-requirements-quality-theory-roadmap-root] | [src-requirements-quality-theory-roadmap-text], [src-requirements-quality-theory-roadmap-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-requirements-quality-theory-roadmap-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-requirements-quality-theory-roadmap-002 | [ev-requirements-quality-theory-roadmap-taxonomy] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-requirements-quality-theory-roadmap-b1], [dim-requirements-quality-theory-roadmap-b2], [dim-requirements-quality-theory-roadmap-b3], [dim-requirements-quality-theory-roadmap-b4], [dim-requirements-quality-theory-roadmap-b5], [leaf-requirements-quality-theory-roadmap-taxonomy], [leaf-requirements-quality-theory-roadmap-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-requirements-quality-theory-roadmap-003 | [ev-requirements-quality-theory-roadmap-stat] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作 boundary / candidate seed，待 A2a 精确页码 / 表图核验后才能升级。 | author_claim | not_verified | [leaf-requirements-quality-theory-roadmap-evidence], [leaf-requirements-quality-theory-roadmap-finding] | true | false | -- | 仅当系统性证据和分母明确时才可进入统计；roadmap / proposal 仅作启发。 |
+| EV-requirements-quality-theory-roadmap-004 | [ev-requirements-quality-theory-roadmap-risk] | [src-requirements-quality-theory-roadmap-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-requirements-quality-theory-roadmap-root], [leaf-requirements-quality-theory-roadmap-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
 ### A.3 结论-证据映射
@@ -378,14 +386,14 @@ roadmap_stream
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | [clm-requirements-quality-theory-roadmap-tree-type] | A1DT-requirements-quality-theory-roadmap-C01 | 本文的维度树主类型为“理论 / 元模型概念树”，辅助类型为“requirements quality roadmap 树”。不进入主统计池：theory/evaluation/roadmap；非标准 SLR/SMS，样本/编码可启发字段但不进入 SLR/SMS 统计池；仅作 boundary_anchor。 [clm-requirements-quality-theory-roadmap-tree-type] | tree_type | [dim-requirements-quality-theory-roadmap-root] | EV-requirements-quality-theory-roadmap-001, EV-requirements-quality-theory-roadmap-004 | 树型判断仅限本文，不代表所有 requirements quality 综述。 | weak | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-scope] | A1DT-requirements-quality-theory-roadmap-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-scope] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-corpus] | A1DT-requirements-quality-theory-roadmap-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-corpus] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-taxonomy] | A1DT-requirements-quality-theory-roadmap-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-taxonomy] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-method] | A1DT-requirements-quality-theory-roadmap-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-method] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-evidence] | A1DT-requirements-quality-theory-roadmap-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-evidence] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-leaf-finding] | A1DT-requirements-quality-theory-roadmap-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-finding] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | boundary_anchor | false | -- |
-| [clm-requirements-quality-theory-roadmap-transfer] | A1DT-requirements-quality-theory-roadmap-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-requirements-quality-theory-roadmap-root] | EV-requirements-quality-theory-roadmap-002, EV-requirements-quality-theory-roadmap-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-requirements-quality-theory-roadmap-finding-boundary] | A1DT-requirements-quality-theory-roadmap-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-requirements-quality-theory-roadmap-finding] | EV-requirements-quality-theory-roadmap-003, EV-requirements-quality-theory-roadmap-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-scope] | A1DT-requirements-quality-theory-roadmap-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-scope] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-corpus] | A1DT-requirements-quality-theory-roadmap-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-corpus] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-taxonomy] | A1DT-requirements-quality-theory-roadmap-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-taxonomy] | EV-requirements-quality-theory-roadmap-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-method] | A1DT-requirements-quality-theory-roadmap-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-method] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-evidence] | A1DT-requirements-quality-theory-roadmap-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-evidence] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-leaf-finding] | A1DT-requirements-quality-theory-roadmap-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-requirements-quality-theory-roadmap-finding] | EV-requirements-quality-theory-roadmap-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | boundary_anchor | false | -- |
+| [clm-requirements-quality-theory-roadmap-transfer] | A1DT-requirements-quality-theory-roadmap-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-requirements-quality-theory-roadmap-root] | EV-requirements-quality-theory-roadmap-002, EV-requirements-quality-theory-roadmap-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-requirements-quality-theory-roadmap-finding-boundary] | A1DT-requirements-quality-theory-roadmap-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-requirements-quality-theory-roadmap-finding] | EV-requirements-quality-theory-roadmap-003, EV-requirements-quality-theory-roadmap-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
 
 ### A.4 本地复验命令与人工核验清单

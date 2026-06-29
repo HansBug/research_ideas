@@ -223,7 +223,9 @@ future work 部分提出将本文 clusters 与既有 Intelligent Modelling Assis
 | A1-M5：统计分析 | 用比例、bubble chart、cluster cross-analysis 比较 strategy-goal-limitation、goal-metric-user、literature-vs-practice。 | `distribution_table`、`cross_tab`、`bubble_chart`、`comparison_axis`、`not_specified_rate`。 | Paper2 的统计观察可先形成 candidate signal，例如“目标用户未报告率高”，但不能直接写成领域结论。 |
 | A1-M6：候选发现形成 | 从统计观察提出设计框架需求：limitations/metrics/users 缺失阻碍比较，AI disruption 需要 unified framework。 | `candidate_finding`、`supporting_statistic`、`design_implication`、`future_framework_need`。 | Paper2 可学习“统计 -> gap -> design implication”的写法，但要增加反向证据、主张强度和研究者裁决。 |
 
-## 4. 可迁移字段树
+## 历史草稿（已迁移，不作事实真源）：旧第 4 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 以下字段树建议作为 Project1 LLM4Modeling / STM generation 方向的维度 pattern seed。字段名以英文为主，便于后续 schema 化；取值与说明用中文维护。
 
@@ -359,7 +361,9 @@ modelling_assistant_review
 5. **limitations cluster 口径需复核**：正文说 five limitation clusters，Table 3 列出 L1--L6，其中 L6 usability 只有一个 proposal；正式引用时要避免写错。
 6. **metrics 与 formal verification 指标仍需扩展**：M1/M2/M3 对 STM generation 有帮助，但还不够覆盖 timed automata、model checking property satisfaction、counterexample usefulness 等 formal-method 指标。
 
-## 6. schema 缺口 / 候选回填字段
+## 历史草稿（已迁移，不作事实真源）：旧第 6 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 本轮只允许编辑单篇 [review.md](./review.md)，不回修全局 schema；但该文暴露出以下候选字段，建议后续 A2a/A2b 评估是否加入 [patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)：
 
@@ -390,9 +394,9 @@ modelling_assistant_review
 
 ### 一句话结论
 
-本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-mdse-modelling-assistants-mapping-tree-type]
+本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mdse-modelling-assistants-mapping-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -439,8 +443,8 @@ modelling_assistant_review
 
 | 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
 |---|---|---|---|---|---|
-| [dim-mdse-modelling-assistants-mapping-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
-| [leaf-mdse-modelling-assistants-mapping-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [dim-mdse-modelling-assistants-mapping-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
+| [leaf-mdse-modelling-assistants-mapping-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
 | [leaf-mdse-modelling-assistants-mapping-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
 
 ### 可迁移与不可迁移边界
@@ -464,27 +468,27 @@ modelling_assistant_review
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-mdse-modelling-assistants-mapping-001 | [ev-mdse-modelling-assistants-mapping-root] | [src-mdse-modelling-assistants-mapping-text], [src-mdse-modelling-assistants-mapping-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-mdse-modelling-assistants-mapping-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-mdse-modelling-assistants-mapping-002 | [ev-mdse-modelling-assistants-mapping-taxonomy] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-mdse-modelling-assistants-mapping-b1], [dim-mdse-modelling-assistants-mapping-b2], [dim-mdse-modelling-assistants-mapping-b3], [dim-mdse-modelling-assistants-mapping-b4], [dim-mdse-modelling-assistants-mapping-b5], [leaf-mdse-modelling-assistants-mapping-taxonomy], [leaf-mdse-modelling-assistants-mapping-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-mdse-modelling-assistants-mapping-003 | [ev-mdse-modelling-assistants-mapping-stat] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-mdse-modelling-assistants-mapping-evidence], [leaf-mdse-modelling-assistants-mapping-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-mdse-modelling-assistants-mapping-004 | [ev-mdse-modelling-assistants-mapping-risk] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-mdse-modelling-assistants-mapping-root], [leaf-mdse-modelling-assistants-mapping-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-| EV-mdse-modelling-assistants-mapping-005 | [ev-mdse-modelling-assistants-mapping-relation] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边。 | taxonomy | medium | [edge-mdse-modelling-assistants-mapping-method-evidence], [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+| EV-mdse-modelling-assistants-mapping-001 | [ev-mdse-modelling-assistants-mapping-root] | [src-mdse-modelling-assistants-mapping-text], [src-mdse-modelling-assistants-mapping-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-mdse-modelling-assistants-mapping-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-mdse-modelling-assistants-mapping-002 | [ev-mdse-modelling-assistants-mapping-taxonomy] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-mdse-modelling-assistants-mapping-b1], [dim-mdse-modelling-assistants-mapping-b2], [dim-mdse-modelling-assistants-mapping-b3], [dim-mdse-modelling-assistants-mapping-b4], [dim-mdse-modelling-assistants-mapping-b5], [leaf-mdse-modelling-assistants-mapping-taxonomy], [leaf-mdse-modelling-assistants-mapping-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-mdse-modelling-assistants-mapping-003 | [ev-mdse-modelling-assistants-mapping-stat] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-mdse-modelling-assistants-mapping-evidence], [leaf-mdse-modelling-assistants-mapping-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-mdse-modelling-assistants-mapping-004 | [ev-mdse-modelling-assistants-mapping-risk] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-mdse-modelling-assistants-mapping-root], [leaf-mdse-modelling-assistants-mapping-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-mdse-modelling-assistants-mapping-005 | [ev-mdse-modelling-assistants-mapping-relation] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边；本行在 A1-DT 仅作关系边 seed，待 A2a 精确页码 / 表图核验后才能升级。 | taxonomy | not_verified | [edge-mdse-modelling-assistants-mapping-method-evidence], [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
 
 ### A.3 结论-证据映射
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-mdse-modelling-assistants-mapping-tree-type] | A1DT-mdse-modelling-assistants-mapping-C01 | 本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-mdse-modelling-assistants-mapping-tree-type] | tree_type | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-001, EV-mdse-modelling-assistants-mapping-004 | 树型判断仅限本文，不代表所有 MDSE modelling assistants 综述。 | strong | statistical_synthesis | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-scope] | A1DT-mdse-modelling-assistants-mapping-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-scope] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-corpus] | A1DT-mdse-modelling-assistants-mapping-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-corpus] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-taxonomy] | A1DT-mdse-modelling-assistants-mapping-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-taxonomy] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-method] | A1DT-mdse-modelling-assistants-mapping-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-method] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-evidence] | A1DT-mdse-modelling-assistants-mapping-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-evidence] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-finding] | A1DT-mdse-modelling-assistants-mapping-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-transfer] | A1DT-mdse-modelling-assistants-mapping-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-finding-boundary] | A1DT-mdse-modelling-assistants-mapping-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003, EV-mdse-modelling-assistants-mapping-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
-| [clm-mdse-modelling-assistants-mapping-edge-method-evidence] | A1DT-mdse-modelling-assistants-mapping-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-mdse-modelling-assistants-mapping-method-evidence] | EV-mdse-modelling-assistants-mapping-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | medium | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-edge-taxonomy-finding] | A1DT-mdse-modelling-assistants-mapping-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | EV-mdse-modelling-assistants-mapping-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | medium | candidate_finding | false | -- |
+| [clm-mdse-modelling-assistants-mapping-tree-type] | A1DT-mdse-modelling-assistants-mapping-C01 | 本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mdse-modelling-assistants-mapping-tree-type] | tree_type | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-001, EV-mdse-modelling-assistants-mapping-004 | 树型判断仅限本文，不代表所有 MDSE modelling assistants 综述。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-scope] | A1DT-mdse-modelling-assistants-mapping-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-scope] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-corpus] | A1DT-mdse-modelling-assistants-mapping-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-corpus] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-taxonomy] | A1DT-mdse-modelling-assistants-mapping-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-taxonomy] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-method] | A1DT-mdse-modelling-assistants-mapping-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-method] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-evidence] | A1DT-mdse-modelling-assistants-mapping-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-evidence] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-leaf-finding] | A1DT-mdse-modelling-assistants-mapping-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-transfer] | A1DT-mdse-modelling-assistants-mapping-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-finding-boundary] | A1DT-mdse-modelling-assistants-mapping-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003, EV-mdse-modelling-assistants-mapping-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
+| [clm-mdse-modelling-assistants-mapping-edge-method-evidence] | A1DT-mdse-modelling-assistants-mapping-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-mdse-modelling-assistants-mapping-method-evidence] | EV-mdse-modelling-assistants-mapping-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | weak | schema_seed | false | -- |
+| [clm-mdse-modelling-assistants-mapping-edge-taxonomy-finding] | A1DT-mdse-modelling-assistants-mapping-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | EV-mdse-modelling-assistants-mapping-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | weak | candidate_finding | false | -- |
 
 ### A.4 本地复验命令与人工核验清单
 

@@ -193,7 +193,9 @@ Discussion 将 RQ1--RQ4 的统计观察升级为 research roadmap，主题包括
 | A1-M5 统计分析 | 用 Venn、bubble chart、feature distribution、频次表和 QA 表把字段表转成统计观察。 | Paper2 统计协议可要求频次、交叉表、覆盖率代理、缺失率、质量/评价分布，并注明分母。 |
 | A1-M6 候选发现形成 | RQ Answer Summary 与 Discussion roadmap 把统计观察转为 gap / recommendation。 | Paper2 可将每个 Answer Summary 拆为 candidate finding：supporting counts、counter-evidence、scope、confidence、researcher challenge。 |
 
-## 5. 可迁移字段树
+## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
 SLR Study
@@ -288,7 +290,9 @@ SLR Study
 5. **primary-study 质量未作为纳排标准**：作者保留 poor-quality studies 以避免过窄，这符合 emerging area 逻辑；Paper2 若采用类似策略，需要明确低质量研究如何影响候选发现强度。
 6. **roadmap 不是最终裁决**：本文的 roadmap 是作者解释性综合，不包含外部研究者质疑/裁决日志；Paper2 的新颖性应放在补足这一审计层。
 
-## 8. schema 缺口 / A2a 建议
+## 历史草稿（已迁移，不作事实真源）：旧第 8 节迁移来源
+
+> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 在不修改共享 schema 的前提下，本篇 review 暴露 4 个可在 A2a 考虑的候选字段：
 
@@ -297,7 +301,7 @@ SLR Study
 3. `extraction_form_shape`：记录数据抽取表的问题数、section、题型、pilot 方式、是否公开。
 4. `roadmap_from_summary_pattern`：记录 Discussion 是否将 RQ summary 转为 research roadmap / recommendation，并区分统计观察、解释性建议和最终主张。
 
-本任务只允许编辑本文件，因此上述字段只登记为单篇 schema 缺口，不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)。
+本任务只允许编辑本文件，因此上述字段只登记为单篇 schema 历史观察，不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)。
 
 ## 9. 待复核
 
@@ -312,9 +316,9 @@ SLR Study
 
 ### 一句话结论
 
-本文的维度树主类型为“MDE4ML 生命周期分类树”，辅助类型为“解决方案 / 动机 / 评价树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-mde-ml-components-slr-tree-type]
+本文的维度树主类型为“MDE4ML 生命周期分类树”，辅助类型为“解决方案 / 动机 / 评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mde-ml-components-slr-tree-type]
 
-旧有“可迁移字段树 / 字段树 / schema 缺口”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
 
 ### 根问题 / RQ 到主干分支映射
 
@@ -354,8 +358,8 @@ SLR Study
 
 | 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
 |---|---|---|---|---|---|
-| [dim-mde-ml-components-slr-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 是 | 识别可迁移的维度模式类型 | 可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 |
-| [leaf-mde-ml-components-slr-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 是 | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 扩库验证取值空间是否饱和。 |
+| [dim-mde-ml-components-slr-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
+| [leaf-mde-ml-components-slr-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
 | [leaf-mde-ml-components-slr-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
 
 ### 可迁移与不可迁移边界
@@ -379,25 +383,25 @@ SLR Study
 
 | 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-mde-ml-components-slr-001 | [ev-mde-ml-components-slr-root] | [src-mde-ml-components-slr-text], [src-mde-ml-components-slr-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | strong | [dim-mde-ml-components-slr-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-mde-ml-components-slr-002 | [ev-mde-ml-components-slr-taxonomy] | [src-mde-ml-components-slr-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度。 | taxonomy | medium | [dim-mde-ml-components-slr-b1], [dim-mde-ml-components-slr-b2], [dim-mde-ml-components-slr-b3], [dim-mde-ml-components-slr-b4], [dim-mde-ml-components-slr-b5], [leaf-mde-ml-components-slr-taxonomy], [leaf-mde-ml-components-slr-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-mde-ml-components-slr-003 | [ev-mde-ml-components-slr-stat] | [src-mde-ml-components-slr-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断。 | statistical_result | medium | [leaf-mde-ml-components-slr-evidence], [leaf-mde-ml-components-slr-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-mde-ml-components-slr-004 | [ev-mde-ml-components-slr-risk] | [src-mde-ml-components-slr-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | medium | [dim-mde-ml-components-slr-root], [leaf-mde-ml-components-slr-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
+| EV-mde-ml-components-slr-001 | [ev-mde-ml-components-slr-root] | [src-mde-ml-components-slr-text], [src-mde-ml-components-slr-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-mde-ml-components-slr-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
+| EV-mde-ml-components-slr-002 | [ev-mde-ml-components-slr-taxonomy] | [src-mde-ml-components-slr-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-mde-ml-components-slr-b1], [dim-mde-ml-components-slr-b2], [dim-mde-ml-components-slr-b3], [dim-mde-ml-components-slr-b4], [dim-mde-ml-components-slr-b5], [leaf-mde-ml-components-slr-taxonomy], [leaf-mde-ml-components-slr-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
+| EV-mde-ml-components-slr-003 | [ev-mde-ml-components-slr-stat] | [src-mde-ml-components-slr-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-mde-ml-components-slr-evidence], [leaf-mde-ml-components-slr-finding] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
+| EV-mde-ml-components-slr-004 | [ev-mde-ml-components-slr-risk] | [src-mde-ml-components-slr-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-mde-ml-components-slr-root], [leaf-mde-ml-components-slr-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
 
 
 ### A.3 结论-证据映射
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-mde-ml-components-slr-tree-type] | A1DT-mde-ml-components-slr-C01 | 本文的维度树主类型为“MDE4ML 生命周期分类树”，辅助类型为“解决方案 / 动机 / 评价树”。可进入主统计池：有系统检索 / 映射 / tertiary / MLR 证据，可用于 survey-of-surveys 的字段和树型统计。 [clm-mde-ml-components-slr-tree-type] | tree_type | [dim-mde-ml-components-slr-root] | EV-mde-ml-components-slr-001, EV-mde-ml-components-slr-004 | 树型判断仅限本文，不代表所有 MDE4ML 综述。 | strong | statistical_synthesis | false | -- |
-| [clm-mde-ml-components-slr-leaf-scope] | A1DT-mde-ml-components-slr-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-scope] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-mde-ml-components-slr-leaf-corpus] | A1DT-mde-ml-components-slr-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-corpus] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mde-ml-components-slr-leaf-taxonomy] | A1DT-mde-ml-components-slr-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-taxonomy] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mde-ml-components-slr-leaf-method] | A1DT-mde-ml-components-slr-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-method] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mde-ml-components-slr-leaf-evidence] | A1DT-mde-ml-components-slr-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-evidence] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | strong | statistical_synthesis | false | -- |
-| [clm-mde-ml-components-slr-leaf-finding] | A1DT-mde-ml-components-slr-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-finding] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | medium | schema_seed | false | -- |
-| [clm-mde-ml-components-slr-transfer] | A1DT-mde-ml-components-slr-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-mde-ml-components-slr-root] | EV-mde-ml-components-slr-002, EV-mde-ml-components-slr-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | medium | schema_seed | false | -- |
-| [clm-mde-ml-components-slr-finding-boundary] | A1DT-mde-ml-components-slr-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-mde-ml-components-slr-finding] | EV-mde-ml-components-slr-003, EV-mde-ml-components-slr-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | medium | candidate_finding | false | -- |
+| [clm-mde-ml-components-slr-tree-type] | A1DT-mde-ml-components-slr-C01 | 本文的维度树主类型为“MDE4ML 生命周期分类树”，辅助类型为“解决方案 / 动机 / 评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mde-ml-components-slr-tree-type] | tree_type | [dim-mde-ml-components-slr-root] | EV-mde-ml-components-slr-001, EV-mde-ml-components-slr-004 | 树型判断仅限本文，不代表所有 MDE4ML 综述。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-scope] | A1DT-mde-ml-components-slr-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-scope] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-corpus] | A1DT-mde-ml-components-slr-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-corpus] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-taxonomy] | A1DT-mde-ml-components-slr-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-taxonomy] | EV-mde-ml-components-slr-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-method] | A1DT-mde-ml-components-slr-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-method] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-evidence] | A1DT-mde-ml-components-slr-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-evidence] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-leaf-finding] | A1DT-mde-ml-components-slr-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mde-ml-components-slr-finding] | EV-mde-ml-components-slr-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-transfer] | A1DT-mde-ml-components-slr-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-mde-ml-components-slr-root] | EV-mde-ml-components-slr-002, EV-mde-ml-components-slr-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
+| [clm-mde-ml-components-slr-finding-boundary] | A1DT-mde-ml-components-slr-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-mde-ml-components-slr-finding] | EV-mde-ml-components-slr-003, EV-mde-ml-components-slr-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
 
 
 ### A.4 本地复验命令与人工核验清单

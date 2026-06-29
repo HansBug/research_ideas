@@ -48,6 +48,8 @@
 6. 如果 DevSecOps 等关系型 schema 被压平成普通树而没有关系边表，应拒收。
 7. 如果 SUMMARY 跨论文归纳没有 `[sum-A1DT-*]` 证据映射或无法回链单篇结论标识，应拒收。
 8. 如果合流后覆盖上游 PR-A1 已核验事实、统计池口径或 CCF 复核状态，应拒收。
+9. 如果 A.2 泛定位 / 待核验证据仍被标为 `strong` / `medium`，或支撑 A.3 的 `statistical_synthesis`，应拒收。
+10. 如果旧“可迁移字段树 / 字段树 / schema 缺口”等章节仍作为未降级事实真源出现，应拒收；保留时必须标为历史草稿 / 迁移来源，并指向“维度树复原”。
 
 ## 6. 验证命令
 
@@ -68,6 +70,7 @@ python /tmp/check_a1dt.py
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
+| 2026-06-29 22:18:00 | codex reviewer 实现阶段 I 级修复 | 已修 A.2/A.3 泛定位证据强度过高问题：所有待 A2a 精确锚定的 A.2 证据降级为 `not_verified`，A.3 当前统一只作 `schema_seed` / `boundary_anchor` / `candidate_finding`，不再出现 `statistical_synthesis`；旧字段树 / schema 缺口标题改为历史草稿迁移来源，不再作为第二事实源。 |
 | 2026-06-29 21:48:00 | 内部 verifier 复核后 I 级修复 | 已修 SUMMARY `[sum-A1DT-tree-types]` / `[sum-A1DT-boundary-anchor]` 中“过滤 weak”与纳入 weak boundary 结论的口径冲突：树型总览改为非定量索引，boundary 行显式允许弱证据但禁止进入主统计池、SUMMARY 定量统计或 final finding；同时修复 schema 示例链接占位。 |
 | 2026-06-29 21:10:00 | `python /tmp/check_a1dt.py` | 通过；19 篇均具备维度树、叶子表、A.1--A.4、A.2→A.1、A.3→A.2、SUMMARY→单篇 A.3 回链。 |
 | 2026-06-29 21:10:00 | `git diff --check origin/paper2/a1-survey-of-surveys-scaffold...HEAD -- survey_of_surveys` | 通过；未发现行尾空白或 diff 格式问题。 |

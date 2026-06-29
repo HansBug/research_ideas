@@ -231,7 +231,17 @@ DevSecOps CPTM、生命周期投影、工具-实践-指标链接等关系型 sch
 4. A.2 中“需要原文版面核验”为 `true` 的证据，必须在 A.4 的“复验对象”中列出。
 5. 旧结论或旧证据被替代时不得删除键，应标记“已废弃”和“替代证据 / 替代结论”。
 
-### 6.3.7 SUMMARY 回链规则
+
+### 6.3.7 A1-DT 证据强度降级与统计用途冻结
+
+PR-A1-DT 的目标是先建立维度树和审计附录结构，不要求完成所有 PDF 页码、表号、图号和 supplementary 的精确核验。因此：
+
+1. A.2 中凡仍写有“待 A2a 精确页码复核”“邻近段落”“表 / 图待核验”“见释义”等泛定位或待核验描述的证据，证据强度必须写 `not_verified`，不得写 `strong` 或 `medium`。
+2. A.3 中凡依赖上述 `not_verified` 证据的结论，只能作为 `schema_seed`、`boundary_anchor`、`candidate_finding` 或 `risk_only`；不得写 `statistical_synthesis`。
+3. SUMMARY 可以记录“后续主统计池候选”，但这不是当前 A1-DT 维度树证据已可统计；A2a 完成精确页码 / 表图 / 字段锚定前，不得把 A1-DT 的 C01 / 叶子结论用于 SUMMARY 定量统计或 final research finding。
+4. 后续若某篇论文完成 PDF / 表图 / supplementary 精核，可在 A.2 新增替代证据并把旧证据标为“已废弃”，再把 A.3 结论从 `schema_seed` 升级为 `statistical_synthesis`；升级必须同步更新 SUMMARY 结论-证据映射和 schema 修订 / 回填日志。
+
+### 6.3.8 SUMMARY 回链规则
 
 SUMMARY 的跨论文归纳必须维护 `SUMMARY 结论-证据映射` 表，使用 `[sum-A1DT-*]` 归纳标识，列出分母、纳入 / 排除的单篇结论标识、证据强度过滤、外推限制和允许用途。凡进入 SUMMARY 定量统计的单篇结论，其 A.3 结论强度不得为 `weak` / `unknown`，允许用途必须与统计用途一致。
 

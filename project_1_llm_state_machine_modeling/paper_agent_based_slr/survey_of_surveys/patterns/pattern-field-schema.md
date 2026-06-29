@@ -159,3 +159,8 @@ A1-M0--M6 是对六类 pattern 的上层组织，用于把 researcher-defined me
 | 结论强度 | `strong`、`medium`、`weak`、`unknown` | 由支撑证据强度和反证限制共同决定。 |
 | 允许用于论文的位置 | `schema_seed`、`statistical_synthesis`、`candidate_finding`、`boundary_anchor`、`risk_only`、`do_not_use` | 控制该结论进入后续写作或统计的位置。 |
 | 证据角色 | `definition`、`rq`、`scope`、`extraction_field`、`taxonomy`、`count`、`statistical_result`、`author_claim`、`discussion`、`limitation`、`artifact`、`replication_package`、`threat`、`absence_evidence`、`not_reported`、`negative_evidence` | 说明证据支撑的是定义、字段、统计、讨论、缺席事实还是风险。 |
+
+### 8.6 A1-DT 阶段的临时降级规则
+
+A1-DT 当前只冻结维度树结构和审计附录合同。若 A.2 证据仍是泛定位或待核验状态，必须使用 `not_verified`，并且 A.3 只允许 `schema_seed`、`boundary_anchor`、`candidate_finding`、`risk_only` 或 `do_not_use`。`statistical_synthesis` 只允许在 A2a 完成精确页码、表格、图和 supplementary 核验后使用。
+
