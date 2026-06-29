@@ -187,7 +187,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 
 ## 6. archive 使用规则
 
-[../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/) 只保留 R1.5--R1.7 旧台账、检索轮次和原始检索结果。archive 内旧链接按历史快照保留，可能指向迁移前的 `papers/` 或台账路径；需要当前事实时必须回到 [SUMMARY.md](./SUMMARY.md) 和本目录单条目。
+[../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/) 只保留 R1.5--R1.7 旧台账、检索轮次和原始检索结果。archive 内 Markdown 已按 R5.5.1 冷归档纪律补充 deprecated 标记、秒级前缀和当前事实源回跳；若正文仍提到迁移前 `papers/` 或旧台账名称，只能解释为历史语境，不得作为当前事实入口。需要当前事实时必须回到 [SUMMARY.md](./SUMMARY.md)、[REGISTRY.md](./REGISTRY.md) 和本目录单条目。
 
 ## 7. 禁止事项
 

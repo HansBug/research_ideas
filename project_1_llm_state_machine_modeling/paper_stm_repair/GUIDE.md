@@ -1,6 +1,6 @@
 # paper_stm_repair 工作纪律
 
-本文件只保留全局硬规则。当前研究状态请读 [STATUS.md](./STATUS.md)，目录地图请读 [README.md](./README.md)。
+本文件只保留全局硬规则。顶层轻量总账请读 [SUMMARY.md](./SUMMARY.md)，当前研究状态和关键数字请读 [STATUS.md](./STATUS.md)，目录地图请读 [README.md](./README.md)。[SUMMARY.md](./SUMMARY.md) 只做导航，不替代 [STATUS.md](./STATUS.md) 或 pipeline / corpus / reports 事实源。
 
 ## 1. 最高边界
 
@@ -16,6 +16,7 @@
 
 | 问题 | 优先事实源 | 辅助入口 |
 |---|---|---|
+| 顶层导航总账 | [SUMMARY.md](./SUMMARY.md) | [README.md](./README.md) |
 | 当前总体状态 | [STATUS.md](./STATUS.md) | [README.md](./README.md) |
 | 一手 seed 资格和数量 | [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` | [corpora/seed_library/SUMMARY.md](./corpora/seed_library/SUMMARY.md) |
 | 修正基线 / 近邻 | [corpora/repair_baselines/SUMMARY.md](./corpora/repair_baselines/SUMMARY.md) | 单篇 `baseline_desc.md` |
@@ -23,10 +24,10 @@
 | 原始模型到规范化 JSON | [pipeline/conversion/reports/selected_seed_examples_conversion_report.json](./pipeline/conversion/reports/selected_seed_examples_conversion_report.json)、[pipeline/conversion/reports/plantuml_recovery_report.json](./pipeline/conversion/reports/plantuml_recovery_report.json) | [pipeline/conversion/README.md](./pipeline/conversion/README.md) |
 | canonical 到 `.fcstm` | [pipeline/representation/reports/fcstm_export_report.json](./pipeline/representation/reports/fcstm_export_report.json) | [pipeline/representation/README.md](./pipeline/representation/README.md) |
 | 评价门规则 | [pipeline/evaluation/EVALUATION_GATE.md](./pipeline/evaluation/EVALUATION_GATE.md) | [pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
-| R5 四例冒烟 | [pipeline/smoke/selected_examples/smoke_report.json](./pipeline/smoke/selected_examples/smoke_report.json) | [pipeline/smoke/selected_examples/smoke_summary.md](./pipeline/smoke/selected_examples/smoke_summary.md) |
-| R5 全量摸排 | [pipeline/smoke/seed_library_sweep/sweep_report.json](./pipeline/smoke/seed_library_sweep/sweep_report.json) | [pipeline/smoke/seed_library_sweep/sweep_summary.md](./pipeline/smoke/seed_library_sweep/sweep_summary.md) |
-| R5.5 `llms-emp` 主 seed 池画像 | [pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_case_matrix.jsonl)、[pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl](./pipeline/smoke/seed_library_sweep/llms_emp_cluster_profiles.jsonl) | [pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md](./pipeline/smoke/seed_library_sweep/llms_emp_deep_profile.md)、[pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md](./pipeline/smoke/seed_library_sweep/llms_emp_r56_handoff.md) |
-| 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[archive/](./archive/) | 不作为当前横向事实源 |
+| R5 四例冒烟 | [pipeline/readiness_audit/selected_examples/smoke_report.json](./pipeline/readiness_audit/selected_examples/smoke_report.json) | [reports/2026-06-28-03-42-24-selected-smoke-summary.md](./reports/2026-06-28-03-42-24-selected-smoke-summary.md) |
+| R5 全量摸排 | [pipeline/readiness_audit/seed_sweep/sweep_report.json](./pipeline/readiness_audit/seed_sweep/sweep_report.json) | [reports/2026-06-28-04-03-18-seed-readiness-report.md](./reports/2026-06-28-04-03-18-seed-readiness-report.md) |
+| R5.5 `llms-emp` 主 seed 池画像 | [pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[evidence/SUMMARY.md](./evidence/SUMMARY.md)、[evidence/GUIDE.md](./evidence/GUIDE.md)、[archive/](./archive/) | 不作为当前横向事实源 |
 
 Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、registry 或 ledger 复算。
 
@@ -54,7 +55,7 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 
 ### 3.4 Better STM 主张
 
-只有满足 [experiment_design/better_stm_definition.md](./experiment_design/better_stm_definition.md) 的五条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM。任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
+只有满足 [experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md) 的五条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM。任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
 
 ## 4. 禁止写法
 
@@ -65,3 +66,17 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 | “转换后能 parse，因此模型已被修复” | “转换后进入可机检表示，但转换收益与修正收益分开归因” |
 | “四例冒烟证明方法有效” | “四例冒烟证明字段链路和修正前输入准备可复验” |
 | “自动修正一定提升质量” | “在预注册评价门下检验是否产生相对更优候选，并报告失败、回滚和不收敛” |
+
+
+## archive/ 冷归档纪律
+
+1. `archive/` 只保存 cold / deprecated historical snapshots，不作为当前事实源。
+2. 引用 archive 时必须同时说明当前事实应回到 `corpora/`、`reports/` 或 `pipeline/`。
+3. archive 中非入口 README 的历史 Markdown 应使用 `yyyy-mm-dd-hh-mm-ss-短主题.md` 秒级前缀，并在开头记录原始路径、时间依据 commit、迁入 commit 和当前事实源替代入口。
+4. archive README 是稳定入口文件，可以不使用秒级前缀，但必须维护清单、deprecated 标记和来源 commit。
+
+## story/ 写作栅栏纪律
+
+1. `story/README.md` 只做入口和阅读顺序，不吞并 `paper_story.md`、`task_boundary.md`、`terminology_policy.md`、`claim_evidence_map.md`、`paper_outline.md` 的专题职责。
+2. story 文件只能把证据转为 paper claim gate，不得替代 `reports/`、`pipeline/`、`corpora/` 或 `experiment_design/` 的事实真源。
+3. 每次 scope、eligibility 或 repair-loop 结果冻结后，必须同步检查 story claim 是否需要降级或删除。

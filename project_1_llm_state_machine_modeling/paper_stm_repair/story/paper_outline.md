@@ -2,7 +2,7 @@
 
 ## 0. 说明
 
-本文件只冻结第一篇论文的大纲方向和写作约束，不写最终正文。后续 PR-R7 必须根据 R1--R6 的真实证据重写或降级。
+本文件只冻结第一篇论文的大纲方向和写作约束，不写最终正文。后续 PR-R7 必须根据 R1--R8 的真实证据重写或降级；R5.5 当前只提供 seed profile / readiness / conversion pressure，不提供 repair-loop 主结果。
 
 ## 1. Abstract
 
@@ -46,15 +46,15 @@
 
 ## 6. Experimental Design
 
-- 数据来源与 seed registry：由 R1/R2 冻结。
+- 数据来源与 seed registry：R1/R2/R5.5 已形成主 seed 方向，但 eligibility 仍待 R5.7 冻结。
 - 四例预演与主实验样本区分。
 - RQ1--RQ6。
-- 指标与评价门：由 R4/R6 冻结。
+- 指标与评价门：由 R4/R6/R8 冻结。
 - 对照 / 消融：no-repair seed、regenerate-from-NL、no structured feedback、可运行 repair baseline、converter-aware analysis。
 
-## 7. Results
+## 7. Results（后续主结果；当前只允许 pre-repair characterization）
 
-R0 不写结果。R6 后再填：缺陷类型分布、feedback source 覆盖、修正闭合 / 回归 / 拒绝 / 振荡 / 不收敛、`STM_0` vs `STM_k` 五条件台账、seed 来源影响、转换损失与归因。
+R0/R5.5 不写 repair 结果，也不写 `STM_0 -> STM_k` 改善结论。R5.5 只能作为 `Pre-repair readiness characterization, not repair outcome`：具体 10 NL cluster、6 LLM 输出和 conversion status 均以 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 为 canonical source。R6/R8 后再填：缺陷类型分布、feedback source 覆盖、修正闭合 / 回归 / 拒绝 / 振荡 / 不收敛、`STM_0` vs `STM_k` 五条件台账、seed 来源影响、转换损失与归因。
 
 ## 8. Related Work
 

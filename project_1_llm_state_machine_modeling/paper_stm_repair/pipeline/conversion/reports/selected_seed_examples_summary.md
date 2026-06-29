@@ -1,3 +1,5 @@
+> **工具输出摘要 / 非 canonical report。** 本文件由 conversion CLI / tests 维护，只能作为 pipeline 运行上下文与 fixture 摘要；论文写作、人类审查和跨阶段学术结论请回到 [../../../reports/2026-06-28-03-42-24-selected-smoke-summary.md](../../../reports/2026-06-28-03-42-24-selected-smoke-summary.md) 或本目录 JSON / JSONL / ZIP 机器事实源。row-level facts 以 `selected_seed_examples_conversion_report.json`、`selected_seed_examples_loss_ledger.jsonl` 与 `selected_seed_examples_input_audit.json` 为准。
+
 # R3 selected_seed_examples 转换 v0 摘要
 
 本文件由 `python -m paper_stm_repair_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。
