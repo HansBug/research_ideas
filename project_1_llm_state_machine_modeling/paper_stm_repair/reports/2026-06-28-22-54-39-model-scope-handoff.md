@@ -1,5 +1,8 @@
 # R5.5 -> R5.6 story / model scope handoff
 
+
+> **R5.5.2 当前性提示：** 本 handoff 中 “3 个 blocked 进入 negative evidence” 的当前事实已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；R5.6 仍应保留 T0 主线、T0.5 caveat 与 Digital Camera supplementary stress。
+
 > 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
 ## R5.5 -> R5.6 story / model scope handoff

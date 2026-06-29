@@ -16,4 +16,4 @@
 
 ## 迁移说明
 
-旧深度画像完整结论表、10×6 LLM 矩阵与行为特征矩阵已迁移到 canonical main seed profile report；当前 machine counts 为 cases=60 / clusters=10 / partial=41 / blocked=3 / status={'blocked': 3, 'converted': 16, 'partial': 41}。
+旧深度画像完整结论表、10×6 LLM 矩阵与行为特征矩阵已迁移到 canonical main seed profile report；当前 machine counts 为 cases=60 / clusters=10 / partial=44 / blocked=0 / status={'converted': 16, 'partial': 44}。

@@ -10,8 +10,7 @@
 
 - [sweep_report.json](./sweep_report.json)
 - [records_index.json](./records_index.json)
-- [r5_to_r8_negative_evidence.json](../handoff/r5_to_r8_negative_evidence.json)
 
 ## 迁移说明
 
-旧 blocked 全量展示已并入 seed readiness report；针对 `llms-emp` 3 个 blocked 样例的深入负证据见 reports 下 negative evidence report。
+旧 `R5 blocked / missing_asset cases` 展示已并入 seed readiness report；该类别 machine count=19，完整清单仍以 records index 与 archive 为准。

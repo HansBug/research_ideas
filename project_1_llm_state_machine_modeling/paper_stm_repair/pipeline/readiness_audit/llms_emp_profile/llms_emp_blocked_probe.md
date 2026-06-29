@@ -14,4 +14,4 @@
 
 ## 迁移说明
 
-旧 blocked probe 细节已迁移到 canonical negative evidence report；当前 blocked machine rows=3。
+旧 blocked probe 细节已迁移到 canonical negative evidence report；当前 blocked machine rows=0。

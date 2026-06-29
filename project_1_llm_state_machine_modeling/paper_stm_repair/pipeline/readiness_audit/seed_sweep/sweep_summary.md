@@ -15,4 +15,4 @@
 
 ## 迁移说明
 
-旧 full sweep summary 已并入 seed readiness report；本路径只保留机器 sweep 事实源。
+当前 sweep machine summary 为 entries=36 / pairs=1078 / assets=16 / archives=2；完整人类阅读表只保留在 canonical report 中。

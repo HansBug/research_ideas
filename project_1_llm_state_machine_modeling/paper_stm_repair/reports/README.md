@@ -32,6 +32,7 @@
 
 | 时间 | report | 类型 | 机器事实源入口 |
 |---|---|---|---|
+| 2026-06-29 19:55:45 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | PlantUML blocked recovery | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) |
 | 2026-06-29 00:03:56 | [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | main seed profile | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) |
 | 2026-06-28 23:18:32 | [2026-06-28-23-18-32-negative-evidence-report.md](./2026-06-28-23-18-32-negative-evidence-report.md) | negative evidence | [llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) |
 | 2026-06-28 22:54:39 | [2026-06-28-22-54-39-model-scope-handoff.md](./2026-06-28-22-54-39-model-scope-handoff.md) | scope handoff | [llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) |
@@ -44,7 +45,7 @@
 1. 先读本文件，确认 reports 文库边界。
 2. 再读 [GUIDE.md](./GUIDE.md)，理解秒级命名、来源考据和 machine-source 同步纪律。
 3. 再读 [SUMMARY.md](./SUMMARY.md)，从总表选择当前要看的 report。
-4. 想看 R5.5 主结论：读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 的 10 cluster 表、10×6 LLM 矩阵与行为特征矩阵。
+4. 想看 R5.5.2 后当前 `llms-emp` 状态：先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)，再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 的 10 cluster 表、10×6 LLM 矩阵与行为特征矩阵。
 5. 想解释后续 R6/R7 为什么优先 `llms-emp-stm-subset`：读 [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。
 6. 需要复算或审计时，回到每个 report 文末“审计附录：证据链与事实源”中的上游事实源清单、Claim-evidence map 与复验命令。
 

@@ -187,9 +187,9 @@ def test_r55_llms_emp_deep_profile_contract():
     assert len(cases) == 60
     assert len(clusters) == 10
     assert len(matrix) == 60
-    assert len(partials) == 41
-    assert len(blocked) == 3
-    assert Counter(row["conversion_status"] for row in cases) == {"converted": 16, "partial": 41, "blocked": 3}
+    assert len(partials) == 44
+    assert len(blocked) == 0
+    assert Counter(row["conversion_status"] for row in cases) == {"converted": 16, "partial": 44}
     assert Counter(row["time_level"] for row in clusters) == {"T0": 8, "T0.5": 1, "T1": 1}
     assert Counter(row["r5_6_story_role"] for row in clusters) == {"main_candidate": 9, "supplementary_stress": 1}
 
@@ -221,12 +221,27 @@ def test_r55_llms_emp_deep_profile_contract():
         assert row["attribution_confidence"] in {"high", "medium", "low", "unknown"}
         assert row["r5_6_story_role"] in {"main_candidate", "supplementary_stress", "negative_evidence", "exclude_or_defer", "unknown"}
 
-    for row in blocked:
-        assert row["r5_loss_codes"] == ["R5.LOSS.official_scxml_unavailable"]
-        assert "pre_scxml_recovery_possible" in row
-        assert "normalization_repair_possible" not in row
-        assert row["renderability_recheck_status"] == "not_reproducible_from_committed_evidence"
-        assert row["renderability_recheck_blocker"]
+    recovered_from_blocked = {
+        row["raw_pair_id"]: row
+        for row in cases
+        if row["raw_pair_id"] in {
+            "llms_emp_stm_results_0018",
+            "llms_emp_stm_results_0028",
+            "llms_emp_stm_results_0037",
+        }
+    }
+    assert set(recovered_from_blocked) == {
+        "llms_emp_stm_results_0018",
+        "llms_emp_stm_results_0028",
+        "llms_emp_stm_results_0037",
+    }
+    for row in recovered_from_blocked.values():
+        assert row["conversion_status"] == "partial"
+        assert row["canonical_status"] == "converted"
+        assert row["parse_status"] == "ok"
+        assert row["inspect_status"] == "ok"
+        assert "R5.LOSS.r3_1_normalization_replay_not_repair" in row["r5_loss_codes"]
+        assert row["repair_contribution_allowed"] is False
 
     deep_text = (base / "llms_emp_deep_profile.md").read_text(encoding="utf-8")
     assert "Migration notice" in deep_text

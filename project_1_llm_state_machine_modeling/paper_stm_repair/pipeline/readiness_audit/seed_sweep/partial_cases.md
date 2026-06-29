@@ -13,4 +13,4 @@
 
 ## 迁移说明
 
-旧 partial 前 40 条展示已并入 seed readiness report；完整高基数清单仍以 records index 与 archive 为准。
+旧 `R5 partial cases` 展示已并入 seed readiness report；该类别 machine count=508，完整清单仍以 records index 与 archive 为准。

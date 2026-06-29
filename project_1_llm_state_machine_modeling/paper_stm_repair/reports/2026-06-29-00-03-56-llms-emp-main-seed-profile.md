@@ -1,5 +1,8 @@
 # R5.5 `llms-emp-stm-subset` main seed profile
 
+
+> **R5.5.2 当前性提示：** 本 report 的部分状态数字（尤其 `blocked=3`、`partial=41`）已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；当前 `llms-emp` 状态为 `converted=16 / partial=44 / blocked=0`。本文件仍可作为 R5.5.1 前的 cluster/profile 历史快照使用。
+
 > 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
 ## R5.5 `llms-emp-stm-subset` 主 seed 池深度画像

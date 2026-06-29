@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 import jsonschema
@@ -92,6 +93,42 @@ def _write_pairs(path: Path) -> None:
             "source_locator": "fixture:fork",
         },
         {
+            "seed_id": "llms-emp-stm-subset",
+            "pair_id": "p_when",
+            "nl_sha256": "c" * 64,
+            "stm0_sha256": "d" * 64,
+            "nl_text": "when label nl",
+            "stm_format": "plantuml",
+            "stm0_text": "@startuml\nchoice2 --> Join1 when : sunny=true\n@enduml\n",
+            "llm": "GPT-4",
+            "generation_model_or_method": "fake",
+            "source_locator": "fixture:when",
+        },
+        {
+            "seed_id": "llms-emp-stm-subset",
+            "pair_id": "p_empty_label",
+            "nl_sha256": "e" * 64,
+            "stm0_sha256": "f" * 64,
+            "nl_text": "empty label nl",
+            "stm_format": "plantuml",
+            "stm0_text": "@startuml\nchoice1 --> choice3:\nFlash --> Terminate:\n@enduml\n",
+            "llm": "Llama",
+            "generation_model_or_method": "fake",
+            "source_locator": "fixture:empty-label",
+        },
+        {
+            "seed_id": "llms-emp-stm-subset",
+            "pair_id": "p_bracket",
+            "nl_sha256": "1" * 64,
+            "stm0_sha256": "2" * 64,
+            "nl_text": "bracket endpoint nl",
+            "stm_format": "plantuml",
+            "stm0_text": "@startuml\n[FrontendCollision] -down-> [BrakingControl] : Brake Signal Received\n[BrakingControl] --> [*] : Collision Avoided\n@enduml\n",
+            "llm": "Kimi",
+            "generation_model_or_method": "fake",
+            "source_locator": "fixture:bracket",
+        },
+        {
             "seed_id": "unified-uml-multimodal-validation",
             "pair_id": "p_unified",
             "nl_sha256": "a" * 64,
@@ -111,27 +148,42 @@ def _fake_plantuml_env(tmp_path: Path) -> dict[str, str]:
     fake_bin.mkdir()
     fake_plantuml = fake_bin / "plantuml.jar"
     fake_plantuml.write_text(
-        "#!/usr/bin/env python3\n"
-        "import pathlib, sys\n"
-        "args = sys.argv[1:]\n"
-        "if '-version' in args:\n"
-        "    print('Fake PlantUML recovery 0.0')\n"
-        "    raise SystemExit(0)\n"
-        "src = pathlib.Path(args[-1])\n"
-        "text = src.read_text(encoding='utf-8')\n"
-        "needs_alias = ('\\\"Menu Created\\\"' in text) or ('\\\"Empty SCXML\\\"' in text) or ('\\\"Unified State\\\"' in text)\n"
-        "bad = (needs_alias and ('state \\\"' not in text)) or ('entry/Accelerate' in text) or ('fork fork1' in text)\n"
-        "if '-checkonly' in args:\n"
-        "    raise SystemExit(200 if bad else 0)\n"
-        "if '-tscxml' in args:\n"
-        "    if bad:\n"
-        "        raise SystemExit(1)\n"
-        "    if 'Empty SCXML' in text:\n"
-        "        src.with_suffix('.scxml').write_text('<scxml version=\"1.0\"><state id=\"S1\"/></scxml>', encoding='utf-8')\n"
-        "    else:\n"
-        "        src.with_suffix('.scxml').write_text('<scxml version=\"1.0\" initial=\"S1\"><state id=\"S1\"><transition target=\"S2\" event=\"go\"/></state><state id=\"S2\"/></scxml>', encoding='utf-8')\n"
-        "    raise SystemExit(0)\n"
-        "raise SystemExit(0)\n",
+        textwrap.dedent(
+            r'''
+            #!/usr/bin/env python3
+            import pathlib
+            import sys
+
+            args = sys.argv[1:]
+            if "-version" in args:
+                print("Fake PlantUML recovery 0.0")
+                raise SystemExit(0)
+            src = pathlib.Path(args[-1])
+            text = src.read_text(encoding="utf-8")
+            needs_alias = ('"Menu Created"' in text) or ('"Empty SCXML"' in text) or ('"Unified State"' in text)
+            has_empty_label = any("-->" in line and line.strip().endswith(":") for line in text.splitlines())
+            has_nonstar_bracket_endpoint = "[FrontendCollision]" in text or "[BrakingControl]" in text
+            bad = (
+                (needs_alias and ('state "' not in text))
+                or ("entry/Accelerate" in text)
+                or ("fork fork1" in text)
+                or (" when :" in text)
+                or has_empty_label
+                or has_nonstar_bracket_endpoint
+            )
+            if "-checkonly" in args:
+                raise SystemExit(200 if bad else 0)
+            if "-tscxml" in args:
+                if bad:
+                    raise SystemExit(1)
+                if "Empty SCXML" in text:
+                    src.with_suffix(".scxml").write_text('<scxml version="1.0"><state id="S1"/></scxml>', encoding="utf-8")
+                else:
+                    src.with_suffix(".scxml").write_text('<scxml version="1.0" initial="S1"><state id="S1"><transition target="S2" event="go"/></state><state id="S2"/></scxml>', encoding="utf-8")
+                raise SystemExit(0)
+            raise SystemExit(0)
+            '''
+        ).lstrip(),
         encoding="utf-8",
     )
     fake_plantuml.chmod(0o755)
@@ -182,7 +234,7 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
         "2026-06-25T12:00:00+00:00",
     ]
     completed = subprocess.run(cmd, cwd=REPO, env=_fake_plantuml_env(tmp_path), text=True, capture_output=True, check=True)
-    assert '"raw_total": 6' in completed.stdout
+    assert '"raw_total": 9' in completed.stdout
     assert (tmp_path / "archive" / "workdir.zip").exists()
     assert (tmp_path / "archive" / "workdir.zip.sha256").exists()
     assert (tmp_path / "archive" / "manifest.json").exists()
@@ -226,10 +278,22 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     assert by_id["p_fork"]["main_eligibility_included"] is False
     assert by_id["p_unified"]["seed_class"] == "unified_synthetic"
     assert by_id["p_unified"]["main_eligibility_included"] is True
-    assert report["summary"]["technical_scxml_pass_all_rules"] == 3
-    assert report["summary"]["low_risk_scxml_pass"] == 2
-    assert report["summary"]["main_eligibility_included"] == 2
-    assert report["semantic_preservation_audit_summary"]["audited_total"] == 5
+    assert by_id["p_when"]["normalized_scxml_pass"] is True
+    assert by_id["p_when"]["main_eligibility_included"] is True
+    assert by_id["p_when"]["semantic_preservation_pass"] is True
+    assert "PUML.NORM.transition_when_label" in by_id["p_when"]["rule_ids"]
+    assert by_id["p_empty_label"]["normalized_scxml_pass"] is True
+    assert by_id["p_empty_label"]["main_eligibility_included"] is True
+    assert by_id["p_empty_label"]["semantic_preservation_pass"] is True
+    assert "PUML.NORM.remove_empty_transition_label" in by_id["p_empty_label"]["rule_ids"]
+    assert by_id["p_bracket"]["normalized_scxml_pass"] is True
+    assert by_id["p_bracket"]["main_eligibility_included"] is True
+    assert by_id["p_bracket"]["semantic_preservation_pass"] is True
+    assert "PUML.NORM.alias_bracket_endpoint" in by_id["p_bracket"]["rule_ids"]
+    assert report["summary"]["technical_scxml_pass_all_rules"] == 6
+    assert report["summary"]["low_risk_scxml_pass"] == 5
+    assert report["summary"]["main_eligibility_included"] == 5
+    assert report["semantic_preservation_audit_summary"]["audited_total"] == 8
     assert report["semantic_preservation_audit_summary"]["low_risk_fail_total"] == 0
     assert set(report["summary"]["by_seed_class"]) == {"llms_emp_cross_llm", "unified_synthetic"}
     assert report["summary"]["by_seed_class"]["unified_synthetic"]["main_eligibility_included"] == 1
@@ -238,6 +302,12 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     assert set(gate["eligible_after_by_llm"]) == {"Claude", "DeepSeek", "GPT-4", "GPT-4o", "Kimi", "Llama"}
     assert gate["eligible_after_composition_by_llm"]["GPT-4o"]["raw_total"] == 2
     assert gate["eligible_after_composition_by_llm"]["GPT-4o"]["eligible_after"] == 2
+    assert gate["eligible_after_composition_by_llm"]["GPT-4"]["raw_total"] == 1
+    assert gate["eligible_after_composition_by_llm"]["GPT-4"]["eligible_after"] == 1
+    assert gate["eligible_after_composition_by_llm"]["Llama"]["raw_total"] == 2
+    assert gate["eligible_after_composition_by_llm"]["Llama"]["eligible_after"] == 1
+    assert gate["eligible_after_composition_by_llm"]["Kimi"]["raw_total"] == 1
+    assert gate["eligible_after_composition_by_llm"]["Kimi"]["eligible_after"] == 1
     assert gate["eligible_after_composition_by_llm"]["Claude"]["raw_total"] == 1
     assert gate["eligible_after_composition_by_llm"]["Claude"]["eligible_after"] == 0
     assert all(row["source_file_unchanged"] for row in report["source_file_immutability"])
@@ -253,6 +323,14 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
         assert immutability["source_line_sha256_after"] == _sha256_text(pair_lines[item["row_index"]])
         assert immutability["source_file_sha256_before"] == _sha256_file(pairs)
         assert immutability["source_file_sha256_after"] == _sha256_file(pairs)
+    for row in ledger_rows:
+        assert row["source_pairs_path"].endswith("pairs.jsonl")
+        assert row["source_locator"].startswith("fixture:")
+        assert row["source_line_sha256"] == _sha256_text(pair_lines[row["row_index"]])
+        assert row["source_file_sha256"] == _sha256_file(pairs)
+    assert any(row["rule_id"] == "PUML.NORM.transition_when_label" and row["pair_id"] == "p_when" for row in ledger_rows)
+    assert any(row["rule_id"] == "PUML.NORM.remove_empty_transition_label" and row["pair_id"] == "p_empty_label" for row in ledger_rows)
+    assert any(row["rule_id"] == "PUML.NORM.alias_bracket_endpoint" and row["pair_id"] == "p_bracket" for row in ledger_rows)
     assert any(row["rule_id"] == "PUML.NORM.fork_join_decl_to_state" and row["concurrency_degraded"] for row in ledger_rows)
     assert "/home/" not in (reports / "plantuml_recovery_report.json").read_text(encoding="utf-8")
     assert "/tmp/" not in (reports / "plantuml_recovery_report.json").read_text(encoding="utf-8")
