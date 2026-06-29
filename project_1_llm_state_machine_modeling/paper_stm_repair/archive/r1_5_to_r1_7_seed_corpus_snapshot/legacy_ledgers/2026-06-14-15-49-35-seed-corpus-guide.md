@@ -1,3 +1,15 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/seed_corpus_GUIDE.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-15-49-35-seed-corpus-guide.md` |
+| 时间前缀 / 内容冻结依据 | `824576331055a69682ebfba03d63cd11ae4470ce` — 2026-06-14 15:49:35 +0800 — fix(paper1-r1.8-a): 归位PR流程信息维护策略 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # strict seed 文库工作指南
 
 ## 1. 工作边界
@@ -68,7 +80,7 @@ papers/<paper-slug>/
 
 ## 6. 人工下载队列
 
-无法自动下载 PDF / artifact 的条目写入 [manual_download_queue.md](./manual_download_queue.md)，使用 Markdown 表格 + BibTeX 代码块。不要把它当正式 `references.bib`。
+无法自动下载 PDF / artifact 的条目写入 [manual_download_queue.md](./2026-06-14-06-18-24-manual-download-queue.md)，使用 Markdown 表格 + BibTeX 代码块。不要把它当正式 `references.bib`。
 
 ## 7. agent 纪律
 
@@ -76,27 +88,27 @@ papers/<paper-slug>/
 - 单篇全文 agent 原则上一篇一 agent，必须记录输入、输出、失败和证据指针。
 - 审稿 agent 复查事实性错误、排除码误收、SS/SA 混淆和过强 claim。
 - 所有 agent 禁止 sub-subagent。
-- [agent_provenance.md](./agent_provenance.md) 仅记录本目录内与文献筛查、全文阅读、证据等级判断直接相关的审计细账；跨 PR / issue 的执行进度、review 状态、ready gate 和 merge 进度以 GitHub PR / issue body 与 comment 为准，不在仓库内另建动态流程总账。
+- [agent_provenance.md](./2026-06-14-15-49-35-agent-provenance.md) 仅记录本目录内与文献筛查、全文阅读、证据等级判断直接相关的审计细账；跨 PR / issue 的执行进度、review 状态、ready gate 和 merge 进度以 GitHub PR / issue body 与 comment 为准，不在仓库内另建动态流程总账。
 
 ## 8. R1.6 / R1.7 补充纪律
 
 1. `candidate_matrix.md` 与 `screening_ledger.md` 必须 ID 一一对应；新增候选不得只进入一边。
-2. `search_log.md` 只写摘要；每轮检索细节写入 [search_rounds/](./search_rounds/) 并保持 append-only。
-3. 新增或升级为主 / 条件主候选时，必须同步更新 [seed_selection_candidates.md](./seed_selection_candidates.md)。
+2. `search_log.md` 只写摘要；每轮检索细节写入 [search_rounds/](../search_rounds/) 并保持 append-only。
+3. 新增或升级为主 / 条件主候选时，必须同步更新 [seed_selection_candidates.md](./2026-06-14-11-18-35-seed-selection-candidates.md)。
 4. `SS-B + SA-2` 只能作为条件候选，必须写明生成关系、T0 边界、artifact 可隔离性与 caveat。
 5. pipeline 可复跑但 outputs 未冻结的候选（如 `fsm-bench-20`）不得直接计入已生成 `STM_0` 四例下限。
-6. 旧九个 direct baseline 必须通过 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md) 入账；crosswalk 中每个 seed 方法必须能在 [candidate_matrix.md](./candidate_matrix.md) 与 [screening_ledger.md](./screening_ledger.md) 中找到对应 ID 或显式 alias。
+6. 旧九个 direct baseline 必须通过 [baseline_seed_method_crosswalk.md](./2026-06-14-11-18-35-baseline-seed-method-crosswalk.md) 入账；crosswalk 中每个 seed 方法必须能在 [candidate_matrix.md](./2026-06-14-11-18-35-candidate-matrix.md) 与 [screening_ledger.md](./2026-06-14-11-18-35-screening-ledger.md) 中找到对应 ID 或显式 alias。
 7. 不得因为 paper-only、private-data、protocol-domain、pipeline-output-missing 或 `sources/` fallback 就静默删除方法层条目；只能在 `计数资格`、SS/SA、后续角色和 caveat 中降级。
 
 ## 9. 研究快照最低门
 
 当前 bounded snapshot 的长期复核门：原则上不少于 `20` 条去重候选进入 title / abstract ledger，不少于 `8` 条进入 fulltext / artifact 核验，并显式统计 `SS-A/SS-B + SA-1/SA-2 + 计数资格=yes-main/yes-conditional` 可计主 / 条件主候选数量。`>=4` 只表示可交接后续四例样本冻结的候选池达到最低裁决起点，不等于四例已经冻结；`>=6` 是广域检索希望达到的更稳健缓冲目标。若未达到 `>=6`，只能以“bounded snapshot + negative evidence + fallback handoff”作为后续样本冻结前置资料：明确当前可计候选数量、缺口原因、后续补足路径，不得声称已具备四例冻结输入或全域穷尽。`SA-3/SA-4/SA-5` 只能作为文献证据 / related work。最终只能声称“当前 bounded snapshot”，不得写成全域 census。
 
-额外 crosswalk 完成门：旧九个 direct baseline 必须达到 `9/9` 方法层覆盖；若某条不在 `candidate_matrix.md` / `screening_ledger.md`，必须在 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md) 写明 alias、排除理由和不进入矩阵的原因。默认不允许“因为不计四例所以不入账”。
+额外 crosswalk 完成门：旧九个 direct baseline 必须达到 `9/9` 方法层覆盖；若某条不在 `candidate_matrix.md` / `screening_ledger.md`，必须在 [baseline_seed_method_crosswalk.md](./2026-06-14-11-18-35-baseline-seed-method-crosswalk.md) 写明 alias、排除理由和不进入矩阵的原因。默认不允许“因为不计四例所以不入账”。
 
 ## 10. R1.7 补充纪律
 
-1. R1.7 新增/重判候选必须同时进入 [candidate_matrix.md](./candidate_matrix.md) 与 [screening_ledger.md](./screening_ledger.md)，并显式记录 `P0..P3` priority。
-2. `search_results/r17_*.jsonl` 只是 raw evidence，必须由 [search_rounds/](./search_rounds/) 的 `round-r17-*.md` 解释后才能作为验收证据。
+1. R1.7 新增/重判候选必须同时进入 [candidate_matrix.md](./2026-06-14-11-18-35-candidate-matrix.md) 与 [screening_ledger.md](./2026-06-14-11-18-35-screening-ledger.md)，并显式记录 `P0..P3` priority。
+2. `search_results/r17_*.jsonl` 只是 raw evidence，必须由 [search_rounds/](../search_rounds/) 的 `round-r17-*.md` 解释后才能作为验收证据。
 3. R1.7 新增 `SA-3` paper-only strict/conditional 论文不得计入 PR-R2 主 / 条件主 seed 数量。
-4. 若 R1.7 未把可计数主 / 条件主候选提升到 `>=6`，必须在 [seed_selection_candidates.md](./seed_selection_candidates.md) 写出 negative evidence 与 fallback。
+4. 若 R1.7 未把可计数主 / 条件主候选提升到 `>=6`，必须在 [seed_selection_candidates.md](./2026-06-14-11-18-35-seed-selection-candidates.md) 写出 negative evidence 与 fallback。

@@ -1,10 +1,22 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/seed_selection_candidates.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-seed-selection-candidates.md` |
+| 时间前缀 / 内容冻结依据 | `d3758f2bd5a780274ff1a249b40c7184a4230242` — 2026-06-14 11:18:35 +0800 — fix(paper1-r1.7): 补齐旧baseline seed方法入账 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # PR-R2 seed selection handoff
 
-本文件**只是 PR-R2 四例样本 selection handoff**，不是 seed 方法全集。seed 方法 / 来源全集以 [candidate_matrix.md](./candidate_matrix.md) 与 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md) 为准；本文件只把当前 bounded snapshot v4 下可裁决的主候选、条件主候选、fallback、paper-only evidence、hard exclusion 与 manual blocker 集中列出，避免 PR-R2 从候选矩阵中重新摸索。
+本文件**只是 PR-R2 四例样本 selection handoff**，不是 seed 方法全集。seed 方法 / 来源全集以 [candidate_matrix.md](./2026-06-14-11-18-35-candidate-matrix.md) 与 [baseline_seed_method_crosswalk.md](./2026-06-14-11-18-35-baseline-seed-method-crosswalk.md) 为准；本文件只把当前 bounded snapshot v4 下可裁决的主候选、条件主候选、fallback、paper-only evidence、hard exclusion 与 manual blocker 集中列出，避免 PR-R2 从候选矩阵中重新摸索。
 
 ## 1. 可交接主 / 条件主候选
 
-按 PR #108 §1.3 公式，只有 `SS-A/SS-B + SA-1/SA-2` 且 [candidate_matrix.md](./candidate_matrix.md) 中 `计数资格` 为 `yes-main` / `yes-conditional` 的条目，才进入当前主 / 条件主候选；`SA-3/SA-4/SA-5`、pipeline-only/output-missing、project-constructed/source fallback 均不计数。注意：不计数只表示不能作为当前四例样本，并不表示不属于 seed 方法集合。
+按 PR #108 §1.3 公式，只有 `SS-A/SS-B + SA-1/SA-2` 且 [candidate_matrix.md](./2026-06-14-11-18-35-candidate-matrix.md) 中 `计数资格` 为 `yes-main` / `yes-conditional` 的条目，才进入当前主 / 条件主候选；`SA-3/SA-4/SA-5`、pipeline-only/output-missing、project-constructed/source fallback 均不计数。注意：不计数只表示不能作为当前四例样本，并不表示不属于 seed 方法集合。
 
 | 优先级 | ID | SS | SA | 是否可计入四例候选 | 为什么可考虑 | PR-R2 必做裁决 |
 |---:|---|---|---|---|---|---|

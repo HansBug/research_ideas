@@ -2,11 +2,20 @@
 
 ## 1. 当前结论
 
-`evidence/` 已按 R5.5.1 路径重构为四类历史证据索引：`ledgers/`、`audits/`、`matrices/`、`traces/`。本目录保留 R0/R1 证据链，但不再作为当前 corpus 事实真源。
+`evidence/` 已按 R5.5.1 路径重构为四类历史证据索引：[ledgers/README.md](./ledgers/README.md)、[audits/README.md](./audits/README.md)、[matrices/README.md](./matrices/README.md)、[traces/README.md](./traces/README.md)。本目录保留 R0/R1 证据链，但不再作为当前 corpus 事实真源。
 
-当前事实源：seed 看 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md)，repair baseline 看 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，纯 NL 数据源看 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)。
+当前事实源：seed 看 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) 与 [../corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)，repair baseline 看 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，纯 NL 数据源看 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)，转换 / 表示 / readiness 看 [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md)，人类结论看 [../reports/SUMMARY.md](../reports/SUMMARY.md)。
 
-## 2. 文件总账
+## 2. 子路径入口
+
+| 子路径 README | 先读场景 |
+|---|---|
+| [ledgers/README.md](./ledgers/README.md) | 需要理解历史事实等级、来源覆盖、artifact 可获取性和旧资产继承时。 |
+| [audits/README.md](./audits/README.md) | 需要理解 R1 审计设计、strict seed 调研口径和排除标准时。 |
+| [matrices/README.md](./matrices/README.md) | 需要理解历史候选矩阵、baseline 横向比较和格式转换压力时。 |
+| [traces/README.md](./traces/README.md) | 需要追踪分支局部资产如何迁移、消费、排除或降级时。 |
+
+## 3. 文件总账
 
 | 类别 | 文件 | 作用 | 当前性 |
 |---|---|---|---|
@@ -20,15 +29,18 @@
 | matrix | [matrices/format_conversion_matrix.md](./matrices/format_conversion_matrix.md) | prior output format 与 R3 转换压力矩阵。 | 历史审计 |
 | trace | [traces/branch_asset_trace.md](./traces/branch_asset_trace.md) | PR #93/#94/#96 分支局部资产消费决策。 | 历史审计 |
 
-## 3. 风险与使用限制
+## 4. 风险与使用限制
 
 1. 旧矩阵中的候选、数量和可获取性判断只代表 R1 审计阶段，不等于当前 seed / baseline eligibility。
 2. 活链接、GitHub artifact、Drive、4open、dynareport 等外部资源在正式实验前必须重新冻结 commit / hash / 日期。
 3. 分支局部资产只能作为 provenance 或交叉核验线索，不能写成当前 `main` 已有事实。
 4. `sources/` 的真实控制系统 NL 池不是 paired seed 总账；是否进入实验必须由 `corpora/seed_library` 和后续 eligibility 冻结。
+5. 历史格式转换矩阵和 converter pressure 只能作为 R3/R4.5 设计线索；当前转换状态必须回到 `pipeline/` 机器事实源和 `reports/` 人读报告复核。
 
-## 4. 更新日志
+## 5. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-06-29 11:46:00 | 同步 evidence 根三件套与子 README 的当前事实源回跳，补齐 conversion / representation / readiness / reports 入口。 |
+| 2026-06-29 03:08:00 | 补齐 evidence 四个子路径 README，并在总账中增加子路径阅读入口。 |
 | 2026-06-29 01:54:30 | 按 R5.5.1 路径重构将 evidence 重构为 `ledgers/`、`audits/`、`matrices/`、`traces/`，新增三件套并声明历史审计边界。 |

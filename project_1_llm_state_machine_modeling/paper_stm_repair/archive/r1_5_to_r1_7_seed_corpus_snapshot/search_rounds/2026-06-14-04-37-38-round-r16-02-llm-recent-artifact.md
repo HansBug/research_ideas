@@ -1,3 +1,15 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/search_rounds/2026-06-14-04-37-38-round-r16-02-llm-recent-artifact.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/search_rounds/2026-06-14-04-37-38-round-r16-02-llm-recent-artifact.md` |
+| 时间前缀 / 内容冻结依据 | `9a4463cbd6e5ba46b89e796938d9ab0756bd3eb8` — 2026-06-14 04:37:38 +0800 — docs(paper1-r1.6): 完成strict seed扩展文库 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # round-r16-02-llm-recent-artifact
 
 | 字段 | 内容 |

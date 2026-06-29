@@ -1,3 +1,15 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/screening_ledger.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-11-18-35-screening-ledger.md` |
+| 时间前缀 / 内容冻结依据 | `d3758f2bd5a780274ff1a249b40c7184a4230242` — 2026-06-14 11:18:35 +0800 — fix(paper1-r1.7): 补齐旧baseline seed方法入账 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # screening ledger
 
 筛查层级：`title` / `abstract` / `fulltext` / `artifact`。没有 fulltext / artifact 证据不得标 `SS-A`；`SA-3/SA-4/SA-5`、timed boundary、completion-only、private-data 或 outputs 未冻结的候选不得直接计入 PR-R2 主 seed 下限。

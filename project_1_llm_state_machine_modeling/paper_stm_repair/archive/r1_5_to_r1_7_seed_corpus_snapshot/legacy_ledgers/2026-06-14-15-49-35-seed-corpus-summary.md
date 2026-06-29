@@ -1,3 +1,15 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/seed_corpus_SUMMARY.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-15-49-35-seed-corpus-summary.md` |
+| 时间前缀 / 内容冻结依据 | `824576331055a69682ebfba03d63cd11ae4470ce` — 2026-06-14 15:49:35 +0800 — fix(paper1-r1.8-a): 归位PR流程信息维护策略 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # strict seed 文库总账
 
 ## 当前状态
@@ -14,11 +26,11 @@ R1.7 的核心结论需要分成两层：**方法集合层**已经补齐旧九�
 | `screening_ledger.md` 已入账候选 | 47 | 与 candidate matrix 一一对应。 |
 | 已完成单篇全文 / artifact 编码目录 | 24 | R1.6 15 个 + R1.7 新增 9 个：`nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`、`integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion`、`pushing-generative-envelope-mbse`。 |
 | R1.7 search round | 8 | `round-r17-01` 到 `round-r17-08`，覆盖 OpenAlex、Crossref、arXiv、Semantic Scholar blocker、DBLP exact、classic fulltext、manual queue recheck。 |
-| 旧九个 direct baseline 方法层覆盖 | 9/9 | 见 [baseline_seed_method_crosswalk.md](./baseline_seed_method_crosswalk.md)；其中 FlowFSM / SpecGPT 保留为 protocol-domain seed method，不计控制系统四例。 |
+| 旧九个 direct baseline 方法层覆盖 | 9/9 | 见 [baseline_seed_method_crosswalk.md](./2026-06-14-11-18-35-baseline-seed-method-crosswalk.md)；其中 FlowFSM / SpecGPT 保留为 protocol-domain seed method，不计控制系统四例。 |
 | 可按 §1.3 公式 + `计数资格` 计入的主 / 条件主候选 | 4 | 仍为 `sefm-llm-state-machine`、`llms-emp-stm-subset`、`designing-fsm-gpt4`、`unified-uml-multimodal-validation`；`fsm-bench-20` 虽为 `SS-A / SA-2` pipeline artifact，但 generated `STM_0` outputs 未公开冻结，在 `candidate_matrix.md` 标为 `no-pipeline-output-missing`，不直接计四例。 |
 | R1.7 新增 paper-only strict/conditional evidence | 6 | `nlp-req-formalization-testcase-generation`、`statistical-usage-testing-uml`、`unified-use-case-statecharts`、`statechart-codesign-usecases`、`object-models-uml-embedded`、`pushing-generative-envelope-mbse`，均为 `SA-3`，不计主 seed。 |
 | R1.7 新增 hard boundary / exclusion | 5+ | `integrating-graphical-nl-specifications`、`specification-based-verification-usecase-sm`、`towards-automatic-model-completion`、`ucgen-usecase-descriptions`、`web-tool-goal-statechart-derivation` 等。 |
-| manual queue 状态 | 2 downloaded/excluded；2 excluded-by-metadata；10 still-blocked；2 new-manual-pending | 详见 [manual_download_queue.md](./manual_download_queue.md)。 |
+| manual queue 状态 | 2 downloaded/excluded；2 excluded-by-metadata；10 still-blocked；2 new-manual-pending | 详见 [manual_download_queue.md](./2026-06-14-06-18-24-manual-download-queue.md)。 |
 
 ## PR-R2 handoff 分组
 

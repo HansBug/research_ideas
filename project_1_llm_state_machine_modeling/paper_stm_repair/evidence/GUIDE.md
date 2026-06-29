@@ -20,6 +20,7 @@
 | repair baseline 是否当前可用 | [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md) | [audits/baseline_asset_audit.md](./audits/baseline_asset_audit.md) |
 | 纯 NL source 是否可用 | [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md) | [ledgers/source_coverage_ledger.md](./ledgers/source_coverage_ledger.md) |
 | 旧分支事实能否引用 | 当前落盘文件 + PR 链接 | [traces/branch_asset_trace.md](./traces/branch_asset_trace.md) |
+| 历史格式转换矩阵 / converter pressure 是否仍有效 | [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md)、[../reports/SUMMARY.md](../reports/SUMMARY.md) | [matrices/format_conversion_matrix.md](./matrices/format_conversion_matrix.md) |
 
 ## 3. 子路径放置规则
 
@@ -34,3 +35,11 @@
 2. 若历史事实被新的 corpus 总账覆盖，应在本目录标注“已由某事实源覆盖”，不要删除旧审计痕迹。
 3. 外部链接只作为历史证据线索；若用于当前实验，必须在对应 corpus / protocol 中重新核验。
 4. 引用本目录材料写论文时，默认写作“historical audit / evidence index / screening rationale”，不要写成 current result。
+
+
+## 5. 子路径 README 维护纪律
+
+1. `ledgers/`、`audits/`、`matrices/`、`traces/` 必须各自保留 `README.md`。
+2. 新增、移动或删除子路径内文件时，必须同步更新对应子路径 README 的文件清单和推荐阅读场景。
+3. 子路径 README 必须显式写明当前事实源回跳，防止历史证据替代 `corpora/`、`reports/` 或 `pipeline/`。
+4. 子路径 README 应互相链接，帮助读者判断应读 ledger、audit、matrix 还是 trace。

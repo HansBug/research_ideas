@@ -65,3 +65,17 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 | “转换后能 parse，因此模型已被修复” | “转换后进入可机检表示，但转换收益与修正收益分开归因” |
 | “四例冒烟证明方法有效” | “四例冒烟证明字段链路和修正前输入准备可复验” |
 | “自动修正一定提升质量” | “在预注册评价门下检验是否产生相对更优候选，并报告失败、回滚和不收敛” |
+
+
+## archive/ 冷归档纪律
+
+1. `archive/` 只保存 cold / deprecated historical snapshots，不作为当前事实源。
+2. 引用 archive 时必须同时说明当前事实应回到 `corpora/`、`reports/` 或 `pipeline/`。
+3. archive 中非入口 README 的历史 Markdown 应使用 `yyyy-mm-dd-hh-mm-ss-短主题.md` 秒级前缀，并在开头记录原始路径、时间依据 commit、迁入 commit 和当前事实源替代入口。
+4. archive README 是稳定入口文件，可以不使用秒级前缀，但必须维护清单、deprecated 标记和来源 commit。
+
+## story/ 写作栅栏纪律
+
+1. `story/README.md` 只做入口和阅读顺序，不吞并 `paper_story.md`、`task_boundary.md`、`terminology_policy.md`、`claim_evidence_map.md`、`paper_outline.md` 的专题职责。
+2. story 文件只能把证据转为 paper claim gate，不得替代 `reports/`、`pipeline/`、`corpora/` 或 `experiment_design/` 的事实真源。
+3. 每次 scope、eligibility 或 repair-loop 结果冻结后，必须同步检查 story claim 是否需要降级或删除。

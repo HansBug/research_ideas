@@ -1,6 +1,18 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/manual_download_queue.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-06-18-24-manual-download-queue.md` |
+| 时间前缀 / 内容冻结依据 | `1ac506152b891e755971eb623717fa45f05da644` — 2026-06-14 06:18:24 +0800 — docs(paper1-r1.7): 完成广域strict seed文库扩展 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # manual download queue
 
-本文件不是正式 BibTeX 数据库，而是人工下载 PDF / artifact 的队列。每条给出候选原因、下载目标和 BibTeX 代码块。下载后必须补入对应 `papers/<slug>/` 目录，并更新 [candidate_matrix.md](./candidate_matrix.md)、[screening_ledger.md](./screening_ledger.md) 与 [SUMMARY.md](./SUMMARY.md)。R1.6 已能自动下载或本地已有的条目从 pending 队列移出；保留在本表中的都是仍需人工 / 机构访问或后续专项核验的对象。
+本文件不是正式 BibTeX 数据库，而是人工下载 PDF / artifact 的队列。每条给出候选原因、下载目标和 BibTeX 代码块。下载后必须补入对应 `papers/<slug>/` 目录，并更新 [candidate_matrix.md](./2026-06-14-11-18-35-candidate-matrix.md)、[screening_ledger.md](./2026-06-14-11-18-35-screening-ledger.md) 与 [SUMMARY.md](./2026-06-14-15-49-35-seed-corpus-summary.md)。R1.6 已能自动下载或本地已有的条目从 pending 队列移出；保留在本表中的都是仍需人工 / 机构访问或后续专项核验的对象。
 
 | ID | 标题 | 需要人工下载的内容 | 来源 URL | 原因 | 状态 |
 |---|---|---|---|---|---|
@@ -30,10 +42,10 @@
 
 | ID | 处理结论 | 移出原因 | 交叉引用 |
 |---|---|---|---|
-| completion-sysml-gwt | downloaded / excluded | 已有 PDF/全文并确认 `X_REPAIR_ONLY`，不再需要人工下载。 | [papers/completion-sysml-gwt/seed_desc.md](./papers/completion-sysml-gwt/seed_desc.md) |
-| generating-statechart-designs-from-scenarios | excluded by metadata | DOI / metadata / classic knowledge 已足以确认主要输入为 sequence/scenario diagrams，`X_SEQUENCE_CLASS`；若未来要写 related work 可另行下载，但不阻塞 strict seed。 | [exclusion_ledger.md](./exclusion_ledger.md) |
-| towards-automatic-model-completion | downloaded / excluded | R1.7 已下载 arXiv PDF 并全文确认为 partial SysML model completion，触发 `X_REPAIR_ONLY`。 | [papers/towards-automatic-model-completion/seed_desc.md](./papers/towards-automatic-model-completion/seed_desc.md) |
-| ucgen-usecase-descriptions | excluded by metadata | 输出为 use case textual descriptions，不输出 STM-family。 | [exclusion_ledger.md](./exclusion_ledger.md) |
+| completion-sysml-gwt | downloaded / excluded | 已有 PDF/全文并确认 `X_REPAIR_ONLY`，不再需要人工下载。 | [papers/completion-sysml-gwt/seed_desc.md](../../../corpora/seed_library/completion-sysml-gwt/seed_desc.md) |
+| generating-statechart-designs-from-scenarios | excluded by metadata | DOI / metadata / classic knowledge 已足以确认主要输入为 sequence/scenario diagrams，`X_SEQUENCE_CLASS`；若未来要写 related work 可另行下载，但不阻塞 strict seed。 | [exclusion_ledger.md](./2026-06-14-06-18-24-exclusion-ledger.md) |
+| towards-automatic-model-completion | downloaded / excluded | R1.7 已下载 arXiv PDF 并全文确认为 partial SysML model completion，触发 `X_REPAIR_ONLY`。 | [papers/towards-automatic-model-completion/seed_desc.md](../../../corpora/seed_library/towards-automatic-model-completion/seed_desc.md) |
+| ucgen-usecase-descriptions | excluded by metadata | 输出为 use case textual descriptions，不输出 STM-family。 | [exclusion_ledger.md](./2026-06-14-06-18-24-exclusion-ledger.md) |
 
 ## BibTeX / placeholder snippets
 

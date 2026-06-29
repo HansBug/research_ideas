@@ -1,3 +1,15 @@
+> **Cold archive / deprecated historical snapshot.** 本文件已经脱离当前 R5.5+ 主线，只用于追溯 R1.5--R1.7 旧 seed_corpus 的历史证据链；不得作为当前 seed、baseline、eligibility 或主实验事实源。当前事实请回到 `paper_stm_repair/corpora/`、`paper_stm_repair/reports/` 与 `paper_stm_repair/pipeline/` 的对应入口。
+
+## 归档来源与时间考据
+
+| 字段 | 值 |
+|---|---|
+| 原始来源路径 | `project_1_llm_state_machine_modeling/paper_stm_repair/seed_corpus/agent_provenance.md` |
+| 当前归档路径 | `archive/r1_5_to_r1_7_seed_corpus_snapshot/legacy_ledgers/2026-06-14-15-49-35-agent-provenance.md` |
+| 时间前缀 / 内容冻结依据 | `824576331055a69682ebfba03d63cd11ae4470ce` — 2026-06-14 15:49:35 +0800 — fix(paper1-r1.8-a): 归位PR流程信息维护策略 |
+| 迁入 archive commit | `928933dd3bf941aa2e5f39c43dca7c4c33f04500` — 2026-06-14 18:14:27 +0800 — docs(paper1-r1.8-b): 重构seed文库三件套 |
+| 当前事实源替代入口 | [../../../corpora/seed_library/SUMMARY.md](../../../corpora/seed_library/SUMMARY.md)、[../../../corpora/repair_baselines/SUMMARY.md](../../../corpora/repair_baselines/SUMMARY.md)、[../../../corpora/nl_datasets/SUMMARY.md](../../../corpora/nl_datasets/SUMMARY.md)、[../../../reports/SUMMARY.md](../../../reports/SUMMARY.md) |
+
 # seed corpus agent provenance
 
 本文件只记录 `seed_corpus/` 内部与文献筛查、全文阅读、证据等级判断直接相关的审计细账。跨 PR / issue 的执行计划、review 状态、ready gate、commit / push 汇报和 merge 进度以 GitHub PR / issue body 与 comment 为准，不在仓库内另建动态流程总账。

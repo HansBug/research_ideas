@@ -9,15 +9,17 @@
 | `<NL, STM_0>` seed / seed library | [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) | 只解释 R1 如何形成候选与筛选口径。 |
 | STM repair baseline / near-neighbor | [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md) | 只保留 generation-era baseline 与旧近邻审计。 |
 | 控制系统纯 NL 数据源 | [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md) | 只保留来源覆盖、可用性与历史统计线索。 |
+| 转换 / 表示 / readiness 机器事实源 | [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md) | 只解释旧格式压力和转换候选来源；不替代当前 pipeline 事实源。 |
+| 人类阅读报告和 story handoff | [../reports/SUMMARY.md](../reports/SUMMARY.md) | 只作历史证据背景；当前结论以 reports 总账和具体报告为准。 |
 
 ## 1. 子路径
 
 | 子路径 | 职责 | 入口 |
 |---|---|---|
-| [ledgers/](./ledgers/) | 上游事实、来源覆盖、artifact 可获取性和旧资产继承边界台账。 | [SUMMARY.md](./SUMMARY.md) |
-| [audits/](./audits/) | R1 baseline / strict seed 审计口径和执行方案。 | [audits/baseline_asset_audit.md](./audits/baseline_asset_audit.md) |
-| [matrices/](./matrices/) | 候选 baseline 与格式转换压力矩阵。 | [matrices/baseline_candidate_matrix.md](./matrices/baseline_candidate_matrix.md) |
-| [traces/](./traces/) | 分支局部资产与消费决策追踪。 | [traces/branch_asset_trace.md](./traces/branch_asset_trace.md) |
+| [ledgers/](./ledgers/) | 上游事实、来源覆盖、artifact 可获取性和旧资产继承边界台账。 | [ledgers/README.md](./ledgers/README.md) |
+| [audits/](./audits/) | R1 baseline / strict seed 审计口径和执行方案。 | [audits/README.md](./audits/README.md) |
+| [matrices/](./matrices/) | 候选 baseline 与格式转换压力矩阵。 | [matrices/README.md](./matrices/README.md) |
+| [traces/](./traces/) | 分支局部资产与消费决策追踪。 | [traces/README.md](./traces/README.md) |
 
 ## 2. 三件套
 
