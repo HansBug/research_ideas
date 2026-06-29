@@ -48,6 +48,8 @@
 - [x] `survey_of_surveys/SUMMARY.md` 已按长期文库总账重构：统一论文主表按年份降序排列，不再按 PR 批次拆分。
 - [x] `survey_of_surveys/SUMMARY.md` 与 `survey_of_surveys/GUIDE.md` 已明确主统计池、方法学参考池、schema seed / boundary pool 三类证据池标准。
 - [x] `survey_of_surveys/SUMMARY.md` 已包含 19 篇 × A1-M0--M6 逐篇覆盖矩阵，作为后续 A2a/A2b 接力的 SUMMARY 级总账视图。
+- [x] `survey_of_surveys/SUMMARY.md` 统一主表已包含 `CCF 复核状态` 独立列，避免 CCF A/B/C 字面值脱离“本地缓存；官方待人工复核”口径。
+- [x] `survey_of_surveys/SUMMARY.md` 已恢复结构化“schema 修订 / 回填日志”，并同步 GUIDE / schema 的回修入口。
 
 ## 6. 拒收检查
 
@@ -61,6 +63,8 @@
 8. 如果 `SUMMARY.md` 主论文表仍按“初始 dry-run”“#95 十篇”“本轮新增”等 PR 批次拆分，而不是一个长期统一主表，应拒收。
 9. 如果 `SUMMARY.md` 没有明确主统计池、方法学参考池、schema seed / boundary pool 的进入标准，或把 roadmap / proposal / guideline 与完成型 SLR/SMS/MLR 统计池混算，应拒收。
 10. 如果 `SUMMARY.md` 没有提供 19 篇 × A1-M0--M6 的逐篇覆盖矩阵，应拒收。
+11. 如果 `SUMMARY.md` 统一主表只有 `CCF 等级` 字面值而没有 `CCF 复核状态` 独立列，应拒收。
+12. 如果 `SUMMARY.md` 没有结构化“schema 修订 / 回填日志”，或该日志缺少时间、触发条目、受影响字段、修订内容、回填状态和冻结理由，应拒收。
 
 ## 7. dry-run 验收
 
@@ -74,7 +78,7 @@ A1 dry-run 必须满足：
 - 至少 1 个“不适用 / 证据不足”降级记录。
 - schema 缺口已回修或明确留给 A2a/A2b。
 
-当前验收记录见 [../../survey_of_surveys/SUMMARY.md](../../survey_of_surveys/SUMMARY.md) §1、§3、§4、§5、§6、§7、§8，其中 §3 是统一年份降序主表，§4 是证据池 / 统计池解释，§5 是 A1-M0--M6 定义，§6 是逐篇覆盖矩阵，§7 是 pattern 总结，§8 是风险。
+当前验收记录见 [../../survey_of_surveys/SUMMARY.md](../../survey_of_surveys/SUMMARY.md) §1、§3、§4、§5、§6、§7、§7.1、§8，其中 §3 是统一年份降序主表，§4 是证据池 / 统计池解释，§5 是 A1-M0--M6 定义，§6 是逐篇覆盖矩阵，§7 是 pattern 总结，§7.1 是 schema 修订 / 回填日志，§8 是风险。
 
 ## 8. 验证命令
 
@@ -126,6 +130,13 @@ mat = re.search(r'## 6\. A1-M0--M6 逐篇覆盖矩阵.*?(?=\n## 7\.)', summary, 
 rows = [line for line in mat.splitlines() if line.startswith('| [')]
 if len(rows) != 19:
     raise SystemExit(f'unexpected matrix rows: {len(rows)}')
+table_header = re.search(r'## 3\. 统一论文总表.*?(?=\n\|---)', summary, re.S).group(0)
+if 'CCF 复核状态' not in table_header:
+    raise SystemExit('SUMMARY main table missing CCF 复核状态')
+schema_log = re.search(r'### 7\.1 schema 修订 / 回填日志.*?(?=\n## 8\.)', summary, re.S).group(0)
+for col in ['触发条目', '受影响字段', '修订内容', '回填状态', '冻结理由']:
+    if col not in schema_log:
+        raise SystemExit(f'schema log missing {col}')
 manual = (root / 'search/manual-download-needed.bib').read_text(encoding='utf-8')
 active = [line for line in manual.splitlines() if line.lstrip().startswith('@')]
 counts = (

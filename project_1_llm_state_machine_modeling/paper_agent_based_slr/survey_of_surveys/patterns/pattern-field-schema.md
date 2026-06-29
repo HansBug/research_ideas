@@ -89,7 +89,7 @@ A1-M0--M6 是对六类 pattern 的上层组织，用于把 researcher-defined me
 1. 新字段加入后，必须检查所有 A1 dry-run 条目是否需要回填。
 2. active metadata-only 条目只能回填题摘级字段，例如标题、年份、来源、review type 候选；补齐 PDF/text 并重写 review 后才可升级为全文级字段。
 3. 已读全文文本条目至少回填六类 pattern 中 4 类。
-4. 若回填失败，必须在 [../SUMMARY.md](../SUMMARY.md) 的 schema 修订 / 回填日志中记录。
+4. 若回填失败，必须在 [../SUMMARY.md](../SUMMARY.md) 的“schema 修订 / 回填日志”中记录时间、触发条目、受影响字段、修订内容、回填状态和冻结理由；若只是留给 A2a/A2b，也必须写明留待后续的原因。
 
 ## 7. dry-run 检查清单
 

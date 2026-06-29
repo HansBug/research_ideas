@@ -151,7 +151,7 @@ issue #95 的 10 篇现代锚点必须遵守“一篇一 subagent”原则：每
 
 1. 在单篇 `review.md` 的“schema 缺口 / 不可迁移点”中记录触发原因。
 2. 回修 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md) 的字段定义、取值空间、证据要求或缺失值语义。
-3. 在 [SUMMARY.md](./SUMMARY.md) 的“schema 修订 / 回填日志”记录受影响条目、回填状态和冻结理由。
+3. 在 [SUMMARY.md](./SUMMARY.md) 的“schema 修订 / 回填日志”记录时间、触发条目、受影响字段、修订内容、回填状态和冻结理由。
 4. 若不回修，必须说明为什么该缺口留给 A2a/A2b。
 
 ## 8. SUMMARY.md 回填规则
@@ -167,10 +167,11 @@ issue #95 的 10 篇现代锚点必须遵守“一篇一 subagent”原则：每
 5. A1-M0--M6 元维度定义：解释每层的操作化问题、最低证据和当前主要启发。
 6. A1-M0--M6 逐篇覆盖矩阵：每篇论文至少给出 7 个元维度的短语级贡献，并链接到单篇 `review.md`。
 7. 当前 pattern 总结与 A2a 接力建议：说明 RQ、dimension、finding、evidence、validity、report structure 的当前观察和下一步处理方式。
-8. 当前风险与待复核：只保留影响后续工作的风险，例如图表视觉核对、CCF 官方 WAF、publisher final 差异、统计池误混风险。
-9. 更新时间降序日志，时间格式为 `yyyy-mm-dd hh:mm:ss`。
+8. schema 修订 / 回填日志：只记录会影响后续 A2a/A2b schema、统计池或字段回填的变更；必须包含时间、触发条目、受影响字段、修订内容、回填状态和冻结理由。
+9. 当前风险与待复核：只保留影响后续工作的风险，例如图表视觉核对、CCF 官方 WAF、publisher final 差异、统计池误混风险。
+10. 更新时间降序日志，时间格式为 `yyyy-mm-dd hh:mm:ss`。
 
-主表建议字段：`状态`、`年份`、`标题`、`出版形态`、`期刊/会议/预印本`、`CCF 大类`、`CCF 等级`、`综述类型`、`schema seed`、`主统计池`、`证据角色`、`关键价值`、`详情`。
+主表建议字段：`状态`、`年份`、`标题`、`出版形态`、`期刊/会议/预印本`、`CCF 大类`、`CCF 等级`、`CCF 复核状态`、`综述类型`、`schema seed`、`主统计池`、`证据角色`、`关键价值`、`详情`。其中 `CCF 复核状态` 是事实口径的一部分，主表复制到 issue / PR / paper 草稿时必须同时保留该列，不能只复制 `A/B/C` 字面等级。
 
 emoji 列只写 emoji；中文释义放在表格外。
 
@@ -178,11 +179,13 @@ emoji 列只写 emoji；中文释义放在表格外。
 
 `eligible_for_statistical_synthesis` 只表示“是否进入主统计池”，不表示论文是否有学术价值。后续维护必须区分以下三类池：
 
-| 池 | 可进入条件 | 当前用途 |
-|---|---|---|
-| 主统计池 | 论文自身已经执行完成 SLR / SMS / tertiary / MLR / systematic mapping；有系统检索或等价语料构造、纳排 / 编码 / 数据抽取、可统计字段或结果；本地至少全文文本级 | A2a/A2b 统计字段频次、覆盖度、维度饱和度和 finding 支撑 |
-| 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 |
-| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 |
+| 池 | 可进入条件 | 当前用途 | 计数规则 |
+|---|---|---|---|
+| 主统计池 | 论文自身已经执行完成 SLR / SMS / tertiary / MLR / systematic mapping；有系统检索或等价语料构造、纳排 / 编码 / 数据抽取、可统计字段或结果；本地至少全文文本级 | A2a/A2b 统计字段频次、覆盖度、维度饱和度和 finding 支撑 | 以 `eligible_for_statistical_synthesis=true` 为准 |
+| 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 | 只计主归属为方法学参考且 `eligible_for_statistical_synthesis=false` 的条目 |
+| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 | 只计主归属为边界 / 启发 seed 且 `eligible_for_statistical_synthesis=false` 的条目 |
+
+三类池在 SUMMARY 的当前数量必须按“主归属”计数，合计应等于入账论文数，避免 Petersen 2015 这类同时有方法学价值和统计样本资格的论文被重复计数。若某论文有次级用途，应在说明文字中标注，不改变主归属计数。
 
 当 `eligible_for_statistical_synthesis=false` 时，`metadata.json` 必须填写 `statistical_pool_exclusion_reason`；若条目仍可作 schema seed，应保留 `eligible_for_schema_seed=true` 并说明其证据角色。
 

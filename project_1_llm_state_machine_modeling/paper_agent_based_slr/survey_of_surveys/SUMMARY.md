@@ -13,7 +13,7 @@
 | active `manual-download-needed.bib` 条目 | 0 |
 | 可作 schema seed | 19 |
 | 可进入主统计池 | 13 |
-| 方法学参考 / 边界 seed / 非主统计池 | 6 |
+| 非主统计池 | 6（方法学参考 2 + 边界 / 启发 seed 4） |
 | 真实 LLM / `.env` | 未运行 / 未读取 |
 | 四个真实例子 | 不运行；A1 只做文库 dry-run |
 
@@ -39,14 +39,14 @@ emoji 口径：🟢 = 已完成全文文本级；🟡 = metadata-only / 需人�
 | 池 | 可进入条件 | 当前用途 | 当前数量 |
 |---|---|---|---:|
 | 主统计池 | 论文自身已经执行完成 SLR / SMS / tertiary / MLR / systematic mapping；有系统检索或等价语料构造、纳排 / 编码 / 数据抽取、可统计字段或结果；本地至少全文文本级 | A2a/A2b 统计字段频次、覆盖度、维度饱和度和 finding 支撑 | 13 |
-| 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 | 2 个主参考 + 1 个方法型统计样本 |
-| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 | 4 个边界 seed + 2 个方法 seed |
+| 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 | 2 |
+| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 | 4 |
 
-当前 `metadata.json` 中 13 篇 `eligible_for_statistical_synthesis=true`；6 篇为 `false`，并均写明 `statistical_pool_exclusion_reason`。其中 Kitchenham & Charters 2007 与 Petersen 2008 是重要方法学参考，但不是主统计池样本；Petersen 2015 虽然是 mapping guideline update，但其本身执行了 systematic mapping of systematic maps，因此保留在主统计池，同时在解释中标注“方法学统计样本”。
+上述三类池按“主归属”计数，合计 13 + 2 + 4 = 19，避免同一论文在 SUMMARY 统计中重复计数。当前 `metadata.json` 中 13 篇 `eligible_for_statistical_synthesis=true`；6 篇为 `false`，并均写明 `statistical_pool_exclusion_reason`。其中 Kitchenham & Charters 2007 与 Petersen 2008 是非主统计池的方法学参考；Petersen 2015 虽然也是方法学高价值样本，但它本身执行了 systematic mapping of systematic maps，因此主归属放在主统计池，并在解释中标注为“方法学统计样本”。
 
 ### 2.3 出版形态、Venue 与 CCF 口径
 
-本总账固定维护 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 和 `CCF 复核状态`。其中 `期刊/会议/预印本` 使用可点击短名链接；预印本统一写 `[arXiv](https://arxiv.org/)`。
+本总账固定维护 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 和 `CCF 复核状态`。其中 `期刊/会议/预印本` 使用可点击短名链接；预印本统一写 `[arXiv](https://arxiv.org/)`。主表中的 `CCF 复核状态` 是事实口径的一部分，不得只依赖段落级 disclaimer；复制主表行时必须同时复制该列，避免把本地缓存误写成官方实时核验。
 
 CCF 字段的目标口径是 **CCF 官方最新推荐目录**，不局限于本仓库 [../../../ccf_venues/](../../../ccf_venues/) 已建档范围。2026-06-29 本轮 HTTP/CLI 访问 CCF 官方 [软件工程 / 系统软件 / 程序设计语言目录](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/) 返回 Aliyun WAF 壳，当前表格暂采用本地 [../../../ccf_venues/01-venue-scope.md](../../../ccf_venues/01-venue-scope.md) 与 [../../../ccf_venues/SUMMARY.md](../../../ccf_venues/SUMMARY.md) 的已建档缓存作为工作口径；正式写作或投稿前必须人工打开 CCF 官方目录复核。
 
@@ -54,37 +54,37 @@ CCF 字段的目标口径是 **CCF 官方最新推荐目录**，不局限于本�
 
 ## 3. 统一论文总表（按年份降序）
 
-| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | 综述类型 | schema seed | 主统计池 | 证据角色 | 关键价值 | 详情 |
-|---|---:|---|---|---|---|---|---|---|---|---|---|---|
-| 🟢 | 2026 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | SLR + SMS | 是 | 是 | `hybrid_slr_sms_pattern` | 现代 CCF-A LLM4SE SLR+SMS，提供 RQ / SPACE / benefit-risk / mapping hybrid 组织模式。 | [review.md](./papers/llm-assistants-developer-productivity/review.md) |
-| 🟢 | 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | vision / roadmap | 是 | 否 | `roadmap_boundary_anchor` | AI-native SE 愿景、技术栈和挑战路线图；启发 boundary / challenge / action 字段。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
-| 🟢 | 2025 | Research artifacts in secondary studies: A systematic mapping in software engineering | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | systematic mapping | 是 | 是 | `systematic_mapping_pattern` | 把 secondary-study research artifacts 操作化为可统计字段，支撑证据资产链设计。 | [review.md](./papers/research-artifacts-secondary-studies/review.md) |
-| 🟢 | 2025 | On the road to interactive LLM-based systematic mapping studies | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | solution proposal | 是 | 否 | `solution_proposal_boundary_anchor` | LLM-supported mapping study 阶段、人机角色、agent / prompt 风险锚点；不是已执行系统综述。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
-| 🟢 | 2025 | Formal requirements engineering and large language models: A two-way roadmap | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | vision / roadmap | 是 | 否 | `roadmap_boundary_anchor` | Formal RE + LLM 双向路线图，启发 trustworthiness concern 与 action point 字段。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
-| 🟢 | 2024 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | systematic mapping | 是 | 是 | `systematic_mapping_dimension_pattern` | MDSE modelling assistants 系统映射，贴近 LLM4modeling 维度树和 taxonomy 设计。 | [review.md](./papers/mdse-modelling-assistants-mapping/review.md) |
-| 🟢 | 2024 | Model driven engineering for machine learning components: A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | SLR | 是 | 是 | `slr_dimension_pattern` | MDE4ML SLR，提供 motivation / solution / evaluation / limitation 字段模式。 | [review.md](./papers/mde-ml-components-slr/review.md) |
-| 🟢 | 2024 | Large Language Models for Software Engineering: A Systematic Literature Review | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | SLR | 是 | 是 | `slr_field_schema_pattern` | 大规模 LLM4SE SLR，提供任务树、模型/工具、数据/代码、限制和趋势字段。 | [review.md](./papers/llm4se-systematic-review/review.md) |
-| 🟢 | 2024 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | 期刊 | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | 软件工程 / 系统软件 / 程序设计语言 | B | MLR | 是 | 是 | `multivocal_review_dimension_pattern` | 多声部综述，提供 white/grey 证据、主题分析、CPTM 模型和开放工件模式。 | [review.md](./papers/devsecops-primary-dimensions/review.md) |
-| 🟢 | 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 期刊 | [RE](https://link.springer.com/journal/766) | 软件工程 / 系统软件 / 程序设计语言 | B | theory / evaluation / roadmap | 是 | 否 | `theory_roadmap_schema_seed` | 以理论对象、57 篇状态评价和 roadmap 组织 requirements quality，启发 meta-model-first 写法。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
-| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | 待核验 | 待核验 | tertiary study | 是 | 是 | `tertiary_study_pattern` | 现代大规模 tertiary，提供挑战 / 行动建议 / ML4SE 分类和质量观察模式。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
-| 🟢 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | SLR | 是 | 是 | `slr_field_schema_pattern` | 完整现代 SLR 样本，提供 F1--F18 抽取表、分类 schema、评价质量和 replication package 字段。 | [review.md](./papers/app-reviews-slr-se/review.md) |
-| 🟢 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | mapping guideline update | 是 | 是 | `mapping_guideline_update_pattern` | 以 systematic mapping of maps 更新 SMS guideline，支撑流程、质量、效度和报告结构字段。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
-| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | SMS | 是 | 是 | `systematic_mapping_pattern` | Agile RE SMS，提供 benefit / problem / solution / taxonomy 这类 mapping 字段。 | [review.md](./papers/re-agile-sms-2015/review.md) |
-| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | tertiary study | 是 | 是 | `domain_tertiary_study_pattern` | RE 子领域 tertiary，验证 target SE subfield、topic taxonomy、教育/实践影响字段。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
-| 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | updated tertiary study | 是 | 是 | `updated_tertiary_study_pattern` | 更新型 tertiary，提供 predecessor relation、增长/质量/实践影响 finding 模式。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
-| 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | tertiary-like SLR | 是 | 是 | `tertiary_study_pattern` | 早期 SE SLR 总览，提供 EBSE 领域的 RQ、质量、主题与报告结构基线。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
-| 🟢 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | SMS 方法论文 | 是 | 否 | `mapping_guideline_pattern` | SMS 方法母文，定义 mapping vs review、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
-| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | guideline | 是 | 否 | `guideline_methodology_seed` | SE SLR 方法指南，提供 protocol、检索、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | CCF 复核状态 | 综述类型 | schema seed | 主统计池 | 证据角色 | 关键价值 | 详情 |
+|---|---:|---|---|---|---|---|---|---|---|---|---|---|---|
+| 🟢 | 2026 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 本地缓存；官方待人工复核（WAF） | SLR + SMS | 是 | 是 | `hybrid_slr_sms_pattern` | 现代 CCF-A LLM4SE SLR+SMS，提供 RQ / SPACE / benefit-risk / mapping hybrid 组织模式。 | [review.md](./papers/llm-assistants-developer-productivity/review.md) |
+| 🟢 | 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 本地缓存；官方待人工复核（WAF） | vision / roadmap | 是 | 否 | `roadmap_boundary_anchor` | AI-native SE 愿景、技术栈和挑战路线图；启发 boundary / challenge / action 字段。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
+| 🟢 | 2025 | Research artifacts in secondary studies: A systematic mapping in software engineering | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | systematic mapping | 是 | 是 | `systematic_mapping_pattern` | 把 secondary-study research artifacts 操作化为可统计字段，支撑证据资产链设计。 | [review.md](./papers/research-artifacts-secondary-studies/review.md) |
+| 🟢 | 2025 | On the road to interactive LLM-based systematic mapping studies | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | solution proposal | 是 | 否 | `solution_proposal_boundary_anchor` | LLM-supported mapping study 阶段、人机角色、agent / prompt 风险锚点；不是已执行系统综述。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
+| 🟢 | 2025 | Formal requirements engineering and large language models: A two-way roadmap | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | vision / roadmap | 是 | 否 | `roadmap_boundary_anchor` | Formal RE + LLM 双向路线图，启发 trustworthiness concern 与 action point 字段。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
+| 🟢 | 2024 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | systematic mapping | 是 | 是 | `systematic_mapping_dimension_pattern` | MDSE modelling assistants 系统映射，贴近 LLM4modeling 维度树和 taxonomy 设计。 | [review.md](./papers/mdse-modelling-assistants-mapping/review.md) |
+| 🟢 | 2024 | Model driven engineering for machine learning components: A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | SLR | 是 | 是 | `slr_dimension_pattern` | MDE4ML SLR，提供 motivation / solution / evaluation / limitation 字段模式。 | [review.md](./papers/mde-ml-components-slr/review.md) |
+| 🟢 | 2024 | Large Language Models for Software Engineering: A Systematic Literature Review | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 本地缓存；官方待人工复核（WAF） | SLR | 是 | 是 | `slr_field_schema_pattern` | 大规模 LLM4SE SLR，提供任务树、模型/工具、数据/代码、限制和趋势字段。 | [review.md](./papers/llm4se-systematic-review/review.md) |
+| 🟢 | 2024 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | 期刊 | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | MLR | 是 | 是 | `multivocal_review_dimension_pattern` | 多声部综述，提供 white/grey 证据、主题分析、CPTM 模型和开放工件模式。 | [review.md](./papers/devsecops-primary-dimensions/review.md) |
+| 🟢 | 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 期刊 | [RE](https://link.springer.com/journal/766) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | theory / evaluation / roadmap | 是 | 否 | `theory_roadmap_schema_seed` | 以理论对象、57 篇状态评价和 roadmap 组织 requirements quality，启发 meta-model-first 写法。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
+| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | 待核验 | 待核验 | 待核验；官方待人工复核（WAF） | tertiary study | 是 | 是 | `tertiary_study_pattern` | 现代大规模 tertiary，提供挑战 / 行动建议 / ML4SE 分类和质量观察模式。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
+| 🟢 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | SLR | 是 | 是 | `slr_field_schema_pattern` | 完整现代 SLR 样本，提供 F1--F18 抽取表、分类 schema、评价质量和 replication package 字段。 | [review.md](./papers/app-reviews-slr-se/review.md) |
+| 🟢 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | mapping guideline update | 是 | 是 | `mapping_guideline_update_pattern` | 以 systematic mapping of maps 更新 SMS guideline，支撑流程、质量、效度和报告结构字段。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
+| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | 本轮未定位 CCF 目录条目 | SMS | 是 | 是 | `systematic_mapping_pattern` | Agile RE SMS，提供 benefit / problem / solution / taxonomy 这类 mapping 字段。 | [review.md](./papers/re-agile-sms-2015/review.md) |
+| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | 非 CCF workshop | tertiary study | 是 | 是 | `domain_tertiary_study_pattern` | RE 子领域 tertiary，验证 target SE subfield、topic taxonomy、教育/实践影响字段。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
+| 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | updated tertiary study | 是 | 是 | `updated_tertiary_study_pattern` | 更新型 tertiary，提供 predecessor relation、增长/质量/实践影响 finding 模式。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
+| 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 本地缓存；官方待人工复核（WAF） | tertiary-like SLR | 是 | 是 | `tertiary_study_pattern` | 早期 SE SLR 总览，提供 EBSE 领域的 RQ、质量、主题与报告结构基线。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
+| 🟢 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | 本地缓存；官方待人工复核（WAF） | SMS 方法论文 | 是 | 否 | `mapping_guideline_pattern` | SMS 方法母文，定义 mapping vs review、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
+| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | 非 CCF 技术报告 | guideline | 是 | 否 | `guideline_methodology_seed` | SE SLR 方法指南，提供 protocol、检索、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
 
 **本节结论**：统一总表显示，当前 19 篇覆盖 2007--2026 年的软件工程二级研究方法、领域 SLR/SMS、现代 LLM4SE / MDE / DevSecOps / RE 综述和 roadmap 边界样本。后续扩库应继续按年份降序维护总表，不再按 PR 批次拆表。
 
 ## 4. 证据池分布与统计池解释
 
-| 池 / 角色 | 当前条目 | 说明 |
+| 池 / 角色 | 当前主归属条目 / 数量 | 说明 |
 |---|---|---|
 | 主统计池 | 13 | 可用于 A2a/A2b 统计“综述论文如何组织维度、字段、证据和 finding”。包含 SLR、SMS、tertiary、MLR、systematic mapping，以及 Petersen 2015 这种已执行 systematic mapping of maps 的方法学统计样本。 |
-| 方法学参考池 | Kitchenham & Charters 2007、Petersen 2008；Petersen 2015 同时可作方法学统计样本 | 这些论文定义 SLR/SMS 的流程、keywording、classification、quality / validity 和 reporting 规则；不应与普通领域结果统计混算。 |
-| schema seed / boundary pool | AI-native SE roadmap、Formal RE + LLM roadmap、interactive LLM systematic mapping proposal、requirements quality theory roadmap | 这些论文适合启发字段树、人机协同、trustworthiness concern、finding heuristic 和方法边界；不得进入主统计池。 |
+| 方法学参考池 | 2：Kitchenham & Charters 2007、Petersen 2008 | 这些论文定义 SLR/SMS 的流程、keywording、classification、quality / validity 和 reporting 规则；不应与普通领域结果统计混算。Petersen 2015 也有方法学价值，但主归属为主统计池中的“方法学统计样本”，不在本池重复计数。 |
+| schema seed / boundary pool | 4：AI-native SE roadmap、Formal RE + LLM roadmap、interactive LLM systematic mapping proposal、requirements quality theory roadmap | 这些论文适合启发字段树、人机协同、trustworthiness concern、finding heuristic 和方法边界；不得进入主统计池。 |
 | 待人工下载 / metadata-only | 0 | 历史 3 条下载失败已由用户本地 Zotero PDF 补齐；后续新增失败条目必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。 |
 | CCF 待官方复核 | TOSEM / IST / JSS / RE / ESE / EASE 本地缓存；CSUR 待核验 | 当前受 CCF 官方 WAF 限制，正式写作前需人工复核。 |
 
@@ -144,6 +144,21 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | report structure pattern | guideline、tertiary/SMS、SLR+SMS、MLR、roadmap 的结构不同；不能用一个模板压平。 | 全文样本 | 允许不同 `review_type` 对应不同报告结构和统计池资格。 |
 
 A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视觉核对、页码 / 表号证据锚定，并将 A1-M0--M6 矩阵转为更正式的 pattern library；随后扩展到 30--50 篇核心样本，检验字段取值空间和统计池规则是否稳定。
+
+### 7.1 schema 修订 / 回填日志
+
+本节是 A1 字段合同演化的结构化审计入口。它只记录会影响后续 A2a/A2b schema、统计池或字段回填的变更；普通下载、排版或 PR 施工细节仍进入更新日志或 `search/` 审计文件。
+
+| 时间 | 触发条目 / 样本 | 受影响字段 | 修订内容 | 回填状态 | 冻结理由 / 后续处理 |
+|---|---|---|---|---|---|
+| 2026-06-29 17:48:49 | 用户复核 SUMMARY 批次化问题；19 篇全文样本 | SUMMARY 主表、证据池、A1-M0--M6 总账矩阵 | 取消按 PR 批次拆分主表，改为统一年份降序表；明确三类证据池主归属；新增 19 篇 × A1-M0--M6 覆盖矩阵 | 已回填 SUMMARY、GUIDE、progress 与 task packet | 长期文库必须按对象和当前事实维护，不能按施工批次维护；A2a/A2b 继续沿用统一总账结构。 |
+| 2026-06-29 17:58:30 | 三路复审 C/I：CCF 复核状态、三池计数、schema 回修入口 | `ccf_verification_status`、三类证据池计数、schema change ledger | 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数；恢复本结构化 schema 修订 / 回填日志 | 已回填 SUMMARY、GUIDE、pattern schema、task packet 和 progress | 防止复制主表时丢失 CCF disclaimer；防止方法学样本与边界 seed 重复计数；保留字段回修可审计入口。 |
+| 2026-06-29 16:59:12 | 用户补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 PDF | 阅读状态、`eligible_for_statistical_synthesis`、manual-download 状态 | 历史 metadata-only / manual-download 条目升级为全文文本级；active manual-download 清零；Petersen 2008 保持方法学参考池，Petersen 2015 作为方法学统计样本进入主统计池 | 已回填 3 篇 `paper.pdf`、`paper_content.txt`、`review.md`、`metadata.json`、SUMMARY 与 search log | 补齐全文后才能把题摘级候选升级为全文级 pattern；统计池仍按主归属和系统性证据状态控制。 |
+| 2026-06-29 15:41:07 | issue #95 十篇现代锚点 | `review_type`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、A1-M0--M6 | 扩展 SLR+SMS、systematic mapping、MLR、solution proposal、vision/roadmap、theory/evaluation/roadmap；新增 schema seed 与统计池分离字段；新增 A1-M0--M6 元维度 | 已回填 19 篇 `metadata.json`、单篇 `review.md`、SUMMARY、candidate-pool、GUIDE 和 schema | 现代 roadmap / proposal 有高启发价值但不得污染主统计池；A1-M0--M6 是 A2a/A2b 的元维度接力骨架。 |
+| 2026-06-29 13:20:00 | 用户要求补充出版 / venue / CCF 字段 | `publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank`、`ccf_verification_status` | 将来源字段拆成出版形态、可点击 venue、CCF 大类、CCF 等级和复核状态；官方 WAF 时显式标本地缓存 / 待人工复核 | 已回填 SUMMARY、candidate-pool、单篇 review 和 schema；主表现已补独立 `CCF 复核状态` 列 | 投稿决策需要事实来源可追溯；不能把本地缓存写成官方实时核验。 |
+| 2026-06-29 02:18:07 | 初始 6 篇全文 + 3 篇失败路径 dry-run | `review_type`、`predecessor_relation`、`target_se_subfield`、`challenge_action_pattern`、`taxonomy_axis`、`problem_solution_pattern` | 建立六类 pattern 字段；识别 guideline、updated tertiary、SE 子领域和 SMS taxonomy / problem-solution 等候选字段 | 已回填初始 review、pattern schema 与 SUMMARY；后续 3 篇失败路径已在 16:59 补齐 | 证明 schema 不是先验冻结，而是由真实 dry-run 暴露缺口后回修；A2a 继续扩展取值空间。 |
+
+**本节结论**：schema 回修有明确入口、触发条目、受影响字段、回填状态和冻结理由。后续 A2a/A2b 若新增字段或改变统计池规则，必须先在单篇 `review.md` 记录触发原因，再回修 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md)，最后在本节追加结构化记录。
 
 ## 8. 失败、风险与待复核
 

@@ -28,7 +28,7 @@
 |---|---|
 | [../survey_of_surveys/README.md](../survey_of_surveys/README.md) | 文库入口、边界、文件说明和禁止误读。 |
 | [../survey_of_surveys/GUIDE.md](../survey_of_surveys/GUIDE.md) | 检索、筛选、证据等级、单篇目录、schema 回修、SUMMARY 回填和 dry-run 规则。 |
-| [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) | 长期文库总账：统一年份降序主表、三类证据池、A1-M0--M6 定义、19 篇逐篇覆盖矩阵、pattern 总结、风险和 A2a/A2b 接力入口。 |
+| [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) | 长期文库总账：统一年份降序主表、CCF 复核状态列、三类证据池、A1-M0--M6 定义、19 篇逐篇覆盖矩阵、pattern 总结、schema 修订 / 回填日志、风险和 A2a/A2b 接力入口。 |
 | [../survey_of_surveys/search/](../survey_of_surveys/search/) | 检索日志、候选池、issue #95 十篇来源审计和 BibTeX 格式人工下载清单。 |
 | [../survey_of_surveys/patterns/pattern-field-schema.md](../survey_of_surveys/patterns/pattern-field-schema.md) | 六类 pattern、证据等级、字段总表、缺失值语义和回修规则。 |
 | [../survey_of_surveys/papers/](../survey_of_surveys/papers/) | 19 个单篇目录；19 个含 `metadata.json`、`paper.pdf`、`paper_content.txt` 和 `review.md`；当前无 active metadata-only / 需人工下载条目。 |
@@ -48,6 +48,7 @@
 10. 按用户新增要求，从 issue #95 纳入 10 篇现代维度锚点，已建立 `metadata.json` / `bibtex.bib` / `paper.pdf` / `paper_content.txt` / `review.md`，并按一篇一 subagent 原则完成全文 review 与 SUMMARY 回填。
 11. 在 GUIDE、schema、patterns README、search log、候选池和 [../survey_of_surveys/search/issue95-selection-audit.md](../survey_of_surveys/search/issue95-selection-audit.md) 中补充 A1-M0--M6 元维度规则、#95 锚点状态、年份口径和统计池资格。
 12. 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 [../survey_of_surveys/SUMMARY.md](../survey_of_surveys/SUMMARY.md) 与 [../survey_of_surveys/GUIDE.md](../survey_of_surveys/GUIDE.md)：取消“初始 dry-run / #95 十篇”等批次化主表，改为统一年份降序论文总表；明确主统计池、方法学参考池、schema seed / boundary pool 三类证据池；新增 19 篇 × A1-M0--M6 覆盖矩阵；要求后续 SUMMARY 按长期文库对象维护而非按 PR 施工批次维护。
+13. 修复本轮三路 reviewer 复审 C/I：主表新增 `CCF 复核状态` 列以避免 A/B/C 字面值脱离 disclaimer；三类证据池改为主归属计数（13 + 2 + 4 = 19），并说明 Petersen 2015 的次级方法学价值不重复计数；恢复 SUMMARY 的结构化“schema 修订 / 回填日志”，同步 GUIDE、pattern schema 与 task packet。
 
 ## 5. dry-run 验收摘要
 
@@ -60,12 +61,13 @@
 | 至少 1 篇非 LLM4SE 子领域 | ML4SE、RE、Agile RE、EBSE 方法学、MDE4ML、MDSE、DevSecOps、secondary-study artifacts，满足 |
 | 至少 1 个降级 / 失败路径 | 3 个历史 metadata-only / manual-download-needed 已闭环；另有 roadmap / proposal 统计池排除，满足 |
 | schema 回修 | 已记录 review type、前序关系、SE 子领域、挑战/行动、来源字段、统计池资格、证据角色、年份口径等多类回修，满足 |
-| SUMMARY 长期总账 | 已取消批次化主表，19 篇统一按年份降序排列；三类证据池与 19 × A1-M0--M6 覆盖矩阵已写入 SUMMARY / GUIDE，满足 |
+| SUMMARY 长期总账 | 已取消批次化主表，19 篇统一按年份降序排列；主表包含 `CCF 复核状态`；三类证据池按主归属计数；19 × A1-M0--M6 覆盖矩阵与 schema 修订 / 回填日志已写入 SUMMARY / GUIDE，满足 |
 
 ## 6. 验证记录
 
 | 时间 | 命令 / 检查 | 结果 |
 |---|---|---|
+| 2026-06-29 18:05:48 | 三路 reviewer C/I 修复复验 | 已修复 codex reviewer 1I 与 claude reviewer 2I：SUMMARY 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数并解释 Petersen 2015 次级方法学价值；恢复结构化 schema 修订 / 回填日志并同步 GUIDE / pattern schema / task packet；本地结构验证、`git diff --check` 与 PDF 类型检查已通过，待三路 reviewer 复审确认。 |
 | 2026-06-29 17:48:49 | SUMMARY / GUIDE 长期文库总账化返工复验 | 通过结构自检：旧分批标题已移除；统一论文总表 19 行且年份降序；A1-M0--M6 覆盖矩阵 19 行；19 个 `review.md` 均含 A1-M0--M6；19 review / 19 metadata / 19 PDF / 19 text / active manual-download=0；本轮等待三路 reviewer 复审。 |
 | 2026-06-29 16:59:12 | 用户本地 Zotero PDF 补齐复验 | 通过；app reviews SLR 2022、Petersen 2008、Petersen 2015 已复制 `paper.pdf`、生成 `paper_content.txt`、重写 `review.md` / `metadata.json`；文件系统统计更新为 19 review / 19 metadata / 19 PDF / 19 text；active manual-download=0。 |
 | 2026-06-29 16:13:28 | 三路 reviewer C/I 修复复验 | 通过；当时 19 篇均有 `metadata.json` 必填字段，16 个 PDF/text、3 个 manual-download 条目一致；SUMMARY §9/§12 降序；`git diff --check` 两点工作区口径通过；非 CCF venue 的复核状态已从 `--` 改为明确说明。后续 16:59 已升级为 19/19/19/19 与 active manual-download=0。 |
@@ -92,7 +94,7 @@
 | 内部 sidecar 实现预审 | codex sidecar | 0C / 3I / 2M | 已修 dry-run 数量口径、review 不可迁移字段、schema 字段名漂移和 `plan/README.md` 状态说明；M2 记录为人工解释型 grep 风险，不阻塞。 |
 | 内部 sidecar 预审 | codex sidecar（Boole the 2nd） | 0C / 3I / 1M | 已修 progress 19/16/3 口径、task packet 勾选、interactive 年份、`git diff --check` EOF 问题。 |
 | 实现阶段正式审查 | codex / claude / deepseek reviewer | 已发现并修复 I 级问题 | 修复 `git diff --check`、19 篇 metadata、TOSEM 年份口径、SUMMARY 日志降序、CSUR/非 CCF 复核状态；等待本次 push 后复审。 |
-| SUMMARY / GUIDE 总账化返工复审 | codex / claude / deepseek reviewer | 待执行 | 复审重点改为：SUMMARY 是否已脱离 PR 批次施工记录、三类证据池是否可执行、19 × A1-M0--M6 矩阵是否完整、GUIDE 是否能约束后续 A2a/A2b。 |
+| SUMMARY / GUIDE 总账化返工复审 | codex / claude / deepseek reviewer | 0C / 3I / 5M | deepseek 0C/0I/1M；codex 0C/1I；claude 0C/2I。I 级已修：CCF 复核状态列、三池主归属计数、schema 修订 / 回填日志。M 级仅作后续 hardening，不阻塞。 |
 
 ## 8. 剩余风险
 
