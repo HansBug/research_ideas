@@ -10,11 +10,16 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve()
-while ROOT.name != 'research_ideas-2' and ROOT.parent != ROOT:
-    ROOT = ROOT.parent
-if ROOT.name != 'research_ideas-2':
-    raise SystemExit('cannot locate repository root')
+def find_repo_root(start: Path) -> Path:
+    """Locate the repository root without assuming a local clone directory name."""
+    cur = start.resolve()
+    for candidate in [cur, *cur.parents]:
+        if (candidate / '.git').exists() and (candidate / 'project_1_llm_state_machine_modeling').exists():
+            return candidate
+    raise SystemExit(f'cannot locate repository root from {start}')
+
+
+ROOT = find_repo_root(Path(__file__).resolve())
 BASE = ROOT / 'project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys'
 BATCH = BASE / 'audits/a1dt-19x3'
 PAPERS = BASE / 'papers'
@@ -110,7 +115,7 @@ def check_review(slug: str, errors: list[str]) -> None:
 
 def main() -> int:
     errors: list[str] = []
-    for rel in ['README.md', 'GUIDE.md', 'SUMMARY.md', 'patterns/pattern-field-schema.md', 'audits/README.md', 'audits/a1dt-19x3/README.md', 'audits/a1dt-19x3/SUMMARY.md']:
+    for rel in ['README.md', 'GUIDE.md', 'SUMMARY.md', 'patterns/pattern-field-schema.md', 'audits/README.md', 'audits/a1dt-19x3/README.md', 'audits/a1dt-19x3/SUMMARY.md', 'audits/a1dt-19x3/run_audit.py']:
         if not (BASE / rel).exists():
             fail(errors, f'missing {rel}')
     slugs = check_tasks(errors)
@@ -121,6 +126,10 @@ def main() -> int:
         fail(errors, f'TASKS slugs differ from paper dirs: tasks={slugs}, dirs={actual_slugs}')
     for slug in actual_slugs:
         check_review(slug, errors)
+
+    logs = list((BATCH / 'logs').glob('*.log'))
+    if len(logs) != 57:
+        fail(errors, f'audit log count should be 57, got {len(logs)}')
     # SUMMARY 必须回链单篇维度树与 A1-DT 归纳。
     sm = (BASE / 'SUMMARY.md').read_text(encoding='utf-8', errors='ignore') if (BASE / 'SUMMARY.md').exists() else ''
     for marker in ['维度树模式总览', 'SUMMARY 结论-证据映射', '[sum-A1DT-tree-types]', '[sum-A1DT-statistical-pool]', '[sum-A1DT-boundary-anchor]']:

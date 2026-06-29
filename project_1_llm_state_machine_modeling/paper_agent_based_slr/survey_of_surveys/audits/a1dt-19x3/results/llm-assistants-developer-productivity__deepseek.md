@@ -319,5 +319,5 @@ review.md §"A1-DT 叶子层口径校准" 也声明："下方'叶子维度表'�
 
 *审计人：deepseek*
 *审计日期：2026-06-29*
-*审计范围：单篇 llm-assistants-developer-productivity 全文文本级* 
+*审计范围：单篇 llm-assistants-developer-productivity 全文文本级*
 *审计原则：不修改仓库文件，不 push，不 gh comment*

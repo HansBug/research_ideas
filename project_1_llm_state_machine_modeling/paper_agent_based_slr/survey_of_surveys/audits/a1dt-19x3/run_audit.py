@@ -3,25 +3,62 @@ from __future__ import annotations
 import argparse, concurrent.futures, os, subprocess, textwrap, time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve()
-while ROOT.name != 'research_ideas-2' and ROOT.parent != ROOT:
-    ROOT = ROOT.parent
-if ROOT.name != 'research_ideas-2':
-    raise RuntimeError(f'Cannot locate repository root from {__file__}')
+def find_repo_root(start: Path) -> Path:
+    """Locate the repository root without assuming a local clone directory name."""
+    cur = start.resolve()
+    for candidate in [cur, *cur.parents]:
+        if (candidate / '.git').exists() and (candidate / 'project_1_llm_state_machine_modeling').exists():
+            return candidate
+    raise RuntimeError(f'Cannot locate repository root from {start}')
+
+
+def codex_home() -> Path:
+    return Path(os.environ.get('CODEX_HOME', Path.home() / '.codex')).expanduser()
+
+
+def first_existing(paths: list[Path]) -> str:
+    for p in paths:
+        if p.exists():
+            return str(p)
+    return f'MISSING: {paths[0]}'
+
+
+def resolve_subagent_runner() -> str:
+    explicit = os.environ.get('SUB_AGENTS_RUNNER')
+    if explicit:
+        return explicit
+    runner = codex_home() / 'skills/sub-agents/scripts/run_subagent.py'
+    if runner.exists():
+        return str(runner)
+    raise RuntimeError('Cannot locate sub-agents runner; set SUB_AGENTS_RUNNER or install the sub-agents skill')
+
+
+def resolve_autoresearch_skill() -> str:
+    explicit = os.environ.get('OMX_AUTORESEARCH_SKILL')
+    if explicit:
+        return explicit
+    candidates = sorted((codex_home() / 'plugins/cache').glob('oh-my-codex-local/oh-my-codex/*/skills/autoresearch/SKILL.md'))
+    if candidates:
+        return str(candidates[-1])
+    return 'MISSING: oh-my-codex autoresearch skill not found under CODEX_HOME/plugins/cache'
+
+
+ROOT = find_repo_root(Path(__file__).resolve())
 AUDIT_DIR = Path(__file__).resolve().parent
 PAPERS_DIR = ROOT / 'project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/papers'
 RESULTS_DIR = AUDIT_DIR / 'results'
 LOGS_DIR = AUDIT_DIR / 'logs'
 PROMPTS_DIR = AUDIT_DIR / 'prompts'
+SUBAGENT_RUNNER = resolve_subagent_runner()
 
 SKILLS = [
-    '/home/zhangshaoang/.codex/skills/ai-research-writing-skill/SKILL.md',
-    '/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/paper-story.md',
-    '/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-guidelines.md',
-    '/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-self-review.md',
-    '/home/zhangshaoang/.codex/skills/research-planning/SKILL.md',
-    '/home/zhangshaoang/.codex/skills/research-planning/references/planning-prompts.md',
-    '/home/zhangshaoang/.codex/plugins/cache/oh-my-codex-local/oh-my-codex/0.18.7/skills/autoresearch/SKILL.md',
+    first_existing([codex_home() / 'skills/ai-research-writing-skill/SKILL.md']),
+    first_existing([codex_home() / 'skills/ai-research-writing-skill/references/paper-story.md']),
+    first_existing([codex_home() / 'skills/ai-research-writing-skill/references/reviewer-guidelines.md']),
+    first_existing([codex_home() / 'skills/ai-research-writing-skill/references/reviewer-self-review.md']),
+    first_existing([codex_home() / 'skills/research-planning/SKILL.md']),
+    first_existing([codex_home() / 'skills/research-planning/references/planning-prompts.md']),
+    resolve_autoresearch_skill(),
 ]
 
 COMMON_INPUTS = [
@@ -34,8 +71,8 @@ COMMON_INPUTS = [
 
 AGENT_CMDS = {
     # Prefer stable sub-agents runner for codex/claude. DeepSeek has a custom CLI, so it stays direct.
-    'codex': lambda prompt, cwd: ['python', '/home/zhangshaoang/.codex/skills/sub-agents/scripts/run_subagent.py', '--agent', 'codex-reviewer', '--prompt', prompt, '--cwd', str(cwd), '--timeout', '1800000'],
-    'claude': lambda prompt, cwd: ['python', '/home/zhangshaoang/.codex/skills/sub-agents/scripts/run_subagent.py', '--agent', 'claude-reviewer', '--prompt', prompt, '--cwd', str(cwd), '--timeout', '2400000'],
+    'codex': lambda prompt, cwd: ['python', SUBAGENT_RUNNER, '--agent', 'codex-reviewer', '--prompt', prompt, '--cwd', str(cwd), '--timeout', '1800000'],
+    'claude': lambda prompt, cwd: ['python', SUBAGENT_RUNNER, '--agent', 'claude-reviewer', '--prompt', prompt, '--cwd', str(cwd), '--timeout', '2400000'],
     'deepseek': lambda prompt, cwd: ['codex-deepseek', 'exec', '--dangerously-bypass-approvals-and-sandbox', '-C', str(cwd), prompt],
 }
 
@@ -50,7 +87,7 @@ def build_prompt(slug: str, agent: str) -> str:
 
     你的任务是对该论文进行全文级学术审计，判断当前 `review.md` 中“维度树复原”是否完整、准确、可追溯，尤其检查树是否过小、是否把通用 6 个 leaf 接口误当成原文 schema、是否遗漏原文 RQ / extraction form / taxonomy / coding scheme / roadmap figure / evidence table / finding path / quality / validity / artifact 字段。
 
-    必须使用并体现以下技能口径；你需要自行读取这些 SKILL.md / reference 文件后再审计：
+    必须使用并体现以下技能口径；你需要自行读取这些 SKILL.md / reference 文件后再审计；若某路径以 `MISSING:` 开头，应在审计中如实记录环境缺失，不得假装已读取：
     {skill_list}
 
     必须读取以下文库级规则和 story：

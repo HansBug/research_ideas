@@ -298,7 +298,7 @@ review.md 确实在 `metadata.json` 中正确标记了 `eligible_for_statistical
 
 | # | 问题 | 影响 |
 |---|---|---|
-| C1 | **主维度树使用通用 A1-M1--M6 接口冒充原文 schema**。6 个主树叶子被标注为 "来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构"，但本文既无 RQ，也无 corpus/纳排，也无 statistical finding。这会在后续 A2a 跨论文汇总时造成两个致命后果：(a) 后续 agent 可能误以为本文具有这些 SLR 组件，试图定位原文对应内容而导致无效搜索和错误证据归因；(b) 当 A2a 统计 "多少篇论文包含 corpus 字段" 时，本文会被误计为 "有 corpus"，扭曲统计结果。 | 
+| C1 | **主维度树使用通用 A1-M1--M6 接口冒充原文 schema**。6 个主树叶子被标注为 "来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构"，但本文既无 RQ，也无 corpus/纳排，也无 statistical finding。这会在后续 A2a 跨论文汇总时造成两个致命后果：(a) 后续 agent 可能误以为本文具有这些 SLR 组件，试图定位原文对应内容而导致无效搜索和错误证据归因；(b) 当 A2a 统计 "多少篇论文包含 corpus 字段" 时，本文会被误计为 "有 corpus"，扭曲统计结果。 |
 | C2 | **corpus/纳排叶子存在于 vision/roadmap 论文的主树中**。即使标注 `weak` 强度，叶子本身的存在已经暗示 "本文在某种意义上包含这些信息"。对 vision/roadmap 论文，应该明确 "不适用" 而非保留叶位写 "weak"。当前做法违反了 pattern-field-schema §8.2 "不得把 roadmap/vision/proposal 写成完成型统计 finding" 和 §8.6 "不适用时应直接说明不适用" 的纪律。 |
 | C3 | **"统计观察与候选发现" 标签对 vision 论文构成类别错误**。该标签暗示论文有统计结果，与本文性质根本矛盾。即使后续 A2a 理解 `eligible_for_statistical_synthesis=false`，该标签在视觉扫描和跨论文对比中会系统性地误导读者。 |
 

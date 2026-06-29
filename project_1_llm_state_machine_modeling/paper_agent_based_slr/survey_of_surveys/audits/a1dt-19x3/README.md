@@ -50,3 +50,9 @@ python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surv
 ```
 
 若只是做 PR 级审查，应按仓库老规矩分别运行 `codex-reviewer`、`claude-reviewer` 和 `codex-deepseek exec`，并要求 reviewer 直接在 PR 上 comment。
+
+## 可移植性说明
+
+- 本批次的 `prompts/`、`results/`、`logs/` 是 2026-06-29 实际运行留下的审计证据，其中可能保留当时执行环境里的本机绝对路径；这些路径用于还原运行上下文，不作为后续复验命令的依赖。
+- 后续补跑请使用 [run_audit.py](./run_audit.py)。该脚本已不依赖任何本地仓库目录名，并通过 `CODEX_HOME` / `SUB_AGENTS_RUNNER` / `OMX_AUTORESEARCH_SKILL` 或默认 `~/.codex` 位置动态解析技能路径。
+- [check_structure.py](./check_structure.py) 同样通过 `.git` 与仓库关键目录定位根路径，可在普通 clone、CI 工作区或任意本地工作区复验。
