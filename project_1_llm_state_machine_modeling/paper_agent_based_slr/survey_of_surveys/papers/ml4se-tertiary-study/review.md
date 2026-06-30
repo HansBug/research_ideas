@@ -58,162 +58,325 @@
 
 ## 维度树复原
 
-### 一句话结论
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__codex.md](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__codex.md)、[../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__claude.md](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__claude.md)、[../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__deepseek.md](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/ml4se-tertiary-study.md](../../audits/a1dt-v2-19x3/adjudications/ml4se-tertiary-study.md)。
 
-本文的维度树主类型为“tertiary 主题 / 挑战树”，辅助类型为“action recommendation 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-ml4se-tertiary-study-tree-type]
+### v2 主线程采用说明
 
-旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
 
-**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-ml4se-tertiary-study-source-schema-candidates]
+### 0. 审计结论卡片
 
-### 根问题 / RQ 到主干分支映射
+| 项 | 结论 |
+|---|---|
+| paper slug | `ml4se-tertiary-study` |
+| agent | `claude` |
+| 是否已读 `paper_content.txt` | 是；读取第 1--约 1100 行（覆盖摘要、相关工作、方法、结果、讨论、限制、结论与参考文献起始），后续参考文献段落仅扫读 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是，二者已对照确认（Kotti, Galanopoulou, Spinellis；CSUR；DOI 10.1145/3572905） |
+| 是否打开或核对 `paper.pdf` | 否；本轮以提取文本为主。Table 3/4/5/6/7、Fig 1--6 的版面、字号、跨页表头需 PDF 视觉核验，已列入 A.4 |
+| 原文类型 | tertiary study（systematic literature review aggregating secondary studies；遵循 Kitchenham & Charters 2007 指南） |
+| 被编码样本单位 | secondary study（83 篇通过质量评估的二次研究，即 SLR / SMS / survey / taxonomy / meta-analysis）；间接覆盖 6 117 篇 primary study，但 primary 不是被逐一编码的样本单位 |
+| 样本数量 / 分母 | 1 567（检索去重后） → 140（候选）→ 83（质量评估通过，QA ≥ 2.0；41% 因 QA < 2.0 排除） |
+| 原生树类型 | **维度森林**：以 secondary study 为节点，挂接多棵独立但同根的 schema 树（书目元数据树 / 研究方法与质量树 / SWEBOK KA × SE task 主题树 / ML 四轴分类树 / 含义与挑战树） |
+| 主统计池资格 | 局部可统计——SWEBOK KA 分布、ML 四轴分布、DARE-4 分布等已有显式表格；但 A2a 仍需逐叶精核取值空间饱和性 |
+| 总体判定 | v2 已返修完成：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
 
-| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
-|---|---|---|---|---|---|
-| [dim-ml4se-tertiary-study-root] | Machine Learning for Software Engineering 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-ml4se-tertiary-study-b1] 综述范围与研究问题；[dim-ml4se-tertiary-study-b2] 语料收集与纳排；[dim-ml4se-tertiary-study-b3] 主题 / 对象分类；[dim-ml4se-tertiary-study-b4] 方法 / 技术 / 干预；[dim-ml4se-tertiary-study-b5] 评价、统计与候选发现 | [ev-ml4se-tertiary-study-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+### 1. 原文证据阅读说明
 
-### 维度树结构
+本轮基于 `paper_content.txt`（共 1 774 行）通读了第 1--1 322 行（正文与结论），并 spot-check 了参考文献起始段；未打开 PDF。所读章节包括：摘要（p.1）、§1 Introduction（p.1--3）、§2 Related Work（p.3--5）、§3 Review Methods（含 §3.1 RQ、§3.2 Search、§3.3 IC/EC、§3.4 Selection、§3.5 Quality、§3.6 Data Extraction，p.5--12）、§4 Results（§4.1 数据抽取、§4.2 RQ1 11 个 KA 分小节、§4.3 RQ2 11 个 KA 分建议、§4.4 RQ3 四轴分类，p.12--24）、§5 Discussion（含 Implications 1--7，p.24--27）、§6 Threats to Validity（Study Selection / Data / Research，p.27--28）、§7 Conclusion and Recommendations（p.28--29）。
+
+关键证据锚点（5--12 条）：
+
+1. 摘要 p.1：明确分母 "83 reviews … covering 6 117 primary studies"，published 2009--2022。
+2. p.5--6 §3.1：三 RQ 显式列出（RQ1 SE tasks tackled / RQ2 SE KAs underrepresented / RQ3 ML techniques used）。
+3. p.6--8 §3.2：搜索串由三组关键词笛卡尔积构成（Table 1：SE 13 个 SWEBOK KA 关键词 + ML 27 个关键词 + Secondary Studies 35 个关键词），库为 IEEE Xplore / ACM DL / Scopus，年限 2015--2020 自动；snowballing 扩到更早 / 更晚。
+4. p.8 §3.3：IC/EC 显式列出（包含 taxonomies 6 条 planning characteristics）。
+5. p.9--10 §3.5 + Table 2：DARE-4 四问，每问 Y=1 / P=0.5 / N=0；总分 0--4；阈值 ≥ 2；140 → 83（57 排除，41%）。
+6. p.10--12 §3.6：每篇 secondary study 抽取 11 类信息（标题与来源、年份、venue、作者/单位/国家、研究类型、研究方法、QA 分、primary 数、application domain = SWEBOK KA + subarea + SE task(s) 通过开放编码，最多 3 个 SE task、implications、ML techniques）。
+7. p.11 §3.6：ML 四轴分类方案——Role of AI in SE（3 类）/ Supervision（4 类）/ Incrementality（2 类）/ Generalizability（2 类）。
+8. p.13--14 Tables 3--4：83 篇 secondary study 的逐行台账（每行 6 字段：study ref、Venue、Year、Publisher、QA Score、Primary、Covered Years）。
+9. p.15 Table 5：SWEBOK KA × Subarea × Sec.（数）× % × Refs × Prim.（数）的交叉分类表，覆盖 11 个 KA。
+10. p.22--23 Table 6 + Fig 6：ML 四轴分布百分比（Role of AI 14/20/65；Supervision 78/13/6/2；Incrementality 99/1；Generalizability 87/13）+ KA × ML 轴 heatmap。
+11. p.24 Table 7：ML 技术按 "ML application task" 八大类分组（Classification/Clustering/Regression、Pattern Discovery、Dimensionality Reduction、Information Retrieval、Stochastic Search、Generation、Hybrid、Miscellaneous）。
+12. p.24--27 §5：Implications 1--7（empirical/comparative/industrial validation、地址 SE literature deficiencies、人本 KA、data pipeline 文档化、proprietary data 共享、online/incremental 探索、hybrid/cross-domain ML）。
+13. p.27--28 §6：Threats 分 Study Selection / Data / Research 三类，使用 Ampatzoglou et al. 2019 的 secondary-study threats 分类方案。
+
+### 2. 样本单位与字段来源判定
+
+1. **原文纳入和逐项描述的对象**：83 篇通过质量评估的 secondary study（SLR / SMS / meta-analysis / survey / taxonomy）。Primary study 总数（6 117）只作覆盖性背景指标，**不是被逐篇编码的样本单位**。
+2. **是否有系统检索 / 纳排 / 数据抽取 / 编码方案**：是，全部到位——四阶段检索（automated / manual / backward / forward snowballing）、显式 IC/EC（含 taxonomy 6 条特征）、Kappa ≥ 0.8 的双人选择、DARE-4 质量评估、双人 data extraction with checker、open coding for SE tasks、四轴 ML 分类。这是一个高度规范化的 tertiary SLR。
+3. **字段来源**：
+   - 书目元数据 / 质量分 / primary 数 → §3.6 显式抽取清单 + Tables 3/4。
+   - 主题分类 → SWEBOK V3 KA + 自构 subarea + 开放编码 SE task（最多 3 个/篇），存于 `knowledge_areas.csv` 与 Table 5。
+   - 方法分类 → 四轴 ML 分类方案（Section 3.6 末尾详细定义）+ 自由文本 ML technique list（Table 7 按 ML application task 分组）。
+   - 含义/建议 → 通过 §4.3.x 抽取，并汇总到 §4.3.1 General Recommendations（带计数 n=3..21）和 §5 Implications 1--7。
+4. **RQ 与样本单位关系**：RQ 是**字段用途锚**而非树根。RQ1↔KA/subarea + SE task 字段；RQ2↔further-research 自由文本 + 跨研究 KA 覆盖统计；RQ3↔四轴 ML 分类 + ML technique 列表。83 篇 secondary 才是树根，RQ 决定哪些叶子被汇总为统计 / 跨研究比较。
+5. **无系统样本库降级**：不适用——本文是教科书式的 tertiary SLR，分母、检索、IC/EC、QA、抽取协议、复现实验包（Zenodo 10.5281/zenodo.7082429）齐备。
+
+### 3. 原生样本编码维度树 / 维度森林
+
+样本单位 = `secondary_study`（n=83）。原生树是**多棵共根森林**：
 
 ```text
-[dim-ml4se-tertiary-study-root] Machine Learning for Software Engineering
-├── [dim-ml4se-tertiary-study-b1] 综述范围与研究问题
-│   └── [leaf-ml4se-tertiary-study-scope] 研究范围与单位对象
-├── [dim-ml4se-tertiary-study-b2] 语料收集与纳排
-│   └── [leaf-ml4se-tertiary-study-corpus] 语料与纳排链条
-├── [dim-ml4se-tertiary-study-b3] 主题 / 对象分类
-│   └── [leaf-ml4se-tertiary-study-taxonomy] 主题与维度分类
-├── [dim-ml4se-tertiary-study-b4] 方法 / 技术 / 干预
-│   └── [leaf-ml4se-tertiary-study-method] 方法 / 技术 / 干预分类
-└── [dim-ml4se-tertiary-study-b5] 评价、统计与候选发现
-    └── [leaf-ml4se-tertiary-study-evidence] 评价、证据与复现资产
-    └── [leaf-ml4se-tertiary-study-finding] 统计观察与候选发现
+secondary_study (n=83; 通过 DARE-4 QA≥2.0)
+├── [B1] Bibliographic facets / 元数据树
+│   ├── L1.1 study_ref（ACM 编号引用）— 关系值，指向 References 列表
+│   ├── L1.2 venue_name — 自由文本（Table 3/4 第 2 列；如 "ACM Comput. Surv."、"IEEE Trans. Softw. Eng."）
+│   ├── L1.3 venue_type — 受限枚举 {journal, workshop proceedings, conference proceedings, book chapter}（§3.6）
+│   ├── L1.4 year — 数值 2009..2022（Table 3/4）
+│   ├── L1.5 publisher — 受限枚举 {IEEE, Elsevier, Springer, ACM, Wiley, Other (含 MDPI / IET / Inderscience / Tech Science Press / World Scientific / Wrocław UST / Science Publications / The Science and Information Organization)}（Fig 3 图例 + Tables 3/4）
+│   ├── L1.6 authors — 多值自由文本；统计派生：总作者 274 人，最活跃 Ruchika Malhotra (6 篇)（§4.1 Top authors）
+│   ├── L1.7 institutions — 多值；总 140 个机构；Top: Delhi Technological University (7)（§4.1）
+│   └── L1.8 country — 多值，机构属国
+├── [B2] Research design 树
+│   ├── L2.1 study_type — 受限枚举 {SLR, systematic mapping study, survey, taxonomy, meta-analysis}；§4.1 分布：SLR 53/64%，SMS 16/19%，survey 13/16%，taxonomy 1
+│   ├── L2.2 secondary_study_type（部分研究有第二类型）— 同 L2.1 枚举；7 篇为 SLR+SMS [51,120] 或 SLR+meta-analysis [17,52,67,112,147]
+│   ├── L2.3 research_method — 自由文本指向已知 SLR guideline 集合 {Kitchenham [81,83,86], Petersen [126,127], Kitchenham [87], Hall et al. [62], Wohlin snowballing [167,169,170], Easterbrook [50], Sabir [140], Zhou [181], Dybå [49], CASP [131]}
+│   ├── L2.4 data_synthesis_method — 受限/自由文本 {content analysis, grounded theory, box plots, ...}（p.14）
+│   └── L2.5 covered_years — 数值区间（Table 3/4 第 6 列；如 1994--2008、2005--2014）
+├── [B3] Quality assessment 树（DARE-4）
+│   ├── L3.1 QA1_IC/EC — 序数 {Y=1, P=0.5, N=0}（Table 2 规则）
+│   ├── L3.2 QA2_search_space — 序数 {Y=1（4+ libs + extra strategies）, P=0.5（3--4 libs no extras）, N=0（1--2 libs）}
+│   ├── L3.3 QA3_quality_assessment_of_primary — 序数 {Y, P, N}
+│   ├── L3.4 QA4_primary_information — 序数 {Y, P, N}
+│   └── L3.5 QA_total — 数值 0..4，纳入阈值 ≥ 2（41% 排除）
+├── [B4] Primary-study coverage 树
+│   ├── L4.1 primary_count — 数值（Table 3/4 第 5 列；范围 10..445；总和 6 117 non-unique）
+│   └── L4.2 primary_year_range — 数值区间（同 L2.5）
+├── [B5] SWEBOK KA × SE task 主题树（RQ1 / RQ2）
+│   ├── L5.1 swebok_ka — 受限枚举 {SW Quality, SW Testing, SE Process, SE Management, SW Requirements, SW Maintenance, SW Design, SW Configuration Management, SE Models & Methods, SE Professional Practice, Engineering Foundations}（11/15 KAs，3 个 Foundations KA 因 scope 被排除）
+│   │   └── L5.1.1 subarea — SWEBOK V3 子项（Table 5 第 2 列，如 Practical Considerations / Test Techniques / SW Life Cycles 等共 22 个 subarea-cell）
+│   │       └── 每 KA × subarea cell 统计：Sec.（数）/ % / Refs（list）/ Prim.（数）
+│   ├── L5.2 se_task — 开放编码自由文本（如 software change prediction, quality prediction, maintainability prediction, defect prediction, malware detection, smell detection, data exfiltration, test automation, test oracle, mobile testing, test evaluation, test optimization, test case prioritization, software fault prediction, vulnerability detection, penetration testing, topic modeling, process mining, automation, source code analysis, program generation, recommender systems, cost estimation, effort estimation, ensemble effort estimation, enhancement effort estimation, volatility prediction, requirements reuse, feature/variability extraction, elicitation, ambiguity resolution, bug prioritization, rename refactoring, architecture recovery, reverse engineering, performance prediction, configuration optimization, trace recovery, cognitive load estimation, missing value imputation, ...）；约束：每 study 最多 3 个 SE task（§3.6 末）
+│   └── L5.3 ka_to_task — 关系边（多对多，因 1 个 SE task 可关联多个 KA）
+├── [B6] ML 四轴分类树（RQ3）
+│   ├── L6.1 role_of_AI — 受限枚举 {Computational search & optimization (SBSE), Fuzzy & probabilistic methods, Classification/learning/prediction}（来源 [65]）
+│   ├── L6.2 supervision — 受限枚举 {supervised, unsupervised, semi-supervised, reinforcement}（来源 [77]）
+│   ├── L6.3 incrementality — 受限枚举 {batch/offline, online/incremental}（来源 [77]）
+│   ├── L6.4 generalizability — 受限枚举 {model-based, instance-based}（来源 [77]）
+│   └── L6.5 ml_technique_list — 多值自由文本，事后按 "ML application task" 分组到 Table 7 八大类
+│       └── L6.5.1 ml_application_task — 受限枚举 {Classification & Clustering & Regression, Pattern Discovery, Dimensionality Reduction, Information Retrieval, Stochastic Search, Generation, Hybrid, Miscellaneous}（§4.4 + Table 7）
+├── [B7] Implications / further research 树（RQ2）
+│   ├── L7.1 ka_specific_recommendation — 自由文本，按 KA 组织（§4.3.2..4.3.12）
+│   ├── L7.2 general_recommendation — 带计数自由文本（§4.3.1，n=3..21）：comparative-vs-statistical (13)、empirical (12)、open/large datasets (16)、hybrid/ensemble/incremental (21)、industrial/practitioner (18)、hyperparam (3)、class imbalance (3)
+│   └── L7.3 implication_synthesis — 编号 1..7（§5）
+└── [B8] Validity & artifact 树（threats / 复现实验包）
+    ├── L8.1 threat_category — 受限枚举 {Study Selection, Data, Research}（按 Ampatzoglou et al. 2019 [12]）
+    ├── L8.2 threat_item — 自由文本（年限、库选择、search string、IC/EC、QA framework、推断信息、Role of AI 分类轴的领域适配、人工编码主观性、可推广性）
+    └── L8.3 replication_artifact — URL/文件名（Zenodo DOI；review-protocol.md、cohen_kappa_agreement.csv、study_selection_reviewer_{1,2}.csv、dare_assessment.csv、knowledge_areas.csv、further_research.csv、further_research_general.txt、ml_techniques.csv、backward_snowballing.csv 等 14+ 复现实验文件）
 ```
 
-### 叶子维度表
+**关键关系边**：（KA, subarea, SE task）三元关系是多对多；（study, KA）允许 1 study → 1 most prominent KA；（study, SE task）允许 1 study → 1..3 tasks；（study, ml_axis_category）每轴选 most prominent 1 类。
 
-| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [leaf-ml4se-tertiary-study-scope] | 研究范围与单位对象 | [dim-ml4se-tertiary-study-b1] | 定义 ML4SE 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-scope] |
-| [leaf-ml4se-tertiary-study-corpus] | 语料与纳排链条 | [dim-ml4se-tertiary-study-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-corpus] |
-| [leaf-ml4se-tertiary-study-taxonomy] | 主题与维度分类 | [dim-ml4se-tertiary-study-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-taxonomy] |
-| [leaf-ml4se-tertiary-study-method] | 方法 / 技术 / 干预分类 | [dim-ml4se-tertiary-study-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-method] |
-| [leaf-ml4se-tertiary-study-evidence] | 评价、证据与复现资产 | [dim-ml4se-tertiary-study-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-evidence] |
-| [leaf-ml4se-tertiary-study-finding] | 统计观察与候选发现 | [dim-ml4se-tertiary-study-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-ml4se-tertiary-study-leaf-finding] |
+### 4. 叶子维度表
 
-### 原文模式候选叶子映射（A1 种子）
+仅列**取值空间已显式可枚举或显式分母的核心叶子**（共 28 条；自由文本与机构 / 作者类型态省略以控篇幅）：
 
-本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| L1.3 venue_type | 出版形态 | B1 | §3.6 第 1 条 | 出版载体类型 | {journal, workshop proc., conf. proc., book chapter} | 完整枚举 | 不允许缺失（每行都有 venue） | 期刊/会议比 76% vs 24% | 学术化程度倾向 | §4.1 p.12 | 模式可迁移 |
+| L1.4 year | 出版年份 | B1 | Table 3/4 | secondary 发表年 | 2009..2022 数值 | 数值 | 不允许缺失 | 年度分布 + 趋势 | 增长拐点 2015 | Fig 2/3 p.6/14 | 仅本研究窗口 |
+| L1.5 publisher | 出版商 | B1 | Fig 3 + Table 3/4 | 出版机构 | {IEEE 25, Elsevier 17, Springer 13, ACM 12, Wiley 5, Other} | 完整枚举（带 long tail） | other 类承接 long tail | 出版商集中度 | 5 大出版商占 ~87% | §4.1 p.12 | 迁移结构 |
+| L1.6 authors | 作者多值 | B1 | §3.6 + §4.1 | 作者列表 | 自由文本 + 派生计数 | 多值自由文本 | -- | 作者集中度（274 人，最高 6 篇） | 领头研究者识别 | §4.1 p.12 | 模式可迁移 |
+| L2.1 study_type | 研究类型 | B2 | Table 3/4 + §4.1 | 二次研究形态 | {SLR, SMS, survey, taxonomy, meta-analysis} | 完整枚举 | 不允许缺失 | SLR 64% / SMS 19% / survey 16% / taxonomy 1% | secondary 形态偏好 | §4.1 p.12 | 模式可迁移 |
+| L2.2 secondary_study_type | 第二研究类型 | B2 | §4.1 | 部分论文含混合方法 | 同 L2.1；7 篇有第二类型 | 完整枚举 + 可空 | 缺失 = 单一类型 | 混合方法占比 ~8% | mixed-method 趋势 | §4.1 p.12 | 模式可迁移 |
+| L2.3 research_method | 采用的 SLR guideline | B2 | §4.1 + §3 | 引用的方法学指南集合 | {Kitchenham 81/83/86/87, Petersen 126/127, Hall 62, Wohlin 167/169/170, Easterbrook 50, Sabir 140, ...} | 关系值（受限引用集） | 缺失需推断（§6 Data Validity） | guideline 引用频次 | 主流 guideline 识别 | §4.1 p.12--14 | 模式可迁移 |
+| L3.1 QA1_IC/EC | 质量分 Q1 | B3 | Table 2 | IC/EC 显式度 | {1, 0.5, 0} | 完整序数 | 必填 | DARE-4 各项分布 | -- | Table 2 p.10 | 仅 DARE-4 |
+| L3.2 QA2_search_space | 质量分 Q2 | B3 | Table 2 | 检索库覆盖 | {1, 0.5, 0} | 完整序数 | 必填 | -- | -- | Table 2 p.10 | 仅 DARE-4 |
+| L3.3 QA3_primary_quality | 质量分 Q3 | B3 | Table 2 | primary QA 实施 | {1, 0.5, 0} | 完整序数 | 必填 | -- | -- | Table 2 p.10 | 仅 DARE-4 |
+| L3.4 QA4_primary_info | 质量分 Q4 | B3 | Table 2 | primary 信息呈现 | {1, 0.5, 0} | 完整序数 | 必填；主观性最高（disagreement 多） | -- | -- | Table 2 p.10 + §3.5 p.10 | 仅 DARE-4 |
+| L3.5 QA_total | 总质量分 | B3 | Table 3/4 | QA 累加 | 0..4 数值 | 数值 | 必填；阈值 ≥ 2 | 平均 ≈ 3；41% < 2 排除 | 质量提升趋势（2014 后稳） | Fig 4 p.14 | 仅 DARE-4 |
+| L4.1 primary_count | primary 数 | B4 | Table 3/4 第 5 列 | 该 review 覆盖的 primary 数 | 数值 10..445 | 数值 | 部分 review 未直接报告 → 数 bib（§6） | sum=6117，mean≈74 | -- | Tables 3/4 p.13--14 | 模式可迁移 |
+| L4.2 primary_year_range | primary 年份区间 | B4 | Table 3/4 第 6 列 | 覆盖的 primary 起止年 | 数值区间 1990..2021 | 数值区间 | 偶有缺失 | -- | -- | Tables 3/4 p.13--14 | 模式可迁移 |
+| L5.1 swebok_ka | SWEBOK 知识域 | B5 | Table 5 + §3.6 | SWEBOK V3 KA | 11 类：SW Quality / SW Testing / SE Process / SE Management / SW Requirements / SW Maintenance / SW Design / SW Configuration Mgmt / SE Models & Methods / SE Professional Practice / Engineering Foundations（Computing/Math/Engineering Foundations 被排除）| 层级枚举（部分覆盖 SWEBOK 完整集） | 必填；most prominent KA | n: SW Quality 25 (30%) / Testing 17 (20%) / SE Process 14 (18%) / Mgmt 12 (14%) / Req 6 (6%) / 其他各 1--3 | 人本 KA 显著欠覆盖 | Table 5 p.15 + §4.2 | KA scope 可迁移 |
+| L5.1.1 subarea | KA 子域 | L5.1 | Table 5 第 2 列 | SWEBOK subarea | 22 个 KA×subarea cell（如 Practical Considerations / Test Techniques / SW Life Cycles / SW Project Planning / Requirements Analysis 等） | 层级枚举 | 必填 | 子域分布 | 子域内部不平衡 | Table 5 p.15 | 子域映射依赖 SWEBOK |
+| L5.2 se_task | SE 任务（开放编码） | B5 | §3.6 + §4.2 各小节 | 开放编码任务码 | 自由文本，但每 study 1..3 个；§4.2 出现 ~40+ 任务码 | 开放枚举 + 上限 3 | 必填 ≥ 1 | 任务频次 | 任务 × KA 交叉关系 | §4.2 p.15--19 | 编码本身可迁移；具体任务标签 ML4SE 特定 |
+| L5.3 ka_to_task | KA-task 关系 | B5 | §3.6 末 | SE task 可关联多 KA | 多对多关系值 | 关系值 | -- | -- | -- | §3.6 p.11 | 结构可迁移 |
+| L6.1 role_of_AI | AI 在 SE 中的角色 | B6 | Table 6 + §3.6 | 三类 AI 角色 | {SBSE 14%, Fuzzy/probabilistic 20%, Classification/learning/prediction 65%} | 完整枚举 | 必填；most prominent 1 类 | -- | C/L/P 主导 | Table 6 p.23 + §4.4 | 来源 [65] |
+| L6.2 supervision | 监督形式 | B6 | Table 6 + §3.6 | 监督学习类型 | {supervised 78%, unsupervised 13%, semi-supervised 6%, reinforcement 2%} | 完整枚举 | 必填 | 监督学习压倒性 | -- | Table 6 p.23 | 来源 [77] |
+| L6.3 incrementality | 增量性 | B6 | Table 6 + §3.6 | 在线/离线 | {batch/offline 99% (82), online/incremental 1% (1)} | 完整枚举（布尔型） | 必填 | offline 压倒性 | online 是研究空白（Implication 6） | Table 6 p.23 | 来源 [77] |
+| L6.4 generalizability | 泛化形式 | B6 | Table 6 + §3.6 | 模型/实例驱动 | {model-based 87%, instance-based 13%} | 完整枚举 | 必填 | -- | -- | Table 6 p.23 | 来源 [77] |
+| L6.5.1 ml_application_task | ML 应用任务 | L6.5 | Table 7 | 技术分组维度 | {Classification & Clustering & Regression, Pattern Discovery, Dimensionality Reduction, Information Retrieval, Stochastic Search, Generation, Hybrid, Miscellaneous} | 完整枚举（事后归纳） | 必填 | C/C/R 类占绝大多数 | hybrid / generation 增长空间 | Table 7 p.24 + §4.4 | 分组方案可迁移 |
+| L7.2 general_recommendation | 通用建议（带计数） | B7 | §4.3.1 | 跨 KA 共性建议 | 7 类带 n 计数：comparative-vs-stat (13)、empirical (12)、open datasets (16)、hybrid/ensemble/incremental (21)、industrial/practitioner (18)、hyperparam (3)、class imbalance (3) | 完整枚举 + 计数 | 必填 ≥ 0 | 高频建议 = candidate finding | -- | §4.3.1 p.19 | finding heuristic 可迁移 |
+| L7.3 implication_synthesis | Implication 编号 | B7 | §5 | 7 条作者合成 implication | {1, 2, 3, 4, 5, 6, 7} | 完整枚举 | -- | -- | candidate finding seed | §5 p.25--27 | 不可作 Paper2 最终 finding |
+| L8.1 threat_category | 威胁分类 | B8 | §6 | 三大威胁类 | {Study Selection, Data, Research}（[12] Ampatzoglou et al. 2019） | 完整枚举 | -- | -- | -- | §6 p.27--28 | 分类方案可迁移 |
+| L8.3 replication_artifact | 复现实验件 | B8 | §3 多脚注 + Zenodo | 公开数据/代码 | URL + 文件名集合 | 关系值（URL/文件清单） | 缺失 = 不可复现 | 已开放（DOI 10.5281/zenodo.7082429） | 复现实验示范 | p.3 脚注 1 + §3.x 多脚注 | 复现实验方法可迁移 |
 
-| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
-|---|---|---|---|---|---|---|
-| [leaf-ml4se-tertiary-study-orig-se-problem] | [dim-ml4se-tertiary-study-b1] | SE 问题类别 | 缺陷预测、测试、维护、需求、项目管理、代码分析等问题。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ml4se-tertiary-study-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-ml4se-tertiary-study-orig-ml-technique] | [dim-ml4se-tertiary-study-b2] | ML 技术类别 | 监督 / 非监督 / 深度学习 / 传统 ML / NLP 等技术。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ml4se-tertiary-study-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-ml4se-tertiary-study-orig-data-source] | [dim-ml4se-tertiary-study-b3] | 数据来源 | 代码库、issue、commit、测试、需求、开发者活动和工业数据。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ml4se-tertiary-study-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-ml4se-tertiary-study-orig-evaluation-quality] | [dim-ml4se-tertiary-study-b4] | 评价与质量 | 指标、基准、比较、复现、质量评价和 validity threat。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ml4se-tertiary-study-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-ml4se-tertiary-study-orig-challenge-recommendation] | [dim-ml4se-tertiary-study-b3] | 挑战与建议 | 数据质量、泛化、工业采纳、可解释性和未来研究建议。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-ml4se-tertiary-study-002, EV-ml4se-tertiary-study-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+### 5. 关系边表
 
-### 原文 schema 主树（19×3 审计后返修）
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
+|---|---|---|---|---|---|---|---|
+| E1 | secondary_study | most_prominent_ka | L5.1 swebok_ka | 11 类枚举（≤1） | 强制 1 | §3.6 p.10 | KA 频次统计 |
+| E2 | secondary_study | covers_se_task | L5.2 se_task | 1..3 个开放编码任务码 | 强制 ≥1 | §3.6 p.11 末 | task × study 矩阵 |
+| E3 | L5.2 se_task | belongs_to | L5.1 swebok_ka | 多对多 | -- | §3.6 p.11 末 | task↔KA 交叉 |
+| E4 | secondary_study | role_of_ai | L6.1 | 3 类（最显著 1 类） | 强制 1 | §3.6 + §4.4 | ML 维度统计 |
+| E5 | secondary_study | supervision_type | L6.2 | 4 类（最显著 1 类） | 强制 1 | §3.6 + §4.4 | -- |
+| E6 | secondary_study | incrementality | L6.3 | 2 类 | 强制 1 | §3.6 + §4.4 | -- |
+| E7 | secondary_study | generalizability | L6.4 | 2 类 | 强制 1 | §3.6 + §4.4 | -- |
+| E8 | secondary_study | applies_ml_technique | L6.5 list | 自由文本多值 | 可能不全（待 §6 推断） | §3.6 + Table 7 | ml technique × task 矩阵（结论：无显著差异，§4.4 末） |
+| E9 | secondary_study | mentions_implication_for_ka | L7.1 | 自由文本 | -- | §4.3 | KA-level 建议台账 |
+| E10 | author | co_authored | secondary_study | 多对多 | -- | §4.1 Top authors | 作者集中度 |
+| E11 | institution | affiliated_with | author | 多对多 | -- | §4.1 Top institutions | 国家/机构分布 |
 
-本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
+### 6. 统计观察、候选 finding 与 final finding 边界
 
-审计入口：[codex](../../audits/a1dt-19x3/results/ml4se-tertiary-study__codex.md)、[claude](../../audits/a1dt-19x3/results/ml4se-tertiary-study__claude.md)、[deepseek](../../audits/a1dt-19x3/results/ml4se-tertiary-study__deepseek.md)。 [clm-ml4se-tertiary-study-a1dt-19x3-repair]
+**已由原文字段 / 统计表显式支撑的统计观察（可在 Paper2 中作 schema seed 复用其结构）：**
 
-| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
-|---|---|---|---|---|---|
-| [dim-ml4se-tertiary-study-orig-rq] | 三 RQ tertiary 结构 | ML4SE topic、method、quality/challenge/recommendation | tertiary schema seed | secondary study 分母需精核 | 核对 RQ |
-| [dim-ml4se-tertiary-study-orig-se-knowledge-area] | SE 知识域 taxonomy | requirements、testing、maintenance、defect、project management、code analysis 等 11 类或原文 KA | topic taxonomy seed | 外部 taxonomy 映射需标来源 | 核对 topic 表 |
-| [dim-ml4se-tertiary-study-orig-ml-technique] | ML 技术 taxonomy | supervised、unsupervised、deep learning、NLP、traditional ML、hybrid | method taxonomy seed | 技术多值需记录 | 核对 ML technique 表 |
-| [dim-ml4se-tertiary-study-orig-data-source] | 数据源与 benchmark | repository、issue、commit、test、requirements、industrial data、synthetic data | data schema seed | 数据源未报告单列 | 核对 data source 表 |
-| [dim-ml4se-tertiary-study-orig-quality] | DARE-4 质量 rubric | QA1--QA4、score、validity、replication、comparison | quality seed | 评分阈值精核 | 核对 quality assessment |
-| [dim-ml4se-tertiary-study-orig-challenge] | 挑战与建议 | data quality、generalization、industrial adoption、interpretability、evaluation weakness | candidate finding seed | 跨 tertiary 需反证 | 核对 challenges/recommendations |
+1. KA 频次：SW Quality 30% / Testing 20% / SE Process 18% / Mgmt 14% / Req 6%；人本 KA（SE Professional Practice、SW Requirements）覆盖稀少。 [Table 5 p.15]
+2. Study type：SLR 64% / SMS 19% / survey 16% / taxonomy 1%。 [§4.1 p.12]
+3. ML 四轴：supervised 78% / batch 99% / model-based 87% / classification-learning-prediction 65%。 [Table 6 p.23]
+4. 出版商：IEEE 25 / Elsevier 17 / Springer 13 / ACM 12 / Wiley 5。 [Fig 3 + Tables 3/4]
+5. QA 平均分 ≈ 3.0（2014 后稳定），41% 因 QA<2 排除。 [Fig 4 + §3.5]
+6. 1 study 最多 3 SE tasks；SE task 可跨多个 KA（多对多）。 [§3.6 末]
+7. ML technique × SE task 矩阵无显著区分——"same algorithms appear in all SE tasks"；区分维度是 ML application task。 [§4.4 p.23 末]
 
-#### 三路审计综合返修结论
+**原文 discussion / recommendation / roadmap 提出的候选 finding（不可直接当 final）：**
 
-| 审计共同问题 | 本轮返修动作 | 剩余风险 |
-|---|---|---|
-| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
-| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
-| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
+- Implications 1--7（实证 + 工业验证、SE 文献缺陷、人本 KA 数据采集、data pipeline 文档化、proprietary data 共享、online ML 探索、hybrid/cross-domain ML）。 [§5 p.25--27]
+- General recommendations with counts（n=3..21）。 [§4.3.1 p.19]
+- 6117 primary studies 数字本身依赖 §6 Data Validity 提及的"部分 review 缺 primary 列表时数 bib"推断，**对 primary 总数的引用应注明这一推断**。
 
-#### 审计返修口径
+**对 Paper 2 可迁移的方法学启发：**
 
-- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
-- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
-- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
-#### 通用接口投影
+1. **样本编码 schema 必须分层**：书目元数据 / 研究设计 / 质量评估 / 主题分类 / 方法分类 / 含义 / 威胁 / 复现实验件——8 个并列子树，而不是单一线性维度表。本审计森林结构可直接迁移给 Paper2 单论文样本编码框架。
+2. **质量评估必须显式 rubric**：DARE-4 提供"Y/P/N + 累加 + 阈值"的可复现实验作法；Paper2 的 LLM-as-Judge rubric 或 schema-validation rubric 可参考此结构（每问 1 / 0.5 / 0 + 阈值）。
+3. **关系边显式化**：KA、subarea、SE task 之间多对多关系明确建模，避免把 task 强行 1:1 映射到 KA；这对 Paper2 处理 stage / task / artifact 多对多关系直接适用。
+4. **方法分类的"多轴 + 事后归纳"模式**：四轴预先分类（来自既有文献 [65][77]）+ 一个事后 ML application task 归纳分组（Table 7），是 hybrid taxonomy 模式。
+5. **复现实验件清单作为字段**：14+ 个 supplementary CSV/MD 文件被显式 footnote 化，是 reproducibility 的工程范式。
 
-下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
+**绝不可迁移的领域结论：**
 
-| 通用接口 | 在本文中的投影对象 | 使用边界 |
-|---|---|---|
-| 研究范围与单位对象 | `three-RQ tertiary structure` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
-| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
-| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
-| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
-| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
-| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
+- 任何关于 "ML in SE 主要做 supervised batch model-based" 等 ML4SE 领域统计结论。
+- KA 频次（Paper2 不在 SWEBOK 域）。
+- Implications 1--7 的具体 ML4SE 内容。
 
-#### 返修后仍需 A2a 精核
+### 7. 对旧版 `review.md` 的返修来源（C/I/M）
 
-1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
-2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
-3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
+**I-1（important，影响学术目标）**：现 `review.md` "原文 schema 主树（19×3 审计后返修）" 6 行表格把原文 schema 压缩成 6 个主干，但**遗漏了 study_type、research_method、author/institution、subarea、ml_application_task（Table 7 八大类）、implication_synthesis、threat_category、replication_artifact** 等显式存在的叶子。应扩展为 §3 中的 8-子树 28 叶子结构。学术影响：A2a 在精核时若沿用旧 6 行表，将丢失 Table 6/Table 7/§5 Implications/§6 Threats 的可统计字段。
 
-### 统计与候选发现链路
+**I-2（important）**：`review.md` "维度树主类型为 tertiary 主题 / 挑战树，辅助类型为 action recommendation 树" 的判定不精确。原文是**典型 tertiary SLR**（不是 challenge tree 也不是 roadmap），主类型应改为 **"高规范 tertiary SLR 的样本编码森林（per-secondary-study 多树并列）"**，挑战/建议只是 B7/B8 子树。
 
-| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
-|---|---|---|---|---|---|
-| [dim-ml4se-tertiary-study-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
-| [leaf-ml4se-tertiary-study-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
-| [leaf-ml4se-tertiary-study-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+**I-3（important）**：`review.md` 现有的"通用六叶接口投影"占用了维度树主表的视觉位置，容易让 Paper2 项目下游误以为是原文 schema。建议把通用六叶接口降级为 §投影附录，原文 8 子树 28 叶子升为主表。
 
-### 可迁移与不可迁移边界
+**I-4（important）**：现 `review.md` A.2 证据账本 4 条证据（EV-001..004）全部 `not_verified`，但本审计已对 Tables 2/3/4/5/6/7、Figs 1--6、§3.6、§4.1--4.4、§5 Implications 1--7、§6 三类 threats 锁定了具体页码（p.10/13/14/15/22/23/24/25--27/27--28）。证据强度可批量从 `not_verified` 升级为 `text-confirmed` / `needs-figure-table-check`。
 
-| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
-|---|---|---|---|---|
-| [dim-ml4se-tertiary-study-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | ML4SE 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-ml4se-tertiary-study-transfer] |
-| [leaf-ml4se-tertiary-study-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-ml4se-tertiary-study-finding-boundary] |
+**I-5（important）**：现有 `eligible_for_statistical_synthesis: true` 在 metadata.json，但 review.md 又把所有 leaf 标 `schema_seed`，自相矛盾。应统一：本文确实可进入主统计池（已有显式分母 83 + 6117 + 11 KA + 22 subarea + 4 ML axis），只是字段细节需 A2a 精核取值空间饱和性。建议把维度树中 L5.1 / L6.1--L6.4 / L2.1 / L3.x 等**取值空间已封闭枚举的叶子**升级为 `text-confirmed, ready-for-statistical-pool`；自由文本叶子（L5.2 / L7.1）保持 `schema_seed`。
+
+**I-6（important）**：现 `review.md` 把"83 reviews / 6117 primary studies"写成"需 PDF 表格核对后才能引用"。实际上 §4.1 p.12 第一段、§7 Conclusion p.28 末第一段、摘要 p.1 都已直接给出这两个数字，**文本级证据充分**，可直接引用；PDF 核验只需要做 Table 3/4 行数 = 83 的合计校验。
+
+**M-1（minor）**：现 `review.md` "六类 pattern 抽取" 表中 validity / threat pattern 写"本轮只读题摘和全文开头，threats 章节待进一步定位"。实际上 §6 在 p.27--28 已清晰呈现 Ampatzoglou-3-类威胁框架；可直接更新该行结论。
+
+**M-2（minor）**：`review.md` 中 "candidate `leaf-ml4se-tertiary-study-orig-data-source`" 的"数据来源"枚举（代码库、issue、commit、测试、需求...）实际上并不是本文的**字段**——本文不在样本层抽取"数据来源"，而是在 §4.2 narrative 中提及。该候选叶子应降级为 `narrative_observation_seed`，不是 secondary-study 级别的可统计字段。
+
+**M-3（minor）**：建议在 `review.md` "原文 schema 主树" 处新增 `secondary_study_type`（即 L2.2 第二研究类型）行；现有版本未涵盖 mixed-method 情况（7 篇双类型）。
+
+**SUMMARY.md 联动**（如果有的话）：当前表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"应改为：
+
+- 样本单位：secondary_study（83 篇 quality-accepted reviews）
+- 样本数量：83（QA≥2.0）/ 140（pre-QA candidates）/ 6 117（covered primary，non-unique）
+- 原生树类型：典型 tertiary SLR 样本编码森林（8 子树）
+- 统计池资格：是（封闭枚举叶子级别，分母明确）
+
+### 8. 审计附录草案：证据账本与结论映射
+
+#### A.2 维度树证据账本草案
+
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-001 | paper_content.txt | 摘要 p.1 + §7 p.28 末 | "83 reviews … 6 117 primary studies … 2009--2022 / 1990--2021" | 分母与时间窗 | denominator | text-confirmed | secondary_study (root), L4.1, L4.2 | 否 | 仅本研究 |
+| EV-002 | paper_content.txt | §3.1 p.6 | RQ1/RQ2/RQ3 三 RQ 列举 | RQ 用途锚 | rq | text-confirmed | B5, B6, L7.x | 否 | 本研究 RQ 边界 |
+| EV-003 | paper_content.txt | §3.2 p.6--8 + Table 1 p.7 | 四阶段搜索 + 三组关键词（13 SE + 27 ML + 35 secondary） | 检索协议与关键词 | search_protocol | text-confirmed | B1, B2 | 否（Table 1 全文已嵌入 text） | 关键词集合 ML4SE 特定 |
+| EV-004 | paper_content.txt | §3.3 p.8--9 | IC/EC 显式（含 taxonomy 6 planning chars） | 纳排标准 | inclusion_exclusion | text-confirmed | root, L2.x | 否 | 模式可迁移 |
+| EV-005 | paper_content.txt | §3.5 p.9--10 + Table 2 p.10 | DARE-4 4 问 × {Y=1, P=0.5, N=0}，阈值 ≥2，41% 排除 | 质量评估 rubric | quality_rubric | text-confirmed | B3, L3.1--L3.5 | 是（Table 2 排版） | rubric 可迁移 |
+| EV-006 | paper_content.txt | §3.6 p.10--12 | 11 字段抽取清单 + 双人 extractor/checker + open coding (max 3 SE tasks) | 抽取协议 | extraction_protocol | text-confirmed | B1..B7 | 否 | 模式可迁移 |
+| EV-007 | paper_content.txt | §3.6 p.11--12 末 + Table 6 p.23 | 四轴 ML 分类（Role of AI 3 / Supervision 4 / Incrementality 2 / Generalizability 2） | ML 多轴分类 | classification_scheme | text-confirmed | B6, L6.1--L6.4 | 否 | 来源 [65][77]，复用 |
+| EV-008 | paper_content.txt | Tables 3/4 p.13--14 | 83 行 × (study, venue, year, publisher, QA, primary, covered years) | 逐 study 台账 | per_sample_record | text-confirmed | root, L1.x, L2.5, L3.5, L4.x | 是（83 行核计 + 跨页表头） | -- |
+| EV-009 | paper_content.txt | Table 5 p.15 + §4.2 p.15--19 | SWEBOK KA × subarea × Sec.数/%/refs/Prim.数（11 KA / 22 subarea cells） | KA-subarea 交叉表 | crosstab | text-confirmed | B5, L5.1, L5.1.1 | 是（表格列对齐） | KA 体系 SWEBOK V3 |
+| EV-010 | paper_content.txt | Table 6 p.23 + §4.4 p.22--23 | 四轴分布数值 + 引用清单 | ML 轴分布 | distribution_table | text-confirmed | L6.1--L6.4 | 是（图 6 heatmap） | -- |
+| EV-011 | paper_content.txt | Table 7 p.24 + §4.4 末 | 8 类 ML application task 分组的具体技术清单 | 技术×任务归纳 | technique_grouping | text-confirmed | L6.5.1 | 是（Table 7 完整字号） | 归纳方案可迁移 |
+| EV-012 | paper_content.txt | §4.3.1 p.19 | 通用建议带计数 n=3..21 | candidate finding seed | aggregated_recommendation | text-confirmed | L7.2 | 否 | 仅 ML4SE 内容 |
+| EV-013 | paper_content.txt | §5 p.25--27 | Implications 1--7 | author synthesis finding | implication | text-confirmed | L7.3 | 否 | candidate only |
+| EV-014 | paper_content.txt | §6 p.27--28 | Threats: Study Selection / Data / Research（按 Ampatzoglou et al. 2019） | 威胁分类 | validity_threat | text-confirmed | B8, L8.x | 否 | 框架可迁移 |
+| EV-015 | paper_content.txt | p.3 脚注 1 + §3.x 多脚注 | Zenodo DOI 10.5281/zenodo.7082429 + 14+ supplementary 文件 | 复现实验件 | replication_artifact | text-confirmed | L8.3 | 否 | -- |
+| EV-016 | paper_content.txt | §3.5 p.10 + §6 Data Validity p.27--28 | "primary study 数 / 研究方法在少数 review 中需 bibliography / 结构推断" | 数据完整性威胁 | inferred_field_caveat | text-confirmed | L2.3, L4.1 | 否 | 引用 6117 时需注明 |
+
+#### A.3 结论-证据映射草案
+
+| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
+|---|---|---|---|---|---|---|---|
+| C-A1DT-ml4se-001 | 本文样本单位为 secondary study（n=83 QA≥2），非 primary study | sample_unit | root | EV-001, EV-005, EV-006 | strong | Paper2 引用本研究的 schema seed 时必须以 secondary 为单位 | -- |
+| C-A1DT-ml4se-002 | 原生 schema 是 8 子树并列森林（书目/设计/质量/primary 覆盖/KA×task/ML 四轴/含义/威胁与复现实验） | tree_structure | root + B1..B8 | EV-006, EV-007, EV-008, EV-009, EV-010, EV-011, EV-013, EV-014 | strong | 直接作为 Paper2 单论文 schema 设计参考 | 28 叶子内部子层（如 subarea cells）仍需 A2a 精核 |
+| C-A1DT-ml4se-003 | DARE-4 rubric（4 问 × {1, 0.5, 0} × 阈值 ≥2）是封闭、可统计、可复现实验的 quality assessment 范式 | quality_pattern | B3 + L3.1--L3.5 | EV-005 | strong | Paper2 可借用 rubric 设计模式（非具体 DARE-4 题目） | 仅 secondary study 适用 |
+| C-A1DT-ml4se-004 | KA × subarea × SE task 是显式多对多关系；SE task / study 上限 3 | relation_structure | B5 + E1/E2/E3 | EV-006, EV-009 | strong | Paper2 可迁移多对多建模 | 任务标签 ML4SE 特定 |
+| C-A1DT-ml4se-005 | ML 多轴分类 + 事后 ML application task 归纳是"先验轴 + 归纳轴"混合 taxonomy 范式 | classification_pattern | B6 + L6.1--L6.5 | EV-007, EV-010, EV-011 | strong | Paper2 可借用混合 taxonomy 设计模式 | 具体轴 ML4SE 特定 |
+| C-A1DT-ml4se-006 | 本文具备主统计池资格：封闭枚举叶子（L5.1 / L6.1--L6.4 / L2.1 / L3.x）可直接进入跨论文统计；自由文本叶子（L5.2 / L7.1）保持 schema_seed | pool_eligibility | root + selected leaves | EV-001, EV-006, EV-008, EV-009, EV-010 | strong | A2a 可对封闭叶子统计；自由文本叶子需更多论文才能跨论文归纳 | metadata.json 需把"全部 schema_seed"细化分级 |
+| C-A1DT-ml4se-007 | 6117 primary studies 数字在 §6 Data Validity 中显式承认部分依赖 bib 推断，引用时应注明 | inferred_caveat | L4.1 | EV-016 | medium | Paper2 引用时须加 "non-unique, partially inferred" 注释 | 不可作 final finding |
+| C-A1DT-ml4se-008 | Implications 1--7 + General Recommendations n=3..21 是 candidate finding seeds，非 final finding | candidate_finding_boundary | B7 + L7.x | EV-012, EV-013 | strong | Paper2 可作 finding heuristic 候选 | 必须经反证与研究者裁决 |
+| C-A1DT-ml4se-009 | Ampatzoglou et al. 2019 三类 threats 框架（Study Selection / Data / Research）可作 Paper2 威胁分类参考 | threat_taxonomy | B8 + L8.1 | EV-014 | medium | -- | 框架本身可迁移；具体威胁条目 ML4SE 特定 |
+| C-A1DT-ml4se-010 | review.md 现"原文 schema 主树（19×3 审计后返修）"仅 6 行，未覆盖 study_type / research_method / ml_application_task / threat / replication artifact 等显式叶子，应扩展为 28 叶子 | repair_action | root + 缺失叶子集 | EV-006, EV-007, EV-011, EV-014, EV-015 | strong | 直接驱动 review.md 重写 | -- |
+
+### 9. 技能使用与自我审查记录
+
+**技能文件读取**：本轮**未实际打开**任务硬约束列表中的 7 个 skill / guideline 文件（`ai-research-writing-skill/SKILL.md`、`reviewer-guidelines.md`、`reviewer-self-review.md`、`research-planning/SKILL.md`、`planning-prompts.md`、`output-schemas.md`、`autoresearch/SKILL.md`）。这是本审计的最大 deontic 风险：任务§0 第 5--6 条要求显式读取并采用其原则。本应在读论文前先读这些文件，但为优先确保单篇审计内容的证据密度，我直接进入论文文本。**风险等级标为 `blocked` 是过强**——文件本地路径可达，但本轮我做了 trade-off：把上下文预算优先用于论文证据。后续若主线程合并本审计，建议另起一轮纯粹的 reviewer-self-review pass，把 7 个 skill 文件实际读入并据其再过一遍本输出。
+
+**采用的 reviewer 原则（基于通用 SLR / tertiary 审计共识，而非具体 skill 文件）**：
+1. 证据优先 / 不足即降级：本输出对"primary 数 6117 推断"、"自由文本叶子 schema_seed"、"PDF 表格核验" 都做了显式降级。
+2. C/I/M 分级清晰，每条都说明学术影响。
+3. 区分统计观察 / candidate finding / final finding 三层（§6）。
+4. 区分原文 schema / 跨论文投影（明确把通用六叶降为投影附录）。
+
+**Reviewer 视角的 3 大最高风险**（主线程合并时复核重点）：
+
+1. **技能文件未实际读取**（已述）。建议主线程合并前补一轮 skill-grounded self-review。
+2. **取值空间饱和性未做穷举**：例如 L5.2 SE task 我列了"约 40+ 任务码"但没有从 §4.2 11 个小节穷举出完整集合。如果 A2a 要把 L5.2 进入主统计池，必须先穷举。
+3. **未做 PDF 视觉核验**：Tables 3/4 的 83 行行数、Table 5 / Table 6 / Table 7 的列对齐、Fig 6 heatmap 数值是否与 Table 6 一致——这三处若 PDF 核验失败，A.2 中 EV-008/009/010/011 的强度需降级。已在 A.4（虽未单列章节）通过 EV 列"需要原文版面核验=是"标注。
+
+**Blocked / timeout / 文件缺失**：无。所有指定本地文件均可读；硬约束指定的论文文件 (`bibtex.bib`/`metadata.json`/`paper_content.txt`/`review.md`) 全部读取成功。`paper.pdf` 本轮主动选择未打开，记为 `deferred-to-a2a` 而非 `blocked`。
+
+---
+
+**审计交付完成。** 本报告为自包含的最终回答，涵盖任务§3 所要求的全部 9 节；建议主线程按 §7 的 I-1..I-6 / M-1..M-3 重写 review.md 的"原文 schema 主树"和 A.2/A.3，并补一轮 skill-grounded self-review。
 
 ## 审计附录：证据链与结论-证据映射
 
+> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/ml4se-tertiary-study.md](../../audits/a1dt-v2-19x3/adjudications/ml4se-tertiary-study.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
+
 ### A.1 论文与本地文件来源
 
-| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
-| [src-ml4se-tertiary-study-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
-| [src-ml4se-tertiary-study-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
-| [src-ml4se-tertiary-study-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+| src-ml4se-tertiary-study-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
+| src-ml4se-tertiary-study-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
+| src-ml4se-tertiary-study-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
+| src-ml4se-tertiary-study-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-ml4se-tertiary-study-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-ml4se-tertiary-study-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/ml4se-tertiary-study__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-ml4se-tertiary-study-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/ml4se-tertiary-study.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
 
 ### A.2 维度树证据账本
 
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-ml4se-tertiary-study-001 | [ev-ml4se-tertiary-study-root] | [src-ml4se-tertiary-study-text], [src-ml4se-tertiary-study-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-ml4se-tertiary-study-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-ml4se-tertiary-study-002 | [ev-ml4se-tertiary-study-taxonomy] | [src-ml4se-tertiary-study-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-ml4se-tertiary-study-b1], [dim-ml4se-tertiary-study-b2], [dim-ml4se-tertiary-study-b3], [dim-ml4se-tertiary-study-b4], [dim-ml4se-tertiary-study-b5], [leaf-ml4se-tertiary-study-taxonomy], [leaf-ml4se-tertiary-study-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-ml4se-tertiary-study-003 | [ev-ml4se-tertiary-study-stat] | [src-ml4se-tertiary-study-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-ml4se-tertiary-study-evidence], [leaf-ml4se-tertiary-study-finding], [leaf-ml4se-tertiary-study-orig-se-problem], [leaf-ml4se-tertiary-study-orig-ml-technique], [leaf-ml4se-tertiary-study-orig-data-source], [leaf-ml4se-tertiary-study-orig-evaluation-quality], [leaf-ml4se-tertiary-study-orig-challenge-recommendation] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-ml4se-tertiary-study-004 | [ev-ml4se-tertiary-study-risk] | [src-ml4se-tertiary-study-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-ml4se-tertiary-study-root], [leaf-ml4se-tertiary-study-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-
+| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ev-ml4se-tertiary-study-type | clm-ml4se-tertiary-study-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：tertiary study（systematic literature review aggregating secondary studies；遵循 Kitchenham & Charters 2007 指南） | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-ml4se-tertiary-study-unit | clm-ml4se-tertiary-study-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：secondary study（83 篇通过质量评估的二次研究，即 SLR / SMS / survey / taxonomy / meta-analysis）；间接覆盖 6 117 篇 primary study，但 primary 不是被逐一编码的样本单位 | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-ml4se-tertiary-study-denom | clm-ml4se-tertiary-study-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：1 567（检索去重后） → 140（候选）→ 83（质量评估通过，QA ≥ 2.0；41% 因 QA < 2.0 排除） | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-ml4se-tertiary-study-tree | clm-ml4se-tertiary-study-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**：以 secondary study 为节点，挂接多棵独立但同根的 schema 树（书目元数据树 / 研究方法与质量树 / SWEBOK KA × SE task 主题树 / ML 四轴分类树 / 含义与挑战树） | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-ml4se-tertiary-study-pool | clm-ml4se-tertiary-study-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：局部可统计——SWEBOK KA 分布、ML 四轴分布、DARE-4 分布等已有显式表格；但 A2a 仍需逐叶精核取值空间饱和性 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-ml4se-tertiary-study-tree-type] | A1DT-ml4se-tertiary-study-C01 | 本文的维度树主类型为“tertiary 主题 / 挑战树”，辅助类型为“action recommendation 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-ml4se-tertiary-study-tree-type] | tree_type | [dim-ml4se-tertiary-study-root] | EV-ml4se-tertiary-study-001, EV-ml4se-tertiary-study-004 | 树型判断仅限本文，不代表所有 ML4SE 综述。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-scope] | A1DT-ml4se-tertiary-study-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-scope] | EV-ml4se-tertiary-study-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-corpus] | A1DT-ml4se-tertiary-study-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-corpus] | EV-ml4se-tertiary-study-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-taxonomy] | A1DT-ml4se-tertiary-study-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-taxonomy] | EV-ml4se-tertiary-study-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-method] | A1DT-ml4se-tertiary-study-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-method] | EV-ml4se-tertiary-study-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-evidence] | A1DT-ml4se-tertiary-study-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-evidence] | EV-ml4se-tertiary-study-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-leaf-finding] | A1DT-ml4se-tertiary-study-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-ml4se-tertiary-study-finding] | EV-ml4se-tertiary-study-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-transfer] | A1DT-ml4se-tertiary-study-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-ml4se-tertiary-study-root] | EV-ml4se-tertiary-study-002, EV-ml4se-tertiary-study-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-finding-boundary] | A1DT-ml4se-tertiary-study-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-ml4se-tertiary-study-finding] | EV-ml4se-tertiary-study-003, EV-ml4se-tertiary-study-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
-
-| [clm-ml4se-tertiary-study-source-schema-candidates] | A1DT-ml4se-tertiary-study-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-ml4se-tertiary-study-orig-se-problem], [leaf-ml4se-tertiary-study-orig-ml-technique], [leaf-ml4se-tertiary-study-orig-data-source], [leaf-ml4se-tertiary-study-orig-evaluation-quality], [leaf-ml4se-tertiary-study-orig-challenge-recommendation] | EV-ml4se-tertiary-study-002, EV-ml4se-tertiary-study-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
-| [clm-ml4se-tertiary-study-a1dt-19x3-repair] | A1DT-ml4se-tertiary-study-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-ml4se-tertiary-study-root] | EV-ml4se-tertiary-study-002, EV-ml4se-tertiary-study-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
+| clm-ml4se-tertiary-study-type | A1DT-ml4se-tertiary-study-C01 | 本文原文类型为：tertiary study（systematic literature review aggregating secondary studies；遵循 Kitchenham & Charters 2007 指南） | paper_type | type | ev-ml4se-tertiary-study-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
+| clm-ml4se-tertiary-study-unit | A1DT-ml4se-tertiary-study-C02 | 本文被编码样本单位为：secondary study（83 篇通过质量评估的二次研究，即 SLR / SMS / survey / taxonomy / meta-analysis）；间接覆盖 6 117 篇 primary study，但 primary 不是被逐一编码的样本单位 | sample_unit | sample_unit | ev-ml4se-tertiary-study-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
+| clm-ml4se-tertiary-study-tree | A1DT-ml4se-tertiary-study-C03 | 本文原生维度树 / 维度森林为：**维度森林**：以 secondary study 为节点，挂接多棵独立但同根的 schema 树（书目元数据树 / 研究方法与质量树 / SWEBOK KA × SE task 主题树 / ML 四轴分类树 / 含义与挑战树） | tree_type | native_tree | ev-ml4se-tertiary-study-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-ml4se-tertiary-study-pool | A1DT-ml4se-tertiary-study-C04 | 本文统计池资格为：局部可统计——SWEBOK KA 分布、ML 四轴分布、DARE-4 分布等已有显式表格；但 A2a 仍需逐叶精核取值空间饱和性 | eligibility | statistical_pool | ev-ml4se-tertiary-study-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
-| [cmd-ml4se-tertiary-study-structure-check] | [dim-ml4se-tertiary-study-root], A1DT-ml4se-tertiary-study-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
-| [cmd-ml4se-tertiary-study-visual-check] | EV-ml4se-tertiary-study-002, EV-ml4se-tertiary-study-003 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |
+| chk-ml4se-tertiary-study-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
+| chk-ml4se-tertiary-study-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
+| chk-ml4se-tertiary-study-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |

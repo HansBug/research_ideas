@@ -17,7 +17,41 @@
 | 真实 LLM / `.env` | 未运行 / 未读取 |
 | 四个真实例子 | 不运行；A1 只做文库 dry-run |
 
-**总判断**：A1 当前已经从“最小脚手架”进入“可接力的长期文库起点”状态。19 篇均达到全文文本级，可用于验证字段抽取、证据等级、统计池候选过滤、A1-M0--M6 元维度和失败路径闭环；但 PR-A1-DT 的维度树证据链当前仍按 `schema_seed` / `boundary_anchor` 管理，不能直接进入 SUMMARY 定量统计或 Paper2 final finding。后续 A2a/A2b 的重点应是扩大样本、补图表/页码级证据锚点、收敛字段取值空间，并记录 researcher adoption decision，完成后才可把候选主统计池升级为正式统计证据。
+**总判断**：A1 当前已经从“最小脚手架”进入“可接力的长期文库起点”状态。19 篇均达到全文文本级，可用于验证字段抽取、证据等级、统计池候选过滤、A1-M0--M6 元维度和失败路径闭环；但 PR-A1-DT / v2 的维度树证据链当前仍按 `schema_seed` / `boundary_anchor` 管理，且 v2 19×3 审计尚未产出结果，不能直接进入 SUMMARY 定量统计或 Paper2 final finding。后续 A2a/A2b 的重点应是扩大样本、补图表/页码级证据锚点、收敛字段取值空间，并记录 researcher adoption decision，完成后才可把候选主统计池升级为正式统计证据。
+
+## 1.1 PR #135 A1-DT v2 抽取与审计口径
+
+A1-DT v2 的核心修正是把“单篇论文原生维度树 / 维度森林”和“跨论文 A1-M0--M6 投影矩阵”分开：每篇 `review.md` 应优先复原原文自己的 RQ、样本单位、抽取字段、分类 schema、统计表、roadmap / guideline stage 与 finding path；A1-M0--M6 只作为跨论文投影层，用于比较和接力，不能反向冒充单篇原生树。v1 审计目录 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅作为历史归档；v2 独立入口为 [audits/a1dt-v2-19x3/](./audits/a1dt-v2-19x3/)。
+
+v2 当前总判断：19 篇均具备全文文本、`metadata.json` 与 `review.md`，可用于 A1 脚手架和维度森林审计；其中 13 篇是后续主统计池候选，6 篇因 guideline / roadmap / proposal / theory-roadmap 等性质降级为方法学参考或 boundary seed。所有 v2 审计状态当前为 `planned`，在 19×3 审计结果、人工 adjudication 和单篇返修完成前，不得把 v2 表中样本数量或树型归纳写成 Paper2 final finding。
+
+## 1.2 A1-DT v2 统一总账表（按年份降序）
+
+字段口径：`样本单位` 与 `样本数量` 只记录单篇论文原文自己的 corpus / evidence base；roadmap、vision、proposal、guideline 或 convenience evaluation 若无系统样本库，必须显式降级。`原生树类型` 是单篇原文 schema 的树型判断；A1-M0--M6 只用于后续投影，不在本表中充当原生树。
+
+| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |
+|---:|---|---|---|---|---|---:|---|---|---|---|---|
+| 2026 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study | SLR + SMS | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 / A | peer-reviewed primary studies | 39 | RQ 驱动分类树 + SPACE/productivity 评价树 | `schema_seed`；全文文本级；表图待 A2a 精核 | 是 | planned | [review](./papers/llm-assistants-developer-productivity/review.md) |
+| 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | vision / roadmap | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 / A | 无系统样本库；愿景与社区经验来源 | -- | SE 3.0 技术栈 / challenge roadmap 树 | `boundary_anchor`；全文文本级；无系统检索分母 | 否；roadmap 降级 | planned | [review](./papers/ai-native-se-roadmap/review.md) |
+| 2025 | Research artifacts in secondary studies: A systematic mapping in software engineering | systematic mapping | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | SE secondary studies | 537 | 证据资产审计树 + artifact availability 统计树 | `schema_seed`；全文文本级；关键表格仍待最终版核对 | 是 | planned | [review](./papers/research-artifacts-secondary-studies/review.md) |
+| 2025 | On the road to interactive LLM-based systematic mapping studies | solution proposal | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | 无已执行系统样本库；方法流程 proposal | -- | LLM-supported SMS 方法流程树 | `boundary_anchor`；全文文本级；Fig. 1 / 阶段模型待精核 | 否；proposal 降级 | planned | [review](./papers/interactive-llm-systematic-mapping/review.md) |
+| 2025 | Formal requirements engineering and large language models: A two-way roadmap | vision / roadmap | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | 无系统样本库；roadmap concern/action points | -- | concern / mechanism / action-point roadmap 树 | `boundary_anchor`；全文文本级；非系统综述 | 否；roadmap 降级 | planned | [review](./papers/formal-re-llm-roadmap/review.md) |
+| 2024 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping | systematic mapping | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | research proposals / MDSE assistant studies | 58 | systematic mapping 分类树 + assistant strategy-goal-metric-user 树 | `schema_seed`；全文文本级；分类表待 A2a 精核 | 是 | planned | [review](./papers/mdse-modelling-assistants-mapping/review.md) |
+| 2024 | Model driven engineering for machine learning components: A systematic literature review | SLR | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | primary studies | 46 | MDE4ML lifecycle / motivation-solution-evaluation 树 | `schema_seed`；全文文本级；appendix / QA 表待精核 | 是 | planned | [review](./papers/mde-ml-components-slr/review.md) |
+| 2024 | Large Language Models for Software Engineering: A Systematic Literature Review | SLR | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 / A | LLM4SE studies | 395 | LLM4SE task-method-evidence 大规模分类树 | `schema_seed`；全文文本级；ACM final 与 replication package 待核对 | 是 | planned | [review](./papers/llm4se-systematic-review/review.md) |
+| 2024 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | MLR | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | 软件工程 / 系统软件 / 程序设计语言 / B | white literature + grey literature | 147 | 关系型维度树 + CPTM / thematic synthesis 树 | `schema_seed`；全文文本级；Zenodo 工件待 A2a 精核 | 是 | planned | [review](./papers/devsecops-primary-dimensions/review.md) |
+| 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | theory / evaluation / roadmap | [RE](https://link.springer.com/journal/766) | 软件工程 / 系统软件 / 程序设计语言 / B | convenience evaluation primary studies | 57 | RQT 理论 / 元模型概念树 + 状态评价树 | `boundary_anchor`；全文文本级；非标准 SLR/SMS | 否；theory-roadmap 降级 | planned | [review](./papers/requirements-quality-theory-roadmap/review.md) |
+| 2023 | Machine Learning for Software Engineering: A Tertiary Study | tertiary study | [CSUR](https://dl.acm.org/journal/csur) | 待核验 / 待核验 | reviews + traced primary studies | 83 reviews / 6117 primary studies | tertiary 主题 / 挑战 / action recommendation 树 | `schema_seed`；全文文本级；ACM final / arXiv 差异待核对 | 是 | planned | [review](./papers/ml4se-tertiary-study/review.md) |
+| 2022 | Analysing app reviews for software engineering: a systematic literature review | SLR | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 / B | primary studies | 182 | RQ 驱动分类树 + 评价 / 复现资产审计树 | `schema_seed`；全文文本级；F1--F18 与复杂表格待精核 | 是 | planned | [review](./papers/app-reviews-slr-se/review.md) |
+| 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | mapping guideline update / systematic map of maps | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | SE systematic mapping studies | 57 | mapping guideline update 方法树 + topic-independent dimensions 树 | `schema_seed`；全文文本级；Appendix A / B 待精核 | 是；方法学统计样本 | planned | [review](./papers/petersen-2015-mapping-guidelines-update/review.md) |
+| 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | SMS | [SEAA](https://dsd-seaa.com/) | -- / -- | articles | 28 | SMS problem-benefit-solution 树 + Agile RE 主题分类树 | `schema_seed`；全文文本级；短文表格待核对 | 是 | planned | [review](./papers/re-agile-sms-2015/review.md) |
+| 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | tertiary study | [EmpiRE](https://empire2014.wordpress.com/) | -- / -- | distinct reviews / publications | 53 reviews / 64 publications | RE tertiary 主题统计树 + quality / impact 树 | `schema_seed`；全文文本级；workshop 短文需降级 | 是；短文边界 | planned | [review](./papers/re-tertiary-study-2014/review.md) |
+| 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | updated tertiary study | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | new SLRs in update window | 67 | tertiary 更新统计树 + predecessor/update 关系树 | `schema_seed`；全文文本级；与前序样本合并关系待精核 | 是 | planned | [review](./papers/da-silva-2011-six-years-slr/review.md) |
+| 2009 | Systematic literature reviews in software engineering – A systematic literature review | tertiary-like SLR | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 / B | relevant SLR studies | 20 | early SE SLR 生态统计树 + quality evaluation 树 | `schema_seed`；全文文本级；早期 venue 手工搜索边界 | 是 | planned | [review](./papers/kitchenham-2009-slr-tertiary/review.md) |
+| 2008 | Systematic Mapping Studies in Software Engineering | SMS 方法论文 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 / C | 方法示例 / illustrative primary-study set | -- | SMS 方法流程树 + keywording / classification facet 树 | `schema_seed`；全文文本级；方法论文不作领域分母 | 否；方法学参考降级 | planned | [review](./papers/petersen-2008-systematic-mapping/review.md) |
+| 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | guideline | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- / -- | 无系统样本库；方法指南 | -- | SLR protocol / search-selection-extraction-synthesis 方法树 | `schema_seed`；全文文本级；规范性指南 | 否；guideline 降级 | planned | [review](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+
+**本节结论**：v2 表把 19 篇统一放回对象总账，并把 roadmap / proposal / guideline 的样本单位写成 `--` 或非系统样本来源，防止它们混入主统计池。后续若 v2 审计发现某篇原生树类型或样本数量需要修正，应先改单篇 `review.md` 与 adjudication，再回填本表。
 
 ## 2. 核心口径：阅读状态、证据池与统计池
 
@@ -135,7 +169,7 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 
 ## 6.1 维度树模式总览
 
-本节是 PR-A1-DT 后新增的跨论文入口；本 PR 另有 [A1-DT 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 作为返修证据入口。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中新增 `维度树复原` 与 A.1--A.4 审计附录；下表只做总览和跳转，具体证据以单篇为准。
+本节是 PR-A1-DT 后新增的跨论文入口；当前 v2 批次为 [A1-DT v2 19×3 原生维度树审计](./audits/a1dt-v2-19x3/README.md)。旧 [A1-DT v1 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 仅为历史返修来源，不是当前事实口径。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中新增 `维度树复原` 与 A.1--A.4 审计附录；下表只做总览和跳转，具体证据以单篇为准。
 
 | 年份 | 论文 | 主类型 | 辅助类型 | 后续主统计池候选 | A1-DT 当前允许用途 | 单篇结论标识 | 详情 |
 |---:|---|---|---|---|---|---|---|

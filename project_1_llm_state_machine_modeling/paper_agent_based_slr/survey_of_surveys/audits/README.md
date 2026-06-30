@@ -4,9 +4,13 @@
 
 ## 当前批次
 
+> [!WARNING] v1-deprecated: [a1dt-19x3/](./a1dt-19x3/) 是旧批次历史归档；不得把其中结论直接当作 A1-DT v2 当前事实。当前执行入口是 [a1dt-v2-19x3/](./a1dt-v2-19x3/)。
+
+
 | 批次 | 目标 | 状态 | 入口 |
 |---|---|---|---|
-| A1-DT 19×3 全文审计 | 对当前 19 篇单篇 `review.md` 的维度树复原进行 codex / claude / deepseek 三路全文审计，检查原文 schema、叶子取值空间、关系边、统计用途和候选发现链路是否充分。 | 已完成 57/57 份审计；已回填为 A1-DT 结构化返修；仍保留 A2a 精确页码 / 图表核验边界。 | [a1dt-19x3/README.md](./a1dt-19x3/README.md) |
+| A1-DT v2 19×3 原生维度树审计 | 按 PR #135 v2 纪律重新审计当前 19 篇论文：维度树必须复原“该综述如何描述、编码、分类、统计其样本单位”，并由 codex / `claude -p` / `codex-deepseek exec` 三路独立读取全文。 | 当前执行批次；57 份 prompt 已物化；结果、日志、主线程裁决和 review.md 返修均写入本批次。 | [a1dt-v2-19x3/README.md](./a1dt-v2-19x3/README.md) |
+| A1-DT v1 19×3 全文审计 | 对旧版 `review.md` 的维度树复原进行 codex / claude / deepseek 三路全文审计；该批次基于 v1“原文 schema 主树 + 通用接口投影”口径。 | **v1-deprecated：已完成 57/57，但只作为历史归档和返修来源，不是当前事实口径。** | [a1dt-19x3/README.md](./a1dt-19x3/README.md) |
 
 ## 维护纪律
 

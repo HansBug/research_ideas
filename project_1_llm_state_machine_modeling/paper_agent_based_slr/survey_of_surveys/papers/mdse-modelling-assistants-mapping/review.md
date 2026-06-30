@@ -392,170 +392,392 @@ modelling_assistant_review
 
 ## 维度树复原
 
-### 一句话结论
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__codex.md](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__codex.md)、[../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__claude.md](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__claude.md)、[../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__deepseek.md](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/mdse-modelling-assistants-mapping.md](../../audits/a1dt-v2-19x3/adjudications/mdse-modelling-assistants-mapping.md)。
 
-本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mdse-modelling-assistants-mapping-tree-type]
+### v2 主线程采用说明
 
-旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
 
-**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-mdse-modelling-assistants-mapping-source-schema-candidates]
+### 0. 审计结论卡片
 
-### 根问题 / RQ 到主干分支映射
+| 项 | 结论 |
+|---|---|
+| paper slug | `mdse-modelling-assistants-mapping` |
+| agent | `claude`（Opus 4.7 [1m]，本会话由本进程直接执行） |
+| 是否已读 `paper_content.txt` | 是；分段阅读 §1–§8（Page 1–18）及 References 起始部分；Table 1–5 文本核验 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是；DOI 10.1016/j.infsof.2024.107492、IST 2024、CCF B、`evidence_role=systematic_mapping_dimension_pattern` 已记录 |
+| 是否打开或核对 `paper.pdf` | 否（本审计只基于本地 `paper_content.txt` 文本与 `bibtex.bib` / `metadata.json`，未单独打开 PDF 视觉核验；图 4–15 的 bubble chart、PRISMA flow、Research Agenda 图等仍需 A2a 视觉核验） |
+| 原文类型 | SMS（systematic mapping study）+ 实践侧 grey-literature documentation review（混合：SMS + practice review） |
+| 被编码样本单位 | (a) primary studies / proposals（n=58，引用 [20]–[77]）；(b) MDSE tools from Gartner Magic Quadrant 2023（n=17，其中 7 个有 documentation，产出 15 个 practice proposals） |
+| 样本数量 / 分母 | 文献侧：3,176 screened records → 77 possible → 58 included；K=0.634（inclusion）/ 0.651（clustering）。实践侧：17 GMQ tools → 10 NF + 7 D → 15 practice proposals |
+| 原生树类型 | **维度森林**：literature-side SMS 编码 schema 一棵树（strategy / goal / limitation / metric / target user）+ practice-side documentation 编码同一 schema 投影一棵子树，外接 GMQ 分类（LE/C/V/NP）与 documentation 状态（D/NF） |
+| 主统计池资格 | 局部可统计：proposals × cluster 频次表（Table 2/3/4）、literature vs practice 分布（Fig. 13）有原文分母与显式数字，可作主统计池候选；但**单标签 cluster** 与作者术语 cluster 边界主观这两条限制必须随统计一起迁移 |
+| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
 
-| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
-|---|---|---|---|---|---|
-| [dim-mdse-modelling-assistants-mapping-root] | Understanding the landscape of software modelling assistants for MDSE tools 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-mdse-modelling-assistants-mapping-b1] 综述范围与研究问题；[dim-mdse-modelling-assistants-mapping-b2] 语料收集与纳排；[dim-mdse-modelling-assistants-mapping-b3] 主题 / 对象分类；[dim-mdse-modelling-assistants-mapping-b4] 方法 / 技术 / 干预；[dim-mdse-modelling-assistants-mapping-b5] 评价、统计与候选发现 | [ev-mdse-modelling-assistants-mapping-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+### 1. 原文证据阅读说明
 
-### 维度树结构
+本轮实际读取的本地文件与章节：
+
+- `bibtex.bib`（全文 12 行）：确认标题、作者、DOI、IST 2024 元信息。
+- `metadata.json`（全文 35 行）：确认 `evidence_role=systematic_mapping_dimension_pattern`、`eligible_for_statistical_synthesis=true`、`systematic_evidence_status=systematic_mapping`、CCF B / IST / hybrid OA。
+- `paper_content.txt`：分段阅读 §1 Introduction（Page 1–2）、§2 Related work（Page 2–3）、§3 Systematic mapping study design 含 §3.1–§3.5（Page 3–5）、§4 Results 含 §4.1–§4.4（Page 5–10）、§5 State of the practice 含 §5.1–§5.2（Page 10–13）、§6 Comparative analysis（Page 13–14）、§7 Threats（Page 15）、§8 Conclusions（Page 15–17）、References 开头（Page 17–18）。Table 1（QA questionnaire）、Table 2（RQ1 clusters）、Table 3（RQ2 goals/limitations）、Table 4（RQ3 metrics/users）、Table 5（RQ4 practice quotes）的文本部分均已通读。
+- `review.md`（既有 v1+19×3 返修版）：通读全文 564 行；当前 A1-DT v2 主干仍是六叶通用接口（`scope/corpus/taxonomy/method/evidence/finding`），原文真正编码 schema 被压在“原文模式候选叶子映射（A1 种子）”与“19×3 审计后返修”两个二级表中。
+
+仅基于 text 文件做的判断，**仍需 PDF 视觉核验**的内容：
+
+1. Fig. 4 RQ1 distribution、Fig. 5 G–L bubble、Fig. 6 M–U bubble、Fig. 11 S–G–L bubble、Fig. 12 G–M–U bubble、Fig. 13 lit-vs-practice 的具体数值与气泡半径口径；
+2. Fig. 1（Research overview）、Fig. 2（SMS design overview）、Fig. 3（PRISMA flow）、Fig. 7（GMQ review overview）、Fig. 9/10（practice distributions）、Fig. 14（repository visualisation）、Fig. 15（research agenda）的精确节点与文字；
+3. §4.3 文中“five limitation clusters”与 Table 3 中 L1–L6 的口径差异：是否在版式中存在 L6 的脚注 / inline 解释；
+4. Zenodo replication package `10262145` 的 raw extraction 与 cluster CSV。
+
+关键原文证据锚点（5–12 条，短引或释义）：
+
+| # | 章节定位（page / 行近似） | 角色 | 简要释义或短引 |
+|---|---|---|---|
+| E1 | §1, Page 1, abstract & “Modelling assistance is the strategy—i.e., any method, technique, framework, or guideline—that aims to assist humans during software modelling tasks in MDSE tools.” | scope definition | 给出 modelling assistance 定义，并明确 unit = MDSE-tool-user-facing proposals |
+| E2 | §1, Page 2, MRQ：“What proposals exist in the literature and practice to assist humans during modelling tasks in MDSE tools?” | RQ root | MRQ + 拆解为 RQ1/RQ2/RQ3 + 实践侧 RQ4 |
+| E3 | §3.1, Page 3–4, RQ1/RQ2/RQ3 的精确措辞与“we expect to gather a set of tools, methods, techniques, and frameworks…” | 树根 → 主干字段 | 显式说明 extraction 字段：strategy / goals / limitations / metrics / target users |
+| E4 | §3.5, Page 4–5：“RQ1: Extract the keywords the proposals’ authors use…; RQ2: …leave the field blank…; RQ3: …Leave the field blank if the authors do not state something…or if the authors use ‘user’ to refer to their target users.” | 抽取规则 + 缺失语义 | 原文显式定义“留空”=作者未报告；后续转为 L-NS / NE / U-NS 编码 |
+| E5 | §3.5, Page 5 脚注 5：“we recognise that…definitions of method, framework, technique, and tool are still not unified…we rely on the keywords adopted by the proposals’ authors and our definition to each cluster.” | terminology bias | 作者承认 cluster 边界依赖作者术语 |
+| E6 | §4.1, Page 5–6 与 Fig. 3：1,996 + 5 = 2,001 → 51 possible → top 12 seeds → 4 rounds snowballing → 1,175 records → total 3,176 screened → 77 possible → 58 included；K=0.634 / 0.651 | corpus pipeline | 系统检索分母与 inter-rater 数据 |
+| E7 | §4.2, Table 2 + Fig. 4：Tools 39.7 %、Frameworks 19.0 %、Techniques 15.5 %、Methods 13.8 %、Guidelines 6.9 %、Languages 5.2 %；“93.1 % … totally or partially software implementations” | strategy taxonomy | 6-cluster 完整枚举 + 比例 |
+| E8 | §4.3, Page 7：“we propose seven clusters about proposals’ goals and five clusters about proposals’ limitations.”，但 Table 3 列出 L1–L6（含 L6 usability 仅 [65]） + L-NS | **原文内部口径不一致** | 必须按 not_verified 保留，A2a 须做 PDF/Zenodo 复核 |
+| E9 | §4.3, Page 8：分布 “G6 31.0 %（18）……G1/G2/G3/G4/G7 合 43.1 %（25）……G5 25.9 %（15）……50.0 % proposals 明确报告 limitations” | goal × create/refine 三分法 + limitation reporting rate | 直接量化 missingness |
+| E10 | §4.4, Table 4 + Page 9：M1 effectiveness 23.6 %、M2 efficiency 23.6 %、M3 user perception 4.2 %、NE 48.6 %；U1 27.6 %、U2 13.8 %、U3 29.3 %、U-NS 29.3 % | metric / user 频次 | 量化 evaluation gap 与 user gap |
+| E11 | §5.2, Table 5 + Fig. 9/10：17 GMQ tools → 10 NF + 7 D → 15 proposals；practice strategy=80 % Tool、goal=100 % 报告、limitation 报告 20 %、metric NF 73.3 %、user NF 73.3 % | practice projection | 与 literature 同一 schema 投影 + “you” 隐藏 target user |
+| E12 | §6, Fig. 11/12/13；§7.1 terminology / subjective interpretation / inter-rater；§7.2 grey literature & search bias；§7.3 language bias | cross-axis + threats | 关系边与 validity 边界的证据来源 |
+
+### 2. 样本单位与字段来源判定
+
+1. **原文纳入与逐项描述的对象是什么？**
+   - 主样本单位 = **primary study proposals**（n=58，每个 proposal 一行编码，引用 [20]–[77]）。
+   - 辅样本单位 = **MDSE tools**（n=17 GMQ tools，作为 grey-literature carriers）与 **practice proposals**（n=15 documented assistance proposals inside 7 tools）。
+   - 不是“按 RQ 列 finding”，也不是“按章节列工具”，而是“每条 proposal 一条记录、字段化编码、再聚类”。
+
+2. **作者有没有系统检索 / 纳排 / 抽取 / 编码方案？**
+   - 有完整系统流程：PICO 检索式（5 数据库）+ snowballing（4 轮，top-12 seeds 来自 QA）+ I/E criteria（I1–I2、E1–E5）+ 3-point Likert QA（Table 1）+ data extraction schema（RQ1 keywords / RQ2 goals & limitations / RQ3 metrics & users）+ 三 reviewer + K-statistic 报告。
+   - 实践侧不是新数据库检索，而是 GMQ 2023 报告 → 17 tool 列表 → 公开文档 quote 抽取 → 同 schema 投影。
+
+3. **原文字段来自哪里？**
+   - 主 schema 来自 **§3.5 data extraction strategy + §4.2/§4.3/§4.4 cluster definitions + Table 2/3/4**。这是“extraction form + post-hoc cluster ontology”混合：先抽 author keywords，再由 R1 cluster、R4 复核、K-statistic 量化 agreement。
+   - 缺失语义来自 §3.5 与 §4.3/§4.4 显式编码：`L-NS`（limitation not specified）、`NE`（not evaluated）、`U-NS`（generic “user” 或 “he/she” 隐藏的 target user）；practice 侧加 `NF`（documentation not found）。
+   - replication package = Zenodo `10262145`，含 raw + clustered data（本审计未访问）。
+
+4. **RQ 与样本单位的关系：**
+   - RQ1–RQ3 = **样本字段定义**（按 RQ 提取并 cluster），不是结果分章。
+   - RQ4 = **实践侧 schema 投影 + GMQ 分类辅助维度**。
+   - MRQ 是树根问题；RQ 是“样本单位 → 字段树各主干”的桥。
+
+5. **是否需要降级？**
+   - **不降级**：本文确有系统样本库（58 + 15）、显式纳排、QA、K-statistic、replication package。可作为 schema-seed + 局部统计候选。
+   - 但 **单标签 cluster**（§4.2 末尾：“we cluster each proposal in one cluster even if some overlap”）与 **作者术语 cluster**（§3.5 / §7.1 terminology bias）这两条边界必须与统计一起迁移；混合型 LLM/agent assistant 不能机械套用单标签。
+
+### 3. 原生样本编码维度树（维度森林）
+
+下面是按本文 §3.5 + §4.2/§4.3/§4.4 + Table 2/3/4 + §5 实际还原的**原生编码 schema**（替代 review.md 当前那六叶通用接口主树）：
 
 ```text
-[dim-mdse-modelling-assistants-mapping-root] Understanding the landscape of software modelling assistants for MDSE tools
-├── [dim-mdse-modelling-assistants-mapping-b1] 综述范围与研究问题
-│   └── [leaf-mdse-modelling-assistants-mapping-scope] 研究范围与单位对象
-├── [dim-mdse-modelling-assistants-mapping-b2] 语料收集与纳排
-│   └── [leaf-mdse-modelling-assistants-mapping-corpus] 语料与纳排链条
-├── [dim-mdse-modelling-assistants-mapping-b3] 主题 / 对象分类
-│   └── [leaf-mdse-modelling-assistants-mapping-taxonomy] 主题与维度分类
-├── [dim-mdse-modelling-assistants-mapping-b4] 方法 / 技术 / 干预
-│   └── [leaf-mdse-modelling-assistants-mapping-method] 方法 / 技术 / 干预分类
-└── [dim-mdse-modelling-assistants-mapping-b5] 评价、统计与候选发现
-    └── [leaf-mdse-modelling-assistants-mapping-evidence] 评价、证据与复现资产
-    └── [leaf-mdse-modelling-assistants-mapping-finding] 统计观察与候选发现
+[ROOT] MDSE modelling assistance landscape (Mosquera et al. 2024)
+│
+├── [B-meta] Study & corpus metadata (per-proposal record key)
+│   ├── proposal_id            // [20]..[77]; 1 row per proposal
+│   ├── source_track           // database_search | snowballing | external_reviewer_suggestion
+│   ├── inclusion_criteria_pass // I1, I2 (boolean each)
+│   ├── exclusion_criteria_trigger // E1..E5 (one or more)
+│   ├── quality_score           // 3-point Likert × 10 items (Table 1)
+│   ├── selected_as_snowball_seed // true if in top-12
+│   └── kappa_basis             // for inclusion (0.634) and clustering (0.651)
+│
+├── [B-RQ1] Modelling assistance strategy (RQ1)
+│   ├── strategy_cluster        // ENUM = {Tools, Guidelines, Techniques, Methods, Frameworks, Languages}  (single-label, §4.2)
+│   ├── strategy_subtype        // free-text but author-keyword grounded
+│   │   ├── Tools.subtype       // recommender_system | AI_software_assistant | bot | plugin | view_manager | modelling_env | VR_env | reactive_system | testing_tool | transformation_tool | collab_tool
+│   │   ├── Guidelines.subtype  // ISO_standardisation | flexible_workflow | refactoring_process | multi_modelling_arch
+│   │   ├── Techniques.subtype  // model_development | model_validation | model_repair
+│   │   ├── Methods.subtype     // consistency_validation | model_repair | task_driven_reuse | MDE_alignment
+│   │   ├── Frameworks.subtype  // change_propagation | testing | collaborative_modelling | co_evolution | formal | modelling_framework
+│   │   └── Languages.subtype   // mega_modelling | UML_extension | modelling_template
+│   ├── software_based_ratio    // {totally, partially, no}  (§4.2 末 93.1 % vs 6.9 %)
+│   └── author_keyword_evidence // raw text fragment (per §3.5)
+│
+├── [B-RQ2-G] Goals (RQ2-G)
+│   ├── goal_cluster            // ENUM = {G1 change propagation, G2 consistency checking, G3 model compatibility, G4 model quality, G5 user interaction, G6 model evolution, G7 vulnerability detection}
+│   ├── create_refine_role      // ENUM = {create_only(G6), refine_only(G1/G2/G3/G4/G7), both(G5)}   (§4.3 三分)
+│   └── goal_evidence_quote     // raw fragment
+│
+├── [B-RQ2-L] Limitations (RQ2-L)
+│   ├── limitation_reporting_status // {specified, not_specified=L-NS}  (§4.3：50.0 % 报告)
+│   ├── limitation_cluster      // ENUM = {L1 accuracy, L2 effort, L3 generality, L4 learnability, L5 scope, L6 usability}  ← **Table 3 列 6 类，§4.3 prose 写 “five clusters”，待复核**
+│   └── limitation_evidence_quote
+│
+├── [B-RQ3-M] Evaluation metrics (RQ3-M)
+│   ├── evaluation_status       // {empirically_evaluated, not_evaluated=NE}
+│   ├── metric_cluster          // ENUM = {M1 effectiveness, M2 efficiency, M3 user perception}  (TAM-based, §4.4)
+│   ├── metric_subtype          // M1: faults | F-measure | accuracy | recall | precision | success_score | accepted_suggestions | compression_factor | feasibility | stakeholder_participation | trace_collection | inconsistency_coverage | effectiveness
+│   │                           // M2: modelling_time | completion_time | testing_gen_time | repair_gen_time | performance | computational_effort | recommendation_time | preprocessing_time | resource_import | execution_count_reduction | execution_time
+│   │                           // M3: industrial_adoption_perception | perceived_usefulness
+│   └── metric_evidence_quote
+│
+├── [B-RQ3-U] Target users (RQ3-U)
+│   ├── user_reporting_status   // {specified, generic_user_hidden=U-NS}  (§4.4 explicit)
+│   ├── user_cluster            // ENUM = {U1 designers/modellers, U2 domain experts, U3 software developers}
+│   ├── user_subtype            // U1: software_designer | model_developer | engineer_with_design_exp | UML_developer | MDE_developer | student/novice_modeller
+│   │                           // U2: business_analyst | end_user | domain_user | domain_expert | domain_engineer | business_user
+│   │                           // U3: developer | software_developer | SE_student | software_maintainer
+│   └── user_evidence_quote
+│
+├── [B-RQ4-practice] Practice-side projection (RQ4)
+│   ├── tool_id                 // 17 GMQ tools
+│   ├── gmq_class               // ENUM = {LE Leaders, C Challengers, V Visionaries, NP Niche Players}
+│   ├── documentation_status    // ENUM = {D documented, NF not_found}   (10 NF / 7 D)
+│   ├── practice_proposal_id    // 15 sub-proposals inside 7 D tools
+│   ├── practice_strategy       // projected to RQ1 schema (predominantly Tools)
+│   ├── practice_goal           // projected to RQ2-G (G6 most common)
+│   ├── practice_limitation     // projected to RQ2-L (mostly NF, only L1/L3/L5 surfaced)
+│   ├── practice_metric         // projected to RQ3-M (mostly NF, M3 absent)
+│   ├── practice_user           // projected to RQ3-U (mostly U3, U1/U2 absent)
+│   ├── second_person_hidden    // boolean: doc uses “you” to hide target user
+│   └── doc_quote_anchor        // URL / user-guide section / whitepaper id (Table 5)
+│
+├── [B-cross] Cross-axis derivations (§6, Fig. 5/6/11/12/13)
+│   ├── strategy × goal × limitation   // Fig. 11
+│   ├── goal × metric × user           // Fig. 6 / Fig. 12
+│   └── literature × practice          // Fig. 13
+│
+└── [B-validity] Validity threats (§7)
+    ├── internal: selection_bias | extraction_bias | subjective_clustering | inter_rater (K=0.634/0.651) | reviewer_fatigue
+    ├── construct: grey_literature_bias | search_bias
+    └── external: language_bias (English only)
 ```
 
-### 叶子维度表
+**取值空间类型速查：**
 
-| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [leaf-mdse-modelling-assistants-mapping-scope] | 研究范围与单位对象 | [dim-mdse-modelling-assistants-mapping-b1] | 定义 MDSE modelling assistants 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-scope] |
-| [leaf-mdse-modelling-assistants-mapping-corpus] | 语料与纳排链条 | [dim-mdse-modelling-assistants-mapping-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-corpus] |
-| [leaf-mdse-modelling-assistants-mapping-taxonomy] | 主题与维度分类 | [dim-mdse-modelling-assistants-mapping-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-taxonomy] |
-| [leaf-mdse-modelling-assistants-mapping-method] | 方法 / 技术 / 干预分类 | [dim-mdse-modelling-assistants-mapping-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-method] |
-| [leaf-mdse-modelling-assistants-mapping-evidence] | 评价、证据与复现资产 | [dim-mdse-modelling-assistants-mapping-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-evidence] |
-| [leaf-mdse-modelling-assistants-mapping-finding] | 统计观察与候选发现 | [dim-mdse-modelling-assistants-mapping-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-mdse-modelling-assistants-mapping-leaf-finding] |
-
-### 原文模式候选叶子映射（A1 种子）
-
-本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
-
-| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
-|---|---|---|---|---|---|---|
-| [leaf-mdse-modelling-assistants-mapping-orig-assistant-strategy] | [dim-mdse-modelling-assistants-mapping-b1] | 建模助手策略 | 推荐、生成、补全、检测、修复、可视化、解释等 strategy。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-mdse-modelling-assistants-mapping-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-mdse-modelling-assistants-mapping-orig-assistant-goal] | [dim-mdse-modelling-assistants-mapping-b2] | 目标 / 支持阶段 | 创建模型、refinement、一致性、演化、交互、漏洞检测等 goal。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-mdse-modelling-assistants-mapping-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-mdse-modelling-assistants-mapping-orig-modeling-artifact] | [dim-mdse-modelling-assistants-mapping-b3] | 建模工件 | UML、DSL、模型元素、转换、约束、代码或其他 MDSE artifact。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-mdse-modelling-assistants-mapping-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-mdse-modelling-assistants-mapping-orig-metric-user] | [dim-mdse-modelling-assistants-mapping-b4] | 指标与用户 | effectiveness、efficiency、user perception、目标用户、参与者和使用场景。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-mdse-modelling-assistants-mapping-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-mdse-modelling-assistants-mapping-orig-limitation] | [dim-mdse-modelling-assistants-mapping-b5] | 限制类别 | accuracy、effort、generality、learnability、scope、usability 或未报告限制。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-
-### 原文 schema 主树（19×3 审计后返修）
-
-本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
-
-审计入口：[codex](../../audits/a1dt-19x3/results/mdse-modelling-assistants-mapping__codex.md)、[claude](../../audits/a1dt-19x3/results/mdse-modelling-assistants-mapping__claude.md)、[deepseek](../../audits/a1dt-19x3/results/mdse-modelling-assistants-mapping__deepseek.md)。 [clm-mdse-modelling-assistants-mapping-a1dt-19x3-repair]
-
-| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
-|---|---|---|---|---|---|
-| [dim-mdse-modelling-assistants-mapping-orig-rq1-strategy] | RQ1 建模助手策略 | 6 个策略 cluster、13 个 tool 子型、assistant capability | strategy taxonomy seed | cluster/tool 层级需精核 | 核对 RQ1 结果表 |
-| [dim-mdse-modelling-assistants-mapping-orig-rq2-language] | RQ2 建模语言与工件 | UML、DSL、SysML、模型类型、编辑任务、notation | domain object seed | 语言和任务需分列 | 核对 modelling language 表 |
-| [dim-mdse-modelling-assistants-mapping-orig-rq3-evaluation] | RQ3 评价与证据 | accuracy、usability、effort、empirical study、dataset、baseline | evaluation seed | 评价对象和指标分开 | 核对 evaluation 表 |
-| [dim-mdse-modelling-assistants-mapping-orig-tAM-user] | 用户接受与 TAM | perceived usefulness、ease of use、user role、interaction mode | human factor seed | TAM 是解释框架不是结果统计 | 核对 TAM 相关讨论 |
-| [dim-mdse-modelling-assistants-mapping-orig-method-tool-relation] | 方法-工具-指标关系 | strategy→tool、tool→metric、language→task、user→evaluation 关系边 | 关系型 schema seed | no linked metric/tool 需记录 | 核对 Fig/table 交叉关系 |
-| [dim-mdse-modelling-assistants-mapping-orig-limitation] | 限制与研究缺口 | accuracy、effort、generality、learnability、scope、usability、not reported | candidate gap seed | 单篇 discussion 保持 weak | 核对 limitation clusters |
-
-#### 三路审计综合返修结论
-
-| 审计共同问题 | 本轮返修动作 | 剩余风险 |
+| 主干 | 树结构 | 取值空间类型 |
 |---|---|---|
-| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
-| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
-| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
+| B-meta | 每 proposal 一行 | 标识符 / 数值 / 布尔 |
+| B-RQ1 strategy_cluster | 单标签 ENUM | 完整封闭枚举（6 类） |
+| B-RQ1 strategy_subtype | 层级子枚举 | 层级枚举 + 自由文本 anchor |
+| B-RQ2-G goal_cluster | 单标签 ENUM | 完整封闭枚举（7 类） |
+| B-RQ2-G create_refine_role | 派生 ENUM | 3 类 |
+| B-RQ2-L limitation_cluster | 单/多标签 ENUM | 封闭枚举（6 类，**与 prose 中“five”冲突，待核**）+ NS |
+| B-RQ3-M metric_cluster | 单/多标签 ENUM | 封闭枚举（3 类） + NE |
+| B-RQ3-M metric_subtype | 自由文本 grounded | 自由文本加 TAM 类型 |
+| B-RQ3-U user_cluster | 单标签 ENUM | 封闭枚举（3 类）+ U-NS |
+| B-RQ4 gmq_class | 单标签 ENUM | 封闭枚举（4 类） |
+| B-RQ4 documentation_status | 布尔 ENUM | {D, NF} |
+| B-cross | 关系值 | 二维 / 三维 bubble |
+| B-validity | 自由文本加理由 | 分类 + 缓解 + 残余 |
 
-#### 审计返修口径
+**与 A1-DT v2 通用六叶接口的对应（仅作投影层，不是原文结构）：**
 
-- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
-- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
-- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
-#### 通用接口投影
+- `scope` → B-meta + §1 modelling assistance 定义；
+- `corpus` → §3.2/§3.3/§3.4 + Fig. 3 + B-RQ4 GMQ 池；
+- `taxonomy` → B-RQ1 / B-RQ2-G / B-RQ2-L / B-RQ3-M / B-RQ3-U（这是本文真正的 taxonomy 主体）；
+- `method` → B-RQ1（strategy 是 method/tool/framework/language 的并集）；
+- `evidence` → B-meta 的 QA、K-statistic、Zenodo replication、Table 5 quotes；
+- `finding` → B-cross + §8 discussion 的“documentation gap” + “AI/LLM disruption” 候选。
 
-下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
+### 4. 叶子维度表
 
-| 通用接口 | 在本文中的投影对象 | 使用边界 |
-|---|---|---|
-| 研究范围与单位对象 | `assistant strategy` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
-| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
-| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
-| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
-| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
-| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| leaf-strategy-cluster | 建模辅助策略 cluster | B-RQ1 | §3.5 RQ1 抽取规则 + §4.2 + Table 2 + Fig. 4 | 把每个 proposal 单标签归入 6 类作者术语 cluster 之一 | {Tools, Guidelines, Techniques, Methods, Frameworks, Languages} | 完整封闭枚举 | 不允许空；overlap 强制单标签（§4.2 末） | 频次 39.7/19.0/15.5/13.8/6.9/5.2 % | software-based 93.1 % 是候选 finding；混合系统外推风险 | E3, E7 | 单标签外推到 hybrid LLM/agent 系统须降级 |
+| leaf-strategy-subtype | 策略子型 | leaf-strategy-cluster | §4.2 段落子列表 + Table 2 keywords | 在 cluster 内的作者术语子型 | 层级枚举（Tools 11+ 子型；其余每 cluster 3–6 子型） | 层级枚举 + 自由文本 | 子型未明时仅留 cluster | 子型分布尚未给出数字 | recommender / AI assistant 子型可对接 LLM4STM | E7 | 子型词表非饱和，A2a 待 Zenodo 核 |
+| leaf-software-based | 软件实现程度 | B-RQ1 | §4.2 末 “93.1 %…software implementations” | 该 proposal 是否使用软件实现 | {totally_software, partially_software, no_software} | 派生 ENUM | 不允许空 | 93.1 % vs 6.9 % | 提示 guideline-only 占少数 | E7 | 直接迁移 |
+| leaf-goal-cluster | 目标 cluster | B-RQ2-G | §3.5 + §4.3 + Table 3 + Fig. 5 | 单标签归入 7 类目标 | {G1, G2, G3, G4, G5, G6, G7} | 完整封闭枚举 | 不允许空 | G6=31.0 %、G1+G2+G3+G4+G7=43.1 %、G5=25.9 % | G6 对接 STM generation；G2/G5 对接 verification & repair | E3, E9 | G3/G7 单 proposal，统计稀疏 |
+| leaf-create-refine-role | 创建/精化角色 | leaf-goal-cluster | §4.3 三分 | 派生：G6=create / G1-G4-G7=refine / G5=both | {create, refine, both} | 派生 ENUM（3 类） | 不允许空 | 31.0 / 43.1 / 25.9 % | 显示 refinement 主导，gap=纯创建少 | E9 | 直接迁移 |
+| leaf-limitation-reporting | 限制是否报告 | B-RQ2-L | §3.5 “leave blank” + §4.3 L-NS | 50.0 % 明确报告 limitations | {specified, L-NS} | 布尔 | L-NS 即 not-reported（不是 not_applicable） | 50.0 % vs 50.0 % | missingness 本身=候选 finding | E9 | 直接迁移 |
+| leaf-limitation-cluster | 限制 cluster | B-RQ2-L | Table 3 + §4.3 L1–L6 | 6 类限制（**§4.3 prose 写 “five”，待核**） | {L1 accuracy, L2 effort, L3 generality, L4 learnability, L5 scope, L6 usability} ∪ {L-NS} | 封闭枚举（带口径冲突待核） | L-NS=作者未声明 | 仅给出 L 子集的列表；具体每类频次未在 §4.3 完整给出 | L1/L3/L5 是 LLM4STM 主风险 | **E8 待复核** | 不允许把 “five” 直接当作权威；A2a 须复核 |
+| leaf-evaluation-status | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | proposal 是否被经验评价 | {empirically_evaluated, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选 finding | E10 | 直接迁移 |
+| leaf-metric-cluster | 指标 cluster | B-RQ3-M | Table 4 + §4.4 + TAM | 把指标按 TAM 分类 | {M1 effectiveness, M2 efficiency, M3 user perception} ∪ {NE} | 封闭枚举 | NE=未评价 | M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 % | M3=4.2 % 是强 gap | E10 | 一 proposal 可有多 metric，注意多标签 |
+| leaf-metric-subtype | 指标子型 | leaf-metric-cluster | Table 4 keywords | 在 cluster 内的具体指标项 | M1/M2/M3 子型枚举（见 §3） | 层级枚举 + 自由文本 | 缺则填 NE | 子型分布未数字化 | 直接对接 STM generation 评价 | E10 | 子型词表非饱和 |
+| leaf-user-cluster | 目标用户 cluster | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 designers/modellers, U2 domain experts, U3 software developers} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “user” / “he/she” 泛化或 second-person 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM domain expert 命题的起点 | E10, E11 | 直接迁移；practice 侧 U-NS 高度由 “you” 触发 |
+| leaf-doc-status | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ tool 是否有可访问的 modelling assistance documentation | {D documented, NF not_found} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | not-documented ≠ not-exists 是关键边界 | E11 | 直接迁移 |
+| leaf-gmq-class | GMQ 分类 | B-RQ4 | §5.1 + Fig. 8 | Gartner Magic Quadrant 2023 分类 | {LE, C, V, NP} | 完整封闭枚举（4 类） | 不允许空 | LE=5, C=1, V=3, NP=8 | LE 更常公开 assistant 文档 | E11 | 仅代表 enterprise low-code 视角 |
+| leaf-second-person-hidden | 第二人称隐藏用户 | leaf-doc-status | §5.2 末 “write using ‘you’… hides the actor” | 文档是否用 you 掩盖 target user | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 直接迁移 |
+| leaf-replication-link | 复现资料链接 | B-meta | §3.5 脚注 4 + §4.1 脚注 + §8 | Zenodo 10262145 | URL + 内容描述 | 链接 + 自由文本 | 不允许空 | n/a | 提升透明度证据 | E6 | 本审计未实际核验 |
+| leaf-kappa-inclusion | 纳入 K-statistic | B-meta | §4.1 | 三 reviewer inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.634 | 处于 Landis-Koch substantial | E6 | 直接迁移 |
+| leaf-kappa-clustering | 聚类 K-statistic | B-meta | §4.1 + §7.1 | 聚类 inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.651 | 同上 | E6 | 数据抽取阶段未算 K（§7.1） |
 
-#### 返修后仍需 A2a 精核
+### 5. 关系边表
 
-1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
-2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
-3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
-
-### 关系边表
-
-| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
-| [edge-mdse-modelling-assistants-mapping-method-evidence] | [leaf-mdse-modelling-assistants-mapping-method] | 支撑 / 度量 | [leaf-mdse-modelling-assistants-mapping-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-mdse-modelling-assistants-mapping-taxonomy] | [clm-mdse-modelling-assistants-mapping-edge-method-evidence] |
-| [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | [leaf-mdse-modelling-assistants-mapping-taxonomy] | 导出候选发现 | [leaf-mdse-modelling-assistants-mapping-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-mdse-modelling-assistants-mapping-stat] | [clm-mdse-modelling-assistants-mapping-edge-taxonomy-finding] |
+| edge-strategy-goal | leaf-strategy-cluster | 编码关联（per-proposal）| leaf-goal-cluster | 单标签 × 单标签 | 不允许空 | Fig. 5 + Fig. 11 + §6 | Tools↔G5/G6；Methods↔G2；Frameworks↔G1；用于 cross-axis 统计 |
+| edge-strategy-limitation | leaf-strategy-cluster | 编码关联 | leaf-limitation-cluster | 单 × 单/多 + L-NS | L-NS 显式 | Fig. 5 + Fig. 11 | Tools↔L1/L5/L3；Frameworks↔L5；候选 finding 来源 |
+| edge-goal-metric | leaf-goal-cluster | 编码关联 | leaf-metric-cluster | 单 × 单/多 + NE | NE 显式 | Fig. 6 + Fig. 12 | G6↔M1+M2；G5↔M2；G2↔M1 |
+| edge-goal-user | leaf-goal-cluster | 编码关联 | leaf-user-cluster | 单 × 单 + U-NS | U-NS 显式 | Fig. 6 + Fig. 12 | G6↔U1+U3；G5↔U1；G1↔U3+U2；显示 domain expert 命题缺口 |
+| edge-literature-practice | B-RQ1/2/3 (lit-side) | 投影关系（同 schema） | B-RQ4 (practice-side) | 同左 cluster × 同左 cluster | NF（practice 一侧专属） | Fig. 13 + §6 | 显示 practice 中 L2/L4/L5 缺失、U1/U2 缺失、M3 缺失 |
+| edge-tool-proposal | leaf-gmq-class + tool_id | 包含 | practice_proposal_id | 1 tool → 0..n proposals | NF=0 | §5.2 + Table 5 | 7 tools 包含 15 proposals |
+| edge-doc-strategy | leaf-doc-status | 仅在 D 下展开 | leaf-strategy-cluster (practice 投影) | 同 RQ1 ENUM | NF 直接终止链 | §5.2 “80 % strategies are tools” | not-documented 阻断后续编码 |
+| edge-quality-snowball | leaf-quality-score | 选种关系 | leaf-replication-link / snowball seeds | top-12 阈值 | n/a | §3.4 + §4.1 | 显示 corpus 入口偏置 |
 
-### 统计与候选发现链路
+### 6. 统计观察、候选 finding 与 final finding 边界
 
-| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
-|---|---|---|---|---|---|
-| [dim-mdse-modelling-assistants-mapping-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
-| [leaf-mdse-modelling-assistants-mapping-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
-| [leaf-mdse-modelling-assistants-mapping-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+**A. 由字段 / 表支持的统计观察（可统计、可作 schema-seed 主统计池候选）：**
 
-### 可迁移与不可迁移边界
+1. 纳入分母：3,176 screened → 77 possible → 58 included；K(inclusion)=0.634；K(clustering)=0.651。（E6）
+2. RQ1 strategy 分布：Tools 39.7 %、Frameworks 19.0 %、Techniques 15.5 %、Methods 13.8 %、Guidelines 6.9 %、Languages 5.2 %；software-based 93.1 %。（E7）
+3. RQ2-G create/refine 三分：G6 create=31.0 %（18）、refine(G1+G2+G3+G4+G7)=43.1 %（25）、G5 both=25.9 %（15）。（E9）
+4. RQ2-L reporting rate：50.0 % proposals 明确报告 limitations；L-NS=50.0 %。（E9）
+5. RQ3-M：M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 %。（E10）
+6. RQ3-U：U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 %。（E10）
+7. RQ4 documentation status：NF=10/17=58.8 %、D=7/17=41.2 %；7 D 包含 15 practice proposals；practice strategy 80 % tool、goal 100 % 报告、limitation 报告 20 %、metric NF 73.3 %、user NF 73.3 %。（E11）
+8. Cross-axis（Fig. 5/6/11/12/13）支持的成对关联：Tools↔G5/G6/L1/L3/L5；Methods↔G2；Frameworks↔G1/L5；G6↔U1+U3；G5↔U1；practice 中 L2/L4/L5、M3、U1/U2 缺失。（E7, E9, E10, E11, E12）
 
-| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
-|---|---|---|---|---|
-| [dim-mdse-modelling-assistants-mapping-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | MDSE modelling assistants 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-mdse-modelling-assistants-mapping-transfer] |
-| [leaf-mdse-modelling-assistants-mapping-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-mdse-modelling-assistants-mapping-finding-boundary] |
+**B. 原文 discussion / conclusion / future work 中的候选 finding（不是字段统计的直接结论，必须作 candidate 处理）：**
+
+1. “documentation about MDSE assistants’ limitations, evaluation metrics, and target users is scarce or non-existent”（abstract & §8）—— 由 #4–#7 支撑但仍是 author claim，迁移时需保留分母。
+2. “software-based strategies dominate”（§4.2）—— 93.1 % 数值支撑，相对稳健。
+3. “practice tools 中 not-documented ≠ not-exists”（§5.2 + §7.1）—— 是方法论级别 caveat，不是领域 finding。
+4. “AI/LLM/GPT 将带来 disruptive 变化，需要 unified framework”（§8）—— **不是字段统计结论**，是 future expectation；在 review.md 与 SUMMARY 中只能写成 candidate，不能写成已验证。
+5. “designers/modellers (U1) 与 domain experts (U2) 在 practice 中几乎缺席”（§6 / Fig. 13）—— 由 practice 73.3 % U-NS + “you” 隐藏支撑。
+6. “user-perception metrics (M3) 4.2 %”是 evaluation 维度的强 gap（§4.4 + Fig. 13）。
+7. proposed unified framework 应连接 IMA [103] 与 elicitation framework [81]（§8 future work）—— 仅 design implication，不进入领域 final finding。
+
+**C. 对 Paper2 可迁移的方法学启发（不依赖 MDSE 领域真值）：**
+
+1. 字段树 = RQ-extraction-schema-as-tree：把 RQ 直接当作主干、把抽取规则当作叶子；
+2. 显式缺失语义（L-NS / NE / U-NS / NF）是一等字段，不是空值；
+3. 单标签 cluster 风险 + 作者术语依赖（terminology bias）必须随 schema 一起迁移；
+4. literature × practice 同一 schema 双投影 + “not-documented ≠ not-exists”；
+5. inter-rater 在 inclusion + clustering 两个环节分别报告 K（数据抽取阶段未算 K，是已声明限制）；
+6. cross-axis bubble chart 是“多字段联合”候选 finding 的图形化载体；
+7. replication package（Zenodo）作为字段证据的最终源。
+
+**D. 绝不能迁移的领域结论：**
+
+1. 任何 RQ1–RQ4 中 MDSE 领域具体百分比、cluster 名、proposal id 不能直接外推到 LLM4STM / 控制系统状态机领域；
+2. “Tools 39.7 %”等比例只在 MDSE-assistant 普通研究池成立；
+3. “M3 4.2 %”不能直接用作 LLM4STM 的 evaluation gap 论据，只能作为方法学警示；
+4. AI/LLM disruption 论述是 future work，不是已验证结果。
+
+### 7. 对旧版 `review.md` 的返修来源（C/I/M）
+
+**C（critical，影响 A1-DT v2 事实源与统计池可信度）：**
+
+- **C1**：当前 `review.md` 主结构（第 4 节“维度树复原 → 叶子维度表”那 6 行 `leaf-*-scope/corpus/taxonomy/method/evidence/finding`）把跨论文通用接口当成原文叶子全集，与本文真实 schema（strategy/goal/limitation/metric/user × 5 字段 × 6+7+6+3+3+NS/NE/NF cluster）严重不符。**返修**：把 §3 给出的 [B-RQ1] / [B-RQ2-G] / [B-RQ2-L] / [B-RQ3-M] / [B-RQ3-U] / [B-RQ4-practice] / [B-cross] / [B-validity] 抬升为正式主干叶子，把现有六叶降级为 §维度树复原 末尾的 “通用接口投影”小节（这部分目前虽然存在，但被压在 19×3 v1 旧框下，不是 v2 主结构）。
+- **C2**：当前“原文模式候选叶子映射（A1 种子）”表只列了 5 个高粒度种子（strategy / goal / artifact / metric-user / limitation），且全部 `not_verified`；但原文 Table 2/3/4 已经显式给出**完整封闭枚举 + 频次**，应直接升级为已核验枚举（仅 `leaf-limitation-cluster` 因 §4.3 prose “five” vs Table 3 “L1–L6” 冲突保留 `not_verified`），不能继续整体停留在 `schema_seed`。
+- **C3**：当前 SUMMARY 或 A.3 中“样本单位 / 样本数量 / 原生树类型 / 统计池资格”应改为：原生树类型=**维度森林**、样本单位=**proposal + tool**（双层）、样本数=58 + 17/15、主统计池资格=**局部可统计 schema-seed**（不是当前的 `否（A1-DT 阶段仅作 schema seed）`，因为 Table 2–4 已给出原文 closed-enum + 比例 + K）。
+
+**I（important，影响证据链可读性与下游 schema 迁移）：**
+
+- **I1**：§4.3 文中 “five limitation clusters” 与 Table 3 “L1–L6” 的口径冲突应在 A.2 中作为单独 evidence 行登记（建议 `EV-mdse-modelling-assistants-mapping-006`），强度=`not_verified`，并列入 A2a 必须 PDF + Zenodo 复核任务。
+- **I2**：当前 A.2 把 5 条 evidence 全部标 `not_verified`，但 §3.5 / §4.1 / §4.2 / §4.4 / §5.2 文本级证据强度应至少升级为 `text_verified`（仅图表数字、bubble 半径与 §4.3 limitation count 保持 `not_verified`）。否则 A.3 推不出任何 `schema_seed` 以上的结论。
+- **I3**：缺失语义编码 `L-NS / NE / U-NS / NF` 是本文一等字段，应在叶子维度表中单独列出，而非合并在叶子定义里；当前 review.md 把它们隐入 `not_specified` 自由文本，下游 schema 迁移容易丢。
+- **I4**：当前 A.2 / A.3 没有为 [B-cross]（Fig. 5/6/11/12/13）建独立证据行；§6 cross-axis 是本文 finding 的主要来源，必须有专属 evidence + 关系边 claim。
+- **I5**：当前 SUMMARY 表“样本数量 / 分母 = 58 proposals / 3,176 records / 17 tools”应改为“proposals=58 / practice_tools=17（D=7 / NF=10）/ practice_proposals=15 / records_screened=3,176 / K_inclusion=0.634 / K_clustering=0.651”，把 K 一并显化。
+- **I6**：当前“可迁移与不可迁移边界”表把“具体领域结论”整体禁止迁移是对的，但应额外明确禁止把 `M3=4.2 %` 类指标直接当 LLM4STM gap 论据，只允许作方法学警示。
+
+**M（minor，可后续顺手清理）：**
+
+- **M1**：当前“历史草稿（已迁移，不作事实真源）”两节占 80+ 行，建议折叠到附录或文末 history 区，避免新 reviewer 误读为当前事实。
+- **M2**：emoji 列（如 `🟢` 等口径）不出现在本 review.md，但 `[clm-*]` 引用键格式偶有空格不一致，建议统一。
+- **M3**：将 Zenodo `10262145` 与 GMQ 2023 URL 在 A.1 中作为独立 src 行登记，便于 A2a 自动化抓取。
+- **M4**：CCF 等级、IST OA 状态、`paper.pdf` 视觉核验是否完成，建议在 0 卡片末单独列“尚未做的最小动作清单”，避免 reviewer 误以为已完成。
+
+### 8. 审计附录草案：证据账本与结论映射
+
+#### A.2 维度树证据账本草案（中文表头）
+
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-mma-001 | paper_content.txt, bibtex.bib | §1 Introduction（Page 1）+ Abstract | abstract; “Modelling assistance is the strategy…that aims to assist humans during software modelling tasks in MDSE tools.” | 给出 modelling assistance 定义和 MDSE/低代码边界 | scope_definition | text_verified | B-meta, ROOT, leaf-strategy-cluster | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
+| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 extraction rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | text_verified | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-limitation-reporting, leaf-evaluation-status, leaf-user-reporting | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
+| EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | corpus pipeline + inter-rater | corpus_pipeline | text_verified（图 3 视觉待核） | leaf-quality-score, leaf-kappa-inclusion, leaf-kappa-clustering, leaf-replication-link, B-meta | true（Fig. 3 视觉） | 仅本文样本池 |
+| EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 cluster + 比例 + 93.1 % software-based | taxonomy_with_distribution | text_verified（图 4 数字待核） | leaf-strategy-cluster, leaf-strategy-subtype, leaf-software-based | true（Fig. 4 视觉） | 单标签 cluster 风险 |
+| EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G clusters + “five limitation clusters”（prose）/ Table 3 列 L1–L6 + L-NS | taxonomy + 口径冲突 | text_verified_with_internal_conflict | leaf-goal-cluster, leaf-create-refine-role, leaf-limitation-reporting, leaf-limitation-cluster | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
+| EV-mma-006 | paper_content.txt | §4.4 + Table 4 + Fig. 6（Page 9–10） | 3 M + 3 U + NE/U-NS + 频次 | taxonomy + missingness | text_verified（图 6 数字待核） | leaf-evaluation-status, leaf-metric-cluster, leaf-metric-subtype, leaf-user-cluster | true（Fig. 6 视觉） | 一 proposal 可多 metric，注意多标签 |
+| EV-mma-007 | paper_content.txt | §5.1/§5.2 + Table 5 + Fig. 8/9/10（Page 10–13） | 17 GMQ tools → 10 NF + 7 D → 15 proposals；“you” 隐藏 user | practice_projection + missingness | text_verified（Fig. 9/10 视觉与 vendor URL 待核） | B-RQ4-practice, leaf-doc-status, leaf-gmq-class, leaf-second-person-hidden | true | grey-literature 局限于 GMQ；vendor URL 当前状态未复核 |
+| EV-mma-008 | paper_content.txt | §6 + Fig. 11/12/13（Page 13–14） | strategy×goal×limitation；goal×metric×user；lit vs practice | cross_axis_relations | text_verified（bubble 视觉待核） | edge-strategy-goal, edge-strategy-limitation, edge-goal-metric, edge-goal-user, edge-literature-practice | true | bubble 半径 = 计数，单 proposal 单 cluster |
+| EV-mma-009 | paper_content.txt | §7.1–§7.3（Page 15） | selection / extraction / subjective interpretation / inter-rater / grey literature / search / language bias | validity_threats | text_verified | B-validity, terminology_basis | 否 | 缓解 ≠ 消除；data extraction K 未算 |
+| EV-mma-010 | paper_content.txt | §8（Page 15–17） + Fig. 14/15 | future framework + AI/LLM disruption + Zenodo 10262145 | future_work_candidate_finding | text_verified（视觉待核） | candidate findings (B/C/D) | true | AI/LLM disruption=expectation，不是结果 |
+
+#### A.3 结论-证据映射草案
+
+| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
+|---|---|---|---|---|---|---|---|
+| C-mma-01 | 本文真正的 A1-DT 维度森林由 5 字段树（strategy / goal / limitation / metric / user）+ practice 投影 + cross-axis 关系 + validity 组成；不是六叶通用接口。 | tree_type | ROOT, B-RQ1..4, B-cross, B-validity | EV-mma-002, 004, 005, 006, 007, 008 | strong（schema 级） | review.md 主结构、SUMMARY 行 | 单标签 cluster + 作者术语 cluster 必须随用 |
+| C-mma-02 | 样本单位是 proposal（n=58）+ tool（n=17，含 15 practice proposals）的双层 schema；分母与 K 都已显化。 | sampling_unit | B-meta, B-RQ4 | EV-mma-003, 007 | strong | SUMMARY、统计池资格 | grey-literature 仅限 GMQ |
+| C-mma-03 | RQ1 strategy 是完整封闭 6-cluster 单标签编码；93.1 % software-based。 | closed_enum + distribution | leaf-strategy-cluster, leaf-software-based | EV-mma-004 | strong | 可作 schema-seed 统计 | 单标签压扁混合系统 |
+| C-mma-04 | RQ2-G 是完整封闭 7-cluster 单标签编码；可派生 create/refine 三分（31.0/43.1/25.9 %）。 | closed_enum + derived | leaf-goal-cluster, leaf-create-refine-role | EV-mma-005 | strong | 可作 schema-seed 统计 | G3/G7 单 proposal 稀疏 |
+| C-mma-05 | RQ2-L cluster 总数在原文内部存在 “five (§4.3 prose)” vs “L1–L6 (Table 3)” 冲突，必须保留 `not_verified` 直到 A2a 复核。 | internal_inconsistency | leaf-limitation-cluster | EV-mma-005 | weak | 候选 finding 不可作 final | 必须 A2a PDF + Zenodo 复核 |
+| C-mma-06 | RQ3-M cluster 是 3-cluster TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 evaluation gap。 | closed_enum + missingness | leaf-evaluation-status, leaf-metric-cluster | EV-mma-006 | strong | 可作 schema-seed 统计；可作方法学警示 | 不可直接外推 LLM4STM gap 数字 |
+| C-mma-07 | RQ3-U cluster 是 3-cluster 单标签 + U-NS；U-NS=29.3 %、practice 73.3 %；practice U-NS 由 “you” 触发是 §5.2 显式机制。 | closed_enum + missingness + mechanism | leaf-user-cluster, leaf-user-reporting, leaf-second-person-hidden | EV-mma-006, 007 | strong | 可作 schema-seed 统计 | 不外推领域比例 |
+| C-mma-08 | not-documented ≠ not-exists（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | leaf-doc-status, B-validity | EV-mma-007, 009 | strong | 直接迁移到 Paper2 / Project1 | grey-literature 局限 |
+| C-mma-09 | AI/LLM disruption 与 unified framework 论述是 future expectation，不是字段统计的 final finding。 | candidate_finding | §8 论述 | EV-mma-010 | weak | review.md / SUMMARY 只能写 candidate | 与原文 RQ 抽取数据不直接挂钩 |
+| C-mma-10 | cross-axis（strategy×goal×limitation；goal×metric×user；lit vs practice）是本文 finding 的主要候选来源，但需 PDF 复核 bubble 半径数字。 | relation_finding | edge-* | EV-mma-008 | medium | 可作 candidate finding | bubble 数字 PDF 待核 |
+| C-mma-11 | terminology bias + subjective clustering + data extraction K 未算 + grey literature limited to GMQ + English-only：5 条 validity 边界必须随 schema 一起迁移。 | migration_boundary | B-validity | EV-mma-009 | strong | review.md 迁移边界 + Paper2 启发 | 缓解不等于消除 |
+
+### 9. 技能使用与自我审查记录
+
+**已读技能 / 指南文件与采纳原则：**
+
+1. `ai-research-writing-skill/SKILL.md` —— 采纳 “claim-evidence-engineering” + “evidence gate / story gate / citation gate”：每个 leaf / claim 必须挂证据锚点（EV-mma-001..010），不写无证据的强 finding；§4.3 内部冲突 → 显式标 `not_verified`，不脑补。
+2. `ai-research-writing-skill/references/reviewer-guidelines.md` —— 采纳“constructive specificity”：返修建议 C/I/M 每条指定文件位置（review.md 哪一节、哪一表）+ 期望行为 + 实际行为差异。
+3. `ai-research-writing-skill/references/reviewer-self-review.md` —— 采纳“Five-Dimension Review + Reviewer-Review Simulation”，并把它转成本审计末尾的“最高风险 3 点”。
+4. `research-planning/SKILL.md` —— 采纳“先理解上下文 → 再生成 plan”的步骤约束，先读 schema 三件套再读论文。
+5. `research-planning/references/planning-prompts.md` —— Paper2Code 4-turn 模板让我先做“overall scope 判定 → architecture（维度树） → logic（叶子+关系边） → configuration（取值空间/缺失/统计）”而不是一次性堆。
+6. `research-planning/references/output-schemas.md` —— JSON schema 提示我把维度树以可序列化方式列出（叶子表 + 关系边表）。
+7. `autoresearch/SKILL.md` —— 提醒本任务是 artifact-gated 单步审计，不进入 stateful loop；本输出本身即为完成 artifact，无需 nudge。
+
+**Reviewer 自审：本输出最高风险的 3 点 + 主线程合并复核办法：**
+
+1. **§4.3 limitation 口径冲突可能让下游错把 6 当作权威**。主线程合并 review.md 时，必须把 `leaf-limitation-cluster` 与 EV-mma-005 同时标 `not_verified`，并在 SUMMARY 中给 “limitations cluster 数 5 或 6 待核” 留显式 risk 条目；A2a 必须打开 PDF Table 3 + Zenodo raw CSV 双源核对。
+2. **图表数字（Fig. 4/5/6/11/12/13）未做 PDF 视觉核验**。所有 cross-axis edge claim（C-mma-10）目前都基于 §6 文本叙述，bubble 半径未复核；合并时应保留 `needs_visual_check`，不要把 §6 中 “Tools↔G5/G6”、“Frameworks↔L5”、“G6↔U1+U3” 等关系直接升级为 strong。
+3. **旧版 review.md 历史草稿与 19×3 旧表与本 v2 审计存在叙事冲突**。合并时必须显式把旧 v1 主树 + 旧 19×3 主树降级为“历史草稿（已迁移）”小节，把本审计 §3 的维度森林作为唯一事实源；否则下游 paper2 reviewer 会同时看到三套相互矛盾的“原文 schema”。
+
+**blocked / timeout / 文件缺失：**
+
+- 无 `blocked`：所有要求阅读的技能文件、bibtex.bib、metadata.json、paper_content.txt、review.md 均成功本地读取。
+- 未访问：`paper.pdf` 未在本审计中打开（按硬约束 5 仅“必要时”才核对，且不允许 subagent；图表视觉核验留 A2a）；Zenodo `10262145` replication package 未访问（不在硬约束允许的本地材料范围内）。
+- 无 timeout。
+
+---
+
+报告结束。本审计为自包含完整报告；A1-DT v2 维度森林、叶子表、关系边表、证据账本草案与结论映射草案均已落到本回答正文，主线程可直接据此重写 `review.md` 的“维度树复原 / 叶子维度表 / 关系边表 / A.1–A.4 审计附录”节，无需再回到上一条消息或工具调用结果。
 
 ## 审计附录：证据链与结论-证据映射
 
+> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/mdse-modelling-assistants-mapping.md](../../audits/a1dt-v2-19x3/adjudications/mdse-modelling-assistants-mapping.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
+
 ### A.1 论文与本地文件来源
 
-| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
-| [src-mdse-modelling-assistants-mapping-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
-| [src-mdse-modelling-assistants-mapping-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
-| [src-mdse-modelling-assistants-mapping-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+| src-mdse-modelling-assistants-mapping-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
+| src-mdse-modelling-assistants-mapping-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
+| src-mdse-modelling-assistants-mapping-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
+| src-mdse-modelling-assistants-mapping-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-mdse-modelling-assistants-mapping-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-mdse-modelling-assistants-mapping-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/mdse-modelling-assistants-mapping__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-mdse-modelling-assistants-mapping-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/mdse-modelling-assistants-mapping.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
 
 ### A.2 维度树证据账本
 
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-mdse-modelling-assistants-mapping-001 | [ev-mdse-modelling-assistants-mapping-root] | [src-mdse-modelling-assistants-mapping-text], [src-mdse-modelling-assistants-mapping-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-mdse-modelling-assistants-mapping-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-mdse-modelling-assistants-mapping-002 | [ev-mdse-modelling-assistants-mapping-taxonomy] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-mdse-modelling-assistants-mapping-b1], [dim-mdse-modelling-assistants-mapping-b2], [dim-mdse-modelling-assistants-mapping-b3], [dim-mdse-modelling-assistants-mapping-b4], [dim-mdse-modelling-assistants-mapping-b5], [leaf-mdse-modelling-assistants-mapping-taxonomy], [leaf-mdse-modelling-assistants-mapping-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-mdse-modelling-assistants-mapping-003 | [ev-mdse-modelling-assistants-mapping-stat] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-mdse-modelling-assistants-mapping-evidence], [leaf-mdse-modelling-assistants-mapping-finding], [leaf-mdse-modelling-assistants-mapping-orig-assistant-strategy], [leaf-mdse-modelling-assistants-mapping-orig-assistant-goal], [leaf-mdse-modelling-assistants-mapping-orig-modeling-artifact], [leaf-mdse-modelling-assistants-mapping-orig-metric-user], [leaf-mdse-modelling-assistants-mapping-orig-limitation] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-mdse-modelling-assistants-mapping-004 | [ev-mdse-modelling-assistants-mapping-risk] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-mdse-modelling-assistants-mapping-root], [leaf-mdse-modelling-assistants-mapping-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-| EV-mdse-modelling-assistants-mapping-005 | [ev-mdse-modelling-assistants-mapping-relation] | [src-mdse-modelling-assistants-mapping-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边；本行在 A1-DT 仅作关系边 seed，待 A2a 精确页码 / 表图核验后才能升级。 | taxonomy | not_verified | [edge-mdse-modelling-assistants-mapping-method-evidence], [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ev-mdse-modelling-assistants-mapping-type | clm-mdse-modelling-assistants-mapping-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：SMS（systematic mapping study）+ 实践侧 grey-literature documentation review（混合：SMS + practice review） | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-mdse-modelling-assistants-mapping-unit | clm-mdse-modelling-assistants-mapping-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：(a) primary studies / proposals（n=58，引用 [20]–[77]）；(b) MDSE tools from Gartner Magic Quadrant 2023（n=17，其中 7 个有 documentation，产出 15 个 practice proposals） | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-mdse-modelling-assistants-mapping-denom | clm-mdse-modelling-assistants-mapping-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：文献侧：3,176 screened records → 77 possible → 58 included；K=0.634（inclusion）/ 0.651（clustering）。实践侧：17 GMQ tools → 10 NF + 7 D → 15 practice proposals | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-mdse-modelling-assistants-mapping-tree | clm-mdse-modelling-assistants-mapping-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**：literature-side SMS 编码 schema 一棵树（strategy / goal / limitation / metric / target user）+ practice-side documentation 编码同一 schema 投影一棵子树，外接 GMQ 分类（LE/C/V/NP）与 documentation 状态（D/NF） | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-mdse-modelling-assistants-mapping-pool | clm-mdse-modelling-assistants-mapping-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：局部可统计：proposals × cluster 频次表（Table 2/3/4）、literature vs practice 分布（Fig. 13）有原文分母与显式数字，可作主统计池候选；但**单标签 cluster** 与作者术语 cluster 边界主观这两条限制必须随统计一起迁移 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-mdse-modelling-assistants-mapping-tree-type] | A1DT-mdse-modelling-assistants-mapping-C01 | 本文的维度树主类型为“systematic mapping 分类树”，辅助类型为“assistant strategy-goal-metric-user 树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-mdse-modelling-assistants-mapping-tree-type] | tree_type | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-001, EV-mdse-modelling-assistants-mapping-004 | 树型判断仅限本文，不代表所有 MDSE modelling assistants 综述。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-scope] | A1DT-mdse-modelling-assistants-mapping-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-scope] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-corpus] | A1DT-mdse-modelling-assistants-mapping-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-corpus] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-taxonomy] | A1DT-mdse-modelling-assistants-mapping-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-taxonomy] | EV-mdse-modelling-assistants-mapping-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-method] | A1DT-mdse-modelling-assistants-mapping-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-method] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-evidence] | A1DT-mdse-modelling-assistants-mapping-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-evidence] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-leaf-finding] | A1DT-mdse-modelling-assistants-mapping-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-transfer] | A1DT-mdse-modelling-assistants-mapping-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-finding-boundary] | A1DT-mdse-modelling-assistants-mapping-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-mdse-modelling-assistants-mapping-finding] | EV-mdse-modelling-assistants-mapping-003, EV-mdse-modelling-assistants-mapping-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
-| [clm-mdse-modelling-assistants-mapping-edge-method-evidence] | A1DT-mdse-modelling-assistants-mapping-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-mdse-modelling-assistants-mapping-method-evidence] | EV-mdse-modelling-assistants-mapping-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-edge-taxonomy-finding] | A1DT-mdse-modelling-assistants-mapping-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-mdse-modelling-assistants-mapping-taxonomy-finding] | EV-mdse-modelling-assistants-mapping-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | weak | candidate_finding | false | -- |
-| [clm-mdse-modelling-assistants-mapping-source-schema-candidates] | A1DT-mdse-modelling-assistants-mapping-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-mdse-modelling-assistants-mapping-orig-assistant-strategy], [leaf-mdse-modelling-assistants-mapping-orig-assistant-goal], [leaf-mdse-modelling-assistants-mapping-orig-modeling-artifact], [leaf-mdse-modelling-assistants-mapping-orig-metric-user], [leaf-mdse-modelling-assistants-mapping-orig-limitation] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
-| [clm-mdse-modelling-assistants-mapping-a1dt-19x3-repair] | A1DT-mdse-modelling-assistants-mapping-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-mdse-modelling-assistants-mapping-root] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
+| clm-mdse-modelling-assistants-mapping-type | A1DT-mdse-modelling-assistants-mapping-C01 | 本文原文类型为：SMS（systematic mapping study）+ 实践侧 grey-literature documentation review（混合：SMS + practice review） | paper_type | type | ev-mdse-modelling-assistants-mapping-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
+| clm-mdse-modelling-assistants-mapping-unit | A1DT-mdse-modelling-assistants-mapping-C02 | 本文被编码样本单位为：(a) primary studies / proposals（n=58，引用 [20]–[77]）；(b) MDSE tools from Gartner Magic Quadrant 2023（n=17，其中 7 个有 documentation，产出 15 个 practice proposals） | sample_unit | sample_unit | ev-mdse-modelling-assistants-mapping-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
+| clm-mdse-modelling-assistants-mapping-tree | A1DT-mdse-modelling-assistants-mapping-C03 | 本文原生维度树 / 维度森林为：**维度森林**：literature-side SMS 编码 schema 一棵树（strategy / goal / limitation / metric / target user）+ practice-side documentation 编码同一 schema 投影一棵子树，外接 GMQ 分类（LE/C/V/NP）与 documentation 状态（D/NF） | tree_type | native_tree | ev-mdse-modelling-assistants-mapping-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-mdse-modelling-assistants-mapping-pool | A1DT-mdse-modelling-assistants-mapping-C04 | 本文统计池资格为：局部可统计：proposals × cluster 频次表（Table 2/3/4）、literature vs practice 分布（Fig. 13）有原文分母与显式数字，可作主统计池候选；但**单标签 cluster** 与作者术语 cluster 边界主观这两条限制必须随统计一起迁移 | eligibility | statistical_pool | ev-mdse-modelling-assistants-mapping-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
-| [cmd-mdse-modelling-assistants-mapping-structure-check] | [dim-mdse-modelling-assistants-mapping-root], A1DT-mdse-modelling-assistants-mapping-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
-| [cmd-mdse-modelling-assistants-mapping-visual-check] | EV-mdse-modelling-assistants-mapping-002, EV-mdse-modelling-assistants-mapping-003, EV-mdse-modelling-assistants-mapping-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |
+| chk-mdse-modelling-assistants-mapping-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
+| chk-mdse-modelling-assistants-mapping-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
+| chk-mdse-modelling-assistants-mapping-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |

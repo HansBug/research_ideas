@@ -1,5 +1,19 @@
 # survey_of_surveys/：综述之综述脚手架文库
 
+## 0. 当前事实口径：A1-DT v2
+
+> [!IMPORTANT]
+> A1-DT v2 是当前维度树事实口径。开始处理本目录前，必须先读 [GUIDE.md](./GUIDE.md) §6.3，再进入单篇 `papers/<slug>/review.md` 或审计目录。
+
+A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维度树 / 维度森林 + 跨论文投影层”：
+
+1. 单篇 `review.md` 必须从原文 RQ、贡献声明、抽取表、编码方案、taxonomy、roadmap action、guideline item 或证据呈现结构复原原生树 / 森林。
+2. [patterns/](./patterns/) 只做结果侧跨论文投影 / 归纳，不能反向作为单篇原生树模板。
+3. v2 新审计与新返修产物写入 `audits/a1dt-v2-19x3/`。
+4. [audits/a1dt-19x3/](./audits/a1dt-19x3/) 是 v1 历史归档，只能作为返修来源和历史证据，不是当前事实口径。
+
+> [!WARNING] v1-deprecated: `audits/a1dt-19x3/` 是 A1-DT v1 历史审计归档。不得把其中结论直接当作 A1-DT v2 当前事实；v2 新产物必须进入 `audits/a1dt-v2-19x3/`。
+
 ## 1. 定位
 
 本目录服务于第二篇论文的**综述之综述脚手架**。它从已有软件工程系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、三级研究（tertiary study）和方法学指南中抽取：
@@ -48,13 +62,13 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 | [SUMMARY.md](./SUMMARY.md) | 当前总账、候选池、dry-run 覆盖矩阵、脚手架模式、schema 缺口和更新日志。 |
 | [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
 | [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json` 和 `review.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。 |
-| [patterns/](./patterns/) | 字段 schema、字段变更和后续 A2a/A2b 汇总入口。 |
-| [audits/](./audits/) | 专项审计批次入口；当前包含 A1-DT 19×3 三路全文审计，用于追踪 reviewer 输入、结果、返修边界和结构门禁。 |
+| [patterns/](./patterns/) | 结果侧跨论文投影 / 归纳入口；只能汇总单篇原生树之后的可迁移字段，不能作为单篇树模板。 |
+| [audits/](./audits/) | 专项审计批次入口；v2 新产物写入 `audits/a1dt-v2-19x3/`，v1 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅历史归档。 |
 
 ## 5. 推荐阅读顺序
 
 1. 先读本 [README.md](./README.md) 明确边界。
-2. 再读 [GUIDE.md](./GUIDE.md) 明确证据等级、单篇 review 和 schema 回修规则。
+2. 再读 [GUIDE.md](./GUIDE.md)，尤其 §6.3，明确 A1-DT v2 的证据等级、单篇原生树 / 维度森林、样本单位降级和 schema 回修规则。
 3. 再读 [SUMMARY.md](./SUMMARY.md) 看当前 A1 状态和 dry-run 结论。
 4. 需要字段合同时读 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md)。
 5. 需要核验单篇证据时进入 [papers/](./papers/) 并优先读 `review.md`，再回到 `paper_content.txt` / `paper.pdf`。
@@ -70,11 +84,15 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；后续新增条目若全文不可得，仍必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 并在补齐后清零 active 状态。
 
 
-## 6.2 A1-DT 19×3 三路全文审计
+## 6.2 A1-DT v2 19×3 三路全文审计
 
-PR-A1-DT 已对当前 19 篇 `review.md` 形成 57 份 codex / claude / deepseek 全文审计，入口见 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，逐篇审计汇总见 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。这轮审计的结论已经回填为每篇 `review.md` 的“原文 schema 主树（19×3 审计后返修）”。
+A1-DT v2 是当前事实口径。v2 要求把 19 篇 `review.md` 统一到“单篇原生样本编码维度树 / 维度森林 + 跨论文投影层”的结构：先从原文复原每篇自己的 RQ / 样本单位 / 编码字段 / 关系边，再把可迁移部分投影到 [patterns/](./patterns/) 和 [SUMMARY.md](./SUMMARY.md)。
 
-注意：这仍是 A1-DT 结构化返修，不等于 A2a 精确页码、表号、图号和 supplementary 核验完成。所有 `schema_seed`、`not_verified`、`needs_manual_check` 口径必须保留，不能被 SUMMARY 或论文写作误读成已完成统计证据。
+v2 新产物必须写入 `audits/a1dt-v2-19x3/`。该目录尚未落地时，不能把 v1 归档当作 v2 完成证据。
+
+> [!WARNING] v1-deprecated: PR-A1-DT v1 曾对 19 篇 `review.md` 形成 57 份 codex / claude / deepseek 全文审计，入口为 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，逐篇审计汇总为 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。该批次现在只作为历史归档和返修来源，不是 A1-DT v2 当前事实口径。
+
+注意：A1-DT v2 仍是结构化返修，不等于 A2a 精确页码、表号、图号和 supplementary 核验完成。所有 `schema_seed`、`not_verified`、`needs_manual_check` 口径必须保留，不能被 SUMMARY 或论文写作误读成已完成统计证据。
 
 ## 7. 禁止误读
 

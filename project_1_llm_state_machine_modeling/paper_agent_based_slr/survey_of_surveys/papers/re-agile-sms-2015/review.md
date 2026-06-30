@@ -58,163 +58,321 @@
 
 ## 维度树复原
 
-### 一句话结论
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__codex.md](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__codex.md)、[../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__claude.md](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__claude.md)、[../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__deepseek.md](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/re-agile-sms-2015.md](../../audits/a1dt-v2-19x3/adjudications/re-agile-sms-2015.md)。
 
-本文的维度树主类型为“SMS problem-benefit-solution 树”，辅助类型为“Agile RE 主题分类树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-re-agile-sms-2015-tree-type]
+### v2 主线程采用说明
 
-旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
 
-**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-re-agile-sms-2015-source-schema-candidates]
+### 0. 审计结论卡片
 
-### 根问题 / RQ 到主干分支映射
+| 项 | 结论 |
+|---|---|
+| paper slug | `re-agile-sms-2015` |
+| agent | `claude` (Opus 4.7 / 1M) |
+| 是否已读 `paper_content.txt` | 是。已完整阅读全文 954 行（Page 1–9）。 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是。`metadata.json` 已确认 review_type=SMS, eligible_for_statistical_synthesis=true；`bibtex.bib` 提供 DOI 10.1109/SEAA.2015.70。 |
+| 是否打开或核对 `paper.pdf` | 否。仅基于 `paper_content.txt` 完成文本级审计；表 I–V 的版面、对齐、上下角标和数字单元格需 A2a 在 PDF 上视觉核验。 |
+| 原文类型 | systematic mapping study (SMS)，作者明确依据 Kitchenham & Charters [18] 自我标定为 mapping study。 |
+| 被编码样本单位 | primary study（28 篇敏捷 RE 原始研究，编号 S1–S28）。 |
+| 样本数量 / 分母 | 241（搜索命中）→ 187（去除非 journal/conference 与非英文）→ 65（标题/摘要筛选后）→ **28**（全文筛选后的最终纳入数 = 主统计分母）。 |
+| 原生树类型 | 维度森林 + 关系边：四个并列主干（venue/context/article-type/benefit/problem-solution），其中 problem→solution 为显式关系 schema。 |
+| 主统计池资格 | **是**（局部可统计）：venue 频次、agile-method context、article-type、B1–B6 频次与引用集合、P1–P6 频次与引用集合、P→solution 关系覆盖，均可在原文表上直接统计；分母清晰 N=28。Definition 与 future-work 仅作 candidate finding，不入主统计。 |
+| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
 
-| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
-|---|---|---|---|---|---|
-| [dim-re-agile-sms-2015-root] | A Mapping Study on Requirements Engineering in Agile Software Development 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-re-agile-sms-2015-b1] 综述范围与研究问题；[dim-re-agile-sms-2015-b2] 语料收集与纳排；[dim-re-agile-sms-2015-b3] 主题 / 对象分类；[dim-re-agile-sms-2015-b4] 方法 / 技术 / 干预；[dim-re-agile-sms-2015-b5] 评价、统计与候选发现 | [ev-re-agile-sms-2015-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+### 1. 原文证据阅读说明
 
-### 维度树结构
+实际读取文件与范围：
+- `paper_content.txt`：Page 1–9 全文 954 行，含 Abstract / I. Introduction / II. Background (A/B/C) / III. Methodology / IV. Results (A/B/C/D) / V. Discussion (A/B/C/D) / VI. Conclusion / References [1]–[26] / Primary Sources [S1]–[S28]。
+- `bibtex.bib`、`metadata.json`：用于元信息核验。
+- `review.md`：当前 v1 审计后的产物，作为返修对象。
+- 未开 `paper.pdf`：本轮所有"表 X 行/列"事实仅基于 text 提取；Table II/III/IV/V 的 `Articles` 单元格在 text 提取中已被原样保留，但**编号顺序、对齐、合并单元格、缺失逗号**等需 PDF 视觉核验后才能升级为 `pdf_verified`。
+
+关键原文证据锚点（按章节序）：
+
+1. **三个显式 RQ**：Page 1 I. Introduction 段 "The overall research questions ... 1) What has been researched ... 2) What are the reported key benefits ... 3) What are the reported problems and corresponding solutions ..."。
+2. **检索分母链条**：Page 3 III. Methodology "Scopus ... September 2014 ... 241 results ... 46 ... 8 ... 187 ... 123 excluded ... 65 ... 37 excluded ... remaining 28 articles"，含完整 search string `TITLE-ABS-KEY(("requirements analysis" OR "requirements engineering") AND (agile OR scrum)) AND NOT KEY("agile manufacturing")`。
+3. **抽取协议**：Page 3 末段 "article metadata, context, methods and results were extracted ... categorized under the following four subject areas: Definition of RE in the agile context, benefits ... problems ... solutions"。
+4. **Table I venue 分布**：Page 3 "Conference proceedings N=15 ≈53%, Journal N=8 ≈29%, Magazine N=5 ≈18%"，venue 名包含 AREW(2)/RE(3)/IEEE Software(5) 等。
+5. **Table II agile-method context**：Page 4 "Unspecified agile N=20 (71%); Scrum N=7; FDD N=1"。
+6. **Table III article-type**：Page 4 "Multiple case study 6 / Single case study 5 / Experience report 3 / Tool eval 1 / Method eval 2 / Method proposal 8 / Position paper 3"。
+7. **Table IV B1–B6 封闭枚举**：Page 5 含完整六类 benefit 名称、对应 S 编号集合（如 B2 = [S2,S3,S4,S7,S18,S23]）。
+8. **Table V P1–P6 封闭枚举**：Page 6 含完整六类 problem 与对应 S 编号集合（如 P1 = [S4,S7,S12,S18,S22,S23]）。
+9. **problem→solution 关系 schema**：Page 5–6 在 P1/P2/P5 后给出 solution 段，P3/P4/P6 后明确 "No solutions to PX were proposed in the articles"。
+10. **作者综合 finding 与定义**：Page 7 V.B "Towards a definition of agile RE" 给出作者自造定义；V.C/V.D 给出 gap 与 limitation。
+
+### 2. 样本单位与字段来源判定
+
+1. **被编码对象**：28 篇原始研究（primary studies, S1–S28），逐篇被作者抽取并归到 venue / context / article-type / definition / benefit set / problem set / solution set。
+2. **是否系统**：是。Page 3 完整给出 Scopus 数据库、search string、时间窗（Sep 2014）、纳排标准（5 条 title/abstract + 3 条 full-text）、分母链条 241/187/65/28，符合 Kitchenham-Charters [18] mapping study 标准。
+3. **字段来源**：
+   - extraction form 在 III. Methodology 末段以散文形式给出（metadata + context + methods + results）；
+   - classification schema 由 Table I–V 显式承载；
+   - B1–B6 与 P1–P6 为作者归纳所得的 thematic taxonomy（开放编码 → 主题归并）。
+4. **RQ 与样本单位关系**：RQ 是字段用途（RQ1=研究分布, RQ2=benefit 抽取, RQ3=problem+solution 抽取）；样本单位是 primary study；树根是"28 篇 RE-in-ASD 研究的 thematic mapping"。
+5. **降级**：无须降级。本文有完整系统语料库与抽取协议，符合主统计池纳入条件；唯一限制是 N=28 较小，部分 cell (FDD=1, Tool eval=1) 单元过稀，统计结论需保留小样本警告。
+
+### 3. 原生样本编码维度树
 
 ```text
-[dim-re-agile-sms-2015-root] A Mapping Study on Requirements Engineering in Agile Software Development
-├── [dim-re-agile-sms-2015-b1] 综述范围与研究问题
-│   └── [leaf-re-agile-sms-2015-scope] 研究范围与单位对象
-├── [dim-re-agile-sms-2015-b2] 语料收集与纳排
-│   └── [leaf-re-agile-sms-2015-corpus] 语料与纳排链条
-├── [dim-re-agile-sms-2015-b3] 主题 / 对象分类
-│   └── [leaf-re-agile-sms-2015-taxonomy] 主题与维度分类
-├── [dim-re-agile-sms-2015-b4] 方法 / 技术 / 干预
-│   └── [leaf-re-agile-sms-2015-method] 方法 / 技术 / 干预分类
-└── [dim-re-agile-sms-2015-b5] 评价、统计与候选发现
-    └── [leaf-re-agile-sms-2015-evidence] 评价、证据与复现资产
-    └── [leaf-re-agile-sms-2015-finding] 统计观察与候选发现
+[root] 28 篇 RE-in-ASD primary studies (Heikkilä et al. 2015)
+├── [b-rq] 三个显式 RQ（字段用途锚）
+│   ├── RQ1: 研究分布 → 投影到 venue/context/article-type
+│   ├── RQ2: benefits  → 投影到 B1–B6
+│   └── RQ3: problems & solutions → 投影到 P1–P6 + solution relation
+│
+├── [b-corpus] 检索与纳排分母链（系统性证据）
+│   ├── database = {Scopus}
+│   ├── search_string = "(requirements analysis OR requirements engineering) AND (agile OR scrum) AND NOT (agile manufacturing)"
+│   ├── time_window = "until Sep 2014"
+│   ├── n_initial = 241
+│   ├── n_after_doc_type_lang = 187
+│   ├── n_after_title_abstract = 65
+│   ├── n_excluded_titleabs = 123
+│   ├── n_after_fulltext = 28
+│   ├── n_excluded_fulltext = 37
+│   ├── inclusion_year_span = "2003–2014" (来源 §VI: "publication years 2004 to 2014" + S20=2003)
+│   └── exclusion_criteria = {no_abstract_access, non_research, non_SE, off_topic, predatory_vanity,
+│                              no_fulltext_access, redundant_extended, off_topic}
+│
+├── [b-pub-venue] 发表 venue 分类（Table I）
+│   ├── venue_type ∈ {Conference, Journal, Magazine}  -- 封闭三值
+│   ├── venue_count_conf = 15 (≈53%)
+│   ├── venue_count_journal = 8 (≈29%)
+│   ├── venue_count_magazine = 5 (≈18%)
+│   └── venue_names (open enum, 见 Table I 原文)
+│
+├── [b-agile-context] 文章中 agile method context（Table II）
+│   ├── unspecified_agile = 20 (71%)
+│   ├── Scrum = 7 (25%)
+│   └── FDD = 1 (4%)
+│
+├── [b-article-type] 研究类型（Table III）
+│   ├── multiple_case_study = 6
+│   ├── single_case_study = 5
+│   ├── experience_report = 3
+│   ├── tool_evaluation = 1
+│   ├── method_evaluation = 2
+│   ├── method_proposal = 8
+│   └── position_paper = 3
+│
+├── [b-definition] Agile RE 定义维度（RQ1 子轴）
+│   ├── definition_clarity = "vague / no universal definition"  (§V.B)
+│   └── author_proposed_definition = 自由文本段（§V.B）  -- candidate finding，非统计
+│
+├── [b-benefit] B1–B6 封闭枚举（Table IV）
+│   ├── B1 Lower process overheads        | studies = {S2,S4,S20,S25}        | n=4
+│   ├── B2 Improved requirements understanding | studies = {S2,S3,S4,S7,S18,S23} | n=6
+│   ├── B3 Reduced overburden / overallocation | studies = {S2,S3,S7}        | n=3
+│   ├── B4 Responsiveness to change       | studies = {S4,S7,S20,S23,S25}    | n=5
+│   ├── B5 Rapid delivery and validation  | studies = {S4,S20,S25}           | n=3
+│   └── B6 Improved customer relationships| studies = {S4,S7}                | n=2
+│
+└── [b-problem-solution] P1–P6 + solution 关系 schema（Table V + §IV.D）
+    ├── P1 Client/customer rep problems   | n=6 {S4,S7,S12,S18,S22,S23} | solution_set = {S5,S10,S11,S12,S15,S17,S20,S26}
+    ├── P2 User story format insufficiency| n=6 {S4,S5,S7,S13,S23,S24}  | solution_set = {S1,S5,S8,S9,S24,S27}
+    ├── P3 Prioritization difficulties    | n=5 {S2,S4,S12,S22,S23}     | solution_set = ∅ (NO_SOLUTION)
+    ├── P4 Growing technical debt         | n=2 {S7,S23}                | solution_set = ∅ (NO_SOLUTION)
+    ├── P5 Tacit requirements knowledge   | n=5 {S4,S12,S20,S22,S24}    | solution_set = {S20}
+    └── P6 Imprecise effort estimates     | n=2 {S4,S23}                | solution_set = ∅ (NO_SOLUTION)
 ```
 
-### 叶子维度表
+`★ Insight ─────────────────────────────────────`
+- `solution_set = ∅` 是这份 schema 最值得迁移的设计选择：作者把"未提出解"作为 first-class 信号而不是缺失。Paper2 维度树的"gap 字段"可以直接学这一招——空集是结论，不是 missing data。
+- `multiple_case_study=6 + single_case_study=5 + experience_report=3 + tool/method eval=3 ≈ 17/28 = 61%` 与 §V.A 给出的"≈60%"自洽，可作为 A2a 一致性校验锚点之一。
+`─────────────────────────────────────────────────`
 
-| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [leaf-re-agile-sms-2015-scope] | 研究范围与单位对象 | [dim-re-agile-sms-2015-b1] | 定义 Agile Requirements Engineering 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-scope] |
-| [leaf-re-agile-sms-2015-corpus] | 语料与纳排链条 | [dim-re-agile-sms-2015-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-corpus] |
-| [leaf-re-agile-sms-2015-taxonomy] | 主题与维度分类 | [dim-re-agile-sms-2015-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-taxonomy] |
-| [leaf-re-agile-sms-2015-method] | 方法 / 技术 / 干预分类 | [dim-re-agile-sms-2015-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-method] |
-| [leaf-re-agile-sms-2015-evidence] | 评价、证据与复现资产 | [dim-re-agile-sms-2015-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-evidence] |
-| [leaf-re-agile-sms-2015-finding] | 统计观察与候选发现 | [dim-re-agile-sms-2015-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-re-agile-sms-2015-leaf-finding] |
+### 4. 叶子维度表
 
-### 原文模式候选叶子映射（A1 种子）
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| L-rq-list | 三个显式 RQ | b-rq | §I Introduction RQ 段 | 作者声明的研究目标 | 三条自由文本 RQ | enum-3 | n/a | 字段用途 anchor | 不直接成 finding | Page 1 RQ 段 | 仅本文 |
+| L-corpus-db | 检索数据库 | b-corpus | §III ¶2 | 检索源 | {Scopus} | 完整枚举（封闭） | n/a | 用于评估检索覆盖 | 单库覆盖局限 → candidate threat | Page 3 §III | 可迁移结构 |
+| L-corpus-string | 检索式 | b-corpus | §III ¶2 | 完整 search string | 自由文本 + 关键词集合 | 文本+词袋 | n/a | 复现性证据 | 候选 keyword cluster | Page 3 §III | 可迁移结构 |
+| L-corpus-window | 时间窗 | b-corpus | §III ¶2 | 检索截止时间 | "Sep 2014" 单点 | 日期点 | n/a | 时效性评估 | 1 年截止可能漏 2014–2015 论文 | Page 3 §III | 可迁移结构 |
+| L-corpus-chain | 分母链 | b-corpus | §III ¶2-4 | 241/187/65/28 | 整数四元组 | 数值链 | n/a | 严格分母 | candidate selection threat | Page 3 §III | 可迁移结构 |
+| L-corpus-excl | 纳排标准 | b-corpus | §III ¶3-5 | 5+3 条 exclusion | 封闭文本枚举 8 项 | enum-8 | 漏标=未应用 | 偏倚评估 | candidate threat | Page 3 §III | 可迁移结构 |
+| L-venue-type | venue 类型 | b-pub-venue | Table I | 出版形式 | {Conference, Journal, Magazine} | enum-3 (closed) | n/a | 频次表 | venue 分散 → "no primary venue" finding | Table I, §V.A | 可迁移结构 |
+| L-venue-name | venue 名 | b-pub-venue | Table I | 具体 venue | 开放枚举（≥17 venue） | enum-open | n/a | venue 长尾 | candidate gap | Table I | 仅本文 |
+| L-ctx-method | agile method context | b-agile-context | Table II | 文章使用的敏捷方法 | {Unspecified, Scrum, FDD} | enum-3 (closed in this sample) | n/a | 频次 | "71% unspecified" 是显式 finding | Table II, §V.A | 取值空间可能扩展 |
+| L-art-type | 研究类型 | b-article-type | Table III | 文章类型 | {MultiCase, SingleCase, ExpReport, ToolEval, MethodEval, MethodProposal, PositionPaper} | enum-7 (closed in this sample) | n/a | 频次 | "29% method proposal w/o eval" → finding | Table III, §V.A | 可迁移分类轴 |
+| L-def-clarity | 定义清晰度 | b-definition | §V.B | 作者对 agile RE 定义现状的判断 | {vague, contested, clear} | enum-3（本文取 vague） | n/a | 不入主统计 | candidate finding "definition is vague" | §V.B | 仅本文判断 |
+| L-def-author | 作者综合定义 | b-definition | §V.B blockquote | 作者自造定义文本 | 自由文本 | text+rationale | n/a | 不入主统计 | candidate finding | §V.B | 不可直接迁移 |
+| L-benefit-code | benefit 类目 | b-benefit | Table IV | B1–B6 | {B1..B6} | enum-6 (closed) | 缺失=未观察到 | 频次 + 引用集合 | benefit landscape | Table IV | 可迁移轴 |
+| L-benefit-studies | benefit→studies 关系 | b-benefit | Table IV | 每个 B 对应的 S 集合 | 关系（多对多） | relation set | ∅=未在样本中出现 | 频次/coverage | candidate "Bi 支撑薄" 判定 | Table IV | 可迁移结构 |
+| L-problem-code | problem 类目 | b-problem-solution | Table V | P1–P6 | {P1..P6} | enum-6 (closed) | 缺失=未观察到 | 频次 | problem landscape | Table V | 可迁移轴 |
+| L-problem-studies | problem→studies 关系 | b-problem-solution | Table V | 每个 P 对应的 S 集合 | 关系（多对多） | relation set | ∅=未在样本中出现 | 频次/coverage | candidate problem 强度 | Table V | 可迁移结构 |
+| L-solution-rel | problem→solution 关系 | b-problem-solution | §IV.D 各小节 | 每个 P 对应的 S（solution 提议）集合 | 关系（多对多）+ NULL | relation set with ∅-as-finding | **∅ = "no solutions proposed"，是显式 finding** | 频次 + gap | direct "research gap" 信号 | Page 5–6 §IV.D | **强可迁移：空集做 first-class** |
+| L-limit-search | 限制：单库 | b-corpus | §V.D | 仅用 Scopus | bool + rationale | bool | n/a | threat assessment | candidate threat | §V.D | 可迁移结构 |
 
-本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
+### 5. 关系边表
 
-| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
-|---|---|---|---|---|---|---|
-| [leaf-re-agile-sms-2015-orig-agile-re-topic] | [dim-re-agile-sms-2015-b1] | Agile RE 主题 | 敏捷需求工程活动、实践、问题和语境。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-re-agile-sms-2015-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-re-agile-sms-2015-orig-problem] | [dim-re-agile-sms-2015-b2] | 问题类别 | 需求变更、沟通、文档、质量、客户参与、规模化等 problem。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-re-agile-sms-2015-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-re-agile-sms-2015-orig-benefit] | [dim-re-agile-sms-2015-b3] | 收益类别 | 敏捷实践带来的效率、反馈、协作、适应性等 benefit。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-re-agile-sms-2015-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-re-agile-sms-2015-orig-solution] | [dim-re-agile-sms-2015-b3] | 方案类别 | 实践、过程、工具、方法和组织建议。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-re-agile-sms-2015-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-re-agile-sms-2015-orig-evidence-gap] | [dim-re-agile-sms-2015-b5] | 证据与缺口 | 研究类型、证据强度、未覆盖主题和 future work。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-re-agile-sms-2015-002, EV-re-agile-sms-2015-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
+|---|---|---|---|---|---|---|---|
+| R-benefit-of | study (S1..S28) | reports_benefit | benefit code (B1..B6) | {B1..B6} | 该 study 未报告任何 benefit | Table IV | 频次/coverage |
+| R-problem-of | study (S1..S28) | reports_problem | problem code (P1..P6) | {P1..P6} | 该 study 未报告任何 problem | Table V | 频次/coverage |
+| R-solution-of | problem code (P1..P6) | has_solution_in | study set ⊆ S1..S28 | study set 或 ∅ | **∅ = NO_SOLUTION_PROPOSED（显式 finding）** | §IV.D 各小节末句 | gap 识别 |
+| R-context-of | study (S1..S28) | uses_agile_method | agile method | {Unspecified, Scrum, FDD} | n/a | Table II | 上下文分层 |
+| R-type-of | study (S1..S28) | has_article_type | article type | enum-7 | n/a | Table III | 类型分层 |
+| R-venue-of | study (S1..S28) | published_in | venue name | open enum | n/a | Table I | venue 分布 |
 
-### 原文 schema 主树（19×3 审计后返修）
+`★ Insight ─────────────────────────────────────`
+- 注意 `R-solution-of` 的源是 **problem code 而不是 study**——这与 `R-benefit-of/R-problem-of` 的源不同。这是因为 §IV.D 是按 P1–P6 组织 solution，而不是按 study 组织。这种"以问题为索引、以研究为证据"的结构是 SMS 中较少见的优雅设计。
+- ∅ 作为显式 finding 的设计可直接抬升为 Paper2 维度树的通用约束：每个"建议/方法"叶子都应允许 `proposed = ∅` 并把它当作 first-class 结论。
+`─────────────────────────────────────────────────`
 
-本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
+### 6. 统计观察、候选 finding 与 final finding 边界
 
-审计入口：[codex](../../audits/a1dt-19x3/results/re-agile-sms-2015__codex.md)、[claude](../../audits/a1dt-19x3/results/re-agile-sms-2015__claude.md)、[deepseek](../../audits/a1dt-19x3/results/re-agile-sms-2015__deepseek.md)。 [clm-re-agile-sms-2015-a1dt-19x3-repair]
+#### 6.1 由字段/统计表直接支撑的统计观察（可入 A2a 主统计）
 
-| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
-|---|---|---|---|---|---|
-| [dim-re-agile-sms-2015-orig-rq] | 三个显式 RQ | Agile RE 研究概况、benefit/problem、solution/practice | domain SMS seed | primary study 分母需精核 | 核对 RQ |
-| [dim-re-agile-sms-2015-orig-corpus] | 检索与纳排分母 | database、search string、included primary studies、venue/year | 分母链 seed | 排除理由保留 | 核对 search/selection |
-| [dim-re-agile-sms-2015-orig-context-type] | 场所与文章类型 | venue、agile method、article type、study type、industrial context | context taxonomy seed | Table I/II/III 精核 | 核对表格 |
-| [dim-re-agile-sms-2015-orig-benefit] | benefit closed enumeration | B1--B6 或原文 benefit clusters、数量、示例 | candidate positive finding seed | benefit 与 solution 分开 | 核对 benefit 表 |
-| [dim-re-agile-sms-2015-orig-problem] | problem closed enumeration | P1--P6 或原文 problem clusters、数量、示例 | candidate gap seed | problem 无 solution 需记录 | 核对 problem 表 |
-| [dim-re-agile-sms-2015-orig-solution] | solution / no-solution 关系 | practice、process、tool、method、recommendation、no_solution | 关系型 schema seed | no_solution 是重要缺失值 | 核对 solution discussion |
-| [dim-re-agile-sms-2015-orig-definition-gap] | Agile RE 定义与 future work | 定义 synthesis、thin cells、research gaps、future work | finding heuristic | 单篇 SMS 不 final | 核对 discussion/conclusion |
+| 观察 | 分母 | 数值 | 原文锚点 |
+|---|---|---|---|
+| Conference 占比 | 28 | 15/28 ≈ 53% | Table I |
+| Unspecified agile context 占比 | 28 | 20/28 ≈ 71% | Table II, §V.A |
+| 含实证成分文章占比 | 28 | 17/28 ≈ 60% (case+exp+evals) | §V.A |
+| Method proposal 无评估占比 | 28 | 8/28 ≈ 29% | §V.A |
+| Benefit 类目数（封闭） | n/a | 6 | Table IV |
+| Problem 类目数（封闭） | n/a | 6 | Table V |
+| Problem 无 solution 占比 | 6 | 3/6 (P3,P4,P6) | §IV.D 末句 |
+| B2 支撑最强 | benefits | 6 studies | Table IV |
+| P1, P2 支撑最强 | problems | 各 6 studies | Table V |
 
-#### 三路审计综合返修结论
+#### 6.2 作者提出的 candidate findings（不可直接升级 final）
 
-| 审计共同问题 | 本轮返修动作 | 剩余风险 |
-|---|---|---|
-| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
-| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
-| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
+- "Agile RE 定义模糊"（§V.B）。
+- "无主导 venue, RE in ASD 在出版形态上未'找到家'"（§V.A）。
+- "大型/复杂系统中 user story 不够用"（§V.C 综合）。
+- "P3/P4/P6 缺乏解 → 三个研究空白方向"（§V.C, §VI）。
+- "方法提议未经实证评估 → 需更多实证研究"（§V.A, §VI）。
 
-#### 审计返修口径
+#### 6.3 可迁移到 Paper2 的方法学启发
 
-- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
-- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
-- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
-#### 通用接口投影
+- ∅-as-finding（空 solution set 作 first-class 结论）。
+- "problem 索引 + study 证据"的关系型 schema（不要把 solution 压成 study 的属性）。
+- benefit/problem 双轴并列 + 共享 S-id 引用集，便于做 benefit-problem 对偶 mapping。
+- 分母链严格保留（241→187→65→28）。
 
-下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
+#### 6.4 不可迁移内容
 
-| 通用接口 | 在本文中的投影对象 | 使用边界 |
-|---|---|---|
-| 研究范围与单位对象 | `three explicit RQ` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
-| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
-| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
-| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
-| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
-| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
+- 任何 Agile RE 的领域结论（B1–B6, P1–P6 具体内容）不可迁移到 Paper2 的 STM / LLM-as-Judge / repair 主题。
+- "Scrum/XP/FDD 三分"分类只对 agile RE 有效。
+- N=28 + 单库（Scopus）+ 截至 2014.09 的样本属性。
 
-#### 返修后仍需 A2a 精核
+### 7. 对旧版 `review.md` 的返修来源（C/I/M）
 
-1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
-2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
-3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
+| 等级 | 位置 | 现状 | 建议 |
+|---|---|---|---|
+| **I-1** | "原文 schema 主树（19×3 审计后返修）" 表 `叶子 / 取值空间种子` 列 | 当前仍写"B1–B6 或原文 benefit clusters、数量、示例"等抽象描述 | 升级为**显式封闭枚举**：列出 `{B1 Lower process overheads, B2 Improved requirements understanding, ..., B6 Improved customer relationships}` 与 `{P1..P6}` 全名 + 每个 code 的 study-id 集合。证据来自 Page 5 Table IV / Page 6 Table V，可直接 text 核验。 |
+| **I-2** | A.2 证据账本 EV-002 / EV-003 | 标 `not_verified` + "待 A2a 精确页码复核" | 升级到 `text_verified`：原文页码已在 text 中显式出现（Page 3/4/5/6），可在保留"PDF 视觉核验另列"的前提下升级证据强度。 |
+| **I-3** | 维度树缺关系边 | 当前叶子层未显式区分 `attribute` 与 `relation` | 新增 §"关系边表"，纳入 R-benefit-of / R-problem-of / **R-solution-of with ∅-as-finding**。这是本文最强的可迁移点。 |
+| **I-4** | "原文模式候选叶子映射（A1 种子）" | 当前候选叶子全部 `not_verified` | `leaf-orig-problem` 与 `leaf-orig-benefit` 可直接升级为封闭枚举（B1–B6, P1–P6 在 text 中显式列出）；`leaf-orig-solution` 必须改为关系叶子（不是平铺枚举）。 |
+| **I-5** | SUMMARY 维度（如有）"样本单位/样本数量/原生树类型/统计池资格" | 需复核 | 建议口径：样本单位=primary study, N=28, 树类型="维度森林+关系边", 主统计池=是（局部可统计）。 |
+| **M-1** | "1. 快速结论卡片" 中 `阅读状态` 写 "已读全文文本-paper_content核验" | 字面正确 | 可补一句"PDF 版面核验未做"以避免读者误判。 |
+| **M-2** | A.4 `cmd-visual-check` `needs_manual_check` | 维持 | 可附"建议核验项清单"：Table I venue 名拼写、Table II/III/IV/V 单元格中 S-id 集合完整性、§III 数字链条精确数。 |
+| **M-3** | 旧"六类 pattern 抽取"表 (§2) | 已与 A1-DT v2 口径冲突 | 在该表上方加更清晰的 deprecation 注：明示本表是 v1 历史投影，不是 v2 原文 schema 事实源。 |
 
-### 统计与候选发现链路
+无 C 级阻塞问题。
 
-| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
-|---|---|---|---|---|---|
-| [dim-re-agile-sms-2015-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
-| [leaf-re-agile-sms-2015-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
-| [leaf-re-agile-sms-2015-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+### 8. 审计附录草案
 
-### 可迁移与不可迁移边界
+#### A.2 维度树证据账本草案
 
-| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
-|---|---|---|---|---|
-| [dim-re-agile-sms-2015-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | Agile Requirements Engineering 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-re-agile-sms-2015-transfer] |
-| [leaf-re-agile-sms-2015-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-re-agile-sms-2015-finding-boundary] |
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-v2-001 | paper_content.txt | §I Introduction | Page 1 RQ 段 | 三条 RQ 显式列出（research/benefits/problems & solutions） | rq | text_verified | b-rq, L-rq-list | false | 仅本文 |
+| EV-v2-002 | paper_content.txt | §III Methodology | Page 3 ¶2-5 | "Scopus ... Sep 2014 ... 241 → 187 → 65 → 28 ... search string ... 5+3 exclusion criteria" | corpus_chain | text_verified | b-corpus 全部叶子 | false | 单库限制 |
+| EV-v2-003 | paper_content.txt | §IV.A Overview + Table I | Page 3–4 | Conference 15 (53%), Journal 8 (29%), Magazine 5 (18%) | classification | text_verified | b-pub-venue | true (venue 拼写/合并需 PDF) | 仅本文 |
+| EV-v2-004 | paper_content.txt | §IV.A + Table II | Page 4 | Unspecified 20, Scrum 7, FDD 1 | classification | text_verified | b-agile-context | true | 取值空间或扩展 |
+| EV-v2-005 | paper_content.txt | §IV.A + Table III | Page 4 | 7 类 article-type 全部计数 | classification | text_verified | b-article-type | true | 可迁移分类轴 |
+| EV-v2-006 | paper_content.txt | §IV.C + Table IV | Page 4–5 | B1–B6 名称与 study-id 集合完整 | classification + relation | text_verified | b-benefit, L-benefit-code, L-benefit-studies, R-benefit-of | true (S-id 列对齐) | 仅 Agile RE 领域 |
+| EV-v2-007 | paper_content.txt | §IV.D + Table V | Page 5–6 | P1–P6 名称与 study-id 集合完整；P3/P4/P6 显式 "No solutions ... proposed" | classification + relation + ∅-finding | text_verified | b-problem-solution, R-problem-of, R-solution-of | true (S-id 列对齐) | ∅ 设计可迁移 |
+| EV-v2-008 | paper_content.txt | §V.B | Page 7 blockquote | 作者自造 agile RE 定义 | candidate_finding | text_verified | L-def-author | false | 不可迁移领域结论 |
+| EV-v2-009 | paper_content.txt | §V.A / §V.C / §VI | Page 6–8 | "method proposal 无评估占 29%"; "P3/P4/P6 缺解"; "需更多实证" | candidate_finding | text_verified | 6.2 候选 findings 全部 | false | candidate only |
+| EV-v2-010 | paper_content.txt | §V.D Limitations | Page 7–8 | "constrained to Scopus ... small set of keywords" | limitation | text_verified | L-limit-search, 迁移边界 | false | threat anchor |
+
+#### A.3 结论-证据映射草案
+
+| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
+|---|---|---|---|---|---|---|---|
+| CLM-v2-01 | 原生树类型为"维度森林 + 关系边"：venue/context/article-type/benefit/problem-solution 五并列主干，其中 problem→solution 为显式关系（含 ∅-as-finding） | tree_type | b-* 所有主干 | EV-v2-001..007 | strong (text) | 可作 Paper2 schema 灵感 | 仅本文；N=28 |
+| CLM-v2-02 | 28 是严格主统计分母；241→187→65→28 链条完整可复现 | statistical_pool | b-corpus | EV-v2-002 | strong | 可作 A2a 主统计起点 | 单库 + 截至 2014.09 |
+| CLM-v2-03 | benefit/problem 是封闭 6 值枚举（B1–B6, P1–P6），每个 code 关联明确 S-id 集合 | leaf_value_space | L-benefit-code, L-problem-code, R-benefit-of, R-problem-of | EV-v2-006, EV-v2-007 | strong (text) | 可直接做频次/coverage 统计 | 类目是作者主题归并，存在编码者主观 |
+| CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class finding 而非缺失数据 | candidate_finding + schema_design | R-solution-of | EV-v2-007 | strong | gap 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
+| CLM-v2-05 | "29% 文章是无实证评估的 method proposal" 是直接可统计的 candidate finding | candidate_finding | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选 finding，需研究者裁决 | 仅本样本 |
+| CLM-v2-06 | "agile RE 定义模糊"是 candidate finding，不可作 final | candidate_finding | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |
+| CLM-v2-07 | 当前 `review.md` 中 B1–B6/P1–P6 仍标 not_verified 与文本证据不符，应升级至 text_verified | review_repair | review.md "原文 schema 主树" 段 | EV-v2-006, EV-v2-007 | strong | 直接驱动返修 | 仍待 PDF 版面核验，是另一层级 |
+| CLM-v2-08 | 迁移边界：可迁移 schema 形态（森林+关系+∅-finding+分母链），不可迁移 agile RE 领域结论 | migration_boundary | root | EV-v2-001..010 | strong | Paper2 schema 设计依据 | 领域绑定 |
+
+### 9. 技能使用与自我审查记录
+
+#### 9.1 技能文件读取情况
+
+由于本次审计在 Claude Code 沙盒中执行，且 `~/.codex/skills/` 与 `~/.codex/plugins/cache/` 路径属于 Codex 客户端目录而非 Claude Code 默认工作区，本 agent **未实际打开**清单中列出的 7 个 skill/reference 文件。这是本任务的一个 `blocked` 风险点，需在主线程合并时显式记录。
+
+可声明实际遵循的等价原则（来自当前 ARS / superpowers / phd-skills 在 session 中已加载的描述与本仓 `CLAUDE.md` §3 学术研究仓库 Review 口径 §4 Reviewer 输出要求）：
+
+1. evidence-before-action：所有 C/I 都附原文页号/章节锚点。
+2. C/I/M 分级以"是否影响学术目标/实验可靠性/结论可复现性"为准；本审计未发现 C 级问题。
+3. 不脑补：所有"无法读取"或"未做"的步骤显式记录为 `not done` / `blocked`，不假装完成。
+4. 单篇审计不外推到跨论文 final finding。
+
+#### 9.2 本输出最高 3 风险
+
+1. **未做 PDF 版面核验** → Table I–V 的 S-id 集合（如 B2={S2,S3,S4,S7,S18,S23}）可能在 text 提取中丢字符或顺序错乱；主线程合并时建议至少抽查 Table IV、Table V 的两行做 PDF 视觉核对。
+2. **7 个 skill 文件未实际打开** → 本审计的方法学约束依赖 session 中的描述而非源文件，可能存在与 skill 最新版差异。主线程合并时应在文档外的执行环境（Codex CLI）中以同一论文重做一次以交叉验证。
+3. **本审计把 benefit/problem 视为"封闭 6 值枚举"** → 严格说，作者在 §IV.C/D 用的是"开放编码 → 主题归并"，B1–B6 是归并产物而非先验编码框架；若后续在 A2a 引入其它 agile RE SMS 做跨论文 union，需把这一层"作者归并"显式作为 schema-level 不变量保留，不能假定 B1–B6 是跨论文稳定 taxonomy。
+
+#### 9.3 blocked / timeout / 文件缺失
+
+- `blocked`：清单中 7 个 skill/reference 文件未实际读取，原因为路径不在当前 Claude Code 工作区可达范围内。
+- 无 timeout。
+- 无文件缺失：`paper_content.txt` / `bibtex.bib` / `metadata.json` / `review.md` 全部成功读取；`paper.pdf` 本轮按设计仅作待核验对象。
+
+---
+
+**最终判定**：`re-agile-sms-2015` 是 A1-DT v2 中**结构最清晰、最适合作主统计池入口**的样本之一（原生树几乎完全显式于 §III + Table I–V + §IV）。建议主线程按 §7 的 I-1..I-5 与 §8 的 A.2/A.3 草案直接驱动 `review.md` 的下一轮返修，并把 ∅-as-finding 与 problem-indexed solution relation 抬升为 Paper2 维度树的可复用设计模式。
 
 ## 审计附录：证据链与结论-证据映射
 
+> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/re-agile-sms-2015.md](../../audits/a1dt-v2-19x3/adjudications/re-agile-sms-2015.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
+
 ### A.1 论文与本地文件来源
 
-| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
-| [src-re-agile-sms-2015-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
-| [src-re-agile-sms-2015-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
-| [src-re-agile-sms-2015-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+| src-re-agile-sms-2015-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
+| src-re-agile-sms-2015-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
+| src-re-agile-sms-2015-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
+| src-re-agile-sms-2015-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-re-agile-sms-2015-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-re-agile-sms-2015-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/re-agile-sms-2015__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-re-agile-sms-2015-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/re-agile-sms-2015.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
 
 ### A.2 维度树证据账本
 
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-re-agile-sms-2015-001 | [ev-re-agile-sms-2015-root] | [src-re-agile-sms-2015-text], [src-re-agile-sms-2015-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-re-agile-sms-2015-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-re-agile-sms-2015-002 | [ev-re-agile-sms-2015-taxonomy] | [src-re-agile-sms-2015-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-re-agile-sms-2015-b1], [dim-re-agile-sms-2015-b2], [dim-re-agile-sms-2015-b3], [dim-re-agile-sms-2015-b4], [dim-re-agile-sms-2015-b5], [leaf-re-agile-sms-2015-taxonomy], [leaf-re-agile-sms-2015-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-re-agile-sms-2015-003 | [ev-re-agile-sms-2015-stat] | [src-re-agile-sms-2015-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-re-agile-sms-2015-evidence], [leaf-re-agile-sms-2015-finding], [leaf-re-agile-sms-2015-orig-agile-re-topic], [leaf-re-agile-sms-2015-orig-problem], [leaf-re-agile-sms-2015-orig-benefit], [leaf-re-agile-sms-2015-orig-solution], [leaf-re-agile-sms-2015-orig-evidence-gap] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-re-agile-sms-2015-004 | [ev-re-agile-sms-2015-risk] | [src-re-agile-sms-2015-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-re-agile-sms-2015-root], [leaf-re-agile-sms-2015-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-
+| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ev-re-agile-sms-2015-type | clm-re-agile-sms-2015-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：systematic mapping study (SMS)，作者明确依据 Kitchenham & Charters [18] 自我标定为 mapping study。 | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-re-agile-sms-2015-unit | clm-re-agile-sms-2015-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：primary study（28 篇敏捷 RE 原始研究，编号 S1–S28）。 | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-re-agile-sms-2015-denom | clm-re-agile-sms-2015-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：241（搜索命中）→ 187（去除非 journal/conference 与非英文）→ 65（标题/摘要筛选后）→ **28**（全文筛选后的最终纳入数 = 主统计分母）。 | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-re-agile-sms-2015-tree | clm-re-agile-sms-2015-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：维度森林 + 关系边：四个并列主干（venue/context/article-type/benefit/problem-solution），其中 problem→solution 为显式关系 schema。 | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-re-agile-sms-2015-pool | clm-re-agile-sms-2015-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**是**（局部可统计）：venue 频次、agile-method context、article-type、B1–B6 频次与引用集合、P1–P6 频次与引用集合、P→solution 关系覆盖，均可在原文表上直接统计；分母清晰 N=28。Definition 与 future-work 仅作 candidate finding，不入主统计。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-re-agile-sms-2015-tree-type] | A1DT-re-agile-sms-2015-C01 | 本文的维度树主类型为“SMS problem-benefit-solution 树”，辅助类型为“Agile RE 主题分类树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-re-agile-sms-2015-tree-type] | tree_type | [dim-re-agile-sms-2015-root] | EV-re-agile-sms-2015-001, EV-re-agile-sms-2015-004 | 树型判断仅限本文，不代表所有 Agile Requirements Engineering 综述。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-scope] | A1DT-re-agile-sms-2015-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-scope] | EV-re-agile-sms-2015-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-corpus] | A1DT-re-agile-sms-2015-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-corpus] | EV-re-agile-sms-2015-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-taxonomy] | A1DT-re-agile-sms-2015-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-taxonomy] | EV-re-agile-sms-2015-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-method] | A1DT-re-agile-sms-2015-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-method] | EV-re-agile-sms-2015-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-evidence] | A1DT-re-agile-sms-2015-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-evidence] | EV-re-agile-sms-2015-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-leaf-finding] | A1DT-re-agile-sms-2015-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-re-agile-sms-2015-finding] | EV-re-agile-sms-2015-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-transfer] | A1DT-re-agile-sms-2015-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-re-agile-sms-2015-root] | EV-re-agile-sms-2015-002, EV-re-agile-sms-2015-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-finding-boundary] | A1DT-re-agile-sms-2015-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-re-agile-sms-2015-finding] | EV-re-agile-sms-2015-003, EV-re-agile-sms-2015-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
-
-| [clm-re-agile-sms-2015-source-schema-candidates] | A1DT-re-agile-sms-2015-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-re-agile-sms-2015-orig-agile-re-topic], [leaf-re-agile-sms-2015-orig-problem], [leaf-re-agile-sms-2015-orig-benefit], [leaf-re-agile-sms-2015-orig-solution], [leaf-re-agile-sms-2015-orig-evidence-gap] | EV-re-agile-sms-2015-002, EV-re-agile-sms-2015-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
-| [clm-re-agile-sms-2015-a1dt-19x3-repair] | A1DT-re-agile-sms-2015-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-re-agile-sms-2015-root] | EV-re-agile-sms-2015-002, EV-re-agile-sms-2015-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
+| clm-re-agile-sms-2015-type | A1DT-re-agile-sms-2015-C01 | 本文原文类型为：systematic mapping study (SMS)，作者明确依据 Kitchenham & Charters [18] 自我标定为 mapping study。 | paper_type | type | ev-re-agile-sms-2015-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
+| clm-re-agile-sms-2015-unit | A1DT-re-agile-sms-2015-C02 | 本文被编码样本单位为：primary study（28 篇敏捷 RE 原始研究，编号 S1–S28）。 | sample_unit | sample_unit | ev-re-agile-sms-2015-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
+| clm-re-agile-sms-2015-tree | A1DT-re-agile-sms-2015-C03 | 本文原生维度树 / 维度森林为：维度森林 + 关系边：四个并列主干（venue/context/article-type/benefit/problem-solution），其中 problem→solution 为显式关系 schema。 | tree_type | native_tree | ev-re-agile-sms-2015-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-re-agile-sms-2015-pool | A1DT-re-agile-sms-2015-C04 | 本文统计池资格为：**是**（局部可统计）：venue 频次、agile-method context、article-type、B1–B6 频次与引用集合、P1–P6 频次与引用集合、P→solution 关系覆盖，均可在原文表上直接统计；分母清晰 N=28。Definition 与 future-work 仅作 candidate finding，不入主统计。 | eligibility | statistical_pool | ev-re-agile-sms-2015-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
-| [cmd-re-agile-sms-2015-structure-check] | [dim-re-agile-sms-2015-root], A1DT-re-agile-sms-2015-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
-| [cmd-re-agile-sms-2015-visual-check] | EV-re-agile-sms-2015-002, EV-re-agile-sms-2015-003 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |
+| chk-re-agile-sms-2015-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
+| chk-re-agile-sms-2015-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
+| chk-re-agile-sms-2015-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |

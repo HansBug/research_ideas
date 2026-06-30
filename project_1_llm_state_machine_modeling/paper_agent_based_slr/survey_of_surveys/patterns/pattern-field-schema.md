@@ -4,9 +4,33 @@
 
 本文件定义 A1 `survey_of_surveys/` 的最小字段合同。它的目标是让后续 A2a / A2b 能把单篇 SLR/SMS/survey/guideline review 汇总为可演化维度模式，而不是只堆自然语言摘要。
 
+> [!IMPORTANT]
+> 本文件只定义**结果侧跨论文投影 / 归纳字段**。它不能作为任何单篇论文的原生维度树模板；单篇树 / 维度森林必须先按 [../GUIDE.md](../GUIDE.md) §6.3 从该论文原文 RQ、样本单位、抽取表、编码方案、taxonomy、roadmap action 或 guideline item 复原，再把可迁移部分投影到本 schema。
+
+## 1.1 A1-DT v2 投影边界
+
+A1-DT v2 采用三层分离：统一抽取纪律、单篇原生样本编码维度树 / 维度森林、跨论文投影层。本文件只处在第三层。
+
+允许用途：
+
+1. 归纳多篇 `review.md` 已经抽取出的可迁移字段。
+2. 记录跨论文共现的 RQ、dimension、finding、evidence、validity、report structure pattern。
+3. 为 [../SUMMARY.md](../SUMMARY.md) 的跨论文观察提供字段命名、取值空间和缺失值语义。
+4. 暴露 schema 缺口，并反向要求单篇 `review.md` 补证或降级。
+
+禁止用途：
+
+1. 不得先从本文件挑字段，再要求单篇论文“填满”这些字段。
+2. 不得用本 schema 覆盖原文自己的 extraction form、coding scheme、taxonomy、roadmap figure 或 guideline checklist。
+3. 不得把跨论文投影字段写成单篇原生树根节点。
+4. 不得绕过单篇 A.2 / A.3 证据链，直接从本 schema 形成 SUMMARY 定量统计或 final research finding。
+
+roadmap / vision / proposal / guideline 条目必须先按 [../GUIDE.md](../GUIDE.md) §6.3 的样本单位降级矩阵处理；只有降级后仍可迁移的字段，才允许进入本 schema 的候选投影。
+
 ## 2. 字段使用边界
 
-- 本 schema 只服务脚手架模式先验，不支撑目标领域发现。
+- 本 schema 不能作为单篇原生维度树模板；单篇树 / 维度森林必须先从原文证据复原。
+- 本 schema 只服务脚手架模式先验和跨论文投影，不支撑目标领域发现。
 - 字段定义必须可执行：读者应能判断一篇论文是否能填该字段。
 - `metadata-only` 条目不能把字段升级为已采纳，只能进入候选或待核验；当前 A1 历史 3 条 metadata-only 已补齐全文并升级，active metadata-only=0。
 - 缺失值必须区分 `原文未报告`、`文本提取缺失`、`尚未阅读`、`不适用`，不得统一写成 `无`。

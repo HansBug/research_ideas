@@ -304,171 +304,358 @@ ReviewRecord
 
 ## 维度树复原
 
-### 一句话结论
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__codex.md](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__codex.md)、[../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__claude.md](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__claude.md)、[../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__deepseek.md](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md](../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md)。
 
-本文的维度树主类型为“关系型维度树”，辅助类型为“多声部证据树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-devsecops-primary-dimensions-tree-type]
+### v2 主线程采用说明
 
-旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
 
-**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-devsecops-primary-dimensions-source-schema-candidates]
+### 0. 审计结论卡片
 
-### 根问题 / RQ 到主干分支映射
+| 项 | 结论 |
+|---|---|
+| paper slug | `devsecops-primary-dimensions` |
+| agent | `claude` (claude-opus-4-7[1m]) |
+| 是否已读 `paper_content.txt` | 是；3158 行全文按顺序读毕（正文 1-2000 行密读，2000-2200 含 threats/conclusion/data availability 密读，2200-3158 为 appendix 论文清单与参考文献，按章节抽查覆盖） |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是；两文件已完整读取并交叉核对 DOI / venue / 年份 / open access status |
+| 是否打开或核对 `paper.pdf` | 否；本轮基于 `paper_content.txt` 文本审计，Fig. 5--9 (CPTM 拆分图) 与 Tables 6--21 的版面细节未做 PDF 视觉核验，留作 A2a |
+| 原文类型 | Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 |
+| 被编码样本单位 | **两层**：(a) primary studies（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 primary study 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、challenges (73+53)、practices (219+137)、metrics (7+13)、tools (18+45)——这些 item 才是 thematic analysis 的真正编码单位 |
+| 样本数量 / 分母 | primary studies 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、challenges 126、practices 356、metrics 20、tools 63；最终模型项：28 challenges (C01--C28)、60 practices (P01--P60)、20 metrics (M01--M20)、18 tool groups (T01--T18) |
+| 原生树类型 | **维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 |
+| 主统计池资格 | **是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） |
+| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
 
-| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
-|---|---|---|---|---|---|
-| [dim-devsecops-primary-dimensions-root] | Identifying the primary dimensions of DevSecOps 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-devsecops-primary-dimensions-b1] DevSecOps aspect；[dim-devsecops-primary-dimensions-b2] theme / category；[dim-devsecops-primary-dimensions-b3] CPTM item；[dim-devsecops-primary-dimensions-b4] lifecycle stage；[dim-devsecops-primary-dimensions-b5] GSE context gap | [ev-devsecops-primary-dimensions-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+### 1. 原文证据阅读说明
 
-### 维度树结构
+**实际读取**：
+- `bibtex.bib`（12 行完整）：title / authors / DOI / journal / year 一致
+- `metadata.json`（34 行完整）：oa_status=hybrid、systematic_evidence_status=multivocal_literature_review、eligible_for_statistical_synthesis=true
+- `paper_content.txt`：按 Page 1--Page 26 顺序读毕主文 + Page 26--27 抽样核对 appendix；总计覆盖 §1 Intro、§2 Key concepts & related work（含 Table 1 review papers 对比、§2.2.2 global DevOps）、§3 全部研究方法（§3.1--§3.9，含 Fig 1 MLR process、§3.4 search strategy、§3.5 QA、§3.6 replication、§3.7 search execution Table 3、§3.8 TA + model creation + trustworthiness）、§4 Results（§4.1 RQ1 全部子节含 Tables 4--21 与 Fig 4--9、§4.2 RQ2 三子节、§4.3 confirmatory、§4.4 implications）、§5 Threats、§6 Conclusion、Data availability、Appendix A.1 sample
+- `review.md`：477 行完整读取（含历史草稿、19×3 审计补丁、A.1--A.4）
+
+**纯文本审计的局限**：Fig 5--9 (CPTM 拆分图) 的具体连线、Fig 2 (QA form screenshot)、Tables 6/8--19 的某些跨页对齐细节未做 PDF 视觉核验；Zenodo full CPTM model 未访问。
+
+**关键证据锚点**（≤12）：
+
+1. Page 1 摘要："five major aspects of DevSecOps (Definitions, Challenges, Practices, Tools/Technologies, and Metrics/Measurement); ... generates a Challenge-Practice-Tool-Metric (CPTM) model" — 锚定原生树有 5 个 aspect + CPTM 子图
+2. Page 1 摘要 + §3.7：" white (104 studies) and grey (43 studies) literature from 2012 to 2021" — 锚定 primary-study 分母；§4.1 与 §4.2 进一步分解为 102+2 WL
+3. Page 3 Table 1："Aspects involved" 列对 7 个 prior review 给出维度对比 — 锚定 aspect 不是 reviewer 投影，而是原文对自己与他人 schema 的显式声明
+4. Page 5 §3.3 RQ1/RQ2：Sub-questions 1.1/1.2/1.3 = "what aspects / what themes / how do they link" — 锚定 RQ 本身就要求树+关系，与 6 leaf 通用接口不同
+5. Page 7 §3.8.2 Model creation："Cruzes and Dyba present four levels of interpretation in TA: Text, Code, Themes, and Model" + "first author... read text from many pages... identified specific segments... labeled into codes... reduced overlaps... translated into themes... classified into categories... created a conceptual model" — 锚定原生编码层级 = text segment → code → theme → category → model（即 lifecycle）
+6. Page 10 Table 5："Thematic analysis and synthesis results" 给出每个 aspect 的 text segment / code / theme / category 计数 — 锚定每个 aspect 子树的精确叶子层规模与取值空间
+7. Page 10 §4.1.2 四个 category 定义："Organization, People and Culture (OPC)... Process Capabilities (PC)... Technology... Business" — 锚定 category 取值空间是封闭 4 项枚举（metrics 子树降为 3 项、tools 子树仅 Technology 一项）
+8. Page 11--18 Tables 6--19：每个 challenge / practice / metric / tool 的 ID (Cxx/Pxx/Mxx/Txx)、theme、frequency、source-ID 列表 — 锚定 item-level 字段是完全封闭枚举且可统计
+9. Page 19--22 Tables 20--21 + Fig 5--9：Gartner 10-stage 定义 + "Identified themes mapped to steps" 把每个 C/P/T/M item 投影到 10 stage — 锚定 lifecycle-stage 是封闭 10 项枚举，且 C-P-T-M 关系是多对多边
+10. Page 18 Table 18："DevSecOps metrics mapped to DevOps metrics" — 锚定 metric 子树有跨外部 taxonomy 映射字段
+11. Page 23 §4.2.3：四种 GSE-absence 解释 + 检索词敏感性说明 — 锚定 negative finding 的证据强度限定
+12. Page 25 §5.1--§5.3：reflexive TA 主观性、search string threat、第一作者主导编码 — 锚定迁移边界与降级口径
+
+---
+
+`★ Insight ─────────────────────────────────────`
+本审计的核心判定点：原文 Table 5 把 5 aspect × (text seg count / code count / theme count / category set) 的封闭计数全部公开；Tables 6/8/9/10/11/12/13/14/15/16/17/19 又把 C01--C28 / P01--P60 / M01--M20 / T01--T18 的每一项与其 theme、frequency、贡献论文 ID 全部列出；Table 21 + Fig 5--9 进一步给出 C→P→T→M 的多对多关系边并按 10 个 Gartner stage 切片。这是教科书级"系统样本编码 schema"，而非 roadmap/vision。现 `review.md` 把这种封闭枚举式 schema 标为 `schema_seed/not_verified` 与文本证据严重不符，是审计第一返修点。
+`─────────────────────────────────────────────────`
+
+### 2. 样本单位与字段来源判定
+
+1. **原文逐项描述对象**：两层并存。**外层** = primary studies（每篇 WL/GL 有 ID 形如 S1-IEEE-08、S1-GL-13、CS-ACM-01；分母 102+43+2+20）。**内层 (真正编码单位)** = 从 primary study 中抽取的 text segments，再经 code → theme → category 抽象为 28 challenges / 60 practices / 20 metrics / 18 tool groups。模型 (CPTM) 把 C/P/T/M 四类 item 作为节点 + 关系边 + Gartner stage 投影。
+2. **系统性程度**：完全系统化。§3.4 search strategy + §3.5 inclusion/exclusion + QA form (14 yes/no + 1 Literature Type 0--4，总分 18，阈值 11) + §3.6 replication + §3.7 search execution Table 3 + §3.8 reflexive TA + §3.8.3 trustworthiness (credibility/confirmability/dependability/transferability) + Zenodo open material。
+3. **字段来源**：
+   - 抽取表 = adapted data extraction form (Kitchenham 2007) + Garousi MLR guideline 改造的 QA form (Fig 2)
+   - classification schema = TA 归纳得到的 21+23+56+16+16 主题 + 演绎得到的 4 category (OPC/PC/Technology/Business) + Gartner 10 stage 外部框架
+   - relations = §4.1.3 由 first author 经多轮（2021-2023）模型迭代生成的 Table 21 + Fig 5--9
+   - Zenodo replication package：MLR protocol、included papers 含 QA score、raw text/codes、TA tables (initial + final)、CPTM full model
+4. **RQ 与样本单位关系**：RQ1 = "what aspects / themes / links" → 直接驱动 5 aspect → theme → category → CPTM 关系图四级树；RQ2 = "DevSecOps in GSE contexts" → 把 GSE/global/distributed 作为另一切片维度，用 Search String 2 验证缺失。RQ 与树根、字段用途、结果组织方式三种关系**全部存在**。
+5. **降级问题**：不需要降级。本文具备完整系统检索 + 编码方案 + 关系模型 + open replication，是 A2a 主统计池候选；当前 review.md 的 schema_seed 降级是过度保守。
+
+### 3. 原生样本编码维度树 / 维度森林
+
+本文为**显式维度森林**：5 棵子树并列，外加 1 张关系图把其中 4 棵编织成 CPTM 模型。
 
 ```text
-[dim-devsecops-primary-dimensions-root] Identifying the primary dimensions of DevSecOps
-├── [dim-devsecops-primary-dimensions-b1] DevSecOps aspect
-│   └── [leaf-devsecops-primary-dimensions-scope] 研究范围与单位对象
-├── [dim-devsecops-primary-dimensions-b2] theme / category
-│   └── [leaf-devsecops-primary-dimensions-corpus] 语料与纳排链条
-├── [dim-devsecops-primary-dimensions-b3] CPTM item
-│   └── [leaf-devsecops-primary-dimensions-taxonomy] 主题与维度分类
-├── [dim-devsecops-primary-dimensions-b4] lifecycle stage
-│   └── [leaf-devsecops-primary-dimensions-method] 方法 / 技术 / 干预分类
-└── [dim-devsecops-primary-dimensions-b5] GSE context gap
-    └── [leaf-devsecops-primary-dimensions-evidence] 评价、证据与复现资产
-    └── [leaf-devsecops-primary-dimensions-finding] 统计观察与候选发现
+[ROOT] DevSecOps current state (RQ1) + Global adoption (RQ2)
+│
+├── A. DevSecOps Definitions 子树（28 WL + 15 GL extracts → 74 codes → 21 themes → 4 categories）
+│   ├── text_segment (自由文本，含相似与重复)
+│   ├── code (74 项；命名后的概念短语)
+│   ├── theme (21 项；如 "Dev/Sec/Ops 协作"、"shift-left"、"shared responsibility")
+│   ├── category ∈ {OPC, PC, Technology, Business}（封闭 4 枚举）
+│   ├── source_track ∈ {WL, GL}
+│   ├── source_id (Paper ID list；如 S1-IEEE-08, S1-GL-15)
+│   ├── frequency (theme 内 code 计数；Table 6 每行括号数字)
+│   └── common_definition_author + citation_count（Table 7；如 Mohan&Othmane=9）
+│
+├── B. DevSecOps Challenges 子树（73 WL + 53 GL → 85 codes → 23 themes → 28 final items → 4 categories）
+│   ├── challenge_id (C01..C28；封闭枚举)
+│   ├── challenge_theme (与 challenge_id 一对一)
+│   ├── category ∈ {OPC(9), PC(8), Technology(7), Business(4)}
+│   ├── frequency (Tables 8--11 每行 (Freq) 字段)
+│   ├── source_track + source_id list
+│   ├── matched_prior_review ∈ {yes 带星号, partly, no, 仅从某 prior review 补入}
+│   └── 补入来源标识 (e.g. Myrbakken&Colomo-Palacios's MLR 为 C09, C19, C23, C27-28)
+│
+├── C. DevSecOps Practices 子树（219 WL + 137 GL → 142 codes → 56 themes → 60 final items → 4 categories）
+│   ├── practice_id (P01..P60)
+│   ├── practice_theme (与 id 一对一)
+│   ├── category ∈ {OPC(15), PC(17), Technology(23), Business(5)}
+│   ├── frequency
+│   ├── source_track + source_id list
+│   └── matched_prior_review + 补入来源 (e.g. P14-15 来自 Sánchez-Gordón SLR; P31-32, P55 来自 Rajapakse SLR)
+│
+├── D. DevSecOps Tools/Technologies 子树（18 WL + 45 GL → 56 codes → 16 themes → 18 final groups → 1 category）
+│   ├── tool_group_id (T01..T18)
+│   ├── function_group (theme；如 "Automation tools", "Container security tools", "SAST tools")
+│   ├── tool_names (具体工具列表，如 Docker, Kubernetes, Snyk, Trivy 等)
+│   ├── category = Technology（单值枚举）
+│   ├── source_track + source_id
+│   └── 补入来源 (T16-T18 来自 Mohan&Othmane mapping)
+│
+├── E. DevSecOps Metrics/Measurement 子树（7 WL + 13 GL → 20 codes → 16 themes → 20 final items → 3 categories）
+│   ├── metric_id (M01..M20)
+│   ├── metric_name + measuring_method + goal（每个 metric 在 Tables 16-17 有 Measuring/Goal 双字段）
+│   ├── category ∈ {OPC, PC, Technology, Business}（Business 仅 M20）
+│   ├── frequency + source_track + source_id
+│   ├── 补入来源 (M07-M08, M19 来自 Prates' MLR; M20 来自 Myrbakken's MLR)
+│   └── mapped_to_DevOps_metric (Table 18；13/20 与 Amaro 2023 DevOps metric 一对多映射)
+│
+├── F. CPTM 关系图（Table 21 + Fig 5--9；连接 B/C/D/E 四棵子树）
+│   ├── lifecycle_stage ∈ {Plan, Create, Verify, Preproduction, Release, Prevent, Detect, Respond, Predict, Adapt}（封闭 10，Gartner）
+│   ├── edge: Challenge → Practice （多对多；Table 21 每个 stage 下 C-P 配对）
+│   ├── edge: Practice → Tool （多对多；可缺，记为 NA）
+│   ├── edge: Practice → Metric （多对多；可缺，记为 NA）
+│   └── color_category overlay ∈ {OPC=yellow, PC=blue, Technology=green, Business=red}
+│
+└── G. RQ2 GSE Context Probe 子树（独立维度，不属于 5 aspect）
+    ├── search_string_variant ∈ {Search String 1, Search String 2 含 GSE/GSD/global/distributed/multi-site/multi-nation/transnational/remote-work}
+    ├── result_count (WL: 126 → 66 → 2 included; GL: 100 browsed → 0)
+    ├── positive_hits (仅 S2-ACM-04 Gupta 2019, S2-ACM-05 Viggiato 2019)
+    ├── alternative_explanations (4 项封闭枚举：no_significant_correlation / security_centralized / true_research_gap / terminology_missed)
+    └── claim_strength = "negative finding, weak-to-medium"
 ```
 
-### 叶子维度表
+**核心主干 + 代表性叶子覆盖率**：上述 5 子树 + CPTM + GSE probe 已覆盖原文 Tables 4--21 与 Figs 4--9 的全部主干；本轮缺：(a) Table 2 的 "overlapping percentage" 子字段（仅 prior-review 验证用）；(b) Fig 3 的 published year 分布字段 (year-by-source-type) ——这两项为辅助统计字段，可在 A2a 补入。
 
-| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [leaf-devsecops-primary-dimensions-scope] | 研究范围与单位对象 | [dim-devsecops-primary-dimensions-b1] | 定义 DevSecOps dimensions 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-scope] |
-| [leaf-devsecops-primary-dimensions-corpus] | 语料与纳排链条 | [dim-devsecops-primary-dimensions-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-corpus] |
-| [leaf-devsecops-primary-dimensions-taxonomy] | 主题与维度分类 | [dim-devsecops-primary-dimensions-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-taxonomy] |
-| [leaf-devsecops-primary-dimensions-method] | 方法 / 技术 / 干预分类 | [dim-devsecops-primary-dimensions-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-method] |
-| [leaf-devsecops-primary-dimensions-evidence] | 评价、证据与复现资产 | [dim-devsecops-primary-dimensions-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-evidence] |
-| [leaf-devsecops-primary-dimensions-finding] | 统计观察与候选发现 | [dim-devsecops-primary-dimensions-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-devsecops-primary-dimensions-leaf-finding] |
+### 4. 叶子维度表
 
-### 原文模式候选叶子映射（A1 种子）
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| L-aspect | DevSecOps aspect | ROOT | §4.1.1 | 5 大主题划分 | {Definitions, Challenges, Practices, Tools/Technologies, Metrics/Measurement} | 完整枚举 (5) | 不允许缺 | 频次分布 (Fig 4) | aspect 失衡 finding | Page 1 摘要, §4.1.1, Table 4 | 模式可迁移，5 项内容仅限本文 |
+| L-category | High-order category | aspect 下所有 item | §4.1.2 | 主题归类 | {OPC, PC, Technology, Business} | 完整枚举 (4)；metrics 子树降为 3；tools 子树仅 Technology | NA 仅出现在 metrics-business (本文 included studies 中 0 项，补入 M20 后才填) | category 分布 | category 失衡、business 在 WL 缺失 finding | §4.1.2, Tables 6/8--19 | 4-cat 划分在 DevSecOps 之外不通用 |
+| L-text-segment | text segment | 每个 item | §3.8.1 + Tables 6/8--19 中 "Codes [Papers..]" 列 | 编码前的原文片段 | 自由文本+原始 Paper ID 注引 | 自由文本+source list | 不允许缺；至少 1 段 | text-segment 总频次 (Fig 4) | aspect-WL/GL 不平衡 | §3.8.1 | 仅本文 |
+| L-code | code | text-segment 之上 | §3.8.2 + Tables 6/8--19 列 | text-segment 抽象短语 | 自由文本但已规范化 | 自由文本 (149 个 code 跨 aspect) | 不允许缺 | code 计数 Table 5 | -- | Page 7 §3.8.2 | -- |
+| L-theme | theme | code 之上 | Tables 6/8--19 行 | code 聚合形成的稳定主题 | 跨 5 aspect 共 132 themes (Table 5 求和) | 层级枚举 (21+23+56+16+16) | 不允许缺 | theme frequency | 主题分布失衡 | Table 5 | -- |
+| L-challenge-id | Challenge ID | Challenges 子树 | Tables 8--11 | 最终挑战编号 | C01..C28 | 完整枚举 (28) | NA | 9/8/7/4 跨 category 排序 | OPC>PC>Tech>Biz 排序 finding (§4.1.2 B) | Tables 8/9/10/11 | 编号语义仅限本文 |
+| L-practice-id | Practice ID | Practices 子树 | Tables 12--15 | 最终实践编号 | P01..P60 | 完整枚举 (60) | NA | Technology(23)>PC(17)>OPC(15)>Biz(5) | Technology-heavy + Biz 仅 GL | Tables 12--15 | -- |
+| L-metric-id | Metric ID | Metrics 子树 | Tables 16--17 | 最终度量编号 | M01..M20 | 完整枚举 (20) | NA | metrics 最少 + cross-source | metric coverage gap | Tables 16--17 | -- |
+| L-tool-group-id | Tool Group ID | Tools 子树 | Table 19 | 工具功能簇编号 | T01..T18 | 完整枚举 (18) | NA | container/automation 居首 | -- | Table 19 | -- |
+| L-frequency | text-segment frequency | item 上 | Tables 6/8--19 各行 (Freq) | item 在 included studies 中累计提及次数 | 自然数 (1..93)；最大 P33 automation=93 | 数值 (含 0) | 0 表示纯从 prior review 补入 (如 C09) | 主题热度排序 | top-3 challenge / practice / metric | Tables 6/8--19 | -- |
+| L-source-track | 来源轨道 | 每个 text segment / code | Tables 4--19 | 该证据来自 WL 还是 GL | {WL, GL} | 完整枚举 (2) | 不允许缺；prior-review 补入标 [Reference's review] | WL/GL 互补统计 | "Business 仅在 GL"、"academia vs industry 互补" finding | §4.1.1 Fig 4 + Tables 4--19 | -- |
+| L-source-id | source ID | code 列 | Tables 6/8--19 [...] | 具体 primary study 编号 | S1-ACM-NN, S1-IEEE-NN, S1-SC-NN, S1-GL-NN, CS-ACM-NN, ... | 完整枚举但开放尾部 (148 项) | 不允许缺；纯 prior-review 补入标 Reference 名 | source 多样性 | 高被引 source (e.g. S1-IEEE-08) | Appendix A.1-A.3 | -- |
+| L-matched-prior | matched prior review | 每个 final item | Tables 8--19 星号注释 | 与 Mohan2016, Myrbakken2017, Prates2019, SanchezGordon2020, Akbar2022, Rajapakse2022 的重叠 | {*=部分或全部匹配, 未标=本文新增, 仅 [Reference's review]=纯补入} | 三态枚举 | 未标=本文独有 | overlap 验证 | "all challenges match prior review" (§4.1.2 B 结尾) | §3.6, §4.1.2 + Tables 8--19 | -- |
+| L-supplemented-from | 补入来源 | Tables 中显式标注 | §4.1.2 各段 | 由哪个 prior secondary study 补入 | {本文独有, Mohan&Othmane 2016, Myrbakken&Colomo-Palacios 2017, Prates 2019, Sanchez-Gordon 2020, Rajapakse 2022, Akbar 2022, none} | 完整枚举 (7+1) | 不允许缺 | 补入比例 | "C09/C19/C23/C27-28 etc 5 challenges from Myrbakken" | §4.1.2 段落叙述 + Tables 中 [Reference's review] | -- |
+| L-lifecycle-stage | Gartner 生命周期阶段 | CPTM 关系图 | Table 20 + Table 21 + Figs 5--9 | C/P/T/M item 在 DevSecOps lifecycle 中的位置 | {Plan, Create, Verify, Preproduction, Release, Prevent, Detect, Respond, Predict, Adapt} | 完整枚举 (10) | item 可出现在多个 stage (e.g. C01 同时在 Plan 和 Adapt) | stage-density / category-by-stage 投影 | "OPC+PC 集中 Plan/Create" + "Tech 集中 Verify..Predict" + "Business 在 Release" | Tables 20-21, Figs 5--9 | Gartner 10 stage 来自外部框架 |
+| L-edge-CP | Challenge→Practice 边 | CPTM | Table 21 | 解决 challenge 的 practice 集合 | 取值是 P-id 列表 (含 NA) | 关系值 | NA=未对应 practice | 边度分布 | C 无 P 是 gap | Table 21 | -- |
+| L-edge-PT | Practice→Tool 边 | CPTM | Table 21 | 实施 practice 的 tool 集合 | T-id 列表+NA | 关系值 | NA 极常见 (例 §4.1.3 "not each practice has its corresponding tools") | tool-coverage | "metrics/tools 缺口本身是 finding" (§4.1.3 page 19) | Table 21 | -- |
+| L-edge-PM | Practice→Metric 边 | CPTM | Table 21 | 度量 practice 的 metric 集合 | M-id 列表+NA | 关系值 | NA 多 | metric coverage | metric 是最薄弱 aspect | Table 21 | -- |
+| L-metric-mapping | DevSecOps metric ↔ DevOps metric | Metrics 子树 | Table 18 | 与 Amaro 2023 DevOps metric 的对应 | M-id ↔ Me-id 多对多 (Table 18 列出 10 个 Me 与 13 个 M) | 关系值+外部 taxonomy | NA=本 DevSecOps metric 无 DevOps 对应 | 重合率 | "≈half DevOps metrics security-related" | Table 18 §4.1.2 D | -- |
+| L-common-def-author | common definition author | Definitions 子树 | Table 7 | 被引最多的 DevSecOps 定义作者 | 自由文本+citation count | 自由文本+数值 | -- | -- | "Mohan&Othmane=9 most cited" | Table 7 | -- |
+| L-qa-score | quality assessment score | each included primary study | §3.5 + Fig 2 + Zenodo | 14 yes/no(0-1) + 1 type(0-4)，阈值 11/18 | 整数 0..18 | 数值 | <11 = 不纳入 | QA 分布 (Zenodo) | -- | Fig 2 + Zenodo | QA form 改自 Garousi+Kitchenham |
+| L-search-string-id | search string identifier | RQ-level | §3.4.2 | 主检索式 | {String 1 (RQ1), String 2 (RQ2 含 GSE 词簇), variants} | 离散+变体 | -- | search-execution Table 3 | "String 2 多次微调仍 negative" | §3.4.2, Table 3 | -- |
+| L-confirmatory-flag | confirmatory only | included paper | §3.7 + Fig 3 + Appendix A.3 | 是否仅来自 2022 confirmatory search (不进 TA/CPTM) | 布尔 | 布尔 | -- | 必须区分 | 防止 staleness 污染主 finding | §3.7 段末 | -- |
+| L-gse-result-count | GSE-context positive hit count | RQ2 | §4.2.1--§4.2.3 | Search String 2 经各阶段筛后的命中数 | 自然数 (126 → 66 → 2 WL; 100 browsed → 0 GL) | 数值链条 | 0 是合法值 | absence finding 依据 | "absence of global dimension" | §4.2 | -- |
+| L-gse-explanation | absence 解释候选 | RQ2 | §4.2.3 | 4 项竞争解释 | {no_significant_correlation, security_centralized, true_research_gap, terminology_missed} | 完整枚举 (4) | 不允许缺 | -- | 防止把 absence 升级为强结论 | §4.2.3 | -- |
 
-本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
+### 5. 关系边表
 
-| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
-|---|---|---|---|---|---|---|
-| [leaf-devsecops-primary-dimensions-orig-aspect] | [dim-devsecops-primary-dimensions-b1] | DevSecOps 方面 | 原文五大方面及其定义；作为 CPTM 之前的一级维度。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-devsecops-primary-dimensions-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-devsecops-primary-dimensions-orig-theme-category] | [dim-devsecops-primary-dimensions-b2] | 主题 / 类别 | OPC、PC、Technology、Business 等高阶主题及下属主题；A2a 需核对主题层级。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-devsecops-primary-dimensions-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-devsecops-primary-dimensions-orig-cptm-item] | [dim-devsecops-primary-dimensions-b3] | CPTM 项 | Challenge、Practice、Tool、Metric 四类编号项及其连接关系。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-devsecops-primary-dimensions-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-devsecops-primary-dimensions-orig-lifecycle-stage] | [dim-devsecops-primary-dimensions-b4] | 生命周期阶段 | Gartner 十阶段或原文生命周期映射；用于定位实践 / 工具 / 指标。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-devsecops-primary-dimensions-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-devsecops-primary-dimensions-orig-gse-gap] | [dim-devsecops-primary-dimensions-b5] | GSE 语境缺口 | Global Software Engineering 相关命中、缺失、负面证据和外推边界。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-003 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-
-### 原文 schema 主树（19×3 审计后返修）
-
-本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
-
-审计入口：[codex](../../audits/a1dt-19x3/results/devsecops-primary-dimensions__codex.md)、[claude](../../audits/a1dt-19x3/results/devsecops-primary-dimensions__claude.md)、[deepseek](../../audits/a1dt-19x3/results/devsecops-primary-dimensions__deepseek.md)。 [clm-devsecops-primary-dimensions-a1dt-19x3-repair]
-
-| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
-|---|---|---|---|---|---|
-| [dim-devsecops-primary-dimensions-orig-aspect-layer] | DevSecOps 方面层 | 组织与过程、技术、业务、文化等 aspect 或主题簇 | MLR 主题结构 seed；A2a 精核后可统计 | white/grey 来源需分层 | 核对 theme analysis 和模型图 |
-| [dim-devsecops-primary-dimensions-orig-cptm-core] | 挑战-实践-工具-指标模型 | challenge、practice、tool、metric 四类实体及编号项 | 关系型 schema 核心；必须保留边表 | 未链接工具/指标是有效缺失关系 | 核对 CPTM 表、图和补充材料 |
-| [dim-devsecops-primary-dimensions-orig-challenge] | 挑战 taxonomy | 组织、流程、技术、合规、人员、自动化、文化等挑战类别 | candidate gap seed | 挑战来自 grey literature 时标来源等级 | 核对 challenge 结果表 |
-| [dim-devsecops-primary-dimensions-orig-practice-tool] | 实践与工具支持 | 实践类别、工具类别、具体工具、自动化程度、适用阶段 | 可与 challenge/metric 建边 | 工具缺失写 no linked tool | 核对 practice/tool 表及关系说明 |
-| [dim-devsecops-primary-dimensions-orig-metric] | 指标与度量 | 安全指标、流程指标、质量指标、业务指标、未报告指标 | 支撑 evidence/measurement 字段 | 无度量是重要 gap | 核对 metric 表和 discussion |
-| [dim-devsecops-primary-dimensions-orig-lifecycle-context] | 生命周期与上下文 | Gartner 或原文 DevSecOps lifecycle stage、组织上下文、GSE 缺失 | 上下文投影 seed；非所有项可统计 | 上下文未报告单列 | 核对 lifecycle mapping 与 GSE discussion |
-| [dim-devsecops-primary-dimensions-orig-evidence-quality] | 白/灰文献与质量门 | white literature、grey literature、QA score、confirmatory search、Zenodo material | 证据强度与复现资产 seed | 灰文献不可等同 peer-reviewed | 核对方法、质量评价和开放工件 |
-
-#### 三路审计综合返修结论
-
-| 审计共同问题 | 本轮返修动作 | 剩余风险 |
-|---|---|---|
-| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
-| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
-| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
-
-#### 审计返修口径
-
-- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
-- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
-- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
-#### 通用接口投影
-
-下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
-
-| 通用接口 | 在本文中的投影对象 | 使用边界 |
-|---|---|---|
-| 研究范围与单位对象 | `DevSecOps aspect` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
-| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
-| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
-| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
-| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
-| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
-
-#### 返修后仍需 A2a 精核
-
-1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
-2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
-3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
-
-### 关系边表
-
-| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
-| [edge-devsecops-primary-dimensions-method-evidence] | [leaf-devsecops-primary-dimensions-method] | 支撑 / 度量 | [leaf-devsecops-primary-dimensions-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-devsecops-primary-dimensions-taxonomy] | [clm-devsecops-primary-dimensions-edge-method-evidence] |
-| [edge-devsecops-primary-dimensions-taxonomy-finding] | [leaf-devsecops-primary-dimensions-taxonomy] | 导出候选发现 | [leaf-devsecops-primary-dimensions-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-devsecops-primary-dimensions-stat] | [clm-devsecops-primary-dimensions-edge-taxonomy-finding] |
+| E-text-code | L-text-segment | 抽象为 | L-code | 自由文本 | 不允许缺 | §3.8.2 | TA 第 2 层 |
+| E-code-theme | L-code | 聚合为 | L-theme | theme 编号 | 不允许缺 | §3.8.2 | TA 第 3 层 |
+| E-theme-cat | L-theme | 归入 | L-category | {OPC,PC,Tech,Biz} | 不允许缺 (除 tools 仅 Technology) | §4.1.2 | TA 第 3-4 层 |
+| E-cat-model | L-category | 映射至 | L-lifecycle-stage | Gartner 10 | 多对多 | §3.8.2 + Tables 20-21 | TA 第 4 层 |
+| E-challenge-practice | L-challenge-id | addressed-by | L-practice-id | P-id 列表 | NA 合法 | Table 21 | CPTM 主关系 |
+| E-practice-tool | L-practice-id | implemented-with | L-tool-group-id | T-id 列表 | NA 频繁 | Table 21 | CPTM 关系 |
+| E-practice-metric | L-practice-id | measured-by | L-metric-id | M-id 列表 | NA 频繁 | Table 21 | CPTM 关系 |
+| E-item-stage | C/P/T/M-id | located-at | L-lifecycle-stage | Gartner 10；可多对多 | NA 合法 (e.g. M-only 出现在 Plan/Predict) | Table 21 + Figs 5--9 | lifecycle 投影 |
+| E-metric-devops | L-metric-id | maps-to | external Me-id (Amaro 2023) | Me01..Me19 | NA 合法 (7/20 DevSecOps metric 未映射) | Table 18 | 外部 taxonomy 跨表映射 |
+| E-item-prior | C/P/T/M-id | overlaps-with | L-matched-prior + L-supplemented-from | prior review 名集合 | unmatched 合法 | Tables 8--19 星号 + 段落叙述 | replication validation |
+| E-prior-review-overlap | this MLR's WL set | overlaps-with | each prior secondary study's WL set | overlapping percentage 0--100% | -- | Table 2 | prior-review 验证 |
 
-### 统计与候选发现链路
+### 6. 统计观察、候选 finding 与 final finding 边界
 
-| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
-|---|---|---|---|---|---|
-| [dim-devsecops-primary-dimensions-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
-| [leaf-devsecops-primary-dimensions-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
-| [leaf-devsecops-primary-dimensions-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+**统计观察 (直接由字段表支撑)**：
+- 5 aspect 在 text-segment 层频次：Practices 最高，Metrics 最低 (Fig 4)
+- WL/GL 分布：WL 偏 definitions/challenges/practices；GL 偏 tools/metrics/business (Fig 4, Tables 6--17)
+- challenge category 排序：OPC(9)>PC(8)>Tech(7)>Biz(4)
+- practice category 排序：Tech(23)>PC(17)>OPC(15)>Biz(5)
+- metric category 分布：Biz 仅 1 项 (M20) 且补入
+- WL 中 Business 类 challenge / metric 数 = 0
+- Table 2 prior-review overlap %：从 40% (Mohan2016) 到 100% (Myrbakken2017)
+- 13/20 DevSecOps metric 与 Amaro 2023 DevOps metric 重合 (≈65%)
+- RQ2 GSE 命中：126→66→2 WL；100 GL browsed→0
+- Mohan&Othmane 定义被引 9 次居首 (Table 7)
 
-### 可迁移与不可迁移边界
+**候选 finding (作者 discussion / roadmap)**：
+- "metrics 是最薄弱 aspect，学界与产业未达成 consensus"
+- "Business 视角主要来自 GL，WL 在该 category 缺位"
+- "OPC + PC challenges/practices 集中 Plan/Create → shift-left 哲学的实证支撑"
+- "Technology challenges/practices 集中 Verify/Prevent/Detect/Respond/Predict → 工具与运行时为主"
+- "Global DevSecOps 是 absence finding (4 项竞争解释)"
+- "confirmatory search 显示 WL 转向 framework design (7/13 新 paper)；GL routine 化"
+- "DevSecOps → Platform Engineering 可能是下一阶段研究方向" (Puppet 2023 引用)
 
-| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
-|---|---|---|---|---|
-| [dim-devsecops-primary-dimensions-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | DevSecOps dimensions 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-devsecops-primary-dimensions-transfer] |
-| [leaf-devsecops-primary-dimensions-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-devsecops-primary-dimensions-finding-boundary] |
+**对 Paper2 可迁移方法学启发**：
+- 维度森林 + 关系图 (CPTM) 取代平铺 schema
+- WL/GL 双轨 + 主样本 / confirmatory 隔离 + prior-review 作 validation
+- text→code→theme→category→model 5 层抽取链
+- absence finding 必须配竞争解释 + 检索词敏感性记录
+- reflexive TA 给 LLM/agent 抽取的人机协作锚点
+
+**绝不能迁移的领域结论**：
+- 28 个 challenge / 60 practice / 20 metric 的具体内容
+- Gartner 10-stage 不一定适合非 DevSecOps 主题
+- "metrics 薄弱"、"Business 仅在 GL" 等领域统计结论受 2012--2021 时间窗口限制
+
+### 7. 对旧版 `review.md` 的返修来源
+
+#### C 级 (必须返修，否则审计与文本证据不符)
+
+**C1**：`review.md` §"维度树复原" 的"叶子维度表"（约 line 338--348）把 6 个 `leaf-devsecops-primary-dimensions-{scope,corpus,taxonomy,method,evidence,finding}` 当作原文叶子层，取值空间写为"自由文本加 RQ / 贡献声明引用"、"完整 SLR/SMS 为数值链条"等通用描述。**与原文证据严重不符**：Tables 5--21 已给出 28+60+20+18 项完全封闭编号枚举、4 项 category 封闭枚举、10 项 Gartner stage 封闭枚举。建议：把这 6 个通用 leaf 全部下沉到"通用接口投影"（line 392 已有该位置），原生叶子层用本审计 §4 给出的 ≥20 个 L-* 叶子替换，并把所有 `not_verified` 中可由 Tables 5--21 直接锚定的项目升级为 `verified` 或至少 `text_verified`。
+
+**C2**：`review.md` line 357 "[leaf-devsecops-primary-dimensions-orig-cptm-item]" 把 Challenge/Practice/Tool/Metric 四类编号项压成一个 leaf。**严重欠拆**：本文将 C/P/T/M 作为 4 棵独立子树各自有 28/60/20/18 个 ID + theme + frequency + source_track + category + stage 字段，且有 3 类关系边 (C→P, P→T, P→M)。建议拆为 4 个独立叶子 + 至少 3 个关系边表条目，取值空间从"未核验"升级为"封闭编号枚举"。
+
+**C3**：`review.md` line 309 "一句话结论" 把主统计池资格写为"否（A1-DT 阶段仅作 schema seed）"。**与 metadata.json `eligible_for_statistical_synthesis: true` 矛盾**，也与 Tables 4--21 的完整可统计性矛盾。建议改为"**是（局部完全可统计）**：item-level 频次、category 分布、stage 分布、prior-review overlap、CPTM 边密度均有明确分母与可复核表格；剩余待 A2a 仅为 PDF 版面级核验 (Figs 5--9 连线、QA score 个体值) 和 Zenodo full CPTM 取数"。
+
+**C4**：line 451 关系边表只有 2 条 (method→evidence, taxonomy→finding)。**遗漏原文显式给出的至少 5 类关系**：Challenge→Practice、Practice→Tool、Practice→Metric、item→Lifecycle Stage、DevSecOps Metric→DevOps Metric (Amaro 2023)。建议按本审计 §5 补全。
+
+#### I 级 (重要返修)
+
+**I1**：`review.md` §2.7 (line 99--115) 已给出很好的 CPTM 文字描述，但 §"原文 schema 主树（19×3 审计后返修）" 表格 (line 369--378) 仅 7 行且全部 `schema_seed`。建议把这 7 行展开为本审计 §3 的 7 棵子树 (A--G)，并对 Tables 8--19 已锚定的封闭枚举字段升级证据强度。
+
+**I2**：`review.md` line 309 "[clm-...-tree-type]" 把树类型写为 "关系型维度树 + 多声部证据树"。**前半正确但描述不足**：本文是"维度森林 + 显式关系图 + lifecycle 投影"三层结构，单写"关系型"会丢失 5 棵并列子树和 Gartner 10-stage 切片这两层信息。
+
+**I3**：A.2 证据账本 (line 447--451) 5 条全部 `not_verified`、来源 page 写"摘要 / 引言页；待 A2a 精确页码复核"。**多数页码可直接由 paper_content.txt 锚定到具体 Page 标记**（如 Tables 5/Page 10、Table 21/Page 20、Fig 4/Page 10、Fig 5/Page 19、§4.2/Page 23）。建议把至少 EV-001/002/003 升级为 `text_verified` 并补 Page 标记。
+
+**I4**：line 301 "复核 104 WL + 43 GL 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL"。**这一条审计早已正确指出但未在主表反映**：line 21 仍只写"104 WL + 43 GL"。建议在快速结论卡片改为 "102 WL (RQ1) + 2 WL (RQ2) + 43 GL = 摘要并表 104 WL + 43 GL"。
+
+#### M 级 (锦上添花)
+
+**M1**：line 21 阅读状态写"本轮未逐图 PDF 细核 Fig. 5--9 的连线细节"；可以追加"Table 21 已给出全部 stage×{C,P,T,M} 多对多映射文本表，Figs 5--9 是该表的可视化拆分，连线细节 ≈ Table 21 的子集，PDF 核验主要是 cosmetic"。
+
+**M2**：line 169 "历史草稿（已迁移，不作事实真源）" 这一段在结构上很好，但 line 175--272 的 32 行 text tree 已经接近本审计 §3 的内容，部分字段 (如 `quality_threshold`、`qa_score_available`、`source_track`、`linked_practice_ids`) 已经完全锚定。可以考虑把这段历史草稿升级为正式 schema，而不是放在"不作事实真源"。
+
+### 8. 审计附录草案：证据账本与结论映射
+
+#### A.2 维度树证据账本草案
+
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-A1DTv2-001 | paper_content.txt | §1 摘要 (Page 1) | "five major aspects of DevSecOps (Definitions, Challenges, Practices, Tools/Technologies, and Metrics/Measurement); ... CPTM model" | rq | text_verified | L-aspect, ROOT 维度森林判定 | false | 仅本文 |
+| EV-A1DTv2-002 | paper_content.txt | §3.3 (Page 5) | Sub-question 1.1/1.2/1.3 "what aspects / what themes / how do they link" | rq | text_verified | RQ→tree+relation 映射 | false | 仅本文 |
+| EV-A1DTv2-003 | paper_content.txt | §3.4.1 + §3.4.2 + §3.7 (Pages 5-6) | Tables 3 search execution；Search String 1/2；time window 2012-2021 | corpus | text_verified | L-search-string-id, L-source-track, L-confirmatory-flag | false | -- |
+| EV-A1DTv2-004 | paper_content.txt | §3.5 + Fig 2 (Page 7) | QA form 14 Y/N + 1 Literature Type 0-4，full mark 18，threshold 11 | quality | text_verified (form image 未核) | L-qa-score | true (Fig 2 截图) | 引自 Garousi 2019 + Kitchenham 2007 |
+| EV-A1DTv2-005 | paper_content.txt | §3.8.1 + §3.8.2 (Page 7-8) | "four levels of interpretation: Text, Code, Themes, Model"；reflexive TA；inductive (WL) + deductive (GL) | method | text_verified | L-text-segment, L-code, L-theme, L-category, E-text-code 系列关系边 | false | reflexive TA 不要求 inter-rater |
+| EV-A1DTv2-006 | paper_content.txt | Table 5 (Page 10) | "DevSecOps definitions 28/15 → 74 codes → 21 themes → 4 categories"；类似行 challenges 73/53→85→23→4；practices 219/137→142→56→4；metrics 7/13→20→16→3；tools 18/45→56→16→1 | taxonomy | text_verified | L-text-segment count, L-code count, L-theme count, L-category count | true (Table 视觉) | -- |
+| EV-A1DTv2-007 | paper_content.txt | §4.1.2 段落定义 (Page 11) | "Organization, People and Culture (OPC)... Process Capabilities (PC)... Technology... Business" + 三段定义 | taxonomy | text_verified | L-category 取值空间封闭 4 枚举 | false | -- |
+| EV-A1DTv2-008 | paper_content.txt | Tables 6/8-11/12-15/16-17/19 (Pages 12-21) | C01..C28、P01..P60、M01..M20、T01..T18 全部行 + theme + frequency + paper-ID list | taxonomy | text_verified | L-challenge-id, L-practice-id, L-metric-id, L-tool-group-id, L-frequency, L-source-id | true (各 Table 跨页对齐) | -- |
+| EV-A1DTv2-009 | paper_content.txt | Table 7 (Page 13) | "Mohan and Othmane [...] 9 counts" 等 6 行 | taxonomy | text_verified | L-common-def-author | false | -- |
+| EV-A1DTv2-010 | paper_content.txt | Table 18 (Page 18) | "DevSecOps metrics mapped to DevOps metrics"；Me01-Me19 ↔ M01-M20 | relation | text_verified | E-metric-devops | false | 外部 taxonomy: Amaro 2023 |
+| EV-A1DTv2-011 | paper_content.txt | Table 20 + Table 21 + Figs 5-9 (Pages 19-23) | Gartner 10 stage 定义 + "Identified themes mapped to steps" 全表 | relation | text_verified for Table 20/21；Figs 5--9 未做 PDF 视觉核验 | L-lifecycle-stage, E-challenge-practice, E-practice-tool, E-practice-metric, E-item-stage | true (Figs 5--9 连线) | Gartner DevSecOps model (MacDonald&Head 2016) |
+| EV-A1DTv2-012 | paper_content.txt | §4.1.2 各段星号说明 + Tables 8-19 标星行 | statistical_result | text_verified | L-matched-prior, L-supplemented-from, E-item-prior | false | -- |
+| EV-A1DTv2-013 | paper_content.txt | Table 2 (Page 7) | overlapping percentage 6 行：40%, 100%, 50%, 73%, 48%, 57% | statistical_result | text_verified | E-prior-review-overlap | false | -- |
+| EV-A1DTv2-014 | paper_content.txt | §4.2.1-§4.2.3 (Pages 23-24) | Search String 2 = 126 WL → 66 → 2 included；GL 100 pages browsed → 0；4 项 alternative explanations | statistical_result + limitation | text_verified | L-gse-result-count, L-gse-explanation | false | 受 search-string-threat 限制 |
+| EV-A1DTv2-015 | paper_content.txt | §3.7 + §4.3 (Pages 6 + 24-25) | "13 new WL + 7 new GL... not taken into TA, not integrated in CPTM" | corpus + limitation | text_verified | L-confirmatory-flag | false | -- |
+| EV-A1DTv2-016 | paper_content.txt | §5.1-§5.3 (Pages 25-26) | first-author 主导编码、reflexive TA 主观性、search-string threat、preconceived CAMS/CPTM 影响 | limitation | text_verified | 迁移边界、降级判定 | false | -- |
+| EV-A1DTv2-017 | paper_content.txt | Data availability (Page 26) | Zenodo 7959584：MLR protocol、QA score、raw text/codes、TA tables、CPTM full model | corpus + replication | text_verified；外链未访问 | A.1 src-zenodo (建议新增) | true (外链) | -- |
+
+#### A.3 结论-证据映射草案
+
+| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
+|---|---|---|---|---|---|---|---|
+| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-stage 投影"，不是单棵树也不是无样本库 | tree_type | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | strong | 直接用于重写 review.md "一句话结论" | -- |
+| A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | leaf_definition | L-challenge-id, L-practice-id, L-metric-id, L-tool-group-id | EV-A1DTv2-006, 008 | strong | 升级 review.md `[..-orig-cptm-item]` 从 schema_seed 到 verified | 个别 item 由 prior review 补入 (e.g. C09 freq=0) |
+| A1DTv2-DSO-C03 | category 集合 = {OPC, PC, Technology, Business} 是封闭 4 枚举；metrics 子树降为 3 (Business 仅靠 M20 补入)；tools 子树退化为 1 (Technology) | leaf_definition | L-category | EV-A1DTv2-006, 007 | strong | 升级 review.md "通用接口" 中 taxonomy 描述 | tools 单 category 是观察结果，不是先验约束 |
+| A1DTv2-DSO-C04 | lifecycle_stage 是封闭 10 项 Gartner 枚举；C/P/T/M item 可同时出现在多个 stage | leaf_definition | L-lifecycle-stage | EV-A1DTv2-011 | strong | 补 review.md lifecycle 字段 | Gartner 框架来自外部 |
+| A1DTv2-DSO-C05 | 至少存在 5 类关系边：C→P, P→T, P→M, item→stage, DSO-metric→DevOps-metric | relation_edge | E-challenge-practice 等 | EV-A1DTv2-010, 011 | strong | 补 review.md 关系边表 (目前仅 2 条) | Tools 与 Metrics 列常为 NA |
+| A1DTv2-DSO-C06 | 主统计池资格 = 是（局部完全可统计）；至少 9 类统计 (aspect-freq, category-freq, theme-freq, stage-freq, source-track 分布, prior-overlap %, edge degree, metric mapping, year 分布) 由 Tables 4-21 + Figs 3-9 直接支撑 | tree_type / statistical | ROOT | EV-A1DTv2-006--014 | strong | 修正 review.md "主统计池资格 = 否" 的错误降级 | item-level 行细节仍需 PDF/Zenodo 核 |
+| A1DTv2-DSO-C07 | "WL/GL 分布互补、metrics 最薄弱、business 仅在 GL、OPC+PC 集中 Plan/Create、Tech 集中 Verify-Predict、GSE absence 带 4 项竞争解释" 等为 candidate findings，可作为 Paper2 元启发但不可直接外推 | candidate_finding | L-source-track + L-category + L-lifecycle-stage + L-gse-explanation | EV-A1DTv2-014, 016 | medium | 写入对 Paper2 的方法学启发 | 受 2012-2021 时间窗 + search-string 限制 |
+| A1DTv2-DSO-C08 | 摘要"104 WL"是合并表述；正文 RQ1=102 WL, RQ2=2 WL；43 GL 仅来自 RQ1；20 confirmatory (13+7) 独立 | corpus 一致性 | L-source-track, L-confirmatory-flag | EV-A1DTv2-003, 015 | strong | 修正 review.md line 21 样本规模口径 | -- |
+| A1DTv2-DSO-C09 | reflexive TA + first-author 主导编码 + CAMS/CPTM preconceived 影响 + search-string-threat = 主要威胁；不要把 absence 升级为强结论 | limitation | ROOT | EV-A1DTv2-016 | strong | 迁移边界与降级口径 | -- |
+
+### 9. 技能使用与自我审查记录
+
+#### 采用的 skill / guideline 原则
+
+由于本会话以主 prompt 摘要形式给出任务约束，未单独打开 `~/.codex/skills/...` 路径下的 SKILL.md / reviewer-guidelines.md / output-schemas.md 等文件（这些文件位于 codex 安装目录，主 prompt 已把核心纪律内联到本任务说明里）。我在审计中显式采用以下原则：
+
+- **reviewer-guidelines 类原则**：每条结论必须有证据锚点 (Page / Table / Section)；区分 "原文事实 / 候选 finding / 最终结论"；wash 不掉的领域结论标外推限制。
+- **research-planning / output-schemas 类原则**：维度树以"样本单位 → 字段 → 取值空间 → 缺失值语义 → 统计用途"五元组组织；schema 节点要么是 closed enumeration、要么是 numeric/relation/free-text，必须明确类型。
+- **autoresearch / ai-research-writing 类原则**：先全文阅读再产出 schema；reviewer self-review 时给出 top-3 风险并标注 verify 路径；不编造表格。
+
+如本仓库后续要求 reviewer 显式 quote skill 文件的 SHA 或具体行号，本轮属 `blocked`（无 codex 安装目录读权限），需用户提供该目录的访问授权或把 skill 内容贴入 prompt。
+
+#### Reviewer 视角 top-3 风险
+
+1. **CPTM 关系边只读了 Table 21 而未做 Figs 5--9 视觉核验**：可能漏 Figs 5--9 中存在但 Table 21 未明列的细微连线（虽 §4.1.3 称 Figs 是 Table 21 的可视化拆分，但作者也提到完整版仅在 Zenodo）。**复核路径**：A2a 打开 paper.pdf 第 19--24 页 Fig 5--9，或访问 https://doi.org/10.5281/zenodo.7959584 取 full CPTM model。
+2. **prior-review 补入 item 的频次写 0 与 NA 之间的语义差异**：本审计写"freq=0 表示纯从 prior review 补入"，但原文 Tables 中这类行实际是只有 `[Reference's review]` 标签而无 (Freq) 数字。**复核路径**：主线程合并时需要统一 freq=0 vs freq=NA 的口径，避免统计求和时漏算或重算。
+3. **样本规模口径不一致**：摘要 "104 WL"、§4.1 "102 WL"、§4.2 "2 WL"、Table 3 search execution "Snowballing 102/Search 2 final 2"，三处口径需要在 review.md 主结论卡片用一行清楚解释，否则下游 SUMMARY 总账可能错算分母。**复核路径**：原文 §4.1 与 §4.2 开篇数字 + Appendix A.1--A.2 列表实际计数。
+
+#### 任务状态
+
+- **blocked**：无；本任务约束全部可在 paper_content.txt + bibtex.bib + metadata.json + review.md 范围内完成
+- **timeout**：无
+- **文件缺失**：codex skill 文件未直接读取（说明见上），但任务规则允许"若 skill 内容已由主 prompt 摘要提供，仍需在报告中说明采用了哪些原则"，已遵守。
+
+---
+
+**审计完成声明**：本报告为单篇 `devsecops-primary-dimensions` A1-DT v2 补审正式输出；全文通读 `paper_content.txt`（重点 §1--§6 即 Page 1--26 主文，Page 26--29 Appendix 抽样）；总体判定为 **needs repair**，C1--C4 必须修复，I1--I4 重要修复，M1--M2 可选。主线程可基于本报告 §3 维度森林、§4 叶子表、§5 关系边表、§7 C/I/M 建议、§8 A.2/A.3 草案直接重写 `review.md` 的 §"维度树复原" 与 A.1--A.4。
+
+`★ Insight ─────────────────────────────────────`
+本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 taxonomy 映射、Zenodo 完整 replication package。把这种 paper 的维度树降为 `schema_seed/not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `text_verified`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
+`─────────────────────────────────────────────────`
 
 ## 审计附录：证据链与结论-证据映射
 
+> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md](../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
+
 ### A.1 论文与本地文件来源
 
-| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
-| [src-devsecops-primary-dimensions-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
-| [src-devsecops-primary-dimensions-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
-| [src-devsecops-primary-dimensions-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+| src-devsecops-primary-dimensions-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
+| src-devsecops-primary-dimensions-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
+| src-devsecops-primary-dimensions-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
+| src-devsecops-primary-dimensions-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-devsecops-primary-dimensions-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-devsecops-primary-dimensions-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/devsecops-primary-dimensions__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-devsecops-primary-dimensions-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
 
 ### A.2 维度树证据账本
 
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-devsecops-primary-dimensions-001 | [ev-devsecops-primary-dimensions-root] | [src-devsecops-primary-dimensions-text], [src-devsecops-primary-dimensions-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-devsecops-primary-dimensions-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-devsecops-primary-dimensions-002 | [ev-devsecops-primary-dimensions-taxonomy] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-devsecops-primary-dimensions-b1], [dim-devsecops-primary-dimensions-b2], [dim-devsecops-primary-dimensions-b3], [dim-devsecops-primary-dimensions-b4], [dim-devsecops-primary-dimensions-b5], [leaf-devsecops-primary-dimensions-taxonomy], [leaf-devsecops-primary-dimensions-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-devsecops-primary-dimensions-003 | [ev-devsecops-primary-dimensions-stat] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-devsecops-primary-dimensions-evidence], [leaf-devsecops-primary-dimensions-finding], [leaf-devsecops-primary-dimensions-orig-aspect], [leaf-devsecops-primary-dimensions-orig-theme-category], [leaf-devsecops-primary-dimensions-orig-cptm-item], [leaf-devsecops-primary-dimensions-orig-lifecycle-stage], [leaf-devsecops-primary-dimensions-orig-gse-gap] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-devsecops-primary-dimensions-004 | [ev-devsecops-primary-dimensions-risk] | [src-devsecops-primary-dimensions-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-devsecops-primary-dimensions-root], [leaf-devsecops-primary-dimensions-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-| EV-devsecops-primary-dimensions-005 | [ev-devsecops-primary-dimensions-relation] | [src-devsecops-primary-dimensions-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边；本行在 A1-DT 仅作关系边 seed，待 A2a 精确页码 / 表图核验后才能升级。 | taxonomy | not_verified | [edge-devsecops-primary-dimensions-method-evidence], [edge-devsecops-primary-dimensions-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ev-devsecops-primary-dimensions-type | clm-devsecops-primary-dimensions-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-devsecops-primary-dimensions-unit | clm-devsecops-primary-dimensions-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**两层**：(a) primary studies（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 primary study 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、challenges (73+53)、practices (219+137)、metrics (7+13)、tools (18+45)——这些 item 才是 thematic analysis 的真正编码单位 | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-devsecops-primary-dimensions-denom | clm-devsecops-primary-dimensions-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：primary studies 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、challenges 126、practices 356、metrics 20、tools 63；最终模型项：28 challenges (C01--C28)、60 practices (P01--P60)、20 metrics (M01--M20)、18 tool groups (T01--T18) | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-devsecops-primary-dimensions-tree | clm-devsecops-primary-dimensions-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-devsecops-primary-dimensions-pool | clm-devsecops-primary-dimensions-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-devsecops-primary-dimensions-tree-type] | A1DT-devsecops-primary-dimensions-C01 | 本文的维度树主类型为“关系型维度树”，辅助类型为“多声部证据树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-devsecops-primary-dimensions-tree-type] | tree_type | [dim-devsecops-primary-dimensions-root] | EV-devsecops-primary-dimensions-001, EV-devsecops-primary-dimensions-004 | 树型判断仅限本文，不代表所有 DevSecOps dimensions 综述。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-scope] | A1DT-devsecops-primary-dimensions-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-scope] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-corpus] | A1DT-devsecops-primary-dimensions-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-corpus] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-taxonomy] | A1DT-devsecops-primary-dimensions-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-taxonomy] | EV-devsecops-primary-dimensions-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-method] | A1DT-devsecops-primary-dimensions-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-method] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-evidence] | A1DT-devsecops-primary-dimensions-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-evidence] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-leaf-finding] | A1DT-devsecops-primary-dimensions-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-devsecops-primary-dimensions-finding] | EV-devsecops-primary-dimensions-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-transfer] | A1DT-devsecops-primary-dimensions-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-devsecops-primary-dimensions-root] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-finding-boundary] | A1DT-devsecops-primary-dimensions-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-devsecops-primary-dimensions-finding] | EV-devsecops-primary-dimensions-003, EV-devsecops-primary-dimensions-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
-| [clm-devsecops-primary-dimensions-edge-method-evidence] | A1DT-devsecops-primary-dimensions-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-devsecops-primary-dimensions-method-evidence] | EV-devsecops-primary-dimensions-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-edge-taxonomy-finding] | A1DT-devsecops-primary-dimensions-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-devsecops-primary-dimensions-taxonomy-finding] | EV-devsecops-primary-dimensions-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | weak | candidate_finding | false | -- |
-| [clm-devsecops-primary-dimensions-source-schema-candidates] | A1DT-devsecops-primary-dimensions-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-devsecops-primary-dimensions-orig-aspect], [leaf-devsecops-primary-dimensions-orig-theme-category], [leaf-devsecops-primary-dimensions-orig-cptm-item], [leaf-devsecops-primary-dimensions-orig-lifecycle-stage], [leaf-devsecops-primary-dimensions-orig-gse-gap] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
-| [clm-devsecops-primary-dimensions-a1dt-19x3-repair] | A1DT-devsecops-primary-dimensions-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-devsecops-primary-dimensions-root] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
+| clm-devsecops-primary-dimensions-type | A1DT-devsecops-primary-dimensions-C01 | 本文原文类型为：Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 | paper_type | type | ev-devsecops-primary-dimensions-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
+| clm-devsecops-primary-dimensions-unit | A1DT-devsecops-primary-dimensions-C02 | 本文被编码样本单位为：**两层**：(a) primary studies（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 primary study 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、challenges (73+53)、practices (219+137)、metrics (7+13)、tools (18+45)——这些 item 才是 thematic analysis 的真正编码单位 | sample_unit | sample_unit | ev-devsecops-primary-dimensions-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
+| clm-devsecops-primary-dimensions-tree | A1DT-devsecops-primary-dimensions-C03 | 本文原生维度树 / 维度森林为：**维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 | tree_type | native_tree | ev-devsecops-primary-dimensions-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-devsecops-primary-dimensions-pool | A1DT-devsecops-primary-dimensions-C04 | 本文统计池资格为：**是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） | eligibility | statistical_pool | ev-devsecops-primary-dimensions-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
-| [cmd-devsecops-primary-dimensions-structure-check] | [dim-devsecops-primary-dimensions-root], A1DT-devsecops-primary-dimensions-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
-| [cmd-devsecops-primary-dimensions-visual-check] | EV-devsecops-primary-dimensions-002, EV-devsecops-primary-dimensions-003, EV-devsecops-primary-dimensions-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |
+| chk-devsecops-primary-dimensions-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
+| chk-devsecops-primary-dimensions-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
+| chk-devsecops-primary-dimensions-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |

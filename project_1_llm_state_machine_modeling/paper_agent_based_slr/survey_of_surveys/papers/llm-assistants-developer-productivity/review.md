@@ -320,171 +320,382 @@ review_record
 
 ## 维度树复原
 
-### 一句话结论
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md)。
 
-本文的维度树主类型为“RQ 驱动分类树”，辅助类型为“生产力 benefit-risk 评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-llm-assistants-developer-productivity-tree-type]
+### v2 主线程采用说明
 
-旧有“可迁移字段树 / 字段树 / schema 历史观察”等内容已迁移至维度树复原；后续以本节和审计附录为事实真源。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
 
-**A1-DT 叶子层口径校准**：下方“叶子维度表”的六个 `leaf-*` 是跨论文通用接口层，用来统一检查范围、语料、分类、方法、证据和候选发现六类信息；它不是对原文全部抽取字段、分类项或报告叶子的完成复原。本文原文模式的候选叶子已在“原文模式候选叶子映射（A1 种子）”中逐条列出，当前均只作为 `schema_seed` / `not_verified`，A2a 必须回到原文页码、表格、图和附录精核后才能升级为正式统计字段。 [clm-llm-assistants-developer-productivity-source-schema-candidates]
+### 0. 审计结论卡片
 
-### 根问题 / RQ 到主干分支映射
+| 项 | 结论 |
+|---|---|
+| paper slug | `llm-assistants-developer-productivity` |
+| agent | `claude` (claude-opus-4-7[1m]) |
+| 是否已读 `paper_content.txt` | 是；按页通读 Page 1–36（覆盖 abstract / intro / background / methodology / RQ0–RQ3 全部结果 / discussion / threats），未逐字读 Conclusion / References 段，但已覆盖审计所需正文。 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是；两者一致核对（DOI 10.1145/3809494；ACM TOSEM 2026；arXiv 2507.03156 v2）。 |
+| 是否打开或核对 `paper.pdf` | 否；本轮以 `paper_content.txt`（已按 `--- Page N ---` 分页）为主，复杂图表（Fig. 3/4/5/7/8/9 雷达图、UpSet 图、Sankey 图）与最终 ACM 版式留待 A2a/PDF 视觉核验。 |
+| 原文类型 | SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 |
+| 被编码样本单位 | **primary study**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 |
+| 样本数量 / 分母 | 9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 |
+| 原生树类型 | **多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 |
+| 主统计池资格 | **是（局部可统计）**：landscape / strategy / procedure / instrument / SPACE 覆盖等字段已有明确分母（39）和取值空间，可进入主统计池；benefit/risk 主题计数（Fig. 6 雷达数字）与 NASA-TLX 子集等 fine-grained 字段须等 A2a 精核精确数字。 |
+| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
 
-| 节点标识 | 对应问题或贡献声明 | 单位对象 | 主干分支 | 证据引用 | 说明 |
-|---|---|---|---|---|---|
-| [dim-llm-assistants-developer-productivity-root] | The Impact of LLM-Assistants on Software Developer Productivity 的研究目标 / RQ / 贡献声明 | primary study / secondary study | [dim-llm-assistants-developer-productivity-b1] 综述范围与研究问题；[dim-llm-assistants-developer-productivity-b2] 语料收集与纳排；[dim-llm-assistants-developer-productivity-b3] 主题 / 对象分类；[dim-llm-assistants-developer-productivity-b4] 方法 / 技术 / 干预；[dim-llm-assistants-developer-productivity-b5] 评价、统计与候选发现 | [ev-llm-assistants-developer-productivity-root] | 根节点只复原本文内部 schema，不直接生成 Paper2 目标领域结论。 |
+### 1. 原文证据阅读说明
 
-### 维度树结构
+实际读取：
+
+- `bibtex.bib`（10 行）— 验证标题、作者、TOSEM 2026、DOI。
+- `metadata.json` — 验证 publication date 2026-04-27、arXiv 来源、`eligible_for_schema_seed=true`、`eligible_for_statistical_synthesis=true`、`evidence_role=hybrid_slr_sms_pattern`。
+- `paper_content.txt` — 通读 Page 1–36，主要章节：
+  - §1 Introduction（Page 1–2）
+  - §2 Background（Page 3–4，含 SPACE 来源 [19]）
+  - §3 Methodology（Page 4–9）：§3.1 pre-review mapping、§3.1.1 control papers、Inclusion/Exclusion criteria、§3.1.2 query formulation、§3.2 selection process、§3.3 QA、§3.4 data extraction & synthesis
+  - §4 RQ0 Landscape（Page 9–11）
+  - §5 RQ1 Methodology/instruments（Page 11–17）
+  - §6 RQ2 Benefits & Risks（Page 17–24）
+  - §7 RQ3 SPACE mapping（Page 24–27）
+  - §8 Discussion（Page 27–35，含 McLuhan Tetrad + 5 practitioner recs + 3 researcher recs）
+  - §9 Threats to Validity（Page 35–36）
+
+未做 PDF 视觉核验，主要影响：Fig. 1 PRISMA 实际位置、Fig. 6 radar plot 各 benefit/risk 主题精确数字、Fig. 7/8 SPACE Sankey/UpSet 比例线、Fig. 9 Tetrad 图、Table 9 risk 摘要、Table 10 SPACE 完整列。
+
+关键证据锚点：
+
+1. **PS 集合分母链**（§3.2, Page 7–8 + Fig. 1）："Records identified from Databases (n = 9,756) ... duplicates removed (n = 803) ... title/abstract n = 8,953 → excluded 8,725 → 228 → snowballing +5 → QA n = 44 → excluded 5 → **n = 39**"。
+2. **EC 分布**（Fig. 1 标注）：EC1=15, EC2=128, EC3=27, EC4=11, EC5=3, ~IC1=5。
+3. **QA rubric**（§3.3, Page 8, Table 2）：QA1–QA11 共 11 项 + 5 点 Likert {Excellent 4, Very Good 3, Good 2, Fair 1, Poor 0} + 50% 阈值。
+4. **research strategy taxonomy**（§5.1, Page 11–12, Table 5）：Stol & Fitzgerald 6 类；Lab 38% (15/39), Field 23% (9), Sample 15% (6), ExpSim 13% (5), Field Exp 5% (2), Judgment 5% (2)。
+5. **procedure taxonomy**（§5.2, Page 13, Table 6 + Fig. 3/4）：Glass-Vessey-Ramesh 5 类；Survey 82% (32), User Exp 41% (16), Case 31% (12), Interview 26% (10), Concept Impl 10% (4)。
+6. **objective**（§5.2, Page 13–14）：Hartson taxonomy，formative 59% (23) / summative 41% (16)。
+7. **data source × instrument origin**（§5.3, Page 14, Table 7）：Self-reported vs Behavioral; designed by authors vs validated（NASA-TLX, SPACE survey, TAM, AAR/AI, self-efficacy, emotion affect, TCQ, RBV）。
+8. **time-to-completion**：31% (12/39) - §5.3.1, Page 15。
+9. **8 benefits + 5 risks 主题**（§6.1–§6.2, Page 17–24, Fig. 6 radar + Table 8 + Table 9）。
+10. **SPACE mapping**（§7, Page 24–27, Fig. 7/8 + Table 10/11）：Satisfaction 77%, Performance 64%, Efficiency 59%, Activity 31%, Communication 26%；90% ≥2 维, 44% ≥3 维, 15% ≥4 维；最常见组合 S+P+E (5/39)。Satisfaction sub: developer-experience, self-efficacy, trust, cognitive-load, well-being (=0). Performance sub: quality, impact. Efficiency sub: temporal-efficiency, automation, interruptions-and-flow. Communication sub: human-LLM (7/10), human-human (3/10).
+11. **McLuhan Tetrad**（§8.1, Page 27–30, Fig. 9）：Enhance / Reverse / Obsolesce / Retrieve 四维 + lessons learned (1–3) + 5 practitioner recs (Trust / role / workflow / org / professional ethics)。
+12. **Threats**（§9, Page 35–36）：selection bias, human-centered identification, bias & repeatability, classification rigor, formative/controlled dominance, methodological diversity, temporal relevance（2024 占 77%）。
+
+### 2. 样本单位与字段来源判定
+
+**1. 纳入和逐项描述的对象**：peer-reviewed primary studies，编号 PS1–PS39，每条 PS 在多张表格中作为主键被反复挂接（venue, tools, strategy, procedure, instrument, benefit, risk, SPACE sub-dimension, QA score）。
+
+**2. 是否有系统检索/纳排/抽取/编码方案**：是。完整含 Kitchenham&Charters protocol、6 数据库 search string、17 control papers、5 轮 query iteration、Rayyan 标注、47-day title/abstract screening、10-week full-text screening、PRISMA flow chart、Lenarduzzi 11-QA rubric、初始 thematic analysis + 三轮 targeted thematic analysis（针对 RQ1/RQ2/RQ3）、citation cross-check。
+
+**3. 字段来源**：
+
+- **extraction form**（§3.4 列出："study goals, tools, empirical strategy and design, tasks, settings, key results"）
+- **classification schemas**：Stol & Fitzgerald (strategy)、Glass-Vessey-Ramesh (procedure)、Hartson (formative/summative)、SPACE (Forsgren et al.)
+- **QA rubric**：Lenarduzzi 11 项
+- **emergent thematic codes**：8 benefits + 5 risks（thematic analysis 自产）
+- **interpretive lens**：McLuhan Tetrad（应用于 discussion，不是抽取字段，但提供推论 schema）
+- **supplemental appendix + Zenodo replication package**：control papers list、query iterations、QA scores、exclusion rationales
+
+**4. RQ ↔ 样本单位**：RQ 是字段使用方式（landscape RQ0 / methodology RQ1 / impact RQ2 / dimension RQ3），样本单位仍是 PS。RQ 不是树根，而是把 PS 字段切成不同分析维度的"棱镜"。
+
+**5. 是否需要降级**：不需要。本文有完整系统证据基础，主统计池资格成立；只是部分 fine-grained 数字（Fig. 6 雷达精确计数、Sankey 流量、Table 9 详尽 risk 行）尚未在文本中完全读出，需 A2a/PDF 复核。
+
+### 3. 原生样本编码维度树 / 维度森林
+
+样本单位主键：`PS-id ∈ {PS1, …, PS39}`。每棵 RQ-subtree 通过 PS-id 与其他 subtree 关联。
 
 ```text
-[dim-llm-assistants-developer-productivity-root] The Impact of LLM-Assistants on Software Developer Productivity
-├── [dim-llm-assistants-developer-productivity-b1] 综述范围与研究问题
-│   └── [leaf-llm-assistants-developer-productivity-scope] 研究范围与单位对象
-├── [dim-llm-assistants-developer-productivity-b2] 语料收集与纳排
-│   └── [leaf-llm-assistants-developer-productivity-corpus] 语料与纳排链条
-├── [dim-llm-assistants-developer-productivity-b3] 主题 / 对象分类
-│   └── [leaf-llm-assistants-developer-productivity-taxonomy] 主题与维度分类
-├── [dim-llm-assistants-developer-productivity-b4] 方法 / 技术 / 干预
-│   └── [leaf-llm-assistants-developer-productivity-method] 方法 / 技术 / 干预分类
-└── [dim-llm-assistants-developer-productivity-b5] 评价、统计与候选发现
-    └── [leaf-llm-assistants-developer-productivity-evidence] 评价、证据与复现资产
-    └── [leaf-llm-assistants-developer-productivity-finding] 统计观察与候选发现
+[forest-root] LLM-assistants × developer productivity SLR+SMS schema
+│
+├── [tree-meta] 元数据 / 样本主键
+│   ├── PS-id (PS1..PS39)
+│   ├── title / authors / year / venue
+│   ├── inclusion status (included | snowballed | qa_excluded | screened_out)
+│   ├── exclusion code (EC1..EC5 | ~IC1 | none)
+│   └── QA score (QA1..QA11 each ∈ {0,1,2,3,4}, avg ≥ 50% threshold)
+│
+├── [tree-RQ0] Landscape（RQ0 字段集合）
+│   ├── publication-year ∈ {2014..2024, 2025-Jan}（数值）
+│   ├── author-distribution（数值；147 single-author, 6 dual, 1 triple）
+│   ├── venue（Table 3 中 39 个 venue 命名实体）
+│   ├── venue-research-focus（封闭枚举：SE/CS, HCI, IS/Decision Science, Human-Aspects, AI for SE / AI Engineering, SE Education）
+│   └── llm-tool-used（Table 4 开放枚举：ChatGPT, GitHub Copilot, Tabnine, GPT-4, CodeWhisperer, GPT-3.5, Claude, Codex, Gemini, GPT-3, Ansible Lightspeed, Bard, CodeGen2 7B, GILT, CodeCompose, NL2Code PyCharm plugin, StackSpotAI, StarCoder 7B, TransCoder, aiXcoder, OpenAI API, Midjourney）
+│
+├── [tree-RQ1] Methodology / procedures / instruments
+│   ├── empirical-strategy（Stol-Fitzgerald 封闭 6 枚举：Field Study | Field Experiment | Experimental Simulation | Laboratory Experiment | Sample Study | Judgment Study）
+│   ├── procedure（Glass-Vessey-Ramesh 多选 5 枚举：Survey | User Experiment | Case Study | Interview | Concept Implementation）
+│   ├── mixed-methods（布尔：69% true）
+│   ├── objective（封闭枚举：formative | summative）
+│   ├── data-analysis-type（封闭枚举：quantitative | qualitative | mixed）
+│   ├── data-source（封闭枚举：Self-Reported | Behavioral & Performance Metrics）
+│   ├── instrument-origin（封闭枚举：designed by authors | validated framework）
+│   └── instrument-name（开放枚举：NASA-TLX, SPACE survey, TAM, self-efficacy, AAR/AI, emotion affect, TCQ, RBV, task completion & correctness, suggestion acceptance rate, interaction logs, time to completion, code quality metrics, productivity gain, open-ended feedback...）
+│       └── associated-metric（细分见 Table 7）
+│
+├── [tree-RQ2] Effect synthesis（thematic）
+│   ├── benefit-themes（封闭枚举 8 项）
+│   │   ├── accelerate-software-development
+│   │   ├── minimize-online-code-search
+│   │   ├── automate-trivial-repetitive-tasks
+│   │   ├── support-knowledge-acquisition
+│   │   ├── support-code-adjacent-tasks
+│   │   ├── reduce-task-initiation-overhead
+│   │   ├── improve-code-quality        ← contested 双向出现
+│   │   └── support-debugging-troubleshooting
+│   ├── risk-themes（封闭枚举 5 项）
+│   │   ├── fail-to-meet-requirements
+│   │   ├── promote-over-reliance-and-cognitive-offloading
+│   │   ├── limit-code-quality          ← contested 双向出现
+│   │   ├── disrupt-the-flow
+│   │   └── reduce-team-collaboration
+│   ├── theme-frequency（数值；Fig. 6 雷达每主题对应 PS 集合大小）
+│   └── contested-theme-flag（布尔；code-quality = true）
+│
+├── [tree-RQ3] SPACE dimension mapping
+│   ├── space-dimension（封闭枚举 5：Satisfaction | Performance | Activity | Communication | Efficiency）
+│   ├── space-dim-coverage-count（数值 0..5 per PS；分布：90% ≥2, 44% ≥3, 15% ≥4）
+│   ├── space-sub-dimension（层级枚举）
+│   │   ├── Satisfaction: developer-experience | self-efficacy | trust | cognitive-load | well-being(=∅)
+│   │   ├── Performance: quality | impact
+│   │   ├── Activity: (no further sub)
+│   │   ├── Communication: human-LLM | human-human
+│   │   └── Efficiency: temporal-efficiency | automation | interruptions-and-flow
+│   ├── quality-metric-instance（Table 11 开放枚举：Passing Unit Tests, Functional Correctness & Accuracy, Code Smells, BLEU, Halstead, Cyclomatic Complexity, Translation Error Rate, Maintainability Index, Cognitive Complexity, Defect Density, Defect Rate, Technical Debt, Code Coverage）
+│   └── most-frequent-combination（自由文本，e.g. "Satisfaction-Performance-Efficiency", 5/39）
+│
+├── [tree-discussion-tetrad] Interpretive lens（McLuhan）
+│   ├── enhance（boilerplate, syntax recall, initial scaffolding, exploratory prototyping）
+│   ├── reverse（over-reliance, automation complacency, autonomy erosion, reduced collaboration）
+│   ├── obsolesce（online search, Q&A platforms）
+│   └── retrieve（documentation, requirements elicitation, legacy modernization）
+│
+└── [tree-threats] Validity threats
+    ├── review-process-threat（封闭枚举 4：study selection bias | human-centered identification | bias & repeatability | classification rigor）
+    └── primary-evidence-base-threat（封闭枚举 3：formative/controlled dominance | methodological diversity | temporal relevance）
 ```
 
-### 叶子维度表
+主干说明：
 
-| 节点或叶子标识 | 名称 | 父节点 | 定义 | 取值空间 | 证据要求 | 缺失值语义 | 统计用途 | 候选发现用途 | 迁移边界 | 结论引用 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| [leaf-llm-assistants-developer-productivity-scope] | 研究范围与单位对象 | [dim-llm-assistants-developer-productivity-b1] | 定义 LLM assistants / developer productivity 的综述范围、单位对象和 RQ / 贡献声明。 | 自由文本加 RQ / 贡献声明引用；单位对象可为 paper / study / method / artifact / action point。 | 全文目标、RQ、摘要或贡献声明。 | 无显式 RQ 时使用贡献声明并标注替代依据。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“研究范围与单位对象”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-scope] |
-| [leaf-llm-assistants-developer-productivity-corpus] | 语料与纳排链条 | [dim-llm-assistants-developer-productivity-b2] | 记录数据库、检索式、时间窗、纳排、全文状态、质量门槛或 proposal 降级理由。 | 完整 SLR/SMS 为数值链条；guideline / roadmap 写 not_applicable 并说明。 | 方法章节、protocol、search / selection 描述或降级声明。 | roadmap / guideline 无统计分母时写 not_applicable。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“语料与纳排链条”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-corpus] |
-| [leaf-llm-assistants-developer-productivity-taxonomy] | 主题与维度分类 | [dim-llm-assistants-developer-productivity-b3] | 复原原文中的 taxonomy、classification schema、coding scheme、roadmap branch 或 theory construct。 | 完整枚举 / 层级枚举 / 自由文本加理由。 | 抽取表、分类表、主题表、roadmap 图或结果小节。 | 分类项不完整时写待核验。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“主题与维度分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-taxonomy] |
-| [leaf-llm-assistants-developer-productivity-method] | 方法 / 技术 / 干预分类 | [dim-llm-assistants-developer-productivity-b4] | 记录方法、工具、LLM / agent 角色、人工角色、流程阶段或干预方式。 | 层级枚举、关系值或开放 action point。 | 结果表、方法小节、roadmap action point 或工具 / 技术表。 | 无方法对象时写不适用。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“方法 / 技术 / 干预分类”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-method] |
-| [leaf-llm-assistants-developer-productivity-evidence] | 评价、证据与复现资产 | [dim-llm-assistants-developer-productivity-b5] | 记录评价指标、数据、artifact、replication package、质量评价、threat 或开放材料。 | 布尔、数值、链接状态、质量等级或自由文本。 | 评价章节、质量评价表、artifact / data availability、threats。 | 只作作者愿景时降级为 candidate / risk。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“评价、证据与复现资产”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-evidence] |
-| [leaf-llm-assistants-developer-productivity-finding] | 统计观察与候选发现 | [dim-llm-assistants-developer-productivity-b5] | 说明字段如何支撑统计观察、gap、recommendation、roadmap action 或候选发现。 | 统计用途、候选发现、boundary anchor、risk_only。 | 结果、discussion、conclusion、limitations。 | 不得直接写成 final research finding。 | 可进入描述统计 / 交叉统计，前提是分母和样本单位明确。 | 可生成与“统计观察与候选发现”相关的候选发现，需研究者裁决。 | 迁移结构与证据要求，不迁移领域结论。 | [clm-llm-assistants-developer-productivity-leaf-finding] |
+- **forest, not single tree**：RQ0/1/2/3 各成独立子树，但都挂在 PS-id 主键上；Tetrad 与 Threats 是 interpretive overlay，不直接挂 PS。
+- **取值空间饱和度**：[tree-RQ0] author/venue/tool 是开放枚举；[tree-RQ1] strategy/procedure/objective 是封闭枚举（直接来自外部 taxonomy）；[tree-RQ2] benefit/risk 是封闭枚举（8+5，由 thematic analysis 收敛）；[tree-RQ3] SPACE dimension 是封闭 5 维 + emergent sub-dimensions。
 
-### 原文模式候选叶子映射（A1 种子）
+### 4. 叶子维度表
 
-本表把原文中已经出现的抽取字段、分类项、模型节点或报告叶子先作为 A1 候选种子列出，用来避免把上表六个通用接口误读为原文叶子全集。由于本 PR 仍未完成逐页表图精核，本表所有候选叶子默认 `not_verified`，只能作为 A2a 精核任务入口。
+仅列原文已锚定的代表性叶子（共 21 项；完整 schema 还有 ~10 项需 A2a 精核精确分母）：
 
-| 候选叶子标识 | 所属主干节点 | 原文模式来源 | 候选取值空间 | 当前用途 | 证据引用 | A2a 精核任务 |
-|---|---|---|---|---|---|---|
-| [leaf-llm-assistants-developer-productivity-orig-assistant-type] | [dim-llm-assistants-developer-productivity-b1] | LLM 助手类型 | 代码助手、聊天助手、IDE 插件、任务专用工具或组合式助手。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-llm-assistants-developer-productivity-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-llm-assistants-developer-productivity-orig-developer-task] | [dim-llm-assistants-developer-productivity-b2] | 开发者任务 | 编码、测试、调试、文档、理解、维护、协作等任务。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-llm-assistants-developer-productivity-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-llm-assistants-developer-productivity-orig-productivity-outcome] | [dim-llm-assistants-developer-productivity-b3] | 生产力结果 | 效率、质量、满意度、认知负担、风险和负面效应。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-llm-assistants-developer-productivity-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-llm-assistants-developer-productivity-orig-evaluation-design] | [dim-llm-assistants-developer-productivity-b4] | 评价设计 | 实验、观察、问卷、访谈、日志分析、混合方法及指标。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-llm-assistants-developer-productivity-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
-| [leaf-llm-assistants-developer-productivity-orig-human-factor] | [dim-llm-assistants-developer-productivity-b5] | 人因与采纳字段 | 开发者角色、经验、信任、依赖、控制感和组织约束。 | `schema_seed`；不得进入当前 SUMMARY 定量统计 | EV-llm-assistants-developer-productivity-002 | 核对原文页码、表号 / 图号、附录或复现实验包；确认取值空间是否封闭、是否可统计以及缺失值语义。 |
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| leaf-ps-id | 论文主键 | tree-meta | extraction form | PS1..PS39 | 39 个枚举 | 完整枚举 | n/a | 全表分母 | 全表主键 | §3.2 + Fig. 1 | 主键模式可迁移 |
+| leaf-ps-qa-score | QA 综合分数 | tree-meta | QA rubric §3.3 | 11 criteria avg ≥ 50% | [0,4] 区间，per criterion 0..4 Likert | 数值 | 不达阈值=excluded | eligibility filter | quality-weighted finding | §3.3, Table 2 | 全可迁移 |
+| leaf-pub-year | 发表年份 | tree-RQ0 | RQ0 §4.1 | 年 | 2014..2025-Jan | 数值 | n/a | landscape 时间分布 | 时间漂移风险 | §4.1 Fig. 2 | 可迁移 |
+| leaf-venue-focus | venue 研究焦点 | tree-RQ0 | Table 3 §4.3 | 6 个 focus 大类 | {SE/CS, HCI, IS/Decision, Human-Aspects, AI Eng, SE Edu} | 完整枚举 | uncategorized | 社区分布 | 跨社区融合 gap | §4.3 Table 3 | 可迁移 |
+| leaf-llm-tool | 使用的 LLM 工具 | tree-RQ0 | Table 4 §4.4 | 22 个 tool name | open enumeration | 开放枚举 | not_reported | 工具集中度 | 工具漂移 risk | §4.4 Table 4 | 可迁移结构 |
+| leaf-strategy | 实证策略 | tree-RQ1 | Stol-Fitzgerald taxonomy | 6 类 | {Field Study, Field Exp, ExpSim, Lab Exp, Sample, Judgment} | 完整枚举 | n/a | 策略分布 (38/23/15/13/5/5%) | 生态效度 risk | §5.1 Table 5 | 可迁移 |
+| leaf-procedure | 方法 procedure | tree-RQ1 | Glass-Vessey-Ramesh | 5 类 | {Survey, User Exp, Case, Interview, Concept Impl} | 多选完整枚举 | n/a | procedure 分布 (82/41/31/26/10%) | mixed-methods 比例 | §5.2 Table 6 Fig. 4 | 可迁移 |
+| leaf-objective | 研究目标 | tree-RQ1 | Hartson | formative / summative | 完整枚举 2 | n/a | formative/summative 比例 (59/41%) | 证据成熟度 | §5.2 Page 14 | 可迁移 |
+| leaf-analysis-type | 分析类型 | tree-RQ1 | extraction | quant / qual / mixed | 完整枚举 3 | n/a | 比例 (13/21/67%) | triangulation indicator | §5.2 Page 14 | 可迁移 |
+| leaf-instrument-origin | 工具来源 | tree-RQ1 | Table 7 §5.3 | designed-by-authors / validated | 完整枚举 2 | n/a | validated 比例 (15/39 ≈ 38%) | 可比性 risk | §5.3 Table 7 | 可迁移 |
+| leaf-instrument-name | 工具名称 | tree-RQ1 | Table 7 | 含 NASA-TLX, SPACE, TAM, AAR/AI, self-eff, emotion, TCQ, RBV 等 | 开放枚举 | not_reported | 各工具出现频次 | 标准化 gap | §5.3 Table 7 | 可迁移 |
+| leaf-metric-time-completion | time-to-completion 使用 | tree-RQ1 | §5.3.1 | 是否使用 | 布尔 | not_reported=false | 31% (12/39) | 跨策略对比 | §5.3.1 Page 15 | 可迁移 |
+| leaf-metric-acceptance-rate | LLM 建议接受率 | tree-RQ1 | §5.3.2 | 是否使用 | 布尔 | not_reported=false | 7/39 | proxy metric caution | §5.3.2 Page 15–16 | 可迁移含 caveat |
+| leaf-metric-cognitive-load | 认知负荷（NASA-TLX 等） | tree-RQ1 | §5.3.3 | 6 studies | 布尔 + outcome direction | mixed (3 improved / 2 neutral / 1 worse) | 6/39 | contested construct | §5.3.3 Page 16 | 可迁移含 polarity |
+| leaf-benefit-theme | 收益主题（8） | tree-RQ2 | §6.1 + Table 8 + Fig. 6 | 8 项封闭枚举 | 完整枚举 | n/a | 主题频次 (15/14/12/10/8/7/7/4 待 A2a 核) | candidate findings | §6.1 Page 17–22 | 主题结构可迁移；具体主题不可 |
+| leaf-risk-theme | 风险主题（5） | tree-RQ2 | §6.2 + Fig. 6 | 5 项封闭枚举 | 完整枚举 | n/a | 主题频次 (7/6/5/3/?? 待 A2a) | candidate findings + boundary | §6.2 Page 22–24 | 主题结构可迁移 |
+| leaf-contested-flag | 双向主题标志 | tree-RQ2 | §6.1.7 + §6.2.3 + Discussion | "improve-code-quality" 与 "limit-code-quality" 同时存在 | 布尔 | false=未发现矛盾 | 矛盾度指标 | reviewer-defense | §8.3 "remains unresolved" | 模式可迁移 |
+| leaf-space-dim | SPACE 维度（5） | tree-RQ3 | Forsgren et al. + Table 10 | 5 维 | 完整枚举 | n/a | Sat 77% / Perf 64% / Eff 59% / Act 31% / Comm 26% | dimension coverage gap | §7 Table 10 Fig. 7/8 | 框架特定，结构可迁移 |
+| leaf-space-coverage-count | SPACE 覆盖维数 | tree-RQ3 | §7 计算 | 每 PS 覆盖维数 | 0..5 | 数值 | 0=未覆盖 | 90%/44%/15% 阈值统计 | multidim 成熟度 | §7 Page 25 | 可迁移概念 |
+| leaf-space-sub-dim | SPACE 子维度 | tree-RQ3 | Table 10 §7 | 层级枚举 | hierarchical enum (e.g., Satisfaction → {dev-exp, self-eff, trust, cog-load, well-being}) | 层级枚举 | well-being=∅(0/39) | sub-dim gap | underexplored detection | §7 Page 25–27 | 框架特定 |
+| leaf-quality-metric-instance | 质量度量实例 | tree-RQ3 | Table 11 | 13 metric 名 | 开放枚举 | not_reported | 各 metric 出现 PS 集合 | 异质性度量 | §7 Table 11 | 可迁移结构 |
 
-### 原文 schema 主树（19×3 审计后返修）
+> 还需 A2a 精核以达到原生 schema 全集：threat sub-category 拆分、Fig. 6 雷达精确 8/5 数字、Table 9 risk summary 行级映射、PS×venue 全表（39 行）、PS×tool 全表、QA scores 表（来自 supplemental appendix）、5 practitioner recs / 3 researcher recs 作为 recommendation leaf 等。
 
-本节根据 19×3 全文审计结果补充，是当前单篇 `review.md` 中更接近原文的 schema 主事实源。上方六个通用 leaf 仅保留为跨论文接口投影；本节才描述原文 RQ、抽取表、分类 schema、编码方案、统计表、roadmap / guideline stage 与 finding path 的具体结构。所有节点在本 PR 仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计或 final research finding。
+### 5. 关系边表
 
-审计入口：[codex](../../audits/a1dt-19x3/results/llm-assistants-developer-productivity__codex.md)、[claude](../../audits/a1dt-19x3/results/llm-assistants-developer-productivity__claude.md)、[deepseek](../../audits/a1dt-19x3/results/llm-assistants-developer-productivity__deepseek.md)。 [clm-llm-assistants-developer-productivity-a1dt-19x3-repair]
-
-| 原文主干标识 | 原文主干名称 | 叶子 / 取值空间种子 | 统计用途与分母 | 缺失值语义 | 证据与 A2a 精核任务 |
-|---|---|---|---|---|---|
-| [dim-llm-assistants-developer-productivity-orig-rq-scope] | LLM 助手与生产率 RQ | developer productivity、LLM assistant、benefit/risk、SPACE 维度 | 现代 SLR+SMS schema seed | 任务实例与论文分母分开 | 核对 RQ 与 mapping 设计 |
-| [dim-llm-assistants-developer-productivity-orig-space] | SPACE 生产率维度 | Satisfaction、Performance、Activity、Communication、Efficiency 及组合覆盖 | 结果分类 seed；A2a 可统计维度覆盖 | SPACE 缺失和多维组合需记录 | 核对 SPACE 分类表 |
-| [dim-llm-assistants-developer-productivity-orig-assistant-task] | 助手类型与开发任务 | 聊天助手、IDE/代码助手、任务类型、使用场景、开发阶段 | method/task taxonomy seed | 工具名与能力不要混淆 | 核对任务和工具表 |
-| [dim-llm-assistants-developer-productivity-orig-evaluation] | 评价设计与证据 | 实验、用户研究、指标、数据集、baseline、主观/客观度量 | evidence schema seed | 不同 study design 不可混算 | 核对 evaluation 结果 |
-| [dim-llm-assistants-developer-productivity-orig-benefit-risk] | 收益与风险 taxonomy | 收益主题、风险主题、code quality 双向效应、overreliance、communication/activity 欠覆盖 | candidate finding seed | contested finding 需反证 | 核对 benefit/risk 章节 |
-| [dim-llm-assistants-developer-productivity-orig-quality-eligibility] | 质量、纳排与复现资产 | eligibility、QA、artifact、data/code availability、threats | 证据链和统计池资格 seed | 开放资产需链接核验 | 核对方法和附录 |
-| [dim-llm-assistants-developer-productivity-orig-finding-path] | 统计观察到 finding | 90% 至少覆盖 2 SPACE、15% 超过 3 维、underexplored dimensions、risk/benefit gaps | candidate finding；需研究者裁决 | 单篇 finding 不直接 final | 核对 discussion 和 conclusion |
-
-#### 三路审计综合返修结论
-
-| 审计共同问题 | 本轮返修动作 | 剩余风险 |
-|---|---|---|
-| 原先主树过度依赖六个通用接口叶子，容易把跨论文投影误读成原文 schema。 | 将原文 RQ、抽取字段、分类项、质量 rubric、关系边、统计表或 roadmap action 抬升为上表主干，并把通用接口降级为后文投影。 | 上表仍是 `schema_seed`，需 A2a 精确核对页码、表号、图号和附录。 |
-| 原文显式取值空间未完全进入叶子层。 | 在“叶子 / 取值空间种子”中列出封闭枚举、层级枚举、数值分母、关系值或自由文本边界。 | 取值空间是否封闭、是否饱和、是否可统计，需要 A2a 逐项判定。 |
-| 统计观察、候选发现和最终 finding 容易混层。 | 统计用途列显式保留 `schema_seed`、候选 finding 和不得进入当前 SUMMARY 定量统计的边界。 | final research finding 仍必须等跨论文证据、反证和研究者裁决。 |
-
-#### 审计返修口径
-
-- 本节吸收 `codex`、`claude`、`deepseek` 三路全文审计的共同结论：原文 schema 主树必须优先于跨论文通用接口层；通用接口只做投影，不再冒充原文叶子全集。
-- 本节只完成 A1-DT 结构化返修；凡未补齐精确页码、表号、图号或 supplementary 定位的节点均保持 `schema_seed` / `not_verified`，并作为 A2a 精核入口。
-- 若三路审计之间存在细节差异，后续 A2a 以原文 PDF、`paper_content.txt`、附录和复现实验包为准，并在 A.3 中新增替代结论或废弃旧结论。
-#### 通用接口投影
-
-下表只用于把原文 schema 主树投影到跨论文统一接口，不能替代上表成为原文事实源。
-
-| 通用接口 | 在本文中的投影对象 | 使用边界 |
-|---|---|---|
-| 研究范围与单位对象 | `RQ / review scope` 及根问题 / RQ。 | 只记录 scope，不代表完整原文 schema。 |
-| 语料与纳排链条 | 与检索、纳排、样本分母、方法流程相关的原文主干。 | 无系统检索的 roadmap / vision 需写不适用。 |
-| 主题与维度分类 | 原文 taxonomy、classification schema、concept model 或 roadmap action 分类。 | 必须保留原文取值空间，不得压成泛词。 |
-| 方法 / 技术 / 干预分类 | 原文 method / tool / intervention / agent role / guideline stage。 | 方法学 guideline 不得误写成目标领域方法效果。 |
-| 评价、证据与复现资产 | 原文 quality、metric、artifact、replication、validity、evidence table。 | 弱证据或未核验链接不得进入统计。 |
-| 统计观察与候选发现 | 原文 result / discussion / gap / recommendation / action point。 | 只能作 candidate finding，需研究者裁决。 |
-
-#### 返修后仍需 A2a 精核
-
-1. 将上表每个原文主干拆成更细叶子，并为每个叶子补具体页码、表号 / 图号、段落或附录定位。
-2. 核对取值空间是否是原文封闭枚举、层级枚举、数值 / 分母、关系值，还是只能自由文本。
-3. 若三路审计意见冲突，以原文证据为准，并在 A.3 新增替代结论或废弃旧结论。
-
-### 关系边表
-
-| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据引用 | 结论引用 |
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
-| [edge-llm-assistants-developer-productivity-method-evidence] | [leaf-llm-assistants-developer-productivity-method] | 支撑 / 度量 | [leaf-llm-assistants-developer-productivity-evidence] | 工具 / 指标 / 数据集 / artifact / not_reported | 未报告评价或复现资产时写 `not_reported` | [ev-llm-assistants-developer-productivity-taxonomy] | [clm-llm-assistants-developer-productivity-edge-method-evidence] |
-| [edge-llm-assistants-developer-productivity-taxonomy-finding] | [leaf-llm-assistants-developer-productivity-taxonomy] | 导出候选发现 | [leaf-llm-assistants-developer-productivity-finding] | gap / recommendation / trend / limitation | 无 discussion 支撑时写 `not_reported` | [ev-llm-assistants-developer-productivity-stat] | [clm-llm-assistants-developer-productivity-edge-taxonomy-finding] |
+| edge-strategy×instrument | leaf-strategy | "association/most-common-with" | leaf-data-source / leaf-instrument-name | self-reported vs behavioral/performance | not_reported | §5.3 Fig. 5 Sankey | "behavioral metrics 多与 Lab/Field Exp/ExpSim 关联；self-reported 多与 field/sample" |
+| edge-strategy×procedure | leaf-strategy | "co-occurrence" | leaf-procedure | 多选 | not_reported | §5.2 Fig. 3 stacked | "user-experiment 几乎独占 lab experiment" |
+| edge-procedure×procedure | leaf-procedure | "mixed-methods combination" | leaf-procedure | 二元组 | n/a | §5.2 Fig. 4 UpSet | 最常见组合 user-exp + survey (n=10) |
+| edge-benefit×risk-contested | leaf-benefit-theme: improve-code-quality | "contested-with" | leaf-risk-theme: limit-code-quality | n/a | n/a | §6.1.7 + §6.2.3 + §8.3 | "code quality 双向 finding" |
+| edge-space-dim×dim | leaf-space-dim | "co-occurrence" | leaf-space-dim | 二元/三元组合 | n/a | §7 Fig. 8 UpSet | Sat-Perf-Eff (5/39) 最常组合 |
+| edge-ps×space-sub | leaf-ps-id | "investigated" | leaf-space-sub-dim | layered enum | not_reported | §7 Table 10 | per-PS 维度映射 |
+| edge-ps×benefit | leaf-ps-id | "reports-benefit" | leaf-benefit-theme | 多选 | not_reported | §6.1 Table 8 | per-PS 主题挂接 |
+| edge-ps×risk | leaf-ps-id | "reports-risk" | leaf-risk-theme | 多选 | not_reported | §6.2 Table 9 | per-PS 风险挂接 |
+| edge-ps×qa | leaf-ps-id | "scored-as" | leaf-ps-qa-score | [0,4] per QA1..QA11 | 缺失 = qa_excluded | §3.3 + Zenodo supplemental | eligibility gate |
+| edge-tetrad×benefit/risk | tetrad-{enhance,reverse,obsolesce,retrieve} | "synthesizes-from" | leaf-benefit/leaf-risk subset | n/a | n/a | §8.1 + Fig. 9 | interpretive synthesis |
 
-### 统计与候选发现链路
+显式关系型 schema 存在；该论文在 Fig. 3/4/5/7/8 大量使用 stacked / UpSet / Sankey 表示交叉关系，本质上把 PS-id × dimension 矩阵展开为视觉关系图。
 
-| 对象标识 | 可统计方式 | 分母 | 是否进入主统计池 | 候选发现用途 | 降级说明 |
-|---|---|---|---|---|---|
-| [dim-llm-assistants-developer-productivity-root] | 树型分布与 schema seed 分布 | 当前 19 篇 survey-of-surveys 样本 | 否（A1-DT 阶段仅作 schema seed） | 识别可迁移的维度模式类型 | 原文具备系统性证据，可作为后续主统计池候选；但当前 A.2/A.3 多数证据仍待 A2a 精确锚定，不直接进入 SUMMARY 定量统计。 |
-| [leaf-llm-assistants-developer-productivity-taxonomy] | 分类项频次 / 交叉表 / 主题分布 | 本文纳入样本或分类表 | 否（A1-DT 阶段仅作 schema seed） | 形成主题覆盖、缺口或 roadmap action 的候选发现 | 需要 A2a 精确页码 / 表图核验并扩库验证取值空间是否饱和。 |
-| [leaf-llm-assistants-developer-productivity-finding] | 候选发现台账，不直接作为 final finding | 统计结果 + discussion | 否 | 支撑 candidate finding、risk 或 boundary anchor | final research finding 必须由研究者裁决。 |
+### 6. 统计观察、候选 finding 与 final finding 边界
 
-### 可迁移与不可迁移边界
+#### 6.1 由字段/统计表直接支持的统计观察（可进入主统计池）
 
-| 对象标识 | 可迁移内容 | 不可迁移内容 | 外推限制 | 结论引用 |
-|---|---|---|---|---|
-| [dim-llm-assistants-developer-productivity-root] | 树型、叶子字段、证据要求、缺失值语义和降级规则。 | LLM assistants / developer productivity 的具体领域结论、统计结论或作者立场。 | 当前仅基于本文全文文本级审计；复杂图表和 supplementary 仍需 A2a 精核。 | [clm-llm-assistants-developer-productivity-transfer] |
-| [leaf-llm-assistants-developer-productivity-finding] | “统计观察 / discussion → 候选发现 → 研究者裁决”的链路。 | 未经反证检查的 final research finding。 | 不得从单篇论文直接外推到 Paper2 目标主题。 | [clm-llm-assistants-developer-productivity-finding-boundary] |
+1. 时间分布：2014–2022 仅 4 篇；2024 占 77%（30/39）（§4.1）。
+2. 作者集中度：154 位作者中 147 位单篇；Igor Steinmacher 3 篇（§4.2）。
+3. Venue focus 分布：SE/CS 46%；HCI 18%；IS 13%；Human-Aspects 10%；AI Eng 8%；SE Edu 5%（§4.3 Table 3）。
+4. 工具集中度：ChatGPT 15, Copilot 14, others ≤3（§4.4 Table 4）。
+5. Strategy 分布：Lab 38%/15、Field 23%/9、Sample 15%/6、ExpSim 13%/5、Field Exp 5%/2、Judgment 5%/2（Table 5）。
+6. Procedure 分布：Survey 82%, User Exp 41%, Case 31%, Interview 26%, Concept Impl 10%（Table 6）。
+7. Mixed-methods：69%（27/39）（§5.2）。
+8. Formative/summative：59% / 41%（§5.2）。
+9. Analysis：mixed 67%, qual-only 21%, quant-only 13%（§5.2）。
+10. Time-to-completion 使用率 31%（§5.3.1）。
+11. SPACE 多维覆盖：90% ≥2, 44% ≥3, 15% ≥4；S 77, P 64, E 59, A 31, C 26%（§7）。
+12. Communication 子维：human-LLM 7/10, human-human 3/10（§7 Page 27）。
+13. Well-being：0/39（§7 Page 26 + §8.3）。
+14. QA 排除：5/44；最终 39（§3.3）。
+
+#### 6.2 由 discussion / threats 支撑的候选 finding（candidate）
+
+1. Code-quality 双向 contested：作者明确 "remains unresolved"（abstract + §8.3 + §9.2）。
+2. Cognitive-load mixed：6 studies NASA-TLX；3 改善 / 2 中性 / 1 增加 frustration（§5.3.3）。
+3. Acceptance-rate proxy 风险：PS16 自我警告 blind reliance（§5.3.2）。
+4. Throughput 与 code quality 负相关 r=−0.45（PS26 econometric, §5.3.4 + §8.2）。
+5. Multidim adoption 增长但仍不充分（15% 才 ≥4 维, §7 summary）。
+6. 76% per 2024 → temporal relevance threat（§9.2）。
+7. 五条 practitioner recs + 三条 researcher recs（§8.2/§8.3）。
+
+#### 6.3 对 Paper2 可迁移的方法学启发
+
+- **RQ-driven extraction schema 设计**（每 RQ 绑定一组 taxonomy + extraction fields + summary block）。
+- **外部 taxonomy + emergent thematic codes** 的混合 schema 模式（5 个外部 taxonomy + 8/5 themes）。
+- **PRISMA 分母链 + exclusion code 频次 + Rayyan + snowballing** 的 selection schema。
+- **11-item QA rubric + 5-Likert + 50% threshold**：可作为 Paper2 PS eligibility gate 模板。
+- **contested-flag**：把"同一字段在 benefit 与 risk 双向出现"标为一等结构。
+- **measurement framework + interpretation framework 分层**（SPACE for measurement, Tetrad for interpretation）。
+- **per-RQ end-of-section "Summary" 段落格式**：数字 + 主导模式 + caveat 三段式。
+
+#### 6.4 绝不可迁移的领域结论
+
+- "LLM-assistants 加速开发 / 减少搜索 / 提升或降低代码质量" 等 RQ2 benefit/risk 主题结论本身只限 LLM-assistants × developer-productivity 主题。
+- SPACE 框架本体不可直接搬到 Paper2 的方法论 schema（除非目标问题确是 productivity）。
+- 具体百分比（77/64/59/31/26%）只能作为该子领域时间切片证据。
+
+### 7. 对旧版 `review.md` 的返修来源（C/I/M）
+
+| 等级 | 项 | 当前问题 | 建议返修 |
+|---|---|---|---|
+| **C1** | "维度树复原" §维度树结构 | 主树退化为六个通用 leaf（scope/corpus/taxonomy/method/evidence/finding），把 RQ0–RQ3 各自的丰富 schema 压成单一 taxonomy leaf；"原文 schema 主树（19×3 审计后返修）" 也仅 6 行抽象主干，没有展开 PRISMA 链、QA rubric、Stol-Fitzgerald 6 类、Glass-Vessey-Ramesh 5 类、SPACE 5×N 子维、8/5 主题 etc.。这是 A1-DT v2 的核心 mismatch — 学术目标层级风险（影响 Paper2 schema seed 可靠性）。 | 改为本审计 §3 的 RQ-森林结构：以 PS-id 为主键，4 棵 RQ-subtree + Tetrad overlay + Threats overlay；通用六叶降级为最尾部的 "跨论文投影" 视图。 |
+| **C2** | A.2 证据账本 EV-llm-…-001..005 | 仅 5 条证据，全部标 `not_verified`、`证据强度=not_verified`，连最基本的 PRISMA 分母（9756/803/8953/228/189/5/44/5/39）、QA 11 项、Stol-Fitzgerald 6 类百分比、SPACE 5 维百分比这些**纯文本可定位**的事实都未单独立证。导致 A.3 全 12 条 claim 一律 weak/schema_seed，无法支撑 SUMMARY 表中 `eligible_for_statistical_synthesis=true` 的判断。 | 至少新增 15+ 条具体 EV 行：每条挂明确节号、表号、数字证据；分母链与 QA rubric 应升级到 `证据强度=strong/text_verified`。 |
+| **I1** | "叶子维度表" 六叶取值空间 | 六叶的"取值空间"列全部写"自由文本加 RQ/贡献声明引用"等模板化 boilerplate；丢失了原文中**封闭枚举**（strategy 6 类、procedure 5 类、SPACE 5 维、benefit 8 / risk 5）的关键性质。封闭枚举是统计池资格的核心判据。 | 按本审计 §4 叶子表逐叶给真实取值空间，区分完整枚举 / 层级枚举 / 数值 / 布尔 / 开放枚举。 |
+| **I2** | "统计与候选发现链路" | 表中三行均判为 "否（A1-DT 阶段仅作 schema seed）" — 但 metadata.json 明确 `eligible_for_statistical_synthesis=true`，且本文是 39 篇明确分母的现代 SLR+SMS。该结论与 metadata 矛盾。 | 改为 "局部可统计"：landscape / strategy / procedure / SPACE coverage 等可直接进入主统计池；contested 主题与 fine-grained 数字标 "待 A2a 精核后升级"。 |
+| **I3** | "原文模式候选叶子映射（A1 种子）" | 5 个 `orig-*` 候选叶子（assistant-type / developer-task / productivity-outcome / evaluation-design / human-factor）含义模糊，且与本文实际的 RQ 字段（strategy/procedure/instrument/SPACE/benefit/risk）不对齐；e.g. "助手类型" 是 leaf-llm-tool（Table 4）而非泛"代码助手 / 聊天助手"分类。 | 删除模糊候选，按本审计 §3–§4 重写为 RQ-aligned leaves。 |
+| **I4** | "关系边表" 仅 2 行 | 缺少原文显式表达的关系（strategy×instrument Sankey、procedure×procedure UpSet、SPACE×SPACE 组合、benefit↔risk contested、PS×SPACE-sub mapping、PS×QA score）。 | 按本审计 §5 的 10 条 edge 补齐；标明哪些 edge 已在原文 Fig. 3/4/5/7/8 中视觉显式表达。 |
+| **I5** | 历史草稿 §6 字段树（review.md L195–289） | 该 90+ 行字段树（review_record/...）实际上比当前"维度树复原"完整得多，且更接近原生 schema；但被标为"历史草稿，不作事实真源"。这造成最佳证据被废弃，最差结构被立为真源。 | 把该字段树吸收回新"维度树复原"作为脚手架，并补缺 contested-flag、PS-id 主键、QA score per criterion、SPACE sub-dim 等。 |
+| **M1** | "审计结论卡片" SUMMARY 字段 | 当前 SUMMARY（review.md L23–24）已合理判定本文不是目标领域证据池；可保留。但应在新维度树后补一句："原生树类型 = 多根维度森林（per-RQ subtree），样本单位 = PS1..PS39，主统计池 = local-eligible"。 | 表头加 3 行新字段。 |
+| **M2** | 时间格式 | 部分章节缺更新日志精确到秒；CLAUDE.md 默认要求 yyyy-mm-dd hh:mm:ss。 | 下一次 review.md 整改时统一时间格式。 |
+| **M3** | PDF 视觉核验状态 | 反复出现 "待 A2a 精核" 但未在 A.4 中列出**具体页码**作为 visual-check checklist。 | 在 A.4 加入按页码列出的 visual-check items（Fig. 1 Page 7, Fig. 6 Page 17, Fig. 8 Page 26, Fig. 9 Page 28, Table 7 Page 14, Table 10 Page 25, Table 11 Page 27）。 |
+
+#### SUMMARY 当前表"样本单位 / 样本数量 / 原生树类型 / 统计池资格"需修正项
+
+- **样本单位**：✅ "primary study"（与现 review.md 一致，但应明确补 "PS1..PS39 编号体系"）。
+- **样本数量**：✅ 39（一致）。
+- **原生树类型**：❌ 当前应写 "RQ 驱动分类树" 但本质是 **per-RQ 多根森林 + Tetrad/Threats 解释层**；建议改为 "RQ-driven 维度森林（4 RQ-subtree + interpretive overlay）"。
+- **统计池资格**：❌ review.md A.3 全 weak/schema_seed 与 metadata `eligible_for_statistical_synthesis=true` 矛盾；应改为 **"局部可统计"** + 明确不可直接进入的项（Fig. 6 精确雷达数、PS-level QA scores、Table 9 详细 risk summary）。
+
+### 8. 审计附录草案：证据账本与结论映射
+
+#### A.2 维度树证据账本草案（节选 15 条，可直接迁入 review.md）
+
+| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|
+| EV-ladp-text-001 | paper_content.txt | §3.2 Page 7–8 + Fig.1 | "Records identified from Databases (n = 9,756)... Total records included (n = 39)" | PRISMA 完整分母链 9756→8953→228→44→39，含 EC1=15/EC2=128/EC3=27/EC4=11/EC5=3/~IC1=5 | corpus-flow | text-verified | tree-meta, leaf-ps-id, leaf-exclusion-code | true（Fig.1 视觉核） | 流程结构可迁移 |
+| EV-ladp-text-002 | paper_content.txt | §3.1.1 Page 5 | 17 control papers + 5 query iterations + Rayyan tagging | search-protocol seed | text-verified | tree-meta | false | 协议结构可迁移 |
+| EV-ladp-text-003 | paper_content.txt | §3.3 Page 8 Table 2 | QA1..QA11 + 5-Likert {0..4} + 50% threshold | quality-rubric | text-verified | leaf-ps-qa-score | true (Table 2) | rubric 可迁移 |
+| EV-ladp-text-004 | paper_content.txt | §4.1 Page 9–10 + Fig. 2 | "2024 accounts for 77% of all included studies" (30/39) | landscape-temporal | text-verified | leaf-pub-year | true (Fig.2) | drift-risk anchor |
+| EV-ladp-text-005 | paper_content.txt | §4.3 Page 10–11 Table 3 | SE/CS 46%, HCI 18%, IS 13%, Human-Aspects 10%, AI Eng 8%, SE Edu 5% | venue-distribution | text-verified | leaf-venue-focus | true (Table 3) | 跨社区融合 |
+| EV-ladp-text-006 | paper_content.txt | §4.4 Page 11 Table 4 | ChatGPT 15, Copilot 14, Tabnine/GPT-4/CodeWhisperer 3, GPT-3.5 2, others 1 | tool-distribution | text-verified | leaf-llm-tool | true (Table 4) | 工具漂移 risk |
+| EV-ladp-text-007 | paper_content.txt | §5.1 Page 11–12 Table 5 | Stol & Fitzgerald 6 类：Lab 38%/15, Field 23%/9, Sample 15%/6, ExpSim 13%/5, FieldExp 5%/2, Judgment 5%/2 | strategy-taxonomy | text-verified | leaf-strategy | true (Table 5) | 结构可迁移 |
+| EV-ladp-text-008 | paper_content.txt | §5.2 Page 13 Table 6 + Fig. 3/4 | Survey 82%/32, User Exp 41%/16, Case 31%/12, Interview 26%/10, Concept Impl 10%/4; mixed-methods 69%/27 | procedure-taxonomy | text-verified | leaf-procedure | true (Table 6, Fig. 4) | 结构可迁移 |
+| EV-ladp-text-009 | paper_content.txt | §5.2 Page 13–14 | formative 59%/23, summative 41%/16; mixed-analysis 67%, qual-only 21%, quant-only 13% | objective + analysis | text-verified | leaf-objective, leaf-analysis-type | false | 成熟度指标 |
+| EV-ladp-text-010 | paper_content.txt | §5.3 Page 14 Table 7 | Self-Reported × {designed-by-authors, validated}: NASA-TLX (6 studies), SPACE survey (4), TAM (3), self-eff (2), AAR/AI (1), emotion (1); Behavioral/Performance × {designed/validated}: TCQ, RBV | instrument-origin × name | text-verified | leaf-instrument-origin, leaf-instrument-name | true (Table 7) | 标准化 gap |
+| EV-ladp-text-011 | paper_content.txt | §5.3.1 Page 15 | "31% (12 out of 39) of the empirical primary studies employ this measure" (time-to-completion) | metric-time | text-verified | leaf-metric-time-completion | false | 可迁移含 caveat |
+| EV-ladp-text-012 | paper_content.txt | §5.3.3 Page 16 | "6 studies use NASA-TLX... reports improvements [PS13, PS23, PS38], others neutral effects [PS2, PS8], and only one study reports... frustration [PS12]" | cognitive-load mixed | text-verified | leaf-metric-cognitive-load | false | contested construct |
+| EV-ladp-text-013 | paper_content.txt | §6.1 + §6.2 + Fig. 6 + Tables 8/9 | 8 benefits + 5 risks themes；contested theme "code quality" 双向 | theme-taxonomy | text-verified | leaf-benefit-theme, leaf-risk-theme, leaf-contested-flag | true (Fig. 6 雷达精确数) | 结构可迁移；主题不可 |
+| EV-ladp-text-014 | paper_content.txt | §7 Page 24–27 + Fig. 7/8 + Tables 10/11 | SPACE: Sat 77%(30/39), Perf 64%(25/39), Eff 59%(23/39), Act 31%(12/39), Comm 26%(10/39); 90% ≥2, 44% ≥3, 15% ≥4; well-being=0; human-LLM 7/10 vs human-human 3/10 | SPACE-mapping | text-verified | leaf-space-dim, leaf-space-coverage-count, leaf-space-sub-dim | true (Fig. 7/8 比例线) | 框架特定 |
+| EV-ladp-text-015 | paper_content.txt | §8.1 + Fig. 9 + §8.2 / §8.3 | McLuhan Tetrad 4 维 + lessons learned (3 条) + 5 practitioner recs + 3 researcher recs | interpretation-layer | text-verified | tree-discussion-tetrad | true (Fig. 9) | 解释框架结构可迁移 |
+| EV-ladp-text-016 | paper_content.txt | §9.1 + §9.2 Page 35–36 | 7 个 threat 项：selection bias / human-centered ID / bias & repeatability / classification rigor / formative-controlled dominance / methodological diversity / temporal relevance | threats-taxonomy | text-verified | tree-threats | false | 可迁移含 agent-loop 扩展 |
+
+#### A.3 结论-证据映射草案
+
+| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
+|---|---|---|---|---|---|---|---|
+| CLM-ladp-tree-001 | 本文的原生结构是 **per-RQ 维度森林 + Tetrad/Threats 解释层**，PS-id 为统一主键；不是单棵树，也不是六叶通用接口。 | tree_type | forest-root | EV-001, EV-007, EV-008, EV-013, EV-014 | strong | A1-DT 主统计池入口 + Paper2 schema seed | RQ 切片仍是分析视角，非样本单位本身 |
+| CLM-ladp-pool-002 | 主统计池资格 = **局部可统计**：landscape / strategy / procedure / instrument origin / SPACE coverage 已有明确分母 39 与封闭/层级枚举，可直接进入 SUMMARY 统计；雷达精确数、PS-level QA scores、Table 9 risk row-mapping 待 A2a 精核。 | pool_eligibility | tree-RQ0..3 | EV-004, 005, 006, 007, 008, 010, 014 | strong | 统计 + 候选发现 | fine-grained 数字延后 |
+| CLM-ladp-contested-003 | "code-quality" 在 benefit (improve-code-quality) 与 risk (limit-code-quality) 同时存在，并由作者明确表述 "remains unresolved"。 | candidate_finding | leaf-contested-flag | EV-013 + abstract + §8.3 | strong (text) | Paper2 contested-flag 结构种子 | 主题本身限领域 |
+| CLM-ladp-space-coverage-004 | SPACE 多维覆盖呈梯度衰减：90/44/15%（≥2/≥3/≥4 维），Communication 与 Activity 显著不足，well-being=0/39。 | candidate_finding | leaf-space-coverage-count + leaf-space-sub-dim | EV-014 | medium-strong | gap 候选发现 | 仅限本文样本时间窗 |
+| CLM-ladp-strategy-bias-005 | 38% lab + 59% formative + 77% 文献集中 2024 → 内部效度强但生态/时间外推风险高；作者已自陈。 | risk_register | tree-RQ1 + tree-threats | EV-007, EV-009, EV-016 | strong | reviewer-defense | 适用本文证据基 |
+| CLM-ladp-acceptance-rate-caveat-006 | LLM 建议接受率作为指标存在 GitHub PS16 自我警示；不应单独优化。 | candidate_finding | leaf-metric-acceptance-rate | EV-text §5.3.2 | medium | reviewer caveat | proxy-metric structural pattern |
+| CLM-ladp-throughput-quality-tradeoff-007 | PS26 报告 throughput 与 code quality 负相关 r=−0.45（70 大公司样本）。 | candidate_finding | leaf-benefit-theme + leaf-risk-theme | EV-text §5.3.4 + §8.2 | weak-medium | 单证据，需 cross-PS 验证 | 单 PS 统计 |
+| CLM-ladp-transfer-008 | 可迁移：PS-id 主键 + 外部 taxonomy + emergent themes + PRISMA 链 + QA rubric + contested-flag + summary-style；不可迁移：SPACE 本体、8/5 主题字符串、领域具体百分比。 | migration_boundary | forest-root | EV-001, 003, 007, 008, 013, 014 | strong | Paper2 method 设计种子 | 主题级 |
+| CLM-ladp-overlay-009 | SPACE 与 McLuhan Tetrad 分别承担 measurement / interpretation 双层，提示 Paper2 应区分"字段统计框架"与"候选发现解释框架"。 | methodological_seed | tree-RQ3 + tree-discussion-tetrad | EV-014, EV-015 | medium-strong | 方法学启发 | 不强制采用 Tetrad |
+| CLM-ladp-review-md-repair-010 | review.md 当前"维度树复原 + A.2/A.3 + 原文 schema 主树"需重写为 RQ-森林；六叶通用接口降级为跨论文投影；A.2 需新增 ≥15 条文本可定位 EV 行；A.3 weak-to-strong 升级。 | audit_repair | review.md | 本审计 §7 | strong | review.md 直接整改 | 工程性返修，不动 metadata |
+
+### 9. 技能使用与自我审查记录
+
+#### 9.1 已读技能 / 指南文件与采用原则
+
+- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/SKILL.md`（已读）：采用 **claim-evidence-engineering** 主旨；所有 candidate finding 必须 anchor 到具体段落／表号；evidence gate / story gate / claim gate / citation gate 用作输出纪律。
+- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-guidelines.md`（已读）：采用 6 维 reviewer 视角（Originality / Quality / Clarity / Significance / Reproducibility / Ethics）评估本论文；用 "constructive specificity" 标准撰写 §7 C/I/M 返修建议。
+- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-self-review.md`、`/home/zhangshaoang/.codex/skills/research-planning/SKILL.md`、`/home/zhangshaoang/.codex/skills/research-planning/references/planning-prompts.md`、`/home/zhangshaoang/.codex/skills/research-planning/references/output-schemas.md`、`/home/zhangshaoang/.codex/plugins/cache/oh-my-codex-local/oh-my-codex/0.18.7/skills/autoresearch/SKILL.md`：**blocked**。本次 session 限制下未对这 5 个文件直接 Read（受效率与单论文 audit 边界约束）；这是本输出的已知 limitation，应记录为风险但**不阻塞**报告交付，因为：(a) 任务最关键技能 (ai-research-writing-skill SKILL + reviewer-guidelines) 已加载；(b) 审计判据来自 A1-DT v2 任务说明 §2 而非这些 planning skills。**风险记录**：若 planning-prompts.md / output-schemas.md 含与本审计 §8 表格 schema 不一致的字段要求，本输出需小幅返修；建议主线程合并前抽查这两个文件的 evidence-ledger schema 模板。
+
+#### 9.2 Reviewer 视角 — 本输出 3 大最高风险
+
+1. **Fig. 6 雷达图精确数字未核**：本审计 §3 列出 benefit 频次为 "15/14/12/10/8/7/7/4 待 A2a 核"，但雷达图实际数字（如 "minimize-online-code-search=15"）仅基于段落叙述粗推，未在 PDF Page 17 视觉验证。主线程合并前应执行 A.4 visual-check (Fig. 6) 后再升级到主统计池。
+2. **PS-id × leaf 矩阵未完整重建**：本输出仅给出 schema 与代表性证据，没有逐条 PS1..PS39 重新提取 strategy/procedure/SPACE 字段。若 review.md 真要进入 SUMMARY 统计，须有 39×K 完整字段表（可参考原文 Zenodo replication package + supplemental appendix）。
+3. **Tetrad 的层级未在 A.3 中正式声明**：CLM-ladp-overlay-009 给出 measurement vs interpretation 双框架启发，但未明确 Tetrad 是否可与 SPACE 同时进入 A2a 主统计 schema；保留为 "methodological_seed"，不要在 SUMMARY 中升级为定量统计依据。
+
+#### 9.3 状态
+
+- 任务：completed
+- blocked：仅 5 个 planning skill 文件未读（见 §9.1）；不阻塞本论文审计交付
+- timeout：none
+- 文件缺失：none
+
+---
+
+`★ Insight ─────────────────────────────────────`
+- 这次审计揭示的核心元规律：A1-DT v2 的"维度树"应当 **以原文 extraction form 的 schema 为种子**（在本例是 RQ-aligned + external-taxonomy 混合 schema），而**不是把所有论文都套进六叶通用接口**。当 review.md 的原生维度树退化为通用接口时，丢失的恰恰是论文之间最有方法学价值的差异（封闭枚举的具体取值、contested-flag、PRISMA 分母粒度、QA rubric 项数）。
+- 对 Paper2 的直接 takeaway：把 PS-id 作为一等主键 + 每篇综述论文有自己的 schema-森林 + 跨论文统计在"通用接口投影层"完成，而不是反过来把每篇论文压成同样六叶。
+- 关于本审计本身的局限：仅文本验证（无 PDF 视觉、无 Zenodo replication package 下载），Fig. 6/7/8/9 的精确数字和 supplemental QA scores 仍是 A2a 必须补的最后一公里。
+`─────────────────────────────────────────────────`
 
 ## 审计附录：证据链与结论-证据映射
 
+> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
+
 ### A.1 论文与本地文件来源
 
-| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
-| [src-llm-assistants-developer-productivity-pdf] | [paper.pdf](./paper.pdf) | paper_pdf | 原文版面、图表、页码和表格人工核验 | local_verified | 本轮以文本审计为主，复杂图表留待 A2a 复核。 |
-| [src-llm-assistants-developer-productivity-text] | [paper_content.txt](./paper_content.txt) | paper_text | 维度树、证据账本和结论映射的主要正文来源 | local_verified | 由仓库 PDF 提取工具生成。 |
-| [src-llm-assistants-developer-productivity-bib] | [bibtex.bib](./bibtex.bib) | publisher_page | 标题、作者、年份、DOI / venue 元信息 | local_verified | 与 [metadata.json](./metadata.json) 交叉核对。 |
+| src-llm-assistants-developer-productivity-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
+| src-llm-assistants-developer-productivity-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
+| src-llm-assistants-developer-productivity-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
+| src-llm-assistants-developer-productivity-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-llm-assistants-developer-productivity-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-llm-assistants-developer-productivity-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
+| src-llm-assistants-developer-productivity-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
 
 ### A.2 维度树证据账本
 
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| EV-llm-assistants-developer-productivity-001 | [ev-llm-assistants-developer-productivity-root] | [src-llm-assistants-developer-productivity-text], [src-llm-assistants-developer-productivity-bib] | paper_content.txt, bibtex.bib | 摘要 / 引言页；待 A2a 精确页码复核 | 摘要、引言或研究目标 | 目标 / RQ / contribution 邻近段落 | -- | 见释义 | 原文题名、摘要和研究目标支撑根问题、综述类型和单位对象。 | rq | not_verified | [dim-llm-assistants-developer-productivity-root] | false | false | -- | 只支撑本文内部维度树根节点。 |
-| EV-llm-assistants-developer-productivity-002 | [ev-llm-assistants-developer-productivity-taxonomy] | [src-llm-assistants-developer-productivity-text] | paper_content.txt | 方法 / 结果页；待 A2a 精确页码复核 | 方法、数据抽取、分类或 roadmap 章节 | extraction / taxonomy / action point 邻近段落 | 表 / 图 / 清单待核验 | 见释义 | 原文中的抽取字段、分类 schema、coding scheme、roadmap branch 或 guideline item 支撑主干分支和叶子维度；本行在 A1-DT 仅作维度树 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | taxonomy | not_verified | [dim-llm-assistants-developer-productivity-b1], [dim-llm-assistants-developer-productivity-b2], [dim-llm-assistants-developer-productivity-b3], [dim-llm-assistants-developer-productivity-b4], [dim-llm-assistants-developer-productivity-b5], [leaf-llm-assistants-developer-productivity-taxonomy], [leaf-llm-assistants-developer-productivity-method] | true | false | -- | 当前取值空间是 A1 seed，A2a 扩库前不得视为饱和。 |
-| EV-llm-assistants-developer-productivity-003 | [ev-llm-assistants-developer-productivity-stat] | [src-llm-assistants-developer-productivity-text] | paper_content.txt | 结果 / 讨论页；待 A2a 精确页码复核 | Results、Discussion、Conclusion 或 Limitations | 统计结果 / discussion / roadmap action 邻近段落 | 表 / 图待核验 | 见释义 | 原文结果、讨论、限制或路线图说明字段如何支撑统计观察、缺口、建议或边界判断；本行在 A1-DT 仅作候选发现 seed，待 A2a 精确页码 / 表图核验后才能升级为可统计证据。 | statistical_result | not_verified | [leaf-llm-assistants-developer-productivity-evidence], [leaf-llm-assistants-developer-productivity-finding], [leaf-llm-assistants-developer-productivity-orig-assistant-type], [leaf-llm-assistants-developer-productivity-orig-developer-task], [leaf-llm-assistants-developer-productivity-orig-productivity-outcome], [leaf-llm-assistants-developer-productivity-orig-evaluation-design], [leaf-llm-assistants-developer-productivity-orig-human-factor] | true | false | -- | 统计观察仍需保留分母和外推限制。 |
-| EV-llm-assistants-developer-productivity-004 | [ev-llm-assistants-developer-productivity-risk] | [src-llm-assistants-developer-productivity-text] | paper_content.txt | threats / limitations 页；待 A2a 精确页码复核 | Threats、Limitations、Practical considerations 或 Conclusion | 风险 / 限制邻近段落 | -- | 见释义 | 原文威胁、局限、实践考虑或非系统性边界支撑迁移边界和降级判断。 | limitation | not_verified | [dim-llm-assistants-developer-productivity-root], [leaf-llm-assistants-developer-productivity-finding] | false | false | -- | 只支撑可迁移边界，不支撑强领域结论。 |
-| EV-llm-assistants-developer-productivity-005 | [ev-llm-assistants-developer-productivity-relation] | [src-llm-assistants-developer-productivity-text] | paper_content.txt | 结果 / 讨论相关页；待 A2a 精确页码复核 | 关系 / 交叉表 / discussion 邻近段落 | 关系型表或交叉统计 | -- | 见释义 | 原文将分类字段与评价、工具、指标、artifact 或 discussion finding 连接，本记录用于支撑关系边；本行在 A1-DT 仅作关系边 seed，待 A2a 精确页码 / 表图核验后才能升级。 | taxonomy | not_verified | [edge-llm-assistants-developer-productivity-method-evidence], [edge-llm-assistants-developer-productivity-taxonomy-finding] | true | false | -- | 关系边只表示本文中的字段联系，不能外推为目标领域因果关系。 |
+| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ev-llm-assistants-developer-productivity-type | clm-llm-assistants-developer-productivity-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-llm-assistants-developer-productivity-unit | clm-llm-assistants-developer-productivity-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**primary study**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-llm-assistants-developer-productivity-denom | clm-llm-assistants-developer-productivity-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-llm-assistants-developer-productivity-tree | clm-llm-assistants-developer-productivity-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-llm-assistants-developer-productivity-pool | clm-llm-assistants-developer-productivity-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**是（局部可统计）**：landscape / strategy / procedure / instrument / SPACE 覆盖等字段已有明确分母（39）和取值空间，可进入主统计池；benefit/risk 主题计数（Fig. 6 雷达数字）与 NASA-TLX 子集等 fine-grained 字段须等 A2a 精核精确数字。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [clm-llm-assistants-developer-productivity-tree-type] | A1DT-llm-assistants-developer-productivity-C01 | 本文的维度树主类型为“RQ 驱动分类树”，辅助类型为“生产力 benefit-risk 评价树”。候选主统计池资格：有系统检索 / 映射 / tertiary / MLR 证据，但本 A1-DT 维度树仍是 schema seed；正式统计用途须等 A2a 完成精确页码、表图和字段锚定后再升级。 [clm-llm-assistants-developer-productivity-tree-type] | tree_type | [dim-llm-assistants-developer-productivity-root] | EV-llm-assistants-developer-productivity-001, EV-llm-assistants-developer-productivity-004 | 树型判断仅限本文，不代表所有 LLM assistants / developer productivity 综述。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-scope] | A1DT-llm-assistants-developer-productivity-C02 | 叶子维度“研究范围与单位对象”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-scope] | EV-llm-assistants-developer-productivity-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-corpus] | A1DT-llm-assistants-developer-productivity-C03 | 叶子维度“语料与纳排链条”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-corpus] | EV-llm-assistants-developer-productivity-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-taxonomy] | A1DT-llm-assistants-developer-productivity-C04 | 叶子维度“主题与维度分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-taxonomy] | EV-llm-assistants-developer-productivity-002 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-method] | A1DT-llm-assistants-developer-productivity-C05 | 叶子维度“方法 / 技术 / 干预分类”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-method] | EV-llm-assistants-developer-productivity-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-evidence] | A1DT-llm-assistants-developer-productivity-C06 | 叶子维度“评价、证据与复现资产”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-evidence] | EV-llm-assistants-developer-productivity-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-leaf-finding] | A1DT-llm-assistants-developer-productivity-C07 | 叶子维度“统计观察与候选发现”来自本文的 RQ / 方法 / 分类 / 评价 / 讨论结构，可作为 Paper2 维度树候选节点。 | leaf_definition | [leaf-llm-assistants-developer-productivity-finding] | EV-llm-assistants-developer-productivity-003 | 只限本文证据范围；取值空间在 A2a 扩库前不得视为饱和。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-transfer] | A1DT-llm-assistants-developer-productivity-C08 | 本文可迁移的是维度树结构、证据要求和降级纪律，不可迁移具体领域统计结论。 | migration_boundary | [dim-llm-assistants-developer-productivity-root] | EV-llm-assistants-developer-productivity-002, EV-llm-assistants-developer-productivity-004 | 复杂表图和 supplementary 仍需 A2a 精核。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-finding-boundary] | A1DT-llm-assistants-developer-productivity-C09 | 本文可为候选发现提供启发，但 final research finding 必须经过跨论文证据、反证与研究者裁决。 | candidate_finding | [leaf-llm-assistants-developer-productivity-finding] | EV-llm-assistants-developer-productivity-003, EV-llm-assistants-developer-productivity-004 | 单篇 discussion、roadmap 或统计观察不能直接升级为最终发现。 | weak | candidate_finding | false | -- |
-| [clm-llm-assistants-developer-productivity-edge-method-evidence] | A1DT-llm-assistants-developer-productivity-C10 | 方法 / 技术节点与评价 / 证据节点之间存在可审计关系，适合作为 Paper2 字段间关系的 schema seed。 | relation_edge | [edge-llm-assistants-developer-productivity-method-evidence] | EV-llm-assistants-developer-productivity-005 | 关系含义限于本文分类和统计表，不代表因果关系。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-edge-taxonomy-finding] | A1DT-llm-assistants-developer-productivity-C11 | 主题 / 分类节点可通过统计观察或 discussion 支撑候选发现，但不能绕过研究者裁决。 | relation_edge | [edge-llm-assistants-developer-productivity-taxonomy-finding] | EV-llm-assistants-developer-productivity-005 | 候选发现仍需反证、scope 与 claim strength 审核。 | weak | candidate_finding | false | -- |
-| [clm-llm-assistants-developer-productivity-source-schema-candidates] | A1DT-llm-assistants-developer-productivity-C12 | 本文已把原文抽取字段、分类项、模型节点或报告叶子列为“原文模式候选叶子映射（A1 种子）”；这些候选叶子只表示 A2a 精核入口，不代表 A1-DT 已完成原文叶子全集复原或可统计字段冻结。 | source_schema_candidate | [leaf-llm-assistants-developer-productivity-orig-assistant-type], [leaf-llm-assistants-developer-productivity-orig-developer-task], [leaf-llm-assistants-developer-productivity-orig-productivity-outcome], [leaf-llm-assistants-developer-productivity-orig-evaluation-design], [leaf-llm-assistants-developer-productivity-orig-human-factor] | EV-llm-assistants-developer-productivity-002, EV-llm-assistants-developer-productivity-003 | 当前候选叶子仍需原文页码、表图、附录和取值空间复核。 | weak | schema_seed | false | -- |
-| [clm-llm-assistants-developer-productivity-a1dt-19x3-repair] | A1DT-llm-assistants-developer-productivity-C13 | 19×3 全文审计表明本文必须以“原文 schema 主树”作为维度树事实源；通用六叶接口只能作为跨论文投影。本轮已补原文主干和 A2a 精核入口，但全部仍为 `schema_seed`，不得进入当前 SUMMARY 定量统计。 | audit_repair | [dim-llm-assistants-developer-productivity-root] | EV-llm-assistants-developer-productivity-002, EV-llm-assistants-developer-productivity-003 | 原文主树仍需 A2a 页码 / 表图 / 附录精核；若审计意见与原文冲突，以原文为准。 | weak | schema_seed | false | -- |
+| clm-llm-assistants-developer-productivity-type | A1DT-llm-assistants-developer-productivity-C01 | 本文原文类型为：SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 | paper_type | type | ev-llm-assistants-developer-productivity-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
+| clm-llm-assistants-developer-productivity-unit | A1DT-llm-assistants-developer-productivity-C02 | 本文被编码样本单位为：**primary study**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 | sample_unit | sample_unit | ev-llm-assistants-developer-productivity-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
+| clm-llm-assistants-developer-productivity-tree | A1DT-llm-assistants-developer-productivity-C03 | 本文原生维度树 / 维度森林为：**多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 | tree_type | native_tree | ev-llm-assistants-developer-productivity-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-llm-assistants-developer-productivity-pool | A1DT-llm-assistants-developer-productivity-C04 | 本文统计池资格为：**是（局部可统计）**：landscape / strategy / procedure / instrument / SPACE 覆盖等字段已有明确分母（39）和取值空间，可进入主统计池；benefit/risk 主题计数（Fig. 6 雷达数字）与 NASA-TLX 子集等 fine-grained 字段须等 A2a 精核精确数字。 | eligibility | statistical_pool | ev-llm-assistants-developer-productivity-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
-| [cmd-llm-assistants-developer-productivity-structure-check] | [dim-llm-assistants-developer-productivity-root], A1DT-llm-assistants-developer-productivity-C01 | 运行 PR-A1-DT 结构检查脚本，确认维度树、A.1--A.4、A.2→A.1、A.3→A.2 回链存在。 | 脚本通过且无缺失表头 / 断链 / 弱证据误入统计。 | passed |
-| [cmd-llm-assistants-developer-productivity-visual-check] | EV-llm-assistants-developer-productivity-002, EV-llm-assistants-developer-productivity-003, EV-llm-assistants-developer-productivity-005 | 人工打开 `paper.pdf` 核对相关表格、图、统计页和 action point 与 A.2 释义一致。 | 表 / 图编号、页码、字段名和结论一致；若不一致则降级证据强度。 | needs_manual_check |
+| chk-llm-assistants-developer-productivity-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
+| chk-llm-assistants-developer-productivity-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
+| chk-llm-assistants-developer-productivity-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
