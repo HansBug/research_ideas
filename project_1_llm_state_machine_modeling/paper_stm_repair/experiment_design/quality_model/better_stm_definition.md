@@ -35,6 +35,8 @@ $$
 
 其中 $e$ 是 trigger / event，$g$ 是离散、可追溯的 guard 谓词，$a$ 是 action / effect，$\tau$ 是模型元素到 `NL` 片段的 traceability。由此得到三条硬判据：
 
+> **定义来源**：抽象状态机 $M$ 与迁移 $t$ 的完整边界说明以 [../../story/model_scope.md](../../story/model_scope.md) 为准；本文件只复用该定义来操作化 Better STM 判定，避免形成第二套模型对象定义。
+
 1. **parse ok 不等于 Better STM**：语法可解析只是进入诊断、场景和裁决流程的最低前置条件；不能单独支持质量提升主张。
 2. **executable 不等于 Better STM**：模型能运行或能被仿真，只说明存在可执行语义载体；若状态、事件、guard、action、层级或 traceability 相对 `NL` 退化，仍不得计为 Better。
 3. **guard / action / event 不得语义折叠**：若 `NL` 明示条件、触发或效果，而 `STM_k` 把 guard/action 全部揉进 event label，或为通过检查删除需求相关行为，即使诊断减少或场景通过，也必须进入 semantic-drift / over-repair 审查，不能直接计为 Better STM。

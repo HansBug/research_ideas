@@ -81,7 +81,7 @@ R5.7 定义 taxonomy 时必须给每类 target 同时写出 claim 强度和降�
 
 - R6：先实现 fake / replay repair loop skeleton；真实 LLM 调用前必须 `source .env` 并写 run record。
 - R7：把 R5.6 scope 与 R5.7 target taxonomy 合并成主实验预注册；主结果 denominator 必须显式过滤 `time_level=T0`，不得直接用 `r5_6_story_role=main_candidate`，也不得用 R8 结果反向改指标。
-- R8：主结果只来自 eligible repair runs；失败、回滚、振荡、不收敛必须入账。
+- R8：success denominator 只来自 eligible repair runs 中满足 Better STM 五条件的子集；eligible 但失败、回滚、振荡、不收敛的 run 必须进入 failure ledger / limitation analysis，不进入 success denominator。
 
 ## 8. 事实源
 
