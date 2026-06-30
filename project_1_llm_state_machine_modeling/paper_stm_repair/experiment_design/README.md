@@ -7,7 +7,7 @@
 | 子路径 | 职责 | 当前状态 |
 |---|---|---|
 | [scope/](./scope/) | 维护实验范围、RQ 草案和 story / experiment scope 边界。 | 已有 R5.5 handoff 草案：[scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)；R5.6 story-level scope 真源：[../story/model_scope.md](../story/model_scope.md)；R5.6 -> R5.7 硬约束：[scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)；尚未冻结最终主实验协议。 |
-| [quality_model/](./quality_model/) | 维护 Better STM 等质量判定模型。 | 已迁入 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md)。 |
+| [quality_model/](./quality_model/) | 维护 Better STM 等质量判定模型。 | 已迁入 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md)，并明确 parse ok / executable / lowering 本身不等于 Better STM。 |
 | [eligibility/](./eligibility/) | 预留 run / seed / conversion / provider failure 的纳入排除规则入口。 | 只有职责 README，未冻结 eligibility 协议。 |
 | [protocols/](./protocols/) | 预留主实验、对照、人工裁决、修正循环协议入口。 | 只有职责 README，未冻结正式协议。 |
 | [metrics/](./metrics/) | 预留指标、统计表字段和报告口径入口。 | 只有职责 README，未冻结最终指标。 |

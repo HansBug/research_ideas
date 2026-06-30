@@ -12,6 +12,7 @@
 | R56-H4 | timed automata、hybrid automata、arbitrary UML、protocol FSM 不进入 main claim。 | taxonomy 中如出现，只能列 `out_of_scope` / `related_work_only`。 |
 | R56-H5 | conversion / normalization / `.fcstm` lowering 不计 repair gain。 | repair target 必须从转换后 `STM_0` 出发，三阶段归因不可省略。 |
 | R56-H6 | selected smoke examples 是 dry-run / sanity panel。 | 可继续用于 dry-run，不得替代正式实验集。 |
+| R56-H7 | `r5_6_story_role=main_candidate` 不是主结果分母；当前它同时包含 8 个 T0 cluster 与 1 个 T0.5 cluster。 | R5.7/R7 统计脚本必须按 `time_level=T0` 过滤后再形成 headline denominator；T0.5 只能进入 caveat / annotation / stress。 |
 
 ## 2. R5.7 可讨论但不得直接升级的候选
 
@@ -74,12 +75,12 @@ R5.7 定义 taxonomy 时必须给每类 target 同时写出 claim 强度和降�
 3. pseudo-state relay 与 composite target lowering 是否影响 behavior trace，还是只影响 representation readability？
 4. T0.5 microwave cluster 已排除出 T0 headline denominator；R5.7 只需决定其呈现为 caveat-only、单独 annotation stratum、stress dry-run，还是完全不进入 R7 主协议。
 5. Digital Camera / T1-ish cluster 是否只保留 stress dry-run，还是完全排除出 R7 主协议？
-6. `EFSM-lite` 当前没有独立 cluster denominator；R5.7 需要判断变量 / guard / action 边界是否能被 pyfcstm diagnostics 与 human rubric 可靠裁决，若不能则只能保留为 taxonomy candidate 或从 headline claim 删除。
+6. `EFSM-lite` 当前没有独立 cluster denominator；R5.7 需要判断变量 / guard / action 边界是否能被结构化 diagnostics 与 human rubric 可靠裁决，若不能则只能保留为 taxonomy candidate 或从 headline claim 删除。
 
 ## 7. 交接给 R6 / R7 的提醒
 
 - R6：先实现 fake / replay repair loop skeleton；真实 LLM 调用前必须 `source .env` 并写 run record。
-- R7：把 R5.6 scope 与 R5.7 target taxonomy 合并成主实验预注册，不得用 R8 结果反向改指标。
+- R7：把 R5.6 scope 与 R5.7 target taxonomy 合并成主实验预注册；主结果 denominator 必须显式过滤 `time_level=T0`，不得直接用 `r5_6_story_role=main_candidate`，也不得用 R8 结果反向改指标。
 - R8：主结果只来自 eligible repair runs；失败、回滚、振荡、不收敛必须入账。
 
 ## 8. 事实源

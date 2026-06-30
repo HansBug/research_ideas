@@ -4,7 +4,38 @@
 >
 > **证据引用说明**：正文中的 `[src-*]`、`[clm-*]`、`[cmd-*]` 为文末稳定 ASCII 证据键，不按数字重排；新增证据只新增 key。
 
-## 1. R5.6 结论摘要
+## 1. R5.6 模型对象与结论摘要
+
+### 1.1 模型对象：语义保真状态机修正的抽象边界
+
+R5.6 使用**控制系统离散状态机**作为论文对象，而不是用 `fcstm`、`pyfcstm`、转换器或某一种源语言定义研究对象。本文的抽象状态机写作：
+
+$$
+M = (S, s_0, E, V, T, H, A, \tau)
+$$
+
+| 符号 | 含义 | R5.6 边界 |
+|---|---|---|
+| $S$ | 有限状态集合 | 支持 simple / composite state；不声称覆盖 full UML state-machine semantics。 |
+| $s_0$ | 初始状态 | 允许由原始制品、转换器或审计规则推断，但必须保留归因。 |
+| $E$ | 事件 / 触发集合 | event / trigger 是独立语义元素，不应吸收所有 guard / action 文本。 |
+| $V$ | 有限 / 离散变量集合 | 可选；不覆盖连续变量、复杂数据域或 protocol FSM 完整数据语义。 |
+| $T$ | 迁移集合 | 每条迁移至少应能追踪 source、target 与触发/条件/动作文本。 |
+| $H$ | 层级结构 | 可选；用于 HSM / 离散 statechart-like artifacts，不含并发区域等 excluded UML 构造。 |
+| $A$ | 动作 / effect 集合 | 可为文本动作或可执行 effect；R5.7 决定哪些 action/effect 进入 repair target。 |
+| $\tau$ | 模型元素到 `NL` 片段的 traceability 映射 | 用于判定语义保真、过修和需求漂移；缺失时必须降级 claim。 |
+
+迁移写作：
+
+$$
+t = (s, e, g, a, s')
+$$
+
+其中 $s, s' \in S$，$e \in E$ 是 trigger / event，$g$ 是 guard，$a$ 是 action / effect。R5.6 对 $g$ 的要求是**离散、可追溯的布尔谓词或文本谓词**：它可以引用当前状态、有限变量、事件 payload 或 `NL` 中的条件短语，但不要求求解连续时间、复杂数据结构或无限域。若 `NL` 明示条件或效果，而候选模型把这些信息全部塞进 event label，即使 parse ok 或 executable，也只能说明表示可运行，不能说明语义保真。
+
+这个抽象定义只用于 paper story、Better STM 判定与 R5.7 taxonomy 交接；`fcstm` / `pyfcstm` 仍只是实验载体和复现 artifact，不能反过来定义研究对象。
+
+### 1.2 R5.6 结论摘要
 
 | 问题 | R5.6 冻结结论 | 证据 |
 |---|---|---|

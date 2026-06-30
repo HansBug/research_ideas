@@ -2,7 +2,7 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型具备明确文本定义；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 仅作为当前 0 独立样例的候选范围上限，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型已补强“可解析 / 可执行不等于 Better STM”的核心判据与五条最低必要条件；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 仅作为当前 0 独立样例的候选范围上限，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
 
 ## 2. 研究问题草案
 
@@ -34,7 +34,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 |---|---|
 | 诊断类别 | parse / semantic / design / scenario 等最小分类 |
 | 场景 / 回归套件 | 预演使用的确定性场景和回归入口 |
-| 评价量表草案 | 与 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 五条件对应 |
+| 评价量表草案 | 与 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 的核心判据和五条件对应 |
 | 主结果纳入规则草案 | 哪些 run 进入 pilot，哪些只能作失败案例 |
 | 统计表骨架 | 后续正式协议继承，不允许被结果任意重写 |
 
