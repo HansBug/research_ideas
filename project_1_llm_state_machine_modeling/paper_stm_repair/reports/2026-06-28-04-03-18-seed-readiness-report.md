@@ -6,6 +6,8 @@
 
 本 report 汇总 R5 seed library readiness 的 human-facing 入口：全量 entry/pair 摘要、状态抽样、blocked 全量表与 partial 前 40 条展示。高基数事实仍以 `sweep_report.json`、`records_index.json`、archive 与 per-pair records 为准 [src-readiness-sweep][src-readiness-index][src-readiness-record-archives]。
 
+> **当前性覆盖说明（R5.6 更新）：** 本 report 是 R5 时点快照，不是当前 `llms-emp-stm-subset` 状态真源。R5.5.2 后，`llms_emp_stm_results_0018`、`0028`、`0037` 已由 `blocked` 恢复为 `partial`，当前 `llms-emp` 为 `16 converted / 44 partial / 0 blocked`，且 60/60 canonical / parse / inspect ok [src-r552-report][clm-readiness-r552-current]。因此本 report 中凡涉及这三行的 `blocked`、`R8 negative evidence`、`23 blocked`，均只能按 **R5 历史快照** 阅读；R5.6 以后不得据此把这三行写成当前 blocked 或当前 R8 negative evidence。
+
 ## A. 全量转换摸排摘要（迁移自 `sweep_summary.md`）
 
 ## R5 seed library 全量转换摸排摘要
@@ -30,6 +32,8 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 | `partial` | 4 |
 
 ### 3. pair 状态统计
+
+> 下表是 R5 快照 统计；当前全局 sweep 与 `llms-emp` 当前状态已被 R5.5.2 更新覆盖，详见 [src-r552-report]。
 
 | status | pairs |
 |---|---:|
@@ -56,7 +60,7 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 | `fsm-gen-iec-61499` | `not_applicable` | `not_applicable` | 0 | 0 | `related_work_or_excluded` |
 | `ijisrt-uml-state-diagrams-llm` | `not_applicable` | `not_applicable` | 0 | 0 | `related_work_or_excluded` |
 | `integrating-graphical-nl-specifications` | `not_applicable` | `not_applicable` | 0 | 0 | `related_work_or_excluded` |
-| `llms-emp-stm-subset` | `partial` | `converted, partial, blocked` | 60 | 4 | `r7_eligibility_review` |
+| `llms-emp-stm-subset` | `partial` | R5 快照: `converted, partial, blocked`; R5.5.2 当前：仅 `converted, partial` | 60 | 4 | `r7_eligibility_review`；三条旧 blocked 当前已恢复为 partial |
 | `maritaca-use-case-behavior-models` | `not_applicable` | `not_applicable` | 1 | 0 | `related_work_or_excluded` |
 | `most-states-modes` | `not_applicable` | `not_applicable` | 0 | 0 | `related_work_or_excluded` |
 | `nl-standard-docs-state-machines` | `not_applicable` | `not_applicable` | 0 | 0 | `related_work_or_excluded` |
@@ -118,13 +122,13 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 
 ### blocked_or_missing
 
-- machine count: 23 [clm-readiness-status][clm-readiness-blocked-reason]
+- machine count: 23（R5 历史快照；R5.5.2 后全局当前 blocked=19，`llms-emp` 当前 blocked=0）[clm-readiness-status][clm-readiness-blocked-reason][clm-readiness-r552-current]
 
 | entry | pair | status | reason | 学术解释 |
 |---|---|---|---|---|
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0018` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | 当前工具链负证据；优先归入 R8 negative evidence 或 converter follow-up。 |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0028` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | 当前工具链负证据；优先归入 R8 negative evidence 或 converter follow-up。 |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0037` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | 当前工具链负证据；优先归入 R8 negative evidence 或 converter follow-up。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0018` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；当前补充 `R5.LOSS.r3_1_normalization_replay_not_repair` | R5 历史负证据；R5.5.2 后已恢复为 `partial`，只能作为 conversion recovery 线索，不再进入当前 R8 negative evidence。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0028` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；当前补充 `R5.LOSS.r3_1_normalization_replay_not_repair` | R5 历史负证据；R5.5.2 后已恢复为 `partial`，只能作为 conversion recovery 线索，不再进入当前 R8 negative evidence。 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0037` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；当前补充 `R5.LOSS.r3_1_normalization_replay_not_repair` | R5 历史负证据；R5.5.2 后已恢复为 `partial`，只能作为 conversion recovery 线索，不再进入当前 R8 negative evidence。 |
 
 ### not_applicable
 
@@ -149,15 +153,15 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 
 ## R5 blocked / missing_asset cases
 
-> 本文件列出该类别全部记录（23/23）；机器事实源仍以 [records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json) 和 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json) 为准。
+> 本文件列出 R5 快照 的该类别全部记录（23/23）。R5.5.2 后 `llms-emp` 三条旧 blocked 已恢复为 partial，全局当前 blocked 为 19；机器事实源仍以 [records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)、[sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json) 和 [R5.5.2 recovery report](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) 为准。
 
 事实源为 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json) 与 [records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)。
 
 | entry | pair | status | reason | handoff |
 |---|---|---|---|---|
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0018` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0028` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
-| `llms-emp-stm-subset` | `llms_emp_stm_results_0037` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0018` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；R5.5.2 恢复事实：需要 normalization replay，且不计 repair | 仅作历史快照；当前 handoff = `r7_eligibility_review` / 按样例性质进入 supplementary stress 或 conversion-recovery 复核 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0028` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；R5.5.2 恢复事实：需要 normalization replay，且不计 repair | 仅作历史快照；当前 handoff = `r7_eligibility_review` / 按样例性质进入 supplementary stress 或 conversion-recovery 复核 |
+| `llms-emp-stm-subset` | `llms_emp_stm_results_0037` | R5 快照: `blocked`; 当前：`partial` | `R5.SWEEP.blocked_official_scxml_unavailable`；R5.5.2 恢复事实：需要 normalization replay，且不计 repair | 仅作历史快照；当前 handoff = `r7_eligibility_review` / 按样例性质进入 supplementary stress 或 conversion-recovery 复核 |
 | `unified-uml-multimodal-validation` | `unified_uml_state_train_0031` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
 | `unified-uml-multimodal-validation` | `unified_uml_state_train_0041` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
 | `unified-uml-multimodal-validation` | `unified_uml_state_train_0065` | `blocked` | `R5.SWEEP.blocked_official_scxml_unavailable` | `r8_negative_evidence` |
@@ -251,16 +255,18 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 | [src-readiness-record-archives] | `record_archives` | [archives/](../pipeline/readiness_audit/artifact_archives/archives/) | `zip` | 支撑高基数 per-pair record 的 status reason、fcstm hash 与完整 record JSON；尤其 blocked reason 需要打开 ZIP 内 JSON 复核 | `*_records.zip`；member pattern: `<entry>_records/*.json`；hash 见 `archive_manifest#/archives[]/sha256` |
 | [src-readiness-audit-records] | `audit_records` | [audit_records/](../pipeline/readiness_audit/seed_sweep/audit_records/) | `json` | 支撑 per-entry / per-asset / per-pair 细节复核 | `entry_id__*.json` |
 | [src-readiness-seed-registry] | `seed_registry` | [REGISTRY.md](../corpora/seed_library/REGISTRY.md) 与各 `seed_resource_registry.json` | `md/json` | 支撑 first-source / not_applicable / needs_generation 的资源分类背景 | `seed_id` row、`resource_category`、`pair_sets` |
+| [src-r552-report] | `r5_5_2_recovery_report` | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | `md` | 覆盖 R5 快照 中 `llms-emp` 三条旧 blocked 的当前性；支撑当前 `16/44/0` 与全局 `529/508/19/20/2` | §1、§2、§6、审计附录 claim map |
 
 ### A.3 Claim-evidence map
 
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-readiness-denominator] | `R5-READINESS-C1` | R5 sweep denominator 为 36 entries、16 registry entries、20 unregistered entries。 | `count` | `sweep_report#/summary`、`#/meta` | [cmd-readiness-summary] | `high` | denominator 是 R5 seed library 快照，不是系统性文献全集。 |
-| [clm-readiness-status] | `R5-READINESS-C2` | pair 状态为 `converted=529 / partial=504 / blocked=23 / not_applicable=20 / needs_generation=2`。 | `count` | `sweep_report#/summary/pair_status_counts`、`records_index#/records[].status` | [cmd-readiness-status] | `high` | 这是 pre-repair readiness，不是方法成功率。 |
+| [clm-readiness-status] | `R5-READINESS-C2` | R5 快照 pair 状态为 `converted=529 / partial=504 / blocked=23 / not_applicable=20 / needs_generation=2`；当前全局 blocked 与 `llms-emp` 当前性见 [clm-readiness-r552-current]。 | `count` | `sweep_report#/summary/pair_status_counts`、`records_index#/records[].status` | [cmd-readiness-status] | `high` | 这是 pre-repair readiness，不是方法成功率。 |
 | [clm-readiness-entry-handoff] | `R5-READINESS-C3` | entry 明细与 handoff target 来自 `entries[]` 聚合。 | `classification` | `sweep_report#/entries[]/{entry_id,primary_entry_status,status_counts_by_pair,handoff_target}` | [cmd-readiness-summary] | `high` | `not_applicable` / `needs_generation` 的学术排除理由需回到 registry / assets。 |
-| [clm-readiness-blocked-reason] | `R5-READINESS-C4` | blocked 展示本轮没有 missing-asset case；23 条均为 `R5.SWEEP.blocked_official_scxml_unavailable`。 | `count` | `records_index#/records[status=blocked]`、record archive member `status_reason_code`、`sweep_report#/summary/pair_status_counts` | [cmd-readiness-blocked-archive] | `high` | `records_index` 只保存状态，reason 必须打开 ZIP 内 per-record JSON 复验；blocked 只表示当前工具链 / committed evidence 下不可进入转换结果。 |
+| [clm-readiness-blocked-reason] | `R5-READINESS-C4` | R5 快照 的 blocked 展示没有 missing-asset case；23 条均为 `R5.SWEEP.blocked_official_scxml_unavailable`，其中 `llms-emp` 三条已被 R5.5.2 当前性覆盖。 | `count` | `records_index#/records[status=blocked]`、record archive member `status_reason_code`、`sweep_report#/summary/pair_status_counts` | [cmd-readiness-blocked-archive] | `high` | `records_index` 只保存状态，reason 必须打开 ZIP 内 per-record JSON 复验；blocked 只表示当前工具链 / committed evidence 下不可进入转换结果。 |
 | [clm-readiness-partial-slice] | `R5-READINESS-C5` | partial 前 40 条是排序后的阅读切片，不是完整 partial 清单。 | `trace` | `records_index#/records[status=partial]`，排序 `entry_id,pair_id` 后截断 | [cmd-readiness-partial-slice] | `high` | 完整 504 条以 `records_index` 和 record archives 为准。 |
+| [clm-readiness-r552-current] | `R5-READINESS-C6` | R5.5.2 后 `llms_emp_stm_results_0018/0028/0037` 当前均为 `partial`，`llms-emp` 当前为 `16 converted / 44 partial / 0 blocked`；本 report 中这三条旧 blocked 只能作 R5 快照。 | `currentness_override` | [src-r552-report]、当前 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | [cmd-readiness-r552-current] | `high` | 这是 conversion readiness 当前性，不是 repair-loop 结果。 |
 
 ### A.4 复验命令
 
@@ -296,5 +302,18 @@ print('blocked_entries', entries)
 print('blocked_archive_reasons', reasons)
 partial=sorted([r for r in rows if r.get('status')=='partial'], key=lambda r:(r.get('entry_id') or '', r.get('pair_id') or ''))
 print('partial_total', len(partial), 'first40_last', partial[39].get('record_id'))
+PY
+```
+
+```bash
+# [cmd-readiness-r552-current] CMD-READINESS-6
+python - <<'PY'
+import json, pathlib, collections
+base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile')
+rows=[json.loads(l) for l in (base/'llms_emp_case_matrix.jsonl').read_text().splitlines() if l.strip()]
+print(collections.Counter(r['conversion_status'] for r in rows))
+for pid in ['llms_emp_stm_results_0018','llms_emp_stm_results_0028','llms_emp_stm_results_0037']:
+    row=next(r for r in rows if r['raw_pair_id']==pid)
+    print(pid, row['conversion_status'], row['canonical_status'], row['parse_status'], row['inspect_status'], row.get('repair_contribution_allowed'))
 PY
 ```

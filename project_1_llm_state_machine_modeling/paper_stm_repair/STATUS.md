@@ -15,12 +15,13 @@
 | 评价门 v0 | 已定义并 dry-run 四例 | 入口：[pipeline/evaluation/README.md](./pipeline/evaluation/README.md) |
 | R5 全量摸排 | 已完成 | 入口：[pipeline/readiness_audit/README.md](./pipeline/readiness_audit/README.md) |
 | R5.5 `llms-emp` 主 seed 池深度画像 | 已完成 | 入口：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)、[experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md) |
+| R5.6 paper story / model scope / claim boundary | 已冻结 | 入口：[story/model_scope.md](./story/model_scope.md)、[experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) |
 | 真实修正循环 | 未完成 | 后续阶段实现；当前没有 `STM_k` 主实验结果 |
 | Better STM 主结果 | 未完成 | 需要真实修正、回归、人工/结构化裁决后才能判定 |
 
 ## 2. Seed 资源现状
 
-R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm-subset` 展开。它是当前最符合 `<NL, LLM-generated STM_0>` 硬边界的一手资源，且具备 10 个唯一 NL × 6 个 LLM 输出的可比较结构。完整 60 case 状态表与问题谱系见 [reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)；R5.5 深度画像与边界交接见 [reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)。R5.5.2 全局重跑还把 `unified_uml_state_train_0265` 从 `blocked` 带到 `partial`，但这只是 synthetic collateral conversion audit fact，不改变 `llms-emp` 主 seed 定位。
+R5 全量摸排后的方向性结论：后续主实验在 R5.5/R5.6 阶段设计选定并优先围绕 `llms-emp-stm-subset` 深度推进。它满足 `<NL, LLM-generated STM_0>` 硬边界，且具备 10 个唯一 NL × 6 个 LLM 输出的可比较结构；这是一项阶段性主 seed 池选择，不是对所有候选资源的客观排名。完整 60 case 状态表与问题谱系见 [reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)，本文件 §4.3 也给出当前深度画像摘要；R5.5 深度画像与边界交接见 [reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)。R5.5.2 全局重跑还把 `unified_uml_state_train_0265` 从 `blocked` 带到 `partial`，但这只是 synthetic collateral conversion audit fact，不改变 `llms-emp` 主 seed 定位。
 
 | 角色 | 条目 | 可用数量 / 特征 | 当前处理 |
 |---|---|---|---|
@@ -89,7 +90,7 @@ R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm
 |---|---:|---|
 | `converted` | 529 | 可进入修正前 `.fcstm` 表示，但仍需保留归因 |
 | `partial` | 508 | 可进入 R7 eligibility review，不能无条件进入主实验 |
-| `blocked` | 19 | 当前转换负证据，进入 R8 negative evidence 或 转换器 follow-up；`llms-emp` 三个原 blocked 已在 R5.5.2 恢复为 partial |
+| `blocked` | 19 | 剩余非 `llms-emp` 当前转换负证据，进入 R8 negative evidence 或转换器 follow-up；`llms-emp` 三个原 blocked 已在 R5.5.2 恢复为 partial，不再计入当前 blocked |
 | `needs_generation` | 2 | 有 NL+code / pipeline，但作者未公开 generated `STM_0` |
 | `not_applicable` | 20 | 不是作者一手 generated seed，或不属于目标形式 |
 
@@ -102,12 +103,13 @@ R5 全量摸排后的方向性结论：后续主实验优先围绕 `llms-emp-stm
 |---|---|
 | raw pair | 60 = 10 个唯一 NL cluster × 6 个 LLM 输出 |
 | pair 状态 | 16 converted / 44 partial / 0 blocked |
+| canonical / parse / inspect | 60/60 canonical converted、parse ok、inspect ok |
 | cluster 时间等级 | 8 个 T0、1 个 T0.5、1 个 T1 |
 | pair 时间等级 | 48 T0 / 6 T0.5 / 6 T1 |
 | cluster story role | 9 个 main_candidate、1 个 supplementary_stress |
 | boundary_decision | `proceed_with_supplementary`；当前无 blocked，但 Digital Camera/T1 仍为 supplementary stress |
 
-R5.5 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推进；T0.5 仅作为 timer-like caveat under event abstraction 单独标注，不支撑 timed automata 主 claim。`condition_like_label_lowered_as_event` 只能作为 R5.7 候选 repair target，必须逐例回到 NL 与 raw `STM_0` 判定，不能把 representation symptom 直接写成已确认语义缺陷。
+R5.5/R5.6 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推进；`main_candidate` 包含 T0.5，因此 headline denominator 必须过滤 `time_level=T0`（8 clusters / 48 pairs）；T0.5 仅作为 timer-like caveat under event abstraction 单独标注，不支撑 timed automata 主 claim。`condition_like_label_lowered_as_event` 只能作为 R5.7 候选 repair target，必须逐例回到 NL 与 raw `STM_0` 判定，不能把 representation symptom 直接写成已确认语义缺陷。
 
 ## 5. 四例冒烟结果
 
@@ -136,7 +138,7 @@ R5.5 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推�
 | 后续方向 | 需要做什么 | 依赖当前产物 |
 |---|---|---|
 | R6 修正循环骨架 | 优先围绕 `llms-emp-stm-subset` 选 12–18 条分层样本，真正跑 `<NL, STM_i> -> feedback -> candidate -> regression` 的最小闭环 | [pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json](./pipeline/readiness_audit/handoff/r5_to_r6_repair_inputs.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md) |
-| R5.6 story / model scope 回填 | 基于 R5.5/R5.5.2 冻结 T0 离散 FSM/HSM/UML-SysML statechart 主线、T0.5 timer-like caveat、Digital Camera supplementary stress；当前 `llms-emp` 无 blocked，但 guard/action/data-condition 仍只能写作 caveat 与 R5.7 候选画像 | [reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)、[experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) |
+| R5.7 repair target taxonomy | 基于 R5.6 范围约束定义 Better STM 建模要求与 repair target taxonomy；guard/action/data-condition 等只能先从候选语义元素开始，不得把 representation symptom 直接升级成 confirmed defect | [story/model_scope.md](./story/model_scope.md)、[experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)、[reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./reports/2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) |
 | R7 协议 / eligibility freeze | 冻结 `llms-emp-stm-subset` A/B/C/D 分层、10-NL clustered reporting 与 conversion-aware attribution；再决定 supplementary seed 角色 | [pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json](./pipeline/readiness_audit/handoff/r5_to_r7_seed_eligibility.json)、[reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./reports/2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)、[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) |
 | R8 负证据 / 主实验前清理 | 处理剩余非 `llms-emp` blocked、missing、not_applicable、needs_generation；`llms-emp` 原 3 个 blocked 已转为 partial | [pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json](./pipeline/readiness_audit/handoff/r5_to_r8_negative_evidence.json) |
 | generation follow-up | 对 `fsm-bench-20` / `designing-fsm-gpt4` 这类 NL+code 来源复跑并建立 run record | seed registry 中的 仅流水线 条目 |

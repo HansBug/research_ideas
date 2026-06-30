@@ -27,6 +27,7 @@
 | R5 四例冒烟 | [pipeline/readiness_audit/selected_examples/smoke_report.json](./pipeline/readiness_audit/selected_examples/smoke_report.json) | [reports/2026-06-28-03-42-24-selected-smoke-summary.md](./reports/2026-06-28-03-42-24-selected-smoke-summary.md) |
 | R5 全量摸排 | [pipeline/readiness_audit/seed_sweep/sweep_report.json](./pipeline/readiness_audit/seed_sweep/sweep_report.json) | [reports/2026-06-28-04-03-18-seed-readiness-report.md](./reports/2026-06-28-04-03-18-seed-readiness-report.md) |
 | R5.5 `llms-emp` 主 seed 池画像 | [pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl](./pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)、[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md) |
+| R5.6 model scope / claim boundary | [story/model_scope.md](./story/model_scope.md)、[experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md) | [experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) |
 | 历史 R0/R1 审计 | [evidence/README.md](./evidence/README.md)、[evidence/SUMMARY.md](./evidence/SUMMARY.md)、[evidence/GUIDE.md](./evidence/GUIDE.md)、[archive/](./archive/) | 不作为当前横向事实源 |
 
 Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、registry 或 ledger 复算。
@@ -80,3 +81,4 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 1. `story/README.md` 只做入口和阅读顺序，不吞并 `paper_story.md`、`task_boundary.md`、`terminology_policy.md`、`claim_evidence_map.md`、`paper_outline.md` 的专题职责。
 2. story 文件只能把证据转为 paper claim gate，不得替代 `reports/`、`pipeline/`、`corpora/` 或 `experiment_design/` 的事实真源。
 3. 每次 scope、eligibility 或 repair-loop 结果冻结后，必须同步检查 story claim 是否需要降级或删除。
+4. R5.6 之后，涉及模型族、时间等级、resource role、forbidden extrapolation 或 R5.7 handoff 的写作与协议设计，必须优先读取 [story/model_scope.md](./story/model_scope.md)，并同步检查 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)。

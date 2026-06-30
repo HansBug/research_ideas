@@ -1,5 +1,7 @@
 # R5 `llms-emp-stm-subset` directional analysis
 
+> **R5.5.2 当前性提示：** 本 report 中 `16 converted / 41 partial / 3 blocked`、3 个 `blocked`、`D-negative` 等状态数字是 **R5 历史快照**，已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede。当前 `llms-emp` 状态为 `16 converted / 44 partial / 0 blocked`，60/60 均已有 canonical / parse / inspect ok；本文件只保留方向性决策、10×6 denominator 和历史问题谱系，不再作为当前状态数字真源。
+
 > 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
 ## 迁移说明
@@ -12,7 +14,7 @@
 
 本文件是 R5 全量摸排后形成的长期研究归纳，用于回答：后续 paper1 主实验为什么优先围绕 `llms-emp-stm-subset` 展开，以及这 60 条一手 `NL + LLM-generated STM_0` 在转换到 `.fcstm` 前后的状态如何。
 
-> 事实源仍是 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json)、[records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)、[archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) 与 [../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。本 Markdown 是人类阅读入口，不是第二事实真源。
+> 事实源仍是 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json)、[records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)、[archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) 与 [../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。本 Markdown 是人类阅读入口，不是第二事实真源；其中状态表是 R5 历史快照，当前 `llms-emp` 状态必须改读 R5.5.2 recovery report。
 
 ### 1. 方向性结论
 
@@ -37,7 +39,7 @@
 
 这 60 条不能当作 60 个完全独立需求样本。后续论文统计必须以 10 个唯一 NL 为 cluster，并在 LLM-output-level 指标之外报告 clustered interpretation [clm-dir-denominator]。
 
-### 3. 60 case 全量状态表
+### 3. 60 case 全量状态表（R5 历史快照）
 
 符号：🟢 = `converted`；🟡 = `partial`；🔴 = `blocked`。
 
@@ -54,13 +56,13 @@
 | 8 |  Digital camera state machine diagrams / DCS | 🟡 `0008` | 🔴 `0018` | 🔴 `0028` | 🟡 `0038` | 🟡 `0048` | 🟡 `0058` | 4 partial, 2 blocked |
 | 9 | autonomous mode / HLDCS | 🟡 `0009` | 🟡 `0019` | 🟡 `0029` | 🟡 `0039` | 🟡 `0049` | 🟡 `0059` | 6 partial |
 
-### 4. 转换状态汇总
+### 4. 转换状态汇总（R5 历史快照；当前状态见 R5.5.2）
 
 | 状态 | 数量 | 解释 |
 |---|---:|---|
 | `converted` | 16 | official SCXML raw 可用，`.fcstm` parse / inspect OK，且无 R5/R4.5 loss |
 | `partial` | 41 | 可进入 canonical / fcstm 或部分转换，但存在 normalization / representation loss / caveat |
-| `blocked` | 3 | 当前 official SCXML unavailable，无 canonical / fcstm |
+| `blocked` | 3 | R5 历史快照中 official SCXML unavailable；当前 R5.5.2 已恢复为 partial |
 
 | 输出存在性 | 数量 |
 |---|---:|
@@ -96,7 +98,7 @@
 | `R45.LOSS.target_lifted_to_composite_boundary` | 8 | HSM lowering / representation loss | 保留 caveat；不作为 repair gain |
 | `R45.LOSS.composite_target_lowered_to_initial_child` | 6 | ancestor re-entry lowering | 保留 caveat；不作为 repair gain |
 | `R45.LOSS.cross_scope_transition_unrepresentable` | 5 | cross-scope transition 表示限制 | 进入 C-analysis 或 converter follow-up |
-| `R5.LOSS.official_scxml_unavailable` | 3 | conversion blocker / negative evidence | 进入 D-excluded / R8 negative evidence |
+| `R5.LOSS.official_scxml_unavailable` | 3 | conversion blocker / negative evidence | 作为 R5 历史负证据保留；当前已转 partial，后续作为 conversion-recovery / stress case 复核 |
 
 R5.5 profile 暴露出若干候选语义薄弱点：guard / action / event / 层次入口出口等边界在部分 LLM PlantUML 中较容易变成表示 caveat 或待判定候选问题。该观察只能作为后续 feedback-driven repair 的动机与选样依据；是否构成 repair target，必须在 R5.7 逐例回到 NL 与原始 STM_0 adjudicate [clm-dir-candidate-risk][src-dir-partial-ledger]。
 
@@ -107,7 +109,7 @@ R6 不建议直接混入 Unified / TTool，也不建议一开始覆盖全部 60 
 1. A-main：从 16 个 clean converted 中选 4–6 条，验证 loop 基线能力。
 2. B-main-with-caveat：从 `condition_like_label_lowered_as_event` 等 partial 中选 4–6 条，验证 guard/event/semantic underspecification 修正。
 3. C-analysis-only：选择 hierarchy / cross-scope loss 较重样本做定性分析，不轻易计入 repair gain。
-4. D-negative：3 个 blocked 进入 R8 negative evidence / converter follow-up。
+4. D-historical-negative：R5 历史快照中的 3 个 blocked 已在 R5.5.2 恢复为 partial；后续不再作为当前 blocked 分母，只作为 conversion-recovery / stress case 复核。
 
 R7 必须冻结以下纪律：
 
@@ -132,18 +134,18 @@ R7 必须冻结以下纪律：
 
 ### 1. 交接结论
 
-`llms-emp-stm-subset` 是 R6/R7 的优先主池。它提供 60 个一手 `NL + LLM-generated PlantUML` pair，实际结构是 10 个唯一 NL × 6 个 LLM 输出。R5 中这 60 条的状态为：16 `converted`、41 `partial`、3 `blocked` [clm-dir-main-seed][clm-dir-denominator][clm-dir-status]。
+`llms-emp-stm-subset` 是 R6/R7 的优先主池。它提供 60 个一手 `NL + LLM-generated PlantUML` pair，实际结构是 10 个唯一 NL × 6 个 LLM 输出。R5 历史快照中这 60 条的状态为：16 `converted`、41 `partial`、3 `blocked`；R5.5.2 当前状态已更新为 16 `converted`、44 `partial`、0 `blocked`，旧 3 条只能作为 conversion-recovery / stress 线索 [clm-dir-main-seed][clm-dir-denominator][clm-dir-status]。
 
 ### 2. 推荐 R6 首轮样本策略
 
-R6 首轮目标是跑通真实 repair loop 和证据链，不是一次性覆盖全部 seed。建议选 12–18 条：
+R6 首轮目标是跑通真实 repair loop 和证据链，不是一次性覆盖全部 seed。建议选 12–18 条；下表中的 D 层已按 R5.5.2 当前性改为历史恢复线索，不再作为当前 blocked 分层：
 
 | 分层 | 建议数量 | 进入条件 | 用途 |
 |---|---:|---|---|
 | A-main | 4–6 | `converted`，loss_count=0，parse / inspect OK | 低转换噪声下验证 repair loop 基线 |
 | B-main-with-caveat | 4–6 | `partial`，主要 caveat 是 condition/event/action 语义薄弱，且可由 NL 支撑修正目标 | 验证 feedback-driven repair 的核心价值 |
 | C-analysis-only | 3–4 | hierarchy / cross-scope / normalization loss 较重 | 定性分析与 attribution；不轻易计入 repair gain |
-| D-negative | 3 | `blocked_official_scxml_unavailable` | R8 negative evidence / converter follow-up |
+| D-historical-recovery | 3 | R5 历史 `blocked_official_scxml_unavailable`，R5.5.2 当前均为 `partial` | conversion-recovery / stress case 复核；不再作为当前 R8 negative evidence |
 
 首轮选样应覆盖至少 5 个唯一 NL、至少 4 个 LLM；同一 NL cluster 中不宜一次性选满 6 个输出，避免 clustered bias。
 
@@ -201,7 +203,7 @@ R6 首轮目标是跑通真实 repair loop 和证据链，不是一次性覆盖�
 |---|---|---|---|---|---|---|---|
 | [clm-dir-main-seed] | `R5-DIR-C1` | `llms-emp-stm-subset` 是 R6/R7 优先主 seed 池。 | `decision` | `pairs_jsonl` 全量 trace、`case_matrix` 状态、`sweep_report` entry status、`handoff_json` 候选；见 [src-dir-sweep][src-dir-handoff] | [cmd-dir-seed-comparison] | `medium` | 这是 selected first-source seed pool 的设计决策，不证明其代表所有控制系统。 |
 | [clm-dir-denominator] | `R5-DIR-C2` | 60 raw pairs 应解释为 10 个唯一 NL × 6 个 LLM 输出。 | `count` | `pairs_jsonl` fields: `nl_sha256`、`llm`、`pair_id`; `case_matrix` fields: `nl_cluster_id`、`llm_family` | [cmd-dir-denominator] | `high` | 论文统计必须 cluster-aware，不能当 60 个独立需求。 |
-| [clm-dir-status] | `R5-DIR-C3` | 60 case 状态为 16 converted / 41 partial / 3 blocked。 | `count` | `case_matrix` field `conversion_status` | [cmd-dir-status] | `high` | conversion status 是 pre-repair readiness，不是 repair success。 |
+| [clm-dir-status] | `R5-DIR-C3` | R5 历史快照状态为 16 converted / 41 partial / 3 blocked；当前 R5.5.2 状态已 supersede 为 16 converted / 44 partial / 0 blocked。 | `historical_count + currentness` | 本 report 历史快照；当前状态以 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) 与当前 `case_matrix.conversion_status` 为准。 | [cmd-dir-status] 当前分支会输出 16/44/0 | `high` | 本 report 的 16/41/3 只作历史方向分析，不得作为当前状态或主实验分母。 |
 | [clm-dir-fcstm-evidence] | `R5-DIR-C4` | R5 sweep 中 57 条有 archive/hash-level `.fcstm` 证据，但仓库只持久化 selected examples 的单文件 `.fcstm`。 | `trace` | `case_matrix` field `fcstm_sha256`；`records_zip` per-record JSON；[../selected_seed_examples/](../selected_seed_examples/) | [cmd-dir-archives] | `high` | 不得写成 57 个 loose `.fcstm` 文件已提交或 57 个最终实验样本。 |
 | [clm-dir-workdir-archive] | `R5-DIR-C5` | raw / normalized / SCXML intermediate 存在性依赖 conversion workdir zip，而不是 llms-emp records zip。 | `trace` | `conversion_workdir_zip` members; `plantuml_recovery_report#/artifact_archive` | [cmd-dir-archives] | `high` | records zip 保存 JSON records；candidate/SCXML 文件在 conversion workdir zip。 |
 | [clm-dir-candidate-risk] | `R5-DIR-C6` | guard/event/action 与层级边界是后续 R5.7 候选问题谱系。 | `risk` | `case_matrix.r5_loss_codes`、`partial_attribution_ledger` rows；见 [src-dir-partial-ledger] | [cmd-dir-partial-ledger] | `medium` | 只能作为 candidate motivation；repair target 必须逐例回到 NL 与 raw STM_0。 |
@@ -224,7 +226,7 @@ focus={'llms-emp-stm-subset','unified-uml-multimodal-validation','sefm-llm-state
 loss=collections.Counter()
 for r in rows: loss.update(r.get('r5_loss_codes') or [])
 print('pairs', len(pairs), 'unique_nl', len({r['nl_sha256'] for r in pairs}), 'llm', collections.Counter(r['llm'] for r in pairs), 'trace', collections.Counter(r['trace_verified'] for r in pairs))
-print('case_rows', len(rows), 'clusters', len({r['nl_cluster_id'] for r in rows}), 'status', collections.Counter(r['conversion_status'] for r in rows))
+print('case_rows_current_branch', len(rows), 'clusters', len({r['nl_cluster_id'] for r in rows}), 'current_status_after_r552', collections.Counter(r['conversion_status'] for r in rows))
 print('focus_entries')
 for e in sweep['entries']:
     if e['entry_id'] in focus:

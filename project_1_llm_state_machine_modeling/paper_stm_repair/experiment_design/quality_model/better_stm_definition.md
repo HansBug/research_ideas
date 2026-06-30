@@ -19,7 +19,31 @@ $$
 | `D` | 解析、语义、设计和仿真诊断集合。 |
 | `R` | 预注册人工 / 结构化评价量表。 |
 
-## 2. 五条最低必要条件
+## 2. 核心判据：可解析 / 可执行不是 Better STM
+
+Better STM 是相对于同一个规范化 `STM_0` 的语义保真修正目标，不是格式可用性标签。R5.6 采用如下状态机抽象作为判定锚点：
+
+$$
+M = (S, s_0, E, V, T, H, A, \tau)
+$$
+
+迁移写作：
+
+$$
+t = (s, e, g, a, s')
+$$
+
+其中 $e$ 是 trigger / event，$g$ 是离散、可追溯的 guard 谓词，$a$ 是 action / effect，$\tau$ 是模型元素到 `NL` 片段的 traceability。由此得到三条硬判据：
+
+> **定义来源**：抽象状态机 $M$ 与迁移 $t$ 的完整边界说明以 [../../story/model_scope.md](../../story/model_scope.md) 为准；本文件只复用该定义来操作化 Better STM 判定，避免形成第二套模型对象定义。
+
+1. **parse ok 不等于 Better STM**：语法可解析只是进入诊断、场景和裁决流程的最低前置条件；不能单独支持质量提升主张。
+2. **executable 不等于 Better STM**：模型能运行或能被仿真，只说明存在可执行语义载体；若状态、事件、guard、action、层级或 traceability 相对 `NL` 退化，仍不得计为 Better。
+3. **guard / action / event 不得语义折叠**：若 `NL` 明示条件、触发或效果，而 `STM_k` 把 guard/action 全部揉进 event label，或为通过检查删除需求相关行为，即使诊断减少或场景通过，也必须进入 semantic-drift / over-repair 审查，不能直接计为 Better STM。
+
+因此，Better STM 的正向证据必须同时满足：同一 `STM_0` 起点、预注册维度至少一项改善、冻结场景与回归不退化、`NL` grounding 不判语义退化，并且 conversion / normalization / lowering 收益与 repair-loop 收益分开归因。
+
+## 3. 五条最低必要条件
 
 只有同时满足以下条件，`STM_k` 才能计为相对 `STM_0` 的 Better STM：
 
@@ -29,7 +53,7 @@ $$
 4. **NL-grounded adjudication 不判为语义退化**：诊断减少但需求语义偏离，不能算 Better STM。
 5. **转换规范化收益与 repair-loop 收益分开统计**：格式转换、人工补全或 normalization 带来的改善不能计入 repair-loop 贡献。
 
-## 3. 反例边界
+## 4. 反例边界
 
 | 情况 | 是否可算 Better STM | 原因 |
 |---|---:|---|
@@ -39,7 +63,7 @@ $$
 | 为通过测试删除需求相关行为。 | 否 | 属于过修 / semantic drift。 |
 | 修正后无新增 blocking issue，场景不退化，且预注册维度改善。 | 可能 | 仍需人工 / 结构化评价确认。 |
 
-## 4. 三阶段归因
+## 5. 三阶段归因
 
 所有可进入 RQ4 统计的样例必须记录：
 
@@ -53,6 +77,6 @@ $$
 | 转换后 `STM_0` 到 `STM_k` | repair-loop 贡献或退化 | 满足五条件时才可计入 |
 | 人工补全导致的改善 | manual normalization | 默认否，除非单独实验条件报告 |
 
-## 5. 与 RQ4 的关系
+## 6. 与 RQ4 的关系
 
 RQ4 的通过判定等价于五条最低必要条件全部满足。任一条件失败，该 run 不得计为 Better STM，只能进入失败、局限、不收敛或回归分析。

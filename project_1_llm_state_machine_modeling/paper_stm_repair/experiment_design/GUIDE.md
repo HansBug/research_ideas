@@ -21,10 +21,11 @@
 1. claim / wording / paper outline 以 story 为准。
 2. sample envelope / RQ eligibility / experiment boundary 以 experiment_design 为准。
 3. 若导师或 PR body 更新导致边界变化，必须同时检查 story 和 scope，但不要把一边复制成另一边。
+4. R5.6 之后，任何 repair target taxonomy、eligibility 或 protocol 草案都必须先对照 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)：不得把 T0.5/T1、timed/hybrid/arbitrary UML/protocol FSM 或 conversion/normalization/lowering 误写成 main repair claim。
 
 ## 4. 质量门
 
-1. 只有满足 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 五条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM。
+1. 只有同时满足 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 的核心判据与五条最低必要条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM；parse ok、executable 或 `.fcstm` lowering 本身都不是 Better STM 证据。
 2. 任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
 3. converter / normalization 收益必须与 repair-loop 收益分开记录。
 

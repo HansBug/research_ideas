@@ -36,6 +36,7 @@
 |---|---|
 | 首个 / 最强 `NL -> STM` 方法 | 本文研究给定初始状态机后的反馈驱动修正任务。 |
 | 提出新 DSL | 使用语义增强、可机检、可执行的状态机制品作为实验载体。 |
+| `FCSTM-representable` / 以 `fcstm` 定义研究对象 | 本文对象是控制系统离散状态机；`fcstm` 只作为 implementation / artifact / appendix 术语。 |
 | 完整形式化验证 / model checking 保证正确 | 使用轻量形式化 / 静态诊断和场景仿真反馈发现并约束缺陷。 |
 | 自动修正一定提升质量 | 在预注册评价门下检验是否产生相对更优候选，并报告失败和不收敛。 |
 | baseline 不需要比较 | baseline 重排为 seed source、转换压力、有限对照和 related work。 |

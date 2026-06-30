@@ -6,8 +6,8 @@
 |---|---|
 | 原始来源 | R0 `task_boundary.md`，后在 R5 简化时折叠进 [README.md](./README.md) |
 | 本轮恢复目的 | 恢复独立任务边界入口，避免方法内外、人类角色、停止/回滚策略被 README 隐藏 |
-| 当前证据入口 | [../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md)、[../STATUS.md](../STATUS.md) |
-| 当前性 | 本文件冻结 story-level 边界；正式 model scope / eligibility / protocol 仍应在 `experiment_design/` 后续文件中冻结 |
+| 当前证据入口 | [model_scope.md](./model_scope.md)、[../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)、[../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)、[../STATUS.md](../STATUS.md) |
+| 当前性 | 本文件冻结 `<NL, STM_0> -> STM_k` 的任务边界；R5.6 model scope 以 [model_scope.md](./model_scope.md) 为准，R5.7/R7 仍需冻结 repair target taxonomy 与 eligibility |
 
 ## 1. 任务定义
 
@@ -73,19 +73,19 @@ Output: <STM_k, diagnostics ledger, scenario ledger, repair ledger, acceptance /
 
 如果某个改进来自 pre-repair conversion / recovery / hand normalization，则必须归因给 conversion / seed preparation，不能计入 repair-loop gain。
 
-## 7. R5.5 后的 model scope 暂定边界
+## 7. R5.6 后的 model scope 冻结边界
 
-R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯一 NL × 6 个 LLM 输出。当前 story-level 暂定边界已落到 [../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](../experiment_design/scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，本节只保留写作侧摘要：
+R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯一 NL × 6 个 LLM 输出。R5.6 已把该建议冻结为 story-level model scope 与 claim boundary，真源为 [model_scope.md](./model_scope.md)，R5.7 交接约束为 [../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)。本节只保留任务边界侧摘要：
 
-| 层级 | 暂定角色 | 证据入口 | 说明 |
+| 层级 | R5.6 角色 | 证据入口 | 说明 |
 |---|---|---|---|
-| T0 离散 FSM/HSM/statechart | 主线候选 | [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 更适合当前 repair loop 先跑通。 |
-| T0.5 timer-like caveat under event abstraction | caveat / 补充层 | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 timed automata 主 claim；只用于说明边界。 |
-| Digital Camera / T1-ish stress | supplementary stress | [../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 T0 主 claim，只作压力/负证据。 |
-| data-rich EFSM / timed automata / full verification | 暂不作为主线 | 后续 scope 决策 | 当前证据和工具链不足以支撑强 claim。 |
+| T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite future taxonomy candidate / 语义维度标签 | 主线范围 / pre-eligibility envelope | [model_scope.md](./model_scope.md)、[../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 可支撑后续主实验 headline scope 的上限，但不自动证明 repair 效果；当前无独立 EFSM-lite cluster，R7 不得把 EFSM-lite 扩回 headline。 |
+| T0.5 timer-like cue under event abstraction | caveat / annotation | [model_scope.md](./model_scope.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 timed automata 主 claim；只用于说明边界或 loss/annotation。 |
+| Digital Camera / T1-ish stress | supplementary stress / limitation | [model_scope.md](./model_scope.md)、[../reports/2026-06-28-22-54-39-model-scope-handoff.md](../reports/2026-06-28-22-54-39-model-scope-handoff.md) | 不支撑 T0 主 claim，只作压力、负证据或 appendix。 |
+| timed automata / hybrid automata / arbitrary UML / protocol FSM | excluded / related-work-only | [model_scope.md](./model_scope.md) | 不进入 headline claim；不得通过 R5.7 taxonomy 重新打开。 |
 
-若后续 R5.6/R5.7/R6 进一步冻结或修订 scope，应优先更新 [../experiment_design/scope/](../experiment_design/scope/) 下的正式 scope 文件，再回写本 story 摘要；不要让 story 成为第二 scope 真源。
+若后续 R5.7/R6/R7 基于新证据需要收窄 scope，应优先更新 [model_scope.md](./model_scope.md) 与 [../experiment_design/scope/](../experiment_design/scope/) 下的正式 scope / handoff 文件，再回写本任务边界摘要；不要让本文件成为第二 scope 真源。
 
-## 8. R0 不冻结的内容
+## 8. 当前仍未冻结的内容
 
-R0/R5.5 story 不冻结具体 `seed_id` 纳入、转换 schema、诊断代码枚举、场景 fixture、LLM prompt、模型 ID、统计阈值和主实验纳入规则。这些分别由 R5.6、R5.7、R6/R8 或后续协议冻结。
+R5.6 已冻结 story-level model scope / claim boundary，但仍不冻结具体 `seed_id` 纳入、转换 schema、诊断代码枚举、场景 fixture、LLM prompt、模型 ID、统计阈值和主实验纳入规则。这些分别由 R5.7、R6/R8 或后续正式协议冻结。
