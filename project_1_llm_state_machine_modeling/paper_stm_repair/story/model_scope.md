@@ -3,6 +3,7 @@
 > **定位**：本文件是 R5.6 的 paper story / model scope / claim boundary 入口。它把 R5.5 的 `llms-emp-stm-subset` 主 seed 池画像转成论文可写范围、资源角色和禁止外推边界。它不是 R7 主实验预注册，也不是 R5.7 repair target taxonomy；后续 R5.7 / R6 / R7 必须继承本文件的范围约束。
 >
 > **证据引用说明**：正文中的 `[src-*]`、`[clm-*]`、`[cmd-*]` 为文末稳定 ASCII 证据键，不按数字重排；新增证据只新增 key。
+> **路线决策来源**：本文件按 2026-06-30 方案 A（语义保真状态机修正）收敛，长期决策记录见 [PR #136 comment](https://github.com/HansBug/research_ideas/pull/136#issuecomment-4840538504)；本文件只保留稳定研究边界，不记录 PR 流程状态。
 
 ## 1. R5.6 模型对象与结论摘要
 
@@ -54,7 +55,7 @@ R5.6 的范围判定必须把**时间等级**和**结构家族**拆成正交维�
 
 | 时间等级 / 结构家族 | FSM | HSM | EFSM-lite | 离散 UML-SysML statechart 子集 | protocol FSM | timed automata | hybrid automata | arbitrary UML |
 |---|---|---|---|---|---|---|---|---|
-| T0 离散 | main | main | main envelope；当前主池 0 个独立 `EFSM-lite` cluster | main，仅限 §3 子集 | excluded / related-work-only | excluded | excluded | excluded |
+| T0 离散 | main | main | candidate envelope；当前覆盖为 0 个独立 `EFSM-lite` cluster | main，仅限 §3 子集 | excluded / related-work-only | excluded | excluded | excluded |
 | T0.5 timer-like cue | caveat / annotation | caveat / annotation | caveat / annotation | caveat / annotation | excluded | excluded | excluded | excluded |
 | T1+ / 真时间语义 | supplementary-stress 或 excluded | supplementary-stress 或 excluded | supplementary-stress 或 excluded | supplementary-stress 或 excluded | excluded | excluded | excluded | excluded |
 
@@ -82,14 +83,14 @@ R5.6 对 `llms-emp-stm-subset` 使用四个报告口径，其中主结果分母�
 
 | 判定类 | 适用单元格 | 为什么这样判定 | 证据 / 后续检查 |
 |---|---|---|---|
-| `main` | T0 × FSM/HSM/离散 statechart 子集；T0 × EFSM-lite 仅作 in-scope envelope / candidate mode | 当前主 seed 池中 8/10 cluster、48/60 pair 是 T0；这些制品可经 canonical / parse / inspect 链路进入后续 repair 前置表示。当前 `cluster_profiles.structure_family` 没有独立 `EFSM-lite` 取值，R7 若无新增证据应收窄 headline wording。 | [src-case]、[src-cluster]、[cmd-r56-counts]；R7 仍需 eligibility 复核。 |
+| `main / candidate envelope` | T0 × FSM/HSM/离散 statechart 子集为 main；T0 × EFSM-lite 只作 candidate envelope | 当前主 seed 池中 8/10 cluster、48/60 pair 是 T0；这些制品可经 canonical / parse / inspect 链路进入后续 repair 前置表示。当前 `cluster_profiles.structure_family` 没有独立 `EFSM-lite` 取值，R7 若无新增证据应收窄 headline wording，不能把 EFSM-lite 写成已有 main coverage。 | [src-case]、[src-cluster]、[cmd-r56-counts]；R7 仍需 eligibility 复核。 |
 | `caveat / annotation` | T0.5 × FSM/HSM/离散 statechart 子集；EFSM-lite-candidate 仍仅为 annotation / monitor | timer-like cue 只体现文本时间提示或 event abstraction，不具备 clocks / timed automata 语义。 | [cmd-r56-role-time]；R5.7 只能定义 monitor / annotation / loss，不得定义 timed repair target。 |
 | `supplementary-stress 或 excluded` | T1+ × FSM/HSM/离散 statechart 子集；EFSM-lite-candidate 不改变 stress / excluded 角色 | Digital Camera / T1-ish cluster 可暴露范围压力，但不能支撑 T0 headline 或 timed semantics。 | [cmd-r56-role-time]；R7 若纳入只能列 supplementary/stress，不进主 denominator。 |
 | `excluded / related-work-only` | protocol FSM / timed automata / hybrid automata / arbitrary UML 所有时间等级 | 当前数据、表示桥和评价门都未冻结这些模型族的语义、diagnostics 或 repair target。 | [clm-forbidden-scope]；若后续出现相关样例，只能作 related work、limitation 或 negative evidence。 |
 
 ## 3. `UML-SysML statechart` 的 in-scope 子集
 
-本文件中的 `UML-SysML statechart` 不是任意 UML 行为图。R5.6 仅允许把以下**离散、单区域、可降低到 canonical STM / `.fcstm` 的子集**放入 main scope：
+本文件中的 `UML-SysML statechart` 不是任意 UML 行为图。R5.6 仅允许把以下**离散、单区域、可抽取为 canonical STM 结构的子集**放入 main scope；`.fcstm` 只是在实验实现中承载该结构的 artifact，不反向定义 scope：
 
 | 元素 | R5.6 角色 | R5.7 交接 |
 |---|---|---|
@@ -107,7 +108,7 @@ R5.6 对 `llms-emp-stm-subset` 使用四个报告口径，其中主结果分母�
 
 R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**离散变量、文本 guard / action 与有限状态控制流**，不是完整 data-rich EFSM 或协议状态机。进入 main scope 的 `EFSM-lite` 必须同时满足：
 
-1. 控制骨架仍是有限状态 / 层次状态机，可降低到本项目 canonical STM / `.fcstm`。
+1. 控制骨架仍是有限状态 / 层次状态机，可抽取为本项目 canonical STM 结构；`.fcstm` 仅作为实验 artifact。
 2. guard / action 是离散、文本性、可追溯到 `NL` 或 raw `STM_0` 标签的候选语义元素。
 3. 不要求求解复杂数据域、不引入连续变量、不引入真实时钟语义，也不声称覆盖完整 protocol FSM。
 
@@ -119,8 +120,8 @@ R5.6 使用 `EFSM-lite` 只是为了描述当前 `llms-emp` 样例中出现的**
 
 | 资源 / 样例族 | R5.6 角色 | 主体证据 | 可写内容 | 禁止写法 |
 |---|---|---|---|---|
-| `llms-emp-stm-subset` | main seed pool | 60 pair / 10 NL / 16 converted / 44 partial / 0 blocked | 主实验优先围绕其 T0 离散 FSM/HSM/statechart artifacts 设计；离散 guard/action/变量线索可作为 R5.7 `EFSM-lite` 候选，但当前没有独立 `EFSM-lite` cluster denominator。 | 不写成 60 个独立需求；不把 partial 当失败；不把 conversion readiness 当 repair result；不把 EFSM-lite 写成已有独立样本族。 |
-| selected smoke examples | dry-run / sanity panel | 4 个静态 `<NL, STM_0, fcstm>` 样例 | 用于 R5.6/R5.7/R6 最小连通性和读者理解。 | 不作为最终实验上限或主结果替代。 |
+| `llms-emp-stm-subset` | main seed pool | 60 pair / 10 NL / 16 converted / 44 partial / 0 blocked | 主实验优先围绕其 T0 离散 FSM/HSM/statechart artifacts 设计；离散 guard/action/变量线索可作为 R5.7 `EFSM-lite` 候选，但当前没有独立 `EFSM-lite` cluster denominator。 | 不写成 60 个独立需求；不把 partial 当失败；不把 conversion readiness 当 repair result；不把 EFSM-lite 写成已有独立样本族或已有 main coverage。 |
+| selected smoke examples | dry-run / sanity panel | 4 个静态 `<NL, STM_0>` 样例，并附派生表示快照 | 用于 R5.6/R5.7/R6 最小连通性和读者理解。 | 不作为最终实验上限或主结果替代；派生表示可用不计 repair gain。 |
 | `sefm-llm-state-machine` | readable smoke / small example | 1 个 SSC7 generated Umple 输出 + 9 个 NL description | 可作可读补充案例或格式差异说明。 | 不按 9 个 generated pair 计算。 |
 | `unified-uml-multimodal-validation` | synthetic stress / negative evidence | 989 个有效 generated PlantUML pair | 可作合成压力源，说明跨来源泛化风险。 | 不包装成真实控制系统需求主池。 |
 | `ttool-ai-smd-subset` | conversion pressure / conditional supplementary | 6 个 TTool XML 条件 pair / 4 个唯一 NL | 可说明转换压力和 SMD 边界。 | 不在未切清 T0/SMD 与 leakage 前进入主实验。 |

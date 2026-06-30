@@ -53,7 +53,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 | seed registry | R5.5 snapshot：`llms-emp-stm-subset` 为一手 `<NL, LLM-generated STM_0>` 主 seed 池候选；canonical source 见 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 | 支撑“可围绕同一 NL 多模型初始制品做比较”的实验机会。 | 不等于主实验已完成。 |
 | readiness / conversion | R5.5 snapshot：conversion status 见 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 与 main seed profile report。 | 暴露真实 seed 的转换压力和缺陷谱系。 | 不能把 converted 数字写成 repair success。 |
 | R5.6 model scope | [model_scope.md](./model_scope.md) 冻结主线为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 只是当前无独立样例的候选范围上限；T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。 | 支撑后续 R5.7/R6/R7 在明确模型边界内定义 taxonomy、protocol 和 eligibility。 | 不外推到 timed automata、hybrid automata、arbitrary UML 或 protocol FSM；不把 EFSM-lite 写成已有独立数据覆盖。 |
-| selected smoke | 四例静态 `<NL, STM_0, fcstm>` smoke 输入。 | 支撑工程链路冒烟，不是最终实验集合。 | 不能把四例当主结论。 |
+| selected smoke | 四例静态 `<NL, STM_0>` smoke 输入，并附派生表示快照用于工程链路检查。 | 支撑工程链路冒烟，不是最终实验集合。 | 不能把四例当主结论，也不能把派生表示可用写成 repair gain。 |
 | evaluation gate | Better STM checklist / human rubric schema / dry-run examples。 | 支撑后续 repair-loop 评价设计。 | 目前不是结果裁决。 |
 | negative evidence | blocked / partial / conversion attribution。 | 支撑 honest limitations 和 scope 决策。 | 不能隐藏 blocked / partial。 |
 

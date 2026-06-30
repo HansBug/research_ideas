@@ -59,7 +59,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 | 时间 | 更新 |
 |---|---|
-| 2026-06-30 00:35:38 | R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 model scope / claim boundary 与 R5.7 继承约束；该更新不代表 repair loop 已运行。 |
+| 2026-06-30 14:46:44 | R5.6 新增并补强 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 model scope / claim boundary、状态机抽象定义、Better STM 核心判据与 R5.7 继承约束；该更新不代表 repair loop 已运行。 |
 | 2026-06-29 19:55:45 | R5.5.2 更新当前 scope 事实：`llms-emp` 当前 16 converted / 44 partial / 0 blocked；T0 主线与 Digital Camera supplementary stress 不变。 |
 | 2026-06-29 17:33:35 | 新增 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，把 R5.5 `proceed_with_supplementary` scope decision 落到 experiment design 路径。 |
 | 2026-06-29 01:54:30 | 按 R5.5.1 路径重构建立 `experiment_design/` 三件套和五个子路径，将 Better STM 定义移动到 `quality_model/`。 |

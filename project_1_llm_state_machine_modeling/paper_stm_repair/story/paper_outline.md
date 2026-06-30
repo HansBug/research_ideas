@@ -51,6 +51,7 @@
 
 - 数据来源与 seed registry：R1/R2/R5.5 已形成 `llms-emp-stm-subset` 主 seed 方向；R5.6 已冻结 model scope；最终 eligibility 仍待 R5.7 / R7 冻结。
 - Scope matrix：主结果只面向 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 若无 R7 eligible 样例则不得写入 headline；T0.5 timer-like cue 作 caveat；Digital Camera / T1-ish 作 supplementary stress。完整矩阵见 [model_scope.md](./model_scope.md)。
+- 写作硬约束：若 R7 eligibility 冻结后没有独立 EFSM-lite eligible 样例，Abstract / Introduction / Experiment headline scope 必须删除或降级 EFSM-lite wording；该约束来自 [../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md) 的 R56-H1。
 - 四例预演与主实验样本区分。
 - RQ1--RQ6。
 - 指标与评价门：由 R4/R6/R8 冻结。

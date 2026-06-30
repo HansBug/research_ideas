@@ -74,7 +74,7 @@ flowchart TD
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-06-30 00:35:38 | R5.6 新增 [story/model_scope.md](./story/model_scope.md) 与 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 paper story 的模型范围、claim boundary 和 R5.7 交接约束；不代表真实 repair loop 已运行。 |
+| 2026-06-30 14:46:44 | R5.6 新增并补强 [story/model_scope.md](./story/model_scope.md) 与 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 paper story 的模型范围、claim boundary、状态机抽象定义和 R5.7 交接约束；不代表真实 repair loop 已运行。 |
 | 2026-06-29 15:43:00 | 新增 [SUMMARY.md](./SUMMARY.md) 作为顶层轻量总账入口，明确 [STATUS.md](./STATUS.md) 仍是当前状态与关键数字事实源。 |
 | 2026-06-29 03:25:00 | R5.5.1 加固 evidence 子路径 README、archive cold/deprecated 可追溯归档和 story 专题入口。 |
 | 2026-06-29 01:48:34 | 新增 [reports/](./reports/) 文库并迁移 R5/R5.5 human-facing reports；旧 pipeline Markdown 仅保留 redirect notice，避免第二事实源。 |
