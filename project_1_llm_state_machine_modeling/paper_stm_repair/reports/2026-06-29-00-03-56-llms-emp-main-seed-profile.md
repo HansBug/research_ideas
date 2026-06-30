@@ -1,21 +1,21 @@
 # R5.5 `llms-emp-stm-subset` main seed profile
 
 
-> **R5.5.2 当前性提示：** 本 report 的部分状态数字（尤其 `blocked=3`、`partial=41`）已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；当前 `llms-emp` 状态为 `converted=16 / partial=44 / blocked=0`。本文件仍可作为 R5.5.1 前的 cluster/profile 历史快照使用。
+> **R5.5.2 当前性提示：** 本 report 的状态数字（尤其 `blocked=3`、`partial=41`、`negative_evidence=3`、🔴 行）是 **R5.5.1 历史快照**，已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；当前 `llms-emp` 状态为 `converted=16 / partial=44 / blocked=0`，60/60 均已有 canonical / parse / inspect ok。本文件仍可作为 10 cluster / 60 pair 画像和历史问题谱系入口，但不得作为当前 blocked/current-status 真源。
 
 > 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
 ## R5.5 `llms-emp-stm-subset` 主 seed 池深度画像
 
-本 report 迁移自 R5.5 `run-llms-emp-profile` 生成的旧 human summary；当前机器事实源是 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)。本 Markdown 只做人类阅读入口 [src-profile-case][src-profile-clusters][src-profile-llm-matrix][src-profile-partial-ledger]。
+本 report 迁移自 R5.5 `run-llms-emp-profile` 生成的旧 human summary；row-level 复验入口是 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)、[llms_emp_cluster_llm_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl) 与 [llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)，但本 report 正文里的状态表是 R5.5.1 历史快照；当前状态必须改读 R5.5.2 report。本 Markdown 只做人类阅读入口 [src-profile-case][src-profile-clusters][src-profile-llm-matrix][src-profile-partial-ledger]。
 
 ### 1. 结论
 
-`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线应以 T0 离散状态机族为核心展开；T0.5 只作为 timer-like cue under event abstraction 的 caveat 样本单独标注。Digital Camera/T1 cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；3 个 blocked 样例进入 negative evidence / converter follow-up [clm-profile-scope-decision][clm-profile-time-role][clm-profile-blocked]。
+`llms-emp-stm-subset` 仍是 R6/R7 的主 seed 池，但应按 **proceed_with_supplementary** 口径进入后续阶段：主线应以 T0 离散状态机族为核心展开；T0.5 只作为 timer-like cue under event abstraction 的 caveat 样本单独标注。Digital Camera/T1 cluster 带显式秒级执行时间与复杂 pseudo-state，应进入 supplementary / stress；R5.5.1 历史快照中的 3 个 blocked 已由 R5.5.2 恢复为 partial，只保留为历史负证据 / conversion-recovery 线索 [clm-profile-scope-decision][clm-profile-time-role][clm-profile-blocked]。
 
 关键纪律：60 个 raw pair 是 10 个唯一 NL × 6 个 LLM 输出，不得在论文中写成 60 个独立需求；conversion / normalization / `.fcstm` lowering 均不得计入 repair gain [clm-profile-denominator][clm-profile-no-repair-gain]。
 
-#### 1.1 十个 NL cluster 的完整结论表
+#### 1.1 十个 NL cluster 的完整结论表（R5.5.1 历史状态列）
 
 本表是远程快速决策入口：每行是一条唯一 NL，而不是单个 LLM 输出；`6 个 LLM 输出状态` 按该 NL 对应的 GPT-4o / GPT-4 / Llama / Kimi / DeepSeek / Claude 六个生成结果汇总 [clm-profile-denominator][src-profile-clusters]。
 
@@ -32,7 +32,7 @@
 | 8 | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr`<br>Digital camera state machine diagrams | DCS | 相机控制：显式执行时间与伪状态压力样例 | `T1` | `UML-SysML statechart` | 守卫式条件、动作/entry-exit、变量/数据条件、层级、伪状态、并发/区域、显式时间 | 🟡4 / 🔴2 | `supplementary_stress` | 条件标签仍作事件；需 R3.1 规范化回放；跨层级迁移表示损失；官方 SCXML 不可得；层级 lowering caveat |
 | 9 | `llms_emp_nl_09_hldcs_autonomous_mode`<br>autonomous mode | HLDCS | 自动驾驶模式控制 | `T0` | `HSM` | 守卫式条件、动作/entry-exit、变量/数据条件、层级、伪状态 | 🟡6 | `main_candidate` | 条件标签仍作事件；需 R3.1 规范化回放；跨层级迁移表示损失；层级 lowering caveat |
 
-#### 1.2 十个 NL × 六个 LLM 输出状态矩阵
+#### 1.2 十个 NL × 六个 LLM 输出状态矩阵（R5.5.1 历史状态列）
 
 本矩阵用于定位具体 raw pair。四位编号是 `llms_emp_stm_results_XXXX` 的后缀；完整 row 级事实见 [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) [src-profile-case][src-profile-llm-matrix]。
 
@@ -79,7 +79,7 @@
 | 8 | Digital camera state machine diagrams | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 9 | autonomous mode | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
 
-### 2. 总体统计
+### 2. 总体统计（R5.5.1 历史快照；当前状态见 R5.5.2）
 
 | conversion_status | pairs |
 |---|---:|
@@ -256,13 +256,13 @@
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-profile-denominator] | `R5.5-PROFILE-C1` | 主 seed 池为 60 raw pairs = 10 NL clusters × 6 LLM outputs。 | `count` | `case_matrix` fields `nl_cluster_id,llm_family`; `pairs_jsonl` fields `nl_sha256,llm`; record archive hash [src-profile-records-zip] | [cmd-profile-summary] | `high` | 不能当作 60 个独立需求样本。 |
-| [clm-profile-status] | `R5.5-PROFILE-C2` | pair 状态为 `converted=16 / partial=41 / blocked=3`。 | `count` | `case_matrix.conversion_status`; record archive status [src-profile-records-zip] | [cmd-profile-summary] | `high` | conversion status 是 pre-repair readiness。 |
+| [clm-profile-status] | `R5.5-PROFILE-C2` | R5.5.1 历史快照 pair 状态为 `converted=16 / partial=41 / blocked=3`；当前 R5.5.2 状态为 `converted=16 / partial=44 / blocked=0`。 | `historical_count + currentness` | 本 report 历史快照；当前状态以 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) 与当前 `case_matrix.conversion_status` 为准。 | [cmd-profile-summary] 当前分支会输出 16/44/0 | `high` | 历史状态列不再作为当前 blocked/current-status 真源。 |
 | [clm-profile-llm-family] | `R5.5-PROFILE-C2B` | LLM family 维度状态为 GPT-4o `5/5/0`、GPT-4 `3/6/1`、Llama `0/9/1`、Kimi `2/7/1`、DeepSeek `0/10/0`、Claude `6/4/0`，顺序为 `converted/partial/blocked`。 | `count` | `cluster_llm_matrix` fields `llm_family,conversion_status`; `case_matrix` same fields | [cmd-profile-summary] | `high` | 这是 readiness / conversion status 聚合，不是 LLM 能力排行或 repair 结果。 |
 | [clm-profile-time-role] | `R5.5-PROFILE-C3` | time / structure / story role 统计来自 row-level case matrix 与 cluster profiles。 | `classification` | `case_matrix.{time_level,structure_family,r5_6_story_role}`、`cluster_profiles.{time_level,r5_6_story_role}` | [cmd-profile-story-split] | `high` | T0.5 仅作 timer-like cue under event abstraction；T1 不支撑主 claim。 |
 | [clm-profile-feature-census] | `R5.5-PROFILE-C4` | 行为特征矩阵是 R5.5 feature census，不等于 repair target。 | `classification` | `cluster_profiles.behavior_feature_profile` | [cmd-profile-summary] | `medium` | 需 R5.7 逐例由 NL + raw STM_0 adjudicate。 |
 | [clm-profile-no-repair-gain] | `R5.5-PROFILE-C5` | loss code 与 partial attribution 不得计入 repair gain。 | `risk` | `case_matrix.r5_loss_codes`、`partial_ledger.{r5_loss_code,primary_attribution,attribution_confidence}` | [cmd-profile-partial-ledger] | `high` | conversion / normalization / lowering 只作 attribution。 |
 | [clm-profile-condition-candidate] | `R5.5-PROFILE-C6` | `condition_like_label_lowered_as_event` 只是 R5.7 候选。 | `risk` | `partial_ledger` rows with `r5_loss_code=R45.LOSS.condition_like_label_lowered_as_event` | [cmd-profile-partial-ledger] | `medium` | 不能自动把所有 event label 升级为 guard。 |
-| [clm-profile-blocked] | `R5.5-PROFILE-C7` | 3 个 blocked 只能进入 negative evidence / converter follow-up。 | `decision` | `blocked_probe` + `case_matrix.r5_6_story_role=negative_evidence` | [cmd-profile-summary] | `high` | 当前只是不具备可信 SCXML committed evidence，不证明永远不可渲染。 |
+| [clm-profile-blocked] | `R5.5-PROFILE-C7` | R5.5.1 历史快照中的 3 个 blocked 曾进入 negative evidence / converter follow-up；R5.5.2 后三者均恢复为 partial。 | `historical_decision + currentness` | [src-profile-blocked] 记录历史 blocked probe；当前恢复事实见 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)。 | [cmd-profile-summary] 当前分支会输出 blocked=0 | `high` | 不得再把这 3 个样例作为当前 blocked negative evidence；只能作为 conversion-recovery 历史线索。 |
 | [clm-profile-scope-decision] | `R5.5-PROFILE-C8` | `proceed_with_supplementary` 是 scope decision。 | `decision` | `case_matrix` + `cluster_profiles` + blocked probe | [cmd-profile-story-split] | `medium` | 对 scope decision 的证据较完整，但 R5.6/R5.7 仍需冻结 taxonomy；不是对 repair effectiveness 的 claim。 |
 
 ### A.4 复验命令

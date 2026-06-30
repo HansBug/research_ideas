@@ -103,12 +103,13 @@ R5 全量摸排后的方向性结论：后续主实验在 R5.5/R5.6 阶段设计
 |---|---|
 | raw pair | 60 = 10 个唯一 NL cluster × 6 个 LLM 输出 |
 | pair 状态 | 16 converted / 44 partial / 0 blocked |
+| canonical / parse / inspect | 60/60 canonical converted、parse ok、inspect ok |
 | cluster 时间等级 | 8 个 T0、1 个 T0.5、1 个 T1 |
 | pair 时间等级 | 48 T0 / 6 T0.5 / 6 T1 |
 | cluster story role | 9 个 main_candidate、1 个 supplementary_stress |
 | boundary_decision | `proceed_with_supplementary`；当前无 blocked，但 Digital Camera/T1 仍为 supplementary stress |
 
-R5.5 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推进；T0.5 仅作为 timer-like caveat under event abstraction 单独标注，不支撑 timed automata 主 claim。`condition_like_label_lowered_as_event` 只能作为 R5.7 候选 repair target，必须逐例回到 NL 与 raw `STM_0` 判定，不能把 representation symptom 直接写成已确认语义缺陷。
+R5.5/R5.6 的结论是：主线应围绕 T0 离散 FSM/HSM/statechart artifacts 推进；`main_candidate` 包含 T0.5，因此 headline denominator 必须过滤 `time_level=T0`（8 clusters / 48 pairs）；T0.5 仅作为 timer-like caveat under event abstraction 单独标注，不支撑 timed automata 主 claim。`condition_like_label_lowered_as_event` 只能作为 R5.7 候选 repair target，必须逐例回到 NL 与 raw `STM_0` 判定，不能把 representation symptom 直接写成已确认语义缺陷。
 
 ## 5. 四例冒烟结果
 

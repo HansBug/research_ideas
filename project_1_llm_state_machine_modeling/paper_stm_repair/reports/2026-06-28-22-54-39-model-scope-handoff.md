@@ -1,7 +1,7 @@
 # R5.5 -> R5.6 story / model scope handoff
 
 
-> **R5.5.2 当前性提示：** 本 handoff 中 “3 个 blocked 进入 negative evidence” 的当前事实已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；R5.6 仍应保留 T0 主线、T0.5 caveat 与 Digital Camera supplementary stress。
+> **R5.5.2 当前性提示：** 本 handoff 中 `blocked=3 / partial=41`、“3 个 blocked 进入 negative evidence”等状态数字是 R5.5.1 历史快照，已被 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) supersede；当前 `llms-emp` 为 `16 converted / 44 partial / 0 blocked`。R5.6 仍应保留 T0 主线、T0.5 caveat 与 Digital Camera supplementary stress，但不得把本 handoff 的 blocked 数字当作当前状态。
 
 > 证据引用说明：正文中的方括号引用（如 `[src-*]`、`[clm-*]`、`[cmd-*]`）均指向文末审计附录。这些键是稳定 ASCII key，不按数字顺序重排；新增证据时只新增 key，不批量改旧 key。
 
@@ -11,9 +11,9 @@
 
 `proceed_with_supplementary` [clm-scope-boundary]
 
-理由：10 个 NL cluster 中 8 个为 T0、1 个为 T0.5、1 个为 T1；60 个 pair 中 57 个可进入 `.fcstm` 级别，3 个 blocked 有负证据。主实验应以 T0 离散状态机族为核心继续推进；T0.5 只作为 timer-like cue under event abstraction 的 caveat 样本单独标注。Digital Camera/T1 cluster 与 blocked pair 应进入 supplementary / stress / negative evidence，而不是主 claim 证据 [clm-scope-pair-counts][clm-scope-time-level][clm-scope-supplementary-negative]。
+R5.5.1 历史理由：10 个 NL cluster 中 8 个为 T0、1 个为 T0.5、1 个为 T1；当时 60 个 pair 中 57 个可进入 `.fcstm` 级别，3 个 blocked 有负证据。R5.5.2 后 blocked 已恢复为 partial，但时间等级和 Digital Camera stress 判断不变。主实验应以 T0 离散状态机族为核心继续推进；T0.5 只作为 timer-like cue under event abstraction 的 caveat 样本单独标注。Digital Camera/T1 cluster 与 blocked pair 应进入 supplementary / stress / negative evidence，而不是主 claim 证据 [clm-scope-pair-counts][clm-scope-time-level][clm-scope-supplementary-negative]。
 
-### 2. supporting_counts
+### 2. supporting_counts（R5.5.1 历史快照）
 
 - pair status: `{'blocked': 3, 'converted': 16, 'partial': 41}`
 - pair time level: `{'T0': 48, 'T0.5': 6, 'T1': 6}`
@@ -67,9 +67,9 @@ R5.6 应在 [experiment_design/scope/](../experiment_design/scope/) 中冻结 ma
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-scope-boundary] | `R5-SCOPE-C1` | boundary decision 为 `proceed_with_supplementary`。 | `decision` | `case_matrix` counts + `cluster_profiles` time profile + `blocked_probe` | [cmd-scope-summary] | `medium` | 这是对 scope decision 的置信度，不是对 repair effectiveness 的置信度。 |
-| [clm-scope-pair-counts] | `R5-SCOPE-C2` | pair count: `blocked=3 / converted=16 / partial=41`；time level: `T0=48 / T0.5=6 / T1=6`。 | `count` | `case_matrix` fields `conversion_status`、`time_level` | [cmd-scope-summary] | `high` | pre-repair profile，不是最终实验结果。 |
+| [clm-scope-pair-counts] | `R5-SCOPE-C2` | R5.5.1 历史 pair count 为 `blocked=3 / converted=16 / partial=41`；当前 R5.5.2 状态为 `blocked=0 / converted=16 / partial=44`；time level 仍为 `T0=48 / T0.5=6 / T1=6`。 | `historical_count + currentness` | 本 report 历史快照 + R5.5.2 recovery report；当前 `case_matrix` 仅支持 16/44/0。 | [cmd-scope-summary] 当前分支会输出 current status | `high` | pre-repair profile，不是最终实验结果；历史 blocked 不再是当前 blocked。 |
 | [clm-scope-time-level] | `R5-SCOPE-C3` | cluster time level 为 `T0=8 / T0.5=1 / T1=1`。 | `count` | `cluster_profiles.time_level` | [cmd-scope-summary] | `high` | T0.5 是 timer-like cue under event abstraction，不是 timed automata 覆盖。 |
-| [clm-scope-supplementary-negative] | `R5-SCOPE-C4` | Digital Camera / T1 进入 supplementary-stress，blocked 进入 negative evidence。 | `classification` | `case_matrix.r5_6_story_role`、`cluster_profiles.r5_6_story_role`、`blocked_probe` | [cmd-scope-summary] | `high` | supplementary / negative 不支撑 T0 主 claim。 |
+| [clm-scope-supplementary-negative] | `R5-SCOPE-C4` | Digital Camera / T1 进入 supplementary-stress；R5.5.1 历史 blocked 进入 negative evidence，但当前已恢复为 partial。 | `classification + currentness` | `cluster_profiles.r5_6_story_role`、历史 `blocked_probe`、R5.5.2 recovery report。 | [cmd-scope-summary] | `high` | supplementary / historical negative 不支撑 T0 主 claim；不得把历史 blocked 写成当前 blocked。 |
 | [clm-scope-candidate-risk] | `R5-SCOPE-C5` | `condition_like_label_lowered_as_event` 只作为 R5.7 候选。 | `risk` | `partial_ledger` rows with `r5_loss_code=R45.LOSS.condition_like_label_lowered_as_event` | [cmd-scope-summary] | `medium` | 必须逐例有 NL 和 raw STM_0 证据后才可升级为 repair target。 |
 
 ### A.4 复验命令

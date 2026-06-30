@@ -6,7 +6,7 @@
 
 | 约束 ID | 约束 | R5.7 行动 |
 |---|---|---|
-| R56-H1 | 主实验 headline scope 的 R5.6 上限限定为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 仅作为当前无独立样例的候选范围上限。 | taxonomy 只能在该范围内定义 main repair target；若 R7 无 EFSM-lite eligible 样例，headline wording 必须收窄为 FSM/HSM/离散 statechart。 |
+| R56-H1 | 主实验 headline scope 的 R5.6 上限限定为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 不进入 headline，只作为当前无独立样例的 future taxonomy candidate / 语义维度标签。 | taxonomy 只能在该范围内定义 main repair target；headline wording 默认写 FSM/HSM/离散 statechart；只有 R7 有独立 EFSM-lite eligible 证据后，才可在分层/非 headline 中谨慎使用 EFSM-lite。 |
 | R56-H2 | T0.5 timer-like cue 已排除出 T0 headline denominator，只能是 caveat / annotation。 | 可定义为 monitor / caveat，不得定义 timed automata repair target，也不得进入 main metric denominator。 |
 | R56-H3 | Digital Camera / T1-ish case 只作 supplementary stress / limitation。 | 可作 stress dry-run，不支撑 T0 主 claim。 |
 | R56-H4 | timed automata、hybrid automata、arbitrary UML、protocol FSM 不进入 main claim。 | taxonomy 中如出现，只能列 `out_of_scope` / `related_work_only`。 |
