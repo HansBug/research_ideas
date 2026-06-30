@@ -141,9 +141,180 @@ A1 之后，单篇 `review.md` 不得只填六类 pattern，还必须说明该�
 
 ## 6.2 #95 现代维度锚点全文阅读规则
 
-issue #95 的 10 篇现代锚点必须遵守“一篇一 subagent”原则：每个 subagent 只能读自己负责的 `bibtex.bib`、`metadata.json`、`paper_content.txt` 和必要 PDF，不得混读多篇，也不得开启 sub-subagent。`review.md` 必须显式写明是否已读全文、是否回 PDF 核对图表、是否只做 metadata-only。
+issue #95 的 10 篇现代锚点必须遵守“一篇一审计进程 / CLI agent”原则：每个审计进程只能读自己负责的 `bibtex.bib`、`metadata.json`、`paper_content.txt` 和必要 PDF，不得混读多篇，也不得开启 sub-subagent。`review.md` 必须显式写明是否已读全文、是否回 PDF 核对图表、是否只做 metadata-only。
 
 新增锚点的 `review.md` 最低结构：快速结论卡片、论文内容详读、六类 pattern、A1-M0--M6 元维度贡献、可迁移字段树 / 维度锚点、对 Paper2 的启发与风险、待复核。快速卡片必须明确“是否已读全文”“是否回 PDF 核对图表”“是否只做 metadata-only”，避免把粗筛结论误写成全文审查结论。
+
+
+
+## 6.3 A1-DT v2 维度树 / 维度森林抽取纪律
+
+本节是 PR #135 A1-DT v2 之后长期维护 `review.md`、`audits/` 与 `patterns/` 的强制规则。A1-DT v2 的核心口径是：**统一抽取纪律 + 每篇论文原生样本编码维度树 / 维度森林 + 跨论文投影层**。
+
+> [!WARNING] v1-deprecated: 旧批次 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 只作为历史归档和返修来源保留。A1-DT v2 的新审计、新结果、新结构门禁和新返修产物必须写入 `audits/a1dt-v2-19x3/`。不得把 v1 审计目录继续当作当前事实口径。
+
+### 6.3.1 v2 定义与三层分离
+
+A1-DT v2 把“维度树”定义为单篇论文中从 RQ、贡献声明、抽取表、编码方案、taxonomy、roadmap action、guideline item 或证据呈现结构推导出的**原生样本编码结构**。若一篇论文有多个 RQ、多个样本单位或多个不共享根对象的编码结构，应写成“维度森林”，而不是强行压成单棵树。
+
+三层必须分离：
+
+| 层级 | 事实源 | 允许产物 | 禁止行为 |
+|---|---|---|---|
+| 统一抽取纪律层 | 本 [GUIDE.md](./GUIDE.md) §6.3 与 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md) 的字段合同 | 节点字段、证据链、降级规则、结构门禁 | 为某篇论文临时改写全局纪律且不回修 GUIDE / pattern schema。 |
+| 单篇原生样本编码层 | `papers/<slug>/paper_content.txt`、`paper.pdf`、附录、supplementary、replication package、`review.md` 文末 A.1--A.4 | 单篇维度树 / 维度森林、叶子取值空间、关系边、降级说明、结论-证据映射 | 用跨论文 pattern 反向套模板；只写六个通用 leaf；把 reviewer 主观分类写成原文 schema。 |
+| 跨论文投影层 | 已完成单篇 A.3 回链的可迁移结论 | `patterns/` 中的归纳字段、SUMMARY 归纳、候选 pattern library | 把 `patterns/` 当作单篇原生树模板；绕过单篇 A.2/A.3 直接形成统计结论。 |
+
+`patterns/` 永远是**结果侧跨论文投影 / 归纳层**。它只能在单篇原生树完成后帮助对齐命名、发现可迁移 pattern 和记录 schema 缺口，不能反向决定某篇论文“应该有什么树”。
+
+### 6.3.2 唯一事实源、旧节迁移与多 RQ 规则
+
+1. 每篇 `papers/<slug>/review.md` 必须包含 `## 维度树复原` 小节，并以该小节作为单篇维度树 / 维度森林事实真源。
+2. 旧有 `可迁移字段树`、`字段树草案`、`字段树`、`可迁移 roadmap`、`schema 缺口` 等章节必须升级、合并或标注“已迁移至维度树复原”，不得与新小节长期并列为第二事实源。
+3. 若旧节与新判断冲突，以原文证据和本 GUIDE 为准，同时在审计附录中记录降级或替代原因。
+4. 多 RQ 论文必须先判定 RQ 与样本单位的关系：
+   - 多个 RQ 共享同一 primary study / artifact / paper 样本单位和同一编码表时，可写成一棵主树下的多个 RQ 分支。
+   - 多个 RQ 对应不同样本单位、不同 evidence object 或不同编码表时，必须写成维度森林，并分别说明每棵树的统计池资格。
+   - RQ 与结果章节不一一对应时，必须用关系边表记录 `RQ -> extraction field -> result / finding` 的映射或缺失映射。
+5. 节点、叶子、关系边和结论必须有稳定标识：`[dim-{slug}-*]`、`[leaf-{slug}-*]`、`[edge-{slug}-*]`、`[clm-{slug}-*]`；这些标识必须能从叶子表、关系边表、证据账本和结论映射互相回链。
+
+### 6.3.3 从原文推导原生树的优先级
+
+1. 根节点优先来自显式 RQ、总目标、scope、unit of analysis；无 RQ 时按 §6.3.4 的样本单位降级矩阵处理。
+2. 主干分支优先来自 extraction form、classification schema、coding scheme、taxonomy、roadmap figure、guideline checklist、CPTM model、质量评价表或报告结构，而不是 reviewer 主观造词。
+3. 叶子维度必须对应可抽取字段、稳定分类项、guideline item、roadmap action / vision item 或可复验的缺失事实；仅凭 reviewer 感觉概括的词只能写作候选节点。
+4. RQ / 贡献声明 / guideline item / roadmap action 与字段必须显式连接：每个主干分支至少说明服务哪个 RQ、子 RQ、贡献声明、行动项或候选发现方向。
+5. 统计用途必须说明分母、样本单位、统计池资格和缺失值处理；无系统样本库、无分母或证据不足时必须写“不进入主统计池”。
+6. 候选发现用途必须与最终 research finding 分开；roadmap / proposal / vision / guideline 的建议默认只能作为候选启发、边界锚点或风险提示。
+
+### 6.3.4 样本单位降级矩阵
+
+单篇维度树必须先说明“样本单位”。若原文没有系统样本库，不得假装存在 primary-study 统计池，应按下表降级：
+
+| 原文类型 / 证据形态 | 优先根对象 | 样本单位写法 | 可进入主统计池 | 允许用途 | 必填降级声明 |
+|---|---|---|---|---|---|
+| SLR / SMS / MLR 且有系统检索、纳排、数据抽取 | RQ / review objective / unit of analysis | primary study / paper / artifact / tool / dataset 等原文定义单位 | 可按证据强度局部进入 | `schema_seed`、`statistical_synthesis` 候选、`candidate_finding` | 写明分母、纳排、缺失值语义和待核验字段。 |
+| tertiary study 且有综述样本库 | RQ / included review corpus | included SLR/SMS/survey | 可按证据强度局部进入 | `schema_seed`、`statistical_synthesis` 候选 | 不得把综述样本统计外推为 primary-study 统计。 |
+| roadmap / vision / agenda 且无系统样本库 | roadmap action / vision item / challenge item | action item / vision item / challenge item | 否 | `boundary_anchor`、`candidate_finding`、`risk_only` | 明确“无系统样本库；按 roadmap action / vision item 降级”。 |
+| solution proposal / framework proposal 且无系统样本库 | contribution / framework component / claim | component / design claim / illustrative example | 否 | `schema_seed`、`boundary_anchor`、`risk_only` | 明确“非系统综述；不可进入统计合成”。 |
+| guideline / checklist / reporting standard 且无系统样本库 | guideline item / checklist item / process step | guideline item / checklist item / step | 否 | `methodological_seed`、`schema_seed`、`risk_only` | 明确“按 guideline item 降级；不得当作领域统计 finding”。 |
+| guideline 且含系统证据综述 | guideline item + evidence base | guideline item；证据综述另列样本单位 | 仅证据综述部分可候选 | `methodological_seed`、局部 `schema_seed` | 分开写 guideline 建议与 evidence base 统计，不得混合。 |
+| commentary / opinion / tutorial | 主张 / 教学模块 / 经验条目 | claim / module / example | 否 | `risk_only`、`boundary_anchor` | 明确作者观点属性和不可外推范围。 |
+
+roadmap + 无系统样本库时，优先按 `roadmap action` / `vision item` 降级；guideline + 无系统样本库时，优先按 `guideline item` 降级。降级后的树仍要有节点、叶子、证据与结论映射，但默认不具备主统计池资格。
+
+### 6.3.5 叶子维度必填字段与取值空间 rubric
+
+每个叶子维度至少包含：节点或叶子标识、名称、父节点、定义、取值空间、证据要求、缺失值语义、样本单位、统计用途、候选发现用途、迁移边界和结论引用。
+
+| 取值空间类型 | 使用条件 | 写法要求 | 统计 / 降级纪律 |
+|---|---|---|---|
+| 完整枚举 | 原文给出封闭类别集合 | 写出所有类别或指向原文表 / 图；缺失值单列说明。 | 可候选进入统计；图表未核验时标 `not_verified`。 |
+| 层级枚举 | 原文给出 taxonomy / 分类树 | 保留父子层级，不压成逗号清单。 | 父子层级不清时只做 `schema_seed`。 |
+| 布尔 | 是否存在某制品、字段或特征 | 明确 `true` / `false` / `not_reported` 的判定证据。 | `false` 必须区分原文否定与未报告。 |
+| 数值或区间 | 计数、年份、比例、评分 | 写分母、范围和单位。 | 无分母、图表待核验或抽取不完整时不得进入强统计结论。 |
+| 关系值 | 字段表示节点间关系 | 使用关系边表，保留关系类型、目标取值空间和缺失关系。 | 缺失关系可作为 absence evidence，但必须回链证据。 |
+| 外部分类法引用 | 原文使用 SWEBOK、CCS、ISO 等外部体系 | 写清外部体系版本或待核验状态。 | 版本不明时只能候选，不得与其他论文直接合并统计。 |
+| 自由文本加理由 | 原文本身是开放问题、愿景或叙述性结果 | 说明为什么不能枚举，并默认降级为候选启发。 | roadmap / vision / guideline 无样本库时不得进入主统计池。 |
+| 待核验或待补全 | 图表 / 附录 / supplementary 尚未核对 | 标为 `not_verified`。 | 不得进入主统计池或 SUMMARY 定量统计。 |
+
+### 6.3.6 关系型维度：主干树加关系边表
+
+DevSecOps CPTM、生命周期投影、工具-实践-指标链接、RQ-字段-发现链路等关系型 schema 不得强行压平成普通树。应使用主干树表达实体层级，再用关系边表表达横向关系。
+
+关系边表至少包含：关系边标识、源节点、关系类型、目标节点、目标取值空间、缺失值语义、证据引用和结论引用。`no linked metric`、`not_reported`、`no linked tool`、`no mapped RQ` 等缺失关系也要入账，可在 A.2 中使用 `absence_evidence` 或 `not_reported` 证据角色。
+
+### 6.3.7 审计附录与最小必填字段简表
+
+每篇 `review.md` 文末必须包含以下固定结构。正式 A.1--A.4 表头必须继续使用纯中文，不得出现 `ID`、`PDF`、snake_case 或中英文对照表头。
+
+执行 agent 可先按下面的“最小必填字段简表”自检；写入 `review.md` 时仍必须使用后续正式中文宽表。
+
+| 附录 | 最小必填字段 | 最小合格条件 |
+|---|---|---|
+| A.1 论文与本地文件来源 | 来源标识、文件或链接、类型、用途、可核验性 | A.2 每条证据的来源标识都能回链到 A.1。 |
+| A.2 维度树证据账本 | 证据标识、引用键、来源标识、原文章节或行号范围、原文短引、释义支撑、证据角色、证据强度、支撑的维度节点、需要原文版面核验 | 每个核心节点 / 叶子 / 降级判断至少有一条证据；待核验证据必须写 `not_verified`。 |
+| A.3 结论-证据映射 | 引用键、结论标识、结论内容、结论类型、支撑对象标识、支撑证据标识列表、结论强度、允许用于论文的位置 | 正文核心判断和树级判断都有 `[clm-*]`；证据列表能回链 A.2。 |
+| A.4 本地复验命令与人工核验清单 | 检查标识、复验对象、命令或人工核验动作、通过条件、当前状态 | A.2 中“需要原文版面核验”为 `true` 的证据都进入 A.4。 |
+
+```markdown
+## 审计附录：证据链与结论-证据映射
+
+### A.1 论文与本地文件来源
+
+| 来源标识 | 文件或链接 | 类型 | 用途 | 可核验性 | 备注 |
+|---|---|---|---|---|---|
+
+### A.2 维度树证据账本
+
+| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+### A.3 结论-证据映射
+
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象标识 | 支撑证据标识列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+|---|---|---|---|---|---|---|---|---|---|---|
+
+### A.4 本地复验命令与人工核验清单
+
+| 检查标识 | 复验对象 | 命令或人工核验动作 | 通过条件 | 当前状态 |
+|---|---|---|---|---|
+```
+
+执行纪律：
+
+1. 正文核心判断、维度树一句话结论、树类型、样本单位、统计池资格、可迁移 / 不可迁移判断、roadmap / guideline 降级判断均必须有 `[clm-*]` 引用键。
+2. A.3 的“支撑证据标识列表”必须回链 A.2；A.2 的“来源标识”必须回链 A.1。
+3. `weak` / `not_verified` 证据不得进入主统计池、SUMMARY 定量归纳或 final research finding。
+4. A.2 中“需要原文版面核验”为 `true` 的证据，必须在 A.4 的“复验对象”中列出。
+5. 旧结论或旧证据被替代时不得删除键，应标记“已废弃”和“替代证据 / 替代结论”。
+
+### 6.3.8 A1-DT v2 证据强度降级与统计用途冻结
+
+A1-DT v2 的目标是先冻结单篇原生维度树 / 维度森林与跨论文投影边界，不要求完成所有 PDF 页码、表号、图号和 supplementary 的精确核验。因此：
+
+1. A.2 中凡仍写有“待 A2a 精确页码复核”“邻近段落”“表 / 图待核验”“见释义”等泛定位或待核验描述的证据，证据强度必须写 `not_verified`，不得写 `strong` 或 `medium`。
+2. A.3 中凡依赖上述 `not_verified` 证据的结论，只能作为 `schema_seed`、`boundary_anchor`、`candidate_finding`、`methodological_seed`、`risk_only` 或 `do_not_use`；不得写 `statistical_synthesis`。
+3. SUMMARY 可以记录“后续主统计池候选”，但这不是当前 A1-DT v2 维度树证据已可统计；A2a 完成精确页码 / 表图 / 字段锚定前，不得把 A1-DT v2 的叶子结论用于 SUMMARY 定量统计或 final research finding。
+4. 后续若某篇论文完成 PDF / 表图 / supplementary 精核，可在 A.2 新增替代证据并把旧证据标为“已废弃”，再把 A.3 结论从 `schema_seed` 升级为 `statistical_synthesis`；升级必须同步更新 SUMMARY 结论-证据映射和 schema 修订 / 回填日志。
+
+### 6.3.9 v1→v2 过渡规则
+
+1. `audits/a1dt-19x3/` 统一标注为 v1 历史归档；引用该目录时必须使用如下警示格式：
+
+```markdown
+> [!WARNING] v1-deprecated: 这里是 A1-DT v1 历史审计归档，只能作为返修来源和历史证据，不是当前 A1-DT v2 事实口径。v2 新产物写入 `audits/a1dt-v2-19x3/`。
+```
+
+2. v1 中“原文 schema 主树 + 通用接口投影”的结论必须重新按 v2 三层分离复核：单篇原生树 / 维度森林先成立，才能进入跨论文投影。
+3. v1 审计建议只能作为 reviewer input；若与原文、A.2 证据或本 GUIDE 冲突，以原文和本 GUIDE 为准，并在 A.3 记录替代 / 废弃结论。
+4. 不得把 v1 的 `schema_seed`、`not_verified`、`needs_manual_check` 状态在 v2 中自动升级。升级只能来自新增原文证据、版面核验或明确的 A2a 复验记录。
+
+### 6.3.10 A1-DT v2 19×3 工作流
+
+A1-DT v2 的 19×3 工作流用于把 19 篇 `review.md` 从 v1 历史返修状态推进到 v2 当前事实口径。工作流产物必须写入 `audits/a1dt-v2-19x3/`，并至少包含批次 README、任务清单、prompt、results、logs、SUMMARY、结构门禁脚本或等价复验说明。
+
+推荐顺序：
+
+1. 先读本 [GUIDE.md](./GUIDE.md) §6.3、[README.md](./README.md) 的 A1-DT v2 说明和 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md) 的投影边界。
+2. 对每篇论文只读取自己的 `bibtex.bib`、`metadata.json`、`paper_content.txt`、必要 PDF / supplementary 和现有 `review.md`；不得混读其他论文来套模板。
+3. 先识别原文类型与样本单位，再决定单树、森林或降级树。
+4. 再抽取根节点、主干分支、叶子取值空间、关系边和缺失值语义。
+5. 最后补齐 A.1--A.4，并把跨论文可迁移内容只写作候选投影，不直接写成最终 pattern。
+6. 三路审计结果只作为返修输入；合并时必须保留分歧、降级和替代证据，不得做无证据的多数投票。
+
+### 6.3.11 结构门禁
+
+A1-DT v2 ready 前必须通过结构门禁。若 `audits/a1dt-v2-19x3/` 尚未落地脚本，至少人工检查并记录以下项目；脚本落地后应以脚本输出为准：
+
+1. 19 篇 `review.md` 均包含 `## 维度树复原` 与 `## 审计附录：证据链与结论-证据映射`。
+2. 每篇至少声明树 / 森林类型、样本单位、统计池资格、迁移边界和降级状态。
+3. roadmap / vision + 无系统样本库均按 roadmap action / vision item 降级；guideline + 无系统样本库均按 guideline item 降级。
+4. A.1--A.4 表头保持正式中文宽表；A.2 / A.3 / A.4 能互相回链。
+5. `patterns/` 没有被写成单篇原生树模板；跨论文归纳均能回链单篇 A.3。
+6. v1 历史章节和 v1 审计目录引用均带 `> [!WARNING] v1-deprecated: ...` 警示。
+7. `weak` / `not_verified` / `needs_manual_check` 结论没有进入 SUMMARY 定量统计或 final research finding。
+
 
 ## 7. schema 回修闭环
 
