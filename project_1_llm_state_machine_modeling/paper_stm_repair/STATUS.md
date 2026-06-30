@@ -90,7 +90,7 @@ R5 全量摸排后的方向性结论：后续主实验在 R5.5/R5.6 阶段设计
 |---|---:|---|
 | `converted` | 529 | 可进入修正前 `.fcstm` 表示，但仍需保留归因 |
 | `partial` | 508 | 可进入 R7 eligibility review，不能无条件进入主实验 |
-| `blocked` | 19 | 当前转换负证据，进入 R8 negative evidence 或 转换器 follow-up；`llms-emp` 三个原 blocked 已在 R5.5.2 恢复为 partial |
+| `blocked` | 19 | 剩余非 `llms-emp` 当前转换负证据，进入 R8 negative evidence 或转换器 follow-up；`llms-emp` 三个原 blocked 已在 R5.5.2 恢复为 partial，不再计入当前 blocked |
 | `needs_generation` | 2 | 有 NL+code / pipeline，但作者未公开 generated `STM_0` |
 | `not_applicable` | 20 | 不是作者一手 generated seed，或不属于目标形式 |
 

@@ -14,7 +14,7 @@
 
 本文件是 R5 全量摸排后形成的长期研究归纳，用于回答：后续 paper1 主实验为什么优先围绕 `llms-emp-stm-subset` 展开，以及这 60 条一手 `NL + LLM-generated STM_0` 在转换到 `.fcstm` 前后的状态如何。
 
-> 事实源仍是 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json)、[records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)、[archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) 与 [../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。本 Markdown 是人类阅读入口，不是第二事实真源；其中状态表是 R5 历史快照，当前 `llms-emp` status 必须改读 R5.5.2 recovery report。
+> 事实源仍是 [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json)、[records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json)、[archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) 与 [../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl)。本 Markdown 是人类阅读入口，不是第二事实真源；其中状态表是 R5 历史快照，当前 `llms-emp` 状态必须改读 R5.5.2 recovery report。
 
 ### 1. 方向性结论
 
@@ -134,18 +134,18 @@ R7 必须冻结以下纪律：
 
 ### 1. 交接结论
 
-`llms-emp-stm-subset` 是 R6/R7 的优先主池。它提供 60 个一手 `NL + LLM-generated PlantUML` pair，实际结构是 10 个唯一 NL × 6 个 LLM 输出。R5 中这 60 条的状态为：16 `converted`、41 `partial`、3 `blocked` [clm-dir-main-seed][clm-dir-denominator][clm-dir-status]。
+`llms-emp-stm-subset` 是 R6/R7 的优先主池。它提供 60 个一手 `NL + LLM-generated PlantUML` pair，实际结构是 10 个唯一 NL × 6 个 LLM 输出。R5 历史快照中这 60 条的状态为：16 `converted`、41 `partial`、3 `blocked`；R5.5.2 当前状态已更新为 16 `converted`、44 `partial`、0 `blocked`，旧 3 条只能作为 conversion-recovery / stress 线索 [clm-dir-main-seed][clm-dir-denominator][clm-dir-status]。
 
 ### 2. 推荐 R6 首轮样本策略
 
-R6 首轮目标是跑通真实 repair loop 和证据链，不是一次性覆盖全部 seed。建议选 12–18 条：
+R6 首轮目标是跑通真实 repair loop 和证据链，不是一次性覆盖全部 seed。建议选 12–18 条；下表中的 D 层已按 R5.5.2 当前性改为历史恢复线索，不再作为当前 blocked 分层：
 
 | 分层 | 建议数量 | 进入条件 | 用途 |
 |---|---:|---|---|
 | A-main | 4–6 | `converted`，loss_count=0，parse / inspect OK | 低转换噪声下验证 repair loop 基线 |
 | B-main-with-caveat | 4–6 | `partial`，主要 caveat 是 condition/event/action 语义薄弱，且可由 NL 支撑修正目标 | 验证 feedback-driven repair 的核心价值 |
 | C-analysis-only | 3–4 | hierarchy / cross-scope / normalization loss 较重 | 定性分析与 attribution；不轻易计入 repair gain |
-| D-negative | 3 | `blocked_official_scxml_unavailable` | R8 negative evidence / converter follow-up |
+| D-historical-recovery | 3 | R5 历史 `blocked_official_scxml_unavailable`，R5.5.2 当前均为 `partial` | conversion-recovery / stress case 复核；不再作为当前 R8 negative evidence |
 
 首轮选样应覆盖至少 5 个唯一 NL、至少 4 个 LLM；同一 NL cluster 中不宜一次性选满 6 个输出，避免 clustered bias。
 

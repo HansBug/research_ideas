@@ -51,14 +51,14 @@
 
 #### 1.2.1 LLM family 维度状态汇总
 
-本表从上一节同一 10×6 矩阵按 LLM family 聚合，用于快速判断 `converted / partial / blocked` 是否呈现模型族差异；它仍然是 pre-repair readiness census，不是 LLM 能力排行，也不能计入 repair gain [clm-profile-llm-family][clm-profile-no-repair-gain]。
+本表从上一节同一 10×6 矩阵按 LLM family 聚合，用于快速判断 R5.5.1 历史 `converted / partial / blocked` 是否呈现模型族差异；R5.5.2 已把 3 个历史 blocked 恢复为 partial，因此本表只作为历史画像，不是当前状态真源、不是 LLM 能力排行，也不能计入 repair gain [clm-profile-llm-family][clm-profile-no-repair-gain]。
 
 | LLM family | converted | partial | blocked | 读取 caveat |
 |---|---:|---:|---:|---|
 | GPT-4o | 5 | 5 | 0 | converted/partial 对半，仍需逐例看 loss code。 |
-| GPT-4 | 3 | 6 | 1 | 含 1 个 Digital Camera blocked；blocked 进入 negative evidence。 |
-| Llama | 0 | 9 | 1 | 以 partial 为主，含 1 个 Digital Camera blocked。 |
-| Kimi | 2 | 7 | 1 | 含 1 个 collision avoidance blocked。 |
+| GPT-4 | 3 | 6 | 1 | R5.5.1 含 1 个 Digital Camera 历史 blocked；R5.5.2 后该样例为 partial，只作 conversion-recovery / supplementary stress。 |
+| Llama | 0 | 9 | 1 | R5.5.1 以 partial 为主并含 1 个 Digital Camera 历史 blocked；R5.5.2 后该样例为 partial。 |
+| Kimi | 2 | 7 | 1 | R5.5.1 含 1 个 collision avoidance 历史 blocked；R5.5.2 后该样例为 partial。 |
 | DeepSeek | 0 | 10 | 0 | 全部 partial；主要用于 R5.7 画像，不代表 repair 失败。 |
 | Claude | 6 | 4 | 0 | converted 数最多，但仍保留 partial caveat。 |
 
@@ -103,12 +103,12 @@
 | `HSM` | 36 |
 | `UML-SysML statechart` | 18 |
 
-#### 2.3 R5.6 story role
+#### 2.3 R5.6 story role（R5.5.1 历史快照；当前 3 个 `negative_evidence` 已恢复为 partial）
 
 | r5_6_story_role | pairs |
 |---|---:|
 | `main_candidate` | 53 |
-| `negative_evidence` | 3 |
+| `negative_evidence` | 3（历史；当前不再作为 `llms-emp` negative evidence 分母） |
 | `supplementary_stress` | 4 |
 
 #### 2.4 cluster 口径 story role
@@ -213,13 +213,13 @@
 | `R45.LOSS.composite_target_lowered_to_initial_child` | transition into a composite target was lowered to an initial child | `fcstm_lowering` | `fcstm_lowering` | `scxml_canonical` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
 | `R45.LOSS.initial_inferred_from_source_order_or_start_state` | initial child was inferred from source order or start-state convention | `fcstm_lowering` | `fcstm_lowering` | `pipeline_artifact` | `True` | `False` | `high` | 表示层级/边界 lowering 的可表示性损失；R5.7 只能把它作为表示 caveat 或协议约束处理。 |
 
-### 8. blocked 摘要
+### 8. blocked 摘要（R5.5.1 历史快照；R5.5.2 后均已恢复为 partial）
 
-| raw_pair_id | cluster | LLM | issue_category | renderability | 当前结论 |
+| raw_pair_id | cluster | LLM | issue_category | renderability | R5.5.2 当前结论 |
 |---|---|---|---|---|---|
-| `llms_emp_stm_results_0018` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `gpt-4` | `F_unquoted_state_names_with_spaces` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
-| `llms_emp_stm_results_0028` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `llama` | `A_non_plantuml_stm_directive` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
-| `llms_emp_stm_results_0037` | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `kimi` | `A_non_plantuml_stm_directive` | `not_reproducible_from_committed_evidence` | raw 与 normalized PlantUML 均未获得可信 official SCXML；当前只能进入 negative evidence / converter follow-up。 |
+| `llms_emp_stm_results_0018` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `gpt-4` | `F_unquoted_state_names_with_spaces` | R5.5.1 历史：`not_reproducible_from_committed_evidence` | R5.5.2 当前为 `partial`，只作 conversion-recovery / Digital Camera supplementary stress；不再进入当前 R8 negative evidence。 |
+| `llms_emp_stm_results_0028` | `llms_emp_nl_08_dcs_digital_camera_state_machine_diagr` | `llama` | `A_non_plantuml_stm_directive` | R5.5.1 历史：`not_reproducible_from_committed_evidence` | R5.5.2 当前为 `partial`，只作 conversion-recovery / Digital Camera supplementary stress；不再进入当前 R8 negative evidence。 |
+| `llms_emp_stm_results_0037` | `llms_emp_nl_07_hldcs_collision_avoidance_sub_machine_st` | `kimi` | `A_non_plantuml_stm_directive` | R5.5.1 历史：`not_reproducible_from_committed_evidence` | R5.5.2 当前为 `partial`，只作 conversion-recovery / main_candidate 复核；不再进入当前 R8 negative evidence。 |
 
 ### 9. 给 R5.6/R5.7 的学术含义
 

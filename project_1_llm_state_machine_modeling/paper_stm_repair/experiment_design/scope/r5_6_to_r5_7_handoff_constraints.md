@@ -6,6 +6,7 @@
 
 | 约束 ID | 约束 | R5.7 行动 |
 |---|---|---|
+| R56-H0 | `llms-emp` 当前状态必须以 R5.5.2 为准：`16 converted / 44 partial / 0 blocked`，且 `0018`、`0028`、`0037` 当前均为 `partial`，不是当前 blocked，也不再进入当前 R8 negative evidence。 | R5.7 开工时必须先读取 R5.5.2 recovery report 与当前 `llms_emp_case_matrix.jsonl`；任何旧 R5/R5.5.1 快照 中的 `16/41/3`、`3 blocked`、`R8 negative evidence` 只能作为历史线索，不能作为 taxonomy denominator 或当前排除理由。 |
 | R56-H1 | 主实验 headline scope 的 R5.6 上限限定为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 不进入 headline，只作为当前无独立样例的 future taxonomy candidate / 语义维度标签。 | taxonomy 只能在该范围内定义 main repair target；headline wording 默认写 FSM/HSM/离散 statechart；只有 R7 有独立 EFSM-lite eligible 证据后，才可在分层/非 headline 中谨慎使用 EFSM-lite。 |
 | R56-H2 | T0.5 timer-like cue 已排除出 T0 headline denominator，只能是 caveat / annotation。 | 可定义为 monitor / caveat，不得定义 timed automata repair target，也不得进入 main metric denominator。 |
 | R56-H3 | Digital Camera / T1-ish case 只作 supplementary stress / limitation。 | 可作 stress dry-run，不支撑 T0 主 claim。 |
