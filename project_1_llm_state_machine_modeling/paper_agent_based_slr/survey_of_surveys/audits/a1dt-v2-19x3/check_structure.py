@@ -14,6 +14,7 @@ from pathlib import Path
 
 EXPECTED_AGENTS = ("codex", "claude", "deepseek")
 EXPECTED_PAPER_FILES = ("bibtex.bib", "metadata.json", "paper_content.txt", "review.md")
+TEXT_HYGIENE_SUFFIXES = {".md", ".tsv", ".py", ".json", ".log"}
 LIBRARY_REL = Path("project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys")
 BATCH_REL = LIBRARY_REL / "audits/a1dt-v2-19x3"
 V1_REL = LIBRARY_REL / "audits/a1dt-19x3"
@@ -75,6 +76,21 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
             add_error(errors, f"SUMMARY missing v2 marker: {marker}")
     if "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |" not in text:
         add_error(errors, "SUMMARY missing required v2 ledger header")
+
+
+def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
+    """Require LF endings and no trailing spaces in audit text artifacts."""
+    if not root.exists():
+        return
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in TEXT_HYGIENE_SUFFIXES):
+        data = path.read_bytes()
+        rel = path.relative_to(repo)
+        if b"\r" in data:
+            add_error(errors, f"text hygiene CR character found: {rel}")
+        for lineno, line in enumerate(data.splitlines(), start=1):
+            if line.endswith((b" ", b"\t")):
+                add_error(errors, f"text hygiene trailing whitespace: {rel}:{lineno}")
+                break
 
 
 
@@ -164,6 +180,8 @@ def check_structure(strict: bool, ready_to_run: bool = False) -> int:
                 add_error(errors, f"{d.name}: missing {name}")
 
     rows = read_tasks(batch / "TASKS.tsv", errors)
+    if strict:
+        check_text_hygiene(batch, repo, errors)
     if len(rows) != 57:
         add_error(errors, f"TASKS.tsv row count should be 57, got {len(rows)}")
     task_slugs = sorted({row.get("slug", "") for row in rows})

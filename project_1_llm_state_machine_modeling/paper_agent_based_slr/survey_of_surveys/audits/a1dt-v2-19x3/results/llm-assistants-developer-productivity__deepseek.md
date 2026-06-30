@@ -428,7 +428,7 @@ Primary Studies (n=39) ─ [SLR+SMS 系统纳入与编码]
 
 ---
 
-**审计完成时间**：2026-06-30  
-**审计 agent**：deepseek (via codex-deepseek exec)  
-**审计范围**：单篇 `llm-assistants-developer-productivity`  
+**审计完成时间**：2026-06-30
+**审计 agent**：deepseek (via codex-deepseek exec)
+**审计范围**：单篇 `llm-assistants-developer-productivity`
 **下一动作**：等待主线程合并本审计报告，执行 C-01/C-02/C-03 和 I-01--I-05 返修

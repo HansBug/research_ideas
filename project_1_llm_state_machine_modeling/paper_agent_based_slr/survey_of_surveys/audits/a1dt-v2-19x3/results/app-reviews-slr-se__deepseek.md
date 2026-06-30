@@ -4,8 +4,8 @@
 
 # A1-DT v2 单篇全文审计报告：`app-reviews-slr-se`
 
-**agent**: deepseek (本 codex 进程)  
-**审计日期**: 2026-06-30  
+**agent**: deepseek (本 codex 进程)
+**审计日期**: 2026-06-30
 **审计类型**: A1-DT v2 原生维度森林审计（独立进程，无 subagent）
 
 ---

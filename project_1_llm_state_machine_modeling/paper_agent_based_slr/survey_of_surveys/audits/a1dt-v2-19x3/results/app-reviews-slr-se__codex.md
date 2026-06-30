@@ -35,19 +35,19 @@
 
 ### 2. 样本单位与字段来源判定
 
-1. 原文纳入和逐项描述的对象是什么？  
+1. 原文纳入和逐项描述的对象是什么？
 原文逐项描述对象是 primary study。每篇 primary study 被抽取 F1--F18 字段，再被编码进 app review analysis、mining technique、SE activity、empirical evaluation、replication package 等维度。公开数据集、工具、参与者、评价指标是 primary study 的派生属性或评价资产，不是主样本单位。
 
-2. 作者有没有系统检索 / 纳排 / 数据抽取 / 编码方案？  
+2. 作者有没有系统检索 / 纳排 / 数据抽取 / 编码方案？
 有。作者遵循 Kitchenham SLR 流程，定义 RQ 和 protocol，自动检索 + 手工 venue 检索 + backward/forward snowballing，使用 Table 1 纳排标准，最终 182 篇。数据抽取使用 Table 3 的 F1--F18 form；编码使用三套 classification schema，并报告筛选、抽取和分类可靠性。
 
-3. 原文字段来自哪里？  
+3. 原文字段来自哪里？
 主要来自 extraction form（Table 3）、classification schema（§2.4、Table 4、Table 7、Table 9、Table 13）、mapping/cross-tabulation tables（Table 8、10、11、14、15、19、20）、evaluation result tables（Table 16--22）和 supplementary spreadsheet。Replication package 字段来自 F18 及作者主动联系 primary studies 作者的可用性确认。
 
-4. RQ 与样本单位是什么关系？  
+4. RQ 与样本单位是什么关系？
 RQ 不是树根本身，而是字段用途与结果组织方式。F6 用于 RQ1，F7 用于 RQ2，F8/F9 用于 RQ3，F10--F12/F14--F18 用于 RQ4，F13 用于 RQ5。真正的编码根对象是 primary study record。
 
-5. 若无系统样本库，如何降级？  
+5. 若无系统样本库，如何降级？
 本文不需要降级为 roadmap/guideline seed，因为它有系统样本库、纳排链条、抽取字段、分类 schema 和统计分母。但没有读取 supplementary package，因此 supplementary 中更细字段仍应标为待核验。
 
 ### 3. 原生样本编码维度树 / 维度森林

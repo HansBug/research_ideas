@@ -28,15 +28,16 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 
 ## 2. 当前边界
 
-A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run：
+A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基、候选池、字段合同和有限 dry-run；PR #135 / A1-DT v2 已在此基础上完成 19 篇 × 3 路 CLI 审计和单篇 `review.md` 返修，用来冻结“原生样本编码维度树 / 维度森林”的当前事实口径。
 
 - 当前资产为 19 篇全文文本级 dry-run / 维度锚点：其中 9 篇来自 A1 初始 dry-run，10 篇来自 issue #95 现代 CCF-A/B 综述候选池扩展。
 - 当前 active metadata-only / 需人工下载条目为 0；历史 3 条自动下载失败路径已由用户本地 Zotero PDF 补齐，并作为失败路径闭环证据保留在检索日志中。
-- A1 主验收仍按 3--5 篇 dry-run 口径判断；新增 10 篇只用于加固现代维度 scaffold、A1-M0--M6 元维度和失败 / 边界口径，不代表扩展为完整文库。
+- A1 scaffold 主验收仍按 3--5 篇 dry-run 口径判断；新增 10 篇只用于加固现代维度 scaffold、A1-M0--M6 元维度和失败 / 边界口径，不代表扩展为完整文库。
+- A1-DT v2 已完成 57/57 三路 CLI 审计、19/19 主线程裁决和 19/19 单篇返修；运行日志保留命令、时间、returncode、stdout/stderr 与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录任何 secret。
 - 这些样本用于验证脚手架可执行性，不代表覆盖完整 SE 综述文献空间。
 - 不完成 100+ 篇完整文库。
 - 不冻结 A3 schema / stage contract / validator。
-- 不运行真实大语言模型，不读取 `.env`，不跑四个真实例子。
+- 不跑四个真实例子；A1-DT v2 只审计 survey-of-surveys 维度树，不执行 Paper2 目标方法的真实案例实验。
 
 ## 3. 纳入与排除范围
 
@@ -88,7 +89,7 @@ A1 当前只完成文库奠基、候选池、字段合同和一组有限 dry-run
 
 A1-DT v2 是当前事实口径。v2 要求把 19 篇 `review.md` 统一到“单篇原生样本编码维度树 / 维度森林 + 跨论文投影层”的结构：先从原文复原每篇自己的 RQ / 样本单位 / 编码字段 / 关系边，再把可迁移部分投影到 [patterns/](./patterns/) 和 [SUMMARY.md](./SUMMARY.md)。
 
-v2 新产物必须写入 `audits/a1dt-v2-19x3/`。该目录尚未落地时，不能把 v1 归档当作 v2 完成证据。
+v2 新产物必须写入 [audits/a1dt-v2-19x3/](./audits/a1dt-v2-19x3/)；该目录已经落地，当前事实证据以 v2 prompt / result / log / adjudication / 单篇返修为准。任何后续工作都不得再把 v1 归档当作当前完成证据。
 
 > [!WARNING] v1-deprecated: PR-A1-DT v1 曾对 19 篇 `review.md` 形成 57 份 codex / claude / deepseek 全文审计，入口为 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，逐篇审计汇总为 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。该批次现在只作为历史归档和返修来源，不是 A1-DT v2 当前事实口径。
 

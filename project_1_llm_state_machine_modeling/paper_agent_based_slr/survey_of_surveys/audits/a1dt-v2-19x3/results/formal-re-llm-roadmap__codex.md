@@ -267,13 +267,13 @@ formal-re-llm-roadmap 原生降级维度森林
 
 最高风险 3 点及主线程复核建议：
 
-1. **风险：Fig. 2 / Fig. 4 的箭头关系未逐箭头编码。**  
+1. **风险：Fig. 2 / Fig. 4 的箭头关系未逐箭头编码。**
    复核：A2a 打开 PDF，逐个节点和箭头建立 source-target 表，确认是否存在我未列出的关系边。
 
-2. **风险：取值空间“完整枚举”只对本文内部 action point 成立。**  
+2. **风险：取值空间“完整枚举”只对本文内部 action point 成立。**
    复核：合并时所有 `完整枚举` 后面应注明“限本文”，不得扩展为领域全集。
 
-3. **风险：Section 7 limitation 的枚举是段落级归纳，非作者给出的正式 taxonomy。**  
+3. **风险：Section 7 limitation 的枚举是段落级归纳，非作者给出的正式 taxonomy。**
    复核：若写入 `review.md`，应标 `risk register seed` 或 `free text + rationale`，不要写成系统化 validity rubric。
 
 本任务未出现 blocked、timeout 或文件缺失。未启动 subagent，未修改仓库文件，未 commit、push 或发布评论。
