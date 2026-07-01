@@ -528,7 +528,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | C-iLLM-SMS-T02 | 流程阶段链 need→search→inc/exc→extract→vis→报告 借自 [4] 2015 SMS 指南，本文未饱和验证 | stage_分类法 | B1 | EV-003 | medium | scaffold candidate | 借用结构，不是本文贡献新 分类法 |
 | C-iLLM-SMS-T03 | Fig. 1 的 "研究者 input × interactive refinement × LLM output" 三槽是本文对 Paper2 最强迁移点 | structural_pattern | B2, rel.stage_to_triplet | EV-003 | medium (待版面核) | scaffold 字段模板 | Fig. 1 版面待 A2a 核 |
 | C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | 历史草稿旧强度（当前禁止采信） | 智能体 role 模板 | 仅限 search |
-| C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 trace 模式 直接落点 | CoT 不等于暴露推理链 |
+| C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 trace 模式候选线索（需 A2a/研究者裁决后采纳） | CoT 不等于暴露推理链 |
 | C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可作为候选 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
 | C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | roadmap_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
 | C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | 历史草稿旧强度（当前禁止采信） | 引用红线 | 强制约束 |

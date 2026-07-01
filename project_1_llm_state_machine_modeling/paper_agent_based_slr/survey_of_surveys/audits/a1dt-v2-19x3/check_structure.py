@@ -9,7 +9,6 @@ from __future__ import annotations
 import argparse
 import csv
 import re
-import sys
 from pathlib import Path
 
 EXPECTED_AGENTS = ("codex", "claude", "deepseek")
@@ -147,7 +146,7 @@ FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS = (
     r"(?<!未)(?<!不)(?<!不可)(?<!不能)(?<!不得)(?<!不应)(?<!禁止)(?<!严禁)直接"
     r"(?:迁回|迁入|迁移|替换|引用|更新|复用|写入|进入|转化|作为|支持|统计|"
     r"参考|采纳|启发|抬升|拷贝|复核|升级|驱动|做|由|据此|使用|用于|采信|消费|落地|"
-    r"沉淀|归档|输出|抄进|抄入|复制|填充)",
+    r"沉淀|归档|输出|抄进|抄入|复制|填充|落点)",
     # Mirror forms such as "直接可用/直接可统计/直接可迁移" are equally
     # risky because downstream agents may treat them as ready-to-consume
     # facts.  Keep this separate from the previous verb pattern so future

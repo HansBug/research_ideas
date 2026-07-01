@@ -62,6 +62,7 @@ class EvidenceConsumptionPhraseGateTest(unittest.TestCase):
             "直接采信该候选发现",
             "直接消费历史草案",
             "直接落地为最终发现",
+            "Paper2 trace 模式 直接落点",
             "直接沉淀到 SUMMARY",
             "直接归档为事实真源",
             "直接输出到论文草稿",
