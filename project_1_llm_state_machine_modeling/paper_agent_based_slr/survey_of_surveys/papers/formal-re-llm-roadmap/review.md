@@ -380,6 +380,8 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 ### 3. 原生样本编码维度树 / 维度森林
 
+> 中文化导读：本维度树复原的是形式化需求工程与大语言模型路线图如何组织研究机会、技术路径、风险和边界。树中保留 LLM、RAG、CTL、ontology、knowledge graph 等英文，是因为它们是原文领域术语或形式化方法缩写；中文层级负责说明它们属于哪一类问题、技术或风险。该文更适合作为边界锚点和模式种子，而不是统计池样本。可迁移到 Paper2 的是“路线图论文也需要区分问题空间、技术空间、证据边界和过度信任风险”。
+
 原生结构为**双根 路线图 森林 + 边界森林**：
 
 ```text
@@ -531,41 +533,43 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 - 原生树类型：应改为 “**降级森林（双根 路线图 森林 + 边界森林）**”，而不是单树。
 - 统计池资格：保持 `否（boundary_anchor）`，理由列保留现状。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
+
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
 
 下两表可直接替换 / 扩充 review.md 现 A.2 / A.3。
 
-#### A.2 维度树证据账本草案（扩充至 ≥ 10 条）
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落 / 表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-frelr-001 | paper_content.txt | §1 contributions | Page 2 / 倒数第 2 段 | "this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据… not exhaustive" | type_declaration | 文本已核验（text_verified） | 决定论文类型 = 愿景/路线图；不入统计池 | 否 | 仅锁定类型 |
-| EV-frelr-002 | paper_content.txt | §4 引言 + Fig.2 描述 | "Each discussion topic is associated with a circled number… 5 行动点" | "Fig. 2 summarises and connects the different discussion topics" | structure_claim | 文本已核验（text_verified） | Roadmap A 含 5 AP | 建议（图层标签） | A 与 B 层数同 3 但语义不同 |
-| EV-frelr-003 | paper_content.txt | §4 各 AP 段 | AP-A1..A5 标号段 | 5 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | leaf-action_point (A) | 否 | 不可外推 |
-| EV-frelr-004 | paper_content.txt | §6 引言 + Fig.4 描述 | "7 行动点; analytic vs generative tasks" | "structured into three layers" | structure_claim | 文本已核验（text_verified） | Roadmap B 含 7 AP + 任务二分 | 建议 | -- |
-| EV-frelr-005 | paper_content.txt | §6 各 AP 段 | AP-B1..B7 标号段 | 7 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | leaf-action_point (B) | 否 | -- |
-| EV-frelr-006 | paper_content.txt | §4 Summary | "formal development layer / conventional development layer / LLM layer" | A 三层结构 | layer_enum | 文本已核验（text_verified） | leaf-layer (A) | 建议（图） | A 三层 ≠ B 三层 |
-| EV-frelr-007 | paper_content.txt | §6 Summary | "formal layer / SW artefact layer / LLM layer" | B 三层结构 | layer_enum | 文本已核验（text_verified） | leaf-layer (B) | 建议 | -- |
-| EV-frelr-008 | paper_content.txt | §7 章节标题序列 | 7 个 PC 子标题 | Collaboration / Empirical Eval / Overreliance / Human Creativity / FM data / Proliferation / 部署 | pc_enum | 文本已核验（text_verified） | leaf-practical_consideration | 否 | -- |
-| EV-frelr-009 | paper_content.txt | §6 Fig.4 Summary 段 | "(i) analytic tasks… (ii) generative tasks" | LLM-task 二分 | task_分类法 | 文本已核验（text_verified） | leaf-llm_task_kind | 否 | 仅 Roadmap B |
-| EV-frelr-010 | paper_content.txt | §数据可获得性（Data 可获得性） | "No data was used for the research described in the article."（即未使用数据） | declaration | dataset_claim | 文本已核验（text_verified） | 不入统计池的硬证据 | 否 | -- |
-| EV-frelr-011 | paper_content.txt | §2.2 formal 模型 | LTS/FSM/Büchi/TA/状态图（Statecharts）/PN 等 | descriptive 分类法 | background_分类法 | 文本已核验（text_verified） | bg-tax | 否 | 仅做描述底图 |
-| EV-frelr-012 | paper_content.txt | §5 题序 | 8 个 LLM4RE task demos | task family hints | example_分类法 | 文本已核验（text_verified） | candidate task seeds | 否 | ChatGPT 3.5 output 经作者调整 |
+| EV-frelr-001 | paper_content.txt | §1 contributions | Page 2 / 倒数第 2 段 | "this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据… not exhaustive" | type_declaration | 历史草稿旧强度（当前禁止采信） | 决定论文类型 = 愿景/路线图；不入统计池 | 否 | 仅锁定类型 |
+| EV-frelr-002 | paper_content.txt | §4 引言 + Fig.2 描述 | "Each discussion topic is associated with a circled number… 5 行动点" | "Fig. 2 summarises and connects the different discussion topics" | structure_claim | 历史草稿旧强度（当前禁止采信） | Roadmap A 含 5 AP | 建议（图层标签） | A 与 B 层数同 3 但语义不同 |
+| EV-frelr-003 | paper_content.txt | §4 各 AP 段 | AP-A1..A5 标号段 | 5 个 行动点 名称完整枚举 | action_point_enum | 历史草稿旧强度（当前禁止采信） | leaf-action_point (A) | 否 | 不可外推 |
+| EV-frelr-004 | paper_content.txt | §6 引言 + Fig.4 描述 | "7 行动点; analytic vs generative tasks" | "structured into three layers" | structure_claim | 历史草稿旧强度（当前禁止采信） | Roadmap B 含 7 AP + 任务二分 | 建议 | -- |
+| EV-frelr-005 | paper_content.txt | §6 各 AP 段 | AP-B1..B7 标号段 | 7 个 行动点 名称完整枚举 | action_point_enum | 历史草稿旧强度（当前禁止采信） | leaf-action_point (B) | 否 | -- |
+| EV-frelr-006 | paper_content.txt | §4 Summary | "formal development layer / conventional development layer / LLM layer" | A 三层结构 | layer_enum | 历史草稿旧强度（当前禁止采信） | leaf-layer (A) | 建议（图） | A 三层 ≠ B 三层 |
+| EV-frelr-007 | paper_content.txt | §6 Summary | "formal layer / SW artefact layer / LLM layer" | B 三层结构 | layer_enum | 历史草稿旧强度（当前禁止采信） | leaf-layer (B) | 建议 | -- |
+| EV-frelr-008 | paper_content.txt | §7 章节标题序列 | 7 个 PC 子标题 | Collaboration / Empirical Eval / Overreliance / Human Creativity / FM data / Proliferation / 部署 | pc_enum | 历史草稿旧强度（当前禁止采信） | leaf-practical_consideration | 否 | -- |
+| EV-frelr-009 | paper_content.txt | §6 Fig.4 Summary 段 | "(i) analytic tasks… (ii) generative tasks" | LLM-task 二分 | task_分类法 | 历史草稿旧强度（当前禁止采信） | leaf-llm_task_kind | 否 | 仅 Roadmap B |
+| EV-frelr-010 | paper_content.txt | §数据可获得性（Data 可获得性） | "No data was used for the research described in the article."（即未使用数据） | declaration | dataset_claim | 历史草稿旧强度（当前禁止采信） | 不入统计池的硬证据 | 否 | -- |
+| EV-frelr-011 | paper_content.txt | §2.2 formal 模型 | LTS/FSM/Büchi/TA/状态图（Statecharts）/PN 等 | descriptive 分类法 | background_分类法 | 历史草稿旧强度（当前禁止采信） | bg-tax | 否 | 仅做描述底图 |
+| EV-frelr-012 | paper_content.txt | §5 题序 | 8 个 LLM4RE task demos | task family hints | example_分类法 | 历史草稿旧强度（当前禁止采信） | candidate task seeds | 否 | ChatGPT 3.5 output 经作者调整 |
 | EV-frelr-013 | bibtex.bib / metadata.json | -- | title/author/year/DOI | publisher metadata | metadata | local_verified | 卡片元信息 | 否 | -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
 | C-frelr-T01 | 本文原生维度结构为“双根 路线图 森林 + 边界森林”，不是单维度树，也不是基于样本编码的 分类法 | 树类型（tree_type） | 森林根 | EV-frelr-001/002/004/008 | medium | 边界锚点（boundary_anchor） + 模式种子（schema_seed） | 仅本文；不可外推 |
 | C-frelr-T02 | Roadmap A 严格含 5 个 行动点；Roadmap B 严格含 7 个 行动点；§7 严格含 7 项 practical consideration | 叶子_enum | leaf-action_point, leaf-practical_consideration | EV-frelr-003/005/008 | strong（在文本范围内） | 候选发现 计数种子（n=5/7/7） | 作者声明 路线图 “非穷尽” |
 | C-frelr-T03 | 三层视图存在但 A 与 B 的层语义不同（A: Formal Dev / Conv Dev / LLM；B: Formal / SW Artifact / LLM），不能直接合并 | semantics_warning | leaf-layer | EV-frelr-006/007 | medium | 避免 模式 误并 | -- |
-| C-frelr-T04 | 本文不入主统计池（愿景/路线图；无系统检索 / 纳排 / 质量评价 / 数据综合；"未使用数据（No data was used）") | pool_exclusion | 森林根 | EV-frelr-001, EV-frelr-010 | strong | 边界锚点（boundary_anchor） | -- |
+| C-frelr-T04 | 本文不入主统计池（愿景/路线图；无系统检索 / 纳排 / 质量评价 / 数据综合；"未使用数据（No data was used）") | pool_exclusion | 森林根 | EV-frelr-001, EV-frelr-010 | 历史草稿旧强度（当前禁止采信） | 边界锚点（boundary_anchor） | -- |
 | C-frelr-T05 | 每个 行动点 可拆解为 6 子字段（concern / mechanism / artifact_in / artifact_out / action_推荐 / supporting_refs），是 Paper2 candidate-发现 表的字段种子 | 模式种子（schema_seed） | 12 叶子 表 §4 | EV-frelr-003/005 | weak（基于段落归纳） | 模式种子 only | 字段是 reviewer 归纳，非作者显式 模式 |
 | C-frelr-T06 | LLM 任务可二分为 analytic / generative，可作 Paper2 LLM4RE 任务大类种子 | 叶子_definition | leaf-llm_task_kind | EV-frelr-009 | weak | candidate heuristic | 仅 Roadmap B Fig.4 范围 |
 | C-frelr-T07 | §2 background 分类法 可作 LLM4STM 领域底图，但不可作为 LLM4STM 综述的工具 / 模型分类事实源 | migration_boundary | bg-tax | EV-frelr-011 | weak | terminology seed | 非编码模式 |
-| C-frelr-T08 | §7 的 7 项 practical consideration 可直接迁入 Paper2 risk register（overreliance、经验研究（empirical） eval 难题、制品 proliferation 与 project_1 高度对齐） | candidate_heuristic | leaf-practical_consideration | EV-frelr-008 | medium | risk register seed | -- |
-| C-frelr-T09 | review.md 当前主表把 6 个跨论文通用接口叶冒充原生主树，需要降级到“通用接口投影”子节，由本审计 §4 的 12 叶原生表替代 | review_repair | review.md §维度树复原 | EV-frelr-002/004/008 | strong | I 级返修 | -- |
+| C-frelr-T08 | §7 的 7 项 practical consideration 历史草稿曾提出迁移建议；当前禁止直接采信 Paper2 risk register（overreliance、经验研究（empirical） eval 难题、制品 proliferation 与 project_1 高度对齐） | candidate_heuristic | leaf-practical_consideration | EV-frelr-008 | medium | risk register seed | -- |
+| C-frelr-T09 | review.md 当前主表把 6 个跨论文通用接口叶冒充原生主树，需要降级到“通用接口投影”子节，由本审计 §4 的 12 叶原生表替代 | review_repair | review.md §维度树复原 | EV-frelr-002/004/008 | 历史草稿旧强度（当前禁止采信） | I 级返修 | -- |
 
 ### 9. 技能使用与自我审查记录
 

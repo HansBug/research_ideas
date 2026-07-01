@@ -304,7 +304,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 2. **系统性程度**：完全系统化。§3.4 search strategy + §3.5 inclusion/exclusion + QA form (14 yes/no + 1 Literature Type 0--4，总分 18，阈值 11) + §3.6 replication + §3.7 search execution Table 3 + §3.8 reflexive TA + §3.8.3 trustworthiness (credibility/confirmability/dependability/transferability) + Zenodo open material。
 3. **字段来源**：
    - 抽取表 = adapted 数据抽取 form (Kitchenham 2007) + Garousi MLR 指南 改造的 QA form (Fig 2)
-   - 分类方案（分类 模式） = TA 归纳得到的 21+23+56+16+16 主题 + 演绎得到的 4 category (OPC/PC/技术/业务) + Gartner 10 阶段 外部框架
+   - 分类方案（classification scheme；首次术语） = TA 归纳得到的 21+23+56+16+16 主题 + 演绎得到的 4 category (OPC/PC/技术/业务) + Gartner 10 阶段 外部框架
    - relations = §4.1.3 由 first author 经多轮（2021-2023）模型迭代生成的 Table 21 + Fig 5--9
    - Zenodo 复现包：MLR protocol、included papers 含 QA score、raw text/代码、TA tables (initial + final)、CPTM 完整 模型
 4. **RQ 与样本单位关系**：RQ1 = "what aspects / themes / links" → 直接驱动 5 aspect → theme → category → CPTM 关系图四级树；RQ2 = "DevSecOps in GSE contexts" → 把 GSE/global/distributed 作为另一切片维度，用 Search String 2 验证缺失。RQ 与树根、字段用途、结果组织方式三种关系**全部存在**。
@@ -463,7 +463,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 #### C 级 (必须返修，否则审计与文本证据不符)
 
-**C1**：`review.md` §"维度树复原" 的"叶子维度表"（约 line 338--348）把 6 个 `leaf-devsecops-primary-dimensions-{scope,corpus,分类法,method,evidence,发现}` 当作原文叶子层，取值空间写为"自由文本加 RQ / 贡献声明引用"、"完整 SLR/SMS 为数值链条"等通用描述。**与原文证据严重不符**：Tables 5--21 已给出 28+60+20+18 项完全封闭编号枚举、4 项 category 封闭枚举、10 项 Gartner 阶段 封闭枚举。建议：把这 6 个通用 叶子 全部下沉到"通用接口投影"（line 392 已有该位置），原生叶子层用本审计 §4 给出的 ≥20 个 L-* 叶子替换，并把所有 `not_verified` 中可由 Tables 5--21 直接锚定的项目升级为 `verified` 或至少 `文本已核验（text_verified）`。
+**C1**：`review.md` §"维度树复原" 的"叶子维度表"（约 line 338--348）把 6 个 `leaf-devsecops-primary-dimensions-{scope,corpus,分类法,method,evidence,发现}` 当作原文叶子层，取值空间写为"自由文本加 RQ / 贡献声明引用"、"完整 SLR/SMS 为数值链条"等通用描述。**与原文证据严重不符**：Tables 5--21 已给出 28+60+20+18 项完全封闭编号枚举、4 项 category 封闭枚举、10 项 Gartner 阶段 封闭枚举。建议：把这 6 个通用 叶子 全部下沉到"通用接口投影"（line 392 已有该位置），原生叶子层用本审计 §4 给出的 ≥20 个 L-* 叶子替换，并把所有 `not_verified` 中可由 Tables 5--21 直接锚定的项目升级为 `verified` 或至少 `历史草稿旧强度（当前禁止采信）`。
 
 **C2**：`review.md` line 357 "[leaf-devsecops-primary-dimensions-orig-cptm-item]" 把 Challenge/Practice/Tool/Metric 四类编号项压成一个 叶子。**严重欠拆**：本文将 C/P/T/M 作为 4 棵独立子树各自有 28/60/20/18 个 ID + theme + 频次 + source_track + category + 阶段 字段，且有 3 类关系边 (C→P, P→T, P→M)。建议拆为 4 个独立叶子 + 至少 3 个关系边表条目，取值空间从"未核验"升级为"封闭编号枚举"。
 
@@ -477,7 +477,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 **I2**：`review.md` line 309 "[clm-...-树-type]" 把树类型写为 "关系型维度树 + 多声部证据树"。**前半正确但描述不足**：本文是"维度森林 + 显式关系图 + lifecycle 投影"三层结构，单写"关系型"会丢失 5 棵并列子树和 Gartner 10-阶段 切片这两层信息。
 
-**I3**：A.2 证据账本 (line 447--451) 5 条全部 `not_verified`、来源 page 写"摘要 / 引言页；待 A2a 精确页码复核"。**多数页码可直接由 paper_content.txt 锚定到具体 Page 标记**（如 Tables 5/Page 10、Table 21/Page 20、Fig 4/Page 10、Fig 5/Page 19、§4.2/Page 23）。建议把至少 EV-001/002/003 升级为 `文本已核验（text_verified）` 并补 Page 标记。
+**I3**：A.2 证据账本 (line 447--451) 5 条全部 `not_verified`、来源 page 写"摘要 / 引言页；待 A2a 精确页码复核"。**多数页码可直接由 paper_content.txt 锚定到具体 Page 标记**（如 Tables 5/Page 10、Table 21/Page 20、Fig 4/Page 10、Fig 5/Page 19、§4.2/Page 23）。建议把至少 EV-001/002/003 升级为 `历史草稿旧强度（当前禁止采信）` 并补 Page 标记。
 
 **I4**：line 301 "复核 104 WL + 43 GL 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL"。**这一条审计早已正确指出但未在主表反映**：line 21 仍只写"104 WL + 43 GL"。建议在快速结论卡片改为 "102 WL (RQ1) + 2 WL (RQ2) + 43 GL = 摘要并表 104 WL + 43 GL"。
 
@@ -487,43 +487,45 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 **M2**：line 169 "历史草稿（已迁移，不作事实真源）" 这一段在结构上很好，但 line 175--272 的 32 行 text 树 已经接近本审计 §3 的内容，部分字段 (如 `quality_threshold`、`qa_score_available`、`source_track`、`linked_practice_ids`) 已经完全锚定。可以考虑把这段历史草稿升级为正式 模式，而不是放在"不作事实真源"。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-A1DTv2-001 | paper_content.txt | §1 摘要 (Page 1) | "five major aspects of DevSecOps (Definitions, Challenges, Practices, Tools/Technologies, and Metrics/Measurement); ... CPTM 模型" | rq | 文本已核验（text_verified） | L-aspect, ROOT 维度森林判定 | false | 仅本文 |
-| EV-A1DTv2-002 | paper_content.txt | §3.3 (Page 5) | Sub-question 1.1/1.2/1.3 "what aspects / what themes / how do they link" | rq | 文本已核验（text_verified） | RQ→树+关系 映射 | false | 仅本文 |
-| EV-A1DTv2-003 | paper_content.txt | §3.4.1 + §3.4.2 + §3.7 (Pages 5-6) | Tables 3 search execution；Search String 1/2；time window 2012-2021 | 语料 | 文本已核验（text_verified） | L-search-string-id, L-source-track, L-confirmatory-flag | false | -- |
-| EV-A1DTv2-004 | paper_content.txt | §3.5 + Fig 2 (Page 7) | QA form 14 Y/N + 1 Literature Type 0-4，完整 mark 18，threshold 11 | 质量 | 文本已核验（text_verified） (form image 未核) | L-qa-score | true (Fig 2 截图) | 引自 Garousi 2019 + Kitchenham 2007 |
-| EV-A1DTv2-005 | paper_content.txt | §3.8.1 + §3.8.2 (Page 7-8) | "four levels of interpretation: Text, Code, Themes, Model"；reflexive TA；inductive (WL) + deductive (GL) | 方法 | 文本已核验（text_verified） | L-text-segment, L-code, L-theme, L-category, E-text-code 系列关系边 | false | reflexive TA 不要求 inter-rater |
-| EV-A1DTv2-006 | paper_content.txt | Table 5 (Page 10) | "DevSecOps definitions 28/15 → 74 代码→ 21 themes → 4 类别（类别）"；类似行 挑战 73/53→85→23→4；practices 219/137→142→56→4；指标 7/13→20→16→3；工具 18/45→56→16→1 | 分类法 | 文本已核验（text_verified） | L-text-segment 计数, L-code 计数, L-theme 计数, L-category 计数 | true (Table 视觉) | -- |
-| EV-A1DTv2-007 | paper_content.txt | §4.1.2 段落定义 (Page 11) | "Organization, People and Culture (OPC)... 过程 Capabilities (PC)... 技术... 业务" + 三段定义 | 分类法 | 文本已核验（text_verified） | L-category 取值空间封闭 4 枚举 | false | -- |
-| EV-A1DTv2-008 | paper_content.txt | Tables 6/8-11/12-15/16-17/19 (Pages 12-21) | C01..C28、P01..P60、M01..M20、T01..T18 全部行 + theme + 频次 + paper-ID list | 分类法 | 文本已核验（text_verified） | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id, L-频次, L-source-id | true (各 Table 跨页对齐) | -- |
-| EV-A1DTv2-009 | paper_content.txt | Table 7 (Page 13) | "Mohan and Othmane [...] 9 计数" 等 6 行 | 分类法 | 文本已核验（text_verified） | L-common-def-author | false | -- |
-| EV-A1DTv2-010 | paper_content.txt | Table 18 (Page 18) | "DevSecOps 指标 mapped to DevOps 指标"；Me01-Me19 ↔ M01-M20 | 关系 | 文本已核验（text_verified） | E-指标-devops | false | 外部 分类法: Amaro 2023 |
-| EV-A1DTv2-011 | paper_content.txt | Table 20 + Table 21 + Figs 5-9 (Pages 19-23) | Gartner 10 阶段 定义 + "Identified themes mapped to steps" 全表 | 关系 | 文本已核验（text_verified） for Table 20/21；Figs 5--9 未做 PDF 视觉核验 | L-lifecycle-阶段, E-挑战-practice, E-practice-工具, E-practice-指标, E-item-阶段 | true (Figs 5--9 连线) | Gartner DevSecOps 模型 (MacDonald&Head 2016) |
-| EV-A1DTv2-012 | paper_content.txt | §4.1.2 各段星号说明 + Tables 8-19 标星行 | statistical_result | 文本已核验（text_verified） | L-matched-prior, L-supplemented-from, E-item-prior | false | -- |
-| EV-A1DTv2-013 | paper_content.txt | Table 2 (Page 7) | overlapping percentage 6 行：40%, 100%, 50%, 73%, 48%, 57% | statistical_result | 文本已核验（text_verified） | E-prior-review-overlap | false | -- |
-| EV-A1DTv2-014 | paper_content.txt | §4.2.1-§4.2.3 (Pages 23-24) | Search String 2 = 126 WL → 66 → 2 included；GL 100 pages browsed → 0；4 项 替代解释 | statistical_result + limitation | 文本已核验（text_verified） | L-gse-result-计数, L-gse-explanation | false | 受 search-string-威胁 限制 |
-| EV-A1DTv2-015 | paper_content.txt | §3.7 + §4.3 (Pages 6 + 24-25) | "13 new WL + 7 new GL... not taken into TA, not integrated in CPTM" | 语料 + limitation | 文本已核验（text_verified） | L-confirmatory-flag | false | -- |
-| EV-A1DTv2-016 | paper_content.txt | §5.1-§5.3 (Pages 25-26) | first-author 主导编码、reflexive TA 主观性、search-string 威胁、preconceived CAMS/CPTM 影响 | limitation | 文本已核验（text_verified） | 迁移边界、降级判定 | false | -- |
-| EV-A1DTv2-017 | paper_content.txt | 数据可获得性（Data 可获得性） (Page 26) | Zenodo 7959584：MLR protocol、QA score、raw text/代码、TA tables、CPTM 完整 模型 | 语料 + replication | 文本已核验（text_verified）；外链未访问 | A.1 src-zenodo (建议新增) | true (外链) | -- |
+| EV-A1DTv2-001 | paper_content.txt | §1 摘要 (Page 1) | "five major aspects of DevSecOps (Definitions, Challenges, Practices, Tools/Technologies, and Metrics/Measurement); ... CPTM 模型" | rq | 历史草稿旧强度（当前禁止采信） | L-aspect, ROOT 维度森林判定 | false | 仅本文 |
+| EV-A1DTv2-002 | paper_content.txt | §3.3 (Page 5) | Sub-question 1.1/1.2/1.3 "what aspects / what themes / how do they link" | rq | 历史草稿旧强度（当前禁止采信） | RQ→树+关系 映射 | false | 仅本文 |
+| EV-A1DTv2-003 | paper_content.txt | §3.4.1 + §3.4.2 + §3.7 (Pages 5-6) | Tables 3 search execution；Search String 1/2；time window 2012-2021 | 语料 | 历史草稿旧强度（当前禁止采信） | L-search-string-id, L-source-track, L-confirmatory-flag | false | -- |
+| EV-A1DTv2-004 | paper_content.txt | §3.5 + Fig 2 (Page 7) | QA form 14 Y/N + 1 Literature Type 0-4，完整 mark 18，threshold 11 | 质量 | 历史草稿旧强度（当前禁止采信） (form image 未核) | L-qa-score | true (Fig 2 截图) | 引自 Garousi 2019 + Kitchenham 2007 |
+| EV-A1DTv2-005 | paper_content.txt | §3.8.1 + §3.8.2 (Page 7-8) | "four levels of interpretation: Text, Code, Themes, Model"；reflexive TA；inductive (WL) + deductive (GL) | 方法 | 历史草稿旧强度（当前禁止采信） | L-text-segment, L-code, L-theme, L-category, E-text-code 系列关系边 | false | reflexive TA 不要求 inter-rater |
+| EV-A1DTv2-006 | paper_content.txt | Table 5 (Page 10) | "DevSecOps definitions 28/15 → 74 代码→ 21 themes → 4 类别（类别）"；类似行 挑战 73/53→85→23→4；practices 219/137→142→56→4；指标 7/13→20→16→3；工具 18/45→56→16→1 | 分类法 | 历史草稿旧强度（当前禁止采信） | L-text-segment 计数, L-code 计数, L-theme 计数, L-category 计数 | true (Table 视觉) | -- |
+| EV-A1DTv2-007 | paper_content.txt | §4.1.2 段落定义 (Page 11) | "Organization, People and Culture (OPC)... 过程 Capabilities (PC)... 技术... 业务" + 三段定义 | 分类法 | 历史草稿旧强度（当前禁止采信） | L-category 取值空间封闭 4 枚举 | false | -- |
+| EV-A1DTv2-008 | paper_content.txt | Tables 6/8-11/12-15/16-17/19 (Pages 12-21) | C01..C28、P01..P60、M01..M20、T01..T18 全部行 + theme + 频次 + paper-ID list | 分类法 | 历史草稿旧强度（当前禁止采信） | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id, L-频次, L-source-id | true (各 Table 跨页对齐) | -- |
+| EV-A1DTv2-009 | paper_content.txt | Table 7 (Page 13) | "Mohan and Othmane [...] 9 计数" 等 6 行 | 分类法 | 历史草稿旧强度（当前禁止采信） | L-common-def-author | false | -- |
+| EV-A1DTv2-010 | paper_content.txt | Table 18 (Page 18) | "DevSecOps 指标 mapped to DevOps 指标"；Me01-Me19 ↔ M01-M20 | 关系 | 历史草稿旧强度（当前禁止采信） | E-指标-devops | false | 外部 分类法: Amaro 2023 |
+| EV-A1DTv2-011 | paper_content.txt | Table 20 + Table 21 + Figs 5-9 (Pages 19-23) | Gartner 10 阶段 定义 + "Identified themes mapped to steps" 全表 | 关系 | 历史草稿旧强度（当前禁止采信） for Table 20/21；Figs 5--9 未做 PDF 视觉核验 | L-lifecycle-阶段, E-挑战-practice, E-practice-工具, E-practice-指标, E-item-阶段 | true (Figs 5--9 连线) | Gartner DevSecOps 模型 (MacDonald&Head 2016) |
+| EV-A1DTv2-012 | paper_content.txt | §4.1.2 各段星号说明 + Tables 8-19 标星行 | statistical_result | 历史草稿旧强度（当前禁止采信） | L-matched-prior, L-supplemented-from, E-item-prior | false | -- |
+| EV-A1DTv2-013 | paper_content.txt | Table 2 (Page 7) | overlapping percentage 6 行：40%, 100%, 50%, 73%, 48%, 57% | statistical_result | 历史草稿旧强度（当前禁止采信） | E-prior-review-overlap | false | -- |
+| EV-A1DTv2-014 | paper_content.txt | §4.2.1-§4.2.3 (Pages 23-24) | Search String 2 = 126 WL → 66 → 2 included；GL 100 pages browsed → 0；4 项 替代解释 | statistical_result + limitation | 历史草稿旧强度（当前禁止采信） | L-gse-result-计数, L-gse-explanation | false | 受 search-string-威胁 限制 |
+| EV-A1DTv2-015 | paper_content.txt | §3.7 + §4.3 (Pages 6 + 24-25) | "13 new WL + 7 new GL... not taken into TA, not integrated in CPTM" | 语料 + limitation | 历史草稿旧强度（当前禁止采信） | L-confirmatory-flag | false | -- |
+| EV-A1DTv2-016 | paper_content.txt | §5.1-§5.3 (Pages 25-26) | first-author 主导编码、reflexive TA 主观性、search-string 威胁、preconceived CAMS/CPTM 影响 | limitation | 历史草稿旧强度（当前禁止采信） | 迁移边界、降级判定 | false | -- |
+| EV-A1DTv2-017 | paper_content.txt | 数据可获得性（Data 可获得性） (Page 26) | Zenodo 7959584：MLR protocol、QA score、raw text/代码、TA tables、CPTM 完整 模型 | 语料 + replication | 历史草稿旧强度（当前禁止采信）；外链未访问 | A.1 src-zenodo (建议新增) | true (外链) | -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（tree_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | strong | 直接用于重写 review.md "一句话结论" | -- |
-| A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | 叶子_definition | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id | EV-A1DTv2-006, 008 | strong | 升级 review.md `[..-orig-cptm-item]` 从 模式种子（schema_seed） 到 verified | 个别 item 由 先前综述（prior review） 补入 (e.g. C09 freq=0) |
-| A1DTv2-DSO-C03 | category 集合 = {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）} 是封闭 4 枚举；指标 子树降为 3 (业务 仅靠 M20 补入)；工具 子树退化为 1 (技术) | 叶子_definition | L-category | EV-A1DTv2-006, 007 | strong | 升级 review.md "通用接口" 中 分类法 描述 | 工具 单 category 是观察结果，不是先验约束 |
-| A1DTv2-DSO-C04 | 生命周期阶段（生命周期阶段） 是封闭 10 项 Gartner 枚举；C/P/T/M item 可同时出现在多个 阶段 | 叶子_definition | L-lifecycle-阶段 | EV-A1DTv2-011 | strong | 补 review.md lifecycle 字段 | Gartner 框架来自外部 |
-| A1DTv2-DSO-C05 | 至少存在 5 类关系边：C→P, P→T, P→M, item→阶段, DSO-指标→DevOps-指标 | relation_edge | E-挑战-practice 等 | EV-A1DTv2-010, 011 | strong | 补 review.md 关系边表 (目前仅 2 条) | Tools 与 Metrics 列常为 NA |
-| A1DTv2-DSO-C06 | 主统计池资格 = 是（局部完全可统计）；至少 9 类统计 (aspect-freq, category-freq, theme-freq, 阶段-freq, source-track 分布, prior-overlap %, 关系边 degree, 指标 mapping, year 分布) 由 Tables 4-21 + Figs 3-9 直接支撑 | 树类型（tree_type） / statistical | ROOT | EV-A1DTv2-006--014 | strong | 修正 review.md "主统计池资格 = 否" 的错误降级 | item-level 行细节仍需 PDF/Zenodo 核 |
+| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（tree_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | 历史草稿旧强度（当前禁止采信） | 直接用于重写 review.md "一句话结论" | -- |
+| A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | 叶子_definition | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id | EV-A1DTv2-006, 008 | 历史草稿旧强度（当前禁止采信） | 升级 review.md `[..-orig-cptm-item]` 从 模式种子（schema_seed） 到 verified | 个别 item 由 先前综述（prior review） 补入 (e.g. C09 freq=0) |
+| A1DTv2-DSO-C03 | category 集合 = {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）} 是封闭 4 枚举；指标 子树降为 3 (业务 仅靠 M20 补入)；工具 子树退化为 1 (技术) | 叶子_definition | L-category | EV-A1DTv2-006, 007 | 历史草稿旧强度（当前禁止采信） | 升级 review.md "通用接口" 中 分类法 描述 | 工具 单 category 是观察结果，不是先验约束 |
+| A1DTv2-DSO-C04 | 生命周期阶段（生命周期阶段） 是封闭 10 项 Gartner 枚举；C/P/T/M item 可同时出现在多个 阶段 | 叶子_definition | L-lifecycle-阶段 | EV-A1DTv2-011 | 历史草稿旧强度（当前禁止采信） | 补 review.md lifecycle 字段 | Gartner 框架来自外部 |
+| A1DTv2-DSO-C05 | 至少存在 5 类关系边：C→P, P→T, P→M, item→阶段, DSO-指标→DevOps-指标 | relation_edge | E-挑战-practice 等 | EV-A1DTv2-010, 011 | 历史草稿旧强度（当前禁止采信） | 补 review.md 关系边表 (目前仅 2 条) | Tools 与 Metrics 列常为 NA |
+| A1DTv2-DSO-C06 | 主统计池资格 = 是（局部完全可统计）；至少 9 类统计 (aspect-freq, category-freq, theme-freq, 阶段-freq, source-track 分布, prior-overlap %, 关系边 degree, 指标 mapping, year 分布) 由 Tables 4-21 + Figs 3-9 直接支撑 | 树类型（tree_type） / statistical | ROOT | EV-A1DTv2-006--014 | 历史草稿旧强度（当前禁止采信） | 修正 review.md "主统计池资格 = 否" 的错误降级 | item-level 行细节仍需 PDF/Zenodo 核 |
 | A1DTv2-DSO-C07 | "WL/GL 分布互补、指标 最薄弱、业务 仅在 GL、OPC+PC 集中 Plan/Create、Tech 集中 Verify-Predict、GSE absence 带 4 项竞争解释" 等为 候选发现，可作为 Paper2 元启发但不可直接外推 | 候选发现（candidate_finding） | L-source-track + L-category + L-lifecycle-阶段 + L-gse-explanation | EV-A1DTv2-014, 016 | medium | 写入对 Paper2 的方法学启发 | 受 2012-2021 时间窗 + search-string 限制 |
-| A1DTv2-DSO-C08 | 摘要"104 WL"是合并表述；正文 RQ1=102 WL, RQ2=2 WL；43 GL 仅来自 RQ1；20 confirmatory (13+7) 独立 | 语料 一致性 | L-source-track, L-confirmatory-flag | EV-A1DTv2-003, 015 | strong | 修正 review.md line 21 样本规模口径 | -- |
-| A1DTv2-DSO-C09 | reflexive TA + first-author 主导编码 + CAMS/CPTM preconceived 影响 + search-string-威胁 = 主要威胁；不要把 absence 升级为强结论 | limitation | ROOT | EV-A1DTv2-016 | strong | 迁移边界与降级口径 | -- |
+| A1DTv2-DSO-C08 | 摘要"104 WL"是合并表述；正文 RQ1=102 WL, RQ2=2 WL；43 GL 仅来自 RQ1；20 confirmatory (13+7) 独立 | 语料 一致性 | L-source-track, L-confirmatory-flag | EV-A1DTv2-003, 015 | 历史草稿旧强度（当前禁止采信） | 修正 review.md line 21 样本规模口径 | -- |
+| A1DTv2-DSO-C09 | reflexive TA + first-author 主导编码 + CAMS/CPTM preconceived 影响 + search-string-威胁 = 主要威胁；不要把 absence 升级为强结论 | limitation | ROOT | EV-A1DTv2-016 | 历史草稿旧强度（当前禁止采信） | 迁移边界与降级口径 | -- |
 
 ### 9. 技能使用与自我审查记录
 
@@ -554,7 +556,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 **审计完成声明**：本报告为单篇 `devsecops-primary-dimensions` A1-DT v2 补审正式输出；全文通读 `paper_content.txt`（重点 §1--§6 即 Page 1--26 主文，Page 26--29 Appendix 抽样）；总体判定为 **需要返修**，C1--C4 必须修复，I1--I4 重要修复，M1--M2 可选。主线程可基于本报告 §3 维度森林、§4 叶子表、§5 关系边表、§7 C/I/M 建议、§8 A.2/A.3 草案直接重写 `review.md` 的 §"维度树复原" 与 A.1--A.4。
 
 `★ Insight ─────────────────────────────────────`
-本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `文本已核验（text_verified）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
+本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `历史草稿旧强度（当前禁止采信）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
 `─────────────────────────────────────────────────`
 
 > [!NOTE]

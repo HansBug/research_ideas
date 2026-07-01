@@ -409,7 +409,7 @@
 - "类别频数 + 交叉覆盖 → 候选缺口"链路（不直接等于 最终发现）；
 - 抽取表必须配 short rationale 字段；
 - 处方 模式 可演化（merge/split）；
-- 多目标布尔多值列（研究目标（Research Goals）、Means of Analysis 一行多 x）的字段化方式可直接迁移到 Paper2 的"论文承担的角色 / 方法类型 / 评价方式"等字段。
+- 多目标布尔多值列（研究目标（Research Goals）、Means of Analysis 一行多 x）的字段化方式历史草稿曾提出迁移建议；当前禁止直接采信到 Paper2 的"论文承担的角色 / 方法类型 / 评价方式"等字段。
 
 #### 6.4 绝不能迁移的领域结论
 
@@ -446,33 +446,35 @@
 
 ---
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-v2-001 | paper_content.txt | §Abstract; §2 Figure 1 | p.1 line 12–17; p.2 Figure 1 | "build a 分类方案 … analysis of results focuses on 频次"；SMS 5 步流程图 | scope_anchor | strong | Tree D 全部节点、根节点 | false（Figure 1 节点名文本可读） | 仅限本文内部方法学叙述 |
-| EV-v2-002 | paper_content.txt | §2.1 Table 1; §2.3 Table 2 | p.2; p.3 | 两个示例研究的 RQ 与 inclusion/exclusion 字段化对比 | sample_table | strong | Tree B 全部叶子；L-B.1–L-B.5 | true（建议视觉核对 Table 1/2 列对齐） | n=2，仅作示例性对比，不可外推 |
-| EV-v2-003 | paper_content.txt | §2.4 + Table 3 | p.4 | "three main 切面（facets） … topic … contribution … research"；Wieringa 6 类完整定义 | prescriptive_schema | strong | Tree C 全部；L-C.1, L-C.2, L-C.3.1–L-C.3.6 | true（Table 3 文本完整，建议版面核对） | 处方层；2008 年版本，未含 智能体/LLM 类，需现代扩展 |
+| EV-v2-001 | paper_content.txt | §Abstract; §2 Figure 1 | p.1 line 12–17; p.2 Figure 1 | "build a 分类方案 … analysis of results focuses on 频次"；SMS 5 步流程图 | scope_anchor | 历史草稿旧强度（当前禁止采信） | Tree D 全部节点、根节点 | false（Figure 1 节点名文本可读） | 仅限本文内部方法学叙述 |
+| EV-v2-002 | paper_content.txt | §2.1 Table 1; §2.3 Table 2 | p.2; p.3 | 两个示例研究的 RQ 与 inclusion/exclusion 字段化对比 | sample_table | 历史草稿旧强度（当前禁止采信） | Tree B 全部叶子；L-B.1–L-B.5 | true（建议视觉核对 Table 1/2 列对齐） | n=2，仅作示例性对比，不可外推 |
+| EV-v2-003 | paper_content.txt | §2.4 + Table 3 | p.4 | "three main 切面（facets） … topic … contribution … research"；Wieringa 6 类完整定义 | prescriptive_schema | 历史草稿旧强度（当前禁止采信） | Tree C 全部；L-C.1, L-C.2, L-C.3.1–L-C.3.6 | true（Table 3 文本完整，建议版面核对） | 处方层；2008 年版本，未含 智能体/LLM 类，需现代扩展 |
 | EV-v2-004 | paper_content.txt | §2.5 + Figure 3 | p.5 | "Excel table … each category … short rationale"；bubble plot 数字 50/56/0/8/128 等 | sample_visualization | medium | L-B.6, L-B.7；R-C.facet3 | true（Figure 3 必须 PDF 视觉核对，文本提取已乱序） | Mujtaba SPL 领域结论不可迁移 |
-| EV-v2-005 | paper_content.txt | §3 line 269–275 | p.6 | "21 papers … eight systematic reviews being included … two further … included" | sampling_chain | strong | A.1.1 Reference ID 分母 = 10；候选 = 21 | false | 揭示 n=10 由 21→8+2 而来 |
-| EV-v2-006 | paper_content.txt | §3.1 Table 5 | p.7 | 10 篇 SLR × (研究目标（Research Goals） 4 + Inclusion 2 + Counts 2 + Means of Analysis 4) 主表 | sample_encoding_matrix | strong | Tree A 全部叶子；R-A.row×col | true（Table 5 视觉核对优先；尤其常量列如 A.5.4 全 x、A.3.1 全 x） | n=10 频数仅作方法学 seed，不进领域统计池 |
+| EV-v2-005 | paper_content.txt | §3 line 269–275 | p.6 | "21 papers … eight systematic reviews being included … two further … included" | sampling_chain | 历史草稿旧强度（当前禁止采信） | A.1.1 Reference ID 分母 = 10；候选 = 21 | false | 揭示 n=10 由 21→8+2 而来 |
+| EV-v2-006 | paper_content.txt | §3.1 Table 5 | p.7 | 10 篇 SLR × (研究目标（Research Goals） 4 + Inclusion 2 + Counts 2 + Means of Analysis 4) 主表 | sample_encoding_matrix | 历史草稿旧强度（当前禁止采信） | Tree A 全部叶子；R-A.row×col | true（Table 5 视觉核对优先；尤其常量列如 A.5.4 全 x、A.3.1 全 x） | n=10 频数仅作方法学 seed，不进领域统计池 |
 | EV-v2-007 | paper_content.txt | §3.2 + §4 | p.7–9 | mapping vs review 在 goal/流程/breadth/depth 上的差异；4 条 指南 扩展 | author_claim | medium | 候选发现 与处方 发现（§6.2） | false | 处方建议，不是样本统计推论 |
 | EV-v2-008 | paper_content.txt | §4 "Adaptive Reading Depth"; §3.2 "Validity Consideration" | p.8 | 摘要不足 / 术语混乱 / 73% 论文 designation 错误 / 分类误判风险 | limitation | medium | 迁移边界；外推限制 | false | 限制本身可作 Paper2 字段误差源种子 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-v2-T01 | 本文原生树类型为**维度森林**：Tree A (n=10 SLR 编码) + Tree B (n=2 mapping 对比) + Tree C (处方 3-facet) + Tree D (5 步流程)；不是单树 | 树类型（tree_type） | 根节点 | EV-v2-001, EV-v2-002, EV-v2-003, EV-v2-006 | strong | 模式种子（schema_seed）；改写 review.md 维度树结构节 | Tree C/D 是处方层，不能写成"被编码的样本字段" |
-| CLM-v2-A01 | Table 5 是本文唯一的样本编码主表，n=10 SLR × 12 字段；行=Reference ID，列=4 字段组下细分布尔/数值 | 样本单位（sample_unit） | Tree A 全部 | EV-v2-005, EV-v2-006 | strong | 可作方法学描述性统计 seed；可生成行汇总（每 SLR 目标向量）与列汇总（每字段频数） | 不进入领域统计池；分母与检索策略强耦合 |
-| CLM-v2-A02 | Means of Analysis 列 Narrative Summary 全 10 篇置 x，说明叙述总结是 SE SLR 默认输出形态；Meta Study 仅 2/10，揭示 SE SLR 量化合成不普及 | descriptive_stat | L-A.5.1, L-A.5.4 | EV-v2-006 | strong | 可迁移为"SE SLR 方法学成熟度"指标 seed | 仅 n=10；可在更大 SLR 池中验证 |
-| CLM-v2-A03 | Inclusion 需求 "研究（Research） is Within Focus Area" 全 10 篇都置 x，是常量列，无判别力 | descriptive_stat | L-A.3.1 | EV-v2-006 | strong | 揭示该字段是 SLR 通用 baseline gate，不应进入分类用途 | n=10；可在更大池中验证 |
-| CLM-v2-B01 | Bailey 2007 与 Mujtaba 2008 是本文的 mapping 示例样本（n=2），不是被独立纳排的样本 | 样本单位（sample_unit） | Tree B 全部 | EV-v2-002, EV-v2-004 | strong | 用于对比 SMS 实施差异；仅成对叙述 | n=2 不可外推；Mujtaba 2008 当时为 in-submission |
-| CLM-v2-C01 | Wieringa 6 类研究类型是封闭互斥枚举（Validation / Evaluation / 解决方案提案 / Philosophical / Opinion / Experience），构成处方 模式 的关键叶子层 | 叶子_definition | L-C.3.1 ~ L-C.3.6 | EV-v2-003 | strong | 可迁移为 Paper2 论文研究类型字段种子 | 2008 年版本，需为 LLM/智能体 工作类型扩展 |
-| CLM-v2-D01 | Figure 1 五步流程是处方 流程 模式；不能与 Tree A 样本字段混淆 | process_模式 | Tree D | EV-v2-001 | strong | 可迁移为 Paper2 流程章节 | 不是样本字段，不能进入字段表 |
-| CLM-v2-F01 | 本文给出的统计观察均为类别频数与交叉覆盖；§4 的 指南 扩展（互补使用 / Adaptive Reading Depth / Wieringa 推荐 / 可视化）是处方建议，不是样本统计推论 | 候选发现边界（candidate_finding_boundary） | L-A.2~A.5, §4 | EV-v2-006, EV-v2-007 | strong | 仅作 候选发现；不可升级为 最终发现 | 最终发现 必须经跨论文证据与研究者裁决 |
+| CLM-v2-T01 | 本文原生树类型为**维度森林**：Tree A (n=10 SLR 编码) + Tree B (n=2 mapping 对比) + Tree C (处方 3-facet) + Tree D (5 步流程)；不是单树 | 树类型（tree_type） | 根节点 | EV-v2-001, EV-v2-002, EV-v2-003, EV-v2-006 | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed）；改写 review.md 维度树结构节 | Tree C/D 是处方层，不能写成"被编码的样本字段" |
+| CLM-v2-A01 | Table 5 是本文唯一的样本编码主表，n=10 SLR × 12 字段；行=Reference ID，列=4 字段组下细分布尔/数值 | 样本单位（sample_unit） | Tree A 全部 | EV-v2-005, EV-v2-006 | 历史草稿旧强度（当前禁止采信） | 可作方法学描述性统计 seed；可生成行汇总（每 SLR 目标向量）与列汇总（每字段频数） | 不进入领域统计池；分母与检索策略强耦合 |
+| CLM-v2-A02 | Means of Analysis 列 Narrative Summary 全 10 篇置 x，说明叙述总结是 SE SLR 默认输出形态；Meta Study 仅 2/10，揭示 SE SLR 量化合成不普及 | descriptive_stat | L-A.5.1, L-A.5.4 | EV-v2-006 | 历史草稿旧强度（当前禁止采信） | 可迁移为"SE SLR 方法学成熟度"指标 seed | 仅 n=10；可在更大 SLR 池中验证 |
+| CLM-v2-A03 | Inclusion 需求 "研究（Research） is Within Focus Area" 全 10 篇都置 x，是常量列，无判别力 | descriptive_stat | L-A.3.1 | EV-v2-006 | 历史草稿旧强度（当前禁止采信） | 揭示该字段是 SLR 通用 baseline gate，不应进入分类用途 | n=10；可在更大池中验证 |
+| CLM-v2-B01 | Bailey 2007 与 Mujtaba 2008 是本文的 mapping 示例样本（n=2），不是被独立纳排的样本 | 样本单位（sample_unit） | Tree B 全部 | EV-v2-002, EV-v2-004 | 历史草稿旧强度（当前禁止采信） | 用于对比 SMS 实施差异；仅成对叙述 | n=2 不可外推；Mujtaba 2008 当时为 in-submission |
+| CLM-v2-C01 | Wieringa 6 类研究类型是封闭互斥枚举（Validation / Evaluation / 解决方案提案 / Philosophical / Opinion / Experience），构成处方 模式 的关键叶子层 | 叶子_definition | L-C.3.1 ~ L-C.3.6 | EV-v2-003 | 历史草稿旧强度（当前禁止采信） | 可迁移为 Paper2 论文研究类型字段种子 | 2008 年版本，需为 LLM/智能体 工作类型扩展 |
+| CLM-v2-D01 | Figure 1 五步流程是处方 流程 模式；不能与 Tree A 样本字段混淆 | process_模式 | Tree D | EV-v2-001 | 历史草稿旧强度（当前禁止采信） | 可迁移为 Paper2 流程章节 | 不是样本字段，不能进入字段表 |
+| CLM-v2-F01 | 本文给出的统计观察均为类别频数与交叉覆盖；§4 的 指南 扩展（互补使用 / Adaptive Reading Depth / Wieringa 推荐 / 可视化）是处方建议，不是样本统计推论 | 候选发现边界（candidate_finding_boundary） | L-A.2~A.5, §4 | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 仅作 候选发现；不可升级为 最终发现 | 最终发现 必须经跨论文证据与研究者裁决 |
 | CLM-v2-R01 | 本文 §4 "Validity Consideration" 报告"73% 论文 designation 错误"是质量风险证据，可作 Paper2 字段误差源种子 | risk_anchor | Tree A 所有叶子 + Tree C | EV-v2-008 | medium | 可迁移为字段分类置信度种子 | 该数字来自 Mendes 2005 子集，不是本文 n=10 池 |
 
 ---

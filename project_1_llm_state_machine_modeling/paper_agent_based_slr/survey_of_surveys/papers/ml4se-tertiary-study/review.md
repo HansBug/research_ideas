@@ -116,7 +116,12 @@
 
 ### 3. 原生样本编码维度树 / 维度森林
 
+> 中文化导读：本维度树的主语是“83 篇机器学习用于软件工程（ML4SE）二次研究”，不是 Paper2 自己的统一抽取表。树的第一层先按书目信息、研究设计、质量评价、原始研究覆盖度、软件工程知识域、机器学习分类轴、启示与效度威胁分组；每个叶子再说明取值空间是封闭枚举、数值、自由文本还是关系边。英文缩写主要保留为 SWEBOK、DARE、SLR、SMS、IEEE、ACM 等原文稳定标识；后续抽取时应把中文节点名作为主要语义，把括号内英文只作为回查原文和复现实验文件的锚点。该树的可迁移部分是“知识域—任务—机器学习四轴—启示—威胁”的分层方式，不是具体百分比或 ML4SE 领域结论。
+
 样本单位 = `secondary_study`（n=83）。原生树是**多棵共根森林**：
+
+
+> 进一步说明：这篇论文的树结构特别容易显得英文多，是因为原文把软件工程知识域、机器学习任务、发表源和复现文件名都作为编码字段保留下来。为了避免误读，本节在后续使用时应遵守三条规则：第一，所有括号外的中文节点名代表我们当前采用的语义；第二，括号内英文只用于回查原文、引用表格列名、识别缩写或复现实验文件；第三，凡是需要跨论文合并的节点，应优先归并到“研究设计、质量评价、知识域、任务、机器学习分类轴、启示、效度威胁”这些中文父节点下。换言之，本树不是让后续工作继承一串英文标签，而是提供一个已经按中文学术语义分层的、可审计的二次研究编码骨架。对于 Paper2，最重要的启发是：综述样本的维度树可以同时包含主题分类、方法分类、质量评分、统计分母、研究启示和复现制品；这些维度之间必须保留关系边，而不能压成一个扁平表。
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
@@ -149,7 +154,7 @@
 │   ├── L5.1 SWEBOK 知识域（swebok_ka）— 受限枚举 {软件质量（软件质量）, 软件测试（SW 测试）, 软件工程过程（SE 过程）, 软件工程管理（SE Management）, 软件需求（SW 需求）, 软件维护（SW 维护）, 软件设计（SW 设计）, 软件配置管理（SW Configuration Management）, 软件工程模型与方法（SE Models & Methods）, 软件工程专业实践（SE Professional Practice）, 工程基础（Engineering Foundations）}（11/15 KAs，3 个 Foundations KA 因 scope 被排除）
 │   │   └── L5.1.1 知识域子领域（subarea）— SWEBOK V3 子项（Table 5 第 2 列，如 实践考虑（Practical Considerations）/ 测试技术（Test Techniques）/ 软件生命周期（SW Life Cycles） 等共 22 个 子领域（subarea）-cell）
 │   │       └── 每 KA × 子领域（subarea） cell 统计：二次研究数（Sec.）/ % / 引用列表（Refs）/ 原始研究数（Prim.）
-│   ├── L5.2 软件工程任务（se_task）— 开放编码自由文本（如 软件变更预测（software change prediction）, 质量预测（quality prediction）, 可维护性预测（maintainability prediction）, 缺陷预测（defect prediction）, 恶意软件检测（malware detection）, 异味检测（smell detection）, 数据外泄检测（data exfiltration）, 测试自动化（test automation）, 测试预言机（test oracle）, 移动端测试（mobile testing）, 测试评价, 测试优化, 测试用例优先级排序（test case prioritization）, 软件故障预测（software fault prediction）, 漏洞检测（vulnerability detection）, 渗透测试（penetration testing）, 主题建模（topic modeling）, 过程挖掘（流程 mining）, 自动化（automation）, 源代码分析（source code analysis）, 程序生成（program 生成）, 推荐系统（recommender systems）, 成本估计（cost estimation）, 工作量估计（effort estimation）, 集成工作量估计（ensemble effort estimation）, 增强工作量估计（enhancement effort estimation）, 波动性预测（volatility prediction）, 需求复用（requirements reuse）, 特征 / 可变性抽取（feature/variability 抽取）, 需求获取（elicitation）, 歧义消解（ambiguity resolution）, 缺陷优先级排序（bug prioritization）, 重命名重构（rename refactoring）, 架构恢复（architecture recovery）, 逆向工程（reverse engineering）, 性能预测（performance prediction）, 配置优化（configuration optimization）, 跟踪恢复（trace recovery）, 认知负荷估计（cognitive load estimation）, 缺失值填补（缺失值 imputation）, ...）；约束：每 研究 最多 3 个 SE 任务（§3.6 末）
+│   ├── L5.2 软件工程任务（se_task）— 开放编码自由文本（如 软件变更预测（software change prediction）, 质量预测（quality prediction）, 可维护性预测（maintainability prediction）, 缺陷预测（defect prediction）, 恶意软件检测（malware detection）, 异味检测（smell detection）, 数据外泄检测（data exfiltration）, 测试自动化（test automation）, 测试预言机（test oracle）, 移动端测试（mobile testing）, 测试评价, 测试优化, 测试用例优先级排序（test case prioritization）, 软件故障预测（software fault prediction）, 漏洞检测（vulnerability detection）, 渗透测试（penetration testing）, 主题建模（topic modeling）, 过程挖掘（过程挖掘（process mining；首次术语））, 自动化（automation）, 源代码分析（source code analysis）, 程序生成（程序生成（program generation；首次术语））, 推荐系统（recommender systems）, 成本估计（cost estimation）, 工作量估计（effort estimation）, 集成工作量估计（ensemble effort estimation）, 增强工作量估计（enhancement effort estimation）, 波动性预测（volatility prediction）, 需求复用（requirements reuse）, 特征 / 可变性抽取（feature/variability 抽取）, 需求获取（elicitation）, 歧义消解（ambiguity resolution）, 缺陷优先级排序（bug prioritization）, 重命名重构（rename refactoring）, 架构恢复（architecture recovery）, 逆向工程（reverse engineering）, 性能预测（performance prediction）, 配置优化（configuration optimization）, 跟踪恢复（trace recovery）, 认知负荷估计（cognitive load estimation）, 缺失值填补（缺失值填补（missing-value imputation；首次术语））, ...）；约束：每 研究 最多 3 个 SE 任务（§3.6 末）
 │   └── L5.3 知识域到任务关系（ka_to_task） — 关系边（多对多，因 1 个 SE 任务 可关联多个 KA）
 ├── [B6] 机器学习四轴分类树（RQ3）
 │   ├── L6.1 AI 角色（role_of_AI） — 受限枚举 {计算搜索与优化（Computational search & optimization / SBSE）、模糊与概率方法（Fuzzy & probabilistic 方法）、分类 / 学习 / 预测（分类/learning/prediction）}（来源 [65]）
@@ -164,7 +169,7 @@
 │   └── L7.3 启示综合（implication_synthesis） — 编号 1..7（§5）
 └── [B8] 有效性威胁与复现制品树（威胁 / replication 制品）
     ├── L8.1 威胁类别（threat_category） — 受限枚举 {研究选择（Study Selection）、数据（Data）、研究（Research）}（按 Ampatzoglou et al. 2019 [12]）
-    ├── L8.2 威胁条目（threat_item） — 自由文本（年限、库选择、检索式、IC/EC、QA 框架（QA 框架）、推断信息、AI 角色（Role of AI） 分类轴的领域适配、人工编码主观性、可推广性）
+    ├── L8.2 威胁条目（threat_item） — 自由文本（年限、库选择、检索式、IC/EC、质量评价框架（QA framework；首次术语）、推断信息、AI 角色（Role of AI） 分类轴的领域适配、人工编码主观性、可推广性）
     └── L8.3 复现制品（replication_artifact） — URL/文件名（Zenodo DOI；review-protocol.md、cohen_kappa_agreement.csv、study_selection_reviewer_{1,2}.csv、dare_assessment.csv、knowledge_areas.csv、further_research.csv、further_research_general.txt、ml_techniques.csv、backward_snowballing.csv 等 14+ 复现实验文件）
 ```
 
@@ -240,7 +245,7 @@
 
 **对 Paper 2 可迁移的方法学启发：**
 
-1. **样本编码模式 必须分层**：书目元数据 / 研究设计 / 质量评估 / 主题分类 / 方法分类 / 含义 / 威胁 / 复现实验件——8 个并列子树，而不是单一线性维度表。本审计森林结构可直接迁移给 Paper2 单论文样本编码框架。
+1. **样本编码模式 必须分层**：书目元数据 / 研究设计 / 质量评估 / 主题分类 / 方法分类 / 含义 / 威胁 / 复现实验件——8 个并列子树，而不是单一线性维度表。本审计森林结构历史草稿曾提出迁移建议；当前禁止直接采信给 Paper2 单论文样本编码框架。
 2. **质量评估必须显式 rubric**：DARE-4 提供"Y/P/N + 累加 + 阈值"的可复现实验作法；Paper2 的 LLM-as-Judge rubric 或 模式-验证 rubric 可参考此结构（每问 1 / 0.5 / 0 + 阈值）。
 3. **关系边显式化**：KA、子领域（subarea）、SE task 之间多对多关系明确建模，避免把 task 强行 1:1 映射到 KA；这对 Paper2 处理 阶段 / task / 制品 多对多关系直接适用。
 4. **方法分类的"多轴 + 事后归纳"模式**：四轴预先分类（来自既有文献 [65][77]）+ 一个事后 ML application task 归纳分组（Table 7），是 混合（混合） 分类法 模式。
@@ -279,9 +284,11 @@
 - 原生树类型：典型 tertiary SLR 样本编码森林（8 子树）
 - 统计池资格：是（封闭枚举叶子级别，分母明确）
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -302,20 +309,20 @@
 | EV-015 | paper_content.txt | p.3 脚注 1 + §3.x 多脚注 | Zenodo DOI 10.5281/zenodo.7082429 + 14+ 补充材料（supplementary） 文件 | 复现实验件 | 复现制品（replication_artifact） | text-confirmed | L8.3 | 否 | -- |
 | EV-016 | paper_content.txt | §3.5 p.10 + §6 数据有效性（Data Validity） p.27--28 | "原始研究 数 / 研究方法在少数 review 中需 bibliography / 结构推断" | 数据完整性威胁 | inferred_field_caveat | text-confirmed | L2.3, L4.1 | 否 | 引用 6117 时需注明 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-A1DT-ml4se-001 | 本文样本单位为 二次研究（n=83 QA≥2），非 原始研究 | 样本单位（sample_unit） | 根节点 | EV-001, EV-005, EV-006 | strong | Paper2 引用本研究的 模式种子 时必须以 secondary 为单位 | -- |
-| C-A1DT-ml4se-002 | 原生模式 是 8 子树并列森林（书目/设计/质量/primary 覆盖/KA×task/ML 四轴/含义/威胁与复现实验） | 树_structure | 根节点 + B1..B8 | EV-006, EV-007, EV-008, EV-009, EV-010, EV-011, EV-013, EV-014 | strong | 直接作为 Paper2 单论文 模式 设计参考 | 28 叶子内部子层（如 子领域（subarea） cells）仍需 A2a 精核 |
-| C-A1DT-ml4se-003 | DARE-4 rubric（4 问 × {1, 0.5, 0} × 阈值 ≥2）是封闭、可统计、可复现实验的 质量评价 范式 | quality_pattern | B3 + L3.1--L3.5 | EV-005 | strong | Paper2 可借用 rubric 设计模式（非具体 DARE-4 题目） | 仅 二次研究 适用 |
-| C-A1DT-ml4se-004 | KA × 子领域（subarea） × SE task 是显式多对多关系；SE task / 研究 上限 3 | relation_structure | B5 + E1/E2/E3 | EV-006, EV-009 | strong | Paper2 可迁移多对多建模 | 任务标签 ML4SE 特定 |
-| C-A1DT-ml4se-005 | ML 多轴分类 + 事后 ML application task 归纳是"先验轴 + 归纳轴"混合 分类法 范式 | 分类_pattern | B6 + L6.1--L6.5 | EV-007, EV-010, EV-011 | strong | Paper2 可借用混合 分类法 设计模式 | 具体轴 ML4SE 特定 |
-| C-A1DT-ml4se-006 | 本文具备主统计池资格：封闭枚举叶子（L5.1 / L6.1--L6.4 / L2.1 / L3.x）可直接进入跨论文统计；自由文本叶子（L5.2 / L7.1）保持 模式种子（schema_seed） | pool_eligibility | 根节点 + selected leaves | EV-001, EV-006, EV-008, EV-009, EV-010 | strong | A2a 可对封闭叶子统计；自由文本叶子需更多论文才能跨论文归纳 | metadata.json 需把"全部 模式种子（schema_seed）"细化分级 |
+| C-A1DT-ml4se-001 | 本文样本单位为 二次研究（n=83 QA≥2），非 原始研究 | 样本单位（sample_unit） | 根节点 | EV-001, EV-005, EV-006 | 历史草稿旧强度（当前禁止采信） | Paper2 引用本研究的 模式种子 时必须以 secondary 为单位 | -- |
+| C-A1DT-ml4se-002 | 原生模式 是 8 子树并列森林（书目/设计/质量/primary 覆盖/KA×task/ML 四轴/含义/威胁与复现实验） | 树_structure | 根节点 + B1..B8 | EV-006, EV-007, EV-008, EV-009, EV-010, EV-011, EV-013, EV-014 | 历史草稿旧强度（当前禁止采信） | 直接作为 Paper2 单论文 模式 设计参考 | 28 叶子内部子层（如 子领域（subarea） cells）仍需 A2a 精核 |
+| C-A1DT-ml4se-003 | DARE-4 rubric（4 问 × {1, 0.5, 0} × 阈值 ≥2）是封闭、可统计、可复现实验的 质量评价 范式 | quality_pattern | B3 + L3.1--L3.5 | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 可借用 rubric 设计模式（非具体 DARE-4 题目） | 仅 二次研究 适用 |
+| C-A1DT-ml4se-004 | KA × 子领域（subarea） × SE task 是显式多对多关系；SE task / 研究 上限 3 | relation_structure | B5 + E1/E2/E3 | EV-006, EV-009 | 历史草稿旧强度（当前禁止采信） | Paper2 可迁移多对多建模 | 任务标签 ML4SE 特定 |
+| C-A1DT-ml4se-005 | ML 多轴分类 + 事后 ML application task 归纳是"先验轴 + 归纳轴"混合 分类法 范式 | 分类_pattern | B6 + L6.1--L6.5 | EV-007, EV-010, EV-011 | 历史草稿旧强度（当前禁止采信） | Paper2 可借用混合 分类法 设计模式 | 具体轴 ML4SE 特定 |
+| C-A1DT-ml4se-006 | 本文具备主统计池资格：封闭枚举叶子（L5.1 / L6.1--L6.4 / L2.1 / L3.x）可直接进入跨论文统计；自由文本叶子（L5.2 / L7.1）保持 模式种子（schema_seed） | pool_eligibility | 根节点 + selected leaves | EV-001, EV-006, EV-008, EV-009, EV-010 | 历史草稿旧强度（当前禁止采信） | A2a 可对封闭叶子统计；自由文本叶子需更多论文才能跨论文归纳 | metadata.json 需把"全部 模式种子（schema_seed）"细化分级 |
 | C-A1DT-ml4se-007 | 6117 原始研究 数字在 §6 数据有效性（Data Validity） 中显式承认部分依赖 bib 推断，引用时应注明 | inferred_caveat | L4.1 | EV-016 | medium | Paper2 引用时须加 "non-unique, 部分ly inferred" 注释 | 不可作 最终发现 |
-| C-A1DT-ml4se-008 | Implications 1--7 + General Recommendations n=3..21 是 候选发现 seeds，非 最终发现 | 候选发现边界（candidate_finding_boundary） | B7 + L7.x | EV-012, EV-013 | strong | Paper2 可作 发现 heuristic 候选 | 必须经反证与研究者裁决 |
+| C-A1DT-ml4se-008 | Implications 1--7 + General Recommendations n=3..21 是 候选发现 seeds，非 最终发现 | 候选发现边界（candidate_finding_boundary） | B7 + L7.x | EV-012, EV-013 | 历史草稿旧强度（当前禁止采信） | Paper2 可作 发现 heuristic 候选 | 必须经反证与研究者裁决 |
 | C-A1DT-ml4se-009 | Ampatzoglou et al. 2019 三类 威胁 框架（研究选择（Study Selection） / 数据（Data） / 研究（Research））可作 Paper2 威胁分类参考 | threat_分类法 | B8 + L8.1 | EV-014 | medium | -- | 框架本身可迁移；具体威胁条目 ML4SE 特定 |
-| C-A1DT-ml4se-010 | review.md 现"原文模式主树（19×3 审计后返修）"仅 6 行，未覆盖 research_type / research_method / ml_application_task / 威胁 / replication 制品 等显式叶子，应扩展为 28 叶子 | repair_action | 根节点 + 缺失叶子集 | EV-006, EV-007, EV-011, EV-014, EV-015 | strong | 直接驱动 review.md 重写 | -- |
+| C-A1DT-ml4se-010 | review.md 现"原文模式主树（19×3 审计后返修）"仅 6 行，未覆盖 research_type / research_method / ml_application_task / 威胁 / replication 制品 等显式叶子，应扩展为 28 叶子 | repair_action | 根节点 + 缺失叶子集 | EV-006, EV-007, EV-011, EV-014, EV-015 | 历史草稿旧强度（当前禁止采信） | 直接驱动 review.md 重写 | -- |
 
 ### 9. 技能使用与自我审查记录
 

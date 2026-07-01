@@ -599,9 +599,11 @@ SUMMARY 当前表中字段是否需修正：
 
 ---
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -613,7 +615,7 @@ SUMMARY 当前表中字段是否需修正：
 | EV-rqtr-010 | paper_content.txt | §4.5 Threats | Page 9–10 internal / construct / external 效度 段落 | "non-经验研究（empirical） work could contribute theoretical 证据"、"convenience sampling"、"limited to 经验研究（empirical） contributions" | validity_boundary | confirmed_text | 整个森林的外推限制 | 否 | 不可在本文样本外推普适规律 |
 | EV-rqtr-011 | metadata.json + paper_content.txt | §4.1 + 复现包 footnote | Page 7 + footnote 1 | Zenodo DOI 10.5281/zenodo.8167598 | replication_asset | not_verified | `B.impact.generality` / `B.impact.frame_of_reference` / 实体事实 / 活动事实 / context sub-类别 完整取值空间 | 是（Zenodo 访问） | 未核验前 A2a 不得宣称 代码 集合饱和 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|

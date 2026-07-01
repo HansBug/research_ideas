@@ -329,7 +329,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
    - **stack-component 模板**：来自 Fig. 3 的"SE 2.0 vs SE 3.0"对照（每个 component 都有 `from_state` 子弹列表 + `to_state` 子弹列表），文中再用 §3.2–§3.6 展开。
    - **挑战 4 字段模板**：作者在 §4 引言段（Page 13, 行 580–586）显式给出 `描述 / 影响范围 / 开放问题 / 我们的愿景`，并在 §4.1–§4.5 严格执行。
    - **Open Question 编号**：作者显式编号 OQ1–OQ14，每个 OQ 都有自然语言文本与（前 6 个） "我们的愿景" 段落。
-   - **没有 抽取 form / 分类方案（分类 模式） / 分类法 table / 质量量规 / mapping table / appendix / 复现包**。
+   - **没有 抽取 form / 分类方案（classification scheme；首次术语） / 分类法 table / 质量量规 / mapping table / appendix / 复现包**。
 
 4. **RQ 与样本单位是什么关系？**
    - 本文没有 RQ；最接近 RQ 的对象是 §4 的 6 个主 挑战 + 14 个 OQ。这些 OQ 是"路线图行动项"，不是"用于编码样本的研究问题"。
@@ -339,7 +339,12 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ### 3. 原生样本编码维度树 / 维度森林
 
+> 中文化导读：本维度树复原的是一篇路线图论文如何组织“AI 原生软件工程”的历史阶段、未来形态、挑战与研究议程。它不是传统 SLR 的样本编码表，因此树中保留了编译器、集成开发环境、基础模型、意图中心、代码中心、个性化、对话式等原文术语。阅读时应把中文层级关系放在第一位：先看软件工程范式演化，再看下一代环境组件，再看开放问题与影响范围。可迁移到 Paper2 的是“路线图也能形成维度森林，并且需要明确字段缺失和愿景性证据边界”，不是该文对 AI 原生软件工程未来形态的具体判断。
+
 本篇的原生结构是 **"时代基线（era baseline）对照树 + 5 层技术栈（stack）树 + 挑战 / 开放问题（挑战/OQ）树"** 三棵子树构成的**维度森林**，而不是一棵 SLR 编码树。
+
+
+> 进一步说明：这篇论文不是传统意义上的系统综述，所以不能用“样本论文—抽取字段—统计发现”的单一路径来读。它更像一个路线图型证据源：作者先给出软件工程范式演化，再提出下一代开发环境组件，最后把开放问题映射到组件和愿景。后续 Paper2 如果借用它，应该借用“路线图如何构造维度森林”的写法：一层是历史阶段，一层是系统组件，一层是开放问题，一层是影响范围和证据边界。不能把该文的未来判断直接当作已验证 finding。这里保留的英文，多数是原文组件名、工具名、基础模型缩写或代码生态名；它们不承担中文叙事主干。中文叙事主干是：路线图论文也能产生可复用的维度 pattern，但每个 pattern 都要标明它来自愿景、经验观察、作者立场还是可复验样本。
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
@@ -485,7 +490,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 #### 6.3 对 Paper2 可迁移的方法学启发（**可迁移**）
 
-1. **4-tuple 挑战 entry 模板**：`{描述, 影响范围, 开放问题, 我们的愿景}` 可直接迁移为 Paper2 候选发现 / 路线图条目台账的字段。
+1. **4-tuple 挑战 entry 模板**：`{描述, 影响范围, 开放问题, 我们的愿景}` 历史草稿曾提出迁移建议；当前禁止直接采信为 Paper2 候选发现 / 路线图条目台账的字段。
 2. **`影响范围:` 关系字段**：把候选发现显式挂到维度模式层（component / dimension），形成可量化的覆盖矩阵。
 3. **三时代 baseline 对照**：把"被审计对象 vs 替代方案"显式拆成 from_state / to_state，并附"工具引擎 / 角色 / 取向"三轴对照——这对 Paper2 比较综述方法学时是好脚手架。
 4. **OQ7–OQ14 字段缺失模式**：未成熟的候选条目允许字段缺失，但缺失必须显式（"作者未发展完整 愿景"），不可静默 NULL。
@@ -535,9 +540,11 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 **M2.** review.md §维度树主树（行 322–337）使用了 `> [!WARNING] v1-deprecated` 把 19×3 历史审计入口标注为已弃用，这一点处理得很好；可在 v2 结论里显式承接（"本 v2 审计沿用此弃用边界"），避免后续 reviewer 再去查 v1 路径。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -549,21 +556,21 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 | EV-v2-006 | paper_content.txt | §4.6 | Page 18 行 799–823 | OQ7–OQ14 共 8 条；"not meant to be extensive"；省略 影响范围 / 我们的愿景 | 挑战_instance_open_set | medium（snapshot, not exhaustive） | 树-C：挑战.id ∈ {OQ7..OQ14} | 否 | 仅作 snapshot 启发 |
 | EV-v2-007 | paper_content.txt | §4.1 / §4.3 引用 | 行 632–636 [36] ToM multi-智能体；行 695–697 [114] 30% latency vs Ray Serve；行 714–718 [98] RAR 50% / 90% | 单篇 companion 经验研究（empirical） 数据（150 scenarios; 30% latency; 50% routing / 90% 质量） | companion_prototype_evidence | weak（自引用 / 单点 prototype） | 挑战.our_vision.companion_evidence | 否 | 严禁外推为 SLR 证据 |
 | EV-v2-008 | paper_content.txt | §1 / §2.3 / §5 | Page 1 行 33–34；Page 5 行 222–225；Page 19 行 851–853 | GitHub Copilot/Claude Code/Codex CLI/.../Devin/SWE-智能体/OpenHands/TRAE/Lovable/Base44/Replit/Bolt.new/V0 等 | exemplification_signal | weak（快速漂移） | rel.exemplified_by | 否（需按官方来源记日期） | 严禁直接引用为既定事实，需配快照日期 |
-| EV-v2-009 | bibtex.bib + metadata.json | -- | bibtex 行 1–10 + metadata 行 1–35 | Hassan_2026 / TOSEM / DOI 10.1145/3807901 / 2026-04-09 / arxiv 2410.06107 / CCF A / `eligible_for_statistical_synthesis=false` | bibliographic_anchor | strong | 树 根节点元信息 | 否 | -- |
+| EV-v2-009 | bibtex.bib + metadata.json | -- | bibtex 行 1–10 + metadata 行 1–35 | Hassan_2026 / TOSEM / DOI 10.1145/3807901 / 2026-04-09 / arxiv 2410.06107 / CCF A / `eligible_for_statistical_synthesis=false` | bibliographic_anchor | 历史草稿旧强度（当前禁止采信） | 树 根节点元信息 | 否 | -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| A1DT-v2-C01 | 本文为 愿景/路线图，非 SLR/SMS/tertiary/MLR/指南；不进入主统计池，仅作 边界锚点（boundary_anchor） + 方法学种子 | 树类型（tree_type） | 树 根节点 | EV-v2-001, EV-v2-009 | strong | 边界锚点（boundary_anchor） | 仅基于文本与作者自我声明 |
-| A1DT-v2-C02 | 原生树是 era-baseline + 5 层 stack + 挑战×OQ 三棵树构成的维度森林，**不是**六叶 SLR 编码树 | native_树类型（tree_type） | 树-A + 树-B + 树-C | EV-v2-002, EV-v2-003, EV-v2-004, EV-v2-005 | strong | 模式种子（schema_seed） | 不可迁移层名为领域标准 |
-| A1DT-v2-C03 | 作者在 §4 引言段显式给出 挑战 的 4 字段模板 `{描述, 影响范围, 开放问题, 我们的愿景}`，可作 Paper2 候选发现台账模板 | reusable_template | 挑战.template_field | EV-v2-004, EV-v2-005 | strong | template_seed | 仅迁移结构，不迁移具体 OQ 集合 |
+| A1DT-v2-C01 | 本文为 愿景/路线图，非 SLR/SMS/tertiary/MLR/指南；不进入主统计池，仅作 边界锚点（boundary_anchor） + 方法学种子 | 树类型（tree_type） | 树 根节点 | EV-v2-001, EV-v2-009 | 历史草稿旧强度（当前禁止采信） | 边界锚点（boundary_anchor） | 仅基于文本与作者自我声明 |
+| A1DT-v2-C02 | 原生树是 era-baseline + 5 层 stack + 挑战×OQ 三棵树构成的维度森林，**不是**六叶 SLR 编码树 | native_树类型（tree_type） | 树-A + 树-B + 树-C | EV-v2-002, EV-v2-003, EV-v2-004, EV-v2-005 | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | 不可迁移层名为领域标准 |
+| A1DT-v2-C03 | 作者在 §4 引言段显式给出 挑战 的 4 字段模板 `{描述, 影响范围, 开放问题, 我们的愿景}`，可作 Paper2 候选发现台账模板 | reusable_template | 挑战.template_field | EV-v2-004, EV-v2-005 | 历史草稿旧强度（当前禁止采信） | template_seed | 仅迁移结构，不迁移具体 OQ 集合 |
 | A1DT-v2-C04 | `影响范围:` 是唯一显式机械化的关系字段；挑战 × component 形成 5×6 矩阵，队友下一代形态（Teammate.next） 被 4/5 主 挑战 关联（高频中枢） | internal_observation | rel.affects | EV-v2-005 | medium | 候选发现（candidate_finding） | 仅本篇内部计数；不可外推 |
 | A1DT-v2-C05 | §4.6 OQ7–OQ14 显式省略 影响范围 / 我们的愿景，是"未成熟项允许字段缺失但语义必须显式"的方法学启发 | methodology_seed | 树-C §4.6 | EV-v2-006 | medium | template_seed | 仅作启发 |
 | A1DT-v2-C06 | companion paper 证据（[28]/[36]/[44]/[45]/[85]/[98]/[114]）密集，且多数为作者团队 self-citation，存在生态闭环风险 | risk_signal | 挑战.our_vision.companion_evidence | EV-v2-007 | medium | risk_only | 严禁作为综述证据使用 |
 | A1DT-v2-C07 | 117 条参考文献中作者团队 / 同生态自引用约 10%+（待 A2a 精核） | quantification_seed | bibliographic_anchor | EV-v2-007, EV-v2-009 | weak | candidate_metric | A2a 复核 |
-| A1DT-v2-C08 | 商业 vibe-coding 平台与 frontier FM 名单（[1]–[8],[11]–[12],[26]–[27],[62],[67],[74],[84],[90],[93],[99],[105],[112]）属快速漂移事实，引用时必须配官方来源 + 快照日期 | quality_gate | rel.exemplified_by | EV-v2-008 | strong | citation_protocol | -- |
-| A1DT-v2-C09 | 旧版 review.md "维度树复原"主表的 6 个 `leaf-*` 与"原文模式候选叶子映射"的 5 个 `orig-*` 是抽象 placeholder，未还原本篇真实 5 层 stack + 4 字段 挑战 模式 + 14 OQ 结构，应按本审计 §7 C1/C2 返修 | review_repair | review.md §维度树复原 | EV-v2-002, EV-v2-003, EV-v2-004, EV-v2-005, EV-v2-006 | strong | review_repair_obligation | -- |
+| A1DT-v2-C08 | 商业 vibe-coding 平台与 frontier FM 名单（[1]–[8],[11]–[12],[26]–[27],[62],[67],[74],[84],[90],[93],[99],[105],[112]）属快速漂移事实，引用时必须配官方来源 + 快照日期 | quality_gate | rel.exemplified_by | EV-v2-008 | 历史草稿旧强度（当前禁止采信） | citation_protocol | -- |
+| A1DT-v2-C09 | 旧版 review.md "维度树复原"主表的 6 个 `leaf-*` 与"原文模式候选叶子映射"的 5 个 `orig-*` 是抽象 placeholder，未还原本篇真实 5 层 stack + 4 字段 挑战 模式 + 14 OQ 结构，应按本审计 §7 C1/C2 返修 | review_repair | review.md §维度树复原 | EV-v2-002, EV-v2-003, EV-v2-004, EV-v2-005, EV-v2-006 | 历史草稿旧强度（当前禁止采信） | review_repair_obligation | -- |
 
 ### 9. 技能使用与自我审查记录
 

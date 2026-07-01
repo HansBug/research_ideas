@@ -318,9 +318,11 @@
 | 原生树类型 | （未单独列）| `维度森林（F1–F7 七棵子树）` | C1 |
 | 统计池资格 | （未单独列）| `局部可统计（F1/F2/F4/F5/F6 可；F3 topic 不饱和；F7 候选）` | C2 |
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -341,20 +343,20 @@
 | EV-RE-T15 | paper_content.txt | §IV Limitations (L577–615) | 4 类局限 | 检索/S40/grouping/EBSE | limitation | verified-text | ROOT, F7 | 否 | 通用 |
 | EV-RE-T16 | paper_content.txt | Appendix A (L697–967) | S1–S53 完整名录 | 研究 + publication 列表 | corpus_inventory | verified-text | F1, F2, rel-grouping | 否 | -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-RE-T01 | 本文是按 EBSE 指南 执行的 系统映射 tertiary 研究，样本单位为 distinct SLR 研究（n=53），辅以 publication（n=64）；QA 在 n=51 上施加 | research_type | ROOT | EV-RE-T01, T02, T04, T05, T16 | strong | 可直接迁移至 Paper2 single-paper 模式 | S40 元信息不全；S3/S8 全文不可得 |
-| C-RE-T02 | 原生编码模式 是 F1–F7 七棵子树构成的维度森林，叶子层至少 12 项原文真实字段 | 树类型（tree_type） | ROOT, F1–F7 | EV-RE-T03, T05–T09, T14 | strong | 替换 review.md 通用六叶 | F3 topic_group 非饱和 |
-| C-RE-T03 | DARE-adapted QA rubric (Table I, 4×3 档) 是稳定可复用的 SLR-QA 评估元模型 | classification_schema | F5 | EV-RE-T03 | strong | 可直接迁移至 Paper2 QA 评估 | EBSE 指南 受限于 2007 版 |
+| C-RE-T01 | 本文是按 EBSE 指南 执行的 系统映射 tertiary 研究，样本单位为 distinct SLR 研究（n=53），辅以 publication（n=64）；QA 在 n=51 上施加 | research_type | ROOT | EV-RE-T01, T02, T04, T05, T16 | 历史草稿旧强度（当前禁止采信） | 历史草稿曾提出迁移建议；当前禁止直接采信至 Paper2 single-paper 模式 | S40 元信息不全；S3/S8 全文不可得 |
+| C-RE-T02 | 原生编码模式 是 F1–F7 七棵子树构成的维度森林，叶子层至少 12 项原文真实字段 | 树类型（tree_type） | ROOT, F1–F7 | EV-RE-T03, T05–T09, T14 | 历史草稿旧强度（当前禁止采信） | 替换 review.md 通用六叶 | F3 topic_group 非饱和 |
+| C-RE-T03 | DARE-adapted QA rubric (Table I, 4×3 档) 是稳定可复用的 SLR-QA 评估元模型 | classification_schema | F5 | EV-RE-T03 | 历史草稿旧强度（当前禁止采信） | 历史草稿曾提出迁移建议；当前禁止直接采信至 Paper2 QA 评估 | EBSE 指南 受限于 2007 版 |
 | C-RE-T04 | scope 6 档分类（Table IV）在 RE 之外仍部分可迁移（state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 六分） | classification_schema | F4 | EV-RE-T07 | medium | 可作 Paper2 单篇 scope 字段候选 | 6 档自身是 SLR 抽象类，但具体含义须本地化 |
 | C-RE-T05 | topic-group 分类法 (24 项) 是 RE-specific 非饱和分类，不可外推 | taxonomy_local | F3 | EV-RE-T08 | medium | 仅作 Paper2 "topic_grouping = 自由文本 + 后处理 聚类" 的设计参考 | 作者自承 not exhaustive |
 | C-RE-T06 | 候选发现"RE SLR QA 自 2009 起下降，与 SE-wide [8,9] 趋势相反"基于 Figure 4 趋势 | 候选发现（candidate_finding） | F5 × year | EV-RE-T11, T13 | weak | 不进入主统计池；A2a 视觉读 Figure 4 后可升级 | 仅 RE 子领域 |
 | C-RE-T07 | 高引 ≠ 高 QA（Table VI 反证：S2[A] cite=154 QA=3 vs S46 QA=1.5）| 候选发现（candidate_finding） | rel-citation-vs-qa | EV-RE-T09 | medium | 可作 Paper2 "citation 不能替代 QA" 论证 | citation 是 2014-05-19 快照 |
 | C-RE-T08 | 三类 缺口（gap） 分类法（异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area））+ 与 路线图 cross-ref 模式可作 Paper2 缺口（gap） 章节模板 | 候选发现（candidate_finding）_template | F7, rel-gap-vs-roadmap | EV-RE-T14 | medium | 通用模板可迁移 | 具体 RE ignored-area 名单不可迁移 |
-| C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | strong | 可直接复用 | -- |
-| C-RE-T10 | 自报 limitations 的 4 类清单（检索 / 元信息缺失 / grouping 主观 / EBSE 限定）反证若干候选发现 强度 | limitation_anchor | ROOT, F7 | EV-RE-T15 | strong | 可作 Paper2 威胁-to-效度 复用清单 | -- |
+| C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | 历史草稿旧强度（当前禁止采信） | 可直接复用 | -- |
+| C-RE-T10 | 自报 limitations 的 4 类清单（检索 / 元信息缺失 / grouping 主观 / EBSE 限定）反证若干候选发现 强度 | limitation_anchor | ROOT, F7 | EV-RE-T15 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 威胁-to-效度 复用清单 | -- |
 
 ### 9. 技能使用与自我审查记录
 

@@ -84,7 +84,7 @@ RQ1 先用 Stol & Fitzgerald 的 empirical SE strategy taxonomy 分类研究策�
 
 评价工具与指标部分，作者把 data source / instrument origin 组织成表：self-reported methods 很多由作者自设；validated instruments 包括 NASA-TLX、SPACE-based surveys、TAM、self-efficacy questionnaire、AAR/AI、emotion affect questionnaire；behavioral/performance metrics 包括 task completion/correctness、suggestion acceptance rate、interaction logs、time to completion、code quality metrics、productivity gain；还有 TCQ、RBV 等 econometric frameworks。关键结果包括：time to completion 是最常用 performance metric，12/39，占 31%；acceptance rate 常见但不宜单独优化；cognitive load 用 NASA-TLX 的 6 篇研究结果不一致，有改善、无差异和 frustration 增加等不同方向。
 
-RQ1 的价值在于把“研究怎么做”拆成 strategy、procedure、objective、analysis type、instrument、metric，而不是只说“多数为实验研究”。这可直接迁移为 Paper2 字段树。
+RQ1 的价值在于把“研究怎么做”拆成 strategy、procedure、objective、analysis type、instrument、metric，而不是只说“多数为实验研究”。这历史草稿曾提出迁移建议；当前禁止直接采信为 Paper2 字段树。
 
 ### 2.9 RQ2 主要结果：benefits 与 risks
 
@@ -366,7 +366,7 @@ Threats 分两组。
 **3. 字段来源**：
 
 - **抽取 form**（§3.4 列出："研究 goals, 工具, 经验研究（empirical） strategy and design, tasks, settings, key results"）
-- **分类方案（分类 模式）s**：Stol & Fitzgerald (strategy)、Glass-Vessey-Ramesh (procedure)、Hartson (formative/summative)、SPACE (Forsgren et al.)
+- **分类方案（classification scheme；首次术语）s**：Stol & Fitzgerald (strategy)、Glass-Vessey-Ramesh (procedure)、Hartson (formative/summative)、SPACE (Forsgren et al.)
 - **QA rubric**：Lenarduzzi 11 项
 - **emergent thematic 代码**：8 benefits + 5 risks（主题分析 自产）
 - **interpretive lens**：McLuhan Tetrad（应用于 discussion，不是抽取字段，但提供推论 模式）
@@ -378,7 +378,12 @@ Threats 分两组。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
+> 中文化导读：本维度树的主键是 39 篇关于大语言模型助手影响开发者生产力的原始研究。树按研究图景、研究方法与测量工具、收益/风险主题、SPACE 生产力维度、解释性框架和效度威胁分组；其中 PS 编号、SPACE、NASA-TLX、TAM、GPT、Copilot 等英文只作为原文工具名或框架名保留。阅读时要把“现场研究/现场实验/实验室实验/样本研究/判断研究”等中文策略标签作为分类语义，避免把 Field study 误读成“字段研究”。可迁移的是“同一主题可同时作为收益与风险出现，需要争议标记”的模式。
+
 样本单位主键：`PS-id ∈ {PS1, …, PS39}`。每棵 RQ-sub树 通过 PS-id 与其他 sub树 关联。
+
+
+> 进一步说明：这篇论文是当前文库中最接近 Paper2 未来“领域 SLR + 人机协同证据链”的高价值样本之一，因此维度树必须读得特别谨慎。其核心不是“用了哪些大语言模型工具”，而是作者如何把 39 篇原始研究编码成若干相互关联的证据层：研究图景层描述年份、来源和工具；研究设计层描述实证策略、流程、目标、分析类型和测量工具；效果层把收益与风险主题并列；SPACE 层把生产力拆成多个维度；解释层再用四象限框架组织讨论；效度层记录偏倚与时间相关性。后续 Paper2 应借用的是这种“样本主键 + 多棵 RQ 子树 + 争议主题标记 + 解释层”的组织方式。英文框架名和工具名只是可复验锚点，中文节点才是合并到模式库时应采用的语义。
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
@@ -399,14 +404,14 @@ Threats 分两组。
 │   └── 使用的 LLM 工具（Table 4 开放枚举：ChatGPT, GitHub Copilot, Tabnine, GPT-4, CodeWhisperer, GPT-3.5, Claude, Codex, Gemini, GPT-3, Ansible Lightspeed, Bard, CodeGen2 7B, GILT, CodeCompose, NL2Code PyCharm plugin, StackSpotAI, StarCoder 7B, TransCoder, aiXcoder, OpenAI API, Midjourney）
 │
 ├── [树-RQ1] 方法 / 流程 / 测量工具
-│   ├── 实证策略（Stol-Fitzgerald 封闭 6 枚举：字段研究（字段研究）| 字段实验（字段实验）| 实验仿真（Experimental Simulation）| 实验室实验（实验室实验）| 样本研究（样本研究）| 判断研究（判断研究））
+│   ├── 实证策略（Stol-Fitzgerald 封闭 6 枚举：现场研究（Field study；首次术语）| 现场实验（Field experiment；首次术语）| 实验仿真（Experimental Simulation）| 实验室实验（Laboratory experiment；首次术语）| 样本研究（Sample study；首次术语）| 判断研究（Judgment study；首次术语））
 │   ├── 研究流程（Glass-Vessey-Ramesh 多选 5 枚举）：调查（调查）| 用户实验（用户实验）| 案例研究（案例研究）| 访谈（访谈）| 概念实现（概念实现）
 │   ├── 混合方法（布尔：69% true）
 │   ├── 研究目标（封闭枚举：formative | summative）
 │   ├── 数据分析类型（封闭枚举：定量 | 定性 | 混合）
-│   ├── 数据来源（封闭枚举：自我报告（自我报告） | 行为与绩效指标（行为与绩效指标））
+│   ├── 数据来源（封闭枚举：自我报告（Self-report；首次术语） | 行为与绩效指标（行为与绩效指标））
 │   ├── 测量工具来源（封闭枚举：作者自行设计 | 经过验证的框架）
-│   └── 测量工具名称（开放枚举：NASA-TLX, SPACE survey, TAM, self-efficacy, AAR/AI, emotion affect, TCQ, RBV, 任务 完成度与正确性（完成度与正确性）, 建议采纳率（建议采纳率）, 交互日志（交互日志）, 完成时间（完成时间）, 代码 质量 指标, 生产率增益（productivity gain）, 开放式反馈（open-ended feedback）...）
+│   └── 测量工具名称（开放枚举：NASA-TLX, SPACE survey, TAM, self-efficacy, AAR/AI, emotion affect, TCQ, RBV, 任务 完成度与正确性（完成度与正确性）, 建议采纳率（建议采纳率）, 交互日志（交互日志）, 完成时间（完成时间）, 代码质量 指标, 生产率增益（productivity gain）, 开放式反馈（open-ended feedback）...）
 │       └── 关联指标（细分见 Table 7）
 │
 ├── [树-RQ2] 效果综合（主题综合，主题综合）
@@ -426,17 +431,17 @@ Threats 分两组。
 │   │   ├── 打断心流（disrupt the flow）
 │   │   └── 降低团队协作（reduce team collaboration）
 │   ├── 主题频次（数值；Fig. 6 雷达每主题对应 PS 集合大小）
-│   └── 争议主题标记（布尔；代码质量（code-质量） = true）
+│   └── 争议主题标记（布尔；代码质量（code quality；首次术语） = true）
 │
 ├── [树-RQ3] SPACE 维度映射
-│   ├── SPACE 维度（封闭枚举 5）：满意度（Satisfaction）| 绩效（Performance）| 活动（Activity）| 沟通（Communication）| 效率（效率）
+│   ├── SPACE 维度（封闭枚举 5）：满意度（Satisfaction）| 绩效（Performance）| 活动（Activity）| 沟通（Communication）| 效率（Efficiency；首次术语）
 │   ├── SPACE 覆盖维度数（数值 0..5 per PS；分布：90% ≥2, 44% ≥3, 15% ≥4）
 │   ├── SPACE 子维度（层级枚举）
 │   │   ├── 满意度（Satisfaction）：开发者体验（developer experience）| 自我效能（self-efficacy）| 信任（trust）| 认知负荷（cognitive load）| 幸福感（well-being）(=∅)
 │   │   ├── 绩效（Performance）：质量| 影响（impact）
 │   │   ├── 活动: (no further sub)
 │   │   ├── 沟通（Communication）：人-LLM（human-LLM）| 人人（human-human）
-│   │   └── 效率（效率）：时间效率（temporal efficiency）| 自动化（automation）| 中断与心流（interruptions and flow）
+│   │   └── 效率（Efficiency；首次术语）：时间效率（temporal efficiency）| 自动化（automation）| 中断与心流（interruptions and flow）
 │   ├── 质量指标实例（Table 11 开放枚举：通过单元测试（Passing Unit Tests）、功能正确性与准确率（Functional Correctness & 准确率）、代码异味（Code Smells）、BLEU、Halstead、圈复杂度（Cyclomatic Complexity）、翻译错误率（Translation Error Rate）、可维护性指数（Maintainability Index）、认知复杂度（Cognitive Complexity）、缺陷密度（Defect Density）、缺陷率（Defect Rate）、技术债（Technical Debt）、代码覆盖率（Code Coverage））
 │   └── 最高频组合（自由文本，e.g. "满意度-绩效-效率（Satisfaction-Performance-效率）", 5/39）
 │
@@ -535,7 +540,7 @@ Threats 分两组。
 #### 6.3 对 Paper2 可迁移的方法学启发
 
 - **RQ-driven 抽取 模式 设计**（每 RQ 绑定一组 分类法 + 抽取 fields + summary block）。
-- **外部 分类法 + emergent thematic 代码** 的混合 模式 模式（5 个外部 分类法 + 8/5 themes）。
+- **外部 分类法 + emergent thematic 代码** 的混合 模式（5 个外部 分类法 + 8/5 themes）。
 - **PRISMA 分母链 + exclusion code 频次 + Rayyan + snowballing** 的 selection 模式。
 - **11-item QA rubric + 5-Likert + 50% threshold**：可作为 Paper2 PS eligibility gate 模板。
 - **contested-flag**：把"同一字段在 benefit 与 risk 双向出现"标为一等结构。
@@ -553,7 +558,7 @@ Threats 分两组。
 | 等级 | 项 | 当前问题 | 建议返修 |
 |---|---|---|---|
 | **C1** | "维度树复原" §维度树结构 | 主树退化为六个通用 叶子（scope/语料/分类法/方法/证据/发现），把 RQ0–RQ3 各自的丰富 模式 压成单一 分类法 叶子；"原文模式主树（19×3 审计后返修）" 也仅 6 行抽象主干，没有展开 PRISMA 链、QA rubric、Stol-Fitzgerald 6 类、Glass-Vessey-Ramesh 5 类、SPACE 5×N 子维、8/5 主题 etc.。这是 A1-DT v2 的核心 mismatch — 学术目标层级风险（影响 Paper2 模式种子 可靠性）。 | 改为本审计 §3 的 RQ-森林结构：以 PS-id 为主键，4 棵 RQ-sub树 + Tetrad overlay + Threats overlay；通用六叶降级为最尾部的 "跨论文投影" 视图。 |
-| **C2** | A.2 证据账本 EV-llm-…-001..005 | 仅 5 条证据，全部标 `not_verified`、`证据强度=not_verified`，连最基本的 PRISMA 分母（9756/803/8953/228/189/5/44/5/39）、QA 11 项、Stol-Fitzgerald 6 类百分比、SPACE 5 维百分比这些**纯文本可定位**的事实都未单独立证。导致 A.3 全 12 条 claim 一律 weak/模式种子（schema_seed），无法支撑 SUMMARY 表中 `eligible_for_statistical_synthesis=true` 的判断。 | 至少新增 15+ 条具体 EV 行：每条挂明确节号、表号、数字证据；分母链与 QA rubric 应升级到 `证据强度=strong/文本已核验（text_verified）`。 |
+| **C2** | A.2 证据账本 EV-llm-…-001..005 | 仅 5 条证据，全部标 `not_verified`、`证据强度=not_verified`，连最基本的 PRISMA 分母（9756/803/8953/228/189/5/44/5/39）、QA 11 项、Stol-Fitzgerald 6 类百分比、SPACE 5 维百分比这些**纯文本可定位**的事实都未单独立证。导致 A.3 全 12 条 claim 一律 weak/模式种子（schema_seed），无法支撑 SUMMARY 表中 `eligible_for_statistical_synthesis=true` 的判断。 | 至少新增 15+ 条具体 EV 行：每条挂明确节号、表号、数字证据；分母链与 QA rubric 应升级到 `证据强度=strong/历史草稿旧强度（当前禁止采信）`。 |
 | **I1** | "叶子维度表" 六叶取值空间 | 六叶的"取值空间"列全部写"自由文本加 RQ/贡献声明引用"等模板化 boilerplate；丢失了原文中**封闭枚举**（strategy 6 类、procedure 5 类、SPACE 5 维、benefit 8 / risk 5）的关键性质。封闭枚举是统计池资格的核心判据。 | 按本审计 §4 叶子表逐叶给真实取值空间，区分完整枚举 / 层级枚举 / 数值 / 布尔 / 开放枚举。 |
 | **I2** | "统计与候选发现链路" | 表中三行均判为 "否（A1-DT 阶段仅作 模式种子）" — 但 metadata.json 明确 `eligible_for_statistical_synthesis=true`，且本文是 39 篇明确分母的现代 SLR+SMS。该结论与 metadata 矛盾。 | 改为 "局部可统计"：landscape / strategy / procedure / SPACE coverage 等可直接进入主统计池；contested 主题与 细粒度（fine-grained） 数字标 "待 A2a 精核后升级"。 |
 | **I3** | "原文模式候选叶子映射（A1 种子）" | 5 个 `orig-*` 候选叶子（assistant-type / developer-task / productivity-outcome / 评价-design / human-factor）含义模糊，且与本文实际的 RQ 字段（strategy/procedure/instrument/SPACE/收益 / 风险（benefit/risk））不对齐；e.g. "助手类型" 是 leaf-llm-工具（Table 4）而非泛"代码助手 / 聊天助手"分类。 | 删除模糊候选，按本审计 §3–§4 重写为 RQ-aligned leaves。 |
@@ -570,43 +575,45 @@ Threats 分两组。
 - **原生树类型**：❌ 当前应写 "RQ 驱动分类树" 但本质是 **per-RQ 多根森林 + Tetrad/Threats 解释层**；建议改为 "RQ-driven 维度森林（4 RQ-sub树 + 解释性覆盖层（interpretive overlay））"。
 - **统计池资格**：❌ review.md A.3 全 weak/模式种子（schema_seed） 与 metadata `eligible_for_statistical_synthesis=true` 矛盾；应改为 **"局部可统计"** + 明确不可直接进入的项（Fig. 6 精确雷达数、PS-level QA scores、Table 9 详细 risk summary）。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案（节选 15 条，可直接迁入 review.md）
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-ladp-text-001 | paper_content.txt | §3.2 Page 7–8 + Fig.1 | "Records identified from 数据库（databases） (n = 9,756)... Total records included (n = 39)" | PRISMA 完整分母链 9756→8953→228→44→39，含 EC1=15/EC2=128/EC3=27/EC4=11/EC5=3/~IC1=5 | 语料-flow | 文本已核验（text-verified） | 树-meta, leaf-ps-id, leaf-exclusion-code | true（Fig.1 视觉核） | 流程结构可迁移 |
-| EV-ladp-text-002 | paper_content.txt | §3.1.1 Page 5 | 17 control papers + 5 query iterations + Rayyan tagging | search-protocol seed | 文本已核验（text-verified） | 树-meta | false | 协议结构可迁移 |
-| EV-ladp-text-003 | paper_content.txt | §3.3 Page 8 Table 2 | QA1..QA11 + 5-Likert {0..4} + 50% threshold | 质量-rubric | 文本已核验（text-verified） | leaf-ps-qa-score | true (Table 2) | rubric 可迁移 |
-| EV-ladp-text-004 | paper_content.txt | §4.1 Page 9–10 + Fig. 2 | "2024 accounts for 77% of all included studies" (30/39) | landscape-temporal | 文本已核验（text-verified） | leaf-pub-year | true (Fig.2) | drift-risk anchor |
-| EV-ladp-text-005 | paper_content.txt | §4.3 Page 10–11 Table 3 | SE/CS 46%, HCI 18%, IS 13%, Human-Aspects 10%, AI Eng 8%, SE Edu 5% | venue-distribution | 文本已核验（text-verified） | leaf-venue-focus | true (Table 3) | 跨社区融合 |
-| EV-ladp-text-006 | paper_content.txt | §4.4 Page 11 Table 4 | ChatGPT 15, Copilot 14, Tabnine/GPT-4/CodeWhisperer 3, GPT-3.5 2, 其他（Others） 1 | 工具-distribution | 文本已核验（text-verified） | leaf-llm-工具 | true (Table 4) | 工具漂移 risk |
-| EV-ladp-text-007 | paper_content.txt | §5.1 Page 11–12 Table 5 | Stol & Fitzgerald 6 类：Lab 38%/15, Field 23%/9, Sample 15%/6, ExpSim 13%/5, FieldExp 5%/2, Judgment 5%/2 | strategy-分类法 | 文本已核验（text-verified） | leaf-strategy | true (Table 5) | 结构可迁移 |
-| EV-ladp-text-008 | paper_content.txt | §5.2 Page 13 Table 6 + Fig. 3/4 | 调查 82%/32, User Exp 41%/16, Case 31%/12, 访谈 26%/10, Concept Impl 10%/4; 混合方法 69%/27 | procedure-分类法 | 文本已核验（text-verified） | leaf-procedure | true (Table 6, Fig. 4) | 结构可迁移 |
-| EV-ladp-text-009 | paper_content.txt | §5.2 Page 13–14 | formative 59%/23, summative 41%/16; 混合-analysis 67%, qual-only 21%, quant-only 13% | objective + analysis | 文本已核验（text-verified） | leaf-objective, leaf-analysis-type | false | 成熟度指标 |
-| EV-ladp-text-010 | paper_content.txt | §5.3 Page 14 Table 7 | 自我报告（自我报告） × {designed-by-authors, validated}: NASA-TLX (6 studies), SPACE survey (4), TAM (3), self-eff (2), AAR/AI (1), emotion (1); Behavioral/Performance × {designed/validated}: TCQ, RBV | instrument-origin × name | 文本已核验（text-verified） | leaf-instrument-origin, leaf-instrument-name | true (Table 7) | 标准化 缺口（gap） |
-| EV-ladp-text-011 | paper_content.txt | §5.3.1 Page 15 | "31% (12 out of 39) of the 经验研究（empirical） 原始研究 employ this measure" (time-to-completion) | 指标-time | 文本已核验（text-verified） | leaf-指标-time-completion | false | 可迁移含 caveat |
-| EV-ladp-text-012 | paper_content.txt | §5.3.3 Page 16 | "6 studies use NASA-TLX... reports improvements [PS13, PS23, PS38], 其他（Others） neutral effects [PS2, PS8], and only one 研究 reports... frustration [PS12]" | cognitive-load 混合 | 文本已核验（text-verified） | leaf-指标-cognitive-load | false | contested construct |
-| EV-ladp-text-013 | paper_content.txt | §6.1 + §6.2 + Fig. 6 + Tables 8/9 | 8 benefits + 5 risks themes；contested theme "code 质量" 双向 | theme-分类法 | 文本已核验（text-verified） | leaf-benefit-theme, leaf-risk-theme, leaf-contested-flag | true (Fig. 6 雷达精确数) | 结构可迁移；主题不可 |
-| EV-ladp-text-014 | paper_content.txt | §7 Page 24–27 + Fig. 7/8 + Tables 10/11 | SPACE: Sat 77%(30/39), Perf 64%(25/39), Eff 59%(23/39), Act 31%(12/39), Comm 26%(10/39); 90% ≥2, 44% ≥3, 15% ≥4; well-being=0; human-LLM 7/10 vs human-human 3/10 | SPACE-mapping | 文本已核验（text-verified） | leaf-space-dim, leaf-space-coverage-计数, leaf-space-sub-dim | true (Fig. 7/8 比例线) | 框架特定 |
-| EV-ladp-text-015 | paper_content.txt | §8.1 + Fig. 9 + §8.2 / §8.3 | McLuhan Tetrad 4 维 + lessons learned (3 条) + 5 实践者 recs + 3 研究者 recs | interpretation-layer | 文本已核验（text-verified） | 树-discussion-tetrad | true (Fig. 9) | 解释框架结构可迁移 |
-| EV-ladp-text-016 | paper_content.txt | §9.1 + §9.2 Page 35–36 | 7 个 威胁 项：选择偏倚 / 以人为中心的识别 / 偏倚与可重复性 / 分类严谨性 / 形成性与受控研究主导 / 方法多样性（methodological diversity） / 时间相关性（temporal relevance） | 威胁-分类法 | 文本已核验（text-verified） | 树-威胁 | false | 可迁移含 智能体-loop 扩展 |
+| EV-ladp-text-001 | paper_content.txt | §3.2 Page 7–8 + Fig.1 | "Records identified from 数据库（databases） (n = 9,756)... Total records included (n = 39)" | PRISMA 完整分母链 9756→8953→228→44→39，含 EC1=15/EC2=128/EC3=27/EC4=11/EC5=3/~IC1=5 | 语料-flow | 历史草稿旧强度（当前禁止采信） | 树-meta, leaf-ps-id, leaf-exclusion-code | true（Fig.1 视觉核） | 流程结构可迁移 |
+| EV-ladp-text-002 | paper_content.txt | §3.1.1 Page 5 | 17 control papers + 5 query iterations + Rayyan tagging | search-protocol seed | 历史草稿旧强度（当前禁止采信） | 树-meta | false | 协议结构可迁移 |
+| EV-ladp-text-003 | paper_content.txt | §3.3 Page 8 Table 2 | QA1..QA11 + 5-Likert {0..4} + 50% threshold | 质量-rubric | 历史草稿旧强度（当前禁止采信） | leaf-ps-qa-score | true (Table 2) | rubric 可迁移 |
+| EV-ladp-text-004 | paper_content.txt | §4.1 Page 9–10 + Fig. 2 | "2024 accounts for 77% of all included studies" (30/39) | landscape-temporal | 历史草稿旧强度（当前禁止采信） | leaf-pub-year | true (Fig.2) | drift-risk anchor |
+| EV-ladp-text-005 | paper_content.txt | §4.3 Page 10–11 Table 3 | SE/CS 46%, HCI 18%, IS 13%, Human-Aspects 10%, AI Eng 8%, SE Edu 5% | venue-distribution | 历史草稿旧强度（当前禁止采信） | leaf-venue-focus | true (Table 3) | 跨社区融合 |
+| EV-ladp-text-006 | paper_content.txt | §4.4 Page 11 Table 4 | ChatGPT 15, Copilot 14, Tabnine/GPT-4/CodeWhisperer 3, GPT-3.5 2, 其他（Others） 1 | 工具-distribution | 历史草稿旧强度（当前禁止采信） | leaf-llm-工具 | true (Table 4) | 工具漂移 risk |
+| EV-ladp-text-007 | paper_content.txt | §5.1 Page 11–12 Table 5 | Stol & Fitzgerald 6 类：Lab 38%/15, Field 23%/9, Sample 15%/6, ExpSim 13%/5, FieldExp 5%/2, Judgment 5%/2 | strategy-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-strategy | true (Table 5) | 结构可迁移 |
+| EV-ladp-text-008 | paper_content.txt | §5.2 Page 13 Table 6 + Fig. 3/4 | 调查 82%/32, User Exp 41%/16, Case 31%/12, 访谈 26%/10, Concept Impl 10%/4; 混合方法 69%/27 | procedure-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-procedure | true (Table 6, Fig. 4) | 结构可迁移 |
+| EV-ladp-text-009 | paper_content.txt | §5.2 Page 13–14 | formative 59%/23, summative 41%/16; 混合-analysis 67%, qual-only 21%, quant-only 13% | objective + analysis | 历史草稿旧强度（当前禁止采信） | leaf-objective, leaf-analysis-type | false | 成熟度指标 |
+| EV-ladp-text-010 | paper_content.txt | §5.3 Page 14 Table 7 | 自我报告（Self-report；首次术语） × {designed-by-authors, validated}: NASA-TLX (6 studies), SPACE survey (4), TAM (3), self-eff (2), AAR/AI (1), emotion (1); Behavioral/Performance × {designed/validated}: TCQ, RBV | instrument-origin × name | 历史草稿旧强度（当前禁止采信） | leaf-instrument-origin, leaf-instrument-name | true (Table 7) | 标准化 缺口（gap） |
+| EV-ladp-text-011 | paper_content.txt | §5.3.1 Page 15 | "31% (12 out of 39) of the 经验研究（empirical） 原始研究 employ this measure" (time-to-completion) | 指标-time | 历史草稿旧强度（当前禁止采信） | leaf-指标-time-completion | false | 可迁移含 caveat |
+| EV-ladp-text-012 | paper_content.txt | §5.3.3 Page 16 | "6 studies use NASA-TLX... reports improvements [PS13, PS23, PS38], 其他（Others） neutral effects [PS2, PS8], and only one 研究 reports... frustration [PS12]" | cognitive-load 混合 | 历史草稿旧强度（当前禁止采信） | leaf-指标-cognitive-load | false | contested construct |
+| EV-ladp-text-013 | paper_content.txt | §6.1 + §6.2 + Fig. 6 + Tables 8/9 | 8 benefits + 5 risks themes；contested theme "code 质量" 双向 | theme-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-benefit-theme, leaf-risk-theme, leaf-contested-flag | true (Fig. 6 雷达精确数) | 结构可迁移；主题不可 |
+| EV-ladp-text-014 | paper_content.txt | §7 Page 24–27 + Fig. 7/8 + Tables 10/11 | SPACE: Sat 77%(30/39), Perf 64%(25/39), Eff 59%(23/39), Act 31%(12/39), Comm 26%(10/39); 90% ≥2, 44% ≥3, 15% ≥4; well-being=0; human-LLM 7/10 vs human-human 3/10 | SPACE-mapping | 历史草稿旧强度（当前禁止采信） | leaf-space-dim, leaf-space-coverage-计数, leaf-space-sub-dim | true (Fig. 7/8 比例线) | 框架特定 |
+| EV-ladp-text-015 | paper_content.txt | §8.1 + Fig. 9 + §8.2 / §8.3 | McLuhan Tetrad 4 维 + lessons learned (3 条) + 5 实践者 recs + 3 研究者 recs | interpretation-layer | 历史草稿旧强度（当前禁止采信） | 树-discussion-tetrad | true (Fig. 9) | 解释框架结构可迁移 |
+| EV-ladp-text-016 | paper_content.txt | §9.1 + §9.2 Page 35–36 | 7 个 威胁 项：选择偏倚 / 以人为中心的识别 / 偏倚与可重复性 / 分类严谨性 / 形成性与受控研究主导 / 方法多样性（methodological diversity） / 时间相关性（temporal relevance） | 威胁-分类法 | 历史草稿旧强度（当前禁止采信） | 树-威胁 | false | 可迁移含 智能体-loop 扩展 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-ladp-树-001 | 本文的原生结构是 **per-RQ 维度森林 + Tetrad/Threats 解释层**，PS-id 为统一主键；不是单棵树，也不是六叶通用接口。 | 树类型（tree_type） | 森林-根节点 | EV-001, EV-007, EV-008, EV-013, EV-014 | strong | A1-DT 主统计池入口 + Paper2 模式种子 | RQ 切片仍是分析视角，非样本单位本身 |
-| CLM-ladp-pool-002 | 主统计池资格 = **局部可统计**：landscape / strategy / procedure / instrument origin / SPACE coverage 已有明确分母 39 与封闭/层级枚举，可直接进入 SUMMARY 统计；雷达精确数、PS-level QA scores、Table 9 risk row-mapping 待 A2a 精核。 | pool_eligibility | 树-RQ0..3 | EV-004, 005, 006, 007, 008, 010, 014 | strong | 统计 + 候选发现 | 细粒度（fine-grained） 数字延后 |
-| CLM-ladp-contested-003 | "代码质量（code-质量）" 在 benefit (改善代码质量（improve code 质量）) 与 risk (限制代码质量（limit code 质量）) 同时存在，并由作者明确表述 "remains unresolved"。 | 候选发现（candidate_finding） | leaf-contested-flag | EV-013 + abstract + §8.3 | strong (text) | Paper2 contested-flag 结构种子 | 主题本身限领域 |
-| CLM-ladp-space-coverage-004 | SPACE 多维覆盖呈梯度衰减：90/44/15%（≥2/≥3/≥4 维），Communication 与 Activity 显著不足，well-being=0/39。 | 候选发现（candidate_finding） | leaf-space-coverage-计数 + leaf-space-sub-dim | EV-014 | medium-strong | 缺口（gap） 候选发现 | 仅限本文样本时间窗 |
-| CLM-ladp-strategy-bias-005 | 38% lab + 59% formative + 77% 文献集中 2024 → 内部效度强但生态/时间外推风险高；作者已自陈。 | risk_register | 树-RQ1 + 树-威胁 | EV-007, EV-009, EV-016 | strong | reviewer-defense | 适用本文证据基 |
+| CLM-ladp-树-001 | 本文的原生结构是 **per-RQ 维度森林 + Tetrad/Threats 解释层**，PS-id 为统一主键；不是单棵树，也不是六叶通用接口。 | 树类型（tree_type） | 森林-根节点 | EV-001, EV-007, EV-008, EV-013, EV-014 | 历史草稿旧强度（当前禁止采信） | A1-DT 主统计池入口 + Paper2 模式种子 | RQ 切片仍是分析视角，非样本单位本身 |
+| CLM-ladp-pool-002 | 主统计池资格 = **局部可统计**：landscape / strategy / procedure / instrument origin / SPACE coverage 已有明确分母 39 与封闭/层级枚举，历史草稿曾建议进入 SUMMARY 统计；当前禁止直接采信；雷达精确数、PS-level QA scores、Table 9 risk row-mapping 待 A2a 精核。 | pool_eligibility | 树-RQ0..3 | EV-004, 005, 006, 007, 008, 010, 014 | 历史草稿旧强度（当前禁止采信） | 统计 + 候选发现 | 细粒度（fine-grained） 数字延后 |
+| CLM-ladp-contested-003 | "代码质量（code quality；首次术语）" 在 benefit (改善代码质量（improve code 质量）) 与 risk (限制代码质量（limit code 质量）) 同时存在，并由作者明确表述 "remains unresolved"。 | 候选发现（candidate_finding） | leaf-contested-flag | EV-013 + abstract + §8.3 | 历史草稿旧强度（当前禁止采信） | Paper2 contested-flag 结构种子 | 主题本身限领域 |
+| CLM-ladp-space-coverage-004 | SPACE 多维覆盖呈梯度衰减：90/44/15%（≥2/≥3/≥4 维），Communication 与 Activity 显著不足，well-being=0/39。 | 候选发现（candidate_finding） | leaf-space-coverage-计数 + leaf-space-sub-dim | EV-014 | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 候选发现 | 仅限本文样本时间窗 |
+| CLM-ladp-strategy-bias-005 | 38% lab + 59% formative + 77% 文献集中 2024 → 内部效度强但生态/时间外推风险高；作者已自陈。 | risk_register | 树-RQ1 + 树-威胁 | EV-007, EV-009, EV-016 | 历史草稿旧强度（当前禁止采信） | reviewer-defense | 适用本文证据基 |
 | CLM-ladp-acceptance-rate-caveat-006 | LLM 建议接受率作为指标存在 GitHub PS16 自我警示；不应单独优化。 | 候选发现（candidate_finding） | leaf-指标-acceptance-rate | EV-text §5.3.2 | medium | reviewer caveat | proxy-指标 structural 模式 |
-| CLM-ladp-throughput-质量-tradeoff-007 | PS26 报告 throughput 与 code 质量 负相关 r=−0.45（70 大公司样本）。 | 候选发现（candidate_finding） | leaf-benefit-theme + leaf-risk-theme | EV-text §5.3.4 + §8.2 | weak-medium | 单证据，需 cross-PS 验证 | 单 PS 统计 |
-| CLM-ladp-transfer-008 | 可迁移：PS-id 主键 + 外部 分类法 + emergent themes + PRISMA 链 + QA rubric + contested-flag + summary-style；不可迁移：SPACE 本体、8/5 主题字符串、领域具体百分比。 | migration_boundary | 森林-根节点 | EV-001, 003, 007, 008, 013, 014 | strong | Paper2 方法 设计种子 | 主题级 |
-| CLM-ladp-overlay-009 | SPACE 与 McLuhan Tetrad 分别承担 measurement / interpretation 双层，提示 Paper2 应区分"字段统计框架"与"候选发现解释框架"。 | methodological_seed | 树-RQ3 + 树-discussion-tetrad | EV-014, EV-015 | medium-strong | 方法学启发 | 不强制采用 Tetrad |
-| CLM-ladp-review-md-repair-010 | review.md 当前"维度树复原 + A.2/A.3 + 原文模式主树"需重写为 RQ-森林；六叶通用接口降级为跨论文投影；A.2 需新增 ≥15 条文本可定位 EV 行；A.3 weak-to-strong 升级。 | audit_repair | review.md | 本审计 §7 | strong | review.md 直接整改 | 工程性返修，不动 metadata |
+| CLM-ladp-throughput-质量-tradeoff-007 | PS26 报告 throughput 与 code 质量 负相关 r=−0.45（70 大公司样本）。 | 候选发现（candidate_finding） | leaf-benefit-theme + leaf-risk-theme | EV-text §5.3.4 + §8.2 | 历史草稿旧强度（当前禁止采信） | 单证据，需 cross-PS 验证 | 单 PS 统计 |
+| CLM-ladp-transfer-008 | 可迁移：PS-id 主键 + 外部 分类法 + emergent themes + PRISMA 链 + QA rubric + contested-flag + summary-style；不可迁移：SPACE 本体、8/5 主题字符串、领域具体百分比。 | migration_boundary | 森林-根节点 | EV-001, 003, 007, 008, 013, 014 | 历史草稿旧强度（当前禁止采信） | Paper2 方法 设计种子 | 主题级 |
+| CLM-ladp-overlay-009 | SPACE 与 McLuhan Tetrad 分别承担 measurement / interpretation 双层，提示 Paper2 应区分"字段统计框架"与"候选发现解释框架"。 | methodological_seed | 树-RQ3 + 树-discussion-tetrad | EV-014, EV-015 | 历史草稿旧强度（当前禁止采信） | 方法学启发 | 不强制采用 Tetrad |
+| CLM-ladp-review-md-repair-010 | review.md 当前"维度树复原 + A.2/A.3 + 原文模式主树"需重写为 RQ-森林；六叶通用接口降级为跨论文投影；A.2 需新增 ≥15 条文本可定位 EV 行；A.3 weak-to-strong 升级。 | audit_repair | review.md | 本审计 §7 | 历史草稿旧强度（当前禁止采信） | review.md 直接整改 | 工程性返修，不动 metadata |
 
 ### 9. 技能使用与自我审查记录
 

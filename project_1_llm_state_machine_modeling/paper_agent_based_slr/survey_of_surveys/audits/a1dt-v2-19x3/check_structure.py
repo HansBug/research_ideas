@@ -99,6 +99,74 @@ def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
 
 
 
+FORBIDDEN_DRAFT_PHRASES = (
+    "可直接迁入",
+    "可直接迁移",
+    "可直接进入 SUMMARY",
+    "强证据升级为 verified",
+    "文本已核验（text_verified）",
+    "文本已核验（text-verified）",
+    "text_verified",
+    "text-verified",
+    "strong (text)",
+    "strong (after",
+    "medium-strong",
+    "weak-medium",
+)
+
+FORBIDDEN_TRANSLATION_PHRASES = (
+    "字段研究（字段研究）",
+    "自我报告（自我报告）",
+    "效率（效率）",
+    "代码 质量",
+    "分类方案（分类 模式）",
+    "模式 模式",
+    "program 生成",
+    "流程 mining",
+    "QA 框架（QA 框架）",
+)
+
+
+def check_review_hygiene(base: Path, repo: Path, errors: list[str]) -> None:
+    """Check review.md hygiene that directly affects evidence-chain consumption.
+
+    Formal A.2/A.3 parsing intentionally ignores historical draft blocks.  This
+    companion gate prevents those historical blocks from carrying phrases that
+    could be mistaken for current claim strength or direct SUMMARY eligibility.
+    It also catches the small set of machine-translation residues that reviewers
+    identified as schema-polluting, not mere style issues.
+    """
+    papers = base / "papers"
+    for review in sorted(papers.glob("*/review.md")):
+        rel = review.relative_to(repo)
+        text = review.read_text(encoding="utf-8", errors="ignore")
+        for phrase in FORBIDDEN_TRANSLATION_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} contains schema-polluting translation residue: {phrase}")
+
+        for match in re.finditer(r"^#{3,5}\s+8\.\s*历史审计草案归档.*$", text, flags=re.M):
+            window = text[match.start(): match.start() + 800]
+            if "历史草案归档，禁止消费为事实真源" not in window:
+                add_error(errors, f"{rel} historical audit draft section missing do-not-consume warning")
+
+        for match in re.finditer(r"^#{4,6}\s+历史 A\.[23].*草案.*$", text, flags=re.M):
+            heading = match.group(0)
+            if "禁止消费" not in heading:
+                add_error(errors, f"{rel} historical A.2/A.3 draft heading lacks 禁止消费 marker: {heading}")
+
+        # Historical draft sections may remain as process evidence, but they must
+        # not contain phrases that look like current verified/adjudicated facts.
+        for match in re.finditer(r"^#{4,6}\s+历史 A\.[23].*草案.*$", text, flags=re.M):
+            next_heading = re.search(r"^#{3,6}\s+", text[match.end():], flags=re.M)
+            end = match.end() + next_heading.start() if next_heading else len(text)
+            section = text[match.start():end]
+            for phrase in FORBIDDEN_DRAFT_PHRASES:
+                if phrase in section:
+                    add_error(errors, f"{rel} historical draft section still contains consumable strength phrase: {phrase}")
+
+
+
+
 def extract_section(text: str, start_marker: str, end_marker: str | None = None) -> str:
     """Extract a markdown section by an exact heading line.
 
@@ -429,6 +497,7 @@ def check_structure(strict: bool, ready_to_run: bool = False) -> int:
 
     check_markdown_links(base / "SUMMARY.md", errors)
     check_summary_semantics(base, repo, errors)
+    check_review_hygiene(base, repo, errors)
     if ready_to_run:
         check_ready_to_run(repo, base, batch, rows, errors)
 

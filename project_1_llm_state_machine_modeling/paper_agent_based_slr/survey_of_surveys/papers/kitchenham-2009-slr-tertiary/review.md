@@ -125,6 +125,8 @@
 
 ### 3. 原生样本编码维度树
 
+> 中文化导读：本维度树描述的是早期软件工程系统综述的三级综述如何编码二次研究。树的核心不是某个工具或模型，而是“二次研究样本—质量评价—检索漏斗—作者机构—主题范围”的证据链。保留 IST、JSS、TSE、ICSE、DARE、SLR 等英文缩写，是为了让读者能回到原文表格和软件工程证据实践传统；中文节点名才是后续 Paper2 维度模式的主要依据。可迁移的是分母链、质量评价、主题与作者/机构分布的组织方式，不是 2009 年的领域状态结论。
+
 #### 3.1 主树：20 篇 二次研究 的抽取编码表
 
 ```text
@@ -279,39 +281,41 @@
 - **M3.** Table 3 中 `S17 SLR Y N N Y` 与 §3.2 描述 "all studies scored 1 or more" 一致，无需修正；但 `S18 Total=1` 与 "only three studies scored less than 2"（应为 S10=1.5, S16=1.5, S18=1）三篇相符，可加注释。
 - **M4.** review.md 当前的 叶子 标识用 `[leaf-...-scope]` 这种通用名，建议加 `-orig-*` 后缀区分通用接口投影与原文具体叶子（如本审计第 4 节命名）。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-A2-001 | paper_content.txt | §1 Introduction | L88--97 | "review the current status of EBSE since 2004 using a tertiary 研究" | rq | strong (文本已核验（text-verified）) | [根节点], [dim-orig-rq] | false | 仅本文 |
-| EV-A2-002 | paper_content.txt | §2.1 研究问题（Research questions） | L105--141 | "RQ1...RQ4 + RQ4.1--RQ4.4" 八层 RQ 树 | rq | strong | L4.2, L8.1, L7.1, [dim-orig-rq] | false | -- |
-| EV-A2-003 | paper_content.txt | Table 1, §2.2 | L161--177 | 10 期刊 + 4 会议清单 | corpus_scope | strong | L1.1, leaf-funnel-* | true (复核刊名) | 仅 2004--2007 SE 期刊 |
-| EV-A2-004 | paper_content.txt | §2.3 | L186--203 | 纳排标准 + 重复报告处理 | inclusion_criteria | strong | L2.1, rel-duplicate-version | false | -- |
-| EV-A2-005 | paper_content.txt | §2.4 + Table 3 | L204--234, L465--489 | DARE QA1--QA4 + Y/P/N/未知 评分 | 质量量规（quality_rubric） | strong | L5.*, leaf-orig-qa* | true (核对 S 行评分) | -- |
-| EV-A2-006 | paper_content.txt | §2.5 | L243--258 | 10 项抽取字段清单 | extraction_schema | strong | L1.*--L8.* 全部叶子 | false | 此为**最关键证据**，确定原生模式 来源 |
-| EV-A2-007 | paper_content.txt | §2.6 | L268--283 | 8 个分析项→4 RQ 映射 | analysis_plan | strong | rel-rq-to-table | false | -- |
-| EV-A2-008 | paper_content.txt | §2.7 + §4.5 | L284--295, L639--680 | 4 项 protocol deviation 声明 | limitation | strong | 威胁/limitations 节点 | false | -- |
-| EV-A2-009 | paper_content.txt | Table 2 | L335--389 | 20 条 S1--S20 编码记录（8 列） | sample_table | strong | 主统计池所有叶子 | true (核对 Topic area, Refs 列) | -- |
-| EV-A2-010 | paper_content.txt | Table 3 | L465--489 | 20×4 DARE 评分明细 + total + agreement | quality_table | strong | leaf-orig-qa* | true (核对 P/Y/N 与 * 标记) | -- |
-| EV-A2-011 | paper_content.txt | Table 4, Table 5 + §3.3 | L490--503, L394--404 | 年×均分；引用 Guidelines×均分；Spearman ρ=0.51 | statistical_result | strong | OBS-07, OBS-08 | true (核对均值/方差) | -- |
-| EV-A2-012 | paper_content.txt | Table A1 | L589--633 | 检索漏斗 2506→33→19 | corpus_funnel | strong | leaf-funnel-* | true (核对加总) | -- |
+| EV-A2-001 | paper_content.txt | §1 Introduction | L88--97 | "review the current status of EBSE since 2004 using a tertiary 研究" | rq | strong (历史草稿旧强度（当前禁止采信）) | [根节点], [dim-orig-rq] | false | 仅本文 |
+| EV-A2-002 | paper_content.txt | §2.1 研究问题（Research questions） | L105--141 | "RQ1...RQ4 + RQ4.1--RQ4.4" 八层 RQ 树 | rq | 历史草稿旧强度（当前禁止采信） | L4.2, L8.1, L7.1, [dim-orig-rq] | false | -- |
+| EV-A2-003 | paper_content.txt | Table 1, §2.2 | L161--177 | 10 期刊 + 4 会议清单 | corpus_scope | 历史草稿旧强度（当前禁止采信） | L1.1, leaf-funnel-* | true (复核刊名) | 仅 2004--2007 SE 期刊 |
+| EV-A2-004 | paper_content.txt | §2.3 | L186--203 | 纳排标准 + 重复报告处理 | inclusion_criteria | 历史草稿旧强度（当前禁止采信） | L2.1, rel-duplicate-version | false | -- |
+| EV-A2-005 | paper_content.txt | §2.4 + Table 3 | L204--234, L465--489 | DARE QA1--QA4 + Y/P/N/未知 评分 | 质量量规（quality_rubric） | 历史草稿旧强度（当前禁止采信） | L5.*, leaf-orig-qa* | true (核对 S 行评分) | -- |
+| EV-A2-006 | paper_content.txt | §2.5 | L243--258 | 10 项抽取字段清单 | extraction_schema | 历史草稿旧强度（当前禁止采信） | L1.*--L8.* 全部叶子 | false | 此为**最关键证据**，确定原生模式 来源 |
+| EV-A2-007 | paper_content.txt | §2.6 | L268--283 | 8 个分析项→4 RQ 映射 | analysis_plan | 历史草稿旧强度（当前禁止采信） | rel-rq-to-table | false | -- |
+| EV-A2-008 | paper_content.txt | §2.7 + §4.5 | L284--295, L639--680 | 4 项 protocol deviation 声明 | limitation | 历史草稿旧强度（当前禁止采信） | 威胁/limitations 节点 | false | -- |
+| EV-A2-009 | paper_content.txt | Table 2 | L335--389 | 20 条 S1--S20 编码记录（8 列） | sample_table | 历史草稿旧强度（当前禁止采信） | 主统计池所有叶子 | true (核对 Topic area, Refs 列) | -- |
+| EV-A2-010 | paper_content.txt | Table 3 | L465--489 | 20×4 DARE 评分明细 + total + agreement | quality_table | 历史草稿旧强度（当前禁止采信） | leaf-orig-qa* | true (核对 P/Y/N 与 * 标记) | -- |
+| EV-A2-011 | paper_content.txt | Table 4, Table 5 + §3.3 | L490--503, L394--404 | 年×均分；引用 Guidelines×均分；Spearman ρ=0.51 | statistical_result | 历史草稿旧强度（当前禁止采信） | OBS-07, OBS-08 | true (核对均值/方差) | -- |
+| EV-A2-012 | paper_content.txt | Table A1 | L589--633 | 检索漏斗 2506→33→19 | corpus_funnel | 历史草稿旧强度（当前禁止采信） | leaf-funnel-* | true (核对加总) | -- |
 | EV-A2-013 | paper_content.txt | Table A2 | L694--739 | 14 条排除候选 + 排除原因 | exclusion_record | medium (sample only) | leaf-excl-reason | true | A2 仅 14 例样本 |
-| EV-A2-014 | paper_content.txt | Table A3 | L750--810 | 20 条作者-机构-国家 | author_table | strong | L3.* | true | -- |
+| EV-A2-014 | paper_content.txt | Table A3 | L750--810 | 20 条作者-机构-国家 | author_table | 历史草稿旧强度（当前禁止采信） | L3.* | true | -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-A3-T01 | 本文具备完整 tertiary SLR 维度树：单主树（20 篇 二次研究 × 11 抽取字段）+ DARE 子树 + 漏斗子树 | 树类型（tree_type） | [根节点] | EV-A2-006, EV-A2-005, EV-A2-009, EV-A2-012 | strong (text) → strong (after A2a PDF check) | 模式种子（schema_seed） → 可升级为主统计池字段定义 | A2a 必须核 Table 2/3/A1 版式 |
-| CLM-A3-T02 | 样本单位是 二次研究 (SLR/MA)；N=20；漏斗分母 2506 | 样本单位（sample_unit） | [根节点] | EV-A2-009, EV-A2-012 | strong | 模式种子（schema_seed） | -- |
+| CLM-A3-T01 | 本文具备完整 tertiary SLR 维度树：单主树（20 篇 二次研究 × 11 抽取字段）+ DARE 子树 + 漏斗子树 | 树类型（tree_type） | [根节点] | EV-A2-006, EV-A2-005, EV-A2-009, EV-A2-012 | 历史草稿旧强度（当前禁止采信；A2a 后重判） | 模式种子（schema_seed） → 可升级为主统计池字段定义 | A2a 必须核 Table 2/3/A1 版式 |
+| CLM-A3-T02 | 样本单位是 二次研究 (SLR/MA)；N=20；漏斗分母 2506 | 样本单位（sample_unit） | [根节点] | EV-A2-009, EV-A2-012 | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | -- |
 | CLM-A3-L01 | 叶子 leaf-orig-topic-area 取值空间为开放枚举，本文观察 12 个主题域 | 叶子_definition | leaf-orig-topic-area | EV-A2-009 (Table 2) | medium (枚举未饱和) | 模式种子（schema_seed） | 不可视为饱和；A2a 需扩库验证 |
-| CLM-A3-L02 | DARE rubric (QA1--QA4 + Y/P/N + 1/0.5/0) 是本文质量评价 模式 的完整复原 | 叶子_definition | leaf-orig-qa1..qa-total | EV-A2-005, EV-A2-010 | strong | 可作 Paper2 质量评价模板 | -- |
+| CLM-A3-L02 | DARE rubric (QA1--QA4 + Y/P/N + 1/0.5/0) 是本文质量评价 模式 的完整复原 | 叶子_definition | leaf-orig-qa1..qa-total | EV-A2-005, EV-A2-010 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 质量评价模板 | -- |
 | CLM-A3-S01 | 统计观察 OBS-01..10 可作为 边界锚点，但 OBS-04/05/09 是 2008 快照，不可外推 | statistical_observation | OBS-01..10 | EV-A2-009..014 | strong (本文窗口内) | 边界锚点（boundary_anchor） | 仅适用 2004--2007 SE 期刊 |
-| CLM-A3-M01 | 字段+RQ+分析项三角映射（§2.6）值得作为 Paper2 自审计模板 | migration_method | rel-rq-to-table | EV-A2-007 | strong | 方法学迁移 | 不迁移领域结论 |
+| CLM-A3-M01 | 字段+RQ+分析项三角映射（§2.6）值得作为 Paper2 自审计模板 | migration_method | rel-rq-to-table | EV-A2-007 | 历史草稿旧强度（当前禁止采信） | 方法学迁移 | 不迁移领域结论 |
 | CLM-A3-F01 | "EBSE 由欧洲/Simula 主导" 是历史候选发现，不可作为 最终发现 | 候选发现（candidate_finding） | OBS-04 | EV-A2-014 | weak (历史快照) | 候选发现（candidate_finding） | 2026 年生态已大变 |
-| CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | strong | 直接驱动返修 | -- |
+| CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | 历史草稿旧强度（当前禁止采信） | 直接驱动返修 | -- |
 
 ### 9. 技能使用与自我审查记录
 

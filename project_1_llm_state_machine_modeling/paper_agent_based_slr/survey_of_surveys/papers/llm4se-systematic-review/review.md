@@ -484,9 +484,11 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 ---
 
-### 8. 审计附录草案（可直接迁入 review.md A.2 / A.3）
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案（补充 / 替换 EV-001..007）
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -500,22 +502,22 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 | EV-008 | paper_content.txt + metadata.json | §3.1 末 + §7 footnote 6 + metadata.json `abstract` | p.1:10, 41 + metadata.json | URL 冲突：正文 = `xinyi-hou/LLM4SE_SLR`；metadata = `security-pride/LLM4SE_SLR` | source_anchor_conflict | requires_external_verification | edge.paper_anchor 完整性 | 是（联网） | 在确认前 制品 不得作既定事实 |
 | EV-009 | paper_content.txt | §4.2 vs Table 7 vs Appendix A Table 13；§2.2.2 vs Fig. 1 | p.1:15--16, 72；p.1:6 vs p.1:5 | (a) software-仓库 "Code 仓库" 计数：正文 3 vs Table 7/13 中 9；(b) ScienceDirect：§2.2.2 写 62,290 vs Fig. 1 写 65,290 | internal_inconsistency | requires_pdf | meta-B 分母 + leaf.data_type 子分类 | 是 | 引用前以 Appendix 为权威，并标差异 |
 
-#### A.3 结论-证据映射草案（补充 / 替换 / 新增）
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 反证或限制 | 结论强度 | 允许用途 |
 |---|---|---|---|---|---|---|---|---|
-| clm-树-type | C01 | 本文样本单位是 原始研究 (N=395)；维度树是“RQ 驱动的维度森林”，4 棵主子树 + 2 棵 meta 子树；通用六叶仅作跨论文投影。 | 树类型（tree_type） | 根节点 + RQ1..4 + meta-A/B | EV-001, EV-002 | -- | strong | verified |
-| clm-arch-trend | C02 | 2020–2024.01 期间架构选择从 仅编码器（encoder-only） 主导漂移到 仅解码器（decoder-only） 主导（仅解码器（decoder-only） 在 2023 占 70.7%，2024.01 占 64.17%）。 | statistical_observation | leaf.architecture + edge.architecture_year | EV-003 | 时间截止 2024-01-31，之后未追踪 | strong | verified |
-| clm-input-token | C03 | 在 355 篇显式声明 input form 的论文中，token-based 占 97.75%；树/graph/pixel/混合（混合） 合计 < 2.3%。 | statistical_observation | leaf.input_form | EV-004 | 仅显式声明者；显式声明 vs 全部之比为 355/395 | strong | verified |
-| clm-工业（industrial）-缺口（gap） | C04 | 在 374 篇显式声明 数据集 的论文中，工业（industrial） 仅 6 篇（≈1.6%），构成学术-工业错位的实证证据。 | 候选发现（candidate_finding） | leaf.data_source | EV-004 | 仅 LLM4SE 当前样本；safety-critical 子域可能 工业（industrial） 比例更高 | strong | verified |
-| clm-sdlc-skew | C05 | LLM4SE 严重偏 development + maintenance（task-instance 占比 ≈ 79.4%），RE / design / management 合计 ≈ 5.5%；verification 仅 5 篇。 | statistical_observation + 候选发现（candidate_finding） | leaf.sdlc_phase + leaf.specific_task | EV-006 | 百分比为 task-instance 口径，与 paper 计数 不同 | strong | verified |
-| clm-指标-skew | C06 | 评价指标体系高度偏向生成任务（19 指标, 338 instances）；回归 仅 1 instance，提示评价空间稀疏 + 任务定义偏置。 | statistical_observation | leaf.metric_by_problem_type + edge.problem_metric | EV-005 | 指标 与 problem_type 强耦合，迁移到 STM/形式化任务需重定义 | strong | verified |
-| clm-mig-方法 | C07 | 可迁移到 Paper2 的内容是方法学结构（RQ-字段合同、QGS 脚手架、Appendix-source-anchor、RQ summary box），**不是**任何 LLM4SE 领域结论。 | migration_boundary | 根节点 + edge.rq_fields + edge.paper_anchor | EV-002, EV-005, EV-007 | -- | strong | verified |
+| clm-树-type | C01 | 本文样本单位是 原始研究 (N=395)；维度树是“RQ 驱动的维度森林”，4 棵主子树 + 2 棵 meta 子树；通用六叶仅作跨论文投影。 | 树类型（tree_type） | 根节点 + RQ1..4 + meta-A/B | EV-001, EV-002 | -- | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-arch-trend | C02 | 2020–2024.01 期间架构选择从 仅编码器（encoder-only） 主导漂移到 仅解码器（decoder-only） 主导（仅解码器（decoder-only） 在 2023 占 70.7%，2024.01 占 64.17%）。 | statistical_observation | leaf.architecture + edge.architecture_year | EV-003 | 时间截止 2024-01-31，之后未追踪 | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-input-token | C03 | 在 355 篇显式声明 input form 的论文中，token-based 占 97.75%；树/graph/pixel/混合（混合） 合计 < 2.3%。 | statistical_observation | leaf.input_form | EV-004 | 仅显式声明者；显式声明 vs 全部之比为 355/395 | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-工业（industrial）-缺口（gap） | C04 | 在 374 篇显式声明 数据集 的论文中，工业（industrial） 仅 6 篇（≈1.6%），构成学术-工业错位的实证证据。 | 候选发现（candidate_finding） | leaf.data_source | EV-004 | 仅 LLM4SE 当前样本；safety-critical 子域可能 工业（industrial） 比例更高 | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-sdlc-skew | C05 | LLM4SE 严重偏 development + maintenance（task-instance 占比 ≈ 79.4%），RE / design / management 合计 ≈ 5.5%；verification 仅 5 篇。 | statistical_observation + 候选发现（candidate_finding） | leaf.sdlc_phase + leaf.specific_task | EV-006 | 百分比为 task-instance 口径，与 paper 计数 不同 | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-指标-skew | C06 | 评价指标体系高度偏向生成任务（19 指标, 338 instances）；回归 仅 1 instance，提示评价空间稀疏 + 任务定义偏置。 | statistical_observation | leaf.metric_by_problem_type + edge.problem_metric | EV-005 | 指标 与 problem_type 强耦合，迁移到 STM/形式化任务需重定义 | 历史草稿旧强度（当前禁止采信） | verified |
+| clm-mig-方法 | C07 | 可迁移到 Paper2 的内容是方法学结构（RQ-字段合同、QGS 脚手架、Appendix-source-anchor、RQ summary box），**不是**任何 LLM4SE 领域结论。 | migration_boundary | 根节点 + edge.rq_fields + edge.paper_anchor | EV-002, EV-005, EV-007 | -- | 历史草稿旧强度（当前禁止采信） | verified |
 | clm-制品-conflict | C08 | 制品 URL 在正文与 metadata 之间冲突；在外部核验前不得作既定事实，需保留两条候选并标 `requires_external_verification`。 | source_anchor_risk | edge.paper_anchor | EV-008 | -- | weak | 候选发现（candidate_finding） |
 | clm-internal-inconsistency | C09 | 该 SLR 正文叙述与 Appendix 表格在两处存在数字不一致（software-repo "Code 仓库" 计数；ScienceDirect 检索分母）；引用须以 Appendix 为权威并显式标差异。 | risk_only | meta-B + leaf.data_type | EV-009 | -- | weak | 候选发现（candidate_finding） |
-| clm-rq4-denominator | C10 | RQ4 中 “task-instance 计数”（Table 10/Fig. 10a 的 247 / 56.65%）与 “paper 计数”（RQ4 Summary 的 229 papers）必须分列；混用会导致百分比错误。 | risk_only | leaf.specific_task + leaf.sdlc_phase | EV-006 | -- | strong | verified |
+| clm-rq4-denominator | C10 | RQ4 中 “task-instance 计数”（Table 10/Fig. 10a 的 247 / 56.65%）与 “paper 计数”（RQ4 Summary 的 229 papers）必须分列；混用会导致百分比错误。 | risk_only | leaf.specific_task + leaf.sdlc_phase | EV-006 | -- | 历史草稿旧强度（当前禁止采信） | verified |
 | clm-威胁-shallow | C11 | 该文 威胁 较规范，但未公开 coder agreement、conflict resolution log、模式 revision history；Paper2 若主打 audit-first，应在此基础上更强。 | 候选发现（candidate_finding） | EV-007 | EV-007 | 不能据此否定该文质量 | weak | 候选发现（candidate_finding） |
-| clm-statistical-pool | C12 | 该文具备主统计池资格（systematic_review + 显式分母 + QAC + Appendix anchor）；A1-DT 阶段叶子层已可升级为 verified，建议 metadata.json 的 `eligible_for_statistical_synthesis=true` 在 A2a 后正式生效。 | eligibility_decision | 根节点 + EV-001..007 | EV-001..007 | 个别字段仍 `requires_pdf` | strong | verified |
+| clm-statistical-pool | C12 | 该文具备主统计池资格（systematic_review + 显式分母 + QAC + Appendix anchor）；A1-DT 阶段叶子层已可升级为 verified，建议 metadata.json 的 `eligible_for_statistical_synthesis=true` 在 A2a 后正式生效。 | eligibility_decision | 根节点 + EV-001..007 | EV-001..007 | 个别字段仍 `requires_pdf` | 历史草稿旧强度（当前禁止采信） | verified |
 
 ---
 

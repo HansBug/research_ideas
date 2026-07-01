@@ -21,7 +21,7 @@
 | 文献分母 | 3,176 条 筛查 记录；最终纳入 58 个研究 提案 |
 | 实践分母 | Gartner Magic Quadrant 2023 中 17 个 enterprise low-code application platform；7 个工具文档中找到 15 个 建模辅助 提案 |
 | 核心产物 | 策略 / 目标 / 限制 / 指标 / 目标用户 五棵维度树，外加 文献侧与实践侧 对照 |
-| 对 Project1 的价值 | 与 LLM4Modeling / STM generation 高度贴近：可直接迁移为“状态机建模 assistant”维度骨架，尤其适合抽取 assistant 策略、目标、限制、指标、目标用户字段 |
+| 对 Project1 的价值 | 与 LLM4Modeling / STM generation 高度贴近：历史草稿曾提出迁移建议；当前禁止直接采信为“状态机建模 assistant”维度骨架，尤其适合抽取 assistant 策略、目标、限制、指标、目标用户字段 |
 | 对 Paper2 的价值 | 是 A1-M1 脚手架强样本：展示如何从系统映射中形成可执行字段树、如何把统计观察转成候选 finding，以及为什么 限制 / 指标 / 目标用户缺失本身应成为 证据字段 |
 | 主要风险 | 原文依赖作者术语聚类；tool/method/framework 等边界主观；实践侧只看公开文档和 GMQ；对 AI/LLM 的论述主要是未来判断，不是实证结果；Table 3 中 限制 数量口径存在“五类/六类”不一致，需复核 |
 
@@ -436,6 +436,8 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 
 ### 3. 原生样本编码维度树（维度森林）
 
+> 中文化导读：本维度森林描述的是模型驱动软件工程建模助手综述如何同时编码文献侧方案和实践侧工具。第一棵树关注策略、目标、限制、指标和目标用户；第二棵树把实践文档映射到同一组维度，并外接 Gartner 魔力象限类别和文档可得性。UML、MDSE、MDE、ISO、Likert 等英文保留为原文领域名词、标准或量表名称；中文节点用于说明它们在样本编码中的功能。可迁移的是“文献侧—实践侧双树投影”和“限制聚类口径冲突需要单独列为待核验叶子”。
+
 下面是按本文 §3.5 + §4.2/§4.3/§4.4 + Table 2/3/4 + §5 实际还原的**原生编码模式**（替代 review.md 当前那六叶通用接口主树）：
 
 ```text
@@ -624,7 +626,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 **I（important，影响证据链可读性与下游 模式 迁移）：**
 
 - **I1**：§4.3 文中 “five 限制 聚类” 与 Table 3 “L1–L6” 的口径冲突应在 A.2 中作为单独 证据 行登记（建议 `EV-mdse-modelling-assistants-mapping-006`），强度=`not_verified`，并列入 A2a 必须 PDF + Zenodo 复核任务。
-- **I2**：当前 A.2 把 5 条 证据 全部标 `not_verified`，但 §3.5 / §4.1 / §4.2 / §4.4 / §5.2 文本级证据强度应至少升级为 `文本已核验（text_verified）`（仅图表数字、bubble 半径与 §4.3 限制 计数 保持 `not_verified`）。否则 A.3 推不出任何 `模式种子（schema_seed）` 以上的结论。
+- **I2**：当前 A.2 把 5 条 证据 全部标 `not_verified`，但 §3.5 / §4.1 / §4.2 / §4.4 / §5.2 文本级证据强度应至少升级为 `历史草稿旧强度（当前禁止采信）`（仅图表数字、bubble 半径与 §4.3 限制 计数 保持 `not_verified`）。否则 A.3 推不出任何 `模式种子（schema_seed）` 以上的结论。
 - **I3**：缺失语义编码 `L-NS / NE / U-NS / NF` 是本文一等字段，应在叶子维度表中单独列出，而非合并在叶子定义里；当前 review.md 把它们隐入 `not_specified` 自由文本，下游 模式 迁移容易丢。
 - **I4**：当前 A.2 / A.3 没有为 [B-交叉轴]（Fig. 5/6/11/12/13）建独立证据行；§6 交叉轴 是本文 发现 的主要来源，必须有专属 证据 + 关系边 claim。
 - **I5**：当前 SUMMARY 表“样本数量 / 分母 = 58 提案 / 3,176 记录 / 17 工具”应改为“提案=58 / 实践_tools=17（D=7 / NF=10）/ 实践_提案=15 / 记录_筛查=3,176 / K_inclusion=0.634 / K_聚类=0.651”，把 K 一并显化。
@@ -637,38 +639,40 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 - **M3**：将 Zenodo `10262145` 与 GMQ 2023 URL 在 A.1 中作为独立 src 行登记，便于 A2a 自动化抓取。
 - **M4**：CCF 等级、IST OA 状态、`paper.pdf` 视觉核验是否完成，建议在 0 卡片末单独列“尚未做的最小动作清单”，避免 reviewer 误以为已完成。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案（中文表头）
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-mma-001 | paper_content.txt, bibtex.bib | §1 引言（Introduction）（Page 1）+ Abstract | abstract; “Modelling assistance is the 策略…that aims to assist humans during software 建模任务 in MDSE 工具.” | 给出 建模辅助 定义和 MDSE/低代码边界 | scope_definition | 文本已核验（text_verified） | B-元数据, ROOT, `leaf.strategy_cluster` | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
-| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | 文本已核验（text_verified） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-限制-报告方式, leaf-评价-status, leaf-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
-| EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | 语料 流程管线 + inter-rater | corpus_pipeline | 文本已核验（text_verified）（图 3 视觉待核） | `leaf.quality_score`, leaf-kappa-inclusion, leaf-kappa-聚类, `leaf.replication_link`, B-元数据 | true（Fig. 3 视觉） | 仅本文样本池 |
-| EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 聚类 + 比例 + 93.1 % 软件实现 | 分类法_with_distribution | 文本已核验（text_verified）（图 4 数字待核） | `leaf.strategy_cluster`, leaf-策略-subtype, leaf-软件实现 | true（Fig. 4 视觉） | 单标签 聚类 风险 |
-| EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G 聚类 + “five 限制 聚类”（prose）/ Table 3 列 L1–L6 + L-NS | 分类法 + 口径冲突 | 文本已核验且存在内部冲突（文本已核验但存在内部冲突（text_verified_with_internal_conflict）） | `leaf.goal_cluster`, leaf-create-refine-role, leaf-限制-报告方式, `leaf.limitation_cluster` | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
-| EV-mma-006 | paper_content.txt | §4.4 + Table 4 + Fig. 6（Page 9–10） | 3 M + 3 U + NE/U-NS + 频次 | 分类法 + 缺失性 | 文本已核验（text_verified）（图 6 数字待核） | leaf-评价-status, `leaf.metric_cluster`, leaf-指标-subtype, `leaf.user_cluster` | true（Fig. 6 视觉） | 一 提案 可多 指标，注意多标签 |
-| EV-mma-007 | paper_content.txt | §5.1/§5.2 + Table 5 + Fig. 8/9/10（Page 10–13） | 17 GMQ 工具 → 10 NF + 7 D → 15 提案；第二人称“你” 隐藏 用户 | 实践_projection + 缺失性 | 文本已核验（text_verified）（Fig. 9/10 视觉与 vendor URL 待核） | B-RQ4-实践, `leaf.documentation_status`, `leaf.gmq_class`, leaf-第二人称-hidden | true | grey-文献 局限于 GMQ；vendor URL 当前状态未复核 |
-| EV-mma-008 | paper_content.txt | §6 + Fig. 11/12/13（Page 13–14） | 策略×目标×限制；目标×指标×用户；lit vs 实践 | cross_axis_relations | 文本已核验（text_verified）（bubble 视觉待核） | 关系边-策略-目标, 关系边-策略-限制, 关系边-目标-指标, 关系边-目标-用户, 关系边-文献-实践 | true | bubble 半径 = 计数，单 提案 单 聚类 |
-| EV-mma-009 | paper_content.txt | §7.1–§7.3（Page 15） | selection / 抽取 / subjective interpretation / inter-rater / 灰色文献 / search / 语言偏倚 | validity_threats | 文本已核验（text_verified） | B-效度, terminology_basis | 否 | 缓解 ≠ 消除；数据抽取 K 未算 |
-| EV-mma-010 | paper_content.txt | §8（Page 15–17） + Fig. 14/15 | future 框架 + AI/LLM disruption + Zenodo 10262145 | future_work_候选发现 | 文本已核验（text_verified）（视觉待核） | 候选发现 (B/C/D) | true | AI/LLM disruption=expectation，不是结果 |
+| EV-mma-001 | paper_content.txt, bibtex.bib | §1 引言（Introduction）（Page 1）+ Abstract | abstract; “Modelling assistance is the 策略…that aims to assist humans during software 建模任务 in MDSE 工具.” | 给出 建模辅助 定义和 MDSE/低代码边界 | scope_definition | 历史草稿旧强度（当前禁止采信） | B-元数据, ROOT, `leaf.strategy_cluster` | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
+| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | 历史草稿旧强度（当前禁止采信） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-限制-报告方式, leaf-评价-status, leaf-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
+| EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | 语料 流程管线 + inter-rater | corpus_pipeline | 历史草稿旧强度（当前禁止采信）（图 3 视觉待核） | `leaf.quality_score`, leaf-kappa-inclusion, leaf-kappa-聚类, `leaf.replication_link`, B-元数据 | true（Fig. 3 视觉） | 仅本文样本池 |
+| EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 聚类 + 比例 + 93.1 % 软件实现 | 分类法_with_distribution | 历史草稿旧强度（当前禁止采信）（图 4 数字待核） | `leaf.strategy_cluster`, leaf-策略-subtype, leaf-软件实现 | true（Fig. 4 视觉） | 单标签 聚类 风险 |
+| EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G 聚类 + “five 限制 聚类”（prose）/ Table 3 列 L1–L6 + L-NS | 分类法 + 口径冲突 | 历史草稿旧强度（当前禁止采信，且存在内部冲突） | `leaf.goal_cluster`, leaf-create-refine-role, leaf-限制-报告方式, `leaf.limitation_cluster` | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
+| EV-mma-006 | paper_content.txt | §4.4 + Table 4 + Fig. 6（Page 9–10） | 3 M + 3 U + NE/U-NS + 频次 | 分类法 + 缺失性 | 历史草稿旧强度（当前禁止采信）（图 6 数字待核） | leaf-评价-status, `leaf.metric_cluster`, leaf-指标-subtype, `leaf.user_cluster` | true（Fig. 6 视觉） | 一 提案 可多 指标，注意多标签 |
+| EV-mma-007 | paper_content.txt | §5.1/§5.2 + Table 5 + Fig. 8/9/10（Page 10–13） | 17 GMQ 工具 → 10 NF + 7 D → 15 提案；第二人称“你” 隐藏 用户 | 实践_projection + 缺失性 | 历史草稿旧强度（当前禁止采信）（Fig. 9/10 视觉与 vendor URL 待核） | B-RQ4-实践, `leaf.documentation_status`, `leaf.gmq_class`, leaf-第二人称-hidden | true | grey-文献 局限于 GMQ；vendor URL 当前状态未复核 |
+| EV-mma-008 | paper_content.txt | §6 + Fig. 11/12/13（Page 13–14） | 策略×目标×限制；目标×指标×用户；lit vs 实践 | cross_axis_relations | 历史草稿旧强度（当前禁止采信）（bubble 视觉待核） | 关系边-策略-目标, 关系边-策略-限制, 关系边-目标-指标, 关系边-目标-用户, 关系边-文献-实践 | true | bubble 半径 = 计数，单 提案 单 聚类 |
+| EV-mma-009 | paper_content.txt | §7.1–§7.3（Page 15） | selection / 抽取 / subjective interpretation / inter-rater / 灰色文献 / search / 语言偏倚 | validity_threats | 历史草稿旧强度（当前禁止采信） | B-效度, terminology_basis | 否 | 缓解 ≠ 消除；数据抽取 K 未算 |
+| EV-mma-010 | paper_content.txt | §8（Page 15–17） + Fig. 14/15 | future 框架 + AI/LLM disruption + Zenodo 10262145 | future_work_候选发现 | 历史草稿旧强度（当前禁止采信）（视觉待核） | 候选发现 (B/C/D) | true | AI/LLM disruption=expectation，不是结果 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
 | C-mma-01 | 本文真正的 A1-DT 维度森林由 5 字段树（策略 / 目标 / 限制 / 指标 / 目标用户）+ 实践投影 + 交叉轴 关系 + 效度 组成；不是六叶通用接口。 | 树类型（tree_type） | ROOT, B-RQ1..4, B-交叉轴, B-效度 | EV-mma-002, 004, 005, 006, 007, 008 | strong（模式 级） | review.md 主结构、SUMMARY 行 | 单标签 聚类 + 作者术语 聚类 必须随用 |
-| C-mma-02 | 样本单位是 提案（n=58）+ 工具（n=17，含 15 实践 提案）的双层 模式；分母与 K 都已显化。 | sampling_unit | B-元数据, B-RQ4 | EV-mma-003, 007 | strong | SUMMARY、统计池资格 | grey-文献 仅限 GMQ |
-| C-mma-03 | RQ1 策略 是完整封闭 6-聚类 单标签编码；93.1 % 软件实现。 | closed_enum + distribution | `leaf.strategy_cluster`, leaf-软件实现 | EV-mma-004 | strong | 可作 模式种子（schema_seed） 统计 | 单标签压扁混合系统 |
-| C-mma-04 | RQ2-G 是完整封闭 7-聚类 单标签编码；可派生 create/refine 三分（31.0/43.1/25.9 %）。 | closed_enum + derived | `leaf.goal_cluster`, leaf-create-refine-role | EV-mma-005 | strong | 可作 模式种子（schema_seed） 统计 | G3/G7 单 提案 稀疏 |
+| C-mma-02 | 样本单位是 提案（n=58）+ 工具（n=17，含 15 实践 提案）的双层 模式；分母与 K 都已显化。 | sampling_unit | B-元数据, B-RQ4 | EV-mma-003, 007 | 历史草稿旧强度（当前禁止采信） | SUMMARY、统计池资格 | grey-文献 仅限 GMQ |
+| C-mma-03 | RQ1 策略 是完整封闭 6-聚类 单标签编码；93.1 % 软件实现。 | closed_enum + distribution | `leaf.strategy_cluster`, leaf-软件实现 | EV-mma-004 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计 | 单标签压扁混合系统 |
+| C-mma-04 | RQ2-G 是完整封闭 7-聚类 单标签编码；可派生 create/refine 三分（31.0/43.1/25.9 %）。 | closed_enum + derived | `leaf.goal_cluster`, leaf-create-refine-role | EV-mma-005 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计 | G3/G7 单 提案 稀疏 |
 | C-mma-05 | RQ2-L 聚类 总数在原文内部存在 “five (§4.3 prose)” vs “L1–L6 (Table 3)” 冲突，必须保留 `not_verified` 直到 A2a 复核。 | internal_inconsistency | `leaf.limitation_cluster` | EV-mma-005 | weak | 候选发现 不可作 final | 必须 A2a PDF + Zenodo 复核 |
-| C-mma-06 | RQ3-M 聚类 是 3-聚类 TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 评价 缺口（gap）。 | closed_enum + 缺失性 | leaf-评价-status, `leaf.metric_cluster` | EV-mma-006 | strong | 可作 模式种子（schema_seed） 统计；可作方法学警示 | 不可直接外推 LLM4STM 缺口（gap） 数字 |
-| C-mma-07 | RQ3-U 聚类 是 3-聚类 单标签 + U-NS；U-NS=29.3 %、实践 73.3 %；实践 U-NS 由 第二人称“你” 触发是 §5.2 显式机制。 | closed_enum + 缺失性 + mechanism | `leaf.user_cluster`, leaf-用户-报告方式, leaf-第二人称-hidden | EV-mma-006, 007 | strong | 可作 模式种子（schema_seed） 统计 | 不外推领域比例 |
-| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `leaf.documentation_status`, B-效度 | EV-mma-007, 009 | strong | 直接迁移到 Paper2 / Project1 | grey-文献 局限 |
+| C-mma-06 | RQ3-M 聚类 是 3-聚类 TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 评价 缺口（gap）。 | closed_enum + 缺失性 | leaf-评价-status, `leaf.metric_cluster` | EV-mma-006 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计；可作方法学警示 | 不可直接外推 LLM4STM 缺口（gap） 数字 |
+| C-mma-07 | RQ3-U 聚类 是 3-聚类 单标签 + U-NS；U-NS=29.3 %、实践 73.3 %；实践 U-NS 由 第二人称“你” 触发是 §5.2 显式机制。 | closed_enum + 缺失性 + mechanism | `leaf.user_cluster`, leaf-用户-报告方式, leaf-第二人称-hidden | EV-mma-006, 007 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计 | 不外推领域比例 |
+| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `leaf.documentation_status`, B-效度 | EV-mma-007, 009 | 历史草稿旧强度（当前禁止采信） | 直接迁移到 Paper2 / Project1 | grey-文献 局限 |
 | C-mma-09 | AI/LLM disruption 与 unified 框架 论述是 future expectation，不是字段统计的 最终发现。 | 候选发现 | §8 论述 | EV-mma-010 | weak | review.md / SUMMARY 只能写 candidate | 与原文 RQ 抽取数据不直接挂钩 |
 | C-mma-10 | 交叉轴（策略×目标×限制；目标×指标×用户；lit vs 实践）是本文 发现 的主要候选来源，但需 PDF 复核 bubble 半径数字。 | relation_发现 | 关系边-* | EV-mma-008 | medium | 可作 候选发现 | bubble 数字 PDF 待核 |
-| C-mma-11 | terminology bias + subjective 聚类 + 数据抽取 K 未算 + 灰色文献 limited to GMQ + English-only：5 条 效度 边界必须随 模式 一起迁移。 | migration_boundary | B-效度 | EV-mma-009 | strong | review.md 迁移边界 + Paper2 启发 | 缓解不等于消除 |
+| C-mma-11 | terminology bias + subjective 聚类 + 数据抽取 K 未算 + 灰色文献 limited to GMQ + English-only：5 条 效度 边界必须随 模式 一起迁移。 | migration_boundary | B-效度 | EV-mma-009 | 历史草稿旧强度（当前禁止采信） | review.md 迁移边界 + Paper2 启发 | 缓解不等于消除 |
 
 ### 9. 技能使用与自我审查记录
 

@@ -320,6 +320,8 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 
 #### 3. 原生样本编码维度树/维度森林
 
+> 中文化导读：本维度树复原的是二次研究中研究制品可获取性、可复现性和报告完整性的编码方式。它服务于 Paper2 对证据链和过程制品的设计，而不是直接给出领域技术结论。英文文件名、数据包名和制品类型保留为可复验锚点；中文节点用于说明制品在综述证据链中的角色、缺失语义和复用边界。可迁移的是“把制品状态纳入维度树并与可复现性 claim 绑定”的做法。
+
 本文是**单树**结构，非维度森林。每个样本单位（二次研究）被编码为一条记录，共享同一套字段。字段分属三个主干节点。
 
 ```text
@@ -413,11 +415,11 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 | 65 / 169（38.5%）的含 制品 论文使用永久仓库+DOI；即全体 537 篇的 12.1% | Table 1(a)/(b) | strong（直接计数） |
 | 22 / 537（4.1%）的论文链接已失效 | Table 1(a) | moderate（链接检查时间点未记录） |
 | 16 / 537（3.0%）的论文声称 制品 "upon request" | Table 1(a) | strong（直接计数） |
-| 2023 年 制品 可获得性 升至 62.0%（49/79） | Table 1(b) | strong |
-| 2023 年 permanent 仓库 使用率升至 30.4%（24/79） | Table 1(b) | strong |
-| 2023 年 dedicated section 拥有率升至 58.2%（46/79） | Table 1(b) | strong |
+| 2023 年 制品 可获得性 升至 62.0%（49/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
+| 2023 年 permanent 仓库 使用率升至 30.4%（24/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
+| 2023 年 dedicated section 拥有率升至 58.2%（46/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
 | Publication year 是 制品 可获得性 的显著预测因子（有序因子, odds ratio = 2.31 per 3 years, p < 0.001） | Table 1(c) | strong（模型已报告） |
-| 部分期刊（CS Review, SP&E, JSEP, IST）的 制品 可获得性 显著低于 参照类别（IEEE TSE） | Table 1(c) | strong |
+| 部分期刊（CS Review, SP&E, JSEP, IST）的 制品 可获得性 显著低于 参照类别（IEEE TSE） | Table 1(c) | 历史草稿旧强度（当前禁止采信） |
 
 ##### 6.2 原文 discussion/推荐 提出的候选发现
 
@@ -503,35 +505,37 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 
 ---
 
-#### 8. 审计附录草案：证据账本与结论映射
+#### 8. 历史审计草案归档（禁止消费为事实真源）
 
-##### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+##### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-001 | paper_content.txt / paper.pdf | §2.1 Search 流程 | "resulting in 643 articles" | 初始检索得到 643 篇文章 | 样本池来源 | strong | [dim-根节点] 样本数量 | 否（文本明确） | Scopus 单一数据库，SE 期刊限定 |
-| EV-002 | paper_content.txt / paper.pdf | §2.2 Study selection | "After applying the 纳入标准, 537 二次研究 remained" | 经 IC1–IC3 筛选后 537 篇纳入 | 样本池数量确认 | strong | [dim-根节点] 样本数量 | 否 | 排除 conference proceedings |
-| EV-003 | paper_content.txt / paper.pdf | §2.2 | "Krippendorff's Alpha ... 0.776 on a 95% confidence interval" | 评定者间一致性为 0.776（强一致） | 编码质量代理 | strong | [dim-根节点] 编码可靠性 | 否 | 仅一人工作时间段的 agreement |
-| EV-004 | paper_content.txt / paper.pdf | §2.3 数据抽取（数据抽取） | "two rounds: (1) manually and (2) automatically" | 两轮数据抽取：人工全文 + 自动关键词 | 编码方案描述 | strong | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 否 | 未描述具体 keyword list |
-| EV-005 | paper.pdf (Table 1a) | Table 1(a) | "Total 537, 是 169 (31.5%), 永久仓库（Permanent repo） 65 of 169 (38.5%), 否 330 (61.5%), By Request 16 (3.0%), Dead Link 22 (4.1%)" | 制品可获得性的全表统计 | 核心统计事实 | strong | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-link] 链接是否失效 | 是（永久仓库（Permanent repo） 百分比分母需视觉确认） | SE 领域限定 |
-| EV-006 | paper.pdf (Table 1b) | Table 1(b) | "2023: 是 49 (62.0%), 永久仓库（Permanent repo） 24 (30.4%), 专门数据可获得性章节（Dedicated section） 46 (58.2%)" | 2023 年度细分统计 | 年度趋势事实 | strong | [leaf-year] 发表年份, [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 是（行排列对齐需确认） | 仅 2013–2023 |
-| EV-007 | paper.pdf (Table 1c) | Table 1(c) | "Year (Ordered factor): 系数（Coef） 0.84, 标准误（Std.E） 0.12, z 值（z value） 7.21, p = 5.79e-13, 优势比（Odds ratio） = 2.31" | 出版年份显著预测 制品 可获得性 | 统计建模事实 | strong | [leaf-回归] 逻辑回归系数, [leaf-year] 发表年份 → [leaf-availability] 是否有研究制品 | 否（数字明确） | 期刊限定、参照类别 = IEEE TSE |
+| EV-001 | paper_content.txt / paper.pdf | §2.1 Search 流程 | "resulting in 643 articles" | 初始检索得到 643 篇文章 | 样本池来源 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 样本数量 | 否（文本明确） | Scopus 单一数据库，SE 期刊限定 |
+| EV-002 | paper_content.txt / paper.pdf | §2.2 Study selection | "After applying the 纳入标准, 537 二次研究 remained" | 经 IC1–IC3 筛选后 537 篇纳入 | 样本池数量确认 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 样本数量 | 否 | 排除 conference proceedings |
+| EV-003 | paper_content.txt / paper.pdf | §2.2 | "Krippendorff's Alpha ... 0.776 on a 95% confidence interval" | 评定者间一致性为 0.776（强一致） | 编码质量代理 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 编码可靠性 | 否 | 仅一人工作时间段的 agreement |
+| EV-004 | paper_content.txt / paper.pdf | §2.3 数据抽取（数据抽取） | "two rounds: (1) manually and (2) automatically" | 两轮数据抽取：人工全文 + 自动关键词 | 编码方案描述 | 历史草稿旧强度（当前禁止采信） | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 否 | 未描述具体 keyword list |
+| EV-005 | paper.pdf (Table 1a) | Table 1(a) | "Total 537, 是 169 (31.5%), 永久仓库（Permanent repo） 65 of 169 (38.5%), 否 330 (61.5%), By Request 16 (3.0%), Dead Link 22 (4.1%)" | 制品可获得性的全表统计 | 核心统计事实 | 历史草稿旧强度（当前禁止采信） | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-link] 链接是否失效 | 是（永久仓库（Permanent repo） 百分比分母需视觉确认） | SE 领域限定 |
+| EV-006 | paper.pdf (Table 1b) | Table 1(b) | "2023: 是 49 (62.0%), 永久仓库（Permanent repo） 24 (30.4%), 专门数据可获得性章节（Dedicated section） 46 (58.2%)" | 2023 年度细分统计 | 年度趋势事实 | 历史草稿旧强度（当前禁止采信） | [leaf-year] 发表年份, [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 是（行排列对齐需确认） | 仅 2013–2023 |
+| EV-007 | paper.pdf (Table 1c) | Table 1(c) | "Year (Ordered factor): 系数（Coef） 0.84, 标准误（Std.E） 0.12, z 值（z value） 7.21, p = 5.79e-13, 优势比（Odds ratio） = 2.31" | 出版年份显著预测 制品 可获得性 | 统计建模事实 | 历史草稿旧强度（当前禁止采信） | [leaf-回归] 逻辑回归系数, [leaf-year] 发表年份 → [leaf-availability] 是否有研究制品 | 否（数字明确） | 期刊限定、参照类别 = IEEE TSE |
 | EV-008 | paper_content.txt | §5 / Discussion | "2 out of 19 links to non-permanent 仓库 are already dead" (2023 年) | 2023 年仍有 dead link | 链接可靠性证据 | moderate | [leaf-link] 链接是否失效 | 否 | 样本量小（n=19 for 2023 non-permanent） |
 | EV-009 | paper_content.txt | §5 / Discussion | "some papers with their '数据可获得性（Data Availability）' section simply state that 'no data was used'" | 部分含 dedicated section 的论文声称无数据 | 数据可用性声明质量问题 | weak（定性提及，未量化频次） | [leaf-section] 是否有专门数据可获得性章节 的质量侧面 | 否 | 频次未知 |
-| EV-010 | paper_content.txt | §2.1 | ISSN list: 0928-8910, 1382-3256, ..., 1574-0137（15 个） | 检索限定的 15 个期刊 ISSN | venue 范围证据 | strong | [leaf-venue] 发表期刊 / 发表源 | 否 | SE 期刊限定，排除 conference |
-| EV-011 | metadata.json | metadata.json | "Zenodo DOI: 10.5281/zenodo.15488074" | 本文自身的研究工件位置 | 可复现性证据 | strong | 全部维度树——逐篇原始数据在 Zenodo | N/A（需下载 Zenodo） | 当前 A1-DT 未访问 |
-| EV-012 | bibtex.bib | bibtex.bib | "journal = {Information and Software 技术}, volume = {187}, pages = {107830}" | IST 正式出版信息 | 出版事实确认 | strong | 论文元数据 | 否 | — |
+| EV-010 | paper_content.txt | §2.1 | ISSN list: 0928-8910, 1382-3256, ..., 1574-0137（15 个） | 检索限定的 15 个期刊 ISSN | venue 范围证据 | 历史草稿旧强度（当前禁止采信） | [leaf-venue] 发表期刊 / 发表源 | 否 | SE 期刊限定，排除 conference |
+| EV-011 | metadata.json | metadata.json | "Zenodo DOI: 10.5281/zenodo.15488074" | 本文自身的研究工件位置 | 可复现性证据 | 历史草稿旧强度（当前禁止采信） | 全部维度树——逐篇原始数据在 Zenodo | N/A（需下载 Zenodo） | 当前 A1-DT 未访问 |
+| EV-012 | bibtex.bib | bibtex.bib | "journal = {Information and Software 技术}, volume = {187}, pages = {107830}" | IST 正式出版信息 | 出版事实确认 | 历史草稿旧强度（当前禁止采信） | 论文元数据 | 否 | — |
 
-##### A.3 结论-证据映射草案
+##### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-01 | 本文的维度树是单树、三主干结构（上下文 / 制品可获得性 / 统计建模） | 维度树分类 | [dim-根节点], [节点-ctx] 上下文元数据, [节点-artifact] 研究制品可获得性, [节点-model] 统计建模输出 | EV-004, EV-005, EV-006, EV-007 | strong | 直接写入 review.md 的维度树复原 | 正文未呈现逐篇编码表的全部字段；Zenodo 工件可能补充额外叶子 |
-| CLM-02 | 样本单位是每篇 二次研究 (n=537)，不是 研究制品 | 样本单位判定 | [dim-根节点] | EV-001, EV-002 | strong | SUMMARY 表"样本单位"字段修正 | 无 |
-| CLM-03 | 原生维度树不是"六叶通用投影"，review.md 现有 C01–C13 结构需重写 | 审计返修判定 | 全部维度树节点 | EV-004, EV-005, EV-006, EV-007（对比旧版 review.md 的 C01–C13） | strong | C 级返修建议 | 六叶投影在跨论文对齐场景中仍有投影价值，但不能替代本文自身的维度树 |
-| CLM-04 | [leaf-availability] 是否有研究制品 的三个值（是 / 否 / 按请求提供（Yes/No/By Request））与 [leaf-permanent] 是否使用永久仓库 之间存在条件依赖：permanent 仅在 是 时适用 | 叶子间关系 | [leaf-availability] 是否有研究制品 → [leaf-permanent] 是否使用永久仓库 | EV-005（Table 1a 中 永久仓库（Permanent repo） 列为 是 子集） | strong | Paper2 audit asset 表的条件字段设计 | 无 |
+| CLM-01 | 本文的维度树是单树、三主干结构（上下文 / 制品可获得性 / 统计建模） | 维度树分类 | [dim-根节点], [节点-ctx] 上下文元数据, [节点-artifact] 研究制品可获得性, [节点-model] 统计建模输出 | EV-004, EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | 直接写入 review.md 的维度树复原 | 正文未呈现逐篇编码表的全部字段；Zenodo 工件可能补充额外叶子 |
+| CLM-02 | 样本单位是每篇 二次研究 (n=537)，不是 研究制品 | 样本单位判定 | [dim-根节点] | EV-001, EV-002 | 历史草稿旧强度（当前禁止采信） | SUMMARY 表"样本单位"字段修正 | 无 |
+| CLM-03 | 原生维度树不是"六叶通用投影"，review.md 现有 C01–C13 结构需重写 | 审计返修判定 | 全部维度树节点 | EV-004, EV-005, EV-006, EV-007（对比旧版 review.md 的 C01–C13） | 历史草稿旧强度（当前禁止采信） | C 级返修建议 | 六叶投影在跨论文对齐场景中仍有投影价值，但不能替代本文自身的维度树 |
+| CLM-04 | [leaf-availability] 是否有研究制品 的三个值（是 / 否 / 按请求提供（Yes/No/By Request））与 [leaf-permanent] 是否使用永久仓库 之间存在条件依赖：permanent 仅在 是 时适用 | 叶子间关系 | [leaf-availability] 是否有研究制品 → [leaf-permanent] 是否使用永久仓库 | EV-005（Table 1a 中 永久仓库（Permanent repo） 列为 是 子集） | 历史草稿旧强度（当前禁止采信） | Paper2 audit asset 表的条件字段设计 | 无 |
 | CLM-05 | 2023 年 制品 可获得性 升至 62.0%，但这一数字不能迁移到 LLM+状态机领域 | 迁移边界 | [leaf-year] 发表年份 → [leaf-availability] 是否有研究制品 | EV-006 | strong（原文）/ N/A（迁移） | 仅说明迁移边界规则 | SE 领域限定 |
-| CLM-06 | 本文可迁移的是 模式 结构（三主干 + 叶子字段定义），不是任何具体百分比 | 迁移边界 | 全部维度树 | EV-005, EV-006, EV-007 | strong | Paper2 方法设计参考 | 所有数值不可迁移 |
+| CLM-06 | 本文可迁移的是 模式 结构（三主干 + 叶子字段定义），不是任何具体百分比 | 迁移边界 | 全部维度树 | EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 方法设计参考 | 所有数值不可迁移 |
 | CLM-07 | Zenodo 工件（10.5281/zenodo.15488074）待 A2a 检查，可能补充细粒度叶子 | 证据缺口声明 | [dim-根节点] 的完整字段集 | EV-011 | moderate | A2a 精核任务入口 | 当前证据仅限于正文 Table 1 |
 | CLM-08 | 原文未量化 "no data was used" 的频次，该发现不能作为可统计维度 | 证据强度降级 | [leaf-section] 是否有专门数据可获得性章节 的质量侧面 | EV-009 | weak | 标记为"原文定性提及，不可统计" | 频次未知 |
 

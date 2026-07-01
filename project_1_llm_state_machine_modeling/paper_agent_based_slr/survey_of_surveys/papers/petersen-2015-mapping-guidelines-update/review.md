@@ -308,7 +308,7 @@
 | L07 quality_assessment | 是否做 QA | T3.研究_identification | §4.4.3 + Fig.10 + Table B.22 | 是否对 原始研究 做质量评估 | {yes, no} | 布尔 | 不可缺；52 全覆盖 | 14/52 yes; 38/52 no (§4.4.3) | "QA 在 SMS 中并不强制" 的直接证据 | E11, §4.4.3 | -- |
 | L08 data_抽取_reliability | 抽取可靠性策略 | T3.data_抽取_分类 | §4.4.4 + Fig.11 + Table B.23 | 提高 抽取 可靠性的方法 | {识别客观准则, 额外评审者 + 共识, 测试-复测（原字段标识保留于审计附录）} 子集 | 多选 封闭枚举 | 可缺 | 频次见 B.23 | 与 inc/excl 模式相似但 N 更低，揭示薄弱环节 | §4.4.4, Table B.23 | -- |
 | L09 topic_independent_切面（facets） | 主题无关分类 facet | T2.topic_independent | §4.4.4 + Fig.12 + Table B.24 | 该 研究 使用的横向分类维度 | {研究方法, 研究类型, 研究焦点, 贡献类型, 发表源} 子集 | 多选 封闭枚举 | 可缺 (一些 研究 无 facet) | venue=27, research_type=21, research_method=17, 研究_focus=11, contribution_type=6 | 揭示 venue/方法/type 是主流；contribution_type 边缘化 | E4, E11, §4.4.4 | -- |
-| L10 research_type | 研究类型分类 | T2.topic_independent.research_type | Table 7 (§5.1.3) | 单个 原始研究 的研究类型 | {evaluation_research, solution_proposal, validation_research, philosophical_paper, opinion_paper, experience_paper} | 完整封闭枚举 (Wieringa et al. + Table 7 真值表) | 决策表必返回 ≥1 | 真值表精确判定 (T/F over 6 条件) | Table 7 真值表可直接迁移作为 Paper2 编码规则 | E5, Table 7 | research type 真值表对 LLM 智能体 抽取尤其有用 |
+| L10 research_type | 研究类型分类 | T2.topic_independent.research_type | Table 7 (§5.1.3) | 单个 原始研究 的研究类型 | {evaluation_research, solution_proposal, validation_research, philosophical_paper, opinion_paper, experience_paper} | 完整封闭枚举 (Wieringa et al. + Table 7 真值表) | 决策表必返回 ≥1 | 真值表精确判定 (T/F over 6 条件) | Table 7 真值表历史草稿曾提出迁移建议；当前禁止直接采信作为 Paper2 编码规则 | E5, Table 7 | research type 真值表对 LLM 智能体 抽取尤其有用 |
 | L11 research_method | 研究方法 | T2.topic_independent.research_method | §5.1.3 + Fig.19 | 实证方法分类 | {调查（survey）, 案例研究（case_研究）, 受控实验（controlled_experiment）, 行动研究（action_research）, 民族志（ethnography）, 仿真（simulation）, 原型（prototyping）, 数学分析（mathematical_analysis）} | 封闭枚举 + Fig.19 双归属映射 (验证 vs 评价) | -- | 多分类 (一个 方法 可属两类) | Fig.19 给出 方法→research_type 关系边 → 可作完整性约束检查 | E4, Fig.19, §5.1.3 | -- |
 | L12 visualization_types | 可视化类型 | T1.流程 / T3.planning.visualization | Table 3 (RQ4) + Fig.14 + Table B.26 | 研究 用的呈现方式 | {折线图（line）, 饼图（pie）, 柱状图（bar）, 气泡图（bubble）, Venn 图, 热力图（heatmap）} 子集 | 多选 封闭枚举 | 可缺 | bar=22, bubble=23, pie=12, line=2, Venn=3, heatmap=1 (B.26) | heatmap 严重低使用 (1/52) 是潜在 发现 | E7, E11 | -- |
 | L13 validity_分类法 | 效度分类 | T4 | §3.6 + §5.1.5 | 研究 报告的 效度 维度 | {descriptive, theoretical, generalizability_internal, generalizability_external, interpretive, repeatability} | 封闭枚举 (5 类 + repeatability) | 可缺 | 45/52 报告 效度 (B.27) | 暴露 7/52 不报告 → 报告规范缺失 | E8, E11, §5.1.5 | 现代风险 (LLM/服务提供商漂移（provider drift）) 需另立 |
@@ -385,7 +385,7 @@
 |---|---|---|
 | C1 | A1-DT v2 "维度树结构"（review.md line 203–216）仍以单棵树呈现，把 5 个主干强制压成 b1..b5（planning/conducting/报告方式/质量量规/topic-indep dim），实际原文是**4 棵独立树的森林**（抽取 form / 分类切面（分类 facet） / 流程+rubric / 效度），合并破坏 模式 语义。 | 改写为 §3 所示**维度森林**结构，每棵树独立列叶子；标注它们的服务对象不同（编码自己 52 篇 vs. 向后续 研究 推荐）。 |
 | C2 | 叶子维度表（review.md line 218–227）的六个 `leaf-*` 仍是通用六叶（scope/语料/分类法/方法/证据/发现），未升级 Table 3 的 12 个 抽取 items、Fig.12 的 5 个 切面（facets）、Tables 9–13 的 4+1 有序 rubric 为真正的叶子。 | 用本审计 §4 的 14 个叶子（L01..L14）替换通用六叶；明确每个叶子的取值空间类型（封闭枚举 / 真值表 / 有序 / 多选）。 |
-| C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中直接可见的封闭枚举与频次表**，证据强度应升级为 `local_文本已核验（text_verified）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_文本已核验（text_verified）`。 |
+| C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中直接可见的封闭枚举与频次表**，证据强度应升级为 `local_历史草稿旧强度（当前禁止采信）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_历史草稿旧强度（当前禁止采信）`。 |
 | C4 | "原文模式主树（19×3 审计后返修）"（review.md line 249–258）的叶子仍是抽象短语（"field list、map metadata"），未列具体字段名。 | 在该表 "叶子 / 取值空间种子" 列直接写出具体字段名与取值空间，如 `T1.抽取_form: {研究_id:int, year:[2007..2012], 指南: multi∈{10 closed labels}, search_type:{manual|auto|both}, ...}`。 |
 
 #### I（important，影响统计池资格与候选发现 形成）
@@ -406,9 +406,11 @@
 | M3 | 时间字段（如待复核区）使用相对表述（"留待 A2a"），未给出 yyyy-mm-dd hh:mm:ss 时间戳。 | 在更新日志中加 `2026-06-30 hh:mm:ss` 完成时间戳。 |
 | M4 | "A1-M0--M6 元维度贡献"表（line 93–101）仍是跨论文投影解释，应明确标注"非原文 模式"。 | 在该表上方加 callout: "本表是 Paper2 跨论文投影提示，不是本文原生维度树"。 |
 
-### 8. 审计附录草案：A.2 / A.3（可直接迁移到 review.md）
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案（扩展为 8 条；强证据升级为 verified）
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 引用键 | 来源文件 | 原文章节 | 表/图编号 | 释义 | 证据角色 | 证据强度 | 支撑维度节点 | 需 PDF 视觉核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -417,25 +419,25 @@
 | EV-pet15-003 | ev-分类-facets | paper_content.txt | §4.4.4, Fig.12–13 | Fig.12, B.24, B.25 | 5 个 topic-indep facet + 2 个 topic-spec 子项 | 模式 + 计数 | verified | T2 整棵树, L09 | 否 | -- |
 | EV-pet15-004 | ev-research-type-truth-table | paper_content.txt | §5.1.3, Table 7 | Table 7 | research type 6 类 + R1..R6 真值表 | 模式 + decision-table | verified | T2.research_type, L10, R10 | 否 | 6 类闭包仅适于此 facet |
 | EV-pet15-005 | ev-流程-actions | paper_content.txt | §5, Table 5, Table 8 | Table 5, Table 8 | 9 指南 × 30+ activities 比较矩阵；26 actions rubric | 模式 + 关系 | verified | T3 整棵树, R08 | 推荐 PDF 核对 ✓/✗ 符号 | -- |
-| EV-pet15-006 | ev-rubric-有序 | paper_content.txt | §5.4, Tables 9–13, Table 14 | Tables 9–13, 14 | 4+1 有序 rubric + 52 篇分布 | rubric + statistic | local_文本已核验（text_verified） | T3 评分层, L14 | 是（Table 14 数值需复核）| 有序 scale 仅适合 SMS |
-| EV-pet15-007 | ev-appendix-B-relations | paper_content.txt | Appendix B | B.15–B.27 | 逐研究 研究→category 关系边，分母=52 | 关系 + 计数 | local_文本已核验（text_verified） | R01–R05, R07, L01–L13 | 是（频次需复核）| 现代 SE SMS 已不同 |
+| EV-pet15-006 | ev-rubric-有序 | paper_content.txt | §5.4, Tables 9–13, Table 14 | Tables 9–13, 14 | 4+1 有序 rubric + 52 篇分布 | rubric + statistic | local_历史草稿旧强度（当前禁止采信） | T3 评分层, L14 | 是（Table 14 数值需复核）| 有序 scale 仅适合 SMS |
+| EV-pet15-007 | ev-appendix-B-relations | paper_content.txt | Appendix B | B.15–B.27 | 逐研究 研究→category 关系边，分母=52 | 关系 + 计数 | local_历史草稿旧强度（当前禁止采信） | R01–R05, R07, L01–L13 | 是（频次需复核）| 现代 SE SMS 已不同 |
 | EV-pet15-008 | ev-效度-分类法 | paper_content.txt | §3.6, §5.1.5 | -- | 5 类 效度 + repeatability + mitigations | 分类法 | verified | T4 整棵树, L13 | 否 | 未含现代 LLM 风险 |
 | EV-pet15-009 | ev-fig1-flow | paper_content.txt | §3.3, Fig.1 | Fig.1 | 选择流程链 7752→...→52 | statistic | not_verified | FOREST-ROOT 分母 | **是**（文本提取乱序）| -- |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | ID | 结论 | 类型 | 支撑对象 | 支撑证据 | 反证/限制 | 强度 | 允许用途 |
 |---|---|---|---|---|---|---|---|
-| C01 | 本文是 **维度森林**（4 棵独立树），不是单一维度树。 | 树类型（tree_type） | FOREST-ROOT | EV-001, EV-002, EV-003, EV-005, EV-008 | 4 棵树是审计判断；作者未显式声明"森林"。 | strong | A1-DT v2 主结构定锚 |
-| C02 | 样本单位 = SE 系统映射研究；分母=52；统计池资格 = 方法学池 yes。 | 样本单位（sample_unit） | T1, R01–R05 | EV-007, EV-009 | -- | strong | SUMMARY 总表更新 |
-| C03 | Table 3 抽取 form 的 12 字段可直接迁移作 Paper2 LLM-智能体 抽取 模式 模板。 | migration_seed | T1, L01–L05, L12 | EV-002 | 字段须重命名以适应现代 SE/LLM 主题；SWEBOK 需替换。 | strong | Paper2 §方法 设计 |
-| C04 | Table 7 research-type 真值表是 A1-DT v2 罕见的"完整布尔真值表 模式 证据"，可作为 Paper2 LLM-judge 后验规则 layer。 | migration_seed | L10, R10 | EV-004 | 仅适于 research_type 单 facet；其他 facet 需自行设计真值表。 | strong | Paper2 §方法 设计 |
+| C01 | 本文是 **维度森林**（4 棵独立树），不是单一维度树。 | 树类型（tree_type） | FOREST-ROOT | EV-001, EV-002, EV-003, EV-005, EV-008 | 4 棵树是审计判断；作者未显式声明"森林"。 | 历史草稿旧强度（当前禁止采信） | A1-DT v2 主结构定锚 |
+| C02 | 样本单位 = SE 系统映射研究；分母=52；统计池资格 = 方法学池 yes。 | 样本单位（sample_unit） | T1, R01–R05 | EV-007, EV-009 | -- | 历史草稿旧强度（当前禁止采信） | SUMMARY 总表更新 |
+| C03 | Table 3 抽取 form 的 12 字段历史草稿曾提出迁移建议；当前禁止直接采信作 Paper2 LLM-智能体 抽取 模式 模板。 | migration_seed | T1, L01–L05, L12 | EV-002 | 字段须重命名以适应现代 SE/LLM 主题；SWEBOK 需替换。 | 历史草稿旧强度（当前禁止采信） | Paper2 §方法 设计 |
+| C04 | Table 7 research-type 真值表是 A1-DT v2 罕见的"完整布尔真值表 模式 证据"，可作为 Paper2 LLM-judge 后验规则 layer。 | migration_seed | L10, R10 | EV-004 | 仅适于 research_type 单 facet；其他 facet 需自行设计真值表。 | 历史草稿旧强度（当前禁止采信） | Paper2 §方法 设计 |
 | C05 | 4+1 有序 rubric (Tables 9–13) 提供了 质量 评分的"0/1/2/3 分级描述"模板。 | migration_seed | L14, T3 评分层 | EV-006 | rubric 仅适合 SMS；SLR / experimental 研究 不可直接套。 | medium | Paper2 §评价 设计 |
 | C06 | 指南×activity 比较矩阵 (Table 5) 提供"用多 指南 反向揭示 模式 覆盖 缺口（gap）"的方法学样板。 | migration_seed | R08 | EV-005 | matrix 对手工对齐成本高；需 LLM 辅助。 | medium | Paper2 §discussion / future work |
-| C07 | 不可迁移：SWEBOK 11 类、效度 5 类、指南 10 类的具体内容均带有 2012 前 SE 时代痕迹，仅迁移"封闭枚举 + 频次统计"的方法学 form，不迁移 enum 内容。 | migration_boundary | L01, L02, L13 | EV-002, EV-003, EV-008 | -- | strong | review.md §"可迁移边界" |
-| C08 | 单人筛选（second author 独立 inclusion）是本文自报最大 效度 威胁；提示 Paper2 须设计双人/人+智能体 多重审查协议。 | candidate_heuristic | T4.theoretical_validity | EV-008 + §3.6.2 | -- | strong | Paper2 §威胁 |
-| C09 | rubric ratio 中位数 33% 是 2012 前 SE SMS 实证基线，**不得**外推为"现代 LLM-SLR 应达到 ≥33%"的规范性目标。 | migration_boundary | L14 | EV-006 | -- | strong | review.md §"不可迁移边界" |
-| C10 | （废弃旧结论）"原生树类型 = 降级树 / 模式种子 only"——本结论由 A1-DT v1 给出，与本审计冲突，应废弃。 | audit_repair | -- | EV-002, EV-003, EV-004, EV-005, EV-007 | -- | strong | review.md §"审计返修口径"中标注 deprecated |
+| C07 | 不可迁移：SWEBOK 11 类、效度 5 类、指南 10 类的具体内容均带有 2012 前 SE 时代痕迹，仅迁移"封闭枚举 + 频次统计"的方法学 form，不迁移 enum 内容。 | migration_boundary | L01, L02, L13 | EV-002, EV-003, EV-008 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"可迁移边界" |
+| C08 | 单人筛选（second author 独立 inclusion）是本文自报最大 效度 威胁；提示 Paper2 须设计双人/人+智能体 多重审查协议。 | candidate_heuristic | T4.theoretical_validity | EV-008 + §3.6.2 | -- | 历史草稿旧强度（当前禁止采信） | Paper2 §威胁 |
+| C09 | rubric ratio 中位数 33% 是 2012 前 SE SMS 实证基线，**不得**外推为"现代 LLM-SLR 应达到 ≥33%"的规范性目标。 | migration_boundary | L14 | EV-006 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"不可迁移边界" |
+| C10 | （废弃旧结论）"原生树类型 = 降级树 / 模式种子 only"——本结论由 A1-DT v1 给出，与本审计冲突，应废弃。 | audit_repair | -- | EV-002, EV-003, EV-004, EV-005, EV-007 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"审计返修口径"中标注 deprecated |
 
 ### 9. 技能使用与自我审查记录
 
@@ -454,7 +456,7 @@
 #### 9.2 reviewer 视角下本审计最高风险 3 点
 
 1. **Fig.1 数字链 (7752→5082→60→43→54→44→52+8+11) 未做 PDF 视觉核验**。文本提取顺序混乱，分母 52 来自 §3.6.2 与 §4.4.3 多处文本复现 (`14 out of 52`)，结论稳健；但 +8 与 +11 的回补来源需 PDF 复查才能 100% 锁定。主线程合并时应保留 `EV-pet15-009 = not_verified` 并列入 A2a。
-2. **Tables 9–13 中 "bold 高亮分数" 在 paper_content.txt 中丢失**。Table 14 给出本文自身 rubric 的频次分布，但"本研究自评 33% ratio"的具体细分须 PDF 复核 Tables 9–13 中 bold 标注的位置（§5.4 line 1372: "scores identified in this 系统映射研究 are highlighted as bold text"）。主线程引用 L14 时应保留 `local_文本已核验（text_verified）` 而非 `verified`。
+2. **Tables 9–13 中 "bold 高亮分数" 在 paper_content.txt 中丢失**。Table 14 给出本文自身 rubric 的频次分布，但"本研究自评 33% ratio"的具体细分须 PDF 复核 Tables 9–13 中 bold 标注的位置（§5.4 line 1372: "scores identified in this 系统映射研究 are highlighted as bold text"）。主线程引用 L14 时应保留 `local_历史草稿旧强度（当前禁止采信）` 而非 `verified`。
 3. **"维度森林 vs 单树" 是审计判断而非作者声明**。作者未在原文说"this is a 森林"；本审计基于 Table 3 (抽取 form) 与 Table 8 (rubric) 服务对象不同（编码自身 52 篇 vs 向后续研究推荐）的语义观察。若 reviewer 反对，可降级为"多 模式 共存的单论文"，但其取值空间区分必须保留。
 
 #### 9.3 blocked / timeout / 文件缺失

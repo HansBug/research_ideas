@@ -320,7 +320,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 **Q3: 原文字段来自哪里？**
 
-字段来源是 **作者基于 SMS 指南 [4] 构造的 流程模型（process model） + 三 智能体 架构 + HITL 模式 + LLM 技术 menu**，不是 抽取 form / 分类方案（分类 模式） / 分类法 / 质量量规 / 复现包。可视为 **概念蓝图（概念蓝图）**，对应 v2 口径下的 "方法学种子 / 边界锚点"。
+字段来源是 **作者基于 SMS 指南 [4] 构造的 流程模型（process model） + 三 智能体 架构 + HITL 模式 + LLM 技术 menu**，不是 抽取 form / 分类方案（classification scheme；首次术语） / 分类法 / 质量量规 / 复现包。可视为 **概念蓝图（概念蓝图）**，对应 v2 口径下的 "方法学种子 / 边界锚点"。
 
 **Q4: RQ 与样本单位是什么关系？**
 
@@ -497,40 +497,42 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 - "样本单位 / 样本数量 / 原生树类型 / 统计池资格"四列应分别为：`流程阶段（process_stage） / 不适用（不适用） / 森林 (process + agent + risk) / 不进入主统计池（NOT_in_main_pool）, 边界锚点（boundary_anchor） only`。如果 SUMMARY 当前写的是"单树 / 6 leaves / yes-部分"则需要纠正。
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
+
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
 
 可直接迁回 `review.md` A.2 / A.3。
 
-#### A.2 维度树证据账本草案
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
 | EV-iLLM-SMS-001 | paper_content.txt | Page 1 Abstract Method | 行 18–19 | "research can be classified as a 解决方案提案 ... iteratively designed and discussed among the authors" | 树类型（tree_type） / non-经验研究（empirical） 自述 | strong (作者自述) | ROOT, B1–B7, 主统计池排除 | 否 | 仅支撑"非实证 + 无样本"判定 |
-| EV-iLLM-SMS-002 | paper_content.txt | Page 1 Intro 末段 | 行 52–55 | "reviewers (a) well educated in 系统映射研究 方法, (b) experts in topic" | HITL 必要条件 | strong | B2 triplet.refine, B5 audit.* | 否 | HITL 是硬约束，不可省 |
+| EV-iLLM-SMS-002 | paper_content.txt | Page 1 Intro 末段 | 行 52–55 | "reviewers (a) well educated in 系统映射研究 方法, (b) experts in topic" | HITL 必要条件 | 历史草稿旧强度（当前禁止采信） | B2 triplet.refine, B5 audit.* | 否 | HITL 是硬约束，不可省 |
 | EV-iLLM-SMS-003 | paper_content.txt | Page 2 §2 + Fig. 1 caption | 行 64–79 | "presents each step of the review 流程 and briefly outlines the input and actions done by the user and the output of the LLM" | 阶段 × triplet 结构 | medium (文本+图未版面核验) | B1, B2, rel.stage_to_triplet | **是**（必须打开 PDF 核 Fig. 1） | Fig. 1 内部细节待版面确认 |
-| EV-iLLM-SMS-004 | paper_content.txt | Page 2 §2.2.1 | 行 99–122 | "three 智能体: Keyword Identification Agent, Semantic Search Agent, Search Strategy Agent ... support a citation pearl growing strategy" | search 3-智能体 子树 + 智能体 间 流程管线 | strong | B3, rel.search_to_agent, rel.agent_pipe_kw_to_sem, rel.agent_pair_pearl | 否 | 仅限 search 阶段；不要扩到其他阶段 |
-| EV-iLLM-SMS-005 | paper_content.txt | Page 3 §2.2.2 | 行 150–157 | "language 模型 have to explain the reasons ... Chain-of-thoughts prompting ... citations are indispensable ... increase traceability" | 纳排 audit 字段强约束 | strong | B5 audit.*, rel.inc_exc_to_audit | 否 | CoT 不等于必须暴露推理链；解读为可审计 rationale |
-| EV-iLLM-SMS-006 | paper_content.txt | Page 3 §2.3 | 行 177–191 | "Inductive coding ... topic modeling ... Bertopic. Deductive coding: Given is a 数据抽取 scheme (e.g., SWE-BOK) ... One-shot or Few-shot ... RAG architecture" | 抽取 二分 + 机制菜单 | strong | 阶段.extract, mech.bertopic, mech.prompt_style, mech.rag | 否 | SWE-BOK 仅作为示例，不要写成 scheme 本身 |
-| EV-iLLM-SMS-007 | paper_content.txt | Page 3 §3 Reflections | 行 213–223 | "Publication bias and limited studies ... rapid evolution of LLMs ... Many existing studies are from outside SE" | 效度 / 威胁 树 | strong | B6 威胁.*, 威胁→路线图 关系 | 否 | 等价 Paper2 服务提供商漂移（provider drift） / 非 SE 证据外推 |
-| EV-iLLM-SMS-008 | paper_content.txt | Page 3 §3 末尾 | 行 231–234 | "Improving individual steps ... Build a prototype representing the overall mapping 流程" | 路线图 双轨 | strong | B7 路线图.* | 否 | 直接迁移 |
-| EV-iLLM-SMS-009 | paper_content.txt | Page 3 数据可获得性（Data 可获得性） | 行 246 | "No data was used for the research described in the article."（即未使用数据） | 强证据：无样本分母 | strong | 主统计池排除 | 否 | 决定性 |
+| EV-iLLM-SMS-004 | paper_content.txt | Page 2 §2.2.1 | 行 99–122 | "three 智能体: Keyword Identification Agent, Semantic Search Agent, Search Strategy Agent ... support a citation pearl growing strategy" | search 3-智能体 子树 + 智能体 间 流程管线 | 历史草稿旧强度（当前禁止采信） | B3, rel.search_to_agent, rel.agent_pipe_kw_to_sem, rel.agent_pair_pearl | 否 | 仅限 search 阶段；不要扩到其他阶段 |
+| EV-iLLM-SMS-005 | paper_content.txt | Page 3 §2.2.2 | 行 150–157 | "language 模型 have to explain the reasons ... Chain-of-thoughts prompting ... citations are indispensable ... increase traceability" | 纳排 audit 字段强约束 | 历史草稿旧强度（当前禁止采信） | B5 audit.*, rel.inc_exc_to_audit | 否 | CoT 不等于必须暴露推理链；解读为可审计 rationale |
+| EV-iLLM-SMS-006 | paper_content.txt | Page 3 §2.3 | 行 177–191 | "Inductive coding ... topic modeling ... Bertopic. Deductive coding: Given is a 数据抽取 scheme (e.g., SWE-BOK) ... One-shot or Few-shot ... RAG architecture" | 抽取 二分 + 机制菜单 | 历史草稿旧强度（当前禁止采信） | 阶段.extract, mech.bertopic, mech.prompt_style, mech.rag | 否 | SWE-BOK 仅作为示例，不要写成 scheme 本身 |
+| EV-iLLM-SMS-007 | paper_content.txt | Page 3 §3 Reflections | 行 213–223 | "Publication bias and limited studies ... rapid evolution of LLMs ... Many existing studies are from outside SE" | 效度 / 威胁 树 | 历史草稿旧强度（当前禁止采信） | B6 威胁.*, 威胁→路线图 关系 | 否 | 等价 Paper2 服务提供商漂移（provider drift） / 非 SE 证据外推 |
+| EV-iLLM-SMS-008 | paper_content.txt | Page 3 §3 末尾 | 行 231–234 | "Improving individual steps ... Build a prototype representing the overall mapping 流程" | 路线图 双轨 | 历史草稿旧强度（当前禁止采信） | B7 路线图.* | 否 | 直接迁移 |
+| EV-iLLM-SMS-009 | paper_content.txt | Page 3 数据可获得性（Data 可获得性） | 行 246 | "No data was used for the research described in the article."（即未使用数据） | 强证据：无样本分母 | 历史草稿旧强度（当前禁止采信） | 主统计池排除 | 否 | 决定性 |
 | EV-iLLM-SMS-010 | paper_content.txt | Page 2–3 各 "Relevant literature" 段 | 行 123–135, 158–170, 192–199 | Wang [5], Huotala [6], Guo [7], Petersen [9] 的数字与陈述 | **被引文献的发现**（不是本文发现） | weak（叙事性引用） | 风险注脚 | 否 | **关键迁移红线**：不得写成本文结论 |
 | EV-iLLM-SMS-011 | paper.pdf | Page 2 Fig. 1 版面 | -- | -- | 图内 box / 箭头 / 标签精确文字 | not_verified | rel.stage_to_triplet, B2 三槽是否每阶段都齐 | **是** | A2a 必须打开 PDF |
 | EV-iLLM-SMS-012 | Supplementary material (online) | Appendix A | -- | 被下划线术语定义 | not_verified | mech.* 工具语义 | **是** | 本轮未打开 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-iLLM-SMS-T01 | 本文树型 = 流程模型（process model） + 智能体 role 树 + risk inventory 组成的森林；样本单位 = 流程阶段（process_stage）；样本数 = 不适用（不适用）；不进入主统计池，仅作 边界锚点 / 方法学种子 | 树类型（tree_type） | ROOT | EV-001, EV-009 | strong | 边界锚点（boundary_anchor）, 模式种子（schema_seed） | 仅限本文；不能外推到所有 LLM-for-SMS 研究 |
+| C-iLLM-SMS-T01 | 本文树型 = 流程模型（process model） + 智能体 role 树 + risk inventory 组成的森林；样本单位 = 流程阶段（process_stage）；样本数 = 不适用（不适用）；不进入主统计池，仅作 边界锚点 / 方法学种子 | 树类型（tree_type） | ROOT | EV-001, EV-009 | 历史草稿旧强度（当前禁止采信） | 边界锚点（boundary_anchor）, 模式种子（schema_seed） | 仅限本文；不能外推到所有 LLM-for-SMS 研究 |
 | C-iLLM-SMS-T02 | 流程阶段链 need→search→inc/exc→extract→vis→报告 借自 [4] 2015 SMS 指南，本文未饱和验证 | stage_分类法 | B1 | EV-003 | medium | scaffold candidate | 借用结构，不是本文贡献新 分类法 |
 | C-iLLM-SMS-T03 | Fig. 1 的 "研究者 input × interactive refinement × LLM output" 三槽是本文对 Paper2 最强迁移点 | structural_pattern | B2, rel.stage_to_triplet | EV-003 | medium (待版面核) | scaffold 字段模板 | Fig. 1 版面待 A2a 核 |
-| C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | strong | 智能体 role 模板 | 仅限 search |
-| C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | strong | Paper2 trace 模式 直接落点 | CoT 不等于暴露推理链 |
-| C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可直接作为 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | strong | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
+| C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | 历史草稿旧强度（当前禁止采信） | 智能体 role 模板 | 仅限 search |
+| C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 trace 模式 直接落点 | CoT 不等于暴露推理链 |
+| C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可直接作为 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
 | C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | roadmap_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
-| C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | strong | 引用红线 | 强制约束 |
-| C-iLLM-SMS-T09 | "interactive LLM-based SMS" 这一方向已在 2024/2025 由本文显式提出；Paper2 不得宣称首创，但可补全 评价 / prototype | priority_boundary | ROOT | EV-001, EV-008 | strong | Paper2 §related work 必须 cite | -- |
+| C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | 历史草稿旧强度（当前禁止采信） | 引用红线 | 强制约束 |
+| C-iLLM-SMS-T09 | "interactive LLM-based SMS" 这一方向已在 2024/2025 由本文显式提出；Paper2 不得宣称首创，但可补全 评价 / prototype | priority_boundary | ROOT | EV-001, EV-008 | 历史草稿旧强度（当前禁止采信） | Paper2 §related work 必须 cite | -- |
 
 ### 9. 技能使用与自我审查记录
 

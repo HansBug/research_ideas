@@ -60,7 +60,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 
 本文是 A1 中统计呈现最丰富的样本之一：PRISMA 式筛选图、年度趋势、venue 类型图、top venue、highly cited papers、分类维度频次、analysis-technique 交叉表、analysis-SE activity 交叉表、dataset/tool 表、five-number summary、user-study criteria / participants 表、effectiveness range / median 表，以及 user-study qualitative result synthesis。
 
-作者明确指出 原始研究 异质性太强，不适合做 meta-analysis，因此采用 summarizing effect estimates 这类描述性合成。这个判断可直接迁移为 Paper2 的统计纪律：异质字段先做分母清晰的描述统计和交叉表，不能为了显得“强”而硬做不成立的统计合成。
+作者明确指出 原始研究 异质性太强，不适合做 meta-analysis，因此采用 summarizing effect estimates 这类描述性合成。这个判断历史草稿曾提出迁移建议；当前禁止直接采信为 Paper2 的统计纪律：异质字段先做分母清晰的描述统计和交叉表，不能为了显得“强”而硬做不成立的统计合成。
 
 ### 2.7 Discussion finding 与未来方向
 
@@ -93,7 +93,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | A1-M1 语料收集与纳排 | 给出数据库、时间窗、自动检索、手工检索、snowballing、纳排和数量链。 | 可迁移为 A2b 完整文库分母链条。 | 检索式在文本抽取中不完整，需 PDF 核对。 |
 | A1-M2 研究对象与主题语义 | 把 mined information、SE activity 和 app review analysis 分层分类。 | 可迁移为对象 / 工件 / 生命周期活动分类。 | 领域语义必须重建，不能直接套用 app review taxonomy。 |
 | A1-M3 方法 / 技术 / 干预 | NLP、ML、statistical、manual analysis 等技术分类，以及 analysis-technique 交叉表。 | 可迁移为 LLM/agent/tool/method/application-role 字段。 | 需扩展现代 LLM、agent 和 human-in-the-loop 取值。 |
-| A1-M4 评价、证据与复现资产 | annotated dataset、metrics、quality measure、replication package、public tools 等字段。 | 可直接迁移为 Paper2 的 artifact / evaluation / evidence strength 模块。 | 必须区分“有 replication package”与“可复现质量高”。 |
+| A1-M4 评价、证据与复现资产 | annotated dataset、metrics、quality measure、replication package、public tools 等字段。 | 历史草稿曾提出迁移建议；当前禁止直接采信为 Paper2 的 artifact / evaluation / evidence strength 模块。 | 必须区分“有 replication package”与“可复现质量高”。 |
 | A1-M5 统计分析就绪 | 大量频次、百分比、交叉表、range/median、five-number summary。 | 可迁移为分母固定、字段版本化、missing-value 语义和交叉统计。 | 异质结果只做描述性合成，不强行 meta-analysis。 |
 | A1-M6 research finding 形成与裁决 | Discussion 将统计观察转化为 research implications 和 future work。 | 可迁移为“统计观察 → 候选 finding → 研究者裁决”的台账流程。 | 需要记录支持 / 反证 / scope / claim strength。 |
 
@@ -210,7 +210,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 2. `metadata.json`（1–28 行）— slug、DOI、CCF 等级、review_type=SLR；
 3. `paper_content.txt`：
    - §1 Introduction（行 36–98）— 研究动机、四项 paper objectives、4 项 primary contributions；
-   - §2 研究方法（Research Method）（行 98–341）— RQ1–RQ5 定义、PRISMA 流程、检索式构造、F1–F18 抽取表、3 套 分类方案（分类 模式） 构造方式、reliability 检验、data synthesis；
+   - §2 研究方法（Research Method）（行 98–341）— RQ1–RQ5 定义、PRISMA 流程、检索式构造、F1–F18 抽取表、3 套 分类方案（classification scheme；首次术语） 构造方式、reliability 检验、data synthesis；
    - §3.1 Demographics（行 342–360）；
    - §3.2 RQ1 + Table 7（9 类 analysis）+ 3.2.1–3.2.9 各子小节（行 361–636）；
    - §3.3 RQ2 + Table 9–12（4 大 mining technique + 10 ML 技术）（行 639–871）；
@@ -230,7 +230,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 2. §2.1 RQ1–RQ5（行 108–115）：5 个 RQ 分别对应分析类型 / 技术 / SE 活动 / 评价方法 / 评价结果。
 3. §2.2 PRISMA 数量链（行 130–171）：1,656→303 dup→1,353 screened→1,225 excluded→128→+14 manual→+40 snowballing→**182** included。
 4. §2.3 Table 3 F1–F18 数据抽取表（行 226–270）：F1 Title…F18 Replication Package；F6 → RQ1，F7 → RQ2，F8/F9 → RQ3，F10–F12/F14–F18 → RQ4，F13 → RQ5。
-5. §2.4 三套 分类方案（分类 模式） 构造（行 289–341）+ Table 4 reliability（intra/inter rater = 93%/87%、100%/87%、90%/80%）。
+5. §2.4 三套 分类方案（classification scheme；首次术语） 构造（行 289–341）+ Table 4 reliability（intra/inter rater = 93%/87%、100%/87%、90%/80%）。
 6. §3.2 Table 7（行 440）：9 类 analysis 频次（分类 105/58%、Information Extraction 56/31%、Content Analysis 54/30%、Clustering 44/24%、Sentiment 40/22%、Recommendation 30/16%、Summarization 25/14%、Search & IR 24/13%、Visualization 20/11%）。
 7. §3.3 Table 9（行 660）：4 大 mining technique（NLP 113/62%、ML 108/59%、SA 53/29%、MA 45/25%）；Table 12 10 项 ML 子类。
 8. §3.4 Table 13（行 945+）：14 项 SE activity 跨 4 个 阶段（需求 66/36%、设计 8/4%、测试 28/15%、维护 66/36%、not specified 62/34%）。
@@ -245,7 +245,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 2. **是否有系统检索/纳排/抽取/编码**：是。明确遵循 Kitchenham 2004 + PRISMA 报告，构造 generic + specific 两套查询、覆盖 6 大数据库、补 manual + snowballing；纳排标准明确（Table 1）；Table 3 F1–F18 抽取表；Table 4 三套 模式 的 intra/inter rater agreement。
 3. **字段来自哪里**：
    - **F1–F18 抽取表**（Table 3）→ 显式 数据抽取 form；
-   - **App review analysis 分类法**（9 类，Table 7）→ 分类方案（分类 模式），构造来源：Martin 2017 的 5 类 + Cannataro & Comito 2003 的 mining tasks 7 类 + Miner 2012 text analytics 7 类，合并后再增加 Recommendation；
+   - **App review analysis 分类法**（9 类，Table 7）→ 分类方案（classification scheme；首次术语），构造来源：Martin 2017 的 5 类 + Cannataro & Comito 2003 的 mining tasks 7 类 + Miner 2012 text analytics 7 类，合并后再增加 Recommendation；
    - **Mining technique 分类法**（4 类，Table 9）→ Tavakoli 2018 的 4 类 + Miner 2012 statistical analysis 1 类，删除 feature 抽取，剩 4 类；
    - **SE activity 分类法**（14 类，Table 13）→ SWEBOK (Bourque 1999) 258 terms → 58 candidate → 14 final；
    - **Evaluation & 制品 字段**（F10–F18）→ 自创字段，含 数据集/工具/annotator/质量 measure/复现包；
@@ -255,7 +255,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 
 ### 3. 原生样本编码维度树 / 维度森林
 
-样本单位 = 原始研究（n=182）。原文模式是**字段森林（field 森林）**而非单棵树：1 棵抽取字段树（F1–F18） + 3 套 分类方案（分类 模式）树 + 1 棵 SE activity 树 + 评价/复现资产子集 + 讨论驱动的缺口（gap） 列表（不进入模式）。
+样本单位 = 原始研究（n=182）。原文模式是**字段森林（field 森林）**而非单棵树：1 棵抽取字段树（F1–F18） + 3 套 分类方案（classification scheme；首次术语）树 + 1 棵 SE activity 树 + 评价/复现资产子集 + 讨论驱动的缺口（gap） 列表（不进入模式）。
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
@@ -288,7 +288,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 ├── [E] 实证评价与复现资产（F10–F18 → RQ4 / RQ5）
 │   ├── F10 评价目标：{有效性（effectiveness）, 用户感知质量（user-perceived 质量）}；并链接到被评价的分析类型 F6.1
 │   ├── F11 评价流程：自由文本 + 过程模式
-│   ├── F12 指标与准则：精确率（精确率）、召回率（召回率）、F1、准确率（准确率）、MojoFM、BLEU-4、有用性（有用性）、可用性（可用性）、效率（效率）、信息量（信息量） 等开放枚举
+│   ├── F12 指标与准则：精确率（精确率）、召回率（召回率）、F1、准确率（准确率）、MojoFM、BLEU-4、有用性（有用性）、可用性（可用性）、效率（Efficiency；首次术语）、信息量（信息量） 等开放枚举
 │   ├── F13 评价结果：数值区间 / 中位数 / 定性结果；Table 21 和 Table 22
 │   ├── F14 标注数据集：应用商店来源 + 标注评论数量
 │   ├── F15 标注任务：自由文本，绑定到 F6.1
@@ -326,7 +326,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | F9 | 理由说明 | D | Table 3 F9 | 论文如何解释 review analysis 支持 SE 活动 | 自由文本 + 理由是否给出（布尔值） | 自由文本加理由 | "Some papers do not provide any justification" §2.3 | 给出 vs 未给出 比例 | §4.2 "vague about details" | Table 3 行 207–209 | 通用 |
 | F10.1 | 评价目标类型 | E | Table 3 F10.1 + §3.5 | 评价种类 | {定量-effectiveness, user-perceived-质量} | 完整枚举（2 类） | 未评价=不在 109 篇内 | 109/105/23 篇分母 §3.5 | §4.6 practice impact 不明 | 行 1249–1251 | 通用 |
 | F11 | 评价流程 | E | Table 3 F11 | 评价步骤 | 自由文本 + 4 步标准过程（formulate→annotate→apply→quantify） | 层级模板 + 自由文本 | 未描述时降级 | 4 步覆盖率 | replication 不足 §4.5 | §3.5.1 行 1252–1262 | 通用 |
-| F12 | 指标与准则 | E | Table 3 F12 + §3.5/3.6 | 效果与定性准则 | 开放枚举：{精确率（精确率）, 召回率（召回率）, F1, 准确率（准确率；原文列表重复出现一次）, MojoFM, BLEU-4, 有用性（有用性）, 可用性（可用性）, 效率（效率）, 信息充分性（信息量）} | 开放枚举（分定量/定性两组） | 未报告时为 NA | Table 19 user-研究 criteria × analysis；Table 21 定量分布 | RQ5 综合 | Tables 19, 21, 22 | 指标语义通用 |
+| F12 | 指标与准则 | E | Table 3 F12 + §3.5/3.6 | 效果与定性准则 | 开放枚举：{精确率（精确率）, 召回率（召回率）, F1, 准确率（准确率；原文列表重复出现一次）, MojoFM, BLEU-4, 有用性（有用性）, 可用性（可用性）, 效率（Efficiency；首次术语）, 信息充分性（信息量）} | 开放枚举（分定量/定性两组） | 未报告时为 NA | Table 19 user-研究 criteria × analysis；Table 21 定量分布 | RQ5 综合 | Tables 19, 21, 22 | 指标语义通用 |
 | F13 | 评价结果 | F | Table 3 F13 + Tables 21–22 | 数值结果或定性表述 | 数值（precision/recall/F1）+ 自由文本（user-研究 quote） | 数值或区间 + 自由文本 | 未做评价=不入 87 篇 | Table 21 range/median；Table 22 定性 synthesis | §3.6.1 效果差异；§3.6.2 时间节省 50–75% | 行 1486–1689 | 通用 |
 | F14.1 | 数据集来源 App Store | E | Table 3 F14.1 + §3.5.1 Char-of-数据集（Dataset） | App store 名称 | {GooglePlay, AppleStore, Amazon Appstore, BlackBerry, Huawei, Windows Phone, 360 Mobile} | 完整枚举（7 store） | 单 store=84% Google+Apple | store 分布；多 store 多样性 | 数据集 偏 Google/Apple §3.5.1 | 行 1329–1333 | 通用结构；具体 store 取值随生态演变 |
 | F14.2 | 标注 review 数 | E | Table 3 F14.2 + Table 18 | 数据集大小 | 整数（80–41,793） | 数值（五数概括） | 未公开则不计 | Table 18 五数 | §4.4 数据集 size 过小 | Table 18 行 1383 | 通用 |
@@ -380,7 +380,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 
 **C. 对 Paper2 可迁移的方法学启发**：
 
-- "RQ → 抽取字段 → 分类方案（分类 模式）（构造源 + 合并规则 + reliability check）→ 频次/交叉/range 表 → discussion 缺口（gap）"的完整闭环结构；
+- "RQ → 抽取字段 → 分类方案（classification scheme；首次术语）（构造源 + 合并规则 + reliability check）→ 频次/交叉/range 表 → discussion 缺口（gap）"的完整闭环结构；
 - 同一字段允许多值（multi-claim activity / multi-technique），并显式记录"未说明（not specified）" 作为编码单元而不是丢失；
 - 异质 证据 用 summarizing-effect-estimates 而非 元分析（meta-analysis）；
 - 评价 维度强调 复现包、annotator 数量、reliability 指标、数据集 来源 store；
@@ -399,44 +399,46 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 |---|---|---|---|
 | **C-1** | `review.md` §"维度树结构" + "叶子维度表"（行 196–220） | 用 `[leaf-…-scope/corpus/分类法/method/evidence/发现]` 六个跨论文通用接口冒充原文树主干，且每条叶子父节点映射任意（如 b1→scope、b3→分类法），与原文 F1–F18 + 3 模式 完全脱节。 | 将原文模式主树（[A]–[F] / F1–F18 + 9-type + 4-type + 14-activity）抬升为**单篇 review.md 的事实主树**；六叶通用接口降级为附录"跨论文投影表"。 |
 | **C-2** | 行 234–250 已存在"原文模式主树（19×3 审计后返修）"但仍标 `模式种子（schema_seed）` 且无具体页码 | 已识别 RQ 层 / F1-F18 / 9-type 等主干，但未把 9-type / 4-type / 14-活动的**封闭枚举取值空间**与页码、Table 编号、reliability 数字直接绑定。 | 把 Table 7（9 类）、Table 9（4 类）、Table 12（10 项 ML）、Table 13（14 项 SE 活动）、Table 4（reliability 数字）这 5 个表的内容直接抄进主树的"取值空间"列，并标 Table 行号；本审计已完成此项，可直接拷贝。 |
-| **I-1** | §A.2 证据账本 EV-…-002/003/005 仍标 `not_verified` | 全文文本级证据其实已经足够把 Table 4/7/9/12/13/16-22 的具体数字与页码挂钩；只有版面级（OCR 错位、Fig 1 数字气泡）才需 PDF 核验。 | 将 Table 7/9/12/13/4/18 升级为 `文本已核验（text_verified）`；Fig 1/2/3 与 search query 文本保留 `needs_visual_check`。 |
-| **I-2** | §A.3 C01 "维度树主类型为 RQ 驱动分类树，辅助为评价/复现资产审计树" | 表述含糊；本文实际是**字段森林（field 森林）**而非单棵树。 | 改写为"RQ 驱动的字段森林（field 森林）：1 棵抽取字段树 [A]–[F] + 3 套 分类方案（分类 模式） 子树 + 评价/复现资产子集 + Table 23 横向 dimension 对比"。 |
+| **I-1** | §A.2 证据账本 EV-…-002/003/005 仍标 `not_verified` | 全文文本级证据其实已经足够把 Table 4/7/9/12/13/16-22 的具体数字与页码挂钩；只有版面级（OCR 错位、Fig 1 数字气泡）才需 PDF 核验。 | 将 Table 7/9/12/13/4/18 升级为 `历史草稿旧强度（当前禁止采信）`；Fig 1/2/3 与 search query 文本保留 `needs_visual_check`。 |
+| **I-2** | §A.3 C01 "维度树主类型为 RQ 驱动分类树，辅助为评价/复现资产审计树" | 表述含糊；本文实际是**字段森林（field 森林）**而非单棵树。 | 改写为"RQ 驱动的字段森林（field 森林）：1 棵抽取字段树 [A]–[F] + 3 套 分类方案（classification scheme；首次术语） 子树 + 评价/复现资产子集 + Table 23 横向 dimension 对比"。 |
 | **I-3** | §3 "六类 模式 抽取" Table（行 79–86）"dimension 模式: F1–F18 + 三套 模式" | 描述正确但与下游"叶子维度表"脱节。 | 在 §3 表后补一句"完整字段取值空间见下方原文模式主树"指针。 |
 | **I-4** | SUMMARY 同步 | 本论文"原生树类型"在 SUMMARY 应写"字段森林（field 森林）（field 森林）"而非"RQ 驱动分类树"。 | 推动 SUMMARY.md 在批次合流时更新该列。 |
 | **M-1** | "通用接口投影表"（行 269–276） | 内容正确但与主树重复出现，易让读者混淆事实源。 | 加 collapsible 注释"以下仅作跨论文投影，不替代上方原文模式主树"。 |
 | **M-2** | 关系边表（行 287–289）只列 2 条 | 原文实际至少有 REL-1…REL-9（见本审计 §5）。 | 补 Table 10/11/14/15/19/21/8/23/3 对应的交叉/组合/trace 边；其中至少 REL-1、REL-3、REL-6、REL-7 应进单篇关系边表。 |
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案（可直接迁移）
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-arsl-001 | paper_content.txt | §1 paper objectives + §2.1 RQ1–RQ5 | 行 79–115 | 4 paper objectives + 5 RQ；RQ→字段的根映射 | rq | 文本已核验（text_verified） | ROOT [A]–[F] | 否 | 通用 |
-| EV-arsl-002 | paper_content.txt | §2.2 PRISMA 流程 + Table 1 inclusion/exclusion | 行 130–193 | 1,656→1,353 screen→1,225 excl→128 + 14 manual + 40 snowball = 182；纳排标准 3 in/3 ex | 语料 | 文本已核验（text_verified）（Fig 1 数字气泡需 PDF 核） | ROOT n=182 | Fig 1 数字气泡需 visual check | 通用 |
-| EV-arsl-003 | paper_content.txt | §2.3 Table 3 F1–F18 | 行 226–270 | 完整 18 字段抽取表 + 字段→RQ 用途映射 | 分类法/模式 | 文本已核验（text_verified） | [A]–[F] 全树 | 否 | 通用结构；F6.2/F12 内具体取值仍需 补充材料（supplementary） 核 |
-| EV-arsl-004 | paper_content.txt | §2.4 + Table 4 reliability | 行 285–339 | 三套 模式：app review analysis 93/87；SE task 100/87；mining tech 90/80；构造源 = Martin/Cannataro/Miner/SWEBOK | 分类法 reliability | 文本已核验（text_verified） | [B]/[C]/[D] 模式 | 否 | 通用 |
-| EV-arsl-005 | paper_content.txt | §3.2 + Table 7 | 行 440 | 9 类 analysis 频次 close-enum | statistical_result | 文本已核验（text_verified） | F6.1 | 否 | 领域 分类法 不可迁移；结构可迁移 |
-| EV-arsl-006 | paper_content.txt | §3.3 + Tables 9, 10, 11, 12 | 行 660–739, 830 | 4 大 mining tech 频次；9×4 交叉；组合统计；10 项 ML 子类 | statistical_result/关系 | 文本已核验（text_verified）（Tables 10/11 OCR 部分对齐错位） | F7.1/F7.2, REL-1/REL-2 | Tables 10/11 visual check | 通用结构 |
-| EV-arsl-007 | paper_content.txt | §3.4 + Table 13 SE activity | 行 893–1015 | 14 项 SE 活动 + 4 阶段 + 未说明（not specified）；Table 14 9×14 交叉；Table 15 53 unique 组合 | 分类法/statistical_result | 文本已核验（text_verified）（Tables 14/15 visual 核） | F8/F9, REL-3/REL-4 | Tables 14/15 visual check | 通用 |
-| EV-arsl-008 | paper_content.txt | §3.5 + Tables 16/17/18/19/20 | 行 1287–1490 | 23 公开 数据集 + 16 公开 工具；五数概括；user-研究 criteria/participants | 证据/制品 | 文本已核验（text_verified） | F14–F18, F12 user-研究 | Table 16 部分单元格 OCR | 通用 |
-| EV-arsl-009 | paper_content.txt | §3.6 + Tables 21, 22 | 行 1501–1689 | Table 21 effectiveness range/median per F6.1×F6.2；Table 22 user-研究 定性合成；§3.6.1 显式声明"too diverse for 元分析（meta-analysis）" | statistical_result | 文本已核验（text_verified） | F13, REL-5/REL-6 | Table 21 多行 OCR 数字需核 | 通用方法学（summarizing effect estimates） |
-| EV-arsl-010 | paper_content.txt | §4.1–4.10 Discussion | 行 1693–1850 | 10 项 缺口（gap）：growing area / SE goals / reference 模型 / 数据集 size / replication / practice impact / 实践者 / 工业（industrial） / efficiency-可扩展性（scalability） / ML training | 候选发现（candidate_finding） | 文本已核验（text_verified） | 缺口（gap） 池（不属字段 模式） | 否 | 发现 限本文领域；方法学启发可迁移 |
-| EV-arsl-011 | paper_content.txt | §5 Threats | 行 1849–1885 | 4 类威胁 + 4 类缓解 | limitation | 文本已核验（text_verified） | ROOT 边界 | 否 | 通用 |
-| EV-arsl-012 | paper_content.txt | §6 + Table 23 | 行 1885–1933 | 与 Martin 2017 / Genc-Nayebi 2017 / Tavakoli 2018 / Noei 2019 维度对比 | comparative | 文本已核验（text_verified） | REL-8 | check 标渲染需 visual | 通用 |
-| EV-arsl-013 | paper_content.txt | §3.5.1 数据集 characteristics | 行 1329–1333 | 84% Google+Apple；7 个 store | statistical_result | 文本已核验（text_verified） | F14.1 | 否 | 通用结构 |
+| EV-arsl-001 | paper_content.txt | §1 paper objectives + §2.1 RQ1–RQ5 | 行 79–115 | 4 paper objectives + 5 RQ；RQ→字段的根映射 | rq | 历史草稿旧强度（当前禁止采信） | ROOT [A]–[F] | 否 | 通用 |
+| EV-arsl-002 | paper_content.txt | §2.2 PRISMA 流程 + Table 1 inclusion/exclusion | 行 130–193 | 1,656→1,353 screen→1,225 excl→128 + 14 manual + 40 snowball = 182；纳排标准 3 in/3 ex | 语料 | 历史草稿旧强度（当前禁止采信）（Fig 1 数字气泡需 PDF 核） | ROOT n=182 | Fig 1 数字气泡需 visual check | 通用 |
+| EV-arsl-003 | paper_content.txt | §2.3 Table 3 F1–F18 | 行 226–270 | 完整 18 字段抽取表 + 字段→RQ 用途映射 | 分类法/模式 | 历史草稿旧强度（当前禁止采信） | [A]–[F] 全树 | 否 | 通用结构；F6.2/F12 内具体取值仍需 补充材料（supplementary） 核 |
+| EV-arsl-004 | paper_content.txt | §2.4 + Table 4 reliability | 行 285–339 | 三套 模式：app review analysis 93/87；SE task 100/87；mining tech 90/80；构造源 = Martin/Cannataro/Miner/SWEBOK | 分类法 reliability | 历史草稿旧强度（当前禁止采信） | [B]/[C]/[D] 模式 | 否 | 通用 |
+| EV-arsl-005 | paper_content.txt | §3.2 + Table 7 | 行 440 | 9 类 analysis 频次 close-enum | statistical_result | 历史草稿旧强度（当前禁止采信） | F6.1 | 否 | 领域 分类法 不可迁移；结构可迁移 |
+| EV-arsl-006 | paper_content.txt | §3.3 + Tables 9, 10, 11, 12 | 行 660–739, 830 | 4 大 mining tech 频次；9×4 交叉；组合统计；10 项 ML 子类 | statistical_result/关系 | 历史草稿旧强度（当前禁止采信）（Tables 10/11 OCR 部分对齐错位） | F7.1/F7.2, REL-1/REL-2 | Tables 10/11 visual check | 通用结构 |
+| EV-arsl-007 | paper_content.txt | §3.4 + Table 13 SE activity | 行 893–1015 | 14 项 SE 活动 + 4 阶段 + 未说明（not specified）；Table 14 9×14 交叉；Table 15 53 unique 组合 | 分类法/statistical_result | 历史草稿旧强度（当前禁止采信）（Tables 14/15 visual 核） | F8/F9, REL-3/REL-4 | Tables 14/15 visual check | 通用 |
+| EV-arsl-008 | paper_content.txt | §3.5 + Tables 16/17/18/19/20 | 行 1287–1490 | 23 公开 数据集 + 16 公开 工具；五数概括；user-研究 criteria/participants | 证据/制品 | 历史草稿旧强度（当前禁止采信） | F14–F18, F12 user-研究 | Table 16 部分单元格 OCR | 通用 |
+| EV-arsl-009 | paper_content.txt | §3.6 + Tables 21, 22 | 行 1501–1689 | Table 21 effectiveness range/median per F6.1×F6.2；Table 22 user-研究 定性合成；§3.6.1 显式声明"too diverse for 元分析（meta-analysis）" | statistical_result | 历史草稿旧强度（当前禁止采信） | F13, REL-5/REL-6 | Table 21 多行 OCR 数字需核 | 通用方法学（summarizing effect estimates） |
+| EV-arsl-010 | paper_content.txt | §4.1–4.10 Discussion | 行 1693–1850 | 10 项 缺口（gap）：growing area / SE goals / reference 模型 / 数据集 size / replication / practice impact / 实践者 / 工业（industrial） / efficiency-可扩展性（scalability） / ML training | 候选发现（candidate_finding） | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 池（不属字段 模式） | 否 | 发现 限本文领域；方法学启发可迁移 |
+| EV-arsl-011 | paper_content.txt | §5 Threats | 行 1849–1885 | 4 类威胁 + 4 类缓解 | limitation | 历史草稿旧强度（当前禁止采信） | ROOT 边界 | 否 | 通用 |
+| EV-arsl-012 | paper_content.txt | §6 + Table 23 | 行 1885–1933 | 与 Martin 2017 / Genc-Nayebi 2017 / Tavakoli 2018 / Noei 2019 维度对比 | comparative | 历史草稿旧强度（当前禁止采信） | REL-8 | check 标渲染需 visual | 通用 |
+| EV-arsl-013 | paper_content.txt | §3.5.1 数据集 characteristics | 行 1329–1333 | 84% Google+Apple；7 个 store | statistical_result | 历史草稿旧强度（当前禁止采信） | F14.1 | 否 | 通用结构 |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-arsl-T01 | 本文原生树是 RQ-驱动的字段森林（field 森林）（F1–F18 抽取表 + 3 套 close-enum 分类方案（分类 模式） + 1 套 SWEBOK-derived SE activity 模式），不是单棵树，也不是 reviewer 投影的六叶接口 | 树类型（tree_type） | ROOT, [A]–[F] | EV-arsl-001/003/004 | strong | 模式_pattern_seed for Paper2 | 不迁移领域取值 |
-| CLM-arsl-T02 | F6.1 (9 类) / F7.1 (4 类) / F8 (14 项 SWEBOK) 均为**封闭枚举**且有显式构造来源与合并规则，并配 inter/intra-rater reliability | 模式_quality | F6.1/F7.1/F8 | EV-arsl-004/005/006/007 | strong | 可直接作为 A1 高等级 模式 样本 | 领域具体类别不迁移 |
-| CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | strong | Paper2 直接迁移作 评价 子集 | F12 部分定性 criterion 取值需扩展 |
-| CLM-arsl-T04 | 本文 RQ5 显式声明"too diverse for 元分析（meta-analysis）"，转用 summarizing effect estimates；这是异质 证据 合成的标准做法 | statistical_method | F13 | EV-arsl-009 | strong | 迁移为 Paper2 异质性统计纪律 | — |
-| CLM-arsl-T05 | §4.1–4.10 十项 缺口（gap） 来自具体统计表，是 发现 的合规来源；但其领域语义（mobile app review）不可迁移到 LLM4STM | finding_boundary | 缺口（gap） 池 | EV-arsl-010 | strong | 候选发现 模式 | 不可直接迁移领域 缺口（gap） |
-| CLM-arsl-T06 | 现 review.md 维度树主结构使用通用六叶接口与原文严重偏离，需 C 级返修：把 §"原文模式主树（19×3 审计后返修）"抬升为单篇事实主树，六叶接口降级为附录投影 | audit_repair | review.md §维度树复原 | EV-arsl-003/005/006/007 + §7 of this audit | strong | 直接驱动 review.md 返修 | — |
-| CLM-arsl-T07 | 主统计池资格：是（高等级 systematic_review，完整-text + close-enum 模式 + reliability + replication 字段全） | stat_pool_eligibility | ROOT | EV-arsl-001/002/003/004 | strong | 可进 SLR/SMS 报告模式统计池与 A1 方法学模式统计池 | 单篇定量结论不进 最终发现 |
+| CLM-arsl-T01 | 本文原生树是 RQ-驱动的字段森林（field 森林）（F1–F18 抽取表 + 3 套 close-enum 分类方案（classification scheme；首次术语） + 1 套 SWEBOK-derived SE activity 模式），不是单棵树，也不是 reviewer 投影的六叶接口 | 树类型（tree_type） | ROOT, [A]–[F] | EV-arsl-001/003/004 | 历史草稿旧强度（当前禁止采信） | 模式_pattern_seed for Paper2 | 不迁移领域取值 |
+| CLM-arsl-T02 | F6.1 (9 类) / F7.1 (4 类) / F8 (14 项 SWEBOK) 均为**封闭枚举**且有显式构造来源与合并规则，并配 inter/intra-rater reliability | 模式_quality | F6.1/F7.1/F8 | EV-arsl-004/005/006/007 | 历史草稿旧强度（当前禁止采信） | 可直接作为 A1 高等级 模式 样本 | 领域具体类别不迁移 |
+| CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | 历史草稿旧强度（当前禁止采信） | Paper2 直接迁移作 评价 子集 | F12 部分定性 criterion 取值需扩展 |
+| CLM-arsl-T04 | 本文 RQ5 显式声明"too diverse for 元分析（meta-analysis）"，转用 summarizing effect estimates；这是异质 证据 合成的标准做法 | statistical_method | F13 | EV-arsl-009 | 历史草稿旧强度（当前禁止采信） | 迁移为 Paper2 异质性统计纪律 | — |
+| CLM-arsl-T05 | §4.1–4.10 十项 缺口（gap） 来自具体统计表，是 发现 的合规来源；但其领域语义（mobile app review）不可迁移到 LLM4STM | finding_boundary | 缺口（gap） 池 | EV-arsl-010 | 历史草稿旧强度（当前禁止采信） | 候选发现 模式 | 不历史草稿曾提出迁移建议；当前禁止直接采信领域 缺口（gap） |
+| CLM-arsl-T06 | 现 review.md 维度树主结构使用通用六叶接口与原文严重偏离，需 C 级返修：把 §"原文模式主树（19×3 审计后返修）"抬升为单篇事实主树，六叶接口降级为附录投影 | audit_repair | review.md §维度树复原 | EV-arsl-003/005/006/007 + §7 of this audit | 历史草稿旧强度（当前禁止采信） | 直接驱动 review.md 返修 | — |
+| CLM-arsl-T07 | 主统计池资格：是（高等级 systematic_review，完整-text + close-enum 模式 + reliability + replication 字段全） | stat_pool_eligibility | ROOT | EV-arsl-001/002/003/004 | 历史草稿旧强度（当前禁止采信） | 可进 SLR/SMS 报告模式统计池与 A1 方法学模式统计池 | 单篇定量结论不进 最终发现 |
 | CLM-arsl-T08 | 至少存在 9 条原文显式关系边（REL-1…REL-9），现 review.md 仅列 2 条，需 I 级补全 | relation_edges | REL-1…REL-9 | EV-arsl-005/006/007/008/009/012 + Table 8 (REL-7) | medium | 关系边表补全 | — |
 
 ### 9. 技能使用与自我审查记录
@@ -469,7 +471,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 - 异质 证据 的"summarizing effect estimates"是直接可迁移到 Paper2 的方法学纪律：与其硬做不成立的 元分析（meta-analysis），不如先稳住 range/median + 分母明确的交叉表。
 `─────────────────────────────────────────────────`
 
-**总体判定：需要返修**。原文 模式 已具备 A1 高等级样本资质（CLM-arsl-T07 strong），但现 review.md 主树结构 C 级偏离原文（CLM-arsl-T06）。本审计第 7 节给出最小返修清单与第 8 节可直接迁移的 A.2/A.3 草案，供主线程驱动 review.md 重写。
+**总体判定：需要返修**。原文 模式 已具备 A1 高等级样本资质（CLM-arsl-T07 strong），但现 review.md 主树结构 C 级偏离原文（CLM-arsl-T06）。本审计第 7 节给出最小返修清单与第 8 节历史草稿曾提出迁移建议；当前禁止直接采信的 A.2/A.3 草案，供主线程驱动 review.md 重写。
 
 > [!NOTE]
 > v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。

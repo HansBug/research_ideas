@@ -341,9 +341,11 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 2. "原生树类型" 字段应从单值改为 **"维度森林(6 子树)"**
 3. "统计池资格" 字段应从 "模式种子（schema_seed）" 改为 **"局部可统计：可作为 secondary-研究 元统计（即对 SLR 元数据做计量）的主统计池样本，但不作为目标领域 (e.g. STM/LLM4SE) 的统计池"**
 
-### 8. 审计附录草案：证据账本与结论映射
+### 8. 历史审计草案归档（禁止消费为事实真源）
 
-#### A.2 维度树证据账本草案
+> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
+
+#### 历史 A.2 维度树证据账本草案（禁止消费）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -358,19 +360,19 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 | EV-ds11-013 | paper_content.txt | Table 2 注脚 a–h | L763–770 | a=[14], b=[8], c=[24] 是 EBSE 文献；d=[15], e=[13], f=[16], g=[4], h=[12] 是 SLR 指南 | enumeration | high | T1.ebse_cite 与 T1.guide_cite 的子引用枚举 | 否 | 引用集陈旧；模式可迁移 |
 | EV-ds11-014 | paper_content.txt + Appendix A | App.A | L1472–1624 | SE01..SE77 全部 67 篇被编码 SLR 的书目数据 | sample_manifest | high | 样本池版本锚 | 否 | 列表是 frozen sample |
 
-#### A.3 结论-证据映射草案
+#### 历史 A.3 结论-证据映射草案（禁止消费）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| clm-ds11-N01 | 本文样本单位是已发表的 SLR/MS/MA，N_new=67 / N_total=120 | 样本单位（sample_unit）_definition | T1, T6 森林根 | EV-005, EV-006, EV-007, EV-014 | strong | 直接用于 review.md §0/§1 | 不外推到非 SE 二级研究 |
-| clm-ds11-N02 | 本文具备 10 字段 抽取 form + 4 题 QA rubric，构成完整模式 | schema_finalised | T1, T2 | EV-005, EV-006, EV-007, EV-008 | strong | 用于把"维度树主树"从 6 叶通用接口升级为原文 模式 | rubric 是 DARE 2007 版，已升级 |
-| clm-ds11-N03 | 本文的"原生树"是维度森林(6 棵)，不是单树 | 树_topology | T1..T6 | EV-005..EV-010 | strong | 用于校正 review.md "原生树类型" 字段 | — |
-| clm-ds11-N04 | 本文具备主统计池资格（限于 secondary-研究 元统计场景） | pool_eligibility | T1, T2, App.A | EV-007, EV-008, EV-014 | medium-strong | 改写 review.md §"统计与候选发现链路" 的池资格 | 不作为目标领域 (LLM4SE/STM) 的统计池 |
+| clm-ds11-N01 | 本文样本单位是已发表的 SLR/MS/MA，N_new=67 / N_total=120 | 样本单位（sample_unit）_definition | T1, T6 森林根 | EV-005, EV-006, EV-007, EV-014 | 历史草稿旧强度（当前禁止采信） | 直接用于 review.md §0/§1 | 不外推到非 SE 二级研究 |
+| clm-ds11-N02 | 本文具备 10 字段 抽取 form + 4 题 QA rubric，构成完整模式 | schema_finalised | T1, T2 | EV-005, EV-006, EV-007, EV-008 | 历史草稿旧强度（当前禁止采信） | 用于把"维度树主树"从 6 叶通用接口升级为原文 模式 | rubric 是 DARE 2007 版，已升级 |
+| clm-ds11-N03 | 本文的"原生树"是维度森林(6 棵)，不是单树 | 树_topology | T1..T6 | EV-005..EV-010 | 历史草稿旧强度（当前禁止采信） | 用于校正 review.md "原生树类型" 字段 | — |
+| clm-ds11-N04 | 本文具备主统计池资格（限于 secondary-研究 元统计场景） | pool_eligibility | T1, T2, App.A | EV-007, EV-008, EV-014 | 历史草稿旧强度（当前禁止采信） | 改写 review.md §"统计与候选发现链路" 的池资格 | 不作为目标领域 (LLM4SE/STM) 的统计池 |
 | clm-ds11-N05 | "SW Configuration Management 与 软件质量 在 120 篇中=0 SLR" 是可统计 缺口发现（缺口发现） | 缺口发现（gap_finding） | T3 (Curriculum + SWEBOK) | EV-009 | strong (限 2004–2009 窗口) | 可作 候选发现；不外推到 2024 | 时间窗口约束；SWEBOK 已升级 |
-| clm-ds11-N06 | "MS 比例 32%→82%" 受测量法迁移 (Da Silva 2010 重分类) 干扰 | measurement_drift_warning | T1.rtype | L791–800 paper_content.txt | strong | 给跨论文统计加 caveat | 必须保留 |
-| clm-ds11-N07 | 三种 update 类型 (temporal/search/组合类（组合类）) 可作 update-review 通用分类 | methodological_seed | T5 | EV-010 | strong | 直接迁移到 Paper2 的 predecessor 模式 | — |
-| clm-ds11-N08 | 本文具有显式关系型 模式 (SLR↔Curriculum/SWEBOK/研究者/org/country)，远比一般 SLR 丰富 | relation_richness | T3, T4 / E1–E11 | EV-007, EV-009 | strong | 可作 review.md §"关系边" 章节模板 | — |
-| clm-ds11-N09 | DCP (Decision and Consensus Procedure) 是可迁移的多人编码流程 | methodological_seed | 全文 §3.3 | L257–280 | strong | Paper2 编码方法学借用 | — |
+| clm-ds11-N06 | "MS 比例 32%→82%" 受测量法迁移 (Da Silva 2010 重分类) 干扰 | measurement_drift_warning | T1.rtype | L791–800 paper_content.txt | 历史草稿旧强度（当前禁止采信） | 给跨论文统计加 caveat | 必须保留 |
+| clm-ds11-N07 | 三种 update 类型 (temporal/search/组合类（组合类）) 可作 update-review 通用分类 | methodological_seed | T5 | EV-010 | 历史草稿旧强度（当前禁止采信） | 直接迁移到 Paper2 的 predecessor 模式 | — |
+| clm-ds11-N08 | 本文具有显式关系型 模式 (SLR↔Curriculum/SWEBOK/研究者/org/country)，远比一般 SLR 丰富 | relation_richness | T3, T4 / E1–E11 | EV-007, EV-009 | 历史草稿旧强度（当前禁止采信） | 可作 review.md §"关系边" 章节模板 | — |
+| clm-ds11-N09 | DCP (Decision and Consensus Procedure) 是可迁移的多人编码流程 | methodological_seed | 全文 §3.3 | L257–280 | 历史草稿旧强度（当前禁止采信） | Paper2 编码方法学借用 | — |
 | clm-ds11-N10 | QA2 评分歧义需向原作者咨询，QA4 评分主观——rubric 本身有主观偏差 | validity_threat | T2 | EV-011 | medium | 提醒未来 模式 验证 | — |
 
 ### 9. 技能使用与自我审查记录
