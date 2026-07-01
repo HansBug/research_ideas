@@ -109,6 +109,9 @@ class ReviewHistoryResidueGateTest(unittest.TestCase):
             "技能文件",
             "/.codex/skills",
             "reviewer-self-review",
+            "autoresearch/SKILL.md",
+            "codex 插件缓存",
+            "部分-blocked",
             "v2 后已挂三路审计返修块",
             "返修块",
         ]

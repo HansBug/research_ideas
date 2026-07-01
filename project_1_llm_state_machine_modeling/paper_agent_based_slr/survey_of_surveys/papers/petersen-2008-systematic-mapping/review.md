@@ -167,7 +167,6 @@
 
 - 未在 PDF 中视觉核对 Figure 1（SMS 流程图）、Figure 2（keywording 构建分类方案）、Figure 3（bubble plot）；`paper_content.txt` 中 Figure 3 数字布局是字符流，未做形位还原。
 - 未核对 Table 3 (Wieringa 研究类型表) 与 Table 5 (SLR 特征表) 的列对齐细节，但二者文本完整可读，枚举项清晰。
-- `autoresearch/SKILL.md`（位于 codex 插件缓存）本轮未直接读取，记为 `部分-blocked`，但所采用的"先样本单位 → 再字段结构 → 再证据链"工作流与 autoresearch / research-planning skill 的 4 阶段输出一致。
 
 #### 1.3 关键证据锚点（11 条，控制短引）
 
