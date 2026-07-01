@@ -211,7 +211,7 @@ roadmap + 无系统样本库时，优先按 `roadmap action` / `vision item` 降
 |---|---|---|---|
 | 完整枚举 | 原文给出封闭类别集合 | 写出所有类别或指向原文表 / 图；缺失值单列说明。 | 可候选进入统计；图表未核验时标 `not_verified`。 |
 | 层级枚举 | 原文给出 taxonomy / 分类树 | 保留父子层级，不压成逗号清单。 | 父子层级不清时只做 `schema_seed`。 |
-| 布尔 | 是否存在某制品、字段或特征 | 明确 `true` / `false` / `not_reported` 的判定证据。 | `false` 必须区分原文否定与未报告。 |
+| 布尔 | 是否存在某制品、字段或特征 | 明确 `true` / `false` / `未报告（not reported）` 的判定证据。 | `false` 必须区分原文否定与未报告。 |
 | 数值或区间 | 计数、年份、比例、评分 | 写分母、范围和单位。 | 无分母、图表待核验或抽取不完整时不得进入强统计结论。 |
 | 关系值 | 字段表示节点间关系 | 使用关系边表，保留关系类型、目标取值空间和缺失关系。 | 缺失关系可作为 absence evidence，但必须回链证据。 |
 | 外部分类法引用 | 原文使用 SWEBOK、CCS、ISO 等外部体系 | 写清外部体系版本或待核验状态。 | 版本不明时只能候选，不得与其他论文直接合并统计。 |
@@ -222,7 +222,7 @@ roadmap + 无系统样本库时，优先按 `roadmap action` / `vision item` 降
 
 DevSecOps CPTM、生命周期投影、工具-实践-指标链接、RQ-字段-发现链路等关系型 schema 不得强行压平成普通树。应使用主干树表达实体层级，再用关系边表表达横向关系。
 
-关系边表至少包含：关系边标识、源节点、关系类型、目标节点、目标取值空间、缺失值语义、证据引用和结论引用。`no linked metric`、`not_reported`、`no linked tool`、`no mapped RQ` 等缺失关系也要入账，可在 A.2 中使用 `absence_evidence` 或 `not_reported` 证据角色。
+关系边表至少包含：关系边标识、源节点、关系类型、目标节点、目标取值空间、缺失值语义、证据引用和结论引用。`no linked metric`、`未报告（not reported）`、`no linked tool`、`no mapped RQ` 等缺失关系也要入账，可在 A.2 中使用 `absence_evidence` 或 `未报告（not reported）` 证据角色。
 
 ### 6.3.7 审计附录与最小必填字段简表
 
@@ -315,6 +315,26 @@ A1-DT v2 ready 前必须通过结构门禁。若 `audits/a1dt-v2-19x3/` 尚未�
 6. v1 历史章节和 v1 审计目录引用均带 `> [!WARNING] v1-deprecated: ...` 警示。
 7. `weak` / `not_verified` / `needs_manual_check` 结论没有进入 SUMMARY 定量统计或 final research finding。
 
+### 6.3.12 维度树 / 维度森林中文化纪律
+
+维度树 / 维度森林是本库最关键的学术资产，必须优先保证人类导师、后续硕士生和后续写作 agent 能直接读懂。因此所有 `review.md` 的 `## 维度树复原` 小节默认采用中文写作，尤其是树干、节点名、叶子名、关系边说明、取值空间解释、统计用途和候选发现用途。
+
+执行规则：
+
+1. 同一篇 `review.md` 中，关键英文术语第一次出现时写成 `中文（English）`；后续正文原则上只写中文。
+2. 维度树 / 维度森林的可读标签必须中文化，例如写“样本单位”“发表源”“实证策略”“质量量规”“关系边”，不要只写 `sample_unit`、`venue`、`empirical_strategy`、`quality_rubric`、`edge`。
+3. 稳定机器标识必须保留原样，包括 `tree-*`、`leaf-*`、`edge-*`、`clm-*`、`ev-*`、BibTeX 键、JSON 字段、文件名、路径、链接目标和命令。若这些标识需要解释，只在旁边增加中文释义，不得改写标识本身。
+4. 原文封闭枚举、论文原题、工具名、模型名、标准名、作者自定义分类名和原文短引可保留英文；若它们承担节点或叶子标签，应在首次出现处补中文释义。
+5. 审计附录 A.1--A.4 的正式表头继续使用中文；原文短引、证据标识、结论标识和来源文件名不强行翻译。
+6. 后续任何批量中文化只允许在 `## 维度树复原` 小节内做保守编辑；不得机械替换全库路径、链接、`metadata.json`、`paper_content.txt` 或机器字段。
+7. **维度树 / 维度森林代码块是优先中文化对象**：树根、分支、节点、叶子、关系边、取值空间类型、缺失值语义和注释说明默认使用中文；英文缩写、原文枚举或工具名可以保留，但必须在同一行或相邻行给出中文解释。
+8. 树内若确需保留机器可读短标识，可采用 `中文标签（stable_id: xxx）`、`中文标签 / 原文枚举：...` 或 `中文标签：...` 的写法；不得只留下 `field_name ::= enum<...>` 这类纯英文 schema。
+9. 中文化不得改变学术判断、统计池资格、证据强度、分母、页码、表号或结论-证据映射；若发现原文理解问题，必须另起返修记录，而不是借语言清理暗改事实。
+
+最低验收：抽样打开至少 3 篇 `review.md`，只读维度树 / 维度森林代码块和其前后说明时，应能判断该论文“如何描述其样本集合、有哪些维度、哪些维度可统计、哪些只是候选启发”。若还需要先读英文变量名才能理解，则中文化未通过。
+
+机械拒收标准：若单个维度树代码块超过 20 行，且主要节点 / 叶子中仍有超过约 30% 的未解释英文变量名，或出现 `field_name ::= enum<...>` 这类纯英文 schema 写法，则不得判定 ready；必须补同一行中文标签或相邻行中文释义。英文枚举、工具名、模型名可以保留，但所属维度、关系含义和缺失值语义必须中文可读。
+
 
 ## 7. schema 回修闭环
 
@@ -332,9 +352,9 @@ A1-DT v2 ready 前必须通过结构门禁。若 `audits/a1dt-v2-19x3/` 尚未�
 [SUMMARY.md](./SUMMARY.md) 必须至少维护：
 
 1. 当前文库状态和总判断：明确当前收录数量、全文状态、manual-download 状态、A1 能支撑什么、不能支撑什么。
-2. 核心口径：阅读状态、证据等级、schema seed、主统计池、方法学参考池、schema seed / boundary pool、CCF / venue 字段。
+2. 核心口径：阅读状态、证据等级、schema seed、主统计池、方法学参考池、schema seed / 边界池（boundary pool）、CCF / venue 字段。
 3. 统一论文总表：所有入账论文必须在一个主表中维护，不得按 PR 批次拆成多个主表；本目录显式 override 根级默认排序，主表按年份从高到低排列。
-4. 证据池 / 统计池分布：至少区分主统计池、方法学参考池、schema seed / boundary pool、待下载 / metadata-only。
+4. 证据池 / 统计池分布：至少区分主统计池、方法学参考池、schema seed / 边界池（boundary pool）、待下载 / metadata-only。
 5. A1-M0--M6 元维度定义：解释每层的操作化问题、最低证据和当前主要启发。
 6. A1-M0--M6 逐篇覆盖矩阵：每篇论文至少给出 7 个元维度的短语级贡献，并链接到单篇 `review.md`。
 7. 当前 pattern 总结与 A2a 接力建议：说明 RQ、dimension、finding、evidence、validity、report structure 的当前观察和下一步处理方式。
@@ -354,7 +374,7 @@ emoji 列只写 emoji；中文释义放在表格外。
 |---|---|---|---|
 | 主统计池 | 论文自身已经执行完成 SLR / SMS / tertiary / MLR / systematic mapping；有系统检索或等价语料构造、纳排 / 编码 / 数据抽取、可统计字段或结果；本地至少全文文本级 | A2a/A2b 统计字段频次、覆盖度、维度饱和度和 finding 支撑 | 以 `eligible_for_statistical_synthesis=true` 为准 |
 | 方法学参考池 | guideline、mapping guideline、方法论文；能定义流程、抽取、报告、效度或质量评价规则，但不是普通领域统计样本 | 指导方法设计、schema 设计、证据链设计；不与普通领域统计池混算 | 只计主归属为方法学参考且 `eligible_for_statistical_synthesis=false` 的条目 |
-| schema seed / boundary pool | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 | 只计主归属为边界 / 启发 seed 且 `eligible_for_statistical_synthesis=false` 的条目 |
+| schema seed / 边界池（boundary pool） | roadmap、vision、solution proposal、theory roadmap、非标准系统综述但有高价值维度或 finding heuristic | 启发维度、方法边界、人机协同和 finding heuristic；不得污染统计池 | 只计主归属为边界 / 启发 seed 且 `eligible_for_statistical_synthesis=false` 的条目 |
 
 三类池在 SUMMARY 的当前数量必须按“主归属”计数，合计应等于入账论文数，避免 Petersen 2015 这类同时有方法学价值和统计样本资格的论文被重复计数。若某论文有次级用途，应在说明文字中标注，不改变主归属计数。
 

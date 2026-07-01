@@ -13,7 +13,7 @@
 
 ### 原文 RQ / 目标 / 贡献声明
 
-原文目标是综合 2014--2024 年 39 篇 peer-reviewed primary studies，回答 LLM-assistants 如何影响 software developer productivity。其贡献声明包含四块：首次围绕该主题做 systematic review and mapping；结构化刻画 methodological strategies / evaluation practices / reported effects；用 SPACE 作为 productivity mapping lens、用 McLuhan Tetrad 做 discussion synthesis；发布 Zenodo replication package，包含 study data、selection decisions、exclusion rationales。
+原文目标是综合 2014--2024 年 39 篇 peer-reviewed primary studies，回答 LLM-assistants 如何影响 软件开发者 productivity。其贡献声明包含四块：首次围绕该主题做 systematic review and mapping；结构化刻画 methodological strategies / evaluation practices / reported effects；用 SPACE 作为 productivity mapping lens、用 McLuhan Tetrad 做 discussion synthesis；发布 Zenodo replication package，包含 study data、selection decisions、exclusion rationales。
 
 原文 RQ 是明确的四层结构：
 

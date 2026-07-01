@@ -28,9 +28,9 @@
 
 | RQ | 原文措辞（摘录） | 承载层级 |
 |---|---|---|
-| RQ0 | What are the characteristics of peer-reviewed studies that investigate the impact of LLM-assistants on software developer productivity? | 研究景观：年份、作者、venue、工具分布 |
-| RQ1 | What are the methodological strategies, procedures, and instruments used by peer-reviewed studies that investigate the impact of LLM-assistants on software developer productivity? | 方法实践：策略（Stol & Fitzgerald taxonomy）、程序、研究目标、分析类型、评价工具/指标 |
-| RQ2 | What is the impact of LLM-assistants on software developer productivity reported in the reviewed studies? | 效果综合：主题分析得出 8 类 benefit + 5 类 risk，含 contested finding（code quality 同时为 benefit 和 risk） |
+| RQ0 | What are the characteristics of peer-reviewed studies that investigate the impact of LLM-assistants on 软件开发者 productivity? | 研究景观：年份、作者、venue、工具分布 |
+| RQ1 | What are the methodological strategies, procedures, and instruments used by peer-reviewed studies that investigate the impact of LLM-assistants on 软件开发者 productivity? | 方法实践：策略（Stol & Fitzgerald taxonomy）、程序、研究目标、分析类型、评价工具/指标 |
+| RQ2 | What is the impact of LLM-assistants on 软件开发者 productivity reported in the reviewed studies? | 效果综合：主题分析得出 8 类 benefit + 5 类 risk，含 contested finding（code quality 同时为 benefit 和 risk） |
 | RQ3 | To what extent do the reviewed studies examine the different dimensions of developer productivity? | 维度覆盖：以 SPACE 框架为 lens 统计各维度覆盖，识别 underexplored 维度 |
 
 **贡献声明**（摘要 + §1 Introduction）：

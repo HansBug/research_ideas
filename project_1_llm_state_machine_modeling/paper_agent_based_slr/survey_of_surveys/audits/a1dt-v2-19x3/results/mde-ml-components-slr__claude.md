@@ -213,37 +213,37 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | L-bib-venue | 发表 venue | §section-1 | Form §1, Table 2 | primary study 的会议/期刊名 | 列表（34 个 venue） | 自由文本 + 标准化 | 必填 | venue 频次表 | 学术 maturity / 社区聚集度 | EV-001 §3.4, §4.1 | 仅本 corpus |
-| L-bib-ptype | 发表形态 | §section-1 | Fig. 4(b) | conf/journal/workshop | {Conference, Journal, Workshop} | 完整枚举（3） | 必填 | 比例 ≈ 43.5/37/19.6% | maturity 指标 | EV-001 §4.1 | 可迁结构 |
+| L-bib-ptype | 发表形态 | §section-1 | Fig. 4(b) | conf/journal/workshop | {Conference, Journal, Workshop} | 完整枚举（3 类） | 必填 | 比例 ≈ 43.5/37/19.6% | maturity 指标 | EV-001 §4.1 | 可迁结构 |
 | L-bib-year | 发表年份 | §section-1 | Fig. 4(a) | 出版年份 | 整数 2008..2023 | 数值/区间 | 必填 | 年度分布 | "近 5 年急增"叙事支撑 | EV-001 §4.1 | 可迁结构 |
-| L-rq1-goal | 高层目标 | §RQ1 | Table 3 | 3 大类 goal | {Effort reduction, Quality improvement, Increased stakeholder understanding} | 完整枚举（3，可多选） | 必填，多选 | 43/13/11 (over 46) | "动机偏 effort reduction" 候选发现 | EV-002 §4.2.1 Table 3 | 可迁结构，不迁结论 |
+| L-rq1-goal | 高层目标 | §RQ1 | Table 3 | 3 大类 goal | {Effort reduction, Quality improvement, Increased stakeholder understanding} | 完整枚举（3 类，可多选） | 必填，多选 | 43/13/11 (over 46) | "动机偏 effort reduction" 候选发现 | EV-002 §4.2.1 Table 3 | 可迁结构，不迁结论 |
 | L-rq1-subgoal | 子目标 | L-rq1-goal | Table 3 | 14 个 sub-goal | {Abstraction, Automation, Integration, Monitoring, System management, Data management, Reusability, Extensibility, Standardization, Responsible ML, Interoperability, Maintainability, Scalability, Reliability, Support non-ML experts, Common language} | 层级枚举（16） | 多选 | 各 sub-goal 频次 | 缺口识别 | EV-002 Table 3 | 可迁结构 |
 | L-rq1-mltech | ML 技术 | §RQ1 | Table 4 | ML 子类 | {Generic ML, Supervised → {Traditional, NN, Traditional+NN}, Unsupervised, Reinforcement} | 层级枚举（6 终端） | 单选+子类 | 31/4/0/11 | "无 unsupervised-only 论文"是 finding | EV-002 §4.2.2 Table 4 | 可迁结构 |
-| L-rq1-domain | 应用域 | §RQ1 | §4.2.3 | 11 个 domain | {CPS, manufacturing, autonomous vehicles, smart homes, traffic signal control, satellite communication, network planning, big-data analytics, data analytics, social bots, generic/none} | 完整枚举（11） | 可空（→generic） | 域频次 | "约半数无具体域" | EV-002 §4.2.3 | 可迁结构 |
+| L-rq1-domain | 应用域 | §RQ1 | §4.2.3 | 11 个 domain | {CPS, manufacturing, autonomous vehicles, smart homes, traffic signal control, satellite communication, network planning, big-data analytics, data analytics, social bots, generic/none} | 完整枚举（11 类） | 可空（→generic） | 域频次 | "约半数无具体域" | EV-002 §4.2.3 | 可迁结构 |
 | L-rq1-enduser | end user | §RQ1 | Table 5 | 3 类 7 角色 | 见 §3 树 | 层级枚举（7 终端，可多选） | 多选 | 18/16/11 等 | 受众缺口 | EV-002 §4.2.4 Table 5 | 可迁结构 |
 | L-rq1-contrib | contribution 类型 | §RQ1 | Table 6 | 11 类 contribution | 见 §3 树 | 完整枚举（11，多选） | 多选 | 35/30/21/.../1 | "code generator + DSL + framework 主导" | EV-002 §4.2.5 Table 6 | 可迁结构 |
-| L-rq2-mrep | 模型表示 | §RQ2 Modeling | Fig. 8(a) | concrete syntax | {Graphical, Textual, Both} | 完整枚举（3） | 必填 | 23/21/2 | 半数图形半数文本 | EV-002 §4.3.1 | 可迁结构 |
-| L-rq2-mlang | 建模语言 | §RQ2 Modeling | Fig. 8(b) | language family | {New DSL, GPL, Language extension} | 完整枚举（3） | 必填 | 34/9/3 | DSL 主导 | EV-002 §4.3.1 Fig. 8(b) | 可迁结构 |
+| L-rq2-mrep | 模型表示 | §RQ2 Modeling | Fig. 8(a) | concrete syntax | {Graphical, Textual, Both} | 完整枚举（3 类） | 必填 | 23/21/2 | 半数图形半数文本 | EV-002 §4.3.1 | 可迁结构 |
+| L-rq2-mlang | 建模语言 | §RQ2 Modeling | Fig. 8(b) | language family | {New DSL, GPL, Language extension} | 完整枚举（3 类） | 必填 | 34/9/3 | DSL 主导 | EV-002 §4.3.1 Fig. 8(b) | 可迁结构 |
 | L-rq2-mlevel | 模型层 | §RQ2 Modeling | §4.3.1 | OMG levels | {CIM, PIM, PSM, PIM+PSM, CIM+PIM+PSM} | 层级枚举 | 必填，可组合 | PIM-only 35; PIM+PSM 6; CIM-only 2; PSM-only 2; CIM+PIM+PSM 1 | "PIM 占 42/46" | EV-002 §4.3.1 | 可迁结构 |
-| L-rq2-mtype | 模型类型 | §RQ2 Modeling | §4.3.1 | model type | {Requirements-level, Design-level, Data-representation, Feature, Process, Deployment} | 完整枚举（6） | 多选 | 39/6/5/.../少数 | 缺 process/deployment models | EV-002 §4.3.1 | 可迁结构 |
+| L-rq2-mtype | 模型类型 | §RQ2 Modeling | §4.3.1 | model type | {Requirements-level, Design-level, Data-representation, Feature, Process, Deployment} | 完整枚举（6 类） | 多选 | 39/6/5/.../少数 | 缺 process/deployment models | EV-002 §4.3.1 | 可迁结构 |
 | L-rq2-mlasp | 支持的 ML 方面 | §RQ2 | §4.3.2 Fig. 9(a) | 17 ML aspects | 见 §3 树 | 完整枚举（17，多选） | 多选 | design 28, train 22, deploy 10, monitor 2, doc 1 ... | "monitoring/documentation 被忽视" | EV-002 §4.3.2 Fig. 9(a) | 可迁结构 |
 | L-rq2-mlfw | ML framework / library | §RQ2 | Table 7 | 框架与库 | 见 Table 7 | 开放枚举（≈19） | not_reported | 频次 | "TF 主导" | EV-002 Table 7 | 可迁结构 |
 | L-rq2-trans | 变换种类 | §RQ2 Tool support | §4.3.3 | M2T/M2M | {M2T-only, M2M-only, Both, all forward-engineering} | 完整枚举（3+布尔） | 必填 | 35/4/7 | 全部 forward | EV-002 §4.3.3 | 可迁结构 |
-| L-rq2-art | 生成制品 | §RQ2 Tool support | §4.3.3 | artifact 类型 | {ML model/training code, Software/intermediate models, Deployment configs, Datasets/subsets, Text files, API code, Recommendation rules, Metamodels} | 完整枚举（8） | 多选 | 36/15/8/4/2/2/2/1 | "代码/模型主导" | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-art | 生成制品 | §RQ2 Tool support | §4.3.3 | artifact 类型 | {ML model/training code, Software/intermediate models, Deployment configs, Datasets/subsets, Text files, API code, Recommendation rules, Metamodels} | 完整枚举（8 类） | 多选 | 36/15/8/4/2/2/2/1 | "代码/模型主导" | EV-002 §4.3.3 | 可迁结构 |
 | L-rq2-tlang | 目标语言 | L-rq2-art | Fig. 9(b) | 生成代码语言 | {Python, Java, C++, ...} | 开放枚举 | 多选 | 15/10/4/... | Python 主导 | EV-002 §4.3.3 Fig. 9(b) | 可迁结构 |
-| L-rq2-autom | 自动化程度 | §RQ2 Tool support | Fig. 8(c) | full/partial | {Fully automated, Partially automated} | 完整枚举（2） | 必填 | 38/8 | 85% full | EV-002 §4.3.3 | 可迁结构 |
-| L-rq2-tool | 工具可得性 | §RQ2 Tool support | §4.3.3 | tool 状态 | {Open-source, Proprietary, Not mentioned} | 完整枚举（3） | 必填（含 not mentioned） | 17/6/23 | "50% 不提及工具" | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-autom | 自动化程度 | §RQ2 Tool support | Fig. 8(c) | full/partial | {Fully automated, Partially automated} | 完整枚举（2 类） | 必填 | 38/8 | 85% full | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-tool | 工具可得性 | §RQ2 Tool support | §4.3.3 | tool 状态 | {Open-source, Proprietary, Not mentioned} | 完整枚举（3 类） | 必填（含 not mentioned） | 17/6/23 | "50% 不提及工具" | EV-002 §4.3.3 | 可迁结构 |
 | L-rq2-metatool | meta-tool | §RQ2 Tool support | Table 8 | 元工具栈 | 开放枚举（Sirius, EMF, ... 见 Table 8） | 开放枚举 | not_reported | 频次 | 生态集中度 | EV-002 Table 8 | 可迁结构 |
-| L-rq3-area | 评价语境 | §RQ3 | §4.4.1 | academia/industry | {Academia, Industry, Both} | 完整枚举（3） | 必填 | 89% / 9% / P35 | "工业评价稀缺" | EV-003 §4.4.1 | 可迁结构 |
-| L-rq3-method | 评价方法 | §RQ3 | §4.4.2 | 5 类方法 | {Case study, Experiment, Survey/user-study, Criteria-based assessment, No evaluation} | 完整枚举（5，可多选） | 多选 | 23/17/4/2/8 | "case study 主导，user study 极少" | EV-003 §4.4.2 | 可迁结构；注意作者 pragmatic rule（如果论文自称 case study 即按 case study 计） |
+| L-rq3-area | 评价语境 | §RQ3 | §4.4.1 | academia/industry | {Academia, Industry, Both} | 完整枚举（3 类） | 必填 | 89% / 9% / P35 | "工业评价稀缺" | EV-003 §4.4.1 | 可迁结构 |
+| L-rq3-method | 评价方法 | §RQ3 | §4.4.2 | 5 类方法 | {Case study, Experiment, Survey/user-study, Criteria-based assessment, No evaluation} | 完整枚举（5 类，可多选） | 多选 | 23/17/4/2/8 | "case study 主导，user study 极少" | EV-003 §4.4.2 | 可迁结构；注意作者 pragmatic rule（如果论文自称 case study 即按 case study 计） |
 | L-rq3-industrial | 工业变体 | L-rq3-method | §4.4.2 | flag | {industrial case study, industrial experiment, none} | 布尔/枚举 | 默认 false | 4/1/41 | "几乎全在 academic 环境" | EV-003 §4.4.2 | 可迁结构 |
-| L-rq3-mlmetric | ML 指标族 | §RQ3 | §4.4.3 Fig. 10(a) | 4 大类 | {Classification, Regression, Time-resource, Fairness, Not mentioned, N/A} | 完整枚举（6） | 必填 | 见 Fig. 10(a) | "fairness/regression 罕见" | EV-003 §4.4.3 | 可迁结构 |
+| L-rq3-mlmetric | ML 指标族 | §RQ3 | §4.4.3 Fig. 10(a) | 4 大类 | {Classification, Regression, Time-resource, Fairness, Not mentioned, N/A} | 完整枚举（6 类） | 必填 | 见 Fig. 10(a) | "fairness/regression 罕见" | EV-003 §4.4.3 | 可迁结构 |
 | L-rq3-mdemetric | MDE 指标族 | §RQ3 | §4.4.3 Fig. 10(b) | 3 大类 | {Quality, Time-resource, Code, Not mentioned, N/A} | 完整枚举（5） | 必填 | 见 Fig. 10(b) | "MDE 指标常缺" | EV-003 §4.4.3 | 可迁结构 |
 | L-rq3-dataset | 数据集 | §RQ3 | §4.4.3 | 公开数据集名 | 开放枚举（33 个） | 开放枚举 | not_reported | MNIST 7, Iris 3 | "评价基准浅" | EV-003 §4.4.3 | 可迁结构 |
 | L-rq4-limscope | 限制类别 | §RQ4 | §4.5.1 | 3 类 + not mentioned | {Approach, Evaluation, Solution quality, Not mentioned} | 完整枚举（4，多选） | 多选 | 19/46 未提 | 自报告 limitations 偏少 | EV-003 §4.5.1 | 可迁结构 |
 | L-rq4-fwscope | future-work 类别 | §RQ4 | §4.5.2 | 3 类 + not mentioned | {Improvement/extension, Further evaluation, Quality enhancement, Not mentioned} | 完整枚举（4，多选） | 多选 | 7/46 未提 | 评估/工业评价计划不足 | EV-003 §4.5.2 | 可迁结构 |
 | L-qa-q | QA 单项分 | parallel-QA | §3.5 Table 9 | QA1..QA5 | {1, 2, 3, 4, 5, NA} | 数值（1–5）+ NA | NA when no evaluation (QA3..QA5) | 单项均值 / 分布 | 质量层次 | EV-004 Table 9 | 可迁结构 |
-| L-qa-band | QA 等级聚合 | parallel-QA | §3.5 | 总评 | {Good, Average, Poor} | 完整枚举（3） | — | 19 / 15 / 12 | 是否影响 finding 加权 | EV-004 §3.5 | 可迁结构 |
-| L-inc-id | 纳入条件 | parallel-IE | Table 1 | I01..I04 | 完整枚举（4） | 全部为真 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
+| L-qa-band | QA 等级聚合 | parallel-QA | §3.5 | 总评 | {Good, Average, Poor} | 完整枚举（3 类） | — | 19 / 15 / 12 | 是否影响 finding 加权 | EV-004 §3.5 | 可迁结构 |
+| L-inc-id | 纳入条件 | parallel-IE | Table 1 | I01..I04 | 完整枚举（4 类） | 全部为真 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
 | L-exc-id | 排除条件 | parallel-IE | Table 1 | E01..E10 | 完整枚举（10） | 全部为假 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
 
 ## 5. 关系边表

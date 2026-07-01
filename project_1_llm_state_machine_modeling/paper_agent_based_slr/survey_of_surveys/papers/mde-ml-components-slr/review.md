@@ -17,7 +17,7 @@
 | 证据等级 | 全文文本级；关键图示局部 原文图表级；正式统计数字待二次 PDF 核对。 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
 | 综述对象 | Model-driven Engineering for Machine Learning components，即 MDE4ML。 |
-| 样本规模 | 自动检索 7 个数据库得到 3934 条，去重后 3570 条，经三轮筛选得 32 条，再通过前向/后向 snowballing 增补 14 条，最终 46 篇 primary studies。 |
+| 样本规模 | 自动检索 7 个数据库得到 3934 条，去重后 3570 条，经三轮筛选得 32 条，再通过前向/后向 snowballing 增补 14 条，最终 46 篇 原始研究。 |
 | A1 角色 | 现代 SE 子领域 SLR 样本，最适合抽取“RQ → 维度树 → 分类统计 → RQ Answer Summary → Discussion roadmap”的报告模式。 |
 | 是否目标证据池 | 否；本文件只为 Paper2 的综述之综述脚手架提供模式先验，不把 MDE4ML 领域发现升级为本仓库目标领域结论。 |
 | 对 Paper2 最重要价值 | 提供一棵非常清楚的维度树：motivations / solutions-tools / evaluation / limitations-future work 四个 RQ 分别被拆成可抽取字段、分类轴、图表和 RQ answer summary。 |
@@ -29,7 +29,7 @@
 
 论文从两个事实出发：第一，ML component 已广泛进入现代软件系统，但与传统 deterministic software component 不同，ML component 的行为难以完全规格化，开发过程包含数据整理、特征选择、模型选择、超参数调整、监控与再训练等探索性步骤。第二，MDE 通过抽象、模型转换和自动制品生成，已经在传统软件、嵌入式系统和 CPS 等场景中用于降低复杂度、提升生产率与质量。
 
-作者把二者交叉定义为 MDE4ML：用 MDE 技术开发、集成、维护或支持带 ML component 的系统。Introduction 明确说现有二次研究要么范围窄，要么缺少系统流程，要么没有充分分析 goals、end-users、ML aspects、MDE approach details、evaluation methods 和 limitations。因此本文的空白不是“没有 MDE4ML 论文”，而是缺少按 SLR protocol 系统整理 MDE4ML 研究现状、工具、评价与缺口的综述。
+作者把二者交叉定义为 MDE4ML：用 MDE 技术开发、集成、维护或支持带 ML component 的系统。Introduction 明确说现有二次研究要么范围窄，要么缺少系统流程，要么没有充分分析 goals、end-users、机器学习环节、MDE approach details、evaluation methods 和 limitations。因此本文的空白不是“没有 MDE4ML 论文”，而是缺少按 SLR protocol 系统整理 MDE4ML 研究现状、工具、评价与缺口的综述。
 
 ### 2.2 Research Questions：四个 RQ 直接对应四棵结果子树
 
@@ -50,7 +50,7 @@
 
 1. **Planning**：识别 SLR 需求，制定 RQ，定义 SLR protocol。
 2. **Conducting**：所有作者协作形成 search string 与数据库选择；第一作者执行检索、去重和初筛；多轮筛选中使用 predefined criteria；其他作者 cross-validation，歧义通过讨论解决；再使用 Wohlin snowballing 补充遗漏研究。
-3. **Reporting**：对 46 篇 primary studies 做 data extraction / synthesis，报告主要发现并分析 threats to validity。
+3. **Reporting**：对 46 篇 原始研究 做 data extraction / synthesis，报告主要发现并分析 threats to validity。
 
 数据抽取方面，作者建立了包含 40 个问题的 Google Form，问题直接对应 4 个 RQ。Form 分为 5 个 section：general information/publication trends、motivations/goals/application domain/users、MDE approaches、evaluation techniques/tools、limitations/future challenges。答案形式包含 short answer、long answer、checkbox、radio button。质量控制上，第一作者先抽取 6 篇并与其他作者对同一批论文的抽取结果比较，发现 close match 后由第一作者抽取剩余论文；数据综合使用图、表和统计分布，并由其他作者指导。
 
@@ -70,11 +70,11 @@
 | brief full-paper screening | 55 | 按 inclusion/exclusion criteria 继续过滤。 |
 | detailed reading / data extraction 筛选 | 32 | 因信息不足或细读后不相关继续排除。 |
 | snowballing | +14 | 32 篇与 related work 做三轮 forward/backward snowballing，前向 8 篇，后向 6 篇。 |
-| 最终 primary studies | 46 | Appendix A 列 P1--P46；Appendix B / Table 9 给 QA 分数。 |
+| 最终 原始研究 | 46 | Appendix A 列 P1--P46；Appendix B / Table 9 给 QA 分数。 |
 
-纳入标准要求论文聚焦 MDE for systems with ML components、全文可得、peer-reviewed / academic、英文。排除项包括：只有 ML 没有 MDE、MDE for non-ML AI、AI4MDE、pre-deployment model-based testing、短文少于 4 页、已有 journal 扩展版的会议/工作坊版本、信息不足、secondary/tertiary studies、vision/grey literature/books/posters/opinions/keynotes/magazine/experience/comparison papers 等。
+纳入标准要求论文聚焦 MDE for systems with ML components、全文可得、peer-reviewed / academic、英文。排除项包括：只有 ML 没有 MDE、MDE for non-ML AI、AI4MDE、pre-deployment model-based testing、短文少于 4 页、已有 journal 扩展版的会议/工作坊版本、信息不足、secondary/tertiary studies、vision/灰色文献（grey literature）/books/posters/opinions/keynotes/magazine/experience/comparison papers 等。
 
-### 2.5 46 篇 primary studies 的概貌
+### 2.5 46 篇 原始研究 的概貌
 
 最终 46 篇覆盖 2008--2023 年，2018 年以后显著增多；publication type 分布经 PDF Fig. 4 核对为 conference 20、journal 17、workshop 9。主要 venue 包括 MODELS、MODELS Companion Workshop、MODELSWARD、Computer Languages、SoSym 等。
 
@@ -88,9 +88,9 @@ RQ1 将目标分成 3 个 high-level category：effort reduction、quality impro
 - **Quality improvement**：13/46；子项包括 reusability、extensibility、standardization、responsible ML、interoperability、maintainability、scalability、reliability。
 - **Increased stakeholder understanding**：11/46；支持 non-ML experts 或提供 common language，帮助跨角色协作。
 
-RQ1 还分析 ML techniques、application domains、end users 和 contributions。ML 技术上，supervised ML 占 31/46，reinforcement learning 4/46，没有研究专门聚焦 unsupervised learning，其余 11 篇为 generic ML。应用域中约半数没有特定 domain，具名 domain 里 CPS 及其子类最多。End users 分为 ML-related roles、software/systems roles 和 other roles/domain experts。Contribution 方面，最常见的是 code generator 35/46、DSL 30/46、MDE framework 21/46，其他包括 model generator、text generator、modeling approach、language extension、knowledge base、data synthesizer 等。
+RQ1 还分析 ML techniques、application domains、end users 和 contributions。ML 技术上，supervised ML 占 31/46，reinforcement learning 4/46，没有研究专门聚焦 unsupervised learning，其余 11 篇为 generic ML。应用域中约半数没有特定 domain，具名 domain 里 CPS 及其子类最多。End users 分为 ML-related roles、software/systems roles 和 other roles/domain experts。Contribution 方面，最常见的是 code generator 35/46、DSL 30/46、MDE framework 21/46，其他包括 模型生成器、text generator、modeling approach、language extension、knowledge base、data synthesizer 等。
 
-RQ1 Answer Summary 的写法值得直接学习：它先概括主导动机是通过 automation / abstraction 降低 effort，再指出质量提升和 stakeholder understanding 相对少；随后补充 domain、users、ML technique 和 ML lifecycle aspect 的分布，并点出 monitoring/documentation 被忽视。
+RQ1 Answer Summary 的写法值得直接学习：它先概括主导动机是通过 automation / abstraction 降低 effort，再指出质量提升和 stakeholder understanding 相对少；随后补充 domain、users、ML technique 和 ML lifecycle aspect 的分布，并点出 monitoring/文档 被忽视。
 
 ### 2.7 RQ2：MDE solutions / tools
 
@@ -99,7 +99,7 @@ RQ2 是最清晰的 “solution/tool dimension tree”。主要抽取结果如�
 1. **Model representation**：graphical 23/46，textual 21/46，两者都有 2/46。
 2. **Modeling language**：新 DSL 34/46，GPL 9/46，language extension 3/46。
 3. **Model level / type**：PIM 42/46，设计级 model 39/46；requirements-level 6/46，data-representation 5/46。CIM / PSM 和 feature/process/deployment 等较少。
-4. **Supported ML aspects**：共识别 17 种 ML aspects。Design/development 28/46、training 22/46、deployment 10/46 较多；documentation、data storage、visualization 只有 1 篇，monitoring 和 data generation 只有 2 篇。
+4. **Supported 机器学习环节**：共识别 17 种 机器学习环节。Design/development 28/46、training 22/46、deployment 10/46 较多；文档、data storage、visualization 只有 1 篇，monitoring 和 data generation 只有 2 篇。
 5. **ML frameworks/libraries**：TensorFlow 最常见，MXNet 次之；library 中 Weka、Scikit-learn、NumPy 常见。
 6. **Transformations**：M2T 为主，35/46 只用 M2T，4/46 只用 M2M，7/46 同时用 M2M/M2T；所有 46 篇都是 forward engineering。
 7. **Generated artifacts**：ML model/training code 36/46，software/intermediate models 15/46，deployment configurations 8/46，datasets/subsets 4/46；生成语言中 Python 最多，其次 Java、C++。
@@ -112,7 +112,7 @@ RQ2 Answer Summary 的结构是：先概括主流 ML aspect、model level、mode
 
 RQ3 先区分 evaluation context：academia、industry 或 both。89% 研究处于 academic context，约 9% 处于 industrial context，P35 同时有 academic 和 industrial evaluation。
 
-Evaluation methods 分为 case study、experiment、survey、criteria-based assessment、no evaluation。23/46 使用 case study，其中仅 4 个是 industrial case study；17/46 使用 experiments，其中仅 1 个是 industrial experiment；user study 只有 4 篇；criteria-based assessment 2 篇；8 篇没有 evaluation。作者借用 Wohlin 的 empirical study 分类，但也声明如果 primary study 自称 case study，即使不完全符合 SE 定义，也按 case study 分类。这一点说明分类轴可以有 pragmatic rule，并需要在 schema 中显式记录。
+Evaluation methods 分为 case study、experiment、survey、criteria-based assessment、no evaluation。23/46 使用 case study，其中仅 4 个是 industrial case study；17/46 使用 experiments，其中仅 1 个是 industrial experiment；user study 只有 4 篇；criteria-based assessment 2 篇；8 篇没有 evaluation。作者借用 Wohlin 的 empirical study 分类，但也声明如果 原始研究 自称 case study，即使不完全符合 SE 定义，也按 case study 分类。这一点说明分类轴可以有 pragmatic rule，并需要在 schema 中显式记录。
 
 Metrics 分为 ML metrics 与 MDE metrics：
 
@@ -120,7 +120,7 @@ Metrics 分为 ML metrics 与 MDE metrics：
 - **MDE metrics**：quality、time/resource、code 三类。Quality 包括 productivity increase、usability、scalability、learnability、desirability、completeness、effectiveness、correctness、expressiveness、usefulness、complexity reduction、generated code quality、flexibility；time/resource 包括 generation time、modeling time、execution time、re-training time reduction；code 包括 LOC、words、characters、generated pipelines。
 - **Datasets**：共识别 33 个 datasets，MNIST 最常用，Iris 次之。
 
-RQ3 Answer Summary 将评价缺口压缩得很明确：工业环境评价少，case study 最常见，experiment/user study 相对少，MDE metrics 经常缺失或 MDE aspects 没有被评价，评估更偏 ML aspects。
+RQ3 Answer Summary 将评价缺口压缩得很明确：工业环境评价少，case study 最常见，experiment/user study 相对少，MDE metrics 经常缺失或 MDE aspects 没有被评价，评估更偏 机器学习环节。
 
 ### 2.9 RQ4：limitations / future work
 
@@ -134,7 +134,7 @@ Future work 也被分成三类：
 
 - **Improvement / extension of approach**：新增功能、支持更多 platform/language/ML models、处理更复杂场景、加入 training data processing/preparation、新 DSL 或 tool implementation。
 - **Further evaluation**：13 篇计划进一步评价，但从 8 篇无 evaluation 的研究里只有 P18 将 evaluation 明确列为 future work；42 篇没有 user study，却只有 3 篇将 user study 写入未来工作。
-- **Quality enhancement**：与其他语言/工具集成、interoperability、优化生成代码、资源分配、model checking、scalability/reusability/adaptability 等。
+- **质量增强**：与其他语言/工具集成、interoperability、优化生成代码、资源分配、model checking、scalability/reusability/adaptability 等。
 
 RQ4 Answer Summary 给出若干可直接复核的比例：超过 88% 研究没有 industrial evaluation 和 user study，48% 只评价 MDE 或 ML 的一个方面，17% 没有任何评价；future work 中 46% 提出 additional features/enhancements，28% 提出 further evaluations。
 
@@ -143,7 +143,7 @@ RQ4 Answer Summary 给出若干可直接复核的比例：超过 88% 研究没�
 Discussion 将 RQ1--RQ4 的统计观察升级为 research roadmap，主题包括：
 
 1. **Data for ML**：多数 MDE4ML 研究忽视数据生成、预处理、存储和可视化，建议把 data 作为 first-class citizen。
-2. **Solution focus**：过度集中于 design/development/training，缺少 requirements engineering、integration、pipeline、deployment、monitoring、documentation。
+2. **Solution focus**：过度集中于 design/development/training，缺少 requirements engineering、integration、pipeline、deployment、monitoring、文档。
 3. **ML type**：supervised/deep learning 偏多，unsupervised 与 reinforcement learning 不足。
 4. **MDE details**：部分 ML venue 研究数学/ML 细节多但 MDE 元模型和转换细节不足；部分 MDE venue 研究也缺 MDE 细节。
 5. **Solution maturity**：工具成熟度、开放性、复杂场景支持、端到端 ML lifecycle 支持不足。
@@ -166,7 +166,7 @@ Discussion 将 RQ1--RQ4 的统计观察升级为 research roadmap，主题包括
 - **Internal validity**：先制定 protocol 并由其他作者 review；search string 多次修改，在多个数据库执行；ScienceDirect 因长检索式限制拆成多个小检索式；多轮筛选，第一作者筛选、其他作者 validate；最终数据抽取前先 pilot。
 - **Construct validity**：使用 7 个数据库和 automated/manual 两种搜索策略；纳排标准多轮讨论；ML 术语不一致被视为潜在威胁，通过第二、第三作者讨论达成共识。
 - **Conclusion validity**：数据抽取表与 RQ 对齐；第一作者和其他作者对小样本抽取进行比较，close match 后继续；数据分析和分类经过多轮作者讨论。
-- **External validity**：自动检索 + snowballing、明确纳排标准；只纳入 peer-reviewed academic studies，排除 grey literature、book chapters、opinion/vision/comparison papers；只纳入英文，作者承认可能排除部分相关研究；未按时间范围限制；不因 publication quality 排除，减少 publication bias。
+- **External validity**：自动检索 + snowballing、明确纳排标准；只纳入 peer-reviewed academic studies，排除 灰色文献（grey literature）、book chapters、opinion/vision/comparison papers；只纳入英文，作者承认可能排除部分相关研究；未按时间范围限制；不因 publication quality 排除，减少 publication bias。
 
 需要注意：这些 threats 说明过程有交叉检查，但并未给出 Cohen $\kappa$、双人独立编码比例或完整 disagreement 统计。因此对 Paper2 而言，若要主张更强审计性，不能只写“作者讨论解决歧义”，而应记录每次模式修订、字段冲突、回填和裁决证据。
 
@@ -191,70 +191,69 @@ Discussion 将 RQ1--RQ4 的统计观察升级为 research roadmap，主题包括
 | A1-M3 论文收集与概览 | 7 数据库、search string refinement、去重、三轮筛选、snowballing、纳排标准与筛选分母。 | Paper2 的检索/筛选台账需要保留每轮分母、排除理由、全文状态、snowball 来源和异常来源。 |
 | A1-M4 字段级证据抽取与模式演化 | 数据抽取表与 RQ 对齐，pilot 后更新表单；分类时遇到术语不一致需讨论。 | Paper2 应记录“字段表变更原因、受影响论文、回填状态”；ML terminology 不一致是模式演化触发器样例。 |
 | A1-M5 统计分析 | 用 Venn、bubble chart、feature distribution、频次表和 QA 表把字段表转成统计观察。 | Paper2 统计协议可要求频次、交叉表、覆盖率代理、缺失率、质量/评价分布，并注明分母。 |
-| A1-M6 候选发现形成 | RQ Answer Summary 与 Discussion roadmap 把统计观察转为 gap / recommendation。 | Paper2 可将每个 Answer Summary 拆为 candidate finding：supporting counts、counter-evidence、scope、confidence、researcher challenge。 |
+| A1-M6 候选发现形成 | RQ Answer Summary 与 Discussion roadmap 把统计观察转为 gap / recommendation。 | Paper2 可将每个 Answer Summary 拆为 候选发现：supporting counts、counter-evidence、scope、confidence、researcher challenge。 |
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
 > 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
-SLR Study
-├── Bibliographic / corpus metadata
-│   ├── year / publication type / venue / citation count
-│   ├── primary-study ID (P1--P46)
-│   └── quality score (QA1--QA5 / NA)
-├── Protocol evidence
-│   ├── RQ set
-│   ├── databases and search date
-│   ├── search string and adaptation notes
-│   ├── inclusion / exclusion criteria
-│   ├── screening stages and counts
-│   ├── snowballing direction and counts
-│   └── data extraction form / pilot / synthesis method
-├── RQ1 Motivation tree
-│   ├── goal: effort reduction / quality improvement / stakeholder understanding
-│   ├── sub-goal: abstraction / automation / integration / monitoring / management / reusability / responsible ML / common language ...
-│   ├── ML technique: supervised / unsupervised / reinforcement / generic
-│   ├── application domain: CPS / manufacturing / autonomous vehicles / analytics / generic ...
-│   ├── end user: ML engineer / data scientist / software engineer / systems engineer / domain expert ...
-│   ├── contribution: code generator / DSL / framework / model generator / text generator / knowledge base ...
-│   └── RQ1 answer summary
-├── RQ2 Solution and tool tree
-│   ├── model representation: graphical / textual / both
-│   ├── modeling language: DSL / GPL / extension
-│   ├── model level: CIM / PIM / PSM
-│   ├── model type: requirements / design / data / feature / process / deployment ...
-│   ├── supported ML aspects: requirements / preprocessing / design / training / evaluation / deployment / integration / inference / monitoring / management / documentation ...
-│   ├── ML framework or library: TensorFlow / MXNet / Weka / Scikit-learn ...
-│   ├── transformation: M2T / M2M / both / forward engineering
-│   ├── generated artifact: code / model / deployment config / dataset / text / API / meta-model ...
-│   ├── automation level: full / partial
-│   ├── tool availability: open-source / proprietary / not mentioned
-│   ├── meta-tool / framework / transformation language
-│   └── RQ2 answer summary
-├── RQ3 Evaluation tree
-│   ├── target area: academia / industry / both
-│   ├── method: case study / experiment / survey / criteria-based assessment / no evaluation
-│   ├── ML metric: classification / regression / time-resource / fairness / not mentioned / N-A
-│   ├── MDE metric: quality / time-resource / code / not mentioned / N-A
-│   ├── dataset: MNIST / Iris / other
-│   └── RQ3 answer summary
-├── RQ4 Limitation and future-work tree
-│   ├── limitations: approach / evaluation / solution quality / not mentioned
-│   ├── approach limits: manual configuration / limited ML models / non-generic / fragile model ...
-│   ├── evaluation limits: no user study / no industrial evaluation / simple scenario / no evaluation
-│   ├── quality limits: scalability / accessibility
-│   ├── future work: approach enhancement / further evaluation / quality enhancement
-│   └── RQ4 answer summary
-├── Threats and data availability
+说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
+SLR 研究记录（SLR Study）
+├── 书目 / 语料元数据
+│   ├── 年份 / 发表类型 / 发表源 / 引用数
+│   ├── primary-study ID（P1--P46）
+│   └── 质量评分（QA1--QA5 / NA）
+├── 协议证据
+│   ├── RQ 集合
+│   ├── 数据库与检索日期
+│   ├── 检索式与适配说明
+│   ├── 纳排标准
+│   ├── 筛选阶段与计数
+│   ├── 滚雪球方向与计数
+│   └── 数据抽取表单 / pilot / synthesis method
+├── RQ1 动机树
+│   ├── 目标：effort reduction / quality improvement / stakeholder understanding
+│   ├── 子目标：abstraction / automation / integration / monitoring / management / reusability / responsible ML / common language 等
+│   ├── ML 技术：supervised / unsupervised / reinforcement / generic
+│   ├── 应用领域：CPS / manufacturing / 自动驾驶车辆（autonomous vehicles） / analytics / generic 等
+│   ├── 目标用户：ML engineer / data scientist / software engineer / systems engineer / domain expert 等
+│   ├── 贡献：代码生成器、领域特定语言、框架、模型生成器、文本生成器、知识库等
+│   └── RQ1 答案摘要
+├── RQ2 方案与工具树
+│   ├── 模型表示：graphical / textual / both
+│   ├── 建模语言：DSL / GPL / extension
+│   ├── 模型层级：CIM / PIM / PSM
+│   ├── 模型类型：requirements / design / data / feature / process / deployment 等
+│   ├── 支持的机器学习环节：需求工程、预处理、设计、训练、评价、部署、集成、推理、监控、管理、文档等
+│   ├── ML 框架或库：TensorFlow / MXNet / Weka / Scikit-learn 等
+│   ├── 转换：M2T / M2M / both / forward engineering
+│   ├── 生成制品：code / model / deployment config / dataset / text / API / meta-model 等
+│   ├── 自动化程度：full / partial
+│   ├── 工具可获得性：开源 / 专有 / 未提及
+│   ├── 元工具 / 框架 / 转换语言
+│   └── RQ2 答案摘要
+├── RQ3 评价树
+│   ├── 目标场景：academia / industry / both
+│   ├── 方法：case study / experiment / survey / criteria-based assessment / no evaluation
+│   ├── 机器学习指标：分类 / 回归 / 时间-资源 / 公平性 / 未提及 / 不适用
+│   ├── MDE 指标：质量 / 时间-资源 / 代码 / 未提及 / 不适用
+│   ├── 数据集：MNIST / Iris / other
+│   └── RQ3 答案摘要
+├── RQ4 限制与未来工作树
+│   ├── 限制：方法限制 / 评价限制 / 解决方案质量限制 / 未提及
+│   ├── 方法限制：manual configuration / limited ML models / non-generic / fragile model 等
+│   ├── 评价限制：no user study / no industrial evaluation / simple scenario / no evaluation
+│   ├── 质量限制：scalability / accessibility
+│   ├── 未来工作：approach enhancement / further evaluation / quality enhancement
+│   └── RQ4 答案摘要
+├── 威胁与数据可获得性
 │   ├── internal / construct / conclusion / external validity
-│   ├── data repository link and current accessibility
-│   └── residual risks / pending checks
-└── Discussion roadmap
-    ├── statistical observation
-    ├── gap / limitation
-    ├── recommendation
-    └── candidate finding strength
+│   └── replication package / supplementary material
+└── Paper2 迁移边界
+    ├── 可迁移：动机-方案-评价-限制树形结构
+    ├── 谨慎迁移：MDE / ML 具体取值
+    └── 不迁移：领域统计结论
 ```
 
 ## 6. 它如何把 motivations、solutions/tools、evaluation、limitations/future work 做成维度树和 RQ Answer Summary
@@ -262,12 +261,12 @@ SLR Study
 这篇论文的关键套路可以概括为 5 步：
 
 1. **从 RQ 反推字段**：RQ1--RQ4 不是开放式总结题，而是直接决定 data extraction form 的 section。每个 RQ 都对应一组可填字段。
-2. **把字段组织为 feature tree**：Fig. 5 把 MDE4ML solution 拆成 goal、domain、end users、modeling、ML aspects、tool support、evaluation、scalability、responsible ML，再继续拆二级字段。
+2. **把字段组织为 feature tree**：Fig. 5 把 MDE4ML solution 拆成 goal、domain、end users、modeling、机器学习环节、tool support、evaluation、scalability、responsible ML，再继续拆二级字段。
 3. **用表格固定取值空间**：例如 goal/sub-goal、ML techniques、end users、contributions、tool/framework、metrics、limitations/future work 都用表格或图形固化取值。
-4. **用统计分布回答 RQ**：每个 RQ 小节先描述分类轴和频次，再给示例 primary studies，最后生成 Answer Summary。
+4. **用统计分布回答 RQ**：每个 RQ 小节先描述分类轴和频次，再给示例 原始研究，最后生成 Answer Summary。
 5. **把 RQ Summary 升级为 roadmap**：Discussion 不再重复表格，而是围绕 data、solution focus、ML type、MDE detail、maturity、domain expert、terminology、scalability、responsible ML、evaluation rigor 提出建议。
 
-对 Paper2 来说，这等价于一个可以复用的制品链：`RQ -> extraction schema -> feature tree -> field evidence table -> distribution / cross-tab -> RQ answer summary -> candidate finding / roadmap`。
+对 Paper2 来说，这等价于一个可以复用的制品链：`RQ -> extraction schema -> feature tree -> field evidence table -> distribution / cross-tab -> RQ answer summary -> 候选发现 / roadmap`。
 
 ## 7. 对 Paper2 的启发与风险
 
@@ -275,7 +274,7 @@ SLR Study
 
 1. **每个 RQ 必须有字段投影**：Paper2 后续不能只写“让 agent 总结 RQ”，而应要求每个 RQ 都映射到字段、取值空间、缺失值语义和证据锚点。
 2. **字段树应先由研究者批准**：本文的 Fig. 5 展示了领域专家可读的 feature tree；Paper2 可把它作为 G0/G1 的目标制品，而不是让 agent 隐式使用 prompt 内部分类。
-3. **Answer Summary 是候选发现的中间层**：RQ Answer Summary 可以成为 A1-M6 candidate finding 的输入，但不能直接作为最终领域发现。Paper2 应再加 G4/G5 的研究者质疑和裁决。
+3. **Answer Summary 是候选发现的中间层**：RQ Answer Summary 可以成为 A1-M6 候选发现 的输入，但不能直接作为最终领域发现。Paper2 应再加 G4/G5 的研究者质疑和裁决。
 4. **评价字段要覆盖“评价是否存在”和“评价评价了什么”**：本文同时记录 context、method、metrics、datasets、MDE/ML 两方面是否被评价，这对 Paper2 的审计指标很有价值。
 5. **缺失和不报告本身是发现**：未提 tool、未提 limitations、无 evaluation、无 MDE metrics、无 industrial/user study 都被统计为 evidence，而不是被忽略。
 6. **Discussion roadmap 可以由统计观察生成，但要保留分母**：例如 “75% 未讨论 scalability”“超过 88% 无 industrial/user study”这类强结论必须保留分母与字段来源。
@@ -315,69 +314,69 @@ SLR Study
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 leaf / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生 schema。
+> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__codex.md](../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__codex.md)、[../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__claude.md](../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__claude.md)、[../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__deepseek.md](../../audits/a1dt-v2-19x3/results/mde-ml-components-slr__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/mde-ml-components-slr.md](../../audits/a1dt-v2-19x3/adjudications/mde-ml-components-slr.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修 / needs repair”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 supplementary 精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
 
 ### 0. 审计结论卡片
 
 | 项 | 结论 |
 |---|---|
-| paper slug | `mde-ml-components-slr` |
-| agent | `claude` (Opus 4.7 1M, 本任务以单 agent 完成，未派生 subagent) |
-| 是否已读 `paper_content.txt` | 是。按行顺序通读 1–1849 行（覆盖摘要、§1–§7、Table 1–9、Appendix A 主体、Acknowledgments、Data availability、Fig. 4–10 文字描述），后续 1849–2123 行为 P34–P46 引用条目与参考文献，仅抽样核对 |
+| 论文目录标识 | `mde-ml-components-slr` |
+| 审计代理 | `claude` (Opus 4.7 1M, 本任务以单 智能体 完成，未派生 subagent) |
+| 是否已读 `paper_content.txt` | 是。按行顺序通读 1–1849 行（覆盖摘要、§1–§7、Table 1–9、Appendix A 主体、Acknowledgments、数据可获得性（Data 可获得性）、Fig. 4–10 文字描述），后续 1849–2123 行为 P34–P46 引用条目与参考文献，仅抽样核对 |
 | 是否读取 `bibtex.bib` / `metadata.json` | 是；用于核对 venue（IST）、DOI、年份与本仓库 CCF 标注 |
 | 是否打开或核对 `paper.pdf` | 否（本轮以全文文本审计为主）；Fig. 5 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 视觉版面、Table 2 单元格 wrap、Table 9 单行 QA 分数仍需 PDF 复核 |
-| 原文类型 | **SLR**（Kitchenham guidelines 显式声明，protocol → planning/conducting/reporting） |
-| 被编码样本单位 | **primary study**，编号 P1–P46，46 篇 |
-| 样本数量 / 分母 | 自动检索 3934 → 去重 3570 → title/abstract 72 → brief full-paper 55 → detailed reading 32 → snowballing +14（前向 8 + 后向 6）→ **46**（其中 conclusion §7 误写为 “3,496 papers”，与方法 §3.3.2 中 3934 不一致） |
-| 原生树类型 | **单根维度树**（Fig. 5 "Features of selected primary studies"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 schema 与 QA1–QA5 质量 rubric 两个并列 schema；不构成维度森林 |
-| 主统计池资格 | 局部可统计；本文 RQ1–RQ4 章节给出的 frequencies（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 publication type 分布、Fig. 10 metric 分布与 Table 9 QA 矩阵） |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 needs repair；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、supplementary 风险进入 A2a。 |
+| 原文类型 | **SLR**（Kitchenham 指南 显式声明，protocol → planning/conducting/报告方式） |
+| 被编码样本单位 | **原始研究**，编号 P1–P46，46 篇 |
+| 样本数量 / 分母 | 自动检索 3934 → 去重 3570 → title/abstract 72 → brief 完整-paper 55 → detailed reading 32 → snowballing +14（前向 8 + 后向 6）→ **46**（其中 conclusion §7 误写为 “3,496 papers”，与方法 §3.3.2 中 3934 不一致） |
+| 原生树类型 | **单根维度树**（Fig. 5 "Features of selected 原始研究"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 模式 与 QA1–QA5 质量 rubric 两个并列 模式；不构成维度森林 |
+| 主统计池资格 | 局部可统计；本文 RQ1–RQ4 章节给出的 频次（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 发表类型 分布、Fig. 10 指标 分布与 Table 9 QA 矩阵） |
+| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
 **实际读取的本地文件与章节**：
 
 - `bibtex.bib` 完整（1–13 行）：确认 IST 期刊、2024、vol 169、DOI 10.1016/j.infsof.2024.107423。
-- `metadata.json` 完整：交叉确认 review_type=SLR、se_subfield=MDE4ML、CCF B、`eligible_for_schema_seed=true` / `eligible_for_statistical_synthesis=true` / `evidence_role=slr_dimension_pattern`。
+- `metadata.json` 完整：交叉确认 review_type=SLR、se_subfield=MDE4ML、CCF B、`eligible_for_模式_seed=true`（模式种子字段为真） / `eligible_for_statistical_synthesis=true` / `evidence_role=slr_dimension_pattern`。
 - `paper_content.txt` 顺序通读至 1849 行（含 §7 Conclusion 与 Appendix A P1–P33 引文），其后 P34–P46 引文与 references 抽样核对。覆盖：
   - §1 Introduction（pp.1–3）
-  - §2 Background and related work（§2.1 MDE / §2.2 ML / §2.3 MDE4ML / §2.4 secondary studies 比较）
-  - §3 Research methodology（§3.1 RQs / §3.2 Study selection / §3.3 Search strategy / §3.4 Data extraction / §3.5 Quality assessment）
+  - §2 Background and related work（§2.1 MDE / §2.2 ML / §2.3 MDE4ML / §2.4 二次研究 比较）
+  - §3 研究方法（Research methodology）（§3.1 RQs / §3.2 Study selection / §3.3 Search strategy / §3.4 数据抽取（数据抽取） / §3.5 Quality assessment）
   - §4 Results（§4.1 publication trends, §4.2 RQ1, §4.3 RQ2, §4.4 RQ3, §4.5 RQ4，每个 RQ 末尾的 Answer Summary 已逐字读取）
-  - §5 Threats to validity（internal / construct / conclusion / external）
-  - §6 Discussion and research roadmap（§6.1.1 Data for ML、§6.1.2 Solution focus、§6.1.3 Solution maturity、§6.1.4 Domain experts、§6.1.5 ML algorithms/terminology、§6.1.6 Scalability、§6.1.7 Responsible ML、§6.2.1 Real-world evaluation、§6.2.2 Evaluation rigor）
-  - §7 Conclusion 与 10 项核心 findings
-  - Data availability link：`MDE4ML SLR data (Original data)` → GitHub repository
-  - Appendix A primary studies P1–P46 引文
-  - Appendix B / Table 9 quality assessment per-paper QA1–QA5 scores
-- `review.md` 478 行：完整读取分两段（1–389、390–478）。已审过的现有内容包括快速结论卡片、§2 全文详读、§3 六类 pattern 表、§4 A1-M0–M6 映射、§维度树复原、19×3 审计返修块、A.1–A.4 附录。
+  - §5 Threats to 效度（internal / construct / conclusion / external）
+  - §6 Discussion and research 路线图（§6.1.1 机器学习数据（Data for ML）、§6.1.2 Solution focus、§6.1.3 Solution maturity、§6.1.4 Domain experts、§6.1.5 ML algorithms/terminology、§6.1.6 Scalability、§6.1.7 Responsible ML、§6.2.1 Real-world 评价、§6.2.2 Evaluation rigor）
+  - §7 Conclusion 与 10 项核心 发现
+  - 数据可获得性（Data 可获得性） link：`MDE4ML SLR data (Original data)` → GitHub 仓库
+  - Appendix A 原始研究 P1–P46 引文
+  - Appendix B / Table 9 质量评价 per-paper QA1–QA5 scores
+- `review.md` 478 行：完整读取分两段（1–389、390–478）。已审过的现有内容包括快速结论卡片、§2 全文详读、§3 六类 模式 表、§4 A1-M0–M6 映射、§维度树复原、19×3 审计返修块、A.1–A.4 附录。
 
 **关键原文证据锚点（5–12 条短引或释义）**：
 
-1. RQ 设置 §3.1：四个 RQ（motivation / approaches & tools / evaluation / limitations & future work）。
-2. Data extraction form §3.4：Google Form **40 个问题，5 个 section**；答题形态 23 short answer + 10 long answer + 2 checkbox + 14 radio button；pilot：第一作者抽取 6 篇后与其他作者交叉对照。
+1. RQ 设置 §3.1：四个 RQ（motivation / approaches & 工具 / 评价 / limitations & future work）。
+2. 数据抽取（数据抽取） form §3.4：Google Form **40 个问题，5 个 section**；答题形态 23 short answer + 10 long answer + 2 checkbox + 14 radio button；pilot：第一作者抽取 6 篇后与其他作者交叉对照。
 3. Quality rubric §3.5：QA1–QA5，1–5 分外加 NA；结果 19/46 good、15/46 average、12/46 poor。
 4. 筛选链 §3.3：3934 → 3570 → 72 → 55 → 32 → +14 snowball → 46。
-5. Fig. 5 描述 §4.1：feature tree 来自 data extraction categories；根节点 MDE Solution for ML，一级分支显式覆盖 Goal / Domain / End Users / Modeling / Supported ML Aspects / Tool Support / Evaluation / Scalability / Responsible ML（被 §4.2–§4.5 与 Discussion §6 全部命中）。
+5. Fig. 5 描述 §4.1：feature 树 来自 数据抽取 类别；根节点 MDE Solution for ML，一级分支显式覆盖 Goal / Domain / End Users / Modeling / Supported ML Aspects / Tool Support / Evaluation / Scalability / Responsible ML（被 §4.2–§4.5 与 Discussion §6 全部命中）。
 6. RQ1 §4.2.1 三类 goal + 子目标 14 项（Table 3）；ML techniques 4 大类 + 3 子类（Table 4）；End users 3 类 7 角色（Table 5）；Contributions 11 类（Table 6）。
-7. RQ2 §4.3 model representation graphical 23 / textual 21 / both 2；modeling language DSL 34 / GPL 9 / extension 3；CIM/PIM/PSM 分布 PIM=42；M2T 35 / M2M 4 / both 7，全部 forward-engineering；automation full 38 / partial 8；tool open-source 17 / proprietary 6 / not mentioned 23。
-8. RQ3 §4.4 evaluation context academic 89% / industrial 9% / both 1 (P35)；evaluation method case study 23 / experiment 17 / criteria-based 2 / no evaluation 8；ML metrics 4 类、MDE metrics 3 类；datasets 共 33 个，MNIST 7 篇、Iris 3 篇。
-9. RQ4 §4.5 三类 limitation（approach / evaluation / quality）+ 三类 future work；88% 无 industrial evaluation 与 user study；48% 仅评一面；17% 无 evaluation。
-10. §6 roadmap 10 项主题，每项以 “We recommend…” / “We suggest…” / “We encourage…” 给出可执行建议。
+7. RQ2 §4.3 模型 representation graphical 23 / textual 21 / both 2；modeling language DSL 34 / GPL 9 / extension 3；CIM/PIM/PSM 分布 PIM=42；M2T 35 / M2M 4 / both 7，全部 forward-engineering；automation 完整 38 / 部分 8；工具 open-source 17 / proprietary 6 / 未提及 23。
+8. RQ3 §4.4 评价 context academic 89% / 工业（industrial） 9% / both 1 (P35)；评价 方法 case study 23 / experiment 17 / criteria-based 2 / 无评价 8；ML 指标 4 类、MDE 指标 3 类；数据集 共 33 个，MNIST 7 篇、Iris 3 篇。
+9. RQ4 §4.5 三类 limitation（approach / 评价 / 质量）+ 三类 future work；88% 无 工业（industrial） 评价 与 user 研究；48% 仅评一面；17% 无 评价。
+10. §6 路线图 10 项主题，每项以 “We recommend…” / “We suggest…” / “We encourage…” 给出可执行建议。
 11. §7 Conclusion 中“initial pool of **3,496** papers”——与 §3.3.2 中 **3934** 不一致，为论文笔误，正式引用应使用 3934/3570。
-12. Data availability：仅一句 “SLR data is available at the following link MDE4MLSLRdata(Originaldata)”；review.md 已注记 GitHub URL `https://github.com/hiraa221/MDE4ML-SLR-Data/tree/main`，需 A2a 复核当前可访问性与内容范围。
+12. 数据可获得性（Data availability）：仅一句 “SLR data is available at the following link MDE4MLSLRdata(Originaldata)”；review.md 已注记 GitHub URL `https://github.com/hiraa221/MDE4ML-SLR-Data/树/main`，需 A2a 复核当前可访问性与内容范围。
 
 **仅基于 text 的部分 / 仍需 PDF 视觉核验**：
 
-- Fig. 4(a) 年份柱状图与 Fig. 4(b) publication type 饼图的实际数值（journal 17 / conference 20 / workshop 9 来自 review.md 旧版核对，本轮未独立 PDF 复核）。
-- Fig. 5 feature tree 二级节点与连接关系（text 抽取仅给文字描述，未给完整树结构）。
-- Fig. 6 三联图（goals Venn、tool-specific contributions Venn、end-user distribution）。
-- Fig. 7 bubble chart（study goal × contribution × ML aspect）的具体气泡频次。
+- Fig. 4(a) 年份柱状图与 Fig. 4(b) 发表类型 饼图的实际数值（journal 17 / conference 20 / workshop 9 来自 review.md 旧版核对，本轮未独立 PDF 复核）。
+- Fig. 5 feature 树 二级节点与连接关系（text 抽取仅给文字描述，未给完整树结构）。
+- Fig. 6 三联图（goals Venn、工具-specific contributions Venn、end-user distribution）。
+- Fig. 7 bubble chart（研究 goal × contribution × ML aspect）的具体气泡频次。
 - Fig. 8–10 各项分布百分比。
 - Table 9（Appendix B）QA1–QA5 per-paper 分数矩阵已在 paper_content.txt 1693–1719 行抽取，但版面错位严重（P1 与 P24 同行；P5/P6/P8/P18/P21/P26/P43 的 QA3–QA5 为 NA），需 PDF 视觉核对每行 QA。
 
@@ -385,7 +384,7 @@ SLR Study
 
 **1）原文纳入和逐项描述的对象是什么？**
 
-primary study（46 篇带 ML component 的 MDE 论文，编号 P1–P46）。所有抽取表（Table 3–8）单元格都填入 P-编号集合，证明 study 是原子单位。
+原始研究（46 篇带 ML component 的 MDE 论文，编号 P1–P46）。所有抽取表（Table 3–8）单元格都填入 P-编号集合，证明 研究 是原子单位。
 
 **2）作者有没有系统检索 / 纳排 / 数据抽取 / 编码方案？**
 
@@ -395,131 +394,83 @@ primary study（46 篇带 ML component 的 MDE 论文，编号 P1–P46）。所
 - 7 个数据库 + 长检索式（含 OR/AND）；
 - Table 1 显式 4 条 inclusion + 10 条 exclusion；
 - 三轮筛选 + Wohlin snowballing（三轮 forward/backward）；
-- Google Form 40 题 / 5 section 的 data extraction schema；
+- Google Form 40 题 / 5 section 的 数据抽取 模式；
 - pilot 6 篇对照 + 全员讨论；
 - QA1–QA5 五点量表 + NA。
 
 **3）原文字段来自哪里？**
 
-原文显式给出三个来源彼此关联的 schema：
+原文显式给出三个来源彼此关联的 模式：
 
-- **Extraction form schema**（§3.4）：5 section × 40 question；section 与 RQ1–RQ4 对齐，section 1 是 publication 元信息。
-- **Feature tree schema**（Fig. 5 + §4.1 末尾两句）：从 extraction form 类目派生的 feature tree，是公开发表的"代表性可视化"形态。
-- **Quality rubric schema**（§3.5 + Table 9）：QA1–QA5 × 1–5 分 / NA，与 RQ 正交。
+- **Extraction form 模式**（§3.4）：5 section × 40 question；section 与 RQ1–RQ4 对齐，section 1 是 publication 元信息。
+- **Feature 树 模式**（Fig. 5 + §4.1 末尾两句）：从 抽取 form 类目派生的 feature 树，是公开发表的"代表性可视化"形态。
+- **Quality rubric 模式**（§3.5 + Table 9）：QA1–QA5 × 1–5 分 / NA，与 RQ 正交。
 
-三者共同构成本文 schema。Fig. 5 是 feature tree 的“面向读者版”，Google Form 是 raw schema，Table 3–8 是 schema 在 P1–P46 上的实例化。
+三者共同构成本文 模式。Fig. 5 是 feature 树 的“面向读者版”，Google Form 是 raw 模式，Table 3–8 是 模式 在 P1–P46 上的实例化。
 
 **4）RQ 与样本单位是什么关系？**
 
-RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每个 RQ 对应 Google Form 的一个 section）。但 RQ 本身不是叶子；叶子是 Table 3–8 中按 RQ 派生的具体字段（如 goal、sub-goal、ML technique、model level）。
+RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每个 RQ 对应 Google Form 的一个 section）。但 RQ 本身不是叶子；叶子是 Table 3–8 中按 RQ 派生的具体字段（如 goal、sub-goal、ML technique、模型 level）。
 
 **5）若无系统样本库，如何降级？**
 
-不适用。本文是系统 SLR，主统计池资格成立；A1-DT 降级只发生在 schema 节点级（Fig. 5 的 Scalability、Responsible ML 一级节点只在 Discussion §6.1.6 / §6.1.7 二次出现，没有独立结果小节，需要降级为“cross-cutting concern”而非主轴）。
+不适用。本文是系统 SLR，主统计池资格成立；A1-DT 降级只发生在 模式 节点级（Fig. 5 的 Scalability、Responsible ML 一级节点只在 Discussion §6.1.6 / §6.1.7 二次出现，没有独立结果小节，需要降级为“cross-cutting concern”而非主轴）。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
-本文是**单根树**：根节点 `MDE Solution for ML`（Fig. 5 标题：Features of selected primary studies）；并存的两个独立 schema（Inclusion/Exclusion 纳排 schema、QA1–QA5 质量 rubric）按 A1-DT v2 严谨口径应作为同一“primary study”样本单位上的并列 schema，构成**维度小森林**：主树 + 纳排 schema + QA rubric。下面给出主树主干 + 代表性叶子；纳排与 QA 单独列出。
+本文是**单根树**：根节点 `MDE Solution for ML`（Fig. 5 标题：Features of selected 原始研究）；并存的两个独立 模式（Inclusion/Exclusion 纳排 模式、QA1–QA5 质量 rubric）按 A1-DT v2 严谨口径应作为同一“原始研究”样本单位上的并列 模式，构成**维度小森林**：主树 + 纳排 模式 + QA rubric。下面给出主树主干 + 代表性叶子；纳排与 QA 单独列出。
 
 ```text
-[ROOT] MDE Solution for ML / Primary study (P1..P46)
+说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
+[根节点] 面向机器学习组件的 MDE 方案（MDE Solution for ML；P1..P46）
 │
-├── §section-1 Publication & bibliographic metadata (Google Form §1)
-│   ├── title / authors
-│   ├── publication venue   (Table 2: MODELS / MODELSWARD / Companion Workshop / Computer Languages / SoSym ...)
-│   ├── publication type    {Conference, Journal, Workshop}            ← Fig. 4(b) ratios
-│   ├── year                {2008..2023}                                ← Fig. 4(a) histogram
-│   └── citation count
+├── [S1] 发表与书目信息（Google Form §1）
+│   ├── 标题 / 作者
+│   ├── 发表源：Table 2 中的 MODELS、MODELSWARD、配套工作坊（Companion Workshop）、Computer Languages、SoSyM 等
+│   ├── 发表类型：{会议、期刊、工作坊}；Fig. 4(b)
+│   ├── 发表年份：2008..2023；Fig. 4(a)
+│   └── 引用数：数值
 │
-├── §RQ1 Motivation tree
-│   ├── Goal                {Effort reduction, Quality improvement, Increased stakeholder understanding}
-│   │       └── Sub-goal (Table 3, closed enumeration, 14 items)
-│   │             Effort reduction: {Abstraction, Automation, Integration, Monitoring, System management, Data management}
-│   │             Quality improvement: {Reusability, Extensibility, Standardization, Responsible ML,
-│   │                                   Interoperability, Maintainability, Scalability, Reliability}
-│   │             Increased stakeholder understanding: {Support non-ML experts, Common language}
-│   ├── ML technique (Table 4)
-│   │       {Generic ML, Supervised → {Traditional, Neural networks, Traditional+NN},
-│   │        Unsupervised (empty), Reinforcement}
-│   ├── Application domain  {CPS+subsets, big-data analytics, data analytics, social bots,
-│   │                        manufacturing, autonomous vehicles, smart homes, traffic, satellite,
-│   │                        network planning, generic / not specified} (11 domains)
-│   ├── End user (Table 5)
-│   │       ML-related   : {ML engineer, Data analyst/engineer/scientist}
-│   │       Software & Systems : {Software engineer, Systems engineer, Business analyst, Formal methods analyst}
-│   │       Other        : {Domain expert}
-│   └── Contribution (Table 6, 11 categories)
-│         {Code generator, Text generator, Model generator, DSL, Framework, Model,
-│          Modeling approach, Modeling language extension, ML knowledge base,
-│          Data synthesizer, OCL constraints, API, Meta-modeling language}
+├── [RQ1] 动机与贡献对象
+│   ├── 目标：{降低工作量（降低工作量）, 提升质量（提升质量）, 增强干系人理解（Increased stakeholder 理解）}
+│   │   └── 目标子类：Table 3 的 16 个封闭项；例如抽象、自动化、集成、可复用性、负责任机器学习、支持非机器学习专家等
+│   ├── 机器学习技术：{通用机器学习、监督式学习、神经网络、非监督式学习、强化学习}
+│   ├── 应用领域：信息物理系统（CPS；首次术语）、大数据分析、制造业、自动驾驶车辆、智能家居、交通信号控制、卫星通信、网络规划、数据分析、社交机器人、通用 / 未说明等 11 类
+│   ├── 目标用户：机器学习工程师（ML engineer；首次术语）、数据分析师 / 数据工程师 / 数据科学家、软件工程师、系统工程师、业务分析师、形式化方法分析师、领域专家
+│   └── 贡献类型：代码生成器（code generator；首次术语）、文本生成器、模型生成器、领域特定语言（DSL）、框架、模型、建模方法、建模语言扩展、机器学习知识库、数据合成器、OCL 约束、应用程序接口（API）、元建模语言
 │
-├── §RQ2 Solution / tool tree
-│   ├── Modeling characteristics
-│   │   ├── Model representation     {Graphical, Textual, Both}
-│   │   ├── Modeling language        {New DSL, GPL, Language extension}
-│   │   ├── Model level              {CIM, PIM, PSM, combinations}
-│   │   └── Model type               {Requirements-level, Design-level, Data-representation,
-│   │                                 Feature, Process, Deployment}
-│   ├── Supported ML aspects (§4.3.2, 17 closed items)
-│   │     Development-stage   : {Requirements engineering, Data preprocessing, Design & development,
-│   │                            Training, Evaluation, Deployment, Integration, Inference,
-│   │                            Monitoring, Management}
-│   │     Other-aspect        : {Data generation, Data storage, Data visualization, Documentation,
-│   │                            ML pipeline development, ML knowledge base development}
-│   ├── ML framework / ML library (Table 7, framework∋{TensorFlow, MXNet, PyTorch, Caffe, DL4J,
-│   │                                                  Infer.NET, ZenML, AI-toolbox, TFLite},
-│   │                              library∋{Weka, Scikit-learn, NumPy, Keras, Encog, Neuroph,
-│   │                                       Pandas, NetLogo-RL, OpenAI Gym})
-│   ├── Tool support
-│   │   ├── Model transformations    {M2T-only, M2M-only, Both} + forward-engineering (all 46)
-│   │   ├── Generated artifacts      {ML model/training code, Software/intermediate models,
-│   │   │                             Deployment configurations, Datasets/subsets, Text files,
-│   │   │                             API code, Recommendation rules/queries, Metamodels}
-│   │   │   └── Target language      {Python, Java, C++, ...}                ← Fig. 9(b)
-│   │   ├── Automation level         {Fully automated, Partially automated}
-│   │   ├── Tool availability        {Open-source, Proprietary, Not mentioned}
-│   │   └── Meta-tools / framework / transformation language (Table 8: EMF, Sirius, XTend, EGL, ...)
+├── [RQ2] 方案与工具支持
+│   ├── 建模表示：{图形化（图形化；首次术语）、文本化、二者兼有}
+│   ├── 建模语言：{新 DSL（新 DSL）、通用编程语言（GPL）、语言扩展（语言扩展）}
+│   ├── 模型层级：{计算无关模型（CIM；首次术语）、平台无关模型（PIM）、平台特定模型（PSM）、组合层级}
+│   ├── 模型类型：{需求级（需求-level）、设计级（设计-level）、数据表示（数据表示）、特征（Feature）、过程（过程）、部署（部署）}
+│   ├── 支持的 ML 环节：需求工程（requirements engineering）、数据预处理（data preprocessing）、设计与开发（design & development）、训练（training）、评价、部署（deployment）、集成（integration）、推理（inference）、监控（monitoring）、管理（management） 等 17 项
+│   ├── ML 框架 / 库：TensorFlow、PyTorch、Caffe、Keras、Scikit-learn、NumPy、Pandas、OpenAI Gym 等（均为原文工具名）
+│   ├── 模型转换：{仅模型到文本（M2T-only；首次术语）、仅模型到模型、二者兼有}；46 篇全部是正向工程
+│   ├── 生成制品：机器学习模型 / 训练代码、软件 / 中间模型、部署配置、数据集、文本文件、应用程序接口代码、推荐规则、元模型等
+│   ├── 自动化程度：{全自动（全自动）、部分自动（部分自动）}
+│   ├── 工具可获得性：{开源（开源）、专有（专有）、未提及（未提及）}
+│   └── 元工具 / 转换语言：EMF、Sirius、XTend、EGL 等，见 Table 8
 │
-├── §RQ3 Evaluation tree
-│   ├── Target area                  {Academia, Industry, Both}
-│   ├── Evaluation method            {Case study, Experiment, Survey/user study, Criteria-based assessment,
-│   │                                 No evaluation}
-│   │     └── industrial variant flag (e.g. industrial case study 4/23, industrial experiment 1/17)
-│   ├── ML metrics
-│   │     {Classification (accuracy/precision/recall/F/AUC), Regression (loss/RMSE/MAE/...),
-│   │      Time-resource (execution time, training time, latency, inference time, resource usage),
-│   │      Fairness (mean difference, average odds difference), Not mentioned, N/A}
-│   ├── MDE metrics
-│   │     Quality (productivity, usability, scalability, learnability, desirability, completeness,
-│   │              effectiveness, correctness, expressiveness, usefulness, reduced complexity,
-│   │              generated-code quality, flexibility),
-│   │     Time-resource (generation time, modeling time, execution time, re-training time reduction),
-│   │     Code (LOC, words, characters, generated pipelines),
-│   │     Not mentioned, N/A
-│   └── Datasets used (33 datasets total; MNIST 7/46, Iris 3/46, ...)
+├── [RQ3] 评价设计
+│   ├── 评价场景：{学术环境（学术环境）, 工业环境（工业环境）, 二者皆有（二者皆有）}
+│   ├── 评价方法：案例研究（case study；首次术语）、实验、调查 / 用户研究、基于准则的评价、无评价
+│   ├── 工业评价标记：例如工业案例研究 4/23、工业实验 1/17
+│   ├── 机器学习指标：分类（分类；首次术语）、回归、时间-资源、公平性、未提及、不适用（N/A）
+│   ├── MDE 指标：质量、时间-资源、代码、未提及、不适用；质量包含生产率、可用性、可扩展性、正确性、有用性、生成代码质量等
+│   └── 使用数据集：共 33 个；MNIST 7/46、Iris 3/46 等
 │
-└── §RQ4 Limitation & future-work tree
-    ├── Limitations
-    │     {Approach (manual configuration, limited ML models, non-generic, fragile single-error),
-    │      Evaluation (no user study, no industrial evaluation, simple/single case, no evaluation),
-    │      Solution quality (scalability, accessibility),
-    │      Not mentioned (19/46)}
-    └── Future work
-          {Improvement/extension of approach (new features, new platforms, new languages, more ML models,
-                                              complex scenarios, training-data processing, new DSL/tool),
-           Further evaluation (additional case study, industrial evaluation, user study),
-           Quality enhancement (integration with other tools/languages, interoperability, code optimization,
-                                resource allocation, model checking, scalability/reusability/adaptability),
-           Not mentioned (7/46)}
-
-[PARALLEL SCHEMA #1] Inclusion / Exclusion (Table 1)  — gate, not feature
-    Inclusion {I01..I04}, Exclusion {E01..E10}                    (closed enumeration)
-
-[PARALLEL SCHEMA #2] Quality assessment rubric (§3.5, Appendix B Table 9)
-    {QA1 aims clear, QA2 solution clear, QA3 measures defined,
-     QA4 practice implication, QA5 contribution to literature}
-    Score ∈ {1, 2, 3, 4, 5, NA} — QA3..QA5 = NA whenever the study has no evaluation
-    Aggregate label {Good (≥QA1+...≥k), Average, Poor} → 19/15/12 distribution
+├── [RQ4] 限制与未来工作
+│   ├── 限制：方法限制（approach limitation；首次术语）、评价限制、解决方案质量限制、未提及；例如手工配置、机器学习模型范围有限、缺少用户研究、缺少工业评价、可扩展性等
+│   └── 未来工作：扩展方法、进一步评价、质量增强、未提及；例如新平台 / 新语言 / 更多机器学习模型、工业评价、工具互操作、代码优化、模型检查等
+│
+├── [并列模式 1] 纳入 / 排除门禁（Table 1）
+│   └── 纳入标准 I01..I04；排除标准 E01..E10；均为封闭枚举
+│
+└── [并列模式 2] 质量评估量规（§3.5, Appendix B Table 9）
+    ├── QA1 目标是否清楚；QA2 方案是否清楚；QA3 度量是否定义；QA4 实践影响；QA5 文献贡献
+    ├── 单项分数：{1, 2, 3, 4, 5, NA}；无评价时 QA3..QA5 = 不适用（NA）
+    └── 聚合标签：{好、中、差}；分布 19/15/12
 ```
 
 主统计池资格 = **是**（叶子级别有显式分母 46 与频次表），但本节大量节点的取值空间在 review.md 尚未完整复原。
@@ -530,43 +481,43 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| L-bib-venue | 发表 venue | §section-1 | Form §1, Table 2 | primary study 的会议/期刊名 | 列表（34 个 venue） | 自由文本 + 标准化 | 必填 | venue 频次表 | 学术 maturity / 社区聚集度 | EV-001 §3.4, §4.1 | 仅本 corpus |
-| L-bib-ptype | 发表形态 | §section-1 | Fig. 4(b) | conf/journal/workshop | {Conference, Journal, Workshop} | 完整枚举（3） | 必填 | 比例 ≈ 43.5/37/19.6% | maturity 指标 | EV-001 §4.1 | 可迁结构 |
+| L-bib-venue | 发表源（venue） | §section-1 | Form §1, Table 2 | 原始研究 的会议/期刊名 | 列表（34 个 venue） | 自由文本 + 标准化 | 必填 | venue 频次表 | 学术 maturity / 社区聚集度 | EV-001 §3.4, §4.1 | 仅本 语料 |
+| L-bib-ptype | 发表形态 | §section-1 | Fig. 4(b) | conf/journal/workshop | {会议、期刊、工作坊} | 完整枚举（3 类） | 必填 | 比例 ≈ 43.5/37/19.6% | maturity 指标 | EV-001 §4.1 | 可迁结构 |
 | L-bib-year | 发表年份 | §section-1 | Fig. 4(a) | 出版年份 | 整数 2008..2023 | 数值/区间 | 必填 | 年度分布 | "近 5 年急增"叙事支撑 | EV-001 §4.1 | 可迁结构 |
-| L-rq1-goal | 高层目标 | §RQ1 | Table 3 | 3 大类 goal | {Effort reduction, Quality improvement, Increased stakeholder understanding} | 完整枚举（3，可多选） | 必填，多选 | 43/13/11 (over 46) | "动机偏 effort reduction" 候选发现 | EV-002 §4.2.1 Table 3 | 可迁结构，不迁结论 |
-| L-rq1-subgoal | 子目标 | L-rq1-goal | Table 3 | 14 个 sub-goal | {Abstraction, Automation, Integration, Monitoring, System management, Data management, Reusability, Extensibility, Standardization, Responsible ML, Interoperability, Maintainability, Scalability, Reliability, Support non-ML experts, Common language} | 层级枚举（16） | 多选 | 各 sub-goal 频次 | 缺口识别 | EV-002 Table 3 | 可迁结构 |
-| L-rq1-mltech | ML 技术 | §RQ1 | Table 4 | ML 子类 | {Generic ML, Supervised → {Traditional, NN, Traditional+NN}, Unsupervised, Reinforcement} | 层级枚举（6 终端） | 单选+子类 | 31/4/0/11 | "无 unsupervised-only 论文"是 finding | EV-002 §4.2.2 Table 4 | 可迁结构 |
-| L-rq1-domain | 应用域 | §RQ1 | §4.2.3 | 11 个 domain | {CPS, manufacturing, autonomous vehicles, smart homes, traffic signal control, satellite communication, network planning, big-data analytics, data analytics, social bots, generic/none} | 完整枚举（11） | 可空（→generic） | 域频次 | "约半数无具体域" | EV-002 §4.2.3 | 可迁结构 |
+| L-rq1-goal | 高层目标 | §RQ1 | Table 3 | 3 大类 goal | {降低工作量（降低工作量）, 提升质量（提升质量）, 增强干系人理解（Increased stakeholder 理解）} | 完整枚举（3 类，可多选） | 必填，多选 | 43/13/11 (over 46) | "动机偏 effort reduction" 候选发现 | EV-002 §4.2.1 Table 3 | 可迁结构，不迁结论 |
+| L-rq1-subgoal | 子目标 | L-rq1-goal | Table 3 | 16 个目标子类 | {抽象（Abstraction）, 自动化（Automation）, 集成（Integration）, 监控（Monitoring）, 系统管理（System management）, 数据管理（Data management）, 可复用性（Reusability）, 可扩展性（Extensibility）, 标准化（Standardization）, 负责任机器学习（Responsible ML）, 互操作性（Interoperability）, 可维护性（Maintainability）, 可伸缩性（Scalability）, 可靠性（Reliability）, 支持非机器学习专家（Support non-ML experts）, 通用语言（Common language）} | 层级枚举（16） | 多选 | 各 sub-goal 频次 | 缺口识别 | EV-002 Table 3 | 可迁结构 |
+| L-rq1-mltech | ML 技术 | §RQ1 | Table 4 | ML 子类 | {通用机器学习、监督式学习→{传统方法、神经网络、传统方法 + 神经网络}, 非监督式学习, 强化学习} | 层级枚举（6 终端） | 单选+子类 | 31/4/0/11 | “无仅使用非监督式学习的论文”是 发现 | EV-002 §4.2.2 Table 4 | 可迁结构 |
+| L-rq1-domain | 应用域 | §RQ1 | §4.2.3 | 11 个 domain | {信息物理系统、制造业、自动驾驶车辆、智能家居、交通信号控制、卫星通信、网络规划、大数据分析、数据分析、社交机器人、通用/未说明} | 完整枚举（11 类） | 可空（→generic） | 域频次 | "约半数无具体域" | EV-002 §4.2.3 | 可迁结构 |
 | L-rq1-enduser | end user | §RQ1 | Table 5 | 3 类 7 角色 | 见 §3 树 | 层级枚举（7 终端，可多选） | 多选 | 18/16/11 等 | 受众缺口 | EV-002 §4.2.4 Table 5 | 可迁结构 |
-| L-rq1-contrib | contribution 类型 | §RQ1 | Table 6 | 11 类 contribution | 见 §3 树 | 完整枚举（11，多选） | 多选 | 35/30/21/.../1 | "code generator + DSL + framework 主导" | EV-002 §4.2.5 Table 6 | 可迁结构 |
-| L-rq2-mrep | 模型表示 | §RQ2 Modeling | Fig. 8(a) | concrete syntax | {Graphical, Textual, Both} | 完整枚举（3） | 必填 | 23/21/2 | 半数图形半数文本 | EV-002 §4.3.1 | 可迁结构 |
-| L-rq2-mlang | 建模语言 | §RQ2 Modeling | Fig. 8(b) | language family | {New DSL, GPL, Language extension} | 完整枚举（3） | 必填 | 34/9/3 | DSL 主导 | EV-002 §4.3.1 Fig. 8(b) | 可迁结构 |
+| L-rq1-contrib | contribution 类型 | §RQ1 | Table 6 | 11 类 contribution | 见 §3 树 | 完整枚举（11，多选） | 多选 | 35/30/21/.../1 | "code generator + DSL + 框架 主导" | EV-002 §4.2.5 Table 6 | 可迁结构 |
+| L-rq2-mrep | 模型表示 | §RQ2 Modeling | Fig. 8(a) | 具体语法 | {图形化、文本化、二者兼有} | 完整枚举（3 类） | 必填 | 23/21/2 | 半数图形半数文本 | EV-002 §4.3.1 | 可迁结构 |
+| L-rq2-mlang | 建模语言 | §RQ2 Modeling | Fig. 8(b) | 语言族 | {新 DSL（新 DSL）、通用编程语言（GPL）、语言扩展（语言扩展）} | 完整枚举（3 类） | 必填 | 34/9/3 | DSL 主导 | EV-002 §4.3.1 Fig. 8(b) | 可迁结构 |
 | L-rq2-mlevel | 模型层 | §RQ2 Modeling | §4.3.1 | OMG levels | {CIM, PIM, PSM, PIM+PSM, CIM+PIM+PSM} | 层级枚举 | 必填，可组合 | PIM-only 35; PIM+PSM 6; CIM-only 2; PSM-only 2; CIM+PIM+PSM 1 | "PIM 占 42/46" | EV-002 §4.3.1 | 可迁结构 |
-| L-rq2-mtype | 模型类型 | §RQ2 Modeling | §4.3.1 | model type | {Requirements-level, Design-level, Data-representation, Feature, Process, Deployment} | 完整枚举（6） | 多选 | 39/6/5/.../少数 | 缺 process/deployment models | EV-002 §4.3.1 | 可迁结构 |
-| L-rq2-mlasp | 支持的 ML 方面 | §RQ2 | §4.3.2 Fig. 9(a) | 17 ML aspects | 见 §3 树 | 完整枚举（17，多选） | 多选 | design 28, train 22, deploy 10, monitor 2, doc 1 ... | "monitoring/documentation 被忽视" | EV-002 §4.3.2 Fig. 9(a) | 可迁结构 |
-| L-rq2-mlfw | ML framework / library | §RQ2 | Table 7 | 框架与库 | 见 Table 7 | 开放枚举（≈19） | not_reported | 频次 | "TF 主导" | EV-002 Table 7 | 可迁结构 |
-| L-rq2-trans | 变换种类 | §RQ2 Tool support | §4.3.3 | M2T/M2M | {M2T-only, M2M-only, Both, all forward-engineering} | 完整枚举（3+布尔） | 必填 | 35/4/7 | 全部 forward | EV-002 §4.3.3 | 可迁结构 |
-| L-rq2-art | 生成制品 | §RQ2 Tool support | §4.3.3 | artifact 类型 | {ML model/training code, Software/intermediate models, Deployment configs, Datasets/subsets, Text files, API code, Recommendation rules, Metamodels} | 完整枚举（8） | 多选 | 36/15/8/4/2/2/2/1 | "代码/模型主导" | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-mtype | 模型类型 | §RQ2 Modeling | §4.3.1 | 模型 type | {需求级（需求-level）、设计级（设计-level）、数据表示（数据表示）、特征（Feature）、过程（过程）、部署（部署）} | 完整枚举（6 类） | 多选 | 39/6/5/.../少数 | 缺 流程/deployment 模型 | EV-002 §4.3.1 | 可迁结构 |
+| L-rq2-mlasp | 支持的 ML 方面 | §RQ2 | §4.3.2 Fig. 9(a) | 17 机器学习环节 | 见 §3 树 | 完整枚举（17，多选） | 多选 | design 28, train 22, deploy 10, monitor 2, doc 1 ... | "monitoring/文档 被忽视" | EV-002 §4.3.2 Fig. 9(a) | 可迁结构 |
+| L-rq2-mlfw | ML 框架 / library | §RQ2 | Table 7 | 框架与库 | 见 Table 7 | 开放枚举（≈19） | 未报告 | 频次 | "TF 主导" | EV-002 Table 7 | 可迁结构 |
+| L-rq2-trans | 变换种类 | §RQ2 工具支持（Tool support） | §4.3.3 | M2T/M2M | {仅模型到文本、仅模型到模型、二者兼有；全部为正向工程} | 完整枚举（3+布尔） | 必填 | 35/4/7 | 全部 forward | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-art | 生成制品 | §RQ2 工具支持（Tool support） | §4.3.3 | 制品 类型 | {机器学习模型/训练代码、软件/中间模型、部署配置、数据集/子集、文本文件、应用程序接口代码、推荐规则、元模型} | 完整枚举（8 类） | 多选 | 36/15/8/4/2/2/2/1 | "代码/模型主导" | EV-002 §4.3.3 | 可迁结构 |
 | L-rq2-tlang | 目标语言 | L-rq2-art | Fig. 9(b) | 生成代码语言 | {Python, Java, C++, ...} | 开放枚举 | 多选 | 15/10/4/... | Python 主导 | EV-002 §4.3.3 Fig. 9(b) | 可迁结构 |
-| L-rq2-autom | 自动化程度 | §RQ2 Tool support | Fig. 8(c) | full/partial | {Fully automated, Partially automated} | 完整枚举（2） | 必填 | 38/8 | 85% full | EV-002 §4.3.3 | 可迁结构 |
-| L-rq2-tool | 工具可得性 | §RQ2 Tool support | §4.3.3 | tool 状态 | {Open-source, Proprietary, Not mentioned} | 完整枚举（3） | 必填（含 not mentioned） | 17/6/23 | "50% 不提及工具" | EV-002 §4.3.3 | 可迁结构 |
-| L-rq2-metatool | meta-tool | §RQ2 Tool support | Table 8 | 元工具栈 | 开放枚举（Sirius, EMF, ... 见 Table 8） | 开放枚举 | not_reported | 频次 | 生态集中度 | EV-002 Table 8 | 可迁结构 |
-| L-rq3-area | 评价语境 | §RQ3 | §4.4.1 | academia/industry | {Academia, Industry, Both} | 完整枚举（3） | 必填 | 89% / 9% / P35 | "工业评价稀缺" | EV-003 §4.4.1 | 可迁结构 |
-| L-rq3-method | 评价方法 | §RQ3 | §4.4.2 | 5 类方法 | {Case study, Experiment, Survey/user-study, Criteria-based assessment, No evaluation} | 完整枚举（5，可多选） | 多选 | 23/17/4/2/8 | "case study 主导，user study 极少" | EV-003 §4.4.2 | 可迁结构；注意作者 pragmatic rule（如果论文自称 case study 即按 case study 计） |
-| L-rq3-industrial | 工业变体 | L-rq3-method | §4.4.2 | flag | {industrial case study, industrial experiment, none} | 布尔/枚举 | 默认 false | 4/1/41 | "几乎全在 academic 环境" | EV-003 §4.4.2 | 可迁结构 |
-| L-rq3-mlmetric | ML 指标族 | §RQ3 | §4.4.3 Fig. 10(a) | 4 大类 | {Classification, Regression, Time-resource, Fairness, Not mentioned, N/A} | 完整枚举（6） | 必填 | 见 Fig. 10(a) | "fairness/regression 罕见" | EV-003 §4.4.3 | 可迁结构 |
-| L-rq3-mdemetric | MDE 指标族 | §RQ3 | §4.4.3 Fig. 10(b) | 3 大类 | {Quality, Time-resource, Code, Not mentioned, N/A} | 完整枚举（5） | 必填 | 见 Fig. 10(b) | "MDE 指标常缺" | EV-003 §4.4.3 | 可迁结构 |
-| L-rq3-dataset | 数据集 | §RQ3 | §4.4.3 | 公开数据集名 | 开放枚举（33 个） | 开放枚举 | not_reported | MNIST 7, Iris 3 | "评价基准浅" | EV-003 §4.4.3 | 可迁结构 |
-| L-rq4-limscope | 限制类别 | §RQ4 | §4.5.1 | 3 类 + not mentioned | {Approach, Evaluation, Solution quality, Not mentioned} | 完整枚举（4，多选） | 多选 | 19/46 未提 | 自报告 limitations 偏少 | EV-003 §4.5.1 | 可迁结构 |
-| L-rq4-fwscope | future-work 类别 | §RQ4 | §4.5.2 | 3 类 + not mentioned | {Improvement/extension, Further evaluation, Quality enhancement, Not mentioned} | 完整枚举（4，多选） | 多选 | 7/46 未提 | 评估/工业评价计划不足 | EV-003 §4.5.2 | 可迁结构 |
-| L-qa-q | QA 单项分 | parallel-QA | §3.5 Table 9 | QA1..QA5 | {1, 2, 3, 4, 5, NA} | 数值（1–5）+ NA | NA when no evaluation (QA3..QA5) | 单项均值 / 分布 | 质量层次 | EV-004 Table 9 | 可迁结构 |
-| L-qa-band | QA 等级聚合 | parallel-QA | §3.5 | 总评 | {Good, Average, Poor} | 完整枚举（3） | — | 19 / 15 / 12 | 是否影响 finding 加权 | EV-004 §3.5 | 可迁结构 |
-| L-inc-id | 纳入条件 | parallel-IE | Table 1 | I01..I04 | 完整枚举（4） | 全部为真 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
+| L-rq2-autom | 自动化程度 | §RQ2 工具支持（Tool support） | Fig. 8(c) | 全自动/部分自动 | {全自动（全自动）、部分自动（部分自动）} | 完整枚举（2 类） | 必填 | 38/46 | 约 82.6% 全自动 | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-工具 | 工具可得性 | §RQ2 工具支持（Tool support） | §4.3.3 | 工具 状态 | {开源（开源）、专有（专有）、未提及（未提及）} | 完整枚举（3 类） | 必填（含 未提及） | 17/6/23 | "50% 不提及工具" | EV-002 §4.3.3 | 可迁结构 |
+| L-rq2-metatool | meta-工具 | §RQ2 工具支持（Tool support） | Table 8 | 元工具栈 | 开放枚举（Sirius, EMF, ... 见 Table 8） | 开放枚举 | 未报告 | 频次 | 生态集中度 | EV-002 Table 8 | 可迁结构 |
+| L-rq3-area | 评价语境 | §RQ3 | §4.4.1 | academia/industry | {学术环境（学术环境）, 工业环境（工业环境）, 二者皆有（二者皆有）} | 完整枚举（3 类） | 必填 | 89% / 9% / P35 | "工业评价稀缺" | EV-003 §4.4.1 | 可迁结构 |
+| L-rq3-方法 | 评价方法 | §RQ3 | §4.4.2 | 5 类方法 | {案例研究、实验、调查 / 用户研究、基于准则的评价、无评价} | 完整枚举（5 类，可多选） | 多选 | 23/17/4/2/8 | “案例研究主导，用户研究极少” | EV-003 §4.4.2 | 可迁结构；注意作者 pragmatic rule（如果论文自称 case study 即按 case study 计） |
+| L-rq3-工业（industrial） | 工业变体 | L-rq3-方法 | §4.4.2 | flag | {工业案例研究（工业 case study）, 工业实验（工业 experiment）, 无} | 布尔/枚举 | 默认 false | 4/1/41 | "几乎全在 academic 环境" | EV-003 §4.4.2 | 可迁结构 |
+| L-rq3-mlmetric | ML 指标族 | §RQ3 | §4.4.3 Fig. 10(a) | 4 大类 | {分类（分类）, 回归（Regression）, 时间/资源（Time-resource）, 公平性（Fairness）, 未提及（未提及）, 不适用（N/A）} | 完整枚举（6 类） | 必填 | 见 Fig. 10(a) | "fairness/回归 罕见" | EV-003 §4.4.3 | 可迁结构 |
+| L-rq3-mdemetric | MDE 指标族 | §RQ3 | §4.4.3 Fig. 10(b) | 3 大类 | {质量（Quality）, 时间 / 资源（Time-resource）, 代码（Code）, 未提及（未提及）, 不适用（N/A）} | 完整枚举（5） | 必填 | 见 Fig. 10(b) | "MDE 指标常缺" | EV-003 §4.4.3 | 可迁结构 |
+| L-rq3-数据集 | 数据集 | §RQ3 | §4.4.3 | 公开数据集名 | 开放枚举（33 个） | 开放枚举 | 未报告 | MNIST 7, Iris 3 | "评价基准浅" | EV-003 §4.4.3 | 可迁结构 |
+| L-rq4-limscope | 限制类别 | §RQ4 | §4.5.1 | 3 类 + 未提及 | {方法限制、评价限制、解决方案质量限制、未提及} | 完整枚举（4，多选） | 多选 | 19/46 未提 | 自报告 limitations 偏少 | EV-003 §4.5.1 | 可迁结构 |
+| L-rq4-fwscope | 未来工作 类别 | §RQ4 | §4.5.2 | 3 类 + 未提及 | {方法改进/扩展、进一步评价、质量增强、未提及} | 完整枚举（4，多选） | 多选 | 7/46 未提 | 评估/工业评价计划不足 | EV-003 §4.5.2 | 可迁结构 |
+| L-qa-q | QA 单项分 | parallel-QA | §3.5 Table 9 | QA1..QA5 | {1, 2, 3, 4, 5, NA} | 数值（1–5）+ NA | 无评价时为 NA（QA3..QA5） | 单项均值 / 分布 | 质量层次 | EV-004 Table 9 | 可迁结构 |
+| L-qa-band | QA 等级聚合 | parallel-QA | §3.5 | 总评 | {好、中、差} | 完整枚举（3 类） | — | 19 / 15 / 12 | 是否影响 发现 加权 | EV-004 §3.5 | 可迁结构 |
+| L-inc-id | 纳入条件 | parallel-IE | Table 1 | I01..I04 | 完整枚举（4 类） | 全部为真 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
 | L-exc-id | 排除条件 | parallel-IE | Table 1 | E01..E10 | 完整枚举（10） | 全部为假 | 必填 | gate 不进入字段统计 | gate-only | EV-005 Table 1 | 可迁结构 |
 
 ### 5. 关系边表
 
-本文未给出显式的关系型 schema（如 RDF / ontology / cross-tab as object），但 Fig. 7 bubble chart 与若干 cross-tab 隐式定义了如下关系边；可被识别为"二元投影 / 三元投影"。
+本文未给出显式的关系型 模式（如 RDF / ontology / cross-tab as object），但 Fig. 7 bubble chart 与若干 cross-tab 隐式定义了如下关系边；可被识别为"二元投影 / 三元投影"。
 
 | 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
@@ -574,99 +525,99 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 | R-contrib-aspect | L-rq1-contrib | 共现 / 频次 | L-rq2-mlasp | Fig. 7 bubble cell | 0 cell 表示无 | Fig. 7 | 揭示 contribution 与 ML aspect 的耦合 |
 | R-subgoal-goal | L-rq1-subgoal | 子属关系 | L-rq1-goal | 3 父类 | — | Table 3 | 层级聚合 |
 | R-subtype-mltech | "Traditional/NN/Traditional+NN" | 子属关系 | L-rq1-mltech | 见 Table 4 | — | Table 4 | 层级聚合 |
-| R-method-industrial | L-rq3-method | 二元变体 | L-rq3-industrial | bool | false 默认 | §4.4.2 | 工业评价识别 |
-| R-pstudy-extension | primary study | 包含 / 被吸收 | primary study | journal 扩展版优先 | — | §3.3.2 "removed conference/workshop if journal version exists" | 反映去重策略 |
-| R-pstudy-qa | primary study (P1..P46) | 关联评分 | L-qa-q × 5 | 5 维 QA 分量 | NA 处理 | Table 9 | study × QA 矩阵 |
+| R-方法-工业（industrial） | L-rq3-方法 | 二元变体 | L-rq3-工业（industrial） | 布尔值 | false 默认 | §4.4.2 | 工业评价识别 |
+| R-p研究-extension | 原始研究 | 包含 / 被吸收 | 原始研究 | journal 扩展版优先 | — | §3.3.2 "removed conference/workshop if journal version exists" | 反映去重策略 |
+| R-p研究-qa | 原始研究 (P1..P46) | 关联评分 | L-qa-q × 5 | 5 维 QA 分量 | NA 处理 | Table 9 | 研究 × QA 矩阵 |
 
-注：所有边均为 "primary study" 单元上的属性共现，本文并未声明 typed edges、ontology relations 或形式 model elements。三元 cross-tab（goal × contribution × ML aspect）只在 Fig. 7 出现一次，未推广为通用 schema。
+注：所有边均为 "原始研究" 单元上的属性共现，本文并未声明 typed edges、ontology relations 或形式 模型 elements。三元 cross-tab（goal × contribution × ML aspect）只在 Fig. 7 出现一次，未推广为通用 模式。
 
-### 6. 统计观察、候选 finding 与 final finding 边界
+### 6. 统计观察、候选发现 与 最终发现边界
 
 #### 6.1 由字段 / 统计表支持的统计观察（A1-M5）
 
 均带分母 46，可直接迁回 review.md 主体；A2a 仍需回 PDF 复核精确数字：
 
-- 43/46 提 effort reduction 为 goal；13/46 quality improvement；11/46 stakeholder understanding。
+- 43/46 提 effort reduction 为 goal；13/46 质量 improvement；11/46 stakeholder 理解。
 - 31/46 supervised；4/46 reinforcement；0/46 仅 unsupervised；11/46 generic。
 - 18/46 ML engineer 为目标用户；16/46 software engineer；11/46 domain expert。
-- 35/46 含 code generator；30/46 含 DSL；21/46 含 framework。
+- 35/46 含 code generator；30/46 含 DSL；21/46 含 框架。
 - 23/46 graphical；21/46 textual；2/46 both。
 - 34/46 新 DSL；9/46 GPL；3/46 language extension。
 - 42/46 PIM；35 PIM-only；6 PIM+PSM；1 CIM+PIM+PSM；2 CIM-only；2 PSM-only。
 - 39/46 design-level；6/46 requirements-level；5/46 data-representation。
-- 28/46 ML aspect = design&development；22/46 training；10/46 deployment；2/46 monitoring；1/46 documentation。
+- 28/46 ML aspect = design&development；22/46 training；10/46 deployment；2/46 monitoring；1/46 文档。
 - 35/46 M2T-only；4/46 M2M-only；7/46 both；46/46 forward-engineering。
-- 36/46 ML model/training code；15/46 software/intermediate models；8/46 deployment config；4/46 datasets。
-- 38/46 full auto；8/46 partial。
-- 17/46 open-source tool；6/46 proprietary；23/46 no tool mention。
-- 89% academic；9% industrial；P35 both。
-- 23/46 case study；17/46 experiment；4/46 user study；2/46 criteria-based；8/46 no evaluation；4/23 industrial case study；1/17 industrial experiment。
-- 33 datasets；MNIST 7/46；Iris 3/46。
+- 36/46 ML 模型/training code；15/46 software/intermediate 模型；8/46 deployment config；4/46 数据集。
+- 38/46 完整 auto；8/46 部分。
+- 17/46 open-source 工具；6/46 proprietary；23/46 no 工具 mention。
+- 89% academic；9% 工业（industrial）；P35 both。
+- 23/46 case study；17/46 experiment；4/46 user 研究；2/46 criteria-based；8/46 无评价；4/23 工业（industrial） case study；1/17 工业（industrial） experiment。
+- 33 数据集；MNIST 7/46；Iris 3/46。
 - 19/46 未提 limitation；7/46 未提 future work。
-- 88% 无 industrial evaluation 与 user study；48% 仅评一面；17% 无 evaluation；46% 计划 enhancement future work；28% 计划 further evaluation。
+- 88% 无 工业（industrial） 评价 与 user 研究；48% 仅评一面；17% 无 评价；46% 计划 enhancement future work；28% 计划 further 评价。
 - QA 分布：19 good / 15 average / 12 poor。
-- 75% 未讨论 scalability；9/46 关注 responsible ML / human-centric。
+- 75% 未讨论 可扩展性（scalability）；9/46 关注 responsible ML / human-centric。
 
-#### 6.2 原文 discussion / recommendation / roadmap 提出的候选 finding（A1-M6）
+#### 6.2 原文 discussion / 推荐 / 路线图 提出的候选发现（A1-M6）
 
-§6 与 §7 给出的 10 项 roadmap 建议（data for ML、solution focus、ML type、MDE details、solution maturity、low-code for domain experts、ML terminology consensus、scalability、responsible ML、evaluation rigor），均为作者解释性 finding，不等同最终领域定论；Paper2 应只接受其作 candidate / boundary anchor。
+§6 与 §7 给出的 10 项 路线图 建议（data for ML、solution focus、ML type、MDE details、solution maturity、low-code for domain experts、ML terminology consensus、可扩展性（scalability）、responsible ML、评价 rigor），均为作者解释性 发现，不等同最终领域定论；Paper2 应只接受其作 candidate / 边界锚点。
 
 #### 6.3 对 Paper2 可迁移的方法学启发
 
-- "RQ → extraction form section → feature tree → Table → distribution → RQ Answer Summary → Discussion roadmap" 七段链是可迁移的制品链。
-- 把"未提及 / not mentioned"显式列为字段取值（而非缺失），让缺口本身可统计。
-- 把 pragmatic categorization rule（如自称 case study 即归 case study）显式写入 schema。
+- "RQ → 抽取 form section → feature 树 → Table → distribution → RQ Answer Summary → Discussion 路线图" 七段链是可迁移的制品链。
+- 把"未提及 / 未提及"显式列为字段取值（而非缺失），让缺口本身可统计。
+- 把 pragmatic categorization rule（如自称 case study 即归 case study）显式写入 模式。
 - QA1–QA5 + NA 是 SLR 通用 rubric 模板。
 - Inclusion/Exclusion 用 ID 化（I01..I04, E01..E10）便于后续审计追踪。
 
 #### 6.4 绝不能迁移的领域结论
 
 - 任何 "TensorFlow 主导 / EMF+Sirius+XTend 主导 / Python 主导 / supervised 主导 / unsupervised 缺位" 等具体生态结论。
-- 任何 MDE4ML 特定 roadmap action（如 low-code 平台、no-code 平台）。
-- 3934 → 46 的具体数字、46 篇 corpus、P1..P46 编号。
+- 任何 MDE4ML 特定 路线图行动项（如 low-code 平台、no-code 平台）。
+- 3934 → 46 的具体数字、46 篇 语料、P1..P46 编号。
 
 ### 7. 对旧版 `review.md` 的返修来源
 
-按 C/I/M 分级。**学术目标判定**：本仓库的 A1-DT 任务是构建 Paper2 综述之综述的维度树脚手架，单篇 review.md 必须复原"原文样本编码 schema"才能支撑后续 19×3 跨论文投影与 A2a 精核。以下建议聚焦学术目标层面。
+按 C/I/M 分级。**学术目标判定**：本仓库的 A1-DT 任务是构建 Paper2 综述之综述的维度树脚手架，单篇 review.md 必须复原"原文样本编码模式"才能支撑后续 19×3 跨论文投影与 A2a 精核。以下建议聚焦学术目标层面。
 
-#### C 级（critical，会导致 schema 复原失真，影响 Paper2 主统计池可信度）
+#### C 级（critical，会导致 模式 复原失真，影响 Paper2 主统计池可信度）
 
-1. **C-1：复原 Fig. 5 二级结构**。review.md §维度树复原与 §"原文 schema 主树（19×3 审计后返修）" 都没有把 Fig. 5 的 9 个一级子节点（Goal / Domain / End Users / Modeling / Supported ML Aspects / Tool Support / Evaluation / Scalability / Responsible ML）与 4 个 Modeling 二级子节点（Model Representation / Model Type / Model Level / Modeling Language）与 4 个 Tool Support 二级子节点（Meta Tool / Transformations / Generated Artifacts / Automation Level）显式列为节点。
-   - **影响**：原生 schema 主树未饱和，无法支撑 Paper2 跨论文 19×3 投影中"feature tree 节点级覆盖"指标。
-   - **修法**：用本报告 §3 的 text-tree 与 §4 叶子表替换 §"原文 schema 主树（19×3 审计后返修）" 中过于粗的六行主干；标注每节点的取值空间类型。
+1. **C-1：复原 Fig. 5 二级结构**。review.md §维度树复原与 §"原文模式主树（19×3 审计后返修）" 都没有把 Fig. 5 的 9 个一级子节点（Goal / Domain / End Users / Modeling / Supported ML Aspects / Tool Support / Evaluation / Scalability / Responsible ML）与 4 个 Modeling 二级子节点（Model Representation / Model Type / Model Level / Modeling Language）与 4 个 Tool Support 二级子节点（Meta Tool / Transformations / Generated Artifacts / Automation Level）显式列为节点。
+   - **影响**：原生模式 主树未饱和，无法支撑 Paper2 跨论文 19×3 投影中"feature 树 节点级覆盖"指标。
+   - **修法**：用本报告 §3 的 text-树 与 §4 叶子表替换 §"原文模式主树（19×3 审计后返修）" 中过于粗的六行主干；标注每节点的取值空间类型。
 
-2. **C-2：Table 3–8 的封闭枚举未进入叶子取值空间**。当前 review.md 将 14 个 sub-goal、11 个 contribution、17 个 ML aspect 等都压成"自由文本加理由"或 schema_seed 占位，丢失了原文显式的封闭枚举。
-   - **影响**：Paper2 在 A2a 阶段无法对 "Goal=Effort reduction × Sub-goal=Abstraction" 这类组合进行字段比对，等于把原文已有的 schema 退化为"建议自由抽取"。
+2. **C-2：Table 3–8 的封闭枚举未进入叶子取值空间**。当前 review.md 将 16 个目标子类、11 个 contribution、17 个 ML aspect 等都压成"自由文本加理由"或 模式种子（模式_seed） 占位，丢失了原文显式的封闭枚举。
+   - **影响**：Paper2 在 A2a 阶段无法对 "Goal=降低工作量（降低工作量） × Sub-goal=Abstraction" 这类组合进行字段比对，等于把原文已有的 模式 退化为"建议自由抽取"。
    - **修法**：把 §4 叶子表中所有"完整枚举（n）"列直接迁入 review.md，让 A2a 只做"页码 + cell 核对"而不是重新发明取值空间。
 
-3. **C-3：parallel schema 缺失**。review.md 当前仅有"主树"概念，没有把 Inclusion/Exclusion gate（Table 1）与 QA1–QA5 rubric（§3.5、Table 9）作为并列 schema 节点登记。
-   - **影响**：在跨论文投影中，"是否报告 quality rubric"、"是否报告 inclusion gate"这两类元字段会被遗漏，影响 19×3 维度森林完整性。
-   - **修法**：在 §维度树复原下增设 "Parallel schema (a) Inclusion/Exclusion"、"Parallel schema (b) QA rubric" 两个块，使用本报告 §4 末尾 L-qa-q / L-qa-band / L-inc-id / L-exc-id 四个叶子。
+3. **C-3：parallel 模式 缺失**。review.md 当前仅有"主树"概念，没有把 Inclusion/Exclusion gate（Table 1）与 QA1–QA5 rubric（§3.5、Table 9）作为并列 模式 节点登记。
+   - **影响**：在跨论文投影中，"是否报告 质量量规"、"是否报告 inclusion gate"这两类元字段会被遗漏，影响 19×3 维度森林完整性。
+   - **修法**：在 §维度树复原下增设 "Parallel 模式 (a) Inclusion/Exclusion"、"Parallel 模式 (b) QA rubric" 两个块，使用本报告 §4 末尾 L-qa-q / L-qa-band / L-inc-id / L-exc-id 四个叶子。
 
 #### I 级（important，会影响审计性与统计可比性）
 
 4. **I-1：3934 vs 3496 笔误**。当前 review.md §9 待复核已记录此项，但未在主统计页给出 canonical 数字。应在快速结论卡片 §1 末尾添加"分母口径：以 §3.3.2 中 3934 / 3570 为准，§7 中 3,496 为论文笔误"。
    - **影响**：若 Paper2 引用本篇分母时直接抄 §7，将传播错误。
 
-5. **I-2：data extraction form 字段数 40 / 5 section / 23 short answer / 10 long answer / 2 checkbox / 14 radio button** 未进 review.md，但这是其他 SLR 几乎不会披露的元信息，是本篇对 Paper2 最具方法论价值的资料之一。应在 §维度树复原 中独立设节点 "Extraction-form schema shape"，叶子取值空间显式给出"(40, 5, 23/10/2/14)"四元组。
+5. **I-2：数据抽取 form 字段数 40 / 5 section / 23 short answer / 10 long answer / 2 checkbox / 14 radio button** 未进 review.md，但这是其他 SLR 几乎不会披露的元信息，是本篇对 Paper2 最具方法论价值的资料之一。应在 §维度树复原 中独立设节点 "Extraction-form 模式 shape"，叶子取值空间显式给出"(40, 5, 23/10/2/14)"四元组。
 
 6. **I-3：Fig. 7 bubble chart 是三元 cross-tab**（goal × contribution × ML aspect）。review.md 完全未将其作为关系边或三元关系登记。建议在 §维度树复原 增加 "Cross-tab / Bubble chart" 小节，对应本报告 §5 关系边表。
 
-7. **I-4：A.2 证据账本与 A.3 结论映射目前仅 4 行**（EV-001..004）。原文 RQ1–RQ4 各自的统计结论（如 43/46、35/46、88%）应每个 RQ 至少一行独立证据；A.3 至少应区分 "tree_type / leaf_definition / migration_boundary / candidate_finding / source_schema_candidate / audit_repair / number_inconsistency"。建议按本报告 §8 草案扩到 ≥10 行。
+7. **I-4：A.2 证据账本与 A.3 结论映射目前仅 4 行**（EV-001..004）。原文 RQ1–RQ4 各自的统计结论（如 43/46、35/46、88%）应每个 RQ 至少一行独立证据；A.3 至少应区分 "树类型（树_type） / 叶子_definition / migration_boundary / 候选发现（candidate_发现） / source_模式_candidate / audit_repair / number_inconsistency"。建议按本报告 §8 草案扩到 ≥10 行。
 
-8. **I-5：原生 schema 是单树 + 双 parallel schema 的小森林**，而非现在 §0 卡片中标的"维度森林"或"降级树"二选一。应在快速结论卡片新增字段："schema 形态 = 单根主树 (Fig.5) + 2 个 parallel schema (Inclusion/Exclusion gate, QA1–QA5 rubric)"。
+8. **I-5：原生模式 是单树 + 双 parallel 模式 的小森林**，而非现在 §0 卡片中标的"维度森林"或"降级树"二选一。应在快速结论卡片新增字段："模式 形态 = 单根主树 (Fig.5) + 2 个 parallel 模式 (Inclusion/Exclusion gate, QA1–QA5 rubric)"。
 
 #### M 级（minor，不阻塞合并）
 
-9. **M-1：review.md §维度树复原 中"原生树类型 / 主统计池资格"叙述偏文学化**（"维度树主类型为 MDE4ML 生命周期分类树"）。这与 Fig. 5 实际根节点 "MDE Solution for ML"（更接近"解决方案 × 评价 × 限制"轴）不完全一致；建议把"生命周期分类树"替换为更准确的"MDE solution feature tree"。
+9. **M-1：review.md §维度树复原 中"原生树类型 / 主统计池资格"叙述偏文学化**（"维度树主类型为 MDE4ML 生命周期分类树"）。这与 Fig. 5 实际根节点 "MDE Solution for ML"（更接近"解决方案 × 评价 × 限制"轴）不完全一致；建议把"生命周期分类树"替换为更准确的"MDE solution feature 树"。
 
-10. **M-2：§"原文模式候选叶子映射（A1 种子）" 表的 5 行候选叶子（orig-ml-lifecycle / orig-mde-artifact / orig-solution-type / orig-motivation-benefit / orig-evaluation-context）粒度模糊**，与 §维度树复原 中的 b1/b2/b3/b4/b5 五大主干并未一一对齐，且 ml-lifecycle 同时被 b1 与 b4 引用。建议按本报告 §3 text-tree 重整。
+10. **M-2：§"原文模式候选叶子映射（A1 种子）" 表的 5 行候选叶子（orig-ml-lifecycle / orig-mde-制品 / orig-solution-type / orig-motivation-benefit / orig-评价-context）粒度模糊**，与 §维度树复原 中的 b1/b2/b3/b4/b5 五大主干并未一一对齐，且 ml-lifecycle 同时被 b1 与 b4 引用。建议按本报告 §3 text-树 重整。
 
-11. **M-3：SUMMARY 当前表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"项**（如果 SUMMARY.md 沿用 review.md §0 卡片的口径）：应保持"primary study / 46 / 单根主树 + 2 parallel schema / 主统计池资格成立但数字仍待 A2a 复核"四字段。
+11. **M-3：SUMMARY 当前表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"项**（如果 SUMMARY.md 沿用 review.md §0 卡片的口径）：应保持"原始研究 / 46 / 单根主树 + 2 parallel 模式 / 主统计池资格成立但数字仍待 A2a 复核"四字段。
 
 #### 是否需要重写 §"维度树复原" 主体
 
-**是**。当前 §"维度树复原" 与 §"原文 schema 主树（19×3 审计后返修）" 是 v1 → v2 过渡的双层结构，互相覆盖且都偏粗。建议在下一轮 PR 中把这两节合并为一个 §"原生 schema 主树（单根主树 + 2 个 parallel schema）"，直接挂载本报告 §3 完整 text-tree 与 §4 叶子表。
+**是**。当前 §"维度树复原" 与 §"原文模式主树（19×3 审计后返修）" 是 v1 → v2 过渡的双层结构，互相覆盖且都偏粗。建议在下一轮 PR 中把这两节合并为一个 §"原生模式 主树（单根主树 + 2 个 parallel 模式）"，直接挂载本报告 §3 完整 text-树 与 §4 叶子表。
 
 ### 8. 审计附录草案（可直接迁入 review.md A.2 / A.3）
 
@@ -674,38 +625,38 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-001 | paper_content.txt | §3.4, §4.1, Fig. 4–5, Table 2 | "We created a Google Form with 40 questions ... five sections" / "Fig. 5 shows a feature tree of the examined features" | 释义：data extraction form 40 题 × 5 section；Fig. 5 是从 extraction categories 派生的 feature tree | schema_source | medium | ROOT, §section-1, L-bib-* | true (Fig. 5 视觉版面) | 仅本 corpus；feature tree 节点取值空间为 schema seed |
-| EV-002a | paper_content.txt | §3.5, Table 9 (Appendix B) | QA1..QA5 每篇 1..5 分或 NA | parallel-QA schema 与每篇 study 的 QA 矩阵 | rubric | medium | L-qa-q, L-qa-band, parallel-QA | true (Table 9 单元格抽取错位) | 不能直接外推为论文质量在领域内的相对评分 |
-| EV-002b | paper_content.txt | §3.2, Table 1 | I01..I04 / E01..E10 | parallel-IE schema：纳入排除 gate | schema_source | strong | L-inc-id, L-exc-id, parallel-IE | false（文本已逐条给出） | 仅本 SLR 适用 |
-| EV-003a | paper_content.txt | §4.2.1, Table 3, Fig. 6(a) | "Effort Reduction was the most common aim mentioned in 43 out of 46 studies" | 释义：goal 与 sub-goal 的封闭枚举与 study P-list | taxonomy + statistical_result | medium | L-rq1-goal, L-rq1-subgoal | true (Fig. 6 Venn) | 频次需 A2a 数 P-list 验证 |
-| EV-003b | paper_content.txt | §4.2.2, Table 4 | "31 studies (67%) explicitly focused on supervised ML, and 4 (9%) on reinforcement; none ... unsupervised" | ML 技术 4 大类 6 终端 | taxonomy + statistical_result | strong | L-rq1-mltech | false | 仅本 corpus；不可外推 |
-| EV-003c | paper_content.txt | §4.2.3 | 11 application domains 列表 | 域分布 | taxonomy | medium | L-rq1-domain | false | 仅本 corpus |
-| EV-003d | paper_content.txt | §4.2.4, Table 5, Fig. 6(c) | end user 3 类 7 角色，18/16/11 | 用户分布 | taxonomy + statistical_result | medium | L-rq1-enduser | true (Fig. 6c) | 仅本 corpus |
-| EV-003e | paper_content.txt | §4.2.5, Table 6, Fig. 6(b) | contribution 11 类，35/30/21/... | contribution 分布 | taxonomy + statistical_result | medium | L-rq1-contrib | true (Fig. 6b Venn) | 仅本 corpus |
-| EV-003f | paper_content.txt | §4.3.1, Fig. 8(a–b) | model representation 23/21/2；language 34/9/3；level PIM 42/46 | modeling 维度分布 | statistical_result | medium | L-rq2-mrep, L-rq2-mlang, L-rq2-mlevel, L-rq2-mtype | true (Fig. 8) | 仅本 corpus |
-| EV-003g | paper_content.txt | §4.3.2, Table 7, Fig. 9(a) | 17 ML aspects；design 28 / train 22 / deploy 10 / monitor 2 / doc 1 | ML aspects 封闭枚举 + 频次 | taxonomy + statistical_result | medium | L-rq2-mlasp, L-rq2-mlfw | true (Fig. 9a) | 仅本 corpus |
-| EV-003h | paper_content.txt | §4.3.3, Table 8, Fig. 8(c), Fig. 9(b) | M2T 35 / M2M 4 / both 7 / 全 forward；auto 38/8；tool 17/6/23；Python 15 / Java 10 / C++ 4；EMF 15, Sirius 10, XTend 5, EGL 4 | transformation/auto/tool 分布 + meta-tool 枚举 | statistical_result | medium | L-rq2-trans, L-rq2-art, L-rq2-tlang, L-rq2-autom, L-rq2-tool, L-rq2-metatool | true (Fig. 8c, Fig. 9b, Table 8) | 仅本 corpus |
-| EV-003i | paper_content.txt | §4.4.1, §4.4.2, §4.4.3, Fig. 10(a–b) | academic 89% / industrial 9% / P35 both；case 23 / exp 17 / user 4 / criteria 2 / none 8；industrial-CS 4, industrial-exp 1；ML/MDE metric 分布；33 datasets, MNIST 7, Iris 3 | evaluation 维度分布 | statistical_result | medium | L-rq3-area, L-rq3-method, L-rq3-industrial, L-rq3-mlmetric, L-rq3-mdemetric, L-rq3-dataset | true (Fig. 10a–b) | 仅本 corpus |
-| EV-003j | paper_content.txt | §4.5.1, §4.5.2 | 19/46 无 limitation；7/46 无 future work；3 类 limitation + 3 类 future work | limitation/future-work taxonomy + 频次 | taxonomy + statistical_result | strong | L-rq4-limscope, L-rq4-fwscope | false | 仅本 corpus |
-| EV-004 | paper_content.txt | §5 (4 sub-sections) | "search string ... refined over several iterations" / "first author extracted ... close match" / "did not exclude any study based on publication quality" | 4 类 validity threats 与对策 | validity_self_report | medium | ROOT, migration boundary | false | 不能等同 inter-rater κ |
-| EV-005 | paper_content.txt | §6.1.1–§6.1.7, §6.2.1–§6.2.2, §7 | 10 项 roadmap recommendations | discussion-derived candidate findings | recommendation | weak (single-paper) | candidate findings only | false | 仅作 boundary anchor，不进 final finding |
-| EV-006 | paper_content.txt | §7 Conclusion | "selected 46 highly relevant primary studies from an initial pool of 3,496 papers" | **疑似笔误**：与 §3.3.2 的 3934 不符 | number_inconsistency | strong | ROOT 元数据 | false | 引用时必须以 §3.3.2 的 3934 / 3570 为准 |
-| EV-007 | paper_content.txt | §"Data availability" | "SLR data is available at the following link MDE4MLSLRdata(Originaldata)" | 数据可用性声明 + GitHub 链接 (review.md 旧版抽取为 https://github.com/hiraa221/MDE4ML-SLR-Data/tree/main) | replication_link | weak | ROOT, 复现性 | true (打开 GitHub 仓库) | 需当前可访问性与 license 复核 |
+| EV-001 | paper_content.txt | §3.4, §4.1, Fig. 4–5, Table 2 | "We created a Google Form with 40 questions ... five sections" / "Fig. 5 shows a feature 树 of the examined features" | 释义：数据抽取 form 40 题 × 5 section；Fig. 5 是从 抽取 类别 派生的 feature 树 | 模式_source | medium | ROOT, §section-1, L-bib-* | true (Fig. 5 视觉版面) | 仅本 语料；feature 树 节点取值空间为 模式种子 |
+| EV-002a | paper_content.txt | §3.5, Table 9 (Appendix B) | QA1..QA5 每篇 1..5 分或 NA | parallel-QA 模式 与每篇 研究 的 QA 矩阵 | rubric | medium | L-qa-q, L-qa-band, parallel-QA | true (Table 9 单元格抽取错位) | 不能直接外推为论文质量在领域内的相对评分 |
+| EV-002b | paper_content.txt | §3.2, Table 1 | I01..I04 / E01..E10 | parallel-IE 模式：纳入排除 gate | 模式_source | strong | L-inc-id, L-exc-id, parallel-IE | false（文本已逐条给出） | 仅本 SLR 适用 |
+| EV-003a | paper_content.txt | §4.2.1, Table 3, Fig. 6(a) | "Effort Reduction was the most common aim mentioned in 43 out of 46 studies" | 释义：goal 与 sub-goal 的封闭枚举与 研究 P-list | 分类法 + statistical_result | medium | L-rq1-goal, L-rq1-subgoal | true (Fig. 6 Venn) | 频次需 A2a 数 P-list 验证 |
+| EV-003b | paper_content.txt | §4.2.2, Table 4 | "31 studies (67%) explicitly focused on supervised ML, and 4 (9%) on reinforcement; 无更新 ... unsupervised" | ML 技术 4 大类 6 终端 | 分类法 + statistical_result | strong | L-rq1-mltech | false | 仅本 语料；不可外推 |
+| EV-003c | paper_content.txt | §4.2.3 | 11 application domains 列表 | 域分布 | 分类法 | medium | L-rq1-domain | false | 仅本 语料 |
+| EV-003d | paper_content.txt | §4.2.4, Table 5, Fig. 6(c) | end user 3 类 7 角色，18/16/11 | 用户分布 | 分类法 + statistical_result | medium | L-rq1-enduser | true (Fig. 6c) | 仅本 语料 |
+| EV-003e | paper_content.txt | §4.2.5, Table 6, Fig. 6(b) | contribution 11 类，35/30/21/... | contribution 分布 | 分类法 + statistical_result | medium | L-rq1-contrib | true (Fig. 6b Venn) | 仅本 语料 |
+| EV-003f | paper_content.txt | §4.3.1, Fig. 8(a–b) | 模型 representation 23/21/2；language 34/9/3；level PIM 42/46 | modeling 维度分布 | statistical_result | medium | L-rq2-mrep, L-rq2-mlang, L-rq2-mlevel, L-rq2-mtype | true (Fig. 8) | 仅本 语料 |
+| EV-003g | paper_content.txt | §4.3.2, Table 7, Fig. 9(a) | 17 机器学习环节；design 28 / train 22 / deploy 10 / monitor 2 / doc 1 | 机器学习环节 封闭枚举 + 频次 | 分类法 + statistical_result | medium | L-rq2-mlasp, L-rq2-mlfw | true (Fig. 9a) | 仅本 语料 |
+| EV-003h | paper_content.txt | §4.3.3, Table 8, Fig. 8(c), Fig. 9(b) | M2T 35 / M2M 4 / both 7 / 全 forward；auto 38/8；工具 17/6/23；Python 15 / Java 10 / C++ 4；EMF 15, Sirius 10, XTend 5, EGL 4 | transformation/auto/工具 分布 + meta-工具 枚举 | statistical_result | medium | L-rq2-trans, L-rq2-art, L-rq2-tlang, L-rq2-autom, L-rq2-工具, L-rq2-metatool | true (Fig. 8c, Fig. 9b, Table 8) | 仅本 语料 |
+| EV-003i | paper_content.txt | §4.4.1, §4.4.2, §4.4.3, Fig. 10(a–b) | academic 89% / 工业（industrial） 9% / P35 both；case 23 / exp 17 / user 4 / criteria 2 / 无更新 8；工业（industrial）-CS 4, 工业（industrial）-exp 1；ML/MDE 指标 分布；33 数据集, MNIST 7, Iris 3 | 评价 维度分布 | statistical_result | medium | L-rq3-area, L-rq3-方法, L-rq3-工业（industrial）, L-rq3-mlmetric, L-rq3-mdemetric, L-rq3-数据集 | true (Fig. 10a–b) | 仅本 语料 |
+| EV-003j | paper_content.txt | §4.5.1, §4.5.2 | 19/46 无 limitation；7/46 无 future work；3 类 limitation + 3 类 future work | limitation/未来工作 分类法 + 频次 | 分类法 + statistical_result | strong | L-rq4-limscope, L-rq4-fwscope | false | 仅本 语料 |
+| EV-004 | paper_content.txt | §5 (4 sub-sections) | "search string ... refined over several iterations" / "first author extracted ... close match" / "did not exclude any 研究 based on publication 质量" | 4 类 效度 威胁 与对策 | validity_self_report | medium | ROOT, migration boundary | false | 不能等同 inter-rater κ |
+| EV-005 | paper_content.txt | §6.1.1–§6.1.7, §6.2.1–§6.2.2, §7 | 10 项 路线图 推荐s | discussion-派生候选发现（derived 候选发现） | 推荐 | weak (single-paper) | 候选发现 only | false | 仅作 边界锚点，不进 最终发现 |
+| EV-006 | paper_content.txt | §7 Conclusion | "selected 46 highly relevant 原始研究 from an initial pool of 3,496 papers" | **疑似笔误**：与 §3.3.2 的 3934 不符 | number_inconsistency | strong | ROOT 元数据 | false | 引用时必须以 §3.3.2 的 3934 / 3570 为准 |
+| EV-007 | paper_content.txt | §"数据可获得性（Data availability）" | "SLR data is available at the following link MDE4MLSLRdata(Originaldata)" | 数据可用性声明 + GitHub 链接 (review.md 旧版抽取为 https://github.com/hiraa221/MDE4ML-SLR-Data/树/main) | replication_link | weak | ROOT, 复现性 | true (打开 GitHub 仓库) | 需当前可访问性与 license 复核 |
 
 #### A.3 结论-证据映射草案
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-01 | 本文原生 schema 为单根主树（Fig. 5）+ 2 个 parallel schema（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | tree_type | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | strong | 直接迁入 review.md §0 卡片 | 仅本篇 |
-| C-02 | 样本单位 = primary study，分母 = 46，筛选链 3934→3570→72→55→32→+14→46 | corpus | ROOT | EV-001, EV-006 | strong | 直接迁入 SUMMARY 总账 | §7 中"3,496" 为笔误 |
-| C-03 | 主统计池资格成立但数字仍需 A2a PDF 复核（特别是 Fig. 4 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 / Table 9） | pool_eligibility | ROOT | EV-001, EV-003*, EV-004 | medium | 当前 A1-DT 阶段 schema_seed；不写入 final stats | 文本抽取不可替代视觉版面 |
-| C-04 | RQ1–RQ4 各 RQ 都映射到 extraction-form section、feature-tree 子树与 Answer Summary 三层；这是可直接迁移到 Paper2 的方法学制品链 | method_pattern | §RQ1..§RQ4 子树 | EV-001, EV-003a–j | strong | Paper2 可作为 schema seed | 不迁移领域结论 |
-| C-05 | "Not mentioned" 作为显式取值（而非缺失）是本篇的关键审计选择（tool availability、ML metrics、MDE metrics、limitations、future work 都给出 not-mentioned 频次） | schema_design | L-rq2-tool, L-rq3-mlmetric, L-rq3-mdemetric, L-rq4-limscope, L-rq4-fwscope | EV-003h, EV-003i, EV-003j | strong | Paper2 可借鉴 | 需在 prompt / form 显式给出 not_mentioned 选项 |
+| C-01 | 本文原生模式 为单根主树（Fig. 5）+ 2 个 parallel 模式（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | 树类型（树_type） | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | strong | 直接迁入 review.md §0 卡片 | 仅本篇 |
+| C-02 | 样本单位 = 原始研究，分母 = 46，筛选链 3934→3570→72→55→32→+14→46 | 语料 | ROOT | EV-001, EV-006 | strong | 直接迁入 SUMMARY 总账 | §7 中"3,496" 为笔误 |
+| C-03 | 主统计池资格成立但数字仍需 A2a PDF 复核（特别是 Fig. 4 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 / Table 9） | pool_eligibility | ROOT | EV-001, EV-003*, EV-004 | medium | 当前 A1-DT 阶段 模式种子（模式_seed）；不写入 final stats | 文本抽取不可替代视觉版面 |
+| C-04 | RQ1–RQ4 各 RQ 都映射到 抽取-form section、feature-树 子树与 Answer Summary 三层；这是可直接迁移到 Paper2 的方法学制品链 | method_pattern | §RQ1..§RQ4 子树 | EV-001, EV-003a–j | strong | Paper2 可作为 模式种子 | 不迁移领域结论 |
+| C-05 | "未提及（未提及）" 作为显式取值（而非缺失）是本篇的关键审计选择（工具 可获得性、ML 指标、MDE 指标、limitations、future work 都给出 未提及 频次） | 模式_design | L-rq2-工具, L-rq3-mlmetric, L-rq3-mdemetric, L-rq4-limscope, L-rq4-fwscope | EV-003h, EV-003i, EV-003j | strong | Paper2 可借鉴 | 需在 prompt / form 显式给出 not_mentioned 选项 |
 | C-06 | Fig. 7 给出 goal × contribution × ML aspect 的三元 cross-tab，是本篇唯一的关系型可视化 | relation_evidence | R-goal-aspect, R-contrib-aspect | EV-003a, EV-003e, EV-003g（Fig. 7 注释） | weak | 可迁结构为"三元字段共现矩阵"模板 | 视觉 bubble 频次需 PDF 复核 |
-| C-07 | §6 / §7 的 10 项 roadmap 是作者解释性 candidate finding，不能升级为 final research finding | candidate_finding_boundary | §RQ4, §6, §7 | EV-005 | strong | Paper2 仅作 boundary anchor | 未经跨论文证据 + 反证 + 研究者裁决 |
-| C-08 | 本篇 validity 章节给出对策但未报告 Cohen κ、双盲编码或 disagreement 统计；"close match" 不可视作强一致性证据 | validity_boundary | §5 | EV-004 | medium | Paper2 应在自身审计中补足 inter-rater 证据 | 不削弱本篇结论效力，但限制其外推 |
+| C-07 | §6 / §7 的 10 项 路线图 是作者解释性 候选发现，不能升级为 最终研究发现（最终研究发现） | 候选发现（candidate_发现）_boundary | §RQ4, §6, §7 | EV-005 | strong | Paper2 仅作 边界锚点 | 未经跨论文证据 + 反证 + 研究者裁决 |
+| C-08 | 本篇 效度 章节给出对策但未报告 Cohen κ、双盲编码或 disagreement 统计；"close match" 不可视作强一致性证据 | validity_boundary | §5 | EV-004 | medium | Paper2 应在自身审计中补足 inter-rater 证据 | 不削弱本篇结论效力，但限制其外推 |
 | C-09 | §7 中 "3,496" 与 §3.3.2 中 "3934" 不一致，应以方法节为 canonical 数字 | number_inconsistency | ROOT | EV-006 | strong | 引用本篇时直接使用 3934 / 3570 | 仅笔误，不影响整体结论 |
-| C-10 | Data availability 给出 GitHub 仓库链接（review.md 已抽取为 hiraa221/MDE4ML-SLR-Data），是开放数据 SLR 的样本 | replication | ROOT | EV-007 | weak | 进入 SUMMARY 复现资产盘点 | 当前可访问性、license、内容范围未复核 |
+| C-10 | 数据可获得性（Data 可获得性） 给出 GitHub 仓库链接（review.md 已抽取为 hiraa221/MDE4ML-SLR-Data），是开放数据 SLR 的样本 | replication | ROOT | EV-007 | weak | 进入 SUMMARY 复现资产盘点 | 当前可访问性、license、内容范围未复核 |
 
 ### 9. 技能使用与自我审查记录
 
@@ -715,7 +666,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 - **`ai-research-writing-skill / reviewer-guidelines`**：reviewer 必须先复原 ground truth 再批评；C/I/M 分级要绑定学术目标；不接受空洞 "writing improvement"。本报告 §7 严格按 C/I/M 分层并写明影响。
 - **`ai-research-writing-skill / reviewer-self-review`**：reviewer 在出报告前先反向检查自己。本报告 §9.2 给出最高风险三条与复核方式。
-- **`research-planning / planning-prompts & output-schemas`**：单篇审计先回答样本单位 → schema → 取值空间 → 关系 → 统计资格五问；本报告 §2、§3、§4、§5、§6 对应。
+- **`research-planning / planning-prompts & output-schemas`**：单篇审计先回答样本单位 → 模式 → 取值空间 → 关系 → 统计资格五问；本报告 §2、§3、§4、§5、§6 对应。
 - **`oh-my-codex / autoresearch`**：证据账本（A.2）与结论映射（A.3）必须分离；本报告 §8 给出 A.2/A.3 两表。
 
 #### 9.2 reviewer 视角的最高风险三条
@@ -728,11 +679,10 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 - **blocked**：`~/.codex/skills/*` 与 `~/.codex/plugins/cache/oh-my-codex-local/*` 在 Claude Code 沙箱不可直接 Read，需在 Codex CLI 环境复跑才能取到原文。本报告以 prompt 中已显式给出的 A1-DT v2 口径与本仓库 CLAUDE.md 既有规则为可执行替代。
 - **未发生**：timeout、其他文件缺失。`paper_content.txt`、`review.md`、`metadata.json`、`bibtex.bib` 均已本地完整读取；`paper.pdf` 文件存在但本轮未打开视觉版面。
-- **未启动 subagent**：本任务由当前 Claude 单 agent 独立完成，未派生任何 sub-subagent / nested agent / 后台 agent。
+- **未启动 subagent**：本任务由当前 Claude 单 智能体 独立完成，未派生任何 sub-subagent / nested 智能体 / 后台 智能体。
 - **未修改任何仓库文件、未 commit、未 push、未 gh comment**。
 
 — 报告结束 —
-
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/mde-ml-components-slr.md](../../audits/a1dt-v2-19x3/adjudications/mde-ml-components-slr.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
@@ -753,20 +703,20 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 | 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-mde-ml-components-slr-type | clm-mde-ml-components-slr-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：**SLR**（Kitchenham guidelines 显式声明，protocol → planning/conducting/reporting） | paper_type | text_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-mde-ml-components-slr-unit | clm-mde-ml-components-slr-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**primary study**，编号 P1–P46，46 篇 | sample_unit | text_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-mde-ml-components-slr-denom | clm-mde-ml-components-slr-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：自动检索 3934 → 去重 3570 → title/abstract 72 → brief full-paper 55 → detailed reading 32 → snowballing +14（前向 8 + 后向 6）→ **46**（其中 conclusion §7 误写为 “3,496 papers”，与方法 §3.3.2 中 3934 不一致） | denominator | text_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-mde-ml-components-slr-tree | clm-mde-ml-components-slr-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**单根维度树**（Fig. 5 "Features of selected primary studies"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 schema 与 QA1–QA5 质量 rubric 两个并列 schema；不构成维度森林 | schema | text_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-mde-ml-components-slr-pool | clm-mde-ml-components-slr-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：局部可统计；本文 RQ1–RQ4 章节给出的 frequencies（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 publication type 分布、Fig. 10 metric 分布与 Table 9 QA 矩阵） | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 final finding |
+| ev-mde-ml-components-slr-type | clm-mde-ml-components-slr-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：**SLR**（Kitchenham guidelines 显式声明，protocol → planning/conducting/reporting） | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
+| ev-mde-ml-components-slr-unit | clm-mde-ml-components-slr-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**原始研究**，编号 P1–P46，46 篇 | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
+| ev-mde-ml-components-slr-denom | clm-mde-ml-components-slr-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：自动检索 3934 → 去重 3570 → title/abstract 72 → brief full-paper 55 → detailed reading 32 → snowballing +14（前向 8 + 后向 6）→ **46**（其中 conclusion §7 误写为 “3,496 papers”，与方法 §3.3.2 中 3934 不一致） | denominator | 文本已核验（text_verified） | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
+| ev-mde-ml-components-slr-tree | clm-mde-ml-components-slr-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**单根维度树**（Fig. 5 "Features of selected 原始研究"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 schema 与 QA1–QA5 质量 rubric 两个并列 schema；不构成维度森林 | schema | 文本已核验（text_verified） | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
+| ev-mde-ml-components-slr-pool | clm-mde-ml-components-slr-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：局部可统计；本文 RQ1–RQ4 章节给出的 frequencies（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 publication type 分布、Fig. 10 metric 分布与 Table 9 QA 矩阵） | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
 
 ### A.3 结论-证据映射
 
 | 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| clm-mde-ml-components-slr-type | A1DT-mde-ml-components-slr-C01 | 本文原文类型为：**SLR**（Kitchenham guidelines 显式声明，protocol → planning/conducting/reporting） | paper_type | type | ev-mde-ml-components-slr-type | 正式写作前需核对出版页和 PDF 版式 | text_verified | schema_seed / 背景方法样本描述 | 否 | -- |
-| clm-mde-ml-components-slr-unit | A1DT-mde-ml-components-slr-C02 | 本文被编码样本单位为：**primary study**，编号 P1–P46，46 篇 | sample_unit | sample_unit | ev-mde-ml-components-slr-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | text_verified | schema_seed / A2a 抽取表设计 | 否 | -- |
-| clm-mde-ml-components-slr-tree | A1DT-mde-ml-components-slr-C03 | 本文原生维度树 / 维度森林为：**单根维度树**（Fig. 5 "Features of selected primary studies"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 schema 与 QA1–QA5 质量 rubric 两个并列 schema；不构成维度森林 | tree_type | native_tree | ev-mde-ml-components-slr-tree | 不代表跨论文通用模板 | text_verified | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-mde-ml-components-slr-pool | A1DT-mde-ml-components-slr-C04 | 本文统计池资格为：局部可统计；本文 RQ1–RQ4 章节给出的 frequencies（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 publication type 分布、Fig. 10 metric 分布与 Table 9 QA 矩阵） | eligibility | statistical_pool | ev-mde-ml-components-slr-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
+| clm-mde-ml-components-slr-type | A1DT-mde-ml-components-slr-C01 | 本文原文类型为：**SLR**（Kitchenham guidelines 显式声明，protocol → planning/conducting/reporting） | paper_type | type | ev-mde-ml-components-slr-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
+| clm-mde-ml-components-slr-unit | A1DT-mde-ml-components-slr-C02 | 本文被编码样本单位为：**原始研究**，编号 P1–P46，46 篇 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-mde-ml-components-slr-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
+| clm-mde-ml-components-slr-tree | A1DT-mde-ml-components-slr-C03 | 本文原生维度树 / 维度森林为：**单根维度树**（Fig. 5 "Features of selected 原始研究"，根节点为 MDE Solution for ML），辅以 Table 1 纳排 schema 与 QA1–QA5 质量 rubric 两个并列 schema；不构成维度森林 | 树类型（tree_type） | native_tree | ev-mde-ml-components-slr-tree | 不代表跨论文通用模板 | 文本已核验（text_verified） | Paper2 方法设计与 pattern library seed | 否 | -- |
+| clm-mde-ml-components-slr-pool | A1DT-mde-ml-components-slr-C04 | 本文统计池资格为：局部可统计；本文 RQ1–RQ4 章节给出的 frequencies（如 43/46、35/46、38/46、89%、75%、88%）可直接迁移为主统计池字段分布，但 A1-DT 阶段所有数字仍需 A2a 回 PDF 精核（特别是 Fig. 4 publication type 分布、Fig. 10 metric 分布与 Table 9 QA 矩阵） | eligibility | 统计池（statistical_pool） | ev-mde-ml-components-slr-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 

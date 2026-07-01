@@ -59,7 +59,7 @@
 - 框架依据：Davis TAM（Technology Acceptance Model）。
 
 **RQ3 users（Table 4）**：3 cluster + U-NS
-- U1 designers/modellers 27.6%；U2 domain experts 13.8%；U3 software developers 29.3%；U-NS = 17 / 29.3%。
+- U1 designers/modellers 27.6%；U2 domain experts 13.8%；U3 软件开发者s 29.3%；U-NS = 17 / 29.3%。
 - U-NS 编码规则：仅写 "user" / "he/she" 即归 U-NS（而非"用户类型未知"）。
 
 **RQ4 实践（§5.1 + §5.2 + Table 5 + Fig.7–10、13）**：
