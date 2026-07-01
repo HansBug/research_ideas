@@ -100,41 +100,6 @@
 | A1-M5 统计分析就绪 | 对 guideline、topic、venue、search、classification、visualization、rubric score 做计数与分布。 | 可迁移为 A2b 的方法学统计池。 | 只能做方法学频次 / 分布统计，不支持目标领域效果合成。 |
 | A1-M6 research finding 形成与裁决 | 从方法实践统计形成更新 guideline 和质量评价建议。 | 可迁移为“统计观察 → 方法学 finding → researcher 裁决”的模板。 | 最终领域 finding 必须另由目标主题证据支持。 |
 
-## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-```text
-说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
-映射指南更新模式（mapping_guideline_update_pattern）
-├── 指南使用
-│   ├── 遵循的指南
-│   ├── 组合使用的指南
-│   ├── 缺失的指南覆盖
-│   └── 更新理由
-├── 映射研究过程
-│   ├── 规划：必要性识别、范围界定、研究识别计划、抽取分类计划、可视化计划、有效性计划
-│   ├── 执行：数据库检索、检索类型、筛选阶段、质量评估、数据抽取表单、分类方案
-│   └── 报告：方法章节结构、结果结构、纳入 / 排除附录、可重复性细节
-├── 维度
-│   ├── 主题无关：研究类型、研究方法、研究焦点、发表源
-│   └── 主题相关：新兴方案、既有方案
-├── 可视化与统计
-│   ├── 频次表
-│   ├── 分布图
-│   ├── 气泡图
-│   ├── Venn 图
-│   ├── heatmap
-│   └── 质量量规分数
-└── 有效性与质量
-    ├── 描述有效性
-    ├── 理论有效性
-    ├── 可推广性
-    ├── 解释有效性
-    ├── 可重复性
-    └── 研究者偏倚缓解
-```
-
 ## 6. 对 Paper2 的启发与风险
 
 ### 6.1 启发
@@ -164,12 +129,12 @@
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__codex.md](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__codex.md)、[../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__claude.md](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__claude.md)、[../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__deepseek.md](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/petersen-2015-mapping-guidelines-update.md](../../audits/a1dt-v2-19x3/adjudications/petersen-2015-mapping-guidelines-update.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -184,8 +149,8 @@
 | 被编码样本单位 | **原始研究 = SE 领域已发表的 系统映射研究**（每个 研究 被作者按 Table 3 抽取表编码）。 |
 | 样本数量 / 分母 | **52 mapping studies**（Appendix A 列出 ~52 个 included id；§3.6.2 与 §4.4.3 多处复现 "52" 分母）。Fig. 1 流程链：7752 → 5082 (去 2004 前) → 60 (title/abstract) → 43 (完整-text) → 54 (+11 snowball) → 44 (质量) → 52 (review of excluded 回补 8) 。 |
 | 原生树类型 | **维度森林**（至少 4 棵互相独立的主干树：①抽取 form 树；②分类切面（分类 facet） 树；③指南 action / rubric 树；④效度 分类法 树）。 |
-| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -308,7 +273,7 @@
 | L07 quality_assessment | 是否做 QA | T3.研究_identification | §4.4.3 + Fig.10 + Table B.22 | 是否对 原始研究 做质量评估 | {yes, no} | 布尔 | 不可缺；52 全覆盖 | 14/52 yes; 38/52 no (§4.4.3) | "QA 在 SMS 中并不强制" 的直接证据 | E11, §4.4.3 | -- |
 | L08 data_抽取_reliability | 抽取可靠性策略 | T3.data_抽取_分类 | §4.4.4 + Fig.11 + Table B.23 | 提高 抽取 可靠性的方法 | {识别客观准则, 额外评审者 + 共识, 测试-复测（原字段标识保留于审计附录）} 子集 | 多选 封闭枚举 | 可缺 | 频次见 B.23 | 与 inc/excl 模式相似但 N 更低，揭示薄弱环节 | §4.4.4, Table B.23 | -- |
 | L09 topic_independent_切面（facets） | 主题无关分类 facet | T2.topic_independent | §4.4.4 + Fig.12 + Table B.24 | 该 研究 使用的横向分类维度 | {研究方法, 研究类型, 研究焦点, 贡献类型, 发表源} 子集 | 多选 封闭枚举 | 可缺 (一些 研究 无 facet) | venue=27, research_type=21, research_method=17, 研究_focus=11, contribution_type=6 | 揭示 venue/方法/type 是主流；contribution_type 边缘化 | E4, E11, §4.4.4 | -- |
-| L10 research_type | 研究类型分类 | T2.topic_independent.research_type | Table 7 (§5.1.3) | 单个 原始研究 的研究类型 | {evaluation_research, solution_proposal, validation_research, philosophical_paper, opinion_paper, experience_paper} | 完整封闭枚举 (Wieringa et al. + Table 7 真值表) | 决策表必返回 ≥1 | 真值表精确判定 (T/F over 6 条件) | Table 7 真值表历史草稿曾提出迁移建议；当前禁止直接采信作为 Paper2 编码规则 | E5, Table 7 | research type 真值表对 LLM 智能体 抽取尤其有用 |
+| L10 research_type | 研究类型分类 | T2.topic_independent.research_type | Table 7 (§5.1.3) | 单个 原始研究 的研究类型 | {evaluation_research, solution_proposal, validation_research, philosophical_paper, opinion_paper, experience_paper} | 完整封闭枚举 (Wieringa et al. + Table 7 真值表) | 决策表必返回 ≥1 | 真值表精确判定 (T/F over 6 条件) | Table 7 真值表可作为候选迁移启发；后续必须经 A2a 证据核验和研究者裁决后再用于 Paper2 编码规则 | E5, Table 7 | research type 真值表对 LLM 智能体 抽取尤其有用 |
 | L11 research_method | 研究方法 | T2.topic_independent.research_method | §5.1.3 + Fig.19 | 实证方法分类 | {调查（survey）, 案例研究（case_研究）, 受控实验（controlled_experiment）, 行动研究（action_research）, 民族志（ethnography）, 仿真（simulation）, 原型（prototyping）, 数学分析（mathematical_analysis）} | 封闭枚举 + Fig.19 双归属映射 (验证 vs 评价) | -- | 多分类 (一个 方法 可属两类) | Fig.19 给出 方法→research_type 关系边 → 可作完整性约束检查 | E4, Fig.19, §5.1.3 | -- |
 | L12 visualization_types | 可视化类型 | T1.流程 / T3.planning.visualization | Table 3 (RQ4) + Fig.14 + Table B.26 | 研究 用的呈现方式 | {折线图（line）, 饼图（pie）, 柱状图（bar）, 气泡图（bubble）, Venn 图, 热力图（heatmap）} 子集 | 多选 封闭枚举 | 可缺 | bar=22, bubble=23, pie=12, line=2, Venn=3, heatmap=1 (B.26) | heatmap 严重低使用 (1/52) 是潜在 发现 | E7, E11 | -- |
 | L13 validity_分类法 | 效度分类 | T4 | §3.6 + §5.1.5 | 研究 报告的 效度 维度 | {descriptive, theoretical, generalizability_internal, generalizability_external, interpretive, repeatability} | 封闭枚举 (5 类 + repeatability) | 可缺 | 45/52 报告 效度 (B.27) | 暴露 7/52 不报告 → 报告规范缺失 | E8, E11, §5.1.5 | 现代风险 (LLM/服务提供商漂移（provider drift）) 需另立 |
@@ -377,143 +342,6 @@
 3. rubric ratio 33% 是 2012 前 SE SMS 的实证基线，**不能**外推为"现代 LLM-assisted SLR 应达到 ≥33%"或类似规范性指标。
 4. 效度 分类法 5 类未涵盖 LLM/服务提供商漂移（provider drift）、prompt drift、模式 revision bias 等现代风险。
 
-### 7. 对旧版 `review.md` 的返修来源（C / I / M 分级）
+## 证据链入口
 
-#### C（critical，影响维度树准确性 / 学术证据链）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| C1 | A1-DT v2 "维度树结构"（review.md line 203–216）仍以单棵树呈现，把 5 个主干强制压成 b1..b5（planning/conducting/报告方式/质量量规/topic-indep dim），实际原文是**4 棵独立树的森林**（抽取 form / 分类切面（分类 facet） / 流程+rubric / 效度），合并破坏 模式 语义。 | 改写为 §3 所示**维度森林**结构，每棵树独立列叶子；标注它们的服务对象不同（编码自己 52 篇 vs. 向后续 研究 推荐）。 |
-| C2 | 叶子维度表（review.md line 218–227）的六个 `leaf-*` 仍是通用六叶（scope/语料/分类法/方法/证据/发现），未升级 Table 3 的 12 个 抽取 items、Fig.12 的 5 个 切面（facets）、Tables 9–13 的 4+1 有序 rubric 为真正的叶子。 | 用本审计 §4 的 14 个叶子（L01..L14）替换通用六叶；明确每个叶子的取值空间类型（封闭枚举 / 真值表 / 有序 / 多选）。 |
-| C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中可见的封闭枚举与频次表**，证据强度应升级为 `local_历史草稿旧强度（当前禁止采信）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_历史草稿旧强度（当前禁止采信）`。 |
-| C4 | "原文模式主树（19×3 审计后返修）"（review.md line 249–258）的叶子仍是抽象短语（"field list、map metadata"），未列具体字段名。 | 在该表 "叶子 / 取值空间种子" 列直接写出具体字段名与取值空间，如 `T1.抽取_form: {研究_id:int, year:[2007..2012], 指南: multi∈{10 closed labels}, search_type:{manual|auto|both}, ...}`。 |
-
-#### I（important，影响统计池资格与候选发现 形成）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| I1 | "快速结论卡片"标注"是否目标证据池: 否"——正确；但"是否统计池: 是，但仅限 A1 `survey_of_surveys/` 的方法学统计池"应进一步明确**分母=52**，且所有 Appendix B 表是 ready-to-statistics 的关系边。 | 在卡片中加一行 "分母 / 样本单位: 52 included 软件工程系统映射研究 (per §3.6.2; Appendix A); per-facet 频次表已 ready (Tables B.15–B.27)"。 |
-| I2 | SUMMARY.md（推测）中如果当前对本论文标注"原生树类型: 单树"或"统计池资格: 否"，与原文事实不符。 | 改为"原生树类型: 维度森林（4 棵）"+"统计池资格: 是（方法学池），分母=52"。 |
-| I3 | 缺少关系边表。原文 R06 (方法↔type)、R08 (指南×activity)、R09 (Table 6)、R10 (Table 7) 是核心 模式 关系，未被记录。 | 新增 §A.x "关系边表"，按本审计 §5 列出 R01–R10。 |
-| I4 | 候选发现 与 statistical observation 未分层。现 `clm-...-发现-boundary` 笼统说"最终研究发现（最终研究发现） 必须经过跨论文证据"——正确但太抽象。 | 在 review.md 新增 §"统计观察 vs. 候选发现" 小节，按本审计 §6.1/§6.2 区分（10 条强统计观察 + 6 条 候选发现）。 |
-
-#### M（minor，工程改进）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| M1 | "历史草稿（已迁移）"块（line 103–157）保留了一棵旧 ASCII 树，已 deprecated 但仍占大量篇幅。 | 折叠或移到独立 `history.md`；review.md 主体保持单一事实源。 |
-| M2 | "六类 模式 抽取"表（line 81–89）的"证据锚点"列仍写 `§3.1` 等粗粒度章节号，未到表号 / 图号。 | 加入具体 Table B.x / Table 7 / Fig.12 等精锚点。 |
-| M3 | 时间字段（如待复核区）使用相对表述（"留待 A2a"），未给出 yyyy-mm-dd hh:mm:ss 时间戳。 | 在更新日志中加 `2026-06-30 hh:mm:ss` 完成时间戳。 |
-| M4 | "A1-M0--M6 元维度贡献"表（line 93–101）仍是跨论文投影解释，应明确标注"非原文 模式"。 | 在该表上方加 callout: "本表是 Paper2 跨论文投影提示，不是本文原生维度树"。 |
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 引用键 | 来源文件 | 原文章节 | 表/图编号 | 释义 | 证据角色 | 证据强度 | 支撑维度节点 | 需 PDF 视觉核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| EV-pet15-001 | ev-rq | paper_content.txt | §3.1 (line 217–229) | -- | 明确 RQ1–RQ4 全文表述 | rq | verified | FOREST-ROOT, T1.流程 | 否 | 仅本文 |
-| EV-pet15-002 | ev-抽取-form | paper_content.txt | §3.4, Table 3 | Table 3 | 12 字段 抽取 form + RQ owner 绑定 | 模式 | verified | T1 整棵树, L01–L05, L12 | 否 (文本完整) | -- |
-| EV-pet15-003 | ev-分类-facets | paper_content.txt | §4.4.4, Fig.12–13 | Fig.12, B.24, B.25 | 5 个 topic-indep facet + 2 个 topic-spec 子项 | 模式 + 计数 | verified | T2 整棵树, L09 | 否 | -- |
-| EV-pet15-004 | ev-research-type-truth-table | paper_content.txt | §5.1.3, Table 7 | Table 7 | research type 6 类 + R1..R6 真值表 | 模式 + decision-table | verified | T2.research_type, L10, R10 | 否 | 6 类闭包仅适于此 facet |
-| EV-pet15-005 | ev-流程-actions | paper_content.txt | §5, Table 5, Table 8 | Table 5, Table 8 | 9 指南 × 30+ activities 比较矩阵；26 actions rubric | 模式 + 关系 | verified | T3 整棵树, R08 | 推荐 PDF 核对 ✓/✗ 符号 | -- |
-| EV-pet15-006 | ev-rubric-有序 | paper_content.txt | §5.4, Tables 9–13, Table 14 | Tables 9–13, 14 | 4+1 有序 rubric + 52 篇分布 | rubric + statistic | local_历史草稿旧强度（当前禁止采信） | T3 评分层, L14 | 是（Table 14 数值需复核）| 有序 scale 仅适合 SMS |
-| EV-pet15-007 | ev-appendix-B-relations | paper_content.txt | Appendix B | B.15–B.27 | 逐研究 研究→category 关系边，分母=52 | 关系 + 计数 | local_历史草稿旧强度（当前禁止采信） | R01–R05, R07, L01–L13 | 是（频次需复核）| 现代 SE SMS 已不同 |
-| EV-pet15-008 | ev-效度-分类法 | paper_content.txt | §3.6, §5.1.5 | -- | 5 类 效度 + repeatability + mitigations | 分类法 | verified | T4 整棵树, L13 | 否 | 未含现代 LLM 风险 |
-| EV-pet15-009 | ev-fig1-flow | paper_content.txt | §3.3, Fig.1 | Fig.1 | 选择流程链 7752→...→52 | statistic | not_verified | FOREST-ROOT 分母 | **是**（文本提取乱序）| -- |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| ID | 结论 | 类型 | 支撑对象 | 支撑证据 | 反证/限制 | 强度 | 允许用途 |
-|---|---|---|---|---|---|---|---|
-| C01 | 本文是 **维度森林**（4 棵独立树），不是单一维度树。 | 树类型（tree_type） | FOREST-ROOT | EV-001, EV-002, EV-003, EV-005, EV-008 | 4 棵树是审计判断；作者未显式声明"森林"。 | 历史草稿旧强度（当前禁止采信） | A1-DT v2 主结构定锚 |
-| C02 | 样本单位 = SE 系统映射研究；分母=52；统计池资格 = 方法学池 yes。 | 样本单位（sample_unit） | T1, R01–R05 | EV-007, EV-009 | -- | 历史草稿旧强度（当前禁止采信） | SUMMARY 总表更新 |
-| C03 | Table 3 抽取 form 的 12 字段历史草稿曾提出迁移建议；当前禁止直接采信作 Paper2 LLM-智能体 抽取 模式 模板。 | migration_seed | T1, L01–L05, L12 | EV-002 | 字段须重命名以适应现代 SE/LLM 主题；SWEBOK 需替换。 | 历史草稿旧强度（当前禁止采信） | Paper2 §方法 设计 |
-| C04 | Table 7 research-type 真值表是 A1-DT v2 罕见的"完整布尔真值表 模式 证据"，可作为 Paper2 LLM-judge 后验规则 layer。 | migration_seed | L10, R10 | EV-004 | 仅适于 research_type 单 facet；其他 facet 需自行设计真值表。 | 历史草稿旧强度（当前禁止采信） | Paper2 §方法 设计 |
-| C05 | 4+1 有序 rubric (Tables 9–13) 提供了 质量 评分的"0/1/2/3 分级描述"模板。 | migration_seed | L14, T3 评分层 | EV-006 | rubric 仅适合 SMS；SLR / experimental 研究 不可直接套。 | medium | Paper2 §评价 设计 |
-| C06 | 指南×activity 比较矩阵 (Table 5) 提供"用多 指南 反向揭示 模式 覆盖 缺口（gap）"的方法学样板。 | migration_seed | R08 | EV-005 | matrix 对手工对齐成本高；需 LLM 辅助。 | medium | Paper2 §discussion / future work |
-| C07 | 不可迁移：SWEBOK 11 类、效度 5 类、指南 10 类的具体内容均带有 2012 前 SE 时代痕迹，仅迁移"封闭枚举 + 频次统计"的方法学 form，不迁移 enum 内容。 | migration_boundary | L01, L02, L13 | EV-002, EV-003, EV-008 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"可迁移边界" |
-| C08 | 单人筛选（second author 独立 inclusion）是本文自报最大 效度 威胁；提示 Paper2 须设计双人/人+智能体 多重审查协议。 | candidate_heuristic | T4.theoretical_validity | EV-008 + §3.6.2 | -- | 历史草稿旧强度（当前禁止采信） | Paper2 §威胁 |
-| C09 | rubric ratio 中位数 33% 是 2012 前 SE SMS 实证基线，**不得**外推为"现代 LLM-SLR 应达到 ≥33%"的规范性目标。 | migration_boundary | L14 | EV-006 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"不可迁移边界" |
-| C10 | （废弃旧结论）"原生树类型 = 降级树 / 模式种子 only"——本结论由 A1-DT v1 给出，与本审计冲突，应废弃。 | audit_repair | -- | EV-002, EV-003, EV-004, EV-005, EV-007 | -- | 历史草稿旧强度（当前禁止采信） | review.md §"审计返修口径"中标注 deprecated |
-
-### 9. 技能使用与自我审查记录
-
-#### 9.1 技能文件读取与采用原则
-
-| 技能文件 | 实际读取范围 | 采用原则 |
-|---|---|---|
-| `ai-research-writing-skill/SKILL.md` | line 1–100（核心 mandate / operating modes / loading strategy / non-negotiable gates） | "Evidence gate"（仓库 files 优于 memory）；"Claim gate"（每条声明须有证据，否则降级）；"Citation asset gate"（仅引用本地可核验的章节 / 表 / 图编号）。 |
-| `ai-research-writing-skill/references/reviewer-guidelines.md` | 全文（112 lines） | 用 Universal Review Dimensions 5 维（Originality, Quality, Clarity, Significance, Reproducibility）评估旧版 review.md 的可信度；用 "constructive specificity" 标准产出 C/I/M 建议时给出 file:line 锚点。 |
-| `ai-research-writing-skill/references/reviewer-self-review.md` | 全文（223 lines） | 用 "Claim Audit" 模板检查 review.md 中"维度树主类型"等结论的证据强度；用 "Adversarial Questions" 检查是否把投影误读为原文（特别是 "Could a reviewer say... has been done before?"）。 |
-| `research-planning/SKILL.md` | 全文（77 lines） | 按 "Flag ambiguities explicitly rather than making assumptions" 原则——本审计明确把 Fig.1 数字链等 PDF 视觉项标为 `not_verified`，不脑补分母。 |
-| `research-planning/references/planning-prompts.md` | line 1–80 | Paper2Code 4-turn 思路用于组织 §3 维度森林的层级展开（先 overall, 再 architecture, 再 logic, 再 leaf-level）。 |
-| `research-planning/references/output-schemas.md` | line 1–80 | 采用 JSON-模式-like 思路把每个 叶子 显式标注 `取值空间类型`。 |
-| `oh-my-codex/autoresearch/SKILL.md` | 全文（70 lines） | 借用 "completion 制品 contract" 思路——本审计的最终交付物 = self-contained Markdown 报告，符合 制品-gated 完成标准。 |
-
-#### 9.2 reviewer 视角下本审计最高风险 3 点
-
-1. **Fig.1 数字链 (7752→5082→60→43→54→44→52+8+11) 未做 PDF 视觉核验**。文本提取顺序混乱，分母 52 来自 §3.6.2 与 §4.4.3 多处文本复现 (`14 out of 52`)，结论稳健；但 +8 与 +11 的回补来源需 PDF 复查才能 100% 锁定。主线程合并时应保留 `EV-pet15-009 = not_verified` 并列入 A2a。
-2. **Tables 9–13 中 "bold 高亮分数" 在 paper_content.txt 中丢失**。Table 14 给出本文自身 rubric 的频次分布，但"本研究自评 33% ratio"的具体细分须 PDF 复核 Tables 9–13 中 bold 标注的位置（§5.4 line 1372: "scores identified in this 系统映射研究 are highlighted as bold text"）。主线程引用 L14 时应保留 `local_历史草稿旧强度（当前禁止采信）` 而非 `verified`。
-3. **"维度森林 vs 单树" 是审计判断而非作者声明**。作者未在原文说"this is a 森林"；本审计基于 Table 3 (抽取 form) 与 Table 8 (rubric) 服务对象不同（编码自身 52 篇 vs 向后续研究推荐）的语义观察。若 reviewer 反对，可降级为"多 模式 共存的单论文"，但其取值空间区分必须保留。
-
-#### 9.3 blocked / timeout / 文件缺失
-
-- 无 blocked / timeout。
-- 所有 7 个技能 / 指南文件可读，所有 5 个论文材料（bibtex.bib / metadata.json / paper.pdf 文件存在 / paper_content.txt / review.md）可读。
-- 未打开 `paper.pdf` 二进制（按硬约束 6: 若需图表视觉核验仅说明状态，不强制读 PDF）；本轮以 paper_content.txt 全文 + Tables B.15–B.27 文本为主，已覆盖 ≥85% 的 模式 证据。
-
----
-
-**审计完成时间**: 2026-06-30
-**智能体**: claude (claude-opus-4-7[1m])
-**输出文件**: 本回答正文，未修改仓库任何文件，未 commit / push / gh comment。
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/petersen-2015-mapping-guidelines-update.md](../../audits/a1dt-v2-19x3/adjudications/petersen-2015-mapping-guidelines-update.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-petersen-2015-mapping-guidelines-update-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-petersen-2015-mapping-guidelines-update-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-petersen-2015-mapping-guidelines-update-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-petersen-2015-mapping-guidelines-update-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-petersen-2015-mapping-guidelines-update-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-petersen-2015-mapping-guidelines-update-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/petersen-2015-mapping-guidelines-update__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-petersen-2015-mapping-guidelines-update-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/petersen-2015-mapping-guidelines-update.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-petersen-2015-mapping-guidelines-update-type | clm-petersen-2015-mapping-guidelines-update-type | src-petersen-2015-mapping-guidelines-update-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：**SLR / SMS / guideline 混合**：systematic 系统映射研究 of 系统映射 studies (tertiary 性质) + guideline update。 | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-petersen-2015-mapping-guidelines-update-unit | clm-petersen-2015-mapping-guidelines-update-unit | src-petersen-2015-mapping-guidelines-update-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**原始研究 = SE 领域已发表的 systematic 系统映射研究**（每个 study 被作者按 Table 3 抽取表编码）。 | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-petersen-2015-mapping-guidelines-update-denom | clm-petersen-2015-mapping-guidelines-update-denom | src-petersen-2015-mapping-guidelines-update-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：**52 mapping studies**（Appendix A 列出 ~52 个 included id；§3.6.2 与 §4.4.3 多处复现 "52" 分母）。Fig. 1 流程链：7752 → 5082 (去 2004 前) → 60 (title/abstract) → 43 (full-text) → 54 (+11 snowball) → 44 (quality) → 52 (review of excluded 回补 8) 。 | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-petersen-2015-mapping-guidelines-update-tree | clm-petersen-2015-mapping-guidelines-update-tree | src-petersen-2015-mapping-guidelines-update-text; src-petersen-2015-mapping-guidelines-update-codex; src-petersen-2015-mapping-guidelines-update-claude; src-petersen-2015-mapping-guidelines-update-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**（至少 4 棵互相独立的主干树：①extraction form 树；②分类切面（classification facet） 树；③guideline action / rubric 树；④validity taxonomy 树）。 | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-petersen-2015-mapping-guidelines-update-pool | clm-petersen-2015-mapping-guidelines-update-pool | src-petersen-2015-mapping-guidelines-update-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-petersen-2015-mapping-guidelines-update-type | A1DT-petersen-2015-mapping-guidelines-update-C01 | 本文原文类型为：**SLR / SMS / guideline 混合**：systematic 系统映射研究 of 系统映射 studies (tertiary 性质) + guideline update。 | paper_type | type | ev-petersen-2015-mapping-guidelines-update-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-petersen-2015-mapping-guidelines-update-unit | A1DT-petersen-2015-mapping-guidelines-update-C02 | 本文被编码样本单位为：**原始研究 = SE 领域已发表的 systematic 系统映射研究**（每个 study 被作者按 Table 3 抽取表编码）。 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-petersen-2015-mapping-guidelines-update-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-petersen-2015-mapping-guidelines-update-tree | A1DT-petersen-2015-mapping-guidelines-update-C03 | 本文原生维度树 / 维度森林为：**维度森林**（至少 4 棵互相独立的主干树：①extraction form 树；②分类切面（classification facet） 树；③guideline action / rubric 树；④validity taxonomy 树）。 | 树类型（tree_type） | native_tree | ev-petersen-2015-mapping-guidelines-update-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-petersen-2015-mapping-guidelines-update-pool | A1DT-petersen-2015-mapping-guidelines-update-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-petersen-2015-mapping-guidelines-update-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-petersen-2015-mapping-guidelines-update-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-petersen-2015-mapping-guidelines-update-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-petersen-2015-mapping-guidelines-update-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+证据链与结论-证据映射已迁移至 [evidence_chain.md](./evidence_chain.md)。

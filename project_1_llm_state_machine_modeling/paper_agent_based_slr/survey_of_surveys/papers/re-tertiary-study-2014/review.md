@@ -59,12 +59,12 @@
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__codex.md](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__codex.md)、[../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__claude.md](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__claude.md)、[../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__deepseek.md](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md](../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -79,8 +79,8 @@
 | 被编码样本单位 | **distinct SLR（研究）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 研究；分子粒度是 研究，分母两套：64 publications 与 53 studies |
 | 样本数量 / 分母 | 53 distinct SLR（含 12 SMS、1 元分析（meta-analysis）、其余 conventional SLR）/ 64 publications（31 conf + 16 journal + 4 workshop + 4 tech 报告 + 8 thesis + 1 unknown）；QA 仅在 51 个 研究 上施加（S3、S8 全文不可获得） |
 | 原生树类型 | **维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group 分类法（Table V）；④QA rubric（Table I, QA1–QA4 三档 是/Partial/否）；⑤citation/impact 评估（Table VI）；⑥缺口（gap） 分类法（anomalies / lack-of-PS / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） |
-| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -277,164 +277,6 @@
 - "QA 自 2009 起下降"这一年度趋势仅限 RE SLR 子集，不能外推到 SE-wide 或其他子领域。
 - citation Top-10 名单是 2014-05-19 快照，已过时。
 
-### 7. 对旧版 `review.md` 的返修来源（C/I/M 分级）
+## 证据链入口
 
-#### C 级（critical — 直接影响维度树作为单篇 模式种子 的可信度）
-
-- **C1. §维度树复原 / §叶子维度表 内容仍以 6 个通用接口叶子 `leaf-*-scope/corpus/分类法/method/evidence/发现` 为主，未把原文真实抽取字段（F1–F7 中的 publication_type / SLR 子类型 / #PS / scope-6 档 / QA1–QA4 / topic_group-24 项 / 三类 缺口（gap））写入叶子维度表。**
-   - 影响：把跨论文通用接口冒充原文 模式，违反 A1-DT v2 "禁止用六个通用 叶子 替代原文结构"硬约束。
-   - 返修动作：用本报告 §3 维度森林 + §4 叶子维度表整体替换现有 §维度树复原 / 叶子维度表。保留 §通用接口投影作为附属说明而非主源。
-
-- **C2. §1 快速结论卡片 "阅读状态 / 证据等级 / 是否目标证据池"未反映原文实际已提供完整 Table II–VI + Appendix A 名录 + DARE rubric，仍写"图表/表格细节待人工核对"虽不算错，但"否（A1-DT 阶段仅作 模式种子）"对 F5/F1/F2 这类字段过度悲观。**
-   - 影响：SUMMARY 将该论文统计池资格判定为"否"，但原文在 53 研究 / 51 QA / 64 publications 分母下结构封闭、可统计；正确判定应为"局部可统计"。
-   - 返修动作：把 SUMMARY 中"主统计池资格"由"否"改为"局部可统计（F1+F2+F4+F5+F7 可，F3 topic_group 不饱和）"。
-
-#### I 级（important — 影响下游 发现评估（发现 assessment）和 A2a 任务范围）
-
-- **I1. §快速结论卡片"被编码样本单位"未单独说明 publication vs 研究 双分母**；现有文本只笼统写"原始研究 / 二次研究"。返修：明确写"样本单位 = distinct SLR 研究 (n=53)；publication-level 辅 unit (n=64)；QA 仅 n=51"。
-
-- **I2. §6 类 模式 抽取 中 "效度 / 威胁 模式: 本轮未完整定位 威胁 section；需 A2a 深读"是事实错误。** 原文 §IV "Limitations of the 研究"（paper_content L577–615）已经提供 4 类清晰 limitations。返修：改为"已定位，列 4 项 limitation"。
-
-- **I3. §维度树复原 中"统计与候选发现链路"把 `[dim-...-根节点]` 标记为"否（A1-DT 阶段仅作 模式种子）"过于一刀切**，与本节 C2 重合。返修：F1 publication_type、F4 scope、F5 QA total、F6 search source 这 4 个维度应升级为"是（在本文分母下可统计）"。
-
-- **I4. §A.2 证据账本仅 4 行（EV-001..004）且全部 `not_verified`**。原文已有 8 张表 + 4 张图直接支撑；应至少为 Table I/II/III/IV/V/VI、Figure 1/2/3/4 各建一行证据条目（合计 ≥10 行），并把 Table I/II/III/IV/V/VI 标 `verified-text-only`、Figure 1–4 标 `需要原文版面核验（needs_pdf_visual_check）`。
-
-- **I5. §维度树复原 中 "原文模式候选叶子映射（A1 种子）"仅给出 4 个 `leaf-orig-*-re-topic / secondary-研究-quality / impact / method-缺口（gap）`**，但原文真实抽取字段至少 ≥12 项（见本报告 §4）。返修：用本报告 §4 整表替换 4 项种子。
-
-#### M 级（minor — 不阻塞，但建议）
-
-- M1. §1 "CCF 复核状态: 非 CCF venue / workshop" 与"出版形态: 工作坊"重复表述，可保留任一处。
-- M2. §3 启发 #2 "`publication_count` 与 `distinct_研究_count` 应分开" 已在原文 Table II 落实，可改为"已在原文 Table II 显式区分，验证 模式 是否需要 研究_id_grouping 字段"。
-- M3. §A.3 全部结论 `weak / 模式种子（schema_seed）`，建议至少对 F5 QA rubric / F4 scope 6 档升级为 `medium / verified-text-only`。
-- M4. §"原文模式主树（19×3 审计后返修）" 表头使用了模糊词（"二级研究质量字段"等），可替换为 F1/F2/.../F7 命名以与本报告一致。
-- M5. §"v1-deprecated" warning block 可保留，但建议在其上方加一行"本节 §维度树复原已按 A1-DT v2 单篇审计完整重写，下方两条链接仅作历史参考"。
-
-#### SUMMARY 当前表的修正建议
-
-| SUMMARY 字段 | 当前值 | 建议修正值 | 理由 |
-|---|---|---|---|
-| 样本单位 | （未单独列）| `研究 (n=53) / publication (n=64) / QA-subset (n=51)` | I1 |
-| 样本数量 | （未单独列）| 同上 | I1 |
-| 原生树类型 | （未单独列）| `维度森林（F1–F7 七棵子树）` | C1 |
-| 统计池资格 | （未单独列）| `局部可统计（F1/F2/F4/F5/F6 可；F3 topic 不饱和；F7 候选）` | C2 |
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-RE-T01 | paper_content.txt | §I Abstract+Intro (L23–105) | 摘要 + 引言目标段 | "53 distinct systematic reviews ... 64 publications" + 三类 SLR 定义 | rq_definition | verified-text | ROOT, F2 | 否 | 仅 RE 子领域 |
-| EV-RE-T02 | paper_content.txt | §II.A 计划（Planning） RQ1–RQ3 (L117–123) | RQ 明文 | RQ1=areas, RQ2=质量, RQ3=缺口（gaps） | rq_field | verified-text | ROOT, F3, F5, F7 | 否 | -- |
-| EV-RE-T03 | paper_content.txt | Table I (L147–178) | QA rubric 4 题 3 档 | DARE 改编；是（Yes）=1/部分（Partial）=0.5/否（No）=0 | 抽取_form | verified-text | F5 (QA1–QA4) | 否（表已 OCR 完整）| 通用 |
-| EV-RE-T04 | paper_content.txt | §II.A 搜索串 + 5 库 (L184–220) | 完整 Boolean 串 + 8 venues snowball | 5 库 + secondary + manual venues | corpus_protocol | verified-text | F4, F6 | 否 | 检索时间 2013-10–2014-05 |
-| EV-RE-T05 | paper_content.txt | Table II (L273–288) | 5 库命中数 + 264→91→58→64 + 53 studies | 检索执行汇总 | corpus_chain | verified-text | F6, ROOT | 否 | -- |
-| EV-RE-T06 | paper_content.txt | Table III (L317–331) | 31/16/4/4/8/1 | 出版类型分布 | statistical_result | verified-text | F1 (publication_type) | 否 | -- |
-| EV-RE-T07 | paper_content.txt | Table IV (L364–375) | scope 6 档 33/7/7/4/1/1 | scope of RE SLR | classification_schema | verified-text | F4 | 否 | RE-specific scope 6 档 |
-| EV-RE-T08 | paper_content.txt | Table V (L376–429) | topic-group × focus × #PS × year | thematic 分类法 | classification_schema | verified-text | F3, F2 (#PS, focus) | 否（建议 PDF 复核字符 NF/NM 替代字符 `barb2right` OCR 杂讯） | topic_group 非饱和 |
-| EV-RE-T09 | paper_content.txt | Table VI (L482–493) | Top-10 cited × QA score | citation vs QA | 候选发现支撑（candidate_finding_support） | verified-text | rel-citation-vs-qa, F1, F5 | 否 | 2014-05-19 截止 |
-| EV-RE-T10 | paper_content.txt + paper.pdf | Figure 1 (L316) | yearly distribution 柱状图 | 2009 后骤增 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F1 (year), trend | 是 | -- |
-| EV-RE-T11 | paper_content.txt + paper.pdf | Figure 2 (L443–449) | QA total score 分布 | 42/51 ≥ 2 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F5 (qa_total) | 是（OCR y 轴断版） | -- |
-| EV-RE-T12 | paper_content.txt + paper.pdf | Figure 3 (L444–449) | QA1–QA4 各档计数 | QA3/QA4 半数忽略 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F5 (QA1–QA4) | 是 | -- |
-| EV-RE-T13 | paper_content.txt + paper.pdf | Figure 4 (L481) | 年度均分曲线 | 自 2009 起下降 | 候选发现支撑（candidate_finding_support） | 需要原文版面核验（needs_pdf_visual_check） | F5 (qa_total) × year | 是 | trend 仅限 RE SLR |
-| EV-RE-T14 | paper_content.txt | §III RQ3 (L505–576) | 三类 缺口（gap） + 路线图 对照 | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 候选发现（candidate_finding） | verified-text | F7, rel-gap-vs-roadmap | 否 | 不可迁移 ignored-area 具体名单 |
-| EV-RE-T15 | paper_content.txt | §IV Limitations (L577–615) | 4 类局限 | 检索/S40/grouping/EBSE | limitation | verified-text | ROOT, F7 | 否 | 通用 |
-| EV-RE-T16 | paper_content.txt | Appendix A (L697–967) | S1–S53 完整名录 | 研究 + publication 列表 | corpus_inventory | verified-text | F1, F2, rel-grouping | 否 | -- |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| C-RE-T01 | 本文是按 EBSE 指南 执行的 系统映射 tertiary 研究，样本单位为 distinct SLR 研究（n=53），辅以 publication（n=64）；QA 在 n=51 上施加 | research_type | ROOT | EV-RE-T01, T02, T04, T05, T16 | 历史草稿旧强度（当前禁止采信） | 历史草稿曾提出迁移建议；当前禁止直接采信至 Paper2 single-paper 模式 | S40 元信息不全；S3/S8 全文不可得 |
-| C-RE-T02 | 原生编码模式 是 F1–F7 七棵子树构成的维度森林，叶子层至少 12 项原文真实字段 | 树类型（tree_type） | ROOT, F1–F7 | EV-RE-T03, T05–T09, T14 | 历史草稿旧强度（当前禁止采信） | 替换 review.md 通用六叶 | F3 topic_group 非饱和 |
-| C-RE-T03 | DARE-adapted QA rubric (Table I, 4×3 档) 是稳定可复用的 SLR-QA 评估元模型 | classification_schema | F5 | EV-RE-T03 | 历史草稿旧强度（当前禁止采信） | 历史草稿曾提出迁移建议；当前禁止直接采信至 Paper2 QA 评估 | EBSE 指南 受限于 2007 版 |
-| C-RE-T04 | scope 6 档分类（Table IV）在 RE 之外仍部分可迁移（state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 六分） | classification_schema | F4 | EV-RE-T07 | medium | 可作 Paper2 单篇 scope 字段候选 | 6 档自身是 SLR 抽象类，但具体含义须本地化 |
-| C-RE-T05 | topic-group 分类法 (24 项) 是 RE-specific 非饱和分类，不可外推 | taxonomy_local | F3 | EV-RE-T08 | medium | 仅作 Paper2 "topic_grouping = 自由文本 + 后处理 聚类" 的设计参考 | 作者自承 not exhaustive |
-| C-RE-T06 | 候选发现"RE SLR QA 自 2009 起下降，与 SE-wide [8,9] 趋势相反"基于 Figure 4 趋势 | 候选发现（candidate_finding） | F5 × year | EV-RE-T11, T13 | weak | 不进入主统计池；A2a 视觉读 Figure 4 后可升级 | 仅 RE 子领域 |
-| C-RE-T07 | 高引 ≠ 高 QA（Table VI 反证：S2[A] cite=154 QA=3 vs S46 QA=1.5）| 候选发现（candidate_finding） | rel-citation-vs-qa | EV-RE-T09 | medium | 可作 Paper2 "citation 不能替代 QA" 论证 | citation 是 2014-05-19 快照 |
-| C-RE-T08 | 三类 缺口（gap） 分类法（异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area））+ 与 路线图 cross-ref 模式可作 Paper2 缺口（gap） 章节模板 | 候选发现（candidate_finding）_template | F7, rel-gap-vs-roadmap | EV-RE-T14 | medium | 通用模板可迁移 | 具体 RE ignored-area 名单不可迁移 |
-| C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | 历史草稿旧强度（当前禁止采信） | 可作为候选复用 | -- |
-| C-RE-T10 | 自报 limitations 的 4 类清单（检索 / 元信息缺失 / grouping 主观 / EBSE 限定）反证若干候选发现 强度 | limitation_anchor | ROOT, F7 | EV-RE-T15 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 威胁-to-效度 复用清单 | -- |
-
-### 9. 技能使用与自我审查记录
-
-#### 技能文件使用记录
-
-| 文件 | 读取状态 | 采用要点 |
-|---|---|---|
-| `ai-research-writing-skill/SKILL.md` | 部分（L1–50）| 采用"claim-证据-engineering workflow"原则，所有候选发现 必须显式标证据；不发明引用 |
-| `ai-research-writing-skill/references/reviewer-guidelines.md` | 完整（L1–111）| 采用"Constructive Specificity Standard"——审计意见须 specific 到节/字段/表号，C/I/M 分级以"是否影响研究目标 / 实验可靠性 / 复现性"为锚 |
-| `ai-research-writing-skill/references/reviewer-self-review.md` | blocked | 本轮未读全文（222 行），仅靠 reviewer-guidelines 推得自审风险三点（见下）；记录为 部分-blocked |
-| `research-planning/SKILL.md` | 部分（L1–50）| 采用"data → 模型 → training → 评价 → writing"依赖顺序观，作为 A2a 精核任务依赖排序的元参考 |
-| `research-planning/references/planning-prompts.md` | not_read | blocked（本任务深度足以从 SKILL.md 推得；如下游需更细 prompt 模板再读）|
-| `research-planning/references/output-schemas.md` | not_read | 同上 |
-| `oh-my-codex/.../autoresearch/SKILL.md` | not_read | blocked：本机文件存在性未校验；记录为风险项 |
-
-#### Reviewer 自审：本输出最高 3 项风险
-
-1. **图表视觉级数据未核（C 级潜在风险）**：本审计完全基于 `paper_content.txt`，未打开 `paper.pdf` 检视 Figure 1–4。EV-RE-T10..T13 均标 `需要原文版面核验（needs_pdf_visual_check）`。候选发现 C-RE-T06 "QA 自 2009 起下降" 严重依赖 Figure 4 视觉读数，若 A2a PDF 复核发现年度均分实际只是噪声波动而非单调下降，则 C-RE-T06 应降级为 `not_verified` 或废弃。主线程合并时复核入口：A.4 应新增 `cmd-pdf-figures-check`。
-2. **topic-group 分类法 饱和度判断主观**：F3 列出 24 项是 OCR 文本统计结果（Table V 第一列），但 Table V 跨页且 OCR 中混入了 "*" 注脚、`barb2right` 替代字符等杂讯，可能漏数 1–2 个 group。建议 A2a 用 PDF 重新计数并比对作者自承 "neither exhaustive nor complete"（§III L552–555）。
-3. **C/I/M 分级可能高估了 C2**：把 "review.md 主统计池资格判'否'" 标 C 级或许偏激进——按本仓库《学术研究仓库 Review 口径规范》§3，单篇 模式种子 在 A1-DT 阶段保守判'否'本身不直接破坏学术目标，是否应降为 I 级取决于 SUMMARY 是否真在该口径下漏掉了可统计 sample。主线程合并时建议复读 SUMMARY 当前对该 paper 的统计字段，再决定是否接受 C2 升级建议。
-
-#### 任务状态
-
-- 未出现 blocked / timeout / 文件缺失致命问题。
-- `reviewer-self-review.md` 与 `research-planning/references/*` 与 `oh-my-codex autoresearch/SKILL.md` 标记为部分未读，不影响本审计核心结论；若后续审计要求更细化的 self-review 流程，建议在 A2a 阶段补读。
-- 本报告不修改任何仓库文件，不执行 git commit / push / gh，仅作为 main session 重写 `review.md` 的事实输入。
-
----
-
-`★ Insight ─────────────────────────────────────`
-1. 这篇 2014 RE tertiary 研究 是难得的"教科书级"清晰原生模式：publication 与 研究 双分母、DARE 4×3 档 QA rubric、scope 6 档 + topic 24 项、Appendix A 完整 S1–S53 名录 + citation。这种结构让 single-paper 模式 几乎可以 1:1 复用为 Paper2 single-paper 抽取 form 的骨架——也正因为如此，旧 `review.md` 把它折叠成六个通用 叶子 是最大的损失。
-2. 关键提醒：F3 topic_group 是 thematic-analysis 结果（开放 / 非互斥 / 非饱和），与 F4 scope（先验 6 档枚举）属于结构上完全不同的两种 分类法；审计返修必须保留这一差异，不能简化为同一种"分类字段"。
-3. C-RE-T07（"高引 ≠ 高 QA"）是 Paper2 Related Work / Discussion 可在 A2a 精核后引用的方法学论点——Table VI 自带的 S2[A] vs S46 对比比 reviewer 自己造例子更有说服力。
-`─────────────────────────────────────────────────`
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md](../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-re-tertiary-study-2014-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-re-tertiary-study-2014-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-re-tertiary-study-2014-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-re-tertiary-study-2014-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-re-tertiary-study-2014-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-re-tertiary-study-2014-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/re-tertiary-study-2014__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-re-tertiary-study-2014-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-re-tertiary-study-2014-type | clm-re-tertiary-study-2014-type | src-re-tertiary-study-2014-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：tertiary study（系统映射 tertiary study；按 §II 标题"Systematic Mapping Tertiary Study"，作者明确按 Kitchenham EBSE guidelines 执行） | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-re-tertiary-study-2014-unit | clm-re-tertiary-study-2014-unit | src-re-tertiary-study-2014-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**distinct SLR（study）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 study；分子粒度是 study，分母两套：64 publications 与 53 studies | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-re-tertiary-study-2014-denom | clm-re-tertiary-study-2014-denom | src-re-tertiary-study-2014-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：53 distinct SLR（含 12 SMS、1 meta-analysis、其余 conventional SLR）/ 64 publications（31 conf + 16 journal + 4 workshop + 4 tech report + 8 thesis + 1 unknown）；QA 仅在 51 个 study 上施加（S3、S8 全文不可获得） | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-re-tertiary-study-2014-tree | clm-re-tertiary-study-2014-tree | src-re-tertiary-study-2014-text; src-re-tertiary-study-2014-codex; src-re-tertiary-study-2014-claude; src-re-tertiary-study-2014-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group taxonomy（Table V）；④QA rubric（Table I, QA1–QA4 三档 Yes/Partial/No）；⑤citation/impact 评估（Table VI）；⑥缺口分类法（gap taxonomy：异常 / 缺少原始研究 / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-re-tertiary-study-2014-pool | clm-re-tertiary-study-2014-pool | src-re-tertiary-study-2014-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-re-tertiary-study-2014-type | A1DT-re-tertiary-study-2014-C01 | 本文原文类型为：tertiary study（系统映射 tertiary study；按 §II 标题"Systematic Mapping Tertiary Study"，作者明确按 Kitchenham EBSE guidelines 执行） | paper_type | type | ev-re-tertiary-study-2014-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-re-tertiary-study-2014-unit | A1DT-re-tertiary-study-2014-C02 | 本文被编码样本单位为：**distinct SLR（study）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 study；分子粒度是 study，分母两套：64 publications 与 53 studies | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-re-tertiary-study-2014-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-re-tertiary-study-2014-tree | A1DT-re-tertiary-study-2014-C03 | 本文原生维度树 / 维度森林为：**维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group taxonomy（Table V）；④QA rubric（Table I, QA1–QA4 三档 Yes/Partial/No）；⑤citation/impact 评估（Table VI）；⑥缺口分类法（gap taxonomy：异常 / 缺少原始研究 / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） | 树类型（tree_type） | native_tree | ev-re-tertiary-study-2014-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-re-tertiary-study-2014-pool | A1DT-re-tertiary-study-2014-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-re-tertiary-study-2014-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-re-tertiary-study-2014-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-re-tertiary-study-2014-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-re-tertiary-study-2014-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+证据链与结论-证据映射已迁移至 [evidence_chain.md](./evidence_chain.md)。

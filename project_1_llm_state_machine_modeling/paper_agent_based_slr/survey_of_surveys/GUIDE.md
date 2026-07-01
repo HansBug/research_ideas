@@ -87,7 +87,8 @@ A1 只做种子检索和 dry-run；A2a/A2b 才做大规模闭合。A1 检索记�
 papers/<slug>/
 ├── bibtex.bib
 ├── metadata.json          # 机器可读事实、证据角色、统计池资格与年份/CCF口径
-├── review.md
+├── review.md              # 当前可读、可消费的单篇综述复原结果
+├── evidence_chain.md      # 正式 A.1--A.4 证据链与结论-证据映射
 ├── paper.pdf              # 全文可得时必须有
 └── paper_content.txt      # 全文可得时必须由 tools/pdf_extractor.py 生成
 ```
@@ -102,6 +103,26 @@ python -m tools.pdf_extractor -i papers/<slug>/paper.pdf -o papers/<slug>/paper_
 若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文，必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。若一轮新增条目全部成功获取 PDF，也必须在 [search/search-log.md](./search/search-log.md) 中记录“无新增人工下载”。
 
 `metadata.json` 是 A1 之后的机器可读事实入口，必须至少包含：`slug`、`title`、`authors`、`year`、`publication_year_basis`、`online_first_date`、`publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank`、`ccf_verification_status`、`review_type`、`se_subfield`、`current_fulltext_status`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`systematic_evidence_status`、`statistical_pool_exclusion_reason`。若字段不适用，必须显式写 `null`、`--` 或 `待核验`，不能缺键。
+
+### 5.1 `review.md` / `evidence_chain.md` / `audits/` 职责分离
+
+A1-DT v2 之后，单篇目录必须把“当前可消费正文”“正式证据链”和“批次过程证据”分开维护：
+
+| 文件或目录 | 职责 | 必须包含 | 不得包含 |
+|---|---|---|---|
+| `review.md` | 当前可读、可消费的单篇综述复原结果 | 快速结论、全文详读、原生维度树 / 维度森林、叶子维度表、关系边表、统计观察、候选 finding、对 Paper2 的启发与风险、指向 `evidence_chain.md` 的短链接 | 大段历史审计草案、旧版返修来源、禁止消费的旧 A.2/A.3、技能使用流水账 |
+| `evidence_chain.md` | 该单篇论文的正式证据链文件 | `## 审计附录：证据链与结论-证据映射`、A.1 论文与本地文件来源、A.2 维度树证据账本、A.3 结论-证据映射、A.4 本地复验命令与人工核验清单 | 已被正式 A.2/A.3 吸收的历史草稿、无当前证据价值的旧强度说明 |
+| `audits/a1dt-v2-19x3/` | 批次级过程证据 | prompts、results、logs、adjudications、结构门禁、测试 | 面向读者的当前正文事实口径 |
+
+执行纪律：
+
+1. 19 篇单篇目录必须同时具备 `review.md` 与 `evidence_chain.md`，并且二者互相用相对路径链接。
+2. `review.md` 末尾只保留短小 `## 证据链入口`，链接到 `[evidence_chain.md](./evidence_chain.md)`，不得继续内嵌 A.1--A.4 宽表。
+3. 当前仍有证据链价值的 A.1--A.4、待 A2a 风险、claim map、复验清单统一放入 `evidence_chain.md`。
+4. 历史 A.2/A.3 草案若有尚未吸收的独特证据，必须先转写进正式 A.2/A.3；若已被正式证据链或 v2 adjudication 吸收，应直接移除。
+5. `历史审计草案归档`、`历史草稿旧强度`、`禁止消费为事实真源`、大段 `v1-deprecated` 警示和技能使用流水账不得出现在正式 `review.md` 正文。
+6. `not_verified`、`待 A2a`、`schema_seed`、`boundary_anchor`、`候选` 是当前证据状态，不是历史噪声，应按证据等级保留。
+7. 清理正文时不得删除 `audits/a1dt-v2-19x3/` 的 prompts / results / logs / adjudications；这些属于批次复现证据。
 
 ## 6. 模式字段抽取规则
 
@@ -226,9 +247,9 @@ DevSecOps CPTM、生命周期投影、工具-实践-指标链接、RQ-字段-发
 
 ### 6.3.7 审计附录与最小必填字段简表
 
-每篇 `review.md` 文末必须包含以下固定结构。正式 A.1--A.4 表头必须继续使用纯中文，不得出现 `ID`、`PDF`、snake_case 或中英文对照表头。
+每篇 `evidence_chain.md` 必须包含以下固定结构。正式 A.1--A.4 表头必须继续使用纯中文，不得出现 `ID`、`PDF`、snake_case 或中英文对照表头。
 
-执行 agent 可先按下面的“最小必填字段简表”自检；写入 `review.md` 时仍必须使用后续正式中文宽表。
+执行 agent 可先按下面的“最小必填字段简表”自检；写入 `evidence_chain.md` 时仍必须使用后续正式中文宽表。
 
 | 附录 | 最小必填字段 | 最小合格条件 |
 |---|---|---|
@@ -307,12 +328,12 @@ A1-DT v2 的 19×3 工作流用于把 19 篇 `review.md` 从 v1 历史返修状�
 
 A1-DT v2 ready 前必须通过结构门禁。若 `audits/a1dt-v2-19x3/` 尚未落地脚本，至少人工检查并记录以下项目；脚本落地后应以脚本输出为准：
 
-1. 19 篇 `review.md` 均包含 `## 维度树复原` 与 `## 审计附录：证据链与结论-证据映射`。
+1. 19 篇 `review.md` 均包含 `## 维度树复原` 与 `## 证据链入口`；19 篇 `evidence_chain.md` 均包含 `## 审计附录：证据链与结论-证据映射` 与 A.1--A.4。
 2. 每篇至少声明树 / 森林类型、样本单位、统计池资格、迁移边界和降级状态。
 3. roadmap / vision + 无系统样本库均按 roadmap action / vision item 降级；guideline + 无系统样本库均按 guideline item 降级。
-4. A.1--A.4 表头保持正式中文宽表；A.2 / A.3 / A.4 能互相回链。
+4. `evidence_chain.md` 中 A.1--A.4 表头保持正式中文宽表；A.2 / A.3 / A.4 能互相回链。
 5. `patterns/` 没有被写成单篇原生树模板；跨论文归纳均能回链单篇 A.3。
-6. v1 历史章节和 v1 审计目录引用均带 `> [!WARNING] v1-deprecated: ...` 警示。
+6. `review.md` 不保留大段 v1 历史章节；若 `evidence_chain.md` 或 `audits/README.md` 引用 v1 审计目录，必须带 `v1-deprecated` 警示并说明其只作过程归档。
 7. `weak` / `not_verified` / `needs_manual_check` 结论没有进入 SUMMARY 定量统计或 final research finding。
 
 ### 6.3.12 维度树 / 维度森林中文化纪律

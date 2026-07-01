@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 EXPECTED_AGENTS = ("codex", "claude", "deepseek")
-EXPECTED_PAPER_FILES = ("bibtex.bib", "metadata.json", "paper_content.txt", "review.md")
+EXPECTED_PAPER_FILES = ("bibtex.bib", "metadata.json", "paper_content.txt", "review.md", "evidence_chain.md")
 TEXT_HYGIENE_SUFFIXES = {".md", ".tsv", ".py", ".json", ".log"}
 LIBRARY_REL = Path("project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys")
 BATCH_REL = LIBRARY_REL / "audits/a1dt-v2-19x3"
@@ -168,43 +168,65 @@ FORBIDDEN_TRANSLATION_PHRASES = (
     "QA 框架（QA 框架）",
 )
 
+FORBIDDEN_REVIEW_HISTORY_PHRASES = (
+    "历史审计草案归档",
+    "历史草稿",
+    "历史草稿旧强度",
+    "禁止消费为事实真源",
+    "禁止采信",
+    "当前禁止",
+    "技能使用与自我审查",
+    "对旧版 `review.md` 的返修来源",
+    "v1-deprecated",
+)
+
 
 def check_review_hygiene(base: Path, repo: Path, errors: list[str]) -> None:
     """Check review.md hygiene that directly affects evidence-chain consumption.
 
-    Formal A.2/A.3 parsing intentionally ignores historical draft blocks.  This
-    companion gate prevents those historical blocks from carrying phrases that
-    could be mistaken for current claim strength or direct SUMMARY eligibility.
-    It also catches the small set of machine-translation residues that reviewers
-    identified as schema-polluting, not mere style issues.
+    PR #132 cleanup split current prose from formal claim maps: review.md is the
+    human-readable current fact entry, while evidence_chain.md owns A.1--A.4.
+    Therefore review.md must link evidence_chain.md and must not retain large
+    historical draft blocks or old do-not-consume phrases.
     """
     papers = base / "papers"
     for review in sorted(papers.glob("*/review.md")):
         rel = review.relative_to(repo)
         text = review.read_text(encoding="utf-8", errors="ignore")
+        evidence = review.with_name("evidence_chain.md")
+        evidence_rel = evidence.relative_to(repo)
+        if "[evidence_chain.md](./evidence_chain.md)" not in text:
+            add_error(errors, f"{rel} missing evidence_chain.md relative link")
+        if re.search(r"^## 审计附录：证据链与结论-证据映射", text, flags=re.M):
+            add_error(errors, f"{rel} must not embed formal audit appendix; move it to evidence_chain.md")
+        for marker in ("### A.1 论文与本地文件来源", "### A.2 维度树证据账本", "### A.3 结论-证据映射", "### A.4 本地复验命令"):
+            if marker in text:
+                add_error(errors, f"{rel} still embeds evidence-chain marker: {marker}")
         for phrase in FORBIDDEN_TRANSLATION_PHRASES:
             if phrase in text:
                 add_error(errors, f"{rel} contains schema-polluting translation residue: {phrase}")
+        for phrase in FORBIDDEN_REVIEW_HISTORY_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} still contains historical draft residue: {phrase}")
 
-        for match in re.finditer(r"^#{3,5}\s+8\.\s*历史审计草案归档.*$", text, flags=re.M):
-            window = text[match.start(): match.start() + 800]
-            if "历史草案归档，禁止消费为事实真源" not in window:
-                add_error(errors, f"{rel} historical audit draft section missing do-not-consume warning")
-
-        for match in re.finditer(r"^#{4,6}\s+历史 A\.[23].*草案.*$", text, flags=re.M):
-            heading = match.group(0)
-            if "禁止消费" not in heading:
-                add_error(errors, f"{rel} historical A.2/A.3 draft heading lacks 禁止消费 marker: {heading}")
-
-        # Historical draft sections may remain as process evidence, but they must
-        # not contain phrases that look like current verified/adjudicated facts.
-        for match in re.finditer(r"^#{4,6}\s+历史 A\.[23].*草案.*$", text, flags=re.M):
-            next_heading = re.search(r"^#{3,6}\s+", text[match.end():], flags=re.M)
-            end = match.end() + next_heading.start() if next_heading else len(text)
-            section = text[match.start():end]
-            for phrase in FORBIDDEN_DRAFT_PHRASES:
-                if phrase in section:
-                    add_error(errors, f"{rel} historical draft section still contains consumable strength phrase: {phrase}")
+        if not evidence.exists():
+            add_error(errors, f"missing evidence_chain.md for {rel}")
+            continue
+        evidence_text = evidence.read_text(encoding="utf-8", errors="ignore")
+        if "[review.md](./review.md)" not in evidence_text:
+            add_error(errors, f"{evidence_rel} missing review.md backlink")
+        for marker in (
+            "## 审计附录：证据链与结论-证据映射",
+            "### A.1 论文与本地文件来源",
+            "### A.2 维度树证据账本",
+            "### A.3 结论-证据映射",
+            "### A.4 本地复验命令",
+        ):
+            if marker not in evidence_text:
+                add_error(errors, f"{evidence_rel} missing evidence-chain marker: {marker}")
+        for phrase in ("历史审计草案归档", "历史草稿旧强度", "禁止消费为事实真源"):
+            if phrase in evidence_text:
+                add_error(errors, f"{evidence_rel} still contains obsolete draft residue: {phrase}")
 
 
 def check_consumable_source_hygiene(base: Path, batch: Path, repo: Path, errors: list[str]) -> None:
@@ -226,6 +248,7 @@ def check_consumable_source_hygiene(base: Path, batch: Path, repo: Path, errors:
     ]
     current_sources.extend(sorted((batch / "adjudications").glob("*.md")))
     current_sources.extend(sorted((base / "papers").glob("*/review.md")))
+    current_sources.extend(sorted((base / "papers").glob("*/evidence_chain.md")))
 
     for path in current_sources:
         if not path.exists():
@@ -304,7 +327,10 @@ def split_source_ids(value: str) -> list[str]:
 def parse_formal_a1_a2_a3(
     review_path: Path, errors: list[str] | None = None, repo: Path | None = None
 ) -> tuple[set[str], set[str], dict[str, str], dict[str, list[str]], dict[str, list[str]], dict[str, str]]:
-    text = review_path.read_text(encoding="utf-8", errors="ignore")
+    source_path = review_path.with_name("evidence_chain.md")
+    if not source_path.exists():
+        source_path = review_path
+    text = source_path.read_text(encoding="utf-8", errors="ignore")
     a1 = extract_section(text, "### A.1 论文与本地文件来源", "### A.2 维度树证据账本")
     a2 = extract_section(text, "### A.2 维度树证据账本", "### A.3 结论-证据映射")
     a3 = extract_section(text, "### A.3 结论-证据映射", "### A.4 本地复验命令")
@@ -316,7 +342,7 @@ def parse_formal_a1_a2_a3(
     claim_types: dict[str, str] = {}
     claim_evidence: dict[str, list[str]] = {}
 
-    rel = review_path.relative_to(repo) if repo is not None else review_path
+    rel = source_path.relative_to(repo) if repo is not None else source_path
 
     a1_header, a1_rows = parse_markdown_table(a1)
     if a1_header and "来源标识" not in a1_header and errors is not None:
@@ -480,13 +506,13 @@ def check_ready_to_run(repo: Path, base: Path, batch: Path, rows: list[dict[str,
             if marker not in audit_text:
                 add_error(errors, f"audits/README missing v2/v1 marker: {marker}")
 
-    # Any review.md line that links v1 result must be guarded by a nearby v1-deprecated warning.
-    for review in (base / "papers").glob("*/review.md"):
-        text = review.read_text(encoding="utf-8", errors="ignore")
+    # Any evidence_chain.md line that links v1 result must be guarded by a nearby v1-deprecated warning.
+    for path in (base / "papers").glob("*/evidence_chain.md"):
+        text = path.read_text(encoding="utf-8", errors="ignore")
         for match in re.finditer(r"audits/a1dt-19x3/results", text):
             window = text[max(0, match.start() - 500): match.start() + 500]
             if "v1-deprecated" not in window:
-                add_error(errors, f"{review.relative_to(repo)} has unguarded v1 audit result link")
+                add_error(errors, f"{path.relative_to(repo)} has unguarded v1 audit result link")
 
 
 def check_structure(strict: bool, ready_to_run: bool = False) -> int:

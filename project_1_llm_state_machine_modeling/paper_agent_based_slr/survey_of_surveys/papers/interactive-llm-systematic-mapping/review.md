@@ -171,53 +171,6 @@
 | A1-M5：证据与效度层 | 该文把 traceability、citations、publication bias、model evolution、SE-specific evaluation 放在核心位置。 | `paper_content.txt` Page 2--3 §2.2.2 与 §3。 | Paper2 需要把这些落实为 run record、source anchor、eligibility filter，而不仅是口号。 |
 | A1-M6：story / method 贡献层 | 对 Paper2 的启发是“交互式、可审计、阶段化 scaffold”，不是让系统自动接管系统综述专家工作。 | 全文综合；尤其 Page 1 Introduction 与 Page 3 Reflections。 | 任何首创性口号、端到端全自动口号、取代专家口号或已验证端到端的强主张都不受该文支持。 |
 
-## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-下面字段树是从原文 §2 与 Fig. 1 抽出的候选维度，用于后续 A2a/A2b scaffold 讨论；它是“可迁移字段候选”，不是最终 schema。
-
-```text
-说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
-LLM 支持的系统映射研究流程（llm_supported_mapping_study）
-├── 元数据
-│   ├── 综述类型：解决方案提案（solution proposal） / SMS / SLR / tertiary / guideline
-│   ├── 发表源与年份：formal_year + online_date
-│   └── 证据层级：metadata / fulltext / pdf-figure / artifact
-├── 确立映射研究必要性
-│   ├── 人类输入：研究目标、上下文材料、种子摘要
-│   ├── LLM 输出：候选 RQ、额外目标
-│   └── 人类精化：编辑后的 RQ、接受 / 拒绝的建议
-├── 研究识别
-│   ├── 检索：检索意图、关键词识别智能体、语义检索智能体、检索策略智能体、可复现日志
-│   └── 纳入 / 排除：标准、输入文档、LLM 决策、审计证据、人类反馈
-├── 数据抽取与分类
-│   ├── 归纳式编码：corpus view、topic modeling pipeline、topic outputs
-│   └── 演绎式编码：抽取方案、示例提示、全文处理、抽取表单
-├── 可视化
-│   ├── 输入：数据表、频次、类别
-│   ├── LLM 或工具输出：plots、bar charts、bubble plots、topic landscape
-│   └── 人类检查：表示质量、正确性、误导性图表风险
-├── 报告撰写
-│   ├── 输入：表格、图、RQ
-│   ├── LLM 输出：模式建议、gap 建议、叙事草稿
-│   └── 人类修订：接受的模式、拒绝的模式、补充解释
-└── 有效性与审计
-    ├── 检索风险：recall_loss、precision_recall_tradeoff、database_bias
-    ├── 筛选风险：low_recall_exclusion、rationale_quality、citation_support
-    ├── 模型风险：model_drift、provider_drift、prompt_sensitivity
-    ├── 领域风险：non_SE_evidence_transfer、SE_specific_validation_needed
-    └── 制品风险：no_data、no_prompt_repo、no_run_record、no_prototype
-```
-
-### 5.1 维度 pattern 的组织原则
-
-1. **先按流程阶段分层**：比按单个工具名分层更稳，因为工具会变，系统映射研究 阶段较稳定。
-2. **每个阶段保留三元组**：`human_input / llm_output / human_refinement`，这是 Fig. 1 对 Paper2 最有迁移价值的结构。
-3. **技术组件放在阶段内部**：例如 RAG、BERTopic、graph database、LIDA、prompt examples 都应挂在具体阶段下，避免把工具名误当成研究贡献。
-4. **每个 LLM 输出必须挂 audit evidence**：纳排、抽取和报告建议都需要 source fragment、citation、query version 或人工 override；否则不进入正式证据池。
-5. **validity 不是末尾附录**：检索 recall、selection recall、model drift 和 SE-specificity 应贯穿字段树，而不是最后才补一句 limitation。
-
 ## 6. 对 Paper2 story / method 的启发与风险
 
 ### 6.1 可正向迁移的启发
@@ -259,12 +212,12 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__codex.md](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__codex.md)、[../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__claude.md](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__claude.md)、[../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__deepseek.md](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md](../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -280,7 +233,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | 样本数量 / 分母 | `不适用（不适用）`。论文 References 仅 10 条，全部以叙事 "Relevant literature" 形式被引，不构成 coded sample；`数据可得性声明：未使用数据（No data was used）`（Page 3） |
 | 原生树类型 | **维度森林（降级）**：①方法流程树（6 阶段） + ②智能体/role 树（含 search 阶段 3 智能体 + 各阶段 LLM/人 双轨） + ③效度/risk 树（Reflections）。无样本编码模式 |
 | 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -473,150 +426,6 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | **对 Paper2 可迁移的方法学启发** | （a）阶段 × triplet × audit 三层 模式 模板；（b）三 智能体 search 是可重用模式；（c）服务提供商漂移（provider drift） / non-SE transfer / SE-specific 评价 作为 risk inventory；（d）路线图 双轨叙事可借用 | 行 79, 99–122, 213–234 |
 | **绝不能迁移的领域结论** | 1. 不可写"已被验证的 LLM-supported SMS 解决方案"；2. 不可写"GPT 在文献综述中可靠"；3. 不可写"首创 interactive LLM-based SMS"（本文 2024/2025 已显式提出该方向）；4. 不可把被引文献 [5–9] 的数字当作本文 发现；5. 不可写本文符合 PRISMA / 提供 复现包 | 行 18–19、行 213–234、行 246 |
 
-### 7. 对旧版 `review.md` 的返修来源
+## 证据链入口
 
-总体方向：**旧版 review.md 在结构上已经识别出"通用六叶 = 投影"vs"原文模式主树 = 事实源"，但叶子还停留在占位描述，应该把上面 §3–5 的具体字段、关系边、取值空间种子写进去。**
-
-**Critical (C)**：无 C 级问题。该 review.md 没有把六叶通用接口冒充原文叶子全集（在 line 283 已显式说明），也没有把被引文献数字当作本文 发现，也没有违反主统计池排除规则。
-
-**Important (I)**：
-
-- **I-1**：line 297–306 的"维度树结构"过于压缩，把"研究范围 / 语料链条 / 主题分类 / 方法分类 / 评价 / 候选发现"这 6 个通用接口直接挂在 5 个原文主干下，看起来仍像把通用接口当主结构。**建议把这 6 个 叶子 整体折叠到一个单独的"通用接口投影"小节（事实上 line 360–371 已经有这个表），同时在主"维度树结构"代码块里改用本审计 §3 给出的 B1–B7 + 子节点。**
-- **I-2**：line 338–346 的"原文模式主树（19×3 审计后返修）"只给了 6 行主干名，没有给"叶子 / 取值空间种子"具体词。**建议把本审计 §4 表（28 行）中至少 阶段.*、triplet.*、智能体.* 与 audit.* 四类合并进该表，作为 A2a 精核入口的具体清单。**
-- **I-3**：line 411 EV-004 缺少"被引文献 ≠ 本文样本"的显式分隔。**建议在 A.2 增加一条 EV-005：来源 = `paper_content.txt` 行 123–199 + 行 246，证据角色 = `cited_literature_anecdote`，证据强度 = `weak`，迁移边界 = "不得把 [5]–[9] 的数字写成本文 发现"。** 这是本论文最易被误用的位置。
-- **I-4**：关系边维度（本审计 §5）在现行 review.md 里**完全缺失**——line 298–306 的 b1–b5 主干没有任何"input→output→audit"或"keyword→semantic→strategy"的关系边描述。建议新增一节"原文显式关系边"，用本审计 §5 表的 9 条边作为种子。
-
-**Minor (M)**：
-
-- M-1：line 16 "已读全文文本-paper_content核验" 写法略生硬，可改为"全文文本核验"。
-- M-2：line 41 "Fig. 1 已回原文核对" 与本轮审计冲突（本审计未开 PDF）；如果原 review 写作时确实开过 PDF，则保留并加上日期戳；否则建议改为 "Fig. 1 caption 已通过 paper_content.txt 第 79 行核验；版面待 A2a 复核"。
-- M-3：line 271 CCF 复核状态 "WAF" 与 line 13 完全重复，可只在卡片保留一处。
-- M-4：line 156 dimension 模式 行写得很好（"流程树、search 3 智能体、抽取 二分"），可以直接抽出来作为 §3 主结构的镜像描述，避免上下两段冗余。
-
-**对 SUMMARY 总账的修正建议**：
-
-- "样本单位 / 样本数量 / 原生树类型 / 统计池资格"四列应分别为：`流程阶段（process_stage） / 不适用（不适用） / 森林 (process + agent + risk) / 不进入主统计池（NOT_in_main_pool）, 边界锚点（boundary_anchor） only`。如果 SUMMARY 当前写的是"单树 / 6 leaves / yes-部分"则需要纠正。
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-可作为候选迁回 `review.md` A.2 / A.3。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-iLLM-SMS-001 | paper_content.txt | Page 1 Abstract Method | 行 18–19 | "research can be classified as a 解决方案提案 ... iteratively designed and discussed among the authors" | 树类型（tree_type） / non-经验研究（empirical） 自述 | strong (作者自述) | ROOT, B1–B7, 主统计池排除 | 否 | 仅支撑"非实证 + 无样本"判定 |
-| EV-iLLM-SMS-002 | paper_content.txt | Page 1 Intro 末段 | 行 52–55 | "reviewers (a) well educated in 系统映射研究 方法, (b) experts in topic" | HITL 必要条件 | 历史草稿旧强度（当前禁止采信） | B2 triplet.refine, B5 audit.* | 否 | HITL 是硬约束，不可省 |
-| EV-iLLM-SMS-003 | paper_content.txt | Page 2 §2 + Fig. 1 caption | 行 64–79 | "presents each step of the review 流程 and briefly outlines the input and actions done by the user and the output of the LLM" | 阶段 × triplet 结构 | medium (文本+图未版面核验) | B1, B2, rel.stage_to_triplet | **是**（必须打开 PDF 核 Fig. 1） | Fig. 1 内部细节待版面确认 |
-| EV-iLLM-SMS-004 | paper_content.txt | Page 2 §2.2.1 | 行 99–122 | "three 智能体: Keyword Identification Agent, Semantic Search Agent, Search Strategy Agent ... support a citation pearl growing strategy" | search 3-智能体 子树 + 智能体 间 流程管线 | 历史草稿旧强度（当前禁止采信） | B3, rel.search_to_agent, rel.agent_pipe_kw_to_sem, rel.agent_pair_pearl | 否 | 仅限 search 阶段；不要扩到其他阶段 |
-| EV-iLLM-SMS-005 | paper_content.txt | Page 3 §2.2.2 | 行 150–157 | "language 模型 have to explain the reasons ... Chain-of-thoughts prompting ... citations are indispensable ... increase traceability" | 纳排 audit 字段强约束 | 历史草稿旧强度（当前禁止采信） | B5 audit.*, rel.inc_exc_to_audit | 否 | CoT 不等于必须暴露推理链；解读为可审计 rationale |
-| EV-iLLM-SMS-006 | paper_content.txt | Page 3 §2.3 | 行 177–191 | "Inductive coding ... topic modeling ... Bertopic. Deductive coding: Given is a 数据抽取 scheme (e.g., SWE-BOK) ... One-shot or Few-shot ... RAG architecture" | 抽取 二分 + 机制菜单 | 历史草稿旧强度（当前禁止采信） | 阶段.extract, mech.bertopic, mech.prompt_style, mech.rag | 否 | SWE-BOK 仅作为示例，不要写成 scheme 本身 |
-| EV-iLLM-SMS-007 | paper_content.txt | Page 3 §3 Reflections | 行 213–223 | "Publication bias and limited studies ... rapid evolution of LLMs ... Many existing studies are from outside SE" | 效度 / 威胁 树 | 历史草稿旧强度（当前禁止采信） | B6 威胁.*, 威胁→路线图 关系 | 否 | 等价 Paper2 服务提供商漂移（provider drift） / 非 SE 证据外推 |
-| EV-iLLM-SMS-008 | paper_content.txt | Page 3 §3 末尾 | 行 231–234 | "Improving individual steps ... Build a prototype representing the overall mapping 流程" | 路线图 双轨 | 历史草稿旧强度（当前禁止采信） | B7 路线图.* | 否 | 候选使用（需裁决） |
-| EV-iLLM-SMS-009 | paper_content.txt | Page 3 数据可获得性（Data 可获得性） | 行 246 | "No data was used for the research described in the article."（即未使用数据） | 支撑无样本分母的关键原文依据（历史草案，禁止消费） | 历史草稿旧强度（当前禁止采信） | 主统计池排除 | 否 | 决定性 |
-| EV-iLLM-SMS-010 | paper_content.txt | Page 2–3 各 "Relevant literature" 段 | 行 123–135, 158–170, 192–199 | Wang [5], Huotala [6], Guo [7], Petersen [9] 的数字与陈述 | **被引文献的发现**（不是本文发现） | weak（叙事性引用） | 风险注脚 | 否 | **关键迁移红线**：不得写成本文结论 |
-| EV-iLLM-SMS-011 | paper.pdf | Page 2 Fig. 1 版面 | -- | -- | 图内 box / 箭头 / 标签精确文字 | not_verified | rel.stage_to_triplet, B2 三槽是否每阶段都齐 | **是** | A2a 必须打开 PDF |
-| EV-iLLM-SMS-012 | Supplementary material (online) | Appendix A | -- | 被下划线术语定义 | not_verified | mech.* 工具语义 | **是** | 本轮未打开 |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| C-iLLM-SMS-T01 | 本文树型 = 流程模型（process model） + 智能体 role 树 + risk inventory 组成的森林；样本单位 = 流程阶段（process_stage）；样本数 = 不适用（不适用）；不进入主统计池，仅作 边界锚点 / 方法学种子 | 树类型（tree_type） | ROOT | EV-001, EV-009 | 历史草稿旧强度（当前禁止采信） | 边界锚点（boundary_anchor）, 模式种子（schema_seed） | 仅限本文；不能外推到所有 LLM-for-SMS 研究 |
-| C-iLLM-SMS-T02 | 流程阶段链 need→search→inc/exc→extract→vis→报告 借自 [4] 2015 SMS 指南，本文未饱和验证 | stage_分类法 | B1 | EV-003 | medium | scaffold candidate | 借用结构，不是本文贡献新 分类法 |
-| C-iLLM-SMS-T03 | Fig. 1 的 "研究者 input × interactive refinement × LLM output" 三槽是本文对 Paper2 最强迁移点 | structural_pattern | B2, rel.stage_to_triplet | EV-003 | medium (待版面核) | scaffold 字段模板 | Fig. 1 版面待 A2a 核 |
-| C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | 历史草稿旧强度（当前禁止采信） | 智能体 role 模板 | 仅限 search |
-| C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 trace 模式候选线索（需 A2a/研究者裁决后采纳） | CoT 不等于暴露推理链 |
-| C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可作为候选 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
-| C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | roadmap_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
-| C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | 历史草稿旧强度（当前禁止采信） | 引用红线 | 强制约束 |
-| C-iLLM-SMS-T09 | "interactive LLM-based SMS" 这一方向已在 2024/2025 由本文显式提出；Paper2 不得宣称首创，但可补全 评价 / prototype | priority_boundary | ROOT | EV-001, EV-008 | 历史草稿旧强度（当前禁止采信） | Paper2 §related work 必须 cite | -- |
-
-### 9. 技能使用与自我审查记录
-
-**已读取并采用的技能 / 指南文件**：
-
-1. `~/.codex/skills/ai-research-writing-skill/SKILL.md` — 采用其"claim-证据-engineering workflow"原则、"Evidence gate"、"Citation gate"。本审计每条结论都挂证据锚点（EV-001 至 EV-012），符合 证据 gate。
-2. `~/.codex/skills/ai-research-writing-skill/references/reviewer-guidelines.md` — 采用其"Originality / Soundness / Clarity / Significance / Reproducibility / Ethics"六维度；本审计对原 review.md 的 I 级建议（I-1 至 I-4）以"是否可被作者直接行动"为标准（constructive specificity standard）。
-3. `~/.codex/skills/ai-research-writing-skill/references/reviewer-self-review.md` — 采用其"Reviewer-Review Simulation"模板和"Adversarial Questions"；§7 的 C/I/M 分级即来自该模板。
-4. `~/.codex/skills/research-planning/SKILL.md` — 用作背景：因本任务是审计而非论文规划，未启动 4-turn planning 流程。
-5. `~/.codex/skills/research-planning/references/planning-prompts.md` — 用作背景，确认本任务输出不应转写为 plan_dataset / plan_training 模式（不适用）。
-6. `~/.codex/skills/research-planning/references/output-schemas.md` — 同上，仅作背景对照。
-7. `~/.codex/plugins/cache/oh-my-codex-local/oh-my-codex/0.18.7/skills/autoresearch/SKILL.md` — 采用其"completion is 制品-gated"原则：本审计在 §0 卡片显式给出"判定 = 需要返修"作为可被验证的 制品 状态，而不是仅以"已完成阅读"作为完成判据。
-
-**本输出最高风险 3 点（reviewer 视角）**：
-
-1. **Fig. 1 未版面核验**：本审计对 B2 triplet 是否在每一阶段都齐全的判断，建立在 §2 各小节首句的文本重构上。如果 Fig. 1 实际 box 排列与 §2 节次不一一对应（例如 visualization / 报告方式 在图中可能只是单槽而非三槽），则本审计对 rel.stage_to_triplet 的"每阶段都有三槽"叙述需要降级。**主线程合并时必须打开 `paper.pdf` 核 Fig. 1**。
-2. **补充材料（supplementary material）未打开**：行 107 脚注 "Underlined words are defined in the 补充材料（supplementary material）" 表明文中下划线词（如 RAG、Bertopic、embeddings、feature words 等）有作者给出的定义。本审计未读补充材料（supplementary material），所以 mech.bertopic / mech.rag 等叶子的取值空间口径只能算 `not_verified`。
-3. **被引文献与本文 发现 边界**：§2 各 "Relevant literature" 段引用的 Wang/Huotala/Guo/Petersen 的具体数字（recall 下降、GPT-4 优于 GPT-3.5、case study 判断 GPT-4 优于作者等）极易被下游误读为"本文 发现"。本审计已在 EV-010 + C-iLLM-SMS-T08 显式划界；但 review.md 当前对此分隔不够强，需通过 §7-I-3 建议补一条 EV-005。
-
-**blocked / timeout / 文件缺失状态**：
-
-- 无 blocked：所有指定本地文件 `bibtex.bib` / `metadata.json` / `paper_content.txt` / `review.md` 均成功读取。
-- 1 项 deferred：`paper.pdf` 本轮未通过 Read 打开（任务时间窗内未做版面核验）；列为 A2a 必做项，不阻塞本审计输出。
-- 1 项 deferred：补充材料（supplementary material）位于在线 DOI 下，本轮未打开；同样列为 A2a 必做项。
-- 无 timeout。
-
-**最终自我陈述**（reviewer-self-review.md §"Final Self-Review Statement" 模板）：
-
-```text
-说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
-本审计目前最强的地方在于：清晰区分了"该文无样本编码模式"vs"该文确有流程 / 智能体 / 审计 / 风险概念骨架"，并把 B1–B7 主干、关系边和审计字段拆出可作为候选迁回 review.md 的 28 行叶子表 + 9 行关系边表 + 9 行结论表。
-当前最大的剩余评审风险是：Fig. 1 未版面核验，补充材料未打开；少数叶子（mech.* 工具语义、B2 在 可视化 / 报告阶段是否真有三槽）仍是文本重构判断。
-支持中心结论 "树类型 = 维度森林（森林），不进入主统计池（NOT_in_main_pool）" 的主要证据是 EV-001 (作者自述 解决方案提案) + EV-009 (数据可得性声明：未使用数据（No data was used）)。
-本轮主动弱化的主张：不写 Fig. 1 版面已核验；不写 补充材料（supplementary）已读；不把被引文献数字写成本文 发现；不写"已成熟 评价"。
-提交阻塞项：无（不阻塞合并）；A2a 必做项 2 项（PDF 版面、补充材料（supplementary））。
-```
-
----
-
-**报告完。** 总结一行：旧版 `review.md` 方向正确（已显式标注"通用六叶 = 投影，原文主树 = 事实源"），但叶子级别仍是占位；建议按本审计 §7 I-1 至 I-4 做 important 级返修——主要工作是把 §3 B1–B7 + §4 叶子表 + §5 关系边表 + §8 A.2/A.3 草案替换/合并进 review.md 现有节，不需要重写。判定 = **需要返修 (I 级)，不阻塞合并**。
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md](../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-interactive-llm-systematic-mapping-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-interactive-llm-systematic-mapping-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-interactive-llm-systematic-mapping-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-interactive-llm-systematic-mapping-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-interactive-llm-systematic-mapping-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-interactive-llm-systematic-mapping-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/interactive-llm-systematic-mapping__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-interactive-llm-systematic-mapping-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-interactive-llm-systematic-mapping-type | clm-interactive-llm-systematic-mapping-type | src-interactive-llm-systematic-mapping-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：解决方案提案（solution proposal）（作者自述："The research can be classified as a 解决方案提案（solution proposal）"，Page 1 §Method）；既不是 SLR、也不是 SMS、tertiary、MLR；可被视为 vision / roadmap | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-interactive-llm-systematic-mapping-unit | clm-interactive-llm-systematic-mapping-unit | src-interactive-llm-systematic-mapping-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / agent 角色 / 人机交互节点"，不是 原始研究 | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-interactive-llm-systematic-mapping-denom | clm-interactive-llm-systematic-mapping-denom | src-interactive-llm-systematic-mapping-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：`不适用（not applicable）`。论文 References 仅 10 条，全部以叙事 "Relevant literature" 形式被引，不构成 coded sample；`数据可得性声明：未使用数据（No data was used）`（Page 3） | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-interactive-llm-systematic-mapping-tree | clm-interactive-llm-systematic-mapping-tree | src-interactive-llm-systematic-mapping-text; src-interactive-llm-systematic-mapping-codex; src-interactive-llm-systematic-mapping-claude; src-interactive-llm-systematic-mapping-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林（降级）**：①方法流程树（6 阶段） + ②agent/role 树（含 search 阶段 3 agent + 各阶段 LLM/人 双轨） + ③validity/risk 树（Reflections）。无样本编码 schema | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-interactive-llm-systematic-mapping-pool | clm-interactive-llm-systematic-mapping-pool | src-interactive-llm-systematic-mapping-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：否。理由：解决方案提案（solution proposal）；无系统检索、纳排、抽取；与 `metadata.json eligible_for_statistical_synthesis=false`、`evidence_role=solution_proposal_boundary_anchor` 一致。**局部仅可作 模式种子（schema_seed） / 边界锚点（boundary_anchor） / methodological seed** | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-interactive-llm-systematic-mapping-type | A1DT-interactive-llm-systematic-mapping-C01 | 本文原文类型为：解决方案提案（solution proposal）（作者自述："The research can be classified as a 解决方案提案（solution proposal）"，Page 1 §Method）；既不是 SLR、也不是 SMS、tertiary、MLR；可被视为 vision / roadmap | paper_type | type | ev-interactive-llm-systematic-mapping-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-interactive-llm-systematic-mapping-unit | A1DT-interactive-llm-systematic-mapping-C02 | 本文被编码样本单位为：**无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / agent 角色 / 人机交互节点"，不是 原始研究 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-interactive-llm-systematic-mapping-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-interactive-llm-systematic-mapping-tree | A1DT-interactive-llm-systematic-mapping-C03 | 本文原生维度树 / 维度森林为：**维度森林（降级）**：①方法流程树（6 阶段） + ②agent/role 树（含 search 阶段 3 agent + 各阶段 LLM/人 双轨） + ③validity/risk 树（Reflections）。无样本编码 schema | 树类型（tree_type） | native_tree | ev-interactive-llm-systematic-mapping-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-interactive-llm-systematic-mapping-pool | A1DT-interactive-llm-systematic-mapping-C04 | 本文统计池资格为：否。理由：解决方案提案（solution proposal）；无系统检索、纳排、抽取；与 `metadata.json eligible_for_statistical_synthesis=false`、`evidence_role=solution_proposal_boundary_anchor` 一致。**局部仅可作 模式种子（schema_seed） / 边界锚点（boundary_anchor） / methodological seed** | eligibility | 统计池（statistical_pool） | ev-interactive-llm-systematic-mapping-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-interactive-llm-systematic-mapping-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-interactive-llm-systematic-mapping-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-interactive-llm-systematic-mapping-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+证据链与结论-证据映射已迁移至 [evidence_chain.md](./evidence_chain.md)。

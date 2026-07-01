@@ -84,7 +84,7 @@ RQ1 先用 Stol & Fitzgerald 的 empirical SE strategy taxonomy 分类研究策�
 
 评价工具与指标部分，作者把 data source / instrument origin 组织成表：self-reported methods 很多由作者自设；validated instruments 包括 NASA-TLX、SPACE-based surveys、TAM、self-efficacy questionnaire、AAR/AI、emotion affect questionnaire；behavioral/performance metrics 包括 task completion/correctness、suggestion acceptance rate、interaction logs、time to completion、code quality metrics、productivity gain；还有 TCQ、RBV 等 econometric frameworks。关键结果包括：time to completion 是最常用 performance metric，12/39，占 31%；acceptance rate 常见但不宜单独优化；cognitive load 用 NASA-TLX 的 6 篇研究结果不一致，有改善、无差异和 frustration 增加等不同方向。
 
-RQ1 的价值在于把“研究怎么做”拆成 strategy、procedure、objective、analysis type、instrument、metric，而不是只说“多数为实验研究”。这历史草稿曾提出迁移建议；当前禁止直接采信为 Paper2 字段树。
+RQ1 的价值在于把“研究怎么做”拆成 strategy、procedure、objective、analysis type、instrument、metric，而不是只说“多数为实验研究”。这可作为候选迁移启发；后续必须经 A2a 证据核验和研究者裁决后采纳为 Paper2 字段树。
 
 ### 2.9 RQ2 主要结果：benefits 与 risks
 
@@ -191,82 +191,6 @@ Threats 分两组。
 | A1-M5 统计分析 | RQ0--RQ3 都把字段表转成频次、比例、分布、overlap 和组合分析。 | 支持 Paper2 将统计分析表作为独立产物：统计观察必须绑定字段版本、样本分母和限制。 |
 | A1-M6 候选发现形成 | Discussion 将统计观察升级为 lessons learned、recommendations 和 research gaps，同时保留 contested findings。 | 支持候选发现台账：agent 可以提出 候选发现，但必须标注支持/反向证据、contested status、boundary conditions，最后交研究者裁决。 |
 
-## 历史草稿（已迁移，不作事实真源）：旧第 6 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-以下字段树只作为 Paper2 A2a/A3 的候选 scaffold，不是目标领域 schema 定稿。
-
-```text
-说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
-综述记录（review_record）
-├── 书目元数据
-│   ├── 标题 / 作者 / 年份 / DOI / 发表源 / 发表类型 / CCF 大类 / CCF 等级
-│   ├── 综述类型：SLR / SMS / tertiary / guideline / hybrid
-│   └── 开放制品：复现包链接 / 补充材料 / 数据集状态
-├── 范围与协议
-│   ├── 主题对象
-│   ├── 影响对象或构念
-│   ├── 时间窗
-│   ├── 数据库
-│   ├── 检索式片段
-│   ├── 控制论文
-│   ├── query iterations
-│   ├── 纳入标准
-│   └── 排除标准
-├── 选择流程
-│   ├── 各数据库初始记录数
-│   ├── 去重数量
-│   ├── 标题摘要筛选数量
-│   ├── 全文筛选数量
-│   ├── 滚雪球新增数量
-│   ├── 质量评估数量
-│   ├── 最终纳入数量
-│   └── 排除原因计数
-├── 质量评估
-│   ├── QA 框架
-│   ├── QA 条目
-│   ├── 评分尺度
-│   ├── 阈值
-│   ├── 因质量排除数量
-│   └── 分数分布
-├── 抽取与综合
-│   ├── 抽取字段：goals / tools / strategy / design / tasks / settings / key_results
-│   ├── 单篇描述性摘要
-│   ├── 主题分析迭代
-│   ├── 引用交叉检查
-│   └── 可追踪机制
-├── 研究图景维度
-│   ├── 发表年份
-│   ├── 作者分布
-│   ├── 发表源焦点
-│   └── 被研究工具或制品
-├── 方法维度
-│   ├── 实证策略
-│   ├── 研究流程
-│   ├── 目标：formative / summative
-│   ├── 分析类型：qualitative / quantitative / mixed
-│   ├── 数据来源
-│   ├── 测量工具来源：author_designed / validated_framework
-│   └── 指标类型
-├── 收益 / 风险维度
-│   ├── 收益主题
-│   ├── 风险主题
-│   ├── 矛盾主题
-│   └── 证据边界
-├── 外部框架映射
-│   ├── SPACE 维度
-│   ├── SPACE 子维度
-│   ├── 维度覆盖数
-│   └── 组合模式
-└── 解释与建议
-    ├── McLuhan Tetrad
-    ├── lessons learned
-    ├── practitioner recommendations
-    ├── researcher recommendations
-    └── temporal relevance threat
-```
-
 ## 7. 对 Paper2 story / method 的启发与风险
 
 ### 7.1 启发
@@ -300,12 +224,12 @@ Threats 分两组。
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -320,8 +244,8 @@ Threats 分两组。
 | 被编码样本单位 | **原始研究**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 |
 | 样本数量 / 分母 | 9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 |
 | 原生树类型 | **多根维度森林**：每个 RQ 对应一棵 抽取 sub树；底层共享 PS-id 这一样本单位主键，使所有 sub树 可交叉关联。 |
-| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -553,140 +477,6 @@ Threats 分两组。
 - SPACE 框架本体不可直接搬到 Paper2 的方法论 模式（除非目标问题确是 productivity）。
 - 具体百分比（77/64/59/31/26%）只能作为该子领域时间切片证据。
 
-### 7. 对旧版 `review.md` 的返修来源（C/I/M）
+## 证据链入口
 
-| 等级 | 项 | 当前问题 | 建议返修 |
-|---|---|---|---|
-| **C1** | "维度树复原" §维度树结构 | 主树退化为六个通用 叶子（scope/语料/分类法/方法/证据/发现），把 RQ0–RQ3 各自的丰富 模式 压成单一 分类法 叶子；"原文模式主树（19×3 审计后返修）" 也仅 6 行抽象主干，没有展开 PRISMA 链、QA rubric、Stol-Fitzgerald 6 类、Glass-Vessey-Ramesh 5 类、SPACE 5×N 子维、8/5 主题 etc.。这是 A1-DT v2 的核心 mismatch — 学术目标层级风险（影响 Paper2 模式种子 可靠性）。 | 改为本审计 §3 的 RQ-森林结构：以 PS-id 为主键，4 棵 RQ-sub树 + Tetrad overlay + Threats overlay；通用六叶降级为最尾部的 "跨论文投影" 视图。 |
-| **C2** | A.2 证据账本 EV-llm-…-001..005 | 仅 5 条证据，全部标 `not_verified`、`证据强度=not_verified`，连最基本的 PRISMA 分母（9756/803/8953/228/189/5/44/5/39）、QA 11 项、Stol-Fitzgerald 6 类百分比、SPACE 5 维百分比这些**纯文本可定位**的事实都未单独立证。导致 A.3 全 12 条 claim 一律 weak/模式种子（schema_seed），无法支撑 SUMMARY 表中 `eligible_for_statistical_synthesis=true` 的判断。 | 至少新增 15+ 条具体 EV 行：每条挂明确节号、表号、数字证据；分母链与 QA rubric 应升级到 `证据强度=strong/历史草稿旧强度（当前禁止采信）`。 |
-| **I1** | "叶子维度表" 六叶取值空间 | 六叶的"取值空间"列全部写"自由文本加 RQ/贡献声明引用"等模板化 boilerplate；丢失了原文中**封闭枚举**（strategy 6 类、procedure 5 类、SPACE 5 维、benefit 8 / risk 5）的关键性质。封闭枚举是统计池资格的核心判据。 | 按本审计 §4 叶子表逐叶给真实取值空间，区分完整枚举 / 层级枚举 / 数值 / 布尔 / 开放枚举。 |
-| **I2** | "统计与候选发现链路" | 表中三行均判为 "否（A1-DT 阶段仅作 模式种子）" — 但 metadata.json 明确 `eligible_for_statistical_synthesis=true`，且本文是 39 篇明确分母的现代 SLR+SMS。该结论与 metadata 矛盾。 | 改为 "局部可统计"：landscape / strategy / procedure / SPACE coverage 等可在 A2a 精核后进入主统计池；contested 主题与 细粒度（fine-grained） 数字标 "待 A2a 精核后升级"。 |
-| **I3** | "原文模式候选叶子映射（A1 种子）" | 5 个 `orig-*` 候选叶子（assistant-type / developer-task / productivity-outcome / 评价-design / human-factor）含义模糊，且与本文实际的 RQ 字段（strategy/procedure/instrument/SPACE/收益 / 风险（benefit/risk））不对齐；e.g. "助手类型" 是 leaf-llm-工具（Table 4）而非泛"代码助手 / 聊天助手"分类。 | 删除模糊候选，按本审计 §3–§4 重写为 RQ-aligned leaves。 |
-| **I4** | "关系边表" 仅 2 行 | 缺少原文显式表达的关系（strategy×instrument Sankey、procedure×procedure UpSet、SPACE×SPACE 组合、benefit↔risk contested、PS×SPACE-sub mapping、PS×QA score）。 | 按本审计 §5 的 10 条 关系边 补齐；标明哪些 关系边 已在原文 Fig. 3/4/5/7/8 中视觉显式表达。 |
-| **I5** | 历史草稿 §6 字段树（review.md L195–289） | 该 90+ 行字段树（review_record/...）实际上比当前"维度树复原"完整得多，且更接近原生模式；但被标为"历史草稿，不作事实真源"。这造成最佳证据被废弃，最差结构被立为真源。 | 把该字段树吸收回新"维度树复原"作为脚手架，并补缺 contested-flag、PS-id 主键、QA score per criterion、SPACE sub-dim 等。 |
-| **M1** | "审计结论卡片" SUMMARY 字段 | 当前 SUMMARY（review.md L23–24）已合理判定本文不是目标领域证据池；可保留。但应在新维度树后补一句："原生树类型 = 多根维度森林（per-RQ sub树），样本单位 = PS1..PS39，主统计池 = local-eligible"。 | 表头加 3 行新字段。 |
-| **M2** | 时间格式 | 部分章节缺更新日志精确到秒；CLAUDE.md 默认要求 yyyy-mm-dd hh:mm:ss。 | 下一次 review.md 整改时统一时间格式。 |
-| **M3** | PDF 视觉核验状态 | 反复出现 "待 A2a 精核" 但未在 A.4 中列出**具体页码**作为 visual-check checklist。 | 在 A.4 加入按页码列出的 visual-check items（Fig. 1 Page 7, Fig. 6 Page 17, Fig. 8 Page 26, Fig. 9 Page 28, Table 7 Page 14, Table 10 Page 25, Table 11 Page 27）。 |
-
-#### SUMMARY 当前表"样本单位 / 样本数量 / 原生树类型 / 统计池资格"需修正项
-
-- **样本单位**：✅ "原始研究"（与现 review.md 一致，但应明确补 "PS1..PS39 编号体系"）。
-- **样本数量**：✅ 39（一致）。
-- **原生树类型**：❌ 当前应写 "RQ 驱动分类树" 但本质是 **per-RQ 多根森林 + Tetrad/Threats 解释层**；建议改为 "RQ-driven 维度森林（4 RQ-sub树 + 解释性覆盖层（interpretive overlay））"。
-- **统计池资格**：❌ review.md A.3 全 weak/模式种子（schema_seed） 与 metadata `eligible_for_statistical_synthesis=true` 矛盾；应改为 **"局部可统计"** + 明确即使 A2a 精核后也不可进入的项（Fig. 6 精确雷达数、PS-level QA scores、Table 9 详细 risk summary）。
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-ladp-text-001 | paper_content.txt | §3.2 Page 7–8 + Fig.1 | "Records identified from 数据库（databases） (n = 9,756)... Total records included (n = 39)" | PRISMA 完整分母链 9756→8953→228→44→39，含 EC1=15/EC2=128/EC3=27/EC4=11/EC5=3/~IC1=5 | 语料-flow | 历史草稿旧强度（当前禁止采信） | 树-meta, leaf-ps-id, leaf-exclusion-code | true（Fig.1 视觉核） | 流程结构可迁移 |
-| EV-ladp-text-002 | paper_content.txt | §3.1.1 Page 5 | 17 control papers + 5 query iterations + Rayyan tagging | search-protocol seed | 历史草稿旧强度（当前禁止采信） | 树-meta | false | 协议结构可迁移 |
-| EV-ladp-text-003 | paper_content.txt | §3.3 Page 8 Table 2 | QA1..QA11 + 5-Likert {0..4} + 50% threshold | 质量-rubric | 历史草稿旧强度（当前禁止采信） | leaf-ps-qa-score | true (Table 2) | rubric 可迁移 |
-| EV-ladp-text-004 | paper_content.txt | §4.1 Page 9–10 + Fig. 2 | "2024 accounts for 77% of all included studies" (30/39) | landscape-temporal | 历史草稿旧强度（当前禁止采信） | leaf-pub-year | true (Fig.2) | drift-risk anchor |
-| EV-ladp-text-005 | paper_content.txt | §4.3 Page 10–11 Table 3 | SE/CS 46%, HCI 18%, IS 13%, Human-Aspects 10%, AI Eng 8%, SE Edu 5% | venue-distribution | 历史草稿旧强度（当前禁止采信） | leaf-venue-focus | true (Table 3) | 跨社区融合 |
-| EV-ladp-text-006 | paper_content.txt | §4.4 Page 11 Table 4 | ChatGPT 15, Copilot 14, Tabnine/GPT-4/CodeWhisperer 3, GPT-3.5 2, 其他（Others） 1 | 工具-distribution | 历史草稿旧强度（当前禁止采信） | leaf-llm-工具 | true (Table 4) | 工具漂移 risk |
-| EV-ladp-text-007 | paper_content.txt | §5.1 Page 11–12 Table 5 | Stol & Fitzgerald 6 类：Lab 38%/15, Field 23%/9, Sample 15%/6, ExpSim 13%/5, FieldExp 5%/2, Judgment 5%/2 | strategy-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-strategy | true (Table 5) | 结构可迁移 |
-| EV-ladp-text-008 | paper_content.txt | §5.2 Page 13 Table 6 + Fig. 3/4 | 调查 82%/32, User Exp 41%/16, Case 31%/12, 访谈 26%/10, Concept Impl 10%/4; 混合方法 69%/27 | procedure-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-procedure | true (Table 6, Fig. 4) | 结构可迁移 |
-| EV-ladp-text-009 | paper_content.txt | §5.2 Page 13–14 | formative 59%/23, summative 41%/16; 混合-analysis 67%, qual-only 21%, quant-only 13% | objective + analysis | 历史草稿旧强度（当前禁止采信） | leaf-objective, leaf-analysis-type | false | 成熟度指标 |
-| EV-ladp-text-010 | paper_content.txt | §5.3 Page 14 Table 7 | 自我报告（Self-report；首次术语） × {designed-by-authors, validated}: NASA-TLX (6 studies), SPACE survey (4), TAM (3), self-eff (2), AAR/AI (1), emotion (1); Behavioral/Performance × {designed/validated}: TCQ, RBV | instrument-origin × name | 历史草稿旧强度（当前禁止采信） | leaf-instrument-origin, leaf-instrument-name | true (Table 7) | 标准化 缺口（gap） |
-| EV-ladp-text-011 | paper_content.txt | §5.3.1 Page 15 | "31% (12 out of 39) of the 经验研究（empirical） 原始研究 employ this measure" (time-to-completion) | 指标-time | 历史草稿旧强度（当前禁止采信） | leaf-指标-time-completion | false | 可迁移含 caveat |
-| EV-ladp-text-012 | paper_content.txt | §5.3.3 Page 16 | "6 studies use NASA-TLX... reports improvements [PS13, PS23, PS38], 其他（Others） neutral effects [PS2, PS8], and only one 研究 reports... frustration [PS12]" | cognitive-load 混合 | 历史草稿旧强度（当前禁止采信） | leaf-指标-cognitive-load | false | contested construct |
-| EV-ladp-text-013 | paper_content.txt | §6.1 + §6.2 + Fig. 6 + Tables 8/9 | 8 benefits + 5 risks themes；contested theme "code 质量" 双向 | theme-分类法 | 历史草稿旧强度（当前禁止采信） | leaf-benefit-theme, leaf-risk-theme, leaf-contested-flag | true (Fig. 6 雷达精确数) | 结构可迁移；主题不可 |
-| EV-ladp-text-014 | paper_content.txt | §7 Page 24–27 + Fig. 7/8 + Tables 10/11 | SPACE: Sat 77%(30/39), Perf 64%(25/39), Eff 59%(23/39), Act 31%(12/39), Comm 26%(10/39); 90% ≥2, 44% ≥3, 15% ≥4; well-being=0; human-LLM 7/10 vs human-human 3/10 | SPACE-mapping | 历史草稿旧强度（当前禁止采信） | leaf-space-dim, leaf-space-coverage-计数, leaf-space-sub-dim | true (Fig. 7/8 比例线) | 框架特定 |
-| EV-ladp-text-015 | paper_content.txt | §8.1 + Fig. 9 + §8.2 / §8.3 | McLuhan Tetrad 4 维 + lessons learned (3 条) + 5 实践者 recs + 3 研究者 recs | interpretation-layer | 历史草稿旧强度（当前禁止采信） | 树-discussion-tetrad | true (Fig. 9) | 解释框架结构可迁移 |
-| EV-ladp-text-016 | paper_content.txt | §9.1 + §9.2 Page 35–36 | 7 个 威胁 项：选择偏倚 / 以人为中心的识别 / 偏倚与可重复性 / 分类严谨性 / 形成性与受控研究主导 / 方法多样性（methodological diversity） / 时间相关性（temporal relevance） | 威胁-分类法 | 历史草稿旧强度（当前禁止采信） | 树-威胁 | false | 可迁移含 智能体-loop 扩展 |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| CLM-ladp-树-001 | 本文的原生结构是 **per-RQ 维度森林 + Tetrad/Threats 解释层**，PS-id 为统一主键；不是单棵树，也不是六叶通用接口。 | 树类型（tree_type） | 森林-根节点 | EV-001, EV-007, EV-008, EV-013, EV-014 | 历史草稿旧强度（当前禁止采信） | A1-DT 主统计池入口 + Paper2 模式种子 | RQ 切片仍是分析视角，非样本单位本身 |
-| CLM-ladp-pool-002 | 主统计池资格 = **局部可统计**：landscape / strategy / procedure / instrument origin / SPACE coverage 已有明确分母 39 与封闭/层级枚举，历史草稿曾建议进入 SUMMARY 统计；当前禁止直接采信；雷达精确数、PS-level QA scores、Table 9 risk row-mapping 待 A2a 精核。 | pool_eligibility | 树-RQ0..3 | EV-004, 005, 006, 007, 008, 010, 014 | 历史草稿旧强度（当前禁止采信） | 统计 + 候选发现 | 细粒度（fine-grained） 数字延后 |
-| CLM-ladp-contested-003 | "代码质量（code quality；首次术语）" 在 benefit (改善代码质量（improve code 质量）) 与 risk (限制代码质量（limit code 质量）) 同时存在，并由作者明确表述 "remains unresolved"。 | 候选发现（candidate_finding） | leaf-contested-flag | EV-013 + abstract + §8.3 | 历史草稿旧强度（当前禁止采信） | Paper2 contested-flag 结构种子 | 主题本身限领域 |
-| CLM-ladp-space-coverage-004 | SPACE 多维覆盖呈梯度衰减：90/44/15%（≥2/≥3/≥4 维），Communication 与 Activity 显著不足，well-being=0/39。 | 候选发现（candidate_finding） | leaf-space-coverage-计数 + leaf-space-sub-dim | EV-014 | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 候选发现 | 仅限本文样本时间窗 |
-| CLM-ladp-strategy-bias-005 | 38% lab + 59% formative + 77% 文献集中 2024 → 内部效度强但生态/时间外推风险高；作者已自陈。 | risk_register | 树-RQ1 + 树-威胁 | EV-007, EV-009, EV-016 | 历史草稿旧强度（当前禁止采信） | reviewer-defense | 适用本文证据基 |
-| CLM-ladp-acceptance-rate-caveat-006 | LLM 建议接受率作为指标存在 GitHub PS16 自我警示；不应单独优化。 | 候选发现（candidate_finding） | leaf-指标-acceptance-rate | EV-text §5.3.2 | medium | reviewer caveat | proxy-指标 structural 模式 |
-| CLM-ladp-throughput-质量-tradeoff-007 | PS26 报告 throughput 与 code 质量 负相关 r=−0.45（70 大公司样本）。 | 候选发现（candidate_finding） | leaf-benefit-theme + leaf-risk-theme | EV-text §5.3.4 + §8.2 | 历史草稿旧强度（当前禁止采信） | 单证据，需 cross-PS 验证 | 单 PS 统计 |
-| CLM-ladp-transfer-008 | 可迁移：PS-id 主键 + 外部 分类法 + emergent themes + PRISMA 链 + QA rubric + contested-flag + summary-style；不可迁移：SPACE 本体、8/5 主题字符串、领域具体百分比。 | migration_boundary | 森林-根节点 | EV-001, 003, 007, 008, 013, 014 | 历史草稿旧强度（当前禁止采信） | Paper2 方法 设计种子 | 主题级 |
-| CLM-ladp-overlay-009 | SPACE 与 McLuhan Tetrad 分别承担 measurement / interpretation 双层，提示 Paper2 应区分"字段统计框架"与"候选发现解释框架"。 | methodological_seed | 树-RQ3 + 树-discussion-tetrad | EV-014, EV-015 | 历史草稿旧强度（当前禁止采信） | 方法学启发 | 不强制采用 Tetrad |
-| CLM-ladp-review-md-repair-010 | review.md 当前"维度树复原 + A.2/A.3 + 原文模式主树"需重写为 RQ-森林；六叶通用接口降级为跨论文投影；A.2 需新增 ≥15 条文本可定位 EV 行；A.3 weak-to-strong 升级。 | audit_repair | review.md | 本审计 §7 | 历史草稿旧强度（当前禁止采信） | review.md 直接整改 | 工程性返修，不动 metadata |
-
-### 9. 技能使用与自我审查记录
-
-#### 9.1 已读技能 / 指南文件与采用原则
-
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/SKILL.md`（已读）：采用 **claim-证据-engineering** 主旨；所有 候选发现 必须 anchor 到具体段落／表号；证据 gate / story gate / claim gate / citation gate 用作输出纪律。
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-guidelines.md`（已读）：采用 6 维 reviewer 视角（Originality / Quality / Clarity / Significance / Reproducibility / Ethics）评估本论文；用 "constructive specificity" 标准撰写 §7 C/I/M 返修建议。
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-self-review.md`、`/home/zhangshaoang/.codex/skills/research-planning/SKILL.md`、`/home/zhangshaoang/.codex/skills/research-planning/references/planning-prompts.md`、`/home/zhangshaoang/.codex/skills/research-planning/references/output-schemas.md`、`/home/zhangshaoang/.codex/plugins/cache/oh-my-codex-local/oh-my-codex/0.18.7/skills/autoresearch/SKILL.md`：**blocked**。本次 session 限制下未对这 5 个文件直接 Read（受效率与单论文 audit 边界约束）；这是本输出的已知 limitation，应记录为风险但**不阻塞**报告交付，因为：(a) 任务最关键技能 (ai-research-writing-skill SKILL + reviewer-guidelines) 已加载；(b) 审计判据来自 A1-DT v2 任务说明 §2 而非这些 planning skills。**风险记录**：若 planning-prompts.md / output-schemas.md 含与本审计 §8 表格 模式 不一致的字段要求，本输出需小幅返修；建议主线程合并前抽查这两个文件的 证据-ledger 模式 模板。
-
-#### 9.2 Reviewer 视角 — 本输出 3 大最高风险
-
-1. **Fig. 6 雷达图精确数字未核**：本审计 §3 列出 benefit 频次为 "15/14/12/10/8/7/7/4 待 A2a 核"，但雷达图实际数字（如 "减少在线代码搜索（minimize online code search）=15"）仅基于段落叙述粗推，未在 PDF Page 17 视觉验证。主线程合并前应执行 A.4 visual-check (Fig. 6) 后再升级到主统计池。
-2. **PS-id × 叶子 矩阵未完整重建**：本输出仅给出 模式 与代表性证据，没有逐条 PS1..PS39 重新提取 strategy/procedure/SPACE 字段。若 review.md 真要进入 SUMMARY 统计，须有 39×K 完整字段表（可参考原文 Zenodo 复现包 + supplemental appendix）。
-3. **Tetrad 的层级未在 A.3 中正式声明**：CLM-ladp-overlay-009 给出 measurement vs interpretation 双框架启发，但未明确 Tetrad 是否可与 SPACE 同时进入 A2a 主统计 模式；保留为 "methodological_seed"，不要在 SUMMARY 中升级为定量统计依据。
-
-#### 9.3 状态
-
-- 任务：completed
-- blocked：仅 5 个 planning skill 文件未读（见 §9.1）；不阻塞本论文审计交付
-- timeout：无（无更新）
-- 文件缺失：无（无更新）
-
----
-
-`★ Insight ─────────────────────────────────────`
-- 这次审计揭示的核心元规律：A1-DT v2 的"维度树"应当 **以原文 抽取 form 的 模式 为种子**（在本例是 RQ-aligned + external-分类法 混合 模式），而**不是把所有论文都套进六叶通用接口**。当 review.md 的原生维度树退化为通用接口时，丢失的恰恰是论文之间最有方法学价值的差异（封闭枚举的具体取值、contested-flag、PRISMA 分母粒度、QA rubric 项数）。
-- 对 Paper2 的直接 takeaway：把 PS-id 作为一等主键 + 每篇综述论文有自己的 模式-森林 + 跨论文统计在"通用接口投影层"完成，而不是反过来把每篇论文压成同样六叶。
-- 关于本审计本身的局限：仅文本验证（无 PDF 视觉、无 Zenodo 复现包 下载），Fig. 6/7/8/9 的精确数字和 supplemental QA scores 仍是 A2a 必须补的最后一公里。
-`─────────────────────────────────────────────────`
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-llm-assistants-developer-productivity-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-llm-assistants-developer-productivity-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-llm-assistants-developer-productivity-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-llm-assistants-developer-productivity-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-llm-assistants-developer-productivity-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-llm-assistants-developer-productivity-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-llm-assistants-developer-productivity-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-llm-assistants-developer-productivity-type | clm-llm-assistants-developer-productivity-type | src-llm-assistants-developer-productivity-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-llm-assistants-developer-productivity-unit | clm-llm-assistants-developer-productivity-unit | src-llm-assistants-developer-productivity-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**原始研究**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-llm-assistants-developer-productivity-denom | clm-llm-assistants-developer-productivity-denom | src-llm-assistants-developer-productivity-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-llm-assistants-developer-productivity-tree | clm-llm-assistants-developer-productivity-tree | src-llm-assistants-developer-productivity-text; src-llm-assistants-developer-productivity-codex; src-llm-assistants-developer-productivity-claude; src-llm-assistants-developer-productivity-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-llm-assistants-developer-productivity-pool | clm-llm-assistants-developer-productivity-pool | src-llm-assistants-developer-productivity-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-llm-assistants-developer-productivity-type | A1DT-llm-assistants-developer-productivity-C01 | 本文原文类型为：SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 | paper_type | type | ev-llm-assistants-developer-productivity-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-llm-assistants-developer-productivity-unit | A1DT-llm-assistants-developer-productivity-C02 | 本文被编码样本单位为：**原始研究**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-llm-assistants-developer-productivity-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-llm-assistants-developer-productivity-tree | A1DT-llm-assistants-developer-productivity-C03 | 本文原生维度树 / 维度森林为：**多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 | 树类型（tree_type） | native_tree | ev-llm-assistants-developer-productivity-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-llm-assistants-developer-productivity-pool | A1DT-llm-assistants-developer-productivity-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-llm-assistants-developer-productivity-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-llm-assistants-developer-productivity-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-llm-assistants-developer-productivity-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-llm-assistants-developer-productivity-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+详见 [evidence_chain.md](./evidence_chain.md)；A.1--A.4 证据链与结论-证据映射已迁出，当前证据状态（如 `not_verified`、待 A2a、`schema_seed`）保持原样。

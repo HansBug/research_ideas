@@ -8,6 +8,7 @@
 |---|---:|
 | 入账论文 | 19 |
 | 完成 `review.md` | 19 |
+| 完成 `evidence_chain.md` | 19 |
 | 完成 `metadata.json` | 19 |
 | 完成 `paper.pdf` + `paper_content.txt` | 19 |
 | active `manual-download-needed.bib` 条目 | 0 |
@@ -17,13 +18,13 @@
 | 真实 LLM / `.env` | A1 原始 dry-run 未运行；A1-DT v2 已完成 57/57 CLI 审计，日志保留命令/stdout/stderr与环境摘要，关于 `.env` 只记录 `.env exists`，不记录 secret |
 | 四个真实例子 | 不运行；A1 只做文库 dry-run |
 
-**总判断**：A1 当前已经从“最小脚手架”进入“可接力的长期文库起点”状态。19 篇均达到全文文本级，并且 A1-DT v2 已完成 57/57 三路 CLI 审计、19/19 主线程裁决和 19/19 单篇 `review.md` 返修，可用于验证字段抽取、证据等级、统计池候选过滤、A1-M0--M6 元维度、原生维度树 / 维度森林和失败路径闭环；但这些证据链当前仍按 `schema_seed` / `boundary_anchor` 管理，不能直接进入 Paper2 最终发现 或目标领域定量结论。后续 A2a/A2b 的重点应是扩大样本、补图表/页码级证据锚点、收敛字段取值空间，并记录 researcher adoption decision，完成后才可把候选主统计池升级为正式统计证据。
+**总判断**：A1 当前已经从“最小脚手架”进入“可接力的长期文库起点”状态。19 篇均达到全文文本级，并且 A1-DT v2 已完成 57/57 三路 CLI 审计、19/19 主线程裁决、19/19 单篇 `review.md` 返修和 19/19 `evidence_chain.md` 证据链拆分，可用于验证字段抽取、证据等级、统计池候选过滤、A1-M0--M6 元维度、原生维度树 / 维度森林和失败路径闭环；但这些证据链当前仍按 `schema_seed` / `boundary_anchor` 管理，不能直接进入 Paper2 最终发现 或目标领域定量结论。后续 A2a/A2b 的重点应是扩大样本、补图表/页码级证据锚点、收敛字段取值空间，并记录 researcher adoption decision，完成后才可把候选主统计池升级为正式统计证据。
 
 ## 1.1 PR #135 A1-DT v2 抽取与审计口径
 
 A1-DT v2 的核心修正是把“单篇论文原生维度树 / 维度森林”和“跨论文 A1-M0--M6 投影矩阵”分开：每篇 `review.md` 应优先复原原文自己的 RQ、样本单位、抽取字段、分类 schema、统计表、roadmap / guideline stage 与 finding path；A1-M0--M6 只作为跨论文投影层，用于比较和接力，不能反向冒充单篇原生树。v1 审计目录 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅作为历史归档；v2 独立入口为 [audits/a1dt-v2-19x3/](./audits/a1dt-v2-19x3/)。
 
-v2 当前总判断：19 篇均具备全文文本、`metadata.json` 与 `review.md`，并已完成 57/57 三路 CLI 审计、19/19 人工 adjudication 和 19/19 单篇返修；其中 13 篇是后续主统计池候选，6 篇因 guideline / roadmap / proposal / theory-roadmap 等性质降级为方法学参考或 boundary seed。v2 表中的样本数量、树型和统计池资格已经回填到当前总账，但仍只能作为 `schema_seed` / `boundary_anchor`；在 A2a 完成页码 / 表图 / supplementary 精核前，不得写成 Paper2 最终发现。
+v2 当前总判断：19 篇均具备全文文本、`metadata.json`、`review.md` 与 `evidence_chain.md`，并已完成 57/57 三路 CLI 审计、19/19 人工 adjudication、19/19 单篇返修和 19/19 证据链拆分；其中 13 篇是后续主统计池候选，6 篇因 guideline / roadmap / proposal / theory-roadmap 等性质降级为方法学参考或 boundary seed。v2 表中的样本数量、树型和统计池资格已经回填到当前总账，但仍只能作为 `schema_seed` / `boundary_anchor`；在 A2a 完成页码 / 表图 / supplementary 精核前，不得写成 Paper2 最终发现。
 
 ## 1.2 A1-DT v2 统一总账表（按年份降序）
 
@@ -169,7 +170,7 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 
 ## 6.1 维度树模式总览
 
-本节是 PR-A1-DT 后新增的跨论文入口；当前 v2 批次为 [A1-DT v2 19×3 原生维度树审计](./audits/a1dt-v2-19x3/README.md)。旧 [A1-DT v1 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 仅为历史返修来源，不是当前事实口径。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中新增 `维度树复原` 与 A.1--A.4 审计附录；下表只做总览和跳转，具体证据以单篇为准。
+本节是 PR-A1-DT 后新增的跨论文入口；当前 v2 批次为 [A1-DT v2 19×3 原生维度树审计](./audits/a1dt-v2-19x3/README.md)。旧 [A1-DT v1 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 仅为历史返修来源，不是当前事实口径。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中保留 `维度树复原`，并把正式 A.1--A.4 审计附录集中迁入同目录 `evidence_chain.md`；下表只做总览和跳转，具体正文以 `review.md` 为准，具体证据链以 `evidence_chain.md` 为准。
 
 | 年份 | 论文 | 主类型 | 辅助类型 | 后续主统计池候选 | A1-DT 当前允许用途 | 单篇结论标识 | 详情 |
 |---:|---|---|---|---|---|---|---|
@@ -218,7 +219,7 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 
 **本节结论**：SUMMARY 的跨论文归纳已经显式回链单篇 A.3 结论标识。后续若新增论文或修改树型，必须同步更新本表，否则 SUMMARY 归纳将失去证据链闭环。
 
-**A1-DT v2 证据链边界**：当前正式 A.2 / A.3 是树级与核心裁决的最小 claim map；单篇叶子取值空间、关系边、缺失值语义和图表待核验项仍以各 `review.md` 的“维度树复原”正文、叶子维度表、关系边表和审计草案为细粒度账本。若两处发生冲突，以文末 A.2 / A.3 与主线程裁决为准，并在 A2a 把 leaf / edge 逐项迁入统一审计附录；因此 SUMMARY 不把 A1-DT v2 写成叶子级最终统计证据。
+**A1-DT v2 证据链边界**：当前正式 A.2 / A.3 是树级与核心裁决的最小 claim map，集中保存在各单篇 `evidence_chain.md`；单篇叶子取值空间、关系边、缺失值语义和图表待核验项仍以各 `review.md` 的“维度树复原”正文、叶子维度表和关系边表为细粒度说明。若两处发生冲突，以 `evidence_chain.md` 的 A.2 / A.3 与主线程裁决为准，并在 A2a 把 leaf / edge 逐项迁入统一审计附录；因此 SUMMARY 不把 A1-DT v2 写成叶子级最终统计证据。
 
 ## 7. 当前 pattern 总结与 A2a 接力建议
 
@@ -239,7 +240,7 @@ A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视�
 
 | 时间 | 触发条目 / 样本 | 受影响字段 | 修订内容 | 回填状态 | 冻结理由 / 后续处理 |
 |---|---|---|---|---|---|
-| 2026-06-29 21:10:00 | PR-A1-DT 逐篇维度树复原；19 篇全文样本 | 维度树、叶子取值空间、关系边、结论-证据映射、SUMMARY 归纳回链 | 新增 GUIDE 维度树纪律、schema 字段合同、19 篇 `review.md` 的 `维度树复原` 与 A.1--A.4 审计附录；SUMMARY 新增维度树模式总览和 `[sum-A1DT-*]` 结论-证据映射 | 已回填 19/19 篇 review、GUIDE、pattern schema 与 SUMMARY | Paper2 方法贡献需要可审计维度树，而不是平铺字段矩阵；A2a 继续做页码 / 图表精核与样本扩展。 |
+| 2026-06-29 21:10:00 | PR-A1-DT 逐篇维度树复原；19 篇全文样本 | 维度树、叶子取值空间、关系边、结论-证据映射、SUMMARY 归纳回链 | 新增 GUIDE 维度树纪律、schema 字段合同、19 篇 `review.md` 的 `维度树复原` 与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录；SUMMARY 新增维度树模式总览和 `[sum-A1DT-*]` 结论-证据映射 | 已回填 19/19 篇 review、GUIDE、pattern schema 与 SUMMARY | Paper2 方法贡献需要可审计维度树，而不是平铺字段矩阵；A2a 继续做页码 / 图表精核与样本扩展。 |
 | 2026-06-29 17:48:49 | 用户复核 SUMMARY 批次化问题；19 篇全文样本 | SUMMARY 主表、证据池、A1-M0--M6 总账矩阵 | 取消按 PR 批次拆分主表，改为统一年份降序表；明确三类证据池主归属；新增 19 篇 × A1-M0--M6 覆盖矩阵 | 已回填 SUMMARY、GUIDE、progress 与 task packet | 长期文库必须按对象和当前事实维护，不能按施工批次维护；A2a/A2b 继续沿用统一总账结构。 |
 | 2026-06-29 17:58:30 | 三路复审 C/I：CCF 复核状态、三池计数、schema 回修入口 | `ccf_verification_status`、三类证据池计数、schema change ledger | 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数；恢复本结构化 schema 修订 / 回填日志 | 已回填 SUMMARY、GUIDE、pattern schema、task packet 和 progress | 防止复制主表时丢失 CCF disclaimer；防止方法学样本与边界 seed 重复计数；保留字段回修可审计入口。 |
 | 2026-06-29 16:59:12 | 用户补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 PDF | 阅读状态、`eligible_for_statistical_synthesis`、manual-download 状态 | 历史 metadata-only / manual-download 条目升级为全文文本级；active manual-download 清零；Petersen 2008 保持方法学参考池，Petersen 2015 作为方法学统计样本进入主统计池 | 已回填 3 篇 `paper.pdf`、`paper_content.txt`、`review.md`、`metadata.json`、SUMMARY 与 search log | 补齐全文后才能把题摘级候选升级为全文级 pattern；统计池仍按主归属和系统性证据状态控制。 |
@@ -280,7 +281,7 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
-| 2026-06-29 21:10:00 | 完成 PR-A1-DT 实现：补充 GUIDE 维度树复原规则、pattern schema 字段合同、19 篇单篇 `review.md` 的维度树复原与 A.1--A.4 审计附录，并在 SUMMARY 增加维度树模式总览和 SUMMARY 结论-证据映射。 | A1 原始阶段未读取 `.env`；A1-DT v2 批次已完成 57/57 CLI 审计，日志保留命令/stdout/stderr与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录 secret；A1-DT 仍保留 A2a 页码 / 表图精核边界。 |
+| 2026-06-29 21:10:00 | 完成 PR-A1-DT 实现：补充 GUIDE 维度树复原规则、pattern schema 字段合同、19 篇单篇 `review.md` 的维度树复原与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录，并在 SUMMARY 增加维度树模式总览和 SUMMARY 结论-证据映射。 | A1 原始阶段未读取 `.env`；A1-DT v2 批次已完成 57/57 CLI 审计，日志保留命令/stdout/stderr与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录 secret；A1-DT 仍保留 A2a 页码 / 表图精核边界。 |
 | 2026-06-29 17:40:27 | 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 SUMMARY 为长期文库总账：取消批次化主表，改为统一年份降序论文表；补充三类证据池标准；新增 19 篇 × A1-M0--M6 覆盖矩阵；把历史过程下沉为风险 / 日志。 | 本轮只重构总账和规则，不新增论文；后续需同步 GUIDE 与 PR body，并复验 19/19/19/19、active manual=0。 |
 | 2026-06-29 16:59:12 | 用户提供 3 篇历史 manual-download PDF 后，补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 的 `paper.pdf`、`paper_content.txt`、全文级 `review.md` 和 `metadata.json`，并将 active 人工下载清单清零。 | 文件系统统计更新为 19 个 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`；3 篇历史失败路径已闭环，剩余风险转为 A2a 图表视觉核对和 CCF 官方人工复核。 |
 | 2026-06-29 16:13:28 | 修复三路 reviewer 复审提出的 C/I：补齐早期 9 篇 `metadata.json`，统一 19 篇机器可读字段，修正 CSUR CCF 待核验口径，并清理 `paper_content.txt` 行尾空白。 | `git diff --check` 两点工作区口径通过；提交后需再用 PR 三点 diff 复验。 |

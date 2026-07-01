@@ -3,11 +3,11 @@
 ## 0. 当前事实口径：A1-DT v2
 
 > [!IMPORTANT]
-> A1-DT v2 是当前维度树事实口径。开始处理本目录前，必须先读 [GUIDE.md](./GUIDE.md) §6.3，再进入单篇 `papers/<slug>/review.md` 或审计目录。
+> A1-DT v2 是当前维度树事实口径。开始处理本目录前，必须先读 [GUIDE.md](./GUIDE.md) §6.3，再进入单篇 `papers/<slug>/review.md`；需要审计证据时再读同目录 `evidence_chain.md` 或批次级 [audits/](./audits/)。
 
 A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维度树 / 维度森林 + 跨论文投影层”：
 
-1. 单篇 `review.md` 必须从原文 RQ、贡献声明、抽取表、编码方案、taxonomy、roadmap action、guideline item 或证据呈现结构复原原生树 / 森林。
+1. 单篇 `review.md` 必须从原文 RQ、贡献声明、抽取表、编码方案、taxonomy、roadmap action、guideline item 或证据呈现结构复原原生树 / 森林；正式 A.1--A.4 证据链集中在同目录 `evidence_chain.md`。
 2. [patterns/](./patterns/) 只做结果侧跨论文投影 / 归纳，不能反向作为单篇原生树模板。
 3. v2 新审计与新返修产物写入 `audits/a1dt-v2-19x3/`。
 4. [audits/a1dt-19x3/](./audits/a1dt-19x3/) 是 v1 历史归档，只能作为返修来源和历史证据，不是当前事实口径。
@@ -62,7 +62,7 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 | [GUIDE.md](./GUIDE.md) | 检索、筛选、单篇目录、证据等级、schema 回修和 dry-run 维护规则。 |
 | [SUMMARY.md](./SUMMARY.md) | 当前总账、候选池、dry-run 覆盖矩阵、脚手架模式、schema 缺口和更新日志。 |
 | [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
-| [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json` 和 `review.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。 |
+| [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json`、`review.md` 与 `evidence_chain.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。`review.md` 是当前正文入口，`evidence_chain.md` 是正式 A.1--A.4 证据链。 |
 | [patterns/](./patterns/) | 结果侧跨论文投影 / 归纳入口；只能汇总单篇原生树之后的可迁移字段，不能作为单篇树模板。 |
 | [audits/](./audits/) | 专项审计批次入口；v2 新产物写入 `audits/a1dt-v2-19x3/`，v1 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅历史归档。 |
 
@@ -72,7 +72,7 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 2. 再读 [GUIDE.md](./GUIDE.md)，尤其 §6.3，明确 A1-DT v2 的证据等级、单篇原生树 / 维度森林、样本单位降级和 schema 回修规则。
 3. 再读 [SUMMARY.md](./SUMMARY.md) 看当前 A1 状态和 dry-run 结论。
 4. 需要字段合同时读 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md)。
-5. 需要核验单篇证据时进入 [papers/](./papers/) 并优先读 `review.md`，再回到 `paper_content.txt` / `paper.pdf`。
+5. 需要理解单篇当前结论时进入 [papers/](./papers/) 并优先读 `review.md`；需要核验证据链时读同目录 `evidence_chain.md`，再回到 `paper_content.txt` / `paper.pdf`。
 
 ## 6. 与 S0-v2 主线的关系
 
@@ -89,7 +89,7 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 
 A1-DT v2 是当前事实口径。v2 要求把 19 篇 `review.md` 统一到“单篇原生样本编码维度树 / 维度森林 + 跨论文投影层”的结构：先从原文复原每篇自己的 RQ / 样本单位 / 编码字段 / 关系边，再把可迁移部分投影到 [patterns/](./patterns/) 和 [SUMMARY.md](./SUMMARY.md)。
 
-v2 新产物必须写入 [audits/a1dt-v2-19x3/](./audits/a1dt-v2-19x3/)；该目录已经落地，当前事实证据以 v2 prompt / result / log / adjudication / 单篇返修为准。任何后续工作都不得再把 v1 归档当作当前完成证据。
+v2 批次级过程产物必须写入 [audits/a1dt-v2-19x3/](./audits/a1dt-v2-19x3/)；该目录已经落地。当前读者入口以单篇 `review.md` 为准，正式证据链以单篇 `evidence_chain.md` 和 v2 prompt / result / log / adjudication 为准。任何后续工作都不得再把 v1 归档当作当前完成证据。
 
 > [!WARNING] v1-deprecated: PR-A1-DT v1 曾对 19 篇 `review.md` 形成 57 份 codex / claude / deepseek 全文审计，入口为 [audits/a1dt-19x3/README.md](./audits/a1dt-19x3/README.md)，逐篇审计汇总为 [audits/a1dt-19x3/SUMMARY.md](./audits/a1dt-19x3/SUMMARY.md)。该批次现在只作为历史归档和返修来源，不是 A1-DT v2 当前事实口径。
 

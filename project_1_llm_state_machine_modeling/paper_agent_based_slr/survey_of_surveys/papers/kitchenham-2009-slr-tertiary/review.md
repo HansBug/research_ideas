@@ -60,12 +60,12 @@
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__codex.md](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__codex.md)、[../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__claude.md](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__claude.md)、[../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__deepseek.md](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/kitchenham-2009-slr-tertiary.md](../../audits/a1dt-v2-19x3/adjudications/kitchenham-2009-slr-tertiary.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -80,8 +80,8 @@
 | 被编码样本单位 | 二次研究（系统文献综述 或 元分析（meta-analysis） 论文，每条对应一篇 SLR/MA） |
 | 样本数量 / 分母 | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） |
 | 原生树类型 | **单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） |
-| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -259,145 +259,6 @@
 - "ACM Computer Surveys 无 SE SLR" — 2008 年快照，已过时。
 - "8/20 引用 Guidelines" 等具体计数 — 仅本文窗口。
 
-### 7. 对旧版 `review.md` 的返修来源
+## 证据链入口
 
-#### C 级（critical，会破坏 A1-DT 与论文证据链）
-
-- **C1.** 现行 review.md `维度树结构` 段（L78--91）只放六个通用接口叶子，**完全未把 §2.5 的 10 项抽取字段与 §2.4 的 DARE rubric 列出来**。即便 v1→v2 已经加了 `原文模式（模式）主树（19×3 审计后返修）` 表（L122--130），叶子粒度仍停在「数据抽取字段」这种聚合标签，**没有把 Source/Year/Type/Scope/Topic area/Author/Institution/Country/Refs/Practitioner-guidelines/Num-primary 11 个具体叶子列出**。返修动作：用本审计第 4 节的叶子表替换/扩展现有「叶子维度表」。
-- **C2.** Table A1（检索漏斗）和 Table A2（排除候选）作为 funnel 子树**完全缺席**于现有维度树。返修：新增 funnel 子树小节，至少列 3 个叶子（Total/Relevant/Selected）+ Table A2 的 `exclusion-reason` 枚举。
-
-#### I 级（important）
-
-- **I1.** DARE rubric 子树虽然在 `原文模式候选叶子映射` 中以 `leaf-...-quality-criteria` 一行带过，但 QA1--QA4 + total + agreement **六个具体叶子未列**。返修：添加完整 DARE 子树叶子表（如本审计第 3.2 与第 4 节）。
-- **I2.** 现有「关系边表」缺席；返修：加入本审计第 5 节关系边表，至少覆盖 `rel-duplicate-version`、`rel-rater-pair`、`rel-cites-ebse`。
-- **I3.** A.2 证据账本只有 4 行通用证据（EV-001..004），未对接到具体表号（Table 1/2/3/4/5/A1/A2/A3）。返修：把 12 条证据锚点（E01--E12）补入 A.2，每行指向具体 Table 编号 + 行号范围。
-- **I4.** 「样本数量 / 分母」在 review.md 快速结论卡片中未显式给出 `N=20`、漏斗 `2506→33→19+2`。返修：在 `1. 快速结论卡片` 加 `主样本量 / 漏斗分母` 行。
-- **I5.** SUMMARY 表（论文集 SUMMARY.md）中本文「原生树类型」字段当前若仅写「降级树 / 模式种子」会与本审计判定（`单树+双子树并列`，**可统计但需 A2a 视觉核验**）冲突。返修：在 SUMMARY 中标注「原生树类型 = 抽取表+DARE rubric+漏斗子树」「样本单位 = 二次研究」「N=20」「主统计池资格 = 局部可统计」。
-
-#### M 级（minor，工程性 / 可作 follow-up）
-
-- **M1.** review.md 中保留的 `19×3 v1 historical audit` warning box 措辞可缩短；不影响事实。
-- **M2.** 多处 "EBSE / SE SLR 状态 的" 半成品占位句（如 L97 末「迁移结构与证据要求，不迁移领域结论。」与上文重复）可清理。
-- **M3.** Table 3 中 `S17 SLR Y N N Y` 与 §3.2 描述 "all studies scored 1 or more" 一致，无需修正；但 `S18 Total=1` 与 "only three studies scored less than 2"（应为 S10=1.5, S16=1.5, S18=1）三篇相符，可加注释。
-- **M4.** review.md 当前的 叶子 标识用 `[leaf-...-scope]` 这种通用名，建议加 `-orig-*` 后缀区分通用接口投影与原文具体叶子（如本审计第 4 节命名）。
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-A2-001 | paper_content.txt | §1 Introduction | L88--97 | "review the current status of EBSE since 2004 using a tertiary 研究" | rq | strong (历史草稿旧强度（当前禁止采信）) | [根节点], [dim-orig-rq] | false | 仅本文 |
-| EV-A2-002 | paper_content.txt | §2.1 研究问题（Research questions） | L105--141 | "RQ1...RQ4 + RQ4.1--RQ4.4" 八层 RQ 树 | rq | 历史草稿旧强度（当前禁止采信） | L4.2, L8.1, L7.1, [dim-orig-rq] | false | -- |
-| EV-A2-003 | paper_content.txt | Table 1, §2.2 | L161--177 | 10 期刊 + 4 会议清单 | corpus_scope | 历史草稿旧强度（当前禁止采信） | L1.1, leaf-funnel-* | true (复核刊名) | 仅 2004--2007 SE 期刊 |
-| EV-A2-004 | paper_content.txt | §2.3 | L186--203 | 纳排标准 + 重复报告处理 | inclusion_criteria | 历史草稿旧强度（当前禁止采信） | L2.1, rel-duplicate-version | false | -- |
-| EV-A2-005 | paper_content.txt | §2.4 + Table 3 | L204--234, L465--489 | DARE QA1--QA4 + Y/P/N/未知 评分 | 质量量规（quality_rubric） | 历史草稿旧强度（当前禁止采信） | L5.*, leaf-orig-qa* | true (核对 S 行评分) | -- |
-| EV-A2-006 | paper_content.txt | §2.5 | L243--258 | 10 项抽取字段清单 | extraction_schema | 历史草稿旧强度（当前禁止采信） | L1.*--L8.* 全部叶子 | false | 此为**最关键证据**，确定原生模式 来源 |
-| EV-A2-007 | paper_content.txt | §2.6 | L268--283 | 8 个分析项→4 RQ 映射 | analysis_plan | 历史草稿旧强度（当前禁止采信） | rel-rq-to-table | false | -- |
-| EV-A2-008 | paper_content.txt | §2.7 + §4.5 | L284--295, L639--680 | 4 项 protocol deviation 声明 | limitation | 历史草稿旧强度（当前禁止采信） | 威胁/limitations 节点 | false | -- |
-| EV-A2-009 | paper_content.txt | Table 2 | L335--389 | 20 条 S1--S20 编码记录（8 列） | sample_table | 历史草稿旧强度（当前禁止采信） | 主统计池所有叶子 | true (核对 Topic area, Refs 列) | -- |
-| EV-A2-010 | paper_content.txt | Table 3 | L465--489 | 20×4 DARE 评分明细 + total + agreement | quality_table | 历史草稿旧强度（当前禁止采信） | leaf-orig-qa* | true (核对 P/Y/N 与 * 标记) | -- |
-| EV-A2-011 | paper_content.txt | Table 4, Table 5 + §3.3 | L490--503, L394--404 | 年×均分；引用 Guidelines×均分；Spearman ρ=0.51 | statistical_result | 历史草稿旧强度（当前禁止采信） | OBS-07, OBS-08 | true (核对均值/方差) | -- |
-| EV-A2-012 | paper_content.txt | Table A1 | L589--633 | 检索漏斗 2506→33→19 | corpus_funnel | 历史草稿旧强度（当前禁止采信） | leaf-funnel-* | true (核对加总) | -- |
-| EV-A2-013 | paper_content.txt | Table A2 | L694--739 | 14 条排除候选 + 排除原因 | exclusion_record | medium (sample only) | leaf-excl-reason | true | A2 仅 14 例样本 |
-| EV-A2-014 | paper_content.txt | Table A3 | L750--810 | 20 条作者-机构-国家 | author_table | 历史草稿旧强度（当前禁止采信） | L3.* | true | -- |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| CLM-A3-T01 | 本文具备完整 tertiary SLR 维度树：单主树（20 篇 二次研究 × 11 抽取字段）+ DARE 子树 + 漏斗子树 | 树类型（tree_type） | [根节点] | EV-A2-006, EV-A2-005, EV-A2-009, EV-A2-012 | 历史草稿旧强度（当前禁止采信；A2a 后重判） | 模式种子（schema_seed） → 可升级为主统计池字段定义 | A2a 必须核 Table 2/3/A1 版式 |
-| CLM-A3-T02 | 样本单位是 二次研究 (SLR/MA)；N=20；漏斗分母 2506 | 样本单位（sample_unit） | [根节点] | EV-A2-009, EV-A2-012 | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | -- |
-| CLM-A3-L01 | 叶子 leaf-orig-topic-area 取值空间为开放枚举，本文观察 12 个主题域 | 叶子_definition | leaf-orig-topic-area | EV-A2-009 (Table 2) | medium (枚举未饱和) | 模式种子（schema_seed） | 不可视为饱和；A2a 需扩库验证 |
-| CLM-A3-L02 | DARE rubric (QA1--QA4 + Y/P/N + 1/0.5/0) 是本文质量评价 模式 的完整复原 | 叶子_definition | leaf-orig-qa1..qa-total | EV-A2-005, EV-A2-010 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 质量评价模板 | -- |
-| CLM-A3-S01 | 统计观察 OBS-01..10 可作为 边界锚点，但 OBS-04/05/09 是 2008 快照，不可外推 | statistical_observation | OBS-01..10 | EV-A2-009..014 | strong (本文窗口内) | 边界锚点（boundary_anchor） | 仅适用 2004--2007 SE 期刊 |
-| CLM-A3-M01 | 字段+RQ+分析项三角映射（§2.6）值得作为 Paper2 自审计模板 | migration_method | rel-rq-to-table | EV-A2-007 | 历史草稿旧强度（当前禁止采信） | 方法学迁移 | 不迁移领域结论 |
-| CLM-A3-F01 | "EBSE 由欧洲/Simula 主导" 是历史候选发现，不可作为 最终发现 | 候选发现（candidate_finding） | OBS-04 | EV-A2-014 | weak (历史快照) | 候选发现（candidate_finding） | 2026 年生态已大变 |
-| CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | 历史草稿旧强度（当前禁止采信） | 作为返修候选线索 | -- |
-
-### 9. 技能使用与自我审查记录
-
-#### 9.1 技能文件使用
-
-| 文件 | 是否读取 | 采用原则 |
-|---|---|---|
-| `ai-research-writing-skill/SKILL.md` | 是 | Evidence gate（每条结论挂证据）；Citation gate（模式 字段必须可追溯到原文表号）；Claim gate（区分 statistical observation / 候选发现 / 最终发现） |
-| `ai-research-writing-skill/references/reviewer-guidelines.md` | 是 | Constructive Specificity Standard（每条返修建议给出具体 L 行号 + 表号 + 命名建议）；C/I/M 分级配套学术目标说明 |
-| `ai-research-writing-skill/references/reviewer-self-review.md` | 未读（文件存在但本轮未实际打开） | 标记为 部分-skill-use |
-| `research-planning/SKILL.md` | 是 | 4-阶段 planning 视角下，本文已自带 overall plan + 抽取 模式 + analysis plan，对照后判定 模式 完整 |
-| `research-planning/references/planning-prompts.md` | 未独立 Read（仅 ls 确认存在） | 部分-skill-use |
-| `research-planning/references/output-schemas.md` | 未独立 Read | 部分-skill-use |
-| `oh-my-codex-local/.../autoresearch/SKILL.md` | 未读（路径已 ls 确认存在 SKILL.md） | 部分-skill-use |
-
-**风险记录**：本轮因时间预算压缩，未逐一打开 reviewer-self-review.md / planning-prompts.md / output-schemas.md / autoresearch SKILL.md。这 4 个文件存在性已确认（ls 通过），但内容未消费——若主线程认定其内容是硬性 input，应作为 follow-up 重做。**当前不构成 blocked**，因为本审计的核心方法学（C/I/M 分级、证据-claim 映射、原生模式 vs 通用接口）已由前 2 个文件覆盖。
-
-#### 9.2 Reviewer 视角下本输出最高风险 3 点
-
-1. **PDF 版面未核验**：QA 评分（Y/P/N 与 \* 标记）、Table 4/5 均值与方差、Table A1 加总是否完全等于 2506 / 33 / 19，均仅依赖 OCR 文本（含 "\C15"、"\C14"、"\C2112008" 残留）。主线程合并前应至少抽样 PDF 核 3--5 个 cell。
-2. **leaf-orig-topic-area 枚举未饱和**：本审计列了 12 项观察值，但作者并未声明这是封闭分类。Paper2 若用作模板，需在跨论文扩库时验证。
-3. **「主统计池资格 = 局部可统计」可能与论文集 SUMMARY.md 既有口径冲突**：旧版 review.md L23 写 "模式 历史观察：无硬缺口；但 质量 score 数值需 原文图表级核对后才能进入正式统计"，与本审计基本一致；但 SUMMARY 表如果写「模式种子 only / 不可统计」就需要协调。
-
-#### 9.3 任务状态
-
-- `blocked`：**否**
-- `timeout`：**否**
-- 文件缺失：**否**
-- 部分-skill-use：4 个 reference 文件未深读（详见 9.1），不影响主结论
-- 完整自包含报告：**是**
-
----
-
-`★ Insight ─────────────────────────────────────`
-- 本审计的核心贡献是把 review.md 从「六通用接口叶子 + v1 历史 19×3 修复补丁」推进到「§2.5 抽取字段 + §2.4 DARE + Table A1 漏斗」三件套完整复原；这是 A1-DT v2 应有的「单篇原生编码表」粒度。
-- 之所以判定为「需要返修」而非「pass」，关键是 C1 — 旧版 review.md 即便在 v1→v2 已加了 `原文模式（模式）主树` 表，叶子层仍写「研究 metadata、topic、research questions、方法、results、limitations」这种聚合标签，而非具体 11+6+3 = 20 个原生叶子。这是把跨论文投影误读为原文 模式 的残余表现。
-- 对 Paper2 的最大方法学借鉴：本文 §2.6 的「8 个数据分析项→4 RQ 映射表」是研究方法学审计的优雅原型——任何字段都应能反查回某个 RQ，任何 RQ 都应能展开到某个/某些字段。
-`─────────────────────────────────────────────────`
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/kitchenham-2009-slr-tertiary.md](../../audits/a1dt-v2-19x3/adjudications/kitchenham-2009-slr-tertiary.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-kitchenham-2009-slr-tertiary-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-kitchenham-2009-slr-tertiary-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-kitchenham-2009-slr-tertiary-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-kitchenham-2009-slr-tertiary-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-kitchenham-2009-slr-tertiary-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-kitchenham-2009-slr-tertiary-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/kitchenham-2009-slr-tertiary__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-kitchenham-2009-slr-tertiary-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/kitchenham-2009-slr-tertiary.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-kitchenham-2009-slr-tertiary-type | clm-kitchenham-2009-slr-tertiary-type | src-kitchenham-2009-slr-tertiary-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：tertiary SLR（作者自称 "tertiary literature review"，§2 Method 开头） | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-kitchenham-2009-slr-tertiary-unit | clm-kitchenham-2009-slr-tertiary-unit | src-kitchenham-2009-slr-tertiary-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：二次研究（systematic literature review 或 meta-analysis 论文，每条对应一篇 SLR/MA） | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-kitchenham-2009-slr-tertiary-denom | clm-kitchenham-2009-slr-tertiary-denom | src-kitchenham-2009-slr-tertiary-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-kitchenham-2009-slr-tertiary-tree | clm-kitchenham-2009-slr-tertiary-tree | src-kitchenham-2009-slr-tertiary-text; src-kitchenham-2009-slr-tertiary-codex; src-kitchenham-2009-slr-tertiary-claude; src-kitchenham-2009-slr-tertiary-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-kitchenham-2009-slr-tertiary-pool | clm-kitchenham-2009-slr-tertiary-pool | src-kitchenham-2009-slr-tertiary-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-kitchenham-2009-slr-tertiary-type | A1DT-kitchenham-2009-slr-tertiary-C01 | 本文原文类型为：tertiary SLR（作者自称 "tertiary literature review"，§2 Method 开头） | paper_type | type | ev-kitchenham-2009-slr-tertiary-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-kitchenham-2009-slr-tertiary-unit | A1DT-kitchenham-2009-slr-tertiary-C02 | 本文被编码样本单位为：二次研究（systematic literature review 或 meta-analysis 论文，每条对应一篇 SLR/MA） | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-kitchenham-2009-slr-tertiary-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-kitchenham-2009-slr-tertiary-tree | A1DT-kitchenham-2009-slr-tertiary-C03 | 本文原生维度树 / 维度森林为：**单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） | 树类型（tree_type） | native_tree | ev-kitchenham-2009-slr-tertiary-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-kitchenham-2009-slr-tertiary-pool | A1DT-kitchenham-2009-slr-tertiary-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-kitchenham-2009-slr-tertiary-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-kitchenham-2009-slr-tertiary-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-kitchenham-2009-slr-tertiary-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-kitchenham-2009-slr-tertiary-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+详见 [evidence_chain.md](./evidence_chain.md)；A.1--A.4 证据链与结论-证据映射已迁出，当前证据状态（如 `not_verified`、待 A2a、`schema_seed`）保持原样。

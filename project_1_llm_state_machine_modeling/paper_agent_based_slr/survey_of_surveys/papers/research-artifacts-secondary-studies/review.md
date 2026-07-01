@@ -116,64 +116,6 @@
 | A1-M5 统计分析 | 对可获得性做 venue/year 交叉统计与 logistic regression。 | 可迁移为 Paper2 的审计制品覆盖率、持久化率、断链率、版本化率统计。 | 统计观察不能直接变成领域发现；要保留分母和字段版本。 |
 | A1-M6 候选发现 | 从统计结果形成改进建议：强制发布工件、使用永久仓库、设置 Data availability section。 | 可迁移为候选发现启发式：覆盖率缺口、持久性缺口、声明质量缺口、自动化支撑缺口。 | Paper2 的最终发现必须回到内容证据和研究者裁决，不可只由过程证据或统计表推出。 |
 
-## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-面向 Paper2 的审计制品链，可从本文抽象出如下字段树：
-
-```text
-说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
-研究制品资产（research_artifact_asset）
-├── 制品可获得性状态
-│   ├── 有开放链接
-│   ├── 未发现制品
-│   ├── 可按请求获得
-│   ├── 死链
-│   └── 不清楚或未检查
-├── 制品位置
-│   ├── 仓库 URL
-│   ├── 仓库提供方：Zenodo / Figshare / Mendeley Data / GitHub / OSF / institutional / personal / other
-│   ├── 是否永久仓库：yes / no / unknown
-│   └── 持久标识类型：DOI / 无更新 / other persistent ID / unknown
-├── 报告锚点
-│   ├── 是否有专门章节：Data Availability / Artifact Availability / Replication Package 等
-│   ├── 章节名
-│   ├── 页码或行号锚点
-│   └── 短证据摘录
-├── 链接健康
-│   ├── 检查时间
-│   ├── alive / dead 状态
-│   └── 访问错误或重定向说明
-├── 制品内容范围
-│   ├── 检索策略或查询
-│   ├── 筛选决策
-│   ├── 纳入研究列表
-│   ├── 抽取表
-│   ├── 分析脚本或 notebook
-│   ├── 原始输出或日志
-│   └── README 或复用说明
-├── 访问与许可
-│   ├── 开放访问
-│   ├── 许可证
-│   ├── 访问约束
-│   └── 敏感或脱敏内容
-└── 审计角色
-    ├── 支持复现
-    ├── 支持信任
-    ├── 支持更新
-    └── 支持自动化或再分析
-```
-
-最值得优先关注的维度锚点：
-
-1. **可获得性不是二元变量**：至少区分开放可得、未提供、仅请求、断链、未检查。
-2. **永久性要独立统计**：有链接不等于有持久仓库；有仓库也不等于有 DOI。
-3. **报告位置要独立统计**：Data availability section 是定位信号，不保证真的有可复现工件。
-4. **分母必须写死**：全部论文、提供 artifact 的论文、某一年论文是不同分母。
-5. **链接检查要有时间戳**：dead link 是随时间变化的事实，必须保留 checked_at。
-6. **工件质量另设字段**：本文没有评估 artifact quality；Paper2 若要支撑审计制品链，必须继续记录完整性、可执行性、版本、脱敏、README、字段覆盖率。
-
 ## 6. 对 Paper2 的启发与风险
 
 ### 6.1 启发
@@ -205,12 +147,12 @@
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__codex.md](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__codex.md)、[../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__claude.md](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__claude.md)、[../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__deepseek.md](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/research-artifacts-secondary-studies.md](../../audits/a1dt-v2-19x3/adjudications/research-artifacts-secondary-studies.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `deepseek` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `deepseek` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 #### 0. 审计结论卡片
 
@@ -225,8 +167,8 @@
 | 被编码样本单位 | 每篇 二次研究（n = 537） |
 | 样本数量 / 分母 | 537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） |
 | 原生树类型 | **单树**：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 |
-| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ---
 
@@ -239,7 +181,7 @@
 | `paper_content.txt` | 全文通读（358 行） | Abstract → Introduction → Methods (§2.1–2.3) → Results (§3, RQ1–RQ4) → Limitations (§4) → Conclusion (§5) → References [1]–[10] |
 | `bibtex.bib` | 全文读取 | 完整 BibTeX entry |
 | `metadata.json` | 全文读取 | 所有字段（含 eligibility meta） |
-| `review.md` | 全文读取（375 行） | 快速结论卡片 → 论文内容详读 → A.1–A.4 |
+| `review.md` | 全文读取（当前正文） | 快速结论卡片 → 论文内容详读 → 维度树复原；证据链已迁至 evidence_chain.md |
 | `paper.pdf` | `pdftotext -layout -f 1 -l 6` 逐页提取 | 完整 6 页；特别核验 Table 1(a)/(b)/(c) 行列值 |
 
 ##### 1.2 PDF 版面核验状态
@@ -415,11 +357,11 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 | 65 / 169（38.5%）的含 制品 论文使用永久仓库+DOI；即全体 537 篇的 12.1% | Table 1(a)/(b) | strong（直接计数） |
 | 22 / 537（4.1%）的论文链接已失效 | Table 1(a) | moderate（链接检查时间点未记录） |
 | 16 / 537（3.0%）的论文声称 制品 "upon request" | Table 1(a) | strong（直接计数） |
-| 2023 年 制品 可获得性 升至 62.0%（49/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
-| 2023 年 permanent 仓库 使用率升至 30.4%（24/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
-| 2023 年 dedicated section 拥有率升至 58.2%（46/79） | Table 1(b) | 历史草稿旧强度（当前禁止采信） |
+| 2023 年 制品 可获得性 升至 62.0%（49/79） | Table 1(b) | not_verified；待 A2a 表格复核 |
+| 2023 年 permanent 仓库 使用率升至 30.4%（24/79） | Table 1(b) | not_verified；待 A2a 表格复核 |
+| 2023 年 dedicated section 拥有率升至 58.2%（46/79） | Table 1(b) | not_verified；待 A2a 表格复核 |
 | Publication year 是 制品 可获得性 的显著预测因子（有序因子, odds ratio = 2.31 per 3 years, p < 0.001） | Table 1(c) | strong（模型已报告） |
-| 部分期刊（CS Review, SP&E, JSEP, IST）的 制品 可获得性 显著低于 参照类别（IEEE TSE） | Table 1(c) | 历史草稿旧强度（当前禁止采信） |
+| 部分期刊（CS Review, SP&E, JSEP, IST）的 制品 可获得性 显著低于 参照类别（IEEE TSE） | Table 1(c) | not_verified；待 A2a 表格复核 |
 
 ##### 6.2 原文 discussion/推荐 提出的候选发现
 
@@ -456,167 +398,6 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 
 ---
 
-#### 7. 对旧版 `review.md` 的返修来源
+## 证据链入口
 
-##### 7.1 问题诊断
-
-旧版 `review.md` 的核心问题是**维度树被跨论文通用六叶投影覆盖，原文真实编码模式 被架空**：
-
-1. **"范围"叶**（A1DT-research-制品-secondary-studies-C01）：将原文的样本单位、纳排标准和检索策略提炼为"范围"是合理的，但把 15 个期刊、ISSN 检索、IC1–IC3 全部收入一个叶子过于宽泛。原文实际上有独立的 `[leaf-year]`、`[leaf-venue]` 和 `[leaf-availability]`（含纳排过滤），它们不是"范围"的子树，而是**编码维度本身**。
-
-2. **"语料"叶**（A1DT-research-制品-secondary-studies-C02）：将 537 篇 二次研究 作为"语料"描述主体，但原文不区分"语料"和"样本"——537 篇就是样本，没有外部语料概念。这是把 NLP/DL 论文的"语料"概念强行套用到 系统映射 上。
-
-3. **"分类"叶**（A1DT-research-制品-secondary-studies-C03）：把 制品 可获得性 的 是 / 否 / 按请求提供（Yes/No/By Request） 和 permanent 仓库 归为"分类"是合理的覆盖，但缺失了 dedicated section、link health 和 回归 output。
-
-4. **"方法"叶**（A1DT-research-制品-secondary-studies-C04）：原文的方法是 系统映射 + logistic 回归，但方法本身不是"维度树"的叶子——它是生产维度树的**过程**。在维度树中混入方法节点会混淆"样本被编码成什么"和"样本怎么被编码"。
-
-5. **"证据"叶**（A1DT-research-制品-secondary-studies-C05）：原文的所有叶子字段都可支撑统计观察，不存在独立的"证据"叶子。
-
-6. **"发现"叶**（A1DT-research-制品-secondary-studies-C07）：原文的讨论结论是"候选发现"，不是维度树的编码维度。
-
-7. **A.1–A.4 结构**：现有 A.1/A.2/A.3/A.4 使用了大量跨论文的抽象标识符（`A1DT-research-artifacts-secondary-studies-C01` 至 `C13`），这些标识符把原文事实封装在了跨论文投影的语言中，导致"样本编码模式"不可直接阅读。
-
-##### 7.2 按 C/I/M 分级的返修建议
-
-###### C（Critical，阻塞级）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| C1 | 维度树仍然是六叶通用投影，不是原文真实编码模式 | 用本报告 §3 的三主干单树重写"维度树复原"章节。删除六叶通用接口节点。维度树应描述：根节点 = 二次研究 (n=537) → 三主干（上下文 / 制品可获得性 / 统计建模）→ 每个主干的叶子字段。 |
-| C2 | A.1--A.4 使用了跨论文抽象标识符，原文事实被封装在投影语言中 | A.1 维度树定义应从跨论文投影标识符（C01–C13）中解耦，用原文术语和原文表编号重构。A.2 证据账本应与 Table 1(a)/(b)/(c) 的行列锚点对齐。 |
-| C3 | SUMMARY 表中"样本单位/样本数量/原生树类型/统计池资格"需要修正 | 样本单位 = 每篇 二次研究（非"研究工件"）；原生树类型 = 单树（非维度森林）；统计池资格 = 是（非局部可统计）。当前 review.md 中若已有 SUMMARY 表，需同步更新。 |
-
-###### I（Important，重要级）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| I1 | review.md 未提及 Table 1(a) 中 永久仓库（Permanent repo） 列的百分比计算基准差异 | 补充说明：永久仓库（Permanent repo） 列以“是否有研究制品”= 是（原字段标识保留于审计附录；分母 169）为分母，不是以 Total（537）为分母。该差异影响 Paper2 字段的取值空间类型判定。 |
-| I2 | review.md 未区分"原文统计观察"与"候选发现" | 增加一节明确列出：哪些是直接来自 Table 1 的统计事实（strong 证据），哪些是 discussion/推荐 的候选发现（weak/moderate）。 |
-| I3 | review.md 提到 "no data was used" 但未给出频次 | 原文本身也**未给出 "no data was used" 的频次**（仅提及为 定性 observation）。review.md 应注明此为原文中的定性提及，非可统计字段。 |
-| I4 | Zenodo 工件未检查 | A.4 应新增一项：check Zenodo 制品 (`10.5281/zenodo.15488074`) 获取逐篇原始编码表，补充可能被正文省略的细粒度字段（仓库 提供方分类、paper title/DOI/author metadata 等）。标记为 A2a 精核任务。 |
-
-###### M（Minor，建议级）
-
-| # | 问题 | 建议 |
-|---|---|---|
-| M1 | review.md 中 "A1 角色" 一栏写的"审计制品链 / 可复现证据资产"偏笼统 | 精化为："A1 角色：为 Paper2 的 制品 可获得性 模式 提供三字段锚点（has_artifact × permanent_repo × dedicated_section），尤其是条件字段设计（permanent_repo 仅在 has_artifact=是 时有效）和 link health 跟踪模式。" |
-| M2 | review.md 引用 arXiv v3 / 2026-04-16 但出版日期为 2025-07-07 | 在版本号处加注：正式出版（IST vol 187 / 2025-11）与开放预印本（arXiv v3 / 2026-04-16）的版本差异，避免读者混淆 |
-| M3 | 缺少明确的"非目标证据池"声明 | 已在 review.md 第 1 节注明"是否目标证据池 = 否"，但可加强为："本文是 SE 领域的方法学映射研究，所有统计数字不能迁移到 LLM+状态机领域，仅 模式 结构可迁移。" |
-
----
-
-#### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-##### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-001 | paper_content.txt / paper.pdf | §2.1 Search 流程 | "resulting in 643 articles" | 初始检索得到 643 篇文章 | 样本池来源 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 样本数量 | 否（文本明确） | Scopus 单一数据库，SE 期刊限定 |
-| EV-002 | paper_content.txt / paper.pdf | §2.2 Study selection | "After applying the 纳入标准, 537 二次研究 remained" | 经 IC1–IC3 筛选后 537 篇纳入 | 样本池数量确认 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 样本数量 | 否 | 排除 conference proceedings |
-| EV-003 | paper_content.txt / paper.pdf | §2.2 | "Krippendorff's Alpha ... 0.776 on a 95% confidence interval" | 评定者间一致性为 0.776（强一致） | 编码质量代理 | 历史草稿旧强度（当前禁止采信） | [dim-根节点] 编码可靠性 | 否 | 仅一人工作时间段的 agreement |
-| EV-004 | paper_content.txt / paper.pdf | §2.3 数据抽取（数据抽取） | "two rounds: (1) manually and (2) automatically" | 两轮数据抽取：人工全文 + 自动关键词 | 编码方案描述 | 历史草稿旧强度（当前禁止采信） | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 否 | 未描述具体 keyword list |
-| EV-005 | paper.pdf (Table 1a) | Table 1(a) | "Total 537, 是 169 (31.5%), 永久仓库（Permanent repo） 65 of 169 (38.5%), 否 330 (61.5%), By Request 16 (3.0%), Dead Link 22 (4.1%)" | 制品可获得性的全表统计 | 核心统计事实 | 历史草稿旧强度（当前禁止采信） | [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-link] 链接是否失效 | 是（永久仓库（Permanent repo） 百分比分母需视觉确认） | SE 领域限定 |
-| EV-006 | paper.pdf (Table 1b) | Table 1(b) | "2023: 是 49 (62.0%), 永久仓库（Permanent repo） 24 (30.4%), 专门数据可获得性章节（Dedicated section） 46 (58.2%)" | 2023 年度细分统计 | 年度趋势事实 | 历史草稿旧强度（当前禁止采信） | [leaf-year] 发表年份, [leaf-availability] 是否有研究制品, [leaf-permanent] 是否使用永久仓库, [leaf-section] 是否有专门数据可获得性章节 | 是（行排列对齐需确认） | 仅 2013–2023 |
-| EV-007 | paper.pdf (Table 1c) | Table 1(c) | "Year (Ordered factor): 系数（Coef） 0.84, 标准误（Std.E） 0.12, z 值（z value） 7.21, p = 5.79e-13, 优势比（Odds ratio） = 2.31" | 出版年份显著预测 制品 可获得性 | 统计建模事实 | 历史草稿旧强度（当前禁止采信） | [leaf-回归] 逻辑回归系数, [leaf-year] 发表年份 → [leaf-availability] 是否有研究制品 | 否（数字明确） | 期刊限定、参照类别 = IEEE TSE |
-| EV-008 | paper_content.txt | §5 / Discussion | "2 out of 19 links to non-permanent 仓库 are already dead" (2023 年) | 2023 年仍有 dead link | 链接可靠性证据 | moderate | [leaf-link] 链接是否失效 | 否 | 样本量小（n=19 for 2023 non-permanent） |
-| EV-009 | paper_content.txt | §5 / Discussion | "some papers with their '数据可获得性（Data Availability）' section simply state that 'no data was used'" | 部分含 dedicated section 的论文声称无数据 | 数据可用性声明质量问题 | weak（定性提及，未量化频次） | [leaf-section] 是否有专门数据可获得性章节 的质量侧面 | 否 | 频次未知 |
-| EV-010 | paper_content.txt | §2.1 | ISSN list: 0928-8910, 1382-3256, ..., 1574-0137（15 个） | 检索限定的 15 个期刊 ISSN | venue 范围证据 | 历史草稿旧强度（当前禁止采信） | [leaf-venue] 发表期刊 / 发表源 | 否 | SE 期刊限定，排除 conference |
-| EV-011 | metadata.json | metadata.json | "Zenodo DOI: 10.5281/zenodo.15488074" | 本文自身的研究工件位置 | 可复现性证据 | 历史草稿旧强度（当前禁止采信） | 全部维度树——逐篇原始数据在 Zenodo | N/A（需下载 Zenodo） | 当前 A1-DT 未访问 |
-| EV-012 | bibtex.bib | bibtex.bib | "journal = {Information and Software 技术}, volume = {187}, pages = {107830}" | IST 正式出版信息 | 出版事实确认 | 历史草稿旧强度（当前禁止采信） | 论文元数据 | 否 | — |
-
-##### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| CLM-01 | 本文的维度树是单树、三主干结构（上下文 / 制品可获得性 / 统计建模） | 维度树分类 | [dim-根节点], [节点-ctx] 上下文元数据, [节点-artifact] 研究制品可获得性, [节点-model] 统计建模输出 | EV-004, EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | A2a 精核后可写入 review.md 的维度树复原 | 正文未呈现逐篇编码表的全部字段；Zenodo 工件可能补充额外叶子 |
-| CLM-02 | 样本单位是每篇 二次研究 (n=537)，不是 研究制品 | 样本单位判定 | [dim-根节点] | EV-001, EV-002 | 历史草稿旧强度（当前禁止采信） | SUMMARY 表"样本单位"字段修正 | 无 |
-| CLM-03 | 原生维度树不是"六叶通用投影"，review.md 现有 C01–C13 结构需重写 | 审计返修判定 | 全部维度树节点 | EV-004, EV-005, EV-006, EV-007（对比旧版 review.md 的 C01–C13） | 历史草稿旧强度（当前禁止采信） | C 级返修建议 | 六叶投影在跨论文对齐场景中仍有投影价值，但不能替代本文自身的维度树 |
-| CLM-04 | [leaf-availability] 是否有研究制品 的三个值（是 / 否 / 按请求提供（Yes/No/By Request））与 [leaf-permanent] 是否使用永久仓库 之间存在条件依赖：permanent 仅在 是 时适用 | 叶子间关系 | [leaf-availability] 是否有研究制品 → [leaf-permanent] 是否使用永久仓库 | EV-005（Table 1a 中 永久仓库（Permanent repo） 列为 是 子集） | 历史草稿旧强度（当前禁止采信） | Paper2 audit asset 表的条件字段设计 | 无 |
-| CLM-05 | 2023 年 制品 可获得性 升至 62.0%，但这一数字不能迁移到 LLM+状态机领域 | 迁移边界 | [leaf-year] 发表年份 → [leaf-availability] 是否有研究制品 | EV-006 | strong（原文）/ N/A（迁移） | 仅说明迁移边界规则 | SE 领域限定 |
-| CLM-06 | 本文可迁移的是 模式 结构（三主干 + 叶子字段定义），不是任何具体百分比 | 迁移边界 | 全部维度树 | EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 方法设计参考 | 所有数值不可迁移 |
-| CLM-07 | Zenodo 工件（10.5281/zenodo.15488074）待 A2a 检查，可能补充细粒度叶子 | 证据缺口声明 | [dim-根节点] 的完整字段集 | EV-011 | moderate | A2a 精核任务入口 | 当前证据仅限于正文 Table 1 |
-| CLM-08 | 原文未量化 "no data was used" 的频次，该发现不能作为可统计维度 | 证据强度降级 | [leaf-section] 是否有专门数据可获得性章节 的质量侧面 | EV-009 | weak | 标记为"原文定性提及，不可统计" | 频次未知 |
-
----
-
-#### 9. 技能使用与自我审查记录
-
-##### 9.1 已读取的技能文件
-
-| 文件 | 采用原则 |
-|---|---|
-| `ai-research-writing-skill/SKILL.md` | "Every major claim must be backed by 证据. If 证据 is missing, weaken the claim or mark the 缺口（gap） explicitly." 指导本报告所有降级决策。 |
-| `ai-research-writing-skill/references/reviewer-guidelines.md` | "A reviewer-质量 objection should be specific enough that an author can act on it." 指导返修建议按 C/I/M 分级并给出具体重写方向。"Reproducibility: Can results be checked?" 驱动 Zenodo 工件待查标识。 |
-| `ai-research-writing-skill/references/reviewer-self-review.md` | Claim Audit 规则："Strong claims need direct 证据." 指导将所有 statistical observation 与 候选发现 分离。 |
-| `research-planning/SKILL.md` | "Flag ambiguities explicitly rather than making assumptions." 指导在叶子维度表中区分"原文明确给出的字段"和"我们推断的字段"。 |
-| `research-planning/references/planning-prompts.md` | 未直接使用；本文不建议实现，仅审计。 |
-| `research-planning/references/output-schemas.md` | 未直接使用；模式 仅供参考。 |
-| `autoresearch/SKILL.md` | "Completion is 制品-gated." 指导将 Zenodo 工件标注为 pending 证据。 |
-
-##### 9.2 最高风险 3 点（主线程合并时需复核）
-
-1. **风险 A — Zenodo 工件盲区**：本审计报告基于正文 Table 1 构建维度树。Zenodo 工件（`10.5281/zenodo.15488074`）可能包含更细粒度的编码字段（如 仓库 provider 具体分类：Zenodo/Figshare/GitHub/Mendeley/personal page 等、paper 级 DOI/标题/作者、额外抽取字段）。若这些字段与正文 Table 1 的聚合统计不同，维度树需调整。**合并复核**：下载 Zenodo 工件并做逐字段比对。
-
-2. **风险 B — Table 1(a) 永久仓库（Permanent repo） 列分母歧义**：Table 1(a) 中 永久仓库（Permanent repo） 列的百分比（如 IST "19 (39.6%)"）以 是 列（48）为分母而不是以 Total（194）为分母。这个判定来自数值推导（48 × 0.396 ≈ 19），但未在正文中显式声明。若推导错误，[leaf-permanent] 是否使用永久仓库 的取值空间定义需要修正。**合并复核**：PDF 视觉核验或 Zenodo 工件交叉验证。
-
-3. **风险 C — "六叶投影"清理不彻底**：如果 reviewer 在主线程合并时仅简化为"用单树替换六叶"，但没有逐字段重写 A.1/A.2/A.3/A.4，新的维度树定义可能和旧的 A.2 证据账本标识符（C01–C13）形成事实冲突。**合并复核**：确保 A.2 证据账本、A.3 结论映射、A.1 维度树定义三个模块用同一套标识符体系，且全部对齐 Table 1 原文锚点。
-
-##### 9.3 Blocked / Timeout / 文件缺失
-
-- **未 blocked**：所有必需文件（bibtex、metadata、paper_content.txt、review.md、paper.pdf）均成功读取。
-- **未 timeout**：所有命令均在合理时间内返回。
-- **文件缺失项**：Zenodo 工件（`10.5281/zenodo.15488074`）未下载；这不属于本审计的文件缺失（任务仅要求读取指定本地文件），但属于**证据缺口**，已在 A.2（EV-011）和 §3（缺失部分说明）中标注。
-- **技能文件**：全部 7 个技能文件成功读取。
-
----
-
-**审计完成。** 本报告是自包含的完整审计输出，所有章节均已按 A1-DT v2 口径填充。
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/research-artifacts-secondary-studies.md](../../audits/a1dt-v2-19x3/adjudications/research-artifacts-secondary-studies.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-research-artifacts-secondary-studies-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-research-artifacts-secondary-studies-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-research-artifacts-secondary-studies-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-research-artifacts-secondary-studies-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-research-artifacts-secondary-studies-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-research-artifacts-secondary-studies-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/research-artifacts-secondary-studies__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-research-artifacts-secondary-studies-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/research-artifacts-secondary-studies.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-research-artifacts-secondary-studies-type | clm-research-artifacts-secondary-studies-type | src-research-artifacts-secondary-studies-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：系统映射（系统映射）；对象为软件工程 二次研究 的 research artifact 报告与可获得性 | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-research-artifacts-secondary-studies-unit | clm-research-artifacts-secondary-studies-unit | src-research-artifacts-secondary-studies-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：每篇 二次研究（n = 537） | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-research-artifacts-secondary-studies-denom | clm-research-artifacts-secondary-studies-denom | src-research-artifacts-secondary-studies-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-research-artifacts-secondary-studies-tree | clm-research-artifacts-secondary-studies-tree | src-research-artifacts-secondary-studies-text; src-research-artifacts-secondary-studies-codex; src-research-artifacts-secondary-studies-claude; src-research-artifacts-secondary-studies-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**单树**（single tree）：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-research-artifacts-secondary-studies-pool | clm-research-artifacts-secondary-studies-pool | src-research-artifacts-secondary-studies-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-research-artifacts-secondary-studies-type | A1DT-research-artifacts-secondary-studies-C01 | 本文原文类型为：系统映射（系统映射）；对象为软件工程 二次研究 的 research artifact 报告与可获得性 | paper_type | type | ev-research-artifacts-secondary-studies-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-research-artifacts-secondary-studies-unit | A1DT-research-artifacts-secondary-studies-C02 | 本文被编码样本单位为：每篇 二次研究（n = 537） | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-research-artifacts-secondary-studies-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-research-artifacts-secondary-studies-tree | A1DT-research-artifacts-secondary-studies-C03 | 本文原生维度树 / 维度森林为：**单树**（single tree）：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 | 树类型（tree_type） | native_tree | ev-research-artifacts-secondary-studies-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-research-artifacts-secondary-studies-pool | A1DT-research-artifacts-secondary-studies-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-research-artifacts-secondary-studies-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-research-artifacts-secondary-studies-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-research-artifacts-secondary-studies-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-research-artifacts-secondary-studies-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+证据链与结论-证据映射已迁移至 [evidence_chain.md](./evidence_chain.md)。

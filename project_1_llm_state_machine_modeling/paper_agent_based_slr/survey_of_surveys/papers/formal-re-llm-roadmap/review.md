@@ -151,125 +151,6 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | A1-M5 统计分析 | 主要贡献是负面边界：本文不支撑分布统计，不应纳入频次结论。 | 在统计分析协议中增加 `eligible_for_statistical_synthesis` 或 `evidence_role` 字段。 | 若混入统计，会污染目标综述 findings。 |
 | A1-M6 候选发现形成 | 启发候选发现从“某技术常见”升级为“某 concern 在某 artefact/task 中出现，现有 mechanism 能部分缓解，但需要某类验证”。 | 适合生成 finding heuristic：concern-first、mechanism-linked、risk-aware、human-gated。 | 只能生成候选发现线索，不能直接接受为最终领域发现。 |
 
-## 历史草稿（已迁移，不作事实真源）：旧第 6 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-### 历史草稿（已迁移，不作事实真源）：旧第 6.1 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-- `roadmap_id`
-  - `LLM_for_FM_usability`：LLM 支持 FM-based development。
-  - `FM_for_LLM_trustworthiness`：FMs 支持 LLM-based development。
-- `direction`
-  - `LLM -> FM/RE artefact`
-  - `FM/formal artefact -> LLM governance`
-  - `bidirectional / feedback`
-- `layer`
-  - formal layer / formal development layer
-  - conventional or SW artefact layer
-  - LLM / agent layer
-  - knowledge layer / external tool layer
-- `task_family`
-  - generation：Req2Logic、Req2Model、Model2Code、Code2Model、test/code/comment generation
-  - analysis：smell detection、completeness check、classification、trace-linking、counterexample explanation
-  - transformation：model-to-model、logic-to-logic、prompt architecture、ontology construction
-  - assurance：formal verification、argumentation、runtime monitoring、ethical requirements validation
-- `artifact_in`
-  - natural language requirements、user stories、feedback、issues、code、formal model、logic formula、counterexample、domain documents、regulations、ethical principles
-- `artifact_out`
-  - formal specification、formal property、software model、code、trace link、classification、explanation、knowledge graph、verification result、runtime monitor、candidate requirement completion
-- `mechanism`
-  - prompt engineering / formal prompt
-  - RAG / external knowledge
-  - specialised LLM / fine-tuning / LoRA / distillation
-  - multi-agent orchestration
-  - model checking / static analysis / abstract interpretation / proof / 运行时验证（runtime verification）
-  - ontology / knowledge graph / argumentation structure
-- `action_point`
-  - 以原文 Section 4 的 5 个和 Section 6 的 7 个 action points 为初始取值；后续 A2a 可合并或扩展。
-- `maturity`
-  - worked example / preliminary work / literature-grounded proposal / open research avenue / implementation barrier
-- `evaluation_need`
-  - benchmark with 真值（ground truth） / qualitative expert review / case study / robustness test / formal proof / runtime monitoring / human-centred evaluation
-
-### 历史草稿（已迁移，不作事实真源）：旧第 6.2 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-- `FM_usability_concern`
-  - formal language difficulty
-  - limited modularity / long specifications
-  - counterexample interpretability
-  - tool diversity and translation burden
-  - state-space explosion
-  - artefact traceability and evolution
-  - domain expert accessibility
-- `LLM_output_concern`
-  - correctness / hallucination
-  - ambiguity and incompleteness
-  - logical coherence
-  - mathematical reasoning
-  - prompt ambiguity / prompt architecture consistency
-  - domain grounding and world model gap
-  - output consistency under prompt perturbation
-  - predictability / repeatability
-  - overreliance by analysts
-- `process_concern`
-  - LLM-FM expert collaboration
-  - empirical evaluation difficulty
-  - absence of single 真值（ground truth）
-  - human role and creativity
-  - artefact proliferation
-  - deployment and organisational adoption
-  - scalability and computational cost
-  - technological evolution / model drift / tool drift
-
-### 历史草稿（已迁移，不作事实真源）：旧第 6.3 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-- `trustworthiness_target`
-  - generated requirements
-  - generated formal artefacts
-  - generated code / tests / models
-  - LLM agent orchestration
-  - LLM component in mission-critical system
-  - runtime regulatory behaviour
-  - ethical/fairness-sensitive artefacts
-- `trustworthiness_property`
-  - correctness
-  - fairness
-  - trustworthiness / reliability
-  - explainability / justification
-  - robustness to prompt perturbation
-  - out-of-distribution robustness
-  - privacy / security
-  - regulatory compliance
-  - machine ethics
-- `assurance_mechanism`
-  - formal requirements and properties
-  - formal verification of associated SW artefacts
-  - formal argumentation constraints
-  - formal prompts and 前置 / 后置条件（pre/post-conditions）
-  - formal ontologies / knowledge graphs
-  - abstract interpretation / abstraction of neural behaviour
-  - 运行时验证（runtime verification） / monitoring
-  - 形式化伦理需求（formalised ethical requirements）
-- `human_gate`
-  - ambiguity clarification
-  - expert review of non-unique outputs
-  - quality-control checklist
-  - challenge of hallucination patterns
-  - final acceptance / downgrade / rejection
-- `evidence_strength`
-  - formal proof / verification result
-  - executable counterexample
-  - expert qualitative evaluation
-  - worked example only
-  - author opinion / future work
-
 ## 7. 对 Paper2 的启发与风险
 
 ### 7.1 启发
@@ -292,21 +173,6 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 6. **人类角色不能被弱化**：原文 Fig. 2 / Fig. 4 有意省略 human actors，但 Section 7 反而强调 requirements engineers 的核心性。Paper2 必须坚持 G0--G5 研究者门控，避免被误读为自动化替代专家。
 7. **模型/工具漂移**：本文示例基于 2024 年前后的技术状态；Paper2 若引用具体 LLM 能力，应避免写成稳定事实，应记录 model version、调用时间和可复核输出。
 
-## 历史草稿（已迁移，不作事实真源）：旧第 8 节迁移来源
-
-> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
-
-- 当前 `survey_of_surveys` 六类 pattern 可容纳本条，但不足以表达 roadmap 文的核心贡献。建议后续 A2a 若继续纳入 vision / roadmap 文，新增或复用以下字段：
-  - `review_type = vision/roadmap`
-  - `evidence_role = 边界锚点（boundary_anchor） / 模式种子（schema_seed） / concern_taxonomy_seed`
-  - `roadmap_direction`
-  - `action_point`
-  - `concern_taxonomy`
-  - `trustworthiness_property`
-  - `assurance_mechanism`
-  - `eligible_for_statistical_synthesis = false`
-- 本轮不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md)，因为用户只允许编辑本 `review.md`；以上先作为单篇 schema 历史观察记录。
-
 ## 9. 待复核
 
 1. 若后续要在正文引用 Fig. 2 / Fig. 4，建议补页码与图中各元素的正式英文 label，并确认图中 “formal / conventional / LLM layer” 与 “formal / SW artefact / LLM layer” 的命名。
@@ -318,12 +184,12 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 ## 维度树复原
 
 > [!IMPORTANT]
-> 本节是 A1-DT v2 主线程裁决后的当前事实真源。它替代旧版 `review.md` 中的“六个通用 叶子 / A1-M0--M6 投影”主树写法；A1-M0--M6 只能作为跨论文投影层，不能反向冒充本文原生模式。
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
 > 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__codex.md](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__codex.md)、[../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__claude.md](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__claude.md)、[../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__deepseek.md](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/formal-re-llm-roadmap.md](../../audits/a1dt-v2-19x3/adjudications/formal-re-llm-roadmap.md)。
 
 ### v2 主线程采用说明
 
-本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。下方若出现“旧版 `review.md` 需要返修”等表述，均指 A1-DT v2 返工前的旧版状态；本节已经按该返修意见重写，最终剩余风险统一归入 A2a 的页码、表图和 补充材料精核。
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
 
 ### 0. 审计结论卡片
 
@@ -339,7 +205,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | 样本数量 / 分母 | 不存在系统样本分母；路线图行动项 数固定为 5 + 7 = 12；如把 Section 7 视为辅助森林则 +7 = 19。**不可作为统计分母使用** |
 | 原生树类型 | **降级森林**：双根 路线图 森林（Roadmap A、Roadmap B）+ 边界森林（Practical considerations）；不是单树，也不是基于样本编码的维度森林 |
 | 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
-| 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
 
@@ -500,147 +366,6 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 - ChatGPT 3.5 在 RE 任务上的具体能力描述（作者 explicitly "slightly adjusted" 输出）。
 - §2 background 分类法 不可作为 LLM4STM 主综述的工具/模型分类的事实源，只能作为术语启发。
 
-### 7. 对旧版 `review.md` 的返修来源
+## 证据链入口
 
-按 C / I / M 分级，**严重性以学术目标 / Paper2 证据链可靠性为锚**：
-
-#### C（critical）— 阻塞合并到 Paper2 主线
-
-无。本文 review.md 已在最近一轮 PR-A1-DT v2 19×3 返修中正确判定 `eligible_for_statistical_synthesis=false` 与 `evidence_role=boundary_anchor`（边界锚点），不会污染主统计池。
-
-#### I（important）— 影响 模式种子 质量、需在 A2a 前修
-
-1. **I-1：维度树主表的“六叶通用接口”应明确降级到 `通用接口投影` 小节，主表换成 12 叶原文结构表**。当前 review.md §维度树复原 → 叶子维度表（行 351–360）仍把 scope/语料/分类法/方法/证据/发现 摆成原生树叶子；这与 A1-DT v2 要求“单篇维度树必须像论文自己的 模式”冲突。建议替换为本审计 §4 的 12 叶表。
-   - 学术影响：若后续 A2a 用该主表做 模式 抽取，会把所有 路线图行动项 point 压缩成 generic 分类法 叶，丢失 12 个 行动点 + 双 layer 结构 + concern→mechanism 字段串，使 Paper2 的 candidate-发现 heuristic 失去原文锚定。
-2. **I-2：补齐“原文模式主树（19×3 审计后返修）”中 5 个原文主干，使其对齐到本文真实主干结构（2 路线图 × 3 layer × N 行动点 + 1 boundary 森林）**。当前那 6 个原文主干（direction-a/direction-b/llm-mechanism/formal-re-task/trustworthiness/证据-boundary）粒度不一致：direction-a/b 是 路线图 方向，但与 llm-mechanism / formal-re-task / trustworthiness 是不同层次（前者是 axis，后者是 facet）。建议改为：
-   - 主干 1：Roadmap A direction（5 行动点 子节点）
-   - 主干 2：Roadmap B direction（7 行动点 子节点 + analytic/generative 二分）
-   - 主干 3：3-layer 视图（A/B 各自）
-   - 主干 4：concern×mechanism×制品 字段三元组
-   - 主干 5：Background descriptive 分类法（仅作领域底图）
-   - 主干 6：§7 Practical considerations 边界森林（7 项）
-3. **I-3：A.2 证据账本只有 4 行，全部 `not_verified`；至少应将本审计 §1 的 E1/E2/E3/E4/E5/E6/E7/E8/E9/E10 拆为独立证据条目**，并对 E1（愿景 paper 声明）、E10（未使用数据（No data was used））这两条核心边界证据标注 `evidence_strength=verified`（仅基于 paper_content.txt 文本，无需 PDF 版面）。
-4. **I-4：旧版 review.md 把 Section 7 当成“限制”而未结构化为 boundary 森林 主干**（在“3.8 局限与实践考虑”中只做散述）；应在维度树复原节内显式列为 7 个 leaf-practical_consideration，与 leaf-concern 区分开（PC 是 流程 / org / human-side，concern 是 technical-side）。
-
-#### M（minor）— 学术影响低，可后续
-
-1. **M-1**：CCF 复核状态字段标注 “WAF”，建议改为 “待核验（HTTP 403/Aliyun WAF）”，措辞更精确。
-2. **M-2**：review.md §1 卡片“证据等级”列写“两张 路线图 图为 原文图表级人工核对”，但本审计与 review.md 各自均**未真的打开 PDF**，应改为“仅文本级（Fig. 2 / Fig. 4 由文本中的 figure caption 与 Summary 段定位）”。
-3. **M-3**：A.4 复验清单只有 2 项，建议补充“行动点 计数复验”（A=5 个、B=7 个、PC=7 个）等可自动检查项。
-
-#### SUMMARY.md 相关行须修正项
-- 样本单位 / 样本数量：应保持 `不适用（不适用）`（路线图），并显式注明 “Roadmap A 行动点 = 5; Roadmap B = 7; PC = 7（皆为作者构造，非编码样本）”。
-- 原生树类型：应改为 “**降级森林（双根 路线图 森林 + 边界森林）**”，而不是单树。
-- 统计池资格：保持 `否（boundary_anchor）`，理由列保留现状。
-
-### 8. 历史审计草案归档（禁止消费为事实真源）
-
-> [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
-
-下两表可作为候选替换 / 扩充 review.md 现 A.2 / A.3。
-
-#### 历史 A.2 维度树证据账本草案（禁止消费）
-
-| 证据标识 | 来源文件 | 原文章节 | 段落 / 表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|
-| EV-frelr-001 | paper_content.txt | §1 contributions | Page 2 / 倒数第 2 段 | "this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据… not exhaustive" | type_declaration | 历史草稿旧强度（当前禁止采信） | 决定论文类型 = 愿景/路线图；不入统计池 | 否 | 仅锁定类型 |
-| EV-frelr-002 | paper_content.txt | §4 引言 + Fig.2 描述 | "Each discussion topic is associated with a circled number… 5 行动点" | "Fig. 2 summarises and connects the different discussion topics" | structure_claim | 历史草稿旧强度（当前禁止采信） | Roadmap A 含 5 AP | 建议（图层标签） | A 与 B 层数同 3 但语义不同 |
-| EV-frelr-003 | paper_content.txt | §4 各 AP 段 | AP-A1..A5 标号段 | 5 个 行动点 名称完整枚举 | action_point_enum | 历史草稿旧强度（当前禁止采信） | leaf-action_point (A) | 否 | 不可外推 |
-| EV-frelr-004 | paper_content.txt | §6 引言 + Fig.4 描述 | "7 行动点; analytic vs generative tasks" | "structured into three layers" | structure_claim | 历史草稿旧强度（当前禁止采信） | Roadmap B 含 7 AP + 任务二分 | 建议 | -- |
-| EV-frelr-005 | paper_content.txt | §6 各 AP 段 | AP-B1..B7 标号段 | 7 个 行动点 名称完整枚举 | action_point_enum | 历史草稿旧强度（当前禁止采信） | leaf-action_point (B) | 否 | -- |
-| EV-frelr-006 | paper_content.txt | §4 Summary | "formal development layer / conventional development layer / LLM layer" | A 三层结构 | layer_enum | 历史草稿旧强度（当前禁止采信） | leaf-layer (A) | 建议（图） | A 三层 ≠ B 三层 |
-| EV-frelr-007 | paper_content.txt | §6 Summary | "formal layer / SW artefact layer / LLM layer" | B 三层结构 | layer_enum | 历史草稿旧强度（当前禁止采信） | leaf-layer (B) | 建议 | -- |
-| EV-frelr-008 | paper_content.txt | §7 章节标题序列 | 7 个 PC 子标题 | Collaboration / Empirical Eval / Overreliance / Human Creativity / FM data / Proliferation / 部署 | pc_enum | 历史草稿旧强度（当前禁止采信） | leaf-practical_consideration | 否 | -- |
-| EV-frelr-009 | paper_content.txt | §6 Fig.4 Summary 段 | "(i) analytic tasks… (ii) generative tasks" | LLM-task 二分 | task_分类法 | 历史草稿旧强度（当前禁止采信） | leaf-llm_task_kind | 否 | 仅 Roadmap B |
-| EV-frelr-010 | paper_content.txt | §数据可获得性（Data 可获得性） | "No data was used for the research described in the article."（即未使用数据） | declaration | dataset_claim | 历史草稿旧强度（当前禁止采信） | 不入统计池的硬证据 | 否 | -- |
-| EV-frelr-011 | paper_content.txt | §2.2 formal 模型 | LTS/FSM/Büchi/TA/状态图（Statecharts）/PN 等 | descriptive 分类法 | background_分类法 | 历史草稿旧强度（当前禁止采信） | bg-tax | 否 | 仅做描述底图 |
-| EV-frelr-012 | paper_content.txt | §5 题序 | 8 个 LLM4RE task demos | task family hints | example_分类法 | 历史草稿旧强度（当前禁止采信） | candidate task seeds | 否 | ChatGPT 3.5 output 经作者调整 |
-| EV-frelr-013 | bibtex.bib / metadata.json | -- | title/author/year/DOI | publisher metadata | metadata | local_verified | 卡片元信息 | 否 | -- |
-
-#### 历史 A.3 结论-证据映射草案（禁止消费）
-
-| 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
-|---|---|---|---|---|---|---|---|
-| C-frelr-T01 | 本文原生维度结构为“双根 路线图 森林 + 边界森林”，不是单维度树，也不是基于样本编码的 分类法 | 树类型（tree_type） | 森林根 | EV-frelr-001/002/004/008 | medium | 边界锚点（boundary_anchor） + 模式种子（schema_seed） | 仅本文；不可外推 |
-| C-frelr-T02 | Roadmap A 严格含 5 个 行动点；Roadmap B 严格含 7 个 行动点；§7 严格含 7 项 practical consideration | 叶子_enum | leaf-action_point, leaf-practical_consideration | EV-frelr-003/005/008 | strong（在文本范围内） | 候选发现 计数种子（n=5/7/7） | 作者声明 路线图 “非穷尽” |
-| C-frelr-T03 | 三层视图存在但 A 与 B 的层语义不同（A: Formal Dev / Conv Dev / LLM；B: Formal / SW Artifact / LLM），不能直接合并 | semantics_warning | leaf-layer | EV-frelr-006/007 | medium | 避免 模式 误并 | -- |
-| C-frelr-T04 | 本文不入主统计池（愿景/路线图；无系统检索 / 纳排 / 质量评价 / 数据综合；"未使用数据（No data was used）") | pool_exclusion | 森林根 | EV-frelr-001, EV-frelr-010 | 历史草稿旧强度（当前禁止采信） | 边界锚点（boundary_anchor） | -- |
-| C-frelr-T05 | 每个 行动点 可拆解为 6 子字段（concern / mechanism / artifact_in / artifact_out / action_推荐 / supporting_refs），是 Paper2 candidate-发现 表的字段种子 | 模式种子（schema_seed） | 12 叶子 表 §4 | EV-frelr-003/005 | weak（基于段落归纳） | 模式种子 only | 字段是 reviewer 归纳，非作者显式 模式 |
-| C-frelr-T06 | LLM 任务可二分为 analytic / generative，可作 Paper2 LLM4RE 任务大类种子 | 叶子_definition | leaf-llm_task_kind | EV-frelr-009 | weak | candidate heuristic | 仅 Roadmap B Fig.4 范围 |
-| C-frelr-T07 | §2 background 分类法 可作 LLM4STM 领域底图，但不可作为 LLM4STM 综述的工具 / 模型分类事实源 | migration_boundary | bg-tax | EV-frelr-011 | weak | terminology seed | 非编码模式 |
-| C-frelr-T08 | §7 的 7 项 practical consideration 历史草稿曾提出迁移建议；当前禁止直接采信 Paper2 risk register（overreliance、经验研究（empirical） eval 难题、制品 proliferation 与 project_1 高度对齐） | candidate_heuristic | leaf-practical_consideration | EV-frelr-008 | medium | risk register seed | -- |
-| C-frelr-T09 | review.md 当前主表把 6 个跨论文通用接口叶冒充原生主树，需要降级到“通用接口投影”子节，由本审计 §4 的 12 叶原生表替代 | review_repair | review.md §维度树复原 | EV-frelr-002/004/008 | 历史草稿旧强度（当前禁止采信） | I 级返修 | -- |
-
-### 9. 技能使用与自我审查记录
-
-#### 9.1 所用技能与采纳的原则
-| 技能 / 文件 | 已读 | 采用要点 |
-|---|---|---|
-| `ai-research-writing-skill/SKILL.md` | ✓ | claim-证据 gate（C/I/M 严格按学术目标定级）；Evidence policy（不臆造引用 / 数字） |
-| `reviewer-guidelines.md` | ✓ | constructive specificity（每条返修都给出位置与可执行动作）；review 五维 |
-| `reviewer-self-review.md` | ✓ | 五维自评（Contribution / Clarity / 实验 / Eval / Method / Responsibility）；adversarial questions；claim audit 格式 |
-| `research-planning/SKILL.md` + `planning-prompts.md` + `output-schemas.md` | ✓ | 用 模式-first 思路区分 “原文 模式” vs “Paper2 desired 模式”；保留 unclear 标记 |
-| `autoresearch/SKILL.md` | ✓ | validator-gated 边界：只有具备显式可验证 制品 的内容才算 verified；本文除作者声明外不构成 validator 满足 |
-| ARS reviewer plugin（系统已加载） | ✓（仅元数据） | 不调用，遵守任务 §0 不启动 subagent 的硬约束 |
-
-#### 9.2 reviewer 视角的最高风险 3 点（主线程合并时务必复核）
-1. **R-1（高）**：本审计未打开 `paper.pdf`。Fig. 2 / Fig. 4 的“三层”、AP 编号位置、boxed Action Point 文本是否与文本完全一致，**仍需主线程或 A2a 用 PDF 版面核验**。若 PDF 标签与文本叙述差异（例如图层重命名、AP 顺序调整），上表 leaf-layer 与 leaf-action_point 的枚举可能需要微调。
-2. **R-2（中）**：每条 行动点 的 concern / mechanism / 制品 子字段，是 reviewer 在通读段落后归纳的“准 模式”，不是作者显式列出的字段。主线程在重写 review.md 时应在叶子表里**显式标注** `inferred_by_reviewer=true`，并把这部分提取动作正式委派给 A2a 精核。
-3. **R-3（中）**：候选发现（CF-1..CF-9）只是 candidate；它们在 愿景 paper 内只有 author-opinion 级强度，但易被下游 LLM 智能体 误升级为 “研究共识”。主线程应在 Paper2 的 candidate-发现 库中对每条 CF 标注 `evidence_strength=author_opinion`，并要求 Paper2 提供独立证据反复验证后才能升级。
-
-#### 9.3 阻塞 / 超时 / 文件缺失
-- **否 blocked**：7 个技能文件 + 4 个论文文件均成功读取。
-- **transparency 说明**：`paper.pdf` 本轮未打开，已在卡片与 A.2 表中显式标注；不算 blocked，但是 transparent 缺口（gap），A2a 必须完成 PDF 复核。
-- **无 timeout**。
-- **总判定**：`pass with I-level repair` — 维度树结构与候选发现边界已锁定，review.md 与 A.2/A.3 需按 I-1..I-4 返修后即可合并至 Paper2 主线。
-
----
-
-**报告结束。**
-
-> [!NOTE]
-> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
-
-## 审计附录：证据链与结论-证据映射
-
-> 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/formal-re-llm-roadmap.md](../../audits/a1dt-v2-19x3/adjudications/formal-re-llm-roadmap.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
-
-### A.1 论文与本地文件来源
-
-| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
-|---|---|---|---|---|---|
-| src-formal-re-llm-roadmap-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
-| src-formal-re-llm-roadmap-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
-| src-formal-re-llm-roadmap-pdf | [paper.pdf](./paper.pdf) | PDF 原文 | 表图、页码、版式和补充视觉核验 | 本地可复验 | 未逐项视觉核验的内容不得升级为最终定量证据 |
-| src-formal-re-llm-roadmap-codex | [codex 审计结果](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__codex.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-formal-re-llm-roadmap-claude | [claude 审计结果](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__claude.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-formal-re-llm-roadmap-deepseek | [deepseek 审计结果](../../audits/a1dt-v2-19x3/results/formal-re-llm-roadmap__deepseek.md) | 三路审计 | 独立复核输入 | 可复验 | 仅作审计输入，不替代原文 |
-| src-formal-re-llm-roadmap-adjudication | [主线程裁决](../../audits/a1dt-v2-19x3/adjudications/formal-re-llm-roadmap.md) | 裁决记录 | 三路冲突处理与最终采用口径 | 可复验 | SUMMARY 回填依据 |
-
-### A.2 维度树证据账本
-
-> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
-
-
-| 证据标识 | 引用键 | 来源标识 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| ev-formal-re-llm-roadmap-type | clm-formal-re-llm-roadmap-type | src-formal-re-llm-roadmap-text | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：**vision / roadmap**（作者原文 Page 2 明确：“It is worth remarking that this is a vision paper, which does not aim to offer sound empirical evidence”） | paper_type | not_verified | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
-| ev-formal-re-llm-roadmap-unit | clm-formal-re-llm-roadmap-unit | src-formal-re-llm-roadmap-text | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**无系统样本单位**；最接近的可结构化单位是“**action point**”（Roadmap A 共 5 个 + Roadmap B 共 7 个 = 12 个）；以及 Sec 7 的 7 项 practical considerations | 样本单位（sample_unit） | not_verified | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
-| ev-formal-re-llm-roadmap-denom | clm-formal-re-llm-roadmap-denom | src-formal-re-llm-roadmap-text | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：不存在系统样本分母；路线图行动项 数固定为 5 + 7 = 12；如把 Section 7 视为辅助森林则 +7 = 19。**不可作为统计分母使用** | denominator | not_verified | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
-| ev-formal-re-llm-roadmap-tree | clm-formal-re-llm-roadmap-tree | src-formal-re-llm-roadmap-text; src-formal-re-llm-roadmap-codex; src-formal-re-llm-roadmap-claude; src-formal-re-llm-roadmap-deepseek | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**降级森林**：双根 roadmap 森林（Roadmap A、Roadmap B）+ 边界森林（Practical considerations）；不是单树，也不是基于样本编码的维度森林 | schema | not_verified | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-formal-re-llm-roadmap-pool | clm-formal-re-llm-roadmap-pool | src-formal-re-llm-roadmap-adjudication | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**否**；roadmap / vision；缺系统检索、纳排、质量评价、数据综合 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
-### A.3 结论-证据映射
-
-| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| clm-formal-re-llm-roadmap-type | A1DT-formal-re-llm-roadmap-C01 | 本文原文类型为：**vision / roadmap**（作者原文 Page 2 明确：“It is worth remarking that this is a vision paper, which does not aim to offer sound empirical evidence”） | paper_type | type | ev-formal-re-llm-roadmap-type | 正式写作前需核对出版页和 PDF 版式 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
-| clm-formal-re-llm-roadmap-unit | A1DT-formal-re-llm-roadmap-C02 | 本文被编码样本单位为：**无系统样本单位**；最接近的可结构化单位是“**action point**”（Roadmap A 共 5 个 + Roadmap B 共 7 个 = 12 个）；以及 Sec 7 的 7 项 practical considerations | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-formal-re-llm-roadmap-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | not_verified；待 A2a 原文版面锚定 | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
-| clm-formal-re-llm-roadmap-tree | A1DT-formal-re-llm-roadmap-C03 | 本文原生维度树 / 维度森林为：**降级森林**：双根 roadmap 森林（Roadmap A、Roadmap B）+ 边界森林（Practical considerations）；不是单树，也不是基于样本编码的维度森林 | 树类型（tree_type） | native_tree | ev-formal-re-llm-roadmap-tree | 不代表跨论文通用模板 | not_verified；待 A2a 原文版面锚定 | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-formal-re-llm-roadmap-pool | A1DT-formal-re-llm-roadmap-C04 | 本文统计池资格为：**否**；roadmap / vision；缺系统检索、纳排、质量评价、数据综合 | eligibility | 统计池（statistical_pool） | ev-formal-re-llm-roadmap-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
-### A.4 本地复验命令与人工核验清单
-
-| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
-|---|---|---|---|---|
-| chk-formal-re-llm-roadmap-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
-| chk-formal-re-llm-roadmap-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
-| chk-formal-re-llm-roadmap-summary | SUMMARY 回填 | 核对 [../../SUMMARY.md](../../SUMMARY.md) 对应行 | v2 审计状态、样本单位、树型、统计池资格与裁决一致 | 本 PR 已回填 |
+证据链与结论-证据映射已迁移至 [evidence_chain.md](./evidence_chain.md)。
