@@ -120,28 +120,131 @@ def extract_section(text: str, start_marker: str, end_marker: str | None = None)
     return text[start:] if not end_match else text[start:end_match.start()]
 
 
-def parse_formal_a2_a3(review_path: Path) -> tuple[set[str], dict[str, str], dict[str, list[str]]]:
+def parse_markdown_table(section: str) -> tuple[list[str], list[list[str]]]:
+    """Parse the first markdown table in a section with conservative rules."""
+    header: list[str] = []
+    rows: list[list[str]] = []
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        if not cols:
+            continue
+        if all(re.fullmatch(r":?-{3,}:?", c or "") for c in cols):
+            continue
+        if not header:
+            header = cols
+            continue
+        rows.append(cols)
+    return header, rows
+
+
+def normalize_boolish(value: str) -> str:
+    return value.strip().lower().replace(" ", "")
+
+
+def split_source_ids(value: str) -> list[str]:
+    """Extract source ids from a markdown cell.
+
+    A.2 rows may use semicolon-separated source ids.  Links are not expected in
+    this cell, but regex extraction is intentionally tolerant so Chinese prose
+    around the ids does not break the gate.
+    """
+    return re.findall(r"src-[A-Za-z0-9-]+", value)
+
+
+def parse_formal_a1_a2_a3(
+    review_path: Path, errors: list[str] | None = None, repo: Path | None = None
+) -> tuple[set[str], set[str], dict[str, str], dict[str, list[str]], dict[str, list[str]], dict[str, str]]:
     text = review_path.read_text(encoding="utf-8", errors="ignore")
+    a1 = extract_section(text, "### A.1 论文与本地文件来源", "### A.2 维度树证据账本")
     a2 = extract_section(text, "### A.2 维度树证据账本", "### A.3 结论-证据映射")
     a3 = extract_section(text, "### A.3 结论-证据映射", "### A.4 本地复验命令")
+
+    source_ids: set[str] = set()
     evidence_ids: set[str] = set()
+    evidence_sources: dict[str, list[str]] = {}
+    evidence_strengths: dict[str, str] = {}
     claim_types: dict[str, str] = {}
     claim_evidence: dict[str, list[str]] = {}
-    for line in a2.splitlines():
-        if not line.startswith("|") or line.startswith("|---") or "证据标识" in line:
+
+    rel = review_path.relative_to(repo) if repo is not None else review_path
+
+    a1_header, a1_rows = parse_markdown_table(a1)
+    if a1_header and "来源标识" not in a1_header and errors is not None:
+        add_error(errors, f"{rel} A.1 table header must include 来源标识")
+    for cols in a1_rows:
+        if cols and cols[0].startswith("src-"):
+            source_ids.add(cols[0])
+
+    a2_header, a2_rows = parse_markdown_table(a2)
+    if errors is not None:
+        if not a2_header:
+            add_error(errors, f"{rel} missing formal A.2 table")
+        elif "来源标识" not in a2_header:
+            add_error(errors, f"{rel} formal A.2 table missing 来源标识 column")
+    a2_index = {name: i for i, name in enumerate(a2_header)}
+    source_idx = a2_index.get("来源标识")
+    strength_idx = a2_index.get("证据强度")
+    page_idx = a2_index.get("原文页码")
+    range_idx = a2_index.get("段落或行号范围")
+    visual_idx = a2_index.get("需要原文版面核验")
+
+    for cols in a2_rows:
+        if not cols or not cols[0].startswith("ev-"):
             continue
-        cols = [c.strip() for c in line.strip("|").split("|")]
-        if cols and cols[0].startswith("ev-"):
-            evidence_ids.add(cols[0])
-    for line in a3.splitlines():
-        if not line.startswith("|") or line.startswith("|---") or "结论标识" in line:
-            continue
-        cols = [c.strip() for c in line.strip("|").split("|")]
+        evidence_id = cols[0]
+        evidence_ids.add(evidence_id)
+        if source_idx is not None and source_idx < len(cols):
+            refs = split_source_ids(cols[source_idx])
+        else:
+            refs = []
+        evidence_sources[evidence_id] = refs
+        if strength_idx is not None and strength_idx < len(cols):
+            evidence_strengths[evidence_id] = cols[strength_idx]
+
+        if errors is not None:
+            if not refs:
+                add_error(errors, f"{rel} A.2 evidence {evidence_id} has empty/unparseable 来源标识")
+            for sid in refs:
+                if sid not in source_ids:
+                    add_error(errors, f"{rel} A.2 evidence {evidence_id} references unknown A.1 source {sid}")
+            joined = " | ".join(cols)
+            page_value = cols[page_idx] if page_idx is not None and page_idx < len(cols) else ""
+            range_value = cols[range_idx] if range_idx is not None and range_idx < len(cols) else ""
+            visual_value = cols[visual_idx] if visual_idx is not None and visual_idx < len(cols) else ""
+            needs_a2a = "待 A2a" in joined
+            needs_visual = normalize_boolish(visual_value) in {"是", "true", "yes", "y", "需", "需要"}
+            strength = evidence_strengths.get(evidence_id, "")
+            if (needs_a2a or needs_visual) and ("文本已核验" in strength or "text_verified" in strength):
+                add_error(
+                    errors,
+                    f"{rel} A.2 evidence {evidence_id} still claims text_verified while pending A2a/visual check "
+                    f"(page={page_value!r}, range={range_value!r}, visual={visual_value!r})",
+                )
+
+    a3_header, a3_rows = parse_markdown_table(a3)
+    if errors is not None and not a3_header:
+        add_error(errors, f"{rel} missing formal A.3 table")
+    a3_index = {name: i for i, name in enumerate(a3_header)}
+    claim_strength_idx = a3_index.get("结论强度")
+    for cols in a3_rows:
         if len(cols) >= 6 and cols[1].startswith("A1DT-"):
-            claim_types[cols[1]] = cols[3]
+            claim_id = cols[1]
+            claim_types[claim_id] = cols[3]
             evs = [x.strip() for x in re.split(r"[,，]", cols[5]) if x.strip() and x.strip() != "--"]
-            claim_evidence[cols[1]] = evs
-    return evidence_ids, claim_types, claim_evidence
+            claim_evidence[claim_id] = evs
+            if errors is not None and claim_strength_idx is not None and claim_strength_idx < len(cols):
+                claim_strength = cols[claim_strength_idx]
+                relies_on_not_verified = any("not_verified" in evidence_strengths.get(ev, "") for ev in evs)
+                if relies_on_not_verified and "adjudicated" not in claim_strength and "not_verified" not in claim_strength:
+                    add_error(
+                        errors,
+                        f"{rel} A.3 claim {claim_id} relies on not_verified A.2 evidence but has strength {claim_strength!r}",
+                    )
+                if "not_verified" in claim_strength and ("文本已核验" in claim_strength or "text_verified" in claim_strength):
+                    add_error(errors, f"{rel} A.3 claim {claim_id} mixes not_verified with text_verified: {claim_strength!r}")
+    return source_ids, evidence_ids, claim_types, claim_evidence, evidence_sources, evidence_strengths
 
 
 def check_summary_semantics(base: Path, repo: Path, errors: list[str]) -> None:
@@ -153,7 +256,7 @@ def check_summary_semantics(base: Path, repo: Path, errors: list[str]) -> None:
     all_claim_types: dict[str, str] = {}
     all_claim_evidence: dict[str, tuple[Path, list[str]]] = {}
     for review in sorted(papers.glob("*/review.md")):
-        evidence_ids, claim_types, claim_evidence = parse_formal_a2_a3(review)
+        _source_ids, evidence_ids, claim_types, claim_evidence, _evidence_sources, _evidence_strengths = parse_formal_a1_a2_a3(review, errors, repo)
         for cid, ctype in claim_types.items():
             all_claim_types[cid] = ctype
             all_claim_evidence[cid] = (review, claim_evidence.get(cid, []))
