@@ -305,7 +305,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 
 ### 5.2 对 Paper2 审计优先证据工程的启发
 
-1. **A1-M1 脚手架价值很高**：本文展示了一个可以直接迁移到 Paper2 的维度 seed：研究对象、策略、目标、限制、指标、目标用户、实践文档。
+1. **A1-M1 脚手架价值很高**：本文展示了一个可作为 Paper2 维度 seed 候选：研究对象、策略、目标、限制、指标、目标用户、实践文档。
 2. **缺失值语义应显式化**：`未说明`、`未评价`、`未找到` 在本文中参与统计和 finding 形成。Paper2 应将缺失语义写进 schema，而不是用空单元格。
 3. **统计观察与 候选发现 要分层**：本文从比例和分布推出“需要 统一框架”。Paper2 可以学习这种路线，但要更强地记录 supporting evidence、反向证据、主张强度、研究者裁决。
 4. **terminology bias 是 schema 风险**：原文承认 tool / method / technique / framework 术语不统一。Paper2 需要在 schema 中记录 `terminology_basis = author_keyword / reviewer_interpretation / adjudicated`。
@@ -545,21 +545,21 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | `leaf.strategy_cluster` | 建模辅助策略 聚类 | B-RQ1 | §3.5 RQ1 抽取规则 + §4.2 + Table 2 + Fig. 4 | 把每个 提案 单标签归入 6 类作者术语 聚类 之一 | {工具、指南、技术、方法、框架、语言} | 完整封闭枚举 | 不允许空；重叠时强制单标签（§4.2 末） | 频次 39.7/19.0/15.5/13.8/6.9/5.2 % | 软件实现 93.1 % 是候选发现；混合系统外推风险 | E3, E7 | 单标签外推到 混合式 LLM/智能体 系统须降级 |
 | `leaf.strategy_subtype` | 策略子型 | `leaf.strategy_cluster` | §4.2 段落子列表 + Table 2 keywords | 在 聚类 内的作者术语子型 | 层级枚举（工具 11+ 子型；其余每 聚类 3–6 子型） | 层级枚举 + 自由文本 | 子型未明时仅留 聚类 | 子型分布尚未给出数字 | recommender / AI assistant 子型可对接 LLM4STM | E7 | 子型词表非饱和，A2a 待 Zenodo 核 |
-| `leaf.software_based` | 软件实现程度 | B-RQ1 | §4.2 末 “93.1 %…软件实现” | 该 提案 是否使用软件实现 | {完全软件实现, 部分软件实现, 无软件实现} | 派生 ENUM | 不允许空 | 93.1 % vs 6.9 % | 提示 指南-only 占少数 | E7 | 直接迁移 |
+| `leaf.software_based` | 软件实现程度 | B-RQ1 | §4.2 末 “93.1 %…软件实现” | 该 提案 是否使用软件实现 | {完全软件实现, 部分软件实现, 无软件实现} | 派生 ENUM | 不允许空 | 93.1 % vs 6.9 % | 提示 指南-only 占少数 | E7 | 候选使用（需裁决） |
 | `leaf.goal_cluster` | 目标 聚类 | B-RQ2-G | §3.5 + §4.3 + Table 3 + Fig. 5 | 单标签归入 7 类目标 | {G1, G2, G3, G4, G5, G6, G7} | 完整封闭枚举 | 不允许空 | G6=31.0 %、G1+G2+G3+G4+G7=43.1 %、G5=25.9 % | G6 对接 STM 生成；G2/G5 对接 verification & repair | E3, E9 | G3/G7 单 提案，统计稀疏 |
-| `leaf.create_refine_role` | 创建/精化角色 | `leaf.goal_cluster` | §4.3 三分 | 派生：G6=create / G1-G4-G7=refine / G5=both | {create, refine, both} | 派生 ENUM（3 类） | 不允许空 | 31.0 / 43.1 / 25.9 % | 显示 refinement 主导，缺口（gap）=纯创建少 | E9 | 直接迁移 |
-| `leaf.limitation_reported` | 限制是否报告 | B-RQ2-L | §3.5 “leave blank” + §4.3 L-NS | 50.0 % 明确报告 限制 | {已说明, L-NS} | 布尔 | L-NS 即 未报告（不是 不适用（不适用）） | 50.0 % vs 50.0 % | 缺失性 本身=候选发现 | E9 | 直接迁移 |
+| `leaf.create_refine_role` | 创建/精化角色 | `leaf.goal_cluster` | §4.3 三分 | 派生：G6=create / G1-G4-G7=refine / G5=both | {create, refine, both} | 派生 ENUM（3 类） | 不允许空 | 31.0 / 43.1 / 25.9 % | 显示 refinement 主导，缺口（gap）=纯创建少 | E9 | 候选使用（需裁决） |
+| `leaf.limitation_reported` | 限制是否报告 | B-RQ2-L | §3.5 “leave blank” + §4.3 L-NS | 50.0 % 明确报告 限制 | {已说明, L-NS} | 布尔 | L-NS 即 未报告（不是 不适用（不适用）） | 50.0 % vs 50.0 % | 缺失性 本身=候选发现 | E9 | 候选使用（需裁决） |
 | `leaf.limitation_cluster` | 限制 聚类 | B-RQ2-L | Table 3 + §4.3 L1–L6 | 6 类限制（**§4.3 prose 写 “five”，待核**） | {L1 accuracy, L2 effort, L3 generality, L4 learnability, L5 scope, L6 usability} ∪ {L-NS} | 封闭枚举（带口径冲突待核） | L-NS=作者未声明 | 仅给出 L 子集的列表；具体每类频次未在 §4.3 完整给出 | L1/L3/L5 是 LLM4STM 主风险 | **E8 待复核** | 不允许把 “five” 直接当作权威；A2a 须复核 |
-| `leaf.evaluation_status` | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | 提案 是否被经验评价 | {已经验评价（empirically_evaluated）, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选发现 | E10 | 直接迁移 |
+| `leaf.evaluation_status` | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | 提案 是否被经验评价 | {已经验评价（empirically_evaluated）, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选发现 | E10 | 候选使用（需裁决） |
 | `leaf.metric_cluster` | 指标 聚类 | B-RQ3-M | Table 4 + §4.4 + TAM | 把指标按 TAM 分类 | {M1 effectiveness, M2 efficiency, M3 用户感知} ∪ {NE} | 封闭枚举 | NE=未评价 | M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 % | M3=4.2 % 是强 缺口（gap） | E10 | 一 提案 可有多 指标，注意多标签 |
 | `leaf.metric_subtype` | 指标子型 | `leaf.metric_cluster` | Table 4 keywords | 在 聚类 内的具体指标项 | M1/M2/M3 子型枚举（见 §3） | 层级枚举 + 自由文本 | 缺则填 NE | 子型分布未数字化 | 直接对接 STM 生成 评价 | E10 | 子型词表非饱和 |
-| `leaf.user_cluster` | 目标用户 聚类 | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 设计者/建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者）} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “用户” / “he/she” 泛化或 第二人称 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM 领域 expert 命题的起点 | E10, E11 | 直接迁移；实践 侧 U-NS 高度由 第二人称“你” 触发 |
-| `leaf.documentation_status` | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ 工具 是否有可访问的 建模辅助 文档 | {D=有文档, NF=未找到文档} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | 未文档化 ≠ 不存在 是关键边界 | E11 | 直接迁移 |
+| `leaf.user_cluster` | 目标用户 聚类 | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 设计者/建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者）} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “用户” / “he/she” 泛化或 第二人称 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM 领域 expert 命题的起点 | E10, E11 | 候选使用（需裁决）；实践侧 U-NS 高度由第二人称“你”触发 |
+| `leaf.documentation_status` | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ 工具 是否有可访问的 建模辅助 文档 | {D=有文档, NF=未找到文档} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | 未文档化 ≠ 不存在 是关键边界 | E11 | 候选使用（需裁决） |
 | `leaf.gmq_class` | Gartner 魔力象限分类（GMQ；首次术语） | B-RQ4 | §5.1 + Fig. 8 | Gartner Magic Quadrant 2023 分类 | {领导者、挑战者、愿景者、利基玩家} | 完整封闭枚举（4 类） | 不允许空 | LE=5, C=1, V=3, NP=8 | LE 更常公开 assistant 文档 | E11 | 仅代表 enterprise low-code 视角 |
-| `leaf.second_person_hidden_user` | 第二人称隐藏用户 | `leaf.documentation_status` | §5.2 末 “write using ‘第二人称“你”’… hides the actor” | 文档是否用 第二人称“你” 掩盖 目标用户 | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 直接迁移 |
+| `leaf.second_person_hidden_user` | 第二人称隐藏用户 | `leaf.documentation_status` | §5.2 末 “write using ‘第二人称“你”’… hides the actor” | 文档是否用 第二人称“你” 掩盖 目标用户 | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 候选使用（需裁决） |
 | `leaf.replication_link` | 复现资料链接 | B-元数据 | §3.5 脚注 4 + §4.1 脚注 + §8 | Zenodo 10262145 | URL + 内容描述 | 链接 + 自由文本 | 不允许空 | n/a | 提升透明度证据 | E6 | 本审计未实际核验 |
 | `leaf.quality_score` | 质量 / 相关性评分 | B-元数据 | §3.4 + Fig. 3 PRISMA | 用于识别前 12 个高质量种子论文的筛选信号 | 数值或排序位次；具体逐项值待 Zenodo / Fig. 3 精核 | 数值或序数（待核验） | 未进入前 12 种子时不作强统计 | 支撑滚雪球种子选择过程 | A2a 可核验筛选偏差与代表性 | EV-mma-003 | 当前仅作流程证据，不作领域结论 |
-| `leaf.kappa_inclusion` | 纳入 K 统计量 | B-元数据 | §4.1 | 三 reviewer inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.634 | 处于 Landis-Koch substantial | E6 | 直接迁移 |
+| `leaf.kappa_inclusion` | 纳入 K 统计量 | B-元数据 | §4.1 | 三 reviewer inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.634 | 处于 Landis-Koch substantial | E6 | 候选使用（需裁决） |
 | `leaf.kappa_clustering` | 聚类 K 统计量 | B-元数据 | §4.1 + §7.1 | 聚类 inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.651 | 同上 | E6 | 数据抽取阶段未算 K（§7.1） |
 
 ### 5. 关系边表
@@ -648,7 +648,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
 | EV-mma-001 | paper_content.txt, bibtex.bib | §1 引言（Introduction）（Page 1）+ Abstract | abstract; “Modelling assistance is the 策略…that aims to assist humans during software 建模任务 in MDSE 工具.” | 给出 建模辅助 定义和 MDSE/低代码边界 | scope_definition | 历史草稿旧强度（当前禁止采信） | B-元数据, ROOT, `leaf.strategy_cluster` | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
-| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | 历史草稿旧强度（当前禁止采信） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-限制-报告方式, leaf-评价-status, leaf-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
+| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | 历史草稿旧强度（当前禁止采信） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-限制-报告方式, leaf-评价-status, leaf-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 结构候选（需裁决），不迁移领域结论 |
 | EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | 语料 流程管线 + inter-rater | corpus_pipeline | 历史草稿旧强度（当前禁止采信）（图 3 视觉待核） | `leaf.quality_score`, leaf-kappa-inclusion, leaf-kappa-聚类, `leaf.replication_link`, B-元数据 | true（Fig. 3 视觉） | 仅本文样本池 |
 | EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 聚类 + 比例 + 93.1 % 软件实现 | 分类法_with_distribution | 历史草稿旧强度（当前禁止采信）（图 4 数字待核） | `leaf.strategy_cluster`, leaf-策略-subtype, leaf-软件实现 | true（Fig. 4 视觉） | 单标签 聚类 风险 |
 | EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G 聚类 + “five 限制 聚类”（prose）/ Table 3 列 L1–L6 + L-NS | 分类法 + 口径冲突 | 历史草稿旧强度（当前禁止采信，且存在内部冲突） | `leaf.goal_cluster`, leaf-create-refine-role, leaf-限制-报告方式, `leaf.limitation_cluster` | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
@@ -669,7 +669,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 | C-mma-05 | RQ2-L 聚类 总数在原文内部存在 “five (§4.3 prose)” vs “L1–L6 (Table 3)” 冲突，必须保留 `not_verified` 直到 A2a 复核。 | internal_inconsistency | `leaf.limitation_cluster` | EV-mma-005 | weak | 候选发现 不可作 final | 必须 A2a PDF + Zenodo 复核 |
 | C-mma-06 | RQ3-M 聚类 是 3-聚类 TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 评价 缺口（gap）。 | closed_enum + 缺失性 | leaf-评价-status, `leaf.metric_cluster` | EV-mma-006 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计；可作方法学警示 | 不可直接外推 LLM4STM 缺口（gap） 数字 |
 | C-mma-07 | RQ3-U 聚类 是 3-聚类 单标签 + U-NS；U-NS=29.3 %、实践 73.3 %；实践 U-NS 由 第二人称“你” 触发是 §5.2 显式机制。 | closed_enum + 缺失性 + mechanism | `leaf.user_cluster`, leaf-用户-报告方式, leaf-第二人称-hidden | EV-mma-006, 007 | 历史草稿旧强度（当前禁止采信） | 可作 模式种子（schema_seed） 统计 | 不外推领域比例 |
-| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `leaf.documentation_status`, B-效度 | EV-mma-007, 009 | 历史草稿旧强度（当前禁止采信） | 直接迁移到 Paper2 / Project1 | grey-文献 局限 |
+| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `leaf.documentation_status`, B-效度 | EV-mma-007, 009 | 历史草稿旧强度（当前禁止采信） | Paper2 / Project1 候选（需裁决） | grey-文献 局限 |
 | C-mma-09 | AI/LLM disruption 与 unified 框架 论述是 future expectation，不是字段统计的 最终发现。 | 候选发现 | §8 论述 | EV-mma-010 | weak | review.md / SUMMARY 只能写 candidate | 与原文 RQ 抽取数据不直接挂钩 |
 | C-mma-10 | 交叉轴（策略×目标×限制；目标×指标×用户；lit vs 实践）是本文 发现 的主要候选来源，但需 PDF 复核 bubble 半径数字。 | relation_发现 | 关系边-* | EV-mma-008 | medium | 可作 候选发现 | bubble 数字 PDF 待核 |
 | C-mma-11 | terminology bias + subjective 聚类 + 数据抽取 K 未算 + 灰色文献 limited to GMQ + English-only：5 条 效度 边界必须随 模式 一起迁移。 | migration_boundary | B-效度 | EV-mma-009 | 历史草稿旧强度（当前禁止采信） | review.md 迁移边界 + Paper2 启发 | 缓解不等于消除 |

@@ -49,7 +49,7 @@
 
 质量评价问题包括：mapping 动机是否清楚；mapping process 是否清楚定义；是否有该 mapping process 的 empirical evidence / 结果。数据抽取表覆盖 study ID、title、authors、year、SWEBOK area、venue、使用的 guidelines、search strategy、search type、classification scheme、visualization type。
 
-这些字段几乎可以直接迁移为 A2a 对 SLR/SMS 文献的 extraction form。
+这些字段可作为 A2a 对 SLR/SMS 文献的 extraction form 候选，仍需主线程裁决。
 
 ### 2.4 guideline update 与维度模式
 
@@ -335,7 +335,7 @@
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-#### 6.1 原文中由字段 / 统计表支持的统计观察（强证据，分母明确）
+#### 6.1 原文中由字段 / 统计表支持的统计观察（关键原文依据，分母明确；A2a 前仍为候选）
 
 | 统计观察 | 证据 | 分母 |
 |---|---|---|

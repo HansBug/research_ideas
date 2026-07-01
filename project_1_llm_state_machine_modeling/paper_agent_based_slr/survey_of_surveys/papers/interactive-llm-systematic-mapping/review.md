@@ -305,7 +305,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 8. **Page 3 §2.3 编码二分**：`"1. Inductive coding... topic modeling... embeddings, reduce dimensions, cluster embeddings, and create topic representations... Bertopic ... 2. Deductive coding: Given is a data 抽取 scheme (e.g., SWE-BOK 类别)... One-shot or Few-shot... RAG architecture..."`（行 177–191）→ 抽取 子树二分。
 9. **Page 3 §3 Reflections - 效度 四点**：`"Publication bias and limited studies... The rapid evolution of LLMs... Many existing studies are from outside SE..."`（行 213–223）→ 效度/risk 树叶子。
 10. **Page 3 §3 two research directions**：`"Improving individual steps... Build a prototype representing the overall mapping process..."`（行 231–234）→ 路线图 两条。
-11. **Page 3 数据可获得性（Data 可获得性）**：`"No data was used for the research described in the article."（即未使用数据）`（行 246）→ 强证据：无样本分母。
+11. **Page 3 数据可获得性（Data 可获得性）**：`"No data was used for the research described in the article."（即未使用数据）`（行 246）→ 支撑无样本分母的关键原文依据（A2a 前仍按候选证据管理）。
 12. **Page 4 References**：10 条参考文献（行 252–280）；其中 [4] = Petersen et al. 2015 SMS 指南，是本文流程阶段的真正母本，等价于"借用现成 阶段 分类法"，不是本文新构建。
 
 ### 2. 样本单位与字段来源判定
@@ -438,12 +438,12 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | audit.rationale | 审计字段：理由 | B5 | §2.2.2 | LLM 给出的解释 / CoT | 自由文本 | 自由文本 | 同上 | 同上 | 同上 | 行 153–155 | CoT 不等于必须暴露推理链，应解读为可审计 rationale |
 | audit.citation | 审计字段：引用 | B5 | §2.2.2 | 文本证据片段 + 原文位置 | 关系值（fragment + locator） | 关系值 | 同上 | 同上 | 同上 | 行 155–157 | 强迁移点 |
 | audit.source_loc | 审计字段：来源位置 | B5 | §2.2.2 隐含 | 引用所指原文 page / paragraph / line | 关系值 | 关系值 | 同上 | 同上 | 同上 | 行 156–157 | 同上 |
-| 威胁.pub_bias | 风险：发表偏倚（publication bias） | B6 | §3 | 现有 LLM-for-review 研究有限且可能有发表偏差 | 风险条目 | 布尔 + 描述 | -- | 用于 risk inventory | risk 候选 | 行 213–217 | 直接迁移 |
+| 威胁.pub_bias | 风险：发表偏倚（publication bias） | B6 | §3 | 现有 LLM-for-review 研究有限且可能有发表偏差 | 风险条目 | 布尔 + 描述 | -- | 用于 risk inventory | risk 候选 | 行 213–217 | 候选使用（需裁决） |
 | 威胁.model_drift | 风险：模型快速演化 | B6 | §3 | Claude.ai、GPT-o1 等会让评估过时 | 风险条目 | 同上 | -- | 同上 | 同上 | 行 215–217 | 等价 Paper2 服务提供商漂移（provider drift） |
-| 威胁.non_se | 风险：证据外 SE 化 | B6 | §3 | 很多证据来自 SE 之外 | 风险条目 | 同上 | -- | 同上 | 同上 | 行 218–221 | 直接迁移 |
-| 威胁.se_specific | 风险：缺 SE-specific 评价 | B6 | §3 | 需要 SE-specific solution & 评价 | 风险条目 | 同上 | -- | 同上 | 同上 | 行 219–222 | 直接迁移 |
-| 路线图.steps | 路线图条 R1：单步评估 | B7 | §3 末尾 | 分别评估每个 阶段 的策略 | 1 path | 二值 | -- | 候选 next-step | candidate 路线图 | 行 231–232 | 直接迁移 |
-| 路线图.proto | 路线图条 R2：端到端 prototype | B7 | §3 末尾 | 构建覆盖全流程 prototype 收集反馈 | 1 path | 二值 | -- | 同上 | 同上 | 行 232–234 | 直接迁移 |
+| 威胁.non_se | 风险：证据外 SE 化 | B6 | §3 | 很多证据来自 SE 之外 | 风险条目 | 同上 | -- | 同上 | 同上 | 行 218–221 | 候选使用（需裁决） |
+| 威胁.se_specific | 风险：缺 SE-specific 评价 | B6 | §3 | 需要 SE-specific solution & 评价 | 风险条目 | 同上 | -- | 同上 | 同上 | 行 219–222 | 候选使用（需裁决） |
+| 路线图.steps | 路线图条 R1：单步评估 | B7 | §3 末尾 | 分别评估每个 阶段 的策略 | 1 path | 二值 | -- | 候选 next-step | candidate 路线图 | 行 231–232 | 候选使用（需裁决） |
+| 路线图.proto | 路线图条 R2：端到端 prototype | B7 | §3 末尾 | 构建覆盖全流程 prototype 收集反馈 | 1 path | 二值 | -- | 同上 | 同上 | 行 232–234 | 候选使用（需裁决） |
 
 ### 5. 关系边表
 
@@ -514,8 +514,8 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | EV-iLLM-SMS-005 | paper_content.txt | Page 3 §2.2.2 | 行 150–157 | "language 模型 have to explain the reasons ... Chain-of-thoughts prompting ... citations are indispensable ... increase traceability" | 纳排 audit 字段强约束 | 历史草稿旧强度（当前禁止采信） | B5 audit.*, rel.inc_exc_to_audit | 否 | CoT 不等于必须暴露推理链；解读为可审计 rationale |
 | EV-iLLM-SMS-006 | paper_content.txt | Page 3 §2.3 | 行 177–191 | "Inductive coding ... topic modeling ... Bertopic. Deductive coding: Given is a 数据抽取 scheme (e.g., SWE-BOK) ... One-shot or Few-shot ... RAG architecture" | 抽取 二分 + 机制菜单 | 历史草稿旧强度（当前禁止采信） | 阶段.extract, mech.bertopic, mech.prompt_style, mech.rag | 否 | SWE-BOK 仅作为示例，不要写成 scheme 本身 |
 | EV-iLLM-SMS-007 | paper_content.txt | Page 3 §3 Reflections | 行 213–223 | "Publication bias and limited studies ... rapid evolution of LLMs ... Many existing studies are from outside SE" | 效度 / 威胁 树 | 历史草稿旧强度（当前禁止采信） | B6 威胁.*, 威胁→路线图 关系 | 否 | 等价 Paper2 服务提供商漂移（provider drift） / 非 SE 证据外推 |
-| EV-iLLM-SMS-008 | paper_content.txt | Page 3 §3 末尾 | 行 231–234 | "Improving individual steps ... Build a prototype representing the overall mapping 流程" | 路线图 双轨 | 历史草稿旧强度（当前禁止采信） | B7 路线图.* | 否 | 直接迁移 |
-| EV-iLLM-SMS-009 | paper_content.txt | Page 3 数据可获得性（Data 可获得性） | 行 246 | "No data was used for the research described in the article."（即未使用数据） | 强证据：无样本分母 | 历史草稿旧强度（当前禁止采信） | 主统计池排除 | 否 | 决定性 |
+| EV-iLLM-SMS-008 | paper_content.txt | Page 3 §3 末尾 | 行 231–234 | "Improving individual steps ... Build a prototype representing the overall mapping 流程" | 路线图 双轨 | 历史草稿旧强度（当前禁止采信） | B7 路线图.* | 否 | 候选使用（需裁决） |
+| EV-iLLM-SMS-009 | paper_content.txt | Page 3 数据可获得性（Data 可获得性） | 行 246 | "No data was used for the research described in the article."（即未使用数据） | 支撑无样本分母的关键原文依据（历史草案，禁止消费） | 历史草稿旧强度（当前禁止采信） | 主统计池排除 | 否 | 决定性 |
 | EV-iLLM-SMS-010 | paper_content.txt | Page 2–3 各 "Relevant literature" 段 | 行 123–135, 158–170, 192–199 | Wang [5], Huotala [6], Guo [7], Petersen [9] 的数字与陈述 | **被引文献的发现**（不是本文发现） | weak（叙事性引用） | 风险注脚 | 否 | **关键迁移红线**：不得写成本文结论 |
 | EV-iLLM-SMS-011 | paper.pdf | Page 2 Fig. 1 版面 | -- | -- | 图内 box / 箭头 / 标签精确文字 | not_verified | rel.stage_to_triplet, B2 三槽是否每阶段都齐 | **是** | A2a 必须打开 PDF |
 | EV-iLLM-SMS-012 | Supplementary material (online) | Appendix A | -- | 被下划线术语定义 | not_verified | mech.* 工具语义 | **是** | 本轮未打开 |

@@ -109,7 +109,7 @@
 1. **L11–25 Abstract**：原文自述"67 new SLRs addressing 24 software engineering topics" + "15 relevant to undergraduate curriculum, 40 of possible interest to 实践者" + "majority did not evaluate 质量 of 原始研究 and fail to provide 指南 for 实践者"。锚定样本单位为 SLR、分母 67/120 与 发现 边界。
 2. **L222–248 §3.1 RQ1–RQ5**：完整列出五个 RQ + RQ1.1/RQ1.2 子问题，含明确时间窗 (2004-01-01 ↔ 2009-12-31)。
 3. **L392–433 §3.6 QA1–QA4 rubric**：四题完整定义 + Y/P/N 评分 (Y=1, P=0.5, N=0) 是 质量 维度的封闭枚举取值空间。
-4. **L451–468 §3.7 数据抽取（数据抽取）**：明确列出 10 个字段——Year / Quality Score / Review Type (SLR/MA/MS) / 综述范围（Review Scope） (RQ/SERT/RT) / 主题领域 / Cited EBSE / 是否引用指南 / # Primary studies / 实践者指南 / 来源类型 (J/C/WS/BS)。**这是本文原生模式 的最强证据**。
+4. **L451–468 §3.7 数据抽取（数据抽取）**：明确列出 10 个字段——Year / Quality Score / Review Type (SLR/MA/MS) / 综述范围（Review Scope） (RQ/SERT/RT) / 主题领域 / Cited EBSE / 是否引用指南 / # Primary studies / 实践者指南 / 来源类型 (J/C/WS/BS)。**这是本文原生模式的关键原文依据（A2a 前仍按候选证据管理）**。
 5. **L575–771 Table 2**：67 行 × 10 字段的完整 抽取 form 实例化数据；含 EBSE/指南 cite 注脚 a/b/c (EBSE 论文 [14]/[8]/[24]) 与 d/e/f/g/h (指南 文件 [15]/[13]/[16]/[4]/[12])——揭示 "Cited EBSE" 与 "是否引用指南" 不是简单布尔，而是带子引用的关系列。
 6. **L826–894 Table 3**：完整 67 篇 × QA1–QA4 × Final Score × Quartile 分布。
 7. **L904–1136 Table 5**：每一篇 SLR 对应的 SE2004 Curriculum sub-section + SWEBOK Chapter/Section + "Useful for education" / "Useful for 实践者" (是/否/Possibly) + "Why?" 自由文本——这是显式的**关系边 模式**。
@@ -370,7 +370,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 | clm-ds11-N04 | 本文具备主统计池资格（限于 secondary-研究 元统计场景） | pool_eligibility | T1, T2, App.A | EV-007, EV-008, EV-014 | 历史草稿旧强度（当前禁止采信） | 改写 review.md §"统计与候选发现链路" 的池资格 | 不作为目标领域 (LLM4SE/STM) 的统计池 |
 | clm-ds11-N05 | "SW Configuration Management 与 软件质量 在 120 篇中=0 SLR" 是可统计 缺口发现（缺口发现） | 缺口发现（gap_finding） | T3 (Curriculum + SWEBOK) | EV-009 | strong (限 2004–2009 窗口) | 可作 候选发现；不外推到 2024 | 时间窗口约束；SWEBOK 已升级 |
 | clm-ds11-N06 | "MS 比例 32%→82%" 受测量法迁移 (Da Silva 2010 重分类) 干扰 | measurement_drift_warning | T1.rtype | L791–800 paper_content.txt | 历史草稿旧强度（当前禁止采信） | 给跨论文统计加 caveat | 必须保留 |
-| clm-ds11-N07 | 三种 update 类型 (temporal/search/组合类（组合类）) 可作 update-review 通用分类 | methodological_seed | T5 | EV-010 | 历史草稿旧强度（当前禁止采信） | 直接迁移到 Paper2 的 predecessor 模式 | — |
+| clm-ds11-N07 | 三种 update 类型 (temporal/search/组合类（组合类）) 可作 update-review 通用分类 | methodological_seed | T5 | EV-010 | 历史草稿旧强度（当前禁止采信） | Paper2 predecessor 模式候选（需主线程裁决） | — |
 | clm-ds11-N08 | 本文具有显式关系型 模式 (SLR↔Curriculum/SWEBOK/研究者/org/country)，远比一般 SLR 丰富 | relation_richness | T3, T4 / E1–E11 | EV-007, EV-009 | 历史草稿旧强度（当前禁止采信） | 可作 review.md §"关系边" 章节模板 | — |
 | clm-ds11-N09 | DCP (Decision and Consensus Procedure) 是可迁移的多人编码流程 | methodological_seed | 全文 §3.3 | L257–280 | 历史草稿旧强度（当前禁止采信） | Paper2 编码方法学借用 | — |
 | clm-ds11-N10 | QA2 评分歧义需向原作者咨询，QA4 评分主观——rubric 本身有主观偏差 | validity_threat | T2 | EV-011 | medium | 提醒未来 模式 验证 | — |

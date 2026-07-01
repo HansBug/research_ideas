@@ -285,7 +285,7 @@ SLR 研究记录（SLR Study）
 1. **数量不一致风险**：摘要/方法写初始自动检索 3934，去重后 3570；结论处写 initial pool 3496。正式引用时应使用方法节链条，并在待复核中记录结论处疑似笔误。
 2. **单主抽取者风险**：虽然有 pilot 和 co-author validation，但剩余论文主要由第一作者抽取；这对 Paper2 是提醒：若声称审计优先，应记录双人复核比例、分歧和裁决，而不是只写“讨论解决”。
 3. **图表抽取风险**：`paper_content.txt` 对 Venn、feature tree、bubble chart 等信息不完整；正式统计数字必须回 PDF。
-4. **领域树过拟合风险**：Fig. 5 对 MDE4ML 很强，但不能直接迁移到 LLM4STM；Paper2 需要把“树构造方法”与“树的具体取值”分离。
+4. **领域树过拟合风险**：Fig. 5 对 MDE4ML 很强，但不得迁移到 LLM4STM；Paper2 需要把“树构造方法”与“树的具体取值”分离。
 5. **primary-study 质量未作为纳排标准**：作者保留 poor-quality studies 以避免过窄，这符合 emerging area 逻辑；Paper2 若采用类似策略，需要明确低质量研究如何影响候选发现强度。
 6. **roadmap 不是最终裁决**：本文的 roadmap 是作者解释性综合，不包含外部研究者质疑/裁决日志；Paper2 的新颖性应放在补足这一审计层。
 

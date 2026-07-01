@@ -434,7 +434,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 |---|---|---|---|---|---|---|---|
 | CLM-arsl-T01 | 本文原生树是 RQ-驱动的字段森林（field 森林）（F1–F18 抽取表 + 3 套 close-enum 分类方案（classification scheme；首次术语） + 1 套 SWEBOK-derived SE activity 模式），不是单棵树，也不是 reviewer 投影的六叶接口 | 树类型（tree_type） | ROOT, [A]–[F] | EV-arsl-001/003/004 | 历史草稿旧强度（当前禁止采信） | 模式_pattern_seed for Paper2 | 不迁移领域取值 |
 | CLM-arsl-T02 | F6.1 (9 类) / F7.1 (4 类) / F8 (14 项 SWEBOK) 均为**封闭枚举**且有显式构造来源与合并规则，并配 inter/intra-rater reliability | 模式_quality | F6.1/F7.1/F8 | EV-arsl-004/005/006/007 | 历史草稿旧强度（当前禁止采信） | 可直接作为 A1 高等级 模式 样本 | 领域具体类别不迁移 |
-| CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | 历史草稿旧强度（当前禁止采信） | Paper2 直接迁移作 评价 子集 | F12 部分定性 criterion 取值需扩展 |
+| CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | 历史草稿旧强度（当前禁止采信） | Paper2 评价子集候选（需主线程裁决） | F12 部分定性 criterion 取值需扩展 |
 | CLM-arsl-T04 | 本文 RQ5 显式声明"too diverse for 元分析（meta-analysis）"，转用 summarizing effect estimates；这是异质 证据 合成的标准做法 | statistical_method | F13 | EV-arsl-009 | 历史草稿旧强度（当前禁止采信） | 迁移为 Paper2 异质性统计纪律 | — |
 | CLM-arsl-T05 | §4.1–4.10 十项 缺口（gap） 来自具体统计表，是 发现 的合规来源；但其领域语义（mobile app review）不可迁移到 LLM4STM | finding_boundary | 缺口（gap） 池 | EV-arsl-010 | 历史草稿旧强度（当前禁止采信） | 候选发现 模式 | 不历史草稿曾提出迁移建议；当前禁止直接采信领域 缺口（gap） |
 | CLM-arsl-T06 | 现 review.md 维度树主结构使用通用六叶接口与原文严重偏离，需 C 级返修：把 §"原文模式主树（19×3 审计后返修）"抬升为单篇事实主树，六叶接口降级为附录投影 | audit_repair | review.md §维度树复原 | EV-arsl-003/005/006/007 + §7 of this audit | 历史草稿旧强度（当前禁止采信） | 直接驱动 review.md 返修 | — |

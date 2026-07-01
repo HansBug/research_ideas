@@ -114,7 +114,18 @@ FORBIDDEN_DRAFT_PHRASES = (
     "weak-medium",
 )
 
-FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = FORBIDDEN_DRAFT_PHRASES
+FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = (
+    *FORBIDDEN_DRAFT_PHRASES,
+    # Broad free-text forms that can make A1-DT candidates look fully verified
+    # or immediately consumable by SUMMARY/A2a.  Historical prompts/logs/results
+    # remain immutable process evidence and are intentionally not scanned by this gate.
+    "强证据",
+    "最强证据",
+    "可直接用于",
+    "直接迁移到 review.md",
+    "直接迁移到review.md",
+    "直接迁移",
+)
 
 FORBIDDEN_TRANSLATION_PHRASES = (
     "字段研究（字段研究）",

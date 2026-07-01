@@ -147,7 +147,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | A1-M1 脚手架挖掘与种子探测 | 可作为非 SLR/SMS 的 roadmap seed，用来挖掘 concern/action pattern：accessibility、correctness、explainability、traceability、domain knowledge、regulatory compliance、ethics。 | 用于补充 `survey_of_surveys` 的 pattern library，提醒 A2a 支持 `vision/roadmap` 类型。 | 只做边界锚点；不能进入目标 evidence pool。 |
 | A1-M2 维度模式批准 | 启发字段：`roadmap_direction`、`layer`、`task_family`、`artifact_in/out`、`assurance_concern`、`mechanism`、`action_point`、`evaluation_need`、`implementation_risk`。 | 研究者可把这些字段纳入候选维度模式，要求每个候选发现都说明 concern 与 mechanism。 | 若过度扩字段，会让抽取负担过高；需 A2a dry-run 决定是否拆分。 |
 | A1-M3 论文收集与概览 | 提醒候选池不要只收 SLR/SMS；高价值 vision/roadmap 需要以 `review_type=vision/roadmap` 降级管理。 | 概览卡中显式写“非 SLR/SMS，但可作 schema/heuristic seed”。 | 不能把 roadmap 文数量统计混入 SLR/SMS 统计口径。 |
-| A1-M4 字段级证据抽取与模式演化 | 提供 action-point-level evidence anchors；每个 action point 都可抽为 `concern -> mechanism -> artifact -> limitation`。 | 对 Paper2 字段证据表，可要求非统计类文献也保留来源锚点和不确定说明。 | 作者观点和例子驱动，不应作为强证据；要标注证据等级。 |
+| A1-M4 字段级证据抽取与模式演化 | 提供 action-point-level evidence anchors；每个 action point 都可抽为 `concern -> mechanism -> artifact -> limitation`。 | 对 Paper2 字段证据表，可要求非统计类文献也保留来源锚点和不确定说明。 | 作者观点和例子驱动，不应作为已最终核验的依据；要标注证据等级。 |
 | A1-M5 统计分析 | 主要贡献是负面边界：本文不支撑分布统计，不应纳入频次结论。 | 在统计分析协议中增加 `eligible_for_statistical_synthesis` 或 `evidence_role` 字段。 | 若混入统计，会污染目标综述 findings。 |
 | A1-M6 候选发现形成 | 启发候选发现从“某技术常见”升级为“某 concern 在某 artefact/task 中出现，现有 mechanism 能部分缓解，但需要某类验证”。 | 适合生成 finding heuristic：concern-first、mechanism-linked、risk-aware、human-gated。 | 只能生成候选发现线索，不能直接接受为最终领域发现。 |
 
