@@ -103,7 +103,7 @@
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
-> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 ```text
 说明：本旧版迁移草稿已中文化；英文 / 缩写保留为原文术语或后续字段标识。
@@ -189,7 +189,7 @@
 | 被编码样本单位 | 主样本：10 篇 SE systematic reviews（Table 4–5）；辅助样本：2 个 mapping 示例研究（Bailey 2007 OO 设计；Mujtaba 2008 SPL Variability，Tables 1–2 + Figure 3）；另含处方型 模式（3-facet + Wieringa）面向未来 SMS 使用，但不是本文自己的样本编码 |
 | 样本数量 / 分母 | Table 5 主样本 n=10（从 21 篇 SLR 候选中筛得 8+2=10）；mapping 示例对比 n=2；Wieringa 研究类型枚举值 6；Means of Analysis 枚举值 4；研究目标（Research Goals） 枚举值 4；Inclusion 需求 枚举值 2 |
 | 原生树类型 | **维度森林**（4 棵子树）：A=SLR 特征化表（n=10 真实样本）、B=mapping 示例对比表（n=2 真实样本）、C=处方 3-facet 分类（模式种子）、D=SMS 流程 流程管线（流程 模式） |
-| 主统计池资格 | 否；方法论文 / 指南-like seed。仅 Tree A 内部 n=10 频数和 Tree B 的 n=2 对比可作方法学描述性统计 seed，不进入领域统计合成池；Tree C/D 仅为 模式种子（schema_seed） |
+| 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
 | 总体判定 | v2 已返修完成：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ---
@@ -506,13 +506,17 @@
 ---
 
 **审计结论一句话**：旧版 `review.md` 已经迈出 v1→v2 返修第一步（"原文模式主树"节），但仍把 Tree D 流程节点当成主干 b1–b5、把 n=10 真实样本表压成通用接口叶；本轮 A1-DT v2 审计的核心增量是确认本文为**维度森林**（n=10 SLR 表 + n=2 mapping 对比 + 3-facet 处方 + 5 步过程），并把 Table 5 的 12 个具体字段、Wieringa 6 类封闭枚举、Means of Analysis 4 类多值布尔列作为正式叶子升级到原文模式主树。判定：**需要返修**（C1+C2 必须本轮返修；I1–I3 应在下一轮处理；M1–M4 为建议）。
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/petersen-2008-systematic-mapping.md](../../audits/a1dt-v2-19x3/adjudications/petersen-2008-systematic-mapping.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-petersen-2008-systematic-mapping-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-petersen-2008-systematic-mapping-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -524,7 +528,10 @@
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-petersen-2008-systematic-mapping-type | clm-petersen-2008-systematic-mapping-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：方法学论文（SMS guideline / methodology paper），内嵌一个 n=10 SLR 特征化样本表 与 n=2 mapping 示例对比 | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-petersen-2008-systematic-mapping-unit | clm-petersen-2008-systematic-mapping-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：主样本：10 篇 SE systematic reviews（Table 4–5）；辅助样本：2 个 mapping 示例研究（Bailey 2007 OO Design；Mujtaba 2008 SPL Variability，Tables 1–2 + Figure 3）；另含处方型 schema（3-facet + Wieringa）面向未来 SMS 使用，但不是本文自己的样本编码 | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
@@ -534,7 +541,7 @@
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-petersen-2008-systematic-mapping-type | A1DT-petersen-2008-systematic-mapping-C01 | 本文原文类型为：方法学论文（SMS guideline / methodology paper），内嵌一个 n=10 SLR 特征化样本表 与 n=2 mapping 示例对比 | paper_type | type | ev-petersen-2008-systematic-mapping-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-petersen-2008-systematic-mapping-unit | A1DT-petersen-2008-systematic-mapping-C02 | 本文被编码样本单位为：主样本：10 篇 SE systematic reviews（Table 4–5）；辅助样本：2 个 mapping 示例研究（Bailey 2007 OO Design；Mujtaba 2008 SPL Variability，Tables 1–2 + Figure 3）；另含处方型 schema（3-facet + Wieringa）面向未来 SMS 使用，但不是本文自己的样本编码 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-petersen-2008-systematic-mapping-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
@@ -543,7 +550,7 @@
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-petersen-2008-systematic-mapping-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-petersen-2008-systematic-mapping-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |

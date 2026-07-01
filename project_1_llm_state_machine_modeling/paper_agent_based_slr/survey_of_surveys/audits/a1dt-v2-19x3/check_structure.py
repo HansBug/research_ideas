@@ -74,8 +74,12 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     for marker in required_markers:
         if marker not in text:
             add_error(errors, f"SUMMARY missing v2 marker: {marker}")
-    if "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |" not in text:
-        add_error(errors, "SUMMARY missing required v2 ledger header")
+    new_header = "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | CCF 复核状态 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |"
+    old_header = "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |"
+    if new_header not in text:
+        add_error(errors, "SUMMARY missing required v2 ledger header with CCF 复核状态 column")
+    if old_header in text:
+        add_error(errors, "SUMMARY still contains old v2 ledger header without CCF 复核状态 column")
 
 
 def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
@@ -93,6 +97,99 @@ def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
                 break
 
 
+
+
+def extract_section(text: str, start_marker: str, end_marker: str | None = None) -> str:
+    """Extract a markdown section by an exact heading line.
+
+    A1-DT v2 review files also preserve historical draft blocks such as
+    ``#### A.2 维度树证据账本草案``.  A plain substring search would match those
+    draft headings and then incorrectly validate stale EV-* examples instead of
+    the formal ``### A.2`` / ``### A.3`` appendix.  Match heading lines exactly
+    enough to keep the structure gate tied to the current claim map.
+    """
+    start_re = re.compile(rf"^\s*{re.escape(start_marker)}.*$", re.M)
+    start_match = start_re.search(text)
+    if not start_match:
+        return ""
+    start = start_match.start()
+    if end_marker is None:
+        return text[start:]
+    end_re = re.compile(rf"^\s*{re.escape(end_marker)}.*$", re.M)
+    end_match = end_re.search(text, start_match.end())
+    return text[start:] if not end_match else text[start:end_match.start()]
+
+
+def parse_formal_a2_a3(review_path: Path) -> tuple[set[str], dict[str, str], dict[str, list[str]]]:
+    text = review_path.read_text(encoding="utf-8", errors="ignore")
+    a2 = extract_section(text, "### A.2 维度树证据账本", "### A.3 结论-证据映射")
+    a3 = extract_section(text, "### A.3 结论-证据映射", "### A.4 本地复验命令")
+    evidence_ids: set[str] = set()
+    claim_types: dict[str, str] = {}
+    claim_evidence: dict[str, list[str]] = {}
+    for line in a2.splitlines():
+        if not line.startswith("|") or line.startswith("|---") or "证据标识" in line:
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        if cols and cols[0].startswith("ev-"):
+            evidence_ids.add(cols[0])
+    for line in a3.splitlines():
+        if not line.startswith("|") or line.startswith("|---") or "结论标识" in line:
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        if len(cols) >= 6 and cols[1].startswith("A1DT-"):
+            claim_types[cols[1]] = cols[3]
+            evs = [x.strip() for x in re.split(r"[,，]", cols[5]) if x.strip() and x.strip() != "--"]
+            claim_evidence[cols[1]] = evs
+    return evidence_ids, claim_types, claim_evidence
+
+
+def check_summary_semantics(base: Path, repo: Path, errors: list[str]) -> None:
+    summary_path = base / "SUMMARY.md"
+    if not summary_path.exists():
+        return
+    summary = summary_path.read_text(encoding="utf-8", errors="ignore")
+    papers = base / "papers"
+    all_claim_types: dict[str, str] = {}
+    all_claim_evidence: dict[str, tuple[Path, list[str]]] = {}
+    for review in sorted(papers.glob("*/review.md")):
+        evidence_ids, claim_types, claim_evidence = parse_formal_a2_a3(review)
+        for cid, ctype in claim_types.items():
+            all_claim_types[cid] = ctype
+            all_claim_evidence[cid] = (review, claim_evidence.get(cid, []))
+            for ev in claim_evidence.get(cid, []):
+                if ev not in evidence_ids:
+                    add_error(errors, f"{review.relative_to(repo)} A.3 claim {cid} references missing formal A.2 evidence {ev}")
+
+    for cid in sorted(set(re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", summary))):
+        if cid not in all_claim_types:
+            add_error(errors, f"SUMMARY references missing A.3 claim id: {cid}")
+
+    tree_section = extract_section(summary, "## 6.1 维度树模式总览", "## 6.2 维度树类型")
+    for cid in re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", tree_section):
+        if not cid.endswith("-C03"):
+            add_error(errors, f"SUMMARY §6.1 tree overview should cite C03 tree claims, got {cid}")
+        elif "树类型" not in all_claim_types.get(cid, "") and "tree_type" not in all_claim_types.get(cid, ""):
+            add_error(errors, f"SUMMARY §6.1 cites {cid} but its A.3 type is {all_claim_types.get(cid)!r}, not tree_type")
+
+    expected = {
+        "sum-A1DT-tree-types": "-C03",
+        "sum-A1DT-statistical-pool": "-C04",
+        "sum-A1DT-boundary-anchor": "-C04",
+    }
+    for marker, suffix in expected.items():
+        m = re.search(rf"^\| \[{re.escape(marker)}\].*$", summary, flags=re.M)
+        if not m:
+            add_error(errors, f"SUMMARY missing row {marker}")
+            continue
+        row = m.group(0)
+        for cid in re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", row):
+            if not cid.endswith(suffix):
+                add_error(errors, f"SUMMARY row {marker} should cite {suffix} claims, got {cid}")
+            if suffix == "-C03" and "树类型" not in all_claim_types.get(cid, "") and "tree_type" not in all_claim_types.get(cid, ""):
+                add_error(errors, f"SUMMARY row {marker} cites non-tree claim {cid}: {all_claim_types.get(cid)!r}")
+            if suffix == "-C04" and "eligibility" not in all_claim_types.get(cid, ""):
+                add_error(errors, f"SUMMARY row {marker} cites non-eligibility claim {cid}: {all_claim_types.get(cid)!r}")
 
 
 def check_ready_to_run(repo: Path, base: Path, batch: Path, rows: list[dict[str, str]], errors: list[str]) -> None:
@@ -228,6 +325,7 @@ def check_structure(strict: bool, ready_to_run: bool = False) -> int:
             add_error(errors, f"{slug}: expected agents {EXPECTED_AGENTS}, got {agents}")
 
     check_markdown_links(base / "SUMMARY.md", errors)
+    check_summary_semantics(base, repo, errors)
     if ready_to_run:
         check_ready_to_run(repo, base, batch, rows, errors)
 

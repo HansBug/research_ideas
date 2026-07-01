@@ -173,7 +173,7 @@
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
-> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 下面字段树是从原文 §2 与 Fig. 1 抽出的候选维度，用于后续 A2a/A2b scaffold 讨论；它是“可迁移字段候选”，不是最终 schema。
 
@@ -279,7 +279,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | 被编码样本单位 | **无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / 智能体 角色 / 人机交互节点"，不是 原始研究 |
 | 样本数量 / 分母 | `不适用（不适用）`。论文 References 仅 10 条，全部以叙事 "Relevant literature" 形式被引，不构成 coded sample；`数据可得性声明：未使用数据（No data was used）`（Page 3） |
 | 原生树类型 | **维度森林（降级）**：①方法流程树（6 阶段） + ②智能体/role 树（含 search 阶段 3 智能体 + 各阶段 LLM/人 双轨） + ③效度/risk 树（Reflections）。无样本编码模式 |
-| 主统计池资格 | 否。理由：解决方案提案；无系统检索、纳排、抽取；与 `metadata.json eligible_for_statistical_synthesis=false`、`evidence_role=solution_proposal_boundary_anchor` 一致。**局部仅可作 模式种子（schema_seed） / 边界锚点（boundary_anchor） / 方法学种子** |
+| 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -571,13 +571,17 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 ---
 
 **报告完。** 总结一行：旧版 `review.md` 方向正确（已显式标注"通用六叶 = 投影，原文主树 = 事实源"），但叶子级别仍是占位；建议按本审计 §7 I-1 至 I-4 做 important 级返修——主要工作是把 §3 B1–B7 + §4 叶子表 + §5 关系边表 + §8 A.2/A.3 草案替换/合并进 review.md 现有节，不需要重写。判定 = **需要返修 (I 级)，不阻塞合并**。
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md](../../audits/a1dt-v2-19x3/adjudications/interactive-llm-systematic-mapping.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-interactive-llm-systematic-mapping-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-interactive-llm-systematic-mapping-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -589,7 +593,10 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-interactive-llm-systematic-mapping-type | clm-interactive-llm-systematic-mapping-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：解决方案提案（solution proposal）（作者自述："The research can be classified as a 解决方案提案（solution proposal）"，Page 1 §Method）；既不是 SLR、也不是 SMS、tertiary、MLR；可被视为 vision / roadmap | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-interactive-llm-systematic-mapping-unit | clm-interactive-llm-systematic-mapping-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / agent 角色 / 人机交互节点"，不是 原始研究 | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
@@ -599,7 +606,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-interactive-llm-systematic-mapping-type | A1DT-interactive-llm-systematic-mapping-C01 | 本文原文类型为：解决方案提案（solution proposal）（作者自述："The research can be classified as a 解决方案提案（solution proposal）"，Page 1 §Method）；既不是 SLR、也不是 SMS、tertiary、MLR；可被视为 vision / roadmap | paper_type | type | ev-interactive-llm-systematic-mapping-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-interactive-llm-systematic-mapping-unit | A1DT-interactive-llm-systematic-mapping-C02 | 本文被编码样本单位为：**无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / agent 角色 / 人机交互节点"，不是 原始研究 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-interactive-llm-systematic-mapping-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
@@ -608,7 +615,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-interactive-llm-systematic-mapping-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-interactive-llm-systematic-mapping-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |

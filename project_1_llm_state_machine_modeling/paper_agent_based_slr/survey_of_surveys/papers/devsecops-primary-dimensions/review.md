@@ -168,7 +168,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
-> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 下面是从本文抽取出的可迁移字段树。它适合进入 Paper2 的 schema 候选池，但需要后续研究者裁决后才能成为正式 A1-M2 维度模式。
 
@@ -217,7 +217,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 1. **维度模式要从“字段表”升级为“字段树 + 关系图”**：本文的五大 aspects、四类 category、C/P/T/M 编号、生命周期 stage、元素连线共同说明，综述 schema 应能表示层级、跨字段链接和缺失关系。
 2. **多声部证据链必须显式区分 WL / GL**：WL 更偏 definitions/challenges/practices 的学术概念化；GL 更偏 tools/metrics/business 的实践线索。Paper2 如果处理灰色材料，需要记录 source_track、可信度和用途，不应把 GL 与 WL 无差别统计。
-3. **主题抽取链应可审计**：text segment -> code -> theme -> category -> model 是 A1-M4 字段证据抽取的好模板；每个主题最好保留来源 ID、频次和是否由前序综述验证。
+3. **主题抽取链应可审计**：text segment -> code -> theme -> category -> model 是 A1-M4 字段证据抽取的好模板；每个主题最好保留来源标识、频次和是否由前序综述验证。
 4. **发现生成不等于频次统计**：本文从 frequency、source-type contrast、prior-review validation、lifecycle mapping 和 missing links 共同形成 finding；这适合 Paper2 的 A1-M5 -> A1-M6 候选发现规则。
 5. **negative finding 需要竞争解释**：GSE 空白不是一句“没有文献”，而是 Search String 2、GL 搜索失败、少数边缘 WL、confirmatory search 和四种解释共同构成的弱/中等强度 gap。
 6. **Open Science 是审计制品链样板**：protocol、QA score、raw text/codes、TA tables、full model 都发布到 Zenodo，并被 JSS Open Science Board 验证；这可作为 Paper2 透明材料设计的对照。
@@ -264,7 +264,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 | 被编码样本单位 | **两层**：(a) 原始研究（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 原始研究 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、挑战 (73+53)、practices (219+137)、指标 (7+13)、工具 (18+45)——这些 item 才是 主题分析 的真正编码单位 |
 | 样本数量 / 分母 | 原始研究 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、挑战 126、practices 356、指标 20、工具 63；最终模型项：28 挑战 (C01--C28)、60 practices (P01--P60)、20 指标 (M01--M20)、18 工具 groups (T01--T18) |
 | 原生树类型 | **维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 |
-| 主统计池资格 | **是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-阶段 分布、指标→DevOps-指标 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -556,13 +556,17 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 `★ Insight ─────────────────────────────────────`
 本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `文本已核验（text_verified）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
 `─────────────────────────────────────────────────`
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md](../../audits/a1dt-v2-19x3/adjudications/devsecops-primary-dimensions.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-devsecops-primary-dimensions-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-devsecops-primary-dimensions-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -574,26 +578,29 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-devsecops-primary-dimensions-type | clm-devsecops-primary-dimensions-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-devsecops-primary-dimensions-unit | clm-devsecops-primary-dimensions-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**两层**：(a) 原始研究（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 原始研究 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、challenges (73+53)、practices (219+137)、metrics (7+13)、tools (18+45)——这些 item 才是 thematic analysis 的真正编码单位 | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
 | ev-devsecops-primary-dimensions-denom | clm-devsecops-primary-dimensions-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：原始研究 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、challenges 126、practices 356、metrics 20、tools 63；最终模型项：28 challenges (C01--C28)、60 practices (P01--P60)、20 metrics (M01--M20)、18 tool groups (T01--T18) | denominator | 文本已核验（text_verified） | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
 | ev-devsecops-primary-dimensions-tree | clm-devsecops-primary-dimensions-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 | schema | 文本已核验（text_verified） | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-devsecops-primary-dimensions-pool | clm-devsecops-primary-dimensions-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
+| ev-devsecops-primary-dimensions-pool | clm-devsecops-primary-dimensions-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-devsecops-primary-dimensions-type | A1DT-devsecops-primary-dimensions-C01 | 本文原文类型为：Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 | paper_type | type | ev-devsecops-primary-dimensions-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-devsecops-primary-dimensions-unit | A1DT-devsecops-primary-dimensions-C02 | 本文被编码样本单位为：**两层**：(a) 原始研究（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 原始研究 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、challenges (73+53)、practices (219+137)、metrics (7+13)、tools (18+45)——这些 item 才是 thematic analysis 的真正编码单位 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-devsecops-primary-dimensions-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
 | clm-devsecops-primary-dimensions-tree | A1DT-devsecops-primary-dimensions-C03 | 本文原生维度树 / 维度森林为：**维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 | 树类型（tree_type） | native_tree | ev-devsecops-primary-dimensions-tree | 不代表跨论文通用模板 | 文本已核验（text_verified） | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-devsecops-primary-dimensions-pool | A1DT-devsecops-primary-dimensions-C04 | 本文统计池资格为：**是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） | eligibility | 统计池（statistical_pool） | ev-devsecops-primary-dimensions-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
+| clm-devsecops-primary-dimensions-pool | A1DT-devsecops-primary-dimensions-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-devsecops-primary-dimensions-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-devsecops-primary-dimensions-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-devsecops-primary-dimensions-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |

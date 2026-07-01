@@ -80,7 +80,7 @@
 | 被编码样本单位 | **已发表的二级研究 (SLR / MS / MA)**——本研究 (SE) 新增 67 篇；整合前序 OS + FE 后总样本 N=120 |
 | 样本数量 / 分母 | SE=67；OS=20；FE=33；OS/FE=53；OS/FE+SE=120；QA assessment N=67（SE 自身）/ 120（整合） |
 | 原生树类型 | **维度森林**：(1) 抽取表 模式树（10 字段），(2) QA rubric 树（4 题 + 评分 + quartile），(3) 主题分类树（24 SE topics × SE2004 Curriculum × SWEBOK），(4) 作者/机构/国家关系图，(5) 前序关系树 (前序关系: OS → FE → SE / temporal update / search extension)，外加 (6) limitation→发现 路径 |
-| 主统计池资格 | **是**——具备完整系统检索（自动+人工+回溯）、显式纳排、质量评价、可分母统计字段；当前 `review.md` 把它标 `模式种子（schema_seed）` 是低估 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -102,7 +102,7 @@
   - Page 12：Table 10 实践者指南、Table 11 QA of 原始研究、Table 12 指南 citation、Table 13 质量 trend
   - Page 13：§6 Limitations、§7 Conclusions（含"three complementary ways to update a SLR"——temporal update / search extension / both）
   - Page 14–15：References [1–28]、Appendix A 全部 SE01–SE77 文献条目
-- 需要 PDF 视觉核验：Fig.1 DCP 图（文字提取较碎）、Fig.2 PRISMA 流程图（数字穿插难解析）、Table 6（SLRs/Subs 双列容易行错位）
+- 需要原文版面核验：Fig.1 DCP 图（文字提取较碎）、Fig.2 PRISMA 流程图（数字穿插难解析）、Table 6（SLRs/Subs 双列容易行错位）
 
 5–12 个最关键的原文证据锚点（行号基于 `paper_content.txt`）：
 
@@ -399,13 +399,17 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 ---
 
 报告结束。所有必填章节 §0–§9 均自包含给出，无对"上一条消息"或外部上下文的引用。
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/da-silva-2011-six-years-slr.md](../../audits/a1dt-v2-19x3/adjudications/da-silva-2011-six-years-slr.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-da-silva-2011-six-years-slr-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-da-silva-2011-six-years-slr-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -417,26 +421,29 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-da-silva-2011-six-years-slr-type | clm-da-silva-2011-six-years-slr-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：SLR 的子型——**updated tertiary study**（temporal update + integration of two prior tertiary studies）；同时具备 系统映射研究 性质（本文自称"performed a mapping study of SLRs"） | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-da-silva-2011-six-years-slr-unit | clm-da-silva-2011-six-years-slr-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**已发表的二级研究 (SLR / MS / MA)**——本研究 (SE) 新增 67 篇；整合前序 OS + FE 后总样本 N=120 | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
 | ev-da-silva-2011-six-years-slr-denom | clm-da-silva-2011-six-years-slr-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：SE=67；OS=20；FE=33；OS/FE=53；OS/FE+SE=120；QA assessment N=67（SE 自身）/ 120（整合） | denominator | 文本已核验（text_verified） | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
 | ev-da-silva-2011-six-years-slr-tree | clm-da-silva-2011-six-years-slr-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**：(1) 抽取表 schema 树（10 字段），(2) QA rubric 树（4 题 + 评分 + quartile），(3) 主题分类树（24 SE topics × SE2004 Curriculum × SWEBOK），(4) 作者/机构/国家关系图，(5) 前序关系树 (前序关系: OS → FE → SE / temporal update / search extension)，外加 (6) limitation→finding 路径 | schema | 文本已核验（text_verified） | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-da-silva-2011-six-years-slr-pool | clm-da-silva-2011-six-years-slr-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**是**——具备完整系统检索（自动+人工+回溯）、显式纳排、quality assessment、可分母统计字段；当前 `review.md` 把它标 `模式种子（schema_seed）` 是低估 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
+| ev-da-silva-2011-six-years-slr-pool | clm-da-silva-2011-six-years-slr-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-da-silva-2011-six-years-slr-type | A1DT-da-silva-2011-six-years-slr-C01 | 本文原文类型为：SLR 的子型——**updated tertiary study**（temporal update + integration of two prior tertiary studies）；同时具备 系统映射研究 性质（本文自称"performed a mapping study of SLRs"） | paper_type | type | ev-da-silva-2011-six-years-slr-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-da-silva-2011-six-years-slr-unit | A1DT-da-silva-2011-six-years-slr-C02 | 本文被编码样本单位为：**已发表的二级研究 (SLR / MS / MA)**——本研究 (SE) 新增 67 篇；整合前序 OS + FE 后总样本 N=120 | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-da-silva-2011-six-years-slr-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
 | clm-da-silva-2011-six-years-slr-tree | A1DT-da-silva-2011-six-years-slr-C03 | 本文原生维度树 / 维度森林为：**维度森林**：(1) 抽取表 schema 树（10 字段），(2) QA rubric 树（4 题 + 评分 + quartile），(3) 主题分类树（24 SE topics × SE2004 Curriculum × SWEBOK），(4) 作者/机构/国家关系图，(5) 前序关系树 (前序关系: OS → FE → SE / temporal update / search extension)，外加 (6) limitation→finding 路径 | 树类型（tree_type） | native_tree | ev-da-silva-2011-six-years-slr-tree | 不代表跨论文通用模板 | 文本已核验（text_verified） | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-da-silva-2011-six-years-slr-pool | A1DT-da-silva-2011-six-years-slr-C04 | 本文统计池资格为：**是**——具备完整系统检索（自动+人工+回溯）、显式纳排、quality assessment、可分母统计字段；当前 `review.md` 把它标 `模式种子（schema_seed）` 是低估 | eligibility | 统计池（statistical_pool） | ev-da-silva-2011-six-years-slr-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
+| clm-da-silva-2011-six-years-slr-pool | A1DT-da-silva-2011-six-years-slr-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-da-silva-2011-six-years-slr-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-da-silva-2011-six-years-slr-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-da-silva-2011-six-years-slr-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |

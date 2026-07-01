@@ -271,7 +271,7 @@ DevSecOps CPTM、生命周期投影、工具-实践-指标链接、RQ-字段-发
 
 ### 6.3.8 A1-DT v2 证据强度降级与统计用途冻结
 
-A1-DT v2 的目标是先冻结单篇原生维度树 / 维度森林与跨论文投影边界，不要求完成所有 PDF 页码、表号、图号和 supplementary 的精确核验。因此：
+A1-DT v2 的目标是先冻结单篇原生维度树 / 维度森林与跨论文投影边界，不要求完成所有 原文页码、表号、图号和 supplementary 的精确核验。因此：
 
 1. A.2 中凡仍写有“待 A2a 精确页码复核”“邻近段落”“表 / 图待核验”“见释义”等泛定位或待核验描述的证据，证据强度必须写 `not_verified`，不得写 `strong` 或 `medium`。
 2. A.3 中凡依赖上述 `not_verified` 证据的结论，只能作为 `schema_seed`、`boundary_anchor`、`candidate_finding`、`methodological_seed`、`risk_only` 或 `do_not_use`；不得写 `statistical_synthesis`。

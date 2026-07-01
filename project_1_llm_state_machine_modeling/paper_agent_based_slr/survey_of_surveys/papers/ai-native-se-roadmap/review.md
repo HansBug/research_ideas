@@ -166,7 +166,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 5 节迁移来源
 
-> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 以下字段树只作为 A1-M1/A1-M2 候选，不是正式 schema：
 
@@ -250,7 +250,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 8 节迁移来源
 
-> 本节为 PR-A1-DT 前的历史草稿 / 迁移来源，不再作为事实真源；正式维度树、叶子取值空间、证据强度、统计池资格与候选发现用途，以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
+> [!WARNING] v1-deprecated: 本节为 A1-DT v1 历史草稿 / 迁移来源，只能作为返修来源和历史证据，不是 A1-DT v2 当前事实口径。v2 事实以[维度树复原](#维度树复原)和文末 A.1--A.4 审计附录为准。
 
 - 本篇触发一个明确字段需求：`roadmap_challenge_pattern` 或扩展现有 `challenge_action_pattern`，至少记录 `paper_type`、`evidence_level`、`affected_component`、`open_question`、`solution_vision`、`maturity`、`overclaim_guard`。
 - 由于本轮任务只允许编辑本 `review.md`，不回修 [../../patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md) 或 [../../SUMMARY.md](../../SUMMARY.md)。后续 A2/A3 若决定采纳 vision/roadmap 样本，应再执行 schema 回修闭环。
@@ -287,7 +287,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 | 被编码样本单位 | 不存在系统样本库；原生编码对象是 **{SE 1.0/2.0/3.0 三时代 baseline}**、**{队友下一代形态（Teammate.next） / 集成开发环境下一代形态（IDE.next） / 编译器下一代形态（Compiler.next） / 运行时下一代形态（Runtime.next） / 基础模型下一代形态（FM.next） 五层技术栈组件}** 和 **{6 个主 挑战 + OQ1–OQ14 共 14 个 开放问题}** |
 | 样本数量 / 分母 | 不适用为统计分母；可记录的"原生项数"：3 个时代、5 个 技术栈组件、6 个主 挑战、14 个 OQ；引用 [1]–[117] 共 117 条，但作者未声明任何检索 / 纳排，因此 117 不是 SLR 分母 |
 | 原生树类型 | **降级树（路线图/挑战 树）+ 辅助"时代基线（era baseline）对照树"**；不是 SLR 维度森林 |
-| 主统计池资格 | **否**；与 `metadata.json` 中 `eligible_for_statistical_synthesis: false`、`evidence_role: roadmap_boundary_anchor`、`systematic_evidence_status: non_systematic_or_boundary_anchor` 一致 |
+| 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -594,13 +594,17 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 - paper 类型 = **愿景 / 路线图**，与 metadata.json 一致；**不进入主统计池**，仅作 `roadmap_boundary_anchor + methodological_seed + candidate_heuristic`。
 - 原生维度树 = **维度森林**（时代基线树 + 5 层 技术栈树 + 挑战×开放问题树），而**不是** SLR 编码树；其中 4 字段 挑战 模板与 `影响范围:` 关系边是对 Paper2 最有迁移价值的 模式 结构。
 - 总体判定 = **需要返修**：旧版 review.md 的 §1–§4 与"通用接口投影"段叙述正确，但"维度树复原"主表的 6 个 `leaf-*` 与"原文模式候选叶子映射"5 个 `orig-*` 仍是抽象占位，未还原本篇真实结构，需按 §7 C1 / C2 返修；I1–I3 与 M1–M2 为加固项。
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/ai-native-se-roadmap.md](../../audits/a1dt-v2-19x3/adjudications/ai-native-se-roadmap.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-ai-native-se-roadmap-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-ai-native-se-roadmap-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -612,7 +616,10 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-ai-native-se-roadmap-type | clm-ai-native-se-roadmap-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：**vision / roadmap / proposal**（自我定位）；不是 SLR、SMS、tertiary、MLR、guideline 检索研究 | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-ai-native-se-roadmap-unit | clm-ai-native-se-roadmap-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：不存在系统样本库；原生编码对象是 **{SE 1.0/2.0/3.0 三时代 baseline}**、**{Teammate.next（队友下一代形态） / IDE.next（集成开发环境下一代形态） / Compiler.next（编译器下一代形态） / Runtime.next（运行时下一代形态） / FM.next（基础模型下一代形态） 五层技术栈组件}** 和 **{6 个主 challenge + OQ1–OQ14 共 14 个 open question}** | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
@@ -622,7 +629,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-ai-native-se-roadmap-type | A1DT-ai-native-se-roadmap-C01 | 本文原文类型为：**vision / roadmap / proposal**（自我定位）；不是 SLR、SMS、tertiary、MLR、guideline 检索研究 | paper_type | type | ev-ai-native-se-roadmap-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-ai-native-se-roadmap-unit | A1DT-ai-native-se-roadmap-C02 | 本文被编码样本单位为：不存在系统样本库；原生编码对象是 **{SE 1.0/2.0/3.0 三时代 baseline}**、**{Teammate.next（队友下一代形态） / IDE.next（集成开发环境下一代形态） / Compiler.next（编译器下一代形态） / Runtime.next（运行时下一代形态） / FM.next（基础模型下一代形态） 五层技术栈组件}** 和 **{6 个主 challenge + OQ1–OQ14 共 14 个 open question}** | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-ai-native-se-roadmap-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
@@ -631,7 +638,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-ai-native-se-roadmap-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-ai-native-se-roadmap-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |

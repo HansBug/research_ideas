@@ -79,7 +79,7 @@
 | 被编码样本单位 | **distinct SLR（研究）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 研究；分子粒度是 研究，分母两套：64 publications 与 53 studies |
 | 样本数量 / 分母 | 53 distinct SLR（含 12 SMS、1 元分析（meta-analysis）、其余 conventional SLR）/ 64 publications（31 conf + 16 journal + 4 workshop + 4 tech 报告 + 8 thesis + 1 unknown）；QA 仅在 51 个 研究 上施加（S3、S8 全文不可获得） |
 | 原生树类型 | **维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group 分类法（Table V）；④QA rubric（Table I, QA1–QA4 三档 是/Partial/否）；⑤citation/impact 评估（Table VI）；⑥缺口（gap） 分类法（anomalies / lack-of-PS / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） |
-| 主统计池资格 | **局部可统计**。Table II–VI、Figure 1–4 在 53 研究 / 51 QA 分母下结构清晰、字段封闭，可用于跨论文方法学统计；但所有领域结论（RE 子主题覆盖、与 路线图[1,2] 比对的 缺口（gap） 名单）只能作 候选发现，不进入 Paper2 主统计池 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 A.2/A.3。 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -297,7 +297,7 @@
 
 - **I3. §维度树复原 中"统计与候选发现链路"把 `[dim-...-根节点]` 标记为"否（A1-DT 阶段仅作 模式种子）"过于一刀切**，与本节 C2 重合。返修：F1 publication_type、F4 scope、F5 QA total、F6 search source 这 4 个维度应升级为"是（在本文分母下可统计）"。
 
-- **I4. §A.2 证据账本仅 4 行（EV-001..004）且全部 `not_verified`**。原文已有 8 张表 + 4 张图直接支撑；应至少为 Table I/II/III/IV/V/VI、Figure 1/2/3/4 各建一行证据条目（合计 ≥10 行），并把 Table I/II/III/IV/V/VI 标 `verified-text-only`、Figure 1–4 标 `需要 PDF 视觉核验（needs_pdf_visual_check）`。
+- **I4. §A.2 证据账本仅 4 行（EV-001..004）且全部 `not_verified`**。原文已有 8 张表 + 4 张图直接支撑；应至少为 Table I/II/III/IV/V/VI、Figure 1/2/3/4 各建一行证据条目（合计 ≥10 行），并把 Table I/II/III/IV/V/VI 标 `verified-text-only`、Figure 1–4 标 `需要原文版面核验（needs_pdf_visual_check）`。
 
 - **I5. §维度树复原 中 "原文模式候选叶子映射（A1 种子）"仅给出 4 个 `leaf-orig-*-re-topic / secondary-研究-quality / impact / method-缺口（gap）`**，但原文真实抽取字段至少 ≥12 项（见本报告 §4）。返修：用本报告 §4 整表替换 4 项种子。
 
@@ -333,10 +333,10 @@
 | EV-RE-T07 | paper_content.txt | Table IV (L364–375) | scope 6 档 33/7/7/4/1/1 | scope of RE SLR | classification_schema | verified-text | F4 | 否 | RE-specific scope 6 档 |
 | EV-RE-T08 | paper_content.txt | Table V (L376–429) | topic-group × focus × #PS × year | thematic 分类法 | classification_schema | verified-text | F3, F2 (#PS, focus) | 否（建议 PDF 复核字符 NF/NM 替代字符 `barb2right` OCR 杂讯） | topic_group 非饱和 |
 | EV-RE-T09 | paper_content.txt | Table VI (L482–493) | Top-10 cited × QA score | citation vs QA | 候选发现支撑（candidate_finding_support） | verified-text | rel-citation-vs-qa, F1, F5 | 否 | 2014-05-19 截止 |
-| EV-RE-T10 | paper_content.txt + paper.pdf | Figure 1 (L316) | yearly distribution 柱状图 | 2009 后骤增 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F1 (year), trend | 是 | -- |
-| EV-RE-T11 | paper_content.txt + paper.pdf | Figure 2 (L443–449) | QA total score 分布 | 42/51 ≥ 2 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (qa_total) | 是（OCR y 轴断版） | -- |
-| EV-RE-T12 | paper_content.txt + paper.pdf | Figure 3 (L444–449) | QA1–QA4 各档计数 | QA3/QA4 半数忽略 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (QA1–QA4) | 是 | -- |
-| EV-RE-T13 | paper_content.txt + paper.pdf | Figure 4 (L481) | 年度均分曲线 | 自 2009 起下降 | 候选发现支撑（candidate_finding_support） | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (qa_total) × year | 是 | trend 仅限 RE SLR |
+| EV-RE-T10 | paper_content.txt + paper.pdf | Figure 1 (L316) | yearly distribution 柱状图 | 2009 后骤增 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F1 (year), trend | 是 | -- |
+| EV-RE-T11 | paper_content.txt + paper.pdf | Figure 2 (L443–449) | QA total score 分布 | 42/51 ≥ 2 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F5 (qa_total) | 是（OCR y 轴断版） | -- |
+| EV-RE-T12 | paper_content.txt + paper.pdf | Figure 3 (L444–449) | QA1–QA4 各档计数 | QA3/QA4 半数忽略 | statistical_result | 需要原文版面核验（needs_pdf_visual_check） | F5 (QA1–QA4) | 是 | -- |
+| EV-RE-T13 | paper_content.txt + paper.pdf | Figure 4 (L481) | 年度均分曲线 | 自 2009 起下降 | 候选发现支撑（candidate_finding_support） | 需要原文版面核验（needs_pdf_visual_check） | F5 (qa_total) × year | 是 | trend 仅限 RE SLR |
 | EV-RE-T14 | paper_content.txt | §III RQ3 (L505–576) | 三类 缺口（gap） + 路线图 对照 | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 候选发现（candidate_finding） | verified-text | F7, rel-gap-vs-roadmap | 否 | 不可迁移 ignored-area 具体名单 |
 | EV-RE-T15 | paper_content.txt | §IV Limitations (L577–615) | 4 类局限 | 检索/S40/grouping/EBSE | limitation | verified-text | ROOT, F7 | 否 | 通用 |
 | EV-RE-T16 | paper_content.txt | Appendix A (L697–967) | S1–S53 完整名录 | 研究 + publication 列表 | corpus_inventory | verified-text | F1, F2, rel-grouping | 否 | -- |
@@ -372,7 +372,7 @@
 
 #### Reviewer 自审：本输出最高 3 项风险
 
-1. **图表视觉级数据未核（C 级潜在风险）**：本审计完全基于 `paper_content.txt`，未打开 `paper.pdf` 检视 Figure 1–4。EV-RE-T10..T13 均标 `需要 PDF 视觉核验（needs_pdf_visual_check）`。候选发现 C-RE-T06 "QA 自 2009 起下降" 严重依赖 Figure 4 视觉读数，若 A2a PDF 复核发现年度均分实际只是噪声波动而非单调下降，则 C-RE-T06 应降级为 `not_verified` 或废弃。主线程合并时复核入口：A.4 应新增 `cmd-pdf-figures-check`。
+1. **图表视觉级数据未核（C 级潜在风险）**：本审计完全基于 `paper_content.txt`，未打开 `paper.pdf` 检视 Figure 1–4。EV-RE-T10..T13 均标 `需要原文版面核验（needs_pdf_visual_check）`。候选发现 C-RE-T06 "QA 自 2009 起下降" 严重依赖 Figure 4 视觉读数，若 A2a PDF 复核发现年度均分实际只是噪声波动而非单调下降，则 C-RE-T06 应降级为 `not_verified` 或废弃。主线程合并时复核入口：A.4 应新增 `cmd-pdf-figures-check`。
 2. **topic-group 分类法 饱和度判断主观**：F3 列出 24 项是 OCR 文本统计结果（Table V 第一列），但 Table V 跨页且 OCR 中混入了 "*" 注脚、`barb2right` 替代字符等杂讯，可能漏数 1–2 个 group。建议 A2a 用 PDF 重新计数并比对作者自承 "neither exhaustive nor complete"（§III L552–555）。
 3. **C/I/M 分级可能高估了 C2**：把 "review.md 主统计池资格判'否'" 标 C 级或许偏激进——按本仓库《学术研究仓库 Review 口径规范》§3，单篇 模式种子 在 A1-DT 阶段保守判'否'本身不直接破坏学术目标，是否应降为 I 级取决于 SUMMARY 是否真在该口径下漏掉了可统计 sample。主线程合并时建议复读 SUMMARY 当前对该 paper 的统计字段，再决定是否接受 C2 升级建议。
 
@@ -389,13 +389,17 @@
 2. 关键提醒：F3 topic_group 是 thematic-analysis 结果（开放 / 非互斥 / 非饱和），与 F4 scope（先验 6 档枚举）属于结构上完全不同的两种 分类法；审计返修必须保留这一差异，不能简化为同一种"分类字段"。
 3. C-RE-T07（"高引 ≠ 高 QA"）是 Paper2 Related Work / Discussion 可直接引用的方法学论点——Table VI 自带的 S2[A] vs S46 对比比 reviewer 自己造例子更有说服力。
 `─────────────────────────────────────────────────`
+
+> [!NOTE]
+> v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
+
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md](../../audits/a1dt-v2-19x3/adjudications/re-tertiary-study-2014.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。
 
 ### A.1 论文与本地文件来源
 
-| 来源 ID | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
+| 来源标识 | 文件 / 链接 | 类型 | 用途 | 可核验性 | 备注 |
 |---|---|---|---|---|---|
 | src-re-tertiary-study-2014-bib | [bibtex.bib](./bibtex.bib) | 本地元数据 | 标题、作者、年份、DOI / venue | 本地可复验 | 写作引用前仍需按正式出版页复核 |
 | src-re-tertiary-study-2014-text | [paper_content.txt](./paper_content.txt) | PDF 提取全文 | 原生树、字段、统计观察、限制与 finding 边界 | 文本级可复验 | 图表版面与页码进入 A2a |
@@ -407,26 +411,29 @@
 
 ### A.2 维度树证据账本
 
-| 证据 ID | 引用键 | 来源文件 | PDF 页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要 PDF 视觉核验 | 已废弃 | 替代证据 | 外推限制 |
+> 说明：A1-DT v2 的正式 A.2 是树级与核心裁决 claim map；叶子取值空间、关系边、缺失值语义和图表待核验项见上文“维度树复原”的叶子维度表、关系边表和审计草案。若两处冲突，以本 A.2/A.3 与主线程裁决为准；A2a 会把 叶子 / 关系边 逐项迁入统一附录。
+
+
+| 证据标识 | 引用键 | 来源文件 | 原文页码 | 原文章节 | 段落或行号范围 | 表格或图编号 | 原文短引 | 释义支撑 | 证据角色 | 证据强度 | 支撑的维度节点 | 需要原文版面核验 | 已废弃 | 替代证据 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | ev-re-tertiary-study-2014-type | clm-re-tertiary-study-2014-type | paper_content.txt | 待 A2a | 摘要 / 方法 / 研究问题 | 待 A2a | -- | 短引见上文证据锚点 | 支撑原文类型：tertiary study（系统映射 tertiary study；按 §II 标题"Systematic Mapping Tertiary Study"，作者明确按 Kitchenham EBSE guidelines 执行） | paper_type | 文本已核验（text_verified） | 原文类型 | 是 | 否 | -- | 不迁移领域结论 |
 | ev-re-tertiary-study-2014-unit | clm-re-tertiary-study-2014-unit | paper_content.txt | 待 A2a | 方法 / 数据抽取 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本单位：**distinct SLR（study）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 study；分子粒度是 study，分母两套：64 publications 与 53 studies | 样本单位（sample_unit） | 文本已核验（text_verified） | 样本单位 | 是 | 否 | -- | 只记录本文自己的样本单位 |
 | ev-re-tertiary-study-2014-denom | clm-re-tertiary-study-2014-denom | paper_content.txt | 待 A2a | 检索 / 纳排 / 结果表 | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑样本数量 / 分母：53 distinct SLR（含 12 SMS、1 meta-analysis、其余 conventional SLR）/ 64 publications（31 conf + 16 journal + 4 workshop + 4 tech report + 8 thesis + 1 unknown）；QA 仅在 51 个 study 上施加（S3、S8 全文不可获得） | denominator | 文本已核验（text_verified） | 分母链 | 是 | 否 | -- | 中间候选数不得冒充最终分母 |
 | ev-re-tertiary-study-2014-tree | clm-re-tertiary-study-2014-tree | paper_content.txt + 三路 result | 待 A2a | 抽取表 / taxonomy / roadmap / guideline | 待 A2a | 待 A2a | 短引见上文证据锚点 | 支撑原生树类型：**维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group taxonomy（Table V）；④QA rubric（Table I, QA1–QA4 三档 Yes/Partial/No）；⑤citation/impact 评估（Table VI）；⑥缺口分类法（gap taxonomy：异常 / 缺少原始研究 / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） | schema | 文本已核验（text_verified） | 原生树 / 维度森林 | 是 | 否 | -- | A1-M0--M6 只作投影 |
-| ev-re-tertiary-study-2014-pool | clm-re-tertiary-study-2014-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：**局部可统计**。Table II–VI、Figure 1–4 在 53 study / 51 QA 分母下结构清晰、字段封闭，可用于跨论文方法学统计；但所有领域结论（RE 子主题覆盖、与 roadmap[1,2] 比对的 gap 名单）只能作 候选发现，不进入 Paper2 主统计池 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
+| ev-re-tertiary-study-2014-pool | clm-re-tertiary-study-2014-pool | 主线程裁决 | -- | adjudication | -- | -- | 见裁决表 | 支撑统计池资格：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | adjudicated | 统计池资格 | 否 | 否 | -- | A2a 前不得作为 最终发现 |
 
 ### A.3 结论-证据映射
 
-| 引用键 | 结论 ID | 结论内容 | 结论类型 | 支撑的节点或叶子 ID | 支撑证据 ID 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
+| 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑的节点或叶子标识 | 支撑证据标识 列表 | 反证或限制 | 结论强度 | 允许用于论文的位置 | 已废弃 | 替代结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | clm-re-tertiary-study-2014-type | A1DT-re-tertiary-study-2014-C01 | 本文原文类型为：tertiary study（系统映射 tertiary study；按 §II 标题"Systematic Mapping Tertiary Study"，作者明确按 Kitchenham EBSE guidelines 执行） | paper_type | type | ev-re-tertiary-study-2014-type | 正式写作前需核对出版页和 PDF 版式 | 文本已核验（text_verified） | 模式种子（schema_seed） / 背景方法样本描述 | 否 | -- |
 | clm-re-tertiary-study-2014-unit | A1DT-re-tertiary-study-2014-C02 | 本文被编码样本单位为：**distinct SLR（study）**。作者把"同一项 SLR 的多份发表"用 `S-ID + [A][B][C]` 合并为一个 study；分子粒度是 study，分母两套：64 publications 与 53 studies | 样本单位（sample_unit） | 样本单位（sample_unit） | ev-re-tertiary-study-2014-unit | 若原文同时含辅助单位，主统计只使用裁决后的主单位 | 文本已核验（text_verified） | 模式种子（schema_seed） / A2a 抽取表设计 | 否 | -- |
 | clm-re-tertiary-study-2014-tree | A1DT-re-tertiary-study-2014-C03 | 本文原生维度树 / 维度森林为：**维度森林**：①抽取表（出版元数据（publication metadata）+ 原始研究数量（#PS）+ 关注点（focus））；②scope 分类（Table IV）；③topic-group taxonomy（Table V）；④QA rubric（Table I, QA1–QA4 三档 Yes/Partial/No）；⑤citation/impact 评估（Table VI）；⑥缺口分类法（gap taxonomy：异常 / 缺少原始研究 / ignored-areas，§III RQ3）；⑦publication-type 分类（Table III） | 树类型（tree_type） | native_tree | ev-re-tertiary-study-2014-tree | 不代表跨论文通用模板 | 文本已核验（text_verified） | Paper2 方法设计与 pattern library seed | 否 | -- |
-| clm-re-tertiary-study-2014-pool | A1DT-re-tertiary-study-2014-C04 | 本文统计池资格为：**局部可统计**。Table II–VI、Figure 1–4 在 53 study / 51 QA 分母下结构清晰、字段封闭，可用于跨论文方法学统计；但所有领域结论（RE 子主题覆盖、与 roadmap[1,2] 比对的 gap 名单）只能作 候选发现，不进入 Paper2 主统计池 | eligibility | 统计池（statistical_pool） | ev-re-tertiary-study-2014-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
+| clm-re-tertiary-study-2014-pool | A1DT-re-tertiary-study-2014-C04 | 本文统计池资格为：后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计；具体可统计字段、分母和待核限制见上文叶子表 / 关系边表。 | eligibility | 统计池（statistical_pool） | ev-re-tertiary-study-2014-pool | A1-DT v2 不生成 final research finding | adjudicated | SUMMARY 总账 / A2a 入口 | 否 | -- |
 
 ### A.4 本地复验命令与人工核验清单
 
-| 检查 ID | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
+| 检查标识 | 复验对象 | 命令 / 人工核验动作 | 通过条件 | 当前状态 |
 |---|---|---|---|---|
 | chk-re-tertiary-study-2014-structure | A1-DT v2 结构门禁 | `python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1dt-v2-19x3/check_structure.py --strict --ready-to-run` | 57 个 result、57 个 log、19 个 adjudication 与 19 篇 review 链接均存在 | 已通过 / 待最终 PR 前复验 |
 | chk-re-tertiary-study-2014-pdf | PDF 表图页码核验 | 人工打开 `paper.pdf`，核对上文涉及的表格、图、页码和附录 | 关键证据锚点可精确到页码 / 表图 / 行号 | A2a 待办 |
