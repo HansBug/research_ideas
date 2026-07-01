@@ -259,7 +259,7 @@ roadmap_stream
    - requirements quality 研究的问题是 factor impact unknown。
    - Paper2 不能只说某字段“应该抽取”；要说明它服务于哪类后续活动：筛选复核、统计分析、候选发现生成、反向证据检查、审稿人复核、run record 审计等。
 
-3. **从理论到评价再到 roadmap 的三段式可直接复用**
+3. **从理论到评价再到 roadmap 的三段式可作为候选复用**
    - 本文结构提供一个稳健写法：先提出理论/元模型，再评价当前研究/制品覆盖，最后将缺口转成 roadmap / tool architecture。
    - Paper2 可采用同构结构：meta-model → agent workflow / corpus dry-run coverage → schema evolution / evidence chain roadmap。
 

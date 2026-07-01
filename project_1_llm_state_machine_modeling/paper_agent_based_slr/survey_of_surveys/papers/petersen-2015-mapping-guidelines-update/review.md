@@ -329,7 +329,7 @@
 | R07 研究↦rubric_action | primary_study | applied | rubric_action (26 items) | 0/1 (Table 8 形态) | -- | Table 8 + Table 14 | 给出 质量 ratio |
 | R08 指南↦activity | 指南 (10 项) | covers | activity (Table 5 中 30+ activities) | {✓, ✗} | -- | Table 5 | 指南 完整度对比矩阵 (本文核心贡献之一) |
 | R09 inc/excl decision | reviewer pair (R1, R2) | combines_to | decision_state | {A, B, C, D, E, F} via Table 6 | -- | Table 6 | 决策规则代数 |
-| R10 research_type decision | 研究 traits | maps_to | research_type | Table 7 R1..R6 真值表 | 真值表覆盖全部组合 | Table 7 | **完整布尔真值表 模式**, A2a 可直接复用 |
+| R10 research_type decision | 研究 traits | maps_to | research_type | Table 7 R1..R6 真值表 | 真值表覆盖全部组合 | Table 7 | **完整布尔真值表 模式**, A2a 可作为候选复用 |
 
 > 说明：R06、R08、R09、R10 是本文最有价值的**结构化关系**，远超普通 SMS 的字段平铺。Paper2 应优先借鉴这些"模式 内一致性约束"模式。
 

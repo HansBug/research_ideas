@@ -125,6 +125,23 @@ FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = (
     "直接迁移到 review.md",
     "直接迁移到review.md",
     "直接迁移",
+    # Reviewer-discovered bypass variants from PR #132 round 5.
+    "文本已核验",
+    "文本可核验",
+    "文本级证据充分",
+    "建议建议",
+    "strong evidence",
+)
+
+FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS = (
+    # Positive "可直接..." claims are too easy for downstream agents to read as
+    # immediately consumable facts.  Negative warnings such as "不可直接外推" are
+    # intentionally allowed by the fixed-width negative look-behind.
+    (
+        r"(?<!不)可直接"
+        r"(?:迁回|迁入|迁移|替换|引用|更新|复用|写入|进入|转化|作为|支持|统计|"
+        r"参考|采纳|启发|抬升|拷贝|复核|升级|做|由|据此)"
+    ),
 )
 
 FORBIDDEN_TRANSLATION_PHRASES = (
@@ -206,6 +223,14 @@ def check_consumable_source_hygiene(base: Path, batch: Path, repo: Path, errors:
         for phrase in FORBIDDEN_CONSUMABLE_SOURCE_PHRASES:
             if phrase in text:
                 add_error(errors, f"{rel} current consumable source still contains direct-consumption phrase: {phrase}")
+        for pattern in FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS:
+            match = re.search(pattern, text)
+            if match:
+                add_error(
+                    errors,
+                    f"{rel} current consumable source still contains direct-consumption pattern "
+                    f"{pattern!r}: {match.group(0)}",
+                )
 
 
 

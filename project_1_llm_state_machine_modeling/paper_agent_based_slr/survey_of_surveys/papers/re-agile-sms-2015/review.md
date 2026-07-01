@@ -220,7 +220,7 @@
 
 `★ Insight ─────────────────────────────────────`
 - 注意 `R-solution-of` 的源是 **problem code 而不是 研究**——这与 `R-benefit-of/R-problem-of` 的源不同。这是因为 §IV.D 是按 P1–P6 组织 solution，而不是按 研究 组织。这种"以问题为索引、以研究为证据"的结构是 SMS 中较少见的优雅设计。
-- ∅ 作为显式 发现 的设计可直接抬升为 Paper2 维度树的通用约束：每个"建议/方法"叶子都应允许 `proposed = ∅` 并把它当作 一等结论。
+- ∅ 作为显式 发现 的设计可作为候选抬升为 Paper2 维度树的通用约束：每个"建议/方法"叶子都应允许 `proposed = ∅` 并把它当作 一等结论。
 `─────────────────────────────────────────────────`
 
 ### 6. 统计观察、候选发现 与 最终发现边界
@@ -264,10 +264,10 @@
 
 | 等级 | 位置 | 现状 | 建议 |
 |---|---|---|---|
-| **I-1** | "原文模式主树（19×3 审计后返修）" 表 `叶子 / 取值空间种子` 列 | 当前仍写"B1–B6 或原文 benefit 聚类、数量、示例"等抽象描述 | 升级为**显式封闭枚举**：列出 `{B1 Lower process overheads, B2 Improved requirements 理解, ..., B6 Improved customer relationships}` 与 `{P1..P6}` 全名 + 每个 code 的 研究-id 集合。证据来自 Page 5 Table IV / Page 6 Table V，可直接 text 核验。 |
+| **I-1** | "原文模式主树（19×3 审计后返修）" 表 `叶子 / 取值空间种子` 列 | 当前仍写"B1–B6 或原文 benefit 聚类、数量、示例"等抽象描述 | 升级为**显式封闭枚举**：列出 `{B1 Lower process overheads, B2 Improved requirements 理解, ..., B6 Improved customer relationships}` 与 `{P1..P6}` 全名 + 每个 code 的 研究-id 集合。证据来自 Page 5 Table IV / Page 6 Table V，可在文本层候选核验。 |
 | **I-2** | A.2 证据账本 EV-002 / EV-003 | 标 `not_verified` + "待 A2a 精确页码复核" | 升级到 `历史草稿旧强度（当前禁止采信）`：原文页码已在 text 中显式出现（Page 3/4/5/6），可在保留"PDF 视觉核验另列"的前提下升级证据强度。 |
 | **I-3** | 维度树缺关系边 | 当前叶子层未显式区分 `attribute` 与 `relation` | 新增 §"关系边表"，纳入 R-benefit-of / R-problem-of / **R-solution-of with ∅-as-发现**。这是本文最强的可迁移点。 |
-| **I-4** | "原文模式候选叶子映射（A1 种子）" | 当前候选叶子全部 `not_verified` | `leaf-orig-problem` 与 `leaf-orig-benefit` 可直接升级为封闭枚举（B1–B6, P1–P6 在 text 中显式列出）；`leaf-orig-solution` 必须改为关系叶子（不是平铺枚举）。 |
+| **I-4** | "原文模式候选叶子映射（A1 种子）" | 当前候选叶子全部 `not_verified` | `leaf-orig-problem` 与 `leaf-orig-benefit` 可在 A2a 精核后升级为封闭枚举（B1–B6, P1–P6 在 text 中显式列出）；`leaf-orig-solution` 必须改为关系叶子（不是平铺枚举）。 |
 | **I-5** | SUMMARY 维度（如有）"样本单位/样本数量/原生树类型/统计池资格" | 需复核 | 建议口径：样本单位=原始研究, N=28, 树类型="维度森林+关系边", 主统计池=是（局部可统计）。 |
 | **M-1** | "1. 快速结论卡片" 中 `阅读状态` 写 "已读全文文本-paper_content核验" | 字面正确 | 可补一句"PDF 版面核验未做"以避免读者误判。 |
 | **M-2** | A.4 `cmd-visual-check` `needs_manual_check` | 维持 | 可附"建议核验项清单"：Table I venue 名拼写、Table II/III/IV/V 单元格中 S-id 集合完整性、§III 数字链条精确数。 |
@@ -300,7 +300,7 @@
 |---|---|---|---|---|---|---|---|
 | CLM-v2-01 | 原生树类型为"维度森林 + 关系边"：venue/context/article-type/benefit/problem-solution 五并列主干，其中 problem→solution 为显式关系（含 ∅-as-发现） | 树类型（tree_type） | b-* 所有主干 | EV-v2-001..007 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 模式 灵感 | 仅本文；N=28 |
 | CLM-v2-02 | 28 是严格主统计分母；241→187→65→28 链条完整可复现 | 统计池（statistical_pool） | b-语料 | EV-v2-002 | 历史草稿旧强度（当前禁止采信） | 可作 A2a 主统计起点 | 单库 + 截至 2014.09 |
-| CLM-v2-03 | benefit/problem 是封闭 6 值枚举（B1–B6, P1–P6），每个 code 关联明确 S-id 集合 | 叶子_value_space | L-benefit-code, L-problem-code, R-benefit-of, R-problem-of | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 可直接做频次/coverage 统计 | 类目是作者主题归并，存在编码者主观 |
+| CLM-v2-03 | benefit/problem 是封闭 6 值枚举（B1–B6, P1–P6），每个 code 关联明确 S-id 集合 | 叶子_value_space | L-benefit-code, L-problem-code, R-benefit-of, R-problem-of | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | A2a 后可做频次/coverage 统计 | 类目是作者主题归并，存在编码者主观 |
 | CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class 发现 而非缺失数据 | 候选发现（candidate_finding） + schema_design | R-solution-of | EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
 | CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是直接可统计的 候选发现 | 候选发现（candidate_finding） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
 | CLM-v2-06 | "agile RE 定义模糊"是 候选发现，不可作 final | 候选发现（candidate_finding） | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |

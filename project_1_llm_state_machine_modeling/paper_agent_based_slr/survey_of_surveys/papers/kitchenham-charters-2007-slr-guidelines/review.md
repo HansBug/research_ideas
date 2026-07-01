@@ -292,7 +292,7 @@
 
 - T3-T17 几乎全部可作为 **Paper2 维度树 模式种子（schema_seed）**（即"综述如何被结构化描述"的字段先验）。
 - 特别有用：
-  - **T18 (Appendix 2 编码表)**：是本文唯一展示"如何把一组 SLR 编码成可统计行"的实例 — Paper2 的"综述总账表"可直接参考其字段架构（Author / Year / Title / Reference / 主题类型（TopicType） / TopicArea / 质量分数（QualityScore）），但需补 venue、CCF-rank、systematic-证据-status、sample-unit、树-type 等字段。
+  - **T18 (Appendix 2 编码表)**：是本文唯一展示"如何把一组 SLR 编码成可统计行"的实例 — Paper2 的"综述总账表"可作为候选参考其字段架构（Author / Year / Title / Reference / 主题类型（TopicType） / TopicArea / 质量分数（QualityScore）），但需补 venue、CCF-rank、systematic-证据-status、sample-unit、树-type 等字段。
   - **Table 9 (流程-step cross-walk)**：是 Paper2 跨综述方法学比较的**模板**（跨指南 step 同义映射）。
 
 #### 6.4 绝不能迁移的"领域结论"
@@ -343,7 +343,7 @@
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
 | CLM-树-type-v2 | 本文原生结构是**维度森林（≥10 个并列 模式 容器）+ Appendix 2 局部 n=15 编码池**；主体不进入主统计池，仅 Appendix 2 可作 candidate-发现 anchor | 树类型（tree_type） | T1-T18 整体 | EV-question-types, EV-picoc, EV-table2/4/5/6/7/8/9, EV-effect-measures, EV-appx2-coded-15 | medium | 用于 Paper2 模式种子（schema_seed） + 局部 候选发现 | 指南 主体非实证；Appendix 2 评分者-对象耦合 |
-| CLM-question-type-枚举 | 综述问题类型的 6-枚举（含 SE 不适用 diagnostic）可直接作为 Paper2 综述编码字段 | classification_schema种子（schema_seed） | T3 / L1 | EV-question-types | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | 源自医学，SE 适用性需 pilot |
+| CLM-question-type-枚举 | 综述问题类型的 6-枚举（含 SE 不适用 diagnostic）可作为候选 Paper2 综述编码字段 | classification_schema种子（schema_seed） | T3 / L1 | EV-question-types | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | 源自医学，SE 适用性需 pilot |
 | CLM-picoc-框架 | PICOC 5 元素可作为 Paper2 RQ 抽取必填字段 | classification_schema种子（schema_seed） | T3 / L2 | EV-picoc | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | -- |
 | CLM-protocol-完备度 | 10 个 protocol component 可作为 Paper2 综述质量评分的"完备度" sub-rubric | 质量量规（quality_rubric）_seed | T4 / L3 | EV-protocol (line 893-922) | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | optional 项需标注 |
 | CLM-bias-4枚举 | 4 类 bias 中 selection / measurement / attrition 直接适用 SE；performance bias 因 SE 难做 blinding 而限制大 | classification_schema种子（schema_seed） | T7 / L5 | EV-table4-bias | 历史草稿旧强度（当前禁止采信） | 模式种子（schema_seed） | blinding 在 SE 不适用 |

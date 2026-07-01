@@ -225,7 +225,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 1. **定位为 interactive scaffold 更稳**：Paper2 可以强调“帮助研究者构建、审计和迭代综述脚手架”，而不是宣称自动完成系统综述。
 2. **阶段化 agent 更容易评估**：按 need、search、selection、extraction、visualization、reporting 拆分，可以分别设计 deterministic checks、LLM judge、人工审计和 run record。
 3. **可复现搜索仍要保留 Boolean/log**：原文虽认可 semantic search，但把可复现性与 Boolean search 放在关键位置；Paper2 不应只依赖语义检索或 LLM 生成候选。
-4. **纳排和抽取必须 source-grounded**：LLM 输出应带理由、证据片段和引用位置；这可直接转化为 Paper2 的 evidence anchor / review trace 字段。
+4. **纳排和抽取必须 source-grounded**：LLM 输出应带理由、证据片段和引用位置；这可作为候选转化为 Paper2 的 evidence anchor / review trace 字段。
 5. **完整 PDF 输入是机会也是风险**：原文认为 deductive coding 可从完整 PDF 获益；Paper2 可探索 full-text extraction，但必须处理 PDF 提取质量、图表缺失和上下文截断。
 6. **从单步骤到端到端 prototype 的路线合理**：原文建议先优化 individual steps，再构建整体 prototype；Paper2 方法章可采用类似 staged evaluation 叙事。
 
@@ -501,7 +501,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 > [!WARNING] 历史草案归档，禁止消费为事实真源：本节仅保留 A1-DT v2 形成过程中的审计草稿，不得作为当前证据强度、SUMMARY 统计池、正式维度树或正式结论-证据映射使用。若本节与文末正式 `### A.1`--`### A.4` 审计附录冲突，一律以文末正式审计附录为准。
 
-可直接迁回 `review.md` A.2 / A.3。
+可作为候选迁回 `review.md` A.2 / A.3。
 
 #### 历史 A.2 维度树证据账本草案（禁止消费）
 
@@ -529,7 +529,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | C-iLLM-SMS-T03 | Fig. 1 的 "研究者 input × interactive refinement × LLM output" 三槽是本文对 Paper2 最强迁移点 | structural_pattern | B2, rel.stage_to_triplet | EV-003 | medium (待版面核) | scaffold 字段模板 | Fig. 1 版面待 A2a 核 |
 | C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | 历史草稿旧强度（当前禁止采信） | 智能体 role 模板 | 仅限 search |
 | C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 trace 模式 直接落点 | CoT 不等于暴露推理链 |
-| C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可直接作为 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
+| C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可作为候选 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | 历史草稿旧强度（当前禁止采信） | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
 | C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | roadmap_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
 | C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | 历史草稿旧强度（当前禁止采信） | 引用红线 | 强制约束 |
 | C-iLLM-SMS-T09 | "interactive LLM-based SMS" 这一方向已在 2024/2025 由本文显式提出；Paper2 不得宣称首创，但可补全 评价 / prototype | priority_boundary | ROOT | EV-001, EV-008 | 历史草稿旧强度（当前禁止采信） | Paper2 §related work 必须 cite | -- |
@@ -563,7 +563,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
-本审计目前最强的地方在于：清晰区分了"该文无样本编码模式"vs"该文确有流程 / 智能体 / 审计 / 风险概念骨架"，并把 B1–B7 主干、关系边和审计字段拆出可直接迁回 review.md 的 28 行叶子表 + 9 行关系边表 + 9 行结论表。
+本审计目前最强的地方在于：清晰区分了"该文无样本编码模式"vs"该文确有流程 / 智能体 / 审计 / 风险概念骨架"，并把 B1–B7 主干、关系边和审计字段拆出可作为候选迁回 review.md 的 28 行叶子表 + 9 行关系边表 + 9 行结论表。
 当前最大的剩余评审风险是：Fig. 1 未版面核验，补充材料未打开；少数叶子（mech.* 工具语义、B2 在 可视化 / 报告阶段是否真有三槽）仍是文本重构判断。
 支持中心结论 "树类型 = 维度森林（森林），不进入主统计池（NOT_in_main_pool）" 的主要证据是 EV-001 (作者自述 解决方案提案) + EV-009 (数据可得性声明：未使用数据（No data was used）)。
 本轮主动弱化的主张：不写 Fig. 1 版面已核验；不写 补充材料（supplementary）已读；不把被引文献数字写成本文 发现；不写"已成熟 评价"。

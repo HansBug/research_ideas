@@ -355,7 +355,7 @@
 | C-RE-T06 | 候选发现"RE SLR QA 自 2009 起下降，与 SE-wide [8,9] 趋势相反"基于 Figure 4 趋势 | 候选发现（candidate_finding） | F5 × year | EV-RE-T11, T13 | weak | 不进入主统计池；A2a 视觉读 Figure 4 后可升级 | 仅 RE 子领域 |
 | C-RE-T07 | 高引 ≠ 高 QA（Table VI 反证：S2[A] cite=154 QA=3 vs S46 QA=1.5）| 候选发现（candidate_finding） | rel-citation-vs-qa | EV-RE-T09 | medium | 可作 Paper2 "citation 不能替代 QA" 论证 | citation 是 2014-05-19 快照 |
 | C-RE-T08 | 三类 缺口（gap） 分类法（异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area））+ 与 路线图 cross-ref 模式可作 Paper2 缺口（gap） 章节模板 | 候选发现（candidate_finding）_template | F7, rel-gap-vs-roadmap | EV-RE-T14 | medium | 通用模板可迁移 | 具体 RE ignored-area 名单不可迁移 |
-| C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | 历史草稿旧强度（当前禁止采信） | 可直接复用 | -- |
+| C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | 历史草稿旧强度（当前禁止采信） | 可作为候选复用 | -- |
 | C-RE-T10 | 自报 limitations 的 4 类清单（检索 / 元信息缺失 / grouping 主观 / EBSE 限定）反证若干候选发现 强度 | limitation_anchor | ROOT, F7 | EV-RE-T15 | 历史草稿旧强度（当前禁止采信） | 可作 Paper2 威胁-to-效度 复用清单 | -- |
 
 ### 9. 技能使用与自我审查记录
@@ -389,7 +389,7 @@
 `★ Insight ─────────────────────────────────────`
 1. 这篇 2014 RE tertiary 研究 是难得的"教科书级"清晰原生模式：publication 与 研究 双分母、DARE 4×3 档 QA rubric、scope 6 档 + topic 24 项、Appendix A 完整 S1–S53 名录 + citation。这种结构让 single-paper 模式 几乎可以 1:1 复用为 Paper2 single-paper 抽取 form 的骨架——也正因为如此，旧 `review.md` 把它折叠成六个通用 叶子 是最大的损失。
 2. 关键提醒：F3 topic_group 是 thematic-analysis 结果（开放 / 非互斥 / 非饱和），与 F4 scope（先验 6 档枚举）属于结构上完全不同的两种 分类法；审计返修必须保留这一差异，不能简化为同一种"分类字段"。
-3. C-RE-T07（"高引 ≠ 高 QA"）是 Paper2 Related Work / Discussion 可直接引用的方法学论点——Table VI 自带的 S2[A] vs S46 对比比 reviewer 自己造例子更有说服力。
+3. C-RE-T07（"高引 ≠ 高 QA"）是 Paper2 Related Work / Discussion 可在 A2a 精核后引用的方法学论点——Table VI 自带的 S2[A] vs S46 对比比 reviewer 自己造例子更有说服力。
 `─────────────────────────────────────────────────`
 
 > [!NOTE]

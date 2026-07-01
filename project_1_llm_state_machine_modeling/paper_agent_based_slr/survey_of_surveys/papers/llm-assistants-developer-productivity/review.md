@@ -560,7 +560,7 @@ Threats 分两组。
 | **C1** | "维度树复原" §维度树结构 | 主树退化为六个通用 叶子（scope/语料/分类法/方法/证据/发现），把 RQ0–RQ3 各自的丰富 模式 压成单一 分类法 叶子；"原文模式主树（19×3 审计后返修）" 也仅 6 行抽象主干，没有展开 PRISMA 链、QA rubric、Stol-Fitzgerald 6 类、Glass-Vessey-Ramesh 5 类、SPACE 5×N 子维、8/5 主题 etc.。这是 A1-DT v2 的核心 mismatch — 学术目标层级风险（影响 Paper2 模式种子 可靠性）。 | 改为本审计 §3 的 RQ-森林结构：以 PS-id 为主键，4 棵 RQ-sub树 + Tetrad overlay + Threats overlay；通用六叶降级为最尾部的 "跨论文投影" 视图。 |
 | **C2** | A.2 证据账本 EV-llm-…-001..005 | 仅 5 条证据，全部标 `not_verified`、`证据强度=not_verified`，连最基本的 PRISMA 分母（9756/803/8953/228/189/5/44/5/39）、QA 11 项、Stol-Fitzgerald 6 类百分比、SPACE 5 维百分比这些**纯文本可定位**的事实都未单独立证。导致 A.3 全 12 条 claim 一律 weak/模式种子（schema_seed），无法支撑 SUMMARY 表中 `eligible_for_statistical_synthesis=true` 的判断。 | 至少新增 15+ 条具体 EV 行：每条挂明确节号、表号、数字证据；分母链与 QA rubric 应升级到 `证据强度=strong/历史草稿旧强度（当前禁止采信）`。 |
 | **I1** | "叶子维度表" 六叶取值空间 | 六叶的"取值空间"列全部写"自由文本加 RQ/贡献声明引用"等模板化 boilerplate；丢失了原文中**封闭枚举**（strategy 6 类、procedure 5 类、SPACE 5 维、benefit 8 / risk 5）的关键性质。封闭枚举是统计池资格的核心判据。 | 按本审计 §4 叶子表逐叶给真实取值空间，区分完整枚举 / 层级枚举 / 数值 / 布尔 / 开放枚举。 |
-| **I2** | "统计与候选发现链路" | 表中三行均判为 "否（A1-DT 阶段仅作 模式种子）" — 但 metadata.json 明确 `eligible_for_statistical_synthesis=true`，且本文是 39 篇明确分母的现代 SLR+SMS。该结论与 metadata 矛盾。 | 改为 "局部可统计"：landscape / strategy / procedure / SPACE coverage 等可直接进入主统计池；contested 主题与 细粒度（fine-grained） 数字标 "待 A2a 精核后升级"。 |
+| **I2** | "统计与候选发现链路" | 表中三行均判为 "否（A1-DT 阶段仅作 模式种子）" — 但 metadata.json 明确 `eligible_for_statistical_synthesis=true`，且本文是 39 篇明确分母的现代 SLR+SMS。该结论与 metadata 矛盾。 | 改为 "局部可统计"：landscape / strategy / procedure / SPACE coverage 等可在 A2a 精核后进入主统计池；contested 主题与 细粒度（fine-grained） 数字标 "待 A2a 精核后升级"。 |
 | **I3** | "原文模式候选叶子映射（A1 种子）" | 5 个 `orig-*` 候选叶子（assistant-type / developer-task / productivity-outcome / 评价-design / human-factor）含义模糊，且与本文实际的 RQ 字段（strategy/procedure/instrument/SPACE/收益 / 风险（benefit/risk））不对齐；e.g. "助手类型" 是 leaf-llm-工具（Table 4）而非泛"代码助手 / 聊天助手"分类。 | 删除模糊候选，按本审计 §3–§4 重写为 RQ-aligned leaves。 |
 | **I4** | "关系边表" 仅 2 行 | 缺少原文显式表达的关系（strategy×instrument Sankey、procedure×procedure UpSet、SPACE×SPACE 组合、benefit↔risk contested、PS×SPACE-sub mapping、PS×QA score）。 | 按本审计 §5 的 10 条 关系边 补齐；标明哪些 关系边 已在原文 Fig. 3/4/5/7/8 中视觉显式表达。 |
 | **I5** | 历史草稿 §6 字段树（review.md L195–289） | 该 90+ 行字段树（review_record/...）实际上比当前"维度树复原"完整得多，且更接近原生模式；但被标为"历史草稿，不作事实真源"。这造成最佳证据被废弃，最差结构被立为真源。 | 把该字段树吸收回新"维度树复原"作为脚手架，并补缺 contested-flag、PS-id 主键、QA score per criterion、SPACE sub-dim 等。 |
@@ -573,7 +573,7 @@ Threats 分两组。
 - **样本单位**：✅ "原始研究"（与现 review.md 一致，但应明确补 "PS1..PS39 编号体系"）。
 - **样本数量**：✅ 39（一致）。
 - **原生树类型**：❌ 当前应写 "RQ 驱动分类树" 但本质是 **per-RQ 多根森林 + Tetrad/Threats 解释层**；建议改为 "RQ-driven 维度森林（4 RQ-sub树 + 解释性覆盖层（interpretive overlay））"。
-- **统计池资格**：❌ review.md A.3 全 weak/模式种子（schema_seed） 与 metadata `eligible_for_statistical_synthesis=true` 矛盾；应改为 **"局部可统计"** + 明确不可直接进入的项（Fig. 6 精确雷达数、PS-level QA scores、Table 9 详细 risk summary）。
+- **统计池资格**：❌ review.md A.3 全 weak/模式种子（schema_seed） 与 metadata `eligible_for_statistical_synthesis=true` 矛盾；应改为 **"局部可统计"** + 明确即使 A2a 精核后也不可进入的项（Fig. 6 精确雷达数、PS-level QA scores、Table 9 详细 risk summary）。
 
 ### 8. 历史审计草案归档（禁止消费为事实真源）
 

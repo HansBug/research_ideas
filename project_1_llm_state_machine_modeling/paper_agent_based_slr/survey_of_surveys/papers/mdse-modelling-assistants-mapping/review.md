@@ -180,7 +180,7 @@
 5. 实践 目标用户 多偏 developers，领域专家 / designers / modellers 被隐藏或不明确。
 6. AI / LLM / GPT 的出现可能改变 建模辅助 策略 与 目标，需要统一框架支持未来 assistant 设计。
 
-future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assistants framework、requirements elicitation framework 结合，并建设一个 public repository，用 策略、目标、限制、指标、目标用户 等 聚类 来可视化新 assistant 与既有工作之间的关系。对 Paper2 来说，这相当于一个“维度 schema + evidence repository + similarity map”的雏形，可直接启发后续 候选发现 l关系边r 和 pattern library。
+future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assistants framework、requirements elicitation framework 结合，并建设一个 public repository，用 策略、目标、限制、指标、目标用户 等 聚类 来可视化新 assistant 与既有工作之间的关系。对 Paper2 来说，这相当于一个“维度 schema + evidence repository + similarity map”的雏形，可作为候选启发后续 候选发现 l关系边r 和 pattern library。
 
 ### 1.9 威胁与限制
 
@@ -299,7 +299,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 1. **将 STM generation 重新表述为 建模辅助，而不是孤立生成任务**：状态机生成可以是 G6 model evolution / generation，但如果引入 parser、semantic diagnostics、repair loop 和人类反馈，它同时涉及 G2 consistency checking、G4 model quality、G5 用户 interaction 和 G1 change propagation。
 2. **目标用户必须前置**：面向 领域 expert 的 LLM4STM assistant 与面向 modeller / developer 的 assistant 评价完全不同。前者强调自然语言解释、认知负担和可理解性；后者强调 DSL correctness、debugging、traceability、repair efficiency。
 3. **指标 不能只做自动正确率**：原文显示 MDSE assistance 领域已经偏向 effectiveness / efficiency，用户感知 很少。Project1 若只报告 通过率 / transition accuracy，会延续该缺口；可补 用户 trust、perceived control、explanation usefulness、human review time。
-4. **限制 应成为主字段**：LLM4STM 常见风险可直接映射到 L1 accuracy、L3 generality、L5 scope、L2 effort、L6 usability。主动报告这些限制反而能增强论文可信度。
+4. **限制 应成为主字段**：LLM4STM 常见风险可作为候选映射到 L1 accuracy、L3 generality、L5 scope、L2 effort、L6 usability。主动报告这些限制反而能增强论文可信度。
 5. **实践 vs 文献 对照可作为额外视角**：若后续要讨论 low-code / modelling tools 中的 AI assistant，可借鉴本文 GMQ + 文档 quote 方式，但必须标注公开文档的缺失边界。
 6. **树状维度适合 STM 论文集抽取**：assistant 策略 / 目标 / 限制 / 指标 / 用户 是天然的 `desc.md` 或 `review.md` 字段树，适合从多篇 LLM4Modeling 文献抽取对比矩阵。
 
@@ -700,7 +700,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 
 ---
 
-报告结束。本审计为自包含完整报告；A1-DT v2 维度森林、叶子表、关系边表、证据账本草案与结论映射草案均已落到本回答正文，主线程可直接据此重写 `review.md` 的“维度树复原 / 叶子维度表 / 关系边表 / A.1–A.4 审计附录”节，无需再回到上一条消息或工具调用结果。
+报告结束。本审计为自包含完整报告；A1-DT v2 维度森林、叶子表、关系边表、证据账本草案与结论映射草案均已落到本回答正文，主线程可作为候选输入来重写 `review.md` 的“维度树复原 / 叶子维度表 / 关系边表 / A.1–A.4 审计附录”节，无需再回到上一条消息或工具调用结果。
 
 > [!NOTE]
 > v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。

@@ -136,7 +136,7 @@ Future work 也被分成三类：
 - **Further evaluation**：13 篇计划进一步评价，但从 8 篇无 evaluation 的研究里只有 P18 将 evaluation 明确列为 future work；42 篇没有 user study，却只有 3 篇将 user study 写入未来工作。
 - **质量增强**：与其他语言/工具集成、interoperability、优化生成代码、资源分配、model checking、scalability/reusability/adaptability 等。
 
-RQ4 Answer Summary 给出若干可直接复核的比例：超过 88% 研究没有 industrial evaluation 和 user study，48% 只评价 MDE 或 ML 的一个方面，17% 没有任何评价；future work 中 46% 提出 additional features/enhancements，28% 提出 further evaluations。
+RQ4 Answer Summary 给出若干可在 A2a 中复核的比例：超过 88% 研究没有 industrial evaluation 和 user study，48% 只评价 MDE 或 ML 的一个方面，17% 没有任何评价；future work 中 46% 提出 additional features/enhancements，28% 提出 further evaluations。
 
 ### 2.10 Discussion / research roadmap
 
@@ -535,7 +535,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 #### 6.1 由字段 / 统计表支持的统计观察（A1-M5）
 
-均带分母 46，可直接迁回 review.md 主体；A2a 仍需回 PDF 复核精确数字：
+均带分母 46，可作为候选迁回 review.md 主体；A2a 仍需回 PDF 复核精确数字：
 
 - 43/46 提 effort reduction 为 goal；13/46 质量 improvement；11/46 stakeholder 理解。
 - 31/46 supervised；4/46 reinforcement；0/46 仅 unsupervised；11/46 generic。

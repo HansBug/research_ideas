@@ -269,9 +269,9 @@
 
 **I-5（important）**：现有 `eligible_for_statistical_synthesis: true` 在 metadata.json，但 review.md 又把所有 叶子 标 `模式种子（schema_seed）`，自相矛盾。应统一：本文确实可作为后续主统计池候选（已有显式分母 83 + 6117 + 11 KA + 22 子领域（subarea） + 4 ML axis），只是字段细节需 A2a 精核取值空间饱和性。建议把维度树中 L5.1 / L6.1--L6.4 / L2.1 / L3.x 等**取值空间已封闭枚举的叶子**升级为 `text-confirmed, ready-for-statistical-pool`；自由文本叶子（L5.2 / L7.1）保持 `模式种子（schema_seed）`。
 
-**I-6（important）**：现 `review.md` 把"83 reviews / 6117 原始研究"写成"需 PDF 表格核对后才能引用"。实际上 §4.1 p.12 第一段、§7 Conclusion p.28 末第一段、摘要 p.1 都已直接给出这两个数字，**文本级证据充分**，可直接引用；PDF 核验只需要做 Table 3/4 行数 = 83 的合计校验。
+**I-6（important）**：现 `review.md` 把"83 reviews / 6117 原始研究"写成"需 PDF 表格核对后才能引用"。实际上 §4.1 p.12 第一段、§7 Conclusion p.28 末第一段、摘要 p.1 都已直接给出这两个数字，**文本层候选证据已定位，仍需 A2a 精核**，可在 A2a 精核后引用；PDF 核验只需要做 Table 3/4 行数 = 83 的合计校验。
 
-**M-1（minor）**：现 `review.md` "六类 模式 抽取" 表中 效度 / 威胁 模式 写"本轮只读题摘和全文开头，威胁 章节待进一步定位"。实际上 §6 在 p.27--28 已清晰呈现 Ampatzoglou-3-类威胁框架；可直接更新该行结论。
+**M-1（minor）**：现 `review.md` "六类 模式 抽取" 表中 效度 / 威胁 模式 写"本轮只读题摘和全文开头，威胁 章节待进一步定位"。实际上 §6 在 p.27--28 已清晰呈现 Ampatzoglou-3-类威胁框架；可作为候选更新该行结论。
 
 **M-2（minor）**：`review.md` 中 "candidate `leaf-ml4se-tertiary-study-orig-data-source`" 的"数据来源"枚举（代码库、issue、commit、测试、需求...）实际上并不是本文的**字段**——本文不在样本层抽取"数据来源"，而是在 §4.2 narrative 中提及。该候选叶子应降级为 `narrative_observation_seed`，不是 secondary-研究 级别的可统计字段。
 
@@ -318,7 +318,7 @@
 | C-A1DT-ml4se-003 | DARE-4 rubric（4 问 × {1, 0.5, 0} × 阈值 ≥2）是封闭、可统计、可复现实验的 质量评价 范式 | quality_pattern | B3 + L3.1--L3.5 | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 可借用 rubric 设计模式（非具体 DARE-4 题目） | 仅 二次研究 适用 |
 | C-A1DT-ml4se-004 | KA × 子领域（subarea） × SE task 是显式多对多关系；SE task / 研究 上限 3 | relation_structure | B5 + E1/E2/E3 | EV-006, EV-009 | 历史草稿旧强度（当前禁止采信） | Paper2 可迁移多对多建模 | 任务标签 ML4SE 特定 |
 | C-A1DT-ml4se-005 | ML 多轴分类 + 事后 ML application task 归纳是"先验轴 + 归纳轴"混合 分类法 范式 | 分类_pattern | B6 + L6.1--L6.5 | EV-007, EV-010, EV-011 | 历史草稿旧强度（当前禁止采信） | Paper2 可借用混合 分类法 设计模式 | 具体轴 ML4SE 特定 |
-| C-A1DT-ml4se-006 | 本文具备主统计池资格：封闭枚举叶子（L5.1 / L6.1--L6.4 / L2.1 / L3.x）可直接进入跨论文统计；自由文本叶子（L5.2 / L7.1）保持 模式种子（schema_seed） | pool_eligibility | 根节点 + selected leaves | EV-001, EV-006, EV-008, EV-009, EV-010 | 历史草稿旧强度（当前禁止采信） | A2a 可对封闭叶子统计；自由文本叶子需更多论文才能跨论文归纳 | metadata.json 需把"全部 模式种子（schema_seed）"细化分级 |
+| C-A1DT-ml4se-006 | 本文具备主统计池资格：封闭枚举叶子（L5.1 / L6.1--L6.4 / L2.1 / L3.x）可在 A2a 精核后进入跨论文统计；自由文本叶子（L5.2 / L7.1）保持 模式种子（schema_seed） | pool_eligibility | 根节点 + selected leaves | EV-001, EV-006, EV-008, EV-009, EV-010 | 历史草稿旧强度（当前禁止采信） | A2a 可对封闭叶子统计；自由文本叶子需更多论文才能跨论文归纳 | metadata.json 需把"全部 模式种子（schema_seed）"细化分级 |
 | C-A1DT-ml4se-007 | 6117 原始研究 数字在 §6 数据有效性（Data Validity） 中显式承认部分依赖 bib 推断，引用时应注明 | inferred_caveat | L4.1 | EV-016 | medium | Paper2 引用时须加 "non-unique, 部分ly inferred" 注释 | 不可作 最终发现 |
 | C-A1DT-ml4se-008 | Implications 1--7 + General Recommendations n=3..21 是 候选发现 seeds，非 最终发现 | 候选发现边界（candidate_finding_boundary） | B7 + L7.x | EV-012, EV-013 | 历史草稿旧强度（当前禁止采信） | Paper2 可作 发现 heuristic 候选 | 必须经反证与研究者裁决 |
 | C-A1DT-ml4se-009 | Ampatzoglou et al. 2019 三类 威胁 框架（研究选择（Study Selection） / 数据（Data） / 研究（Research））可作 Paper2 威胁分类参考 | threat_分类法 | B8 + L8.1 | EV-014 | medium | -- | 框架本身可迁移；具体威胁条目 ML4SE 特定 |

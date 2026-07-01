@@ -477,7 +477,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 **I2**：`review.md` line 309 "[clm-...-树-type]" 把树类型写为 "关系型维度树 + 多声部证据树"。**前半正确但描述不足**：本文是"维度森林 + 显式关系图 + lifecycle 投影"三层结构，单写"关系型"会丢失 5 棵并列子树和 Gartner 10-阶段 切片这两层信息。
 
-**I3**：A.2 证据账本 (line 447--451) 5 条全部 `not_verified`、来源 page 写"摘要 / 引言页；待 A2a 精确页码复核"。**多数页码可直接由 paper_content.txt 锚定到具体 Page 标记**（如 Tables 5/Page 10、Table 21/Page 20、Fig 4/Page 10、Fig 5/Page 19、§4.2/Page 23）。建议把至少 EV-001/002/003 升级为 `历史草稿旧强度（当前禁止采信）` 并补 Page 标记。
+**I3**：A.2 证据账本 (line 447--451) 5 条全部 `not_verified`、来源 page 写"摘要 / 引言页；待 A2a 精确页码复核"。**多数页码可在 A2a 中由 paper_content.txt 锚定到具体 Page 标记**（如 Tables 5/Page 10、Table 21/Page 20、Fig 4/Page 10、Fig 5/Page 19、§4.2/Page 23）。建议把至少 EV-001/002/003 升级为 `历史草稿旧强度（当前禁止采信）` 并补 Page 标记。
 
 **I4**：line 301 "复核 104 WL + 43 GL 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL"。**这一条审计早已正确指出但未在主表反映**：line 21 仍只写"104 WL + 43 GL"。建议在快速结论卡片改为 "102 WL (RQ1) + 2 WL (RQ2) + 43 GL = 摘要并表 104 WL + 43 GL"。
 

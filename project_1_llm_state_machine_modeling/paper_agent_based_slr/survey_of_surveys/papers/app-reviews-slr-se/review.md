@@ -398,7 +398,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | 严重度 | 问题定位 | 现状 | 建议 |
 |---|---|---|---|
 | **C-1** | `review.md` §"维度树结构" + "叶子维度表"（行 196–220） | 用 `[leaf-…-scope/corpus/分类法/method/evidence/发现]` 六个跨论文通用接口冒充原文树主干，且每条叶子父节点映射任意（如 b1→scope、b3→分类法），与原文 F1–F18 + 3 模式 完全脱节。 | 将原文模式主树（[A]–[F] / F1–F18 + 9-type + 4-type + 14-activity）抬升为**单篇 review.md 的事实主树**；六叶通用接口降级为附录"跨论文投影表"。 |
-| **C-2** | 行 234–250 已存在"原文模式主树（19×3 审计后返修）"但仍标 `模式种子（schema_seed）` 且无具体页码 | 已识别 RQ 层 / F1-F18 / 9-type 等主干，但未把 9-type / 4-type / 14-活动的**封闭枚举取值空间**与页码、Table 编号、reliability 数字直接绑定。 | 把 Table 7（9 类）、Table 9（4 类）、Table 12（10 项 ML）、Table 13（14 项 SE 活动）、Table 4（reliability 数字）这 5 个表的内容直接抄进主树的"取值空间"列，并标 Table 行号；本审计已完成此项，可直接拷贝。 |
+| **C-2** | 行 234–250 已存在"原文模式主树（19×3 审计后返修）"但仍标 `模式种子（schema_seed）` 且无具体页码 | 已识别 RQ 层 / F1-F18 / 9-type 等主干，但未把 9-type / 4-type / 14-活动的**封闭枚举取值空间**与页码、Table 编号、reliability 数字直接绑定。 | 把 Table 7（9 类）、Table 9（4 类）、Table 12（10 项 ML）、Table 13（14 项 SE 活动）、Table 4（reliability 数字）这 5 个表的内容直接抄进主树的"取值空间"列，并标 Table 行号；本审计已完成此项，可作为候选迁入。 |
 | **I-1** | §A.2 证据账本 EV-…-002/003/005 仍标 `not_verified` | 全文文本级证据其实已经足够把 Table 4/7/9/12/13/16-22 的具体数字与页码挂钩；只有版面级（OCR 错位、Fig 1 数字气泡）才需 PDF 核验。 | 将 Table 7/9/12/13/4/18 升级为 `历史草稿旧强度（当前禁止采信）`；Fig 1/2/3 与 search query 文本保留 `needs_visual_check`。 |
 | **I-2** | §A.3 C01 "维度树主类型为 RQ 驱动分类树，辅助为评价/复现资产审计树" | 表述含糊；本文实际是**字段森林（field 森林）**而非单棵树。 | 改写为"RQ 驱动的字段森林（field 森林）：1 棵抽取字段树 [A]–[F] + 3 套 分类方案（classification scheme；首次术语） 子树 + 评价/复现资产子集 + Table 23 横向 dimension 对比"。 |
 | **I-3** | §3 "六类 模式 抽取" Table（行 79–86）"dimension 模式: F1–F18 + 三套 模式" | 描述正确但与下游"叶子维度表"脱节。 | 在 §3 表后补一句"完整字段取值空间见下方原文模式主树"指针。 |
@@ -433,7 +433,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
 | CLM-arsl-T01 | 本文原生树是 RQ-驱动的字段森林（field 森林）（F1–F18 抽取表 + 3 套 close-enum 分类方案（classification scheme；首次术语） + 1 套 SWEBOK-derived SE activity 模式），不是单棵树，也不是 reviewer 投影的六叶接口 | 树类型（tree_type） | ROOT, [A]–[F] | EV-arsl-001/003/004 | 历史草稿旧强度（当前禁止采信） | 模式_pattern_seed for Paper2 | 不迁移领域取值 |
-| CLM-arsl-T02 | F6.1 (9 类) / F7.1 (4 类) / F8 (14 项 SWEBOK) 均为**封闭枚举**且有显式构造来源与合并规则，并配 inter/intra-rater reliability | 模式_quality | F6.1/F7.1/F8 | EV-arsl-004/005/006/007 | 历史草稿旧强度（当前禁止采信） | 可直接作为 A1 高等级 模式 样本 | 领域具体类别不迁移 |
+| CLM-arsl-T02 | F6.1 (9 类) / F7.1 (4 类) / F8 (14 项 SWEBOK) 均为**封闭枚举**且有显式构造来源与合并规则，并配 inter/intra-rater reliability | 模式_quality | F6.1/F7.1/F8 | EV-arsl-004/005/006/007 | 历史草稿旧强度（当前禁止采信） | 可作为候选 A1 高等级 模式 样本 | 领域具体类别不迁移 |
 | CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | 历史草稿旧强度（当前禁止采信） | Paper2 评价子集候选（需主线程裁决） | F12 部分定性 criterion 取值需扩展 |
 | CLM-arsl-T04 | 本文 RQ5 显式声明"too diverse for 元分析（meta-analysis）"，转用 summarizing effect estimates；这是异质 证据 合成的标准做法 | statistical_method | F13 | EV-arsl-009 | 历史草稿旧强度（当前禁止采信） | 迁移为 Paper2 异质性统计纪律 | — |
 | CLM-arsl-T05 | §4.1–4.10 十项 缺口（gap） 来自具体统计表，是 发现 的合规来源；但其领域语义（mobile app review）不可迁移到 LLM4STM | finding_boundary | 缺口（gap） 池 | EV-arsl-010 | 历史草稿旧强度（当前禁止采信） | 候选发现 模式 | 不历史草稿曾提出迁移建议；当前禁止直接采信领域 缺口（gap） |

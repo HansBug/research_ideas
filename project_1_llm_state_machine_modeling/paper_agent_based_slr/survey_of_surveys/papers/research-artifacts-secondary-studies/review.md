@@ -98,7 +98,7 @@
 | 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | 以“artifact 是否存在、存放在哪里、如何声明、年份/venue 如何影响”为核心；属于 evidence-asset audit 型 RQ。 | `paper_content.txt` Page 2--4 的 RQ1--RQ4。 | 高度可迁移到 Paper2：可把审计制品链拆成 availability、persistence、reporting、trend/context 四类问题。 | 不迁移具体比例到 Paper2 目标领域；该文对象是 SE 二次研究。 |
-| dimension pattern | 字段包括 publication venue、year、artifact availability Yes/No、permanent repo、by request、dead link、dedicated section。 | `paper_content.txt` Page 2 Data extraction；Page 3 Table 1；PDF layout Table 1。 | 可直接作为 Paper2 制品资产字段树的初始锚点。 | 字段较粗，只统计有无与位置，不评估工件是否完整、可执行、脱敏、版本化。 |
+| dimension pattern | 字段包括 publication venue、year、artifact availability Yes/No、permanent repo、by request、dead link、dedicated section。 | `paper_content.txt` Page 2 Data extraction；Page 3 Table 1；PDF layout Table 1。 | 可作为候选 Paper2 制品资产字段树的初始锚点。 | 字段较粗，只统计有无与位置，不评估工件是否完整、可执行、脱敏、版本化。 |
 | finding pattern | 以比例、年度趋势和 gap 形成 finding：artifact availability 改善，但永久仓库 / DOI 不足；Data Availability section 可能产生虚假透明度。 | `paper_content.txt` Page 3--5 Results / Conclusion。 | 可迁移为“统计观察 → 缺口 → 改进建议”的 finding 模板。 | 该文没有深入解释为什么不同期刊差异显著，也没有质量评分，不能迁移因果结论。 |
 | evidence presentation pattern | 单个大表同时呈现 venue 分布、年度统计和 logistic regression；分母清晰，按 537 总体、169 artifacts 子集、79 篇 2023 子集切换。 | `paper_content.txt` Page 3 Table 1；`paper.pdf` layout 核对。 | 可迁移到 Paper2 的 audit asset dashboard：总样本、开放制品、永久仓库、断链、仅请求获取、专门声明章节。 | Table 1 很紧凑，若直接复用可能混淆分母；Paper2 需要把分母显式写进字段名或图注。 |
 | validity / threat pattern | 限制集中在 venue scope、数据库 scope、年份窗口；并解释每个选择的理由。 | `paper_content.txt` Page 4 Limitations。 | 可迁移为 Paper2 的外推边界模板。 | 未讨论关键词漏检、keyword script recall、链接检查时间戳、artifact 内容质量误判等更细风险。 |
