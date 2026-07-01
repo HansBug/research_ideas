@@ -352,7 +352,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-**A. 原文由字段/统计表直接支持的统计观察**（已可信赖入分母）：
+**A. 原文字段/统计表支撑的统计观察**（已可信赖入分母候选）：
 
 1. 9 类 analysis 频次：分类 58%、IE 31%、CA 30%、CU 24%（Table 7）。
 2. 4 大 technique 频次：NLP 62%、ML 59%、SA 29%、MA 25%（Table 9）。
@@ -437,7 +437,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | CLM-arsl-T03 | F14–F18 评价/复现字段把 数据集/工具/annotator/reliability/replication 都升级为一等抽取字段，是 A1 中评价审计最完整的样本之一 | evaluation_completeness | F14–F18 | EV-arsl-008 | 历史草稿旧强度（当前禁止采信） | Paper2 评价子集候选（需主线程裁决） | F12 部分定性 criterion 取值需扩展 |
 | CLM-arsl-T04 | 本文 RQ5 显式声明"too diverse for 元分析（meta-analysis）"，转用 summarizing effect estimates；这是异质 证据 合成的标准做法 | statistical_method | F13 | EV-arsl-009 | 历史草稿旧强度（当前禁止采信） | 迁移为 Paper2 异质性统计纪律 | — |
 | CLM-arsl-T05 | §4.1–4.10 十项 缺口（gap） 来自具体统计表，是 发现 的合规来源；但其领域语义（mobile app review）不可迁移到 LLM4STM | finding_boundary | 缺口（gap） 池 | EV-arsl-010 | 历史草稿旧强度（当前禁止采信） | 候选发现 模式 | 不历史草稿曾提出迁移建议；当前禁止直接采信领域 缺口（gap） |
-| CLM-arsl-T06 | 现 review.md 维度树主结构使用通用六叶接口与原文严重偏离，需 C 级返修：把 §"原文模式主树（19×3 审计后返修）"抬升为单篇事实主树，六叶接口降级为附录投影 | audit_repair | review.md §维度树复原 | EV-arsl-003/005/006/007 + §7 of this audit | 历史草稿旧强度（当前禁止采信） | 直接驱动 review.md 返修 | — |
+| CLM-arsl-T06 | 现 review.md 维度树主结构使用通用六叶接口与原文严重偏离，需 C 级返修：把 §"原文模式主树（19×3 审计后返修）"抬升为单篇事实主树，六叶接口降级为附录投影 | audit_repair | review.md §维度树复原 | EV-arsl-003/005/006/007 + §7 of this audit | 历史草稿旧强度（当前禁止采信） | 作为 review.md 返修候选线索 | — |
 | CLM-arsl-T07 | 主统计池资格：是（高等级 systematic_review，完整-text + close-enum 模式 + reliability + replication 字段全） | stat_pool_eligibility | ROOT | EV-arsl-001/002/003/004 | 历史草稿旧强度（当前禁止采信） | 可进 SLR/SMS 报告模式统计池与 A1 方法学模式统计池 | 单篇定量结论不进 最终发现 |
 | CLM-arsl-T08 | 至少存在 9 条原文显式关系边（REL-1…REL-9），现 review.md 仅列 2 条，需 I 级补全 | relation_edges | REL-1…REL-9 | EV-arsl-005/006/007/008/009/012 + Table 8 (REL-7) | medium | 关系边表补全 | — |
 

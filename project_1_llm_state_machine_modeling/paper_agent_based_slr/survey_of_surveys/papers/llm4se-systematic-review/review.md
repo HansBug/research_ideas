@@ -402,7 +402,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 | leaf.data_type | 数据类型 | RQ2 | §4.2 / Table 7 / Appendix A Table 13 | 数据载体形态 | {文本类（文本类）, 代码类（代码类）, 图类（图类）, 软件仓库类（软件仓库类）, 组合类（组合类）} 含 60+ 子类 | 层级枚举 | 多类型 → 多值 | 类型 × architecture × task 交叉 | graph/multimodal 低覆盖 | E10, Table 7/13 | 子类枚举对当前 SE 任务定制，迁移到 STM 需扩展（如 timed-trace、TA 模型） |
 | leaf.preprocess_step | 预处理步骤 | RQ2 | §4.3 / Fig. 7/8 | 数据流水线步骤集合 | text: 7 步序列；code: 7 步序列（含 编译/删除不可编译项/code-representation） | 序列（顺序可变） | 步骤缺失 → 标 `omitted` | 共同步骤频次（抽取/dup deletion/分段 等） | 复现可靠性 | E10, Fig. 7/8 | text vs code 步骤名同，但语义不同；迁移须分支 |
 | leaf.input_form | 输入形式 | RQ2 | §4.4 / Table 8 / Appendix B Table 14 | LLM 输入的模态/结构 | {基于 token（token_based）(text/code/code&text), 树_based, 图类（图类）, 基于像素（基于像素）, 混合（混合）} | 层级枚举 | 未声明 → 不计入 355 | 形态分布、树/graph adoption 趋势 | 树/graph 仍小众 | E10, Table 8/14 | 取值空间是当前主流 LLM 假设；状态机相关结构可作为 混合（混合）/树 子叶 |
-| leaf.tuning | 调优技术 | RQ3 | §5.1 / Table 5 (item 5) | 模型适配方法 | {全量微调（完整 fine-tuning）, ICL, PEFT.LoRA, PEFT 提示调优（prompt tuning）, PEFT 前缀调优（prefix tuning）, PEFT 适配器调优（adapter tuning）, RL, SFT, syntax_FT, knowledge_preservation_FT, task_oriented_FT, ...} | 开放层级枚举 | 直接使用预训练 → `无更新 / 仅推理（inference only）` | 各方法频次（全量微调（完整 fine-tuning） 83, LoRA 8, ...） | PEFT 兴起、完整 FT 仍主导某些子族（BERT 系列） | §5.1 | LLM4SE 当前观察；safety-critical 域可能偏 fine-tune 而非 ICL |
+| leaf.tuning | 调优技术 | RQ3 | §5.1 / Table 5 (item 5) | 模型适配方法 | {全量微调（完整 fine-tuning）, ICL, PEFT.LoRA, PEFT 提示调优（prompt tuning）, PEFT 前缀调优（prefix tuning）, PEFT 适配器调优（adapter tuning）, RL, SFT, syntax_FT, knowledge_preservation_FT, task_oriented_FT, ...} | 开放层级枚举 | 仅使用预训练 → `无更新 / 仅推理（inference only）` | 各方法频次（全量微调（完整 fine-tuning） 83, LoRA 8, ...） | PEFT 兴起、完整 FT 仍主导某些子族（BERT 系列） | §5.1 | LLM4SE 当前观察；safety-critical 域可能偏 fine-tune 而非 ICL |
 | leaf.prompt | Prompt 工程技术 | RQ3 | §5.2 / Fig. 9 / Appendix C Table 15 | 推理时 prompt 设计策略 | {少样本（few_shot）, 零样本（zero_shot）, CoT, APE, CoC, Auto_CoT, MoT, SCoT, 其他（Others）} | 完整枚举 + 其他（Others） 漏斗 | 不适用（不适用）（only fine-tuning） | 8 类 + 其他（Others） 频次（88/79/18/2/2/1/1/1/76） | CoT / SCoT 在代码任务的兴起 | E11, Fig. 9 | prompt 命名为 LLM4SE 自创/借用混合；迁移须保留 “Others=76” |
 | leaf.metric_by_problem_type | 评价指标 × 问题类型 | RQ3 | §5.3 / Table 9 / Appendix D Table 16 | 评估时使用的量化指标，按问题类型分组 | 回归 {MAE}; 分类 {Prec, 召回率, F1, Acc, AUC, ROC, FPR, FNR, MCC}; 推荐 {MRR, Prec@k, MAP@k, F@k, 召回率@k, Acc}; 生成 {BLEU 系, Pass@k, EM, CodeBLEU, ROUGE 系, METEOR, Edit Similarity, ChrF, CrystalBLEU, CodeBERTScore, MFR, PP, ...} | 关系值（problem_type × metric_set） | 单指标论文 → 单值；多指标 → 集合 | 指标 数 × problem_type 交叉表 | 评价 指标 过于代码中心、与“能力”脱钩 | E11, Table 9/16 | Pass@k / CodeBLEU 等仅生成代码语义有效；迁移到 STM/形式化任务须重选 指标 set |
 | leaf.sdlc_phase | 软件生命周期活动 | RQ4 | §6.1 / Fig. 10a / Table 10 / Appendix E Table 17 | 任务所属软件生命周期阶段 | {需求工程、软件设计、软件开发、软件质量保障、软件维护、软件管理} | 完整枚举（6 类） | 任务跨阶段时记为多值（少数） | 按本行枚举顺序：需求工程 3.90%、软件设计 0.92%、软件开发 56.65%、软件质量保障 15.14%、软件维护 22.71%、软件管理 0.69% | 需求工程 / 设计 / 管理严重低覆盖；形式化验证仅 5 篇 | E12, Fig. 10a, Table 10 | 仅 LLM4SE 当前观察；不能作为 LLM4STM 的饱和度结论 |
@@ -433,7 +433,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-#### 6.1 由字段 / 统计表直接支持的“统计观察”（可进入 Paper2 的 模式 池 / 投影分析）
+#### 6.1 由字段 / 统计表支撑的统计观察（可作为 Paper2 模式池 / 投影分析候选）
 - O1：395 篇中 154 peer-reviewed、241 arXiv；arXiv 占比 61.0%（E3, E5）。
 - O2：架构选择漂移：2020 仅编码器（encoder-only） 主导 → 2021 仅解码器（decoder-only） 已 47.4% → 2023 仅解码器（decoder-only） 70.7% → 2024.01 仅解码器（decoder-only） 64.17%（E8）。
 - O3：数据集 source 严重不均：工业（industrial） 仅 6 / 374 ≈ 1.6%（E9）。

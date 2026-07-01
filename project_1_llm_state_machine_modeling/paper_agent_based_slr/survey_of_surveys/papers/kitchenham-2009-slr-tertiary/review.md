@@ -119,7 +119,7 @@
    - 质量评价：DARE 标准 + 双人独立评分 + 分歧讨论（§2.4）
    - 数据抽取：10 项字段 + 单抽取 + 单核对（§2.5）
    - 数据分析：8 个分析维度对应到 RQ1--RQ4.4（§2.6）
-3. **字段来源**：本论文的「维度树」直接由 §2.5 的 10 项抽取字段 + §2.4 的 DARE rubric + Tables 2/3/A1/A2/A3 的列结构共同构成。**这是一份已公开、已操作化、已应用的 抽取 form**，不是 reviewer 重构的 模式。
+3. **字段来源**：本论文的「维度树」由 §2.5 的 10 项抽取字段 + §2.4 的 DARE rubric + Tables 2/3/A1/A2/A3 的列结构共同构成。**这是一份已公开、已操作化、已应用的 抽取 form**，不是 reviewer 重构的 模式。
 4. **RQ 与样本单位的关系**：RQ 既是树根的用途锚点，也决定字段抽取的取舍。RQ1↔︎`年份/来源/Refs`；RQ2↔︎`主题类型（主题类型）/Topic area`；RQ3↔︎`Author/Institution/Country`；RQ4↔︎`Quality score/Num 原始研究（原始研究）/Include 实践者（practitioner） 指南`。
 5. **若无系统样本库则降级**：不适用——本文恰是「无降级」典范。
 
@@ -315,7 +315,7 @@
 | CLM-A3-S01 | 统计观察 OBS-01..10 可作为 边界锚点，但 OBS-04/05/09 是 2008 快照，不可外推 | statistical_observation | OBS-01..10 | EV-A2-009..014 | strong (本文窗口内) | 边界锚点（boundary_anchor） | 仅适用 2004--2007 SE 期刊 |
 | CLM-A3-M01 | 字段+RQ+分析项三角映射（§2.6）值得作为 Paper2 自审计模板 | migration_method | rel-rq-to-table | EV-A2-007 | 历史草稿旧强度（当前禁止采信） | 方法学迁移 | 不迁移领域结论 |
 | CLM-A3-F01 | "EBSE 由欧洲/Simula 主导" 是历史候选发现，不可作为 最终发现 | 候选发现（candidate_finding） | OBS-04 | EV-A2-014 | weak (历史快照) | 候选发现（candidate_finding） | 2026 年生态已大变 |
-| CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | 历史草稿旧强度（当前禁止采信） | 直接驱动返修 | -- |
+| CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | 历史草稿旧强度（当前禁止采信） | 作为返修候选线索 | -- |
 
 ### 9. 技能使用与自我审查记录
 

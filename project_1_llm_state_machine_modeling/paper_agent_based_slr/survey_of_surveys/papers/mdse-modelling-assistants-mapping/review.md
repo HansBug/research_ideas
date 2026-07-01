@@ -620,7 +620,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 **C（critical，影响 A1-DT v2 事实源与统计池可信度）：**
 
 - **C1**：当前 `review.md` 主结构（第 4 节“维度树复原 → 叶子维度表”那 6 行 `leaf-*-scope/corpus/分类法/method/evidence/发现`）把跨论文通用接口当成原文叶子全集，与本文真实 模式（策略/目标/限制/指标/目标用户 × 5 字段 × 6+7+6+3+3+NS/NE/NF 聚类）严重不符。**返修**：把 §3 给出的 [B-RQ1] / [B-RQ2-G] / [B-RQ2-L] / [B-RQ3-M] / [B-RQ3-U] / [B-RQ4-实践] / [B-交叉轴] / [B-效度] 抬升为正式主干叶子，把现有六叶降级为 §维度树复原 末尾的 “通用接口投影”小节（这部分目前虽然存在，但被压在 19×3 v1 旧框下，不是 v2 主结构）。
-- **C2**：当前“原文模式候选叶子映射（A1 种子）”表只列了 5 个高粒度种子（策略 / 目标 / 制品 / 指标-用户 / 限制），且全部 `not_verified`；但原文 Table 2/3/4 已经显式给出**完整封闭枚举 + 频次**，应直接升级为已核验枚举（仅 ``leaf.limitation_cluster`` 因 §4.3 prose “five” vs Table 3 “L1–L6” 冲突保留 `not_verified`），不能继续整体停留在 `模式种子（schema_seed）`。
+- **C2**：当前“原文模式候选叶子映射（A1 种子）”表只列了 5 个高粒度种子（策略 / 目标 / 制品 / 指标-用户 / 限制），且全部 `not_verified`；但原文 Table 2/3/4 已经显式给出**完整封闭枚举 + 频次**，应列为 A2a 精核后可升级的枚举候选（仅 ``leaf.limitation_cluster`` 因 §4.3 prose “five” vs Table 3 “L1–L6” 冲突保留 `not_verified`），不能继续整体停留在 `模式种子（schema_seed）`。
 - **C3**：当前 SUMMARY 或 A.3 中“样本单位 / 样本数量 / 原生树类型 / 统计池资格”应改为：原生树类型=**维度森林**、样本单位=**提案 + 工具**（双层）、样本数=58 + 17/15、主统计池资格=**局部可统计 模式种子（schema_seed）**（不是当前的 `否（A1-DT 阶段仅作 模式种子）`，因为 Table 2–4 已给出原文 closed-enum + 比例 + K）。
 
 **I（important，影响证据链可读性与下游 模式 迁移）：**
@@ -689,7 +689,7 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 **Reviewer 自审：本输出最高风险的 3 点 + 主线程合并复核办法：**
 
 1. **§4.3 限制 口径冲突可能让下游错把 6 当作权威**。主线程合并 review.md 时，必须把 ``leaf.limitation_cluster`` 与 EV-mma-005 同时标 `not_verified`，并在 SUMMARY 中给 “限制 聚类 数 5 或 6 待核” 留显式 risk 条目；A2a 必须打开 PDF Table 3 + Zenodo raw CSV 双源核对。
-2. **图表数字（Fig. 4/5/6/11/12/13）未做 PDF 视觉核验**。所有 交叉轴 关系边 claim（C-mma-10）目前都基于 §6 文本叙述，bubble 半径未复核；合并时应保留 `needs_visual_check`，不要把 §6 中 “工具↔G5/G6”、“框架↔L5”、“G6↔U1+U3” 等关系直接升级为 strong。
+2. **图表数字（Fig. 4/5/6/11/12/13）未做 PDF 视觉核验**。所有 交叉轴 关系边 claim（C-mma-10）目前都基于 §6 文本叙述，bubble 半径未复核；合并时应保留 `needs_visual_check`，不要把 §6 中 “工具↔G5/G6”、“框架↔L5”、“G6↔U1+U3” 等关系升级为高强度结论。
 3. **旧版 review.md 历史草稿与 19×3 旧表与本 v2 审计存在叙事冲突**。合并时必须显式把旧 v1 主树 + 旧 19×3 主树降级为“历史草稿（已迁移）”小节，把本审计 §3 的维度森林作为唯一事实源；否则下游 paper2 reviewer 会同时看到三套相互矛盾的“原文 模式”。
 
 **blocked / timeout / 文件缺失：**

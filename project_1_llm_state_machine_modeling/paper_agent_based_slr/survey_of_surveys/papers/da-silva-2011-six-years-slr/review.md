@@ -312,7 +312,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 **C2** ── 当前 §"原文模式主树（19×3 审计后返修）" 表只有 6 行 (rq-main / predecessor-update / 抽取-form / 质量-qa / topic-impact / limitation-发现)，且取值空间字段几乎全空。必须填充：(a) 10 字段 抽取 form 的每一字段取值空间（已在本报告 §4 给出）；(b) QA1–QA4 的 Y/P/N 评分阈值；(c) 更新类型 的 {temporal/search/组合类（组合类）} 三值枚举。
 
-**C3** ── `metadata.json` 已经标 `eligible_for_statistical_synthesis: true`，但 `review.md` "统计与候选发现链路" 表把所有节点写成 `否（A1-DT 阶段仅作 模式种子）`。这是不一致：本文的 67 / 120 篇 SLR + 完整字段表足以直接进入主统计池作为 *二次研究 元统计* 的可信样本。建议把统计池资格改为"是（限于 二次研究 元统计场景）"，并在 A.3 新增 `clm-...-pool-eligible` 结论。
+**C3** ── `metadata.json` 已经标 `eligible_for_statistical_synthesis: true`，但 `review.md` "统计与候选发现链路" 表把所有节点写成 `否（A1-DT 阶段仅作 模式种子）`。这是不一致：本文的 67 / 120 篇 SLR + 完整字段表足以进入主统计池候选，作为 *二次研究 元统计* 的待精核样本。建议把统计池资格改为"是（限于 二次研究 元统计场景）"，并在 A.3 新增 `clm-...-pool-eligible` 结论。
 
 #### Important（I）— 影响证据等级与可复用性
 

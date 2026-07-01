@@ -57,13 +57,13 @@
 
 作者还抽出了可跨主题使用的 topic-independent dimensions，包括 research type、research method、study focus、venue；传统 contribution type 并不总是最通用。topic-specific classification 则可来自 emergent scheme 或既有知识体系，例如 SWEBOK / IEEE / ISO 标准。
 
-对 Paper2 来说，这直接支持“维度 pattern 类似树结构”的判断：有横向通用维度，也有主题特化维度；两者需要由研究者裁决后组合，而不是由 LLM 自动一次性定死。
+对 Paper2 来说，这支持“维度 pattern 类似树结构”的判断：有横向通用维度，也有主题特化维度；两者需要由研究者裁决后组合，而不是由 LLM 自动一次性定死。
 
 ### 2.5 证据呈现、统计与评价 rubric
 
 本文大量使用频数、比例、分布图、bubble plot、bar chart、pie diagram、Venn diagram、heatmap 和附录矩阵来呈现 mapping studies 的方法差异。作者还构建了用于评价 systematic map 质量的 action / rubric，并报告不同 studies 在 rubric 上的表现。
 
-这说明 survey-of-surveys 不只是收摘要：它可以抽取“哪些维度被使用、哪些可视化被使用、哪些 validity 被报告、哪些 reporting 结构被采用”，并对这些方法维度做统计。这是 A1/A2b 后续大文库的直接统计目标。
+这说明 survey-of-surveys 不只是收摘要：它可以抽取“哪些维度被使用、哪些可视化被使用、哪些 validity 被报告、哪些 reporting 结构被采用”，并对这些方法维度做统计。这是 A1/A2b 后续大文库的统计目标候选。
 
 ### 2.6 效度威胁
 

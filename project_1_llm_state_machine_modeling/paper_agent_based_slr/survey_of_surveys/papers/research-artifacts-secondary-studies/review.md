@@ -100,7 +100,7 @@
 | RQ pattern | 以“artifact 是否存在、存放在哪里、如何声明、年份/venue 如何影响”为核心；属于 evidence-asset audit 型 RQ。 | `paper_content.txt` Page 2--4 的 RQ1--RQ4。 | 高度可迁移到 Paper2：可把审计制品链拆成 availability、persistence、reporting、trend/context 四类问题。 | 不迁移具体比例到 Paper2 目标领域；该文对象是 SE 二次研究。 |
 | dimension pattern | 字段包括 publication venue、year、artifact availability Yes/No、permanent repo、by request、dead link、dedicated section。 | `paper_content.txt` Page 2 Data extraction；Page 3 Table 1；PDF layout Table 1。 | 可作为候选 Paper2 制品资产字段树的初始锚点。 | 字段较粗，只统计有无与位置，不评估工件是否完整、可执行、脱敏、版本化。 |
 | finding pattern | 以比例、年度趋势和 gap 形成 finding：artifact availability 改善，但永久仓库 / DOI 不足；Data Availability section 可能产生虚假透明度。 | `paper_content.txt` Page 3--5 Results / Conclusion。 | 可迁移为“统计观察 → 缺口 → 改进建议”的 finding 模板。 | 该文没有深入解释为什么不同期刊差异显著，也没有质量评分，不能迁移因果结论。 |
-| evidence presentation pattern | 单个大表同时呈现 venue 分布、年度统计和 logistic regression；分母清晰，按 537 总体、169 artifacts 子集、79 篇 2023 子集切换。 | `paper_content.txt` Page 3 Table 1；`paper.pdf` layout 核对。 | 可迁移到 Paper2 的 audit asset dashboard：总样本、开放制品、永久仓库、断链、仅请求获取、专门声明章节。 | Table 1 很紧凑，若直接复用可能混淆分母；Paper2 需要把分母显式写进字段名或图注。 |
+| evidence presentation pattern | 单个大表同时呈现 venue 分布、年度统计和 logistic regression；分母清晰，按 537 总体、169 artifacts 子集、79 篇 2023 子集切换。 | `paper_content.txt` Page 3 Table 1；`paper.pdf` layout 核对。 | 可迁移到 Paper2 的 audit asset dashboard：总样本、开放制品、永久仓库、断链、仅请求获取、专门声明章节。 | Table 1 很紧凑，若复用不当可能混淆分母；Paper2 需要把分母显式写进字段名或图注。 |
 | validity / threat pattern | 限制集中在 venue scope、数据库 scope、年份窗口；并解释每个选择的理由。 | `paper_content.txt` Page 4 Limitations。 | 可迁移为 Paper2 的外推边界模板。 | 未讨论关键词漏检、keyword script recall、链接检查时间戳、artifact 内容质量误判等更细风险。 |
 | report structure pattern | 短文结构：Introduction → Methods → Results → Limitations → Conclusion/Future Work → Data availability；结果严格按 RQ 展开。 | `paper_content.txt` Page 1--5。 | 可迁移为短方法学 evidence audit paper 的结构；Data availability 单列尤其重要。 | Paper2 还需要加入人机协同、schema 演化、内容证据 / 过程证据分离等方法贡献章节。 |
 
@@ -165,7 +165,7 @@
     └── 支持自动化或再分析
 ```
 
-最值得直接采纳的维度锚点：
+最值得优先关注的维度锚点：
 
 1. **可获得性不是二元变量**：至少区分开放可得、未提供、仅请求、断链、未检查。
 2. **永久性要独立统计**：有链接不等于有持久仓库；有仓库也不等于有 DOI。
@@ -530,7 +530,7 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-01 | 本文的维度树是单树、三主干结构（上下文 / 制品可获得性 / 统计建模） | 维度树分类 | [dim-根节点], [节点-ctx] 上下文元数据, [节点-artifact] 研究制品可获得性, [节点-model] 统计建模输出 | EV-004, EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | 直接写入 review.md 的维度树复原 | 正文未呈现逐篇编码表的全部字段；Zenodo 工件可能补充额外叶子 |
+| CLM-01 | 本文的维度树是单树、三主干结构（上下文 / 制品可获得性 / 统计建模） | 维度树分类 | [dim-根节点], [节点-ctx] 上下文元数据, [节点-artifact] 研究制品可获得性, [节点-model] 统计建模输出 | EV-004, EV-005, EV-006, EV-007 | 历史草稿旧强度（当前禁止采信） | A2a 精核后可写入 review.md 的维度树复原 | 正文未呈现逐篇编码表的全部字段；Zenodo 工件可能补充额外叶子 |
 | CLM-02 | 样本单位是每篇 二次研究 (n=537)，不是 研究制品 | 样本单位判定 | [dim-根节点] | EV-001, EV-002 | 历史草稿旧强度（当前禁止采信） | SUMMARY 表"样本单位"字段修正 | 无 |
 | CLM-03 | 原生维度树不是"六叶通用投影"，review.md 现有 C01–C13 结构需重写 | 审计返修判定 | 全部维度树节点 | EV-004, EV-005, EV-006, EV-007（对比旧版 review.md 的 C01–C13） | 历史草稿旧强度（当前禁止采信） | C 级返修建议 | 六叶投影在跨论文对齐场景中仍有投影价值，但不能替代本文自身的维度树 |
 | CLM-04 | [leaf-availability] 是否有研究制品 的三个值（是 / 否 / 按请求提供（Yes/No/By Request））与 [leaf-permanent] 是否使用永久仓库 之间存在条件依赖：permanent 仅在 是 时适用 | 叶子间关系 | [leaf-availability] 是否有研究制品 → [leaf-permanent] 是否使用永久仓库 | EV-005（Table 1a 中 永久仓库（Permanent repo） 列为 是 子集） | 历史草稿旧强度（当前禁止采信） | Paper2 audit asset 表的条件字段设计 | 无 |

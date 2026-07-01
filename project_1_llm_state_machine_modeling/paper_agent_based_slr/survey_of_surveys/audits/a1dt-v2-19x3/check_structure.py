@@ -140,6 +140,14 @@ FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS = (
     # Negative warnings such as "不可直接外推" are intentionally allowed by the
     # fixed-width negative look-behind.
     r"(?<!不)可直接",
+    # Round-6 codex review also found no-"可" variants such as "直接迁入
+    # review.md" and "直接作为 Paper2 ...".  These phrases carry the same
+    # evidence-chain risk in current consumable sources, while negative warnings
+    # such as "未/不可/不能/不得/不应/禁止/严禁直接..." remain allowed.
+    r"(?<!未)(?<!不)(?<!不可)(?<!不能)(?<!不得)(?<!不应)(?<!禁止)(?<!严禁)直接"
+    r"(?:迁回|迁入|迁移|替换|引用|更新|复用|写入|进入|转化|作为|支持|统计|"
+    r"参考|采纳|启发|抬升|拷贝|复核|升级|驱动|做|由|据此|使用|采信|消费|落地|"
+    r"沉淀|归档|输出)",
 )
 
 FORBIDDEN_TRANSLATION_PHRASES = (

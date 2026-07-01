@@ -30,7 +30,7 @@
 
 本文的目标不是回答某个具体技术是否有效，而是把 系统映射 引入软件工程，说明其流程、产物和与 systematic review 的区别。作者在摘要和 §2.1 中把 mapping 的主要目标定义为：为研究领域提供概览、识别研究数量与类型、观察时间趋势、识别发表论坛，并用这些信息暴露研究空白。
 
-对 Paper2 来说，这篇论文是“先构造领域地图，再决定是否需要深度证据合成”的方法学母文。它直接支持导师讨论中的判断：SLR / SMS 不是机械整理，真正关键是由研究者设定 scope 与维度，再用论文阅读持续修正维度模式。
+对 Paper2 来说，这篇论文是“先构造领域地图，再决定是否需要深度证据合成”的方法学母文。它支持导师讨论中的判断：SLR / SMS 不是机械整理，真正关键是由研究者设定 scope 与维度，再用论文阅读持续修正维度模式。
 
 ### 2.2 系统映射 流程
 
@@ -241,7 +241,7 @@
 
 3. **原文字段来自哪里？**
    - Tree A 的字段：来自作者自定义的特征化 模式（§3.1 "研究目标（Research Goals） / Inclusion 需求 / Number of Articles Included / Means of Analysis"），其中 Means of Analysis 部分明确引用 Dixon-Woods 2005。
-   - Tree B 的字段：RQ、Search Strings、数据库（databases）/Forums、Inclusion/Exclusion 直接复用 Kitchenham&Charters 2007 SLR 协议字段。
+   - Tree B 的字段：RQ、Search Strings、数据库（databases）/Forums、Inclusion/Exclusion 沿用 Kitchenham&Charters 2007 SLR 协议字段。
    - 处方 Tree C 的字段：Wieringa 2006（研究类型（Research-Type） 6 类）+ 作者新增 Contribution 类（流程/方法/模型/工具/指标）+ 领域相关 Topic facet。
    - 流程 Tree D：作者自创 5 步 流程管线（Figure 1）。
 

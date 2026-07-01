@@ -588,7 +588,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 2. **C-2：Table 3–8 的封闭枚举未进入叶子取值空间**。当前 review.md 将 16 个目标子类、11 个 contribution、17 个 ML aspect 等都压成"自由文本加理由"或 模式种子（schema_seed） 占位，丢失了原文显式的封闭枚举。
    - **影响**：Paper2 在 A2a 阶段无法对 "Goal=降低工作量（降低工作量） × Sub-goal=Abstraction" 这类组合进行字段比对，等于把原文已有的 模式 退化为"建议自由抽取"。
-   - **修法**：把 §4 叶子表中所有"完整枚举（n）"列直接迁入 review.md，让 A2a 只做"页码 + cell 核对"而不是重新发明取值空间。
+   - **修法**：把 §4 叶子表中所有"完整枚举（n）"列列为 A2a 精核后可迁入 review.md 的候选，让 A2a 聚焦"页码 + cell 核对"而不是重新发明取值空间。
 
 3. **C-3：parallel 模式 缺失**。review.md 当前仅有"主树"概念，没有把 Inclusion/Exclusion gate（Table 1）与 QA1–QA5 rubric（§3.5、Table 9）作为并列 模式 节点登记。
    - **影响**：在跨论文投影中，"是否报告 质量量规"、"是否报告 inclusion gate"这两类元字段会被遗漏，影响 19×3 维度森林完整性。
@@ -649,15 +649,15 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-01 | 本文原生模式 为单根主树（Fig. 5）+ 2 个 parallel 模式（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | 树类型（tree_type） | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | 历史草稿旧强度（当前禁止采信） | 直接迁入 review.md §0 卡片 | 仅本篇 |
-| C-02 | 样本单位 = 原始研究，分母 = 46，筛选链 3934→3570→72→55→32→+14→46 | 语料 | ROOT | EV-001, EV-006 | 历史草稿旧强度（当前禁止采信） | 直接迁入 SUMMARY 总账 | §7 中"3,496" 为笔误 |
+| C-01 | 本文原生模式 为单根主树（Fig. 5）+ 2 个 parallel 模式（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | 树类型（tree_type） | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | 历史草稿旧强度（当前禁止采信） | A2a 精核后可迁入 review.md §0 卡片 | 仅本篇 |
+| C-02 | 样本单位 = 原始研究，分母 = 46，筛选链 3934→3570→72→55→32→+14→46 | 语料 | ROOT | EV-001, EV-006 | 历史草稿旧强度（当前禁止采信） | A2a 精核后可迁入 SUMMARY 总账 | §7 中"3,496" 为笔误 |
 | C-03 | 主统计池资格成立但数字仍需 A2a PDF 复核（特别是 Fig. 4 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 / Table 9） | pool_eligibility | ROOT | EV-001, EV-003*, EV-004 | medium | 当前 A1-DT 阶段 模式种子（schema_seed）；不写入 final stats | 文本抽取不可替代视觉版面 |
 | C-04 | RQ1–RQ4 各 RQ 都映射到 抽取-form section、feature-树 子树与 Answer Summary 三层；这是历史草稿曾提出迁移建议；当前禁止直接采信到 Paper2 的方法学制品链 | method_pattern | §RQ1..§RQ4 子树 | EV-001, EV-003a–j | 历史草稿旧强度（当前禁止采信） | Paper2 可作为 模式种子 | 不迁移领域结论 |
 | C-05 | "未提及（未提及）" 作为显式取值（而非缺失）是本篇的关键审计选择（工具 可获得性、ML 指标、MDE 指标、limitations、future work 都给出 未提及 频次） | schema_design | L-rq2-工具, L-rq3-mlmetric, L-rq3-mdemetric, L-rq4-limscope, L-rq4-fwscope | EV-003h, EV-003i, EV-003j | 历史草稿旧强度（当前禁止采信） | Paper2 可借鉴 | 需在 prompt / form 显式给出 not_mentioned 选项 |
 | C-06 | Fig. 7 给出 goal × contribution × ML aspect 的三元 cross-tab，是本篇唯一的关系型可视化 | relation_evidence | R-goal-aspect, R-contrib-aspect | EV-003a, EV-003e, EV-003g（Fig. 7 注释） | weak | 可迁结构为"三元字段共现矩阵"模板 | 视觉 bubble 频次需 PDF 复核 |
 | C-07 | §6 / §7 的 10 项 路线图 是作者解释性 候选发现，不能升级为 最终研究发现（最终研究发现） | 候选发现边界（candidate_finding_boundary） | §RQ4, §6, §7 | EV-005 | 历史草稿旧强度（当前禁止采信） | Paper2 仅作 边界锚点 | 未经跨论文证据 + 反证 + 研究者裁决 |
 | C-08 | 本篇 效度 章节给出对策但未报告 Cohen κ、双盲编码或 disagreement 统计；"close match" 不可视作强一致性证据 | validity_boundary | §5 | EV-004 | medium | Paper2 应在自身审计中补足 inter-rater 证据 | 不削弱本篇结论效力，但限制其外推 |
-| C-09 | §7 中 "3,496" 与 §3.3.2 中 "3934" 不一致，应以方法节为 canonical 数字 | number_inconsistency | ROOT | EV-006 | 历史草稿旧强度（当前禁止采信） | 引用本篇时直接使用 3934 / 3570 | 仅笔误，不影响整体结论 |
+| C-09 | §7 中 "3,496" 与 §3.3.2 中 "3934" 不一致，应以方法节为 canonical 数字 | number_inconsistency | ROOT | EV-006 | 历史草稿旧强度（当前禁止采信） | 引用本篇时应使用 3934 / 3570 | 仅笔误，不影响整体结论 |
 | C-10 | 数据可获得性（Data 可获得性） 给出 GitHub 仓库链接（review.md 已抽取为 hiraa221/MDE4ML-SLR-Data），是开放数据 SLR 的样本 | replication | ROOT | EV-007 | weak | 进入 SUMMARY 复现资产盘点 | 当前可访问性、license、内容范围未复核 |
 
 ### 9. 技能使用与自我审查记录

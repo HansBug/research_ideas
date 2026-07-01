@@ -125,7 +125,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 3. 这是一个真实 research gap。
 4. 也可能是 search string 漏掉了特定术语，尽管作者已多次调整词串。
 
-这对 Paper2 的启发是：absence/gap 类发现必须保留检索式、变体、失败路径和解释竞争项，不能把“没搜到”直接升级为强结论。
+这对 Paper2 的启发是：absence/gap 类发现必须保留检索式、变体、失败路径和解释竞争项，不能把“没搜到”升级为强结论。
 
 ### 2.9 Quality / validity / trustworthiness
 
@@ -307,7 +307,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
    - 分类方案（classification scheme；首次术语） = TA 归纳得到的 21+23+56+16+16 主题 + 演绎得到的 4 category (OPC/PC/技术/业务) + Gartner 10 阶段 外部框架
    - relations = §4.1.3 由 first author 经多轮（2021-2023）模型迭代生成的 Table 21 + Fig 5--9
    - Zenodo 复现包：MLR protocol、included papers 含 QA score、raw text/代码、TA tables (initial + final)、CPTM 完整 模型
-4. **RQ 与样本单位关系**：RQ1 = "what aspects / themes / links" → 直接驱动 5 aspect → theme → category → CPTM 关系图四级树；RQ2 = "DevSecOps in GSE contexts" → 把 GSE/global/distributed 作为另一切片维度，用 Search String 2 验证缺失。RQ 与树根、字段用途、结果组织方式三种关系**全部存在**。
+4. **RQ 与样本单位关系**：RQ1 = "what aspects / themes / links" → 对应 5 aspect → theme → category → CPTM 关系图四级树；RQ2 = "DevSecOps in GSE contexts" → 把 GSE/global/distributed 作为另一切片维度，用 Search String 2 验证缺失。RQ 与树根、字段用途、结果组织方式三种关系**全部存在**。
 5. **降级问题**：不需要降级。本文具备完整系统检索 + 编码方案 + 关系模型 + open replication，是 A2a 主统计池候选；当前 review.md 的 模式种子（schema_seed） 降级是过度保守。
 
 ### 3. 原生样本编码维度树 / 维度森林
@@ -426,7 +426,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-**统计观察 (直接由字段表支撑)**：
+**统计观察（由字段表支撑）**：
 - 5 aspect 在 text-segment 层频次：Practices 最高，Metrics 最低 (Fig 4)
 - WL/GL 分布：WL 偏 definitions/挑战/practices；GL 偏 工具/指标/业务 (Fig 4, Tables 6--17)
 - 挑战 category 排序：OPC(9)>PC(8)>Tech(7)>Biz(4)
@@ -556,7 +556,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 **审计完成声明**：本报告为单篇 `devsecops-primary-dimensions` A1-DT v2 补审正式输出；全文通读 `paper_content.txt`（重点 §1--§6 即 Page 1--26 主文，Page 26--29 Appendix 抽样）；总体判定为 **需要返修**，C1--C4 必须修复，I1--I4 重要修复，M1--M2 可选。主线程可基于本报告 §3 维度森林、§4 叶子表、§5 关系边表、§7 C/I/M 建议、§8 A.2/A.3 草案直接重写 `review.md` 的 §"维度树复原" 与 A.1--A.4。
 
 `★ Insight ─────────────────────────────────────`
-本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `历史草稿旧强度（当前禁止采信）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
+本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能由 Tables 锚定的封闭枚举"统一标为 `历史草稿旧强度（当前禁止采信）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
 `─────────────────────────────────────────────────`
 
 > [!NOTE]

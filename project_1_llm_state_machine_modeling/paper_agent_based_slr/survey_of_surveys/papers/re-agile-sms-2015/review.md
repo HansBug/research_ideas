@@ -304,7 +304,7 @@
 | CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class 发现 而非缺失数据 | 候选发现（candidate_finding） + schema_design | R-solution-of | EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
 | CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是直接可统计的 候选发现 | 候选发现（candidate_finding） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
 | CLM-v2-06 | "agile RE 定义模糊"是 候选发现，不可作 final | 候选发现（candidate_finding） | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |
-| CLM-v2-07 | 当前 `review.md` 中 B1–B6/P1–P6 仍标 not_verified 与文本证据不符，应升级至 历史草稿旧强度（当前禁止采信） | review_repair | review.md "原文模式主树" 段 | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 直接驱动返修 | 仍待 PDF 版面核验，是另一层级 |
+| CLM-v2-07 | 当前 `review.md` 中 B1–B6/P1–P6 仍标 not_verified 与文本证据不符，应升级至 历史草稿旧强度（当前禁止采信） | review_repair | review.md "原文模式主树" 段 | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 作为返修候选线索 | 仍待 PDF 版面核验，是另一层级 |
 | CLM-v2-08 | 迁移边界：可迁移 模式 形态（森林+关系+∅-发现+分母链），不可迁移 agile RE 领域结论 | migration_boundary | 根节点 | EV-v2-001..010 | 历史草稿旧强度（当前禁止采信） | Paper2 模式 设计依据 | 领域绑定 |
 
 ### 9. 技能使用与自我审查记录
@@ -334,7 +334,7 @@
 
 ---
 
-**最终判定**：`re-agile-sms-2015` 是 A1-DT v2 中**结构最清晰、最适合作主统计池入口**的样本之一（原生树几乎完全显式于 §III + Table I–V + §IV）。建议主线程按 §7 的 I-1..I-5 与 §8 的 A.2/A.3 草案直接驱动 `review.md` 的下一轮返修，并把 ∅-as-发现 与 problem-indexed solution 关系 抬升为 Paper2 维度树的可复用设计模式。
+**最终判定**：`re-agile-sms-2015` 是 A1-DT v2 中**结构最清晰、最适合作主统计池入口**的样本之一（原生树几乎完全显式于 §III + Table I–V + §IV）。建议主线程按 §7 的 I-1..I-5 与 §8 的 A.2/A.3 草案作为 `review.md` 下一轮返修的候选线索，并把 ∅-as-发现 与 problem-indexed solution 关系 抬升为 Paper2 维度树的可复用设计模式。
 
 > [!NOTE]
 > v2 返修后记：以上“对旧版 `review.md` 的返修来源”和审计草案是 A1-DT v2 返修前的独立审计输入；当前文件已经在[维度树复原](#维度树复原)与文末 A.1--A.4 中完成主线程裁决和返修。本审计报告保留为历史归档，不再作为当前状态判定依据。
