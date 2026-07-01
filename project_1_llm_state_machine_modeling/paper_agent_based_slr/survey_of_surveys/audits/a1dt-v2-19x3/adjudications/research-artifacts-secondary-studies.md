@@ -23,7 +23,7 @@
 | 被编码样本单位 | 软件工程领域 secondary study 论文 / 文章。 | secondary study（SLR / SMS / scoping review / case survey / critical review / meta-analysis / meta-synthesis） | 每篇 secondary study（n = 537） | 每篇 secondary study（n = 537） | 优先采纳能明确区分主样本、辅助样本、降级对象和局部示例对象的表述。 | 三路 result §2；必要时回到 `paper_content.txt` |
 | 样本数量 / 分母 | Scopus 初检 643 篇；最终纳入 537 篇；artifact 可得 169 / 537；permanent repository 65 / 169 或 65 / 537；2023 年分母 79。 | 主分母 537；衍生分母 169（提供 artifact 的子集）、79（2023 年度子集） | 537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） | 537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） | 分母必须与原文筛选流、结果表和附录列表一致；中间候选数不得冒充最终统计分母。 | 三路 result §0/§1；`paper_content.txt` 方法和结果表 |
 | 原生树 / 森林类型 | 维度森林：语料筛选维度 + artifact availability / storage / reporting / trend 统计维度。 | **扁平字段表（flat extraction schema）+ 派生统计交叉表**；不是层级 taxonomy；可视为“小型维度森林”（artifact / persistence / reporting / covariate 四簇并列） | **单树**（single tree）：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 | **单树**（single tree）：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 | 优先保留原文自己的抽取表、taxonomy、质量表、roadmap/action、关系边，而不是六叶通用模板。 | 三路 result §3--§5 |
-| 主统计池资格 | 局部可统计：可进入“系统样本库 + 原生编码字段”统计池；但 artifact 内容质量、artifact 类型清单和 Paper2 领域结论只能作 seed / 启发，不能直接统计迁移。 | **是，局部已可统计**：本文字段口径明确、分母明确、Table 1 给出全部交叉统计；只是 *外推到 Paper2 目标领域时* 需作 boundary anchor，不可直接迁移数值。 | **是**。本文是一次系统映射研究（systematic mapping），有系统检索、纳排标准、一致性子评估（Krippendorff's Alpha = 0.776）、两轮数据抽取和 logistic regression 建模。537 个样本单位全部可追溯到纳入标准。 | **是**。本文是一次系统映射研究（systematic mapping），有系统检索、纳排标准、一致性子评估（Krippendorff's Alpha = 0.776）、两轮数据抽取和 logistic regression 建模。537 个样本单位全部可追溯到纳入标准。 | 区分“局部可统计 / 方法学统计池候选”和“目标领域 final finding”；roadmap/guideline/proposal 默认降级。 | 三路 result §6 与 metadata eligibility 字段 |
+| 主统计池资格 | 局部可统计：可进入“系统样本库 + 原生编码字段”统计池；但 artifact 内容质量、artifact 类型清单和 Paper2 领域结论只能作 seed / 启发，不能直接统计迁移。 | **是，局部已可统计**：本文字段口径明确、分母明确、Table 1 给出全部交叉统计；只是 *外推到 Paper2 目标领域时* 需作 boundary anchor，不可迁移数值。 | **是**。本文是一次系统映射研究（systematic mapping），有系统检索、纳排标准、一致性子评估（Krippendorff's Alpha = 0.776）、两轮数据抽取和 logistic regression 建模。537 个样本单位全部可追溯到纳入标准。 | **是**。本文是一次系统映射研究（systematic mapping），有系统检索、纳排标准、一致性子评估（Krippendorff's Alpha = 0.776）、两轮数据抽取和 logistic regression 建模。537 个样本单位全部可追溯到纳入标准。 | 区分“局部可统计 / 方法学统计池候选”和“目标领域 final finding”；roadmap/guideline/proposal 默认降级。 | 三路 result §6 与 metadata eligibility 字段 |
 
 ## 2. 样本单位与原生树裁决
 
@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） |
 | 原文类型 | systematic mapping（系统映射）；对象为软件工程 secondary studies 的 research artifact 报告与可获得性 |
 | 原生树 / 森林类型 | **单树**（single tree）：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是**。本文是一次系统映射研究（systematic mapping），有系统检索、纳排标准、一致性子评估（Krippendorff's Alpha = 0.776）、两轮数据抽取和 logistic regression 建模。537 个样本单位全部可追溯到纳入标准。 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

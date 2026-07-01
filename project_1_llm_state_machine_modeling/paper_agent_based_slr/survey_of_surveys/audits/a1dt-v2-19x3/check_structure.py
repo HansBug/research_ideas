@@ -114,6 +114,8 @@ FORBIDDEN_DRAFT_PHRASES = (
     "weak-medium",
 )
 
+FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = FORBIDDEN_DRAFT_PHRASES
+
 FORBIDDEN_TRANSLATION_PHRASES = (
     "字段研究（字段研究）",
     "自我报告（自我报告）",
@@ -163,6 +165,36 @@ def check_review_hygiene(base: Path, repo: Path, errors: list[str]) -> None:
             for phrase in FORBIDDEN_DRAFT_PHRASES:
                 if phrase in section:
                     add_error(errors, f"{rel} historical draft section still contains consumable strength phrase: {phrase}")
+
+
+def check_consumable_source_hygiene(base: Path, batch: Path, repo: Path, errors: list[str]) -> None:
+    """Prevent current fact sources from reintroducing directly-consumable claims.
+
+    A1-DT v2 preserves raw prompts, logs, and model results as historical
+    process evidence.  Those files must stay immutable for auditability and are
+    intentionally not scanned here.  This gate instead covers current
+    human-consumable / reusable sources: SUMMARY, review files, adjudications,
+    active prompt generator, and current templates.  These files must not say
+    that a candidate A.2/A.3 row, number, or field distribution is already
+    ``text_verified`` or "directly migratable" before A2a/PDF visual checks.
+    """
+    current_sources: list[Path] = [
+        base / "SUMMARY.md",
+        batch / "generate_prompts.py",
+        batch / "result-template.md",
+        batch / "adjudication-template.md",
+    ]
+    current_sources.extend(sorted((batch / "adjudications").glob("*.md")))
+    current_sources.extend(sorted((base / "papers").glob("*/review.md")))
+
+    for path in current_sources:
+        if not path.exists():
+            continue
+        rel = path.relative_to(repo)
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for phrase in FORBIDDEN_CONSUMABLE_SOURCE_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} current consumable source still contains direct-consumption phrase: {phrase}")
 
 
 
@@ -498,6 +530,7 @@ def check_structure(strict: bool, ready_to_run: bool = False) -> int:
     check_markdown_links(base / "SUMMARY.md", errors)
     check_summary_semantics(base, repo, errors)
     check_review_hygiene(base, repo, errors)
+    check_consumable_source_hygiene(base, batch, repo, errors)
     if ready_to_run:
         check_ready_to_run(repo, base, batch, rows, errors)
 

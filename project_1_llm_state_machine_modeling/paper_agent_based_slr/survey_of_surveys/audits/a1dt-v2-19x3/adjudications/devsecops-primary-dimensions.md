@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | primary studies 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、challenges 126、practices 356、metrics 20、tools 63；最终模型项：28 challenges (C01--C28)、60 practices (P01--P60)、20 metrics (M01--M20)、18 tool groups (T01--T18) |
 | 原文类型 | Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 |
 | 原生树 / 森林类型 | **维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是（局部完全可统计）**：5 aspect 频次、WL/GL 分布、theme 频次、prior-review overlap、C-P-T-M 边数、lifecycle-stage 分布、metric→DevOps-metric 映射均有明确分母与可复核表格（Tables 1--21、Fig 3--9） |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

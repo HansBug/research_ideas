@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 文献侧：3,176 screened records → 77 possible → 58 included；K=0.634（inclusion）/ 0.651（clustering）。实践侧：17 GMQ tools → 10 NF + 7 D → 15 practice proposals |
 | 原文类型 | SMS（systematic mapping study）+ 实践侧 grey-literature documentation review（混合：SMS + practice review） |
 | 原生树 / 森林类型 | **维度森林**：literature-side SMS 编码 schema 一棵树（strategy / goal / limitation / metric / target user）+ practice-side documentation 编码同一 schema 投影一棵子树，外接 GMQ 分类（LE/C/V/NP）与 documentation 状态（D/NF） |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | 局部可统计：proposals × cluster 频次表（Table 2/3/4）、literature vs practice 分布（Fig. 13）有原文分母与显式数字，可作主统计池候选；但**单标签 cluster** 与作者术语 cluster 边界主观这两条限制必须随统计一起迁移 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

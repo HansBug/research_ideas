@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 241（搜索命中）→ 187（去除非 journal/conference 与非英文）→ 65（标题/摘要筛选后）→ **28**（全文筛选后的最终纳入数 = 主统计分母）。 |
 | 原文类型 | systematic mapping study (SMS)，作者明确依据 Kitchenham & Charters [18] 自我标定为 mapping study。 |
 | 原生树 / 森林类型 | 维度森林 + 关系边：四个并列主干（venue/context/article-type/benefit/problem-solution），其中 problem→solution 为显式关系 schema。 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是**（局部可统计）：venue 频次、agile-method context、article-type、B1–B6 频次与引用集合、P1–P6 频次与引用集合、P→solution 关系覆盖，均可在原文表上直接统计；分母清晰 N=28。Definition 与 future-work 仅作 candidate finding，不入主统计。 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

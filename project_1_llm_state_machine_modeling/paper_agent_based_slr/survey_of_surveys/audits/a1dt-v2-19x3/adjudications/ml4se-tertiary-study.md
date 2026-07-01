@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 1 567（检索去重后） → 140（候选）→ 83（质量评估通过，QA ≥ 2.0；41% 因 QA < 2.0 排除） |
 | 原文类型 | tertiary study（systematic literature review aggregating secondary studies；遵循 Kitchenham & Charters 2007 指南） |
 | 原生树 / 森林类型 | **维度森林**：以 secondary study 为节点，挂接多棵独立但同根的 schema 树（书目元数据树 / 研究方法与质量树 / SWEBOK KA × SE task 主题树 / ML 四轴分类树 / 含义与挑战树） |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | 局部可统计——SWEBOK KA 分布、ML 四轴分布、DARE-4 分布等已有显式表格；但 A2a 仍需逐叶精核取值空间饱和性 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

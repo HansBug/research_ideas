@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 |
 | 原文类型 | SLR + SMS 混合（作者自称 "systematic review and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + thematic synthesis）。 |
 | 原生树 / 森林类型 | **多根维度森林**：每个 RQ 对应一棵 extraction subtree；底层共享 PS-id 这一样本单位主键，使所有 subtree 可交叉关联。 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是（局部可统计）**：landscape / strategy / procedure / instrument / SPACE 覆盖等字段已有明确分母（39）和取值空间，可进入主统计池；benefit/risk 主题计数（Fig. 6 雷达数字）与 NASA-TLX 子集等 fine-grained 字段须等 A2a 精核精确数字。 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 主分母 N=395。子分母：N=374（显式说明 dataset）；N=355（显式说明 input form）；N=154（peer-reviewed）+ 241（arXiv）；按年 7/13/56/273/46（2020–2024.01）。 |
 | 原文类型 | SLR（Kitchenham-style；明确声明遵循 Kitchenham et al. [197,198] 方法学，§2 首段） |
 | 原生树 / 森林类型 | 维度森林。根为 4 个 RQ，每个 RQ 各自展开一棵编码树（RQ1 模型、RQ2 数据、RQ3 优化与评价、RQ4 任务），通过 Table 5 的 8 项 data items 串联。 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | 是（局部可统计）。该文是 systematic_review，有明确分母、纳排、QAC 与 Appendix 锚定；其分类频次（如 architecture × year、data_source、input_form、SDLC activity、metric × problem_type）可作为正式可统计 schema。但当前单篇 review.md 中具体数字未逐一回 Table 13–17 精核，部分百分比口径（task instance vs paper count）仍存在分母歧义，须 A2a 锚定。 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

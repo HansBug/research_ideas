@@ -23,7 +23,7 @@
 | 被编码样本单位 | 纳入的二级研究，即软件工程领域 SLR / meta-analysis 研究条目；Table 2 中为 S1--S20 | secondary study（systematic literature review 或 meta-analysis 论文，每条对应一篇 SLR/MA） | 2004--2007 年间发表的 SE 领域 SLR（systematic literature review），每篇 SLR 是一个样本单位（primary study of this tertiary review） | secondary study（systematic literature review 或 meta-analysis 论文，每条对应一篇 SLR/MA） | 优先采纳能明确区分主样本、辅助样本、降级对象和局部示例对象的表述。 | 三路 result §2；必要时回到 `paper_content.txt` |
 | 样本数量 / 分母 | 检索分母：Table A1 统计 2506 篇源内文章、33 篇 relevant、19 篇 selected；去重后 18 个唯一研究，再加 2 个源外 peer-reviewed 研究，最终 20 个相关研究 | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） | N = 20（manual search 10 journals + 4 conference proceedings，初始命中 53 篇，经纳排后得到 20 篇 relevant SLR） | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） | 分母必须与原文筛选流、结果表和附录列表一致；中间候选数不得冒充最终统计分母。 | 三路 result §0/§1；`paper_content.txt` 方法和结果表 |
 | 原生树 / 森林类型 | 维度森林：语料检索与筛选树 + 纳入研究数据抽取树 + DARE 质量评价树 + 作者/机构关系树 + 结果统计/局限树 | **单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） | **维度森林**（dual-layer schema）：Layer 1 为 data extraction form 的 9 个编码字段组成的主维度树；Layer 2 为 quality assessment rubric 的 4 个评分项组成的质量评价子树 | **单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） | 优先保留原文自己的抽取表、taxonomy、质量表、roadmap/action、关系边，而不是六叶通用模板。 | 三路 result §3--§5 |
-| 主统计池资格 | 局部可统计；原文有系统检索、纳排、抽取字段、质量评分与统计表，适合作为 tertiary-study schema seed 和后续 A2a 主统计池候选；但 2004--2007 EBSE 领域结论不可直接迁移为 Paper2 final finding | **是（局部可统计）**：样本单位、分母、字段、取值空间、计数表都已封闭；但具体数值（QA 评分、SLR 计数）入主统计前需 A2a 对照 PDF 版面核验 | 是；原文有系统检索、纳排、数据抽取和编码方案，样本单位明确可追溯 | **是（局部可统计）**：样本单位、分母、字段、取值空间、计数表都已封闭；但具体数值（QA 评分、SLR 计数）入主统计前需 A2a 对照 PDF 版面核验 | 区分“局部可统计 / 方法学统计池候选”和“目标领域 final finding”；roadmap/guideline/proposal 默认降级。 | 三路 result §6 与 metadata eligibility 字段 |
+| 主统计池资格 | 局部可统计；原文有系统检索、纳排、抽取字段、质量评分与统计表，适合作为 tertiary-study schema seed 和后续 A2a 主统计池候选；但 2004--2007 EBSE 领域结论不得迁移为 Paper2 final finding | **是（局部可统计）**：样本单位、分母、字段、取值空间、计数表都已封闭；但具体数值（QA 评分、SLR 计数）入主统计前需 A2a 对照 PDF 版面核验 | 是；原文有系统检索、纳排、数据抽取和编码方案，样本单位明确可追溯 | **是（局部可统计）**：样本单位、分母、字段、取值空间、计数表都已封闭；但具体数值（QA 评分、SLR 计数）入主统计前需 A2a 对照 PDF 版面核验 | 区分“局部可统计 / 方法学统计池候选”和“目标领域 final finding”；roadmap/guideline/proposal 默认降级。 | 三路 result §6 与 metadata eligibility 字段 |
 
 ## 2. 样本单位与原生树裁决
 
@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） |
 | 原文类型 | tertiary SLR（作者自称 "tertiary literature review"，§2 Method 开头） |
 | 原生树 / 森林类型 | **单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是（局部可统计）**：样本单位、分母、字段、取值空间、计数表都已封闭；但具体数值（QA 评分、SLR 计数）入主统计前需 A2a 对照 PDF 版面核验 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 

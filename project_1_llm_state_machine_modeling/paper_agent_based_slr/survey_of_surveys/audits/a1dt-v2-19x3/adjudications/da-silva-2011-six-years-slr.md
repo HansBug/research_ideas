@@ -33,7 +33,7 @@
 | 样本数量 / 分母 | SE=67；OS=20；FE=33；OS/FE=53；OS/FE+SE=120；QA assessment N=67（SE 自身）/ 120（整合） |
 | 原文类型 | SLR 的子型——**updated tertiary study**（temporal update + integration of two prior tertiary studies）；同时具备 mapping study 性质（本文自称"performed a mapping study of SLRs"） |
 | 原生树 / 森林类型 | **维度森林**：(1) 抽取表 schema 树（10 字段），(2) QA rubric 树（4 题 + 评分 + quartile），(3) 主题分类树（24 SE topics × SE2004 Curriculum × SWEBOK），(4) 作者/机构/国家关系图，(5) 前序关系树 (predecessor relation: OS → FE → SE / temporal update / search extension)，外加 (6) limitation→finding 路径 |
-| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / text_verified 管理 |
+| 降级状态 | 后续主统计池候选；A2a 前仍按 schema_seed / 待原文版面核验 管理；不得视为已完成核验 |
 | 主统计池资格 | **是**——具备完整系统检索（自动+人工+回溯）、显式纳排、quality assessment、可分母统计字段；当前 `review.md` 把它标 `schema_seed` 是低估 |
 | 不确定项 | 三路审计在核心方向上基本一致；若树型/分母存在细节差异，主线程采用原文证据更具体且与 metadata/正文一致的一路。 |
 
