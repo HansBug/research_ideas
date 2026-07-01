@@ -385,7 +385,7 @@
 |---|---|---|
 | C1 | A1-DT v2 "维度树结构"（review.md line 203–216）仍以单棵树呈现，把 5 个主干强制压成 b1..b5（planning/conducting/报告方式/质量量规/topic-indep dim），实际原文是**4 棵独立树的森林**（抽取 form / 分类切面（分类 facet） / 流程+rubric / 效度），合并破坏 模式 语义。 | 改写为 §3 所示**维度森林**结构，每棵树独立列叶子；标注它们的服务对象不同（编码自己 52 篇 vs. 向后续 研究 推荐）。 |
 | C2 | 叶子维度表（review.md line 218–227）的六个 `leaf-*` 仍是通用六叶（scope/语料/分类法/方法/证据/发现），未升级 Table 3 的 12 个 抽取 items、Fig.12 的 5 个 切面（facets）、Tables 9–13 的 4+1 有序 rubric 为真正的叶子。 | 用本审计 §4 的 14 个叶子（L01..L14）替换通用六叶；明确每个叶子的取值空间类型（封闭枚举 / 真值表 / 有序 / 多选）。 |
-| C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中直接可见的封闭枚举与频次表**，证据强度应升级为 `local_历史草稿旧强度（当前禁止采信）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_历史草稿旧强度（当前禁止采信）`。 |
+| C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中可见的封闭枚举与频次表**，证据强度应升级为 `local_历史草稿旧强度（当前禁止采信）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_历史草稿旧强度（当前禁止采信）`。 |
 | C4 | "原文模式主树（19×3 审计后返修）"（review.md line 249–258）的叶子仍是抽象短语（"field list、map metadata"），未列具体字段名。 | 在该表 "叶子 / 取值空间种子" 列直接写出具体字段名与取值空间，如 `T1.抽取_form: {研究_id:int, year:[2007..2012], 指南: multi∈{10 closed labels}, search_type:{manual|auto|both}, ...}`。 |
 
 #### I（important，影响统计池资格与候选发现 形成）

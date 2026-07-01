@@ -517,7 +517,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（tree_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | 历史草稿旧强度（当前禁止采信） | 直接用于重写 review.md "一句话结论" | -- |
+| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（tree_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | 历史草稿旧强度（当前禁止采信） | 可作为 review.md "一句话结论"重写候选线索 | -- |
 | A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | 叶子_definition | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id | EV-A1DTv2-006, 008 | 历史草稿旧强度（当前禁止采信） | 升级 review.md `[..-orig-cptm-item]` 从 模式种子（schema_seed） 到 verified | 个别 item 由 先前综述（prior review） 补入 (e.g. C09 freq=0) |
 | A1DTv2-DSO-C03 | category 集合 = {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）} 是封闭 4 枚举；指标 子树降为 3 (业务 仅靠 M20 补入)；工具 子树退化为 1 (技术) | 叶子_definition | L-category | EV-A1DTv2-006, 007 | 历史草稿旧强度（当前禁止采信） | 升级 review.md "通用接口" 中 分类法 描述 | 工具 单 category 是观察结果，不是先验约束 |
 | A1DTv2-DSO-C04 | 生命周期阶段（生命周期阶段） 是封闭 10 项 Gartner 枚举；C/P/T/M item 可同时出现在多个 阶段 | 叶子_definition | L-lifecycle-阶段 | EV-A1DTv2-011 | 历史草稿旧强度（当前禁止采信） | 补 review.md lifecycle 字段 | Gartner 框架来自外部 |

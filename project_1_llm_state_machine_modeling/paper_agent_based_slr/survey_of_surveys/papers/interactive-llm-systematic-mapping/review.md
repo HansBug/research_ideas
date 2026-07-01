@@ -333,7 +333,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 - **不进入主统计池**（与 `metadata.json eligible_for_statistical_synthesis=false` 一致）
 - **作 边界锚点**：界定"interactive LLM-based SMS"的概念已在 2024/2025 被显式提出，Paper2 不能宣称首创
 - **作 方法学种子**：为 Paper2 的 scaffold 提供候选 阶段 分类法 与 HITL/智能体 字段模板
-- **作 风险清单种子（风险清单种子）**：Reflections 中的 发表偏倚（publication bias） / 模型漂移（模型 drift） / SE-specificity / 非 SE 证据外推 是 Paper2 风险章直接可用清单
+- **作 风险清单种子（风险清单种子）**：Reflections 中的 发表偏倚（publication bias） / 模型漂移（模型 drift） / SE-specificity / 非 SE 证据外推 可作为 Paper2 风险章候选风险清单种子（需研究者确认适用性后采纳）
 
 ### 3. 原生样本编码维度树 / 维度森林
 

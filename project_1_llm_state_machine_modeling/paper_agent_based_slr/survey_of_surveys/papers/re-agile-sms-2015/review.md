@@ -302,7 +302,7 @@
 | CLM-v2-02 | 28 是严格主统计分母；241→187→65→28 链条完整可复现 | 统计池（statistical_pool） | b-语料 | EV-v2-002 | 历史草稿旧强度（当前禁止采信） | 可作 A2a 主统计起点 | 单库 + 截至 2014.09 |
 | CLM-v2-03 | benefit/problem 是封闭 6 值枚举（B1–B6, P1–P6），每个 code 关联明确 S-id 集合 | 叶子_value_space | L-benefit-code, L-problem-code, R-benefit-of, R-problem-of | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | A2a 后可做频次/coverage 统计 | 类目是作者主题归并，存在编码者主观 |
 | CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class 发现 而非缺失数据 | 候选发现（candidate_finding） + schema_design | R-solution-of | EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 缺口（gap） 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
-| CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是直接可统计的 候选发现 | 候选发现（candidate_finding） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
+| CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是分母透明、A2a 后可统计的候选发现 | 候选发现（candidate_finding） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
 | CLM-v2-06 | "agile RE 定义模糊"是 候选发现，不可作 final | 候选发现（candidate_finding） | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |
 | CLM-v2-07 | 当前 `review.md` 中 B1–B6/P1–P6 仍标 not_verified 与文本证据不符，应升级至 历史草稿旧强度（当前禁止采信） | review_repair | review.md "原文模式主树" 段 | EV-v2-006, EV-v2-007 | 历史草稿旧强度（当前禁止采信） | 作为返修候选线索 | 仍待 PDF 版面核验，是另一层级 |
 | CLM-v2-08 | 迁移边界：可迁移 模式 形态（森林+关系+∅-发现+分母链），不可迁移 agile RE 领域结论 | migration_boundary | 根节点 | EV-v2-001..010 | 历史草稿旧强度（当前禁止采信） | Paper2 模式 设计依据 | 领域绑定 |

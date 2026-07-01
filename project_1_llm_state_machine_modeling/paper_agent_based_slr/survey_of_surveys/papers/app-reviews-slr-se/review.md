@@ -398,7 +398,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 | 严重度 | 问题定位 | 现状 | 建议 |
 |---|---|---|---|
 | **C-1** | `review.md` §"维度树结构" + "叶子维度表"（行 196–220） | 用 `[leaf-…-scope/corpus/分类法/method/evidence/发现]` 六个跨论文通用接口冒充原文树主干，且每条叶子父节点映射任意（如 b1→scope、b3→分类法），与原文 F1–F18 + 3 模式 完全脱节。 | 将原文模式主树（[A]–[F] / F1–F18 + 9-type + 4-type + 14-activity）抬升为**单篇 review.md 的事实主树**；六叶通用接口降级为附录"跨论文投影表"。 |
-| **C-2** | 行 234–250 已存在"原文模式主树（19×3 审计后返修）"但仍标 `模式种子（schema_seed）` 且无具体页码 | 已识别 RQ 层 / F1-F18 / 9-type 等主干，但未把 9-type / 4-type / 14-活动的**封闭枚举取值空间**与页码、Table 编号、reliability 数字直接绑定。 | 把 Table 7（9 类）、Table 9（4 类）、Table 12（10 项 ML）、Table 13（14 项 SE 活动）、Table 4（reliability 数字）这 5 个表的内容直接抄进主树的"取值空间"列，并标 Table 行号；本审计已完成此项，可作为候选迁入。 |
+| **C-2** | 行 234–250 已存在"原文模式主树（19×3 审计后返修）"但仍标 `模式种子（schema_seed）` 且无具体页码 | 已识别 RQ 层 / F1-F18 / 9-type 等主干，但未把 9-type / 4-type / 14-活动的**封闭枚举取值空间**与页码、Table 编号、reliability 数字直接绑定。 | 把 Table 7（9 类）、Table 9（4 类）、Table 12（10 项 ML）、Table 13（14 项 SE 活动）、Table 4（reliability 数字）这 5 个表的内容列为 A2a 精核后可填入主树"取值空间"列的候选，并标 Table 行号；本审计已完成候选整理，仍需主线程裁决。 |
 | **I-1** | §A.2 证据账本 EV-…-002/003/005 仍标 `not_verified` | 全文文本级证据其实已经足够把 Table 4/7/9/12/13/16-22 的具体数字与页码挂钩；只有版面级（OCR 错位、Fig 1 数字气泡）才需 PDF 核验。 | 将 Table 7/9/12/13/4/18 升级为 `历史草稿旧强度（当前禁止采信）`；Fig 1/2/3 与 search query 文本保留 `needs_visual_check`。 |
 | **I-2** | §A.3 C01 "维度树主类型为 RQ 驱动分类树，辅助为评价/复现资产审计树" | 表述含糊；本文实际是**字段森林（field 森林）**而非单棵树。 | 改写为"RQ 驱动的字段森林（field 森林）：1 棵抽取字段树 [A]–[F] + 3 套 分类方案（classification scheme；首次术语） 子树 + 评价/复现资产子集 + Table 23 横向 dimension 对比"。 |
 | **I-3** | §3 "六类 模式 抽取" Table（行 79–86）"dimension 模式: F1–F18 + 三套 模式" | 描述正确但与下游"叶子维度表"脱节。 | 在 §3 表后补一句"完整字段取值空间见下方原文模式主树"指针。 |
@@ -468,7 +468,7 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 `★ Insight ─────────────────────────────────────`
 - 本审计揭示了一个普遍模式：当 reviewer 用"通用六叶接口"代替"原文模式主树"时，会丢失论文最有价值的 close-enum / reliability / cross-tab 证据。Paper2 后续单篇审计应优先复原 close-enum 字段。
 - 本文是 A1 池中少见的**字段森林（field 森林）**而非单树样本——说明 A1-DT v2 的树型定义本身应支持"森林"作为合法 树类型（tree_type），不应强求单棵树。
-- 异质 证据 的"summarizing effect estimates"是直接可迁移到 Paper2 的方法学纪律：与其硬做不成立的 元分析（meta-analysis），不如先稳住 range/median + 分母明确的交叉表。
+- 异质 证据 的"summarizing effect estimates"可作为迁移到 Paper2 的方法学纪律候选：与其硬做不成立的 元分析（meta-analysis），不如先稳住 range/median + 分母明确的交叉表。
 `─────────────────────────────────────────────────`
 
 **总体判定：需要返修**。原文 模式 已具备 A1 高等级样本资质（CLM-arsl-T07 strong），但现 review.md 主树结构 C 级偏离原文（CLM-arsl-T06）。本审计第 7 节给出最小返修清单与第 8 节历史草稿曾提出迁移建议；当前禁止直接采信的 A.2/A.3 草案，供主线程驱动 review.md 重写。
