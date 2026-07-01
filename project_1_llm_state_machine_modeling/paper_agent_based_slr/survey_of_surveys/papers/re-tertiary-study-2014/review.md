@@ -220,19 +220,19 @@
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `叶子-orig-publication-type` | 出版类型 | F1 | Table III | 每篇 publication 的载体类别 | 会议（conference）/ 期刊（journal）/ 工作坊（workshop）/ 技术报告（tech_report）/ 学位论文（thesis）/ 未知（unknown） | 完整枚举（6 档，含 unknown 兜底）| `unknown`：S40 缺 venue 信息 | 类型频次分布 | 出版类型 vs QA 得分交叉表 | E7 | 通用：任何 SLR/tertiary 都可复用此 6 档枚举 |
-| `叶子-orig-slr-type` | 综述子类型 | F2 | §III L311–314 | 53 个 研究 内部子类型 | 常规 SLR（conventional_SLR） / SMS / 元分析（meta-analysis） | 完整枚举（3 档）| 不允许缺失 | 53 研究 的子类型分布（12 SMS, 1 meta, 40 SLR）| 不同子类型 QA 表现差异 | E1, E2 | 可迁移 |
-| `叶子-orig-pub-citation` | 引用数 | F1 | Table VI + Appendix A | Google Scholar 引用（2014-05-19 截止）| 整数 ≥ 0 | 数值 | `0` 与"未查到"需区分（Appendix 中均写具体数字） | 中位数 / Top-N | 高引 SLR 是否同时高 QA（Table VI 反证：S2[A] cite=154 但 QA=3, S46 cite=41 QA=1.5）| E11, E14 | 受时间窗影响，可迁移结构 |
-| `叶子-orig-ps-count` | 纳入 原始研究 数 | F2 | Table V col `# of PS` | 该 SLR 自报的 PS 总数 | 整数 ∈ [5, 4089] ∪ {NM, NF} | 数值或区间 + 哨兵 | `NM`=未提及；`NF`=not found | 直方图 / 极差 | "anomaly" 发现 直接依赖该字段（S1=8 vs S4=240 同主题）| E9 | 高度可迁移，但 #PS 不一定反映工作量 |
-| `叶子-orig-focus-text` | SLR focus | F2 | Table V col 2 | SLR 自报研究焦点的自由文本 | 自由文本 | 自由文本加理由 | 不允许缺失 | thematic clustering 输入 | topic grouping 上层来源 | E9 | 文本字段，需分类才能统计 |
-| `叶子-orig-topic-group` | 主题分组 | F3 | Table V col 1 | 由作者 主题分析 形成的 24 个 topic group | 24 项枚举（见 §3 F3 列表）| 层级枚举（开放，可由后续工作扩充）| `overlap` 用 "*" 标记 (S26/S39) | 主题覆盖直方图 | RQ1 主结果；RQ3 ignored area 反向推导 | E9 | 不可饱和（作者自承"neither exhaustive nor complete"）；A2a 不应当成封闭枚举使用 |
-| `叶子-orig-scope` | scope-of-RE 分类 | F4 | Table IV | SLR 评估对象的方法学外延 | state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 | 完整枚举（6 档）| 不允许缺失 | 6 档分布（33/7/7/4/1/1）| 是否多数 SLR 仅描述现状缺乏方法学评价 | E8 | 可迁移；6 档自身较稳定 |
-| `叶子-orig-qa1` 至 `叶子-orig-qa4` | DARE QA 四题 | F5 | Table I | DARE 改编 4 题 | 每题 ∈ {是（Yes）=1, 部分（Partial）=0.5, 否（No）=0} | 完整枚举（每题 3 档）| `excluded`：S3/S8（n=51 而非 53）| 各题档次频次（Figure 3）；总分分布（Figure 2）| QA3/QA4 半数被忽略 → 候选发现 | E3, E10 | 可作为 RE 之外 SLR-QA 评估的复用模板 |
-| `叶子-orig-qa-total` | QA 总分 | F5 | §III RQ2 + Figure 2 | 4 题之和 | ∈ {0, 0.5, 1.0, 1.5, …, 4} | 数值 | 同 QA1–QA4 | "42/51 ≥ 2"；按年度均分 trend | 整体趋势 → final 候选发现 (decline since 2009) | E10 | 可迁移 |
-| `叶子-orig-search-source` | 检索源 | F6 | Table II | 检索源与命中量 | 5 库 + 4 secondary + manual venues | 关系值 / 数值 | snowball 来源单独列 | 单源命中率 / 漏检风险 | secondary 找到 6 篇（占 9.4%）→ 单一检索口径不充分 | E4, E6 | 可迁移 |
-| `叶子-orig-gap-type` | 候选 缺口（gap） 类别 | F7 | §III RQ3 | 三类 缺口（gap） | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 完整枚举（3 档）| -- | 每类 缺口（gap） 列表大小 | RQ3 主结果 + 与 路线图[1,2] 对照 | E12 | 可迁移作 缺口（gap）-分类法 模板 |
-| `叶子-orig-路线图-ref` | 路线图 参照 | F7 | §III RQ3 + Refs [1][2] | RQ3 与既有 路线图 的对照锚 | {Nuseibeh&Easterbrook2000, Cheng&Atlee2007} | 外部分类法引用 | -- | 是否覆盖 路线图 topic 的二值矩阵 | 列出 4 个 covered + 4 个 not-covered + 2 个 Nuseibeh-area not covered | E12 | 不可迁移到 RE 之外（路线图 是 RE-specific）|
-| `叶子-orig-limitation-text` | 自报 limitations | ROOT | §IV | 作者自报的 4 类局限 | 4 项（检索完整性 / S40 元信息缺失 / topic-grouping 主观 / EBSE 指南 限定）| 自由文本加理由 | -- | 作 威胁-to-效度 字段 | 反证当前 #PS 异常 发现 的强度 | E13 | 通用 |
+| `leaf-orig-publication-type` | 出版类型 | F1 | Table III | 每篇 publication 的载体类别 | 会议（conference）/ 期刊（journal）/ 工作坊（workshop）/ 技术报告（tech_report）/ 学位论文（thesis）/ 未知（unknown） | 完整枚举（6 档，含 unknown 兜底）| `unknown`：S40 缺 venue 信息 | 类型频次分布 | 出版类型 vs QA 得分交叉表 | E7 | 通用：任何 SLR/tertiary 都可复用此 6 档枚举 |
+| `leaf-orig-slr-type` | 综述子类型 | F2 | §III L311–314 | 53 个 研究 内部子类型 | 常规 SLR（conventional_SLR） / SMS / 元分析（meta-analysis） | 完整枚举（3 档）| 不允许缺失 | 53 研究 的子类型分布（12 SMS, 1 meta, 40 SLR）| 不同子类型 QA 表现差异 | E1, E2 | 可迁移 |
+| `leaf-orig-pub-citation` | 引用数 | F1 | Table VI + Appendix A | Google Scholar 引用（2014-05-19 截止）| 整数 ≥ 0 | 数值 | `0` 与"未查到"需区分（Appendix 中均写具体数字） | 中位数 / Top-N | 高引 SLR 是否同时高 QA（Table VI 反证：S2[A] cite=154 但 QA=3, S46 cite=41 QA=1.5）| E11, E14 | 受时间窗影响，可迁移结构 |
+| `leaf-orig-ps-count` | 纳入 原始研究 数 | F2 | Table V col `# of PS` | 该 SLR 自报的 PS 总数 | 整数 ∈ [5, 4089] ∪ {NM, NF} | 数值或区间 + 哨兵 | `NM`=未提及；`NF`=not found | 直方图 / 极差 | "anomaly" 发现 直接依赖该字段（S1=8 vs S4=240 同主题）| E9 | 高度可迁移，但 #PS 不一定反映工作量 |
+| `leaf-orig-focus-text` | SLR focus | F2 | Table V col 2 | SLR 自报研究焦点的自由文本 | 自由文本 | 自由文本加理由 | 不允许缺失 | thematic clustering 输入 | topic grouping 上层来源 | E9 | 文本字段，需分类才能统计 |
+| `leaf-orig-topic-group` | 主题分组 | F3 | Table V col 1 | 由作者 主题分析 形成的 24 个 topic group | 24 项枚举（见 §3 F3 列表）| 层级枚举（开放，可由后续工作扩充）| `overlap` 用 "*" 标记 (S26/S39) | 主题覆盖直方图 | RQ1 主结果；RQ3 ignored area 反向推导 | E9 | 不可饱和（作者自承"neither exhaustive nor complete"）；A2a 不应当成封闭枚举使用 |
+| `leaf-orig-scope` | scope-of-RE 分类 | F4 | Table IV | SLR 评估对象的方法学外延 | state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 | 完整枚举（6 档）| 不允许缺失 | 6 档分布（33/7/7/4/1/1）| 是否多数 SLR 仅描述现状缺乏方法学评价 | E8 | 可迁移；6 档自身较稳定 |
+| `leaf-orig-qa1` 至 `leaf-orig-qa4` | DARE QA 四题 | F5 | Table I | DARE 改编 4 题 | 每题 ∈ {是（Yes）=1, 部分（Partial）=0.5, 否（No）=0} | 完整枚举（每题 3 档）| `excluded`：S3/S8（n=51 而非 53）| 各题档次频次（Figure 3）；总分分布（Figure 2）| QA3/QA4 半数被忽略 → 候选发现 | E3, E10 | 可作为 RE 之外 SLR-QA 评估的复用模板 |
+| `leaf-orig-qa-total` | QA 总分 | F5 | §III RQ2 + Figure 2 | 4 题之和 | ∈ {0, 0.5, 1.0, 1.5, …, 4} | 数值 | 同 QA1–QA4 | "42/51 ≥ 2"；按年度均分 trend | 整体趋势 → final 候选发现 (decline since 2009) | E10 | 可迁移 |
+| `leaf-orig-search-source` | 检索源 | F6 | Table II | 检索源与命中量 | 5 库 + 4 secondary + manual venues | 关系值 / 数值 | snowball 来源单独列 | 单源命中率 / 漏检风险 | secondary 找到 6 篇（占 9.4%）→ 单一检索口径不充分 | E4, E6 | 可迁移 |
+| `leaf-orig-gap-type` | 候选 缺口（gap） 类别 | F7 | §III RQ3 | 三类 缺口（gap） | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 完整枚举（3 档）| -- | 每类 缺口（gap） 列表大小 | RQ3 主结果 + 与 路线图[1,2] 对照 | E12 | 可迁移作 缺口（gap）-分类法 模板 |
+| `leaf-orig-路线图-ref` | 路线图 参照 | F7 | §III RQ3 + Refs [1][2] | RQ3 与既有 路线图 的对照锚 | {Nuseibeh&Easterbrook2000, Cheng&Atlee2007} | 外部分类法引用 | -- | 是否覆盖 路线图 topic 的二值矩阵 | 列出 4 个 covered + 4 个 not-covered + 2 个 Nuseibeh-area not covered | E12 | 不可迁移到 RE 之外（路线图 是 RE-specific）|
+| `leaf-orig-limitation-text` | 自报 limitations | ROOT | §IV | 作者自报的 4 类局限 | 4 项（检索完整性 / S40 元信息缺失 / topic-grouping 主观 / EBSE 指南 限定）| 自由文本加理由 | -- | 作 威胁-to-效度 字段 | 反证当前 #PS 异常 发现 的强度 | E13 | 通用 |
 
 ### 5. 关系边表
 
@@ -241,7 +241,7 @@
 | `rel-grouping` | publication（F1）| `belongs_to_研究` | 研究（F2） | S-ID（S1–S53）+ 后缀 [A][B][C] | 不允许缺失 | E14 | 把 64 publications 归并到 53 研究 |
 | `rel-topic-overlap` | 研究 × topic_group | `is_overlap_with` | 另一 topic_group | 至少出现 1 次（S26/S39 同时属于 Knowledge Management 与 RE in GSD）| 默认无 overlap | Table V 注脚 "*" | 提示 topic_group 非互斥 |
 | `rel-citation-vs-qa` | 研究 | `top_cited_with_qa` | (citation, qa_total) 二元组 | 数值对 | -- | E11 | Table VI 直接验证"高引≠高质量" |
-| `rel-gap-vs-路线图` | 缺口（gap） | `references_路线图` | 路线图_topic | covered / not-covered | -- | E12 | 桥接 RQ3 与外部分类法[1][2] |
+| `rel-gap-vs-roadmap` | 缺口（gap） | `references_roadmap` | roadmap_topic | covered / not-covered | -- | E12 | 桥接 RQ3 与外部分类法[1][2] |
 | `rel-search-source` | source | `feeds` | publications_found / included | 数值对 | -- | E6 | 检索漏检反证 |
 
 ### 6. 统计观察、候选发现 与 最终发现边界
@@ -281,7 +281,7 @@
 
 #### C 级（critical — 直接影响维度树作为单篇 模式种子 的可信度）
 
-- **C1. §维度树复原 / §叶子维度表 内容仍以 6 个通用接口叶子 `叶子-*-scope/corpus/分类法/method/evidence/发现` 为主，未把原文真实抽取字段（F1–F7 中的 publication_type / SLR 子类型 / #PS / scope-6 档 / QA1–QA4 / topic_group-24 项 / 三类 缺口（gap））写入叶子维度表。**
+- **C1. §维度树复原 / §叶子维度表 内容仍以 6 个通用接口叶子 `leaf-*-scope/corpus/分类法/method/evidence/发现` 为主，未把原文真实抽取字段（F1–F7 中的 publication_type / SLR 子类型 / #PS / scope-6 档 / QA1–QA4 / topic_group-24 项 / 三类 缺口（gap））写入叶子维度表。**
    - 影响：把跨论文通用接口冒充原文 模式，违反 A1-DT v2 "禁止用六个通用 叶子 替代原文结构"硬约束。
    - 返修动作：用本报告 §3 维度森林 + §4 叶子维度表整体替换现有 §维度树复原 / 叶子维度表。保留 §通用接口投影作为附属说明而非主源。
 
@@ -299,13 +299,13 @@
 
 - **I4. §A.2 证据账本仅 4 行（EV-001..004）且全部 `not_verified`**。原文已有 8 张表 + 4 张图直接支撑；应至少为 Table I/II/III/IV/V/VI、Figure 1/2/3/4 各建一行证据条目（合计 ≥10 行），并把 Table I/II/III/IV/V/VI 标 `verified-text-only`、Figure 1–4 标 `需要 PDF 视觉核验（needs_pdf_visual_check）`。
 
-- **I5. §维度树复原 中 "原文模式候选叶子映射（A1 种子）"仅给出 4 个 `叶子-orig-*-re-topic / secondary-研究-quality / impact / method-缺口（gap）`**，但原文真实抽取字段至少 ≥12 项（见本报告 §4）。返修：用本报告 §4 整表替换 4 项种子。
+- **I5. §维度树复原 中 "原文模式候选叶子映射（A1 种子）"仅给出 4 个 `leaf-orig-*-re-topic / secondary-研究-quality / impact / method-缺口（gap）`**，但原文真实抽取字段至少 ≥12 项（见本报告 §4）。返修：用本报告 §4 整表替换 4 项种子。
 
 #### M 级（minor — 不阻塞，但建议）
 
 - M1. §1 "CCF 复核状态: 非 CCF venue / workshop" 与"出版形态: 工作坊"重复表述，可保留任一处。
 - M2. §3 启发 #2 "`publication_count` 与 `distinct_研究_count` 应分开" 已在原文 Table II 落实，可改为"已在原文 Table II 显式区分，验证 模式 是否需要 研究_id_grouping 字段"。
-- M3. §A.3 全部结论 `weak / 模式种子（模式_seed）`，建议至少对 F5 QA rubric / F4 scope 6 档升级为 `medium / verified-text-only`。
+- M3. §A.3 全部结论 `weak / 模式种子（schema_seed）`，建议至少对 F5 QA rubric / F4 scope 6 档升级为 `medium / verified-text-only`。
 - M4. §"原文模式主树（19×3 审计后返修）" 表头使用了模糊词（"二级研究质量字段"等），可替换为 F1/F2/.../F7 命名以与本报告一致。
 - M5. §"v1-deprecated" warning block 可保留，但建议在其上方加一行"本节 §维度树复原已按 A1-DT v2 单篇审计完整重写，下方两条链接仅作历史参考"。
 
@@ -330,14 +330,14 @@
 | EV-RE-T04 | paper_content.txt | §II.A 搜索串 + 5 库 (L184–220) | 完整 Boolean 串 + 8 venues snowball | 5 库 + secondary + manual venues | corpus_protocol | verified-text | F4, F6 | 否 | 检索时间 2013-10–2014-05 |
 | EV-RE-T05 | paper_content.txt | Table II (L273–288) | 5 库命中数 + 264→91→58→64 + 53 studies | 检索执行汇总 | corpus_chain | verified-text | F6, ROOT | 否 | -- |
 | EV-RE-T06 | paper_content.txt | Table III (L317–331) | 31/16/4/4/8/1 | 出版类型分布 | statistical_result | verified-text | F1 (publication_type) | 否 | -- |
-| EV-RE-T07 | paper_content.txt | Table IV (L364–375) | scope 6 档 33/7/7/4/1/1 | scope of RE SLR | 分类_模式 | verified-text | F4 | 否 | RE-specific scope 6 档 |
-| EV-RE-T08 | paper_content.txt | Table V (L376–429) | topic-group × focus × #PS × year | thematic 分类法 | 分类_模式 | verified-text | F3, F2 (#PS, focus) | 否（建议 PDF 复核字符 NF/NM 替代字符 `barb2right` OCR 杂讯） | topic_group 非饱和 |
-| EV-RE-T09 | paper_content.txt | Table VI (L482–493) | Top-10 cited × QA score | citation vs QA | 候选发现（candidate_发现）_support | verified-text | rel-citation-vs-qa, F1, F5 | 否 | 2014-05-19 截止 |
+| EV-RE-T07 | paper_content.txt | Table IV (L364–375) | scope 6 档 33/7/7/4/1/1 | scope of RE SLR | classification_schema | verified-text | F4 | 否 | RE-specific scope 6 档 |
+| EV-RE-T08 | paper_content.txt | Table V (L376–429) | topic-group × focus × #PS × year | thematic 分类法 | classification_schema | verified-text | F3, F2 (#PS, focus) | 否（建议 PDF 复核字符 NF/NM 替代字符 `barb2right` OCR 杂讯） | topic_group 非饱和 |
+| EV-RE-T09 | paper_content.txt | Table VI (L482–493) | Top-10 cited × QA score | citation vs QA | 候选发现支撑（candidate_finding_support） | verified-text | rel-citation-vs-qa, F1, F5 | 否 | 2014-05-19 截止 |
 | EV-RE-T10 | paper_content.txt + paper.pdf | Figure 1 (L316) | yearly distribution 柱状图 | 2009 后骤增 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F1 (year), trend | 是 | -- |
 | EV-RE-T11 | paper_content.txt + paper.pdf | Figure 2 (L443–449) | QA total score 分布 | 42/51 ≥ 2 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (qa_total) | 是（OCR y 轴断版） | -- |
 | EV-RE-T12 | paper_content.txt + paper.pdf | Figure 3 (L444–449) | QA1–QA4 各档计数 | QA3/QA4 半数忽略 | statistical_result | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (QA1–QA4) | 是 | -- |
-| EV-RE-T13 | paper_content.txt + paper.pdf | Figure 4 (L481) | 年度均分曲线 | 自 2009 起下降 | 候选发现（candidate_发现）_support | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (qa_total) × year | 是 | trend 仅限 RE SLR |
-| EV-RE-T14 | paper_content.txt | §III RQ3 (L505–576) | 三类 缺口（gap） + 路线图 对照 | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 候选发现（candidate_发现） | verified-text | F7, rel-gap-vs-路线图 | 否 | 不可迁移 ignored-area 具体名单 |
+| EV-RE-T13 | paper_content.txt + paper.pdf | Figure 4 (L481) | 年度均分曲线 | 自 2009 起下降 | 候选发现支撑（candidate_finding_support） | 需要 PDF 视觉核验（needs_pdf_visual_check） | F5 (qa_total) × year | 是 | trend 仅限 RE SLR |
+| EV-RE-T14 | paper_content.txt | §III RQ3 (L505–576) | 三类 缺口（gap） + 路线图 对照 | 异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area） | 候选发现（candidate_finding） | verified-text | F7, rel-gap-vs-roadmap | 否 | 不可迁移 ignored-area 具体名单 |
 | EV-RE-T15 | paper_content.txt | §IV Limitations (L577–615) | 4 类局限 | 检索/S40/grouping/EBSE | limitation | verified-text | ROOT, F7 | 否 | 通用 |
 | EV-RE-T16 | paper_content.txt | Appendix A (L697–967) | S1–S53 完整名录 | 研究 + publication 列表 | corpus_inventory | verified-text | F1, F2, rel-grouping | 否 | -- |
 
@@ -345,14 +345,14 @@
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-RE-T01 | 本文是按 EBSE 指南 执行的 系统映射 tertiary 研究，样本单位为 distinct SLR 研究（n=53），辅以 publication（n=64）；QA 在 n=51 上施加 | 研究_type | ROOT | EV-RE-T01, T02, T04, T05, T16 | strong | 可直接迁移至 Paper2 single-paper 模式 | S40 元信息不全；S3/S8 全文不可得 |
-| C-RE-T02 | 原生编码模式 是 F1–F7 七棵子树构成的维度森林，叶子层至少 12 项原文真实字段 | 树类型（树_type） | ROOT, F1–F7 | EV-RE-T03, T05–T09, T14 | strong | 替换 review.md 通用六叶 | F3 topic_group 非饱和 |
-| C-RE-T03 | DARE-adapted QA rubric (Table I, 4×3 档) 是稳定可复用的 SLR-QA 评估元模型 | 分类_模式 | F5 | EV-RE-T03 | strong | 可直接迁移至 Paper2 QA 评估 | EBSE 指南 受限于 2007 版 |
-| C-RE-T04 | scope 6 档分类（Table IV）在 RE 之外仍部分可迁移（state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 六分） | 分类_模式 | F4 | EV-RE-T07 | medium | 可作 Paper2 单篇 scope 字段候选 | 6 档自身是 SLR 抽象类，但具体含义须本地化 |
-| C-RE-T05 | topic-group 分类法 (24 项) 是 RE-specific 非饱和分类，不可外推 | 分类法_local | F3 | EV-RE-T08 | medium | 仅作 Paper2 "topic_grouping = 自由文本 + 后处理 聚类" 的设计参考 | 作者自承 not exhaustive |
-| C-RE-T06 | 候选发现"RE SLR QA 自 2009 起下降，与 SE-wide [8,9] 趋势相反"基于 Figure 4 趋势 | 候选发现（candidate_发现） | F5 × year | EV-RE-T11, T13 | weak | 不进入主统计池；A2a 视觉读 Figure 4 后可升级 | 仅 RE 子领域 |
-| C-RE-T07 | 高引 ≠ 高 QA（Table VI 反证：S2[A] cite=154 QA=3 vs S46 QA=1.5）| 候选发现（candidate_发现） | rel-citation-vs-qa | EV-RE-T09 | medium | 可作 Paper2 "citation 不能替代 QA" 论证 | citation 是 2014-05-19 快照 |
-| C-RE-T08 | 三类 缺口（gap） 分类法（异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area））+ 与 路线图 cross-ref 模式可作 Paper2 缺口（gap） 章节模板 | 候选发现（candidate_发现）_template | F7, rel-gap-vs-路线图 | EV-RE-T14 | medium | 通用模板可迁移 | 具体 RE ignored-area 名单不可迁移 |
+| C-RE-T01 | 本文是按 EBSE 指南 执行的 系统映射 tertiary 研究，样本单位为 distinct SLR 研究（n=53），辅以 publication（n=64）；QA 在 n=51 上施加 | research_type | ROOT | EV-RE-T01, T02, T04, T05, T16 | strong | 可直接迁移至 Paper2 single-paper 模式 | S40 元信息不全；S3/S8 全文不可得 |
+| C-RE-T02 | 原生编码模式 是 F1–F7 七棵子树构成的维度森林，叶子层至少 12 项原文真实字段 | 树类型（tree_type） | ROOT, F1–F7 | EV-RE-T03, T05–T09, T14 | strong | 替换 review.md 通用六叶 | F3 topic_group 非饱和 |
+| C-RE-T03 | DARE-adapted QA rubric (Table I, 4×3 档) 是稳定可复用的 SLR-QA 评估元模型 | classification_schema | F5 | EV-RE-T03 | strong | 可直接迁移至 Paper2 QA 评估 | EBSE 指南 受限于 2007 版 |
+| C-RE-T04 | scope 6 档分类（Table IV）在 RE 之外仍部分可迁移（state_of_the_art / 方法 / techniques / 工具 / 框架 / 技术 六分） | classification_schema | F4 | EV-RE-T07 | medium | 可作 Paper2 单篇 scope 字段候选 | 6 档自身是 SLR 抽象类，但具体含义须本地化 |
+| C-RE-T05 | topic-group 分类法 (24 项) 是 RE-specific 非饱和分类，不可外推 | taxonomy_local | F3 | EV-RE-T08 | medium | 仅作 Paper2 "topic_grouping = 自由文本 + 后处理 聚类" 的设计参考 | 作者自承 not exhaustive |
+| C-RE-T06 | 候选发现"RE SLR QA 自 2009 起下降，与 SE-wide [8,9] 趋势相反"基于 Figure 4 趋势 | 候选发现（candidate_finding） | F5 × year | EV-RE-T11, T13 | weak | 不进入主统计池；A2a 视觉读 Figure 4 后可升级 | 仅 RE 子领域 |
+| C-RE-T07 | 高引 ≠ 高 QA（Table VI 反证：S2[A] cite=154 QA=3 vs S46 QA=1.5）| 候选发现（candidate_finding） | rel-citation-vs-qa | EV-RE-T09 | medium | 可作 Paper2 "citation 不能替代 QA" 论证 | citation 是 2014-05-19 快照 |
+| C-RE-T08 | 三类 缺口（gap） 分类法（异常（anomaly）/ 缺少原始研究（lack_of_PS）/ 被忽视领域（ignored_area））+ 与 路线图 cross-ref 模式可作 Paper2 缺口（gap） 章节模板 | 候选发现（candidate_finding）_template | F7, rel-gap-vs-roadmap | EV-RE-T14 | medium | 通用模板可迁移 | 具体 RE ignored-area 名单不可迁移 |
 | C-RE-T09 | publication-level 字段（type, year, venue, citations）与 研究-level 字段（#PS, focus, slr_type）应分层；同 研究 多发表用 [A][B][C] 合并是稳定模式 | 抽取_form | F1, F2, rel-grouping | EV-RE-T03 (form ref), T16 | strong | 可直接复用 | -- |
 | C-RE-T10 | 自报 limitations 的 4 类清单（检索 / 元信息缺失 / grouping 主观 / EBSE 限定）反证若干候选发现 强度 | limitation_anchor | ROOT, F7 | EV-RE-T15 | strong | 可作 Paper2 威胁-to-效度 复用清单 | -- |
 

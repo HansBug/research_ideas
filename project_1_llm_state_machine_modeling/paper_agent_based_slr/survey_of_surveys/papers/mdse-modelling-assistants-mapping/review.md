@@ -100,7 +100,7 @@
 
 ### 1.5 建模辅助策略：RQ1
 
-原文从 58 个研究 提案 中抽出六类 策略 聚类s：
+原文从 58 个研究 提案 中抽出六类 策略 聚类：
 
 | 策略 聚类 | 原文定义 / 直观含义 | 典型子类 |
 |---|---|---|
@@ -131,7 +131,7 @@
 
 结果上，31.0% 提案 主要帮助创建模型（G6），43.1% 帮助 refinement（G1/G2/G3/G4/G7），25.9% 同时帮助创建和 refinement（G5）。这与 Project1 的 “generation--verification--repair” 生命周期高度吻合：STM generation 不只是 G6，还天然连接 G2/G4/G5/G1。
 
-限制 方面，正文概述称有 five 限制 聚类s，但 Table 3 实际列出 L1--L6，需作为待复核口径记录：
+限制 方面，正文概述称有 five 限制 聚类，但 Table 3 实际列出 L1--L6，需作为待复核口径记录：
 
 | 限制 聚类 | 含义 | 对 STM generation 的风险映射 |
 |---|---|---|
@@ -158,16 +158,16 @@
 
 研究侧 47.2% 指标 是 effectiveness / efficiency；用户感知 只有 4.2%；48.6% 提案 没有评价指标或未评价。这个结果对 LLM4STM 非常警示：只报告自动指标（如 通过率）会复制既有 MDSE assistant 的评价缺口；应至少设计用户感知、解释可用性、审计成本等人机协同指标。
 
-用户s 方面，原文聚为三类：
+用户 方面，原文聚为三类：
 
 | 用户 聚类 | 含义 | 对 STM generation 的映射 |
 |---|---|---|
 | U1 designers/modellers | 直接指定模型或设计的人 | 状态机 modeller、requirements-to-model analyst、MDE engineer |
 | U2 领域专家 | 熟悉业务领域但未必懂建模的人 | 控制系统领域专家、安全需求专家、工业工程师 |
-| U3 软件开发者s | 开发人员或相关 SE 角色 | 实现状态机代码、维护 DSL / verification pipeline 的开发者 |
+| U3 软件开发者 | 开发人员或相关 SE 角色 | 实现状态机代码、维护 DSL / verification pipeline 的开发者 |
 | U-NS | 只写 generic 用户 或 he/she，没有具体角色 | 必须作为 目标用户具体性 风险记录 |
 
-软件开发者是最常见 目标用户（29.3%），designers/modellers 27.6%，领域专家 13.8%，还有 29.3% 未指定 目标用户。实践侧更偏 软件开发者s，领域专家 和 designers/modellers 很少被明确提及。这对 Project1 的影响是：LLM4STM 如果希望服务“非形式化需求到形式化状态机”，应明确 目标用户 是领域专家、建模专家还是验证工程师；不同用户决定 prompt、解释、审计门和评价指标。
+软件开发者是最常见 目标用户（29.3%），designers/modellers 27.6%，领域专家 13.8%，还有 29.3% 未指定 目标用户。实践侧更偏 软件开发者，领域专家 和 designers/modellers 很少被明确提及。这对 Project1 的影响是：LLM4STM 如果希望服务“非形式化需求到形式化状态机”，应明确 目标用户 是领域专家、建模专家还是验证工程师；不同用户决定 prompt、解释、审计门和评价指标。
 
 ### 1.8 综合结果与 future work
 
@@ -180,7 +180,7 @@
 5. 实践 目标用户 多偏 developers，领域专家 / designers / modellers 被隐藏或不明确。
 6. AI / LLM / GPT 的出现可能改变 建模辅助 策略 与 目标，需要统一框架支持未来 assistant 设计。
 
-future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assistants framework、requirements elicitation framework 结合，并建设一个 public repository，用 策略、目标、限制、指标、目标用户 等 聚类s 来可视化新 assistant 与既有工作之间的关系。对 Paper2 来说，这相当于一个“维度 schema + evidence repository + similarity map”的雏形，可直接启发后续 候选发现 l关系边r 和 pattern library。
+future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assistants framework、requirements elicitation framework 结合，并建设一个 public repository，用 策略、目标、限制、指标、目标用户 等 聚类 来可视化新 assistant 与既有工作之间的关系。对 Paper2 来说，这相当于一个“维度 schema + evidence repository + similarity map”的雏形，可直接启发后续 候选发现 l关系边r 和 pattern library。
 
 ### 1.9 威胁与限制
 
@@ -211,7 +211,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 ## 3. A1-M0--M6 脚手架元维度贡献
 
-> 说明：本节的 A1-M0--M6 指本 `survey_of_surveys/` 文库内部“脚手架元维度”，不是 S0 方法流程阶段，也不是原文 Table 3 中 L1--L6 限制 聚类s。原文 限制 聚类s 已在 §1.6 单独整理。
+> 说明：本节的 A1-M0--M6 指本 `survey_of_surveys/` 文库内部“脚手架元维度”，不是 S0 方法流程阶段，也不是原文 Table 3 中 L1--L6 限制 聚类。原文 限制 聚类 已在 §1.6 单独整理。
 
 | A1-M 脚手架元维度 | 该论文提供的脚手架元维度贡献 | 可迁移字段 / 机制 | 对 LLM4STM / Paper2 的具体启发 |
 |---|---|---|---|
@@ -290,7 +290,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
     └── 不可迁移的领域结论
 ```
 
-对 LLM4STM 的最小迁移版本建议先冻结 5 个强制字段组：`assistant_策略`、`目标`、`限制`、`evaluation_指标`、`target_用户s`。如果一篇论文没有报告 限制、指标 或 用户s，应填 `not_specified` 并记录证据锚点，而不是空置。
+对 LLM4STM 的最小迁移版本建议先冻结 5 个强制字段组：`assistant_策略`、`目标`、`限制`、`evaluation_指标`、`target_用户`。如果一篇论文没有报告 限制、指标 或 用户，应填 `not_specified` 并记录证据锚点，而不是空置。
 
 ## 5. 对 Project1 / Paper2 的启发与风险
 
@@ -301,7 +301,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 3. **指标 不能只做自动正确率**：原文显示 MDSE assistance 领域已经偏向 effectiveness / efficiency，用户感知 很少。Project1 若只报告 通过率 / transition accuracy，会延续该缺口；可补 用户 trust、perceived control、explanation usefulness、human review time。
 4. **限制 应成为主字段**：LLM4STM 常见风险可直接映射到 L1 accuracy、L3 generality、L5 scope、L2 effort、L6 usability。主动报告这些限制反而能增强论文可信度。
 5. **实践 vs 文献 对照可作为额外视角**：若后续要讨论 low-code / modelling tools 中的 AI assistant，可借鉴本文 GMQ + 文档 quote 方式，但必须标注公开文档的缺失边界。
-6. **树状维度适合 STM 论文集抽取**：assistant 策略 / 目标 / 限制 / 指标 / 用户s 是天然的 `desc.md` 或 `review.md` 字段树，适合从多篇 LLM4Modeling 文献抽取对比矩阵。
+6. **树状维度适合 STM 论文集抽取**：assistant 策略 / 目标 / 限制 / 指标 / 用户 是天然的 `desc.md` 或 `review.md` 字段树，适合从多篇 LLM4Modeling 文献抽取对比矩阵。
 
 ### 5.2 对 Paper2 审计优先证据工程的启发
 
@@ -318,7 +318,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 2. **单标签 聚类 会压扁 混合式 LLM agent systems**：LLM4STM 往往同时是 tool、method、framework 和 guideline；后续 schema 应允许多标签或主/辅标签。
 3. **实践侧 GMQ 只代表 enterprise low-code 市场的一种视角**：不覆盖 UPPAAL、Simulink/Stateflow、UML/SysML 工具、工业安全建模工具，也不覆盖开源 DSL 工具。
 4. **AI 颠覆性影响（AI disruption） 论述是前瞻，不是已验证结果**：原文提到 LLM/GPT 会改变 建模辅助，但它的纳入研究和 实践文档不等于系统评估 LLM4Modeling。
-5. **限制 聚类 口径需复核**：正文说 five 限制 聚类s，Table 3 列出 L1--L6，其中 L6 usability 只有一个 提案；正式引用时要避免写错。
+5. **限制 聚类 口径需复核**：正文说 five 限制 聚类，Table 3 列出 L1--L6，其中 L6 usability 只有一个 提案；正式引用时要避免写错。
 6. **指标 与 formal verification 指标仍需扩展**：M1/M2/M3 对 STM generation 有帮助，但还不够覆盖 timed automata、model checking property satisfaction、counterexample usefulness 等 formal-method 指标。
 
 ## 历史草稿（已迁移，不作事实真源）：旧第 6 节迁移来源
@@ -332,7 +332,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 | `assistant_策略_tree` | 原文 策略 聚类 足够稳定，且与 LLM4STM 强相关 | 记录 primary / secondary 策略、软件实现、AI-based、subtask |
 | `目标_限制_cross_axis` | 原文 Fig. 5 / Fig. 11 做 目标-限制 cross-analysis | 支持从二维关系而非单列分布生成 候选发现 |
 | `指标_用户_cross_axis` | 原文 Fig. 6 / Fig. 12 做 目标-指标-用户 cross-analysis | 记录目标用户是否被相应指标评价覆盖 |
-| `缺失性_code` | 限制、指标、用户s 大量未报告 | 区分 未说明 / 未评价 / 未找到 / hidden by wording |
+| `缺失性_code` | 限制、指标、用户 大量未报告 | 区分 未说明 / 未评价 / 未找到 / hidden by wording |
 | `terminology_basis` | 原文承认 tool/method/framework 等术语不统一 | 标记 聚类 来自作者关键词还是 reviewer 归类 |
 | `实践_文档_status` | 17 个 GMQ 工具中 10 个未找到文档 | 避免把公开文档缺失误写为能力不存在 |
 | `ai_disruption_claim_status` | 原文对 AI/LLM 是 future-facing 讨论 | 区分 empirical finding / future expectation / design implication |
@@ -341,7 +341,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 ## 7. 待复核
 
 1. **PDF 视觉核对**：本轮已读 [paper_content.txt](./paper_content.txt)，并用 `pdftotext` 局部核对 Table 2/3/4；但 Fig. 4--15 的 bubble chart、flow chart 和 visual distribution 仍需人工打开 PDF 核对。
-2. **Table 3 限制 数量口径**：正文概述提到 five 限制 聚类s，但 Table 3 列出 L1 accuracy、L2 effort、L3 generality、L4 learnability、L5 scope、L6 usability；正式写作前需核对作者是否在其它位置解释 L6。
+2. **Table 3 限制 数量口径**：正文概述提到 five 限制 聚类，但 Table 3 列出 L1 accuracy、L2 effort、L3 generality、L4 learnability、L5 scope、L6 usability；正式写作前需核对作者是否在其它位置解释 L6。
 3. **Zenodo replication package**：原文给出 Zenodo 10262145；本轮未打开核验 raw extraction / 聚类 数据，不能声称已复现实验数据。
 4. **实践 文档来源**：Table 5 中 Mendix、OutSystems、Power Apps、Salesforce、Appian、Oracle APEX、Retool 等 vendor quotes 本轮只读论文转录，未回到原始网页 / 用户指南 核对当前状态。
 5. **GMQ 2023 来源与许可**：本轮没有核对 Gartner Magic Quadrant 原始报告，只能按论文叙述记录 17 个工具分母。
@@ -417,7 +417,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
    - 不是“按 RQ 列 发现”，也不是“按章节列工具”，而是“每条 提案 一条记录、字段化编码、再聚类”。
 
 2. **作者有没有系统检索 / 纳排 / 抽取 / 编码方案？**
-   - 有完整系统流程：PICO 检索式（5 数据库）+ 滚雪球（4 轮，top-12 seeds 来自 QA）+ I/E criteria（I1–I2、E1–E5）+ 3-point Likert QA（Table 1）+ 数据抽取 模式（RQ1 keywords / RQ2 目标 & 限制 / RQ3 指标 & 用户s）+ 三 reviewer + K 统计量 报告。
+   - 有完整系统流程：PICO 检索式（5 数据库）+ 滚雪球（4 轮，top-12 seeds 来自 QA）+ I/E criteria（I1–I2、E1–E5）+ 3-point Likert QA（Table 1）+ 数据抽取 模式（RQ1 keywords / RQ2 目标 & 限制 / RQ3 指标 & 用户）+ 三 reviewer + K 统计量 报告。
    - 实践侧不是新数据库检索，而是 GMQ 2023 报告 → 17 工具 列表 → 公开文档 quote 抽取 → 同 模式 投影。
 
 3. **原文字段来自哪里？**
@@ -431,7 +431,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
    - MRQ 是树根问题；RQ 是“样本单位 → 字段树各主干”的桥。
 
 5. **是否需要降级？**
-   - **不降级**：本文确有系统样本库（58 + 15）、显式纳排、QA、K 统计量、复现包。可作为 模式种子（模式-seed） + 局部统计候选。
+   - **不降级**：本文确有系统样本库（58 + 15）、显式纳排、QA、K 统计量、复现包。可作为 模式种子（schema_seed） + 局部统计候选。
    - 但 **单标签 聚类**（§4.2 末尾：“we 聚类 each 提案 in one 聚类 even if some overlap”）与 **作者术语 聚类**（§3.5 / §7.1 terminology bias）这两条边界必须与统计一起迁移；混合型 LLM/智能体 assistant 不能机械套用单标签。
 
 ### 3. 原生样本编码维度树（维度森林）
@@ -482,7 +482,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 │
 ├── [B-RQ3-U] 目标用户（目标用户；RQ3-U）
 │   ├── 用户是否明确报告：{已说明（specified）, 泛化用户被隐藏（generic 用户 hidden = U-NS）}；§4.4
-│   ├── 用户大类：{U1 设计者 / 建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者s）}
+│   ├── 用户大类：{U1 设计者 / 建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者）}
 │   ├── 用户子型：U1 包含软件设计者（软件设计者）/ 模型开发者（模型 developer）/ UML 开发者（UML 开发者）等；U2 包含业务分析师（业务 analyst）/ 领域专家（领域 expert）等；U3 包含开发者（developer）/ 软件开发者（软件开发者）/ 软件维护者（软件维护者）等
 │   └── 用户证据短引：原文片段
 │
@@ -541,41 +541,41 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `叶子.strategy_cluster` | 建模辅助策略 聚类 | B-RQ1 | §3.5 RQ1 抽取规则 + §4.2 + Table 2 + Fig. 4 | 把每个 提案 单标签归入 6 类作者术语 聚类 之一 | {工具、指南、技术、方法、框架、语言} | 完整封闭枚举 | 不允许空；重叠时强制单标签（§4.2 末） | 频次 39.7/19.0/15.5/13.8/6.9/5.2 % | 软件实现 93.1 % 是候选发现；混合系统外推风险 | E3, E7 | 单标签外推到 混合式 LLM/智能体 系统须降级 |
-| `叶子.strategy_subtype` | 策略子型 | `叶子.strategy_cluster` | §4.2 段落子列表 + Table 2 keywords | 在 聚类 内的作者术语子型 | 层级枚举（工具 11+ 子型；其余每 聚类 3–6 子型） | 层级枚举 + 自由文本 | 子型未明时仅留 聚类 | 子型分布尚未给出数字 | recommender / AI assistant 子型可对接 LLM4STM | E7 | 子型词表非饱和，A2a 待 Zenodo 核 |
-| `叶子.software_based` | 软件实现程度 | B-RQ1 | §4.2 末 “93.1 %…软件实现” | 该 提案 是否使用软件实现 | {完全软件实现, 部分软件实现, 无软件实现} | 派生 ENUM | 不允许空 | 93.1 % vs 6.9 % | 提示 指南-only 占少数 | E7 | 直接迁移 |
-| `叶子.goal_cluster` | 目标 聚类 | B-RQ2-G | §3.5 + §4.3 + Table 3 + Fig. 5 | 单标签归入 7 类目标 | {G1, G2, G3, G4, G5, G6, G7} | 完整封闭枚举 | 不允许空 | G6=31.0 %、G1+G2+G3+G4+G7=43.1 %、G5=25.9 % | G6 对接 STM 生成；G2/G5 对接 verification & repair | E3, E9 | G3/G7 单 提案，统计稀疏 |
-| `叶子.create_refine_role` | 创建/精化角色 | `叶子.goal_cluster` | §4.3 三分 | 派生：G6=create / G1-G4-G7=refine / G5=both | {create, refine, both} | 派生 ENUM（3 类） | 不允许空 | 31.0 / 43.1 / 25.9 % | 显示 refinement 主导，缺口（gap）=纯创建少 | E9 | 直接迁移 |
-| `叶子.limitation_reported` | 限制是否报告 | B-RQ2-L | §3.5 “leave blank” + §4.3 L-NS | 50.0 % 明确报告 限制 | {已说明, L-NS} | 布尔 | L-NS 即 未报告（不是 不适用（不适用）） | 50.0 % vs 50.0 % | 缺失性 本身=候选发现 | E9 | 直接迁移 |
-| `叶子.limitation_cluster` | 限制 聚类 | B-RQ2-L | Table 3 + §4.3 L1–L6 | 6 类限制（**§4.3 prose 写 “five”，待核**） | {L1 accuracy, L2 effort, L3 generality, L4 learnability, L5 scope, L6 usability} ∪ {L-NS} | 封闭枚举（带口径冲突待核） | L-NS=作者未声明 | 仅给出 L 子集的列表；具体每类频次未在 §4.3 完整给出 | L1/L3/L5 是 LLM4STM 主风险 | **E8 待复核** | 不允许把 “five” 直接当作权威；A2a 须复核 |
-| `叶子.evaluation_status` | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | 提案 是否被经验评价 | {已经验评价（empirically_evaluated）, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选发现 | E10 | 直接迁移 |
-| `叶子.metric_cluster` | 指标 聚类 | B-RQ3-M | Table 4 + §4.4 + TAM | 把指标按 TAM 分类 | {M1 effectiveness, M2 efficiency, M3 用户感知} ∪ {NE} | 封闭枚举 | NE=未评价 | M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 % | M3=4.2 % 是强 缺口（gap） | E10 | 一 提案 可有多 指标，注意多标签 |
-| `叶子.metric_subtype` | 指标子型 | `叶子.metric_cluster` | Table 4 keywords | 在 聚类 内的具体指标项 | M1/M2/M3 子型枚举（见 §3） | 层级枚举 + 自由文本 | 缺则填 NE | 子型分布未数字化 | 直接对接 STM 生成 评价 | E10 | 子型词表非饱和 |
-| `叶子.user_cluster` | 目标用户 聚类 | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 设计者/建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者s）} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “用户” / “he/she” 泛化或 第二人称 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM 领域 expert 命题的起点 | E10, E11 | 直接迁移；实践 侧 U-NS 高度由 第二人称“你” 触发 |
-| `叶子.documentation_status` | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ 工具 是否有可访问的 建模辅助 文档 | {D=有文档, NF=未找到文档} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | 未文档化 ≠ 不存在 是关键边界 | E11 | 直接迁移 |
-| `叶子.gmq_class` | Gartner 魔力象限分类（GMQ；首次术语） | B-RQ4 | §5.1 + Fig. 8 | Gartner Magic Quadrant 2023 分类 | {领导者、挑战者、愿景者、利基玩家} | 完整封闭枚举（4 类） | 不允许空 | LE=5, C=1, V=3, NP=8 | LE 更常公开 assistant 文档 | E11 | 仅代表 enterprise low-code 视角 |
-| `叶子.second_person_hidden_user` | 第二人称隐藏用户 | `叶子.documentation_status` | §5.2 末 “write using ‘第二人称“你”’… hides the actor” | 文档是否用 第二人称“你” 掩盖 目标用户 | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 直接迁移 |
-| `叶子.replication_link` | 复现资料链接 | B-元数据 | §3.5 脚注 4 + §4.1 脚注 + §8 | Zenodo 10262145 | URL + 内容描述 | 链接 + 自由文本 | 不允许空 | n/a | 提升透明度证据 | E6 | 本审计未实际核验 |
-| `叶子.quality_score` | 质量 / 相关性评分 | B-元数据 | §3.4 + Fig. 3 PRISMA | 用于识别前 12 个高质量种子论文的筛选信号 | 数值或排序位次；具体逐项值待 Zenodo / Fig. 3 精核 | 数值或序数（待核验） | 未进入前 12 种子时不作强统计 | 支撑滚雪球种子选择过程 | A2a 可核验筛选偏差与代表性 | EV-mma-003 | 当前仅作流程证据，不作领域结论 |
-| `叶子.kappa_inclusion` | 纳入 K 统计量 | B-元数据 | §4.1 | 三 reviewer inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.634 | 处于 Landis-Koch substantial | E6 | 直接迁移 |
-| `叶子.kappa_clustering` | 聚类 K 统计量 | B-元数据 | §4.1 + §7.1 | 聚类 inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.651 | 同上 | E6 | 数据抽取阶段未算 K（§7.1） |
+| `leaf.strategy_cluster` | 建模辅助策略 聚类 | B-RQ1 | §3.5 RQ1 抽取规则 + §4.2 + Table 2 + Fig. 4 | 把每个 提案 单标签归入 6 类作者术语 聚类 之一 | {工具、指南、技术、方法、框架、语言} | 完整封闭枚举 | 不允许空；重叠时强制单标签（§4.2 末） | 频次 39.7/19.0/15.5/13.8/6.9/5.2 % | 软件实现 93.1 % 是候选发现；混合系统外推风险 | E3, E7 | 单标签外推到 混合式 LLM/智能体 系统须降级 |
+| `leaf.strategy_subtype` | 策略子型 | `leaf.strategy_cluster` | §4.2 段落子列表 + Table 2 keywords | 在 聚类 内的作者术语子型 | 层级枚举（工具 11+ 子型；其余每 聚类 3–6 子型） | 层级枚举 + 自由文本 | 子型未明时仅留 聚类 | 子型分布尚未给出数字 | recommender / AI assistant 子型可对接 LLM4STM | E7 | 子型词表非饱和，A2a 待 Zenodo 核 |
+| `leaf.software_based` | 软件实现程度 | B-RQ1 | §4.2 末 “93.1 %…软件实现” | 该 提案 是否使用软件实现 | {完全软件实现, 部分软件实现, 无软件实现} | 派生 ENUM | 不允许空 | 93.1 % vs 6.9 % | 提示 指南-only 占少数 | E7 | 直接迁移 |
+| `leaf.goal_cluster` | 目标 聚类 | B-RQ2-G | §3.5 + §4.3 + Table 3 + Fig. 5 | 单标签归入 7 类目标 | {G1, G2, G3, G4, G5, G6, G7} | 完整封闭枚举 | 不允许空 | G6=31.0 %、G1+G2+G3+G4+G7=43.1 %、G5=25.9 % | G6 对接 STM 生成；G2/G5 对接 verification & repair | E3, E9 | G3/G7 单 提案，统计稀疏 |
+| `leaf.create_refine_role` | 创建/精化角色 | `leaf.goal_cluster` | §4.3 三分 | 派生：G6=create / G1-G4-G7=refine / G5=both | {create, refine, both} | 派生 ENUM（3 类） | 不允许空 | 31.0 / 43.1 / 25.9 % | 显示 refinement 主导，缺口（gap）=纯创建少 | E9 | 直接迁移 |
+| `leaf.limitation_reported` | 限制是否报告 | B-RQ2-L | §3.5 “leave blank” + §4.3 L-NS | 50.0 % 明确报告 限制 | {已说明, L-NS} | 布尔 | L-NS 即 未报告（不是 不适用（不适用）） | 50.0 % vs 50.0 % | 缺失性 本身=候选发现 | E9 | 直接迁移 |
+| `leaf.limitation_cluster` | 限制 聚类 | B-RQ2-L | Table 3 + §4.3 L1–L6 | 6 类限制（**§4.3 prose 写 “five”，待核**） | {L1 accuracy, L2 effort, L3 generality, L4 learnability, L5 scope, L6 usability} ∪ {L-NS} | 封闭枚举（带口径冲突待核） | L-NS=作者未声明 | 仅给出 L 子集的列表；具体每类频次未在 §4.3 完整给出 | L1/L3/L5 是 LLM4STM 主风险 | **E8 待复核** | 不允许把 “five” 直接当作权威；A2a 须复核 |
+| `leaf.evaluation_status` | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | 提案 是否被经验评价 | {已经验评价（empirically_evaluated）, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选发现 | E10 | 直接迁移 |
+| `leaf.metric_cluster` | 指标 聚类 | B-RQ3-M | Table 4 + §4.4 + TAM | 把指标按 TAM 分类 | {M1 effectiveness, M2 efficiency, M3 用户感知} ∪ {NE} | 封闭枚举 | NE=未评价 | M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 % | M3=4.2 % 是强 缺口（gap） | E10 | 一 提案 可有多 指标，注意多标签 |
+| `leaf.metric_subtype` | 指标子型 | `leaf.metric_cluster` | Table 4 keywords | 在 聚类 内的具体指标项 | M1/M2/M3 子型枚举（见 §3） | 层级枚举 + 自由文本 | 缺则填 NE | 子型分布未数字化 | 直接对接 STM 生成 评价 | E10 | 子型词表非饱和 |
+| `leaf.user_cluster` | 目标用户 聚类 | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 设计者/建模者（designers/modellers）, U2 领域专家（领域专家）, U3 软件开发者（软件开发者）} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “用户” / “he/she” 泛化或 第二人称 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM 领域 expert 命题的起点 | E10, E11 | 直接迁移；实践 侧 U-NS 高度由 第二人称“你” 触发 |
+| `leaf.documentation_status` | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ 工具 是否有可访问的 建模辅助 文档 | {D=有文档, NF=未找到文档} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | 未文档化 ≠ 不存在 是关键边界 | E11 | 直接迁移 |
+| `leaf.gmq_class` | Gartner 魔力象限分类（GMQ；首次术语） | B-RQ4 | §5.1 + Fig. 8 | Gartner Magic Quadrant 2023 分类 | {领导者、挑战者、愿景者、利基玩家} | 完整封闭枚举（4 类） | 不允许空 | LE=5, C=1, V=3, NP=8 | LE 更常公开 assistant 文档 | E11 | 仅代表 enterprise low-code 视角 |
+| `leaf.second_person_hidden_user` | 第二人称隐藏用户 | `leaf.documentation_status` | §5.2 末 “write using ‘第二人称“你”’… hides the actor” | 文档是否用 第二人称“你” 掩盖 目标用户 | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 直接迁移 |
+| `leaf.replication_link` | 复现资料链接 | B-元数据 | §3.5 脚注 4 + §4.1 脚注 + §8 | Zenodo 10262145 | URL + 内容描述 | 链接 + 自由文本 | 不允许空 | n/a | 提升透明度证据 | E6 | 本审计未实际核验 |
+| `leaf.quality_score` | 质量 / 相关性评分 | B-元数据 | §3.4 + Fig. 3 PRISMA | 用于识别前 12 个高质量种子论文的筛选信号 | 数值或排序位次；具体逐项值待 Zenodo / Fig. 3 精核 | 数值或序数（待核验） | 未进入前 12 种子时不作强统计 | 支撑滚雪球种子选择过程 | A2a 可核验筛选偏差与代表性 | EV-mma-003 | 当前仅作流程证据，不作领域结论 |
+| `leaf.kappa_inclusion` | 纳入 K 统计量 | B-元数据 | §4.1 | 三 reviewer inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.634 | 处于 Landis-Koch substantial | E6 | 直接迁移 |
+| `leaf.kappa_clustering` | 聚类 K 统计量 | B-元数据 | §4.1 + §7.1 | 聚类 inter-rater | 数值 0–1 | 数值 | 不允许空 | K=0.651 | 同上 | E6 | 数据抽取阶段未算 K（§7.1） |
 
 ### 5. 关系边表
 
 | 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
-| `edge.strategy_goal` | `叶子.strategy_cluster` | 编码关联（逐提案）| `叶子.goal_cluster` | 单标签 × 单标签 | 不允许空 | Fig. 5 + Fig. 11 + §6 | 工具↔G5/G6；方法↔G2；框架↔G1；用于 交叉轴 统计 |
-| `edge.strategy_limitation` | `叶子.strategy_cluster` | 编码关联 | `叶子.limitation_cluster` | 单 × 单/多 + L-NS | L-NS 显式 | Fig. 5 + Fig. 11 | 工具↔L1/L5/L3；框架↔L5；候选发现 来源 |
-| `edge.goal_metric` | `叶子.goal_cluster` | 编码关联 | `叶子.metric_cluster` | 单 × 单/多 + NE | NE 显式 | Fig. 6 + Fig. 12 | G6↔M1+M2；G5↔M2；G2↔M1 |
-| `edge.goal_user` | `叶子.goal_cluster` | 编码关联 | `叶子.user_cluster` | 单 × 单 + U-NS | U-NS 显式 | Fig. 6 + Fig. 12 | G6↔U1+U3；G5↔U1；G1↔U3+U2；显示 领域 expert 命题缺口 |
+| `edge.strategy_goal` | `leaf.strategy_cluster` | 编码关联（逐提案）| `leaf.goal_cluster` | 单标签 × 单标签 | 不允许空 | Fig. 5 + Fig. 11 + §6 | 工具↔G5/G6；方法↔G2；框架↔G1；用于 交叉轴 统计 |
+| `edge.strategy_limitation` | `leaf.strategy_cluster` | 编码关联 | `leaf.limitation_cluster` | 单 × 单/多 + L-NS | L-NS 显式 | Fig. 5 + Fig. 11 | 工具↔L1/L5/L3；框架↔L5；候选发现 来源 |
+| `edge.goal_metric` | `leaf.goal_cluster` | 编码关联 | `leaf.metric_cluster` | 单 × 单/多 + NE | NE 显式 | Fig. 6 + Fig. 12 | G6↔M1+M2；G5↔M2；G2↔M1 |
+| `edge.goal_user` | `leaf.goal_cluster` | 编码关联 | `leaf.user_cluster` | 单 × 单 + U-NS | U-NS 显式 | Fig. 6 + Fig. 12 | G6↔U1+U3；G5↔U1；G1↔U3+U2；显示 领域 expert 命题缺口 |
 | `edge.literature_practice` | B-RQ1/2/3 (文献侧) | 投影关系（同 模式） | B-RQ4 (实践侧) | 同左 聚类 × 同左 聚类 | NF（实践 一侧专属） | Fig. 13 + §6 | 显示 实践 中 L2/L4/L5 缺失、U1/U2 缺失、M3 缺失 |
-| `edge.tool_proposal` | `叶子.gmq_class` + tool_id | 包含 | 实践_提案_id | 1 工具 → 0..n 提案 | NF=0 | §5.2 + Table 5 | 7 工具 包含 15 提案 |
-| `edge.documentation_strategy` | `叶子.documentation_status` | 仅在 D 下展开 | `叶子.strategy_cluster` (实践投影) | 同 RQ1 枚举 | NF 直接终止链 | §5.2 “80 % strategies are 工具” | 未文档化 阻断后续编码 |
-| `edge.quality_snowball` | `叶子.quality_score` | 选种关系 | `叶子.replication_link` / 滚雪球种子 | 前 12 个高质量种子阈值 | n/a | §3.4 + §4.1 | 显示 语料 入口偏置 |
+| `edge.tool_proposal` | `leaf.gmq_class` + tool_id | 包含 | 实践_提案_id | 1 工具 → 0..n 提案 | NF=0 | §5.2 + Table 5 | 7 工具 包含 15 提案 |
+| `edge.documentation_strategy` | `leaf.documentation_status` | 仅在 D 下展开 | `leaf.strategy_cluster` (实践投影) | 同 RQ1 枚举 | NF 直接终止链 | §5.2 “80 % strategies are 工具” | 未文档化 阻断后续编码 |
+| `edge.quality_snowball` | `leaf.quality_score` | 选种关系 | `leaf.replication_link` / 滚雪球种子 | 前 12 个高质量种子阈值 | n/a | §3.4 + §4.1 | 显示 语料 入口偏置 |
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-**A. 由字段 / 表支持的统计观察（可统计、可作 模式种子（模式-seed） 主统计池候选）：**
+**A. 由字段 / 表支持的统计观察（可统计、可作 模式种子（schema_seed） 主统计池候选）：**
 
 1. 纳入分母：3,176 筛查 → 77 可能相关→ 58 included；K(inclusion)=0.634；K(聚类)=0.651。（E6）
 2. RQ1 策略 分布：工具 39.7 %、框架 19.0 %、技术 15.5 %、方法 13.8 %、指南 6.9 %、语言 5.2 %；软件实现 93.1 %。（E7）
@@ -617,14 +617,14 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 **C（critical，影响 A1-DT v2 事实源与统计池可信度）：**
 
-- **C1**：当前 `review.md` 主结构（第 4 节“维度树复原 → 叶子维度表”那 6 行 `叶子-*-scope/corpus/分类法/method/evidence/发现`）把跨论文通用接口当成原文叶子全集，与本文真实 模式（策略/目标/限制/指标/目标用户 × 5 字段 × 6+7+6+3+3+NS/NE/NF 聚类）严重不符。**返修**：把 §3 给出的 [B-RQ1] / [B-RQ2-G] / [B-RQ2-L] / [B-RQ3-M] / [B-RQ3-U] / [B-RQ4-实践] / [B-交叉轴] / [B-效度] 抬升为正式主干叶子，把现有六叶降级为 §维度树复原 末尾的 “通用接口投影”小节（这部分目前虽然存在，但被压在 19×3 v1 旧框下，不是 v2 主结构）。
-- **C2**：当前“原文模式候选叶子映射（A1 种子）”表只列了 5 个高粒度种子（策略 / 目标 / 制品 / 指标-用户 / 限制），且全部 `not_verified`；但原文 Table 2/3/4 已经显式给出**完整封闭枚举 + 频次**，应直接升级为已核验枚举（仅 ``叶子.limitation_cluster`` 因 §4.3 prose “five” vs Table 3 “L1–L6” 冲突保留 `not_verified`），不能继续整体停留在 `模式种子（模式_seed）`。
-- **C3**：当前 SUMMARY 或 A.3 中“样本单位 / 样本数量 / 原生树类型 / 统计池资格”应改为：原生树类型=**维度森林**、样本单位=**提案 + 工具**（双层）、样本数=58 + 17/15、主统计池资格=**局部可统计 模式种子（模式-seed）**（不是当前的 `否（A1-DT 阶段仅作 模式种子）`，因为 Table 2–4 已给出原文 closed-enum + 比例 + K）。
+- **C1**：当前 `review.md` 主结构（第 4 节“维度树复原 → 叶子维度表”那 6 行 `leaf-*-scope/corpus/分类法/method/evidence/发现`）把跨论文通用接口当成原文叶子全集，与本文真实 模式（策略/目标/限制/指标/目标用户 × 5 字段 × 6+7+6+3+3+NS/NE/NF 聚类）严重不符。**返修**：把 §3 给出的 [B-RQ1] / [B-RQ2-G] / [B-RQ2-L] / [B-RQ3-M] / [B-RQ3-U] / [B-RQ4-实践] / [B-交叉轴] / [B-效度] 抬升为正式主干叶子，把现有六叶降级为 §维度树复原 末尾的 “通用接口投影”小节（这部分目前虽然存在，但被压在 19×3 v1 旧框下，不是 v2 主结构）。
+- **C2**：当前“原文模式候选叶子映射（A1 种子）”表只列了 5 个高粒度种子（策略 / 目标 / 制品 / 指标-用户 / 限制），且全部 `not_verified`；但原文 Table 2/3/4 已经显式给出**完整封闭枚举 + 频次**，应直接升级为已核验枚举（仅 ``leaf.limitation_cluster`` 因 §4.3 prose “five” vs Table 3 “L1–L6” 冲突保留 `not_verified`），不能继续整体停留在 `模式种子（schema_seed）`。
+- **C3**：当前 SUMMARY 或 A.3 中“样本单位 / 样本数量 / 原生树类型 / 统计池资格”应改为：原生树类型=**维度森林**、样本单位=**提案 + 工具**（双层）、样本数=58 + 17/15、主统计池资格=**局部可统计 模式种子（schema_seed）**（不是当前的 `否（A1-DT 阶段仅作 模式种子）`，因为 Table 2–4 已给出原文 closed-enum + 比例 + K）。
 
 **I（important，影响证据链可读性与下游 模式 迁移）：**
 
 - **I1**：§4.3 文中 “five 限制 聚类” 与 Table 3 “L1–L6” 的口径冲突应在 A.2 中作为单独 证据 行登记（建议 `EV-mdse-modelling-assistants-mapping-006`），强度=`not_verified`，并列入 A2a 必须 PDF + Zenodo 复核任务。
-- **I2**：当前 A.2 把 5 条 证据 全部标 `not_verified`，但 §3.5 / §4.1 / §4.2 / §4.4 / §5.2 文本级证据强度应至少升级为 `文本已核验（text_verified）`（仅图表数字、bubble 半径与 §4.3 限制 计数 保持 `not_verified`）。否则 A.3 推不出任何 `模式种子（模式_seed）` 以上的结论。
+- **I2**：当前 A.2 把 5 条 证据 全部标 `not_verified`，但 §3.5 / §4.1 / §4.2 / §4.4 / §5.2 文本级证据强度应至少升级为 `文本已核验（text_verified）`（仅图表数字、bubble 半径与 §4.3 限制 计数 保持 `not_verified`）。否则 A.3 推不出任何 `模式种子（schema_seed）` 以上的结论。
 - **I3**：缺失语义编码 `L-NS / NE / U-NS / NF` 是本文一等字段，应在叶子维度表中单独列出，而非合并在叶子定义里；当前 review.md 把它们隐入 `not_specified` 自由文本，下游 模式 迁移容易丢。
 - **I4**：当前 A.2 / A.3 没有为 [B-交叉轴]（Fig. 5/6/11/12/13）建独立证据行；§6 交叉轴 是本文 发现 的主要来源，必须有专属 证据 + 关系边 claim。
 - **I5**：当前 SUMMARY 表“样本数量 / 分母 = 58 提案 / 3,176 记录 / 17 工具”应改为“提案=58 / 实践_tools=17（D=7 / NF=10）/ 实践_提案=15 / 记录_筛查=3,176 / K_inclusion=0.634 / K_聚类=0.651”，把 K 一并显化。
@@ -643,13 +643,13 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-mma-001 | paper_content.txt, bibtex.bib | §1 引言（Introduction）（Page 1）+ Abstract | abstract; “Modelling assistance is the 策略…that aims to assist humans during software 建模任务 in MDSE 工具.” | 给出 建模辅助 定义和 MDSE/低代码边界 | scope_definition | 文本已核验（text_verified） | B-元数据, ROOT, `叶子.strategy_cluster` | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
-| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_抽取_模式 | 文本已核验（text_verified） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, 叶子-限制-报告方式, 叶子-评价-status, 叶子-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
-| EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | 语料 流程管线 + inter-rater | corpus_pipeline | 文本已核验（text_verified）（图 3 视觉待核） | `叶子.quality_score`, 叶子-kappa-inclusion, 叶子-kappa-聚类, `叶子.replication_link`, B-元数据 | true（Fig. 3 视觉） | 仅本文样本池 |
-| EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 聚类 + 比例 + 93.1 % 软件实现 | 分类法_with_distribution | 文本已核验（text_verified）（图 4 数字待核） | `叶子.strategy_cluster`, 叶子-策略-subtype, 叶子-软件实现 | true（Fig. 4 视觉） | 单标签 聚类 风险 |
-| EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G 聚类 + “five 限制 聚类”（prose）/ Table 3 列 L1–L6 + L-NS | 分类法 + 口径冲突 | 文本已核验且存在内部冲突（文本已核验（text_verified）_with_internal_conflict） | `叶子.goal_cluster`, 叶子-create-refine-role, 叶子-限制-报告方式, `叶子.limitation_cluster` | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
-| EV-mma-006 | paper_content.txt | §4.4 + Table 4 + Fig. 6（Page 9–10） | 3 M + 3 U + NE/U-NS + 频次 | 分类法 + 缺失性 | 文本已核验（text_verified）（图 6 数字待核） | 叶子-评价-status, `叶子.metric_cluster`, 叶子-指标-subtype, `叶子.user_cluster` | true（Fig. 6 视觉） | 一 提案 可多 指标，注意多标签 |
-| EV-mma-007 | paper_content.txt | §5.1/§5.2 + Table 5 + Fig. 8/9/10（Page 10–13） | 17 GMQ 工具 → 10 NF + 7 D → 15 提案；第二人称“你” 隐藏 用户 | 实践_projection + 缺失性 | 文本已核验（text_verified）（Fig. 9/10 视觉与 vendor URL 待核） | B-RQ4-实践, `叶子.documentation_status`, `叶子.gmq_class`, 叶子-第二人称-hidden | true | grey-文献 局限于 GMQ；vendor URL 当前状态未复核 |
+| EV-mma-001 | paper_content.txt, bibtex.bib | §1 引言（Introduction）（Page 1）+ Abstract | abstract; “Modelling assistance is the 策略…that aims to assist humans during software 建模任务 in MDSE 工具.” | 给出 建模辅助 定义和 MDSE/低代码边界 | scope_definition | 文本已核验（text_verified） | B-元数据, ROOT, `leaf.strategy_cluster` | 否 | 仅本文 scope；不外推 LLM4STM 领域 |
+| EV-mma-002 | paper_content.txt | §3.1 RQ1/RQ2/RQ3（Page 3–4） + §3.5 抽取 rules（Page 4–5） | RQ 表述与“Extract the keywords…leave the field blank…” | RQ 即字段树主干；缺失语义=显式留空 | rq_and_extraction_schema | 文本已核验（text_verified） | B-RQ1, B-RQ2-G, B-RQ2-L, B-RQ3-M, B-RQ3-U, leaf-限制-报告方式, leaf-评价-status, leaf-用户-报告方式 | 否（仅 Zenodo raw form 待核） | 直接迁移结构，不迁移领域结论 |
+| EV-mma-003 | paper_content.txt | §3.2/§3.3/§3.4/§4.1 + Fig. 3 PRISMA（Page 3–6） | 1,996+5 → 51 → top12 seeds → 1,175 snowball → 3,176 → 77 → 58；K=0.634/0.651 | 语料 流程管线 + inter-rater | corpus_pipeline | 文本已核验（text_verified）（图 3 视觉待核） | `leaf.quality_score`, leaf-kappa-inclusion, leaf-kappa-聚类, `leaf.replication_link`, B-元数据 | true（Fig. 3 视觉） | 仅本文样本池 |
+| EV-mma-004 | paper_content.txt | §4.2 + Table 2 + Fig. 4（Page 6–7） | 6 聚类 + 比例 + 93.1 % 软件实现 | 分类法_with_distribution | 文本已核验（text_verified）（图 4 数字待核） | `leaf.strategy_cluster`, leaf-策略-subtype, leaf-软件实现 | true（Fig. 4 视觉） | 单标签 聚类 风险 |
+| EV-mma-005 | paper_content.txt | §4.3 + Table 3 + Fig. 5（Page 7–9） | 7 G 聚类 + “five 限制 聚类”（prose）/ Table 3 列 L1–L6 + L-NS | 分类法 + 口径冲突 | 文本已核验且存在内部冲突（文本已核验但存在内部冲突（text_verified_with_internal_conflict）） | `leaf.goal_cluster`, leaf-create-refine-role, leaf-限制-报告方式, `leaf.limitation_cluster` | true（§4.3 prose vs Table 3） | **A2a 必须复核 PDF / Zenodo**，否则 L 总数不可信 |
+| EV-mma-006 | paper_content.txt | §4.4 + Table 4 + Fig. 6（Page 9–10） | 3 M + 3 U + NE/U-NS + 频次 | 分类法 + 缺失性 | 文本已核验（text_verified）（图 6 数字待核） | leaf-评价-status, `leaf.metric_cluster`, leaf-指标-subtype, `leaf.user_cluster` | true（Fig. 6 视觉） | 一 提案 可多 指标，注意多标签 |
+| EV-mma-007 | paper_content.txt | §5.1/§5.2 + Table 5 + Fig. 8/9/10（Page 10–13） | 17 GMQ 工具 → 10 NF + 7 D → 15 提案；第二人称“你” 隐藏 用户 | 实践_projection + 缺失性 | 文本已核验（text_verified）（Fig. 9/10 视觉与 vendor URL 待核） | B-RQ4-实践, `leaf.documentation_status`, `leaf.gmq_class`, leaf-第二人称-hidden | true | grey-文献 局限于 GMQ；vendor URL 当前状态未复核 |
 | EV-mma-008 | paper_content.txt | §6 + Fig. 11/12/13（Page 13–14） | 策略×目标×限制；目标×指标×用户；lit vs 实践 | cross_axis_relations | 文本已核验（text_verified）（bubble 视觉待核） | 关系边-策略-目标, 关系边-策略-限制, 关系边-目标-指标, 关系边-目标-用户, 关系边-文献-实践 | true | bubble 半径 = 计数，单 提案 单 聚类 |
 | EV-mma-009 | paper_content.txt | §7.1–§7.3（Page 15） | selection / 抽取 / subjective interpretation / inter-rater / 灰色文献 / search / 语言偏倚 | validity_threats | 文本已核验（text_verified） | B-效度, terminology_basis | 否 | 缓解 ≠ 消除；数据抽取 K 未算 |
 | EV-mma-010 | paper_content.txt | §8（Page 15–17） + Fig. 14/15 | future 框架 + AI/LLM disruption + Zenodo 10262145 | future_work_候选发现 | 文本已核验（text_verified）（视觉待核） | 候选发现 (B/C/D) | true | AI/LLM disruption=expectation，不是结果 |
@@ -658,14 +658,14 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-mma-01 | 本文真正的 A1-DT 维度森林由 5 字段树（策略 / 目标 / 限制 / 指标 / 目标用户）+ 实践投影 + 交叉轴 关系 + 效度 组成；不是六叶通用接口。 | 树类型（树_type） | ROOT, B-RQ1..4, B-交叉轴, B-效度 | EV-mma-002, 004, 005, 006, 007, 008 | strong（模式 级） | review.md 主结构、SUMMARY 行 | 单标签 聚类 + 作者术语 聚类 必须随用 |
+| C-mma-01 | 本文真正的 A1-DT 维度森林由 5 字段树（策略 / 目标 / 限制 / 指标 / 目标用户）+ 实践投影 + 交叉轴 关系 + 效度 组成；不是六叶通用接口。 | 树类型（tree_type） | ROOT, B-RQ1..4, B-交叉轴, B-效度 | EV-mma-002, 004, 005, 006, 007, 008 | strong（模式 级） | review.md 主结构、SUMMARY 行 | 单标签 聚类 + 作者术语 聚类 必须随用 |
 | C-mma-02 | 样本单位是 提案（n=58）+ 工具（n=17，含 15 实践 提案）的双层 模式；分母与 K 都已显化。 | sampling_unit | B-元数据, B-RQ4 | EV-mma-003, 007 | strong | SUMMARY、统计池资格 | grey-文献 仅限 GMQ |
-| C-mma-03 | RQ1 策略 是完整封闭 6-聚类 单标签编码；93.1 % 软件实现。 | closed_enum + distribution | `叶子.strategy_cluster`, 叶子-软件实现 | EV-mma-004 | strong | 可作 模式种子（模式-seed） 统计 | 单标签压扁混合系统 |
-| C-mma-04 | RQ2-G 是完整封闭 7-聚类 单标签编码；可派生 create/refine 三分（31.0/43.1/25.9 %）。 | closed_enum + derived | `叶子.goal_cluster`, 叶子-create-refine-role | EV-mma-005 | strong | 可作 模式种子（模式-seed） 统计 | G3/G7 单 提案 稀疏 |
-| C-mma-05 | RQ2-L 聚类 总数在原文内部存在 “five (§4.3 prose)” vs “L1–L6 (Table 3)” 冲突，必须保留 `not_verified` 直到 A2a 复核。 | internal_inconsistency | `叶子.limitation_cluster` | EV-mma-005 | weak | 候选发现 不可作 final | 必须 A2a PDF + Zenodo 复核 |
-| C-mma-06 | RQ3-M 聚类 是 3-聚类 TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 评价 缺口（gap）。 | closed_enum + 缺失性 | 叶子-评价-status, `叶子.metric_cluster` | EV-mma-006 | strong | 可作 模式种子（模式-seed） 统计；可作方法学警示 | 不可直接外推 LLM4STM 缺口（gap） 数字 |
-| C-mma-07 | RQ3-U 聚类 是 3-聚类 单标签 + U-NS；U-NS=29.3 %、实践 73.3 %；实践 U-NS 由 第二人称“你” 触发是 §5.2 显式机制。 | closed_enum + 缺失性 + mechanism | `叶子.user_cluster`, 叶子-用户-报告方式, 叶子-第二人称-hidden | EV-mma-006, 007 | strong | 可作 模式种子（模式-seed） 统计 | 不外推领域比例 |
-| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `叶子.documentation_status`, B-效度 | EV-mma-007, 009 | strong | 直接迁移到 Paper2 / Project1 | grey-文献 局限 |
+| C-mma-03 | RQ1 策略 是完整封闭 6-聚类 单标签编码；93.1 % 软件实现。 | closed_enum + distribution | `leaf.strategy_cluster`, leaf-软件实现 | EV-mma-004 | strong | 可作 模式种子（schema_seed） 统计 | 单标签压扁混合系统 |
+| C-mma-04 | RQ2-G 是完整封闭 7-聚类 单标签编码；可派生 create/refine 三分（31.0/43.1/25.9 %）。 | closed_enum + derived | `leaf.goal_cluster`, leaf-create-refine-role | EV-mma-005 | strong | 可作 模式种子（schema_seed） 统计 | G3/G7 单 提案 稀疏 |
+| C-mma-05 | RQ2-L 聚类 总数在原文内部存在 “five (§4.3 prose)” vs “L1–L6 (Table 3)” 冲突，必须保留 `not_verified` 直到 A2a 复核。 | internal_inconsistency | `leaf.limitation_cluster` | EV-mma-005 | weak | 候选发现 不可作 final | 必须 A2a PDF + Zenodo 复核 |
+| C-mma-06 | RQ3-M 聚类 是 3-聚类 TAM-based 单/多标签；M3=4.2 %、NE=48.6 % 是显式 评价 缺口（gap）。 | closed_enum + 缺失性 | leaf-评价-status, `leaf.metric_cluster` | EV-mma-006 | strong | 可作 模式种子（schema_seed） 统计；可作方法学警示 | 不可直接外推 LLM4STM 缺口（gap） 数字 |
+| C-mma-07 | RQ3-U 聚类 是 3-聚类 单标签 + U-NS；U-NS=29.3 %、实践 73.3 %；实践 U-NS 由 第二人称“你” 触发是 §5.2 显式机制。 | closed_enum + 缺失性 + mechanism | `leaf.user_cluster`, leaf-用户-报告方式, leaf-第二人称-hidden | EV-mma-006, 007 | strong | 可作 模式种子（schema_seed） 统计 | 不外推领域比例 |
+| C-mma-08 | 未文档化 ≠ 不存在（GMQ 中 10/17 NF 不能等同“工具没有 assistant”）。 | methodological_caveat | `leaf.documentation_status`, B-效度 | EV-mma-007, 009 | strong | 直接迁移到 Paper2 / Project1 | grey-文献 局限 |
 | C-mma-09 | AI/LLM disruption 与 unified 框架 论述是 future expectation，不是字段统计的 最终发现。 | 候选发现 | §8 论述 | EV-mma-010 | weak | review.md / SUMMARY 只能写 candidate | 与原文 RQ 抽取数据不直接挂钩 |
 | C-mma-10 | 交叉轴（策略×目标×限制；目标×指标×用户；lit vs 实践）是本文 发现 的主要候选来源，但需 PDF 复核 bubble 半径数字。 | relation_发现 | 关系边-* | EV-mma-008 | medium | 可作 候选发现 | bubble 数字 PDF 待核 |
 | C-mma-11 | terminology bias + subjective 聚类 + 数据抽取 K 未算 + 灰色文献 limited to GMQ + English-only：5 条 效度 边界必须随 模式 一起迁移。 | migration_boundary | B-效度 | EV-mma-009 | strong | review.md 迁移边界 + Paper2 启发 | 缓解不等于消除 |
@@ -684,7 +684,7 @@ future work 部分提出将本文 聚类s 与既有 Intelligent Modelling Assist
 
 **Reviewer 自审：本输出最高风险的 3 点 + 主线程合并复核办法：**
 
-1. **§4.3 限制 口径冲突可能让下游错把 6 当作权威**。主线程合并 review.md 时，必须把 ``叶子.limitation_cluster`` 与 EV-mma-005 同时标 `not_verified`，并在 SUMMARY 中给 “限制 聚类 数 5 或 6 待核” 留显式 risk 条目；A2a 必须打开 PDF Table 3 + Zenodo raw CSV 双源核对。
+1. **§4.3 限制 口径冲突可能让下游错把 6 当作权威**。主线程合并 review.md 时，必须把 ``leaf.limitation_cluster`` 与 EV-mma-005 同时标 `not_verified`，并在 SUMMARY 中给 “限制 聚类 数 5 或 6 待核” 留显式 risk 条目；A2a 必须打开 PDF Table 3 + Zenodo raw CSV 双源核对。
 2. **图表数字（Fig. 4/5/6/11/12/13）未做 PDF 视觉核验**。所有 交叉轴 关系边 claim（C-mma-10）目前都基于 §6 文本叙述，bubble 半径未复核；合并时应保留 `needs_visual_check`，不要把 §6 中 “工具↔G5/G6”、“框架↔L5”、“G6↔U1+U3” 等关系直接升级为 strong。
 3. **旧版 review.md 历史草稿与 19×3 旧表与本 v2 审计存在叙事冲突**。合并时必须显式把旧 v1 主树 + 旧 19×3 主树降级为“历史草稿（已迁移）”小节，把本审计 §3 的维度森林作为唯一事实源；否则下游 paper2 reviewer 会同时看到三套相互矛盾的“原文 模式”。
 

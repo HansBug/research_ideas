@@ -148,8 +148,8 @@
 │   └── FDD：1（4%）
 │
 ├── [b-article-type] 研究类型（Table III）
-│   ├── 多案例研究（multiple_case_研究）：6
-│   ├── 单案例研究（single_case_研究）：5
+│   ├── 多案例研究（multiple_case_study）：6
+│   ├── 单案例研究（single_case_study）：5
 │   ├── 经验报告（experience_report）：3
 │   ├── 工具评价（tool_evaluation）：1
 │   ├── 方法评价（method_evaluation）：2
@@ -181,7 +181,7 @@
 
 `★ Insight ─────────────────────────────────────`
 - `解决方案集合 = ∅` 是这份 模式 最值得迁移的设计选择：作者把"未提出解"作为 一等信号而不是缺失。Paper2 维度树的"缺口（gap） 字段"可以直接学这一招——空集是结论，不是 缺失数据。
-- `多案例研究（multiple_case_研究）=6 + 单案例研究（single_case_研究）=5 + 经验报告（experience_report）=3 + tool/method eval=3 ≈ 17/28 = 61%` 与 §V.A 给出的"≈60%"自洽，可作为 A2a 一致性校验锚点之一。
+- `多案例研究（multiple_case_study）=6 + 单案例研究（single_case_study）=5 + 经验报告（experience_report）=3 + tool/method eval=3 ≈ 17/28 = 61%` 与 §V.A 给出的"≈60%"自洽，可作为 A2a 一致性校验锚点之一。
 `─────────────────────────────────────────────────`
 
 ### 4. 叶子维度表
@@ -267,7 +267,7 @@
 | **I-1** | "原文模式主树（19×3 审计后返修）" 表 `叶子 / 取值空间种子` 列 | 当前仍写"B1–B6 或原文 benefit 聚类、数量、示例"等抽象描述 | 升级为**显式封闭枚举**：列出 `{B1 Lower process overheads, B2 Improved requirements 理解, ..., B6 Improved customer relationships}` 与 `{P1..P6}` 全名 + 每个 code 的 研究-id 集合。证据来自 Page 5 Table IV / Page 6 Table V，可直接 text 核验。 |
 | **I-2** | A.2 证据账本 EV-002 / EV-003 | 标 `not_verified` + "待 A2a 精确页码复核" | 升级到 `文本已核验（text_verified）`：原文页码已在 text 中显式出现（Page 3/4/5/6），可在保留"PDF 视觉核验另列"的前提下升级证据强度。 |
 | **I-3** | 维度树缺关系边 | 当前叶子层未显式区分 `attribute` 与 `relation` | 新增 §"关系边表"，纳入 R-benefit-of / R-problem-of / **R-solution-of with ∅-as-发现**。这是本文最强的可迁移点。 |
-| **I-4** | "原文模式候选叶子映射（A1 种子）" | 当前候选叶子全部 `not_verified` | `叶子-orig-problem` 与 `叶子-orig-benefit` 可直接升级为封闭枚举（B1–B6, P1–P6 在 text 中显式列出）；`叶子-orig-solution` 必须改为关系叶子（不是平铺枚举）。 |
+| **I-4** | "原文模式候选叶子映射（A1 种子）" | 当前候选叶子全部 `not_verified` | `leaf-orig-problem` 与 `leaf-orig-benefit` 可直接升级为封闭枚举（B1–B6, P1–P6 在 text 中显式列出）；`leaf-orig-solution` 必须改为关系叶子（不是平铺枚举）。 |
 | **I-5** | SUMMARY 维度（如有）"样本单位/样本数量/原生树类型/统计池资格" | 需复核 | 建议口径：样本单位=原始研究, N=28, 树类型="维度森林+关系边", 主统计池=是（局部可统计）。 |
 | **M-1** | "1. 快速结论卡片" 中 `阅读状态` 写 "已读全文文本-paper_content核验" | 字面正确 | 可补一句"PDF 版面核验未做"以避免读者误判。 |
 | **M-2** | A.4 `cmd-visual-check` `needs_manual_check` | 维持 | 可附"建议核验项清单"：Table I venue 名拼写、Table II/III/IV/V 单元格中 S-id 集合完整性、§III 数字链条精确数。 |
@@ -288,20 +288,20 @@
 | EV-v2-005 | paper_content.txt | §IV.A + Table III | Page 4 | 7 类 article-type 全部计数 | 分类 | 文本已核验（text_verified） | b-article-type | true | 可迁移分类轴 |
 | EV-v2-006 | paper_content.txt | §IV.C + Table IV | Page 4–5 | B1–B6 名称与 研究-id 集合完整 | 分类 + 关系 | 文本已核验（text_verified） | b-benefit, L-benefit-code, L-benefit-studies, R-benefit-of | true (S-id 列对齐) | 仅 Agile RE 领域 |
 | EV-v2-007 | paper_content.txt | §IV.D + Table V | Page 5–6 | P1–P6 名称与 研究-id 集合完整；P3/P4/P6 显式 "未提出解决方案 ... proposed" | 分类 + 关系 + ∅-发现 | 文本已核验（text_verified） | b-problem-solution, R-problem-of, R-solution-of | true (S-id 列对齐) | ∅ 设计可迁移 |
-| EV-v2-008 | paper_content.txt | §V.B | Page 7 blockquote | 作者自造 agile RE 定义 | 候选发现（candidate_发现） | 文本已核验（text_verified） | L-def-author | false | 不可迁移领域结论 |
-| EV-v2-009 | paper_content.txt | §V.A / §V.C / §VI | Page 6–8 | "方法 提案 无评估占 29%"; "P3/P4/P6 缺解"; "需更多实证" | 候选发现（candidate_发现） | 文本已核验（text_verified） | 6.2 候选发现 全部 | false | candidate only |
+| EV-v2-008 | paper_content.txt | §V.B | Page 7 blockquote | 作者自造 agile RE 定义 | 候选发现（candidate_finding） | 文本已核验（text_verified） | L-def-author | false | 不可迁移领域结论 |
+| EV-v2-009 | paper_content.txt | §V.A / §V.C / §VI | Page 6–8 | "方法 提案 无评估占 29%"; "P3/P4/P6 缺解"; "需更多实证" | 候选发现（candidate_finding） | 文本已核验（text_verified） | 6.2 候选发现 全部 | false | candidate only |
 | EV-v2-010 | paper_content.txt | §V.D Limitations | Page 7–8 | "constrained to Scopus ... small set of keywords" | limitation | 文本已核验（text_verified） | L-limit-search, 迁移边界 | false | 威胁 anchor |
 
 #### A.3 结论-证据映射草案
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-v2-01 | 原生树类型为"维度森林 + 关系边"：venue/context/article-type/benefit/problem-solution 五并列主干，其中 problem→solution 为显式关系（含 ∅-as-发现） | 树类型（树_type） | b-* 所有主干 | EV-v2-001..007 | strong (text) | 可作 Paper2 模式 灵感 | 仅本文；N=28 |
+| CLM-v2-01 | 原生树类型为"维度森林 + 关系边"：venue/context/article-type/benefit/problem-solution 五并列主干，其中 problem→solution 为显式关系（含 ∅-as-发现） | 树类型（tree_type） | b-* 所有主干 | EV-v2-001..007 | strong (text) | 可作 Paper2 模式 灵感 | 仅本文；N=28 |
 | CLM-v2-02 | 28 是严格主统计分母；241→187→65→28 链条完整可复现 | 统计池（statistical_pool） | b-语料 | EV-v2-002 | strong | 可作 A2a 主统计起点 | 单库 + 截至 2014.09 |
 | CLM-v2-03 | benefit/problem 是封闭 6 值枚举（B1–B6, P1–P6），每个 code 关联明确 S-id 集合 | 叶子_value_space | L-benefit-code, L-problem-code, R-benefit-of, R-problem-of | EV-v2-006, EV-v2-007 | strong (text) | 可直接做频次/coverage 统计 | 类目是作者主题归并，存在编码者主观 |
-| CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class 发现 而非缺失数据 | 候选发现（candidate_发现） + 模式_design | R-solution-of | EV-v2-007 | strong | 缺口（gap） 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
-| CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是直接可统计的 候选发现 | 候选发现（candidate_发现） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
-| CLM-v2-06 | "agile RE 定义模糊"是 候选发现，不可作 final | 候选发现（candidate_发现） | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |
+| CLM-v2-04 | ∅-solution (P3/P4/P6) 是作者显式声明的"研究空白"，应作 first-class 发现 而非缺失数据 | 候选发现（candidate_finding） + schema_design | R-solution-of | EV-v2-007 | strong | 缺口（gap） 信号 + Paper2 可迁移设计模式 | 仅在 SMS 抽取协议明确"是否提出 solution"时成立 |
+| CLM-v2-05 | "29% 文章是无实证评估的 方法 提案" 是直接可统计的 候选发现 | 候选发现（candidate_finding） | L-art-type | EV-v2-005, EV-v2-009 | medium | 候选发现，需研究者裁决 | 仅本样本 |
+| CLM-v2-06 | "agile RE 定义模糊"是 候选发现，不可作 final | 候选发现（candidate_finding） | L-def-clarity, L-def-author | EV-v2-008 | weak | 仅候选 | 单篇判断 |
 | CLM-v2-07 | 当前 `review.md` 中 B1–B6/P1–P6 仍标 not_verified 与文本证据不符，应升级至 文本已核验（text_verified） | review_repair | review.md "原文模式主树" 段 | EV-v2-006, EV-v2-007 | strong | 直接驱动返修 | 仍待 PDF 版面核验，是另一层级 |
 | CLM-v2-08 | 迁移边界：可迁移 模式 形态（森林+关系+∅-发现+分母链），不可迁移 agile RE 领域结论 | migration_boundary | 根节点 | EV-v2-001..010 | strong | Paper2 模式 设计依据 | 领域绑定 |
 

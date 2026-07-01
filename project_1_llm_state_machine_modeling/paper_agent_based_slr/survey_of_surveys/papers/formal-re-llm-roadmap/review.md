@@ -439,20 +439,20 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 叶子-路线图_direction | 路线图 方向 | 森林根 | §4/§6 章节自述 | 双向中的具体方向 | {LLM→FM, FM→LLM} | 完整枚举（闭） | 不允许缺失 | 不入统计池；二元 boundary 标签 | 用作 Paper2 双向叙事种子 | E2,E4 | 仅迁移“双向 路线图”结构 |
-| 叶子-layer | 可视化层 | Roadmap A/B 内 | §4/§6 Summary 段、Fig.2/4 描述 | 作者定义的 graphical layer | A:{Formal Dev, Conventional Dev, LLM}; B:{Formal, SW Artifact, LLM} | 完整枚举（但 A/B 不同义） | n/a | 不入统计池 | 用作 layer-based 叙事框架 | E6,E7 | A、B 层数同为 3 但语义不同，不能直接合并 |
-| 叶子-action_point | 行动点 | layer 内 | §4/§6 ①~⑤ / ①~⑦ 段 | 作者标号的研究议程项 | A: 5 项已枚举；B: 7 项已枚举（见 §3 节树） | 完整枚举（封闭，但作者声明非穷尽） | 不允许缺失 | 不入统计池；可作 candidate-发现 计数（n=12） | 每条 = 一条 候选发现 种子 | E3,E5 | 必须配 concern + mechanism；不可孤立迁移 |
-| 叶子-concern | 关注 / 痛点 | action_point | 段落内显式 concern 表述 | 行动点 想解决的问题 | 自由文本 + concern_分类法 {可解释性（explainability）, 幻觉（hallucination）, 数学推理（math reasoning）, 提示词歧义（prompt ambiguity）, 领域落地（domain grounding）, 输出一致性（output consistency）, 监管合规（regulatory compliance）, 偏见 / 伦理（bias/ethics）, FM 数据稀缺（FM data scarcity）, 状态空间爆炸（state-space explosion）, …} | 自由文本加 emergent 分类 | 缺失时标 未说明（not stated） | 不入统计池 | 作 Paper2 concern field 种子 | E3,E5,E8 | 部分 concern 在 §7 重述，注意去重 |
-| 叶子-mechanism | 机制 / 干预 | action_point | 段落内 mechanism 描述 | 应对 concern 的形式化或 LLM 机制 | 自由文本 + mechanism_分类法 {RAG, 微调（fine-tuning）, 多智能体（multi-智能体）, 形式化验证（formal verification）, 抽象解释（abstract interpretation）, 运行时验证（runtime verification）, 本体 / 知识图谱（ontology/KG）, 形式化论证（formal argumentation）, 受控自然语言（controlled NL）, ACSL 风格前 / 后置条件（ACSL-style pre/post）, 代码翻译（code-translation）} | 层级枚举（emergent，不封闭） | 缺失时 未说明（not stated） | 不入统计池 | 作 mechanism field 种子 | E3,E5 | 机制粒度不一，A2a 需拆细 |
-| 叶子-artifact_in | 输入制品 | action_point | 段落内提及的输入对象 | LLM/FM 处理的对象 | {自然语言需求（NL req）, 用户故事（user story）, 反馈（feedback）, issue, 代码（code）, 形式化模型（formal 模型）, 逻辑公式（logic formula）, 反例（counterexample）, 领域文档（domain doc）, 法规（regulation）, 伦理原则（ethics principle）} | 完整枚举（emergent） | 缺失时 未说明（not stated） | 不入统计池 | 作 RE 制品 流图种子 | E3,E5 | 与 叶子-artifact_out 配对，构成 transformation 关系 |
-| 叶子-artifact_out | 输出制品 | action_point | 段落内提及的输出对象 | LLM/FM 生成的对象 | {形式化规约（formal spec）, 形式化性质（formal property）, 软件模型（software 模型）, 代码（code）, 追踪链接（trace link）, 分类结果（分类）, 自然语言解释（NL explanation）, 知识图谱（knowledge graph）, 验证结果（verification result）, 运行时监视器（runtime monitor）, 候选需求补全（candidate req completion）} | 完整枚举（emergent） | 缺失时 未说明（not stated） | 不入统计池 | 作 RE 制品 流图种子 | E3,E5 | 同上 |
-| 叶子-action_推荐 | 行动建议 | action_point | "Action Point:" 框 | 作者明文落款的研究建议 | 自由文本 | 自由文本（≈12 条） | 不允许缺失（每个 AP 必有一条） | 不入统计池 | 可作 candidate research action | E3,E5 | 不可直接外推为已验证发现 |
-| 叶子-supporting_refs | 支持文献 | action_point | 段内行内引用 | 作者所举 seminal / preliminary work | 引用列表（参考 §References） | 关系值（指向 BibTeX 编号） | 缺失允许 | 不入统计池 | 可作扩库候选种子（如 [115][118][119][152][159][160][163]） | E3,E5 | 引用 ≠ 系统综述，不能当 证据 base |
-| 叶子-evidence_strength | 证据强度 | action_point | reviewer 评估 | 该 AP 的支撑性质 | {formal_proof, executable_counterexample, expert_定性, worked_example_only, author_opinion} | 完整枚举 | -- | 不入统计池 | 用于 candidate-发现 降级 | E1,E10 | 全部应默认 ≤ worked_example_only / author_opinion |
-| 叶子-llm_task_kind | LLM 任务种类 | Roadmap B / Layer-B3 | §6 Fig.4 Summary 段 | 作者把 LLM-layer 任务二分 | {analytic, generative} | 完整枚举（闭） | n/a | 不入统计池 | 作 Paper2 LLM4RE 任务大类种子 | E9 | 仅适用 Roadmap B；不映射到 Roadmap A |
-| 叶子-practical_consideration | 实践约束类别 | Boundary Forest | §7 子标题 | 作者枚举的实施障碍 | {协作（Collaboration）, 实证评价（Empirical Eval）, 过度依赖（Overreliance）, 人类创造力（Human Creativity）, 基础模型训练数据（FM Training Data）, 制品扩散（Proliferation）, 部署 / 可扩展性 / 技术演进（部署/Scalability/Tech Evol）} | 完整枚举（n=7） | -- | 不入统计池 | 作 Paper2 risk-register 种子 | E8 | 与 叶子-concern 部分重叠，注意去重 |
+| leaf-路线图_direction | 路线图 方向 | 森林根 | §4/§6 章节自述 | 双向中的具体方向 | {LLM→FM, FM→LLM} | 完整枚举（闭） | 不允许缺失 | 不入统计池；二元 boundary 标签 | 用作 Paper2 双向叙事种子 | E2,E4 | 仅迁移“双向 路线图”结构 |
+| leaf-layer | 可视化层 | Roadmap A/B 内 | §4/§6 Summary 段、Fig.2/4 描述 | 作者定义的 graphical layer | A:{Formal Dev, Conventional Dev, LLM}; B:{Formal, SW Artifact, LLM} | 完整枚举（但 A/B 不同义） | n/a | 不入统计池 | 用作 layer-based 叙事框架 | E6,E7 | A、B 层数同为 3 但语义不同，不能直接合并 |
+| leaf-action_point | 行动点 | layer 内 | §4/§6 ①~⑤ / ①~⑦ 段 | 作者标号的研究议程项 | A: 5 项已枚举；B: 7 项已枚举（见 §3 节树） | 完整枚举（封闭，但作者声明非穷尽） | 不允许缺失 | 不入统计池；可作 candidate-发现 计数（n=12） | 每条 = 一条 候选发现 种子 | E3,E5 | 必须配 concern + mechanism；不可孤立迁移 |
+| leaf-concern | 关注 / 痛点 | action_point | 段落内显式 concern 表述 | 行动点 想解决的问题 | 自由文本 + concern_分类法 {可解释性（explainability）, 幻觉（hallucination）, 数学推理（math reasoning）, 提示词歧义（prompt ambiguity）, 领域落地（domain grounding）, 输出一致性（output consistency）, 监管合规（regulatory compliance）, 偏见 / 伦理（bias/ethics）, FM 数据稀缺（FM data scarcity）, 状态空间爆炸（state-space explosion）, …} | 自由文本加 emergent 分类 | 缺失时标 未说明（not stated） | 不入统计池 | 作 Paper2 concern field 种子 | E3,E5,E8 | 部分 concern 在 §7 重述，注意去重 |
+| leaf-mechanism | 机制 / 干预 | action_point | 段落内 mechanism 描述 | 应对 concern 的形式化或 LLM 机制 | 自由文本 + mechanism_分类法 {RAG, 微调（fine-tuning）, 多智能体（multi-智能体）, 形式化验证（formal verification）, 抽象解释（abstract interpretation）, 运行时验证（runtime verification）, 本体 / 知识图谱（ontology/KG）, 形式化论证（formal argumentation）, 受控自然语言（controlled NL）, ACSL 风格前 / 后置条件（ACSL-style pre/post）, 代码翻译（code-translation）} | 层级枚举（emergent，不封闭） | 缺失时 未说明（not stated） | 不入统计池 | 作 mechanism field 种子 | E3,E5 | 机制粒度不一，A2a 需拆细 |
+| leaf-artifact_in | 输入制品 | action_point | 段落内提及的输入对象 | LLM/FM 处理的对象 | {自然语言需求（NL req）, 用户故事（user story）, 反馈（feedback）, issue, 代码（code）, 形式化模型（formal 模型）, 逻辑公式（logic formula）, 反例（counterexample）, 领域文档（domain doc）, 法规（regulation）, 伦理原则（ethics principle）} | 完整枚举（emergent） | 缺失时 未说明（not stated） | 不入统计池 | 作 RE 制品 流图种子 | E3,E5 | 与 leaf-artifact_out 配对，构成 transformation 关系 |
+| leaf-artifact_out | 输出制品 | action_point | 段落内提及的输出对象 | LLM/FM 生成的对象 | {形式化规约（formal spec）, 形式化性质（formal property）, 软件模型（software 模型）, 代码（code）, 追踪链接（trace link）, 分类结果（分类）, 自然语言解释（NL explanation）, 知识图谱（knowledge graph）, 验证结果（verification result）, 运行时监视器（runtime monitor）, 候选需求补全（candidate req completion）} | 完整枚举（emergent） | 缺失时 未说明（not stated） | 不入统计池 | 作 RE 制品 流图种子 | E3,E5 | 同上 |
+| leaf-action_推荐 | 行动建议 | action_point | "Action Point:" 框 | 作者明文落款的研究建议 | 自由文本 | 自由文本（≈12 条） | 不允许缺失（每个 AP 必有一条） | 不入统计池 | 可作 candidate research action | E3,E5 | 不可直接外推为已验证发现 |
+| leaf-supporting_refs | 支持文献 | action_point | 段内行内引用 | 作者所举 seminal / preliminary work | 引用列表（参考 §References） | 关系值（指向 BibTeX 编号） | 缺失允许 | 不入统计池 | 可作扩库候选种子（如 [115][118][119][152][159][160][163]） | E3,E5 | 引用 ≠ 系统综述，不能当 证据 base |
+| leaf-evidence_strength | 证据强度 | action_point | reviewer 评估 | 该 AP 的支撑性质 | {formal_proof, executable_counterexample, expert_定性, worked_example_only, author_opinion} | 完整枚举 | -- | 不入统计池 | 用于 candidate-发现 降级 | E1,E10 | 全部应默认 ≤ worked_example_only / author_opinion |
+| leaf-llm_task_kind | LLM 任务种类 | Roadmap B / Layer-B3 | §6 Fig.4 Summary 段 | 作者把 LLM-layer 任务二分 | {analytic, generative} | 完整枚举（闭） | n/a | 不入统计池 | 作 Paper2 LLM4RE 任务大类种子 | E9 | 仅适用 Roadmap B；不映射到 Roadmap A |
+| leaf-practical_consideration | 实践约束类别 | Boundary Forest | §7 子标题 | 作者枚举的实施障碍 | {协作（Collaboration）, 实证评价（Empirical Eval）, 过度依赖（Overreliance）, 人类创造力（Human Creativity）, 基础模型训练数据（FM Training Data）, 制品扩散（Proliferation）, 部署 / 可扩展性 / 技术演进（部署/Scalability/Tech Evol）} | 完整枚举（n=7） | -- | 不入统计池 | 作 Paper2 risk-register 种子 | E8 | 与 leaf-concern 部分重叠，注意去重 |
 
-> **重要边界**：现 `review.md` 主表中的 6 个 `叶子-formal-re-llm-roadmap-{scope,corpus,分类法,method,evidence,发现}` 是**跨论文通用接口投影**，不是原文叶子；它们正确的位置是后文 “通用接口投影” 小节，不应被当成主原生树。本审计上表 12 个叶子才是原文真实结构的最小复原层。
+> **重要边界**：现 `review.md` 主表中的 6 个 `leaf-formal-re-llm-roadmap-{scope,corpus,分类法,method,evidence,发现}` 是**跨论文通用接口投影**，不是原文叶子；它们正确的位置是后文 “通用接口投影” 小节，不应被当成主原生树。本审计上表 12 个叶子才是原文真实结构的最小复原层。
 
 ### 5. 关系边表
 
@@ -518,7 +518,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
    - 主干 5：Background descriptive 分类法（仅作领域底图）
    - 主干 6：§7 Practical considerations 边界森林（7 项）
 3. **I-3：A.2 证据账本只有 4 行，全部 `not_verified`；至少应将本审计 §1 的 E1/E2/E3/E4/E5/E6/E7/E8/E9/E10 拆为独立证据条目**，并对 E1（愿景 paper 声明）、E10（未使用数据（No data was used））这两条核心边界证据标注 `evidence_strength=verified`（仅基于 paper_content.txt 文本，无需 PDF 版面）。
-4. **I-4：旧版 review.md 把 Section 7 当成“限制”而未结构化为 boundary 森林 主干**（在“3.8 局限与实践考虑”中只做散述）；应在维度树复原节内显式列为 7 个 叶子-practical_consideration，与 叶子-concern 区分开（PC 是 流程 / org / human-side，concern 是 technical-side）。
+4. **I-4：旧版 review.md 把 Section 7 当成“限制”而未结构化为 boundary 森林 主干**（在“3.8 局限与实践考虑”中只做散述）；应在维度树复原节内显式列为 7 个 leaf-practical_consideration，与 leaf-concern 区分开（PC 是 流程 / org / human-side，concern 是 technical-side）。
 
 #### M（minor）— 学术影响低，可后续
 
@@ -541,13 +541,13 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 |---|---|---|---|---|---|---|---|---|---|
 | EV-frelr-001 | paper_content.txt | §1 contributions | Page 2 / 倒数第 2 段 | "this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据… not exhaustive" | type_declaration | 文本已核验（text_verified） | 决定论文类型 = 愿景/路线图；不入统计池 | 否 | 仅锁定类型 |
 | EV-frelr-002 | paper_content.txt | §4 引言 + Fig.2 描述 | "Each discussion topic is associated with a circled number… 5 行动点" | "Fig. 2 summarises and connects the different discussion topics" | structure_claim | 文本已核验（text_verified） | Roadmap A 含 5 AP | 建议（图层标签） | A 与 B 层数同 3 但语义不同 |
-| EV-frelr-003 | paper_content.txt | §4 各 AP 段 | AP-A1..A5 标号段 | 5 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | 叶子-action_point (A) | 否 | 不可外推 |
+| EV-frelr-003 | paper_content.txt | §4 各 AP 段 | AP-A1..A5 标号段 | 5 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | leaf-action_point (A) | 否 | 不可外推 |
 | EV-frelr-004 | paper_content.txt | §6 引言 + Fig.4 描述 | "7 行动点; analytic vs generative tasks" | "structured into three layers" | structure_claim | 文本已核验（text_verified） | Roadmap B 含 7 AP + 任务二分 | 建议 | -- |
-| EV-frelr-005 | paper_content.txt | §6 各 AP 段 | AP-B1..B7 标号段 | 7 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | 叶子-action_point (B) | 否 | -- |
-| EV-frelr-006 | paper_content.txt | §4 Summary | "formal development layer / conventional development layer / LLM layer" | A 三层结构 | layer_enum | 文本已核验（text_verified） | 叶子-layer (A) | 建议（图） | A 三层 ≠ B 三层 |
-| EV-frelr-007 | paper_content.txt | §6 Summary | "formal layer / SW artefact layer / LLM layer" | B 三层结构 | layer_enum | 文本已核验（text_verified） | 叶子-layer (B) | 建议 | -- |
-| EV-frelr-008 | paper_content.txt | §7 章节标题序列 | 7 个 PC 子标题 | Collaboration / Empirical Eval / Overreliance / Human Creativity / FM data / Proliferation / 部署 | pc_enum | 文本已核验（text_verified） | 叶子-practical_consideration | 否 | -- |
-| EV-frelr-009 | paper_content.txt | §6 Fig.4 Summary 段 | "(i) analytic tasks… (ii) generative tasks" | LLM-task 二分 | task_分类法 | 文本已核验（text_verified） | 叶子-llm_task_kind | 否 | 仅 Roadmap B |
+| EV-frelr-005 | paper_content.txt | §6 各 AP 段 | AP-B1..B7 标号段 | 7 个 行动点 名称完整枚举 | action_point_enum | 文本已核验（text_verified） | leaf-action_point (B) | 否 | -- |
+| EV-frelr-006 | paper_content.txt | §4 Summary | "formal development layer / conventional development layer / LLM layer" | A 三层结构 | layer_enum | 文本已核验（text_verified） | leaf-layer (A) | 建议（图） | A 三层 ≠ B 三层 |
+| EV-frelr-007 | paper_content.txt | §6 Summary | "formal layer / SW artefact layer / LLM layer" | B 三层结构 | layer_enum | 文本已核验（text_verified） | leaf-layer (B) | 建议 | -- |
+| EV-frelr-008 | paper_content.txt | §7 章节标题序列 | 7 个 PC 子标题 | Collaboration / Empirical Eval / Overreliance / Human Creativity / FM data / Proliferation / 部署 | pc_enum | 文本已核验（text_verified） | leaf-practical_consideration | 否 | -- |
+| EV-frelr-009 | paper_content.txt | §6 Fig.4 Summary 段 | "(i) analytic tasks… (ii) generative tasks" | LLM-task 二分 | task_分类法 | 文本已核验（text_verified） | leaf-llm_task_kind | 否 | 仅 Roadmap B |
 | EV-frelr-010 | paper_content.txt | §数据可获得性（Data 可获得性） | "No data was used for the research described in the article."（即未使用数据） | declaration | dataset_claim | 文本已核验（text_verified） | 不入统计池的硬证据 | 否 | -- |
 | EV-frelr-011 | paper_content.txt | §2.2 formal 模型 | LTS/FSM/Büchi/TA/状态图（Statecharts）/PN 等 | descriptive 分类法 | background_分类法 | 文本已核验（text_verified） | bg-tax | 否 | 仅做描述底图 |
 | EV-frelr-012 | paper_content.txt | §5 题序 | 8 个 LLM4RE task demos | task family hints | example_分类法 | 文本已核验（text_verified） | candidate task seeds | 否 | ChatGPT 3.5 output 经作者调整 |
@@ -557,14 +557,14 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-frelr-T01 | 本文原生维度结构为“双根 路线图 森林 + 边界森林”，不是单维度树，也不是基于样本编码的 分类法 | 树类型（树_type） | 森林根 | EV-frelr-001/002/004/008 | medium | 边界锚点（boundary_anchor） + 模式种子（模式_seed） | 仅本文；不可外推 |
-| C-frelr-T02 | Roadmap A 严格含 5 个 行动点；Roadmap B 严格含 7 个 行动点；§7 严格含 7 项 practical consideration | 叶子_enum | 叶子-action_point, 叶子-practical_consideration | EV-frelr-003/005/008 | strong（在文本范围内） | 候选发现 计数种子（n=5/7/7） | 作者声明 路线图 “非穷尽” |
-| C-frelr-T03 | 三层视图存在但 A 与 B 的层语义不同（A: Formal Dev / Conv Dev / LLM；B: Formal / SW Artifact / LLM），不能直接合并 | semantics_warning | 叶子-layer | EV-frelr-006/007 | medium | 避免 模式 误并 | -- |
+| C-frelr-T01 | 本文原生维度结构为“双根 路线图 森林 + 边界森林”，不是单维度树，也不是基于样本编码的 分类法 | 树类型（tree_type） | 森林根 | EV-frelr-001/002/004/008 | medium | 边界锚点（boundary_anchor） + 模式种子（schema_seed） | 仅本文；不可外推 |
+| C-frelr-T02 | Roadmap A 严格含 5 个 行动点；Roadmap B 严格含 7 个 行动点；§7 严格含 7 项 practical consideration | 叶子_enum | leaf-action_point, leaf-practical_consideration | EV-frelr-003/005/008 | strong（在文本范围内） | 候选发现 计数种子（n=5/7/7） | 作者声明 路线图 “非穷尽” |
+| C-frelr-T03 | 三层视图存在但 A 与 B 的层语义不同（A: Formal Dev / Conv Dev / LLM；B: Formal / SW Artifact / LLM），不能直接合并 | semantics_warning | leaf-layer | EV-frelr-006/007 | medium | 避免 模式 误并 | -- |
 | C-frelr-T04 | 本文不入主统计池（愿景/路线图；无系统检索 / 纳排 / 质量评价 / 数据综合；"未使用数据（No data was used）") | pool_exclusion | 森林根 | EV-frelr-001, EV-frelr-010 | strong | 边界锚点（boundary_anchor） | -- |
-| C-frelr-T05 | 每个 行动点 可拆解为 6 子字段（concern / mechanism / artifact_in / artifact_out / action_推荐 / supporting_refs），是 Paper2 candidate-发现 表的字段种子 | 模式种子（模式_seed） | 12 叶子 表 §4 | EV-frelr-003/005 | weak（基于段落归纳） | 模式种子 only | 字段是 reviewer 归纳，非作者显式 模式 |
-| C-frelr-T06 | LLM 任务可二分为 analytic / generative，可作 Paper2 LLM4RE 任务大类种子 | 叶子_definition | 叶子-llm_task_kind | EV-frelr-009 | weak | candidate heuristic | 仅 Roadmap B Fig.4 范围 |
+| C-frelr-T05 | 每个 行动点 可拆解为 6 子字段（concern / mechanism / artifact_in / artifact_out / action_推荐 / supporting_refs），是 Paper2 candidate-发现 表的字段种子 | 模式种子（schema_seed） | 12 叶子 表 §4 | EV-frelr-003/005 | weak（基于段落归纳） | 模式种子 only | 字段是 reviewer 归纳，非作者显式 模式 |
+| C-frelr-T06 | LLM 任务可二分为 analytic / generative，可作 Paper2 LLM4RE 任务大类种子 | 叶子_definition | leaf-llm_task_kind | EV-frelr-009 | weak | candidate heuristic | 仅 Roadmap B Fig.4 范围 |
 | C-frelr-T07 | §2 background 分类法 可作 LLM4STM 领域底图，但不可作为 LLM4STM 综述的工具 / 模型分类事实源 | migration_boundary | bg-tax | EV-frelr-011 | weak | terminology seed | 非编码模式 |
-| C-frelr-T08 | §7 的 7 项 practical consideration 可直接迁入 Paper2 risk register（overreliance、经验研究（empirical） eval 难题、制品 proliferation 与 project_1 高度对齐） | candidate_heuristic | 叶子-practical_consideration | EV-frelr-008 | medium | risk register seed | -- |
+| C-frelr-T08 | §7 的 7 项 practical consideration 可直接迁入 Paper2 risk register（overreliance、经验研究（empirical） eval 难题、制品 proliferation 与 project_1 高度对齐） | candidate_heuristic | leaf-practical_consideration | EV-frelr-008 | medium | risk register seed | -- |
 | C-frelr-T09 | review.md 当前主表把 6 个跨论文通用接口叶冒充原生主树，需要降级到“通用接口投影”子节，由本审计 §4 的 12 叶原生表替代 | review_repair | review.md §维度树复原 | EV-frelr-002/004/008 | strong | I 级返修 | -- |
 
 ### 9. 技能使用与自我审查记录
@@ -580,7 +580,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | ARS reviewer plugin（系统已加载） | ✓（仅元数据） | 不调用，遵守任务 §0 不启动 subagent 的硬约束 |
 
 #### 9.2 reviewer 视角的最高风险 3 点（主线程合并时务必复核）
-1. **R-1（高）**：本审计未打开 `paper.pdf`。Fig. 2 / Fig. 4 的“三层”、AP 编号位置、boxed Action Point 文本是否与文本完全一致，**仍需主线程或 A2a 用 PDF 版面核验**。若 PDF 标签与文本叙述差异（例如图层重命名、AP 顺序调整），上表 叶子-layer 与 叶子-action_point 的枚举可能需要微调。
+1. **R-1（高）**：本审计未打开 `paper.pdf`。Fig. 2 / Fig. 4 的“三层”、AP 编号位置、boxed Action Point 文本是否与文本完全一致，**仍需主线程或 A2a 用 PDF 版面核验**。若 PDF 标签与文本叙述差异（例如图层重命名、AP 顺序调整），上表 leaf-layer 与 leaf-action_point 的枚举可能需要微调。
 2. **R-2（中）**：每条 行动点 的 concern / mechanism / 制品 子字段，是 reviewer 在通读段落后归纳的“准 模式”，不是作者显式列出的字段。主线程在重写 review.md 时应在叶子表里**显式标注** `inferred_by_reviewer=true`，并把这部分提取动作正式委派给 A2a 精核。
 3. **R-3（中）**：候选发现（CF-1..CF-9）只是 candidate；它们在 愿景 paper 内只有 author-opinion 级强度，但易被下游 LLM 智能体 误升级为 “研究共识”。主线程应在 Paper2 的 candidate-发现 库中对每条 CF 标注 `evidence_strength=author_opinion`，并要求 Paper2 提供独立证据反复验证后才能升级。
 

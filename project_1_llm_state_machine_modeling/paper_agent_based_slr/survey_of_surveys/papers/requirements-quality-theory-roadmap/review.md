@@ -328,7 +328,7 @@ roadmap_stream
 | 被编码样本单位 | 原始研究（来自 Frattini et al. 2022 质量因素本体（质量-factor ontology） 的 requirements 质量 一手研究文献） |
 | 样本数量 / 分母 | n = 57 publications（§4.1）；分子分母 17/57、24/57、14/57、8/57、9/57、5/57 以及 19/40、11/40、10/40、37/40、32/40（impact-已报告 子集为 40） |
 | 原生树类型 | **维度森林（森林）**：树 A = RQT 概念元模型（11 concepts, Fig.2/Table 1）；树 B = §4 抽取 编码本（把 11 concepts 转为 categorical variables + 代码）；树 C = §5 路线图 streams（6 streams）。**真正的样本编码树是 B**。 |
-| 主统计池资格 | **局部可统计 / 不进入 SLR/SMS 主统计池**：内部 57 篇编码有可统计分母与 代码；但样本来自先前研究的 convenience sample，作者自陈非饱和，且整体是 viewpoint/commentary，对 Paper2 而言仅作 `模式种子（模式_seed） / 边界锚点（boundary_anchor）` |
+| 主统计池资格 | **局部可统计 / 不进入 SLR/SMS 主统计池**：内部 57 篇编码有可统计分母与 代码；但样本来自先前研究的 convenience sample，作者自陈非饱和，且整体是 viewpoint/commentary，对 Paper2 而言仅作 `模式种子（schema_seed） / 边界锚点（boundary_anchor）` |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ---
@@ -338,7 +338,7 @@ roadmap_stream
 实际读取的本地文件与覆盖范围：
 
 1. `bibtex.bib` 完整 — 锁定 Frattini et al. 2023, *Requirements Engineering* 28(4):507–520, DOI 10.1007/s00766-023-00405-y。
-2. `metadata.json` 完整 — 已知 `eligible_for_statistical_synthesis: false`、`evidence_role: theory_路线图_模式_seed`（理论路线图模式种子）、`systematic_evidence_status: non_systematic_or_boundary_anchor`，与本审计判定一致。
+2. `metadata.json` 完整 — 已知 `eligible_for_statistical_synthesis: false`、`evidence_role: theory_roadmap_schema_seed`（理论路线图模式种子）、`systematic_evidence_status: non_systematic_or_boundary_anchor`，与本审计判定一致。
 3. `paper_content.txt` 通读 Page 1–14 全文，含摘要、§1–§6、References。
 4. `paper.pdf` 未在本轮打开（Fig. 2 RQT 概念图、Fig. 3 example 实例化、Fig. 4 代码 分布柱状、Fig. 5 工具 architecture、Table 1 concept origins 留待 A2a 版面核验）。
 5. `review.md` 完整阅读（含 §1–§7 与"维度树复原"与 A.1–A.4 附录）。
@@ -380,7 +380,7 @@ roadmap_stream
 **部分降级**：
 - 该文不是新做的 SLR/SMS，而是 viewpoint + 内部 survey + 路线图。
 - 但它有真实样本（n=57）、有 编码本、有 reliability、有 descriptive statistics。
-- 对本文自身而言：可作内部统计；对 Paper2 而言：仅作 `模式种子（模式_seed） / methodological_seed / 边界锚点（boundary_anchor）`，不进入跨论文 SLR/SMS 主统计池。这与 metadata.json `eligible_for_statistical_synthesis: false` 一致。
+- 对本文自身而言：可作内部统计；对 Paper2 而言：仅作 `模式种子（schema_seed） / methodological_seed / 边界锚点（boundary_anchor）`，不进入跨论文 SLR/SMS 主统计池。这与 metadata.json `eligible_for_statistical_synthesis: false` 一致。
 
 ---
 
@@ -586,7 +586,7 @@ roadmap_stream
 |---|---|---|---|
 | **C** | "维度树复原" → "原文模式主树（19×3 审计后返修）" | 仅 6 行抽象主干（construct / rqt / 证据-base / coding / 路线图 / boundary），没把 §4 编码本 的 11 concept × 各自 代码 列为叶子；与 metadata.json 已记录的 57 篇分母、§4.3 多条数字脱节。 | 把当前第 3 节的**叶子维度表 17 行**直接落入 review.md，作为"原文模式主树（B 树：sample coding 编码本）"事实源；保留树 A（RQT 概念）与树 C（路线图 streams）为独立子树；保留通用六叶接口为投影 |
 | **C** | "维度树复原" 缺关系边表 | A1-DT v2 模式 要求显式列出关系边，本文 RQT 是关系型理论，必须列。 | 落入本审计第 5 节的 10 条关系边 R1–R10 |
-| **I** | §1 快速结论卡片 / "维度树复原" → 一句话结论 | 当前写"不进入主统计池"过早一刀切；实际上 57 篇内部统计对 Paper2 是 模式种子（模式_seed） 可参考。 | 改为"内部 n=57 可作 模式种子（模式_seed） / 局部可统计观察；不进入 Paper2 跨论文 SLR/SMS 主统计池" |
+| **I** | §1 快速结论卡片 / "维度树复原" → 一句话结论 | 当前写"不进入主统计池"过早一刀切；实际上 57 篇内部统计对 Paper2 是 模式种子（schema_seed） 可参考。 | 改为"内部 n=57 可作 模式种子（schema_seed） / 局部可统计观察；不进入 Paper2 跨论文 SLR/SMS 主统计池" |
 | **I** | "原文模式候选叶子映射（A1 种子）" | 5 行候选叶（质量-construct / theory-模型 / 评价-方法 / 路线图-question / boundary）名称泛、与本文实际 代码 不对应，掩盖了 §4 真实 编码本 的存在。 | 用 17 个 `B.*` 叶替换；保留 5 行旧候选叶作为"已迁移历史草稿，不作事实真源"形式归档 |
 | **I** | A.2 证据账本 | 只列 4 行宏观证据（根节点/分类法/stat/risk），全部 `not_verified`；漏掉 Page 7 §4.2 编码本 锚点（最关键的一条）与 Page 8 数字锚点（11 条）。 | 至少新增：EV-…-005 `§4.2 codebook 设计`、EV-…-006 `§4.3 17 个分子分母数字`、EV-…-007 `reliability metrics 83.3/54.2/76.8`、EV-…-008 `§5 路线图 6 streams`、EV-…-009 `Fig. 2 关系图（待 PDF 核验）` |
 | **I** | A.3 结论-证据映射 | C04 `分类法` 等结论目前仅指向 EV-002 单一证据；与新增 编码本 / numerical / reliability 证据无映射。 | 在 C04–C07 上补 EV-005/006/007 引用；新增 C10 = "57 篇 编码本 + reliability 构成本文内部可统计基线但 convenience sampling 限制外推" |
@@ -608,7 +608,7 @@ SUMMARY 当前表中字段是否需修正：
 | EV-rqtr-005 | paper_content.txt | §4.2 Study design | Page 7 段 "we maintained two 制品… 抽取 指南 based on the RQT concepts" | "Each concept of the RQT was associated with one or more categorical variables… containing a set of 代码 that represented if and how the concept was 已报告" | codebook_design | confirmed_text | 树 B 全部 17 个 `B.*` 叶 + 父节点 | 否（文本明确） | 仅本文 编码本；具体 代码 完整集合需 Zenodo 8167598 核验 |
 | EV-rqtr-006 | paper_content.txt | §4.3 Study results | Page 8 整段含 24/57、17/57、14/57、40/57、37/40、8/57、19/40、11/40、10/40、24.6%、9/57、5/57 | "24/57 = 42.1% implicit"、"17/57 N/A"、"14/57 智能体"、"37/40 ad hoc"、"8/57 attributes"、"假设性19/40, 归纳式11/40, 引用式10/40"、"product-related 14/57 = 24.6%"、"cost 9/57"、"resource 5/57" | numerical_distribution | confirmed_text | `B.entity.explicitness` / `B.agent.presence` / `B.activity.*` / `B.attribute.presence` / `B.impact.*` / `B.context_factor.sub_category` / `B.cost.presence` / `B.resource.presence` | 是（Fig. 4 柱状对照） | 仅 57 篇 convenience sample；不可跨域外推 |
 | EV-rqtr-007 | paper_content.txt | §4.2 Reliability | Page 7–8 "task overlap achieved… 83.3%… Cohen's Kappa 54.2%… S-Score 76.8%" | 同左 | reliability_metric | confirmed_text | 整个 编码本 与 §4.3 结果的可信度边界 | 否 | Cohen's κ 在 uneven marginal 下不可靠，故作者引入 S-Score |
-| EV-rqtr-008 | paper_content.txt | §5 Roadmap | Page 9–11 §5.1–§5.6 标题与正文 | "1. 制品与使用模型（Artifact and usage model） … 2. Taxonomy of 质量 factors … 3. 影响框架（impact framework） … 4. Context factors … 5. 经济影响（Economic impact） … 6. 工具支持（tool support）" | 路线图_action | confirmed_text | 树 C 6 streams | 否 | 候选发现，不可作 最终发现 |
+| EV-rqtr-008 | paper_content.txt | §5 Roadmap | Page 9–11 §5.1–§5.6 标题与正文 | "1. 制品与使用模型（Artifact and usage model） … 2. Taxonomy of 质量 factors … 3. 影响框架（impact framework） … 4. Context factors … 5. 经济影响（Economic impact） … 6. 工具支持（tool support）" | roadmap_action | confirmed_text | 树 C 6 streams | 否 | 候选发现，不可作 最终发现 |
 | EV-rqtr-009 | paper.pdf | §3 Fig. 2 + Table 1 | Page 4–5 概念关系图与 Table 1 origin 列 | RQT 11 concepts 与 origin 引用 | concept_model | needs_visual_check | 树 A 11 concepts + R1–R10 关系边 | 是 | 仅本文 RQT；不可套用至 SLR/SMS |
 | EV-rqtr-010 | paper_content.txt | §4.5 Threats | Page 9–10 internal / construct / external 效度 段落 | "non-经验研究（empirical） work could contribute theoretical 证据"、"convenience sampling"、"limited to 经验研究（empirical） contributions" | validity_boundary | confirmed_text | 整个森林的外推限制 | 否 | 不可在本文样本外推普适规律 |
 | EV-rqtr-011 | metadata.json + paper_content.txt | §4.1 + 复现包 footnote | Page 7 + footnote 1 | Zenodo DOI 10.5281/zenodo.8167598 | replication_asset | not_verified | `B.impact.generality` / `B.impact.frame_of_reference` / 实体事实 / 活动事实 / context sub-类别 完整取值空间 | 是（Zenodo 访问） | 未核验前 A2a 不得宣称 代码 集合饱和 |
@@ -620,8 +620,8 @@ SUMMARY 当前表中字段是否需修正：
 | C10 | 本文样本编码维度树（树 B）由 11 个 RQT 概念关联的 categorical variables + 代码 组成，并已通过 inter-rater reliability 验证；构成 Paper2 可借鉴的 编码本 设计先例 | codebook_seed | 树 B（17 叶） | EV-rqtr-005, EV-rqtr-006, EV-rqtr-007 | medium（文本级 confirmed，PDF/Zenodo 仍需核） | Paper2 §Method 编码本 design 设计参考；不作 最终发现 | 取值空间在 Zenodo 核验前不饱和 |
 | C11 | 本文报告的 17 个分子/分母均在 n=57 convenience sample 内有效；跨 RE 领域、跨综述类型不可外推 | local_statistic | `B.*.presence` 与频次叶 | EV-rqtr-006, EV-rqtr-010 | medium | Paper2 中作为 "RE 领域 证据 不足" 的脚手架引用 | 不可作 Paper2 跨论文统计 |
 | C12 | RQT 11 concepts + 10 关系边（R1–R10）共同构成一个关系型理论树；本文 编码本 实际只编码节点存在与几类属性，未编码关系边的具体取值 | model_vs_codebook_缺口（gap） | 树 A 与树 B 的对应 | EV-rqtr-005, EV-rqtr-009 | medium | 提示 Paper2：meta-模型 关系边也需 编码本 化才能统计 | 编码本 未覆盖关系层 |
-| C13 | 树 C 6 streams 仅为 候选发现；路线图 行动尚未被本文实证 | 候选发现（candidate_发现） | 树 C | EV-rqtr-008, EV-rqtr-010 | weak | 仅作 future work 启发 | 不可作已验证方案引用 |
-| C14 | 复现包（Zenodo 8167598）与 rqt-工具（GitHub Julian Frattini/rqt-工具）是 A2a 必访资产；未访问前 `B.影响普遍性（stable id: B.impact.generality） / frame_of_reference / entity_fact / activity_fact / context.sub_category` 取值空间为 模式种子（模式_seed） | a2a_blocker | 上述 5 叶 | EV-rqtr-011 | weak | A2a 入口 | 资产可能已更新或下线 |
+| C13 | 树 C 6 streams 仅为 候选发现；路线图 行动尚未被本文实证 | 候选发现（candidate_finding） | 树 C | EV-rqtr-008, EV-rqtr-010 | weak | 仅作 future work 启发 | 不可作已验证方案引用 |
+| C14 | 复现包（Zenodo 8167598）与 rqt-工具（GitHub Julian Frattini/rqt-工具）是 A2a 必访资产；未访问前 `B.影响普遍性（stable id: B.impact.generality） / frame_of_reference / entity_fact / activity_fact / context.sub_category` 取值空间为 模式种子（schema_seed） | a2a_blocker | 上述 5 叶 | EV-rqtr-011 | weak | A2a 入口 | 资产可能已更新或下线 |
 
 ---
 

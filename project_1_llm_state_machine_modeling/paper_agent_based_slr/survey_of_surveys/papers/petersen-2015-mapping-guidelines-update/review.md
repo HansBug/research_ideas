@@ -321,12 +321,12 @@
 | 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
 | R01 研究↦指南 | 原始研究 | 采纳 | 已采纳指南集合 | 10 项 (L02) 子集 | 0=未声明 | Table B.17 | 频次 + 共现统计（52 篇中 24 篇使用超过 1 个指南） |
-| R02 研究↦area | primary_研究 | covers | area_in_se | SWEBOK 11 类 (L01) | 必填 | Table B.15 | 主题分布；缺口（gap） 识别 |
-| R03 研究↦venue | primary_研究 | published_in | venue_分类 | Fig.18 4 级层级 | 必填 | Tables 4, B.16 | venue 集中度；top-3 = IST(14), EASE(8), ESEM(4) |
-| R04 研究↦search_strategy | primary_研究 | uses | search_strategy | L03 子集 | 必填 | Table B.18 | -- |
-| R05 研究↦topic_indep_facet | primary_研究 | classified_by | topic_independent_切面（facets） | L09 子集 | 可空 | Table B.24 | facet 选择模式 |
+| R02 研究↦area | primary_study | covers | area_in_se | SWEBOK 11 类 (L01) | 必填 | Table B.15 | 主题分布；缺口（gap） 识别 |
+| R03 研究↦venue | primary_study | published_in | venue_分类 | Fig.18 4 级层级 | 必填 | Tables 4, B.16 | venue 集中度；top-3 = IST(14), EASE(8), ESEM(4) |
+| R04 研究↦search_strategy | primary_study | uses | search_strategy | L03 子集 | 必填 | Table B.18 | -- |
+| R05 研究↦topic_indep_facet | primary_study | classified_by | topic_independent_切面（facets） | L09 子集 | 可空 | Table B.24 | facet 选择模式 |
 | R06 research_method↦research_type | research_method | 归属 | {验证, 评价, both} | Fig.19 双向映射 | -- | Fig.19, §5.1.3 | **模式 内在约束**：可用作 Paper2 自动一致性检查 |
-| R07 研究↦rubric_action | primary_研究 | applied | rubric_action (26 items) | 0/1 (Table 8 形态) | -- | Table 8 + Table 14 | 给出 质量 ratio |
+| R07 研究↦rubric_action | primary_study | applied | rubric_action (26 items) | 0/1 (Table 8 形态) | -- | Table 8 + Table 14 | 给出 质量 ratio |
 | R08 指南↦activity | 指南 (10 项) | covers | activity (Table 5 中 30+ activities) | {✓, ✗} | -- | Table 5 | 指南 完整度对比矩阵 (本文核心贡献之一) |
 | R09 inc/excl decision | reviewer pair (R1, R2) | combines_to | decision_state | {A, B, C, D, E, F} via Table 6 | -- | Table 6 | 决策规则代数 |
 | R10 research_type decision | 研究 traits | maps_to | research_type | Table 7 R1..R6 真值表 | 真值表覆盖全部组合 | Table 7 | **完整布尔真值表 模式**, A2a 可直接复用 |
@@ -366,7 +366,7 @@
 1. **数据抽取表绑定 RQ**（Table 3 列 `RQ`）——Paper2 的 LLM-智能体 抽取 form 也应让每个字段标注 owner RQ，便于回溯。
 2. **真值决策表分类**（Table 7）——比简单 free-form prompt 更可靠；适合 LLM 智能体 + post-hoc rule check 二级验证。
 3. **模式 内在关系约束**（R06: research_method↔research_type）——可作为 Paper2 自动一致性 guard。
-4. **多 指南 比较矩阵**（Table 5）——审计同一 task 上不同 指南 的覆盖差异，是 模式种子（模式_seed） 反向产生新维度的方法学样板。
+4. **多 指南 比较矩阵**（Table 5）——审计同一 task 上不同 指南 的覆盖差异，是 模式种子（schema_seed） 反向产生新维度的方法学样板。
 5. **Quality rubric 有序 scale**（Tables 9–13）——给出 0/1/2/3 的精确分级描述（"None / Min / Partial / Full"），可迁移作 LLM-judge 有序 rubric 模板。
 6. **报告结构标准化**（§5.3）——Paper2 在 SUMMARY.md / desc.md 中应固定 sub-sections，便于跨论文比较。
 
@@ -384,7 +384,7 @@
 | # | 问题 | 建议 |
 |---|---|---|
 | C1 | A1-DT v2 "维度树结构"（review.md line 203–216）仍以单棵树呈现，把 5 个主干强制压成 b1..b5（planning/conducting/报告方式/质量量规/topic-indep dim），实际原文是**4 棵独立树的森林**（抽取 form / 分类切面（分类 facet） / 流程+rubric / 效度），合并破坏 模式 语义。 | 改写为 §3 所示**维度森林**结构，每棵树独立列叶子；标注它们的服务对象不同（编码自己 52 篇 vs. 向后续 研究 推荐）。 |
-| C2 | 叶子维度表（review.md line 218–227）的六个 `叶子-*` 仍是通用六叶（scope/语料/分类法/方法/证据/发现），未升级 Table 3 的 12 个 抽取 items、Fig.12 的 5 个 切面（facets）、Tables 9–13 的 4+1 有序 rubric 为真正的叶子。 | 用本审计 §4 的 14 个叶子（L01..L14）替换通用六叶；明确每个叶子的取值空间类型（封闭枚举 / 真值表 / 有序 / 多选）。 |
+| C2 | 叶子维度表（review.md line 218–227）的六个 `leaf-*` 仍是通用六叶（scope/语料/分类法/方法/证据/发现），未升级 Table 3 的 12 个 抽取 items、Fig.12 的 5 个 切面（facets）、Tables 9–13 的 4+1 有序 rubric 为真正的叶子。 | 用本审计 §4 的 14 个叶子（L01..L14）替换通用六叶；明确每个叶子的取值空间类型（封闭枚举 / 真值表 / 有序 / 多选）。 |
 | C3 | A.2 证据账本（EV-001..004）证据强度全部 `not_verified`。但 Table 3、Table 7、Tables 9–13、Tables B.15–B.27 都是**已在 paper_content.txt 中直接可见的封闭枚举与频次表**，证据强度应升级为 `local_文本已核验（text_verified）`（仅 Fig.1 数字链、Fig.16 partition 图等需 PDF 视觉核验保留 `not_verified`）。 | 把 EV 拆为 ≥6 条，分别绑到 Table 3 / Table 5 / Table 7 / Tables 8–13 / Tables B.15–B.27 / §3.6 效度；其中 Table B.15–B.27 + Table 3 + Table 7 升级为 `verified` 或 `local_文本已核验（text_verified）`。 |
 | C4 | "原文模式主树（19×3 审计后返修）"（review.md line 249–258）的叶子仍是抽象短语（"field list、map metadata"），未列具体字段名。 | 在该表 "叶子 / 取值空间种子" 列直接写出具体字段名与取值空间，如 `T1.抽取_form: {研究_id:int, year:[2007..2012], 指南: multi∈{10 closed labels}, search_type:{manual|auto|both}, ...}`。 |
 
@@ -426,7 +426,7 @@
 
 | ID | 结论 | 类型 | 支撑对象 | 支撑证据 | 反证/限制 | 强度 | 允许用途 |
 |---|---|---|---|---|---|---|---|
-| C01 | 本文是 **维度森林**（4 棵独立树），不是单一维度树。 | 树类型（树_type） | FOREST-ROOT | EV-001, EV-002, EV-003, EV-005, EV-008 | 4 棵树是审计判断；作者未显式声明"森林"。 | strong | A1-DT v2 主结构定锚 |
+| C01 | 本文是 **维度森林**（4 棵独立树），不是单一维度树。 | 树类型（tree_type） | FOREST-ROOT | EV-001, EV-002, EV-003, EV-005, EV-008 | 4 棵树是审计判断；作者未显式声明"森林"。 | strong | A1-DT v2 主结构定锚 |
 | C02 | 样本单位 = SE 系统映射研究；分母=52；统计池资格 = 方法学池 yes。 | 样本单位（sample_unit） | T1, R01–R05 | EV-007, EV-009 | -- | strong | SUMMARY 总表更新 |
 | C03 | Table 3 抽取 form 的 12 字段可直接迁移作 Paper2 LLM-智能体 抽取 模式 模板。 | migration_seed | T1, L01–L05, L12 | EV-002 | 字段须重命名以适应现代 SE/LLM 主题；SWEBOK 需替换。 | strong | Paper2 §方法 设计 |
 | C04 | Table 7 research-type 真值表是 A1-DT v2 罕见的"完整布尔真值表 模式 证据"，可作为 Paper2 LLM-judge 后验规则 layer。 | migration_seed | L10, R10 | EV-004 | 仅适于 research_type 单 facet；其他 facet 需自行设计真值表。 | strong | Paper2 §方法 设计 |
@@ -447,7 +447,7 @@
 | `ai-research-writing-skill/references/reviewer-guidelines.md` | 全文（112 lines） | 用 Universal Review Dimensions 5 维（Originality, Quality, Clarity, Significance, Reproducibility）评估旧版 review.md 的可信度；用 "constructive specificity" 标准产出 C/I/M 建议时给出 file:line 锚点。 |
 | `ai-research-writing-skill/references/reviewer-self-review.md` | 全文（223 lines） | 用 "Claim Audit" 模板检查 review.md 中"维度树主类型"等结论的证据强度；用 "Adversarial Questions" 检查是否把投影误读为原文（特别是 "Could a reviewer say... has been done before?"）。 |
 | `research-planning/SKILL.md` | 全文（77 lines） | 按 "Flag ambiguities explicitly rather than making assumptions" 原则——本审计明确把 Fig.1 数字链等 PDF 视觉项标为 `not_verified`，不脑补分母。 |
-| `research-planning/references/planning-prompts.md` | line 1–80 | Paper2Code 4-turn 思路用于组织 §3 维度森林的层级展开（先 overall, 再 architecture, 再 logic, 再 叶子-level）。 |
+| `research-planning/references/planning-prompts.md` | line 1–80 | Paper2Code 4-turn 思路用于组织 §3 维度森林的层级展开（先 overall, 再 architecture, 再 logic, 再 leaf-level）。 |
 | `research-planning/references/output-schemas.md` | line 1–80 | 采用 JSON-模式-like 思路把每个 叶子 显式标注 `取值空间类型`。 |
 | `oh-my-codex/autoresearch/SKILL.md` | 全文（70 lines） | 借用 "completion 制品 contract" 思路——本审计的最终交付物 = self-contained Markdown 报告，符合 制品-gated 完成标准。 |
 

@@ -182,27 +182,27 @@
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现 用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 叶子-orig-source | 来源（期刊/会议） | L1.1 | §2.5 抽取项 1；Table 2 | 论文发表的期刊或会议简称 | IST, JSS, TSE, IEEE SW, CACM, ACM Sur, TOSEM, SPE, EMSE, IET SW, ICSE, Metrics, ISESE + "Conf+期刊" 组合 | 封闭枚举（受 Table 1 限定） | 跨期刊/会议时记为 `Conf+期刊` 双值 | 已用于 §4.1 的来源分布统计 | "IST 鼓励 SLR 失败" 候选 | E03, E07 | 仅适用于 2004--2007 SE 期刊会议；不可外推现代 OA 期刊 |
-| 叶子-orig-year | 发表年份 | L1.3 | Table 2 col "Date" | 论文发表年份（重复版本写双年） | 2004 / 2005 / 2006 / 2007 / "2005&2006" | 数值 + 关系值（双版本） | 单一年值即可 | 已用于 Table 4 年×质量分均值 | "每年 SLR 数量稳定" 候选 | E07 | 时间窗外不适用 |
-| 叶子-orig-article-type | 文献类型 | L2.1 | §2.5；Table 2 col "Article type" | 二次研究 子类型 | SLR / MA | 完整枚举 | 必填 | 已用于 §4.1 「19 SLR + 1 MA」 | -- | E07 | 现代分类可能区分 SMS / MLR / rapid review |
-| 叶子-orig-scope | 研究范围类型 | L2.2 | §2.5；Table 2 col "主题类型（主题类型）" | 研究意图分类 | 研究趋势（研究趋势） / 技术评价（technology evaluation） | 完整枚举 | 必填 | §4.1 "12 tech vs 8 trends" | RQ4.1 限制候选 | E07 | -- |
-| 叶子-orig-topic-area | 主题领域 | L2.3 | Table 2 col "Topic area" | SE 子领域主题 | 开放枚举：成本估算（Cost estimation）/ 单元测试（Unit testing）/ 捕获-再捕获（Capture-recapture）/ Web 研究（Web research）/ SE 实验（SE experiments）/ 商用现成软件（COTS）/ 能力成熟度模型（CMM）/ 软件架构评价（SW architecture eval）/ 测试方法（测试 方法）/ ICSE 经验研究（Empirical studies in ICSE）/ CS-IS-SE 比较（Comparative CS-IS-SE）/ 计算机科学研究（Computer science research） | 层级开放枚举 | 必填 | §4.2 主题分布；"7 cost estimation, 3 experiments, 3 testing" | "主题覆盖窄" 候选发现 | E07 | 不可视为饱和分类；A2a 应核验 §4.2 出现的 12 个具体主题 |
-| 叶子-orig-author | 作者 | L3.1 | Table A3 | 作者姓名列表 | 自由文本（人名列表） | 自由文本 | -- | §4.3 "Jørgensen 5 篇, Sjøberg 3 篇" | RQ3 候选 | E11 | 仅适用 EBSE 早期社群 |
-| 叶子-orig-institution | 机构 | L3.2 | Table A3 | 作者所属机构 | 开放枚举：Simula Research Lab / Keele Univ / Brunel Univ / Lund Univ / Univ Auckland / Politécnica Madrid / NTNU / Indiana Univ / Univ Calgary / NICTA / 等 | 开放枚举 | 多机构时拆行 | §4.3 "Simula 主导 8 篇" | "Simula 数据库策略有效" 候选 | E11 | -- |
-| 叶子-orig-country | 国家 | L3.3 | Table A3 | 机构所在国家 | 开放枚举：Norway / UK / USA / Brazil / Israel / Spain / NZ / Sweden / Italy / Canada / Australia | 开放枚举 | 多国时拆行 | §4.3 "European 14 篇 vs N.American 4 篇" | RQ3 主导地区候选 | E11 | -- |
-| 叶子-orig-refs-ebse | EBSE/Guidelines 引用 | L6.1 | §2.5；Table 2 col "Refs" | 是否引用 EBSE 论文 [23,5] 或 Guidelines [22] | 指南技术报告（Guideline TR） / EBSE 论文（EBSE paper） / 否 | 完整枚举 | "否" 表示均未引用 | §4.1 "8 引用 Guidelines, 2 引用 EBSE" | "EBSE 浸润度" 候选 | E07 | -- |
-| 叶子-orig-实践者-指南 | 实践者指南 | L7.1 | §2.5；Table 2 col | 是否提供面向实践者的指南 | 是 / 否 / 是\* (S17 footnote: 暗示但未显式) | 完整枚举 + 限定值 | "否" 默认 | §4.4 "12 tech 中 4 篇有指南" | RQ4.4 候选 | E07 | -- |
-| 叶子-orig-num-primary | 一级研究数量 | L8.1 | §2.5；Table 2 末列 | 该 SLR/MA 纳入的一级研究篇数 | 整数；观察范围 6..1485 | 数值 | 必填 | §4.4 "trends 63--1485 vs tech 6--54" | RQ4.2 候选 | E07 | -- |
-| 叶子-orig-qa1 | QA1 纳排清晰度 | L5/QA1 | §2.4；Table 3 | 纳入排除标准是否描述且适当 | 是（Y）=1 / 部分（P）=0.5 / 否（N）=0 / 未知 | 有序枚举 + 数值映射 | 未知 表示需要邮件作者补 | DARE 评分组成 | -- | E05, E08 | -- |
-| 叶子-orig-qa2 | QA2 检索覆盖度 | L5/QA2 | §2.4；Table 3 | 检索是否可能覆盖所有相关研究 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | -- | E05, E08 | -- |
-| 叶子-orig-qa3 | QA3 主研究质量评估 | L5/QA3 | §2.4；Table 3 | 是否评估了纳入研究的质量/效度 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | "技术评估类应做质量评估" 候选 | E05, E08 | -- |
-| 叶子-orig-qa4 | QA4 基础数据描述 | L5/QA4 | §2.4；Table 3 | 是否充分描述了纳入研究/数据 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | -- | E05, E08 | -- |
-| 叶子-orig-qa-total | DARE 总分 | L5/QA-total | §2.4；Table 3 末列 | QA1+QA2+QA3+QA4 加总 | 浮点 0..4；观察 1..4 | 数值 | -- | Table 4 (年×均分)、Table 5 (引用 Guidelines×均分)、Spearman ρ=0.51 | "质量随年提升但与 Guidelines 引用无关" 候选 | E05, E08 | -- |
-| 叶子-orig-qa-agreement | 初始评分者一致性 | L5/QA-agreement | Table 3 末列 | 4 题中两评分者初始一致的题数 | 整数 0..4；观察 2..4 | 数值 | -- | 信效度副指标 | -- | E08 | -- |
-| 叶子-funnel-total | 漏斗总数 | F.1 | Table A1 | 来源×年份总文章数 | 整数；总和 2506 | 数值 | -- | 检索分母 | -- | E09 | -- |
-| 叶子-funnel-relevant | 漏斗相关数 | F.2 | Table A1 | 通过题/摘筛选 | 整数；总和 33 | 数值 | -- | 检索召回率分母 | -- | E09 | -- |
-| 叶子-funnel-selected | 漏斗最终选入 | F.3 | Table A1 | 通过纳排标准 | 整数；总和 19（+2 补入 = 20） | 数值 | "n/a" 表示该年该来源无会议 | 主样本分母 | "ACM Sur/SPE 等期刊零产出" 候选 | E09 | -- |
-| 叶子-excl-reason | 排除原因 | (A2) | Table A2 | 被排除候选论文的原因 | 开放枚举：非正式文献综述（Informal literature survey）/ 提及文献综述但未描述（Literature survey referenced but not described）/ 非 SE 主题（not a SE topic）/ 无明确检索标准且无数据抽取（no clear search criteria, no 数据抽取） | 开放枚举 | -- | 排除原因分布 | "informal review 仍主流" 候选 | E10 | A2 仅 14 条样本，分布不可外推 |
+| leaf-orig-source | 来源（期刊/会议） | L1.1 | §2.5 抽取项 1；Table 2 | 论文发表的期刊或会议简称 | IST, JSS, TSE, IEEE SW, CACM, ACM Sur, TOSEM, SPE, EMSE, IET SW, ICSE, Metrics, ISESE + "Conf+期刊" 组合 | 封闭枚举（受 Table 1 限定） | 跨期刊/会议时记为 `Conf+期刊` 双值 | 已用于 §4.1 的来源分布统计 | "IST 鼓励 SLR 失败" 候选 | E03, E07 | 仅适用于 2004--2007 SE 期刊会议；不可外推现代 OA 期刊 |
+| leaf-orig-year | 发表年份 | L1.3 | Table 2 col "Date" | 论文发表年份（重复版本写双年） | 2004 / 2005 / 2006 / 2007 / "2005&2006" | 数值 + 关系值（双版本） | 单一年值即可 | 已用于 Table 4 年×质量分均值 | "每年 SLR 数量稳定" 候选 | E07 | 时间窗外不适用 |
+| leaf-orig-article-type | 文献类型 | L2.1 | §2.5；Table 2 col "Article type" | 二次研究 子类型 | SLR / MA | 完整枚举 | 必填 | 已用于 §4.1 「19 SLR + 1 MA」 | -- | E07 | 现代分类可能区分 SMS / MLR / rapid review |
+| leaf-orig-scope | 研究范围类型 | L2.2 | §2.5；Table 2 col "主题类型（主题类型）" | 研究意图分类 | 研究趋势（研究趋势） / 技术评价（technology evaluation） | 完整枚举 | 必填 | §4.1 "12 tech vs 8 trends" | RQ4.1 限制候选 | E07 | -- |
+| leaf-orig-topic-area | 主题领域 | L2.3 | Table 2 col "Topic area" | SE 子领域主题 | 开放枚举：成本估算（Cost estimation）/ 单元测试（Unit testing）/ 捕获-再捕获（Capture-recapture）/ Web 研究（Web research）/ SE 实验（SE experiments）/ 商用现成软件（COTS）/ 能力成熟度模型（CMM）/ 软件架构评价（SW architecture eval）/ 测试方法（测试 方法）/ ICSE 经验研究（Empirical studies in ICSE）/ CS-IS-SE 比较（Comparative CS-IS-SE）/ 计算机科学研究（Computer science research） | 层级开放枚举 | 必填 | §4.2 主题分布；"7 cost estimation, 3 experiments, 3 testing" | "主题覆盖窄" 候选发现 | E07 | 不可视为饱和分类；A2a 应核验 §4.2 出现的 12 个具体主题 |
+| leaf-orig-author | 作者 | L3.1 | Table A3 | 作者姓名列表 | 自由文本（人名列表） | 自由文本 | -- | §4.3 "Jørgensen 5 篇, Sjøberg 3 篇" | RQ3 候选 | E11 | 仅适用 EBSE 早期社群 |
+| leaf-orig-institution | 机构 | L3.2 | Table A3 | 作者所属机构 | 开放枚举：Simula Research Lab / Keele Univ / Brunel Univ / Lund Univ / Univ Auckland / Politécnica Madrid / NTNU / Indiana Univ / Univ Calgary / NICTA / 等 | 开放枚举 | 多机构时拆行 | §4.3 "Simula 主导 8 篇" | "Simula 数据库策略有效" 候选 | E11 | -- |
+| leaf-orig-country | 国家 | L3.3 | Table A3 | 机构所在国家 | 开放枚举：Norway / UK / USA / Brazil / Israel / Spain / NZ / Sweden / Italy / Canada / Australia | 开放枚举 | 多国时拆行 | §4.3 "European 14 篇 vs N.American 4 篇" | RQ3 主导地区候选 | E11 | -- |
+| leaf-orig-refs-ebse | EBSE/Guidelines 引用 | L6.1 | §2.5；Table 2 col "Refs" | 是否引用 EBSE 论文 [23,5] 或 Guidelines [22] | 指南技术报告（Guideline TR） / EBSE 论文（EBSE paper） / 否 | 完整枚举 | "否" 表示均未引用 | §4.1 "8 引用 Guidelines, 2 引用 EBSE" | "EBSE 浸润度" 候选 | E07 | -- |
+| leaf-orig-实践者-指南 | 实践者指南 | L7.1 | §2.5；Table 2 col | 是否提供面向实践者的指南 | 是 / 否 / 是\* (S17 footnote: 暗示但未显式) | 完整枚举 + 限定值 | "否" 默认 | §4.4 "12 tech 中 4 篇有指南" | RQ4.4 候选 | E07 | -- |
+| leaf-orig-num-primary | 一级研究数量 | L8.1 | §2.5；Table 2 末列 | 该 SLR/MA 纳入的一级研究篇数 | 整数；观察范围 6..1485 | 数值 | 必填 | §4.4 "trends 63--1485 vs tech 6--54" | RQ4.2 候选 | E07 | -- |
+| leaf-orig-qa1 | QA1 纳排清晰度 | L5/QA1 | §2.4；Table 3 | 纳入排除标准是否描述且适当 | 是（Y）=1 / 部分（P）=0.5 / 否（N）=0 / 未知 | 有序枚举 + 数值映射 | 未知 表示需要邮件作者补 | DARE 评分组成 | -- | E05, E08 | -- |
+| leaf-orig-qa2 | QA2 检索覆盖度 | L5/QA2 | §2.4；Table 3 | 检索是否可能覆盖所有相关研究 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | -- | E05, E08 | -- |
+| leaf-orig-qa3 | QA3 主研究质量评估 | L5/QA3 | §2.4；Table 3 | 是否评估了纳入研究的质量/效度 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | "技术评估类应做质量评估" 候选 | E05, E08 | -- |
+| leaf-orig-qa4 | QA4 基础数据描述 | L5/QA4 | §2.4；Table 3 | 是否充分描述了纳入研究/数据 | 是（Y） / 部分（P） / 否（N） / 未知 | 有序枚举 + 数值 | 同上 | DARE 评分组成 | -- | E05, E08 | -- |
+| leaf-orig-qa-total | DARE 总分 | L5/QA-total | §2.4；Table 3 末列 | QA1+QA2+QA3+QA4 加总 | 浮点 0..4；观察 1..4 | 数值 | -- | Table 4 (年×均分)、Table 5 (引用 Guidelines×均分)、Spearman ρ=0.51 | "质量随年提升但与 Guidelines 引用无关" 候选 | E05, E08 | -- |
+| leaf-orig-qa-agreement | 初始评分者一致性 | L5/QA-agreement | Table 3 末列 | 4 题中两评分者初始一致的题数 | 整数 0..4；观察 2..4 | 数值 | -- | 信效度副指标 | -- | E08 | -- |
+| leaf-funnel-total | 漏斗总数 | F.1 | Table A1 | 来源×年份总文章数 | 整数；总和 2506 | 数值 | -- | 检索分母 | -- | E09 | -- |
+| leaf-funnel-relevant | 漏斗相关数 | F.2 | Table A1 | 通过题/摘筛选 | 整数；总和 33 | 数值 | -- | 检索召回率分母 | -- | E09 | -- |
+| leaf-funnel-selected | 漏斗最终选入 | F.3 | Table A1 | 通过纳排标准 | 整数；总和 19（+2 补入 = 20） | 数值 | "n/a" 表示该年该来源无会议 | 主样本分母 | "ACM Sur/SPE 等期刊零产出" 候选 | E09 | -- |
+| leaf-excl-reason | 排除原因 | (A2) | Table A2 | 被排除候选论文的原因 | 开放枚举：非正式文献综述（Informal literature survey）/ 提及文献综述但未描述（Literature survey referenced but not described）/ 非 SE 主题（not a SE topic）/ 无明确检索标准且无数据抽取（no clear search criteria, no 数据抽取） | 开放枚举 | -- | 排除原因分布 | "informal review 仍主流" 候选 | E10 | A2 仅 14 条样本，分布不可外推 |
 
 ### 5. 关系边表
 
@@ -225,16 +225,16 @@
 
 | 观察 ID | 内容 | 字段支持 | 表/段证据 |
 |---|---|---|---|
-| OBS-01 | 2004--2007.6 共纳入 20 条 二次研究（19 SLR + 1 MA） | 叶子-orig-article-type | Table 2, §4.1 |
-| OBS-02 | 12 篇技术评估 / 8 篇研究趋势 | 叶子-orig-scope | §4.1 L411--412 |
-| OBS-03 | 7 篇 cost estimation 主题集中 | 叶子-orig-topic-area | §4.2 L432--441 |
-| OBS-04 | 欧洲作者参与 14/20；Simula 实验室参与 8/20 | 叶子-orig-country + 叶子-orig-institution | §4.3 L515--521 |
-| OBS-05 | 8/20 引用 Guidelines；2/20 引用 EBSE 论文（EBSE paper） | 叶子-orig-refs-ebse | §4.1 L413--414 |
-| OBS-06 | 所有 20 篇 DARE ≥1；仅 3 篇 <2；2 篇满分 4 | 叶子-orig-qa-total | §3.2 L326--329 |
-| OBS-07 | DARE 均分按年上升；Spearman ρ=0.51, p<0.023 | 叶子-orig-qa-total × 叶子-orig-year | Table 4 + §3.3 L394--397 |
-| OBS-08 | 引用 Guidelines 与否，质量均分差异不显著（F=0.37, p=0.55） | 叶子-orig-qa-total × 叶子-orig-refs-ebse | Table 5 + §3.3 L398--404 |
-| OBS-09 | 检索漏斗：2506 → 33 相关 → 19 入选；ACM Sur/SPE/TOSEM/IET SW 选入 0 | 叶子-funnel-* | Table A1 |
-| OBS-10 | 12 篇 tech 中仅 4 篇含实践者指南 | 叶子-orig-实践者-指南 | §4.4 L587--589 |
+| OBS-01 | 2004--2007.6 共纳入 20 条 二次研究（19 SLR + 1 MA） | leaf-orig-article-type | Table 2, §4.1 |
+| OBS-02 | 12 篇技术评估 / 8 篇研究趋势 | leaf-orig-scope | §4.1 L411--412 |
+| OBS-03 | 7 篇 cost estimation 主题集中 | leaf-orig-topic-area | §4.2 L432--441 |
+| OBS-04 | 欧洲作者参与 14/20；Simula 实验室参与 8/20 | leaf-orig-country + leaf-orig-institution | §4.3 L515--521 |
+| OBS-05 | 8/20 引用 Guidelines；2/20 引用 EBSE 论文（EBSE paper） | leaf-orig-refs-ebse | §4.1 L413--414 |
+| OBS-06 | 所有 20 篇 DARE ≥1；仅 3 篇 <2；2 篇满分 4 | leaf-orig-qa-total | §3.2 L326--329 |
+| OBS-07 | DARE 均分按年上升；Spearman ρ=0.51, p<0.023 | leaf-orig-qa-total × leaf-orig-year | Table 4 + §3.3 L394--397 |
+| OBS-08 | 引用 Guidelines 与否，质量均分差异不显著（F=0.37, p=0.55） | leaf-orig-qa-total × leaf-orig-refs-ebse | Table 5 + §3.3 L398--404 |
+| OBS-09 | 检索漏斗：2506 → 33 相关 → 19 入选；ACM Sur/SPE/TOSEM/IET SW 选入 0 | leaf-funnel-* | Table A1 |
+| OBS-10 | 12 篇 tech 中仅 4 篇含实践者指南 | leaf-orig-实践者-指南 | §4.4 L587--589 |
 
 #### 6.2 候选发现（作者 discussion / 推荐；本文给出但未硬证）
 
@@ -266,7 +266,7 @@
 
 #### I 级（important）
 
-- **I1.** DARE rubric 子树虽然在 `原文模式候选叶子映射` 中以 `叶子-...-quality-criteria` 一行带过，但 QA1--QA4 + total + agreement **六个具体叶子未列**。返修：添加完整 DARE 子树叶子表（如本审计第 3.2 与第 4 节）。
+- **I1.** DARE rubric 子树虽然在 `原文模式候选叶子映射` 中以 `leaf-...-quality-criteria` 一行带过，但 QA1--QA4 + total + agreement **六个具体叶子未列**。返修：添加完整 DARE 子树叶子表（如本审计第 3.2 与第 4 节）。
 - **I2.** 现有「关系边表」缺席；返修：加入本审计第 5 节关系边表，至少覆盖 `rel-duplicate-version`、`rel-rater-pair`、`rel-cites-ebse`。
 - **I3.** A.2 证据账本只有 4 行通用证据（EV-001..004），未对接到具体表号（Table 1/2/3/4/5/A1/A2/A3）。返修：把 12 条证据锚点（E01--E12）补入 A.2，每行指向具体 Table 编号 + 行号范围。
 - **I4.** 「样本数量 / 分母」在 review.md 快速结论卡片中未显式给出 `N=20`、漏斗 `2506→33→19+2`。返修：在 `1. 快速结论卡片` 加 `主样本量 / 漏斗分母` 行。
@@ -277,7 +277,7 @@
 - **M1.** review.md 中保留的 `19×3 v1 historical audit` warning box 措辞可缩短；不影响事实。
 - **M2.** 多处 "EBSE / SE SLR 状态 的" 半成品占位句（如 L97 末「迁移结构与证据要求，不迁移领域结论。」与上文重复）可清理。
 - **M3.** Table 3 中 `S17 SLR Y N N Y` 与 §3.2 描述 "all studies scored 1 or more" 一致，无需修正；但 `S18 Total=1` 与 "only three studies scored less than 2"（应为 S10=1.5, S16=1.5, S18=1）三篇相符，可加注释。
-- **M4.** review.md 当前的 叶子 标识用 `[叶子-...-scope]` 这种通用名，建议加 `-orig-*` 后缀区分通用接口投影与原文具体叶子（如本审计第 4 节命名）。
+- **M4.** review.md 当前的 叶子 标识用 `[leaf-...-scope]` 这种通用名，建议加 `-orig-*` 后缀区分通用接口投影与原文具体叶子（如本审计第 4 节命名）。
 
 ### 8. 审计附录草案：证据账本与结论映射
 
@@ -287,30 +287,30 @@
 |---|---|---|---|---|---|---|---|---|---|
 | EV-A2-001 | paper_content.txt | §1 Introduction | L88--97 | "review the current status of EBSE since 2004 using a tertiary 研究" | rq | strong (文本已核验（text-verified）) | [根节点], [dim-orig-rq] | false | 仅本文 |
 | EV-A2-002 | paper_content.txt | §2.1 研究问题（Research questions） | L105--141 | "RQ1...RQ4 + RQ4.1--RQ4.4" 八层 RQ 树 | rq | strong | L4.2, L8.1, L7.1, [dim-orig-rq] | false | -- |
-| EV-A2-003 | paper_content.txt | Table 1, §2.2 | L161--177 | 10 期刊 + 4 会议清单 | corpus_scope | strong | L1.1, 叶子-funnel-* | true (复核刊名) | 仅 2004--2007 SE 期刊 |
+| EV-A2-003 | paper_content.txt | Table 1, §2.2 | L161--177 | 10 期刊 + 4 会议清单 | corpus_scope | strong | L1.1, leaf-funnel-* | true (复核刊名) | 仅 2004--2007 SE 期刊 |
 | EV-A2-004 | paper_content.txt | §2.3 | L186--203 | 纳排标准 + 重复报告处理 | inclusion_criteria | strong | L2.1, rel-duplicate-version | false | -- |
-| EV-A2-005 | paper_content.txt | §2.4 + Table 3 | L204--234, L465--489 | DARE QA1--QA4 + Y/P/N/未知 评分 | 质量量规（quality_rubric） | strong | L5.*, 叶子-orig-qa* | true (核对 S 行评分) | -- |
-| EV-A2-006 | paper_content.txt | §2.5 | L243--258 | 10 项抽取字段清单 | 抽取_模式 | strong | L1.*--L8.* 全部叶子 | false | 此为**最关键证据**，确定原生模式 来源 |
+| EV-A2-005 | paper_content.txt | §2.4 + Table 3 | L204--234, L465--489 | DARE QA1--QA4 + Y/P/N/未知 评分 | 质量量规（quality_rubric） | strong | L5.*, leaf-orig-qa* | true (核对 S 行评分) | -- |
+| EV-A2-006 | paper_content.txt | §2.5 | L243--258 | 10 项抽取字段清单 | extraction_schema | strong | L1.*--L8.* 全部叶子 | false | 此为**最关键证据**，确定原生模式 来源 |
 | EV-A2-007 | paper_content.txt | §2.6 | L268--283 | 8 个分析项→4 RQ 映射 | analysis_plan | strong | rel-rq-to-table | false | -- |
 | EV-A2-008 | paper_content.txt | §2.7 + §4.5 | L284--295, L639--680 | 4 项 protocol deviation 声明 | limitation | strong | 威胁/limitations 节点 | false | -- |
 | EV-A2-009 | paper_content.txt | Table 2 | L335--389 | 20 条 S1--S20 编码记录（8 列） | sample_table | strong | 主统计池所有叶子 | true (核对 Topic area, Refs 列) | -- |
-| EV-A2-010 | paper_content.txt | Table 3 | L465--489 | 20×4 DARE 评分明细 + total + agreement | quality_table | strong | 叶子-orig-qa* | true (核对 P/Y/N 与 * 标记) | -- |
+| EV-A2-010 | paper_content.txt | Table 3 | L465--489 | 20×4 DARE 评分明细 + total + agreement | quality_table | strong | leaf-orig-qa* | true (核对 P/Y/N 与 * 标记) | -- |
 | EV-A2-011 | paper_content.txt | Table 4, Table 5 + §3.3 | L490--503, L394--404 | 年×均分；引用 Guidelines×均分；Spearman ρ=0.51 | statistical_result | strong | OBS-07, OBS-08 | true (核对均值/方差) | -- |
-| EV-A2-012 | paper_content.txt | Table A1 | L589--633 | 检索漏斗 2506→33→19 | corpus_funnel | strong | 叶子-funnel-* | true (核对加总) | -- |
-| EV-A2-013 | paper_content.txt | Table A2 | L694--739 | 14 条排除候选 + 排除原因 | exclusion_record | medium (sample only) | 叶子-excl-reason | true | A2 仅 14 例样本 |
+| EV-A2-012 | paper_content.txt | Table A1 | L589--633 | 检索漏斗 2506→33→19 | corpus_funnel | strong | leaf-funnel-* | true (核对加总) | -- |
+| EV-A2-013 | paper_content.txt | Table A2 | L694--739 | 14 条排除候选 + 排除原因 | exclusion_record | medium (sample only) | leaf-excl-reason | true | A2 仅 14 例样本 |
 | EV-A2-014 | paper_content.txt | Table A3 | L750--810 | 20 条作者-机构-国家 | author_table | strong | L3.* | true | -- |
 
 #### A.3 结论-证据映射草案
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-A3-T01 | 本文具备完整 tertiary SLR 维度树：单主树（20 篇 二次研究 × 11 抽取字段）+ DARE 子树 + 漏斗子树 | 树类型（树_type） | [根节点] | EV-A2-006, EV-A2-005, EV-A2-009, EV-A2-012 | strong (text) → strong (after A2a PDF check) | 模式种子（模式_seed） → 可升级为主统计池字段定义 | A2a 必须核 Table 2/3/A1 版式 |
-| CLM-A3-T02 | 样本单位是 二次研究 (SLR/MA)；N=20；漏斗分母 2506 | 样本单位（sample_unit） | [根节点] | EV-A2-009, EV-A2-012 | strong | 模式种子（模式_seed） | -- |
-| CLM-A3-L01 | 叶子 叶子-orig-topic-area 取值空间为开放枚举，本文观察 12 个主题域 | 叶子_definition | 叶子-orig-topic-area | EV-A2-009 (Table 2) | medium (枚举未饱和) | 模式种子（模式_seed） | 不可视为饱和；A2a 需扩库验证 |
-| CLM-A3-L02 | DARE rubric (QA1--QA4 + Y/P/N + 1/0.5/0) 是本文质量评价 模式 的完整复原 | 叶子_definition | 叶子-orig-qa1..qa-total | EV-A2-005, EV-A2-010 | strong | 可作 Paper2 质量评价模板 | -- |
+| CLM-A3-T01 | 本文具备完整 tertiary SLR 维度树：单主树（20 篇 二次研究 × 11 抽取字段）+ DARE 子树 + 漏斗子树 | 树类型（tree_type） | [根节点] | EV-A2-006, EV-A2-005, EV-A2-009, EV-A2-012 | strong (text) → strong (after A2a PDF check) | 模式种子（schema_seed） → 可升级为主统计池字段定义 | A2a 必须核 Table 2/3/A1 版式 |
+| CLM-A3-T02 | 样本单位是 二次研究 (SLR/MA)；N=20；漏斗分母 2506 | 样本单位（sample_unit） | [根节点] | EV-A2-009, EV-A2-012 | strong | 模式种子（schema_seed） | -- |
+| CLM-A3-L01 | 叶子 leaf-orig-topic-area 取值空间为开放枚举，本文观察 12 个主题域 | 叶子_definition | leaf-orig-topic-area | EV-A2-009 (Table 2) | medium (枚举未饱和) | 模式种子（schema_seed） | 不可视为饱和；A2a 需扩库验证 |
+| CLM-A3-L02 | DARE rubric (QA1--QA4 + Y/P/N + 1/0.5/0) 是本文质量评价 模式 的完整复原 | 叶子_definition | leaf-orig-qa1..qa-total | EV-A2-005, EV-A2-010 | strong | 可作 Paper2 质量评价模板 | -- |
 | CLM-A3-S01 | 统计观察 OBS-01..10 可作为 边界锚点，但 OBS-04/05/09 是 2008 快照，不可外推 | statistical_observation | OBS-01..10 | EV-A2-009..014 | strong (本文窗口内) | 边界锚点（boundary_anchor） | 仅适用 2004--2007 SE 期刊 |
 | CLM-A3-M01 | 字段+RQ+分析项三角映射（§2.6）值得作为 Paper2 自审计模板 | migration_method | rel-rq-to-table | EV-A2-007 | strong | 方法学迁移 | 不迁移领域结论 |
-| CLM-A3-F01 | "EBSE 由欧洲/Simula 主导" 是历史候选发现，不可作为 最终发现 | 候选发现（candidate_发现） | OBS-04 | EV-A2-014 | weak (历史快照) | 候选发现（candidate_发现） | 2026 年生态已大变 |
+| CLM-A3-F01 | "EBSE 由欧洲/Simula 主导" 是历史候选发现，不可作为 最终发现 | 候选发现（candidate_finding） | OBS-04 | EV-A2-014 | weak (历史快照) | 候选发现（candidate_finding） | 2026 年生态已大变 |
 | CLM-A3-R01 | review.md 当前 模式 主树叶子粒度不足；C1/C2 需返修 | audit_repair | review.md | EV-A2-006 (核心) | strong | 直接驱动返修 | -- |
 
 ### 9. 技能使用与自我审查记录
@@ -332,7 +332,7 @@
 #### 9.2 Reviewer 视角下本输出最高风险 3 点
 
 1. **PDF 版面未核验**：QA 评分（Y/P/N 与 \* 标记）、Table 4/5 均值与方差、Table A1 加总是否完全等于 2506 / 33 / 19，均仅依赖 OCR 文本（含 "\C15"、"\C14"、"\C2112008" 残留）。主线程合并前应至少抽样 PDF 核 3--5 个 cell。
-2. **叶子-orig-topic-area 枚举未饱和**：本审计列了 12 项观察值，但作者并未声明这是封闭分类。Paper2 若用作模板，需在跨论文扩库时验证。
+2. **leaf-orig-topic-area 枚举未饱和**：本审计列了 12 项观察值，但作者并未声明这是封闭分类。Paper2 若用作模板，需在跨论文扩库时验证。
 3. **「主统计池资格 = 局部可统计」可能与论文集 SUMMARY.md 既有口径冲突**：旧版 review.md L23 写 "模式 历史观察：无硬缺口；但 质量 score 数值需 原文图表级核对后才能进入正式统计"，与本审计基本一致；但 SUMMARY 表如果写「模式种子 only / 不可统计」就需要协调。
 
 #### 9.3 任务状态

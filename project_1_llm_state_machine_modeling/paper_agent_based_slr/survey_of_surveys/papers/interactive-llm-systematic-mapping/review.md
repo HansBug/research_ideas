@@ -279,7 +279,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 | 被编码样本单位 | **无系统样本库**。原文样本单位是"假想 LLM-supported mapping 工作流中的流程阶段 / 智能体 角色 / 人机交互节点"，不是 原始研究 |
 | 样本数量 / 分母 | `不适用（不适用）`。论文 References 仅 10 条，全部以叙事 "Relevant literature" 形式被引，不构成 coded sample；`数据可得性声明：未使用数据（No data was used）`（Page 3） |
 | 原生树类型 | **维度森林（降级）**：①方法流程树（6 阶段） + ②智能体/role 树（含 search 阶段 3 智能体 + 各阶段 LLM/人 双轨） + ③效度/risk 树（Reflections）。无样本编码模式 |
-| 主统计池资格 | 否。理由：解决方案提案；无系统检索、纳排、抽取；与 `metadata.json eligible_for_statistical_synthesis=false`、`evidence_role=solution_proposal_boundary_anchor` 一致。**局部仅可作 模式种子（模式_seed） / 边界锚点（boundary_anchor） / 方法学种子** |
+| 主统计池资格 | 否。理由：解决方案提案；无系统检索、纳排、抽取；与 `metadata.json eligible_for_statistical_synthesis=false`、`evidence_role=solution_proposal_boundary_anchor` 一致。**局部仅可作 模式种子（schema_seed） / 边界锚点（boundary_anchor） / 方法学种子** |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -416,7 +416,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 阶段.need | 阶段：建立 map 需求 | B1 | §2.1 | 把研究目标 + 上下文输入给 LLM 得到候选 RQ，由人确认 | 1 个 阶段 | 单值标识 | 阶段缺失 = 路线图 不完整 | 仅 模式种子（模式_seed） | 阶段缺失为 缺口（gap） | 行 81–84 | 可作 阶段 模板，不能写成已验证流程 |
+| 阶段.need | 阶段：建立 map 需求 | B1 | §2.1 | 把研究目标 + 上下文输入给 LLM 得到候选 RQ，由人确认 | 1 个 阶段 | 单值标识 | 阶段缺失 = 路线图 不完整 | 仅 模式种子（schema_seed） | 阶段缺失为 缺口（gap） | 行 81–84 | 可作 阶段 模板，不能写成已验证流程 |
 | 阶段.search | 阶段：检索 | B1 | §2.2.1 | 在保持可复现性前提下生成 Boolean 检索式 | 1 个 阶段（内含 3 智能体） | 单值 + 子树 | 同上 | 同上 | 同上 | 行 86–122 | 同上 |
 | 阶段.inc_exc | 阶段：纳排 | B1 | §2.2.2 | LLM 给 include/exclude + rationale + citation | 1 个 阶段 | 单值 | 同上 | 同上 | 同上 | 行 136–170 | 同上 |
 | 阶段.extract | 阶段：数据抽取与分类 | B1 | §2.3 | 二分为归纳/演绎编码 | 1 个 阶段（内含 2 子模式） | 单值 + 子枚举 | 同上 | 同上 | 同上 | 行 171–199 | 同上 |
@@ -505,7 +505,7 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-iLLM-SMS-001 | paper_content.txt | Page 1 Abstract Method | 行 18–19 | "research can be classified as a 解决方案提案 ... iteratively designed and discussed among the authors" | 树类型（树_type） / non-经验研究（empirical） 自述 | strong (作者自述) | ROOT, B1–B7, 主统计池排除 | 否 | 仅支撑"非实证 + 无样本"判定 |
+| EV-iLLM-SMS-001 | paper_content.txt | Page 1 Abstract Method | 行 18–19 | "research can be classified as a 解决方案提案 ... iteratively designed and discussed among the authors" | 树类型（tree_type） / non-经验研究（empirical） 自述 | strong (作者自述) | ROOT, B1–B7, 主统计池排除 | 否 | 仅支撑"非实证 + 无样本"判定 |
 | EV-iLLM-SMS-002 | paper_content.txt | Page 1 Intro 末段 | 行 52–55 | "reviewers (a) well educated in 系统映射研究 方法, (b) experts in topic" | HITL 必要条件 | strong | B2 triplet.refine, B5 audit.* | 否 | HITL 是硬约束，不可省 |
 | EV-iLLM-SMS-003 | paper_content.txt | Page 2 §2 + Fig. 1 caption | 行 64–79 | "presents each step of the review 流程 and briefly outlines the input and actions done by the user and the output of the LLM" | 阶段 × triplet 结构 | medium (文本+图未版面核验) | B1, B2, rel.stage_to_triplet | **是**（必须打开 PDF 核 Fig. 1） | Fig. 1 内部细节待版面确认 |
 | EV-iLLM-SMS-004 | paper_content.txt | Page 2 §2.2.1 | 行 99–122 | "three 智能体: Keyword Identification Agent, Semantic Search Agent, Search Strategy Agent ... support a citation pearl growing strategy" | search 3-智能体 子树 + 智能体 间 流程管线 | strong | B3, rel.search_to_agent, rel.agent_pipe_kw_to_sem, rel.agent_pair_pearl | 否 | 仅限 search 阶段；不要扩到其他阶段 |
@@ -522,13 +522,13 @@ LLM 支持的系统映射研究流程（llm_supported_mapping_study）
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-iLLM-SMS-T01 | 本文树型 = 流程模型（process model） + 智能体 role 树 + risk inventory 组成的森林；样本单位 = 流程阶段（process_stage）；样本数 = 不适用（不适用）；不进入主统计池，仅作 边界锚点 / 方法学种子 | 树类型（树_type） | ROOT | EV-001, EV-009 | strong | 边界锚点（boundary_anchor）, 模式种子（模式_seed） | 仅限本文；不能外推到所有 LLM-for-SMS 研究 |
+| C-iLLM-SMS-T01 | 本文树型 = 流程模型（process model） + 智能体 role 树 + risk inventory 组成的森林；样本单位 = 流程阶段（process_stage）；样本数 = 不适用（不适用）；不进入主统计池，仅作 边界锚点 / 方法学种子 | 树类型（tree_type） | ROOT | EV-001, EV-009 | strong | 边界锚点（boundary_anchor）, 模式种子（schema_seed） | 仅限本文；不能外推到所有 LLM-for-SMS 研究 |
 | C-iLLM-SMS-T02 | 流程阶段链 need→search→inc/exc→extract→vis→报告 借自 [4] 2015 SMS 指南，本文未饱和验证 | stage_分类法 | B1 | EV-003 | medium | scaffold candidate | 借用结构，不是本文贡献新 分类法 |
 | C-iLLM-SMS-T03 | Fig. 1 的 "研究者 input × interactive refinement × LLM output" 三槽是本文对 Paper2 最强迁移点 | structural_pattern | B2, rel.stage_to_triplet | EV-003 | medium (待版面核) | scaffold 字段模板 | Fig. 1 版面待 A2a 核 |
-| C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_模式 | B3 | EV-004 | strong | 智能体 role 模板 | 仅限 search |
+| C-iLLM-SMS-T04 | Search 阶段三 智能体 是唯一显式 智能体 子树；不要把它推广到其他阶段 | sub_schema | B3 | EV-004 | strong | 智能体 role 模板 | 仅限 search |
 | C-iLLM-SMS-T05 | 纳排阶段 LLM 输出必须挂 decision + rationale + citation + source_location 四件套，否则不可审计 | audit_constraint | B5, rel.inc_exc_to_audit | EV-005 | strong | Paper2 trace 模式 直接落点 | CoT 不等于暴露推理链 |
 | C-iLLM-SMS-T06 | 风险清单 {pub_bias, model_drift, non_se_transfer, se_specific_eval_needed} 可直接作为 Paper2 风险清单种子（风险清单种子） | risk_inventory | B6 | EV-007 | strong | Paper2 §限制 / §风险章 | 原文未量化任何风险 |
-| C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | 路线图_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
+| C-iLLM-SMS-T07 | Roadmap 双轨（单步评估 / 端到端 prototype）可作为 Paper2 方法学叙事模板 | roadmap_pattern | B7 | EV-008 | medium | story / 方法 叙事 | 仅作叙事模板，非已验证路径 |
 | C-iLLM-SMS-T08 | §2 各 "Relevant literature" 段引用的数字与陈述属于 [5]–[9] 等文献，不属于本文 发现；引用本文时不得把这些数字写成本文结论 | citation_boundary | B6, EV-010 | EV-010 | strong | 引用红线 | 强制约束 |
 | C-iLLM-SMS-T09 | "interactive LLM-based SMS" 这一方向已在 2024/2025 由本文显式提出；Paper2 不得宣称首创，但可补全 评价 / prototype | priority_boundary | ROOT | EV-001, EV-008 | strong | Paper2 §related work 必须 cite | -- |
 

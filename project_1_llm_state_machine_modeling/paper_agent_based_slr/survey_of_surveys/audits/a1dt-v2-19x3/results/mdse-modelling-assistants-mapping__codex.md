@@ -73,7 +73,7 @@ mdse_modelling_assistance_mapping
 │   │   └── limitation_missingness: L-NS
 │   ├── rq3_metric_user
 │   │   ├── metric_cluster: M1 effectiveness / M2 efficiency / M3 user perception / NE
-│   │   └── user_cluster: U1 designers-modellers / U2 domain experts / U3 软件开发者s / U-NS
+│   │   └── user_cluster: U1 designers-modellers / U2 domain experts / U3 软件开发者 / U-NS
 │   └── cross_analysis
 │       ├── goal_x_limitation
 │       ├── strategy_x_goal_limitation

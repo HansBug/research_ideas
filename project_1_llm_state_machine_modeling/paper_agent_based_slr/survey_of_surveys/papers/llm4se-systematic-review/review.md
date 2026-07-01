@@ -346,7 +346,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 ### 3. 原生样本编码维度树（维度森林）
 
-样本单位 = `primary_研究`（1 个 paper = 1 个编码样本），下挂 4 个 RQ 子树 + 1 个 bibliographic / search-and-selection 元数据子树。
+样本单位 = `primary_study`（1 个 paper = 1 个编码样本），下挂 4 个 RQ 子树 + 1 个 bibliographic / search-and-selection 元数据子树。
 
 ```text
 说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
@@ -395,19 +395,19 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 叶子.architecture | LLM 架构 | RQ1 | Table 5 (item 2 "category of LLM") + §3.1 + Table 6 | 论文中使用的 LLM 的 Transformer 骨架类别 | {仅编码器（encoder-only）、编码器-解码器（encoder-decoder）、仅解码器（decoder-only）} | 完整枚举 | 不区分 → `unspecified` | architecture × year × task 交叉表 | 架构选择漂移、生成-task–decoder 亲和 | E7, E8, Fig. 4/5, Table 6 | 仅 LLM4SE 取值空间；迁移到 LLM4STM 需保留同一枚举 |
-| 叶子.model_family | LLM 模型族 | RQ1 | Fig. 4 / §3.1 / 复现包 | 论文使用的具体 LLM 实例族 | 70+ 实例（BERT/CodeBERT/T5/GPT-x/ChatGPT/Codex/LLaMA/...） | 开放枚举（高频集合 + 长尾） | 多模型同存 → 多值；未声明 → `unknown` | per-模型 频次 / Top-N | 模型 adoption 趋势、商业 vs 开源比例 | E7, Fig. 4 | 模型实例对时间漂移强，迁移须重报当年 list |
-| 叶子.parameter_size | 参数规模 | RQ1 | Table 5 (item 3) / 复现包 | 论文中声明的 LLM 参数数量 | numeric (M/B) ∪ {未声明（not declared）} | 数值或 `未声明（not declared）` | 占比可统计 | size vs task fit | 大模型对生成任务的偏置 | §3.1 footnote, Table 1 | 跨研究 size 定义不一致，注意区分 base/instruct/chat |
-| 叶子.data_source | 数据来源 | RQ2 | §4.1 / Fig. 6 / Table 5 (item 4) | 训练 / 评测数据集的获取方式 | {开源（开源）, 收集（收集）, 构造（构造）, 工业（industrial）} | 完整枚举 | 多源 → 多值；未声明 → 不计入 374 | 4 类频次（235/98/60/6） + 学术-工业 缺口（gap） | 工业（industrial） 数据集 缺口（gap） 警示 | E9, §4.1 | 仅 LLM4SE 当前观察；safety-critical 子域可能 工业（industrial） > 开源（开源） |
-| 叶子.data_type | 数据类型 | RQ2 | §4.2 / Table 7 / Appendix A Table 13 | 数据载体形态 | {文本类（文本类）, 代码类（代码类）, 图类（图类）, 软件仓库类（软件仓库类）, 组合类（组合类）} 含 60+ 子类 | 层级枚举 | 多类型 → 多值 | 类型 × architecture × task 交叉 | graph/multimodal 低覆盖 | E10, Table 7/13 | 子类枚举对当前 SE 任务定制，迁移到 STM 需扩展（如 timed-trace、TA 模型） |
-| 叶子.preprocess_step | 预处理步骤 | RQ2 | §4.3 / Fig. 7/8 | 数据流水线步骤集合 | text: 7 步序列；code: 7 步序列（含 编译/删除不可编译项/code-representation） | 序列（顺序可变） | 步骤缺失 → 标 `omitted` | 共同步骤频次（抽取/dup deletion/分段 等） | 复现可靠性 | E10, Fig. 7/8 | text vs code 步骤名同，但语义不同；迁移须分支 |
-| 叶子.input_form | 输入形式 | RQ2 | §4.4 / Table 8 / Appendix B Table 14 | LLM 输入的模态/结构 | {基于 token（token_based）(text/code/code&text), 树_based, 图类（图类）, 基于像素（基于像素）, 混合（混合）} | 层级枚举 | 未声明 → 不计入 355 | 形态分布、树/graph adoption 趋势 | 树/graph 仍小众 | E10, Table 8/14 | 取值空间是当前主流 LLM 假设；状态机相关结构可作为 混合（混合）/树 子叶 |
-| 叶子.tuning | 调优技术 | RQ3 | §5.1 / Table 5 (item 5) | 模型适配方法 | {全量微调（完整 fine-tuning）, ICL, PEFT.LoRA, PEFT 提示调优（prompt tuning）, PEFT 前缀调优（prefix tuning）, PEFT 适配器调优（adapter tuning）, RL, SFT, syntax_FT, knowledge_preservation_FT, task_oriented_FT, ...} | 开放层级枚举 | 直接使用预训练 → `无更新 / 仅推理（inference only）` | 各方法频次（全量微调（完整 fine-tuning） 83, LoRA 8, ...） | PEFT 兴起、完整 FT 仍主导某些子族（BERT 系列） | §5.1 | LLM4SE 当前观察；safety-critical 域可能偏 fine-tune 而非 ICL |
-| 叶子.prompt | Prompt 工程技术 | RQ3 | §5.2 / Fig. 9 / Appendix C Table 15 | 推理时 prompt 设计策略 | {少样本（few_shot）, 零样本（zero_shot）, CoT, APE, CoC, Auto_CoT, MoT, SCoT, 其他（Others）} | 完整枚举 + 其他（Others） 漏斗 | 不适用（不适用）（only fine-tuning） | 8 类 + 其他（Others） 频次（88/79/18/2/2/1/1/1/76） | CoT / SCoT 在代码任务的兴起 | E11, Fig. 9 | prompt 命名为 LLM4SE 自创/借用混合；迁移须保留 “Others=76” |
-| 叶子.metric_by_problem_type | 评价指标 × 问题类型 | RQ3 | §5.3 / Table 9 / Appendix D Table 16 | 评估时使用的量化指标，按问题类型分组 | 回归 {MAE}; 分类 {Prec, 召回率, F1, Acc, AUC, ROC, FPR, FNR, MCC}; 推荐 {MRR, Prec@k, MAP@k, F@k, 召回率@k, Acc}; 生成 {BLEU 系, Pass@k, EM, CodeBLEU, ROUGE 系, METEOR, Edit Similarity, ChrF, CrystalBLEU, CodeBERTScore, MFR, PP, ...} | 关系值（problem_type × metric_set） | 单指标论文 → 单值；多指标 → 集合 | 指标 数 × problem_type 交叉表 | 评价 指标 过于代码中心、与“能力”脱钩 | E11, Table 9/16 | Pass@k / CodeBLEU 等仅生成代码语义有效；迁移到 STM/形式化任务须重选 指标 set |
-| 叶子.sdlc_phase | 软件生命周期活动 | RQ4 | §6.1 / Fig. 10a / Table 10 / Appendix E Table 17 | 任务所属软件生命周期阶段 | {需求工程、软件设计、软件开发、软件质量保障、软件维护、软件管理} | 完整枚举（6 类） | 任务跨阶段时记为多值（少数） | 按本行枚举顺序：需求工程 3.90%、软件设计 0.92%、软件开发 56.65%、软件质量保障 15.14%、软件维护 22.71%、软件管理 0.69% | 需求工程 / 设计 / 管理严重低覆盖；形式化验证仅 5 篇 | E12, Fig. 10a, Table 10 | 仅 LLM4SE 当前观察；不能作为 LLM4STM 的饱和度结论 |
-| 叶子.specific_task | 具体 SE 任务 | RQ4 | §6.2--§6.7 / Table 10 / Appendix E Table 17 | 论文针对的具体 SE 任务 | 85 个开放命名（code_生成 118 / program_repair 35 / code_completion 22 / ... / specification_formalization 1 / verification 5 / traceability_automation 1） | 开放层级枚举 | 多任务论文 → 多值 | 任务级频次、Top-N | 与本仓库相关：specification_formalization、verification、requirements 任务低频 | E12, Table 10/17 | 命名规范借用 LLM4SE 既有词汇；迁移到 control-system / STM 须显式扩展 |
-| 叶子.problem_type | 问题类型 | RQ4 | §6.1 / Fig. 10b / Table 5 (item 7) | 任务的形式化求解类型 | {生成（生成）、分类（分类）、推荐（推荐）、回归（回归）} | 完整枚举（4 类） | 多类型混合 → 多值 | 4 类分布（70.97/21.61/6.77/0.65%） | 生成 过度主导；回归 极稀疏 | E12, Fig. 10b | 这一抽象层是 ML 通用，可迁移；与 指标 set 强耦合 |
+| leaf.architecture | LLM 架构 | RQ1 | Table 5 (item 2 "category of LLM") + §3.1 + Table 6 | 论文中使用的 LLM 的 Transformer 骨架类别 | {仅编码器（encoder-only）、编码器-解码器（encoder-decoder）、仅解码器（decoder-only）} | 完整枚举 | 不区分 → `unspecified` | architecture × year × task 交叉表 | 架构选择漂移、生成-task–decoder 亲和 | E7, E8, Fig. 4/5, Table 6 | 仅 LLM4SE 取值空间；迁移到 LLM4STM 需保留同一枚举 |
+| leaf.model_family | LLM 模型族 | RQ1 | Fig. 4 / §3.1 / 复现包 | 论文使用的具体 LLM 实例族 | 70+ 实例（BERT/CodeBERT/T5/GPT-x/ChatGPT/Codex/LLaMA/...） | 开放枚举（高频集合 + 长尾） | 多模型同存 → 多值；未声明 → `unknown` | per-模型 频次 / Top-N | 模型 adoption 趋势、商业 vs 开源比例 | E7, Fig. 4 | 模型实例对时间漂移强，迁移须重报当年 list |
+| leaf.parameter_size | 参数规模 | RQ1 | Table 5 (item 3) / 复现包 | 论文中声明的 LLM 参数数量 | numeric (M/B) ∪ {未声明（not declared）} | 数值或 `未声明（not declared）` | 占比可统计 | size vs task fit | 大模型对生成任务的偏置 | §3.1 footnote, Table 1 | 跨研究 size 定义不一致，注意区分 base/instruct/chat |
+| leaf.data_source | 数据来源 | RQ2 | §4.1 / Fig. 6 / Table 5 (item 4) | 训练 / 评测数据集的获取方式 | {开源（开源）, 收集（收集）, 构造（构造）, 工业（industrial）} | 完整枚举 | 多源 → 多值；未声明 → 不计入 374 | 4 类频次（235/98/60/6） + 学术-工业 缺口（gap） | 工业（industrial） 数据集 缺口（gap） 警示 | E9, §4.1 | 仅 LLM4SE 当前观察；safety-critical 子域可能 工业（industrial） > 开源（开源） |
+| leaf.data_type | 数据类型 | RQ2 | §4.2 / Table 7 / Appendix A Table 13 | 数据载体形态 | {文本类（文本类）, 代码类（代码类）, 图类（图类）, 软件仓库类（软件仓库类）, 组合类（组合类）} 含 60+ 子类 | 层级枚举 | 多类型 → 多值 | 类型 × architecture × task 交叉 | graph/multimodal 低覆盖 | E10, Table 7/13 | 子类枚举对当前 SE 任务定制，迁移到 STM 需扩展（如 timed-trace、TA 模型） |
+| leaf.preprocess_step | 预处理步骤 | RQ2 | §4.3 / Fig. 7/8 | 数据流水线步骤集合 | text: 7 步序列；code: 7 步序列（含 编译/删除不可编译项/code-representation） | 序列（顺序可变） | 步骤缺失 → 标 `omitted` | 共同步骤频次（抽取/dup deletion/分段 等） | 复现可靠性 | E10, Fig. 7/8 | text vs code 步骤名同，但语义不同；迁移须分支 |
+| leaf.input_form | 输入形式 | RQ2 | §4.4 / Table 8 / Appendix B Table 14 | LLM 输入的模态/结构 | {基于 token（token_based）(text/code/code&text), 树_based, 图类（图类）, 基于像素（基于像素）, 混合（混合）} | 层级枚举 | 未声明 → 不计入 355 | 形态分布、树/graph adoption 趋势 | 树/graph 仍小众 | E10, Table 8/14 | 取值空间是当前主流 LLM 假设；状态机相关结构可作为 混合（混合）/树 子叶 |
+| leaf.tuning | 调优技术 | RQ3 | §5.1 / Table 5 (item 5) | 模型适配方法 | {全量微调（完整 fine-tuning）, ICL, PEFT.LoRA, PEFT 提示调优（prompt tuning）, PEFT 前缀调优（prefix tuning）, PEFT 适配器调优（adapter tuning）, RL, SFT, syntax_FT, knowledge_preservation_FT, task_oriented_FT, ...} | 开放层级枚举 | 直接使用预训练 → `无更新 / 仅推理（inference only）` | 各方法频次（全量微调（完整 fine-tuning） 83, LoRA 8, ...） | PEFT 兴起、完整 FT 仍主导某些子族（BERT 系列） | §5.1 | LLM4SE 当前观察；safety-critical 域可能偏 fine-tune 而非 ICL |
+| leaf.prompt | Prompt 工程技术 | RQ3 | §5.2 / Fig. 9 / Appendix C Table 15 | 推理时 prompt 设计策略 | {少样本（few_shot）, 零样本（zero_shot）, CoT, APE, CoC, Auto_CoT, MoT, SCoT, 其他（Others）} | 完整枚举 + 其他（Others） 漏斗 | 不适用（不适用）（only fine-tuning） | 8 类 + 其他（Others） 频次（88/79/18/2/2/1/1/1/76） | CoT / SCoT 在代码任务的兴起 | E11, Fig. 9 | prompt 命名为 LLM4SE 自创/借用混合；迁移须保留 “Others=76” |
+| leaf.metric_by_problem_type | 评价指标 × 问题类型 | RQ3 | §5.3 / Table 9 / Appendix D Table 16 | 评估时使用的量化指标，按问题类型分组 | 回归 {MAE}; 分类 {Prec, 召回率, F1, Acc, AUC, ROC, FPR, FNR, MCC}; 推荐 {MRR, Prec@k, MAP@k, F@k, 召回率@k, Acc}; 生成 {BLEU 系, Pass@k, EM, CodeBLEU, ROUGE 系, METEOR, Edit Similarity, ChrF, CrystalBLEU, CodeBERTScore, MFR, PP, ...} | 关系值（problem_type × metric_set） | 单指标论文 → 单值；多指标 → 集合 | 指标 数 × problem_type 交叉表 | 评价 指标 过于代码中心、与“能力”脱钩 | E11, Table 9/16 | Pass@k / CodeBLEU 等仅生成代码语义有效；迁移到 STM/形式化任务须重选 指标 set |
+| leaf.sdlc_phase | 软件生命周期活动 | RQ4 | §6.1 / Fig. 10a / Table 10 / Appendix E Table 17 | 任务所属软件生命周期阶段 | {需求工程、软件设计、软件开发、软件质量保障、软件维护、软件管理} | 完整枚举（6 类） | 任务跨阶段时记为多值（少数） | 按本行枚举顺序：需求工程 3.90%、软件设计 0.92%、软件开发 56.65%、软件质量保障 15.14%、软件维护 22.71%、软件管理 0.69% | 需求工程 / 设计 / 管理严重低覆盖；形式化验证仅 5 篇 | E12, Fig. 10a, Table 10 | 仅 LLM4SE 当前观察；不能作为 LLM4STM 的饱和度结论 |
+| leaf.specific_task | 具体 SE 任务 | RQ4 | §6.2--§6.7 / Table 10 / Appendix E Table 17 | 论文针对的具体 SE 任务 | 85 个开放命名（code_生成 118 / program_repair 35 / code_completion 22 / ... / specification_formalization 1 / verification 5 / traceability_automation 1） | 开放层级枚举 | 多任务论文 → 多值 | 任务级频次、Top-N | 与本仓库相关：specification_formalization、verification、requirements 任务低频 | E12, Table 10/17 | 命名规范借用 LLM4SE 既有词汇；迁移到 control-system / STM 须显式扩展 |
+| leaf.problem_type | 问题类型 | RQ4 | §6.1 / Fig. 10b / Table 5 (item 7) | 任务的形式化求解类型 | {生成（生成）、分类（分类）、推荐（推荐）、回归（回归）} | 完整枚举（4 类） | 多类型混合 → 多值 | 4 类分布（70.97/21.61/6.77/0.65%） | 生成 过度主导；回归 极稀疏 | E12, Fig. 10b | 这一抽象层是 ML 通用，可迁移；与 指标 set 强耦合 |
 
 （关于 venue、qac_score、search 阶段分母等 meta 字段，叶子定义与上类似，限于篇幅省略。）
 
@@ -419,15 +419,15 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 | 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
 |---|---|---|---|---|---|---|---|
-| edge.architecture_task | 叶子.architecture | 适用于（suited_for） | 叶子.specific_task / 叶子.problem_type | 仅编码器（encoder-only） ↔ 理解 任务（Code Understanding, Bug Localization, Vulnerability Detection）；编码器-解码器（encoder-decoder） ↔ Code Summarization / Translation / Program Repair；仅解码器（decoder-only） ↔ Code 生成（Generation） / Completion / Test Case 生成（Generation） | 论文未声明 → `未报告` | §3.1 Table 6 | architecture × task 适配性 |
-| edge.architecture_year | 叶子.architecture | 按年份计频（frequency_in_year） | meta-A.publication_year | 按数值统计 (arch × year) | 0 | §3.2 Fig. 5；2020:8/0/0、2021:8/2/9、2022:52/17/73、2023:94/85/432、2024:19/24/77 | architecture 趋势漂移 |
-| edge.task_architecture_distribution | 叶子.specific_task | 使用架构（uses_architecture） | 叶子.architecture | 分布计数 (多对多) | 未报告 | 复现包 + Appendix（隐含） | 任务–架构亲和 |
-| edge.problem_metric | 叶子.problem_type | 由指标评价（evaluated_by） | 叶子.metric_by_problem_type | 指标 按问题类型分组的指标集合（详见 Table 9 / 16） | 回归 仅 1 指标 → 取值空间稀疏 | E11, Table 9 | 评价合同：哪些 指标 服务哪类问题 |
-| edge.datatype_preprocess | 叶子.data_type | 使用流水线（uses_pipeline） | 叶子.preprocess_step | text → Fig. 7 流水线；code → Fig. 8 流水线 | 组合类（组合类） / graph / repo → 复合或不适用 | Fig. 7/8 | 数据-预处理绑定 |
-| edge.task_sdlc | 叶子.specific_task | 属于阶段（is_in_phase） | 叶子.sdlc_phase | 85 task 严格归属 1 个 SDLC（极少跨阶段） | -- | Table 10 / Appendix E Table 17 | 任务-阶段映射、覆盖度评估 |
-| edge.tuning_model | 叶子.tuning | 应用到（applied_to） | 叶子.model_family | 关系值（如 LoRA → {StarCoder, LLaMA, CodeT5+, ...}） | 未报告 | §5.1 案例段落 | 哪些 tuning 适合哪些族 |
+| edge.architecture_task | leaf.architecture | 适用于（suited_for） | leaf.specific_task / leaf.problem_type | 仅编码器（encoder-only） ↔ 理解 任务（Code Understanding, Bug Localization, Vulnerability Detection）；编码器-解码器（encoder-decoder） ↔ Code Summarization / Translation / Program Repair；仅解码器（decoder-only） ↔ Code 生成（Generation） / Completion / Test Case 生成（Generation） | 论文未声明 → `未报告` | §3.1 Table 6 | architecture × task 适配性 |
+| edge.architecture_year | leaf.architecture | 按年份计频（frequency_in_year） | meta-A.publication_year | 按数值统计 (arch × year) | 0 | §3.2 Fig. 5；2020:8/0/0、2021:8/2/9、2022:52/17/73、2023:94/85/432、2024:19/24/77 | architecture 趋势漂移 |
+| edge.task_architecture_distribution | leaf.specific_task | 使用架构（uses_architecture） | leaf.architecture | 分布计数 (多对多) | 未报告 | 复现包 + Appendix（隐含） | 任务–架构亲和 |
+| edge.problem_metric | leaf.problem_type | 由指标评价（evaluated_by） | leaf.metric_by_problem_type | 指标 按问题类型分组的指标集合（详见 Table 9 / 16） | 回归 仅 1 指标 → 取值空间稀疏 | E11, Table 9 | 评价合同：哪些 指标 服务哪类问题 |
+| edge.datatype_preprocess | leaf.data_type | 使用流水线（uses_pipeline） | leaf.preprocess_step | text → Fig. 7 流水线；code → Fig. 8 流水线 | 组合类（组合类） / graph / repo → 复合或不适用 | Fig. 7/8 | 数据-预处理绑定 |
+| edge.task_sdlc | leaf.specific_task | 属于阶段（is_in_phase） | leaf.sdlc_phase | 85 task 严格归属 1 个 SDLC（极少跨阶段） | -- | Table 10 / Appendix E Table 17 | 任务-阶段映射、覆盖度评估 |
+| edge.tuning_model | leaf.tuning | 应用到（applied_to） | leaf.model_family | 关系值（如 LoRA → {StarCoder, LLaMA, CodeT5+, ...}） | 未报告 | §5.1 案例段落 | 哪些 tuning 适合哪些族 |
 | edge.rq_fields | meta-RQ index | 抽取字段（extracts） | Table 5 的 8 个 data items | RQ → field 多对多 | -- | Table 5 | RQ-字段合同（字段模式（field 模式） 服务 RQ） |
-| edge.paper_anchor | 叶子.data_type / 叶子.input_form / 叶子.prompt / 叶子-指标 / 叶子.specific_task | 拥有证据论文（has_evidence_papers） | reference ID 集合 | 每个取值附 paper ID 列表 | -- | Appendix A--E Table 13/14/15/16/17 | source-anchor：从字段值跳回 原始研究 |
+| edge.paper_anchor | leaf.data_type / leaf.input_form / leaf.prompt / leaf-指标 / leaf.specific_task | 拥有证据论文（has_evidence_papers） | reference ID 集合 | 每个取值附 paper ID 列表 | -- | Appendix A--E Table 13/14/15/16/17 | source-anchor：从字段值跳回 原始研究 |
 
 ---
 
@@ -472,7 +472,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 | # | 等级 | 建议 | 学术影响 | 具体动作 |
 |---|---|---|---|---|
 | R1 | **C** | 把“原生森林（4 RQ + meta-A/B）”作为 review.md 的**事实真源**，把现有“原文模式主树（19×3 审计后返修）”六行表格替换为本审计 §3 的完整森林文本树 + §4 叶子表 + §5 关系边表。 | 当前 6 行主干表过度抽象（如把 RQ1 简写为“模型与任务格局”），看不出 Table 6/Appendix B 的取值空间与分母；下游 A2a 与跨论文投影会丢真。 | 改写 review.md `### 原文模式（模式）主树（19×3 审计后返修）`：以 4 RQ + 2 meta 为主干，每个主干列叶子表 + 取值空间 + 分母 + 证据锚点。 |
-| R2 | **C** | 升级 A.2 证据账本：把 EV-002/003/005 当前的 `not_verified` 与“待 A2a 精确页码复核”换成**已有页码**——本审计已经给出（如 §4.1 Fig. 6 在 p.1:15、Table 5 在 p.1:9、Table 9 在 p.1:25、Table 10 在 p.1:27、Appendix Table 13 在 p.1:72--73、Table 14 在 p.1:73--74、Table 15 在 p.1:74--75、Table 16 在 p.1:75--77、Table 17 在 p.1:77--79）。 | 让“需要原文版面核验=true”长期挂着，会让该篇的统计可信度被错误锁在 `weak/模式种子（模式_seed）`，影响后续 Paper2 把它正式纳入主统计池。 | 把 EV-001..005 的 `证据强度` 从 `not_verified` 升级为 `verified`，并在“原文页码”列填入上面具体页码。 |
+| R2 | **C** | 升级 A.2 证据账本：把 EV-002/003/005 当前的 `not_verified` 与“待 A2a 精确页码复核”换成**已有页码**——本审计已经给出（如 §4.1 Fig. 6 在 p.1:15、Table 5 在 p.1:9、Table 9 在 p.1:25、Table 10 在 p.1:27、Appendix Table 13 在 p.1:72--73、Table 14 在 p.1:73--74、Table 15 在 p.1:74--75、Table 16 在 p.1:75--77、Table 17 在 p.1:77--79）。 | 让“需要原文版面核验=true”长期挂着，会让该篇的统计可信度被错误锁在 `weak/模式种子（schema_seed）`，影响后续 Paper2 把它正式纳入主统计池。 | 把 EV-001..005 的 `证据强度` 从 `not_verified` 升级为 `verified`，并在“原文页码”列填入上面具体页码。 |
 | R3 | **I** | 在 A.2 中区分**正文叙述与 Appendix 表格的内部不一致**，作为单独证据条记录，而不是埋没在 `needs_manual_check`。具体两处： (a) 正文 §4.2 提到 software-仓库 中“Code 仓库 (3)”，而 Table 7 与 Appendix Table 13 写“Code 仓库 (9)”；(b) Fig. 1 ScienceDirect 标注 `65,290` 与 §2.2.2 文字 `62,290` 存在差异。 | 这些数字差异会直接影响“分母 374”“数据源比例”等口径；若 Paper2 引用其中之一作为对比基线，必须先确定权威值。 | 新增 EV-006 (`type=internal_inconsistency`)，记录两处冲突，证据强度 `requires_pdf`，并在 A.3 新增结论 C14 “某些分母在正文 vs Appendix 出现不一致，引用须以 Appendix 为权威”。 |
 | R4 | **I** | 明确 RQ4 中“paper 计数 vs task-instance 计数”分母歧义：Table 10 的 software_development total=247 是 task-instance 计数（一篇论文可触多个 task），而 RQ4 Summary (2) 写“229 papers mentioning over 24 SE tasks”用的是 paper 计数；§6.1 的 56.65% 是 task-instance 占比。 | 把这二者混引会导致百分比错误，影响“LLM4SE 多数集中在 development” 这一句论断的强度。 | 在 review.md §2.6 RQ4 段落明确加注释；在 A.3 新增 C15 “task-instance vs paper 计数 必须分列”。 |
 | R5 | **I** | 制品 URL 冲突（`xinyi-hou` vs `security-pride`）从“§2.7 Artifacts 做法”里的“需联网核对”升级为 A.2 中独立证据条，并在 A.3 新增对应 claim“artifact_url 状态=未核验，不得作既定事实”。 | 该 URL 是 source-anchor 的入口；如果 Paper2 引用错误 URL，会破坏 replication 链。 | 新增 EV-007 (`type=artifact_url_conflict`, strength=`requires_external_verification`)。 |
@@ -492,29 +492,29 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 |---|---|---|---|---|---|---|---|---|---|
 | EV-001 | paper_content.txt | §1 + Table 1 | p.1:3，与 8 个先前 surveys 比较 | "We are the first to present a comprehensive SLR on 395 papers..." | rq | verified | 根 / scope | 否 | 仅 LLM4SE 范围 |
 | EV-002 | paper_content.txt | §2.1--§2.5 + Table 2/3/4/5 + Fig. 1 | p.1:4--9 | RQ1--4、6 venue、3 inclusion + 9 exclusion、10 QAC + 80%、Table 5 8 项 data items 绑定 RQ | search_and_selection | verified | meta-B + RQ-字段合同 | 仅 Fig. 1 拓扑 | -- |
-| EV-003 | paper_content.txt | §3 + Fig. 4/5 + Table 6 | p.1:10--13 | 三分架构 + 70+ 模型族 + 5 年 × 3 架构频次 | 分类法 + statistical | verified | RQ1 子树 + 叶子.architecture + 叶子.model_family + edge.architecture_year | Fig. 4 树状版面 | LLM 实例对时间漂移强 |
+| EV-003 | paper_content.txt | §3 + Fig. 4/5 + Table 6 | p.1:10--13 | 三分架构 + 70+ 模型族 + 5 年 × 3 架构频次 | 分类法 + statistical | verified | RQ1 子树 + leaf.architecture + leaf.model_family + edge.architecture_year | Fig. 4 树状版面 | LLM 实例对时间漂移强 |
 | EV-004 | paper_content.txt | §4 + Fig. 6/7/8 + Table 7/8 + Appendix A Table 13 + Appendix B Table 14 | p.1:14--20, 72--74 | data source 4 / data type 5 + 60 子类 / preproc 7 步 / input form 4，分母 374、355 显式声明 | 分类法 + statistical + source_anchor | verified | RQ2 子树全部叶子 | 仅 Fig. 7/8 流程图细节 | text/code preproc 步骤名同但语义不同 |
 | EV-005 | paper_content.txt | §5 + Fig. 9 + Table 9 + Appendix C Table 15 + Appendix D Table 16 | p.1:21--25, 74--77 | tuning 谱系 + 8 prompt + Others 76 + 4 problem type × 19/9/6/1 指标 set | 分类法 + statistical + source_anchor | verified | RQ3 子树全部叶子 + edge.problem_metric | -- | 指标 set 与 生成 任务强耦合 |
 | EV-006 | paper_content.txt | §6 + Fig. 10 + Table 10/11/12 + Appendix E Table 17 | p.1:26--40, 77--79 | SDLC 6 阶段分布（百分比为 task-instance 口径）+ 85 specific tasks + 4 problem types | 分类法 + statistical + source_anchor | verified | RQ4 子树全部叶子 + edge.task_sdlc + edge.paper_anchor | -- | paper 计数 vs instance 计数 必须分列；85 task 命名 LLM4SE 专属 |
 | EV-007 | paper_content.txt | §7 | p.1:40--41 | 3 类 威胁（检索遗漏（search omission）/ 选择偏倚（selection bias）/ 经验知识偏倚（empirical knowledge bias））及缓解 | limitation | verified | 迁移边界 + 降级判断 | 否 | 未公开 coder agreement、模式 drift |
 | EV-008 | paper_content.txt + metadata.json | §3.1 末 + §7 footnote 6 + metadata.json `abstract` | p.1:10, 41 + metadata.json | URL 冲突：正文 = `xinyi-hou/LLM4SE_SLR`；metadata = `security-pride/LLM4SE_SLR` | source_anchor_conflict | requires_external_verification | edge.paper_anchor 完整性 | 是（联网） | 在确认前 制品 不得作既定事实 |
-| EV-009 | paper_content.txt | §4.2 vs Table 7 vs Appendix A Table 13；§2.2.2 vs Fig. 1 | p.1:15--16, 72；p.1:6 vs p.1:5 | (a) software-仓库 "Code 仓库" 计数：正文 3 vs Table 7/13 中 9；(b) ScienceDirect：§2.2.2 写 62,290 vs Fig. 1 写 65,290 | internal_inconsistency | requires_pdf | meta-B 分母 + 叶子.data_type 子分类 | 是 | 引用前以 Appendix 为权威，并标差异 |
+| EV-009 | paper_content.txt | §4.2 vs Table 7 vs Appendix A Table 13；§2.2.2 vs Fig. 1 | p.1:15--16, 72；p.1:6 vs p.1:5 | (a) software-仓库 "Code 仓库" 计数：正文 3 vs Table 7/13 中 9；(b) ScienceDirect：§2.2.2 写 62,290 vs Fig. 1 写 65,290 | internal_inconsistency | requires_pdf | meta-B 分母 + leaf.data_type 子分类 | 是 | 引用前以 Appendix 为权威，并标差异 |
 
 #### A.3 结论-证据映射草案（补充 / 替换 / 新增）
 
 | 引用键 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 反证或限制 | 结论强度 | 允许用途 |
 |---|---|---|---|---|---|---|---|---|
-| clm-树-type | C01 | 本文样本单位是 原始研究 (N=395)；维度树是“RQ 驱动的维度森林”，4 棵主子树 + 2 棵 meta 子树；通用六叶仅作跨论文投影。 | 树类型（树_type） | 根节点 + RQ1..4 + meta-A/B | EV-001, EV-002 | -- | strong | verified |
-| clm-arch-trend | C02 | 2020–2024.01 期间架构选择从 仅编码器（encoder-only） 主导漂移到 仅解码器（decoder-only） 主导（仅解码器（decoder-only） 在 2023 占 70.7%，2024.01 占 64.17%）。 | statistical_observation | 叶子.architecture + edge.architecture_year | EV-003 | 时间截止 2024-01-31，之后未追踪 | strong | verified |
-| clm-input-token | C03 | 在 355 篇显式声明 input form 的论文中，token-based 占 97.75%；树/graph/pixel/混合（混合） 合计 < 2.3%。 | statistical_observation | 叶子.input_form | EV-004 | 仅显式声明者；显式声明 vs 全部之比为 355/395 | strong | verified |
-| clm-工业（industrial）-缺口（gap） | C04 | 在 374 篇显式声明 数据集 的论文中，工业（industrial） 仅 6 篇（≈1.6%），构成学术-工业错位的实证证据。 | 候选发现（candidate_发现） | 叶子.data_source | EV-004 | 仅 LLM4SE 当前样本；safety-critical 子域可能 工业（industrial） 比例更高 | strong | verified |
-| clm-sdlc-skew | C05 | LLM4SE 严重偏 development + maintenance（task-instance 占比 ≈ 79.4%），RE / design / management 合计 ≈ 5.5%；verification 仅 5 篇。 | statistical_observation + 候选发现（candidate_发现） | 叶子.sdlc_phase + 叶子.specific_task | EV-006 | 百分比为 task-instance 口径，与 paper 计数 不同 | strong | verified |
-| clm-指标-skew | C06 | 评价指标体系高度偏向生成任务（19 指标, 338 instances）；回归 仅 1 instance，提示评价空间稀疏 + 任务定义偏置。 | statistical_observation | 叶子.metric_by_problem_type + edge.problem_metric | EV-005 | 指标 与 problem_type 强耦合，迁移到 STM/形式化任务需重定义 | strong | verified |
+| clm-树-type | C01 | 本文样本单位是 原始研究 (N=395)；维度树是“RQ 驱动的维度森林”，4 棵主子树 + 2 棵 meta 子树；通用六叶仅作跨论文投影。 | 树类型（tree_type） | 根节点 + RQ1..4 + meta-A/B | EV-001, EV-002 | -- | strong | verified |
+| clm-arch-trend | C02 | 2020–2024.01 期间架构选择从 仅编码器（encoder-only） 主导漂移到 仅解码器（decoder-only） 主导（仅解码器（decoder-only） 在 2023 占 70.7%，2024.01 占 64.17%）。 | statistical_observation | leaf.architecture + edge.architecture_year | EV-003 | 时间截止 2024-01-31，之后未追踪 | strong | verified |
+| clm-input-token | C03 | 在 355 篇显式声明 input form 的论文中，token-based 占 97.75%；树/graph/pixel/混合（混合） 合计 < 2.3%。 | statistical_observation | leaf.input_form | EV-004 | 仅显式声明者；显式声明 vs 全部之比为 355/395 | strong | verified |
+| clm-工业（industrial）-缺口（gap） | C04 | 在 374 篇显式声明 数据集 的论文中，工业（industrial） 仅 6 篇（≈1.6%），构成学术-工业错位的实证证据。 | 候选发现（candidate_finding） | leaf.data_source | EV-004 | 仅 LLM4SE 当前样本；safety-critical 子域可能 工业（industrial） 比例更高 | strong | verified |
+| clm-sdlc-skew | C05 | LLM4SE 严重偏 development + maintenance（task-instance 占比 ≈ 79.4%），RE / design / management 合计 ≈ 5.5%；verification 仅 5 篇。 | statistical_observation + 候选发现（candidate_finding） | leaf.sdlc_phase + leaf.specific_task | EV-006 | 百分比为 task-instance 口径，与 paper 计数 不同 | strong | verified |
+| clm-指标-skew | C06 | 评价指标体系高度偏向生成任务（19 指标, 338 instances）；回归 仅 1 instance，提示评价空间稀疏 + 任务定义偏置。 | statistical_observation | leaf.metric_by_problem_type + edge.problem_metric | EV-005 | 指标 与 problem_type 强耦合，迁移到 STM/形式化任务需重定义 | strong | verified |
 | clm-mig-方法 | C07 | 可迁移到 Paper2 的内容是方法学结构（RQ-字段合同、QGS 脚手架、Appendix-source-anchor、RQ summary box），**不是**任何 LLM4SE 领域结论。 | migration_boundary | 根节点 + edge.rq_fields + edge.paper_anchor | EV-002, EV-005, EV-007 | -- | strong | verified |
-| clm-制品-conflict | C08 | 制品 URL 在正文与 metadata 之间冲突；在外部核验前不得作既定事实，需保留两条候选并标 `requires_external_verification`。 | source_anchor_risk | edge.paper_anchor | EV-008 | -- | weak | 候选发现（candidate_发现） |
-| clm-internal-inconsistency | C09 | 该 SLR 正文叙述与 Appendix 表格在两处存在数字不一致（software-repo "Code 仓库" 计数；ScienceDirect 检索分母）；引用须以 Appendix 为权威并显式标差异。 | risk_only | meta-B + 叶子.data_type | EV-009 | -- | weak | 候选发现（candidate_发现） |
-| clm-rq4-denominator | C10 | RQ4 中 “task-instance 计数”（Table 10/Fig. 10a 的 247 / 56.65%）与 “paper 计数”（RQ4 Summary 的 229 papers）必须分列；混用会导致百分比错误。 | risk_only | 叶子.specific_task + 叶子.sdlc_phase | EV-006 | -- | strong | verified |
-| clm-威胁-shallow | C11 | 该文 威胁 较规范，但未公开 coder agreement、conflict resolution log、模式 revision history；Paper2 若主打 audit-first，应在此基础上更强。 | 候选发现（candidate_发现） | EV-007 | EV-007 | 不能据此否定该文质量 | weak | 候选发现（candidate_发现） |
+| clm-制品-conflict | C08 | 制品 URL 在正文与 metadata 之间冲突；在外部核验前不得作既定事实，需保留两条候选并标 `requires_external_verification`。 | source_anchor_risk | edge.paper_anchor | EV-008 | -- | weak | 候选发现（candidate_finding） |
+| clm-internal-inconsistency | C09 | 该 SLR 正文叙述与 Appendix 表格在两处存在数字不一致（software-repo "Code 仓库" 计数；ScienceDirect 检索分母）；引用须以 Appendix 为权威并显式标差异。 | risk_only | meta-B + leaf.data_type | EV-009 | -- | weak | 候选发现（candidate_finding） |
+| clm-rq4-denominator | C10 | RQ4 中 “task-instance 计数”（Table 10/Fig. 10a 的 247 / 56.65%）与 “paper 计数”（RQ4 Summary 的 229 papers）必须分列；混用会导致百分比错误。 | risk_only | leaf.specific_task + leaf.sdlc_phase | EV-006 | -- | strong | verified |
+| clm-威胁-shallow | C11 | 该文 威胁 较规范，但未公开 coder agreement、conflict resolution log、模式 revision history；Paper2 若主打 audit-first，应在此基础上更强。 | 候选发现（candidate_finding） | EV-007 | EV-007 | 不能据此否定该文质量 | weak | 候选发现（candidate_finding） |
 | clm-statistical-pool | C12 | 该文具备主统计池资格（systematic_review + 显式分母 + QAC + Appendix anchor）；A1-DT 阶段叶子层已可升级为 verified，建议 metadata.json 的 `eligible_for_statistical_synthesis=true` 在 A2a 后正式生效。 | eligibility_decision | 根节点 + EV-001..007 | EV-001..007 | 个别字段仍 `requires_pdf` | strong | verified |
 
 ---
@@ -522,8 +522,8 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 ### 9. 技能使用与自我审查记录
 
 #### 9.1 技能采用原则
-1. **ai-research-writing-skill / SKILL.md**：采用了 *Evidence gate*（“仓库 files, experiment logs, notes outrank memory”）—— 本审计中所有 EV-* 都直接锚到 paper_content.txt 行号 / 页码，避免凭印象写。也采用了 *Story / Claim gate* 思想——任何结论都标 `verified / 候选发现（candidate_发现） / requires_pdf / requires_external_verification` 分层。
-2. **reviewer-guidelines.md**：采用了 *Constructive Specificity Standard*——R1--R8 全部给出可执行动作（要改 review.md 哪一节、要新增哪条 EV）。采用了 *Common Reviewer Concerns* 中“Claims in Abstract/Introduction exceed the experiments”的检查角度，把 review.md 中的 `模式种子（模式_seed）` / `weak` 提示当作 limitation 显式保留而非掩盖。
+1. **ai-research-writing-skill / SKILL.md**：采用了 *Evidence gate*（“仓库 files, experiment logs, notes outrank memory”）—— 本审计中所有 EV-* 都直接锚到 paper_content.txt 行号 / 页码，避免凭印象写。也采用了 *Story / Claim gate* 思想——任何结论都标 `verified / 候选发现（candidate_finding） / requires_pdf / requires_external_verification` 分层。
+2. **reviewer-guidelines.md**：采用了 *Constructive Specificity Standard*——R1--R8 全部给出可执行动作（要改 review.md 哪一节、要新增哪条 EV）。采用了 *Common Reviewer Concerns* 中“Claims in Abstract/Introduction exceed the experiments”的检查角度，把 review.md 中的 `模式种子（schema_seed）` / `weak` 提示当作 limitation 显式保留而非掩盖。
 3. **reviewer-self-review.md（未独立读取，但在 reviewer-guidelines.md 末尾 “Rebuttal-Aware Writing” 已涵盖其核心）**：在 §9.2 列出本输出最高风险，模拟 reviewer-self-review。
 4. **research-planning / SKILL.md + output-schemas.md**：采用了“先 *Overall Plan*（树型 + meta + RQ）再 *Architecture 设计*（叶子表 + 关系边）再 *Logic 设计*（C/I/M 返修动作）”的 4 阶段分层；本审计 §3 → §4 → §5 → §7 即对应该顺序。
 5. **planning-prompts.md（未独立读取，但 SKILL.md 已概述其结构）**：采用了 “Flag ambiguities explicitly rather than making assumptions”，例如对 “Code 仓库 = 3 还是 9” 不做猜测，单列 EV-009。
@@ -531,7 +531,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 #### 9.2 最高风险（reviewer 视角）
 1. **R-RISK-1（高）**：未做 PDF 视觉级核验。EV-009 列出的两处不一致是基于 text 提取的差异；如果 `pdf_extractor` 文本模式在数字上有过误识（PDF 文字模式偶尔会把 6 / 8 / 0 / 5 等数字误识），上述差异可能是工具伪影而非论文本身错误。主线程合并前应跑一次 OCR mode + Fig. 1 视觉对照。
-2. **R-RISK-2（高）**：维度森林虽然取材于正文 + Appendix，但 叶子.model_family 的 70+ 实例完整枚举本审计未逐条复现（只给了高频代表）。如果 Paper2 后续把该叶子作为正式可统计池，需要把 Fig. 4 全节点 OCR 校对一次。
+2. **R-RISK-2（高）**：维度森林虽然取材于正文 + Appendix，但 leaf.model_family 的 70+ 实例完整枚举本审计未逐条复现（只给了高频代表）。如果 Paper2 后续把该叶子作为正式可统计池，需要把 Fig. 4 全节点 OCR 校对一次。
 3. **R-RISK-3（中）**：制品 URL 冲突（EV-008）尚未联网核验。本仓库当前规范允许在 WAF / 403 等阻塞下记录为待核验，但若 R5 真要升级 A.2，主线程合并时应明确 “联网核验失败 vs 未尝试联网” 的区别。
 
 #### 9.3 blocked / timeout / 文件缺失
@@ -542,7 +542,7 @@ A1 额外风险判断：其 threat 报告比普通 survey 更规范，但仍没�
 
 ---
 
-报告完。建议主线程在合并前先按 §7 的 R1 / R2 / R3 / R4 / R5 五项 C/I 返修，把 review.md 的 §“原文模式主树”节升级到 §3 的完整原生森林，并把 A.2 / A.3 的 `not_verified` / `模式种子（模式_seed）` 升级为 `verified`，使该篇正式具备主统计池资格。
+报告完。建议主线程在合并前先按 §7 的 R1 / R2 / R3 / R4 / R5 五项 C/I 返修，把 review.md 的 §“原文模式主树”节升级到 §3 的完整原生森林，并把 A.2 / A.3 的 `not_verified` / `模式种子（schema_seed）` 升级为 `verified`，使该篇正式具备主统计池资格。
 ## 审计附录：证据链与结论-证据映射
 
 > 本附录是 A1-DT v2 的最小可复验 claim map。更细粒度的证据账本、叶子表和关系边见上文“维度树复原”内的审计报告正文，以及主线程裁决 [../../audits/a1dt-v2-19x3/adjudications/llm4se-systematic-review.md](../../audits/a1dt-v2-19x3/adjudications/llm4se-systematic-review.md)。A1-DT v2 只冻结原生树与迁移边界；页码、表图、supplementary 的最终精核进入 A2a。

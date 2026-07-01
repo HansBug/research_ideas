@@ -342,7 +342,7 @@ SLR 研究记录（SLR Study）
 **实际读取的本地文件与章节**：
 
 - `bibtex.bib` 完整（1–13 行）：确认 IST 期刊、2024、vol 169、DOI 10.1016/j.infsof.2024.107423。
-- `metadata.json` 完整：交叉确认 review_type=SLR、se_subfield=MDE4ML、CCF B、`eligible_for_模式_seed=true`（模式种子字段为真） / `eligible_for_statistical_synthesis=true` / `evidence_role=slr_dimension_pattern`。
+- `metadata.json` 完整：交叉确认 review_type=SLR、se_subfield=MDE4ML、CCF B、`eligible_for_schema_seed=true`（模式种子字段为真） / `eligible_for_statistical_synthesis=true` / `evidence_role=slr_dimension_pattern`。
 - `paper_content.txt` 顺序通读至 1849 行（含 §7 Conclusion 与 Appendix A P1–P33 引文），其后 P34–P46 引文与 references 抽样核对。覆盖：
   - §1 Introduction（pp.1–3）
   - §2 Background and related work（§2.1 MDE / §2.2 ML / §2.3 MDE4ML / §2.4 二次研究 比较）
@@ -586,7 +586,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
    - **影响**：原生模式 主树未饱和，无法支撑 Paper2 跨论文 19×3 投影中"feature 树 节点级覆盖"指标。
    - **修法**：用本报告 §3 的 text-树 与 §4 叶子表替换 §"原文模式主树（19×3 审计后返修）" 中过于粗的六行主干；标注每节点的取值空间类型。
 
-2. **C-2：Table 3–8 的封闭枚举未进入叶子取值空间**。当前 review.md 将 16 个目标子类、11 个 contribution、17 个 ML aspect 等都压成"自由文本加理由"或 模式种子（模式_seed） 占位，丢失了原文显式的封闭枚举。
+2. **C-2：Table 3–8 的封闭枚举未进入叶子取值空间**。当前 review.md 将 16 个目标子类、11 个 contribution、17 个 ML aspect 等都压成"自由文本加理由"或 模式种子（schema_seed） 占位，丢失了原文显式的封闭枚举。
    - **影响**：Paper2 在 A2a 阶段无法对 "Goal=降低工作量（降低工作量） × Sub-goal=Abstraction" 这类组合进行字段比对，等于把原文已有的 模式 退化为"建议自由抽取"。
    - **修法**：把 §4 叶子表中所有"完整枚举（n）"列直接迁入 review.md，让 A2a 只做"页码 + cell 核对"而不是重新发明取值空间。
 
@@ -603,7 +603,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 6. **I-3：Fig. 7 bubble chart 是三元 cross-tab**（goal × contribution × ML aspect）。review.md 完全未将其作为关系边或三元关系登记。建议在 §维度树复原 增加 "Cross-tab / Bubble chart" 小节，对应本报告 §5 关系边表。
 
-7. **I-4：A.2 证据账本与 A.3 结论映射目前仅 4 行**（EV-001..004）。原文 RQ1–RQ4 各自的统计结论（如 43/46、35/46、88%）应每个 RQ 至少一行独立证据；A.3 至少应区分 "树类型（树_type） / 叶子_definition / migration_boundary / 候选发现（candidate_发现） / source_模式_candidate / audit_repair / number_inconsistency"。建议按本报告 §8 草案扩到 ≥10 行。
+7. **I-4：A.2 证据账本与 A.3 结论映射目前仅 4 行**（EV-001..004）。原文 RQ1–RQ4 各自的统计结论（如 43/46、35/46、88%）应每个 RQ 至少一行独立证据；A.3 至少应区分 "树类型（tree_type） / 叶子_definition / migration_boundary / 候选发现（candidate_finding） / source_schema_candidate / audit_repair / number_inconsistency"。建议按本报告 §8 草案扩到 ≥10 行。
 
 8. **I-5：原生模式 是单树 + 双 parallel 模式 的小森林**，而非现在 §0 卡片中标的"维度森林"或"降级树"二选一。应在快速结论卡片新增字段："模式 形态 = 单根主树 (Fig.5) + 2 个 parallel 模式 (Inclusion/Exclusion gate, QA1–QA5 rubric)"。
 
@@ -639,7 +639,7 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 | EV-003i | paper_content.txt | §4.4.1, §4.4.2, §4.4.3, Fig. 10(a–b) | academic 89% / 工业（industrial） 9% / P35 both；case 23 / exp 17 / user 4 / criteria 2 / 无更新 8；工业（industrial）-CS 4, 工业（industrial）-exp 1；ML/MDE 指标 分布；33 数据集, MNIST 7, Iris 3 | 评价 维度分布 | statistical_result | medium | L-rq3-area, L-rq3-方法, L-rq3-工业（industrial）, L-rq3-mlmetric, L-rq3-mdemetric, L-rq3-数据集 | true (Fig. 10a–b) | 仅本 语料 |
 | EV-003j | paper_content.txt | §4.5.1, §4.5.2 | 19/46 无 limitation；7/46 无 future work；3 类 limitation + 3 类 future work | limitation/未来工作 分类法 + 频次 | 分类法 + statistical_result | strong | L-rq4-limscope, L-rq4-fwscope | false | 仅本 语料 |
 | EV-004 | paper_content.txt | §5 (4 sub-sections) | "search string ... refined over several iterations" / "first author extracted ... close match" / "did not exclude any 研究 based on publication 质量" | 4 类 效度 威胁 与对策 | validity_self_report | medium | ROOT, migration boundary | false | 不能等同 inter-rater κ |
-| EV-005 | paper_content.txt | §6.1.1–§6.1.7, §6.2.1–§6.2.2, §7 | 10 项 路线图 推荐s | discussion-派生候选发现（derived 候选发现） | 推荐 | weak (single-paper) | 候选发现 only | false | 仅作 边界锚点，不进 最终发现 |
+| EV-005 | paper_content.txt | §6.1.1–§6.1.7, §6.2.1–§6.2.2, §7 | 10 项 路线图 推荐 | discussion-派生候选发现（derived 候选发现） | 推荐 | weak (single-paper) | 候选发现 only | false | 仅作 边界锚点，不进 最终发现 |
 | EV-006 | paper_content.txt | §7 Conclusion | "selected 46 highly relevant 原始研究 from an initial pool of 3,496 papers" | **疑似笔误**：与 §3.3.2 的 3934 不符 | number_inconsistency | strong | ROOT 元数据 | false | 引用时必须以 §3.3.2 的 3934 / 3570 为准 |
 | EV-007 | paper_content.txt | §"数据可获得性（Data availability）" | "SLR data is available at the following link MDE4MLSLRdata(Originaldata)" | 数据可用性声明 + GitHub 链接 (review.md 旧版抽取为 https://github.com/hiraa221/MDE4ML-SLR-Data/树/main) | replication_link | weak | ROOT, 复现性 | true (打开 GitHub 仓库) | 需当前可访问性与 license 复核 |
 
@@ -647,13 +647,13 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| C-01 | 本文原生模式 为单根主树（Fig. 5）+ 2 个 parallel 模式（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | 树类型（树_type） | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | strong | 直接迁入 review.md §0 卡片 | 仅本篇 |
+| C-01 | 本文原生模式 为单根主树（Fig. 5）+ 2 个 parallel 模式（Inclusion/Exclusion gate 与 QA1–QA5 rubric），构成小型维度森林 | 树类型（tree_type） | ROOT, parallel-IE, parallel-QA | EV-001, EV-002a, EV-002b | strong | 直接迁入 review.md §0 卡片 | 仅本篇 |
 | C-02 | 样本单位 = 原始研究，分母 = 46，筛选链 3934→3570→72→55→32→+14→46 | 语料 | ROOT | EV-001, EV-006 | strong | 直接迁入 SUMMARY 总账 | §7 中"3,496" 为笔误 |
-| C-03 | 主统计池资格成立但数字仍需 A2a PDF 复核（特别是 Fig. 4 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 / Table 9） | pool_eligibility | ROOT | EV-001, EV-003*, EV-004 | medium | 当前 A1-DT 阶段 模式种子（模式_seed）；不写入 final stats | 文本抽取不可替代视觉版面 |
+| C-03 | 主统计池资格成立但数字仍需 A2a PDF 复核（特别是 Fig. 4 / Fig. 6 / Fig. 7 / Fig. 8 / Fig. 9 / Fig. 10 / Table 9） | pool_eligibility | ROOT | EV-001, EV-003*, EV-004 | medium | 当前 A1-DT 阶段 模式种子（schema_seed）；不写入 final stats | 文本抽取不可替代视觉版面 |
 | C-04 | RQ1–RQ4 各 RQ 都映射到 抽取-form section、feature-树 子树与 Answer Summary 三层；这是可直接迁移到 Paper2 的方法学制品链 | method_pattern | §RQ1..§RQ4 子树 | EV-001, EV-003a–j | strong | Paper2 可作为 模式种子 | 不迁移领域结论 |
-| C-05 | "未提及（未提及）" 作为显式取值（而非缺失）是本篇的关键审计选择（工具 可获得性、ML 指标、MDE 指标、limitations、future work 都给出 未提及 频次） | 模式_design | L-rq2-工具, L-rq3-mlmetric, L-rq3-mdemetric, L-rq4-limscope, L-rq4-fwscope | EV-003h, EV-003i, EV-003j | strong | Paper2 可借鉴 | 需在 prompt / form 显式给出 not_mentioned 选项 |
+| C-05 | "未提及（未提及）" 作为显式取值（而非缺失）是本篇的关键审计选择（工具 可获得性、ML 指标、MDE 指标、limitations、future work 都给出 未提及 频次） | schema_design | L-rq2-工具, L-rq3-mlmetric, L-rq3-mdemetric, L-rq4-limscope, L-rq4-fwscope | EV-003h, EV-003i, EV-003j | strong | Paper2 可借鉴 | 需在 prompt / form 显式给出 not_mentioned 选项 |
 | C-06 | Fig. 7 给出 goal × contribution × ML aspect 的三元 cross-tab，是本篇唯一的关系型可视化 | relation_evidence | R-goal-aspect, R-contrib-aspect | EV-003a, EV-003e, EV-003g（Fig. 7 注释） | weak | 可迁结构为"三元字段共现矩阵"模板 | 视觉 bubble 频次需 PDF 复核 |
-| C-07 | §6 / §7 的 10 项 路线图 是作者解释性 候选发现，不能升级为 最终研究发现（最终研究发现） | 候选发现（candidate_发现）_boundary | §RQ4, §6, §7 | EV-005 | strong | Paper2 仅作 边界锚点 | 未经跨论文证据 + 反证 + 研究者裁决 |
+| C-07 | §6 / §7 的 10 项 路线图 是作者解释性 候选发现，不能升级为 最终研究发现（最终研究发现） | 候选发现边界（candidate_finding_boundary） | §RQ4, §6, §7 | EV-005 | strong | Paper2 仅作 边界锚点 | 未经跨论文证据 + 反证 + 研究者裁决 |
 | C-08 | 本篇 效度 章节给出对策但未报告 Cohen κ、双盲编码或 disagreement 统计；"close match" 不可视作强一致性证据 | validity_boundary | §5 | EV-004 | medium | Paper2 应在自身审计中补足 inter-rater 证据 | 不削弱本篇结论效力，但限制其外推 |
 | C-09 | §7 中 "3,496" 与 §3.3.2 中 "3934" 不一致，应以方法节为 canonical 数字 | number_inconsistency | ROOT | EV-006 | strong | 引用本篇时直接使用 3934 / 3570 | 仅笔误，不影响整体结论 |
 | C-10 | 数据可获得性（Data 可获得性） 给出 GitHub 仓库链接（review.md 已抽取为 hiraa221/MDE4ML-SLR-Data），是开放数据 SLR 的样本 | replication | ROOT | EV-007 | weak | 进入 SUMMARY 复现资产盘点 | 当前可访问性、license、内容范围未复核 |

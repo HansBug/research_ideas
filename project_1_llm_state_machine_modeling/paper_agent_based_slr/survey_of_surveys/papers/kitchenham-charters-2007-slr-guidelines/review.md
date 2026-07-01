@@ -145,7 +145,7 @@
    - 因此 RQ 与 样本单位 是"作者立场 / contribution claim"关系，不是"问题驱动样本编码"关系。
 
 5. **若无系统样本库，如何降级？**
-   - 主体 → **方法学种子 / 边界锚点**：可为 Paper2 的"综述维度树"提供：① question type 6-枚举；② PICOC 框架；③ Protocol 9-component；④ search-doc 模式；⑤ bias 4-枚举；⑥ 质量量规 grid（研究-type × 阶段）；⑦ 抽取 form 标准字段；⑧ synthesis 3-modal + 子枚举；⑨ 报告-structure 8 章模板；⑩ DARE 4-question 评分。**这些都是 模式种子（模式_seed），不是 发现**。
+   - 主体 → **方法学种子 / 边界锚点**：可为 Paper2 的"综述维度树"提供：① question type 6-枚举；② PICOC 框架；③ Protocol 9-component；④ search-doc 模式；⑤ bias 4-枚举；⑥ 质量量规 grid（研究-type × 阶段）；⑦ 抽取 form 标准字段；⑧ synthesis 3-modal + 子枚举；⑨ 报告-structure 8 章模板；⑩ DARE 4-question 评分。**这些都是 模式种子（schema_seed），不是 发现**。
    - Appendix 2 → **局部 候选发现 边界**："2004-2007 上半年 SE SLR 主要集中在 Cost Estimation / 研究（Research） Trends / 技术 Evaluation 三大 topic type，每篇 DARE 评分 2-3.5 之间" 可作为 候选发现 但分母 n=15 且非系统采样，不能直接迁移到 Paper2 的主统计池。
 
 ### 3. 原生样本编码维度树 / 维度森林
@@ -236,20 +236,20 @@
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| L1-question-type | 综述问题类型 | T3 | §5.3.1 Australian NHMR 6 类 + SE 改写 5 类 | 综述意图归类 | {干预效果（effect）, 条件频率/比率（频次）, 诊断测试（diagnostic*）, 病因/风险因素（aetiology/risk）, 可预测性（predictability）, 经济价值（economic-value）}；SE 不适用 diagnostic | 完整枚举（封闭 6） | 若无 RQ，写 contribution_claim | 模式种子（模式_seed） | 可统计 Paper2 综述样本的问题类型分布 | E2 | 6-枚举源自医学；SE 不适用 diagnostic |
-| L2-picoc | PICOC 元素 | T3 | §5.3.2 Petticrew & Roberts | 框定 RQ 五要素 | {人群（Population）、干预（Intervention）、比较（Comparison）、结果（Outcome）、上下文（Context）} | 完整枚举（封闭 5） | 指南 可不全填 | 模式种子（模式_seed） | 用于 RQ 结构化抽取 | E3 | 直接迁移 |
-| L3-protocol-comp | Protocol 组件 | T4 | §5.4 | 协议必含字段 | {背景（Background）, RQ, 检索策略（SearchStrategy）, 选择标准（SelectionCriteria）, 选择流程（SelectionProcedure）, 质量清单（QualityChecklist）, 抽取策略（ExtractionStrategy）, 综合策略（Synthesis）, 传播策略（Dissemination）, 时间表（Timetable）} | 完整枚举（封闭 10） | optional 项可缺 | 模式种子（模式_seed） | 可统计目标语料的 protocol 完备度 | E4 | 可迁移 |
-| L4-search-doc | 检索文档化 模式 | T5 | Table 2 | 检索过程记录 4 类 source × 字段 | (数字图书馆（DigitalLibrary）, 期刊手检（期刊 HandSearch）, 会议（会议）, 未发表材料（Unpublished）, 其他（Other）) × 各自字段 | 层级枚举（4 × 3-5） | 来源未用则不填 | 模式种子（模式_seed） | 可统计语料检索透明度 | E5 | 可迁移 |
-| L5-bias-type | 偏倚类型 | T7 | Table 4 | 偏倚 4-枚举 | {选择偏倚（Selection）, 执行偏倚（Performance）, 测量偏倚（Measurement）, 流失偏倚（Attrition）} × {同义词（syn）, 定义（def）, 防护措施（protection）} | 完整枚举（封闭 4） | 不评偏倚→not_assessed | 模式种子（模式_seed） | 可统计研究的偏倚控制覆盖 | E6 | 部分医学概念在 SE 不易适用（blinding） |
-| L6-质量-item-quant | 量化研究质量条目 | T9 | Table 5 | 量化质量检查表 ~50 条 | 自由文本条目 × {通用经验研究, 相关研究, 调查, 实验} × 来源引用（原文研究类型枚举已中文化） | 层级枚举 + 关系值（应用研究类型） | 不适用项打 -- | 模式种子（模式_seed） | 可统计目标语料的质量条目分布 | E7 | 选择适用子集（作者建议） |
-| L7-质量-item-qual | 质性研究质量条目 | T9 | Table 6 | 质性质量检查表 18 条 | 18 条自由文本条目 × Source ref | 完整枚举（封闭 18） | 不适用项打 -- | 模式种子（模式_seed） | 可统计质性综述质量 | E8 | 直接迁移 |
-| L8-抽取-field | 数据抽取标准字段 | T10 | §6.4.2 + Table 7 | 抽取表标准 + 综述特定字段 | 标准字段 = {评审者姓名、日期、标题、作者、期刊、出版细节、备注}（封闭 7；原字段名见原文）+ 综述特定字段开放 | 完整枚举（部分） + 自由文本 | -- | 模式种子（模式_seed） | 可作为 Paper2 抽取表模板 | E9 | 可迁移 |
-| L9-effect-binary | 二元效应度量 | T12 | §6.5.2 | 二元结局合成度量 | {赔率（Odds）, 风险（Risk）, OR, RR, ARR} | 完整枚举（封闭 5） | 非二元结局→不适用（不适用） | 模式种子（模式_seed） | 元分析（meta-analysis） 必备 | E10 | 可迁移 |
-| L10-effect-continuous | 连续效应度量 | T12 | §6.5.2 | 连续结局合成度量 | {均值差（MeanDifference）, WMD, SMD} | 完整枚举（封闭 3） | 非连续结局→不适用（不适用） | 模式种子（模式_seed） | 元分析（meta-analysis） 必备 | E10 | 可迁移 |
-| L11-qual-synth | 质性合成方法 | T12 | §6.5.4 Noblit & Hare | 质性综合 3 类 | {互惠式（Reciprocal）, 反驳式（Refutational）, 论证线式（LineOfArgument）} | 完整枚举（封闭 3） | -- | 模式种子（模式_seed） | 质性综述方法学统计 | line 2208-2224 | 可迁移 |
-| L12-sensitivity-axis | 敏感性分析 subset 轴 | T13 | §6.5.6 | 敏感性 4 类 | {仅高质量研究（HighQualityOnly）, 按研究类型（ByStudyType）, ByExtractionDifficulty, 按实验方法（ByExperimentalMethod）} | 完整枚举（封闭 4） | -- | 模式种子（模式_seed） | 可统计 sensitivity 透明度 | line 2253-2258 | 可迁移 |
-| L13-报告-section | 报告章节 | T15 | Table 8 | 报告结构 ~10 章 | {标题（Title*）, 署名（Authorship*）, 执行摘要（ExecSummary）, 背景（Background）, RQ, 方法（Methods）, 纳入与排除研究（Included&Excluded）, 结果（Results）, 讨论（Discussion）, 结论（Conclusions）, 致谢（Acknowledgements*）, 利益冲突（ConflictOfInterest）, 参考文献与附录（References&Appendices）} | 完整枚举（封闭） + *=PhD可省 | 章节缺失→未报告 | 模式种子（模式_seed） | 可统计目标语料报告完备度 | E11 | 可迁移 |
-| L14-流程-step-source | 过程-step 来源源 | T16 | Table 9 | Appendix 1 跨源对照 6 源 | {Berkeley, ANHMR, Cochrane, CRD, Petticrew&Roberts, Fink} | 完整枚举（封闭 6） | -- | 模式种子（模式_seed） | 可建跨指南源 cross-walk | E13 | 可迁移结构 |
+| L1-question-type | 综述问题类型 | T3 | §5.3.1 Australian NHMR 6 类 + SE 改写 5 类 | 综述意图归类 | {干预效果（effect）, 条件频率/比率（频次）, 诊断测试（diagnostic*）, 病因/风险因素（aetiology/risk）, 可预测性（predictability）, 经济价值（economic-value）}；SE 不适用 diagnostic | 完整枚举（封闭 6） | 若无 RQ，写 contribution_claim | 模式种子（schema_seed） | 可统计 Paper2 综述样本的问题类型分布 | E2 | 6-枚举源自医学；SE 不适用 diagnostic |
+| L2-picoc | PICOC 元素 | T3 | §5.3.2 Petticrew & Roberts | 框定 RQ 五要素 | {人群（Population）、干预（Intervention）、比较（Comparison）、结果（Outcome）、上下文（Context）} | 完整枚举（封闭 5） | 指南 可不全填 | 模式种子（schema_seed） | 用于 RQ 结构化抽取 | E3 | 直接迁移 |
+| L3-protocol-comp | Protocol 组件 | T4 | §5.4 | 协议必含字段 | {背景（Background）, RQ, 检索策略（SearchStrategy）, 选择标准（SelectionCriteria）, 选择流程（SelectionProcedure）, 质量清单（QualityChecklist）, 抽取策略（ExtractionStrategy）, 综合策略（Synthesis）, 传播策略（Dissemination）, 时间表（Timetable）} | 完整枚举（封闭 10） | optional 项可缺 | 模式种子（schema_seed） | 可统计目标语料的 protocol 完备度 | E4 | 可迁移 |
+| L4-search-doc | 检索文档化 模式 | T5 | Table 2 | 检索过程记录 4 类 source × 字段 | (数字图书馆（DigitalLibrary）, 期刊手检（期刊 HandSearch）, 会议（会议）, 未发表材料（Unpublished）, 其他（Other）) × 各自字段 | 层级枚举（4 × 3-5） | 来源未用则不填 | 模式种子（schema_seed） | 可统计语料检索透明度 | E5 | 可迁移 |
+| L5-bias-type | 偏倚类型 | T7 | Table 4 | 偏倚 4-枚举 | {选择偏倚（Selection）, 执行偏倚（Performance）, 测量偏倚（Measurement）, 流失偏倚（Attrition）} × {同义词（syn）, 定义（def）, 防护措施（protection）} | 完整枚举（封闭 4） | 不评偏倚→not_assessed | 模式种子（schema_seed） | 可统计研究的偏倚控制覆盖 | E6 | 部分医学概念在 SE 不易适用（blinding） |
+| L6-质量-item-quant | 量化研究质量条目 | T9 | Table 5 | 量化质量检查表 ~50 条 | 自由文本条目 × {通用经验研究, 相关研究, 调查, 实验} × 来源引用（原文研究类型枚举已中文化） | 层级枚举 + 关系值（应用研究类型） | 不适用项打 -- | 模式种子（schema_seed） | 可统计目标语料的质量条目分布 | E7 | 选择适用子集（作者建议） |
+| L7-质量-item-qual | 质性研究质量条目 | T9 | Table 6 | 质性质量检查表 18 条 | 18 条自由文本条目 × Source ref | 完整枚举（封闭 18） | 不适用项打 -- | 模式种子（schema_seed） | 可统计质性综述质量 | E8 | 直接迁移 |
+| L8-抽取-field | 数据抽取标准字段 | T10 | §6.4.2 + Table 7 | 抽取表标准 + 综述特定字段 | 标准字段 = {评审者姓名、日期、标题、作者、期刊、出版细节、备注}（封闭 7；原字段名见原文）+ 综述特定字段开放 | 完整枚举（部分） + 自由文本 | -- | 模式种子（schema_seed） | 可作为 Paper2 抽取表模板 | E9 | 可迁移 |
+| L9-effect-binary | 二元效应度量 | T12 | §6.5.2 | 二元结局合成度量 | {赔率（Odds）, 风险（Risk）, OR, RR, ARR} | 完整枚举（封闭 5） | 非二元结局→不适用（不适用） | 模式种子（schema_seed） | 元分析（meta-analysis） 必备 | E10 | 可迁移 |
+| L10-effect-continuous | 连续效应度量 | T12 | §6.5.2 | 连续结局合成度量 | {均值差（MeanDifference）, WMD, SMD} | 完整枚举（封闭 3） | 非连续结局→不适用（不适用） | 模式种子（schema_seed） | 元分析（meta-analysis） 必备 | E10 | 可迁移 |
+| L11-qual-synth | 质性合成方法 | T12 | §6.5.4 Noblit & Hare | 质性综合 3 类 | {互惠式（Reciprocal）, 反驳式（Refutational）, 论证线式（LineOfArgument）} | 完整枚举（封闭 3） | -- | 模式种子（schema_seed） | 质性综述方法学统计 | line 2208-2224 | 可迁移 |
+| L12-sensitivity-axis | 敏感性分析 subset 轴 | T13 | §6.5.6 | 敏感性 4 类 | {仅高质量研究（HighQualityOnly）, 按研究类型（ByStudyType）, ByExtractionDifficulty, 按实验方法（ByExperimentalMethod）} | 完整枚举（封闭 4） | -- | 模式种子（schema_seed） | 可统计 sensitivity 透明度 | line 2253-2258 | 可迁移 |
+| L13-报告-section | 报告章节 | T15 | Table 8 | 报告结构 ~10 章 | {标题（Title*）, 署名（Authorship*）, 执行摘要（ExecSummary）, 背景（Background）, RQ, 方法（Methods）, 纳入与排除研究（Included&Excluded）, 结果（Results）, 讨论（Discussion）, 结论（Conclusions）, 致谢（Acknowledgements*）, 利益冲突（ConflictOfInterest）, 参考文献与附录（References&Appendices）} | 完整枚举（封闭） + *=PhD可省 | 章节缺失→未报告 | 模式种子（schema_seed） | 可统计目标语料报告完备度 | E11 | 可迁移 |
+| L14-流程-step-source | 过程-step 来源源 | T16 | Table 9 | Appendix 1 跨源对照 6 源 | {Berkeley, ANHMR, Cochrane, CRD, Petticrew&Roberts, Fink} | 完整枚举（封闭 6） | -- | 模式种子（schema_seed） | 可建跨指南源 cross-walk | E13 | 可迁移结构 |
 | **L15-appx2-topic-type** | **Appendix 2 主题类型** | **T18** | **Appendix 2** | **15 SE SLR 编码列** | {技术评价（technology evaluation）, 研究趋势（研究趋势）, 技术} | **层级枚举（观察 3 类，未完全饱和）** | -- | **可统计（n=15）但分母小且非系统采样** | 候选发现（cost-estimation 占主导） | E12 | **慎用**：仅 2004-2007 上半年 SE SLR |
 | **L16-appx2-topic-area** | **Appendix 2 主题区** | **T18** | **Appendix 2** | **15 SE SLR 编码列** | 13+ open-ended labels（Cost Estimation 出现 6 次最多） | 自由文本（高频项可统计） | -- | **可统计 候选发现** | "cost estimation 是 2004-07 SE SLR 主导主题"是可生成的 candidate | E12 | 不可迁移到 Paper2 主统计池 |
 | **L17-appx2-dare-score** | **Appendix 2 DARE 评分** | **T18** | **DARE 4-question** | **0-4 区间** | {2.0, 2.5, 3.0, 3.5} | 数值（区间） | -- | **可统计 mean/median** | candidate：当时 SE SLR 质量约 2.5-3.0 中位 | E12 | 评分员主观（Keele/Durham 自评） |
@@ -288,7 +288,7 @@
 
 #### 6.3 对 Paper2 可迁移的方法学启发
 
-- T3-T17 几乎全部可作为 **Paper2 维度树 模式种子（模式_seed）**（即"综述如何被结构化描述"的字段先验）。
+- T3-T17 几乎全部可作为 **Paper2 维度树 模式种子（schema_seed）**（即"综述如何被结构化描述"的字段先验）。
 - 特别有用：
   - **T18 (Appendix 2 编码表)**：是本文唯一展示"如何把一组 SLR 编码成可统计行"的实例 — Paper2 的"综述总账表"可直接参考其字段架构（Author / Year / Title / Reference / 主题类型（TopicType） / TopicArea / 质量分数（QualityScore）），但需补 venue、CCF-rank、systematic-证据-status、sample-unit、树-type 等字段。
   - **Table 9 (流程-step cross-walk)**：是 Paper2 跨综述方法学比较的**模板**（跨指南 step 同义映射）。
@@ -306,10 +306,10 @@
 | **C-1** | C1 | review.md 把"研究范围 / 语料 / 分类 / 方法 / 证据 / 发现"六个**通用接口叶子**作为本文维度树的事实主源（line 96-102），违背 A1-DT v2 关于"不得用六叶模板替代原文 模式"的硬约束 | 把这六叶**完整降级**为"跨论文投影"小节；把 T3 question 模式、T4 protocol、T5 search-doc、T7 bias、T9 质量 grid、T10 抽取 form、T12 synthesis、T15 报告结构 升为**原文 模式 主森林**（即把旧版 review.md "原文模式主树（19×3 审计后返修）"小节的 6 行扩展为 15+ 个具体 模式，并各自给取值空间、Table 编号、页码） |
 | **C-2** | C2 | review.md 没有识别 **Appendix 2 的 15-SLR 局部编码池**——这是本文唯一的真实"样本-字段"编码实例，但被完全忽略 | 在维度森林中**新增 T18 节点**；在叶子表中加入 L15/L16/L17；在 §6 "统计与候选发现链路"中明确：Appendix 2 是 candidate-发现 入口，n=15，DARE 评分者-对象耦合是已知 risk |
 | **I-1** | I1 | Tables 2/4/5/6/7/8/9 在 review.md 中只在"原文模式主树"表中以 6 个**整段一行**形式概括（line 124-130），没有展开任何具体字段、取值空间、行数；A.2 证据账本仅有 EV-001 到 EV-004 共 4 行高度抽象证据 | A.2 应至少新增证据：EV-Table2-search-doc、EV-Table4-bias、EV-Table5-质量-quant、EV-Table6-质量-qual、EV-Table7-抽取、EV-Table8-报告、EV-Table9-流程-step、EV-Appendix2-coded-15、EV-PICOC、EV-effect-measures；每条挂具体 Table 编号 + 页码 |
-| **I-2** | I2 | metadata.json 中 `eligible_for_statistical_synthesis: false` 是对的，但**没有把 Appendix 2 的 15-SLR 编码池作为"局部 候选发现 入口"标注出来** | 在 metadata.json 新增字段 `local_empirical_subset: {appendix: 2, n: 15, fields: [...], pool_status: "候选发现（candidate_发现）_anchor_only"}` 或在 review.md 卡片中显式声明 |
+| **I-2** | I2 | metadata.json 中 `eligible_for_statistical_synthesis: false` 是对的，但**没有把 Appendix 2 的 15-SLR 编码池作为"局部 候选发现 入口"标注出来** | 在 metadata.json 新增字段 `local_empirical_subset: {appendix: 2, n: 15, fields: [...], pool_status: "候选发现（candidate_finding）_anchor_only"}` 或在 review.md 卡片中显式声明 |
 | **I-3** | I3 | review.md "维度树复原" 一句话结论说 "本文的维度树主类型为方法流程树，辅助类型为质量/效度 指南 树"——**漏说"维度森林"**特征：本文有 ≥10 个独立 模式 容器 | 改为："本文的原生结构是**多 模式 维度森林**（≥10 个并列 模式 容器：question type / PICOC / protocol component / search-doc / bias 分类法 / 质量 grid / 抽取 form / synthesis modes / sensitivity axes / 报告结构 等）+ 一个 n=15 的 Appendix 2 局部编码池。" |
 | **I-4** | I4 | A.4 复验命令仅 2 条且 visual-check 状态 `needs_manual_check` 长期未推进；Tables 5/7/9 跨页表格的版面、Figures 1-2 的图示边界均未做 PDF 视觉核验 | 把 A.4 拆为 Table-by-Table 的 visual-check 条目，每条给出具体 Table/Figure 编号、目标页码区间、通过条件 |
-| **I-5** | I5 | SUMMARY 当前表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"若仍写"方法学 指南 / 不适用（不适用） / 方法流程树 + 质量树 / 模式种子（模式_seed） only"，则未反映 Appendix 2 部分 | SUMMARY 行应改为：样本单位="主体=方法学构件；Appendix 2=15 SE SLR"；样本数量="主体 不适用（不适用） / Appendix 2 = 15"；树类型="**维度森林**+局部编码池"；池资格="主体 模式种子（模式_seed）；Appendix 2 = 局部 candidate-发现 anchor，不进入主池" |
+| **I-5** | I5 | SUMMARY 当前表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"若仍写"方法学 指南 / 不适用（不适用） / 方法流程树 + 质量树 / 模式种子（schema_seed） only"，则未反映 Appendix 2 部分 | SUMMARY 行应改为：样本单位="主体=方法学构件；Appendix 2=15 SE SLR"；样本数量="主体 不适用（不适用） / Appendix 2 = 15"；树类型="**维度森林**+局部编码池"；池资格="主体 模式种子（schema_seed）；Appendix 2 = 局部 candidate-发现 anchor，不进入主池" |
 | M-1 | M1 | 旧 "六类 模式 抽取"小节（review.md §2）与维度树复原小节存在显著 overlap，且未对齐 v2 口径 | 保留作为 v1 历史快照，但在节首加 `> [!WARNING] v1-historical: 内容已被 §维度树复原 + A1-DT v2 取代` |
 | M-2 | M2 | "A1-M0--M6 脚手架元维度贡献"表（line 49-58）是 v1 跨论文投影残留，A1-DT v2 已禁止用 M0-M6 模板代表原文 | 整段移到附录或加 v1-deprecated 警示 |
 
@@ -319,16 +319,16 @@
 
 | 证据标识 | 来源文件 | 原文章节 | 段落或表图线索 | 原文短引或释义 | 证据角色 | 证据强度 | 支撑对象 | 需要原文版面核验 | 外推限制 |
 |---|---|---|---|---|---|---|---|---|---|
-| EV-question-types | paper_content.txt | §5.3.1 Question Types | Page 17-18, line 719-734 | 释义：原文列 Australian NHMR 6 类问题（intervention/频次/diagnostic/aetiology/可预测性（predictability）/economic），并把 SE 改写为 5 类（去除 diagnostic） | 分类_模式 | medium（文本明确，Table 不存在） | T3 / L1-question-type | text-only | 6-枚举源自医学，SE 不适用 diagnostic |
-| EV-picoc | paper_content.txt | §5.3.2 Question Structure | Page 18-20, line 797-863 | 释义：PICOC 五元素来自 Petticrew & Roberts [25]；Kitchenham 2007 用 PICO；本文对 P/I/C/O/Context 各给 SE 解释段落 | 分类_模式 | strong | T3 / L2-picoc | text-only | 直接迁移 |
-| EV-table2-search-doc | paper_content.txt | §6.1.4 Documenting the Search | Page 24, Table 2, line 1067-1086 | 短引："Procedures for documenting the 检索过程 are given in Table 2." Table 含 5 source × 字段 | 抽取_模式 | medium | T5 / L4 | needs_pdf_visual | Table 跨页风险低；可文本恢复 |
-| EV-table4-bias | paper_content.txt | §6.3.2 Development of Quality Instruments | Page 30, Table 4, line 1390-1426 | 短引："The CRD Guidelines [19] ... all refer to four types of bias shown in Table 4." 4 行 × {同义词（Synonyms）、定义（Definition）、保护机制（Protection mechanism）} | 分类_模式 | strong | T7 / L5 | text-only | 部分医学 protection 在 SE 不适用 |
+| EV-question-types | paper_content.txt | §5.3.1 Question Types | Page 17-18, line 719-734 | 释义：原文列 Australian NHMR 6 类问题（intervention/频次/diagnostic/aetiology/可预测性（predictability）/economic），并把 SE 改写为 5 类（去除 diagnostic） | classification_schema | medium（文本明确，Table 不存在） | T3 / L1-question-type | text-only | 6-枚举源自医学，SE 不适用 diagnostic |
+| EV-picoc | paper_content.txt | §5.3.2 Question Structure | Page 18-20, line 797-863 | 释义：PICOC 五元素来自 Petticrew & Roberts [25]；Kitchenham 2007 用 PICO；本文对 P/I/C/O/Context 各给 SE 解释段落 | classification_schema | strong | T3 / L2-picoc | text-only | 直接迁移 |
+| EV-table2-search-doc | paper_content.txt | §6.1.4 Documenting the Search | Page 24, Table 2, line 1067-1086 | 短引："Procedures for documenting the 检索过程 are given in Table 2." Table 含 5 source × 字段 | extraction_schema | medium | T5 / L4 | needs_pdf_visual | Table 跨页风险低；可文本恢复 |
+| EV-table4-bias | paper_content.txt | §6.3.2 Development of Quality Instruments | Page 30, Table 4, line 1390-1426 | 短引："The CRD Guidelines [19] ... all refer to four types of bias shown in Table 4." 4 行 × {同义词（Synonyms）、定义（Definition）、保护机制（Protection mechanism）} | classification_schema | strong | T7 / L5 | text-only | 部分医学 protection 在 SE 不适用 |
 | EV-table5-质量-quant | paper_content.txt | §6.3.2 | Page 33-35, Table 5, line 1514-1620 | 释义："Summary Quality Checklist for Quantitative Studies"，~50 行问句 × {Empirical, Correlation, 调查, 实验 4 列 × 是否打 X} × Source 列引用 [10][11][12][19][25] | 质量量规（quality_rubric） | medium（跨页表格，文本提取可能丢列对齐） | T9 / L6 | **needs_pdf_visual**（首要核验项） | Table 跨 3 页，必须 PDF 视觉确认 X 对齐 |
 | EV-table6-质量-qual | paper_content.txt | §6.3.2 | Page 36, Table 6, line 1626-1658 | 释义：18 行 × {Source ref}；首项 "How credible are the 发现?" 等 | 质量量规（quality_rubric） | strong | T9 / L7 | text-only | -- |
 | EV-table7-抽取-form | paper_content.txt | §6.4.2 | Page 38-40, Table 7, line 1751-1968 | 释义：Maxwell et al. 1998 抽取实例，~30 字段：数据抽取者 / 检查者（DataExtractor/Checker）, StudyIdentifier, ApplicationDomain, 数据库名称（DatabaseName）, NumberOfProjects, SizeMetric, 准确率Measures, Cross-companyModel{techniques, transformations, variables, cross-val}, Within-companyModel{...}, Comparison, 数据（Data）Summary | 抽取_form_template | strong | T10 / L8 | text-only | 仅一个实例；非通用模板 |
-| EV-effect-measures | paper_content.txt | §6.5.2 | Page 43-44, line 2120-2170 | 释义：5 binary measures（Odds, Risk, OR, RR, ARR）+ 3 continuous（MeanDiff, WMD, SMD）+ 优缺点 | 分类_模式 | strong | T12 / L9, L10 | text-only | 可直接迁移 |
-| EV-qual-synth | paper_content.txt | §6.5.4 | Page 45, line 2208-2224 | 释义：Noblit & Hare 3 类：Reciprocal translation / Refutational / Line of argument | 分类_模式 | strong | T12 / L11 | text-only | -- |
-| EV-sensitivity-axes | paper_content.txt | §6.5.6 | Page 46, line 2253-2258 | 释义：4 类 subset（HighQuality / 按研究类型（ByStudyType） / ByExtractionDifficulty / 按实验方法（ByExperimentalMethod）） | 分类_模式 | strong | T13 / L12 | text-only | -- |
+| EV-effect-measures | paper_content.txt | §6.5.2 | Page 43-44, line 2120-2170 | 释义：5 binary measures（Odds, Risk, OR, RR, ARR）+ 3 continuous（MeanDiff, WMD, SMD）+ 优缺点 | classification_schema | strong | T12 / L9, L10 | text-only | 可直接迁移 |
+| EV-qual-synth | paper_content.txt | §6.5.4 | Page 45, line 2208-2224 | 释义：Noblit & Hare 3 类：Reciprocal translation / Refutational / Line of argument | classification_schema | strong | T12 / L11 | text-only | -- |
+| EV-sensitivity-axes | paper_content.txt | §6.5.6 | Page 46, line 2253-2258 | 释义：4 类 subset（HighQuality / 按研究类型（ByStudyType） / ByExtractionDifficulty / 按实验方法（ByExperimentalMethod）） | classification_schema | strong | T13 / L12 | text-only | -- |
 | EV-table8-报告-structure | paper_content.txt | §7.2 | Page 50-52, Table 8, line 2379-2464 | 释义：报告结构 ~10 章 × subsection × scope × comments；* 标注的章节 PhD 不必有 | template_模式 | medium | T15 / L13 | needs_pdf_visual | 跨 3 页 |
 | EV-table9-流程-cross | paper_content.txt | Appendix 1 | Page 56-58, Table 9, line 2635-2724 | 释义：6 个 medical/social-science 指南源 × 各自 流程 steps（左右对照） | mapping_模式 | medium | T16 / L14 | needs_pdf_visual | 跨页对照表 |
 | EV-appx2-coded-15 | paper_content.txt | Appendix 2 | Page 58-60, line 2732-2855 | 释义：15 SE SLR (2004-2007.06) 编码：{Author, Date, Title, Ref, 主题类型（TopicType）, TopicArea, 质量分数（QualityScore） (DARE)}；DARE 评分由 Keele/Durham EBSE 团队自评 | local_empirical_pool | **medium-strong**（本文唯一真实样本编码） | T18 / L15-L17 | needs_pdf_visual | n=15 且评分者-对象耦合；不可作为主池 |
@@ -338,21 +338,21 @@
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-树-type-v2 | 本文原生结构是**维度森林（≥10 个并列 模式 容器）+ Appendix 2 局部 n=15 编码池**；主体不进入主统计池，仅 Appendix 2 可作 candidate-发现 anchor | 树类型（树_type） | T1-T18 整体 | EV-question-types, EV-picoc, EV-table2/4/5/6/7/8/9, EV-effect-measures, EV-appx2-coded-15 | medium | 用于 Paper2 模式种子（模式_seed） + 局部 候选发现 | 指南 主体非实证；Appendix 2 评分者-对象耦合 |
-| CLM-question-type-枚举 | 综述问题类型的 6-枚举（含 SE 不适用 diagnostic）可直接作为 Paper2 综述编码字段 | 分类_模式种子（模式_seed） | T3 / L1 | EV-question-types | strong | 模式种子（模式_seed） | 源自医学，SE 适用性需 pilot |
-| CLM-picoc-框架 | PICOC 5 元素可作为 Paper2 RQ 抽取必填字段 | 分类_模式种子（模式_seed） | T3 / L2 | EV-picoc | strong | 模式种子（模式_seed） | -- |
-| CLM-protocol-完备度 | 10 个 protocol component 可作为 Paper2 综述质量评分的"完备度" sub-rubric | 质量量规（quality_rubric）_seed | T4 / L3 | EV-protocol (line 893-922) | strong | 模式种子（模式_seed） | optional 项需标注 |
-| CLM-bias-4枚举 | 4 类 bias 中 selection / measurement / attrition 直接适用 SE；performance bias 因 SE 难做 blinding 而限制大 | 分类_模式种子（模式_seed） | T7 / L5 | EV-table4-bias | strong | 模式种子（模式_seed） | blinding 在 SE 不适用 |
-| CLM-effect-measures | 5+3 effect measures 是 元分析（meta-analysis） 必备词表 | 分类_模式种子（模式_seed） | T12 / L9, L10 | EV-effect-measures | strong | 模式种子（模式_seed） | 仅适用 SE 元分析（meta-analysis） 文献 |
-| CLM-appx2-candidate-cost-estim | "2004-2007 上半年 SE SLR 中 Cost Estimation 是最高频 topic area（≥6/15 ≈ 40%）" 可作为 候选发现 | 候选发现（candidate_发现） | T18 / L16 | EV-appx2-coded-15 | weak | 候选发现 only | n=15 且仅截至 2007 上半年；评分者偏向 |
-| CLM-table1-not-发现 | Table 1 SE 与社会科学相似度 0.83 来自二手访谈，不能作为本文独立结论 | 边界锚点（boundary_anchor） | -- | EV-table1-cross-discipline | -- | exclude_from_发现s | 二手来源 |
-| CLM-migration-boundary-v2 | 可迁移：枚举型 模式（question type / PICOC / protocol / bias / effect / synthesis / sensitivity / 报告-structure）+ 关系边规则；不可迁移：DARE 评分均值、SE-medical 差异结论、cost-estimation 主导性 | migration_boundary | T1-T18 | 上述全部 EV | medium | 模式种子（模式_seed） + 限定候选 | 不可外推到 2007 后语境 |
+| CLM-树-type-v2 | 本文原生结构是**维度森林（≥10 个并列 模式 容器）+ Appendix 2 局部 n=15 编码池**；主体不进入主统计池，仅 Appendix 2 可作 candidate-发现 anchor | 树类型（tree_type） | T1-T18 整体 | EV-question-types, EV-picoc, EV-table2/4/5/6/7/8/9, EV-effect-measures, EV-appx2-coded-15 | medium | 用于 Paper2 模式种子（schema_seed） + 局部 候选发现 | 指南 主体非实证；Appendix 2 评分者-对象耦合 |
+| CLM-question-type-枚举 | 综述问题类型的 6-枚举（含 SE 不适用 diagnostic）可直接作为 Paper2 综述编码字段 | classification_schema种子（schema_seed） | T3 / L1 | EV-question-types | strong | 模式种子（schema_seed） | 源自医学，SE 适用性需 pilot |
+| CLM-picoc-框架 | PICOC 5 元素可作为 Paper2 RQ 抽取必填字段 | classification_schema种子（schema_seed） | T3 / L2 | EV-picoc | strong | 模式种子（schema_seed） | -- |
+| CLM-protocol-完备度 | 10 个 protocol component 可作为 Paper2 综述质量评分的"完备度" sub-rubric | 质量量规（quality_rubric）_seed | T4 / L3 | EV-protocol (line 893-922) | strong | 模式种子（schema_seed） | optional 项需标注 |
+| CLM-bias-4枚举 | 4 类 bias 中 selection / measurement / attrition 直接适用 SE；performance bias 因 SE 难做 blinding 而限制大 | classification_schema种子（schema_seed） | T7 / L5 | EV-table4-bias | strong | 模式种子（schema_seed） | blinding 在 SE 不适用 |
+| CLM-effect-measures | 5+3 effect measures 是 元分析（meta-analysis） 必备词表 | classification_schema种子（schema_seed） | T12 / L9, L10 | EV-effect-measures | strong | 模式种子（schema_seed） | 仅适用 SE 元分析（meta-analysis） 文献 |
+| CLM-appx2-candidate-cost-estim | "2004-2007 上半年 SE SLR 中 Cost Estimation 是最高频 topic area（≥6/15 ≈ 40%）" 可作为 候选发现 | 候选发现（candidate_finding） | T18 / L16 | EV-appx2-coded-15 | weak | 候选发现 only | n=15 且仅截至 2007 上半年；评分者偏向 |
+| CLM-table1-not-发现 | Table 1 SE 与社会科学相似度 0.83 来自二手访谈，不能作为本文独立结论 | 边界锚点（boundary_anchor） | -- | EV-table1-cross-discipline | -- | exclude_from_发现 | 二手来源 |
+| CLM-migration-boundary-v2 | 可迁移：枚举型 模式（question type / PICOC / protocol / bias / effect / synthesis / sensitivity / 报告-structure）+ 关系边规则；不可迁移：DARE 评分均值、SE-medical 差异结论、cost-estimation 主导性 | migration_boundary | T1-T18 | 上述全部 EV | medium | 模式种子（schema_seed） + 限定候选 | 不可外推到 2007 后语境 |
 
 ### 9. 技能使用与自我审查记录
 
 **采用的技能原则**：
 
-1. `ai-research-writing-skill/SKILL.md` — **Claim-Evidence Gate**：本审计的每个 模式种子（模式_seed） 都挂到具体 Table/§ 编号与 paper_content.txt 行号；未被原文显式封闭的取值空间均标注"自由文本"或"观察 N 类，未饱和"。
+1. `ai-research-writing-skill/SKILL.md` — **Claim-Evidence Gate**：本审计的每个 模式种子（schema_seed） 都挂到具体 Table/§ 编号与 paper_content.txt 行号；未被原文显式封闭的取值空间均标注"自由文本"或"观察 N 类，未饱和"。
 2. `reviewer-guidelines.md` — **Constructive Specificity**：C/I 返修建议都给出具体的 review.md 行号 / Table 编号，避免"维度树不准"这种泛泛指控。
 3. `reviewer-self-review.md` — **Claim Audit / Adversarial Questions**：对 review.md 现状执行"若 reviewer 问'这真的是原文的 模式 吗'，能否给出 Table 编号" — 答案是 **不能**（仅给出"目录"级证据），故升 C 级。
 4. `research-planning/output-schemas.md` — 用其 task list/risks 字段语义指导 §7 的 C/I/M 分级。

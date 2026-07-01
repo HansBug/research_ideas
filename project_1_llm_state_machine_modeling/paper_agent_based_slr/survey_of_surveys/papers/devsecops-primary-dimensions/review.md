@@ -295,7 +295,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 ---
 
 `★ Insight ─────────────────────────────────────`
-本审计的核心判定点：原文 Table 5 把 5 aspect × (text seg 计数 / code 计数 / theme 计数 / category set) 的封闭计数全部公开；Tables 6/8/9/10/11/12/13/14/15/16/17/19 又把 C01--C28 / P01--P60 / M01--M20 / T01--T18 的每一项与其 theme、频次、贡献论文 ID 全部列出；Table 21 + Fig 5--9 进一步给出 C→P→T→M 的多对多关系边并按 10 个 Gartner 阶段 切片。这是教科书级"系统样本编码模式"，而非 路线图/愿景。现 `review.md` 把这种封闭枚举式 模式 标为 `模式种子（模式_seed）/not_verified` 与文本证据严重不符，是审计第一返修点。
+本审计的核心判定点：原文 Table 5 把 5 aspect × (text seg 计数 / code 计数 / theme 计数 / category set) 的封闭计数全部公开；Tables 6/8/9/10/11/12/13/14/15/16/17/19 又把 C01--C28 / P01--P60 / M01--M20 / T01--T18 的每一项与其 theme、频次、贡献论文 ID 全部列出；Table 21 + Fig 5--9 进一步给出 C→P→T→M 的多对多关系边并按 10 个 Gartner 阶段 切片。这是教科书级"系统样本编码模式"，而非 路线图/愿景。现 `review.md` 把这种封闭枚举式 模式 标为 `模式种子（schema_seed） / not_verified` 与文本证据严重不符，是审计第一返修点。
 `─────────────────────────────────────────────────`
 
 ### 2. 样本单位与字段来源判定
@@ -308,7 +308,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
    - relations = §4.1.3 由 first author 经多轮（2021-2023）模型迭代生成的 Table 21 + Fig 5--9
    - Zenodo 复现包：MLR protocol、included papers 含 QA score、raw text/代码、TA tables (initial + final)、CPTM 完整 模型
 4. **RQ 与样本单位关系**：RQ1 = "what aspects / themes / links" → 直接驱动 5 aspect → theme → category → CPTM 关系图四级树；RQ2 = "DevSecOps in GSE contexts" → 把 GSE/global/distributed 作为另一切片维度，用 Search String 2 验证缺失。RQ 与树根、字段用途、结果组织方式三种关系**全部存在**。
-5. **降级问题**：不需要降级。本文具备完整系统检索 + 编码方案 + 关系模型 + open replication，是 A2a 主统计池候选；当前 review.md 的 模式种子（模式_seed） 降级是过度保守。
+5. **降级问题**：不需要降级。本文具备完整系统检索 + 编码方案 + 关系模型 + open replication，是 A2a 主统计池候选；当前 review.md 的 模式种子（schema_seed） 降级是过度保守。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
@@ -463,9 +463,9 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 #### C 级 (必须返修，否则审计与文本证据不符)
 
-**C1**：`review.md` §"维度树复原" 的"叶子维度表"（约 line 338--348）把 6 个 `叶子-devsecops-primary-dimensions-{scope,corpus,分类法,method,evidence,发现}` 当作原文叶子层，取值空间写为"自由文本加 RQ / 贡献声明引用"、"完整 SLR/SMS 为数值链条"等通用描述。**与原文证据严重不符**：Tables 5--21 已给出 28+60+20+18 项完全封闭编号枚举、4 项 category 封闭枚举、10 项 Gartner 阶段 封闭枚举。建议：把这 6 个通用 叶子 全部下沉到"通用接口投影"（line 392 已有该位置），原生叶子层用本审计 §4 给出的 ≥20 个 L-* 叶子替换，并把所有 `not_verified` 中可由 Tables 5--21 直接锚定的项目升级为 `verified` 或至少 `文本已核验（text_verified）`。
+**C1**：`review.md` §"维度树复原" 的"叶子维度表"（约 line 338--348）把 6 个 `leaf-devsecops-primary-dimensions-{scope,corpus,分类法,method,evidence,发现}` 当作原文叶子层，取值空间写为"自由文本加 RQ / 贡献声明引用"、"完整 SLR/SMS 为数值链条"等通用描述。**与原文证据严重不符**：Tables 5--21 已给出 28+60+20+18 项完全封闭编号枚举、4 项 category 封闭枚举、10 项 Gartner 阶段 封闭枚举。建议：把这 6 个通用 叶子 全部下沉到"通用接口投影"（line 392 已有该位置），原生叶子层用本审计 §4 给出的 ≥20 个 L-* 叶子替换，并把所有 `not_verified` 中可由 Tables 5--21 直接锚定的项目升级为 `verified` 或至少 `文本已核验（text_verified）`。
 
-**C2**：`review.md` line 357 "[叶子-devsecops-primary-dimensions-orig-cptm-item]" 把 Challenge/Practice/Tool/Metric 四类编号项压成一个 叶子。**严重欠拆**：本文将 C/P/T/M 作为 4 棵独立子树各自有 28/60/20/18 个 ID + theme + 频次 + source_track + category + 阶段 字段，且有 3 类关系边 (C→P, P→T, P→M)。建议拆为 4 个独立叶子 + 至少 3 个关系边表条目，取值空间从"未核验"升级为"封闭编号枚举"。
+**C2**：`review.md` line 357 "[leaf-devsecops-primary-dimensions-orig-cptm-item]" 把 Challenge/Practice/Tool/Metric 四类编号项压成一个 叶子。**严重欠拆**：本文将 C/P/T/M 作为 4 棵独立子树各自有 28/60/20/18 个 ID + theme + 频次 + source_track + category + 阶段 字段，且有 3 类关系边 (C→P, P→T, P→M)。建议拆为 4 个独立叶子 + 至少 3 个关系边表条目，取值空间从"未核验"升级为"封闭编号枚举"。
 
 **C3**：`review.md` line 309 "一句话结论" 把主统计池资格写为"否（A1-DT 阶段仅作 模式种子）"。**与 metadata.json `eligible_for_statistical_synthesis: true` 矛盾**，也与 Tables 4--21 的完整可统计性矛盾。建议改为"**是（局部完全可统计）**：item-level 频次、category 分布、阶段 分布、prior-review overlap、CPTM 边密度均有明确分母与可复核表格；剩余待 A2a 仅为 PDF 版面级核验 (Figs 5--9 连线、QA score 个体值) 和 Zenodo 完整 CPTM 取数"。
 
@@ -473,7 +473,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 #### I 级 (重要返修)
 
-**I1**：`review.md` §2.7 (line 99--115) 已给出很好的 CPTM 文字描述，但 §"原文模式主树（19×3 审计后返修）" 表格 (line 369--378) 仅 7 行且全部 `模式种子（模式_seed）`。建议把这 7 行展开为本审计 §3 的 7 棵子树 (A--G)，并对 Tables 8--19 已锚定的封闭枚举字段升级证据强度。
+**I1**：`review.md` §2.7 (line 99--115) 已给出很好的 CPTM 文字描述，但 §"原文模式主树（19×3 审计后返修）" 表格 (line 369--378) 仅 7 行且全部 `模式种子（schema_seed）`。建议把这 7 行展开为本审计 §3 的 7 棵子树 (A--G)，并对 Tables 8--19 已锚定的封闭枚举字段升级证据强度。
 
 **I2**：`review.md` line 309 "[clm-...-树-type]" 把树类型写为 "关系型维度树 + 多声部证据树"。**前半正确但描述不足**：本文是"维度森林 + 显式关系图 + lifecycle 投影"三层结构，单写"关系型"会丢失 5 棵并列子树和 Gartner 10-阶段 切片这两层信息。
 
@@ -515,13 +515,13 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（树_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | strong | 直接用于重写 review.md "一句话结论" | -- |
-| A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | 叶子_definition | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id | EV-A1DTv2-006, 008 | strong | 升级 review.md `[..-orig-cptm-item]` 从 模式种子（模式_seed） 到 verified | 个别 item 由 先前综述（prior review） 补入 (e.g. C09 freq=0) |
+| A1DTv2-DSO-C01 | 原生树类型为"维度森林 (5 棵子树) + CPTM 关系图 + Gartner 10-阶段 投影"，不是单棵树也不是无样本库 | 树类型（tree_type） | ROOT | EV-A1DTv2-001, 002, 005, 006, 011 | strong | 直接用于重写 review.md "一句话结论" | -- |
+| A1DTv2-DSO-C02 | C/P/T/M item 的 ID 集合 (28/60/20/18) 是完全封闭枚举，可统计、可分类、可关系图建模 | 叶子_definition | L-挑战-id, L-practice-id, L-指标-id, L-工具-group-id | EV-A1DTv2-006, 008 | strong | 升级 review.md `[..-orig-cptm-item]` 从 模式种子（schema_seed） 到 verified | 个别 item 由 先前综述（prior review） 补入 (e.g. C09 freq=0) |
 | A1DTv2-DSO-C03 | category 集合 = {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）} 是封闭 4 枚举；指标 子树降为 3 (业务 仅靠 M20 补入)；工具 子树退化为 1 (技术) | 叶子_definition | L-category | EV-A1DTv2-006, 007 | strong | 升级 review.md "通用接口" 中 分类法 描述 | 工具 单 category 是观察结果，不是先验约束 |
 | A1DTv2-DSO-C04 | 生命周期阶段（生命周期阶段） 是封闭 10 项 Gartner 枚举；C/P/T/M item 可同时出现在多个 阶段 | 叶子_definition | L-lifecycle-阶段 | EV-A1DTv2-011 | strong | 补 review.md lifecycle 字段 | Gartner 框架来自外部 |
 | A1DTv2-DSO-C05 | 至少存在 5 类关系边：C→P, P→T, P→M, item→阶段, DSO-指标→DevOps-指标 | relation_edge | E-挑战-practice 等 | EV-A1DTv2-010, 011 | strong | 补 review.md 关系边表 (目前仅 2 条) | Tools 与 Metrics 列常为 NA |
-| A1DTv2-DSO-C06 | 主统计池资格 = 是（局部完全可统计）；至少 9 类统计 (aspect-freq, category-freq, theme-freq, 阶段-freq, source-track 分布, prior-overlap %, 关系边 degree, 指标 mapping, year 分布) 由 Tables 4-21 + Figs 3-9 直接支撑 | 树类型（树_type） / statistical | ROOT | EV-A1DTv2-006--014 | strong | 修正 review.md "主统计池资格 = 否" 的错误降级 | item-level 行细节仍需 PDF/Zenodo 核 |
-| A1DTv2-DSO-C07 | "WL/GL 分布互补、指标 最薄弱、业务 仅在 GL、OPC+PC 集中 Plan/Create、Tech 集中 Verify-Predict、GSE absence 带 4 项竞争解释" 等为 候选发现，可作为 Paper2 元启发但不可直接外推 | 候选发现（candidate_发现） | L-source-track + L-category + L-lifecycle-阶段 + L-gse-explanation | EV-A1DTv2-014, 016 | medium | 写入对 Paper2 的方法学启发 | 受 2012-2021 时间窗 + search-string 限制 |
+| A1DTv2-DSO-C06 | 主统计池资格 = 是（局部完全可统计）；至少 9 类统计 (aspect-freq, category-freq, theme-freq, 阶段-freq, source-track 分布, prior-overlap %, 关系边 degree, 指标 mapping, year 分布) 由 Tables 4-21 + Figs 3-9 直接支撑 | 树类型（tree_type） / statistical | ROOT | EV-A1DTv2-006--014 | strong | 修正 review.md "主统计池资格 = 否" 的错误降级 | item-level 行细节仍需 PDF/Zenodo 核 |
+| A1DTv2-DSO-C07 | "WL/GL 分布互补、指标 最薄弱、业务 仅在 GL、OPC+PC 集中 Plan/Create、Tech 集中 Verify-Predict、GSE absence 带 4 项竞争解释" 等为 候选发现，可作为 Paper2 元启发但不可直接外推 | 候选发现（candidate_finding） | L-source-track + L-category + L-lifecycle-阶段 + L-gse-explanation | EV-A1DTv2-014, 016 | medium | 写入对 Paper2 的方法学启发 | 受 2012-2021 时间窗 + search-string 限制 |
 | A1DTv2-DSO-C08 | 摘要"104 WL"是合并表述；正文 RQ1=102 WL, RQ2=2 WL；43 GL 仅来自 RQ1；20 confirmatory (13+7) 独立 | 语料 一致性 | L-source-track, L-confirmatory-flag | EV-A1DTv2-003, 015 | strong | 修正 review.md line 21 样本规模口径 | -- |
 | A1DTv2-DSO-C09 | reflexive TA + first-author 主导编码 + CAMS/CPTM preconceived 影响 + search-string-威胁 = 主要威胁；不要把 absence 升级为强结论 | limitation | ROOT | EV-A1DTv2-016 | strong | 迁移边界与降级口径 | -- |
 
@@ -554,7 +554,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 **审计完成声明**：本报告为单篇 `devsecops-primary-dimensions` A1-DT v2 补审正式输出；全文通读 `paper_content.txt`（重点 §1--§6 即 Page 1--26 主文，Page 26--29 Appendix 抽样）；总体判定为 **需要返修**，C1--C4 必须修复，I1--I4 重要修复，M1--M2 可选。主线程可基于本报告 §3 维度森林、§4 叶子表、§5 关系边表、§7 C/I/M 建议、§8 A.2/A.3 草案直接重写 `review.md` 的 §"维度树复原" 与 A.1--A.4。
 
 `★ Insight ─────────────────────────────────────`
-本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（模式_seed）/not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `文本已核验（text_verified）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
+本论文是一个少见的"教科书级正面样本"：它公开了 QA form 截图、Tables 5-21 的完整封闭枚举、Table 21 的全部 CPTM 关系边、Table 18 的跨外部 分类法 映射、Zenodo 完整 复现包。把这种 paper 的维度树降为 `模式种子（schema_seed） / not_verified` 是过度保守；A1-DT v2 审计应当把"能直接由 Tables 锚定的封闭枚举"统一升级到 `文本已核验（text_verified）`，把 PDF 视觉核验、Zenodo 个体值取数等少量项目留给 A2a。本审计核心动作就是这次升级。
 `─────────────────────────────────────────────────`
 ## 审计附录：证据链与结论-证据映射
 

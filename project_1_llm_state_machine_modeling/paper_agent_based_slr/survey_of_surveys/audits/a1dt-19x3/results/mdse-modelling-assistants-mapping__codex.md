@@ -49,7 +49,7 @@
 |---|---|---|
 | RQ1 | 抽取作者用于描述 proposal strategy 的 keywords。 | 六类 strategy clusters：Tools、Guidelines、Techniques、Methods、Frameworks、Languages；单 proposal 单标签，承认 overlap 风险。 |
 | RQ2 | 抽取作者声明的 goals 与 limitations；未声明则留空。 | goals：G1--G7；limitations：L1--L6 与 L-NS。注意正文称 five limitation clusters，但 Table 3 与正文后续实际列出六类 limitation。 |
-| RQ3 | 抽取 empirical evaluation metrics 与 target users；未说明则留空；generic “user” 归为 user-not-specified。 | metrics：M1 effectiveness、M2 efficiency、M3 user perception、NE；users：U1 designers/modellers、U2 domain experts、U3 软件开发者s、U-NS。 |
+| RQ3 | 抽取 empirical evaluation metrics 与 target users；未说明则留空；generic “user” 归为 user-not-specified。 | metrics：M1 effectiveness、M2 efficiency、M3 user perception、NE；users：U1 designers/modellers、U2 domain experts、U3 软件开发者、U-NS。 |
 | RQ4 | 从 GMQ tools 的 documentation / websites / user guides 中抽取 quote。 | Table 5 把每条 quote 映射到 S/G/L/M/U，同步记录 GMQ class 与 not assistant found。 |
 
 统计与 finding 形成方式：
@@ -125,7 +125,7 @@ RQ / scope
 | `leaf-mdse-orig-goal` | taxonomy branch / RQ2 | 建模辅助目标 | G1 change propagation、G2 consistency checking、G3 compatibility、G4 quality、G5 interaction、G6 evolution、G7 vulnerability detection | 是，分母 58 proposals | `goal_not_specified` 如原文留空时记录 | Table 3，行 568--686 |
 | `leaf-mdse-orig-limitation` | taxonomy branch / RQ2 | 限制类别 | L1 accuracy、L2 effort、L3 generality、L4 learnability、L5 scope、L6 usability、L-NS | 是，分母 58 proposals；注意正文 five vs table six 的口径风险 | `L-NS` | Table 3 / Fig. 5，行 687--763，PDF 第 8 页 |
 | `leaf-mdse-orig-metric` | taxonomy branch / RQ3 | 评价指标 | M1 effectiveness、M2 efficiency、M3 user perception、NE | 是；分母按 metric observation / proposal 区分 | `NE` / `not_reported` | Table 4 / Fig. 6，行 764--824，PDF 第 8 页 |
-| `leaf-mdse-orig-user` | taxonomy branch / RQ3 | 目标用户 | U1 designers/modellers、U2 domain experts、U3 软件开发者s、U-NS | 是，分母 58 proposals | `U-NS` / generic user | Table 4 / Fig. 6，行 784--824 |
+| `leaf-mdse-orig-user` | taxonomy branch / RQ3 | 目标用户 | U1 designers/modellers、U2 domain experts、U3 软件开发者、U-NS | 是，分母 58 proposals | `U-NS` / generic user | Table 4 / Fig. 6，行 784--824 |
 | `leaf-mdse-orig-practice-tool` | practice branch / RQ4 | GMQ 工具与市场类别 | LE、C、V、NP；17 tools；tool name | 是，分母 17 tools | `not_in_GMQ_scope` | §5.1，行 1052--1080 |
 | `leaf-mdse-orig-practice-doc-status` | practice branch / RQ4 | 文档可见性 | documentation found、not assistant found、NF、access / public-doc status | 是，分母 17 tools | `NF` means not found in public documentation, not absence of capability | Fig. 9 / §5.2，行 1094--1115 |
 | `leaf-mdse-orig-practice-quote-code` | practice branch / RQ4 | vendor quote 编码 | S:Tool、G1--G7、L1/L3/L5、M1/M2、U3 等 | 是，分母 15 practice proposals 或 coded observations | `not_mentioned` / second-person-hidden | Table 5，行 921--1045，PDF 第 11 页 |

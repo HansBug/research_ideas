@@ -80,7 +80,7 @@
 | 被编码样本单位 | **已发表的二级研究 (SLR / MS / MA)**——本研究 (SE) 新增 67 篇；整合前序 OS + FE 后总样本 N=120 |
 | 样本数量 / 分母 | SE=67；OS=20；FE=33；OS/FE=53；OS/FE+SE=120；QA assessment N=67（SE 自身）/ 120（整合） |
 | 原生树类型 | **维度森林**：(1) 抽取表 模式树（10 字段），(2) QA rubric 树（4 题 + 评分 + quartile），(3) 主题分类树（24 SE topics × SE2004 Curriculum × SWEBOK），(4) 作者/机构/国家关系图，(5) 前序关系树 (前序关系: OS → FE → SE / temporal update / search extension)，外加 (6) limitation→发现 路径 |
-| 主统计池资格 | **是**——具备完整系统检索（自动+人工+回溯）、显式纳排、质量评价、可分母统计字段；当前 `review.md` 把它标 `模式种子（模式_seed）` 是低估 |
+| 主统计池资格 | **是**——具备完整系统检索（自动+人工+回溯）、显式纳排、质量评价、可分母统计字段；当前 `review.md` 把它标 `模式种子（schema_seed）` 是低估 |
 | 总体判定 | **v2 已返修完成**：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ### 1. 原文证据阅读说明
@@ -157,7 +157,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 #### Q5：若无系统样本库，如何降级？
 
-不适用——本文是 systematic 二次研究 with N=120 codable units，有完整模式 和封闭取值空间，**应当进入主统计池**，而不是停留在 `模式种子（模式_seed）`。
+不适用——本文是 systematic 二次研究 with N=120 codable units，有完整模式 和封闭取值空间，**应当进入主统计池**，而不是停留在 `模式种子（schema_seed）`。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
@@ -263,7 +263,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 | ds11.E7 | SLR | cites_ebse_paper | EBSE seminal paper | [14]/[8]/[24] | 多引用并存 | Table 2 注脚 a–c | EBSE positioning |
 | ds11.E8 | SLR | cites_指南 | SLR 指南 | [15]/[13]/[16]/[4]/[12] | 多引用并存 | Table 2 注脚 d–h | 指南 use |
 | ds11.E9 | SLR_new | updates / extends | SLR_prev | {时间更新, 检索扩展, 组合类（组合类）} | 0 例（发现 本身）| §7 | predecessor 模式 |
-| ds11.E10 | SLR | analyses | primary_研究_count | ℕ⁺ | 必填 | Table 2 | size × 质量 |
+| ds11.E10 | SLR | analyses | primary_study_count | ℕ⁺ | 必填 | Table 2 | size × 质量 |
 | ds11.E11 | SLR | published_in | Venue + 来源类型 | J/C/WS/BS + venue 名 | 必填 | Table 1, Table 2 | venue analysis |
 
 本文具有显式关系型 模式（E2/E3/E4–E6/E7–E8 都是 many-to-many 外键关系），明显比一般 SLR 丰富。
@@ -308,7 +308,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 #### Critical（C）— 影响 模式 学术真值，必修
 
-**C1** ── `review.md` 当前 §"维度树结构" 把 [叶子-...-scope/语料/分类法/方法/证据/发现] 六个**跨论文通用接口**当成本文原生叶子。这与原文 §3.7 给出的 10 字段 抽取 form + §3.6 的 QA1–QA4 rubric 严重错位。必须把 **T1 抽取表 (10 字段)** 和 **T2 QA rubric (4 题 + Final + Quartile)** 提升为原文事实源，把六叶接口降级为 §"通用接口投影" 的下挂注。
+**C1** ── `review.md` 当前 §"维度树结构" 把 [leaf-...-scope/语料/分类法/方法/证据/发现] 六个**跨论文通用接口**当成本文原生叶子。这与原文 §3.7 给出的 10 字段 抽取 form + §3.6 的 QA1–QA4 rubric 严重错位。必须把 **T1 抽取表 (10 字段)** 和 **T2 QA rubric (4 题 + Final + Quartile)** 提升为原文事实源，把六叶接口降级为 §"通用接口投影" 的下挂注。
 
 **C2** ── 当前 §"原文模式主树（19×3 审计后返修）" 表只有 6 行 (rq-main / predecessor-update / 抽取-form / 质量-qa / topic-impact / limitation-发现)，且取值空间字段几乎全空。必须填充：(a) 10 字段 抽取 form 的每一字段取值空间（已在本报告 §4 给出）；(b) QA1–QA4 的 Y/P/N 评分阈值；(c) 更新类型 的 {temporal/search/组合类（组合类）} 三值枚举。
 
@@ -339,7 +339,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 1. "样本单位" 字段应从模糊的 "二次研究" 收紧为 **"二次研究 (SLR/MS/MA) in SE, with mapped author/org/country/topic relations; N_new=67 / N_total=120"**
 2. "原生树类型" 字段应从单值改为 **"维度森林(6 子树)"**
-3. "统计池资格" 字段应从 "模式种子（模式_seed）" 改为 **"局部可统计：可作为 secondary-研究 元统计（即对 SLR 元数据做计量）的主统计池样本，但不作为目标领域 (e.g. STM/LLM4SE) 的统计池"**
+3. "统计池资格" 字段应从 "模式种子（schema_seed）" 改为 **"局部可统计：可作为 secondary-研究 元统计（即对 SLR 元数据做计量）的主统计池样本，但不作为目标领域 (e.g. STM/LLM4SE) 的统计池"**
 
 ### 8. 审计附录草案：证据账本与结论映射
 
@@ -351,7 +351,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 | EV-ds11-006 | paper_content.txt | §3.7 数据抽取（数据抽取） | L451–468 | 显式列出 10 字段：Year / Quality Score / Review Type / 综述范围（Review Scope） / 主题领域 / Cited EBSE / 是否引用指南 / # Primary Studies / 实践者指南 / 来源类型 | 抽取_form | high | T1 全部叶子 | 否 | 模式 结构可迁移；具体引用文献列表已陈旧 |
 | EV-ds11-007 | paper_content.txt | Table 2 | L575–771 (67 行 × 10 字段) | 67 篇 SLR 完整字段实例化 | data_instance | high | T1 全部叶子取值空间饱和性 | 是（Table 行错位风险） | 数据点定型 模式；具体内容不外推 |
 | EV-ds11-008 | paper_content.txt | Table 3 | L826–894 (67 行 × 6 列) | 67 篇 QA 分布；quartile 划分 | data_instance | high | T2 + Final + Quartile 实例化 | 是 | 同上 |
-| EV-ds11-009 | paper_content.txt | Table 5 + Table 6 | L904–1136; L1162–1196 | SLR ↔ SE2004 Curriculum ↔ SWEBOK 完整映射；"软件配置管理 / 软件质量 在 120 SLR 中=0" | 关系 + 缺口发现（gap_发现） | medium | E2, E3, T3 | 是（双列易错） | 外部分类法版本受限 |
+| EV-ds11-009 | paper_content.txt | Table 5 + Table 6 | L904–1136; L1162–1196 | SLR ↔ SE2004 Curriculum ↔ SWEBOK 完整映射；"软件配置管理 / 软件质量 在 120 SLR 中=0" | 关系 + 缺口发现（gap_finding） | medium | E2, E3, T3 | 是（双列易错） | 外部分类法版本受限 |
 | EV-ds11-010 | paper_content.txt | §7 Conclusions | L1343–1363 | "three complementary ways to update a SLR: temporal update / search extension / 组合类（组合类）; 120 篇中无内部 update" | 分类 + 发现 | high | T5 更新类型 三值枚举；E9 关系 | 否 | 三分法可迁移；发现 是 single-paper observation |
 | EV-ds11-011 | paper_content.txt | §6 Limitations | L1226–1259 | QA2 评分需向原作者咨询；QA4 评分主观；很多 SLR protocol 描述不充分 | 效度 | medium | T2 整体可信度；E11 venue 报告质量 | 否 | rubric 主观性是共性，可外推 |
 | EV-ds11-012 | paper_content.txt | Table 4 + §5.5 + Table 13 | L894–900; Table 13 | Quality Mean 2004=2.08 → 2009=2.61 (+12.5%)；EBSE-positioned 比例从 17% → 80% | statistical_result | high | trend 发现 | 否 | 数值不外推；趋势模式可迁移 |
@@ -363,10 +363,10 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
 | clm-ds11-N01 | 本文样本单位是已发表的 SLR/MS/MA，N_new=67 / N_total=120 | 样本单位（sample_unit）_definition | T1, T6 森林根 | EV-005, EV-006, EV-007, EV-014 | strong | 直接用于 review.md §0/§1 | 不外推到非 SE 二级研究 |
-| clm-ds11-N02 | 本文具备 10 字段 抽取 form + 4 题 QA rubric，构成完整模式 | 模式_finalised | T1, T2 | EV-005, EV-006, EV-007, EV-008 | strong | 用于把"维度树主树"从 6 叶通用接口升级为原文 模式 | rubric 是 DARE 2007 版，已升级 |
+| clm-ds11-N02 | 本文具备 10 字段 抽取 form + 4 题 QA rubric，构成完整模式 | schema_finalised | T1, T2 | EV-005, EV-006, EV-007, EV-008 | strong | 用于把"维度树主树"从 6 叶通用接口升级为原文 模式 | rubric 是 DARE 2007 版，已升级 |
 | clm-ds11-N03 | 本文的"原生树"是维度森林(6 棵)，不是单树 | 树_topology | T1..T6 | EV-005..EV-010 | strong | 用于校正 review.md "原生树类型" 字段 | — |
 | clm-ds11-N04 | 本文具备主统计池资格（限于 secondary-研究 元统计场景） | pool_eligibility | T1, T2, App.A | EV-007, EV-008, EV-014 | medium-strong | 改写 review.md §"统计与候选发现链路" 的池资格 | 不作为目标领域 (LLM4SE/STM) 的统计池 |
-| clm-ds11-N05 | "SW Configuration Management 与 软件质量 在 120 篇中=0 SLR" 是可统计 缺口发现（缺口发现） | 缺口发现（gap_发现） | T3 (Curriculum + SWEBOK) | EV-009 | strong (限 2004–2009 窗口) | 可作 候选发现；不外推到 2024 | 时间窗口约束；SWEBOK 已升级 |
+| clm-ds11-N05 | "SW Configuration Management 与 软件质量 在 120 篇中=0 SLR" 是可统计 缺口发现（缺口发现） | 缺口发现（gap_finding） | T3 (Curriculum + SWEBOK) | EV-009 | strong (限 2004–2009 窗口) | 可作 候选发现；不外推到 2024 | 时间窗口约束；SWEBOK 已升级 |
 | clm-ds11-N06 | "MS 比例 32%→82%" 受测量法迁移 (Da Silva 2010 重分类) 干扰 | measurement_drift_warning | T1.rtype | L791–800 paper_content.txt | strong | 给跨论文统计加 caveat | 必须保留 |
 | clm-ds11-N07 | 三种 update 类型 (temporal/search/组合类（组合类）) 可作 update-review 通用分类 | methodological_seed | T5 | EV-010 | strong | 直接迁移到 Paper2 的 predecessor 模式 | — |
 | clm-ds11-N08 | 本文具有显式关系型 模式 (SLR↔Curriculum/SWEBOK/研究者/org/country)，远比一般 SLR 丰富 | relation_richness | T3, T4 / E1–E11 | EV-007, EV-009 | strong | 可作 review.md §"关系边" 章节模板 | — |
@@ -386,7 +386,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 #### Reviewer 视角：本输出的 3 个最高风险
 
 1. **未做 PDF 版面级核验**：Table 2/3/5/6 在 `paper_content.txt` 中存在跨页换行、列错位风险（尤其 Table 6 的 SLRs/Subs 双列）。主线程合并前应至少抽样核对 5 行 Table 2 和 Table 3 的取值是否与 PDF 一致。
-2. **"统计池资格升级"建议可能与 PR 整体 19 篇审计的 staging 策略冲突**：当前 PR 把所有 19 篇都暂保持 `模式种子（模式_seed）`，可能是 staging 一致性考虑而非单篇错判。主线程合并时应回看 PR body 是否明确允许逐篇升级，否则保留 模式种子（模式_seed） 但在 SUMMARY 增加"可统计候选"标签。
+2. **"统计池资格升级"建议可能与 PR 整体 19 篇审计的 staging 策略冲突**：当前 PR 把所有 19 篇都暂保持 `模式种子（schema_seed）`，可能是 staging 一致性考虑而非单篇错判。主线程合并时应回看 PR body 是否明确允许逐篇升级，否则保留 模式种子（schema_seed） 但在 SUMMARY 增加"可统计候选"标签。
 3. **关系边表 E9 (更新类型) 的 `无更新` 取值是 发现 而非字段空缺**：原文说"120 篇中无内部 update"是 缺口发现（缺口发现），但严格说也可解读为字段缺失。主线程合并时应明确这是 发现 还是 模式 空值，避免下游误读。
 
 #### blocked / timeout / 文件缺失记录

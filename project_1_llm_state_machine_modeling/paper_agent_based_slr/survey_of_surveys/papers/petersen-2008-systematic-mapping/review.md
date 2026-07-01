@@ -189,7 +189,7 @@
 | 被编码样本单位 | 主样本：10 篇 SE systematic reviews（Table 4–5）；辅助样本：2 个 mapping 示例研究（Bailey 2007 OO 设计；Mujtaba 2008 SPL Variability，Tables 1–2 + Figure 3）；另含处方型 模式（3-facet + Wieringa）面向未来 SMS 使用，但不是本文自己的样本编码 |
 | 样本数量 / 分母 | Table 5 主样本 n=10（从 21 篇 SLR 候选中筛得 8+2=10）；mapping 示例对比 n=2；Wieringa 研究类型枚举值 6；Means of Analysis 枚举值 4；研究目标（Research Goals） 枚举值 4；Inclusion 需求 枚举值 2 |
 | 原生树类型 | **维度森林**（4 棵子树）：A=SLR 特征化表（n=10 真实样本）、B=mapping 示例对比表（n=2 真实样本）、C=处方 3-facet 分类（模式种子）、D=SMS 流程 流程管线（流程 模式） |
-| 主统计池资格 | 否；方法论文 / 指南-like seed。仅 Tree A 内部 n=10 频数和 Tree B 的 n=2 对比可作方法学描述性统计 seed，不进入领域统计合成池；Tree C/D 仅为 模式种子（模式_seed） |
+| 主统计池资格 | 否；方法论文 / 指南-like seed。仅 Tree A 内部 n=10 频数和 Tree B 的 n=2 对比可作方法学描述性统计 seed，不进入领域统计合成池；Tree C/D 仅为 模式种子（schema_seed） |
 | 总体判定 | v2 已返修完成：原始审计对旧版 `review.md` 的判定为 需要返修；本节已按该意见重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
 ---
@@ -200,7 +200,7 @@
 
 - 完整阅读 `paper_content.txt`（537 行 / 10 页）：Abstract、§1 Introduction、§2.1–§2.5 SMS 流程、§3.1–§3.2 比较与讨论、§4 指南、§5 Conclusion、References。
 - 完整阅读 `bibtex.bib`：DOI = 10.14236/ewic/EASE2008.8，作者 4 人，venue = EASE 2008 / BCS。
-- 完整阅读 `metadata.json`：确认 `eligible_for_statistical_synthesis = false`、`evidence_role = "mapping_指南_pattern"`、`systematic_evidence_status = "systematic_mapping"`。
+- 完整阅读 `metadata.json`：确认 `eligible_for_statistical_synthesis = false`、`evidence_role = "mapping_guideline_pattern"`、`systematic_evidence_status = "systematic_mapping"`。
 - 完整阅读旧版 `review.md`（332 行）：确认其已包含历史 A1-DT v1 19×3 审计后返修块，但仍以六个通用接口叶为主叙述。
 
 #### 1.2 未做的核验
@@ -338,7 +338,7 @@
 
 ### 4. 叶子维度表
 
-下表只列**有原文证据支撑的叶子**；处方型 C/D 子树的叶子用 `模式种子（模式_seed）` 标记。
+下表只列**有原文证据支撑的叶子**；处方型 C/D 子树的叶子用 `模式种子（schema_seed）` 标记。
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -362,8 +362,8 @@
 | L-B.6 | 示例—分类方案 | B.6 | §2.4 | 实际采用的 facet 组合 | OO 设计 用 intervention type；SPL Variability 用 3-facet | 半结构化 | n/a | n=2 | Bailey 用 1 facet；Petersen 团队推荐 3 facet | E5 | 示例性 |
 | L-B.7 | 示例—可视化 | B.7 | §2.5 + Figure 3 | 频数表 vs bubble plot | {汇总统计（summary stats）, 频数表（频次 table）, 气泡图（bubble plot）} | 枚举（n=2 观测） | n/a | n=2 | bubble plot 是新增贡献 | E8 | 可作处方 seed |
 | L-C.3.* | Wieringa 研究类型（处方枚举） | C.3 | Table 3 | 推荐用于未来 SMS 的论文研究类型分类 | {验证型研究（验证型研究）, 评价型研究（评价型研究）, 方案提出型论文（解决方案提案）, 哲学型论文（哲学型论文）, 观点型论文（观点型论文）, 经验型论文（经验型论文）} | 封闭枚举（6） | 互斥使用 | 不计入本文样本编码 | 可作所有下游 SMS 的字段种子 | E6 | 可迁移为 Paper2 论文研究类型字段；2008 年版本不含 LLM/智能体 类，需扩展 |
-| L-C.2 | Contribution 类型（处方枚举） | C.2 | §2.4 | 推荐贡献类别 | {流程, 方法, 模型, 工具, 指标, ...} | 开放枚举 | 可多值 | 模式种子（模式_seed） | 字段种子 | E5 | 指标 在原文中实际出现于 Figure 3（"Metric" 列），可视为枚举的一部分 |
-| L-C.1 | Topic Facet（处方开放） | C.1 | §2.4 | 领域相关主题轴 | 完全开放 | 自由文本/层级 | n/a | 模式种子（模式_seed） | 字段种子 | E5 | 必须按领域重建 |
+| L-C.2 | Contribution 类型（处方枚举） | C.2 | §2.4 | 推荐贡献类别 | {流程, 方法, 模型, 工具, 指标, ...} | 开放枚举 | 可多值 | 模式种子（schema_seed） | 字段种子 | E5 | 指标 在原文中实际出现于 Figure 3（"Metric" 列），可视为枚举的一部分 |
+| L-C.1 | Topic Facet（处方开放） | C.1 | §2.4 | 领域相关主题轴 | 完全开放 | 自由文本/层级 | n/a | 模式种子（schema_seed） | 字段种子 | E5 | 必须按领域重建 |
 
 ---
 
@@ -423,7 +423,7 @@
 
 #### C 级（必须返修，影响学术结论）
 
-- **C1 — 维度树根结构错误：未区分"被编码样本"与"处方 模式"。** 现 `维度树结构` 节将五个流程步骤当作主干 b1–b5，把 Tree A 的 n=10 真实样本字段（研究目标（Research Goals） / Inclusion / Counts / Means of Analysis）压入 `[叶子-...-分类法]` 等通用接口叶，丢失了"本文最重要的样本编码就是 Table 5"这一事实。
+- **C1 — 维度树根结构错误：未区分"被编码样本"与"处方 模式"。** 现 `维度树结构` 节将五个流程步骤当作主干 b1–b5，把 Tree A 的 n=10 真实样本字段（研究目标（Research Goals） / Inclusion / Counts / Means of Analysis）压入 `[leaf-...-分类法]` 等通用接口叶，丢失了"本文最重要的样本编码就是 Table 5"这一事实。
   - **返修动作**：把"原生维度树/森林"改写为本审计第 3 节四棵子树并列；现"维度树结构" code block 应拆分为 Tree A / B / C / D 四块，并明确标注每棵树的样本性与 n。
 - **C2 — Table 5 行×列矩阵缺失。** 现 review.md 没有把 Table 5 的二维结构作为关系边明确表化，导致后续无法做"行汇总（每篇 SLR 的目标向量）"与"列汇总（每个目标维度的频数）"的统计观察。
   - **返修动作**：补本审计 §5 关系边表，特别是 R-A.row×col。
@@ -439,7 +439,7 @@
 
 #### M 级（建议性）
 
-- **M1 — `历史草稿` 中保留的 v1 树（`mapping_研究_pattern`）已被标注"不作事实真源"，建议进一步压缩或删除以减少阅读噪声。**
+- **M1 — `历史草稿` 中保留的 v1 树（`mapping_study_pattern`）已被标注"不作事实真源"，建议进一步压缩或删除以减少阅读噪声。**
 - **M2 — SUMMARY 表中"样本单位 / 样本数量 / 原生树类型 / 统计池资格"建议改为：样本单位 = `SE SLR (n=10) + mapping 示例 (n=2)`；样本数量 = `10 / 2`；原生树类型 = `维度森林（Tree A + B + 处方 C + 流程 D）`；统计池资格 = `否；仅方法学描述性 seed`。**
 - **M3 — `原文模式候选叶子映射（A1 种子）` 表中 5 个候选叶子（mapping-planning / keywording / 分类-scheme / map-visualization / 缺口（gap）-identification）实际上都是 Tree D 流程节点，建议改名为 `Tree D process-节点 seed`，并新增 `Tree A sample-field` 与 `Tree C prescriptive-facet` 两类候选叶子。**
 - **M4 — `审计返修口径` 提到三路审计（codex/claude/deepseek）共同结论，建议在本次 A1-DT v2 审计后更新该口径，标注 v2 已对 v1 通用六叶接口降级为投影。**
@@ -454,7 +454,7 @@
 |---|---|---|---|---|---|---|---|---|---|
 | EV-v2-001 | paper_content.txt | §Abstract; §2 Figure 1 | p.1 line 12–17; p.2 Figure 1 | "build a 分类方案 … analysis of results focuses on 频次"；SMS 5 步流程图 | scope_anchor | strong | Tree D 全部节点、根节点 | false（Figure 1 节点名文本可读） | 仅限本文内部方法学叙述 |
 | EV-v2-002 | paper_content.txt | §2.1 Table 1; §2.3 Table 2 | p.2; p.3 | 两个示例研究的 RQ 与 inclusion/exclusion 字段化对比 | sample_table | strong | Tree B 全部叶子；L-B.1–L-B.5 | true（建议视觉核对 Table 1/2 列对齐） | n=2，仅作示例性对比，不可外推 |
-| EV-v2-003 | paper_content.txt | §2.4 + Table 3 | p.4 | "three main 切面（facets） … topic … contribution … research"；Wieringa 6 类完整定义 | prescriptive_模式 | strong | Tree C 全部；L-C.1, L-C.2, L-C.3.1–L-C.3.6 | true（Table 3 文本完整，建议版面核对） | 处方层；2008 年版本，未含 智能体/LLM 类，需现代扩展 |
+| EV-v2-003 | paper_content.txt | §2.4 + Table 3 | p.4 | "three main 切面（facets） … topic … contribution … research"；Wieringa 6 类完整定义 | prescriptive_schema | strong | Tree C 全部；L-C.1, L-C.2, L-C.3.1–L-C.3.6 | true（Table 3 文本完整，建议版面核对） | 处方层；2008 年版本，未含 智能体/LLM 类，需现代扩展 |
 | EV-v2-004 | paper_content.txt | §2.5 + Figure 3 | p.5 | "Excel table … each category … short rationale"；bubble plot 数字 50/56/0/8/128 等 | sample_visualization | medium | L-B.6, L-B.7；R-C.facet3 | true（Figure 3 必须 PDF 视觉核对，文本提取已乱序） | Mujtaba SPL 领域结论不可迁移 |
 | EV-v2-005 | paper_content.txt | §3 line 269–275 | p.6 | "21 papers … eight systematic reviews being included … two further … included" | sampling_chain | strong | A.1.1 Reference ID 分母 = 10；候选 = 21 | false | 揭示 n=10 由 21→8+2 而来 |
 | EV-v2-006 | paper_content.txt | §3.1 Table 5 | p.7 | 10 篇 SLR × (研究目标（Research Goals） 4 + Inclusion 2 + Counts 2 + Means of Analysis 4) 主表 | sample_encoding_matrix | strong | Tree A 全部叶子；R-A.row×col | true（Table 5 视觉核对优先；尤其常量列如 A.5.4 全 x、A.3.1 全 x） | n=10 频数仅作方法学 seed，不进领域统计池 |
@@ -465,14 +465,14 @@
 
 | 结论标识 | 结论内容 | 结论类型 | 支撑对象 | 支撑证据 | 结论强度 | 允许用途 | 反证或限制 |
 |---|---|---|---|---|---|---|---|
-| CLM-v2-T01 | 本文原生树类型为**维度森林**：Tree A (n=10 SLR 编码) + Tree B (n=2 mapping 对比) + Tree C (处方 3-facet) + Tree D (5 步流程)；不是单树 | 树类型（树_type） | 根节点 | EV-v2-001, EV-v2-002, EV-v2-003, EV-v2-006 | strong | 模式种子（模式_seed）；改写 review.md 维度树结构节 | Tree C/D 是处方层，不能写成"被编码的样本字段" |
+| CLM-v2-T01 | 本文原生树类型为**维度森林**：Tree A (n=10 SLR 编码) + Tree B (n=2 mapping 对比) + Tree C (处方 3-facet) + Tree D (5 步流程)；不是单树 | 树类型（tree_type） | 根节点 | EV-v2-001, EV-v2-002, EV-v2-003, EV-v2-006 | strong | 模式种子（schema_seed）；改写 review.md 维度树结构节 | Tree C/D 是处方层，不能写成"被编码的样本字段" |
 | CLM-v2-A01 | Table 5 是本文唯一的样本编码主表，n=10 SLR × 12 字段；行=Reference ID，列=4 字段组下细分布尔/数值 | 样本单位（sample_unit） | Tree A 全部 | EV-v2-005, EV-v2-006 | strong | 可作方法学描述性统计 seed；可生成行汇总（每 SLR 目标向量）与列汇总（每字段频数） | 不进入领域统计池；分母与检索策略强耦合 |
 | CLM-v2-A02 | Means of Analysis 列 Narrative Summary 全 10 篇置 x，说明叙述总结是 SE SLR 默认输出形态；Meta Study 仅 2/10，揭示 SE SLR 量化合成不普及 | descriptive_stat | L-A.5.1, L-A.5.4 | EV-v2-006 | strong | 可迁移为"SE SLR 方法学成熟度"指标 seed | 仅 n=10；可在更大 SLR 池中验证 |
 | CLM-v2-A03 | Inclusion 需求 "研究（Research） is Within Focus Area" 全 10 篇都置 x，是常量列，无判别力 | descriptive_stat | L-A.3.1 | EV-v2-006 | strong | 揭示该字段是 SLR 通用 baseline gate，不应进入分类用途 | n=10；可在更大池中验证 |
 | CLM-v2-B01 | Bailey 2007 与 Mujtaba 2008 是本文的 mapping 示例样本（n=2），不是被独立纳排的样本 | 样本单位（sample_unit） | Tree B 全部 | EV-v2-002, EV-v2-004 | strong | 用于对比 SMS 实施差异；仅成对叙述 | n=2 不可外推；Mujtaba 2008 当时为 in-submission |
 | CLM-v2-C01 | Wieringa 6 类研究类型是封闭互斥枚举（Validation / Evaluation / 解决方案提案 / Philosophical / Opinion / Experience），构成处方 模式 的关键叶子层 | 叶子_definition | L-C.3.1 ~ L-C.3.6 | EV-v2-003 | strong | 可迁移为 Paper2 论文研究类型字段种子 | 2008 年版本，需为 LLM/智能体 工作类型扩展 |
 | CLM-v2-D01 | Figure 1 五步流程是处方 流程 模式；不能与 Tree A 样本字段混淆 | process_模式 | Tree D | EV-v2-001 | strong | 可迁移为 Paper2 流程章节 | 不是样本字段，不能进入字段表 |
-| CLM-v2-F01 | 本文给出的统计观察均为类别频数与交叉覆盖；§4 的 指南 扩展（互补使用 / Adaptive Reading Depth / Wieringa 推荐 / 可视化）是处方建议，不是样本统计推论 | 候选发现（candidate_发现）_boundary | L-A.2~A.5, §4 | EV-v2-006, EV-v2-007 | strong | 仅作 候选发现；不可升级为 最终发现 | 最终发现 必须经跨论文证据与研究者裁决 |
+| CLM-v2-F01 | 本文给出的统计观察均为类别频数与交叉覆盖；§4 的 指南 扩展（互补使用 / Adaptive Reading Depth / Wieringa 推荐 / 可视化）是处方建议，不是样本统计推论 | 候选发现边界（candidate_finding_boundary） | L-A.2~A.5, §4 | EV-v2-006, EV-v2-007 | strong | 仅作 候选发现；不可升级为 最终发现 | 最终发现 必须经跨论文证据与研究者裁决 |
 | CLM-v2-R01 | 本文 §4 "Validity Consideration" 报告"73% 论文 designation 错误"是质量风险证据，可作 Paper2 字段误差源种子 | risk_anchor | Tree A 所有叶子 + Tree C | EV-v2-008 | medium | 可迁移为字段分类置信度种子 | 该数字来自 Mendes 2005 子集，不是本文 n=10 池 |
 
 ---

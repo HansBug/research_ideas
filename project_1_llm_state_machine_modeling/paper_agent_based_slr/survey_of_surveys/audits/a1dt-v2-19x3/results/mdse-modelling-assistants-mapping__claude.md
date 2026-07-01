@@ -131,7 +131,7 @@ I now have full context. Let me deliver the complete audit report.
 │
 ├── [B-RQ3-U] Target users (RQ3-U)
 │   ├── user_reporting_status   // {specified, generic_user_hidden=U-NS}  (§4.4 explicit)
-│   ├── user_cluster            // ENUM = {U1 designers/modellers, U2 domain experts, U3 软件开发者s}
+│   ├── user_cluster            // ENUM = {U1 designers/modellers, U2 domain experts, U3 软件开发者}
 │   ├── user_subtype            // U1: software_designer | model_developer | engineer_with_design_exp | UML_developer | MDE_developer | student/novice_modeller
 │   │                           // U2: business_analyst | end_user | domain_user | domain_expert | domain_engineer | business_user
 │   │                           // U3: developer | software_developer | SE_student | software_maintainer
@@ -202,7 +202,7 @@ I now have full context. Let me deliver the complete audit report.
 | leaf-evaluation-status | 是否经验评价 | B-RQ3-M | §4.4 NE 定义 | proposal 是否被经验评价 | {empirically_evaluated, NE} | 布尔 | NE=未评价 | NE=48.6 % | 评价缺口本身=候选 finding | E10 | 直接迁移 |
 | leaf-metric-cluster | 指标 cluster | B-RQ3-M | Table 4 + §4.4 + TAM | 把指标按 TAM 分类 | {M1 effectiveness, M2 efficiency, M3 user perception} ∪ {NE} | 封闭枚举 | NE=未评价 | M1=23.6 %、M2=23.6 %、M3=4.2 %、NE=48.6 % | M3=4.2 % 是强 gap | E10 | 一 proposal 可有多 metric，注意多标签 |
 | leaf-metric-subtype | 指标子型 | leaf-metric-cluster | Table 4 keywords | 在 cluster 内的具体指标项 | M1/M2/M3 子型枚举（见 §3） | 层级枚举 + 自由文本 | 缺则填 NE | 子型分布未数字化 | 直接对接 STM generation 评价 | E10 | 子型词表非饱和 |
-| leaf-user-cluster | 目标用户 cluster | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 designers/modellers, U2 domain experts, U3 软件开发者s} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “user” / “he/she” 泛化或 second-person 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM domain expert 命题的起点 | E10, E11 | 直接迁移；practice 侧 U-NS 高度由 “you” 触发 |
+| leaf-user-cluster | 目标用户 cluster | B-RQ3-U | §4.4 + Table 4 | 3 类 + 隐藏未报告 | {U1 designers/modellers, U2 domain experts, U3 软件开发者} ∪ {U-NS} | 封闭枚举 | U-NS=作者用 “user” / “he/she” 泛化或 second-person 隐藏 | U1=27.6 %、U2=13.8 %、U3=29.3 %、U-NS=29.3 % | U2 占比低是 LLM4STM domain expert 命题的起点 | E10, E11 | 直接迁移；practice 侧 U-NS 高度由 “you” 触发 |
 | leaf-doc-status | 实践文档状态 | B-RQ4 | §5.2 + Fig. 9 | GMQ tool 是否有可访问的 modelling assistance documentation | {D documented, NF not_found} | 布尔 | NF≠工具缺失能力 | 10 NF / 7 D（58.8 % NF） | not-documented ≠ not-exists 是关键边界 | E11 | 直接迁移 |
 | leaf-gmq-class | GMQ 分类 | B-RQ4 | §5.1 + Fig. 8 | Gartner Magic Quadrant 2023 分类 | {LE, C, V, NP} | 完整封闭枚举（4 类） | 不允许空 | LE=5, C=1, V=3, NP=8 | LE 更常公开 assistant 文档 | E11 | 仅代表 enterprise low-code 视角 |
 | leaf-second-person-hidden | 第二人称隐藏用户 | leaf-doc-status | §5.2 末 “write using ‘you’… hides the actor” | 文档是否用 you 掩盖 target user | {true, false} | 布尔 | 不允许空 | 未数字化但 §5.2 显式声明常见 | LLM4STM 文档警示 | E11 | 直接迁移 |
