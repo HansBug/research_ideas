@@ -84,7 +84,7 @@
 
 ### 1. 原文证据阅读说明
 
-- 实读文件：`bibtex.bib`、`metadata.json`、`paper_content.txt`（全 9 页 967 行）、`review.md`（221 行）。技能文件读取 `reviewer-guidelines.md` 全文、`ai-research-writing-skill/SKILL.md` 与 `research-planning/SKILL.md` 关键段落。
+- 实读文件：`bibtex.bib`、`metadata.json`、`paper_content.txt`（全 9 页 967 行）。
 - 仅文本级审计；以下 4 处仍需 A2a 用 `paper.pdf` 视觉核验：
   1. Figure 1（yearly distribution）的柱高 vs §III 描述"2009 之后骤增"；
   2. Figure 2 质量-score distribution（"42/51 ≥ 2"）的柱高；

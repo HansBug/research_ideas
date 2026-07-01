@@ -99,5 +99,24 @@ class EvidenceConsumptionPhraseGateTest(unittest.TestCase):
                 self.assert_allowed(example)
 
 
+class ReviewHistoryResidueGateTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.gate = load_check_structure_module()
+
+    def test_skill_and_rework_process_residue_are_forbidden_in_review(self) -> None:
+        forbidden_examples = [
+            "技能文件",
+            "/.codex/skills",
+            "reviewer-self-review",
+            "v2 后已挂三路审计返修块",
+            "返修块",
+        ]
+        for example in forbidden_examples:
+            with self.subTest(example=example):
+                self.assertIn(example, self.gate.FORBIDDEN_REVIEW_HISTORY_PHRASES)
+
+
+
 if __name__ == "__main__":
     unittest.main()

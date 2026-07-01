@@ -87,16 +87,8 @@
 
 **实际读取**：
 
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/SKILL.md`（claim-证据 gate、reviewer mode、证据 policy）
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-guidelines.md`（universal review dimensions、constructive specificity standard）
-- `/home/zhangshaoang/.codex/skills/ai-research-writing-skill/references/reviewer-self-review.md`（5-dimension review、claim audit、adversarial questions）
-- `/home/zhangshaoang/.codex/skills/research-planning/SKILL.md`（Paper2Code 4-turn）
-- `/home/zhangshaoang/.codex/skills/research-planning/references/planning-prompts.md`
-- `/home/zhangshaoang/.codex/skills/research-planning/references/output-schemas.md`
-- `/home/zhangshaoang/.codex/plugins/cache/oh-my-codex-local/oh-my-codex/0.18.7/skills/autoresearch/SKILL.md`
 - `bibtex.bib`、`metadata.json`
 - `paper_content.txt`：逐段读完目录（§0.1）→ Executive Summary / Glossary（§0.4-0.5，pp.vi-vii）→ §2 SLR/SMS/Tertiary 定义 → §3 Table 1 SE vs other disciplines → §4 三阶段流程 → §5 计划（Planning）（含 §5.3.1 6 类 question types + §5.3.2 PICOC）→ §6.1 Search（Table 2 search 文档）→ §6.2 Selection（含 §6.2.3 Cohen κ）→ §6.3 Quality（Tables 3-6：bias 4 类 + 量化检查表 ~50 项 + 质性检查表 18 项）→ §6.4 数据抽取（数据抽取）（Table 7 实例：Maxwell 1998）→ §6.5 Synthesis（5 binary + 3 continuous effect measures、森林图、funnel plot、3 类 定性 synthesis）→ §6.5.6 sensitivity 4 类 subset → §7 报告（Reporting）（Table 8 报告结构）→ §8 Mapping Studies → §9 PhD-light version → Appendix 1（Table 9 跨 6 源 流程 steps）→ Appendix 2（15 SE SLR 编码表）→ Appendix 3 tertiary protocol
-- `review.md`（v2 后已挂三路审计返修块，但主树仍是六叶接口）
 
 **版面核验**：仅基于 `paper_content.txt` 的 `--- Page N ---` 分页标记定位页码；`paper.pdf` 未单独打开做视觉核验，Tables 2/5/7/8/9 的精确表格版式、Figures 1-2（森林图 / funnel plot）的图示边界、Appendix 2 跨页表格的行数完整性仍需 A2a 精核。
 

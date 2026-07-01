@@ -209,8 +209,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 
 ### 1. 原文证据阅读说明
 
-- **实读文件**：`bibtex.bib`、`metadata.json`、`paper_content.txt`（全 2517 行三段读完）、`review.md`（全 480 行两段读完）。`paper.pdf` 本轮未打开（属本审计的 transparency 项，需 A2a 复核排版级证据）。
-- **技能文件**：均已读取：`ai-research-writing-skill/SKILL.md`、`reviewer-guidelines.md`、`reviewer-self-review.md`、`research-planning/SKILL.md`、`planning-prompts.md`、`output-schemas.md`、`autoresearch/SKILL.md`。所用核心原则：claim-证据 gate、reviewer 5-dim、5-dim 自评、reviewer constructive specificity、autoresearch validator-gated 边界判定。
+- **实读文件**：`bibtex.bib`、`metadata.json`、`paper_content.txt`（全 2517 行三段读完）。`paper.pdf` 本轮未打开（属本审计的 transparency 项，需 A2a 复核排版级证据）。
 - **覆盖章节**：Abstract、§1 Introduction、§2 Background (含 §2.1 LMs/LLMs in RE、§2.2 Formal RE)、§3 Example A (PROMELA)、§4 Roadmap A、§5 Example B (ChatGPT)、§6 Roadmap B、§7 Practical considerations、§8 Conclusion、CRediT、数据可获得性（Data 可获得性）、References（175 条）。
 
 #### 关键证据锚点（约 10 条）

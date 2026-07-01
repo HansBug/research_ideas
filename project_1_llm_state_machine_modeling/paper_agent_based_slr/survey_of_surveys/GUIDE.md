@@ -121,7 +121,8 @@ A1-DT v2 之后，单篇目录必须把“当前可消费正文”“正式证�
 3. 当前仍有证据链价值的 A.1--A.4、待 A2a 风险、claim map、复验清单统一放入 `evidence_chain.md`。
 4. 历史 A.2/A.3 草案若有尚未吸收的独特证据，必须先转写进正式 A.2/A.3；若已被正式证据链或 v2 adjudication 吸收，应直接移除。
 5. `历史审计草案归档`、`历史草稿旧强度`、`禁止消费为事实真源`、大段 `v1-deprecated` 警示和技能使用流水账不得出现在正式 `review.md` 正文。
-6. `not_verified`、`待 A2a`、`schema_seed`、`boundary_anchor`、`候选` 是当前证据状态，不是历史噪声，应按证据等级保留。
+6. `review.md` 不得保留本机技能路径、技能读取清单或返修过程流水账，例如 `技能文件`、`/.codex/skills`、`reviewer-self-review`、`返修块` 这类过程痕迹；若这些内容有复现价值，应只保留在 `audits/` 批次日志中。
+7. `not_verified`、`待 A2a`、`schema_seed`、`boundary_anchor`、`候选` 是当前证据状态，不是历史噪声，应按证据等级保留。
 7. 清理正文时不得删除 `audits/a1dt-v2-19x3/` 的 prompts / results / logs / adjudications；这些属于批次复现证据。
 
 ## 6. 模式字段抽取规则

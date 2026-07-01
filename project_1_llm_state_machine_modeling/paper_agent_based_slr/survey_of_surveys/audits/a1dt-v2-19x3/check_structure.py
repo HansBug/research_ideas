@@ -176,6 +176,11 @@ FORBIDDEN_REVIEW_HISTORY_PHRASES = (
     "禁止采信",
     "当前禁止",
     "技能使用与自我审查",
+    "技能文件",
+    "/.codex/skills",
+    "reviewer-self-review",
+    "v2 后已挂三路审计返修块",
+    "返修块",
     "对旧版 `review.md` 的返修来源",
     "v1-deprecated",
 )
