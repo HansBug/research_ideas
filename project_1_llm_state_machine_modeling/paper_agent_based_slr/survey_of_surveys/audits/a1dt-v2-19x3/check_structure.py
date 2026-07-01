@@ -135,13 +135,11 @@ FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = (
 
 FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS = (
     # Positive "可直接..." claims are too easy for downstream agents to read as
-    # immediately consumable facts.  Negative warnings such as "不可直接外推" are
-    # intentionally allowed by the fixed-width negative look-behind.
-    (
-        r"(?<!不)可直接"
-        r"(?:迁回|迁入|迁移|替换|引用|更新|复用|写入|进入|转化|作为|支持|统计|"
-        r"参考|采纳|启发|抬升|拷贝|复核|升级|做|由|据此)"
-    ),
+    # immediately consumable facts.  Round-6 review showed that verb allowlists
+    # are not enough, so this gate forbids the whole positive phrase family.
+    # Negative warnings such as "不可直接外推" are intentionally allowed by the
+    # fixed-width negative look-behind.
+    r"(?<!不)可直接",
 )
 
 FORBIDDEN_TRANSLATION_PHRASES = (
