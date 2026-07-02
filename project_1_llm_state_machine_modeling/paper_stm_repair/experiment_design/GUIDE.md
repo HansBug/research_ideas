@@ -37,7 +37,7 @@
 
 | 字段 | 最低要求 |
 |---|---|
-| `claim_type` | 至少区分 `task_scope`、`readiness`、`protocol_evaluation`、`repair_effectiveness`、`limitation_negative_evidence`。 |
+| `claim_type` | 至少区分 `task / scope`、`readiness`、`protocol / evaluation`、`repair effectiveness`、`limitation / negative evidence`；若代码或 JSON 字段需要 ASCII 枚举，可在 schema 中另行映射为 `task_scope` 等稳定枚举。 |
 | `evidence_type` | 说明来自 machine artifact、report、run record、change ledger、semantic adjudication、human rubric 还是 PR 决策。 |
 | `denominator` | 明确是 pre-registered pool、scope pool、evaluation-eligible pool，还是 success / failure / unknown 分母。 |
 | `attribution_boundary` | 说明该证据属于 raw -> canonical readiness，还是 canonical `STM_0` -> `STM_k` repair-loop gain。 |
