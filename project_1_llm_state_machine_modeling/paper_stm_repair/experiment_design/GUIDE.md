@@ -2,7 +2,7 @@
 
 ## 1. 总原则
 
-实验设计必须先于真实修正结果冻结。任何新增 scope、eligibility、protocol 或 metric 都必须标明状态：`草案`、`评价门 v0`、`正式协议候选` 或 `已冻结`。当前已冻结的上游合同包括 [evaluation_logic.md](./evaluation_logic.md) 的 R5.7.1 评价逻辑链与 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 的 Better STM 五条件；除此之外，不得把职责 README 写成已冻结协议。
+实验设计必须先于真实修正结果冻结。任何新增 scope、eligibility、protocol 或 metric 都必须标明状态：`草案`、`评价门 v0`、`正式协议候选` 或 `已冻结`。当前已冻结的上游合同包括 [evaluation_logic.md](./evaluation_logic.md) 的 R5.7.1 评价逻辑链，以及 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) / [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 的 R5.7.2 Better STM gate 与 repair target taxonomy；除此之外，不得把职责 README 写成已冻结协议。
 
 ## 2. 子路径维护规则
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | [evaluation_logic.md](./evaluation_logic.md) | R5.7.1 评价逻辑链、claim 类型、分母纪律、A 层、归因边界、指标位置、失败报告纪律、下游接口。 | Better STM 判定细则、最终指标阈值、真实 repair 效果、`STM_k` 结果。 |
 | [scope/](./scope/) | RQ 版本、样本范围、T0/T0.5/T1 边界、story / scope 分工。 | 论文叙事正文、已跑结果、最终 claim。 |
-| [quality_model/](./quality_model/) | Better STM 定义、质量维度、判定反例、归因边界。 | 因结果好坏临时改五条件。 |
+| [quality_model/](./quality_model/) | Better STM gate、质量维度、判定反例、归因边界、repair target taxonomy。 | 因结果好坏临时改 gate / taxonomy；把 representation symptom 直接写成 confirmed defect。 |
 | [eligibility/](./eligibility/) | run / sample / conversion / provider failure 纳入排除草案。 | 未验证就宣称 eligibility 已冻结。 |
 | [protocols/](./protocols/) | 修正循环、对照、人工裁决、回滚和审计协议草案。 | 真实运行流水账或结果统计。 |
 | [metrics/](./metrics/) | 指标字段、统计表骨架、报告口径草案。 | 看结果后倒推阈值或删改不利指标。 |
@@ -27,9 +27,10 @@
 
 ## 4. 质量门
 
-1. 只有同时满足 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 的核心判据与五条最低必要条件，才可把 `STM_k` 计为相对 `STM_0` 的 Better STM；parse ok、executable 或 `.fcstm` lowering 本身都不是 Better STM 证据。
-2. 任一条件为 `unknown`、`not_applicable` 或 `fail`，都不能支持 Better STM 主张。
+1. 只有通过 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 的 G0–G6 gate，才可把 `STM_k` 计为相对 canonical `STM_0` 的 Better STM；parse ok、executable 或 `.fcstm` lowering 本身都不是 Better STM 证据。
+2. 任一 gate 为 `unknown`、`not_applicable`、`fail` 或 `protocol_or_provenance_invalid`，都不能支持 Better STM 主张。
 3. converter / normalization 收益必须与 repair-loop 收益分开记录。
+4. 修复目标必须按 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 的 11 字段和五级 `repair_action_allowed` 记录；representation symptom 不能直接升级为 confirmed defect。
 
 ## 5. 评价逻辑链维护纪律
 

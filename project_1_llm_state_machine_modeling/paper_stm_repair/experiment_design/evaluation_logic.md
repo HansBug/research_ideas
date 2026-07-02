@@ -3,6 +3,7 @@
 > **定位**：本文件是 R5.7.1 的长期事实源，回答“本论文怎样从 `<NL, STM_0>`、修复目标、候选 `STM_k` 和评价证据走到方法有效性主张”。它冻结评价逻辑链、claim boundary、分母纪律、证据强度、归因边界、失败报告纪律和下游接口；不实现 repair loop，不生成 `STM_k`，不报告方法效果。
 >
 > **证据引用说明**：正文中的 `[src-*]`、`[clm-*]`、`[dec-*]`、`[cmd-*]` 是文末审计附录中的稳定 ASCII 证据键，不按数字重排。
+> **R5.7.2 更新入口**：Better STM gate 链、三层输出模型和 repair target taxonomy 已细化到 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)。本文件仍是 R5.7.1 的评价逻辑链事实源；R5.7.2 不重开本文件冻结的分母、claim boundary 与 attribution boundary。
 
 ## 1. 一句话结论
 
@@ -21,8 +22,8 @@ R5.7.1 冻结的评价链路如下：
   -> 表示桥：raw STM_0 -> canonical STM_0，只计 readiness，不计 repair gain
   -> 修复目标证据：NL 证据 + raw STM_0 证据 + representation / loss 证据
   -> 候选 STM_k：后续 R6/R7 产生，本文件不产生
-  -> Better STM 判定：后续 R5.7.2 细化，本文件只冻结其上游逻辑
-  -> 客观指标与语义裁决：后续 R5.7.3 细化，本文件只冻结指标的证据位置
+  -> Better STM 判定：R5.7.2 已细化为 G0–G6 gate、三层输出模型和 repair target taxonomy；本文件只冻结其上游逻辑
+  -> 客观指标与语义裁决：R5.7.2 已冻结指标权限上限与 semantic gate，R5.7.3 继续细化客观指标框架
   -> 论文结论：T0 主线结果、T0.5 caveat、T1 stress、failure / partial / unknown / limitation
 ```
 
@@ -133,7 +134,7 @@ R5.7.1 只冻结评价逻辑链与 claim boundary，不抢后续子 PR 的细节
 
 | 阶段 | 本文件提供什么 | 后续阶段负责什么 |
 |---|---|---|
-| R5.7.2 | A 层、scope、归因、failure reporting 和 Better STM 判定上游逻辑。 | Better STM 判定细则、repair target taxonomy、语义裁决门、拒绝条件。 |
+| R5.7.2 | A 层、scope、归因、failure reporting 和 Better STM 判定上游逻辑。 | 已在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 冻结 Better STM gate 链、三层输出模型、repair target taxonomy、语义裁决门和拒绝条件。 |
 | R5.7.3 | 指标只能 supporting evidence、不能 metric-only verdict。 | objective metrics 框架、指标族、偏序方向、适用边界、投机风险。 |
 | R5.7.4 | dry-run 的目标：验证标准可执行性，而不是 repair 效果。 | 用真实 / 准真实样例做静态 dry-run。 |
 | R5.7.5 | R6/R7 必须继承的 claim boundary、分母、ledger 和 run record 要求。 | 合成可执行 handoff。 |
@@ -173,7 +174,9 @@ R5.7.1 只冻结评价逻辑链与 claim boundary，不抢后续子 PR 的细节
 | [src-status] | `paper_stm_repair_status` | [../STATUS.md](../STATUS.md) | md | 当前尚未运行真实 repair loop、尚无 `STM_k` 或 Better STM 主结果。 | §1、§6、§7。 |
 | [src-model-scope] | `r5_6_model_scope` | [../story/model_scope.md](../story/model_scope.md) | md | T0/T0.5/T1、模型族、主线 scope、禁止外推。 | §1–§6；审计附录。 |
 | [src-r56-handoff] | `r5_6_to_r5_7_handoff` | [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md) | md | R5.7 必须继承的硬约束、candidate-only 纪律。 | R56-H0–H7、§5。 |
-| [src-better-stm] | `better_stm_definition` | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) | md | Better STM 五条件、三阶段归因、parse / executable 不等于 Better。 | §2–§6。 |
+| [src-better-stm] | `better_stm_definition` | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) | md | Better STM 原五条件、三阶段归因、parse / executable 不等于 Better；当前已由 R5.7.2 G0–G6 gate 链细化。 | §2–§12。 |
+| [src-r572-better] | `r572_better_stm_definition` | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) | md | R5.7.2 Better STM gate 链、三层输出模型、硬拒绝、T0.5 caveat、semantic gate。 | §1–§12。 |
+| [src-r572-taxonomy] | `r572_repair_target_taxonomy` | [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) | md | R5.7.2 repair target taxonomy、11 字段合同、五级 repair_action_allowed、candidate-only 纪律。 | §1–§7。 |
 | [src-case] | `llms_emp_case_matrix` | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | 60 pair、conversion status、time level、story role、parse / inspect / canonical status。 | JSONL rows；`raw_pair_id`、`nl_cluster_id`、`conversion_status`、`time_level`。 |
 | [src-cluster] | `llms_emp_cluster_profiles` | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | jsonl | 10 cluster、time level、structure family、story role。 | JSONL rows；`nl_cluster_id`、`time_level`、`structure_family`。 |
 | [src-partial-ledger] | `llms_emp_partial_attribution` | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | jsonl | partial attribution、candidate-only 与 pipeline artifact 区分。 | JSONL rows；`primary_attribution`、`r5_7_candidate_only`。 |
@@ -198,6 +201,7 @@ R5.7.1 只冻结评价逻辑链与 claim boundary，不抢后续子 PR 的细节
 | [clm-no-repair-gain] | `R571-C4` | conversion / normalization / `.fcstm` inspect success 不计 repair gain。 | prohibition | [src-better-stm] §3–§5；[src-r56-handoff] R56-H5。 | 人工复验 + [cmd-r571-counts] | high | R6/R7 仍需真实 change ledger。 |
 | [clm-no-effectiveness-yet] | `R571-C5` | 当前不能写 repair effectiveness、Better STM 成功率或强泛化 claim。 | prohibition | [src-status] §1、§6；[dec-q2]。 | 人工复验 | high | 未来 R6/R7/R8 可在证据闭合后升级。 |
 | [clm-failure-ledger] | `R571-C6` | failure / partial / unknown / out-of-scope 必须进入台账，不能静默删除。 | protocol | [dec-q7]、[src-model-scope] §6。 | 人工复验 | high | R7/R8 需落到正式 run record / ledger schema。 |
+| [clm-r572-gate] | `R571-C7` | R5.7.2 已把 Better STM 细化为 G0–G6 gate、三层输出模型和 repair target taxonomy，但仍不产生 repair effectiveness 主张。 | protocol | [src-r572-better]、[src-r572-taxonomy]。 | 人工复验 | high | 只是协议冻结，不是 `STM_k` 或 success rate。 |
 
 ### A.3 复验命令
 
