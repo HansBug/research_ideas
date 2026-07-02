@@ -92,6 +92,8 @@ R5.7.2 冻结的 taxonomy 有 11 类一级目标 [clm-r572-taxonomy]：
 | `traceability_delta` | improved / unchanged / degraded / unknown | 判断 traceability 是否改善。 |
 | `semantic_gate_verdict` | pass / fail / partial / unknown | G5 的结构化 provisional 输出。 |
 
+v0 合成规则要求：`semantic_drift_risk=fatal`、`over_repair_indicator=confirmed` 或关键 `traceability_delta=degraded` 时判 fail；`nl_grounding_confidence=missing` 且涉及新增行为时不得判 pass；`guard_action_fidelity=degraded` 时判 fail / partial；`under_repair_indicator=confirmed` 时必须结合实例级 `repair_action_allowed` 判 fail 或 partial，不能让已确认欠修样例进入 pass [clm-r572-rubric]。
+
 ## 7. 代表性例子
 
 这些例子只用于解释规则，不是 R5.7.4 正式 dry-run，也不是 repair 效果证据 [clm-r572-no-effect][clm-r572-example-boundary]。
@@ -182,7 +184,7 @@ R5.7.2 冻结的 taxonomy 有 11 类一级目标 [clm-r572-taxonomy]：
 | [clm-r572-revision] | `R572-C9` | 后续规则 / 指标修订必须由真实 dry-run findings 驱动。 | protocol | [src-q12]；[src-better] §9/§13。 | 人工复验 | high | 无 finding 的修订只能标 provisional。 |
 | [clm-r572-medium-only] | `R572-C10` | `.fcstm` / `pyfcstm` / converter 是实验介质，不是论文核心贡献。 | prohibition | [src-model-scope]；[src-better] §2/§6。 | 人工复验 | high | 代码实现仍可依赖 pyfcstm，但写作要弱化。 |
 | [clm-r572-single-action] | `R572-C11` | `repair_action_allowed` 在实例 ledger 中必须是单值；类级 taxonomy 表只给默认值，实例 override 必须记录理由。 | contract | [src-q5]；[src-taxonomy] §2.2/§3/§6。 | [cmd-r572-taxonomy-fields] | high | R5.7.4/R7 可细化 override reason，但不能回到多值枚举。 |
-| [clm-r572-rubric] | `R572-C12` | G5 semantic gate 至少需要 v0 rubric 字段，覆盖 NL grounding、semantic drift、over/under repair、guard/action fidelity、traceability delta 和 `semantic_gate_verdict`。 | protocol | [src-q10]；[src-better] §10/§11。 | [cmd-r572-taxonomy-fields] | medium | 字段权重和冲突规则可由 R5.7.4 dry-run findings 修订。 |
+| [clm-r572-rubric] | `R572-C12` | G5 semantic gate 至少需要 v0 rubric 字段，覆盖 NL grounding、semantic drift、over/under repair、guard/action fidelity、traceability delta 和 `semantic_gate_verdict`，且 confirmed under-repair 必须合成到 fail / partial 而不能判 pass。 | protocol | [src-q10]；[src-better] §10/§11。 | [cmd-r572-taxonomy-fields] | medium | 字段权重和冲突规则可由 R5.7.4 dry-run findings 修订，但不能删除 confirmed under-repair 的负向约束。 |
 | [clm-r572-example-boundary] | `R572-C13` | R5.7.2 的例子和 mini dry-run 只是合同可理解性检查，不是系统 dry-run、正式裁决或 repair effect。 | prohibition | [src-q11]；[src-better] §5/§13。 | 人工复验 | high | R5.7.4 才产生正式 dry-run findings。 |
 
 ### A.4 复验命令

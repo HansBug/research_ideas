@@ -211,8 +211,9 @@ v0 合成规则：
 1. 若 `semantic_drift_risk=fatal`、`over_repair_indicator=confirmed` 或 `traceability_delta=degraded` 且影响关键需求，`semantic_gate_verdict=fail`。
 2. 若 `nl_grounding_confidence=missing`，且候选变化涉及新增 guard/action/state 行为，`semantic_gate_verdict=unknown` 或 `partial`，不得判 pass。
 3. 若 `guard_action_fidelity=degraded` 且 `NL` / raw evidence 支持结构化 guard/action，`semantic_gate_verdict=fail` 或 `partial`。
-4. 只有 `nl_grounding_confidence` 至少为 medium、无 major/fatal drift、无 confirmed over-repair、且无关键 trace degradation 时，才允许 `semantic_gate_verdict=pass`。
-5. LLM-as-Judge 只能生成 provisional rubric；规则冲突、low confidence、headline success 和代表性 failure 必须人工升级。
+4. 若 `under_repair_indicator=confirmed`，且对应 taxonomy target 的实例级 `repair_action_allowed=must_fix`，`semantic_gate_verdict=fail`；若实例级 `repair_action_allowed=should_fix` 或证据只支持局部欠修，`semantic_gate_verdict=partial`，并必须在 failure / partial ledger 中记录未闭合 target。
+5. 只有 `nl_grounding_confidence` 至少为 medium、无 major/fatal drift、无 confirmed over-repair、无 confirmed under-repair、且无关键 trace degradation 时，才允许 `semantic_gate_verdict=pass`。
+6. LLM-as-Judge 只能生成 provisional rubric；规则冲突、low confidence、headline success 和代表性 failure 必须人工升级。
 
 ## 12. 与 repair target taxonomy 的关系
 
