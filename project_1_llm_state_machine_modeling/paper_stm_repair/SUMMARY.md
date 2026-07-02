@@ -8,6 +8,8 @@
 
 当前完成的是 **修正前准备度审计**：一手 seed registry、四例静态样例、转换链路、`.fcstm` 表示桥、评价门草案、R5 全量摸排与 R5.5 `llms-emp` 主 seed 池画像已就位；尚未执行真实修正循环、尚未生成 `STM_k`，也尚未形成 Better STM 主实验结果。
 
+R5.7.1 已冻结评价逻辑链与主张边界，入口为 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)；这只支持 task / scope、readiness、protocol / evaluation 与 limitation 类型主张，不支持 repair effectiveness。
+
 ## 2. 顶层入口
 
 | 需要回答的问题 | 入口 |
@@ -18,7 +20,7 @@
 | 阶段链路和机器事实源 | [pipeline/README.md](./pipeline/README.md) |
 | 一手 seed 与资源登记 | [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md) |
 | 论文 story / claim gate | [story/README.md](./story/README.md) |
-| 实验 scope / eligibility / quality model | [experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md) |
+| 实验评价逻辑 / scope / eligibility / quality model | [experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md) |
 | 历史审计与证据索引 | [evidence/SUMMARY.md](./evidence/SUMMARY.md) |
 | cold / deprecated 历史快照 | [archive/README.md](./archive/README.md) |
 

@@ -2,7 +2,18 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径。当前 Better STM 质量模型已补强“可解析 / 可执行不等于 Better STM”的核心判据与五条最低必要条件；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 不进入 headline，只作为当前 0 独立样例的 future taxonomy candidate / 语义维度标签，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径，并在 R5.7.1 新增 [evaluation_logic.md](./evaluation_logic.md) 作为评价逻辑链与主张边界事实源。当前 Better STM 质量模型已补强“可解析 / 可执行不等于 Better STM”的核心判据与五条最低必要条件；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 不进入 headline，只作为当前 0 独立样例的 future taxonomy candidate / 语义维度标签，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议；R5.7.1 也不报告 repair effectiveness、`STM_k` 或 Better STM 成功率。
+
+## 1.1 R5.7.1 评价逻辑链冻结结论
+
+| 主题 | 冻结结论 | 后续入口 |
+|---|---|---|
+| claim 类型 | 区分 task / scope、readiness、protocol / evaluation、repair effectiveness、limitation / negative evidence；当前阶段不能写 repair effectiveness。 | [evaluation_logic.md](./evaluation_logic.md) |
+| 数据单元 | `llms-emp` 写作口径是 10 NL clusters × 6 LLM-generated `STM_0` = 60 pairs；cluster 表示需求级覆盖，pair 表示 artifact-level repair attempt。 | [evaluation_logic.md](./evaluation_logic.md)、[../story/model_scope.md](../story/model_scope.md) |
+| 分母纪律 | T0 = 8 clusters / 48 pairs 只是 headline scope / pre-eligibility 上限；最终 eligible 和 success 分母等 R7/R8 冻结。 | [evaluation_logic.md](./evaluation_logic.md)、[scope/README.md](./scope/README.md) |
+| 归因边界 | raw -> canonical 的 conversion / normalization / `.fcstm` inspect 收益不计 repair gain；repair gain 只能从 canonical `STM_0 -> STM_k` 且经 change ledger 裁决后计算。 | [evaluation_logic.md](./evaluation_logic.md)、[quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) |
+| 客观指标 | 客观指标只能作为 supporting evidence；任何单一指标或总分都不能替代 NL-grounded semantic adjudication。 | [evaluation_logic.md](./evaluation_logic.md)、[metrics/README.md](./metrics/README.md) |
+| 失败报告 | failure / partial / unknown / out-of-scope 必须进入台账；partial 是带 caveat 的可评价候选，不等于失败也不等于成功。 | [evaluation_logic.md](./evaluation_logic.md)、[eligibility/README.md](./eligibility/README.md) |
 
 ## 2. 研究问题草案
 
@@ -51,14 +62,15 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 ## 4. 未完成项
 
 1. `scope/` 已有 R5.6 story-level model scope 与 R5.7 handoff constraints，但尚未冻结最终样本层、最终 RQ 版本或主实验 protocol。
-2. `eligibility/` 尚未冻结 run eligibility、failure handling 和 provider drift 规则。
-3. `protocols/` 尚未冻结真实 LLM 修正、对照、人工裁决或回滚协议。
-4. `metrics/` 尚未冻结最终指标阈值、统计表字段或显著性 / 效应量口径。
+2. `eligibility/` 已接收 R5.7.1 A 层 artifact-level gate 方向，但尚未冻结 run eligibility、failure handling 和 provider drift 正式协议。
+3. `protocols/` 已接收 R5.7.1 change ledger / failure ledger 要求，但尚未冻结真实 LLM 修正、对照、人工裁决或回滚协议。
+4. `metrics/` 已接收 R5.7.1 “指标只能 supporting evidence”纪律，但尚未冻结最终指标阈值、统计表字段或显著性 / 效应量口径。
 
 ## 5. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-02 17:02:42 | R5.7.1 新增 [evaluation_logic.md](./evaluation_logic.md)，冻结评价逻辑链、claim 类型、分母纪律、A 层准入、归因边界、客观指标位置、失败报告纪律和 R5.7.2--R5.7.5 下游接口；该更新不代表 repair loop 已运行。 |
 | 2026-06-30 14:46:44 | R5.6 新增并补强 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 model scope / claim boundary、状态机抽象定义、Better STM 核心判据与 R5.7 继承约束；该更新不代表 repair loop 已运行。 |
 | 2026-06-29 19:55:45 | R5.5.2 更新当前 scope 事实：`llms-emp` 当前 16 converted / 44 partial / 0 blocked；T0 主线与 Digital Camera supplementary stress 不变。 |
 | 2026-06-29 17:33:35 | 新增 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，把 R5.5 `proceed_with_supplementary` scope decision 落到 experiment design 路径。 |
