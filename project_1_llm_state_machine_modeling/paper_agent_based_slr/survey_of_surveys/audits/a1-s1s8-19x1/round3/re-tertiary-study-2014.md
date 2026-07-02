@@ -1,7 +1,7 @@
 # A1 survey-of-surveys 单篇审计：re-tertiary-study-2014
 
-> 角色：A1 survey-of-surveys 单篇维度抽取 subagent（round3）。  
-> 范围：仅处理 `papers/re-tertiary-study-2014/`；未开启 sub-subagent；本文件只作为独立审计输入，不是 final quantitative finding。  
+> 角色：A1 survey-of-surveys 单篇维度抽取 subagent（round3）。
+> 范围：仅处理 `papers/re-tertiary-study-2014/`；未开启 sub-subagent；本文件只作为独立审计输入，不是 final quantitative finding。
 > 输出文件：`project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/audits/a1-s1s8-19x1/round3/re-tertiary-study-2014.md`。
 
 ## 0. 执行约束与阅读状态

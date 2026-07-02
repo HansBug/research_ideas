@@ -1,7 +1,7 @@
 # mde-ml-components-slr：A1 S1--S8 round3 独立抽取审计
 
-> 角色：A1 survey-of-surveys 单篇维度抽取 subagent。  
-> 范围：仅处理 `papers/mde-ml-components-slr`。未开启 sub-subagent。  
+> 角色：A1 survey-of-surveys 单篇维度抽取 subagent。
+> 范围：仅处理 `papers/mde-ml-components-slr`。未开启 sub-subagent。
 > 重要边界：本报告是 A1 文本级 / 局部 PDF 视觉核验结果，只能作为 `schema_seed`、A2a 精核入口和 review/evidence/SUMMARY 返修建议；不得直接写成 Paper2 的 final quantitative finding。
 
 ## 1. 全文阅读依据

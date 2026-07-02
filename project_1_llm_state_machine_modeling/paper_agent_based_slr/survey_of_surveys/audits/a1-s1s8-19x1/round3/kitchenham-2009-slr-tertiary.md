@@ -1,6 +1,6 @@
 # A1 round3 单篇审计：kitchenham-2009-slr-tertiary
 
-> 审计身份：A1 survey-of-surveys 单篇维度抽取 subagent；本轮只处理 `papers/kitchenham-2009-slr-tertiary/`，未开启 sub-subagent，未读取其他论文正文。  
+> 审计身份：A1 survey-of-surveys 单篇维度抽取 subagent；本轮只处理 `papers/kitchenham-2009-slr-tertiary/`，未开启 sub-subagent，未读取其他论文正文。
 > 证据边界：本文件是 A1 文本级 / 局部 PDF spot-check 审计结果，只服务 S1--S8 schema 与单篇原生维度树复核；**不得写成 Paper2 的 final quantitative finding，也不得把本文 2004--2007.6 的具体计数外推到现代 SE / LLM4SE 领域。**
 
 ## 1. 全文阅读依据与核验边界

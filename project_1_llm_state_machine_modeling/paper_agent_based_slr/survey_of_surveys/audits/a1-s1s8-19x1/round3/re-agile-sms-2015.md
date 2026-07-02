@@ -1,7 +1,7 @@
 # A1 survey_of_surveys S1--S8 独立审计：re-agile-sms-2015
 
-> 角色：A1 survey-of-surveys 单篇维度抽取 subagent（未开启 sub-subagent）。  
-> 范围：只审计 `papers/re-agile-sms-2015/`。  
+> 角色：A1 survey-of-surveys 单篇维度抽取 subagent（未开启 sub-subagent）。
+> 范围：只审计 `papers/re-agile-sms-2015/`。
 > 重要边界：本文件是 A1 文本级 / 局部 PDF 表格级审计结果，只能作为 `review.md`、`evidence_chain.md`、`SUMMARY.md` 返修输入；**不得写成 Paper2 final quantitative finding**。
 
 ## 1. 全文阅读依据
@@ -112,36 +112,36 @@
 
 ### Important（I）
 
-1. **`problem→solution` 关系的来源层级需要统一改写。**  
-   - 影响文件：`review.md` 的“审计结论卡片”“原生样本编码维度树”“关系边表”，`evidence_chain.md` 的 `ev-re-agile-sms-2015-tree` / `clm-re-agile-sms-2015-tree`，`SUMMARY.md` S3 行。  
-   - 问题：部分位置写成“显式关系 schema / 显式关系边”，容易被读成原文 formal relation table。  
+1. **`problem→solution` 关系的来源层级需要统一改写。**
+   - 影响文件：`review.md` 的“审计结论卡片”“原生样本编码维度树”“关系边表”，`evidence_chain.md` 的 `ev-re-agile-sms-2015-tree` / `clm-re-agile-sms-2015-tree`，`SUMMARY.md` S3 行。
+   - 问题：部分位置写成“显式关系 schema / 显式关系边”，容易被读成原文 formal relation table。
    - 建议：统一写为“作者在 §IV.D 按 P1--P6 组织 solution prose；`problem→solution` 是本地复原关系边，不是原文 formal table”。
 
-2. **venue relation 的证据锚点不足。**  
-   - 影响文件：`review.md` 关系边表 `R-venue-of`，必要时 `evidence_chain.md` A.2。  
-   - 问题：Table I 只给 venue type/name/count，不给每篇 S-id 的 venue；若写 `研究（S1..S28） -> published_in -> venue`，证据还需要 Primary Sources S1--S28。  
+2. **venue relation 的证据锚点不足。**
+   - 影响文件：`review.md` 关系边表 `R-venue-of`，必要时 `evidence_chain.md` A.2。
+   - 问题：Table I 只给 venue type/name/count，不给每篇 S-id 的 venue；若写 `研究（S1..S28） -> published_in -> venue`，证据还需要 Primary Sources S1--S28。
    - 建议：把 `R-venue-of` 证据锚点改成 “Table I + Primary Sources [S1]--[S28]”，并区分 formal summary 与 local per-study reconstruction。
 
-3. **S6 等级与 non-final 边界需在 `review.md` / `SUMMARY.md` 中 harmonize。**  
-   - 影响文件：`review.md` S1--S8 第一表、`SUMMARY.md` S5--S8 覆盖矩阵。  
-   - 问题：`review.md` 将 S6 写“强”，`SUMMARY.md` 写“中”；两者都可解释，但需要同一口径，避免后续矩阵统计混乱。  
+3. **S6 等级与 non-final 边界需在 `review.md` / `SUMMARY.md` 中 harmonize。**
+   - 影响文件：`review.md` S1--S8 第一表、`SUMMARY.md` S5--S8 覆盖矩阵。
+   - 问题：`review.md` 将 S6 写“强”，`SUMMARY.md` 写“中”；两者都可解释，但需要同一口径，避免后续矩阵统计混乱。
    - 建议：若保留“强”，必须同格写明“仅限 A1 schema 可用度；A2a 前不进入 final quantitative finding”；若坚持文本级保守，则两处都降为“中”。
 
-4. **`evidence_chain.md` 仍是树级 claim map，缺少 S1--S8 与关键叶子 / 关系边的逐项证据。**  
-   - 影响文件：`evidence_chain.md` A.2/A.3/A.4。  
-   - 问题：当前 A.2 多数证据是 `not_verified` 且泛写“短引见 review”，不够支撑 A2a 的字段级复验，尤其是 Table II--V、Primary Sources、§IV.D solution prose。  
+4. **`evidence_chain.md` 仍是树级 claim map，缺少 S1--S8 与关键叶子 / 关系边的逐项证据。**
+   - 影响文件：`evidence_chain.md` A.2/A.3/A.4。
+   - 问题：当前 A.2 多数证据是 `not_verified` 且泛写“短引见 review”，不够支撑 A2a 的字段级复验，尤其是 Table II--V、Primary Sources、§IV.D solution prose。
    - 建议：A2a 时新增逐项 evidence rows：Table I venue summary、Primary Sources venue-of、Table II context、Table III type、Table IV benefits、Table V problems、§IV.D P1/P2/P5 solution prose、§IV.D P3/P4/P6 no-solution negative evidence。
 
 ### Minor（M）
 
-1. **`review.md` 中个别中文/英文混排可清理。**  
-   - 例：`无解决方案（无解决方案_PROPOSED）`、`会议（会议）/ 期刊（期刊）/ 杂志（杂志）` 等表达略冗余。  
+1. **`review.md` 中个别中文/英文混排可清理。**
+   - 例：`无解决方案（无解决方案_PROPOSED）`、`会议（会议）/ 期刊（期刊）/ 杂志（杂志）` 等表达略冗余。
    - 不影响事实，但降低可读性。
 
-2. **`S20=2003` 与结论中 “2004--2014” 的年份跨度差异值得保留为注脚。**  
+2. **`S20=2003` 与结论中 “2004--2014” 的年份跨度差异值得保留为注脚。**
    - 当前 `review.md` 已注意到这一点；A2a 可确认是否为作者结论笔误或出版年份口径差异。
 
-3. **本地审计来源不应进入原文 S8。**  
+3. **本地审计来源不应进入原文 S8。**
    - `review.md` 当前大体已区分；后续写作时仍需避免把三路 A1-DT 审计、主线程 adjudication 当成原文 researcher arbitration。
 
 ## 6. 本轮结论

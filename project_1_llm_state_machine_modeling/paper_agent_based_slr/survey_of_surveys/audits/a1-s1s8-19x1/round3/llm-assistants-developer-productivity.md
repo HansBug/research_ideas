@@ -126,34 +126,34 @@
 
 ### I / Important
 
-1. **NASA-TLX 与 cognitive load 分支需要拆分返修**  
-   - 影响对象：`review.md` 维度树叶子表、S1--S8 S4/S6/S7，必要时 `SUMMARY.md` S1--S8 覆盖矩阵。  
-   - 问题：当前归纳容易写成“6 studies NASA-TLX，3 improved / 2 neutral / 1 worse”。但原文 Table 7 的 NASA-TLX 是 6 篇 `[PS2, PS8, PS12, PS13, PS25, PS38]`；§5.3.3 的 improved 列表含 PS23（custom questionnaire）且未交代 PS25 方向；Table 10 cognitive load 是 7 篇。  
+1. **NASA-TLX 与 cognitive load 分支需要拆分返修**
+   - 影响对象：`review.md` 维度树叶子表、S1--S8 S4/S6/S7，必要时 `SUMMARY.md` S1--S8 覆盖矩阵。
+   - 问题：当前归纳容易写成“6 studies NASA-TLX，3 improved / 2 neutral / 1 worse”。但原文 Table 7 的 NASA-TLX 是 6 篇 `[PS2, PS8, PS12, PS13, PS25, PS38]`；§5.3.3 的 improved 列表含 PS23（custom questionnaire）且未交代 PS25 方向；Table 10 cognitive load 是 7 篇。
    - 建议：A1 中改为“NASA-TLX instrument branch = 6；broader cognitive-load SPACE sub-dimension = 7；outcome polarity 待 A2a 精核”。不要在 SUMMARY 中写最终方向比例。
 
-2. **年份范围需要显式记录原文内部不一致 / 待核验**  
-   - 影响对象：`review.md` 快速卡、维度树 `leaf-pub-year`、`SUMMARY.md` 文献总表与 S1/S2 行。  
-   - 问题：摘要与方法写 2014--December 2024，但 PDF Fig. 2 含 `2025-Jan`，Primary Studies 列表有 2025 条目。当前如果只写“2014--2024”会掩盖原文张力。  
+2. **年份范围需要显式记录原文内部不一致 / 待核验**
+   - 影响对象：`review.md` 快速卡、维度树 `leaf-pub-year`、`SUMMARY.md` 文献总表与 S1/S2 行。
+   - 问题：摘要与方法写 2014--December 2024，但 PDF Fig. 2 含 `2025-Jan`，Primary Studies 列表有 2025 条目。当前如果只写“2014--2024”会掩盖原文张力。
    - 建议：写成“作者声称检索 / 抽取截至 2024 年底；图表 / PS refs 出现 2025-Jan，A2a 需确认是否 online-first、accepted paper 或出版年份归档差异”。
 
-3. **S4/S6 的等级在 SUMMARY 中应避免被误读为 final 强证据**  
-   - 影响对象：`SUMMARY.md` S1--S8 覆盖矩阵；`review.md` S1--S8 第一张表。  
-   - 问题：`review.md` 五分栏已有“文本级强；最终统计暂缓”说明，但 SUMMARY 行只显示“强”，读者可能误认为逐字段矩阵和图表数值已可统计。  
+3. **S4/S6 的等级在 SUMMARY 中应避免被误读为 final 强证据**
+   - 影响对象：`SUMMARY.md` S1--S8 覆盖矩阵；`review.md` S1--S8 第一张表。
+   - 问题：`review.md` 五分栏已有“文本级强；最终统计暂缓”说明，但 SUMMARY 行只显示“强”，读者可能误认为逐字段矩阵和图表数值已可统计。
    - 建议：SUMMARY 中将 S4/S6 写成“强（文本级；A2a 表图 / supplementary 待核）”或降为“中：字段级结构强、最终统计待核”。
 
-4. **分母链应展开 `228 -> 39 -> +5 -> 44 -> -5 -> 39` 的中间语义**  
-   - 影响对象：`review.md` 维度树、S2 五分栏、`evidence_chain.md` denominator 证据。  
-   - 问题：压缩链 `9756 → 8953 → 228 → 44 → 39` 虽不算错，但会隐藏全文筛选先得到 39、snowballing 加 5 后 QA 的过程。  
+4. **分母链应展开 `228 -> 39 -> +5 -> 44 -> -5 -> 39` 的中间语义**
+   - 影响对象：`review.md` 维度树、S2 五分栏、`evidence_chain.md` denominator 证据。
+   - 问题：压缩链 `9756 → 8953 → 228 → 44 → 39` 虽不算错，但会隐藏全文筛选先得到 39、snowballing 加 5 后 QA 的过程。
    - 建议：在树 / evidence 中保留中间节点与每个节点动作，避免后续 agent 把 snowballing 与 full-text screening 混为一类筛选。
 
-5. **`evidence_chain.md` 目前不足以承载 S1--S8 最终证据链**  
-   - 影响对象：`evidence_chain.md` A.2/A.3。  
-   - 问题：当前 A.2 多数是树级泛证据，强度 `not_verified`，且大量写“短引见 review.md”。这适合 A1 最小账本，但不够支撑 S1--S8 的 final quantitative 或逐字段统计。  
+5. **`evidence_chain.md` 目前不足以承载 S1--S8 最终证据链**
+   - 影响对象：`evidence_chain.md` A.2/A.3。
+   - 问题：当前 A.2 多数是树级泛证据，强度 `not_verified`，且大量写“短引见 review.md”。这适合 A1 最小账本，但不够支撑 S1--S8 的 final quantitative 或逐字段统计。
    - 建议：A2a 时新增 S1--S8 或关键叶子级证据，至少覆盖 Fig. 1、Table 5--11、Fig. 6--8、Threats、Zenodo artifacts。
 
-6. **混合证据需分清 mixed-methods 与 mixed findings**  
-   - 影响对象：`review.md` RQ1/RQ2、S6/S7、SUMMARY 归纳。  
-   - 问题：69% mixed-methods 是研究设计属性；code quality / cognitive load mixed findings 是结果方向属性。两者在后续 pattern 命名中若都叫“mixed evidence”会混淆。  
+6. **混合证据需分清 mixed-methods 与 mixed findings**
+   - 影响对象：`review.md` RQ1/RQ2、S6/S7、SUMMARY 归纳。
+   - 问题：69% mixed-methods 是研究设计属性；code quality / cognitive load mixed findings 是结果方向属性。两者在后续 pattern 命名中若都叫“mixed evidence”会混淆。
    - 建议：分别命名为 `mixed_methods_design` 与 `mixed_outcome_or_contested_finding`。
 
 ### M / Minor

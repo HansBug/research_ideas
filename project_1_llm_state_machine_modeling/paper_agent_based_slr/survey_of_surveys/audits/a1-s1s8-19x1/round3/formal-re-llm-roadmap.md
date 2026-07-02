@@ -174,24 +174,24 @@
 
 ### I 级
 
-1. **I-1：`action point` 分母口径混淆，需要修正 `review.md` 与 `evidence_chain.md`。**  
-   - 现状：`evidence_chain.md` A.2/A.3 与 `review.md` 某些卡片把“Roadmap A 共 5 个 + Roadmap B 共 7 个 = 12 个”写成 action point 样本单位。  
-   - 审计结论：Roadmap A 是 **5 个圈号 topic / 7 条显式 Action Point statement**；Roadmap B 是 **7 个圈号 item / 7 条显式 Action Point statement**。因此 `12` 只可称为 `circled roadmap topic/item count`，`14` 才是 `explicit Action Point statement count`。二者都不是系统样本分母。  
+1. **I-1：`action point` 分母口径混淆，需要修正 `review.md` 与 `evidence_chain.md`。**
+   - 现状：`evidence_chain.md` A.2/A.3 与 `review.md` 某些卡片把“Roadmap A 共 5 个 + Roadmap B 共 7 个 = 12 个”写成 action point 样本单位。
+   - 审计结论：Roadmap A 是 **5 个圈号 topic / 7 条显式 Action Point statement**；Roadmap B 是 **7 个圈号 item / 7 条显式 Action Point statement**。因此 `12` 只可称为 `circled roadmap topic/item count`，`14` 才是 `explicit Action Point statement count`。二者都不是系统样本分母。
    - 建议：把样本单位字段改成“roadmap topic/item 与 Action Point statement 双层单位”，并在 A.3 中标注 `do_not_use_for_statistical_synthesis`。
 
-2. **I-2：`review.md` 叶子维度表中 `leaf-action_point` 的取值空间应拆成 topic 与 statement。**  
-   - 现状：叶子表容易让读者理解为 A 侧只有 5 条 action point。  
+2. **I-2：`review.md` 叶子维度表中 `leaf-action_point` 的取值空间应拆成 topic 与 statement。**
+   - 现状：叶子表容易让读者理解为 A 侧只有 5 条 action point。
    - 建议新增 / 拆分为 `leaf-roadmap_topic`（A=5, B=7）与 `leaf-action_statement`（A=7, B=7），并保留 A-T1 下 3 条 statement 的父子关系。
 
-3. **I-3：`evidence_chain.md` 仍是树级 claim map，未覆盖 S1--S8 与逐 AP 字段证据。**  
-   - 影响：S4/S7 的 action-point 字段目前只能靠 `review.md` 叙述支撑，不足以让 A2a 逐字段核验。  
+3. **I-3：`evidence_chain.md` 仍是树级 claim map，未覆盖 S1--S8 与逐 AP 字段证据。**
+   - 影响：S4/S7 的 action-point 字段目前只能靠 `review.md` 叙述支撑，不足以让 A2a 逐字段核验。
    - 建议：A2a 增补逐 AP 证据行：AP 标识、页码、段落、短引、concern、mechanism、artifact in/out、recommendation、supporting refs、evidence_strength、是否 inferred。
 
-4. **I-4：关系边需要显式标注 `inferred_by_reviewer`。**  
-   - 现状：`review.md` 关系边表已说明不少边是 reviewer 从段落归纳，但 A.2/A.3 未建字段承接。  
+4. **I-4：关系边需要显式标注 `inferred_by_reviewer`。**
+   - 现状：`review.md` 关系边表已说明不少边是 reviewer 从段落归纳，但 A.2/A.3 未建字段承接。
    - 建议：A2a 对每条 edge 增加“原文显式 / 图中显式 / reviewer inferred”字段；图中箭头才可标 `figure_explicit`，concern→mechanism 这类抽象边多半应标 `reviewer_inferred`。
 
-5. **I-5：`SUMMARY.md` 中 formal-re-llm-roadmap 的 S3 行已接近正确，但应避免“5 个 discussion topics / 7 条 Action Point statements”读成 B 侧也双计数。**  
+5. **I-5：`SUMMARY.md` 中 formal-re-llm-roadmap 的 S3 行已接近正确，但应避免“5 个 discussion topics / 7 条 Action Point statements”读成 B 侧也双计数。**
    - 建议写成：“Roadmap A：5 个圈号 topic、7 条显式 AP；Roadmap B：7 个圈号 item、7 条显式 AP；§7：7 项 practical considerations；均为内部结构数，不作统计分母。”
 
 ### M 级
