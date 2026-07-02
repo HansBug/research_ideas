@@ -17,7 +17,7 @@
 | 表示症状 | canonical / `.fcstm` / loss ledger 中看到了什么？ | conversion ledger、raw/canonical diff、parser/inspect diagnostics。 | representation symptom。 |
 | 候选语义问题 | 该症状是否可能影响 state / event / guard / action / hierarchy / traceability？ | `NL`、raw `STM_0` 标签、source syntax、lexical cue。 | candidate semantic issue。 |
 | 确认修复目标 | 是否有足够证据说明它需要 repair loop 修改？ | NL-grounded adjudication、场景、诊断、人工/LLM rubric。 | confirmed target / monitor / not target。 |
-| 允许修复动作 | repair loop 能做什么，不能做什么？ | `repair_action_allowed` 五级枚举。 | must_fix / should_fix / monitor / not_repair_target / out_of_scope。 |
+| 允许修复动作 | repair loop 能做什么，不能做什么？ | `repair_action_allowed` 五级单值枚举。 | 单个实例只能取 `must_fix`、`should_fix`、`monitor`、`not_repair_target`、`out_of_scope` 之一。 |
 | Better STM 证据影响 | 修复后如何影响 Better gate？ | change ledger、no-regression、semantic gate。 | positive / negative / caveat evidence。 |
 
 ## 2. 字段合同
@@ -33,7 +33,7 @@
 | `structure_family` | FSM / HSM / discrete statechart subset / EFSM-lite-candidate / excluded family。 | 防止 arbitrary UML / timed automata 外推。 |
 | `nl_evidence_required` | yes / no / conditional。 | 防止凭空新增语义。 |
 | `representation_evidence_required` | raw `STM_0` / canonical / `.fcstm` / loss ledger / change ledger。 | 防止 attribution laundering。 |
-| `repair_action_allowed` | `must_fix` / `should_fix` / `monitor` / `not_repair_target` / `out_of_scope`。 | 修复动作权限。 |
+| `repair_action_allowed` | `must_fix` / `should_fix` / `monitor` / `not_repair_target` / `out_of_scope` 中**且只能取一个值**。 | 单个 target instance 的修复动作权限；类级表只给默认值，实例 ledger 必须按 §2.2 规则裁决为单值。 |
 | `better_stm_condition_impact` | G0–G6 中受影响的 gate。 | 连接 Better 判定。 |
 | `conversion_artifact_risk` | low / medium / high。 | 标记可能只是 conversion / lowering artifact。 |
 | `forbidden_extrapolation` | 禁止 claim 文本。 | 审稿风险防线。 |
@@ -43,25 +43,40 @@
 | 值 | 含义 | 例子 |
 |---|---|---|
 | `must_fix` | 若证据确认，repair loop 必须尝试修复，否则不能判 Better。 | NL 明确 guard，但候选把它删除。 |
-| `should_fix` | 应优先修复；若不修复需在 partial / limitation 中解释。 | action/effect 可追溯但缺少结构化字段。 |
+| `should_fix` | 应优先修复；若不修复需在 partial 或 limitation 中解释。 | action/effect 可追溯但缺少结构化字段。 |
 | `monitor` | 记录并观察，不允许自动大改。 | 仅 loss ledger 提示的 candidate-only 条件标签。 |
 | `not_repair_target` | 不作为 repair loop 目标。 | 已可接受的 event abstraction。 |
 | `out_of_scope` | 当前论文范围外。 | timed automata clock constraint。 |
+
+### 2.2 类级默认值与实例级单值裁决
+
+§3 的 taxonomy 表是**类级合同**，其中 `repair_action_allowed` 列给出该类 target 的默认单值。后续 R5.7.4 / R6 / R7 处理某个具体 pair 时，实例 ledger 仍必须记录一个且仅一个 `repair_action_allowed`，不得写成 `must_fix / should_fix` 这类集合值。若实例值不同于类级默认值，必须额外记录 `repair_action_override_reason`。
+
+R5.7.2 采用以下 v0 分界规则：
+
+| 实例证据状态 | `repair_action_allowed` | 例子 |
+|---|---|---|
+| `NL` 明确要求，raw/canonical/change 证据确认目标缺失或错误，且不修会破坏 G3/G5。 | `must_fix` | NL 明确要求异常处理迁移，`STM_k` 删除该迁移。 |
+| `NL` 明确要求，目标已存在但结构化程度不足、trace 不完整或影响局部质量。 | `should_fix` | `show error` 保留在 event label 中，NL 支持其为 action/effect。 |
+| 只有 loss ledger / representation symptom，尚未回到 NL + raw 证据确认。 | `monitor` | `condition_like_label_lowered_as_event` 只在 lowering ledger 中出现。 |
+| 裁决后确认现有抽象可接受，或该现象不应由 repair loop 修改。 | `not_repair_target` | `lane change completed` 被确认是 completion event。 |
+| 模型族、时间语义或表达能力超出当前论文 scope。 | `out_of_scope` | timed automata clock constraint / hybrid dynamics。 |
+
 
 ## 3. 11 类一级 taxonomy
 
 | target_id | semantic_element | scope_status | time_level | structure_family | nl_evidence_required | representation_evidence_required | repair_action_allowed | better_stm_condition_impact | conversion_artifact_risk | forbidden_extrapolation |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `state_structure` | state | main | T0 | FSM / HSM / discrete statechart subset | yes | raw + canonical + diagnostics | must_fix / should_fix | G3 / G4 / G5 | medium | 不得把状态重命名或 normalization 当 repair gain。 |
-| `transition_structure` | transition | main | T0 | FSM / HSM / discrete statechart subset | yes | raw + canonical + change ledger | must_fix / should_fix | G3 / G4 / G5 | medium | 不得为通过场景删除需求相关 transition。 |
-| `event_trigger` | event_trigger | main | T0 | FSM / HSM / discrete statechart subset | yes | raw label + canonical event + loss ledger | must_fix / should_fix / monitor | G4 / G5 | medium | 不得把所有条件、效果都折叠为 event 后仍称 Better。 |
-| `guard_condition` | guard_condition | main | T0 | FSM / HSM / discrete statechart subset / EFSM-lite-candidate | yes | raw label + canonical guard/loss + change ledger | must_fix / should_fix / monitor | G3 / G4 / G5 | high | 不得无 NL 证据新增 guard；不得写完整 EFSM 覆盖。 |
-| `action_effect` | action_effect | main | T0 | FSM / HSM / discrete statechart subset / EFSM-lite-candidate | yes | raw label + canonical action/loss + change ledger | must_fix / should_fix / monitor | G3 / G4 / G5 | high | 不得把 UI 文本或状态名强行改成 action。 |
-| `hierarchy_pseudostate` | hierarchy_pseudostate | main | T0 | HSM / discrete statechart subset | conditional | raw structure + canonical hierarchy + diagnostics | must_fix / should_fix / monitor | G3 / G4 / G5 | medium | 不得用 stoppable state 代替必须瞬时通过的 pseudo-state。 |
-| `traceability_grounding` | traceability | main | T0 | all in-scope families | yes | NL spans + raw/canonical element IDs + change ledger | must_fix / should_fix | G2 / G5 / G6 | low | 不得把 untraced additions 写成语义改善。 |
-| `scenario_behavioral_obligation` | scenario_behavior | main | T0 | all in-scope families | yes | scenario trace + diagnostics + change ledger | must_fix / should_fix | G3 / G4 / G5 | low | 不得用场景通过覆盖未测需求。 |
-| `temporal_cue_tick_counter_caveat` | temporal_cue | caveat | T0.5 | FSM / HSM / discrete statechart subset | yes | raw label + NL timing cue + caveat ledger | should_fix / monitor | G0 / G5 | high | 不得写 timed automata、clock constraint 或 T0 headline success。 |
-| `representation_only_conversion_artifact` | representation_artifact | caveat | T0 / T0.5 | all in-scope families | no | conversion ledger + loss ledger | monitor / not_repair_target | G2 / G6 | high | 不得计 repair gain；不得直接写 confirmed defect。 |
+| `state_structure` | state | main | T0 | FSM / HSM / discrete statechart subset | yes | raw + canonical + diagnostics | should_fix | G3 / G4 / G5 | medium | 不得把状态重命名或 normalization 当 repair gain。 |
+| `transition_structure` | transition | main | T0 | FSM / HSM / discrete statechart subset | yes | raw + canonical + change ledger | should_fix | G3 / G4 / G5 | medium | 不得为通过场景删除需求相关 transition。 |
+| `event_trigger` | event_trigger | main | T0 | FSM / HSM / discrete statechart subset | yes | raw label + canonical event + loss ledger | should_fix | G4 / G5 | medium | 不得把所有条件、效果都折叠为 event 后仍称 Better。 |
+| `guard_condition` | guard_condition | main | T0 | FSM / HSM / discrete statechart subset / EFSM-lite-candidate | yes | raw label + canonical guard/loss + change ledger | should_fix | G3 / G4 / G5 | high | 不得无 NL 证据新增 guard；不得写完整 EFSM 覆盖。 |
+| `action_effect` | action_effect | main | T0 | FSM / HSM / discrete statechart subset / EFSM-lite-candidate | yes | raw label + canonical action/loss + change ledger | should_fix | G3 / G4 / G5 | high | 不得把 UI 文本或状态名强行改成 action。 |
+| `hierarchy_pseudostate` | hierarchy_pseudostate | main | T0 | HSM / discrete statechart subset | conditional | raw structure + canonical hierarchy + diagnostics | should_fix | G3 / G4 / G5 | medium | 不得用 stoppable state 代替必须瞬时通过的 pseudo-state。 |
+| `traceability_grounding` | traceability | main | T0 | all in-scope families | yes | NL spans + raw/canonical element IDs + change ledger | must_fix | G2 / G5 / G6 | low | 不得把 untraced additions 写成语义改善。 |
+| `scenario_behavioral_obligation` | scenario_behavior | main | T0 | all in-scope families | yes | scenario trace + diagnostics + change ledger | must_fix | G3 / G4 / G5 | low | 不得用场景通过覆盖未测需求。 |
+| `temporal_cue_tick_counter_caveat` | temporal_cue | caveat | T0.5 | FSM / HSM / discrete statechart subset | yes | raw label + NL timing cue + caveat ledger | monitor | G0 / G5 | high | 不得写 timed automata、clock constraint 或 T0 headline success。 |
+| `representation_only_conversion_artifact` | representation_artifact | caveat | T0 / T0.5 | all in-scope families | no | conversion ledger + loss ledger | monitor | G2 / G6 | high | 不得计 repair gain；不得直接写 confirmed defect。 |
 | `out_of_scope_family` | out_of_scope_family | excluded | T1+ 或任意 | timed / hybrid / arbitrary UML / protocol FSM | conditional | source artifact + scope rationale | out_of_scope | G0 | high | 不得进入 main repair target、T0 denominator 或 method success。 |
 
 ## 4. 重点目标解释与例子
@@ -86,7 +101,7 @@
 |---|---|---|
 | `lane change completed` | 多数情况下是 trigger / completion event。 | 保留 event，除非 `NL` 明确它是 action/effect 或目标状态。 |
 | `Timer Expired` | timeout event 或 T0.5 timing cue。 | 若只是离散 timeout event，可保留 event；若含周期 tick/counter，进入 T0.5 caveat。 |
-| `Door Closed [zero time set]` | trigger + action/effect cue。 | 裁决是否拆成 event + effect；缺证据则 partial / monitor。 |
+| `Door Closed [zero time set]` | trigger + action/effect cue。 | 裁决是否拆成 event + effect；缺证据则标为 partial 或 monitor。 |
 
 ### 4.3 `action_effect`
 
@@ -135,9 +150,11 @@ T0.5 与 T1 的边界：
 | `target_id` | 对应本 taxonomy 的一级类或细化子类。 |
 | `candidate_status` | candidate-only / confirmed / rejected / monitor。 |
 | `evidence_bundle_id` | 指向 `NL`、raw `STM_0`、canonical `STM_0`、loss ledger、diagnostics、scenario trace。 |
-| `repair_action_allowed` | 五级枚举之一。 |
+| `repair_action_allowed` | 五级枚举之一，实例级必须单值。 |
+| `repair_action_override_reason` | 若实例值不同于 §3 类级默认值，说明触发 §2.2 哪条分界规则。 |
 | `repair_action_taken` | no-op / structural split / guard extraction / action extraction / hierarchy repair / rollback 等。 |
 | `better_gate_impact` | G0–G6 哪些 gate 受影响。 |
+| `semantic_gate_verdict` | 若该 target 参与 G5 semantic gate 裁决，记录 pass / fail / partial / unknown；若未进入 G5，记录不适用理由。 |
 | `adjudication_status` | rule-pass / llm-provisional / human-confirmed / conflict / unknown。 |
 | `forbidden_attribution_reason` | 若不能计 repair gain，说明原因。 |
 
@@ -178,3 +195,4 @@ T0.5 与 T1 的边界：
 | [clm-candidate-only] | `R572-TAX-C2` | representation symptom 不能直接升级为 confirmed defect。 | prohibition | [src-r56-handoff] §2/§5；本文件 §1、§4。 | high | R5.7.4 可逐例裁决。 |
 | [clm-action-enum] | `R572-TAX-C3` | `repair_action_allowed` 必须取五级枚举之一。 | contract | [dec-q5]；本文件 §2.1。 | high | R6/R7 可增加细分动作字段，但枚举需兼容。 |
 | [clm-t05-tax] | `R572-TAX-C4` | T0.5 tick/counter 只能 caveat 处理，不支撑 timed automata。 | scope | [dec-q7]；[src-model-scope]。 | high | T1 直接 stress / excluded。 |
+| [clm-single-action] | `R572-TAX-C5` | `repair_action_allowed` 在实例 ledger 中必须是单值；类级表只给默认值，override 需记录理由。 | contract | [dec-q5]；本文件 §2.2、§3。 | high | R5.7.4/R7 可细化 override reason，但不能回到多值枚举。 |

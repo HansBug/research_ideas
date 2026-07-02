@@ -191,7 +191,30 @@ R5.7.2 采用分层裁决 [dec-q10]：
 3. 人工裁决处理冲突、低置信度、headline success audit、以及 LLM 与规则不一致的样例。
 4. 每次裁决必须携带完整 evidence bundle：`NL`、raw `STM_0`、canonical `STM_0`、`STM_k`、conversion ledger、change ledger、diagnostics、scenario trace、rubric output。
 
-## 11. 与 repair target taxonomy 的关系
+
+## 11. G5 semantic gate rubric v0
+
+R5.7.2 不执行真实裁决，但为了让 R5.7.4 可以 dry-run，G5 semantic gate 必须至少输出以下 v0 rubric 字段。所有字段都必须引用 evidence bundle 中的 `NL`、raw `STM_0`、canonical `STM_0`、`STM_k`、conversion ledger、change ledger、diagnostics 或 scenario trace；不能只给自然语言印象。
+
+| 字段 | 取值 | 判定含义 | 证据来源 |
+|---|---|---|---|
+| `nl_grounding_confidence` | high / medium / low / missing | 候选变化是否能回到 `NL` 或 raw `STM_0` 明示证据。 | `NL` span、raw label、traceability map。 |
+| `semantic_drift_risk` | none / minor / major / fatal | `STM_k` 是否偏离原需求语义。 | `NL`、raw/canonical/候选 diff、scenario trace。 |
+| `over_repair_indicator` | none / suspected / confirmed | 是否为通过检查删除、简化或改写需求相关行为。 | change ledger、no-regression trace、人工/LLM rubric。 |
+| `under_repair_indicator` | none / suspected / confirmed | 是否仍保留关键缺陷或只修了表示层症状。 | diagnostics、taxonomy target、scenario evidence。 |
+| `guard_action_fidelity` | preserved / improved / degraded / unknown | event / guard / action 是否比 canonical `STM_0` 更忠实且更结构化。 | raw label、taxonomy裁决、candidate diff。 |
+| `traceability_delta` | improved / unchanged / degraded / unknown | 元素到 `NL` / raw source 的 trace 是否改善。 | trace map、untraced additions ledger。 |
+| `semantic_gate_verdict` | pass / fail / partial / unknown | G5 的结构化结论。 | 上述字段合成。 |
+
+v0 合成规则：
+
+1. 若 `semantic_drift_risk=fatal`、`over_repair_indicator=confirmed` 或 `traceability_delta=degraded` 且影响关键需求，`semantic_gate_verdict=fail`。
+2. 若 `nl_grounding_confidence=missing`，且候选变化涉及新增 guard/action/state 行为，`semantic_gate_verdict=unknown` 或 `partial`，不得判 pass。
+3. 若 `guard_action_fidelity=degraded` 且 `NL` / raw evidence 支持结构化 guard/action，`semantic_gate_verdict=fail` 或 `partial`。
+4. 只有 `nl_grounding_confidence` 至少为 medium、无 major/fatal drift、无 confirmed over-repair、且无关键 trace degradation 时，才允许 `semantic_gate_verdict=pass`。
+5. LLM-as-Judge 只能生成 provisional rubric；规则冲突、low confidence、headline success 和代表性 failure 必须人工升级。
+
+## 12. 与 repair target taxonomy 的关系
 
 [repair_target_taxonomy.md](./repair_target_taxonomy.md) 定义哪些现象可成为 repair target、monitor、representation caveat 或 out-of-scope。Better STM 判定使用 taxonomy 的结果，但不把 taxonomy entry 自动当作 confirmed defect。最小链路为：
 
@@ -201,7 +224,7 @@ R5.7.2 采用分层裁决 [dec-q10]：
 
 只有完成这条链路，并通过本文件 G0–G6，候选 `STM_k` 才可能被判为 Better。
 
-## 12. 下游接口
+## 13. 下游接口
 
 | 阶段 | 继承本文件什么 | 不得做什么 |
 |---|---|---|
@@ -220,7 +243,7 @@ R5.7.2 采用分层裁决 [dec-q10]：
 | [src-eval-logic] | `r571_evaluation_logic` | [../evaluation_logic.md](../evaluation_logic.md) | md | R5.7.1 claim 类型、分母、A 层、归因边界、指标位置、失败报告纪律。 |
 | [src-model-scope] | `r56_model_scope` | [../../story/model_scope.md](../../story/model_scope.md) | md | T0/T0.5/T1、模型族、状态机抽象、禁止外推。 |
 | [src-r56-handoff] | `r56_to_r57_handoff` | [../scope/r5_6_to_r5_7_handoff_constraints.md](../scope/r5_6_to_r5_7_handoff_constraints.md) | md | R5.7 taxonomy 最低字段、candidate-only 纪律、scope 继承。 |
-| [src-taxonomy] | `r572_repair_target_taxonomy` | [repair_target_taxonomy.md](./repair_target_taxonomy.md) | md | 修复目标分类、字段合同、repair_action_allowed、折叠处理。 |
+| [src-taxonomy] | `r572_repair_target_taxonomy` | [repair_target_taxonomy.md](./repair_target_taxonomy.md) | md | 修复目标分类、字段合同、repair_action_allowed 单值纪律、折叠处理。 |
 | [src-case] | `llms_emp_case_matrix` | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | 10×6 denominator、time level、conversion/readiness 当前事实。 |
 
 ### A.2 决策键清单
@@ -229,6 +252,7 @@ R5.7.2 采用分层裁决 [dec-q10]：
 |---|---|---|
 | [dec-q1] | [PR #140 Q1](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868188123) | raw `STM_0` 是 source evidence；Better 比较对象是 canonical `STM_0` vs `STM_k`。 |
 | [dec-q2] | [PR #140 Q2](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868298209) | 固定 G0–G6 gate 链。 |
+| [dec-q3] | [PR #140 Q3](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868355697) | 硬拒绝与需裁决边界，parse/metric 不得掩盖 semantic drift。 |
 | [dec-q4] | [PR #140 Q4](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868521779) | 采用三层输出模型，不用扁平 verdict。 |
 | [dec-q5] | [PR #140 Q5](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868584922) | 11 类 repair target 与 11 字段合同、五级 `repair_action_allowed`。 |
 | [dec-q6] | [PR #140 Q6](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868834329) | guard/event/action folding 的处理与 pyfcstm combo 语法注意。 |
@@ -236,6 +260,7 @@ R5.7.2 采用分层裁决 [dec-q10]：
 | [dec-q8] | [PR #140 Q8](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868946209) | cluster / pair 双层报告。 |
 | [dec-q9] | [PR #140 Q9](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4868983703) | 客观指标只作 supporting evidence。 |
 | [dec-q10] | [PR #140 Q10](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4869021866) | 规则 + LLM-as-Judge provisional + 人工冲突裁决。 |
+| [dec-q11] | [PR #140 Q11](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4869062578) | R5.7.2 仅放代表性说明例子，系统性 dry-run 留给 R5.7.4。 |
 | [dec-q12] | [PR #140 Q12](https://github.com/HansBug/research_ideas/pull/140#issuecomment-4869119301) | 下游接口与 evidence-driven revision 纪律。 |
 
 ### A.3 Claim-evidence map
@@ -246,4 +271,7 @@ R5.7.2 采用分层裁决 [dec-q10]：
 | [clm-raw-role] | `R572-BETTER-C2` | raw `STM_0` 是 source evidence，不是 Better 直接比较层。 | decision | [dec-q1]；本文件 §2。 | high | raw 仍必须用于归因和语义裁决。 |
 | [clm-gate-chain] | `R572-BETTER-C3` | Better 判定采用 G0–G6 gate 链。 | decision | [dec-q2]；本文件 §3。 | high | R5.7.4 dry-run 后可提出 v1 修订，但需 evidence-driven。 |
 | [clm-t05] | `R572-BETTER-C4` | T0.5 可在 caveat 层讨论 tick/counter，但不进入 T0 headline。 | decision | [dec-q7]；[src-model-scope]。 | high | 不支持 timed automata claim。 |
-| [clm-evidence-driven-revision] | `R572-BETTER-C5` | 后续规则/指标修订应由真实 dry-run findings 驱动。 | protocol | [dec-q12]；本文件 §9、§12。 | high | R5.7.2 自身只冻结 v0 合同。 |
+| [clm-evidence-driven-revision] | `R572-BETTER-C5` | 后续规则/指标修订应由真实 dry-run findings 驱动。 | protocol | [dec-q12]；本文件 §9、§13。 | high | R5.7.2 自身只冻结 v0 合同。 |
+| [clm-output-model] | `R572-BETTER-C6` | Better STM 采用三层输出模型，`protocol_or_provenance_invalid` 不进入普通 Better outcome。 | decision | [dec-q4]；本文件 §4。 | high | R7/R8 可落成 schema，但不得回退到扁平 verdict。 |
+| [clm-rubric-v0] | `R572-BETTER-C7` | G5 semantic gate 至少需要 v0 rubric 字段，供 R5.7.4 dry-run。 | protocol | [dec-q10]；本文件 §11。 | medium | 取值和冲突规则可由 R5.7.4 findings 修订。 |
+| [clm-example-boundary] | `R572-BETTER-C8` | R5.7.2 的例子只是合同说明，不是系统 dry-run 或 repair effect。 | prohibition | [dec-q11]；本文件 §5、§13。 | high | R5.7.4 才产生正式 dry-run findings。 |
