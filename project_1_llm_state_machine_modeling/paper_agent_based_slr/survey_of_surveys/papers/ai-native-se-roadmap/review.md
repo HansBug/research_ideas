@@ -211,8 +211,8 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 | 是否读取 `bibtex.bib` / `metadata.json` | 是；与本地引文键 `Hassan_2026` 与 DOI `10.1145/3807901`、`publication_date 2026-04-09` 交叉核对一致 |
 | 是否打开或核对 `paper.pdf` | 否；本轮仅文本审计，Fig. 1/2/3/4/5/6/7 未做版面核验，留 A2a |
 | 原文类型 | **愿景 / 路线图 / 提案**（自我定位）；不是 SLR、SMS、tertiary、MLR、指南 检索研究 |
-| 被编码样本单位 | 不存在系统样本库；原生编码对象是 **{SE 1.0/2.0/3.0 三时代 baseline}**、**{队友下一代形态（Teammate.next） / 集成开发环境下一代形态（IDE.next） / 编译器下一代形态（Compiler.next） / 运行时下一代形态（Runtime.next） / 基础模型下一代形态（FM.next） 五层技术栈组件}** 和 **{6 个主 挑战 + OQ1–OQ14 共 14 个 开放问题}** |
-| 样本数量 / 分母 | 不适用为统计分母；可记录的"原生项数"：3 个时代、5 个 技术栈组件、6 个主 挑战、14 个 OQ；引用 [1]–[117] 共 117 条，但作者未声明任何检索 / 纳排，因此 117 不是 SLR 分母 |
+| 被编码样本单位 | 不存在系统样本库；原生编码对象是 **{SE 1.0/2.0/3.0 三时代 baseline}**、**{队友下一代形态（Teammate.next） / 集成开发环境下一代形态（IDE.next） / 编译器下一代形态（Compiler.next） / 运行时下一代形态（Runtime.next） / 基础模型下一代形态（FM.next） 五层技术栈组件}** 和 **{5 个主挑战 + OQ1–OQ14（§4.6 为附加开放问题） 共 14 个 开放问题}** |
+| 样本数量 / 分母 | 不适用为统计分母；可记录的"原生项数"：3 个时代、5 个 技术栈组件、5 个主挑战 + §4.6 附加开放问题、14 个 OQ；引用 [1]–[117] 共 117 条，但作者未声明任何检索 / 纳排，因此 117 不是 SLR 分母 |
 | 原生树类型 | **降级树（路线图/挑战 树）+ 辅助"时代基线（era baseline）对照树"**；不是 SLR 维度森林 |
 | 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
 | 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
@@ -259,7 +259,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
    - **没有 抽取 form / 分类方案（classification scheme；首次术语） / 分类法 table / 质量量规 / mapping table / appendix / 复现包**。
 
 4. **RQ 与样本单位是什么关系？**
-   - 本文没有 RQ；最接近 RQ 的对象是 §4 的 6 个主 挑战 + 14 个 OQ。这些 OQ 是"路线图行动项"，不是"用于编码样本的研究问题"。
+   - 本文没有 RQ；最接近 RQ 的对象是 §4 的 5 个主挑战 + §4.6 附加开放问题 + 14 个 OQ。这些 OQ 是"路线图行动项"，不是"用于编码样本的研究问题"。
 
 5. **若无系统样本库，如何降级？**
    - 按 A1-DT v2 规则，本篇必须降级为 **边界锚点 + 方法学种子 + candidate heuristic**，不进入主统计池。`metadata.json` 已正确标注。
@@ -347,7 +347,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
     ├── [C3] §4.3 运行时性能（runtime performance）  → 影响范围（affects）= {运行时下一代形态（Runtime.next）}              → OQ3, OQ4
     ├── [C4] §4.4 基础模型理解（FM 理解）     → 影响范围（affects）= {编译器下一代形态（Compiler.next）, 队友下一代形态（Teammate.next）} → OQ5
     ├── [C5] §4.5 提示词工程（prompt engineering）   → 影响范围（affects）= {队友下一代形态（Teammate.next） 与所有 FMware 层} → OQ6
-    └── [C6] §4.6 其他开放问题（OQ；无影响范围 / 愿景字段）
+    └── [C-extra] §4.6 其他开放问题（OQ；无影响范围 / 愿景字段）
           ├── OQ7  SE 3.0 中的良好软件工程 / 下一代软件工程训练 / 计算机科学课程（SE 3.0 中的良好软件工程 / 下一代软件工程训练 / 计算机科学课程）
           ├── OQ8  面向 AI 智能体的编程语言 / token 高效编程语言（面向 AI 智能体的编程语言 / 词元高效编程语言） [114]
           ├── OQ9  集成开发环境下一代形态（IDE.next） 用户界面 / 插件与智能体 / 智能体式 IDE（集成开发环境下一代形态（IDE.next） UI / plugin vs 智能体 / agentic IDE） [44]
@@ -402,7 +402,7 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 #### 6.1 原文中由字段 / 统计表支持的"内部统计观察"（极少）
 
 - **5 个 技术栈组件**（封闭枚举，分母=5）
-- **6 个主 挑战 + 14 个 OQ**（作者声明的 snapshot，分母=20，但 "not exhaustive"，分母不严格）
+- **5 个主挑战 + §4.6 附加开放问题 + 14 个 OQ**（作者声明的 snapshot，结构枚举；不构成统计分母，但 "not exhaustive"，分母不严格）
 - **挑战 × component 覆盖矩阵**：C1→{IDE,Teammate}，C2→{Compiler,Teammate}，C3→{Runtime}，C4→{Compiler,Teammate}，C5→{Teammate+all FMware}。队友下一代形态（Teammate.next） 被 4/5 主 挑战 影响（明显高频）；运行时下一代形态（Runtime.next） 被 1/5。
 - **作者引用 [1]–[117]**：共 117 条，其中作者团队 / 同生态 self-citation 至少含 [28]、[36]、[40]、[41]、[42]、[43]、[44]、[45]、[70]、[85]、[92]、[98]、[114]（≈12+/117 ≈ 10%+，**待 A2a 复核**）；这是"愿景—证据生态闭环"的潜在量化信号。
 
@@ -431,6 +431,40 @@ FM.next（基础模型下一代形态） 是 knowledge-driven efficient FM。作
 3. ❌ "RAR / 编译器下一代形态（Compiler.next） prototype 数据可作为综述证据" —— companion paper、self-citation、prototype 规模。
 4. ❌ "TRAE 75.2% SWE-Bench Verified 表示 autonomous SE 已实用" —— 作者本人在 §2.3 已显式降级。
 5. ❌ "117 条参考文献是 SLR 分母" —— 没有检索 / 纳排协议。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+边界声明：本节所有 S1--S8 与维度树判断均为 A1 文本级 `schema_seed` / 方法模式审计结果；A2a 完成页码、表图和制品精核前，不得写成 final quantitative finding / 最终定量发现。
+
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 弱 | 本文是 AI-native SE / SE 3.0 的愿景与挑战路线图，不是 SLR/SMS/tertiary；可作为边界启发和 roadmap 样本。 | `review.md` §1、§2.1、§2.11；`evidence_chain.md` A.3 `clm-ai-native-se-roadmap-type` |
+| S2 语料收集与筛选 | 弱 | 作者提到学术/灰色文献、workshop、客户讨论、内部经验和 OPEA 工业互动，但未给检索式、数据库、纳排、筛选分母或质量评价。 | `review.md` §2.1、§2.10、维度树复原 §2；`evidence_chain.md` A.2 `ev-ai-native-se-roadmap-denom` |
+| S3 原生维度树/样本编码对象 | 中 | 原生对象不是论文样本，而是 3 个 SE 时代、5 层 SE 3.0 技术栈组件、5 个主挑战与 OQ1--OQ14；§4.6 是 OQ7--OQ14 的附加开放问题，不是第 6 个主挑战。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.3 `clm-ai-native-se-roadmap-unit`、`clm-ai-native-se-roadmap-tree` |
+| S4 字段级证据 | 弱 | 可抽取技术栈组件、挑战模板、影响范围、开放问题和证据来源类型等路线图字段，但这些是 roadmap 结构字段，不是系统综述的抽取表、QA 或样本级证据表。 | `review.md` 维度树复原 §4、§5；`audits/a1-s1s8-19x1/adjudications/ai-native-se-roadmap.md` |
+| S5 维度模式演化 | 弱 | 原文只呈现从 SE 时代对照到技术栈再到挑战/OQ 的愿景链条，未报告编码、分类、开放编码或路线图修订过程。 | `paper_content.txt` §3、§4；`review.md` §3、维度树复原 §3、§6.3 |
+| S6 统计分析 | 不适用 / 弱 | 原文没有系统统计分析；只能记录技术栈组件、开放问题和挑战的内部结构枚举。这些枚举不构成 synthesis denominator，不进入主统计池。 | `review.md` §4 A1-M5、维度树复原 §0、§6.1；`evidence_chain.md` A.3 `clm-ai-native-se-roadmap-pool`；`audits/a1-s1s8-19x1/adjudications/ai-native-se-roadmap.md` |
+| S7 候选 finding | 中（结构启发；领域主张为弱） | 可迁移的是 limitation → stack component → open question → vision 的候选 finding 台账结构，所有 AI-native SE 领域主张均按愿景 / roadmap 边界降级。 | `review.md` §3、§6、维度树复原 §6.2--§6.4 |
+| S8 研究者/作者质疑与裁决 | 弱 | 原文没有系统综述式编码分歧和裁决机制；仅有开放讨论与限制提醒，可作为 Paper2 需要裁决日志的反面边界样本。 | `review.md` §2.3、§2.5、§2.11、§7；维度树复原 §6.4 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+**裁决：不进入主统计池。** 该文是 vision / roadmap / proposal，不是 SLR、SMS、tertiary 或 guideline 检索研究。可作为 roadmap 边界锚点 / schema seed / 方法学启发，但不得把 117 条参考文献、3 个时代、5 个 stack component、5 个主挑战或 OQ1--OQ14 当作系统综述分母或最终 empirical finding。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要与 §1 明确提出 SE 3.0 vision、technology stack 与 challenge roadmap；§1 说明来源包括文献 survey、workshop、客户讨论、内部经验与 OPEA 互动。 | 对应 `vision / roadmap / proposal` 类型；不是 review-driven RQ 树，而是愿景—技术栈—挑战树。 | 否；只作边界锚点。 | 核对 publisher final 与 PDF 页码；确认原文没有隐藏 method / protocol 附录。 |
+| S2 语料收集与筛选 | 只有“academic and gray literature surveys”等来源描述；没有数据库、检索式、纳排、去重、质量评价或筛选分母。 | 可登记为 `evidence.source_type` 开放枚举；不能复原系统语料链。 | 否；117 references 不是 SLR 分母。 | 复核参考文献列表总数、自引用 / companion work 标记；确认无 supplementary 检索协议。 |
+| S3 原生维度树 / 样本编码对象 | §3 给出 5 层 SE 3.0 stack；§4 给出 5 个主挑战与 OQ1--OQ14；§4.6 是附加 OQ，不是第 6 个主挑战。 | 可复原为降级树：三时代 baseline + 五层 stack + challenge/OQ roadmap tree。 | 否；结构枚举可作 schema seed，不能作跨论文统计样本。 | 打开 PDF 核对 Fig. 1、Fig. 3、Fig. 4--7 的视觉结构、箭头、组件命名。 |
+| S4 字段级证据 | §4 明确 challenge entry 包含 description、affects、open question、our vision；§4.1--§4.5 有 `Affects` 字段。 | 可复原 `challenge.template_field` 与 `rel.affects` 关系边；字段是 roadmap 字段，不是样本抽取表。 | 否；字段可迁移为候选抽取 schema，不进主统计。 | 精核每个 challenge 的 affects 值、OQ 编号、companion evidence 引用。 |
+| S5 维度模式演化 | §3.6 curriculum recipe 提到 taxonomy、examples、evaluation rules、pilot testing、community contribution；但这是 FM.next 设想，不是本文 roadmap 形成过程。 | 只能作为“模式工程 / curriculum-as-asset”类比；原文没有报告开放编码、分类迭代或研究者裁决过程。 | 否；仅方法启发。 | 区分 InstructLab / curriculum learning 引文与作者自己的 roadmap 生成过程；避免误写成本文编码流程。 |
+| S6 统计分析 | 原文有少量内部数量：3 个时代、5 个 stack component、5 个主挑战、14 个 OQ；也有 companion prototype 数字如 30%、50%、90%。 | 这些是 roadmap 内部枚举或 companion work 局部结果，不是综述 synthesis。 | 否；S6 应判为“不适用 / 弱”。 | 核对 companion works [28]、[98]、[114] 的发表状态、实验对象和外推限制。 |
+| S7 候选 finding | 可启发 `limitation → stack component → OQ → vision` 的候选 finding 台账；但所有领域主张都是愿景性。 | 可迁移的是 finding ledger 结构，不是“SE 3.0 已成立”这类结论。 | 否；只能作候选启发，需后续研究者裁决。 | A2a 应为每条候选 finding 标注证据类型：vision-only、prototype、industry signal、peer-reviewed prior work。 |
+| S8 研究者 / 作者质疑与裁决 | 原文没有 SLR 式多研究者筛选、编码分歧、一致性或 QA；仅有 caution、open questions 与结论中欢迎 opposing views。 | 可作为“缺少裁决日志”的反面样本，提醒 Paper2 保留人工质疑、override 与裁决链。 | 否；不支持质量控制统计。 | 复核是否存在独立 threats / limitation section；核对“only time will tell”等降级语句页码。 |
 
 ## 证据链入口
 

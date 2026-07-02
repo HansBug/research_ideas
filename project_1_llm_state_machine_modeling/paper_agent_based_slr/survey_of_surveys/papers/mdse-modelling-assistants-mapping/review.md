@@ -529,6 +529,40 @@ future work 部分提出将本文 聚类 与既有 Intelligent Modelling Assista
 3. “M3 4.2 %”不能直接用作 LLM4STM 的 评价 缺口（gap） 论据，只能作为方法学警示；
 4. AI/LLM disruption 论述是 future work，不是已验证结果。
 
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文以“辅助人类在 MDSE 工具中完成软件建模任务”为主任务，采用 MRQ 统领文献侧 RQ1--RQ3 与实践侧 RQ4。 | `review.md` §1.1、§1.2；`evidence_chain.md` A.3 `clm-mdse-modelling-assistants-mapping-type` |
+| S2 语料收集与筛选 | 强 | 文献侧采用五个数据库检索、PICO search string、I/E criteria、QA 与滚雪球，形成 3176 条筛查记录到 58 个研究提案；实践侧覆盖 Gartner MQ 2023 相关平台文档。 | `review.md` §1.3、§1.4；`evidence_chain.md` A.2 `ev-mdse-modelling-assistants-mapping-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生结构是维度森林：文献侧以提案为编码对象，按策略、目标、限制、指标、目标用户五类树编码；实践侧是 tool-level documentation status + proposal/quote-level coding（17 tools → 7 documented tools → 15 documented proposals/quotes）。 | `review.md` §1.4--§1.7、§3；`evidence_chain.md` A.2 `ev-mdse-modelling-assistants-mapping-tree`；`audits/a1-s1s8-19x1/adjudications/mdse-modelling-assistants-mapping.md` |
+| S4 字段级证据 | 中 | 有 RQ 驱动抽取规则、Table 2--5 和实践 quote，但当前证据链仍多为树级泛定位，尚未逐字段精确到页码、表号、样本 ID 或 Zenodo raw data。 | `paper_content.txt` §3.5、Table 2--5；`review.md` §1.3、§3--§5；`evidence_chain.md` A.2/A.4 |
+| S5 维度模式演化 | 强 | 原文说明 RQ 咨询、literal extraction、作者术语聚类、R4 review 与 Kappa；主观性是 threat，不等于缺少维度形成过程，缺失的是版本化 codebook / 完整冲突日志。 | `review.md` §1.3、§1.5、§1.9、§5.2；`evidence_chain.md` A.3 `clm-mdse-modelling-assistants-mapping-tree`；`audits/a1-s1s8-19x1/adjudications/mdse-modelling-assistants-mapping.md` |
+| S6 统计分析 | 强 | 原文给出分母链、策略比例、目标/限制报告率、指标/目标用户比例、实践侧文档缺失率，并用 bubble chart / comparative analysis 连接字段；最终定量需 A2a 精核。 | `review.md` §1.5--§1.8、维度树复原统计观察 |
+| S7 候选 finding | 强 | 限制、指标、目标用户报告不足有统计支撑；AI/LLM 改变 modelling assistance 的判断只作中/弱候选启发，不能与字段统计支撑 finding 混写。 | `review.md` §1.8、统计观察、候选发现 |
+| S8 研究者/作者质疑与裁决 | 强 | 原文具备多 reviewer 选择、Kappa agreement、R3/R4 复核讨论、R4 聚类复查、QA 与 threats；数据抽取阶段无 Kappa / 完整裁决日志作为限制记录。 | `review.md` §1.3、§1.9、§7；`evidence_chain.md` A.1 `src-mdse-modelling-assistants-mapping-adjudication`；`audits/a1-s1s8-19x1/adjudications/mdse-modelling-assistants-mapping.md` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+**裁决：保留为 `survey_of_surveys` S1--S8 主统计池候选，但当前只能作为 `schema_seed / statistical_pool_candidate`，A2a 页码、表图、Zenodo raw data 与实践文档来源精核前不得进入最终定量发现。**
+
+理由：原文是 IST 2024 systematic mapping，并叠加实践侧公开文档审查；文献侧有 5 个数据库、PICO 检索式、I/E criteria、QA、滚雪球、3,176 条筛查记录、58 个 included proposals、Kappa=0.634/0.651；实践侧有 Gartner MQ 2023 的 17 个工具、7 个 documented tools、15 个 documented proposals/quotes。其“策略 / 目标 / 限制 / 指标 / 目标用户”维度森林可支撑 S1--S8 schema 统计候选；但 Table 3 “five limitation clusters” 与 L1--L6 冲突、图表气泡数值、页码、Zenodo 复现包和 vendor quote 原始网页仍需 A2a 复核。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要与 §1 明确 MRQ：文献和实践中有哪些 proposal 用于辅助人类在 MDSE tools 中完成 modelling tasks；RQ1--RQ3 分别问策略、目标/限制、指标/目标用户，RQ4 问实践状态。 | 根节点为“MDSE modelling assistance”，下接文献侧 RQ1--RQ3 与实践侧 RQ4；任务边界排除泛画图工具和元建模/工具开发。 | **合格**：可进入 S1 任务设定统计池，证据强。 | 核对 PDF 首页/§1 页码与 MRQ/RQ 版式；正式写作时确认 online-first 与卷期年份口径。 |
+| S2 语料收集与筛选 | §3.2--§4.1 给出 5 数据库、1985--2024、PICO search string、I/E criteria、QA top-12 snowballing seeds、4 轮滚雪球；3,176 screened records → 77 possible proposals → 58 included；实践侧为 GMQ 2023 的 17 tools。 | 文献侧样本单位为 primary proposal/study；实践侧样本单位为 GMQ tool → documented tool → documented proposal/quote。 | **合格**：可进入 S2 分母/筛选流程统计池；实践侧需单独标注 grey-literature/documentation review。 | 复核 Fig. 3 PRISMA flow、QA top-12 选择、Zenodo raw protocol；GMQ 原始报告与 17 tool 列表需来源级核验。 |
+| S3 原生维度树/样本编码对象 | §3.5 要求抽取 RQ1 strategy keywords、RQ2 goals/limitations、RQ3 metrics/users；§4.2--§4.4 与 Table 2--4 给出聚类；§5.2/Table 5 将实践文档 quote 投影到同一维度。 | 原生结构是维度森林：文献侧 proposal-level 五主干（strategy, goal, limitation, metric, target user）+ 实践侧 tool/documentation/proposal quote 投影，外接 GMQ 类别和 D/NF 文档状态。 | **合格**：可进入 S3 维度树统计池；样本单位需写成“58 proposals + 17 tools/7 documented tools/15 practice proposals”。 | 精核 Table 2--5 页码、每个聚类完整取值、practice quote 与 tool/proposal 映射；不要把 RQ 当普通结果章节。 |
+| S4 字段级证据 | §3.5 要求 literal text fragments；Table 2--5 给聚类关键词与文档 quotes；§7.1 说明 data extraction bias、作者术语依赖和公开文档限制。 | 字段证据存在但当前本地证据链多为章节/表级锚点，尚未逐 proposal / quote 精确到样本 ID、页码、行号、Zenodo 原始表。 | **建议降级为中**：可作 S4 schema seed，不宜进入字段级最终统计；需 A2a 后再升级。 | 必须核对 Zenodo 10262145、raw extraction/clustered data、Table 5 vendor quote 原始网页；补齐字段级 source span。 |
+| S5 维度模式演化 | §3.1 提到 9 位 SE experts 咨询 RQ；§3.5 先 literal extraction 后按作者术语聚类；§4.1 有 R4 复核聚类并报告 Kappa=0.651；§7.1 讨论主观聚类威胁。 | 模式演化链为 RQ consultation → extraction fields → author-terminology clustering → R4 triangulation/review → Kappa agreement；缺失版本化 codebook 和完整冲突日志。 | **合格**：可进入 S5 演化/裁决机制统计池，但强度标为“有过程、无完整 codebook”。 | 复核专家咨询位置、R4 disagreement/triangulation 描述、Kappa 计算对象；若 Zenodo 含 codebook，应回填。 |
+| S6 统计分析 | §4.2--§4.4 给出策略比例（如 tools 39.7%、software-based 93.1%）、目标三分、limitations reported 50.0%、metrics/users 分布；§5.2 给出实践侧 10/17 NF、15 proposals、80% strategy documented、73.3% metric/user NF；§6 有 bubble/comparative analysis。 | 可统计叶子包括 strategy_cluster、goal_cluster、limitation_reported/cluster、metric_cluster、user_cluster、documentation_status、GMQ class 与若干关系边。 | **合格但 not_verified**：可进入 S6 候选统计池；A2a 前只能作候选统计观察。 | 精核 Fig. 4--13 气泡图、分母、百分比四舍五入、Table 3 L1--L6 冲突；不得把未核图形关系写成 final finding。 |
+| S7 候选 finding | 摘要、§6、§8 主张 limitations/evaluation metrics/target users 文档稀缺；§8 还提出 AI/LLM/GPT 可能改变 modelling assistance 并需要 unified framework。 | 可分两类：统计支撑 finding（限制/指标/用户缺失、software-based 主导）与弱候选启发（AI disruption/unified framework future work）。 | **部分合格**：前者可进候选 finding 统计池；AI/LLM 相关只能作弱启发，不进最终领域发现。 | A2a 需把每条 finding 绑定支撑统计、反证和 scope；AI/LLM 论述必须标注为 future expectation。 |
+| S8 研究者/作者质疑与裁决 | §4.1 有 R1/R2/R3/R4 分工、R3/R4 复核 77 proposals、Kappa=0.634 inclusion 与 0.651 clustering；§7 讨论 selection/data extraction/subjective interpretation/inter-rater/grey literature/search/language threats。 | 裁决树包括 multi-reviewer selection、quality assessment、R4 clustering review、Kappa、threats 与 residual limitations；数据抽取阶段未算 Kappa 是明确限制。 | **合格**：可进入 S8 质疑/裁决机制统计池；需保留“data extraction no Kappa”限制。 | 核对 §7 threats 分类与 mitigation/residual limitation；补 Zenodo/appendix 是否有更细冲突日志。 |
+
 ## 证据链入口
 
 详见 [evidence_chain.md](./evidence_chain.md)；A.1--A.4 证据链与结论-证据映射已迁出，当前证据状态（如 `not_verified`、待 A2a、`schema_seed`）保持原样。

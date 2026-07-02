@@ -19,25 +19,26 @@
 | 综述类型 | Requirements Engineering 领域 tertiary study |
 | SE 子领域 | Requirements Engineering |
 | A1 角色 | 领域专门化 tertiary study 样本，用于验证“特定 SE 子领域如何定义 topic / quality / impact / practitioners”。 |
-| 是否目标证据池 | 否。 |
-| schema 历史观察 | 暴露“领域专门化”字段：目标 SE 子领域、topic taxonomy、教育/实践影响。 |
+| Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |
+| survey_of_surveys 主统计池 | 后续候选；A1 仅作 schema_seed，A2a 前不得最终定量。 |
+| schema 历史观察 | 暴露“领域专门化”字段：目标 SE 子领域、topic taxonomy、future researcher relevance / roadmap impact。 |
 
 ## 2. 六类 pattern 抽取
 
 | 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
-| RQ pattern | 目标是给出 RE 领域 SLR 的 comprehensive overview，并评估 quality、topics、impact for education/practice。 | `paper_content.txt` Page 2 摘要。 | 可迁移为“特定 SE 子领域的综述元模型”。 | RE 子领域样本，不能直接代表 testing/MDE/LLM4SE 等主题。 |
-| dimension pattern | 维度包括 automated/manual search、53 distinct reviews、64 publications、quality、topics、education/practice relevance。 | `paper_content.txt` Page 2 摘要与方法段。 | 可迁移到 A2a 的领域专门字段。 | 教育/实践影响字段可参考，但字段树需由目标主题研究者裁定。 |
-| finding pattern | finding 关注 RE SLR 数量、主题与质量；具体结论需进一步深读结果章节。 | `paper_content.txt` Page 2 摘要。 | 候选可迁移。 | 当前只读摘要级结果，具体 finding 需 A2a 深读结果章节。 |
+| RQ pattern | 目标是给出 RE 领域 SLR 的 comprehensive overview，并评估 quality、topics、impact for 质量 / citation impact / future researchers。 | `paper_content.txt` Page 2 摘要。 | 可迁移为“特定 SE 子领域的综述元模型”。 | RE 子领域样本，不能直接代表 testing/MDE/LLM4SE 等主题。 |
+| dimension pattern | 维度包括 automated/manual search、53 distinct reviews、64 publications、quality、topics、质量 / citation impact / future researchers relevance。 | `paper_content.txt` Page 2 摘要与方法段。 | 可迁移到 A2a 的领域专门字段。 | future researcher relevance / roadmap impact字段可参考，但字段树需由目标主题研究者裁定。 |
+| finding pattern | finding 关注 RE SLR 数量、主题与质量；具体结论需进一步深读结果章节。 | `paper_content.txt` Page 2 摘要。 | 候选可迁移。 | 当前已完成文本级结果与 limitations 阅读；具体图表、曲线和样本级 finding 仍需 A2a 精核。 |
 | evidence presentation pattern | 使用 distinct reviews / publications 分母、自动与手工搜索来源、质量评估结果。 | `paper_content.txt` Page 2 摘要。 | 可迁移为候选池和去重字段。 | distinct reviews/publications 分母可迁移，细节需 PDF 表格核对。 |
-| validity / threat pattern | 本轮未完整定位 threat section；需 A2a 深读。 | `paper_content.txt` Page 2--9。 | 待核验。 | threat section 未完整定位，不能作为已饱和 threat 模板。 |
+| validity / threat pattern | 已文本级定位 limitations / validity 相关段落；图表、曲线和 QA 细节仍需 A2a 精核。 | `paper_content.txt` Page 2--9。 | 待核验。 | 不含完整多研究者裁决日志，不能作为已饱和 threat / adjudication 模板。 |
 | report structure pattern | 短 workshop tertiary study，结构紧凑；适合压测短文档字段缺失情况。 | `paper_content.txt` Page 1--9。 | 可迁移为“短论文也要记录缺失字段”。 | 短 workshop 结构紧凑，不能当成完整期刊综述结构。 |
 
 ## 3. 对 PR-A1 schema 的启发
 
 1. `target_se_subfield` 应成为候选字段，避免把所有 SE SLR 混为一个领域。
 2. `publication_count` 与 `distinct_study_count` 应分开，避免多篇报告同一 SLR 造成重复。
-3. 需要 `education_practice_relevance` 字段，承接导师强调的 research finding / practical impact。
+3. 需要 `future_researcher_relevance` 字段，承接导师强调的 research finding / practical impact。
 
 ## 4. 待复核
 
@@ -103,7 +104,7 @@
 | E6 | Table II 检索执行汇总 | L273–288 | 5 库 267→91→58→+6→64 publications→53 studies |
 | E7 | Table III 发表类型 | L317–331 | 31/16/4/4/8/1 |
 | E8 | Table IV scope-of-RE-SLR 6 档 | L364–375 | state-of-the-art 33, 方法 7, techniques 7, 工具 4, 框架 1, 技术 1 |
-| E9 | Table V topic-group × focus × #PS × year | L376–429 | 18 个 topic group；含 "Non-Functional 需求","Complete RE 过程","Model Driven Development","Knowledge Management and RE","RE in GSD" 等 |
+| E9 | Table V topic-group × focus × #PS × year | L376–429 | 24 个观察到的 topic group（待 PDF 表格版式核验）；含 "Non-Functional 需求","Complete RE 过程","Model Driven Development","Knowledge Management and RE","RE in GSD" 等 |
 | E10 | §III RQ2 + Figures 2/3/4 | L433–479 | 42/51 ≥2；QA3/QA4 半数被忽略；年度均分 2009 后下降 |
 | E11 | Table VI Top-10 cited | L482–493 | S-ID × GS Citations × Pub channel × QA Score |
 | E12 | §III RQ3 三类 缺口（gap） | L505–576 | (1) anomalies in #PS, (2) lack of PS, (3) ignored RE areas with reference to 路线图 [1][2] |
@@ -276,6 +277,39 @@
 - RE-specific topic 分类法（24 项）、scope 6 档、Nuseibeh / Cheng-Atlee 路线图 的具体 topic 名单 —— 这些是 RE 领域 模式，对 LLM4SE / 状态机建模没有直接映射。
 - "QA 自 2009 起下降"这一年度趋势仅限 RE SLR 子集，不能外推到 SE-wide 或其他子领域。
 - citation Top-10 名单是 2014-05-19 快照，已过时。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文是 RE 领域三级研究，目标是综览 RE SLR，并回答覆盖领域、发表 SLR 质量、覆盖缺口 3 个 RQ。 | `review.md` 维度树复原 §0、§2；`evidence_chain.md` A.3 `clm-re-tertiary-study-2014-type` |
+| S2 语料收集与筛选 | 强 | 作者采用 5 个数据库、snowball、手工 venue 扫描与 3 条纳入标准，形成 64 publications / 53 distinct SLR 的最终语料，QA 分母为 51；secondary search 数量存在正文 5 SLR vs Table II/final arithmetic +6 publications 的内部不一致。 | `review.md` E4--E6、§2；`evidence_chain.md` A.2 `ev-re-tertiary-study-2014-denom`；`audits/a1-s1s8-19x1/adjudications/re-tertiary-study-2014.md` |
+| S3 原生维度树/样本编码对象 | 强 | 原生编码对象是 distinct SLR study，维度森林包括 publication metadata、SLR 抽取信息、topic group、scope、QA rubric、citation/impact、gap taxonomy 和 publication type。 | `review.md` 维度树复原 §0、§3；`evidence_chain.md` A.2 `ev-re-tertiary-study-2014-unit`、`ev-re-tertiary-study-2014-tree` |
+| S4 字段级证据 | 中 | 核心叶子字段、QA rubric 与 Appendix S-ID 可复原，但图表/页码/样本级精确证据待 A2a PDF 核验，当前不宜写强。 | `review.md` §3--§5、维度树复原；`evidence_chain.md` A.2 |
+| S5 维度模式演化 | 中 | 维度形成来自 search-term pilot、既有 tertiary/RE SLR 关键词扩展、标题摘要主题分析、第一作者分组与两位作者复核命名；不是 QA 年度趋势。 | `paper_content.txt` 方法与主题分组段；`review.md` S5 |
+| S6 统计分析 | 强 | 提供 publication type、SLR subtype、scope、#PS 极差与区间、QA 总分、年度发表量、Top-10 citation 等统计。 | `review.md` §6.A；E7--E11 |
+| S7 候选 finding | 强 | 候选发现包括 QA 趋势下降、高引不等于高 QA、#PS 内部矛盾、RE 子主题覆盖缺口、半数 SLR 忽略 QA3/QA4。 | `review.md` §6.B；E10--E12 |
+| S8 研究者/作者质疑与裁决 | 中 | 原文有主题命名复核、limitations 与 QA guideline 依赖说明，但无完整多研究者筛选/编码裁决、分歧处理、kappa 或 QA 独立复核报告。 | `paper_content.txt` 主题分组与 discussion/threat 段；`review.md` S8；`audits/a1-s1s8-19x1/adjudications/re-tertiary-study-2014.md` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+裁决：本文可保留为后续主统计池候选与 `schema_seed`，但 A2a 页码、图表和附录逐项视觉核验前，不进入最终定量统计。主样本单位必须写为 **53 distinct SLR studies / systematic reviews**，并与 **64 publications** 分开；质量评价分母为 51 studies（S3、S8 全文不可得）。`topic group` 只能写成作者基于标题/摘要主题分析得到的约 24 个观察分组，不是封闭、可外推的 RE 全域 taxonomy。S8 仅为中等：有第一作者分组、另外两位作者复核命名和 limitations 自我质疑，但没有完整双人独立筛选/抽取/QA 裁决、分歧日志或 $
+kappa$。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | `paper_content.txt` 摘要与 §II 明确本文按 EBSE guidelines 做 RE 领域 tertiary study；§II.A 给出 RQ1--RQ3：覆盖领域、SLR 质量、覆盖缺口。 | 根任务是对 RE 相关 SLR/SMS/meta-analysis 的三级映射；RQ 树驱动后续 topic、QA、gap 三组分析。 | 强；可进入“tertiary review task / RQ tree”统计池候选。 | 核对 PDF 中标题、摘要、§II 标题和 RQ1--RQ3 页码；确认 “Systematic Mapping Tertiary Study” 与 “tertiary study” 表述。 |
+| S2 语料收集与筛选 | §II.A 描述 5 个数据库、snowball、既有 tertiary studies 参考文献与 RE/SLR venue 手工检索；Table II 给出 `267→91→58→64 publications→53 studies`，正文称 secondary searches found 5 SLR，但 Table II/final arithmetic 为 +6 publications。 | 检索漏斗应分 publication 与 study 两级：primary hits / included papers / duplicate-discarded publications / final distinct studies；纳入标准为英语、SLR/SMS/meta-analysis、RE 主题。 | 强但有内部不一致标注；可作为筛选漏斗候选，不能混淆 distinct reviews 与 publications。 | 视觉核 Table II 数字、secondary search 六行、正文 “5 SLR” 与表格 “6 publications” 的差异；核对 S3/S8/S40 缺失说明。 |
+| S3 原生维度树/样本编码对象 | §II.A 说明同一 study 的多 publication 用同一 S-ID 加 A/B/C 后缀；抽取 publication details、citation、#PS、focus；Table III--VI、Appendix A 给出类型、scope、topic、QA/citation 和 S1--S53 名录。 | 原生对象是去重后的 distinct SLR study；维度森林包括 publication metadata、SLR 抽取信息、scope 分类、topic group、DARE QA rubric、citation/impact、gap taxonomy、检索执行聚合。 | 强；可作为原生维度森林/样本编码对象统计池候选。 | 核对 Appendix A 的 S-ID 与 A/B/C 分组、64 publications 到 53 studies 的映射；确认 Table III--VI 是否跨页漏列。 |
+| S4 字段级证据 | Table I 给出 QA1--QA4 三档评分；Table III publication type、Table IV scope、Table V topic/#PS/year、Table VI citation/QA；Appendix A 给出完整参考与 citation。 | 叶子层可复原为标题/作者/年份/类型/venue/citation、#PS、focus、SLR subtype、scope、topic group、QA1--QA4/total、gap type、limitations。 | 中到强；字段结构可入候选池，但数值与样本级映射在 A2a 前不得升级为最终定量证据。 | 逐项核对 Table I--VI、Appendix A 的列名、数值、脚注 `NM/NF`、S26/S39 重叠星号和 OCR 断行。 |
+| S5 维度模式演化 | §II.A 说明搜索词经过 pilot testing，并参考既有 tertiary studies 和 RE SLR 扩展关键词；limitations 说明 topic 从标题/摘要抽取，由第一作者分组，两位作者复核并同意最终名称。 | 可复原为“关键词扩展/主题分组命名的形成过程”，不是正式 codebook 迭代、开放编码饱和或 schema evolution。 | 中；可作维度形成机制边界样本，不宜并入“显式维度演化”主统计池。 | 核对 §II.A pilot/search-string 段和 §IV topic grouping 段；避免把 QA 年度趋势或 gap analysis 误写成维度演化。 |
+| S6 统计分析 | §III 报告 64 publications 的类型分布、53 studies 的 SLR/SMS/meta-analysis 分布；Table IV 给 scope 33/7/7/4/1/1；Table V 给 #PS 极差与 topic；§RQ2/Fig.2--4 给 QA 分布与年度趋势；Table VI 给 Top-10 citation。 | 统计由字段森林派生：publication type、study subtype、scope、topic/#PS、QA、citation、year trend、gap count/类型均有字段来源。 | 强；可作为“字段→统计观察”候选，但所有图表数值仍限 A1 文本级。 | 视觉核 Figure 1--4 柱高/曲线、Table IV--VI 数值，尤其 `42/51 ≥ 2`、Top-10 citation/QA、#PS 极值和区间。 |
+| S7 候选 finding | §III RQ3 与 Conclusion 形成候选发现：RE SLR 质量 2009 后下降、高引不等于高 QA、#PS 内部矛盾、低 #PS 可能指向 neglected areas 或检索不足、若干 RE roadmap topic 未被 SLR 覆盖、近半 SLR 忽略 QA3/QA4。 | 应区分可重算统计观察、作者 discussion/gap analysis 与 RE 历史领域结论；finding 只在 RE tertiary 语境内成立。 | 强但限界；可作为“统计观察→候选 finding / gap taxonomy”模式候选，不能迁移具体 RE topic 结论。 | 核对 §RQ3 三类 gap、Conclusion、Cheng/Atlee 与 Nuseibeh/Easterbrook roadmap 对照；标明 2006--2014 与 RE-only 限制。 |
+| S8 研究者/作者质疑与裁决 | §IV limitations 记录检索漏检风险、S40 缺 publication details、topic grouping 主观、QA guideline 依赖和 gap analysis 不完整；topic 命名由第一作者分组、另外两位作者复核同意。 | 可复原为作者自我质疑 + topic 命名复核；没有完整多研究者独立筛选/抽取/质量评价、disagreement resolution、inter-rater agreement 或 kappa。 | 中；可作为“复核/limitations 机制”候选，但必须降级，不能按完整 adjudication/coding reliability 统计。 | 核对 §IV 全段、是否存在未被 OCR 标出的 threats/validity 段；确认无独立双人筛选、抽取或 QA 裁决日志。 |
 
 ## 证据链入口
 

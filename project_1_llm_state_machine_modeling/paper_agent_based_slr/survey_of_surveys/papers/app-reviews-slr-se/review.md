@@ -20,8 +20,9 @@
 | 综述类型 | SLR |
 | SE 子领域 | app reviews / mobile user feedback / mining software repository。 |
 | A1 角色 | 从失败路径升级为全文级现代高等级 SLR 样本：提供完整 RQ→抽取字段→分类 schema→统计表→discussion finding 的闭环。 |
-| 是否目标证据池 | 是，作为 `survey_of_surveys/` 的 SLR 方法 / 报告结构 / 维度模式统计池样本；不是 Paper2 目标主题的领域证据。 |
-| 是否统计池 | 是；可进入 A1 方法学统计池和 SLR/SMS 报告模式统计池。 |
+| survey_of_surveys 方法 / 模式池 | 后续候选；可作为 SLR 方法、报告结构和维度模式样本。 |
+| Paper2 目标领域证据池 | 否；不支撑 Paper2 目标主题的领域 finding。 |
+| 统计池资格 | 后续主统计池候选；A1 仅文本级 schema_seed，A2a 前不得进入最终定量统计。 |
 | 一句话结论 | 这篇论文是 A1 中字段体系最完整的现代 SLR 样本之一，尤其适合迁移“多套分类 schema + 评价质量字段 + replication package 字段 + discussion finding”设计。 |
 
 ## 2. 论文内容详读
@@ -339,6 +340,38 @@ Table 3 给出 F1--F18 抽取表，覆盖：bibliographic 信息、review analys
 - Google Play / Apple Store 等 store 名称；
 - Table 21 中具体的 precision/recall 数值；
 - §4.4 "2,800 reviews 过小" 这类领域常识。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文以 app reviews 如何支持软件工程活动为综述对象，RQ1--RQ5 覆盖分析类型、挖掘技术、SE activity、评价方法与评价结果。 | `review.md` §2.1、维度树复原 §1；`evidence_chain.md` A.3 `clm-app-reviews-slr-se-type` |
+| S2 语料收集与筛选 | 强 | 本文遵循 Kitchenham 与 PRISMA 风格流程：1656 个初始命中减去 303 个重复后筛选 1353 个题摘，保留 128 篇初始纳入并经手工检索 14 篇、snowballing 40 篇扩展至 182 篇。 | `review.md` §2.2、维度树复原 §0--§2；`evidence_chain.md` A.2 `ev-app-reviews-slr-se-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 样本编码对象为 182 篇 peer-reviewed 原始研究；原生结构包括 F1--F18 抽取表、3 套分类 schema、SE activity 树和评价/复现资产字段。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.2 `ev-app-reviews-slr-se-unit`、`ev-app-reviews-slr-se-tree` |
+| S4 字段级证据 | 强 | Table 3 的 F1--F18 字段覆盖书目信息、分析类型、技术、SE 活动、评价流程/指标/结果、标注数据集、质量量规和 replication package。 | `review.md` §2.3、维度树复原 §2--§5；`evidence_chain.md` A.2 `ev-app-reviews-slr-se-tree` |
+| S5 维度模式演化 | 强 | 三套分类 schema 经既有分类引入、content analysis、语义合并、无关项删除、recommendation 补充和 SWEBOK 映射形成，且有 reliability 检查。 | `review.md` §2.4、维度树复原 §1--§2；`evidence_chain.md` A.2 `ev-app-reviews-slr-se-tree` |
+| S6 统计分析 | 强 | 本文提供年度趋势、venue、频次、交叉表、数据集/工具表、five-number summary、range/median 和 qualitative synthesis。 | `review.md` §2.5、§2.6、维度树复原 §5、§6；`evidence_chain.md` A.3 `clm-app-reviews-slr-se-pool` |
+| S7 候选 finding | 强 | §4.1--§4.10 将统计观察转化为候选发现，包括 SE use case 模糊、reference model 缺失、评价数据集偏小、复现资产不足与 practice impact 不清。 | `review.md` §2.7、维度树复原 §3、§6；`evidence_chain.md` A.3 `clm-app-reviews-slr-se-pool` |
+| S8 研究者/作者质疑与裁决 | 强 | 原文报告筛选样本 Cohen’s Kappa、抽取 inter/intra-rater agreement、分类 schema reliability、second coder cross-check、protocol panel review 和 threats mitigation。 | `review.md` §2.4、§2.8、维度树复原 §0--§1；`evidence_chain.md` A.2 `ev-app-reviews-slr-se-tree` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+**裁决：有条件候选入池。** 本文是正式 SLR，原文明确给出 RQ、检索 / 筛选链、182 篇原始研究分母、F1--F18 抽取表、三套 classification schema、reliability 检查和大量描述统计，因此适合作为 `survey_of_surveys` 的方法学 / 维度模式 / 报告结构候选统计池样本。但 `evidence_chain.md` 当前多处仍标为 `not_verified`，且复杂表格、PRISMA 图、搜索式和 supplementary spreadsheet 尚未 A2a 视觉核验；因此 A2a 前不应进入最终定量统计池，只能作为候选分母和 pattern seed 使用。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文说明研究目标是系统综述 app review analysis for SE，并给出 RQ1--RQ5：分析类型、技术、SE 活动、评价方法、评价结果。 | 对应维度树的顶层任务层：以“app reviews 如何支持 SE”为根任务，RQ 映射到 F6、F7、F8/F9、F10--F18、F13。 | 候选入池：强。可进入 RQ / task-setting pattern 池；不是领域结论池。 | 核对 PDF 页码与 RQ 原文位置；确认 DOI/出版页元数据。 |
+| S2 语料收集与筛选 | 原文遵循 Kitchenham + PRISMA，给出 1656 初始命中、303 重复、1353 筛选、1225 排除、128 初始纳入、+14 manual、+40 snowballing、最终 182 篇。 | 对应语料构建子树：数据库检索、manual search、snowballing、纳排标准、数量链、最终样本单位。 | 候选入池：中到强。流程存在性强；最终分母链需 A2a 后才能作为最终统计分母。 | 视觉核对 Fig.1 PRISMA、Table 1 纳排、Table 2 venue、搜索式；尤其“six major digital libraries”文本抽取只清楚显示五个名称。 |
+| S3 原生维度树/样本编码对象 | 原文说明 selected studies 被逐篇读取，Table 3 F1--F18 是 data extraction form；最终样本为 182 篇原始研究。 | 复原为“字段森林”：书目信息 F1--F5、analysis F6、technique F7、SE activity F8/F9、evaluation/artifact F10--F18，加三套 schema。 | 候选入池：强（文本级）。可进入 sample-unit / native-dimension-tree pattern 池；A2a 前不得作最终定量；不应说成原文给出单一 formal tree。 | 核对 Table 3 版面；检查 supplementary spreadsheet 是否可获得并与 F1--F18 对齐。 |
+| S4 字段级证据 | Table 3 明列 F1--F18，覆盖标题、作者、年份、venue、citation、review analysis、mining technique、SE activity、justification、evaluation、annotated dataset、quality measure、replication package 等。 | 字段级叶子可复原为 F1--F18；其中 F6/F7/F8 是分类字段，F10--F18 是评价与复现资产字段。 | 候选入池：强（字段存在性的文本级证据）。适合作为 extraction-form 模式样本；具体叶子取值频次仍需 A2a 核验。 | 核对 F10.1/F10.2、F14.1/F14.2 等子字段是否全部来自原文而非本地细化；核对 open enum 是否依赖 supplementary。 |
+| S5 维度模式演化 | 原文说明三套 classification schema 由既有分类、content analysis、语义合并、删除无关项、补充 Recommendation、SWEBOK 映射形成，并报告 Table 4 reliability。 | 对应 schema-construction 子树：F6 app review analysis、F7 mining technique、F8 SE activity；含来源、合并规则、最终编码和 reliability。 | 候选入池：强，但限于“schema 构造模式”。不应解释为长期时间演化。 | 核对 Table 4 数值、20%/10% 抽样比例、外部 assessor 描述；确认 taxonomy 来源与最终类别数量。 |
+| S6 统计分析 | 原文提供年度/venue、analysis 类型、technique、交叉表、SE activity、evaluation/results，并说明异质性太强不做 meta-analysis，而用 summarizing effect estimates。 | 统计层复原为频次、百分比、交叉表、five-number summary、range/median、qualitative synthesis；关系边包括 F6×F7、F6×F8、F12×F6、F13×F6/F6.2。 | 仅候选入池：中。统计呈现丰富，但 A2a 前不进入最终定量池；可先作为“统计呈现模式”样本。 | 高优先级核对所有复杂表格：Table 5--23、矩阵对齐、百分比、分母、多值编码、Table 21 range/median。 |
+| S7 候选 finding | §4 将统计观察转为 findings / gaps：growing area、SE use cases 模糊、reference model 缺失、数据集小、replication packages 不足、practice impact 不清、scalability / efficiency 缺评等。 | 复原为“统计观察 → discussion gap → future work”派生层；不属于单篇样本编码字段。 | 候选入池：中。可进入 finding-construction pattern 池；具体 app-review 领域结论不能迁移到 Paper2。 | 逐条核对 §4.1--§4.10 是否有表格支撑；区分 evidence-backed finding、作者解释、作者假设。 |
+| S8 研究者/作者质疑与裁决 | 原文报告 screening Cohen’s Kappa=0.9、data extraction inter/intra agreement、schema reliability、protocol panel review、threats mitigation。 | 复原为 quality-control / reliability / threats 子树：检索完整性、publication bias、screening/extraction/classification subjectivity、taxonomy reliability。 | 候选入池：中到强。若 S8 只要求 reliability/threat evidence，可强；若要求逐项 adjudication ledger，应降为中。 | 核对 Cohen’s Kappa 样本、percentage agreement、panel review 原文；确认是否有原始 disagreement / adjudication 记录。 |
 
 ## 证据链入口
 

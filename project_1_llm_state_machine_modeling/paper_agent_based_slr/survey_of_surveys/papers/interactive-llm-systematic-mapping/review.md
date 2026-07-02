@@ -17,7 +17,8 @@
 | 证据等级 | 全文文本级；Fig. 1 为 原文图表级核对；无实证数值表可核对；补充材料未打开 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
 | A1 角色 | 为 survey-of-surveys 脚手架提供“LLM 介入 SMS 流程”的阶段划分、输入/输出、人机交互、agent 角色、traceability 和模型漂移风险先验。 |
-| 是否目标证据池 | 是：作为 A1 方法脚手架与人机协同风险证据；否：不作为 Paper2 目标领域 finding 或“LLM 自动完成综述”的实证证据。 |
+| A1 方法脚手架证据池 | 是；作为人机协同、可追踪 SMS 流程和 proposal 边界样本。 |
+| Paper2 目标领域证据池 | 否；不作为 Paper2 目标领域 finding，也不作为“LLM 自动完成综述”的实证证据。 |
 | 一句话结论 | 该文价值在于把 LLM 辅助 系统映射研究 拆成可讨论的流程阶段和 agent 角色；局限在于它是概念性 proposal，没有原型评测、语料分母、纳排执行或性能指标。 |
 
 ## 2. 论文内容详读
@@ -330,7 +331,7 @@
 │   └── 可视化工具（visualization tools） / LIDA, ChatGPT 代码（S4)
 │
 ├── [B5] 审计 / 可追踪要求集合 (§2.2.2 + §2.3)
-│   ├── 决策标签 (纳入 / 排除 / 不确定（include/exclude/uncertain）)
+│   ├── 决策标签 (纳入 / 排除 / 不确定（include/exclude/不确定）)
 │   ├── 理由 / 解释
 │   ├── 被引用片段 / 引用
 │   └── 来源位置
@@ -387,7 +388,7 @@
 | mech.continual | 技术机制：持续学习 / DSPy | B4 | §2.2.2 | 从 inc/exc 偏好迭代学习 | 布尔值 + 工具名 | 布尔 + 工具引用 | -- | -- | -- | 行 144–149 | 工具名易过时 |
 | mech.trace_tool | 技术机制：tracing 工具 | B4 | §3 Complementary Tools | LangSmith 类工具 | 工具列 | 开放枚举 | -- | -- | -- | 行 224–226 | 同上 |
 | mech.web | 技术机制：web 智能体 | B4 | §3 | WebVoyager 用于灰文献 | 工具列 | 开放枚举 | -- | -- | -- | 行 226–229 | 工具名易过时 |
-| audit.decision | 审计字段：决策标签 | B5 | §2.2.2 | include / exclude / borderline | 三值枚举 | 有限枚举 | 缺失即不可审 | 用于 trace 覆盖率 seed | 可作 缺口（gap）：哪个阶段 trace 最缺 | 行 150–157 | **强迁移点** |
+| audit.decision | 审计字段：决策标签 | B5 | §2.2.2 | include / exclude / Paper2 增强字段：边界/不确定 | 三值枚举 | 有限枚举 | 缺失即不可审 | 用于 trace 覆盖率 seed | 可作 缺口（gap）：哪个阶段 trace 最缺 | 行 150–157 | **强迁移点** |
 | audit.rationale | 审计字段：理由 | B5 | §2.2.2 | LLM 给出的解释 / CoT | 自由文本 | 自由文本 | 同上 | 同上 | 同上 | 行 153–155 | CoT 不等于必须暴露推理链，应解读为可审计 rationale |
 | audit.citation | 审计字段：引用 | B5 | §2.2.2 | 文本证据片段 + 原文位置 | 关系值（fragment + locator） | 关系值 | 同上 | 同上 | 同上 | 行 155–157 | 强迁移点 |
 | audit.source_loc | 审计字段：来源位置 | B5 | §2.2.2 隐含 | 引用所指原文 page / paragraph / line | 关系值 | 关系值 | 同上 | 同上 | 同上 | 行 156–157 | 同上 |
@@ -425,6 +426,40 @@
 | **原文 discussion / 路线图 候选发现** | (i) HITL 是 LLM-supported SMS 必要前提；(ii) 可复现性需要保留 Boolean search；(iii) inc/exc 必须挂 rationale + citation；(iv) 自动化提升后可用完整 PDF 做 deductive coding；(v) 模型快速演化导致评估易过时；(vi) 需要 SE-specific 评价；(vii) 路线图 双轨：先单步评估再端到端 prototype | 全文综合，主要行 52–55、92–96、150–157、173–176、213–234 |
 | **对 Paper2 可迁移的方法学启发** | （a）阶段 × triplet × audit 三层 模式 模板；（b）三 智能体 search 是可重用模式；（c）服务提供商漂移（provider drift） / non-SE transfer / SE-specific 评价 作为 risk inventory；（d）路线图 双轨叙事可借用 | 行 79, 99–122, 213–234 |
 | **绝不能迁移的领域结论** | 1. 不可写"已被验证的 LLM-supported SMS 解决方案"；2. 不可写"GPT 在文献综述中可靠"；3. 不可写"首创 interactive LLM-based SMS"（本文 2024/2025 已显式提出该方向）；4. 不可把被引文献 [5–9] 的数字当作本文 发现；5. 不可写本文符合 PRISMA / 提供 复现包 | 行 18–19、行 213–234、行 246 |
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+边界声明：本节所有 S1--S8 与维度树判断均为 A1 文本级 `schema_seed` / 方法模式审计结果；A2a 完成页码、表图和制品精核前，不得写成 final quantitative finding / 最终定量发现。
+
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 中 | 本文是 solution proposal，讨论如何以 human-in-the-loop 方式把 LLM 嵌入系统映射研究流程；无正式 RQ 表、已执行 SMS、样本单位或综述 protocol。 | `review.md` §2.1--§2.4；`evidence_chain.md` A.3 `clm-interactive-llm-systematic-mapping-type` |
+| S2 语料收集与筛选 | 不适用 | 原文未执行系统检索、纳排或语料构建；10 条参考文献仅作叙事旁证，不能计入统计池。 | `review.md` §2.5、维度树复原 §2；`evidence_chain.md` A.2 `ev-interactive-llm-systematic-mapping-denom` |
+| S3 原生维度树/样本编码对象 | 中 | 原生对象是 LLM-supported SMS 流程阶段、角色和交互节点的降级概念维度森林，而非原始研究样本编码 schema。 | `review.md` 维度树复原 §3；`evidence_chain.md` A.3 `clm-interactive-llm-systematic-mapping-tree` |
+| S4 字段级证据 | 中 | 可抽取阶段、研究者输入、interactive refinement、LLM output 和 search 三智能体；override、source location、Paper2 增强字段：边界/不确定 等是 Paper2 本地审计增强字段，不是原文明示字段。 | `review.md` 维度树复原 §4；`evidence_chain.md` A.2 `ev-interactive-llm-systematic-mapping-tree` |
+| S5 维度模式演化 | 弱 | 原文没有 corpus coding saturation 或维度迭代记录，只能把方案迭代和端到端 prototype 路线作为边界启发。 | `review.md` §2.3、维度树复原 §6、§6.1--§6.3 |
+| S6 统计分析 | 不适用 | 本文无自身统计分析、数据表和分母；被引文献中的 recall/precision/prompt 表现只能作为旁证。 | `review.md` §2.6、维度树复原 §6；`evidence_chain.md` A.3 `clm-interactive-llm-systematic-mapping-pool` |
+| S7 候选 finding | 中 | 可作为候选 finding 的是方法学设计 claim：LLM 可辅助 SMS 各阶段，但必须保留专家在环、可复现检索、证据追踪和后续 SE-specific evaluation。 | `review.md` §2.7、§3、§6.1--§6.3；维度树复原 §6 |
+| S8 研究者/作者质疑与裁决 | 弱 | 原文有 human oversight、研究者验证 LLM 输出、rationale/citation/traceability 要求，但没有多研究者裁决协议、一致性、QA 日志或正式 override 机制。 | `review.md` §2.3.1--§2.3.3；维度树复原 §4、§5 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+不进入主统计池。本文是作者自述的 solution proposal，目标是讨论 LLM 支持 systematic mapping process 的可能流程；没有执行系统检索、纳排、数据抽取、样本编码或统计分析。`paper_content.txt` 明确显示方法为 solution proposal，并声明 “No data was used”。因此只可作为方法学种子 / schema seed / boundary anchor，不能作为 Paper2 主统计池或实证 finding 来源。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文目标是讨论 LLM 如何用于 mapping study process；Method 自述为 solution proposal，非已执行 SMS/SLR。 | 对应概念流程树根节点与 B1 流程阶段；可复原 “need/RQ → search → inc/exc → extraction → visualization → reporting” 的任务脚手架。 | 不进主统计池；可作任务设定与 interactive scaffold 的方法学种子。 | 核对 PDF Fig. 1 中阶段名称与文本 §2 是否完全一致；补充材料术语定义待核验。 |
+| S2 语料收集与筛选 | 原文未给数据库、检索式、PRISMA、候选分母、纳排清单；10 条 references 仅作 relevant literature 叙事旁证。 | S2 在原生树中只是方案阶段：search 子阶段含 3 agents，inc/exc 子阶段强调 rationale/citation/traceability；不是实际 corpus pipeline。 | 不适用主统计池；不得把 references 或被引研究结果当本文样本。 | A2a 核对是否存在隐藏 supplement 中的术语定义；但即使有定义，也不能改变“无语料分母”裁决。 |
+| S3 原生维度树/样本编码对象 | 原文逐节描述的是 LLM-supported SMS 的流程阶段、agent 角色和 HITL 节点；无原始研究样本编码表。 | 复原为降级维度森林：B1 流程阶段、B2 input/refinement/output 三元组、B3 search 三智能体、B4 技术机制、B5 audit 字段、B6 risk、B7 roadmap。 | 不进统计池；可作 schema seed，尤其是阶段 × 人机角色 × audit 字段。 | PDF 版面核对 Fig. 1 的框图、箭头和输入/输出槽；确认是否存在文本抽取遗漏。 |
+| S4 字段级证据 | 明确字段包括研究者输入、LLM 输出、交互修订、search agents、inc/exc 理由与 citation、inductive/deductive coding。 | 可映射到 B2 triplet、B3 agents、B5 audit fields；但 `override`、`source_loc` 等更细字段部分是本地审计增强。 | 不进主统计；可作为字段设计候选，需标注“原文明示”与“本地扩展”边界。 | A2a 逐项区分原文显式字段 vs. Paper2 增强字段，避免把增强字段写成作者原生 schema。 |
+| S5 维度模式演化 | 原文只有作者基于经验迭代设计 proposal，以及末尾建议先优化单步骤、再做整体 prototype；没有 coding saturation 或 taxonomy evolution。 | 仅可复原为 B7 roadmap：individual steps evaluation 与 end-to-end prototype；不构成维度演化证据。 | 基本不进统计池；最多作为路线图/研究议程种子。 | 核对 §3 末尾两条 research directions 的表述；不得扩写成“已验证迭代方法”。 |
+| S6 统计分析 | 本文没有自身统计表、分母或实验指标；recall/precision/GPT-4 表现均来自被引文献 [5]--[9]。 | 原生树无统计分析节点；相关数字只能挂在“被引文献旁证”而非本文 finding。 | 不适用主统计池；严禁把被引研究统计混入本文主统计。 | A2a 标注所有被引统计的来源归属，防止二次引用时误标为 Petersen & Gerken 结果。 |
+| S7 候选 finding | 可支持的方法学 claim：LLM 可辅助 SMS 各阶段，但需专家在环、可复现检索、traceability、SE-specific evaluation。 | 可挂到 B5 audit/risk 与 B6 validity/risk；属于 design claim / methodological insight，不是效果 finding。 | 不进实证 finding 池；可作为 boundary anchor 和 method rationale。 | 核对 claim 强度：只能写“作者提出/建议/强调”，不能写“证明有效”。 |
+| S8 研究者/作者质疑与裁决 | 原文强调 reviewers 需懂 mapping 方法且是主题专家；inc/exc 需理由、citation、traceability；但无多评审者协议或一致性统计。 | 可映射到 B2 HITL、B5 audit 字段、B6 risk；不含正式 adjudication workflow。 | 不进统计池；可作审计机制启发。 | A2a 明确区分 human-in-the-loop 原则与正式 reviewer adjudication/override 机制。 |
 
 ## 证据链入口
 

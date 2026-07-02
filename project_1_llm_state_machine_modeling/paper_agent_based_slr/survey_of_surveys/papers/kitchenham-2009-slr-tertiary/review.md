@@ -6,7 +6,7 @@
 |---|---|
 | 标题 | Systematic literature reviews in software engineering – A systematic literature review |
 | 年份 | 2009 |
-| 类型 | tertiary-like SLR / SE SLR 状态综述 |
+| 类型 | tertiary SLR / SE SLR 状态综述 |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
@@ -19,7 +19,8 @@
 | 综述类型 | 对 SE SLR 的三级/二级综述；文中自称 review of SLRs / tertiary study |
 | SE 子领域 | EBSE / SE 二级研究方法学 |
 | A1 角色 | 提供 RQ、搜索范围、纳排、质量评价、数据抽取、数据分析、limitations 都较清晰的 tertiary-study 样例。 |
-| 是否目标证据池 | 否；只作为脚手架模式先验。 |
+| Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |
+| survey_of_surveys 方法统计池 | 后续候选；A1 仅作 schema_seed，A2a 前不得最终定量。 |
 | schema 历史观察 | 无硬缺口；但 quality score 数值需 原文图表级核对后才能进入正式统计。 |
 
 ## 2. 六类 pattern 抽取
@@ -49,7 +50,7 @@
 
 | A1-M 脚手架元维度 | 本篇可贡献的模式先验 | 采纳边界 |
 |---|---|---|
-| A1-M0 研究意图与综述元模型 | 把 SE SLR 自身作为研究对象，适合作为 tertiary-like scope 样本。 | 可迁移“二次研究的二次研究”元模型。 |
+| A1-M0 研究意图与综述元模型 | 把 SE SLR 自身作为研究对象，适合作为 tertiary-study scope 样本。 | 可迁移“二次研究的二次研究”元模型。 |
 | A1-M1 语料收集与纳排 | 提供早期 SE SLR 的检索、纳排和质量评价过程。 | 可作为历史 baseline；不代表现代检索生态。 |
 | A1-M2 研究对象与主题语义 | 提供早期 SE SLR topic / quality / reporting 分类。 | 可迁移分类方式，不迁移领域覆盖结论。 |
 | A1-M3 方法 / 技术 / 干预 | 主要是综述方法和主题分类，不是技术干预 taxonomy。 | 对 A1-M3 只作弱候选。 |
@@ -78,7 +79,7 @@
 | 是否打开或核对 `paper.pdf` | 否；本轮仅 text-level 审计；表格 / 公式版式留待 A2a 视觉核验 |
 | 原文类型 | tertiary SLR（作者自称 "tertiary literature review"，§2 Method 开头） |
 | 被编码样本单位 | 二次研究（系统文献综述 或 元分析（meta-analysis） 论文，每条对应一篇 SLR/MA） |
-| 样本数量 / 分母 | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19+2=20`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） |
+| 样本数量 / 分母 | 主样本 `N=20`（S1--S20，§4.1 与 Table 2）；候选漏斗分母 `2506`（Table A1 Total），相关候选 `33`，最终选入 `19 selected articles → 18 unique studies → +2 external → N=20 studies`（其中 1 篇通过研究者询问 + 1 篇通过 Simula 网站补入） |
 | 原生树类型 | **单树为主 + 双子树并列**：主树为「20 篇 SLR 的抽取编码表」（§2.5 数据抽取项 + Table 2 列），并列子树为「DARE 质量评价 rubric」（§2.4 QA1--QA4 + Table 3） |
 | 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
 | 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
@@ -258,6 +259,38 @@
 - "EBSE 主要由欧洲/Simula 主导" — 历史观察，不可迁移到 2020s LLM4SE 综述。
 - "ACM Computer Surveys 无 SE SLR" — 2008 年快照，已过时。
 - "8/20 引用 Guidelines" 等具体计数 — 仅本文窗口。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文明确设定为对 2004 年以来 SE 领域 SLR/MA 的 tertiary SLR，RQ 覆盖活动量、主题、研究者/机构和研究限制。 | `review.md` 维度树复原 §0、§1；`evidence_chain.md` A.2 `ev-kitchenham-2009-slr-tertiary-type` |
+| S2 语料收集与筛选 | 强 | 语料通过手工搜索与补检索形成，具备显式纳排标准；分母链应写为 2506 total records/articles → 33 relevant articles → 19 selected articles → 18 unique studies after duplicate handling → +2 externally located peer-reviewed studies → N=20 studies。摘要称 10 journals + 4 conference proceedings，Table 1 枚举口径待 A2a 复核。 | `review.md` 维度树复原 §0、§1、§3.3；`evidence_chain.md` A.2 `ev-kitchenham-2009-slr-tertiary-denom`；`audits/a1-s1s8-19x1/adjudications/kitchenham-2009-slr-tertiary.md` |
+| S3 原生维度树/样本编码对象 | 强 | 原生编码对象是 20 篇二次研究，主树为 SLR/MA 抽取编码表，并列 DARE 质量评价子树与检索漏斗子树。 | `review.md` 维度树复原 §2、§3.1--§3.3；`evidence_chain.md` A.3 `clm-kitchenham-2009-slr-tertiary-tree` |
+| S4 字段级证据 | 强 | 叶子字段包括来源、年份、文章类型、主题类型、主题领域、作者/机构/国家、EBSE 引用、实践者指南、一级研究数、QA1--QA4、漏斗字段和排除原因。 | `review.md` 维度树复原 §4；`evidence_chain.md` A.2 `ev-kitchenham-2009-slr-tertiary-tree` |
+| S5 维度模式演化 | 弱 | 原文没有显式 schema/codebook 演化；可迁移的是 protocol deviation 记录、RQ-data-analysis 对齐、RQ 驱动字段设计与 DARE 质量评价，不应把这些写成维度演化机制。 | `review.md` 维度树复原 §6.1、§6.4；§5 A1-M0--M6；`audits/a1-s1s8-19x1/adjudications/kitchenham-2009-slr-tertiary.md` |
+| S6 统计分析 | 强 | 统计分析覆盖样本数量、类型比例、主题集中度、机构/国家分布、质量得分、Spearman 相关、方差检验与检索漏斗。 | `review.md` 维度树复原 §6.1、§4 统计用途列 |
+| S7 候选 finding | 强 | 候选发现包括主题覆盖偏窄、Simula 数据库策略可复用、美国 EBSE 参与不足、实践者指南不足和抽取-核对模式风险。 | `review.md` 维度树复原 §6.2、§6.3 |
+| S8 研究者/作者质疑与裁决 | 中 | QA 评分有双人独立与 disagreement resolution；但筛选和数据抽取主要是 single researcher + checker，非完整双人独立编码裁决日志。 | `review.md` 维度树复原 §1、§5；`evidence_chain.md` A.2 `ev-kitchenham-2009-slr-tertiary-tree`；`audits/a1-s1s8-19x1/adjudications/kitchenham-2009-slr-tertiary.md` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+裁决：本文是可保留的后续主统计池候选和 schema_seed，样本单位为 20 篇二次研究（19 篇 SLR + 1 篇 MA），分母链应写为 `2506 total records/articles → 33 relevant articles → 19 selected articles → 18 unique studies → +2 externally located peer-reviewed studies → N=20 studies`。但当前证据链仍是 text-level / not_verified，页码、表图、QA 数值与附录表需 A2a 视觉精核；A2a 前不得把本文数值并入最终定量统计。S5 建议保持弱；S8 保持中，不能夸大为完整双人独立筛选/抽取裁决。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | `paper_content.txt` §2 明确本文按 SLR 方法评估 SLR，归类为 tertiary literature review；§2.1 给出 RQ1--RQ4，覆盖活动量、主题、主导者和限制；证据链见 `ev-kitchenham-2009-slr-tertiary-type`。 | 根任务是对 2004--2007.6 SE SLR/MA 的三级综述；RQ 树驱动后续字段与分析项。 | 强；可作为“tertiary review task / RQ tree”统计池候选，但仅限方法模式与样本描述。 | 核对 PDF 中 §2/§2.1 页码、RQ 原文排版和 “tertiary” 表述。 |
+| S2 语料收集与筛选 | §2.2--§2.3 描述手工检索 10 期刊 + 4 会议、Travassos/Jørgensen 补检索、显式纳排；§3.1 与 Table A1 给出 `2506→33→19→18+2→20`；证据链见 `ev-kitchenham-2009-slr-tertiary-denom`。 | 检索漏斗子树为来源×年份的 Total / Relevant / Selected；纳排对象为 peer-reviewed SLR/MA，排除非正式综述、流程讨论文和重复报告。 | 强；可作为“筛选漏斗 / 分母链”候选，但中间分母不得冒充最终 N。 | 复核 Table 1、Table A1、Table A2 的列数、总数、会议/期刊枚举和 `+2 external` 来源。 |
+| S3 原生维度树/样本编码对象 | §2.5 列出 10 项数据抽取字段；Table 2 展示 S1--S20 编码表；§2.4/Table 3 展示 DARE QA；证据链见 `ev-kitchenham-2009-slr-tertiary-tree`。 | 原生结构为“单树为主 + 并列子树”：主树是 20 篇二次研究抽取编码表；并列 DARE 质量评价子树与检索漏斗子树。 | 强；可作为原生维度树/维度森林统计池候选。 | 核对 Table 2、Table 3、附录表是否完整映射到当前叶子表；确认 PDF 表格跨页无漏列。 |
+| S4 字段级证据 | §2.5 字段清单、Table 2、Table 3、Table A1--A3 支撑来源、年份、类型、主题、作者/机构/国家、EBSE 引用、实践者指南、一级研究数、QA 和漏斗字段。 | 叶子层已复原为书目信息、研究分类、作者机构、内容摘要、DARE QA、EBSE/指南引用、实践影响、一级研究数、漏斗与排除原因。 | 强；可作为字段级 schema 候选；具体数值只在 A2a 后进入正式统计。 | 逐字段核对 Table 2/3/A1/A2/A3 的列名、取值空间、脚注和 OCR 残留。 |
+| S5 维度模式演化 | §2.7 只记录 protocol deviations；§2.6 说明 RQ 到数据分析项的映射；原文没有 schema/codebook 迭代或维度演化机制。 | 可复原的只是 RQ 驱动字段设计、DARE rubric 采用和 protocol deviation 记录，不是维度树演化。 | 弱；不建议进入主统计池，只作“无显式演化机制/方法边界”质性提示。 | 确认 §2.7 与 Supplementary Appendix 相关表述；避免把 protocol deviation 误写成 schema evolution。 |
+| S6 统计分析 | §2.6 列出 8 个分析项；§3--§4、Table 4/5 报告数量、主题、机构国家、质量得分、Spearman 相关、ANOVA 和实践者指南计数。 | 统计从字段树派生：类型/主题/地区/质量/引用/实践者指南/漏斗均有明确字段来源。 | 强；可作为“字段→统计观察”候选；A2a 前不并入最终跨论文定量池。 | 复核 Table 4/5 数值、Spearman `ρ=0.51, p<0.023`、ANOVA `F=0.37, p=0.55` 和所有计数。 |
+| S7 候选 finding | §4 Discussion 和 §5 Conclusions 将统计观察转为主题覆盖有限、Simula 策略、美国参与不足、实践者指南不足、抽取-核对风险等候选发现。 | 维度树复原中应区分 OBS 统计观察、作者 discussion 候选发现和不可迁移的历史领域结论。 | 强但限界；可作为“统计观察→候选 finding”模式候选，不能迁移 2009 年领域状态结论。 | 核对 §4.1--§4.5、§5 中每个 finding 的证据边界；标出历史窗口限制。 |
+| S8 研究者/作者质疑与裁决 | §2.4 质量评价由 Kitchenham + 其他作者独立评分并讨论分歧；§2.5 数据抽取是一人抽取一人检查；§4.5 承认单人筛选/抽取偏离指南。 | 可复原为 QA 双人独立评分与 disagreement resolution，加上筛选/抽取的 extractor-checker 机制；不是完整双人独立筛选/抽取裁决日志。 | 中；可作为复核机制候选，但需降级表述，不能按“完整双人独立 coding/adjudication”统计。 | 核对 §2.4、§2.5、§4.5 关于 disagreement、checker、independent QA 的原文；确认 Table 3 agreement 列。 |
 
 ## 证据链入口
 

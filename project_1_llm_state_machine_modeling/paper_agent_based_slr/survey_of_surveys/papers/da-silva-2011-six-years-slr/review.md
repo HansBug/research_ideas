@@ -19,7 +19,7 @@
 | 综述类型 | 更新型三级研究；整合前两项 tertiary study 并扩展时间窗口。 |
 | SE 子领域 | EBSE / SE 二级研究方法学 |
 | A1 角色 | 提供“扩展旧 tertiary study + 自动/人工搜索 + 质量/覆盖/影响分析”的更新型模式。 |
-| 是否目标证据池 | 否；只作为脚手架模式先验。 |
+| 是否目标证据池 | 非 Paper2 目标领域 final finding；是 `survey_of_surveys` 后续主统计池候选（A1 仅作 schema_seed，A2a 前不得最终定量）。 |
 | schema 历史观察 | 暴露“更新型 tertiary study”需要记录与先前研究的合并/对比字段；已在 schema 中加入 `前序综述关系` 候选字段。 |
 
 ## 2. 六类 pattern 抽取
@@ -27,10 +27,10 @@
 | 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | RQ 覆盖新时间段数量、主题、活跃作者/机构、旧研究限制是否仍存在、质量是否提升。 | `paper_content.txt` Page 1 abstract；Page 2--3 Method / RQ。 | 可迁移为“增量更新型 survey-of-surveys”模式。 | 更新型 RQ 适合 longitudinal review，不适合所有单次 SLR。 |
-| dimension pattern | 维度包括搜索策略、study selection、quality assessment、data extraction、研究主题、教育 / 实践影响。 | `paper_content.txt` Page 1 contents；Page 3--5 Method / Data extraction。 | 可迁移到 A2a 的字段树。 | 教育/实践影响字段有价值，但不能替代目标主题维度。 |
+| dimension pattern | 维度包括搜索策略、study selection、quality assessment、data extraction、研究主题、EBSE 实践缺口 / 研究影响。 | `paper_content.txt` Page 1 contents；Page 3--5 Method / Data extraction。 | 可迁移到 A2a 的字段树。 | EBSE 实践缺口与研究影响字段有价值，但不能替代目标主题维度。 |
 | finding pattern | 发现包括 SLR 数量增长、主题覆盖扩大、质量提升、但多数未评价 原始研究 质量且缺实践指南。 | `paper_content.txt` Page 1 abstract。 | 可迁移为“增长 + 质量 + 影响缺口”的 finding pattern。 | 具体增长和质量结论只属于当年 SE SLR 生态。 |
 | evidence presentation pattern | 用 67 个新 SLR、24 个 SE topics、quality assessment、curriculum / practitioner relevance 支撑结论。 | `paper_content.txt` Page 1 abstract；Page 6--10 results/discussion。 | 可迁移为统计表 + 解释性结论。 | 分母与统计方式可迁移，具体数值不可迁移。 |
-| validity / threat pattern | 关注搜索过程、前序研究合并、quality assessment 口径和对教育 / 实践影响的解释。 | `paper_content.txt` Page 3--5 Method。 | 可迁移到更新型 review 的 threat 模式。 | 更新型合并风险可参考，但需补现代检索库和开放科学风险。 |
+| validity / threat pattern | 关注搜索过程、前序研究合并、quality assessment 口径和对EBSE 实践缺口 / 研究影响的解释。 | `paper_content.txt` Page 3--5 Method。 | 可迁移到更新型 review 的 threat 模式。 | 更新型合并风险可参考，但需补现代检索库和开放科学风险。 |
 | report structure pattern | Previous studies → Method → Data extraction results → Discussion of RQs → Conclusions。 | `paper_content.txt` Page 1 contents。 | 可迁移，尤其适合 A2b 对旧 / 新样本分层。 | 适合 update/integrate 型综述，非更新型主题需调整。 |
 
 ## 3. 对 PR-A1 schema 的启发
@@ -157,7 +157,7 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 #### Q5：若无系统样本库，如何降级？
 
-不适用——本文是 systematic 二次研究 with N=120 codable units，有完整模式 和封闭取值空间，**应当进入主统计池**，而不是停留在 `模式种子（schema_seed）`。
+不适用——本文是 systematic 二次研究 with N=120 codable units，有完整模式和封闭取值空间，**是后续主统计池候选**；但 A1 阶段仅能作为 `模式种子（schema_seed）`，A2a 完成页码 / 表图 / 分母链精核前不得进入最终定量统计。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
@@ -270,11 +270,11 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 
 ### 6. 统计观察、候选发现 与 最终发现边界
 
-#### A. 字段 / 统计表直接支撑的统计观察（high confidence，可入主统计池）
+#### A. 字段 / 统计表直接支撑的文本级统计观察（A2a 主统计池候选；精核前不可作最终定量）
 
 1. **OS/FE+SE 中 SE topics 数量分布**：24 个新主题 + 14 个 OS/FE 已有；6 个主题占 55% (经验研究方法（Empirical Research Methods） 16 / Cost 13 / RE 10 / DSD 9 / SW Dev 9 / 测试 9 / Maint 7)（L774–786）
 2. **Quality trend**：2004 Mean=2.08 → 2009 Mean=2.61，6 年内 +12.5%（Table 13）
-3. **Cited 指南 × 质量 回归**：B=0.183, p=0.000（L1212–1214）
+3. **实践者指南（Practitioner Guidelines）× 质量回归**：B=0.183, p=0.000（L1212–1214）；`Cited Guidelines` 回归不显著，二者不得混写
 4. **实践者指南 提升**：OS/FE 17% → SE 36% → 整合 28%（Table 10）
 5. **QA of 原始研究 提升**：OS/FE 30% → SE 67% → 整合 51%（Table 11）
 6. **Median 原始研究 per SLR/MS**：MS 显著高于 SLR（Table 9，例：2006 MS=403.5 vs SLR=7）
@@ -303,6 +303,38 @@ RQ 是**统计聚合视角**，不是树根本身。每个 RQ 都对应抽取表
 3. 具体作者排行榜（Table 7）/ 国家排名（Table 8）——10 年后已大幅变化
 4. EBSE / SWEBOK / SE2004 Curriculum 三个外部锚——版本已更新（SWEBOK 现为 v4 2024）
 5. "QA3 21% 完整" 这类绝对水平——后续 SLR 实践已成熟，重测会显著不同
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文是更新型三级研究，围绕 2004-01-01 至 2009-12-31 新增 SE SLR/MS/MA，设置 RQ1--RQ5 比较数量增长、主题覆盖、作者/机构、既有限制与质量提升。 | `review.md` 维度树复原 §1；`evidence_chain.md` A.3 `clm-da-silva-2011-six-years-slr-type` |
+| S2 语料收集与筛选 | 强 | 语料通过 6 个自动数据库、13 个手工源和回溯引用收集；77 个 unique SLRs 进入 QA 与 data extraction，排除 10 篇后最终 SE 分析分母为 67，整合 OS/FE 后 N=120。 | `review.md` 维度树复原 §2；`evidence_chain.md` A.2 `ev-da-silva-2011-six-years-slr-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 主样本单位是已发表二级研究，SE 新增 67 篇、整合 OS/FE 后 N=120；原生结构为抽取表、QA 量规、主题分类、人员关系和更新关系维度森林。 | `review.md` 维度树复原 §0、§3；`evidence_chain.md` A.3 `clm-da-silva-2011-six-years-slr-unit`、`clm-da-silva-2011-six-years-slr-tree` |
+| S4 字段级证据 | 强 | 原文明示 10 个抽取字段和 QA1--QA4 评分量规，并在 Table 2/Table 3/Table 5 等表中实例化样本级编码。 | `review.md` 维度树复原 §1、§4；`evidence_chain.md` A.2 `ev-da-silva-2011-six-years-slr-tree` |
+| S5 维度模式演化 | 中 | 本文显式建模 OS→FE→SE 的前序更新关系和 temporal/search-extension/both 三类更新模式，但未给出完整 codebook 演化或冲突修订日志。 | `review.md` 维度树复原 §3 T5、§4 更新类型；`evidence_chain.md` A.3 `clm-da-silva-2011-six-years-slr-tree` |
+| S6 统计分析 | 强 | 统计覆盖主题、质量趋势、指南引用与质量回归、实践者指南比例、原始研究 QA 比例和 primary 数量相关性；当前只作 A2a 主统计池候选，精核前不写最终定量结论。 | `review.md` 维度树复原 §6.A；`evidence_chain.md` A.2 `ev-da-silva-2011-six-years-slr-pool` |
+| S7 候选 finding | 中 | 候选发现包括 SLR 数量增长但质量评价仍不足、EBSE 实践缺口、MS 比例变化、欧洲集中性和覆盖空白，多项仍需跨论文复核。 | `review.md` 维度树复原 §6.B；`evidence_chain.md` A.3 `clm-da-silva-2011-six-years-slr-pool` |
+| S8 研究者/作者质疑与裁决 | 强 | 本文有 DCP 多人编码裁决机制，并在限制讨论中记录 QA2 歧义、QA4 主观性和 protocol 描述不足等边界。 | `review.md` 维度树复原 §2、§6.C；`evidence_chain.md` A.2 `ev-da-silva-2011-six-years-slr-tree` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+本文是后续主统计池候选：原文具备系统检索、纳排、QA、数据抽取、明确分母链与可统计字段；但当前证据链仍标记为 `not_verified / 待 A2a`，因此在 A2a 完成 PDF 版面、表图、页码和分母链精核前，只能作为文本级可用的 schema / pattern seed 与主统计池候选，不应写入最终定量结论。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文明确为 updated tertiary study；RQ1--RQ5 覆盖 SLR 数量、主题、活跃作者/机构、既有限制、质量改进。 | 对应任务层根节点：更新型三级研究，以已发表二级研究为样本单位，并整合 OS/FE + SE。 | 支持主统计池候选的任务边界；不是最终 finding。 | 核对 PDF 摘要、§3.1 RQ、OS/FE/SE 定义的页码与表述。 |
+| S2 语料收集与筛选 | 自动检索 6 个库、手工检索 13 个源、参考文献回溯；154 unique papers → 77 → 排除 10 → 67，整合 OS/FE 后 N=120。 | 对应语料构造与分母链节点：search、selection、QA/data extraction、final SE set、integrated OS/FE+SE set。 | 强支持主统计池候选，但最终统计前需确认 67/77/120/1455 等分母。 | 核对 Fig.2、Table 1、Appendix A、结论中 1455 articles 与流程图分母是否一致。 |
+| S3 原生维度树/样本编码对象 | 样本为 SLR/MS/MA 二级研究；抽取 Year、Quality Score、Review Type、Review Scope、Topic、citation、primary-study count、practitioner guideline、source type 等。 | 可复原为维度森林：抽取表 schema、QA rubric、主题/课程/SWEBOK 分类、作者/机构/国家关系、OS→FE→SE 更新关系。 | 支持主统计池候选的编码对象定义；具体叶子维度应等 A2a 后入正式字段表。 | 核对 Table 2、Table 3、Table 5、Table 6 以及 Appendix A 是否完整支撑所有叶子。 |
+| S4 字段级证据 | §3.6 给出 QA1--QA4 与 Y/P/N 评分；§3.7 给出抽取字段；Table 2/3/5 等按 SE ID 展示样本级编码。 | 字段级证据较充分，可支撑抽取表与 QA rubric 两棵核心子树。 | 文本级可入候选字段池；最终字段统计需 A2a 表格视觉核验。 | 核对表格列名、SE01--SE77 ID、缺失/排除项、Table 2/3/5 的换行和 OCR 提取错误。 |
+| S5 维度模式演化 | 原文说明沿用 FE protocol、调整 RQ4；QA2 标准有修改；结论提出 temporal update、search extension、both 三类更新。 | 可复原为“前序综述关系 / 更新类型”子树，但不是完整 codebook 演化日志。 | 只作为模式演化的中等强度候选，不宜进入最终统计为强证据。 | 核对 §3 方法继承、§6 QA2 咨询 OS/FE 作者、§7 三类 update 的原文精确表述。 |
+| S6 统计分析 | 原文有主题频次、质量趋势、指南引用、practitioner guideline、primary-study QA、回归与相关分析等，含 N=67/N=120。 | 对应字段 → 频次/比例/趋势/回归的统计路径，可支撑统计观察层。 | 支持主统计池候选；A2a 前不得沉淀为最终跨论文定量结论。 | 核对 Table 4、6、10、11、12、13 及回归/相关分析的 N、p、系数。 |
+| S7 候选 finding | 结论提出主题覆盖增加、研究者/组织更分散、MS 比例增加；也指出 primary QA 不足、综合方法薄弱、practitioner guideline 仍少。 | 对应统计观察 → candidate finding / limitation / recommendation 路径。 | 可作为 finding heuristic 候选；领域结论必须降级为 2004--2009 SE SLR 语境。 | 核对结论与 §5 discussion 是否由表格统计直接支撑，避免把作者解释外推为通用规律。 |
+| S8 研究者/作者质疑与裁决 | 原文定义 DCP：双人评估、第三研究者裁决、全体共识；QA 与 data extraction 使用 DCP；§6 讨论 QA2/QA4 主观性和报告不足。 | 对应 human-in-the-loop 裁决子树：selection / QA / extraction 的 disagreement handling 与 limitation challenge。 | 支持研究者裁决模式入库；不直接增加统计分母。 | 核对 Fig.1 DCP、§3.3、§3.6、§6 中“至少两人”“第三方/共识”的完整性。 |
 
 ## 证据链入口
 

@@ -19,7 +19,8 @@
 | 综述类型 | 非典型 SLR；属于 requirements quality 的理论统一、57 篇文献状态评价与研究路线图 |
 | SE 子领域 | Requirements Engineering / requirements quality |
 | A1 角色 | 为 Paper2 的 researcher-defined meta-model、字段树、gap-to-roadmap 结构提供强脚手架先验。 |
-| 是否目标证据池 | 否；只作为综述/路线图写法与元模型设计的脚手架样本。 |
+| Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |
+| survey_of_surveys 边界 / 模式种子池 | 是；作为 theory-roadmap / 元模型设计样本，不进入普通主统计池。 |
 | schema 历史观察 | 暴露 `theory / evaluation / roadmap` 类型：不是普通 SLR/SMS，也不是纯 guideline；六类 pattern 需要允许“research commentary 不适用 / 转译后适用”。 |
 
 **一句话结论**：这篇文献最值得迁移的不是 requirements quality 的具体结论，而是“先定义理论对象与关系 → 用对象级 codebook 评价现有研究 → 把缺口组织成 roadmap 与 tool-support 架构”的三段式。它可以启发 Paper2 如何把 researcher-defined meta-model 做成一等制品，而不是把抽取字段表当作临时表格。
@@ -392,12 +393,11 @@ roadmap 基于 Femmer 等人的旧路线图，并结合本次状态评价扩展�
 └── 5.6 工具支持（tool support）— 实体与上下文刻画（entity & context characterization）+ 影响预测（impact prediction）
 ```
 
-#### 当前 review.md 缺失的部分
+#### A2a 待精核 / 尚未进入 evidence_chain 的部分
 
-- 把 §4 编码本（树 B）当作"原文模式主树"完整列出。
-- 把 影响的 4 个子维度（证据 / 模态 / 普遍性 / 参照框架）显式列叶。
-- 把 因素的显式性 × 表达形式 两组 代码 显式列叶。
-- 把 成本与资源的子代码（证据、type）显式列叶。
+- 现有 `review.md` 已将 §4 编码本（树 B）列为原文样本编码主树；A2a 需要把这些叶子进一步迁入 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。
+- 影响的 4 个子维度、因素显式性 × 表达形式、成本与资源子代码均已作为文本级叶子列出；A2a 仍需核对 Fig.4、Zenodo 与页码 / 表图锚点。
+- 本段只记录待精核事项，不再作为“当前 review 缺失”的第二事实源。
 
 ---
 
@@ -485,6 +485,38 @@ roadmap 基于 Femmer 等人的旧路线图，并结合本次状态评价扩展�
 4. 质量因素本体（质量-factor ontology）、AMDiRE、Quamoco、ABRE-QM 等被引工具的具体可用性。
 
 ---
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 原文明确 VIEW POINT / research commentary 类型，并给出 RQT 理论统一、requirements quality literature survey、roadmap 三段式贡献；§4 还明确 RQ、target population 与 57 篇样本单位，但 review type 需标为 hybrid commentary。 | `review.md` §1、§2.3、维度树复原 §0；`evidence_chain.md` A.2 `ev-requirements-quality-theory-roadmap-type`；`audits/a1-s1s8-19x1/adjudications/requirements-quality-theory-roadmap.md` |
+| S2 语料收集与筛选 | 中 | 被评价语料为作者前作 quality-factor ontology 中继承来的 57 篇原始研究，样本单位和分母清楚，但属于 convenience sampling。 | `review.md` §2.3、维度树复原 §1--§2；`evidence_chain.md` A.2 `ev-requirements-quality-theory-roadmap-unit`、`ev-requirements-quality-theory-roadmap-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生结构是维度森林：RQT 11 概念元模型、57 篇样本编码的 categorical-variable codebook、6 条 roadmap streams；其中只有树 B 是真正样本编码树。 | `paper_content.txt` §3--§5；`review.md` 维度树复原 §3 |
+| S4 字段级证据 | 中 | 字段结构与多项分母可复原，但若干 leaf/code 依赖 Fig. 4、Zenodo replication package 或 A2a 精核；当前不宜写成字段级证据充分。 | `review.md` 维度树复原 §4；`paper_content.txt` §4 |
+| S5 维度模式演化 | 中 | 维度模式体现为先由 RQT 概念派生抽取变量，再在第一轮 ad hoc 创建代码、第二轮通过讨论与理论背景精炼。 | `review.md` 维度树复原 §1、§2、§3；`evidence_chain.md` A.2 `ev-requirements-quality-theory-roadmap-tree` |
+| S6 统计分析 | 中 | 原文有 n=57、impact 子集 n=40、多项比例与 reliability 指标，能支撑本文内部 descriptive statistics；但样本为 inherited convenience sample，不能进入 Paper2 主统计池。 | `review.md` §6.1；`metadata.json` `eligible_for_statistical_synthesis=false`；`audits/a1-s1s8-19x1/adjudications/requirements-quality-theory-roadmap.md` |
+| S7 候选 finding | 中 | 候选 finding 形态是字段覆盖缺口 → 方法风险 → roadmap/action stream，例如 artifact-centric 覆盖较好而 activity/context/economic 侧覆盖不足。 | `review.md` §3、§4、维度树复原 §6.2--§6.4；`evidence_chain.md` A.3 `clm-requirements-quality-theory-roadmap-pool` |
+| S8 研究者/作者质疑与裁决 | 中 | 本文有等价质量控制机制：第一作者全量编码、第二作者约 10% 样本 instrument validation、reliability 报告和 threats 中的隐式抽取/convenience sample 风险。 | `review.md` §2.3、§2.6、维度树复原 §1、§2；`evidence_chain.md` A.2 `ev-requirements-quality-theory-roadmap-pool` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+**裁决：不进入 `survey_of_surveys` 的 SLR/SMS 主统计池；仅作为 `schema_seed / methodological_seed / boundary_anchor`。** 原因是本文原型是 VIEW POINT / research commentary，结构为 **theory → evaluation → roadmap**：先提出 RQT 概念理论，再用继承自前作的 57 篇 requirements quality primary studies 做状态评价，最后生成六条 roadmap streams。其 §4 内部有编码本、分母与描述统计，因而可作为“理论概念如何转成 categorical-variable codebook”的方法样本；但样本是 inherited convenience sample，且整体不是新执行的标准 SLR/SMS，不能把 RE 领域比例、roadmap 结论或候选 finding 并入 Paper2 主统计发现。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要和 §1 明确本文是 research commentary，贡献为 RQT 理论统一、requirements quality literature survey、research roadmap；§4 提出 RQ：“How are the concepts of the requirements quality theory reported in requirements quality literature?” | 根任务不是常规 SLR/SMS，而是三段式 commentary：Tree A 理论概念、Tree B 文献编码评价、Tree C roadmap。 | **不入主池**；S1 可作“hybrid commentary / theory-evaluation-roadmap”边界类型，当前 review.md 标“强”可保留但必须带类型限定。 | 核对 PDF 首页 VIEW POINT、摘要贡献句、§4 RQ 页码；确认正式出版版没有额外 protocol 附录。 |
+| S2 语料收集与筛选 | §4.1 说明 target population 是 requirements quality factors 文献；样本来自前作 systematic study 的 57 篇 primary studies，并明确是 non-probabilistic convenience sampling。 | 样本单位是 57 篇原始研究；不是本文新检索得到的 SLR/SMS 纳排漏斗。 | **不入主池**；只能作为“继承样本 / convenience sample”风险模式。建议 S2 保持“中”，不得升强。 | 核对前作样本来源、57 篇清单、是否只覆盖 empirical contributions；若写入论文，必须注明 inherited sample。 |
+| S3 原生维度树/样本编码对象 | §3 给出 RQT 11 concepts；§4.2 说明每个 concept 关联一个或多个 categorical variables 与 codes；§5 给出 roadmap streams。 | 复原为维度森林：A = RQT 11 概念元模型；B = §4 extraction guideline/codebook，是真正样本编码树；C = §5 六条 roadmap streams。 | **局部可用但不入主池**；可作维度树设计样本，不能把 RQT 概念或 roadmap streams 统计为 survey 主发现。 | 精核 Fig. 2、Table 1、Fig. 4、Fig. 5 与 Zenodo 复现包字段；确认 B 树叶子未漏。 |
+| S4 字段级证据 | §4.2 给出 entity explicit/implicit、factor explicitness/form 等示例；§4.3 给出多项分母和结果，但部分 code 只在 replication package 中。 | 字段层由 RQT concept 派生 categorical variables；已知叶子包括 entity explicitness、factor explicitness/form、impact evidence/modality、context/cost/resource 等。 | **不入最终定量字段池**；可作 codebook construction seed。当前 S4 “中”合理，不能写成字段全集已完全核验。 | 逐项核验 Zenodo 8167598、Fig. 4 数值、impact remaining dimensions、context/cost/resource 完整枚举。 |
+| S5 维度模式演化 | §4.2 说明 codes 第一轮 ad hoc 创建，第二轮基于讨论和理论背景精炼；§4.5 讨论隐式概念抽取造成的 construct/internal validity 风险。 | 维度演化模式是“理论概念 → 初始 codes → 讨论/理论精炼 → descriptive statistics”，不是跨综述迭代 taxonomy。 | **方法种子可用，不入主池**；S5 可保持“中”，用于提示 A2a 记录字段来源与 refinement 过程。 | 核对 extraction guideline 版本、讨论/精炼证据是否只在复现包；不得臆测有完整裁决日志。 |
+| S6 统计分析 | §4.3 报告 n=57、impact 子集 n=40、24/57、17/57、14/57、8/57、37/40、19/40、11/40、10/40 等；§4.2 报告 agreement 83.3%、Kappa 54.2%、S-Score 76.8%。 | 统计树服务于本文内部评价：RQT concept coverage 与 reporting modes 的 descriptive statistics。 | **只承认内部统计强，不进 Paper2 主统计池**；S6 应维持“中”或写“内部强/外部不合格”，避免把 convenience sample 当主样本。 | 复核 Fig. 4 与正文数字一致性、n=40 子集定义、reliability 计算样本 2+4 的解释。 |
+| S7 候选 finding | §4.4/§6 将结果解释为 artifact-centric bias 与 activity/context/economic concepts 被忽视；§5 把缺口转为六条 roadmap streams。 | finding 形态是“字段覆盖缺口 → 理论/实践风险 → roadmap action”；C 树是路线图，不是样本编码结果。 | **不入主统计池**；只作 gap-to-roadmap 写法样本。S7 “中”可保留，必须禁止迁移 RE 领域比例和 roadmap 内容。 | 核对 §4.4、§5.1--§5.6 与结论页码；区分作者解释、领域结论与可迁移方法模式。 |
+| S8 研究者/作者质疑与裁决 | §4.2 有第一作者全量抽取、第二作者约 10% 随机样本 instrument validation、inter-rater reliability；§4.5 有 internal/construct/external validity threats。 | 质量控制节点包括独立抽取、训练/正式 reliability、复现包和 validity threats；但没有类似 SLR review 的完整纳排裁决日志。 | **方法种子可用，不入主池**；S8 “中”合理，不应升强。 | 核对六篇子样、两篇 training 与四篇 IRR 的原文表述；检查复现包是否含争议处理记录。 |
 
 ## 证据链入口
 

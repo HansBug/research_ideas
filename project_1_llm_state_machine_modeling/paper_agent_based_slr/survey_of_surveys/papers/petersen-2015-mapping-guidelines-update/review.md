@@ -119,7 +119,7 @@
 
 ## 7. 待复核
 
-1. 视觉核对 Figure 1（p.5）的 selection flow，特别是 7752、5082、60、43、54、44、52+8+11 等链条。
+1. 视觉核对 Figure 1（p.5）的 selection flow，特别是 7752 → 5082 → 60 → 43 → 54 → 44 → 52，并区分 +11、-10、+8 等边变化；不得继续写成旧式相加混合口径。
 2. 视觉核对 Table 5（p.8--9）的 guideline comparison matrix。
 3. 视觉核对 Figure 5--15（p.6--8）的分布 / 分类 / validity 图。
 4. 视觉核对 Figure 16--19（p.9--13）中 search reflection、study selection、venue classification 和 research method classification。
@@ -341,6 +341,40 @@
 2. "指南 X 比 指南 Y 更好"这种结论本文未做，Paper2 也不应外推。
 3. rubric ratio 33% 是 2012 前 SE SMS 的实证基线，**不能**外推为"现代 LLM-assisted SLR 应达到 ≥33%"或类似规范性指标。
 4. 效度 分类法 5 类未涵盖 LLM/服务提供商漂移（provider drift）、prompt drift、模式 revision bias 等现代风险。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文以“对 SE 系统映射研究做系统映射并更新 mapping guideline”为任务，RQ 覆盖 guideline 使用、SE topic、venue/year 与 mapping process 执行。 | `review.md` §2.1、§2.2、维度树复原 E1；`evidence_chain.md` A.3 `clm-petersen-2015-mapping-guidelines-update-type` |
+| S2 语料收集与筛选 | 强 | 有数据库、检索式、时间窗、去重、题摘、全文、snowballing、QA 和回补排除研究；57 是 QA 中间候选，52 是 final included mapping studies 分母。 | `paper_content.txt` §3.2--§3.3；Fig. 1；`review.md` 维度树 E3、S2 行 |
+| S3 原生维度树/样本编码对象 | 强 | 被编码样本单位是 52 篇 SE 系统映射研究，原生结构是抽取表单树、分类切面树、guideline action/rubric 树和 validity taxonomy 树组成的维度森林。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.2 `ev-petersen-2015-mapping-guidelines-update-unit`、`ev-petersen-2015-mapping-guidelines-update-tree` |
+| S4 字段级证据 | 中 | Table 3 与 Appendix B 支撑字段级编码，但当前核心证据多为 not_verified / 待 A2a 图表核验；字段存在性强，逐样本表格数值仍待精核。 | `review.md` S4 行、叶子表；`evidence_chain.md` A.2 `ev-petersen-2015-mapping-guidelines-update-tree`、`ev-petersen-2015-mapping-guidelines-update-denom` |
+| S5 维度模式演化 | 强 | 本文通过比较既有 guidelines 与实际 SMS 做法形成 guideline update；新识别维度包括 venue、study focus、research method，最终推荐通用 facets 为 venue、research type、research method。 | `review.md` §2.4、§3、维度树复原 §3、§6.2；E4、E9；`audits/a1-s1s8-19x1/adjudications/petersen-2015-mapping-guidelines-update.md` |
+| S6 统计分析 | 强 | 对 guideline adoption、search、QA、classification、visualization、validity 和 rubric scores 有分母明确统计；A2a 前不作最终统计结论。 | `review.md` 维度树 §6.1、S6 行 |
+| S7 候选 finding | 强 | 候选 finding 主要是方法学发现：单一 guideline 不足、需更新指南、topic-independent facets 可复用、SMS 应追求 good sample、rubric 可评价报告质量。 | `review.md` §3、§6.1、维度树复原 §6.2、§6.3 |
+| S8 研究者/作者质疑与裁决 | 中 | 本文没有完整裁决日志，但讨论单人筛选/抽取偏差，并给出 first-author 复审、reference-set validation、additional reviewer + consensus、decision rules 等缓解机制。 | `review.md` §2.6、§4、维度树复原 E12、L06、R09 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+**裁决：保留为 `survey_of_surveys` S1--S8 主统计池候选，但只进入方法学 / schema 统计池；A2a 页码、表图和 Appendix B 逐研究映射精核前，不进入最终定量发现。**
+
+理由：本文不是纯 guideline 文本。摘要和 §3 明确说明作者执行了 **systematic mapping study of systematic maps**，最终样本单位是 **52 篇 SE 系统映射研究**，并用 Table 3 抽取表、§4 统计结果、Appendix B 逐研究关系表支撑 RQ1--RQ4；同时 §5 将这些统计与既有 SLR/SMS 指南比较后形成 **guideline update**。因此它可以统计“综述之综述如何抽取字段、形成维度、做方法学统计与修订指南”，但不能作为 Paper2 目标 SE 领域效果 / 因果结论的统计来源。分母口径应使用 final included **N=52 mapping studies**；57 只是 quality assessment 中间候选。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要写明目标是识别 systematic mapping process 如何执行并据此更新 guideline；§3.1 给出 RQ1--RQ4，覆盖采用哪些 guidelines、SE topics、发表时间地点、mapping process 如何执行。 | 顶层任务是“对 SE systematic maps 做 systematic map，并将统计结果转化为 mapping guideline update”；RQ 是字段 owner，不是单一树根。 | **强，合格候选**；可统计为 mapping-of-maps / guideline-update 型任务设定，但仅限方法学池。 | 核对摘要、§1 contribution、§3.1 RQ 的正式页码与原文排版；确认 DOI final 与本地 PDF 一致。 |
+| S2 语料收集与筛选 | §3.2 给出 IEEE、ACM、Scopus、Inspec/Compendex 检索式和命中数；§3.3 给出纳排、title/abstract、full-text、backward snowballing、QA、first-author validation 与排除研究回查；Fig. 1 给出流程链。 | 检索漏斗树包括数据库检索、去重与时间窗、题摘筛选、全文筛选、滚雪球、质量评价、validation set 与 excluded review 回补。 | **强，合格候选**；可入“语料筛选流程 / 分母链”统计池；最终分母应为 52，不应把 57 写成 included studies。 | 视觉核对 Fig. 1 的 7752、5082、60、43、54、44、52 等数字链；复核 Table 1/2 和 Appendix A included/excluded 清单。 |
+| S3 原生维度树/样本编码对象 | §3.4 Table 3 给出抽取表；§4 按 RQ 汇总；Appendix B Tables B.15--B.27 给出逐研究映射；`review.md` 已裁决样本单位为 52 篇 SE systematic mapping studies。 | 原生结构是维度森林：数据抽取表单树、classification facet 树、guideline action / rubric 树、validity taxonomy 树，共享“52 篇 mapping studies”样本单位。 | **强，合格候选**；可作为“同一样本单位上的多根维度森林”统计样本。 | 核对 Table 3 列名、RQ 绑定关系、Appendix B 全部表格是否均以同一 52 分母展开；检查表格跨页无漏项。 |
+| S4 字段级证据 | Table 3 字段包括 study id、title、author、year、SWEBOK area、venue、guidelines、search strategy、search type、classification schemes、visualization type；Appendix B 给出 topic、venue、guideline、search、QA、facet、visualization、validity 等逐研究关系。 | 字段层可复原为 bibliographic fields、SE topic fields、process fields、classification fields、visualization fields、validity fields 和 rubric fields。 | **中到强，文本级候选**；字段存在性强，但逐样本取值和计数需 A2a 后才能进入最终统计。 | 精核 Tables B.15--B.27 每张表的行数、列名、缺失值语义和 OCR 残留；复核 Figure 3--15 与 Appendix B 倒推计数是否一致。 |
+| S5 维度模式演化 | §4.4.4 识别 topic-independent facets，指出 Petersen 2008 未强调的新维度为 venue、study focus、research method；§5 与 Table 5 比较既有 guidelines，§5.1.3 最终鼓励使用 venue、research type、research method。 | 模式演化不是代码本迭代日志，而是“已有指南覆盖差异 + 实际 SMS 统计实践 → 更新后的通用 facet 与活动清单”。需区分新识别维度和最终推荐 facet。 | **强，合格候选**；可入“方法实践统计如何驱动 schema/guideline 修订”统计池。 | 复核 Table 5 guideline comparison matrix、Fig. 12、Table B.24、§5.1.3 相关段落；避免把 contribution type 或 study focus 误写为最终推荐三元组。 |
+| S6 统计分析 | §3.5 明确 tabulate、visualize、theme grouping and counting；§4 对 guideline adoption、topics、venues、search、QA、classification、visualization、validity 做频数统计；§5.4 Table 14 与 Fig. 20--21 报告 rubric 分布。 | 统计从字段树派生：52 分母上的 guideline、topic、venue、search、QA、facet、visualization、validity 和 rubric ratio 等方法学统计。 | **强，合格候选**；可作为方法学统计池样本，A2a 前不得并入最终跨论文定量发现。 | 逐项核对 §4 图表、Table 14、Fig. 20--21 的数值；确认 median quality ratio、25% threshold、journal/conference 对比等表述。 |
+| S7 候选 finding | §6 总结多指南并用、单一 guideline 不足、需要 updated guideline；§5.1.3 推荐通用 facets；§5.4 提出 evaluation rubric；§6 强调 good sample / representation 比单纯更多研究更重要。 | 候选 finding 链条是“字段统计观察 → 方法学解释 → guideline update / rubric / reporting 建议”，不是 SE 目标领域技术效果结论。 | **强但限界**；可入“统计观察转方法学 finding”模式池；不得迁移为 LLM4STM 或其他目标领域发现。 | 将每个 finding 回连到 RQ、图表或 Table 5/8/14；核对作者 discussion 与我们方法启发之间的边界。 |
+| S8 研究者/作者质疑与裁决 | §3.3 承认 title/abstract 筛选由单一作者完成，是 reliability threat；随后用 first-author validation sets、回查排除研究缓解；§3.4 说明第二作者抽取、第一作者 trace-back review；§3.6 系统讨论 validity。 | 可复原为 threat-aware validation / checker 机制和 guideline-level consensus 建议；不是完整双人独立筛选、完整 coding adjudication 或 inter-rater 日志。 | **中，候选但需降级**；可统计为“有复核与效度缓解”，不能统计为“完整人工裁决日志”。 | 核对 §3.3、§3.4、§3.6、Fig. 17、Table 6；确认单人筛选风险与 first-author validation 的边界表述。 |
 
 ## 证据链入口
 

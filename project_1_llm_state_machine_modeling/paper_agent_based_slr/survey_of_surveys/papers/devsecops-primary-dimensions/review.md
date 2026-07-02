@@ -149,7 +149,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 |---|---|---|---|---|
 | RQ pattern | 采用“现状 + aspects + themes + links”作为 RQ1，并用 RQ2 专门检查特定 context 的缺失。 | `paper_content.txt` §3.3 Objectives and research questions；§4.1；§4.2。 | 可迁移到 Paper2：RQ 不只问“有哪些论文”，还问“字段树是什么、字段间如何链接、缺失 context 是什么”。 | DevSecOps/GSE 的领域内容不可迁移为 Paper2 目标发现。 |
 | Dimension pattern | 五大 aspect -> text segments/codes/themes -> OPC/PC/Technology/Business -> Gartner lifecycle -> CPTM。 | §4.1.1、§4.1.2、Tables 5--19、§4.1.3、Table 21、Figs. 5--9。 | 强可迁移：支持多层字段树、编号化主题、source type、frequency、category、stage、cross-link。 | 图表连线与 full CPTM 需 PDF / Zenodo 核对；不能把 CPTM 直接变成所有 SE SLR 的通用 schema。 |
-| Finding pattern | 从统计与主题合成导出：实践最受关注、metrics 最薄弱、WL/GL 关注互补、Business 在 WL 中弱、GSE 维度缺失、近年研究转向 framework design。 | §4.1.4、§4.2.3、§4.3、§4.4。 | 可迁移为 Paper2 的 候选发现 heuristic：频次分布 + 来源差异 + 缺失关系 + confirmatory trend。 | 原文 finding 仍需研究者解释；负面 finding 受 search string 与时间窗口影响。 |
+| Finding pattern | 从统计与主题合成导出：实践最受关注、metrics 最薄弱、WL/GL 关注互补、Business challenges 在 WL 中存在、GL 中 business-related challenges = 0，business metric M20 来自 prior MLR 补入、GSE 维度缺失、近年研究转向 framework design。 | §4.1.4、§4.2.3、§4.3、§4.4。 | 可迁移为 Paper2 的 候选发现 heuristic：频次分布 + 来源差异 + 缺失关系 + confirmatory trend。 | 原文 finding 仍需研究者解释；负面 finding 受 search string 与时间窗口影响。 |
 | Evidence presentation pattern | 使用 search execution 表、overlap 表、aspect-source 表、TA count 表、C/P/T/M 主题表、工具组表、metric mapping 表、生命周期映射表与开放材料。 | Tables 1--5、8--21；Data availability。 | 可迁移为“从检索分母到模型元素”的证据链模板；每个 field 应能回到 source ID / table / QA。 | 本轮未逐项核对所有 C/P/T/M 表格原始来源；正式引用需页码/表号核对。 |
 | Validity / threat pattern | 明确报告 selection/QA/extraction bias、synthesis trustworthiness、search string 构造威胁；承认第一作者主导编码与既有框架先验影响。 | §3.8.3、§5.1--§5.3。 | 可迁移为 Paper2 的威胁模板：字段抽取偏差、模式先验污染、负面发现检索词敏感性、人工裁决主观性。 | Reflexive TA 的信度口径与 Paper2 若采用的 LLM/agent 抽取不同，不能照搬。 |
 | Report structure pattern | Introduction -> key concepts / related work -> MLR method -> results/discussion by RQ -> implications -> threats -> conclusion -> open materials / appendix。 | 全文目录与章节结构。 | 可迁移为 secondary-study review 的报告骨架；尤其是 related work 对前序综述的比较和 RQ 对齐结果。 | Paper2 是方法论文，不应完全按 DevSecOps MLR 结果论文组织。 |
@@ -192,7 +192,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 
 - [ ] 如需正式引用 CPTM 连线，打开 [paper.pdf](./paper.pdf) 核对 Fig. 5--9 与 Table 21，并进一步核对 Zenodo full CPTM model。
 - [ ] 打开 Zenodo <https://doi.org/10.5281/zenodo.7959584> 核验 protocol、QA score、raw text/codes、TA tables 是否与论文叙述一致。
-- [ ] 复核 “104 WL + 43 GL” 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL。
+- [ ] 复核 “摘要口径 104 WL + 43 GL；RQ1 主 TA 池 102 WL + 43 GL，RQ2 另 2 WL，confirmatory 13 WL + 7 GL 不进入 TA/CPTM” 的口径：正文 RQ1 为 102 WL + 43 GL，RQ2 另有 2 WL；摘要合并为 104 WL。
 - [ ] 如后续把本文纳入 [patterns/pattern-field-schema.md](../../patterns/pattern-field-schema.md) 的正式字段来源，需要另开任务更新 schema / SUMMARY；本次按用户约束只编辑本 `review.md`。
 - [ ] 若 Paper2 后续选择 DevSecOps / security-oriented SE 作为 pilot topic，需要重新检索 2022--2026 文献，不能用本文的 2012--2021 样本当作当前全貌。
 
@@ -216,7 +216,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 | 是否读取 `bibtex.bib` / `metadata.json` | 是；两文件已完整读取并交叉核对 DOI / venue / 年份 / open access status |
 | 是否打开或核对 `paper.pdf` | 否；本轮基于 `paper_content.txt` 文本审计，Fig. 5--9 (CPTM 拆分图) 与 Tables 6--21 的版面细节未做 PDF 视觉核验，留作 A2a |
 | 原文类型 | Multivocal Literature Review (MLR) + Reflexive Thematic Analysis (TA)；属系统二级研究 |
-| 被编码样本单位 | **两层**：(a) 原始研究（104 WL + 43 GL，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 原始研究 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、挑战 (73+53)、practices (219+137)、指标 (7+13)、工具 (18+45)——这些 item 才是 主题分析 的真正编码单位 |
+| 被编码样本单位 | **两层**：(a) 原始研究（摘要口径 104 WL + 43 GL；RQ1 主 TA 池 102 WL + 43 GL，RQ2 另 2 WL，confirmatory 13 WL + 7 GL 不进入 TA/CPTM，2012--2021；另 20 confirmatory search 单独存放、不入 TA/CPTM）；(b) 每篇 原始研究 内部被抽取的细粒度 item：DevSecOps definitions (28+15)、挑战 (73+53)、practices (219+137)、指标 (7+13)、工具 (18+45)——这些 item 才是 主题分析 的真正编码单位 |
 | 样本数量 / 分母 | 原始研究 分母 = 102 WL + 43 GL (RQ1) + 2 WL (RQ2) ≈ 147；text segment 分母随 aspect 不同：definitions 43、挑战 126、practices 356、指标 20、工具 63；最终模型项：28 挑战 (C01--C28)、60 practices (P01--P60)、20 指标 (M01--M20)、18 工具 groups (T01--T18) |
 | 原生树类型 | **维度森林 + 显式关系边**（不是单棵树）：5 个 aspect 各为一棵子树，CPTM 关系图把 4 棵子树（Challenge/Practice/Tool/Metric）通过 Table 21 的多对多映射 + Gartner 10 阶段生命周期投影连接成一张图 |
 | 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
@@ -277,7 +277,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 │   ├── 文本片段 (自由文本，含相似与重复)
 │   ├── 代码（74 项；命名后的概念短语)
 │   ├── 主题（21 项；如“Dev/Sec/Ops 协作”、“左移（shift-left）”、“共享责任（shared responsibility）”）
-│   ├── 类别 取值 ∈ {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）}（封闭 4 枚举）
+│   ├── 类别 取值 ∈ {组织、人员与文化（OPC）, 过程能力（PC）, 技术, 业务（业务）}（封闭 4 枚举）
 │   ├── 来源轨道 取值 ∈ {WL, GL}
 │   ├── 来源编号 (Paper ID 列表；如 S1-IEEE-08, S1-GL-15)
 │   ├── 频次 (主题 内 代码 计数；Table 6 每行括号数字)
@@ -303,7 +303,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 ├── D. DevSecOps 工具 / 技术 子树（18 WL + 45 GL → 56 代码→ 16 主题 → 18 最终分组（最终分组） → 1 类别）
 │   ├── 工具组编号 (T01..T18)
 │   ├── 功能组 (主题；如 "自动化工具（Automation 工具）", "容器安全工具（Container security 工具）", "静态应用安全测试工具（SAST 工具）")
-│   ├── 工具名称 (具体工具列表，如 Docker, Kubernetes, Snyk, Trivy 等)
+│   ├── 工具名称 (具体工具列表，如 Docker, Kubernetes, Snyk, Snyk 等)
 │   ├── 类别 = 技术（单值枚举）
 │   ├── 来源轨道 + 来源编号
 │   └── 补入来源 (T16-T18 来自 Mohan&Othmane mapping）
@@ -311,7 +311,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 ├── E. DevSecOps 指标 / 度量 子树（7 WL + 13 GL → 20 代码→ 16 主题 → 20 最终条目（最终条目） → 3 类别（类别））
 │   ├── 指标编号 (M01..M20)
 │   ├── 指标名称 + 测量方法 + 目标（每个 指标 在 Tables 16-17 有 Measuring/Goal 双字段）
-│   ├── 类别 取值 ∈ {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）}（业务 仅 M20）
+│   ├── 类别 取值 ∈ {组织、人员与文化（OPC）, 过程能力（PC）, 技术, 业务（业务）}（业务 仅 M20）
 │   ├── 频次 + 来源轨道 + 来源编号
 │   ├── 补入来源（M07–M08、M19 来自 Prates 的 MLR；M20 来自 Myrbakken 的 MLR）
 │   └── 映射到 DevOps 指标 (Table 18；13/20 与 Amaro 2023 DevOps 指标 一对多映射)
@@ -338,7 +338,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | L-aspect | DevSecOps aspect | ROOT | §4.1.1 | 5 大主题划分 | {Definitions, Challenges, Practices, Tools/Technologies, Metrics/Measurement} | 完整枚举 (5) | 不允许缺 | 频次分布 (Fig 4) | aspect 失衡 发现 | Page 1 摘要, §4.1.1, Table 4 | 模式可迁移，5 项内容仅限本文 |
-| L-category | High-order category | aspect 下所有 item | §4.1.2 | 主题归类 | {组织 / 过程 / 文化（OPC）, 人员 / 协作（PC）, 技术, 业务（业务）} | 完整枚举 (4)；指标 子树降为 3；工具 子树仅 技术 | NA 仅出现在 指标-业务 (本文 included studies 中 0 项，补入 M20 后才填) | category 分布 | category 失衡、业务 在 WL 缺失 发现 | §4.1.2, Tables 6/8--19 | 4-cat 划分在 DevSecOps 之外不通用 |
+| L-category | High-order category | aspect 下所有 item | §4.1.2 | 主题归类 | {组织、人员与文化（OPC）, 过程能力（PC）, 技术, 业务（业务）} | 完整枚举 (4)；指标 子树降为 3；工具 子树仅 技术 | NA 仅出现在 指标-业务 (本文 included studies 中 0 项，补入 M20 后才填) | category 分布 | category 失衡、业务 在 WL 缺失 发现 | §4.1.2, Tables 6/8--19 | 4-cat 划分在 DevSecOps 之外不通用 |
 | L-text-segment | text segment | 每个 item | §3.8.1 + Tables 6/8--19 中 "Codes [Papers..]" 列 | 编码前的原文片段 | 自由文本+原始 Paper ID 注引 | 自由文本+source list | 不允许缺；至少 1 段 | text-segment 总频次 (Fig 4) | aspect-WL/GL 不平衡 | §3.8.1 | 仅本文 |
 | L-code | code | text-segment 之上 | §3.8.2 + Tables 6/8--19 列 | text-segment 抽象短语 | 自由文本但已规范化 | 自由文本 (149 个 code 跨 aspect) | 不允许缺 | code 计数 Table 5 | -- | Page 7 §3.8.2 | -- |
 | L-theme | theme | code 之上 | Tables 6/8--19 行 | code 聚合形成的稳定主题 | 跨 5 aspect 共 132 themes (Table 5 求和) | 层级枚举 (21+23+56+16+16) | 不允许缺 | theme 频次 | 主题分布失衡 | Table 5 | -- |
@@ -387,7 +387,7 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 - 挑战 category 排序：OPC(9)>PC(8)>Tech(7)>Biz(4)
 - practice category 排序：Tech(23)>PC(17)>OPC(15)>Biz(5)
 - 指标 category 分布：Biz 仅 1 项 (M20) 且补入
-- WL 中 业务 类 挑战 / 指标 数 = 0
+- GL 中 business-related challenges = 0；business metric M20 来自 prior MLR 补入
 - Table 2 prior-review overlap %：从 40% (Mohan2016) 到 100% (Myrbakken2017)
 - 13/20 DevSecOps 指标 与 Amaro 2023 DevOps 指标 重合 (≈65%)
 - RQ2 GSE 命中：126→66→2 WL；100 GL browsed→0
@@ -413,6 +413,38 @@ RQ2 得到的是典型 negative finding。Search String 1 没找到 DevSecOps + 
 - 28 个 挑战 / 60 practice / 20 指标 的具体内容
 - Gartner 10-阶段 不一定适合非 DevSecOps 主题
 - "指标 薄弱"、"业务 仅在 GL" 等领域统计结论受 2012--2021 时间窗口限制
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文明确设定为 DevSecOps 的多声部文献综述，RQ1 抽取 aspects/themes/links，RQ2 检查 GSE context 中的应用空白。 | `review.md` §2.1、§2.3；`evidence_chain.md` A.2 `ev-devsecops-primary-dimensions-type` |
+| S2 语料收集与筛选 | 强 | 采用 white literature + grey literature 双轨检索、两套 search string、纳排、QA 和 snowballing；confirmatory search 只作新近验证，不进入 TA/CPTM 主统计语料。 | `review.md` §2.4；`evidence_chain.md` A.2 `ev-devsecops-primary-dimensions-unit`、`ev-devsecops-primary-dimensions-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生结构是 5 个 aspect 构成的维度森林，并以 text segment/code/theme/category 到 CPTM 节点与关系边为编码对象。 | `review.md` 维度树复原 §0、§2；`evidence_chain.md` A.3 `clm-devsecops-primary-dimensions-unit`、`clm-devsecops-primary-dimensions-tree` |
+| S4 字段级证据 | 强 | 字段级证据覆盖 definitions、challenges、practices、metrics、tools 的 text segment/code/theme/category 计数、ID、频次、source-ID 与关系映射；CPTM 关系边与 Zenodo full model 待 A2a 精核。 | `review.md` §2.6、§2.7、维度树复原关键证据锚点；`evidence_chain.md` A.2 `ev-devsecops-primary-dimensions-denom`、`ev-devsecops-primary-dimensions-tree` |
+| S5 维度模式演化 | 强 | 明确呈现从 inductive thematic analysis 的 text → code → theme → category 到 lifecycle/CPTM model 的模式演化，并区分 WL 归纳与 GL 演绎分析。 | `review.md` §2.5、§2.7、§3；`evidence_chain.md` A.3 `clm-devsecops-primary-dimensions-tree` |
+| S6 统计分析 | 强 | 提供各 aspect 的主样本分母、text segment/code/theme/category 数量、C/P/T/M 项数、频次和 WL/GL 差异；confirmatory search 仅作验证性补充。 | `review.md` §2.6、§3、维度树复原 §0；`evidence_chain.md` A.2 `ev-devsecops-primary-dimensions-denom` |
+| S7 候选 finding | 强 | 候选发现包括实践最受关注、metrics 最薄弱、WL/GL 互补、Business challenges 在 WL 中存在、GL 中 business-related challenges = 0，business metric M20 来自 prior MLR 补入、GSE 缺失和 framework design 趋势；其中 confirmatory finding 单独降级。 | `review.md` §2.8、§3、§6；`evidence_chain.md` A.3 `clm-devsecops-primary-dimensions-pool` |
+| S8 研究者/作者质疑与裁决 | 中 | 原文没有独立质疑-裁决流程，但有 reflexive thematic analysis 的多作者审核协商、trustworthiness 讨论、threats 与开放材料审计。 | `review.md` §2.5、§2.9；`evidence_chain.md` A.2 `ev-devsecops-primary-dimensions-type` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+本文是 A2a 主统计池候选 / A1 阶段仅作模式种子。理由：原文具备系统 MLR、WL/GL 双轨检索、QA、TA 编码链、CPTM 关系模型与开放材料；但当前审计仍未逐项核验 PDF 表图页码、Fig. 5--9 连线、Table 21 全关系边与 Zenodo full CPTM。因此可进入后续精核队列，不应在 A2a 前进入最终定量统计或支撑 Paper2 目标领域最终 finding。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文明确为 DevSecOps MLR；RQ1 问 aspects / themes / links，RQ2 问 GSE contexts。 | 根节点可复原为“DevSecOps 当前状态 + 全球采用探测”，下接 RQ1 维度森林与 RQ2 context probe。 | 候选可用：任务设定清晰，可统计为“现状 + 维度 + 关系 + 缺失探测”型综述。 | 核对 PDF 中 §3.3 RQ 原文页码；确认 RQ2 是否只作 gap probe，不并入五大 aspect。 |
+| S2 语料收集与筛选 | 原文报告 WL 104、GL 43；RQ1 主池为 102 WL + 43 GL，RQ2 另 2 WL；confirmatory 13 WL + 7 GL 不进 TA/CPTM。 | 样本单位需拆两层：外层 primary studies，内层 text segments / codes / themes / model items。 | 候选可用但需分母隔离：主 MLR、RQ2、confirmatory 必须分开统计。 | 精核 Table 3、Fig. 3、Appendix A.1--A.3；统一 104/102+2/147/20 confirmatory 口径。 |
+| S3 原生维度树/样本编码对象 | 摘要与 §4.1 明确五大 aspects；§3.8.2 明确 Text → Code → Themes → Model。 | 复原为 5 棵 aspect 子树：Definitions、Challenges、Practices、Tools/Technologies、Metrics/Measurement；C/P/T/M 再接 CPTM 关系图。 | 强候选：有原生树和编码对象，不是 reviewer 后验投影。 | 核验 Table 5 的 text segment / code / theme / category 计数；确认 definitions 是否不进入 CPTM。 |
+| S4 字段级证据 | Tables 5--19 给出 aspect、code、theme、category、ID、频次、source IDs；Table 21 给 C/P/T/M 映射。 | 叶子字段可复原为 aspect、category、text segment、code、theme、C/P/M/T ID、frequency、source track、source ID、prior-review match、lifecycle stage、关系边。 | 候选可用但暂不最终入池：字段丰富，可统计；但关系边需版面/补充材料精核。 | 打开 PDF 核 Tables 6--21 跨页对齐；核 Zenodo raw text/codes、TA tables、full CPTM。 |
+| S5 维度模式演化 | 原文说明 WL 先归纳编码，GL 主要基于 WL codes/themes 演绎分析，再映射 Gartner lifecycle 形成 CPTM。 | 模式演化链为 inductive WL → deductive GL → category → lifecycle projection → CPTM model。 | 候选可用：可统计为“归纳-演绎混合模式演化”。 | 核 §3.8.2 对 WL/GL 分工和 Gartner lifecycle 的表述；核 Fig. 5 模型生成链。 |
+| S6 统计分析 | 原文提供 aspect 分布、WL/GL 差异、C/P/T/M 项数、频次、category 排序、RQ2 命中链。 | 可复原统计层：aspect 频次、category 分布、source-track 差异、prior-review overlap、CPTM edge coverage、GSE absence count。 | 候选可用但需限制：只统计原文内部样本，不外推为当前 DevSecOps 全貌。 | 精核 Fig. 4、Table 2、Tables 8--21；确认 confirmatory search 不混入主统计。 |
+| S7 候选 finding | 原文讨论 practices 最多、metrics 最薄弱、WL/GL 互补、GSE 缺失、framework design 趋势等。 | finding 应挂接到统计观察、CPTM 缺口、RQ2 absence probe 与 confirmatory-only 标志。 | 中等候选：可作为作者候选发现池；不能直接作为 Paper2 目标领域最终 finding。 | 对每条 finding 标注主样本 / confirmatory / prior-review 补入；尤其核 GSE negative finding 的竞争解释。 |
+| S8 研究者/作者质疑与裁决 | 原文没有独立“质疑-裁决”机制；但有 reflexive TA、多作者 weekly/bi-weekly 协商、trustworthiness、threats、open material。 | 可复原为“研究者协商与信度控制”节点，而不是正式 adversarial adjudication 节点。 | 仅弱/中候选：可统计为 trustworthiness / author-consensus evidence，不宜计为完整裁决流程。 | 核 §3.8.2、§3.8.3、§5.1--§5.3；确认是否存在 Zenodo 中额外 reviewer/coder decision log。 |
 
 ## 证据链入口
 

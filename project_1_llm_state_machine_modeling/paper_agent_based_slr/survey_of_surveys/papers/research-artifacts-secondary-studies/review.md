@@ -166,7 +166,7 @@
 | 原文类型 | 系统映射（系统映射）；对象为软件工程 二次研究 的 研究制品 报告与可获得性 |
 | 被编码样本单位 | 每篇 二次研究（n = 537） |
 | 样本数量 / 分母 | 537（初始检索 643 → 经 IC1/IC2/IC3 筛选 → 最终纳入 537） |
-| 原生树类型 | **单树**：三主干（上下文元数据 × 制品可获得性 × 统计建模），每主干下 2–4 个叶子字段。结构简单、紧凑、可完整复原。 |
+| 原生树类型 | **单表树**：上下文元数据 × 工件可获得性 / 报告字段；统计建模是 S6 派生分析输出，不属于 S3 原生样本编码叶子。 |
 | 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
 | 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
 
@@ -198,7 +198,7 @@ PDF 共 6 页。已通过 `pdftotext -layout` 核对以下内容与 `paper_conte
 | # | 锚点 | 原文位置 | 短引或释义 |
 |---|---|---|---|
 | 1 | 研究目标与动机 | Abstract + §1 Introduction | 评估 SE 二次研究 如何 报告 研究制品，给出四大理由：replicability、trust、updates、pathway to automation |
-| 2 | 检索策略 | §2.1 Search 流程 | Scopus 单数据库；15 个 ISSN（13 SE + 2 CS review）；标题限定 review/mapping/元分析（meta-analysis）/scoping/critical；2013–2023 |
+| 2 | 检索策略 | §2.1 Search 流程 | Scopus 单数据库；16 个 ISSN token，覆盖 13 个 SE 相关期刊 + 2 个更广义 CS 综述期刊，共 15 个期刊；标题限定 review/mapping/元分析（meta-analysis）/scoping/critical；2013–2023 |
 | 3 | 纳排标准 IC1–IC3 | §2.2 Study selection | IC1: 2013–2023；IC2: 二次研究；IC3: SE-related |
 | 4 | 一致性子评估 | §2.2 | Krippendorff's Alpha = 0.776（95% CI），强一致 |
 | 5 | 初始与最终样本数 | §2.2 | 初始检索 643 → 最终纳入 537 |
@@ -224,7 +224,7 @@ PDF 共 6 页。已通过 `pdftotext -layout` 核对以下内容与 `paper_conte
 
 有，且较为完整：
 
-1. **检索**：Scopus 单一数据库；ISSN 限定 15 个期刊；标题关键词限定 review/mapping/元分析（meta-analysis） 等 9 个术语；年份限定 2013–2023（因为 Zenodo 2013 年上线、Figshare 2011 年上线）。初始 643 篇。
+1. **检索**：Scopus 单一数据库；16 个 ISSN token 限定 15 个期刊；标题关键词限定 review/mapping/元分析（meta-analysis） 等 9 个术语；年份限定 2013–2023（因为 Zenodo 2013 年上线、Figshare 2011 年上线）。初始 643 篇。
 2. **纳排**：IC1（年份）、IC2（是否为 二次研究）、IC3（是否 SE 相关）。title-abstract screening + 人工判定（对 ACM Computing Surveys 和 Computer Science Review 非纯 SE 期刊）。
 3. **质量/一致性子评估**：Krippendorff's Alpha = 0.776，正文标注为强一致。
 4. **数据抽取**：两轮——Round 1 人工全文筛查 dedicated 制品 可获得性 section；Round 2 自动化 Python keyword search + 100 字符上下文人工核验。
@@ -256,7 +256,7 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 
 ##### 2.5 是否有降级必要？
 
-**不需要降级**。本文是完整的 系统映射研究，具有系统样本库、明确纳排标准、一致性子评估和统计建模。完全满足主统计池资格。
+**不需要降级**。本文是完整的 系统映射研究，具有系统样本库、明确纳排标准、一致性子评估和统计建模。原文内部统计证据强；作为 survey_of_surveys 跨论文统计池只在 A2a 精核后候选，不进入 Paper2 目标领域统计池。
 
 ---
 
@@ -303,7 +303,7 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 │       取值空间类型：布尔（二值）
 │
 └── [节点-model] 统计建模输出
-    └── [leaf-回归] 逻辑回归系数
+    └── [leaf-回归] 逻辑回归系数（应移入 S6 统计分析层）
         取值空间：Table 1(c) 中每个 期刊的系数（Coef）、标准误（Std.E）、z 值（z value）、p 值（p value）、优势比（Odds ratio）
         取值空间类型：数值或区间（带标准误与 p 值的数值）
         注：这是对 [leaf-availability] 是否有研究制品 的统计建模结果，不是每篇样本的直接编码字段。
@@ -394,9 +394,41 @@ RQ 是一组**围绕"制品可获得性"单一主题的问题**，它们共享�
 - **对特定 SE 期刊（IST、JSS、TSE 等）的 venue 级发现**
 - **对 Scopus 检索和 ISSN 检索策略的方法学偏好**
 
-可迁移的仅是**维度树结构**（三主干：上下文 / 可获得性 / 统计建模）、**字段定义模式**和**方法学设计**。
+可迁移的仅是**维度树结构**（上下文 / 可获得性与报告字段；统计建模单独作为 S6 派生分析层）、**字段定义模式**和**方法学设计**。
 
 ---
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文是软件工程二次研究的系统映射，任务是审计 research artifact 的报告、可获得性、存放方式与时间/venue 影响。 | `review.md` §2.1--§2.4；`evidence_chain.md` A.3 `clm-research-artifacts-secondary-studies-type` |
+| S2 语料收集与筛选 | 强 | 使用 Scopus、16 个 ISSN token / 15 个期刊、标题综述类关键词与 2013--2023 年窗口检索，643 篇初始结果经 IC1--IC3 筛选后纳入 537 篇。 | `review.md` §2.3、§2.5、维度树 §2.2；`evidence_chain.md` A.3 `clm-research-artifacts-secondary-studies-unit` |
+| S3 原生维度树/样本编码对象 | 强 | 样本单位是每篇 secondary study；原生编码字段包括 year、venue、artifact availability、permanent repo、by request、dead link、dedicated section；logistic regression 属于派生统计输出，不是逐样本编码叶子。 | `paper_content.txt` §3--§4；`review.md` 维度树 §3--§5 |
+| S4 字段级证据 | 中 | 正文支持聚合字段与统计表，但未核验 Zenodo 原始逐篇清单；当前强在 aggregate table，sample-level artifact list / sample ID / artifact link 待 A2a/Zenodo 核验。 | `paper_content.txt` Table 1；`review.md` §7 待复核、维度树 §3 |
+| S5 维度模式演化 | 弱 | 原文没有说明字段、代码本或分类方案如何形成/迭代；year trend 是 artifact availability 等字段取值变化，不是 schema 演化。 | `paper_content.txt` 抽取流程与趋势统计；`GUIDE.md` §6.4 S5 定义 |
+| S6 统计分析 | 强 | 统计分析包括 venue/year 交叉表、537/169/79 等分母切换，以及以年份和期刊预测 artifact availability 的二元 logistic regression。 | `review.md` §2.6--§2.7；`evidence_chain.md` A.2 `ev-research-artifacts-secondary-studies-denom` |
+| S7 候选 finding | 强 | 候选发现是二次研究 artifact availability 在增长，但永久仓库/DOI 采用不足，Data Availability section 的表面透明度风险（作者批评，强度低于 169/537、65/169 等统计 finding）。 | `review.md` §2.7、§3、§6.1--§6.2 |
+| S8 研究者/作者质疑与裁决 | 中 | 原文有人工筛选、Krippendorff’s Alpha、一致性评估、人工检查关键词上下文和 limitations，但无完整 disagreement adjudication log。 | `paper_content.txt` 方法与 threats；`review.md` §2.5、§2.8 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+裁决：**后续主统计池候选，但当前仅按 `schema_seed` / `boundary_anchor` 使用；A2a 完成页码、Table 1、publisher final 与 Zenodo 原始逐篇清单精核前，不进入最终定量统计或目标领域 finding。** 该文是软件工程二次研究 research artifact 可获得性的系统映射，样本单位清楚（每篇 secondary study，n=537），具备 Scopus 检索、ISSN/标题/年份窗口、IC1--IC3 纳排、一致性评估、字段抽取、聚合表和 logistic regression；它适合进入 survey_of_surveys 的“字段树 + 统计分析 + 开放工件审计”方法模式池。限制是：正文主要给聚合统计，摘要声称的 comprehensive list 与逐篇编码表位于 Zenodo，当前尚未核验；本文统计对象是 SE 二次研究的 artifact availability，不能外推为 LLM/state-machine 领域事实。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要和 §1--§3 明确目标是评估 SE secondary studies 如何报告 research artifacts，并回答 RQ1 artifact 比例、RQ2 存放位置、RQ3 data availability 声明方式、RQ4 年份/venue 影响。 | 复原为“二次研究 artifact reporting / availability audit”的任务树：对象是 SE secondary studies，核心轴是 artifact 是否存在、是否持久存储、如何声明、随时间/venue 如何变化。 | **强；合格候选。** 可作为综述任务设定、RQ-to-field contract 与 artifact-audit 主题的统计池样本；只贡献方法模式，不贡献目标领域结论。 | 核对 IST publisher final 与 arXiv v3 对摘要、RQ 表述、标题和页码是否一致。 |
+| S2 语料收集与筛选 | §2.1--§2.2：2024-10-02 在 Scopus 检索；16 个 ISSN token / 15 个期刊，标题限定 review/mapping/meta-analysis/scoping/critical 等词，2013--2023 年；643 篇初始结果经 IC1 年份、IC2 secondary study、IC3 SE-related 筛选后剩 537 篇；Krippendorff's Alpha=0.776。 | 复原为完整分母链：Scopus/ISSN/标题关键词/年份窗口 → title-abstract screening → 对 ACM CSUR 与 Computer Science Review 做 SE 相关人工判断 → 最终 N=537。 | **强；合格候选。** 可进入“是否有系统语料构造与可复核分母链”的统计池；中间数 643 不得冒充最终样本。 | 视觉核验检索式、16 个 ISSN token 与“15 个期刊”之间的对应；核对人工筛选和 alpha 的原文页码。 |
+| S3 原生维度树/样本编码对象 | §2.3 与 Table 1(a)(b) 给出每篇 secondary study 的编码对象和字段：year、venue、artifact availability（Yes/No/By Request）、permanent repo、dead link、dedicated section；正文说明检查是否引用 external resource、是否位于 Figshare/Zenodo/Mendeley 等 permanent repository。 | 复原为扁平单表单树：上下文元数据（year、venue）× artifact 可获得性字段（availability、permanent repo、dedicated section、link health）。**logistic regression 属于 S6 派生统计分析，不是 S3 原生逐样本编码叶子。** | **强；合格候选但带边界。** S3 可统计为有明确样本单位和可复原字段树；不能把 Table 1(c) 回归系数当作原生编码字段。 | Zenodo 原始逐篇清单待核验：确认是否包含 sample ID、每篇标题/DOI、artifact URL、repository type、关键词命中与链接检查记录；核对是否存在正文未展开的更细 artifact 类型。 |
+| S4 字段级证据 | 正文 Table 1 给出 venue/year 聚合计数与比例，§2.3 给出人工全文筛查 + Python keyword search + 100 字符上下文人工检查；Data availability 声明数据在 Zenodo。 | 字段级证据当前分两层：正文聚合表证据较强；逐样本字段证据依赖 Zenodo supplementary，尚未本地打开核验。 | **中；有条件候选。** 可统计为“有字段与聚合表”，但 sample-level evidence、sample ID 和 artifact link 不能在 A2a 前升级为已核验。 | 重点打开 Zenodo DOI `10.5281/zenodo.15488074`，核验逐篇编码表、字段名、脚本、关键词、链接检查日期、license 与版本；核对 Table 1 百分比分母。 |
+| S5 维度模式演化 | 原文只说明按 Petersen guidelines 与 SIGSOFT Empirical Standards checklist 执行，并描述两轮数据抽取；没有说明字段/codebook 如何通过 open coding、pilot、迭代讨论或版本修订形成。 | 可复原为“先验字段 + 人工/脚本抽取”的静态编码方案；year trend 是字段取值随时间变化，不是 schema/维度模式演化。 | **弱；不建议进入主统计池强项。** 可作为“未报告维度演化过程”的边界样本，不应统计为有完整 schema evolution。 | 核验 Zenodo 中是否有 protocol、codebook revision、pilot notes 或 disagreement log；若没有，维持 S5=弱。 |
+| S6 统计分析 | Table 1(a) venue 交叉表、Table 1(b) 年度统计、Table 1(c) binary logistic regression；§3 报告 169/537=31.5%、65/169=38.5%、65/537=12.1%、2023 年 49/79=62.0%、24/79=30.4%，year odds ratio=2.31。 | 复原为从 S3 字段派生出的统计分析层：frequency/proportion、year trend、venue comparison、binary logistic regression（year + journal 预测 artifact availability）。 | **强；合格候选。** 可作为“字段级数据 → 聚合统计/模型”的统计池样本；但所有具体比例、odds ratio 和 venue 发现只属于 SE secondary studies。 | PDF 视觉核验 Table 1(a)(b)(c) 行列、百分比分母、IST By Request 百分比疑点、less-than-10 publications 排除规则与 publisher final 差异。 |
+| S7 候选 finding | §3、§5 从统计结果推出 artifact availability 增长、permanent repository/DOI 使用不足、non-permanent links 易失效、Data Availability section 可能只写 “no data was used” 或 “available upon request”，并建议强制发布 artifact。 | 复原为“统计观察 → gap/风险 → 政策建议”的 finding 链：availability gap、persistence gap、reporting-quality gap、automation-support rationale。 | **强但限界。** 可作为候选 finding 生成模式；不得把 31.5%、62.0%、30.4% 或具体 SE 期刊差异迁移为 Paper2 目标领域 finding。 | 核验每个 discussion claim 与 Table 1 的支撑关系；特别核验 “no data was used” 是否有频次或只是定性观察。 |
+| S8 研究者/作者质疑与裁决 | §2.2 报告对部分期刊的人工 SE-related 判断和 Krippendorff's Alpha=0.776；§2.3 报告人工全文筛查、脚本关键词上下文由人工检查；§4 讨论排除会议、只用 Scopus、2013--2023 年窗口等限制。 | 复原为质量控制/人工裁决树：人工筛选、inter-rater reliability、人工上下文核验、limitations；但没有公开完整 disagreement adjudication log 或字段级双人编码一致性。 | **中；有限候选。** 可统计为存在研究者复核与质量控制，但不能统计为完整双人独立筛选/抽取/裁决日志。 | 核验 Zenodo 是否提供 reviewer 分工、冲突裁决、关键词列表、人工 override 记录、link-check 时间戳；若缺失，S8 不升为强。 |
 
 ## 证据链入口
 

@@ -301,12 +301,12 @@
 
 | 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| L-A.2.1 | 目标—识别最佳/典型实践 | A.2 | Table 5 第 1 行 "识别最佳与典型实践" | SLR 是否声明以经验研究识别最佳或典型实践为目标 | {true, false} | 布尔 | 单元格空白 = false | 10 篇中标 x 的 8 篇可统计为 80% | 多目标重叠 → SLR 多目标常态 | E10 | 可作 SLR/SMS 目标分类种子；不可外推到非 SE 领域 |
+| L-A.2.1 | 目标—识别最佳/典型实践 | A.2 | Table 5 第 1 行 "识别最佳与典型实践" | SLR 是否声明以经验研究识别最佳或典型实践为目标 | {true, false} | 布尔 | 单元格空白 = false | 正文明确支持约 6/10；Table 5 精确列对齐待 A2a PDF 核验 | 多目标重叠 → SLR 多目标常态 | E10 | 可作 SLR/SMS 目标分类种子；不可外推到非 SE 领域 |
 | L-A.2.2 | 目标—分类与分类法 | A.2 | Table 5 第 2 行 | SLR 是否产出 框架 / 分类法 / 分类 | {true, false} | 布尔 | 空白 = false | 10/10 中 3 篇（ID 7, 8, +1） | mapping 与 review 的目标交集 | E10 | 同上 |
 | L-A.2.3 | 目标—主题类别强调 | A.2 | Table 5 第 3 行 | SLR 是否统计各子主题论文分布 | {true, false} | 布尔 | 空白 = false | 2/10 | 与 Identify Publication Fora 强相关 | E10 | 同上 |
 | L-A.2.4 | 目标—识别发表论坛 | A.2 | Table 5 第 4 行 | SLR 是否识别相关 journal/conf/workshop | {true, false} | 布尔 | 空白 = false | 2/10 | 与 mapping 目标更接近 | E10 | 同上 |
 | L-A.3.1 | 纳入要求—主题相关 | A.3 | Table 5 第 5 行 | 全 10 篇都要求 | {true} | 布尔（饱和） | n/a | 10/10；常量列；无判别力 | 揭示"主题相关性"是 SLR 通用门槛 | E10 | 不可作判别字段，只作 baseline check |
-| L-A.3.2 | 纳入要求—使用经验方法 | A.3 | Table 5 第 6 行 | 是否限定 原始研究 使用经验方法 | {true, false} | 布尔 | 空白 = false | 8/10 | "经验方法"是 SLR 的主导筛选门槛 | E10 | 可迁移为 SLR vs SMS 区分点 |
+| L-A.3.2 | 纳入要求—使用经验方法 | A.3 | Table 5 第 6 行 | 是否限定 原始研究 使用经验方法 | {true, false} | 布尔 | 空白 = false | 约 6/10（Table 5 待 A2a PDF 核验） | "经验方法"是 SLR 的主导筛选门槛 | E10 | 可迁移为 SLR vs SMS 区分点 |
 | L-A.4.1 | 候选论文数 | A.4 | Table 5 第 7 行 | 检索阶段命中数 | {自然数 ∪ 不适用}；观测值 = {5453, 963, 5453, 5453, 1344, 353, 5453, 不适用, 185, 564} | 数值或缺失 | 不适用 = 作者未报告 | 中位数 ≈ 1344；偏态分布 | 揭示 SLR 检索规模差异巨大（185–5453） | E10 | 单位为篇；不同检索策略不可直接比较 |
 | L-A.4.2 | 入选论文数 | A.4 | Table 5 第 8 行 | 最终入选数 | {自然数}；观测值 = {78, 24, 24, 78, 10, 173, 103, 304, 10, 26} | 数值 | 不应缺失 | 中位数 ≈ 26；最大 304 | 入选率 = A.4.2/A.4.1，呈现 SLR 严苛性 | E10 | 与领域、方法严苛度强耦合 |
 | L-A.5.1 | 分析方法—Meta Study | A.5 | Table 5 第 9 行 | 是否做统计 元分析（meta-analysis） | {true, false} | 布尔 | 空白 = false | 2/10 | 元分析（meta-analysis） 在 SE SLR 中罕见 | E10 | 可作 SLR 方法学成熟度指标 |
@@ -348,7 +348,7 @@
 
 | 观察 | 来源 | 可成立强度 |
 |---|---|---|
-| 10 篇 SE SLR 中 8 篇以 "识别最佳与典型实践" 为目标（80%） | Table 5 行 1 | strong（n=10 频次） |
+| 10 篇 SE SLR 中 8 篇以 "识别最佳与典型实践" 为目标（约 60%（待 A2a PDF 核验）） | Table 5 行 1 | strong（n=10 频次） |
 | 10 篇 SE SLR 全部使用 Narrative Summary 作为分析手段 | Table 5 行 12 | strong；常量列说明"叙述总结是 SE SLR 默认输出" |
 | 仅 2/10 使用 Meta Study；1/10 使用 Comparative Analysis | Table 5 行 9–10 | strong；揭示 SE SLR 量化合成不普及 |
 | SLR 入选率（A.4.2/A.4.1）总体很低（如 78/5453 ≈ 1.4%；24/963 ≈ 2.5%） | Table 5 行 7–8 | strong but caveat：检索策略差异巨大 |
@@ -377,6 +377,40 @@
 - Table 5 中 10 篇具体 SLR 的领域结论（成本估算、需求获取等）。
 
 ---
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+边界声明：本节所有 S1--S8 与维度树判断均为 A1 文本级 `schema_seed` / 方法模式审计结果；A2a 完成页码、表图和制品精核前，不得写成 final quantitative finding / 最终定量发现。
+
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 中 | 本文是 SMS 方法学论文/方法学种子，目标是说明如何开展 systematic mapping、比较 SMS 与 SLR，并给出指南；它自身不是 RQ-driven 普通综述统计样本。 | `review.md` §1、§2.1、维度树复原审计结论；`evidence_chain.md` A.3 `clm-petersen-2008-systematic-mapping-type`；`audits/a1-s1s8-19x1/adjudications/petersen-2008-systematic-mapping.md` |
+| S2 语料收集与筛选 | 中 | 内嵌 Tree A 的 10 篇 SE SLR 有 21 篇候选→8 篇并补 2 篇的检索与纳排链；Tree B 的 2 个 mapping 示例不是系统检索样本。 | `review.md` §2.3、维度树复原 §2.1；`evidence_chain.md` A.2 `ev-petersen-2008-systematic-mapping-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生结构为维度森林：A=10 篇 SLR 特征化表，B=2 个 mapping 示例对比表，C=三 facet 分类方案，D=SMS 五步流程管线。 | `review.md` 维度树复原 §3.1--§3.4；`evidence_chain.md` A.3 `clm-petersen-2008-systematic-mapping-tree` |
+| S4 字段级证据 | 中 | Table 4/5 对 n=10 SLR 有字段级表格和样本 ID；short rationale 是作者建议的证据链机制，原文未公开逐篇 rationale 表。 | `paper_content.txt` §2.5、§3.1/Table 5；`review.md` 维度树复原 §4 |
+| S5 维度模式演化 | 强 | 分类方案通过 keywording、聚类和数据抽取过程新增、合并、拆分类别。 | `review.md` §2.2、§3、§6.1、维度树复原 §5 |
+| S6 统计分析 | 中 | 原文有频数、Table 5 和 bubble plot，但这些是内嵌方法示例/小型方法学描述统计；本文保持方法学参考池，不进入普通领域统计合成池。 | `metadata.json` `eligible_for_statistical_synthesis=false`；`review.md` §6.1、§6.4 |
+| S7 候选 finding | 中 | 可抽取类别频数/交叉覆盖 → 覆盖缺口 → 后续 review 或指南建议的方法学启发，不作为目标领域事实。 | `review.md` §2.5、§2.6、§3、§6.2--§6.4 |
+| S8 研究者/作者质疑与裁决 | 弱 | 原文提供 adaptive reading、prototype/misclassification、validity consideration 与 short rationale 机制，但没有实际多 reviewer 裁决日志、agreement、disagreement log 或一致性统计。 | `paper_content.txt` §2.3、§2.4、§3.2；`review.md` §2.7；`audits/a1-s1s8-19x1/adjudications/petersen-2008-systematic-mapping.md` |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+裁决：**不进入普通主统计池**。该文首先是 systematic mapping studies 的方法论文 / guideline-like seed，正文内确有两类示例性样本编码：Tree A 为 10 篇 SE systematic reviews 的特征化表，Tree B 为 2 个 mapping 示例研究的对照；但这些只可作为**方法学描述统计 seed / schema_seed / boundary_anchor**，不得混入后续普通主题领域 SLR/SMS 统计合成池。Tree C 的三 facet 分类方案与 Tree D 的五步 SMS 流程属于处方型模式，不是本文自身的系统样本统计结果。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | Abstract 与 §2 明确本文目标是描述如何开展 software engineering systematic mapping、比较 systematic maps 与 systematic reviews，并给出 guidelines；不是围绕某一 SE 技术主题做效果合成。 | 复原为方法学论文根节点：目标声明驱动，而非普通 RQ-driven 主题综述；Table 1 中 RQ 属于两个示例 map，不是本文自己的主 RQ 树。 | **不进主统计池**；可作为 SMS 方法学 seed。 | 核对 PDF 首页、Abstract、§2 标题与 Table 1 版面，避免把示例研究 RQ 误写成本文 RQ。 |
+| S2 语料收集与筛选 | §3 写明检索串为 “systematic review” AND “software engineering”，检索 Inspec & Compendex、IEEExplore、ACM DL，21 篇候选，经条件筛得 8 篇并从 Kitchenham 2007 补 2 篇，最终 n=10；§2.2--§2.3 仅对两个 map 示例比较检索和纳排。 | Tree A：n=10 SE SLR 的主样本分母链；Tree B：n=2 mapping 示例对照，不是系统检索产生的样本库。 | Tree A 内部可作方法学描述性分母；Tree B 仅示例对照；二者均**不得进入普通主题统计池**。 | 核对 §3 检索库名称、21→8+2→10 分母链；核对 Tables 1--2 的示例性质。 |
+| S3 原生维度树/样本编码对象 | §3.1 与 Table 5 对 10 篇 SLR 按 Research Goals、Inclusion Requirements、Number of Articles Included、Means of Analysis 编码；§2 与 Tables 1--2、Figure 3 展示两个 map 示例；§2.4、Table 3、Figure 1 给出处方分类与流程。 | 原生为**维度森林**：A=SLR 特征化表，B=mapping 示例对比表，C=三 facet 分类模式，D=SMS 五步流程管线。 | A/B 只作内部示例统计或对照；C/D 只作 schema_seed / process_seed；整体不进主统计池。 | 核对 Table 5 列行对齐、Figure 1 流程节点、Figure 3 bubble plot 是否与文本提取一致。 |
+| S4 字段级证据 | §2.5 说明抽取用 Excel 表，每个 category 都应给 short rationale；Table 4 给 10 篇 SLR ID，Table 5 给字段矩阵。但原文没有公开逐篇 rationale 明细表。 | 字段级证据强在 Table 5 的矩阵结构；short rationale 是作者推荐机制，不是本文可复验的已公开 evidence ledger。 | 可作为字段证据链设计启发；不作为可量化研究制品完整性统计。 | 核对 Table 4/5 版面和每个 x / 数值的列对齐；若正式引用 “short rationale”，需标为处方建议。 |
+| S5 维度模式演化 | §2.4 通过 abstract keywording 聚类生成 categories；§2.5 明确数据抽取时 classification scheme 会新增、合并、拆分类别。 | Tree C 与 Tree D 共同支持“schema 随阅读演化”的 process pattern；它是方法过程，不是样本观测字段。 | 作为强 schema_seed，可支撑 A2a 字段演化规则；不进入频数池。 | 核对 Figure 2 keywording 流程和 §2.5 关于 adding / merging / splitting categories 的原文位置。 |
+| S6 统计分析 | Abstract 与 §2.5 强调分析关注各 category 的 publication frequencies；Table 5 给 n=10 SLR 频次，Figure 3 给三 facet bubble plot。 | 统计节点只属于 Tree A 的 n=10 方法学样本和 Tree B/C 的示例可视化；不是目标领域 finding pool。 | **建议降级为“内部描述统计 seed”**；禁止写成普通主统计池事实。 | A2a 必须视觉核对 Table 5 的 x 分布和 Figure 3 的气泡图数值 / 百分比。 |
+| S7 候选 finding | §3.2--§4 比较 maps 与 reviews 的 goals、process、breadth/depth，并提出 complementarity、adaptive reading depth、classify by evidence and novelty、visualize your data 等 guidelines。 | 候选 finding 是方法学建议链：频数 / 交叉覆盖 → gap / coverage 观察 → 是否后续 SLR 深读；不是 SE 子领域结论。 | 可进入方法学启发池；不进入普通主题 finding 统计池。 | 核对 §4 四条 guideline 的原文措辞；正式写作时区分作者建议、经验总结与样本统计。 |
+| S8 研究者/作者质疑与裁决 | §2.3 提到 prototyped exclusion technique 且未发现 misclassifications；§3.2 Validity Consideration 讨论术语误用和分类误判；§4 建议 adaptive reading depth。但无多 reviewer disagreement log、agreement coefficient 或裁决记录。 | 仅能复原为“分类风险意识与缓解建议”节点；不能复原为作者实际裁决日志或 reviewer agreement 机制。 | **弱 / 不适用主统计**；只作 threat / validation pattern seed。 | A2a 核对 §2.3、§3.2、§4 相关段落；避免把本仓库审计裁决误归为原文作者裁决。 |
 
 ## 证据链入口
 

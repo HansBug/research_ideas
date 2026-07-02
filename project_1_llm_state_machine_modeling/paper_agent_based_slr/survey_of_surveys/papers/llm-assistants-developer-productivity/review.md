@@ -15,7 +15,7 @@
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 综述类型 | SLR + SMS；39 篇 peer-reviewed 原始研究，时间范围 2014--2024 |
 | SE 子领域 | LLM assistants / developer productivity / LLM4SE empirical studies |
-| 阅读状态 | 已读 [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)；未回 PDF 逐页核对图表 |
+| 阅读状态 | 已读 [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)；已完成全文文本级阅读；round3 局部核对 PDF 元数据与 Fig.2，图表精确页码/版式仍待 A2a |
 | 证据等级 | 全文文本级；图表/表格精确版式与页码待人工原文核对 |
 | artifacts | 原文声明所有制品公开于 Zenodo replication package：https://zenodo.org/records/18489222 |
 | A1 角色 | 高相关、现代、CCF-A 的 SLR+SMS 样本；用于学习如何把 `landscape -> method -> benefit/risk -> productivity dimensions -> implications/threats` 组织为 RQ 和结果表。 |
@@ -298,11 +298,11 @@ Threats 分两组。
 
 **4. RQ ↔ 样本单位**：RQ 是字段使用方式（landscape RQ0 / methodology RQ1 / impact RQ2 / dimension RQ3），样本单位仍是 PS。RQ 不是树根，而是把 PS 字段切成不同分析维度的"棱镜"。
 
-**5. 是否需要降级**：不需要。本文有完整系统证据基础，主统计池资格成立；只是部分 细粒度（fine-grained） 数字（Fig. 6 雷达精确计数、Sankey 流量、Table 9 详尽 risk 行）尚未在文本中完全读出，需 A2a/PDF 复核。
+**5. 是否需要降级**：需要做边界降级。本文有完整系统证据基础，是后续主统计池候选；但 A1 只能作为文本级 `schema_seed`，Fig. 6 雷达精确计数、Sankey 流量、Table 9 详尽 risk 行、supplemental / Zenodo 复现包均需 A2a/PDF 精核后才可进入最终定量统计。
 
 ### 3. 原生样本编码维度树 / 维度森林
 
-> 中文化导读：本维度树的主键是 39 篇关于大语言模型助手影响开发者生产力的原始研究。树按研究图景、研究方法与测量工具、收益/风险主题、SPACE 生产力维度、解释性框架和效度威胁分组；其中 PS 编号、SPACE、NASA-TLX、TAM、GPT、Copilot 等英文只作为原文工具名或框架名保留。阅读时要把“现场研究/现场实验/实验室实验/样本研究/判断研究”等中文策略标签作为分类语义，避免把 Field study 误读成“字段研究”。可迁移的是“同一主题可同时作为收益与风险出现，需要争议标记”的模式。
+> 中文化导读：本维度树的主键是 39 篇关于大语言模型助手影响开发者生产力的原始研究。树按研究图景、研究方法与测量工具、收益/风险主题、SPACE 生产力维度、解释性框架和效度威胁分组；其中 PS 编号、SPACE、NASA-TLX、TAM、GPT、Copilot 等英文只作为原文工具名或框架名保留。阅读时要把“现场研究/现场实验/实验室实验/样本研究/判断研究”等中文策略标签作为分类语义，避免把 Field study 误读成“现场研究”。可迁移的是“同一主题可同时作为收益与风险出现，需要争议标记”的模式。
 
 样本单位主键：`PS-id ∈ {PS1, …, PS39}`。每棵 RQ-sub树 通过 PS-id 与其他 sub树 关联。
 
@@ -321,7 +321,7 @@ Threats 分两组。
 │   └── 质量评分 (QA1..QA11 每项 取值 ∈ {0,1,2,3,4}, 平均分达到 50% 阈值（avg ≥ 50% threshold）)
 │
 ├── [树-RQ0] 研究图景（RQ0 字段集合）
-│   ├── 发表年份 取值 ∈ {2014..2024, 2025-Jan}（数值）
+│   ├── 发表年份 取值 ∈ {2014..2024}（数值）；`2025-Jan` 是图形/metadata 提取异常或在线状态注记，A2a 前不得作为 primary-study year
 │   ├── 作者发表篇数分布（数值；147 位作者各 1 篇，6 位作者各 2 篇，1 位作者 3 篇（Igor Steinmacher））
 │   ├── 发表源（Table 3 中 39 个 发表源 命名实体）
 │   ├── 发表源研究焦点（封闭枚举：软件工程 / 计算机科学（SE/CS）、人机交互（HCI）、信息系统 / 决策科学（IS/Decision Science）、人的因素（Human-Aspects）、AI for SE / AI Engineering、软件工程教育（SE Education））
@@ -393,10 +393,10 @@ Threats 分两组。
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | leaf-ps-id | 论文主键 | 树-meta | 抽取 form | PS1..PS39 | 39 个枚举 | 完整枚举 | 不适用 | 全表分母 | 全表主键 | §3.2 + Fig. 1 | 主键模式可迁移 |
 | leaf-ps-qa-score | QA 综合分数 | 树-meta | QA rubric §3.3 | 11 criteria avg ≥ 50% | [0,4] 区间，per criterion 0..4 Likert | 数值 | 不达阈值=excluded | eligibility filter | 质量-weighted 发现 | §3.3, Table 2 | 全可迁移 |
-| leaf-pub-year | 发表年份 | 树-RQ0 | RQ0 §4.1 | 年 | 2014..2025-Jan | 数值 | 不适用 | landscape 时间分布 | 时间漂移风险 | §4.1 Fig. 2 | 可迁移 |
+| leaf-pub-year | 发表年份 | 树-RQ0 | RQ0 §4.1 | 年 | 2014..2024；`2025-Jan` 仅作图形/metadata 异常待核 | 数值 | 不适用 | landscape 时间分布 | 时间漂移风险 | §4.1 Fig. 2 | 可迁移；A2a 前不得把 2025-Jan 当 primary-study year |
 | leaf-venue-focus | venue 研究焦点 | 树-RQ0 | Table 3 §4.3 | 6 个 focus 大类 | {SE/CS, HCI, IS/Decision, Human-Aspects, AI Eng, SE Edu} | 完整枚举 | uncategorized | 社区分布 | 跨社区融合 缺口（gap） | §4.3 Table 3 | 可迁移 |
 | leaf-llm-工具 | 使用的 LLM 工具 | 树-RQ0 | Table 4 §4.4 | 22 个 工具 name | open enumeration | 开放枚举 | 未报告 | 工具集中度 | 工具漂移 risk | §4.4 Table 4 | 可迁移结构 |
-| leaf-strategy | 实证策略 | 树-RQ1 | Stol-Fitzgerald 分类法 | 6 类 | {字段研究, Field Exp, ExpSim, Lab Exp, Sample, Judgment} | 完整枚举 | 不适用 | 策略分布 (38/23/15/13/5/5%) | 生态效度 risk | §5.1 Table 5 | 可迁移 |
+| leaf-strategy | 实证策略 | 树-RQ1 | Stol-Fitzgerald 分类法 | 6 类 | {现场研究, Field Exp, ExpSim, Lab Exp, Sample, Judgment} | 完整枚举 | 不适用 | 策略分布 (38/23/15/13/5/5%) | 生态效度 risk | §5.1 Table 5 | 可迁移 |
 | leaf-procedure | 方法 procedure | 树-RQ1 | Glass-Vessey-Ramesh | 5 类 | {调查（调查）, 用户实验（用户实验）, 案例研究（案例研究）, 访谈（访谈）, 概念实现（概念实现）} | 多选完整枚举 | 不适用 | procedure 分布 (82/41/31/26/10%) | 混合方法 比例 | §5.2 Table 6 Fig. 4 | 可迁移 |
 | leaf-objective | 研究目标 | 树-RQ1 | Hartson | formative / summative | 完整枚举 2 | 不适用 | formative/summative 比例 (59/41%) | 证据成熟度 | §5.2 Page 14 | 可迁移 |
 | leaf-analysis-type | 分析类型 | 树-RQ1 | 抽取 | quant / qual / 混合 | 完整枚举 3 | 不适用 | 比例 (13/21/67%) | triangulation indicator | §5.2 Page 14 | 可迁移 |
@@ -404,7 +404,7 @@ Threats 分两组。
 | leaf-instrument-name | 工具名称 | 树-RQ1 | Table 7 | 含 NASA-TLX, SPACE, TAM, AAR/AI, self-eff, emotion, TCQ, RBV 等 | 开放枚举 | 未报告 | 各工具出现频次 | 标准化 缺口（gap） | §5.3 Table 7 | 可迁移 |
 | leaf-指标-time-completion | time-to-completion 使用 | 树-RQ1 | §5.3.1 | 是否使用 | 布尔 | 未报告=false | 31% (12/39) | 跨策略对比 | §5.3.1 Page 15 | 可迁移 |
 | leaf-指标-acceptance-rate | LLM 建议接受率 | 树-RQ1 | §5.3.2 | 是否使用 | 布尔 | 未报告=false | 7/39 | proxy 指标 caution | §5.3.2 Page 15–16 | 可迁移含 caveat |
-| leaf-指标-cognitive-load | 认知负荷（NASA-TLX 等） | 树-RQ1 | §5.3.3 | 6 studies | 布尔 + outcome direction | 混合 (3 improved / 2 neutral / 1 worse) | 6/39 | contested construct | §5.3.3 Page 16 | 可迁移含 polarity |
+| leaf-指标-cognitive-load | 认知负荷（NASA-TLX 等） | 树-RQ1 | §5.3.3 | 若干研究报告认知负荷或相关构念；NASA-TLX 子集与非 NASA-TLX 子集需拆分 | 布尔 + outcome direction | 混合：改善 / 中性 / 负面或挫败感增加并存 | 待 A2a 逐项核验 | contested construct | §5.3.3 Page 16 | 可迁移含 polarity，但不得写固定 6 篇 NASA-TLX 3/2/1 分布 |
 | leaf-benefit-theme | 收益主题（8） | 树-RQ2 | §6.1 + Table 8 + Fig. 6 | 8 项封闭枚举 | 完整枚举 | 不适用 | 主题频次 (15/14/12/10/8/7/7/4 待 A2a 核) | 候选发现 | §6.1 Page 17–22 | 主题结构可迁移；具体主题不可 |
 | leaf-risk-theme | 风险主题（5） | 树-RQ2 | §6.2 + Fig. 6 | 5 项封闭枚举 | 完整枚举 | 不适用 | 主题频次 (7/6/5/3/?? 待 A2a) | 候选发现 + boundary | §6.2 Page 22–24 | 主题结构可迁移 |
 | leaf-contested-flag | 双向主题标志 | 树-RQ2 | §6.1.7 + §6.2.3 + Discussion | "改善代码质量（improve code 质量）" 与 "限制代码质量（limit code 质量）" 同时存在 | 布尔 | false=未发现矛盾 | 矛盾度指标 | reviewer-defense | §8.3 "remains unresolved" | 模式可迁移 |
@@ -454,11 +454,11 @@ Threats 分两组。
 #### 6.2 由 discussion / 威胁 支撑的候选发现（candidate）
 
 1. Code-质量 双向 contested：作者明确 "remains unresolved"（abstract + §8.3 + §9.2）。
-2. Cognitive-load 混合：6 studies NASA-TLX；3 改善 / 2 中性 / 1 增加 frustration（§5.3.3）。
+2. 认知负荷 evidence mixed：NASA-TLX 子集与非 NASA-TLX 子集需要 A2a 逐项拆分；当前只能记录“改善 / 中性 / 负面或挫败感增加并存”，不得写成 6 篇 NASA-TLX 的固定 3/2/1 分布。
 3. Acceptance-rate proxy 风险：PS16 自我警告 blind reliance（§5.3.2）。
 4. Throughput 与 code 质量 负相关 r=−0.45（PS26 econometric, §5.3.4 + §8.2）。
 5. Multidim adoption 增长但仍不充分（15% 才 ≥4 维, §7 summary）。
-6. 76% per 2024 → 时间相关性（temporal relevance） 威胁（§9.2）。
+6. 77% per 2024 → 时间相关性（temporal relevance） 威胁（§9.2）。
 7. 五条 实践者 recs + 三条 研究者 recs（§8.2/§8.3）。
 
 #### 6.3 对 Paper2 可迁移的方法学启发
@@ -476,6 +476,41 @@ Threats 分两组。
 - "LLM-assistants 加速开发 / 减少搜索 / 提升或降低代码质量" 等 RQ2 收益 / 风险（benefit/risk） 主题结论本身只限 LLM-assistants × developer-productivity 主题。
 - SPACE 框架本体不可直接搬到 Paper2 的方法论 模式（除非目标问题确是 productivity）。
 - 具体百分比（77/64/59/31/26%）只能作为该子领域时间切片证据。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文设定为围绕 LLM-assistants 对软件开发者生产力影响的 SLR+SMS，RQ0--RQ3 覆盖研究图景、方法实践、收益/风险和 SPACE 维度映射。 | `review.md` §2.1、§2.2；`evidence_chain.md` A.3 `clm-llm-assistants-developer-productivity-type` |
+| S2 语料收集与筛选 | 强 | 给出数据库、控制论文、五轮 query iteration、纳排标准、Rayyan 筛选、snowballing、QA 排除和 9756→8953→228→44→39 的分母链。 | `review.md` §2.3--§2.5；`evidence_chain.md` A.2 `ev-llm-assistants-developer-productivity-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生编码对象是 39 篇 peer-reviewed 原始研究 PS1--PS39，维度结构是以 PS-id 为主键的多根 RQ 维度森林。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.3 `clm-llm-assistants-developer-productivity-unit`、`clm-llm-assistants-developer-productivity-tree` |
+| S4 字段级证据 | 强 | 字段级抽取覆盖 study goals、tools、strategy/design、tasks、settings、key results、instrument、metric、benefit/risk、SPACE mapping，并通过表格和 PS-id 保持可追踪。 | `review.md` §2.6、§4、维度树复原 §4；`evidence_chain.md` A.2 `ev-llm-assistants-developer-productivity-tree` |
+| S5 维度模式演化 | 强 | 本文体现外部分类法 + emergent thematic coding：先用既有 taxonomy/SPACE 框架，再经 targeted thematic analysis 形成 benefit/risk 与 SPACE sub-dimensions。 | `review.md` §2.6、§4、§5；维度树复原 §3、§6.3 |
+| S6 统计分析 | 强 | RQ0--RQ3 将字段表转化为频次、比例、分布、交叉关系、组合覆盖和缺口统计。 | `review.md` §2.7--§2.10、§5；维度树复原 §6.1 |
+| S7 候选 finding | 强 | 本文从统计观察与 discussion 形成候选发现，并保留 contested finding 与边界条件，例如 code quality 同时作为 benefit/risk。 | `review.md` §2.9、§2.11、§7.1；维度树复原 §6.2 |
+| S8 研究者/作者质疑与裁决 | 中 | 本文没有正式裁决日志或一致性系数；有搜索式集体确认、excluded paper 复查、weekly meetings、citation-against-original-text 回查，但 initial screening/data extraction 主要由第一作者执行。 | `review.md` §2.3、§2.4、§2.6、§2.12 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+- **裁决**：可作为 S1--S8 主统计池候选，但当前仅限 **文本级 / schema_seed** 使用；A2a 完成 PDF 版式、表图、supplemental / Zenodo 复现包精核前，不进入最终定量发现。
+- **样本单位**：39 篇 peer-reviewed 原始研究（PS1--PS39），不是综述论文或工具实例；分母链为 9756 → 8953 → 228 → 44 → **39**。
+- **总体边界**：S1--S7 均有明确原文结构支撑；S8 只有团队讨论、复查、保守筛选等过程性描述，没有正式裁决日志 / 一致性系数，因此统计池中建议按 **中** 处理。
+- **建议降级 / 修正**：S4 与 S6 在 `review.md` 中可保留“强”的文本级判断，但若用于最终统计，必须降为“待 A2a 核验后强”；尤其 Fig. 6、Fig. 7/8、Table 9、Table 10/11、supplemental QA / exclusion 细表未核前，不应导出精确主题频次或逐 PS 映射。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文自称对 2014--2024 年 39 篇 peer-reviewed studies 做 systematic review and mapping；RQ0--RQ3 分别覆盖研究图景、方法/工具、影响收益风险、SPACE 维度映射。 | `review.md` 已复原为 SLR+SMS 混合任务：对象 = LLM-assistants × developer productivity；证据对象 = 原始研究；解释框架 = SPACE + McLuhan Tetrad。 | **可入池（强）**：综述任务、RQ 层级和目标构念清楚，可作为任务设定 schema 统计样本。 | 核对 ACM final 与 arXiv 文本差异、正式发表日期 / DOI；不影响 S1 入池，只影响引用元数据精确性。 |
+| S2 语料收集与筛选 | §3 给出 Kitchenham & Charters 指南、6 个数据库、17 篇 control papers、5 轮 query refinement、IC/EC、Rayyan、snowballing、QA；Fig. 1 给出 9756→8953→228→44→39。 | 维度树中 `树-meta` 已包含纳入状态、排除代码、QA 分数与分母链；`evidence_chain.md` 有 denominator 证据项。 | **可入池（强）**：检索、筛选、排除、QA 分母链完整，适合统计 S2 透明度。 | PDF 核对 Fig. 1 排除代码数；下载 / 核验 supplemental 或 Zenodo 中 selection decisions 与 exclusion rationales 后，才能做逐条排除原因统计。 |
+| S3 原生维度树/样本编码对象 | 原文所有结果围绕 PS1--PS39 展开；RQ0 表征年份/venue/tool，RQ1 表征 strategy/procedure/instrument，RQ2 表征 benefit/risk，RQ3 映射 SPACE。 | 已复原为以 PS-id 为主键的多根 RQ 维度森林：RQ0 landscape、RQ1 method/instrument、RQ2 effect themes、RQ3 SPACE mapping，共享同一原始研究单位。 | **可入池（强）**：样本单位与树型裁决明确，可作为“原始研究主键 + 多根维度森林”模式样本。 | A2a 需核对 PS1--PS39 全表、每张表对 PS 编号的完整映射；若 supplemental 与正文不一致，以最终核验表为准。 |
+| S4 字段级证据 | §3.4 明说抽取 study goals、tools、empirical strategy/design、tasks、settings、key results；Table 5--11 与 Fig. 3--8 展示字段、指标和映射。 | 叶子表已列出 ps-id、QA、pub-year、venue-focus、LLM tool、strategy、procedure、objective、analysis type、instrument、benefit/risk、SPACE dim/sub-dim 等。 | **文本级可入池（强）；最终统计暂缓**：字段类别与字段来源可统计，但逐 PS 完整字段值、表格版式和 supplemental 字段仍待核。 | **关键边界**：Table 7、Table 8、Table 9、Table 10、Table 11 与 Fig. 6/7/8 需 PDF / supplemental 精核；当前只能说“有字段级证据链”，不能导出最终逐字段矩阵。 |
+| S5 维度模式演化 | 原文采用外部 taxonomy（Stol & Fitzgerald、Glass-Vessey-Ramesh、Hartson、SPACE）并通过 thematic analysis 形成 benefit/risk themes 和 SPACE sub-dimensions。 | 维度树复原为“外部分类法 + emergent thematic coding”混合模式；RQ2 8 个收益 / 5 个风险，RQ3 在 SPACE 五维下扩展子维度。 | **可入池（强）**：模式来源、演化路径和开放/封闭枚举边界明确，适合统计 S5。 | A2a 需确认哪些子维度来自既有文献、哪些由本研究数据涌现；需核 supplemental coding 决策才能做“模式演化证据强度”细分。 |
+| S6 统计分析 | 原文报告多组频次/比例：strategy 15/39、procedure 32/39、mixed-methods 27/39、SPACE 90%≥2 维，S/P/E/A/C 分别 77/64/59/31/26；RQ2 用雷达图呈现 benefit/risk 主题频率。 | `review.md` §6.1 已整理统计观察，维度树中关系边覆盖 strategy×procedure、strategy×instrument、benefit×risk contested、SPACE 共现等。 | **文本级可入池（强）；最终定量需冻结分母与表图**：可统计其“有频次/比例/交叉关系分析”，但 RQ2 主题精确频次和部分图形关系不得提前入最终统计。 | **关键边界**：Fig. 6 雷达图、Fig. 7/8 SPACE 分布/UpSet、Fig. 5 Sankey、Table 9 风险行、Table 10 SPACE 映射必须 A2a 视觉核验；最终统计需标注统一分母 39 或局部分母 10/44 等。 |
+| S7 候选 finding | 摘要、RQ2 summary、Discussion 明确给出 mixed findings、code quality contested、over-reliance、team collaboration、well-being/communication 缺口等候选结论。 | 维度树将统计观察与 candidate finding 分开：code quality 双向主题、cognitive load 混合、acceptance-rate proxy 风险、temporal relevance threat 等进入候选发现层。 | **可入池（强）**：候选发现与反向证据/边界条件均清楚，适合统计是否具备 candidate-finding 生成机制。 | A2a 需把每个候选 finding 绑定到表格 / PS 集合 / 原文段落；领域发现不得迁移到本仓库目标领域，只能作为方法模式样本。 |
+| S8 研究者/作者质疑与裁决 | 原文提到 all authors consensus meeting、excluded papers 验证、weekly meetings 9 个月、uncertain full-text 保守保留、citation against original text 回查；但 initial screening/data extraction 主要由第一作者完成。 | 维度树没有独立“裁决日志”节点，只在 threat / mitigation 中记录团队讨论、复查和保守策略；`review.md` 已判为中。 | **可入池（中）**：可统计为存在作者复查与讨论机制；不得统计为有 formal adjudication log、inter-rater agreement 或完整冲突解决矩阵。 | A2a 查 supplemental 是否提供 coding / selection decisions 细表；若无一致性指标或裁决日志，最终仍保持 S8=中，不升级为强。 |
 
 ## 证据链入口
 

@@ -1,0 +1,19 @@
+# llm-assistants-developer-productivity：A1-S1S8 四分栏提取
+
+## 总体统计池裁决
+
+- **裁决**：可作为 S1--S8 主统计池候选，但当前仅限 **文本级 / schema_seed** 使用；A2a 完成 PDF 版式、表图、supplemental / Zenodo 复现包精核前，不进入最终定量发现。
+- **样本单位**：39 篇 peer-reviewed 原始研究（PS1--PS39），不是综述论文或工具实例；分母链为 9756 → 8953 → 228 → 44 → **39**。
+- **总体边界**：S1--S7 均有明确原文结构支撑；S8 只有团队讨论、复查、保守筛选等过程性描述，没有正式裁决日志 / 一致性系数，因此统计池中建议按 **中** 处理。
+- **建议降级 / 修正**：S4 与 S6 在 `review.md` 中可保留“强”的文本级判断，但若用于最终统计，必须降为“待 A2a 核验后强”；尤其 Fig. 6、Fig. 7/8、Table 9、Table 10/11、supplemental QA / exclusion 细表未核前，不应导出精确主题频次或逐 PS 映射。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文自称对 2014--2024 年 39 篇 peer-reviewed studies 做 systematic review and mapping；RQ0--RQ3 分别覆盖研究图景、方法/工具、影响收益风险、SPACE 维度映射。 | `review.md` 已复原为 SLR+SMS 混合任务：对象 = LLM-assistants × developer productivity；证据对象 = 原始研究；解释框架 = SPACE + McLuhan Tetrad。 | **可入池（强）**：综述任务、RQ 层级和目标构念清楚，可作为任务设定 schema 统计样本。 | 核对 ACM final 与 arXiv 文本差异、正式发表日期 / DOI；不影响 S1 入池，只影响引用元数据精确性。 |
+| S2 语料收集与筛选 | §3 给出 Kitchenham & Charters 指南、6 个数据库、17 篇 control papers、5 轮 query refinement、IC/EC、Rayyan、snowballing、QA；Fig. 1 给出 9756→8953→228→44→39。 | 维度树中 `树-meta` 已包含纳入状态、排除代码、QA 分数与分母链；`evidence_chain.md` 有 denominator 证据项。 | **可入池（强）**：检索、筛选、排除、QA 分母链完整，适合统计 S2 透明度。 | PDF 核对 Fig. 1 排除代码数；下载 / 核验 supplemental 或 Zenodo 中 selection decisions 与 exclusion rationales 后，才能做逐条排除原因统计。 |
+| S3 原生维度树/样本编码对象 | 原文所有结果围绕 PS1--PS39 展开；RQ0 表征年份/venue/tool，RQ1 表征 strategy/procedure/instrument，RQ2 表征 benefit/risk，RQ3 映射 SPACE。 | 已复原为以 PS-id 为主键的多根 RQ 维度森林：RQ0 landscape、RQ1 method/instrument、RQ2 effect themes、RQ3 SPACE mapping，共享同一原始研究单位。 | **可入池（强）**：样本单位与树型裁决明确，可作为“原始研究主键 + 多根维度森林”模式样本。 | A2a 需核对 PS1--PS39 全表、每张表对 PS 编号的完整映射；若 supplemental 与正文不一致，以最终核验表为准。 |
+| S4 字段级证据 | §3.4 明说抽取 study goals、tools、empirical strategy/design、tasks、settings、key results；Table 5--11 与 Fig. 3--8 展示字段、指标和映射。 | 叶子表已列出 ps-id、QA、pub-year、venue-focus、LLM tool、strategy、procedure、objective、analysis type、instrument、benefit/risk、SPACE dim/sub-dim 等。 | **文本级可入池（强）；最终统计暂缓**：字段类别与字段来源可统计，但逐 PS 完整字段值、表格版式和 supplemental 字段仍待核。 | **关键边界**：Table 7、Table 8、Table 9、Table 10、Table 11 与 Fig. 6/7/8 需 PDF / supplemental 精核；当前只能说“有字段级证据链”，不能导出最终逐字段矩阵。 |
+| S5 维度模式演化 | 原文采用外部 taxonomy（Stol & Fitzgerald、Glass-Vessey-Ramesh、Hartson、SPACE）并通过 thematic analysis 形成 benefit/risk themes 和 SPACE sub-dimensions。 | 维度树复原为“外部分类法 + emergent thematic coding”混合模式；RQ2 8 个收益 / 5 个风险，RQ3 在 SPACE 五维下扩展子维度。 | **可入池（强）**：模式来源、演化路径和开放/封闭枚举边界明确，适合统计 S5。 | A2a 需确认哪些子维度来自既有文献、哪些由本研究数据涌现；需核 supplemental coding 决策才能做“模式演化证据强度”细分。 |
+| S6 统计分析 | 原文报告多组频次/比例：strategy 15/39、procedure 32/39、mixed-methods 27/39、SPACE 90%≥2 维，S/P/E/A/C 分别 77/64/59/31/26；RQ2 用雷达图呈现 benefit/risk 主题频率。 | `review.md` §6.1 已整理统计观察，维度树中关系边覆盖 strategy×procedure、strategy×instrument、benefit×risk contested、SPACE 共现等。 | **文本级可入池（强）；最终定量需冻结分母与表图**：可统计其“有频次/比例/交叉关系分析”，但 RQ2 主题精确频次和部分图形关系不得提前入最终统计。 | **关键边界**：Fig. 6 雷达图、Fig. 7/8 SPACE 分布/UpSet、Fig. 5 Sankey、Table 9 风险行、Table 10 SPACE 映射必须 A2a 视觉核验；最终统计需标注统一分母 39 或局部分母 10/44 等。 |
+| S7 候选 finding | 摘要、RQ2 summary、Discussion 明确给出 mixed findings、code quality contested、over-reliance、team collaboration、well-being/communication 缺口等候选结论。 | 维度树将统计观察与 candidate finding 分开：code quality 双向主题、cognitive load 混合、acceptance-rate proxy 风险、temporal relevance threat 等进入候选发现层。 | **可入池（强）**：候选发现与反向证据/边界条件均清楚，适合统计是否具备 candidate-finding 生成机制。 | A2a 需把每个候选 finding 绑定到表格 / PS 集合 / 原文段落；领域发现不得迁移到本仓库目标领域，只能作为方法模式样本。 |
+| S8 研究者/作者质疑与裁决 | 原文提到 all authors consensus meeting、excluded papers 验证、weekly meetings 9 个月、uncertain full-text 保守保留、citation against original text 回查；但 initial screening/data extraction 主要由第一作者完成。 | 维度树没有独立“裁决日志”节点，只在 threat / mitigation 中记录团队讨论、复查和保守策略；`review.md` 已判为中。 | **可入池（中）**：可统计为存在作者复查与讨论机制；不得统计为有 formal adjudication log、inter-rater agreement 或完整冲突解决矩阵。 | A2a 查 supplemental 是否提供 coding / selection decisions 细表；若无一致性指标或裁决日志，最终仍保持 S8=中，不升级为强。 |

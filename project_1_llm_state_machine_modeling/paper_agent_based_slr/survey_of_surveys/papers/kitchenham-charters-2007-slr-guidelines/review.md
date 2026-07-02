@@ -19,7 +19,8 @@
 | 综述类型 | SLR guideline；同时定义 系统映射研究 与 tertiary review |
 | SE 子领域 | 软件工程证据综合方法学 |
 | A1 角色 | 提供 PR-A1 的基础术语、流程阶段、研究问题、protocol、搜索、选择、质量评价、数据抽取、数据综合与报告结构先验。 |
-| 是否目标证据池 | 否；只作为脚手架模式先验。 |
+| Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |
+| survey_of_surveys 方法参考池 | 是；作为 guideline / 方法学参考样本，不进入普通主统计池。 |
 | schema 历史观察 | 暴露“guideline 类文献没有普通研究结果 RQ 表”的差异；已在 schema 中使用 `综述 / 指南类型` 与 `不适用` 缺失值语义处理。 |
 
 ## 2. 六类 pattern 抽取
@@ -99,7 +100,7 @@
 | E1 | "Specifying the research questions is the most important part of any 系统综述" | `paper_content.txt` Page 17, §5.3 (line 707-715) |
 | E2 | 6 类 question types（adapted from Australian NHMR）+ SE 改写 | Page 17-18, §5.3.1 (line 719-734) |
 | E3 | PICOC = Population / Intervention / Comparison / Outcome / Context（Petticrew & Roberts） | Page 18-20, §5.3.2 (line 797-863) |
-| E4 | Protocol 9 components 列表 | Page 20-21, §5.4 (line 893-922) |
+| E4 | Protocol 10 components 列表 | Page 20-21, §5.4 (line 893-922) |
 | E5 | Table 2 Search 流程 文档（4 类 source × ~3-4 fields） | Page 24, §6.1.4 (line 1068-1086) |
 | E6 | Table 4 Types of Bias（4 类 × {synonyms, definition, protection}） | Page 30, §6.3.2 (line 1390-1426) |
 | E7 | Table 5 Quality Checklist（量化研究，~50 条 × {Empirical, Correlation, 调查, 实验} × Source；分 设计/Conduct/Analysis/Conclusions 4 阶段） | Page 33-35, §6.3.2 (line 1514-1620) |
@@ -137,7 +138,7 @@
    - 因此 RQ 与 样本单位 是"作者立场 / contribution claim"关系，不是"问题驱动样本编码"关系。
 
 5. **若无系统样本库，如何降级？**
-   - 主体 → **方法学种子 / 边界锚点**：可为 Paper2 的"综述维度树"提供：① question type 6-枚举；② PICOC 框架；③ Protocol 9-component；④ search-doc 模式；⑤ bias 4-枚举；⑥ 质量量规 grid（研究-type × 阶段）；⑦ 抽取 form 标准字段；⑧ synthesis 3-modal + 子枚举；⑨ 报告-structure 8 章模板；⑩ DARE 4-question 评分。**这些都是 模式种子（schema_seed），不是 发现**。
+   - 主体 → **方法学种子 / 边界锚点**：可为 Paper2 的"综述维度树"提供：① question type 6-枚举；② PICOC 框架；③ Protocol 10-component；④ search-doc 模式；⑤ bias 4-枚举；⑥ 质量量规 grid（研究-type × 阶段）；⑦ 抽取 form 标准字段；⑧ synthesis 3-modal + 子枚举；⑨ 报告-structure 8 章模板；⑩ DARE 4-question 评分。**这些都是 模式种子（schema_seed），不是 发现**。
    - Appendix 2 → **局部 候选发现 边界**："2004-2007 上半年 SE SLR 主要集中在 Cost Estimation / 研究（Research） Trends / 技术 Evaluation 三大 topic type，每篇 DARE 评分 2-3.5 之间" 可作为 候选发现 但分母 n=15 且非系统采样，不得迁移到 Paper2 的主统计池。
 
 ### 3. 原生样本编码维度树 / 维度森林
@@ -164,7 +165,7 @@
 │   └── 问题结构：PICOC = {人群（Population）、干预（Intervention）、比较（Comparison）、结果（Outcome）、上下文（Context）}；附 实验设计（Experimental设计）
 │
 ├── T4 协议组件模式（§5.4）
-│   └── 9 个组件：背景（Background）、研究问题（ResearchQuestion）、检索策略（SearchStrategy）、研究选择标准（StudySelectionCriteria）、研究选择流程（StudySelectionProcedures）、质量评价清单（QualityAssessmentChecklist）、数据抽取策略（DataExtractionStrategy）、数据综合（DataSynthesis）、传播策略（DisseminationStrategy）、项目时间表（ProjectTimetable）
+│   └── 10 个组件：背景（Background）、研究问题（ResearchQuestion）、检索策略（SearchStrategy）、研究选择标准（StudySelectionCriteria）、研究选择流程（StudySelectionProcedures）、质量评价清单（QualityAssessmentChecklist）、数据抽取策略（DataExtractionStrategy）、数据综合（DataSynthesis）、传播策略（DisseminationStrategy）、项目时间表（ProjectTimetable）
 │
 ├── T5 检索记录模式（Table 2）
 │   ├── 数字图书馆：数据库名、检索策略、日期、覆盖年份
@@ -292,6 +293,44 @@
 - 本文是 **2007 年技术报告**，对 SE 的方法学诊断已经过时（2009 之后 Kitchenham 自己已多次更新指南）。
 - Table 1 的 SE↔其他学科相似度 0.17-0.83 是 Budgen et al. 2006 一篇定性访谈结论，**不可作为 Paper2 跨学科可比性结论的证据**。
 - DARE 评分均值 = 2.5 仅基于 15 篇，且评分者是评分对象的合作者群体（Keele/Durham EBSE 团队），存在**评分者-评分对象耦合 risk**。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+边界声明：本节所有 S1--S8 与维度树判断均为 A1 文本级 `schema_seed` / 方法模式审计结果；A2a 完成页码、表图和制品精核前，不得写成 final quantitative finding / 最终定量发现。
+
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 中 | 本文是 SE SLR 方法学指南，目标清楚但自身不是 RQ-driven SLR/SMS，缺少普通综述样本单位；主归属为方法学参考/模式种子。 | `review.md` §1、§2；`evidence_chain.md` A.3 `clm-kitchenham-charters-2007-slr-guidelines-type`、`clm-kitchenham-charters-2007-slr-guidelines-pool` |
+| S2 语料收集与筛选 | 中 | 主体没有系统检索/纳排样本库；Appendix 2 对 2004--2007 上半年 15 篇 SE SLR 有局部收录和 DARE 分数。 | `review.md` §2、§6.1；`evidence_chain.md` A.2 `ev-kitchenham-charters-2007-slr-guidelines-denom` |
+| S3 原生维度树/样本编码对象 | 中 | 原生对象是 guideline item / 方法组件森林：RQ、PICOC、protocol、search-doc、bias、quality checklist、data extraction、synthesis、report structure 等；不是普通样本文献编码树。 | `review.md` §3；`evidence_chain.md` A.3 `clm-kitchenham-charters-2007-slr-guidelines-unit`、`clm-kitchenham-charters-2007-slr-guidelines-tree` |
+| S4 字段级证据 | 中 | 叶子表列出 question type、PICOC、protocol components、search-doc、bias type、quality items、extraction fields、effect measures、report sections、Appendix 2 topic/DARE 字段；字段结构丰富，但表图/附录行完整性仍待 PDF 精核。 | `review.md` §4；`evidence_chain.md` A.2 `ev-kitchenham-charters-2007-slr-guidelines-tree`；`audits/a1-s1s8-19x1/adjudications/kitchenham-charters-2007-slr-guidelines.md` |
+| S5 维度模式演化 | 中 | 本文体现从医学/社会科学 SLR 指南到 SE guideline 的迁移与适配，并通过 Table 9 做跨指南流程 step cross-walk。 | `review.md` §3 T16、§5 R8、§6.3 |
+| S6 统计分析 | 弱 | 主体无统计分析；Appendix 2 的 15 篇 SE SLR 只作局部边界观察，方法组件枚举不是 empirical statistic，不能进入主统计池。 | `review.md` §6.1、§4；`evidence_chain.md` A.3 `clm-kitchenham-charters-2007-slr-guidelines-pool` |
+| S7 候选 finding | 弱 | 可记录的 finding 多为方法学启发或二手候选；Appendix 2 的早期 SE SLR 主题/质量分布只能作边界锚点。 | `review.md` §6.2、§6.4 |
+| S8 研究者/作者质疑与裁决 | 中 | 原文提供 inclusion reliability、data extractor/checker、quality assessment、protocol/report evaluation 等方法机制，但不是本文实际执行裁决日志。 | `review.md` §3 T6/T10/T11、§5 R4/R5/R9 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+- **主统计池资格：否。** 本文是 EBSE-2007-01 方法学 guideline / 技术报告，主体目标是提出适合软件工程 SLR 的指南；它从医学指南、社会科学书籍和跨学科讨论中综合方法，而不是一篇按自身 RQ 系统检索、纳排并编码样本文献的经验性 SLR/SMS。
+- **可保留身份：schema_seed / 方法学脚手架 / boundary_anchor。** 可迁移 SLR 流程、PICOC、protocol、检索记录、质量评价、数据抽取、综合与报告结构等维度模式；不得把这些规范性枚举当作 survey_of_surveys 主统计样本。
+- **Appendix 2 / Appendix 3 边界：** Appendix 2 的 15 篇 SE SLR 表只能作早期 SE SLR 局部边界观察；Appendix 3 是 tertiary study 的计划性 protocol 示例，不是本文已经完成的独立 tertiary study 结果。因此 **guideline 不得进入主统计池**。
+
+读取依据：[bibtex.bib](../../../papers/kitchenham-charters-2007-slr-guidelines/bibtex.bib)、[paper_content.txt](../../../papers/kitchenham-charters-2007-slr-guidelines/paper_content.txt)、[review.md](../../../papers/kitchenham-charters-2007-slr-guidelines/review.md)、[evidence_chain.md](../../../papers/kitchenham-charters-2007-slr-guidelines/evidence_chain.md)。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | Executive Summary 明确目标是提出 software engineering SLR guidelines；BibTeX 标为 technical report；正文说明指南来自既有医学指南、社会科学书籍与跨学科讨论。 | 不是 RQ-driven 的二级研究；应复原为“方法学指南任务”，其研究意图节点只提供 SLR 计划、执行、报告的脚手架。 | 不进主池；仅作方法学背景和 schema_seed。 | 核对 PDF 首页、报告号 EBSE-2007-01、出版机构与引用格式；确认摘要目标没有被误写成经验性 survey 目标。 |
+| S2 语料收集与筛选 | 主体没有完整数据库检索、候选集、筛选流；Appendix 2 只列 2004--2007 上半年 DARE 评分大于等于 2 的 15 篇 SE SLR；Appendix 3 只是计划性 protocol，列出待检索期刊会议、纳排标准和单人选择加他人检查。 | 主体树中“检索/纳排”是指南建议和记录模板；唯一局部样本表为 Appendix 2 的 selected list，不构成主文本完成的系统语料库。 | 不进主池；Appendix 2 仅 boundary_anchor，不得作为 A1 主分母。 | 逐页核对 Appendix 2 是否确为 15 行、质量分是否完整；核对 Appendix 3 是否无执行结果和最终纳排流。 |
+| S3 原生维度树/样本编码对象 | §5--§7 与 Tables 2--8 展开 RQ、PICOC、protocol、search documentation、selection、bias、quality checklist、data extraction、synthesis、report structure；evidence_chain 裁决为“主体不编码样本”。 | 应复原为多棵方法组件树/维度森林，而非“纳入论文样本编码树”；节点包括 question/PICOC/protocol/search-doc/bias/quality/extraction/synthesis/report。 | 不进主池；维度森林可作为字段设计种子。 | PDF 版面核对 Tables 2--8 的标题、层级和跨页完整性；避免把指南字段误当成实证分类结果。 |
+| S4 字段级证据 | review 叶子表列出 question type、PICOC、10 个 protocol components、search-doc、bias type、质量条目、抽取字段、effect measures、report sections、Appendix 2 topic/DARE 字段；既有裁决要求 S4 从强降中。 | 字段很多但来源是规范性指南/模板；Appendix 2 字段是局部小表。S4 应为“中”：可复用字段强，但统计证据资格弱。 | 不进主池；只允许字段模板级引用。 | 精核 protocol components 为 10 项；核对 Tables 5--7 条目数量和 Table 8 章节；如现有总账仍写“强”，建议降级为“中”。 |
+| S5 维度模式演化 | 原文说明指南改编自医学与社会科学来源；Table 9 对 Berkeley、Australian NHMR、Cochrane、CRD、Petticrew & Roberts、Fink 等流程步骤做 cross-walk。 | 可复原为“跨学科 SLR 指南向 SE 适配”的模式演化树，核心是流程步骤同义映射和 SE 特定问题适配。 | 不进主池；可作为演化/来源谱系 schema_seed。 | 核对 Table 9 六个来源列与步骤对应；区分作者适配意见和被转述来源原观点。 |
+| S6 统计分析 | 主体没有自身统计分析；Appendix 2 可数 15 篇、topic type/area、DARE 分数；正文还给出 effect measure 和 sensitivity analysis 的方法说明。 | “统计”分两层：指南中的 effect/sensitivity 是方法枚举；Appendix 2 是很小的局部列表统计，不能代表 survey_of_surveys 目标语料。 | 不进主池；Appendix 2 统计只可标为局部候选观察。 | 复算 Appendix 2 的 topic area、topic type、DARE 分数；核对是否存在隐藏执行报告；不得把 15 篇作为主分母。 |
+| S7 候选 finding | 原文主体产生的是方法建议；review 已标明 SE 相似度、摘要质量、PhD-light、质量加权等多为二手候选或作者主张；Appendix 2 的主题/质量分布只是早期边界。 | 应复原为“方法学启发/二手候选 finding”层，而非本文原创实证 finding 树。 | 不进主池；只能作为写作背景、方法动机或待复核候选，不进入 final research finding。 | 追溯二手 finding 的原始引用；确认 Appendix 2 观察不被写成普遍 SE SLR 结论。 |
+| S8 研究者/作者质疑与裁决 | 原文规范了 protocol evaluation、selection reliability、Cohen kappa、data extractor/checker、quality assessment 和报告评价；Appendix 3 计划一人抽取、一人检查；但这不是本文实际执行的裁决日志。 | 可复原为“裁决机制模板”：协议评审、双人/检查者机制、质量量规、偏倚与敏感性分析；不是本文样本级争议解决记录。 | 不进主池；可作为 audit/review 工作流设计种子。 | 核对 front matter reviewer、Appendix 3 checker 与正文建议之间的角色差异；确认没有把方法建议误当成已执行审计证据。 |
 
 ## 证据链入口
 

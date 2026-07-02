@@ -15,7 +15,7 @@
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
 | 来源等级 | IST 2025；正式期刊 roadmap / vision paper；开放全文 PDF 已入库 |
-| 阅读状态 | 已读全文文本-paper_content核验；关键图 Fig. 2 / Fig. 4 已回 PDF 图片核对 |
+| 阅读状态 | 已读全文文本-paper_content核验；关键图 Fig. 2 / Fig. 4 仅完成全文文本级定位，版面级视觉核验待 A2a |
 | 证据等级 | 全文文本级；两张 roadmap 图为 原文图表级人工核对；其余表格/代码清单未逐项复核排版 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
 | 主题 | formal requirements engineering / formal methods 与 LLM 的双向赋能：LLM 提高 FM 可用性，FM 提高 LLM-based RE 的可靠性、正确性、公平性和可信性。 |
@@ -25,7 +25,7 @@
 
 ## 2. 阅读范围与证据锚点
 
-本轮按用户指定完成单篇全文阅读：先读 [bibtex.bib](./bibtex.bib) 和 [metadata.json](./metadata.json) 锁定元信息，再通读 [paper_content.txt](./paper_content.txt) 的摘要、引言、背景、两个示例、两个 roadmap、实践考虑、结论和参考文献列表；必要处回到 [paper.pdf](./paper.pdf) 核对 Fig. 2 与 Fig. 4 的层级结构。
+本轮按用户指定完成单篇全文阅读：先读 [bibtex.bib](./bibtex.bib) 和 [metadata.json](./metadata.json) 锁定元信息，再通读 [paper_content.txt](./paper_content.txt) 的摘要、引言、背景、两个示例、两个 roadmap、实践考虑、结论和参考文献列表；本轮以 [paper_content.txt](./paper_content.txt) 为主完成全文文本级核验；Fig. 2 与 Fig. 4 的版面级视觉核验待 A2a。
 
 关键锚点如下：
 
@@ -133,7 +133,7 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
 |---|---|---|---|---|
 | RQ pattern | 原文没有正式 RQ 列表；隐含问题是两个对称问题：如何用 LLM 提高 formal RE / FM 可用性，如何用 FMs 提高 LLM-based RE 的 correctness / fairness / trustworthiness。 | 摘要 Objective / Methods；Introduction contributions；Sections 4 与 6。 | 可迁移为 Paper2 的“roadmap question pattern”：双向关系 + concern + mechanism + action point。 | 不适合作为 SLR/SMS 的 RQ 模板；没有系统检索问题、纳排问题或统计综合问题。 |
-| dimension pattern | 维度不是 review extraction dimensions，而是 roadmap axes：方向、层级、artefact、任务、mechanism、concern、action point、limitation。Roadmap A 有 5 个 action points，Roadmap B 有 7 个 action points。 | Fig. 2、Fig. 4；Sections 4 / 6 summaries。 | 高度可迁移为 Paper2 的字段树，特别适合将“技术路线”拆成 task / artefact / constraint / evidence / risk。 | 不是由系统编码得到的 taxonomy，存在作者经验选择偏差；不能当成饱和分类体系。 |
+| dimension pattern | 维度不是 review extraction dimensions，而是 roadmap axes：方向、层级、artefact、任务、mechanism、concern、action point、limitation。Roadmap A 有 5 个圈号 topic / 7 条显式行动点陈述，Roadmap B 有 7 个圈号 item / 7 条显式行动点陈述；这些都是路线图内部结构单位，不是系统样本分母。 | Fig. 2、Fig. 4；Sections 4 / 6 summaries。 | 高度可迁移为 Paper2 的字段树，特别适合将“技术路线”拆成 task / artefact / constraint / evidence / risk。 | 不是由系统编码得到的 taxonomy，存在作者经验选择偏差；不能当成饱和分类体系。 |
 | finding pattern | 原文的“发现”主要是 vision conclusions 与 action points，而非经验 findings。可抽取为 concern-to-action heuristic：识别技术痛点，再提出 formal / LLM 机制。 | Sections 4 / 6 的每个 Action Point；Section 7 limitations。 | 可迁移为候选发现生成启发式：统计观察之后必须说明 concern、机制、证据强度、限制和所需验证。 | 不可把 action points 写成已验证 research findings；不支持“LLM+FM 必然可行”之类强主张。 |
 | evidence presentation pattern | 证据呈现采用两组 worked examples、代码清单、model-checking counterexample、ChatGPT prompt/output 片段、两张 roadmap 图和大量文献锚点。 | Section 3 sender-receiver；Section 5 LLM-driven RE examples；Fig. 2 / 4。 | 可迁移为 Paper2 的 evidence package：示例 + 图层 + action point + 限制，比单纯文字综述更容易审计。 | 示例不是 benchmark；ChatGPT 输出有人工压缩/有限调整；没有样本分母、纳排流程或可重复实验协议。 |
 | validity / threat pattern | 没有传统 threats-to-validity 章节；Section 7 以 practical considerations 替代，覆盖专家协作、评价难题、overreliance、human role、training data、artefact maintainability、scalability、technology evolution。 | Section 7。 | 可迁移为 Paper2 risk register 字段，尤其是 overreliance、human-centred QC、model/tool drift、artefact proliferation。 | 不是系统化效度威胁模板；缺少对文献选择、示例选择和作者主观判断的显式方法学威胁分析。 |
@@ -201,8 +201,8 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | 是否读取 `bibtex.bib` / `metadata.json` | 是；都已读取，确认期刊为 Information and Software 技术 181:107697 (2025)，DOI `10.1016/j.infsof.2025.107697` |
 | 是否打开或核对 `paper.pdf` | 否，本轮**未做 PDF 版面核验**；以 `paper_content.txt` 文本为准，Fig. 2、Fig. 4 仅以文本中“Fig. 2/Fig. 4 summarises and connects…”段落定位；版面级（页码、图层标签位置、表格排版）需 A2a 回 PDF 复核 |
 | 原文类型 | **愿景 / 路线图**（作者原文 Page 2 明确：“It is worth remarking that this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据”） |
-| 被编码样本单位 | **无系统样本单位**；最接近的可结构化单位是“**行动点**”（Roadmap A 共 5 个 + Roadmap B 共 7 个 = 12 个）；以及 Sec 7 的 7 项 practical considerations |
-| 样本数量 / 分母 | 不存在系统样本分母；路线图行动项 数固定为 5 + 7 = 12；如把 Section 7 视为辅助森林则 +7 = 19。**不可作为统计分母使用** |
+| 被编码样本单位 | **无系统样本单位**；最接近的可结构化单位是路线图内部单位：Roadmap A 为 5 个圈号 topic / 7 条显式行动点陈述，Roadmap B 为 7 个圈号 item / 7 条显式行动点陈述；§7 另有 7 项 practical considerations。上述均不可作为系统综述分母 |
+| 样本数量 / 分母 | 不存在系统样本分母；Roadmap A 为 5 个圈号 topic / 7 条显式行动点陈述，Roadmap B 为 7 个圈号 item / 7 条显式行动点陈述，§7 为 7 项 practical considerations。上述只是路线图内部结构数，**不可作为统计分母使用** |
 | 原生树类型 | **降级森林**：双根 路线图 森林（Roadmap A、Roadmap B）+ 边界森林（Practical considerations）；不是单树，也不是基于样本编码的维度森林 |
 | 主统计池资格 | 否；不进入后续主统计池。A1-DT v2 仅允许其作为方法学种子、模式种子或边界锚点；若原文内部存在 convenience sample / guideline 示例统计，也不得混入 Paper2 主统计池。 |
 | 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
@@ -217,8 +217,8 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 | 序号 | 证据位置 | 原文短引 / 释义 | 用途 |
 |---|---|---|---|
 | E1 | Page 2 §1 contributions 段 | “It is worth remarking that this is a 愿景 paper, which does not aim to offer sound 经验研究（empirical） 证据 but rather to indicate possible avenues of research… the discussed 路线图 should not be considered exhaustive.” | 决定论文类型 = 愿景/路线图；不进主统计池 |
-| E2 | Page 8 §4 引言段 + Fig. 2 描述 | “Each discussion topic is associated with a circled number… Fig. 2 summarises and connects the different discussion topics” + 标注 ①~⑤ | 锁定 Roadmap A 由 5 个 行动点 组成 |
-| E3 | Page 8–11 §4 各 Action Point | 五个标号 Action Point: Generating FM/SE Artifacts; Explaining FM Artifacts; Translating Formal Languages; Supporting Iterations and Evolution; Automating Knowledge Engineering | Roadmap A 行动点 名单 |
+| E2 | Page 8 §4 引言段 + Fig. 2 描述 | “Each discussion topic is associated with a circled number… Fig. 2 summarises and connects the different discussion topics” + 标注 ①~⑤ | 锁定 Roadmap A 由 5 个圈号 topic 组成；显式 Action Point 陈述为 7 条，需与 topic 分层区分 |
+| E3 | Page 8–11 §4 各 Action Point | 5 个圈号 topic 下组织 7 条显式 Action Point 陈述：Generating FM/SE Artifacts; Explaining FM Artifacts; Translating Formal Languages; Supporting Iterations and Evolution; Automating Knowledge Engineering 等 | Roadmap A topic 与 statement 名单；不得当作系统样本分母 |
 | E4 | Page 14 §6 引言段 + Fig. 4 描述 | “Each discussion item is associated with a circled number, which appears in the figure” + ①~⑦ | 锁定 Roadmap B 由 7 个 行动点 组成 |
 | E5 | Page 14–16 §6 各 Action Point | 七个标号 Action Point: Ensuring Correctness… Argumentation; Improving Mathematical Reasoning…; Formal Prompt Engineering; Formal Domain Knowledge…; Ensure LLM Output Consistency…; Regulatory Compliance at Runtime; Mitigate Bias… Ethical Concerns | Roadmap B 行动点 名单 |
 | E6 | §4 Summary（Fig. 2 描述） | "structured into three interconnected layers… a formal development layer, a conventional development layer and an LLM layer” | Roadmap A 三 layer 结构 |
@@ -308,7 +308,8 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | leaf-路线图_direction | 路线图 方向 | 森林根 | §4/§6 章节自述 | 双向中的具体方向 | {LLM→FM, FM→LLM} | 完整枚举（闭） | 不允许缺失 | 不入统计池；二元 boundary 标签 | 用作 Paper2 双向叙事种子 | E2,E4 | 仅迁移“双向 路线图”结构 |
 | leaf-layer | 可视化层 | Roadmap A/B 内 | §4/§6 Summary 段、Fig.2/4 描述 | 作者定义的 graphical layer | A:{Formal Dev, Conventional Dev, LLM}; B:{Formal, SW Artifact, LLM} | 完整枚举（但 A/B 不同义） | n/a | 不入统计池 | 用作 layer-based 叙事框架 | E6,E7 | A、B 层数同为 3 但语义不同，不能直接合并 |
-| leaf-action_point | 行动点 | layer 内 | §4/§6 ①~⑤ / ①~⑦ 段 | 作者标号的研究议程项 | A: 5 项已枚举；B: 7 项已枚举（见 §3 节树） | 完整枚举（封闭，但作者声明非穷尽） | 不允许缺失 | 不入统计池；可作 candidate-发现 计数（n=12） | 每条 = 一条 候选发现 种子 | E3,E5 | 必须配 concern + mechanism；不可孤立迁移 |
+| leaf-roadmap_topic | 路线图圈号 topic / item | layer 内 | §4/§6 的圈号段落与 Fig.2/Fig.4 | 作者标号的研究议程分组 | A: 5 个圈号 topic；B: 7 个圈号 item | 完整枚举（封闭但非穷尽） | 不允许缺失 | 不入统计池；只作 roadmap schema seed | 每个 topic/item 是 action statement 的父节点 | E2,E3,E5 | 不能与显式行动点陈述混作同一分母 |
+| leaf-action_statement | 显式行动点陈述 | topic/item 内 | §4/§6 的 Action Point 文本 | 作者写出的具体研究行动建议 | A: 7 条显式陈述；B: 7 条显式陈述 | 完整枚举（封闭但非穷尽） | 不允许缺失 | 不入统计池；只作候选 finding 启发 | 每条 = 一条候选启发种子，必须配 concern + mechanism | E3,E5 | 不可孤立迁移，不得写成 empirical finding |
 | leaf-concern | 关注 / 痛点 | action_point | 段落内显式 concern 表述 | 行动点 想解决的问题 | 自由文本 + concern_分类法 {可解释性（explainability）, 幻觉（hallucination）, 数学推理（math reasoning）, 提示词歧义（prompt ambiguity）, 领域落地（domain grounding）, 输出一致性（output consistency）, 监管合规（regulatory compliance）, 偏见 / 伦理（bias/ethics）, FM 数据稀缺（FM data scarcity）, 状态空间爆炸（state-space explosion）, …} | 自由文本加 emergent 分类 | 缺失时标 未说明（not stated） | 不入统计池 | 作 Paper2 concern field 种子 | E3,E5,E8 | 部分 concern 在 §7 重述，注意去重 |
 | leaf-mechanism | 机制 / 干预 | action_point | 段落内 mechanism 描述 | 应对 concern 的形式化或 LLM 机制 | 自由文本 + mechanism_分类法 {RAG, 微调（fine-tuning）, 多智能体（multi-智能体）, 形式化验证（formal verification）, 抽象解释（abstract interpretation）, 运行时验证（runtime verification）, 本体 / 知识图谱（ontology/KG）, 形式化论证（formal argumentation）, 受控自然语言（controlled NL）, ACSL 风格前 / 后置条件（ACSL-style pre/post）, 代码翻译（code-translation）} | 层级枚举（emergent，不封闭） | 缺失时 未说明（not stated） | 不入统计池 | 作 mechanism field 种子 | E3,E5 | 机制粒度不一，A2a 需拆细 |
 | leaf-artifact_in | 输入制品 | action_point | 段落内提及的输入对象 | LLM/FM 处理的对象 | {自然语言需求（NL req）, 用户故事（user story）, 反馈（feedback）, issue, 代码（code）, 形式化模型（formal 模型）, 逻辑公式（logic formula）, 反例（counterexample）, 领域文档（domain doc）, 法规（regulation）, 伦理原则（ethics principle）} | 完整枚举（emergent） | 缺失时 未说明（not stated） | 不入统计池 | 作 RE 制品 流图种子 | E3,E5 | 与 leaf-artifact_out 配对，构成 transformation 关系 |
@@ -364,6 +365,40 @@ Fig. 4 由 Formal Layer、SW Artifact Layer、LLM Layer 组成。LLM Layer 分�
 - 任何“UPPAAL/Spin/PROMELA 是 LLM4STM 最佳工具链”这类来自示例选择的工具偏好。
 - ChatGPT 3.5 在 RE 任务上的具体能力描述（作者 explicitly "slightly adjusted" 输出）。
 - §2 background 分类法 不可作为 LLM4STM 主综述的工具/模型分类的事实源，只能作为术语启发。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+边界声明：本节所有 S1--S8 与维度树判断均为 A1 文本级 `schema_seed` / 方法模式审计结果；A2a 完成页码、表图和制品精核前，不得写成 final quantitative finding / 最终定量发现。
+
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 中 | 本文是 vision/roadmap，任务设定为双向讨论 LLM 支持 formal RE/FM 与 FM 提升 LLM-based RE 的 correctness/fairness/trustworthiness。 | `review.md` §1、§3.2、维度树复原 §0；`evidence_chain.md` A.3 `clm-formal-re-llm-roadmap-type` |
+| S2 语料收集与筛选 | 不适用 | 原文无系统检索、纳排、质量评价、数据抽取或 PRISMA 风格流程；声明无数据使用，因此不进入统计池。 | `review.md` 维度树复原 §2、§6.1；`evidence_chain.md` A.2 `ev-formal-re-llm-roadmap-pool`、A.3 `clm-formal-re-llm-roadmap-pool` |
+| S3 原生维度树/样本编码对象 | 中 | 原生结构可降级复原为双根 roadmap 森林：Roadmap A 5 个 discussion topics / 7 条 Action Point statements，Roadmap B 7 个 discussion topics / 7 条 Action Point statements，另有 7 项 practical considerations；它不是样本编码树。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.2 `ev-formal-re-llm-roadmap-unit`、`ev-formal-re-llm-roadmap-tree` |
+| S4 字段级证据 | 弱 / 中 | 可抽取 action-point 级字段，但当前多为 roadmap schema 种子；尚未逐 Action Point 实例化为完整抽取表，字段证据不得等同于系统综述样本级证据。 | `review.md` 维度树复原 §4、§5；`evidence_chain.md` A.2 `ev-formal-re-llm-roadmap-tree`；`audits/a1-s1s8-19x1/adjudications/formal-re-llm-roadmap.md` |
+| S5 维度模式演化 | 弱 | 原文没有跨样本维度演化过程；可作为 concern → mechanism → artifact → action 的路线图字段种子。 | `review.md` §4、§5、维度树复原 §6.3 |
+| S6 统计分析 | 不适用 | 无统计表、频次分布、样本分母或编码分布；Roadmap A/B 的 action points 只作候选启发。 | `review.md` 维度树复原 §0、§6.1；`evidence_chain.md` A.2 `ev-formal-re-llm-roadmap-denom` |
+| S7 候选 finding | 中 | 可提取 prompt 即需求、formal verification/runtime monitoring/ethical requirements 作为控制机制等候选启发，但均按 roadmap 证据降级。 | `review.md` §4、维度树复原 §6.2；`evidence_chain.md` A.3 `clm-formal-re-llm-roadmap-tree` |
+| S8 研究者/作者质疑与裁决 | 弱 | 原文无正式编码裁决；§7 practical considerations 只是专家协作、评价困难、overreliance、人类质量控制和技术演化的限制讨论。 | `paper_content.txt` §7；`review.md` §3.8、§4、维度树复原 §0、§6.3 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+不进入主统计池。该文是 IST 2025 vision/roadmap paper，原文明示“不提供 sound empirical evidence”，且 Data availability 声明“No data was used”。可作为 Paper2 的边界锚点、roadmap schema 种子、concern→mechanism→action 启发，但不能作为 SLR/SMS 样本统计、频次分母或最终经验 finding 来源。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | §1 明确贡献是两个 roadmaps：LLM 支持 formal RE/FM、formal RE/FM 支持 LLM-based RE；同时声明 vision paper、非 empirical evidence、non-exhaustive。 | 可复原为“双向路线图”任务设定，而非 SLR/SMS RQ；样本单位需降级为 roadmap topics / action points。 | 不入主统计池；可作任务边界与 roadmap 类型样本。 | 精确核对 Page 2 vision paper 原文、贡献列表和页码。 |
+| S2 语料收集与筛选 | 原文无检索库、检索式、纳排、质量评价、PRISMA、数据抽取；Data availability 声明无数据。 | 无语料构造树；参考文献只作作者论证线索，不构成系统语料。 | 不适用；这是阻断主统计池资格的核心证据。 | 核对全文是否存在 supplement / appendix；核对 Data availability 页码。 |
+| S3 原生维度树 / 样本编码对象 | §4/Fig.2 有 Roadmap A；§6/Fig.4 有 Roadmap B；§7 有 practical considerations。 | 原生结构应写为“双根 roadmap 森林 + 边界森林”：A 为 5 个 discussion topics（其中 7 个 Action Point 文本块），B 为 7 个 discussion topics/action points，§7 为 7 类限制。 | 不入统计池；可作为维度树 / 字段树种子。 | 必须视觉核对 Fig.2/Fig.4 的圈号、layer label，并澄清“5 topics”与“7 Action Point statements”的分母差异。 |
+| S4 字段级证据 | Action Point 段落可抽 concern、mechanism、artifact、recommendation、supporting refs；但没有样本级抽取表。 | 可降级为 action-point-level 字段树，不是 study-level coding form。 | 不入主统计池；可进入 pattern library seed。 | A2a 若继续使用，应逐 AP 建表并标注页码、段落、inferred_by_reviewer。 |
+| S5 维度模式演化 | 原文以 worked examples + 作者经验 + seminal works 构造 roadmap；无 open coding、迭代 codebook、冲突裁决。 | 只有概念链条：example → concern → mechanism → action；不是可审计维度演化流程。 | 不入统计池；只作 researcher-defined meta-model 的启发。 | 核查 §4/§6 是否有更明确的 roadmap construction 说明；大概率仍为弱证据。 |
+| S6 统计分析 | 无频次、比例、趋势、交叉表、样本分母；“No data was used”。 | 无统计节点；action point 数量只能描述原文结构，不能转成经验统计。 | 不适用；不得把 5/7/14/7 等结构数作为领域分母。 | 核对全文表格、图注和附录，确认无隐藏统计综合。 |
+| S7 候选 finding | Roadmap B 提出 formal prompts、formal verification、runtime monitoring、ethical requirements 等建议；§7 提出 overreliance、evaluation difficulty 等风险。 | 可抽候选 finding heuristic：concern→mechanism→action；全部 evidence strength ≤ worked_example / author opinion。 | 不入主统计池；只能作为候选 finding 生成规则。 | A2a 需逐条标注 AP 来源和证据强度，防止写成已验证结论。 |
+| S8 研究者 / 作者质疑与裁决 | §7 有 practical considerations：专家协作、empirical evaluation 难、overreliance、人类质量控制、技术演进等。 | 只有作者限制讨论与风险提醒；无多研究者筛选、编码分歧、QA 裁决日志。 | 不入统计池；可作 human-in-the-loop 风险字段种子。 | 核对 §7 各小标题页码；不要把 limitation discussion 升级为正式裁决机制。 |
 
 ## 证据链入口
 

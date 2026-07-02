@@ -31,11 +31,11 @@
 
 作者把二者交叉定义为 MDE4ML：用 MDE 技术开发、集成、维护或支持带 ML component 的系统。Introduction 明确说现有二次研究要么范围窄，要么缺少系统流程，要么没有充分分析 goals、end-users、机器学习环节、MDE approach details、evaluation methods 和 limitations。因此本文的空白不是“没有 MDE4ML 论文”，而是缺少按 SLR protocol 系统整理 MDE4ML 研究现状、工具、评价与缺口的综述。
 
-### 2.2 Research Questions：四个 RQ 直接对应四棵结果子树
+### 2.2 Research Questions：四个 RQ 对应四个结果视角 / 字段分支
 
 原文设置 4 个 RQ，每个 RQ 都有明确的数据抽取范围：
 
-| RQ | 原文问题焦点 | 对应维度树 |
+| RQ | 原文问题焦点 | 对应字段视角 |
 |---|---|---|
 | RQ1 | 为什么将 MDE 用于带 ML component 的系统？ | motivation / goal、ML technique、application domain、end users、contribution、ML aspect。 |
 | RQ2 | 文献中有哪些 MDE approaches 与 tools？ | model representation、modeling language、model level/type、ML aspect、ML framework/library、transformation、generated artifact、automation level、tool availability、meta-tool/framework/transformation language。 |
@@ -293,7 +293,7 @@ Discussion 将 RQ1--RQ4 的统计观察升级为 research roadmap，主题包括
 9. RQ4 §4.5 三类 limitation（approach / 评价 / 质量）+ 三类 future work；88% 无 工业（industrial） 评价 与 user 研究；48% 仅评一面；17% 无 评价。
 10. §6 路线图 10 项主题，每项以 “We recommend…” / “We suggest…” / “We encourage…” 给出可执行建议。
 11. §7 Conclusion 中“initial pool of **3,496** papers”——与 §3.3.2 中 **3934** 不一致，为论文笔误，正式引用应使用 3934/3570。
-12. 数据可获得性（Data availability）：仅一句 “SLR data is available at the following link MDE4MLSLRdata(Originaldata)”；review.md 已注记 GitHub URL `https://github.com/hiraa221/MDE4ML-SLR-Data/树/main`，需 A2a 复核当前可访问性与内容范围。
+12. 数据可获得性（Data availability）：仅一句 “SLR data is available at the following link MDE4MLSLRdata(Originaldata)”；review.md 已注记 GitHub URL `https://github.com/hiraa221/MDE4ML-SLR-Data/tree/main`，需 A2a 复核当前可访问性与内容范围。
 
 **仅基于 text 的部分 / 仍需 PDF 视觉核验**：
 
@@ -499,6 +499,41 @@ RQ 既是树根（每个 RQ 对应一个子树）又是字段用途说明（每�
 - 任何 "TensorFlow 主导 / EMF+Sirius+XTend 主导 / Python 主导 / supervised 主导 / unsupervised 缺位" 等具体生态结论。
 - 任何 MDE4ML 特定 路线图行动项（如 low-code 平台、no-code 平台）。
 - 3934 → 46 的具体数字、46 篇 语料、P1..P46 编号。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文是 Kitchenham-style SLR，任务设定为系统综述 MDE4ML 的 motivations、approaches/tools、evaluation、limitations/future work。 | `review.md` §2.2、§2.3、§3；`evidence_chain.md` A.2 `ev-mde-ml-components-slr-type` |
+| S2 语料收集与筛选 | 强 | 自动检索 7 个数据库，3934 条去重至 3570 条，经三轮筛选得 32 篇，再 snowballing 增补 14 篇，最终 46 篇；结论处 3,496 与方法/摘要 3,934 存在原文内部冲突，A2a 待核。 | `review.md` §2.4、维度树复原 §0、§2；`evidence_chain.md` A.2 `ev-mde-ml-components-slr-denom`；`audits/a1-s1s8-19x1/adjudications/mde-ml-components-slr.md` |
+| S3 原生维度树/样本编码对象 | 强 | 样本编码对象为 P1--P46 原始研究；原生结构为 Fig. 5 单根 feature tree；Table 1 纳排 schema 与 QA1--QA5 质量量规是并列审计 / 门禁 schema，不应并入同一原生树。 | `review.md` §2.5、维度树复原 §2、§3；`evidence_chain.md` A.2 `ev-mde-ml-components-slr-unit`、`ev-mde-ml-components-slr-tree`；`audits/a1-s1s8-19x1/adjudications/mde-ml-components-slr.md` |
+| S4 字段级证据 | 强 | 原文用 40-question Google Form、5 个 section 和 Table 3--8/QA 表把 RQ 映射为 goal、ML technique、domain、tool、evaluation、limitations 等字段；raw 40-question form 与完整 Fig. 5 树待数据仓库/PDF 精核。 | `review.md` §2.3、§4、维度树复原 §4 |
+| S5 维度模式演化 | 中 | 原文说明 search string 多次修改、数据抽取前 pilot 6 篇并与其他作者对照，术语不一致经讨论达成共识；但缺少完整字段变更日志。 | `review.md` §2.3、§2.12、§4、§7.2；维度树复原 §1 |
+| S6 统计分析 | 强 | 本文将字段表转化为 Venn、bubble chart、分布图、频次表、QA 分布和 RQ Answer Summary。 | `review.md` §2.6--§2.10、§4、维度树复原 §6.1 |
+| S7 候选 finding | 强 | RQ Answer Summary 和 Discussion roadmap 形成候选发现，例如 effort reduction 主导、monitoring/documentation 被忽视、industrial/user study 不足和 responsible ML 需加强。 | `review.md` §2.10、§3、§4、§7.1--§7.2；维度树复原 §6.2 |
+| S8 研究者/作者质疑与裁决 | 中 | 原文有 protocol review、cross-validation、pilot extraction、作者讨论和 threats，但没有双人独立编码比例、disagreement 统计或逐条裁决日志。 | `review.md` §2.3、§2.12、§3、§7.2；维度树复原 §1、§2 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+- **论文类型**：SLR；原文明确遵循 Kitchenham 指南，系统检索 7 个数据库并结合 snowballing。
+- **样本单位**：46 篇 primary studies，编号 P1--P46。
+- **统计池裁决**：可进入 **schema / method 模式统计池候选**，因为 RQ、检索筛选链、40-question extraction form、Fig. 5 feature tree、Table 3--9 与 RQ Answer Summary 均有明确分母和字段化证据；但 **不得进入本仓库目标领域结论池**，MDE4ML 领域发现只能作为方法脚手架先验。
+- **A2a 前限制**：A2a 完成页码、图表、PDF 版面与数据仓库精核前，不应把具体数值升级为最终定量发现；尤其需保留 3934 vs 3496 初始池数字冲突。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 摘要与 §3 明确目标是系统综述 MDE4ML，分析 motivations、MDE solutions、evaluation、benefits、limitations；§3.1 设置 RQ1--RQ4。 | 对应根任务“面向机器学习组件的 MDE 方案”，RQ1--RQ4 分别投影为动机、方案工具、评价、限制未来工作四个主分支。 | **强，可入 schema/method 池**；任务边界清楚，但领域结论仅限 MDE4ML。 | 复核正式页码与 RQ 原文措辞；确认引用时不把 MDE4ML 结论迁移到 LLM4STM。 |
+| S2 语料收集与筛选 | §3.2--§3.3：7 个数据库，自动检索 3934 条，去重 3570，筛到 72、55、32，再 snowballing +14，最终 46；Table 1 给 I01--I04 与 E01--E10。 | 纳排门禁是独立 schema；样本单位为 P1--P46 primary studies，筛选分母链可复原。 | **强，可入统计池候选**；分母链完整，适合统计检索筛选模式。 | 结论 §7 写 initial pool 3,496，与方法/摘要 3,934 冲突；需 PDF 与可能补充数据核定正式采用 3934 并记录冲突。 |
+| S3 原生维度树/样本编码对象 | §4.1 明确 Fig. 5 是由 RQ-based extraction categories 派生的 feature tree；Appendix A 列 P1--P46。 | 复原为单根 Fig. 5 主树“Features of selected primary studies / MDE Solution for ML”，另有 Table 1 纳排 schema 与 QA1--QA5 质量 rubric 并列，不并入主树。 | **强，可入 schema 池**；主树和并列 gate/rubric 边界可辩护。 | 需回 PDF 核对 Fig. 5 完整节点、层级连接与图题；当前文本级复原不能替代图形版面精核。 |
+| S4 字段级证据 | §3.4：Google Form 40 个问题、5 个 section、23 short answer、10 long answer、2 checkbox、14 radio button；Table 3--8 与 Table 9 实例化字段。 | 字段覆盖 publication、goal/sub-goal、ML technique、domain、end user、contribution、modeling、ML aspects、tool support、evaluation、metrics、limitations/future work、QA。 | **强，可入字段级统计池候选**；字段和分母基本明确。 | 需核验 GitHub SLR data 是否含原始 Google Form/coding sheet；需回 PDF 校正 Table 3--9 单元格与错位风险。 |
+| S5 维度模式演化 | §3.3.1 说明 search string 多轮 refinement；§3.4 pilot 6 篇后 small updates 改进 Google Form；§5 提及术语不一致经讨论达成共识。 | 可复原为“检索式演化 + extraction form pilot 修订 + 术语归类裁决”的轻量演化链，但没有完整变更日志。 | **中，只作方法模式候选**；能证明有演化，但不足以统计细粒度 schema-change。 | A2a 查补充数据是否保留表单版本或编码修订记录；若无，应保持中等级，不上调为强。 |
+| S6 统计分析 | §4 各 RQ 使用 Venn、bubble chart、分布图、频次表、QA 分布和 RQ Answer Summary；多处以 46 为分母报告 43/46、35/46、38/46 等。 | 字段表转为 A1-M5 统计观察：goal、ML technique、tool availability、evaluation method、limitations、QA 等频次与比例。 | **强，可入统计模式候选**；适合抽取“字段表到统计观察”的报告模式。 | Fig. 4--10、Table 2--9 的所有数值需 PDF 逐项复核；图形抽取不完整时不得直接作为最终数字。 |
+| S7 候选 finding | RQ Answer Summary 与 §6 Discussion roadmap 将统计观察转为 data first-class、solution focus、maturity、terminology、scalability、responsible ML、evaluation rigor 等建议。 | 可复原为 A1-M6 候选发现链：统计观察 → RQ summary → roadmap/recommendation；但 finding 是作者解释性综合。 | **强，但仅限候选 finding 方法池**；不能把 MDE4ML 领域 roadmap 作为本仓库目标结论。 | 需为每个候选 finding 补支持计数、反例、分母和页码；A2a 前不升级为 final research finding。 |
+| S8 研究者/作者质疑与裁决 | §3 与 §5：protocol review、cross-validation、pilot extraction、其他作者监督、ambiguities discussion、threats to validity；§3.4 说明第一作者抽剩余论文。 | 可复原为作者级审计与讨论机制，但缺少双人独立编码比例、Cohen kappa、逐条 disagreement / 裁决日志。 | **中，可作边界锚点**；支持“有质控”，不支持“强审计裁决链”。 | A2a 检查 supplementary 是否有 disagreement log 或 inter-rater 统计；若无，保持中，并建议在本研究方法中补强裁决日志。 |
 
 ## 证据链入口
 
