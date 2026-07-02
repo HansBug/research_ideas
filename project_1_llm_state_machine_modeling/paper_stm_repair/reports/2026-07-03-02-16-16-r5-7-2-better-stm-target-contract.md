@@ -124,9 +124,9 @@ R5.7.2 冻结的 taxonomy 有 11 类一级目标 [clm-r572-taxonomy]：
 
 | source path | source creation commit | prefix commit | substantive fact commit 判定理由 | non-prefix revision/migration commit | canonical machine source |
 |---|---|---|---|---|---|
-| `reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md` | 待回填（本 report 首次内容提交后回填） | 待回填（本 report 首次内容提交后回填） | R5.7.2 首次落库 Better STM gate、taxonomy、Q1–Q12 决策 synthesis 与下游接口。 | 待回填 | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
+| `reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md` | `df4af008` | `df4af008` | R5.7.2 首次落库 Better STM gate、taxonomy、Q1–Q12 决策 synthesis 与下游接口。 | 本次回填提交 | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
 
-> 本节只说明 report 的迁移与冻结来源，不替代下面的 claim-evidence map。首次提交后需要用实际 commit hash 回填。
+> 本节只说明 report 的迁移与冻结来源，不替代下面的 claim-evidence map。本 report 的首次内容提交为 `df4af008`；本次后续提交只回填来源 commit，不改变核心学术结论。
 
 ### A.2 上游事实源清单
 
