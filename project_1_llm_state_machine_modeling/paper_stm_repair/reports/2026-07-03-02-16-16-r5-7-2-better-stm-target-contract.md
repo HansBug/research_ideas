@@ -140,11 +140,11 @@ v0 合成规则要求：`semantic_drift_risk=fatal`、`over_repair_indicator=con
 
 ### A.1 来源考据表
 
-| source path | source creation commit | prefix commit | substantive fact commit 判定理由 | non-prefix revision/migration commit | canonical machine source |
+| source path | source creation commit | prefix commit | substantive fact commits 判定理由 | provenance / non-prefix revision commit | canonical machine source |
 |---|---|---|---|---|---|
-| `reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md` | `df4af008` | `df4af008` | R5.7.2 首次落库 Better STM gate、taxonomy、Q1–Q12 决策 synthesis 与下游接口。 | 本次回填提交 | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
+| `reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md` | `df4af008` | `df4af008` | `df4af008` 首次落库 Better STM gate、taxonomy、Q1–Q12 决策 synthesis 与下游接口；`1724051d` 根据首轮 review 实质补充 G5 rubric v0、实例级单值 `repair_action_allowed`、Q3/Q11 审计键与 claim-evidence map；`964ef6e0` 根据二轮 review 实质补齐 `under_repair_indicator` 合成规则，明确 confirmed under-repair 必须进入 fail / partial。 | 本 provenance 回填提交只修正来源说明，不新增 R5.7.2 学术规则。 | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
 
-> 本节只说明 report 的迁移与冻结来源，不替代下面的 claim-evidence map。本 report 的首次内容提交为 `df4af008`；本次后续提交只回填来源 commit，不改变核心学术结论。
+> 本节只说明 report 的迁移与冻结来源，不替代下面的 claim-evidence map。本 report 的首次内容提交为 `df4af008`；后续 `1724051d` 与 `964ef6e0` 均包含实质合同修复，不能被描述为“只回填来源 commit”。后续审计 R5.7.2 当前事实时，应以本 report、[../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) 在 PR #140 head 的内容为准，并用上述 substantive commits 定位历史变更原因。
 
 ### A.2 上游事实源清单
 
