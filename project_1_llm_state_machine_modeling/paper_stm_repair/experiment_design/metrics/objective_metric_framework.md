@@ -186,6 +186,7 @@ P/R/F1 只在存在明确 reference set 时使用，例如 adjudicated target se
 | 类型 | 写法 | 示例 | 注意 |
 |---|---|---|---|
 | `boolean_true_better` | true 优于 false。 | `schema_valid=true`。 | 仅 hard gate / readiness。 |
+| `boolean_false_better` | false 优于 true。 | `critical_scenario_regression_flag=false`。 | 只适用于预注册负例或回归 flag；不得扩展为整体 Better。 |
 | `lower_is_better` | 越小越好。 | `blocking_diagnostic_count`、`untraced_addition_count`。 | 需防止语义删除刷低。 |
 | `higher_is_better_with_reference` | 有 reference set 时越高越好。 | slot-level F1。 | 无 reference 必须降级。 |
 | `set_inclusion_or_closure` | 集合闭合 / 包含关系。 | must-fix targets closed。 | 按 target-instance 分层。 |
@@ -293,6 +294,10 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
 
 ## 11. 代表性 metric entries v0
 
+本节先给出便于人工阅读的压缩索引表；该表不是完整 schema entry，不能作为 R7/R8 的机器可消费 registry。完整字段以 §11.2 的 JSON registry 为准，字段集合必须与 §3 的 `指标 entry schema v0` 对齐 [clm-r573-schema]。
+
+### 11.1 压缩索引表
+
 | `metric_id` | family | permission | gate | denominator | aggregation | ordering | scope | headline | semantic adjudication | freeze |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `schema_validity_status` | readiness | `hard_gate` | G1 | readiness ledger | pair/run | `boolean_true_better` | T0/T0.5/T1 routed | `yes_if_eligible` for T0 | no | `frozen_v0` |
@@ -309,6 +314,658 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
 | `should_fix_improvement_rate` | semantic_target_closure | `supporting_evidence` | G4/G5 | target_instance_ledger | target_instance/pair/cluster | `ordinal_status` | T0_main / T0_5_caveat | T0 yes; T0.5 no | when unresolved | `frozen_v0` |
 | `token_cost_per_valid_run` | cost | `report_only` | G6/report | run_ledger | run/llm_family | `non_comparable_report_only` | cross-scope | report_only | no | `r7_to_freeze` |
 | `textual_similarity_auxiliary` | baseline/textual | `report_only` / `forbidden` for quality | report-only | baseline_reference_only | report_only | `non_comparable_report_only` | cross-scope | report_only | no | `future_optional` |
+
+
+### 11.2 完整 JSON registry（schema v0 exemplar）
+
+下列 JSON registry 是 §3 schema v0 的完整样例，用于 R5.7.4/R7 dry-run、字段检查与下游 schema 初稿。它仍是 v0 exemplar，不等于 R7 最终主表列；但每个 entry 都必须显式保留禁止外推、分母、scope、风险、证据来源与 downstream owner [clm-r573-schema]。
+
+```json
+[
+  {
+    "metric_id": "schema_validity_status",
+    "metric_family": "readiness_artifact_validity",
+    "metric_definition": "检查候选 canonical STM 或 STM_k 是否满足约定 schema；输出 schema_valid/schema_invalid/unknown。只证明制品格式可被审计，不证明语义更好。",
+    "metric_permission": "hard_gate",
+    "gate_position": [
+      "G1 readiness",
+      "G6 reporting"
+    ],
+    "denominator_layer": "evaluation_eligible_pool",
+    "aggregation_level": [
+      "pair",
+      "run"
+    ],
+    "reference_type": "parser_schema",
+    "fallback_when_no_reference": "若 schema 版本、解析器版本或输入文件缺失，则记为 unknown/protocol_invalid，不进入 Better 主比较。",
+    "ordering_relation": "boolean_true_better",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat",
+      "T1_stress_or_excluded"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "schema/parse facade",
+      "run_record",
+      "[src-eval-logic]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "conversion_laundering"
+    ],
+    "risk_trigger_condition": "schema_valid 由 raw->canonical 转换获得改善时，或修复环节把转换收益写成 repair gain 时触发。",
+    "risk_required_evidence": "raw STM_0、canonical STM_0、转换 ledger、run record、schema version。",
+    "risk_gate_impact": [
+      "G1 readiness",
+      "G2 attribution",
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "no_but_report",
+    "forbidden_extrapolation": "不得由 schema valid 推出 Better STM、语义正确、repair success 或方法有效。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "parse_validity_status",
+    "metric_family": "readiness_artifact_validity",
+    "metric_definition": "检查候选制品能否被当前解析器解析为可检查状态机；输出 parse_ok/parse_failed/unknown。",
+    "metric_permission": "hard_gate",
+    "gate_position": [
+      "G1 readiness",
+      "G6 reporting"
+    ],
+    "denominator_layer": "evaluation_eligible_pool",
+    "aggregation_level": [
+      "pair",
+      "run"
+    ],
+    "reference_type": "parser_schema",
+    "fallback_when_no_reference": "解析器、输入或版本不可定位时记为 unknown/protocol_invalid，并记录到 failure ledger。",
+    "ordering_relation": "boolean_true_better",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat",
+      "T1_stress_or_excluded"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "parse facade diagnostics",
+      "run_record",
+      "[src-eval-logic]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "semantic_deletion",
+      "conversion_laundering"
+    ],
+    "risk_trigger_condition": "parse_ok 伴随大量状态/迁移/guard/action 删除，或 parse_ok 只来自预处理改写时触发。",
+    "risk_required_evidence": "raw/canonical/STM_k diff、diagnostics、change ledger、source trace。",
+    "risk_gate_impact": [
+      "G1 readiness",
+      "G2 attribution",
+      "G3 no-regression",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "no_but_report",
+    "forbidden_extrapolation": "不得由 parse ok 推出 Better STM 或行为正确。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "evidence_bundle_completeness",
+    "metric_family": "provenance_reporting_completeness",
+    "metric_definition": "检查 Better 判定所需证据包是否齐全：NL、raw STM_0、canonical STM_0、STM_k、change ledger、trace/scenario/diagnostics、run record。",
+    "metric_permission": "hard_gate",
+    "gate_position": [
+      "G2 attribution",
+      "G6 reporting"
+    ],
+    "denominator_layer": "run_ledger",
+    "aggregation_level": "run",
+    "reference_type": "run_record",
+    "fallback_when_no_reference": "缺失关键证据时记为 protocol_invalid 或 unknown，不允许补写结论。",
+    "ordering_relation": "boolean_true_better",
+    "scope_applicability": "cross_scope_report_only",
+    "headline_inclusion": "report_only",
+    "evidence_source": [
+      "run_record",
+      "change_ledger",
+      "[src-better]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "trace_loss",
+      "conversion_laundering"
+    ],
+    "risk_trigger_condition": "缺失 raw/canonical/change/run 任一关键证据，或证据 hash/source 不可复核时触发。",
+    "risk_required_evidence": "完整 evidence bundle checklist 与缺失项 ledger。",
+    "risk_gate_impact": [
+      "G2 attribution",
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "no_but_report",
+    "forbidden_extrapolation": "不得在证据包不完整时报告 Better、partial success 或主表 success。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "blocking_diagnostic_count_delta",
+    "metric_family": "diagnostics",
+    "metric_definition": "比较 STM_k 相对 canonical STM_0 的阻塞型 diagnostics 数量变化；只作为 readiness/修复症状证据，必须同时检查语义删除风险。",
+    "metric_permission": [
+      "supporting_evidence",
+      "trigger_only"
+    ],
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "evaluation_eligible_pool",
+    "aggregation_level": "pair",
+    "reference_type": "run_record",
+    "fallback_when_no_reference": "无可比 diagnostics ledger 时记为 unknown，不计算 delta。",
+    "ordering_relation": "lower_is_better",
+    "scope_applicability": "T0_main",
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "diagnostics ledger",
+      "run_record",
+      "[src-eval-logic]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "semantic_deletion",
+      "under_repair"
+    ],
+    "risk_trigger_condition": "diagnostics 下降同时结构元素或行为义务减少；未知 diagnostic code；只修工具错误未修语义 target。",
+    "risk_required_evidence": "diagnostics diff、structural diff、target ledger、trace/scenario evidence。",
+    "risk_gate_impact": [
+      "G3 no-regression",
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "when_triggered",
+    "forbidden_extrapolation": "不得由 diagnostics fewer 直接推出 semantic improvement 或 Better STM。",
+    "freeze_status": "provisional_dry_run_to_validate",
+    "downstream_owner": [
+      "R5.7.4",
+      "R7"
+    ]
+  },
+  {
+    "metric_id": "slot_fidelity_guard",
+    "metric_family": "structural_element",
+    "metric_definition": "在有 adjudicated guard target/reference set 时度量 guard 槽位的保留、补全或修复；无 reference 时降级为 presence/delta/folding risk。",
+    "metric_permission": [
+      "supporting_evidence",
+      "trigger_only"
+    ],
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "target_instance_ledger",
+    "aggregation_level": [
+      "pair",
+      "target_instance"
+    ],
+    "reference_type": "adjudicated_target_set",
+    "fallback_when_no_reference": "降级为 guard_structured_presence、guard_count_delta、folding_risk；不得强算 P/R/F1。",
+    "ordering_relation": "higher_is_better_with_reference",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "target_instance_ledger",
+      "trace map",
+      "[src-taxonomy]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "guard_action_event_folding",
+      "over_repair",
+      "under_repair"
+    ],
+    "risk_trigger_condition": "guard 被塞入 event label、无 NL trace 新增 guard、或 must-fix guard 未结构化闭合时触发。",
+    "risk_required_evidence": "NL span、raw label、canonical guard/action/event split、STM_k slot diff、target evidence。",
+    "risk_gate_impact": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "when_triggered",
+    "forbidden_extrapolation": "不得用 event present 或 overall F1 掩盖 guard 未结构化。",
+    "freeze_status": "provisional_dry_run_to_validate",
+    "downstream_owner": [
+      "R5.7.4",
+      "R7"
+    ]
+  },
+  {
+    "metric_id": "slot_fidelity_action",
+    "metric_family": "structural_element",
+    "metric_definition": "在有 adjudicated action target/reference set 时度量 action 槽位的保留、补全或修复；无 reference 时降级为 action presence/delta/folding risk。",
+    "metric_permission": [
+      "supporting_evidence",
+      "trigger_only"
+    ],
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "target_instance_ledger",
+    "aggregation_level": [
+      "pair",
+      "target_instance"
+    ],
+    "reference_type": "adjudicated_target_set",
+    "fallback_when_no_reference": "降级为 action_structured_presence、action_count_delta、folding_risk；不得强算 P/R/F1。",
+    "ordering_relation": "higher_is_better_with_reference",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "target_instance_ledger",
+      "trace map",
+      "[src-taxonomy]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "guard_action_event_folding",
+      "semantic_deletion",
+      "over_repair",
+      "under_repair"
+    ],
+    "risk_trigger_condition": "action 被塞入 event label、删除 NL 明示输出/赋值、或无 trace 新增 action 时触发。",
+    "risk_required_evidence": "NL span、raw label、canonical action split、STM_k slot diff、change ledger。",
+    "risk_gate_impact": [
+      "G3 no-regression",
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "when_triggered",
+    "forbidden_extrapolation": "不得由 action 数下降或文本标签相似推出行为改善。",
+    "freeze_status": "provisional_dry_run_to_validate",
+    "downstream_owner": [
+      "R5.7.4",
+      "R7"
+    ]
+  },
+  {
+    "metric_id": "event_guard_action_folding_risk",
+    "metric_family": "structural_element",
+    "metric_definition": "标记 event label 吞并 guard/action 语义的风险，例如 `button [ok] / on` 只作为 event 保存而未结构化 guard/action。",
+    "metric_permission": "trigger_only",
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "target_instance_ledger",
+    "aggregation_level": [
+      "pair",
+      "target_instance"
+    ],
+    "reference_type": "canonical_stm0_preservation",
+    "fallback_when_no_reference": "无 raw/canonical label 或 slot split evidence 时记为 unknown risk，不得 cleared。",
+    "ordering_relation": "trigger_only_no_order",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat"
+    ],
+    "headline_inclusion": "report_only",
+    "evidence_source": [
+      "raw STM label",
+      "canonical split",
+      "STM_k slot diff",
+      "[dec-q3]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "guard_action_event_folding"
+    ],
+    "risk_trigger_condition": "guard/action-like text 出现在 event/name/named 中，但 guard/action 槽位为空或缺失 trace。",
+    "risk_required_evidence": "raw label、canonical event/guard/action、STM_k event/guard/action、NL span。",
+    "risk_gate_impact": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "always",
+    "forbidden_extrapolation": "不得把 folding 视作 guard/action 修复成功或 slot fidelity 提升。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R5.7.4",
+      "R7"
+    ]
+  },
+  {
+    "metric_id": "trace_link_coverage",
+    "metric_family": "traceability_grounding",
+    "metric_definition": "统计可评价元素或 target instances 是否有到 NL、raw STM_0 或 source label 的 trace link。",
+    "metric_permission": "supporting_evidence",
+    "gate_position": [
+      "G2 attribution",
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "denominator_layer": "adjudicated_pool",
+    "aggregation_level": [
+      "pair",
+      "target_instance"
+    ],
+    "reference_type": "nl_source_span",
+    "fallback_when_no_reference": "无 trace reference 时降级为 trace_unknown，并触发 G6 证据缺口；不得计算 coverage。",
+    "ordering_relation": "higher_is_better_with_reference",
+    "scope_applicability": "T0_main",
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "trace map",
+      "NL spans",
+      "raw STM labels",
+      "[src-better]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "trace_loss",
+      "over_repair"
+    ],
+    "risk_trigger_condition": "新增元素无 trace、修复后 trace coverage 下降、或 source evidence 不可复核。",
+    "risk_required_evidence": "trace map before/after、change ledger、source spans。",
+    "risk_gate_impact": [
+      "G2 attribution",
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "when_triggered",
+    "forbidden_extrapolation": "不得由 trace coverage 高直接推出语义正确或 Better。",
+    "freeze_status": "provisional_dry_run_to_validate",
+    "downstream_owner": [
+      "R5.7.4",
+      "R7"
+    ]
+  },
+  {
+    "metric_id": "untraced_addition_count",
+    "metric_family": "traceability_grounding",
+    "metric_definition": "统计 STM_k 中相对 canonical STM_0 新增但无法追溯到 NL/source/target 的元素数量。",
+    "metric_permission": "trigger_only",
+    "gate_position": [
+      "G2 attribution",
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "denominator_layer": "run_ledger",
+    "aggregation_level": [
+      "pair",
+      "run"
+    ],
+    "reference_type": "nl_source_span",
+    "fallback_when_no_reference": "缺 trace map 时记为 unknown/protocol risk，不得按 0 处理。",
+    "ordering_relation": "lower_is_better",
+    "scope_applicability": "T0_main",
+    "headline_inclusion": "report_only",
+    "evidence_source": [
+      "change ledger",
+      "trace map",
+      "target ledger"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "over_repair",
+      "trace_loss"
+    ],
+    "risk_trigger_condition": "任何新增状态、迁移、event、guard、action、pseudo-state 无 trace 时触发；关键元素非零时强制 G5 复查。",
+    "risk_required_evidence": "新增元素列表、source span、target justification、change ledger。",
+    "risk_gate_impact": [
+      "G2 attribution",
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "always",
+    "forbidden_extrapolation": "不得因 untraced count 低而自动判 Better；也不得静默删除 untraced 元素来刷低。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "critical_scenario_regression_flag",
+    "metric_family": "scenario_behavior",
+    "metric_definition": "对预注册 critical scenario 检查 STM_k 是否相对 canonical STM_0 出现关键行为回归；true 表示存在阻断性负例。",
+    "metric_permission": [
+      "hard_gate",
+      "trigger_only"
+    ],
+    "gate_position": [
+      "G3 no-regression",
+      "G5 semantic"
+    ],
+    "denominator_layer": "scenario_ledger",
+    "aggregation_level": [
+      "pair",
+      "scenario"
+    ],
+    "reference_type": "scenario_oracle",
+    "fallback_when_no_reference": "无 scenario oracle 时记为 scenario_not_available，不计算 pass/regression rate。",
+    "ordering_relation": "boolean_false_better",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "scenario ledger",
+      "expected trace/oracle",
+      "[src-eval-logic]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "scenario_overfitting",
+      "semantic_deletion"
+    ],
+    "risk_trigger_condition": "critical scenario fail、只优化少数 scenario、或 untested NL obligations 被删除时触发。",
+    "risk_required_evidence": "scenario definition、oracle/expected trace、before/after execution evidence、NL coverage。",
+    "risk_gate_impact": [
+      "G3 no-regression",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "always",
+    "forbidden_extrapolation": "不得由部分 scenario pass 推出完整语义正确；无 oracle 不得计算 pass rate。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "must_fix_closure_rate",
+    "metric_family": "semantic_target_closure",
+    "metric_definition": "按 target_instance 统计 `repair_action_allowed=must_fix` 的 confirmed targets 是否达到 closure_status=closed。",
+    "metric_permission": "supporting_evidence",
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "target_instance_ledger",
+    "aggregation_level": [
+      "target_instance",
+      "pair",
+      "cluster"
+    ],
+    "reference_type": "confirmed_target_ledger",
+    "fallback_when_no_reference": "无 confirmed must_fix target 时不计算 rate，改报 no_must_fix_targets 或 unknown。",
+    "ordering_relation": "set_inclusion_or_closure",
+    "scope_applicability": "T0_main",
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "target_instance_ledger",
+      "change ledger",
+      "[src-taxonomy]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "under_repair",
+      "semantic_deletion"
+    ],
+    "risk_trigger_condition": "must-fix target 未闭合、只修格式未修语义、或 closure 证据缺失时触发。",
+    "risk_required_evidence": "target definition、expected repair action、before/after evidence、semantic adjudication record。",
+    "risk_gate_impact": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "always",
+    "forbidden_extrapolation": "不得把 must_fix rate 与 should/monitor/not-target 混成单一总 target_closure_rate。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "should_fix_improvement_rate",
+    "metric_family": "semantic_target_closure",
+    "metric_definition": "按 target_instance 统计 `repair_action_allowed=should_fix` 的 targets 是否达到 closed 或 improved，用于 partial/improvement 分析。",
+    "metric_permission": "supporting_evidence",
+    "gate_position": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "denominator_layer": "target_instance_ledger",
+    "aggregation_level": [
+      "target_instance",
+      "pair",
+      "cluster"
+    ],
+    "reference_type": "confirmed_target_ledger",
+    "fallback_when_no_reference": "无 confirmed should_fix target 时不计算 rate，改报 no_should_fix_targets 或 unknown。",
+    "ordering_relation": "ordinal_status",
+    "scope_applicability": [
+      "T0_main",
+      "T0_5_caveat"
+    ],
+    "headline_inclusion": "yes_if_eligible",
+    "evidence_source": [
+      "target_instance_ledger",
+      "change ledger",
+      "[src-taxonomy]"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "under_repair",
+      "over_repair"
+    ],
+    "risk_trigger_condition": "should-fix 未改善、改善伴随非目标退化、或 unresolved target 被忽略时触发。",
+    "risk_required_evidence": "target evidence、closure_status、override reason、semantic adjudication record。",
+    "risk_gate_impact": [
+      "G4 improvement",
+      "G5 semantic"
+    ],
+    "semantic_adjudication_required": "when_triggered",
+    "forbidden_extrapolation": "不得把 should_fix improvement 当成 must_fix closure，也不得把 T0.5 caveat 写入 T0 headline。",
+    "freeze_status": "frozen_v0",
+    "downstream_owner": [
+      "R7",
+      "R8"
+    ]
+  },
+  {
+    "metric_id": "token_cost_per_valid_run",
+    "metric_family": "cost_stability",
+    "metric_definition": "记录每个 valid repair run 的 token 成本；只用于效率与稳定性报告，不参与质量判定。",
+    "metric_permission": "report_only",
+    "gate_position": [
+      "G6 reporting"
+    ],
+    "denominator_layer": "run_ledger",
+    "aggregation_level": [
+      "run",
+      "llm_family"
+    ],
+    "reference_type": "run_record",
+    "fallback_when_no_reference": "无 usage/run record 时记为 cost_unknown，不得以 0 填充。",
+    "ordering_relation": "non_comparable_report_only",
+    "scope_applicability": "cross_scope_report_only",
+    "headline_inclusion": "report_only",
+    "evidence_source": [
+      "run_record",
+      "usage metadata"
+    ],
+    "evidence_confidence": "future_run_required",
+    "gaming_risk_tag": [
+      "under_repair"
+    ],
+    "risk_trigger_condition": "低成本伴随 must/should target 未闭合、证据包缺失或重试/rollback 被排除时触发报告风险。",
+    "risk_required_evidence": "attempted/valid run ledger、usage、retry、rollback、target closure evidence。",
+    "risk_gate_impact": [
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "no_but_report",
+    "forbidden_extrapolation": "不得由成本更低推出模型更好、repair 更有效或语义更正确。",
+    "freeze_status": "r7_to_freeze",
+    "downstream_owner": [
+      "R7",
+      "R8",
+      "report-only"
+    ]
+  },
+  {
+    "metric_id": "textual_similarity_auxiliary",
+    "metric_family": "baseline_migration_or_textual_similarity",
+    "metric_definition": "记录文本相似度类弱辅助信号，仅用于 related-work 背景、异常排查或报告附录；禁止作为行为正确性或 Better 证据。",
+    "metric_permission": [
+      "report_only",
+      "forbidden"
+    ],
+    "gate_position": [
+      "G6 reporting"
+    ],
+    "denominator_layer": "baseline_reference_only",
+    "aggregation_level": "report_only",
+    "reference_type": "baseline_reference_only",
+    "fallback_when_no_reference": "无 baseline reference 时不计算；不得为本论文主实验临时创造文本 gold。",
+    "ordering_relation": "non_comparable_report_only",
+    "scope_applicability": "cross_scope_report_only",
+    "headline_inclusion": "report_only",
+    "evidence_source": [
+      "baseline papers",
+      "[src-llms-emp-desc]",
+      "[src-structure-event]"
+    ],
+    "evidence_confidence": "needs_recheck",
+    "gaming_risk_tag": [
+      "textual_similarity_misuse"
+    ],
+    "risk_trigger_condition": "文本相似度被用于声称行为正确、语义等价、Better STM 或 repair effectiveness 时触发。",
+    "risk_required_evidence": "明确禁止外推说明、baseline metric mapping、相关工作引用。",
+    "risk_gate_impact": [
+      "G5 semantic",
+      "G6 reporting"
+    ],
+    "semantic_adjudication_required": "forbidden",
+    "forbidden_extrapolation": "不得由文本相似度推出行为正确、语义正确、Better STM 或方法有效。",
+    "freeze_status": "future_optional",
+    "downstream_owner": [
+      "R7",
+      "R8",
+      "report-only"
+    ]
+  }
+]
+```
 
 这些 entries 是 v0 合同样例，不是 R7 最终主表列。R7 可以基于 dry-run findings 和正式协议保留、拆分或降级，但不能删除本文件冻结的禁止外推与分母纪律 [dec-q12]。
 
@@ -378,7 +1035,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
 |---|---|---|---|---|---|---|---|
 | [clm-r573-no-effect] | `R573-C1` | R5.7.3 不运行 repair loop、不生成 `STM_k`、不报告 Better STM 成功率或 repair effectiveness。 | prohibition | [src-eval-logic] §1/§9；[src-better] §1/§9；本文件 §2.2。 | 人工复验 + [cmd-r573-doc-links] | high | R7/R8 才能产生效果证据。 |
 | [clm-r573-permission] | `R573-C2` | 客观指标必须声明五级 `metric_permission`，且不能单独产生 Better verdict。 | contract | [dec-q1]；本文件 §2.1。 | [cmd-r573-required-terms] | high | 预注册关键负例可作 hard negative trigger，但不能推出 Better。 |
-| [clm-r573-schema] | `R573-C3` | 每个 metric entry 至少需要 schema v0 中列出的字段，包含分母、偏序、scope、风险和 freeze status。 | contract | [dec-q12]；本文件 §3。 | [cmd-r573-required-terms] | high | R7 可扩展字段，但不能删除最低审计字段。 |
+| [clm-r573-schema] | `R573-C3` | 每个 metric entry 至少需要 schema v0 中列出的字段，包含分母、偏序、scope、风险和 freeze status。 | contract | [dec-q12]；本文件 §3 与 §11.2。 | [cmd-r573-entry-schema] | high | R7 可扩展字段，但不能删除最低审计字段。 |
 | [clm-r573-families] | `R573-C4` | v0 指标族覆盖 readiness、provenance、diagnostics、structural、traceability、scenario、target closure、cost、baseline/textual background。 | contract | [dec-q2][dec-q13]；本文件 §4。 | [cmd-r573-required-terms] | high | textual similarity / conversion success 是降级项。 |
 | [clm-r573-gate-matrix] | `R573-C5` | 指标必须落到 G0--G6 gate × metric matrix，不另起评分系统。 | contract | [dec-q13]；本文件 §5。 | [cmd-r573-required-terms] | high | 单项 override 不能超过 family 权限上限。 |
 | [clm-r573-no-gold] | `R573-C6` | 本任务不设统一 gold STM；P/R/F1 只在有明确 reference set 时使用。 | decision | [dec-q4]；本文件 §7。 | 人工复验 | high | canonical `STM_0` 是 no-regression reference，不是统一 gold。 |
@@ -419,6 +1076,35 @@ print('parse_status', collections.Counter(r['parse_status'] for r in case))
 print('inspect_status', collections.Counter(r['inspect_status'] for r in case))
 print('pair_time', collections.Counter(r['time_level'] for r in case))
 print('cluster_time', collections.Counter(r['time_level'] for r in clusters))
+PY
+```
+
+```bash
+# [cmd-r573-entry-schema]
+python - <<'PY'
+from pathlib import Path
+import json
+p = Path('project_1_llm_state_machine_modeling/paper_stm_repair/experiment_design/metrics/objective_metric_framework.md')
+text = p.read_text()
+section = text.split('### 11.2 完整 JSON registry', 1)[1].split('## 12.', 1)[0]
+block = section.split('```json', 1)[1].split('```', 1)[0].strip()
+entries = json.loads(block)
+required = [
+    'metric_id', 'metric_family', 'metric_definition', 'metric_permission', 'gate_position',
+    'denominator_layer', 'aggregation_level', 'reference_type', 'fallback_when_no_reference',
+    'ordering_relation', 'scope_applicability', 'headline_inclusion', 'evidence_source',
+    'evidence_confidence', 'gaming_risk_tag', 'risk_trigger_condition', 'risk_required_evidence',
+    'risk_gate_impact', 'semantic_adjudication_required', 'forbidden_extrapolation',
+    'freeze_status', 'downstream_owner',
+]
+missing = {
+    entry.get('metric_id', f'index:{idx}'): [field for field in required if field not in entry]
+    for idx, entry in enumerate(entries)
+}
+missing = {k: v for k, v in missing.items() if v}
+print('entry_count', len(entries))
+print('missing', missing)
+raise SystemExit(1 if missing else 0)
 PY
 ```
 
