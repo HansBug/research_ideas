@@ -32,7 +32,7 @@
 
 ## 3. 当前阅读路线
 
-1. **R5.7.4 静态裁决 dry-run**：人类 handoff 读 [2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](./2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)；四例逐案裁决读 [../experiment_design/repair_target_adjudication/README.md](../experiment_design/repair_target_adjudication/README.md)。用于回答 taxonomy / metric permission 是否能消费真实 `llms-emp` 样例、哪些 target 只是 static finding、哪些 evidence gap 需交给 R6/R7。
+1. **R5.7.4 静态裁决 dry-run**：人类 handoff 读 [2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](./2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)；四例逐案裁决读 [../experiment_design/repair_target_adjudication/README.md](../experiment_design/repair_target_adjudication/README.md)。用于回答 taxonomy / metric permission 是否能消费真实 `llms-emp` 样例、哪些 target 只是 static finding、哪些 baseline bundle / Better 裁决事项需交给 R5.7.5/R6/R7。
 2. **R5.7.3 客观代理指标框架**：规则真源是 [../experiment_design/metrics/objective_metric_framework.md](../experiment_design/metrics/objective_metric_framework.md)；人类 handoff 读 [2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md)。用于回答指标权限、entry schema、G0--G6 gate matrix、reference / 分母 / 偏序、anti-gaming、target closure 分层和 baseline 指标迁移。
 3. **R5.7.2 Better STM / repair target contract**：规则真源是 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md)；人类 handoff 读 [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md)。用于回答 Better STM gate、三层输出模型、repair target taxonomy、candidate-only、T0.5 caveat 和指标权限。
 4. **R5.7.1 评价逻辑链**：规则真源是 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)；人类 handoff 读 [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)。用于回答 claim 类型、分母、A 层、归因、指标和失败报告边界。
@@ -50,7 +50,7 @@
 3. Digital Camera/T1 只能作为 supplementary stress，不支撑 T0 主 claim。
 4. `llms-emp` 当前已无 blocked pair；旧 blocked 只作为 R5.5.1 历史负证据和 R5.5.2 conversion-recovery 线索。其他 seed 源的 blocked 仍需按各自 report / JSON 审计，不能套用 `llms-emp` 当前状态。
 5. R5.7.3 指标框架禁止 metric-only verdict；R5.7.4 已把这一纪律 dry-run 到四个 `llms-emp` 样例，后续 R5.7.5/R7 若要修改指标或阈值，必须引用 R5.7.4 finding 或正式协议证据，不能空口重写。
-6. R5.7.4 发现两类 `.fcstm` evidence bundle 风险：0001 / 0018 缺 standalone `.fcstm`，需 R6/R7 前物化；0000 / 0045 selected snapshot 与 seed-sweep hash 不同是不同转换运行的预期差异，需在 R6/R7 前声明 authoritative baseline hash 并保留 seed-sweep audit trail。二者都不阻塞静态裁决。
+6. R5.7.4 原发现两类 `.fcstm` evidence bundle 风险：0001 / 0018 只有 seed-sweep hash 而缺 standalone bundle，0000 / 0045 selected snapshot 与 seed-sweep hash 不同。当前小修已补齐 0001 / 0018 standalone baseline bundle；0000 / 0045 的 hash 差异仍需在 R5.7.5/R6/R7 前声明 authoritative baseline hash 并保留 seed-sweep audit trail。二者都不构成 repair gain。
 
 ## 5. 更新日志
 

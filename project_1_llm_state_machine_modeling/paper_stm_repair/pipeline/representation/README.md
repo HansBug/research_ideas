@@ -76,7 +76,11 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/repres
 pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
 ```
 
-## 4. 当前四例输出
+## 4. R5.7.4 裁决样例补充 baseline bundle
+
+R5.7.4 为静态裁决样例 `llms_emp_stm_results_0001` 和 `llms_emp_stm_results_0018` 额外物化了 standalone baseline `.fcstm` bundle，入口为 [reports/r5_7_4_adjudication_fcstm_exports/README.md](./reports/r5_7_4_adjudication_fcstm_exports/README.md)。这两个 bundle 只用于 R5.7.4 / R5.7.5 的 adjudication evidence，不改变 R4.5 selected smoke 四例，不进入 [../../selected_seed_examples/](../../selected_seed_examples/) 的固定四例集合，也不计 repair gain。
+
+## 5. 当前四例输出
 
 R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `上游 NL` 与 `原始 STM_0` 链接对应 `fcstm_export_report.json` item 里的 `source_nl_path` / `source_stm0_path`，不是二手 parquet 或转换后中间产物。
 
@@ -87,13 +91,13 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 | `llms-emp-kimi-autonomous-collision` | [nl.txt](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) | `converted` | Kimi 自动驾驶 / 碰撞规避 EMPirical 样例替代 TTool 进入当前 selected smoke，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-kimi-autonomous-collision/model.fcstm) 与 inspect report。 |
 | `sefm-ssc7-umple` | [nl.txt](../../selected_seed_examples/sefm-ssc7-umple/nl.txt) | [stm0.ump](../../selected_seed_examples/sefm-ssc7-umple/stm0.ump) | `converted` | event+guard 通过 pseudo relay，bool guard 降为 int guard，action 降为 flag；R3 timing loss 继续只作 caveat，输出 [model.fcstm](./reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)。 |
 
-## 5. 维护纪律
+## 6. 维护纪律
 
-### 5.1 审计主账
+### 6.1 审计主账
 
 `lowering_inventory.json` 是 R4.5 的审计主账，不只是 guard/action 清单。每个样例至少要覆盖事件、guard、action、引用端点、初始/终止推导、timing、层次结构和 `source_traceability`。其中 `source_traceability` 必须包含 `source_nl_path`、`source_stm0_path`、`source_meta_path`、`canonical_output_path`、上游 R3 状态与 R3.1 replay 标记，便于从 `.fcstm` 回到 选定输入、原始 `STM_0` 与 R3 canonical。
 
-### 5.2 命名纪律
+### 6.2 命名纪律
 
 - 单段 raw text 使用 `pyfcstm.utils.to_identifier(raw_text, strict_mode=True, keyword_safe_for=["python", "java"])`。
 - 多段合成名使用 `pyfcstm.utils.sequence_safe([...])` 后再过 `to_identifier(...)`，不要手写正则 sanitizer。
@@ -101,7 +105,7 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 - 所有 emitted identifiers 都必须进入 `name_mapping.json`：root / wrapper state、state、event、pseudo relay、guard variable、action flag、abstract action。
 - state / pseudo state 在 DSL 中用 `named` 保留 raw label；event 在当前四例中也用 `named` 保留 raw label。
 
-### 5.3 关键语义策略
+### 6.3 关键语义策略
 
 1. **命名**：主路径使用 `pyfcstm.utils.to_identifier(..., strict_mode=True, keyword_safe_for=["python", "java"])` 与 `pyfcstm.utils.sequence_safe([...])`，不手写 regex sanitizer。
 2. **原名保真**：state / pseudo state 使用 `named` 保留 raw label；event 在当前四例中也使用 `named`。若未来某个 event 合法化后仍与 pyfcstm lexer 特殊 token 冲突，`name_mapping.json` 必须继续作为 raw event 的事实源，不允许丢失原名。
@@ -110,7 +114,7 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 5. **timing**：`after(60)` 等时间语义不恢复 clock，只使用 R3 SCXML 中已有 timeout event，并记录 timing lowering / loss。
 6. **raw 与 attribution honesty**：`llms-emp-deepseek-microwave` 的可导出性来自 R3.1 pre-SCXML normalization replay；R4.5 只消费其 canonical，不覆盖 raw `stm0.puml`，也不把 normalization / representation 可解析性计入修正收益。TTool XML 与 `unified-uml-synthetic-0000` 不在当前四例冒烟中，只能作为历史 / 未来补充 adapter / registry 线索。
 
-## 6. 运行与验收
+## 7. 运行与验收
 
 每次修改 exporter 后运行：
 
@@ -124,13 +128,13 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/represe
 
 验收重点：四例 parse/inspect 均为 `ok`；summary 为 `{"examples": 4, "converted": 4, "partial": 0, "blocked": 0}`；`llms-emp-deepseek-microwave` 必须追溯到 R3.1 pre-SCXML normalization replay；`repair_contribution_allowed` 始终为 `false`；TTool XML 与 `unified-uml-synthetic-0000` 不混入当前四例。
 
-## 7. 与上下游关系
+## 8. 与上下游关系
 
 - 上游 R3：[../conversion/README.md](../conversion/README.md) 提供规范化 JSON、conversion report 与 loss ledger。
 - 上游 R4：[../evaluation/README.md](../evaluation/README.md) 提供诊断 / 场景 / Better STM gate 草案。
 - 下游 R5 只消费 R4.5 已提交 `.fcstm` / report，不应在 R5 再补写 exporter。
 
-## 8. 学术注意点
+## 9. 学术注意点
 
 - `.fcstm` 是内部可机检载体，论文中只能弱化为 implementation representation，不进标题、摘要或贡献列表。
 - R4.5 只降低 R3 canonical 已承载的语义；例如 SEFM raw Umple 中若存在 entry action 但 R3 canonical 未证明/未保留，R4.5 不从 raw source 私自补回，只能在上游 conversion caveat 中解释。

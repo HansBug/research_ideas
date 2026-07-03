@@ -48,7 +48,7 @@
 |---|---|---|
 | dry-run 定位 | R5.7.4 只验证 taxonomy 与 metric permission 能否消费真实 `llms-emp` 样例；不生成 `STM_k`，不产生正式 `valid_run` 或 `better`。 | [repair_target_adjudication/README.md](./repair_target_adjudication/README.md)、[../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md) |
 | 四例覆盖 | 覆盖 `0000` T0 condition-like HSM、`0001` T0 low-noise FSM、`0045` T0.5 Microwave caveat、`0018` T1 Digital Camera stress。 | [repair_target_adjudication/README.md](./repair_target_adjudication/README.md) |
-| R6/R7 handoff | R6/R7 前必须补齐 `STM_k`、change ledger 和 canonical / `.fcstm` evidence bundle；0001 / 0018 当前缺 standalone `.fcstm`，0000 / 0045 selected hash 与 seed-sweep hash 不同。 | [../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md) |
+| R6/R7 handoff | R6/R7 前必须补齐 `STM_k`、change ledger 和 canonical / `.fcstm` evidence bundle；0001 / 0018 的 standalone baseline bundle 已在 R5.7.4 补齐，0000 / 0045 selected hash 与 seed-sweep hash 不同仍需声明 authoritative baseline。 | [../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md) |
 
 ## 2. 研究问题草案
 

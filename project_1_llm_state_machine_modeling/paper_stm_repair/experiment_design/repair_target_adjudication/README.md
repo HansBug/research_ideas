@@ -1,6 +1,6 @@
 # repair_target_adjudication/ — R5.7.4 静态裁决 dry-run
 
-本目录保存 R5.7.4 的 **修复目标静态裁决与客观指标 dry-run**。它的作用是把 R5.7.1 的评价逻辑链、R5.7.2 的 Better STM / repair target 合同、R5.7.3 的客观代理指标框架，放到真实 `llms-emp` 样例上做可执行性检查。
+本目录保存 R5.7.4 的 **修复目标静态裁决与指标权限 dry-run**。它的作用是把 R5.7.1 的评价逻辑链、R5.7.2 的 Better STM / repair target 合同、R5.7.3 的客观代理指标框架，放到真实 `llms-emp` 样例上做可执行性检查；它不是完整 Better STM adjudication dry-run，后者需要 `STM_k` 与 change ledger，留给 R5.7.5。
 
 > 关键边界：本目录不运行 repair loop，不调用真实 LLM，不读取 `.env`，不生成 `STM_k`，不报告 Better STM 成功率，也不把 `.fcstm` / `pyfcstm` / converter 写成论文贡献。
 
@@ -46,12 +46,14 @@
 | case matrix | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | 读取 time level、结构族、conversion status、parse / inspect 状态和 loss codes。 |
 | partial attribution ledger | [../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | 区分 candidate-only、pipeline artifact、conversion artifact 和 source defect。 |
 | record archive | [../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | 复核 record 级 hash、canonical / parse / inspect、loss reason codes。 |
-| selected smoke `.fcstm` | [../../selected_seed_examples/](../../selected_seed_examples/) | 仅对 0000 / 0045 有 standalone snapshot；0001 / 0018 目前只有 hash / status，没有 standalone `.fcstm` 文件。 |
+| selected smoke `.fcstm` | [../../selected_seed_examples/](../../selected_seed_examples/) | 0000 / 0045 的 standalone snapshot；这两个 selected hash 与 seed-sweep hash 属于不同转换运行，应保留为 audit trail。 |
+| R5.7.4 adjudication `.fcstm` bundle | [../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json](../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json) | 0001 / 0018 的 standalone baseline bundle；`.fcstm_sha256` 与 seed-sweep hash 一致，parse / inspect 均 ok。 |
 
 ## 5. R6 / R7 handoff 纪律
 
 1. R6 若消费这些样例，必须先物化 canonical baseline 与 candidate `STM_k` 的可追溯 evidence bundle。
 2. R7 若把某个 dry-run target 写入正式指标，必须有 target-instance ledger、change ledger、scenario / trace / semantic gate 证据。
-3. 0001 / 0018 当前只有 seed-sweep hash 与 parse / inspect status，没有 standalone `.fcstm` 文本，这是 R6/R7 执行前必须物化的 baseline evidence bundle 缺口。
-4. 0000 / 0045 已有 selected smoke standalone `.fcstm`；其 selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失，但 R6/R7 必须明确 authoritative baseline hash，并把 seed-sweep hash 保留为 audit trail。
-5. 后续修改 taxonomy 或指标框架时，必须引用本目录或正式 R7 run 的真实 finding；不得空口改规则。
+3. 0001 / 0018 原先只有 seed-sweep hash 与 parse / inspect status；R5.7.4 已在 [../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/](../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/) 物化 standalone baseline evidence bundle。后续不得再把它们写成缺 standalone `.fcstm`。
+4. 0000 / 0045 已有 selected smoke standalone `.fcstm`；其 selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失，但 R5.7.5/R6/R7 必须明确 authoritative baseline hash，并把 seed-sweep hash 保留为 audit trail。
+5. 后续 R5.7.5 应基于 `NL + STM_0` 人工/确定性构造候选 `STM_k`，做 Better adjudication dry-run，验证 gate 是否能按预期输出 `better / not_better / unknown / out_of_scope`；本目录只提供静态 finding 和 baseline bundle。
+6. 后续修改 taxonomy 或指标框架时，必须引用本目录、R5.7.5 constructed-`STM_k` dry-run 或正式 R7 run 的真实 finding；不得空口改规则。
