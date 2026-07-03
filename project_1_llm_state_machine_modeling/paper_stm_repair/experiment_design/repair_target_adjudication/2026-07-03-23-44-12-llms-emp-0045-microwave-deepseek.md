@@ -14,8 +14,10 @@
 | conversion / canonical / parse / inspect | `partial` / `converted` / `ok` / `ok` |
 | canonical states / transitions | 17 / 20 |
 | static dry-run preflight | `pass`：`NL`、raw `STM_0`、case matrix、record archive 足够支撑静态裁决 [src-pairs][src-case][src-archive] |
-| formal run validity | `protocol_or_provenance_invalid_for_formal_better_run`：本轮没有 `STM_k`、change ledger 或 run record [clm-formal-invalid] |
-| formal Better outcome | `unknown / not_evaluated_in_static_dry_run`；不得写 `better` [clm-no-better] |
+| run_validity_status | `protocol_or_provenance_invalid` [clm-formal-invalid] |
+| run_validity_reason | `static_dry_run_without_stmk_change_ledger_or_run_record`：本轮没有 `STM_k`、change ledger 或 run record。 |
+| better_adjudication_outcome | `unknown` [clm-no-better] |
+| better_outcome_reason | `not_evaluated_in_static_dry_run`；不得写 `better`。 |
 
 ## 2. 输入证据：NL / raw `STM_0` / canonical-loss-fcstm
 
@@ -44,11 +46,14 @@ CookingIdle --> DoorShutWithItem : Timer Expired
 
 ## 3. R5.7.2 taxonomy 裁决
 
-| observed issue | semantic element | scope routing | taxonomy verdict | repair action allowed | Better gate 影响 | caveat |
-|---|---|---|---|---|---|---|
-| 本样例主要观察 | 见下文 | `caveat_t05` | static dry-run finding | `temporal_cue_tick_counter_caveat` -> `monitor`；`representation_only_conversion_artifact` -> `monitor`。 | G0/G2/G4/G5/G6 视实例而定 | 不是正式 Better 裁决 |
+本节同时保留一行叙述性 summary 和实例级 target ledger。实例级 ledger 每行只表示一个 target instance，`repair_action_allowed` 必须是 R5.7.2 单值枚举。 [src-taxonomy]
 
-裁决结论：该例可用于 T0.5 caveat：`Timer Expired` 可按离散 timeout event / counter cue 讨论，但不得写成 timed automata 支持；`R5.LOSS.r3_1_normalization_replay_not_repair` 是 conversion readiness，不是 repair gain。 [clm-taxonomy]
+**叙述性 summary**：timer / zero-time / normalization replay 只能进入 `caveat_t05` 或 representation monitor；本轮不支持 timed automata、clock constraint 或 T0 headline success。 [clm-taxonomy]
+
+| target_instance_id | target_id | semantic_element | scope_status | scope_routing_status | time_level | structure_family | nl_evidence_required | representation_evidence_required | repair_action_allowed | repair_action_override_reason | better_stm_condition_impact | conversion_artifact_risk | metric_permission | forbidden_extrapolation | r6_feedback | r7_implication | caveat |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `r574-0045-timer-cue` | `temporal_cue_tick_counter_caveat` | `temporal_cue` | `caveat` | `caveat_t05` | `T0.5` | `discrete statechart subset` | yes：raw/NL 有 `Timer Expired`、`zero time set`、cooking-time cue。 | raw label + NL timing cue + caveat ledger。 | `monitor` | 与类级默认一致；只能作为离散 timeout / counter caveat。 | G0=caveat_t05；G1=`cannot_evaluate`；G2/G6=caveat；G5=pending semantic caveat；G3/G4 not headline. | high | `report_only` / `trigger_only`。 | 不得写 timed automata、clock constraint 或 T0 headline success。 | R6 如使用，只能要求离散 timeout event / counter abstraction。 | R7 放入 caveat/附表，不进入 T0 headline denominator。 | static caveat，不是 Better 裁决。 |
+| `r574-0045-representation-artifact` | `representation_only_conversion_artifact` | `representation_artifact` | `caveat` | `caveat_t05` | `T0.5` | `discrete statechart subset` | no。 | conversion ledger + loss ledger + selected snapshot note。 | `monitor` | 与类级默认一致。 | G2/G6=caveat；G1=`cannot_evaluate`；不支撑 G4/G5 positive。 | high | `report_only`。 | 不得把 normalization replay 或 lowering 计为 repair gain。 | 只记录 readiness / evidence bundle 风险。 | R7 需保持 conversion artifact 与 repair gain 分离。 | readiness evidence only。 |
 
 因此，本样例在 R5.7.4 中只输出 `dry_run_taxonomy_finding`，不输出正式 `better_adjudication_outcome=better` [clm-no-better]。
 
@@ -105,7 +110,7 @@ R7 应把该例从 T0 headline 主表中剥离，只进入 T0.5 caveat / appendi
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-formal-invalid] | `R574-0045-C1` | 本样例本轮不能写正式 `valid_run`，因为没有 `STM_k` / change ledger / run record。 | protocol | [src-better] G1/G2/G6；本文件 §1。 | [cmd-r574-0045] | high | static preflight pass 不等于 formal run valid。 |
-| [clm-no-better] | `R574-0045-C2` | 本样例不能写 `better` 或 repair effectiveness；formal Better outcome 是 `unknown / not_evaluated_in_static_dry_run`。 | prohibition | [src-eval-logic]、[src-better]；本文件 §1、§7。 | [cmd-r574-0045] | high | R6/R7 真实 run 后可重新裁决。 |
+| [clm-no-better] | `R574-0045-C2` | 本样例不能写 `better` 或 repair effectiveness；better_adjudication_outcome 是 canonical `unknown`，原因是 `not_evaluated_in_static_dry_run`。 | prohibition | [src-eval-logic]、[src-better]；本文件 §1、§7。 | [cmd-r574-0045] | high | R6/R7 真实 run 后可重新裁决。 |
 | [clm-no-repair-gain] | `R574-0045-C3` | conversion / normalization / `.fcstm` / parse / inspect 只能支撑 readiness，不计 repair gain。 | prohibition | [src-eval-logic] §6；[src-case] / [src-archive] `repair_contribution_allowed=false`。 | [cmd-r574-0045] | high | 不否认它们对实验介质有用。 |
 | [clm-taxonomy] | `R574-0045-C4` | 本样例的 static taxonomy finding 如 §3 所述。 | decision | [src-pairs]、[src-case]、[src-ledger]、[src-taxonomy]。 | [cmd-r574-0045] | medium | 没有 `STM_k`，所以只是 target / caveat finding，不是 Better 裁决。 |
 | [clm-r6] | `R574-0045-C5` | 本样例的 R6 feedback implication 如 §5 所述。 | handoff | [src-taxonomy]、[src-metrics]、本文件 §5。 | 人工复验 | medium | R6 实现时需转成 prompt / run record 字段。 |

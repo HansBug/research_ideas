@@ -69,3 +69,5 @@ R5.7.4 之后，任何修改 Better STM gate、repair target taxonomy、metric p
 3. 来自用户明确决策，并在 PR comment 或 report 中记录问题、选项、决策和适用边界。
 
 没有上述证据的修改只能标为 `provisional`，不得静默覆盖 R5.7.1--R5.7.3 已冻结合同。静态 dry-run finding 也不得被写成 repair effectiveness；它只说明规则是否可执行、是否需要 handoff 或是否存在证据缺口。
+
+每个 dry-run target ledger 的 `better_stm_condition_impact` 必须显式说明 G0--G6 中哪些是 `pass/assessable`、`cannot_evaluate`、`pending`、`not_applicable` 或 caveat；不得用“视实例而定”替代 gate 状态，也不得静默省略 G1 artifact gate 或 G3 no-regression gate。

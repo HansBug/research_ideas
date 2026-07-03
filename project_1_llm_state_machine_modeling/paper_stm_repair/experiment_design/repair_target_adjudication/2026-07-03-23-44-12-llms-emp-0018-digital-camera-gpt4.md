@@ -14,8 +14,10 @@
 | conversion / canonical / parse / inspect | `partial` / `converted` / `ok` / `ok` |
 | canonical states / transitions | 21 / 21 |
 | static dry-run preflight | `pass`：`NL`、raw `STM_0`、case matrix、record archive 足够支撑静态裁决 [src-pairs][src-case][src-archive] |
-| formal run validity | `protocol_or_provenance_invalid_for_formal_better_run`：本轮没有 `STM_k`、change ledger 或 run record [clm-formal-invalid] |
-| formal Better outcome | `unknown / not_evaluated_in_static_dry_run`；不得写 `better` [clm-no-better] |
+| run_validity_status | `protocol_or_provenance_invalid` [clm-formal-invalid] |
+| run_validity_reason | `static_dry_run_without_stmk_change_ledger_or_run_record`：本轮没有 `STM_k`、change ledger 或 run record。 |
+| better_adjudication_outcome | `unknown` [clm-no-better] |
+| better_outcome_reason | `not_evaluated_in_static_dry_run`；不得写 `better`。 |
 
 ## 2. 输入证据：NL / raw `STM_0` / canonical-loss-fcstm
 
@@ -41,15 +43,19 @@ choice2 --> Join1 when : sunny=true
 | loss codes | `R45.LOSS.condition_like_label_lowered_as_event`、`R45.LOSS.cross_scope_transition_unrepresentable`、`R45.LOSS.initial_inferred_from_source_order_or_start_state`、`R45.LOSS.source_lifted_to_composite_boundary`、`R5.LOSS.r3_1_normalization_replay_not_repair`；archive 中 `loss_count=15`、`blocked_transitions_count=1`。 [src-case][src-archive] |
 | attribution ledger | partial ledger 有 `primary_attribution=r5_7_candidate_only`，同时 `pipeline_artifact=true`；archive 记录 `irrecoverable_fields=[llms_emp_stm_results_0018.scxml:scxml/state[7]/state[2]/transition[1]]`。 [src-ledger] |
 | seed-sweep `fcstm_sha256` | `6b57f2672a826f9ef533d39d76bb5cd3c5c15f643b98740159f045d1438a2963` [src-case][src-archive] |
-| standalone `.fcstm` 状态 | 当前未找到 standalone `.fcstm` 文本；seed-sweep record 只有 `fcstm_sha256=6b57...`、parse ok、inspect ok、archive metadata 与 irrecoverable field。R6/R7 前必须物化 evidence bundle。 [src-selected] |
+| standalone `.fcstm` 状态 | 当前未找到 standalone `.fcstm` 文本；seed-sweep record 只有 `fcstm_sha256=6b57...`、parse ok、inspect ok、archive metadata 与 irrecoverable field。R6/R7 前必须物化 baseline evidence bundle。 [src-selected] |
 
 ## 3. R5.7.2 taxonomy 裁决
 
-| observed issue | semantic element | scope routing | taxonomy verdict | repair action allowed | Better gate 影响 | caveat |
-|---|---|---|---|---|---|---|
-| 本样例主要观察 | 见下文 | `stress_t1` | static dry-run finding | `out_of_scope_family` -> `out_of_scope` 为主；condition-like labels 可作 stress trigger / monitor，但不进入 headline repair target。 | G0/G2/G4/G5/G6 视实例而定 | 不是正式 Better 裁决 |
+本节同时保留一行叙述性 summary 和实例级 target ledger。实例级 ledger 每行只表示一个 target instance，`repair_action_allowed` 必须是 R5.7.2 单值枚举。 [src-taxonomy]
 
-裁决结论：该例有丰富 condition-like 与 cross-scope 现象，但整体属于 T1 supplementary stress；静态裁决只能说明它暴露 out-of-headline 风险，不能把它放入 T0 Better 主比较。 [clm-taxonomy]
+**叙述性 summary**：`0018` 的 timing、fork/choice、cross-scope 与 condition-like labels 适合作为 T1 stress / limitation，不进入 T0 Better 主比较。 [clm-taxonomy]
+
+| target_instance_id | target_id | semantic_element | scope_status | scope_routing_status | time_level | structure_family | nl_evidence_required | representation_evidence_required | repair_action_allowed | repair_action_override_reason | better_stm_condition_impact | conversion_artifact_risk | metric_permission | forbidden_extrapolation | r6_feedback | r7_implication | caveat |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `r574-0018-out-of-scope-family` | `out_of_scope_family` | `out_of_scope_family` | `supplementary_stress` | `stress_t1` | `T1+` | `excluded family` | conditional：只需支撑 stress rationale。 | source artifact + scope rationale + archive blocked transition。 | `out_of_scope` | T1 stress retained for limitation/stress analysis，但不进入 main target。 | G0=stress_t1；G1-G6=not_applicable to Better main comparison。 | high | `report_only`。 | 不得进入 main repair target、T0 denominator 或 method success。 | R6 不应作为 T0 主线修复。 | R7 只作为 stress / limitation 行。 | out-of-headline。 |
+| `r574-0018-condition-like-stress-trigger` | `guard_condition` | `guard_condition` | `supplementary_stress` | `stress_t1` | `T1+` | `excluded family` | yes for stress trigger；不足以支持 T0 target。 | raw label + loss ledger + archive；无 formal change ledger。 | `monitor` | 类级 `guard_condition` 默认 `should_fix`，但该实例因 T1/stress scope 降级为 monitor。 | G0=stress_t1；G1=`cannot_evaluate`；G2/G6=caveat；G3/G4/G5 not headline. | high | `trigger_only` / `report_only`。 | 不得把 stress trigger 写成 T0 guard target success。 | 仅作为 R6 stress prompt 风险提示。 | R7 不计 target closure success。 | candidate-only in stress scope。 |
+| `r574-0018-representation-artifact` | `representation_only_conversion_artifact` | `representation_artifact` | `supplementary_stress` | `stress_t1` | `T1+` | `excluded family` | no。 | conversion ledger + loss ledger + archive metadata。 | `monitor` | 与类级默认一致，但处于 stress scope。 | G2/G6=caveat；G1=`cannot_evaluate`；不支撑 G4/G5 positive。 | high | `report_only`。 | 不得把 conversion/lowering 计为 repair gain。 | 只记录 evidence / representation risk。 | R7 作为 limitation evidence。 | readiness evidence only。 |
 
 因此，本样例在 R5.7.4 中只输出 `dry_run_taxonomy_finding`，不输出正式 `better_adjudication_outcome=better` [clm-no-better]。
 
@@ -106,7 +112,7 @@ R7 可把此例用于 limitation / stress 表，记录 `blocked_transitions_coun
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-formal-invalid] | `R574-0018-C1` | 本样例本轮不能写正式 `valid_run`，因为没有 `STM_k` / change ledger / run record。 | protocol | [src-better] G1/G2/G6；本文件 §1。 | [cmd-r574-0018] | high | static preflight pass 不等于 formal run valid。 |
-| [clm-no-better] | `R574-0018-C2` | 本样例不能写 `better` 或 repair effectiveness；formal Better outcome 是 `unknown / not_evaluated_in_static_dry_run`。 | prohibition | [src-eval-logic]、[src-better]；本文件 §1、§7。 | [cmd-r574-0018] | high | R6/R7 真实 run 后可重新裁决。 |
+| [clm-no-better] | `R574-0018-C2` | 本样例不能写 `better` 或 repair effectiveness；better_adjudication_outcome 是 canonical `unknown`，原因是 `not_evaluated_in_static_dry_run`。 | prohibition | [src-eval-logic]、[src-better]；本文件 §1、§7。 | [cmd-r574-0018] | high | R6/R7 真实 run 后可重新裁决。 |
 | [clm-no-repair-gain] | `R574-0018-C3` | conversion / normalization / `.fcstm` / parse / inspect 只能支撑 readiness，不计 repair gain。 | prohibition | [src-eval-logic] §6；[src-case] / [src-archive] `repair_contribution_allowed=false`。 | [cmd-r574-0018] | high | 不否认它们对实验介质有用。 |
 | [clm-taxonomy] | `R574-0018-C4` | 本样例的 static taxonomy finding 如 §3 所述。 | decision | [src-pairs]、[src-case]、[src-ledger]、[src-taxonomy]。 | [cmd-r574-0018] | medium | 没有 `STM_k`，所以只是 target / caveat finding，不是 Better 裁决。 |
 | [clm-r6] | `R574-0018-C5` | 本样例的 R6 feedback implication 如 §5 所述。 | handoff | [src-taxonomy]、[src-metrics]、本文件 §5。 | 人工复验 | medium | R6 实现时需转成 prompt / run record 字段。 |

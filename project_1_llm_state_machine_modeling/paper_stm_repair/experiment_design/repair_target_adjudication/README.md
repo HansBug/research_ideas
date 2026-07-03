@@ -30,8 +30,10 @@
 | 字段 | 含义 | 本轮允许写法 |
 |---|---|---|
 | `static_dry_run_preflight` | 当前证据是否足够支撑静态 dry-run。 | 四例均可写 `pass`，但只表示输入证据足够。 |
-| `formal_run_validity_status` | 若进入正式 Better STM run，是否有 `STM_k`、change ledger、run record。 | 本轮必须写 `protocol_or_provenance_invalid_for_formal_better_run` 或等价说明，因为 R5.7.4 按设计没有 `STM_k` 与 change ledger。 |
-| `better_adjudication_outcome` | 正式 Better STM 裁决输出。 | 本轮必须写 `unknown / not_evaluated_in_static_dry_run`；不得写 `better`。 |
+| `run_validity_status` | R5.7.2 canonical enum：正式 Better STM run 是否具备 `STM_k`、change ledger、run record 等最低证据。 | 本轮必须写 `protocol_or_provenance_invalid`。 |
+| `run_validity_reason` | 对 canonical `run_validity_status` 的阶段性解释。 | 本轮写 `static_dry_run_without_stmk_change_ledger_or_run_record`，不得把该原因拼进 enum 值。 |
+| `better_adjudication_outcome` | R5.7.2 canonical enum：正式 Better STM 裁决输出。 | 本轮必须写 `unknown`；不得写 `better`。 |
+| `better_outcome_reason` | 对 canonical `better_adjudication_outcome` 的阶段性解释。 | 本轮写 `not_evaluated_in_static_dry_run`，不得把该原因拼进 enum 值。 |
 | `dry_run_taxonomy_finding` | 静态规则检查发现。 | 可写 target confirmed / monitor / not target / stress / caveat，但不得把它写成 repair effectiveness。 |
 
 ## 4. 必须保留的证据链
@@ -50,5 +52,6 @@
 
 1. R6 若消费这些样例，必须先物化 canonical baseline 与 candidate `STM_k` 的可追溯 evidence bundle。
 2. R7 若把某个 dry-run target 写入正式指标，必须有 target-instance ledger、change ledger、scenario / trace / semantic gate 证据。
-3. 0001 / 0018 当前只有 seed-sweep hash 与 parse / inspect status，没有 standalone `.fcstm` 文本；0000 / 0045 的 selected smoke `.fcstm` hash 与 seed-sweep hash 不同。这是 R6/R7 执行前必须补齐的 evidence bundle 问题，不阻塞本轮静态裁决。
-4. 后续修改 taxonomy 或指标框架时，必须引用本目录或正式 R7 run 的真实 finding；不得空口改规则。
+3. 0001 / 0018 当前只有 seed-sweep hash 与 parse / inspect status，没有 standalone `.fcstm` 文本，这是 R6/R7 执行前必须物化的 baseline evidence bundle 缺口。
+4. 0000 / 0045 已有 selected smoke standalone `.fcstm`；其 selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失，但 R6/R7 必须明确 authoritative baseline hash，并把 seed-sweep hash 保留为 audit trail。
+5. 后续修改 taxonomy 或指标框架时，必须引用本目录或正式 R7 run 的真实 finding；不得空口改规则。

@@ -18,16 +18,17 @@ R5.7.4 的任务是把 R5.7.1 评价逻辑链、R5.7.2 Better STM / repair targe
 | T0.5 caveat | `0045` 的 timer / zero-time cue 与 normalization replay 只能作 T0.5 caveat / representation monitor；不得写 timed automata 或 repair gain。 | [clm-r574-0045] |
 | T1 stress | `0018` 暴露 timing、fork/choice、cross-scope 与 condition-like stress，但 scope 是 `stress_t1`；不得进入 T0 Better 主比较。 | [clm-r574-0018] |
 | 指标权限 | parse / inspect / evidence bundle 是 hard gate；loss code、conversion status、selected `.fcstm` hash 只能 report / trigger；guard/action fidelity、target closure 等必须等 R6/R7 有 `STM_k` 与 target-instance ledger 后才可作 supporting evidence。 | [clm-r574-metric] |
-| 证据缺口 | 0001 / 0018 当前只有 seed-sweep hash 与 parse / inspect status，没有 standalone `.fcstm`；0000 / 0045 selected smoke `.fcstm` hash 与 seed-sweep hash 不同。该缺口不阻塞静态 dry-run，但必须作为 R6/R7 前置 evidence bundle 任务。 | [clm-r574-fcstm-gap] |
+| `.fcstm` baseline 物化缺口 | 0001 / 0018 当前只有 seed-sweep hash 与 parse / inspect status，没有 standalone `.fcstm`；R6/R7 前必须物化 baseline evidence bundle。 | [clm-r574-fcstm-missing] |
+| `.fcstm` hash 权威源 | 0000 / 0045 已有 selected smoke standalone `.fcstm`；selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失。R6/R7 需要明确 authoritative baseline hash，seed-sweep hash 作为 audit trail。 | [clm-r574-fcstm-authority] |
 
 ## 3. 四例总表
 
 | pair | 角色 | scope | time / family | conversion / parse / inspect | loss codes | dry-run taxonomy finding | formal Better 状态 |
 |---|---|---|---|---|---|---|---|
-| `llms_emp_stm_results_0000` | HLDCS / GPT-4o / condition-like HSM | `main_t0` | T0 / HSM | partial / ok / ok | `condition_like_label_lowered_as_event` 等 3 类 | `guard_condition -> should_fix` for `Front Distance > 10`；hierarchy/source lifting monitor | `unknown / not_evaluated`；无 `STM_k` |
-| `llms_emp_stm_results_0001` | HSTBS / GPT-4o / low-noise FSM | `main_t0` | T0 / FSM | converted / ok / ok | none | `not_repair_target` / no-target control | `unknown / not_evaluated`；无 `STM_k` |
-| `llms_emp_stm_results_0045` | Microwave / DeepSeek / timer-like caveat | `caveat_t05` | T0.5 / UML-SysML statechart | partial / ok / ok | normalization replay + hierarchy/source lifting | `temporal_cue_tick_counter_caveat -> monitor`；conversion artifact monitor | `unknown / not_evaluated`；不进 T0 headline |
-| `llms_emp_stm_results_0018` | Digital Camera / GPT-4 / T1 stress | `stress_t1` | T1 / UML-SysML statechart | partial / ok / ok | condition-like + cross-scope + normalization 等 | `out_of_scope_family -> out_of_scope`；condition-like only stress trigger | `unknown / not_evaluated`；不进 Better 主比较 |
+| `llms_emp_stm_results_0000` | HLDCS / GPT-4o / condition-like HSM | `main_t0` | T0 / HSM | partial / ok / ok | `condition_like_label_lowered_as_event` 等 3 类 | `guard_condition -> should_fix` for `Front Distance > 10`；hierarchy/source lifting monitor | outcome=`unknown`；reason=`not_evaluated_in_static_dry_run`；无 `STM_k` |
+| `llms_emp_stm_results_0001` | HSTBS / GPT-4o / low-noise FSM | `main_t0` | T0 / FSM | converted / ok / ok | none | `not_repair_target` / no-target control | outcome=`unknown`；reason=`not_evaluated_in_static_dry_run`；无 `STM_k` |
+| `llms_emp_stm_results_0045` | Microwave / DeepSeek / timer-like caveat | `caveat_t05` | T0.5 / UML-SysML statechart | partial / ok / ok | normalization replay + hierarchy/source lifting | `temporal_cue_tick_counter_caveat -> monitor`；conversion artifact monitor | outcome=`unknown`；reason=`not_evaluated_in_static_dry_run`；不进 T0 headline |
+| `llms_emp_stm_results_0018` | Digital Camera / GPT-4 / T1 stress | `stress_t1` | T1 / UML-SysML statechart | partial / ok / ok | condition-like + cross-scope + normalization 等 | `out_of_scope_family -> out_of_scope`；condition-like only stress trigger | outcome=`unknown`；reason=`not_evaluated_in_static_dry_run`；不进 Better 主比较 |
 
 以上 `conversion=partial/converted` 是 representation readiness 状态，不是 Better outcome；`partial` 不得被写成 repair failure，也不得被写成 repair success [src-r571][clm-r574-preflight]。
 
@@ -121,7 +122,7 @@ choice2 --> Join1 when : sunny=true
 2. `T0=48 pairs` 仍只是 scope / pre-eligibility 上限，不是 success denominator。
 3. target closure 必须按 `must_fix / should_fix / monitor / not_repair_target / out_of_scope` 分层，不允许单一总闭合率。
 4. 正式 Better outcome 只能在 `STM_k`、change ledger、no-regression、semantic gate 和 reporting gate 全部闭合后产生。
-5. R6/R7 前必须补齐 `.fcstm` / canonical baseline evidence bundle：0001 / 0018 缺 standalone `.fcstm`；0000 / 0045 selected smoke hash 与 seed-sweep hash 不一致 [clm-r574-fcstm-gap]。
+5. R6/R7 前必须补齐或声明 `.fcstm` / canonical baseline evidence bundle：0001 / 0018 需要物化 standalone `.fcstm`；0000 / 0045 需要声明 selected smoke hash 是 authoritative baseline，seed-sweep hash 作为 audit trail，二者 hash 不同本身不是缺失 [clm-r574-fcstm-missing][clm-r574-fcstm-authority]。
 
 ## 8. 学术风险与禁止主张
 
@@ -129,7 +130,7 @@ choice2 --> Join1 when : sunny=true
 2. 不把 representation symptom 直接写成 confirmed defect；0000 的 guard finding 也只是 dry-run target，不是正式 Better 结果 [clm-r574-0000]。
 3. 不把 `0045` 升格为 timed automata 支持，不把 `0018` 混入 T0 headline [clm-r574-0045][clm-r574-0018]。
 4. 不用 conversion、parse / inspect、loss count 或 `.fcstm` 成功证明 repair gain [clm-r574-no-repair-gain]。
-5. 不隐藏 evidence gap；standalone `.fcstm` 缺口和 hash 不一致必须进入 R6/R7 handoff [clm-r574-fcstm-gap]。
+5. 不隐藏 evidence bundle 风险：standalone `.fcstm` 缺口必须进入 R6/R7 handoff；selected-vs-seed hash 差异必须声明权威 baseline 与 audit trail，而不是误写成同类缺口 [clm-r574-fcstm-missing][clm-r574-fcstm-authority]。
 
 ## 9. 后续入口
 
@@ -164,7 +165,7 @@ choice2 --> Join1 when : sunny=true
 | [src-case] | `llms_emp_case_matrix` | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) | jsonl | time level、structure family、conversion、parse / inspect、loss code、hash；60 pair denominator。 | row filters: `raw_pair_id in {0000,0001,0045,0018}`；global count `len=60`。 |
 | [src-ledger] | `partial_attribution_ledger` | [../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl) | jsonl | partial attribution、candidate-only、pipeline artifact。 | row filters: `raw_pair_id in {0000,0045,0018}`；0001 has no row。 |
 | [src-archive] | `llms_emp_record_archive` | [../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | zip | record 级 status、loss count、canonical states/transitions、irrecoverable fields、hash。 | members `llms-emp-stm-subset__llms_emp_stm_results_*.json` for four ids。 |
-| [src-selected] | `selected_seed_examples` | [../selected_seed_examples/README.md](../selected_seed_examples/README.md) | md / fcstm | selected smoke standalone `.fcstm` availability caveat。 | dirs `llms-emp-gpt4o-hldcs`、`llms-emp-deepseek-microwave`；no dirs for 0001/0018。 |
+| [src-selected] | `selected_seed_examples` | [../selected_seed_examples/README.md](../selected_seed_examples/README.md) | md / fcstm | selected smoke standalone `.fcstm` availability and authoritative-baseline caveat。 | dirs `llms-emp-gpt4o-hldcs`、`llms-emp-deepseek-microwave`；their `fcstm_meta.json` records `selected_fcstm_sha256` and `synchronized_from_fcstm_sha256`；no dirs for 0001/0018。 |
 | [src-adjudication] | `r574_adjudication_docs` | [../experiment_design/repair_target_adjudication/README.md](../experiment_design/repair_target_adjudication/README.md) | md | 四例样例级静态裁决入口。 | 四个秒级样例文件。 |
 
 ### A.3 Claim-evidence map
@@ -173,13 +174,14 @@ choice2 --> Join1 when : sunny=true
 |---|---|---|---|---|---|---|---|
 | [clm-r574-boundary] | `R574-C1` | R5.7.4 是静态裁决 / metric dry-run，不运行 LLM、不生成 `STM_k`、不报告 repair effectiveness。 | scope / prohibition | [src-r571] §1/§9；[src-r572-better] §13；[src-r573] §1/§5。 | [cmd-r574-doc-links] | high | 后续 R6/R7 才可能产生正式 run。 |
 | [clm-r574-preflight] | `R574-C2` | 四例均有 committed `NL`、raw `STM_0`、case matrix 与 archive 证据，足够做 static dry-run。 | trace | [src-pairs] row filters；[src-case] row filters；[src-archive] four members。 | [cmd-r574-four-case-preflight] | high | preflight pass 不等于 formal valid run。 |
-| [clm-r574-no-better] | `R574-C3` | 四例本轮 formal `run_validity_status` 均不能写 `valid_run`，formal Better outcome 均为 unknown / not evaluated。 | prohibition | [src-r572-better] G1/G2/G6；本报告 §3。 | [cmd-r574-four-case-preflight] | high | 静态 taxonomy finding 可保留。 |
+| [clm-r574-no-better] | `R574-C3` | 四例本轮 `run_validity_status` 均为 canonical `protocol_or_provenance_invalid`，`better_adjudication_outcome` 均为 canonical `unknown`，原因是 `not_evaluated_in_static_dry_run`。 | prohibition | [src-r572-better] G1/G2/G6；本报告 §3。 | [cmd-r574-four-case-preflight] | high | 静态 taxonomy finding 可保留。 |
 | [clm-r574-0000] | `R574-C4` | 0000 可形成 T0 `guard_condition -> should_fix` dry-run finding；representation lowering 仍 monitor。 | decision | [src-pairs] row `0000` NL/raw；[src-case] `r5_loss_codes`；[src-ledger] `r5_7_candidate_only=true`。 | [cmd-r574-four-case-preflight] | medium | 没有 `STM_k`，不能判 Better。 |
 | [clm-r574-0001] | `R574-C5` | 0001 是 no-target / low-noise control；不应凭空制造 repair target。 | decision | [src-case] row `0001` `r5_loss_codes=[]`；[src-ledger] no row；[src-pairs] raw FSM。 | [cmd-r574-four-case-preflight] | high | 未来 R6 若产生改动，需要另行审计 over-repair。 |
 | [clm-r574-0045] | `R574-C6` | 0045 是 T0.5 timer-like caveat；normalization replay 不计 repair gain。 | scope / decision | [src-pairs] row `0045` timer cues；[src-case] T0.5 / partial；[src-ledger] `pipeline_artifact`；[src-archive] `loss_count=7`。 | [cmd-r574-four-case-preflight] | high | 只支持 discrete event / counter caveat，不支持 timed automata。 |
 | [clm-r574-0018] | `R574-C7` | 0018 是 T1 stress / out-of-headline；不得进入 T0 Better 主比较。 | scope / decision | [src-pairs] row `0018`; [src-case] T1; [src-archive] `blocked_transitions_count=1` / irrecoverable field。 | [cmd-r574-four-case-preflight] | high | 可用于 limitation / stress 表。 |
 | [clm-r574-metric] | `R574-C8` | R5.7.3 指标在四例中只能按 hard_gate / supporting / trigger / report-only / forbidden 权限使用，不能 metric-only 判 Better。 | protocol | [src-r573] §2--§11；本报告 §6。 | [cmd-r574-doc-links] | high | R7 才冻结 final metrics / thresholds。 |
-| [clm-r574-fcstm-gap] | `R574-C9` | 0001 / 0018 缺 standalone `.fcstm`，0000 / 0045 selected snapshot hash 与 seed-sweep hash 不一致；R6/R7 前需补 evidence bundle。 | risk / handoff | [src-selected]；[src-case] `fcstm_sha256`；selected `fcstm_meta.json` / sha256。 | [cmd-r574-fcstm-gap] | high | 不阻塞本轮静态 dry-run。 |
+| [clm-r574-fcstm-missing] | `R574-C9a` | 0001 / 0018 缺 standalone `.fcstm`；R6/R7 前需物化 baseline evidence bundle。 | risk / handoff | [src-selected]；[src-case] `fcstm_sha256`。 | [cmd-r574-fcstm-gap] | high | 不阻塞本轮静态 dry-run。 |
+| [clm-r574-fcstm-authority] | `R574-C9b` | 0000 / 0045 selected snapshot hash 与 seed-sweep hash 不同是预期差异；R6/R7 前需声明 authoritative baseline hash，seed-sweep hash 作 audit trail。 | risk / handoff | [src-selected] `selected_fcstm_sha256` / `synchronized_from_fcstm_sha256`；[src-case] seed-sweep `fcstm_sha256`。 | [cmd-r574-fcstm-gap] | high | 不应把该差异误写成缺失或修复问题。 |
 | [clm-r574-no-repair-gain] | `R574-C10` | conversion / normalization / `.fcstm` parse inspect 只能支撑 readiness，不计 repair gain。 | prohibition | [src-r571] §6；[src-case] `repair_contribution_allowed=false`；[src-archive] `conversion_attribution` / `representation_attribution`。 | [cmd-r574-four-case-preflight] | high | 仍可作为 R6/R7 实验介质准备证据。 |
 
 ### A.4 复验命令
@@ -232,18 +234,21 @@ python - <<'PY'
 from pathlib import Path
 import json
 base = Path('project_1_llm_state_machine_modeling/paper_stm_repair')
-for rel in [
-    'selected_seed_examples/llms-emp-gpt4o-hldcs/fcstm_meta.json',
-    'selected_seed_examples/llms-emp-deepseek-microwave/fcstm_meta.json',
-]:
+case = [json.loads(l) for l in (base/'pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl').read_text().splitlines() if l.strip()]
+selected_map = {
+    'llms_emp_stm_results_0000': 'selected_seed_examples/llms-emp-gpt4o-hldcs/fcstm_meta.json',
+    'llms_emp_stm_results_0045': 'selected_seed_examples/llms-emp-deepseek-microwave/fcstm_meta.json',
+}
+for rid, rel in selected_map.items():
     data = json.loads((base/rel).read_text())
-    print(rel, data['selected_fcstm_sha256'], data['synchronized_from_fcstm_sha256'])
-for rel in [
-    'selected_seed_examples/llms-emp-gpt4o-hldcs/model.fcstm',
-    'selected_seed_examples/llms-emp-deepseek-microwave/model.fcstm',
-    'selected_seed_examples/llms-emp-gpt4o-hstbs/model.fcstm',
-    'selected_seed_examples/llms-emp-gpt4-digital-camera/model.fcstm',
+    seed = next(r for r in case if r['raw_pair_id'] == rid)['fcstm_sha256']
+    print(rid, 'selected', data['selected_fcstm_sha256'], 'synchronized_from', data['synchronized_from_fcstm_sha256'], 'seed_sweep', seed, 'same_as_seed', data['selected_fcstm_sha256'] == seed)
+for rid, rel in [
+    ('llms_emp_stm_results_0000', 'selected_seed_examples/llms-emp-gpt4o-hldcs/model.fcstm'),
+    ('llms_emp_stm_results_0045', 'selected_seed_examples/llms-emp-deepseek-microwave/model.fcstm'),
+    ('llms_emp_stm_results_0001', 'selected_seed_examples/llms-emp-gpt4o-hstbs/model.fcstm'),
+    ('llms_emp_stm_results_0018', 'selected_seed_examples/llms-emp-gpt4-digital-camera/model.fcstm'),
 ]:
-    print(rel, (base/rel).exists())
+    print(rid, rel, (base/rel).exists())
 PY
 ```

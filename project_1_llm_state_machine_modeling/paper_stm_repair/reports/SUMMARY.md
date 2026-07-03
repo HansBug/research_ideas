@@ -50,7 +50,7 @@
 3. Digital Camera/T1 只能作为 supplementary stress，不支撑 T0 主 claim。
 4. `llms-emp` 当前已无 blocked pair；旧 blocked 只作为 R5.5.1 历史负证据和 R5.5.2 conversion-recovery 线索。其他 seed 源的 blocked 仍需按各自 report / JSON 审计，不能套用 `llms-emp` 当前状态。
 5. R5.7.3 指标框架禁止 metric-only verdict；R5.7.4 已把这一纪律 dry-run 到四个 `llms-emp` 样例，后续 R5.7.5/R7 若要修改指标或阈值，必须引用 R5.7.4 finding 或正式协议证据，不能空口重写。
-6. R5.7.4 发现的 `.fcstm` standalone 缺口和 selected snapshot / seed-sweep hash 不一致不阻塞静态裁决，但必须进入 R6/R7 evidence bundle handoff。
+6. R5.7.4 发现两类 `.fcstm` evidence bundle 风险：0001 / 0018 缺 standalone `.fcstm`，需 R6/R7 前物化；0000 / 0045 selected snapshot 与 seed-sweep hash 不同是不同转换运行的预期差异，需在 R6/R7 前声明 authoritative baseline hash 并保留 seed-sweep audit trail。二者都不阻塞静态裁决。
 
 ## 5. 更新日志
 
