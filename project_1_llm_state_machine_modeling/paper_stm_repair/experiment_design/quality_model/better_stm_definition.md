@@ -172,6 +172,8 @@ T0.5 不进入 T0 headline，但可以在 caveat 层被评价 [dec-q7]。R5.7.2 
 
 客观指标是 supporting evidence，不是 verdict [dec-q9]。R5.7.2 只冻结指标权限上限，完整指标框架交给 R5.7.3。
 
+R5.7.3 已在 [../metrics/objective_metric_framework.md](../metrics/objective_metric_framework.md) 冻结客观代理指标框架 v0：五级 `metric_permission`、entry schema、G0--G6 gate × metric matrix、分母 / reference / 偏序、anti-gaming 风险和 baseline 迁移边界。本文件的 G5 semantic gate 权限不因此降低；任何 metric improvement 仍必须回到语义裁决。
+
 | 指标层 | 可用作 | 不可用作 |
 |---|---|---|
 | executability / hard gate | A gate、run validity。 | Better STM 充分条件。 |
@@ -229,7 +231,7 @@ v0 合成规则：
 
 | 阶段 | 继承本文件什么 | 不得做什么 |
 |---|---|---|
-| R5.7.3 | 指标只能 supporting evidence、不能 metric-only verdict；需要定义指标族、偏序方向、适用边界和刷指标风险。 | 不得把 F1 / accuracy / scenario pass 单独写成 Better。 |
+| R5.7.3 | 已冻结 [../metrics/objective_metric_framework.md](../metrics/objective_metric_framework.md)：指标族、entry schema、分母、偏序、scope、anti-gaming 和 baseline 迁移。 | 不得把 F1 / accuracy / scenario pass / target closure / cost 单独写成 Better。 |
 | R5.7.4 | 用真实或准真实样例 dry-run 本 gate 链和 taxonomy，记录 dry-run findings ledger。 | 不得把 dry-run 写成 repair effectiveness。 |
 | R5.7.5 | 把 gate、taxonomy、metrics、dry-run findings 合成 R6/R7 handoff。 | 不得无证据修改 v0 合同。 |
 | R6 | 实现 fake / replay repair loop skeleton 与 run record。 | 不得把 pre-repair normalization 当作修复步骤。 |

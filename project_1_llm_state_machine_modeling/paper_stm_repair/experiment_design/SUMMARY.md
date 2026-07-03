@@ -2,7 +2,7 @@
 
 ## 1. 当前状态
 
-本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径，并在 R5.7.1 新增 [evaluation_logic.md](./evaluation_logic.md) 作为评价逻辑链与主张边界事实源。R5.7.2 已在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 冻结 Better STM gate 链、三层输出模型、硬拒绝边界、语义裁决接口和修复目标分类合同；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 不进入 headline，只作为当前 0 独立样例的 future taxonomy candidate / 语义维度标签，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols、metrics 仍只冻结职责入口，不伪造尚未完成的主实验协议；R5.7.1 也不报告 repair effectiveness、`STM_k` 或 Better STM 成功率。
+本目录已按 R5.5.1 路径重构为 `scope/`、`quality_model/`、`eligibility/`、`protocols/`、`metrics/` 五个子路径，并在 R5.7.1 新增 [evaluation_logic.md](./evaluation_logic.md) 作为评价逻辑链与主张边界事实源。R5.7.2 已在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 冻结 Better STM gate 链、三层输出模型、硬拒绝边界、语义裁决接口和修复目标分类合同；`scope/` 已新增 R5.5 handoff 草案 [scope/2026-06-29-17-33-35-r5-5-scope-handoff.md](./scope/2026-06-29-17-33-35-r5-5-scope-handoff.md)，并在 R5.6 新增 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 story-level model scope 和 R5.7 交接约束：当前有样例支撑的主线限于 T0 离散 FSM/HSM/离散 UML-SysML statechart 子集，EFSM-lite 不进入 headline，只作为当前 0 独立样例的 future taxonomy candidate / 语义维度标签，T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。eligibility、protocols 仍只冻结职责入口；metrics 已在 R5.7.3 冻结客观代理指标框架 v0，但不伪造尚未完成的主实验协议、最终阈值或真实效果；R5.7.1--R5.7.3 均不报告 repair effectiveness、`STM_k` 或 Better STM 成功率。
 
 ## 1.1 R5.7.1 评价逻辑链冻结结论
 
@@ -27,6 +27,20 @@
 | T0.5 / T1 | T0.5 tick / counter 可作 caveat 层讨论；T1 只作 stress / limitation；二者都不进入 T0 headline success。 | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md)、[scope/README.md](./scope/README.md) |
 | 指标权限 | 客观指标只作 supporting evidence；R5.7.3 只能在该权限上限内定义指标族和偏序方向。 | [metrics/README.md](./metrics/README.md) |
 | 规则修订 | 后续规则 / 指标修订必须由 R5.7.4 或 R7 真实 dry-run findings 驱动；无 finding 的修改只能标 provisional。 | [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) |
+
+
+## 1.3 R5.7.3 客观代理指标冻结结论
+
+| 主题 | 冻结结论 | 后续入口 |
+|---|---|---|
+| 指标权限 | 冻结五级 `metric_permission`：`hard_gate / supporting_evidence / trigger_only / report_only / forbidden`；任何指标都不能单独产生 Better verdict。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| entry schema | 每个指标必须声明指标族、gate、分母、聚合层、reference、偏序、scope、headline 权限、证据源、风险、语义裁决、禁止外推、冻结状态和下游 owner。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| 指标族 | 冻结 readiness、provenance、diagnostics、structural element、traceability、scenario behavior、semantic target closure、cost stability、baseline/textual background 等 v0 指标族。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| gate matrix | 指标必须落到 R5.7.2 的 G0--G6 gate × metric matrix，不另起 overall score / weighted score。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)、[quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) |
+| reference / 分母 | 不设统一 gold STM；P/R/F1 只在有合法 reference set 时使用；target closure、scenario、run、scope 不得跨层混用分母。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| anti-gaming | 显式记录 semantic deletion、guard/action/event folding、over/under repair、trace loss、conversion laundering、hierarchy loss、scenario overfitting 等风险。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| baseline 迁移 | `llms_emp` 与 Structure/Event 只作为指标思想来源；不迁移源论文数值，不把文本相似度、compile/pass@k 或 conversion success 写成质量结论。 | [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) |
+| 仍未冻结 | numeric thresholds、statistical test、effect size、final eligibility、primary/secondary endpoints、success denominator 和真实 repair effectiveness 仍由 R7/R8 冻结。 | [metrics/README.md](./metrics/README.md) |
 
 ## 2. 研究问题草案
 
@@ -78,12 +92,13 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 2. `quality_model/` 已冻结 R5.7.2 Better STM gate 与 repair target taxonomy v0，但尚未经过 R5.7.4 系统 dry-run findings 校准。
 3. `eligibility/` 已接收 R5.7.1 A 层 artifact-level gate 和 R5.7.2 三层输出方向，但尚未冻结 R7 run eligibility、failure handling 和 provider drift 正式协议。
 4. `protocols/` 已接收 R5.7.1 change ledger / failure ledger 与 R5.7.2 semantic adjudication evidence bundle 要求，但尚未冻结真实 LLM 修正、对照、人工裁决或回滚协议。
-5. `metrics/` 已接收 R5.7.1 / R5.7.2 “指标只能 supporting evidence”纪律，但尚未冻结最终指标阈值、统计表字段或显著性 / 效应量口径。
+5. `metrics/` 已冻结 R5.7.3 客观代理指标框架 v0，但尚未冻结 numeric thresholds、statistical test、effect size、final eligibility、primary / secondary endpoints、最终成功分母或真实 repair effectiveness。
 
 ## 5. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-03 21:18:25 | R5.7.3 新增 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)，冻结客观代理指标框架 v0、五级指标权限、entry schema、G0--G6 gate matrix、分母 / reference / anti-gaming 纪律和 baseline 迁移边界；该更新不代表 repair loop 已运行。 |
 | 2026-07-03 02:16:16 | R5.7.2 新增 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)，并将 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 从五条最低必要条件扩展为 Better STM gate 链、三层输出模型、硬拒绝边界、T0.5 caveat、指标权限和 semantic adjudication 接口；该更新不代表 repair loop 已运行。 |
 | 2026-07-02 17:02:42 | R5.7.1 新增 [evaluation_logic.md](./evaluation_logic.md)，冻结评价逻辑链、claim 类型、分母纪律、A 层准入、归因边界、客观指标位置、失败报告纪律和 R5.7.2--R5.7.5 下游接口；该更新不代表 repair loop 已运行。 |
 | 2026-06-30 14:46:44 | R5.6 新增并补强 [../story/model_scope.md](../story/model_scope.md) 与 [scope/r5_6_to_r5_7_handoff_constraints.md](./scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 model scope / claim boundary、状态机抽象定义、Better STM 核心判据与 R5.7 继承约束；该更新不代表 repair loop 已运行。 |

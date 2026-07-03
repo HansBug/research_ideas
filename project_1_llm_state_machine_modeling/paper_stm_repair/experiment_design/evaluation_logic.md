@@ -4,6 +4,7 @@
 >
 > **证据引用说明**：正文中的 `[src-*]`、`[clm-*]`、`[dec-*]`、`[cmd-*]` 是文末审计附录中的稳定 ASCII 证据键，不按数字重排。
 > **R5.7.2 更新入口**：Better STM gate 链、三层输出模型和 repair target taxonomy 已细化到 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)。本文件仍是 R5.7.1 的评价逻辑链事实源；R5.7.2 不重开本文件冻结的分母、claim boundary 与 attribution boundary。
+> **R5.7.3 更新入口**：客观代理指标框架已细化到 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)。R5.7.3 只定义指标如何作为 gate evidence / trigger / report-only / forbidden，不改变本文件冻结的“指标不能单独判 Better STM”纪律。
 
 ## 1. 一句话结论
 
@@ -105,6 +106,8 @@ R6/R7/R8 每次 run 必须保留 change / attribution ledger，至少记录 sour
 
 客观指标只能作为 supporting evidence，不能单独判 Better STM [dec-q6]。
 
+R5.7.3 已将这一权限上限细化为 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)：每个指标必须声明 `metric_permission`、`denominator_layer`、`aggregation_level`、`ordering_relation`、`scope_applicability`、anti-gaming 风险和语义裁决接口；这些指标仍只进入 G0--G6 evidence bundle，不替代 G5 semantic adjudication。
+
 | 指标层 | 例子 | 偏序方向示例 | 只能说明 | 不能单独说明 |
 |---|---|---|---|---|
 | hard gate | parse valid、schema valid、A-pass。 | true 优于 false。 | 制品可进入后续评价。 | 语义更好。 |
@@ -135,7 +138,7 @@ R5.7.1 只冻结评价逻辑链与 claim boundary，不抢后续子 PR 的细节
 | 阶段 | 本文件提供什么 | 后续阶段负责什么 |
 |---|---|---|
 | R5.7.2 | A 层、scope、归因、failure reporting 和 Better STM 判定上游逻辑。 | 已在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 冻结 Better STM gate 链、三层输出模型、repair target taxonomy、语义裁决门和拒绝条件。 |
-| R5.7.3 | 指标只能 supporting evidence、不能 metric-only verdict。 | objective metrics 框架、指标族、偏序方向、适用边界、投机风险。 |
+| R5.7.3 | 指标只能 supporting evidence、不能 metric-only verdict。 | 已在 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) 冻结客观代理指标框架、指标族、偏序方向、适用边界、anti-gaming 风险和 baseline 迁移边界。 |
 | R5.7.4 | dry-run 的目标：验证标准可执行性，而不是 repair 效果。 | 用真实 / 准真实样例做静态 dry-run。 |
 | R5.7.5 | R6/R7 必须继承的 claim boundary、分母、ledger 和 run record 要求。 | 合成可执行 handoff。 |
 | R6/R7/R8 | repair gain 起点、ledger 字段、失败报告纪律和禁止外推。 | 实现/运行 repair loop、冻结协议、报告结果。 |
