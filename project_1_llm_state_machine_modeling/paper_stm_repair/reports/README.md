@@ -32,6 +32,7 @@
 
 | 时间 | report | 类型 | 机器事实源入口 |
 |---|---|---|---|
+| 2026-07-03 21:18:25 | [2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md) | objective metric framework | [objective_metric_framework.md](../experiment_design/metrics/objective_metric_framework.md) |
 | 2026-07-03 02:16:16 | [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md) | Better STM / repair target contract | [better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
 | 2026-07-02 17:02:42 | [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md) | evaluation logic handoff | [evaluation_logic.md](../experiment_design/evaluation_logic.md) |
 | 2026-06-29 19:55:45 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | PlantUML blocked recovery | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) |
@@ -50,8 +51,9 @@
 4. 想看 R5.5.2 后当前 `llms-emp` 状态：先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)，再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 的 10 cluster 表、10×6 LLM 矩阵与行为特征矩阵。
 5. 想理解 R5.7.1 如何把 story claim 转成评价逻辑链：先读 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)，再读 [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)。
 6. 想理解 R5.7.2 如何定义 Better STM gate 与 repair target taxonomy：先读 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md)，再读 [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md)。
-7. 想解释后续 R6/R7 为什么优先 `llms-emp-stm-subset`：读 [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。
-8. 需要复算或审计时，回到每个 report 文末“审计附录：证据链与事实源”中的上游事实源清单、Claim-evidence map 与复验命令。
+7. 想理解 R5.7.3 如何把 objective metrics 限定为 Better STM gate 的证据层：先读 [../experiment_design/metrics/objective_metric_framework.md](../experiment_design/metrics/objective_metric_framework.md)，再读 [2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md)。
+8. 想解释后续 R6/R7 为什么优先 `llms-emp-stm-subset`：读 [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。
+9. 需要复算或审计时，回到每个 report 文末“审计附录：证据链与事实源”中的上游事实源清单、Claim-evidence map 与复验命令。
 
 ## 6. 命名纪律
 

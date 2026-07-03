@@ -2,7 +2,7 @@
 
 `experiment_design/` 维护第一篇 STM repair 论文的实验设计上游约束：评价逻辑链、问题范围、质量模型、eligibility 口径、协议入口和指标入口。本目录当前仍处于主实验前设计层，尚未冻结正式主实验协议、最终样本、最终指标阈值或真实 LLM 修正结果。
 
-当前 R5.7.1 主入口是 [evaluation_logic.md](./evaluation_logic.md)：它冻结论文主张链、分母纪律、claim 类型、A 层准入、归因边界、客观指标位置、失败报告纪律和 R5.7.2--R5.7.5 下游接口。R5.7.2 在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 中进一步冻结 Better STM gate 链、三层输出模型和修复目标分类合同。以上内容都不是 repair loop 结果，也不报告 `STM_k` 或方法效果。
+当前 R5.7.1 主入口是 [evaluation_logic.md](./evaluation_logic.md)：它冻结论文主张链、分母纪律、claim 类型、A 层准入、归因边界、客观指标位置、失败报告纪律和 R5.7.2--R5.7.5 下游接口。R5.7.2 在 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 中进一步冻结 Better STM gate 链、三层输出模型和修复目标分类合同。R5.7.3 在 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) 中冻结客观代理指标框架 v0，明确指标只能作为 gate evidence / trigger / report-only，不替代 G5 semantic adjudication。以上内容都不是 repair loop 结果，也不报告 `STM_k` 或方法效果。
 
 ## 1. 子路径
 
@@ -13,7 +13,7 @@
 | [quality_model/](./quality_model/) | 维护 Better STM gate 与 repair target taxonomy。 | R5.7.2 已冻结 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)：parse ok / executable / lowering 本身不等于 Better STM，representation symptom 不能直接升级为 confirmed defect。 |
 | [eligibility/](./eligibility/) | 维护 run / seed / conversion / provider failure 的纳入排除规则入口。 | 已接收 R5.7.1 A 层与 R5.7.2 `scope_routing_status` / `run_validity_status` / `better_adjudication_outcome` 三层输出纪律；仍未冻结 R7 正式 eligibility 协议。 |
 | [protocols/](./protocols/) | 预留主实验、对照、人工裁决、修正循环协议入口。 | 已接收 R5.7.2 semantic adjudication evidence bundle、LLM-as-Judge provisional 与人工冲突裁决接口；仍未冻结 R7 正式协议。 |
-| [metrics/](./metrics/) | 预留指标、统计表字段和报告口径入口。 | 已接收 R5.7.1 / R5.7.2 “指标只能 supporting evidence”纪律；R5.7.3 再冻结具体 objective metrics。 |
+| [metrics/](./metrics/) | 维护客观代理指标、统计表字段候选、报告口径和降级写法。 | R5.7.3 已冻结 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)：指标族、entry schema、G0--G6 gate × metric matrix、分母、偏序、scope、anti-gaming 与 baseline 迁移；仍不冻结最终阈值或正式结果。 |
 
 ## 2. 三件套
 
@@ -22,6 +22,7 @@
 3. [GUIDE.md](./GUIDE.md)：约束后续如何补 scope、eligibility、protocol 和 metrics，防止结果倒推设计。
 4. [evaluation_logic.md](./evaluation_logic.md)：R5.7.1 的评价逻辑链事实源，约束后续 R5.7.2--R5.7.5 与 R6/R7/R8 的 claim boundary。
 5. [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 与 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)：R5.7.2 的 Better STM 判定合同与修复目标分类合同。
+6. [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)：R5.7.3 的客观代理指标框架，约束指标如何作为 supporting evidence、trigger、report-only 或 forbidden。
 
 ## 3. 当前边界
 
@@ -33,6 +34,7 @@
 - 不让后续真实修正结果反向修改 Better STM 核心判定逻辑；若 dry-run 或真实 run 发现规则缺陷，必须以 findings ledger 驱动修订。
 - 不突破 [../story/model_scope.md](../story/model_scope.md) 已冻结的 main / caveat / supplementary-stress / excluded 边界；R5.7 taxonomy 只能在该边界内细化。
 - 不把 [evaluation_logic.md](./evaluation_logic.md) 中的 readiness、A-pass、parse ok、inspect ok、客观指标改善或转换恢复写成 repair effectiveness。
+- 不把 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) 中的 metric improvement、slot-level F1、scenario pass、target closure 或 cost/stability 单独写成 Better STM；它们只能按 R5.7.3 权限进入 G0--G6 evidence bundle。
 
 ## 4. story 与 experiment_design/scope 边界
 

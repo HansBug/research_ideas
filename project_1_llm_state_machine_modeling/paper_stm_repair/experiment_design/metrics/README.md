@@ -1,14 +1,14 @@
 # metrics/ — 指标与统计职责入口
 
-本目录预留指标定义、统计表字段、报告口径、降级写法和可视化表格骨架。
+本目录维护指标定义、统计表字段候选、报告口径、降级写法和可视化表格骨架。
 
-当前状态：仅冻结职责入口，尚未冻结最终指标、阈值、统计检验或主结果表。
+当前状态：R5.7.3 已冻结客观代理指标框架 v0，主入口是 [objective_metric_framework.md](./objective_metric_framework.md)。该框架只定义 objective metrics 作为 Better STM gate 的证据层，不冻结最终阈值、统计检验、主结果表列或真实 repair 效果。
 
-后续指标必须对应 [../quality_model/better_stm_definition.md](../quality_model/better_stm_definition.md) 的判定条件，并避免看结果后倒推阈值。
+后续指标必须对应 [../quality_model/better_stm_definition.md](../quality_model/better_stm_definition.md) 的 G0--G6 判定条件，并避免看结果后倒推阈值。
 
 ## R5.7.1 已冻结的指标纪律
 
-[../evaluation_logic.md](../evaluation_logic.md) 已冻结：客观指标只能作为 supporting evidence，不能单独判 Better STM。后续 R5.7.3 若新增 `objective_metric_framework.md`，每个指标族至少需要写明：
+[../evaluation_logic.md](../evaluation_logic.md) 已冻结：客观指标只能作为 supporting evidence，不能单独判 Better STM。R5.7.3 已新增 [objective_metric_framework.md](./objective_metric_framework.md)，每个指标族至少需要写明：
 
 | 字段 | 要求 |
 |---|---|
@@ -34,3 +34,31 @@ R5.7.2 进一步明确：指标是 Better STM gate 的证据材料，不是 verd
 | token / iteration cost | 稳定性和可用性辅助证据。 | 模型质量或 repair effectiveness。 |
 
 若某个候选 `STM_k` 指标变好但违反 [../quality_model/better_stm_definition.md](../quality_model/better_stm_definition.md) 的 semantic gate、attribution gate 或 no-regression gate，必须判为 `not_better`、`partial` 或 `unknown`，不能以指标覆盖语义问题。
+
+
+## R5.7.3 已冻结的客观指标框架
+
+[objective_metric_framework.md](./objective_metric_framework.md) 是 R5.7.3 的长期规则真源，已冻结：
+
+1. 五级 `metric_permission`：`hard_gate / supporting_evidence / trigger_only / report_only / forbidden`。
+2. v0 指标族：readiness、provenance、diagnostics、structural element、traceability、scenario behavior、semantic target closure、cost stability、baseline/textual background。
+3. G0--G6 gate × metric matrix。
+4. structural slot：state、transition、event、guard、action、hierarchy_or_pseudostate、trace_link。
+5. 无统一 gold STM 时的 reference、分母与 P/R/F1 降级纪律。
+6. anti-gaming 风险标签与 semantic adjudication evidence bundle。
+7. T0 / T0.5 / T1 的 `scope_applicability`、`headline_inclusion` 和 pair / cluster / LLM-family 汇总纪律。
+8. semantic target closure 分层统计，禁止单一 closure 总分。
+9. baseline 指标迁移表与 `llms_emp.Acc_P / Acc_S` 命名降级。
+
+阅读顺序：先读 [../evaluation_logic.md](../evaluation_logic.md) 理解评价逻辑链，再读 [../quality_model/better_stm_definition.md](../quality_model/better_stm_definition.md) 与 [../quality_model/repair_target_taxonomy.md](../quality_model/repair_target_taxonomy.md) 理解 Better STM gate 和 repair target，最后读 [objective_metric_framework.md](./objective_metric_framework.md) 理解客观指标如何进入 gate。
+
+## 仍未冻结的内容
+
+以下内容仍由 R7 / R8 正式协议冻结，不属于 R5.7.3：
+
+- numeric thresholds；
+- statistical test / effect size plan；
+- final eligibility filter；
+- final success denominator；
+- final primary / secondary endpoints；
+- Better STM success rate 或 repair effectiveness result。

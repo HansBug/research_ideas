@@ -15,7 +15,7 @@
 
 当前已经完成到 **修正前准备度审计**：一手种子登记、四例静态样例、格式转换、`.fcstm` 表示桥、评价门草案和 R5 全量摸排均已就位；尚未执行真实修正循环、尚未生成 `STM_k`，也尚未形成 Better STM 主实验结果。
 
-R5.7.1 已进一步冻结 **评价逻辑链与主张边界**：claim 类型、分母纪律、A 层准入、归因边界、客观指标位置、失败报告纪律和后续 R5.7.2--R5.7.5 接口见 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)。这仍属于修正实验前协议冻结，不代表真实 repair loop 已运行。
+R5.7.1--R5.7.3 已进一步冻结 **评价逻辑链、Better STM / repair target 合同和客观代理指标框架**：claim 类型、分母纪律、A 层准入、归因边界、Better gate、repair target taxonomy、指标权限、G0--G6 gate matrix、anti-gaming 和 baseline 迁移边界分别见 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/quality_model/repair_target_taxonomy.md](./experiment_design/quality_model/repair_target_taxonomy.md) 与 [experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)。这仍属于修正实验前协议冻结，不代表真实 repair loop 已运行。
 
 顶层轻量总账见 [SUMMARY.md](./SUMMARY.md)，核心数字见 [STATUS.md](./STATUS.md)。当前最重要的机器事实源是：
 
@@ -28,6 +28,8 @@ R5.7.1 已进一步冻结 **评价逻辑链与主张边界**：claim 类型、�
 - R5.5 `llms-emp` 主 seed 池深度画像：[reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)，其中 §1.1 是 10 个唯一 NL cluster 的完整结论表，§1.2 是 10 NL × 6 LLM 输出状态矩阵，§1.3 是行为特征矩阵。
 - R5.5 向 R5.6 的边界交接：[reports/2026-06-28-22-54-39-model-scope-handoff.md](./reports/2026-06-28-22-54-39-model-scope-handoff.md)
 - R5.7.1 评价逻辑链：[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)；人类 handoff：[reports/2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./reports/2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)
+- R5.7.2 Better STM / repair target 合同：[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/quality_model/repair_target_taxonomy.md](./experiment_design/quality_model/repair_target_taxonomy.md)；人类 handoff：[reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./reports/2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md)
+- R5.7.3 客观代理指标框架：[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)；人类 handoff：[reports/2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./reports/2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md)
 - R5 交接：[pipeline/readiness_audit/handoff/](./pipeline/readiness_audit/handoff/)
 
 ## 3. 数据流
@@ -56,7 +58,7 @@ flowchart TD
 | [pipeline/](./pipeline/) | R3–R5 真实阶段链路：conversion / evaluation / representation / readiness_audit | [pipeline/README.md](./pipeline/README.md) | 不执行真实 repair loop，不产生 `STM_k` |
 | [reports/](./reports/) | R5/R5.5 human-facing report 文库 | [reports/README.md](./reports/README.md)、[reports/SUMMARY.md](./reports/SUMMARY.md)、[reports/GUIDE.md](./reports/GUIDE.md) | 不替代 pipeline JSON/JSONL/ZIP 机器事实源 |
 | [story/](./story/) | 论文定位、任务边界、模型范围、术语和主张门 | [story/README.md](./story/README.md)、[story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) | 不写成最终正文，不替代 R7 eligibility |
-| [experiment_design/](./experiment_design/) | 评价逻辑链、研究问题、评价顺序、Better STM 定义 | [experiment_design/README.md](./experiment_design/README.md)、[experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/GUIDE.md](./experiment_design/GUIDE.md)、[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md) | 不替代正式主实验协议，不报告真实 repair 效果 |
+| [experiment_design/](./experiment_design/) | 评价逻辑链、研究问题、评价顺序、Better STM 定义、repair target taxonomy、客观代理指标框架 | [experiment_design/README.md](./experiment_design/README.md)、[experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/GUIDE.md](./experiment_design/GUIDE.md)、[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md) | 不替代正式主实验协议，不报告真实 repair 效果 |
 | [corpora/](./corpora/) | 种子、修正近邻、纯 NL 数据源 | [corpora/README.md](./corpora/README.md) | 三类资产不能混表 |
 | [selected_seed_examples/](./selected_seed_examples/) | 四个冒烟用静态 `<NL, STM_0>` 样例 | [selected_seed_examples/README.md](./selected_seed_examples/README.md) | 不是最终实验集合 |
 | [evidence/](./evidence/) | R0/R1 历史审计材料 | [evidence/README.md](./evidence/README.md)、[evidence/SUMMARY.md](./evidence/SUMMARY.md)、[evidence/GUIDE.md](./evidence/GUIDE.md)；子入口：[ledgers](./evidence/ledgers/README.md)、[audits](./evidence/audits/README.md)、[matrices](./evidence/matrices/README.md)、[traces](./evidence/traces/README.md) | 不是当前横向事实源 |
@@ -72,12 +74,13 @@ flowchart TD
 4. 想看一手种子：读 [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md)。
 5. 想看转换和表示链路：读 [pipeline/conversion/README.md](./pipeline/conversion/README.md) 与 [pipeline/representation/README.md](./pipeline/representation/README.md)。
 6. 想看全量摸排与 R5.5 画像：读 [reports/README.md](./reports/README.md)；readiness 入口是 [reports/2026-06-28-04-03-18-seed-readiness-report.md](./reports/2026-06-28-04-03-18-seed-readiness-report.md)，主 seed profile 入口是 [reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。
-7. 想理解 R5.7.1 评价逻辑链、claim boundary、分母纪律和失败报告：读 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)。
+7. 想理解 R5.7.1--R5.7.3 的评价逻辑、Better STM / repair target 合同和客观代理指标框架：依次读 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/quality_model/repair_target_taxonomy.md](./experiment_design/quality_model/repair_target_taxonomy.md)、[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)。
 
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-03 21:18:25 | R5.7.3 新增 [experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md) 与 [reports/2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./reports/2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md)，冻结客观代理指标框架 v0；不代表真实 repair loop 已运行。 |
 | 2026-07-02 17:02:42 | R5.7.1 新增 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md) 与 [reports/2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./reports/2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)，冻结评价逻辑链与 claim boundary；不代表真实 repair loop 已运行。 |
 | 2026-06-30 14:46:44 | R5.6 新增并补强 [story/model_scope.md](./story/model_scope.md) 与 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)，冻结 paper story 的模型范围、claim boundary、状态机抽象定义和 R5.7 交接约束；不代表真实 repair loop 已运行。 |
 | 2026-06-29 15:43:00 | 新增 [SUMMARY.md](./SUMMARY.md) 作为顶层轻量总账入口，明确 [STATUS.md](./STATUS.md) 仍是当前状态与关键数字事实源。 |
