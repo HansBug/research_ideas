@@ -14,6 +14,7 @@
 | [eligibility/](./eligibility/) | run / sample / conversion / provider failure 纳入排除草案。 | 未验证就宣称 eligibility 已冻结。 |
 | [protocols/](./protocols/) | 修正循环、对照、人工裁决、回滚和审计协议草案。 | 真实运行流水账或结果统计。 |
 | [metrics/](./metrics/) | 指标字段、统计表骨架、报告口径草案。 | 看结果后倒推阈值或删改不利指标。 |
+| [repair_target_adjudication/](./repair_target_adjudication/) | R5.7.4 静态裁决 dry-run、真实样例 finding、metric permission 可执行性检查、R6/R7 handoff。 | 写成真实 repair run、`STM_k` 结果、Better STM 成功率或最终实验集合。 |
 
 ## 3. story vs scope 分工
 
@@ -58,3 +59,13 @@
 2. 协议从草案升级为冻结前，应补可复验字段、输入输出、failure handling、run record 要求和验收命令。
 3. 每次移动或新增文件后同步更新 [README.md](./README.md) 与 [SUMMARY.md](./SUMMARY.md)。
 4. 不在本目录记录动态 PR 进度；PR comment 中的长期结论应抽象为稳定规则后再落盘。
+
+## 7. dry-run findings 驱动修订纪律
+
+R5.7.4 之后，任何修改 Better STM gate、repair target taxonomy、metric permission、target closure 或 scope routing 的提议，都必须至少满足以下条件之一：
+
+1. 来自 [repair_target_adjudication/](./repair_target_adjudication/) 的静态 dry-run finding；
+2. 来自 R7/R8 正式 run 的 run record / target-instance ledger / semantic adjudication 证据；
+3. 来自用户明确决策，并在 PR comment 或 report 中记录问题、选项、决策和适用边界。
+
+没有上述证据的修改只能标为 `provisional`，不得静默覆盖 R5.7.1--R5.7.3 已冻结合同。静态 dry-run finding 也不得被写成 repair effectiveness；它只说明规则是否可执行、是否需要 handoff 或是否存在证据缺口。
