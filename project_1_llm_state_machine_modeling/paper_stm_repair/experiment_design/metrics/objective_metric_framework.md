@@ -56,7 +56,7 @@ R5.7.3 将客观指标定义为 **Better STM 判定链中的可审计证据层**
 | `fallback_when_no_reference` | 是 | 无合法 reference set 时如何降级。 |
 | `ordering_relation` | 是 | 机器可读偏序，见 §7。 |
 | `scope_applicability` | 是 | `T0_main / T0_5_caveat / T1_stress_or_excluded / cross_scope_report_only`。 |
-| `headline_inclusion` | 是 | `yes_if_eligible / no_caveat_only / no_stress_or_excluded / report_only`。 |
+| `headline_inclusion` | 是 | `yes_if_eligible / no_caveat_only / no_stress_or_excluded / report_only`，或按 `scope_applicability` 分 scope 的对象；若 `scope_applicability` 同时覆盖多个 scope，默认必须使用 scope-keyed map。 |
 | `evidence_source` | 是 | 指向文件、ledger、run record、PR 决策或 baseline paper。 |
 | `evidence_confidence` | 是 | `verified_source / needs_recheck / not_ingested / derived_from_decision / future_run_required`。 |
 | `gaming_risk_tag` | 是 | 见 §8 的 risk tag；可多值。 |
@@ -67,6 +67,8 @@ R5.7.3 将客观指标定义为 **Better STM 判定链中的可审计证据层**
 | `forbidden_extrapolation` | 是 | 不能由该指标推出的主张。 |
 | `freeze_status` | 是 | `frozen_v0 / provisional_dry_run_to_validate / r7_to_freeze / future_optional / forbidden_in_r573`。 |
 | `downstream_owner` | 是 | R5.7.4 / R5.7.5 / R7 / R8 / report-only。 |
+
+`headline_inclusion` 的一致性规则是 schema 的一部分：`T0_5_caveat` 的值不得为 `yes_if_eligible`，`T1_stress_or_excluded` 的值不得为 `yes_if_eligible` 或 `no_caveat_only`；否则后续机器消费时可能污染 T0 headline [dec-q10][clm-r573-scope-agg]。
 
 ## 4. v0 指标族
 
@@ -344,7 +346,11 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_5_caveat",
       "T1_stress_or_excluded"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only",
+      "T1_stress_or_excluded": "no_stress_or_excluded"
+    },
     "evidence_source": [
       "schema/parse facade",
       "run_record",
@@ -362,7 +368,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G6 reporting"
     ],
     "semantic_adjudication_required": "no_but_report",
-    "forbidden_extrapolation": "不得由 schema valid 推出 Better STM、语义正确、repair success 或方法有效。",
+    "forbidden_extrapolation": "不得由 schema valid 推出 Better STM、语义正确、repair success 或方法有效。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "frozen_v0",
     "downstream_owner": [
       "R7",
@@ -391,7 +397,11 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_5_caveat",
       "T1_stress_or_excluded"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only",
+      "T1_stress_or_excluded": "no_stress_or_excluded"
+    },
     "evidence_source": [
       "parse facade diagnostics",
       "run_record",
@@ -411,7 +421,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G5 semantic"
     ],
     "semantic_adjudication_required": "no_but_report",
-    "forbidden_extrapolation": "不得由 parse ok 推出 Better STM 或行为正确。",
+    "forbidden_extrapolation": "不得由 parse ok 推出 Better STM 或行为正确。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "frozen_v0",
     "downstream_owner": [
       "R7",
@@ -527,7 +537,10 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_main",
       "T0_5_caveat"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only"
+    },
     "evidence_source": [
       "target_instance_ledger",
       "trace map",
@@ -546,7 +559,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G5 semantic"
     ],
     "semantic_adjudication_required": "when_triggered",
-    "forbidden_extrapolation": "不得用 event present 或 overall F1 掩盖 guard 未结构化。",
+    "forbidden_extrapolation": "不得用 event present 或 overall F1 掩盖 guard 未结构化。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "provisional_dry_run_to_validate",
     "downstream_owner": [
       "R5.7.4",
@@ -577,7 +590,10 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_main",
       "T0_5_caveat"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only"
+    },
     "evidence_source": [
       "target_instance_ledger",
       "trace map",
@@ -598,7 +614,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G5 semantic"
     ],
     "semantic_adjudication_required": "when_triggered",
-    "forbidden_extrapolation": "不得由 action 数下降或文本标签相似推出行为改善。",
+    "forbidden_extrapolation": "不得由 action 数下降或文本标签相似推出行为改善。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "provisional_dry_run_to_validate",
     "downstream_owner": [
       "R5.7.4",
@@ -766,7 +782,10 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_main",
       "T0_5_caveat"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only"
+    },
     "evidence_source": [
       "scenario ledger",
       "expected trace/oracle",
@@ -784,7 +803,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G5 semantic"
     ],
     "semantic_adjudication_required": "always",
-    "forbidden_extrapolation": "不得由部分 scenario pass 推出完整语义正确；无 oracle 不得计算 pass rate。",
+    "forbidden_extrapolation": "不得由部分 scenario pass 推出完整语义正确；无 oracle 不得计算 pass rate。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "frozen_v0",
     "downstream_owner": [
       "R7",
@@ -857,7 +876,10 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "T0_main",
       "T0_5_caveat"
     ],
-    "headline_inclusion": "yes_if_eligible",
+    "headline_inclusion": {
+      "T0_main": "yes_if_eligible",
+      "T0_5_caveat": "no_caveat_only"
+    },
     "evidence_source": [
       "target_instance_ledger",
       "change ledger",
@@ -875,7 +897,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
       "G5 semantic"
     ],
     "semantic_adjudication_required": "when_triggered",
-    "forbidden_extrapolation": "不得把 should_fix improvement 当成 must_fix closure，也不得把 T0.5 caveat 写入 T0 headline。",
+    "forbidden_extrapolation": "不得把 should_fix improvement 当成 must_fix closure，也不得把 T0.5 caveat 写入 T0 headline。 其中 T0.5/T1 只能按 scope-specific headline map 进入 caveat/stress/report，不得进入 T0 headline。",
     "freeze_status": "frozen_v0",
     "downstream_owner": [
       "R7",
@@ -1040,7 +1062,7 @@ R5.7.3 使用奥卡姆剃刀：如无必要，不增指标实体；只保留迁�
 | [clm-r573-gate-matrix] | `R573-C5` | 指标必须落到 G0--G6 gate × metric matrix，不另起评分系统。 | contract | [dec-q13]；本文件 §5。 | [cmd-r573-required-terms] | high | 单项 override 不能超过 family 权限上限。 |
 | [clm-r573-no-gold] | `R573-C6` | 本任务不设统一 gold STM；P/R/F1 只在有明确 reference set 时使用。 | decision | [dec-q4]；本文件 §7。 | 人工复验 | high | canonical `STM_0` 是 no-regression reference，不是统一 gold。 |
 | [clm-r573-risk] | `R573-C7` | anti-gaming 风险至少覆盖 semantic deletion、folding、over/under repair、trace loss、conversion laundering、hierarchy loss、scenario overfitting。 | protocol | [dec-q8]；本文件 §8。 | [cmd-r573-required-terms] | high | 风险 flag 需 evidence bundle 才能 confirmed。 |
-| [clm-r573-scope-agg] | `R573-C8` | 每个统计必须声明 `scope_applicability`、`headline_inclusion`、`aggregation_level × denominator_layer`。 | protocol | [dec-q9][dec-q10]；本文件 §9。 | [cmd-r573-counts] | high | T0 scope 上限不是 success denominator。 |
+| [clm-r573-scope-agg] | `R573-C8` | 每个统计必须声明 `scope_applicability`、`headline_inclusion`、`aggregation_level × denominator_layer`，且 JSON registry 必须机器级阻止 T0.5/T1 混入 T0 headline。 | protocol | [dec-q9][dec-q10]；本文件 §9 与 §11.2。 | [cmd-r573-entry-schema] + [cmd-r573-counts] | high | T0 scope 上限不是 success denominator。 |
 | [clm-r573-closure] | `R573-C9` | target closure 禁止单一总 rate，必须按实例级 `repair_action_allowed` 分层。 | protocol | [dec-q11][src-taxonomy]；本文件 §9.3。 | [cmd-r573-required-terms] | high | 当前没有真实 target closure 结果。 |
 | [clm-r573-baseline] | `R573-C10` | baseline migration 采用三类 role；core metric source 只保留 `llms_emp` 与 Structure/Event。 | decision | [dec-q5][dec-q6]；本文件 §10。 | [cmd-r573-required-terms] | medium | Structure/Event 与其他条目在 R7 前仍需原文复核；`llms_emp` 数值只作 related work。 |
 
@@ -1097,14 +1119,46 @@ required = [
     'risk_gate_impact', 'semantic_adjudication_required', 'forbidden_extrapolation',
     'freeze_status', 'downstream_owner',
 ]
+allowed_headline = {'yes_if_eligible', 'no_caveat_only', 'no_stress_or_excluded', 'report_only'}
 missing = {
     entry.get('metric_id', f'index:{idx}'): [field for field in required if field not in entry]
     for idx, entry in enumerate(entries)
 }
 missing = {k: v for k, v in missing.items() if v}
+headline_errors = {}
+for idx, entry in enumerate(entries):
+    mid = entry.get('metric_id', f'index:{idx}')
+    scopes = entry.get('scope_applicability', [])
+    if isinstance(scopes, str):
+        scopes = [scopes]
+    headline = entry.get('headline_inclusion')
+    errors = []
+    if isinstance(headline, dict):
+        missing_scope = [s for s in scopes if s not in headline]
+        if missing_scope:
+            errors.append(f'missing headline scope keys: {missing_scope}')
+        bad_values = {k: v for k, v in headline.items() if v not in allowed_headline}
+        if bad_values:
+            errors.append(f'invalid headline values: {bad_values}')
+        if headline.get('T0_5_caveat') == 'yes_if_eligible':
+            errors.append('T0_5_caveat cannot be yes_if_eligible')
+        if headline.get('T1_stress_or_excluded') in {'yes_if_eligible', 'no_caveat_only'}:
+            errors.append('T1_stress_or_excluded cannot enter headline/caveat headline')
+    else:
+        if headline not in allowed_headline:
+            errors.append(f'invalid headline value: {headline}')
+        if 'T0_5_caveat' in scopes and headline == 'yes_if_eligible':
+            errors.append('scalar yes_if_eligible cannot cover T0_5_caveat; use scope-keyed headline map')
+        if 'T1_stress_or_excluded' in scopes and headline in {'yes_if_eligible', 'no_caveat_only'}:
+            errors.append('scalar headline value would let T1 enter headline/caveat headline; use no_stress/report or scope map')
+        if len(scopes) > 1 and headline in {'yes_if_eligible', 'no_caveat_only', 'no_stress_or_excluded'}:
+            errors.append('multi-scope non-report entry should use scope-keyed headline map')
+    if errors:
+        headline_errors[mid] = errors
 print('entry_count', len(entries))
 print('missing', missing)
-raise SystemExit(1 if missing else 0)
+print('headline_errors', headline_errors)
+raise SystemExit(1 if missing or headline_errors else 0)
 PY
 ```
 

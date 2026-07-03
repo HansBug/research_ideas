@@ -132,12 +132,12 @@ R5.7.5 需要把 R5.7.1 / R5.7.2 / R5.7.3 与 R5.7.4 findings 合成 R6/R7 hando
 | [clm-r573-scope] | `R573-RPT-C1` | R5.7.3 的对象是 objective metric framework v0，不是 repair loop 或实验结果。 | scope | [src-framework] §1--§2；[src-eval-logic] §9；[src-better] §13。 | [cmd-r573-doc-links] | high | 只支持协议 / evaluation claim。 |
 | [clm-r573-no-effect] | `R573-RPT-C2` | R5.7.3 不运行 LLM、不生成 `STM_k`、不报告 Better STM 成功率或 repair effectiveness。 | prohibition | [src-framework] §2.2；[src-eval-logic] §1/§9。 | [cmd-r573-required-terms] | high | R7/R8 才能报告效果。 |
 | [clm-r573-permission] | `R573-RPT-C3` | 五级 `metric_permission` 限定指标权限，指标不能单独产生 Better verdict。 | contract | [src-framework] §2.1；PR #141 Q1 comment。 | [cmd-r573-required-terms] | high | critical regression 可作 hard negative trigger，但不是 Better positive verdict。 |
-| [clm-r573-schema] | `R573-RPT-C4` | metric entry schema v0 必须包含分母、偏序、scope、风险、语义裁决、冻结状态等审计字段。 | contract | [src-framework] §3；PR #141 Q12 comment。 | [cmd-r573-required-terms] | high | R7 可扩展，不可删除最低审计字段。 |
+| [clm-r573-schema] | `R573-RPT-C4` | metric entry schema v0 必须包含分母、偏序、scope、风险、语义裁决、冻结状态等审计字段，并以机器检查阻止 T0.5/T1 混入 T0 headline。 | contract | [src-framework] §3 与 §11.2；PR #141 Q12 comment；PR #141 focused re-review。 | [cmd-r573-entry-schema] | high | R7 可扩展，不可删除最低审计字段。 |
 | [clm-r573-families] | `R573-RPT-C5` | v0 指标族覆盖 readiness、provenance、diagnostics、structural、traceability、scenario、target closure、cost、baseline/textual background。 | contract | [src-framework] §4；PR #141 Q2/Q13 comments。 | [cmd-r573-required-terms] | high | textual similarity / conversion success 是降级项。 |
 | [clm-r573-gate-matrix] | `R573-RPT-C6` | 指标必须落到 G0--G6 gate matrix，不另起 overall score。 | contract | [src-framework] §5；[src-better] §3/§9。 | [cmd-r573-required-terms] | high | 单项 override 不能突破 family 权限。 |
 | [clm-r573-no-gold] | `R573-RPT-C7` | 本任务无统一 gold STM；P/R/F1 只在明确 reference set 下使用。 | decision | [src-framework] §7；PR #141 Q4 comment。 | 人工复验 | high | canonical `STM_0` 不是“越像越好”的 gold。 |
 | [clm-r573-risk] | `R573-RPT-C8` | anti-gaming 风险模型必须显式覆盖删除语义、语义折叠、过修 / 欠修、trace loss、conversion laundering 等。 | protocol | [src-framework] §8；PR #141 Q8 comment。 | [cmd-r573-required-terms] | high | risk flag 需 evidence bundle 才能 confirmed。 |
-| [clm-r573-scope-agg] | `R573-RPT-C9` | 统计必须声明 scope、headline 权限、pair / cluster / LLM-family 聚合层和 denominator。 | protocol | [src-framework] §9；[src-case]、[src-cluster]。 | [cmd-r573-counts] | high | T0 scope 上限不是 success denominator。 |
+| [clm-r573-scope-agg] | `R573-RPT-C9` | 统计必须声明 scope、headline 权限、pair / cluster / LLM-family 聚合层和 denominator，且 registry 必须机器级阻止 T0.5/T1 混入 T0 headline。 | protocol | [src-framework] §9 与 §11.2；[src-case]、[src-cluster]。 | [cmd-r573-entry-schema] + [cmd-r573-counts] | high | T0 scope 上限不是 success denominator。 |
 | [clm-r573-closure] | `R573-RPT-C10` | target closure 必须按 target-instance 与 `repair_action_allowed` 分层，不得单一总分。 | protocol | [src-framework] §9.3；[src-taxonomy]。 | [cmd-r573-required-terms] | high | 当前没有真实 closure 结果。 |
 | [clm-r573-baseline] | `R573-RPT-C11` | baseline migration 只把 `llms_emp` 和 Structure/Event 作为核心指标思想来源，其余降级为支持性说明或背景。 | decision | [src-framework] §10；[src-llms-emp-paper]；[src-structure-event]。 | [cmd-r573-required-terms] | medium | R7 前仍需对 Structure/Event 与部分 baseline 原文复核；不迁移 baseline 数值。 |
 
@@ -174,6 +174,67 @@ print('parse_status', collections.Counter(r['parse_status'] for r in case))
 print('inspect_status', collections.Counter(r['inspect_status'] for r in case))
 print('pair_time', collections.Counter(r['time_level'] for r in case))
 print('cluster_time', collections.Counter(r['time_level'] for r in clusters))
+PY
+```
+
+```bash
+# [cmd-r573-entry-schema]
+python - <<'PY'
+from pathlib import Path
+import json
+p = Path('project_1_llm_state_machine_modeling/paper_stm_repair/experiment_design/metrics/objective_metric_framework.md')
+text = p.read_text()
+section = text.split('### 11.2 完整 JSON registry', 1)[1].split('## 12.', 1)[0]
+block = section.split('```json', 1)[1].split('```', 1)[0].strip()
+entries = json.loads(block)
+required = [
+    'metric_id', 'metric_family', 'metric_definition', 'metric_permission', 'gate_position',
+    'denominator_layer', 'aggregation_level', 'reference_type', 'fallback_when_no_reference',
+    'ordering_relation', 'scope_applicability', 'headline_inclusion', 'evidence_source',
+    'evidence_confidence', 'gaming_risk_tag', 'risk_trigger_condition', 'risk_required_evidence',
+    'risk_gate_impact', 'semantic_adjudication_required', 'forbidden_extrapolation',
+    'freeze_status', 'downstream_owner',
+]
+allowed_headline = {'yes_if_eligible', 'no_caveat_only', 'no_stress_or_excluded', 'report_only'}
+missing = {
+    entry.get('metric_id', f'index:{idx}'): [field for field in required if field not in entry]
+    for idx, entry in enumerate(entries)
+}
+missing = {k: v for k, v in missing.items() if v}
+headline_errors = {}
+for idx, entry in enumerate(entries):
+    mid = entry.get('metric_id', f'index:{idx}')
+    scopes = entry.get('scope_applicability', [])
+    if isinstance(scopes, str):
+        scopes = [scopes]
+    headline = entry.get('headline_inclusion')
+    errors = []
+    if isinstance(headline, dict):
+        missing_scope = [s for s in scopes if s not in headline]
+        if missing_scope:
+            errors.append(f'missing headline scope keys: {missing_scope}')
+        bad_values = {k: v for k, v in headline.items() if v not in allowed_headline}
+        if bad_values:
+            errors.append(f'invalid headline values: {bad_values}')
+        if headline.get('T0_5_caveat') == 'yes_if_eligible':
+            errors.append('T0_5_caveat cannot be yes_if_eligible')
+        if headline.get('T1_stress_or_excluded') in {'yes_if_eligible', 'no_caveat_only'}:
+            errors.append('T1_stress_or_excluded cannot enter headline/caveat headline')
+    else:
+        if headline not in allowed_headline:
+            errors.append(f'invalid headline value: {headline}')
+        if 'T0_5_caveat' in scopes and headline == 'yes_if_eligible':
+            errors.append('scalar yes_if_eligible cannot cover T0_5_caveat; use scope-keyed headline map')
+        if 'T1_stress_or_excluded' in scopes and headline in {'yes_if_eligible', 'no_caveat_only'}:
+            errors.append('scalar headline value would let T1 enter headline/caveat headline; use no_stress/report or scope map')
+        if len(scopes) > 1 and headline in {'yes_if_eligible', 'no_caveat_only', 'no_stress_or_excluded'}:
+            errors.append('multi-scope non-report entry should use scope-keyed headline map')
+    if errors:
+        headline_errors[mid] = errors
+print('entry_count', len(entries))
+print('missing', missing)
+print('headline_errors', headline_errors)
+raise SystemExit(1 if missing or headline_errors else 0)
 PY
 ```
 
