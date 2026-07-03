@@ -322,3 +322,52 @@ def test_committed_selected_seed_examples_include_synced_fcstm_snapshots():
         from paper_stm_repair_representation.lowering import inspect_fcstm
 
         assert inspect_fcstm(selected_fcstm.read_text(encoding="utf-8"), selected_fcstm)["parse_status"] == "ok"
+
+
+def test_r574_adjudication_baseline_bundle_index_symlinks_are_complete():
+    index_path = REPORTS / "r5_7_4_adjudication_baseline_bundles/bundle_index.json"
+    index = load_json(index_path)
+    assert index["schema_version"] == "r5_7_4.adjudication_baseline_bundle_index.v0"
+    assert index["summary"] == {
+        "logical_bundle_count": 4,
+        "r4_5_reused_selected_smoke_bundles": 2,
+        "r5_7_4_materialized_adjudication_bundles": 2,
+        "selected_smoke_examples": 2,
+        "seed_sweep_hash_matches_authoritative": 2,
+        "seed_sweep_hash_differs_from_authoritative": 2,
+    }
+    by_pair = {item["pair_id"]: item for item in index["items"]}
+    assert set(by_pair) == {
+        "llms_emp_stm_results_0000",
+        "llms_emp_stm_results_0001",
+        "llms_emp_stm_results_0018",
+        "llms_emp_stm_results_0045",
+    }
+    expected_sources = {
+        "llms_emp_stm_results_0000": ("R4.5", "llms-emp-gpt4o-hldcs", True),
+        "llms_emp_stm_results_0001": ("R5.7.4", "llms-emp-gpt4o-hstbs", False),
+        "llms_emp_stm_results_0018": ("R5.7.4", "llms-emp-gpt4-digital-camera", False),
+        "llms_emp_stm_results_0045": ("R4.5", "llms-emp-deepseek-microwave", True),
+    }
+    for pair_id, (stage, slug, selected) in expected_sources.items():
+        item = by_pair[pair_id]
+        assert item["source_stage"] == stage
+        assert item["bundle_slug"] == slug
+        assert item["selected_smoke_example"] is selected
+        assert item["repair_contribution_allowed"] is False
+        assert item["parse_status"] == "ok"
+        assert item["inspect_status"] == "ok"
+        logical = REPO / item["logical_symlink_path"]
+        authoritative = REPO / item["authoritative_bundle_path"]
+        fcstm = REPO / item["authoritative_fcstm_path"]
+        assert logical.is_symlink(), pair_id
+        assert logical.resolve() == authoritative.resolve(), pair_id
+        assert fcstm.is_file(), pair_id
+        assert item["authoritative_fcstm_sha256"] == sha256(fcstm)
+        assert (REPO / item["name_mapping_path"]).is_file()
+        assert (REPO / item["lowering_inventory_path"]).is_file()
+        assert (REPO / item["parse_inspect_report_path"]).is_file()
+    assert by_pair["llms_emp_stm_results_0001"]["seed_sweep_hash_matches_authoritative"] is True
+    assert by_pair["llms_emp_stm_results_0018"]["seed_sweep_hash_matches_authoritative"] is True
+    assert by_pair["llms_emp_stm_results_0000"]["seed_sweep_hash_matches_authoritative"] is False
+    assert by_pair["llms_emp_stm_results_0045"]["seed_sweep_hash_matches_authoritative"] is False

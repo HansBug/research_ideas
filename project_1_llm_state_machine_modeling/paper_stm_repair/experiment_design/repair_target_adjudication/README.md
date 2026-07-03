@@ -12,7 +12,8 @@
    - [../quality_model/repair_target_taxonomy.md](../quality_model/repair_target_taxonomy.md)：R5.7.2 repair target taxonomy、五级 `repair_action_allowed`。
    - [../metrics/objective_metric_framework.md](../metrics/objective_metric_framework.md)：R5.7.3 五级 `metric_permission` 与指标证据层。
 2. 再读本 README，理解四个 dry-run 样例分别覆盖什么。
-3. 最后进入单个样例文件；若需要 paper-facing 汇总，读 [../../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)。
+3. 若需要统一定位 4 个 baseline `.fcstm` bundle，读 [../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) 与 [bundle_index.json](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json)。
+4. 最后进入单个样例文件；若需要 paper-facing 汇总，读 [../../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)。
 
 ## 2. 四个样例
 
@@ -48,12 +49,13 @@
 | record archive | [../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | 复核 record 级 hash、canonical / parse / inspect、loss reason codes。 |
 | selected smoke `.fcstm` | [../../selected_seed_examples/](../../selected_seed_examples/) | 0000 / 0045 的 standalone snapshot；这两个 selected hash 与 seed-sweep hash 属于不同转换运行，应保留为 audit trail。 |
 | R5.7.4 adjudication `.fcstm` bundle | [../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json](../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json) | 0001 / 0018 的 standalone baseline bundle；`.fcstm_sha256` 与 seed-sweep hash 一致，parse / inspect 均 ok。 |
+| R5.7.4 四例 baseline 逻辑入口 | [../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) / [bundle_index.json](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) | 用相对 symlink 把 `0000 / 0001 / 0018 / 0045` 四个 baseline bundle 收拢到同一入口；不移动权威产物，用于 R5.7.5 声明 authoritative baseline hash。 |
 
 ## 5. R6 / R7 handoff 纪律
 
 1. R6 若消费这些样例，必须先物化 canonical baseline 与 candidate `STM_k` 的可追溯 evidence bundle。
 2. R7 若把某个 dry-run target 写入正式指标，必须有 target-instance ledger、change ledger、scenario / trace / semantic gate 证据。
 3. 0001 / 0018 原先只有 seed-sweep hash 与 parse / inspect status；R5.7.4 已在 [../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/](../../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/) 物化 standalone baseline evidence bundle。后续不得再把它们写成缺 standalone `.fcstm`。
-4. 0000 / 0045 已有 selected smoke standalone `.fcstm`；其 selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失，但 R5.7.5/R6/R7 必须明确 authoritative baseline hash，并把 seed-sweep hash 保留为 audit trail。
+4. 0000 / 0045 已有 selected smoke standalone `.fcstm`；其 selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失，但 R5.7.5/R6/R7 必须明确 authoritative baseline hash，并把 seed-sweep hash 保留为 audit trail。四例统一读取入口是 [../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md)，其中 `bundle_index.json` 是 R5.7.5 handoff 的 baseline hash 总账。
 5. 后续 R5.7.5 应基于 `NL + STM_0` 人工/确定性构造候选 `STM_k`，做 Better adjudication dry-run，验证 gate 是否能按预期输出 `better / not_better / unknown / out_of_scope`；本目录只提供静态 finding 和 baseline bundle。
 6. 后续修改 taxonomy 或指标框架时，必须引用本目录、R5.7.5 constructed-`STM_k` dry-run 或正式 R7 run 的真实 finding；不得空口改规则。

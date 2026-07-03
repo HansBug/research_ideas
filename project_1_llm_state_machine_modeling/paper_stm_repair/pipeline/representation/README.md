@@ -31,11 +31,17 @@ representation/
 │   ├── fcstm_export_report.json
 │   ├── fcstm_export_loss_ledger.jsonl
 │   ├── lowering_inventory.json
-│   └── fcstm_exports/<example_id>/
-│       ├── model.fcstm
-│       ├── name_mapping.json
-│       ├── lowering_inventory.json
-│       └── parse_inspect_report.json
+│   ├── fcstm_exports/<example_id>/
+│   │   ├── model.fcstm
+│   │   ├── name_mapping.json
+│   │   ├── lowering_inventory.json
+│   │   └── parse_inspect_report.json
+│   ├── r5_7_4_adjudication_fcstm_exports/<example_id>/
+│   │   └── ...
+│   └── r5_7_4_adjudication_baseline_bundles/
+│       ├── README.md
+│       ├── bundle_index.json
+│       └── bundles/<pair_id>__<slug> -> ../../阶段权威 bundle
 └── tests/
     ├── test_r45_export_contract.py
     ├── test_r45_name_mapping.py
@@ -78,7 +84,9 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/represe
 
 ## 4. R5.7.4 裁决样例补充 baseline bundle
 
-R5.7.4 为静态裁决样例 `llms_emp_stm_results_0001` 和 `llms_emp_stm_results_0018` 额外物化了 standalone baseline `.fcstm` bundle，入口为 [reports/r5_7_4_adjudication_fcstm_exports/README.md](./reports/r5_7_4_adjudication_fcstm_exports/README.md)。这两个 bundle 只用于 R5.7.4 / R5.7.5 的 adjudication evidence，不改变 R4.5 selected smoke 四例，不进入 [../../selected_seed_examples/](../../selected_seed_examples/) 的固定四例集合，也不计 repair gain。
+R5.7.4 为静态裁决样例 `llms_emp_stm_results_0001` 和 `llms_emp_stm_results_0018` 额外物化了 standalone baseline `.fcstm` bundle，阶段权威入口为 [reports/r5_7_4_adjudication_fcstm_exports/README.md](./reports/r5_7_4_adjudication_fcstm_exports/README.md)。这两个 bundle 只用于 R5.7.4 / R5.7.5 的 adjudication evidence，不改变 R4.5 selected smoke 四例，不进入 [../../selected_seed_examples/](../../selected_seed_examples/) 的固定四例集合，也不计 repair gain。
+
+为避免 R5.7.5 消费四个裁决 baseline 时在 R4.5 与 R5.7.4 两个阶段目录之间来回查找，本分支新增逻辑入口 [reports/r5_7_4_adjudication_baseline_bundles/README.md](./reports/r5_7_4_adjudication_baseline_bundles/README.md)。该目录只用相对 symlink 收拢 `0000 / 0001 / 0018 / 0045` 四个 baseline bundle，并由 [bundle_index.json](./reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) 记录权威路径、hash、parse / inspect 状态、selected smoke 身份和 seed-sweep hash 关系；它不移动、不复制、不重写权威产物。
 
 ## 5. 当前四例输出
 

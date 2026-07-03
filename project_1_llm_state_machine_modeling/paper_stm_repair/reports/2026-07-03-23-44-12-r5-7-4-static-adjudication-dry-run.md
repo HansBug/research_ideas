@@ -20,6 +20,7 @@ R5.7.4 的任务是把 R5.7.1 评价逻辑链、R5.7.2 Better STM / repair targe
 | 指标权限 | parse / inspect / evidence bundle 是 hard gate；loss code、conversion status、selected `.fcstm` hash 只能 report / trigger；guard/action fidelity、target closure 等必须等 R6/R7 有 `STM_k` 与 target-instance ledger 后才可作 supporting evidence。 | [clm-r574-metric] |
 | `.fcstm` baseline bundle | 0001 / 0018 原先只有 seed-sweep hash 与 parse / inspect status；本 PR 已补齐 standalone baseline evidence bundle，且 bundle `.fcstm_sha256` 与 seed-sweep hash 完全一致，parse / inspect 均 ok。 | [clm-r574-fcstm-materialized] |
 | `.fcstm` hash 权威源 | 0000 / 0045 仍使用 selected smoke standalone `.fcstm`；selected hash 与 seed-sweep hash 不同属于不同转换运行的预期差异，不是缺失。R5.7.5/R6/R7 需要按样例声明 authoritative baseline hash，并把 seed-sweep hash 作为 audit trail。 | [clm-r574-fcstm-authority] |
+| baseline 统一入口 | 四个裁决 baseline 已通过 [../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) 的相对 symlink fan-in 与 [bundle_index.json](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) 收拢；该目录只提供逻辑入口，不移动或复制权威产物。 | [src-r574-baseline-index][clm-r574-baseline-index] |
 
 ## 3. 四例总表
 
@@ -122,7 +123,7 @@ choice2 --> Join1 when : sunny=true
 2. `T0=48 pairs` 仍只是 scope / pre-eligibility 上限，不是 success denominator。
 3. target closure 必须按 `must_fix / should_fix / monitor / not_repair_target / out_of_scope` 分层，不允许单一总闭合率。
 4. 正式 Better outcome 只能在 `STM_k`、change ledger、no-regression、semantic gate 和 reporting gate 全部闭合后产生。
-5. R5.7.4 已补齐 0001 / 0018 standalone `.fcstm` / canonical baseline evidence bundle；R5.7.5/R6/R7 不应再把二者写成缺失，而应校验 bundle hash、声明 authoritative baseline hash，并把 seed-sweep hash 作为 audit trail。0000 / 0045 继续使用 selected smoke snapshot，selected hash 与 seed-sweep hash 不同本身不是缺失 [clm-r574-fcstm-materialized][clm-r574-fcstm-authority]。
+5. R5.7.4 已补齐 0001 / 0018 standalone `.fcstm` / canonical baseline evidence bundle，并新增四例 baseline 逻辑入口；R5.7.5/R6/R7 不应再把二者写成缺失，而应优先读取 [../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json)，校验 bundle hash、声明 authoritative baseline hash，并把 seed-sweep hash 作为 audit trail。0000 / 0045 继续使用 selected smoke snapshot，selected hash 与 seed-sweep hash 不同本身不是缺失 [clm-r574-fcstm-materialized][clm-r574-fcstm-authority][clm-r574-baseline-index]。
 
 ## 8. 学术风险与禁止主张
 
@@ -130,13 +131,13 @@ choice2 --> Join1 when : sunny=true
 2. 不把 representation symptom 直接写成 confirmed defect；0000 的 guard finding 也只是 dry-run target，不是正式 Better 结果 [clm-r574-0000]。
 3. 不把 `0045` 升格为 timed automata 支持，不把 `0018` 混入 T0 headline [clm-r574-0045][clm-r574-0018]。
 4. 不用 conversion、parse / inspect、loss count 或 `.fcstm` 成功证明 repair gain [clm-r574-no-repair-gain]。
-5. 不混淆 evidence bundle 状态：0001 / 0018 的 standalone baseline bundle 已在本 PR 补齐；selected-vs-seed hash 差异必须声明权威 baseline 与 audit trail，而不是误写成缺失或修复问题 [clm-r574-fcstm-materialized][clm-r574-fcstm-authority]。
+5. 不混淆 evidence bundle 状态：0001 / 0018 的 standalone baseline bundle 已在本 PR 补齐；四例 baseline 的统一入口是 symlink fan-in + JSON index，不是新的权威产物副本；selected-vs-seed hash 差异必须声明权威 baseline 与 audit trail，而不是误写成缺失或修复问题 [clm-r574-fcstm-materialized][clm-r574-fcstm-authority][clm-r574-baseline-index]。
 
 ## 9. 后续入口
 
 | 后续阶段 | 应读取 | 继承内容 |
 |---|---|---|
-| R5.7.5 | 本报告、[../experiment_design/repair_target_adjudication/](../experiment_design/repair_target_adjudication/) 四个样例文件与 [../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json](../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json) | 做用户要求的 Better adjudication dry-run：给 `NL + STM_0` 人工/确定性构造 `STM_k`，验证 Better gate 对 `better / not_better / unknown / out_of_scope` 的裁决行为；不得把 R5.7.4 静态 finding 误写成 Better outcome。 |
+| R5.7.5 | 本报告、[../experiment_design/repair_target_adjudication/](../experiment_design/repair_target_adjudication/) 四个样例文件、[../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) 与 [bundle_index.json](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) | 做用户要求的 Better adjudication dry-run：给 `NL + STM_0` 人工/确定性构造 `STM_k`，验证 Better gate 对 `better / not_better / unknown / out_of_scope` 的裁决行为；不得把 R5.7.4 静态 finding 误写成 Better outcome；四例 baseline hash 与 bundle 路径以 `bundle_index.json` 为统一 handoff 入口。 |
 | R6 | `0000` / `0001` / `0045` / `0018` 各自裁决文件 | 生成 feedback prompt / replay / fake run skeleton 时的 target 与 scope 约束。 |
 | R7 | 本报告 §6--§7 | eligibility、metric column、target-instance ledger 与 denominator discipline。 |
 | R8 | 本报告 §8 | limitation / stress / failure ledger 写法。 |
@@ -167,6 +168,7 @@ choice2 --> Join1 when : sunny=true
 | [src-archive] | `llms_emp_record_archive` | [../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip](../pipeline/readiness_audit/artifact_archives/archives/llms-emp-stm-subset_records.zip) | zip | record 级 status、loss count、canonical states/transitions、irrecoverable fields、hash。 | members `llms-emp-stm-subset__llms_emp_stm_results_*.json` for four ids。 |
 | [src-selected] | `selected_seed_examples` | [../selected_seed_examples/README.md](../selected_seed_examples/README.md) | md / fcstm | 0000 / 0045 selected smoke standalone `.fcstm` availability and authoritative-baseline caveat。 | dirs `llms-emp-gpt4o-hldcs`、`llms-emp-deepseek-microwave`；their `fcstm_meta.json` records `selected_fcstm_sha256` and `synchronized_from_fcstm_sha256`。 |
 | [src-r574-fcstm-bundle] | `r574_adjudication_fcstm_bundle` | [../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json](../pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/r5_7_4_adjudication_fcstm_export_report.json) | json / fcstm | 0001 / 0018 standalone baseline `.fcstm`、canonical、name mapping、lowering inventory 与 parse / inspect report。 | summary `standalone_baseline_bundles_added=2`；items `pair_id in {0001,0018}`；`fcstm_sha256_matches_case_matrix=true`。 |
+| [src-r574-baseline-index] | `r574_adjudication_baseline_bundle_index` | [../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md) / [bundle_index.json](../pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) | md / json / symlink | 0000 / 0001 / 0018 / 0045 四个 baseline bundle 的统一逻辑入口、权威路径、hash 与阶段来源。 | summary `logical_bundle_count=4`；2 个 R4.5 reused selected smoke；2 个 R5.7.4 materialized bundle；symlink resolve to authoritative bundle。 |
 | [src-adjudication] | `r574_adjudication_docs` | [../experiment_design/repair_target_adjudication/README.md](../experiment_design/repair_target_adjudication/README.md) | md | 四例样例级静态裁决入口。 | 四个秒级样例文件。 |
 
 ### A.3 Claim-evidence map
@@ -176,7 +178,7 @@ choice2 --> Join1 when : sunny=true
 | [clm-r574-boundary] | `R574-C1` | R5.7.4 是静态裁决 / metric dry-run，不运行 LLM、不生成 `STM_k`、不报告 repair effectiveness。 | scope / prohibition | [src-r571] §1/§9；[src-r572-better] §13；[src-r573] §1/§5。 | [cmd-r574-doc-links] | high | 后续 R6/R7 才可能产生正式 run。 |
 | [clm-r574-preflight] | `R574-C2` | 四例均有 committed `NL`、raw `STM_0`、case matrix 与 archive 证据，足够做 static dry-run。 | trace | [src-pairs] row filters；[src-case] row filters；[src-archive] four members。 | [cmd-r574-four-case-preflight] | high | preflight pass 不等于 formal valid run。 |
 | [clm-r574-no-better] | `R574-C3` | 四例本轮 `run_validity_status` 均为 canonical `protocol_or_provenance_invalid`，`better_adjudication_outcome` 均为 canonical `unknown`，原因是 `not_evaluated_in_static_dry_run`。 | prohibition | [src-r572-better] G1/G2/G6；本报告 §3。 | [cmd-r574-four-case-preflight] | high | 静态 taxonomy finding 可保留。 |
-| [clm-r574-r575-handoff] | `R574-C3b` | R5.7.5 应做 constructed `STM_k` Better adjudication dry-run：以 `NL + STM_0` 为输入，人工/确定性构造候选 `STM_k`，验证 gate 是否能按预期给出 `better / not_better / unknown / out_of_scope`。 | handoff | [src-r572-better] G0--G6；[src-r574-fcstm-bundle]；本报告 §9。 | [cmd-r574-doc-links] | high | R5.7.5 仍可不调用真实 LLM；目标是验证裁决规则，不是报告方法效果。 |
+| [clm-r574-r575-handoff] | `R574-C3b` | R5.7.5 应做 constructed `STM_k` Better adjudication dry-run：以 `NL + STM_0` 为输入，人工/确定性构造候选 `STM_k`，验证 gate 是否能按预期给出 `better / not_better / unknown / out_of_scope`。 | handoff | [src-r572-better] G0--G6；[src-r574-baseline-index]；本报告 §9。 | [cmd-r574-doc-links] | high | R5.7.5 仍可不调用真实 LLM；目标是验证裁决规则，不是报告方法效果。 |
 | [clm-r574-0000] | `R574-C4` | 0000 可形成 T0 `guard_condition -> should_fix` dry-run finding；representation lowering 仍 monitor。 | decision | [src-pairs] row `0000` NL/raw；[src-case] `r5_loss_codes`；[src-ledger] `r5_7_candidate_only=true`。 | [cmd-r574-four-case-preflight] | medium | 没有 `STM_k`，不能判 Better。 |
 | [clm-r574-0001] | `R574-C5` | 0001 是 no-target / low-noise control；不应凭空制造 repair target。 | decision | [src-case] row `0001` `r5_loss_codes=[]`；[src-ledger] no row；[src-pairs] raw FSM。 | [cmd-r574-four-case-preflight] | high | 未来 R6 若产生改动，需要另行审计 over-repair。 |
 | [clm-r574-0045] | `R574-C6` | 0045 是 T0.5 timer-like caveat；normalization replay 不计 repair gain。 | scope / decision | [src-pairs] row `0045` timer cues；[src-case] T0.5 / partial；[src-ledger] `pipeline_artifact`；[src-archive] `loss_count=7`。 | [cmd-r574-four-case-preflight] | high | 只支持 discrete event / counter caveat，不支持 timed automata。 |
@@ -184,6 +186,7 @@ choice2 --> Join1 when : sunny=true
 | [clm-r574-metric] | `R574-C8` | R5.7.3 指标在四例中只能按 hard_gate / supporting / trigger / report-only / forbidden 权限使用，不能 metric-only 判 Better。 | protocol | [src-r573] §2--§11；本报告 §6。 | [cmd-r574-doc-links] | high | R7 才冻结 final metrics / thresholds。 |
 | [clm-r574-fcstm-materialized] | `R574-C9a` | 0001 / 0018 已补齐 standalone baseline `.fcstm` evidence bundle；bundle hash 与 seed-sweep `fcstm_sha256` 一致，parse / inspect ok。 | evidence / handoff | [src-r574-fcstm-bundle]；[src-case] `fcstm_sha256`；[src-archive] record hash。 | [cmd-r574-fcstm-bundle] | high | 这只证明 baseline 介质可审计，不是 `STM_k` 或 repair gain。 |
 | [clm-r574-fcstm-authority] | `R574-C9b` | 0000 / 0045 selected snapshot hash 与 seed-sweep hash 不同是预期差异；R5.7.5/R6/R7 前需声明 authoritative baseline hash，seed-sweep hash 作 audit trail。 | risk / handoff | [src-selected] `selected_fcstm_sha256` / `synchronized_from_fcstm_sha256`；[src-case] seed-sweep `fcstm_sha256`。 | [cmd-r574-fcstm-bundle] | high | 不应把该差异误写成缺失或修复问题。 |
+| [clm-r574-baseline-index] | `R574-C9c` | 四个 R5.7.4 裁决 baseline bundle 已经通过逻辑目录与相对 symlink 收拢；该目录只是统一入口，不改变 R4.5 / R5.7.4 阶段权威产物。 | evidence / handoff | [src-r574-baseline-index]；[src-r574-fcstm-bundle]；[src-selected]。 | [cmd-r574-baseline-index] | high | 后续若重生成权威产物，必须同步更新 `bundle_index.json` 并复验 symlink。 |
 | [clm-r574-no-repair-gain] | `R574-C10` | conversion / normalization / `.fcstm` parse inspect 只能支撑 readiness，不计 repair gain。 | prohibition | [src-r571] §6；[src-case] `repair_contribution_allowed=false`；[src-archive] `conversion_attribution` / `representation_attribution`；[src-r574-fcstm-bundle] `repair_contribution_allowed=false`。 | [cmd-r574-four-case-preflight] | high | 仍可作为 R5.7.5/R6/R7 实验介质准备证据。 |
 
 ### A.4 复验命令
@@ -199,6 +202,8 @@ for rel in [
     'experiment_design/quality_model/repair_target_taxonomy.md',
     'experiment_design/metrics/objective_metric_framework.md',
     'experiment_design/repair_target_adjudication/README.md',
+    'pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md',
+    'pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json',
     'reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md',
 ]:
     p = base / rel
@@ -250,5 +255,30 @@ print('bundle_summary', report['summary'])
 for item in report['items']:
     fcstm_path = Path(item['fcstm_path'])
     print(item['pair_id'], item['fcstm_path'], fcstm_path.exists(), item['fcstm_sha256_matches_case_matrix'], item['parse_status'], item['inspect_status'])
+PY
+```
+
+```bash
+# [cmd-r574-baseline-index]
+python - <<'PY'
+import json
+from pathlib import Path
+root = Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles')
+index = json.loads((root / 'bundle_index.json').read_text())
+print(index['summary'])
+for item in index['items']:
+    link = Path(item['logical_symlink_path'])
+    auth = Path(item['authoritative_bundle_path'])
+    fcstm = Path(item['authoritative_fcstm_path'])
+    print(
+        item['pair_id'],
+        link.is_symlink(),
+        link.resolve() == auth.resolve(),
+        fcstm.exists(),
+        item['source_stage'],
+        item['parse_status'],
+        item['inspect_status'],
+        item['seed_sweep_hash_matches_authoritative'],
+    )
 PY
 ```
