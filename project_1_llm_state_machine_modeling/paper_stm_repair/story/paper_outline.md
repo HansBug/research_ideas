@@ -59,7 +59,7 @@
 
 ## 7. Results（后续主结果；当前只允许 pre-repair characterization）
 
-R0/R5.5/R5.6 不写 repair 结果，也不写 `STM_0 -> STM_k` 改善结论。R5.5 只能作为 `Pre-repair readiness characterization, not repair outcome`：具体 10 NL cluster、6 LLM 输出和 conversion status 均以 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 为 canonical source。R6/R8 后再填：缺陷类型分布、feedback source 覆盖、修正闭合 / 回归 / 拒绝 / 振荡 / 不收敛、`STM_0` vs `STM_k` 五条件台账、seed 来源影响、转换损失与归因。
+R0/R5.5/R5.6 不写 repair 结果，也不写 `STM_0 -> STM_k` 改善结论。R5.5 只能作为 `Pre-repair readiness characterization, not repair outcome`：具体 10 NL cluster、6 LLM 输出和 conversion status 均以 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 为 canonical source。R6/R8 后再填：缺陷类型分布、feedback source 覆盖、修正闭合 / 回归 / 拒绝 / 振荡 / 不收敛、`STM_0` vs `STM_k` G0–G6 gate 台账、seed 来源影响、转换损失与归因。
 
 ## 8. Related Work
 

@@ -4,10 +4,10 @@
 
 | 项 | 数量 / 状态 |
 |---|---|
-| canonical human-facing reports | 8 |
+| canonical human-facing reports | 9 |
 | 已部分 superseded / current-status-overridden reports | 5（R5.5.2 覆盖 R5 seed readiness、R5 directional analysis、main seed profile、scope handoff、negative evidence report 中的 blocked/current-status 部分；这些 report 仍保留历史画像和方向性价值） |
 | 待来源复核 reports | 0 |
-| 当前主入口 | 当前状态数字优先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)；10 cluster / 60 pair 历史画像再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)；R5.7.1 评价逻辑链真源读 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md) |
+| 当前主入口 | 当前状态数字优先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)；10 cluster / 60 pair 历史画像再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)；R5.7.1 评价逻辑链真源读 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)；R5.7.2 Better STM / repair target 真源读 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
 | 机器 / 一手事实源位置 | [../pipeline/readiness_audit/](../pipeline/readiness_audit/)；[../corpora/](../corpora/) |
 
 本目录只做稳定研究报告总账。row-level canonical facts 以 [../pipeline/](../pipeline/) 下 JSON / JSONL / ZIP / committed artifact，以及 [../corpora/](../corpora/) 下的一手 raw / extracted assets 为准；本 SUMMARY 不复制完整大表。报告总表中的 `canonical machine source` 列只列**导航入口**，不等于该 report 的完整证据源清单；完整事实源、claim-evidence map 与复验命令必须回到对应 report 文末 `A.2`–`A.4`。
@@ -18,6 +18,7 @@
 
 | report | 精确时间 | 时间口径 | 阶段 | 类型 | 状态 | 核心结论一句话 | canonical machine source | 来源 commit | superseded_by |
 |---|---|---|---|---|---|---|---|---|---|
+| [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md) | 2026-07-03 02:16:16 | `freeze` | R5.7.2 | Better STM / repair target contract | 🟢 | R5.7.2 冻结 Better STM G0–G6 gate、三层输出模型、repair target taxonomy、单值 action 纪律、G5 rubric v0、under-repair 合成规则、candidate-only 纪律和 evidence-driven revision；不报告 repair effectiveness；A.1--A.4 证据链完整。 | [better STM definition](../experiment_design/quality_model/better_stm_definition.md)、[repair target taxonomy](../experiment_design/quality_model/repair_target_taxonomy.md)、[evaluation logic](../experiment_design/evaluation_logic.md) | `df4af008` + `1724051d` + `964ef6e0` | — |
 | [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md) | 2026-07-02 17:02:42 | `freeze` | R5.7.1 | evaluation logic handoff | 🟢 | R5.7.1 冻结评价逻辑链、claim boundary、分母纪律、A 层、归因边界、指标位置和失败报告纪律；不报告 repair effectiveness；A.1--A.4 证据链完整。 | [evaluation logic](../experiment_design/evaluation_logic.md)、[case matrix](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[cluster profiles](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) | `feb0deef` | — |
 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | 2026-06-29 19:55:45 | `freeze` | R5.5.2 | PlantUML blocked recovery | 🟢 | `llms-emp` 三个原 blocked 已恢复为 partial；当前 16 converted / 44 partial / 0 blocked，conversion recovery 不计 repair gain。 | [case matrix](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[PlantUML recovery report](../pipeline/conversion/reports/plantuml_recovery_report.json)、[sweep report](../pipeline/readiness_audit/seed_sweep/sweep_report.json) | 当前 PR 提交 | — |
 | [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 2026-06-29 00:03:56 | `freeze` | R5.5 | main seed profile | 🟢 | `llms-emp` 主 seed 池为 10 NL × 6 LLM；原 R5.5 快照为 16 converted / 41 partial / 3 blocked；当前状态数字必须改读 R5.5.2 recovery report。 | [case matrix](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl)、[cluster profiles](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl)、[LLM matrix](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_llm_matrix.jsonl)、[partial ledger](../pipeline/readiness_audit/llms_emp_profile/llms_emp_partial_attribution_ledger.jsonl)、[blocked probe](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl)；完整清单见 report A.2 | `49f34c39b8f8ecf037c60d8ab54d9c33ea1c443a` | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)（仅 current-status / blocked 部分） |
@@ -29,13 +30,14 @@
 
 ## 3. 当前阅读路线
 
-1. **R5.7.1 评价逻辑链**：规则真源是 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)；人类 handoff 读 [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)。用于回答 claim 类型、分母、A 层、归因、指标和失败报告边界。
-2. **当前 blocked recovery / 状态更新**：[2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)。用于回答“3 个原 blocked 是否已恢复、当前 60 pair 状态是什么”。
-3. **主 seed profile 历史画像**：[2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。用于回答“10 个 NL 分别是什么、状态如何、风险是什么”；其中 blocked/current-状态数字以 R5.5.2 report 为准。
-4. **负证据历史快照**：[2026-06-28-23-18-32-negative-evidence-report.md](./2026-06-28-23-18-32-negative-evidence-report.md) 与 [2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) 中 R5 快照 的 blocked rows。用于回答 blocked 曾为何出现、是否应 drop/修/后置；但 `llms-emp` 三条旧 blocked 当前已恢复为 partial。
-5. **scope handoff**：[2026-06-28-22-54-39-model-scope-handoff.md](./2026-06-28-22-54-39-model-scope-handoff.md)。用于后续 R5.6 story / scope 冻结。
-6. **R5 历史方向分析**：[2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。用于解释为什么主线从全 seed library 收敛到 `llms-emp`。
-7. **readiness denominator**：[2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) 与 [2026-06-28-03-42-24-selected-smoke-summary.md](./2026-06-28-03-42-24-selected-smoke-summary.md)。用于复盘 R5 准备度边界。
+1. **R5.7.2 Better STM / repair target contract**：规则真源是 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md)；人类 handoff 读 [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md)。用于回答 Better STM gate、三层输出模型、repair target taxonomy、candidate-only、T0.5 caveat 和指标权限。
+2. **R5.7.1 评价逻辑链**：规则真源是 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)；人类 handoff 读 [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)。用于回答 claim 类型、分母、A 层、归因、指标和失败报告边界。
+3. **当前 blocked recovery / 状态更新**：[2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)。用于回答“3 个原 blocked 是否已恢复、当前 60 pair 状态是什么”。
+4. **主 seed profile 历史画像**：[2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。用于回答“10 个 NL 分别是什么、状态如何、风险是什么”；其中 blocked/current-状态数字以 R5.5.2 report 为准。
+5. **负证据历史快照**：[2026-06-28-23-18-32-negative-evidence-report.md](./2026-06-28-23-18-32-negative-evidence-report.md) 与 [2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) 中 R5 快照 的 blocked rows。用于回答 blocked 曾为何出现、是否应 drop/修/后置；但 `llms-emp` 三条旧 blocked 当前已恢复为 partial。
+6. **scope handoff**：[2026-06-28-22-54-39-model-scope-handoff.md](./2026-06-28-22-54-39-model-scope-handoff.md)。用于后续 R5.6 story / scope 冻结。
+7. **R5 历史方向分析**：[2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。用于解释为什么主线从全 seed library 收敛到 `llms-emp`。
+8. **readiness denominator**：[2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) 与 [2026-06-28-03-42-24-selected-smoke-summary.md](./2026-06-28-03-42-24-selected-smoke-summary.md)。用于复盘 R5 准备度边界。
 
 ## 4. 风险与待复查项
 
@@ -48,6 +50,7 @@
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-03 02:16:16 | 新增 R5.7.2 Better STM / repair target contract report，并登记 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) 为规则真源；该报告不代表 repair loop 已运行。 |
 | 2026-07-02 17:02:42 | 新增 R5.7.1 evaluation logic handoff report，并登记 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md) 为评价逻辑链真源；该报告不代表 repair loop 已运行。 |
 | 2026-06-30 15:32:00 | 按 R5.6 academic review 修正 reports 总账 currentness：明确 4 份旧 report 仅被 R5.5.2 部分覆盖，当前 `llms-emp` 状态数字以 R5.5.2 recovery report 为准。 |
 | 2026-06-29 15:43:00 | 明确本 SUMMARY 的 machine source 列只作导航入口，并补强主 seed profile 的关键事实源入口，完整证据链仍回到各 report 文末 A.2–A.4。 |
