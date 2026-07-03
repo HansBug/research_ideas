@@ -87,10 +87,10 @@ choice2 --> Join1 when : sunny=true
 
 | pair | observed issue | semantic element | repair action | Better gate 影响 | 本轮结论 |
 |---|---|---|---|---|---|
-| `0000` | condition-like label + HSM lowering | `guard_condition` + `representation_artifact` | `should_fix` for guard；`monitor` for representation caveat | G4/G5；G2/G6 | 可形成 T0 target-instance seed，但需 R6/R7 正式 run 验证。 |
-| `0001` | no recorded issue | none / no-target | `not_repair_target` | G3 over-repair guard | 作为 no-target control；若后续改动需证明必要性。 |
-| `0045` | timer cue + normalization replay | `temporal_cue` + `representation_artifact` | `monitor` | G0/G2/G5/G6 caveat | T0.5 caveat，不进 T0 headline。 |
-| `0018` | timing / fork-choice / cross-scope / condition-like | `out_of_scope_family` + stress triggers | `out_of_scope` / `monitor` | G0 stress / limitation | supplementary stress，不进 Better 主比较。 |
+| `0000` | condition-like label + HSM lowering | `guard_condition` + `representation_artifact` | `should_fix` for guard；`monitor` for representation caveat | G0=main_t0；G1=cannot_evaluate；G2=pending 或 caveat；G3=待 no-regression run；G4=待 formal improvement；G5=待语义裁决；G6=pending 或 caveat reporting。 | 可形成 T0 target-instance seed，但需 R6/R7 正式 run 验证。 |
+| `0001` | no recorded issue | none / no-target | `not_repair_target` | G0=main_t0；G1=cannot_evaluate；G2=not_applicable_until_change；G3=over-repair guard pending；G4=待 formal improvement check；G5=待语义裁决；G6=待 reporting bundle。 | 作为 no-target control；若后续改动需证明必要性。 |
+| `0045` | timer cue + normalization replay | `temporal_cue` + `representation_artifact` | `monitor` | G0=caveat_t05；G1=cannot_evaluate；G2=caveat attribution；G3=不进 T0 headline；G4=不进 T0 headline；G5=仅 caveat-level；G6=caveat/reporting_only。 | T0.5 caveat，不进 T0 headline。 |
+| `0018` | timing / fork-choice / cross-scope / condition-like | `out_of_scope_family` + stress triggers | `out_of_scope` / `monitor` | G0=stress_t1；G1=not_applicable_to_better_main_comparison；G2=not_applicable_to_better_main_comparison；G3=not_applicable_to_better_main_comparison；G4=not_applicable_to_better_main_comparison；G5=not_applicable_to_better_main_comparison；G6=stress/caveat reporting only。 | supplementary stress，不进 Better 主比较。 |
 
 该表的 `repair action` 是 dry-run finding，不是 R6 已采取动作；正式 target closure 必须等 R6/R7 的 target-instance ledger 和 change ledger [src-r572-tax][clm-r574-no-better]。
 
