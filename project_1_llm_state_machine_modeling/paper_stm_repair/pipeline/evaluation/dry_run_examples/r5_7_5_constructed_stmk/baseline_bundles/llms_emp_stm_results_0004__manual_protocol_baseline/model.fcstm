@@ -1,0 +1,27 @@
+state llms_emp_stm_results_0004_baseline named "llms_emp_stm_results_0004 dry-run baseline" {
+    [*] -> start;
+    event Closed_SendDeparted named "Closed/SendDeparted";
+    event Arrived_Stop_Send_Arrived named "Arrived/Stop, Send Arrived";
+    event Obstacle_Detected named "Obstacle Detected";
+    pseudo state start named "start";
+    state DoorsClosing named "DoorsClosing";
+    state InMotion named "InMotion" {
+        [*] -> startInMotion;
+        event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+        event Approached_Decelerate named "Approached/Decelerate";
+        pseudo state startInMotion named "startInMotion";
+        state Accelerating named "Accelerating";
+        state Cruising named "Cruising";
+        state Approaching named "Approaching";
+        startInMotion -> Accelerating;
+        Accelerating -> Cruising : Reached_Cruising_Cruise;
+        Accelerating -> Approaching : Approached_Decelerate;
+        Cruising -> Approaching : Approached_Decelerate;
+    }
+    state Stopping named "Stopping";
+    state EmergencyStopping named "EmergencyStopping";
+    start -> DoorsClosing;
+    DoorsClosing -> InMotion : Closed_SendDeparted;
+    InMotion -> Stopping : Arrived_Stop_Send_Arrived;
+    InMotion -> EmergencyStopping : Obstacle_Detected;
+}

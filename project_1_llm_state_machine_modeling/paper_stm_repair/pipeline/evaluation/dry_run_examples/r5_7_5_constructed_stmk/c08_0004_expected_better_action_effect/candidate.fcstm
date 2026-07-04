@@ -1,0 +1,39 @@
+def int doors_closed = 0;
+def int arrived = 0;
+def int send_departed = 0;
+def int stopped = 0;
+def int send_arrived = 0;
+def int obstacle_signal_sent = 0;
+state llms_emp_stm_results_0004_baseline named "llms_emp_stm_results_0004 dry-run baseline" {
+    [*] -> start;
+    event Obstacle_Detected named "Obstacle Detected";
+    pseudo state start named "start";
+    state DoorsClosing named "DoorsClosing";
+    state InMotion named "InMotion" {
+        [*] -> startInMotion;
+        event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+        event Approached_Decelerate named "Approached/Decelerate";
+        pseudo state startInMotion named "startInMotion";
+        state Accelerating named "Accelerating";
+        state Cruising named "Cruising";
+        state Approaching named "Approaching";
+        startInMotion -> Accelerating;
+        Accelerating -> Cruising : Reached_Cruising_Cruise;
+        Accelerating -> Approaching : Approached_Decelerate;
+        Cruising -> Approaching : Approached_Decelerate;
+    }
+    state Stopping named "Stopping";
+    state EmergencyStopping named "EmergencyStopping";
+    start -> DoorsClosing;
+    DoorsClosing -> InMotion : if [doors_closed == 1] effect {
+        send_departed = 1;
+    }
+    InMotion -> Stopping : if [arrived == 1] effect {
+        stopped = 1;
+        send_arrived = 1;
+    }
+    InMotion -> EmergencyStopping : Obstacle_Detected effect {
+        stopped = 1;
+        obstacle_signal_sent = 1;
+    }
+}

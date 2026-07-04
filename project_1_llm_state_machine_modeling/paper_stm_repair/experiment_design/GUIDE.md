@@ -71,3 +71,15 @@ R5.7.4 之后，任何修改 Better STM gate、repair target taxonomy、metric p
 没有上述证据的修改只能标为 `provisional`，不得静默覆盖 R5.7.1--R5.7.3 已冻结合同。静态 dry-run finding 也不得被写成 repair effectiveness；它只说明规则是否可执行、是否需要 handoff 或是否存在证据缺口。
 
 每个 dry-run target ledger 的 `better_stm_condition_impact` 必须显式说明 G0--G6 中哪些是 `pass/assessable`、`cannot_evaluate`、`pending`、`not_applicable` 或 caveat；不得用“视实例而定”替代 gate 状态，也不得静默省略 G1 artifact gate 或 G3 no-regression gate。
+
+
+## 8. constructed STM_k dry-run 纪律
+
+R5.7.5 之后，任何 constructed `STM_k` dry-run 必须满足：
+
+1. 明确 `constructed_for_protocol_dry_run=true`、`real_repair_run_id=null`、`headline_eligible=false`、`repair_effectiveness_eligible=false`。
+2. `primary_expected_verdict` 必须单值；若一个样例可能产生多个合理结论，必须拆 case 或固定触发条件。
+3. 每个 case 必须有 candidate、baseline pointer、change ledger、target ledger、expected verdict、adjudication record 与证据 key。
+4. parse-invalid candidate 只能用于测试 G1 hard gate；metadata JSON 仍必须有效。
+5. `scenario_overfitting` 若没有真实 scenario oracle，不得写成已覆盖，只能 handoff。
+6. constructed expected verdict 只能支持 protocol coverage；不得进入 repair effectiveness、success denominator 或 headline claim。

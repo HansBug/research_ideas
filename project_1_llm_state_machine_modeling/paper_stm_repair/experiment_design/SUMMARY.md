@@ -50,6 +50,16 @@
 | 四例覆盖 | 覆盖 `0000` T0 condition-like HSM、`0001` T0 low-noise FSM、`0045` T0.5 Microwave caveat、`0018` T1 Digital Camera stress。 | [repair_target_adjudication/README.md](./repair_target_adjudication/README.md) |
 | R6/R7 handoff | R6/R7 前必须补齐 `STM_k`、change ledger 和 canonical / `.fcstm` evidence bundle；0001 / 0018 的 standalone baseline bundle 已在 R5.7.4 补齐，0000 / 0045 selected hash 与 seed-sweep hash 不同仍需声明 authoritative baseline。 | [../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md) |
 
+
+## 1.5 R5.7.5 constructed STM_k 覆盖性 dry-run 结论
+
+| 主题 | 冻结结论 | 后续入口 |
+|---|---|---|
+| dry-run 定位 | R5.7.5 构造 20 个 `STM_k` 候选作为评价协议单元测试；所有 case 都不是真实 repair loop 输出。 | [better_adjudication_dry_run/README.md](./better_adjudication_dry_run/README.md)、[../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md) |
+| prompt/schema | 新增 Better adjudication prompt v0 与 output schema v0，要求 fail-closed、单值 verdict、G0--G6、evidence keys 与 forbidden claims。 | [protocols/better_adjudication_prompt_v0.md](./protocols/better_adjudication_prompt_v0.md)、[protocols/better_adjudication_output_schema_v0.json](./protocols/better_adjudication_output_schema_v0.json) |
+| outcome 覆盖 | 覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1`。 | [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json) |
+| anti-gaming | 覆盖语义删除、folding、过修复、under-repair、trace loss、conversion laundering、hierarchy loss、textual similarity misuse；`scenario_overfitting` 仅 handoff。 | [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md) |
+
 ## 2. 研究问题草案
 
 下表来自重构前 `experiment_design/README.md` 的上游实验约束，仍是草案，不是正式协议。
@@ -106,6 +116,7 @@ RQ1--RQ3 支撑“结构化反馈有什么用”；RQ4 支撑或否定 Better ST
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-05 02:10:39 | R5.7.5 新增 [better_adjudication_dry_run/README.md](./better_adjudication_dry_run/README.md)、[protocols/better_adjudication_prompt_v0.md](./protocols/better_adjudication_prompt_v0.md)、[protocols/better_adjudication_output_schema_v0.json](./protocols/better_adjudication_output_schema_v0.json) 与 [../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md)，完成 20 个 constructed `STM_k` coverage dry-run；该更新不代表 repair loop 已运行。 |
 | 2026-07-03 23:44:12 | R5.7.4 新增 [repair_target_adjudication/README.md](./repair_target_adjudication/README.md) 与 [../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](../reports/2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)，完成四例静态裁决和 metric permission dry-run；该更新不代表 repair loop 已运行。 |
 | 2026-07-03 21:18:25 | R5.7.3 新增 [metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md)，冻结客观代理指标框架 v0、五级指标权限、entry schema、G0--G6 gate matrix、分母 / reference / anti-gaming 纪律和 baseline 迁移边界；该更新不代表 repair loop 已运行。 |
 | 2026-07-03 02:16:16 | R5.7.2 新增 [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md)，并将 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) 从五条最低必要条件扩展为 Better STM gate 链、三层输出模型、硬拒绝边界、T0.5 caveat、指标权限和 semantic adjudication 接口；该更新不代表 repair loop 已运行。 |
