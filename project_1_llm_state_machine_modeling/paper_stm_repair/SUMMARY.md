@@ -8,7 +8,7 @@
 
 当前完成的是 **修正前准备度审计**：一手 seed registry、四例静态样例、转换链路、`.fcstm` 表示桥、评价门草案、R5 全量摸排与 R5.5 `llms-emp` 主 seed 池画像已就位；尚未执行真实修正循环、尚未生成 `STM_k`，也尚未形成 Better STM 主实验结果。
 
-R5.7.1--R5.7.3 已冻结评价逻辑链、Better STM / repair target 合同与客观代理指标框架，入口为 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/quality_model/repair_target_taxonomy.md](./experiment_design/quality_model/repair_target_taxonomy.md) 和 [experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)；这只支持 task / scope、readiness、protocol / evaluation、指标框架与 limitation 类型主张，不支持 repair effectiveness。
+R5.7.1--R5.7.4 已冻结评价逻辑链、Better STM / repair target 合同、客观代理指标框架与真实样例静态裁决 dry-run，入口为 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/quality_model/better_stm_definition.md](./experiment_design/quality_model/better_stm_definition.md)、[experiment_design/quality_model/repair_target_taxonomy.md](./experiment_design/quality_model/repair_target_taxonomy.md)、[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)、[experiment_design/repair_target_adjudication/README.md](./experiment_design/repair_target_adjudication/README.md) 和 [pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md](./pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/README.md)；这只支持 task / scope、readiness、protocol / evaluation、指标框架、静态 finding、baseline 介质可审计性与 limitation 类型主张，不支持 repair effectiveness。
 
 ## 2. 顶层入口
 
@@ -20,7 +20,7 @@ R5.7.1--R5.7.3 已冻结评价逻辑链、Better STM / repair target 合同与�
 | 阶段链路和机器事实源 | [pipeline/README.md](./pipeline/README.md) |
 | 一手 seed 与资源登记 | [corpora/seed_library/REGISTRY.md](./corpora/seed_library/REGISTRY.md) |
 | 论文 story / claim gate | [story/README.md](./story/README.md) |
-| 实验评价逻辑 / scope / eligibility / quality model / metrics | [experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md) |
+| 实验评价逻辑 / scope / eligibility / quality model / metrics / static adjudication | [experiment_design/SUMMARY.md](./experiment_design/SUMMARY.md)、[experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)、[experiment_design/metrics/objective_metric_framework.md](./experiment_design/metrics/objective_metric_framework.md)、[experiment_design/repair_target_adjudication/README.md](./experiment_design/repair_target_adjudication/README.md) |
 | 历史审计与证据索引 | [evidence/SUMMARY.md](./evidence/SUMMARY.md) |
 | cold / deprecated 历史快照 | [archive/README.md](./archive/README.md) |
 
