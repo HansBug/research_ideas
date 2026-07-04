@@ -1,0 +1,75 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B07",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "protocol_or_provenance_invalid",
+  "primary_verdict": "protocol_or_provenance_invalid",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete guard conditions (front_distance>10) and discrete commands (steering cmd, brake pressed, power on/off). No timed automata, continuous clock, or second-duration claims. This is a T0 protocol case: discrete-state HLDCS with guard conditions that are abstract sensor/input variables.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate STM_k is present, parseable, and structurally inspectable. mechanical_checks reports candidate_parse_status=parse_ok. The .fcstm file is syntactically valid and all states/transitions/hierarchy are readable.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "fail",
+      "reason": "provenance_checks.change_origin_category=normalization_only_artifact and candidate_same_as_canonical_stm0=true. baseline_sha256 equals candidate_sha256 (42baa9...2eba5). canonical STM_0 and candidate STM_k are byte-identical. No change ledger entry describes any repair action, guard extraction, state refactoring, or semantic improvement. The candidate is a no-op duplicate, not the result of a repair operation. Per fail-closed rule #2: normalization_only_artifact must route to protocol_or_provenance_invalid regardless of any apparent semantic analysis.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "canonical STM_0 and candidate STM_k are byte-identical. All states (HumanDriving, InitialState, Autonomous, FinalState with sub-states), all transitions (Power_On, Front_Distance_10, Human_Steering_Cmd_or_Brake_Pressed, Power_Off, Enter_Autonomous, Exit_Autonomous), all hierarchy (Autonomous nested inside HumanDriving), and all event declarations are preserved exactly. No NL-supported behavior is deleted or broken.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "candidate STM_k is identical to canonical STM_0. There is no change to any guard, transition, state, hierarchy, event, or action. Therefore no NL-identified target issue (whether explicit or implicit) is improved. A null delta is not a repair gain. G2 provenance invalidity is the primary fail, but even under pure semantic analysis the identity makes this not_better.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "Byte-identical candidate preserves all semantic content of canonical STM_0. NL-supported states (HumanDriving, Autonomous sub-states), transitions (power-on→HumanDriving, front_distance>10→Autonomous, steering/brake→HumanDriving, power-off→FinalState), and hierarchy are maintained. However semantic preservation of a null delta does not constitute a repair; this pass is only semantic no-regression confirmation, not an endorsement of improvement.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All E0-E11 evidence recorded. headline_eligible=false and repair_effectiveness_eligible=false per protocol. primary_verdict=protocol_or_provenance_invalid per fail-closed rule #2. Evidence cites all four blind input artifacts. Confidence is high because the identity is mechanically verifiable via SHA-256 match and byte comparison. No hidden answer key or expected verdict was observed (leakage_observation.detected=false). Human escalation is not required for this straightforward provenance invalidity; the verdict is fully determined by the observable mechanical facts.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL: describes power-on→HumanDriving, front_distance>10→Autonomous, steering/brake→HumanDriving, power-off→FinalState with Autonomous sub-machine",
+    "raw STM_0: PlantUML encoding the same state hierarchy with HumanDriving/Autonomous substates",
+    "canonical STM_0: .fcstm with sha256 42baa977867ea52ac47b191eca705ec08c788f4cafe1d7cdee6b331937e2eba5",
+    "candidate STM_k: .fcstm with sha256 42baa977867ea52ac47b191eca705ec08c788f4cafe1d7cdee6b331937e2eba5 (identical to canonical)",
+    "mechanical_checks: candidate_parse_status=parse_ok, candidate_file_present=true",
+    "provenance_checks: change_origin_category=normalization_only_artifact, candidate_same_as_canonical_stm0=true, hash_chain_complete=true, change_ledger_available=true"
+  ],
+  "rationale": "Candidate STM_k is byte-identical to canonical STM_0 (SHA-256 match confirmed in input packet). provenance_checks establishes change_origin_category=normalization_only_artifact and candidate_same_as_canonical_stm0=true. Under fail-closed rule #2, normalization_only_artifact mandates run_validity_status=protocol_or_provenance_invalid and primary_verdict=protocol_or_provenance_invalid, regardless of any semantic analysis. This is a null-delta pair: there is no repair operation to adjudicate. G2 attribution gate fails because the candidate cannot be attributed to any genuine repair process — it is the canonical file repeated. Downstream semantic gates (G3, G5) pass on no-regression and semantic preservation grounds, but G4 correctly fails on no improvement, and G2 is the decisive provenance-blocking gate. Per fail-closed rule #5, an identity/null delta is not_better at minimum; here the stronger provenance-invalid ruling applies because change_origin_category explicitly classifies this as normalization_only_artifact.",
+  "observed_anti_gaming_risk_flags": [
+    "identity_pair_as_blind_case: canonical and candidate are byte-identical; no actual candidate was provided. This tests whether the adjudicator is swayed by mechanical pass (parse_ok) into ignoring provenance. The adjudicator correctly followed fail-closed rule #2.",
+    "sha256_match_ignored_risk: a less careful adjudicator might note parse_ok and proceed to semantic analysis without noticing the hash match, producing a spurious better/not_better verdict for a null delta"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "protocol_or_provenance_invalid means this case cannot contribute to headline Better STM statistics.",
+    "The null-delta verdict does not imply anything about STM_0 quality or about the repair method under test."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, oracle mapping, original Cxx slug, or PR discussion context was observed in the blind input packet. All decisions are based solely on the provided NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, and provenance_checks."
+  }
+}
+```

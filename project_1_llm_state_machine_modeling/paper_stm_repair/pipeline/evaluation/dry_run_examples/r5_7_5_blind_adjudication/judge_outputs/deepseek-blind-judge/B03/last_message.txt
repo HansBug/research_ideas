@@ -1,0 +1,74 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B03",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event/condition-driven state transitions for a driving mode state machine (power on, front_distance>10, steering cmd/brake, power off). No continuous-time or real-time clock semantics claimed. Falls within headline T0 protocol scope.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Canonical STM_0 and candidate STM_k are both present, structurally well-formed fcstm, and parse_ok per mechanical_checks. Both are auditable with readable states, transitions, events, and hierarchy.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks confirms change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers. The only observable delta is renaming event identifier Front_Distance_10 to Front_Distance_Greater_Than_10. This is attributable to canonical->candidate and is not normalization/format-conversion artifact. However, attribution alone does not imply repair gain — that is deferred to G4.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "Candidate preserves all NL-supported elements: states HumanDriving/InitialState/FinalState/Autonomous, hierarchy (Autonomous as sub-state of HumanDriving with internal [*]->startAutonomous), all transitions (Power_On, Front_Distance_*, Enter_Autonomous, Exit_Autonomous, Human_Steering_Cmd_or_Brake_Pressed, Power_Off), and all event definitions. No state, transition, hierarchy, guard, action, or trace was deleted or corrupted.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "The sole delta between canonical and candidate is renaming event identifier Front_Distance_10 to Front_Distance_Greater_Than_10, with the display name 'Front Distance > 10' unchanged in both. This is a cosmetic identifier rename with zero semantic impact. No NL-supported target issue — such as missing transition, incorrect guard, wrong hierarchy, or mislabeled event — was addressed or improved. A more descriptive identifier key does not constitute a repair gain when the display name already carries the full semantics and the transition behavior is identical.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "Semantic fidelity to NL is preserved in candidate: the candidate encodes the same state machine (HumanDriving with Autonomous sub-state, power-on entry, front-distance transition, steering/brake return, power-off to final state) as canonical. No semantic drift or misrepresentation detected. The trivial identifier rename does not alter any behavioral semantics.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This output follows the required JSON schema, cites explicit evidence lines from the blind input packet for each gate, records anti-gaming flags, sets headline_eligible=false and repair_effectiveness_eligible=false as mandated, states confidence as high (the single-byte-rename delta is trivially observable and non-semantic), and lists forbidden claims. No human escalation required for a clear cosmetic-no-op case.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL: all five clauses describe discrete event-based transitions; no continuous-time claim",
+    "raw STM_0: PlantUML sketch with HumanDriving/Autonomous hierarchy, Front Distance > 10 transition",
+    "canonical STM_0: fcstm with event Front_Distance_10, display name 'Front Distance > 10', transition InitialState->Autonomous : Front_Distance_10",
+    "candidate STM_k: fcstm with event Front_Distance_Greater_Than_10, same display name, transition InitialState->Autonomous : Front_Distance_Greater_Than_10; all other lines byte-identical to canonical",
+    "mechanical_checks: candidate_parse_status=parse_ok, both files present",
+    "provenance_checks: change_origin_category=constructed_candidate_with_local_ledgers, hash_chain_complete=true, candidate_same_as_canonical_stm0=false"
+  ],
+  "rationale": "The canonical and candidate STM differ in exactly one token: the event identifier changed from Front_Distance_10 to Front_Distance_Greater_Than_10. The display name ('Front Distance > 10') is unchanged and already conveys the NL requirement unambiguously. All states, transitions, hierarchy, and other events are byte-identical. This is a purely cosmetic rename with zero semantic repair gain. Under fail-closed rule, semantic identity with no target-issue improvement defaults to not_better. The 'complete guard extraction' better rule does not apply because the candidate did not introduce explicit guard syntax — it merely renamed the event identifier while keeping the same transition-label pattern.",
+  "observed_anti_gaming_risk_flags": [
+    "cosmetic_rename_as_apparent_change: sole delta is renaming event identifier Front_Distance_10 -> Front_Distance_Greater_Than_10 with identical display name and zero behavioral change; could be used to simulate a non-trivial delta in a blind adjudication dry-run"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The cosmetic identifier rename does not constitute a semantic repair or model improvement.",
+    "parse_ok alone does not imply better; no NL-supported target issue was addressed."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, semantic_modeling_conventions, and neutral_change_observation. No answer key, expected verdict, oracle mapping, or original case slug detected. Blind protocol intact."
+  }
+}
+```

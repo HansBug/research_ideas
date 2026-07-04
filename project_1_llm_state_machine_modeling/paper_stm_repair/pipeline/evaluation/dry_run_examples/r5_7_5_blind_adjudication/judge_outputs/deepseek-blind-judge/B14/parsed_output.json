@@ -1,0 +1,95 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B14",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes an autonomous driving state machine with discrete guard conditions (boolean flags, integer distance thresholds). No continuous time, timed automata, or clock-invariant requirements present. T0 protocol case.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks reports candidate_parse_status=parse_ok. Candidate STM_k file is present and structurally parseable. Parse success alone does not constitute semantic improvement.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers, candidate_same_as_canonical_stm0=false. The delta is a single new event (Untraced_Auto_Exit) and one new transition (cruise -> endHighwayMode : Untraced_Auto_Exit). Attribution is traceable, not normalization-only.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate introduces event 'Untraced Auto Exit' and transition 'cruise -> endHighwayMode : Untraced_Auto_Exit' with no NL support. NL §5 specifies only two cruise exit paths: dist_to_exit<2 (explicit) and auto_finished=true (via parent HighwayMode -> FinishState). The canonical already captures both via cruise -> endHighwayMode : dist_to_exit_2 and the parent-level HighwayMode -> FinishState : auto_finished_true. Candidate adds a third, spurious exit path with an event not mentioned anywhere in NL, raw STM_0, or canonical STM_0. This is a semantic regression: it introduces behavior not grounded in the requirements.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "The sole delta is the addition of an untraced event and transition. No NL-identified target issue is addressed or improved. The event name 'Untraced_Auto_Exit' itself signals that the repair mechanism could not find NL grounding for this change. There is no visible improvement to any requirement-related target.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic fidelity check: NL §5-6 clearly enumerate two cruise exit mechanisms. Canonical faithfully encodes both. Candidate inserts a third exit event ('Untraced Auto Exit') that has zero NL provenance. The canonical's parent-level HighwayMode -> FinishState : auto_finished_true already provides the hierarchical auto-finish exit from all HighwayMode substates including cruise; the added Untraced_Auto_Exit transition is both redundant and semantically unsupported. This is not a guard-extraction improvement — it is a spurious behavior injection.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All gates have explicit evidence references to specific sections/files. Confidence is high: the diff is a single unambiguous change with clear NL mismatch. Forbidden claims respected: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. No human escalation needed for a single spurious-event case with high-confidence evidence.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL §5: cruise exits via dist_to_exit<2 or auto_finished=true from parent",
+    "NL §6: HighwayMode ends via auto_finished=true",
+    "canonical STM_0 HighwayMode block: cruise -> endHighwayMode : dist_to_exit_2; HighwayMode -> FinishState : auto_finished_true",
+    "candidate STM_k HighwayMode block: adds event Untraced_Auto_Exit and transition cruise -> endHighwayMode : Untraced_Auto_Exit",
+    "raw STM_0 HighwayMode block: cruise --> [*] : dist_to_exit<2 (no untraced auto exit)"
+  ],
+  "rationale": "The sole difference between canonical STM_0 and candidate STM_k is the addition of a new event 'Untraced Auto Exit' and a new transition 'cruise -> endHighwayMode : Untraced_Auto_Exit'. The event name itself signals lack of NL provenance. NL exhaustively specifies cruise exit paths (dist_to_exit<2, auto_finished=true via parent); the canonical already models both. Candidate adds a third, unsupported exit that has no basis in NL, raw STM_0, or canonical STM_0. This is a pure regression with zero improvement: a spurious behavior injection. Verdict: not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "spurious_event_addition: event named 'Untraced Auto Exit' explicitly signals lack of NL traceability",
+    "phantom_transition: cruise -> endHighwayMode via an NL-unsupported event creates behavior not required by specification"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "Do not interpret this verdict as a reflection on the repair method or LLM capability.",
+    "Do not use this case for headline or repair-effectiveness eligibility."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, and conventions. No answer key, expected verdict, oracle mapping, original case slug, or adjudication hints detected."
+  }
+}

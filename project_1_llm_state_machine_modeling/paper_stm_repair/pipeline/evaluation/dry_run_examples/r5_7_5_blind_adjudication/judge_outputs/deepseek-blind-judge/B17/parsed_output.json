@@ -1,0 +1,98 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B17",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "caveat_t05",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "partial",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "Scope correctly identified as caveat_t05 per provenance_checks.scope_boundary_category. The candidate's timer_ticks guard is a discrete counter abstraction without lifecycle evidence, not true timed automata semantics, and not out-of-scope for headline consideration (only a caveat).",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Candidate STM_k is present, parseable (parse_ok per mechanical_checks), and both canonical and candidate files are readable. Minimum auditability threshold satisfied.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance chain is valid: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers (not normalization_only_artifact). The delta between canonical STM_0 and candidate STM_k is attributable to the constructed candidate: removal of event Timer_Expired from DoorOpen event declarations and replacement of the Timer_Expired transition trigger with guard if [timer_ticks >= 1] plus the top-level definition of timer_ticks.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All NL-supported states, transitions, hierarchy, and behaviors are preserved in candidate STM_k. The 14 transitions described in NL all map to equivalent transitions in both canonical and candidate. The only structural change — replacing event Timer_Expired with guard if [timer_ticks >= 1] on ReadytoCook → DoorShutWithItem — does not delete or break any NL-required behavior. Removal of event Timer_Expired from the DoorOpen event declaration does not cause loss of any other transition's trigger.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "The candidate makes the timer-expired condition explicit as a structured guard (if [timer_ticks >= 1]) rather than a flat event label (Timer_Expired), which is a modeling improvement for an internal/derived condition. However, per Rule 4, the absence of counter lifecycle evidence (increment/reset) in the blind packet constrains this to partial improvement rather than strict better. The change is a genuine explicitization step, not identity or formatting.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "Semantic fidelity is maintained: the candidate preserves the same state hierarchy (DoorShut nested within DoorOpen, ReadytoCook and Cooking nested within DoorOpen), same transition structure, and same guard/event semantics for all non-timer transitions. The timer-expired condition is represented differently but semantically equivalent under the T0.5 counter abstraction caveat. No semantic deletion, no trace loss, no NL contradiction detected.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Output conforms to better_adjudication_blind_output_schema_v0. Evidence references are explicit and gate-specific. Eligibility flags are correctly set to false/null per dry-run protocol. Forbidden claims documented. No leakage detected.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL",
+    "raw STM_0",
+    "canonical STM_0",
+    "candidate STM_k",
+    "input_packet.provenance_checks",
+    "input_packet.mechanical_checks"
+  ],
+  "rationale": "Candidate STM_k modifies one transition: replaces event-driven Timer_Expired on ReadytoCook → DoorShutWithItem with a discrete counter guard if [timer_ticks >= 1], and adds a top-level integer variable timer_ticks. This is a T0.5 counter abstraction that makes the internal timer condition explicit. All NL-supported states, transitions, and hierarchy are preserved. Provenance chain is intact. Under Rule 4, without counter lifecycle evidence the verdict is partial rather than strict better — the candidate shows explicitization gain but the model is incomplete.",
+  "observed_anti_gaming_risk_flags": [
+    "t05_counter_without_lifecycle: timer_ticks variable is declared but has no increment/reset logic in the candidate, making the guard condition semantically underspecified",
+    "event_removal_without_full_migration: event Timer_Expired removed from DoorOpen event declarations; the guard-based replacement is syntactically valid but semantically incomplete without lifecycle support"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The partial verdict does not imply the repair approach is effective or generalizable.",
+    "Candidate improvement on timer guard does not constitute timed-automata or continuous-time semantics."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains no answer key, expected verdict, oracle mapping, original case slug, or adjudication hints. Blind case B17 appears to be a cleanly constructed blind input."
+  }
+}

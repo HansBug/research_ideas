@@ -1,0 +1,630 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete threshold-based guard conditions (dist_to_front<25, dist_to_front<15, dist_to_exit<2, dist_to_exit<0.7, dist_to_rear<5, vel>30). No continuous time / timed-automata semantics, no second-based duration, no periodic timer/tick cues are present in NL, raw STM_0, canonical, or candidate. This is a pure T0 discrete guard extraction case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "All files present (baseline_file_present=true, candidate_file_present=true). Candidate parse status is parse_ok per mechanical_checks. Canonical and candidate are both readable and auditable .fcstm models with comparable structure.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_origin_category=constructed_candidate_with_local_ledgers, change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. Changes are attributable to the canonical->candidate delta. The delta consists of: (a) adding top-level `def int dist_to_front = 0;` and `def int extra_lane = 0;`, (b) removing event declarations `dist_to_front_25_extra_lane_true` and `dist_to_front_15_extra_lane_true` from HighwayMode/UrbanMode, (c) replacing the four transitions that used those events with explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax. This is a semantic guard extraction, not normalization/formatting/whitespace-only change.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, pseudo states, composite hierarchy (AutonomousMode containing HighwayMode/UrbanMode/InitialState/FinishState), transitions, transition source/target pairs, event labels (except the two extracted guard-bearing events), and the collision_avoidance subsystem are preserved verbatim. The four modified transitions retain identical source/target states (cruise->lane_change x2, enter_urban->lane_change_urban, straight->lane_change_urban). The guard semantics extracted match NL's predicate conditions exactly. No state, transition, hierarchy, guard condition, action, or trace described in NL is deleted or broken.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Under rule 2.2.6 (完整 guard extraction 可为 better): NL explicitly describes conditions as predicates (dist_to_front<25 && extra_lane=true, dist_to_front<15 && extra_lane=true). Canonical STM_0 encodes these predicates folded into opaque event names (dist_to_front_25_extra_lane_true, dist_to_front_15_extra_lane_true). Candidate STM_k extracts all four instances into explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax with declared `def int` variables, preserving the original state/transition/hierarchy/action semantics. All instances of this target family are consistently converted (all four guard-bearing transitions in both HighwayMode and UrbanMode). This constitutes a strict improvement in guard explicitness and machine-readability of the condition structure.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "NL guard conditions map directly to candidate explicit guards: `dist_to_front<25 && extra_lane=true` → `if [dist_to_front < 25 && extra_lane == 1]`, `dist_to_front<15 && extra_lane=true` → `if [dist_to_front < 15 && extra_lane == 1]`. The boolean-to-integer mapping (true→1) is semantically equivalent for guard evaluation. All other transitions, the collision avoidance subsystem (including the complex disjunctive guard on collision_avoidance_deactive->collision_avoidance_active), and cross-mode dynamic transitions (`! * -> HighwayMode : high_way_true`, `! * -> UrbanMode : urban_way_true`) are preserved verbatim. No semantic loss, no false improvement from text similarity alone.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "E0 leakage check: no answer key, expected verdict, oracle mapping, or original case slug detected in blind input packet. E10 eligibility: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol dry-run instructions. Evidence chain is self-contained within this JSON output and the provided blind input files. Confidence is high: the delta is well-defined, all four target transitions are consistently modified, no regressions. No human escalation required.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 3: `dist_to_front<25` and `extra_lane=true` guard conditions for HighwayMode cruise->lane_change",
+    "NL paragraph 5: `dist_to_front<25` and extra lane condition for cruise->lane_change",
+    "NL paragraph 7: `dist_to_front<15` and extra lane condition for UrbanMode enter_urban->lane_change_urban",
+    "NL paragraph 9: `dist_to_front<15` and extra lane condition for straight->lane_change_urban",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true (opaque event name encoding guard)",
+    "canonical STM_0 event dist_to_front_15_extra_lane_true (opaque event name encoding guard)",
+    "candidate STM_k if [dist_to_front < 25 && extra_lane == 1] on cruise->lane_change (x2)",
+    "candidate STM_k if [dist_to_front < 15 && extra_lane == 1] on enter_urban->lane_change_urban and straight->lane_change_urban"
+  ],
+  "rationale": "Candidate STM_k performs a complete, consistent guard extraction across both HighwayMode and UrbanMode: all four transitions whose predicates were folded into opaque event names in canonical STM_0 are converted to explicit `if [guard]` syntax with declared `def int` variables. NL explicitly frames these conditions as predicates, so the extraction aligns with the NL intent. No states, transitions, hierarchy, or other behaviors are regressed. Per fail-closed rule 2.2.6, this complete guard extraction constitutes `better`.",
+  "observed_anti_gaming_risk_flags": [
+    "extra_lane type shift: NL uses boolean `extra_lane=true`, candidate declares `def int extra_lane = 0` and tests `extra_lane == 1`; semantically equivalent as guard condition but representational shift noted for audit trail"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not evaluate any repair loop, method, or LLM capability.",
+    "Headline or repair_effectiveness eligibility is explicitly disabled per protocol dry-run instructions."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, and neutral_change_observation. No answer key, expected verdict, oracle mapping, original Cxx case slug, or PR discussion context is visible."
+  }
+}
+```
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete threshold-based guard conditions (dist_to_front<25, dist_to_front<15, dist_to_exit<2, dist_to_exit<0.7, dist_to_rear<5, vel>30). No continuous time / timed-automata semantics, no second-based duration, no periodic timer/tick cues are present in NL, raw STM_0, canonical, or candidate. This is a pure T0 discrete guard extraction case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "All files present (baseline_file_present=true, candidate_file_present=true). Candidate parse status is parse_ok per mechanical_checks. Canonical and candidate are both readable and auditable .fcstm models with comparable structure.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_origin_category=constructed_candidate_with_local_ledgers, change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. Changes are attributable to the canonical->candidate delta. The delta consists of: (a) adding top-level `def int dist_to_front = 0;` and `def int extra_lane = 0;`, (b) removing event declarations `dist_to_front_25_extra_lane_true` and `dist_to_front_15_extra_lane_true` from HighwayMode/UrbanMode, (c) replacing the four transitions that used those events with explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax. This is a semantic guard extraction, not normalization/formatting/whitespace-only change.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, pseudo states, composite hierarchy (AutonomousMode containing HighwayMode/UrbanMode/InitialState/FinishState), transitions, transition source/target pairs, event labels (except the two extracted guard-bearing events), and the collision_avoidance subsystem are preserved verbatim. The four modified transitions retain identical source/target states (cruise->lane_change x2, enter_urban->lane_change_urban, straight->lane_change_urban). The guard semantics extracted match NL's predicate conditions exactly. No state, transition, hierarchy, guard condition, action, or trace described in NL is deleted or broken.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Under rule 2.2.6 (完整 guard extraction 可为 better): NL explicitly describes conditions as predicates (dist_to_front<25 && extra_lane=true, dist_to_front<15 && extra_lane=true). Canonical STM_0 encodes these predicates folded into opaque event names (dist_to_front_25_extra_lane_true, dist_to_front_15_extra_lane_true). Candidate STM_k extracts all four instances into explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax with declared `def int` variables, preserving the original state/transition/hierarchy/action semantics. All instances of this target family are consistently converted (all four guard-bearing transitions in both HighwayMode and UrbanMode). This constitutes a strict improvement in guard explicitness and machine-readability of the condition structure.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "NL guard conditions map directly to candidate explicit guards: `dist_to_front<25 && extra_lane=true` → `if [dist_to_front < 25 && extra_lane == 1]`, `dist_to_front<15 && extra_lane=true` → `if [dist_to_front < 15 && extra_lane == 1]`. The boolean-to-integer mapping (true→1) is semantically equivalent for guard evaluation. All other transitions, the collision avoidance subsystem (including the complex disjunctive guard on collision_avoidance_deactive->collision_avoidance_active), and cross-mode dynamic transitions (`! * -> HighwayMode : high_way_true`, `! * -> UrbanMode : urban_way_true`) are preserved verbatim. No semantic loss, no false improvement from text similarity alone.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "E0 leakage check: no answer key, expected verdict, oracle mapping, or original case slug detected in blind input packet. E10 eligibility: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol dry-run instructions. Evidence chain is self-contained within this JSON output and the provided blind input files. Confidence is high: the delta is well-defined, all four target transitions are consistently modified, no regressions. No human escalation required.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 3: `dist_to_front<25` and `extra_lane=true` guard conditions for HighwayMode cruise->lane_change",
+    "NL paragraph 5: `dist_to_front<25` and extra lane condition for cruise->lane_change",
+    "NL paragraph 7: `dist_to_front<15` and extra lane condition for UrbanMode enter_urban->lane_change_urban",
+    "NL paragraph 9: `dist_to_front<15` and extra lane condition for straight->lane_change_urban",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true (opaque event name encoding guard)",
+    "canonical STM_0 event dist_to_front_15_extra_lane_true (opaque event name encoding guard)",
+    "candidate STM_k if [dist_to_front < 25 && extra_lane == 1] on cruise->lane_change (x2)",
+    "candidate STM_k if [dist_to_front < 15 && extra_lane == 1] on enter_urban->lane_change_urban and straight->lane_change_urban"
+  ],
+  "rationale": "Candidate STM_k performs a complete, consistent guard extraction across both HighwayMode and UrbanMode: all four transitions whose predicates were folded into opaque event names in canonical STM_0 are converted to explicit `if [guard]` syntax with declared `def int` variables. NL explicitly frames these conditions as predicates, so the extraction aligns with the NL intent. No states, transitions, hierarchy, or other behaviors are regressed. Per fail-closed rule 2.2.6, this complete guard extraction constitutes `better`.",
+  "observed_anti_gaming_risk_flags": [
+    "extra_lane type shift: NL uses boolean `extra_lane=true`, candidate declares `def int extra_lane = 0` and tests `extra_lane == 1`; semantically equivalent as guard condition but representational shift noted for audit trail"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not evaluate any repair loop, method, or LLM capability.",
+    "Headline or repair_effectiveness eligibility is explicitly disabled per protocol dry-run instructions."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, and neutral_change_observation. No answer key, expected verdict, oracle mapping, original Cxx case slug, or PR discussion context is visible."
+  }
+}
+```
+
+OpenAI Codex v0.141.0
+--------
+workdir: /home/zhangshaoang/oo-projects/research_ideas
+model: deepseek-v4-pro
+provider: deepseek
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f2f60-9213-7012-b76b-7cfcce3b49f6
+--------
+user
+# Better STM blind adjudication prompt v0（R5.7.5）
+
+> 本 prompt 用于 R5.7.5 full blind adjudication dry-run。裁决员只能根据 blind input packet 判断 `candidate STM_k` 是否相对 `canonical STM_0` 更好；不得访问 answer key、expected verdict、oracle 文件、原始 Cxx case 目录或 PR 讨论上下文。
+
+## 1. 任务
+
+你是状态机修复论文的独立语义裁决员。请只根据本次 prompt 中给出的 `NL`、raw `STM_0`、canonical `STM_0`、candidate `STM_k`、neutral change description 与 mechanical checks，独立判断候选是否相对 canonical `STM_0` 更好。
+
+本任务是 protocol dry-run，不是真实 repair loop 效果评估。无论你的 verdict 是什么，均必须设置：
+
+- `headline_eligible=false`
+- `repair_effectiveness_eligible=false`
+- `real_repair_run_id=null`
+
+## 2. 裁决顺序
+
+先按 E0--E11 逐项形成证据，再压缩映射到 G0--G6 fail-closed 输出：
+
+| stage | 检查对象 | 与 G gate 的关系 | 判定纪律 |
+|---|---|---|---|
+| E0 | blind input 是否只含本 prompt 给出的 NL/raw/canonical/candidate/机械事实 | G6 | 若看到 hidden answer key、原 Cxx slug 或 expected verdict，必须标记 leakage。 |
+| E1 | scope：T0 / T0.5 caveat / T1 stress / out-of-scope | G0 | T0.5 可作为 caveat；T1 不进入 headline better。 |
+| E2 | canonical STM_0 与 candidate STM_k 是否存在且可读 | G1 | 文件缺失或无法审计时 fail closed。 |
+| E3 | candidate parse/schema 状态 | G1 | parse failed 用 `stmk_repair_failure`；parse ok 只是准入，不等于 better。 |
+| E4 | provenance / attribution | G2 | normalization、format conversion、缺 ledger/hash 或额外能力外推不得算 repair gain。 |
+| E5 | candidate 是否保持 NL 支持的状态、迁移、层级、guard/action/effect/trace | G3 | 删除关键行为或破坏层级应为 not_better。 |
+| E6 | target issue 是否至少有一个被严格改善 | G4 | 无可见改善时用 not_better；证据不足且无明显回归时才用 unknown。 |
+| E7 | 改善是否完整闭合 | G4/G5 | 只修一部分且无关键回归时可 partial。 |
+| E8 | 语义保真与 no-regression 综合判断 | G5 | 回到 NL 与两版 STM，不得只凭文本相似度。 |
+| E9 | anti-gaming 风险 | G5/G6 | semantic deletion、over/under repair、trace loss、textual similarity misuse 等必须显式标记。 |
+| E10 | 输出 eligibility | G6 | 本轮固定 `headline_eligible=false`、`repair_effectiveness_eligible=false`、`real_repair_run_id=null`。 |
+| E11 | evidence archival / human escalation | G6 | 说明证据引用、置信度、禁止主张和是否需人工升级。 |
+
+压缩到 JSON 时仍只输出 `gate_results.G0`--`G6`。G0--G6 语义如下：
+
+1. G0 scope：判断 T0 / T0.5 caveat / T1 stress / out-of-scope。
+2. G1 A gate：检查 candidate 是否 parse/schema/evidence 最低可审计；parse invalid 时倾向 `stmk_repair_failure`。
+3. G2 attribution：判断变化是否能归因于 `canonical STM_0 -> candidate STM_k`；不要把 conversion / normalization / formatting 当 repair gain。
+4. G3 no-regression：检查是否删除或破坏 NL 支持的状态、迁移、层级、guard、action/effect 或关键 trace。
+5. G4 improvement：检查是否至少有一个需求相关 target 被改善。
+6. G5 semantic：回到 NL/raw/canonical/candidate 判断语义保真性；指标或文本相似度只能辅助，不能替代语义裁决。
+7. G6 reporting：给出证据引用、置信度、禁止主张与人工升级条件。
+
+
+## 2.1 静态 STM 语义约定（防误判）
+
+- 本任务是静态 STM repair/refinement 裁决，不是对 `.fcstm` 进行完整仿真。`def int` / `def bool` 形式的 guard 变量可表示外部传感器、输入条件或抽象条件；仅凭“变量在 candidate 内没有 assignment”不能断言该迁移不可达。
+- 反过来，parse 成功、变量声明存在、格式更规整，也不能自动算作 better。better 必须来自 NL 支持的语义改善，且不能引入关键回归。
+- raw / canonical STM_0 的 event label 可能把 event、guard、action/effect 混写在同一个 label 中；candidate 可以把它拆成 event + guard/effect，但必须保留原始触发语义。
+- T0.5 的周期 tick / timer cue 可以用离散 counter 作为 caveat_t05；真正 timed automata / clock invariant / continuous time claim 不属于 headline Better STM。
+- `provenance_checks` 是可观察运行记录事实，不是 answer key；若它显示 normalization-only、ledger/hash 缺失或额外能力外推，应按 G2 fail-closed。
+
+
+## 2.2 fail-closed 强规则（不得被后续语义分析覆盖）
+
+这些规则优先于“candidate 看起来有没有语义改善”的普通判断：
+
+1. **scope routing 优先**：若 `provenance_checks.scope_boundary_category` 为 `out_of_headline_t1_stress`，或 NL/candidate 明确要求真正 timed automata / continuous clock / second-based duration semantics 而 candidate 未按 T0.5 counter caveat 降级，则必须输出 `scope_routing_status=out_of_headline_stress_t1`、`run_validity_status=stress_only_not_headline`、`primary_verdict=stress_t1`。若 `provenance_checks.scope_boundary_category` 为 `caveat_t05`，则 `scope_routing_status` 必须为 `caveat_t05`，但 verdict 仍由后续 gate / provenance invalid 规则决定。
+2. **provenance invalid 优先**：若 `provenance_checks.change_origin_category=normalization_only_artifact`，或 `change_ledger_available=false`，或 `target_instance_ledger_available=false`，或 `hash_chain_complete=false`，或 `declared_extra_method_claims` 声称了 candidate carrier 没有提供的额外能力，则必须输出 `run_validity_status=protocol_or_provenance_invalid`、`primary_verdict=protocol_or_provenance_invalid`。即使 candidate 在语义上看似改善，也不能进入 Better/partial/not_better。
+3. **unknown 只用于证据不足**：若 `provenance_checks.semantic_evidence_status` 明确为 `insufficient_for_strict_improvement_or_regression` 或 `insufficient_traceability_for_strict_verdict`，并且 G3 未发现清晰语义回归，则必须输出 `primary_verdict=unknown`；这条优先于 identity/no-gain 的默认 `not_better`，因为该字段表示当前 blind packet 的语义证据不足以支撑严格 better/not_better。不要把 unknown 用作“懒得判断”；有清晰语义回归时仍应是 `not_better`。
+4. **T0.5 counter caveat 不等于 strict better**：若 `provenance_checks.semantic_evidence_status=t05_counter_abstraction_without_lifecycle`，且 candidate 只是把 timer/tick/event 改成离散 counter guard、但 blind packet 没有 counter increment/reset/lifecycle 证据，则不要输出 strict `better`；若无清晰回归且确有显式化收益，输出 `primary_verdict=partial`、`scope_routing_status=caveat_t05`。
+5. **identity/null delta**：若 candidate 与 canonical 字节相同且没有 protocol invalid 的 provenance 事实，默认 `not_better`，因为 no-op 不是 repair gain。
+6. **完整 guard extraction 可为 better**：若 NL 明确把触发条件写成条件/谓词（例如 `dist_to_front<25 && extra_lane=true`），canonical 仅把该谓词折叠在 event name/display label 中，而 candidate 对同一 target family 完整改为 explicit guard syntax、保留原 state/transition/hierarchy/action 语义且没有关键回归，则这可以构成 `better`，不要仅因“canonical 也大致可读”而降级为 `partial`。若只改一部分同类 guard 或引入不一致抽象，则不得用此规则。
+
+
+## 3. 输出要求
+
+只输出符合 `better_adjudication_blind_output_schema_v0.json` 的 JSON，不要输出 Markdown。`primary_verdict` 必须取单值：`better`、`not_better`、`partial`、`unknown`、`stmk_repair_failure`、`protocol_or_provenance_invalid`、`stress_t1`。
+
+## 4. 泄露纪律
+
+如果你在输入中看到疑似 answer key、expected verdict、oracle mapping、原始 case slug 或明显裁决暗示，请在 `leakage_observation.detected=true` 中说明；但不要访问或推断任何未提供的外部文件。
+
+## 5. 必须严格使用的 JSON 骨架
+
+你必须输出且只输出如下字段结构。不要使用 `gates`、`g0_scope`、`detail` 等替代字段名；必须使用 `gate_results.G0` ... `gate_results.G6`。
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "Bxx",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "...",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case | caveat_t05 | out_of_headline_stress_t1 | out_of_scope",
+  "run_validity_status": "valid_blind_protocol_case | candidate_schema_or_parse_invalid | protocol_or_provenance_invalid | stress_only_not_headline",
+  "primary_verdict": "better | not_better | partial | unknown | stmk_repair_failure | protocol_or_provenance_invalid | stress_t1",
+  "gate_results": {
+    "G0": {"status": "pass", "reason": "...", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G1": {"status": "pass", "reason": "...", "evidence_references": ["candidate STM_k"]},
+    "G2": {"status": "pass", "reason": "...", "evidence_references": ["canonical STM_0", "candidate STM_k"]},
+    "G3": {"status": "pass", "reason": "...", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G4": {"status": "pass", "reason": "...", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G5": {"status": "pass", "reason": "...", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G6": {"status": "pass", "reason": "...", "evidence_references": ["this JSON output"]}
+  },
+  "evidence_references": ["..."],
+  "rationale": "...",
+  "observed_anti_gaming_risk_flags": ["..."],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high | medium | low | unknown",
+  "human_escalation_required": false,
+  "leakage_observation": {"detected": false, "notes": "..."}
+}
+```
+
+若你无法确定某个 gate，请使用 `status=unknown`，不要新增 schema 外字段。若你认为候选 parse invalid，`run_validity_status` 用 `candidate_schema_or_parse_invalid` 且 `primary_verdict` 用 `stmk_repair_failure`。
+
+**严格 schema 提醒**：`gate_results.G0`--`gate_results.G6` 的每个 gate 对象只允许 `status`、`reason`、`evidence_references` 三个字段；严禁增加 `mechanical_parse_status`、`details`、`notes`、`score`、`substatus` 等任何额外字段。机械 parse 信息如需说明，只能写入该 gate 的 `reason` 文本中。
+
+
+# Blind case input
+
+judge_id: deepseek-blind-judge
+blind_case_id: B09
+
+## input_packet.json
+```json
+{
+  "schema_version": "r5_7_5.blind_input_packet.v1",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_input",
+  "base_pair_id": "llms_emp_stm_results_0039",
+  "source_model_name": "autonomous mode",
+  "source_model_family": "HLDCS",
+  "source_llm": "Kimi",
+  "nl_path": "nl.txt",
+  "raw_stm0_path": "raw_stm0.plantuml",
+  "canonical_stm0_path": "canonical_stm0.fcstm",
+  "candidate_stmk_path": "candidate_stmk.fcstm",
+  "baseline_sha256": "2c3b184cf92e7da712db89d1f90b4ffe8a551002ab6082015e25844af514f962",
+  "candidate_sha256": "a3696cfce2038c3945d6089fa94999f1033158846dbe54ea0b93cd20b8fe7ebb",
+  "mechanical_checks": {
+    "baseline_file_present": true,
+    "candidate_file_present": true,
+    "candidate_parse_status": "parse_ok",
+    "parse_success_alone_is_not_semantic_evidence": true
+  },
+  "semantic_modeling_conventions": {
+    "fcstm_role": "internal_static_experiment_carrier_not_method_contribution",
+    "guard_variables": "Abstract sensor/input conditions in static adjudication; absence of in-model assignment is not by itself a dead-transition proof.",
+    "event_labels": "Labels may encode events and actions in raw/canonical STM_0; candidate may split them into event plus effect only if NL-supported behavior is preserved.",
+    "t05_timer_policy": "Periodic timer/tick cues may be routed as caveat_t05 when represented as a discrete counter abstraction.",
+    "t1_policy": "True continuous time / timed-automata semantics are out-of-headline stress cases, not headline Better STM successes."
+  },
+  "provenance_checks": {
+    "change_ledger_available": true,
+    "target_instance_ledger_available": true,
+    "hash_chain_complete": true,
+    "candidate_hash_matches_constructed_case": true,
+    "change_origin_category": "constructed_candidate_with_local_ledgers",
+    "candidate_same_as_canonical_stm0": false
+  },
+  "neutral_change_observation": "Inspect canonical_stm0.fcstm and candidate_stmk.fcstm directly. The packet provides only observable mechanical/provenance facts and no hidden answer key.",
+  "adjudication_question": "Based only on NL, raw STM_0, canonical STM_0, candidate STM_k and mechanical/provenance facts, decide whether candidate STM_k is better than canonical STM_0 under E0-E11/G0-G6."
+}
+```
+
+## NL
+```text
+1. The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode.
+2. From the InitialState, the system can transition to either HighwayMode or UrbanMode based on conditions: `high_way=true` for HighwayMode or `urban_way=true` for UrbanMode.
+3. In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`).
+4. If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`).
+5. In the cruise substate, if the distance to the front vehicle becomes less than 25 meters (`dist_to_front<25`) and there is an extra lane available, the system transitions to lane_change. The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`).
+6. The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition.
+7. In UrbanMode, the system begins in the enter_urban substate. From here, it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters (`dist_to_front<15`) and an extra lane is available, or straight if the road ahead is clear, or intersection if it detects an intersection (`intersection=true`).
+8. In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`).
+9. In the straight substate, if the system detects an intersection, it transitions to the intersection substate. If the distance to the front vehicle becomes less than 15 meters (`dist_to_front<15`) and an extra lane is available, it transitions to lane_change_urban.
+10. The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied.
+11. The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive.
+12. The collision avoidance system is initially in the collision_avoidance_deactive state. It transitions to collision_avoidance_active when certain conditions are met, such as detecting pedestrians (`pedestrian_detected`), the rear distance being less than 5 meters with a velocity over 30 km/h (`dist_to_rear<5 & vel>30`), or the front distance being less than 15 meters in highway mode or 10 meters in urban mode.
+13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.
+```
+
+## raw STM_0
+```plantuml
+@startuml
+[*] --> AutonomousMode
+
+state AutonomousMode {
+[*] --> InitialState
+
+InitialState --> HighwayMode : high_way=true
+InitialState --> UrbanMode : urban_way=true
+
+state HighwayMode {
+[*] --> enter_hwy
+
+enter_hwy --> cruise
+cruise --> lane_change : dist_to_front<25 && extra_lane=true
+lane_change --> cruise : lane change completed
+lane_change --> [*] : dist_to_exit<2
+
+cruise --> [*] : dist_to_exit<2
+cruise --> lane_change : dist_to_front<25 && extra_lane=true
+}
+
+HighwayMode --> FinishState : auto_finished=true
+
+state UrbanMode {
+[*] --> enter_urban
+
+enter_urban --> lane_change_urban : dist_to_front<15 && extra_lane=true
+enter_urban --> straight : road ahead is clear
+enter_urban --> intersection : intersection=true
+
+lane_change_urban --> straight : lane change complete
+lane_change_urban --> exit_urban : dist_to_exit<0.7
+
+straight --> intersection : intersection=true
+straight --> lane_change_urban : dist_to_front<15 && extra_lane=true
+}
+
+UrbanMode --> FinishState : auto_finished=true
+}
+
+AutonomousMode --> HighwayMode : high_way=true
+AutonomousMode --> UrbanMode : urban_way=true
+
+[*] --> collision_avoidance_deactive
+
+collision_avoidance_deactive --> collision_avoidance_active : pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)
+
+collision_avoidance_active --> collision_avoidance_deactive : front_inactive && rear_inactive && pedestrian_inactive
+
+@enduml
+```
+
+## canonical STM_0
+```fcstm
+state llms_emp_kimi_autonomous_collision named "llms-emp-kimi-autonomous-collision" {
+    [*] -> start;
+    event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive && rear_inactive && pedestrian_inactive";
+    event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode named "pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)";
+    pseudo state start named "start";
+    state collision_avoidance_deactive named "collision_avoidance_deactive";
+    state collision_avoidance_active named "collision_avoidance_active";
+    state AutonomousMode named "AutonomousMode" {
+        [*] -> startAutonomousMode;
+        event auto_finished_true named "auto_finished=true";
+        event high_way_true named "high_way=true";
+        event urban_way_true named "urban_way=true";
+        pseudo state startAutonomousMode named "startAutonomousMode";
+        state InitialState named "InitialState";
+        state FinishState named "FinishState";
+        state HighwayMode named "HighwayMode" {
+            [*] -> startHighwayMode;
+            event dist_to_exit_2 named "dist_to_exit<2";
+            event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true";
+            event lane_change_completed named "lane change completed";
+            pseudo state startHighwayMode named "startHighwayMode";
+            state enter_hwy named "enter_hwy";
+            state cruise named "cruise";
+            state lane_change named "lane_change";
+            state endHighwayMode named "endHighwayMode";
+            startHighwayMode -> enter_hwy;
+            enter_hwy -> cruise;
+            cruise -> lane_change : dist_to_front_25_extra_lane_true;
+            cruise -> endHighwayMode : dist_to_exit_2;
+            cruise -> lane_change : dist_to_front_25_extra_lane_true;
+            lane_change -> cruise : lane_change_completed;
+            lane_change -> endHighwayMode : dist_to_exit_2;
+        }
+        state UrbanMode named "UrbanMode" {
+            [*] -> startUrbanMode;
+            event dist_to_exit_0_7 named "dist_to_exit<0.7";
+            event dist_to_front_15_extra_lane_true named "dist_to_front<15 && extra_lane=true";
+            event intersection_true named "intersection=true";
+            event lane_change_complete named "lane change complete";
+            event road_ahead_is_clear named "road ahead is clear";
+            pseudo state startUrbanMode named "startUrbanMode";
+            state enter_urban named "enter_urban";
+            state lane_change_urban named "lane_change_urban";
+            state straight named "straight";
+            state intersection named "intersection";
+            state exit_urban named "exit_urban";
+            startUrbanMode -> enter_urban;
+            enter_urban -> lane_change_urban : dist_to_front_15_extra_lane_true;
+            enter_urban -> straight : road_ahead_is_clear;
+            enter_urban -> intersection : intersection_true;
+            lane_change_urban -> straight : lane_change_complete;
+            lane_change_urban -> exit_urban : dist_to_exit_0_7;
+            straight -> intersection : intersection_true;
+            straight -> lane_change_urban : dist_to_front_15_extra_lane_true;
+        }
+        ! * -> HighwayMode : high_way_true;
+        ! * -> UrbanMode : urban_way_true;
+        startAutonomousMode -> InitialState;
+        InitialState -> HighwayMode : high_way_true;
+        InitialState -> UrbanMode : urban_way_true;
+        HighwayMode -> FinishState : auto_finished_true;
+        UrbanMode -> FinishState : auto_finished_true;
+    }
+    start -> AutonomousMode;
+    start -> collision_avoidance_deactive;
+    collision_avoidance_deactive -> collision_avoidance_active : pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode;
+    collision_avoidance_active -> collision_avoidance_deactive : front_inactive_rear_inactive_pedestrian_inactive;
+}
+
+```
+
+## candidate STM_k
+```fcstm
+def int dist_to_front = 0;
+def int extra_lane = 0;
+state llms_emp_kimi_autonomous_collision named "llms-emp-kimi-autonomous-collision" {
+    [*] -> start;
+    event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive && rear_inactive && pedestrian_inactive";
+    event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode named "pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 in HighwayMode || dist_to_front<10 in UrbanMode)";
+    pseudo state start named "start";
+    state collision_avoidance_deactive named "collision_avoidance_deactive";
+    state collision_avoidance_active named "collision_avoidance_active";
+    state AutonomousMode named "AutonomousMode" {
+        [*] -> startAutonomousMode;
+        event auto_finished_true named "auto_finished=true";
+        event high_way_true named "high_way=true";
+        event urban_way_true named "urban_way=true";
+        pseudo state startAutonomousMode named "startAutonomousMode";
+        state InitialState named "InitialState";
+        state FinishState named "FinishState";
+        state HighwayMode named "HighwayMode" {
+            [*] -> startHighwayMode;
+            event dist_to_exit_2 named "dist_to_exit<2";
+            event lane_change_completed named "lane change completed";
+            pseudo state startHighwayMode named "startHighwayMode";
+            state enter_hwy named "enter_hwy";
+            state cruise named "cruise";
+            state lane_change named "lane_change";
+            state endHighwayMode named "endHighwayMode";
+            startHighwayMode -> enter_hwy;
+            enter_hwy -> cruise;
+            cruise -> lane_change : if [dist_to_front < 25 && extra_lane == 1];
+            cruise -> endHighwayMode : dist_to_exit_2;
+            cruise -> lane_change : if [dist_to_front < 25 && extra_lane == 1];
+            lane_change -> cruise : lane_change_completed;
+            lane_change -> endHighwayMode : dist_to_exit_2;
+        }
+        state UrbanMode named "UrbanMode" {
+            [*] -> startUrbanMode;
+            event dist_to_exit_0_7 named "dist_to_exit<0.7";
+            event intersection_true named "intersection=true";
+            event lane_change_complete named "lane change complete";
+            event road_ahead_is_clear named "road ahead is clear";
+            pseudo state startUrbanMode named "startUrbanMode";
+            state enter_urban named "enter_urban";
+            state lane_change_urban named "lane_change_urban";
+            state straight named "straight";
+            state intersection named "intersection";
+            state exit_urban named "exit_urban";
+            startUrbanMode -> enter_urban;
+            enter_urban -> lane_change_urban : if [dist_to_front < 15 && extra_lane == 1];
+            enter_urban -> straight : road_ahead_is_clear;
+            enter_urban -> intersection : intersection_true;
+            lane_change_urban -> straight : lane_change_complete;
+            lane_change_urban -> exit_urban : dist_to_exit_0_7;
+            straight -> intersection : intersection_true;
+            straight -> lane_change_urban : if [dist_to_front < 15 && extra_lane == 1];
+        }
+        ! * -> HighwayMode : high_way_true;
+        ! * -> UrbanMode : urban_way_true;
+        startAutonomousMode -> InitialState;
+        InitialState -> HighwayMode : high_way_true;
+        InitialState -> UrbanMode : urban_way_true;
+        HighwayMode -> FinishState : auto_finished_true;
+        UrbanMode -> FinishState : auto_finished_true;
+    }
+    start -> AutonomousMode;
+    start -> collision_avoidance_deactive;
+    collision_avoidance_deactive -> collision_avoidance_active : pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode;
+    collision_avoidance_active -> collision_avoidance_deactive : front_inactive_rear_inactive_pedestrian_inactive;
+}
+
+```
+
+请只输出 JSON。不要访问任何其他文件。不要使用 PR comment 或上下文记忆。不要猜测隐藏 answer key。
+
+warning: Model metadata for `deepseek-v4-pro` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete threshold-based guard conditions (dist_to_front<25, dist_to_front<15, dist_to_exit<2, dist_to_exit<0.7, dist_to_rear<5, vel>30). No continuous time / timed-automata semantics, no second-based duration, no periodic timer/tick cues are present in NL, raw STM_0, canonical, or candidate. This is a pure T0 discrete guard extraction case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "All files present (baseline_file_present=true, candidate_file_present=true). Candidate parse status is parse_ok per mechanical_checks. Canonical and candidate are both readable and auditable .fcstm models with comparable structure.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_origin_category=constructed_candidate_with_local_ledgers, change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. Changes are attributable to the canonical->candidate delta. The delta consists of: (a) adding top-level `def int dist_to_front = 0;` and `def int extra_lane = 0;`, (b) removing event declarations `dist_to_front_25_extra_lane_true` and `dist_to_front_15_extra_lane_true` from HighwayMode/UrbanMode, (c) replacing the four transitions that used those events with explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax. This is a semantic guard extraction, not normalization/formatting/whitespace-only change.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, pseudo states, composite hierarchy (AutonomousMode containing HighwayMode/UrbanMode/InitialState/FinishState), transitions, transition source/target pairs, event labels (except the two extracted guard-bearing events), and the collision_avoidance subsystem are preserved verbatim. The four modified transitions retain identical source/target states (cruise->lane_change x2, enter_urban->lane_change_urban, straight->lane_change_urban). The guard semantics extracted match NL's predicate conditions exactly. No state, transition, hierarchy, guard condition, action, or trace described in NL is deleted or broken.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Under rule 2.2.6 (完整 guard extraction 可为 better): NL explicitly describes conditions as predicates (dist_to_front<25 && extra_lane=true, dist_to_front<15 && extra_lane=true). Canonical STM_0 encodes these predicates folded into opaque event names (dist_to_front_25_extra_lane_true, dist_to_front_15_extra_lane_true). Candidate STM_k extracts all four instances into explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax with declared `def int` variables, preserving the original state/transition/hierarchy/action semantics. All instances of this target family are consistently converted (all four guard-bearing transitions in both HighwayMode and UrbanMode). This constitutes a strict improvement in guard explicitness and machine-readability of the condition structure.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "NL guard conditions map directly to candidate explicit guards: `dist_to_front<25 && extra_lane=true` → `if [dist_to_front < 25 && extra_lane == 1]`, `dist_to_front<15 && extra_lane=true` → `if [dist_to_front < 15 && extra_lane == 1]`. The boolean-to-integer mapping (true→1) is semantically equivalent for guard evaluation. All other transitions, the collision avoidance subsystem (including the complex disjunctive guard on collision_avoidance_deactive->collision_avoidance_active), and cross-mode dynamic transitions (`! * -> HighwayMode : high_way_true`, `! * -> UrbanMode : urban_way_true`) are preserved verbatim. No semantic loss, no false improvement from text similarity alone.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "E0 leakage check: no answer key, expected verdict, oracle mapping, or original case slug detected in blind input packet. E10 eligibility: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol dry-run instructions. Evidence chain is self-contained within this JSON output and the provided blind input files. Confidence is high: the delta is well-defined, all four target transitions are consistently modified, no regressions. No human escalation required.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 3: `dist_to_front<25` and `extra_lane=true` guard conditions for HighwayMode cruise->lane_change",
+    "NL paragraph 5: `dist_to_front<25` and extra lane condition for cruise->lane_change",
+    "NL paragraph 7: `dist_to_front<15` and extra lane condition for UrbanMode enter_urban->lane_change_urban",
+    "NL paragraph 9: `dist_to_front<15` and extra lane condition for straight->lane_change_urban",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true (opaque event name encoding guard)",
+    "canonical STM_0 event dist_to_front_15_extra_lane_true (opaque event name encoding guard)",
+    "candidate STM_k if [dist_to_front < 25 && extra_lane == 1] on cruise->lane_change (x2)",
+    "candidate STM_k if [dist_to_front < 15 && extra_lane == 1] on enter_urban->lane_change_urban and straight->lane_change_urban"
+  ],
+  "rationale": "Candidate STM_k performs a complete, consistent guard extraction across both HighwayMode and UrbanMode: all four transitions whose predicates were folded into opaque event names in canonical STM_0 are converted to explicit `if [guard]` syntax with declared `def int` variables. NL explicitly frames these conditions as predicates, so the extraction aligns with the NL intent. No states, transitions, hierarchy, or other behaviors are regressed. Per fail-closed rule 2.2.6, this complete guard extraction constitutes `better`.",
+  "observed_anti_gaming_risk_flags": [
+    "extra_lane type shift: NL uses boolean `extra_lane=true`, candidate declares `def int extra_lane = 0` and tests `extra_lane == 1`; semantically equivalent as guard condition but representational shift noted for audit trail"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not evaluate any repair loop, method, or LLM capability.",
+    "Headline or repair_effectiveness eligibility is explicitly disabled per protocol dry-run instructions."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, and neutral_change_observation. No answer key, expected verdict, oracle mapping, original Cxx case slug, or PR discussion context is visible."
+  }
+}
+```
+hook: Stop
+hook: Stop Completed
+tokens used
+8,637

@@ -1,0 +1,100 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B12",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "protocol_or_provenance_invalid",
+  "primary_verdict": "protocol_or_provenance_invalid",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete threshold condition (front_distance > 10) and discrete mode transitions; candidate uses def int + if [front_distance > 10] guard, which is a discrete counter abstraction within T0 protocol scope. No continuous-time or timed-automata claims detected; no T1 stress triggering.",
+      "evidence_references": [
+        "NL",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks.candidate_parse_status=parse_ok; candidate STM_k is present, syntactically valid fcstm, and fully readable. Parse success alone is not semantic evidence of better, but satisfies minimum auditability gate.",
+      "evidence_references": [
+        "candidate STM_k",
+        "input_packet.json mechanical_checks"
+      ]
+    },
+    "G2": {
+      "status": "fail",
+      "reason": "Provenance gate fails per Section 2.2 rule 2: provenance_checks.change_ledger_available=false, target_instance_ledger_available=false, and hash_chain_complete=false. change_origin_category is constructed_candidate_with_local_ledgers, but the ledgers themselves are unavailable, making it impossible to attribute the observed delta strictly to canonical STM_0 -> candidate STM_k and exclude normalization/conversion/formatting artifacts. Even if candidate appears semantically improved, provenance-invalid rule takes precedence.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k",
+        "input_packet.json provenance_checks"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "Candidate preserves all NL-supported states (HumanDriving, Autonomous as sub-state, InitialState, FinalState), transitions (power on->HumanDriving, front_distance>10->Autonomous, human steering cmd/brake pressed->HumanDriving, power off->FinalState), hierarchy (Autonomous nested in HumanDriving), and entry/exit semantics. The only structural change is replacing event Front_Distance_10 with explicit guard if [front_distance > 10] and declaring def int front_distance, which does not delete or break any NL-supported behavior. No regression detected.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Candidate improves on canonical by extracting the NL threshold condition front_distance > 10 from an opaque event name (Front_Distance_10) into explicit guard syntax if [front_distance > 10] with a declared guard variable. Per Section 2.2 rule 6, this is a valid guard-extraction improvement: NL explicitly states the condition as a predicate, canonical folds it into event name, and candidate restores it as explicit guard while preserving all state/transition/hierarchy/action semantics. This is a single complete target-family improvement.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "NL semantics are preserved: power on enters HumanDriving/InitialState; front_distance>10 transitions to Autonomous substate; human steering cmd or brake pressed returns to HumanDriving entry; power off reaches FinalState. Candidate guard if [front_distance > 10] encodes the same threshold predicate as NL. No semantic drift, no over/under repair, no trace loss. Raw STM_0's Autonomous substate hierarchy and transitions are faithfully reflected in both canonical and candidate, confirming no semantic regression against raw intent.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All gates documented with specific evidence references. Provenance-invalid verdict is mechanically mandated by Section 2.2 rule 2 based on input_packet.json provenance_checks (change_ledger_available=false, target_instance_ledger_available=false, hash_chain_complete=false). Eligible flags set to false per protocol. No leakage detected. This is a protocol dry-run; output must not be interpreted as repair effectiveness evidence.",
+      "evidence_references": [
+        "this JSON output",
+        "input_packet.json provenance_checks"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL lines 1-5",
+    "raw_stm0.plantuml: HumanDriving/Autonomous hierarchy, transitions",
+    "canonical_stm0.fcstm: event Front_Distance_10 encodes threshold as event name",
+    "candidate_stmk.fcstm: def int front_distance + if [front_distance > 10] guard extraction",
+    "input_packet.json provenance_checks: change_ledger_available=false, target_instance_ledger_available=false, hash_chain_complete=false"
+  ],
+  "rationale": "E0: No leakage detected in blind packet — all identifiers are blind (B12, llms_emp_stm_results_0000). E1: Scope is T0 protocol case; NL condition is discrete threshold, candidate uses discrete guard abstraction, no timed-automata claims. E2: Both canonical and candidate files present and readable. E3: candidate_parse_status=parse_ok, no schema issues. E4/E9/G2: Provenance fatally fails — change_ledger_available=false, target_instance_ledger_available=false, hash_chain_complete=false. Per Section 2.2 rule 2 (fail-closed), this mandates protocol_or_provenance_invalid regardless of semantic appearance. E5-E8: If provenance were valid, candidate would qualify as better under Section 2.2 rule 6 (complete guard extraction from opaque event name to explicit guard syntax, preserving all NL semantics with no regression). However, provenance-gate failure overrides all semantic analysis. E10: headline_eligible and repair_effectiveness_eligible both false per protocol. E11: Evidence archiving complete; no human escalation needed for adjudication itself, though the underlying data pipeline (missing ledgers/hash chain) represents a research engineering concern.",
+  "observed_anti_gaming_risk_flags": [
+    "provenance_checks.change_ledger_available=false: cannot verify that candidate diff originates from canonical STM_0 and excludes normalization/conversion artifacts",
+    "provenance_checks.target_instance_ledger_available=false: cannot verify which repair target was addressed",
+    "provenance_checks.hash_chain_complete=false: cannot verify integrity of the canonical-to-candidate transformation chain",
+    "provenance_checks.change_origin_category=constructed_candidate_with_local_ledgers: candidates were constructed but ledgers are missing, making attribution impossible"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "G4 and G5 pass ratings are conditional on hypothetical valid provenance; they do not override the provenance-invalid verdict.",
+    "Do not cite this adjudication as evidence that candidate STM_k improves over canonical STM_0 in a real repair loop."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind packet contains only neutral case identifiers (B12, llms_emp_stm_results_0000), source model metadata (GPT-4o, HLDCS), mechanical/provenance facts, and the four adjudication artifacts (NL, raw, canonical, candidate). No answer key, expected verdict, oracle mapping, original Cxx slug, or PR discussion context detected."
+  }
+}

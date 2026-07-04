@@ -1,0 +1,97 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B10",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete state machine with sensor guards (front_distance > 10) and event triggers (Power On/Off, steering, brake). No continuous-time, timed-automata, clock-invariant, or second-based-duration claims. Candidate uses a discrete int guard variable (front_distance) with explicit guard syntax — no timed-automata semantics. This is a pure T0 protocol case.",
+      "evidence_references": [
+        "NL",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks reports candidate_file_present=true and candidate_parse_status=parse_ok. Candidate STM_k is a syntactically readable .fcstm with state declarations, transitions, events, and a guard variable. The file and its parse are auditable; parse success alone is not semantic evidence of better.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks reports change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true, change_origin_category=constructed_candidate_with_local_ledgers, and candidate_same_as_canonical_stm0=false. The change is attributable to canonical→candidate transformation, not normalization-only artifact or format conversion. No declared_extra_method_claims flag present.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Two clear regressions against NL: (1) NL5 states 'when power off, it will transit to final state' — canonical has the transition '* -> FinalState : Power_Off' covering all substates within HumanDriving, but candidate has no Power_Off event or transition anywhere. This required behavior is deleted. (2) NL2 states 'autonomous mode has sub-states and is represented by a sub machine state' — canonical preserves Autonomous as a nested sub-state with its own start pseudo-state; candidate flattens Autonomous to a simple state ('Autonomous flattened') with no internal structure, losing the sub-machine representation that NL explicitly requires. Additionally, the candidate loses the Enter_Autonomous event and the internal Autonomous initialization semantics present in both raw and canonical. Although candidate makes HumanDriving a simple state (which could align with NL1's literal wording 'simple state'), this does not compensate for the loss of Autonomous sub-structure.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "The candidate extracts the guard 'front_distance > 10' as explicit guard syntax 'if [front_distance > 10]' (NL4), whereas canonical folds this condition into the event name 'Front_Distance_10'. Per fail-closed rule #6, when NL explicitly states a condition/predicate and canonical only folds it into an event label, changing it to explicit guard syntax is a recognized improvement direction. However, this improvement is accompanied by the G3 regressions (Power_Off deletion, hierarchy loss) and therefore does not override the not_better verdict.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Returning to NL and both STM versions: the candidate semantically degrades the model by (a) removing the Power_Off→FinalState path mandated by NL5, and (b) collapsing the Autonomous sub-machine (required by NL2) into a flat state, discarding internal structure that NL and both raw/canonical versions encode. The guard extraction improvement on front_distance > 10 is a genuine refinement of one target family but does not preserve the full NL semantics. Semantic fidelity is not maintained.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All evidence references are explicit to BLIND-ONLY sources (NL, raw STM_0, canonical STM_0, candidate STM_k, input_packet mechanical/provenance facts). No external files or hidden answer keys were accessed. Output eligibility fields are fixed per dry-run rules. Confidence is high because the regressions (Power_Off deletion, Autonomous hierarchy loss) are unambiguous from direct comparison of canonical and candidate against NL. Leakage observation is negative.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL lines 1-5: specifies HumanDriving as simple state, Autonomous with sub-states, Power_On→HumanDriving, front_distance>10→Autonomous, steering/brake→HumanDriving, Power_Off→FinalState",
+    "raw STM_0 PlantUML: shows HumanDriving composite with InitialState→Autonomous (Front Distance > 10), Autonomous→HumanDriving (steering/brake), HumanDriving→FinalState (Power Off), and separate Autonomous sub-machine with Enter/Exit transitions",
+    "canonical STM_0 fcstm: preserves hierarchy with HumanDriving composite containing InitialState, Autonomous sub-state, FinalState; Power_Off from any substate; Front_Distance_10 as event label",
+    "candidate STM_k fcstm: flattens hierarchy to single-level; extracts front_distance>10 guard; deletes Power_Off; collapses Autonomous to simple state 'Autonomous flattened'",
+    "mechanical_checks: both files present, candidate parse OK",
+    "provenance_checks: ledgers and hash chains complete, change attributable, not normalization-only"
+  ],
+  "rationale": "Candidate STM_k introduces one genuine improvement: extracting the front_distance > 10 condition from a folded event label into explicit guard syntax (per fail-closed rule #6). However, this is outweighed by two unambiguous semantic regressions: (1) the Power_Off→FinalState transition required by NL5 is entirely deleted, and (2) the Autonomous sub-machine structure required by NL2 ('autonomous mode has sub-states and is represented by a sub machine state') is flattened to a simple state, losing internal transitions (Enter/Exit Autonomous). The candidate also flattens HumanDriving from a composite to a simple state, which is a structural simplification that, while not itself a regression per NL1's literal wording, contributes to the loss of the Autonomous sub-machine nesting. Because key NL-mandated behaviors are deleted and hierarchy is broken, the candidate is not better than canonical STM_0 despite the guard extraction refinement.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: Power_Off→FinalState transition is entirely absent from candidate — a required NL5 behavior is removed rather than repaired",
+    "hierarchy_collapse: Autonomous sub-machine structure is flattened to a simple state, discarding NL2's explicit requirement that autonomous mode be represented as a sub-machine state",
+    "incomplete_repair: guard extraction on front_distance>10 is a legitimate refinement but leaves other target families (Power_Off, Autonomous sub-structure) degraded or deleted"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The guard extraction improvement in isolation does not make the candidate a valid better-STM when accompanied by Power_Off deletion and hierarchy collapse.",
+    "Do not cite this verdict as evidence that LLM repair fails or succeeds on this case; this is a protocol dry-run."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only protocol-level metadata (blind_case_id=B10, base_pair_id, source_model_name, source_llm=GPT-4o, mechanical/provenance checks). No answer key, expected verdict, oracle mapping, original Cxx slug, or adjudication hint visible. Neutral change observation confirms no hidden answer key."
+  }
+}

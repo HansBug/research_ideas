@@ -1,0 +1,100 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B04",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete state machine with hierarchical states and event-labeled transitions; no continuous-time, clock invariant, or timed-automata semantics are claimed. No timer/counter caveat is triggered. Falls within headline T0 scope.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks confirms baseline_file_present=true, candidate_file_present=true, candidate_parse_status=parse_ok. Both canonical STM_0 and candidate STM_k are syntactically valid fcstm and auditable.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks shows change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true. change_origin_category=constructed_candidate_with_local_ledgers is not normalization_only_artifact. candidate_same_as_canonical_stm0=false. No declared_extra_method_claims detected. Changes are attributable to canonical->candidate delta.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate removes event labels from two transitions that NL explicitly ties to specific triggers: (1) DoorsClosing->InMotion loses Closed_SendDeparted, violating NL line 1 'transitions to InMotion when the doors are closed, triggered by the Closed/SendDeparted signal'; (2) InMotion->Stopping loses Arrived_Stop_Send_Arrived, violating NL line 2 'transition to the Stopping state when it arrives, indicated by the Arrived/Stop, Send Arrived signal'. This is a clear semantic regression: the canonical preserves both event triggers; the candidate erases them, leaving DoorsClosing->InMotion and InMotion->Stopping as spontaneous/unlabeled transitions. Additionally, the removed events remain declared but unused, creating an inconsistency with the retained Obstacle_Detected event on InMotion->EmergencyStopping.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No target issue is visibly improved by the candidate. The only delta is the removal of two NL-specified event labels, which constitutes information loss, not improvement. No guard extraction, state refinement, transition splitting, or other NL-supported semantic enrichment is present.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Returning to NL: lines 1-2 explicitly specify Closed/SendDeparted as the trigger for DoorsClosing->InMotion and Arrived/Stop-Send-Arrived as the trigger for InMotion->Stopping. The canonical fcstm faithfully encodes both as event-labeled transitions. The candidate removes both event labels, creating a semantic gap between the model and NL requirements. This is not an allowed split of event+guard/effect (the labels were not split into separate constructs; they were simply deleted). The semantic fidelity of the candidate is strictly lower than canonical.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All eligibility fields correctly set: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. Evidence references cite specific NL lines and fcstm transitions. Confidence is high because the regression is unambiguously visible in a direct diff of canonical vs candidate transition labels against NL. Forbidden claims and anti-gaming flags are documented. No human escalation needed for this clear-cut case.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL line 1: 'transitions to InMotion when the doors are closed, triggered by the Closed/SendDeparted signal'",
+    "NL line 2: 'transition to the Stopping state when it arrives, indicated by the Arrived/Stop, Send Arrived signal'",
+    "canonical STM_0: DoorsClosing -> InMotion : Closed_SendDeparted",
+    "canonical STM_0: InMotion -> Stopping : Arrived_Stop_Send_Arrived",
+    "candidate STM_k: DoorsClosing -> InMotion  (event label removed)",
+    "candidate STM_k: InMotion -> Stopping  (event label removed)",
+    "candidate STM_k: InMotion -> EmergencyStopping : Obstacle_Detected (event label retained, creating inconsistency)"
+  ],
+  "rationale": "Candidate STM_k removes two event-trigger labels that NL explicitly specifies: Closed/SendDeparted on DoorsClosing->InMotion and Arrived_Stop_Send_Arrived on InMotion->Stopping. The canonical STM_0 faithfully preserves both. The candidate introduction of unlabeled transitions where NL requires event-triggered transitions constitutes a clear semantic regression (G3 fail). No improvement is visible (G4 fail), and semantic fidelity is strictly degraded (G5 fail). Provenance and parse are valid but cannot rescue the semantic loss. This is an unambiguous not_better case.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: candidate removes NL-specified event triggers from two transitions, reducing model information content",
+    "selective_label_removal: candidate retains Obstacle_Detected event label while removing the other two outbound InMotion event labels, creating an inconsistent abstraction pattern",
+    "unused_event_declaration: Closed_SendDeparted and Arrived_Stop_Send_Arrived remain declared as events but are never used on any transition in candidate"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "No claim about repair method or loop quality is licensed by this output.",
+    "No claim about candidate authorship, LLM quality, or generation process is implied."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind input contains only mechanical checks, provenance facts, NL, raw STM_0, canonical STM_0, and candidate STM_k. No answer key, expected verdict, oracle mapping, or original case slug is visible. The base_pair_id llms_emp_stm_results_0004 does not reveal adjudication outcome."
+  }
+}

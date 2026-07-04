@@ -1,0 +1,73 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B18",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete sensor conditions (front_distance > 10), discrete commands (human steering cmd, brake pressed, power off), and hierarchical states. No timed automata, continuous clock, or second-based duration semantics are claimed. Provenance scope_boundary not flagged as T0.5 or T1. This is a pure T0 in-scope case.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Mechanical checks confirm baseline_file_present=true, candidate_file_present=true, candidate_parse_status=parse_ok. Both canonical and candidate .fcstm files are present and parseable. Candidate has valid state hierarchy, event declarations, and transition syntax.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance checks pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true. change_origin_category is constructed_candidate_with_local_ledgers. candidate_same_as_canonical_stm0=false. No normalization-only artifact, no missing ledger, no undeclared extra method claims. Changes are attributable to canonical-to-candidate delta.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate deletes the transition 'InitialState -> FinalState : Exit_Autonomous' that exists in canonical STM_0. The raw STM_0 Autonomous sub-state contains 'InitialState --> FinalState : Exit Autonomous', and the canonical preserves this as a transition inside the HumanDriving state. The NL describes autonomous mode as a sub-machine state with internal structure. Removing this transition eliminates a behavior path that was present in the canonical representation. Additionally, the event 'Exit_Autonomous' remains declared in candidate but its only consuming transition is deleted, making it a dead event. This is a clear behavioral regression against canonical STM_0.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "The only change beyond the deleted transition is a cosmetic rename of the Front_Distance_10 event display name from 'Front Distance > 10' to 'front distance greater than ten'. This is a pure textual reformatting with zero semantic improvement. No guard extraction, no structural refinement, no hierarchy correction, no action/effect addition. The rename does not address any NL-derived target issue.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic analysis against NL reveals: (a) the deleted Exit_Autonomous transition removes a behavior path that was supported by the Autonomous sub-state semantics in raw STM_0 and canonical; (b) the cosmetic rename of Front_Distance_10 adds no semantic value—both display names convey the same condition; (c) the candidate's remaining transitions preserve the same structure as canonical with neither guard extraction nor action/effect refinement. No semantic improvement is present, and a behavioral regression exists.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Output follows the required schema. All gates have explicit evidence references. Forbidden claims are stated. headline_eligible and repair_effectiveness_eligible are correctly set to false. real_repair_run_id is null. Confidence is high because the delta is limited to two observable changes (one cosmetic rename, one transition deletion) and both are clearly identifiable by diff.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL: states human driving and autonomous hierarchical structure, transition conditions, power-off terminal behavior",
+    "raw STM_0: PlantUML showing Autonomous sub-state with InitialState -> FinalState : Exit Autonomous",
+    "canonical STM_0: preserves Exit_Autonomous as InitialState -> FinalState : Exit_Autonomous",
+    "candidate STM_k: deletes InitialState -> FinalState : Exit_Autonomous; renames Front_Distance_10 display name"
+  ],
+  "rationale": "Canonical-to-candidate diff reveals exactly two changes: (1) the Front_Distance_10 event display name is changed from 'Front Distance > 10' to 'front distance greater than ten'—a purely cosmetic reformatting with zero semantic impact; (2) the transition 'InitialState -> FinalState : Exit_Autonomous' is deleted. The deleted transition was present in both raw STM_0 (as 'InitialState --> FinalState : Exit Autonomous' inside the Autonomous sub-state) and canonical STM_0. Its removal constitutes a behavioral regression because the NL describes autonomous mode as a sub-machine state with internal structure, and the exit path is now lost. The event Exit_Autonomous remains declared but becomes dead. With no improvement and a clear regression, candidate is not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: candidate removes a transition (Exit_Autonomous) while keeping its event declaration, potentially to reduce structural complexity at the cost of behavioral fidelity",
+    "cosmetic_rename_as_change: the only non-deletion change is a trivial display name reformatting that could be mistaken as improvement in automated similarity metrics"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This output must not be cited as evidence of LLM repair capability.",
+    "The not_better verdict reflects only this blind packet comparison and does not generalize to other cases."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance facts. No answer key, expected verdict, oracle mapping, original case slug, or adjudication hint detected."
+  }
+}
+```

@@ -1,0 +1,17 @@
+## B14 裁决摘要
+
+**Verdict: `not_better`** | Confidence: **high**
+
+canonical STM_0 与 candidate STM_k 的唯一差异是新增了一个事件 `Untraced Auto Exit` 和一条迁移 `cruise -> endHighwayMode : Untraced_Auto_Exit`。
+
+**失败原因**：事件名称本身就暴露了缺乏 NL 溯源。"Untraced Auto Exit" 在 NL 的 13 行描述中没有任何对应内容。NL 已明确枚举 cruise 的全部退出路径 —— `dist_to_exit<2`（显式迁移）和 `auto_finished=true`（通过父级 `HighwayMode -> FinishState` 层级退出）—— canonical 已忠实建模了这两者。candidate 引入的第三条退出路径是纯噪音注入，构成语义回归而非改善。
+
+| Gate | Status |
+|------|--------|
+| G0 (scope) | pass — T0 discrete guards only |
+| G1 (parse) | pass — parse_ok |
+| G2 (attribution) | pass — traceable delta |
+| G3 (no-regression) | **fail** — spurious NL-unsupported transition |
+| G4 (improvement) | **fail** — no target issue addressed |
+| G5 (semantic) | **fail** — canonical already covers all NL exit paths |
+| G6 (reporting) | pass — evidence cited, eligibility disabled |

@@ -1,0 +1,98 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B01",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "partial",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event-driven train control with no continuous-time clock constraints or timed-automata semantics. Transitions are triggered by discrete signals (Closed/SendDeparted, Arrived, Obstacle Detected, Reached Cruising, Approached). No T1 stress elements present. This is a T0 protocol case.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical and candidate files present. Candidate parse status is parse_ok per mechanical_checks. Candidate has valid fcstm syntax: state declarations, hierarchy, named events, transition rules with effect blocks, and variable declarations all structurally well-formed.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change ledger available, target instance ledger available, hash chain complete, candidate hash matches constructed case. change_origin_category is constructed_candidate_with_local_ledgers, not normalization_only_artifact. The changes (event label splitting, effect extraction, variable declarations) are attributable to canonical-to-candidate transformation, not format conversion or normalization.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All NL-supported states preserved: DoorsClosing, InMotion (with Accelerating/Cruising/Approaching substates), Stopping, EmergencyStopping. All transitions preserved: start->DoorsClosing, DoorsClosing->InMotion, InMotion->Stopping, InMotion->EmergencyStopping, startInMotion->Accelerating, Accelerating->Cruising, Accelerating->Approaching, Cruising->Approaching. Hierarchy fully preserved. Missing entry/Accelerate in Accelerating and do/Send in Approaching are pre-existing gaps in canonical STM_0, not candidate-induced regressions.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Candidate improves structural explicitness by splitting composite event labels into pure trigger events and explicit effect blocks: (1) Closed/SendDeparted -> event Closed + effect send_departed=1, (2) Arrived/Stop,Send Arrived -> event Arrived + effects stopped=1,send_arrived=1, (3) Obstacle Detected -> event Obstacle_Detected + effects emergency_stop=1,obstacle_signal_sent=1, (4) Reached Cruising/Cruise -> event Reached_Cruising + effect cruise_command=1, (5) Approached/Decelerate -> event Approached + effect decelerate_command=1. This separates trigger conditions from action outputs, making the model more amenable to formal verification. Improvement is partial: entry/Accelerate and do/Send remain missing from both canonical and candidate.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "Semantic fidelity maintained across all transitions. The split of composite event labels preserves original trigger semantics: Closed still triggers DoorsClosing->InMotion, Arrived still triggers InMotion->Stopping, Obstacle_Detected still triggers InMotion->EmergencyStopping, Reached_Cruising still triggers Accelerating->Cruising, Approached still triggers both Accelerating->Approaching and Cruising->Approaching. Effect variable assignments (send_departed=1, stopped=1, send_arrived=1, emergency_stop=1, obstacle_signal_sent=1, cruise_command=1, decelerate_command=1) faithfully capture the action/output semantics embedded in the canonical's composite labels. No semantic regression detected.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Evidence references are explicit and traceable to blind input packet contents. Confidence is medium: the structural improvement from composite-label to event+effect is clear, but some NL requirements (entry/Accelerate in Accelerating state, do/Send in Approaching state) remain unaddressed in both canonical and candidate, limiting the overall completeness. No human escalation required for this protocol dry-run case.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 3: EmergencyStopping includes Emergency Stop action and sends Obstacle Detected signal",
+    "NL paragraph 8: Entry/Accelerate action for Accelerating state (missing in both canonical and candidate)",
+    "NL paragraph 9: do/Send signal in Approaching state (missing in both canonical and candidate)",
+    "raw STM_0: entry/Accelerate in Accelerating, do/Send in Approaching, entry/Emergency Stop and do/Send Obstacle Detected in EmergencyStopping",
+    "canonical STM_0: composite event labels fold actions into event names",
+    "candidate STM_k: splits events from effects via explicit effect blocks and variable assignments",
+    "mechanical_checks: candidate_parse_status=parse_ok, both files present"
+  ],
+  "rationale": "Candidate STM_k makes a genuine but partial improvement over canonical STM_0 by structurally separating composite event labels into pure trigger events and explicit effect blocks with action variables. This refactoring affects all 5 transition labels and enhances formal explicitness without introducing regressions in states, transitions, hierarchy, or trigger semantics. However, both canonical and candidate fail to capture the entry/Accelerate action in the Accelerating state (NL rule 8) and the do/Send activity in the Approaching state (NL rule 9), which were present in raw STM_0. These are pre-existing gaps, not candidate-induced defects. The improvement is real but incomplete, warranting a partial verdict.",
+  "observed_anti_gaming_risk_flags": [
+    "Missing NL elements (entry/Accelerate, do/Send) persist from canonical baseline; candidate does not address them, which could be interpreted as passive acceptance of a known gap rather than active repair."
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The event+effect splitting does not constitute a verified formal-methods improvement without downstream verification against the full NL specification.",
+    "Do not interpret parse_ok outcome as semantic correctness."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only mechanical/provenance facts and neutral change observation. No hidden answer key, expected verdict, oracle mapping, original case slug, or adjudication hints detected. base_pair_id llms_emp_stm_results_0004 is a protocol identifier, not an answer key."
+  }
+}

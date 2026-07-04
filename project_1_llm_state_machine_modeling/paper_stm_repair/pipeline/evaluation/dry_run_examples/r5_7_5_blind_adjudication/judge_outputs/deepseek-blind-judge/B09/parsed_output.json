@@ -1,0 +1,99 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B09",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete threshold-based guard conditions (dist_to_front<25, dist_to_front<15, dist_to_exit<2, dist_to_exit<0.7, dist_to_rear<5, vel>30). No continuous time / timed-automata semantics, no second-based duration, no periodic timer/tick cues are present in NL, raw STM_0, canonical, or candidate. This is a pure T0 discrete guard extraction case.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "All files present (baseline_file_present=true, candidate_file_present=true). Candidate parse status is parse_ok per mechanical_checks. Canonical and candidate are both readable and auditable .fcstm models with comparable structure.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "change_origin_category=constructed_candidate_with_local_ledgers, change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. Changes are attributable to the canonical->candidate delta. The delta consists of: (a) adding top-level `def int dist_to_front = 0;` and `def int extra_lane = 0;`, (b) removing event declarations `dist_to_front_25_extra_lane_true` and `dist_to_front_15_extra_lane_true` from HighwayMode/UrbanMode, (c) replacing the four transitions that used those events with explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax. This is a semantic guard extraction, not normalization/formatting/whitespace-only change.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All states, pseudo states, composite hierarchy (AutonomousMode containing HighwayMode/UrbanMode/InitialState/FinishState), transitions, transition source/target pairs, event labels (except the two extracted guard-bearing events), and the collision_avoidance subsystem are preserved verbatim. The four modified transitions retain identical source/target states (cruise->lane_change x2, enter_urban->lane_change_urban, straight->lane_change_urban). The guard semantics extracted match NL's predicate conditions exactly. No state, transition, hierarchy, guard condition, action, or trace described in NL is deleted or broken.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "pass",
+      "reason": "Under rule 2.2.6 (完整 guard extraction 可为 better): NL explicitly describes conditions as predicates (dist_to_front<25 && extra_lane=true, dist_to_front<15 && extra_lane=true). Canonical STM_0 encodes these predicates folded into opaque event names (dist_to_front_25_extra_lane_true, dist_to_front_15_extra_lane_true). Candidate STM_k extracts all four instances into explicit `if [dist_to_front < X && extra_lane == 1]` guard syntax with declared `def int` variables, preserving the original state/transition/hierarchy/action semantics. All instances of this target family are consistently converted (all four guard-bearing transitions in both HighwayMode and UrbanMode). This constitutes a strict improvement in guard explicitness and machine-readability of the condition structure.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "pass",
+      "reason": "NL guard conditions map directly to candidate explicit guards: `dist_to_front<25 && extra_lane=true` → `if [dist_to_front < 25 && extra_lane == 1]`, `dist_to_front<15 && extra_lane=true` → `if [dist_to_front < 15 && extra_lane == 1]`. The boolean-to-integer mapping (true→1) is semantically equivalent for guard evaluation. All other transitions, the collision avoidance subsystem (including the complex disjunctive guard on collision_avoidance_deactive->collision_avoidance_active), and cross-mode dynamic transitions (`! * -> HighwayMode : high_way_true`, `! * -> UrbanMode : urban_way_true`) are preserved verbatim. No semantic loss, no false improvement from text similarity alone.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "E0 leakage check: no answer key, expected verdict, oracle mapping, or original case slug detected in blind input packet. E10 eligibility: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol dry-run instructions. Evidence chain is self-contained within this JSON output and the provided blind input files. Confidence is high: the delta is well-defined, all four target transitions are consistently modified, no regressions. No human escalation required.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 3: `dist_to_front<25` and `extra_lane=true` guard conditions for HighwayMode cruise->lane_change",
+    "NL paragraph 5: `dist_to_front<25` and extra lane condition for cruise->lane_change",
+    "NL paragraph 7: `dist_to_front<15` and extra lane condition for UrbanMode enter_urban->lane_change_urban",
+    "NL paragraph 9: `dist_to_front<15` and extra lane condition for straight->lane_change_urban",
+    "canonical STM_0 event dist_to_front_25_extra_lane_true (opaque event name encoding guard)",
+    "canonical STM_0 event dist_to_front_15_extra_lane_true (opaque event name encoding guard)",
+    "candidate STM_k if [dist_to_front < 25 && extra_lane == 1] on cruise->lane_change (x2)",
+    "candidate STM_k if [dist_to_front < 15 && extra_lane == 1] on enter_urban->lane_change_urban and straight->lane_change_urban"
+  ],
+  "rationale": "Candidate STM_k performs a complete, consistent guard extraction across both HighwayMode and UrbanMode: all four transitions whose predicates were folded into opaque event names in canonical STM_0 are converted to explicit `if [guard]` syntax with declared `def int` variables. NL explicitly frames these conditions as predicates, so the extraction aligns with the NL intent. No states, transitions, hierarchy, or other behaviors are regressed. Per fail-closed rule 2.2.6, this complete guard extraction constitutes `better`.",
+  "observed_anti_gaming_risk_flags": [
+    "extra_lane type shift: NL uses boolean `extra_lane=true`, candidate declares `def int extra_lane = 0` and tests `extra_lane == 1`; semantically equivalent as guard condition but representational shift noted for audit trail"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict does not evaluate any repair loop, method, or LLM capability.",
+    "Headline or repair_effectiveness eligibility is explicitly disabled per protocol dry-run instructions."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Blind input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, and neutral_change_observation. No answer key, expected verdict, oracle mapping, original Cxx case slug, or PR discussion context is visible."
+  }
+}

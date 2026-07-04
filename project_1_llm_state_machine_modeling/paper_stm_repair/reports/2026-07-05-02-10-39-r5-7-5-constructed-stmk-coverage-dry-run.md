@@ -8,8 +8,8 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 
 ## 2. 核心结论
 
-1. 已落地 20 个 constructed `STM_k` case，覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 七类主要输出 `[clm-suite]`。
-2. `better` 仅在 protocol expectation 中出现（C01/C08/C11），用于验证 G0--G6 正路径能表达；不代表真实方法已经产生成功修复 `[clm-boundary]`。
+1. 已落地 20 个 constructed `STM_k` case，覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 七类主要输出；其 verdict 分布已由 full blind dry-run 反向校准 `[clm-suite]`。
+2. `better` 仅在 protocol expectation 中出现（C01/C11），用于验证 G0--G6 正路径能表达；C08/C14/C19 经 blind 校准为 `partial`，不代表真实方法已经产生成功修复 `[clm-boundary]`。
 3. anti-gaming 反例覆盖 semantic deletion、guard/action/event folding、over-repair、under-repair、trace loss、conversion laundering、hierarchy loss 与 textual similarity misuse；当前实现是 PR body 最小覆盖表的有意超集，用于让同一 case 同时标记次级风险，但不改变 primary expected verdict；`scenario_overfitting` 本轮明确未覆盖并交给 R7 `[clm-anti-gaming]`。
 4. 0004 action-effect 覆盖使用手工 materialized protocol baseline；0009 complex guard 覆盖使用同 cluster selected smoke `0039` fallback。这两点都已写入 preflight caveat，不能外推成 0004/0009 的真实 repair 结果 `[clm-baseline]`。
 
@@ -17,28 +17,28 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 
 | expected verdict | 数量 | case |
 |---|---:|---|
-| `better` | 3 | C01, C08, C11 |
-| `not_better` | 7 | C03, C05, C06, C07, C09, C13, C20 |
-| `partial` | 3 | C02, C14, C19 |
+| `better` | 2 | C01, C11 |
+| `not_better` | 8 | C02, C03, C05, C06, C07, C09, C13, C20 |
+| `partial` | 3 | C08, C14, C19 |
 | `unknown` | 2 | C10, C12 |
 | `stmk_repair_failure` | 1 | C17 |
 | `protocol_or_provenance_invalid` | 3 | C04, C15, C18 |
 | `stress_t1` | 1 | C16 |
 
-注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，由 C14/C15 覆盖。
+注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，由 C14/C15 覆盖。该表已按 2026-07-05 full blind adjudication dry-run 反向校准后的 oracle 更新；最终 blind 对照见 [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md)。
 
 ## 4. 20 case 总表
 
 | case | base pair | 构造目标 | expected verdict | scope | 风险 |
 |---|---|---|---|---|---|
 | C01 | `llms_emp_stm_results_0000` | 正确拆出 Front Distance guard | `better` | `in_scope_t0_protocol_case` | guard_action_event_folding |
-| C02 | `llms_emp_stm_results_0000` | 条件仍折叠在 event label | `partial` | `in_scope_t0_protocol_case` | guard_action_event_folding, under_repair |
+| C02 | `llms_emp_stm_results_0000` | 条件仍折叠在 event label | `not_better` | `in_scope_t0_protocol_case` | guard_action_event_folding, under_repair |
 | C03 | `llms_emp_stm_results_0000` | guard 修好但破坏层级 | `not_better` | `in_scope_t0_protocol_case` | hierarchy_pseudostate_loss |
 | C04 | `llms_emp_stm_results_0000` | 把 conversion/canonical 改善冒充 repair | `protocol_or_provenance_invalid` | `in_scope_t0_protocol_case` | conversion_laundering |
 | C05 | `llms_emp_stm_results_0001` | no-op candidate | `not_better` | `in_scope_t0_protocol_case` | no_improvement |
 | C06 | `llms_emp_stm_results_0001` | 低噪声 control 上过修复 | `not_better` | `in_scope_t0_protocol_case` | over_repair, trace_loss |
 | C07 | `llms_emp_stm_results_0001` | 删除反馈失败路径 | `not_better` | `in_scope_t0_protocol_case` | semantic_deletion |
-| C08 | `llms_emp_stm_results_0004` | 正确结构化 action/effect | `better` | `in_scope_t0_protocol_case` | action_effect |
+| C08 | `llms_emp_stm_results_0004` | 结构化部分 action/effect，但仍缺 entry/do action | `partial` | `in_scope_t0_protocol_case` | action_effect |
 | C09 | `llms_emp_stm_results_0004` | 删除动作效果 | `not_better` | `in_scope_t0_protocol_case` | semantic_deletion, action_effect |
 | C10 | `llms_emp_stm_results_0004` | 格式变化但 action 证据不足 | `unknown` | `in_scope_t0_protocol_case` | evidence_insufficient |
 | C11 | `llms_emp_stm_results_0039` | 复杂 guard 结构化 | `better` | `in_scope_t0_protocol_case` | guard_action_event_folding |

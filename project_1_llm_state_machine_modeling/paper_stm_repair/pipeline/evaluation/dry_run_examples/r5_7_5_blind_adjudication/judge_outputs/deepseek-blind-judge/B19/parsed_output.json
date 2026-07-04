@@ -1,0 +1,98 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B19",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete state machine with four states (InitialState, BrakingState, OperationalState, ClampingState) and four event-driven transitions. No continuous-time, timed-automata, or clock-invariant semantics are mentioned. The model is a standard finite discrete state machine within T0 scope.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "mechanical_checks reports candidate_file_present=true and candidate_parse_status=parse_ok. Both canonical_stm0.fcstm and candidate_stmk.fcstm are provided inline and are syntactically readable. Candidate parse is valid and audit-ready.",
+      "evidence_references": [
+        "candidate STM_k",
+        "input_packet.json mechanical_checks"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "provenance_checks reports change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true, and change_origin_category=constructed_candidate_with_local_ledgers. No normalization_only_artifact, no missing ledger, no hash-chain break, and no declared_extra_method_claims. The provenance chain is valid under fail-closed rules.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k",
+        "input_packet.json provenance_checks"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate STM_k removes the event 'Signal_Transmission_Fails' and the transition 'InitialState -> OperationalState : Signal_Transmission_Fails'. NL line 2 explicitly requires: 'If the signal transmission fails, it proceeds to the operational state.' This deletion makes OperationalState unreachable (no incoming transition remains) while it is still declared and still has an outgoing transition 'OperationalState -> InitialState : Signal_Feedback_Sent'. The candidate therefore destroys an NL-supported transition and renders a state orphaned, which is a clear semantic regression.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "The only delta between canonical STM_0 and candidate STM_k is the deletion of one event declaration and one transition. No NL-required target issue is improved; no guard extraction, hierarchy refinement, or label clarification is performed. The single change is purely destructive to the model.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic fidelity is broken. NL lines 2-3 describe the 'Signal Transmission Fails' path as a core behavioral branch: brake signal received → BrakingState, or signal transmission fails → OperationalState, and from OperationalState signal feedback sent → InitialState. Canonical STM_0 encodes all three paths. Candidate STM_k deletes the failure path entirely, contradicting the NL specification. No countervailing semantic improvement is present to offset this loss.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All evidence is cited with explicit references to NL lines and delta between canonical and candidate. headline_eligible and repair_effectiveness_eligible are correctly set to false per protocol dry-run rules. Confidence is high because the regression is unambiguous — a single transition deletion that directly contradicts NL. No human escalation needed for this clear-cut case.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state.'",
+    "NL line 2: 'Once the signal feedback is sent, it returns to the initial state.' (applies from OperationalState)",
+    "canonical STM_0: contains event Signal_Transmission_Fails and transition InitialState -> OperationalState : Signal_Transmission_Fails",
+    "candidate STM_k: removes event Signal_Transmission_Fails and transition InitialState -> OperationalState : Signal_Transmission_Fails",
+    "candidate STM_k: OperationalState remains declared with outgoing transition OperationalState -> InitialState : Signal_Feedback_Sent but has no incoming transition"
+  ],
+  "rationale": "Candidate STM_k is strictly worse than canonical STM_0. The only delta is the deletion of the 'Signal_Transmission_Fails' event and the 'InitialState -> OperationalState' transition, which NL line 2 explicitly requires. This deletion makes OperationalState unreachable (zero incoming transitions) while leaving it declared with an outgoing transition, creating a dead state. No improvement is present to offset this regression. Verdict: not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: candidate removes the only transition into OperationalState, making it unreachable while preserving its declaration and outgoing transition, which could mislead a reviewer into thinking behavioral coverage is maintained",
+    "orphaned_state: OperationalState has an outgoing transition but no incoming transitions, making it semantically dead yet syntactically present"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The verdict does not imply anything about the repair method or LLM capability.",
+    "This is a protocol dry-run; headline_eligible=false and repair_effectiveness_eligible=false are fixed."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No answer key, expected verdict, oracle mapping, or original case slug visible in the input packet. Only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance facts are provided."
+  }
+}

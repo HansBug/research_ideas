@@ -1,0 +1,26 @@
+## B20 裁决总结
+
+**`primary_verdict = stress_t1`**，依据 fail-closed 规则 1 自动路由，无需深入语义分析。
+
+### 关键事实
+
+| 维度 | 观测 |
+|---|---|
+| **identity** | `candidate_same_as_canonical_stm0=true`，sha256 完全相同 (`6b57f267...`) |
+| **scope** | `out_of_headline_t1_stress`，NL 显式要求秒级执行时间语义，未降级为离散 counter |
+| **provenance** | `change_origin_category=stress_scope_probe`，这是一个故意的 stress-scope identity probe |
+| **parse** | candidate parse_ok，但 parse success 不等于 better |
+
+### Gate 路由
+
+- **G0 fail**: NL 中的 `2s max/min`、`1-2 sec`、`<1 sec` 等是真正的 timed-automata 语义，不在 headline scope
+- **G1 pass**: 文件可读，parse ok
+- **G2 pass**: identity，无变化可归因
+- **G3 pass**: identity，无回归
+- **G4 fail**: identity，零改善；fail-closed 规则 5（identity/null delta）
+- **G5 pass**: identity 保持语义一致性，但 NL 层的秒级语义编码 gap 原样保留
+- **G6 pass**: schema 合规，eligibility 正确置 false/no/null
+
+### 设计意图
+
+B20 是一个双重点击的 stress probe：同时测试 adjudicator 是否会 (a) 在 identity 下凭空编造改善，以及 (b) 在 T1 duration 语义面前绕过 scope routing。两个 trap 都未触发。
