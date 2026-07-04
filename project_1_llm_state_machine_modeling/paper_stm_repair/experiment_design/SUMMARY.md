@@ -56,8 +56,8 @@
 | 主题 | 冻结结论 | 后续入口 |
 |---|---|---|
 | dry-run 定位 | R5.7.5 构造 20 个 `STM_k` 候选作为评价协议单元测试；所有 case 都不是真实 repair loop 输出。 | [better_adjudication_dry_run/README.md](./better_adjudication_dry_run/README.md)、[../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md) |
-| prompt/schema | 新增 Better adjudication prompt v0 与 output schema v0，要求 fail-closed、单值 verdict、G0--G6、evidence keys 与 forbidden claims。 | [protocols/better_adjudication_prompt_v0.md](./protocols/better_adjudication_prompt_v0.md)、[protocols/better_adjudication_output_schema_v0.json](./protocols/better_adjudication_output_schema_v0.json) |
-| outcome 覆盖 | 覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1`。 | [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json) |
+| prompt/schema | 新增 Better adjudication prompt v0 与 output schema v0，要求 fail-closed、constructed dry-run 条件锁死、单值 verdict、G0--G6、evidence keys 与 forbidden claims。 | [protocols/better_adjudication_prompt_v0.md](./protocols/better_adjudication_prompt_v0.md)、[protocols/better_adjudication_output_schema_v0.json](./protocols/better_adjudication_output_schema_v0.json) |
+| expected verdict 覆盖 | 覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 七类 `primary_expected_verdict`；`caveat_t05` 由 C14/C15 作为 scope route 覆盖。 | [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json) |
 | anti-gaming | 覆盖语义删除、folding、过修复、under-repair、trace loss、conversion laundering、hierarchy loss、textual similarity misuse；`scenario_overfitting` 仅 handoff。 | [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md) |
 
 ## 2. 研究问题草案

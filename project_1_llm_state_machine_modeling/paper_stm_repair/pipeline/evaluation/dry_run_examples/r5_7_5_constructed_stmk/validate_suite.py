@@ -9,6 +9,7 @@ an executable audit command.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -58,6 +59,58 @@ def validate_adjudication_schema(record: dict[str, Any]) -> None:
     jsonschema.validate(record, load_json(SCHEMA_PATH))
 
 
+def validate_schema_rejects_unsafe_constructed_payload() -> None:
+    """Guard against schema drift that would launder constructed dry-runs.
+
+    R5.7.5 deliberately constructs protocol test cases.  If the public
+    adjudication schema accepts a constructed payload with headline eligibility
+    or a fake real run id, downstream R6/R7 tooling could accidentally treat
+    this dry-run as repair effectiveness evidence.
+    """
+
+    try:
+        import jsonschema  # type: ignore
+    except Exception:
+        return
+
+    gate = {
+        "status": "pass",
+        "reason": "unsafe negative schema test payload",
+        "evidence_keys": ["src-unsafe"],
+    }
+    unsafe = {
+        "schema_version": "r5_7_5.better_adjudication_output.v0",
+        "case_id": "C99",
+        "artifact_role": "constructed_stmk_protocol_dry_run",
+        "constructed_for_protocol_dry_run": False,
+        "not_real_repair_run_acknowledged": False,
+        "headline_eligible": True,
+        "repair_effectiveness_eligible": True,
+        "protocol_coverage_claim_allowed": True,
+        "real_repair_run_id": "fake-real-run",
+        "scope_routing_status": "in_scope_t0_protocol_case",
+        "run_validity_status": "valid_constructed_protocol_case",
+        "primary_expected_verdict": "better",
+        "gate_results": {f"G{i}": gate for i in range(7)},
+        "target_closure": {},
+        "no_regression": {},
+        "anti_gaming_risk_flags": ["unsafe_schema_payload"],
+        "evidence_keys": ["src-unsafe"],
+        "forbidden_claims": ["unsafe payload must be rejected"],
+        "confidence": "high",
+        "human_escalation_required": False,
+    }
+    try:
+        jsonschema.validate(unsafe, load_json(SCHEMA_PATH))
+    except jsonschema.ValidationError:
+        return
+    raise AssertionError("schema accepted unsafe constructed dry-run payload")
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def pyfcstm_parse(candidate: Path) -> int:
     result = subprocess.run(
         [sys.executable, "-m", "pyfcstm", "plantuml", "-i", str(candidate)],
@@ -70,12 +123,31 @@ def pyfcstm_parse(candidate: Path) -> int:
     return result.returncode
 
 
-def validate_case(case: dict[str, Any], parse: bool) -> None:
+def validate_baseline_pointer(case_id: str, baseline_pointer: dict[str, Any], preflight_by_pair: dict[str, Any]) -> None:
+    pair_key = baseline_pointer.get("base_pair_key")
+    require(pair_key in preflight_by_pair, f"{case_id}: baseline pair missing from preflight: {pair_key}")
+    preflight_item = preflight_by_pair[pair_key]
+    baseline_path = baseline_pointer.get("baseline_path")
+    require(
+        baseline_path == preflight_item.get("baseline_path"),
+        f"{case_id}: baseline_path mismatch with preflight",
+    )
+    baseline_file = REPO_ROOT / baseline_path
+    require(baseline_file.exists(), f"{case_id}: baseline file missing: {baseline_path}")
+    require(
+        sha256_file(baseline_file) == preflight_item.get("baseline_sha256"),
+        f"{case_id}: baseline sha256 mismatch with preflight",
+    )
+
+
+def validate_case(case: dict[str, Any], parse: bool, preflight_by_pair: dict[str, Any]) -> None:
     case_id = case["case_id"]
     case_dir = REPO_ROOT / case["case_dir"]
     require(case_dir.is_dir(), f"{case_id}: missing case dir {case_dir}")
     for name in REQUIRED_CASE_FILES:
         require((case_dir / name).exists(), f"{case_id}: missing {name}")
+    candidate_sha256 = sha256_file(case_dir / "candidate.fcstm")
+    require(candidate_sha256 == case.get("candidate_sha256"), f"{case_id}: suite candidate_sha256 mismatch")
 
     validate_common_boundary(case, f"suite_index.cases[{case_id}]")
     expected = load_json(case_dir / "expected_verdict.json")
@@ -93,6 +165,8 @@ def validate_case(case: dict[str, Any], parse: bool) -> None:
     ]:
         require(obj.get("case_id") == case_id, f"{case_id}: {name}.case_id mismatch")
         validate_common_boundary(obj, f"{case_id}.{name}")
+        if obj.get("candidate_sha256") is not None:
+            require(obj.get("candidate_sha256") == candidate_sha256, f"{case_id}: {name}.candidate_sha256 mismatch")
 
     require(expected.get("evidence_keys"), f"{case_id}: expected_verdict.evidence_keys is empty")
     require(adjudication.get("evidence_keys"), f"{case_id}: adjudication_record.evidence_keys is empty")
@@ -105,6 +179,7 @@ def validate_case(case: dict[str, Any], parse: bool) -> None:
         f"{case_id}: adjudication verdict mismatch with suite_index",
     )
     validate_adjudication_schema(adjudication)
+    validate_baseline_pointer(case_id, baseline_pointer, preflight_by_pair)
 
     if parse:
         actual_invalid = pyfcstm_parse(case_dir / "candidate.fcstm") != 0
@@ -119,6 +194,9 @@ def main() -> None:
     args = parser.parse_args()
 
     suite = load_json(BUNDLE_ROOT / "suite_index.json")
+    baseline_preflight = load_json(BUNDLE_ROOT / "baseline_preflight.json")
+    preflight_by_pair = {item["pair_key"]: item for item in baseline_preflight.get("items", [])}
+    validate_schema_rejects_unsafe_constructed_payload()
     validate_common_boundary(suite, "suite_index")
     require(suite.get("case_count") == len(suite.get("cases", [])), "suite_index.case_count mismatch")
     require(
@@ -132,7 +210,7 @@ def main() -> None:
         require(len(cases) == 1, f"case not found: {args.case}")
 
     for case in cases:
-        validate_case(case, parse=args.parse)
+        validate_case(case, parse=args.parse, preflight_by_pair=preflight_by_pair)
 
     print(f"r5.7.5-constructed-stmk-validation-ok cases={len(cases)} parse={args.parse}")
 

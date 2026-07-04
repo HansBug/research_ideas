@@ -17,7 +17,7 @@
 | [baseline_bundles/](./baseline_bundles/) | 仅收纳 R5.7.5 新增的 0004 manual protocol baseline。 |
 | [validate_suite.py](./validate_suite.py) | 本 bundle 的可执行审计入口；只验证 evidence bundle 一致性，不属于 repair method 实现。 |
 | `cXX_*/candidate.fcstm` | 构造候选；除 C17 外应可被 pyfcstm parse。 |
-| `cXX_*/*.json` | baseline pointer、change ledger、target ledger、adjudication record、expected verdict。 |
+| `cXX_*/*.json` | `baseline_pointer.json`、`change_ledger.json`、`target_instance_ledger.json`、`adjudication_record.json`、`expected_verdict.json`。 |
 
 ## 3. 复验入口
 

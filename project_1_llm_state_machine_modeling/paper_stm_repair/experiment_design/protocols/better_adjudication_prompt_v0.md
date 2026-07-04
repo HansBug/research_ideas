@@ -11,7 +11,7 @@
 1. 确认 `artifact_role`。若是 `constructed_stmk_protocol_dry_run`，必须输出 `constructed_for_protocol_dry_run=true`、`not_real_repair_run_acknowledged=true`、`headline_eligible=false`、`repair_effectiveness_eligible=false`、`real_repair_run_id=null`。
 2. G0 scope：T0 可进入 headline protocol；T0.5 只能 caveat；T1 只能 stress；timed automata / clock repair 不得外推。
 3. G1 A gate：candidate 是否 parse / schema / evidence-bundle 最低可审计。parse-invalid candidate 输出 `stmk_repair_failure`。
-4. G2 attribution：变化是否来自 canonical `STM_0 -> STM_k`，是否有 ledger/hash/evidence。缺失则输出 `protocol_or_provenance_invalid`。
+4. G2 attribution：变化是否来自 canonical `STM_0 -> STM_k`，是否有 ledger/hash/evidence。整体 provenance / ledger 缺失则输出 `protocol_or_provenance_invalid`；若 bundle 完整但某个局部新增变化无 NL/evidence 支撑，则继续进入 G3/G5，并按 no-regression / semantic gate 判为 `not_better` 或 `unknown`。
 5. G3 no-regression：不得删除 NL 支撑的原行为、层级、action/effect、guard、trace。
 6. G4 improvement：必须至少关闭一个允许修复的 target。
 7. G5 semantic：最终 Better 必须由 NL-grounded semantic adjudication 支撑，指标只能辅助。

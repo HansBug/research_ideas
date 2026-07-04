@@ -90,6 +90,7 @@
     },
     "gate_results": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "G0",
         "G1",
@@ -98,7 +99,30 @@
         "G4",
         "G5",
         "G6"
-      ]
+      ],
+      "properties": {
+        "G0": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G1": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G2": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G3": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G4": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G5": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G6": {
+          "$ref": "#/$defs/gate_result"
+        }
+      }
     },
     "target_closure": {
       "type": "object"
@@ -110,7 +134,9 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "uniqueItems": true,
+      "minItems": 1
     },
     "evidence_keys": {
       "type": "array",
@@ -143,5 +169,101 @@
         "type": "string"
       }
     }
-  }
+  },
+  "$defs": {
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "evidence_keys"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "partial",
+            "unknown",
+            "caveat",
+            "out_of_headline",
+            "not_applicable",
+            "not_evaluated"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "artifact_role"
+        ],
+        "properties": {
+          "artifact_role": {
+            "const": "constructed_stmk_protocol_dry_run"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "constructed_for_protocol_dry_run": {
+            "const": true
+          },
+          "not_real_repair_run_acknowledged": {
+            "const": true
+          },
+          "headline_eligible": {
+            "const": false
+          },
+          "repair_effectiveness_eligible": {
+            "const": false
+          },
+          "real_repair_run_id": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "artifact_role"
+        ],
+        "properties": {
+          "artifact_role": {
+            "const": "real_repair_run_adjudication"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "constructed_for_protocol_dry_run": {
+            "const": false
+          },
+          "not_real_repair_run_acknowledged": {
+            "const": false
+          },
+          "real_repair_run_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
 }

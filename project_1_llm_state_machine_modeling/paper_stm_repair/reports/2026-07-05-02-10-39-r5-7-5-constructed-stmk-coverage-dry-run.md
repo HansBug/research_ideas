@@ -13,9 +13,9 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 3. anti-gaming 反例覆盖 semantic deletion、guard/action/event folding、over-repair、under-repair、trace loss、conversion laundering、hierarchy loss 与 textual similarity misuse；当前实现是 PR body 最小覆盖表的有意超集，用于让同一 case 同时标记次级风险，但不改变 primary expected verdict；`scenario_overfitting` 本轮明确未覆盖并交给 R7 `[clm-anti-gaming]`。
 4. 0004 action-effect 覆盖使用手工 materialized protocol baseline；0009 complex guard 覆盖使用同 cluster selected smoke `0039` fallback。这两点都已写入 preflight caveat，不能外推成 0004/0009 的真实 repair 结果 `[clm-baseline]`。
 
-## 3. outcome 覆盖表
+## 3. expected verdict 覆盖表
 
-| outcome | 数量 | case |
+| expected verdict | 数量 | case |
 |---|---:|---|
 | `better` | 3 | C01, C08, C11 |
 | `not_better` | 7 | C03, C05, C06, C07, C09, C13, C20 |
@@ -24,6 +24,8 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 | `stmk_repair_failure` | 1 | C17 |
 | `protocol_or_provenance_invalid` | 3 | C04, C15, C18 |
 | `stress_t1` | 1 | C16 |
+
+注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，由 C14/C15 覆盖。
 
 ## 4. 20 case 总表
 
@@ -95,7 +97,7 @@ R7 scenario-ledger 必须补 `scenario_overfitting` 反例，并用真实 scenar
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-boundary] | R5.7.5-C1 | R5.7.5 constructed cases 不支持 repair effectiveness 或 headline success。 | prohibition | [src-suite] `headline_eligible=false`, `repair_effectiveness_eligible=false`, `real_repair_run_id=null` | [cmd-json] | high | 后续真实 R7/R8 run 可另行计算。 |
-| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 expected outcome。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | outcome 是 expected protocol verdict，不是观察到的真实结果。 |
+| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 `primary_expected_verdict`，并由 C14/C15 覆盖 `caveat_t05` scope route。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | expected verdict 不是观察到的真实结果。 |
 | [clm-anti-gaming] | R5.7.5-C3 | 本轮覆盖多类 anti-gaming 风险，但 scenario overfitting 仅 handoff。 | risk | [src-suite] `cases[*].risks`, `coverage_summary.scenario_overfitting` | [cmd-json] | high | scenario overfitting 必须由 R7 scenario oracle 补齐。 |
 | [clm-baseline] | R5.7.5-C4 | 0004 manual baseline 与 0039 fallback 均有 caveat，不能外推为真实 repair output。 | caveat | [src-preflight] `items[pair_key=0004]`, `fallbacks[requested_pair_id=0009]` | [cmd-json] | high | 不影响 protocol coverage，但限制 pair-specific 结论。 |
 
@@ -103,7 +105,7 @@ R7 scenario-ledger 必须补 `scenario_overfitting` 反例，并用真实 scenar
 
 | 编号 / 引用键 | 命令 | 目的 |
 |---|---|---|
-| [cmd-json] | 见下方可复制命令。 | 复验 JSON 可读、20 case、eligibility false、C17 parse-invalid 预期。 |
+| [cmd-json] | 见下方可复制命令。 | 复验 JSON 可读、20 case、eligibility false、baseline pointer/preflight hash、schema negative guard、C17 parse-invalid 预期。 |
 
 
 #### [cmd-json] 可复制复验命令
