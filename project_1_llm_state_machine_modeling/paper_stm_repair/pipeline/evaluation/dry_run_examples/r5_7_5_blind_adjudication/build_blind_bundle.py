@@ -201,6 +201,7 @@ def main() -> None:
         updated_oracle.update(
             {
                 "base_pair_id": case["base_pair_id"],
+                "source_slug": case["slug"],
                 "primary_expected_verdict": case["primary_expected_verdict"],
                 "scope_routing_status": case["scope_routing_status"],
                 "run_validity_status": case["run_validity_status"],
