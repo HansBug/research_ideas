@@ -122,15 +122,17 @@ primary verdict / scope / run-validity 已 20/20 对齐，但 G0--G6 的细粒�
 
 ## 7.5 追加 multi-judge blind replication（Codex / DeepSeek）
 
-根据 [src-pr-multijudge-comment] 的追加要求，本 PR 在 Claude final run 之后补充了 Codex-DeepSeek 与 Codex CLI 的 blind replication 尝试。新增阶段仍使用同一套 B01--B20 blind inputs、同一 hidden oracle、同一 `better_adjudication_blind_prompt_v0.md` 与同一输出 schema；目的只是在 constructed cases 上审计评价协议的跨 judge 可执行性和校准风险，而不是证明 repair method effectiveness `[clm-multijudge-scope]`。
+根据 [src-pr-multijudge-comment] 的追加要求，本 PR 在 Claude final run 之后补充了 Codex-DeepSeek 与 Codex CLI 的 blind replication。新增阶段仍使用同一套 B01--B20 blind inputs、同一 hidden oracle、同一 `better_adjudication_blind_prompt_v0.md` 与同一输出 schema；目的只是在 constructed cases 上审计评价协议的跨 judge 可执行性和校准风险，而不是证明 repair method effectiveness `[clm-multijudge-scope]`。
+
+本次 Codex 复验有一个重要工程口径：`codex exec --output-schema` 在完整 B01 prompt 上仍触发 provider 502；但同一完整 prompt 通过 **直接 `codex exec` + `-o last_message.txt` + 本地 `jsonschema` 严格校验** 可以稳定产出 schema-valid JSON。因此当前 Codex final run 的 `cli_output_schema_mode` 统一记录为 `local_jsonschema_validation_no_cli_output_schema`：provider CLI 不强制 structured output，但每个 `last_message/stdout` 仍必须通过本地 schema、identity、`exit_code=0`、无 leakage 才能计入 eligible `[clm-codex-rerun]`。
 
 ### 7.5.1 per-judge 结果总表
 
 | judge | case_count | valid outputs | verdict match | scope match | run-validity match | gate all match | gate disagreements | leakage | 结论口径 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| `claude-blind-judge` | 20 | 20 | 20 | 20 | 20 | 6 | 25 | 0 | 当前 final eligible truth；支持 single-judge blind protocol 可执行性。 |
-| `deepseek-blind-judge` | 20 | 20 | 20 | 19 | 20 | 6 | 26 | 0 | verdict 完全一致，但 B17 的 T0.5 caveat scope 被判为 in-scope；这是 scope/gate calibration evidence。 |
-| `codex-blind-judge` | 20 | 0 | N/A | N/A | N/A | N/A | N/A | 0 | 未形成 eligible judge score；4 个 case 有 prompt/start，其中 B01--B03 completed failed、B04 preflight-only、B05--B20 not run；仅保留 provider-failure audit。 |
+| `claude-blind-judge` | 20 | 20 | 20 | 20 | 20 | 6 | 25 | 0 | 当前 single-judge final truth；支持 blind protocol 可执行性。 |
+| `deepseek-blind-judge` | 20 | 20 | 20 | 19 | 20 | 6 | 26 | 0 | 有效 replication；B17 的 T0.5 caveat scope 被判为 in-scope，保留为 scope/gate calibration evidence。 |
+| `codex-blind-judge` | 20 | 20 | 18 | 20 | 20 | 9 | 21 | 0 | 有效 replication；B08 `partial→better`、B11 `not_better→unknown` 暴露 over-credit / evidence-insufficient 边界校准需求。 |
 
 ### 7.5.2 DeepSeek replication 的有效发现
 
@@ -138,25 +140,30 @@ DeepSeek run 对 B01--B20 全部输出 schema-valid JSON，并通过 prompt cons
 
 但 DeepSeek 在 B17/C14 上把 expected `caveat_t05` scope route 判成 `in_scope_t0_protocol_case`，同时仍给出 `not_better` verdict。因此这里不是 repair outcome 的分歧，而是 T0.5 tick/counter caveat 的 scope coding 分歧 `[clm-deepseek-scope-calibration]`。该分歧应交给 R6/R7 校准：后续若要把 T0.5 作为 caveat 纳入，需要在 prompt/schema 中更明确区分“discrete counter abstraction 可评价”与“普通 T0 in-scope”。
 
-### 7.5.3 Codex replication 的 provider-failure audit
+### 7.5.3 Codex replication 的 full eligible rerun
 
-Codex CLI 已按同样隔离纪律尝试 full prompt；当前仓库可审计归档只支持如下事实：B01--B03 有独立失败记录，stderr 显示 provider 为 `pro`，model alias 覆盖 `gpt-4o-mini` 与 `gpt-5.5`，错误为 502 / upstream failure 或无 model output；B04 仅保留 prompt 与 run start preflight 记录；B05--B20 未执行 `[src-codex-score]` `[src-codex-manifest]`。因此 `codex-blind-judge/score_summary.json` 是 provider-failure audit，不是 eligible multi-judge score；本报告不声称已归档 `airouter` 尝试。
+Codex final rerun 在 `2026-07-06T01:16:43` 到 `2026-07-06T01:28:58` 期间完成 B01--B20；20/20 case 均有 `prompt.txt`、`last_message.txt`、`raw_output.txt`、`combined_output_for_parse.txt`、`parsed_output.json`、`stdout.txt`、`stderr.txt`、`run_meta_start.json`、`run_meta_end.json`，且 `exit_code=0`、本地 schema-valid、identity 匹配、无 provider/CLI failure `[src-codex-score]` `[src-codex-manifest]`。CLI transcript 记录 model alias 为 `gpt-5.5`、provider 为 `pro`，但仍未暴露 provider-side exact backend model ID，因此该结果不能作为正式模型比较证据 `[clm-codex-rerun]`。
 
-这不是学术上的“Codex judge 不支持该协议”结论；它只能说明本 PR 当前本地 Codex CLI / custom provider 在 full blind prompt 上不可用。后续若 Codex 官方登录或稳定 provider 可用，可以直接复用本目录的 runner / prompt / scorer 重新执行。不得把 Codex 0/20 写成模型能力结论 `[clm-codex-provider-failure]`。
+Codex 的核心结果是：`valid_output_count=20`、`verdict_match_count=18`、`scope_match_count=20`、`run_validity_match_count=20`、`gate_all_match_count=9`、`gate_disagreement_count=21`、`leakage_detected_count=0` `[src-codex-score]`。这说明 Codex 当前已可作为第三个 blind replication judge，但它对 `partial` 与 `unknown/not_better` 的边界比 Claude / DeepSeek 更激进或更保守，不能把 18/20 简化成协议失败。
+
+| blind | source | expected | observed | mismatch 类型 | 解释与 handoff |
+|---|---|---|---|---|---|
+| B08 | C19 | `partial` | `better` | over-credit partial as strict better | Codex 认为 candidate 已足够改善重复 guard / explicitness；hidden oracle 更保守，认为同族 guard/effect pattern 未完全闭合，只能 partial。R6/R7 需要在 prompt 中更强地区分“局部显式化收益”与“完整 strict better”。 |
+| B11 | C12 | `not_better` | `unknown` | evidence-insufficient fallback | Codex 未直接判 fail，而是认为证据不足；hidden oracle 认为候选破坏/缺失证据足以 not_better。R6/R7 需要继续校准 evidence-insufficient 与 semantic regression 的分界。 |
 
 ### 7.5.4 multi-judge 结论
 
 本轮追加后，R5.7.5 的可防守结论应更新为：
 
-1. Claude final run 与 DeepSeek replication 均显示 primary verdict 可在 blind setting 下复现 hidden oracle，且无 leakage；这加强了 Better STM blind adjudication protocol 的可执行性证据。
-2. DeepSeek 的 B17 scope mismatch 与双方大量 gate-level disagreement 说明：**主 verdict 比 gate-level status 更稳定**；G0/T0.5 与 G2--G5 的细粒度状态仍需 R6/R7 校准。
-3. Codex 当前只留下 provider-failure audit；机器 summary 中 `eligible_score_applicable=false`，B01--B03 是 provider/CLI failure，B04 是 preflight-only，B05--B20 未执行，因此不参与 final multi-judge agreement，也不得用作模型比较。
+1. Claude final run、DeepSeek replication 与 Codex rerun 均形成 20/20 schema-valid blind outputs，且无 leakage；这加强了 Better STM blind adjudication protocol 的可执行性证据。
+2. Claude / DeepSeek 在 primary verdict 上 20/20 对齐 hidden oracle；Codex 18/20 对齐，且 scope / run-validity 20/20 对齐。Codex 的 B08、B11 分歧是评价边界校准证据，不是 repair outcome 证据。
+3. DeepSeek 的 B17 scope mismatch 与三方大量 gate-level disagreement 说明：**主 verdict 比 gate-level status 更稳定**；G0/T0.5 与 G2--G5 的细粒度状态仍需 R6/R7 校准。
 4. 所有 multi-judge 结果仍只覆盖 constructed `STM_k` protocol cases；真实 repair effectiveness 必须等待 R6/R7 真实 agent-loop/run-record/change-ledger 产生后再评价。
 
 ## 8. 限制与禁止外推
 
 1. 本轮证明的是 **blind adjudication protocol 可执行性、分支覆盖与校准价值**，不是 repair method effectiveness `[clm-boundary]`。
-2. 当前 final truth 仍以 `claude-blind-judge` 为主；DeepSeek replication 只补强 primary verdict 稳健性，Codex 只保留 provider-failure audit。三者都不能作为正式模型比较证据。Claude run 只记录 CLI alias `sonnet`，Codex/DeepSeek 也只记录 CLI transcript 中可见的 model/provider，不暴露 provider-side exact model ID；若后续论文要把 LLM-as-Judge 本身作为方法学证据，需要 R7/R8 另做多 judge、一致性、随机性、人工仲裁实验，并在 provider 支持时记录精确模型 ID `[clm-limitation]`。
+2. 当前 final truth 仍以 `claude-blind-judge` 为主；DeepSeek 与 Codex replication 用于补强主裁决稳健性和暴露校准风险，三者都不能作为正式模型比较证据。Claude run 只记录 CLI alias `sonnet`，Codex/DeepSeek 也只记录 CLI transcript 中可见的 model/provider，不暴露 provider-side exact model ID；若后续论文要把 LLM-as-Judge 本身作为方法学证据，需要 R7/R8 另做多 judge、一致性、随机性、人工仲裁实验，并在 provider 支持时记录精确模型 ID `[clm-limitation]`。
 3. `.fcstm`、`pyfcstm`、PlantUML canonicalization 仍只是实验内部介质；不得作为贡献或 repair gain `[clm-boundary]`。
 4. 20/20 是对 hidden oracle 的一致性，不等于 oracle 绝对正确；本轮 C10/C20 的校准正说明 oracle / prompt / fixture 必须经 blind dry-run 反向审计 `[clm-calibration]`。
 
@@ -192,9 +199,9 @@ Codex CLI 已按同样隔离纪律尝试 full prompt；当前仓库可审计归�
 | [src-deepseek-score] | deepseek_score_summary | [deepseek-blind-judge/score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/deepseek-blind-judge/score_summary.json) | json | DeepSeek full blind replication score | top-level counts, B17 row |
 | [src-deepseek-manifest] | deepseek_manifest | [deepseek-blind-judge/final_run_manifest.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/deepseek-blind-judge/final_run_manifest.json) | json | DeepSeek run window、case audit paths、model/provider notes | `cases[*]`, `model_identity` |
 | [src-deepseek-prompt-check] | deepseek_prompt_consistency | [deepseek-blind-judge/prompt_consistency_check.stdout.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/deepseek-blind-judge/prompt_consistency_check.stdout.json) | json | DeepSeek archived prompts 与当前 bundle/template 一致性检查 | `checked_count=20`, `mismatch_count=0` |
-| [src-codex-score] | codex_score_summary | [codex-blind-judge/score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/score_summary.json) | json | Codex provider-failure audit | `eligible_score_applicable=false`; attempted=4, completed=3, provider failures=3, preflight-only=1, not run=16 |
-| [src-codex-manifest] | codex_manifest | [codex-blind-judge/final_run_manifest.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/final_run_manifest.json) | json | Codex failed-run audit paths、path existence 与 provider note | `provider_notes`, `model_identity.observed_attempts`, `cases[*].artifact_path_exists` |
-| [src-codex-prompt-check-first4] | codex_prompt_consistency_first4 | [codex-blind-judge/prompt_consistency_check.first4.stdout.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/prompt_consistency_check.first4.stdout.json) | json | Codex 已生成 B01--B04 prompts 与当前 bundle/template 一致性检查 | `checked_count=4`, `mismatch_count=0` |
+| [src-codex-score] | codex_score_summary | [codex-blind-judge/score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/score_summary.json) | json | Codex full eligible blind replication score | `valid_output_count=20`; `verdict_match_count=18`; `scope_match_count=20`; `run_validity_match_count=20`; `provider_or_cli_failure_count=0` |
+| [src-codex-manifest] | codex_manifest | [codex-blind-judge/final_run_manifest.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/final_run_manifest.json) | json | Codex rerun paths、model/provider observation、local-jsonschema mode 与每 case audit paths | `provider_notes`, `model_identity`, `cases[*].cli_output_schema_mode`, `cases[*].started_at`, `cases[*].completed_at`, `cases[*].artifact_path_exists` |
+| [src-codex-prompt-check] | codex_prompt_consistency | [codex-blind-judge/prompt_consistency_check.stdout.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/codex-blind-judge/prompt_consistency_check.stdout.json) | json | Codex B01--B20 archived prompts 与当前 bundle/template 一致性检查 | `checked_count=20`, `mismatch_count=0` |
 | [src-pr-multijudge-comment] | pr_multijudge_contract | [PR #143 comment 4885651351](https://github.com/HansBug/research_ideas/pull/143#issuecomment-4885651351) | GitHub comment | 追加 Codex / DeepSeek multi-judge contract | execution discipline, boundary |
 
 ### A.3 Claim-evidence map
@@ -210,10 +217,10 @@ Codex CLI 已按同样隔离纪律尝试 full prompt；当前仓库可审计归�
 | [clm-prompt-consistency] | R5.7.5-B7 | final archived prompts 与当前 prompt template / blind inputs 一致，未使用 stale prompt。 | audit | [src-prompt-check] `mismatch_count=0` | [cmd-prompt-check] | high | 只能证明 prompt bytes 一致，不证明 judge 无随机性。 |
 | [clm-run-validity-policy] | R5.7.5-B8 | `run_validity_match_count=20` 使用归一化等价桶，不是原始字符串字面相等。 | scoring policy | [src-score-script] `normalize_run_validity`; [src-score] `run_validity_match_policy` | [cmd-score] | high | 报告主表仍保留 expected/observed 原始状态，便于审计。 |
 | [clm-limitation] | R5.7.5-B9 | 单 judge 20/20 不能证明 LLM-as-Judge 方法学充分可靠，且本轮 Claude CLI 只记录 `sonnet` alias、未暴露 resolved exact model ID。 | limitation | [src-runner] judge=`claude`; [src-manifest] `model_identity`, `provider_notes`; [src-score] judge field | [cmd-manifest] | high | R7/R8 需多 judge / 人工仲裁，并在 provider 支持时记录精确模型 ID。 |
-| [clm-multijudge-scope] | R5.7.5-MJ1 | multi-judge 追加阶段只验证 constructed blind adjudication protocol，不证明 repair effectiveness。 | scope | [src-pr-multijudge-comment], [src-deepseek-score], [src-codex-score] | [cmd-score-deepseek], [cmd-score-codex] | high | Codex 不可用只作为 provider audit。 |
+| [clm-multijudge-scope] | R5.7.5-MJ1 | multi-judge 追加阶段只验证 constructed blind adjudication protocol，不证明 repair effectiveness。 | scope | [src-pr-multijudge-comment], [src-deepseek-score], [src-codex-score] | [cmd-score-deepseek], [cmd-score-codex] | high | 所有 `STM_k` 仍为 constructed protocol cases。 |
 | [clm-multijudge-verdict] | R5.7.5-MJ2 | DeepSeek replication 达成 20/20 primary verdict match、20/20 run-validity match、0 leakage，且 20/20 archived prompts 与当前 bundle/template 一致。 | result | [src-deepseek-score] top-level counts；[src-deepseek-prompt-check] `mismatch_count=0` | [cmd-score-deepseek], [cmd-prompt-check-deepseek] | high | scope 不是 20/20；B17 caveat 分歧需保留。 |
 | [clm-deepseek-scope-calibration] | R5.7.5-MJ3 | DeepSeek B17 将 `caveat_t05` 判为 `in_scope_t0_protocol_case`，暴露 T0.5 scope/gate 校准需求。 | calibration | [src-deepseek-score] B17 row | [cmd-score-deepseek] | high | verdict 仍为 `not_better`，不是 repair outcome 分歧。 |
-| [clm-codex-provider-failure] | R5.7.5-MJ4 | Codex full prompt run 当前只归档到 B01--B03 provider=`pro` 失败与 B04 preflight，不形成 eligible judge score，不能作为模型能力结论，也不能声称已归档 `airouter` 尝试。 | provider limitation | [src-codex-score], [src-codex-manifest], [src-codex-prompt-check-first4] | [cmd-score-codex], [cmd-prompt-check-codex-first4] | high | 后续 provider 稳定后可复跑；B05--B20 未执行。 |
+| [clm-codex-rerun] | R5.7.5-MJ4 | Codex final rerun 形成 20/20 eligible outputs、18/20 primary verdict match、20/20 scope match、20/20 run-validity match、0 leakage；运行采用直接 `codex exec`、不启用 provider CLI structured output，并由本地 jsonschema 严格校验。 | result / caveat | [src-codex-score], [src-codex-manifest], [src-codex-prompt-check] | [cmd-score-codex], [cmd-prompt-check-codex], [cmd-manifest-codex] | high | 旧 `--output-schema` 502 尝试只作为被 supersede 的 provider/CLI caveat；Codex 18/20 不得外推为模型比较。 |
 
 ### A.4 复验命令
 
@@ -228,7 +235,7 @@ Codex CLI 已按同样隔离纪律尝试 full prompt；当前仓库可审计归�
 | [cmd-prompt-check] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge claude-blind-judge` | 检查 final archived prompts 与当前 bundle/template 一致。 |
 | [cmd-score-deepseek] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge deepseek-blind-judge --require-all-valid --require-no-leakage` | 复算 DeepSeek full blind replication；不要求 all-core-match，因为 B17 scope mismatch 被保留为 calibration evidence。 |
 | [cmd-prompt-check-deepseek] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge deepseek-blind-judge` | 检查 DeepSeek archived prompts 与当前 bundle/template 一致；归档输出为 `deepseek-blind-judge/prompt_consistency_check.stdout.json`。 |
-| [cmd-score-codex] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge codex-blind-judge` | 复算 Codex provider-failure audit；不得作为 eligible judge score。 |
-| [cmd-prompt-check-codex-first4] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge codex-blind-judge --case-count 4` | 检查 Codex 已生成 B01--B04 prompts 与当前 bundle/template 一致；B05--B20 未运行，不做 20-case prompt consistency 声明。 |
+| [cmd-score-codex] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge codex-blind-judge --require-all-valid --require-no-leakage` | 复算 Codex full eligible blind replication；不要求 all-core-match，因为 B08/B11 verdict mismatch 被保留为 calibration evidence。 |
+| [cmd-prompt-check-codex] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge codex-blind-judge` | 检查 Codex B01--B20 archived prompts 与当前 bundle/template 一致；归档输出为 `codex-blind-judge/prompt_consistency_check.stdout.json`。 |
 | [cmd-manifest-deepseek] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/build_final_run_manifest.py --judge deepseek-blind-judge` | 生成 DeepSeek final run manifest。 |
-| [cmd-manifest-codex] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/build_final_run_manifest.py --judge codex-blind-judge` | 生成 Codex provider-failure manifest。 |
+| [cmd-manifest-codex] | `python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/build_final_run_manifest.py --judge codex-blind-judge` | 生成 Codex full rerun manifest，并记录 local-jsonschema mode 与旧 structured-output 502 caveat。 |

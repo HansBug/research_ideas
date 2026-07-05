@@ -141,11 +141,12 @@ def main() -> None:
         )
     if args.judge == "codex-blind-judge" and not provider_notes:
         provider_notes.append(
-            "Codex blind judge could not be completed in this PR because the archived B01--B03 Codex CLI attempts "
-            "returned 502 Bad Gateway / upstream failures or no model output under provider=pro; B04 has "
-            "prompt/start preflight artifacts only; B05--B20 were intentionally not run after the provider failure "
-            "pattern. This manifest is a provider-failure audit, not an eligible multi-judge score and not a Codex "
-            "model-capability conclusion."
+            "Codex blind judge final rerun uses direct `codex exec` with provider CLI structured output disabled "
+            "for the long R5.7.5 blind prompt; each archived last_message/stdout is still parsed and locally "
+            "validated against better_adjudication_blind_output_schema_v0.json before becoming eligible. A prior "
+            "provider-cli `--output-schema` attempt hit 502 on the full prompt and is superseded by the current "
+            "eligible local-jsonschema run. This artifact is a constructed protocol blind dry-run, not a model "
+            "comparison or repair-effectiveness result."
         )
     model_identity = {
         "judge": args.judge,
@@ -198,6 +199,7 @@ def main() -> None:
                 "model_identity_observation": observed_identity,
                 "started_at": start.get("started_at"),
                 "completed_at": end.get("completed_at"),
+                "cli_output_schema_mode": start.get("cli_output_schema_mode"),
                 "exit_code": end.get("exit_code"),
                 "parse_error": end.get("parse_error"),
                 "parse_source": end.get("parse_source"),

@@ -136,9 +136,15 @@ def main():
     isolated_last_message=isolated_dir/'last_message.txt'
     isolated_prompt.write_text(prompt, encoding='utf-8')
     isolated_schema.write_text(read(SCHEMA), encoding='utf-8')
+    cli_output_schema_mode='provider_cli_structured_output'
     if args.judge=='codex':
         exe=resolve_bin('codex')
-        cmd=[exe,'exec','--ephemeral','--skip-git-repo-check','--ignore-rules','--sandbox','read-only','-C',str(isolated_dir),'--output-schema',str(isolated_schema),'-o',str(isolated_last_message),'-']
+        codex_cli_output_schema=os.environ.get('R575_CODEX_CLI_OUTPUT_SCHEMA', '0').strip().lower() not in {'0','false','no','off','local','none'}
+        cmd=[exe,'exec','--ephemeral','--skip-git-repo-check','--ignore-rules','--sandbox','read-only','-C',str(isolated_dir),'-o',str(isolated_last_message),'-']
+        if codex_cli_output_schema:
+            cmd[cmd.index('-o'):cmd.index('-o')]=['--output-schema', str(isolated_schema)]
+        else:
+            cli_output_schema_mode='local_jsonschema_validation_no_cli_output_schema'
         codex_provider=os.environ.get('R575_CODEX_MODEL_PROVIDER')
         if codex_provider:
             cmd[1:1]=['-c', f'model_provider="{codex_provider}"']
@@ -159,7 +165,7 @@ def main():
         exe=resolve_bin('claude')
         cmd=[exe,'-p','--no-session-persistence','--bare','--model','sonnet','--json-schema',read(SCHEMA)]
         archived_cmd=[exe,'-p','--no-session-persistence','--bare','--model','sonnet','--json-schema',f'<schema-content-redacted; see {SCHEMA}>']
-    meta={'judge':args.judge,'judge_id':judge_id,'blind_case_id':args.case,'started_at':datetime.now().isoformat(timespec='seconds'),'schema_path':str(SCHEMA),'prompt_path':str(od/'prompt.txt'),'prompt_sha256':sha256_text(prompt),'protocol_prompt_template_sha256':sha256_text(read(PROMPT_TEMPLATE)),'cwd':str(isolated_dir),'isolated_run_dir':str(isolated_dir),'isolated_prompt_path':str(isolated_prompt),'isolated_schema_path':str(isolated_schema),'timeout_seconds':args.timeout,'command_argv_archived':archived_cmd,'context_isolation_claim':'fresh external CLI subprocess with no session persistence where supported; process cwd is an out-of-repository temporary directory containing only prompt.txt and output_schema.json; oracle_answer_key.json, PR comments, score summaries, and repository files are not present in the run cwd; the only adjudication context is prompt.txt via stdin'}
+    meta={'judge':args.judge,'judge_id':judge_id,'blind_case_id':args.case,'started_at':datetime.now().isoformat(timespec='seconds'),'schema_path':str(SCHEMA),'prompt_path':str(od/'prompt.txt'),'prompt_sha256':sha256_text(prompt),'protocol_prompt_template_sha256':sha256_text(read(PROMPT_TEMPLATE)),'cwd':str(isolated_dir),'isolated_run_dir':str(isolated_dir),'isolated_prompt_path':str(isolated_prompt),'isolated_schema_path':str(isolated_schema),'cli_output_schema_mode':cli_output_schema_mode,'timeout_seconds':args.timeout,'command_argv_archived':archived_cmd,'context_isolation_claim':'fresh external CLI subprocess with no session persistence where supported; process cwd is an out-of-repository temporary directory containing only prompt.txt and output_schema.json; oracle_answer_key.json, PR comments, score summaries, and repository files are not present in the run cwd; the only adjudication context is prompt.txt via stdin; when cli_output_schema_mode is local_jsonschema_validation_no_cli_output_schema, the provider CLI is not asked to enforce structured output but the archived last_message/stdout is still parsed and validated against isolated_schema_path before becoming eligible'}
     (od/'run_meta_start.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding='utf-8')
     try:
         res=subprocess.run(cmd, input=prompt, text=True, cwd=isolated_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=args.timeout, env=env)
