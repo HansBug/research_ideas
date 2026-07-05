@@ -6,12 +6,18 @@
 |---|---|
 | 标题 | Model driven engineering for machine learning components: A systematic literature review |
 | 年份 | 2024 |
-| 类型 | SLR |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟩 SLR |
+| 细分类型 / 原文自称 | Kitchenham-style SLR；MDE4ML 原始研究 |
+| 本文角色 | 🟢 主样本 |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 46 |
+| 原生维度树类型 | 🌲 森林 |
 | DOI | <https://doi.org/10.1016/j.infsof.2024.107423> |
 | 阅读状态 | 已读全文文本-paper_content核验；已回原文核对 Fig. 5 / Fig. 6 与 Data availability 链接；其余图表数值仍需正式引用前逐表复核。 |
 | 证据等级 | 全文文本级；关键图示局部 原文图表级；正式统计数字待二次 PDF 核对。 |

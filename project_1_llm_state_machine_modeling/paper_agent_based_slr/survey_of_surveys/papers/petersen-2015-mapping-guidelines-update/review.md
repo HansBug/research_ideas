@@ -7,17 +7,22 @@
 | 标题 | Guidelines for conducting systematic mapping studies in software engineering: An update |
 | 作者 | Kai Petersen; Sairam Vakkalanka; Ludwik Kuzniarz |
 | 年份 | 2015 |
-| 类型 | 系统映射 guideline update；对 SE 系统映射 studies 的 systematic map。 |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟦 SMS |
+| 细分类型 / 原文自称 | mapping guideline update / systematic map of maps；52 篇 SMS |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📚 综述 / 52 |
+| 原生维度树类型 | 🔁 流程树 |
 | 来源等级 | 高等级 SE 期刊；Information and Software Technology；DOI 与用户本地 Zotero PDF 已核验。 |
 | 阅读状态 | 已读 `bibtex.bib`、`paper_content.txt` 全文；已用 `pdfinfo` 核对 `paper.pdf` 为 18 页；未做图表视觉级人工核对。 |
 | 证据等级 | 全文文本级；复杂图表 / 附录矩阵待 A2a 人工原文核对。 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)、DOI: <https://doi.org/10.1016/j.infsof.2015.03.007> |
-| 综述类型 | mapping guideline update / 系统映射之系统映射（systematic map of systematic maps）。 |
 | SE 子领域 | 软件工程 系统映射 方法学。 |
 | A1 角色 | 从失败路径升级为全文级核心方法锚点：用于抽取 planning-conducting-reporting 流程、topic-independent dimensions、validity taxonomy、reporting structure、quality rubric。 |
 | 是否目标证据池 | 否；它支撑综述方法学与 模式种子，不支撑某一目标 SE 主题的领域结论。 |

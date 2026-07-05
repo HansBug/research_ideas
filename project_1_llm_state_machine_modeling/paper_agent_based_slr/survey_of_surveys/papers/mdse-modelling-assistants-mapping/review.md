@@ -7,12 +7,18 @@
 | 标题 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping |
 | 作者 | David Mosquera; Marcela Ruiz; Óscar Pastor; Jürgen Spielberger |
 | 年份 / 日期 | 2024；在线发表 2024-05-21；卷期为 IST 173:107492 |
-| 类型 | 系统映射；同时包含 文献映射 + 实践文档审查 |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟦 SMS |
+| 细分类型 / 原文自称 | 系统映射；MDSE assistant proposals + 工具文档 |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 58 + 工具 17 |
+| 原生维度树类型 | 🕸️ 关系树 |
 | DOI | <https://doi.org/10.1016/j.infsof.2024.107492> |
 | 本地核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
 | 阅读状态 | 已读全文文本-paper_content核验；用 `pdftotext` 从 [paper.pdf](./paper.pdf) 局部核对 Table 2/3/4 的版式文本；图形数值仍待人工视觉核对 |

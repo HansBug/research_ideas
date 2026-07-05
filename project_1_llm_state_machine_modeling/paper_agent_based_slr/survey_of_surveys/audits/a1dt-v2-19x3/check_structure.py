@@ -65,7 +65,8 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     text = summary_path.read_text(encoding="utf-8", errors="ignore")
     required_markers = [
         "PR #135 A1-DT v2 抽取与审计口径",
-        "A1-DT v2 统一总账表（按年份降序）",
+        "A1-DT v2 统一总账表（枚举速读版，按年份降序）",
+        "主表枚举速读口径",
         "A1-M0--M6 只作为跨论文投影",
         "audits/a1dt-v2-19x3/",
         "audits/a1dt-19x3/",
@@ -73,12 +74,26 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     for marker in required_markers:
         if marker not in text:
             add_error(errors, f"SUMMARY missing v2 marker: {marker}")
-    new_header = "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | CCF 复核状态 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |"
-    old_header = "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |"
-    if new_header not in text:
-        add_error(errors, "SUMMARY missing required v2 ledger header with CCF 复核状态 column")
-    if old_header in text:
-        add_error(errors, "SUMMARY still contains old v2 ledger header without CCF 复核状态 column")
+
+    enum_header = (
+        "| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | "
+        "综述类型大类 | 细分类型 / 原文自称 | 本文角色 | 统计池资格 | 证据成熟度 | "
+        "样本单位 / 分母链 | 原生维度树类型 | Paper2 关键贡献 | 详情 |"
+    )
+    old_headers = [
+        "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | CCF 复核状态 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |",
+        "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |",
+        "| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | CCF 复核状态 | 综述类型 | 模式种子 | 主统计池 | 证据角色 | 关键价值 | 详情 |",
+    ]
+    if enum_header not in text:
+        add_error(errors, "SUMMARY missing enum story ledger header")
+    for old_header in old_headers:
+        if old_header in text:
+            add_error(errors, "SUMMARY still contains old non-enum ledger header")
+
+    table_count = text.count(enum_header)
+    if table_count < 2:
+        add_error(errors, f"SUMMARY expected enum ledger header in §1.3 and §3, found {table_count}")
 
 
 def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:

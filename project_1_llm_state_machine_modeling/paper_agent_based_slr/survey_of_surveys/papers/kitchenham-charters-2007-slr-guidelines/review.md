@@ -6,17 +6,22 @@
 |---|---|
 | 标题 | Guidelines for performing Systematic Literature Reviews in Software Engineering |
 | 年份 | 2007 |
-| 类型 | 方法学 guideline / SLR 指南 |
 | 出版形态 | 技术报告 |
 | 期刊/会议/预印本 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
 | CCF 复核状态 | 非 CCF venue；技术报告 |
+| 综述类型大类 | 🧰 指南 |
+| 细分类型 / 原文自称 | SE SLR guideline；protocol/search/QA/extraction/synthesis/reporting |
+| 本文角色 | 🟣 方法 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 🧰 指南项 / 无主分母 |
+| 原生维度树类型 | 🧰 指南树 |
 | 来源等级 | 方法学基准；非 CCF 论文；技术报告 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工原文核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| 综述类型 | SLR guideline；同时定义 系统映射研究 与 tertiary review |
 | SE 子领域 | 软件工程证据综合方法学 |
 | A1 角色 | 提供 PR-A1 的基础术语、流程阶段、研究问题、protocol、搜索、选择、质量评价、数据抽取、数据综合与报告结构先验。 |
 | Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |

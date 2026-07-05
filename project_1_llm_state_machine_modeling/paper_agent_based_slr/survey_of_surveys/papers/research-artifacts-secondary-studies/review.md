@@ -12,9 +12,15 @@
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟦 SMS |
+| 细分类型 / 原文自称 | 系统映射；对象是 SE 二次研究 artifact |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📚 综述 / 537 |
+| 原生维度树类型 | 🧱 资产树 |
 | DOI | [10.1016/j.infsof.2025.107830](https://doi.org/10.1016/j.infsof.2025.107830) |
 | 本文自有开放工件 | Zenodo DOI：`10.5281/zenodo.15488074`；正文脚注与 Data availability 均指向该工件。 |
-| 综述类型 | 系统映射；对象是软件工程 二次研究 的 research artifact 报告与可获得性。 |
 | SE 子领域 | 横向方法学：二次研究 artifacts / open science / reproducibility。 |
 | 阅读状态 | 已读 `bibtex.bib`、`metadata.json`、`paper_content.txt` 全文；已用 `paper.pdf` 的 layout 文本核对 Table 1 关键数值与排版。 |
 | 证据等级 | 全文文本级；关键表格已回 PDF 文本核对，但未做视觉截图级人工核验。 |

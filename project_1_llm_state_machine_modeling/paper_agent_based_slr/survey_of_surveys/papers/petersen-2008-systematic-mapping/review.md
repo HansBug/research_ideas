@@ -7,17 +7,22 @@
 | 标题 | Systematic Mapping Studies in Software Engineering |
 | 作者 | Kai Petersen; Robert Feldt; Shahid Mujtaba; Michael Mattsson |
 | 年份 | 2008 |
-| 类型 | SMS 方法论文；包含 系统映射 process、分类维度构造、map/review 对照和 guideline 扩展建议。 |
 | 出版形态 | 会议 |
 | 期刊/会议/预印本 | [EASE](https://conf.researchr.org/series/ease) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | C |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🧰 指南 |
+| 细分类型 / 原文自称 | SMS 方法论文；含 10 篇 SLR 示例与 2 个 mapping 示例 |
+| 本文角色 | 🟣 方法 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 🧰 指南项 / 示例分母 |
+| 原生维度树类型 | 🧰 指南树 |
 | 来源等级 | EASE 2008 / BCS Electronic Workshops in Computing；DOI 与用户本地 Zotero PDF 已核验。 |
 | 阅读状态 | 已读 `bibtex.bib`、`paper_content.txt` 全文；已用 `pdfinfo` 核对 `paper.pdf` 为 10 页；未做图表视觉级人工核对。 |
 | 证据等级 | 全文文本级；图表 / 表格布局待 A2a 人工原文核对。 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)、DOI: <https://doi.org/10.14236/ewic/EASE2008.8> |
-| 综述类型 | SMS 方法论文 / 系统映射 方法学 seed。 |
 | SE 子领域 | 软件工程 系统映射 方法学。 |
 | A1 角色 | 从失败路径升级为全文级方法学种子：提供 SMS 流程、keywording、三维分类 facet、频数 / bubble plot 呈现、map 与 review 的互补边界。 |
 | 是否目标证据池 | 否；只作为 `survey_of_surveys/` 的方法学 模式种子，不作为某个 SE 主题领域事实。 |

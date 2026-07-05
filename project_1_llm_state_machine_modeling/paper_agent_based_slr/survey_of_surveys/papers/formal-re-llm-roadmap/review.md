@@ -8,12 +8,18 @@
 | 作者 | Alessio Ferrari; Paola Spoletini |
 | 年份 | 2025；在线发表日期 2025-02-18；卷期页码 Information and Software Technology 181:107697 |
 | DOI | <https://doi.org/10.1016/j.infsof.2025.107697> |
-| 类型 | vision / roadmap；不是 SLR / SMS / tertiary study |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🧭 路线图 |
+| 细分类型 / 原文自称 | vision / roadmap；formal RE ↔ LLM 双向路线图 |
+| 本文角色 | ⚫ 边界 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 🧭 行动项 / 无系统分母 |
+| 原生维度树类型 | 🧭 路线图树 |
 | 来源等级 | IST 2025；正式期刊 roadmap / vision paper；开放全文 PDF 已入库 |
 | 阅读状态 | 已读全文文本-paper_content核验；关键图 Fig. 2 / Fig. 4 仅完成全文文本级定位，版面级视觉核验待 A2a |
 | 证据等级 | 全文文本级；两张 roadmap 图为 原文图表级人工核对；其余表格/代码清单未逐项复核排版 |

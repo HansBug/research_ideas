@@ -7,22 +7,26 @@
 | 标题 | Analysing app reviews for software engineering: a systematic literature review |
 | 作者 | Jacek Dąbrowski; Emmanuel Letier; Anna Perini; Angelo Susi |
 | 年份 | 2022 |
-| 类型 | SLR；面向 app reviews for software engineering。 |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [ESE](https://link.springer.com/journal/10664) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟩 SLR |
+| 细分类型 / 原文自称 | SLR；app reviews for SE 原始研究 |
+| 本文角色 | 🟢 主样本 |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 182 |
+| 原生维度树类型 | 🌳 RQ树 |
 | 来源等级 | Empirical Software Engineering；正式 DOI、Springer PDF 与用户本地 Zotero PDF 已核验。 |
 | 阅读状态 | 已读 `bibtex.bib`、`paper_content.txt` 全文；已用 `pdfinfo` 核对 `paper.pdf` 为 63 页；未做复杂表格视觉级人工核对。 |
 | 证据等级 | 全文文本级；复杂表格、搜索式和部分百分比需 A2a 人工原文核对。 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf)、DOI: <https://doi.org/10.1007/s10664-021-10065-7> |
-| 综述类型 | SLR |
 | SE 子领域 | app reviews / mobile user feedback / mining software repository。 |
 | A1 角色 | 从失败路径升级为全文级现代高等级 SLR 样本：提供完整 RQ→抽取字段→分类 schema→统计表→discussion finding 的闭环。 |
 | survey_of_surveys 方法 / 模式池 | 后续候选；可作为 SLR 方法、报告结构和维度模式样本。 |
 | Paper2 目标领域证据池 | 否；不支撑 Paper2 目标主题的领域 finding。 |
-| 统计池资格 | 后续主统计池候选；A1 仅文本级 schema_seed，A2a 前不得进入最终定量统计。 |
 | 一句话结论 | 这篇论文是 A1 中字段体系最完整的现代 SLR 样本之一，尤其适合迁移“多套分类 schema + 评价质量字段 + replication package 字段 + discussion finding”设计。 |
 
 ## 2. 论文内容详读

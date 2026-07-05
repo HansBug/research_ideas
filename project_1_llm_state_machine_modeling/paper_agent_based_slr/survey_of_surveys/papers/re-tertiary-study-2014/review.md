@@ -6,17 +6,22 @@
 |---|---|
 | 标题 | Systematic Reviews in Requirements Engineering: A Tertiary Study |
 | 年份 | 2014 |
-| 类型 | tertiary study |
 | 出版形态 | 工作坊 |
 | 期刊/会议/预印本 | [EmpiRE](https://empire2014.wordpress.com/) |
 | CCF 官方大类 | -- |
 | CCF 官方等级 | -- |
 | CCF 复核状态 | 非 CCF venue / workshop |
+| 综述类型大类 | 🟪 三级 |
+| 细分类型 / 原文自称 | tertiary study；RE 领域 SLR |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📚 综述 / 53 |
+| 原生维度树类型 | 🌲 森林 |
 | 来源等级 | EmpiRE 2014 workshop；非顶级会议；IEEE DOI |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工原文核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| 综述类型 | Requirements Engineering 领域 tertiary study |
 | SE 子领域 | Requirements Engineering |
 | A1 角色 | 领域专门化 tertiary study 样本，用于验证“特定 SE 子领域如何定义 topic / quality / impact / practitioners”。 |
 | Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |

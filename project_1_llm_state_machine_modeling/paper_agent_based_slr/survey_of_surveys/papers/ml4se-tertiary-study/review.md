@@ -6,17 +6,22 @@
 |---|---|
 | 标题 | Machine Learning for Software Engineering: A Tertiary Study |
 | 年份 | 2023 |
-| 类型 | tertiary study |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [CSUR](https://dl.acm.org/journal/csur) |
 | CCF 官方大类 | 待核验（疑似非软件工程大类；官方页 WAF） |
 | CCF 官方等级 | 待核验 |
 | CCF 复核状态 | 官方待人工复核（WAF）；本地未建 CSUR 条目 |
+| 综述类型大类 | 🟪 三级 |
+| 细分类型 / 原文自称 | tertiary study；83 篇 reviews，间接覆盖 6,117 个原始研究计数 |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📚 综述 / 83 |
+| 原生维度树类型 | 🌲 森林 |
 | 来源等级 | 高等级综述期刊；ACM Computing Surveys；arXiv 开放 PDF；CCF 官方等级暂不写死 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工原文核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| 综述类型 | tertiary study；汇总 83 篇 reviews 与 6,117 个非唯一原始研究覆盖计数 |
 | SE 子领域 | ML4SE；覆盖软件生命周期多个活动 |
 | A1 角色 | 现代高等级 tertiary study 样本，用于压测大规模二次研究汇总、分类体系、research challenges 与 action recommendations。 |
 | Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |

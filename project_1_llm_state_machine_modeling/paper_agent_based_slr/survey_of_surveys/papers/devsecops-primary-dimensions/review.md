@@ -8,12 +8,18 @@
 | 作者 | Xiaofan Zhao; Tony Clear; Ramesh Lal |
 | 年份 | 2024；online 2024-04-23；JSS 214:112063 |
 | DOI | <https://doi.org/10.1016/j.jss.2024.112063> |
-| 类型 | multivocal literature review；Thematic Analysis；DevSecOps primary dimensions |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟨 MLR |
+| 细分类型 / 原文自称 | 多声部综述；白色 / 灰色文献双轨 |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 147 |
+| 原生维度树类型 | 🕸️ 关系树 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
 | 阅读状态 | 已读全文文本-paper_content核验；本轮未逐图 PDF 细核 Fig. 5--9 的连线细节 |
 | 证据等级 | 全文文本级；图表/数值细节待 PDF / Zenodo full CPTM 复核 |

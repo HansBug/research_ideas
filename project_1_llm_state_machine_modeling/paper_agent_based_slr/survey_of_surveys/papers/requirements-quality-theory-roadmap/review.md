@@ -6,17 +6,22 @@
 |---|---|
 | 标题 | Requirements quality research: a harmonized theory, evaluation, and roadmap |
 | 年份 | 2023 |
-| 类型 | research commentary / theory + evaluation + roadmap |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [RE](https://link.springer.com/journal/766) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🧭 理论路线图 |
+| 细分类型 / 原文自称 | theory / evaluation / roadmap；继承 57 篇 convenience sample |
+| 本文角色 | 🟠 种子 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 57（继承样本） |
+| 原生维度树类型 | 🧪 理论树 |
 | 来源等级 | Requirements Engineering 期刊；Springer 正式 DOI；本地已有 PDF 与全文文本 |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；Fig. 2 / Fig. 4 / Fig. 5 图形细节待人工原文核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| 综述类型 | 非典型 SLR；属于 requirements quality 的理论统一、57 篇文献状态评价与研究路线图 |
 | SE 子领域 | Requirements Engineering / requirements quality |
 | A1 角色 | 为 Paper2 的 researcher-defined meta-model、字段树、gap-to-roadmap 结构提供强脚手架先验。 |
 | Paper2 目标领域证据池 | 否；不支撑 Paper2 目标领域 final finding。 |

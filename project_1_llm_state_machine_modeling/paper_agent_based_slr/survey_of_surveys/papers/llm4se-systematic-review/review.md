@@ -8,12 +8,18 @@
 | 作者 | Xinyi Hou; Yanjie Zhao; Yue Liu; Zhou Yang; Kailong Wang; Li Li; Xiapu Luo; David Lo; John Grundy; Haoyu Wang |
 | 年份 / 出版日期 | 2024 / 2024-09-20；本地 PDF 为 arXiv v6 文本，页眉显示 2024-04-10 |
 | DOI | <https://doi.org/10.1145/3695988> |
-| 类型 | SLR |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [TOSEM](https://dl.acm.org/journal/tosem)；开放全文来自 arXiv PDF |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | A |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟩 SLR |
+| 细分类型 / 原文自称 | LLM4SE SLR；395 篇研究论文 |
+| 本文角色 | 🟢 主样本 |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 395 |
+| 原生维度树类型 | 🌲 森林 |
 | 阅读状态 | 已读 `bibtex.bib`、`metadata.json`、`paper_content.txt`；未逐页人工核对 `paper.pdf` 图表 |
 | 证据等级 | 全文文本级；图表/表格精确数值、artifact 内容与最终 ACM 版本差异待复核 |
 | 语料范围 | 2017 年 1 月至 2024 年 1 月；论文收集截止日为 2024-01-31，最终纳入 395 篇 LLM4SE 研究论文 |

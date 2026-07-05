@@ -13,7 +13,13 @@
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | A |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
-| 综述类型 | SLR + SMS；39 篇 peer-reviewed 原始研究，时间范围 2014--2024 |
+| 综述类型大类 | 🟩 SLR+SMS |
+| 细分类型 / 原文自称 | SLR + SMS；39 篇 peer-reviewed 原始研究，2014--2024 |
+| 本文角色 | 🟢 主样本 |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 39 |
+| 原生维度树类型 | 🌲 森林 |
 | SE 子领域 | LLM assistants / developer productivity / LLM4SE empirical studies |
 | 阅读状态 | 已读 [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)；已完成全文文本级阅读；round3 局部核对 PDF 元数据与 Fig.2，图表精确页码/版式仍待 A2a |
 | 证据等级 | 全文文本级；图表/表格精确版式与页码待人工原文核对 |

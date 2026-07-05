@@ -11,7 +11,13 @@
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
-| 类型 | 解决方案提案（solution proposal）；LLM-supported systematic 系统映射研究 方法设想；非实证 SLR/SMS |
+| 综述类型大类 | 🧪 方案 |
+| 细分类型 / 原文自称 | solution proposal；LLM-supported SMS 方法设想 |
+| 本文角色 | 🟠 种子 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | ❌ 无分母 |
+| 原生维度树类型 | 🔁 流程树 |
 | SE 子领域 | LLM-supported 系统映射研究 / evidence-based software engineering 方法学 |
 | 阅读状态 | 已读全文文本-paper_content核验；已回原文核对 Fig. 1 映射流程图 |
 | 证据等级 | 全文文本级；Fig. 1 为 原文图表级核对；无实证数值表可核对；补充材料未打开 |

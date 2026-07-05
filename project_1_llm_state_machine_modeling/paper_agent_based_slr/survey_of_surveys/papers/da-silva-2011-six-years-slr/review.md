@@ -6,17 +6,22 @@
 |---|---|
 | 标题 | Six years of systematic literature reviews in software engineering: An updated tertiary study |
 | 年份 | 2011 |
-| 类型 | updated tertiary study |
 | 出版形态 | 期刊 |
 | 期刊/会议/预印本 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) |
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | B |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟪 三级 |
+| 细分类型 / 原文自称 | updated tertiary study；扩展前序 tertiary |
+| 本文角色 | 🔵 类SLR |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📚 综述 / 67 新增；整合 120 |
+| 原生维度树类型 | 🕸️ 关系树 |
 | 来源等级 | 高等级 SE 期刊；Information and Software Technology |
 | 阅读状态 | 已读全文文本-paper_content核验 |
 | 证据等级 | 全文文本级；图表/表格细节待人工原文核对 |
 | 核验入口 | [bibtex.bib](./bibtex.bib)、[paper_content.txt](./paper_content.txt)、[paper.pdf](./paper.pdf) |
-| 综述类型 | 更新型三级研究；整合前两项 tertiary study 并扩展时间窗口。 |
 | SE 子领域 | EBSE / SE 二级研究方法学 |
 | A1 角色 | 提供“扩展旧 tertiary study + 自动/人工搜索 + 质量/覆盖/影响分析”的更新型模式。 |
 | 是否目标证据池 | 非 Paper2 目标领域 final finding；是 `survey_of_surveys` 后续主统计池候选（A1 仅作 schema_seed，A2a 前不得最终定量）。 |

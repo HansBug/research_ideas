@@ -12,9 +12,15 @@
 | CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
 | CCF 官方等级 | A |
 | CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🧭 路线图 |
+| 细分类型 / 原文自称 | vision / roadmap；无系统检索分母 |
+| 本文角色 | ⚫ 边界 |
+| 统计池资格 | ⚪ 不入 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 🧭 行动项 / 无系统分母 |
+| 原生维度树类型 | 🧭 路线图树 |
 | 本轮阅读状态 | `已读全文文本-paper_content核验`：已读 `bibtex.bib`、`metadata.json` 与 `paper_content.txt` 全文；未人工打开 `paper.pdf` 核对图表版式 |
 | 证据等级 | 全文文本级；图表待人工核对 |
-| 论文类型 | vision / roadmap / taxonomy-边界锚点；不是 SLR、SMS、tertiary study 或 guideline |
 | 对本库定位 | 可作为 AI-native SE / agentic SE 的“愿景—技术栈—挑战路线图”边界锚点，提供 roadmap / challenge / stack-component 字段候选；不得升级为系统综述证据或目标领域统计证据 |
 | 一句话结论 | 该文通过“SE 2.0 局限 → SE 3.0 愿景 → 五层技术栈 → 开放挑战”的叙事组织 AI-native SE 路线图；价值在于结构化愿景和挑战字段树，不在于系统性证据综合。 |
 
