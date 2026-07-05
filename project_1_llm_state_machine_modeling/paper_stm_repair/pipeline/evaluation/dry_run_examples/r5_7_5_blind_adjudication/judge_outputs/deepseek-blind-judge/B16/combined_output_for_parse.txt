@@ -1,36 +1,186 @@
-The JSON output above is the complete blind adjudication for case B16. Here's a summary of the reasoning:
+Now I have all the content from the prompt. The NL, raw STM_0, canonical STM_0, and candidate STM_k are all provided inline. Let me construct the adjudication.
 
-**Verdict: `not_better`**
+**Key analysis:**
 
-The candidate STM_k differs from canonical STM_0 in exactly one way: it adds a new event `Untraced_Auto_Reset` and a new transition `OperationalState → ClampingState`. This transition:
+- **E0 (Leakage)**: Packet is clean — no answer key, expected verdict, source slug, or semantic cue fields.
+- **E1 (Scope)**: NL describes a discrete event-driven braking device. No seconds/milliseconds, duration, interval, or timed-automata semantics. Pure T0.
+- **E2–E4**: Files present, parse OK, provenance valid, not identity.
+- **E5–E9 (Semantic)**: The candidate adds exactly one change: `event Untraced_Auto_Reset` + `OperationalState -> ClampingState : Untraced_Auto_Reset`. NL states OperationalState → InitialState via signal feedback, with no mention of OperationalState → ClampingState. The new event name literally signals "Untraced" — zero NL correspondence. This is NL-unsupported fabrication, not an improvement.
 
-1. **Has no NL support** — NL describes OperationalState only returning to InitialState via signal feedback; it never mentions a path to ClampingState from OperationalState.
-2. **Is self-labeling as untraced** — the event name `Untraced Auto Reset` explicitly declares it has no NL provenance.
-3. **Is not an improvement** — there is no NL-described requirement gap that this addition addresses; it's an unsolicited behavior injection.
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B16",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete event-driven braking device with no seconds/milliseconds duration, interval, execution-time bound, or timed-automata semantics. No periodic tick/timer cue present. Candidate adds no timed constructs. This is a pure T0 protocol case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Candidate STM_k is present on disk (mechanical_checks.candidate_file_present=true), parse status is parse_ok, and the .fcstm structure is well-formed with all required declarations (state block, events, pseudo state, states, transitions). Meets minimum auditability threshold.",
+      "evidence_references": ["candidate STM_k", "input_packet mechanical_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change is cleanly attributable: canonical STM_0 and candidate STM_k differ by exactly one added event (Untraced_Auto_Reset) and one added transition (OperationalState -> ClampingState). No format conversion, normalization, or textual-only rewrites. Candidate is not identical to canonical (provenance_checks.candidate_same_as_canonical_stm0=false). All provenance checks pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "input_packet provenance_checks"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All canonical states (InitialState, BrakingState, OperationalState, ClampingState), all canonical events (Brake_Signal_Received, Entering_Clamping_State, Signal_Feedback_Sent, Signal_Transmission_Fails), all canonical transitions (6 total), and the single-level hierarchy are preserved unchanged in candidate. No NL-supported state, transition, guard, action/effect, or hierarchical relationship was deleted or broken. The new transition OperationalState->ClampingState is an addition, not a deletion; it does not remove or weaken any existing canonical path.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-supported target issue is improved. The sole change is the addition of event Untraced_Auto_Reset with transition OperationalState->ClampingState. NL describes OperationalState only returning to InitialState via signal feedback (line 2: 'Once the signal feedback is sent, it returns to the initial state') and never mentions any OperationalState->ClampingState path. The event name 'Untraced_Auto_Reset' has zero correspondence to any NL element. No guard extraction, action/effect refinement, or any other NL-supported improvement is present.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Candidate introduces behavior (OperationalState -> ClampingState via Untraced_Auto_Reset) that is not described in NL and has no traceable semantic basis. NL explicitly states OperationalState returns to InitialState after signal feedback; there is no NL mention of an auto-reset path from OperationalState to ClampingState. The event name 'Untraced_Auto_Reset' literally signals lack of NL traceability. This constitutes semantic fabrication — adding behavior beyond the NL specification. The rest of the STM (states, other transitions, hierarchy) is preserved, but the fabricated addition violates semantic fidelity to NL.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All evidence is drawn exclusively from the blind input packet: NL text (3 lines), raw STM_0 PlantUML, canonical STM_0 .fcstm, candidate STM_k .fcstm, and mechanical/provenance checks. Leakage observation confirms no hidden answer key, expected verdict, source slug, or semantic cue fields were present. Confidence is high because the sole change is a single added transition with an explicitly untraceable event name, making the NL-unsupported nature unambiguous. No human escalation needed.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state.' — no mention of OperationalState->ClampingState",
+    "NL line 3: 'After entering the braking state, the system transitions to the brake caliper clamping state.' — only BrakingState->ClampingState, not OperationalState->ClampingState",
+    "canonical STM_0: 4 events, 5 states, 6 transitions; OperationalState has only one outgoing transition to InitialState via Signal_Feedback_Sent",
+    "candidate STM_k: adds event Untraced_Auto_Reset and transition OperationalState->ClampingState; all other elements unchanged",
+    "input_packet provenance_checks: all three checks pass, candidate is not identical to canonical",
+    "input_packet mechanical_checks: parse_ok, both files present"
+  ],
+  "rationale": "Candidate STM_k adds exactly one event (Untraced_Auto_Reset) and one transition (OperationalState -> ClampingState) to canonical STM_0. NL specifies that OperationalState transitions only to InitialState via signal feedback; it never describes a path from OperationalState to ClampingState. The event name 'Untraced Auto Reset' itself signals absence of NL traceability. This is semantic fabrication — introducing behavior not supported by NL. No other changes exist; all original states, transitions, and hierarchy are preserved. Since there is no NL-supported improvement (G4 fail) and the addition constitutes semantic infidelity (G5 fail), candidate is not_better than canonical STM_0. The addition is not a format conversion artifact, not a guard extraction from a folded event label, and not a counter-abstraction of a timer cue — it is a new, untraceable transition with no NL basis.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_fabrication: candidate adds OperationalState->ClampingState transition not supported by NL",
+    "untraced_naming: event name 'Untraced_Auto_Reset' explicitly signals lack of NL traceability",
+    "over_repair: candidate introduces behavior beyond NL specification scope",
+    "opaque_event: no trace map or NL correspondence for added event Untraced_Auto_Reset"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "parse_ok alone does not imply semantic better.",
+    "preservation of canonical elements does not offset NL-unsupported fabrication."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet examined in full: no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent phrasing found. semantic_modeling_conventions.blind_packet_policy confirms no such fields were intentionally included. Provenance and mechanical checks provide only low-level hard facts (parse status, hash completeness, identity check). No hidden answer key or oracle mapping detected."
+  }
+}
+```
+Now I have all the content from the prompt. The NL, raw STM_0, canonical STM_0, and candidate STM_k are all provided inline. Let me construct the adjudication.
 
-All original NL-supported states, transitions, and hierarchy are preserved (G3 pass), and provenance is intact (G2 pass). But the sole delta provides zero improvement (G4 fail) and introduces semantically ungrounded behavior (G5 fail), making this a clear `not_better`.
-The JSON output above is the complete blind adjudication for case B16. Here's a summary of the reasoning:
+**Key analysis:**
 
-**Verdict: `not_better`**
+- **E0 (Leakage)**: Packet is clean — no answer key, expected verdict, source slug, or semantic cue fields.
+- **E1 (Scope)**: NL describes a discrete event-driven braking device. No seconds/milliseconds, duration, interval, or timed-automata semantics. Pure T0.
+- **E2–E4**: Files present, parse OK, provenance valid, not identity.
+- **E5–E9 (Semantic)**: The candidate adds exactly one change: `event Untraced_Auto_Reset` + `OperationalState -> ClampingState : Untraced_Auto_Reset`. NL states OperationalState → InitialState via signal feedback, with no mention of OperationalState → ClampingState. The new event name literally signals "Untraced" — zero NL correspondence. This is NL-unsupported fabrication, not an improvement.
 
-The candidate STM_k differs from canonical STM_0 in exactly one way: it adds a new event `Untraced_Auto_Reset` and a new transition `OperationalState → ClampingState`. This transition:
-
-1. **Has no NL support** — NL describes OperationalState only returning to InitialState via signal feedback; it never mentions a path to ClampingState from OperationalState.
-2. **Is self-labeling as untraced** — the event name `Untraced Auto Reset` explicitly declares it has no NL provenance.
-3. **Is not an improvement** — there is no NL-described requirement gap that this addition addresses; it's an unsolicited behavior injection.
-
-All original NL-supported states, transitions, and hierarchy are preserved (G3 pass), and provenance is intact (G2 pass). But the sole delta provides zero improvement (G4 fail) and introduces semantically ungrounded behavior (G5 fail), making this a clear `not_better`.
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B16",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete event-driven braking device with no seconds/milliseconds duration, interval, execution-time bound, or timed-automata semantics. No periodic tick/timer cue present. Candidate adds no timed constructs. This is a pure T0 protocol case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Candidate STM_k is present on disk (mechanical_checks.candidate_file_present=true), parse status is parse_ok, and the .fcstm structure is well-formed with all required declarations (state block, events, pseudo state, states, transitions). Meets minimum auditability threshold.",
+      "evidence_references": ["candidate STM_k", "input_packet mechanical_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change is cleanly attributable: canonical STM_0 and candidate STM_k differ by exactly one added event (Untraced_Auto_Reset) and one added transition (OperationalState -> ClampingState). No format conversion, normalization, or textual-only rewrites. Candidate is not identical to canonical (provenance_checks.candidate_same_as_canonical_stm0=false). All provenance checks pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "input_packet provenance_checks"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All canonical states (InitialState, BrakingState, OperationalState, ClampingState), all canonical events (Brake_Signal_Received, Entering_Clamping_State, Signal_Feedback_Sent, Signal_Transmission_Fails), all canonical transitions (6 total), and the single-level hierarchy are preserved unchanged in candidate. No NL-supported state, transition, guard, action/effect, or hierarchical relationship was deleted or broken. The new transition OperationalState->ClampingState is an addition, not a deletion; it does not remove or weaken any existing canonical path.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-supported target issue is improved. The sole change is the addition of event Untraced_Auto_Reset with transition OperationalState->ClampingState. NL describes OperationalState only returning to InitialState via signal feedback (line 2: 'Once the signal feedback is sent, it returns to the initial state') and never mentions any OperationalState->ClampingState path. The event name 'Untraced_Auto_Reset' has zero correspondence to any NL element. No guard extraction, action/effect refinement, or any other NL-supported improvement is present.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Candidate introduces behavior (OperationalState -> ClampingState via Untraced_Auto_Reset) that is not described in NL and has no traceable semantic basis. NL explicitly states OperationalState returns to InitialState after signal feedback; there is no NL mention of an auto-reset path from OperationalState to ClampingState. The event name 'Untraced_Auto_Reset' literally signals lack of NL traceability. This constitutes semantic fabrication — adding behavior beyond the NL specification. The rest of the STM (states, other transitions, hierarchy) is preserved, but the fabricated addition violates semantic fidelity to NL.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All evidence is drawn exclusively from the blind input packet: NL text (3 lines), raw STM_0 PlantUML, canonical STM_0 .fcstm, candidate STM_k .fcstm, and mechanical/provenance checks. Leakage observation confirms no hidden answer key, expected verdict, source slug, or semantic cue fields were present. Confidence is high because the sole change is a single added transition with an explicitly untraceable event name, making the NL-unsupported nature unambiguous. No human escalation needed.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state.' — no mention of OperationalState->ClampingState",
+    "NL line 3: 'After entering the braking state, the system transitions to the brake caliper clamping state.' — only BrakingState->ClampingState, not OperationalState->ClampingState",
+    "canonical STM_0: 4 events, 5 states, 6 transitions; OperationalState has only one outgoing transition to InitialState via Signal_Feedback_Sent",
+    "candidate STM_k: adds event Untraced_Auto_Reset and transition OperationalState->ClampingState; all other elements unchanged",
+    "input_packet provenance_checks: all three checks pass, candidate is not identical to canonical",
+    "input_packet mechanical_checks: parse_ok, both files present"
+  ],
+  "rationale": "Candidate STM_k adds exactly one event (Untraced_Auto_Reset) and one transition (OperationalState -> ClampingState) to canonical STM_0. NL specifies that OperationalState transitions only to InitialState via signal feedback; it never describes a path from OperationalState to ClampingState. The event name 'Untraced Auto Reset' itself signals absence of NL traceability. This is semantic fabrication — introducing behavior not supported by NL. No other changes exist; all original states, transitions, and hierarchy are preserved. Since there is no NL-supported improvement (G4 fail) and the addition constitutes semantic infidelity (G5 fail), candidate is not_better than canonical STM_0. The addition is not a format conversion artifact, not a guard extraction from a folded event label, and not a counter-abstraction of a timer cue — it is a new, untraceable transition with no NL basis.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_fabrication: candidate adds OperationalState->ClampingState transition not supported by NL",
+    "untraced_naming: event name 'Untraced_Auto_Reset' explicitly signals lack of NL traceability",
+    "over_repair: candidate introduces behavior beyond NL specification scope",
+    "opaque_event: no trace map or NL correspondence for added event Untraced_Auto_Reset"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "parse_ok alone does not imply semantic better.",
+    "preservation of canonical elements does not offset NL-unsupported fabrication."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet examined in full: no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent phrasing found. semantic_modeling_conventions.blind_packet_policy confirms no such fields were intentionally included. Provenance and mechanical checks provide only low-level hard facts (parse status, hash completeness, identity check). No hidden answer key or oracle mapping detected."
+  }
+}
+```
 
 OpenAI Codex v0.141.0
 --------
-workdir: /home/zhangshaoang/oo-projects/research_ideas
+workdir: /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
 model: deepseek-v4-pro
 provider: deepseek
 approval: never
 sandbox: read-only
 reasoning effort: xhigh
 reasoning summaries: none
-session id: 019f2f68-5c61-7202-8a83-b8d0ba17470a
+session id: 019f31df-ce0b-78f1-a9a7-db7d8cc99f4a
 --------
 user
 # Better STM blind adjudication prompt v0（R5.7.5）
@@ -82,20 +232,24 @@ user
 - 本任务是静态 STM repair/refinement 裁决，不是对 `.fcstm` 进行完整仿真。`def int` / `def bool` 形式的 guard 变量可表示外部传感器、输入条件或抽象条件；仅凭“变量在 candidate 内没有 assignment”不能断言该迁移不可达。
 - 反过来，parse 成功、变量声明存在、格式更规整，也不能自动算作 better。better 必须来自 NL 支持的语义改善，且不能引入关键回归。
 - raw / canonical STM_0 的 event label 可能把 event、guard、action/effect 混写在同一个 label 中；candidate 可以把它拆成 event + guard/effect，但必须保留原始触发语义。
+- 裁决前必须显式比较 canonical 与 candidate 的状态、层级、迁移源/目标、event、guard、action/effect：任何 NL 支持的迁移、状态或层级被删除，都优先视为 G3/G5 回归，不能被“命名更自然”或“文本更像 NL”抵消。
 - T0.5 的周期 tick / timer cue 可以用离散 counter 作为 caveat_t05；真正 timed automata / clock invariant / continuous time claim 不属于 headline Better STM。
-- `provenance_checks` 是可观察运行记录事实，不是 answer key；若它显示 normalization-only、ledger/hash 缺失或额外能力外推，应按 G2 fail-closed。
+- `provenance_checks` 只能被当作可观察运行记录事实，不是 answer key。允许的硬事实仅限 parse 状态、hash/ledger 是否齐全、candidate 是否与 canonical 字节相同等低层可复验事实；case-specific 语义摘要、target closure 判断、domain feature 预消化结论不得当作正常输入。
+- 若输入 packet 出现 `primary_expected_verdict`、`expected_verdict`、`source_case_id`、`source_slug`、`semantic_evidence_status`、`target_closure_expected`、`strict better should not be claimed` 等会把构造意图或裁决方向直接告诉你的字段/短语，必须在 `leakage_observation.detected=true` 标记；不得把这类字段当作正常证据。
 
 
 ## 2.2 fail-closed 强规则（不得被后续语义分析覆盖）
 
 这些规则优先于“candidate 看起来有没有语义改善”的普通判断：
 
-1. **scope routing 优先**：若 `provenance_checks.scope_boundary_category` 为 `out_of_headline_t1_stress`，或 NL/candidate 明确要求真正 timed automata / continuous clock / second-based duration semantics 而 candidate 未按 T0.5 counter caveat 降级，则必须输出 `scope_routing_status=out_of_headline_stress_t1`、`run_validity_status=stress_only_not_headline`、`primary_verdict=stress_t1`。若 `provenance_checks.scope_boundary_category` 为 `caveat_t05`，则 `scope_routing_status` 必须为 `caveat_t05`，但 verdict 仍由后续 gate / provenance invalid 规则决定。
-2. **provenance invalid 优先**：若 `provenance_checks.change_origin_category=normalization_only_artifact`，或 `change_ledger_available=false`，或 `target_instance_ledger_available=false`，或 `hash_chain_complete=false`，或 `declared_extra_method_claims` 声称了 candidate carrier 没有提供的额外能力，则必须输出 `run_validity_status=protocol_or_provenance_invalid`、`primary_verdict=protocol_or_provenance_invalid`。即使 candidate 在语义上看似改善，也不能进入 Better/partial/not_better。
-3. **unknown 只用于证据不足**：若 `provenance_checks.semantic_evidence_status` 明确为 `insufficient_for_strict_improvement_or_regression` 或 `insufficient_traceability_for_strict_verdict`，并且 G3 未发现清晰语义回归，则必须输出 `primary_verdict=unknown`；这条优先于 identity/no-gain 的默认 `not_better`，因为该字段表示当前 blind packet 的语义证据不足以支撑严格 better/not_better。不要把 unknown 用作“懒得判断”；有清晰语义回归时仍应是 `not_better`。
-4. **T0.5 counter caveat 不等于 strict better**：若 `provenance_checks.semantic_evidence_status=t05_counter_abstraction_without_lifecycle`，且 candidate 只是把 timer/tick/event 改成离散 counter guard、但 blind packet 没有 counter increment/reset/lifecycle 证据，则不要输出 strict `better`；若无清晰回归且确有显式化收益，输出 `primary_verdict=partial`、`scope_routing_status=caveat_t05`。
-5. **identity/null delta**：若 candidate 与 canonical 字节相同且没有 protocol invalid 的 provenance 事实，默认 `not_better`，因为 no-op 不是 repair gain。
-6. **完整 guard extraction 可为 better**：若 NL 明确把触发条件写成条件/谓词（例如 `dist_to_front<25 && extra_lane=true`），canonical 仅把该谓词折叠在 event name/display label 中，而 candidate 对同一 target family 完整改为 explicit guard syntax、保留原 state/transition/hierarchy/action 语义且没有关键回归，则这可以构成 `better`，不要仅因“canonical 也大致可读”而降级为 `partial`。若只改一部分同类 guard 或引入不一致抽象，则不得用此规则。
+1. **scope routing 优先，但必须从 NL/STM/硬事实推断**：若 NL 或 STM label 中存在真实秒级/毫秒级 duration、区间时长、执行时间上界/下界等时间语义（即便它们被写成普通 event/name label），而 candidate 只是原样保留这些 duration labels、没有降级为离散 counter abstraction，也没有提供真实 timed carrier，则必须在任何 identity/no-op 判断之前按 case-level scope 输出 `scope_routing_status=out_of_headline_stress_t1`、`run_validity_status=stress_only_not_headline`、`primary_verdict=stress_t1`。这个规则也适用于 canonical 与 candidate 字节完全相同的 no-op / identity case：只要 NL/STM 本身是秒级执行时间语义且 candidate 没有把它降级为离散 counter abstraction，就不要把它当成普通 T0 identity case。若 NL/candidate 只是把周期 tick、timeout、timer-expired 这类可离散化 cue 表达成 integer counter / threshold guard，则输出 `scope_routing_status=caveat_t05`；verdict 仍由 G2--G5 决定。
+2. **provenance invalid 优先**：若 `change_ledger_available=false`，或 `target_instance_ledger_available=false`，或 `hash_chain_complete=false`，则必须输出 `run_validity_status=protocol_or_provenance_invalid`、`primary_verdict=protocol_or_provenance_invalid`。即使 candidate 在语义上看似改善，也不能进入 Better/partial/not_better。
+3. **identity/null delta**：若 candidate 与 canonical 字节相同且没有 protocol invalid 的 provenance 事实，默认 `not_better`，因为 no-op 不是 repair gain；但如果该 case 的 NL/STM 已按 G0 落在 T1 stress scope，即使 candidate 是 identity/no-op，也必须按 scope routing 输出 `stress_t1`。
+4. **证据不足才用 unknown**：只有当你能具体指出“候选变化可能是语义改善，也可能是语义削弱/等价，且仅凭 NL + raw/canonical/candidate + 硬 provenance 无法严谨归因”时，才输出 `unknown`。不要把 `unknown` 用作“懒得判断”；纯重命名、identity、无 target gain 默认是 `not_better`。若 candidate 把 NL 中原本可读/可追踪的精确条件或动作替换成不透明代理变量且没有 trace map，并且这种替换明显删除了 canonical 中可读的 NL 语义或关键 trace，则这是 traceability regression，默认 `not_better`；清晰语义回归也必须是 `not_better`。若 candidate 仅把复合 event/action label 拆成抽象流程变量或通用 effect flag，拓扑结构未删、行为方向未变，但变量名无法从 NL 严谨追溯到具体外部动作/输出，此时既不能证明 better，也不能证明关键行为删除，应优先 `unknown`，而不是为了给出严格结论强行判 `better` 或 `not_better`。特别注意：`effect_token_*`、`flag_*`、`tmp_*` 这类无语义变量名，且没有注释或 trace map 指向 NL 中的具体动作/输出时，不得计为 strict 或 partial action/effect improvement；如果 readable NL display labels 仍被保留、状态/迁移/层级未删，则这类“不透明 instrumentation”应判 `unknown`，不要因“看起来增加了 effect block”而判 `partial`。
+5. **T0.5 counter caveat 不等于 strict better**：若 candidate 把周期性 tick / timeout / timer-expired cue 改成离散 counter guard，则 `scope_routing_status` 应为 `caveat_t05`。若 candidate 中没有完整 counter increment/reset/lifecycle 证据，不要输出 strict `better`；若该 counter guard 只是冗余、不可推进或与原 event label 并存而没有可见语义收益，输出 `not_better`；若没有状态/层级/关键迁移删除，且这种 counter guard 相比纯 event label 至少提升了 threshold/guard 显式性，输出 `partial`，并把 lifecycle 缺口写入 risk flags。
+6. **不要把“未修复所有潜在问题”自动降级为 partial**：`better` 只要求至少一个可归因、NL 支持、无关键回归的 target 得到严格改善；candidate 不需要一次修完整个 STM 中所有可能的 guard/action/state 问题。只有当未闭合成员与本次 candidate 明显尝试的同一个窄 target instance / 同一个局部重复模式强绑定，导致改善证据不足或内部不一致时，才输出 `partial`。如果 candidate 明显在处理一个 action/effect family，但只处理 transition-label actions、没有覆盖 NL 明确给出的 state-entry / state-do / ongoing action/effect（例如 NL 写明进入某状态执行动作、某状态持续发送信号或某状态包含动作，而 candidate 只把少数 transition label 拆成 effect），则属于同族未闭合，输出 `partial` 而非 strict `better`。
+7. **完整局部 guard extraction 可为 better**：若 NL 明确把某个触发条件写成条件/谓词，canonical 仅把该谓词折叠在 event name/display label 中，而 candidate 对该局部 target 完整改为 explicit guard syntax、保留原 state/transition/hierarchy/action 语义且没有关键回归，则这可以构成 `better`。若只改同一个局部重复模式的一部分或引入不一致抽象，则不得用此规则。
+8. **文本相似度不能抵消结构回归**：candidate 若只是把 label 改得更像自然语言、同义改写 event name、或删除看似多余但 NL 支持的迁移/出口路径，必须按 no-regression 处理；不要因为候选文字更顺就判 `better`。
 
 
 ## 3. 输出要求
@@ -104,7 +258,7 @@ user
 
 ## 4. 泄露纪律
 
-如果你在输入中看到疑似 answer key、expected verdict、oracle mapping、原始 case slug 或明显裁决暗示，请在 `leakage_observation.detected=true` 中说明；但不要访问或推断任何未提供的外部文件。
+如果你在输入中看到疑似 answer key、expected verdict、oracle mapping、原始 case slug、`semantic_evidence_status`、`target_closure_expected`、case-specific expected branch、或“strict better should/should not”这类明显裁决暗示，请在 `leakage_observation.detected=true` 中说明；但不要访问或推断任何未提供的外部文件。
 
 ## 5. 必须严格使用的 JSON 骨架
 
@@ -119,9 +273,9 @@ user
   "headline_eligible": false,
   "repair_effectiveness_eligible": false,
   "real_repair_run_id": null,
-  "scope_routing_status": "in_scope_t0_protocol_case | caveat_t05 | out_of_headline_stress_t1 | out_of_scope",
-  "run_validity_status": "valid_blind_protocol_case | candidate_schema_or_parse_invalid | protocol_or_provenance_invalid | stress_only_not_headline",
-  "primary_verdict": "better | not_better | partial | unknown | stmk_repair_failure | protocol_or_provenance_invalid | stress_t1",
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
   "gate_results": {
     "G0": {"status": "pass", "reason": "...", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
     "G1": {"status": "pass", "reason": "...", "evidence_references": ["candidate STM_k"]},
@@ -141,9 +295,13 @@ user
 }
 ```
 
-若你无法确定某个 gate，请使用 `status=unknown`，不要新增 schema 外字段。若你认为候选 parse invalid，`run_validity_status` 用 `candidate_schema_or_parse_invalid` 且 `primary_verdict` 用 `stmk_repair_failure`。
+上述 JSON 骨架中的字符串值只是一个合法示例，不是推荐答案。枚举字段必须按本节之前列出的枚举集合选择**单个**合法值；严禁复制 `A | B | C` 这种 pipe-delimited 选项串。若你无法确定某个 gate，请使用 `status=unknown`，不要新增 schema 外字段。若你认为候选 parse invalid，`run_validity_status` 用 `candidate_schema_or_parse_invalid` 且 `primary_verdict` 用 `stmk_repair_failure`。
 
 **严格 schema 提醒**：`gate_results.G0`--`gate_results.G6` 的每个 gate 对象只允许 `status`、`reason`、`evidence_references` 三个字段；严禁增加 `mechanical_parse_status`、`details`、`notes`、`score`、`substatus` 等任何额外字段。机械 parse 信息如需说明，只能写入该 gate 的 `reason` 文本中。
+
+**gate status 枚举硬约束**：每个 `gate_results.G*.status` 必须且只能从以下 8 个单值中选择：
+`pass`、`fail`、`partial`、`unknown`、`caveat`、`out_of_headline`、`not_applicable`、`not_evaluated`。
+严禁使用 `concern`、`warning`、`regression`、`blocked`、`invalid`、`pass_with_notes` 或任何其他自造状态；如果你想表达“有风险但不是直接 fail”，请把 `status` 写成最接近的合法值（通常是 `fail`、`partial` 或 `unknown`），并在 `reason` 中解释。
 
 
 # Blind case input
@@ -157,10 +315,6 @@ blind_case_id: B16
   "schema_version": "r5_7_5.blind_input_packet.v1",
   "blind_case_id": "B16",
   "artifact_role": "blind_adjudication_input",
-  "base_pair_id": "llms_emp_stm_results_0001",
-  "source_model_name": "State machine diagram of the base brake subsystem",
-  "source_model_family": "HSTBS",
-  "source_llm": "GPT-4o",
   "nl_path": "nl.txt",
   "raw_stm0_path": "raw_stm0.plantuml",
   "canonical_stm0_path": "canonical_stm0.fcstm",
@@ -178,14 +332,13 @@ blind_case_id: B16
     "guard_variables": "Abstract sensor/input conditions in static adjudication; absence of in-model assignment is not by itself a dead-transition proof.",
     "event_labels": "Labels may encode events and actions in raw/canonical STM_0; candidate may split them into event plus effect only if NL-supported behavior is preserved.",
     "t05_timer_policy": "Periodic timer/tick cues may be routed as caveat_t05 when represented as a discrete counter abstraction.",
-    "t1_policy": "True continuous time / timed-automata semantics are out-of-headline stress cases, not headline Better STM successes."
+    "t1_policy": "True continuous time / timed-automata semantics are out-of-headline stress cases, not headline Better STM successes.",
+    "blind_packet_policy": "No source case id, expected verdict, target closure summary, construction intent label, domain-feature summary, or case-specific semantic cue is intentionally included in this packet."
   },
   "provenance_checks": {
     "change_ledger_available": true,
     "target_instance_ledger_available": true,
     "hash_chain_complete": true,
-    "candidate_hash_matches_constructed_case": true,
-    "change_origin_category": "constructed_candidate_with_local_ledgers",
     "candidate_same_as_canonical_stm0": false
   },
   "neutral_change_observation": "Inspect canonical_stm0.fcstm and candidate_stmk.fcstm directly. The packet provides only observable mechanical/provenance facts and no hidden answer key.",
@@ -275,83 +428,268 @@ hook: UserPromptSubmit Completed
 hook: PreToolUse
 hook: PreToolUse Completed
 exec
-/usr/bin/bash -lc "cat <<'JSON'
+/usr/bin/bash -lc 'cat /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/canonical_stm0.fcstm' in /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
+ exited 1 in 0ms:
+cat: /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/canonical_stm0.fcstm: No such file or directory
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/usr/bin/bash -lc 'cat /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/candidate_stmk.fcstm' in /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
+ exited 1 in 0ms:
+cat: /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/candidate_stmk.fcstm: No such file or directory
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/usr/bin/bash -lc 'cat /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/nl.txt' in /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
+ exited 1 in 0ms:
+cat: /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/nl.txt: No such file or directory
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/usr/bin/bash -lc 'ls -la /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/' in /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
+ succeeded in 0ms:
+total 568
+drwx------    3 zhangshaoang domain users   4096 Jul  5 18:42 .
+drwxrwxrwt 1592 nobody       nogroup      540672 Jul  5 18:43 ..
+drwxr-xr-x    4 zhangshaoang domain users   4096 Jul  5 18:42 .omx
+-rw-r--r--    1 zhangshaoang domain users   4363 Jul  5 18:42 output_schema.json
+-rw-r--r--    1 zhangshaoang domain users  20135 Jul  5 18:42 prompt.txt
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/usr/bin/bash -lc 'cat /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo/output_schema.json' in /tmp/r575_deepseek-blind-judge_B16_kc7g3fzo
+ succeeded in 0ms:
 {
-  \"schema_version\": \"r5_7_5.better_adjudication_blind_output.v0\",
-  \"blind_case_id\": \"B16\",
-  \"artifact_role\": \"blind_adjudication_output\",
-  \"judge_id\": \"deepseek-blind-judge\",
-  \"headline_eligible\": false,
-  \"repair_effectiveness_eligible\": false,
-  \"real_repair_run_id\": null,
-  \"scope_routing_status\": \"in_scope_t0_protocol_case\",
-  \"run_validity_status\": \"valid_blind_protocol_case\",
-  \"primary_verdict\": \"not_better\",
-  \"gate_results\": {
-    \"G0\": {
-      \"status\": \"pass\",
-      \"reason\": \"NL describes a discrete state machine for a train braking subsystem with no continuous-time or timed-automata semantics. No T0.5 counter/timer language or T1 continuous-clock claims appear in NL, raw STM_0, canonical STM_0, or candidate STM_k. Scope is in-scope T0 protocol case.\",
-      \"evidence_references\": [\"NL\", \"raw STM_0\", \"canonical STM_0\", \"candidate STM_k\"]
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "paper_stm_repair.r5_7_5.better_adjudication_blind_output_schema.v0",
+  "title": "Better STM blind adjudication output schema v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "blind_case_id",
+    "artifact_role",
+    "judge_id",
+    "headline_eligible",
+    "repair_effectiveness_eligible",
+    "real_repair_run_id",
+    "scope_routing_status",
+    "run_validity_status",
+    "primary_verdict",
+    "gate_results",
+    "evidence_references",
+    "rationale",
+    "observed_anti_gaming_risk_flags",
+    "forbidden_claims",
+    "confidence",
+    "human_escalation_required",
+    "leakage_observation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "r5_7_5.better_adjudication_blind_output.v0"
     },
-    \"G1\": {
-      \"status\": \"pass\",
-      \"reason\": \"mechanical_checks.candidate_parse_status=parse_ok; candidate STM_k is syntactically well-formed .fcstm with complete state/event/transition declarations and no parse errors. Lowest auditability threshold satisfied.\",
-      \"evidence_references\": [\"candidate STM_k\"]
+    "blind_case_id": {
+      "type": "string",
+      "pattern": "^B[0-9]{2}$"
     },
-    \"G2\": {
-      \"status\": \"pass\",
-      \"reason\": \"provenance_checks confirms change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers. Candidate is distinct from canonical (candidate_same_as_canonical_stm0=false). No normalization-only artifact, no missing ledger/hash, no declared extra method claims. Attribution chain is intact.\",
-      \"evidence_references\": [\"canonical STM_0\", \"candidate STM_k\"]
+    "artifact_role": {
+      "const": "blind_adjudication_output"
     },
-    \"G3\": {
-      \"status\": \"pass\",
-      \"reason\": \"All five NL-supported transitions are preserved: start->InitialState, InitialState->BrakingState by Brake_Signal_Received, InitialState->OperationalState by Signal_Transmission_Fails, BrakingState->ClampingState by Entering_Clamping_State, BrakingState->InitialState and OperationalState->InitialState by Signal_Feedback_Sent. All four substantive states (InitialState, BrakingState, OperationalState, ClampingState) are retained. No NL-described state, transition, hierarchy, or behavior is deleted or corrupted. The added transition OperationalState->ClampingState by Untraced_Auto_Reset does not delete or overwrite any existing behavior; its semantic evaluation belongs to G4/G5.\",
-      \"evidence_references\": [\"NL\", \"canonical STM_0\", \"candidate STM_k\"]
+    "judge_id": {
+      "type": "string",
+      "minLength": 1
     },
-    \"G4\": {
-      \"status\": \"fail\",
-      \"reason\": \"Candidate STM_k introduces exactly one delta relative to canonical STM_0: a new event Untraced_Auto_Reset and a new transition OperationalState->ClampingState by that event. This transition has no corresponding description in NL. NL describes OperationalState only as returning to InitialState via Signal_Feedback_Sent ('Once the signal feedback is sent, it returns to the initial state'); it never describes a path from OperationalState to ClampingState. The event name 'Untraced Auto Reset' itself signals lack of traceability to NL. No target issue exists for which this addition constitutes an improvement — it is an unsolicited behavior injection with no NL basis. There is no observable improvement to any NL-described requirement.\",
-      \"evidence_references\": [\"NL\", \"canonical STM_0\", \"candidate STM_k\"]
+    "headline_eligible": {
+      "const": false
     },
-    \"G5\": {
-      \"status\": \"fail\",
-      \"reason\": \"Semantic fidelity check against NL reveals that candidate STM_k adds a transition OperationalState->ClampingState by Untraced_Auto_Reset that has no grounding in NL. NL specifies that from OperationalState the system returns to InitialState via Signal_Feedback_Sent; it does not authorize a ClampingState transition from OperationalState under any event. The canonical STM_0 faithfully models the NL's four-state lifecycle: (1) brake signal → BrakingState, (2) signal failure → OperationalState, (3) entering clamping, (4) feedback → back to InitialState. Candidate adds a fifth, unsupported path that introduces an untraced auto-reset semantics never described in NL, raw STM_0, or canonical STM_0. This is a semantic injection, not a semantic improvement. The event name 'Untraced Auto Reset' is explicitly self-labeling as having no NL traceability, which is direct evidence of an anti-gaming concern. Textual similarity to canonical is irrelevant because of this unsolicited behavior addition.\",
-      \"evidence_references\": [\"NL\", \"raw STM_0\", \"canonical STM_0\", \"candidate STM_k\"]
+    "repair_effectiveness_eligible": {
+      "const": false
     },
-    \"G6\": {
-      \"status\": \"pass\",
-      \"reason\": \"All required eligibility flags set: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. Evidence references are explicit and traceable to inputs. Forbidden claims block included. Confidence is high because the candidate's single delta — an NL-unsupported transition explicitly named 'Untraced Auto Reset' — is unambiguous. No human escalation needed; this is a clear not_better verdict from blind packet evidence alone.\",
-      \"evidence_references\": [\"this JSON output\"]
+    "real_repair_run_id": {
+      "type": "null"
+    },
+    "scope_routing_status": {
+      "enum": [
+        "in_scope_t0_protocol_case",
+        "caveat_t05",
+        "out_of_headline_stress_t1",
+        "out_of_scope"
+      ]
+    },
+    "run_validity_status": {
+      "enum": [
+        "valid_blind_protocol_case",
+        "candidate_schema_or_parse_invalid",
+        "protocol_or_provenance_invalid",
+        "stress_only_not_headline"
+      ]
+    },
+    "primary_verdict": {
+      "enum": [
+        "better",
+        "not_better",
+        "partial",
+        "unknown",
+        "stmk_repair_failure",
+        "protocol_or_provenance_invalid",
+        "stress_t1"
+      ]
+    },
+    "gate_results": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "G0",
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "properties": {
+        "G0": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G1": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G2": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G3": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G4": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G5": {
+          "$ref": "#/$defs/gate_result"
+        },
+        "G6": {
+          "$ref": "#/$defs/gate_result"
+        }
+      }
+    },
+    "evidence_references": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_anti_gaming_risk_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "forbidden_claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ]
+    },
+    "human_escalation_required": {
+      "type": "boolean"
+    },
+    "leakage_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detected",
+        "notes"
+      ],
+      "properties": {
+        "detected": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
     }
   },
-  \"evidence_references\": [
-    \"NL line 3: 'Once the signal feedback is sent, it returns to the initial state' — establishes OperationalState only returns to InitialState, not ClampingState\",
-    \"NL lines 2-3: full description covers exactly four transitions, none of which is OperationalState→ClampingState\",
-    \"canonical STM_0: OperationalState→InitialState by Signal_Feedback_Sent; no OperationalState→ClampingState path exists\",
-    \"candidate STM_k: adds OperationalState→ClampingState by Untraced_Auto_Reset — net-new transition and event absent from NL, raw, and canonical\",
-    \"candidate STM_k event name 'Untraced Auto Reset' self-declares lack of NL traceability\"
-  ],
-  \"rationale\": \"Candidate STM_k adds exactly one change relative to canonical STM_0: a new event 'Untraced_Auto_Reset' and a new transition OperationalState→ClampingState. This transition has zero support in NL — NL never describes any path from OperationalState to ClampingState, only a return to InitialState via signal feedback. The event name explicitly labels itself as untraced, confirming no NL provenance. All original NL-supported behavior is preserved (G3 pass), but the addition provides no improvement to any NL-described requirement (G4 fail) and introduces semantically ungrounded behavior (G5 fail). Per fail-closed rules, this is a clear not_better — an unsolicited behavior injection is not a repair gain.\",
-  \"observed_anti_gaming_risk_flags\": [
-    \"untraced_transition_injection: candidate adds OperationalState→ClampingState via Untraced_Auto_Reset with no NL support\",
-    \"self_labeling_untraced_event: event name 'Untraced Auto Reset' explicitly declares lack of NL traceability, which is itself a red flag for semantic injection rather than repair\",
-    \"no_target_issue_improvement: the sole delta addresses no identifiable NL-described requirement gap\"
-  ],
-  \"forbidden_claims\": [
-    \"This blind dry-run is not repair effectiveness evidence.\",
-    \"This verdict does not imply the repair method fails; it only means this specific candidate is not better than canonical under blind adjudication.\",
-    \"The Untraced_Auto_Reset addition is not a repair gain and should not be cited as repair method capability.\"
-  ],
-  \"confidence\": \"high\",
-  \"human_escalation_required\": false,
-  \"leakage_observation\": {
-    \"detected\": false,
-    \"notes\": \"Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance checks. No answer key, expected verdict, oracle mapping, original Cxx case slug, or adjudication hints detected. Blind protocol intact.\"
+  "$defs": {
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "evidence_references"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "partial",
+            "unknown",
+            "caveat",
+            "out_of_headline",
+            "not_applicable",
+            "not_evaluated"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_references": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
   }
 }
-JSON
-" in /home/zhangshaoang/oo-projects/research_ideas
- succeeded in 0ms:
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+Now I have all the content from the prompt. The NL, raw STM_0, canonical STM_0, and candidate STM_k are all provided inline. Let me construct the adjudication.
+
+**Key analysis:**
+
+- **E0 (Leakage)**: Packet is clean — no answer key, expected verdict, source slug, or semantic cue fields.
+- **E1 (Scope)**: NL describes a discrete event-driven braking device. No seconds/milliseconds, duration, interval, or timed-automata semantics. Pure T0.
+- **E2–E4**: Files present, parse OK, provenance valid, not identity.
+- **E5–E9 (Semantic)**: The candidate adds exactly one change: `event Untraced_Auto_Reset` + `OperationalState -> ClampingState : Untraced_Auto_Reset`. NL states OperationalState → InitialState via signal feedback, with no mention of OperationalState → ClampingState. The new event name literally signals "Untraced" — zero NL correspondence. This is NL-unsupported fabrication, not an improvement.
+
+```json
 {
   "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
   "blind_case_id": "B16",
@@ -366,81 +704,69 @@ JSON
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "NL describes a discrete state machine for a train braking subsystem with no continuous-time or timed-automata semantics. No T0.5 counter/timer language or T1 continuous-clock claims appear in NL, raw STM_0, canonical STM_0, or candidate STM_k. Scope is in-scope T0 protocol case.",
+      "reason": "NL describes a discrete event-driven braking device with no seconds/milliseconds duration, interval, execution-time bound, or timed-automata semantics. No periodic tick/timer cue present. Candidate adds no timed constructs. This is a pure T0 protocol case.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G1": {
       "status": "pass",
-      "reason": "mechanical_checks.candidate_parse_status=parse_ok; candidate STM_k is syntactically well-formed .fcstm with complete state/event/transition declarations and no parse errors. Lowest auditability threshold satisfied.",
-      "evidence_references": ["candidate STM_k"]
+      "reason": "Candidate STM_k is present on disk (mechanical_checks.candidate_file_present=true), parse status is parse_ok, and the .fcstm structure is well-formed with all required declarations (state block, events, pseudo state, states, transitions). Meets minimum auditability threshold.",
+      "evidence_references": ["candidate STM_k", "input_packet mechanical_checks"]
     },
     "G2": {
       "status": "pass",
-      "reason": "provenance_checks confirms change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers. Candidate is distinct from canonical (candidate_same_as_canonical_stm0=false). No normalization-only artifact, no missing ledger/hash, no declared extra method claims. Attribution chain is intact.",
-      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+      "reason": "Change is cleanly attributable: canonical STM_0 and candidate STM_k differ by exactly one added event (Untraced_Auto_Reset) and one added transition (OperationalState -> ClampingState). No format conversion, normalization, or textual-only rewrites. Candidate is not identical to canonical (provenance_checks.candidate_same_as_canonical_stm0=false). All provenance checks pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "input_packet provenance_checks"]
     },
     "G3": {
       "status": "pass",
-      "reason": "All five NL-supported transitions are preserved: start->InitialState, InitialState->BrakingState by Brake_Signal_Received, InitialState->OperationalState by Signal_Transmission_Fails, BrakingState->ClampingState by Entering_Clamping_State, BrakingState->InitialState and OperationalState->InitialState by Signal_Feedback_Sent. All four substantive states (InitialState, BrakingState, OperationalState, ClampingState) are retained. No NL-described state, transition, hierarchy, or behavior is deleted or corrupted. The added transition OperationalState->ClampingState by Untraced_Auto_Reset does not delete or overwrite any existing behavior; its semantic evaluation belongs to G4/G5.",
+      "reason": "All canonical states (InitialState, BrakingState, OperationalState, ClampingState), all canonical events (Brake_Signal_Received, Entering_Clamping_State, Signal_Feedback_Sent, Signal_Transmission_Fails), all canonical transitions (6 total), and the single-level hierarchy are preserved unchanged in candidate. No NL-supported state, transition, guard, action/effect, or hierarchical relationship was deleted or broken. The new transition OperationalState->ClampingState is an addition, not a deletion; it does not remove or weaken any existing canonical path.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G4": {
       "status": "fail",
-      "reason": "Candidate STM_k introduces exactly one delta relative to canonical STM_0: a new event Untraced_Auto_Reset and a new transition OperationalState->ClampingState by that event. This transition has no corresponding description in NL. NL describes OperationalState only as returning to InitialState via Signal_Feedback_Sent ('Once the signal feedback is sent, it returns to the initial state'); it never describes a path from OperationalState to ClampingState. The event name 'Untraced Auto Reset' itself signals lack of traceability to NL. No target issue exists for which this addition constitutes an improvement — it is an unsolicited behavior injection with no NL basis. There is no observable improvement to any NL-described requirement.",
+      "reason": "No NL-supported target issue is improved. The sole change is the addition of event Untraced_Auto_Reset with transition OperationalState->ClampingState. NL describes OperationalState only returning to InitialState via signal feedback (line 2: 'Once the signal feedback is sent, it returns to the initial state') and never mentions any OperationalState->ClampingState path. The event name 'Untraced_Auto_Reset' has zero correspondence to any NL element. No guard extraction, action/effect refinement, or any other NL-supported improvement is present.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G5": {
       "status": "fail",
-      "reason": "Semantic fidelity check against NL reveals that candidate STM_k adds a transition OperationalState->ClampingState by Untraced_Auto_Reset that has no grounding in NL. NL specifies that from OperationalState the system returns to InitialState via Signal_Feedback_Sent; it does not authorize a ClampingState transition from OperationalState under any event. The canonical STM_0 faithfully models the NL's four-state lifecycle: (1) brake signal → BrakingState, (2) signal failure → OperationalState, (3) entering clamping, (4) feedback → back to InitialState. Candidate adds a fifth, unsupported path that introduces an untraced auto-reset semantics never described in NL, raw STM_0, or canonical STM_0. This is a semantic injection, not a semantic improvement. The event name 'Untraced Auto Reset' is explicitly self-labeling as having no NL traceability, which is direct evidence of an anti-gaming concern. Textual similarity to canonical is irrelevant because of this unsolicited behavior addition.",
+      "reason": "Candidate introduces behavior (OperationalState -> ClampingState via Untraced_Auto_Reset) that is not described in NL and has no traceable semantic basis. NL explicitly states OperationalState returns to InitialState after signal feedback; there is no NL mention of an auto-reset path from OperationalState to ClampingState. The event name 'Untraced_Auto_Reset' literally signals lack of NL traceability. This constitutes semantic fabrication — adding behavior beyond the NL specification. The rest of the STM (states, other transitions, hierarchy) is preserved, but the fabricated addition violates semantic fidelity to NL.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G6": {
       "status": "pass",
-      "reason": "All required eligibility flags set: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. Evidence references are explicit and traceable to inputs. Forbidden claims block included. Confidence is high because the candidate's single delta — an NL-unsupported transition explicitly named 'Untraced Auto Reset' — is unambiguous. No human escalation needed; this is a clear not_better verdict from blind packet evidence alone.",
+      "reason": "All evidence is drawn exclusively from the blind input packet: NL text (3 lines), raw STM_0 PlantUML, canonical STM_0 .fcstm, candidate STM_k .fcstm, and mechanical/provenance checks. Leakage observation confirms no hidden answer key, expected verdict, source slug, or semantic cue fields were present. Confidence is high because the sole change is a single added transition with an explicitly untraceable event name, making the NL-unsupported nature unambiguous. No human escalation needed.",
       "evidence_references": ["this JSON output"]
     }
   },
   "evidence_references": [
-    "NL line 3: 'Once the signal feedback is sent, it returns to the initial state' — establishes OperationalState only returns to InitialState, not ClampingState",
-    "NL lines 2-3: full description covers exactly four transitions, none of which is OperationalState→ClampingState",
-    "canonical STM_0: OperationalState→InitialState by Signal_Feedback_Sent; no OperationalState→ClampingState path exists",
-    "candidate STM_k: adds OperationalState→ClampingState by Untraced_Auto_Reset — net-new transition and event absent from NL, raw, and canonical",
-    "candidate STM_k event name 'Untraced Auto Reset' self-declares lack of NL traceability"
+    "NL line 2: 'If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state.' — no mention of OperationalState->ClampingState",
+    "NL line 3: 'After entering the braking state, the system transitions to the brake caliper clamping state.' — only BrakingState->ClampingState, not OperationalState->ClampingState",
+    "canonical STM_0: 4 events, 5 states, 6 transitions; OperationalState has only one outgoing transition to InitialState via Signal_Feedback_Sent",
+    "candidate STM_k: adds event Untraced_Auto_Reset and transition OperationalState->ClampingState; all other elements unchanged",
+    "input_packet provenance_checks: all three checks pass, candidate is not identical to canonical",
+    "input_packet mechanical_checks: parse_ok, both files present"
   ],
-  "rationale": "Candidate STM_k adds exactly one change relative to canonical STM_0: a new event 'Untraced_Auto_Reset' and a new transition OperationalState→ClampingState. This transition has zero support in NL — NL never describes any path from OperationalState to ClampingState, only a return to InitialState via signal feedback. The event name explicitly labels itself as untraced, confirming no NL provenance. All original NL-supported behavior is preserved (G3 pass), but the addition provides no improvement to any NL-described requirement (G4 fail) and introduces semantically ungrounded behavior (G5 fail). Per fail-closed rules, this is a clear not_better — an unsolicited behavior injection is not a repair gain.",
+  "rationale": "Candidate STM_k adds exactly one event (Untraced_Auto_Reset) and one transition (OperationalState -> ClampingState) to canonical STM_0. NL specifies that OperationalState transitions only to InitialState via signal feedback; it never describes a path from OperationalState to ClampingState. The event name 'Untraced Auto Reset' itself signals absence of NL traceability. This is semantic fabrication — introducing behavior not supported by NL. No other changes exist; all original states, transitions, and hierarchy are preserved. Since there is no NL-supported improvement (G4 fail) and the addition constitutes semantic infidelity (G5 fail), candidate is not_better than canonical STM_0. The addition is not a format conversion artifact, not a guard extraction from a folded event label, and not a counter-abstraction of a timer cue — it is a new, untraceable transition with no NL basis.",
   "observed_anti_gaming_risk_flags": [
-    "untraced_transition_injection: candidate adds OperationalState→ClampingState via Untraced_Auto_Reset with no NL support",
-    "self_labeling_untraced_event: event name 'Untraced Auto Reset' explicitly declares lack of NL traceability, which is itself a red flag for semantic injection rather than repair",
-    "no_target_issue_improvement: the sole delta addresses no identifiable NL-described requirement gap"
+    "semantic_fabrication: candidate adds OperationalState->ClampingState transition not supported by NL",
+    "untraced_naming: event name 'Untraced_Auto_Reset' explicitly signals lack of NL traceability",
+    "over_repair: candidate introduces behavior beyond NL specification scope",
+    "opaque_event: no trace map or NL correspondence for added event Untraced_Auto_Reset"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "This verdict does not imply the repair method fails; it only means this specific candidate is not better than canonical under blind adjudication.",
-    "The Untraced_Auto_Reset addition is not a repair gain and should not be cited as repair method capability."
+    "parse_ok alone does not imply semantic better.",
+    "preservation of canonical elements does not offset NL-unsupported fabrication."
   ],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance checks. No answer key, expected verdict, oracle mapping, original Cxx case slug, or adjudication hints detected. Blind protocol intact."
+    "notes": "Input packet examined in full: no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent phrasing found. semantic_modeling_conventions.blind_packet_policy confirms no such fields were intentionally included. Provenance and mechanical checks provide only low-level hard facts (parse status, hash completeness, identity check). No hidden answer key or oracle mapping detected."
   }
 }
-
-hook: PostToolUse
-hook: PostToolUse Completed
-codex
-The JSON output above is the complete blind adjudication for case B16. Here's a summary of the reasoning:
-
-**Verdict: `not_better`**
-
-The candidate STM_k differs from canonical STM_0 in exactly one way: it adds a new event `Untraced_Auto_Reset` and a new transition `OperationalState → ClampingState`. This transition:
-
-1. **Has no NL support** — NL describes OperationalState only returning to InitialState via signal feedback; it never mentions a path to ClampingState from OperationalState.
-2. **Is self-labeling as untraced** — the event name `Untraced Auto Reset` explicitly declares it has no NL provenance.
-3. **Is not an improvement** — there is no NL-described requirement gap that this addition addresses; it's an unsolicited behavior injection.
-
-All original NL-supported states, transitions, and hierarchy are preserved (G3 pass), and provenance is intact (G2 pass). But the sole delta provides zero improvement (G4 fail) and introduces semantically ungrounded behavior (G5 fail), making this a clear `not_better`.
+```
 hook: Stop
 hook: Stop Completed
 tokens used
-7,821
+13,174

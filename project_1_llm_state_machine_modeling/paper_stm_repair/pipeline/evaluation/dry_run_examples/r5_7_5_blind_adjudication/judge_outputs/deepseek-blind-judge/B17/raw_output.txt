@@ -1,13 +1,81 @@
-The blind adjudication for **B17** is complete. Key findings:
+I have all four artifacts embedded in the prompt (NL, raw STM_0, canonical STM_0, candidate STM_k). Proceeding with blind adjudication using only the in-prompt content.
 
-| Gate | Status | Summary |
-|------|--------|---------|
-| G0 (scope) | pass | `caveat_t05` — discrete counter abstraction, not timed automata |
-| G1 (A gate) | pass | Candidate present, parseable, auditable |
-| G2 (attribution) | pass | Provenance chain intact; delta is genuine, not normalization-only |
-| G3 (no-regression) | pass | All 14 NL transitions preserved; no hierarchy or behavior lost |
-| G4 (improvement) | pass | Timer condition explicitized as guard, but constrained by T0.5 caveat |
-| G5 (semantic) | pass | NL semantics maintained under counter abstraction |
-| G6 (reporting) | pass | Schema conformant, eligibility flags correctly set |
+**Key diff**: candidate adds `def int timer_ticks = 0;` plus `ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1];`. The variable is never incremented — the guard is permanently false and the transition is dead code. No states, transitions, or hierarchy are deleted.
 
-**Primary verdict: `partial`** — per fail-closed Rule 4. The candidate replaces the flat `Timer_Expired` event with a structured guard `if [timer_ticks >= 1]`, which is a genuine explicitization gain. However, without counter lifecycle evidence (increment/reset) in the blind packet, the improvement is incomplete and cannot qualify as strict `better`. No NL regression. No leakage detected.
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B17",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a microwave door/cooking state machine with discrete events (Cancel, Door Opened, Item Placed, Item Removed, Door Closed, Cooking Time Entered, Start, Timer Expired). No seconds, milliseconds, duration bounds, interval timing, or continuous-time constraints appear in NL. Timer Expired is a discrete event label, not a real-time constraint. Candidate adds a discrete integer counter (timer_ticks) as a guard variable, which is a T0.5-style abstraction attempt, not a genuine timed-automata claim. Case is T0 protocol scope.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate STM_k is present, parse_ok per mechanical_checks, schema is readable fcstm with states, pseudo states, events, and transitions. All states from canonical are present with identical hierarchy. Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. Minimum auditability satisfied.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "candidate STM_k differs from canonical STM_0 by exactly two additions: (1) global declaration def int timer_ticks = 0; and (2) new transition ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1];. No formatting-only changes, no whitespace normalization, no variable renaming of existing elements, no conversion between representations. The delta is attributable to a deliberate semantic edit, not a format conversion.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All NL-supported states (DoorShut, DoorShutIdle, DoorOpen, DoorOpenIdle, DoorOpenWithItem, DoorShutWithItem, DoorShutWithItemIdle, ReadytoCook, ReadytoCookIdle, Cooking, CookingIdle) are preserved with identical hierarchy. All transitions from canonical are preserved: DoorShutIdle self-loop on Cancel, DoorShutIdle->DoorOpen on Door_Opened, DoorOpenIdle->DoorOpenWithItem on Item_Placed, DoorOpenWithItem->DoorOpenIdle on Item_Removed, DoorOpenWithItem->DoorShutWithItem on Door_Closed_zero_time_set, DoorOpenWithItem->ReadytoCook on Cooking_Time_Entered, DoorShutWithItem->DoorOpenWithItem on Door_Opened, DoorShutWithItem->ReadytoCook on Cooking_Time_Entered, ReadytoCook->DoorShutWithItem on Cancel, ReadytoCook->DoorOpenWithItem on Door_Opened, ReadytoCook->Cooking on Start, Cooking->ReadytoCook on Cancel, ReadytoCook->DoorShutWithItem on Timer_Expired. The candidate's additional guarded transition is additive and does not delete or alter any existing path. No NL-supported state, migration, hierarchy, guard, action, effect, or trace is removed.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-supported target issue is strictly improved. The sole candidate change adds def int timer_ticks = 0; and ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1];. timer_ticks is initialized to 0 and never incremented, reset, or otherwise assigned anywhere in the candidate. The guard [timer_ticks >= 1] is permanently false; the transition is unreachable dead code. The existing Timer_Expired event already provides the ReadytoCook->DoorShutWithItem path. The candidate does not fix any missing transition, missing guard, missing state, or hierarchy defect in canonical relative to NL. No observable semantic gain exists.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Candidate is semantically equivalent to canonical in terms of reachable state space: the added guarded transition is dead (guard never satisfied because timer_ticks is initialized to 0 and never modified). No NL-described behavior is newly enabled, refined, or made more precise. The addition of timer_ticks constitutes an incomplete counter abstraction with no increment, reset, or lifecycle — per fail-closed rule 5 this is not_better. Even if the guard were reachable, it would duplicate the existing Timer_Expired event path without adding semantic precision traceable to NL. The variable name timer_ticks lacks a trace map to any NL action or output, and the guard does not correspond to any NL-specified condition that was missing in canonical. No semantic improvement; addition is purely cosmetic dead code.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Output JSON conforms to better_adjudication_blind_output_schema_v0. All gate_results use only allowed status enumerations (pass, fail). Evidence references explicitly cite NL, raw STM_0, canonical STM_0, and candidate STM_k. Leakage check negative: input packet contains no expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or oracle mapping. headline_eligible and repair_effectiveness_eligible set to false per dry-run protocol. Forbidden claims included. Confidence is high because the candidate change is a simple dead-code addition with no semantic ambiguity.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL paragraph 8: timer expiry transitions Cooking->DoorShutWithItem, already covered by canonical Timer_Expired on ReadytoCook->DoorShutWithItem",
+    "canonical STM_0: ReadytoCook -> DoorShutWithItem : Timer_Expired",
+    "candidate STM_k: def int timer_ticks = 0; (line 1, no subsequent increment/modification)",
+    "candidate STM_k: ReadytoCook -> DoorShutWithItem : if [timer_ticks >= 1]; (guard permanently false)",
+    "provenance_checks: hash_chain_complete=true, change_ledger_available=true, candidate_same_as_canonical_stm0=false",
+    "mechanical_checks: candidate_parse_status=parse_ok"
+  ],
+  "rationale": "Candidate STM_k adds a dead integer variable timer_ticks (initialized to 0, never incremented) and an unreachable guarded transition ReadytoCook->DoorShutWithItem guarded by [timer_ticks >= 1]. All canonical states, transitions, and hierarchy are preserved without deletion. The change produces zero semantic effect on reachable behavior: the new transition can never fire. The existing Timer_Expired event already provides the ReadytoCook->DoorShutWithItem path in canonical. This is an incomplete counter-abstraction attempt with no lifecycle (no increment, no reset) and no NL-supported improvement. Per fail-closed rule 5: a counter guard that is redundant with the original event label and provides no visible semantic benefit yields not_better. Primary verdict: not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "dead_counter_variable_no_increment_no_lifecycle: timer_ticks declared with initial value 0, guarded by [timer_ticks >= 1], but never incremented, reset, or assigned — transition is permanently unreachable",
+    "redundant_guard_transition_without_semantic_gain: new guarded transition ReadytoCook->DoorShutWithItem duplicates destination and source of existing Timer_Expired event transition without adding precision, conditionality, or NL-traceable semantics",
+    "cosmetic_addition_masquerading_as_improvement: adding a dead variable and dead transition changes byte-level content but produces zero semantic delta, risking false-positive 'better' classification from surface-level diff inspection"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The candidate's parse_ok status and file presence do not constitute semantic improvement.",
+    "The addition of timer_ticks without lifecycle does not constitute a T0.5 discrete counter abstraction success.",
+    "No inference about the original case provenance, repair pipeline, or expected verdict is made or relied upon."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific oracle mapping. provenance_checks and mechanical_checks provide only observable low-level facts (parse status, hash, file presence). semantic_modeling_conventions are generic policy statements applicable to all blind cases, not case-specific cues."
+  }
+}
+```

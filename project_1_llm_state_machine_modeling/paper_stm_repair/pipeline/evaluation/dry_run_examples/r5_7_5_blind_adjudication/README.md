@@ -24,6 +24,19 @@
 
 该结果只证明 blind adjudication protocol 在 constructed cases 上可执行，并为 prompt/oracle/case calibration 提供证据；不代表真实 repair loop 效果。`run_validity_match_count=20` 使用 scorer 中的归一化等价桶（例如 constructed-valid 与 blind-valid 都归为 `valid`），不是 expected / observed 原始字符串逐字相等。Claude final run 的 archived command 记录 requested model alias 为 `sonnet`，当前 CLI run meta 未暴露 provider-side exact `model_id`；因此本目录不能作为模型比较证据，后续真实 LLM runs 必须在 provider 支持时补齐精确模型 ID。
 
+
+## 1.5 Multi-judge 追加复验（Codex / DeepSeek）
+
+R5.7.5 后续追加了 Codex-DeepSeek 与 Codex CLI 的 replication 尝试，用于检查同一 blind bundle / prompt / schema 是否跨 judge family 仍可执行。该结果仍只服务于 constructed protocol dry-run，不是 repair effectiveness 或模型比较。
+
+| judge | case_count | valid outputs | verdict match | scope match | run-validity match | gate all match | gate disagreements | leakage | 当前用途 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| [`claude-blind-judge`](./judge_outputs/claude-blind-judge/) | 20 | 20 | 20 | 20 | 20 | 6 | 25 | 0 | final eligible truth。 |
+| [`deepseek-blind-judge`](./judge_outputs/deepseek-blind-judge/) | 20 | 20 | 20 | 19 | 20 | 6 | 26 | 0 | 有效 replication；B17 的 T0.5 caveat scope mismatch 保留为 calibration evidence。 |
+| [`codex-blind-judge`](./judge_outputs/codex-blind-judge/) | 20 | 0 | N/A | N/A | N/A | N/A | N/A | 0 | provider-failure audit；`eligible_score_applicable=false`，B01--B03 completed failed、B04 preflight-only、B05--B20 not run，不能作为 eligible judge score。 |
+
+DeepSeek 的 `score_summary.json`、`final_run_manifest.json` 与 [`prompt_consistency_check.stdout.json`](./judge_outputs/deepseek-blind-judge/prompt_consistency_check.stdout.json) 可作为 multi-judge calibration evidence。Codex 的同名文件只说明 provider/CLI 失败过程；当前仓库可审计事实限于 B01--B03 provider=`pro` 失败、B04 prompt/start preflight 与 [`prompt_consistency_check.first4.stdout.json`](./judge_outputs/codex-blind-judge/prompt_consistency_check.first4.stdout.json)。其 `score_summary.json` 明确 `eligible_score_applicable=false`、attempted=4、completed=3、provider failures=3、preflight-only=1、not run=16；不得解读为模型能力或协议失败，也不得声称已归档 `airouter` 尝试。若后续 Codex 官方登录或稳定 provider 可用，可复用本目录 runner 重新执行 B01--B20。
+
 ## 2. 文件说明
 
 | 文件 / 子路径 | 说明 |
@@ -38,7 +51,8 @@
 | [build_final_run_manifest.py](./build_final_run_manifest.py) | 汇总 final score 与每 case prompt/raw/parsed/stdout/stderr/run meta 路径。 |
 | [prompt_consistency_check.py](./prompt_consistency_check.py) | 重建当前 prompt 并与归档 `prompt.txt` 比对，防止 stale prompt / stale candidate output 被误报 final。 |
 | [judge_outputs/claude-blind-judge/](./judge_outputs/claude-blind-judge/) | 当前 final eligible Claude judge 输出；每个 Bxx 保存 prompt/raw/parsed/stdout/stderr/run meta。 |
-| [judge_outputs/deepseek-blind-judge/](./judge_outputs/deepseek-blind-judge/) | 历史 / 非 final DeepSeek judge 输出；可作调试材料，但不是当前 final score 真源。 |
+| [judge_outputs/deepseek-blind-judge/](./judge_outputs/deepseek-blind-judge/) | DeepSeek full blind replication 输出；primary verdict 20/20，对 B17 scope route 有 1 处 calibration mismatch。 |
+| [judge_outputs/codex-blind-judge/](./judge_outputs/codex-blind-judge/) | Codex provider-failure audit；B01--B03 有独立失败记录，B04 只有 prompt/start preflight，B05--B20 因 provider failure pattern 未继续消耗。 |
 
 ## 3. 复验命令
 
@@ -48,6 +62,10 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation
 python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge claude-blind-judge
 python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge claude-blind-judge --require-all-valid --require-all-core-match --require-no-leakage
 python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/build_final_run_manifest.py --judge claude-blind-judge
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge deepseek-blind-judge
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge deepseek-blind-judge --require-all-valid --require-no-leakage
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py --judge codex-blind-judge --case-count 4
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py --judge codex-blind-judge
 python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/validate_suite.py --parse
 ```
 

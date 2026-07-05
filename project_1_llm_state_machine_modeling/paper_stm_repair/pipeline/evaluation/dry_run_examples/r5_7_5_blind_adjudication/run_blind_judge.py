@@ -82,6 +82,38 @@ def extract_json(text:str):
         return candidates[-1]
     raise ValueError('no JSON object found')
 
+def extract_identity_json(text:str, *, blind_case_id:str, judge_id:str):
+    """Extract only an actual judge output object from a CLI transcript.
+
+    Codex-family CLIs may print a transcript to stderr and write a later
+    natural-language summary to last_message.txt even when an earlier assistant
+    turn satisfied the JSON schema.  Blind safety still forbids parsing arbitrary
+    prompt echo.  This fallback therefore accepts only JSON objects that carry
+    the exact output schema version plus the exact blind_case_id and judge_id.
+    The prompt skeleton uses placeholder values, and blind input packets do not
+    contain this output schema version, so prompt echo is rejected.
+    """
+    dec=json.JSONDecoder()
+    matches=[]
+    for i,ch in enumerate(text):
+        if ch!='{':
+            continue
+        try:
+            obj,end=dec.raw_decode(text[i:])
+        except Exception:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        if (
+            obj.get('schema_version') == 'r5_7_5.better_adjudication_blind_output.v0'
+            and obj.get('blind_case_id') == blind_case_id
+            and obj.get('judge_id') == judge_id
+        ):
+            matches.append(obj)
+    if matches:
+        return matches[-1]
+    raise ValueError('no identity-matching judge JSON object found in combined transcript')
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--judge', required=True, choices=['codex','deepseek','claude'])
@@ -107,6 +139,15 @@ def main():
     if args.judge=='codex':
         exe=resolve_bin('codex')
         cmd=[exe,'exec','--ephemeral','--skip-git-repo-check','--ignore-rules','--sandbox','read-only','-C',str(isolated_dir),'--output-schema',str(isolated_schema),'-o',str(isolated_last_message),'-']
+        codex_provider=os.environ.get('R575_CODEX_MODEL_PROVIDER')
+        if codex_provider:
+            cmd[1:1]=['-c', f'model_provider="{codex_provider}"']
+        codex_model=os.environ.get('R575_CODEX_MODEL')
+        if codex_model:
+            cmd[1:1]=['--model', codex_model]
+        codex_reasoning_effort=os.environ.get('R575_CODEX_REASONING_EFFORT')
+        if codex_reasoning_effort:
+            cmd[1:1]=['-c', f'model_reasoning_effort="{codex_reasoning_effort}"']
         archived_cmd=cmd
     elif args.judge=='deepseek':
         exe=resolve_bin('codex-deepseek')
@@ -140,16 +181,21 @@ def main():
         raw=stdout
     combined_for_parse='\n'.join([last_message, stdout, stderr])
     # Important blind-safety rule: stderr often contains CLI transcript / prompt echo.
-    # Never parse stderr or combined transcript as model output; keep it only for audit.
+    # The normal parse path is last_message/stdout only.  A combined transcript
+    # fallback is allowed below only when it contains an exact schema-version +
+    # blind_case_id + judge_id matching JSON object; otherwise the combined
+    # transcript remains audit-only.
     (od/'raw_output.txt').write_text(raw, encoding='utf-8')
     (od/'combined_output_for_parse.txt').write_text(combined_for_parse, encoding='utf-8')
     meta.update({'completed_at':datetime.now().isoformat(timespec='seconds'),'exit_code':rc})
     parse_error=None
     schema_error=None
+    parse_source=None
     if raw.strip():
         try:
             obj=extract_json(raw)
             validate_schema(obj)
+            parse_source='raw_output'
             # ensure judge id and blind id if model omitted/wrong? Do not correct, archive parsed as-is.
             (od/'parsed_output.json').write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding='utf-8')
         except Exception as exc:
@@ -162,8 +208,22 @@ def main():
                 pass
     else:
         parse_error='no model output in last_message/stdout; stderr/combined transcript intentionally not parsed'
+    if parse_error is not None:
+        try:
+            obj=extract_identity_json(combined_for_parse, blind_case_id=args.case, judge_id=judge_id)
+            validate_schema(obj)
+            parse_source='combined_transcript_identity_fallback'
+            parse_error=None
+            schema_error=None
+            (od/'parsed_output.json').write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception:
+            # Preserve the original parse_error.  combined transcript remains
+            # audit-only unless it contains an exact identity-matching JSON
+            # output object.
+            pass
     meta['parse_error']=parse_error
     meta['schema_error']=schema_error
+    meta['parse_source']=parse_source
     meta['provider_or_cli_nonzero_with_parsed_output'] = bool(rc != 0 and parse_error is None and (od/'parsed_output.json').exists())
     (od/'run_meta_end.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(meta, ensure_ascii=False, indent=2))

@@ -12,84 +12,94 @@
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "NL describes an autonomous driving state machine with discrete guard conditions (boolean flags, integer distance thresholds). No continuous time, timed automata, or clock-invariant requirements present. T0 protocol case.",
+      "reason": "NL describes autonomous driving state machine with discrete threshold guards (dist_to_front<25, dist_to_exit<2, dist_to_exit<0.7, dist_to_front<15) and boolean flags. No real-time second/millisecond durations, no timed automata invariants, no continuous-time semantics. Pure T0 protocol case.",
       "evidence_references": [
-        "NL",
+        "NL lines 1-13",
         "raw STM_0"
       ]
     },
     "G1": {
       "status": "pass",
-      "reason": "mechanical_checks reports candidate_parse_status=parse_ok. Candidate STM_k file is present and structurally parseable. Parse success alone does not constitute semantic improvement.",
+      "reason": "candidate_stmk.fcstm is present and readable. mechanical_checks reports candidate_parse_status=parse_ok. No schema violations detected; all states, pseudo-states, events, and transitions follow valid fcstm syntax.",
       "evidence_references": [
-        "candidate STM_k"
+        "candidate STM_k",
+        "input_packet mechanical_checks"
       ]
     },
     "G2": {
       "status": "pass",
-      "reason": "change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers, candidate_same_as_canonical_stm0=false. The delta is a single new event (Untraced_Auto_Exit) and one new transition (cruise -> endHighwayMode : Untraced_Auto_Exit). Attribution is traceable, not normalization-only.",
+      "reason": "Diff between canonical and candidate is clean and attributable: exactly one new event (Untraced_Auto_Exit) and one new transition (cruise -> endHighwayMode : Untraced_Auto_Exit) added in HighwayMode. No format conversion, normalization, or renaming of existing elements. provenance_checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false.",
       "evidence_references": [
-        "canonical STM_0",
-        "candidate STM_k"
+        "canonical STM_0 HighwayMode block",
+        "candidate STM_k HighwayMode block",
+        "input_packet provenance_checks"
       ]
     },
     "G3": {
-      "status": "fail",
-      "reason": "Candidate introduces event 'Untraced Auto Exit' and transition 'cruise -> endHighwayMode : Untraced_Auto_Exit' with no NL support. NL §5 specifies only two cruise exit paths: dist_to_exit<2 (explicit) and auto_finished=true (via parent HighwayMode -> FinishState). The canonical already captures both via cruise -> endHighwayMode : dist_to_exit_2 and the parent-level HighwayMode -> FinishState : auto_finished_true. Candidate adds a third, spurious exit path with an event not mentioned anywhere in NL, raw STM_0, or canonical STM_0. This is a semantic regression: it introduces behavior not grounded in the requirements.",
+      "status": "pass",
+      "reason": "No NL-supported states, transitions, hierarchy, guards, actions, or effects are deleted in candidate. All 4 HighwayMode states (enter_hwy, cruise, lane_change, endHighwayMode), all 5 UrbanMode states (enter_urban, lane_change_urban, straight, intersection, exit_urban), all cross-mode transitions (high_way_true, urban_way_true), all finish transitions (auto_finished_true), and both collision avoidance states with their transitions are preserved identically. The existing cruise->endHighwayMode via dist_to_exit_2 and lane_change->endHighwayMode via dist_to_exit_2 both remain intact.",
       "evidence_references": [
-        "NL",
+        "NL lines 2-13",
         "canonical STM_0",
         "candidate STM_k"
       ]
     },
     "G4": {
       "status": "fail",
-      "reason": "The sole delta is the addition of an untraced event and transition. No NL-identified target issue is addressed or improved. The event name 'Untraced_Auto_Exit' itself signals that the repair mechanism could not find NL grounding for this change. There is no visible improvement to any requirement-related target.",
+      "reason": "No NL-supported target issue is improved. The sole change is the addition of an opaque event 'Untraced_Auto_Exit' (internal name and display label are identical: 'Untraced Auto Exit') and a transition cruise->endHighwayMode using it. The canonical already correctly implements the NL requirement 'The system can also exit the highway if the distance to the exit is less than 2 kilometers (dist_to_exit<2)' via cruise->endHighwayMode:dist_to_exit_2. The added event has no traceable NL semantics, no guard decomposition, no action/effect extraction, and no behavioral refinement. It is redundant noise, not improvement.",
       "evidence_references": [
-        "NL",
-        "canonical STM_0",
-        "candidate STM_k"
+        "NL lines 4-5",
+        "canonical STM_0 HighwayMode transitions",
+        "candidate STM_k HighwayMode transitions"
       ]
     },
     "G5": {
       "status": "fail",
-      "reason": "Semantic fidelity check: NL §5-6 clearly enumerate two cruise exit mechanisms. Canonical faithfully encodes both. Candidate inserts a third exit event ('Untraced Auto Exit') that has zero NL provenance. The canonical's parent-level HighwayMode -> FinishState : auto_finished_true already provides the hierarchical auto-finish exit from all HighwayMode substates including cruise; the added Untraced_Auto_Exit transition is both redundant and semantically unsupported. This is not a guard-extraction improvement — it is a spurious behavior injection.",
+      "reason": "The added event 'Untraced_Auto_Exit' is semantically opaque: its internal name and display label are identical and self-describe as untraced. It has no guard, no action/effect, and no connection to any NL condition. The new transition cruise->endHighwayMode:Untraced_Auto_Exit introduces non-NL behavior - an unguarded, untraceable exit path from cruise that the NL does not describe. This is a semantic degradation (noise injection) rather than semantic fidelity improvement. The canonical already faithfully encodes all NL-specified HighwayMode exit conditions. Even if viewed charitably as an attempted instrumentation, the event is untraceable to any NL sentence, and the fail-closed rule on opaque proxy variables applies.",
       "evidence_references": [
+        "NL lines 1-13",
+        "raw STM_0",
+        "canonical STM_0 HighwayMode block",
+        "candidate STM_k HighwayMode block"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All gates evaluated with explicit evidence references. Diff is minimal (2 lines added) and semantically unambiguous, yielding high confidence. headline_eligible and repair_effectiveness_eligible correctly set to false per dry-run protocol. forbidden_claims includes required disclaimer. No leakage detected in input packet. No human escalation needed.",
+      "evidence_references": [
+        "this JSON output",
+        "input_packet.json",
         "NL",
         "raw STM_0",
         "canonical STM_0",
         "candidate STM_k"
       ]
-    },
-    "G6": {
-      "status": "pass",
-      "reason": "All gates have explicit evidence references to specific sections/files. Confidence is high: the diff is a single unambiguous change with clear NL mismatch. Forbidden claims respected: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. No human escalation needed for a single spurious-event case with high-confidence evidence.",
-      "evidence_references": [
-        "this JSON output"
-      ]
     }
   },
   "evidence_references": [
-    "NL §5: cruise exits via dist_to_exit<2 or auto_finished=true from parent",
-    "NL §6: HighwayMode ends via auto_finished=true",
-    "canonical STM_0 HighwayMode block: cruise -> endHighwayMode : dist_to_exit_2; HighwayMode -> FinishState : auto_finished_true",
-    "candidate STM_k HighwayMode block: adds event Untraced_Auto_Exit and transition cruise -> endHighwayMode : Untraced_Auto_Exit",
-    "raw STM_0 HighwayMode block: cruise --> [*] : dist_to_exit<2 (no untraced auto exit)"
+    "NL lines 1-13: full autonomous driving and collision avoidance specification",
+    "raw STM_0: PlantUML source with all states, transitions, and guard labels",
+    "canonical STM_0 HighwayMode block: 4 states (enter_hwy, cruise, lane_change, endHighwayMode), 3 events (dist_to_exit_2, dist_to_front_25_extra_lane_true, lane_change_completed), 7 transitions",
+    "candidate STM_k HighwayMode block: same as canonical plus event Untraced_Auto_Exit and transition cruise->endHighwayMode:Untraced_Auto_Exit",
+    "input_packet mechanical_checks: candidate_parse_status=parse_ok",
+    "input_packet provenance_checks: all three checks pass, candidate differs from canonical"
   ],
-  "rationale": "The sole difference between canonical STM_0 and candidate STM_k is the addition of a new event 'Untraced Auto Exit' and a new transition 'cruise -> endHighwayMode : Untraced_Auto_Exit'. The event name itself signals lack of NL provenance. NL exhaustively specifies cruise exit paths (dist_to_exit<2, auto_finished=true via parent); the canonical already models both. Candidate adds a third, unsupported exit that has no basis in NL, raw STM_0, or canonical STM_0. This is a pure regression with zero improvement: a spurious behavior injection. Verdict: not_better.",
+  "rationale": "The candidate makes exactly two additions to canonical STM_0, both confined to HighwayMode: (1) a new event declaration 'event Untraced_Auto_Exit named \"Untraced Auto Exit\"' and (2) a new transition 'cruise -> endHighwayMode : Untraced_Auto_Exit'. The canonical already contains the NL-specified cruise->endHighwayMode exit path guarded by dist_to_exit_2, which correctly implements 'The system can also exit the highway if the distance to the exit is less than 2 kilometers'. The added event is self-described as untraced, has no guard semantics, no NL correspondence, and introduces an unguarded exit path not specified in the NL. No states, transitions, or hierarchy are deleted, so G3 passes. But the addition provides zero NL-supported improvement (G4 fail) and constitutes opaque semantic noise injection rather than semantic fidelity gain (G5 fail). The candidate is strictly not_better than canonical.",
   "observed_anti_gaming_risk_flags": [
-    "spurious_event_addition: event named 'Untraced Auto Exit' explicitly signals lack of NL traceability",
-    "phantom_transition: cruise -> endHighwayMode via an NL-unsupported event creates behavior not required by specification"
+    "opaque_untraced_event_injection: candidate adds event 'Untraced_Auto_Exit' whose display label self-identifies as untraced; the event has no guard, no NL traceability, and no action/effect semantics",
+    "semantic_noise_not_improvement: the added transition cruise->endHighwayMode:Untraced_Auto_Exit duplicates an already-correctly-implemented NL exit path but via an opaque, unguarded event; this superficially increases event count without any semantic gain",
+    "no_target_issue_closure: the canonical already faithfully encodes all HighwayMode exit conditions per NL; the addition addresses no identifiable gap, deficiency, or inaccuracy in the canonical model"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "Do not interpret this verdict as a reflection on the repair method or LLM capability.",
-    "Do not use this case for headline or repair-effectiveness eligibility."
+    "The candidate's parse_ok status does not imply semantic improvement.",
+    "The opaque Untraced_Auto_Exit event does not constitute a partial guard extraction, action/effect decomposition, or any NL-supported refinement.",
+    "This adjudication does not evaluate the repair pipeline, only the static STM delta under blind protocol rules."
   ],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, and conventions. No answer key, expected verdict, oracle mapping, original case slug, or adjudication hints detected."
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance facts. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or 'strict better should/should not' fields present. semantic_modeling_conventions are generic policy descriptions applicable to all blind cases, not case-specific answer keys."
   }
 }

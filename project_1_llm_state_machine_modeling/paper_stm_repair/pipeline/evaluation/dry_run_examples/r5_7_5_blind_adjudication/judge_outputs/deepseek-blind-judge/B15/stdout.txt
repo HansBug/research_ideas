@@ -7,71 +7,65 @@
   "headline_eligible": false,
   "repair_effectiveness_eligible": false,
   "real_repair_run_id": null,
-  "scope_routing_status": "caveat_t05",
-  "run_validity_status": "protocol_or_provenance_invalid",
-  "primary_verdict": "protocol_or_provenance_invalid",
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "Scope boundary category is caveat_t05 per provenance_checks. The NL mentions timer start/expire but candidate uses only 'def int clock_ms = 0;' — a discrete integer variable — not real clocks, clock invariants, or continuous-time semantics. This falls within T0.5 counter abstraction caveat territory; it does not cross into T1 continuous-time stress.",
-      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+      "reason": "NL describes a microwave state machine with discrete events (door open/close, item place/remove, cancel, start, timer expired). All timer-related cues (Timer Expired, timer starts, cooking time entered) are discrete event labels, not continuous-time claims with millisecond/second-level duration bounds or timed-automata invariants. The candidate's addition of an unused 'clock_ms' variable declaration does not retroactively convert this into a continuous-time case. This is a standard discrete-state protocol case, fully in-scope for T0 adjudication. No T0.5 or T1 routing applies.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G1": {
       "status": "pass",
-      "reason": "Candidate STM_k file is present, parse status is parse_ok per mechanical_checks, and the fcstm structure is readable with all states, pseudo states, events, and transitions identifiable. Minimum auditability threshold met.",
+      "reason": "Candidate STM_k parses successfully (mechanical_checks.candidate_parse_status=parse_ok). File is present, readable, and structurally valid fcstm containing states, pseudo states, transitions, events, named labels, and hierarchical nesting. The added 'def int clock_ms = 0;' is syntactically valid and does not break parsing. Minimum auditability threshold met.",
       "evidence_references": ["candidate STM_k"]
     },
     "G2": {
-      "status": "fail",
-      "reason": "The sole delta is the addition of 'def int clock_ms = 0;' at the top of the fcstm. provenance_checks.declared_extra_method_claims includes 'timed_automata_or_real_clock_support', but provenance_checks.candidate_semantics_observed_by_carrier is 'discrete_state_machine_with_integer_variable_only'. The carrier provides only a raw integer variable declaration with no clock invariant, reset, guard usage, or lifecycle. The change claims timed-automata capability that the candidate carrier does not actually deliver. Per Section 2.2 Rule 2, this mismatch triggers protocol_or_provenance_invalid regardless of any superficial semantic improvement. The delta is attributable only in the trivial sense of a variable declaration; the claimed repair gain (timed automata support) is unsupported by the carrier.",
+      "status": "pass",
+      "reason": "The sole change from canonical STM_0 to candidate STM_k is the addition of 'def int clock_ms = 0;' at the top level before the root state block. All other states, transitions, events, labels, hierarchy, and internal structure are byte-identical. This change is directly and exclusively attributable to the canonical→candidate diff path. No conversion, normalization, formatting, or ledger/hash manipulation is present in the change. Attribution is clean, though the change itself carries no semantic repair weight.",
       "evidence_references": ["canonical STM_0", "candidate STM_k"]
     },
     "G3": {
       "status": "pass",
-      "reason": "Candidate preserves all NL-supported states (DoorShut, DoorOpen, DoorOpenWithItem, DoorShutWithItem, ReadytoCook, Cooking), all transitions (Cancel, Door Opened, Door Closed, Item Placed, Item Removed, Cooking Time Entered, Start, Timer Expired), and the full composite-state hierarchy. No states, transitions, or hierarchy elements are deleted or altered. The only addition — 'def int clock_ms = 0;' — does not remove or weaken any existing behavior.",
+      "reason": "Candidate STM_k preserves every NL-supported state (DoorShut, DoorShutIdle, DoorOpen, DoorOpenIdle, DoorOpenWithItem, DoorShutWithItem, DoorShutWithItemIdle, ReadytoCook, ReadytoCookIdle, Cooking, CookingIdle), every transition (Cancel self-loop on DoorShutIdle, Door_Opened to DoorOpen, Item_Placed/Item_Removed, Door_Closed_zero_time_set, Cooking_Time_Entered, Start, Timer_Expired, etc.), every event declaration, and the full hierarchical nesting from canonical STM_0. The unused 'clock_ms' variable does not delete, alter, or weaken any state, transition, guard, action/effect, or trace. No regression detected.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G4": {
       "status": "fail",
-      "reason": "The candidate adds 'def int clock_ms = 0;' but there is no evidence of any NL-supported target issue being strictly improved. The variable has no guard reference, no increment, no reset, and no lifecycle — it is a dead declaration. NL items 7–8 describe 'timer starts' and 'timer expires' behavior, but the candidate does not model these semantics using clock_ms (no transition modifies it, no guard reads it). A bare integer declaration without operational semantics does not constitute an improvement over canonical STM_0.",
+      "reason": "No target issue description is provided in the blind input packet. The only difference between canonical STM_0 and candidate STM_k is the addition of 'def int clock_ms = 0;'—an integer variable that is never referenced in any guard, action, transition event, or effect block. This dead-code variable does not improve any NL-supported behavior, does not make any timer or guard condition more explicit, and does not enhance traceability or readability. There is zero evidence of any NL-required semantic improvement attributable to the candidate change. Per fail-closed rule 2.2(3), near-identity/null-delta cases where the candidate adds only dead code default to not_better.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G5": {
-      "status": "fail",
-      "reason": "The candidate's only change — 'def int clock_ms = 0;' — claims timed-automata semantics (per declared_extra_method_claims) but the carrier only provides discrete integer without clock invariants, resets, or continuous-time semantics. The variable is semantically inert: it is never read in any guard, never written in any transition, and never scoped to any timed behavior. Returning to NL: items 7–8 describe 'timer starts' (Cooking entry) and 'timer expires' (Cooking→DoorShutWithItem), but the candidate introduces no mechanism to capture start, expiry, or timing semantics. The semantic gap between the claimed timed-automata support and the actual discrete-integer-only carrier constitutes a provenance-semantic mismatch. No semantic fidelity gain is demonstrated; the claimed improvement is not backed by the carrier's observable semantics.",
+      "status": "pass",
+      "reason": "Semantic fidelity to NL is fully preserved: candidate STM_k is semantically equivalent to canonical STM_0 in every behavioral dimension. All states, transitions, events, guards (as encoded in event labels), hierarchy, and structural relationships are identical. The unused 'clock_ms' variable has no semantic effect—it does not gate any transition, does not add new behavior, and does not alter any existing semantics. No NL-supported behavior is lost, modified, or degraded. However, semantic equivalence alone does not constitute improvement; the dead variable neither helps nor harms the model's fidelity to NL.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G6": {
       "status": "pass",
-      "reason": "Evidence references are explicit and traceable: NL items 1–8, raw STM_0 PlantUML, canonical STM_0 fcstm, candidate STM_k fcstm, and provenance_checks from input_packet. The protocol_or_provenance_invalid verdict is driven by Section 2.2 Rule 2 (declared_extra_method_claims unsupported by carrier). No hidden answer key, expected verdict, or case slug was observed. Headline/repair eligibility is correctly nullified per E10. Forbidden claims are explicit. Human escalation is not required as the provenance facts are unambiguous.",
+      "reason": "All evidence is cited exclusively from the blind input packet contents (NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical/provenance checks). No external files, answer keys, oracle mappings, source case identifiers, or case-specific construction hints were accessed or inferred. Confidence is high because the diff is minimal and unambiguous (one unused variable line). No human escalation required. All eligibility flags set correctly per protocol: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. Leakage check negative.",
       "evidence_references": ["this JSON output"]
     }
   },
   "evidence_references": [
-    "NL: items 7–8 describe timer start/expire but candidate provides no operational clock semantics",
-    "canonical STM_0: no clock variable; all timer behavior encoded in event labels (Timer_Expired, Start)",
-    "candidate STM_k: adds 'def int clock_ms = 0;' only; no guard reads it, no transition writes it, no lifecycle",
-    "provenance_checks.declared_extra_method_claims: ['timed_automata_or_real_clock_support']",
-    "provenance_checks.candidate_semantics_observed_by_carrier: 'discrete_state_machine_with_integer_variable_only'",
-    "Section 2.2 Rule 2: declared_extra_method_claims claiming capability the carrier does not provide → protocol_or_provenance_invalid"
+    "NL: microwave state machine with 8 points covering DoorShut→DoorOpen→DoorOpenWithItem↔DoorShutWithItem↔ReadytoCook→Cooking with discrete timer events",
+    "raw STM_0: PlantUML diagram with hierarchical DoorShut composite containing nested DoorOpen, DoorShutWithItem, ReadytoCook, Cooking as peer substates",
+    "canonical STM_0: fcstm with deep nesting—DoorOpen contains DoorShutWithItem and ReadytoCook (which contains Cooking); duplicate ReadytoCook→DoorOpenWithItem:Door_Opened transition preserved",
+    "candidate STM_k: byte-identical to canonical STM_0 except for 'def int clock_ms = 0;' prepended at top level",
+    "mechanical_checks: parse_ok, both files present, provenance checks all true, candidate_same_as_canonical_stm0=false (SHA256 diff confirms single-line addition)"
   ],
-  "rationale": "The candidate adds only 'def int clock_ms = 0;' to canonical STM_0 — a bare integer variable with no guard usage, no increment, no reset, and no lifecycle. provenance_checks reveals that declared_extra_method_claims includes 'timed_automata_or_real_clock_support' but candidate_semantics_observed_by_carrier is 'discrete_state_machine_with_integer_variable_only'. The carrier merely provides a discrete integer, not real clocks, clock invariants, or continuous-time semantics. Per Section 2.2 fail-closed Rule 2, this mismatch between declared method claims and carrier-observable semantics mandates protocol_or_provenance_invalid. Even setting aside provenance, the variable is semantically inert — it models nothing from NL and improves nothing — so there is no repair gain to adjudicate. The scope is caveat_t05 (timer references in NL treated as discrete counter abstraction), which would normally allow cautious partial verdicts, but the provenance invalidity is a stronger, upstream gate that cannot be overridden by semantic analysis.",
+  "rationale": "Candidate STM_k is effectively a no-op identity case with dead code. The only change from canonical STM_0 is the addition of 'def int clock_ms = 0;'—an unused integer variable that is never referenced in any guard, action, transition label, or effect block. All states, transitions, events, labels, and hierarchy remain byte-identical to canonical STM_0. Per fail-closed rule 2.2(3), near-identity/null-delta cases where the candidate adds only dead or cosmetic material default to not_better because no-op is not repair gain. The unused clock_ms variable does not implement any discrete timer counter abstraction (no increment, no reset, no guard usage, no lifecycle), so it does not qualify for T0.5 caveat treatment under rule 2.2(5). No target issue description is available in the blind packet, and no NL-supported semantic improvement can be identified from the single-line variable addition. All NL-supported behavior is preserved without regression (G3 pass), but preservation alone does not constitute improvement (G4 fail).",
   "observed_anti_gaming_risk_flags": [
-    "semantic_deletion_by_inert_addition: adding a dead variable declaration ('def int clock_ms = 0;') with no operational semantics while claiming timed-automata support — the variable appears to add capability but adds nothing",
-    "overclaim_repair_gain: declaring 'timed_automata_or_real_clock_support' in extra method claims when the carrier only provides a raw integer variable with no clock invariants, resets, or guard usage",
-    "textual_similarity_hiding_null_delta: the candidate is byte-identical to canonical except for one line, making the structural diff trivially small while the claimed capability gap is large"
+    "unused_variable_addition: 'def int clock_ms = 0;' is declared at top level but never referenced in any guard, transition, or action—dead code that could be misinterpreted as timer-related improvement by superficial inspection",
+    "no_op_with_cosmetic_line: candidate is structurally identical to canonical except for the dead variable declaration, risking false attribution of timer capability or T0.5 credit",
+    "incomplete_counter_abstraction: clock_ms lacks counter lifecycle (no increment on tick, no reset on state entry/exit, no guard usage in any transition), making it non-functional even as a T0.5 discrete counter caveat"
   ],
-  "forbidden_claims": [
-    "This blind dry-run is not repair effectiveness evidence.",
-    "The candidate's timed-automata claim is not validated by this adjudication.",
-    "The clock_ms variable does not constitute a real clock or timed-automata support.",
-    "This output must not be used to assert that the repair loop produced a better STM."
-  ],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "No answer key, expected verdict, original case slug, or oracle mapping observed in the blind input packet. The input contains only the specified NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, and provenance_checks."
+    "notes": "Input packet contains only mechanical/provenance facts and the blind case materials (NL, raw STM_0, canonical STM_0, candidate STM_k). No expected verdict, answer key, oracle mapping, source case slug, construction intent label, target closure summary, semantic_evidence_status, or case-specific semantic cue was observed. The provenance_checks fields are all low-level observable facts (ledger availability, hash completeness, byte-equality), not answer-key hints. Blind packet policy statement explicitly confirms no such cues were intentionally included."
   }
 }
 ```

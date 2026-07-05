@@ -1,3 +1,5 @@
+The files are not accessible on the local filesystem, but their full content is embedded verbatim in the prompt. I will now proceed directly to the adjudication using only the supplied prompt content.
+
 ```json
 {
   "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
@@ -13,61 +15,60 @@
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "NL describes a discrete driving-mode state machine with guard conditions (front_distance > 10), no demand for continuous time or timed-automata semantics. All provenance checks are present and consistent. This is a clean T0 in-scope protocol case.",
-      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+      "reason": "NL describes power-on→HumanDriving, front_distance>10→Autonomous, brake/human_steering→HumanDriving, power-off→Final. No seconds/milliseconds/duration/interval/timed-automata semantics present; no periodic tick/timer cues. Plain discrete-state driving mode FSM. Scope is T0.",
+      "evidence_references": ["NL", "raw STM_0"]
     },
     "G1": {
       "status": "fail",
-      "reason": "candidate STM_k is explicitly named 'intentionally_invalid' with line 'this is not fcstm syntax' and dangling reference 'MissingTarget' with no definition. Mechanical checks confirm candidate_parse_status=parse_failed. The candidate is not a parsable fcstm artifact and provides no auditable structure, state, transition, guard, action, or hierarchy evidence.",
-      "evidence_references": ["candidate STM_k"]
+      "reason": "mechanical_checks.candidate_parse_status=parse_failed. Candidate content is 'state intentionally_invalid named \"invalid\" { [*] -> MissingTarget; this is not fcstm syntax }' — this does not conform to fcstm syntax. The candidate cannot be parsed, making it impossible to audit against canonical STM_0 for states, transitions, guards, or effects.",
+      "evidence_references": ["candidate STM_k", "mechanical_checks"]
     },
     "G2": {
-      "status": "pass",
-      "reason": "provenance_checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true. change_origin_category=constructed_candidate_with_local_ledgers. No normalization-only artifact, extra-method claim, or ledger/hash gap detected that would invalidate provenance independently of the parse failure.",
-      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+      "status": "not_applicable",
+      "reason": "Candidate parse failed, so no meaningful structural delta can be computed or attributed between canonical STM_0 and candidate STM_k. Provenance chain (change_ledger, target_instance_ledger, hash_chain_complete) is intact but cannot be applied to an unparseable artifact.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "provenance_checks"]
     },
     "G3": {
-      "status": "unknown",
-      "reason": "Cannot assess no-regression because candidate STM_k is parse-invalid and contains no semantically evaluable states, transitions, hierarchy, guard conditions, or actions that could be compared against NL or canonical STM_0.",
-      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+      "status": "not_evaluated",
+      "reason": "No-regression assessment requires a parseable candidate to compare states, transitions, guards, actions, and hierarchy against canonical STM_0. With parse failed, regression cannot be evaluated.",
+      "evidence_references": ["candidate STM_k"]
     },
     "G4": {
       "status": "fail",
-      "reason": "No improvement can be claimed. Candidate STM_k is parse-invalid and contains zero semantically evaluable target-issue repair evidence. It has no functional states, no transitions, no guard expressions, and no relationship to the NL-described driving-mode hierarchy.",
+      "reason": "Candidate is unparseable and contains no recognizable fcstm structure. No valid state, transition, guard, or effect block exists that could improve any NL-supported target. Zero improvement is observable.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G5": {
       "status": "fail",
-      "reason": "Semantic fidelity cannot be established. Candidate STM_k is a deliberately broken fcstm fragment (named 'intentionally_invalid') with no valid state machine semantics. It bears no meaningful semantic relationship to NL, raw STM_0, or canonical STM_0.",
+      "reason": "Semantic fidelity cannot be assessed when candidate fails to parse. The candidate contains the literal string 'this is not fcstm syntax', confirming it is not a valid fcstm artifact and cannot be semantically compared to canonical STM_0.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G6": {
       "status": "pass",
-      "reason": "All evidence is directly quoted from the blind input packet. Parse failure is confirmed by both mechanical_checks.candidate_parse_status=parse_failed and direct inspection of candidate content. Verdict stmk_repair_failure is compelled by §2.2 rules: parse invalid forces run_validity_status=candidate_schema_or_parse_invalid and primary_verdict=stmk_repair_failure. Eligibility flags are set per E10. Leakage_observation is clean. Confidence is high because the parse failure is unambiguous and no semantic inference is needed.",
-      "evidence_references": ["this JSON output"]
+      "reason": "All evidence is cited per gate. Primary verdict is stmk_repair_failure based on hard mechanical parse-failure fact. No leakage detected in input packet. Headline and repair-effectiveness eligibility correctly set to false. Confidence is high because parse failure is a deterministic mechanical fact, not a judgment call.",
+      "evidence_references": ["this JSON output", "mechanical_checks", "input_packet.json"]
     }
   },
   "evidence_references": [
-    "input_packet.json: mechanical_checks.candidate_parse_status=parse_failed",
-    "candidate_stmk.fcstm: content reads 'state intentionally_invalid named \"invalid\" { [*] -> MissingTarget; this is not fcstm syntax }'",
-    "input_packet.json: provenance_checks all true, no protocol-level provenance invalidation",
-    "NL: discrete driving-mode state machine, no continuous-time demand, in-scope T0"
+    "mechanical_checks.candidate_parse_status=parse_failed (hard mechanical fact)",
+    "candidate STM_k content: intentionally invalid fcstm syntax with literal 'this is not fcstm syntax'",
+    "NL: discrete driving-mode FSM with no time/duration semantics",
+    "provenance_checks: change_ledger=true, target_instance_ledger=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false"
   ],
-  "rationale": "Candidate STM_k is a deliberately unparseable fcstm fragment. It declares itself 'intentionally_invalid', contains a plain-text line 'this is not fcstm syntax', and references an undefined target 'MissingTarget'. The mechanical checks independently confirm parse_failed. Under the fail-closed rules in §2.2, parse invalid mandates run_validity_status=candidate_schema_or_parse_invalid and primary_verdict=stmk_repair_failure. No semantic analysis is possible or required; the candidate fails the minimum A gate (G1) for auditability. G3 and G5 are set to fail/unknown as a direct consequence of the parse failure, not as independent semantic judgments.",
+  "rationale": "Candidate STM_k is syntactically invalid fcstm and has parse_status=parse_failed per mechanical_checks. It contains the line 'this is not fcstm syntax' confirming intentional invalidity. Per fail-closed rules, parse failure is a hard block: run_validity_status=candidate_schema_or_parse_invalid, primary_verdict=stmk_repair_failure. No semantic evaluation of better/worse is possible, and none is attempted. Scope routing is clean T0 (no time semantics in NL). Provenance chain is intact but irrelevant given parse failure. No leakage detected in input packet.",
   "observed_anti_gaming_risk_flags": [
-    "Candidate is explicitly self-labeled as invalid ('intentionally_invalid'), which could be a deliberate test case to verify adjudicator correctly detects and rejects parse-failed candidates.",
-    "No semantic-deletion, over-repair, or textual-similarity misuse flags apply because the candidate has no evaluable semantics."
+    "candidate_stmk.fcstm is intentionally invalid (literal 'this is not fcstm syntax'), suggesting this may be a deliberate anti-gaming or adversarial input test case designed to verify that the adjudicator does not hallucinate a semantic verdict from an unparseable artifact"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "stmk_repair_failure does not imply anything about the repair loop's capability on valid candidates; it only reflects that this specific candidate STM_k is not a parsable fcstm artifact.",
-    "No inference is made about which repair method, LLM, or pipeline produced this candidate."
+    "Parse failure verdict does not imply any judgment about canonical STM_0 quality or the repair method.",
+    "No semantic comparison was performed; any apparent NL/canonical similarity is irrelevant to this verdict."
   ],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "No hidden answer key, expected verdict, oracle mapping, original case slug, or adjudication hint detected in the blind input packet. The candidate's self-label 'intentionally_invalid' is observable from the candidate content itself within the blind packet, not from an external oracle."
+    "notes": "Input packet inspected: no primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent fields present. The packet is clean."
   }
 }
 ```

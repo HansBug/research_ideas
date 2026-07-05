@@ -1,26 +1,118 @@
-## B20 裁决总结
+The input packet content is fully embedded in the prompt. I have all I need. Let me now reason through E0–E11 and produce the JSON.
 
-**`primary_verdict = stress_t1`**，依据 fail-closed 规则 1 自动路由，无需深入语义分析。
+**Key deterministic facts:**
+- `candidate_same_as_canonical_stm0: true` — byte-identical identity case.
+- Both SHA256 hashes match: `6b57f267…`.
+- NL describes explicit second-level execution-time durations (e.g., "2 seconds maximum", "1-2 sec", "2-3 sec").
+- Candidate preserves these duration semantics as event labels, with no discrete counter abstraction and no timed carrier.
+- Per rule 2.2.1, this must route as `stress_t1` even though it's a no-op/identity.
 
-### 关键事实
+Here is the JSON:
 
-| 维度 | 观测 |
-|---|---|
-| **identity** | `candidate_same_as_canonical_stm0=true`，sha256 完全相同 (`6b57f267...`) |
-| **scope** | `out_of_headline_t1_stress`，NL 显式要求秒级执行时间语义，未降级为离散 counter |
-| **provenance** | `change_origin_category=stress_scope_probe`，这是一个故意的 stress-scope identity probe |
-| **parse** | candidate parse_ok，但 parse success 不等于 better |
-
-### Gate 路由
-
-- **G0 fail**: NL 中的 `2s max/min`、`1-2 sec`、`<1 sec` 等是真正的 timed-automata 语义，不在 headline scope
-- **G1 pass**: 文件可读，parse ok
-- **G2 pass**: identity，无变化可归因
-- **G3 pass**: identity，无回归
-- **G4 fail**: identity，零改善；fail-closed 规则 5（identity/null delta）
-- **G5 pass**: identity 保持语义一致性，但 NL 层的秒级语义编码 gap 原样保留
-- **G6 pass**: schema 合规，eligibility 正确置 false/no/null
-
-### 设计意图
-
-B20 是一个双重点击的 stress probe：同时测试 adjudicator 是否会 (a) 在 identity 下凭空编造改善，以及 (b) 在 T1 duration 语义面前绕过 scope routing。两个 trap 都未触发。
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B20",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "out_of_headline_stress_t1",
+  "run_validity_status": "stress_only_not_headline",
+  "primary_verdict": "stress_t1",
+  "gate_results": {
+    "G0": {
+      "status": "out_of_headline",
+      "reason": "NL explicitly describes execution-time durations in seconds (TurnOn: 2s max/2s min; AutoFocus: 2s max/1s min; DetLight: 1s max/0s min; ChargedFlash: 4s max/2s min; WriteMemory: 3s max/2s min). The raw STM_0 encodes these as transition labels ('2 sec', '1-2 sec', '<1 sec', '2-4 sec', '2-3 sec'), and canonical/candidate STM_k preserve them as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec). Candidate is byte-identical to canonical and provides no discrete counter abstraction nor timed carrier. Per rule 2.2.1, real second-level duration semantics with no downgrade to counter abstraction require routing as out_of_headline_stress_t1.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Candidate file is present, parse_status is parse_ok, and the fcstm schema is structurally valid (states, events, transitions, hierarchy all parseable). Mechanical checks confirm baseline and candidate files both present and parse-ok.",
+      "evidence_references": [
+        "candidate STM_k",
+        "mechanical_checks"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance chain is complete: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate is byte-identical to canonical (sha256 match, candidate_same_as_canonical_stm0=true), so there is no delta to misattribute. No normalization/formatting gain is claimed.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k",
+        "provenance_checks"
+      ]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "Candidate is byte-identical to canonical STM_0. All NL-supported states (TurnOn, fork1, AutoFocus, DetLight, choice3, ChargedFlash, Junction3, Join2, Fork2, Flash, Terminate, Junction2, TakePicture, WriteMemory, Junction1, TurnOff), transitions, hierarchy nesting, guard labels, and event labels are preserved without deletion. No regression is possible in an identity case.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "Candidate is byte-identical to canonical STM_0. There is no delta and therefore no observable improvement over canonical. Identity is not a repair gain. No target issue is addressed.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Candidate is byte-identical to canonical STM_0. Semantic fidelity is trivially preserved (no change), but there is zero semantic improvement. The NL's second-level duration semantics remain encoded as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec) without any discrete counter abstraction, guard extraction, or timed carrier. No semantic betterment can be attributed.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All gates evaluated with explicit evidence references. Scope routing to stress_t1 is fully justified by NL duration semantics per rule 2.2.1. Confidence is high because the case is deterministic identity with no ambiguous delta. No forbidden claims beyond the mandatory dry-run disclaimer. No human escalation needed as the routing is mechanically clear.",
+      "evidence_references": [
+        "this JSON output",
+        "rule 2.2.1 (scope routing of identity with real second-level duration semantics)",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL: explicit second-level execution-time durations for TurnOn, AutoFocus, DetLight, ChargedFlash, WriteMemory",
+    "raw STM_0: duration labels '2 sec', '1-2 sec', '<1 sec', '2-4 sec', '2-3 sec' on transitions",
+    "canonical STM_0: event labels _2_sec, _1_2_sec, _1_sec, _2_3_sec preserving raw duration semantics",
+    "candidate STM_k: byte-identical to canonical (sha256=6b57f2672a826f9ef533d39d76bb5cd3c5c15f643b98740159f045d1438a2963)",
+    "mechanical_checks: candidate_same_as_canonical_stm0=true, parse_ok, files present",
+    "provenance_checks: all ledgers available, hash_chain_complete, no protocol invalidity",
+    "rule 2.2.1: identity case with real second-level duration semantics and no counter abstraction => stress_t1"
+  ],
+  "rationale": "This is a deterministic identity case (candidate byte-identical to canonical). The NL describes explicit second-level execution-time durations (e.g., '2 seconds maximum and a minimum of 2 seconds', '2 seconds maximum and 1 second minimum'). These are real continuous-time duration semantics, not merely periodic tick/timer cues. The canonical and candidate STMs preserve these as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec) without any discrete counter abstraction and without any timed carrier. Per rule 2.2.1, this requires scope routing as out_of_headline_stress_t1 with primary_verdict=stress_t1, regardless of the identity/no-op nature of the candidate. No improvement can be attributed to an identity delta, and the T1 scope precludes any headline Better STM claim. Provenance is valid, parsing is valid, and there is no regression, but the case is categorically outside the headline protocol boundary.",
+  "observed_anti_gaming_risk_flags": [
+    "identity_no_op_candidate: candidate is byte-identical to canonical, which cannot constitute a repair gain; correctly routed to stress_t1 per rule 2.2.1 rather than treated as a semantic evaluation",
+    "duration_semantics_not_downgraded: NL specifies real second-level execution times; candidate does not abstract them to discrete counters, so no false T0/T0.5 claim is possible"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This identity case does not demonstrate any STM repair capability.",
+    "The stress_t1 verdict does not imply the candidate is semantically worse; it means the case is outside headline scope due to continuous-time duration semantics."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only mechanical/provenance facts, NL, raw STM_0, canonical STM_0, candidate STM_k, and neutral change observation. No expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or construction-intent hints detected. The candidate_same_as_canonical_stm0 field is a low-level verifiable mechanical fact within the allowed scope of provenance_checks."
+  }
+}
+```

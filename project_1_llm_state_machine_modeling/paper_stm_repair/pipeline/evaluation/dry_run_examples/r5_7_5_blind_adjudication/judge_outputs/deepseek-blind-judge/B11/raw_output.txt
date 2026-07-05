@@ -1,3 +1,5 @@
+Based on my thorough analysis of the inline-provided NL, raw STM_0, canonical STM_0, candidate STM_k, and all mechanical/provenance facts, here is the adjudication output:
+
 ```json
 {
   "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
@@ -9,68 +11,70 @@
   "real_repair_run_id": null,
   "scope_routing_status": "in_scope_t0_protocol_case",
   "run_validity_status": "valid_blind_protocol_case",
-  "primary_verdict": "unknown",
+  "primary_verdict": "not_better",
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "NL describes discrete state-machine behavior with threshold guards (dist_to_front<25, extra_lane=true, etc.) and no continuous-time or timed-automata claims. No timer/tick cues requiring caveat_t05 routing. Case is in-scope T0 protocol.",
+      "reason": "NL describes discrete sensor conditions (distance thresholds, boolean flags, velocity thresholds) with no continuous-time or timed-automata semantics. No periodic tick/timer cues present. Falls within T0 protocol scope.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]
     },
     "G1": {
       "status": "pass",
-      "reason": "mechanical_checks confirm candidate_file_present=true, candidate_parse_status=parse_ok. Candidate STM_k is parseable and all states/transitions/hierarchy are structurally intact and auditable.",
-      "evidence_references": ["candidate STM_k"]
+      "reason": "Candidate file present, parse_ok per mechanical_checks. Provenance checks all pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate parse/schema is minimally auditable.",
+      "evidence_references": ["candidate STM_k", "input_packet mechanical_checks", "input_packet provenance_checks"]
     },
     "G2": {
       "status": "pass",
-      "reason": "provenance_checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, change_origin_category=constructed_candidate_with_local_ledgers (not normalization_only_artifact). Candidate differs from canonical STM_0 and the change is attributable to deliberate construction, not format conversion or normalization.",
+      "reason": "Delta is structural, not formatting/normalization: candidate adds def int variables frontNear and laneAvailable, removes event dist_to_front_25_extra_lane_true from HighwayMode event declarations, and replaces its use in two cruise->lane_change transitions with if [frontNear==1 && laneAvailable==1]. The change is unambiguously attributable to the canonical->candidate diff.",
       "evidence_references": ["canonical STM_0", "candidate STM_k"]
     },
     "G3": {
-      "status": "pass",
-      "reason": "All NL-supported states preserved (AutonomousMode, HighwayMode with enter_hwy/cruise/lane_change/endHighwayMode, UrbanMode with enter_urban/lane_change_urban/straight/intersection/exit_urban, InitialState, FinishState, collision_avoidance_deactive/active). All transitions preserved with same source/target connectivity. Hierarchy intact. No guard, action, or transition deletion. Candidate replaces the HighwayMode guard event dist_to_front_25_extra_lane_true with if[frontNear==1 && laneAvailable==1]; the transition structure is preserved though the guard variable names no longer carry NL surface semantics — this is a G5 traceability concern, not a G3 destructive regression.",
+      "status": "fail",
+      "reason": "Traceability regression per section 2.2 rule 4: candidate replaces the readable, NL-traceable guard display label 'dist_to_front<25 && extra_lane=true' (event dist_to_front_25_extra_lane_true) with opaque proxy variables frontNear and laneAvailable that lack any trace map to NL. The specific threshold 25 and explicit boolean extra_lane=true are lost. The canonical's readable NL semantics are deleted from the model. No states, transitions, or hierarchy are deleted, but the deletion of key readable trace is a regression.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G4": {
-      "status": "unknown",
-      "reason": "Candidate changes the HighwayMode cruise->lane_change guard from a named event (dist_to_front_25_extra_lane_true with display name 'dist_to_front<25 && extra_lane=true') to explicit if[frontNear==1 && laneAvailable==1] syntax. The extraction of guard from event name into explicit if[] form could be viewed as structural improvement, but the replacement of NL-traceable variable names (dist_to_front<25, extra_lane=true) with abstract integer variables (frontNear, laneAvailable) with no NL mapping provided in the candidate prevents confident assertion of a strict gain. provenance_checks.semantic_evidence_status is insufficient_traceability_for_strict_verdict, and the notes explicitly warn the judge to avoid claiming a strict gain.",
+      "status": "fail",
+      "reason": "No genuine improvement detected. The if-guard syntax structurally separates guard from event, but the opaque variable names provide no semantic benefit over the original readable display label. The change is inconsistent—only HighwayMode's dist_to_front<25 guard is altered, while UrbanMode's analogous dist_to_front<15 guard (event dist_to_front_15_extra_lane_true) is left untouched, violating rule 7's consistency requirement. No NL-supported behavior gap is addressed. No improvement over canonical.",
       "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
     },
     "G5": {
-      "status": "unknown",
-      "reason": "Candidate renames HighwayMode guard variables from NL-derived names (dist_to_front<25 && extra_lane=true) to abstract integer variables (frontNear, laneAvailable) declared at top level with def int and initialized to 0 but with no increment/reset/lifecycle or explicit NL mapping in the candidate. UrbanMode guards remain unchanged with original event names, creating an internal inconsistency in abstraction style. Without an explicit trace map from candidate variable names back to NL conditions, semantic fidelity cannot be confidently assessed as either preserved or compromised. The provenance_checks.notes corroborate that the candidate 'renames guard variables and weakens traceability.'",
+      "status": "fail",
+      "reason": "Semantic fidelity is degraded. NL explicitly states 'distance to the front vehicle becomes less than 25 meters (dist_to_front<25) and there is an extra lane available (extra_lane=true)'. Canonical preserves this as display label on event dist_to_front_25_extra_lane_true. Candidate replaces it with frontNear==1 && laneAvailable==1, losing the specific threshold 25 and the explicit lane condition. The change removes precision and NL traceability without compensating semantic gain.",
       "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
     },
     "G6": {
       "status": "pass",
-      "reason": "Eligibility fields set per protocol: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. Evidence references map each gate to specific input artifacts. Observed anti-gaming risks documented. Forbidden claims listed. Leakage observation recorded as negative. Primary verdict is unknown per fail-closed rule #3 given insufficient_traceability_for_strict_verdict and absence of clear semantic regression in G3.",
+      "reason": "Evidence references are explicit per gate. Confidence is high. Forbidden claims include required dry-run disclaimer. Anti-gaming risks are enumerated. No human escalation needed for this clear traceability regression case.",
       "evidence_references": ["this JSON output"]
     }
   },
   "evidence_references": [
-    "NL: natural-language specification describing autonomous driving state machine with HighwayMode/UrbanMode/collision_avoidance",
-    "raw STM_0: PlantUML source with original guard expressions embedded in transition labels",
-    "canonical STM_0: fcstm canonical form with named events carrying NL guard semantics in display names",
-    "candidate STM_k: fcstm candidate with HighwayMode cruise->lane_change guard changed to if[frontNear==1 && laneAvailable==1]",
-    "provenance_checks.semantic_evidence_status=insufficient_traceability_for_strict_verdict",
-    "provenance_checks.notes: candidate renames guard variables and weakens traceability"
+    "NL: clause 3 describes cruise->lane_change guard as dist_to_front<25 && extra_lane=true",
+    "NL: clause 7 describes the analogous UrbanMode guard as dist_to_front<15 && extra_lane=true (unchanged in candidate)",
+    "canonical STM_0: event dist_to_front_25_extra_lane_true named 'dist_to_front<25 && extra_lane=true'",
+    "candidate STM_k: event dist_to_front_25_extra_lane_true removed; transitions use if [frontNear==1 && laneAvailable==1]",
+    "candidate STM_k: UrbanMode event dist_to_front_15_extra_lane_true and its display label preserved unchanged",
+    "candidate STM_k: def int frontNear=0; def int laneAvailable=0 declared with no assignments and no NL trace map",
+    "input_packet provenance_checks: all three fields true",
+    "input_packet mechanical_checks: candidate_parse_status=parse_ok"
   ],
-  "rationale": "Candidate STM_k extracts the HighwayMode cruise->lane_change guard from a named event into explicit if[] syntax, which is structurally more regular. However, the guard variable names (frontNear, laneAvailable) are abstract integers declared without lifecycle, and no mapping back to NL conditions (dist_to_front<25, extra_lane=true) exists in the candidate. UrbanMode guards remain unchanged with original event names, creating an internal abstraction inconsistency. The provenance_checks.semantic_evidence_status is insufficient_traceability_for_strict_verdict, and the notes explicitly instruct the judge to avoid claiming a strict gain. Per fail-closed rule #3: since semantic_evidence_status is insufficient and G3 found no clear semantic regression, primary_verdict must be unknown. This means the blind packet does not provide enough evidence to assert either better or not_better; the candidate's changes are not clearly an improvement and not clearly a regression.",
+  "rationale": "Candidate makes one structural change: it extracts the HighwayMode cruise->lane_change guard from an event label (dist_to_front_25_extra_lane_true with display 'dist_to_front<25 && extra_lane=true') into an if [frontNear==1 && laneAvailable==1] guard block, adding two def int variables. The change removes the readable, NL-traceable display label and replaces it with opaque proxy variables that have no trace map to NL, losing the specific distance threshold (25) and explicit lane condition. The analogous UrbanMode guard (dist_to_front<15) is left unchanged, making the abstraction inconsistent. No NL-supported behavior gap is addressed, no new capability is provided, and the loss of readable NL semantics constitutes a traceability regression. Per section 2.2 rules 4 and 7, this is not_better.",
   "observed_anti_gaming_risk_flags": [
-    "guard_variable_renaming_weakens_nl_traceability: candidate replaces NL-traceable guard names (dist_to_front<25, extra_lane=true) with abstract integer variables (frontNear, laneAvailable) that lack explicit NL mapping, making semantic audit impossible from the candidate alone",
-    "inconsistent_abstraction_across_substates: only HighwayMode cruise->lane_change guard was renamed to abstract if[] form; UrbanMode lane_change_urban and straight transitions retain original event-based guards with NL-traceable names",
-    "variables_declared_without_lifecycle_evidence: def int frontNear=0 and def int laneAvailable=0 are declared but the candidate provides no increment, decrement, reset, or assignment — the guard values lack lifecycle justification"
+    "semantic_deletion_of_readable_guard_label: canonical display label 'dist_to_front<25 && extra_lane=true' removed without equivalent replacement",
+    "inconsistent_abstraction: only HighwayMode guard changed; UrbanMode's structurally analogous dist_to_front<15 guard left as original event label",
+    "opaque_proxy_variables_without_trace_map: frontNear and laneAvailable have no assignment, no comment, and no trace to NL conditions"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "Do not interpret primary_verdict=unknown as equivalent to repair success, repair failure, or any statement about the underlying repair loop quality.",
-    "The candidate's if[] guard syntax extraction is not asserted as a semantic improvement because provenance_checks explicitly warns against claiming strict gain without a trace map."
+    "No semantic improvement should be inferred from the if-guard syntax alone when variable names are opaque and untraceable to NL.",
+    "The HighwayMode change does not constitute a strict or partial improvement over canonical."
   ],
-  "confidence": "medium",
+  "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "Blind input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, semantic_modeling_conventions, and provenance_checks. No answer key, expected verdict, oracle mapping, original case slug, or PR discussion context is visible in the input."
+    "notes": "Input packet contains only mechanical_checks, provenance_checks, semantic_modeling_conventions, neutral_change_observation, and adjudication_question. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-construction intent signals detected. Packet complies with blind_packet_policy."
   }
 }
 ```

@@ -48,6 +48,29 @@ def load_meta_end(od:Path):
     except Exception:
         return {'meta_parse_error':'run_meta_end.json is not valid JSON'}
 
+def artifact_flags(od: Path):
+    return {
+        'prompt': (od/'prompt.txt').exists(),
+        'raw_output': (od/'raw_output.txt').exists(),
+        'combined_output_for_parse': (od/'combined_output_for_parse.txt').exists(),
+        'parsed_output': (od/'parsed_output.json').exists(),
+        'stdout': (od/'stdout.txt').exists(),
+        'stderr': (od/'stderr.txt').exists(),
+        'run_meta_start': (od/'run_meta_start.json').exists(),
+        'run_meta_end': (od/'run_meta_end.json').exists(),
+    }
+
+def attempt_status(flags, meta_end, output_valid: bool):
+    if output_valid:
+        return 'eligible_output'
+    if flags.get('run_meta_end'):
+        if meta_end.get('exit_code') not in (None, 0) or meta_end.get('parse_error'):
+            return 'provider_or_cli_failure_no_eligible_output'
+        return 'completed_no_eligible_output'
+    if flags.get('run_meta_start') or flags.get('prompt'):
+        return 'incomplete_or_preflight_only'
+    return 'not_run'
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--judge', required=True)
@@ -64,6 +87,7 @@ def main():
         parsed_path=od/'parsed_output.json'
         raw_path=od/'raw_output.txt'
         meta_end=load_meta_end(od)
+        flags=artifact_flags(od)
         status='missing'
         obj=None
         err=None
@@ -100,16 +124,21 @@ def main():
                 status='schema_valid_identity_mismatch'
             expected_gates=ans.get('expected_gate_results', {}) or {}
             observed_gates=gate_statuses(obj)
-            gate_matches={g: output_valid and observed_gates.get(g)==expected_gates.get(g) for g in GATES}
+            gate_matches={
+                g: (observed_gates.get(g)==expected_gates.get(g) if output_valid else None)
+                for g in GATES
+            }
             gate_disagreements=[
                 {'gate':g,'expected':expected_gates.get(g),'observed':observed_gates.get(g)}
-                for g in GATES if not gate_matches.get(g)
+                for g in GATES if output_valid and not gate_matches.get(g)
             ]
             row={
                 'blind_case_id':bid,
                 'source_case_id':ans['source_case_id'],
                 'judge_id':obj.get('judge_id'),
                 'status':status,
+                'attempt_status': attempt_status(flags, meta_end, output_valid),
+                'artifact_path_exists': flags,
                 'schema_error': err,
                 'eligible_output': output_valid,
                 'exit_code': meta_end.get('exit_code'),
@@ -118,31 +147,67 @@ def main():
                 'identity_errors': identity_errors,
                 'expected_verdict':ans['primary_expected_verdict'],
                 'observed_verdict':obj.get('primary_verdict'),
-                'verdict_match': output_valid and obj.get('primary_verdict')==ans['primary_expected_verdict'],
+                'verdict_match': obj.get('primary_verdict')==ans['primary_expected_verdict'] if output_valid else None,
                 'expected_scope':ans['scope_routing_status'],
                 'observed_scope':obj.get('scope_routing_status'),
-                'scope_match': output_valid and obj.get('scope_routing_status')==ans['scope_routing_status'],
+                'scope_match': obj.get('scope_routing_status')==ans['scope_routing_status'] if output_valid else None,
                 'expected_run_validity':ans['run_validity_status'],
                 'observed_run_validity':obj.get('run_validity_status'),
-                'run_validity_match': output_valid and normalize_run_validity(obj.get('run_validity_status'))==normalize_run_validity(ans['run_validity_status']),
+                'run_validity_match': (
+                    normalize_run_validity(obj.get('run_validity_status'))==normalize_run_validity(ans['run_validity_status'])
+                    if output_valid else None
+                ),
                 'expected_gate_results': expected_gates,
                 'observed_gate_results': observed_gates,
                 'gate_matches': gate_matches,
-                'gate_all_match': output_valid and all(gate_matches.values()),
+                'gate_all_match': all(gate_matches.values()) if output_valid else None,
                 'gate_disagreements': gate_disagreements,
                 'leakage_detected': obj.get('leakage_observation',{}).get('detected'),
                 'confidence': obj.get('confidence'),
                 'human_escalation_required': obj.get('human_escalation_required')
             }
         else:
-            row={'blind_case_id':bid,'source_case_id':ans['source_case_id'],'status':status,'error':err,'eligible_output':False,'exit_code':meta_end.get('exit_code'),'parse_error':meta_end.get('parse_error'),'expected_verdict':ans['primary_expected_verdict'],'verdict_match':False,'scope_match':False,'run_validity_match':False,'gate_all_match':False}
+            output_valid=False
+            row={
+                'blind_case_id':bid,
+                'source_case_id':ans['source_case_id'],
+                'status':status,
+                'attempt_status': attempt_status(flags, meta_end, output_valid),
+                'artifact_path_exists': flags,
+                'error':err,
+                'eligible_output':False,
+                'exit_code':meta_end.get('exit_code'),
+                'parse_error':meta_end.get('parse_error'),
+                'expected_verdict':ans['primary_expected_verdict'],
+                'observed_verdict': None,
+                'verdict_match':None,
+                'expected_scope': ans['scope_routing_status'],
+                'observed_scope': None,
+                'scope_match':None,
+                'expected_run_validity': ans['run_validity_status'],
+                'observed_run_validity': None,
+                'run_validity_match':None,
+                'expected_gate_results': ans.get('expected_gate_results', {}) or {},
+                'observed_gate_results': None,
+                'gate_matches': {g: None for g in GATES},
+                'gate_all_match':None,
+                'gate_disagreements': [],
+                'leakage_detected': None,
+            }
         rows.append(row)
+    valid_output_count=sum(r.get('eligible_output') is True for r in rows)
     summary={
         'schema_version':'r5_7_5.blind_score_summary.v1',
         'judge':args.judge,
+        'eligible_score_applicable': valid_output_count > 0,
         'run_validity_match_policy':'normalized_equivalence: valid_constructed_protocol_case and valid_blind_protocol_case are both counted as valid; candidate_schema_or_parse_invalid and stmk_repair_failure are both counted as candidate_invalid. This is not literal string equality.',
         'case_count':len(rows),
-        'valid_output_count':sum(r.get('eligible_output') is True for r in rows),
+        'attempted_case_count':sum((r.get('artifact_path_exists') or {}).get('run_meta_start') is True for r in rows),
+        'completed_case_count':sum((r.get('artifact_path_exists') or {}).get('run_meta_end') is True for r in rows),
+        'provider_or_cli_failure_count':sum(r.get('attempt_status') == 'provider_or_cli_failure_no_eligible_output' for r in rows),
+        'incomplete_or_preflight_only_count':sum(r.get('attempt_status') == 'incomplete_or_preflight_only' for r in rows),
+        'not_run_count':sum(r.get('attempt_status') == 'not_run' for r in rows),
+        'valid_output_count':valid_output_count,
         'verdict_match_count':sum(r.get('verdict_match') is True for r in rows),
         'scope_match_count':sum(r.get('scope_match') is True for r in rows),
         'run_validity_match_count':sum(r.get('run_validity_match') is True for r in rows),

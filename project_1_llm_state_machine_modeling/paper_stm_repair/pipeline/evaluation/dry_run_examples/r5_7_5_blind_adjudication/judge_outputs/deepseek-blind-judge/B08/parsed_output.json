@@ -12,7 +12,7 @@
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "T0 protocol case. NL describes discrete boolean/numeric predicates (e.g., dist_to_front<25, extra_lane=true, intersection=true) with no periodic timer cues, clock invariants, or continuous-time semantics. All conditions are discrete guard expressions. No T0.5 caveat or T1 stress signals detected.",
+      "reason": "NL describes distance-based thresholds and speed conditions (dist_to_front<25, dist_to_exit<2, vel>30, etc.) with no second/millisecond duration, interval, or execution-time semantics. No continuous-time or timed-automata claims present. The candidate change is a standard T0 guard-extraction refinement, not a T0.5 counter abstraction or T1 stress case.",
       "evidence_references": [
         "NL",
         "raw STM_0",
@@ -22,14 +22,14 @@
     },
     "G1": {
       "status": "pass",
-      "reason": "Candidate file present, parse status is parse_ok per mechanical_checks, schema is well-formed .fcstm with valid state/event/transition/hierarchy structure, and baseline file also present. Minimum audit threshold met.",
+      "reason": "Both canonical_stm0.fcstm and candidate_stmk.fcstm are present and readable. Mechanical checks confirm candidate_parse_status=parse_ok. Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate is fully auditable.",
       "evidence_references": [
         "candidate STM_k"
       ]
     },
     "G2": {
       "status": "pass",
-      "reason": "All provenance checks pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_hash_matches_constructed_case=true, change_origin_category=constructed_candidate_with_local_ledgers, candidate≠canonical. No normalization-only artifact, no missing ledger, no extra-method claims beyond fcstm carrier. Attribution between canonical and candidate is traceable.",
+      "reason": "The delta between canonical STM_0 and candidate STM_k is clearly attributable: (1) two 'def int' variable declarations added at top scope (dist_to_front, extra_lane); (2) event 'dist_to_front_25_extra_lane_true' removed from HighwayMode event declarations; (3) two cruise->lane_change transitions changed from event reference to explicit guard 'if [dist_to_front < 25 && extra_lane == 1]'. This is a genuine guard-extraction change, not normalization, format conversion, or ledger manipulation.",
       "evidence_references": [
         "canonical STM_0",
         "candidate STM_k"
@@ -37,7 +37,7 @@
     },
     "G3": {
       "status": "pass",
-      "reason": "All NL-supported states, transitions, and hierarchy preserved. AutonomousMode, HighwayMode (enter_hwy, cruise, lane_change, endHighwayMode), UrbanMode (enter_urban, lane_change_urban, straight, intersection, exit_urban), InitialState, FinishState, collision_avoidance_deactive/active all intact. All transitions present including cross-mode dynamic transitions (! * -> HighwayMode/UrbanMode). No behavior deleted. The variable declarations (def int dist_to_front, def int extra_lane) are additive; they do not remove existing structure.",
+      "reason": "All NL-supported states, hierarchy, and transitions are preserved in candidate. AutonomousMode with HighwayMode (enter_hwy, cruise, lane_change, endHighwayMode) and UrbanMode (enter_urban, lane_change_urban, straight, intersection, exit_urban) substructures intact. FinishState, collision_avoidance_deactive/active, InitialState, and all cross-mode transitions (high_way=true, urban_way=true, auto_finished=true) retained. The guard 'if [dist_to_front < 25 && extra_lane == 1]' encodes the same condition as the removed event 'dist_to_front_25_extra_lane_true' (labeled 'dist_to_front<25 && extra_lane=true'). No NL-supported behavior, state, transition, or hierarchy is deleted or degraded.",
       "evidence_references": [
         "NL",
         "canonical STM_0",
@@ -45,8 +45,8 @@
       ]
     },
     "G4": {
-      "status": "pass",
-      "reason": "At least one NL-supported target issue improved: HighwayMode cruise→lane_change transitions now use explicit guard syntax 'if [dist_to_front < 25 && extra_lane == 1]' instead of the canonical's named event 'dist_to_front_25_extra_lane_true' whose semantics were only carried in the display name. This advances NL items 3 and 5 by making the guard condition structurally explicit. However, the improvement is incomplete: UrbanMode's analogous 'dist_to_front<15 && extra_lane=true' condition (NL items 7 and 9) remains a named event 'dist_to_front_15_extra_lane_true' without explicit guard extraction, creating an asymmetric representation within the same candidate. Per rule 6 in section 2.2, incomplete guard extraction across analogous guard families prevents a 'better' verdict.",
+      "status": "partial",
+      "reason": "The candidate improves the HighwayMode lane-change condition by extracting the guard 'dist_to_front<25 && extra_lane=true' from an opaque event label into an explicit 'if [dist_to_front < 25 && extra_lane == 1]' guard syntax on the cruise->lane_change transitions. This constitutes a real NL-supported improvement (NL item 3 explicitly describes this condition as a predicate). However, the same local repeat pattern exists in UrbanMode: NL items 7 and 9 describe 'dist_to_front<15 && extra_lane=true' as lane-change conditions, yet candidate leaves these as event-based ('dist_to_front_15_extra_lane_true'). Per rule 7, partial application of the same local repeat pattern with inconsistent abstraction (HighwayMode uses guard+variables, UrbanMode retains event) cannot constitute strict 'better'. The improvement is genuine but incomplete in coverage.",
       "evidence_references": [
         "NL",
         "canonical STM_0",
@@ -54,8 +54,8 @@
       ]
     },
     "G5": {
-      "status": "pass",
-      "reason": "Semantic fidelity maintained for HighwayMode guard: 'dist_to_front < 25 && extra_lane == 1' matches NL condition 'dist_to_front<25 && extra_lane=true' modulo int/bool representation shift (extra_lane==1 maps to true). Variable declarations support the guard usage. No semantic regression: all transition semantics preserved. However, the asymmetric treatment (HighwayMode guard extracted, UrbanMode guard left as event) introduces representation inconsistency that weakens overall semantic coherence; this is recorded as an anti-gaming flag but does not constitute a regression on existing behavior.",
+      "status": "partial",
+      "reason": "The guard extraction is semantically faithful for HighwayMode: 'dist_to_front < 25 && extra_lane == 1' preserves the condition originally embedded in event label 'dist_to_front<25 && extra_lane=true'. No semantic regression detected. However, the candidate introduces internal inconsistency: (a) variables dist_to_front and extra_lane are declared at top scope as def int but only used in HighwayMode guards, while UrbanMode lane-change conditions still reference the old event-based trigger; (b) extra_lane uses integer comparison '== 1' vs the original boolean '=true', a minor type mismatch without behavioral consequence but indicative of incomplete abstraction. The model now has mixed trigger paradigms for the same conceptual lane-change pattern, reducing overall semantic coherence even though no NL behavior is lost.",
       "evidence_references": [
         "NL",
         "raw STM_0",
@@ -65,34 +65,37 @@
     },
     "G6": {
       "status": "pass",
-      "reason": "Eligibility flags correctly set per dry-run protocol: headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null. No leakage detected (E0 clean: input contains only NL/raw/canonical/candidate/mechanical/provenance facts, no answer key or expected verdict). Evidence citations provided for all gates. Confidence medium due to partial nature of improvement. Anti-gaming flags documented. Forbidden claims explicitly stated.",
+      "reason": "This is a dry-run blind adjudication. headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol. Evidence references cite specific transitions, events, and guards from NL/raw/canonical/candidate. Confidence is medium due to incomplete pattern coverage. No leakage detected. Human escalation is not required for this straightforward partial-improvement case.",
       "evidence_references": [
         "this JSON output"
       ]
     }
   },
   "evidence_references": [
-    "NL items 3, 5, 7, 9 — guard conditions for HighwayMode and UrbanMode lane_change transitions",
-    "canonical STM_0 HighwayMode: event dist_to_front_25_extra_lane_true with display name encoding guard semantics",
-    "candidate STM_k HighwayMode: explicit guard 'if [dist_to_front < 25 && extra_lane == 1]' with variable declarations",
-    "candidate STM_k UrbanMode: unchanged, still uses event dist_to_front_15_extra_lane_true without explicit guard",
-    "mechanical_checks: candidate_parse_status=parse_ok",
-    "provenance_checks: all ledger/hash fields true, change_origin_category=constructed_candidate_with_local_ledgers"
+    "NL item 3: HighwayMode lane-change condition 'dist_to_front<25 && extra_lane=true'",
+    "NL items 7,9: UrbanMode lane-change condition 'dist_to_front<15 && extra_lane=true'",
+    "canonical STM_0: event dist_to_front_25_extra_lane_true used on cruise->lane_change transitions",
+    "canonical STM_0: event dist_to_front_15_extra_lane_true used on UrbanMode lane-change transitions",
+    "candidate STM_k: def int dist_to_front and extra_lane declarations at top scope",
+    "candidate STM_k: if [dist_to_front < 25 && extra_lane == 1] guard on cruise->lane_change transitions",
+    "candidate STM_k: UrbanMode still uses dist_to_front_15_extra_lane_true event (not converted to guard)",
+    "mechanical_checks: parse_ok, provenance chain complete, candidate not identical to canonical"
   ],
-  "rationale": "Candidate improves HighwayMode guard extraction (NL items 3, 5): the condition 'dist_to_front<25 && extra_lane=true' moves from a named event with display-name semantics to explicit guard syntax 'if [dist_to_front < 25 && extra_lane == 1]' with supporting variable declarations. This is a real structural improvement per the '完整 guard extraction 可为 better' rule. However, UrbanMode's analogous guard 'dist_to_front<15 && extra_lane=true' (NL items 7, 9) remains as event 'dist_to_front_15_extra_lane_true' without explicit extraction, creating an inconsistent representation across guard families. Per the same rule's exclusion clause ('若只改一部分同类 guard 或引入不一致抽象，则不得用此规则'), this prevents a 'better' verdict. No regression, no protocol violations, scope is T0. Verdict: partial.",
+  "rationale": "The candidate performs a genuine guard extraction for HighwayMode lane-change conditions, moving the predicate 'dist_to_front<25 && extra_lane=true' from an opaque event label to an explicit fcstm guard syntax. This is a real NL-supported improvement. However, the same local repeat pattern (event-embedded guard -> explicit guard for lane-change conditions) exists in UrbanMode but is left unconverted, creating an inconsistent abstraction within the model. Per rule 7, partial application of the same local repeat pattern cannot be adjudicated as strict 'better'. No regression detected: all NL-supported states, transitions, and hierarchy are preserved. Verdict is 'partial'.",
   "observed_anti_gaming_risk_flags": [
-    "inconsistent_guard_extraction: HighwayMode dist_to_front<25 guard extracted to explicit syntax but UrbanMode dist_to_front<15 guard left as event-only, creating asymmetric representation that could mislead downstream consumers into thinking UrbanMode guards were also improved",
-    "partial_improvement_masquerading: the HighwayMode guard extraction is a genuine improvement but the incomplete scope (single guard family only) means the candidate does not represent a comprehensive repair of the guard-extraction target issue"
+    "INCOMPLETE_LOCAL_PATTERN_COVERAGE: Guard extraction applied only to HighwayMode lane-change condition (dist_to_front<25 && extra_lane=true) but not to UrbanMode lane-change condition (dist_to_front<15 && extra_lane=true), despite both being the same local repeat pattern of event-embedded guard.",
+    "VARIABLE_LIFECYCLE_GAP: def int dist_to_front and extra_lane declared with initial value 0 but no increment, update, or sensor-binding mechanism; effectively dead variables in static context, noted as acceptable per semantic conventions but nontrivial for dynamic traceability.",
+    "TYPE_INCONSISTENCY: extra_lane declared as def int but guard uses integer comparison == 1, while original NL and canonical use boolean extra_lane=true. Not a semantic regression but indicative of imprecise abstraction."
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "The partial verdict does not constitute a successful repair claim for the full target issue.",
-    "The guard extraction improvement in HighwayMode does not generalize to UrbanMode without further evidence."
+    "This verdict must not be interpreted as a measure of the repair pipeline's real-world capability.",
+    "Partial improvement in this case does not generalize to other cases or repair targets."
   ],
   "confidence": "medium",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical_checks, provenance_checks, and neutral_change_observation. No answer key, expected verdict, oracle mapping, original case slug, or adjudication hints detected. E0 clean."
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, and semantic modeling conventions. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or construction-intent fields detected. The neutral_change_observation explicitly states no hidden answer key is included."
   }
 }

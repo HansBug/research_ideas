@@ -12,32 +12,31 @@
   "gate_results": {
     "G0": {
       "status": "pass",
-      "reason": "NL describes a discrete-event state machine for a train brake subsystem with states (InitialState, BrakingState, OperationalState, ClampingState) and event-driven transitions. No continuous-time, timed-automata, or clock-invariant semantics are claimed. Scope is unambiguously T0 protocol case.",
+      "reason": "NL describes a discrete train braking device state machine with no seconds/milliseconds/duration/timed-automata semantics and no periodic tick/timer cues. Scope is T0 protocol case.",
       "evidence_references": [
-        "NL",
-        "raw STM_0",
-        "canonical STM_0",
-        "candidate STM_k"
+        "NL"
       ]
     },
     "G1": {
       "status": "pass",
-      "reason": "Candidate STM_k is present, parseable (mechanical_checks.candidate_parse_status=parse_ok), and structurally well-formed with 4 states, 4 events, 5 transitions, and valid fcstm syntax. File is fully auditable.",
+      "reason": "Candidate STM_k parse is ok per mechanical_checks; file is present, schema is valid fcstm, and content is auditable.",
       "evidence_references": [
-        "candidate STM_k"
+        "candidate STM_k",
+        "mechanical_checks"
       ]
     },
     "G2": {
-      "status": "fail",
-      "reason": "Candidate STM_k is byte-identical to canonical STM_0 (SHA256 644de2db408d8494233c817ba48c2bd9252a908a104d94af7877a9ff5ebf212c confirmed by matching baseline_sha256 and candidate_sha256; provenance_checks.candidate_same_as_canonical_stm0=true). No delta exists to attribute as a repair gain. Although change_ledger_available=true and provenance is not protocol-invalid, the identity/null-delta case means there is no change to credit to canonical→candidate repair. This is a no-op, not a repair gain.",
+      "status": "not_applicable",
+      "reason": "Candidate STM_k is byte-identical to canonical STM_0 (SHA256 match confirmed by provenance_checks.candidate_same_as_canonical_stm0=true and identical baseline/candidate SHA256). There is no delta to attribute; no conversion, normalization, or formatting change exists that could be mistaken for repair gain.",
       "evidence_references": [
         "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "provenance_checks"
       ]
     },
     "G3": {
       "status": "pass",
-      "reason": "Candidate is byte-identical to canonical. All NL-supported states (InitialState, BrakingState, OperationalState, ClampingState), transitions (5 total including Signal_Transmission_Fails branch and Signal_Feedback_Sent return paths), hierarchy (flat within llms_emp_stm_results_0001), and event semantics are preserved intact. No deletion or regression from canonical baseline.",
+      "reason": "Candidate is byte-identical to canonical. No states, transitions, hierarchy, guards, actions, or trace elements are deleted or degraded. All five transitions (InitialState->BrakingState, InitialState->OperationalState, BrakingState->ClampingState, BrakingState->InitialState, OperationalState->InitialState) and all four named states are preserved exactly.",
       "evidence_references": [
         "NL",
         "canonical STM_0",
@@ -46,16 +45,16 @@
     },
     "G4": {
       "status": "fail",
-      "reason": "No improvement is possible because candidate is byte-identical to canonical. All 4 events, 5 transitions, 4 states, and guard/action structure remain unchanged. The NL faithfully matches canonical (and thus candidate) already, but a no-op delta cannot constitute an improvement over the baseline. Even partial improvement is impossible with zero delta.",
+      "reason": "Candidate is byte-identical to canonical STM_0. No repair action was applied; there are zero changes that could constitute an improvement on any target issue. Identity/no-op cannot be a repair gain per fail-closed rule 3.",
       "evidence_references": [
-        "NL",
         "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "provenance_checks"
       ]
     },
     "G5": {
-      "status": "fail",
-      "reason": "Semantic analysis reveals identity: NL supports the same states and transitions present in both canonical and candidate. However, because candidate introduces zero semantic change relative to canonical, there is no semantic gain to evaluate. Identity does not improve semantic fidelity, expressiveness, or completeness beyond what canonical already provides.",
+      "status": "pass",
+      "reason": "Semantic fidelity is trivially preserved since candidate is byte-identical to canonical. All NL-supported behaviors (brake signal transition, signal failure fallback, caliper clamping, signal feedback return) remain intact in the identical fcstm representation.",
       "evidence_references": [
         "NL",
         "raw STM_0",
@@ -65,34 +64,34 @@
     },
     "G6": {
       "status": "pass",
-      "reason": "All evidence is referenced inline per gate. Primary verdict is not_better per fail-closed rule 5 (identity/null delta). No leakage detected; blind_case_id B05 provides no answer-key or expected-verdict information. headline_eligible and repair_effectiveness_eligible correctly set to false. human_escalation_required=false as the null-delta case is unambiguous.",
+      "reason": "All evidence is cited per gate; primary_verdict=not_better is supported by G4 fail due to identity/no-op; headline_eligible and repair_effectiveness_eligible are correctly set to false per dry-run protocol. Confidence is high because the identity fact is deterministic and unambiguous.",
       "evidence_references": [
-        "this JSON output"
+        "this JSON output",
+        "provenance_checks"
       ]
     }
   },
   "evidence_references": [
-    "input_packet.json: baseline_sha256=candidate_sha256=644de2db408d8494233c817ba48c2bd9252a908a104d94af7877a9ff5ebf212c",
-    "input_packet.json: provenance_checks.candidate_same_as_canonical_stm0=true",
-    "canonical_stm0.fcstm: 4 states, 4 events, 5 transitions, flat hierarchy",
-    "candidate_stmk.fcstm: byte-identical to canonical, confirmed by visual diff and SHA256 match",
-    "NL: 3-sentence description matching canonical/candidate structure exactly",
-    "fail-closed rule 5: identity/null delta → not_better"
+    "NL: discrete braking device state machine, no time semantics",
+    "raw STM_0: PlantUML with 4 states, 5 transitions matching NL",
+    "canonical STM_0: fcstm with 4 named states, 4 events, 5 transitions",
+    "candidate STM_k: byte-identical to canonical STM_0",
+    "provenance_checks: candidate_same_as_canonical_stm0=true, identical SHA256",
+    "mechanical_checks: candidate_parse_status=parse_ok"
   ],
-  "rationale": "Candidate STM_k is byte-identical to canonical STM_0. Under fail-closed rule 5, an identity/null-delta case defaults to not_better because no-op is not a repair gain. The input packet confirms this via matching SHA256 hashes and provenance_checks.candidate_same_as_canonical_stm0=true. Both files contain the same 4 states, 4 events, and 5 transitions; no event-splitting, guard-extraction, state-refinement, or any other semantic change occurred. The NL is faithfully represented by both canonical and candidate equally, but equality is not improvement. All provenance checks are valid (ledgers present, hash chain complete), so the run is protocol-valid but the result is simply a null delta with no repair gain to claim.",
+  "rationale": "Candidate STM_k is byte-identical to canonical STM_0 (confirmed by identical SHA256 hashes and provenance_checks.candidate_same_as_canonical_stm0=true). Under fail-closed rule 3, an identity/null-delta case defaults to not_better because no-op is not a repair gain. The NL contains no time semantics that would route this to stress_t1. No regression exists, but the absence of regression does not constitute improvement. The verdict is deterministic and requires no semantic inference beyond confirming byte identity.",
   "observed_anti_gaming_risk_flags": [
-    "identity_repair: candidate and canonical are byte-identical; a no-op repair run should not be reported as a repair success",
-    "trivial_pass_risk: mechanical parse-ok status could be misread as semantic improvement if identity is not explicitly checked"
+    "identity_no_op_presented_as_candidate: candidate is byte-identical to canonical; submitting an unchanged artifact cannot constitute a repair and risks being counted as a trivial pass if not caught"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "This verdict does not imply that canonical STM_0 is maximally optimal; it only reflects that candidate STM_k is identical and therefore not better.",
-    "Parse success alone does not constitute semantic improvement."
+    "The not_better verdict reflects identity/no-op status and does not imply the canonical STM_0 is free of defects.",
+    "No inference about the quality of the original fcstm or raw PlantUML should be drawn from this adjudication."
   ],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "Blind case B05 provides only NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance facts. No answer key, expected verdict, oracle mapping, original Cxx slug, or hidden adjudication hint is present. The SHA256 match and identity are observable from the provided packet alone."
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, and generic semantic modeling conventions. No source_case_id, expected_verdict, source_slug, semantic_evidence_status, target_closure_expected, or case-specific construction-intent labels are present. The packet is clean."
   }
 }

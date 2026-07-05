@@ -11,34 +11,36 @@
   "primary_verdict": "stress_t1",
   "gate_results": {
     "G0": {
-      "status": "fail",
-      "reason": "NL explicitly describes second-based execution-time annotations (2s max/min, 1-2s, <1s, 2-4s, 2-3s) that constitute true timed-automata / continuous-time semantics. provenance_checks confirms scope_boundary_category=out_of_headline_t1_stress with observed features 'second_based_duration_or_execution_time_annotations' and 'not_lowered_to_discrete_counter_caveat'. Per fail-closed rule 1, this is T1 stress, not headline Better STM scope.",
+      "status": "out_of_headline",
+      "reason": "NL explicitly describes execution-time durations in seconds (TurnOn: 2s max/2s min; AutoFocus: 2s max/1s min; DetLight: 1s max/0s min; ChargedFlash: 4s max/2s min; WriteMemory: 3s max/2s min). The raw STM_0 encodes these as transition labels ('2 sec', '1-2 sec', '<1 sec', '2-4 sec', '2-3 sec'), and canonical/candidate STM_k preserve them as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec). Candidate is byte-identical to canonical and provides no discrete counter abstraction nor timed carrier. Per rule 2.2.1, real second-level duration semantics with no downgrade to counter abstraction require routing as out_of_headline_stress_t1.",
       "evidence_references": [
         "NL",
         "raw STM_0",
         "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
       ]
     },
     "G1": {
       "status": "pass",
-      "reason": "Both canonical STM_0 and candidate STM_k files are present and readable. mechanical_checks reports candidate_parse_status=parse_ok. fcstm syntax is well-formed and auditable.",
+      "reason": "Candidate file is present, parse_status is parse_ok, and the fcstm schema is structurally valid (states, events, transitions, hierarchy all parseable). Mechanical checks confirm baseline and candidate files both present and parse-ok.",
       "evidence_references": [
-        "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "mechanical_checks"
       ]
     },
     "G2": {
       "status": "pass",
-      "reason": "candidate STM_k is byte-for-byte identical to canonical STM_0 (sha256 match: 6b57f267...). change_origin_category=stress_scope_probe. There is no delta to misattribute as repair gain; no normalization/formatting/conversion artifacts are present. provenance_checks confirms change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true.",
+      "reason": "Provenance chain is complete: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate is byte-identical to canonical (sha256 match, candidate_same_as_canonical_stm0=true), so there is no delta to misattribute. No normalization/formatting gain is claimed.",
       "evidence_references": [
         "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "provenance_checks"
       ]
     },
     "G3": {
       "status": "pass",
-      "reason": "candidate STM_k is identical to canonical STM_0. No states, transitions, guards, actions, hierarchy, or labels are deleted or modified. NL-supported behavior is preserved by construction since nothing changed.",
+      "reason": "Candidate is byte-identical to canonical STM_0. All NL-supported states (TurnOn, fork1, AutoFocus, DetLight, choice3, ChargedFlash, Junction3, Join2, Fork2, Flash, Terminate, Junction2, TakePicture, WriteMemory, Junction1, TurnOff), transitions, hierarchy nesting, guard labels, and event labels are preserved without deletion. No regression is possible in an identity case.",
       "evidence_references": [
         "NL",
         "canonical STM_0",
@@ -47,16 +49,17 @@
     },
     "G4": {
       "status": "fail",
-      "reason": "candidate STM_k is byte-identical to canonical STM_0. There is zero delta; no target issue is improved. Per fail-closed rule 5 (identity/null delta), no-op cannot constitute a repair gain. Even without identity, the NL's second-based duration semantics remain encoded only as opaque event labels (e.g. '_2_sec', '_1_2_sec') with no explicit guard/timer/counter modeling to improve upon.",
+      "reason": "Candidate is byte-identical to canonical STM_0. There is no delta and therefore no observable improvement over canonical. Identity is not a repair gain. No target issue is addressed.",
       "evidence_references": [
         "NL",
         "canonical STM_0",
-        "candidate STM_k"
+        "candidate STM_k",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
       ]
     },
     "G5": {
-      "status": "pass",
-      "reason": "Identity means semantic fidelity to canonical is trivially preserved. However, NL-level second-based duration semantics (max/min execution times in seconds, probabilistic guard <<GaStep>>{prob=0.4}) are encoded only as event labels rather than explicit timed-automata constructs; this encoding gap is held constant by identity and is already routed to stress_t1 by G0, not adjudicated as semantic regression here.",
+      "status": "fail",
+      "reason": "Candidate is byte-identical to canonical STM_0. Semantic fidelity is trivially preserved (no change), but there is zero semantic improvement. The NL's second-level duration semantics remain encoded as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec) without any discrete counter abstraction, guard extraction, or timed carrier. No semantic betterment can be attributed.",
       "evidence_references": [
         "NL",
         "raw STM_0",
@@ -66,35 +69,37 @@
     },
     "G6": {
       "status": "pass",
-      "reason": "Output follows schema r5_7_5.better_adjudication_blind_output.v0 exactly. headline_eligible=false and repair_effectiveness_eligible=false as required. primary_verdict=stress_t1 correctly routed per fail-closed rule 1. No extra fields added to gate objects. Evidence references, rationale, anti-gaming flags, forbidden claims, and leakage observation all present. Confidence is high because the case is mechanically determined by identity + provenance scope category.",
+      "reason": "All gates evaluated with explicit evidence references. Scope routing to stress_t1 is fully justified by NL duration semantics per rule 2.2.1. Confidence is high because the case is deterministic identity with no ambiguous delta. No forbidden claims beyond the mandatory dry-run disclaimer. No human escalation needed as the routing is mechanically clear.",
       "evidence_references": [
-        "this JSON output"
+        "this JSON output",
+        "rule 2.2.1 (scope routing of identity with real second-level duration semantics)",
+        "mechanical_checks.candidate_same_as_canonical_stm0"
       ]
     }
   },
   "evidence_references": [
-    "NL: lines 1,3,4,5,9 with explicit second-based durations",
-    "raw STM_0: event labels '2 sec', '1-2 sec', '<1 sec', '2-4 sec', '2-3 sec'",
-    "canonical STM_0: same labels as fcstm event declarations",
-    "candidate STM_k: byte-identical to canonical STM_0",
-    "provenance_checks.scope_boundary_category: out_of_headline_t1_stress",
-    "provenance_checks.candidate_same_as_canonical_stm0: true",
-    "provenance_checks.scope_observed_features: second_based_duration_or_execution_time_annotations, not_lowered_to_discrete_counter_caveat"
+    "NL: explicit second-level execution-time durations for TurnOn, AutoFocus, DetLight, ChargedFlash, WriteMemory",
+    "raw STM_0: duration labels '2 sec', '1-2 sec', '<1 sec', '2-4 sec', '2-3 sec' on transitions",
+    "canonical STM_0: event labels _2_sec, _1_2_sec, _1_sec, _2_3_sec preserving raw duration semantics",
+    "candidate STM_k: byte-identical to canonical (sha256=6b57f2672a826f9ef533d39d76bb5cd3c5c15f643b98740159f045d1438a2963)",
+    "mechanical_checks: candidate_same_as_canonical_stm0=true, parse_ok, files present",
+    "provenance_checks: all ledgers available, hash_chain_complete, no protocol invalidity",
+    "rule 2.2.1: identity case with real second-level duration semantics and no counter abstraction => stress_t1"
   ],
-  "rationale": "B20 is a stress-scope identity probe. The candidate STM_k is byte-for-byte identical to canonical STM_0 (same sha256), confirming change_origin_category=stress_scope_probe and candidate_same_as_canonical_stm0=true. The NL mandates explicit second-based execution-time annotations (max/min durations in seconds), which are true timed-automata / continuous-time features. Neither canonical nor candidate lowers these to discrete counter caveat (T0.5), and provenance_checks confirms scope_boundary_category=out_of_headline_t1_stress. Per fail-closed rule 1, the verdict must be stress_t1 regardless of identity or parse status. No anti-gaming concern beyond the intentional stress-probe design; the identity probe correctly tests whether the adjudicator respects scope routing over semantic analysis.",
+  "rationale": "This is a deterministic identity case (candidate byte-identical to canonical). The NL describes explicit second-level execution-time durations (e.g., '2 seconds maximum and a minimum of 2 seconds', '2 seconds maximum and 1 second minimum'). These are real continuous-time duration semantics, not merely periodic tick/timer cues. The canonical and candidate STMs preserve these as event labels (_2_sec, _1_2_sec, _1_sec, _2_3_sec) without any discrete counter abstraction and without any timed carrier. Per rule 2.2.1, this requires scope routing as out_of_headline_stress_t1 with primary_verdict=stress_t1, regardless of the identity/no-op nature of the candidate. No improvement can be attributed to an identity delta, and the T1 scope precludes any headline Better STM claim. Provenance is valid, parsing is valid, and there is no regression, but the case is categorically outside the headline protocol boundary.",
   "observed_anti_gaming_risk_flags": [
-    "stress_scope_probe_with_identity: candidate deliberately identical to canonical to test whether adjudicator fabricates improvement when none exists",
-    "NL_duration_semantics_not_encoded_as_explicit_guards: second-based durations remain opaque event labels without guard/counter/invariant semantics in both canonical and candidate"
+    "identity_no_op_candidate: candidate is byte-identical to canonical, which cannot constitute a repair gain; correctly routed to stress_t1 per rule 2.2.1 rather than treated as a semantic evaluation",
+    "duration_semantics_not_downgraded: NL specifies real second-level execution times; candidate does not abstract them to discrete counters, so no false T0/T0.5 claim is possible"
   ],
   "forbidden_claims": [
     "This blind dry-run is not repair effectiveness evidence.",
-    "stress_t1 verdict does not imply candidate is worse than canonical; it means the case is outside headline Better STM scope.",
-    "Identity verdict does not validate or invalidate the canonical STM_0 quality; it only confirms no repair delta exists."
+    "This identity case does not demonstrate any STM repair capability.",
+    "The stress_t1 verdict does not imply the candidate is semantically worse; it means the case is outside headline scope due to continuous-time duration semantics."
   ],
   "confidence": "high",
   "human_escalation_required": false,
   "leakage_observation": {
     "detected": false,
-    "notes": "No hidden answer key, expected verdict, oracle mapping, original case slug, or adjudication hint observed in the blind packet. provenance_checks fields are observable mechanical facts, not hidden answer keys. The stress_scope_probe designation is explicit in change_origin_category and scope_boundary_category, which are legitimate provenance metadata provided to the blind adjudicator per protocol."
+    "notes": "Input packet contains only mechanical/provenance facts, NL, raw STM_0, canonical STM_0, candidate STM_k, and neutral change observation. No expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or construction-intent hints detected. The candidate_same_as_canonical_stm0 field is a low-level verifiable mechanical fact within the allowed scope of provenance_checks."
   }
 }
