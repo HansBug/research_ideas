@@ -38,6 +38,24 @@ def main() -> None:
     if not score_path.exists():
         raise SystemExit(f"score_summary.json not found: {score_path}")
     score = load_json(score_path)
+    provider_notes = list(args.provider_note)
+    if args.judge == "claude-blind-judge" and not provider_notes:
+        provider_notes.append(
+            "Claude CLI archived command records requested model alias `sonnet`; "
+            "the CLI output/run meta available to this PR did not expose the resolved provider-side exact model_id. "
+            "This R5.7.5 artifact is therefore eligible only as a constructed protocol blind dry-run, "
+            "not as model-comparison evidence; R6/R7 real LLM runs must capture provider/model exact IDs when available."
+        )
+    model_identity = {
+        "judge": args.judge,
+        "requested_model_alias": "sonnet" if args.judge == "claude-blind-judge" else None,
+        "resolved_provider_model_id": None,
+        "resolution_status": (
+            "alias_only_exact_model_id_not_exposed_by_archived_claude_cli_run"
+            if args.judge == "claude-blind-judge"
+            else "not_recorded"
+        ),
+    }
 
     cases: list[dict[str, Any]] = []
     for row in score["rows"]:
@@ -95,7 +113,9 @@ def main() -> None:
         "gate_status_match_counts": score.get("gate_status_match_counts"),
         "gate_disagreement_count": score.get("gate_disagreement_count"),
         "leakage_detected_count": score["leakage_detected_count"],
-        "provider_notes": args.provider_note,
+        "run_validity_match_policy": score.get("run_validity_match_policy"),
+        "model_identity": model_identity,
+        "provider_notes": provider_notes,
         "eligibility_policy": {
             "valid_json_required": True,
             "provider_or_cli_failures_excluded_from_main_score": True,

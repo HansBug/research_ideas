@@ -4,7 +4,7 @@
 
 ## 1. 定位
 
-本目录用 20 个人工 / 确定性构造的 candidate `STM_k` 测试 Better STM 裁决协议能否覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 等路径。当前 expected verdict 已按 full blind adjudication dry-run 校准为：`better=2`、`not_better=8`、`partial=3`、`unknown=2`、`stmk_repair_failure=1`、`protocol_or_provenance_invalid=3`、`stress_t1=1`。
+本目录用 20 个人工 / 确定性构造的 candidate `STM_k` 测试 Better STM 裁决协议能否覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 等路径。当前 expected verdict 已按 full blind adjudication dry-run 校准为：`better=2`、`not_better=12`、`partial=2`、`unknown=1`、`stmk_repair_failure=1`、`protocol_or_provenance_invalid=1`、`stress_t1=1`；该统计以 [suite_index.json](./suite_index.json)、[oracle_answer_key.json](../r5_7_5_blind_adjudication/oracle_answer_key.json) 和 [score_summary.json](../r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/score_summary.json) 为事实源。
 
 硬纪律：全部 case 均 `headline_eligible=false`、`repair_effectiveness_eligible=false`、`constructed_for_protocol_dry_run=true`、`real_repair_run_id=null`；`.fcstm` 只是内部实验介质；C17 的 `candidate.fcstm` 故意 parse-invalid；`scenario_overfitting` 本轮只记录为 `handoff_only_not_covered`。
 

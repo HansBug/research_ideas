@@ -140,6 +140,7 @@ def main():
     summary={
         'schema_version':'r5_7_5.blind_score_summary.v1',
         'judge':args.judge,
+        'run_validity_match_policy':'normalized_equivalence: valid_constructed_protocol_case and valid_blind_protocol_case are both counted as valid; candidate_schema_or_parse_invalid and stmk_repair_failure are both counted as candidate_invalid. This is not literal string equality.',
         'case_count':len(rows),
         'valid_output_count':sum(r.get('eligible_output') is True for r in rows),
         'verdict_match_count':sum(r.get('verdict_match') is True for r in rows),

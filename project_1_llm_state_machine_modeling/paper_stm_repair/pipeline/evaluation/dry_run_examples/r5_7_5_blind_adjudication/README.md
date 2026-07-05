@@ -22,7 +22,7 @@
 | leakage_detected_count | 0 |
 | prompt mismatch count | 0 |
 
-该结果只证明 blind adjudication protocol 在 constructed cases 上可执行，并为 prompt/oracle/case calibration 提供证据；不代表真实 repair loop 效果。
+该结果只证明 blind adjudication protocol 在 constructed cases 上可执行，并为 prompt/oracle/case calibration 提供证据；不代表真实 repair loop 效果。`run_validity_match_count=20` 使用 scorer 中的归一化等价桶（例如 constructed-valid 与 blind-valid 都归为 `valid`），不是 expected / observed 原始字符串逐字相等。Claude final run 的 archived command 记录 requested model alias 为 `sonnet`，当前 CLI run meta 未暴露 provider-side exact `model_id`；因此本目录不能作为模型比较证据，后续真实 LLM runs 必须在 provider 支持时补齐精确模型 ID。
 
 ## 2. 文件说明
 

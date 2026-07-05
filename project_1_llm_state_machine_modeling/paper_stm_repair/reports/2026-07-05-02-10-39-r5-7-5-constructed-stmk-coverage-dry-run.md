@@ -25,7 +25,7 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 | `protocol_or_provenance_invalid` | 1 | C18 |
 | `stress_t1` | 1 | C16 |
 
-注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，由 C14/C15 覆盖。该表已按 2026-07-05 full blind adjudication dry-run 反向校准后的 oracle 更新；最终 blind 对照见 [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md)。
+注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，当前 final oracle 中由 C14 覆盖，C15 只保留为 in-scope T0.5/timer overclaim 的 `not_better` 反例。该表已按 2026-07-05 full blind adjudication dry-run 反向校准后的 oracle 更新；最终 blind 对照见 [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md)。
 
 ## 4. 20 case 总表
 
@@ -64,10 +64,10 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 |---|---|---|
 | constructed candidate 被误当真实输出 | suite 与 case-level JSON 顶层固定 `constructed_for_protocol_dry_run=true`、`real_repair_run_id=null` | 禁止报告 repair effectiveness / success rate |
 | `.fcstm`/pyfcstm 被误当贡献 | prompt、schema、README、report 均声明内部介质 | 禁止把 DSL/转换器写作贡献 |
-| conversion laundering | C04/C15/C18 覆盖 protocol invalid | 禁止把 parse / normalization / lowering 写成 repair gain |
+| conversion laundering / provenance invalid | C04 标记 `conversion_laundering_not_blind_observable`，用于说明“把 canonical/no-op 当 repair gain”应被判为 `not_better`；C18 是本轮唯一 `protocol_or_provenance_invalid` 主分支；C15 是 in-scope timer overclaim / no-gain 反例，不再承担 protocol-invalid 主分支。 | 禁止把 parse / normalization / lowering 写成 repair gain；禁止把 C04/C15 写成 protocol-invalid 统计。 |
 | metric gaming | C20 覆盖 textual similarity misuse | 禁止 metric-only Better verdict |
 | scenario overfitting | 本轮不覆盖，handoff 给 R7 | 禁止声称 anti-gaming 已完整覆盖 |
-| T0.5/T1 外推 | C14/C15/C16 仅 caveat/stress | 禁止进入 T0 headline success |
+| T0.5/T1 外推 | C14 覆盖 `caveat_t05` route；C15 是 in-scope timer/no-gain 反例；C16 是 `stress_t1` out-of-headline route。 | 禁止进入 T0 headline success；禁止把 C15 写成 timed-automata 支持或 caveat_t05 route。 |
 
 注：anti-gaming risk flags 允许一个 case 标记主风险与次级风险，因此本轮实际风险标注是 PR body 最小覆盖表的超集；coverage claim 只能按 `primary_expected_verdict` 与 `protocol_coverage_claim_allowed=true` 使用，不能把次级风险标记扩展为真实 repair 发现。
 
@@ -97,7 +97,7 @@ R7 scenario-ledger 必须补 `scenario_overfitting` 反例，并用真实 scenar
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-boundary] | R5.7.5-C1 | R5.7.5 constructed cases 不支持 repair effectiveness 或 headline success。 | prohibition | [src-suite] `headline_eligible=false`, `repair_effectiveness_eligible=false`, `real_repair_run_id=null` | [cmd-json] | high | 后续真实 R7/R8 run 可另行计算。 |
-| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 `primary_expected_verdict`，当前分布为 `better=2 / not_better=12 / partial=2 / unknown=1 / protocol_or_provenance_invalid=1 / stmk_repair_failure=1 / stress_t1=1`，并由 C14/C15 覆盖 `caveat_t05` scope route。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | expected verdict 不是观察到的真实结果。 |
+| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 `primary_expected_verdict`，当前分布为 `better=2 / not_better=12 / partial=2 / unknown=1 / protocol_or_provenance_invalid=1 / stmk_repair_failure=1 / stress_t1=1`，并由 C14 覆盖 `caveat_t05` scope route。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | expected verdict 不是观察到的真实结果；C15 是 in-scope timer/no-gain 反例，不是 caveat_t05 route。 |
 | [clm-anti-gaming] | R5.7.5-C3 | 本轮覆盖多类 anti-gaming 风险，但 scenario overfitting 仅 handoff。 | risk | [src-suite] `cases[*].risks`, `coverage_summary.scenario_overfitting` | [cmd-json] | high | scenario overfitting 必须由 R7 scenario oracle 补齐。 |
 | [clm-baseline] | R5.7.5-C4 | 0004 manual baseline 与 0039 fallback 均有 caveat，不能外推为真实 repair output。 | caveat | [src-preflight] `items[pair_key=0004]`, `fallbacks[requested_pair_id=0009]` | [cmd-json] | high | 不影响 protocol coverage，但限制 pair-specific 结论。 |
 

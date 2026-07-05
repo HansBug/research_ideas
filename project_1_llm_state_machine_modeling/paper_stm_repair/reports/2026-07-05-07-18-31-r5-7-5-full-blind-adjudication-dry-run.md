@@ -17,7 +17,7 @@
 | 上下文隔离 | 每个 case 由 `run_blind_judge.py` 调用 `claude -p --no-session-persistence --bare --model sonnet --json-schema ...`，并在仓库外临时目录运行；运行目录只包含 `prompt.txt` 和 `output_schema.json`。 | [src-runner], [src-manifest] |
 | 全过程存档 | 每个 Bxx 均保存 `prompt.txt`、`raw_output.txt`、`combined_output_for_parse.txt`、`parsed_output.json`、`stdout.txt`、`stderr.txt`、`run_meta_start.json`、`run_meta_end.json`。 | [src-outputs], [src-manifest] |
 | prompt 一致性 | final scoring 前重建 20 个 prompt 并与归档 prompt 比对，`mismatch_count=0`。 | [src-prompt-check], [cmd-prompt-check] |
-| 结构化评分 | `score_blind_outputs.py` 只在 `exit_code=0`、schema-valid、identity 匹配且无 provider/CLI nonzero parsed-output 时计入 final score。 | [src-score-script], [cmd-score] |
+| 结构化评分 | `score_blind_outputs.py` 只在 `exit_code=0`、schema-valid、identity 匹配且无 provider/CLI nonzero parsed-output 时计入 final score；`run_validity_match` 使用归一化等价桶，不是字面字符串相等。 | [src-score-script], [cmd-score] |
 
 ## 3. 最终全量 dry-run 结果
 
@@ -35,6 +35,8 @@
 | leakage_detected_count | 0 |
 
 结论：20/20 输出 schema-valid，20/20 primary verdict 与 hidden oracle 一致，20/20 scope routing 一致，20/20 run validity 一致，0 个输出报告泄露；gate-level 只有 6/20 完全一致，因此 gate-level disagreement 应保留为 calibration evidence，而不是被“洗”成主结论 `[clm-final-score]`。
+
+其中 `run_validity_match_count=20` 的含义是 scorer 按预注册归一化桶计算：`valid_constructed_protocol_case` 与 `valid_blind_protocol_case` 均归为 `valid`，`candidate_schema_or_parse_invalid` 与 `stmk_repair_failure` 均归为 `candidate_invalid`；它不是 observed / expected 原始字符串逐字相等 `[clm-run-validity-policy]`。
 
 ## 4. expected verdict 覆盖
 
@@ -121,7 +123,7 @@ primary verdict / scope / run-validity 已 20/20 对齐，但 G0--G6 的细粒�
 ## 8. 限制与禁止外推
 
 1. 本轮证明的是 **blind adjudication protocol 可执行性、分支覆盖与校准价值**，不是 repair method effectiveness `[clm-boundary]`。
-2. 当前 final eligible run 只使用一个 judge family（`claude-blind-judge`）。如果后续论文要把 LLM-as-Judge 本身作为方法学证据，需要 R7/R8 另做多 judge、一致性、随机性和人工仲裁实验 `[clm-limitation]`。
+2. 当前 final eligible run 只使用一个 judge family（`claude-blind-judge`）。本轮 archived command 记录的模型为 Claude CLI alias `sonnet`，当前 CLI run meta 未暴露 provider-side exact `model_id`；因此本结果只能作为 constructed protocol dry-run 证据，不能作为模型比较证据。若后续论文要把 LLM-as-Judge 本身作为方法学证据，需要 R7/R8 另做多 judge、一致性、随机性、人工仲裁实验，并在 provider 支持时记录精确模型 ID `[clm-limitation]`。
 3. `.fcstm`、`pyfcstm`、PlantUML canonicalization 仍只是实验内部介质；不得作为贡献或 repair gain `[clm-boundary]`。
 4. 20/20 是对 hidden oracle 的一致性，不等于 oracle 绝对正确；本轮 C10/C20 的校准正说明 oracle / prompt / fixture 必须经 blind dry-run 反向审计 `[clm-calibration]`。
 
@@ -166,7 +168,8 @@ primary verdict / scope / run-validity 已 20/20 对齐，但 G0--G6 的细粒�
 | [clm-calibration] | R5.7.5-B5 | blind dry-run 反向校准了 C10/C20 fixture 与 prompt/scorer 纪律。 | design finding | [src-score] rows；[src-prompt] fail-closed rules；[src-suite] current expected verdict | [cmd-score] | medium | 历史中间 runs 未作为最终统计，只作为设计修订动因。 |
 | [clm-gate-calibration] | R5.7.5-B6 | 主 verdict 已稳定，但 gate-level status 仍需 R6/R7 校准。 | limitation / handoff | [src-score] `gate_status_match_counts`, `gate_disagreement_count` | [cmd-score] | high | 不阻塞 R5.7.5；不能把 gate-level 写成 20/20。 |
 | [clm-prompt-consistency] | R5.7.5-B7 | final archived prompts 与当前 prompt template / blind inputs 一致，未使用 stale prompt。 | audit | [src-prompt-check] `mismatch_count=0` | [cmd-prompt-check] | high | 只能证明 prompt bytes 一致，不证明 judge 无随机性。 |
-| [clm-limitation] | R5.7.5-B8 | 单 judge 20/20 不能证明 LLM-as-Judge 方法学充分可靠。 | limitation | [src-runner] judge=`claude`；[src-score] judge field | [cmd-score] | high | R7/R8 需多 judge / 人工仲裁。 |
+| [clm-run-validity-policy] | R5.7.5-B8 | `run_validity_match_count=20` 使用归一化等价桶，不是原始字符串字面相等。 | scoring policy | [src-score-script] `normalize_run_validity`; [src-score] `run_validity_match_policy` | [cmd-score] | high | 报告主表仍保留 expected/observed 原始状态，便于审计。 |
+| [clm-limitation] | R5.7.5-B9 | 单 judge 20/20 不能证明 LLM-as-Judge 方法学充分可靠，且本轮 Claude CLI 只记录 `sonnet` alias、未暴露 resolved exact model ID。 | limitation | [src-runner] judge=`claude`; [src-manifest] `model_identity`, `provider_notes`; [src-score] judge field | [cmd-manifest] | high | R7/R8 需多 judge / 人工仲裁，并在 provider 支持时记录精确模型 ID。 |
 
 ### A.4 复验命令
 
