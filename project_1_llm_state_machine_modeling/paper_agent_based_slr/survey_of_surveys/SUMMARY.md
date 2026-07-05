@@ -42,22 +42,18 @@ Round 3 是在 A1-DT v2 之后追加的 **19 篇一篇一 agent 独立审计**�
 
 **Round 3 总判断**：本轮解决的是“每篇 survey 如何描述自己的样本集合、字段树、维度层级、叶子取值空间、关系边和 finding 路径”这一 schema 设计问题，不解决目标领域最终事实统计。当前 19 篇已经可以作为 Paper2 A3 设计 researcher-defined meta-model、维度树迭代、字段级证据链、统计观察和候选 finding ledger 的模式库；但任何数字、比例、趋势和领域结论仍须等 A2a 精确锚定后才能进入论文级结论。
 
-## 1.3 A1-DT v2 统一总账表（枚举速读版，按年份降序）
+## 1.3 后续主统计池候选主表（枚举速读版，按年份降序）
 
-字段口径：本表是文库最靠前的论文级 story 速读表，优先回答“这篇论文是什么类型、在 Paper2 中怎么用、能否进入后续主统计池、原文样本单位是什么、原生维度树是什么”。`CCF 复核状态` 不在本表展开，详见 §2.3 与单篇 `review.md` 快速卡片。`统计池资格=🟢 入池` 仍只表示 A2a/A2b 的后续主统计池候选；A1 当前不产生最终定量结论。
+字段口径：本表是文库最靠前的论文级 story 速读表，只收 `统计池资格 = 🟢 入池` 的条目，优先回答“哪些论文可以作为后续 A2a/A2b 主统计池候选、它们是什么综述类型、原文样本单位是什么、原生维度树是什么”。`🟡 待核`、`⚪ 不入`、`🔴 排除` 不在本主干完整表中展开，统一下沉到后部非入池简表、候选池或失败记录。`CCF 复核状态` 不在本表展开，详见 §2.3 与单篇 `review.md` 快速卡片。
 
 | 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | 综述类型大类 | 细分类型 / 原文自称 | 本文角色 | 统计池资格 | 证据成熟度 | 样本单位 / 分母链 | 原生维度树类型 | Paper2 关键贡献 | 详情 |
 |---|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 🟢 | 2026 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🟩 SLR+SMS | SLR + SMS；39 篇 peer-reviewed 原始研究，2014--2024 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 39 | 🌲 森林 | 现代 CCF-A LLM4SE SLR+SMS；展示 landscape→method→benefit/risk→SPACE 映射。 | [review.md](./papers/llm-assistants-developer-productivity/review.md) |
-| 🟢 | 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🧭 路线图 | vision / roadmap；无系统检索分母 | ⚫ 边界 | ⚪ 不入 | 🟡 全文 | 🧭 行动项 / 无系统分母 | 🧭 路线图树 | AI-native SE 愿景和挑战路线图；用于提醒愿景类论文只能作边界和挑战启发。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
 | 🟢 | 2025 | Research artifacts in secondary studies: A systematic mapping in software engineering | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | 系统映射；对象是 SE 二次研究 artifact | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 537 | 🧱 资产树 | 把 artifact availability、永久仓库、DOI、dead link 等转为证据资产字段。 | [review.md](./papers/research-artifacts-secondary-studies/review.md) |
-| 🟢 | 2025 | On the road to interactive LLM-based systematic mapping studies | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧪 方案 | solution proposal；LLM-supported SMS 方法设想 | 🟠 种子 | ⚪ 不入 | 🟡 全文 | ❌ 无分母 | 🔁 流程树 | 提供 LLM 介入 SMS 流程、人机角色、traceability 和模型漂移风险种子。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
-| 🟢 | 2025 | Formal requirements engineering and large language models: A two-way roadmap | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧭 路线图 | vision / roadmap；formal RE ↔ LLM 双向路线图 | ⚫ 边界 | ⚪ 不入 | 🟡 全文 | 🧭 行动项 / 无系统分母 | 🧭 路线图树 | 启发 concern→mechanism→action 结构和 trustworthiness 边界。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
 | 🟢 | 2024 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | 系统映射；MDSE assistant proposals + 工具文档 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📄 原研 / 58 + 工具 17 | 🕸️ 关系树 | 贴近 LLM4modeling；提供 strategy-goal-limitation-metric-user 维度关系。 | [review.md](./papers/mdse-modelling-assistants-mapping/review.md) |
 | 🟢 | 2024 | Model driven engineering for machine learning components: A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟩 SLR | Kitchenham-style SLR；MDE4ML 原始研究 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 46 | 🌲 森林 | 提供 motivation / solution / evaluation / limitation 与 RQ Answer Summary 模式。 | [review.md](./papers/mde-ml-components-slr/review.md) |
 | 🟢 | 2024 | Large Language Models for Software Engineering: A Systematic Literature Review | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🟩 SLR | LLM4SE SLR；395 篇研究论文 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 395 | 🌲 森林 | 大规模 LLM4SE 字段树；提供模型、数据、任务、制品、限制和趋势字段。 | [review.md](./papers/llm4se-systematic-review/review.md) |
 | 🟢 | 2024 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | 期刊 | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟨 MLR | 多声部综述；白色/灰色文献双轨 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📄 原研 / 147 | 🕸️ 关系树 | 提供 thematic analysis、CPTM 关系模型、WL/GL 分层和开放材料模式。 | [review.md](./papers/devsecops-primary-dimensions/review.md) |
-| 🟢 | 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 期刊 | [RE](https://link.springer.com/journal/766) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧭 理论路线图 | theory / evaluation / roadmap；继承 57 篇 convenience sample | 🟠 种子 | ⚪ 不入 | 🟡 全文 | 📄 原研 / 57（继承样本） | 🧪 理论树 | 启发 researcher-defined meta-model、理论概念树和 gap→roadmap 结构。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
 | 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | 待核验 | 待核验 | 🟪 三级 | tertiary study；83 篇 reviews，间接覆盖 6,117 个原始研究计数 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 83 | 🌲 森林 | 现代大规模 tertiary；提供挑战、行动建议和质量观察模式。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
 | 🟢 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟩 SLR | SLR；app reviews for SE 原始研究 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 182 | 🌳 RQ树 | 完整现代 SLR 样本；提供 F1--F18、分类 schema、评价和复制包字段。 | [review.md](./papers/app-reviews-slr-se/review.md) |
 | 🟢 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | mapping guideline update / systematic map of maps；52 篇 SMS | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 52 | 🔁 流程树 | 以系统映射之系统映射更新 guideline；支撑流程、质量、效度和报告结构字段。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
@@ -65,10 +61,8 @@ Round 3 是在 A1-DT v2 之后追加的 **19 篇一篇一 agent 独立审计**�
 | 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | 🟪 三级 | tertiary study；RE 领域 SLR | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 53 | 🌲 森林 | 验证特定 SE 子领域如何组织 topic、quality、impact 和 practitioner relevance。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
 | 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟪 三级 | updated tertiary study；扩展前序 tertiary | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 67 新增；整合 120 | 🕸️ 关系树 | 提供更新型 tertiary、前序关系、质量趋势和 EBSE 实践缺口模式。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
 | 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟪 三级 | tertiary SLR / SE SLR 状态综述 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 20 | 🌲 森林 | 早期 EBSE 状态综述；提供 RQ、质量、主题和报告结构基线。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
-| 🟢 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | 🧰 指南 | SMS 方法论文；含 10 篇 SLR 示例与 2 个 mapping 示例 | 🟣 方法 | ⚪ 不入 | 🟡 全文 | 🧰 指南项 / 示例分母 | 🧰 指南树 | 定义 SMS 流程、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
-| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | 🧰 指南 | SE SLR guideline；protocol/search/QA/extraction/synthesis/reporting | 🟣 方法 | ⚪ 不入 | 🟡 全文 | 🧰 指南项 / 无主分母 | 🧰 指南树 | 提供 SE SLR 方法底座、protocol、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
 
-**本节结论**：枚举速读表显示，当前 19 篇中真正支撑 Paper2 SLR 主目标 / 类 SLR 主统计池的是 13 篇；2 篇 guideline / 方法论文进入方法学参考池；4 篇 roadmap / vision / proposal / theory-roadmap 进入种子或边界池。后续 A2a 若修正某篇综述类型、样本单位、统计池资格或原生树类型，必须先改单篇 `review.md` 和 `evidence_chain.md`，再回填本表。
+**本节结论**：当前真正进入 SUMMARY 主干完整表的是 13 篇 `🟢 入池` 条目，覆盖 SLR、SMS、MLR、tertiary 和 systematic map of maps。它们仍只是 A2a/A2b 的后续主统计池候选；A1 当前不产生最终定量结论。
 
 ## 2. 核心口径：阅读状态、证据池与统计池
 
@@ -103,48 +97,110 @@ CCF 字段的目标口径是 **CCF 官方最新推荐目录**，不局限于本�
 
 **本节结论**：本目录应把“是否可统计”和“是否有启发价值”分开管理。后续 A2a 不能因为 roadmap / proposal 学术价值高就把它们纳入统计池，也不能因为 guideline 不进统计池就忽略其方法学价值。
 
-### 2.4 主表枚举速读口径
+### 2.4 主表与快速结论卡片枚举口径
 
-第一张论文总表与每篇 `review.md` 快速结论卡片采用 `emoji + 短文本` 受控枚举。完整规则见 [GUIDE.md §4.2](./GUIDE.md#42-主表与快速结论卡片枚举口径)；本节只放速读版。普通状态列仍只写 emoji。
+本目录的 [SUMMARY.md](./SUMMARY.md) 主干完整表和每篇 `review.md` 的快速结论卡片，使用受控的“emoji + 短文本”枚举表达关键类型维度。这里是本目录对仓库根级“emoji 列默认只写 emoji”规则的显式 override：只有本节规定的枚举列允许写成 `emoji + 短文本`；普通状态列仍保持 emoji-only。
 
-| 维度 | 受控枚举 | 用途 |
-|---|---|---|
-| 综述类型大类 | 🟩 SLR；🟦 SMS；🟪 三级；🟨 MLR；🧰 指南；🧭 路线图；🧪 方案 | 判断是否属于 Paper2 的 SLR 主目标或类 SLR 样本。 |
-| 本文角色 | 🟢 主样本；🔵 类SLR；🟣 方法；🟠 种子；⚫ 边界；⚪ 候选 | 判断这篇在 Paper2 中用于统计、方法设计、schema 启发还是边界提醒。 |
-| 统计池资格 | 🟢 入池；🟡 待核；⚪ 不入；🔴 排除 | 防止 roadmap、guideline、proposal 污染后续主统计池。 |
-| 证据成熟度 | 🟢 精核；🟡 全文；🟠 题摘；⚪ 待取；🔴 异常 | 表示当前证据能支撑多强的结论。 |
-| 样本单位类型 | 📄 原研；📚 综述；🧩 工件；🧰 指南项；🧭 行动项；❌ 无分母 | 说明原文描述的样本是什么，以及是否存在可统计分母。 |
-| 原生维度树类型 | 🌳 RQ树；🌲 森林；🕸️ 关系树；🧱 资产树；🔁 流程树；🧰 指南树；🧭 路线图树；🧪 理论树 | 直接服务 Paper2 的 researcher-defined meta-model 与维度树脚手架设计。 |
+执行纪律：
 
-**本节结论**：主表应优先让导师和后续 agent 一眼判断“这篇论文是什么类型、在 Paper2 里怎么用、能否入统计池、描述什么样本、提供什么树型 schema”。CCF 复核状态、页码精核和下载细节仍保留，但下沉到审计口径，不挤占第一张 story 速读表。
+1. 枚举列不得临时自造标签；若需要新增类型，必须先更新本节、[SUMMARY.md](./SUMMARY.md) 的枚举说明和必要的门禁 / 总账。
+2. `SUMMARY.md` 主干完整表只收 `统计池资格 = 🟢 入池` 的条目；`🟡 待核`、`⚪ 不入`、`🔴 排除` 不得占用主干完整表，应进入后部简表、候选池或失败记录。
+3. 一篇论文若有多个角色，主表只写“主角色”；次级用途写在 `review.md` 的详细说明中，避免双重计数。
+4. `CCF 复核状态` 不作为第一张主表的核心枚举列；它应保留在 CCF / venue 审计说明、单篇快速卡片或后续专门核验表中。
+5. 后续新增论文时，至少要同步填写：`综述类型大类`、`本文角色`、`统计池资格`、`证据成熟度`、`样本单位 / 分母链`、`原生维度树类型`。
 
-## 3. 统一论文总表（按年份降序）
+#### 2.4.1 综述类型大类
 
-本节与 §1.3 使用同一套枚举口径，作为长期总账的可点击论文清单。若后续需要复制到 PR / issue / 汇报材料，应优先复制本表，而不是旧的 `schema_seed / 主统计池 / 证据角色` 三列。
+该维度回答“论文自身是什么类型”。它不等于论文质量，也不直接决定是否入池；最终是否进入 SUMMARY 主干完整表仍由 `统计池资格` 判定。
 
-| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | 综述类型大类 | 细分类型 / 原文自称 | 本文角色 | 统计池资格 | 证据成熟度 | 样本单位 / 分母链 | 原生维度树类型 | Paper2 关键贡献 | 详情 |
-|---|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 🟢 | 2026 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🟩 SLR+SMS | SLR + SMS；39 篇 peer-reviewed 原始研究，2014--2024 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 39 | 🌲 森林 | 现代 CCF-A LLM4SE SLR+SMS；展示 landscape→method→benefit/risk→SPACE 映射。 | [review.md](./papers/llm-assistants-developer-productivity/review.md) |
-| 🟢 | 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🧭 路线图 | vision / roadmap；无系统检索分母 | ⚫ 边界 | ⚪ 不入 | 🟡 全文 | 🧭 行动项 / 无系统分母 | 🧭 路线图树 | AI-native SE 愿景和挑战路线图；用于提醒愿景类论文只能作边界和挑战启发。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
-| 🟢 | 2025 | Research artifacts in secondary studies: A systematic mapping in software engineering | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | 系统映射；对象是 SE 二次研究 artifact | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 537 | 🧱 资产树 | 把 artifact availability、永久仓库、DOI、dead link 等转为证据资产字段。 | [review.md](./papers/research-artifacts-secondary-studies/review.md) |
-| 🟢 | 2025 | On the road to interactive LLM-based systematic mapping studies | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧪 方案 | solution proposal；LLM-supported SMS 方法设想 | 🟠 种子 | ⚪ 不入 | 🟡 全文 | ❌ 无分母 | 🔁 流程树 | 提供 LLM 介入 SMS 流程、人机角色、traceability 和模型漂移风险种子。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
-| 🟢 | 2025 | Formal requirements engineering and large language models: A two-way roadmap | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧭 路线图 | vision / roadmap；formal RE ↔ LLM 双向路线图 | ⚫ 边界 | ⚪ 不入 | 🟡 全文 | 🧭 行动项 / 无系统分母 | 🧭 路线图树 | 启发 concern→mechanism→action 结构和 trustworthiness 边界。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
-| 🟢 | 2024 | Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | 系统映射；MDSE assistant proposals + 工具文档 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📄 原研 / 58 + 工具 17 | 🕸️ 关系树 | 贴近 LLM4modeling；提供 strategy-goal-limitation-metric-user 维度关系。 | [review.md](./papers/mdse-modelling-assistants-mapping/review.md) |
-| 🟢 | 2024 | Model driven engineering for machine learning components: A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟩 SLR | Kitchenham-style SLR；MDE4ML 原始研究 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 46 | 🌲 森林 | 提供 motivation / solution / evaluation / limitation 与 RQ Answer Summary 模式。 | [review.md](./papers/mde-ml-components-slr/review.md) |
-| 🟢 | 2024 | Large Language Models for Software Engineering: A Systematic Literature Review | 期刊 | [TOSEM](https://dl.acm.org/journal/tosem) | 软件工程 / 系统软件 / 程序设计语言 | A | 🟩 SLR | LLM4SE SLR；395 篇研究论文 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 395 | 🌲 森林 | 大规模 LLM4SE 字段树；提供模型、数据、任务、制品、限制和趋势字段。 | [review.md](./papers/llm4se-systematic-review/review.md) |
-| 🟢 | 2024 | Identifying the primary dimensions of DevSecOps: A multi-vocal literature review | 期刊 | [JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟨 MLR | 多声部综述；白色/灰色文献双轨 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📄 原研 / 147 | 🕸️ 关系树 | 提供 thematic analysis、CPTM 关系模型、WL/GL 分层和开放材料模式。 | [review.md](./papers/devsecops-primary-dimensions/review.md) |
-| 🟢 | 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 期刊 | [RE](https://link.springer.com/journal/766) | 软件工程 / 系统软件 / 程序设计语言 | B | 🧭 理论路线图 | theory / evaluation / roadmap；继承 57 篇 convenience sample | 🟠 种子 | ⚪ 不入 | 🟡 全文 | 📄 原研 / 57（继承样本） | 🧪 理论树 | 启发 researcher-defined meta-model、理论概念树和 gap→roadmap 结构。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
-| 🟢 | 2023 | Machine Learning for Software Engineering: A Tertiary Study | 期刊 | [CSUR](https://dl.acm.org/journal/csur) | 待核验 | 待核验 | 🟪 三级 | tertiary study；83 篇 reviews，间接覆盖 6,117 个原始研究计数 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 83 | 🌲 森林 | 现代大规模 tertiary；提供挑战、行动建议和质量观察模式。 | [review.md](./papers/ml4se-tertiary-study/review.md) |
-| 🟢 | 2022 | Analysing app reviews for software engineering: a systematic literature review | 期刊 | [ESE](https://link.springer.com/journal/10664) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟩 SLR | SLR；app reviews for SE 原始研究 | 🟢 主样本 | 🟢 入池 | 🟡 全文 | 📄 原研 / 182 | 🌳 RQ树 | 完整现代 SLR 样本；提供 F1--F18、分类 schema、评价和复制包字段。 | [review.md](./papers/app-reviews-slr-se/review.md) |
-| 🟢 | 2015 | Guidelines for conducting systematic mapping studies in software engineering: An update | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟦 SMS | mapping guideline update / systematic map of maps；52 篇 SMS | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 52 | 🔁 流程树 | 以系统映射之系统映射更新 guideline；支撑流程、质量、效度和报告结构字段。 | [review.md](./papers/petersen-2015-mapping-guidelines-update/review.md) |
-| 🟢 | 2015 | A Mapping Study on Requirements Engineering in Agile Software Development | 会议 | [SEAA](https://dsd-seaa.com/) | -- | -- | 🟦 SMS | SMS；Agile RE 原始研究 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📄 原研 / 28 | 🕸️ 关系树 | 提供 benefit/problem/solution 关系边和小样本 SMS 边界。 | [review.md](./papers/re-agile-sms-2015/review.md) |
-| 🟢 | 2014 | Systematic Reviews in Requirements Engineering: A Tertiary Study | 工作坊 | [EmpiRE](https://empire2014.wordpress.com/) | -- | -- | 🟪 三级 | tertiary study；RE 领域 SLR | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 53 | 🌲 森林 | 验证特定 SE 子领域如何组织 topic、quality、impact 和 practitioner relevance。 | [review.md](./papers/re-tertiary-study-2014/review.md) |
-| 🟢 | 2011 | Six years of systematic literature reviews in software engineering: An updated tertiary study | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟪 三级 | updated tertiary study；扩展前序 tertiary | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 67 新增；整合 120 | 🕸️ 关系树 | 提供更新型 tertiary、前序关系、质量趋势和 EBSE 实践缺口模式。 | [review.md](./papers/da-silva-2011-six-years-slr/review.md) |
-| 🟢 | 2009 | Systematic literature reviews in software engineering – A systematic literature review | 期刊 | [IST](https://www.sciencedirect.com/journal/information-and-software-technology) | 软件工程 / 系统软件 / 程序设计语言 | B | 🟪 三级 | tertiary SLR / SE SLR 状态综述 | 🔵 类SLR | 🟢 入池 | 🟡 全文 | 📚 综述 / 20 | 🌲 森林 | 早期 EBSE 状态综述；提供 RQ、质量、主题和报告结构基线。 | [review.md](./papers/kitchenham-2009-slr-tertiary/review.md) |
-| 🟢 | 2008 | Systematic Mapping Studies in Software Engineering | 会议 | [EASE](https://conf.researchr.org/series/ease) | 软件工程 / 系统软件 / 程序设计语言 | C | 🧰 指南 | SMS 方法论文；含 10 篇 SLR 示例与 2 个 mapping 示例 | 🟣 方法 | ⚪ 不入 | 🟡 全文 | 🧰 指南项 / 示例分母 | 🧰 指南树 | 定义 SMS 流程、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
-| 🟢 | 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 技术报告 | [EBSE-2007-01](https://legacyfileshare.elsevier.com/promis_misc/525444systematicreviewsguide.pdf) | -- | -- | 🧰 指南 | SE SLR guideline；protocol/search/QA/extraction/synthesis/reporting | 🟣 方法 | ⚪ 不入 | 🟡 全文 | 🧰 指南项 / 无主分母 | 🧰 指南树 | 提供 SE SLR 方法底座、protocol、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+| 枚举 | 定义 | 判定标准 | 可进入主干完整表的条件 | 不得误用为 |
+|---|---|---|---|---|
+| 🟩 SLR | 系统文献综述，或以 SLR 为主并兼有映射 / 主题综合的混合综述。 | 原文明确报告系统检索、纳排、质量评价或数据抽取，并以回答证据综合型 RQ 为目标。 | 还必须满足 `🟢 入池`：有可复核样本单位、分母链、字段抽取或统计结果。 | 不能把只写了“review / survey”但无系统流程的叙事综述写成 SLR。 |
+| 🟦 SMS | 系统映射研究，重点是研究版图、分类、覆盖度和缺口。 | 原文强调 mapping、classification、keywording、研究类型/主题分布，而非深度效果综合。 | 若有系统语料构造和可统计字段，可作为类 SLR 主统计池候选。 | 不能把方案论文中“计划做 mapping”的方法设想写成已执行 SMS。 |
+| 🟪 三级 | 三级研究、综述之综述或 review of reviews。 | 样本单位是 SLR/SMS/survey 等二次研究，而非普通原始研究。 | 若有系统检索和对综述样本的编码 / 统计，可入主干表，但必须标明分母是“综述”。 | 不能把三级研究的统计外推为原始研究层面的频次。 |
+| 🟨 MLR | 多声部文献综述，综合白色文献和灰色文献。 | 原文明确 white / grey literature 双轨来源、检索、质量或可信度控制。 | 若白色/灰色文献样本、分母和编码过程可复核，可作为类 SLR 候选。 | 不能混淆 peer-reviewed evidence 与 grey evidence 的证据强度。 |
+| 🧰 指南 | 方法指南、报告规范、checklist 或方法论文。 | 原文主要给出如何做 SLR/SMS 的流程、表单、质量标准或报告规范。 | 默认不进主干完整表；若文中另有独立完成的系统样本统计，必须拆分说明。 | 不能把规范性建议当作经验统计 finding。 |
+| 🧭 路线图 | vision、roadmap、agenda、challenge map 或开放问题图谱。 | 原文主要提出愿景、挑战、研究议程或 action items，缺少系统检索分母。 | 默认不进主干完整表；只作边界样本或 finding heuristic。 | 不能把作者观点、路线图行动项写成系统综述证据。 |
+| 🧪 方案 | solution proposal、framework proposal 或未完成实证评估的方法设想。 | 原文主要提出流程、工具或框架设计，尚未完成系统检索、纳排和证据综合。 | 默认不进主干完整表；只作方法 / 流程种子或边界样本。 | 不能把“可以如何做”写成“已经系统验证”。 |
 
-**本节结论**：统一总表已经从“文献元数据表”调整为 Paper2 story 速读表。它保留 CCF 大类和等级用于来源质量判断，但把 CCF 复核状态下沉到审计口径；同时新增类型、角色、统计池、证据成熟度、样本单位和原生维度树等列，直接服务后续 researcher-defined meta-model 与 SLR 主线。
+#### 2.4.2 本文角色
+
+该维度回答“这篇论文在 Paper2 中怎么用”。它是本库用途分类，不是原文自称类型。
+
+| 枚举 | 定义 | 判定标准 | 在 SUMMARY 中的位置 | 需要写清的边界 |
+|---|---|---|---|---|
+| 🟢 主样本 | Paper2 SLR 主目标的核心样本。 | 通常为 SLR，且具备系统流程、字段抽取、统计观察和 finding 形成路径。 | 若统计池资格为 `🟢 入池`，进入主干完整表。 | 只贡献方法模式，不把领域结论外推到 Paper2 目标领域。 |
+| 🔵 类SLR | SMS、MLR、tertiary 等类 SLR 证据综合样本。 | 非纯 SLR，但有系统语料、编码字段、统计分母或证据综合。 | 若统计池资格为 `🟢 入池`，进入主干完整表。 | 必须注明样本单位和分母差异。 |
+| 🟣 方法 | 方法学参考。 | guideline / 方法论文 / 报告规范，主要定义流程、质量评价、报告结构或审计纪律。 | 不进入主干完整表；进入非入池简表和方法学参考池说明。 | 可支撑方法设计，不能支撑普通领域统计。 |
+| 🟠 种子 | 维度树、字段、证据链或 finding heuristic 的启发来源。 | 有可迁移结构，但缺少系统样本库或不能进入普通统计池。 | 不进入主干完整表；进入非入池简表或 schema seed / boundary pool。 | 必须说明是启发，不是 final finding。 |
+| ⚫ 边界 | 用于说明哪些文献类型不能混入统计池。 | roadmap / vision / proposal 等高价值但非系统证据综合的论文。 | 不进入主干完整表；进入非入池简表。 | 必须写清阻断入池的原因。 |
+| ⚪ 候选 | 只完成题摘或元数据核验的线索。 | PDF / 全文 / 关键元数据尚未核验，或相关性未裁决。 | 不进入主干完整表；进入候选池或 manual-download。 | 不得采纳为已核验 pattern。 |
+
+#### 2.4.3 统计池资格
+
+该维度决定论文是否进入 SUMMARY 主干完整表。它是主表治理的最高优先级枚举。
+
+| 枚举 | 定义 | 判定标准 | SUMMARY 处理 | 升级 / 降级规则 |
+|---|---|---|---|---|
+| 🟢 入池 | 后续可作为主统计池候选的条目。 | 有系统检索或等价语料构造、纳排、编码 / 抽取、可统计字段或统计结果；本地至少全文文本级。 | 唯一允许进入 SUMMARY 主干完整表的资格。 | A2a 完成页码、表图、附录或复制包精核后，才可从候选统计升级为正式统计证据。 |
+| 🟡 待核 | 理论上可能入池，但当前证据不足。 | 题摘或全文显示可能有系统流程，但 PDF、表图、附录、复制包、分母链或字段表未核验。 | 不进入主干完整表；进入后部待核 / 候选简表。 | 补齐全文和证据链后可升为 `🟢 入池`；若证实无系统样本库则降为 `⚪ 不入`。 |
+| ⚪ 不入 | 不进入主统计池，但可能仍有方法或启发价值。 | guideline、roadmap、vision、proposal，或无系统样本库 / 无可统计分母。 | 不进入主干完整表；进入非入池简表。 | 若发现原文另有独立系统样本统计，必须拆分证据后重新裁决。 |
+| 🔴 排除 | 当前文库不再采纳。 | 类型误收、事实不可核验、重复条目、与本目录目标无关，或来源不合规。 | 不进入主干完整表；只留失败 / 排除记录。 | 只能在新增证据推翻排除理由后重新候选。 |
+
+#### 2.4.4 证据成熟度
+
+该维度回答“当前证据链能支撑多强的写作”。它不决定是否入池，但限制该条目能在论文中被怎样使用。
+
+| 枚举 | 定义 | 判定标准 | 允许用途 | 禁止用途 |
+|---|---|---|---|---|
+| 🟢 精核 | PDF、关键表图、页码、附录或复制包已核验。 | 已完成文本 + 版面 / 表图 / supplementary 或 artifact 核验，并回链 `evidence_chain.md`。 | 可支撑较高强度依据和精确数字，但仍需写清范围。 | 不能省略分母、页码或证据限制。 |
+| 🟡 全文 | 已读全文文本，但表图页码仍待 A2a 精核。 | `paper_content.txt` 覆盖摘要、方法、结果、讨论、结论等关键部分。 | 可作为 A1 模式种子和主统计池候选判断。 | 不得写成最终定量统计或最终 finding。 |
+| 🟠 题摘 | 只读题名、摘要、元数据。 | 尚未获取或阅读全文。 | 只能保留候选相关性和下载 / 检索线索。 | 不得采纳任何维度树、统计或 finding。 |
+| ⚪ 待取 | PDF 或正文尚未获取。 | 只有 BibTeX、DOI、题录或待下载路径。 | 进入 manual-download / 候选池。 | 不得假装已读全文。 |
+| 🔴 异常 | 来源、PDF 或文本提取有问题。 | PDF 是登录页 / HTML、文本乱码、关键元数据冲突或来源不可核验。 | 先修复来源和提取问题。 | 不得继续写模式结论。 |
+
+#### 2.4.5 样本单位类型
+
+该维度回答“原文实际描述和编码的对象是什么”。它是判断统计池资格和分母含义的关键。
+
+| 枚举 | 定义 | 判定标准 | 主表写法 | 统计注意事项 |
+|---|---|---|---|---|
+| 📄 原研 | 原始研究、primary studies 或研究论文。 | 每个样本是一篇原始研究 / 研究提案 / 研究论文。 | `📄 原研 / N`，必要时补工具或平台分母。 | 不同研究类型、peer-reviewed / arXiv / grey literature 需分层。 |
+| 📚 综述 | 二次研究、SLR/SMS/survey 样本。 | 每个样本是一篇综述或系统映射。 | `📚 综述 / N`。 | 不得把综述样本统计外推为原始研究统计。 |
+| 🧩 工件 | artifact、dataset、tool、replication package 或链接对象。 | 样本或核心字段围绕研究制品、数据集、工具、仓库、链接状态。 | `🧩 工件 / N` 或说明依附论文分母。 | 需区分 paper-level 与 artifact-level 分母。 |
+| 🧰 指南项 | guideline item、checklist item、流程步骤。 | 原文是方法指南或规范，编码对象是条目而非经验样本。 | `🧰 指南项 / 无主分母`。 | 默认不进入普通统计池。 |
+| 🧭 行动项 | roadmap action、open question、challenge item。 | 原文组织为挑战、开放问题、行动项或愿景组件。 | `🧭 行动项 / 无系统分母`。 | 只能作启发或边界，不能当 empirical denominator。 |
+| ❌ 无分母 | 无系统样本库或无法形成可统计分母。 | 原文没有检索、纳排、样本单位或可统计对象。 | `❌ 无分母`。 | 自动阻断主干完整表资格，除非后续发现独立系统样本部分。 |
+
+#### 2.4.6 原生维度树类型
+
+该维度回答“原文如何描述自己的样本集合或证据对象”。它是本库对 Paper2 最重要的 schema 资产。
+
+| 枚举 | 定义 | 判定标准 | 对 Paper2 的用途 | 容易误判点 |
+|---|---|---|---|---|
+| 🌳 RQ树 | 以 RQ / 子 RQ 为主干组织字段。 | 每个 RQ 对应一组抽取字段、结果表或 finding 段。 | 适合设计 researcher-defined meta-model 的问题层。 | 多个 RQ 若对应不同样本单位，应改写为森林。 |
+| 🌲 森林 | 多个 RQ、多个样本单位或多个不共享根对象的编码结构。 | 原文同时有多个字段树、质量表、检索漏斗、评价树等。 | 支撑复杂 SLR/SMS 的多视角 schema。 | 不要为追求简洁强行压成单树。 |
+| 🕸️ 关系树 | 重点是对象间关系。 | 字段包括 tool-task-metric、problem-solution、challenge-practice 等边。 | 支撑交叉统计、缺失关系和候选 finding。 | 不能把关系边压成普通枚举列。 |
+| 🧱 资产树 | 以制品、数据集、复制包、链接状态等证据资产组织。 | 关注 artifact availability、repository、DOI、dead link、by request 等。 | 支撑 Paper2 的可审计证据链和复现资产设计。 | 需区分制品层和论文层分母。 |
+| 🔁 流程树 | 以检索、筛选、编码、报告、质量控制等流程组织。 | 原文主要贡献是方法流程、阶段、输入输出或 researcher gate。 | 支撑 agent-human 协同流程图和 stage contract。 | 流程树不等于已完成系统综述证据。 |
+| 🧰 指南树 | 以指南项、checklist、报告规范组织。 | 节点来自 protocol、search、selection、QA、extraction、synthesis、reporting 等规范项。 | 支撑方法学规则库和审计 checklist。 | 不得把指南建议当成领域统计。 |
+| 🧭 路线图树 | 以挑战、行动项、开放问题组织。 | 节点来自 roadmap action、vision component、challenge、open question。 | 只作边界和研究发现启发。 | 不得把愿景主张写成经验 finding。 |
+| 🧪 理论树 | 以理论概念、构念、评价框架组织。 | 节点来自 theory、concept、construct、taxonomy 或 evaluation framework。 | 支撑 researcher-defined meta-model 的概念层。 | 如果样本来自 convenience evaluation，统计池资格仍需降级。 |
+
+## 3. 非主统计池条目简表（方法学参考 / 模式种子 / 边界样本）
+
+本节只收纳 `统计池资格 != 🟢 入池` 的条目，避免它们占用 SUMMARY 主干完整表。它们不是“无价值论文”：guideline 可支撑方法学规则，roadmap / vision / proposal 可支撑边界和 finding heuristic，但不能与完成型 SLR/SMS/MLR/tertiary 混算。
+
+| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |
+|---:|---|---|---|---|---|---|
+| 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | AI-native SE 愿景和挑战路线图；用于提醒愿景类论文只能作边界和挑战启发。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
+| 2025 | On the road to interactive LLM-based systematic mapping studies | 🧪 方案 | 🟠 种子 | ⚪ 不入 | 提供 LLM 介入 SMS 流程、人机角色、traceability 和模型漂移风险种子。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
+| 2025 | Formal requirements engineering and large language models: A two-way roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | 启发 concern→mechanism→action 结构和 trustworthiness 边界。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
+| 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 🧭 理论路线图 | 🟠 种子 | ⚪ 不入 | 启发 researcher-defined meta-model、理论概念树和 gap→roadmap 结构。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
+| 2008 | Systematic Mapping Studies in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 定义 SMS 流程、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
+| 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 提供 SE SLR 方法底座、protocol、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+
+**本节结论**：6 篇非入池条目承担方法学参考、维度种子和边界提醒职责；后续写作时可以引用其方法或启发，但不得把它们计入主统计池分母，也不得把其观点写成系统综述统计发现。
 
 ## 4. 证据池分布与统计池解释
 

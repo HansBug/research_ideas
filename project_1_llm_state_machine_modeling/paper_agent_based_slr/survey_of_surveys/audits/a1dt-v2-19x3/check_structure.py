@@ -63,10 +63,13 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     if not summary_path.exists():
         return
     text = summary_path.read_text(encoding="utf-8", errors="ignore")
+    guide_path = summary_path.with_name("GUIDE.md")
+    guide_text = guide_path.read_text(encoding="utf-8", errors="ignore") if guide_path.exists() else ""
     required_markers = [
         "PR #135 A1-DT v2 抽取与审计口径",
-        "A1-DT v2 统一总账表（枚举速读版，按年份降序）",
-        "主表枚举速读口径",
+        "后续主统计池候选主表（枚举速读版，按年份降序）",
+        "非主统计池条目简表（方法学参考 / 模式种子 / 边界样本）",
+        "主表与快速结论卡片枚举口径",
         "A1-M0--M6 只作为跨论文投影",
         "audits/a1dt-v2-19x3/",
         "audits/a1dt-19x3/",
@@ -92,8 +95,62 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
             add_error(errors, "SUMMARY still contains old non-enum ledger header")
 
     table_count = text.count(enum_header)
-    if table_count < 2:
-        add_error(errors, f"SUMMARY expected enum ledger header in §1.3 and §3, found {table_count}")
+    if table_count != 1:
+        add_error(errors, f"SUMMARY expected exactly one main enum ledger header in §1.3, found {table_count}")
+
+    main_section = extract_section(text, "## 1.3 后续主统计池候选主表", "## 2. 核心口径")
+    main_header, main_rows = parse_markdown_table(main_section)
+    if main_header != [c.strip() for c in enum_header.strip("|").split("|")]:
+        add_error(errors, "SUMMARY §1.3 main table header mismatch")
+    if len(main_rows) != 13:
+        add_error(errors, f"SUMMARY §1.3 main table should contain exactly 13 入池 rows, got {len(main_rows)}")
+    if main_header:
+        try:
+            eligibility_idx = main_header.index("统计池资格")
+        except ValueError:
+            eligibility_idx = -1
+            add_error(errors, "SUMMARY §1.3 main table missing 统计池资格 column")
+        if eligibility_idx >= 0:
+            for row in main_rows:
+                if eligibility_idx >= len(row) or row[eligibility_idx] != "🟢 入池":
+                    add_error(errors, f"SUMMARY §1.3 contains non-入池 row in main table: {row}")
+
+    non_pool_header = "| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |"
+    if non_pool_header not in text:
+        add_error(errors, "SUMMARY missing non-main-pool short table header")
+    non_pool_section = extract_section(text, "## 3. 非主统计池条目简表", "## 4. 证据池分布")
+    non_header, non_rows = parse_markdown_table(non_pool_section)
+    expected_non_header = [c.strip() for c in non_pool_header.strip("|").split("|")]
+    if non_header != expected_non_header:
+        add_error(errors, "SUMMARY §3 non-main-pool table header mismatch")
+    if len(non_rows) != 6:
+        add_error(errors, f"SUMMARY §3 non-main-pool table should contain exactly 6 rows, got {len(non_rows)}")
+    if non_header:
+        try:
+            eligibility_idx = non_header.index("统计池资格")
+        except ValueError:
+            eligibility_idx = -1
+            add_error(errors, "SUMMARY §3 non-main-pool table missing 统计池资格 column")
+        if eligibility_idx >= 0:
+            for row in non_rows:
+                if eligibility_idx >= len(row) or row[eligibility_idx] == "🟢 入池":
+                    add_error(errors, f"SUMMARY §3 contains 入池 row in non-main-pool table: {row}")
+
+    enum_sections = [
+        "综述类型大类",
+        "本文角色",
+        "统计池资格",
+        "证据成熟度",
+        "样本单位类型",
+        "原生维度树类型",
+    ]
+    for idx, name in enumerate(enum_sections, start=1):
+        marker = f"#### 2.4.{idx} {name}"
+        if marker not in text:
+            add_error(errors, f"SUMMARY missing detailed enum subsection: {marker}")
+        guide_marker = f"### 4.2.{idx} {name}"
+        if guide_marker not in guide_text:
+            add_error(errors, f"GUIDE missing detailed enum subsection: {guide_marker}")
 
 
 def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
