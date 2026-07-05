@@ -1,27 +1,44 @@
+def int effect_token_1 = 0;
+def int effect_token_2 = 0;
+def int effect_token_3 = 0;
+def int effect_token_4 = 0;
+def int effect_token_5 = 0;
 state llms_emp_stm_results_0004_baseline named "llms_emp_stm_results_0004 dry-run baseline" {
     [*] -> start;
-    event Closed_SendDeparted_Normalized named "Closed/SendDeparted";
-    event Arrived_Stop_Send_Arrived_Normalized named "Arrived/Stop, Send Arrived";
+    event Closed named "Closed/SendDeparted";
+    event Arrived named "Arrived/Stop, Send Arrived";
     event Obstacle_Detected named "Obstacle Detected";
     pseudo state start named "start";
     state DoorsClosing named "DoorsClosing";
     state InMotion named "InMotion" {
         [*] -> startInMotion;
-        event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
-        event Approached_Decelerate named "Approached/Decelerate";
+        event Reached_Cruising named "Reached Cruising/Cruise";
+        event Approached named "Approached/Decelerate";
         pseudo state startInMotion named "startInMotion";
         state Accelerating named "Accelerating";
         state Cruising named "Cruising";
         state Approaching named "Approaching";
         startInMotion -> Accelerating;
-        Accelerating -> Cruising : Reached_Cruising_Cruise;
-        Accelerating -> Approaching : Approached_Decelerate;
-        Cruising -> Approaching : Approached_Decelerate;
+        Accelerating -> Cruising : Reached_Cruising effect {
+            effect_token_4 = 1;
+        }
+        Accelerating -> Approaching : Approached effect {
+            effect_token_5 = 1;
+        }
+        Cruising -> Approaching : Approached effect {
+            effect_token_5 = 1;
+        }
     }
     state Stopping named "Stopping";
     state EmergencyStopping named "EmergencyStopping";
     start -> DoorsClosing;
-    DoorsClosing -> InMotion : Closed_SendDeparted_Normalized;
-    InMotion -> Stopping : Arrived_Stop_Send_Arrived_Normalized;
-    InMotion -> EmergencyStopping : Obstacle_Detected;
+    DoorsClosing -> InMotion : Closed effect {
+        effect_token_1 = 1;
+    }
+    InMotion -> Stopping : Arrived effect {
+        effect_token_2 = 1;
+    }
+    InMotion -> EmergencyStopping : Obstacle_Detected effect {
+        effect_token_3 = 1;
+    }
 }

@@ -18,47 +18,7 @@ ROOT = Path(__file__).resolve().parent
 CONSTRUCTED_ROOT = ROOT.parent / "r5_7_5_constructed_stmk"
 REPO_ROOT = ROOT.parents[5]
 
-SOURCE_CASE_SPECIAL_FACTS: dict[str, dict[str, Any]] = {
-    "C04": {
-        "change_origin_category": "normalization_only_artifact",
-        "candidate_same_as_canonical_stm0": True,
-        "change_ledger_available": True,
-        "target_instance_ledger_available": True,
-    },
-    "C10": {
-        "semantic_evidence_status": "insufficient_for_strict_improvement_or_regression",
-        "notes": [
-            "The candidate changes surface event/action decomposition only; strict semantic gain is not mechanically decidable from the carrier alone."
-        ],
-    },
-    "C12": {
-        "semantic_evidence_status": "insufficient_traceability_for_strict_verdict",
-        "notes": [
-            "The candidate renames guard variables and weakens traceability; without an explicit trace map the judge should avoid claiming a strict gain."
-        ],
-    },
-    "C14": {
-        "scope_boundary_category": "caveat_t05",
-        "semantic_evidence_status": "t05_counter_abstraction_without_lifecycle",
-        "notes": [
-            "The candidate lowers a timer-expired event to a discrete counter guard, but the blind packet does not show counter increment/reset lifecycle evidence; strict better should not be claimed."
-        ],
-    },
-    "C15": {
-        "scope_boundary_category": "caveat_t05",
-        "declared_extra_method_claims": ["timed_automata_or_real_clock_support"],
-        "candidate_semantics_observed_by_carrier": "discrete_state_machine_with_integer_variable_only",
-        "change_ledger_available": True,
-        "target_instance_ledger_available": True,
-    },
-    "C16": {
-        "scope_boundary_category": "out_of_headline_t1_stress",
-        "scope_observed_features": [
-            "second_based_duration_or_execution_time_annotations",
-            "not_lowered_to_discrete_counter_caveat"
-        ],
-        "change_origin_category": "stress_scope_probe",
-    },
+HARD_PROVENANCE_FACTS: dict[str, dict[str, Any]] = {
     "C18": {
         "change_ledger_available": False,
         "target_instance_ledger_available": False,
@@ -101,17 +61,7 @@ def existing_packet_base(bid: str) -> dict[str, Any]:
     if not p.exists():
         return {}
     old = load_json(p)
-    keep = [
-        "blind_case_id",
-        "base_pair_id",
-        "source_model_name",
-        "source_model_family",
-        "source_llm",
-        "nl_path",
-        "raw_stm0_path",
-        "canonical_stm0_path",
-        "candidate_stmk_path",
-    ]
+    keep = ["blind_case_id", "nl_path", "raw_stm0_path", "canonical_stm0_path", "candidate_stmk_path"]
     return {k: old[k] for k in keep if k in old}
 
 
@@ -142,27 +92,13 @@ def main() -> None:
         baseline_sha = sha256_file(bdir / "canonical_stm0.fcstm")
         candidate_sha = sha256_file(bdir / "candidate_stmk.fcstm")
         parse_status = pyfcstm_parse_status(bdir / "candidate_stmk.fcstm")
-        special = SOURCE_CASE_SPECIAL_FACTS.get(cid, {})
+        special = HARD_PROVENANCE_FACTS.get(cid, {})
         provenance = {
             "change_ledger_available": special.get("change_ledger_available", True),
             "target_instance_ledger_available": special.get("target_instance_ledger_available", True),
             "hash_chain_complete": special.get("hash_chain_complete", True),
-            "candidate_hash_matches_constructed_case": candidate_sha == case.get("candidate_sha256"),
-            "change_origin_category": special.get("change_origin_category", "constructed_candidate_with_local_ledgers"),
             "candidate_same_as_canonical_stm0": special.get("candidate_same_as_canonical_stm0", candidate_sha == baseline_sha),
         }
-        if "declared_extra_method_claims" in special:
-            provenance["declared_extra_method_claims"] = special["declared_extra_method_claims"]
-        if "candidate_semantics_observed_by_carrier" in special:
-            provenance["candidate_semantics_observed_by_carrier"] = special["candidate_semantics_observed_by_carrier"]
-        if "semantic_evidence_status" in special:
-            provenance["semantic_evidence_status"] = special["semantic_evidence_status"]
-        if "scope_boundary_category" in special:
-            provenance["scope_boundary_category"] = special["scope_boundary_category"]
-        if "scope_observed_features" in special:
-            provenance["scope_observed_features"] = special["scope_observed_features"]
-        if "notes" in special:
-            provenance["notes"] = special["notes"]
 
         packet = {
             "schema_version": "r5_7_5.blind_input_packet.v1",
@@ -187,6 +123,7 @@ def main() -> None:
                 "event_labels": "Labels may encode events and actions in raw/canonical STM_0; candidate may split them into event plus effect only if NL-supported behavior is preserved.",
                 "t05_timer_policy": "Periodic timer/tick cues may be routed as caveat_t05 when represented as a discrete counter abstraction.",
                 "t1_policy": "True continuous time / timed-automata semantics are out-of-headline stress cases, not headline Better STM successes.",
+                "blind_packet_policy": "No source case id, expected verdict, target closure summary, construction intent label, domain-feature summary, or case-specific semantic cue is intentionally included in this packet.",
             },
             "provenance_checks": provenance,
             "neutral_change_observation": "Inspect canonical_stm0.fcstm and candidate_stmk.fcstm directly. The packet provides only observable mechanical/provenance facts and no hidden answer key.",
@@ -194,7 +131,6 @@ def main() -> None:
         }
         # Ensure base fields did not override required identifiers.
         packet["blind_case_id"] = bid
-        packet["base_pair_id"] = item["base_pair_id"]
         write_json(bdir / "input_packet.json", packet)
 
         updated_oracle = dict(item)
@@ -206,13 +142,13 @@ def main() -> None:
                 "scope_routing_status": case["scope_routing_status"],
                 "run_validity_status": case["run_validity_status"],
                 "risks": case.get("risks", []),
+                "expected_gate_results": load_json(cdir / "expected_verdict.json").get("gate_results", {}),
             }
         )
         out_cases.append(updated_oracle)
         index_cases.append({
             "blind_case_id": bid,
             "input_dir": str((ROOT / "blind_inputs" / bid).relative_to(REPO_ROOT)),
-            "base_pair_id": case["base_pair_id"],
         })
 
     oracle["schema_version"] = "r5_7_5.blind_oracle_answer_key.v1"

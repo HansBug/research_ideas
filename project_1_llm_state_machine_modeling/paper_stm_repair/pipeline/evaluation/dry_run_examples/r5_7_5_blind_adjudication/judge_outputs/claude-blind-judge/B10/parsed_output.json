@@ -1,0 +1,99 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B10",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete events (power on/off, distance threshold, steering/brake commands) with no continuous-time or periodic-tick semantics; this is a T0 protocol case, not T0.5/T1.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status is parse_ok and provenance facts (change_ledger_available, target_instance_ledger_available, hash_chain_complete all true; candidate not byte-identical to canonical) support minimal auditability.",
+      "evidence_references": [
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The delta from canonical to candidate is attributable: candidate flattens the hierarchical Autonomous sub-machine into a flat state, introduces a def int front_distance guard variable replacing the Front_Distance_10 event, and drops the Power_Off/Enter_Autonomous transitions. These are traceable structural edits, not mere formatting/conversion.",
+      "evidence_references": [
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "NL item 2 explicitly requires autonomous mode to be represented as a sub machine state; candidate flattens this into a plain state ('Autonomous flattened'), removing the required hierarchy. More critically, NL item 5 requires a transition to a final state on power off; canonical models this as a global '! * -> FinalState : Power_Off' transition, but candidate drops the Power_Off event and any transition to FinalState entirely, leaving FinalState reachable only via Exit_Autonomous. This deletes NL-supported behavior (power-off termination) and the required hierarchical structure.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "partial",
+      "reason": "Candidate does provide one arguably positive local change: converting the folded 'Front Distance > 10' event label into an explicit int guard 'front_distance > 10', which is closer to NL's conditional phrasing (NL item 4 states a numeric threshold condition). However this isolated gain does not offset the regressions in G3.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL against the two STMs: candidate loses (a) the required sub-machine hierarchy for autonomous mode, (b) the global Power_Off -> FinalState transition entirely (no Power_Off event/effect appears anywhere in candidate), and (c) the Enter_Autonomous internal transition. These are semantic deletions of NL-supported behavior, not neutral refactors, so overall semantic fidelity is worse despite the one localized guard-extraction improvement.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No leakage detected in the packet; verdict is reported with explicit evidence references, confidence, forbidden claims, and fixed non-headline eligibility flags as required for this dry-run.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL item 2 (sub machine state requirement)",
+    "NL item 5 (power off -> final state)",
+    "canonical STM_0: '! * -> FinalState : Power_Off;'",
+    "candidate STM_k: absence of any Power_Off event or transition",
+    "canonical STM_0 nested 'state Autonomous' sub-machine block",
+    "candidate STM_k flattened 'state Autonomous named \"Autonomous flattened\"'",
+    "candidate STM_k: 'InitialState -> Autonomous : if [front_distance > 10];' as guard extraction"
+  ],
+  "rationale": "The candidate performs one plausible local improvement (extracting the distance threshold into an explicit int guard consistent with NL's conditional phrasing), but this is outweighed by two clear regressions relative to canonical STM_0 that are directly supported by the NL: it flattens the Autonomous sub-machine into a non-hierarchical state despite NL explicitly requiring a 'sub machine state', and it entirely removes the Power_Off transition to FinalState (and the Enter_Autonomous transition), both of which are NL-supported behaviors present in canonical STM_0. Under the fail-closed no-regression rule, deletion of NL-supported transitions/hierarchy takes priority over any partial local gain, so the overall verdict is not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "hierarchy_flattening_regression: sub-machine structure required by NL removed",
+    "trace_loss: Power_Off event and its transition to FinalState entirely deleted",
+    "trace_loss: Enter_Autonomous transition removed without NL justification",
+    "textual_similarity_not_used_to_offset_structural_deletion"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case id, or case-specific semantic cue observed in the packet; only mechanical/provenance facts and explicit modeling conventions were present."
+  }
+}

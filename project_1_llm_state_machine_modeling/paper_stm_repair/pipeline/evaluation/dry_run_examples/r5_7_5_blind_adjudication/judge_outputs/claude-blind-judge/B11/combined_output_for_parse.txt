@@ -1,0 +1,73 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B11",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL and STM describe discrete numeric/boolean sensor conditions (distance thresholds, boolean flags) with no continuous-time or timed-automata semantics and no periodic tick/timer cue. This is a standard T0 in-scope case, not T0.5 or T1.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status=parse_ok per mechanical_checks; candidate is structurally well-formed and auditable (states, hierarchy, transitions present). Parse success alone is not semantic evidence, per convention.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance facts confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate is not byte-identical to canonical, so the diff is attributable to a canonical_STM_0 -> candidate_STM_k edit rather than an untracked or invalid change.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "In HighwayMode, canonical uses the readable NL-traceable event dist_to_front_25_extra_lane_true (\"dist_to_front<25 && extra_lane=true\") for both cruise->lane_change transitions. Candidate deletes this event definition and replaces the guard with inline conditions on two new module-level variables frontNear and laneAvailable, both declared with def int ...=0 and never assigned or incremented anywhere in the candidate model. Since these variables are never set, the guard frontNear==1 && laneAvailable==1 can never be true, making both cruise->lane_change transitions unreachable/dead. This removes an NL-supported, previously reachable transition and constitutes a clear behavioral regression, not merely a traceability concern.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-relevant target is visibly improved. The only structural change (opaque proxy variables replacing a readable guard) does not add clarity that can be validated against NL, and instead removes a working transition path (see G3), so there is no net improvement to weigh against the regression.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL item 3/5 (cruise <-> lane_change based on dist_to_front<25 && extra_lane=true) against candidate: the readable, NL-traceable compound guard is replaced by unexplained proxy variables frontNear/laneAvailable with no initialization or update logic and no trace map back to dist_to_front/extra_lane. This both destroys traceability and (because the variables are never assigned) removes reachability of the lane_change transition from cruise, a real semantic regression rather than a benign rename or reformatting.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "No leakage detected in the packet; eligibility flags fixed per protocol; verdict and rationale are reported with evidence references and confidence; human escalation not required since the regression is directly demonstrable from the provided artifacts.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "canonical STM_0: event dist_to_front_25_extra_lane_true named \"dist_to_front<25 && extra_lane=true\" used on cruise -> lane_change (twice)",
+    "candidate STM_k: def int frontNear = 0; def int laneAvailable = 0; (no assignment anywhere) replacing that event on both cruise -> lane_change transitions with guard [frontNear == 1 && laneAvailable == 1]",
+    "NL item 3 and item 5: cruise transitions to lane_change based on dist_to_front<25 and extra_lane=true"
+  ],
+  "rationale": "The candidate's only substantive change is replacing the canonical's readable, NL-traceable guard event (dist_to_front<25 && extra_lane=true) on the cruise->lane_change transitions with an inline condition on two freshly-declared integer variables (frontNear, laneAvailable) that are initialized to 0 and never assigned or updated anywhere else in the model. This both (a) destroys traceability from the guard back to the NL-described sensor conditions, since the variable names carry no semantic mapping and no trace/comment links them to dist_to_front/extra_lane, and (b) makes the transition unreachable under the given model, since the guard requiring both variables to equal 1 can never be satisfied. This is a clear G3/G5 regression: an NL-supported, previously-working transition is effectively removed/broken, not merely renamed or reformatted. Everything else in the model (states, hierarchy, other transitions, collision-avoidance substructure) is preserved unchanged. Because there is a demonstrable regression and no offsetting NL-supported improvement, the case does not meet the bar for unknown (evidence is not ambiguous — the dead-transition consequence is directly inferable from the static declarations) and instead is a clear not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "traceability_regression: opaque proxy variables (frontNear, laneAvailable) replace a readable NL-traceable guard event without any trace map",
+    "dead_transition_introduced: guard conditions on frontNear/laneAvailable can never be satisfied given declared initial values and absence of any assignment, making cruise->lane_change unreachable",
+    "partial_local_edit_without_lifecycle: no increment/reset/lifecycle logic provided for the newly introduced counters"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This adjudication does not constitute a headline Better STM result."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "No hidden answer key, expected verdict, source case slug, target closure summary, or other disallowed cue was observed in the packet; only mechanical/provenance facts and modeling conventions were present."
+  }
+}
+```

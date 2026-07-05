@@ -8,8 +8,8 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 
 ## 2. 核心结论
 
-1. 已落地 20 个 constructed `STM_k` case，覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 七类主要输出；其 verdict 分布已由 full blind dry-run 反向校准 `[clm-suite]`。
-2. `better` 仅在 protocol expectation 中出现（C01/C11），用于验证 G0--G6 正路径能表达；C08/C14/C19 经 blind 校准为 `partial`，不代表真实方法已经产生成功修复 `[clm-boundary]`。
+1. 已落地 20 个 constructed `STM_k` case，覆盖 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 七类主要输出；当前分布为 `better=2 / not_better=12 / partial=2 / unknown=1 / protocol_or_provenance_invalid=1 / stmk_repair_failure=1 / stress_t1=1`，其 verdict 分布已由 full blind dry-run 反向校准 `[clm-suite]`。
+2. `better` 仅在 protocol expectation 中出现（C01/C11），用于验证 G0--G6 正路径能表达；C08/C19 经 blind 校准为 `partial`，C10 保留为 evidence-insufficient `unknown`，不代表真实方法已经产生成功修复 `[clm-boundary]`。
 3. anti-gaming 反例覆盖 semantic deletion、guard/action/event folding、over-repair、under-repair、trace loss、conversion laundering、hierarchy loss 与 textual similarity misuse；当前实现是 PR body 最小覆盖表的有意超集，用于让同一 case 同时标记次级风险，但不改变 primary expected verdict；`scenario_overfitting` 本轮明确未覆盖并交给 R7 `[clm-anti-gaming]`。
 4. 0004 action-effect 覆盖使用手工 materialized protocol baseline；0009 complex guard 覆盖使用同 cluster selected smoke `0039` fallback。这两点都已写入 preflight caveat，不能外推成 0004/0009 的真实 repair 结果 `[clm-baseline]`。
 
@@ -18,11 +18,11 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 | expected verdict | 数量 | case |
 |---|---:|---|
 | `better` | 2 | C01, C11 |
-| `not_better` | 8 | C02, C03, C05, C06, C07, C09, C13, C20 |
-| `partial` | 3 | C08, C14, C19 |
-| `unknown` | 2 | C10, C12 |
+| `not_better` | 12 | C02, C03, C04, C05, C06, C07, C09, C12, C13, C14, C15, C20 |
+| `partial` | 2 | C08, C19 |
+| `unknown` | 1 | C10 |
 | `stmk_repair_failure` | 1 | C17 |
-| `protocol_or_provenance_invalid` | 3 | C04, C15, C18 |
+| `protocol_or_provenance_invalid` | 1 | C18 |
 | `stress_t1` | 1 | C16 |
 
 注：上表统计的是 `primary_expected_verdict`，不是观察到的真实 repair 结果；`caveat_t05` 属于 scope routing 覆盖，由 C14/C15 覆盖。该表已按 2026-07-05 full blind adjudication dry-run 反向校准后的 oracle 更新；最终 blind 对照见 [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md)。
@@ -34,23 +34,23 @@ R5.7.5 的目的不是运行真实 repair loop，而是构造一组可复验 `ST
 | C01 | `llms_emp_stm_results_0000` | 正确拆出 Front Distance guard | `better` | `in_scope_t0_protocol_case` | guard_action_event_folding |
 | C02 | `llms_emp_stm_results_0000` | 条件仍折叠在 event label | `not_better` | `in_scope_t0_protocol_case` | guard_action_event_folding, under_repair |
 | C03 | `llms_emp_stm_results_0000` | guard 修好但破坏层级 | `not_better` | `in_scope_t0_protocol_case` | hierarchy_pseudostate_loss |
-| C04 | `llms_emp_stm_results_0000` | 把 conversion/canonical 改善冒充 repair | `protocol_or_provenance_invalid` | `in_scope_t0_protocol_case` | conversion_laundering |
+| C04 | `llms_emp_stm_results_0000` | 把 conversion/canonical 改善冒充 repair | `not_better` | `in_scope_t0_protocol_case` | identity_noop, no_semantic_gain, conversion_laundering_not_blind_observable |
 | C05 | `llms_emp_stm_results_0001` | no-op candidate | `not_better` | `in_scope_t0_protocol_case` | no_improvement |
 | C06 | `llms_emp_stm_results_0001` | 低噪声 control 上过修复 | `not_better` | `in_scope_t0_protocol_case` | over_repair, trace_loss |
 | C07 | `llms_emp_stm_results_0001` | 删除反馈失败路径 | `not_better` | `in_scope_t0_protocol_case` | semantic_deletion |
-| C08 | `llms_emp_stm_results_0004` | 结构化部分 action/effect，但仍缺 entry/do action | `partial` | `in_scope_t0_protocol_case` | action_effect |
+| C08 | `llms_emp_stm_results_0004` | action/effect 显式化局部收益 | `partial` | `in_scope_t0_protocol_case` | action_effect_extraction, under_repair, remaining_state_level_action_effect_gap |
 | C09 | `llms_emp_stm_results_0004` | 删除动作效果 | `not_better` | `in_scope_t0_protocol_case` | semantic_deletion, action_effect |
-| C10 | `llms_emp_stm_results_0004` | 格式变化但 action 证据不足 | `unknown` | `in_scope_t0_protocol_case` | evidence_insufficient |
+| C10 | `llms_emp_stm_results_0004` | 保留可读 label 但泛化 effect 变量导致证据不足 | `unknown` | `in_scope_t0_protocol_case` | evidence_insufficient, ambiguous_action_effect_mapping, trace_loss |
 | C11 | `llms_emp_stm_results_0039` | 复杂 guard 结构化 | `better` | `in_scope_t0_protocol_case` | guard_action_event_folding |
-| C12 | `llms_emp_stm_results_0039` | 变量重命名导致 trace loss | `unknown` | `in_scope_t0_protocol_case` | trace_loss |
+| C12 | `llms_emp_stm_results_0039` | 变量重命名导致 trace loss | `not_better` | `in_scope_t0_protocol_case` | trace_loss, opaque_proxy_guard_variables, semantic_regression |
 | C13 | `llms_emp_stm_results_0039` | 新增无证据自动退出 | `not_better` | `in_scope_t0_protocol_case` | over_repair |
-| C14 | `llms_emp_stm_results_0045` | T0.5 timer cue 降级为 counter caveat | `partial` | `caveat_t05` | time_caveat |
-| C15 | `llms_emp_stm_results_0045` | timed automata 能力外推 | `protocol_or_provenance_invalid` | `caveat_t05` | timed_automata_overclaim, conversion_laundering |
+| C14 | `llms_emp_stm_results_0045` | T0.5 timer cue 降级为 counter caveat | `not_better` | `caveat_t05` | time_caveat, dead_counter_guard, redundant_transition, no_semantic_gain |
+| C15 | `llms_emp_stm_results_0045` | timed automata 能力外推 | `not_better` | `in_scope_t0_protocol_case` | time_caveat, no_semantic_gain, unused_timer_variable |
 | C16 | `llms_emp_stm_results_0018` | T1 stress 不进入 headline | `stress_t1` | `out_of_headline_stress_t1` | scope_boundary |
 | C17 | `llms_emp_stm_results_0000` | 候选自身 parse/schema invalid | `stmk_repair_failure` | `in_scope_t0_protocol_case` | candidate_invalid |
 | C18 | `llms_emp_stm_results_0000` | 缺少 ledger/hash/evidence | `protocol_or_provenance_invalid` | `in_scope_t0_protocol_case` | missing_provenance |
-| C19 | `llms_emp_stm_results_0039` | 只修一部分 complex guard | `partial` | `in_scope_t0_protocol_case` | under_repair, guard_action_event_folding |
-| C20 | `llms_emp_stm_results_0000` | 文本更像但语义删除 | `not_better` | `in_scope_t0_protocol_case` | textual_similarity_misuse, semantic_deletion, guard_action_event_folding |
+| C19 | `llms_emp_stm_results_0039` | 只修一部分 complex guard | `partial` | `in_scope_t0_protocol_case` | guard_action_event_folding, under_repair |
+| C20 | `llms_emp_stm_results_0000` | 文本更像但删除 Power_Off final 与 human fallback | `not_better` | `in_scope_t0_protocol_case` | textual_similarity_misuse, semantic_deletion, guard_action_event_folding |
 
 ## 5. baseline preflight 结论
 
@@ -97,7 +97,7 @@ R7 scenario-ledger 必须补 `scenario_overfitting` 反例，并用真实 scenar
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-boundary] | R5.7.5-C1 | R5.7.5 constructed cases 不支持 repair effectiveness 或 headline success。 | prohibition | [src-suite] `headline_eligible=false`, `repair_effectiveness_eligible=false`, `real_repair_run_id=null` | [cmd-json] | high | 后续真实 R7/R8 run 可另行计算。 |
-| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 `primary_expected_verdict`，并由 C14/C15 覆盖 `caveat_t05` scope route。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | expected verdict 不是观察到的真实结果。 |
+| [clm-suite] | R5.7.5-C2 | 本轮覆盖 20 个 case 与 7 类 `primary_expected_verdict`，当前分布为 `better=2 / not_better=12 / partial=2 / unknown=1 / protocol_or_provenance_invalid=1 / stmk_repair_failure=1 / stress_t1=1`，并由 C14/C15 覆盖 `caveat_t05` scope route。 | count/classification | [src-suite] `case_count=20`, `coverage_summary.outcomes` | [cmd-json] | high | expected verdict 不是观察到的真实结果。 |
 | [clm-anti-gaming] | R5.7.5-C3 | 本轮覆盖多类 anti-gaming 风险，但 scenario overfitting 仅 handoff。 | risk | [src-suite] `cases[*].risks`, `coverage_summary.scenario_overfitting` | [cmd-json] | high | scenario overfitting 必须由 R7 scenario oracle 补齐。 |
 | [clm-baseline] | R5.7.5-C4 | 0004 manual baseline 与 0039 fallback 均有 caveat，不能外推为真实 repair output。 | caveat | [src-preflight] `items[pair_key=0004]`, `fallbacks[requested_pair_id=0009]` | [cmd-json] | high | 不影响 protocol coverage，但限制 pair-specific 结论。 |
 
