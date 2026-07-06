@@ -9,6 +9,7 @@ reviewed A1 paper metadata.  It does not download PDFs and does not create
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -42,6 +43,14 @@ def norm_title(value: object) -> str:
     text = norm_text(value).lower()
     text = re.sub(r"[^a-z0-9]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def slugify(title: str, fallback: str) -> str:
@@ -369,21 +378,24 @@ def main() -> None:
             pdf_path = str(existing_pdf.relative_to(ROOT))
             text_path = str(existing_text.relative_to(ROOT)) if existing_text.exists() else ""
             text_status = "ok" if existing_text.exists() else "not_attempted"
-            attempted = "true"
+            attempted = True
+            pdf_sha256 = sha256(existing_pdf)
         elif source_status in {"ok", "exists_old"} and source_pdf and Path(source_pdf).exists():
             final_status = "downloaded"
             failure_type = ""
             pdf_path = f"papers/{rec['slug']}/paper.pdf"
             text_path = f"papers/{rec['slug']}/paper_content.txt"
             text_status = "ok" if source_text else "not_attempted"
-            attempted = "true"
+            attempted = True
+            pdf_sha256 = norm_text(audit_row.get("pdf_sha256"))
         elif rec["corpus_tier"] == "boundary":
             final_status = "not_applicable"
             failure_type = ""
             pdf_path = ""
             text_path = ""
             text_status = "not_attempted"
-            attempted = "false"
+            attempted = False
+            pdf_sha256 = ""
         else:
             final_status = "manual_needed"
             raw_failure = source_status or "no_public_pdf_url_discovered"
@@ -400,7 +412,8 @@ def main() -> None:
             pdf_path = ""
             text_path = ""
             text_status = "not_attempted"
-            attempted = "true"
+            attempted = True
+            pdf_sha256 = norm_text(audit_row.get("pdf_sha256"))
         manual_priority = "--"
         if final_status == "manual_needed":
             manual_priority = "P0" if rec["corpus_tier"] == "core" and rec["ccf_rank"] == "CCF-A" else ("P1" if rec["corpus_tier"] == "core" else "P2")
@@ -413,11 +426,11 @@ def main() -> None:
                 "doi": rec["doi"],
                 "corpus_tier": rec["corpus_tier"],
                 "attempted": attempted,
-                "attempt_sources": "A1 local" if rec["source_layer"].startswith("A1") else "OpenAlex/DOI snapshot; automatic acquisition script may copy existing /tmp downloads",
+                "attempt_sources": "A1 local" if rec["source_layer"].startswith("A1") else "OpenAlex/DOI/open-access snapshot; automatic acquisition script may copy previously discovered local audit files",
                 "final_status": final_status,
                 "failure_type": failure_type,
                 "pdf_path": pdf_path,
-                "pdf_sha256": norm_text(audit_row.get("pdf_sha256")),
+                "pdf_sha256": pdf_sha256,
                 "text_path": text_path,
                 "text_extraction_status": text_status,
                 "manual_priority": manual_priority,
