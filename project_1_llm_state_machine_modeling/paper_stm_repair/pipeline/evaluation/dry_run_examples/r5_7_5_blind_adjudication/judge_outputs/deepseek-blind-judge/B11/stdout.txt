@@ -1,0 +1,80 @@
+Based on my thorough analysis of the inline-provided NL, raw STM_0, canonical STM_0, candidate STM_k, and all mechanical/provenance facts, here is the adjudication output:
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B11",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete sensor conditions (distance thresholds, boolean flags, velocity thresholds) with no continuous-time or timed-automata semantics. No periodic tick/timer cues present. Falls within T0 protocol scope.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Candidate file present, parse_ok per mechanical_checks. Provenance checks all pass: change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate parse/schema is minimally auditable.",
+      "evidence_references": ["candidate STM_k", "input_packet mechanical_checks", "input_packet provenance_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Delta is structural, not formatting/normalization: candidate adds def int variables frontNear and laneAvailable, removes event dist_to_front_25_extra_lane_true from HighwayMode event declarations, and replaces its use in two cruise->lane_change transitions with if [frontNear==1 && laneAvailable==1]. The change is unambiguously attributable to the canonical->candidate diff.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Traceability regression per section 2.2 rule 4: candidate replaces the readable, NL-traceable guard display label 'dist_to_front<25 && extra_lane=true' (event dist_to_front_25_extra_lane_true) with opaque proxy variables frontNear and laneAvailable that lack any trace map to NL. The specific threshold 25 and explicit boolean extra_lane=true are lost. The canonical's readable NL semantics are deleted from the model. No states, transitions, or hierarchy are deleted, but the deletion of key readable trace is a regression.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No genuine improvement detected. The if-guard syntax structurally separates guard from event, but the opaque variable names provide no semantic benefit over the original readable display label. The change is inconsistent—only HighwayMode's dist_to_front<25 guard is altered, while UrbanMode's analogous dist_to_front<15 guard (event dist_to_front_15_extra_lane_true) is left untouched, violating rule 7's consistency requirement. No NL-supported behavior gap is addressed. No improvement over canonical.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic fidelity is degraded. NL explicitly states 'distance to the front vehicle becomes less than 25 meters (dist_to_front<25) and there is an extra lane available (extra_lane=true)'. Canonical preserves this as display label on event dist_to_front_25_extra_lane_true. Candidate replaces it with frontNear==1 && laneAvailable==1, losing the specific threshold 25 and the explicit lane condition. The change removes precision and NL traceability without compensating semantic gain.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Evidence references are explicit per gate. Confidence is high. Forbidden claims include required dry-run disclaimer. Anti-gaming risks are enumerated. No human escalation needed for this clear traceability regression case.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL: clause 3 describes cruise->lane_change guard as dist_to_front<25 && extra_lane=true",
+    "NL: clause 7 describes the analogous UrbanMode guard as dist_to_front<15 && extra_lane=true (unchanged in candidate)",
+    "canonical STM_0: event dist_to_front_25_extra_lane_true named 'dist_to_front<25 && extra_lane=true'",
+    "candidate STM_k: event dist_to_front_25_extra_lane_true removed; transitions use if [frontNear==1 && laneAvailable==1]",
+    "candidate STM_k: UrbanMode event dist_to_front_15_extra_lane_true and its display label preserved unchanged",
+    "candidate STM_k: def int frontNear=0; def int laneAvailable=0 declared with no assignments and no NL trace map",
+    "input_packet provenance_checks: all three fields true",
+    "input_packet mechanical_checks: candidate_parse_status=parse_ok"
+  ],
+  "rationale": "Candidate makes one structural change: it extracts the HighwayMode cruise->lane_change guard from an event label (dist_to_front_25_extra_lane_true with display 'dist_to_front<25 && extra_lane=true') into an if [frontNear==1 && laneAvailable==1] guard block, adding two def int variables. The change removes the readable, NL-traceable display label and replaces it with opaque proxy variables that have no trace map to NL, losing the specific distance threshold (25) and explicit lane condition. The analogous UrbanMode guard (dist_to_front<15) is left unchanged, making the abstraction inconsistent. No NL-supported behavior gap is addressed, no new capability is provided, and the loss of readable NL semantics constitutes a traceability regression. Per section 2.2 rules 4 and 7, this is not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion_of_readable_guard_label: canonical display label 'dist_to_front<25 && extra_lane=true' removed without equivalent replacement",
+    "inconsistent_abstraction: only HighwayMode guard changed; UrbanMode's structurally analogous dist_to_front<15 guard left as original event label",
+    "opaque_proxy_variables_without_trace_map: frontNear and laneAvailable have no assignment, no comment, and no trace to NL conditions"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "No semantic improvement should be inferred from the if-guard syntax alone when variable names are opaque and untraceable to NL.",
+    "The HighwayMode change does not constitute a strict or partial improvement over canonical."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only mechanical_checks, provenance_checks, semantic_modeling_conventions, neutral_change_observation, and adjudication_question. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or case-construction intent signals detected. Packet complies with blind_packet_policy."
+  }
+}
+```

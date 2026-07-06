@@ -1,0 +1,30 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B12",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "protocol_or_provenance_invalid",
+  "primary_verdict": "protocol_or_provenance_invalid",
+  "gate_results": {
+    "G0": {"status": "pass", "reason": "NL describes power-on/off, autonomous/human driving transitions, a front_distance>10 condition, and steering/brake events; no seconds/milliseconds duration semantics or periodic timer/tick cues are present, so this is a T0 protocol case, not T0.5 or T1 stress.", "evidence_references": ["NL", "raw STM_0"]},
+    "G1": {"status": "pass", "reason": "candidate_parse_status is parse_ok per mechanical_checks; candidate STM_k is structurally readable and auditable.", "evidence_references": ["candidate STM_k", "input_packet.json"]},
+    "G2": {"status": "fail", "reason": "provenance_checks report change_ledger_available=false, target_instance_ledger_available=false, and hash_chain_complete=false. Per fail-closed rule, when any of these provenance facts are false, attribution of the observed change (event->explicit guard extraction) from canonical STM_0 to candidate STM_k cannot be certified, regardless of apparent semantic plausibility.", "evidence_references": ["input_packet.json:provenance_checks"]},
+    "G3": {"status": "unknown", "reason": "Surface comparison shows candidate preserves all states, hierarchy, and transitions from canonical STM_0, replacing event Front_Distance_10 with guard if [front_distance > 10] while keeping the transition target/source and all other events intact; no apparent deletion of NL-supported behavior. However, this cannot be certified as regression-free given the provenance gate failure below.", "evidence_references": ["canonical STM_0", "candidate STM_k"]},
+    "G4": {"status": "unknown", "reason": "The change appears to convert an NL-supported condition (front_distance > 10) folded into an event label in canonical STM_0 into an explicit guard construct in candidate STM_k, which would normally be a candidate improvement target under G7-style guard extraction. But improvement cannot be certified without valid provenance attribution.", "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]},
+    "G5": {"status": "unknown", "reason": "Semantic fidelity of the guard extraction (front_distance as abstract sensor variable, no explicit assignment, consistent with static STM conventions) looks preserved, but overall semantic verdict is blocked by mandatory provenance fail-closed rule 2.", "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]},
+    "G6": {"status": "fail", "reason": "Per fail-closed rule 2, missing change ledger, missing target instance ledger, and incomplete hash chain require run_validity_status=protocol_or_provenance_invalid and primary_verdict=protocol_or_provenance_invalid, overriding any downstream semantic analysis.", "evidence_references": ["this JSON output"]}
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "input_packet.json:provenance_checks", "input_packet.json:mechanical_checks"],
+  "rationale": "The candidate STM_k replaces the folded event label Front_Distance_10 (\"Front Distance > 10\") in canonical STM_0 with an explicit guard condition if [front_distance > 10] on the same InitialState->Autonomous transition, declaring def int front_distance = 0 at top level. All other states, hierarchy, events, and transitions (including the catch-all Power_Off transition to FinalState, Enter_Autonomous, Exit_Autonomous, Human_Steering_Cmd_or_Brake_Pressed) are preserved unchanged. On surface semantic grounds this resembles the kind of NL-supported condition-to-guard extraction that could be a strict local improvement (NL explicitly states the front_distance>10 condition; canonical folds it into an event name; candidate expresses it as an explicit guard without deleting any state/transition/hierarchy). However, the mandatory fail-closed provenance rule takes priority: provenance_checks report change_ledger_available=false, target_instance_ledger_available=false, and hash_chain_complete=false. Per the fail-closed rule set, any of these being false requires the adjudication to output run_validity_status=protocol_or_provenance_invalid and primary_verdict=protocol_or_provenance_invalid regardless of how plausible the semantic improvement looks, because the change cannot be reliably attributed/audited without ledger and hash-chain evidence. This rule overrides the otherwise favorable G3/G4/G5 impressions.",
+  "observed_anti_gaming_risk_flags": ["provenance_ledger_missing", "hash_chain_incomplete", "attribution_unverifiable_despite_plausible_semantic_change"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence.", "Parse success alone does not constitute semantic improvement evidence.", "This output must not be used as headline Better STM evidence."],
+  "confidence": "medium",
+  "human_escalation_required": true,
+  "leakage_observation": {"detected": false, "notes": "No hidden answer key, expected verdict, source case id/slug, target closure summary, or construction-intent label was present in the input packet; provenance_checks fields are limited to low-level ledger/hash/parse facts as permitted by protocol."}
+}
+```

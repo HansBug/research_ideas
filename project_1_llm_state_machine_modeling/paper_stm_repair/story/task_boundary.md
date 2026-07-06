@@ -73,6 +73,18 @@ Output: <STM_k, diagnostics ledger, scenario ledger, repair ledger, acceptance /
 
 如果某个改进来自 pre-repair conversion / recovery / hand normalization，则必须归因给 conversion / seed preparation，不能计入 repair-loop gain。
 
+## 6.1 R5.7.1 evaluation boundary
+
+R5.7.1 在 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md) 中进一步冻结了任务边界到评价边界的映射。本文件只保留摘要；正式评价逻辑以 experiment design 为准。
+
+| 边界 | R5.7.1 纪律 | 对任务定义的影响 |
+|---|---|---|
+| A 层硬准入 | A 层是 artifact-level 可评价性门槛，不是 dataset-level 纳入标准。 | A-pass 只说明 `STM_0` / `STM_k` 可被评价，不说明它更好。 |
+| 分母层级 | 区分 pre-registered pool、scope pool、evaluation-eligible pool、success / failure / unknown。 | `<NL, STM_0>` 可在资源画像中存在，但未必进入 Better STM 主统计。 |
+| 归因边界 | raw -> canonical 的转换和表示桥收益不计 repair gain；repair gain 只能从 canonical `STM_0 -> STM_k` 开始。 | seed preparation 与 repair run 内贡献必须分开写。 |
+| 指标边界 | 客观指标只能 supporting evidence，不能替代 NL-grounded semantic adjudication。 | repair run 不能为了刷指标删除需求语义或折叠 guard/action。 |
+| 失败报告 | failure / partial / unknown / out-of-scope 必须进入 ledger。 | 修正任务的输出包括接受 / 拒绝 / 回滚 / unknown 证据，而不是只输出成功 `STM_k`。 |
+
 ## 7. R5.6 后的 model scope 冻结边界
 
 R5.5 画像建议后续主实验优先围绕 `llms-emp-stm-subset`：10 个唯一 NL × 6 个 LLM 输出。R5.6 已把该建议冻结为 story-level model scope 与 claim boundary，真源为 [model_scope.md](./model_scope.md)，R5.7 交接约束为 [../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)。本节只保留任务边界侧摘要：

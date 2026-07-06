@@ -53,6 +53,8 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 | seed registry | R5.5 snapshot：`llms-emp-stm-subset` 为一手 `<NL, LLM-generated STM_0>` 主 seed 池候选；canonical source 见 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 | 支撑“可围绕同一 NL 多模型初始制品做比较”的实验机会。 | 不等于主实验已完成。 |
 | readiness / conversion | R5.5 snapshot：conversion status 见 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 与 main seed profile report。 | 暴露真实 seed 的转换压力和缺陷谱系。 | 不能把 converted 数字写成 repair success。 |
 | R5.6 model scope | [model_scope.md](./model_scope.md) 冻结主线为 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 不进入 headline，只作为当前无独立样例的 future taxonomy candidate / 语义维度标签；T0.5 只作 caveat，Digital Camera / T1-ish 只作 supplementary stress。 | 支撑后续 R5.7/R6/R7 在明确模型边界内定义 taxonomy、protocol 和 eligibility。 | 不外推到 timed automata、hybrid automata、arbitrary UML 或 protocol FSM；不把 EFSM-lite 写成已有独立数据覆盖。 |
+| R5.7.1 evaluation logic | [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md) 冻结评价逻辑链：claim 类型、分母纪律、A 层、归因边界、客观指标位置、失败报告纪律和后续 R5.7.2--R5.7.5 接口。 | 支撑后续把 story claim 转成可审计评价协议；明确哪些证据只能支持 readiness / protocol / limitation。 | 不证明 repair effectiveness；不产生 `STM_k`；不把 objective metrics 或 parse / inspect ok 写成 Better STM。 |
+| R5.7.2 Better STM / repair target | [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) 冻结 Better STM gate 链、三层输出模型、硬拒绝边界、T0.5 caveat、semantic adjudication 接口和 11 类 repair target taxonomy。 | 支撑后续 R6/R7 判断什么才可计为 Better STM、什么只是 candidate-only / partial / unknown / protocol invalid。 | 不证明 repair loop 有效；不把 taxonomy 候选写成已确认缺陷；不把 pyfcstm / fcstm 写成贡献。 |
 | selected smoke | 四例静态 `<NL, STM_0>` smoke 输入，并附派生表示快照用于工程链路检查。 | 支撑工程链路冒烟，不是最终实验集合。 | 不能把四例当主结论，也不能把派生表示可用写成 repair gain。 |
 | evaluation gate | Better STM checklist / human rubric schema / dry-run examples。 | 支撑后续 repair-loop 评价设计。 | 目前不是结果裁决。 |
 | negative evidence | blocked / partial / conversion attribution。 | 支撑 honest limitations 和 scope 决策。 | 不能隐藏 blocked / partial。 |
@@ -64,6 +66,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 | 定义 `<NL, STM_0> -> STM_k` 的反馈驱动状态机修正任务。 | story / task boundary 已恢复，R5.5 提供主 seed 池画像；R5.6 已在 [model_scope.md](./model_scope.md) 冻结 model scope / claim boundary。 | R5.7 冻结 repair target taxonomy；R7 写作时不可扩大为 `NL -> STM` 或 timed / arbitrary UML repair。 |
 | 提出无人化 repair run 协议：诊断、场景反馈、候选修正、回归检查、接受 / 拒绝 / 回滚。 | 当前仅定义边界与评价门；真实 loop 尚未运行。 | R6/R8 必须有真实 repair ledger、回归、拒绝/回滚证据。 |
 | 操作化 Better STM，区分转换规范化收益与修正循环收益。 | Better STM 定义已迁入 `experiment_design/quality_model/`。 | 需要同一 `STM_0` 下的 before/after 诊断、场景和裁决。 |
+| 冻结评价逻辑链与 Better STM / repair target 合同，防止准备度、转换恢复、taxonomy candidate 或客观指标被误写成方法效果。 | R5.7.1 已新增 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)；R5.7.2 已新增 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) 并补强 Better gate。 | R5.7.3--R5.7.5 需细化客观指标、静态 dry-run 与 R6/R7 handoff；R6/R8 才能提供效果证据。 |
 | 将 prior artifact 重排为 seed source、converter pressure、error taxonomy 和有限对照。 | seed registry、reports、conversion profile 已有。 | R5.7 eligibility 和 R6/R7 对照矩阵仍需冻结。 |
 
 ## 7. Claims to make / be careful / avoid
@@ -73,12 +76,15 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 - We frame / study feedback-driven repair of initial state-machine artifacts conditioned on NL requirements.
 - We build an auditable pipeline that separates seed construction, normalization/conversion, and repair-loop effects.
 - The R5/R5.5 seed audit reveals nontrivial conversion and modeling defects that motivate a repair-oriented protocol.
+- We define an evaluation logic that separates task/scope, readiness, protocol/evaluation, future repair effectiveness, and limitations.
 
 ### 7.2 必须降级的 claim
 
 - “结构化反馈能提升状态机质量”只能在 R6/R8 有真实数据后写；当前只能写 “is designed to support / will be evaluated through”。
 - “Better STM” 当前是评价目标和定义，不是已经证明的结果。
 - “无人化”只限定 repair run 内，benchmark design、reference adjudication 和 post-hoc audit 可有人类参与。
+- “T0 8 clusters / 48 pairs”只是 scope 上限，不是最终 eligible 或 success denominator。
+- “partial”不是失败，也不是成功；它是带 caveat 的可评价候选，需后续 A 层与语义裁决。
 
 ### 7.3 禁止 claim
 
@@ -88,6 +94,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 4. 不写“自动修正一定提升质量”或“outperform all baselines”。
 5. 不写“baseline 已经无须比较”。
 6. 不把 run record、日志或复现工程本身写成论文方法贡献。
+7. 不用 parse ok、inspect ok、conversion success、diagnostics fewer、总体 F1、场景通过率或文本相似度单独证明 Better STM。
 
 ## 8. 当前未闭合风险
 
@@ -98,6 +105,7 @@ We study feedback-driven repair of an initial state-machine artifact conditioned
 | 修正循环是否稳定有效尚未实证。 | R6/R8 真实 repair loop |
 | Better STM 是否成立尚无主结果。 | 真实 `STM_0` vs `STM_k`、场景、诊断与人工/结构化裁决 |
 | 转换和修正贡献容易混淆。 | 三阶段归因：原始制品 -> 规范化 `STM_0` -> `STM_k` |
+| Better STM 判定细则和 repair target taxonomy 已在 R5.7.2 落地，但 objective metrics、静态 dry-run 和 R6/R7 handoff 尚未全部落地。 | R5.7.3 objective metrics、R5.7.4 静态 dry-run、R5.7.5 R6/R7 handoff |
 
 ## 9. R0 story 的可迭代性说明
 

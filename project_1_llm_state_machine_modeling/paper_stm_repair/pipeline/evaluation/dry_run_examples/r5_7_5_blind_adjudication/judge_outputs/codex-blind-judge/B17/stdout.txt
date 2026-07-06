@@ -1,0 +1,59 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B17",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "codex-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "caveat_t05",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "caveat",
+      "reason": "The NL uses timer-starts and timer-expires cues, and the candidate introduces a discrete integer timer_ticks guard rather than true timed-automata semantics. This routes the case to T0.5 caveat, not T1 continuous-time stress.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical and candidate artifacts are present, and the provided mechanical check reports candidate_parse_status=parse_ok. Parse success is treated only as auditability, not semantic improvement.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The change is attributable to canonical STM_0 -> candidate STM_k: candidate differs by adding def int timer_ticks = 0 and an additional ReadytoCook -> DoorShutWithItem guarded transition. Ledger and hash-chain facts are complete.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "The candidate preserves the canonical states, nesting, events, and existing transitions, including the original Timer_Expired transition and Door_Opened/Cancel/Start behavior. No NL-supported transition or hierarchy is visibly deleted.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "The added timer_ticks >= 1 transition does not strictly improve a target behavior. It coexists with the original Timer_Expired transition, lacks visible increment/reset/lifecycle evidence, and is attached at ReadytoCook rather than specifically closing the Cooking-state timer-expiry semantics.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantically, the candidate adds an incomplete discrete timer abstraction without demonstrating that timer expiry is modeled more faithfully. Because the old transition remains and the new guard has no lifecycle, the candidate is not better than canonical STM_0.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This output is a blind dry-run adjudication with fixed headline_eligible=false, repair_effectiveness_eligible=false, and real_repair_run_id=null. No hidden answer key or expected verdict field was observed.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "mechanical_checks", "provenance_checks"],
+  "rationale": "Candidate preserves canonical behavior but only adds timer_ticks and a guarded ReadytoCook-to-DoorShutWithItem transition. Under the T0.5 counter caveat rule, this incomplete and coexisting counter guard is not a strict semantic repair and provides no visible gain over the existing Timer_Expired transition.",
+  "observed_anti_gaming_risk_flags": ["incomplete_timer_counter_lifecycle", "redundant_guard_alongside_existing_timer_expired_transition", "parse_success_not_semantic_evidence"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "The packet contains only NL, raw/canonical/candidate STM text, neutral mechanical/provenance facts, and no expected verdict, source slug, answer key, or target-closure cue."
+  }
+}

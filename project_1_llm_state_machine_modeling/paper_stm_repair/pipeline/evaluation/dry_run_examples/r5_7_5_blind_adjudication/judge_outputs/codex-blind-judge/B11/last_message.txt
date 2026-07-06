@@ -1,0 +1,59 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B11",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "codex-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "unknown",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "The NL and STMs describe discrete autonomous-driving modes, distance thresholds, boolean conditions, and collision-avoidance triggers; no true duration or continuous-time timed-automata carrier is required.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical and candidate STMs are present in the packet, and the mechanical checks report candidate_parse_status=parse_ok.",
+      "evidence_references": ["input_packet.json", "canonical STM_0", "candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The provenance facts report complete ledger/hash availability and candidate_same_as_canonical_stm0=false, so the observed delta is attributable to canonical STM_0 -> candidate STM_k.",
+      "evidence_references": ["input_packet.json", "canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "unknown",
+      "reason": "The candidate preserves the relevant HighwayMode states and cruise-to-lane_change transitions, but replaces the readable NL-derived condition dist_to_front<25 && extra_lane=true with proxy variables frontNear and laneAvailable, losing the explicit 25-meter threshold trace on those transitions.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "unknown",
+      "reason": "The candidate makes the HighwayMode cruise-to-lane_change condition syntactically guard-like, but the guard uses abstract proxy variables rather than the NL condition itself, so a strict semantic improvement cannot be established from the blind packet.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "unknown",
+      "reason": "Semantically, frontNear and laneAvailable may correspond to dist_to_front<25 and extra_lane=true, but the candidate provides no trace map or exact threshold-preserving definition; this is neither a provable strict repair nor a clear structural deletion.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This output reports a blind dry-run adjudication only, keeps headline and repair-effectiveness eligibility false, and does not rely on hidden answer keys or external context.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "input_packet.json"],
+  "rationale": "Candidate STM_k preserves the overall state hierarchy and transitions, and parse/provenance checks pass. Its only substantive change is replacing the canonical HighwayMode cruise-to-lane_change event label dist_to_front<25 && extra_lane=true with explicit guards over frontNear and laneAvailable. That may be intended as guard extraction, but it omits the exact NL threshold and lacks a definition or trace map tying frontNear to dist_to_front<25. Under the fail-closed rules, this opaque instrumentation cannot be credited as strict or partial improvement, while the preserved topology prevents a confident not_better regression finding.",
+  "observed_anti_gaming_risk_flags": ["opaque proxy guard variables without trace map", "loss of explicit distance-threshold trace on modified HighwayMode transitions", "parse success is not semantic evidence"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence.", "Do not claim headline Better STM success from this dry-run.", "Do not treat proxy guard insertion as proven semantic repair without NL traceability."],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "The packet includes mechanical/provenance facts but no expected verdict, source case id, answer key, oracle mapping, or case-specific target closure cue."
+  }
+}

@@ -1,0 +1,77 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B04",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete event-driven state transitions (doors closed → signal, arrived → stop, obstacle detected, cruising speed reached, approached → decelerate). No continuous-time duration, clock invariant, or timed-automata semantics present. The do/Send in Approaching is a state action, not a timed claim. Routed as in-scope T0 protocol case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical STM_0 and candidate STM_k are present in the input packet; candidate parse status is parse_ok per mechanical_checks. Candidate is structurally readable and auditable.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "mechanical_checks"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false. The delta between canonical and candidate is clearly identifiable: three transitions differ in event-label attachment. The changes are not mere normalization or format conversion.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k", "provenance_checks"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate removes two event triggers that are explicitly required by NL: (1) DoorsClosing->InMotion loses the Closed_SendDeparted event (NL#1: 'transitions to InMotion when the doors are closed, triggered by the Closed/SendDeparted signal'), and (2) InMotion->Stopping loses the Arrived_Stop_Send_Arrived event (NL#2: 'transition to the Stopping state when it arrives, indicated by the Arrived/Stop, Send Arrived signal'). Without these event labels, the transitions have no explicit trigger and would fire unconditionally upon entering the source state, directly contradicting the NL-specified event-driven behavior. The Obstacle_Detected event on InMotion->EmergencyStopping is preserved, but this does not mitigate the regression on the other two transitions. All states, hierarchy, and substate structure remain identical; the regression is specifically in transition trigger semantics.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No improvement is observable at any target. The candidate makes two deletions (removing event labels from DoorsClosing->InMotion and InMotion->Stopping) and preserves one existing event label (Obstacle_Detected on InMotion->EmergencyStopping). There is no added guard, action, effect, or structural refinement that addresses any NL requirement. The events Closed_SendDeparted, Arrived_Stop_Send_Arrived, and Obstacle_Detected remain declared at the top level, so the declarations exist but two of three are no longer wired to their transitions. This is pure regression with zero gain.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Semantic fidelity is broken: NL#1 and NL#2 clearly specify that DoorsClosing->InMotion and InMotion->Stopping are event-triggered transitions. Canonical STM_0 faithfully encodes these as labelled transitions with the corresponding event references. Candidate removes both event labels, making those transitions event-less (immediate/automatic). The events themselves are still declared but disconnected from their transitions — this is a semantic deletion, not a benign refactoring. The retained Obstacle_Detected label on the third transition confirms the candidate format supports event-labelled transitions and that the removal was selective. No offsetting semantic gain exists. Textual similarity of state names and hierarchy does not compensate for deleted transition semantics.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Evidence is drawn exclusively from the blind input packet: NL, raw STM_0, canonical STM_0, candidate STM_k, and mechanical/provenance facts. No hidden answer key, expected verdict, or external file was consulted. Confidence is high because the regression is clear-cut: two NL-mandated event triggers are deleted from transitions with no compensating change. Forbidden claims are explicitly set. No human escalation is required for this unambiguous regression.",
+      "evidence_references": ["this JSON output", "NL", "canonical STM_0", "candidate STM_k", "provenance_checks"]
+    }
+  },
+  "evidence_references": [
+    "NL#1: DoorsClosing->InMotion triggered by Closed/SendDeparted",
+    "NL#2: InMotion->Stopping indicated by Arrived/Stop, Send Arrived",
+    "canonical STM_0: DoorsClosing -> InMotion : Closed_SendDeparted",
+    "canonical STM_0: InMotion -> Stopping : Arrived_Stop_Send_Arrived",
+    "candidate STM_k: DoorsClosing -> InMotion (event label removed)",
+    "candidate STM_k: InMotion -> Stopping (event label removed)",
+    "candidate STM_k: InMotion -> EmergencyStopping : Obstacle_Detected (preserved, confirming format supports labelled transitions)",
+    "provenance_checks: change_ledger_available=true, hash_chain_complete=true, candidate_same_as_canonical_stm0=false"
+  ],
+  "rationale": "Candidate STM_k removes two event labels (Closed_SendDeparted and Arrived_Stop_Send_Arrived) from transitions that NL explicitly requires to be event-triggered. The DoorsClosing->InMotion and InMotion->Stopping transitions lose their trigger semantics, becoming unconditional immediate transitions that violate NL#1 and NL#2. The third transition (InMotion->EmergencyStopping : Obstacle_Detected) retains its event label, confirming the format supports event-labelled transitions and the removal was selective rather than a format limitation. With no offsetting improvement — no added guards, actions, effects, or structural refinements — the candidate is strictly worse than canonical STM_0. This is a clear case of semantic deletion constituting a regression, warranting verdict not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: two NL-mandated event triggers removed from transitions, disconnecting declared events from their transitions",
+    "selective_deletion_pattern: Obstacle_Detected event preserved while Closed_SendDeparted and Arrived_Stop_Send_Arrived removed, suggesting targeted removal rather than format conversion"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "The verdict not_better does not imply the repair method is ineffective; this is a single blind protocol case.",
+    "No inference about the repair loop, model quality, or method contribution is authorized from this output."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only mechanical/provenance facts, NL, raw STM_0, canonical STM_0, and candidate STM_k. No source case id, expected verdict, target closure summary, semantic_evidence_status, or case-specific construction intent label was observed. All evidence is drawn from the blind input packet as instructed."
+  }
+}
+```

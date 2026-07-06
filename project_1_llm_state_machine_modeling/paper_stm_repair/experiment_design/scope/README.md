@@ -2,7 +2,7 @@
 
 本目录用于维护实验对象、RQ 版本、样本范围、时间层级和 story / experiment scope 边界。
 
-当前状态：已落地 R5.5 -> R5.6 scope handoff 草案 [2026-06-29-17-33-35-r5-5-scope-handoff.md](./2026-06-29-17-33-35-r5-5-scope-handoff.md)，并新增 R5.6 -> R5.7 硬约束 [r5_6_to_r5_7_handoff_constraints.md](./r5_6_to_r5_7_handoff_constraints.md)。R5.6 的 story-level scope 真源是 [../../story/model_scope.md](../../story/model_scope.md)：T0 离散 FSM/HSM/离散 UML-SysML statechart 子集作为主线，EFSM-lite 不进入 headline，只作为当前无独立样例的 future taxonomy candidate / 语义维度标签，T0.5 作为 timer-like caveat，Digital Camera / T1-ish 作为 supplementary stress，timed / hybrid / arbitrary UML / protocol FSM excluded。上述文件不是最终主实验协议，也不冻结最终样本集合、repair target taxonomy 或指标阈值。
+当前状态：已落地 R5.5 -> R5.6 scope handoff 草案 [2026-06-29-17-33-35-r5-5-scope-handoff.md](./2026-06-29-17-33-35-r5-5-scope-handoff.md)，并新增 R5.6 -> R5.7 硬约束 [r5_6_to_r5_7_handoff_constraints.md](./r5_6_to_r5_7_handoff_constraints.md)。R5.6 的 story-level scope 真源是 [../../story/model_scope.md](../../story/model_scope.md)：T0 离散 FSM/HSM/离散 UML-SysML statechart 子集作为主线，EFSM-lite 不进入 headline，只作为当前无独立样例的 future taxonomy candidate / 语义维度标签，T0.5 作为 timer-like caveat，Digital Camera / T1-ish 作为 supplementary stress，timed / hybrid / arbitrary UML / protocol FSM excluded。R5.7.1 的分母和 claim boundary 入口是 [../evaluation_logic.md](../evaluation_logic.md)。上述文件不是最终主实验协议，也不冻结最终样本集合、repair target taxonomy 或指标阈值。
 
 ## 当前 scope 文件
 
@@ -10,6 +10,7 @@
 |---|---|---|
 | [2026-06-29-17-33-35-r5-5-scope-handoff.md](./2026-06-29-17-33-35-r5-5-scope-handoff.md) | R5.5 handoff 草案 | 给 R5.6 story / model scope freeze 使用；含证据链、claim-evidence map 与复验命令。 |
 | [r5_6_to_r5_7_handoff_constraints.md](./r5_6_to_r5_7_handoff_constraints.md) | R5.6 -> R5.7 硬约束 | 给 R5.7 repair target taxonomy / eligibility 前置设计使用；明确不得重新打开的 scope、不得直接升级的 representation symptoms 和最低 taxonomy 字段。 |
+| [../evaluation_logic.md](../evaluation_logic.md) | R5.7.1 评价逻辑链 | 冻结 T0/T0.5/T1 分母纪律、A 层、claim boundary、failure / partial / unknown / out-of-scope 报告位置；不替代最终 eligibility。 |
 | [../../story/model_scope.md](../../story/model_scope.md) | R5.6 story-level scope 真源 | 冻结 paper story / model scope / claim boundary；本目录引用其结论但不复制成第二事实源。 |
 
 ## 与 story/ 的边界
@@ -18,3 +19,13 @@
 - 本目录：哪些对象进入实验设计、哪些 RQ / seed / system family / time tier 纳入或排除。
 
 禁止把 story 的叙事判断直接写成实验 eligibility；也禁止把未跑实验的 scope 草案写成论文结论。
+
+## R5.7.1 分母纪律摘要
+
+| 层级 | 当前含义 | 注意 |
+|---|---|---|
+| pre-registered pool | `llms-emp` 10 clusters / 60 pairs。 | 资源画像和失败台账分母，不是 success 分母。 |
+| T0 scope pool | 8 clusters / 48 pairs。 | 只是 headline main 的 pre-eligibility 上限。 |
+| T0.5 caveat | 1 cluster / 6 pairs，可作为 tick / counter abstraction 的限定讨论。 | 不支撑 timed automata。 |
+| T1 stress | 1 cluster / 6 pairs，只作 supplementary stress / limitation。 | 不进入 T0 主线结果。 |
+| evaluation-eligible / success | 等 R5.7.2 / R7 / R8 冻结。 | 不能用 T0 48 pairs 直接代替。 |

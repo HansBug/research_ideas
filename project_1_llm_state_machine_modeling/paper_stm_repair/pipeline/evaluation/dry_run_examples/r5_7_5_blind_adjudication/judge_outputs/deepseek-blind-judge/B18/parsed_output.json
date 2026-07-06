@@ -1,0 +1,105 @@
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B18",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes a discrete driving-mode state machine with event-driven transitions (power on/off, front_distance threshold > 10, human steering/brake command). No seconds/milliseconds duration, no continuous-time invariants, and no periodic tick/timer cues are present. The case is a clean T0 protocol case with no T0.5 caveat or T1 stress indicator.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical_stm0.fcstm and candidate_stmk.fcstm are present, and mechanical_checks reports candidate_parse_status=parse_ok. Candidate is structurally parseable and has states, pseudo-states, event declarations, and transitions in valid fcstm syntax. No schema or parse failure.",
+      "evidence_references": [
+        "input_packet.json mechanical_checks",
+        "candidate STM_k"
+      ]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true, and candidate is not byte-identical to canonical (candidate_same_as_canonical_stm0=false). Changes are clearly attributable to the canonical→candidate delta: three transitions deleted, one event declaration deleted, two event declarations orphaned, one display label renamed. No format-conversion or normalization artifact is present that would inflate the delta.",
+      "evidence_references": [
+        "input_packet.json provenance_checks",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate deletes critical NL-supported behavior. (a) Power-off → final state: NL requires 'when power off, it will transit to final state'; canonical has the group transition '! * -> FinalState : Power_Off' and event 'Power_Off'; candidate removes both entirely, making FinalState unreachable. (b) Human override → human driving: NL requires 'transit to human driving mode when receive human steering cmd, brake pressed'; canonical has 'Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed'; candidate deletes this transition. (c) Exit autonomous path from InitialState: canonical has 'InitialState -> FinalState : Exit_Autonomous'; candidate deletes this transition. The event declarations for Exit_Autonomous and Human_Steering_Cmd_or_Brake_Pressed are retained but orphaned (no transition references them). These are unambiguous structural regressions that destroy NL-mandated state reachability and event handling.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No NL-supported semantic improvement is present. The only visible delta in the candidate that is not a deletion is the cosmetic renaming of event Front_Distance_10's display name from 'Front Distance > 10' to 'front distance greater than ten'. This is a trivial label rewording with zero semantic or structural gain. No target issue is materially improved; instead, three critical transitions are removed. The candidate is strictly worse than canonical across every NL dimension.",
+      "evidence_references": [
+        "NL",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Candidate preserves only 3 of canonical's 6 transitions. NL-mandated behaviors for power-off (→ final state) and human steering/brake override (→ human driving mode) are completely lost in the candidate. The FinalState node is retained as a declaration but becomes unreachable — a broken topology. The Autonomous composite state is preserved, and the Enter_Autonomous transition (Autonomous → InitialState) is retained, but this cannot compensate for the deletion of the independently-mandated Human_Steering_Cmd_or_Brake_Pressed transition. Semantic fidelity is severely degraded; the candidate no longer models the same system as described in NL.",
+      "evidence_references": [
+        "NL",
+        "raw STM_0",
+        "canonical STM_0",
+        "candidate STM_k"
+      ]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "All evidence is explicitly referenced per gate. Confidence is high because the three deleted transitions are unambiguous structural facts verifiable by diffing canonical vs candidate transition lists. No leakage was detected in the input packet. Anti-gaming risks (semantic deletion, over-repair, orphaned event declarations) are flagged. Headline and repair-effectiveness eligibility are correctly set to false per dry-run protocol. No human escalation needed; the verdict is mechanically verifiable.",
+      "evidence_references": [
+        "this JSON output"
+      ]
+    }
+  },
+  "evidence_references": [
+    "NL: mandates 4 behaviors — power-on→human, front_distance>10→autonomous, human_steering/brake→human, power-off→final",
+    "canonical STM_0: 6 transitions including Power_Off group, Human_Steering_Cmd_or_Brake_Pressed, Exit_Autonomous",
+    "candidate STM_k: 3 transitions — Power_Off, Human_Steering_Cmd_or_Brake_Pressed, Exit_Autonomous all deleted",
+    "candidate STM_k: FinalState node declared but has zero incoming transitions — topology broken",
+    "candidate STM_k: events Exit_Autonomous and Human_Steering_Cmd_or_Brake_Pressed declared but orphaned",
+    "input_packet.json mechanical_checks: parse_ok",
+    "input_packet.json provenance_checks: all ledger/hash checks pass, candidate ≠ canonical"
+  ],
+  "rationale": "Candidate STM_k deletes 3 of 6 canonical transitions, including the NL-mandated power-off→final-state path and human-steering/brake→human-driving-mode path. FinalState becomes unreachable (declared but no incoming edge). Two event declarations become orphaned (no transition references them). The only non-deletion change is a cosmetic display-label rename of Front_Distance_10 from 'Front Distance > 10' to 'front distance greater than ten', which is zero semantic gain. No NL-supported improvement exists; severe NL-supported regressions exist. Verdict: not_better.",
+  "observed_anti_gaming_risk_flags": [
+    "semantic_deletion: three critical NL-supported transitions removed (Power_Off group, Human_Steering_Cmd_or_Brake_Pressed, Exit_Autonomous)",
+    "over_repair: candidate over-deletes transitions rather than refining any target issue",
+    "trace_loss: NL-mandated behaviors for power-off and human-override have no trace in candidate",
+    "orphan_event_declarations: Exit_Autonomous and Human_Steering_Cmd_or_Brake_Pressed events declared but unreferenced — dead declarations that could falsely suggest capability",
+    "unreachable_state: FinalState retained as declaration but has zero incoming transitions",
+    "cosmetic_relabeling_as_change: only semantic-free display-name rewording alongside massive deletions"
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "No claim about STM repair methodology quality is made.",
+    "No claim about the underlying repair pipeline or candidate-generation process is made."
+  ],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only the fields defined in the blind_input_packet schema: blind_case_id, artifact_role, paths, mechanical_checks, semantic_modeling_conventions, provenance_checks, neutral_change_observation, and adjudication_question. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or any case-specific semantic summary is present. The packet is clean."
+  }
+}
