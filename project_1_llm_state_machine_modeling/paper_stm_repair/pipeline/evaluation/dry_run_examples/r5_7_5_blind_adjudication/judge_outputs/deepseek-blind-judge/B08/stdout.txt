@@ -1,0 +1,78 @@
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B08",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "deepseek-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "partial",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes distance-based thresholds and speed conditions (dist_to_front<25, dist_to_exit<2, vel>30, etc.) with no second/millisecond duration, interval, or execution-time semantics. No continuous-time or timed-automata claims present. The candidate change is a standard T0 guard-extraction refinement, not a T0.5 counter abstraction or T1 stress case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "Both canonical_stm0.fcstm and candidate_stmk.fcstm are present and readable. Mechanical checks confirm candidate_parse_status=parse_ok. Provenance checks confirm change_ledger_available=true, target_instance_ledger_available=true, hash_chain_complete=true. Candidate is fully auditable.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "The delta between canonical STM_0 and candidate STM_k is clearly attributable: (1) two 'def int' variable declarations added at top scope (dist_to_front, extra_lane); (2) event 'dist_to_front_25_extra_lane_true' removed from HighwayMode event declarations; (3) two cruise->lane_change transitions changed from event reference to explicit guard 'if [dist_to_front < 25 && extra_lane == 1]'. This is a genuine guard-extraction change, not normalization, format conversion, or ledger manipulation.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "pass",
+      "reason": "All NL-supported states, hierarchy, and transitions are preserved in candidate. AutonomousMode with HighwayMode (enter_hwy, cruise, lane_change, endHighwayMode) and UrbanMode (enter_urban, lane_change_urban, straight, intersection, exit_urban) substructures intact. FinishState, collision_avoidance_deactive/active, InitialState, and all cross-mode transitions (high_way=true, urban_way=true, auto_finished=true) retained. The guard 'if [dist_to_front < 25 && extra_lane == 1]' encodes the same condition as the removed event 'dist_to_front_25_extra_lane_true' (labeled 'dist_to_front<25 && extra_lane=true'). No NL-supported behavior, state, transition, or hierarchy is deleted or degraded.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "partial",
+      "reason": "The candidate improves the HighwayMode lane-change condition by extracting the guard 'dist_to_front<25 && extra_lane=true' from an opaque event label into an explicit 'if [dist_to_front < 25 && extra_lane == 1]' guard syntax on the cruise->lane_change transitions. This constitutes a real NL-supported improvement (NL item 3 explicitly describes this condition as a predicate). However, the same local repeat pattern exists in UrbanMode: NL items 7 and 9 describe 'dist_to_front<15 && extra_lane=true' as lane-change conditions, yet candidate leaves these as event-based ('dist_to_front_15_extra_lane_true'). Per rule 7, partial application of the same local repeat pattern with inconsistent abstraction (HighwayMode uses guard+variables, UrbanMode retains event) cannot constitute strict 'better'. The improvement is genuine but incomplete in coverage.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "partial",
+      "reason": "The guard extraction is semantically faithful for HighwayMode: 'dist_to_front < 25 && extra_lane == 1' preserves the condition originally embedded in event label 'dist_to_front<25 && extra_lane=true'. No semantic regression detected. However, the candidate introduces internal inconsistency: (a) variables dist_to_front and extra_lane are declared at top scope as def int but only used in HighwayMode guards, while UrbanMode lane-change conditions still reference the old event-based trigger; (b) extra_lane uses integer comparison '== 1' vs the original boolean '=true', a minor type mismatch without behavioral consequence but indicative of incomplete abstraction. The model now has mixed trigger paradigms for the same conceptual lane-change pattern, reducing overall semantic coherence even though no NL behavior is lost.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "This is a dry-run blind adjudication. headline_eligible=false, repair_effectiveness_eligible=false, real_repair_run_id=null per protocol. Evidence references cite specific transitions, events, and guards from NL/raw/canonical/candidate. Confidence is medium due to incomplete pattern coverage. No leakage detected. Human escalation is not required for this straightforward partial-improvement case.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": [
+    "NL item 3: HighwayMode lane-change condition 'dist_to_front<25 && extra_lane=true'",
+    "NL items 7,9: UrbanMode lane-change condition 'dist_to_front<15 && extra_lane=true'",
+    "canonical STM_0: event dist_to_front_25_extra_lane_true used on cruise->lane_change transitions",
+    "canonical STM_0: event dist_to_front_15_extra_lane_true used on UrbanMode lane-change transitions",
+    "candidate STM_k: def int dist_to_front and extra_lane declarations at top scope",
+    "candidate STM_k: if [dist_to_front < 25 && extra_lane == 1] guard on cruise->lane_change transitions",
+    "candidate STM_k: UrbanMode still uses dist_to_front_15_extra_lane_true event (not converted to guard)",
+    "mechanical_checks: parse_ok, provenance chain complete, candidate not identical to canonical"
+  ],
+  "rationale": "The candidate performs a genuine guard extraction for HighwayMode lane-change conditions, moving the predicate 'dist_to_front<25 && extra_lane=true' from an opaque event label to an explicit fcstm guard syntax. This is a real NL-supported improvement. However, the same local repeat pattern (event-embedded guard -> explicit guard for lane-change conditions) exists in UrbanMode but is left unconverted, creating an inconsistent abstraction within the model. Per rule 7, partial application of the same local repeat pattern cannot be adjudicated as strict 'better'. No regression detected: all NL-supported states, transitions, and hierarchy are preserved. Verdict is 'partial'.",
+  "observed_anti_gaming_risk_flags": [
+    "INCOMPLETE_LOCAL_PATTERN_COVERAGE: Guard extraction applied only to HighwayMode lane-change condition (dist_to_front<25 && extra_lane=true) but not to UrbanMode lane-change condition (dist_to_front<15 && extra_lane=true), despite both being the same local repeat pattern of event-embedded guard.",
+    "VARIABLE_LIFECYCLE_GAP: def int dist_to_front and extra_lane declared with initial value 0 but no increment, update, or sensor-binding mechanism; effectively dead variables in static context, noted as acceptable per semantic conventions but nontrivial for dynamic traceability.",
+    "TYPE_INCONSISTENCY: extra_lane declared as def int but guard uses integer comparison == 1, while original NL and canonical use boolean extra_lane=true. Not a semantic regression but indicative of imprecise abstraction."
+  ],
+  "forbidden_claims": [
+    "This blind dry-run is not repair effectiveness evidence.",
+    "This verdict must not be interpreted as a measure of the repair pipeline's real-world capability.",
+    "Partial improvement in this case does not generalize to other cases or repair targets."
+  ],
+  "confidence": "medium",
+  "human_escalation_required": false,
+  "leakage_observation": {
+    "detected": false,
+    "notes": "Input packet contains only NL, raw STM_0, canonical STM_0, candidate STM_k, mechanical checks, provenance checks, and semantic modeling conventions. No primary_expected_verdict, expected_verdict, source_case_id, source_slug, semantic_evidence_status, target_closure_expected, or construction-intent fields detected. The neutral_change_observation explicitly states no hidden answer key is included."
+  }
+}
+```

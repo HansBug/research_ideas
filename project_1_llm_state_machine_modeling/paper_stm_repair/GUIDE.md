@@ -7,7 +7,7 @@
 1. 本文主任务是 `<NL, STM_0> -> STM_k / Better STM` 的反馈驱动状态机修正，不是一轮式 `NL -> STM` 生成。
 2. `NL -> STM_0` 只作为 seed construction / baseline source / related work，不作为主贡献。
 3. `fcstm`、`pyfcstm`、DSL 和转换器都是内部实验载体，不能进入标题、摘要或贡献位。
-4. 当前 R5 产物只是修正前准备度审计：不执行修正循环、不生成 `STM_k`、不调用真实 LLM、不读取 `.env`、不产生主实验结果。
+4. 当前 R5 / R5.7 产物只是修正前准备度审计与评价协议 dry-run：不执行真实修正循环、不生成真实 repair-loop 输出的 `STM_k`、不调用真实 LLM、不读取 `.env`、不产生主实验结果。R5.7.5 constructed `STM_k` 只能作为 protocol dry-run candidate，不得计入 repair effectiveness。
 5. conversion、normalization、representation lowering 带来的可解析性改善必须与修正循环收益分开统计。
 6. 选定四例只用于冒烟 / 最小连通性自检，不是最终实验集合、不是样本上限。
 7. GitHub PR / issue body 和 comment 是流程状态真源；仓库只保存长期研究事实、规则和可复验证据。
@@ -84,3 +84,8 @@ Markdown summary 只做人类入口；数字和资格判断应能回到 JSON、r
 3. 每次 scope、eligibility 或 repair-loop 结果冻结后，必须同步检查 story claim 是否需要降级或删除。
 4. R5.6 之后，涉及模型族、时间等级、resource role、forbidden extrapolation 或 R5.7 handoff 的写作与协议设计，必须优先读取 [story/model_scope.md](./story/model_scope.md)，并同步检查 [experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](./experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md)。
 5. R5.7.1 之后，涉及 claim 类型、分母、A 层、归因边界、客观指标、failure / partial / unknown / out-of-scope 报告或方法有效性写法时，必须优先读取 [experiment_design/evaluation_logic.md](./experiment_design/evaluation_logic.md)。
+
+
+## 5. R5.7.5 constructed `STM_k` dry-run 归因纪律
+
+R5.7.5 的 [reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](./reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md) 与 [experiment_design/better_adjudication_dry_run/README.md](./experiment_design/better_adjudication_dry_run/README.md) 只证明评价协议覆盖能力，不证明修复方法有效。后续引用这些材料时必须保留：`constructed_for_protocol_dry_run=true`、`headline_eligible=false`、`repair_effectiveness_eligible=false`、`real_repair_run_id=null`。

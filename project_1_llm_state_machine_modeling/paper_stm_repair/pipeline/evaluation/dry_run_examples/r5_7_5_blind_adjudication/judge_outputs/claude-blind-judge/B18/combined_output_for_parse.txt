@@ -1,0 +1,59 @@
+
+```json
+{
+  "schema_version": "r5_7_5.better_adjudication_blind_output.v0",
+  "blind_case_id": "B18",
+  "artifact_role": "blind_adjudication_output",
+  "judge_id": "claude-blind-judge",
+  "headline_eligible": false,
+  "repair_effectiveness_eligible": false,
+  "real_repair_run_id": null,
+  "scope_routing_status": "in_scope_t0_protocol_case",
+  "run_validity_status": "valid_blind_protocol_case",
+  "primary_verdict": "not_better",
+  "gate_results": {
+    "G0": {
+      "status": "pass",
+      "reason": "NL describes discrete events (power on/off, distance threshold, steering/brake input) with no continuous-time or periodic-tick semantics. This is a T0 in-scope static STM repair case.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G1": {
+      "status": "pass",
+      "reason": "candidate_parse_status is parse_ok, hash differs from canonical, file present. Candidate is minimally auditable, but parse success alone is not semantic evidence.",
+      "evidence_references": ["candidate STM_k"]
+    },
+    "G2": {
+      "status": "pass",
+      "reason": "Change is attributable to canonical STM_0 -> candidate STM_k: candidate removes Power_Off event, the wildcard '! * -> FinalState : Power_Off' rule, the InitialState -> FinalState : Exit_Autonomous transition, and the Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed transition; it also relabels Front_Distance_10's display text.",
+      "evidence_references": ["canonical STM_0", "candidate STM_k"]
+    },
+    "G3": {
+      "status": "fail",
+      "reason": "Candidate deletes NL-required behavior: (1) 'when power off, it will transit to final state' is fully removed — Power_Off event and the wildcard transition to FinalState are gone, so no path to FinalState via Power_Off exists anymore; (2) NL requires transit to human driving mode 'when receive human steering cmd, brake pressed' from Autonomous, but candidate removed the Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed transition, keeping only the Enter_Autonomous-labeled transition to InitialState, which does not match the human-driving-mode re-entry requirement as directly. The Exit_Autonomous path to FinalState is also removed. These are structural deletions of NL-supported transitions/events, a clear no-regression violation.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G4": {
+      "status": "fail",
+      "reason": "No target-relevant improvement is evident. The only change beyond deletions is a cosmetic relabeling of Front_Distance_10's display string ('Front Distance > 10' -> 'front distance greater than ten'), which is a textual restatement, not a semantic repair, and does not offset the removed transitions/events.",
+      "evidence_references": ["NL", "canonical STM_0", "candidate STM_k"]
+    },
+    "G5": {
+      "status": "fail",
+      "reason": "Comparing NL against candidate: the power-off-to-final-state behavior (explicitly required by NL item 5) and the steering/brake-to-human-driving transition (NL item 4) are structurally weakened or removed. This is a semantic regression relative to canonical, not merely a textual difference.",
+      "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k"]
+    },
+    "G6": {
+      "status": "pass",
+      "reason": "Verdict is not_better due to deletion of NL-supported Power_Off transition/event and a Human_Steering_Cmd_or_Brake_Pressed transition; eligibility flags fixed to false/null per protocol dry-run requirements; no human escalation deemed necessary since regression is clear and directly verifiable from provided artifacts.",
+      "evidence_references": ["this JSON output"]
+    }
+  },
+  "evidence_references": ["NL", "raw STM_0", "canonical STM_0", "candidate STM_k", "provenance_checks"],
+  "rationale": "The candidate removes the Power_Off event and the global wildcard rule '! * -> FinalState : Power_Off', eliminating the NL-required 'power off -> final state' transition entirely from any state. It also removes the InitialState -> FinalState : Exit_Autonomous transition and the Autonomous -> startHumanDriving : Human_Steering_Cmd_or_Brake_Pressed transition, which directly implements NL's 'transit to human driving mode when receive human steering cmd, brake pressed'. The only added change is a cosmetic label rewrite of the Front_Distance_10 event's display text, which offers no semantic benefit. These deletions constitute a clear no-regression (G3) violation and no compensating improvement (G4) is present, so this is a straightforward not_better verdict rather than partial or unknown.",
+  "observed_anti_gaming_risk_flags": ["semantic_deletion_of_NL_supported_transition", "trace_loss_power_off_path", "textual_relabeling_without_semantic_gain"],
+  "forbidden_claims": ["This blind dry-run is not repair effectiveness evidence."],
+  "confidence": "high",
+  "human_escalation_required": false,
+  "leakage_observation": {"detected": false, "notes": "No hidden answer key, expected verdict, source case id, or case-specific semantic cue observed in the packet; only mechanical/provenance facts and neutral change observation text were present."}
+}
+```

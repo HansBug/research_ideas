@@ -26,3 +26,16 @@ R5.7.2 在 [../quality_model/better_stm_definition.md](../quality_model/better_s
 3. **人工处理冲突与 headline audit**：LLM 与规则冲突、低置信度、headline success、代表性 failure 都需要人工升级。
 4. **change-level attribution 必须存在**：每个候选变化都要说明是否来自 canonical `STM_0 -> STM_k`，不能把 raw -> canonical 的 conversion / normalization 收益写成 repair gain。
 5. **规则修订必须 evidence-driven**：R5.7.4 / R7 若发现本协议不足，必须先记录 dry-run finding、旧规则失败点和修订理由，再更新协议；没有真实 finding 的改动只能标为 provisional。
+
+
+## R5.7.5 constructed STM_k 裁决协议 dry-run 接口
+
+R5.7.5 新增 [better_adjudication_prompt_v0.md](./better_adjudication_prompt_v0.md)、[better_adjudication_output_schema_v0.json](./better_adjudication_output_schema_v0.json) 与 [better_adjudication_prompt_dry_run_notes.md](./better_adjudication_prompt_dry_run_notes.md)，用于冻结 constructed `STM_k` 覆盖性 dry-run 的裁决输入输出纪律。
+
+这些文件只验证评价协议能否处理 `better / not_better / partial / unknown / stmk_repair_failure / protocol_or_provenance_invalid / stress_t1` 等路径，不代表真实 repair loop 已运行，也不支持 repair effectiveness 主张。
+
+配套阅读入口：
+
+1. 人类报告：[../../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](../../reports/2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md)
+2. 20 case 人类文档：[../better_adjudication_dry_run/README.md](../better_adjudication_dry_run/README.md)
+3. 机器 evidence bundle：[../../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md](../../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md)
