@@ -68,7 +68,7 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     required_markers = [
         "PR #135 A1-DT v2 抽取与审计口径",
         "后续主统计池候选主表（枚举速读版，按年份降序）",
-        "非主统计池条目简表（方法学参考 / 模式种子 / 边界样本）",
+        "非入池条目边界备忘（不进入主干统计表）",
         "主表与快速结论卡片枚举口径",
         "A1-M0--M6 只作为跨论文投影",
         "audits/a1dt-v2-19x3/",
@@ -118,23 +118,23 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
     non_pool_header = "| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |"
     if non_pool_header not in text:
         add_error(errors, "SUMMARY missing non-main-pool short table header")
-    non_pool_section = extract_section(text, "## 3. 非主统计池条目简表", "## 4. 证据池分布")
+    non_pool_section = extract_section(text, "### 7.1 非入池条目边界备忘", "### 7.2 风险清单")
     non_header, non_rows = parse_markdown_table(non_pool_section)
     expected_non_header = [c.strip() for c in non_pool_header.strip("|").split("|")]
     if non_header != expected_non_header:
-        add_error(errors, "SUMMARY §3 non-main-pool table header mismatch")
+        add_error(errors, "SUMMARY §7.1 non-main-pool table header mismatch")
     if len(non_rows) != 6:
-        add_error(errors, f"SUMMARY §3 non-main-pool table should contain exactly 6 rows, got {len(non_rows)}")
+        add_error(errors, f"SUMMARY §7.1 non-main-pool table should contain exactly 6 rows, got {len(non_rows)}")
     if non_header:
         try:
             eligibility_idx = non_header.index("统计池资格")
         except ValueError:
             eligibility_idx = -1
-            add_error(errors, "SUMMARY §3 non-main-pool table missing 统计池资格 column")
+            add_error(errors, "SUMMARY §7.1 non-main-pool table missing 统计池资格 column")
         if eligibility_idx >= 0:
             for row in non_rows:
                 if eligibility_idx >= len(row) or row[eligibility_idx] == "🟢 入池":
-                    add_error(errors, f"SUMMARY §3 contains 入池 row in non-main-pool table: {row}")
+                    add_error(errors, f"SUMMARY §7.1 contains 入池 row in non-main-pool table: {row}")
 
     enum_sections = [
         "综述类型大类",
@@ -151,6 +151,35 @@ def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
         guide_marker = f"### 4.2.{idx} {name}"
         if guide_marker not in guide_text:
             add_error(errors, f"GUIDE missing detailed enum subsection: {guide_marker}")
+
+    for marker in ["当前入池子集数量", "全库数量", "当前主干分析表数量"]:
+        if marker not in text:
+            add_error(errors, f"SUMMARY enum definitions missing in-pool count marker: {marker}")
+
+    non_pool_slugs = [
+        "ai-native-se-roadmap",
+        "interactive-llm-systematic-mapping",
+        "formal-re-llm-roadmap",
+        "requirements-quality-theory-roadmap",
+        "petersen-2008-systematic-mapping",
+        "kitchenham-charters-2007-slr-guidelines",
+    ]
+    major_sections = extract_section(text, "## 3. 入池子集证据池分布", "## 7. 失败、风险")
+    for line in major_sections.splitlines():
+        if line.startswith("|") and any(slug in line for slug in non_pool_slugs):
+            add_error(errors, f"SUMMARY main analysis table contains non-pool row before §7.1: {line[:160]}")
+
+    expected_table_counts = [
+        ("## 5. 入池子集 A1-M0--M6", "## 5.1 survey_of_surveys", 13, "A1-M0--M6 matrix"),
+        ("### 5.1.2 入池子集 S1--S4", "### 5.1.3 入池子集 S5--S8", 13, "S1--S4 matrix"),
+        ("### 5.1.3 入池子集 S5--S8", "## 5.2 入池子集维度树模式总览", 13, "S5--S8 matrix"),
+        ("## 5.2 入池子集维度树模式总览", "## 5.3 入池子集维度树类型", 13, "dimension tree overview"),
+    ]
+    for start, end, expected_count, label in expected_table_counts:
+        section = extract_section(text, start, end)
+        _header, rows = parse_markdown_table(section)
+        if len(rows) != expected_count:
+            add_error(errors, f"SUMMARY {label} should contain {expected_count} in-pool rows, got {len(rows)}")
 
 
 def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
@@ -522,17 +551,16 @@ def check_summary_semantics(base: Path, repo: Path, errors: list[str]) -> None:
         if cid not in all_claim_types:
             add_error(errors, f"SUMMARY references missing A.3 claim id: {cid}")
 
-    tree_section = extract_section(summary, "## 6.1 维度树模式总览", "## 6.2 维度树类型")
+    tree_section = extract_section(summary, "## 5.2 入池子集维度树模式总览", "## 5.3 入池子集维度树类型")
     for cid in re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", tree_section):
         if not cid.endswith("-C03"):
-            add_error(errors, f"SUMMARY §6.1 tree overview should cite C03 tree claims, got {cid}")
+            add_error(errors, f"SUMMARY §5.2 tree overview should cite C03 tree claims, got {cid}")
         elif "树类型" not in all_claim_types.get(cid, "") and "tree_type" not in all_claim_types.get(cid, ""):
-            add_error(errors, f"SUMMARY §6.1 cites {cid} but its A.3 type is {all_claim_types.get(cid)!r}, not tree_type")
+            add_error(errors, f"SUMMARY §5.2 cites {cid} but its A.3 type is {all_claim_types.get(cid)!r}, not tree_type")
 
     expected = {
         "sum-A1DT-tree-types": "-C03",
         "sum-A1DT-statistical-pool": "-C04",
-        "sum-A1DT-boundary-anchor": "-C04",
     }
     for marker, suffix in expected.items():
         m = re.search(rf"^\| \[{re.escape(marker)}\].*$", summary, flags=re.M)

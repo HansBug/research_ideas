@@ -103,118 +103,105 @@ CCF 字段的目标口径是 **CCF 官方最新推荐目录**，不局限于本�
 
 执行纪律：
 
-1. 枚举列不得临时自造标签；若需要新增类型，必须先更新本节、[SUMMARY.md](./SUMMARY.md) 的枚举说明和必要的门禁 / 总账。
-2. `SUMMARY.md` 主干完整表只收 `统计池资格 = 🟢 入池` 的条目；`🟡 待核`、`⚪ 不入`、`🔴 排除` 不得占用主干完整表，应进入后部简表、候选池或失败记录。
-3. 一篇论文若有多个角色，主表只写“主角色”；次级用途写在 `review.md` 的详细说明中，避免双重计数。
-4. `CCF 复核状态` 不作为第一张主表的核心枚举列；它应保留在 CCF / venue 审计说明、单篇快速卡片或后续专门核验表中。
-5. 后续新增论文时，至少要同步填写：`综述类型大类`、`本文角色`、`统计池资格`、`证据成熟度`、`样本单位 / 分母链`、`原生维度树类型`。
+1. 枚举列不得临时自造标签；若需要新增类型，必须先更新本节、[GUIDE.md §4.2](./GUIDE.md#42-主表与快速结论卡片枚举口径) 和必要的门禁 / 总账。
+2. `SUMMARY.md` 的主干完整表、逐篇覆盖矩阵、维度树总览、pattern 汇总和结论-证据映射等主要分析表，只统计 `统计池资格 = 🟢 入池` 的 13 篇。
+3. `🟡 待核`、`⚪ 不入`、`🔴 排除` 不得占用主干分析表；只能进入后部风险 / 边界备忘、候选池或失败记录。
+4. 一篇论文若有多个角色，主表只写“主角色”；次级用途写在 `review.md` 的详细说明中，避免双重计数。
+5. `CCF 复核状态` 不作为第一张主表的核心枚举列；它应保留在 CCF / venue 审计说明、单篇快速卡片或后续专门核验表中。
+6. 后续新增论文时，至少要同步填写：`综述类型大类`、`本文角色`、`统计池资格`、`证据成熟度`、`样本单位 / 分母链`、`原生维度树类型`，并在本节更新入池子集数量。
 
 #### 2.4.1 综述类型大类
 
-该维度回答“论文自身是什么类型”。它不等于论文质量，也不直接决定是否入池；最终是否进入 SUMMARY 主干完整表仍由 `统计池资格` 判定。
+该维度回答“论文自身是什么类型”。它不等于论文质量，也不单独决定是否入池；最终是否进入 SUMMARY 主干完整表仍由 `统计池资格` 判定。`当前入池子集数量` 只统计 §1.3 的 13 篇，不把非入池 roadmap / guideline / proposal 计入。
 
-| 枚举 | 定义 | 判定标准 | 可进入主干完整表的条件 | 不得误用为 |
-|---|---|---|---|---|
-| 🟩 SLR | 系统文献综述，或以 SLR 为主并兼有映射 / 主题综合的混合综述。 | 原文明确报告系统检索、纳排、质量评价或数据抽取，并以回答证据综合型 RQ 为目标。 | 还必须满足 `🟢 入池`：有可复核样本单位、分母链、字段抽取或统计结果。 | 不能把只写了“review / survey”但无系统流程的叙事综述写成 SLR。 |
-| 🟦 SMS | 系统映射研究，重点是研究版图、分类、覆盖度和缺口。 | 原文强调 mapping、classification、keywording、研究类型/主题分布，而非深度效果综合。 | 若有系统语料构造和可统计字段，可作为类 SLR 主统计池候选。 | 不能把方案论文中“计划做 mapping”的方法设想写成已执行 SMS。 |
-| 🟪 三级 | 三级研究、综述之综述或 review of reviews。 | 样本单位是 SLR/SMS/survey 等二次研究，而非普通原始研究。 | 若有系统检索和对综述样本的编码 / 统计，可入主干表，但必须标明分母是“综述”。 | 不能把三级研究的统计外推为原始研究层面的频次。 |
-| 🟨 MLR | 多声部文献综述，综合白色文献和灰色文献。 | 原文明确 white / grey literature 双轨来源、检索、质量或可信度控制。 | 若白色/灰色文献样本、分母和编码过程可复核，可作为类 SLR 候选。 | 不能混淆 peer-reviewed evidence 与 grey evidence 的证据强度。 |
-| 🧰 指南 | 方法指南、报告规范、checklist 或方法论文。 | 原文主要给出如何做 SLR/SMS 的流程、表单、质量标准或报告规范。 | 默认不进主干完整表；若文中另有独立完成的系统样本统计，必须拆分说明。 | 不能把规范性建议当作经验统计 finding。 |
-| 🧭 路线图 | vision、roadmap、agenda、challenge map 或开放问题图谱。 | 原文主要提出愿景、挑战、研究议程或 action items，缺少系统检索分母。 | 默认不进主干完整表；只作边界样本或 finding heuristic。 | 不能把作者观点、路线图行动项写成系统综述证据。 |
-| 🧪 方案 | solution proposal、framework proposal 或未完成实证评估的方法设想。 | 原文主要提出流程、工具或框架设计，尚未完成系统检索、纳排和证据综合。 | 默认不进主干完整表；只作方法 / 流程种子或边界样本。 | 不能把“可以如何做”写成“已经系统验证”。 |
+| 枚举 | 定义 | 判定标准 | 当前入池子集数量 | 不得误用为 |
+|---|---|---|---:|---|
+| 🟩 SLR | 系统文献综述，或以 SLR 为主并兼有映射 / 主题综合的混合综述；本库把 `SLR+SMS` 归入该大类并在细分类型中说明。 | 原文明确报告系统检索、纳排、质量评价或数据抽取，并以回答证据综合型 RQ 为目标。 | 4（其中 SLR+SMS 1） | 不能把只写了“review / survey”但无系统流程的叙事综述写成 SLR。 |
+| 🟦 SMS | 系统映射研究，重点是研究版图、分类、覆盖度和缺口。 | 原文强调 mapping、classification、keywording、研究类型/主题分布，而非深度效果综合。 | 4 | 不能把方案论文中“计划做 mapping”的方法设想写成已执行 SMS。 |
+| 🟪 三级 | 三级研究、综述之综述或 review of reviews。 | 样本单位是 SLR/SMS/survey 等二次研究，而非普通原始研究。 | 4 | 不能把三级研究的统计外推为原始研究层面的频次。 |
+| 🟨 MLR | 多声部文献综述，综合白色文献和灰色文献。 | 原文明确 white / grey literature 双轨来源、检索、质量或可信度控制。 | 1 | 不能混淆 peer-reviewed evidence 与 grey evidence 的证据强度。 |
+| 🧰 指南 | 方法指南、报告规范、checklist 或方法论文。 | 原文主要给出如何做 SLR/SMS 的流程、表单、质量标准或报告规范。 | 0 | 不能把规范性建议当作经验统计 finding。 |
+| 🧭 路线图 | vision、roadmap、agenda、challenge map 或开放问题图谱。 | 原文主要提出愿景、挑战、研究议程或 action items，缺少系统检索分母。 | 0 | 不能把作者观点、路线图行动项写成系统综述证据。 |
+| 🧪 方案 | solution proposal、framework proposal 或未完成实证评估的方法设想。 | 原文主要提出流程、工具或框架设计，尚未完成系统检索、纳排和证据综合。 | 0 | 不能把“可以如何做”写成“已经系统验证”。 |
 
 #### 2.4.2 本文角色
 
 该维度回答“这篇论文在 Paper2 中怎么用”。它是本库用途分类，不是原文自称类型。
 
-| 枚举 | 定义 | 判定标准 | 在 SUMMARY 中的位置 | 需要写清的边界 |
-|---|---|---|---|---|
-| 🟢 主样本 | Paper2 SLR 主目标的核心样本。 | 通常为 SLR，且具备系统流程、字段抽取、统计观察和 finding 形成路径。 | 若统计池资格为 `🟢 入池`，进入主干完整表。 | 只贡献方法模式，不把领域结论外推到 Paper2 目标领域。 |
-| 🔵 类SLR | SMS、MLR、tertiary 等类 SLR 证据综合样本。 | 非纯 SLR，但有系统语料、编码字段、统计分母或证据综合。 | 若统计池资格为 `🟢 入池`，进入主干完整表。 | 必须注明样本单位和分母差异。 |
-| 🟣 方法 | 方法学参考。 | guideline / 方法论文 / 报告规范，主要定义流程、质量评价、报告结构或审计纪律。 | 不进入主干完整表；进入非入池简表和方法学参考池说明。 | 可支撑方法设计，不能支撑普通领域统计。 |
-| 🟠 种子 | 维度树、字段、证据链或 finding heuristic 的启发来源。 | 有可迁移结构，但缺少系统样本库或不能进入普通统计池。 | 不进入主干完整表；进入非入池简表或 schema seed / boundary pool。 | 必须说明是启发，不是 final finding。 |
-| ⚫ 边界 | 用于说明哪些文献类型不能混入统计池。 | roadmap / vision / proposal 等高价值但非系统证据综合的论文。 | 不进入主干完整表；进入非入池简表。 | 必须写清阻断入池的原因。 |
-| ⚪ 候选 | 只完成题摘或元数据核验的线索。 | PDF / 全文 / 关键元数据尚未核验，或相关性未裁决。 | 不进入主干完整表；进入候选池或 manual-download。 | 不得采纳为已核验 pattern。 |
+| 枚举 | 定义 | 判定标准 | 当前入池子集数量 | 需要写清的边界 |
+|---|---|---|---:|---|
+| 🟢 主样本 | Paper2 SLR 主目标的核心样本。 | 通常为 SLR，且具备系统流程、字段抽取、统计观察和 finding 形成路径。 | 4 | 只贡献方法模式，不把领域结论外推到 Paper2 目标领域。 |
+| 🔵 类SLR | SMS、MLR、tertiary 等类 SLR 证据综合样本。 | 非纯 SLR，但有系统语料、编码字段、统计分母或证据综合。 | 9 | 必须注明样本单位和分母差异。 |
+| 🟣 方法 | 方法学参考。 | guideline / 方法论文 / 报告规范，主要定义流程、质量评价、报告结构或审计纪律。 | 0 | 可支撑方法设计，不能支撑普通领域统计。 |
+| 🟠 种子 | 维度树、字段、证据链或 finding heuristic 的启发来源。 | 有可迁移结构，但缺少系统样本库或不能进入普通统计池。 | 0 | 必须说明是启发，不是 final finding。 |
+| ⚫ 边界 | 用于说明哪些文献类型不能混入统计池。 | roadmap / vision / proposal 等高价值但非系统证据综合的论文。 | 0 | 必须写清阻断入池的原因。 |
+| ⚪ 候选 | 只完成题摘或元数据核验的线索。 | PDF / 全文 / 关键元数据尚未核验，或相关性未裁决。 | 0 | 不得采纳为已核验 pattern。 |
 
 #### 2.4.3 统计池资格
 
-该维度决定论文是否进入 SUMMARY 主干完整表。它是主表治理的最高优先级枚举。
+该维度决定论文是否进入 SUMMARY 主干完整表和后续主要分析表。它是主表治理的最高优先级枚举。
 
-| 枚举 | 定义 | 判定标准 | SUMMARY 处理 | 升级 / 降级规则 |
-|---|---|---|---|---|
-| 🟢 入池 | 后续可作为主统计池候选的条目。 | 有系统检索或等价语料构造、纳排、编码 / 抽取、可统计字段或统计结果；本地至少全文文本级。 | 唯一允许进入 SUMMARY 主干完整表的资格。 | A2a 完成页码、表图、附录或复制包精核后，才可从候选统计升级为正式统计证据。 |
-| 🟡 待核 | 理论上可能入池，但当前证据不足。 | 题摘或全文显示可能有系统流程，但 PDF、表图、附录、复制包、分母链或字段表未核验。 | 不进入主干完整表；进入后部待核 / 候选简表。 | 补齐全文和证据链后可升为 `🟢 入池`；若证实无系统样本库则降为 `⚪ 不入`。 |
-| ⚪ 不入 | 不进入主统计池，但可能仍有方法或启发价值。 | guideline、roadmap、vision、proposal，或无系统样本库 / 无可统计分母。 | 不进入主干完整表；进入非入池简表。 | 若发现原文另有独立系统样本统计，必须拆分证据后重新裁决。 |
-| 🔴 排除 | 当前文库不再采纳。 | 类型误收、事实不可核验、重复条目、与本目录目标无关，或来源不合规。 | 不进入主干完整表；只留失败 / 排除记录。 | 只能在新增证据推翻排除理由后重新候选。 |
+| 枚举 | 定义 | 判定标准 | 全库数量 | 当前主干分析表数量 | SUMMARY 处理 |
+|---|---|---|---:|---:|---|
+| 🟢 入池 | 后续可作为主统计池候选的条目。 | 有系统检索或等价语料构造、纳排、编码 / 抽取、可统计字段或统计结果；本地至少全文文本级。 | 13 | 13 | 唯一允许进入 SUMMARY 主干完整表和主要分析矩阵。 |
+| 🟡 待核 | 理论上可能入池，但当前证据不足。 | 题摘或全文显示可能有系统流程，但 PDF、表图、附录、复制包、分母链或字段表未核验。 | 0 | 0 | 不进入主干分析表；进入候选池或待核记录。 |
+| ⚪ 不入 | 不进入主统计池，但可能仍有方法或启发价值。 | guideline、roadmap、vision、proposal，或无系统样本库 / 无可统计分母。 | 6 | 0 | 不进入主干分析表；只在风险 / 边界备忘或单篇 `review.md` 中保留。 |
+| 🔴 排除 | 当前文库不再采纳。 | 类型误收、事实不可核验、重复条目、与本目录目标无关，或来源不合规。 | 0 | 0 | 不进入主干分析表；只留失败 / 排除记录。 |
 
 #### 2.4.4 证据成熟度
 
 该维度回答“当前证据链能支撑多强的写作”。它不决定是否入池，但限制该条目能在论文中被怎样使用。
 
-| 枚举 | 定义 | 判定标准 | 允许用途 | 禁止用途 |
-|---|---|---|---|---|
-| 🟢 精核 | PDF、关键表图、页码、附录或复制包已核验。 | 已完成文本 + 版面 / 表图 / supplementary 或 artifact 核验，并回链 `evidence_chain.md`。 | 可支撑较高强度依据和精确数字，但仍需写清范围。 | 不能省略分母、页码或证据限制。 |
-| 🟡 全文 | 已读全文文本，但表图页码仍待 A2a 精核。 | `paper_content.txt` 覆盖摘要、方法、结果、讨论、结论等关键部分。 | 可作为 A1 模式种子和主统计池候选判断。 | 不得写成最终定量统计或最终 finding。 |
-| 🟠 题摘 | 只读题名、摘要、元数据。 | 尚未获取或阅读全文。 | 只能保留候选相关性和下载 / 检索线索。 | 不得采纳任何维度树、统计或 finding。 |
-| ⚪ 待取 | PDF 或正文尚未获取。 | 只有 BibTeX、DOI、题录或待下载路径。 | 进入 manual-download / 候选池。 | 不得假装已读全文。 |
-| 🔴 异常 | 来源、PDF 或文本提取有问题。 | PDF 是登录页 / HTML、文本乱码、关键元数据冲突或来源不可核验。 | 先修复来源和提取问题。 | 不得继续写模式结论。 |
+| 枚举 | 定义 | 判定标准 | 当前入池子集数量 | 禁止用途 |
+|---|---|---|---:|---|
+| 🟢 精核 | PDF、关键表图、页码、附录或复制包已核验。 | 已完成文本 + 版面 / 表图 / supplementary 或 artifact 核验，并回链 `evidence_chain.md`。 | 0 | 不能省略分母、页码或证据限制。 |
+| 🟡 全文 | 已读全文文本，但表图页码仍待 A2a 精核。 | `paper_content.txt` 覆盖摘要、方法、结果、讨论、结论等关键部分。 | 13 | 不得写成最终定量统计或最终 finding。 |
+| 🟠 题摘 | 只读题名、摘要、元数据。 | 尚未获取或阅读全文。 | 0 | 不得采纳任何维度树、统计或 finding。 |
+| ⚪ 待取 | PDF 或正文尚未获取。 | 只有 BibTeX、DOI、题录或待下载路径。 | 0 | 不得假装已读全文。 |
+| 🔴 异常 | 来源、PDF 或文本提取有问题。 | PDF 是登录页 / HTML、文本乱码、关键元数据冲突或来源不可核验。 | 0 | 不得继续写模式结论。 |
 
 #### 2.4.5 样本单位类型
 
 该维度回答“原文实际描述和编码的对象是什么”。它是判断统计池资格和分母含义的关键。
 
-| 枚举 | 定义 | 判定标准 | 主表写法 | 统计注意事项 |
-|---|---|---|---|---|
-| 📄 原研 | 原始研究、primary studies 或研究论文。 | 每个样本是一篇原始研究 / 研究提案 / 研究论文。 | `📄 原研 / N`，必要时补工具或平台分母。 | 不同研究类型、peer-reviewed / arXiv / grey literature 需分层。 |
-| 📚 综述 | 二次研究、SLR/SMS/survey 样本。 | 每个样本是一篇综述或系统映射。 | `📚 综述 / N`。 | 不得把综述样本统计外推为原始研究统计。 |
-| 🧩 工件 | artifact、dataset、tool、replication package 或链接对象。 | 样本或核心字段围绕研究制品、数据集、工具、仓库、链接状态。 | `🧩 工件 / N` 或说明依附论文分母。 | 需区分 paper-level 与 artifact-level 分母。 |
-| 🧰 指南项 | guideline item、checklist item、流程步骤。 | 原文是方法指南或规范，编码对象是条目而非经验样本。 | `🧰 指南项 / 无主分母`。 | 默认不进入普通统计池。 |
-| 🧭 行动项 | roadmap action、open question、challenge item。 | 原文组织为挑战、开放问题、行动项或愿景组件。 | `🧭 行动项 / 无系统分母`。 | 只能作启发或边界，不能当 empirical denominator。 |
-| ❌ 无分母 | 无系统样本库或无法形成可统计分母。 | 原文没有检索、纳排、样本单位或可统计对象。 | `❌ 无分母`。 | 自动阻断主干完整表资格，除非后续发现独立系统样本部分。 |
+| 枚举 | 定义 | 判定标准 | 当前入池子集数量 | 统计注意事项 |
+|---|---|---|---:|---|
+| 📄 原研 | 原始研究、primary studies 或研究论文。 | 每个样本是一篇原始研究 / 研究提案 / 研究论文。 | 7 | 不同研究类型、peer-reviewed / arXiv / grey literature 需分层。 |
+| 📚 综述 | 二次研究、SLR/SMS/survey 样本。 | 每个样本是一篇综述或系统映射。 | 6 | 不得把综述样本统计外推为原始研究统计。 |
+| 🧩 工件 | artifact、dataset、tool、replication package 或链接对象。 | 样本或核心字段围绕研究制品、数据集、工具、仓库、链接状态。 | 0 | 需区分 paper-level 与 artifact-level 分母。 |
+| 🧰 指南项 | guideline item、checklist item、流程步骤。 | 原文是方法指南或规范，编码对象是条目而非经验样本。 | 0 | 默认不进入普通统计池。 |
+| 🧭 行动项 | roadmap action、open question、challenge item。 | 原文组织为挑战、开放问题、行动项或愿景组件。 | 0 | 只能作启发或边界，不能当 empirical denominator。 |
+| ❌ 无分母 | 无系统样本库或无法形成可统计分母。 | 原文没有检索、纳排、样本单位或可统计对象。 | 0 | 自动阻断主干完整表资格，除非后续发现独立系统样本部分。 |
 
 #### 2.4.6 原生维度树类型
 
 该维度回答“原文如何描述自己的样本集合或证据对象”。它是本库对 Paper2 最重要的 schema 资产。
 
-| 枚举 | 定义 | 判定标准 | 对 Paper2 的用途 | 容易误判点 |
-|---|---|---|---|---|
-| 🌳 RQ树 | 以 RQ / 子 RQ 为主干组织字段。 | 每个 RQ 对应一组抽取字段、结果表或 finding 段。 | 适合设计 researcher-defined meta-model 的问题层。 | 多个 RQ 若对应不同样本单位，应改写为森林。 |
-| 🌲 森林 | 多个 RQ、多个样本单位或多个不共享根对象的编码结构。 | 原文同时有多个字段树、质量表、检索漏斗、评价树等。 | 支撑复杂 SLR/SMS 的多视角 schema。 | 不要为追求简洁强行压成单树。 |
-| 🕸️ 关系树 | 重点是对象间关系。 | 字段包括 tool-task-metric、problem-solution、challenge-practice 等边。 | 支撑交叉统计、缺失关系和候选 finding。 | 不能把关系边压成普通枚举列。 |
-| 🧱 资产树 | 以制品、数据集、复制包、链接状态等证据资产组织。 | 关注 artifact availability、repository、DOI、dead link、by request 等。 | 支撑 Paper2 的可审计证据链和复现资产设计。 | 需区分制品层和论文层分母。 |
-| 🔁 流程树 | 以检索、筛选、编码、报告、质量控制等流程组织。 | 原文主要贡献是方法流程、阶段、输入输出或 researcher gate。 | 支撑 agent-human 协同流程图和 stage contract。 | 流程树不等于已完成系统综述证据。 |
-| 🧰 指南树 | 以指南项、checklist、报告规范组织。 | 节点来自 protocol、search、selection、QA、extraction、synthesis、reporting 等规范项。 | 支撑方法学规则库和审计 checklist。 | 不得把指南建议当成领域统计。 |
-| 🧭 路线图树 | 以挑战、行动项、开放问题组织。 | 节点来自 roadmap action、vision component、challenge、open question。 | 只作边界和研究发现启发。 | 不得把愿景主张写成经验 finding。 |
-| 🧪 理论树 | 以理论概念、构念、评价框架组织。 | 节点来自 theory、concept、construct、taxonomy 或 evaluation framework。 | 支撑 researcher-defined meta-model 的概念层。 | 如果样本来自 convenience evaluation，统计池资格仍需降级。 |
+| 枚举 | 定义 | 判定标准 | 当前入池子集数量 | 容易误判点 |
+|---|---|---|---:|---|
+| 🌳 RQ树 | 以 RQ / 子 RQ 为主干组织字段。 | 每个 RQ 对应一组抽取字段、结果表或 finding 段。 | 1 | 多个 RQ 若对应不同样本单位，应改写为森林。 |
+| 🌲 森林 | 多个 RQ、多个样本单位或多个不共享根对象的编码结构。 | 原文同时有多个字段树、质量表、检索漏斗、评价树等。 | 6 | 不要为追求简洁强行压成单树。 |
+| 🕸️ 关系树 | 重点是对象间关系。 | 字段包括 tool-task-metric、problem-solution、challenge-practice 等边。 | 4 | 不能把关系边压成普通枚举列。 |
+| 🧱 资产树 | 以制品、数据集、复制包、链接状态等证据资产组织。 | 关注 artifact availability、repository、DOI、dead link、by request 等。 | 1 | 需区分制品层和论文层分母。 |
+| 🔁 流程树 | 以检索、筛选、编码、报告、质量控制等流程组织。 | 原文主要贡献是方法流程、阶段、输入输出或 researcher gate。 | 1 | 流程树不等于已完成系统综述证据。 |
+| 🧰 指南树 | 以指南项、checklist、报告规范组织。 | 节点来自 protocol、search、selection、QA、extraction、synthesis、reporting 等规范项。 | 0 | 不得把指南建议当成领域统计。 |
+| 🧭 路线图树 | 以挑战、行动项、开放问题组织。 | 节点来自 roadmap action、vision component、challenge、open question。 | 0 | 不得把愿景主张写成经验 finding。 |
+| 🧪 理论树 | 以理论概念、构念、评价框架组织。 | 节点来自 theory、concept、construct、taxonomy 或 evaluation framework。 | 0 | 如果样本来自 convenience evaluation，统计池资格仍需降级。 |
 
-## 3. 非主统计池条目简表（方法学参考 / 模式种子 / 边界样本）
+## 3. 入池子集证据池分布与统计解释
 
-本节只收纳 `统计池资格 != 🟢 入池` 的条目，避免它们占用 SUMMARY 主干完整表。它们不是“无价值论文”：guideline 可支撑方法学规则，roadmap / vision / proposal 可支撑边界和 finding heuristic，但不能与完成型 SLR/SMS/MLR/tertiary 混算。
+本节只解释 `统计池资格 = 🟢 入池` 的 13 篇。非入池条目不再出现在 SUMMARY 主干统计表、覆盖矩阵、维度树总览、pattern 表或结论-证据映射中；它们只作为边界 / 风险备忘保留在 §8.1。
 
-| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |
-|---:|---|---|---|---|---|---|
-| 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | AI-native SE 愿景和挑战路线图；用于提醒愿景类论文只能作边界和挑战启发。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
-| 2025 | On the road to interactive LLM-based systematic mapping studies | 🧪 方案 | 🟠 种子 | ⚪ 不入 | 提供 LLM 介入 SMS 流程、人机角色、traceability 和模型漂移风险种子。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
-| 2025 | Formal requirements engineering and large language models: A two-way roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | 启发 concern→mechanism→action 结构和 trustworthiness 边界。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
-| 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 🧭 理论路线图 | 🟠 种子 | ⚪ 不入 | 启发 researcher-defined meta-model、理论概念树和 gap→roadmap 结构。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
-| 2008 | Systematic Mapping Studies in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 定义 SMS 流程、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
-| 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 提供 SE SLR 方法底座、protocol、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+| 入池子集切面 | 入池数量 | 解释 | A2a/A2b 用途 |
+|---|---:|---|---|
+| 后续主统计池候选 | 13 | 已完成型 SLR / SMS / tertiary / MLR / 系统映射或系统映射之系统映射；均有系统语料构造、纳排、编码 / 抽取和可统计字段。 | 后续做页码、表图、附录和复制包精核后，才可用于字段频次、覆盖度、维度饱和度和候选 finding 支撑。 |
+| 主样本 | 4 | 以 SLR 或 SLR+SMS 为主，能体现完整综述问题、字段抽取、统计观察和 finding 形成路径。 | 支撑 Paper2 的主流程和主线 story。 |
+| 类 SLR 样本 | 9 | SMS、MLR、tertiary、systematic map of maps 等类 SLR 证据综合样本。 | 支撑脚手架泛化、样本单位差异、二次研究分母链和映射型统计。 |
+| 全文但未页码精核 | 13 | 当前 13 篇都达到 `paper_content.txt` 全文文本级，但仍待 A2a 逐项核验 PDF 页码、表图和 supplementary。 | A1 只能作为 schema seed；A2a 负责把候选统计证据升级为可写作证据。 |
 
-**本节结论**：6 篇非入池条目承担方法学参考、维度种子和边界提醒职责；后续写作时可以引用其方法或启发，但不得把它们计入主统计池分母，也不得把其观点写成系统综述统计发现。
+**本节结论**：从本节开始，SUMMARY 的主要分析表默认只展示这 13 篇入池子集。6 篇非入池条目仍有方法学或边界启发价值，但不参与主干统计、矩阵覆盖或跨论文归纳分母。
 
-## 4. 证据池分布与统计池解释
-
-| 池 / 角色 | 当前主归属条目 / 数量 | 说明 |
-|---|---|---|
-| 后续主统计池候选 | 13 | 可在 A2a/A2b 完成精确页码、表图和字段锚定后，用于统计“综述论文如何组织维度、字段、证据和 finding”。包含 SLR、SMS、tertiary、MLR、系统映射，以及 Petersen 2015 这种已执行“系统映射之系统映射”（系统映射之系统映射（systematic map of maps）） 的方法学统计样本；PR-A1-DT 当前只提供 `schema_seed`。 |
-| 方法学参考池 | 2：Kitchenham & Charters 2007、Petersen 2008 | 这些论文定义 SLR/SMS 的流程、keywording、classification、quality / validity 和 reporting 规则；不应与普通领域结果统计混算。Petersen 2015 也有方法学价值，但主归属为主统计池中的“方法学统计样本”，不在本池重复计数。 |
-| 模式种子 / 边界池（boundary pool） | 4：AI-native SE roadmap、Formal RE + LLM roadmap、interactive LLM 系统映射 proposal、requirements quality theory roadmap | 这些论文适合启发字段树、人机协同、trustworthiness concern、finding heuristic 和方法边界；不得进入主统计池。 |
-| 待人工下载 / metadata-only | 0 | 历史 3 条下载失败已由用户本地 Zotero PDF 补齐；后续新增失败条目必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。 |
-| CCF 待官方复核 | TOSEM / IST / JSS / RE / ESE / EASE 本地缓存；CSUR 待核验 | 当前受 CCF 官方 WAF 限制，正式写作前需人工复核。 |
-
-**本节结论**：A1 当前最重要的治理规则是“统计池与 模式种子 池分离”。这能防止 roadmap / proposal 的高价值观点污染统计结论，也能防止 guideline 的方法学价值被错误低估。
-
-## 5. A1-M0--M6 元维度定义
+## 4. A1-M0--M6 元维度定义
 
 A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者定义综述元模型 → 维度模式演化 → 字段证据 → 统计观察 → 候选 finding → 研究者裁决”变成可审计链条。它不是最终 A3 schema，也不是某个具体 SE 主题的固定字段表。
 
@@ -228,22 +215,18 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | A1-M5 | 统计分析就绪 | 字段是否有版本、取值空间、缺失值语义、可交叉统计字段、回填状态？ | 全文文本级 | 字段表需要可统计、可回填、可记录缺失语义。 |
 | A1-M6 | research finding 形成与裁决 | 论文如何从统计观察形成 候选发现、support / counter-evidence、claim strength、scope、researcher adjudication？ | 全文文本级 | finding 不是频次最高项，而是统计观察 + 缺口解释 + 反向证据 + 研究者裁决。 |
 
-## 6. A1-M0--M6 逐篇覆盖矩阵
+## 5. 入池子集 A1-M0--M6 逐篇覆盖矩阵
 
-下表是 SUMMARY 级总账视图。每格只保留短语级贡献；详细证据、可迁移性和不可迁移点见对应单篇 `review.md`。
+下表是 SUMMARY 级总账视图，只展示 `统计池资格 = 🟢 入池` 的 13 篇。每格只保留短语级贡献；详细证据、可迁移性和不可迁移点见对应单篇 `review.md`。非入池条目不参与本矩阵。
 
 | 论文 | A1-M0 | A1-M1 | A1-M2 | A1-M3 | A1-M4 | A1-M5 | A1-M6 |
 |---|---|---|---|---|---|---|---|
 | [LLM assistants productivity](./papers/llm-assistants-developer-productivity/review.md) | LLM assistant 生产力综述元模型 | 39 篇 peer-reviewed studies 与时间窗 | SPACE / task / benefit-risk 分类 | LLM assistant 任务与使用场景 | 生产力指标与 empirical evidence | SLR+SMS 混合统计表 | productivity benefit / risk finding |
-| [AI-native SE roadmap](./papers/ai-native-se-roadmap/review.md) | SE 3.0 愿景元模型 | 非系统检索；不采纳 M1 | 五层技术栈与挑战域 | AI teammate / FMware / intent-centric | 经验与社区互动作边界证据 | 不进统计池 | challenge roadmap / action heuristic |
 | [Research artifacts in 二次研究](./papers/research-artifacts-secondary-studies/review.md) | secondary-study artifact 元模型 | 537 篇 二次研究 检索与筛选 | artifact reporting / availability 对象 | artifact repository / DOI / by-request 分类 | open artifact 与 dead-link 字段 | A2a 后可统计 artifact 可用性 | reproducibility gap finding |
-| [Interactive LLM 系统映射](./papers/interactive-llm-systematic-mapping/review.md) | LLM-supported mapping 方法设想 | solution proposal；不采纳统计分母 | SMS 流程阶段与人机节点 | agents / prompts / interaction roles | traceability、model drift 风险 | 不进统计池 | LLM 介入 mapping 的边界启发 |
-| [Formal RE + LLM roadmap](./papers/formal-re-llm-roadmap/review.md) | formal RE 与 LLM 双向路线 | roadmap；不采纳 M1 | formal specification / RE task concern | LLM agents + formal method roles | correctness / fairness / trustworthiness | 不进统计池 | 双向 roadmap 与 trustworthiness heuristic |
 | [MDSE modelling assistants](./papers/mdse-modelling-assistants-mapping/review.md) | MDSE assistant landscape | 系统映射 检索与分类 | 策略 / 目标 / 限制 / 指标 / 用户树 | 建模辅助方法与工具 | 指标 / 用户 / 限制证据 | 分类轴可交叉统计 | MDSE assistant gap / opportunity |
 | [MDE for ML components](./papers/mde-ml-components-slr/review.md) | MDE4ML 综述对象 | SLR protocol 与 原始研究 | motivations / solutions / lifecycle objects | MDE 方法、建模语言、工具 | evaluation / limitation / artifact | 字段频次与交叉统计 | ML component engineering gap |
 | [LLM4SE SLR](./papers/llm4se-systematic-review/review.md) | LLM4SE 任务与效果元模型 | 395 篇研究检索 / 纳排 | SDLC task tree / model / data | LLM 应用方式、工具、模型 | dataset、artifact、evaluation 字段 | 大规模字段统计 | LLM4SE limitation / trend finding |
 | [DevSecOps primary dimensions](./papers/devsecops-primary-dimensions/review.md) | DevSecOps primary dimensions | white / grey literature 双轨 MLR | aspect / theme / CPTM taxonomy | practice / tool / metric / lifecycle | Zenodo open artifacts / QA score | CPTM 与 TA 表可统计 | GSE 空白与 challenge-practice-tool-metric finding |
-| [Requirements quality roadmap](./papers/requirements-quality-theory-roadmap/review.md) | requirements quality theory 元模型 | 非标准 SLR；57 篇状态评价 | artifact / agent / activity / impact theory | quality model / tool-support 架构 | evaluation status 与 theory evidence | 不进主统计池 | theory gap → roadmap / tool architecture |
 | [ML4SE tertiary](./papers/ml4se-tertiary-study/review.md) | ML4SE tertiary 元模型 | tertiary search / 二次研究 | ML4SE topic / challenge 分类 | ML 方法与 SE task 分类 | quality / challenge / action evidence | 大规模 tertiary 统计 | challenge / action recommendation |
 | [App reviews SLR](./papers/app-reviews-slr-se/review.md) | app reviews for SE 元模型 | 1656→182 纳排链条 | review type / technique / SE activity | mining technique 与 analysis type | F1--F18、evaluation、replication package | 多套 classification schema | support-to-SE finding 与评价缺口 |
 | [Petersen 2015 mapping update](./papers/petersen-2015-mapping-guidelines-update/review.md) | SMS guideline update 元模型 | mapping studies 检索 / snowballing | topic-independent dimensions | SMS planning-conducting-reporting | quality rubric / validity taxonomy | systematic maps of maps | guideline update finding |
@@ -251,21 +234,19 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | [RE tertiary](./papers/re-tertiary-study-2014/review.md) | RE 子领域 tertiary scope | distinct reviews / publications | RE topics / 质量 / citation impact / future researchers | RE research method overview | quality / impact evidence | distinct review vs publication 分母 | RE SLR quality / impact finding |
 | [da Silva 2011 updated tertiary](./papers/da-silva-2011-six-years-slr/review.md) | updated tertiary 元模型 | 新旧 tertiary 合并与增量检索 | SE topics / author / institution | EBSE practice and education dimensions | quality assessment / relevance evidence | longitudinal / update 统计 | growth + quality + practice gap |
 | [Kitchenham 2009 tertiary SLR / SE SLR 状态综述](./papers/kitchenham-2009-slr-tertiary/review.md) | early SE SLR ecosystem | SLR collection and screening | topic / quality / method dimensions | EBSE method usage | quality and reporting evidence | early tertiary summary statistics | SE SLR adoption / quality finding |
-| [Petersen 2008 SMS method](./papers/petersen-2008-systematic-mapping/review.md) | SMS vs SLR 方法元模型 | 方法示例；不进主统计池 | topic / contribution / research type facets | keywording 与 classification process | map / bubble plot / rationale evidence | 方法级频数示例 | mapping 用于识别研究空白 |
-| [Kitchenham & Charters 2007 guideline](./papers/kitchenham-charters-2007-slr-guidelines/review.md) | SLR protocol 元模型 | guideline；不进主统计池 | RQ / population / intervention / outcome | search / selection / extraction / synthesis process | quality assessment / data extraction forms | 方法标准，不做统计池 | reporting / validity / protocol discipline |
 
-**本节结论**：19 篇已经逐篇抽取 A1-M0--M6，并在单篇 `review.md` 中保留详细证据。SUMMARY 级矩阵说明当前样本已经覆盖元模型、检索分母、主题语义、方法干预、评价证据、统计就绪和 finding 裁决七层，但图表级证据和字段取值饱和仍需 A2a 深化。
+**本节结论**：13 篇入池论文已经逐篇投影到 A1-M0--M6，并在单篇 `review.md` 中保留详细证据。SUMMARY 级矩阵说明入池子集已经覆盖元模型、检索分母、主题语义、方法干预、评价证据、统计就绪和 finding 裁决七层；非入池条目只保留在边界备忘中，不参与本矩阵分母。
 
 
-## 6.1 survey_of_surveys 自身 S1--S8 schema
+## 5.1 survey_of_surveys 自身 S1--S8 schema
 
 本节把 `survey_of_surveys/` 自身也当作一篇脚手架综述来维护：每篇样本论文不仅要复原自己的原生维度树，还要投影到 S1--S8，便于后续 A2a/A2b 汇总“SE 综述通常如何设定任务、构造语料、定义维度、形成统计观察和 research finding”。S1--S8 是二级汇总 schema，不替代单篇原生维度树，不产生目标领域最终发现。
 
-本轮 S1--S8 抽取已按“一篇论文至少一个独立 subagent”完成 19/19 篇只读审计；批次证据入口为 [audits/a1-s1s8-19x1/](./audits/a1-s1s8-19x1/)，其中 [TASKS.tsv](./audits/a1-s1s8-19x1/TASKS.tsv) 记录 19 个唯一 agent 与任务状态，`results/<slug>.md` 保存独立审计输出或忠实压缩归档，`adjudications/<slug>.md` 保存主线程采纳 / 不采纳裁决。重复调度的 `research-artifacts-secondary-studies` 另有多路 sanity check，最终以主线程裁决后的 `review.md` 表格为当前事实口径。
+本轮 S1--S8 抽取已按“一篇论文至少一个独立 subagent”完成 19/19 篇只读审计；但 SUMMARY 主干 S1--S8 覆盖矩阵只展示 13 篇入池论文。批次证据入口为 [audits/a1-s1s8-19x1/](./audits/a1-s1s8-19x1/)，其中 [TASKS.tsv](./audits/a1-s1s8-19x1/TASKS.tsv) 记录 19 个唯一 agent 与任务状态，`results/<slug>.md` 保存独立审计输出或忠实压缩归档，`adjudications/<slug>.md` 保存主线程采纳 / 不采纳裁决。重复调度的 `research-artifacts-secondary-studies` 另有多路 sanity check，最终以主线程裁决后的 `review.md` 表格为当前事实口径。
 
 **四分栏拆分纪律**：每篇单篇 `review.md` 的 S1--S8 小节除等级表外，必须额外保留 `S1--S8 四分栏证据拆分` 表，把 `原文证据`、`维度树复原`、`统计池资格` 和 `A2a 待核验` 分开。这样做是为了避免后续 A2a / A2b 把本地维度树解释、roadmap 启发或文本级统计观察误读为最终定量证据。
 
-### 6.1.1 S1--S8 定义与判定标准
+### 5.1.1 S1--S8 定义与判定标准
 
 | 维度 | 操作化问题 | 强 | 中 | 弱 / 不适用 | 当前用途 |
 |---|---|---|---|---|---|
@@ -280,20 +261,16 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 
 **本节结论**：S1--S8 把导师讨论中的“三阶段 SLR + 维度模式 + 统计分析 + research finding + 人类质疑裁决”落成可检查 schema。它的重点不是评价论文好坏，而是判断一篇综述能为 Paper2 方法的哪个环节提供可迁移模式、哪些只能作为边界启发。
 
-### 6.1.2 S1--S4 逐篇覆盖矩阵
+### 5.1.2 入池子集 S1--S4 逐篇覆盖矩阵
 
 | 年份 | 论文 | S1 任务设定 | S2 语料筛选 | S3 原生树/编码对象 | S4 字段级证据 |
 |---:|---|---|---|---|---|
 | 2026 | [The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study](./papers/llm-assistants-developer-productivity/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文设定为围绕 LLM-assistants 对软件开发者生产力影响的 SLR+SMS，RQ0--RQ3 覆盖研究图景、方法实践、收益/风险和 SPACE 维度映射。 | 强：给出数据库、控制论文、五轮 query iteration、纳排标准、Rayyan 筛选、snowballing、QA 排除和 9756→8953→228→44→39 的分母链。 | 强：原生编码对象是 39 篇 peer-reviewed 原始研究 PS1--PS39，维度结构是以 PS-id 为主键的多根 RQ 维度森林。 | 强：字段级抽取覆盖 study goals、tools、strategy/design、tasks、settings、key results、instrument、metric、benefit/risk、SPACE mapping，并通过表格和 PS-id 保持可追踪。 |
-| 2026 | [Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap](./papers/ai-native-se-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 弱：本文是 AI-native SE / SE 3.0 的愿景与挑战路线图，不是 SLR/SMS/tertiary；可作为边界启发和 roadmap 样本。 | 弱：作者提到学术/灰色文献、workshop、客户讨论、内部经验和 OPEA 工业互动，但未给检索式、数据库、纳排、筛选分母或质量评价。 | 中：原生对象不是论文样本，而是 3 个 SE 时代、5 层 SE 3.0 技术栈组件、5 个主挑战与 OQ1--OQ14；§4.6 是 OQ7--OQ14 附加开放问题，§4.6 不是第 6 个主挑战。 | 中：可抽取技术栈组件、挑战模板、影响范围、开放问题和证据来源类型等路线图字段，但这些字段服务于边界启发而非系统综述证据表。 |
 | 2025 | [Research artifacts in secondary studies: A systematic mapping in software engineering](./papers/research-artifacts-secondary-studies/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文是软件工程二次研究的系统映射，任务是审计 research artifact 的报告、可获得性、存放方式与时间/venue 影响。 | 强：使用 Scopus、16 个 ISSN token / 15 个期刊、标题综述类关键词与 2013--2023 年窗口检索，643 篇初始结果经 IC1--IC3 筛选后纳入 537 篇。 | 强：样本单位是每篇 secondary study；原生编码字段包括 year、venue、artifact availability、permanent repo、by request、dead link、dedicated section；logistic regression 属于派生统计输出，不是逐样本编码叶子。 | 中：正文支持聚合字段与统计表，但未核验 Zenodo 原始逐篇清单；当前强在 aggregate table，sample-level artifact list / sample ID / artifact link 待 A2a/Zenodo 核验。 |
-| 2025 | [On the road to interactive LLM-based systematic mapping studies](./papers/interactive-llm-systematic-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文是 solution proposal，讨论如何以 human-in-the-loop 方式把 LLM 嵌入系统映射研究流程；无正式 RQ 表、已执行 SMS、样本单位或综述 protocol。 | 不适用：原文未执行系统检索、纳排或语料构建；10 条参考文献仅作叙事旁证，不能计入统计池。 | 中：原生对象是 LLM-supported SMS 流程阶段、角色和交互节点的降级概念维度森林，而非原始研究样本编码 schema。 | 中：可抽取阶段、研究者输入、interactive refinement、LLM output 和 search 三智能体；override、source location、borderline 等是 Paper2 本地审计增强字段，不是原文明示字段。 |
-| 2025 | [Formal requirements engineering and large language models: A two-way roadmap](./papers/formal-re-llm-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文是 vision/roadmap，任务设定为双向讨论 LLM 支持 formal RE/FM 与 FM 提升 LLM-based RE 的 correctness/fairness/trustworthiness。 | 不适用：原文无系统检索、纳排、质量评价、数据抽取或 PRISMA 风格流程；声明无数据使用，因此不进入统计池。 | 中：原生结构可降级复原为双根 roadmap 森林：Roadmap A 5 个 discussion topics / 7 条 Action Point statements，Roadmap B 7 个 discussion topics / 7 条 Action Point statements，另有 7 项 practical considerations；它不是样本编码树。 | 中：可抽取 action-point 级字段：direction、layer、action point、concern、mechanism、artifact in/out、recommendation、supporting refs 和 evidence strength。 |
 | 2024 | [Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping](./papers/mdse-modelling-assistants-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文以“辅助人类在 MDSE 工具中完成软件建模任务”为主任务，采用 MRQ 统领文献侧 RQ1--RQ3 与实践侧 RQ4。 | 强：文献侧采用五个数据库检索、PICO search string、I/E criteria、QA 与滚雪球，形成 3176 条筛查记录到 58 个研究提案；实践侧覆盖 Gartner MQ 2023 相关平台文档。 | 强：原生结构是维度森林：文献侧以提案为编码对象，按策略、目标、限制、指标、目标用户五类树编码；实践侧把工具文档 quote 投影到同一编码体系。 | 中：有 RQ 驱动抽取规则、Table 2--5 和实践 quote，但当前证据链仍多为树级泛定位，尚未逐字段精确到页码、表号、样本 ID 或 Zenodo raw data。 |
 | 2024 | [Model driven engineering for machine learning components: A systematic literature review](./papers/mde-ml-components-slr/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文是 Kitchenham-style SLR，任务设定为系统综述 MDE4ML 的 motivations、approaches/tools、evaluation、limitations/future work。 | 强：自动检索 7 个数据库，3934 条去重至 3570 条，经三轮筛选得 32 篇，再 snowballing 增补 14 篇，最终 46 篇。 | 强：样本编码对象为 P1--P46 原始研究；原生结构为 Fig. 5 单根 feature tree，并辅以纳排 schema 与 QA1--QA5 质量量规。 | 强：原文用 40-question Google Form、5 个 section 和 Table 3--8/QA 表把 RQ 映射为 goal、ML technique、domain、tool、evaluation、limitations 等字段；raw 40-question form 与完整 Fig. 5 树待数据仓库/PDF 精核。 |
 | 2024 | [Large Language Models for Software Engineering: A Systematic Literature Review](./papers/llm4se-systematic-review/review.md#survey_of_surveys-自身-schema-抽取) | 强：该文以 LLM4SE 为对象，设置 RQ1--RQ4 覆盖模型、数据、优化/评价和 SE 任务，并声明采用 Kitchenham-style SLR。 | 强：语料覆盖 2017 年 1 月至 2024 年 1 月，论文收集截止日为 2024-01-31；经 QGS、7 个数据库检索、多阶段过滤、QAC 质量评估和 snowballing，最终纳入 395 篇。 | 强：样本编码对象是一篇 LLM4SE primary study；原生结构是 4 个 RQ 展开的维度森林，并由 Table 5 的 8 项 data items 串联。 | 强：字段级证据由 Table 5 定义字段合同，并通过 Appendix A--E 将 data type、input form、prompt、metric、SE task 等取值回链到 primary-study references。 |
 | 2024 | [Identifying the primary dimensions of DevSecOps: A multi-vocal literature review](./papers/devsecops-primary-dimensions/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文明确设定为 DevSecOps 的多声部文献综述，RQ1 抽取 aspects/themes/links，RQ2 检查 GSE context 中的应用空白。 | 强：采用 white literature + grey literature 双轨检索、两套 search string、纳排、QA 和 snowballing；confirmatory search 只作新近验证，不进入 TA/CPTM 主统计语料。 | 强：原生结构是 5 个 aspect 构成的维度森林，并以 text segment/code/theme/category 到 CPTM 节点与关系边为编码对象。 | 强：字段级证据覆盖 definitions、challenges、practices、metrics、tools 的 text segment/code/theme/category 计数、ID、频次、source-ID 与关系映射；CPTM 关系边与 Zenodo full model 待 A2a 精核。 |
-| 2023 | [Requirements quality research: a harmonized theory, evaluation, and roadmap](./papers/requirements-quality-theory-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 强：原文明确 VIEW POINT / research commentary 类型，并给出 RQT 理论统一、requirements quality literature survey、roadmap 三段式贡献；§4 还明确 RQ、target population 与 57 篇样本单位。 | 中：被评价语料为作者前作 quality-factor ontology 中继承来的 57 篇原始研究，样本单位和分母清楚，但属于 convenience sampling。 | 强：原生结构是维度森林：RQT 11 概念元模型、57 篇样本编码的 categorical-variable codebook、6 条 roadmap streams；其中只有树 B 是真正样本编码树。 | 中：字段结构与多项分母可复原，但若干 leaf/code 依赖 Fig. 4、Zenodo replication package 或 A2a 精核；当前不宜写成字段级证据充分。 |
 | 2023 | [Machine Learning for Software Engineering: A Tertiary Study](./papers/ml4se-tertiary-study/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文是 ML4SE 三级研究，目标是系统收集、质量评价、汇总并分类二次研究，围绕 SE task 覆盖、欠研究 KA 与 ML technique 三个 RQ 展开。 | 强：语料链为 1567 去重结果 → 140 候选 → 83 篇 QA≥2.0 的二次研究，采用数据库检索、手工检索、snowballing、IC/EC、Kappa≥0.8 双人选择与 DARE-4 质量评估。 | 强：原生编码对象是 83 篇二次研究，维度树是共根维度森林：书目信息、研究设计、质量评价、primary 覆盖度、SWEBOK KA×SE task、ML 四轴、建议、威胁和复现制品。 | 中：字段清单充分，但多依赖 Table 3--7、Fig. 3--6 与 supplementary；当前图表/表格和部分 sample-level 字段待 A2a 精核。 |
 | 2022 | [Analysing app reviews for software engineering: a systematic literature review](./papers/app-reviews-slr-se/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文以 app reviews 如何支持软件工程活动为综述对象，RQ1--RQ5 覆盖分析类型、挖掘技术、SE activity、评价方法与评价结果。 | 强：本文遵循 Kitchenham 与 PRISMA 风格流程：1656 个初始命中减去 303 个重复后筛选 1353 个题摘，保留 128 篇初始纳入并经手工检索 14 篇、snowballing 40 篇扩展至 182 篇。 | 强：样本编码对象为 182 篇 peer-reviewed 原始研究；原生结构包括 F1--F18 抽取表、3 套分类 schema、SE activity 树和评价/复现资产字段。 | 强：Table 3 的 F1--F18 字段覆盖书目信息、分析类型、技术、SE 活动、评价流程/指标/结果、标注数据集、质量量规和 replication package。 |
 | 2015 | [Guidelines for conducting systematic mapping studies in software engineering: An update](./papers/petersen-2015-mapping-guidelines-update/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文以“对 SE 系统映射研究做系统映射并更新 mapping guideline”为任务，RQ 覆盖 guideline 使用、SE topic、venue/year 与 mapping process 执行。 | 强：有数据库、检索式、时间窗、去重、题摘、全文、snowballing、QA 和回补排除研究；57 是 QA 中间候选，52 是 final included mapping studies 分母。 | 强：被编码样本单位是 52 篇 SE 系统映射研究，原生结构是抽取表单树、分类切面树、guideline action/rubric 树和 validity taxonomy 树组成的维度森林。 | 中：Table 3 与 Appendix B 支撑字段级编码，但当前核心证据多为 not_verified / 待 A2a 图表核验；字段存在性强，逐样本表格数值仍待精核。 |
@@ -301,26 +278,20 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | 2014 | [Systematic Reviews in Requirements Engineering: A Tertiary Study](./papers/re-tertiary-study-2014/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文是 RE 领域三级研究，目标是综览 RE SLR，并回答覆盖领域、发表 SLR 质量、覆盖缺口 3 个 RQ。 | 强：作者采用 5 个数据库、snowball、手工 venue 扫描与 3 条纳入标准，形成 64 publications / 53 distinct SLR 的最终语料，QA 分母为 51。 | 强：原生编码对象是 distinct SLR study，维度森林包括 publication metadata、SLR 抽取信息、topic group、scope、QA rubric、citation/impact、gap taxonomy 和 publication type。 | 中：核心叶子字段、QA rubric 与 Appendix S-ID 可复原，但图表/页码/样本级精确证据待 A2a PDF 核验，当前不宜写强。 |
 | 2011 | [Six years of systematic literature reviews in software engineering: An updated tertiary study](./papers/da-silva-2011-six-years-slr/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文是更新型三级研究，新增检索窗口为 2008-07-01 至 2009-12-31，整合 OS/FE 后覆盖 2004-01-01 至 2009-12-31，设置 RQ1--RQ5 比较数量增长、主题覆盖、作者/机构、既有限制与质量提升。 | 强：语料通过 6 个自动数据库、13 个手工源和回溯引用收集；77 个 unique SLRs 进入 QA 与 data extraction，排除 10 篇后最终 SE 分析分母为 67，整合 OS/FE 后 N=120。 | 强：主样本单位是已发表二级研究，SE 新增 67 篇、整合 OS/FE 后 N=120；原生结构为抽取表、QA 量规、主题分类、人员关系和更新关系维度森林。 | 强：原文明示 10 个抽取字段和 QA1--QA4 评分量规，并在 Table 2/Table 3/Table 5 等表中实例化样本级编码。 |
 | 2009 | [Systematic literature reviews in software engineering – A systematic literature review](./papers/kitchenham-2009-slr-tertiary/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文明确设定为对 2004 年以来 SE 领域 SLR/MA 的 tertiary SLR，RQ 覆盖活动量、主题、研究者/机构和研究限制。 | 强：语料通过 10 个期刊、4 个会议、个人/网站补检索形成，具备显式纳排标准和 2506→33→19、外部补入至 N=20 的分母链。 | 强：原生编码对象是 20 篇二次研究，主树为 SLR/MA 抽取编码表，并列 DARE 质量评价子树与检索漏斗子树。 | 强：叶子字段包括来源、年份、文章类型、主题类型、主题领域、作者/机构/国家、EBSE 引用、实践者指南、一级研究数、QA1--QA4、漏斗字段和排除原因。 |
-| 2008 | [Systematic Mapping Studies in Software Engineering](./papers/petersen-2008-systematic-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文是 SMS 方法学论文/方法学种子，目标是说明如何开展 systematic mapping、比较 SMS 与 SLR，并给出指南；它自身不是 RQ-driven 普通综述统计样本。 | 中：内嵌 Tree A 的 10 篇 SE SLR 有 21 篇候选→8 篇并补 2 篇的检索与纳排链；Tree B 的 2 个 mapping 示例不是系统检索样本。 | 强：原生结构为维度森林：A=10 篇 SLR 特征化表，B=2 个 mapping 示例对比表，C=三 facet 分类方案，D=SMS 五步流程管线。 | 中：Table 4/5 对 n=10 SLR 有字段级表格和样本 ID；short rationale 是作者建议的证据链机制，原文未公开逐篇 rationale 表。 |
-| 2007 | [Guidelines for performing Systematic Literature Reviews in Software Engineering](./papers/kitchenham-charters-2007-slr-guidelines/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文是 SE SLR 方法学指南，目标清楚但自身不是 RQ-driven SLR/SMS，缺少普通综述样本单位；主归属为方法学参考/模式种子。 | 中：主体没有系统检索/纳排样本库；Appendix 2 对 2004--2007 上半年 15 篇 SE SLR 有局部收录和 DARE 分数。 | 中：原生对象是 guideline item / 方法组件森林：RQ、PICOC、protocol、search-doc、bias、quality checklist、data extraction、synthesis、report structure 等；不是普通样本文献编码树。 | 强：叶子表列出 question type、PICOC、protocol components、search-doc、bias type、quality items、extraction fields、effect measures、report sections、Appendix 2 topic/DARE 字段。 |
 
 **本节结论**：完成型 SLR/SMS/tertiary/MLR 普遍在 S1--S4 上较强；roadmap、vision、solution proposal 和 guideline 需要在 S1/S3/S4 中显式降级，不能因为能贡献结构种子就混入普通统计池。A2a 不应只扩论文数量，还要优先补强字段级证据可回链、图表/页码/制品可复验的样本。
 
 
-### 6.1.3 S5--S8 逐篇覆盖矩阵
+### 5.1.3 入池子集 S5--S8 逐篇覆盖矩阵
 
 | 年份 | 论文 | S5 模式演化 | S6 统计分析 | S7 候选 finding | S8 质疑与裁决 |
 |---:|---|---|---|---|---|
 | 2026 | [The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study](./papers/llm-assistants-developer-productivity/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文体现外部分类法 + emergent thematic coding：先用既有 taxonomy/SPACE 框架，再经 targeted thematic analysis 形成 benefit/risk 与 SPACE sub-dimensions。 | 强：RQ0--RQ3 将字段表转化为频次、比例、分布、交叉关系、组合覆盖和缺口统计。 | 强：本文从统计观察与 discussion 形成候选发现，并保留 contested finding 与边界条件，例如 code quality 同时作为 benefit/risk。 | 中：本文没有正式裁决日志或一致性系数；有搜索式集体确认、excluded paper 复查、weekly meetings、citation-against-original-text 回查，但 initial screening/data extraction 主要由第一作者执行。 |
-| 2026 | [Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap](./papers/ai-native-se-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 弱：原文只呈现从 SE 时代对照到技术栈再到挑战/OQ 的愿景链条，未报告编码、分类、开放编码或路线图修订过程。 | 弱：原文没有系统统计分析；只能记录技术栈组件、开放问题和挑战覆盖矩阵这类封闭枚举，不进入主统计池。 | 中：可作为候选 finding 启发的是 limitation → stack component → open question → vision 的路线图链条，所有领域主张均按愿景边界降级。 | 弱：原文没有系统综述式编码分歧和裁决机制；仅有开放讨论与限制提醒，可作为 Paper2 需要裁决日志的反面边界样本。 |
 | 2025 | [Research artifacts in secondary studies: A systematic mapping in software engineering](./papers/research-artifacts-secondary-studies/review.md#survey_of_surveys-自身-schema-抽取) | 弱：原文没有说明字段、代码本或分类方案如何形成/迭代；year trend 是 artifact availability 等字段取值变化，不是 schema 演化。 | 强：统计分析包括 venue/year 交叉表、537/169/79 等分母切换，以及以年份和期刊预测 artifact availability 的二元 logistic regression。 | 强：候选发现是二次研究 artifact availability 在增长，但永久仓库/DOI 采用不足，Data Availability section 的表面透明度风险（作者批评，强度低于 169/537、65/169 等统计 finding）。 | 中：原文有人工筛选、Krippendorff’s Alpha、一致性评估、人工检查关键词上下文和 limitations，但无完整 disagreement adjudication log。 |
-| 2025 | [On the road to interactive LLM-based systematic mapping studies](./papers/interactive-llm-systematic-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 弱：原文没有 corpus coding saturation 或维度迭代记录，只能把方案迭代和端到端 prototype 路线作为边界启发。 | 不适用：本文无自身统计分析、数据表和分母；被引文献中的 recall/precision/prompt 表现只能作为旁证。 | 中：可作为候选 finding 的是方法学设计 claim：LLM 可辅助 SMS 各阶段，但必须保留专家在环、可复现检索、证据追踪和后续 SE-specific evaluation。 | 弱：原文有 human oversight、研究者验证 LLM 输出、rationale/citation/traceability 要求，但没有多研究者裁决协议、一致性、QA 日志或正式 override 机制。 |
-| 2025 | [Formal requirements engineering and large language models: A two-way roadmap](./papers/formal-re-llm-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 弱：原文没有跨样本维度演化过程；可作为 concern → mechanism → artifact → action 的路线图字段种子。 | 不适用：无统计表、频次分布、样本分母或编码分布；Roadmap A/B 的 action points 只作候选启发。 | 中：可提取 prompt 即需求、formal verification/runtime monitoring/ethical requirements 作为控制机制等候选启发，但均按 roadmap 证据降级。 | 弱：原文无正式编码裁决；§7 practical considerations 只是专家协作、评价困难、overreliance、人类质量控制和技术演化的限制讨论。 |
 | 2024 | [Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping](./papers/mdse-modelling-assistants-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 中：维度模式来自 RQ 驱动的数据抽取与术语聚类，并承认 tool/method/technique/framework 等边界存在主观解释。 | 强：原文给出分母链、策略比例、目标/限制报告率、指标/目标用户比例、实践侧文档缺失率，并用 bubble chart / comparative analysis 连接字段；最终定量需 A2a 精核。 | 强：限制、指标、目标用户报告不足有统计支撑；AI/LLM 改变 modelling assistance 的判断只作中/弱候选启发，不能与字段统计支撑 finding 混写。 | 中：原文具备多 reviewer 筛选、Kappa agreement、R3/R4 复核讨论、triangulation 和 threats 分析；数据抽取阶段裁决仍待 A2a 精核。 |
 | 2024 | [Model driven engineering for machine learning components: A systematic literature review](./papers/mde-ml-components-slr/review.md#survey_of_surveys-自身-schema-抽取) | 中：原文说明 search string 多次修改、数据抽取前 pilot 6 篇并与其他作者对照，术语不一致经讨论达成共识；但缺少完整字段变更日志。 | 强：本文将字段表转化为 Venn、bubble chart、分布图、频次表、QA 分布和 RQ Answer Summary。 | 强：RQ Answer Summary 和 Discussion roadmap 形成候选发现，例如 effort reduction 主导、monitoring/documentation 被忽视、industrial/user study 不足和 responsible ML 需加强。 | 中：原文有 protocol review、cross-validation、pilot extraction、作者讨论和 threats，但没有双人独立编码比例、disagreement 统计或逐条裁决日志。 |
 | 2024 | [Large Language Models for Software Engineering: A Systematic Literature Review](./papers/llm4se-systematic-review/review.md#survey_of_surveys-自身-schema-抽取) | 中：RQ/字段形成参考 Kitchenham 与前序 DL4SE 综述，并在 full-text review 中抽取 Table 5 字段；原文未暴露 open coding、schema revision history 或 conflict log。 | 强：该文提供 N=395 主分母、数据源/输入形式子分母、架构年度趋势、SDLC 阶段分布、problem type 与 metric 分布。 | 强：原文将统计观察提升为 challenges、opportunities 与 roadmap；对 Paper2 只迁移 finding 生成模式，不迁移 LLM4SE 领域结论。 | 中：该文有 QAC、两名 reviewers secondary review、threats 和 replication package 作为质量控制机制，但缺少字段级 coder agreement 与冲突解决日志。 |
 | 2024 | [Identifying the primary dimensions of DevSecOps: A multi-vocal literature review](./papers/devsecops-primary-dimensions/review.md#survey_of_surveys-自身-schema-抽取) | 强：明确呈现从 inductive thematic analysis 的 text → code → theme → category 到 lifecycle/CPTM model 的模式演化，并区分 WL 归纳与 GL 演绎分析。 | 强：提供各 aspect 的主样本分母、text segment/code/theme/category 数量、C/P/T/M 项数、频次和 WL/GL 差异；confirmatory search 仅作验证性补充。 | 强：候选发现包括实践最受关注、metrics 最薄弱、WL/GL 互补、Business challenges 在 WL 中存在、GL 中 business-related challenges = 0，business metric M20 来自 prior MLR 补入、GSE 缺失和 framework design 趋势；其中 confirmatory finding 单独降级。 | 中：原文没有独立质疑-裁决流程，但有 reflexive thematic analysis 的多作者审核协商、trustworthiness 讨论、threats 与开放材料审计。 |
-| 2023 | [Requirements quality research: a harmonized theory, evaluation, and roadmap](./papers/requirements-quality-theory-roadmap/review.md#survey_of_surveys-自身-schema-抽取) | 中：维度模式体现为先由 RQT 概念派生抽取变量，再在第一轮 ad hoc 创建代码、第二轮通过讨论与理论背景精炼。 | 中：原文有 n=57、impact 子集 n=40、多项比例与 reliability 指标，能支撑本文内部 descriptive statistics；但样本为 inherited convenience sample，不能进入 Paper2 主统计池。 | 中：候选 finding 形态是字段覆盖缺口 → 方法风险 → roadmap/action stream，例如 artifact-centric 覆盖较好而 activity/context/economic 侧覆盖不足。 | 中：本文有等价质量控制机制：第一作者全量编码、第二作者约 10% 样本 instrument validation、reliability 报告和 threats 中的隐式抽取/convenience sample 风险。 |
 | 2023 | [Machine Learning for Software Engineering: A Tertiary Study](./papers/ml4se-tertiary-study/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文体现既有分类轴 + 开放编码/事后归纳的混合演化：SWEBOK 与 ML 四轴作为先验框架，SE task、ML application task 与 implications 经开放编码和讨论综合形成。 | 中：统计丰富，覆盖 83 篇 reviews 和 6,117 个非唯一 primary-study 覆盖计数，但表图页码与部分图表结构待 A2a 精核后才能升级为强。 | 强：候选发现来自 general recommendations 与 implications，包括更多实证/工业验证、开放数据、数据管线文档化、online/incremental ML、混合与跨域 ML。 | 中：原文有双人选择、Kappa≥0.8、双人数据抽取 with checker、QA 分歧记录与 threats 分类；本地三路审计只属于仓库审计机制，不作为原文 S8 证据。 |
 | 2022 | [Analysing app reviews for software engineering: a systematic literature review](./papers/app-reviews-slr-se/review.md#survey_of_surveys-自身-schema-抽取) | 强：三套分类 schema 经既有分类引入、content analysis、语义合并、无关项删除、recommendation 补充和 SWEBOK 映射形成，且有 reliability 检查。 | 强：本文提供年度趋势、venue、频次、交叉表、数据集/工具表、five-number summary、range/median 和 qualitative synthesis。 | 强：§4.1--§4.10 将统计观察转化为候选发现，包括 SE use case 模糊、reference model 缺失、评价数据集偏小、复现资产不足与 practice impact 不清。 | 强：原文报告筛选样本 Cohen’s Kappa、抽取 inter/intra-rater agreement、分类 schema reliability、second coder cross-check、protocol panel review 和 threats mitigation。 |
 | 2015 | [Guidelines for conducting systematic mapping studies in software engineering: An update](./papers/petersen-2015-mapping-guidelines-update/review.md#survey_of_surveys-自身-schema-抽取) | 强：本文通过比较既有 guidelines 与实际 SMS 做法形成 guideline update，并强化 venue、study focus、research method 等 topic-independent facets。 | 强：对 guideline adoption、search、QA、classification、visualization、validity 和 rubric scores 有分母明确统计；A2a 前不作最终统计结论。 | 强：候选 finding 主要是方法学发现：单一 guideline 不足、需更新指南、topic-independent facets 可复用、SMS 应追求 good sample、rubric 可评价报告质量。 | 中：本文没有完整裁决日志，但讨论单人筛选/抽取偏差，并给出 first-author 复审、reference-set validation、additional reviewer + consensus、decision rules 等缓解机制。 |
@@ -328,28 +299,22 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | 2014 | [Systematic Reviews in Requirements Engineering: A Tertiary Study](./papers/re-tertiary-study-2014/review.md#survey_of_surveys-自身-schema-抽取) | 中：维度形成来自 search-term pilot、既有 tertiary/RE SLR 关键词扩展、标题摘要主题分析、第一作者分组与两位作者复核命名；不是 QA 年度趋势。 | 强：提供 publication type、SLR subtype、scope、#PS 极差与区间、QA 总分、年度发表量、Top-10 citation 等统计。 | 强：候选发现包括 QA 趋势下降、高引不等于高 QA、#PS 内部矛盾、RE 子主题覆盖缺口、半数 SLR 忽略 QA3/QA4。 | 中：原文有主题命名复核、limitations 与 QA guideline 依赖说明，但无完整多研究者筛选/编码裁决、分歧处理、kappa 或 QA 独立复核报告。 |
 | 2011 | [Six years of systematic literature reviews in software engineering: An updated tertiary study](./papers/da-silva-2011-six-years-slr/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文显式建模 沿用 FE protocol、复用并调整 QA rubric、修改 QA2、采用既有 review-type 分类和 DCP 分歧裁决，但未给出完整 codebook 演化或冲突修订日志。 | 强：统计覆盖主题、质量趋势、指南引用与质量回归、实践者指南比例、原始研究 QA 比例和 primary 数量相关性；当前只作 A2a 主统计池候选，精核前不写最终定量结论。 | 中：候选发现包括 SLR 数量增长但质量评价仍不足、EBSE 实践缺口、MS 比例变化、欧洲集中性和覆盖空白，多项仍需跨论文复核。 | 强：本文有 DCP 多人编码裁决机制，并在限制讨论中记录 QA2 歧义、QA4 主观性和 protocol 描述不足等边界。 |
 | 2009 | [Systematic literature reviews in software engineering – A systematic literature review](./papers/kitchenham-2009-slr-tertiary/review.md#survey_of_surveys-自身-schema-抽取) | 中：原文没有显式 schema/codebook 演化；可迁移的是 RQ 驱动字段设计、DARE 质量评价与 RQ→抽取字段→统计表的分析模式。 | 强：统计分析覆盖样本数量、类型比例、主题集中度、机构/国家分布、质量得分、Spearman 相关、方差检验与检索漏斗。 | 强：候选发现包括主题覆盖偏窄、Simula 数据库策略可复用、美国 EBSE 参与不足、实践者指南不足和抽取-核对模式风险。 | 强：质量评价采用双人独立评分、分歧讨论至一致，unknown 经邮件询问作者后重评；数据抽取采用单抽取-单核对并讨论分歧。 |
-| 2008 | [Systematic Mapping Studies in Software Engineering](./papers/petersen-2008-systematic-mapping/review.md#survey_of_surveys-自身-schema-抽取) | 强：分类方案通过 keywording、聚类和数据抽取过程新增、合并、拆分类别。 | 中：原文有频数、Table 5 和 bubble plot，但这些是内嵌方法示例/小型方法学描述统计；本文保持方法学参考池，不进入普通领域统计合成池。 | 中：可抽取类别频数/交叉覆盖 → 覆盖缺口 → 后续 review 或指南建议的方法学启发，不作为目标领域事实。 | 弱：原文提供 adaptive reading、prototype/misclassification、validity consideration 与 short rationale 机制，但没有实际多 reviewer 裁决日志、agreement、disagreement log 或一致性统计。 |
-| 2007 | [Guidelines for performing Systematic Literature Reviews in Software Engineering](./papers/kitchenham-charters-2007-slr-guidelines/review.md#survey_of_surveys-自身-schema-抽取) | 中：本文体现从医学/社会科学 SLR 指南到 SE guideline 的迁移与适配，并通过 Table 9 做跨指南流程 step cross-walk。 | 弱：主体无统计分析；Appendix 2 的 15 篇 SE SLR 只作局部边界观察，方法组件枚举不是 empirical statistic，不能进入主统计池。 | 弱：可记录的 finding 多为方法学启发或二手候选；Appendix 2 的早期 SE SLR 主题/质量分布只能作边界锚点。 | 中：原文提供 inclusion reliability、data extractor/checker、quality assessment、protocol/report evaluation 等方法机制，但不是本文实际执行裁决日志。 |
 
-**本节结论**：S5 与 S6 必须严格区分：字段取值随年份或主题变化属于统计分析，不等于维度模式演化；只有原文说明分类、编码、主题分析、指南更新、作者复核或 schema 修订过程时，才可作为 S5 的强等级支撑。S8 也必须区分一般 limitations 与正式多研究者裁决 / 一致性 / QA；本地 A1-DT 审计只能作为仓库证据链，不能冒充原文 S8 证据。
+**本节结论**：在 13 篇入池论文中，S5 与 S6 必须严格区分：字段取值随年份或主题变化属于统计分析，不等于维度模式演化；只有原文说明分类、编码、主题分析、指南更新、作者复核或 schema 修订过程时，才可作为 S5 的强等级支撑。S8 也必须区分一般 limitations 与正式多研究者裁决 / 一致性 / QA；本地 A1-DT 审计只能作为仓库证据链，不能冒充原文 S8 证据。
 
 
-## 6.2 维度树模式总览
+## 5.2 入池子集维度树模式总览
 
-本节是 PR-A1-DT 后新增的跨论文入口；当前 v2 批次为 [A1-DT v2 19×3 原生维度树审计](./audits/a1dt-v2-19x3/README.md)。旧 [A1-DT v1 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 仅为历史返修来源，不是当前事实口径。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中保留 `维度树复原`，并把正式 A.1--A.4 审计附录集中迁入同目录 `evidence_chain.md`；下表只做总览和跳转，具体正文以 `review.md` 为准，具体证据链以 `evidence_chain.md` 为准。
+本节是 PR-A1-DT 后新增的跨论文入口；当前 v2 批次为 [A1-DT v2 19×3 原生维度树审计](./audits/a1dt-v2-19x3/README.md)。旧 [A1-DT v1 19×3 全文审计批次](./audits/a1dt-19x3/README.md) 仅为历史返修来源，不是当前事实口径。A1-M0--M6 说明“方法链条”，而维度树说明“单篇综述内部 schema 如何组织”。当前 19 篇均已在单篇 `review.md` 中保留 `维度树复原`，但下表只展示 13 篇入池论文。正式 A.1--A.4 审计附录集中保存在同目录 `evidence_chain.md`；具体正文以 `review.md` 为准，具体证据链以 `evidence_chain.md` 为准。
 
 | 年份 | 论文 | 主类型 | 辅助类型 | 后续主统计池候选 | A1-DT 当前允许用途 | 单篇结论标识 | 详情 |
 |---:|---|---|---|---|---|---|---|
 | 2026 | [The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study](./papers/llm-assistants-developer-productivity/review.md) | RQ 驱动分类树 | 生产力 benefit-risk 评价树 | 是 | `schema_seed` | `A1DT-llm-assistants-developer-productivity-C03` | [review](./papers/llm-assistants-developer-productivity/review.md#维度树复原) |
-| 2026 | [Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap](./papers/ai-native-se-roadmap/review.md) | roadmap / challenge 树 | 理论 / 元模型概念树 | 否 | `boundary_anchor` | `A1DT-ai-native-se-roadmap-C03` | [review](./papers/ai-native-se-roadmap/review.md#维度树复原) |
 | 2025 | [Research artifacts in secondary studies: A systematic mapping in software engineering](./papers/research-artifacts-secondary-studies/review.md) | 证据资产审计树 | artifact availability 统计树 | 是 | `schema_seed` | `A1DT-research-artifacts-secondary-studies-C03` | [review](./papers/research-artifacts-secondary-studies/review.md#维度树复原) |
-| 2025 | [On the road to interactive LLM-based systematic mapping studies](./papers/interactive-llm-systematic-mapping/review.md) | 方法流程树 | human-in-the-loop boundary 树 | 否 | `boundary_anchor` | `A1DT-interactive-llm-systematic-mapping-C03` | [review](./papers/interactive-llm-systematic-mapping/review.md#维度树复原) |
-| 2025 | [Formal requirements engineering and large language models: A two-way roadmap](./papers/formal-re-llm-roadmap/review.md) | roadmap / concern / action-point 树 | trustworthiness 边界树 | 否 | `boundary_anchor` | `A1DT-formal-re-llm-roadmap-C03` | [review](./papers/formal-re-llm-roadmap/review.md#维度树复原) |
 | 2024 | [Understanding the landscape of software modelling assistants for MDSE tools: A systematic mapping](./papers/mdse-modelling-assistants-mapping/review.md) | 系统映射 分类树 | assistant strategy-goal-metric-user 树 | 是 | `schema_seed` | `A1DT-mdse-modelling-assistants-mapping-C03` | [review](./papers/mdse-modelling-assistants-mapping/review.md#维度树复原) |
 | 2024 | [Model driven engineering for machine learning components: A systematic literature review](./papers/mde-ml-components-slr/review.md) | MDE4ML 生命周期分类树 | 解决方案 / 动机 / 评价树 | 是 | `schema_seed` | `A1DT-mde-ml-components-slr-C03` | [review](./papers/mde-ml-components-slr/review.md#维度树复原) |
 | 2024 | [Large Language Models for Software Engineering: A Systematic Literature Review](./papers/llm4se-systematic-review/review.md) | 大规模 RQ 驱动分类树 | LLM4SE task-method-evidence 树 | 是 | `schema_seed` | `A1DT-llm4se-systematic-review-C03` | [review](./papers/llm4se-systematic-review/review.md#维度树复原) |
 | 2024 | [Identifying the primary dimensions of DevSecOps: A multi-vocal literature review](./papers/devsecops-primary-dimensions/review.md) | 关系型维度树 | 多声部证据树 | 是 | `schema_seed` | `A1DT-devsecops-primary-dimensions-C03` | [review](./papers/devsecops-primary-dimensions/review.md#维度树复原) |
-| 2023 | [Requirements quality research: a harmonized theory, evaluation, and roadmap](./papers/requirements-quality-theory-roadmap/review.md) | 理论 / 元模型概念树 | requirements quality roadmap 树 | 否 | `boundary_anchor` | `A1DT-requirements-quality-theory-roadmap-C03` | [review](./papers/requirements-quality-theory-roadmap/review.md#维度树复原) |
 | 2023 | [Machine Learning for Software Engineering: A Tertiary Study](./papers/ml4se-tertiary-study/review.md) | tertiary 主题 / 挑战树 | action recommendation 树 | 是 | `schema_seed` | `A1DT-ml4se-tertiary-study-C03` | [review](./papers/ml4se-tertiary-study/review.md#维度树复原) |
 | 2022 | [Analysing app reviews for software engineering: a systematic literature review](./papers/app-reviews-slr-se/review.md) | RQ 驱动分类树 | 评价 / 复现资产审计树 | 是 | `schema_seed` | `A1DT-app-reviews-slr-se-C03` | [review](./papers/app-reviews-slr-se/review.md#维度树复原) |
 | 2015 | [A Mapping Study on Requirements Engineering in Agile Software Development](./papers/re-agile-sms-2015/review.md) | SMS problem-benefit-solution 树 | Agile RE 主题分类树 | 是 | `schema_seed` | `A1DT-re-agile-sms-2015-C03` | [review](./papers/re-agile-sms-2015/review.md#维度树复原) |
@@ -357,58 +322,53 @@ A1-M0--M6 是 `survey_of_surveys/` 的脚手架元维度，用于把“研究者
 | 2014 | [Systematic Reviews in Requirements Engineering: A Tertiary Study](./papers/re-tertiary-study-2014/review.md) | RE tertiary 主题统计树 | 质量 / impact 树 | 是 | `schema_seed` | `A1DT-re-tertiary-study-2014-C03` | [review](./papers/re-tertiary-study-2014/review.md#维度树复原) |
 | 2011 | [Six years of systematic literature reviews in software engineering: An updated tertiary study](./papers/da-silva-2011-six-years-slr/review.md) | tertiary 更新统计树 | 质量 / EBSE 实践缺口树 | 是 | `schema_seed` | `A1DT-da-silva-2011-six-years-slr-C03` | [review](./papers/da-silva-2011-six-years-slr/review.md#维度树复原) |
 | 2009 | [Systematic literature reviews in software engineering – A systematic literature review](./papers/kitchenham-2009-slr-tertiary/review.md) | tertiary 生态统计树 | 质量评价树 | 是 | `schema_seed` | `A1DT-kitchenham-2009-slr-tertiary-C03` | [review](./papers/kitchenham-2009-slr-tertiary/review.md#维度树复原) |
-| 2008 | [Systematic Mapping Studies in Software Engineering](./papers/petersen-2008-systematic-mapping/review.md) | 方法流程树 | topic-independent taxonomy 示例树 | 否 | `schema_seed` | `A1DT-petersen-2008-systematic-mapping-C03` | [review](./papers/petersen-2008-systematic-mapping/review.md#维度树复原) |
-| 2007 | [Guidelines for performing Systematic Literature Reviews in Software Engineering](./papers/kitchenham-charters-2007-slr-guidelines/review.md) | 方法流程树 | 质量 / 效度 guideline 树 | 否 | `schema_seed` | `A1DT-kitchenham-charters-2007-slr-guidelines-C03` | [review](./papers/kitchenham-charters-2007-slr-guidelines/review.md#维度树复原) |
 
-**本节结论**：当前 19 篇不是一个同质字段表，而是至少覆盖六类可迁移树型：RQ 驱动分类树、方法流程树、关系型维度树、证据资产审计树、理论 / 元模型概念树、roadmap / challenge 树。对 Paper2 来说，这说明“维度模式”必须允许研究者从树和关系边中选择、批准和演化，而不能预设为单层表格。
+**本节结论**：13 篇入池论文已经显示，主统计池不是一个同质字段表，而是覆盖 RQ 驱动分类树、多根维度森林、关系型维度树、证据资产审计树和流程 / 指南更新树等多类结构。对 Paper2 来说，“维度模式”必须允许研究者从树和关系边中选择、批准和演化，而不能预设为单层表格。
 
-## 6.3 维度树类型与 Paper2 L0--L7 的关系
+## 5.3 入池子集维度树类型与 Paper2 L0--L7 的关系
 
-| 维度树类型 | 支撑的 Paper2 阶段 | 当前样本 | 方法启发 |
+| 维度树类型 | 支撑的 Paper2 阶段 | 当前入池样本 | 方法启发 |
 |---|---|---|---|
-| RQ 驱动分类树 | L0 主题与综述元模型设定；L4 字段级证据抽取；L5 统计分析 | app reviews、LLM4SE、LLM assistants | 先由 RQ 确定对象 / 方法 / 评价 / 结果层，再要求每个叶子绑定证据与分母。 |
-| 方法流程树 | L1 脚手架挖掘；L2 维度模式批准；L3 论文收集与概览 | Kitchenham guideline、Petersen mapping guideline、interactive LLM mapping | 用流程阶段和 researcher gate 定义 agent-human 协同，而不是把 SLR 写成一次性自动化。 |
-| 关系型维度树 | L4 字段抽取；L5 交叉统计；L6 候选发现形成 | DevSecOps、MDSE assistants、research artifacts | 主干树之外必须保留边表；缺失关系本身可成为 gap 候选。 |
-| 证据资产审计树 | L4 证据链；L7 透明投影 | research artifacts、app reviews、DevSecOps | artifact、replication package、open science material 应是一等字段。 |
-| 理论 / 元模型概念树 | L0 元模型设定；L6 候选发现启发 | requirements quality、AI-native SE | 可启发概念节点，但需降级为 模式种子 / 边界锚点。 |
-| roadmap / challenge 树 | L6 候选发现；L7 研究者裁决 | formal RE + LLM、AI-native SE、interactive mapping | action point 只能是候选启发，不能污染主统计池或 最终发现。 |
+| RQ 驱动分类树 / 多根维度森林 | L0 主题与综述元模型设定；L4 字段级证据抽取；L5 统计分析 | app reviews、LLM4SE、LLM assistants、MDE for ML、ML4SE tertiary、RE tertiary、Kitchenham 2009 | 先由 RQ 确定对象 / 方法 / 评价 / 结果层，再要求每个叶子绑定证据与分母；多 RQ 或多样本单位时应保留森林结构。 |
+| 关系型维度树 | L4 字段抽取；L5 交叉统计；L6 候选发现形成 | DevSecOps、MDSE assistants、Agile RE、da Silva 2011 | 主干树之外必须保留边表；缺失关系本身可成为 gap 候选。 |
+| 证据资产审计树 | L4 证据链；L7 透明投影 | research artifacts、app reviews、DevSecOps、LLM4SE | artifact、replication package、open science material、dead link 和 by-request 状态应是一等字段。 |
+| 流程 / 指南更新树 | L1 脚手架挖掘；L2 维度模式批准；L3 论文收集与概览 | Petersen 2015 mapping guideline update | 对“方法学统计样本”要同时保留流程贡献和系统映射分母，不能与纯 guideline 混算。 |
 
-**本节结论**：Paper2 后续实验不应只测“AI 能否抽字段”，而应测研究者如何定义 / 修改维度树、AI 如何给出证据链、统计观察如何被降级为候选发现并交给研究者裁决。
+**本节结论**：Paper2 后续实验不应只测“AI 能否抽字段”，而应测研究者如何定义 / 修改维度树、AI 如何给出证据链、统计观察如何被降级为候选发现并交给研究者裁决。上述关系只基于 13 篇入池样本；非入池 roadmap / guideline / proposal 只作为边界备忘，不进入本表。
 
-## 6.4 SUMMARY 结论-证据映射
+## 5.4 入池子集 SUMMARY 结论-证据映射
 
 | 归纳标识 | 引用键 | 归纳内容 | 归纳类型 | 分母 | 纳入结论标识列表 | 排除结论标识列表 | 证据强度过滤 | 外推限制 | 允许用于论文的位置 | 当前状态 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [sum-A1DT-tree-types] | [sum-A1DT-tree-types] | 当前 19 篇已形成六类维度树类型，总体说明 survey-of-surveys 需要树型 schema 而不是单层字段表。 | tree_type_inventory | 19 篇 `review.md` | A1DT-llm-assistants-developer-productivity-C03, A1DT-ai-native-se-roadmap-C03, A1DT-research-artifacts-secondary-studies-C03, A1DT-interactive-llm-systematic-mapping-C03, A1DT-formal-re-llm-roadmap-C03, A1DT-mdse-modelling-assistants-mapping-C03, A1DT-mde-ml-components-slr-C03, A1DT-llm4se-systematic-review-C03, A1DT-devsecops-primary-dimensions-C03, A1DT-requirements-quality-theory-roadmap-C03, A1DT-ml4se-tertiary-study-C03, A1DT-app-reviews-slr-se-C03, A1DT-re-agile-sms-2015-C03, A1DT-petersen-2015-mapping-guidelines-update-C03, A1DT-re-tertiary-study-2014-C03, A1DT-da-silva-2011-six-years-slr-C03, A1DT-kitchenham-2009-slr-tertiary-C03, A1DT-petersen-2008-systematic-mapping-C03, A1DT-kitchenham-charters-2007-slr-guidelines-C03 | -- | 本行是树型索引，不作定量统计；允许纳入 `weak` 的 boundary / roadmap C03，但它们只可用于 `schema_seed` / `boundary_anchor`，不得进入主统计池或 最终发现。 | 这是 A1 样本的结构归纳，不代表 100+ 完整文库已饱和；弱证据只用于边界或启发。 | schema_seed | active |
-| [sum-A1DT-statistical-pool] | [sum-A1DT-statistical-pool] | 13 篇完成型 SLR / SMS / tertiary / MLR / 系统映射 是后续主统计池候选，但 PR-A1-DT 当前维度树证据仍待 A2a 精确锚定，暂不进入 SUMMARY 定量统计。 | pool_candidate_index | 19 篇 `review.md` | A1DT-llm-assistants-developer-productivity-C04, A1DT-research-artifacts-secondary-studies-C04, A1DT-mdse-modelling-assistants-mapping-C04, A1DT-mde-ml-components-slr-C04, A1DT-llm4se-systematic-review-C04, A1DT-devsecops-primary-dimensions-C04, A1DT-ml4se-tertiary-study-C04, A1DT-app-reviews-slr-se-C04, A1DT-re-agile-sms-2015-C04, A1DT-petersen-2015-mapping-guidelines-update-C04, A1DT-re-tertiary-study-2014-C04, A1DT-da-silva-2011-six-years-slr-C04, A1DT-kitchenham-2009-slr-tertiary-C04 | A1DT-ai-native-se-roadmap-C04, A1DT-interactive-llm-systematic-mapping-C04, A1DT-formal-re-llm-roadmap-C04, A1DT-requirements-quality-theory-roadmap-C04, A1DT-petersen-2008-systematic-mapping-C04, A1DT-kitchenham-charters-2007-slr-guidelines-C04 | 本行是候选资格索引，不作定量统计；当前单篇 C04 只记录后续统计池候选或降级裁决；A1-DT v2 当前仍按 `schema_seed` / `boundary_anchor` 管理，待 A2a 完成精确页码 / 表图 / 字段锚定后才可升级。 | 统计池候选资格只服务后续 A2a/A2b，不支撑目标领域 最终发现；弱或待核验证据不得进入定量统计。 | schema_seed | active |
-| [sum-A1DT-boundary-anchor] | [sum-A1DT-boundary-anchor] | roadmap / vision / proposal / guideline 的维度树可提供边界锚点和候选启发，但不得进入主统计池。 | downgrade_decision | 19 篇 `review.md` | A1DT-ai-native-se-roadmap-C04, A1DT-interactive-llm-systematic-mapping-C04, A1DT-formal-re-llm-roadmap-C04, A1DT-requirements-quality-theory-roadmap-C04, A1DT-petersen-2008-systematic-mapping-C04, A1DT-kitchenham-charters-2007-slr-guidelines-C04 | A1DT-llm-assistants-developer-productivity-C04, A1DT-research-artifacts-secondary-studies-C04, A1DT-mdse-modelling-assistants-mapping-C04, A1DT-mde-ml-components-slr-C04, A1DT-llm4se-systematic-review-C04, A1DT-devsecops-primary-dimensions-C04, A1DT-ml4se-tertiary-study-C04, A1DT-app-reviews-slr-se-C04, A1DT-re-agile-sms-2015-C04, A1DT-petersen-2015-mapping-guidelines-update-C04, A1DT-re-tertiary-study-2014-C04, A1DT-da-silva-2011-six-years-slr-C04, A1DT-kitchenham-2009-slr-tertiary-C04 | 本行专门记录降级后的 boundary 结论；允许 `weak`，但只用于边界锚点 / 风险提示 / 候选启发，不进入主统计池、SUMMARY 定量统计或 最终发现。 | 这些结论仅用于方法设计和风险提示，不能写成经验事实。 | boundary_anchor | active |
+| [sum-A1DT-tree-types] | [sum-A1DT-tree-types] | 13 篇入池论文已形成多类维度树 / 维度森林，说明 survey-of-surveys 主统计池需要树型 schema 而不是单层字段表。 | tree_type_inventory | 13 篇入池 `review.md` | A1DT-llm-assistants-developer-productivity-C03, A1DT-research-artifacts-secondary-studies-C03, A1DT-mdse-modelling-assistants-mapping-C03, A1DT-mde-ml-components-slr-C03, A1DT-llm4se-systematic-review-C03, A1DT-devsecops-primary-dimensions-C03, A1DT-ml4se-tertiary-study-C03, A1DT-app-reviews-slr-se-C03, A1DT-re-agile-sms-2015-C03, A1DT-petersen-2015-mapping-guidelines-update-C03, A1DT-re-tertiary-study-2014-C03, A1DT-da-silva-2011-six-years-slr-C03, A1DT-kitchenham-2009-slr-tertiary-C03 | -- | 本行是入池子集树型索引，不纳入非入池 roadmap / guideline / proposal 的 C03。 | 这是 A1 入池子集的结构归纳，不代表 100+ 完整文库已饱和；当前只可作为 schema_seed。 | schema_seed | active |
+| [sum-A1DT-statistical-pool] | [sum-A1DT-statistical-pool] | 13 篇完成型 SLR / SMS / tertiary / MLR / 系统映射是后续主统计池候选，但 PR-A1-DT 当前维度树证据仍待 A2a 精确锚定，暂不进入最终定量统计。 | pool_candidate_index | 13 篇入池 `review.md` | A1DT-llm-assistants-developer-productivity-C04, A1DT-research-artifacts-secondary-studies-C04, A1DT-mdse-modelling-assistants-mapping-C04, A1DT-mde-ml-components-slr-C04, A1DT-llm4se-systematic-review-C04, A1DT-devsecops-primary-dimensions-C04, A1DT-ml4se-tertiary-study-C04, A1DT-app-reviews-slr-se-C04, A1DT-re-agile-sms-2015-C04, A1DT-petersen-2015-mapping-guidelines-update-C04, A1DT-re-tertiary-study-2014-C04, A1DT-da-silva-2011-six-years-slr-C04, A1DT-kitchenham-2009-slr-tertiary-C04 | -- | 本行只记录入池候选资格；A1-DT v2 当前仍按 `schema_seed` 管理，待 A2a 完成精确页码 / 表图 / 字段锚定后才可升级。 | 统计池候选资格只服务后续 A2a/A2b，不支撑目标领域最终发现；弱或待核验证据不得进入定量统计。 | schema_seed | active |
 
-**本节结论**：SUMMARY 的跨论文归纳已经显式回链单篇 A.3 结论标识。后续若新增论文或修改树型，必须同步更新本表，否则 SUMMARY 归纳将失去证据链闭环。
+**本节结论**：SUMMARY 的主干跨论文归纳现在只回链 13 篇入池论文的单篇 A.3 结论标识。非入池条目的边界价值仍在单篇 `review.md` / `evidence_chain.md` 和 §7.1 中保留，但不进入本表分母。后续若新增入池论文或修改树型，必须同步更新本表，否则 SUMMARY 归纳将失去证据链闭环。
 
 **A1-DT v2 证据链边界**：当前正式 A.2 / A.3 是树级与核心裁决的最小 claim map，集中保存在各单篇 `evidence_chain.md`；单篇叶子取值空间、关系边、缺失值语义和图表待核验项仍以各 `review.md` 的“维度树复原”正文、叶子维度表和关系边表为细粒度说明。若两处发生冲突，以 `evidence_chain.md` 的 A.2 / A.3 与主线程裁决为准，并在 A2a 把 leaf / edge 逐项迁入统一审计附录；因此 SUMMARY 不把 A1-DT v2 写成叶子级最终统计证据。
 
-## 7. 当前 pattern 总结与 A2a 接力建议
+## 6. 入池子集 pattern 总结与 A2a 接力建议
 
 | pattern | 当前观察 | 来源样本 | A2a 处理建议 |
 |---|---|---|---|
 | RQ pattern | SE tertiary 常问规模、主题、主体、质量、限制、EBSE 实践缺口；现代 LLM4SE SLR 常先给 landscape / method / benefit-risk / dimension coverage。 | Kitchenham 2009、da Silva 2011、LLM assistant SLR、LLM4SE SLR | 建立 RQ 模式树，区分 landscape、method、impact、dimension coverage、gap/finding。 |
-| dimension pattern | 维度应树状化而非平铺：strategy-goal-limitation-metric-user、aspect-theme-category、concept-activity-context-impact 等。 | MDSE assistant mapping、DevSecOps MLR、requirements quality roadmap | 把字段树版本化，并记录字段来源、缺失语义和 researcher adoption decision。 |
-| finding pattern | finding 需从统计观察进一步形成质量缺口、EBSE 实践缺口、research challenges、roadmap、action recommendations；roadmap 只能提供启发式。 | da Silva 2011、ML4SE tertiary、DevSecOps MLR、requirements quality roadmap | 与 Paper2 的 候选发现 ledger 对齐，补 support / counter-evidence / claim strength。 |
-| evidence presentation pattern | 常用搜索分母、纳排、quality assessment、topic taxonomy、review/primary-study 数量、artifact availability、replication package。 | Kitchenham guideline、research artifacts mapping、LLM4SE SLR | 每个字段必须有 source anchor、artifact link status 和回填状态。 |
-| validity / threat pattern | 包含 search bias、inclusion reliability、quality assessment、protocol deviation、artifact dead link、model drift、human validation。 | Kitchenham guideline、interactive LLM mapping、research artifacts mapping | 设为强制字段，未报告时明确记录。 |
-| report structure pattern | guideline、tertiary/SMS、SLR+SMS、MLR、roadmap 的结构不同；不能用一个模板压平。 | 全文样本 | 允许不同 `review_type` 对应不同报告结构和统计池资格。 |
+| dimension pattern | 维度应树状化而非平铺：strategy-goal-limitation-metric-user、aspect-theme-category、concept-activity-context-impact 等。 | MDSE assistant mapping、DevSecOps MLR、app reviews SLR、MDE for ML SLR | 把字段树版本化，并记录字段来源、缺失语义和 researcher adoption decision。 |
+| finding pattern | finding 需从统计观察进一步形成质量缺口、EBSE 实践缺口、research challenges、roadmap、action recommendations；roadmap 只能提供启发式。 | da Silva 2011、ML4SE tertiary、DevSecOps MLR、app reviews SLR | 与 Paper2 的 候选发现 ledger 对齐，补 support / counter-evidence / claim strength。 |
+| evidence presentation pattern | 常用搜索分母、纳排、quality assessment、topic taxonomy、review/primary-study 数量、artifact availability、replication package。 | research artifacts mapping、LLM4SE SLR、app reviews SLR、DevSecOps MLR | 每个字段必须有 source anchor、artifact link status 和回填状态。 |
+| validity / threat pattern | 包含 search bias、inclusion reliability、quality assessment、protocol deviation、artifact dead link、model drift、human validation。 | research artifacts mapping、LLM4SE SLR、app reviews SLR、MDE for ML SLR | 设为强制字段，未报告时明确记录。 |
+| report structure pattern | guideline、tertiary/SMS、SLR+SMS、MLR、roadmap 的结构不同；不能用一个模板压平。 | 13 篇入池样本 | 允许不同 `review_type` 对应不同报告结构和统计池资格。 |
 
-A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视觉核对、页码 / 表号证据锚定，并将 A1-M0--M6 与 S1--S8 两套矩阵共同转为更正式的 pattern library；随后扩展到 30--50 篇核心样本，检验字段取值空间、统计池规则、finding heuristic 与研究者裁决记录是否稳定。
+A2a 第一优先级：不是补历史 PDF，而是先对当前 13 篇入池论文做图表视觉核对、页码 / 表号证据锚定，并将 A1-M0--M6 与 S1--S8 两套矩阵共同转为更正式的 pattern library；随后扩展到 30--50 篇入池核心样本，检验字段取值空间、统计池规则、finding heuristic 与研究者裁决记录是否稳定。
 
-### 7.1 schema 修订 / 回填日志
+### 6.1 schema 修订 / 回填日志
 
 本节是 A1 字段合同演化的结构化审计入口。它只记录会影响后续 A2a/A2b schema、统计池或字段回填的变更；普通下载、排版或 PR 施工细节仍进入更新日志或 `search/` 审计文件。
 
 | 时间 | 触发条目 / 样本 | 受影响字段 | 修订内容 | 回填状态 | 冻结理由 / 后续处理 |
 |---|---|---|---|---|---|
-| 2026-07-02 22:04:02 | 用户要求每篇 survey 的 S1--S8 维度信息由独立 subagent 抽取；19 篇全文样本 | S1--S8 二级汇总 schema、单篇 `review.md`、SUMMARY 覆盖矩阵、A2a handoff | 新增 `survey_of_surveys 自身 schema` 定义表、S1--S8 逐篇矩阵和单篇四分栏证据拆分；19/19 篇已回填 `review.md` 的 `survey_of_surveys 自身 schema 抽取` 小节；要求后续新增论文一篇一 subagent 抽取并显式拆清原文证据 / 维度树 / 统计池资格 / A2a 待核验 | 已回填 19/19 篇 review、GUIDE、SUMMARY、audit TASKS/results/adjudications；A2a 接力项写入审计裁决与风险表 | S1--S8 用于把综述之综述自身转成可审计模式库，支撑 researcher-defined meta-model、证据链、统计分析与 finding 裁决设计；不得写成目标领域 final finding。 |
-| 2026-06-29 21:10:00 | PR-A1-DT 逐篇维度树复原；19 篇全文样本 | 维度树、叶子取值空间、关系边、结论-证据映射、SUMMARY 归纳回链 | 新增 GUIDE 维度树纪律、schema 字段合同、19 篇 `review.md` 的 `维度树复原` 与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录；SUMMARY 新增维度树模式总览和 `[sum-A1DT-*]` 结论-证据映射 | 已回填 19/19 篇 review、GUIDE、pattern schema 与 SUMMARY | Paper2 方法贡献需要可审计维度树，而不是平铺字段矩阵；A2a 继续做页码 / 图表精核与样本扩展。 |
-| 2026-06-29 17:48:49 | 用户复核 SUMMARY 批次化问题；19 篇全文样本 | SUMMARY 主表、证据池、A1-M0--M6 总账矩阵 | 取消按 PR 批次拆分主表，改为统一年份降序表；明确三类证据池主归属；新增 19 篇 × A1-M0--M6 覆盖矩阵 | 已回填 SUMMARY、GUIDE 与审计目录 | 长期文库必须按对象和当前事实维护，不能按施工批次维护；A2a/A2b 继续沿用统一总账结构。 |
+| 2026-07-02 22:04:02 | 用户要求每篇 survey 的 S1--S8 维度信息由独立 subagent 抽取；19 篇全文样本（其中 13 篇入池） | S1--S8 二级汇总 schema、单篇 `review.md`、SUMMARY 覆盖矩阵、A2a handoff | 新增 `survey_of_surveys 自身 schema` 定义表、S1--S8 逐篇矩阵和单篇四分栏证据拆分；19/19 篇已回填 `review.md` 的 `survey_of_surveys 自身 schema 抽取` 小节；要求后续新增论文一篇一 subagent 抽取并显式拆清原文证据 / 维度树 / 统计池资格 / A2a 待核验 | 已回填 19/19 篇 review、GUIDE、SUMMARY、audit TASKS/results/adjudications；A2a 接力项写入审计裁决与风险表 | S1--S8 用于把综述之综述自身转成可审计模式库，支撑 researcher-defined meta-model、证据链、统计分析与 finding 裁决设计；不得写成目标领域 final finding。 |
+| 2026-06-29 21:10:00 | PR-A1-DT 逐篇维度树复原；19 篇全文样本（其中 13 篇入池） | 维度树、叶子取值空间、关系边、结论-证据映射、SUMMARY 归纳回链 | 新增 GUIDE 维度树纪律、schema 字段合同、19 篇 `review.md` 的 `维度树复原` 与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录；SUMMARY 新增维度树模式总览和 `[sum-A1DT-*]` 结论-证据映射 | 已回填 19/19 篇 review、GUIDE、pattern schema 与 SUMMARY | Paper2 方法贡献需要可审计维度树，而不是平铺字段矩阵；A2a 继续做页码 / 图表精核与样本扩展。 |
+| 2026-06-29 17:48:49 | 用户复核 SUMMARY 批次化问题；19 篇全文样本（其中 13 篇入池） | SUMMARY 主表、证据池、A1-M0--M6 总账矩阵 | 取消按 PR 批次拆分主表，改为统一年份降序表；明确三类证据池主归属；新增 19 篇 × A1-M0--M6 覆盖矩阵 | 已回填 SUMMARY、GUIDE 与审计目录 | 长期文库必须按对象和当前事实维护，不能按施工批次维护；A2a/A2b 继续沿用统一总账结构。 |
 | 2026-06-29 17:58:30 | 三路复审 C/I：CCF 复核状态、三池计数、schema 回修入口 | `ccf_verification_status`、三类证据池计数、schema change ledger | 主表新增 `CCF 复核状态` 列；三类证据池改为主归属计数；恢复本结构化 schema 修订 / 回填日志 | 已回填 SUMMARY、GUIDE、pattern schema 与审计目录 | 防止复制主表时丢失 CCF disclaimer；防止方法学样本与边界 seed 重复计数；保留字段回修可审计入口。 |
 | 2026-06-29 16:59:12 | 用户补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 PDF | 阅读状态、`eligible_for_statistical_synthesis`、manual-download 状态 | 历史 metadata-only / manual-download 条目升级为全文文本级；active manual-download 清零；Petersen 2008 保持方法学参考池，Petersen 2015 作为方法学统计样本进入主统计池 | 已回填 3 篇 `paper.pdf`、`paper_content.txt`、`review.md`、`metadata.json`、SUMMARY 与 search log | 补齐全文后才能把题摘级候选升级为全文级 pattern；统计池仍按主归属和系统性证据状态控制。 |
 | 2026-06-29 15:41:07 | issue #95 十篇现代锚点 | `review_type`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、A1-M0--M6 | 扩展 SLR+SMS、系统映射、MLR、solution proposal、vision/roadmap、theory/evaluation/roadmap；新增 模式种子 与统计池分离字段；新增 A1-M0--M6 元维度 | 已回填 19 篇 `metadata.json`、单篇 `review.md`、SUMMARY、candidate-pool、GUIDE 和 schema | 现代 roadmap / proposal 有高启发价值但不得污染主统计池；A1-M0--M6 是 A2a/A2b 的元维度接力骨架。 |
@@ -417,7 +377,24 @@ A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视�
 
 **本节结论**：schema 回修有明确入口、触发条目、受影响字段、回填状态和冻结理由。后续 A2a/A2b 若新增字段或改变统计池规则，必须先在单篇 `review.md` 记录触发原因，再回修 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md)，最后在本节追加结构化记录。
 
-## 8. 失败、风险与待复核
+## 7. 失败、风险与待复核
+
+### 7.1 非入池条目边界备忘（不进入主干统计表）
+
+本小节只作为风险 / 边界备忘收纳 `统计池资格 != 🟢 入池` 的条目，避免它们占用 SUMMARY 主干完整表。它们不是“无价值论文”：guideline 可支撑方法学规则，roadmap / vision / proposal 可支撑边界和 finding heuristic，但不能与完成型 SLR/SMS/MLR/tertiary 混算。
+
+| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |
+|---:|---|---|---|---|---|---|
+| 2026 | Towards AI-Native Software Engineering (SE 3.0): A Vision and a Challenge Roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | AI-native SE 愿景和挑战路线图；用于提醒愿景类论文只能作边界和挑战启发。 | [review.md](./papers/ai-native-se-roadmap/review.md) |
+| 2025 | On the road to interactive LLM-based systematic mapping studies | 🧪 方案 | 🟠 种子 | ⚪ 不入 | 提供 LLM 介入 SMS 流程、人机角色、traceability 和模型漂移风险种子。 | [review.md](./papers/interactive-llm-systematic-mapping/review.md) |
+| 2025 | Formal requirements engineering and large language models: A two-way roadmap | 🧭 路线图 | ⚫ 边界 | ⚪ 不入 | 启发 concern→mechanism→action 结构和 trustworthiness 边界。 | [review.md](./papers/formal-re-llm-roadmap/review.md) |
+| 2023 | Requirements quality research: a harmonized theory, evaluation, and roadmap | 🧭 理论路线图 | 🟠 种子 | ⚪ 不入 | 启发 researcher-defined meta-model、理论概念树和 gap→roadmap 结构。 | [review.md](./papers/requirements-quality-theory-roadmap/review.md) |
+| 2008 | Systematic Mapping Studies in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 定义 SMS 流程、keywording、classification facet 和 map 可视化。 | [review.md](./papers/petersen-2008-systematic-mapping/review.md) |
+| 2007 | Guidelines for performing Systematic Literature Reviews in Software Engineering | 🧰 指南 | 🟣 方法 | ⚪ 不入 | 提供 SE SLR 方法底座、protocol、纳排、质量评价、抽取和报告基础。 | [review.md](./papers/kitchenham-charters-2007-slr-guidelines/review.md) |
+
+**本小节结论**：6 篇非入池条目承担方法学参考、维度种子和边界提醒职责；后续写作时可以引用其方法或启发，但不得把它们计入主统计池分母，也不得把其观点写成系统综述统计发现。
+
+### 7.2 风险清单
 
 | 风险 | 当前处理 | 后续动作 |
 |---|---|---|
@@ -427,12 +404,12 @@ A2a 第一优先级：不是补历史 PDF，而是对当前 19 篇做图表视�
 | 方法学样本与领域样本混算风险 | Kitchenham 2007、Petersen 2008 不进主统计池；Petersen 2015 标为方法学统计样本 | A2a 报告统计时分层展示。 |
 | 历史 manual-download 路径 | 历史 3 条已由用户本地 Zotero PDF 补齐；[search/manual-download-needed.bib](./search/manual-download-needed.bib) active=0 | 后续新增失败条目继续进入该 BibTeX，补齐后清零或只保留未解决条目。 |
 
-## 9. 后续 A2a / A2b 入口
+## 8. 后续 A2a / A2b 入口
 
 A2a 建议：
 
-1. 以当前 19 篇为起点，先做图表视觉核对、页码 / 表号锚定和字段证据 source anchors。
-2. 扩展到 30--50 篇核心样本，优先覆盖 2020 年后 SE tertiary / SLR / SMS / MLR / survey。
+1. 以当前 13 篇入池论文为主干，先做图表视觉核对、页码 / 表号锚定和字段证据 source anchors；6 篇非入池条目只做边界 / 方法学备忘核查。
+2. 扩展到 30--50 篇入池核心样本，优先覆盖 2020 年后 SE tertiary / SLR / SMS / MLR / survey。
 3. 每个 SE 子领域至少覆盖一批样本：Requirements Engineering、Testing、MDE、ML4SE / AI4SE、LLM4SE、Empirical SE、SE secondary-study artifacts。
 4. 把 [patterns/pattern-field-schema.md](./patterns/pattern-field-schema.md) 拆成正式 pattern library，并记录字段来源、取值空间、缺失语义、统计池资格和 researcher adoption decision。
 5. 对 roadmap / vision / proposal 保持 boundary / 模式种子 池，不混入主统计池。
@@ -444,7 +421,7 @@ A2b 建议：
 3. 明确纳排分母、排除理由、人工下载清单、覆盖 / 饱和度判断。
 4. 把完整文库快照交给 A3 消费，A3 不再混入大规模补文库。
 
-## 10. 更新日志
+## 9. 更新日志
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
@@ -453,6 +430,5 @@ A2b 建议：
 | 2026-06-29 16:59:12 | 用户提供 3 篇历史 manual-download PDF 后，补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 的 `paper.pdf`、`paper_content.txt`、全文级 `review.md` 和 `metadata.json`，并将 active 人工下载清单清零。 | 文件系统统计更新为 19 个 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`；3 篇历史失败路径已闭环，剩余风险转为 A2a 图表视觉核对和 CCF 官方人工复核。 |
 | 2026-06-29 16:13:28 | 修复三路 reviewer 复审提出的 C/I：补齐早期 9 篇 `metadata.json`，统一 19 篇机器可读字段，修正 CSUR CCF 待核验口径，并清理 `paper_content.txt` 行尾空白。 | `git diff --check` 两点工作区口径通过；提交后需再用 PR 三点 diff 复验。 |
 | 2026-06-29 15:41:07 | 根据内部复核修复 A1-M0--M6 命名、SUMMARY 19/16/3 历史总账、#95 metadata 全文状态、roadmap / proposal 统计池排除字段，并记录 CCF 官方页面 WAF 风险。 | 当时文件系统统计：19 个 `review.md`、19 个 `metadata.json`、16 个 `paper.pdf`、16 个 `paper_content.txt`、3 个 manual-download BibTeX 条目；后续 16:59 已补齐为 19/19/19/19。 |
-| 2026-06-29 15:37:22 | 完成 #95 十篇现代锚点一致性复验：补 `issue95-selection-audit.md`，统一 `interactive-llm-systematic-mapping` 年份为正式卷期 2025，修复 19/16/3 历史总账，保持 CCF 字段为“本地缓存；官方待人工复核（WAF）”。 | 当时 `git diff --check` 与 A1 consistency 脚本通过；manual-download-needed 仍为 3 条旧失败路径，后续 16:59 已清零。 |
 | 2026-06-29 13:20:00 | 按用户新增要求补充 `出版形态`、`期刊/会议/预印本`、`CCF 官方大类`、`CCF 官方等级` 四列，并同步单篇 review 快速卡片、候选池和字段 schema。 | CCF 字段按官方完整目录口径设计；本轮 HTTP/CLI 访问官方页受 WAF 限制，工作表暂用本地缓存并标注正式写作前需人工复核。 |
 | 2026-06-29 02:18:07 | 建立 `survey_of_surveys/` README/GUIDE/SUMMARY/search/papers/patterns；完成 6 篇全文文本级 dry-run 和 3 篇 metadata-only 失败路径；回修 schema 字段。 | A1 奠基；未运行真实 LLM，未读取 `.env`，不跑四个真实例子。 |
