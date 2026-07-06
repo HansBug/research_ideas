@@ -20,8 +20,8 @@
 | G1 | `pass` |
 | G2 | `pass` |
 | G3 | `pass` |
-| G4 | `partial` |
-| G5 | `partial` |
+| G4 | `pass` |
+| G5 | `pass` |
 | G6 | `pass` |
 
 ## 4. expected verdict
@@ -33,7 +33,7 @@
 
 ## 5. 反例意义与禁止外推
 
-本 case 用于覆盖 `under_repair, guard_action_event_folding`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
+本 case 用于覆盖 `guard_action_event_folding, under_repair`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
 
 ## 审计附录：证据链与事实源
 

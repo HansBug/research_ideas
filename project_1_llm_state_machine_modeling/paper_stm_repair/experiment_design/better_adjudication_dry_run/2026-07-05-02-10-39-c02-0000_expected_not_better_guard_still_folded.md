@@ -18,17 +18,17 @@
 |---|---|
 | G0 | `pass` |
 | G1 | `pass` |
-| G2 | `pass` |
+| G2 | `fail` |
 | G3 | `pass` |
-| G4 | `partial` |
-| G5 | `partial` |
+| G4 | `fail` |
+| G5 | `pass` |
 | G6 | `pass` |
 
 ## 4. expected verdict
 
 - `scope_routing_status`: `in_scope_t0_protocol_case`
 - `run_validity_status`: `valid_constructed_protocol_case`
-- `primary_expected_verdict`: `partial` `[clm-verdict]`
+- `primary_expected_verdict`: `not_better` `[clm-verdict]`
 - `headline_eligible=false`; `repair_effectiveness_eligible=false`。
 
 ## 5. 反例意义与禁止外推

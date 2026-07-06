@@ -7,6 +7,7 @@
 - base pair：`llms_emp_stm_results_0045`（Microwave / DeepSeek / T0.5 caveat）`[src-baseline]`
 - machine bundle：[project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c15_0045_protocol_invalid_timed_overclaim](../../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c15_0045_protocol_invalid_timed_overclaim/) `[src-case-bundle]`
 - candidate sha256：`6982ce49655354f8bd284ca77ffb27b79768a6010482aba4b24bfd29b4f87aa4` `[src-case-bundle]`
+- 历史 slug 说明：路径中的 `c15_0045_protocol_invalid_timed_overclaim` 保留最初构造意图 / 旧 oracle 名称；当前 canonical verdict 以 `expected_verdict.json`、本文件 §4 和 full blind canonical report 为准，不得从路径名反推当前 verdict。
 
 ## 2. 构造变化
 
@@ -16,24 +17,24 @@ candidate 仍是离散 fcstm，却声称支持 timed automata/clock repair。 `[
 
 | gate | expected status |
 |---|---|
-| G0 | `caveat` |
+| G0 | `pass` |
 | G1 | `pass` |
-| G2 | `fail` |
-| G3 | `not_evaluated` |
-| G4 | `not_evaluated` |
-| G5 | `not_evaluated` |
-| G6 | `fail` |
+| G2 | `pass` |
+| G3 | `pass` |
+| G4 | `fail` |
+| G5 | `fail` |
+| G6 | `pass` |
 
 ## 4. expected verdict
 
-- `scope_routing_status`: `caveat_t05`
-- `run_validity_status`: `protocol_or_provenance_invalid`
-- `primary_expected_verdict`: `protocol_or_provenance_invalid` `[clm-verdict]`
+- `scope_routing_status`: `in_scope_t0_protocol_case`
+- `run_validity_status`: `valid_constructed_protocol_case`
+- `primary_expected_verdict`: `not_better` `[clm-verdict]`
 - `headline_eligible=false`; `repair_effectiveness_eligible=false`。
 
 ## 5. 反例意义与禁止外推
 
-本 case 用于覆盖 `timed_automata_overclaim, conversion_laundering`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
+本 case 用于覆盖 `time_caveat, no_semantic_gain, unused_timer_variable`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
 
 ## 审计附录：证据链与事实源
 
@@ -55,7 +56,7 @@ candidate 仍是离散 fcstm，却声称支持 timed automata/clock repair。 `[
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-change] | C15-C1 | 构造变化：candidate 仍是离散 fcstm，却声称支持 timed automata/clock repair。 | trace | [src-case-bundle] `change_ledger.json` | [cmd-json] | high | 人工构造，不是真实 repair 输出。 |
-| [clm-verdict] | C15-C2 | expected verdict 为 `protocol_or_provenance_invalid`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
+| [clm-verdict] | C15-C2 | expected verdict 为 `not_better`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
 | [clm-boundary] | C15-C3 | 本 case 不支持 repair effectiveness。 | prohibition | [src-case-bundle] `headline_eligible=false` | [cmd-json] | high | R7/R8 真实 run 可另行评估。 |
 
 ### A.4 复验命令

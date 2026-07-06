@@ -7,6 +7,7 @@
 - base pair：`llms_emp_stm_results_0039`（Autonomous collision / Kimi / T0 HSM fallback for requested 0009）`[src-baseline]`
 - machine bundle：[project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c12_0039_expected_unknown_trace_loss](../../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c12_0039_expected_unknown_trace_loss/) `[src-case-bundle]`
 - candidate sha256：`f63180921f5e17eabb919028d0d344ad0c8654b46ddb39b559c1ebe227bd4816` `[src-case-bundle]`
+- 历史 slug 说明：路径中的 `c12_0039_expected_unknown_trace_loss` 保留最初构造意图 / 旧 oracle 名称；当前 canonical verdict 以 `expected_verdict.json`、本文件 §4 和 full blind canonical report 为准，不得从路径名反推当前 verdict。
 
 ## 2. 构造变化
 
@@ -18,22 +19,22 @@
 |---|---|
 | G0 | `pass` |
 | G1 | `pass` |
-| G2 | `unknown` |
-| G3 | `unknown` |
-| G4 | `unknown` |
-| G5 | `unknown` |
+| G2 | `pass` |
+| G3 | `fail` |
+| G4 | `fail` |
+| G5 | `fail` |
 | G6 | `pass` |
 
 ## 4. expected verdict
 
 - `scope_routing_status`: `in_scope_t0_protocol_case`
 - `run_validity_status`: `valid_constructed_protocol_case`
-- `primary_expected_verdict`: `unknown` `[clm-verdict]`
+- `primary_expected_verdict`: `not_better` `[clm-verdict]`
 - `headline_eligible=false`; `repair_effectiveness_eligible=false`。
 
 ## 5. 反例意义与禁止外推
 
-本 case 用于覆盖 `trace_loss`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
+本 case 用于覆盖 `trace_loss, opaque_proxy_guard_variables, semantic_regression`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
 
 ## 审计附录：证据链与事实源
 
@@ -55,7 +56,7 @@
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-change] | C12-C1 | 构造变化：把 dist_to_front/extra_lane 改写成 frontNear/laneAvailable，缺少可审计映射。 | trace | [src-case-bundle] `change_ledger.json` | [cmd-json] | high | 人工构造，不是真实 repair 输出。 |
-| [clm-verdict] | C12-C2 | expected verdict 为 `unknown`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
+| [clm-verdict] | C12-C2 | expected verdict 为 `not_better`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
 | [clm-boundary] | C12-C3 | 本 case 不支持 repair effectiveness。 | prohibition | [src-case-bundle] `headline_eligible=false` | [cmd-json] | high | R7/R8 真实 run 可另行评估。 |
 
 ### A.4 复验命令

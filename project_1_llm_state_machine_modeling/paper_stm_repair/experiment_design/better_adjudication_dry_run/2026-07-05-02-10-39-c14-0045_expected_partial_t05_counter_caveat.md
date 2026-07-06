@@ -7,6 +7,7 @@
 - base pair：`llms_emp_stm_results_0045`（Microwave / DeepSeek / T0.5 caveat）`[src-baseline]`
 - machine bundle：[project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c14_0045_expected_partial_t05_counter_caveat](../../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/c14_0045_expected_partial_t05_counter_caveat/) `[src-case-bundle]`
 - candidate sha256：`79c9cef436647b048d6006a988b0450b930ac2b8467e74d90f9a3ce0bbad0838` `[src-case-bundle]`
+- 历史 slug 说明：路径中的 `c14_0045_expected_partial_t05_counter_caveat` 保留最初构造意图 / 旧 oracle 名称；当前 canonical verdict 以 `expected_verdict.json`、本文件 §4 和 full blind canonical report 为准，不得从路径名反推当前 verdict。
 
 ## 2. 构造变化
 
@@ -20,20 +21,20 @@
 | G1 | `pass` |
 | G2 | `pass` |
 | G3 | `pass` |
-| G4 | `partial` |
-| G5 | `partial` |
+| G4 | `fail` |
+| G5 | `fail` |
 | G6 | `pass` |
 
 ## 4. expected verdict
 
 - `scope_routing_status`: `caveat_t05`
 - `run_validity_status`: `valid_constructed_protocol_case`
-- `primary_expected_verdict`: `partial` `[clm-verdict]`
+- `primary_expected_verdict`: `not_better` `[clm-verdict]`
 - `headline_eligible=false`; `repair_effectiveness_eligible=false`。
 
 ## 5. 反例意义与禁止外推
 
-本 case 用于覆盖 `time_caveat`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
+本 case 用于覆盖 `time_caveat, dead_counter_guard, redundant_transition, no_semantic_gain`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
 
 ## 审计附录：证据链与事实源
 
@@ -55,7 +56,7 @@
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
 | [clm-change] | C14-C1 | 构造变化：把 Timer Expired 降级为离散 timer_ticks counter guard。 | trace | [src-case-bundle] `change_ledger.json` | [cmd-json] | high | 人工构造，不是真实 repair 输出。 |
-| [clm-verdict] | C14-C2 | expected verdict 为 `partial`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
+| [clm-verdict] | C14-C2 | expected verdict 为 `not_better`。 | classification | [src-case-bundle] `expected_verdict.json` | [cmd-json] | high | 只作为 protocol expectation。 |
 | [clm-boundary] | C14-C3 | 本 case 不支持 repair effectiveness。 | prohibition | [src-case-bundle] `headline_eligible=false` | [cmd-json] | high | R7/R8 真实 run 可另行评估。 |
 
 ### A.4 复验命令

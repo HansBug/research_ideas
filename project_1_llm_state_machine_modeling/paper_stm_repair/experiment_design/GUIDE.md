@@ -2,7 +2,7 @@
 
 ## 1. 总原则
 
-实验设计必须先于真实修正结果冻结。任何新增 scope、eligibility、protocol 或 metric 都必须标明状态：`草案`、`评价门 v0`、`正式协议候选` 或 `已冻结`。当前已冻结的上游合同包括 [evaluation_logic.md](./evaluation_logic.md) 的 R5.7.1 评价逻辑链，以及 [quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) / [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 的 R5.7.2 Better STM gate 与 repair target taxonomy；除此之外，不得把职责 README 写成已冻结协议。
+实验设计必须先于真实修正结果冻结。任何新增 scope、eligibility、protocol 或 metric 都必须标明状态：`草案`、`评价门 v0`、`正式协议候选` 或 `已冻结`。当前已冻结的上游合同分层如下：[evaluation_logic.md](./evaluation_logic.md) 冻结 R5.7.1 评价逻辑链；[quality_model/better_stm_definition.md](./quality_model/better_stm_definition.md) / [quality_model/repair_target_taxonomy.md](./quality_model/repair_target_taxonomy.md) 冻结 R5.7.2 Better STM gate 与 repair target taxonomy；[metrics/objective_metric_framework.md](./metrics/objective_metric_framework.md) 冻结 R5.7.3 客观代理指标框架 v0，但不冻结 numeric thresholds 或最终统计检验；[protocols/better_adjudication_prompt_v0.md](./protocols/better_adjudication_prompt_v0.md)、[protocols/better_adjudication_output_schema_v0.json](./protocols/better_adjudication_output_schema_v0.json)、[protocols/better_adjudication_blind_prompt_v0.md](./protocols/better_adjudication_blind_prompt_v0.md) 与 [protocols/better_adjudication_blind_output_schema_v0.json](./protocols/better_adjudication_blind_output_schema_v0.json) 冻结 R5.7.5 constructed / blind protocol dry-run 的 prompt、schema、fail-closed 和 preflight / scorer 纪律，但不冻结 R7 正式 repair-loop protocol 或真实效果。除此之外，不得把职责 README 写成已冻结协议。
 
 ## 2. 子路径维护规则
 
@@ -15,6 +15,7 @@
 | [protocols/](./protocols/) | 修正循环、对照、人工裁决、回滚和审计协议草案。 | 真实运行流水账或结果统计。 |
 | [metrics/](./metrics/) | 指标字段、统计表骨架、报告口径草案。 | 看结果后倒推阈值或删改不利指标。 |
 | [repair_target_adjudication/](./repair_target_adjudication/) | R5.7.4 静态裁决 dry-run、真实样例 finding、metric permission 可执行性检查、R6/R7 handoff。 | 写成真实 repair run、`STM_k` 结果、Better STM 成功率或最终实验集合。 |
+| [better_adjudication_dry_run/](./better_adjudication_dry_run/) | R5.7.5 constructed `STM_k` answer-key suite、expected verdict、gate path、anti-gaming 覆盖与逐案 human-readable case。 | 写成真实 repair loop 输出、headline 成功率、agent-loop 效果或 LLM-as-Judge reliability 结论。 |
 
 ## 3. story vs scope 分工
 
@@ -65,10 +66,11 @@
 R5.7.4 之后，任何修改 Better STM gate、repair target taxonomy、metric permission、target closure 或 scope routing 的提议，都必须至少满足以下条件之一：
 
 1. 来自 [repair_target_adjudication/](./repair_target_adjudication/) 的静态 dry-run finding；
-2. 来自 R7/R8 正式 run 的 run record / target-instance ledger / semantic adjudication 证据；
-3. 来自用户明确决策，并在 PR comment 或 report 中记录问题、选项、决策和适用边界。
+2. 来自 R5.7.5 full blind adjudication 的 finding、canonical report、hidden-oracle scorer summary 或 prompt-consistency / leakage audit；
+3. 来自 R7/R8 正式 run 的 run record / target-instance ledger / semantic adjudication 证据；
+4. 来自用户明确决策，并在 PR comment 或 report 中记录问题、选项、决策和适用边界。
 
-没有上述证据的修改只能标为 `provisional`，不得静默覆盖 R5.7.1--R5.7.3 已冻结合同。静态 dry-run finding 也不得被写成 repair effectiveness；它只说明规则是否可执行、是否需要 handoff 或是否存在证据缺口。
+没有上述证据的修改只能标为 `provisional`，不得静默覆盖 R5.7.1--R5.7.5 已冻结合同。静态 dry-run / blind dry-run finding 也不得被写成 repair effectiveness；它只说明规则是否可执行、是否需要 handoff 或是否存在证据缺口。任何 oracle、prompt、schema 或 gate-status 修订都必须记录旧 expected verdict、触发该修订的 finding、修订理由、受影响 Cxx/Bxx case，以及历史报告是被 supersede 还是作为 archive 保留。
 
 每个 dry-run target ledger 的 `better_stm_condition_impact` 必须显式说明 G0--G6 中哪些是 `pass/assessable`、`cannot_evaluate`、`pending`、`not_applicable` 或 caveat；不得用“视实例而定”替代 gate 状态，也不得静默省略 G1 artifact gate 或 G3 no-regression gate。
 
@@ -83,3 +85,15 @@ R5.7.5 之后，任何 constructed `STM_k` dry-run 必须满足：
 4. parse-invalid candidate 只能用于测试 G1 hard gate；metadata JSON 仍必须有效。
 5. `scenario_overfitting` 若没有真实 scenario oracle，不得写成已覆盖，只能 handoff。
 6. constructed expected verdict 只能支持 protocol coverage；不得进入 repair effectiveness、success denominator 或 headline claim。
+
+## 9. blind adjudication 与 R6/R7 deterministic preflight 纪律
+
+R5.7.5 full blind adjudication 之后，后续 R6/R7 继续维护 Better STM 裁决链时必须继承以下边界：
+
+1. **机械事实先确定、语义裁决后运行**：parse status、hash、baseline / candidate 文件存在性、identity、schema、transport、provider / CLI exit code、ledger availability 和 provenance hash mismatch 等机械事实必须由确定性脚本或 run record 先产出；LLM-as-Judge 只能消费这些事实做语义裁决，不能替代机械有效性检查。
+2. **preflight fail 必须 fail-closed**：凡 deterministic preflight 判定为 missing input、parse invalid、schema invalid、identity mismatch、hash mismatch、provider/CLI nonzero、missing change ledger、missing target ledger 或 run record 不完整的候选，不得进入 headline denominator，也不得被 LLM 输出“看起来更好”后补救为 success。
+3. **blind input 不得泄露 oracle**：judge prompt / packet 不得包含 expected verdict、Cxx answer-key slug、oracle mapping、构造意图、PR 讨论上下文或人工答案；hidden oracle 只能由 scorer 使用。
+4. **每次 judge run 必须写盘全过程**：至少保存 prompt、raw output、parsed output、stdout、stderr、run_meta_start、run_meta_end、schema validation result、identity / leakage / prompt consistency 检查和 scorer summary。
+5. **multi-judge 只能作 calibration，不能作 repair outcome**：Claude / DeepSeek / Codex 在 R5.7.5 上的结果只说明协议可执行并暴露校准风险；若后续论文要声称 judge reliability，必须另做重复运行、人工仲裁、inter-judge agreement 与精确 provider/model metadata。
+6. **规则修订必须由 finding 驱动**：`partial` vs strict `better`、`unknown` vs `not_better`、T0.5 caveat、G0--G6 gate status 粒度等修改，必须引用 R5.7.5 blind finding、R7 正式 run record 或用户明确决策；不得为了提升结果空口改 oracle、prompt 或阈值。
+7. **报告必须保留禁止外推**：constructed suite、blind judge 一致性、schema-valid、leakage=0、prompt consistency 和 judge agreement 都不能支持真实 repair effectiveness、Better STM 成功率或模型比较；只能支持 evaluation protocol readiness / calibration / limitation。

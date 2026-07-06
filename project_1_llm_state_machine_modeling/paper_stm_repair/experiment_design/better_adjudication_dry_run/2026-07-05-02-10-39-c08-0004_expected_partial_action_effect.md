@@ -28,12 +28,12 @@
 
 - `scope_routing_status`: `in_scope_t0_protocol_case`
 - `run_validity_status`: `valid_constructed_protocol_case`
-- `primary_expected_verdict`: `better` `[clm-verdict]`
+- `primary_expected_verdict`: `partial` `[clm-verdict]`
 - `headline_eligible=false`; `repair_effectiveness_eligible=false`。
 
 ## 5. 反例意义与禁止外推
 
-本 case 用于覆盖 `action_effect`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
+本 case 用于覆盖 `action_effect_extraction, under_repair, remaining_state_level_action_effect_gap`。它只能说明评价协议如何处理该风险，不能说明真实 repair loop 的成功率或失败率 `[clm-boundary]`。
 
 ## 审计附录：证据链与事实源
 
