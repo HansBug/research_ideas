@@ -13,7 +13,7 @@
 | 边界 / 方法启发池 | 145 | [corpus/tables/boundary-pool.csv](./corpus/tables/boundary-pool.csv) | 不进入主统计池，只作方法启发或边界说明。 |
 | 需人工下载 | 145 | [corpus/manual-download-needed.md](./corpus/manual-download-needed.md) / [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib) | 可导入 Zotero 批量下载；PDF 不可得不等于排除。 |
 
-PDF 状态速读：主候选 15 篇已有本地 PDF / 文本，其中 13 篇来自 A1，2 篇由 A2a 自动从开放 PDF 链接获取；主候选 105 篇和替补 40 篇仍需人工下载或后续合法开放来源补抓。`raw/` 为前序摸排快照，本 PR 只做换行符与行尾空白规范化，字段、行数与候选资格均未变；主候选优先级种子已显式固化为 [corpus/raw/selection-seed.csv](./corpus/raw/selection-seed.csv)。详见 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md) 与 [corpus/source-audit.md](./corpus/source-audit.md)。
+PDF 状态速读：主候选 15 篇已有本地 PDF / 文本，其中 13 篇来自 A1，2 篇由 A2a 自动从开放 PDF 链接获取；主候选 105 篇和替补 40 篇仍需人工下载或后续合法开放来源补抓。`raw/` 为前序摸排快照，本 PR 只做换行符与行尾空白规范化，字段、行数与候选资格均未变；主候选优先级种子已显式固化为 [corpus/raw/selection-seed.csv](./corpus/raw/selection-seed.csv)。前序 `/tmp` 本地临时路径只保留为审计线索，不能触发 `downloaded` 状态或自动复制；只有仓库内真实存在的 `papers/<slug>/paper.pdf` 才计为已下载。详见 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md) 与 [corpus/source-audit.md](./corpus/source-audit.md)。
 
 A2b 启动前必须先读 [corpus/handoff-to-next-stage.md](./corpus/handoff-to-next-stage.md)。
 
@@ -443,6 +443,7 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
+| 2026-07-06 23:27:24 | 加固 PR-A2a PDF 状态可复算性：禁止 `build_corpus_tables.py` / `acquire_pdfs.py` 因前序 `/tmp` 本地临时路径存在而把条目标为 `downloaded` 或复制仓库外 PDF；新增 `local_snapshot_only` 失败类型，并要求非 downloaded 行不得携带旧审计 `pdf_sha256`。 | 已运行 `build_corpus_tables.py`、`acquire_pdfs.py`、`validate_corpus.py`、`py_compile`、`git diff --check`；额外构造 `/tmp/issue95_all_pdfs_v2/10_1145_3708532.pdf` 假文件后复算，目标条目仍为 `manual_needed` / `local_snapshot_only`，说明外部临时路径不会污染正式统计。 |
 | 2026-07-06 22:52:09 | 完成 PR-A2a 综述语料候选库建设：新增 [corpus/](./corpus/) 入口、[raw/selection-seed.csv](./corpus/raw/selection-seed.csv) 主候选选择种子、全量候选账本 438、系统化候选 293、主候选 120、替补 40、边界池 145；新增 2 篇 A2a 候选论文的 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`metadata.json`，并生成 145 条人工下载 BibTeX。 | `validate_corpus.py` 通过并输出 438/293/120/40/145/145/15；`py_compile` 通过；`git diff --check` 通过；A1 13 篇入池资产未被覆盖，A2a 新增论文仍标记 `a2a_review_status=not_started`，不计为 A2b 深读完成。 |
 | 2026-06-29 21:10:00 | 完成 PR-A1-DT 实现：补充 GUIDE 维度树复原规则、pattern schema 字段合同、19 篇单篇 `review.md` 的维度树复原与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录，并在 SUMMARY 增加维度树模式总览和 SUMMARY 结论-证据映射。 | A1 原始阶段未读取 `.env`；A1-DT v2 批次已完成 57/57 CLI 审计，日志保留命令/stdout/stderr与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录 secret；A1-DT 仍保留 A2a 页码 / 表图精核边界。 |
 | 2026-06-29 17:40:27 | 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 SUMMARY 为长期文库总账：取消批次化主表，改为统一年份降序论文表；补充三类证据池标准；新增 19 篇 × A1-M0--M6 覆盖矩阵；把历史过程下沉为风险 / 日志。 | 本轮只重构总账和规则，不新增论文；后续需同步 GUIDE 与 PR body，并复验 19/19/19/19、active manual=0。 |

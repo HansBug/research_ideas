@@ -109,6 +109,17 @@ def main() -> None:
 
     core_reserve_slugs = set(core["slug"]) | set(reserve["slug"])
     pdf_core_reserve = pdf[pdf["corpus_tier"].isin(["core", "reserve"])]
+
+    if pdf["attempt_sources"].astype(str).str.contains("copy|/tmp|local audit", case=False, regex=True).any():
+        fail("pdf-status attempt_sources must not describe copying external local audit paths")
+    non_downloaded = pdf[pdf["final_status"] != "downloaded"]
+    if (non_downloaded["pdf_path"].astype(str).str.len() != 0).any():
+        fail("non-downloaded rows must not carry pdf_path")
+    if (non_downloaded["pdf_sha256"].astype(str).str.len() != 0).any():
+        fail("non-downloaded rows must not carry pdf_sha256 from audit snapshots")
+    if (non_downloaded["text_path"].astype(str).str.len() != 0).any():
+        fail("non-downloaded rows must not carry text_path")
+
     if set(pdf_core_reserve["slug"]) != core_reserve_slugs:
         fail("pdf-status does not exactly cover core+reserve slugs")
     if (pdf_core_reserve["attempted"].astype(str).str.len() == 0).any():

@@ -380,14 +380,6 @@ def main() -> None:
             text_status = "ok" if existing_text.exists() else "not_attempted"
             attempted = True
             pdf_sha256 = sha256(existing_pdf)
-        elif source_status in {"ok", "exists_old"} and source_pdf and Path(source_pdf).exists():
-            final_status = "downloaded"
-            failure_type = ""
-            pdf_path = f"papers/{rec['slug']}/paper.pdf"
-            text_path = f"papers/{rec['slug']}/paper_content.txt"
-            text_status = "ok" if source_text else "not_attempted"
-            attempted = True
-            pdf_sha256 = norm_text(audit_row.get("pdf_sha256"))
         elif rec["corpus_tier"] == "boundary":
             final_status = "not_applicable"
             failure_type = ""
@@ -399,10 +391,14 @@ def main() -> None:
         else:
             final_status = "manual_needed"
             raw_failure = source_status or "no_public_pdf_url_discovered"
-            if source_status in {"ok", "exists_old"} and source_pdf and not Path(source_pdf).exists():
-                raw_failure = "source_pdf_missing"
+            if source_status in {"ok", "exists_old"} and source_pdf:
+                # 旧全文审计中的本地绝对路径只保留为来源线索，不能作为
+                # clean clone 下的已获取事实；只有仓库内 paper.pdf 才能计为 downloaded。
+                raw_failure = "local_snapshot_not_materialized"
             if "no_public" in raw_failure:
                 failure_type = "paywall"
+            elif "local_snapshot_not_materialized" in raw_failure:
+                failure_type = "local_snapshot_only"
             elif "source_pdf_missing" in raw_failure:
                 failure_type = "broken_pdf"
             elif "fail" in raw_failure:
@@ -413,7 +409,7 @@ def main() -> None:
             text_path = ""
             text_status = "not_attempted"
             attempted = True
-            pdf_sha256 = norm_text(audit_row.get("pdf_sha256"))
+            pdf_sha256 = ""
         manual_priority = "--"
         if final_status == "manual_needed":
             manual_priority = "P0" if rec["corpus_tier"] == "core" and rec["ccf_rank"] == "CCF-A" else ("P1" if rec["corpus_tier"] == "core" else "P2")
@@ -426,7 +422,7 @@ def main() -> None:
                 "doi": rec["doi"],
                 "corpus_tier": rec["corpus_tier"],
                 "attempted": attempted,
-                "attempt_sources": "A1 local" if rec["source_layer"].startswith("A1") else "OpenAlex/DOI/open-access snapshot; automatic acquisition script may copy previously discovered local audit files",
+                "attempt_sources": "A1 仓库内全文资产" if rec["source_layer"].startswith("A1") else "OpenAlex/DOI 开放获取线索；只有仓库内 paper.pdf 才能计为 downloaded，外部临时路径仅作审计线索",
                 "final_status": final_status,
                 "failure_type": failure_type,
                 "pdf_path": pdf_path,

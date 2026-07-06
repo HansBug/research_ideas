@@ -2,15 +2,16 @@
 """Materialize already-discovered open PDFs for the A2a corpus.
 
 This script does not bypass paywalls and does not scrape publisher pages.  It only
-copies files that were already legally discovered by the frozen fulltext audit
-snapshot, then regenerates ``paper_content.txt`` using the repository PDF
-extractor.  Failures remain in ``corpus/manual-download-needed.bib``.
+uses repository-local PDFs that already exist or downloads explicit open-access
+PDF URLs recorded in the frozen candidate snapshot, then regenerates
+``paper_content.txt`` using the repository PDF extractor.  Absolute local paths
+from earlier audit snapshots are audit-only and are never copied by default.
+Failures remain in ``corpus/manual-download-needed.bib``.
 """
 from __future__ import annotations
 
 import hashlib
 import json
-import shutil
 import subprocess
 import urllib.request
 import sys
@@ -118,26 +119,23 @@ def main() -> None:
             skipped_existing += 1
             df.at[_, "final_status"] = "downloaded"
             continue
-        source_raw = str(row.get("source_pdf_path") or "").strip()
-        source = Path(source_raw) if source_raw else None
         dest_dir.mkdir(parents=True, exist_ok=True)
-        if source is not None and source.exists() and source.is_file():
-            shutil.copy2(source, pdf_dest)
-        else:
-            ok, msg = try_download_pdf(oa_pdf_urls.get(str(row.get("doi", "")).lower().strip(), ""), pdf_dest)
-            if not ok:
-                # Rows that remain manual-needed are not fatal.
-                if row["final_status"] == "downloaded":
-                    failed.append((slug, "source_pdf_missing_or_download_failed", f"{source_raw or 'no_local_source'}; {msg}"))
-                try:
-                    pdf_dest.unlink()
-                except FileNotFoundError:
-                    pass
-                continue
-            df.at[_, "final_status"] = "downloaded"
-            df.at[_, "failure_type"] = ""
-            df.at[_, "manual_priority"] = "--"
-            df.at[_, "notes"] = msg
+        ok, msg = try_download_pdf(oa_pdf_urls.get(str(row.get("doi", "")).lower().strip(), ""), pdf_dest)
+        if not ok:
+            # Rows that remain manual-needed are not fatal.  External absolute
+            # paths recorded in source_pdf_path are audit-only and deliberately
+            # ignored here to keep A2a reproducible in a clean clone.
+            if row["final_status"] == "downloaded":
+                failed.append((slug, "open_access_download_failed", msg))
+            try:
+                pdf_dest.unlink()
+            except FileNotFoundError:
+                pass
+            continue
+        df.at[_, "final_status"] = "downloaded"
+        df.at[_, "failure_type"] = ""
+        df.at[_, "manual_priority"] = "--"
+        df.at[_, "notes"] = msg
         # Generate bibtex and metadata, but do not create review.md/evidence_chain.md.
         if meta_row is not None:
             (dest_dir / "bibtex.bib").write_text(bibtex_for(meta_row), encoding="utf-8")

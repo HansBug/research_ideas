@@ -18,8 +18,10 @@ A2a 只使用合法开放来源：原始表中的开放 PDF 链接、OpenAlex �
 
 脚本入口：[../scripts/acquire_pdfs.py](../scripts/acquire_pdfs.py)。当前脚本只做两类动作：
 
-1. 如果前序全文审计快照中的本地 PDF 文件仍存在，则复制到 `papers/<slug>/paper.pdf`。
+1. 如果 `papers/<slug>/paper.pdf` 与 `paper_content.txt` 已经存在，则保留并按仓库内文件重新计算状态，不覆盖 A1 / A2a 已落盘资产。
 2. 如果原始候选有 OpenAlex 开放 PDF 链接，则尝试直接下载，并检查文件头是否为 PDF。
+
+前序 `fulltext-audit.csv` 中的 `/tmp/...` 本地临时路径只保留为审计线索，不再被自动复制，也不能让条目在干净 clone 下被计为 `downloaded`。只有仓库内真实存在的 `paper.pdf` 才能进入已下载统计。
 
 下载成功后，脚本使用仓库工具生成 `paper_content.txt`：
 
@@ -38,7 +40,8 @@ A2a 不批量生成正式 `review.md`。新增候选目录中的 `metadata.json`
 | `captcha_or_waf` | WAF / CAPTCHA 阻断 | 等待人工浏览器核验。 |
 | `not_found` | 链接失效或 404 | 记录并寻找作者主页 / arXiv。 |
 | `html_only` | 下载结果不是 PDF | 不入库，继续人工核验。 |
-| `broken_pdf` | 旧审计声称有 PDF 但本地临时文件已不存在，或 PDF 损坏 | 重新进入人工下载。 |
+| `broken_pdf` | 公开链接返回错误页、文件头不是 PDF，或 PDF 损坏 | 重新进入人工下载。 |
+| `local_snapshot_only` | 旧审计中有本地临时路径或旧哈希，但仓库内没有真实 PDF；该路径只作线索 | 进入人工下载或后续用公开链接重新获取。 |
 | `metadata_missing` | DOI / URL 不足以定位 PDF | 后续补元数据。 |
 
 ## 5. 当前结论
