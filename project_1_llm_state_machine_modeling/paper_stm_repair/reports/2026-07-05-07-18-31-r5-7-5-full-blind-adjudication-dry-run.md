@@ -19,6 +19,71 @@
 | prompt 一致性 | final scoring 前重建 20 个 prompt 并与归档 prompt 比对，`mismatch_count=0`。 | [src-prompt-check], [cmd-prompt-check] |
 | 结构化评分 | `score_blind_outputs.py` 只在 `exit_code=0`、schema-valid、identity 匹配且无 provider/CLI nonzero parsed-output 时计入 final score；`run_validity_match` 使用归一化等价桶，不是字面字符串相等。 | [src-score-script], [cmd-score] |
 
+## 2.1 本报告的归一化范围
+
+本文件是 R5.7.5 阶段的 **canonical 总报告**：它把先前分散在 constructed `STM_k` suite 报告、blind bundle README、prompt/schema、runner/scorer、三方 judge 输出与 PR handoff 中的事实汇总到同一条可审计链路中 `[clm-canonical-report]`。若只想理解 R5.7.5 对后续 R6/R7 的稳定输入，应优先读本文件；若需要逐案机器事实，再跳转到 A.2 中列出的 JSON / Python / judge output 原始资产。
+
+需要特别区分两类材料：
+
+1. **constructed answer-key suite**：C01--C20 是人工构造的 protocol dry-run case，用于覆盖 expected outcome、anti-gaming 与 fail-closed 分支；它们不是真实 repair loop 产物 `[clm-constructed-blind-link]`。
+2. **full blind adjudication run**：B01--B20 是从 Cxx suite 派生出的 blind packet；judge 只能看 Bxx 输入，不知道 Cxx mapping、expected verdict 或 construction intent；hidden oracle 只给 deterministic scorer 使用 `[clm-constructed-blind-link]`。
+
+因此，本报告的 headline 结论只能是：**Better STM adjudication protocol 在 constructed cases 上具备 blind 可执行性、分支覆盖与校准价值**。它不能被改写成“repair method 已有效”或“LLM-as-Judge 已充分可靠”。
+
+## 2.2 完整 better-adjudication dry-run 链路
+
+本轮不是“纯 LLM 一把梭”。完整链路由前置确定性事实、一次隔离语义 judge、后置确定性审计三部分组成 `[clm-chain-boundary]`：
+
+```mermaid
+flowchart TD
+    C["D0 🟢 constructed suite
+C01--C20 + expected oracle"] --> V["D1 🟢 deterministic validation
+validate_suite.py --parse"]
+    V --> B["D2 🟢 blind bundle build
+build_blind_bundle.py"]
+    B --> I["Bxx blind input
+NL + raw STM0 + canonical STM0 + STMk + mechanical facts"]
+    I --> J["J1 🟡 isolated LLM semantic judge
+Claude / DeepSeek / Codex"]
+    J --> O["D3 🟢 schema + identity + transport validation
+jsonschema + run_meta"]
+    O --> S["D4 🟢 oracle scoring
+score_blind_outputs.py"]
+    S --> Q["D5 🟢 leakage + prompt consistency
+leakage_check.py / prompt_consistency_check.py"]
+    Q --> R["D6 🟢 canonical report + handoff
+本 report"]
+```
+
+| 阶段 | 性质 | 主要执行文件 / 资产 | 输入 | 输出 | 是否允许访问 hidden oracle | 学术职责 |
+|---|---|---|---|---|---|---|
+| D0 constructed suite | 人工构造 + 机器归档 | [src-suite], [src-constructed-readme], [src-constructed-report] | 20 个 `NL, STM_0, STM_k` protocol cases | C01--C20 expected outcome / target ledger / change ledger | 是，但仅作为 answer-key fixture | 覆盖评价协议分支，不证明 repair。 |
+| D1 suite validation | 确定性 | [src-validator], [cmd-validate-constructed] | Cxx case files | 文件、hash、schema、parse 预期检查 | 否 | 防止 constructed fixture 自身不完整。 |
+| D2 blind bundle build | 确定性 | [src-build-script], [cmd-build] | Cxx suite + fixed mapping | Bxx blind inputs、hash、parse/provenance 机械事实、hidden oracle | 写 oracle，但不放入 prompt | 把 answer-key case 转成可 blind 运行的 input。 |
+| J1 isolated semantic judge | LLM | [src-prompt], [src-schema], [src-runner] | Bxx packet + NL/raw/canonical/candidate | `parsed_output.json` candidate verdict | 否 | 只做语义裁决、归因、no-regression、improvement 与 rationale。 |
+| D3 output validation | 确定性 | [src-score-script] | raw / parsed output + run meta | eligible / invalid output 标记 | 否 | schema、identity、exit code、parse error gate。 |
+| D4 oracle scoring | 确定性 | [src-oracle], [src-score-script], [cmd-score] | eligible parsed output + hidden oracle | verdict/scope/run-validity/gate match counts | 是，仅 scorer 访问 | 计算协议 dry-run 是否对齐预期。 |
+| D5 audit checks | 确定性 | [src-leakage-script], [src-prompt-consistency-script], [cmd-leakage], [cmd-prompt-check] | blind inputs、archived prompts | leakage=0、prompt mismatch=0 | 否 | 防止 answer-key 泄露与 stale prompt。 |
+| D6 report/handoff | 人类可读汇总 | 本报告、[src-blind-readme] | D0--D5 facts | R6/R7 handoff | 否 | 冻结可防守结论和后续工程纪律。 |
+
+这个设计的关键是：**parse/hash/provenance 等机械事实由 D1/D2 确定性产生，LLM 不负责发现这些事实；LLM 只在 J1 中消费这些事实并进行语义裁决；最终是否计入结果再由 D3--D5 确定性审计决定** `[clm-deterministic-facts]`。
+
+## 2.3 G0--G6 中 deterministic 与 LLM 的职责边界
+
+当前 R5.7.5 的 G0--G6 是评价协议的语义 gate，而不是每个 gate 都已经变成独立 deterministic blocker。它们在本轮的职责边界如下 `[clm-gate-responsibility]`：
+
+| gate | 当前输入事实 | 当前裁决主体 | 当前 R5.7.5 已做到 | 后续 R6/R7 必须硬化 |
+|---|---|---|---|---|
+| G0 scope | NL / raw / canonical / candidate 中的 T0、T0.5、T1 线索 | LLM semantic judge，scorer 对照 oracle | Claude 20/20 scope；DeepSeek B17 有 T0.5 caveat 分歧；Codex 20/20 scope。 | T0.5 caveat 与 T1 stress 的规则要继续校准，必要时加入人工仲裁样例。 |
+| G1 admissibility | `baseline_file_present`、`candidate_file_present`、`candidate_parse_status`、schema/transport 状态 | 机械事实由 D1/D2/D3 确定；LLM 输出 G1 status | C17 parse-invalid、provider/schema-invalid 不会被计入有效成功。 | parse/provenance/hash/identity 应前移成 deterministic blocker；LLM 不应拥有最终解释权。 |
+| G2 attribution | change ledger availability、candidate 与 canonical diff、conversion/normalization 边界 | 机械 provenance + LLM attribution | prompt 明确禁止把格式转换、canonicalization、`.fcstm` 可解析性算作 repair gain。 | 真实 repair run 必须绑定 `AgentLoopRunRecord`、change ledger、target ledger 和 prompt/output hash。 |
+| G3 no-regression | NL + 两版 STM 的状态、迁移、层级、guard/action/effect/trace | LLM semantic judge | text-similarity / deletion 反例已通过 C20/B18 校准。 | 增加人工 spot-check 与 regression taxonomy，避免 LLM 过度相信表面文字。 |
+| G4 improvement | target issue 是否被 NL 支持且被严格改善 | LLM semantic judge + hidden oracle score | `better`、`partial`、`unknown`、`not_better` 分支均覆盖。 | 明确 partial 与 strict better 的闭合条件，尤其 Codex B08 过度给分。 |
+| G5 semantic synthesis | no-regression + improvement + anti-gaming | LLM semantic judge | 不透明 `effect_token_*` 已校准为 unknown，不再当成 action/effect improvement。 | 建立 human arbitration / multi-judge disagreement policy。 |
+| G6 reporting / eligibility | schema、forbidden claims、headline flags、run meta | schema + scorer + LLM JSON | `headline_eligible=false`、`repair_effectiveness_eligible=false` 固定，0 leakage。 | 真实实验必须新增 `repair_effectiveness_eligible` 的 eligibility filter，禁止 constructed case 混入主统计。 |
+
+因此，如果问“blind 环节是不是一个 LLM call 就完事”，严格答案是：**J1 语义裁决是每个 judge / case 一次 LLM call，但它被 D1/D2 的确定性机械事实约束，并由 D3--D5 的确定性校验、scoring、leakage 与 prompt-consistency 审计包围**。R5.7.5 已经能支撑 protocol dry-run；真实 repair 实验前还必须把 G1/G2 中可机械判定的部分进一步代码化为 hard blocker `[clm-handoff-preflight]`。
+
 ## 3. 最终全量 dry-run 结果
 
 最终全量运行窗口：`2026-07-05T14:40:09` 到 `2026-07-05T14:54:39`；final judge family 为 `claude-blind-judge`。本轮 B01--B20 均由隔离外部 CLI 子进程执行；其中 B18 在 C20 反例被加硬为“明显删除 NL 支持的 Power_Off / human fallback”后重新运行，最终 `prompt_consistency_check` 证明 20/20 归档 prompt 与当前 bundle 完全一致 `[clm-prompt-consistency]`。
@@ -122,7 +187,7 @@ primary verdict / scope / run-validity 已 20/20 对齐，但 G0--G6 的细粒�
 
 ## 7.5 追加 multi-judge blind replication（Codex / DeepSeek）
 
-根据 [src-pr-multijudge-comment] 的追加要求，本 PR 在 Claude final run 之后补充了 Codex-DeepSeek 与 Codex CLI 的 blind replication。新增阶段仍使用同一套 B01--B20 blind inputs、同一 hidden oracle、同一 `better_adjudication_blind_prompt_v0.md` 与同一输出 schema；目的只是在 constructed cases 上审计评价协议的跨 judge 可执行性和校准风险，而不是证明 repair method effectiveness `[clm-multijudge-scope]`。
+根据 [src-pr-multijudge-comment] 的追加要求，R5.7.5 在 Claude final run 之后补充了 Codex-DeepSeek 与 Codex CLI 的 blind replication。新增阶段仍使用同一套 B01--B20 blind inputs、同一 hidden oracle、同一 `better_adjudication_blind_prompt_v0.md` 与同一输出 schema；目的只是在 constructed cases 上审计评价协议的跨 judge 可执行性和校准风险，而不是证明 repair method effectiveness `[clm-multijudge-scope]`。
 
 本次 Codex 复验有一个重要工程口径：`codex exec --output-schema` 在完整 B01 prompt 上仍触发 provider 502；但同一完整 prompt 通过 **直接 `codex exec` + `-o last_message.txt` + 本地 `jsonschema` 严格校验** 可以稳定产出 schema-valid JSON。因此当前 Codex final run 的 `cli_output_schema_mode` 统一记录为 `local_jsonschema_validation_no_cli_output_schema`：provider CLI 不强制 structured output，但每个 `last_message/stdout` 仍必须通过本地 schema、identity、`exit_code=0`、无 leakage 才能计入 eligible `[clm-codex-rerun]`。
 
@@ -169,9 +234,28 @@ Codex 的核心结果是：`valid_output_count=20`、`verdict_match_count=18`、
 
 ## 9. 后续 handoff
 
-- R5.7.5 可以把 `better_adjudication_blind_prompt_v0.md`、`better_adjudication_blind_output_schema_v0.json`、blind input bundle、oracle/scorer/run manifest 作为 R6/R7 评价协议输入。
-- R6/R7 若进入真实 repair loop，必须重新生成真实 `AgentLoopRunRecord` / change ledger / target ledger / prompt raw output / usage；不得复用本轮 constructed `STM_k` 作为真实结果。
-- R7 若扩展 judge，应优先补：多 judge blind repeat、人工仲裁样例、scenario-overfitting 反例、LLM nondeterminism 统计、gate-level status calibration。
+R5.7.5 交付的是一套 **可复用但仍需硬化的评价协议资产**，不是 repair effectiveness 结果。后续 PR / R6 / R7 应按下表接收本轮产物与限制 `[clm-handoff-preflight]`：
+
+| 后续环节 | 可以直接继承的 R5.7.5 资产 | 必须新增或硬化的内容 | 触发证据 / 风险 | 验收口径 |
+|---|---|---|---|---|
+| R6 真实 repair loop 接入 | [src-prompt]、[src-schema]、blind runner/scorer 的结构化输出纪律 | 每个真实 run 必须生成 `AgentLoopRunRecord`、LLM prompt/raw output/usage、change ledger、target ledger、candidate hash 与 provider/model metadata。 | 本轮全部 `STM_k` 均为 constructed protocol cases，不可充当真实修复结果 `[clm-boundary]`。 | 没有真实 run record 的 candidate 一律 `repair_effectiveness_eligible=false`。 |
+| R6/R7 deterministic preflight | D1/D2/D3 的 parse/hash/provenance/check 逻辑 | 把 parse failure、missing ledger、hash mismatch、identity mismatch、provider/CLI nonzero 等升级为独立 deterministic blocker，而不是只靠 prompt 让 LLM 输出 G1/G2。 | G1 机械事实已经可由 [src-validator]、[src-build-script]、[src-score-script] 计算；LLM 不应最终裁断机械有效性。 | preflight JSON 必须先通过，LLM semantic judge 才运行；preflight fail 的 case 不进入 headline denominator。 |
+| R7 Better adjudication calibration | B01--B20 blind bundle、hidden oracle、三方 score summaries | 继续校准 `partial` vs strict `better`、`unknown` vs `not_better`、T0.5 caveat vs T0 in-scope、gate status 粒度。 | Codex B08/B11、DeepSeek B17 与 gate-level disagreement 表明主 verdict 比 gate status 稳定。 | 允许保留 disagreement，但必须有人工 arbitration 或规则修订依据，不能空口改 oracle。 |
+| R7 multi-judge / human arbitration | Claude / DeepSeek / Codex 三方 outputs 与 prompt consistency 记录 | 增加重复运行、温度/随机性记录、人工仲裁样例、judge identity 精确 model id（provider 支持时）。 | 当前 CLI 只暴露 alias / transcript provider，不足以做模型比较 `[clm-limitation]`。 | 若论文声称 judge reliability，必须报告 inter-judge agreement、人工仲裁和失败样例。 |
+| R7 scenario-overfitting / anti-gaming | C10/C20 校准经验、text-similarity / opaque effect token 规则 | 新增真实或构造的 scenario-overfitting 反例、semantic deletion 反例、over/under repair stress case。 | [src-suite] 已标记 scenario-overfitting 为 handoff-only；当前 20 case 尚不足以覆盖所有 anti-gaming。 | 反例必须由 blind run 触发真实分歧或校准需求后再修改规则，避免空口加指标。 |
+| R6/R7 reporting / paper writing | 本报告 A.2--A.4 的证据链格式 | 继续使用稳定 ASCII claim key；每个 headline number 都要有 machine source、复验命令和 caveat。 | report 归一化目标是让论文实验段可直接追踪事实源。 | 没有 source / command / caveat 的数字不得进入论文主表。 |
+
+### 9.1 后续必须保留的禁止外推
+
+1. 不得把 constructed `STM_k` 写成真实 repair loop 产物。
+2. 不得把 `.fcstm` parse success、PlantUML canonicalization、format conversion 或 hash 完整性写成 repair gain。
+3. 不得把单 judge 或三 judge dry-run 写成 LLM-as-Judge 方法学已经充分可靠。
+4. 不得把 Codex / DeepSeek / Claude 的本轮结果写成正式模型比较；当前缺少统一 provider-side exact model id、重复运行和人工仲裁。
+5. 不得把 gate-level disagreement 人工抹平为 20/20；这些 disagreement 是后续校准证据。
+
+### 9.2 后续可以直接复用的命令入口
+
+R6/R7 在接入真实 repair output 之前，至少应能复跑 A.4 中的 [cmd-validate-constructed]、[cmd-leakage]、[cmd-score]、[cmd-score-deepseek]、[cmd-score-codex] 与 prompt-consistency checks。若真实 repair loop 改动 prompt/schema/runner/scorer，必须同步更新本报告式的 A.2--A.4 证据链，而不是只在 PR comment 中说明。
 
 ## 审计附录：证据链与事实源
 
@@ -179,17 +263,24 @@ Codex 的核心结果是：`valid_output_count=20`、`verdict_match_count=18`、
 
 | source path | source creation commit | prefix commit | substantive fact commit 判定理由 | non-prefix revision/migration commit | canonical machine source |
 |---|---|---|---|---|---|
-| 本文件 | 当前 PR 提交 | 当前 PR 提交 | R5.7.5 追加 full blind adjudication dry-run 后冻结 final Claude score、oracle/prompt/case 校准与 R6/R7 handoff。 | — | [score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/score_summary.json) |
+| 本文件 | 当前 PR 提交 | 当前 PR 提交 | R5.7.5 追加 full blind adjudication dry-run 后归一化为 canonical 总报告，冻结 constructed suite、deterministic/LLM/score 链路、三方 judge 结果、oracle/prompt/case 校准与 R6/R7 handoff。 | — | [score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/score_summary.json) |
 
 ### A.2 上游事实源清单
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
 | [src-suite] | constructed_suite | [suite_index.json](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/suite_index.json) | json | 20 个 constructed source case、expected branch、eligibility boundary | `$.cases[*]`, `$.coverage_summary` |
+| [src-constructed-report] | constructed_report | [2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](./2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md) | md | C01--C20 constructed suite 的人类可读报告 | §2--§7, A.2--A.4 |
+| [src-constructed-readme] | constructed_suite_readme | [r5_7_5_constructed_stmk/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md) | md | constructed suite 文件布局、case 入口与复验命令 | file table, validation commands |
+| [src-blind-readme] | blind_bundle_readme | [r5_7_5_blind_adjudication/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/README.md) | md | blind bundle 总入口、三方 judge current result 与复验命令 | §1--§3 |
+| [src-validator] | constructed_validator | [validate_suite.py](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/validate_suite.py) | py | constructed suite 文件、hash、schema、parse 预期检查 | `validate_case`, `pyfcstm_parse` |
 | [src-blind-index] | blind_input_index | [blind_input_index.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/blind_input_index.json) | json | Bxx blind input 入口，不含 hidden oracle | `$.cases[*]` |
 | [src-oracle] | oracle_answer_key | [oracle_answer_key.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/oracle_answer_key.json) | json | scorer 使用的 hidden oracle，不进入 judge prompt | `$.cases[*]` |
 | [src-prompt] | blind_prompt | [better_adjudication_blind_prompt_v0.md](../experiment_design/protocols/better_adjudication_blind_prompt_v0.md) | md | blind judge 裁决 prompt 与 fail-closed 规则 | §2、§2.2、§5 |
 | [src-schema] | blind_schema | [better_adjudication_blind_output_schema_v0.json](../experiment_design/protocols/better_adjudication_blind_output_schema_v0.json) | json | blind output JSON schema | required fields, enum |
+| [src-build-script] | blind_bundle_builder | [build_blind_bundle.py](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/build_blind_bundle.py) | py | 从 Cxx suite 刷新 Bxx blind input、hash、parse/provenance 机械事实与 hidden oracle | `pyfcstm_parse_status`, `mechanical_checks`, `provenance_checks` |
+| [src-leakage-script] | leakage_check | [leakage_check.py](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/leakage_check.py) | py | 检查 blind inputs / prompt 不含 expected verdict、oracle、Cxx slug 等泄露 | scan rules, output summary |
+| [src-prompt-consistency-script] | prompt_consistency_check | [prompt_consistency_check.py](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/prompt_consistency_check.py) | py | 重建 prompt 并与 archived prompt 比对，防止 stale output | `mismatch_count` |
 | [src-runner] | run_blind_judge | [run_blind_judge.py](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/run_blind_judge.py) | py | 逐 case 构造 prompt、调用 isolated judge、写盘全过程 | `build_prompt`, `subprocess.run` |
 | [src-score-script] | score_blind_outputs | [score_blind_outputs.py](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/score_blind_outputs.py) | py | schema-valid / identity / provider status / oracle match 评分 | `score_row`, `eligible_output` |
 | [src-score] | score_summary | [score_summary.json](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/score_summary.json) | json | final 20 case blind score | top-level counts, `rows[*]` |
@@ -208,6 +299,12 @@ Codex 的核心结果是：`valid_output_count=20`、`verdict_match_count=18`、
 
 | 编号 / 引用键 | claim_id | 结论 / claim | 类型 | 上游事实源与锚点 | 复验命令 | 置信度 | 限制 / caveat |
 |---|---|---|---|---|---|---|---|
+| [clm-canonical-report] | R5.7.5-A0 | 本文件是 R5.7.5 阶段的 canonical 总报告，归一化 constructed suite、blind bundle、三方 judge、deterministic/LLM/score 链路与 R6/R7 handoff。 | report scope | [src-constructed-report], [src-blind-readme], [src-score], [src-deepseek-score], [src-codex-score] | [cmd-score], [cmd-score-deepseek], [cmd-score-codex] | high | 机器事实仍以 A.2 JSON / Python / output artifacts 为准。 |
+| [clm-chain-boundary] | R5.7.5-A1 | R5.7.5 链路由 deterministic pre/post checks 包围一次 isolated LLM semantic judge；不是纯 LLM 一把梭。 | protocol design | [src-validator], [src-build-script], [src-runner], [src-score-script], [src-leakage-script], [src-prompt-consistency-script] | [cmd-validate-constructed], [cmd-leakage], [cmd-score] | high | 当前 G1/G2 仍需在 R6/R7 进一步前移为 hard blocker。 |
+| [clm-deterministic-facts] | R5.7.5-A2 | candidate parse status、hash、ledger availability、identity/schema/exit-code 等机械事实由确定性脚本产生或校验，LLM 只消费这些事实做语义裁决。 | protocol design | [src-build-script] `mechanical_checks`; [src-score-script] `eligible_output`; [src-validator] `pyfcstm_parse` | [cmd-validate-constructed], [cmd-score] | high | T0/T0.5/T1 scope 与 semantic improvement 仍主要依赖 LLM/人工语义判断。 |
+| [clm-constructed-blind-link] | R5.7.5-A3 | C01--C20 是 answer-key constructed suite；B01--B20 是不含 Cxx slug / expected verdict 的 blind remapping；hidden oracle 只由 scorer 使用。 | protocol design | [src-suite], [src-oracle], [src-blind-index], [src-build-script] | [cmd-build], [cmd-leakage] | high | oracle 是校准工具，不是 prompt 输入。 |
+| [clm-gate-responsibility] | R5.7.5-A4 | G0--G6 当前混合了 deterministic facts 与 LLM semantic adjudication；R5.7.5 已记录职责边界，R6/R7 要把可机械判定部分硬化。 | handoff | [src-prompt], [src-build-script], [src-score-script], [src-score] gate counts | [cmd-score] | high | 不阻塞 protocol dry-run ready，但阻塞真实 repair effectiveness 主统计。 |
+| [clm-handoff-preflight] | R5.7.5-A5 | 后续真实 repair 实验必须新增 deterministic preflight hard blocker、真实 run record、multi-judge / human arbitration 与 evidence-driven rule revision。 | handoff | 本报告 §9；[src-score], [src-deepseek-score], [src-codex-score] | [cmd-score], [cmd-score-deepseek], [cmd-score-codex] | high | 后续 PR 不应仅凭 prompt 文字承诺替代机器 evidence。 |
 | [clm-blind-purpose] | R5.7.5-B1 | 本报告验证的是 blind adjudication protocol，而不是 answer-key fixture 自检。 | scope | [src-blind-index], [src-runner] | [cmd-final-run] | high | 只覆盖 constructed cases。 |
 | [clm-boundary] | R5.7.5-B2 | 全部 case 禁止计入 headline success 或 repair effectiveness。 | prohibition | [src-suite] case-level eligibility false；[src-prompt] 固定输出 eligibility false | [cmd-validate-constructed] | high | 真实 repair loop 可另建结果。 |
 | [clm-final-score] | R5.7.5-B3 | final Claude full blind run 达成 20/20 schema-valid、20/20 verdict match、20/20 scope match、20/20 run validity match、0 leakage。 | result | [src-score] top-level counts | [cmd-score] | high | 单 judge family；gate-level 仍有 25 处 disagreement。 |
