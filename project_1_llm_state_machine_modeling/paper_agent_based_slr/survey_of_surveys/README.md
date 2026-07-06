@@ -14,6 +14,14 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 
 > [!WARNING] v1-deprecated: `audits/a1dt-19x3/` 是 A1-DT v1 历史审计归档。不得把其中结论直接当作 A1-DT v2 当前事实；v2 新产物必须进入 `audits/a1dt-v2-19x3/`。
 
+
+## 0.A A2a 语料主候选入口
+
+> [!IMPORTANT]
+> PR-A2a 已新增 [corpus/](./corpus/) 作为后续 100+ 综述语料候选的主入口。A1 的 [search/](./search/) 保留为历史检索与 dry-run 归档；A2a 以后仍然活跃的候选账本、主候选、替补、边界池、PDF 状态和人工下载清单以 [corpus/README.md](./corpus/README.md) 为入口。
+
+当前 A2a 语料状态：全量候选 438，系统化候选 293，主候选 120，替补 / 留出 40，边界池 145；详见 [corpus/source-audit.md](./corpus/source-audit.md) 与 [corpus/selection.md](./corpus/selection.md)。这些只是候选语料，不代表 120 篇全文深读完成，也不代表最终统计分母。
+
 ## 1. 定位
 
 本目录服务于第二篇论文的**综述之综述脚手架**。它从已有软件工程系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、三级研究（tertiary study）和方法学指南中抽取：
@@ -61,7 +69,8 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 |---|---|
 | [GUIDE.md](./GUIDE.md) | 检索、筛选、单篇目录、证据等级、schema 回修和 dry-run 维护规则。 |
 | [SUMMARY.md](./SUMMARY.md) | 当前总账、候选池、dry-run 覆盖矩阵、脚手架模式、schema 缺口和更新日志。 |
-| [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
+| [search/](./search/) | A1 历史检索日志、候选池和人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。A2a 后续活跃语料事实真源转到 [corpus/](./corpus/)。 |
+| [corpus/](./corpus/) | A2a 综述语料主候选入口；维护全量候选账本、系统化候选池、主候选 120、替补 40、边界池、PDF 状态和人工下载清单。 |
 | [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json`、`review.md` 与 `evidence_chain.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。`review.md` 是当前正文入口，`evidence_chain.md` 是正式 A.1--A.4 证据链。 |
 | [patterns/](./patterns/) | 结果侧跨论文投影 / 归纳入口；只能汇总单篇原生树之后的可迁移字段，不能作为单篇树模板。 |
 | [audits/](./audits/) | 专项审计批次入口；v2 新产物写入 `audits/a1dt-v2-19x3/`，v1 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅历史归档。 |

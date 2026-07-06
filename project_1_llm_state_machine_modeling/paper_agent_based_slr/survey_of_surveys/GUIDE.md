@@ -27,6 +27,19 @@ A1 只做种子检索和 dry-run；A2a/A2b 才做大规模闭合。A1 检索记�
 3. DBLP / ACM / IEEE / ScienceDirect / BCS 等索引。
 4. 聚合页只作为发现线索，不能作为已核验事实。
 
+
+## 2.A A2a `corpus/` 语料建设纪律
+
+A2a 以后，大规模候选语料的事实真源从 A1 的 [search/](./search/) 迁移到 [corpus/](./corpus/)。维护规则如下：
+
+1. [corpus/raw/](./corpus/raw/) 只保存原始快照；除统一换行符与行尾空白这类版本控制规范化外，不得人工改字段语义、候选数量或候选内容。
+2. [corpus/tables/](./corpus/tables/) 由 [scripts/build_corpus_tables.py](./scripts/build_corpus_tables.py) 复算生成；不得手工改 CSV 后不更新脚本。
+3. 主候选、替补和边界池必须互斥；每条记录必须有选择、替补或边界理由。
+4. PDF 可得性只影响执行状态，不决定候选资格。未自动取得 PDF 的 core / reserve 条目必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
+5. A2a 默认不批量生成正式 `review.md`；若有占位，必须显式标注未全文深读，不得计入 A2b 已完成 review。
+6. A1 已有 `review.md` / `evidence_chain.md` / `metadata.json` 不得被 A2a 脚本覆盖。
+7. 新增或重算语料后必须运行 [scripts/validate_corpus.py](./scripts/validate_corpus.py)。
+
 ## 3. 筛选标准
 
 纳入必须至少满足一项：

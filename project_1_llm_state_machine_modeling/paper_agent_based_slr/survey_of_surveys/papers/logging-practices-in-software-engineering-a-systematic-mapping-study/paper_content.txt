@@ -1,0 +1,2195 @@
+--- Page 1 ---
+Logging Practices in Software Engineering:
+A Systematic Mapping Study
+Shenghui Gu , Guoping Rong , He Zhang, and Haifeng Shen
+Abstract— Background: Logging practices provide the ability to record valuable runtime information of software systems to support
+operations tasks such as service monitoring and troubleshooting. However, current logging practices face common challenges.
+On the one hand, although the importance of logging practices has been broadly recognized, most of them are still conducted in an
+arbitrary or ad-hoc manner, ending up with questionable or inadequate support to perform these tasks. On the other hand,
+considerable research effort has been carried out on logging pr actices, however , few of the proposed techniques or methods have
+been widely adopted in industry . Objective: This study aims to establish a comprehensive understanding of the research state of
+logging practices, with a focus on unveiling possible problems and gaps which further shed light on the potential future research
+directions. Method: We carried out a systematic mapping study on logging practices with 56 primary studies. Results: This study
+provides a holistic report of the existing research on logging practices by systematically synthesizing and analyzing the focus and
+inter-relationship of the existing research in terms of issues, research topics and solution approaches. Using 3W1H —Why to log ,
+Where to log ,What to log andHow well is the logging —as the categorization standard, we ﬁnd that: (1) the best known issues in
+logging practices have been repeatedly investigated; (2) the issues are often studied separately without considering their intricate
+relationships; (3) the Where and What questions have attracted the majority of research attention while little research effort has
+b e e nm a d eo nt h e Why andHow well questions; and (4) the relationships between issues, research topics, and approaches
+regarding logging practices appear many-to-many, which indicates a lack of profound understanding of the issues in practice and
+how they should be appropriately tackled. Conclusions: This study indicates a need to advance the state of research on logging
+practices. For example, more research effort should be invested on why to log to set the anchor of logging practices as well as on
+how well is the logging to close the loop. In addition, a holistic process perspective should be taken into account in both the research
+and the adoption related to logging practices.
+Index Terms— Logging practices, log, systematic mapping, empirical study
+Ç
+1I NTRODUCTION
+RECENTLY ,along with the popularity of DevOps, continu-
+ity has been widely recognized as an inherent require-
+ment for many on-line software services [1]. This situation
+makes it more prominent than ever to monitor software
+services and address anomalies in a timely manner. Mean-
+while, modern software systems are getting larger and
+more distributed, making it more challenging to detect
+anomalies and locate the corresponding root causes particu-
+larly in intricate software systems. Information such asruntime behavior of software systems is thus believed criti-
+cal by many researchers and practitioners in detecting and
+addressing anomalies. Logging is commonly used to cap-
+ture such runtime behavior information. According to Zhao
+et al. ’s [Zhao 17] and Yuan et al. ’s [Yuan 12b] studies, the
+information contained in logs is often the only source avail-
+able for software engineers to troubleshoot and diagnose
+software failures in a production environment.
+As an intensively investigated research topic, there are
+many similar terms describing key concepts around logging.
+To avoid confusion, we summarize common concepts
+in Table 1, which will be consistently used throughout this
+paper. Apparently, the information contained in logs is deter-
+mined by the log statements that developers insert in source
+code, which will generate logs when being triggered. Fig. 1
+depicts relevant logging entities. The upper part of this ﬁgure
+is an example of a log statement, which normally occurs in
+the source code as necessary. After it has been executed
+under certain conditions, the log statement will generate a
+‘Log’, as shown by the lower part of Fig. 1. A ‘Log’ usually
+contains a large number of entries, aka ‘Log messages’. In
+general, ‘Log level’, ‘Log content’, and a suitable place to put
+a log statement in are usually decided by developers during
+software development. One focus of the current research is
+the2-W questions, i.e., the context of a logging-prone code
+snippet ( where to log? ) and the content or level of a log state-
+ment ( what to log? ) [2], [Chen 20], [Chen 17a]./C15Shenghui Gu, Guoping Rong, and He Zhang are with the State Key Labora-
+tory for Novel Software Technology, Na njing University, Nanjing 210093,
+China. E-mail: shenghui.gu@smail.nju.ed u.cn, {ronggp, hezhang}@nju.edu.cn.
+/C15Haifeng Shen is with HilstLab, Peter Faber Business School, Australian
+Catholic University, Sydney, NSW 2060, Australia. E-mail: haifeng.
+shen@acu.edu.au.
+Manuscript received 20 Sept. 2021; revised 2 Mar. 2022; accepted 5 Apr. 2022.
+Date of publication 12 Apr. 2022; date of current version 13 Feb. 2023.
+This work was supported in part by the National Key Research and Develop-
+ment Program of China under Grant 2019YFE0105500, in part by the
+Research Council of Norway under Grant 309494, in part by the National
+Natural Science Foundation of China under Grant 62072227, in part by the
+Key Research and Development Program of Jiangsu Province under Grant
+BE2021002-2, and in part by the Intergovernmental Bilateral Innovation Proj-
+ect of Jiangsu Province under Grant BZ2020017.
+(Corresponding author: Guoping Rong.)
+Recommended for acceptance by A.M. Moreno.
+Digital Object Identiﬁer no. 10.1109/TSE.2022.3166924902 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/
+
+--- Page 2 ---
+1.1 Problem Description and Research Motivation
+Although the importance of logging practices has been
+broadly recognized in industry [Kabi 16b], [Pecc 15], [Yuan
+12b],[3], such practices are still far from satisfactory [Liu
+20]. As a matter of fact, current logging practices are basi-
+cally carried out manually and heavily rely on the expertise,
+experience and preference of software engineers [Pecc 15],
+[Yuan 12b], [Yuan 12c]. Typically, software engineers need
+to consider the 2-W questions during coding, easily leading
+to either insufﬁcient or excessive logging. For example,
+studies carried out both in industry and academia revealed
+several typical issues in current logging practices, including
+low and divergent density of log statements [Rong 18],[4],
+misuse of log levels [Rong 18], [Yuan 12b], and lack of nec-
+essary information-capturing variables [Yuan 12a],[4].
+These issues may easily lead to questionable realization of
+the primary purpose to carry out logging practices [Li 20a],
+[Rong 20], i.e., capturing the runtime behavior of software
+systems as intended. Meanwhile, although relatively exten-
+sive research has been done to improve logging practices, it
+seems that the industry has not beneﬁted from these
+research outcomes. For instance, optimizing log location
+and enhancing log content have been well proposed in the
+literature to improve logging practices, however, they are
+rarely adopted by the most widely used logging tools
+in daily development tasks [Fu 14], [Li 18b], [Yuan 12b],
+[Zhu 15].
+To uncover possible reasons behind this phenomenon, it
+is important to establish a holistic view on the research sta-
+tus of logging practices, including the challenges in logging
+practices and the proposed solutions, and more importantly
+the possible problems and gaps in the existing research
+which may further shed light on the potential future
+research directions. Only a handful of studies have been
+conducted [2], [5], [6], [7] to review the challenges and the
+solutions available. However, the issues in the existingresearch are rarely analyzed and discussed. To this end, this
+work is motivated by the need to depict a landscape of log-
+ging practices, identify gaps between challenges and solu-
+tions, and suggest potential remedies and future research
+directions to close the loop through a systematic mapping
+study (SMS). To be speciﬁc, we describe the goal of this
+study using a Goal-Question-Metric (GQM) [8] style as
+follows:
+By aggregating and synthesizing the existing issues, research
+topics, and proposed approaches related to logging practices
+For the purpose of systematically establishing an insight to the
+state-of-the-art in the area of logging practices, revealing omis-
+sions/problems and hence indicating potential research directions
+From the perspective of software engineering researchers and
+practitioners
+In the context of logging practices in the development and
+maintenance of regular business software systems.
+The description of the research goal implies the focus of
+this study which is elaborated in detail in Section 2.2. In
+short, we are only concerned with software engineers’ log-
+ging practices when instrumenting log statements in regular
+business software systems. As a result, log analysis or build-
+ing logging framework/infrastructure is beyond the scope
+of this work.
+1.2 Research Approach and Contribution
+A systematic mapping study (SMS) provides an overview of
+a research area through classiﬁcation and counting contri-
+butions in relation to the categories of that classiﬁcation [9].
+It is a suitable approach to addressing the research goal pre-
+sented in the above subsection. By following the guide-
+lines [9], [10], [11], [12], we examined 56 primary studies
+published in the mainstream Software Engineering (SE)
+venues with a focus on logging practices. As the result, we
+are able to provide a holistic view of the existing research,
+clarify the issues in logging practices and summarize rele-
+vant solutions or approaches. More importantly, through
+cross analysis, we are able to identify gaps and derive
+potential follow-up research directions that may bring sig-
+niﬁcant beneﬁts to the whole community that heavily relies
+on logging in their software development and maintenance
+tasks. The main contributions of this paper can be summa-
+rized as follows:TABLE 1
+Logging Related Terms
+Term Description
+Log statement A log statement is a statement placed in the source code that outputs a record of the behavior of the
+speciﬁed program during execution.
+Log message A log message is the information generated by the program at runtime based on a log statement.
+Log A log is a collection of the execution outputs of log statements, usually stored in a text ﬁle or a database.
+Log level Log levels reﬂect the verbosity or severity of the log messages, and log messages are usually clustered for
+analysis based on these log levels.
+Log content Log content refers to the information carried by the log statement, including static text and variables.
+Log location A log location is the place where a log statement is inserted.
+Log placement Log placement is a strategic design and implementation of the 2-Wquestions for all log statements in the
+source code of a system or component.
+Logging Logging is a developer’s action of inserting a log statement to a certain code snippet. Apparently, the
+developer needs to decide the 2-Wwhen conducting logging.
+Logging practice A logging practice refers to any practice pertinent to the insertion or revision of log statements for a system
+or component, which is also the research object in this study.
+Fig. 1. Logging related terms in an example.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 903
+
+--- Page 3 ---
+/C15It presents a comprehensive understanding on the
+state-of-the-art research on logging practices using
+3W1H —Why to log ,Where to log ,What to log andHow
+well is the logging —as the categorization standard.
+/C15It discovers that the current research focus regarding
+logging practices has been on the 2-W questions. In
+other words, the majority of issues, research topics
+and solution approaches fall in the categories of
+Where to log andWhat to log , in contrast, little
+research effort has been made on Why to log andHow
+well is the logging .
+/C15It unveils possible problems in the existing research
+through cross analysis, e.g., “lack of research to
+address critical issues”, “unrealistic expectation of
+general yet adaptable solutions” and “separated
+research within logging practices and between log-
+ging practices and log analysis”.
+/C15It suggests several potential future research direc-
+tions, for example, considering a process perspective
+to logging practices and recognizing the anchor
+value of logging intentions and concerns ( I&C).
+1.3 Organization
+The rest of this paper is organized as follows. Section 2 elab-
+orates our research method. The metadata results are pre-
+sented in Section 3. In Section 4, we explain the 3W1H
+categorization scheme that is applied throughout the whole
+study. The results and ﬁndings to each research question
+are presented in Section 5. In Section 6, we discuss possible
+reasons behind the current status quo, and several consider-
+ations for the next-step research on logging practices. The
+threats to validity are discussed in Section 7. To position
+this work among all relevant empirical studies, we describe
+the related work in Section 8. Finally, we conclude this
+paper in Section 9.
+2R ESEARCH METHOD
+In this section, we elaborate the research questions, the
+research scope, the roles and responsibilities of participating
+researchers, and the research tasks, followed by the detailed
+process for literature search as well as the processes for data
+extraction, synthesis and analysis.
+2.1 Research Questions
+To address the research goal and shed proper light on the
+research state of logging practices, four research questions
+(RQs) are promoted as follows.
+RQ1: What major issues regarding logging practices have been
+identiﬁed by existing research?
+Researchers dedicated to logging practices are
+usually at a better position to understand the issues
+that are targeted in relevant studies. In this sense, this
+research question aims to aggregate these issues to
+better understand the major challenges and necessary
+contextual information regarding logging practices.
+RQ2: What major research topics regarding logging practices
+have been investigated by existing research?This research question aims to reveal the hot
+spots in logging practices that researchers have
+been investigating. It attempts to portray the land-
+scape of major research topics around logging
+practices.
+RQ3: What solutions/approaches are proposed in existing
+research?
+This research question aims to summarize and
+classify the solutions or approaches proposed by
+existing studies, through which we may be able to
+establish a fair understanding of the research prog-
+ress towards addressing the issues identiﬁed in RQ1
+and the topics identiﬁed in RQ2.
+RQ4: What gaps exist between the identiﬁed issues regarding
+logging practices and the research efforts in tackling these
+issues?
+This research question aims to reveal the extent to
+which existing research is able to address the issues
+in logging practices and pinpoint possible gaps
+between the issues/topics identiﬁed in RQ1/RQ2
+and the solutions/approaches proposed in RQ3.
+2.2 Research Scope
+It is important to clearly deﬁne the scope of a study so that
+only relevant primary studies are reviewed to answer the
+research questions.
+First of all, the scope of this study is limited to the starting
+point of logging, i.e., the practices used to generate logs dur-
+ing software development and maintenance, which is simi-
+lar to that of Chen’s survey paper [2], i.e., the Log
+Instrumentation Phase . Therefore, research on log analysis,
+which is the ending point of logging and concentrates on uti-
+lizing the information in logs to achieve development or
+management objectives such as detecting bugs, optimizing
+system performance or performing recommendations, is
+out of the scope of this study. That said, it is worth noting
+that from a process perspective, knowing the information
+needs in log analysis may have a positive impact on
+improving the practices for log generation. However, the
+process perspective has not been established in existing
+research and we have found that the work reporting the
+impact of log analysis on logging practices is generally
+scarce. Therefore, it makes sense to exclude log analysis in
+the scope of this study.
+Second, we only focus on the logging practices that assist
+in generating logs used to diagnose errors or failures con-
+tained in the software systems therein. Therefore, those log-
+ging practices generating logs of end user behavior analysis
+for business needs, e.g., audit logs [13] and security
+logs [14], are beyond the scope of this study.
+In a nutshell, the scope of this study is thus constrained
+to the studies that investigate how an appropriate log state-
+ment is placed in a suitable place in source code to effec-
+tively generate logs for capturing runtime behavior so as to
+support defect detection in the software system. See
+Appendix B, which can be found on the Computer Society
+Digital Library at http://doi.ieeecomputersociety.org/
+10.1109/TSE.2022.3166924, for more detail and examples.904 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 4 ---
+2.3 Roles and Responsibilities
+In addition to the listed authors, this study also involved
+eight master students from a seminar series over a span of 5
+months. All the participants met weekly or as needed for
+publication screening, data extraction, consolidation, and
+discussion.
+In detail, one author (the supervisor) took charge of the dis-
+cussion on research questions, r esearch methodology, and data
+extraction schema at the time of designing the SMS protocol.
+When it came to literature screening and data extraction,
+at least two students handled each paper independently
+and the supervisor cross-checked all the work accomplished
+by the students. In the process of data synthesis, one doc-
+toral student of the authors led the whole process with the
+participation of the eight master students, and the supervi-
+sor also cross-checked their outcomes.
+To reach consensuses and avoid potential biases, we
+established several mechanisms as follows.
+1) We carried out several trial runs in the seminar series
+to train these students for mastering data extraction
+and synthesis methods. The students are required to
+present and discuss their ﬁndings at the end of each
+trial run.
+2) All participants needed to vote for each ﬁnding with
+the options of ‘agree’, ‘object’, and ‘not object’. The
+option of ‘not object’ is a neutral opinion, meaning
+one does not fully agree on a ﬁnding but can accept
+it. A consensus requires at least one ‘agree’ and no
+‘object’ at the same time.3) If a consensus is not reached on a ﬁnding, a dis-
+cussion meeting is organized to sort out the
+discrepancies.
+2.4 Research Tasks
+To answer the four research questions, three research tasks
+were conducted: the ‘setup’ task is to set up the literature
+review; the ‘aggregation&synthesis’ task is dedicated to col-
+lecting evidence to answer research questions RQ1, RQ2
+and RQ3; the ‘cross analysis’ task is conducted to synthesize
+the information to answer RQ4. The tasks were conducted
+in a sequential manner and interconnected through a num-
+ber of artifacts generated by their subtasks. The overall
+research process is illustrated in Fig. 2 and detailed as
+below.
+The ‘setup’ task includes deﬁnition of the research ques-
+tions and the review protocol, selection of search venues and
+databases, deﬁnition and revision of the search string, and
+identiﬁcation of the primary studies. The detailed steps in this
+task is presented in Section 2.5. The ‘aggregation&synthesis’
+task was conducted to extract the data from the primary stud-
+ies in terms of the research questions, and then to map the
+data into four categories, i.e., Why to log? Where to log? What to
+log? and How well is the logging? (cf. Section 4). Further, we
+used an iterative coding process to identify the main catego-
+ries of the extracted data for each research question, which is
+detailed in Section 2.7. In the ‘cross analysis’ task, we synthe-
+sized the review results and performed cross analysis so as toFig. 2. Research process.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 905
+
+--- Page 5 ---
+further reveal several implications to answer RQ4, which is
+presented in Section 5.4.
+2.5 Search Process
+A strict and repeatable search process is one important char-
+acteristic of an SMS. We applied several strategies to boost
+this characteristic in the search process of our study. In gen-
+eral, an explicitly deﬁned search process is required, as
+illustrated in the ‘setup’ task in Fig. 2. First, we conducted a
+manual search from the premier SE conferences and jour-
+nals, and retrieved 11 papers. Based on these papers, a
+search string was formed, revised and used for automated
+search in the selected digital libraries. At that point, 7,669
+papers were retrieved. By applying the predeﬁned inclu-
+sion/exclusion criteria (as shown in Table 2), these papers
+were then quickly screened manually, reducing to 109
+papers. After reading the full-text of these 109 papers for
+further screening, we ﬁnally ended up with 54 papers. As
+the last step, a complementary snowballing search process
+was performed to obtain potentially relevant studies so as
+to pursue a comprehensive set of relevant studies. From this
+step, we obtained two more papers, making a ﬁnal set of 56
+papers selected as the primary studies for this work.
+2.5.1 Manual Search
+The manual search was carried out on the following major
+software engineering conferences and journals:
+/C15International Conference on Software Engineering
+(ICSE)
+/C15IEEE Transactions on Software Engineering (TSE)
+/C15Empirical Software Engineering (EMSE)
+/C15IEEE International Conference on Software Mainte-
+nance and Evolution (ICSME)
+/C15IEEE Working Conference on Mining Software
+Repositories (MSR)
+/C15Journal of Systems and Software (JSS)
+The purpose of manual search was not to cover all poten-
+tial sources, but only a portion that contains the most high-
+quality studies relevant to our RQs according to our initial
+knowledge. The publication time span was constrained
+from 2000 to 2020 for the reason that the number of papers
+related to logging practices is quite small before 2000,according to our previous study [5]. As the result, we gath-
+ered 11 papers on logging practices from the manual search.
+2.5.2 Search String
+We developed the search string using the following steps in
+the light of the guidelines proposed in [15], [16].
+Step 1: We ﬁrst derived major search terms from our RQs
+and the keywords in the relevant publications we
+obtained from manual search.
+Step 2: We then combined the identiﬁed search terms into
+a set of candidate search strings.
+Step 3: At last, we performed several pilot searches to
+improve and determine the most suitable search
+string according to the Quasi-Gold Standard (QGS)
+based systematic search approach [17]. With refer-
+ence to our previous experience[5], this time we
+keep 90.9% and 0.13% for sensitivity and precision
+respectively, so as to include as much literature as
+possible.
+As the result, we have the search string as below.
+(logging OR log OR logs) AND (practice OR practices OR
+statement OR statements OR construct OR constructs OR format
+OR formats OR code)
+Note that the search string needs to be coded according
+to different digital libraries’ search syntax.
+2.5.3 Automated Search
+The automated search was performed in the following digi-
+tal libraries.
+/C15ACM Digital Library1
+/C15IEEE Xplore2
+/C15ScienceDirect3
+/C15Scopus4
+/C15Wiley Online Library5
+With reference to many existing systematic mapping and
+review studies, as well as the statistics of the literature
+search engines [17], these selected digital libraries are
+believed to provide a wide coverage of relevant primary
+studies.
+2.5.4 Study Identiﬁcation
+Three steps are performed to identify and determine the set
+of primary studies for ﬁnal analysis, including quick scan-
+ning to ﬁlter out irrelevant studies, full text reading to assure
+quality of the relevant studies, and snowballing to ensure
+that the chance of missing important relevant studies is
+minimized as much as possible. We detail these steps in the
+following paragraphs.
+Quick Scanning . During this step, a quick screening of the
+titles and abstracts of the potential studies was performed
+by following the inclusion/exclusion criteria detailed
+in Table 2. For those papers that are unable to be excluded
+by checking title and abstract, we postponed the decision toTABLE 2
+Criteria to Include/Exclude a Study
+Inclusion criteria
+I1 Studies must be published by conferences, journals, or symposiums*.
+I2 Studies must be written in English.
+I3 Studies must be published after 2000.
+I4 Studies must be primary research.
+I5 Studies must focus on logging practices.
+Exclusion criteria
+E1 Studies investigate log analysis or usage of log messages.
+E2 Studies investigate techniques for logging user behaviors.
+E3 Studies do not explicitly discuss logging practices.
+E4 Studies are published by workshops.
+E5 Studies are published as position papers or work in progress.
+E6 Studies replicate work in previous publications.
+* Only for those well-known symposiums, e.g., ISSRE, ESEM.
+1.https://dl.acm.org/
+2.https://ieeexplore.ieee.org/
+3.https://www.sciencedirect.com/
+4.https://www.scopus.com/
+5.https://onlinelibrary.wiley.com/906 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 6 ---
+the following steps. As the result, we had 109 papers after
+this step.
+Full Text Reading . With the 109 papers, we read their full-
+text to make further exclusion and then eliminate the irrele-
+vant ones from the previous step. It is worth noting that the
+same study may have been published in multiple papers,
+and in this case we only keep the most complete version by
+reading and comparing the content of all versions of the
+work in detail. As the result, we retained 54 papers after
+this step.
+Snowballing . We performed a snowballing search to fur-
+ther retrieve potential relevant studies, which consists of
+backward snowballing ,forward snowballing , and author snow-
+balling . Detailed steps are listed as the following.
+Backward Snowballing : Based on the reference lists of the
+54 papers derived from the previous steps, we retrieved
+papers using the criteria from Table 2.
+Forward Snowballing : Use Google Scholar to identify
+papers citing the current 54 papers. Meanwhile, the selec-
+tion criteria were also applied to identify and include an
+extra relevant paper.
+Author Snowballing : All publications of each author of the
+54 identiﬁed papers were further checked against the selec-
+tion criteria for ﬁnal possible inclusion.
+As the result, two new papers were identiﬁed in the for-
+ward snowballing step.
+2.6 Data Extraction
+The relevant data was extracted from the 56 selected studies
+according to a predeﬁned extraction schema, as depicted
+in Table 3, that covers two major aspects of information, i.e.,
+metadata and speciﬁc information, respectively.
+The metadata includes information such as author, year,
+title, and publishing venue, which provides a big picture of
+the overall research state, for instance, the number of stud-
+ies each year, the potential trend, and the distribution of
+publication venues.
+Meanwhile, the speciﬁc information is derived from the
+research questions of this study. The relationship between
+the speciﬁc information and research questions is listed
+in Table 3. Note that answering RQ4 requires a cross analy-
+sis of the information used to answer RQ1, RQ2 and RQ3.2.7 Data Synthesis
+We applied both quantitative and qualitative methods to
+synthesize the evidence to answer all the research questions.
+This subsection elaborates the data synthesis methods we
+adopted in this research.
+Descriptive statistics is the major quantitative method
+used to describe and summarize data characteristics. To be
+speciﬁc, it was adopted to synthesize the quantitative data
+to present trend (Fig. 3), distribution (Fig. 4), etc.
+Thematic analysis is the major qualitative method applied
+in our study to identify common themes within data [18]. It
+was used to understand commonly raised issues, research
+topics, proposed approaches regarding logging practices. To
+assist thematic analysis, coding, the process of labeling and
+organizing qualitative data, was applied to identify and dis-
+tinguish themes and the relationships between them [19].
+Basically, we used open coding andaxial coding to attain high-
+level concepts from the extracted data for each research ques-
+tion. Open coding is conducted to identify the conceptual cate-
+gories from the original data, where the generated ‘code’ is
+designed to retain the exact words as much as possible. Axial
+coding is used to generate a set of new ‘codes’ by comparing
+and merging the ‘codes’ identiﬁed in open coding as appro-
+priate. For example, “useless log messages” and “arbitrarily
+placed log statements likely generate a lot of trivial logs that may be
+redundant or useless” were further coded as “redundant or use-
+less log messages” .
+3R ESULTS
+We ﬁrst summarize the results of metadata in this section to
+provide a bird’s eye view of the studies included in our
+study.
+A full list of the 56 studies is presented in Appendix A,
+available in the online supplemental material. Table 4
+describes the distribution of the 56 studies across different
+electronic libraries. Note that one study may be indexed by
+multiple digital libraries. Apparently, ACM Digital Library,
+IEEE Xplore and Scopus contribute the vast majority of
+studies to our SMS.
+The distribution of the publishing time can be illustrated
+by grouping these studies into years, as shown in Fig. 3. In
+general, a roughly ascending trend can be observed regard-
+ing the number of studies over years, especially in the recentTABLE 3
+Data Extraction Schema
+Attribute Description RQ
+Author The authors of the publication. Meta
+Title The title of the publication.
+Year The published year of the publication.
+Venue type The venue type of the publication (conference, journal, etc).
+Venue name The venue name of the publication.
+Logging issue The issues and problems in current logging practices. RQ1, RQ4
+Research motivation The motivation of the selected study. RQ2, RQ4
+Research question The research questions of the selected study.
+Research subject The subject of the selected research.
+Proposed approach The approach, method, tool or algorithm proposed by the selected
+research, as well as their description, pros and cons.RQ3, RQ4
+Research contribution The main contribution of the selected study.
+Research conclusion The conclusion of the selected study.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 907
+
+--- Page 7 ---
+years, indicating an increasing attention among researchers
+to logging practice.
+The publication venues of these 56 studies tend to be
+diverse. However, we could observe that more than half of
+the selected studies in our SMS are published at premier
+venues such as TSE, EMSE, and ICSE, which to some extent
+implies the high quality of the research as well as the inten-
+sive interest in the community.
+4 3W1H—E SSENTIALS ABOUT LOGGING
+To provide a basis for data synthesis, a taxonomy scheme is
+necessary to be deﬁned in the beginning. Therefore, we
+applied the thematic analysis elaborated in Section 2.7
+together with our previous experience [Rong 20],[5] and
+current knowledge on logging practice research (e.g., [2], [Li
+20a], [Fu 14], [Liu 19], [Kabi 16b]) to categorize the relevant
+studies. As the scope of this study is limited to investigating
+developers ( Who) instrumenting log statements during soft-
+ware development ( When), theWhoandWhencategories
+are ﬁxed and hence removed from the ﬁnal category set. As
+elaborated in Section 2.2, the 56 primary studies are catego-
+rized into the four themes of 3W1H :Why to log? Where to
+log?What to log? andHow well is the logging?
+/C15Why to log?
+This question is related to the original intention to carry
+out logging practices. Through log statements, most devel-
+opers’ intention is to capture and record information rele-
+vant to dynamic system behaviors. However, this practice
+incurs cost/overhead, which triggers concerns to mostdevelopers as well. To a certain degree, the intrinsic Inten-
+tions & Concerns ( I&Cs) play the role of initiating logging
+practices. Several researchers have raised the awareness of
+the importance of I&Cs for logging practices. For example,
+Jiaet al. present a model to describe the logging intentions,
+which is a typical reason to answer why to log [Jia 18]. Never-
+theless, our previous work on this topic revealed major gaps
+between the developers’ I&Cs and the actual log statements
+in the source code of real-world projects [Rong 20].
+/C15Where to log?
+This question considers one of the critical aspects regard-
+ing logging practices, i.e., to determine the location of log
+statements in source code. Usually the answer to this ques-
+tion only provides a general guidance on where to place a
+log statement [Li 20b], [Fu 14]. As one of the most concerned
+questions by researchers, many studies have been con-
+ducted to determine and improve the location of log state-
+ments in source code. For example, a high-level strategy on
+logging practices is achieved by importing information
+entropy theory into logging practices to optimize the loca-
+tion of log statements [Zhao 17]. Lal et al. conducted a series
+of studies adopting machine learning to predict log state-
+ments in different code snippets [Lal 17], [Lal 16a], [Lal
+16c], [Lal 16b], [Lal 19].
+/C15What to log?
+This question involves with the subtle consideration
+about concrete content (e.g., what variables should be
+recorded? what is the suitable verbosity level?) of a log
+statement. Various methods have been proposed to develop
+the concrete content of a log statement. For example, some
+tools have been designed to assist developers in deciding
+verbosity level of log statements [Anu 19], [Li 17a], while
+some tools have been designed to determine which varia-
+bles to log [Liu 19].
+/C15How well is the logging?
+In general, this question is concerned about the degree to
+which developers’ I&Cs can be fulﬁlled in the implemented
+source code and evolve over time. In this sense, the how well
+question is only valid on existing log statements and can be
+considered from two aspects. One is the deviation between
+the implemented source code and some generally accepted
+rule-of-thumb guidelines/rules regarding logging practi-
+ces [20], [21], [22]. Although these guidelines/rules may be
+followed to convey developers’ I&Cs, they are not always
+necessarily able to reﬂect the true I&Cs. The other aspect is
+the deviation between the implemented source code and the
+developers’ original I&Cs. In this sense, the importance of rel-
+evant practices is self-evident. Some research in this category
+focuses on evaluating the effectiveness of existing logging
+mechanisms in the context of real-world case studies [Cinq Fig. 4. Study distribution over publication venues.TABLE 4
+Study Distribution Over Electronic Libraries
+Electronic library # Retrieved studies # Relevant studies
+ACM Digital Library 1,757 26
+IEEE Xplore 2,472 28
+ScienceDirect 983 1
+Scopus 548 37
+Wiley Online Library 1,909 2
+Fig. 3. Study distribution over years.908 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 8 ---
+10]. Other research focuses on the revision of log statements
+after the delivery/release of a software product, for example,
+to repair faults or to improve performance or other quality
+attributes. A typical example is the study carried out by Chen
+et al. [Chen 19]. In this study, researchers extracted the histor-
+ical issues in log statements and revealed that the log state-
+ments had not been well revised when the corresponding
+business code evolved to meet new business requirements.
+The relationships between the 3W1H questions are illus-
+trated in Fig. 5. In general, the question of why to log seeks
+the developer’s I&Cs, both implicitly and explicitly, which
+translate to the 2-W questions (i.e., where to log and what to
+log) in log placement. The question of where to log speciﬁes
+the log location, whereas the what to log question speciﬁes
+both log content and log level. To close the loop, the how
+well question not only veriﬁes whether log placement is
+properly reﬂected in actual source code, but more impor-
+tantly, it also validates that the I&Cs are adequately satis-
+ﬁed. With the 3W1H categorization scheme, we are not only
+able to properly classify the issues, research topics and solu-
+tion approaches in current studies but also lay a solid foun-
+dation for synthesis according to the inherent relationships
+across the four questions.
+To achieve a consistent understanding, a team discussion
+is conducted to assign a proper category to a study accord-
+ing to the speciﬁc research question and the corresponding
+relevant evidence. It is noteworthy that one study may
+occur in multiple categories simultaneously. For example, if
+the issue (RQ1) is about the ‘performance overhead’, then it
+may cover both where to log and what to log . Besides, one
+study may also appear in different categories providing evi-
+dence to answer different research questions. For example,
+a study with the concern on ‘performance overhead’ may be
+categorized as where to log in RQ1. If the relevant solution
+pertains to the I&Cs, it may also appear in the category of
+why to log in RQ3.
+5S YNTHESIS AND FINDINGS
+In this section, we answer the four RQs using the evidence
+we collected and synthesized from the review. By adopting
+the3W1H questions (cf. Section 4), we classiﬁed all the 56
+studies into different categories according to the speciﬁcresearch question and the corresponding relevant evidence.
+The rest of this section elaborates our major observations
+and ﬁndings.
+5.1 Issues in Logging Practices (RQ1)
+We ﬁrst categorize the issues raised or discovered in the primary
+studies through a manual codin g approach (cf. Section 2.7).
+Although the issues discovered in these primary studies may
+contain higher credibility sinc ec o n c r e t ee v i d e n c ei sp r o v i d e d ,
+we also include the issues directly claimed by researchers with
+the consideration that researchers focusing on the exact area
+may better understand the vari ous pains of logging practice.
+Then from a different perspective, we further categorize the
+issues into different 3W1H questions. With these two orthogonal
+perspectives, we aim to present a big picture about the various
+pains of logging practice.
+In general, we identiﬁed 8 types of issues covering differ-
+ent3W1H questions except the question of why to log . The
+detailed distribution of issues in logging practices is shown
+in Table 5 and the relationship between these issues and
+3W1H questions is illustrated in Fig. 6. It is clear that 3/4 of
+the issues regarding logging practices fall into the 2-Wques-
+tions. In contrast, only 1/4 issues are related to the question
+ofhow well is logging , while no issue has been identiﬁed to
+be relevant to the why to log question. This ﬁnding implies
+that certain aspects of logging practice have been neglected
+in the community. Note that the percentage of each issue
+denotes the proportion of the primary studies in relation to
+this issue. Since one study may raise different issues and
+occur in different categories, the sum of all the percentage
+may exceed 100%. In the following subsections, we elabo-
+rate these issues in detail for each 3W1H question.
+5.1.1 “What to Log” Issues
+This category has the most issues related to logging
+practices.
+Lacking crucial messages in log statements turns out to
+be the most discussed issue, which is reported in 35 (62.5%)
+studies. In practice, key decisions about logging are nor-
+mally left to the programming stage, which easily ends up
+with insufﬁcient logging [Cinq 09]. Several studies [Zhi 19],
+[Yuan 12b], [Cinq 12], [Rong 18], [Li 18b], [Tova 13], [Hass
+18], [Kubo 20], [Cinq 20] directly pointed out or implied this
+issue or the like. In fact, insufﬁcient logging may be derived
+from either less than expected log statements [Fu 14], [Ghol
+20], [Jia 18], [Lal 16b], [Lal 17], [Lal 15], [Lal 16a], [Lal 16c],
+Fig. 5. The relationships between the questions in the 3W1H
+categorization.Fig. 6. Relationship between issues and the 3W1H categorization.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 909
+
+--- Page 9 ---
+[Lal 19], [Li 20b], [Li 17a], [Li 17b], [Luo 18], [Mizo 19], [Sain
+16], [Yao 18], [Zeng 19], [Zhao 17] or missing key variables
+in log statements [Liu 19]. Both create obstacles for log
+analysis [Yuan 12c], [Li 18a], i.e., lacking crucial messages.
+In [Yuan 12a], it is conﬁrmed that the majority of failures do
+not have failure-related log messages. Moreover, Li et al.
+conducted a qualitative study and conﬁrmed that missing
+log messages may lead to extra effort in subsequent analysis
+and even confuse users [Li 20a], which is also conﬁrmed
+in [Cinq 10].
+Redundant or useless messages in log statements become
+an issue on the opposite end of the spectrum, which has also
+been pointed by many researchers, 23 (41.1%) studies to be
+speciﬁc. Excessive logging may be one of the reasons for
+redundant or useless messages [Fu 14]. Meanwhile, with
+the increasing complexity of software systems and the way
+to construct and deploy them (e.g., microservice architec-
+ture), software systems or services are producing more log
+messages than before [23], [24], [25]. A large portion of log
+messages are redundant or useless as mentioned by many
+studies [Cinq 09], [Zhi 19], [Cinq 12], [Marr 18], [Ding 15],
+[Li 18b], [Tova 13], [Hass 18], [Fu 14], [Li 17a], in which
+valuable log messages may be obscured by these ‘garbage’
+noises [Li 18a], [Anu 19], [Lal 17], [Lal 16a], [Lal 16c], [Li
+20b], [Liu 20], [Liu 19], [Sain 16], [Shan 14], [Zeng 19], [Zhu
+15], [Li 20a], creating big challenges to store and analyze the
+logs to satisfy the original intention of logging practices,
+e.g., failure detection, diagnosis and recovery.
+Incorrect or ambiguous messages in log statements are
+another notable issue, which has been mentioned by 13
+(23.2%) studies. Several studies report that some events andinformation captured by the logs may be incorrect or mis-
+leading and unable to support further operations [Cinq 09],
+[Zhi 19], [Cinq 10], [Kim 19], [Pecc 12], [Pecc 15], [Tova 13],
+[Hass 18], [Chen 17a], [Cinq 12], [He 18], [Li 19]. For exam-
+ple, Cinque et al. stated the presence of misleading log mes-
+sages may cause inaccurate log analysis, compromising the
+ability of discriminating events related to actual failures
+from presumed ones [Cinq 09]. Li et al. also claimed that
+incorrect log content or levels may confuse developers in
+debugging [Li 20a].
+Heterogeneity of log message si sa l s oa ni s s u ea t t r a c t i n g
+researcher’s attention, which h as been mentioned in 9 (16.1%)
+studies. Due to the unstructured nature of log content itself and
+the arbitrariness of logging prac tices, the format and content of
+log messages is generally heterogeneous [Liu 20], [He 18],
+[Pecc 15], [Marr 18], [Ghol 20], [Tova 13], [Salf 04], especially
+with the increase of system complexity, which naturally
+involves more developers [Cinq 09]. The format of log mes-
+s a g e si su s u a l l yd e t e r m i n e db yt h e logging tools or libraries in
+use, while the content of log messa g e si sn o r m a l l y determined
+by developers’ intentions or information needs. Both aspects
+can vary with different develope rs or projects, leading to het-
+erogeneity of log messages and further inﬂuencing the effec-
+tiveness of log analysis [Cinq 09].
+Leakage of sensitive data is an issue pertaining to infor-
+mation security. Log ﬁles may contain sensitive information
+due to security breaches in logging practices. Zhi et al. iden-
+tiﬁed several common root causes of this issue [Zhi 20], e.g.,
+insecure whole-object logging in which developers make
+logging calls with direct reference to composite objects and
+incorrect permission assignment that leads to leak ofTABLE 5
+Distribution of Issues in Logging Practices
+Category Issue Primary studies Percentage
+Where & What Performance overhead [Chen 17a], [Chow 18], [Ding 15], [Fu 14], [Ghol 20],
+[Jia 18], [Kabi 16a], [Lal 16b], [Lal 17], [Lal 15], [Lal
+16a], [Lal 16c], [Lal 19], [Li 20b], [Li 17a], [Li 17b], [Li
+18a], [Li 20a], [Liu 20], [Liu 19], [Luo 18], [Marr 18],
+[Mizo 19], [Sain 16], [Shan 14], [Yao 18], [Yuan 12b],
+[Yuan 12a], [Zeng 19], [Zhao 17], [Zhu 15]55.4%
+What Lacking crucial messages [Cinq 09], [Cinq 10], [Cinq 20], [Cinq 12], [Fu 14],
+[Ghol 20], [Hass 18], [Jia 18], [Kubo 20], [Lal 16b], [Lal
+17], [Lal 15], [Lal 16a], [Lal 16c], [Lal 19], [Li 20b], [Li
+17a], [Li 17b], [Li 18a], [Li 18b], [Li 20a], [Liu 20], [Liu
+19], [Luo 18], [Mizo 19], [Rong 18], [Sain 16], [Tova 13],
+[Yao 18], [Yuan 12b], [Yuan 12a], [Yuan 12c], [Zeng
+19], [Zhao 17], [Zhi 19]62.5%
+Redundant or useless messages [Anu 19], [Cinq 09], [Cinq 12], [Ding 15], [Fu 14], [Hass
+18], [Lal 17], [Lal 16a], [Lal 16c], [Li 20b], [Li 17a], [Li
+18a], [Li 18b], [Li 20a], [Liu 20], [Liu 19], [Marr 18],
+[Sain 16], [Shan 14], [Tova 13], [Zeng 19], [Zhi 19],
+[Zhu 15]41.1%
+Incorrect or ambiguous messages [Chen 17a], [Cinq 09], [Cinq 10], [Cinq 12], [Hass 18],
+[He 18], [Kim 19], [Li 19], [Li 20a], [Pecc 15], [Pecc 12],
+[Tova 13], [Zhi 19]23.2%
+Heterogeneity of the log messages [Chen 20], [Cinq 09], [Ghol 20], [He 18], [Liu 20], [Marr
+18], [Pecc 15], [Salf 04], [Tova 13]16.1%
+Leakage of sensitive data [Li 20a], [Zhi 20], [Zhou 20] 5.4%
+How well Maintenance barriers [Chen 17b], [Chen 19], [Chen 17a], [Ghol 20], [Li 18b],
+[Pecc 15], [Yuan 12b], [Li 20a], [Kabi 16b], [Shan 14]17.9%
+Difﬁculties in V&V of log statements [Chen 19], [Rong 20] 3.6%910 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 10 ---
+sensitive information in log ﬁles. Although it is only men-
+tioned in three studies [Zhou 20], [Li 20a], [Zhi 20] (5.4% of
+the overall studies), this type of privacy and security vulner-
+abilities can not be neglected.
+5.1.2 “How Well is Logging” Issues
+We identiﬁed two issues related to how well is logging .
+Maintenance barriers is a major issue in this category,
+which has been reported in 10 (17.9%) studies. As men-
+tioned in [Kabi 16b], logs are often unstable, e.g., the log
+statements often change without considering other stake-
+holders, inﬂuencing the subsequent analysis and increasing
+the maintenance cost. Some of the modiﬁcations may even
+introduce errors into the target systems [Shan 14] and
+approximately one third of modiﬁcations of log statements
+are after-thoughts when there is no proper log statement in
+the ﬁrst place [Yuan 12b]. Moreover, log statements often
+co-evolve with bug ﬁxes or feature updates, making it even
+more challenging to maintain them in frequently evolving
+systems [Li 18b], [Chen 17a], [Chen 17b], [Chen 19], [Ghol
+20], [Yuan 12b], [Pecc 15]. A notable point is that too many
+log statements inside the business code may also decrease
+code readability and quality [Li 20a], [Chen 17a], thereby
+further hindering the maintainability of both log statements
+and business code, which needs extra efforts [Li 20a].
+Difﬁculties in V&V of log statements are one of the two
+issues identiﬁed in this category, which has been mentioned
+in 2 (3.6%) studies. Unlike feature code or some code types
+of cross-cutting concerns (e.g., exception handling or conﬁg-
+uration), whose correctness easily attracts attention and can
+also be veriﬁed and validated via immediate practices such
+as software testing, it is quite challenging to verify and vali-
+date log statements [Chen 19]. As a result, log statements in
+source code may thus incorrectly reﬂect developer’s I&Cs,
+as conﬁrmed in [Rong 20].
+5.1.3 Issues Across Multiple Categories
+While the issues discussed above belong to a single cate-
+gory, there is one issue covering a relatively wider range of
+categories.Performance overhead caused by log statements is a
+major issue in the 2-Wquestions, which has been mentioned
+in 31 (55.4%) studies. Both the location and content of log
+statements can cause performance overhead. On the one
+hand, adequate logging is important to understand the sys-
+tem behavior comprehensively. The more log statements,
+the more information to be captured in the log ﬁles. On the
+other hand, excessive log statements may lead to unex-
+pected side effects such as performance slowdown or high
+cost to disk I/O bandwidth [Shan 14], [Chow 18], [Liu 20],
+[Chen 17a], [Zeng 19], [Li 17b], [Li 17a], [Liu 19], [Li 20a]. In
+this sense, ﬁnding an appropriate trade-off between beneﬁts
+and costs of log placement is thus both crucial and challeng-
+ing. Although this issue in most cases is regarded as the
+issue in programming, researchers began to realize the
+importance of design in solving this issue [Lal 17], [Lal 16a],
+[Zhu 15], [Marr 18], [Ding 15], [Yao 18], [Sain 16], [Ghol 20],
+[Lal 16c], [Lal 16b], [Mizo 19], [Jia 18], [Lal 19], [Luo 18], [Li
+20b], [Kabi 16a], [Yuan 12b], [Yuan 12a].
+Finding 1: Most studies focus on the issues related to log
+content ( what to log ), which directly impacts the informa-
+tion captured in log ﬁles. Among them, lacking crucial
+messages and performance overhead have attracted the
+majority of researchers’ attention. The latter issue is also
+related to log location ( where to log ). In sum, the 2-W
+questions ( where to log and what to log ) are the top con-
+cerns to researchers. A noteworthy phenomenon is that
+there are no speciﬁc issues associated to the category of
+why to log .
+5.2 Research Topics on Logging Practices (RQ2)
+In this section, we categorized the research topics through
+manual coding with the 3W1H questions. Generally, we
+identiﬁed 10 research topics and mapped them into the
+3W1H questions/categories. The detailed distribution of
+research topics is listed in Table 6 and the relationship
+between the research topics and the 3W1H questions is
+shown in Fig. 7. It is obvious that most research topics per-
+tain to the 2-W questions, which is consistent with theTABLE 6
+Distribution of Research Topics
+Category Topic Primary studies Percentage
+Why Logging intention [Jia 18], [Li 18a], [Li 20a], [Pecc 15], [Rong 20] 8.9%
+Where Log location [Cinq 09], [Cinq 10], [Cinq 12], [Fu 14], [Ghol 20], [Jia
+18], [Kubo 20], [Lal 16b], [Lal 17], [Lal 15], [Lal 16a],
+[Lal 16c], [Lal 19], [Li 20b], [Pecc 15], [Rong 18], [Sain
+16], [Yao 18], [Yuan 12a], [Zhao 17], [Zhu 15]37.2%
+Where & What Logging cost [Chow 18], [Ding 15], [Li 20a], [Marr 18], [Zeng 19] 8.9%
+What Log content [He 18], [Liu 20], [Liu 19], [Luo 18], [Marr 18], [Salf 04],
+[Tova 13], [Yuan 12c], [Zhi 19]16.1%
+Log level [Anu 19], [Kim 19], [Li 17a], [Marr 18], [Mizo 19],
+[Rong 18]10.7%
+Logging security [Zhi 20], [Zhou 20] 3.6%
+How well Log evolution [Chen 17b], [Kabi 16b], [Li 17b], [Li 18b], [Pecc 15],
+[Shan 14], [Yuan 12b], [Chen 20], [Kabi 16a], [Zhi 19]17.9%
+Assessment of logging mechanisms [Cinq 10], [Cinq 20], [Pecc 12] 5.4%
+Logging anti-pattern [Chen 17a], [Li 19] 3.6%
+Defects in log statements [Chen 19], [Hass 18] 3.6%GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 911
+
+--- Page 11 ---
+ﬁndings we discussed in RQ1, i.e., most issues falling into
+the2-Wquestions. In contrast, there are relatively few stud-
+ies focusing on research topics in the categories such as why
+to log andhow well is logging .
+The identiﬁed research topics in each category of 3W1H
+are elaborated as follows.
+5.2.1 “Why to Log” Topics
+There is only one research topic in this category.
+Logging intention is the only one we identiﬁed in this
+category, which has been raised by 5 (8.9%) studies. Li et al.
+performed a qualitative study to understand the beneﬁts
+and costs towards logging practices from developers’
+perspectives [Li 20a]. In addition, approaches to balancing
+both aspects were also summarized in this study. Both bene-
+ﬁts and costs to a certain degree were able to reﬂect the I&Cs
+that developers may have when making logging decisions.
+Rong et al. carried out a case study at a real-world company
+to understand developers’ I&Cs on logging and found that
+theI&Cs always had not been reﬂected well in the actual
+source code [Rong 20]. Pecchia et al. investigated the reasons
+for logging practices and found three major purposes of
+logging, i.e., state dump, execution tracing and event
+reporting [Pecc 15]. While these studies directly investigate
+logging intentions, several others explore the adoption of
+logging intentions in their research. For example, Li et al.
+studied the relationship between the topics of a code snip-
+pet and the likelihood of a code snippet being logged, where
+such topics can be regarded as intentions [Li 18a]. Jia et al.
+proposed two models to describe logging intentions, and
+further designed and implemented an automatic log place-
+ment tool based on the intention models [Jia 18]. One reason
+for investigating logging intentions is that developers may
+not be fully aware of them, leading to uncertainty about
+whether developers’ intentions are properly reﬂected by
+the actual log statements in source code. In addition, auto-
+mated approaches to logging improvement might not be
+convincing enough to developers without a clear under-
+standing of developers’ logging intentions [Li 20a].
+5.2.2 “Where to Log” Topics
+We identiﬁed one research topic in this category.
+Log location, i.e., where to log , is a major research topic that
+has been investigated by 21 (37.2%) studies. As one part of the
+2-Wquestions, location of log statements affects performance,
+storage overheads, and many other aspects of the target sys-
+tem. Hence researchers attempted to establish an understand-
+ing of log location [Zhu 15], [Rong 18], [Pecc 15], [Fu 14], [Li
+20b] and optimize log location [Cinq 09], [Cinq 10], [Yuan12a], [Cinq 12], [Yao 18], [Sain 16], [Ghol 20], [Jia 18], [Kubo
+20] so as to make logging practices more useful. In general,
+most studies attempted to predict log location and provided
+convenient tools to support developers in making such deci-
+sions. For instance, Lal et al. [Lal 17], [Lal 16a], [Lal 16c], [Lal
+16b], [Lal 19], [Lal 15] conducted a set of studies that used
+machine learning to predict log statements in different code
+snippets. Several other studies tried to optimize log location
+through better log design. For example, Zhao et al. proposed
+an algorithm that can automate the placement of log state-
+ments in source code based on ‘entropy’ theory [Zhao 17].
+5.2.3 “What to Log” Topics
+We identiﬁed 3 research topics in this category.
+Log content and log level are two research topics that
+appear at the same time in many cases. These two topics
+constitute the major part of what to log , which has been
+investigated by 9 (16.1%) studies and 6 (10.7%) studies,
+respectively. Researchers have identiﬁed the characteristics
+of log level and log content [Rong 18], [He 18], [Liu 20],
+[Marr 18], [Zhi 19] and also proposed several approaches to
+effectively capturing the information the log statements
+carry with from multiple perspectives, e.g., suitable log
+level [Anu 19], [Kim 19], [Mizo 19], [Li 17a], static text [Salf
+04], [Yuan 12c], [Luo 18], [Tova 13], and necessary
+variables [Liu 19]. Similar to the research on log location,
+studies on log level/content also mainly focus on the pre-
+diction of appropriate level/content and the approaches to
+designing proper log level/content.
+Logging security is another research topic in this category
+which contains two (3.6%) studies. In [Zhou 20], they pointed
+out the risk of data leakage of sensitive information through
+logging practices and studied its impact. Zhi et al.investigated
+the vulnerabilities that expose sensitive information through
+logging, and found the top root cause for the vulnerabilities is
+insecure whole-object logging, i.e., developers make logging
+calls with direct reference to composite objects [Zhi 20].
+5.2.4 “How Well is Logging” Topics
+Three research topics have been identiﬁed in the category of
+how well is logging .
+Log evolution is a major research topic in this category
+involving 10 (17.9%) studies. These studies investigated the
+factors that inﬂuence the evolution of log statements and
+how they evolve. The research results of these studies can,
+to some extent, guide the implementation of log statements
+to reduce the overhead required for subsequent log mainte-
+nance. For example, several studies [Yuan 12b], [Chen 17b],
+[Shan 14], [Pecc 15] answered the question “ how do develop-
+ers change log statements? ” from several different aspects,
+e.g., frequency and content of modiﬁcation. Kabinna et al.
+examined the changes to log statements in four open source
+projects in order to reduce the maintenance effort [Kabi
+16b]. Li et al. attempted to explore the reasons for changes
+made to log statements and thus provided suggestions on
+log evolution [Li 17b]. Similarly, Li et al. aimed to learn
+log evolution proactively from software evolution and pro-
+vided a tool to guide log evolution [Li 18b]. Besides these
+studies, some researchers focused on the utilities support-
+ing logging practices in terms of evolution. For example,Fig. 7. Relationship between research topics and 3W1H categorization.912 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 12 ---
+Kabinna et al. studied logging library migrations within
+open source projects to help developers mitigate the migra-
+tion effort [Kabi 16a]. The research result suggested that log-
+ging library migration is not a trivial task which requires
+signiﬁcant design so as to balance the beneﬁts and costs. Zhi
+et al. explored conﬁgurations of logging utilities in both
+open source projects and industrial projects, and found that
+about 12.9% of changes to logging conﬁgurations were to
+enhance usability and strengthen maintainability of log
+statements [Zhi 19]. To maintain high quality log state-
+ments, Chen et al. conducted a large-scale empirical study
+on the use of logging utilities in real-world projects and
+found that as the software systems evolve and grow bigger,
+the number of logging utilities also increased [Chen 20].
+Assessment of logging mechanisms is a further research
+topic in this category, which has been studied by 3 (5.4%)
+studies. For example, Cinque et al. [Cinq 10] evaluated the
+effectiveness of current logging mechanisms in the context of
+three real-world case studies and found that logs were not
+able to provide useful information about failures in most
+cases, which was further conﬁrmed in their subsequent
+work [Cinq 20]. Similarly, Pecchia et al. pointed out that it is
+crucial to understand the reasons behind the issues in log-
+ging mechanisms towards failure detection and the resultant
+low efﬁciencies so as to increase the accuracy of logs pro-
+duced at runtime [Pecc 12]. Therefore, they proposed an
+experimental study on the factors determining accurate
+detection of software failures through logs and found that
+the effectiveness of the log location was related to the chance
+of error propagation paths to be exercised at runtime.
+Logging anti-pattern is also a research topic belonging to
+thehow well category, which is reported by 2 (3.6%) studies.
+The anti-patterns in log statements are recurrent mistakes
+which may hinder both the understandability and the main-
+tainability of the resulted log ﬁles. Chen et al. [Chen 17a]
+conducted a comprehensive study to characterize and
+detect anti-patterns in log statements so as to develop and
+maintain high-quality log statements. Six main anti-patterns
+were identiﬁed by the authors, e.g., containing nullable
+objects, wrong verbosity level, and malformed output of
+variables without a human readable format. Similarly, as
+one of code smells, duplication of log statements has been
+studied by Li et al. [Li 19] to help developers improve their
+logging practices.
+Defects in log statements is another research topic
+reported by 2 (3.6%) studies. The defects contained in log
+statements have become one of the major concerns due to
+the vast usage of logs in practice. Moreover, as claimed
+in [Hass 18], it often takes longer time for issues regarding
+log statement to be reported. Chen et al. extracted and
+studied the historical issues in log statements and their
+ﬁxes based on several open source projects with the
+attempt to support effective maintenance of log
+statements [Chen 19].
+5.2.5 Topics Across Multiple Categories
+We also identiﬁed one research topic that is across the cat-
+egories of where to log andwhat to log .
+Logging cost attracts concerns in 5 (8.9%) studies. As
+mentioned in Section 5.1.3, excessive logging may leadto performance issues. Therefore, empirical studies have
+been conducted to investigate this dilemma [Li 20a],
+[Chow 18], [Zeng 19] and several cost-aware logging
+mechanisms have been proposed. For example, Marron
+proposed a logging system based on a set of design prin-
+ciples to make logging more efﬁcient [Marr 18]. Ding
+et al. proposed a cost-aware logging mechanism that
+helps achieve a balance between logging overhead and
+effectiveness [Ding 15].
+Finding 2: The distribution of research topics across mul-
+tiple categories is generally similar to that of research
+issues. One noticeable exception is ‘logging intention’,
+one topic in the category of why to log , which received
+certain attention from the researchers. However, effec-
+tive methods to obtain and satisfy developers’ actual log-
+ging intentions or the related obstacles and issues to do
+so have never been essentially explored.
+5.3 Proposed Approaches and Findings (RQ3)
+Similarly, we also reviewed the approaches to logging practi-
+ces through a manual coding process so as to understand the
+research progress and trend. Using the 3W1H questions elabo-
+rated in Section 4, we identiﬁed 7 types of approaches cover-
+ing three categories except why to log . The detailed
+distribution of the approaches is shown in Table 7. The rela-
+tionship between the 3W1H questions and proposed
+approaches is depicted in Fig. 8. Note that all the approaches
+are categorized based on their inherent characteristics instead
+of the issues they are addressing. Besides, the relatively small
+percentages on the most right column imply that approxi-
+mately half of the studies did not propose a concrete approach
+or tool. Apparently, most approaches address the 2-W ques-
+tions, which reasonably conﬁrms the ﬁnding that the 2-W
+questions are most concerned by the researchers in this com-
+munity. In the following subsections, we elaborate the
+approaches proposed in the primary studies in each category.
+5.3.1 “Where to Log” Approaches
+One approach has been identiﬁed in this category.
+Rule-based logging approach instruments log statements
+according to several manually or automatically deﬁned
+rules. There are 4 (7.1%) studies discussing this approach.
+For example, Cinque et al. deﬁned a minimal set of rules to
+Fig. 8. Relationship between approaches and 3W1H categorization.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 913
+
+--- Page 13 ---
+be followed during programming log statements in order to
+effectively pinpoint failure locations [Cinq 09]. Their
+another work introduces a novel rule-based logging
+approach that leverages design artifacts to support effective
+log placement into source code [Cinq 12]. The rule-based
+logging approach was also applied in their follow-up
+work [Cinq 20] to increase the amount of useful information
+carried by log statements. In [Kubo 20], they developed a
+tool for identifying typical data structures and applying
+coding conventions (rules) to log statements so as to track
+inter-thread data dependencies. The advantage of rule-
+based logging is that key decisions can be designed in
+advance, thus enabling the standardization of the log loca-
+tion and content during the programming.
+5.3.2 “What to Log” Approaches
+We identiﬁed one approach in this category.
+Content formatting is an approach to enforcing the
+output format of logs by desi gning a mechanism for for-
+matting log statements, which has been proposed by 2
+(3.6%) studies. For example, a logging mechanism pro-
+posed by Tovar /C20n/C19aket al. [Tova 13] is able to produce
+logs in a uniﬁed and extensible format allowing for efﬁ-
+cient and automated processi ng. The approach proposed
+by Marron provides a suite of innovative log format and
+level management techniques that enable a consistent
+a n du n i ﬁ e dl o gc o n t e n t[ M a r r1 8 ] .A st h er e s u l t ,t h el o g
+statements can be well formatted logs for easy manage-
+ment and further processing.
+5.3.3 Approaches Across Multiple Categories
+As a matter of fact, most proposed approaches can be classi-
+ﬁed into multiple categories, which implies that these
+approaches can be adopted to address issues across differ-
+ent categories.
+Static analysis is an approach to addressing the 2-W
+questions, which has been proposed by 5 (8.9%) studies.
+This approach analyzes the source code and thus builds
+a model for speciﬁc tasks such as failure diagnosis. For
+example, Yuan et al. [Yuan 12c], [Yuan 12a] developed a
+tool that uses Saturn static analysis framework [26] to
+identify potential unlogged exceptions. Similarly, Yao
+et al. [Yao 18] and Fu et al. [Fu 14] applied static analysis
+frameworks and tools to analyze source code in order to
+suggest suitable log location. Li et al. used static analysis
+to identify code smells of duplicate log statements toprovide data basis for developers to obtain a clearer
+understanding of the system behavior and thus improve
+the logging practices [Li 19].
+Dynamic logging is an approach which allows the out-
+put of log statements to be dynamically determined by
+the logging strategy or mechanism at runtime. The
+method has been advocated in 4 (7.1%) studies. For
+instance, a tool proposed by Mizouchi et al. is able to
+dynamically adjust the log level of a running system to
+record detailed logs for the abnormal events while limit-
+ing the amount/size of logs for normal events [Mizo 19].
+Ding et al. presented a cost-aware logging system that can
+automatically determine whether to record runtime infor-
+mation according to predeﬁned resource budget [Ding
+15]. Similarly, Zhao et al. introduced an algorithm that
+can automate the placement o fl o gs t a t e m e n t sw i t h i na
+speciﬁed threshold of performance overhead [Zhao 17].
+Luo et al. presented a logging system for troubleshooting
+transiently-recurrent problems, with which logging infor-
+mation generated by a method over a period of time is
+proportional to how often it is reported for various
+misbehaviors [Luo 18]. In a nutshell, dynamic logging is a
+strategy that is able to adjust log placement at runtime
+according to the system status, predeﬁned rules, or some
+other metrics. Generally sp eaking, dynamic logging is
+mainly used in scenarios where resource or additional
+overhead is limited for logging.
+Entropy theory in log design is another approach, which
+was adopted by 2 (3.6%) studies. Such approach calculates
+the entropy of the information carried by log statements or
+their context, and thus optimizes the location or enhances
+the content or level of these log statements. For example,
+Zhao et al. applied entropy to optimizing the location of log
+statements [Zhao 17]. Hassani et al. proposed a log level
+checker that used entropy to calculate the proper level of
+log statements based on the probability of appearance of
+phrases in the log content [Hass 18]. Based on the informa-
+tion contained in the content or context of the log statement,
+information entropy is believed to be able to assist the
+design of log placement.
+Intention-based logging is an approach speciﬁcally to
+the2-W questions, which we identiﬁed in 2 (3.6%) stud-
+ies. Jia et al. regarded the semantics of log context (usu-
+ally the natural interpreta tion of the code comments) as
+logging intention and suggest ed that a better log place-
+ment strategy should take th e logging intention into
+consideration [Jia 18]. As the authors pointed out, logTABLE 7
+Distribution of Proposed Approaches
+Category Approach Primary studies Percentage
+Where Rule-based logging [Cinq 09], [Cinq 20], [Cinq 12], [Kubo 20] 7.1%
+Where & What Static analysis [Fu 14], [Li 19], [Yao 18], [Yuan 12a], [Yuan 12c] 8.9%
+Dynamic logging [Ding 15], [Luo 18], [Mizo 19], [Zhao 17] 7.1%
+Entropy theory [Hass 18], [Zhao 17] 3.6%
+Intention-based logging [Anu 19], [Jia 18] 3.6%
+What Content formatting [Marr 18], [Tova 13] 3.6%
+Where & What & How well Machine learning-based logging [Anu 19], [Fu 14], [Ghol 20], [Kim 19], [Lal 16b],
+[Lal 17], [Lal 16a], [Lal 16c], [Lal 19], [Li 17a], [Li
+17b], [Liu 19], [Sain 16], [Zhu 15]25.0%914 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 14 ---
+placement was far beyond certain rules. Therefore, the
+authors proposed an Intention Description Model to
+describe the intention of log statements for a better log
+placement strate gy. Similarly, Anu et al. also adopted the
+concept of logging intention and then proposed an auto-
+matic approach to assist deci sions to appropriate log
+level [Anu 19]. Nevertheless, as intangible as the concept
+carries, intention is usually difﬁcult to capture, commu-
+nicate, implement and verify. As a result, there are usu-
+ally many types of inconsisten cies between the intention
+and the actual log placement in practice [Rong 20].
+Machine learning-based logging is an approach that
+covers all the categories except why to log ,p r o p o s e db y
+14 (25.0%) studies. These studies typically rely on vari-
+ous machine learning techniqu es for predicting the loca-
+tion, content, level of log statements or the necessity to
+make revisions. In essence, the prediction is a binary or
+multi-label classiﬁcation problem, e.g., whether a log
+statement is needed [Li 17b] or which level should be
+applied [Anu 19] given the classiﬁcation derived from
+various factors such as the contexts of code snippet [Zhu
+15] or the characteristics (e. g., the number of variables,
+the number of existing log statements, etc.) of the source
+ﬁle containing log statements [Li 17a]. For example, sev-
+eral studies [Zhu 15], [Fu 14], [Kim 19] applied decision
+tree based algorithms as the learning model/classiﬁer.
+Random forest was also one of the most commonly used
+classiﬁers for logging predic tion [Anu 19], [Li 17b], [Sain
+16], [Kim 19]. Several studies used multiple machine
+learning algorithms at the same time, and further com-
+pared their performance to ﬁnd the best one. For exam-
+ple, Lal et al. adopted ﬁve different machine learning
+algorithms (i.e., Adaboost, Decision Trees, Random For-
+est, Gaussian Naive Bayesian, K-Nearest Neighbor) in
+their approaches [Lal 16c], [Lal 16b], [Lal 19]. Moreover,
+in their further studies [Lal 17], [Lal 16a], they proposed
+ensemble-based approaches to capturing the strength of
+multiple base classiﬁers. Two studies [Sain 16], [Kim 19]
+used support vector machine to recommend log state-
+ments. In addition, deep learning [Ghol 20] and neural
+networks [Liu 19] were also applied to logging predic-
+tion for complicated multi-label classiﬁcation tasks. Ordi-
+nal regression model [Li 17a] was used when the
+number of labels to the classiﬁcation is small yet the rel-
+ative ordering among these labels is critical. One notable
+challenge of the machine learning based approach is thatthe prediction performance highly relies on the quality
+of the dataset used for model training. Nevertheless, as
+implied in [Rong 18],[4], the quality of logging practices
+is far from satisfactory in real-world software projects.
+Therefore the quality of training dataset (normally based
+on real-world software projects) is often questionable.
+Finding 3: Only about half of the studies proposed con-
+crete solution approaches to speciﬁc issues regarding
+logging practices, mainly focusing on the categories of
+where to log and what to log . Among them machine learn-
+ing-based logging has received the most attention.
+5.4 Cross Analysis (RQ4)
+In this section, we aim to answer RQ4 by extending the anal-
+ysis of the extracted data to across different research ques-
+tions. Apparently, the current research work on logging
+practices is anchored in issues. To this end, we detail RQ4
+into three concrete Cross-Analysis Questions (CAQs) as
+follows:
+CAQ1: Are there trends or patterns in the investigation of issues
+over the years?
+CAQ2: Which research topics have received the most attention in
+relation to different issues?
+CAQ3: Which approaches have addressed the most number of
+issues?
+In the following, we present the ﬁndings from the cross
+analysis.
+5.4.1 Investigated Issues Over the Years (CAQ1)
+To portray a general status of the issues under investiga-
+tion over years, we list all the issues identiﬁed
+in Section 5.1 according to the year of publication. The
+r e s u l ti ss h o w ni nT a b l e8 ,f r o mw h i c ht w op o i n t ss e e mt o
+be noteworthy.
+First, some of the hot issues in the recent years did not
+attract enough attention in the early years. For example, PO
+(Performance Overhead) and LCM (Lacking Crucial Mes-
+sages) are two issues attracting signiﬁcant and continuous
+attention recently. One possible reason for this may lie in
+that these two issues are the most direct issues in carrying
+out logging practices, compared to other issues. With more
+TABLE 8
+Issues Over Years
+*PO(Performance Overhead); LCM (Lacking Crucial Messages); RUM (Redundant or Useless Messages); IAM (Incorrect or Ambiguous Messages); HLM
+(Heterogeneity of the Log Messages); LSD (Leakage of Sensitive Data); MB(Maintenance Barriers); DVLS (Difﬁculties in V&V of Log Statements).GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 915
+
+--- Page 15 ---
+attention to logging practices, these two issues turn to be
+increasingly prominent.
+Second and more importantly, except for the LSD
+(Leakage of Sensitive Data) and DVLS (Difﬁculties in
+V&V of Log Statements) issues, all other issues raised in
+the early years have been re- investigated several times
+in the following years, which implies that they might not
+be well addressed yet. Taking 2015 as a watershed, the
+most studied issues before 2015 remain as the most
+investigated ones after 2015.
+Finding 4: The major issues regarding logging practices
+have been continuously studied, implying these issues
+are still yet to be completely solved. Findings 5–6 from
+further cross-analysis have nailed down the major causes
+leading to this outcome. Besides, leakage of sensitive data
+and difﬁculties in V&V of log statements have been attract-
+ing researchers’ attention since 2019.
+5.4.2 Issues and Research Topics (CAQ2)
+The result from the cross analysis between the issues
+(cf. Section 5.1) and the research topics (cf. Section 5.2) is
+presented in Table 9. It is worth noting that the numbers
+outside the parentheses denote the number of studies in
+which an issue was discussed or addressed under a certain
+research topic, while the percentage in the parentheses indi-
+cates the corresponding proportion. We elaborate several
+interesting observations as follows.
+First, from the issue’s perspective (i.e., horizontal view),
+almost all issues appear across multiple research topics.
+Among these issues, PO(Performance Overhead), LCM
+(Lacking Crucial Messages), RUM (Redundant or Useless
+Messages), IAM (Incorrect or Ambiguous Messages), HLM
+(Heterogeneity of the Log Messages) and MB(Maintenance
+Barriers) are covered by relatively more research topics.
+Note that these are also the most investigated issues accord-
+ing to the ﬁndings for RQ1.Second, from the angle of research topic (i.e., vertical
+view), we observe a similar pattern, i.e., nearly all research
+topics cover multiple issues. For example, LIT(Logging
+Intention), LLC (Log Location), LCS (Logging Cost), LCT
+(Log Content), LLV (Log Level) and LEV (Log Evolution) all
+investigate most of these issues.
+The ﬁndings presented in Table 9 show that there are
+many-to-many relationships between the issues and
+research topics, which further imply that issues regarding
+logging practices may be naturally entangled with each
+other. Therefore, it is unlikely to rely solely on a single
+research topic to address one issue at a time. A systematic
+strategy which contains multiple aspects regarding logging
+practices may be required to deal with the major issues.
+Finding 5: There are a number of many-to-many relation-
+ships between the issues and the research topics, i.e., an
+issue appears in multiple research topics, and a research
+topic attempts to address multiple issues. Some of the
+issues even cover almost all topics, and vice versa. This
+observation suggests a lack of profound understanding
+of the issues and their intricate relationships and how
+they should be appropriately tackled.
+5.4.3 Issues and Proposed Approaches (CAQ3)
+Similar to CAQ2, the evidence presented in Table 10 reveals the
+relationship between issues (cf. Section 5.1) and approaches
+(cf. Section 5.3). Apparently, t he observation that one issue has
+multiple approaches and one approach solves multiple issues
+also exists in Table 10. To be speciﬁc, from the angle of issues,
+PO(Performance Overhead), LCM (Lacking Crucial Messages),
+RUM (Redundant or Useless Messages), IAM (Incorrect or
+Ambiguous Messages) and HLM (Heterogeneity of the Log
+Messages) have all attracted mu ltiple studies with various
+approaches. On the other hand, all the approaches are claimed
+to address multiple issues, among which, MLBL (Machine
+Learning-Based Logging) is cla imed to solve more issues than
+TABLE 9
+Issues versus Research Topics
+* The same as Table 8.
+yLIT(Logging Intention); LLC (Log Location); LCS (Logging Cost); LCT (Log Content); LLV (Log Level); LSC (Logging Security); LEV (Log Evolution);
+ALM (Assessment of Logging Mechanisms); LAP (Logging Anti-Pattern); DLS (Defects in Log Statements).916 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 16 ---
+other approaches do. However, no speciﬁc approach has been
+proposed to address the issues of LSD (Leakage of Sensitive
+Data) and DVLS (Difﬁculties in V&V of Log Statements), which
+to a certain degree implies the difﬁculty of solving these two
+issues. The result listed in Table 10 conﬁrms our conjecture that
+there are no commonly accepted solutions to the major issues
+in logging practices, given the fact that these issues have been
+continuously studied in recent yea rs. This observation partially
+explains the low adoption of rese arch solutions by the industry.
+Finding 6: Similar to Finding 5, the relationships between
+the issues and the proposed approaches are also mostly
+many-to-many, i.e., one approach is often claimed to solve
+multiple issues and vice versa. This again to a fair degree
+reﬂects an inadequate analysis of the depth of an issue to
+be addressed, which inevitably hinders tackling the issue
+at an appropriate granularity and level. As a result, such a
+solution is generally far from solving the intended issue
+and the existence of multiple inadequate solutions makes
+it even harder to adopt any one in practice.
+6D ISCUSSIONS
+In this section, we discuss possible reasons behind the cur-
+rent status of the research and the adoption of logging prac-
+tices as well as several next-step considerations for logging
+practices.
+6.1 Research Status and Reason Analysis
+In essence, a log statement is quite similar to any business
+statement in source code—they are both executable program
+instructions. Both types of statements are supposed to imple-
+ment certain ‘requirements’, which will produce a certain
+‘result’ for their intended users later on. In a typical scenario,
+the log statement usually generates logs for internal users
+such as developers and maintainers while regular business
+statements produce ‘results’ for external end-users. Unlike
+coping with conventional coding for features, which is signiﬁ-
+cantly supported by the state-of-the-art of SE, however, log-
+ging practices currently still lack a systematic methodologicalsupport for practitioners based on our observation derived
+from this SMS. We reckon there are multiple reasons leading
+to the current status of logging practices, among which “lack
+of research to address critical issues”, “unrealistic expectation
+of general yet adaptable solutions”, and “separated research
+within logging practices and between logging practices and
+log analysis” may have played an important role.
+6.1.1 Lack of Research to Address Critical Issues
+We noticed that most research effort has been invested on
+the issues relating to the 2-W questions, essentially (if not
+completely) neglecting two equally critical categories, i.e.,
+why to log andhow well is logging .
+According to the elaboration in Section 4, why to log
+answers the I&Cs of logging practices, which should serve
+as the starting point of logging practices. Unfortunately,
+very little effort has been put onto identifying and address-
+ing issues in this important category. Just like regular soft-
+ware development, lack of requirement analysis will
+inevitably lead to deviations in software design and imple-
+mentation. Logging practice without proper clariﬁcation of
+I&Cs will also lead to major gaps between the I&Cs and the
+actual log statements in source code, which has been
+noticed and reported in [Rong 20], [Li 20a]. More impor-
+tantly, I&Cs are the conceptual abstraction of why to log and
+usually used to support communication among different
+participants regarding logging practices. An I&C is imple-
+mented via log placement by translating to log location, con-
+tent, and level. Clearly, without properly understanding
+and analyzing the true I&C, it is difﬁcult to implement an
+appropriate log placement that matches the context in
+source code. For this reason, practitioners may encounter
+barriers to adopting a logging approach or tool for log
+placement.
+Similarly, the issues relating to the category of how well is
+logging have not been well addressed by the current
+research on logging practices. Like the importance of V&V
+in regular software development, without proper V&V in
+logging practices, it is usually uncertain that log statements
+actually reﬂect developer’s original I&Cs and capture the
+system information needed for further analysis. As a result,TABLE 10
+Issues versus Approaches
+Approach and corresponding category
+Issue and corresponding
+categoryWhere Where&What What Where&What&How Total
+RBL y SAy DLy ETy IBLy CFy MLBL y
+Where & What PO* 3 (16.7%) 4 (22.2%) 1 (5.6%) 1 (5.6%) 1 (5.6%) 10 (55.6%) 18 (100.0%)
+What LCM* 4 (18.2%) 4 (18.2%) 3 (13.6%) 2 (9.1%) 1 (4.5%) 1 (4.5%) 9 (40.9%) 22 (100.0%)
+RUM* 2 (15.4%) 1 (7.7%) 1 (7.7%) 1 (7.7%) 1 (7.7%) 2 (15.4%) 6 (46.2%) 13 (100.0%)
+IAM* 2 (40.0%) 1 (20.0%) 1 (20.0%) 1 (20.0%) 5 (100.0%)
+HLM* 1 (25.0%) 2 (50.0%) 1 (25.0%) 4 (100.0%)
+LSD* 0 (0.0%)
+How well MB* 1 (100.0%) 1 (100.0%)
+DVLS* 0 (0.0%)
+* The same as Table 8.
+yRBL (Rule-Based Logging); SA(Static Analysis); DL(Dynamic Logging); ET(Entropy Theory); IBL(Intention-Based Logging); CF(Content Formatting);
+MLBL (Machine Learning-Based Logging).GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 917
+
+--- Page 17 ---
+logging practices are inevitably subject to many question-
+able log statements in actual source code. In fact, several
+studies have emphasized the importance of fulﬁlling log-
+ging I&Cs [Yao 18], [Anu 19], [Jia 18], but none of them pro-
+vided concrete V&V mechanisms to ensure proper
+implementation of logging I&Cs.
+Given the current status elaborated above, a very inter-
+esting analogy is that the state-of-the-art logging practices
+are quite similar to the famous ‘Code and Fix’ software
+development model in some sense. While it may work well
+with software systems of small size, it will encounter huge
+challenges to deal with large and complex software systems.
+Similarly, typical scenarios of logging practices nowadays
+always involve with large-scale software systems with com-
+plex business logic. In this sense, it is not surprising that log-
+ging practices are far from satisfactory in these software
+systems [Rong 18],[4].
+6.1.2 Unrealistic Expectation for General yet
+Adaptable Solutions
+An ultimate goal of research on logging practices is to pro-
+vide guidance or assistance for software developers to per-
+form better logging practices. To achieve this goal, several
+approaches and tools have been proposed. However, in
+practice, it is extremely challenging or even unrealistic to
+expect solutions that are generally applicable to all logging
+practices yet they are adaptable enough to perform the best
+in various speciﬁc contexts.
+One example is the expectation of general-purpose
+guidelines. Many studies have mentioned the importance
+to have practical guideline sf o rl o g g i n gp r a c t i c e s[ C h e n
+17a], [Zhu 15], [He 18], [Liu 19], [Anu 19], [Liu 20], [Li
+18a]. Not only is the academia committed to putting for-
+ward such guidelines, but there are also similar requests
+in industry. For example, some popular blogs have dis-
+cussed the best or worst logging practices, e.g., [21], [22],
+which could be taken as reference guidelines. Some
+world-leading software com panies have also introduced
+internal guidelines for logging practices, e.g., Ali-
+baba [20]. Most of these guidelines are so-called general-
+purpose guidelines which guide logging practices with-
+out an explicit and speciﬁc I&C. However, there is less
+chance to promote general-purpose logging guidelines
+due to the vast variety of I&Cs. Take two typical logging
+intentions as an example. Failure diagnosis and perfor-
+mance analysis may require completely different log
+placement. The logical branches in source code may pro-
+vide useful information for the former logging intention,
+while the timestamps at the entries and exits of compli-
+cated methods may support the latter logging intention
+better. In this example, designing general-purpose log-
+ging guidelines to satisfy both intentions might never be
+feasible.
+Another example is the prevailed adoption of machine
+learning techniques to suppor t logging practices, which
+involves more number studies than others (cf. Table 7).
+T h em a i ni d e ai st ol e a r nt h ec o n t e x t s / f e a t u r e so fc o d e
+snippets and recommend log statements at code snippets
+with similar contexts/feat ures. The challenge is, how-
+ever, the efﬁcacy of machine le arning techniques largelydepends on the quality of the dataset used for training.
+If only general-purpose log statements are included in
+the training dataset, the trained models cannot support
+speciﬁc I&C, i.e., there may be totally different log state-
+ments at the exactly same location in the source code to
+meet different I&Cs. It is worth noting that it is non-triv-
+ial to ensure the quality of log placement in existing soft-
+ware systems in the ﬁrst place. We noticed that several
+studies proposed methods for extracting I&Csf r o m
+source code [Anu 19], [Jia 18]. This may bring some
+opportunities for better use o f machine learning techni-
+ques to support logging practices as long as the I&Cs
+can be adequately learned and included in the resulting
+models.
+Although a certain log placement is commonly related
+to speciﬁc and concrete contexts (e.g., I&Cs, structure/
+logic of the code nearby), the speciﬁc contexts normally
+limit the generality of a certain log placement in return.
+This is a dilemma. On the one hand, we need a solution
+to logging practices (e.g., general purpose guidelines)
+that is generally applicable to as many contexts as possi-
+ble. Otherwise, the usage of the solution is inevitably
+constrained by the contexts. On the other hand, the more
+contexts involved, the more unlikely to ﬁnd a suitable
+log placement to address various I&Cs for various spe-
+ciﬁc contexts.
+6.1.3 Separated Research Within Logging Practices
+and Between Logging Practices and Log Analysis
+It seems that the related research around logs, log placement
+and subsequent log analysis are in a state of separation. This
+has resulted in a situation in which research on how to opti-
+mize log placement is rarely considered from the perspective
+of what information is needed for log analysis. On the con-
+trary, in the related research on log analysis, most of the
+research efforts have been spent on analysis and processing
+algorithms using existing log data, researchers rarely express
+concerns about the quality of the data source—log placement.
+In short, there is a lack of positive interaction between log
+placement and log analysis, which may be one of the reasons
+for the current research status of logging practice. Take one of
+the most studied issue (i.e., performance overhead) as an
+example, without information requirement derived from the
+corresponding log analysis need, reasonable trade-offs are
+inherently impossible to achieve.
+Within logging practices, while the research topics and
+the proposed approaches are concentrated on the 2-Wques-
+tions, some key aspects regarding logging practices spe-
+cially around why and how well questions are essentially
+neglected. This separation of research leads to the conse-
+quence that some proposed approaches cannot be veriﬁed
+and validated from the perspective of logging I&Cs. It is
+very desirable to consider a holistic research approach that
+takes into account all 3W1H aspects and the interaction
+between logging practices and logging analysis.
+6.2 Next Steps
+The importance of logging practices in modern software
+development and operations is undeniable. Therefore, we dis-
+cuss several promising next-step research in this subsection.918 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 18 ---
+6.2.1 A Process Perspective for Logging Practices
+Apparently, the chance is slim to solve the critical issues
+regarding logging practices (as shown in Table 5) by solely
+considering one or two categories. For example, performance
+overhead is obviously a compromise between the beneﬁt and
+cost of logging, which can not be completely addressed by
+merely answering the 2-Wquestions. Without knowing spe-
+ciﬁc information needs (perhaps derived from log analysis),
+the issue of lacking crucial messages is unlikely to be
+addressed, and further all the issues relating to ‘messages’
+may be subject to this observation. Therefore, we advocate a
+process perspective for logging practices in which not only
+is logging systematically considered from log generation to
+log utilization but can logging issues be also holistically
+investigated. For example, we may borrow the idea from
+regular software development processes, given the essen-
+tially similar paradigm to develop and maintain both log
+statements and regular business statements. The concept of
+Software Development Life Cycle ( SDLC ) [27] has already
+taken shape in existing studies regarding logging practices.
+For example, Jia et al. proposed an ‘intention’ description
+model that is able to represent developer’s intentions of log
+statements [Jia 18]. Based on the ‘intention’ description
+model, they implemented an intention-aware log automa-
+tion tool to insert log statements at proper places. An
+‘intention’ is similar to the concept of a requirement in
+SDLC . Cinque et al. proposed a rule-based logging approach
+based on the artifacts generated at the design stage [Cinq
+12]. Zhao et al. proposed an algorithm to optimize the loca-
+tion of log statements in source code based on information
+theory [Zhao 17]. Kabinna et al. examined changes to log
+statements in order to help developers instrument more sta-
+ble log statements [Kabi 16b]. The maintenance of log state-
+ments was brought into the limelight. Nevertheless, to close
+the loop, the value of V&V (i.e., how well is logging ) should
+be taken seriously in logging practices.
+Moreover, apart from the process perspective, some com-
+mon good practices in SE can also be useful to logging practi-
+ces due to the fact that log statements are source code in
+essence. For example, several studies have realized that con-
+ducting logging practices in a ‘Code and Fix’ fashion is prob-
+lematic, and thus summarized a set of anti-patterns [Chen
+17a]. Along this thread, adapting the well-known best practi-
+ces in regular SE to logging practices may also be a valuable
+research direction.
+6.2.2 Recognizing the Anchor Value of I&C
+TheI&Cof a log placement and its underlying context should
+be taken as the starting point and also the anchor of all logging
+practices. Without a clear answer to the why to log question, it
+is hard to design and implement an appropriate log place-
+ment, and all the downstream activities around logging prac-
+tices would become unrooted trees. Moreover, as mentioned
+in [Li 20a], without a clear understanding of developers’ log-
+ging I&Cs, automated approaches to logging improvement
+may not be convincing to developers. In fact, several studies
+have already raised the importance of logging intention [Anu
+19], [Jia 18] to support log placement. However, a systematic
+approach to extracting, deﬁning, and representing multiple
+logging I&Cs, especially the real I&Csf r o mr e l e v a n tstakeholders, is still yet to be developed. One good example is
+the pervasive DevOps approach in which staff in charge of
+operations are encouraged to contribute to the development
+of requirements from their perspectives [28]. In the same
+spirit, consumers of the information contained in logs by
+means of log analysis should also play a part in deﬁning I&Cs
+for generating appropriate logs.
+With the I&Cs clearly deﬁned, the next question is how to
+implement them through log placement. Compared to cur-
+rent logging practices in which developers usually consider
+log placement during coding [Cinq 09], [Pecc 15], [Shan 14],
+we advocate a shift-left strategy for key logging decisions. As
+suggested in [Shan 14], logging should be thoroughly
+designed ﬁrst rather than just deferred to the implementation
+stage. However, although several approaches have been pro-
+posed (cf. Fig. 8) to implement I&Cs in log placement, the
+next-step research needs to explore how to effectively reﬂect
+multiple I&Cs in log placement and address I&Csi nm u l t i p l e
+artifacts at different development stages in a timely manner.
+7T HREATS TO VALIDITY
+This paper attempts to provide a systematic and comprehen-
+sive overview of the state-of-the-art logging practices in SE,
+which is based on our review of 56 primary studies. In this
+section, we discuss potential threats to the validity of this
+study, the approaches by which we strived to mitigate them,
+and other aspects that need to be taken into consideration in
+order to generalize the results of this study. The threats to
+validity are organized into four categories (i.e., the Construct,
+Conclusion, Internal and External) as proposed in [29].
+7.1 Construct Validity
+Construct validity is concerned with the issues that to what
+extent the object of study truly represents theory behind the
+study [29]. In this study, the main treats related to this valid-
+ity are the suitability of research questions and the schema
+for data extraction.
+The suitability of research questions determines whether
+the research objective can be addressed. To minimize the
+threat derived from this factor, all the research questions
+are designed based on the consensus through team discus-
+sion. Meanwhile, using an iterative way, some trials have
+been conducted for justiﬁcation towards data extraction,
+evidence answering research questions as well as research
+questions addressing research objective. To this end, the
+threats related to research questions could be minimized.
+The rationality of research scope determines whether the
+selected studies are able to provide appropriate information
+to answer the research questions. We excluded the studies
+focusing on log analysis in this systematic mapping study.
+However, since useful information may also be extracted
+from studies on log analysis to support logging practices (as
+elaborated in Section 6.2.1, we acknowledge the importance
+of the information needs derived from log analysis), the
+research scope in our study may inevitably leave out some
+relevant studies. Nevertheless, as we have found that the
+work reporting the impact of log analysis on logging practi-
+ces is generally scarce and further the setting of the research
+scope is based on our previous experience [5] and drawingGU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 919
+
+--- Page 19 ---
+on similar research [Yuan 12b], [He 18], [Kabi 16b], the
+threat could be minimized.
+The data extraction schema determines the quality of the
+evidence we may obtain to answer research questions. To
+mitigate this threat, we have applied a standard classiﬁca-
+tion [10] and ﬁnalized the schema through several optimiza-
+tion iterations.
+7.2 Conclusion Validity
+Conclusion validity is a measure of the reasonable degree to
+which a research conclusion could be trusted. For the sake
+of reaching reasonable conclusions, we adopted a manual
+coding approach described in Section 2.7 to assist data syn-
+thesis. Nevertheless, this method inherently carries with
+validity threats.
+The categorization results guide the whole aggregation
+and synthesis process and draw the major conclusions. To
+mitigate the threat, each the primary study was peer reviewed
+by at least two researchers and each ﬁnding was derived from
+open discussion. Once a disagreement emerges, a consensus
+has to be reached before further work. In this way, the threat
+derived from categorization can be controlled.
+7.3 Internal Validity
+Internal validity is the extent to which a study establishes a
+trustworthy cause-and-effect relationship between a treat-
+ment and an outcome. To make sure that this SMS is repeat-
+able, the search string, search engines, inclusion/exclusion
+criteria and data extraction schema were cautiously
+designed, carefully tuned and explicitly presented. In our
+study, the main threats to the internal validity arise from
+the limitation of the search string and search engines, as
+well as personal bias in applying inclusion/exclusion crite-
+ria and performing data extraction.
+The limitation of the search string and search engines
+may lead to an incomplete set of primary studies. Different
+authors may use different terms to refer to a similar concept.
+In order to mitigate the risk of incomplete retrieval of the
+relevant studies, a formal search process has been designed
+and followed, combining manual search, automated search
+and snowballing, in an iterative manner. To control threats
+due to search engines, we have included digital libraries
+that are believed to be suitable depending on the existing
+protocols [17]. Therefore, we consider our retrieval to be
+nearly complete, and if any primary studies were missed,
+that percentage would be negligible.
+The personal bias may lead to subjective decisions occurred
+during paper selection and data extraction. In order to control
+the impacts, in the paper selection and data extraction process,
+an iterative strategy has been applied in the selection process
+in which the data extraction was performed collaboratively by
+multiple reviewers with cross-checking. Therefore, the threats
+derived from personal bias can be mitigated.
+7.4 External Validity
+External validity is concerned with to what extent the SMS
+results can be generalized. One possible threat is related to
+the degree to which the primary studies are representative
+for the review topic.Representativeness of the included primary studies is
+critical in any SMS study. In order to mitigate this external
+threats, the search process presented in Section 2.5 was
+deﬁned after several pilot searches and validated with open
+discussion with all the researchers in this work. We argue
+that the relevant primary studies in our ﬁnal pool contain
+sufﬁcient information to represent the research topic dis-
+cussed in this paper.
+8R ELATED EMPIRICAL STUDIES
+Logging practices have attracted increasing attention
+recently. Therefore, some empirical research on logging
+practices has been conducted from various perspectives.
+For instance, Yuan et al. investigated logging practices
+using four pieces of large open source software, quantifying
+the pervasiveness and the beneﬁt of logging [Yuan 12b]. They
+identiﬁed several particular aspects in logging choices where
+developers spend most efforts in getting them right, as well
+as many opportunities for tools to improve the logging practi-
+ces. A large-scale replication study on similar topics was
+reported in [Chen 17b] later to conﬁrm these ﬁndings.
+In [Rong 18], Rong et al. focused on the quality of logging
+practices in 28 popular open source projects on GitHub. The
+researchers mined evidence from these projects, which
+implied major issues in the logging practices in these 28
+projects (e.g., very low and divergent density of log state-
+ments, arbitrary location to put log statements), easily lead-
+ing to questionable implementation of the logging
+purpose—to capture the intended information of system
+behaviors. Similarly, the empirical study conducted by
+OverOps [4] also indicated these issues in logging practices.
+Besides, the researchers also found a large portion of log
+statements tended to contain insufﬁcient variables to record
+as much information as intended, indicating the low quality
+of logging practices in the industry. Chen et al. characterized
+six anti-patterns in log statements by carefully studying the
+development history of three open source software systems
+from different application domains [Chen 17a].
+Besides these empirical studies, there are also a handful
+of secondary studies attempting to portray the research and
+adoption status of logging practices with a primary focus
+on current logging practices, common challenges and pro-
+posed solutions (cf. Table 11), which are elaborated below.
+/C15As a pilot of this work, we have carried out a review
+on logging practices [5] in 2017. However, due to
+page limits, we did not discuss evidence and rele-
+vant implication in detail.
+/C15Sambasivan et al. carried out a survey on the tracing
+infrastructures for distributed systems and distilled
+the design space of workﬂow-centric tracing and
+described key design choices [6]. However, this
+study focuses on the building of logging infrastruc-
+ture, which according to the discussion in Section 2.2
+falls outside the scope of this SMS.
+/C15C^andido et al. also conducted an SMS on log-based
+software monitoring [7]. However, the topic of
+‘logging practice’ is only one out of four research
+focuses in this study, as a result, very limited insights
+into logging practices are provided by this study.920 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 20 ---
+/C15A most recent survey study conducted by Chen et al.
+[2] also reviewed software log instrumentation, a
+concept similar to logging practices in our work. The
+major differences between Chen’s work and ours are
+three-fold. First and foremost, the two studies carry
+with different research objectives. While Chen’s
+work is focused on identifying the challenges and
+the proposed solutions used in log instrumentation,
+our focus is on unveiling possible problems and
+gaps which further shed light on the potential future
+research directions by establishing a comprehensive
+understanding of the research status of logging prac-
+tices. Second, due to different research objectives,
+the two studies have also adopted different research
+methods. While both work use thematic analysis and
+qualitative methods to identify challenges and solu-
+tions, we additionally apply a quantitative method
+to depict a research landscape of current logging
+practices and more importantly a cross-analysis
+method to unveil the gaps between challenges and
+solutions. The ﬁndings (Findings 1–6) with these
+methods extend our understanding of the state-of-
+the-art research of logging practices. Last but not
+least, although the two studies use a similar dataset
+(i.e., selected literature) for ﬁnal synthesis, our work
+identiﬁed nine additional high quality studies not
+included in Chen’s work, most of which have been
+published on premier venues in their respective
+ﬁelds, e.g., [Li 20a], [Anu 19], [Li 20b], [Luo 18],
+[Pecc 12], etc. As a result, our work identiﬁed several
+critical issues/challenges regarding logging practi-
+ces not in Chen’s paper. For example, “Redundant
+or useless messages”, reported by 9 primary studies,
+were not discussed in Chen’s work, as this issue may
+inevitably impact developer’s capability to perform
+failure diagnosis or performance analysis, which is
+listed in Chen’s work as one major challenge
+category.In summary, existing studies have exposed the chal-
+lenges/solutions of logging practices from different per-
+spectives, which means the challenges with which
+developers are confronted when conducting logging practi-
+ces are well known in the community. However, a holistic
+understanding of the research state of logging practices is
+yet to be established, which is the major motive for our
+work. It is worth highlighting the major contributions of our
+work as compared to the other secondary studies, which
+are: (1) we portray a profound research state landscape of
+logging practices in terms of issues, research focuses and
+solution approaches using 3W1H categorization scheme
+through a systematic mapping study ; (2) we pinpoint the gaps
+between challenges and solutions and suggest potential
+remedies and future research directions to close the loop
+through cross-analysis .
+9F INALREMARKS
+Logging is an important task of software development and
+in recent years research on logging practices has been
+steadily increasing. However, not quite aligned with this
+trend, adoption of the proposed approaches and solutions
+by the software industry remains low. In this paper, we
+have presented the results of an SMS on logging practices
+from 56 primary studies in order to paint a landscape of the
+state-of-the-art of logging practices for a holistic under-
+standing of this research area.
+The main observations from this study can be summa-
+rized as follows:
+First, there is some consensus on the major issues in log-
+ging practices. However, even the issues that have received
+the most attention are still being discussed and explored
+repeatedly, implying that the proposed solutions are yet
+workable as expected.
+Second, based on the distribution of issues, research
+topics, and approaches, the 2-Wquestions are still the focus
+of common concern. However, only addressing the 2-WTABLE 11
+Comparison Against Other Reviews Related to Logging Practices
+* PC: Peer-reviewed literature count;
+OC: Overlapping peer-reviewed literature count with other reviews;
+A: Did the study include issues regarding logging practices? B: Did the study include research topics around logging practices? C: Did the study inclu de pro-
+posed approaches for logging practices? D: Did the study quantitatively analyze the research focus on issues, research topics, proposed approaches and the rela-
+tionships between them? E: Did the study identify gaps in current research on logging practices? [N/A]: Not applicable;
+Issues, research topics, proposed approaches and gap areas are addressed directly through research questions in the study;
+Issues, research topics, proposed approaches and gap areas are addressed partially through other research questions in the study (i.e., by addressi ng a different
+research question, partial information is provided).
+Quantitative analysis is applied to every aspects of issues, research topics, proposed approaches and gap areas.
+Quantitative analysis is applied to some aspects of issues, research topics, proposed approaches and gap areas.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 921
+
+--- Page 21 ---
+questions without considering other questions may has
+clear limitations. Therefore, research to identify and address
+the issues relating to the categories of why to log andhow well
+is the logging should be encouraged in the community.
+Last but not least, the many-to-many relationships
+between issues, research topics and approaches indicate a
+lack of profound understanding of the real issues and how
+they should be appropriately tackled.
+The value of our SMS is not only limited to showing possi-
+ble solutions to the issues/challenges of logging practices,
+which are also discussed in several existing secondary studies
+to some extent. A more signiﬁcant contribution of this SMS
+lies in that it reveals the current problems and omissions in
+the research related to logging practices. If these problems are
+not adequately concerned and addressed, the status quo of
+research on logging practices will likely remain unchanged.
+Based on the results of this study, we make the following
+recommendations:
+/C15As the starting point of logging practices and the
+anchor point of downstream logging practices, log-
+ging I&Cs should be given with full attention. The
+source (e.g., information needs derived from log
+analysis), performance overhead limits (e.g., derived
+from regular system requirements) and other contex-
+tual factors should be clariﬁed before carrying out
+logging practices. For this purpose, research effort is
+demanded to explore pragmatic practices, methods
+and tools.
+/C15A process perspective and a holistic approach
+should be considered to propose more effective solu-
+tions to logging practices, which means that the cur-
+rent research direction and focus need to be
+adjusted. For example, the 2-Wquestions should not
+be investigated and addressed separately and also
+without considering other questions. Proposed solu-
+tions should not only implement I&Cs but also verify
+and validate them by downstream practices. In
+short, the practices, methods and tools for planning,
+designing, producing, analyzing and consuming
+logs should be studied in a systematic manner.
+/C15With DevOps becoming the mainstream method of
+software development, operations and mainte-
+nance [31], the use of tools to improve the level of
+automation becomes an apparent need that has to be
+considered, but how to design tools to meet the basic
+requirements of the above two points calls for fur-
+ther research efforts.
+REFERENCES
+[1] B. Fitzgerald and K.-J. Stol, “Continuous software engineering: A
+roadmap and agenda,” J. Syst. Softw. , vol. 123, pp. 176–189, Jan. 2017.
+[2] B. Chen and Z. M. J. Jiang, “A survey of software log
+instrumentation,” ACM Comput. Surv. , vol. 54, no. 4, pp. 1–34, Jul.
+2021.
+[3] B. W. Kernighan and R. Pike, The Practice of Programming . Read-
+ing, MA, USA: Addison-Wesley Professional, 1999.
+[4] OverOps, “The complete guide to Java logging in production,” 2017.
+[Online]. Available: https://land. overops.com/java-logging-in-
+production-ebook/
+[5] G. Rong, Q. Zhang, X. Liu, and S. Gu, “A systematic review of log-
+ging practice in software engineering,” in Proc. 24th Asia-Paciﬁc
+Softw. Eng. Conf. , 2017, pp. 534–539.[6] R. R. Sambasivan, I. Shafer, J. Mace, B. H. Sigelman, R. Fonseca,
+and G. R. Ganger, “Principled workﬂow-centric tracing of distrib-
+uted systems,” in Proc. 7th ACM Symp. Cloud Comput. , 2016,
+pp. 401–414.
+[7] J. C ^andido, M. Aniche, and A. van Deursen, “Log-based software
+monitoring: A systematic mapping study,” PeerJ Comput. Sci. ,
+vol. 7, 2021, Art. no. e489.
+[8] V. R. Basili, “Goal question metric paradigm,” Encyclopedia Softw.
+Eng., vol. 1, pp. 528–532, 1994.
+[9] K. Petersen, S. Vakkalanka, and L. Kuzniarz, “Guidelines for con-
+ducting systematic mapping studies in software engineering: An
+update,” Inf. Softw. Technol. , vol. 64, pp. 1–18, Aug. 2015.
+[10] K. Petersen, R. Feldt, S. Mujtaba, and M. Mattsson, “Systematic
+mapping studies in software engineering,” in Proc. 12th Int. Conf.
+Eval. Assessment Softw. Eng. , 2008, pp. 1–10.
+[11] B. Kitchenham, “What’s up with software metrics? - A preliminary
+mapping study,” J. Syst. Softw. , vol. 83, no. 1, pp. 37–51, Jan. 2010.
+[12] B. Kitchenham et al. , “Systematic literature reviews in software
+engineering - A tertiary study,” Inf. Softw. Technol. , vol. 52, no. 8,
+pp. 792–805, Aug. 2010.
+[13] A. A. Yavuz and P. Ning, “BAF: An efﬁcient publicly veriﬁable
+secure audit logging scheme for distributed systems,” in Proc.
+Annu. Comput. Secur. Appl. Conf. , 2009, pp. 219–228.
+[14] D. Kim, E. Hwang, and S. Rho, “Multi-camera-based security log
+management scheme for smart surveillance,” Secur. Commun.
+Netw. , vol. 7, no. 10, pp. 1517–1527, 2014.
+[15] B. A. Kitchenham and S. Charters, “Guidelines for performing
+systematic literature reviews in software engineering,” Keele
+Univ., Keele, U.K. and Durham Univ., Durham, U.K. Joint Report,
+Tech. Rep. EBSE 2007–001, pp. 1–57, Jul. 2007.
+[16] B. A. Kitchenham, “Procedures for performing systematic reviews,”
+Keele Univ., Keele, U.K., Tech. Rep. TR/SE-0401, vol. 33, pp. 1–26,
+Aug. 2004.
+[17] H. Zhang, M. A. Babar, and P. Tell, “Identifying relevant studies
+in software engineering,” Inf. Softw. Technol. , vol. 53, no. 6,
+pp. 625–637, Jun. 2011.
+[18] V. Braun and V. Clarke, “Using thematic analysis in psychology,”
+Qualitative Res. Psychol. , vol. 3, no. 2, pp. 77–101, 2006.
+[19] J. Salda ~na,The Coding Manual for Qualitative Researchers . Newbury
+Park, CA, USA: Sage, 2021.
+[20] Alibaba, “Alibaba Java coding guidelines,” 2017. [Online]. Avail-
+able: https://alibaba.github.io/Alibaba-Java-Coding-Guidelines/
+[21] J. Skowronski, “30 best practices for logging at scale,” Jan. 2017.
+[Online]. Available: https://www.loggly.com/blog/30-best-
+practices-logging-scale/
+[22] L. Tal, “9 logging best practices based on hands-on experience,”
+Jan. 2017. [Online]. Available: https://www.loomsystems.com/
+blog/single-post/2017/01/26/9-logging-best-practices-based-on-
+hands-on-experience
+[23] J. Boulon, A. Konwinski, R. Qi, A. Rabkin, E. Yang, and M. Yang,
+“Chukwa: A large-scale monitoring system,” in Proc. Int. Conf.
+Control Appl. , 2008, pp. 1–5.
+[24] G. F. Cre ¸tu-Cioc ^arlie, M. Budiu, and M. Goldszmidt, “Hunting for
+problems with Artemis,” in Proc. 1st USENIX Conf. Anal. Syst.
+Logs, 2008, pp. 2–2.
+[25] H. Mi, H. Wang, Y. Zhou, M. R.-T. Lyu, and H. Cai, “Toward ﬁne-
+grained, unsupervised, scalable performance diagnosis for pro-
+duction cloud computing systems,” IEEE Trans. Parallel Distrib.
+Syst., vol. 24, no. 6, pp. 1245–1255, Jun. 2013.
+[26] A. Aiken, S. Bugrara, I. Dillig, T. Dillig, B. Hackett, and P. Hawkins,
+“An overview of the Saturn project,” in Proc. 7th ACM SIGPLAN-
+SIGSOFT Workshop Prog. Anal. Softw. Tools Eng. , 2007, pp. 43–48.
+[27] W. W. Royce, “Managing the development of large software sys-
+tems: Concepts and techniques,” in Proc. 9th Int. Conf. Softw. Eng. ,
+1987, pp. 328–338.
+[28] C. A. Cois, J. Yankel, and A. Connell, “Modern DevOps: Optimiz-
+ing software development through effective system interactions,”
+inProc. IEEE Int. Prof. Commun. Conf. , 2014, pp. 1–7.
+[29] C. Wohlin, P. Runeson, M. H €ost, M. C. Ohlsson, B. Regnell, and
+A. Wessl /C19en, Experimentation in Software Engineering . Berlin,
+Germany: Springer, Jun. 2012.
+[30] J. C ^andido, M. Aniche, and A. van Deursen, “Contemporary soft-
+ware monitoring: A systematic literature review,” 2019, arXiv:
+1912.05878 .
+[31] P uppet, “The 2021 state of DevOps report,” 2021. [Online]. Available:
+https://puppet.com/resources/re port/2021-state-of-devops-
+report/922 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 49, NO. 2, FEBRUARY 2023
+
+--- Page 22 ---
+[32] W. Xu, L. Huang, A. Fox, D. Patterson, and M. I. Jordan,
+“Detecting large-scale system problems by mining console logs,”
+inProc. ACM SIGOPS 22nd Symp. Oper. Syst. Princ. , 2009, pp. 117–
+132.
+[33] D. Yuan, H. Mai, W. Xiong, L. Tan, Y. Zhou, and S. Pasupathy,
+“SherLog: Error diagnosis by connecting clues from run-time
+logs,” in Proc. 15th ed. ASPLOS Architect. Support Program. Lang.
+Oper. Syst. , 2010, pp. 143–154.
+[34] W. Shang, “Bridging the divide between software developers and
+operators using logs,” in Proc. 34th Int. Conf. Softw. Eng. , 2012,
+pp. 1583–1586.
+[35] T. Barik, R. DeLine, S. Drucker, and D. Fisher, “The bones of the
+system: A case study of logging and telemetry at Microsoft,”
+inProc. 38th Int. Conf. Softw. Eng. Companion , 2016, pp. 92–101.
+[36] W. Shang, M. Nagappan, A. E. Hassan, and Z. M. Jiang,
+“Understanding log lines using development knowledge,”
+inProc. IEEE Int. Conf. Softw. Maintenance Evol. , 2014, pp. 21–30.
+[37] M. I. H. Sukmana, K. A. Torkura, F. Cheng, C. Meinel, and
+H. Graupner, “Uniﬁed logging system for monitoring multiple
+cloud storage providers in cloud storage broker,” in Proc. Int.
+Conf. Inf. Netw. , 2018, pp. 44–49.
+[38] A. Pi, W. Chen, W. Zeller, and X. Zhou, “It can understand the
+logs, literally,” in Proc. IEEE Int. Parallel Distrib. Process. Symp.
+Workshops , 2019, pp. 446–451.
+[39] D. Schipper, M. Aniche, and A. van Deursen, “Tracing back log
+data to its log statement: From research to practice,” in Proc. IEEE/
+ACM 16th Int. Conf. Mining Softw. Repositories , 2019, pp. 545–549.
+[40] M. Bartsch and R. Harrison, “An exploratory study of the effect of
+aspect-oriented programming on maintainability,” Softw. Qual.
+J., vol. 16, no. 1, pp. 23–44, May 2007.
+[41] G. W. Dunlap, S. T. King, S. Cinar, M. A. Basrai, and P. M. Chen,
+“ReVirt: Enabling intrusion analysis through virtual-machine log-
+ging and replay,” ACM SIGOPS Oper. Syst. Rev. , vol. 36, no. SI,
+pp. 211–224, 2002.
+[42] C. N. Chong, Z. Peng, and P. H. Hartel, “Secure audit logging
+with tamper-resistant hardware,” in Proc. IFIP Int. Inf. Secur. Conf. ,
+2003, pp. 73–84.
+[43] P. Massonet, S. Naqvi, C. Ponsard, J. Latanicki, B. Rochwerger,
+and M. Villari, “A monitoring and audit logging architecture for
+data location compliance in federated cloud infrastructures,” in
+Proc. IEEE Int. Symp. Parallel Distrib. Process. Workshops Phd Forum ,
+2011, pp. 1510–1517.
+[44] J. King, J. Stallings, M. Riaz, and L. Williams, “To log, or not to log:
+Using heuristics to identify mandatory log events–A controlled
+experiment,” Empir. Softw. Eng. , vol. 22, no. 5, pp. 2684–2717, Oct.
+2017.
+[45] G. S. Hartman and L. Bass, “Logging events crossing architectural
+boundaries,” in Proc. IFIP Conf. Hum.-Comput. Interact. , 2005,
+pp. 823–834.
+[46] G. Lee, J. Lin, C. Liu, A. Lorek, and D. Ryaboy, “The uniﬁed log-
+ging infrastructure for data analytics at Twitter,” Proc. VLDB
+Endowment , vol. 5, no. 12, pp. 1771–1780, Aug. 2012.
+[47] A. Rabkin, W. Xu, A. Wildani, A. Fox, D. Patterson, and R. Katz,
+“A graphical representation for identiﬁer structure in logs,” in
+Proc. Workshop Manag. Syst. Via Log Anal. Mach. Learn. Techn. ,
+2010, pp. 3–3.
+[48] W. Shang, M. Nagappan, and A. E. Hassan, “Studying the rela-
+tionship between logging characteristics and the code quality of
+platform software,” Empir. Softw. Eng. , vol. 20, no. 1, pp. 1–27,
+Feb. 2015.
+[49] A. Kadav, M. J. Renzelmann, and M. M. Swift, “Tolerating hard-
+ware device failures in software,” in Proc. ACM SIGOPS 22nd
+Symp. Oper. Syst. Princ. , 2009, pp. 59–72.
+[50] D. Subhraveti and J. Nieh, “Record and transplay: Partial check-
+pointing for replay debugging across heterogeneous systems,” in
+Proc. ACM SIGMETRICS Joint Int. Conf. Meas. Model. Comput.
+Syst., 2011, pp. 109–120.
+[51] K. Veeraraghavan et al., “DoublePlay: Parallelizing sequential log-
+ging and replay,” ACM Trans. Comput. Syst. , vol. 30, no. 1, 2012,
+Art. no. 3.
+[52] M. Cinque et al., “Improving FFDA of web servers through a rule-
+based logging approach,” in Proc. 1st Int. Workshop Field Failure
+Data Anal. , 2008, pp. 1–5.[53] T. Jia, Y. Li, C. Zhang, W. Xia, J. Jiang, and Y. Liu, “Machine
+deserves better logging: A log enhancement approach for auto-
+matic fault diagnosis,” in Proc. IEEE Int. Symp. Softw. Rel. Eng.
+Workshops , 2018, pp. 106–111.
+[54] C. Zhang et al., “AutoLog: Facing log redundancy and insufﬁciency,”
+inProc. 2nd Asia-Paciﬁc Workshop Syst. , 2011, pp. 1–5.
+[55] X. Zhao, K. Rodrigues, Y. Luo, M. Stumm, D. Yuan, and Y. Zhou,
+“The game of twenty questions: Do you know where to log?”, in
+Proc. 16th Workshop Hot Top. Oper. Syst. , 2017, pp. 125–131.
+[56] F. Baccanico, G. Carrozza, M. Cinque, D. Cotroneo, A. Pecchia,
+and A. Savignano, “Event logging in an industrial development
+process: Practices and reengineering challenges,” in Proc. IEEE
+Int. Symp. Softw. Rel. Eng. Workshops , 2014, pp. 10–13.
+[57] B. Chen, “Improving the software logging practices in DevOps,”
+inProc. IEEE/ACM 41st Int. Conf. Softw. Eng. , 2019, pp. 194–197.
+Shenghui Gu received the BSc degree from Nanj-
+ing University, Nanjing, China. He is currently work-
+ing toward the PhD degree in the Software Institute,
+Nanjing University, Nanjing, China. His research
+interests include software engineering, particularly in
+AIOps, software log analytics, DevOps, as well as
+empirical and evidence-based software engineering.
+Guoping Rong received the BSc degree in com-
+puter science and technology, the MSc degree in
+software theory, and the PhD degree in applied
+software engineering, all from Nanjing University,
+Nanjing, China. He is currently a faculty member
+with the Software Institute, Nanjing University
+and the director of the joint laboratory of Nanjing
+University and Transwarp on data technology . His
+research area includes software process,
+DevOps, AIOps, and empirical methodology, etc.
+He Zhang is currently a full professor of software
+engineering and the director of DevOps+
+Research Laboratory, Nanjing University, China,
+also a principal scientist with CSIRO, Australia. He
+undertakes research in software engineering, in
+particular software & systems process, software
+architecture, DevOps, software security , block-
+chain-oriented software engineering, empirical,
+and evidence-based software engineering. He
+has published more than 160 peer-reviewed
+papers in high quality international conferences
+and journals, and won 11 Best/Distinguished Paper awards from several
+prestigious international conferences and journals in software engineer-
+ing community .
+Haifeng Shen is currently an associate professor,
+head of Discipline of Information Technology, and
+director of the HilstLab, Faculty of Law and Busi-
+ness, Australian Catholic University . His research
+expertise is interdisciplinary and revolves around
+human-centred artiﬁcial intelligence and software
+technologies, which is uniquely positioned at the
+intersection of human computer interaction, soft-
+ware engineering, and artiﬁcial intelligence with a
+unique focus on ‘interaction’ and ‘integration’:
+human-AI interaction, human-software interaction,
+and integration of AI and software.
+"For more information on this or any other computing topic,
+please visit our Digital Library at www.computer .org/csdl.GU ET AL.: LOGGING PRACTICES IN SOFTWARE ENGINEERING: A SYSTEMATIC MAPPING STUDY 923

@@ -1,5 +1,23 @@
 # survey_of_surveys/SUMMARY.md：综述之综述文库总账
 
+## 0.A A2a 语料主候选建设速读
+
+**当前结论**：A2a 已把前序近年软件工程综述候选摸排整理成集中 `corpus/` 入口。这个阶段解决的是“后续 A2b 要读哪些、哪些已取得 PDF、哪些需要人工下载、候选分母怎么复算”的问题，不解决最终维度树、最终 research finding 或 100+ 全文深读闭合。
+
+| 项 | 数量 | 入口 | 当前判断 |
+|---|---:|---|---|
+| 全量候选账本 | 438 | [corpus/tables/full-candidate-ledger.csv](./corpus/tables/full-candidate-ledger.csv) | 保留候选分母，防止 cherry-pick。 |
+| 系统化候选池 | 293 | [corpus/tables/systematic-candidates.csv](./corpus/tables/systematic-candidates.csv) | 当前脚本识别的 SLR / SMS / MLR / tertiary 候选；最终以 A2b 全文核验为准。 |
+| 主候选语料 | 120 | [corpus/tables/core-corpus.csv](./corpus/tables/core-corpus.csv) | A2b 优先深读对象；包含 A1 已有 13 篇入池候选。 |
+| 替补 / 留出语料 | 40 | [corpus/tables/reserve-corpus.csv](./corpus/tables/reserve-corpus.csv) | 用于替换主候选中后续被排除或全文无法取得的条目。 |
+| 边界 / 方法启发池 | 145 | [corpus/tables/boundary-pool.csv](./corpus/tables/boundary-pool.csv) | 不进入主统计池，只作方法启发或边界说明。 |
+| 需人工下载 | 145 | [corpus/manual-download-needed.md](./corpus/manual-download-needed.md) / [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib) | 可导入 Zotero 批量下载；PDF 不可得不等于排除。 |
+
+PDF 状态速读：主候选 15 篇已有本地 PDF / 文本，其中 13 篇来自 A1，2 篇由 A2a 自动从开放 PDF 链接获取；主候选 105 篇和替补 40 篇仍需人工下载或后续合法开放来源补抓。详见 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。
+
+A2b 启动前必须先读 [corpus/handoff-to-next-stage.md](./corpus/handoff-to-next-stage.md)。
+
+
 ## 1. 当前文库状态与总判断
 
 本目录是 Paper2 agentic SLR 工作的 **survey-of-surveys 文库**：它不直接回答某个目标软件工程主题的研究现状，而是从软件工程领域已有 SLR / SMS / tertiary study / MLR / guideline / roadmap 中抽取“如何设计综述元模型、维度模式、证据链、统计分析和 research finding 裁决”的可迁移先验。
