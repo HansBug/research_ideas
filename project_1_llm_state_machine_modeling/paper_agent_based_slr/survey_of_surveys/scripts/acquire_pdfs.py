@@ -37,8 +37,22 @@ def bibtex_for(row: pd.Series) -> str:
     cite = str(row.get("cite_key") or row.get("slug"))
     title = str(row.get("title") or "待补")
     year = str(row.get("year") or "待补") if "year" in row else "待补"
-    # The status table does not carry all metadata; read from core/reserve tables.
-    return f"@article{{{cite},\n  title = {{{title}}},\n  year = {{{year}}},\n  doi = {{{row.get('doi') or ''}}},\n  note = {{A2a candidate metadata generated from corpus tables; full review not started in A2a}},\n}}\n"
+    authors = " and ".join(x.strip() for x in str(row.get("authors") or "待补").split(";") if x.strip()) or "待补"
+    journal = str(row.get("venue") or "待补")
+    doi = str(row.get("doi") or "")
+    url = str(row.get("doi_url") or row.get("landing_page_url") or row.get("openalex_url") or "")
+    fields = [
+        f"  title = {{{title}}}",
+        f"  author = {{{authors}}}",
+        f"  journal = {{{journal}}}",
+        f"  year = {{{year}}}",
+    ]
+    if doi:
+        fields.append(f"  doi = {{{doi}}}")
+    if url:
+        fields.append(f"  url = {{{url}}}")
+    fields.append("  note = {A2a candidate metadata generated from corpus tables; full review not started in A2a}")
+    return f"@article{{{cite},\n" + ",\n".join(fields) + "\n}\n"
 
 
 def load_oa_pdf_urls() -> dict[str, str]:
@@ -141,7 +155,7 @@ def main() -> None:
                 "a2a_corpus_tier": str(meta_row.get("corpus_tier", "")),
                 "a2a_review_status": "not_started",
                 "eligible_for_statistical_synthesis": None,
-                "source_note": "A2a candidate PDF materialized from frozen fulltext audit snapshot; no A2b deep review yet.",
+                "source_note": "A2a candidate PDF obtained via OpenAlex/open-access URL recorded in the frozen fulltext-audit snapshot; no A2b deep review yet.",
             }
             (dest_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         cmd = [

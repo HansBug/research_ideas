@@ -31,6 +31,11 @@ REQUIRED_TABLES = [
     TABLES / "boundary-pool.csv",
     TABLES / "pdf-status.csv",
 ]
+REQUIRED_RAW = [
+    CORPUS / "raw" / "candidates.csv",
+    CORPUS / "raw" / "fulltext-audit.csv",
+    CORPUS / "raw" / "selection-seed.csv",
+]
 
 
 def fail(msg: str) -> None:
@@ -47,9 +52,15 @@ def keyset(df: pd.DataFrame) -> set[str]:
 
 
 def main() -> None:
-    for path in REQUIRED_DOCS + REQUIRED_TABLES:
+    for path in REQUIRED_DOCS + REQUIRED_TABLES + REQUIRED_RAW:
         if not path.exists():
             fail(f"missing required file: {path}")
+
+    selection_seed = pd.read_csv(CORPUS / "raw" / "selection-seed.csv").fillna("")
+    if len(selection_seed) != 100:
+        fail(f"selection seed expected 100 rows, got {len(selection_seed)}")
+    if (selection_seed["doi"].astype(str).str.len() == 0).any():
+        fail("selection seed contains rows without DOI")
 
     full = pd.read_csv(TABLES / "full-candidate-ledger.csv").fillna("")
     systematic = pd.read_csv(TABLES / "systematic-candidates.csv").fillna("")
@@ -60,12 +71,14 @@ def main() -> None:
 
     if len(full) != 438:
         fail(f"full candidate ledger expected 438 rows, got {len(full)}")
-    if len(systematic) < 250:
-        fail(f"systematic candidate pool unexpectedly small: {len(systematic)}")
-    if len(core) < 120:
-        fail(f"core corpus expected at least 120 rows, got {len(core)}")
-    if len(reserve) < 40:
-        fail(f"reserve corpus expected at least 40 rows, got {len(reserve)}")
+    if len(systematic) != 293:
+        fail(f"systematic candidate pool expected 293 rows, got {len(systematic)}")
+    if len(core) != 120:
+        fail(f"core corpus expected 120 rows, got {len(core)}")
+    if len(reserve) != 40:
+        fail(f"reserve corpus expected 40 rows, got {len(reserve)}")
+    if len(boundary) != 145:
+        fail(f"boundary pool expected 145 rows, got {len(boundary)}")
 
     core_keys, reserve_keys, boundary_keys = keyset(core), keyset(reserve), keyset(boundary)
     if core_keys & reserve_keys:

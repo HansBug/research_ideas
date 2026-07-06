@@ -89,9 +89,9 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 
 ## 6.1 #95 十篇现代维度锚点
 
-本轮将 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 中 10 篇与本论文方法高度相关的现代 survey / SLR / SMS / roadmap 纳入 A1 文库，目的不是扩成完整文库，而是让脚手架接受现代软件工程综述、LLM4SE、MDE、RE、DevSecOps 和开放制品研究的真实检验。每篇新增条目必须有独立单论文目录，并在全文可得时保留 `paper.pdf` 与 `paper_content.txt`；全文不可得时必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。
+本轮将 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 中 10 篇与本论文方法高度相关的现代 survey / SLR / SMS / roadmap 纳入 A1 文库，目的不是扩成完整文库，而是让脚手架接受现代软件工程综述、LLM4SE、MDE、RE、DevSecOps 和开放制品研究的真实检验。每篇 A1 新增条目必须有独立单论文目录，并在全文可得时保留 `paper.pdf` 与 `paper_content.txt`；A1 历史全文不可得条目进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)，A2a 及以后新增 core / reserve 失败条目统一进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
 
-这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；后续新增条目若全文不可得，仍必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 并在补齐后清零 active 状态。
+这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；A1 的 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 保留为 active=0 的历史归档，A2a 及以后新增条目若全文不可得，必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib) 并在补齐后通过 [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv) 更新状态。
 
 
 ## 6.2 A1-DT v2 19×3 三路全文审计

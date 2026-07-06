@@ -14,7 +14,7 @@
 | PDF 状态记录 | 305 | [tables/pdf-status.csv](./tables/pdf-status.csv) |
 | 需人工下载 | 145 | [manual-download-needed.md](./manual-download-needed.md)、[manual-download-needed.bib](./manual-download-needed.bib) |
 
-当前 PDF 状态：主候选中 15 篇已有本地 PDF / 文本，其中 13 篇继承 A1 精核资产，2 篇由 A2a 自动从开放 PDF 链接获取并生成文本；其余主候选 / 替补均保留在人工下载清单中。PDF 可得性不改变候选资格，只改变执行状态。
+当前 PDF 状态：主候选中 15 篇已有本地 PDF / 文本，其中 13 篇继承 A1 精核资产，2 篇由 A2a 自动从开放 PDF 链接获取并生成文本；其余主候选 / 替补均保留在人工下载清单中。PDF 可得性不改变候选资格，只改变执行状态。`PDF 状态记录 = 305` 指 core 120 + reserve 40 + boundary 145 三层状态记录之和，其中 boundary 145 均为 `not_applicable`。
 
 ## 文件说明
 
@@ -25,7 +25,7 @@
 | [pdf-acquisition.md](./pdf-acquisition.md) | 记录 PDF 自动获取策略、当前结果、失败类型和人工下载优先级。 |
 | [handoff-to-next-stage.md](./handoff-to-next-stage.md) | 给 A2b 的交接说明：哪些可深读、哪些待下载、哪些不得直接用于 schema 冻结。 |
 | [tables/](./tables/) | 可复算 CSV 表，供脚本和 reviewer 使用。 |
-| [raw/](./raw/) | 原始候选快照，只作输入，不人工编辑。 |
+| [raw/](./raw/) | 原始候选快照与主候选选择种子，只作输入；除换行符和行尾空白规范化外，不人工改字段语义。 |
 
 ## 使用顺序
 

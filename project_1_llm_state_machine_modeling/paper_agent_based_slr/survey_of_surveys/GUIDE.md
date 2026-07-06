@@ -209,7 +209,7 @@ source venv/bin/activate
 python -m tools.pdf_extractor -i papers/<slug>/paper.pdf -o papers/<slug>/paper_content.txt -m text
 ```
 
-若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文，必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。若一轮新增条目全部成功获取 PDF，也必须在 [search/search-log.md](./search/search-log.md) 中记录“无新增人工下载”。
+若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文；A1 历史失败条目仍保留在 [search/manual-download-needed.bib](./search/manual-download-needed.bib)，但 A2a 及以后新增 core / reserve 失败条目必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)、[corpus/manual-download-needed.md](./corpus/manual-download-needed.md) 和 [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv)。若一轮新增条目全部成功获取 PDF，也必须在对应的 active 入口记录“无新增人工下载”；A2a 以后优先记录到 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。
 
 `metadata.json` 是 A1 之后的机器可读事实入口，必须至少包含：`slug`、`title`、`authors`、`year`、`publication_year_basis`、`online_first_date`、`publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank`、`ccf_verification_status`、`review_type`、`se_subfield`、`current_fulltext_status`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`systematic_evidence_status`、`statistical_pool_exclusion_reason`。若字段不适用，必须显式写 `null`、`--` 或 `待核验`，不能缺键。
 

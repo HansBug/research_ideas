@@ -33,3 +33,15 @@ A2a 只提供候选与全文状态。A2b 若要把条目升级为可写作证据
 - A2a 的 `core-corpus.csv` 不是最终统计分母。
 - `manual-download-needed.bib` 中的条目不是排除条目。
 - 边界池不能直接进入主统计池，除非 A2b 全文核验证明其满足系统化二次研究条件并显式升级。
+
+## 5. 合流前复验
+
+本 PR 合入伞 PR #101 前，需确认 GitHub `mergeStateStatus` 为 `CLEAN` 或已解释为只剩 CI / 上游同步等待；若 #101 先同步 `main`、rebase 或发生 sibling PR 合流，必须重新运行：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/scripts/build_corpus_tables.py
+python project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys/scripts/validate_corpus.py
+git diff --check
+```
+
+并确认 [raw/selection-seed.csv](./raw/selection-seed.csv)、[tables/core-corpus.csv](./tables/core-corpus.csv)、[tables/reserve-corpus.csv](./tables/reserve-corpus.csv)、[tables/boundary-pool.csv](./tables/boundary-pool.csv) 和人工下载清单没有被旧口径覆盖。

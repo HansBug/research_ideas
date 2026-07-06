@@ -280,18 +280,19 @@ def main() -> None:
         rec["corpus_id"] = f"CORE-{len(core)+1:03d}"
         add_record(rec, core)
 
-    draft_path = Path("/tmp/issue95/draft_100_subset_revised.csv")
-    if draft_path.exists():
-        draft = pd.read_csv(draft_path)
-        draft["normalized_doi"] = draft["doi"].map(norm_doi)
-        draft_dois = set(draft["normalized_doi"].dropna())
-        draft_rows = [row for _, row in candidates[candidates["normalized_doi"].isin(draft_dois)].iterrows()]
-        for row in sorted(draft_rows, key=sort_key):
-            rec = candidate_to_record(row, "core", "A2a 草案100子集；按 CCF 等级、年份、主题和综述类型分层，作为主候选基础。")
-            rec["corpus_id"] = f"CORE-{len(core)+1:03d}"
-            add_record(rec, core)
-            if len(core) >= CORE_TARGET:
-                break
+    selection_seed_path = RAW / "selection-seed.csv"
+    if not selection_seed_path.exists():
+        raise FileNotFoundError(f"missing required A2a selection seed: {selection_seed_path}")
+    selection_seed = pd.read_csv(selection_seed_path)
+    selection_seed["normalized_doi"] = selection_seed["doi"].map(norm_doi)
+    selection_seed_dois = set(selection_seed["normalized_doi"].dropna())
+    seeded_rows = [row for _, row in candidates[candidates["normalized_doi"].isin(selection_seed_dois)].iterrows()]
+    for row in sorted(seeded_rows, key=sort_key):
+        rec = candidate_to_record(row, "core", "A2a 选择种子子集；按 CCF 等级、年份、主题和综述类型分层，作为主候选基础。")
+        rec["corpus_id"] = f"CORE-{len(core)+1:03d}"
+        add_record(rec, core)
+        if len(core) >= CORE_TARGET:
+            break
 
     for row in systematic_sorted:
         if len(core) >= CORE_TARGET:
