@@ -1,0 +1,737 @@
+#!/usr/bin/env python3
+"""A1-DT v2 结构门禁。
+
+本脚本只检查 v2 审计骨架和 survey_of_surveys 文库结构，不判断论文内容真假。
+可从仓库根目录运行，也可从本审计目录运行；不依赖本机绝对路径或仓库目录名。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import re
+from pathlib import Path
+
+EXPECTED_AGENTS = ("codex", "claude", "deepseek")
+EXPECTED_PAPER_FILES = ("bibtex.bib", "metadata.json", "paper_content.txt", "review.md", "evidence_chain.md")
+TEXT_HYGIENE_SUFFIXES = {".md", ".tsv", ".py", ".json", ".log"}
+LIBRARY_REL = Path("project_1_llm_state_machine_modeling/paper_agent_based_slr/survey_of_surveys")
+BATCH_REL = LIBRARY_REL / "audits/a1dt-v2-19x3"
+V1_REL = LIBRARY_REL / "audits/a1dt-19x3"
+
+
+def find_repo_root(start: Path) -> Path:
+    """Locate repo root by walking upward from a file or directory path."""
+    cur = start.resolve()
+    if cur.is_file():
+        cur = cur.parent
+    for candidate in (cur, *cur.parents):
+        if (candidate / ".git").exists() and (candidate / LIBRARY_REL).is_dir():
+            return candidate
+    raise SystemExit(f"cannot locate repository root from {start}")
+
+
+def add_error(errors: list[str], message: str) -> None:
+    errors.append(message)
+
+
+def read_tasks(path: Path, errors: list[str]) -> list[dict[str, str]]:
+    if not path.exists():
+        add_error(errors, f"missing task file: {path}")
+        return []
+    with path.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f, delimiter="\t"))
+    expected_fields = [
+        "slug",
+        "agent",
+        "status",
+        "prompt_path",
+        "result_path",
+        "log_path",
+        "adjudication_path",
+    ]
+    if rows and rows[0].keys() != set(expected_fields):
+        # DictReader preserves fieldnames separately; compare that for deterministic diagnostics.
+        pass
+    with path.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        if reader.fieldnames != expected_fields:
+            add_error(errors, f"TASKS.tsv header mismatch: {reader.fieldnames} != {expected_fields}")
+    return rows
+
+
+def check_markdown_links(summary_path: Path, errors: list[str]) -> None:
+    if not summary_path.exists():
+        return
+    text = summary_path.read_text(encoding="utf-8", errors="ignore")
+    guide_path = summary_path.with_name("GUIDE.md")
+    guide_text = guide_path.read_text(encoding="utf-8", errors="ignore") if guide_path.exists() else ""
+    required_markers = [
+        "PR #135 A1-DT v2 抽取与审计口径",
+        "后续主统计池候选主表（枚举速读版，按年份降序）",
+        "非入池条目边界备忘（不进入主干统计表）",
+        "主表与快速结论卡片枚举口径",
+        "A1-M0--M6 只作为跨论文投影",
+        "audits/a1dt-v2-19x3/",
+        "audits/a1dt-19x3/",
+    ]
+    for marker in required_markers:
+        if marker not in text:
+            add_error(errors, f"SUMMARY missing v2 marker: {marker}")
+
+    enum_header = (
+        "| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | "
+        "综述类型大类 | 细分类型 / 原文自称 | 本文角色 | 统计池资格 | 证据成熟度 | "
+        "样本单位 / 分母链 | 原生维度树类型 | Paper2 关键贡献 | 详情 |"
+    )
+    old_headers = [
+        "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | CCF 复核状态 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |",
+        "| 年份 | 论文 | 类型 | venue/source | CCF 大类/等级 | 样本单位 | 样本数量 | 原生树类型 | 字段来源 | 统计池资格 | v2 审计状态 | review 链接 |",
+        "| 状态 | 年份 | 标题 | 出版形态 | 期刊/会议/预印本 | CCF 大类 | CCF 等级 | CCF 复核状态 | 综述类型 | 模式种子 | 主统计池 | 证据角色 | 关键价值 | 详情 |",
+    ]
+    if enum_header not in text:
+        add_error(errors, "SUMMARY missing enum story ledger header")
+    for old_header in old_headers:
+        if old_header in text:
+            add_error(errors, "SUMMARY still contains old non-enum ledger header")
+
+    table_count = text.count(enum_header)
+    if table_count != 1:
+        add_error(errors, f"SUMMARY expected exactly one main enum ledger header in §1.3, found {table_count}")
+
+    main_section = extract_section(text, "## 1.3 后续主统计池候选主表", "## 2. 核心口径")
+    main_header, main_rows = parse_markdown_table(main_section)
+    if main_header != [c.strip() for c in enum_header.strip("|").split("|")]:
+        add_error(errors, "SUMMARY §1.3 main table header mismatch")
+    if len(main_rows) != 13:
+        add_error(errors, f"SUMMARY §1.3 main table should contain exactly 13 入池 rows, got {len(main_rows)}")
+    if main_header:
+        try:
+            eligibility_idx = main_header.index("统计池资格")
+        except ValueError:
+            eligibility_idx = -1
+            add_error(errors, "SUMMARY §1.3 main table missing 统计池资格 column")
+        if eligibility_idx >= 0:
+            for row in main_rows:
+                if eligibility_idx >= len(row) or row[eligibility_idx] != "🟢 入池":
+                    add_error(errors, f"SUMMARY §1.3 contains non-入池 row in main table: {row}")
+
+    non_pool_header = "| 年份 | 标题 | 综述类型大类 | 本文角色 | 统计池资格 | 简短收纳理由 | 详情 |"
+    if non_pool_header not in text:
+        add_error(errors, "SUMMARY missing non-main-pool short table header")
+    non_pool_section = extract_section(text, "### 7.1 非入池条目边界备忘", "### 7.2 风险清单")
+    non_header, non_rows = parse_markdown_table(non_pool_section)
+    expected_non_header = [c.strip() for c in non_pool_header.strip("|").split("|")]
+    if non_header != expected_non_header:
+        add_error(errors, "SUMMARY §7.1 non-main-pool table header mismatch")
+    if len(non_rows) != 6:
+        add_error(errors, f"SUMMARY §7.1 non-main-pool table should contain exactly 6 rows, got {len(non_rows)}")
+    if non_header:
+        try:
+            eligibility_idx = non_header.index("统计池资格")
+        except ValueError:
+            eligibility_idx = -1
+            add_error(errors, "SUMMARY §7.1 non-main-pool table missing 统计池资格 column")
+        if eligibility_idx >= 0:
+            for row in non_rows:
+                if eligibility_idx >= len(row) or row[eligibility_idx] == "🟢 入池":
+                    add_error(errors, f"SUMMARY §7.1 contains 入池 row in non-main-pool table: {row}")
+
+    enum_sections = [
+        "综述类型大类",
+        "本文角色",
+        "统计池资格",
+        "证据成熟度",
+        "样本单位类型",
+        "原生维度树类型",
+    ]
+    for idx, name in enumerate(enum_sections, start=1):
+        marker = f"#### 2.4.{idx} {name}"
+        if marker not in text:
+            add_error(errors, f"SUMMARY missing detailed enum subsection: {marker}")
+        guide_marker = f"### 4.2.{idx} {name}"
+        if guide_marker not in guide_text:
+            add_error(errors, f"GUIDE missing detailed enum subsection: {guide_marker}")
+
+    for marker in ["当前入池子集数量", "全库数量", "当前主干分析表数量"]:
+        if marker not in text:
+            add_error(errors, f"SUMMARY enum definitions missing in-pool count marker: {marker}")
+
+    non_pool_slugs = [
+        "ai-native-se-roadmap",
+        "interactive-llm-systematic-mapping",
+        "formal-re-llm-roadmap",
+        "requirements-quality-theory-roadmap",
+        "petersen-2008-systematic-mapping",
+        "kitchenham-charters-2007-slr-guidelines",
+    ]
+    major_sections = extract_section(text, "## 3. 入池子集证据池分布", "## 7. 失败、风险")
+    for line in major_sections.splitlines():
+        if line.startswith("|") and any(slug in line for slug in non_pool_slugs):
+            add_error(errors, f"SUMMARY main analysis table contains non-pool row before §7.1: {line[:160]}")
+
+    expected_table_counts = [
+        ("## 5. 入池子集 A1-M0--M6", "## 5.1 survey_of_surveys", 13, "A1-M0--M6 matrix"),
+        ("### 5.1.2 入池子集 S1--S4", "### 5.1.3 入池子集 S5--S8", 13, "S1--S4 matrix"),
+        ("### 5.1.3 入池子集 S5--S8", "## 5.2 入池子集维度树模式总览", 13, "S5--S8 matrix"),
+        ("## 5.2 入池子集维度树模式总览", "## 5.3 入池子集维度树类型", 13, "dimension tree overview"),
+    ]
+    for start, end, expected_count, label in expected_table_counts:
+        section = extract_section(text, start, end)
+        _header, rows = parse_markdown_table(section)
+        if len(rows) != expected_count:
+            add_error(errors, f"SUMMARY {label} should contain {expected_count} in-pool rows, got {len(rows)}")
+
+
+def check_text_hygiene(root: Path, repo: Path, errors: list[str]) -> None:
+    """Require LF endings and no trailing spaces in audit text artifacts."""
+    if not root.exists():
+        return
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in TEXT_HYGIENE_SUFFIXES):
+        data = path.read_bytes()
+        rel = path.relative_to(repo)
+        if b"\r" in data:
+            add_error(errors, f"text hygiene CR character found: {rel}")
+        for lineno, line in enumerate(data.splitlines(), start=1):
+            if line.endswith((b" ", b"\t")):
+                add_error(errors, f"text hygiene trailing whitespace: {rel}:{lineno}")
+                break
+
+
+
+
+FORBIDDEN_DRAFT_PHRASES = (
+    "可直接迁入",
+    "可直接迁移",
+    "可直接进入 SUMMARY",
+    "强证据升级为 verified",
+    "文本已核验（text_verified）",
+    "文本已核验（text-verified）",
+    "text_verified",
+    "text-verified",
+    "strong (text)",
+    "strong (after",
+    "medium-strong",
+    "weak-medium",
+)
+
+FORBIDDEN_CONSUMABLE_SOURCE_PHRASES = (
+    *FORBIDDEN_DRAFT_PHRASES,
+    # Broad free-text forms that can make A1-DT candidates look fully verified
+    # or immediately consumable by SUMMARY/A2a.  Historical prompts/logs/results
+    # remain immutable process evidence and are intentionally not scanned by this gate.
+    "强证据",
+    "最强证据",
+    "可直接用于",
+    "直接迁移到 review.md",
+    "直接迁移到review.md",
+    "直接迁移",
+    # Reviewer-discovered bypass variants from PR #132 round 5.
+    "文本已核验",
+    "文本可核验",
+    "文本级证据充分",
+    "建议建议",
+    "strong evidence",
+)
+
+FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS = (
+    # Positive "可直接..." claims are too easy for downstream agents to read as
+    # immediately consumable facts.  Round-6 review showed that verb allowlists
+    # are not enough, so this gate forbids the whole positive phrase family.
+    # Negative warnings such as "不可直接外推" are intentionally allowed by the
+    # fixed-width negative look-behind.
+    r"(?<!不)可直接",
+    # Round-6 codex review also found no-"可" variants such as "直接迁入
+    # review.md" and "直接作为 Paper2 ...".  These phrases carry the same
+    # evidence-chain risk in current consumable sources, while negative warnings
+    # such as "未/不可/不能/不得/不应/禁止/严禁直接..." remain allowed.
+    r"(?<!未)(?<!不)(?<!不可)(?<!不能)(?<!不得)(?<!不应)(?<!禁止)(?<!严禁)直接"
+    r"(?:迁回|迁入|迁移|替换|引用|更新|复用|写入|进入|转化|作为|支持|统计|"
+    r"参考|采纳|启发|抬升|拷贝|复核|升级|驱动|做|由|据此|使用|用于|采信|消费|落地|"
+    r"沉淀|归档|输出|抄进|抄入|复制|填充|落点)",
+    # Mirror forms such as "直接可用/直接可统计/直接可迁移" are equally
+    # risky because downstream agents may treat them as ready-to-consume
+    # facts.  Keep this separate from the previous verb pattern so future
+    # reviewers can add concrete adjective/verb heads with regression tests.
+    r"(?<!未)(?<!不)(?<!不可)(?<!不能)(?<!不得)(?<!不应)(?<!禁止)(?<!严禁)直接可"
+    r"(?:用|见|统计|迁移|引用|复用|写入|进入|升级|外推|支持|作为|参考|采纳|"
+    r"落地|消费|沉淀|归档|输出|执行|入账|回填|回写|接入|生效)",
+)
+
+FORBIDDEN_TRANSLATION_PHRASES = (
+    "字段研究（字段研究）",
+    "自我报告（自我报告）",
+    "效率（效率）",
+    "代码 质量",
+    "分类方案（分类 模式）",
+    "模式 模式",
+    "program 生成",
+    "流程 mining",
+    "QA 框架（QA 框架）",
+)
+
+FORBIDDEN_REVIEW_HISTORY_PHRASES = (
+    "历史审计草案归档",
+    "历史草稿",
+    "历史草稿旧强度",
+    "禁止消费为事实真源",
+    "禁止采信",
+    "当前禁止",
+    "技能使用与自我审查",
+    "技能文件",
+    "/.codex/skills",
+    "reviewer-self-review",
+    "autoresearch/SKILL.md",
+    "codex 插件缓存",
+    "部分-blocked",
+    "v2 后已挂三路审计返修块",
+    "返修块",
+    "对旧版 `review.md` 的返修来源",
+    "v1-deprecated",
+)
+
+
+def check_review_hygiene(base: Path, repo: Path, errors: list[str]) -> None:
+    """Check review.md hygiene that directly affects evidence-chain consumption.
+
+    PR #132 cleanup split current prose from formal claim maps: review.md is the
+    human-readable current fact entry, while evidence_chain.md owns A.1--A.4.
+    Therefore review.md must link evidence_chain.md and must not retain large
+    historical draft blocks or old do-not-consume phrases.
+    """
+    papers = base / "papers"
+    for review in sorted(papers.glob("*/review.md")):
+        rel = review.relative_to(repo)
+        text = review.read_text(encoding="utf-8", errors="ignore")
+        evidence = review.with_name("evidence_chain.md")
+        evidence_rel = evidence.relative_to(repo)
+        if "[evidence_chain.md](./evidence_chain.md)" not in text:
+            add_error(errors, f"{rel} missing evidence_chain.md relative link")
+        if re.search(r"^## 审计附录：证据链与结论-证据映射", text, flags=re.M):
+            add_error(errors, f"{rel} must not embed formal audit appendix; move it to evidence_chain.md")
+        for marker in ("### A.1 论文与本地文件来源", "### A.2 维度树证据账本", "### A.3 结论-证据映射", "### A.4 本地复验命令"):
+            if marker in text:
+                add_error(errors, f"{rel} still embeds evidence-chain marker: {marker}")
+        for phrase in FORBIDDEN_TRANSLATION_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} contains schema-polluting translation residue: {phrase}")
+        for phrase in FORBIDDEN_REVIEW_HISTORY_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} still contains historical draft residue: {phrase}")
+
+        if not evidence.exists():
+            add_error(errors, f"missing evidence_chain.md for {rel}")
+            continue
+        evidence_text = evidence.read_text(encoding="utf-8", errors="ignore")
+        if "[review.md](./review.md)" not in evidence_text:
+            add_error(errors, f"{evidence_rel} missing review.md backlink")
+        for marker in (
+            "## 审计附录：证据链与结论-证据映射",
+            "### A.1 论文与本地文件来源",
+            "### A.2 维度树证据账本",
+            "### A.3 结论-证据映射",
+            "### A.4 本地复验命令",
+        ):
+            if marker not in evidence_text:
+                add_error(errors, f"{evidence_rel} missing evidence-chain marker: {marker}")
+        for phrase in ("历史审计草案归档", "历史草稿旧强度", "禁止消费为事实真源"):
+            if phrase in evidence_text:
+                add_error(errors, f"{evidence_rel} still contains obsolete draft residue: {phrase}")
+
+
+def check_consumable_source_hygiene(base: Path, batch: Path, repo: Path, errors: list[str]) -> None:
+    """Prevent current fact sources from reintroducing directly-consumable claims.
+
+    A1-DT v2 preserves raw prompts, logs, and model results as historical
+    process evidence.  Those files must stay immutable for auditability and are
+    intentionally not scanned here.  This gate instead covers current
+    human-consumable / reusable sources: SUMMARY, review files, adjudications,
+    active prompt generator, and current templates.  These files must not say
+    that a candidate A.2/A.3 row, number, or field distribution is already
+    ``text_verified`` or "directly migratable" before A2a/PDF visual checks.
+    """
+    current_sources: list[Path] = [
+        base / "SUMMARY.md",
+        batch / "generate_prompts.py",
+        batch / "result-template.md",
+        batch / "adjudication-template.md",
+    ]
+    current_sources.extend(sorted((batch / "adjudications").glob("*.md")))
+    current_sources.extend(sorted((base / "papers").glob("*/review.md")))
+    current_sources.extend(sorted((base / "papers").glob("*/evidence_chain.md")))
+
+    for path in current_sources:
+        if not path.exists():
+            continue
+        rel = path.relative_to(repo)
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for phrase in FORBIDDEN_CONSUMABLE_SOURCE_PHRASES:
+            if phrase in text:
+                add_error(errors, f"{rel} current consumable source still contains direct-consumption phrase: {phrase}")
+        for pattern in FORBIDDEN_CONSUMABLE_SOURCE_PATTERNS:
+            match = re.search(pattern, text)
+            if match:
+                add_error(
+                    errors,
+                    f"{rel} current consumable source still contains direct-consumption pattern "
+                    f"{pattern!r}: {match.group(0)}",
+                )
+
+
+
+
+def extract_section(text: str, start_marker: str, end_marker: str | None = None) -> str:
+    """Extract a markdown section by an exact heading line.
+
+    A1-DT v2 review files also preserve historical draft blocks such as
+    ``#### A.2 维度树证据账本草案``.  A plain substring search would match those
+    draft headings and then incorrectly validate stale EV-* examples instead of
+    the formal ``### A.2`` / ``### A.3`` appendix.  Match heading lines exactly
+    enough to keep the structure gate tied to the current claim map.
+    """
+    start_re = re.compile(rf"^\s*{re.escape(start_marker)}.*$", re.M)
+    start_match = start_re.search(text)
+    if not start_match:
+        return ""
+    start = start_match.start()
+    if end_marker is None:
+        return text[start:]
+    end_re = re.compile(rf"^\s*{re.escape(end_marker)}.*$", re.M)
+    end_match = end_re.search(text, start_match.end())
+    return text[start:] if not end_match else text[start:end_match.start()]
+
+
+def parse_markdown_table(section: str) -> tuple[list[str], list[list[str]]]:
+    """Parse the first markdown table in a section with conservative rules."""
+    header: list[str] = []
+    rows: list[list[str]] = []
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        if not cols:
+            continue
+        if all(re.fullmatch(r":?-{3,}:?", c or "") for c in cols):
+            continue
+        if not header:
+            header = cols
+            continue
+        rows.append(cols)
+    return header, rows
+
+
+def normalize_boolish(value: str) -> str:
+    return value.strip().lower().replace(" ", "")
+
+
+def split_source_ids(value: str) -> list[str]:
+    """Extract source ids from a markdown cell.
+
+    A.2 rows may use semicolon-separated source ids.  Links are not expected in
+    this cell, but regex extraction is intentionally tolerant so Chinese prose
+    around the ids does not break the gate.
+    """
+    return re.findall(r"src-[A-Za-z0-9-]+", value)
+
+
+def parse_formal_a1_a2_a3(
+    review_path: Path, errors: list[str] | None = None, repo: Path | None = None
+) -> tuple[set[str], set[str], dict[str, str], dict[str, list[str]], dict[str, list[str]], dict[str, str]]:
+    source_path = review_path.with_name("evidence_chain.md")
+    if not source_path.exists():
+        source_path = review_path
+    text = source_path.read_text(encoding="utf-8", errors="ignore")
+    a1 = extract_section(text, "### A.1 论文与本地文件来源", "### A.2 维度树证据账本")
+    a2 = extract_section(text, "### A.2 维度树证据账本", "### A.3 结论-证据映射")
+    a3 = extract_section(text, "### A.3 结论-证据映射", "### A.4 本地复验命令")
+
+    source_ids: set[str] = set()
+    evidence_ids: set[str] = set()
+    evidence_sources: dict[str, list[str]] = {}
+    evidence_strengths: dict[str, str] = {}
+    claim_types: dict[str, str] = {}
+    claim_evidence: dict[str, list[str]] = {}
+
+    rel = source_path.relative_to(repo) if repo is not None else source_path
+
+    a1_header, a1_rows = parse_markdown_table(a1)
+    if a1_header and "来源标识" not in a1_header and errors is not None:
+        add_error(errors, f"{rel} A.1 table header must include 来源标识")
+    for cols in a1_rows:
+        if cols and cols[0].startswith("src-"):
+            source_ids.add(cols[0])
+
+    a2_header, a2_rows = parse_markdown_table(a2)
+    if errors is not None:
+        if not a2_header:
+            add_error(errors, f"{rel} missing formal A.2 table")
+        elif "来源标识" not in a2_header:
+            add_error(errors, f"{rel} formal A.2 table missing 来源标识 column")
+    a2_index = {name: i for i, name in enumerate(a2_header)}
+    source_idx = a2_index.get("来源标识")
+    strength_idx = a2_index.get("证据强度")
+    page_idx = a2_index.get("原文页码")
+    range_idx = a2_index.get("段落或行号范围")
+    visual_idx = a2_index.get("需要原文版面核验")
+
+    for cols in a2_rows:
+        if not cols or not cols[0].startswith("ev-"):
+            continue
+        evidence_id = cols[0]
+        evidence_ids.add(evidence_id)
+        if source_idx is not None and source_idx < len(cols):
+            refs = split_source_ids(cols[source_idx])
+        else:
+            refs = []
+        evidence_sources[evidence_id] = refs
+        if strength_idx is not None and strength_idx < len(cols):
+            evidence_strengths[evidence_id] = cols[strength_idx]
+
+        if errors is not None:
+            if not refs:
+                add_error(errors, f"{rel} A.2 evidence {evidence_id} has empty/unparseable 来源标识")
+            for sid in refs:
+                if sid not in source_ids:
+                    add_error(errors, f"{rel} A.2 evidence {evidence_id} references unknown A.1 source {sid}")
+            joined = " | ".join(cols)
+            page_value = cols[page_idx] if page_idx is not None and page_idx < len(cols) else ""
+            range_value = cols[range_idx] if range_idx is not None and range_idx < len(cols) else ""
+            visual_value = cols[visual_idx] if visual_idx is not None and visual_idx < len(cols) else ""
+            needs_a2a = "待 A2a" in joined
+            needs_visual = normalize_boolish(visual_value) in {"是", "true", "yes", "y", "需", "需要"}
+            strength = evidence_strengths.get(evidence_id, "")
+            if (needs_a2a or needs_visual) and ("文本已核验" in strength or "text_verified" in strength):
+                add_error(
+                    errors,
+                    f"{rel} A.2 evidence {evidence_id} still claims text_verified while pending A2a/visual check "
+                    f"(page={page_value!r}, range={range_value!r}, visual={visual_value!r})",
+                )
+
+    a3_header, a3_rows = parse_markdown_table(a3)
+    if errors is not None and not a3_header:
+        add_error(errors, f"{rel} missing formal A.3 table")
+    a3_index = {name: i for i, name in enumerate(a3_header)}
+    claim_strength_idx = a3_index.get("结论强度")
+    for cols in a3_rows:
+        if len(cols) >= 6 and cols[1].startswith("A1DT-"):
+            claim_id = cols[1]
+            claim_types[claim_id] = cols[3]
+            evs = [x.strip() for x in re.split(r"[,，]", cols[5]) if x.strip() and x.strip() != "--"]
+            claim_evidence[claim_id] = evs
+            if errors is not None and claim_strength_idx is not None and claim_strength_idx < len(cols):
+                claim_strength = cols[claim_strength_idx]
+                relies_on_not_verified = any("not_verified" in evidence_strengths.get(ev, "") for ev in evs)
+                if relies_on_not_verified and "adjudicated" not in claim_strength and "not_verified" not in claim_strength:
+                    add_error(
+                        errors,
+                        f"{rel} A.3 claim {claim_id} relies on not_verified A.2 evidence but has strength {claim_strength!r}",
+                    )
+                if "not_verified" in claim_strength and ("文本已核验" in claim_strength or "text_verified" in claim_strength):
+                    add_error(errors, f"{rel} A.3 claim {claim_id} mixes not_verified with text_verified: {claim_strength!r}")
+    return source_ids, evidence_ids, claim_types, claim_evidence, evidence_sources, evidence_strengths
+
+
+def check_summary_semantics(base: Path, repo: Path, errors: list[str]) -> None:
+    summary_path = base / "SUMMARY.md"
+    if not summary_path.exists():
+        return
+    summary = summary_path.read_text(encoding="utf-8", errors="ignore")
+    papers = base / "papers"
+    all_claim_types: dict[str, str] = {}
+    all_claim_evidence: dict[str, tuple[Path, list[str]]] = {}
+    for review in sorted(papers.glob("*/review.md")):
+        _source_ids, evidence_ids, claim_types, claim_evidence, _evidence_sources, _evidence_strengths = parse_formal_a1_a2_a3(review, errors, repo)
+        for cid, ctype in claim_types.items():
+            all_claim_types[cid] = ctype
+            all_claim_evidence[cid] = (review, claim_evidence.get(cid, []))
+            for ev in claim_evidence.get(cid, []):
+                if ev not in evidence_ids:
+                    add_error(errors, f"{review.relative_to(repo)} A.3 claim {cid} references missing formal A.2 evidence {ev}")
+
+    for cid in sorted(set(re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", summary))):
+        if cid not in all_claim_types:
+            add_error(errors, f"SUMMARY references missing A.3 claim id: {cid}")
+
+    tree_section = extract_section(summary, "## 5.2 入池子集维度树模式总览", "## 5.3 入池子集维度树类型")
+    for cid in re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", tree_section):
+        if not cid.endswith("-C03"):
+            add_error(errors, f"SUMMARY §5.2 tree overview should cite C03 tree claims, got {cid}")
+        elif "树类型" not in all_claim_types.get(cid, "") and "tree_type" not in all_claim_types.get(cid, ""):
+            add_error(errors, f"SUMMARY §5.2 cites {cid} but its A.3 type is {all_claim_types.get(cid)!r}, not tree_type")
+
+    expected = {
+        "sum-A1DT-tree-types": "-C03",
+        "sum-A1DT-statistical-pool": "-C04",
+    }
+    for marker, suffix in expected.items():
+        m = re.search(rf"^\| \[{re.escape(marker)}\].*$", summary, flags=re.M)
+        if not m:
+            add_error(errors, f"SUMMARY missing row {marker}")
+            continue
+        row = m.group(0)
+        for cid in re.findall(r"A1DT-[A-Za-z0-9-]+-C\d+", row):
+            if not cid.endswith(suffix):
+                add_error(errors, f"SUMMARY row {marker} should cite {suffix} claims, got {cid}")
+            if suffix == "-C03" and "树类型" not in all_claim_types.get(cid, "") and "tree_type" not in all_claim_types.get(cid, ""):
+                add_error(errors, f"SUMMARY row {marker} cites non-tree claim {cid}: {all_claim_types.get(cid)!r}")
+            if suffix == "-C04" and "eligibility" not in all_claim_types.get(cid, ""):
+                add_error(errors, f"SUMMARY row {marker} cites non-eligibility claim {cid}: {all_claim_types.get(cid)!r}")
+
+
+def check_ready_to_run(repo: Path, base: Path, batch: Path, rows: list[dict[str, str]], errors: list[str]) -> None:
+    """Check v2 batch is executable, not only structurally present."""
+    required_batch_files = [
+        "generate_prompts.py",
+        "run_tasks.py",
+        "result-template.md",
+        "adjudication-template.md",
+    ]
+    for rel in required_batch_files:
+        if not (batch / rel).exists():
+            add_error(errors, f"ready-to-run missing batch file: {rel}")
+
+    prompt_markers = [
+        "维度树 / 维度森林 = 这篇综述论文如何描述、编码、分类、统计它纳入的样本单位",
+        "A1-M0--M6 只能作为跨论文投影提示",
+        "禁止启动 subagent",
+        "样本单位与字段来源判定",
+        "原生样本编码维度树 / 维度森林",
+        "对现有 `review.md` 的返修建议",
+    ]
+    for row in rows:
+        prompt = batch / row.get("prompt_path", "")
+        if not prompt.exists():
+            add_error(errors, f"ready-to-run missing prompt: {row.get('prompt_path')}")
+            continue
+        text = prompt.read_text(encoding="utf-8", errors="ignore")
+        for marker in prompt_markers:
+            if marker not in text:
+                add_error(errors, f"prompt {row.get('prompt_path')} missing marker: {marker}")
+
+    audit_readme = base / "audits/README.md"
+    if audit_readme.exists():
+        audit_text = audit_readme.read_text(encoding="utf-8", errors="ignore")
+        for marker in ["a1dt-v2-19x3", "v1-deprecated", "当前执行入口"]:
+            if marker not in audit_text:
+                add_error(errors, f"audits/README missing v2/v1 marker: {marker}")
+
+    # Any evidence_chain.md line that links v1 result must be guarded by a nearby v1-deprecated warning.
+    for path in (base / "papers").glob("*/evidence_chain.md"):
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for match in re.finditer(r"audits/a1dt-19x3/results", text):
+            window = text[max(0, match.start() - 500): match.start() + 500]
+            if "v1-deprecated" not in window:
+                add_error(errors, f"{path.relative_to(repo)} has unguarded v1 audit result link")
+
+
+def check_structure(strict: bool, ready_to_run: bool = False) -> int:
+    repo = find_repo_root(Path(__file__).resolve())
+    base = repo / LIBRARY_REL
+    batch = repo / BATCH_REL
+    papers = base / "papers"
+    errors: list[str] = []
+
+    for rel in [
+        "README.md",
+        "GUIDE.md",
+        "SUMMARY.md",
+        "papers",
+        "audits/README.md",
+        "audits/a1dt-v2-19x3/README.md",
+        "audits/a1dt-v2-19x3/TASKS.tsv",
+        "audits/a1dt-v2-19x3/check_structure.py",
+        "audits/a1dt-v2-19x3/prompts/README.md",
+        "audits/a1dt-v2-19x3/results/README.md",
+        "audits/a1dt-v2-19x3/logs/README.md",
+        "audits/a1dt-v2-19x3/adjudications/README.md",
+    ]:
+        if not (base / rel).exists():
+            add_error(errors, f"missing library/audit path: {rel}")
+
+    if not (repo / V1_REL).is_dir():
+        add_error(errors, "missing v1 historical audit directory audits/a1dt-19x3")
+    if (repo / V1_REL).resolve() == batch.resolve():
+        add_error(errors, "v1 and v2 audit directories resolve to the same path")
+
+    paper_dirs = sorted(p for p in papers.iterdir() if p.is_dir()) if papers.exists() else []
+    if len(paper_dirs) != 19:
+        add_error(errors, f"paper directory count should be 19, got {len(paper_dirs)}")
+    paper_slugs = [p.name for p in paper_dirs]
+    for d in paper_dirs:
+        for name in EXPECTED_PAPER_FILES:
+            if not (d / name).exists():
+                add_error(errors, f"{d.name}: missing {name}")
+
+    rows = read_tasks(batch / "TASKS.tsv", errors)
+    if strict:
+        check_text_hygiene(batch, repo, errors)
+    if len(rows) != 57:
+        add_error(errors, f"TASKS.tsv row count should be 57, got {len(rows)}")
+    task_slugs = sorted({row.get("slug", "") for row in rows})
+    if len(task_slugs) != 19:
+        add_error(errors, f"TASKS.tsv slug count should be 19, got {len(task_slugs)}")
+    if paper_slugs and task_slugs and task_slugs != paper_slugs:
+        add_error(errors, f"TASKS slugs differ from paper dirs: tasks={task_slugs}, dirs={paper_slugs}")
+
+    seen_pairs: set[tuple[str, str]] = set()
+    for row in rows:
+        slug = row.get("slug", "")
+        agent = row.get("agent", "")
+        status = row.get("status", "")
+        pair = (slug, agent)
+        if pair in seen_pairs:
+            add_error(errors, f"duplicate task pair: {slug} {agent}")
+        seen_pairs.add(pair)
+        if slug not in paper_slugs:
+            add_error(errors, f"task slug not found in papers/: {slug}")
+        if agent not in EXPECTED_AGENTS:
+            add_error(errors, f"{slug}: unexpected agent {agent}")
+        if status not in {"planned", "completed", "blocked", "skipped"}:
+            add_error(errors, f"{slug} {agent}: unexpected status {status}")
+        for key in ("prompt_path", "result_path", "log_path", "adjudication_path"):
+            value = row.get(key, "")
+            if not value:
+                add_error(errors, f"{slug} {agent}: empty {key}")
+            if value.startswith("/") or ".." in Path(value).parts:
+                add_error(errors, f"{slug} {agent}: {key} must be batch-relative: {value}")
+            if "a1dt-19x3" in value and "a1dt-v2-19x3" not in value:
+                add_error(errors, f"{slug} {agent}: {key} points to v1 path: {value}")
+        if strict and status == "completed":
+            for key in ("prompt_path", "result_path", "log_path"):
+                target = batch / row.get(key, "")
+                if not target.exists():
+                    add_error(errors, f"{slug} {agent}: completed task missing {key}: {target}")
+            adjudication = batch / row.get("adjudication_path", "")
+            if not adjudication.exists():
+                add_error(errors, f"{slug} {agent}: completed task missing adjudication: {adjudication}")
+
+    for slug in paper_slugs:
+        agents = sorted(row.get("agent", "") for row in rows if row.get("slug") == slug)
+        if agents != sorted(EXPECTED_AGENTS):
+            add_error(errors, f"{slug}: expected agents {EXPECTED_AGENTS}, got {agents}")
+
+    check_markdown_links(base / "SUMMARY.md", errors)
+    check_summary_semantics(base, repo, errors)
+    check_review_hygiene(base, repo, errors)
+    check_consumable_source_hygiene(base, batch, repo, errors)
+    if ready_to_run:
+        check_ready_to_run(repo, base, batch, rows, errors)
+
+    if errors:
+        print("A1-DT v2 structure check FAILED:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+    print("A1-DT v2 structure check passed: library files, 19 paper dirs, 57 planned/completed tasks, v1/v2 separation and v2 audit skeleton are present. Ready-to-run checks also passed.")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Check A1-DT v2 audit skeleton and survey_of_surveys structure.")
+    parser.add_argument("--strict", action="store_true", help="also require output files for tasks marked completed")
+    parser.add_argument("--ready-to-run", action="store_true", help="also require materialized prompts, templates, and guarded v1 links")
+    args = parser.parse_args(argv)
+    return check_structure(strict=args.strict, ready_to_run=args.ready_to_run)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

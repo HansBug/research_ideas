@@ -1,0 +1,523 @@
+# The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study
+
+## 1. 快速结论卡片
+
+| 字段 | 内容 |
+|---|---|
+| 标题 | The Impact of LLM-Assistants on Software Developer Productivity: A Systematic Review and Mapping Study |
+| 作者 | Amr Mohamed; Maram Assi; Mariam Guizani |
+| 年份 / 正式发布日期 | 2026 / 2026-04-27 |
+| DOI | https://doi.org/10.1145/3809494 |
+| 出版形态 | 期刊 |
+| 期刊/会议/预印本 | [TOSEM](https://dl.acm.org/journal/tosem)；开放全文来自 arXiv PDF |
+| CCF 官方大类 | 软件工程 / 系统软件 / 程序设计语言 |
+| CCF 官方等级 | A |
+| CCF 复核状态 | 本地缓存；官方待人工复核（WAF） |
+| 综述类型大类 | 🟩 SLR+SMS |
+| 细分类型 / 原文自称 | SLR + SMS；39 篇 peer-reviewed 原始研究，2014--2024 |
+| 本文角色 | 🟢 主样本 |
+| 统计池资格 | 🟢 入池 |
+| 证据成熟度 | 🟡 全文 |
+| 样本单位 / 分母链 | 📄 原研 / 39 |
+| 原生维度树类型 | 🌲 森林 |
+| SE 子领域 | LLM assistants / developer productivity / LLM4SE empirical studies |
+| 阅读状态 | 已读 [bibtex.bib](./bibtex.bib)、[metadata.json](./metadata.json)、[paper_content.txt](./paper_content.txt)；已完成全文文本级阅读；round3 局部核对 PDF 元数据与 Fig.2，图表精确页码/版式仍待 A2a |
+| 证据等级 | 全文文本级；图表/表格精确版式与页码待人工原文核对 |
+| artifacts | 原文声明所有制品公开于 Zenodo replication package：https://zenodo.org/records/18489222 |
+| A1 角色 | 高相关、现代、CCF-A 的 SLR+SMS 样本；用于学习如何把 `landscape -> method -> benefit/risk -> productivity dimensions -> implications/threats` 组织为 RQ 和结果表。 |
+| 是否目标领域证据池 | 否。本文只能作为 Paper2 的 scaffold / pattern prior，不能把其 LLM-assistant productivity findings 直接当成我们目标领域发现。 |
+| 核心可借鉴点 | RQ0--RQ3 层级清晰：先给研究景观，再给方法与工具，再给 benefit/risk，最后用外部框架映射 productivity dimensions；每个 RQ 末尾都有短 summary，把分布数字、主导类别、争议点和下一步 gap 压成可引用结论。 |
+| 主要风险 | 其领域结论受 2024 年爆发式文献和快速模型漂移影响；原始研究 多为 formative / lab / self-report，适合学习报告结构，但不适合作为强领域事实迁移。 |
+
+## 2. 全文内容详读
+
+### 2.1 背景与问题定位
+
+本文的问题不是泛泛讨论 LLM 是否“有用”，而是把 **LLM-assistants 对软件开发者生产力的影响**定义为一个需要系统综合的证据问题。背景部分先说明 LLM-assistants 已覆盖代码生成、翻译、调试、维护、文档和设计等任务，并把这种使用方式放到 AI pair programming 的实践背景中。随后，作者强调 developer productivity 本身是多维构念，不能只靠 LOC、velocity 或 task completion time 这类单指标解释；它同时包含效率、质量、满意度、认知负荷、协作和组织因素。
+
+这篇文章的叙事结构很适合作为 Paper2 scaffold：先承认工具生态变化很快，再说明既有研究碎片化，最后引入一个外部概念框架（SPACE）作为综合镜头。它不是直接用 “LLM improves productivity” 作主张，而是问：已有 peer-reviewed empirical studies 是怎么研究这个问题、报告了哪些 benefit/risk、又覆盖了哪些 productivity dimensions。
+
+### 2.2 RQ0--RQ3 的组织逻辑
+
+| RQ | 原文问题焦点 | 实际承载的综述层级 | 对 Paper2 的结构启发 |
+|---|---|---|---|
+| RQ0 | 研究 LLM-assistants 与 developer productivity 的 peer-reviewed studies 有什么特征？ | landscape：年份、venue、作者分布、工具分布。 | 可迁移为“领域景观 RQ”：先给语料时间线、来源、研究社区和对象分布，不急着下领域结论。 |
+| RQ1 | 这些研究使用了哪些 methodological strategies、procedures、instruments？ | method：研究策略、实验/调查/访谈等 procedures、评价工具、指标、数据来源。 | 可迁移为“方法与评价实践 RQ”：把研究设计本身作为综述对象，方便后续识别证据强弱和可比性。 |
+| RQ2 | LLM-assistants 对 developer productivity 有什么影响？ | benefit/risk synthesis：主题分析，把 effects 拆成正负两组主题。 | 可迁移为“finding ledger RQ”：不要只列 benefit，还要同时组织 risk 和 contested finding。 |
+| RQ3 | 哪些 productivity dimensions 被研究，如何映射到 SPACE？ | dimension mapping：用外部框架整合测量维度和覆盖缺口。 | 可迁移为“维度覆盖 RQ”：用研究者批准的元模型或框架映射字段，统计覆盖和缺口。 |
+
+整体上，RQ0 给“景观”，RQ1 给“研究方式”，RQ2 给“结果主题”，RQ3 给“概念维度”。这使得论文避免把所有发现堆在一个结果章节里，也便于每个 RQ 对应一组表格 / 图 / summary。
+
+### 2.3 方法：pre-review mapping、控制论文与检索策略
+
+作者声称遵循 Kitchenham & Charters 的 SE SLR 指南。方法章节先做 pre-review mapping：定义 RQ、纳排标准、控制论文和搜索式迭代。控制论文的作用非常明确：作者先人工检索、标题摘要筛选、做一轮 backward / forward snowballing，得到 17 篇 control papers，再用它们验证搜索式是否能召回已知相关论文。
+
+检索覆盖六个数据库：ACM、IEEE Xplore、ScienceDirect、Web of Science、Scopus、Springer。最终初始检索量为 9,756，其中 ACM 4,044、IEEE 491、ScienceDirect 3,734、Web of Science 271、Scopus 836、Springer 380。搜索式由三段组成：AI/LLM 技术词、developer/SE actor 词、productivity 概念词；IEEE、Web of Science 和 Scopus 使用 proximity operator 提高上下文相关性。作者还解释了 broad query 与 narrow query 的 trade-off：前者 false positives 多，后者可能漏文献，因此经过五轮 query iterations，并由全体作者开会达成最终搜索式。
+
+对 Paper2 的启发是：检索策略不是只给字符串，还要说明字符串如何被控制论文校验、如何在 precision/recall 之间折中、哪些数据库因为语法不同需要调整。
+
+### 2.4 检索、纳入 / 排除与筛选流程
+
+纳入标准很短：研究 AI 或 LLMs 对 软件开发者 productivity 的影响；英文；2014 年及以后发表且全文可访问。排除标准包括：不关注 SE 或不研究 productivity impact、只顺带提及而非研究主题、二次研究 / WIP / extended abstracts / posters / tool demos / editorials / 灰色文献（grey literature） / book / thesis / workshop 等不符合正式 peer review 口径的出版类型、少于 4 页、全文不可访问。
+
+筛选流程的分母链条很完整：初始 9,756 条，去重 803 后剩 8,953 条做标题摘要筛选；标题摘要阶段排除 8,725 条，剩 228 条全文筛选；全文阶段排除 189 条；对入选研究做 backward / forward snowballing 额外加入 5 条；44 条进入质量评价；质量评价排除 5 条；最终纳入 39 条。作者使用 Rayyan 标注排除理由，并说明标题摘要筛选由第一作者完成、第二和第三作者验证 excluded papers，遇到不确定时保守进入全文阶段。
+
+这里可迁移的是“分母链 + 排除原因 + 工具 + 人工验证角色”的组合。Paper2 若要做类 PRISMA 透明材料，可以学习这种粒度，但不能声称 PRISMA 合规，除非后续完整满足透明报告要求。
+
+### 2.5 质量评价
+
+质量评价采用 Lenarduzzi 等人的 empirical SE study QA 策略，包含 11 个 QA criteria：研究是否基于 research、目标是否清晰、上下文是否充分、研究设计是否适当、招募策略、控制组、数据收集、数据分析严谨性、研究者与参与者关系、finding 清晰性、研究/实践价值。每项按 0--4 的 Likert scale 打分，并使用 50% 平均分阈值排除低质量研究；最后 5 篇因质量评价被排除，39 篇进入最终综合。
+
+对 Paper2 的重要启发：质量评价不是为了形式上打分，而是连接到“哪些 原始研究 可以进入结果综合”。如果我们后续使用 agent 抽取字段，quality / eligibility 必须成为字段证据表的一等字段，否则后续统计会混入低质量或不合格条目。
+
+### 2.6 数据抽取与综合
+
+数据抽取与综合持续三个月。作者先做初始 thematic analysis，抽取 study goals、tools、empirical strategy/design、tasks、settings、key results，并为每篇 study 写 descriptive summary；然后做多轮 targeted thematic analysis：一轮针对 RQ1 的方法细节，一轮针对 RQ2 的 benefits/risks，一轮针对 RQ3 的 SPACE mapping。主题合并后，第一作者和最后一位作者共同回查 citation against original text，以保证 traceability。
+
+这对 Paper2 非常关键：它把“单篇摘要 -> 多轮主题编码 -> RQ-specific synthesis -> citation cross-check”写成了可审计流程。我们的方法可以把这一步转译成字段级内容证据表、模式修订日志和候选发现台账，而不是只让 LLM 直接生成综合段落。
+
+### 2.7 RQ0 主要结果：landscape
+
+RQ0 的结果包含四个景观维度：发表年份、作者分布、venue 分布、LLM tools 分布。时间上，2014--2022 只有 4 篇，ChatGPT 发布后研究急剧增长，2024 年占 77%。作者层面，154 位作者中 147 位只有 1 篇，少数作者有 2 篇或更多，说明该方向仍在形成中。Venue 层面，46% 来自 Software Engineering / Computer Science venues，包括 PACMSE、TOSEM、ICSE、FSE、PLDI、ASE、EASE 等；18% 来自 HCI venues，包括 CHI、IUI、CSCW、TOCHI；其余分散到 information systems、human-aspects、AI for software、SE education 等。工具层面，ChatGPT 15 篇、GitHub Copilot 14 篇最常见，Tabnine、GPT-4、CodeWhisperer 各 3 篇，GPT-3.5 2 篇，Claude、Codex、Gemini 等只出现 1 篇。
+
+RQ0 的写法不是“背景介绍”，而是把语料本身当作对象，说明领域何时爆发、由哪些社区贡献、研究了哪些工具。这种 landscape layer 很适合 Paper2 的综述之综述脚手架：先把 corpus 的可解释边界讲清楚，再谈后续 finding。
+
+### 2.8 RQ1 主要结果：method / procedure / instrument
+
+RQ1 先用 Stol & Fitzgerald 的 empirical SE strategy taxonomy 分类研究策略。Laboratory experiment 最多，15/39，占 38%；field study 9/39，占 23%；sample study 6/39，占 15%；experimental simulation 5/39，占 13%；field experiment 和 judgment study 各 2/39，占 5%。这组结果支撑了作者后续 threat：当前证据很多来自 controlled / exploratory setting，生态效度有限。
+
+随后作者用更细的 procedure taxonomy 分类研究方法：survey 32/39，占 82%；user experiment 16/39，占 41%；case study 12/39，占 31%；interview 10/39，占 26%；concept implementation 4/39，占 10%。69% 的研究采用 mixed-methods，常见组合是 user experiment + survey，以同时捕捉 measured performance 和 self-reported perception。研究目标上，59% 是 formative，41% 是 summative；数据分析上，67% 同时使用 quantitative + qualitative，21% 仅 qualitative，13% 仅 quantitative。
+
+评价工具与指标部分，作者把 data source / instrument origin 组织成表：self-reported methods 很多由作者自设；validated instruments 包括 NASA-TLX、SPACE-based surveys、TAM、self-efficacy questionnaire、AAR/AI、emotion affect questionnaire；behavioral/performance metrics 包括 task completion/correctness、suggestion acceptance rate、interaction logs、time to completion、code quality metrics、productivity gain；还有 TCQ、RBV 等 econometric frameworks。关键结果包括：time to completion 是最常用 performance metric，12/39，占 31%；acceptance rate 常见但不宜单独优化；cognitive load 用 NASA-TLX 的 6 篇研究结果不一致，有改善、无差异和 frustration 增加等不同方向。
+
+RQ1 的价值在于把“研究怎么做”拆成 strategy、procedure、objective、analysis type、instrument、metric，而不是只说“多数为实验研究”。这可作为候选迁移启发；后续必须经 A2a 证据核验和研究者裁决后采纳为 Paper2 字段树。
+
+### 2.9 RQ2 主要结果：benefits 与 risks
+
+RQ2 使用 thematic analysis 组织 benefits 和 risks，并用 radar plot + summary tables 呈现。Benefits 分为八类：
+
+1. Accelerate software development：self-report 与部分 quantitative studies 都报告开发加速，案例中出现 effort 大幅下降、controlled experiments 中有 21%--45% 的效率增益。
+2. Minimize online code search：LLM-assistants 减少 Stack Overflow / Google / Bing 等传统搜索，帮助保持 flow，但不同工具和任务结果有差异。
+3. Automate trivial / repetitive tasks：生成 boilerplate、减少 keystrokes、支持 test generation 和 CI/CD automation。
+4. Support knowledge acquisition：作为 expert consult、学习新框架、降低新任务进入门槛。
+5. Support code-adjacent tasks：ideation、requirements specification、文档、QA、emails、meeting minutes、onboarding、issue 文档。
+6. Reduce task initiation overhead：生成初始 scaffolding、proof-of-concept、结构化想法，帮助开发者从空白开始。
+7. Improve code quality：部分研究报告 code smells、defects、coverage、translation error rate 等改善。
+8. Support debugging / troubleshooting：解释错误、建议 fix、帮助 early defect detection。
+
+Risks 分为五类：
+
+1. Fail to meet requirements：输出不满足功能/非功能需求、缺上下文、过度输出、正确率有限。
+2. Promote over-reliance and cognitive offloading：新手和学生可能削弱 critical thinking，专业开发者也可能 automation complacency。
+3. Limit code quality：错误代码、漏洞、幻觉、上下文不足、项目规范不一致；部分研究发现 quality 不改善甚至更差。
+4. Disrupt the flow：不想要的建议、界面切换、verbose answers、多工具竞争、验证和 prompt crafting 时间占比高。
+5. Reduce team collaboration：开发者转向 chatbot 而不是同事，传统 help channel 变少，organic conversation 和 synergy 受损。
+
+最值得借鉴的是 code quality 的处理方式：它既出现在 benefits，也出现在 risks。作者没有强行调和为单向结论，而是指出不同 task、context、metric 和 study design 导致结果矛盾。这种“contested theme”写法对 Paper2 很重要：统计观察或频次不能直接升级为 finding，必须记录反向证据和主张强度。
+
+### 2.10 RQ3 主要结果：SPACE 生产力维度
+
+RQ3 以 SPACE 作为 productivity lens：Satisfaction and well-being、Performance、Activity、Communication and collaboration、Efficiency and flow。作者选择 SPACE 的理由是它能同时覆盖 objective outcomes（如 quality、activity、efficiency）与 human-centered constructs（如 satisfaction、collaboration），并允许根据 empirical context 调整 sub-dimensions。
+
+作者进一步把 SPACE 细化为 sub-dimensions：
+
+- Satisfaction：developer experience、self-efficacy、trust、cognitive load；well-being 没有 原始研究 直接研究。
+- Performance：quality、impact。
+- Activity：action/task counts，例如 acceptance rate、suggestions shown、tasks completed。
+- Communication：human-LLM collaboration、human-human collaboration；其中 human-human collaboration 只有很少研究覆盖。
+- Efficiency：temporal efficiency、automation、interruptions and flow。
+
+主要覆盖结果：90% 的研究至少覆盖两个 SPACE dimensions，44% 覆盖三个或更多，只有 15% 覆盖四个或更多；Satisfaction 最常见，30/39，占 77%；Performance 25/39，占 64%；Efficiency 23/39，占 59%；Activity 12/39，占 31%；Communication 10/39，占 26%。最常见组合是 Satisfaction-Performance-Efficiency。RQ3 因此给出一个很清楚的 gap：已有研究已经从单指标转向多维，但仍很少完整覆盖 communication、activity、well-being、team dynamics 等维度。
+
+### 2.11 Discussion / implications
+
+Discussion 先用 McLuhan’s Tetrad 做 in-depth synthesis，把 SPACE 的 measurement lens 拓展为 socio-technical interpretation lens：
+
+- Enhance：LLM-assistants 强化开发速度、task initiation、knowledge acquisition、debugging/troubleshooting，尤其适合 boilerplate、syntax recall、initial scaffolding、exploratory prototyping。
+- Reverse：过度信任会导致 cognitive offloading、automation complacency、弱化 reflective practice、影响 code quality 和 collaboration。
+- Obsolesce：传统 online search、Q&A platform、独立验证习惯可能被削弱；作者建议把 LLM 当 complement 而非 replacement。
+- Retrieve：文档、requirements elicitation、legacy modernization 等过去常被 deprioritized 的实践可能被重新带回 workflow。
+
+随后作者面向 practitioners 给出五类建议：校准信任；从 coder 转向 reviewer，重视 prompt、evaluation、refinement；调整个人与团队 workflow，保留 pair programming、code review、architecture discussion；组织层面建立 adoption strategy、QA 和高风险模块审查；专业伦理层面要求 disclosure、accountability、traceability、bias testing。
+
+面向 researchers，作者提出三个方向：使用 shared evaluation frameworks 和 validated instruments，开展 longitudinal / field / team-based studies；继续推进 multidimensional evaluation，补 Communication、Collaboration、well-being、team dynamics；系统报告 confounding variables，包括 developer expertise、task complexity、domain/organizational context，并做 replication。
+
+### 2.12 Threats to validity
+
+Threats 分两组。
+
+第一组是 review methodology threats：
+
+- Study selection bias：纳排标准可能漏掉相关研究，特别是排除 short paper、non-peer-reviewed 和不可访问全文；作者通过共同制定 criteria、控制论文验证搜索式、snowballing 缓解。
+- Human-centered study identification 难：LLM4SE 领域大量“performance/efficiency”其实指模型性能，不是 developer productivity；作者通过 control papers 和 query refinement 缓解。
+- Bias and repeatability：RQ 开放，selection/extraction 有主观性；初筛和抽取由第一作者主导，但其余作者参与 protocol design、selection validation，并进行 9 个月 weekly meetings。
+- Classification rigor：SPACE 原本不是为 human-LLM collaboration 设计，映射 sub-dimensions 有解释性判断；作者用既有定义并通过团队讨论缓解。
+
+第二组是 primary evidence base limitations：
+
+- Formative and controlled studies 比例高：59% formative、38% lab experiments，内部效度较好但生态效度有限。
+- Methodological diversity：code quality、cognitive load 等指标多样，阻碍跨研究比较，但也提供多源 triangulation。
+- Temporal relevance：GenAI 变化快，检索和抽取截至 2024 年底，且 77% 纳入研究集中在 2024；作者建议透明协议和周期性更新。
+
+### 2.13 Artifacts / replication package
+
+摘要、贡献列表、方法和结论均声明公开 replication package，Zenodo 记录包括 study data、selection decisions、exclusion rationales，以及 supplemental appendix 中的 control papers、query refinement、QA scores 等。对 Paper2 来说，这一点不是附属材料，而是现代 SLR 的审计性核心：研究发现之外，过程分母、筛选理由、质量分数、字段表和排除台账都要能被复核。
+
+## 3. 每个 RQ 末尾 Summary 的写法
+
+| RQ summary | 写作结构 | 具体写法观察 | 可迁移模板 |
+|---|---|---|---|
+| RQ0 Summary | 时间爆发点 + 作者集中度/分散度 + venue 社区分布 | 先给 ChatGPT 后 35/39、2024 年峰值这类时间判断，再给 147/154 作者单篇和 SE/CS、HCI venue 分布。 | “Most studies appear after X; authorship is fragmented/concentrated; venues cluster in A and B communities.” |
+| RQ1 Summary | 主导研究策略 + 方法组合 + 核心指标 + caveat | 先报 lab experiment 38%、mixed-methods 69%，再报 time to completion 31%、acceptance rate caution、NASA-TLX cognitive load mixed。 | “The evidence base is methodologically dominated by A; B is common; C is the most used metric, but D should not be interpreted alone; contested construct E remains mixed.” |
+| RQ2 Summary | mixed findings + top benefits + top risks + contested theme + future need | 明确 benefits 和 risks 并存；列 accelerated development / code search / trivial tasks；列 requirements failure / over-reliance / flow disruption；强调 code quality 同时改善和恶化。 | “Studies report both benefits and risks. The most frequent benefits are ...; key risks are ...; X remains contested, so future work must identify boundary conditions and safeguards.” |
+| RQ3 Summary | 框架 lens + multidimensional adoption + coverage gap | 先声明 SPACE 框架；再给 90% 多维、15% 四维以上；最后排序 S/P/E 最常见，A/C 最少。 | “Using framework F, most studies cover multiple dimensions, but few cover the full space; dimensions A/B/C dominate, while D/E remain underexplored.” |
+
+这四个 summary 都不是普通段落总结，而是“结果压缩器”：每段都含 2--4 个可复核数字、一个主导模式、一个限制或 gap。Paper2 后续写 results 时应学习这种 summary style，但要把数字绑定到字段证据表和统计分析表，避免 LLM 直接写成无来源概括。
+
+## 4. 六类 pattern 抽取
+
+| 模式类型 | 抽取结论 | 证据锚点 | 可迁移性 | 不可迁移点 / 限制 |
+|---|---|---|---|---|
+| RQ pattern | 四层 RQ：RQ0 landscape、RQ1 methodology/instruments、RQ2 impact benefit/risk、RQ3 dimension/framework mapping。 | `paper_content.txt` §3 RQ 列表；§4--§7 各 RQ 结果；各 RQ summary。 | 高度可迁移为 Paper2 的 RQ scaffold：先语料景观，再方法实践，再 finding synthesis，再维度覆盖。 | 具体主题是 LLM-assistants productivity，不能迁移为我们目标领域 finding。 |
+| dimension pattern | 维度树包含 publication year、venue focus、authors、tools、strategy、procedure、objective、analysis type、instrument、metric、benefit、risk、SPACE dimension/sub-dimension、recommendation、threat。 | RQ0 表 3/4；RQ1 表 5--7；RQ2 表 8/9；RQ3 表 10/11。 | 可迁移为 A2a/A3 字段树种子，尤其是“框架维度 + emergent sub-dimensions”的做法。 | SPACE 是 productivity framework；不能直接替代 Paper2 的综述元模型，除非目标主题确实是 productivity。 |
+| finding pattern | 从统计分布生成 findings，但同时保留 contested findings 和 boundary conditions；code quality 被明确写成 benefit/risk 双重主题。 | RQ2 §6.1--§6.2；RQ2 summary；Discussion research gaps。 | 可迁移为候选发现台账：每个 候选发现 应包含支持证据、反向证据、适用上下文、主张强度。 | 不能把“LLM improves productivity”等主题结论搬到我们的目标领域。 |
+| evidence presentation pattern | 使用 PRISMA-style flow、数据库检索分母、QA criteria 表、strategy/procedure/instrument 表、benefit/risk summary 表、SPACE mapping 表、quality metrics 表、framework diagram。 | Fig. 1；Table 1--11；Fig. 2--9；Zenodo package。 | 可迁移为 Paper2 审计制品链：分母链、排除理由、字段表、质量表、主题表、维度映射表、复现包。 | 图表精确页码和最终 ACM 版格式待 PDF/ACM 核验；当前只读文本提取版。 |
+| validity / threat pattern | Threats 同时覆盖 review process 与 primary evidence base：selection/search bias、repeatability、classification rigor、formative/lab evidence、method diversity、temporal relevance。 | `paper_content.txt` §9.1--§9.2。 | 可迁移为 Paper2 risk register：区分“我们方法导致的威胁”和“语料/primary evidence 本身的威胁”。 | 其 mitigation 建立在人工 review 团队上；Paper2 若引入 agent，需要额外加入 prompt/model drift、字段错误、证据断链、human gate fatigue 等威胁。 |
+| report structure pattern | Introduction/Background/Method 后，结果按 RQ0--RQ3 独立成章，每章内部先分类/表格，再解释，再 summary；Discussion 先跨 RQ 综合，再给 practitioners/researchers recommendations，最后 threats/conclusion。 | `paper_content.txt` §1--§10。 | 高度可迁移为现代 SLR/SMS 报告模板，尤其是“RQ-by-RQ results + end-of-RQ summary + discussion lens”。 | Paper2 是方法论文，不应完全照搬领域 SLR 的章节比例；需要把方法对象、审计制品和评价单独突出。 |
+
+## 5. A1-M0--M6 脚手架元维度贡献
+
+| A1-M 脚手架元维度 | 本文提供的 scaffold prior | 对后续方法设计的意义 |
+|---|---|---|
+| A1-M0 主题与综述元模型设定 | 明确把主题拆为对象（LLM-assistants）、影响对象（developer productivity）、证据对象（peer-reviewed empirical studies）、解释框架（SPACE）。 | 说明 A1-M0 不只是写题目，而要定义研究对象、目标构念、证据范围和解释框架。 |
+| A1-M1 脚手架挖掘与种子探测 | 使用既有 SLR guideline、control papers 和 pre-review mapping 先测试 RQ/纳排/搜索式。 | 支持 Paper2 的“脚手架 + 种子探测”主线：用少量高相关样本压力测试模式，不直接冻结完整 schema。 |
+| A1-M2 维度模式批准 | RQ1/RQ3 的字段体系显示 schema 可以由外部 taxonomy（Stol & Fitzgerald、Glass/Vessey/Ramesh、SPACE）与 emergent sub-dimensions 共同构成。 | 维度模式应允许“预设框架字段 + 数据中浮现字段”并存，且需研究者批准后进入正式抽取。 |
+| A1-M3 论文收集与概览 | 给出数据库、搜索式、去重、筛选、排除理由、snowballing、质量评价前后分母。 | 可作为概览卡和筛选台账字段种子：source、query、dedup、screening status、exclusion code、fulltext status、snowball source。 |
+| A1-M4 字段级证据抽取与模式演化 | 数据抽取包含 study goals、tools、strategy/design、tasks、settings、key results；RQ-specific thematic iterations 体现字段/主题会分轮细化。 | 支持把 A1-M4 设计为可迭代字段抽取，而不是一次性“读完全文生成摘要”；每轮抽取应记录字段版本和 evidence anchors。 |
+| A1-M5 统计分析 | RQ0--RQ3 都把字段表转成频次、比例、分布、overlap 和组合分析。 | 支持 Paper2 将统计分析表作为独立产物：统计观察必须绑定字段版本、样本分母和限制。 |
+| A1-M6 候选发现形成 | Discussion 将统计观察升级为 lessons learned、recommendations 和 research gaps，同时保留 contested findings。 | 支持候选发现台账：agent 可以提出 候选发现，但必须标注支持/反向证据、contested status、boundary conditions，最后交研究者裁决。 |
+
+## 7. 对 Paper2 story / method 的启发与风险
+
+### 7.1 启发
+
+1. **RQ 层级可以显式绑定证据产物**：RQ0 对应 landscape table，RQ1 对应 method/instrument table，RQ2 对应 benefit/risk table，RQ3 对应 framework mapping table。Paper2 后续也应让每个 RQ 对应明确的审计制品，而不是泛泛“我们分析了论文”。
+2. **字段树需要同时包含研究对象字段与方法字段**：本文把 原始研究 的 method strategy、procedure、instrument、metric 当作结果对象，这对我们很重要；Paper2 也应把 target papers 的研究设计、数据、评价、制品作为字段，而不只抽取领域主题。
+3. **外部框架 + emergent coding 的组合可迁移**：SPACE 提供初始五维，但作者又添加 sub-dimensions。Paper2 的维度模式也应允许研究者定义元模型后，在抽取失败或新类型出现时版本化扩展。
+4. **contested finding 的写法值得直接学习**：code quality 同时出现在 benefit 和 risk，并由作者解释为 context/metric/task 差异。Paper2 的候选发现台账应内置“矛盾证据/反向证据”字段。
+5. **summary 段落是结果章节的审计压缩层**：每个 RQ 末尾 summary 都包含数字、排序和 gap，适合后续 paper writing；但这些 summary 应由统计表生成或至少可回溯。
+6. **Discussion 可用第二框架做解释，而不是重复结果**：SPACE 负责 measurement，Tetrad 负责 socio-technical interpretation。这提示 Paper2 可以区分“字段统计框架”和“候选发现解释框架”。
+7. **Artifacts 是现代 SLR 可信度的一部分**：本文显式发布 selection decisions 和 exclusion rationales。Paper2 的方法贡献必须把过程证据、字段证据、统计表、候选发现台账和裁决日志作为导出物。
+
+### 7.2 风险
+
+1. **不要把这篇的 LLM productivity findings 当成我们的领域 finding**：accelerated development、reduced search、over-reliance 等只能作为 benefit/risk synthesis pattern，不能支撑 LLM4STM 或系统综述自动化的结论。
+2. **不要复制 SPACE 作为默认元模型**：SPACE 适合 developer productivity；Paper2 若目标是系统综述证据工程，元模型应围绕 review protocol、field evidence、statistics、候选发现、human gates，而不是 productivity。
+3. **不要忽视 primary evidence base limitation**：本文自己承认证据多为 formative、lab、self-report、短期研究。我们若借鉴其结果表风格，也必须在自己的语料中保留证据强度字段。
+4. **不要声称 PRISMA 合规**：本文使用 PRISMA flow chart，但 Paper2 当前边界是类 PRISMA 透明材料；除非后续完整执行，否则只能说受启发的透明制品。
+5. **不要把人工验证成本隐藏掉**：本文有 47 天标题摘要筛选、10 周全文筛选、3 个月综合、9 个月会议讨论。Paper2 若引入 agent，需要诚实记录人机协作成本，而不是暗示自动化免费替代。
+6. **快速漂移风险很高**：本文截至 2024 年底，正式出版在 2026 年；LLM tools 和 developer workflow 变化快。Paper2 若做活领域，也要有 update policy 或 temporal cutoff。
+
+## 8. 待复核
+
+1. 当前只读 `paper_content.txt`，未打开 `paper.pdf` 逐页核对；Table 1--11、Fig. 1--9 的页码、版式和最终 ACM 版本需人工 PDF / ACM 页面复核。
+2. `metadata.json` 记录正式 TOSEM 2026 DOI，`paper_content.txt` 开头仍有 arXiv / manuscript submitted / placeholder DOI 痕迹；正式引用前需确认 ACM final version 与 arXiv v2 差异。
+3. Zenodo replication package 未下载核验；这里只记录原文声明的 artifact 入口，未核验 package 内部文件完整性。
+4. CCF-A 字段本轮沿用本仓库 ccf_venues 缓存记录 TOSEM 为 A 类；2026-06-29 官方目录 HTTP/CLI 访问返回 Aliyun WAF 壳，正式写作前需人工打开官方目录复核。
+5. RQ2 benefit/risk 的主题频次来自文本提取和表格说明，雷达图精确数值需 PDF 图核对后才能进入跨论文统计。
+6. 若 A2a/A3 采纳本文字段树，应新增或确认字段：`control_papers`、`query_iterations`、`instrument_origin`、`contested_theme`、`framework_mapping`、`summary_style`、`temporal_relevance_threat`。
+
+## 维度树复原
+
+> [!IMPORTANT]
+> 本节是 A1-DT v2 主线程裁决后的当前事实入口。A1-M0--M6 只作为跨论文投影层，不能反向冒充本文原生模式。
+> 三路原始审计结果见 [../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__codex.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__claude.md)、[../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md](../../audits/a1dt-v2-19x3/results/llm-assistants-developer-productivity__deepseek.md)；主线程裁决见 [../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md](../../audits/a1dt-v2-19x3/adjudications/llm-assistants-developer-productivity.md)。
+
+### v2 主线程采用说明
+
+本节采用 `claude` 审计结果作为正文主干，并用另外两路结果校正分母、统计池资格和降级边界。当前剩余风险统一归入 A2a 的页码、表图和补充材料精核。
+
+### 0. 审计结论卡片
+
+| 项 | 结论 |
+|---|---|
+| 论文目录标识 | `llm-assistants-developer-productivity` |
+| 审计代理 | `claude` (claude-opus-4-7[1m]) |
+| 是否已读 `paper_content.txt` | 是；按页通读 Page 1–36（覆盖 abstract / intro / background / methodology / RQ0–RQ3 全部结果 / discussion / 威胁），未逐字读 Conclusion / References 段，但已覆盖审计所需正文。 |
+| 是否读取 `bibtex.bib` / `metadata.json` | 是；两者一致核对（DOI 10.1145/3809494；ACM TOSEM 2026；arXiv 2507.03156 v2）。 |
+| 是否打开或核对 `paper.pdf` | 否；本轮以 `paper_content.txt`（已按 `--- Page N ---` 分页）为主，复杂图表（Fig. 3/4/5/7/8/9 雷达图、UpSet 图、Sankey 图）与最终 ACM 版式留待 A2a/PDF 视觉核验。 |
+| 原文类型 | SLR + SMS 混合（作者自称 "系统综述 and mapping"，遵循 Kitchenham & Charters 2007 指南，含 pre-review mapping + 完整 PRISMA flow + QA rubric + 主题综合）。 |
+| 被编码样本单位 | **原始研究**（peer-reviewed 经 39 项 final inclusion，已编号 PS1–PS39，作者级、venue 级、工具级字段都挂在每条 PS 上）。 |
+| 样本数量 / 分母 | 9756 → 8953 → 228 → 44 → **39**；snowballing 加入 5；QA 排除 5。 |
+| 原生树类型 | **多根维度森林**：每个 RQ 对应一棵 抽取 sub树；底层共享 PS-id 这一样本单位主键，使所有 sub树 可交叉关联。 |
+| 主统计池资格 | 后续主统计池候选；A1-DT v2 当前仍按模式种子管理，A2a 精核前不进入定量统计。原文内部可统计字段与分母见“维度树复原”和 [evidence_chain.md](./evidence_chain.md) 的 A.2/A.3。 |
+| 总体判定 | **v2 已返修完成**：本节已按 A1-DT v2 口径重写为原生样本编码树 / 维度森林，剩余页码、表图、补充材料风险进入 A2a。 |
+
+### 1. 原文证据阅读说明
+
+实际读取：
+
+- `bibtex.bib`（10 行）— 验证标题、作者、TOSEM 2026、DOI。
+- `metadata.json` — 验证 publication date 2026-04-27、arXiv 来源、`eligible_for_schema_seed=true`（模式种子字段为真）、`eligible_for_statistical_synthesis=true`、`evidence_role=hybrid_slr_sms_pattern`。
+- `paper_content.txt` — 通读 Page 1–36，主要章节：
+  - §1 Introduction（Page 1–2）
+  - §2 Background（Page 3–4，含 SPACE 来源 [19]）
+  - §3 Methodology（Page 4–9）：§3.1 pre-review mapping、§3.1.1 control papers、Inclusion/Exclusion criteria、§3.1.2 query formulation、§3.2 筛选过程、§3.3 QA、§3.4 数据抽取 & synthesis
+  - §4 RQ0 Landscape（Page 9–11）
+  - §5 RQ1 Methodology/instruments（Page 11–17）
+  - §6 RQ2 Benefits & Risks（Page 17–24）
+  - §7 RQ3 SPACE mapping（Page 24–27）
+  - §8 Discussion（Page 27–35，含 McLuhan Tetrad + 5 实践者 recs + 3 研究者 recs）
+  - §9 效度威胁（Page 35–36）
+
+未做 PDF 视觉核验，主要影响：Fig. 1 PRISMA 实际位置、Fig. 6 radar plot 各 收益 / 风险（benefit/risk） 主题精确数字、Fig. 7/8 SPACE Sankey/UpSet 比例线、Fig. 9 Tetrad 图、Table 9 risk 摘要、Table 10 SPACE 完整列。
+
+关键证据锚点：
+
+1. **PS 集合分母链**（§3.2, Page 7–8 + Fig. 1）："Records identified from 数据库（databases） (n = 9,756) ... duplicates removed (n = 803) ... title/abstract n = 8,953 → excluded 8,725 → 228 → snowballing +5 → QA n = 44 → excluded 5 → **n = 39**"。
+2. **EC 分布**（Fig. 1 标注）：EC1=15, EC2=128, EC3=27, EC4=11, EC5=3, ~IC1=5。
+3. **QA rubric**（§3.3, Page 8, Table 2）：QA1–QA11 共 11 项 + 5 点 Likert {Excellent 4, Very Good 3, Good 2, Fair 1, Poor 0} + 50% 阈值。
+4. **research strategy 分类法**（§5.1, Page 11–12, Table 5）：Stol & Fitzgerald 6 类；Lab 38% (15/39), Field 23% (9), Sample 15% (6), ExpSim 13% (5), Field Exp 5% (2), Judgment 5% (2)。
+5. **procedure 分类法**（§5.2, Page 13, Table 6 + Fig. 3/4）：Glass-Vessey-Ramesh 5 类；调查 82% (32), User Exp 41% (16), Case 31% (12), 访谈 26% (10), Concept Impl 10% (4)。
+6. **objective**（§5.2, Page 13–14）：Hartson 分类法，formative 59% (23) / summative 41% (16)。
+7. **data source × instrument origin**（§5.3, Page 14, Table 7）：Self-reported vs Behavioral; designed by authors vs validated（NASA-TLX, SPACE survey, TAM, AAR/AI, self-efficacy, emotion affect, TCQ, RBV）。
+8. **time-to-completion**：31% (12/39) - §5.3.1, Page 15。
+9. **8 benefits + 5 risks 主题**（§6.1–§6.2, Page 17–24, Fig. 6 radar + Table 8 + Table 9）。
+10. **SPACE mapping**（§7, Page 24–27, Fig. 7/8 + Table 10/11）：Satisfaction 77%, Performance 64%, 效率 59%, Activity 31%, Communication 26%；90% ≥2 维, 44% ≥3 维, 15% ≥4 维；最常见组合 S+P+E (5/39)。Satisfaction sub: developer-experience, self-efficacy, trust, cognitive-load, well-being (=0). Performance sub: 质量, impact. 效率 sub: temporal-efficiency, automation, interruptions-and-flow. Communication sub: human-LLM (7/10), human-human (3/10).
+11. **McLuhan Tetrad**（§8.1, Page 27–30, Fig. 9）：Enhance / Reverse / Obsolesce / Retrieve 四维 + lessons learned (1–3) + 5 实践者 recs (Trust / role / workflow / org / professional ethics)。
+12. **Threats**（§9, Page 35–36）：selection bias, human-centered identification, bias & repeatability, 分类 rigor, 形成性与受控研究主导（formative/controlled dominance）, 方法多样性（methodological diversity）, 时间相关性（temporal relevance）（2024 占 77%）。
+
+### 2. 样本单位与字段来源判定
+
+**1. 纳入和逐项描述的对象**：peer-reviewed 原始研究，编号 PS1–PS39，每条 PS 在多张表格中作为主键被反复挂接（venue, 工具, strategy, procedure, instrument, benefit, risk, SPACE sub-dimension, QA score）。
+
+**2. 是否有系统检索/纳排/抽取/编码方案**：是。完整含 Kitchenham&Charters protocol、6 数据库 search string、17 control papers、5 轮 query iteration、Rayyan 标注、47-day title/abstract screening、10-week 完整-text screening、PRISMA flow chart、Lenarduzzi 11-QA rubric、初始 主题分析 + 三轮 targeted 主题分析（针对 RQ1/RQ2/RQ3）、citation cross-check。
+
+**3. 字段来源**：
+
+- **抽取 form**（§3.4 列出："研究 goals, 工具, 经验研究（empirical） strategy and design, tasks, settings, key results"）
+- **分类方案（classification scheme；首次术语）s**：Stol & Fitzgerald (strategy)、Glass-Vessey-Ramesh (procedure)、Hartson (formative/summative)、SPACE (Forsgren et al.)
+- **QA rubric**：Lenarduzzi 11 项
+- **emergent thematic 代码**：8 benefits + 5 risks（主题分析 自产）
+- **interpretive lens**：McLuhan Tetrad（应用于 discussion，不是抽取字段，但提供推论 模式）
+- **supplemental appendix + Zenodo 复现包**：control papers list、query iterations、QA scores、exclusion rationales
+
+**4. RQ ↔ 样本单位**：RQ 是字段使用方式（landscape RQ0 / methodology RQ1 / impact RQ2 / dimension RQ3），样本单位仍是 PS。RQ 不是树根，而是把 PS 字段切成不同分析维度的"棱镜"。
+
+**5. 是否需要降级**：需要做边界降级。本文有完整系统证据基础，是后续主统计池候选；但 A1 只能作为文本级 `schema_seed`，Fig. 6 雷达精确计数、Sankey 流量、Table 9 详尽 risk 行、supplemental / Zenodo 复现包均需 A2a/PDF 精核后才可进入最终定量统计。
+
+### 3. 原生样本编码维度树 / 维度森林
+
+> 中文化导读：本维度树的主键是 39 篇关于大语言模型助手影响开发者生产力的原始研究。树按研究图景、研究方法与测量工具、收益/风险主题、SPACE 生产力维度、解释性框架和效度威胁分组；其中 PS 编号、SPACE、NASA-TLX、TAM、GPT、Copilot 等英文只作为原文工具名或框架名保留。阅读时要把“现场研究/现场实验/实验室实验/样本研究/判断研究”等中文策略标签作为分类语义，避免把 Field study 误读成“现场研究”。可迁移的是“同一主题可同时作为收益与风险出现，需要争议标记”的模式。
+
+样本单位主键：`PS-id ∈ {PS1, …, PS39}`。每棵 RQ-sub树 通过 PS-id 与其他 sub树 关联。
+
+
+> 进一步说明：这篇论文是当前文库中最接近 Paper2 未来“领域 SLR + 人机协同证据链”的高价值样本之一，因此维度树必须读得特别谨慎。其核心不是“用了哪些大语言模型工具”，而是作者如何把 39 篇原始研究编码成若干相互关联的证据层：研究图景层描述年份、来源和工具；研究设计层描述实证策略、流程、目标、分析类型和测量工具；效果层把收益与风险主题并列；SPACE 层把生产力拆成多个维度；解释层再用四象限框架组织讨论；效度层记录偏倚与时间相关性。后续 Paper2 应借用的是这种“样本主键 + 多棵 RQ 子树 + 争议主题标记 + 解释层”的组织方式。英文框架名和工具名只是可复验锚点，中文节点才是合并到模式库时应采用的语义。
+
+```text
+说明：本树已中文化；括号内保留的英文 / 缩写为原文术语、作者枚举或稳定标识。
+[森林根节点] LLM 助手 × 开发者生产力系统综述与映射研究模式（SLR+SMS 模式）
+│
+├── [树-meta] 元数据 / 样本主键
+│   ├── 原始研究编号（PS-id） (PS1..PS39)
+│   ├── 标题 / 作者 / 年份 / 发表源
+│   ├── 纳入状态：纳入（included）| 滚雪球补入（snowballed）| QA 排除（qa_excluded）| 筛除（screened_out）
+│   ├── 排除代码 (EC1..EC5 | ~IC1 | 无（无更新）)
+│   └── 质量评分 (QA1..QA11 每项 取值 ∈ {0,1,2,3,4}, 平均分达到 50% 阈值（avg ≥ 50% threshold）)
+│
+├── [树-RQ0] 研究图景（RQ0 字段集合）
+│   ├── 发表年份 取值 ∈ {2014..2024}（数值）；`2025-Jan` 是图形/metadata 提取异常或在线状态注记，A2a 前不得作为 primary-study year
+│   ├── 作者发表篇数分布（数值；147 位作者各 1 篇，6 位作者各 2 篇，1 位作者 3 篇（Igor Steinmacher））
+│   ├── 发表源（Table 3 中 39 个 发表源 命名实体）
+│   ├── 发表源研究焦点（封闭枚举：软件工程 / 计算机科学（SE/CS）、人机交互（HCI）、信息系统 / 决策科学（IS/Decision Science）、人的因素（Human-Aspects）、AI for SE / AI Engineering、软件工程教育（SE Education））
+│   └── 使用的 LLM 工具（Table 4 开放枚举：ChatGPT, GitHub Copilot, Tabnine, GPT-4, CodeWhisperer, GPT-3.5, Claude, Codex, Gemini, GPT-3, Ansible Lightspeed, Bard, CodeGen2 7B, GILT, CodeCompose, NL2Code PyCharm plugin, StackSpotAI, StarCoder 7B, TransCoder, aiXcoder, OpenAI API, Midjourney）
+│
+├── [树-RQ1] 方法 / 流程 / 测量工具
+│   ├── 实证策略（Stol-Fitzgerald 封闭 6 枚举：现场研究（Field study；首次术语）| 现场实验（Field experiment；首次术语）| 实验仿真（Experimental Simulation）| 实验室实验（Laboratory experiment；首次术语）| 样本研究（Sample study；首次术语）| 判断研究（Judgment study；首次术语））
+│   ├── 研究流程（Glass-Vessey-Ramesh 多选 5 枚举）：调查（调查）| 用户实验（用户实验）| 案例研究（案例研究）| 访谈（访谈）| 概念实现（概念实现）
+│   ├── 混合方法（布尔：69% true）
+│   ├── 研究目标（封闭枚举：formative | summative）
+│   ├── 数据分析类型（封闭枚举：定量 | 定性 | 混合）
+│   ├── 数据来源（封闭枚举：自我报告（Self-report；首次术语） | 行为与绩效指标（行为与绩效指标））
+│   ├── 测量工具来源（封闭枚举：作者自行设计 | 经过验证的框架）
+│   └── 测量工具名称（开放枚举：NASA-TLX, SPACE survey, TAM, self-efficacy, AAR/AI, emotion affect, TCQ, RBV, 任务 完成度与正确性（完成度与正确性）, 建议采纳率（建议采纳率）, 交互日志（交互日志）, 完成时间（完成时间）, 代码质量 指标, 生产率增益（productivity gain）, 开放式反馈（open-ended feedback）...）
+│       └── 关联指标（细分见 Table 7）
+│
+├── [树-RQ2] 效果综合（主题综合，主题综合）
+│   ├── 收益主题（封闭枚举 8 项）
+│   │   ├── 加速软件开发（accelerate software development）
+│   │   ├── 减少在线代码搜索（minimize online code search）
+│   │   ├── 自动化琐碎重复任务（automate trivial repetitive tasks）
+│   │   ├── 支持知识获取（support knowledge acquisition）
+│   │   ├── 支持代码邻近任务（support code-adjacent tasks）
+│   │   ├── 降低任务启动开销（reduce task initiation overhead）
+│   │   ├── 改善代码质量（improve code 质量）        ← contested 双向出现
+│   │   └── 支持调试与故障排查（support debugging and troubleshooting）
+│   ├── 风险主题（封闭枚举 5 项）
+│   │   ├── 无法满足需求（fail to meet requirements）
+│   │   ├── 促进过度依赖与认知卸载（promote over-reliance and cognitive offloading）
+│   │   ├── 限制代码质量（limit code 质量）          ← contested 双向出现
+│   │   ├── 打断心流（disrupt the flow）
+│   │   └── 降低团队协作（reduce team collaboration）
+│   ├── 主题频次（数值；Fig. 6 雷达每主题对应 PS 集合大小）
+│   └── 争议主题标记（布尔；代码质量（code quality；首次术语） = true）
+│
+├── [树-RQ3] SPACE 维度映射
+│   ├── SPACE 维度（封闭枚举 5）：满意度（Satisfaction）| 绩效（Performance）| 活动（Activity）| 沟通（Communication）| 效率（Efficiency；首次术语）
+│   ├── SPACE 覆盖维度数（数值 0..5 per PS；分布：90% ≥2, 44% ≥3, 15% ≥4）
+│   ├── SPACE 子维度（层级枚举）
+│   │   ├── 满意度（Satisfaction）：开发者体验（developer experience）| 自我效能（self-efficacy）| 信任（trust）| 认知负荷（cognitive load）| 幸福感（well-being）(=∅)
+│   │   ├── 绩效（Performance）：质量| 影响（impact）
+│   │   ├── 活动: (no further sub)
+│   │   ├── 沟通（Communication）：人-LLM（human-LLM）| 人人（human-human）
+│   │   └── 效率（Efficiency；首次术语）：时间效率（temporal efficiency）| 自动化（automation）| 中断与心流（interruptions and flow）
+│   ├── 质量指标实例（Table 11 开放枚举：通过单元测试（Passing Unit Tests）、功能正确性与准确率（Functional Correctness & 准确率）、代码异味（Code Smells）、BLEU、Halstead、圈复杂度（Cyclomatic Complexity）、翻译错误率（Translation Error Rate）、可维护性指数（Maintainability Index）、认知复杂度（Cognitive Complexity）、缺陷密度（Defect Density）、缺陷率（Defect Rate）、技术债（Technical Debt）、代码覆盖率（Code Coverage））
+│   └── 最高频组合（自由文本，e.g. "满意度-绩效-效率（Satisfaction-Performance-效率）", 5/39）
+│
+├── [树-discussion-tetrad] 解释性视角（McLuhan）
+│   ├── 增强（enhance）：样板代码、语法回忆、初始脚手架、探索性原型
+│   ├── 反转（reverse）：过度依赖、自动化自满、自主性削弱、协作减少
+│   ├── 淘汰（obsolesce）：在线搜索、问答平台
+│   └── 唤回（retrieve）：文档、需求获取、遗留现代化
+│
+└── [树-威胁] 有效性威胁
+    ├── 综述过程威胁（封闭枚举 4：研究选择偏倚（研究 selection bias）| 以人为中心的识别（human-centered identification）| 偏倚与可重复性（bias & repeatability）| 分类严谨性（分类 rigor））
+    └── 原始证据基础威胁（封闭枚举 3：形成性与受控研究主导（formative/controlled dominance） | 方法多样性（methodological diversity） | 时间相关性（temporal relevance））
+```
+
+主干说明：
+
+- **维度森林（森林），不是单树**：RQ0/1/2/3 各成独立子树，但都挂在 PS-id 主键上；Tetrad 与 Threats 是解释性覆盖层（interpretive overlay），不直接挂 PS。
+- **取值空间饱和度**：[树-RQ0] author/venue/工具 是开放枚举；[树-RQ1] strategy/procedure/objective 是封闭枚举（直接来自外部 分类法）；[树-RQ2] 收益 / 风险（benefit/risk） 是封闭枚举（8+5，由 主题分析 收敛）；[树-RQ3] SPACE 维度是封闭 5 维 + 涌现子维度（emergent sub-dimensions）。
+
+### 4. 叶子维度表
+
+仅列原文已锚定的代表性叶子（共 21 项；完整模式 还有 ~10 项需 A2a 精核精确分母）：
+
+| 叶子标识 | 中文名称 | 父节点 | 原文字段来源 | 定义 | 取值空间 | 取值空间类型 | 缺失值语义 | 统计用途 | 候选发现用途 | 证据锚点 | 迁移边界 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| leaf-ps-id | 论文主键 | 树-meta | 抽取 form | PS1..PS39 | 39 个枚举 | 完整枚举 | 不适用 | 全表分母 | 全表主键 | §3.2 + Fig. 1 | 主键模式可迁移 |
+| leaf-ps-qa-score | QA 综合分数 | 树-meta | QA rubric §3.3 | 11 criteria avg ≥ 50% | [0,4] 区间，per criterion 0..4 Likert | 数值 | 不达阈值=excluded | eligibility filter | 质量-weighted 发现 | §3.3, Table 2 | 全可迁移 |
+| leaf-pub-year | 发表年份 | 树-RQ0 | RQ0 §4.1 | 年 | 2014..2024；`2025-Jan` 仅作图形/metadata 异常待核 | 数值 | 不适用 | landscape 时间分布 | 时间漂移风险 | §4.1 Fig. 2 | 可迁移；A2a 前不得把 2025-Jan 当 primary-study year |
+| leaf-venue-focus | venue 研究焦点 | 树-RQ0 | Table 3 §4.3 | 6 个 focus 大类 | {SE/CS, HCI, IS/Decision, Human-Aspects, AI Eng, SE Edu} | 完整枚举 | uncategorized | 社区分布 | 跨社区融合 缺口（gap） | §4.3 Table 3 | 可迁移 |
+| leaf-llm-工具 | 使用的 LLM 工具 | 树-RQ0 | Table 4 §4.4 | 22 个 工具 name | open enumeration | 开放枚举 | 未报告 | 工具集中度 | 工具漂移 risk | §4.4 Table 4 | 可迁移结构 |
+| leaf-strategy | 实证策略 | 树-RQ1 | Stol-Fitzgerald 分类法 | 6 类 | {现场研究, Field Exp, ExpSim, Lab Exp, Sample, Judgment} | 完整枚举 | 不适用 | 策略分布 (38/23/15/13/5/5%) | 生态效度 risk | §5.1 Table 5 | 可迁移 |
+| leaf-procedure | 方法 procedure | 树-RQ1 | Glass-Vessey-Ramesh | 5 类 | {调查（调查）, 用户实验（用户实验）, 案例研究（案例研究）, 访谈（访谈）, 概念实现（概念实现）} | 多选完整枚举 | 不适用 | procedure 分布 (82/41/31/26/10%) | 混合方法 比例 | §5.2 Table 6 Fig. 4 | 可迁移 |
+| leaf-objective | 研究目标 | 树-RQ1 | Hartson | formative / summative | 完整枚举 2 | 不适用 | formative/summative 比例 (59/41%) | 证据成熟度 | §5.2 Page 14 | 可迁移 |
+| leaf-analysis-type | 分析类型 | 树-RQ1 | 抽取 | quant / qual / 混合 | 完整枚举 3 | 不适用 | 比例 (13/21/67%) | triangulation indicator | §5.2 Page 14 | 可迁移 |
+| leaf-instrument-origin | 工具来源 | 树-RQ1 | Table 7 §5.3 | designed-by-authors / validated | 完整枚举 2 | 不适用 | validated 比例 (15/39 ≈ 38%) | 可比性 risk | §5.3 Table 7 | 可迁移 |
+| leaf-instrument-name | 工具名称 | 树-RQ1 | Table 7 | 含 NASA-TLX, SPACE, TAM, AAR/AI, self-eff, emotion, TCQ, RBV 等 | 开放枚举 | 未报告 | 各工具出现频次 | 标准化 缺口（gap） | §5.3 Table 7 | 可迁移 |
+| leaf-指标-time-completion | time-to-completion 使用 | 树-RQ1 | §5.3.1 | 是否使用 | 布尔 | 未报告=false | 31% (12/39) | 跨策略对比 | §5.3.1 Page 15 | 可迁移 |
+| leaf-指标-acceptance-rate | LLM 建议接受率 | 树-RQ1 | §5.3.2 | 是否使用 | 布尔 | 未报告=false | 7/39 | proxy 指标 caution | §5.3.2 Page 15–16 | 可迁移含 caveat |
+| leaf-指标-cognitive-load | 认知负荷（NASA-TLX 等） | 树-RQ1 | §5.3.3 | 若干研究报告认知负荷或相关构念；NASA-TLX 子集与非 NASA-TLX 子集需拆分 | 布尔 + outcome direction | 混合：改善 / 中性 / 负面或挫败感增加并存 | 待 A2a 逐项核验 | contested construct | §5.3.3 Page 16 | 可迁移含 polarity，但不得写固定 6 篇 NASA-TLX 3/2/1 分布 |
+| leaf-benefit-theme | 收益主题（8） | 树-RQ2 | §6.1 + Table 8 + Fig. 6 | 8 项封闭枚举 | 完整枚举 | 不适用 | 主题频次 (15/14/12/10/8/7/7/4 待 A2a 核) | 候选发现 | §6.1 Page 17–22 | 主题结构可迁移；具体主题不可 |
+| leaf-risk-theme | 风险主题（5） | 树-RQ2 | §6.2 + Fig. 6 | 5 项封闭枚举 | 完整枚举 | 不适用 | 主题频次 (7/6/5/3/?? 待 A2a) | 候选发现 + boundary | §6.2 Page 22–24 | 主题结构可迁移 |
+| leaf-contested-flag | 双向主题标志 | 树-RQ2 | §6.1.7 + §6.2.3 + Discussion | "改善代码质量（improve code 质量）" 与 "限制代码质量（limit code 质量）" 同时存在 | 布尔 | false=未发现矛盾 | 矛盾度指标 | reviewer-defense | §8.3 "remains unresolved" | 模式可迁移 |
+| leaf-space-dim | SPACE 维度（5） | 树-RQ3 | Forsgren et al. + Table 10 | 5 维 | 完整枚举 | 不适用 | Sat 77% / Perf 64% / Eff 59% / Act 31% / Comm 26% | dimension coverage 缺口（gap） | §7 Table 10 Fig. 7/8 | 框架特定，结构可迁移 |
+| leaf-space-coverage-计数 | SPACE 覆盖维数 | 树-RQ3 | §7 计算 | 每 PS 覆盖维数 | 0..5 | 数值 | 0=未覆盖 | 90%/44%/15% 阈值统计 | multidim 成熟度 | §7 Page 25 | 可迁移概念 |
+| leaf-space-sub-dim | SPACE 子维度 | 树-RQ3 | Table 10 §7 | 层级枚举 | 层级枚举（例如满意度 → {开发者体验、自我效能、信任、认知负荷、福祉}） | 层级枚举 | well-being=∅(0/39) | sub-dim 缺口（gap） | underexplored detection | §7 Page 25–27 | 框架特定 |
+| leaf-质量-指标-instance | 质量度量实例 | 树-RQ3 | Table 11 | 13 指标 名 | 开放枚举 | 未报告 | 各 指标 出现 PS 集合 | 异质性度量 | §7 Table 11 | 可迁移结构 |
+
+> 还需 A2a 精核以达到原生模式 全集：威胁 sub-category 拆分、Fig. 6 雷达精确 8/5 数字、Table 9 risk summary 行级映射、PS×venue 全表（39 行）、PS×工具 全表、QA scores 表（来自 supplemental appendix）、5 实践者 recs / 3 研究者 recs 作为 推荐 叶子 等。
+
+### 5. 关系边表
+
+| 关系边标识 | 源节点 | 关系类型 | 目标节点 | 目标取值空间 | 缺失值语义 | 证据锚点 | 用途 |
+|---|---|---|---|---|---|---|---|
+| 关系边-strategy×instrument | leaf-strategy | 最常共同出现（association / most common with） | leaf-data-source / leaf-instrument-name | 自我报告 vs 行为/绩效指标（self-reported vs behavioral/performance） | 未报告 | §5.3 Fig. 5 Sankey | "behavioral 指标 多与 Lab/Field Exp/ExpSim 关联；self-reported 多与 field/sample" |
+| 关系边-strategy×procedure | leaf-strategy | 共现 | leaf-procedure | 多选 | 未报告 | §5.2 Fig. 3 stacked | "user-experiment 几乎独占 lab experiment" |
+| 关系边-procedure×procedure | leaf-procedure | 混合方法组合 | leaf-procedure | 二元组 | 不适用 | §5.2 Fig. 4 UpSet | 最常见组合 用户实验 + 调查 (n=10) |
+| 关系边-benefit×risk-contested | 收益主题：改善代码质量 | 与……形成争议 | 风险主题：限制代码质量 | 不适用 | 不适用 | §6.1.7 + §6.2.3 + §8.3 | “代码质量双向发现” |
+| 关系边-space-dim×dim | leaf-space-dim | 共现 | leaf-space-dim | 二元/三元组合 | 不适用 | §7 Fig. 8 UpSet | Sat-Perf-Eff (5/39) 最常组合 |
+| 关系边-ps×space-sub | leaf-ps-id | 研究覆盖 | leaf-space-sub-dim | 层级枚举 | 未报告 | §7 Table 10 | 逐原始研究维度映射 |
+| 关系边-ps×benefit | leaf-ps-id | 报告收益 | 收益主题叶子 | 多选 | 未报告 | §6.1 Table 8 | 逐原始研究主题挂接 |
+| 关系边-ps×risk | leaf-ps-id | 报告风险 | 风险主题叶子 | 多选 | 未报告 | §6.2 Table 9 | 逐原始研究风险挂接 |
+| 关系边-ps×qa | leaf-ps-id | 质量评分为 | 质量评分叶子 | [0,4]，按 QA1..QA11 汇总 | 缺失 = 未进入质量评价 | §3.3 + Zenodo supplemental | 资格门禁 |
+| 关系边-tetrad×收益 / 风险 | 四元解释框架（增强 / 反转 / 淘汰 / 恢复） | 综合自 | 收益 / 风险主题子集 | 不适用 | 不适用 | §8.1 + Fig. 9 | 解释性综合 |
+
+显式关系型 模式 存在；该论文在 Fig. 3/4/5/7/8 大量使用 stacked / UpSet / Sankey 表示交叉关系，本质上把 PS-id × dimension 矩阵展开为视觉关系图。
+
+### 6. 统计观察、候选发现 与 最终发现边界
+
+#### 6.1 由字段/统计表支撑的统计观察（可作为后续主统计池候选）
+
+1. 时间分布：2014–2022 仅 4 篇；2024 占 77%（30/39）（§4.1）。
+2. 作者集中度：154 位作者中 147 位单篇；Igor Steinmacher 3 篇（§4.2）。
+3. Venue focus 分布：SE/CS 46%；HCI 18%；IS 13%；Human-Aspects 10%；AI Eng 8%；SE Edu 5%（§4.3 Table 3）。
+4. 工具集中度：ChatGPT 15, Copilot 14, 其他（Others） ≤3（§4.4 Table 4）。
+5. Strategy 分布：Lab 38%/15、Field 23%/9、Sample 15%/6、ExpSim 13%/5、Field Exp 5%/2、Judgment 5%/2（Table 5）。
+6. Procedure 分布：调查 82%, User Exp 41%, Case 31%, 访谈 26%, Concept Impl 10%（Table 6）。
+7. 混合（Mixed）-方法：69%（27/39）（§5.2）。
+8. Formative/summative：59% / 41%（§5.2）。
+9. Analysis：混合 67%, qual-only 21%, quant-only 13%（§5.2）。
+10. Time-to-completion 使用率 31%（§5.3.1）。
+11. SPACE 多维覆盖：90% ≥2, 44% ≥3, 15% ≥4；S 77, P 64, E 59, A 31, C 26%（§7）。
+12. Communication 子维：human-LLM 7/10, human-human 3/10（§7 Page 27）。
+13. Well-being：0/39（§7 Page 26 + §8.3）。
+14. QA 排除：5/44；最终 39（§3.3）。
+
+#### 6.2 由 discussion / 威胁 支撑的候选发现（candidate）
+
+1. Code-质量 双向 contested：作者明确 "remains unresolved"（abstract + §8.3 + §9.2）。
+2. 认知负荷 evidence mixed：NASA-TLX 子集与非 NASA-TLX 子集需要 A2a 逐项拆分；当前只能记录“改善 / 中性 / 负面或挫败感增加并存”，不得写成 6 篇 NASA-TLX 的固定 3/2/1 分布。
+3. Acceptance-rate proxy 风险：PS16 自我警告 blind reliance（§5.3.2）。
+4. Throughput 与 code 质量 负相关 r=−0.45（PS26 econometric, §5.3.4 + §8.2）。
+5. Multidim adoption 增长但仍不充分（15% 才 ≥4 维, §7 summary）。
+6. 77% per 2024 → 时间相关性（temporal relevance） 威胁（§9.2）。
+7. 五条 实践者 recs + 三条 研究者 recs（§8.2/§8.3）。
+
+#### 6.3 对 Paper2 可迁移的方法学启发
+
+- **RQ-driven 抽取 模式 设计**（每 RQ 绑定一组 分类法 + 抽取 fields + summary block）。
+- **外部 分类法 + emergent thematic 代码** 的混合 模式（5 个外部 分类法 + 8/5 themes）。
+- **PRISMA 分母链 + exclusion code 频次 + Rayyan + snowballing** 的 selection 模式。
+- **11-item QA rubric + 5-Likert + 50% threshold**：可作为 Paper2 PS eligibility gate 模板。
+- **contested-flag**：把"同一字段在 benefit 与 risk 双向出现"标为一等结构。
+- **measurement 框架 + interpretation 框架 分层**（SPACE for measurement, Tetrad for interpretation）。
+- **per-RQ end-of-section "Summary" 段落格式**：数字 + 主导模式 + caveat 三段式。
+
+#### 6.4 绝不可迁移的领域结论
+
+- "LLM-assistants 加速开发 / 减少搜索 / 提升或降低代码质量" 等 RQ2 收益 / 风险（benefit/risk） 主题结论本身只限 LLM-assistants × developer-productivity 主题。
+- SPACE 框架本体不可直接搬到 Paper2 的方法论 模式（除非目标问题确是 productivity）。
+- 具体百分比（77/64/59/31/26%）只能作为该子领域时间切片证据。
+
+## survey_of_surveys 自身 schema 抽取
+
+本节把该论文投影到本目录自己的脚手架综述 schema（S1--S8）。判定等级只说明该维度在原文和本地证据链中的可用程度：`强` = 有明确原文结构和证据锚点；`中` = 有可复用结构但存在范围、裁决或精核限制；`弱` = 只作边界启发或风险提示；`不适用` = 原文类型不支持该维度进入统计池。
+
+| 维度 | 判定等级 | 一句话抽取结果 | 证据位置 |
+|---|---|---|---|
+| S1 综述任务设定 | 强 | 本文设定为围绕 LLM-assistants 对软件开发者生产力影响的 SLR+SMS，RQ0--RQ3 覆盖研究图景、方法实践、收益/风险和 SPACE 维度映射。 | `review.md` §2.1、§2.2；`evidence_chain.md` A.3 `clm-llm-assistants-developer-productivity-type` |
+| S2 语料收集与筛选 | 强 | 给出数据库、控制论文、五轮 query iteration、纳排标准、Rayyan 筛选、snowballing、QA 排除和 9756→8953→228→44→39 的分母链。 | `review.md` §2.3--§2.5；`evidence_chain.md` A.2 `ev-llm-assistants-developer-productivity-denom` |
+| S3 原生维度树/样本编码对象 | 强 | 原生编码对象是 39 篇 peer-reviewed 原始研究 PS1--PS39，维度结构是以 PS-id 为主键的多根 RQ 维度森林。 | `review.md` 维度树复原 §0、§2、§3；`evidence_chain.md` A.3 `clm-llm-assistants-developer-productivity-unit`、`clm-llm-assistants-developer-productivity-tree` |
+| S4 字段级证据 | 强 | 字段级抽取覆盖 study goals、tools、strategy/design、tasks、settings、key results、instrument、metric、benefit/risk、SPACE mapping，并通过表格和 PS-id 保持可追踪。 | `review.md` §2.6、§4、维度树复原 §4；`evidence_chain.md` A.2 `ev-llm-assistants-developer-productivity-tree` |
+| S5 维度模式演化 | 强 | 本文体现外部分类法 + emergent thematic coding：先用既有 taxonomy/SPACE 框架，再经 targeted thematic analysis 形成 benefit/risk 与 SPACE sub-dimensions。 | `review.md` §2.6、§4、§5；维度树复原 §3、§6.3 |
+| S6 统计分析 | 强 | RQ0--RQ3 将字段表转化为频次、比例、分布、交叉关系、组合覆盖和缺口统计。 | `review.md` §2.7--§2.10、§5；维度树复原 §6.1 |
+| S7 候选 finding | 强 | 本文从统计观察与 discussion 形成候选发现，并保留 contested finding 与边界条件，例如 code quality 同时作为 benefit/risk。 | `review.md` §2.9、§2.11、§7.1；维度树复原 §6.2 |
+| S8 研究者/作者质疑与裁决 | 中 | 本文没有正式裁决日志或一致性系数；有搜索式集体确认、excluded paper 复查、weekly meetings、citation-against-original-text 回查，但 initial screening/data extraction 主要由第一作者执行。 | `review.md` §2.3、§2.4、§2.6、§2.12 |
+
+### S1--S8 四分栏证据拆分
+
+#### 总体统计池裁决
+
+- **裁决**：可作为 S1--S8 主统计池候选，但当前仅限 **文本级 / schema_seed** 使用；A2a 完成 PDF 版式、表图、supplemental / Zenodo 复现包精核前，不进入最终定量发现。
+- **样本单位**：39 篇 peer-reviewed 原始研究（PS1--PS39），不是综述论文或工具实例；分母链为 9756 → 8953 → 228 → 44 → **39**。
+- **总体边界**：S1--S7 均有明确原文结构支撑；S8 只有团队讨论、复查、保守筛选等过程性描述，没有正式裁决日志 / 一致性系数，因此统计池中建议按 **中** 处理。
+- **建议降级 / 修正**：S4 与 S6 在 `review.md` 中可保留“强”的文本级判断，但若用于最终统计，必须降为“待 A2a 核验后强”；尤其 Fig. 6、Fig. 7/8、Table 9、Table 10/11、supplemental QA / exclusion 细表未核前，不应导出精确主题频次或逐 PS 映射。
+
+| 维度 | 原文证据 | 维度树复原 | 统计池资格 | A2a 待核验 |
+|---|---|---|---|---|
+| S1 综述任务设定 | 原文自称对 2014--2024 年 39 篇 peer-reviewed studies 做 systematic review and mapping；RQ0--RQ3 分别覆盖研究图景、方法/工具、影响收益风险、SPACE 维度映射。 | `review.md` 已复原为 SLR+SMS 混合任务：对象 = LLM-assistants × developer productivity；证据对象 = 原始研究；解释框架 = SPACE + McLuhan Tetrad。 | **可入池（强）**：综述任务、RQ 层级和目标构念清楚，可作为任务设定 schema 统计样本。 | 核对 ACM final 与 arXiv 文本差异、正式发表日期 / DOI；不影响 S1 入池，只影响引用元数据精确性。 |
+| S2 语料收集与筛选 | §3 给出 Kitchenham & Charters 指南、6 个数据库、17 篇 control papers、5 轮 query refinement、IC/EC、Rayyan、snowballing、QA；Fig. 1 给出 9756→8953→228→44→39。 | 维度树中 `树-meta` 已包含纳入状态、排除代码、QA 分数与分母链；`evidence_chain.md` 有 denominator 证据项。 | **可入池（强）**：检索、筛选、排除、QA 分母链完整，适合统计 S2 透明度。 | PDF 核对 Fig. 1 排除代码数；下载 / 核验 supplemental 或 Zenodo 中 selection decisions 与 exclusion rationales 后，才能做逐条排除原因统计。 |
+| S3 原生维度树/样本编码对象 | 原文所有结果围绕 PS1--PS39 展开；RQ0 表征年份/venue/tool，RQ1 表征 strategy/procedure/instrument，RQ2 表征 benefit/risk，RQ3 映射 SPACE。 | 已复原为以 PS-id 为主键的多根 RQ 维度森林：RQ0 landscape、RQ1 method/instrument、RQ2 effect themes、RQ3 SPACE mapping，共享同一原始研究单位。 | **可入池（强）**：样本单位与树型裁决明确，可作为“原始研究主键 + 多根维度森林”模式样本。 | A2a 需核对 PS1--PS39 全表、每张表对 PS 编号的完整映射；若 supplemental 与正文不一致，以最终核验表为准。 |
+| S4 字段级证据 | §3.4 明说抽取 study goals、tools、empirical strategy/design、tasks、settings、key results；Table 5--11 与 Fig. 3--8 展示字段、指标和映射。 | 叶子表已列出 ps-id、QA、pub-year、venue-focus、LLM tool、strategy、procedure、objective、analysis type、instrument、benefit/risk、SPACE dim/sub-dim 等。 | **文本级可入池（强）；最终统计暂缓**：字段类别与字段来源可统计，但逐 PS 完整字段值、表格版式和 supplemental 字段仍待核。 | **关键边界**：Table 7、Table 8、Table 9、Table 10、Table 11 与 Fig. 6/7/8 需 PDF / supplemental 精核；当前只能说“有字段级证据链”，不能导出最终逐字段矩阵。 |
+| S5 维度模式演化 | 原文采用外部 taxonomy（Stol & Fitzgerald、Glass-Vessey-Ramesh、Hartson、SPACE）并通过 thematic analysis 形成 benefit/risk themes 和 SPACE sub-dimensions。 | 维度树复原为“外部分类法 + emergent thematic coding”混合模式；RQ2 8 个收益 / 5 个风险，RQ3 在 SPACE 五维下扩展子维度。 | **可入池（强）**：模式来源、演化路径和开放/封闭枚举边界明确，适合统计 S5。 | A2a 需确认哪些子维度来自既有文献、哪些由本研究数据涌现；需核 supplemental coding 决策才能做“模式演化证据强度”细分。 |
+| S6 统计分析 | 原文报告多组频次/比例：strategy 15/39、procedure 32/39、mixed-methods 27/39、SPACE 90%≥2 维，S/P/E/A/C 分别 77/64/59/31/26；RQ2 用雷达图呈现 benefit/risk 主题频率。 | `review.md` §6.1 已整理统计观察，维度树中关系边覆盖 strategy×procedure、strategy×instrument、benefit×risk contested、SPACE 共现等。 | **文本级可入池（强）；最终定量需冻结分母与表图**：可统计其“有频次/比例/交叉关系分析”，但 RQ2 主题精确频次和部分图形关系不得提前入最终统计。 | **关键边界**：Fig. 6 雷达图、Fig. 7/8 SPACE 分布/UpSet、Fig. 5 Sankey、Table 9 风险行、Table 10 SPACE 映射必须 A2a 视觉核验；最终统计需标注统一分母 39 或局部分母 10/44 等。 |
+| S7 候选 finding | 摘要、RQ2 summary、Discussion 明确给出 mixed findings、code quality contested、over-reliance、team collaboration、well-being/communication 缺口等候选结论。 | 维度树将统计观察与 candidate finding 分开：code quality 双向主题、cognitive load 混合、acceptance-rate proxy 风险、temporal relevance threat 等进入候选发现层。 | **可入池（强）**：候选发现与反向证据/边界条件均清楚，适合统计是否具备 candidate-finding 生成机制。 | A2a 需把每个候选 finding 绑定到表格 / PS 集合 / 原文段落；领域发现不得迁移到本仓库目标领域，只能作为方法模式样本。 |
+| S8 研究者/作者质疑与裁决 | 原文提到 all authors consensus meeting、excluded papers 验证、weekly meetings 9 个月、uncertain full-text 保守保留、citation against original text 回查；但 initial screening/data extraction 主要由第一作者完成。 | 维度树没有独立“裁决日志”节点，只在 threat / mitigation 中记录团队讨论、复查和保守策略；`review.md` 已判为中。 | **可入池（中）**：可统计为存在作者复查与讨论机制；不得统计为有 formal adjudication log、inter-rater agreement 或完整冲突解决矩阵。 | A2a 查 supplemental 是否提供 coding / selection decisions 细表；若无一致性指标或裁决日志，最终仍保持 S8=中，不升级为强。 |
+
+## 证据链入口
+
+详见 [evidence_chain.md](./evidence_chain.md)；A.1--A.4 证据链与结论-证据映射已迁出，当前证据状态（如 `not_verified`、待 A2a、`schema_seed`）保持原样。

@@ -21,7 +21,7 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 9. PR-S0-v2 不实现运行时代码，不跑真实大语言模型，不跑四个真实例子，不冻结最终指标公式；这些分别留给后续设计、试运行、真实运行、评价和相关工作。
 10. 后续若新增基线、脚手架、真实运行或评价结果，必须同步更新 [story/paper_story.md](./story/paper_story.md)、[story/paper_outline.md](./story/paper_outline.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)。
 
-11. 为避免主线停留在“强协议 / 弱证据”，当前 PR 进一步要求后续 A2/A3/A5 至少实例化一组审计制品链：维度模式与修订 / 回填日志、字段级内容证据表、统计分析表、候选发现台账、质疑 / 裁决 / 未解决日志和过程证据包；并用 LLM4STM / LLM4Modeling 的 3--5 篇种子论文完成最小闭环样例。
+11. 为避免主线停留在“强协议 / 弱证据”，当前路线要求先完成 A1/A2a/A2b 的综述之综述脚手架、核心样本与完整快照，再由 A3 消费该快照冻结 schema / contract；只有进入 A4/A5 试运行与评价阶段后，才选择具体 pilot topic 并实例化审计制品链。LLM4STM / LLM4Modeling 可作为贴近博士主线的候选 pilot 线索，但不得作为 A1/A2a/A2b/A3 的默认或阻塞性前置。
 
 ## 3. 目录分层
 
@@ -30,6 +30,7 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 | [story/](./story/) | 论文主线、术语、主张-证据映射、差异化新颖性和章节架构 | [story/README.md](./story/README.md) |
 | [evidence/](./evidence/) | 仓库证据资产、事实漂移政策、引用种子与证据层级 | [evidence/README.md](./evidence/README.md) |
 | [baselines/](./baselines/) | 自动化综述、大语言模型辅助系统综述、综述生成等近邻工作对照入口 | [baselines/README.md](./baselines/README.md) |
+| [survey_of_surveys/](./survey_of_surveys/) | 综述之综述脚手架文库；从 SE SLR/SMS/tertiary/guideline 中抽取 RQ、维度、finding、证据呈现、validity 和报告结构模式先验 | [survey_of_surveys/README.md](./survey_of_surveys/README.md) |
 | [dataset_selection/](./dataset_selection/) | 候选场景与证据资产选择入口；不冻结最终基准 | [dataset_selection/README.md](./dataset_selection/README.md) |
 | [experiment_design/](./experiment_design/) | 评价维度种子和审稿风险登记；不冻结 A5 指标公式 | [experiment_design/README.md](./experiment_design/README.md) |
 | [plan/](./plan/) | 当前任务包、进度、验证命令与能力使用审计 | [plan/README.md](./plan/README.md) |
@@ -41,10 +42,11 @@ PR-S0-v2 将第二篇论文主线收紧为以下口径：
 3. [story/claim_evidence_map.md](./story/claim_evidence_map.md)：写摘要、引言、贡献或 PR 评论 前必须检查。
 4. [story/differential_novelty_matrix.md](./story/differential_novelty_matrix.md)：确认与 AgentSLR、LatteReview、EviSearch、LR-Robot、TrialMind、WSESE@ICSE 2025 等近邻的边界。
 5. [baselines/SUMMARY.md](./baselines/SUMMARY.md)：查看已核验近邻与 B0 基线结论。
-6. [evidence/fact_drift_policy.md](./evidence/fact_drift_policy.md)：引用 PR #97、`sources/` 或历史评论 前必须检查。
-7. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 PR-S0-v2 只冻结哪些评价义务。
-8. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前最高优先级审稿风险。
-9. [plan/progress.md](./plan/progress.md)：查看本 PR 当前状态、检查和剩余风险。
+6. [survey_of_surveys/SUMMARY.md](./survey_of_surveys/SUMMARY.md)：查看 A1 综述之综述脚手架、dry-run 覆盖矩阵和 schema 回修结论。
+7. [evidence/fact_drift_policy.md](./evidence/fact_drift_policy.md)：引用 PR #97、`sources/` 或历史评论 前必须检查。
+8. [experiment_design/evaluation_dimensions_seed.md](./experiment_design/evaluation_dimensions_seed.md)：理解 PR-S0-v2 只冻结哪些评价义务。
+9. [experiment_design/reviewer_risk_register.md](./experiment_design/reviewer_risk_register.md)：查看当前最高优先级审稿风险。
+10. [plan/progress.md](./plan/progress.md)：查看本 PR 当前状态、检查和剩余风险。
 
 ## 5. 文档卫生要求
 
