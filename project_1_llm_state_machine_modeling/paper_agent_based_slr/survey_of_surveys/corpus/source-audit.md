@@ -6,7 +6,7 @@
 |---|---|---|---|
 | issue #95 CCF-A/B 近年综述候选摸排 | [raw/candidates.csv](./raw/candidates.csv) | L0 全量候选账本输入 | 438 条；题名、摘要、venue、CCF、DOI、开放获取字段来自前序摸排。 |
 | issue #95 全文获取审计 | [raw/fulltext-audit.csv](./raw/fulltext-audit.csv) | PDF 线索与失败类型审计输入 | 438 条；记录公开 PDF URL、历史下载状态、本地临时路径和结构分析状态；其中本地临时路径只作线索，不作为可复算事实源。 |
-| Zotero PDF 导入审计 | [raw/zotero-import-2026-07-07.csv](./raw/zotero-import-2026-07-07.csv) / [raw/zotero-import-failed-2026-07-07.csv](./raw/zotero-import-failed-2026-07-07.csv) | 用户本地合法补齐 PDF 后的显式导入记录 | 55 篇成功导入并生成文本；1 篇附件损坏或无法提取文本，继续留在人工下载清单。 |
+| Zotero PDF 导入审计 | [raw/zotero-import-2026-07-07.csv](./raw/zotero-import-2026-07-07.csv) / [raw/zotero-import-failed-2026-07-07.csv](./raw/zotero-import-failed-2026-07-07.csv) | 用户本地合法补齐 PDF 后的显式导入记录 | 54 篇成功导入并生成文本；2 篇附件损坏、内容错配或无法提取文本，继续留在人工下载清单。 |
 | A2a 主候选选择种子 | [raw/selection-seed.csv](./raw/selection-seed.csv) | 主候选 120 的优先级种子 | 100 条；由前序候选摸排按 CCF 等级、年份、主题和综述类型分层得到，用于避免干净 clone 时依赖本机 `/tmp` 隐藏输入。 |
 | A1 已合入文库 | [../papers/](../papers/) | 继承 13 篇入池候选与 6 篇边界 / 方法样本 | A1 的 `review.md` / `evidence_chain.md` 不被 A2a 覆盖。 |
 

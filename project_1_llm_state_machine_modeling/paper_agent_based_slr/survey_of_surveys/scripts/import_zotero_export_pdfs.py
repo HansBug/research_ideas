@@ -203,6 +203,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--zotero-bib", required=True, type=Path, help="Zotero-exported .bib with file fields")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--retry-failures", action="store_true", help="Retry slugs already listed in the Zotero failure manifest")
     args = parser.parse_args()
 
     zotero_bib = args.zotero_bib.resolve()
@@ -221,8 +222,17 @@ def main() -> None:
     no_attachment = []
     unmatched = []
     extraction_failed = []
+    known_failure_skipped = []
+    existing_failure_manifest = CORPUS / "raw" / "zotero-import-failed-2026-07-07.csv"
+    known_failed_slugs = set()
+    if existing_failure_manifest.exists() and not args.retry_failures:
+        with existing_failure_manifest.open(newline="", encoding="utf-8") as f:
+            known_failed_slugs = {row.get("slug", "") for row in csv.DictReader(f) if row.get("slug", "")}
 
     for slug in sorted(manual_slugs):
+        if slug in known_failed_slugs:
+            known_failure_skipped.append(slug)
+            continue
         row = corpus_by_slug[slug]
         doi = norm_doi(row.get("doi"))
         title = norm_title(row.get("title"))
@@ -309,6 +319,7 @@ def main() -> None:
         "skipped_existing": len(skipped_existing),
         "no_attachment": len(no_attachment),
         "unmatched": len(unmatched),
+        "known_failure_skipped": len(known_failure_skipped),
         "extraction_failed_count": len(extraction_failed),
         "manifest": str(manifest_path.relative_to(SURVEY)) if imported else "",
         "failure_manifest": str(failure_manifest_path.relative_to(SURVEY)) if extraction_failed else "",

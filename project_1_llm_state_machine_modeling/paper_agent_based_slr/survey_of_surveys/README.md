@@ -20,7 +20,7 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 > [!IMPORTANT]
 > PR-A2a 已新增 [corpus/](./corpus/) 作为后续 100+ 综述语料候选的主入口。A1 的 [search/](./search/) 保留为历史检索与 dry-run 归档；A2a 以后仍然活跃的候选账本、主候选、替补、边界池、PDF 状态和人工下载清单以 [corpus/README.md](./corpus/README.md) 为入口。
 
-当前 A2a 语料状态：全量候选 438，系统化候选 293，主候选 120，替补 / 留出 40，边界池 145；其中 core + reserve 已取得 PDF / 文本 70 篇，仍需人工下载 90 篇。详见 [corpus/source-audit.md](./corpus/source-audit.md)、[corpus/selection.md](./corpus/selection.md) 与 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。这些只是候选语料，不代表 120 篇全文深读完成，也不代表最终统计分母。
+当前 A2a 语料状态：全量候选 438，系统化候选 293，主候选 120，替补 / 留出 40，边界池 145；其中 core + reserve 已取得 PDF / 文本 69 篇，仍需人工下载 91 篇。详见 [corpus/source-audit.md](./corpus/source-audit.md)、[corpus/selection.md](./corpus/selection.md) 与 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。这些只是候选语料，不代表 120 篇全文深读完成，也不代表最终统计分母。
 
 ## 1. 定位
 
@@ -39,7 +39,7 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基、候选池、字段合同和有限 dry-run；PR #135 / A1-DT v2 已在此基础上完成 19 篇 × 3 路 CLI 审计和单篇 `review.md` 返修，用来冻结“原生样本编码维度树 / 维度森林”的当前事实口径。
 
 - 当前资产为 19 篇全文文本级 dry-run / 维度锚点：其中 9 篇来自 A1 初始 dry-run，10 篇来自 issue #95 现代 CCF-A/B 综述候选池扩展。
-- A1 历史 active metadata-only / 需人工下载条目为 0；A2a 当前 core / reserve 仍有 90 篇需要人工下载，活跃清单转到 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
+- A1 历史 active metadata-only / 需人工下载条目为 0；A2a 当前 core / reserve 仍有 91 篇需要人工下载，活跃清单转到 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
 - A1 scaffold 主验收仍按 3--5 篇 dry-run 口径判断；新增 10 篇只用于加固现代维度 scaffold、A1-M0--M6 元维度和失败 / 边界口径，不代表扩展为完整文库。
 - A1-DT v2 已完成 57/57 三路 CLI 审计、19/19 主线程裁决和 19/19 单篇返修；运行日志保留命令、时间、returncode、stdout/stderr 与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录任何 secret。
 - 这些样本用于验证脚手架可执行性，不代表覆盖完整 SE 综述文献空间。

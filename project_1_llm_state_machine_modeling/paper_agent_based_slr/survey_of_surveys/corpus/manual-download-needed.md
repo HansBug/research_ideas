@@ -2,7 +2,7 @@
 
 本文件由 `scripts/build_corpus_tables.py` 生成，列出主候选 / 替补中自动获取 PDF 失败、需要人工导入 Zotero 下载的条目。
 
-- 当前需人工下载：90 篇。
+- 当前需人工下载：91 篇。
 - BibTeX 汇总：[manual-download-needed.bib](./manual-download-needed.bib)。
 
 | 优先级 | 层级 | 年份 | CCF | 标题 | DOI / URL | 失败类型 |
@@ -41,6 +41,7 @@
 | P1 | core | 2023 | CCF-B | A systematic mapping study of bug reproduction and localization | https://doi.org/10.1016/j.infsof.2023.107338 | paywall |
 | P1 | core | 2025 | CCF-B | A systematic mapping study of crowd knowledge enhanced software engineering research using Stack Overflow | https://doi.org/10.1016/j.jss.2025.112405 | paywall |
 | P1 | core | 2026 | CCF-B | Adoption of AI tools in software development: a systematic literature review | https://doi.org/10.1016/j.scico.2026.103521 | paywall |
+| P1 | core | 2022 | CCF-B | Architectural tactics in software architecture: A systematic mapping study | https://doi.org/10.1016/j.jss.2022.111558 | broken_pdf |
 | P1 | core | 2025 | CCF-B | Artificial intelligence and machine learning in enhancing software project management processes: A systematic literature review | https://doi.org/10.1007/s10515-025-00578-6 | broken_pdf |
 | P1 | core | 2025 | CCF-B | Automatic Code Generation Techniques: A Systematic Literature Review | https://doi.org/10.1007/s10515-025-00551-3 | broken_pdf |
 | P1 | core | 2026 | CCF-B | BPMN Extensions Updated: A Systematic Literature Review | https://doi.org/10.1002/smr.70127 | paywall |

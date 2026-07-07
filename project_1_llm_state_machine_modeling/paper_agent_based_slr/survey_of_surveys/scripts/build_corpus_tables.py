@@ -461,7 +461,7 @@ def main() -> None:
                         norm_text(metadata.get("source_note"))
                         if metadata.get("a2a_pdf_source") == "user_zotero_export" and existing_pdf.exists()
                         else (
-                            "用户本地 Zotero 附件存在，但 PDF 结构损坏或文本提取失败；已清理半成品并继续列入人工下载清单"
+                            "用户本地 Zotero 附件存在，但 PDF 结构损坏、内容错配或文本提取失败；已清理半成品并继续列入人工下载清单"
                             if rec["slug"] in zotero_failed
                             else norm_text(audit_row.get("download_error_or_source"))
                         )

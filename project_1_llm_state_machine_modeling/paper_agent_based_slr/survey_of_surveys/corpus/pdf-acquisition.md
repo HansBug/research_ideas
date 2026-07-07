@@ -8,7 +8,7 @@ A2a 只使用合法开放来源：原始表中的开放 PDF 链接、OpenAlex �
 
 | 层级 | downloaded | manual_needed | not_applicable | 说明 |
 |---|---:|---:|---:|---|
-| 主候选 | 64 | 56 | 0 | 13 篇来自 A1；2 篇由 A2a 自动从开放 PDF 链接获取；49 篇由用户本地 Zotero 导出显式复制入仓库。 |
+| 主候选 | 63 | 57 | 0 | 13 篇来自 A1；2 篇由 A2a 自动从开放 PDF 链接获取；48 篇由用户本地 Zotero 导出显式复制入仓库。 |
 | 替补 / 留出 | 6 | 34 | 0 | 6 篇由用户本地 Zotero 导出显式复制入仓库；其余仍需人工下载或后续合法开放链接补抓。 |
 | 边界池 | 0 | 0 | 145 | A2a 不强制获取边界池 PDF。 |
 
@@ -29,7 +29,7 @@ A2a 只使用合法开放来源：原始表中的开放 PDF 链接、OpenAlex �
 python -m tools.pdf_extractor -i papers/<slug>/paper.pdf -o papers/<slug>/paper_content.txt -m text
 ```
 
-A2a 不批量生成正式 `review.md`。新增候选目录中的 `metadata.json` 只标记 `a2a_review_status = not_started`。本轮 Zotero 导入审计见 [raw/zotero-import-2026-07-07.csv](./raw/zotero-import-2026-07-07.csv)；失败附件见 [raw/zotero-import-failed-2026-07-07.csv](./raw/zotero-import-failed-2026-07-07.csv)。
+A2a 不批量生成正式 `review.md`。新增候选目录中的 `metadata.json` 只标记 `a2a_review_status = not_started`。本轮 Zotero 导入审计见 [raw/zotero-import-2026-07-07.csv](./raw/zotero-import-2026-07-07.csv)；失败 / 错配附件见 [raw/zotero-import-failed-2026-07-07.csv](./raw/zotero-import-failed-2026-07-07.csv)。
 
 ## 4. 失败分类
 
@@ -46,4 +46,4 @@ A2a 不批量生成正式 `review.md`。新增候选目录中的 `metadata.json`
 
 ## 5. 当前结论
 
-A2a 已经完成“对 core + reserve 全部记录获取状态”的门禁，并通过本轮 Zotero 导入把可深读全文从 15 篇提升到 70 篇；但 PDF 实际可得性仍是 A2b 的主要执行风险。A2b 启动前应继续处理剩余 P0 / P1 人工下载条目；不得因为 PDF 暂不可得而把条目从主候选中删除。
+A2a 已经完成“对 core + reserve 全部记录获取状态”的门禁，并通过本轮 Zotero 导入把可深读全文从 15 篇提升到 69 篇；但 PDF 实际可得性仍是 A2b 的主要执行风险。A2b 启动前应继续处理剩余 P0 / P1 人工下载条目；不得因为 PDF 暂不可得而把条目从主候选中删除。

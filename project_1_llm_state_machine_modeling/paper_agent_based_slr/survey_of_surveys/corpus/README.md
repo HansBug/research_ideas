@@ -12,10 +12,10 @@
 | 替补 / 留出语料 | 40 | [tables/reserve-corpus.csv](./tables/reserve-corpus.csv) |
 | 边界 / 方法启发池 | 145 | [tables/boundary-pool.csv](./tables/boundary-pool.csv) |
 | PDF 状态记录 | 305 | [tables/pdf-status.csv](./tables/pdf-status.csv) |
-| 已取得 PDF / 文本 | 70 | [tables/pdf-status.csv](./tables/pdf-status.csv) |
-| 需人工下载 | 90 | [manual-download-needed.md](./manual-download-needed.md)、[manual-download-needed.bib](./manual-download-needed.bib) |
+| 已取得 PDF / 文本 | 69 | [tables/pdf-status.csv](./tables/pdf-status.csv) |
+| 需人工下载 | 91 | [manual-download-needed.md](./manual-download-needed.md)、[manual-download-needed.bib](./manual-download-needed.bib) |
 
-当前 PDF 状态：core + reserve 中 70 篇已有本地 PDF / 文本，其中 13 篇继承 A1 精核资产，2 篇由 A2a 自动从开放 PDF 链接获取，55 篇由用户本地 Zotero 导出显式复制入仓库；仍有 90 篇保留在人工下载清单中。PDF 可得性不改变候选资格，只改变执行状态。`PDF 状态记录 = 305` 指 core 120 + reserve 40 + boundary 145 三层状态记录之和，其中 boundary 145 均为 `not_applicable`。
+当前 PDF 状态：core + reserve 中 69 篇已有本地 PDF / 文本，其中 13 篇继承 A1 精核资产，2 篇由 A2a 自动从开放 PDF 链接获取，54 篇由用户本地 Zotero 导出显式复制入仓库；仍有 91 篇保留在人工下载清单中。PDF 可得性不改变候选资格，只改变执行状态。`PDF 状态记录 = 305` 指 core 120 + reserve 40 + boundary 145 三层状态记录之和，其中 boundary 145 均为 `not_applicable`。
 
 ## 文件说明
 
