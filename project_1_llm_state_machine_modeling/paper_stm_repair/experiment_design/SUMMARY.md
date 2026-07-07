@@ -13,7 +13,7 @@
 | source trace / patch projection | 未定义 | 必须先记录 raw/source element 与 intermediate representation 的映射，否则无法回到 source 层评价。 |
 | loop IO / run record | 未冻结 | 真实 repair loop 尚未重跑；必须先冻结 stage input/output、失败态和 redaction。 |
 | closure / regression audit | 未定义 | 需要基于真实 repair/change ledger 与 post-repair rediscovery 设计。 |
-| final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source `STM_k` 后再冻结。 |
+| final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）后再冻结。 |
 
 ## 3. R5.7 archive 状态
 
@@ -40,4 +40,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 00:20:00 | `PR-better-archive` review 后将 pilot 后产物记号从易混淆的 active `STM_k` 改为 `STM_final`，避免与 archived constructed `STM_k` 混淆。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写总账：R5.7 资产 cold archived，active 实验设计回到 source-level issue lifecycle。 |

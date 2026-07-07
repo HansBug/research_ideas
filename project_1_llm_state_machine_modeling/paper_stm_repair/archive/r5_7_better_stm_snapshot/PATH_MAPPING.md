@@ -47,6 +47,8 @@ find project_1_llm_state_machine_modeling/paper_stm_repair/archive/r5_7_better_s
 | payload total | 885 | 4 |
 | snapshot total including this README/PATH_MAPPING | 887 | 4 |
 
+> Symlink note：`pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/bundles/` 下 4 个 symlink 均属于 historical logical bundle fan-in。`0001` / `0018` 指向本 archive 内 R5.7.4 standalone exports；`0000` / `0045` 指向 active R4.5 selected-smoke representation exports。后续若重构 active R4.5 路径，必须同步保持这些 historical links 可读，或以单独 archive-maintenance PR 物化其目标。
+
 ## 3. 复用限制
 
 1. 本 mapping 只证明历史证据未丢失，不证明 archive 资产仍可作为 active protocol。

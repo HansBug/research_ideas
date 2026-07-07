@@ -19,6 +19,10 @@ R5.7 的 Better STM 框架在阶段性上有价值：它暴露了 attribution bo
 
 本 snapshot payload 当前共包含 **889** 个条目（885 个 regular files + 4 个 symlinks）；若计入本 archive 入口 [README.md](./README.md) 与 [PATH_MAPPING.md](./PATH_MAPPING.md)，总计 **891** 个条目。
 
+### 2.1 representation symlink 说明
+
+[pipeline/representation/](./pipeline/representation/) 中的 4 个 symlink 是 R5.7.4 / R5.7.5 历史 logical bundle fan-in 的一部分。其中 `0001` / `0018` 指向本 archive 内物化的 R5.7.4 standalone exports；`0000` / `0045` 指向仍在 active 主路径维护的 R4.5 selected-smoke representation exports。当前这 4 个 symlink 已由测试覆盖且均可解析；若后续重构 active R4.5 representation 路径，必须同步保持这些 historical symlink 可读，或在新的 archive-maintenance PR 中将对应目标物化进本 snapshot。
+
 ## 3. 禁止外推
 
 从本目录不得推出以下结论：

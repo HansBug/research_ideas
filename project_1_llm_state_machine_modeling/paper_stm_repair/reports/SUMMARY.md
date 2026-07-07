@@ -12,6 +12,8 @@
 
 本 SUMMARY 不复制完整大表。row-level canonical facts 以 [../pipeline/](../pipeline/) 下 JSON / JSONL / ZIP / committed artifact，以及 [../corpora/](../corpora/) 下的一手 raw / extracted assets 为准。
 
+> **历史口径提醒**：下方 active report 总表中的 R5 / R5.5 报告是 **pre-R5.7 / pre-strategy-reset historical reports**。它们可能保留 “Better STM”、`STM_k` 或早期 scope wording，但这些 wording 只反映当时的方向性探索；不得作为当前 paper1 的 active evaluation framework、method result、baseline contract 或 `fcstm` contribution 证据。当前 story / contribution / evaluation 口径以 [../README.md](../README.md)、[../story/README.md](../story/README.md) 与 [../experiment_design/README.md](../experiment_design/README.md) 为准。
+
 ## 2. Active report 总表
 
 状态口径：🟢 = 已迁移且有来源 / 证据 / 复验入口；🟡 = 缺少来源、证据锚点、复验命令或 caveat；🔴 = 不应作为 canonical report 使用。
@@ -51,6 +53,7 @@
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-08 00:20:00 | `PR-better-archive` review 后补充 R5 / R5.5 active report 的 historical wording 提醒，避免早期 Better STM / `STM_k` wording 被误读为当前 active 口径。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后将 R5.7.1--R5.7.5 六份报告从 active reports 总账移到 archive pointer。 |
 | 2026-06-30 15:32:00 | 按 R5.6 academic review 修正 reports 总账 currentness：明确 4 份旧 report 仅被 R5.5.2 部分覆盖，当前 `llms-emp` 状态数字以 R5.5.2 recovery report 为准。 |
 | 2026-06-29 01:48:34 | 初始化 reports 文库，迁移秒级 human-facing report，并建立入口三件套。 |
