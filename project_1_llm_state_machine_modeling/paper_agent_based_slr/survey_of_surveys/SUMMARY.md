@@ -1,5 +1,24 @@
 # survey_of_surveys/SUMMARY.md：综述之综述文库总账
 
+## 0.A A2a 语料主候选建设速读
+
+**当前结论**：A2a 已把前序近年软件工程综述候选摸排整理成集中 `corpus/` 入口。这个阶段解决的是“后续 A2b 要读哪些、哪些已取得 PDF、哪些需要人工下载、候选分母怎么复算”的问题，不解决最终维度树、最终 research finding 或 100+ 全文深读闭合。
+
+| 项 | 数量 | 入口 | 当前判断 |
+|---|---:|---|---|
+| 全量候选账本 | 438 | [corpus/tables/full-candidate-ledger.csv](./corpus/tables/full-candidate-ledger.csv) | 保留候选分母，防止 cherry-pick。 |
+| 系统化候选池 | 293 | [corpus/tables/systematic-candidates.csv](./corpus/tables/systematic-candidates.csv) | 当前脚本识别的 SLR / SMS / MLR / tertiary 候选；最终以 A2b 全文核验为准。 |
+| 主候选语料 | 120 | [corpus/tables/core-corpus.csv](./corpus/tables/core-corpus.csv) | A2b 优先深读对象；包含 A1 已有 13 篇入池候选。 |
+| 替补 / 留出语料 | 40 | [corpus/tables/reserve-corpus.csv](./corpus/tables/reserve-corpus.csv) | 用于替换主候选中后续被排除或全文无法取得的条目。 |
+| 边界 / 方法启发池 | 145 | [corpus/tables/boundary-pool.csv](./corpus/tables/boundary-pool.csv) | 不进入主统计池，只作方法启发或边界说明。 |
+| 已取得 PDF / 文本 | 69 | [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv) | core 63 + reserve 6；只表示可进入 A2b 全文深读，不表示已完成 `review.md`。 |
+| 需人工下载 | 91 | [corpus/manual-download-needed.md](./corpus/manual-download-needed.md) / [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib) | core 57 + reserve 34；PDF 不可得不等于排除。 |
+
+PDF 状态速读：core + reserve 共 69 篇已有本地 `paper.pdf` / `paper_content.txt`，其中 13 篇来自 A1，2 篇由 A2a 自动从开放 PDF 链接获取，54 篇来自用户本地 Zotero 导出后显式复制入仓库；仍有 core 57 篇与 reserve 34 篇需要人工下载或后续合法开放来源补抓。本轮 Zotero 导出中有 2 篇附件存在但 PDF 结构损坏、内容错配或文本提取失败，已继续留在人工清单。`raw/` 为前序摸排快照，本 PR 只做换行符与行尾空白规范化，字段、行数与候选资格均未变；主候选优先级种子已显式固化为 [corpus/raw/selection-seed.csv](./corpus/raw/selection-seed.csv)。前序 `/tmp` 本地临时路径只保留为审计线索，不能触发 `downloaded` 状态或自动复制；只有仓库内真实存在的 `papers/<slug>/paper.pdf` 才计为已下载。详见 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md) 与 [corpus/source-audit.md](./corpus/source-audit.md)。
+
+A2b 启动前必须先读 [corpus/handoff-to-next-stage.md](./corpus/handoff-to-next-stage.md)。
+
+
 ## 1. 当前文库状态与总判断
 
 本目录是 Paper2 agentic SLR 工作的 **survey-of-surveys 文库**：它不直接回答某个目标软件工程主题的研究现状，而是从软件工程领域已有 SLR / SMS / tertiary study / MLR / guideline / roadmap 中抽取“如何设计综述元模型、维度模式、证据链、统计分析和 research finding 裁决”的可迁移先验。
@@ -402,7 +421,7 @@ A2a 第一优先级：不是补历史 PDF，而是先对当前 13 篇入池论�
 | CCF 官方目录 WAF | 当前按本地 `ccf_venues/` 缓存标注 TOSEM=A，IST/JSS/RE/ESE=B，EASE=C；CSUR 待核验 | 正式写作 / 投稿前人工打开 CCF 官方页面复核。 |
 | roadmap / proposal 误入统计池风险 | 已用 `eligible_for_statistical_synthesis=false` 与排除理由分离 | A2a 扩库时继续执行三池规则。 |
 | 方法学样本与领域样本混算风险 | Kitchenham 2007、Petersen 2008 不进主统计池；Petersen 2015 标为方法学统计样本 | A2a 报告统计时分层展示。 |
-| 历史 manual-download 路径 | 历史 3 条已由用户本地 Zotero PDF 补齐；[search/manual-download-needed.bib](./search/manual-download-needed.bib) active=0 | 后续新增失败条目继续进入该 BibTeX，补齐后清零或只保留未解决条目。 |
+| 历史 manual-download 路径 | 历史 3 条已由用户本地 Zotero PDF 补齐；[search/manual-download-needed.bib](./search/manual-download-needed.bib) active=0，仅作 A1 历史归档 | A2a 及以后新增 core / reserve 失败条目进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)、[corpus/manual-download-needed.md](./corpus/manual-download-needed.md) 和 [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv)，避免双事实源。 |
 
 ## 8. 后续 A2a / A2b 入口
 
@@ -425,6 +444,9 @@ A2b 建议：
 
 | 时间 | 更新内容 | 验证 / 备注 |
 |---|---|---|
+| 2026-07-07 18:58:00 | 用户提供 Zotero 导出目录后，PR-A2a 将 54 篇 core / reserve 人工下载 PDF 显式复制入对应 `papers/<slug>/paper.pdf`，生成 `paper_content.txt`、`bibtex.bib` 与 `metadata.json`；新增 Zotero 导入脚本与导入清单，2 篇损坏 / 错配附件继续留在人工下载清单。 | 已运行 `build_corpus_tables.py` 与 `validate_corpus.py`，当前输出 438/293/120/40/145/91/69；`manual-download-needed.bib` 从 145 条降为 91 条。 |
+| 2026-07-06 23:27:24 | 加固 PR-A2a PDF 状态可复算性：禁止 `build_corpus_tables.py` / `acquire_pdfs.py` 因前序 `/tmp` 本地临时路径存在而把条目标为 `downloaded` 或复制仓库外 PDF；新增 `local_snapshot_only` 失败类型，并要求非 downloaded 行不得携带旧审计 `pdf_sha256`。 | 已运行 `build_corpus_tables.py`、`acquire_pdfs.py`、`validate_corpus.py`、`py_compile`、`git diff --check`；额外构造 `/tmp/issue95_all_pdfs_v2/10_1145_3708532.pdf` 假文件后复算，目标条目仍为 `manual_needed` / `local_snapshot_only`，说明外部临时路径不会污染正式统计。 |
+| 2026-07-06 22:52:09 | 完成 PR-A2a 综述语料候选库建设：新增 [corpus/](./corpus/) 入口、[raw/selection-seed.csv](./corpus/raw/selection-seed.csv) 主候选选择种子、全量候选账本 438、系统化候选 293、主候选 120、替补 40、边界池 145；新增 2 篇 A2a 候选论文的 `paper.pdf`、`paper_content.txt`、`bibtex.bib`、`metadata.json`，并生成 145 条人工下载 BibTeX。 | `validate_corpus.py` 通过并输出 438/293/120/40/145/145/15；`py_compile` 通过；`git diff --check` 通过；A1 13 篇入池资产未被覆盖，A2a 新增论文仍标记 `a2a_review_status=not_started`，不计为 A2b 深读完成。 |
 | 2026-06-29 21:10:00 | 完成 PR-A1-DT 实现：补充 GUIDE 维度树复原规则、pattern schema 字段合同、19 篇单篇 `review.md` 的维度树复原与 19 篇 `evidence_chain.md` 的 A.1--A.4 审计附录，并在 SUMMARY 增加维度树模式总览和 SUMMARY 结论-证据映射。 | A1 原始阶段未读取 `.env`；A1-DT v2 批次已完成 57/57 CLI 审计，日志保留命令/stdout/stderr与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录 secret；A1-DT 仍保留 A2a 页码 / 表图精核边界。 |
 | 2026-06-29 17:40:27 | 根据用户对 SUMMARY 缝合感和批次拆表问题的反馈，重构 SUMMARY 为长期文库总账：取消批次化主表，改为统一年份降序论文表；补充三类证据池标准；新增 19 篇 × A1-M0--M6 覆盖矩阵；把历史过程下沉为风险 / 日志。 | 本轮只重构总账和规则，不新增论文；后续需同步 GUIDE 与 PR body，并复验 19/19/19/19、active manual=0。 |
 | 2026-06-29 16:59:12 | 用户提供 3 篇历史 manual-download PDF 后，补齐 app reviews SLR 2022、Petersen 2008、Petersen 2015 的 `paper.pdf`、`paper_content.txt`、全文级 `review.md` 和 `metadata.json`，并将 active 人工下载清单清零。 | 文件系统统计更新为 19 个 `review.md`、19 个 `metadata.json`、19 个 `paper.pdf`、19 个 `paper_content.txt`；3 篇历史失败路径已闭环，剩余风险转为 A2a 图表视觉核对和 CCF 官方人工复核。 |

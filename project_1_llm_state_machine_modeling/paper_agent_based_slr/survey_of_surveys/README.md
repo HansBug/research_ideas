@@ -14,6 +14,14 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 
 > [!WARNING] v1-deprecated: `audits/a1dt-19x3/` 是 A1-DT v1 历史审计归档。不得把其中结论直接当作 A1-DT v2 当前事实；v2 新产物必须进入 `audits/a1dt-v2-19x3/`。
 
+
+## 0.A A2a 语料主候选入口
+
+> [!IMPORTANT]
+> PR-A2a 已新增 [corpus/](./corpus/) 作为后续 100+ 综述语料候选的主入口。A1 的 [search/](./search/) 保留为历史检索与 dry-run 归档；A2a 以后仍然活跃的候选账本、主候选、替补、边界池、PDF 状态和人工下载清单以 [corpus/README.md](./corpus/README.md) 为入口。
+
+当前 A2a 语料状态：全量候选 438，系统化候选 293，主候选 120，替补 / 留出 40，边界池 145；其中 core + reserve 已取得 PDF / 文本 69 篇，仍需人工下载 91 篇。详见 [corpus/source-audit.md](./corpus/source-audit.md)、[corpus/selection.md](./corpus/selection.md) 与 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。这些只是候选语料，不代表 120 篇全文深读完成，也不代表最终统计分母。
+
 ## 1. 定位
 
 本目录服务于第二篇论文的**综述之综述脚手架**。它从已有软件工程系统综述（Systematic Literature Review, SLR）、系统映射研究（Systematic Mapping Study, SMS）、三级研究（tertiary study）和方法学指南中抽取：
@@ -31,7 +39,7 @@ A1-DT v2 的边界是“统一抽取纪律 + 每篇论文原生样本编码维�
 A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基、候选池、字段合同和有限 dry-run；PR #135 / A1-DT v2 已在此基础上完成 19 篇 × 3 路 CLI 审计和单篇 `review.md` 返修，用来冻结“原生样本编码维度树 / 维度森林”的当前事实口径。
 
 - 当前资产为 19 篇全文文本级 dry-run / 维度锚点：其中 9 篇来自 A1 初始 dry-run，10 篇来自 issue #95 现代 CCF-A/B 综述候选池扩展。
-- 当前 active metadata-only / 需人工下载条目为 0；历史 3 条自动下载失败路径已由用户本地 Zotero PDF 补齐，并作为失败路径闭环证据保留在检索日志中。
+- A1 历史 active metadata-only / 需人工下载条目为 0；A2a 当前 core / reserve 仍有 91 篇需要人工下载，活跃清单转到 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
 - A1 scaffold 主验收仍按 3--5 篇 dry-run 口径判断；新增 10 篇只用于加固现代维度 scaffold、A1-M0--M6 元维度和失败 / 边界口径，不代表扩展为完整文库。
 - A1-DT v2 已完成 57/57 三路 CLI 审计、19/19 主线程裁决和 19/19 单篇返修；运行日志保留命令、时间、returncode、stdout/stderr 与环境摘要，关于 `.env` 只记录 `env_sourced=.env exists`，不记录任何 secret。
 - 这些样本用于验证脚手架可执行性，不代表覆盖完整 SE 综述文献空间。
@@ -61,7 +69,8 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 |---|---|
 | [GUIDE.md](./GUIDE.md) | 检索、筛选、单篇目录、证据等级、schema 回修和 dry-run 维护规则。 |
 | [SUMMARY.md](./SUMMARY.md) | 当前总账、候选池、dry-run 覆盖矩阵、脚手架模式、schema 缺口和更新日志。 |
-| [search/](./search/) | 检索日志、候选池、人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。 |
+| [search/](./search/) | A1 历史检索日志、候选池和人工下载清单；#95 十篇来源审计见 [search/issue95-selection-audit.md](./search/issue95-selection-audit.md)。A2a 后续活跃语料事实真源转到 [corpus/](./corpus/)。 |
+| [corpus/](./corpus/) | A2a 综述语料主候选入口；维护全量候选账本、系统化候选池、主候选 120、替补 40、边界池、PDF 状态和人工下载清单。 |
 | [papers/](./papers/) | 单篇 dry-run 目录；每篇至少有 `bibtex.bib`、`metadata.json`、`review.md` 与 `evidence_chain.md`，全文可得时还应有 `paper.pdf`、`paper_content.txt`。`review.md` 是当前正文入口，`evidence_chain.md` 是正式 A.1--A.4 证据链。 |
 | [patterns/](./patterns/) | 结果侧跨论文投影 / 归纳入口；只能汇总单篇原生树之后的可迁移字段，不能作为单篇树模板。 |
 | [audits/](./audits/) | 专项审计批次入口；v2 新产物写入 `audits/a1dt-v2-19x3/`，v1 [audits/a1dt-19x3/](./audits/a1dt-19x3/) 仅历史归档。 |
@@ -80,9 +89,9 @@ A1 scaffold 与 A1-DT v2 需要分开理解：A1 scaffold 仍只是文库奠基�
 
 ## 6.1 #95 十篇现代维度锚点
 
-本轮将 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 中 10 篇与本论文方法高度相关的现代 survey / SLR / SMS / roadmap 纳入 A1 文库，目的不是扩成完整文库，而是让脚手架接受现代软件工程综述、LLM4SE、MDE、RE、DevSecOps 和开放制品研究的真实检验。每篇新增条目必须有独立单论文目录，并在全文可得时保留 `paper.pdf` 与 `paper_content.txt`；全文不可得时必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。
+本轮将 issue [#95](https://github.com/HansBug/research_ideas/issues/95) 中 10 篇与本论文方法高度相关的现代 survey / SLR / SMS / roadmap 纳入 A1 文库，目的不是扩成完整文库，而是让脚手架接受现代软件工程综述、LLM4SE、MDE、RE、DevSecOps 和开放制品研究的真实检验。每篇 A1 新增条目必须有独立单论文目录，并在全文可得时保留 `paper.pdf` 与 `paper_content.txt`；A1 历史全文不可得条目进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)，A2a 及以后新增 core / reserve 失败条目统一进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
 
-这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；后续新增条目若全文不可得，仍必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 并在补齐后清零 active 状态。
+这些条目必须服务于 A1-M0--M6 元维度：A1-M0 研究意图与综述元模型，A1-M1 语料收集与纳排，A1-M2 研究对象与主题语义，A1-M3 方法 / 技术 / 干预，A1-M4 评价、证据与复现资产，A1-M5 统计分析就绪，A1-M6 research finding 形成与裁决。roadmap / vision 条目可以作为边界与启发式锚点，但不得被计为完整 SLR/SMS 模式证据。当前 19 篇均已具备 `paper.pdf` 与 `paper_content.txt`；A1 的 [search/manual-download-needed.bib](./search/manual-download-needed.bib) 保留为 active=0 的历史归档，A2a 及以后新增条目若全文不可得，必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib) 并在补齐后通过 [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv) 更新状态。
 
 
 ## 6.2 A1-DT v2 19×3 三路全文审计

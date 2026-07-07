@@ -27,6 +27,19 @@ A1 只做种子检索和 dry-run；A2a/A2b 才做大规模闭合。A1 检索记�
 3. DBLP / ACM / IEEE / ScienceDirect / BCS 等索引。
 4. 聚合页只作为发现线索，不能作为已核验事实。
 
+
+## 2.A A2a `corpus/` 语料建设纪律
+
+A2a 以后，大规模候选语料的事实真源从 A1 的 [search/](./search/) 迁移到 [corpus/](./corpus/)。维护规则如下：
+
+1. [corpus/raw/](./corpus/raw/) 只保存原始快照；除统一换行符与行尾空白这类版本控制规范化外，不得人工改字段语义、候选数量或候选内容。
+2. [corpus/tables/](./corpus/tables/) 由 [scripts/build_corpus_tables.py](./scripts/build_corpus_tables.py) 复算生成；不得手工改 CSV 后不更新脚本。
+3. 主候选、替补和边界池必须互斥；每条记录必须有选择、替补或边界理由。
+4. PDF 可得性只影响执行状态，不决定候选资格。未自动取得 PDF 的 core / reserve 条目必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)。
+5. A2a 默认不批量生成正式 `review.md`；若有占位，必须显式标注未全文深读，不得计入 A2b 已完成 review。
+6. A1 已有 `review.md` / `evidence_chain.md` / `metadata.json` 不得被 A2a 脚本覆盖。
+7. 新增或重算语料后必须运行 [scripts/validate_corpus.py](./scripts/validate_corpus.py)。
+
 ## 3. 筛选标准
 
 纳入必须至少满足一项：
@@ -196,7 +209,7 @@ source venv/bin/activate
 python -m tools.pdf_extractor -i papers/<slug>/paper.pdf -o papers/<slug>/paper_content.txt -m text
 ```
 
-若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文，必须进入 [search/manual-download-needed.bib](./search/manual-download-needed.bib)。若一轮新增条目全部成功获取 PDF，也必须在 [search/search-log.md](./search/search-log.md) 中记录“无新增人工下载”。
+若文字模式提取异常，再记录 OCR 或人工核验需求。不可获取 PDF 不得假装已读全文；A1 历史失败条目仍保留在 [search/manual-download-needed.bib](./search/manual-download-needed.bib)，但 A2a 及以后新增 core / reserve 失败条目必须进入 [corpus/manual-download-needed.bib](./corpus/manual-download-needed.bib)、[corpus/manual-download-needed.md](./corpus/manual-download-needed.md) 和 [corpus/tables/pdf-status.csv](./corpus/tables/pdf-status.csv)。若一轮新增条目全部成功获取 PDF，也必须在对应的 active 入口记录“无新增人工下载”；A2a 以后优先记录到 [corpus/pdf-acquisition.md](./corpus/pdf-acquisition.md)。
 
 `metadata.json` 是 A1 之后的机器可读事实入口，必须至少包含：`slug`、`title`、`authors`、`year`、`publication_year_basis`、`online_first_date`、`publication_type`、`venue_short_link`、`ccf_official_category`、`ccf_official_rank`、`ccf_verification_status`、`review_type`、`se_subfield`、`current_fulltext_status`、`eligible_for_schema_seed`、`eligible_for_statistical_synthesis`、`evidence_role`、`systematic_evidence_status`、`statistical_pool_exclusion_reason`。若字段不适用，必须显式写 `null`、`--` 或 `待核验`，不能缺键。
 

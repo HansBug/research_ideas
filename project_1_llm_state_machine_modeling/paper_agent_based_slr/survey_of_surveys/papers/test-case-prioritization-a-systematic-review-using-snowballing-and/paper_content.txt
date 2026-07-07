@@ -1,0 +1,1661 @@
+--- Page 1 ---
+Test Case Prioritization: A Systematic Review using
+Snowballing and TCPFramework with Approach
+Combinators
+Tomasz Chojnacki∗1and Lech Madeyski†1
+1Wroclaw University of Science and Technology, Wroclaw, Poland
+Abstract
+Context:Test case prioritization (TCP) is a technique widely used by software devel-
+opment organizations to accelerate regression testing.
+Objectives:We aim to systematize existing TCP knowledge and to propose and empir-
+ically evaluate a new TCP approach.
+Methods:We conduct a systematic review (SR) using snowballing on TCP, implement
+a comprehensive platform for TCP research (TCPFramework), analyze existing evalu-
+ation metrics and propose two new ones (rAPFD Cand ATR), and develop a family of
+ensemble TCP methods called approach combinators.
+Results:The SR helped identify 324 studies related to TCP. The techniques proposed
+in our study were evaluated on the RTPTorrent dataset, consistently outperforming
+their base approaches across the majority of subject programs, and achieving perfor-
+mance comparable to the current state of the art for heuristical algorithms (in terms of
+rAPFD C, NTR, and ATR), while using a distinct approach.
+Conclusions:The proposed methods can be used efficiently for TCP, reducing the
+time spent on regression testing by up to 2.7%. Approach combinators offer significant
+potential for improvements in future TCP research, due to their composability.
+Keywords:test case prioritization; regression test prioritization; continuous integration;
+ensemble methods; code representation
+1 Introduction
+Software bugs can frustrate users and reduce their satisfaction (Saha et al., 2014) or even
+cause health and safety risks in certain areas. However, bugs can occur in all software
+systems (Ajorloo et al., 2024). To ensure that a program behaves as expected, software
+∗ORC ID: 0009-0005-0566-2462. Email:260365@student.pwr.edu.pl
+†Corresponding author. ORC ID: 0000-0003-3907-3357. Email:lech.madeyski@pwr.edu.pl
+1©2026. This manuscript version is made available under the CC-BY-NC-ND 4.0 licensehttps://creativecommons.org/licenses/by-nc-nd/4.0/
+Tomasz Chojnacki and Lech Madeyski, “Test case prioritization: A systematic review
+using snowballing and TCPFramework with approach combinators”,Information and
+Software Technology, vol. 194, p. 108062, 2026. DOI: 10.1016/j.infsof.2026.108062.arXiv:2603.00183v2  [cs.SE]  4 Mar 2026
+
+--- Page 2 ---
+testing is performed. In particular, regression testing (RT) is commonly used to ensure that
+changes to the system did not introduce unwanted behavior (Washizaki, 2024).
+Due to the volume of executed tests, RT can be costly, both in terms of time and
+money, with estimates stating that it may comprise between 33% and 50% of software ex-
+penses (Washizaki, 2024; Myers et al., 2011; Khatibsyarbini et al., 2018). Regression testing
+is at the same time an important part of Agile and continuous integration (CI), where au-
+tomated RT suites are run on each build (Washizaki, 2024; Haghighatkhah et al., 2018;
+Prado Lima and Vergilio, 2020; Marijan, 2023). However, CI processes often require rapid
+turnaround, to avoid delays in build cycles, and to provide software developers with the
+necessary feedback (Bagherzadeh et al., 2022; Marijan, 2023).
+CommonapproachestospeeduptheRTprocessincludetestsuiteminimization, testcase
+selection, and test case prioritization (Washizaki, 2024), as systematized by Yoo and Harman
+(2012). In particular, test case prioritization (TCP), also called regression test prioritization
+(RTP), aims to reorder test cases to produce the permutation that would detect possible
+faults as early as possible. It allows all test cases to run in the worst case, but also permits
+early termination, for example, when the first failing case is encountered (Yoo and Harman,
+2012).
+As further discussed in Section 2, over the years, hundreds of TCP methods have been
+researched. The technique is also used by practitioners, finding success in large software
+development entities such as Google (Memon et al., 2017) and Microsoft (Czerwonka et al.,
+2011). However, there are still opportunities for improvement.
+Consequently, we have two main objectives. The first is to perform a literature review in
+the field of TCP. The second and larger aim is to propose and evaluate a new technique for
+TCP. Our contributions consist of:
+•A new systematic review using snowballing on the topic of test case prioritization that
+follows modern review guidelines (Kitchenham et al., 2023; Wohlin, 2014) and is one
+of the largest reviews of the TCP literature in terms of the count of identified works.
+•Implementation of an open-source, unified TCP approach development and evaluation
+infrastructure(TCPFramework)thatcanbeusedtotestvariousprioritizationmethods
+on the state-of-the-art RTPTorrent dataset.
+•Review and analysis of existing TCP evaluation metrics, including recent proposals,
+such asrAPFD, RPA, NRPA, and NTR. Proposition of two new TCP evaluation
+metrics:rAPFD C(to assess the quality of prioritized suites) and ATR (to rate the
+time effectiveness of approaches).
+•Introduction of the mental framework of TCP approach combinators, consisting of
+three method families (mixers, interpolators, and tiebreakers), all of which require no
+prior training and consistently outperform their base approaches.
+•Empirical evaluation of proposed prioritizers, which, despite using a distinct method,
+achieve results comparable to the current heuristic state of the art, and almost three
+times better than the random approach, reducing the time spent on regression testing
+by up to a dozen hours.
+2
+
+--- Page 3 ---
+The structure of the paper is presented below. First, after the introduction, the literature
+review overview and related TCP work are described in Section 2. Then, a new solution and
+its implementation are presented during Section 3. The solution is subsequently evaluated
+in Section 4, with the results listed in Section 5. Finally, the approach is discussed alongside
+further work suggestions in Section 6, followed by the conclusion.
+2 Related work
+In order to summarize the current state of the art of TCP, and to locate opportunities for
+further improvement, a systematic review (SR) using snowballing was undertaken. This
+section describes it in terms of the planning phase, the search procedure, and its results.
+Then, the most relevant related work is outlined, and an analysis of available TCP evaluation
+metrics is performed.
+2.1 Literature review process
+Systematicreviewisatechniquetosystematicallydiscover, evaluate, andsynthesizescientific
+researchrelatedtoaspecifictopic. Comparedtotraditionalunsystematicreviews,systematic
+reviews are conducted formally, using a set of methodological steps and approaches listed in
+a review protocol (Kitchenham et al., 2007). The following review adheres to the SEGRESS
+guidelines (Kitchenham et al., 2023) and uses the snowballing method introduced by Wohlin
+(2014).
+The systematic review usually begins with the planning phase, where the research ques-
+tions are listed and the research protocol is written. Expanding on the original motivation,
+the following research questions were stated:
+•(SRRQ1) What are the available datasets and subject programs for TCP?
+•(SRRQ2) What are the state-of-the-art TCP algorithms?
+Upon formulating the research objectives, the review protocol was written. According to
+the available recommendations, the protocol should, among others, describe (Kitchenham
+et al., 2007): the motivation for the SR, the previously defined research questions, search
+methods (including study selection criteria), data extraction, and analysis strategies. The
+protocol attempts to adhere to the PRISMA-P statement (Moher et al., 2015), as SEG-
+RESS (Kitchenham et al., 2023) recommends. It should be noted that the protocol was
+written before the subsequent SR steps were carried out to reduce bias and published online
+as Section 1 of the online Appendix to this paper1.
+The followinginclusion criteriawere stated:
+1. the article presents a new TCP dataset (SRRQ1);
+2. the article describes a new TCP algorithm (SRRQ2);
+3. the article is a secondary study on the topic of TCP;
+1https://madeyski.e-informatyka.pl/download/ChojnackiMadeyski25Appendix.pdf
+3
+
+--- Page 4 ---
+4. the article compares available TCP solutions.
+Similarly, the followingexclusion criteriawere stated:
+1. the paper places the main emphasis on test case generation, selection, or minimization;
+2. the paper is unrelated to the Computer Science research area;
+3. the paper was not peer-reviewed or has not yet been published;
+4. the paper consists of less than 5 pages;
+5. the paper was not written in the English language.
+ThesearchprocessusedintheSRfollowsthesnowballingapproachrecommendedbyWohlin
+(2014). Each encountered article is evaluated using the inclusion and exclusion criteria noted
+in the review protocol linked above. Google Scholar2is used for forward snowballing, the
+Scopus3database is used to construct the start set, and the reference lists contained in the
+articles themselves are used for backward snowballing. Figure 1 illustrates the implemented
+search process together with a flowchart summarizing the number of records remaining after
+each stage.
+The presented search process differs from the original snowballing guidelines in two minor
+respects. These changes were implemented to accommodate the study’s time constraints and
+do not violate any principles specified in the guidelines.
+First, Wohlin (2014) recommends directly contacting all researchers associated with the
+included papers after the snowballing iterations, while also allowing alternative methods to
+identify additional studies. As contacting authors was infeasible within the research time-
+frame, we instead analyzed their publication records. Specifically, we systematically exam-
+ined the Google Scholar pages of authors appearing at least five times in the paper collection
+to identify additional relevant articles. This threshold serves as a pragmatic heuristic to fo-
+cus only on recurring contributors to the field and to reduce noise from one-off publications.
+We refer to this stage as theauthor search.
+Secondly, since we previously gathered a list of unmethodically selected publications
+closely related to the studied research area, it is used to form the snowballing start set.
+The list of initial papers contains the works of Yang et al. (2023), Marijan (2023), Yaraghi
+et al. (2023), and Bagherzadeh et al. (2022). Their keywords were analyzed and used to
+construct the Scopus search query shown in Listing 1. Thetest case prioritizationand
+test prioritizationwere the most common keywords across initial papers and theSUBJAREA,
+PUBSTAGEandLANGUAGEfilters come directly from the SR inclusion and exclusion criteria.
+The somewhat arbitrary publication year constraint was introduced to target only recent
+studies (from the past five years), while also including all initial papers. The search returned
+a total of 440 documents. Most notably, all initial papers were also returned by the query.
+This ensures that the filters were not too restrictive.
+The result list was then manually traversed, using inclusion and exclusion criteria, to
+identify works that could act as the start set. The guidelines of Wohlin (2014) state that
+2https://scholar.google.com
+3https://www.scopus.com/search/form.uri
+4
+
+--- Page 5 ---
+Start set
+Snowballing
+Backward iteration
+Forward iterationAuthor searchSTART
+END Initial papers
+Google Scholar Scopus
+Initial papers
+(n=4)Database search
+(n=440)
+Start set (n=7)
+Records after iteration #1
+(n=171)
+Records after iteration #2
+(n=31 1)
+Records after iteration #3
+(n=324)
+Records after iteration #4
+(n=324)
+Records after author search
+(n=324)
+ Studies included (n=324)
+ - Primary studies (n=292)
+ - Secondary studies (n=32)Identification IncludedFigure 1: Workflow of the search process and flowchart of paper counts at each stage.
+( TITLE-ABS-KEY ( "test case prioritization" )
+OR TITLE-ABS-KEY ( "test prioritization" ) )
+AND ( LIMIT-TO ( SUBJAREA , "COMP" ) )
+AND ( LIMIT-TO ( PUBSTAGE , "final" ) )
+AND ( LIMIT-TO ( LANGUAGE , "English" ) )
+AND PUBYEAR > 2019
+Listing 1: The Scopus search string used to find the snowballing start set.
+5
+
+--- Page 6 ---
+a good start set should include papers from different communities, publishers, years, and
+authors. In the end, the following articles were selected: Bagherzadeh et al. (2022), Huang
+et al. (2020), Vescan et al. (2024), Mukherjee and Patnaik (2021). It should be noted that
+the first entry was previously included in the initial paper set, which is permitted by the SR
+protocol. Thus, while the start set includes four papers, only three new papers were intro-
+duced in this stage. The constructed set spans multiple years, there are no common authors
+between any two papers in the list, the identified authors come from different communities,
+and the articles were all published in distinct venues. The selected works contain a total
+of 274 references and 222 citations (duplicates included), which should provide sufficient re-
+sources for the first iteration of snowballing. Subsequently, multiple iterations of snowballing
+were conducted.
+2.2 Systematic review results
+During the entire snowballing process, a total of 324 articles were identified that comply
+with the previously specified inclusion and exclusion criteria (and their additional addenda),
+with 292 primary studies and 32 secondary studies. This was achieved through an analysis of
+more than 42 thousand references and citations, the vast majority of which were duplicates.
+The count of papers identified at each stage of the SR is presented in Table 1, along with
+the number of entries (references and citations) evaluated.
+Table 1: The total number of new papers included in each search process stage.
+Review stage Evaluated entries Identified papers
+(duplicates included) (new and unique)
+Initial papers — 4
+Start set 440∗3
+Iteration #1: Backward 274 104
+Iteration #1: Forward 222 60
+Iteration #2: Backward 6734 111
+Iteration #2: Forward 21393 29
+Iteration #3: Backward 4730 5
+Iteration #3: Forward 4437 8
+Iteration #4: Backward 425 0
+Iteration #4: Forward 173 0
+Author search 3769 0
+∗– while there is a total of four start set entries, one is also an initial paper
+The identified works were spread over multiple decades, with the first published in 1999
+by Rothermel et al. (1999) and the last in 2025. The methods used for the SR should ensure
+that it is unbiased in terms of publication years. The total number of articles from different
+years is shown in Figure 2.
+A total of 54 articles introduced new datasets, 267 articles presented novel algorithms,
+32 articles were secondary studies, and 28 articles were dedicated to empirically comparing
+6
+
+--- Page 7 ---
+1995/uni00A0/uni00AD/uni00A02000 2001/uni00A0/uni00AD/uni00A02005 2006/uni00A0/uni00AD/uni00A02010 2011/uni00A0/uni00AD/uni00A02015 2016/uni00A0/uni00AD/uni00A02020 2021/uni00A0/uni00AD/uni00A02025
+Publication/uni00A0years020406080100Number/uni00A0of/uni00A0identified/uni00A0works 214487596
+89Figure 2: Number of identified works in different publication years.
+existing solutions. Some of the identified surveys cover narrower or wider areas than the
+proposed SR. Numerous also did not disclose the number of primary studies analyzed. Since
+the discussed works are not suitable for a comparison with the proposed SR, of the 32
+identified secondary studies, only eight were handpicked and chronologically presented in
+Table 2. Our study reports 292 works rather than 324, as this figure represents only the
+analyzed primary studies, whereas the total of 324 identified works also includes secondary
+studies.
+Table 2: Overview of other surveys encountered during the SR.
+Year Study reference Years covered Identified works
+2012 Singh et al. (2012) 1997 – 2011 65
+2013 Catal and Mishra (2013) 2001 – 2011 120
+2017 de S. Campos Junior et al. (2017) 1999 – 2016 90
+2018 Khatibsyarbini et al. (2018) 1999 – 2016 80
+2020 de Castro-Cabrera et al. (2020) 2017 – 2019 320
+2020 Prado Lima and Vergilio (2020) 2009 – 2019 35
+2021 Mukherjee and Patnaik (2021) 2001 – 2018 90
+2023 Abubakar et al. (2023) 2002 – 2021 250
+2025proposed1999 – 2025 292
+In general, the thoroughness of the proposed review is difficult to compare with other
+studies, as they contained diverse research questions and years covered, and it is possible
+that some other reviews were missed. Nevertheless, the conducted study represents one
+7
+
+--- Page 8 ---
+of the largest SRs of TCP, in terms of the number of identified publications. Among the
+analyzed surveys, only de Castro-Cabrera et al. (2020) included a higher number of works,
+when considering raw counts.
+The accumulated data was used to answer SRRQ1. Since TCP can be applied to almost
+any software product where testing is used, nearly any software repository can be adapted to
+act as a dataset. Some solutions followed this approach, with the most common choice being
+Software-artifact Infrastructure Repository projects4(SIR): Unix utilities (i.e., bash, grep,
+sed), Siemens programs, JMeter, JTopas, Ant (Prado Lima and Vergilio, 2020; Singh et al.,
+2012; Catal and Mishra, 2013; de S. Campos Junior et al., 2017). Other identified subject
+programs include compilers (GCC, javac, Jikes), JDepend, Gradebook, Tomcat, Camel, and
+Drupal.
+Some solutions instead opt for processed test suite datasets, such as the Google Shared
+Dataset of Test Suite Results5(GSDTSR), Defects4j6, and Paint Control7(Prado Lima and
+Vergilio,2020;deCastro-Cabreraetal.,2020). TheRTPTorrentdatasetistheonlyidentified
+data source supported by a dedicated research paper (Mattis et al., 2020).
+In less complicated problem statements, TCP can be applied to simplefault matrices,
+which state whether a given test case can detect a given fault. An example of such a dataset
+is the BigFaultMatrix8. Finally, synthetically introduced faults (mutants) might be a viable
+evaluation method for TCP algorithms. Do and Rothermel (2006) conclude that mutants
+can be used as a low-cost dataset construction method. However, Luo et al. (2018) highlight
+that TCP algorithms that perform the best on sets of mutants might perform worse on
+real-world data.
+In summary, the answer to SRRQ1 reveals a significant fragmentation in the field: while
+numerous TCP evaluation datasets exist (SIR programs, GSDTSR, Defects4j, Paint Control,
+BigFaultMatrix, RTPTorrent, and various individual repositories), no universally adopted
+benchmark has emerged. This lack of standardization makes cross-study comparisons dif-
+ficult. Among the identified datasets, RTPTorrent stands out as the only one supported
+by a dedicated methodological paper that explicitly addresses common dataset quality is-
+sues (Mattis et al., 2020). For these reasons, we selected RTPTorrent for our empirical
+evaluation (see Section 4).
+Subsequently, addressing SRRQ2 proved challenging due to the heterogeneity of the field.
+Our findings align with earlier observations by Singh et al. (2012) and Catal and Mishra
+(2013): TCP algorithms are rarely compared under identical conditions (the same datasets,
+metrics, and definitions), and a significant portion of the proposed methods lack empirical
+evaluation.
+Despite these limitations, some patterns emerge from existing comparative studies. In
+2018, Haghighatkhah et al. (2018) analyzed diversity-based and history-based test prioritiza-
+tion applied to six subject programs. Luo et al. (2016) instead compared static and dynamic
+test case prioritization techniques. Most notably, Marijan (2023) compared ML approaches
+with heuristic-based techniques, finding that ROCKET (Marijan et al., 2013) performs com-
+4https://sir.csc.ncsu.edu
+5https://code.google.com/archive/p/google-shared-dataset-of-test-suite-results
+6https://github.com/rjust/defects4j
+7https://bitbucket.org/HelgeS/retecs/src/master/DATA
+8https://github.com/dathpo/test-case-prioritisation-ga
+8
+
+--- Page 9 ---
+parably to or better than many ML-based methods. The ROCKET technique is also the
+second most widely used baseline in the evaluation of TCP, after random test case ordering,
+according to Prado Lima and Vergilio (2020). Based on these findings, we include ROCKET
+as a primary baseline in our evaluation.
+To summarize, the SR revealed that the TCP research landscape is characterized by
+methodological fragmentation: diverse datasets, incompatible metrics, and limited cross-
+study comparability. These findings directly informed our research choices: we selected
+RTPTorrent as the most rigorously documented dataset, adopted ROCKET as a state-of-
+the-art heuristic baseline, and designed approach combinators as training-free methods that
+donotdependonspecifichistoricaldataformatsorrequireextensivetuning. Table3provides
+a systematic mapping of how specific SR findings informed key methodological decisions in
+this work.
+In the following sections, we present the key theoretical topics relevant to this work,
+drawing primarily on information obtained from the literature review.
+2.3 Foundational works on TCP
+To the best of our knowledge, the first mention of TCP occurs in the work of Wong et al.
+(1997), where it is used as an additional step after test case selection. The first compre-
+hensive look at TCP was then provided by Rothermel et al. (1999), where a wide range of
+prioritization methods were investigated.
+The test case prioritization problem was previously formally defined in the work of
+Rothermel et al. (2001), and the definition can be seen in Equation (1):
+Given:T, a test suite;PT, the set of permutations ofT;
+f, a function fromPTto the real numbers.
+Problem:FindT′∈PTsuch that(∀T′′) (T′′∈PT)
+(T′′̸=T′) [f(T′)≥f(T′′)].(1)
+In the problem statement,fis used to evaluate the quality of the ordering (higher values
+are better). In simpler words, our aim is to find the best permutation of test cases in terms
+of a given metric.
+Over the years, multiple TCP approach categorizations have been proposed. Exam-
+ples include the taxonomies used by Khatibsyarbini et al. (2018), Singh et al. (2012), and
+Mukherjee and Patnaik (2021). For the purpose of the study, the classification introduced
+by Yoo and Harman (2012) was selected. It includes the following categories of TCP ap-
+proaches (Yoo and Harman, 2012): coverage-based, distribution-based, human-based, prob-
+abilistic, history-based, requirements-based, model-based, cost-aware, and other approaches.
+Using insights collected during the SR, it can be observed that machine learning solutions are
+underrepresented in the list of approaches. Pan et al. (2021) provided a separate taxonomy
+for just ML-based approaches, with the following categories: supervised learning, unsuper-
+vised learning, reinforcement learning, and natural language processing. Both described
+classifications are presented side by side in Figure 3.
+In addition to the taxonomies in Figure 3, the TCP approaches are characterized by their
+9
+
+--- Page 10 ---
+Table 3: Mapping of SR findings to research decisions.
+Research deci-
+sionRelated SR publica-
+tionsHow SR informed the decision
+Dataset: RTPTor-
+rent(Mattis et al., 2020) SRRQ1 revealed dataset fragmentation
+(SIR, GSDTSR, Defects4j, Paint Con-
+trol, BigFaultMatrix, etc.); RTPTorrent
+is the only dataset with a dedicated
+methodological paper addressing data
+quality issues.
+Baseline:
+ROCKET(Marijan et al., 2013),
+(Marijan, 2023),
+(Prado Lima and
+Vergilio, 2020)SRRQ2: ROCKET is the second most
+widely used TCP baseline after random
+ordering; performscomparablytoorbet-
+ter than many ML-based methods.
+Baseline: DBP (Zhou et al., 2021) Identified through SR as a recent heuris-
+tic method meeting inclusion criteria for
+baseline selection.
+Baseline: DFE (Kim and Porter, 2002),
+(Mattis et al., 2020)Used as a non-trivial baseline in RTP-
+Torrent; represents simple exponential-
+smoothing TCP approaches.
+Approach
+combinators (RQ1)(Huang et al., 2021),
+(Cao et al., 2022),
+(Mondal and Nasre,
+2021),
+(Hassan et al., 2024)SR identified a gap: prior attempts
+at combining TCP methods were lim-
+ited to ML-based approaches (requiring
+training) or simple voting schemes; no
+training-free combinators existed.
+Metric: NTR (Prado Lima and
+Vergilio, 2022),
+(Zhao et al., 2023)SR identified NTR as suitable for evalu-
+ating CI applicability; inspired the pro-
+posed ATR metric addressing its limita-
+tions.
+Metric:rAPFD (Zhao et al., 2023) SR identified limitations of APFD (in-
+consistent value ranges);rAPFD ad-
+dresses this; inspired the proposed
+rAPFD Cmetric.
+10
+
+--- Page 11 ---
+Regression testingTest suite minimization
+Test case selection
+Test case prioritizationCoverage-based
+Distribution-based
+Human-based
+Probabilistic
+History-based
+Requirements-basedModel-based
+Cost-aware
+OtherMachine learning
+TCP approachesSupervised learning
+Unsupervised learning
+Reinforcement learning
+Natural language
+processingYoo and Harman
+2012
+Pan et al.
+2021Figure 3: Taxonomies of TCP (on a basis of (Yoo and Harman, 2012)) and ML-based TCP
+(on a basis of (Pan et al., 2021)) approaches.
+properties. Most existing TCP methods can be classified as either static or dynamic (Luo
+et al., 2016). Static techniques operate only on the source and test code, using only static
+programanalysis. However, dynamictechniquesutilizerichrun-timesemantics. Thisenables
+the algorithm to dynamically reorder the cases as the tests are executed. The techniques
+can also be divided into black-box and white-box types (Henard et al., 2016). Black-box
+approaches do not require access to the source code of the system under test; in contrast,
+white-box approaches can use the source code information to improve the prioritization
+performance.
+2.4 Approach combinators
+After an analysis of the titles and full abstracts of all publications identified during the
+undertaken systematic review, only two works adjacent to the methods proposed in the
+work were identified.
+Huang et al. (2021) attempted to combine the results of multiple heuristic TCP methods
+using ML algorithms. They focused on model-based prioritization and collected six simple
+estimatorsratingtestcasesbasedonstatetransitions. Theoutputsfromparticularheuristics
+are then accumulated using a random forest model to produce the final prediction. Their
+research differs from the approach we propose in this paper in the following ways: it focuses
+only on model-based TCP, it works only on top of certain methods, and it requires prior
+training.
+Hassan et al. (2024) investigated the use of random sorting to resolve the ties in the
+ranking of the test cases. They concluded that this method does not yield optimal results
+and should only be used as a final resort. The approach proposed in this paper supports
+random tie-breaking, but it also offers more sophisticated strategies.
+Anadditionaladhocsearchwasperformed, afterthesolutionsfromthisworkhadalready
+11
+
+--- Page 12 ---
+been implemented, in an attempt to find similar works in the literature. Two additional
+articles, described below, were identified.
+The research of Cao et al. (2022) used a simple voting scheme to combine the results of
+multiple models. Each model assigned votes in a decreasing sequence, and the final score
+was calculated as the sum of the votes and used to determine the final result. Their research
+differs from the proposed model in the following ways: they focused only on user interface
+testing, the combination used the simplest voting scheme available, and no method to assign
+different weights to models was presented.
+The work of Mondal and Nasre (2021), who introduced the Hansie framework for TCP, is
+most adjacent to our proposed solutions. They assumed that internal prioritizer mechanisms
+are unknown. Then, the Borda count is used for result combination, similarly to one of the
+proposed approach combinators. Despite resemblances, we believe that their technique is not
+equivalent. The Borda count algorithm constitutes only a minor part of the research con-
+ducted, and Hansie uses parallel prioritization to resolve ties, while the proposal introduces
+different methods to deal with ties.
+2.5 Metrics for TCP evaluation
+Rothermel et al. (1999) introduced theaverage of the percentage of faults detected(APFD)
+metric in 1999 (Lou et al., 2019; Zhao et al., 2023). Although it exhibits multiple limita-
+tions, it is still the most widely used TCP metric in the literature (Abubakar et al., 2023;
+de S. Campos Junior et al., 2017; Catal and Mishra, 2013; Singh et al., 2012; Khatibsyarbini
+et al., 2018; Mukherjee and Patnaik, 2021). APFD measures how quickly an ordered test
+case list detects faults. The metric ranges from 0 to 1, with higher values of the metric
+representing better orderings (Elbaum et al., 2000; Catal and Mishra, 2013; Mukherjee and
+Patnaik, 2021; Zhao et al., 2023; Lou et al., 2019). It can be calculated using the formula
+from Equation (2) (Lou et al., 2019; Wang et al., 2020; Zhao et al., 2023):
+APFD(s) = 1−Pm
+j=1TFj
+nm+1
+2n,(2)
+wheresis the suite,nis the number of its test cases,mis the number of identified faults,
+and TF jis the rank of the first test in the ordered suite, which reveals thej-th fault.
+Thecost-cognizant weighted average percentage of faults detected(APFD C) introduced
+by Elbaum et al. (2001) extends APFD to incorporate differences in fault severities and test
+case costs (for example, their execution times). The APFD Cmetric is very popular and is
+sometimes considered the second most widely used TCP metric (de S. Campos Junior et al.,
+2017; Singh et al., 2012). It can be seen as an extension of APFD, where test case costs
+and fault severities are known, and can be calculated as shown in Equation (3) (Wang et al.,
+2020; Lou et al., 2019):
+APFD C(s) =Pm
+j=1
+fj·Pn
+i=TF jti−1
+2tTFj
+Pn
+j=1tj·Pm
+j=1fj,(3)
+wheres,n,m, TF jhave the same meaning as in Equation (2) andf iandt jdescribe the
+12
+
+--- Page 13 ---
+severity ofi-th fault and execution cost ofj-th test case, respectively. It has the same value
+range as APFD (Wang et al., 2020). In real-world studies, fault severities are rarely known.
+The APFD Cformula also works when all severities are assumed to be equal (Elbaum et al.,
+2001; Wang et al., 2020; Lou et al., 2019).
+Whenever we introduce constraints to TCP, some faults might not get detected, as some
+test cases are not run. Qu et al. (2007) introducednormalized APFD(NAPFD) in 2007,
+including an additionalpfactor that represents the fraction of identified faults in all identi-
+fiable faults (Abubakar et al., 2023; Lou et al., 2019; Wang et al., 2020; Zhao et al., 2023).
+The formula for NAPFD is given in Equation (4), where TF jis set to zero if a fault is never
+detected (Lou et al., 2019; Wang et al., 2020):
+NAPFD(s) =p−Pm
+j=1TFj
+nm+p
+2n.(4)
+Zhaoetal.(2023)identifiedweaknessesinexistingmetricsfromtheAPFDfamily, namely
+that APFD has different value ranges depending on fault and test case counts. This also
+means that although it returns results bounded by 0 and 1, the optimal solution does not
+have an APFD of 1, and neither does the worst solution have an APFD of 0. They addressed
+this weakness, min-max mapping the measure, introducing therectified APFD(rAPFD),
+which ensures that the optimal solution hasrAPFD= 1. The value ofrAPFD for a given
+test suite is shown in Equation (5):
+rAPFD(s) =APFD(s)−APFD min(s)
+APFD max(s)−APFD min(s).(5)
+Bertolinoetal.(2020)introducedtherank percentile average(RPA)anditsnormalization
+callednormalized-rank-percentile-average(NRPA) to evaluate the order of the test suite
+independently of the algorithm and the choice of criteria (Zhao et al., 2023; Bagherzadeh
+et al., 2022). These measures have been criticized before (Zhao et al., 2023; Bagherzadeh
+etal.,2022). Bagherzadehetal.(2022)notethatNRPAtreatssuccessfulandfailedtestcases
+equally, whilefailuresaregenerallymoreimportant. Zhaoetal.(2023)supportthelimitation
+described previously and additionally report that sometimes worse sequences report higher
+NRPA values.
+The applicability of TCP is also evaluated in the literature. If a method has a high cost,
+it might be really effective, but not applicable in practical contexts. Various time-related
+metrics are most commonly used for this goal (Khatibsyarbini et al., 2018; Prado Lima
+and Vergilio, 2020). Prado Lima and Vergilio (2022) defined thenormalized time reduction
+(NTR) metric to measure time savings gained if the cycle stopped at the first detected fault.
+It can be determined using Equation (6) (Prado Lima and Vergilio, 2022; Zhao et al., 2023):
+NTR=PCIfail
+i=1(ˆri−ri)
+PCIfail
+i=1ˆri,(6)
+where CIfailis the number of failed cycles,ˆr iis the execution time ofi-th failing cycle, andr i
+is the time to first fault ofi-th failing cycle. The NTR measure was later adopted by Zhao
+13
+
+--- Page 14 ---
+et al. (2023) to evaluate the applicability of TCP models.
+All previously described measures are compared in Table 4.
+Table 4: Comparison of described TCP effectiveness metrics.
+Measure Computable Normalized∗Awareness
+Failure Cost Severity Constraint
+APFD(Rothermel et al., 1999) failed cycles/reve / /reve /reve /reve
+APFD C(Elbaum et al., 2001) failed cycles/reve / / / /reve
+APFD C(simple) failed cycles/reve / / /reve /reve
+NAPFD(Qu et al., 2007) failed cycles/reve / /reve /reve /
+rAPFD(Zhao et al., 2023) failed cycles/ / /reve /reve /reve
+RPA(Bertolino et al., 2020) all cycles/reve /reve /reve /reve /reve
+NRPA(Bertolino et al., 2020) all cycles/ /reve /reve /reve /reve
+NTR(Prado Lima and Vergilio, 2022) entire history/ / / /reve /reve
+∗– whether for a metricM, there occursM max = 1
+3 Methods
+The proposed solution consists of both a mental framework and a concrete Python imple-
+mentation of the described methods. This section starts with a description of the research
+framework. Then, different non-combinator models are outlined. Finally, the approach, com-
+binator strategy, is introduced, and concrete examples of models built using combinators are
+presented.
+3.1 Research infrastructure (TCPFramework)
+Although many works in the field of TCP publish associated software packages to aid re-
+producible research (Mondal and Nasre, 2021; Zhao et al., 2023; Bertolino et al., 2020; Luo
+et al., 2016; Henard et al., 2016), most of them are ad hoc scripts used to collect results for
+research questions. We were unable to find a comprehensive and unified framework for the
+development and evaluation of TCP approaches in the existing literature. To aid further re-
+search, both for the scope of this research and for other researchers, we propose an extensible
+platform for the development of test case prioritization methods, called TCPFramework.
+The system is built as a Python module and allows for extension through subclassing
+and interface implementation. TheApproachabstract base class is used as a template for
+all TCP methods. The type hierarchy ensures safety guarantees, such as: no test case can
+be marked as prioritized twice; all input test cases must be present in the output; test cases
+not present in the cycle cannot be prioritized; the case information (execution time, verdict)
+is not extractable before execution. For example, the optimal solution is, correctly, not
+implementable as a subclass ofApproach, since it requires a posteriori cycle information
+to work. Approaches that dynamically adjust the order based on the execution results of
+previous test cases are implementable, and a convenient way to express ties in the results is
+available.
+14
+
+--- Page 15 ---
+TheDatasetclass is another form of abstraction offered by the TCPFramework. Its
+default implementation extracts the necessary information from the RTPTorrent dataset,
+which is described in further detail in Section 4. Other subject programs with compatible
+data formats can also be loaded, and theDatasetclass can be further derived to adapt
+to other data sources. Furthermore, TCPFramework provides the tools necessary for the
+calculation of evaluation metrics, in the form of theMetricCalcclass. It contains methods
+that calculate all the metrics covered in this work.
+To confirm the validity of TCPFramework and to provide simple baselines for further
+evaluations, basicapproachesbasedonfoundationalpublicationsinTCPandstraightforward
+intuitions were developed. These include:
+•BaseOrder: The base order approach executes the test cases from the suite in their
+original arrangement (Rothermel et al., 1999). This method can be used as a "no
+prioritization performed" baseline to evaluate the gains of applying TCP to a certain
+software project.
+•RandomOrder: The random approach unmethodically shuffles the test suite and exe-
+cutes test cases in the resulting order (Rothermel et al., 1999).
+•RecentnessOrder: The recentness order rates test cases on the basis of how recently
+they were introduced to the project. A counter is kept for each case, accumulating
+the times it was seen in a cycle. The test cases that appeared fewer times in previous
+regression testing cycles are executed first. This reflects the intuition that verdicts
+of new test cases are less predictable (since less historical information can be used to
+estimate their outputs).
+Other methods are history-based and rate test cases using aggregations of their previous
+performances.Exponential smoothingwas also previously used to aggregate historical results
+for use in TCP (Kim and Porter, 2002; Mattis et al., 2020). It is defined using the formula
+from Equation (7):
+P(k) =(
+0, k= 0
+α·f(k) + (1−α)·P(k−1), k≥1(7)
+wheref(k)is equal to the value of some property of the execution result for the test case
+in cyclekandαis a constant used to indicate the importance of recent results. Techniques
+from this family are outlined below:
+•FoldFailsOrder: The failure folding approach applies an aggregation function to failure
+counts of particular test cases from each subsequent cycle. The most notable folders in-
+clude summation and exponential smoothing. Demonstrated fault effectiveness (DFE),
+previously used by Kim and Porter (2002) is a special case of this approach.
+•ExeTimeOrder: Theexecutiontimeorderappliesexponentialsmoothingtosubsequent
+execution times of a given test case achieved in prior cycles.
+15
+
+--- Page 16 ---
+•FailDensityOrder: The failure density approach combines two previous techniques by
+applying exponential smoothing separately to both failures and execution time to then
+prioritize according to their quotient.
+3.2 Code representation approach (CodeDistOrder)
+The next developed approach,CodeDistOrder, builds on the work of Yang et al. (2023) and
+Zhou et al. (2024). Code representation aims to embed the rich information present in the
+source of a program as a numeric vector (Yang et al., 2023; Hrkút et al., 2023). While
+the work of Yang et al. (2023) addressed information retrieval-based test prioritization and
+Zhou et al. (2024) used code representation to cluster test cases, the approach presented in
+this paper instead focuses on the distances between the code representation vectors. These
+distance measures include the Manhattan distance, the Euclidean distance, and cosine sim-
+ilarity (Hrkút et al., 2023).
+The goal of the proposed optimizer is to find the longest path, in terms of the source
+code representation distance, going through all test cases. Finding an exact solution to such
+a problem is computationally difficult (Ledru et al., 2012). Instead, we employ a greedy
+algorithm that selects the highest possible distance at each step.
+3.3 Approach combinators
+Our main contribution is the development of approach combinators for TCP. The existing
+literature often employs hybrid approaches that merge multiple information factors. Despite
+this, the methods found during the SR are characterized by tight coupling between different
+factors. We observe a need for a universal approach to the merging and enriching of existing
+TCP techniques. To facilitate the combination of different TCP approaches, regardless of
+their complexity and implementation details, we believe that they should be treated as black
+boxes that prioritize cases using opaque mechanisms.
+This guideline is respected by all the techniques introduced below, collectively called
+approach combinators. They are a class of TCP approaches that take other approaches, use
+them to prioritize test suites, and then merge and enrich them. Three kinds of approach
+combinators are presented:mixers, which take multiple prioritization algorithms and mix
+their weighted results into the final sequence;interpolators, which shift the relative impor-
+tance of different techniques as cycles pass; andtiebreakers, that aim to resolve ties produced
+by an approach, using a different approach or some heuristic.
+All developed strategies require no prior training, in contrast to many of the recently
+proposed ML-based approaches. This makes them applicable even in smaller projects, where
+there is insufficient historical information. Additionally, smaller development entities can
+use the methods as they are suitable for low-specification hardware.
+3.4 Mixers
+Mixers take multiple prioritization algorithms and mix their weighted results, returning the
+final test case sequence. The primary intuition is that various test case properties should
+be incorporated into an algorithm to produce high-quality predictions. New approaches
+16
+
+--- Page 17 ---
+are produced, which for each cycle prioritize the test suite independently using each sub-
+approach and then merge the results, calledqueues, into one final list using some algorithm.
+No internal information leaks from any sub-algorithm. We illustrate our process in Figure 4.
+MixedOrder
+a1.get_dry_ordering
+merge_queues inputw1queue1
+w2queue2
+w3
+queue3a2.get_dry_ordering
+a3.get_dry_orderingoutput
+Figure 4: Summary of the general workflow of a mixer.
+The only remaining detail is the way the results are merged. The simplest proposed
+approach, further calledRandomMixedOrdertakes the first test case from thei-th queue,
+whereiwas chosen randomly according to the specified weights. Other proposed merging
+schemes come directly from electoral system theory. Firstly,BordaMixedOrderuses the
+Borda method for positional voting to arrange the suite (Brandt et al., 2016). For each
+sub-approach outcome, we assign points to test cases based on their position. The first case
+in a given queue getsn−1points (wherenis the size of the suite), the second getsn−2, etc.
+until the penultimate and last test cases get 1 and 0 points, respectively. If two test cases
+are tied, their points are averaged. The points are then multiplied by the weight of a given
+sub-method and summed up over all queues for each case. The final order is determined
+by the sum of the scores of all the cases. The Schulze method is also implemented, as
+SchulzeMixedOrder. It is much more robust than the Borda voting system, providing certain
+desirablequalities, suchasthemajority winnerrule–ifatestcasehasmorethan50%points,
+it must win (Brandt et al., 2016). It should be noted that, as a variant of the Floyd-Warshall
+algorithm is used, the computational complexity of this combinator reachesO(n3), making
+it unsuitable for larger collections of test cases.
+We selected these three aggregation strategies to represent a spectrum of complexity
+and theoretical guarantees. The random baseline serves as a control condition, enabling
+assessment of whether more sophisticated methods provide meaningful improvements. The
+Bordacountwaschosenforitssimplicityandlowcomputationaloverhead, andbecauseithas
+been successfully applied to TCP by Mondal and Nasre (2021) in the Hansie framework. The
+Schulze method (Schulze, 2011), a Condorcet-consistent approach, was included to evaluate
+whether stronger theoretical properties (such as the majority winner criterion) translate to
+betterTCPperformance, despiteitshighercomputationalcost(O(n3)). Thisselectionallows
+us to investigate the trade-off between computational efficiency and aggregation quality in
+the context of test case prioritization.
+In TCPFramework, all mixers implement theMixedOrderabstract base class. As an
+optimization, if a certain sub-approach has the weight of zero, its order is not computed,
+as all merging schemes should ignore queues produced by these approaches. Prioritization
+17
+
+--- Page 18 ---
+feedback and the reset action are further propagated to all target methods.
+For example, consider a RandomMixedOrder mixer combining ExeTimeOrder with a
+weight of 0.75 and RecentnessOrder with a weight of 0.25. When a test suite is provided, the
+mixer first sorts the test cases according to the rules of its sub-approaches. As a result, two
+permutations of the same test suite are produced: one ordered by prior execution times, and
+the other ordered by recentness. To produce the final order, the mixer repeatedly selects and
+runs the first unexecuted test case from one of the two lists at random, with the list based on
+execution-time having three times the probability of being chosen. This process continues
+until either all test cases in the suite have been executed or a failing case is encountered.
+3.5 Interpolators
+Interpolators work with different approaches and shift their relative importance values as
+cycles (failed or any) pass. The main motivation in this case is that numerous simple
+approaches are history-based and thus perform poorly in the early iterations. However,
+once they collect enough historical information, they can become fairly performant.
+The approach works as follows: two approaches (calledbeforeandafter) and a certain
+cyclecountgoal(calledcutoff)aremanuallyset, andthetwoapproachesaremixedaccording
+to the current progress towards this objective. So in the first cycle, only thebeforemethod
+is executed, and in every cycle after the cutoff, only theaftertechnique is run. It should
+be noted that both approaches can react to execution feedback, regardless of which one was
+used, meaning that theafterprioritizer can train itself in earlier cycles. This strategy, called
+InterpolatedOrder, can be conveniently implemented in terms of mixers.
+Forexample,consideraninterpolatorconfiguredwithRandomOrderasthebeforemethod,
+FailDensityOrder as theaftermethod, and a cutoff value of two. During the first cycle, the
+entire test suite is prioritized solely using the random prioritizer. In the second cycle, the re-
+sulting ordering is an equal combination of the random ordering and the ordering produced
+by FailDensityOrder. From the third cycle onward, test cases are prioritized exclusively
+based on their fail density. Despite not being applied in the first cycle and only partially
+in the second, the FailDensityOrder prioritizer has access to the complete results of both
+cycles.
+3.6 Tiebreakers
+Tiebreakers resolve ties from an input ordering using another prioritizer or some heuristic.
+Their construction is motivated by the fact that some approaches naturally produce clus-
+tered results. We propose two tiebreakers. Firstly, theGenericBrokenOrderis a universal
+tiebreaker that runs a first sub-approach producing a clustered test case list, and then exe-
+cutes a second sub-approach to prioritize each group, producing the final order. If the second
+sub-method returns ties, they are also present in the final output. Similarly to mixers and
+interpolators, theexecutionfeedbackandresetsignalarepropagatedtobothsub-approaches.
+The second proposed tiebreaker,CodeDistBrokenOrder, uses code representation dis-
+tances to break ties within groups of equal priority. Instead of simply running the CodeDis-
+tOrder prioritizer within each cluster, we keep shared sets of prioritized and remaining test
+18
+
+--- Page 19 ---
+cases, ensuring that the chosen candidates are placed as far as possible within the code
+representation space of the entire test suite.
+Tiebreakers can also perform a role similar to that of interpolators. In early cycles, some
+techniques return a single cluster that contains all test cases. In such a case, when using a
+tiebreaker, the entire prioritization is delegated to the second sub-approach.
+For example, consider a GenericBrokenOrder configured with RecentnessOrder as the
+primary prioritizer and RandomOrder as the secondary one. Newly introduced test cases in
+a given cycle are guaranteed to be executed first. When multiple new test cases are added
+simultaneously, they receive identical scores according to the recentness criterion. Because
+historical information is not available for these cases, ties are resolved using random ordering.
+Without this secondary prioritizer, using RecentnessOrder alone would result in the new test
+cases being executed in their original order.
+3.7 Example combinator models
+Since all techniques described in the previous section are actually entire families of ap-
+proaches, some concrete, usable examples are given below. To construct a high-performing
+prioritizer, we intuitively want to combine multiple information factors. Subsequently, the
+following sample combined approaches are defined:
+•P1– a mixer that blends FoldFailsOrder, RecentnessOrder, and ExeTimeOrder. Avail-
+able in all mixer variants, that is, random (P1.1), Borda (P1.2), and Schulze (P1.3).
+As we believe execution time to be less impactful, its priority is set to be twice as low.
+•P2– an interpolator that uses the FailDensityOrder after five failed cycles and an
+equal mix of ExeTimeOrder and RecentnessOrder before. This also demonstrates the
+ability to nest approach combinators within each other, as a Borda mixer is used inside
+an interpolator.
+•P3– a tiebreaker that resolves ties in the total-strategy FoldFailsOrder prioritizer,
+using ExeTimeOrder (P3.1) or CodeDistOrder (P3.2).
+For P1, we predict that combining the failure and cost information factors, similar to
+FailDensityOrder, will result in better performance than using either factor individually.
+We additionally use the latest-only RecentnessOrder approach to increase the priority of
+new test cases. For P2, we observe that FailDensityOrder performs well but is extremely
+unstable in the first iterations. To perform early prioritization, ExeTimeOrder could be
+used; however, it also needs a few cycles to stabilize its internal state. We therefore use its
+mix with a generally stable RecentnessOrder until a couple of failing cycles are encountered.
+Finally, for P3, the total strategy of FoldFailsOrder naturally produces rather large clusters,
+especially in the early cycles. We predict that breaking these tied groups would significantly
+boost the effectiveness of the approach.
+TheproposedsamplemodelsuseseveralexistingTCPtechniques. Aswewantthemodels
+to be lightweight, we almost exclusively use methods based on exponential smoothing, first
+proposed by Kim and Porter (2002). We list all choices and justify them in Table 5. Further
+19
+
+--- Page 20 ---
+implementation details for both the combinators and the concrete models can be found in
+the online appendix1and the reproduction package9.
+Table 5: Existing TCP methods used within the proposed sample models.
+Model Existing meth-
+odsJustification
+P1FoldFailsOrder
+ExeTimeOrder
+RecentnessOrderWe want to prioritize cases based on
+three criteria: historical failures, ex-
+ecution efficiency, and expected re-
+sult variability. We thus promote
+cases that failed in previous exe-
+cutions (FoldFailsOrder), are quick
+to execute (ExeTimeOrder), and are
+likely to produce unstable results due
+to their recent introduction (Recent-
+nessOrder).
+P2FailDensityOrder
+ExeTimeOrder
+RecentnessOrderFailDensityOrder tends to perform
+well in later testing cycles; however, it
+is unstable in early cycles, as it relies
+ontheratiooftwoestimatedaverages.
+We thus want to interpolate it with
+prioritizers that demonstrate stable
+performance early on. In our prelimi-
+naryexperiments, ExeTimeOrderand
+RecentnessOrder both have this qual-
+ity.
+P3FoldFailsOrder
+ExeTimeOrder
+CodeDistOrderThe total strategy of FoldFailsOrder
+yieldslargeclustersofcaseswithiden-
+tical scores, which limits its effective-
+ness. We hypothesize that breaking
+these ties is beneficial. Prioritizers
+that produce distinct scores are best
+for tiebreaking. Both ExeTimeOrder
+and CodeDistOrder satisfy this prop-
+erty and are thus well-suited.
+4 Evaluation
+This section describes all aspects of the empirical evaluation of the proposed algorithms.
+First, the selected subject programs used for all research questions are described. The
+9https://github.com/LechMadeyski/MSc25TomaszChojnacki
+20
+
+--- Page 21 ---
+considered evaluation metrics are then outlined, including the new metrics proposed by us.
+Finally, research questions are stated.
+4.1 Subject programs (RTPTorrent)
+The RTPTorrent dataset (Mattis et al., 2020) is used for all evaluations. It consists of
+multiple open-source software projects. We consider this dataset to be the most suitable
+choice for the study, as the publication by Mattis et al. (2020) is the only work identified
+in the SR that focuses on addressing issues that occur in other TCP datasets. Namely,
+RTPTorrent is characterized by the following qualities we deem desireable: it uses data
+from real software systems instead of synthetic cases; it includes a diverse range of Java
+repositories in terms of maturity, contributor count, test case count, and codebase size; it
+provides a non-trivial baseline based on a microstudy, which is a better reference point than
+base order or random order; it is publicly available and uses only open source projects from
+GitHub, which supports the reproducibility of research results; and it is compatible with the
+GHTorrent and TravisTorrent (Beller et al., 2017) datasets.
+Arguably, the biggest issue with the dataset is that it only includes open-source Java
+repositories, which makes the results poorly generalizable to projects written in other pro-
+gramming languages and to proprietary systems. Furthermore, the granularity of the in-
+cluded test cases is low as test classes are used instead of test methods (Mattis et al., 2020).
+Only the following RTPTorrent subject programs were excluded from the evaluation for
+the reasons outlined below:
+•Achilles,buck, andsonarqubewere excluded because their memory requirements
+exceeded the capacity of our evaluation environment. The testing framework loads a
+large number of resources simultaneously, making these projects too large to evaluate
+on our hardware.
+•deeplearning4j,jOOQ,jcabi-github,graylog2-server, andjetty.projectwere
+excluded due to a substantial number of missing cycles, commits, or files. In some
+cases, several hundred commits were missing associated files.
+•slingwas excluded because its repository data is no longer available. RTPTorrent
+requiresrepositoriestobeclonedlocally, andthisrepositorybecameinaccessibleduring
+our research.
+We include all 12 remaining projects of various sizes, which are listed in Table 6.
+The included repositories should be sufficiently diverse, with cycle counts ranging from
+427 to more than 5000, failed cycle percentages from 1.3% to 10.4%, and average test cases
+per cycle from 14.1 to more than 100. Finally, the total time spent during continuous
+integration jobs varies from a few dozen hours to a few months.
+To enrich the dataset with the job execution time, the previously mentioned TravisTor-
+rent (Beller et al., 2017) dataset was joined using the compatible job identifier. To include
+the source codes, the full version control system (VCS) repositories of the evaluated systems
+are downloaded, and the appropriate files are retrieved according to the commit identifiers
+given by RTPTorrent.
+21
+
+--- Page 22 ---
+Table 6: The description of selected RTPTorrent repositories.
+Subject programCount of
+CI cyclesFailure
+percentageAverage number
+of test casesTotal time
+spent in CI
+LittleProxy427 6.6% 25.6 59h
+HikariCP1577 5.3% 14.1 76h
+jade4j931 9.1% 38.5 52h
+wicket-bootstrap904 2.7% 42.9 53h
+titan941 10.4% 41.7 1215h
+dynjs935 1.7% 73.3 229h
+jsprit1061 4.1% 86.5 137h
+DSpace1863 1.3% 62.5 326h
+optiq1306 1.8% 42.2 1011h
+cloudify4968 2.6% 55.1 1447h
+okhttp5425 6.5% 42.8 868h
+Some mismatch errors occur during the enrichment. That is, we encountered 4 errors for
+LittleProxy, 3 forwicket-bootstrap, 66 forDSpace, 5 forcloudify, and 72 forokhttp.
+We believe that the number of mismatches in selected projects is negligible and does not
+pose a threat to the validity of the empirical study, since in the worst case erroneous cycles
+constitute only a few percent of all job runs (forDSpace).
+4.2 Evaluation metrics
+All metrics presented in Section 2 were analyzed to select the right indicators for this study.
+NAPFD and the severity-aware version of APFD Cwere ruled out, since we do not per-
+form severity-aware or constrained prioritization. Then, RPA and NRPA were excluded
+because they treat all cycles equally (even though failed cycles are generally more impor-
+tant) and because sometimes well-performing permutations may receive low RPA/NRPA
+scores (Bagherzadeh et al., 2022; Zhao et al., 2023).
+To rate the effectiveness of cost-unaware approaches, we prefer the usage ofrAPFD
+over APFD. The former has a consistent value range of exactly zero to one, where zero is
+achieved by the worst solution and one is achieved by the optimal ordering, yet has the same
+monotonicity as APFD (Zhao et al., 2023), making it safe to use. Unfortunately, no rectified
+version of APFD Cis presented in the analyzed literature.
+The NTR metric is suitable for evaluating the applicability of a TCP method within CI
+environments. However, its interpretation might be misleading. Normalized time reduction
+indicates the percentage time savings, assuming that the CI cycle is stopped after the first
+failure. That said, these savings occur only for failed cycles, which constitute a tiny percent-
+age of all cycles. Meanwhile, the overhead of prioritization must occur for all cycles. Thus,
+a metric including the unfavorable TCP overhead is sought after.
+To evaluate the effectiveness of cost-aware (but severity-unaware) TCP methods, we
+propose a new metric called therectified time-aware average percentage of faults detected
+22
+
+--- Page 23 ---
+(rAPFD C). Similarly to therAPFD metric introduced by Zhao et al. (2023),rAPFD Cis
+defined as a min-max normalization of a previously used indicator. The formula forrAPFD C
+is shown in Equation (8):
+rAPFD C(s) =APFD C(s)−APFD Cmin (s)
+APFD Cmax (s)−APFD Cmin (s).(8)
+The proposed metric inhibits the following desirable qualities: the values ofrAPFD Care
+bounded by 0 and 1 (0≤rAPFD C(s)≤1); the optimal solution always hasrAPFD Cof 1
+(rAPFD Cmax (s) = 1); the worst solution always hasrAPFD Cof 0 (rAPFD Cmin (s) = 0);
+the metric has the same monotonicity as APFD C– if an ordering is better than another in
+terms ofrAPFD C, it is also better in terms of APFD C.
+As stated previously, a new TCP CI applicability metric is needed for use alongside NTR.
+In Figure 5, various durations within the CI regression testing are shown. If the TCP method
+used is static, we can perform prioritization in parallel with compilation and static analysis.
+If prioritization is faster than the build, there is no time cost to performing TCP; if it is
+slower, there exists an overhead.
+build
+time
+prioritization
+timeexecution
+time
+time to
+first fault
+cycle time
+Figure 5: Diagram of various static TCP cycle time measures.
+Thus, weintroduceactual time reduction(ATR),whichrepresentsthegenuinepercentage
+of time savings from using a given TCP method in a given repository, as an alternative to
+the normalized time reduction (NTR) metric. The proposed ATR metric sums up the total
+testing time (TT) spent in CI jobs. The testing time is defined using the formula from
+Equation (9):
+TT= max (PT−BT,0) +(
+TFifTF̸=null
+EFifTF=null,(9)
+where: prioritization timePT– time spent performing TCP (or zero if TCP is not used);
+build timeBT– time spent on compilation and static analysis independently of testing;
+time to first faultTF– duration until the end of the first failing test case in the sequence;
+execution timeEF– time spent on executing all test cases in the suite. Consequently, we
+23
+
+--- Page 24 ---
+define the actual time reduction (ATR) for approachAas in Equation (10):
+ATR= 1−CIP
+i=1TTA
+CIP
+i=1TTbase.(10)
+All durations should be measured using common units. The intuitive interpretation of
+ATR is as follows: a value of 0.01 indicates that approachAreduces the time spent on all
+testing activities by 1%. Negative ATR indicates TCP methods that would be harmful to
+apply in practice. The newly introduced ATR metric is vastly different from NTR in terms
+of construction and interpretation. Thus, to avoid threats to the construct validity, questions
+regarding the applicability of approaches will be answered using both NTR and ATR.
+4.3 Research questions
+We aim to obtain answers to two high-level questions about the proposed work. Firstly,
+whether the approach combinators manage to beat the sub-approaches they combine. Sec-
+ondly, whether the performance of proposed solutions is comparable with the current state
+of the art, and whether they can be used to perform TCP in real-world scenarios.
+Consequently, the first research question (RQ) is stated as follows:
+RQ1:Can approach combinators beat their sub-approaches in terms of effectiveness?It is
+divided into multiple sub-questions. Mixers are covered in RQ1.1, interpolators in RQ1.2,
+and tiebreakers in RQ1.3. All approaches are compared in terms ofrAPFD Cas cost-aware
+methods are also evaluated.
+Since approach combinators form entire families of approaches, their performance can
+vary depending on the choice of the underlying base models. For example, if a mixer is
+configuredwithahighweightforapoorlyperformingmethodandacomparativelylowweight
+for a strong method, the resulting prioritizer may be inferior to the stronger sub-approach.
+Consequently, evaluating RQ1 requires the selection of specific, concrete instances, with the
+understanding that the resulting findings do not generalize to all constructed combinators.
+Tothisend, weselectthesamplemodelsfromtheprevioussectionandcomparethemagainst
+all the sub-approaches that they employ. Accordingly, P1 is used for RQ1.1, P2 is used for
+RQ1.2, and P3 is used for RQ1.3.
+The second research question investigates the performance of the proposed approach
+combinator examples (P1, P2, and P3) against solutions from the state of the art and has
+the following form:
+RQ2:What is the performance of the proposed approaches?The comparison includes two
+aspects, general effectiveness (measured usingrAPFD C) and applicability within CI (in
+terms of NTR and ATR).
+The main difficulty related to RQ2 is the selection of representative comparison reference
+points, both in the form of trivial baselines and state-of-the-art approaches. We first gather
+all appropriate approaches and evaluate them in terms ofrAPFD C, and then select a few of
+themasbaselinestoanswerthequestion. Twomajorstepswereusedtofindmorecomparison
+points: we checked the most popular baselines for TCP evaluation from Prado Lima and
+24
+
+--- Page 25 ---
+Vergilio (2020), and collected all prioritization approaches of the previous five years found
+in the SR. A total of 60 techniques were reviewed, 54 were excluded for various reasons, and
+there were 3 duplicates. The complete overview of all considered algorithms can be found in
+Section 3 of our online Appendix to this paper1.
+In the end, three new techniques were included as baselines, ROCKET by Marijan et al.
+(2013), DBP by Zhou et al. (2021), and an unnamed approach by Fazlalizadeh et al. (2009).
+This selection resulted from a process of elimination, as these were the only methods that
+did not meet the exclusion criteria mentioned in our Appendix. We justify the suitability of
+some of the selected baselines below:
+•RandomprioritizationisthemostcommonreferencepointforTCPevaluation(PradoLima
+and Vergilio, 2020), and the base order holds second place ex aequo. They are both
+used in a multitude of related studies (Marijan, 2023; Fazlalizadeh et al., 2009; Zhou
+et al., 2021; Prado Lima and Vergilio, 2022; Spieker et al., 2017; Rothermel et al., 2001,
+1999; Marijan et al., 2013).
+•DFE (Kim and Porter, 2002) is used as a non-trivial baseline in RTPTorrent (Mattis
+et al., 2020), which we build upon. It represents the use of simple TCP approaches.
+•ROCKET (Marijan et al., 2013) is a robust approach, tied as the second most widely
+used TCP evaluation baseline (Prado Lima and Vergilio, 2020). It uses information
+factors similar to the proposed methods and, despite being developed in 2013, was used
+as a reference point as recently as 2023 (Marijan, 2023). Most importantly, it has been
+shown to perform better than many ML methods (Marijan, 2023). It represents the
+state-of-the-art heuristic TCP.
+All stated RQs are described along with the used metrics in Table 7.
+Number Question Metrics
+RQ1:Can approach combinators beat their
+sub-approaches in terms of effectiveness?—
+•RQ1.1:Canmixersbeat their
+sub-approaches in terms of effectiveness?rAPFD C
+•RQ1.2:Caninterpolatorsbeat their
+sub-approaches in terms of effectiveness?rAPFD C
+•RQ1.3:Cantiebreakersbeat their
+base approaches in terms of effectiveness?rAPFD C
+RQ2:What is the performance
+of the proposed approaches?—
+•RQ2.1:What is theeffectiveness
+of the proposed approaches?rAPFD C
+•RQ2.2:What is theCI applicability
+of the proposed approaches?NTR, ATR
+Table 7: The summary of stated research questions.
+25
+
+--- Page 26 ---
+5 Results
+All experiments were conducted on a 4-core 2.42 GHz CPU from 2022 and 16 GB of RAM.
+These hardware specifications can only affect the ATR metric, with no influence on other
+measures. To avoid misleading evaluation results, we count the APFD family metrics only
+for failed cycles, with no data imputation for others, and include only cycles with at least 6
+test cases in the suite, as previously suggested by Bagherzadeh et al. (2022).
+Two forms of presentation of the results are used. Firstly, the average metric values are
+organizedintotables. Inthefooters, themeansandmediansacrossalldatasetsarepresented.
+Since all calculated metrics are normalized, it is safe to aggregate them in this way. For each
+row, the best result is bolded. Secondly, the results are visualized as box plots, showing the
+metric value distributions across all datasets. There, boxes show the range between the first
+and third quartiles, whiskers extend from the box to 1.5x the interquartile range, outliers
+are shown as dots, the median is presented as a horizontal line, and the mean is marked by
+a small triangle.
+5.1 Approach combinators compared to base methods (RQ1)
+The evaluation metric values for RQ1.1 and RQ1.2 are presented in Table 8 and Figure 6,
+while the results for RQ1.3 are shown in Table 9 and Figure 7.
+In RQ1.1, we compare all variants of the P1 approach (P1.1 – random, P1.2 – Borda, and
+P1.3 – Schulze) against their sub-methods. We can observe the Borda approach achieving
+the highest results on 6 out of 11 subject programs (with three joint first places tied with
+Schulze). However, oneofthesub-approaches, FoldFailsOrder, achievedthebesteffectiveness
+in the five remaining systems. The Borda mixer (P1.2) also has the highest mean and median
+rAPFD Cvalues.
+For RQ1.2, the interpolator achieves the highestrAPFD Cmetric value on 10 out of 11
+datasets, with its best sub-method, FailDensityOrder, being better only fordynjs. It also
+has the highest mean and medianrAPFD C.
+Table 8: AveragerAPFD Cper dataset for RQ1.1 and RQ1.2.
+Subject programRQ1.1: Mixers vs. sub-methods
+FoldFails Recent ExeTime P1.1 P1.2 P1.3
+LittleProxy.697.375 .501 .584 .639 .628
+HikariCP.749 .530 .666 .719.846.831
+jade4j.661 .805 .657 .652.857.681
+wicket-bootstrap.748 .727 .495 .756.833 .833
+titan.896.431 .287 .844 .856 .856
+dynjs.840 .533 .824 .857.888.885
+jsprit.872 .623 .601 .917.975 .975
+DSpace.738.482 .676 .619 .719 .719
+optiq.870 .216 .692 .814.889 .889
+cloudify.856.639 .628 .794 .823 .822
+okhttp.905.456 .560 .715 .834 .835
+Mean.803 .529 .599 .752.833.814
+Median.840 .530 .628 .756.846.833RQ1.2: Interpolator vs. sub-methods
+ExeTime Recent FailDensity P2
+.501 .375 .694.707
+.666 .530.775 .775
+.657 .805.887 .887
+.495 .727 .747.785
+.287 .431 .908.930
+.824 .533.846.831
+.601 .623 .872.896
+.676 .482 .738.793
+.692 .216 .870.914
+.628 .639 .855.868
+.560 .456 .903.908
+.599 .529 .827.845
+.628 .530 .855.868
+26
+
+--- Page 27 ---
+FoldFails Recent ExeTime P1.1 P1.2 P1.3
+RQ1.1:/uni00A0Mixers/uni00A0vs./uni00A0sub/uni00ADmethods0.20.40.60.81.0rAPFDc
+ExeTime Recent FailDensity P2
+RQ1.2:/uni00A0Interpolator/uni00A0vs./uni00A0sub/uni00ADmethods0.20.40.60.8rAPFDcFigure 6: Boxplot of averagerAPFD Cvalues for RQ1.1 and RQ1.2.
+As stated previously, for RQ1.3, two tiebreaker experiments were performed and their
+results are shown in Table 9 and Figure 7. The left half of both the table and the figure shows
+the evaluation of P3.1 (execution time tiebreaking), and the right half presents P3.2 (code
+representation distance tiebreaking). In the first half, P3.1 achieved the highest results for
+all subjects exceptHikariCPandjade4j. The mean and medianrAPFD Cof the tiebreaker
+was also much higher than that of its sub-approaches. In the second half, P3.2 outperformed
+all other approaches in 10 out of 11 repositories, with the only exception beingHikariCP. It
+also had the highest mean and medianrAPFD C, compared to its sub-methods. However, it
+performed worse than the execution time tiebreaker.
+Table 9: AveragerAPFD Cper dataset for RQ1.3.
+Subject programRQ1.3: ExeTime breaking
+TotalFails ExeTime P3.1
+LittleProxy.678 .501.716
+HikariCP.583.666.596
+jade4j.606.657.617
+wicket-bootstrap.744 .495.898
+titan.888 .287.899
+dynjs.835 .824.947
+jsprit.819 .601.898
+DSpace.739 .676.822
+optiq.852 .692.943
+cloudify.767 .628.809
+okhttp.865 .560.884
+Mean.761 .599.821
+Median.767 .628.884RQ1.3: CodeDist breaking
+TotalFails CodeDist P3.2
+.678 .614.679
+.583.450 .579
+.606 .379.615
+.744 .557.811
+.888 .505.915
+.835 .397.920
+.819 .604.847
+.739 .427.818
+.852 .703.915
+.767 .358.804
+.865 .368.878
+.761 .488.798
+.767 .450.818
+To summarize the entire research question, the approach of combinator-based models
+can effectively beat their sub-approaches in terms ofrAPFD C. Without any fine-tuning, we
+were able to construct sample approach combinator methods (P1, P2, and P3), which consis-
+27
+
+--- Page 28 ---
+TotalFails ExeTime P3.1
+RQ1.3:/uni00A0ExeTime/uni00A0breaking0.40.60.8rAPFDc
+TotalFails CodeDist P3.2
+RQ1.3:/uni00A0CodeDist/uni00A0breaking0.40.50.60.70.80.9rAPFDcFigure 7: Boxplot of averagerAPFD Cvalues for RQ1.3.
+tently outperform their base approaches across the majority of subject programs. Between
+all mixers tested, the one that used Borda count (P1.2) had the best effectiveness, and in
+terms of RQ1.3, the execution time tiebreaker (P3.1) was better than its alternative. Thus,
+for the comparison in RQ2, the P1.2, P2, and P3.1 prioritizers will be used. As noted when
+first stating the research question, these findings cannot be generalized to all constructible
+combinator models, as the performance of such combinators depends on their specific con-
+figuration. Accordingly, the observed performance characteristics apply only to the specific
+sample prioritizers evaluated.
+5.2 Performance of the proposed approaches (RQ2)
+The performance of the proposed approaches is compared with both trivial baselines and
+state-of-the-art solutions, in terms of both effectiveness (rAPFD C; Table 10 and Figure 8)
+and applicability within CI (NTR and ATR; Table 11 and Figure 9).
+First, to select suitable reference points for further comparison, a preliminary analysis of
+rAPFD Cofallbaselinesisperformed. Wecompare: BaseOrder(Rothermeletal.,1999)(B1),
+DBP (Zhou et al., 2021) (B2), RandomOrder (Rothermel et al., 1999) (B3), unnamed ap-
+proach by Fazlalizadeh et al. (2009) (B4), DFE (Kim and Porter, 2002) (B5), FailDensity-
+Order (B6), and ROCKET (Marijan et al., 2013) withm= 100(B7) andm= 1000(B8).
+The results of this microstudy are shown in the left section of Table 10 and Figure 8. We
+select B3, which is the random order of the test cases, as the lowest baseline. From B4
+through B6, we select DFE, as it was previously used as a reference point by Mattis et al.
+(2020). Finally, we select B7 as the better-performing variant of ROCKET. In summary, for
+further evaluation, we use the following baselines: random prioritization (B3), DFE (B5),
+and ROCKET (B7).
+We collect therAPFD Cresults for B3, B5, B7, P1.2, P2, and P3.1, which are shown in
+Table 10 and Figure 8. The best approaches vary by dataset, with P2 having the highest
+mean and P3.1 the highest medianrAPFD C. Random prioritization and DFE do not achieve
+the highest result for any dataset. It seems that all proposed approaches can compete with
+ROCKET in terms of effectiveness. ROCKET also outperforms P1.2 in terms of mean
+28
+
+--- Page 29 ---
+rAPFD Cand P3.1 in terms of average.
+Table 10: AveragerAPFD Cper dataset for baselines and RQ2.1.
+Subject programRQ2: Baselines
+B1 B2 B3 B4 B5 B6 B7 B8
+(Rothermel et al., 1999) (Zhou et al., 2021) (Rothermel et al., 1999) (Fazlalizadeh et al., 2009) (Kim and Porter, 2002) — (Marijan et al., 2013)
+LittleProxy.453 .424 .558 .470 .659.694.584 .426
+HikariCP.570 .462 .446 .527 .744 .775.793.535
+jade4j.226 .485 .566 .769 .661.887.570 .842
+wicket-bootstrap.009 .529 .514 .741.892.747 .855 .783
+titan.492 .488 .520 .524 .916 .908.930.719
+dynjs.398 .514 .494 .791 .871 .846.951.948
+jsprit.433 .373 .573 .758 .913 .872.936.724
+DSpace.303 .616 .592 .702 .658 .738 .801.851
+optiq.205 .508 .457 .429 .836.870.858 .840
+cloudify.333 .492 .443 .758 .849 .855.902.898
+okhttp.333 .459 .512 .544 .771.903.869 .687
+Mean.341 .486 .516 .638 .797.827.823 .750
+Median.333 .488 .514 .702 .836 .855.858.783RQ2.1: Approaches
+B3 B5 B7 P1.2 P2 P3.1
+(Rothermel et al., 1999) (Kim and Porter, 2002) (Marijan et al., 2013)ours
+.558 .659 .584 .639 .707.716
+.446 .744 .793.846.775 .596
+.566 .661 .570 .857.887.617
+.514 .892 .855 .833 .785.898
+.520 .916.930.856.930.899
+.494 .871.951.888 .831 .947
+.573 .913 .936.975.896 .898
+.592 .658 .801 .719 .793.822
+.457 .836 .858 .889 .914.943
+.443 .849.902.823 .868 .809
+.512 .771 .869 .834.908.884
+.516 .797 .823 .833.845.821
+.514 .836 .858 .846 .868.884
+B1 B2 B3 B4 B5 B6 B7 B8
+RQ2:/uni00A0Baselines0.00.20.40.60.8rAPFDc
+B3 B5 B7 P1.2 P2 P3.1
+RQ2.1:/uni00A0Approaches0.50.60.70.80.91.0rAPFDc
+Figure 8: Boxplot of averagerAPFD Cvalues for baselines and RQ2.1.
+As mentioned previously, we evaluate the applicability within CI in terms of both NTR
+and ATR to reduce the risks caused by the use of a new evaluation metric. The results are
+shown in Table 11 and Figure 9. While NTR has the standard value range of zero to one,
+ATR is technically not bounded and can take both positive and negative values.
+In terms of NTR, the ROCKET approach has the highest mean and median metric value;
+however, itsresultsareclosetothoseoftheproposedapproaches. Inparticular, forP2, which
+performed the best, the mean NTR is lower by less than one percent. Although the best
+methods vary between subject programs, neither random prioritization nor DFE achieves
+the highest results for any repository.
+Table 11: Average NTR and ATR per dataset for RQ2.2.
+Subject programRQ2.2: Approaches (NTR)
+B3 B5 B7 P1.2 P2 P3.1
+(Rothermel et al., 1999) (Kim and Porter, 2002) (Marijan et al., 2013)ours
+LittleProxy.440 .521 .513 .564.617.570
+HikariCP.608 .634 .796.835.635 .590
+jade4j.807 .750 .863 .900.904.630
+wicket-bootstrap.472 .807 .768 .747 .746.824
+titan.558 .779.825.703 .816 .757
+dynjs.590 .928 .961 .945 .870.968
+jsprit.585 .824 .857.899.783 .785
+DSpace.553 .556 .631 .544.658.616
+optiq.474 .817 .693 .781.890.883
+cloudify.389 .662.690.583 .667 .529
+okhttp.479 .666.818.789 .817 .781
+Mean.541 .722.765.754 .764 .721
+Median.553 .750.796.781 .783 .757RQ2.2: Approaches (ATR)
+B3 B5 B7 P1.2 P2 P3.1
+(Rothermel et al., 1999) (Kim and Porter, 2002) (Marijan et al., 2013)ours
++.000 +.009 +.008 +.014+.020+.015
+-.006 -.004 +.011+.014-.004 -.008
++.019 +.015 +.024+.027 +.027+.005
++.012+.021+.020 +.020 +.020+.022
++.006 +.022+.025+.016+.024+.020
++.001+.005 +.006 +.006+.005+.006
++.009 +.021 +.023+.025+.019 +.019
++.003 +.003+.004+.003+.004 +.004
++.003+.008+.006 +.007+.009 +.009
++.002+.005 +.005 +.004 +.005+.003
++.005 +.013+.019+.018+.019+.018
++.005 +.011+.014 +.014 +.013+.010
++.003 +.009 +.011 +.014+.019+.009
+29
+
+--- Page 30 ---
+B3 B5 B7 P1.2 P2 P3.1
+RQ2.2:/uni00A0Approaches/uni00A0(NTR)0.40.50.60.70.80.9NTR
+B3 B5 B7 P1.2 P2 P3.1
+RQ2.2:/uni00A0Approaches/uni00A0(ATR)0.000.010.02ATRFigure 9: Boxplot of average NTR and ATR values for RQ2.2.
+For ATR, P2 has the highest median value, while the mean value is tied between joint
+winners: ROCKET, P1.2, and P2. We observe higher ATR values for more sophisticated yet
+lightweight methods. The value of ATR for the base order is also interpretable, as it would
+be equal to exactly zero in all datasets. One subject program,HikariCP, had negative ATR
+values for the majority of prioritization approaches.
+When interpreted as percentage values, ATR is actually low in all areas, and the best
+approaches reduce the prioritization time by only up to 2.7%. However, since TCP cannot
+reduce the actual execution time of particular test cases and also incurs overhead of its
+own, the reduction is actually quite large. In total terms, the proposed approaches saved,
+respectively 7.5h, 11.1h, and 9.2h fortitan; 5.7h, 6.8h, and 6.8h foroptiq; and 2.9h,
+3.1h, and 2.7h forokhttp. These time gains may translate into substantial financial savings
+for these projects.
+Based on the results of RQ2.1 and RQ2.2, we conclude that the proposed approach
+combinator prioritizers achieve performance comparable to current heuristic state-of-the-
+art methods, while employing a novel technique that, unlike many ML-based approaches,
+requires no training and has a low memory footprint, making it well suited for smaller
+development organizations.
+This trade-off makes approach combinators particularly advantageous in several scenar-
+ios: (1) resource-constrained environments where CI/CD pipelines have limited computa-
+tional capacity; (2) cold-start situations where insufficient historical data prevents effective
+ML model training; (3) contexts requiring transparency, where explainable prioritization
+decisions are necessary; and (4) rapid prototyping, where practitioners need to quickly ex-
+periment with different sub-approach combinations without retraining models.
+To support the claim of comparable performance, we performed a statistical test on the
+results of RQ2.1. The Friedman test, previously used in the field of TCP (Marijan, 2023;
+Zhao et al., 2023), is employed. It is a non-parametric test, resistant to non-normality and
+differingvariances(Demšar,2006). Thetestcalculatestheaverageranksoftheapproachesin
+allsubjectprogramstocheckwhethertheperformancedifferencesarestatisticallysignificant.
+If the Friedman test succeeds at a given significance levelα, we continue with the post hoc
+30
+
+--- Page 31 ---
+Wilcoxon test to determine which pairs have a significant difference (Demšar, 2006). As
+multiple hypotheses are tested, the procedure must be adjusted, in this case with Holm’s
+method.
+For data visualization, we use critical difference (CD) diagrams, originally proposed by
+Demšar (2006). The CD plot shows the mean positions of the techniques, where the lower
+resultsarebetterandaredisplayedmoretotheright. Treatmentsareconnectedbyahorizon-
+tal line if there are no statistically significant differences between their results. In contrast,
+they are disconnected if significant differences occur. The results of the test are shown in
+Figure 10. We can see that in terms ofrAPFD Cperformance, ROCKET wins but is closely
+followed by the proposed approaches P2 and P3.1. Then, the P1.2 and DFE approaches
+follow, and the random approach is the last. However, there are no statistically significant
+differences (atα= 0.05) between the performance of all the state-of-the-art and proposed
+methods, as marked by the horizontal line.
+1 2 3 4 5 6
+ROCKET (B7)
+Tiebreaker (P3.1)
+Interpolator (P2) Mixer (P1.2)DFE (B5)Random (B3)
+Figure 10: Critical difference plot for RQ2.1rAPFD Cof different approaches.
+6 Discussion
+The discussion chapter contains general insights from the research process. Threats to the
+validity of the results of the study are elaborately listed. Then, recommendations for other
+researchers, practitioners, and further work directions are outlined.
+6.1 Threats to validity
+Internal validity:The main threat to internal validity concerns the correctness of the im-
+plementation of the proposed solution. Multiple tactics were used to reduce this risk. The
+entire contributed project uses typechecking and linting, with all rules enabled by default.
+The proposed framework has correctness precautions built in. Finally, the research artifacts
+are published for external inspection. In terms of SR, the number of involved researchers
+poses the primary threat to its internal validity. To address this threat, state-of-the-art
+guidelines (Wohlin, 2014; Moher et al., 2015; Kitchenham et al., 2023) were used, a SR pro-
+tocol was written, and then approved by the second author. The use of the snowballing
+process should also reduce internal validity threats.
+External validity:The main risk of external validity comes from the fact that only open-
+source Java projects were tested. The reached conclusions might not generalize to projects
+written in other languages or to proprietary solutions. We believe that despite the reported
+31
+
+--- Page 32 ---
+threats, the use of RTPTorrent was the correct choice for the study. The dataset contains
+real-world data; it includes projects with diverse maturities, contributor counts, test case
+counts, codebase sizes, and failure percentages. For the SR, external validity is slightly
+concerned with the choice to select only peer-reviewed studies written in English. However,
+the vast majority of articles related to TCP are written in English. Furthermore, due to the
+use of Google Scholar, the external validity threats resulting from publisher and database
+bias are greatly reduced (Wohlin, 2014).
+Construct validity:The primary risks in this area refer to the use of less popularrAPFD
+instead of APFD, and the use of newly proposedrAPFD Cand ATR metrics. The threat
+arising from the usage ofrAPFD andrAPFD Cis considered minimal. Most importantly,
+these metrics have the same monotonicity as APFD and APFD C, respectively. Thus, it does
+not harm the relative comparisons of different algorithms. In terms of absolute evaluation,
+the rectified metrics have much more convenient semantics. For the proposed ATR metric,
+although it has a logical interpretation, it is very different from NTR. To eliminate associated
+risks, all applicability results are reported in terms of both metrics. Furthermore, we avoid
+invalid measurement practices reported in the literature (Bagherzadeh et al., 2022; Zhao
+et al., 2023).
+6.2 Recommendations for researchers and practitioners
+Validity of TCP research:We share our insights to increase the validity of the TCP research
+ecosystem. Firstly, following Mattis et al. (2020), we observe that TCP studies are often
+performed on proprietary data or projects that do not reflect real-world software develop-
+ment practices. Secondly, not all studies are reproducible, and some do not publish their
+results at all (Catal and Mishra, 2013). Finally, incorrect use of metrics occurs in the lit-
+erature (Bagherzadeh et al., 2022; Zhao et al., 2023). We suggest adhering to the following
+recommendations. Studies should use open-source datasets with diverse subject programs
+to support reproducible research and increase ecological validity. Their results should be
+compared with baselines better than random prioritization. Lastly, researchers should be
+careful when calculating evaluation metrics; in particular, we propose using rectified metrics
+from the APFD family and averaging over only failed cycles.
+Unification of TCP:We observe a lack of unification within the TCP research. We
+recommend that future researchers focus on contributing universal datasets and tools for
+TCP evaluation. The proposed TCPFramework is an attempt at such a contribution. We
+also suggest the creation of a new comprehensive TCP approach taxonomy.
+Approach combinators:There are areas for improvement of the methodology. Firstly,
+additional combinators and categories may be proposed. Although combinators are appli-
+cable to almost all TCP methods, we only combined heuristic methods. Furthermore, we
+see an option to use supervised ML strategies on some combinators; namely, the weights of
+mixers may be automatically learned. Based on our empirical observations, we offer guide-
+lines for effective combinator construction: (1) combine methods exploiting complementary
+information sources, as the best-performing combinators in our study integrated orthogonal
+factors; (2)usebalancedweightsunlessempiricallyjustifiedotherwise; (3)prefertheoretically
+grounded aggregation methods such as Borda count over random selection. Configurations
+combining redundant methods or using extreme weight distributions should be avoided.
+32
+
+--- Page 33 ---
+Practical usage:To sum up all the insights from both the SR and empirical experimenta-
+tion, the primary guidance for practitioners is that TCP can provide measurable gains for CI
+processes, even when extremely simple methods are used. Simultaneously understanding the
+difficulties of integrating heavy ML-based TCP solutions in CI pipelines, we recommend the
+use of lightweight prioritization methods such as ones constructed with the approach combi-
+nator framework, which do not require training or historical testing data. We endorse using
+TCP methods that incorporate different information factors, as such techniques achieved
+higher performance in our empirical evaluations. The use of approach combinators allows
+for mixing these factors, without implementing specialized hybrid algorithms manually.
+7 Conclusions
+The literature survey conducted led to a few key insights. There are many TCP evaluation
+tools available, and none of them are universally used. The choice of the dataset should be
+influenced by the exact problem statement and other factors. For general use, we recommend
+the RTPTorrent (Mattis et al., 2020) dataset, since it is publicly available and includes
+diverse subject programs. It is hard to establish the state-of-the-art TCP algorithms as
+studies from this area are mostly incomparable due to divergences in datasets, metrics,
+tools, information factors, and problem statements used. Some studies do not empirically
+evaluate their proposed approaches at all. The most widely used evaluation reference points
+are base order, random order, and the ROCKET (Marijan et al., 2013) algorithm.
+Similarly, the empirical study uncovered answers to the questions regarding the applica-
+bility of approach combinators. Prioritizers based on the approach combinators framework
+can consistently outperform their sub-approaches in the evaluated examples. We recommend
+using approach combinators to merge the insights from prioritizers facilitating different infor-
+mation factors. The proposed methods based on approach combinators achieve performance
+comparable to the current state of the art, showing no statistically significant differences in
+terms of relativerAPFD Cranking, while using a distinct technique. In terms of applicability,
+all proposed approaches consistently reduced the time spent testing in all but one subject
+system.
+Although many further work opportunities remain, this work marks a step forward in
+addressing the problem of constructing universal, efficient, and applicable test case prioriti-
+zation approaches, to reduce the costs of software testing.
+CRediT authorship contribution statement
+Tomasz Chojnacki: Conceptualization, Methodology, Software, Validation, Investigation,
+Writing – Original Draft, Writing – Review & Editing, Visualization.
+Lech Madeyski: Conceptualization, Validation, Resources, Writing – Review & Editing,
+Supervision, Project administration.
+33
+
+--- Page 34 ---
+Data Availability
+Reproducible research (RR) can address problems with the validity of findings in software
+engineering research (Madeyski and Kitchenham, 2017). To support RR and good scientific
+practices, the research is backed by project files in the form of code, scripts, and SR artifacts.
+The complete source code and instructions for obtaining and preparing the dataset are
+available online9. See also Section 2 of our online Appendix for details on running the code
+and extending the project1.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal
+relationships that could have appeared to influence the work reported in this paper.
+References
+R.K.Saha,S.Khurshid, D.E.Perry, Anempiricalstudyoflonglivedbugs, in: 2014Software
+Evolution Week – IEEE Conference on Software Maintenance, Reengineering, and Reverse
+Engineering(CSMR-WCRE),2014, pp.144–153.doi:10.1109/CSMR-WCRE.2014.6747164.
+S. Ajorloo, A. Jamarani, M. Kashfi, M. Haghi Kashani, A. Najafizadeh, A systematic review
+of machine learning methods in software testing, Applied Software Computing 162 (2024)
+111805. doi:10.1016/j.asoc.2024.111805.
+H. Washizaki, Guide to the Software Engineering Body of Knowledge (SWEBOK Guide),
+IEEE Computer Society, 2024. URL:https://www.swebok.org, version 4.0, retrieved
+March 8, 2025.
+G. J. Myers, C. Sandler, T. Badgett, The Art of Software Testing, John Wiley & Sons, Inc.,
+2011. 3rd edition.
+M. Khatibsyarbini, M. A. Isa, D. N. Jawawi, R. Tumeng, Test case prioritization approaches
+inregressiontesting: Asystematicliteraturereview, InformationandSoftwareTechnology
+93 (2018) 74–93. doi:10.1016/j.infsof.2017.08.014.
+A. Haghighatkhah, M. Mäntylä, M. Oivo, P. Kuvaja, Test prioritization in continuous
+integration environments, Journal of Systems and Software 146 (2018) 80–98. doi:10.
+1016/j.jss.2018.08.061.
+J. A. Prado Lima, S. R. Vergilio, Test case prioritization in continuous integration environ-
+ments: A systematic mapping study, Information and Software Technology 121 (2020)
+106268. doi:10.1016/j.infsof.2020.106268.
+D. Marijan, Comparative study of machine learning test case prioritization for continu-
+ous integration testing, Software Quality Journal 31 (2023) 1415–1438. doi:10.1007/
+s11219-023-09646-0.
+34
+
+--- Page 35 ---
+M. Bagherzadeh, N. Kahani, L. Briand, Reinforcement learning for test case prioritization,
+IEEETransactionsonSoftwareEngineering48(2022)2836–2856.doi:10.1109/TSE.2021.
+3070549.
+S. Yoo, M. Harman, Regression testing minimization, selection and prioritization: a survey,
+Software Testing, Verification & Reliability 22 (2012) 67–120. doi:10.1002/stv.430.
+A. Memon, Z. Gao, B. Nguyen, S. Dhanda, E. Nickell, R. Siemborski, J. Micco, Taming
+Google-scale continuous testing, in: 2017 IEEE/ACM 39th International Conference on
+Software Engineering: Software Engineering in Practice Track (ICSE-SEIP), 2017, pp.
+233–242. doi:10.1109/ICSE-SEIP.2017.16.
+J. Czerwonka, R. Das, N. Nagappan, A. Tarvo, A. Teterev, CRANE: Failure prediction,
+change analysis and test prioritization in practice – experiences from Windows, in: 2011
+Fourth IEEE International Conference on Software Testing, Verification and Validation,
+2011, pp. 357–366. doi:10.1109/ICST.2011.24.
+B. Kitchenham, L. Madeyski, D. Budgen, SEGRESS: Software Engineering Guidelines for
+REporting Secondary Studies, IEEE Transactions on Software Engineering 49 (2023)
+1273–1298. doi:10.1109/TSE.2022.3174092.
+C. Wohlin, Guidelines for snowballing in systematic literature studies and a replication in
+software engineering, in: Proceedings of the 18th International Conference on Evaluation
+andAssessmentinSoftwareEngineering,EASE’14,AssociationforComputingMachinery,
+2014, pp. 1–10. doi:10.1145/2601248.2601268.
+B. Kitchenham, S. Charters, D. Budgen, P. Brereton, M. Turner, S. Linkman, M. Jørgensen,
+E. Mendes, G. Visaggio, Guidelines for performing systematic literature reviews in soft-
+ware engineering, Technical Report, Keele University, 2007. URL:https://madeyski.
+e-informatyka.pl/download/Kitchenham07.pdf, version 2.3, retrieved February 22,
+2025.
+D. Moher, L. Shamseer, M. Clarke, D. Ghersi, A. Liberati, M. Petticrew, P. Shekelle, L. A.
+Stewart, PRISMA-P Group, Preferred reporting items for systematic review and meta-
+analysis protocols (PRISMA-P) 2015 statement, Systematic Reviews 4 (2015) 1. doi:10.
+1186/2046-4053-4-1.
+L. Yang, J. Chen, H. You, J. Han, J. Jiang, Z. Sun, X. Lin, F. Liang, Y. Kang, Can code
+representation boost IR-based test case prioritization?, in: 2023 IEEE 34th International
+SymposiumonSoftwareReliabilityEngineering(ISSRE),2023, pp.240–251.doi:10.1109/
+ISSRE59848.2023.00077.
+A. S. Yaraghi, M. Bagherzadeh, N. Kahani, L. C. Briand, Scalable and accurate test case pri-
+oritization in continuous integration contexts, IEEE Transactions on Software Engineering
+49 (2023) 1615–1639. doi:10.1109/TSE.2022.3184842.
+R. Huang, Q. Zhang, D. Towey, W. Sun, J. Chen, Regression test case prioritization by code
+combinations coverage, Journal of Systems and Software 169 (2020) 110712. doi:10.1016/
+j.jss.2020.110712.
+35
+
+--- Page 36 ---
+A. Vescan, R. Găceanu, A. Szederjesi-Dragomir, Embracing unification: A comprehensive
+approachtomoderntestcaseprioritization, in: Proceedingsofthe19thInternationalCon-
+ference on Evaluation of Novel Approaches to Software Engineering – ENASE, INSTICC,
+SciTePress, 2024, pp. 396–405. doi:10.5220/0012631000003687.
+R. Mukherjee, K. S. Patnaik, A survey on different approaches for software test case priori-
+tization, Journal of King Saud University – Computer and Information Sciences 33 (2021)
+1041–1054. doi:10.1016/j.jksuci.2018.09.005.
+G.Rothermel, R.Untch, C.Chu, M.Harrold, Testcaseprioritization: anempiricalstudy, in:
+Proceedings IEEE International Conference on Software Maintenance – 1999 (ICSM’99).
+’Software Maintenance for Business Change’ (Cat. No.99CB36360), 1999, pp. 179–188.
+doi:10.1109/ICSM.1999.792604.
+Y. Singh, A. Kaur, B. Suri, S. Singhal, Systematic literature review on regression test
+prioritization techniques, Informatica (Slovenia) 36 (2012) 379–408. URL:https://www.
+informatica.si/index.php/informatica/article/view/420/424, retrieved March 2,
+2025.
+C. Catal, D. Mishra, Test case prioritization: a systematic mapping study, Software Quality
+Journal 21 (2013) 445–478. doi:10.1007/s11219-012-9181-z.
+H. de S. Campos Junior, M. A. P. Araújo, J. M. N. David, R. Braga, F. Campos, V. Ströele,
+Testcaseprioritization: asystematicreviewandmappingoftheliterature, in: Proceedings
+of the XXXI Brazilian Symposium on Software Engineering, SBES ’17, Association for
+Computing Machinery, 2017, p. 34–43. doi:10.1145/3131151.3131170.
+M. d. C. de Castro-Cabrera, A. García-Dominguez, I. Medina-Bulo, Trends in prioritization
+of test cases: 2017-2019, in: Proceedings of the 35th Annual ACM Symposium on Applied
+Computing, SAC ’20, Association for Computing Machinery, 2020, p. 2005–2011. doi:10.
+1145/3341105.3374036.
+H. Abubakar, F. Zambuk, U. Ahmed, A. Gital, A review on the new trend in regression
+test case prioritization, ATBU Journal of Science, Technology and Education 11 (2023)
+426–436. URL:https://www.atbuftejoste.com.ng/index.php/joste/article/view/
+1837/pdf_1229, retrieved March 2, 2025.
+T. Mattis, P. Rein, F. Dürsch, R. Hirschfeld, RTPTorrent: An open-source dataset for eval-
+uating regression test prioritization, in: Proceedings of the 17th International Conference
+on Mining Software Repositories, MSR ’20, Association for Computing Machinery, 2020,
+p. 385–396. doi:10.1145/3379597.3387458.
+H. Do, G. Rothermel, On the use of mutation faults in empirical assessments of test case
+prioritization techniques, IEEE Transactions on Software Engineering 32 (2006) 733–752.
+doi:10.1109/TSE.2006.92.
+Q. Luo, K. Moran, D. Poshyvanyk, M. Di Penta, Assessing test case prioritization on real
+faults and mutants, in: 2018 IEEE International Conference on Software Maintenance
+and Evolution (ICSME), 2018, pp. 240–251. doi:10.1109/ICSME.2018.00033.
+36
+
+--- Page 37 ---
+Q. Luo, K. Moran, D. Poshyvanyk, A large-scale empirical comparison of static and dynamic
+test case prioritization techniques, in: Proceedings of the 2016 24th ACM SIGSOFT
+International Symposium on Foundations of Software Engineering, FSE 2016, Association
+for Computing Machinery, 2016, p. 559–570. doi:10.1145/2950290.2950344.
+D. Marijan, A. Gotlieb, S. Sen, Test case prioritization for continuous regression testing: An
+industrial case study, in: 2013 IEEE International Conference on Software Maintenance,
+2013, pp. 540–543. doi:10.1109/ICSM.2013.91.
+Z.Q.Zhou, C.Liu, T.Y.Chen, T.H.Tse, W.Susilo, Beatingrandomtestcaseprioritization,
+IEEE Transactions on Reliability 70 (2021) 654–675. doi:10.1109/TR.2020.2979815.
+J.-M. Kim, A. A. Porter, A history-based test prioritization technique for regression testing
+in resource constrained environments, Proceedings of the 24th International Conference
+on Software Engineering. ICSE 2002 (2002) 119–129. doi:10.1109/ICSE.2002.1007961.
+Y. Huang, T. Shu, Z. Ding, A learn-to-rank method for model-based regression test case
+prioritization, IEEE Access 9 (2021) 16365–16382. doi:10.1109/ACCESS.2021.3053163.
+T. Cao, T. Vu, H. Le, V. Nguyen, Ensemble approaches for test case prioritization in ui
+testing, in: The 34th International Conference on Software Engineering and Knowledge
+Engineering, 2022, pp. 231–236. doi:10.18293/SEKE2022-148.
+S. Mondal, R. Nasre, Hansie: Hybrid and consensus regression test prioritization, Journal
+of Systems and Software 172 (2021) 110850. doi:10.1016/j.jss.2020.110850.
+S. M. J. Hassan, D. Jawawi, J. Ahmad, An exploratory study of history-based test case
+prioritization techniques on different datasets, Baghdad Science Journal 21 (2024) 609–
+621. doi:10.21123/bsj.2024.9604.
+J. A. Prado Lima, S. R. Vergilio, A multi-armed bandit approach for test case prioritization
+in continuous integration environments, IEEE Transactions on Software Engineering 48
+(2022) 453–465. doi:10.1109/TSE.2020.2992428.
+Y. Zhao, D. Hao, L. Zhang, Revisiting machine learning based test case prioritiza-
+tion for continuous integration, in: 2023 IEEE International Conference on Soft-
+ware Maintenance and Evolution (ICSME), IEEE Computer Society, 2023, pp. 232–244.
+doi:10.1109/ICSME58846.2023.00032.
+W. Wong, J. Horgan, S. London, H. Agrawal, A study of effective regression testing in
+practice, in: Proceedings The Eighth International Symposium on Software Reliability
+Engineering, 1997, pp. 264–274. doi:10.1109/ISSRE.1997.630875.
+G. Rothermel, R. Untch, C. Chu, M. Harrold, Prioritizing test cases for regression testing,
+IEEE Transactions on Software Engineering 27 (2001) 929–948. doi:10.1109/32.962562.
+R. Pan, M. Bagherzadeh, T. A. Ghaleb, L. Briand, Test case selection and prioritization
+using machine learning: a systematic literature review, Empirical Software Engineering
+27 (2021) 29. doi:10.1007/s10664-021-10066-6.
+37
+
+--- Page 38 ---
+C. Henard, M. Papadakis, M. Harman, Y. Jia, Y. Le Traon, Comparing white-box and
+black-box test prioritization, in: Proceedings of the 38th International Conference on
+Software Engineering, ICSE ’16, Association for Computing Machinery, 2016, p. 523–534.
+doi:10.1145/2884781.2884791.
+Y. Lou, J. Chen, L. Zhang, D. Hao, Chapter one – a survey on regression test-case prioriti-
+zation, Advances in Computers 113 (2019) 1–46. doi:10.1016/bs.adcom.2018.10.001.
+S. Elbaum, A. G. Malishevsky, G. Rothermel, Prioritizing test cases for regression testing,
+SIGSOFT Software Engineering Notes 25 (2000) 102–112. doi:10.1145/347636.348910.
+Z. Wang, C. Fang, L. Chen, Z. Zhang, A revisit of metrics for test case prioritization
+problems, International Journal of Software Engineering and Knowledge Engineering 30
+(2020) 1139–1167. doi:10.1142/S0218194020500291.
+S. Elbaum, A. Malishevsky, G. Rothermel, Incorporating varying test costs and fault sever-
+ities into test case prioritization, in: Proceedings of the 23rd International Conference on
+Software Engineering. ICSE 2001, 2001, pp. 329–338. doi:10.1109/ICSE.2001.919106.
+X. Qu, M. B. Cohen, K. M. Woolf, Combinatorial interaction regression testing: A study
+of test case generation and prioritization, in: 2007 IEEE International Conference on
+Software Maintenance, 2007, pp. 255–264. doi:10.1109/ICSM.2007.4362638.
+A. Bertolino, A. Guerriero, B. Miranda, R. Pietrantuono, S. Russo, Learning-to-rank vs
+ranking-to-learn: strategies for regression testing in continuous integration, in: Proceed-
+ings of the ACM/IEEE 42nd International Conference on Software Engineering, ICSE ’20,
+Association for Computing Machinery, 2020, p. 1–12. doi:10.1145/3377811.3380369.
+W. Zhou, X. Jiang, C. Qin, C-CORE: Clustering by code representation to prioritize test
+cases in compiler testing, CMES – Computer Modeling in Engineering and Sciences 139
+(2024) 2069–2093. doi:10.32604/cmes.2023.043248.
+P. Hrkút, M. Ďuračík, Š. Toth, M. Meško, Current trends in the search for similarities in
+source codes with an application in the field of plagiarism and clone detection, in: 2023
+33rd Conference of Open Innovations Association (FRUCT), 2023, pp. 77–84. doi:10.
+23919/FRUCT58615.2023.10143064.
+Y. Ledru, A. Petrenko, S. Boroday, N. Mandran, Prioritizing test cases with string distances,
+Automated Software Engineering 19 (2012) 65–95. doi:10.1007/s10515-011-0093-0.
+F. Brandt, V. Conitzer, U. Endriss, J. Lang, A. D. Procaccia (Eds.), Handbook of Computa-
+tional Social Choice, Cambridge University Press, 2016. doi:10.1017/CBO9781107446984.
+M. Schulze, A new monotonic, clone-independent, reversal symmetric, and Condorcet-
+consistent single-winner election method, Social Choice and Welfare 36 (2011) 267–303.
+doi:10.1007/s00355-010-0475-4.
+38
+
+--- Page 39 ---
+M. Beller, G. Gousios, A. Zaidman, TravisTorrent: Synthesizing Travis CI and GitHub
+for full-stack research on continuous integration, in: 2017 IEEE/ACM 14th International
+Conference on Mining Software Repositories (MSR), 2017, pp. 447–450. doi:10.1109/MSR.
+2017.24.
+Y. Fazlalizadeh, A. Khalilian, M. Abdollahi Azgomi, S. Parsa, Incorporating histori-
+cal test case performance data and resource constraints into test case prioritization,
+in: C. Dubois (Ed.), Tests and Proofs, Springer Berlin Heidelberg, 2009, pp. 43–57.
+doi:10.1007/978-3-642-02949-3_5.
+H. Spieker, A. Gotlieb, D. Marijan, M. Mossige, Reinforcement learning for automatic test
+case prioritization and selection in continuous integration, in: Proceedings of the 26th
+ACM SIGSOFT International Symposium on Software Testing and Analysis, ISSTA 2017,
+Association for Computing Machinery, 2017, p. 12–22. doi:10.1145/3092703.3092709.
+J. Demšar, Statistical comparisons of classifiers over multiple data sets, The Journal of
+Machine Learning Research 7 (2006) 1–30. URL:https://jmlr.org/papers/volume7/
+demsar06a/demsar06a.pdf, retrieved June 5, 2025.
+L. Madeyski, B. Kitchenham, Would wider adoption of reproducible research be beneficial
+for empirical software engineering research?, Journal of Intelligent & Fuzzy Systems 32
+(2017) 1509–1521. doi:10.3233/JIFS-169146.
+39
