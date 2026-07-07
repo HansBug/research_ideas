@@ -241,6 +241,11 @@ def main() -> None:
     TABLES.mkdir(parents=True, exist_ok=True)
     candidates = pd.read_csv(RAW / "candidates.csv")
     audit = pd.read_csv(RAW / "fulltext-audit.csv")
+    zotero_failed_path = RAW / "zotero-import-failed-2026-07-07.csv"
+    zotero_failed = {}
+    if zotero_failed_path.exists():
+        failed_df = pd.read_csv(zotero_failed_path).fillna("")
+        zotero_failed = {str(row.get("slug", "")): row for _, row in failed_df.iterrows() if str(row.get("slug", ""))}
     audit["normalized_doi"] = audit["doi"].map(norm_doi)
     audit_map = {row["normalized_doi"]: row for _, row in audit.iterrows() if row["normalized_doi"]}
 
@@ -372,6 +377,13 @@ def main() -> None:
         source_status = norm_text(audit_row.get("download_status"))
         existing_pdf = PAPERS / rec["slug"] / "paper.pdf"
         existing_text = PAPERS / rec["slug"] / "paper_content.txt"
+        metadata_path = PAPERS / rec["slug"] / "metadata.json"
+        metadata = {}
+        if metadata_path.exists():
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except Exception:
+                metadata = {}
         if existing_pdf.exists():
             final_status = "downloaded"
             failure_type = ""
@@ -395,7 +407,9 @@ def main() -> None:
                 # 旧全文审计中的本地绝对路径只保留为来源线索，不能作为
                 # clean clone 下的已获取事实；只有仓库内 paper.pdf 才能计为 downloaded。
                 raw_failure = "local_snapshot_not_materialized"
-            if "no_public" in raw_failure:
+            if rec["slug"] in zotero_failed:
+                failure_type = "broken_pdf"
+            elif "no_public" in raw_failure:
                 failure_type = "paywall"
             elif "local_snapshot_not_materialized" in raw_failure:
                 failure_type = "local_snapshot_only"
@@ -422,7 +436,15 @@ def main() -> None:
                 "doi": rec["doi"],
                 "corpus_tier": rec["corpus_tier"],
                 "attempted": attempted,
-                "attempt_sources": "A1 仓库内全文资产" if rec["source_layer"].startswith("A1") else "OpenAlex/DOI 开放获取线索；只有仓库内 paper.pdf 才能计为 downloaded，外部临时路径仅作审计线索",
+                "attempt_sources": (
+                    "A1 仓库内全文资产"
+                    if rec["source_layer"].startswith("A1")
+                    else (
+                        "用户本地 Zotero 导出 PDF 已显式复制入仓库并提取文本"
+                        if metadata.get("a2a_pdf_source") == "user_zotero_export" and existing_pdf.exists()
+                        else "OpenAlex/DOI 开放获取线索；只有仓库内 paper.pdf 才能计为 downloaded，外部临时路径仅作审计线索"
+                    )
+                ),
                 "final_status": final_status,
                 "failure_type": failure_type,
                 "pdf_path": pdf_path,
@@ -432,7 +454,19 @@ def main() -> None:
                 "manual_priority": manual_priority,
                 "source_pdf_path": source_pdf,
                 "source_text_path": source_text,
-                "notes": "A1 已有全文" if rec["source_layer"].startswith("A1") else norm_text(audit_row.get("download_error_or_source")),
+                "notes": (
+                    "A1 已有全文"
+                    if rec["source_layer"].startswith("A1")
+                    else (
+                        norm_text(metadata.get("source_note"))
+                        if metadata.get("a2a_pdf_source") == "user_zotero_export" and existing_pdf.exists()
+                        else (
+                            "用户本地 Zotero 附件存在，但 PDF 结构损坏或文本提取失败；已清理半成品并继续列入人工下载清单"
+                            if rec["slug"] in zotero_failed
+                            else norm_text(audit_row.get("download_error_or_source"))
+                        )
+                    )
+                ),
             }
         )
     status_fields = [

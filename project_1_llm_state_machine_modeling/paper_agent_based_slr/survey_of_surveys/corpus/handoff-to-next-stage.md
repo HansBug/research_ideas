@@ -6,15 +6,15 @@
 |---|---|---|
 | 主候选 120 | [tables/core-corpus.csv](./tables/core-corpus.csv) | A2b 优先深读对象；其中 A1 13 篇已有正式 `review.md` / `evidence_chain.md`。 |
 | 替补 40 | [tables/reserve-corpus.csv](./tables/reserve-corpus.csv) | 用于替换被 A2b 排除或全文无法取得的主候选。 |
-| PDF 状态 | [tables/pdf-status.csv](./tables/pdf-status.csv) | 记录已下载、待人工下载和失败类型。 |
-| 人工下载 BibTeX | [manual-download-needed.bib](./manual-download-needed.bib) | 可导入 Zotero 后批量下载。 |
+| PDF 状态 | [tables/pdf-status.csv](./tables/pdf-status.csv) | 记录 70 篇已下载、90 篇待人工下载和失败类型。 |
+| 人工下载 BibTeX | [manual-download-needed.bib](./manual-download-needed.bib) | 当前剩余 90 条，可继续导入 Zotero 后批量下载。 |
 | 来源审计 | [source-audit.md](./source-audit.md) | 说明候选分母和快照口径。 |
 
 ## 2. A2b 优先级建议
 
-1. 先处理 A1 已有 13 篇：它们已有全文文本级 review，可用于校准 A2b 的页码、表图和 supplementary 精核模板。
-2. 再处理 P0 人工下载条目：主候选 + CCF-A 或与 LLM / 测试 / MDE / 证据链高度相关的论文。
-3. 再处理 P1 主候选：补足 CCF-B、主题和综述类型分布。
+1. 先处理已取得 PDF / 文本的 70 篇：其中 A1 已有 13 篇可校准 A2b 页码、表图和 supplementary 精核模板；其余 57 篇不得跳过全文审计，需从 `a2a_review_status = not_started` 开始。
+2. 并行补剩余 P0 人工下载条目：主候选 + CCF-A 或与 LLM / 测试 / MDE / 证据链高度相关的论文。
+3. 再处理 P1 主候选：补足 CCF-B、主题和综述类型分布；其中 `broken_pdf` 条目需重新下载干净 PDF。
 4. 最后使用替补 40：仅在主候选被排除、全文不可得或类型误收时替换。
 
 ## 3. A2b 必须新增的证据

@@ -1,0 +1,3107 @@
+--- Page 1 ---
+1234 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+Agentic Recommender Systems:
+A Systematic Literature Review
+Ivens da Silva Portugal , Paulo Alencar , and Donald Cowan
+Abstract —Recommender systems (RSs) are software systems
+that use machine learning techniques to suggest items, such as
+movies, products or routes to users based on input provided over
+time. These systems have been widely used by companies, such as
+Amazon, Google, and Netﬂix, who rely heavily on recommenda-
+tions as a core element of their interaction with users. In the case
+of software engineering, RSs are used to recommend, for example ,
+software tasks, developers, APIs, libraries, and bug ﬁxes. More
+recently, advancements in natural language processing and large
+language models (LLMs) have led to the creation of LLM agents
+capable of generating plans, interacting with users and the envi-
+ronment, receiving feedback, and using tools. These developmen ts
+have resulted in the use of LLM agents in RSs, giving rise to
+multi-agent RSs referred to as agentic recommender systems
+(ARSs). However, agentic RSs are not yet well characterized in
+terms of the basic elements of system modeling and design. This
+systematic literature review characterizes agentic recommender
+systems with respect to agents, roles, relationships, prompts,
+integration, use cases, strategies and evaluation methods. An
+analysis of published studies yields insights, such as (i) the
+identiﬁcation of 13 distinct types of agents, (ii) the popularity
+of GPT models, (iii) a framework for ARSs, (iv) a generalized
+prompt, (v) the use of persona, cues, output format, and zero -
+shot prompting, (vi) the frequent use of Amazon, Yelp, and
+MovieLens datasets, (vii) the use of nDCG@k and Recall@k as
+common evaluation metrics, and (viii) the identiﬁcation of many
+research gaps. This systematic literature review aims to support
+the continued research and development of agentic recommender
+systems.
+Index Terms —Agentic AI, LLM agent, multi-agent, LLM,
+large language model, recommender system, systematic literature
+review.
+I. INTRODUCTION
+AGENTIC Recommender Systems (ARSs) are a novel re-
+search ﬁeld that relates to the use of large language model
+(LLM) agents in recommender systems (RSs) to improve per-
+formance, enhance system structure and mitigate process co m-
+plexity. From a software engineering point of view, ARSs are
+Received 16 July 2025; revised 2 December 2025; accepted 15 Ja nuary
+2026. Date of publication 26 January 2026; date of current ve rsion 20 April
+2026. Recommended for acceptance by N. Tsantalis. (Corresponding author:
+Ivens da Silva Portugal.)
+The authors are with the School of Computer Science, Universi ty of
+Waterloo, Waterloo, ON N2L 3G1, Canada (e-mail: iportugal@u waterloo.ca;
+palencar@uwaterloo.ca; dcowan@uwaterloo.ca).
+Digital Object Identiﬁer 10.1109/TSE.2026.3657900built upon traditional RSs, which are widely used in industr y
+and academia to recommend, for example, tasks, developers,
+APIs, libraries, and bug ﬁxes. In an agentic RS, LLM agents co l-
+laborate, and sometimes compete, to provide recommendatio ns
+based on user and item data, drawing on internal and external
+knowledge sources. The development and evaluation of these
+systems remain an active area of research, with the promise o f
+yielding many useful results.
+However, the ﬁeld of ARSs is still in its early stages and, as
+such, has not been thoroughly characterized. ChatGPT1, based
+on the GPT models, became available to the general public in
+2022 and many other models have subsequently been released.
+AutoGPT2, one of the ﬁrst LLM agents, also based on the GPT
+model, was released in early 2023. Owing to the novelty of
+the ﬁelds of LLMs, LLM agents, and ARSs and the rapidly
+evolving technologies that support them, there is limited u n-
+derstanding of the agents used in ARSs, their recommendatio n
+processes, and their evaluation methods. For example, seve ral
+open research questions arise from the existing literature :
+1) What LLM agents are used in ARSs? How are they char-
+acterized? [1],[2]
+2) What prompts are used for LLM agents in ARSs? What
+structures do they typically follow? [3]
+3) Is there variability in how LLM agents integrate with
+tools, algorithms, APIs, or other systems? [4],[5]
+4) What metrics are used to evaluate ARSs? Are there iden-
+tiﬁable trends? [6],[7]
+This systematic literature review seeks to address these qu es-
+tions by characterizing agentic recommender systems repor ted
+in the literature and analyzing their implementation from d if-
+ferent perspectives, including agents, prompts, integrat ions, and
+evaluation. It also aims to identify trends that may guide bo th
+early-career and experienced researchers and practitione rs in
+this emerging ﬁeld.
+An agentic recommender system is a multi-agent system that
+provides recommendations based on a set of LLM agents, that
+is, autonomous agents that use LLMs to perform reasoning,
+decision making, and action execution [8]. These agents are
+typically deﬁned in terms of a few characteristics, namely a n
+LLM, prompts, input data, memory, and tools. Note that, in
+this review, we include agentic RSs that involve a single LLM
+agent. The scope of this systematic review excludes studies
+1https://chatgpt.com
+2https://github.com/Signiﬁcant-Gravitas/AutoGPT
+© 2026 The Authors. This work is licensed under a Creative Commo ns Attribution 4.0 License. For more information,
+see https://creativecommons.org/licenses/by/4.0/
+
+--- Page 2 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1235
+based on the traditional deﬁnitions of AI agents [9]or multi-
+agent systems (MAS) [10].
+Our contributions include:
+•a characterization of agentic recommender systems re-
+ported in the literature.
+•the identiﬁcation of agents, agent relationships, and LLMs
+used in ARSs.
+•an analysis of ARS usage trends from different perspec-
+tives, including recommendation strategies, agent prompt s
+and system integrations.
+•an overview of popular metrics used in ARSs, including
+their values, baselines and associated repositories.
+•a summary of existing literature reviews on ARSs.
+•a description and analysis of research gaps, open research
+questions, and research directions for future work.
+This paper is organized as follows: Section IIdiscusses key
+concepts related to ARSs, including RSs, Agentic AI, and ARS s
+themselves. Section IIIpresents the methodology, protocol,
+and results of the systematic literature review, along with a
+discussion of the ﬁndings, including research gaps. Sectio nIV
+outlines threats to validity. Finally, Section Vconcludes and
+outlines directions for future work.
+II. R ELATED WORK
+A. Recommender Systems
+Recommender systems (RSs) use machine learning (ML)
+techniques to provide personalized item recommendations t o
+users based on factors such as user preferences, item inform a-
+tion, user similarities, item similarity, or user-item int eractions
+[11],[12]. RSs are widely applied in everyday contexts, with
+applications across domains such as movies [13], products [14],
+social networks [15], and multi-domain settings [16]. Tradition-
+ally, RS algorithms are categorized into three main strateg ies:
+content-based ﬁltering [17], which primarily relies on item fea-
+tures; collaborative ﬁltering [18], which is based on similarities
+in user preferences; and hybrid approaches [19], which combine
+elements of both.
+B. Agentic AI
+Large Language Models (LLMs) are deep learning models
+trained on vast amounts of textual data to generate human-li ke
+language with high ﬁdelity [20]. Advancements in the ﬁeld
+of LLMs have led to the emergence of LLM agents and the
+advent of agentic artiﬁcial intelligence (AI). In agentic A I,
+LLM agents, which we call agents for short in this review,
+leverage LLMs to perform reasoning, decision-making, and
+action execution [8]. These agents integrate planning, memory
+management, and tool usage, and are designed to execute mult i-
+step tasks, retrieve information, interact with external A PIs or
+knowledge bases, and collaborate [8]. They are used in various
+domains, including software engineering [21], science [22], and
+ﬁnance [23].
+C. Agentic Recommender Systems
+Agentic Recommender Systems (ARSs) leverage collabora-
+tion between LLM agents to suggest relevant items to usersbased on users’ historical interactions, item information , user
+information, or other contextual information, such as othe r
+systems or the internet [24]. This novel type of recommender
+system emerges from the collaborative application of LLM
+agents within the recommender system domain. Although one
+LLM agent with its planning and acting capabilities, access to
+memory, APIs, and advanced language and reasoning abilitie s,
+is enough to characterize an ARS, the main challenge, promis -
+ing applications, and future directions of this research ﬁe ld
+lie in the collaboration of multiple LLM agents, their choic e,
+placement, and recommendation workﬂow to provide accurate
+and effective recommendations to users.
+The plethora of arrangements makes it challenging to pro-
+vide a precise deﬁnition of an ARS, but there is a common
+conceptual outline [25] that is usually followed. Formally, an
+LLM agent can be deﬁned in terms of its choice of LLM model
+m, prompt p, memory M, input data I, and a tool list T. The
+promptpis deﬁned based on the goal g, an example list E,
+and an action list A=a1,...,a na. The LLM agent is then a
+function that takes these parameters and outputs either a si ngle
+recommendation, a list of recommendations, or a message to a
+subsequent LLM agent within the recommendation workﬂow.
+The results are summarized as an output oand an action a∈A,
+which this LLM agent then performs.
+LLM Agent :f(m,p(g,E,A),M,I,T)→{o,a} (1)
+A generic agentic system can then be deﬁned as a set of LLM
+agentsAand the relationships among these agents R⊆A×A ,
+where agents collaborate to achieve a high-level goal G.
+Agentic System :f(A,R,G) (2)
+An agentic recommender system (ARS) is an agentic sys-
+tem whose goal Gis to provide accurate and effective
+recommendations.
+This deﬁnition has several points of discussion that remain
+unaddressed to reﬂect the variability in the implementatio n of
+an agentic system and, by extension, an ARS. We now elaborate
+on this variability:
+a) A single LLM agent is an agentic system: It is worth
+considering whether a single LLM agent can constitute an age n-
+tic system. Collaboration is limited, even though it may be a n
+essential feature for handling complex tasks. This study ac cepts
+ARSs deﬁned with a single LLM agent.
+b) The agents of an agentic system may have different
+LLMs: There are no restrictions on the types or versions of
+LLMs employed by agents. In an agentic system, all agents may
+have the same version of an LLM or they may differ to enable
+specialized behavior.
+c) Memory is optional: Memory can be local to an LLM
+agent as well as global (i.e., system-wide), or entirely abs ent.
+LLMs themselves contain sufﬁcient knowledge to answer many
+questions and possess advanced reasoning capabilities tha t can
+be leveraged. However, not including memory at all reduces
+personalization.
+
+--- Page 3 ---
+1236 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+d) Prompt structure is ﬂexible: A prompt is the main
+way to communicate with LLM agents, guide their reasoning,
+and limit their action scope. The concept of a well-deﬁned
+prompt remains under active investigation, with numerous s tud-
+ies exploring optimal structures, elements, and patterns t o en-
+hance performance. This has given rise to the ﬁeld of prompt
+engineering [26]. Commonly considered elements include the
+agent’s goal (g), a set of examples (E), and an action space (A ).
+While these components are optional, incorporating them oft en
+improves prompt clarity and can signiﬁcantly enhance agent
+performance.
+e) There are different ways to provide input data: Input
+data for an LLM agent can be speciﬁed via an API, embedded in
+the prompt, or incorporated through ﬁne-tuning the LLM used
+in the agent. In some specialized scenarios, the LLM can be
+trained from scratch so that the input data becomes part of it s
+knowledge base. Although this is rarely feasible, research in the
+area of small language models (SLM) is investigating soluti ons
+[27],[28].
+f) Tools can be systems: LLM agents can query an al-
+gorithm provided in the tool list for some efﬁcient or pre-
+cise mathematical results, but they can also interact with e x-
+ternal systems via suitable APIs. Both can be deﬁned in the
+tool list.
+Agentic RSs do not follow traditional recommendation
+strategies. When recommending, in general, a user-item inte rac-
+tion matrix is queried, as well as user and item information, by a
+recommendation algorithm. This algorithm may calculate a u ser
+preference and compare it with other users or items, alongsi de
+user or item information, to predict items that may be releva nt
+for the user, which typically falls into collaborative ﬁlte ring,
+content-based ﬁltering, or hybrid approaches. In agentic R Ss,
+agents may collaborate to construct the user-item interact ion
+matrix, build preference proﬁles, or gather user and item in -
+formation, which a specialized LLM agent then processes to
+generate a recommendation list. Unless this specialized LL M
+agent uses traditional algorithms or a traditional recomme nder
+system, it remains difﬁcult to explain how recommendation l ists
+are generated based on the data provided. For this reason, it
+is not possible to identify recommendation strategies used or
+classify them. Instead, a new LLM-based strategy, based on
+either user or item information, or other types of informati on
+can be reported.
+Agentic RSs are a relatively novel research ﬁeld and, for
+this reason, little is known about the system components tha t
+are commonly involved in its development. At a minimum, an
+LLM agent is used. Other prospective components include a
+knowledge base to store recommendation data, a coordinator of
+activities (which may be a framework for agentic AI or anothe r
+LLM agent), and a user interface. The lack of information
+around such a novel and promising ﬁeld provides the motivati on
+for this study.
+Relevant ARSs published in the literature are discussed
+in this systematic literature review. In the next section, w e
+provide existing reviews of the literature, whether system -
+atic or not, and situate our systematic review in relation
+to them.D. Existing Reviews of the Literature on Agentic
+Recommender Systems
+The use of LLMs in recommendation tasks is thoroughly
+investigated in [29]. Speciﬁc aspects, such as LLM architec-
+tures, are examined in [30]. Security, a growing area of LLM
+research, is reviewed in [31]. The survey in [32] discusses
+several methods for information retrieval that can be exten ded
+to the recommendation domain. Personalization and its open
+challenges are examined in [33], and [34] presents several ap-
+plications of LLMs in recommendation research.
+The evolution from traditional to LLM-based recommen-
+dations before the emergence of the ﬁrst agentic RSs is also
+the subject of reviews. The authors of [35] review the recom-
+mendation workﬂow incorporating LLMs from the perspective
+of recommender systems. The evolution of recommendation
+algorithms is discussed in [36] and data manipulation in novel
+systems is reviewed in [37]. Finally, applications of chatbot-
+based recommender systems are discussed in detail in [38].
+Novel LLM agents in recommendation tasks are also the sub-
+ject of several studies. The roles and functions of LLM agent s
+is reviewed in [39], while several applications are examined in
+[40].
+However, there is a lack of a literature review addressing
+agentic recommender systems, which provide recommenda-
+tions based on a set of LLM agents, that is, autonomous agents
+that use LLMs to perform reasoning, decision making, and
+action execution [8].
+This systematic review of the literature differs from other
+surveys and reviews in its perspective and scope. First, alt hough
+some studies review the literature on the use of LLM agents
+in recommender systems from the perspective of the agents,
+this study adopts the perspective of the system, an agentic
+RS. This shift in perspective enables discussion of technic al
+issues, such as system integrations, use cases, and evaluat ion
+studies. Second, we adopt a broad scope in the study and an-
+alyze multiple aspects of agentic RSs, namely agent roles an d
+relationships, prompts, integrations, use cases, recomme ndation
+strategies, and evaluation studies. Finally, we identify r esearch
+gaps, trends, open research questions, and directions for f uture
+research.
+III. A S YSTEMATIC REVIEW OF AGENTIC
+RECOMMENDER SYSTEMS
+In this section, we describe the systematic literature revi ew
+in detail. The section is divided into three subsections: Me thod,
+Demographics, and Results. The ﬁrst subsection addresses r e-
+search questions and issues related to the study protocol. T he
+second subsection presents the studies and analyzes demo-
+graphic information. The third subsection discusses the re sults
+of each research question providing insights. Throughout, we
+simplify the terminology by referring to LLM agents simply a s
+agents.
+A. Method
+This section details the study protocol. It outlines the res earch
+questions, document sources, search strategy, inclusion a nd
+
+--- Page 4 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1237
+TABLE I
+THERESEARCH QUESTIONS
+RQ How to characterize agentic recommender systems published i n the literature from a researcher’s perspective with respe ct to their agents, agent
+relationships, prompts, integrations, use cases, recommenda tion strategies, evaluation studies, and research gaps in o rder to support recommender
+system research and development.
+Agents RQ 1 What agents are used in agentic recommender systems?
+RQ 2 What roles do agents used in agentic recommender systems play ?
+RQ 3 What large language models (LLM) are used in agentic recommen der systems?
+RQ 4 What knowledge augmentation strategies are used in agents used in agentic recommender systems?
+Agent relationships RQ 5 How to characterize agent relation ships in agentic recommender systems?
+Prompts RQ 6 How are prompts characterized with respect to thei r structure, such as persona, instruction, input data, cont ext, steps,
+cues, output format, and the presence of examples?
+RQ 7 What are the main prompt engineering strategies followed in agents?
+Integrations RQ 8 What integrations are agentic recommender sy stems reported to have?
+Use cases RQ 9 What use cases are agentic recommender systems repo rted to have?
+Recommendation RQ 10 What recommendation strategies are agentic recommender systems reported to have?
+Evaluation RQ 11 What datasets are used in agentic recommender s ystem evaluation and in what domains are agentic recommender sy stems
+evaluated?
+RQ 12 What metrics are used in agentic recommender systems evaluat ion?
+RQ 13 What baselines are used in agentic recommender systems eval uation?
+RQ 14 What nDCG and Recall values for agentic recommender system evaluation are reported?
+Research gaps reported RQ 15 What research gaps are reported i n the studies?
+exclusion criteria, and data extracted from the reviewed st udies.
+Here, we follow the guidelines for systematic literature re views
+provided in [41].
+As a high-level guide, we follow the Goal-Question-Metric
+(GQM) approach [42]. Our goal (G) is discussed next, while
+the questions (Q) correspond to the research questions. Las tly,
+metrics (M) are detailed in a subsection on the data extracte d
+from studies.
+1) Goal: Essentially, our goal is to investigate the develop-
+ment of agentic frameworks and characterize them in relevan t
+ways. To structure our investigation, we use a more structur ed
+approach, following a strategy based on the PICO or PICOC
+framework [43],[44]:
+Population: Agentic recommender systems
+Investigation: Characterization
+Context: Studies published in the literature
+Outcome: Agents, agent relationships, prompts, integra-
+tions, use cases, recommendation strategies,
+evaluation studies, and research gaps.
+The strategy omits two additional ﬁelds commonly included
+in published studies: purpose and viewpoint. These are:
+Purpose: To assist in research and development of agentic
+recommender systems
+Viewpoint: Researcher
+These elements are combined to deﬁne our goal, which is
+used as the main research question. This is presented in the n ext
+section together with other speciﬁc research questions.
+2) Research Questions: In this section, we detail all research
+questions that guide this review. As presented in the previo us
+section, our main goal is to characterize agentic recommend ersystems from multiple perspectives. These include the agen ts
+used in ARSs, agent relationships, prompts, system integra tions
+with other platforms, use cases in which ARSs assist users, r ec-
+ommendation strategies, evaluation studies, and research gaps
+reported in the literature. We then develop several researc h
+questions for each perspective and present them in Table I.
+The table begins with the main research question, derived
+from our goal. Then, it lists the research questions for each
+investigation perspective. One of the ﬁrst objectives is to iden-
+tify agents used in ARSs and how they maintain relationships ,
+which correspond to the ﬁrst and second perspectives. Resea rch
+questions 1-4 identify LLM agents and characterize them wit h
+respect to their roles, underlying LLMs, and applied knowle dge
+augmentation techniques. Agent relationships are charact erized
+by analyzing common connections among agents.
+Prompts used in agentic RSs are also identiﬁed. They are
+characterized based on their format, elements such as perso na,
+context, output format, and strategies. Next, we identify t he
+integrations of agentic RSs and their usage. Integrations a re
+related to connections to external systems, databases, or a lgo-
+rithms. Use cases are the types of recommendations, or other
+actions, that motivate users when using a recommender syste m,
+such as seeking recommendation or providing feedback.
+The recommendations themselves are characterized with
+respect to their traditional strategies, such as collabora tive
+ﬁltering-based, or novel LLM-based strategies. We anticip ate
+that the use of LLMs renders traditional strategies difﬁcul t to
+distinguish, thus favoring LLM-based recommendation stra te-
+gies. The evaluation of ARSs is characterized based on datas ets,
+domains, metrics, and baselines. Finally, we present resea rch
+gaps identiﬁed in the reviewed studies.
+
+--- Page 5 ---
+1238 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+3) Document Sources: Four scientiﬁc search engines were
+selected for their popularity and efﬁciency for computer sc i-
+ence research. These include Scopus3, Web of Science4, ACM
+Digital Library5, and IEEE Xplore6.
+Scopus provides a feature that searches for scientiﬁc prepr ints
+on arXiv7and similar repositories. We use this feature and
+include the returned preprints in this systematic review to max-
+imize coverage of available studies. However, we acknowled ge
+that some preprints are not peer-reviewed, which may affect
+quality. arXiv preprints are explicitly indicated in the ne xt sub-
+section. Google Scholar8is not included in this study because
+of its lack of control over the search string.
+4) Search Strategy: In this review, the search strategy has
+ﬁve steps. The ﬁrst is to specify the search string. The searc h
+string is applied to publication titles, abstracts, and key words.
+It was constructed using three main terms and their variatio ns.
+The search string is:
+(“recommender system” OR “recommendation system”)
+AND (“LLM” OR “large language model”) AND (“agent” or
+“agentic”)
+As expected, including the term “agentic recommender sys-
+tem” is not effective because of the novelty of this research ﬁeld.
+Thus, we use the term “recommender system” with additional
+qualiﬁers. The term “recommendation system” is a common
+variant. We employ the term “LLM”, and its variant “large
+language model” to refer to the recent trend in the ﬁeld. How-
+ever, these two terms, and their variations, alone are insuf ﬁcient
+to capture the intended scope. We then specify the “agent” or
+“agentic” term, to specify the type of recommender system
+under investigation. Given the novelty of the term agentic A I,
+we instead use the broader terms “LLM” and “agent” to ensure
+sufﬁcient coverage. We do not target recommender systems
+grounded in the traditional literature on multi-agent syst ems
+[10] and AI agents [9].
+The search string remains relatively simple, as strict form ula-
+tions are impractical given the ﬁeld’s emergence. For examp le,
+we seek recommender systems with multiple agents. Addition al
+terms such as “multi-agent” or “multi-LLM agent” may be
+included. But this reduces the number of studies returned as
+there is no deﬁnite consensus regarding the terms in the ﬁeld .
+The steps to inspect each study returned are straightforwar d:
+1) We ﬁrst read the title and look for indications of LLM
+agents. In some cases, the title alone is sufﬁcient.
+2) If the title does not make it clear, then we read the abstrac t
+and seek any indication that the proposed recommender
+system includes LLM agents.
+3) If it is still not clear, we move to the main section of the
+study. We inspect ﬁgures and key paragraphs that describe
+the proposed recommender system to identify indications
+of LLM agents.
+3https://www.scopus.com/
+4https://www.webofscience.com/
+5https://dl.acm.org
+6https://ieeexplore.ieee.org/
+7https://arxiv.org
+8https://scholar.google.ca4) If none of these efforts are fruitful, we then exam-
+ine the entire paper to determine the presence of LLM
+agents.
+In the end, if it remains unclear whether LLM agents are
+included in the recommender system proposed in the study, we
+exclude the paper from the review and document the reason for
+exclusion.
+Once the paper is approved, it is subjected to inclusion and
+exclusion criteria, detailed in the next subsection. For th e papers
+included in the review, we read them once again seeking infor -
+mation relevant to each research question. This informatio n is
+detailed in the following subsection. We record this inform ation
+and prepare it for analysis.
+5) Inclusion and Exclusion Criteria: We outline the criteria
+used to exclude returned studies. The number of studies for e ach
+criterion is shown in a subsequent subsection. The exclusio n
+criteria are presented as follows:
+1. Accessibility
+1.1. No access
+1.2. Not in English
+2. Publication
+2.1. Workshop proposal
+2.2. Conference proceedings
+2.3. Tutorial description
+2.4. Research proposal
+2.5. Perspective paper
+2.6. Position paper
+2.7. Thesis
+2.8. Book
+2.9. Survey of the literature
+2.10. Review of the literature
+3. Alignment
+3.1. Not in the recommendation domain
+3.2. No recommendation framework
+3.3. Not agentic
+3.4. Dataset description
+3.5. Reinforcement learning agent
+3.6. User simulation
+3.7. Simulation framework
+3.8. Recommender system security
+3.9. Recommendation explanation
+3.10. Recommender system assessment
+We exclude studies that we do not have access to, despite
+efforts, and those not written in English, which is a common
+practice in systematic literature reviews. We exclude work shop
+proposals, conference proceedings, or tutorial descripti ons, as
+well as research proposals, perspective papers, and positi on
+papers, as they lack sufﬁcient substantive information for inclu-
+sion. Theses and books are excluded because they often addre ss
+either overly broad or highly speciﬁc dimensions of a topic a nd
+the substantial time for analysis. Other surveys or reviews of the
+literature are excluded from analysis but presented for fur ther
+research. Lastly, studies that are not in the recommendatio n
+domain, or that do not describe a framework, or do not pro-
+pose an agentic RS, or focus on other aspects of recommender
+systems, are also excluded. We, however, do not limit the yea r
+of publication.
+
+--- Page 6 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1239
+TABLE II
+INFORMATION EXTRACTED FROM EACH STUDY TO ADDRESS THE
+RESEARCH QUESTIONS
+RQs Data Items
+Info Publication title
+Framework name
+Venue of publication
+Publication type (e.g. journal article)
+Year of publication
+Search engine that index the study
+Repository
+RQ1 Agent names
+RQ2 Agent roles
+RQ3 The LLM model
+RQ4 The knowledge augmentation strategy (e.g. RAG [45])
+RQ5 Connections between agents
+RQ6 Persona
+Instruction
+Input data
+Context (e.g. other agents)
+Steps
+Cues (e.g. requirements or limitations)
+Output format
+Examples
+RQ7 Prompt strategy (e.g. CoT [46])
+RQ8 Reported integrations (e.g. database)
+RQ9 Reported use cases (e.g. direct recommendation)
+RQ10 Recommendation strategy (e.g. collaborative ﬁltering)
+RQ11 Datasets and domains
+RQ12 Metrics
+RQ13 Baselines
+RQ14 Metric values
+RQ15 Reported research gaps
+6) Extracted Data Items: Here, we outline the information
+extracted from each study that are used to address each resea rch
+question. This information is presented in Table II.
+B. Demographics
+We present the results of the search string, the exclusion
+criteria, and the ﬁnal list of studies selected for review. W e also
+discuss the demographic characteristics of the included st udies
+and the trends observed in this research ﬁeld.
+Our search string, as explained in the previous section, was
+adapted for each of the four search engines included in this
+review. Table IIIreports the number of studies retrieved from
+each search engine. The query was executed at the beginning
+of September 2025.
+We removed duplicates and obtained a total of 140 studies.
+These studies were subjected to the exclusion criteria. Tab leIV
+details the reasons for exclusion of each study based on the
+exclusion criteria discussed previously.
+Of the initial 140 initial studies, 44 were selected for revi ew.
+Several studies are not in the recommendation domain, do not
+describe a framework for a recommender system, or employ
+LLM agents solely for user simulation. However, they mentio n
+recommender systems in their abstracts as a potential assis tant
+and are retrieved.
+Two notable rows in Table IVcorrespond to the surveys and
+reviews excluded by the criteria. Although they are not revi ewed
+here, they may provide useful insights for readers, since th ey
+are related to the research ﬁeld of ARS. For this reason, theyTABLE III
+NUMBER OF STUDIES RETRIEVED FROM EACH SCIENTIFIC
+SEARCH ENGINE
+Search Engine Number
+Scopus975
+Web of Science1013
+ACM Digital Library1111
+IEEE Xplore124
+arXiv13& others (indexed by Scopus) 84
+Total (after removing duplicates) 140
+TABLE IV
+EXCLUSION CRITERIA APPLIED AND TOTAL NUMBER OF STUDIES INCLUDED
+IN THE SYSTEMATIC LITERATURE REVIEW
+Criteria Number
+Total (after removing duplicates) 140
+No access 0
+Not in English 2
+Workshop proposal 2
+Conference proceedings 1
+Tutorial description 1
+Research proposal 1
+Perspective paper 1
+Position paper 2
+Thesis 1
+Book 1
+Survey of the literature 6
+Review of the literature 3
+Not in the recommendation domain 11
+No recommendation framework 9
+Not agentic 7
+Dataset description 2
+Reinforcement learning agent 4
+User simulation 9
+Simulation framework 7
+Recommender system security 7
+Recommendation explanation 1
+Recommender system assessment 2
+Total (after exclusions) 44
+are listed in Table V. A deeper analysis of these studies and the
+contextualization of this systematic review among these su rveys
+and reviews is presented in Section II-D.
+We present a demographic analysis of the 44 studies included
+in this review. We start with the nature of the agentic recom-
+mender systems. Table VIshows the results. The results indicate
+the dominance of multi-agent systems over others, showing
+a trend toward collaboration between agents in recommender
+systems, instead of a single agent handling all requests. Th e
+main reason is the need for specialized agents in different t asks
+driven by the volume of data and the goal of personalization i n
+recommender systems. In addition, agent tools (e.g. algori thms,
+libraries) are more relevant to single-agent recommender s ys-
+tems, given the lack of reasoning agents to perform tasks.
+Next, we analyze the 44 studies based on their type: jour-
+nal article, conference paper, or arXiv. Although the types are
+straightforward, one clariﬁcation is necessary. In some ca ses,
+9https://www.scopus.com/
+10https://www.webofscience.com/
+11https://dl.acm.org
+12https://ieeexplore.ieee.org/
+13https://arxiv.org
+
+--- Page 7 ---
+1240 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+TABLE V
+SURVEYS AND LITERATURE REVIEWS RETRIEVED IN THE SEARCH BUTEXCLUDED BY THE SYSTEMATIC REVIEW CRITERIA
+Title Reference Type
+Large Language Models for Information Retrieval: A Survey [32] Survey
+Survey for Landing Generative AI in Social and E-commerce Recs ys – the Industry Perspectives [47] Survey
+A Survey of Large Language Model Empowered Agents for Recommend ation and Search: Towards Next-Generation Information
+Retrieval[39] Survey
+A Survey of Personalized Large Language Models: Progress an d Future Directions [33] Survey
+A Survey on LLM-powered Agents for Recommender Systems [40] Survey
+Safety at Scale: A Comprehensive Survey of Large Model Safety [31] Survey
+All Roads Lead to Rome: Unveiling the Trajectory of Recommender Systems Across the LLM Era [48] Review
+A Review of Large Language Models: Fundamental Architecture s, Key Technological Evolutions, Interdisciplinary Techn ologies
+Integration, Optimization and Compression Techniques, Appl ications, and Challenges[29] Review
+AI generations: from AI 1.0 to AI 4.0 [49] Review
+AgentSociety Challenge: Designing LLM Agents for User Mode ling and Recommendation on Web Platforms [50] Review
+TABLE VI
+NATURE OF AGENTIC RECOMMENDER SYSTEMS PROPOSED ACROSS THE
+REVIEWED STUDIES
+Nature Number
+Multi-agent + tools 4
+Multi agent 22
+Single agent + tools 12
+Single agent 6
+TABLE VII
+TYPE OF THE STUDIES
+Type Number
+Journal Articles 5
+Conference papers 21
+arXiv (only) 18
+TABLE VIII
+DISTRIBUTION OF STUDIES BYYEAR OF PUBLICATION
+Year Number
+2025 26
+2024 15
+2023 3
+it is common practice to deposit manuscripts on arXiv prior t o
+formal publication. To avoid confusion, in this table, jour nal
+articles are classiﬁed as such even if they also appear on arX iv,
+and conference papers are classiﬁed as conference papers ev en
+if they also appear on arXiv. As a result, the nine preprints l isted
+in the arXiv row are not returned as peer-reviewed publicati ons
+by the search engines. The types and the results can be seen in
+Table VII.
+We next analyze the 44 studies by type: journal article, con-
+ference paper, or arXiv. Results can be seen in Table VII. The
+longer review cycle accounts for the lower number of journal
+studies. Furthermore, the greater number of conference pap ers
+enhances the quality of the analysis of this systematic revi ew,
+as these papers are peer-reviewed.
+We also analyze the distribution of studies by year of publi-
+cation. Table VIII reports the number of studies per publication
+year.
+The emergence of the ﬁeld of agentic recommender system
+is evident from the absence of publications prior to 2023. Th e
+numbers for 2025 are limited to the period January - Septembe r,
+when the search query was executed. Nevertheless, the numbe rof publications nearly doubled from 2024 to 2025, indicatin g
+a clear trend toward increased output and reﬂecting growing
+interest in ARS that is expected to continue in 2026 and beyon d.
+We have previously classiﬁed studies by type (e.g. journal
+articles and conference papers), but we did not present the s pe-
+ciﬁc journals or conferences. We now present these publicat ion
+venues, as they may be of interest to some readers. Table IX
+reports the venues along with the number of studies identiﬁe d
+in each.
+The three studies from the ACM Web Conference address
+ARSs in the context of a conference challenge on recommender
+systems. ACM SIGIR contributes three studies as well, but
+these are listed separately due to the year of the conference .
+The preprint repository arXiv is placed at the bottom to prio r-
+itize peer-reviewed venues. Several venues are associated with
+recommender systems, software engineering, artiﬁcial int elli-
+gence, big data, information retrieval, the internet of thi ngs
+(IoT), linguistics, and social systems, indicating the mai n areas
+connected to agentic recommender systems.
+Finally, we present the set of 44 studies included in this
+review. These studies are presented in Table X.
+The table lists each study in a separate row. Each row begins
+with the name of the agentic recommender system framework
+proposed in the study. For studies that do not provide a name,
+one is assigned based on the ﬁrst author or by analogy with
+the proposal. The table then presents the study title, trunc ated
+for space limitations, along with the year of publication. T he
+nature and the type of each study are summarized single-lett er
+labels: under “Nature”, M denotes multiple LLM agents and
+S denotes single agents, regardless of the presence of tools ;
+under “Type”, J denotes journal articles, C denotes confere nce
+papers, and P denotes arXiv preprints. The last column discl oses
+the repository, when reported in the study, allowing reader s to
+access the code or related resources. The order of the studie s in
+the table has no particular meaning.
+This concludes the demographic analysis. The 44 studies
+have been read following the protocol discussed in the previ ous
+subsection, with the results presented in the next subsecti on.
+C. Results
+This subsection presents the results of the systematic lite ra-
+ture review on agentic recommender systems.
+
+--- Page 8 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1241
+TABLE IX
+PUBLICATION VENUES OF THE STUDIES
+Venues Number
+34th ACM Web Conference, WWW Companion 2025 3
+48th International ACM SIGIR Conference on Research and Dev elopment in Information Retrieval, SIGIR 2025 2
+IEEE Transactions on Computational Social Systems 2
+47th International ACM SIGIR Conference on Research and Dev elopment in Information Retrieval, SIGIR 2024 1
+37th Conference on Neural Information Processing Systems, Ne urIPS 2023 1
+18th ACM Conference on Recommender Systems, RecSys 2024 1
+Proceedings of the Nineteenth ACM Conference on Recommender S ystems 1
+2024 IEEE International Conference on Big Data, BigData 202 4 1
+2023 Findings of the Association for Computational Linguist ics: EMNLP 2023 1
+2024 Findings of the Association for Computational Linguist ics: NAACL 2024 1
+29th Paciﬁc-Asia Conference on Knowledge Discovery and Dat a Mining, PAKDD 2025 1
+30th Americas Conference on Information Systems, AMCIS 2024 1
+30th International Conference on Intelligent User Interfa ces Companion, IUI 2025 1
+33rd ACM Web Conference, WWW 2024 1
+33rd Companion of the ACM World Wide Web Conference, WWW 2023 1
+47th European Conference on Information Retrieval, ECIR 202 5 1
+4th International Conference on Computer Technologies, ICC Tech 2025 1
+5th IEEE Annual World AI IoT Congress, AIIoT 2024 1
+7th Conference on Conversational User Interfaces, CUI 2025 1
+ACM Transactions on Information Systems 1
+Computers in Biology and Medicine 1
+Scientiﬁc Reports 1
+arXiv 18
+1) RQ1: We have identiﬁed 112 LLM agents and 48 tools
+in 44 studies. This averages at 2.5 agents and about 1 tool per
+proposal. Table XIlists LLM agents of ﬁve agentic RSs. The
+icon beside their names represents their role, which is deta iled
+in RQ2.
+a) Agentic recommender systems are multi-agent: A clear
+trend is the adoption of a multi-agent approach. In general,
+proposals do not rely on a single LLM to perform all tasks in
+the recommendation process, favoring a range of LLM agents
+specialized in speciﬁc tasks, facilitated by customizatio n meth-
+ods such as ﬁne-tune, RAG, or ICL. The use of multiple LLM
+agents improves modularization and personalization, whic h are
+very important characteristics of RSs. Some studies have LL M
+agents for each dataset [75] or participating in voting [77] or in
+a discussion [87]. Among multi-agent proposals, the average
+number of agents rises to 3.6, while the average number of
+tools drops to just 0.3, further supporting a multi-agent, n o-
+tools strategy and greater reliance on agent capabilities. Despite
+some proposals having 5 or even 11 LLM agents described, an
+average of 3 or 4 agents is explained by the lower performance
+that actual agents introduce in the process. A not high and
+not low number of agents on average is the balance between
+accuracy and performance.
+b) How to name an LLM agent? Most studies assign
+names to their agents according to their functional roles, a s this
+facilitates ease of recall. For instance, agents may be desi gnated
+as “Item Agent”, “Reﬂector”, or “Searcher”. In contrast, si ngle-
+agent systems are typically left unnamed, since the agent is gen-
+erally presumed to be synonymous with the framework itself.
+c) Agents are collaborative and internal. Anthropomor-
+phic too? In general, LLM agents collaborate in the recommen-
+dation process. The exception is the “Reﬂector” agents, whi ch
+usually check the recommendation list for correctness befo re
+presentation. This result reﬂects a human trend of developi ngcomponents that work in harmony, despite competition havin g
+its beneﬁts. One example is generative adversarial network s
+[94]. A study of the competition of agents in recommender
+systems remains an open research area. Moreover, only one
+proposal investigated anthropomorphic characteristics o f the
+LLM agent [93], such as giving it a name or communicating
+with the user in an emotionally closer way. Other authors rel y
+on behavior described in the prompt to tailor the LLM agent’s
+natural language response. As LLMs in general and even RSs
+become more personal, this remains an open question and re-
+search avenue.
+RQ1
+Q: What agents are used in agentic recommender
+systems?
+A: Table XIshows the agents used in four studies.
+• Agentic recommender systems are typically multi-
+agent, with an average of 3.6 agents, and employ rel-
+atively few tools while seeking to balance accuracy,
+personalization, and performance.
+• The potential beneﬁts of agent competition in recom-
+mendation generation is not explored.
+• The use of anthropomorphic characteristics in LLM
+agents used in ARSs may engage the user in novel
+ways and remains an unresolved research question.
+2) RQ2: We have identiﬁed 13 unique agent roles, which
+are shown in Table XII. A discussion of the results follows.
+a) LLM agents recommend or assist a recommender:
+LLM agents take part in the recommendation process either
+as the actual recommender or in an auxiliary role, such as
+coordinating agents or handling user or item data. Some auth ors
+
+--- Page 9 ---
+1242 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026TABLE X
+LIST OF STUDIES INCLUDED IN THE SYSTEMATIC LITERATURE REVIEW
+Framework Name Ref Title Year Nature Type Repository
+DCICDRec [51] Harnessing Generative Large Language Models for … 2025 S A No t reported
+RAH! [52] RAH! RecSys-Assistant-Human: A Human- … 2024 M A https://gi thub.com/TheRepoForRAH/RAH
+Hybrid-MACRS [53] A Hybrid Multi-Agent Conversational Recommen … 2024 M C Not r eported
+AgentCF [54] AgentCF: Collaborative Learning with Autonomou … 2024 M C ht tps://github.com/RUCAIBox/AgentCF
+AgenticFramework [24] An Agentic AI-based Multi-Agent Framework for … 2024 M C Not r eported
+SmartApp-Vision [55] Large Language Model-Driven Immersive Agent 2024 S C Not rep orted
+MACRec [56] MACRec: A Multi-Agent Collaboration Framewor … 2024 M C http s://github.com/wzf2000/MACRec
+RecAI [57] RecAI: Leveraging Large Language Models for … 2024 S C https: //github.com/microsoft/RecAI
+RecMind [58] RecMind: Large Language Model Powered Agent … 2024 S C Not rep orted
+CORE [59] Lending Interaction Wings to Recommender Syste … 2023 S C Not reported
+SalesOps [60] Salespeople vs SalesBot: Exploring the Role of … 2023 S C http s://github.com/salesforce/salesbot
+MACRS [61] A Multi-Agent Conversational Recommender System 2024 M P No t reported
+AFL [62] Agentic Feedback Loop Modeling Improves Reco … 2025 M C https ://github.com/Lanyu0303/AFL
+ChatCRS [63] Incorporating External Knowledge and Goal Guid … 2024 M P htt ps://github.com/lichuangnus/ChatCRS
+LIKR [64] LLM is Knowledge Graph Reasoner: LLM’s … 2025 S C Not reported
+MAS4POI [65] MAS4POI: a Multi-Agents Collaboration System … 2025 M C http s://github.com/yuqian2003/MAS4POI
+Thakkar [66] Personalized Recommendation Systems using Mul … 2024 M P Not reported
+Rec4Agentverse [67] Prospect Personalized Recommendation on Large … 2024 M P htt ps://github.com/jizhi-zhang/Rec4Agentverse_Case
+AsyncMLD [68] AsyncMLD: Asynchronous Multi-LLM Framewor … 2023 S P Not rep orted
+InteRecAgent [69] Recommender AI Agent: Integrating Large Langu … 2025 M A http s://aka.ms/recagent
+AgentCF++ [70] AgentCF++: Memory-enhanced LLM-based Agen … 2025 M C https: //github.com/jhliu0807/AgentCF-plus
+TAIRA [71] Thought-Augmented Planning for LLM-Powered … 2025 M P https ://github.com/Alcein/TAIRA
+MATCHA [72] MATCHA: Can Multi-Agent Collaboration Build a … 2025 M P Not r eported
+MMAgentRec [73] MMAgentRec, a personalized multi-modal recom … 2025 M A Not r eported
+SmartEats [74] SmartEats: Investigating the Effects of Customizab … 2025 S C Not reported
+RAMaR [75] Retrieval Augmented Multi-agent Recommender 2025 M C Not re ported
+DummyAgent [76] Intelligent Agents with Adaptive Knowledge Fusio … 2025 S C h ttps://github.com/wzf2000/DummyAgent
+RecHackers [77] Personalized Recommendation Agents with Self- … 2025 S C Not reported
+MedicationAssistant [78] An adaptive language model-based intelligent med … 2025 S A N ot reported
+ProactiveAgent [79] Managing Proactivity in E-Commerce Interfaces: … 2025 M C No t reported
+FreudianRS [80] Integrating Freudian Psychological Constructs - Id, … 2025 S C Not reported
+RecSys-Agent [81] Large Language Model-based Recommendation S … 2025 S C https ://github.com/tommasocarraro-sony/recsys-agent
+ARAG [82] ARAG: Agentic Retrieval Augmented Generation … 2025 M P Not r eported
+CSI [83] Towards Personalized Conversational Sales Agents: … 2025 S P Not reported
+i2Agent [84] iAgent: LLM Agent as a Shield between User and … 2025 M P https: //github.com/agiresearch/iAgent
+Zoom [85] Multi-agents based User Values Mining for Recom … 2025 M P Not reported
+RuleAgent [86] RuleAgent: Discovering Rules for Recommendatio … 2025 S P No t reported
+DecisionGPT [87] Agentic LLM Framework For Adaptive Decision … 2025 M P https: //github.com/HydroComplexity/DecisionGPT
+HapticAgent [88] Leveraging LLMs to Create a Haptic Devices’ Rec … 2025 M P Not r eported
+AgenticRAG [89] Developing an Artiﬁcial Intelligence Tool for Pers … 2025 M P Not reported
+HiRMed [90] Tree-based RAG-Agent Recommendation System: … 2025 M P Not r eported
+User-as-a-tool [91] Insert-expansions for Large Language Model Agents 2024 S C N ot reported
+GenUP [92] GenUP: Generative User Proﬁlers as In-Context … 2024 M P http s://github.com/w11wo/GenUP
+Sunnie [93] “I Like Sunnie More Than I Expected!”: Exploring … 2024 S P Not reported
+
+--- Page 10 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1243
+TABLE XI
+AGENTS AND THEIR ROLES REPORTED IN FIVESTUDIES
+MAS4POI [65] MACRec [56] RAH! [52] MACRS [61] ChatCRS [63]
+Manager /user-◎ie Manager /user-◎ie /user-check Act /user-◎ie /user-check Planner /user-◎ie Conversational /user-◎ie /user-check
+User agent /people-arrows Task Interpreter /book-reader Learn /people-arrows Responder (Ask) /people-arrows Knowledge Retrieval /book-reader /shapes
+Data agent /shapes User Analyst /people-arrows Perceive /shapes Responder (Recommend) /people-arrows /user-check Goal Planning ◎
+Searcher /search Item Analyst /shapes Critic /clipboard-check Responder (Chat) /people-arrows
+Reﬂector /clipboard-check Searcher /search Reﬂect /thumbs-up Feedback /thumbs-up
+Analyst /user-check Reﬂector /clipboard-check Personality Library /people-arrows /◎ools
+Navigator /compress-arrows-al◎
+TABLE XII
+UNIQUE AGENT ROLES DESCRIBED IN THE STUDIES OF THISSYSTEMATIC REVIEW
+Agent Role Description
+Manager /user-◎ie Has a central role and coordinates execution.
+Recommender /user-check Generates a recommendation.
+Interpreter /book-reader Structures user input for the Manager agent.
+Gatekeeper /user-shield Prevents malicious prompt attacks and considers the ethical a spects of prompts.
+Goal Planner ◎ Identiﬁes the user goal. This will be used as the recommendatio n task.
+User Agent /people-arrows Handles user information. It may identify the user or search fo r others with similar proﬁles.
+Item Agent /shapes Handles item information. It may provide item information or se arch for similar ones.
+Domain-Speciﬁc Agent /compress-arrows-al◎ Provides domain-speciﬁc functionalities, based on the domai n of the recommender system.
+Searcher /search Search other datasets (e.g. internet) for information.
+Tools /◎ools Algorithms or other systems. Tools are not agents and are inclu ded for completeness.
+Reﬂector /clipboard-check Checks the correctness of the output message.
+Responder /commen◎ Tailors the output prompt to the user by using appropriate lan guage based on the user.
+Feedback Agent /thumbs-up Handles user feedback. This may relate to the recommendation or the recommender system.
+explore the recommendation abilities of LLMs by asking it
+to rank a recommendation list presented in the prompt based
+on user characteristics, while other authors often augment the
+recommender agent knowledge with strategies (e.g. knowled ge
+graph) or additional information (e.g. a search of item desc rip-
+tions). In most cases, the recommendation is usually perfor med
+by a single agent, opening up opportunities for studies that ex-
+plore horizontal or vertical hierarchies of agents for reco mmen-
+dations, such as the tree-structure used in HiRMed [90], which
+progressively improves recommendations based on departme nt
+and then specialty in the medical ﬁeld.
+As expected, Table XIIincludes a Manager agent, which
+coordinates agent activities, and a Recommender agent that
+calculates or generates recommendations. In several studi es,
+both roles are played by the same LLM agent, whereas other
+studies, such as CORE [59], use a traditional RS.
+Other notable agents are the User and Item Agents, which
+handle user and item data, and the Reﬂector, which cri-
+tiques the recommendation before it is presented to the user .
+MATCHA [72] is the only study proposing agents for data
+and the ethical safety of the system. In fact, seven studies a re
+excluded from this review (Table IV) because they investi-
+gate malicious attacks on RSs, not recommendations, show-
+ing that agentic RS security is an emerging major research
+area.b) Tools represent agent roles: One of the agents’ roles in
+Table XIIis Tools. This entry is reserved for entities that are
+important for the recommendation process in a study, but do
+not qualify as an LLM agent. For example, LIKR [64] uses a
+knowledge graph for user and item storage and handling. The
+most common tools are (i) ranking algorithms, (ii) a knowl-
+edge graph or database, and (iii) some specialized ones, suc h
+as mathematical tools or mapping utilities. For performanc e
+reasons and depending on the type of ranking (e.g. re-rankin g),
+the ordering of candidate items can be done faster with the ai d
+of a tool. Some knowledge graphs or vector databases contain or
+encode strategies that can be used by the agent for more accur ate
+results. Lastly, given the difﬁculties LLMs have in handlin g
+advanced mathematics [95],[96] and the additional time to spe-
+cialize agents to perform some domain-speciﬁc tasks, autho rs
+sometimes resort to tools for calculations or some speciali zed
+abilities, such as reading maps.
+c) The agent role list provides a starting point: One last
+insight in RQ2 is that the list of unique agent roles shown in
+Table XIIcan be used in early discussions in agentic recom-
+mender system development. Although this list of agent role s is
+extensive, not all roles are required in an agentic RS and age nts
+may perform more than one role. The list still assists develo pers
+in choosing the right roles for the agentic recommender syst em
+being designed.
+
+--- Page 11 ---
+1244 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+Fig. 1. LLMs used in agentic recommender systems included in thi s study.
+RQ2
+Q: What roles do agents used in agentic recommender
+systems play?
+A: Table XIIshows the 13 roles.
+• Most studies include either a Manager or a Recom-
+mender agent, often both in the same LLM agent.
+• Hierarchical recommendations remains unexplored.
+• Agentic RS security is a growing area of research,
+both in the system and in the ethical aspects.
+• Tools remain for very specialized tasks, such as
+strategies or calculations, as adapting LLM agents
+can be time-consuming.
+• The extensive list of agent roles shown in Table XII
+is a starting points for development.
+3) RQ3: We have identiﬁed 59 uses of LLMs as agents in the
+proposed agentic RSs, including one proprietary model. Fiv e
+studies did not report the LLM used. We analyze LLMs used
+in all agent roles within the recommendation process, not on ly
+the recommender. LLMs reported in ablation studies are not
+considered. Fig. 1illustrates our discussion.
+a) GPT is popular: More than half of studies (31) use a
+version of the GPT model as an LLM agent. The main reasons
+for this result are a simpliﬁed API, popularity, and good acc u-
+racy. However, there is no clear winner among GPT models,
+such as GPT 3.5, 4, 4.1, or 4o. Llama models are a runner-
+up. They are used in 9 studies with the assistance of Hug-
+ging Face’s14libraries, which simpliﬁes execution. While GPT
+14https://huggingface.comodels are executed remotely, Llama models are local, raisi ng
+research questions about the tradeoff between performance and
+security.
+b) Less used models and niche models are presented: Few
+studies included Google’s Gemini or Anthropic’s Claude mod -
+els. Other popular models are not explored, such as DeepSeek ,
+Mistral, or Perplexity. The studies describe no apparent re a-
+son, ruling out technical difﬁculties. The result may be ex-
+plained by low popularity or price. The performance of these
+models in agentic recommender systems remains an open
+research area.
+c) General models over specially trained ones: Few
+studies use “-chat” or “-instruct” models as their LLM agent s.
+The reasons are twofold. First, most agents are internal, le aving
+“-chat” models only to interface with the user. Authors pref er
+tool-using or function-calling LLMs for their reasoning ca pa-
+bilities, while “-instruct” models are left for text summar ization
+tasks such as goal extraction.
+d) Agents are pros: There is a clear preference for
+advanced LLMs in agentic recommender systems, evidenced
+by the “turbo” or “pro” versions and number of param-
+eters, often over 70 billion. They are used especially in
+coordination or recommendation agents for their accuracy.
+However, a study of the best LLM for each task is still
+lacking.
+e) Recommenders should talk and see: HapticAgent [88]
+uses an image model for recommendation, but text recommen-
+dations still dominate the research ﬁeld. Multi-modal reco m-
+mendations, taking into consideration data beyond text, su ch
+as images, audio, or video, are still unexplored and remain a n
+open area of research.
+
+--- Page 12 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1245
+TABLE XIII
+THEKNOWLEDGE AUGMENTATION STRATEGY USED
+IN THE FRAMEWORKS
+Strategy Number
+ICL 16
+RAG 9
+Fine-tune 5
+None 5
+Not reported 11
+RQ3
+Q: What large language models (LLM) are used in agen-
+tic recommender systems?
+A: Fig. 1identiﬁes 59 uses of LLM models.
+• GPT leads the way, followed by Llama. The former
+executes remotely and the latter, locally. The trade-
+off between performance and security remains to be
+studied.
+• Little is known about the performance of less popular
+or niche models. More studies required.
+• Tool-using and function-calling models are preferred
+over chat or instruct models.
+• Advanced models are preferred for recommendation
+tasks, such as turbo, pro, or over 70 billion parame-
+ters. More studies on the applicability of less pow-
+erful models are required.
+• Multi-modal recommendations remain unexplored.
+Recommendations based on image, audio, and video
+may enhance user experience.
+4) RQ4: We summarize the main knowledge augmentation
+techniques used in the studies when reported. The details ar e
+provided in the following paragraphs.
+a) Agents learn in-context: We have found three main
+techniques for agent knowledge augmentation: in-context l earn-
+ing (ICL) [97], retrieval augmented generation (RAG) [45], and
+ﬁne-tuning [98]. Table XIII shows the frequency at which each
+technique is reported and highlights the primacy of ICL. A br ief
+deﬁnition of each technique is given below:
+•ICL [97]: In-context learning refers to providing data to
+an LLM using the prompt.
+•Fine-tuning [98]: When ﬁne-tuning an LLM, new docu-
+ments or data follow the training pipeline and are added
+to the vocabulary and knowledge of the LLM.
+•RAG [45]: In retrieval augmented generation, new docu-
+ments or data are processed through the training pipeline
+and added to the vocabulary and knowledge of the LLM at
+inference time. A more ﬂexible RAG also uses relational
+databases.
+The main reason for the result in Table XIII is the simplicity
+of prompt usage and advancements in prompt context win-
+dows. Candidate lists, user proﬁles, conversation history , and
+sometimes even the history of interactions are passed to the
+agent through the prompt. ARAG [82] summarizes historicalinteractions, which is more efﬁcient. More details about pr ompt
+input data are discussed in RQ6.
+No study reported the adoption of Model Context Protocol
+(MCP), mainly because it would be used in the agentic frame-
+work supporting the creation and execution of agents. JSON
+ﬁles are commonly used in data passing, either between agent s
+or as the response from another system. However, both MCP
+answers and JSON ﬁles are usually added to the prompt and
+identiﬁed as ICL. Some studies use SQL to query relational
+datasets. However, queries are usually hardcoded in a funct ion,
+not generated during execution, and the database answer is
+copied to the prompt by the main program, which therefore
+counts as ICL. Studies on the use of MCP, automatic JSON
+processing and SQL query generation during execution may
+enable new knowledge augmentation strategies.
+In Table XIII the label “None” refers to studies that opted to
+use the LLM’s own knowledge to provide recommendations.
+This can be done for movies or other well-known items, but it
+is limited.
+b) There is a need for improved ways to report strategies:
+Unfortunately, several studies either do not report the kno wl-
+edge augmentation strategies used for the agents or do not do
+so clearly. As the ﬁeld of agentic AI evolves, more robust way s
+of reporting scientiﬁc research are required, that ensure r elevant
+and complete disclosure and explanation of how AI agents or
+LLMs are used.
+Moreover, OpenAI’s API assists developers in ﬁne-tuning
+models, using RAG, or passing data in ICL. This challenges
+efforts to capture the strategies when authors do not report them
+explicitly. This also reveals a lack of frameworks for agent
+knowledge augmentation strategies that can assist develop ers
+in this process.
+RQ4
+Q: What knowledge augmentation strategies are used in
+agents used in agentic recommender systems?
+A: Table XIII presents three main strategies.
+• ICL is the top choice.
+• MCP, JSON, and other alternatives are not explored
+because of the reliance on an underlying framework,
+opening up research avenues.
+• Some authors use the LLM’s own knowledge about
+items, such as movies, which merits further study.
+• Authors should report knowledge augmentation
+strategies to ensure better analysis results.
+• There is a lack of knowledge augmentation frame-
+works for LLM agents, resulting in most authors
+relying on OpenAI’s APIs.
+5) RQ5: The relationships among LLM agents in the 44
+studies are analyzed based on the reports. The paragraphs be low
+explain the conclusions.
+a) Manager in the center: Most studies follow a Manager-
+centric layout of agents. The Manager coordinates all other
+agents and message passing. In many studies, the Manager als o
+
+--- Page 13 ---
+1246 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+plays the role of the Recommender, as in ChatCRS [63], except
+when a traditional recommender is used, as in CORE [59].
+Two other authors used a different layout strategy. RecHack ers
+[77] uses a prompt-voting mechanism, where different prompts
+are generated and voted on to generate the best recommen-
+dation results. The same idea can be applied to the results
+of different agents, in a strategy similar to the ensemble re c-
+ommendations. DecisionGPT [87] generates different agents
+with different roles and encourages discussion among agent s
+to generate the best recommendations. Novel strategies may
+consider hierarchies or a mix of the layouts discussed.
+b) Where are the orchestration frameworks? The use of
+agent orchestration frameworks is still limited. Very few s tud-
+ies have used frameworks such as LangChain15or CrewAI16.
+Authors often rely on the programming language to call agent s.
+The same situation is observed in message passing, where age nt
+responses are copied into the next agent’s prompt with the
+assistance of the programming language. More sophisticate d
+approaches based agentic frameworks to support agent orche s-
+tration and message passing need to be investigated. Simpli ﬁed
+APIs and graphical user interfaces can assist developers in
+adopting these frameworks.
+c) Some roles remain unexplored: Among most studies
+analyzed, the efforts in improving the accuracy of recommender
+systems result in an oversight of other agent roles, such as t he
+Searcher, Reﬂector, or the Gatekeeper, because of the trade off
+with other non-functional requirements, such as performan ce
+or security. Proposals that include a wider range of agents a nd
+address other requirements are promising.
+d) A generalized framework: Fig. 2shows a generalized
+framework for agentic recommender systems. The framework
+is derived from all studies analyzed and includes a broad set of
+cases and most relationships. We brieﬂy describe a workﬂow
+and discuss its variations.
+1. Initially the user provides a prompt with a recommenda-
+tion request, which is read by the Interpreter.
+2. The Interpreter formats the message appropriately and
+contacts the Manager.
+3. The Manager ﬁrst contacts the Gatekeeper to check for
+potential threats in the prompt and then contacts the Goal
+Planner to identify the user goal (e.g. direct recommenda-
+tion, feedback, or recommendation explanation).
+4. The Manager may contact other agents to gather infor-
+mation prior to generating a recommendation, including
+the User Agent, Item Agent, Searcher, Domain-Speciﬁc
+Agent, or external tools.
+5. The Manager compiles the information gathered and
+passes it to the Recommender for generation, if a distinct
+agent is used.
+6. The recommended list is passed by the Manager to the
+Reﬂector for a correctness check.
+7. The ﬁnal recommended list is sent to the Responder for a
+natural language presentation.
+15https://www.langchain.com
+16https://www.crewai.comSome variations apply. First, user feedback can be handled
+by a specialized agent, such as RAH!’s [52] Reﬂect, or passed
+to Item and User agents for processing, such as in MACRS
+[61]. The real difference is in the number of agent relationships
+and the abilities of each agent to update its knowledge base.
+Secondly, the Gatekeeper may read the message before any
+agent to prevent vulnerabilities. Thirdly, Tools can be acc essed
+by any agent to perform their tasks, resulting in many more
+relationships. Fourthly, in the studies, a single agent per forms
+more than one of these roles (e.g. Manager and Goal Planner),
+thus reducing the number of relationships. Lastly, human-i n-
+the-loop, multi-modal recommendations, cyber-physical r ec-
+ommenders, psychological personalization approaches, su ch as
+in FreudianRS [80], and other variations increase the complex-
+ity of the framework but may uncover novel and interesting
+relationships.
+RQ5
+Q: How to characterize agent relationships in agentic
+recommender systems?
+A: Fig. 2presents a framework constructed from agent
+relationships found in the studies.
+• Most studies follow a Manager/Recommender-
+centric layout, despite the existence of voting or
+discussion layouts.
+• Few authors use orchestration frameworks and mes-
+sage passing occurs by adding a variable to the next
+prompt.
+• Other assistive agent roles, such as the Searcher, the
+Reﬂector, and the Gatekeeper, may assist in non-
+functional requirements beyond accuracy, such as
+performance or security.
+• A generalized framework is presented and several
+variations are discussed.
+6) RQ6: A key difference of this systematic literature review
+is a study of the prompts used in the proposed frameworks.
+Twenty-six studies disclose their recommendation prompts par-
+tially or fully in the manuscript or in a repository. AgentCF
+[54] is divided into three cases (basic, sequential and retrieva l
+augmented) and RecMind [58] in two (direct and sequential),
+based on the recommendation type. InteRecAgent [69] reports
+the same repository as RecAI [57], thus its prompts are not
+reviewed. This increases the total to 28 cases. We divide thi s
+RQ into eight parts, based on the prompt part being analyzed. A
+ninth part presents and discusses a generalized prompt (Fig .3)
+derived from the prompts analyzed.
+a) Persona: More than half of the proposals analyzed
+(17 in total) specify a persona for the agent in the prompt.
+Descriptions typically fall into one of two categories, tho ugh
+some may belong to both. The ﬁrst category is based on the
+function of the agent, as in “you are a recommender system”
+or a “shopping assistant”. In some cases, this includes the t ype
+of the item involved, such as “a music recommender system”. I n
+other cases, it focuses on a domain of expertise, for example “a
+
+--- Page 14 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1247
+Fig. 2. A framework for agentic recommender systems. Agents are f ound in RQ2 and presented in Table XII.
+medical expert”. The second category is based on the behavio r
+of the agent, such as “helpful”, “compassionate”, or “excel lent”.
+This second one is discussed in more detail in the paragraph
+about Cues, in item f)below.
+The use of personas, especially domain experts, is correlat ed
+with better performance [99], but choosing the right persona or
+describing it correctly remains a challenge [100] . The impact
+of personas on the quality of recommendations is an open
+question. In addition, no study examines shifts in persona b ased
+on user characteristics or mood. For example, younger users
+may be more receptive to surprising recommendations.
+b) Instruction: Almost all proposals include a description
+of the task in the form of an instruction to the LLM agent (26 in
+total). Common formats are “your task is ...” or in imperative
+mode “generate recommendations for ...”, or both. One study,
+GenUP [92], uses a question format as in “Given [user history],
+what is the next POI?”. Recsys-Agent [81] does not instruct the
+agent directly, but allows it to decide independently, and o nly
+provides some limitations on the choice.
+Novel ways to instruct LLM agents are still under inves-
+tigation and remain an open question. Few authors resort to
+questions, negative sentences, or rely on examples. A token
+representing a vector may be sufﬁcient for recommendation
+generation. Moreover, the abilities of LLM agents to follow
+instructions still need improvement, as agents often hallu cinate
+or act in unpredictable ways. Research on this topic is still early
+but promising [101] , and may lead to advances in the ﬁeld of
+agentic recommender systems [102] .
+c) Input Data: All but two proposals describe some input
+data in their prompts. Input data typically fall into one of t he
+types shown in Table XIV.
+Input data is often a string containing natural language tex t,
+for simplicity. However, some proposals resort to the JSONTABLE XIV
+TYPES OF INPUT DATA
+Input data Description
+Item type E.g. movie, music, POI.
+Conversation goal E.g. direct recommendation.
+Reﬂections For correctness.
+User identiﬁer Often the user id.
+User description E.g. age, preferences, etc.
+Dataset For access.
+Target item if rating prediction.
+Target item information Additional information.
+Additional knowledge For assistance, e.g. knowledge graph .
+No. of candidate items The number.
+Candidate item list The list.
+Candidate items’ info Additional information.
+User historical info E.g. purchases, interactions.
+Chat history Historical messages.
+Output format Allows for personalization.
+Scratchpad For intermediate results.
+format for more structured messages or vectors, which is mor e
+efﬁcient. The most common input data is “historical interac -
+tions” (12 in total), which is an essential part of recommend er
+systems. Only two proposals use a scratchpad, indicating a l ack
+of framework adoption for the orchestration of agents, sinc e
+many frameworks require this variable for agentic loops.
+A few proposals summarize inputs, such as the user proﬁle
+or historical interactions, for efﬁciency. This can be done with
+the help of an LLM. Studies on the most distinctive features
+that need to be preserved in the summary, in the context of
+agentic RSs, are still unexplored. Some proposals include t he
+item type or the dataset to access as parameters in the prompt ,
+for customization. However, behavioral traits that can tai lor the
+recommendation generation or output are not observed, open ing
+up opportunities for more studies.
+
+--- Page 15 ---
+1248 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+Fig. 3. A generalized prompt derived from the prompts analyzed in this study.
+d) Context: We call “context” the prompt item that de-
+scribes the other agents or tools an LLM agent has access to.
+Only a few proposals (four in total) explicitly describe con -
+text in the prompt. Common information includes agent and
+tool names and descriptions, SQL tools, and available agent
+actions. A large number of prompts do not report context most ly
+because message passing is controlled either by the frame-
+work or by the “main” function, thus not requiring an explici t
+mention.
+Agent description is still based on a short natural language
+paragraph. Open research areas explore improved ways of de-
+scribing agents, including the use of output examples, for e xam-
+ple. More advanced ways consider whether the next agent (or
+tool) is collaborative or competitive, a level of agent prio rity,
+performance considerations, or even cost of invoking it. Th is
+information assists LLM agents in their decisions.
+e) Steps: Some proposals (eight in total) include a list of
+steps to guide the LLM agent during execution, but the majori tyrely on agentic loops or have a ﬁxed workﬂow. Table XVsum-
+marizes the reported steps. The steps can be further enriche d
+with information from other agents, such as recommendation
+strategies or domain-speciﬁc information.
+Specifying steps is especially common and important in do-
+mains such as coding [103] and mathematical tasks [96], but it
+is not widely observed in agentic RSs, highlighting the need for
+more proposals and experimental studies on its efﬁcacy. The re is
+a need for more frameworks that guide the LLM agents through
+steps, treating them as workﬂows rather than mere tokens in a
+prompt. This remains an open question.
+f) Cues: Cues are short instructions or requirements that
+either direct or limit the actions or outputs of LLM agents.
+Many proposals (10 in total) include multiple cues. We clas-
+siﬁed the cues in four categories: psychological, behavior al,
+recommendation-related and output format-related. Table XVI
+provides several examples for reference. Several cues aim t o
+mitigate hallucinations, such as cues about making up answe rs,
+
+--- Page 16 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1249
+TABLE XV
+A G ENERALIZED SET OF STEPS REPORTED IN THE PROMPTS
+# Steps Description
+1. Greeting To address the user when needed.
+2. Query user about recom-
+mendationsAssesses if users would like recommenda-
+tions.
+3. Analyze user preference. This includes information about the user
+and short descriptions.
+4. Analyze user historical
+interactions.This includes purchases, likes or favorites.
+It may be in order, depending on the
+recommendation task.
+5. Analyze candidate list,
+rearrange it.Depending on the recommendation task, a
+candidate list is provided for ranking.
+6. Recommend following
+output formatInstruct the agent to follow an output
+format.
+7. Closing A message to encourage user or ask for
+feedback.
+TABLE XVI
+CUESINCLUDED IN THE PROMPTS OF ARS S
+Types Cues
+Psychological •Be gentle, polite.
+•Be concise, professional.
+•Be compassionate, supportive.
+Behavioral •Do not hallucinate.
+•Do not write code.
+•Do not make up answers.
+Recommendation-related •Provide reasons ﬁrst and only then
+recommend items.
+•Use the candidate item list for
+recommendations.
+•Explanations should be short.
+•Only use relevant information from
+external knowledge.
+Output format-related •Limits on characters in response.
+•Size of output list
+•Do not output the analysis process
+outputting the analysis process or “Do not hallucinate” ins truc-
+tions. This highlights the need for clearer guidance to ensu re
+tasks are performed correctly.
+The use of language cues for conversational agents has been
+addressed in the literature [104] , though their efﬁcacy and im-
+pact on the recommendation domain remains open for investi-
+gation. Experimental studies could focus on the effects of c ues
+on personalization, agent decision, and hallucinations. S ince
+cues guide the psychology and behavior of agents, a framewor k
+for dynamically adapting the personality of LLM agents is
+an interesting approach, supported by a repository of reusa ble
+personalities.
+Cues are usually deﬁned by the engineer in the prompt at
+the beginning of system execution and are ﬁxed. An interesti ng
+approach allows the LLM agent to autonomously decide the
+(psychological) cues for a task. The impacts of this capabil ity
+remain unexplored. Lastly, no study has included cues relat ed
+to system security whether ethical or malicious. This is ano ther
+open research avenue in agentic RSs.
+g) Output Format: About three quarters (20 in total) of
+proposals include an output format in their prompts. Output
+formats are helpful for analysis as structured output is eas ier tocompare or tailor. The most common items in the output format s
+analyzed are instructions to output one item per line, to inc lude
+item ids, and to present explanations either before or after the
+list. The need for these instructions shows that recommenda tion
+lists are not the primary choice of output of LLM agents. Less
+common output items relate to the use of a JSON format and
+the order of additional information, such as advantages, us er
+proﬁle, or messages from other agents. Only two proposals us e
+a ﬁxed sentence for output. This assists developers with ins ights
+for their own output format speciﬁcations.
+There are some open research areas related to output formats .
+One example is the deﬁnition of output format patterns, such
+as paragraphs, lists, or tables, to simplify prompt constru ction.
+There is a lack of metrics about the adherence of the generate d
+output to the format speciﬁed in the prompt. Lastly, studies
+should investigate the differences between output formats for
+humans and for agents, as interpretability is judged differ ently
+by both parties.
+h) Examples: Most proposals (25 in total) do not resort to
+examples to inﬂuence the reasoning and output of LLM agents.
+One interesting case is RecSys-Agent [81] that speciﬁes many
+examples following what can be called a many-prompt strateg y.
+The main reasons for this result are the reliance on the outpu t
+format and the fact that the recommendation process is highl y
+complex. Experimental studies on the use of examples in the
+domain of agentic RSs continue to be in demand.
+The deﬁnition of examples is often ad-hoc. A study of the
+types of examples and their breadth provides a rationale for their
+use. Moreover, little is known about the use of the same ex-
+amples in different tasks or domains, especially when coupl ed
+with an understanding of user preferences, mood, or persona l-
+ity. For example, music examples may give insights on movie
+recommendations.
+i) A generalized prompt: Fig. 3presents a prompt based
+on the most common items discussed in RQ6. This prompt rep-
+resents a ﬁrst draft for engineers developing agentic RSs. V aria-
+tions include psychological characteristics deﬁned throu gh Per-
+sona or Cues, richer agent descriptions emphasizing priori ty or
+performance in Context, and conditional statements in Step s.
+In general, open research questions on prompt engineering f or
+agentic RSs include the minimal prompt required for good
+recommendations, the design of prompt patterns based on the se
+items, and the keywords that ensure a secure prompt.
+RQ6
+Q: How are prompts characterized with respect to their
+structure, such as persona, instruction, input data,
+context, steps, cues, output format, and the presence
+of examples?
+A: Table XVII summarizes the main ﬁndings of each
+part of the prompt.
+• Fig. 3presents a generalized prompt as a
+reference.
+
+--- Page 17 ---
+1250 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+Fig. 4. An exploratory taxonomy resulting from the review of t he literature on prompt engineering strategies.
+TABLE XVII
+A S UMMARY OF THE FINDINGS OF RQ6
+Part Findings
+Persona •Included in most studies.
+•Impacts on recommendation quality and changes based on
+user mood remain unexplored.
+Instruction •Almost all studies include instructions.
+•Alternative or standardized ways, such as questions, nega-
+tive sentences, or using a token can be investigated.
+Input Data •Passing historical interactions through the prompt is
+common.
+•Behavior traits or datasets as input data can dynamically
+change an LLM agent and are worth studying.
+Context •Very few studies describe a context.
+•Advanced ways of describing a context include agent (or
+tool) characteristics, priorities, performance and cost, a nd
+can be investigated.
+Steps •Most studies rely on agentic loops or have a ﬁxed message
+passing ﬂow, and do not specify steps.
+•Frameworks that guide LLM agents through steps remain
+an open research area.
+Cues •We have identiﬁed four types of Cues: Psycholog-
+ical, Behavioral, Recommendation-related, and Output
+format-related.
+•Dynamic psychological trait changes in LLM agents enable
+advanced personalization and remain an open question.
+Output •Very common in studies.
+•Structured output formats and metrics of adherence remain
+unexplored.
+Examples •Almost never used.
+•Studies on breadth of examples and whether examples are
+dependent on task or domain are opportunities for research.
+7) RQ7: We classify prompts in the proposals based on six
+prompt engineering strategies, which are presented in Fig. 4.
+Several opportunities related to prompt engineering resea rch
+for agentic RSs remain open and warrant further discussion, as
+outlined below.
+a) Role + instruction prompting is the most popular:
+Specifying a role for the LLM agent to play and providing it
+with a task in the form of an instruction is the most common
+prompting strategy used in the proposals (12 in total), prim arily
+due to its simplicity. Moreover, prompts often lack example s
+(25 in total), which could help guide expected reasoning or
+output from agents. Including examples is especially usefu l
+when agents hallucinate during agentic loops.b) Reasoning-based prompts need a boost: One of the
+main features of LLM agents is their capacity for reasoning.
+However, reasoning cues are largely absent from prompts. Th is
+absence is due to underreporting and reliance on agentic fra me-
+works. In any case, a study of prompt cues that improve rea-
+soning capabilities is an open research area. In addition, m any
+other prompt strategies remain unexplored and studies on th eir
+efﬁcacy may yield new insights.
+RQ7
+Q: What are the main prompt engineering strategies fol-
+lowed in agents?
+A: Role, instruction and zero-shot prompting.
+• Studies on the use of examples may improve the
+quality of results.
+• Reasoning prompting strategies are underreported.
+Further studies on their use are needed.
+• Many other prompt engineering strategies, such
+as learning-based, iteration-based, and generative-
+based strategies remain unexplored. Investigating
+their use may uncover novel strategies.
+8) RQ8: More than half of the studies (23 in total) propose
+agentic RSs that have at least one integration with another s ys-
+tem. The most common integration is with a database of variou s
+types. We summarize ﬁndings in the following paragraphs.
+a) Traditional RSs and databases are still options: Studies
+that integrate with other RSs for recommendation generatio n
+tend to rely on traditional RSs. The main reason is that most
+studies propose a full agentic RS when other components are
+agentic. Regarding databases, relational databases, espe cially
+SQL-based ones, are common. They often store item or user
+information. NoSQL, vector17, and other types of databases
+(tuples) are alternative ways of storing information.
+b) Less common integrations can give insights: Studies
+also integrate with the internet for item searches, knowled ge
+graphs, Langchain, maps and Wikipedia. In all integrations , we
+see a need for additional information, especially about use rs
+and items. Investigating agent or system-driven dynamical ly
+17https://github.com/facebookresearch/faiss
+
+--- Page 18 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1251
+TABLE XVIII
+USECASES OF AN AGENTIC RECOMMENDER SYSTEM
+Use Cases Description
+Direct Recommendation Suggests items based on a user’s past
+behavior.
+Sequential Recommendation Suggests items considering the ord er of
+user actions.
+Chat Engages in a dialogue with the user.
+Question Answering Answers questions about the items.
+Preference Elicitation Gathers user preferences explicit ly or
+implicitly.
+Rating Prediction Attempts to estimate ratings for an item.
+Recommendation Explanation Justiﬁes why an item is recommended .
+Feedback Users respond to improve future recom-
+mendations.
+Review Summarization Condenses reviews into informative
+summaries.
+Domain-Speciﬁc Processes data according to the needs of
+a speciﬁc ﬁeld.
+updated databases of item information remains an open re-
+search area. Moreover, improvements in service identiﬁcat ion,
+interoperability, and response structure remain open rese arch
+problems.
+RQ8
+Q: What integrations are agentic recommender systems
+reported to have?
+A: Traditional RSs and relational databases are some-
+what common.
+• NoSQL, vector, and external knowledge bases are
+other options for information storage.
+• Langchain and similar frameworks remain limited,
+though promising.
+• Given many integration opportunities, service iden-
+tiﬁcation, interoperability, and structured response
+formats remain open research questions.
+9) RQ9: Agentic RSs have uses beyond simple recommen-
+dations. We summarize use cases of ARSs identiﬁed in the
+studies in Table XVIII and analyze the results in the following
+paragraphs.
+a) Direct and conversational recommendations are trend-
+ing: Studies (18 in total) explore the capabilities of LLMs in
+chatting and intelligent reasoning to provide recommendat ions
+to users through conversation and based on a list of features .
+Sequential recommendations are based on the order or timing of
+user interactions and provide an additional layer of inform ation
+that can be further explored.
+b) Important use cases need to be investigated: User feed-
+back can tailor recommendations even further while also mak -
+ing RSs more realistic. However, feedback is not considered in
+the majority of studies. Domain-speciﬁc recommendations c on-
+sider information speciﬁc to the domain in recommendations ,such as beats per minute (BPM) in music or focal lenses in
+movies, and represent a research area that remains unexplor ed.
+c) Many open research areas: Iteration-based recommen-
+dations, where preferences are gathered in a conversation w ith
+the agent, is trending. However, there is a lack of datasets f or
+this purpose, which hinders research in this area. Studying how
+timed features can be supported, rather than summarized as
+historical interactions often are, enables richer analysi s. Lastly,
+process-based representations of each use case of agentic R Ss,
+including the agents, enable another level of analysis clos er to
+software engineering, such as the identiﬁcation of artifac ts or
+the analysis of provenance.
+RQ9
+Q: What use cases are agentic recommender systems
+reported to have?
+A: Table XVIII summarizes 10 uses.
+• Direct and conversational recommendations are
+common, exploring LLM capabilities.
+• Sequential recommendations are dependent on the
+model’s ability to understand order or time.
+• There is a lack of datasets for conversational recom-
+mendations, hindering research.
+• Process-based representations of use cases enable
+advanced analysis.
+10) RQ10: Traditional recommendation strategies, such as
+content-based ﬁltering and collaborative ﬁltering, do not ap-
+ply to LLMs because the reasoning process is unknown. For
+this reason, we report on the information used to generate
+recommendations. As expected, user and item information ar e
+the most commonly used data (19 in total) for recommen-
+dations, followed by proposals using additional informati on
+from internet searches (6 in total). Although the internet i s
+the largest repository of unstructured information, well- suited
+for LLM agents, it remains underexplored for several rea-
+sons, including its complexity, high response time, and lac k of
+trust. Nevertheless, studies should mitigate these risks, perhaps
+with integrations with search engines, and propose agentic RSs
+that retrieve additional information from the internet for better
+recommendations.
+a) LLM agents and their own knowledge: Two pro-
+posals rely on the LLM agent’s own knowledge about items
+(e.g., movies) to provide recommendations. Although train ing
+LLMs is a time-consuming and expensive process, real-time
+knowledge updates are a research area that may improve how
+recommendations are generated.
+b) Recommendation explanations to understand LLM
+agent reasoning: As discussed, the recommendation strategy
+used by LLM agents when generating recommendations is not
+well-understood. Therefore, asking the agent to explain it s rea-
+soning is a useful approach. Aggregating, comparing, and re -
+porting explanations may help identify patterns of reasoni ng in
+recommendation generation, but this remains an open questi on.
+
+--- Page 19 ---
+1252 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+Fig. 5. A visual representation of the use of datasets in the s tudies analyzed.
+c) Competition to improve: Adversarial strategies are not
+explored in the studies analyzed. These strategies may impr ove
+the quality of recommendations, potentially uncovering no vel
+results, yet they remain an open research area.
+RQ10
+Q: What recommendation strategies are agentic recom-
+mender systems reported to have?
+A: Strategies are mostly based on user and item
+information.
+• Traditional recommendation strategies are no longer
+a major focus in current research.
+• Real-time knowledge updates may enable advanced
+recommendations.
+• Recommendation explanation patterns may help de-
+velopers and researchers understand the strategies
+used.
+• Adversarial strategies remain unexplored in the
+agentic recommendation domain.
+11) RQ11: A substantial number of studies (36 in total)
+report one or more datasets used during evaluation. We have
+found two proprietary datasets and two studies relying on th e
+LLM agent’s knowledge. One study generated its own syntheti c
+dataset. Underreporting is not a concern. Fig. 5illustrates the
+use of datasets, followed by an analysis.
+a) Amazon products and MovieLens lead in use: Amazon
+Products is a collection of datasets spanning categories su ch as
+books, movies, and music while MovieLens is a popular movie
+dataset. The reason for this result is the user familiarity w ith
+product or movie search online or in streaming services, as w ell
+as giving explicit or implicit feedback by buying an item or
+browsing away. However, there is a need for datasets with a
+broader range of items, such as food options, apps, or clothi ng,
+which are also items users frequently shop for.
+b) The lack of conversational datasets is a common
+issue: Several conversational agentic RSs reported this issue.
+Mitigation strategies involve transforming lists of inter actionsinto conversations using LLMs or leveraging transcripts of hu-
+man conversations. Two excluded studies [119] ,[120] propose
+conversational datasets, which are presented here for refe rence.
+This result highlights the early stage of conversational te chnolo-
+gies and its potential for future growth.
+c) Advanced constructs remain unexplored: Other types
+of datasets include spatial-temporal information, real-t ime user
+interaction and feedback, and enhanced context informatio n.
+However, proposals only use static user and item data to gene r-
+ate recommendations, leaving these research directions op en.
+RQ11
+Q: What datasets are used in agentic recommender sys-
+tem evaluation and in what domains are agentic rec-
+ommender systems evaluated?
+A: Amazon product reviews and MovieLens are fre-
+quently used.
+• A broader range of items and domains enrich recom-
+mendations, such as food or clothing, or apps.
+• Synthetic datasets in data-scarce domains could be
+generated and used to support early stage evaluation.
+• Conversational datasets are scarce, but generation or
+the use of transcripts could mitigate this issue.
+• Advanced datasets should include spatial-temporal,
+real-time, or contextual information for improved
+recommendations.
+12) RQ12: We identiﬁed numerous metrics for evaluating
+agentic RSs. We categorize them in four distinct groups, whi ch
+are presented in Table XIX. The most common metrics are
+nDCG@k, HitRate@k, and Recall@k. Eight studies did not
+report any metrics. Among LLM metrics, ROUGE and BLEU
+are popular and are used for recommendation explanations.
+System-level metrics can be extended by incorporating soft -
+ware engineering knowledge. Finally, domain-speciﬁc metr ics
+are rarely used but they appear occasionally in studies. Mor e
+traditional and alternative metrics for recommender syste ms are
+found in [121] .
+a) Software engineering non-functional requirements are
+metrics: The result in Table XIX indicates efforts to evaluate
+agentic RSs beyond accuracy or precision. Software enginee r-
+ing non-functional metrics, such as reliability, performa nce, or
+security, may assist developers and researchers in evaluat ing
+agentic RSs and remain an open research avenue.
+b) No standardized way of reporting experimental re-
+sults: There is no clear explanation of the choice of metrics
+and authors sometimes confuse metrics, such as accuracy and
+precision. Moreover, custom metrics are not comparable, an d
+sometimes the parameter kfor the number of items in the
+ﬁnal recommendation list is not deﬁned. Studies are needed
+on more structured and standardized ways to report agentic R S
+evaluation.
+c) Simulation frameworks assist in agentic RS evalu-
+ation: Several studies are excluded from this systematic re-
+view because of an exclusion criterion related to simulatio n
+
+--- Page 20 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1253
+TABLE XIX
+EVALUATION METRICS REPORTED IN THE STUDIES ANALYZED
+Traditional RS metrics nDCG@k
+HitRate@k
+Recall@k
+Accuracy
+MRR
+Precision@k
+Success rate@k
+F1-score
+Popularity@k
+Number of items
+TurnsToRecommend@k
+MAE
+MaxFreq@k
+Miss Rate
+LLM metrics ROUGE
+BLEU
+Fluency
+Coherence
+Conversion rate
+Coverage rate
+Entropy
+Explanation score
+Informativeness
+Language diversity
+Novelty
+Number of hallucinations
+Perspicuity
+Proactivity
+Quality of response
+Relational warmth
+Stimulation
+System-level metrics User satisfaction
+Acceptance rate
+Adherence Rate
+Attractiveness
+Dependability
+Efﬁciency
+Jailbreak prevention rate
+System usage frequency
+Usability
+Utility
+Domain-speciﬁc metrics Clinical Relevance Score
+Factual@k
+GMV (gross merchandise value)
+Sales-Win-Rate (custom)
+TABLE XX
+EVALUATION BASELINES REPORTED IN THE STUDIES ANALYZED
+Baseline Type Examples
+RS AgentCF, MACRec, MACRS, SASRec
+Algorithm BM25, MF, Popularity, random
+LLM GPT-4, Llama 2
+Reasoning ReAct, CoT, Plan&Solve, Reﬂexion
+frameworks. However, they are listed here for reference, as they
+may help to improve agentic RS evaluation. This represents
+a growing research area. The studies are [122] ,[123] ,[124] ,
+[125] ,[126] ,[127] ,[128] .RQ12
+Q: What metrics are used in agentic recommender sys-
+tems evaluation?
+A: nDCG@k, HitRate@k, and Recall@k are com-
+mon. Numerous alternative metrics are shown in
+Table XIX
+• Four groups of metrics capture different aspects of
+agentic RSs.
+• Software engineering non-functional requirements
+could serve as a basis for system metrics.
+• There is a need for structured and standardized ways
+of reporting agentic RS evaluation.
+• Simulation frameworks could assist in evaluation.
+Although excluded from this review, they are pre-
+sented in the text for reference.
+13) RQ13: Studies report 107 different baselines used to
+evaluate agentic RSs. On average, studies that reported at l east
+one baseline included about ﬁve, demonstrating strong effo rts
+to evaluate their proposals. Sixteen studies did not report any
+baseline, which diminishes their impact and raises concern s
+about underreporting. We classify baselines in four groups ,
+which are shown in Table XX.
+a) RSs and LLMs are standard baselines; alternative
+reasoning strategies need incentive: As expected, the majority
+of studies use either traditional RSs or other agentic RSs as
+baselines in their evaluations. LLMs are also used as baseli nes,
+leveraging their embedded knowledge. This trend is expecte d
+to grow. Few studies vary their agents’ reasoning strategie s
+during evaluation, even though reasoning is a central part o f
+the proposal. This is an important aspect that authors shoul d
+address.
+b) Complex execution requirements hinder research:
+Authors often download and execute other agentic RSs for
+evaluation studies. This process can be time-consuming and
+highly complex, especially when documentation is not helpf ul.
+Approaches and frameworks for simpler ways to download
+and execute agentic RSs, especially for evaluation, are in h igh
+demand.
+c) An LLM ﬁne-tuned for recommendations: The use of
+generic LLMs as baselines for recommendation tasks is unfai r
+as these LLMs often tend to perform poorly. An LLM ﬁne-
+tuned for recommendation tasks keeps comparisons fairer, a nd
+the development of frameworks for ﬁne-tuning them based on
+speciﬁc datasets is an interesting research avenue.
+d) Evaluation frameworks are in need: Many studies com-
+pare their proposals with the same baseline, such as AgentCF
+[54], matrix factorization, or ChatGPT. Frameworks to assist
+evaluation studies can help developers and researchers aut omate
+this process, yet remain an unexplored area of research.
+
+--- Page 21 ---
+1254 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+TABLE XXI
+METRIC VALUES FOR N DCG@ K AND RECALL @KREPORTED ON THE STUDIES ANALYZED
+Direct Sequential
+nDCG@k Recall@k nDCG@k Recall@k
+AgentCF [54] @1 0.2333 - 0.2133 -
+DCICDRec [51]@30.0503 0.0452 - -
+i2Agent [84] - - 0.5767 -
+ARAG [82]
+@50.4394 - - -
+AgentCF [54] 0.4373 - 0.4379 -
+RecMind [58] 0.0935 - 0.0396 -
+DCICDRec [51] 0.0703 0.0742 - -
+InteRecAgent [69] - 0.6505 - -
+RAH! [52]
+@100.5524 0.5339 - -
+ChatCRS [63] 0.5490 - - -
+AgentCF [54] 0.5405 - 0.5198 -
+RuleAgent [86] 0.2083 0.0942 - -
+RecMind [58] 0.1607 - 0.0480 -
+TAIRA [71] - - 0.7314 -
+Zoom [85] - - 0.0415 -
+InteRecAgent [69]
+@200.6386 - - -
+ChatCRS [63] 0.5530 - - -
+RuleAgent [86] 0.1942 0.1511 - -
+LIKR [64] - - 0.2380 0.0946
+LIKR [64] - - 0.1916 0.0483
+Zoom [85] - - 0.0460 -
+RQ13
+Q: What baselines are used in agentic recommender
+systems evaluation?
+A: RSs and LLMs.
+• Evaluation of alternative reasoning strategies in pro-
+posals is becoming increasingly common.
+• Complex deployment processes and lack of docu-
+mentation hinder comparison with some systems in
+evaluation studies.
+• Evaluations against LLMs ﬁne-tuned for recom-
+mendations provide fairer comparisons than generic
+models.
+• Automated execution and evaluation against popular
+systems, LLMs, and algorithms are limited by the
+lack of supporting frameworks.
+14) RQ14: We select two popular and important metrics
+from Table XIX in RQ12, namely nDCG@k [129] and Re-
+call@k [130] , and analyze their values in the proposed agentic
+recommender systems. The results are presented in Table XXI.
+We provide a brief review of the metrics, followed by an anal-
+ysis of their values.
+Normalized discounted cumulative gain (nDCG) [129] mea-
+sures how well the ranking of results matches the ideal ranki ng,
+by considering both relevance and item position, rewarding
+relevant items that appear early in the list. It is calculate d from
+two components, the discounted cumulative gain (DCG) and th e
+ideal DCG (IDCG), as shown in Equation 1, producing values
+between 0 and 1, with 1 indicating a perfect ranking.DCG@k=k/summationdisplay
+i=12reli−1
+log2(i+1)
+IDCG@k=DCG of ideal ranking
+nDCG@k=DCG@k
+IDCG@k(1)
+•reli: relevance score of the item at position i.
+•iposition in the ranked list (starting from 1).
+•log2(i+1) : discounts lower-ranked items.
+Recall [130] is a metric used in statistical analysis to measure
+the completeness of results. It evaluates whether the resul ts
+include the expected items. Its formula is straightforward and
+is shown in Equation 2. Recall values range from 0 to 1, but
+are usually multiplied by 100 to be expressed in percentages .
+High recall values are closer to 100%, but must be balanced
+with precision. The trade-off between precision and recall is
+often managed using the F1-score [131] .
+Recall=TP
+TP+FN(2)
+•True Positives (TP): Correctly predicted relevant items.
+•False Negatives (FN): Relevant items the system missed.
+a) The performances of ARAG, AgentCF , i2Agent, In-
+teRecAgent, and RAH! are highlighted: From the table, we
+notice that ARAG [82] and AgentCF [54] achieve good nDCG
+values at low k, in direct recommendations. ARAG uses agentic
+RAG as one of its main features. This result is reported on a
+clothing dataset. As for sequential recommendations, i2Agent
+[84] achieves a higher nDCG score than AgentCF with a lower
+k. i2Agent’s dynamic memory mechanism and improvements
+
+--- Page 22 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1255
+from individual feedback contribute to this result on an Ama zon
+Movies dataset. InteRecAgent [69] has a good recall value for
+akvalue of 5, but no nDCG@k measure reported. A good
+balance is found in RAH! [52] for direct recommendation at
+k=10 . This result is attributed to RAH!’s attempt to model
+user personality and its novel Learn-Act-Critic agentic lo op.
+b) Results vary slightly with evaluation choices: The
+choice of dataset, LLM model used, number of agents, and
+other evaluation parameters inﬂuence the values of nDCG@k,
+Recall@k, and other metrics. We present the best results, as
+reported by the studies, using the recommended system con-
+ﬁguration and excluding ablation studies. For detail analy sis,
+please refer to the original studies.
+c) Report nDCG@k and Recall@K: At a minimum, stud-
+ies are encouraged to report both nDCG@k and Recall@k met-
+rics for comparison with other agentic RSs. These are import ant
+metrics that evaluate agentic RSs in two different dimensio ns:
+quality and completeness of results. HitRate@k is also a pop u-
+lar and simple metric to report. Development processes, inc lud-
+ing testing tasks, encourage developers to adapt to evaluat ion
+practices.
+d) Testing frameworks for agentic systems are needed:
+Evaluating any agentic system can be a challenging task give n
+the many conﬁgurations that must be tested. Ablation studie s
+mitigate this problem, but they remain time-consuming. Fra me-
+works that support the evaluation, comparison, and reporti ng
+of metrics are lacking and would greatly assist developers a nd
+researchers. This remains an open research area.
+e) Modularization and individual testing assist re-
+searchers in explaining results: Currently, a low nDCG or
+Recall value often remains unexplained because of the many
+components involved in an agentic RS. Frameworks that help
+developers modularize the system and test components indiv id-
+ually can clarify results and address performance issues mo re
+efﬁciently.
+RQ14
+Q: What nDCG and Recall values for agentic recom-
+mender system evaluation are reported?
+A: Table XXI shows nDCG@k and Recall@k values for
+direct and sequential recommendations.
+• ARAG’s agentic RAG and i2Agent’s feedback mech-
+anism improve results, while RAH!’s Learn-Act-
+Critic agentic loop enhances recall.
+• Results depend on conﬁguration, and we report the
+best cases.
+• Frameworks for evaluation, comparison, and report-
+ing, as well as for system modularization and com-
+ponent testing assist researchers in evaluation and
+in explaining results. This remains an open research
+area.
+15) RQ15: About half of the studies (21 in total) report
+research gaps, open research questions, or directions for f u-
+ture work. We also analyze the issues addressed in the papers ,TABLE XXII
+RESEARCH GAPS IN AGENTIC RECOMMENDER SYSTEMS
+Software Engineering Core
+• Lack of architectural patterns
+• Lack of contracts for agentic workﬂows
+• Lack of testing frameworks
+• The observability problem
+• Memory management
+• Privacy
+• Distributed learning
+• Dynamic choice of planning or reasoning strategies
+• Metadata and provenance support
+• Real-time processing
+• Malicious prompts
+Software Engineering Applications
+• Knowledge graph integration
+• Data scarcity
+• Summarization of long user histories
+• Personalization vs. Privacy
+• Multi-step reasoning plans and decisions
+• Cost-aware planning and orchestration
+• Asynchronous pipelines
+• Resource-efﬁcient recommendation and personalization
+Artiﬁcial Intelligence
+• Underspeciﬁed recommendation goals
+• Multi-objective recommendations
+• Intent modeling
+• Customization of agents for personalized recommendations
+• Cross-domain preferences
+• Generalization under sparse data
+• The popularity bias problem
+• Variety-optimized agent strategies
+• Hallucinations
+Psychology
+• Anthropomorphism
+• Lack of psychological taxonomies
+• Persuasion
+• Psychological factors in memory modeling
+which represent research problems. We classify research ga ps
+and other gaps found in the studies analyzed in four groups:
+software engineering core, software engineering applicat ion,
+agentic AI, and psychology. Table XXII summarizes the ﬁnd-
+ings. An detailed analysis follows.
+We begin with open research problems in the software en-
+gineering core and agentic RSs.
+a) Lack of architectural patterns: Agentic recommender
+systems are typically composed of multiple agents and compo -
+nents. However developers and researchers lack guidelines on
+architectural principles for arranging LLM agents and comp o-
+nents. This problem becomes more concerning given the grow-
+ing number of tools that LLM agents are expected to handle.
+Future research should establish architectural patterns b y:
+(i) prototyping agent layouts inspired by established
+paradigms such as Model-View-Controller (MVC);
+(ii) evaluating microservices-based designs for their imp act
+on performance, maintainability, and adaptability;
+(iii) systematically comparing existing novel and archite ctural
+patterns in terms of how they accommodate agent mem-
+ory, shared memory, and tool access;
+
+--- Page 23 ---
+1256 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+(iv) developing benchmarks and best practices to guide
+practitioners.
+b) Lack of contracts for agentic workﬂows: Despite their
+advanced reasoning capabilities, LLM agents often struggl e
+to produce outputs in the expected format, a challenge that
+becomes more acute in multi-agent systems such as agentic
+recommender systems. Researchers should:
+(i) systematically evaluate libraries such as Pydantic 5 an d
+protocols such as Harmony18and MCP19for their ef-
+fectiveness in enforcing structured outputs across divers e
+agent interactions;
+(ii) design communication protocols that not only transmit
+the next message but also encode metadata such as recom-
+mendation priorities, execution strategies, intermediat e
+steps, and generation times in programmatic formats;
+(iii) develop benchmarks to compare prompt-embedded ver-
+sus protocol-based approaches will clarify trade-offs
+in reliability, scalability, and interoperability, ultim ately
+guiding best practices for structured communication in
+agentic recommender systems.
+c) Lack of testing frameworks: During the development
+of agentic RSs, there is limited support for testing agentic
+constructs, such as memory, tool chaining, or multi-turn pl ans.
+Frameworks for unit or integration testing of these constru cts
+assist developers to deploy improved systems. Future resea rch
+should:
+(i) design standardized testing frameworks for agentic con -
+structs;
+(ii) develop benchmarks to evaluate memory, tool chaining,
+and multi-turn planning;
+(iii) compare unit versus integration testing approaches i n
+agentic RSs;
+(iv) investigate automated methods for detecting failures in
+complex agent interactions.
+d) The observability problem: Researchers would like
+to identify what parts of an agentic RS are responsible for
+producing high-quality or low-quality recommendation lis ts. In
+more serious cases, regulatory audits require this informa tion
+to be available. However, this remains a challenge because o f
+the difﬁculties in tracing agent decisions and results to sy stem
+components, such as prompts, knowledge sources, or memory
+items. Ablation studies mitigate this problem, but more dir ect
+ways are required. Future research should:
+(i) develop methods to trace recommendation quality back
+to speciﬁc system components;
+(ii) design mechanisms to support regulatory audits by mak-
+ing agent decisions transparent;
+(iii) improve tracing techniques beyond ablation studies t o
+capture the role of prompts, knowledge sources, and
+memory items more directly.
+e) Memory management: Efﬁcient methods of retrieving
+and updating the user memory by LLM agents are still under
+18https://github.com/openai/harmony
+19https://modelcontextprotocol.io/investigation. Studies often involve large amounts of prom pt-
+related data, although only a relevant subset is typically r e-
+quired. Approaches to memory pruning are being explored,
+but systematic solutions remain limited. Advancing this ar ea
+requires:
+(i) developing efﬁcient retrieval mechanisms that identif y
+and access only relevant subsets of user memory;
+(ii) designing update strategies that maintain accuracy wh ile
+minimizing redundancy;
+(iii) evaluating pruning techniques for balancing memory s ize
+with recommendation quality;
+(iv) establishing benchmarks to compare different mem-
+ory management approaches in agentic recommender
+systems.
+f) Privacy: Training or ﬁne-tuning agents should be con-
+ducted with caution because of the risks of including person ally
+identiﬁable information (PII). Sometimes the agent’s resp onses
+may become unpredictable increasing the likelihood of data
+leakage. Addressing these challenges requires:
+(i) developing methods, such as differential privacy or dat a
+anonymization techniques, to prevent PII from being in-
+corporated during training or ﬁne-tuning;
+(ii) designing mechanisms to detect and mitigate unpre-
+dictable outputs that risk exposing sensitive data;
+(iii) evaluating protocols for secure handling of agent re-
+sponses in multi-agent or user-facing systems;
+(iv) establishing auditing practices to ensure compliance with
+privacy regulations.
+g) Distributed learning: Distributed learning, particularly
+federated learning, necessitates protocols that preserve user pri-
+vacy and result integrity. Advancing this area requires:
+(i) designing privacy-preserving protocols that prevent e x-
+posure of sensitive user data during distributed training;
+(ii) developing mechanisms that ensure the integrity and co n-
+sistency of results across federated learning systems.
+h) Dynamic choice of planning or reasoning strategies:
+Ablation studies are often conducted to examine reasoning s trat-
+egy selection. A framework for dynamic choice helps develop -
+ers enable agents to adopt the most suitable strategy. Such a
+framework can also enable the reuse of plans and performance
+histories for each strategy. Future research should:
+(i) construct a framework that supports dynamic selection
+among reasoning strategies;
+(ii) enable systematic reuse of plans and performance histo -
+ries to improve efﬁciency;
+(iii) develop evaluation methods to measure the effective-
+ness of dynamic strategy choice in agentic recommender
+systems.
+i) Metadata and provenance support: The formats, stor-
+age, and management of metadata and provenance in agent
+communication are critical elements that must remain query able
+and securely maintained. This information includes messag e
+origins, consent records, and processing steps. The lack of
+frameworks to support these activities indicates that this is an
+open research problem. Actionable future research should:
+(i) construct frameworks to query and securely maintain
+metadata and provenance;
+
+--- Page 24 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1257
+(ii) design methods to record and trace message origins, con -
+sent records, and processing steps;
+(iii) evaluate how such mechanisms improve auditability an d
+trust in agentic recommender systems.
+j) Real-time processing: Unlike static movie reviews,
+spatial-temporal information challenges agentic recomme nda-
+tion systems by requiring real-time POI recommendations.
+The research area remains open as studies have not ad-
+dressed this problem. More speciﬁcally, studies should ad-
+dress real-time changes to agentic architectures and servi ce
+availability, adaptations of agent plans in response to new
+information or cost constraints, and the stream processing
+of data in the recommendation process. Advancing this area
+calls for:
+(i) designing scalable real-time architectures that maint ain
+responsiveness under dynamic workloads;
+(ii) developing mechanisms to guarantee continuous servic e
+availability in multi-agent environments;
+(iii) creating adaptive strategies that allow agents to adj ust
+plans in real time without degrading performance.
+k) Malicious prompts: Only one study has examined
+agents in the context of security. Open problems in this emer g-
+ing area of research include input sanitization, intent cla ssiﬁ-
+cation, ethical considerations, and sandboxing. Future re search
+should:
+(i) develop systematic methods for input sanitization to pr e-
+vent malicious or corrupted data from inﬂuencing agent
+behavior;
+(ii) design robust intent classiﬁcation techniques to dete ct and
+handle adversarial or ambiguous inputs;
+(iii) investigate frameworks that embed ethical considera tions
+into agent decision-making;
+(iv) construct secure sandboxing environments to isolate
+agent actions and reduce security risks.
+Open research problems in software engineering applica-
+tions and agentic recommender systems include the following.
+a) Knowledge graph integration: Knowledge graphs can
+signiﬁcantly augment the capabilities of LLM agents, suppo rted
+by a rich body of literature. Efﬁcient querying and standard ized
+communication of results and explicit speciﬁcation of limi ta-
+tions remain under active development. Future research sho uld:
+(i) design software frameworks that enable efﬁcient query-
+ing of large-scale knowledge graphs, for example through
+optimized graph database engines;
+(ii) establish standardized APIs or communication protoco ls
+to ensure consistent exchange of results across agentic
+systems;
+(iii) implement mechanisms for explicitly encoding and com -
+municating the limitations of knowledge graph outputs to
+downstream agents and users.
+b) Data scarcity: Several studies note the scarcity of con-
+versational datasets, often resorting to synthetic data ge neration.
+Transfer learning and related strategies may be explored to
+address this open research problem. Key directions for inve sti-
+gations include:
+(i) investigating methods for generating high-quality syn -
+thetic conversational data;(ii) exploring transfer learning strategies, such as ﬁne-t uning
+agents on related domains (e.g., customer support or edu-
+cational dialogues) before adapting them to recommender
+contexts;
+(iii) systematically evaluating hybrid approaches that co m-
+bine synthetic data generation with transfer learning to
+mitigate data scarcity while maintaining recommendation
+quality.
+c) Summarization of long user histories: Some studies
+employ agents to summarize user history. Challenges relate d to
+efﬁciency and the justiﬁcation of agent decisions remain op en
+research questions. Advancing this area requires:
+(i) developing scalable summarization algorithms that can
+handle long user histories without excessive computa-
+tional overhead;
+(ii) designing mechanisms for explainable summarization,
+where agents provide justiﬁcations or evidence for the
+decisions made based on condensed histories;
+(iii) evaluating trade-offs between summary length, efﬁci ency,
+and decision quality in agentic recommender systems.
+d) Personalization vs. Privacy: The tradeoff between
+personalization and privacy may be mitigated by the choice
+of relevant strategies such as differential privacy [132] ,[133] ,
+[134] . However, this research area remains largely unexplored.
+A second tradeoff with performance is also relevant, but ins uf-
+ﬁciently investigated. Further experimental studies are r equired
+and strongly encouraged. Advancing this area calls for:
+(i) implementing differential privacy mechanisms in agent
+training pipelines and measuring their impact on person-
+alization quality;
+(ii) conducting systematic experiments to quantify the tra de-
+off between privacy guarantees and system performance,
+for example by benchmarking latency and accuracy under
+varying privacy budgets;
+(iii) developing evaluation frameworks that balance perso nal-
+ization, privacy, and performance, enabling reproducible
+comparisons across agentic recommender systems.
+e) Multi-step reasoning plans and decisions: Current
+agentic RSs, whether conversation or not, initially gather item
+and user information and generate recommendations in a sing le
+step. However, advanced approaches engage the user iterati vely
+to elicit feedback and to ensure that recommendations are bo th
+personalized and of high quality. Further work is needed to:
+(i) construct frameworks that support iterative recommend a-
+tion cycles, allowing agents to reﬁne outputs based on
+user feedback;
+(ii) design mechanisms for tracking and reusing intermedia te
+reasoning steps to improve transparency and efﬁciency;
+(iii) evaluate the impact of multi-step reasoning on person -
+alization quality and user satisfaction in agentic recom-
+mender systems.
+f) Cost-aware planning and orchestration: Instead of
+planning and executing each step, LLM agents can generate
+multiple plans, estimate their costs across performance, p rior-
+ity, time, or other metrics, and select the most appropriate to
+produce a recommendation. Further development in this area
+should:
+
+--- Page 25 ---
+1258 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+(i) construct frameworks that allow agents to generate and
+compare alternative plans under varying cost metrics;
+(ii) implement evaluation mechanisms that quantify trade-
+offs between performance, latency, and resource
+consumption;
+(iii) design orchestration strategies that adaptively sel ect plans
+in real time to balance efﬁciency and recommendation
+quality.
+g) Asynchronous pipelines: As the number of agents
+grows and they become more specialized, asynchronous
+pipelines can address performance challenges. In addition , such
+agentic pipelines lead to improved resource utilization an d en-
+hanced scalability. Further exploration in this area shoul d:
+(i) design scheduling mechanisms that coordinate asyn-
+chronous agent tasks while minimizing bottlenecks;
+(ii) implement monitoring tools to track resource utilizat ion
+and detect inefﬁciencies in pipeline execution;
+(iii) evaluate scalability through experimental studies t hat
+measure throughput and latency under increasing agent
+loads.
+h) Resource-efﬁcient recommendation and personaliza-
+tion: The use of the compression pattern can efﬁciently reduce
+the size of user or item proﬁles, or the user-item interactio n
+matrix. The distillation pattern, when a larger model guide s the
+learning of a smaller model, may help researchers address th e
+tradeoff between performance and personalization. The ada pter
+pattern can be used to enable agent communication with other
+systems, including other agentic RSs, for improved recomme n-
+dations. Further investigation in this area should:
+(i) evaluate compression techniques such as matrix factor-
+ization or embedding pruning to balance efﬁciency with
+recommendation accuracy;
+(ii) implement and benchmark distillation pipelines where
+smaller models inherit personalization capabilities from
+larger teacher models;
+(iii) design adapter-based integration strategies that al low
+agents to interoperate across heterogeneous systems
+while maintaining resource efﬁciency.
+We discuss open software engineering research questions
+within recommender systems from an artiﬁcial intelligence
+perspective.
+a) Underspeciﬁed recommendation goals: Users often
+lack clarity about the types of recommendations they seek. F or
+instance, a user might write “I want to watch a movie that
+makes me happy”, although the speciﬁc movie features that
+produce this mood are uncertain. Agentic RSs should incorpo -
+rate mechanisms, such as algorithms, agentic strategies or data
+structures (e.g. graphs), to assist users in articulating t heir needs
+and to reﬁne goals and sub-goals efﬁciently. Progress in thi s
+area requires:
+(i) developing algorithms that can infer latent user prefer -
+ences from vague or underspeciﬁed queries;
+(ii) constructing agentic strategies that iteratively eli cit clar-
+iﬁcations and reﬁne user goals through dialogue;
+(iii) designing graph-based data structures that represen t
+evolving goals and sub-goals, enabling agents to track and
+update user intent over time.b) Multi-objective recommendations: Users may specify
+several recommendation goals, such as cost, release year, o r
+speciﬁc features. In addition, users might require recomme nda-
+tions in heterogeneous formats, such as audio, video, image s,
+or physical products. Multi-objective strategies that ide ntify
+appropriate constraints and access the suitable datasets r emain
+an open research problem. Advancing this area requires:
+(i) developing algorithms that can balance multiple objec-
+tives simultaneously, for example by applying multi-
+objective optimization techniques to recommendation
+tasks;
+(ii) constructing methods to encode and prioritize user-
+speciﬁed constraints such as cost or release year within
+agentic pipelines;
+(iii) designing data integration strategies that allow age nts to
+retrieve and combine heterogeneous formats (e.g., audio,
+video, images, products) into coherent recommendation
+outputs.
+c) Intent modeling: User preferences evolve over time
+and in response to contextual factors, such as weather, mood , or
+situation. Moreover, short- and long-term user intentions may
+diverge. LLM agents should understand changes in user inten t,
+negotiate with users, or recover from disruptions when appr o-
+priate. Negotiation prompts and experimental studies with users
+remain largely unexplored research directions. Future res earch
+should:
+(i) develop models that capture both short-term contextual
+signals (e.g., mood or location) and long-term preference
+trajectories;
+(ii) design negotiation prompts that allow agents to elicit
+clariﬁcations and resolve conﬂicts between diverging user
+intentions;
+(iii) conduct experimental studies with users to evaluate h ow
+agents recover from disruptions and maintain coherent
+intent modeling over time.
+d) Customization of agents for personalized recommen-
+dations: LLM agents should have different personalities based
+on several factors including the user age or level of experti se, the
+items under consideration, or contextual information such as the
+weather conditions or time of the day. Customization is ofte n
+speciﬁed in the prompt, but can also be encoded in training.
+Reusable personalities and benchmarks can help researcher s
+achieve better results in addressing this open research que stion.
+Future research should:
+(i) develop methods for encoding reusable agent personal-
+ities directly into training pipelines, enabling consiste nt
+personalization across contexts;
+(ii) construct benchmarks that systematically evaluate ho w
+personality customization affects recommendation qual-
+ity and user satisfaction;
+(iii) design adaptive mechanisms that adjust agent persona lity
+dynamically in response to contextual signals such as
+time of day or weather conditions.
+e) Cross-domain preferences: User preferences in one
+domain may correlate with user preferences in another domai n,
+which advanced agent capabilities may capture. Mapping may
+rely on explicit feedback or inferred user personality trai ts.
+
+--- Page 26 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1259
+The representation of cross-domain preference (e.g. user- item
+matrix or embedding vectors) remains a signiﬁcant research
+challenge. Advancing this area requires:
+(i) designing algorithms that learn mappings between
+domains using explicit feedback, such as ratings or
+reviews;
+(ii) investigating methods for inferring personality trai ts or
+latent factors that explain correlations across domains;
+(iii) developing representation techniques, for example m ulti-
+domain embedding vectors or joint user-item matrices,
+that capture cross-domain relationships in a scalable and
+interpretable way.
+f) Generalization under sparse data: Most users do not
+explicitly communicate their preferences to the system. Fe w-
+shot prompting, personas modeling, and preference predict ion
+may help address this open problem. Future research should:
+(i) investigate few-shot prompting strategies that enable
+agents to generalize from minimal user input;
+(ii) develop persona modeling techniques that capture im-
+plicit preferences and contextual cues when explicit data
+is limited;
+(iii) design preference prediction algorithms that infer l ikely
+user choices under sparse data conditions, and evalu-
+ate their effectiveness across diverse recommendation
+scenarios.
+g) The popularity bias problem: Blockbuster movies are
+watched and rated more frequently, which often leads to thei r
+overrepresentation in recommendations. LLM agents should
+generate recommendations that justify biases, while agent ic
+loops should enable users to reject overly popular recommen da-
+tions. For commercial agentic RSs, biases may be deliberate ly
+introduced for advertising purposes. Addressing this gap c alls
+for:
+(i) designing algorithms that explicitly detect and miti-
+gate popularity bias while preserving recommendation
+variety;
+(ii) constructing agentic loops that allow users to overrid e or
+reject overly popular items and reﬁne their preferences;
+(iii) investigating transparency mechanisms that justify when
+popularity bias is applied, especially in commercial
+contexts where advertising incentives may inﬂuence
+recommendations.
+h) Variety-optimized agent strategies: LLM agents need
+to balance exploitation and exploration through speciﬁc pr ompt
+instructions. Encouraging exploration may yield unexpect ed
+results without diminishing user trust. Advancing this are a
+requires:
+(i) designing prompt strategies that explicitly control th e
+trade-off between exploitation of known preferences and
+exploration of novel items;
+(ii) developing evaluation frameworks that measure how ex-
+ploration impacts user satisfaction, trust, and long-term
+engagement;
+(iii) constructing adaptive mechanisms that dynamically a d-
+just exploration levels based on contextual signals or user
+feedback.i) Hallucinations: LLM agents can hallucinate. Adver-
+sarial approaches that validate outputs can mitigate this p rob-
+lem. Advanced approaches include algorithms for consisten cy
+checks and scoring mechanisms to prevent meaningless rec-
+ommendations. Conversational checks and the incorporatio n of
+user feedback are additional strategies. Future research s hould:
+(i) develop adversarial validation techniques that system ati-
+cally detect and ﬁlter hallucinated outputs in recommen-
+dation pipelines;
+(ii) design algorithms for consistency checks and scoring
+mechanisms that quantify the reliability of generated
+recommendations;
+(iii) explore conversational strategies and user feedback loops
+that enable agents to recover from hallucinations and
+maintain user trust.
+We ﬁnally describe the psychological aspects of software
+engineering research gaps in agentic recommender systems.
+a) Anthropomorphism: Incorporating human-like charac-
+teristics into LLM agents can enhance user connection and tr ust.
+Assigning an agent a name or appearance, adapting its langua ge
+to user mood, and tailoring its behavior to contextual facto rs
+such as time of the day represent strategies that can be explo red
+to increase user engagement, improve feedback and reviews,
+and enhance recommendation quality. Future research shoul d:
+(i) investigate how different forms of anthropomorphism,
+such as names, visual appearance, or conversational style,
+inﬂuence user trust and engagement;
+(ii) design adaptive mechanisms that allow agents to adjust
+language and behavior dynamically in response to user
+mood or contextual signals;
+(iii) construct benchmarks and experimental studies that m ea-
+sure the impact of anthropomorphic features on rec-
+ommendation quality, feedback, and long-term user
+satisfaction.
+b) Lack of psychological taxonomies: No studies of user
+behavior currently guide LLM agents in sustaining conversa -
+tions with users. Users may feel secure, anxious, or avoidan t,
+and LLMs should account for these states when generating
+recommendations. The absence of systematic measurements
+and empirical tests keeps this research question open. Futu re
+research should:
+(i) develop psychological taxonomies that classify user
+states such as security, anxiety, or avoidance in the contex t
+of recommendation interactions;
+(ii) design measurement instruments and systematic proto-
+cols to empirically evaluate how these states inﬂuence
+user engagement and trust;
+(iii) construct agent strategies that adapt recommendatio ns
+dynamically based on psychological taxonomies, en-
+suring sensitivity to user well-being and conversational
+context.
+c) Persuasion: Similar to human sellers, persuasion
+strategies can be encoded in prompts to guide LLM agents
+in recommending items aligned with organizational busines s
+goals. Item metadata can assist LLM agents in identifying pr od-
+ucts suitable for advertisement. Future research should:
+
+--- Page 27 ---
+1260 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+(i) investigate how different persuasion strategies, such as
+framing, social proof, or scarcity cues, can be embedded
+into prompts without undermining user autonomy;
+(ii) design methods that leverage item metadata to per-
+sonalize persuasive recommendations while maintaining
+transparency;
+(iii) conduct empirical studies to evaluate the ethical and com-
+mercial impacts of persuasive agent strategies, including
+user trust, satisfaction, and long-term engagement.
+d) Psychological factors in memory modeling: Currently,
+LLM agents maintain a memory of user interactions and con-
+versations. Psychological characteristics should be inco rporated
+into memory, as they reﬂect deep values that guide user pref-
+erences. Several studies have begun to investigate the incl usion
+of personality traits in recommendation processes, and thi s
+research area is expected to expand. Future research should :
+(i) develop frameworks for integrating psychological char ac-
+teristics, such as personality traits or motivational stat es,
+into agent memory representations;
+(ii) design methods to evaluate how psychological factors
+inﬂuence long-term recommendation quality and user
+satisfaction;
+(iii) conduct empirical studies that test adaptive memory m od-
+els capable of updating user proﬁles in response to evolv-
+ing psychological signals.
+RQ15
+Q: What research gaps are reported in the studies?
+A: We classify open research areas in four groups and
+list them in Table XXII .
+• Quality-related features of agentic RSs remain
+underexplored.
+• Advances in communication protocols, memory, and
+multi-domain, multi-goal, and multi-interaction set-
+tings remain open research areas.
+• Personalization, agent customization, and hallucina-
+tion reduction may be enhanced through prompt de-
+sign or model training.
+• Anthropomorphism, psychological taxonomies of
+agent behavior, and memory adaptations incorpo-
+rating psychological traits may improve personal-
+ization, increase user engagement and yield better
+recommendations.
+IV . T HREATS TO VALIDITY
+This systematic literature review aims to characterize the
+novel ﬁeld of agentic recommender systems. However, many
+factors may impact the steps towards this goal, such as the no v-
+elty of the ﬁeld, the scarcity of results, and the understand ing
+of the new concepts. In this section, we discuss threats to th e
+validity of this study and how we mitigate them.a) Internal Validity: We included arXiv20preprints in this
+study. Although some of the preprints are published studies ,
+many are not published, and thus, not peer-reviewed. This ra ises
+questions about the quality of some of the studies in this rev iew.
+We created robust exclusion criteria to reject low-quality studies
+and analyze only studies with a good level of development.
+In addition, authors can decide the evaluation parts that ar e
+used to assess the proposals, such as datasets, metrics, and
+model parameters. The choice of these parts impacts the resu lts
+and thus the conclusions in this study. New systematic studi es
+should be performed to reinforce our conclusions. Lastly, t he
+studies we inspect are ﬁxed at a single point in time. However ,
+these studies evolve, as new ideas emerge. Our attempts to ﬁn d
+the most recent version of the proposed agentic recommender
+systems mitigate this threat.
+b) External Validity: Advancements in the ﬁeld of LLMs
+are as recent as 2022. As a result, publications in the ﬁelds o f
+agentic AI and agentic RSs are usually not older than 2023.
+We retrieved studies for this systematic review in Septembe r
+2025, and thus included studies published in 2023, 2024 and
+part of 2025. The constrained number of years is seen as a thre at
+as including more years can strengthen the conclusions. For
+the same reasons, we only inspected 44 studies. The relative ly
+low number is seen as a threat to validity since studies shoul d
+be a representative set of the ﬁeld. To mitigate both threats ,
+we increased the number of search engines and include arXiv
+preprints. In addition, the studies included in this system atic
+review are mostly academic and not operating in a business
+setting, where costs, privacy and legal constraints are tak en into
+consideration. We expect the conclusions of this review to b e
+technical and encourage new studies to investigate the impa cts
+of these business concerns. Lastly, the ﬁeld of AI or ML chang es
+rapidly and some of the conclusions in this study may need
+to be updated. To mitigate this, regular systematic reviews on
+agentic recommender systems are encouraged to check what
+conclusions still hold.
+c) Construct Validity: Inspecting the studies and retrieving
+some pieces of information to answer the research questions
+can be a challenging process because these pieces may not be
+explicitly stated or they may be available in the reported re pos-
+itory. We see this as a threat to validity despite the efforts to
+retrieve accurate information. In addition, since the goal of this
+systematic review is to characterize agentic recommender s ys-
+tems, some concepts are not well-deﬁned, which can impact ou r
+ability to understand the studies. For example, the distinc tion
+between the Manager and Recommender agents was identiﬁed
+late in the review. We revise our understanding before stati ng
+the conclusions. Lastly, this systematic review aims to be b road
+and to cover many perspectives around agentic recommender
+systems. However, some of these perspectives can be missing .
+We then encourage communication with the corresponding au-
+thor and new characterization studies to make sure that the ﬁ eld
+is well-characterized and researchers and practitioners h ave
+access to high-quality information and conclusions.
+20https://arxiv.org
+
+--- Page 28 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1261
+V . C ONCLUSION
+Agentic recommender systems (ARSs) base their recommen-
+dation workﬂow on the collaboration between LLM agents and
+tools and are characterized by the use of these agents in the
+generation of recommendations. This research ﬁeld is a resu lt
+of the integration between LLMs and recommender systems
+(RSs) and, because of its originality, the deﬁnition and cha rac-
+terization of the ﬁeld is still evolving. This systematic re view
+of the literature aims at addressing these concerns by selec ting,
+inspecting, and analyzing agentic recommender systems pro -
+posed in the literature from many different perspectives.
+For this systematic literature review, our research query r e-
+trieved 44 high-quality studies, from ﬁve different source s, de-
+scribing single or multiple-LLM agent recommender systems .
+We then examine each study with respect to its agents, agent r e-
+lationships, prompts, integrations, use cases, recommend ations,
+evaluation, and research gaps. Results are discussed acros s 15
+main research questions, covering multiple perspectives.
+Some results are worth pointing out such as a list of 13
+LLM agent roles presented in Table XII, the widespread use
+of GPT models, shown in Fig. 1, and a framework for agen-
+tic recommender systems, which can be seen in Fig. 2. This
+systematic literature review has placed a strong focus on th e
+characterization of prompts, including a generalized reco m-
+mendation prompt, presented in Fig. 3and the description of
+the use of many prompt items, such as the use of personas,
+cues, the output format, and examples, or their absence, as i n
+zero-shot prompting (Table XVII ). Other results include inte-
+grations with databases (RQ8), the popularity of direct (no n-
+sequential) conversation recommendations (RQ9), the use o f
+Amazon reviews, Yelp, and MovieLens as datasets, shown in
+Fig. 5and the popularity of nDCG@k [129] and Recall@k
+[130] metrics during the evaluation of agentic recommender
+systems, whose values are presented in Table XXI. Lastly, nu-
+merous research gaps are discussed under RQ15 in the areas of
+software engineering, artiﬁcial intelligence, and psycho logical
+considerations, including contracts for agents in workﬂow s,
+scarce conversational datasets, improved intent modeling , and
+anthropomorphism of agents.
+We expect that this systematic literature review provides a n
+understanding of the current and near future developments i n
+this novel ﬁeld of agentic recommender systems. We present
+results from many different perspectives for improved cove rage
+and hope that these insights are useful for both early-caree r and
+experienced researchers in the ﬁeld. For future work, we pla n
+to update the results with more studies on new technologies,
+strategies, or tools related to agents, prompts, or evaluat ion.
+This is important since development in AI-related ﬁelds is
+shifting rapidly.
+REFERENCES
+[1] X. Li, S. Wang, S. Zeng, Y . Wu, and Y . Yang, “A survey on LLM-
+based multi-agent systems: workﬂow, infrastructure, and cha llenges,”
+Vicinagearth , vol. 1, no. 9, pp. 1–43, 2024.
+[2] A. Yehudai et al., “Survey on evaluation of LLM-based age nts,” 2025,
+arXiv:2503.16416 .
+[3] S. Schulhoff et al., “The prompt report: A systematic surve y of prompt
+engineering techniques,”, 2025, arXiv:2406.06608 .[4] W. Yang, L. Some, M. Bain, and B. Kang, “A comprehensive surv ey
+on integrating large language models with knowledge-based me thods,”
+Knowl.-Based Syst. , vol. 318, Jun. 2025, Art. no. 113503.
+[5] M. A. Ali, F. Dornaika, and J. Charafeddine, “Agentic AI: a com-
+prehensive survey of architectures, applications, and fut ure directions,”
+Artif. Intell. Rev. , vol. 59, no. 11, pp. 1–37, 2026.
+[6] J. Guo et al., “A comprehensive survey on benchmarks and sol utions
+in software engineering of LLM-empowered agentic system,” 20 25,
+arXiv:2510.09721 .
+[7] D. Moshkovich, H. Mulian, S. Zeltyn, N. Eder, I. Skarbovs ky, and R.
+Abitbol, “Beyond black-box benchmarking: Observability, a nalytics,
+and optimization of agentic systems,” 2025, arXiv:2503.06745 .
+[8] A. Zhao, D. Huang, Q. Xu, M. Lin, Y .-J. Liu, and G. Huang, “E xpeL:
+LLM agents are experiential learners,” in Proc. AAAI Conf. Artif. Intell. ,
+vol. 38, 2024, pp. 19632–19642.
+[9] M. Wooldridge and N. R. Jennings, “Intelligent agents: T heory and
+practice,” Knowl. Eng. Rev. , vol. 10, no. 2, pp. 115–152, 1995.
+[10] M. Wooldridge, An Introduction to MultiAgent Systems. Hoboken, NJ,
+USA: Wiley, 2009.
+[11] G. Adomavicius and A. Tuzhilin, “Toward the next generat ion of
+recommender systems: A survey of the state-of-the-art and poss ible
+extensions,” IEEE Trans. Knowl. Data Eng. , vol. 17, no. 6, pp. 734–
+749 Jun. 2005.
+[12] P. Resnick and H. R. Varian, “Recommender systems,” Commun. ACM ,
+vol. 40, no. 3, pp. 56–58, 1997.
+[13] H. Steck, L. Baltrunas, E. Elahi, D. Liang, Y . Raimond, an d J. Basilico,
+“Deep learning for recommender systems: A Netﬂix case study,” AI
+Mag. , vol. 42, no. 3, pp. 7–18, 2021.
+[14] A. N. Nikolakopoulos, X. Ning, C. Desrosiers, and G. Kar ypis, Trust
+Your Neighbors: A Comprehensive Survey of Neighborhood-Ba sed
+Methods for Recommender Systems. Springer US, 2022,
+[15] Q. Wu, H. Wang, L. Hong, and Y . Shi, “Returning is believi ng:
+Optimizing long-term user engagement in recommender systems,” i n
+Proc. Int. Conf. Inf. Knowl. Manage, vol. Part F131841. New York,
+NY , USA: ACM, 2017, pp. 1927–1936.
+[16] Y . Wang, L. Tao, and X. X. Zhang, “Recommending for a multi-s ided
+marketplace with heterogeneous contents,” in Proc. 16th ACM Conf.
+Recommender Syst., New York, NY , USA: ACM, 2022, pp. 456–459.
+[17] M. J. Pazzani and D. Billsus, “Content-based recommendat ion sys-
+tems,” Lecture Notes in Computer Sci. (Including Subseries Lectur e
+Notes in Artif. Intell. Lecture Notes in Bioinf.) , vol. 4321 LNCS,
+pp. 325–341, 2007.
+[18] J. B. Schafer, D. Frankowski, J. Herlocker, and S. Sen, “ Collabora-
+tive ﬁltering recommender systems,” Lecture Notes in Computer Sci.
+(Including Subseries Lecture Notes in Artif. Intell. Lectu re Notes in
+Bioinf.) , vol. 4321 LNCS, pp. 291–324, 2007.
+[19] R. Burke, “Hybrid recommender systems: Survey and experime nts,”
+User Modelling User-Adapted Interaction , vol. 12, no. 4, pp. 331–370,
+2002.
+[20] W. X. Zhao et al., “A survey of large language models,” 202 5,
+arXiv:2303.18223 .
+[21] C. Qian et al., “ChatDev: Communicative agents for softwa re develop-
+ment,” in Proc. Annu. Meeting Assoc. Comput. Linguistics, Bangkok,
+Thailand: Assoc. Comput. Linguistics, vol. 1, 2024, pp. 1517 4–15186.
+[22] N. Mehandru, B. Y . Miao, E. R. Almaraz, M. Sushil, A. J. But te, and
+A. Alaa, “Evaluating large language models as agents in the cl inic,”
+Npj Digit. Med. , vol. 7, no. 1, p. 84, 2024.
+[23] F. Xing, “Designing heterogeneous LLM agents for ﬁnanc ial sentiment
+analysis,” ACM Trans. Manage. Inf. Syst. , vol. 16, no. 1, pp. 1–24, 2025.
+[24] I. D. S. Portugal, P. Alencar, and D. Cowan, “An agentic A I-based
+multi-agent framework for recommender systems,” in Proc. IEEE Int.
+Conf. Big Data, BigData , Piscataway, NJ, USA: IEEE Press, 2024,
+pp. 5375–5382.
+[25] R. Y . Maragheh and Y . Deldjoo, “The future is agentic: De ﬁnitions, per-
+spectives, and open challenges of multi-agent recommender sys tems,”
+2025, arXiv:2507.02097 .
+[26] Y . Sasaki, H. Washizaki, J. Li, D. Sander, N. Yoshioka, a nd Y .
+Fukazawa, “Systematic literature review of prompt engineeri ng patterns
+in software engineering,” in Proc. IEEE 48th Annu. Comput. Softw.,
+Appl. Conf. (COMPSAC) , Piscataway, NJ, USA: IEEE Press, 2024,
+pp. 670–675.
+[27] T. Schick and H. Schütze, “It’s not just size that matters : Small
+language models are also few-shot learners,” in Proc. Conf. North Amer.
+Chapter Assoc. Comput. Linguistics: Human Lang. Technol., Assoc.
+Comput. Linguistics, 2021, pp. 2339–2352. [Online]. Availa ble: https://
+aclanthology.org/2021.naacl-main.185/
+
+--- Page 29 ---
+1262 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+[28] L. C. Magister, J. Mallinson, J. Adamek, E. Malmi, and A. Se veryn,
+“Teaching small language models to reason,” in Proc. Annu. Meeting
+Assoc. Comput. Linguistics, Toronto, Canada: Assoc. Comput. Linguis-
+tics, 2023, pp. 1773–1781.
+[29] S. Han, M. Wang, J. Zhang, D. Li, and J. Duan, “A review of
+large language models: Fundamental architectures, key techn ological
+evolutions, interdisciplinary technologies integration , optimization and
+compression techniques, applications, and challenges,” Electronics
+(Switzerland) , vol. 13, no. 24, 2024, Art. no. 5040.
+[30] L. Wu et al., “A survey on large language models for recommen dation,”
+World Wide Web , vol. 27, no. 5, 2024, Art. no. 60.
+[31] X. Ma et al., “Safety at scale: A comprehensive survey of l arge model
+and agent safety,” 2025, arXiv:2502.05206 .
+[32] Y . Zhu et al., “Large language models for information retr ieval: A
+survey,” 2024,” arXiv:2308.07107 .
+[33] J. Liu et al., “A survey of personalized large language mo dels: Progress
+and future directions,” 2025, arXiv:2502.11528 .
+[34] L. Li, Y . Zhang, D. Liu, and L. Chen, “Large language model s for
+generative recommendation: A survey and visionary discussio ns,” in
+Proc. Joint Int. Conf. Comput. Linguistics, Lang. Resour. E val. (LREC-
+COLING) , 2024, pp. 10146–10159.
+[35] J. Lin et al., “How can recommender systems beneﬁt from larg e
+language models: A survey,” ACM Trans. Inf. Syst. , vol. 43, no. 2,
+pp. 1–47, 2025, Art. no. 28.
+[36] Z. Zhao et al., “Recommender systems in the era of large lang uage
+models (LLMs),” IEEE Trans. Knowl. Data Eng. , vol. 36, no. 11,
+pp. 6889–6907. Nov. 2024
+[37] Y . Deldjoo et al., “A review of modern recommender systems us ing
+generative models (Gen-RecSys),” in Proc. ACM SIGKDD Int. Conf.
+Knowl. Discovery Data Mining, New York, NY , USA: ACM, 2024,
+pp. 6448–6458.
+[38] T. M. Al-Hasan, A. N. Sayed, F. Bensaali, Y . Himeur, I. Var lamis, and
+G. Dimitrakopoulos, “From traditional recommender systems to G PT-
+based chatbots: A survey of recent developments and future di rections,”
+Big Data Cogn. Comput. , vol. 8, no. 4, 2024, Art. no. 36.
+[39] Y . Zhang, S. Qiao, J. Zhang, T.-H. Lin, C. Gao, and Y . Li, “ A
+survey of large language model empowered agents for recommenda-
+tion and search: Towards next-generation information retri eval,” 2025,
+arXiv:2503.05659 .
+[40] Q. Peng, H. Liu, H. Huang, Q. Yang, and M. Shao, “A survey o n LLM-
+powered agents for recommender systems,” 2025, arXiv:2502.10050 .
+[41] B. Kitchenham and S. Charters, Guidelines for Performing Systematic
+Literature Reviews in Software Engineering ,” Keele Univ., Tech. Rep.,
+2007.
+[42] V . R. Basili, G. Caldiera, and H. D. Rombach, “The goal que stion
+metric approach,” Encyclopedia Softw. Eng. , pp. 528–532, 1994.
+[43] C. Schardt, M. B. Adams, T. Owens, S. Keitz, and P. Fontelo ,
+“Utilization of the PICO framework to improve searching PubMe d for
+clinical questions,” BMC Med. Inf. Decis. Making , vol. 7, Jun. 2007,
+Art. no. 16.
+[44] A. Sampaio, “Improving systematic mapping reviews,” SIGSOFT
+Softw. Enging Notes , vol. 40, no. 6, pp. 1–8, 2015.
+[45] P. Lewis et al., “Retrieval-augmented generation for kn owledge-
+intensive NLP tasks,” in Proc. Adv. Neural Inf. Process. Syst. , 2020,
+pp. 9459–9474.
+[46] J. Wei et al., “Chain-of-thought prompting elicits reas oning in large
+language models,” in Proc. Adv. Neural Inf. Process. Syst. , vol. 35,
+2022, pp. 24824–24837.
+[47] D. Xu et al., “Survey for landing generative AI in so-
+cial and e-commerce Recsys—the industry perspectives,” 2024 ,
+arXiv:2406.06475.
+[48] B. Chen et al., “All roads lead to Rome: Unveiling the traj ectory of
+recommender systems across the LLM era,” 2024, arXiv:2407.10081 .
+[49] J. Wu, H. You, and J. Du, “AI generations: from AI 1.0 to AI 4.0,”
+Frontiers Artif. Intell. , vol. 8, Jun. 2025, Art. no. 1585629.
+[50] Y . Yan et al., “AgentSociety Challenge: Designing LLM a gents for
+user modeling and recommendation on web platforms,” in Proc. WWW
+Companion 2025 - Companion Proc. ACM Web Conf., New York, NY ,
+USA: ACM, 2025, pp. 2963–2967.
+[51] Z. Qian, H. Zhu, J. Liu, and Z. Wan, “Harnessing generati ve large
+language models for dynamic intention understanding in recomme nder
+systems: Insights from a client-designer interaction case s tudy,” IEEE
+Trans. Computat. Social Syst. , vol. 12, no. 2, pp. 807–817. Apr. 2025.
+[52] Y . Shu et al., “RAH! RecSys-Assistant-Human: A human-cen tered
+recommendation framework with LLM agents,” IEEE Trans. Computat.
+Social Syst. , vol. 11, no. 5, pp. 6759–6770. Oct. 2024[53] G. Nie et al., “A hybrid multi-agent conversational reco mmender
+system with LLM and search engine in e-commerce,” in Proc. 18th
+ACM Conf. Recommender Syst., New York, NY , USA: ACM, 2024,
+pp. 745–747.
+[54] J. Zhang et al., “AgentCF: Collaborative learning with autonomous
+language agents for recommender systems,” in Proc. ACM Web Conf.,
+New York, NY , USA: ACM, 2024, pp. 3679–3689.
+[55] A. Singh, S. Kumar, A. Ehtesham, T. T. Khoei, and D. Bhati, “ Large
+language model-driven immersive agent,” in Proc. IEEE 5th World AI
+IoT Congr. (AIIoT) , Piscataway, NJ, USA: IEEE Press, 2024, pp. 619–
+624.
+[56] Z. Wang, Y . Yu, W. Zheng, W. Ma, and M. Zhang, “MACRec: A mul ti-
+agent collaboration framework for recommendation,” in Proc. 47th Int.
+ACM SIGIR Conf. Res. Develop. Inf. Retrieval, New York, NY , USA:
+ACM, 2024, pp. 2760–2764.
+[57] J. Lian, Y . Lei, X. Huang, J. Yao, W. Xu, and X. Xie, “RecAI :
+Leveraging large language models for next-generation recomme nder
+systems,” in Proc. ACM Web Conf., New York, NY , USA: ACM, 2024,
+pp. 1031–1034.
+[58] Y . Wang et al., “RecMind: Large language model powered ag ent
+for recommendation,” in Proc. Findings Assoc. Comput. Linguistics:
+NAACL , Mexico City, Mexico: Assoc. Comput. Linguistics, 2024,
+pp. 4351–4364.
+[59] J. Jin et al., “Lending interaction wings to recommender s ystems with
+conversational agents,” in Proc. Adv. Neural Inf. Process. Syst. , vol. 36,
+2023, pp. 27951–27979.
+[60] L. Murakhovs’Ka, P. Laban, T. Xie, C. Xiong, and C.-S. Wu , “Sales-
+people vs salesbot: Exploring the role of educational value in con-
+versational recommender systems,” in Proc. Findings Assoc. Comput.
+Linguistics: EMNLP , Singapore: Assoc. Comput. Linguistics, 2023,
+pp. 9823–9838.
+[61] J. Fang, S. Gao, P. Ren, X. Chen, S. Verberne, and Z. Ren, “ A multi-
+agent conversational recommender system,” 2024, arXiv:2402.01135 .
+[62] S. Cai et al., “Agentic feedback loop modeling improves re commen-
+dation and user simulation,” in Proc. 48th Int. ACM SIGIR Conf. Res.
+Develop. Inf. Retrieval, New York, NY , USA: ACM, 2025, pp. 2235–
+2244.
+[63] C. Li, Y . Deng, H. Hu, M.-Y . Kan, and H. Li, “Incorporatin g external
+knowledge and goal guidance for LLM-based conversational r ecom-
+mender systems,” 2024, arXiv:2405.01868 .
+[64] K. Sakurai, R. Togo, T. Ogawa, and M. Haseyama, “LLM is kno wledge
+graph reasoner: LLM’s intuition-aware knowledge graph rea soning for
+cold-start sequential recommendation,” 2024, arXiv:2412.12464 .
+[65] Y . Wu, Y . Peng, J. Yu, and R. S. T. Lee, “MAS4POI: A multi-
+agents collaboration system for next POI recommendation,” 20 24,
+arXiv:2409.13700 .
+[66] P. Thakkar and A. Yadav, “Personalized recommendation sy s-
+tems using multimodal, autonomous, multi agent systems,” 2024,
+arXiv:2410.19855 .
+[67] J. Zhang et al., “Prospect personalized recommendation o n large
+language model-based agent platform,” 2024, arXiv:2402.18240 .
+[68] N. Yoshimaru, M. Okuma, T. Iio, and K. Hatano, “AsyncMLD:
+Asynchronous multi-LLM framework for dialogue recommendation
+system,” 2023, arXiv:2312.13925 .
+[69] X. Huang, J. Lian, Y . Lei, J. Yao, D. Lian, and X. Xie, “Rec ommender
+AI agent: Integrating large language models for interactive recommen-
+dations,” 2023,” arXiv:2308.16505 .
+[70] J. Liu et al., “AgentCF++: Memory-enhanced LLM-based ag ents for
+popularity-aware cross-domain recommendations,” in Proc. 48th Int.
+ACM SIGIR Conf. Res. Develop. Inf. Retrieval, New York, NY , USA:
+ACM, 2025, pp. 2566–2571.
+[71] H. Yuet al., “Thought-augmented planning for LLM-power ed interac-
+tive recommender agent,” 2025, arXiv:2506.23485 .
+[72] Z. Hui et al., “MATCHA: Can multi-agent collaboration bu ild a
+trustworthy conversational recommender?” 2025, arXiv:2504.20094 .
+[73] X. Xiao, “MMAgentRec, a personalized multi-modal recommen dation
+agent with large language model,” Sci. Rep. , vol. 15, no. 1, 2025, Art.
+no. 12062.
+[74] M. Liang, J. Wang, and Y . Luo, “SmartEats: Investigating the effects
+of customizable conversational agent in dietary recommendati ons,” in
+Proc. ACM Conf. Conversational User Interfaces, New York, NY , USA:
+ACM, 2025, pp. 1–16.
+[75] X. Ao, S. Han, Y . Li, H. Ma, P. Zhang, and J. Zou, “Retrieva l aug-
+mented multi-agent recommender,” in WWW Companion–Companion
+Proc. ACM Web Conf. , New York, NY , USA: ACM, 2025, pp. 2968–
+2972.
+
+--- Page 30 ---
+PORTUGAL et al.: AGENTIC RECOMMENDER SYSTEMS: A SYSTEMATIC LITER ATURE REVIEW 1263
+[76] Y . Yu, Z. Wang, C. Jiang, X. Li, J. Wang, and M. Zhang, “Int elligent
+agents with adaptive knowledge fusion for personalized rec ommenda-
+tion,” in Proc. WWW Companion—Companion Proc. ACM Web Conf. ,
+New York, NY , USA: ACM, 2025, pp. 2983–2987.
+[77] Z. Wu, L. Sheng, Y . Xia, Y . Zhang, Y . Chen, and A. Zhang, “P erson-
+alized recommendation agents with self-consistency,” in Proc. WWW
+Companion—Companion Proc. ACM Web Conf. , New York, NY , USA:
+ACM, 2025, pp. 2978–2982.
+[78] R. Silva and L. Gomes, “An adaptive language model-based i ntelligent
+medication assistant for the decision support of antidepres sant prescrip-
+tions,” Comput. Biol. Med. , vol. 190, May 2025, Art. no. 110065.
+[79] P. Valente, J. Magalhães, and R. Nóbrega, “Managing pro activity
+in e-commerce interfaces: Context-aware conversational age nts for
+enhanced user engagement,” in Proc. Int. Conf. Intell. User Interfaces ,
+New York, NY , USA: ACM, 2025, pp. 159–162.
+[80] X. Xie and R. Cui, “Integrating Freudian psychological constructs - id,
+ego, and superego - into AI-based insurance recommendation sy stems
+through dialogue analysis,” in Proc. 4th Int. Conf. Computer Technol.
+(ICCTech) , Piscataway, NJ, USA: IEEE Press, 2025, pp. 18–23.
+[81] T. Carraro, B. Singh, and N. Pedanekar, “Large language model-
+based recommendation system agents,” in Proc. 19th ACM Conf.
+Recommender Syst. (RecSys) , New York, NY , USA: ACM, 2025,
+pp. 1340–1342.
+[82] R. Y . Maragheh et al., “ARAG: Agentic retrieval augmente d generation
+for personalized recommendation,” 2025, arXiv:2506.21931 .
+[83] T. Kim, J. Lee, S. Yoon, S. Kim, and D. Lee, “Towards persona lized
+conversational sales agents: Contextual user proﬁling for strategic
+action,” 2025, arXiv:2504.08754 .
+[84] W. Xu et al., “iAgent: LLM agent as a shield between user a nd
+recommender systems,” 2025, arXiv:2502.14662 .
+[85] L. Chen, W. Yuan, T. Chen, X. Zhao, N. Q. V . Hung, and H. Yin ,
+“Multi-agents based user values mining for recommendation,” 2 025,
+arXiv:2505.00981 .
+[86] Z. Wang, M. Gao, J. Yu, Y . Hou, S. Sadiq, and H. Yin, “RuleA gent:
+Discovering rules for recommendation denoising with autonomo us
+language agents,” 2025, arXiv:2503.23374 .
+[87] A. Dolant and P. Kumar, “Agentic LLM framework for adaptiv e
+decision discourse,” 2025, arXiv:2502.10978 .
+[88] Y . Liu, H. Dong, and A. E. Saddik, “Leveraging LLMs to cre ate a
+haptic devices’ recommendation system,” 2025, arXiv:2501.12573 .
+[89] A. M. Mohammed, I. Mansoor, S. Blythe, and D. Trujillo, “De veloping
+an artiﬁcial intelligence tool for personalized breast can cer treatment
+plans based on the NCCN guidelines,” 2025, arXiv:2502.15698 .
+[90] Y . Yang and C. Huang, “Tree-based RAG-agent recommendati on
+system: A case study in medical test data,” 2025, arXiv:2501.02727 .
+[91] A. Göldi and R. Rietsche, “Insert-expansions for large language model
+agents,” in Proc. 30th Americas Conf. Information Syst. (AMCIS) , 2024,
+pp. 1–10.
+[92] W. Wongso, H. Xue, and F. D. Salim, “GenUP: Generative use r
+proﬁlers as in-context learners for next POI recommender syst ems,”
+2025, arXiv:2410.20643 .
+[93] S. Wu et al., “I like Sunnie more than I expected!”: Explor ing
+user expectation and perception of an anthropomorphic LLM-b ased
+conversational agent for well-being support,” 2024, arXiv:2405.13803.
+[94] I. Goodfellow et al., “Generative adversarial network s,”Commun.
+ACM , vol. 63, no. 11, pp. 139–144, 2020.
+[95] M. Steinbach, S. Bhandari, J. Meyer, and Z. A. Pardos, “Wh en LLMs
+hallucinate: Examining the effects of erroneous feedback in math
+tutoring systems,” in Proc. 12th ACM Conf. Learn. @ Scale (L@S) ,
+New York, NY , USA: ACM, 2025, pp. 139–150,
+[96] J. Ahn, R. Verma, R. Lou, D. Liu, R. Zhang, and W. Yin, “Larg e lan-
+guage models for mathematical reasoning: Progresses and chall enges,”
+inProc. EACL 18th Conf. Eur. Chapter Assoc. Comput. Linguisti cs,
+Proc. Student Res. Workshop , St. Julian’s, Malta: Assoc. Comput.
+Linguistics, 2024, pp. 225–237.
+[97] S. Min et al., “Rethinking the role of demonstrations: Wha t makes
+in-context learning work?” in Proc. Conf. Empirical Methods Natural
+Lang. Process. (EMNLP) , Abu Dhabi, United Arab Emirates: Assoc.
+Comput. Linguistics, 2022, pp. 11048–11064,
+[98] X.-K. Wu et al., “LLM ﬁne-tuning: Concepts, opportunit ies, and
+challenges,” Big Data Cogn. Comput. , vol. 9, no. 4, 2025, Art. no.
+87.
+[99] L. Salewski, S. Alaniz, I. Rio-Torto, E. Schulz, and Z. A kata, “In-
+context impersonation reveals large language models’ streng ths and
+biases,” in Proc. Adv. Neural Inf. Process. Syst. , vol. 36, 2023, pp.
+72044–72057.[100] M. Zheng, J. Pei, L. Logeswaran, M. Lee, and D. Jurgens, “When “a
+helpful assistant” is not really helpful: Personas in syste m prompts
+do not improve performances of large language models,” in Proc.
+Empirical Methods Natural Lang. Process. (EMNLP) , Miami, FL,
+USA: Assoc. Comput. Linguistics, 2024, pp. 15126–15154.
+[101] R. Lou, K. Zhang, and W. Yin, “Large language model instr uction fol-
+lowing: A survey of progresses and challenges,” Comput. Linguistics ,
+vol. 50, no. 3, pp. 1053–1095, 2024.
+[102] J. Zhang, R. Xie, Y . Hou, X. Zhao, L. Lin, and J.-R. Wen, “ Recommen-
+dation as instruction following: A large language model empow ered
+recommendation approach,” ACM Trans. Inf. Syst. , vol. 43, no. 5, pp. 1–
+37, 2024.
+[103] J. L. G. L. Y . L. Z. Jin, “Structured Chain-of-Thought p rompting for
+code generation,” ACM Trans. Softw. Eng. Method. , vol. 34, no. 2,
+2025, Art. no. 37.
+[104] A. Dregger, M. Seifermann, and A. Oberweis, “Language c ues for
+expressing artiﬁcial personality: A systematic literature review for
+conversational agents,” in Proc. ACM Conversational User Interfaces
+(CUI) , New York, NY , USA: ACM, 2024, Art. no. 22.
+[105] Y .-M. Tseng, Y .-C. Huang, T.-Y . Hsiao, W.-L. C.-W. Hua ng, Y . Meng,
+and Y .-N. Chen, Chen “Two tales of persona in LLMs: A survey
+of role-playing and personalization,” in Proc. Empirical Methods
+Natural Lang. Process. (EMNLP) , Miami, FL, USA: Assoc. Comput.
+Linguistics, 2024, pp. 16612–16631.
+[106] W. H. Holliday, M. Mandelkern, and C. E. Zhang, “Condit ional
+and modal reasoning in large language models,” in Proc. Empirical
+Methods Natural Lang. Process. (EMNLP), Miami, FL, USA: Assoc.
+Comput. Linguistics, 2024, pp. 3800–3821.
+[107] S. Schulhoff et al., “The prompt report: A systematic sur vey of prompt
+engineering techniques,” 2024, arXiv:2406.06608 .
+[108] T. Kojima, S. S. Gu, M. Reid, Y . Matsuo, and Y . Iwasawa, “L arge
+language models are zero-shot reasoners,” in Proc. Adv. Neural Inf.
+Process. Syst. , vol. 35, 2022, pp. 22199–22213.
+[109] Y . Li et al., “One-shot learning as instruction data pr ospector for
+large language models,” in Proc. Annu. Meeting Assoc. Comput.
+Linguistics, vol. 1, Bangkok, Thailand: Assoc. Comput. Linguistics,
+2024, pp. 4586–4601.
+[110] L. Reynolds and K. McDonell, “Prompt programming for larg e
+language models: Beyond the few-shot paradigm,” in Proc. Conf.
+Human Factors Comput. Syst., New York, NY , USA: ACM,
+2021, Art. no. 314.
+[111] S. Yao et al., “Tree of Thoughts: Deliberate problem so lving with large
+language models,” in Proc. Adv. Neural Inf. Process. Syst. , vol. 36,
+2023, pp. 11809–11822.
+[112] J. Long, “Large language model guided tree-of-thought ,” 2023,
+arXiv:2305.08291 , pp. 1–33.
+[113] S. Yao et al., “REACT: Synergizing reasoning and actin g in language
+models,” in Proc. 11th Int. Conf. Learn. Representations (ICLR), 2023.
+[114] S. Zhang et al., “Instruction tuning for large languag e models: A
+survey,” 2024, arXiv:2308.10792 .
+[115] B. Lester, R. Al-Rfou, and N. Constant, “The power of sc ale for
+parameter-efﬁcient prompt tuning,” in Proc. Empirical Methods Natu-
+ral Lang. Process., Assoc. Comput. Linguistics (ACL), 2021, pp. 3045–
+3059. [Online]. Available: https://aclanthology.org/20 21.emnlp-main.
+243/
+[116] X. Wang et al., “Self-consistency improves chain of tho ught reasoning
+in language models,” in Proc. 11th Int. Conf. Learn. Representations
+(ICLR) , 2023.
+[117] T. Shin, Y . Razeghi, R. L. Logan, E. Wallace, and S. Sing h,
+“AUTOPROMPT: Eliciting knowledge from language models with
+automatically generated prompts,” in Proc. Empirical Methods
+Natural Lang. Process., Assoc. Comput. Linguistics, 2020,
+pp. 4222–4235. [Online]. Available: https://aclantholog y.org/2020.
+emnlp-main.346/
+[118] Y . Chen, G. Yang, D. Wang, and D. Li, “Eliciting knowl-
+edge from language models with automatically generated conti n-
+uous prompts[formula presented],” Expert Syst. Appl. , vol. 239,
+Apr. 2024, Art. no. 122327.
+[119] Z. Wang, X. Yang, Y . Liu, S. Feng, D. Wang, and Y . Zhang, “ Muse:
+A multimodal conversational recommendation dataset with scena rio-
+grounded user proﬁles,” 2025, arXiv:2412.18416 .
+[120] V . Chhetri, Y . Reza, M. Fereidouni, S. Maji, U. Farooq, and A.
+Siddique, “A framework for generating conversational recomme ndation
+datasets from behavioral interactions,” 2025, arXiv:2506.17285 .
+
+--- Page 31 ---
+1264 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING, VOL. 52, NO. 4, APRIL 2 026
+[121] I. Portugal, P. Alencar, and D. Cowan, “The use of machin e learning
+algorithms in recommender systems: A systematic review,” Expert Syst.
+Appl. , vol. 97, pp. 205–227, May 2018.
+[122] M. D. Collins, E. Agichtein, O. Rokhlenko, and S. Malmas i,
+“Collecting high-quality multi-modal conversational searc h data for
+e-commerce,” in Proc. 3rd Workshop Knowl. Augmented Methods,
+Bangkok, Thailand: Assoc. Comput. Linguistics, 2024, pp. 30 –43.
+[123] S. Kim, T. Kim, K. Seo, J. Yeo, and D. Lee, “Stop playing the guessing
+game! Target-free user simulation for evaluating conversati onal recom-
+mender systems,” 2025, arXiv:2411.16160 .
+[124] Z. Yang et al., “OASIS: Open agent social interaction s imulations with
+one million agents,” 2025, arXiv:2411.11581 .
+[125] S. Múnker and A. Rettinger, “twony: A micro-simulation o f the impact
+of OSN mechanics on the emotionality of online discourse,” in Proc.
+CEUR Workshop. , vol. 3977, Portorož, Slovenia: CEUR-WS, 2025.
+[126] N. Sukiennik, H. Wang, Z. Zeng, C. Gao, and Y . Li, “Simula ting ﬁlter
+bubble on short-video recommender system with large language model
+agents,” 2025, arXiv:2504.08742 .
+[127] S. Jin et al., “Beyond static testbeds: An interaction -centric agent
+simulation platform for dynamic recommender systems,” 2025,
+arXiv:2505.16429 .
+[128] L. Bojic, Z. Dodevska, Y . Deldjoo, and N. Pantelic, “To wards rec-
+ommender systems LLMs playground (RecSysLLMsP): Exploringpolarization and engagement in simulated social networks,” 2 025,
+arXiv:2502.00055 .
+[129] Y . Wang, L. Wang, Y . Li, D. He, and T.-Y . Liu, “A theoreti cal analysis
+of NDCG type ranking measures,” in Proc. 26th Annu. Conf. Learn.
+Theory , vol. 30, 2013, pp. 25–54.
+[130] J. Davis and M. Goadrich, “The relationship between
+precision-recall and ROC curves,” in Proc. ACM Int.
+Conf. Proc.. , vol. 148, New York, NY , USA: ACM, 2006,
+pp. 233–240.
+[131] C. Goutte and E. Gaussier, “A probabilistic interpret ation of precision,
+recall and F-score, with implication for evaluation,” in Lecture Notes
+in Computer Sci. , vol. 3408, New York, NY , USA: Springer, 2005,
+pp. 345–359.
+[132] C. Dwork and A. Roth, “The algorithmic foundations of di fferential
+privacy,” Foundations Trends in Theor. Computer Sci. , vol. 9, nos. 3–
+4, pp. 211–487, 2013.
+[133] M. Abadi et al., “Deep learning with differential priv acy,” in Proc. ACM
+Conf. Computer Commun. Secur. , vol. 2428, New York, NY , USA:
+ACM, 2016, pp. 308–318.
+[134] C. Dwork, “Differential privacy,” Lecture Notes in Computer
+Sci. (Including Subseries Lecture Notes in Artif. Intell.
+Lecture Notes in Bioinf.) , vol. 4052, LNCS, 2006,
+pp. 1–12.
