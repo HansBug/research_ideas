@@ -23,7 +23,7 @@
 | 自动化程度 | 自动化工具 TarTar 原型；实验基于 fault seeding |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：没有 NL，也没有由 NL 生成的 STM_0；但提供 verifier/counterexample-guided formal repair 的方法近邻。
 

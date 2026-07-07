@@ -20,12 +20,14 @@
 | 当前 repair baseline / near-neighbor | [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md) | 只保留旧 baseline 线索，不决定当前 baseline。 |
 | 当前纯 NL 数据源 | [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md) | 只保留旧检索覆盖和 pending 线索。 |
 | 当前 R5/R5.5 human-facing conclusions | [../reports/SUMMARY.md](../reports/SUMMARY.md) | 只作为 provenance 或 negative evidence 背景。 |
+| R5.7 Better STM historical assets | [r5_7_better_stm_snapshot/README.md](./r5_7_better_stm_snapshot/README.md) | 只解释 superseded Better STM 阶段，不作为当前事实。 |
 
 ## 2. 快照清单
 
 | 快照 | 内容 | 使用方式 |
 |---|---|---|
 | [r1_5_to_r1_7_seed_corpus_snapshot/](./r1_5_to_r1_7_seed_corpus_snapshot/) | PR-R1.8-B 从旧 `seed_corpus/` 迁出的历史审计快照；含 legacy ledgers、search rounds、raw search results。 | 只用于追溯早期检索、筛选、排除和迁移哨兵；不要直接引用为当前事实。 |
+| [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | R5.7 / Better STM / constructed `STM_k` / blind adjudication / repair target taxonomy / objective metric framework cold snapshot；含 moved `experiment_design/`、`pipeline/evaluation/` 和 R5.7 reports。 | 只用于 historical provenance / calibration / anti-gaming 参考；不得作为 active method source、evaluation gate、baseline contract 或 repair effectiveness evidence。 |
 
 ## 3. 维护纪律
 

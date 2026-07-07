@@ -21,7 +21,7 @@
 | 自动化程度 | 较高，但完整代码/数据未公开 |
 | LLM / agent 角色 | ChatGPT-4o、Gemini 2.5 Flash/Pro 等 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 可借鉴 diagnostics-to-repair loop 和结构评估；非 STM baseline。
 

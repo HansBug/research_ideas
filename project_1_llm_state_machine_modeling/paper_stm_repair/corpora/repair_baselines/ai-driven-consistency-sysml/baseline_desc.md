@@ -21,7 +21,7 @@
 | 自动化程度 | 半自动；用户参与筛选和反馈 |
 | LLM / agent 角色 | OpenAI GPT 用于图生成、跨图不一致检测和修正 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 强相关 consistency / repair related work；不能写成 STM direct baseline。
 

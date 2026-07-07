@@ -25,4 +25,4 @@
 
 ## R2 使用建议
 
-不计四例下限。可作为“工业控制 + LLM + FSM + simulation/feedback”的强 related work，帮助论证本论文转向 `<NL, STM_0> -> Better STM` 的合理性，但不应声称可以复现其 seed。
+不计四例下限。可作为“工业控制 + LLM + FSM + simulation/feedback”的强 related work，帮助论证本论文转向 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 的合理性，但不应声称可以复现其 seed。

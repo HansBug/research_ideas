@@ -111,9 +111,11 @@ readiness_audit/
 
 ### 5.1 四例冒烟一致性
 
-每例必须核验：`source_meta.json` 可校验 `nl.txt` 与 `stm0.*`，`trace_verified=true`，`fcstm_meta.json` 可校验 selected `model.fcstm`，selected `model.fcstm` 与 [../representation/reports/fcstm_exports/](../representation/reports/fcstm_exports/) 对应副本一致，R3 canonical、R4 固化样例和 R4.5 `parse_inspect_report.json` 均存在且 `example_id` 对齐。
+每例必须核验：`source_meta.json` 可校验 `nl.txt` 与 `stm0.*`，`trace_verified=true`，`fcstm_meta.json` 可校验 selected `model.fcstm`，selected `model.fcstm` 与 [../representation/reports/fcstm_exports/](../representation/reports/fcstm_exports/) 对应副本一致，R3 canonical、archived R4/R5.7 fixture 和 R4.5 `parse_inspect_report.json` 均存在且 `example_id` 对齐。
 
 R5 发现不一致时，只记录 R5 blocker；不得在 R5 静默修改 selected、conversion、evaluation 或 representation 上游制品。
+
+`run-selected` 中的 `upstream_r4_fixture` 只作为 historical readiness input；当前生成器显式读取 [../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/dry_run_examples/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/dry_run_examples/)，不会向 active [../evaluation/](../evaluation/) 写回旧 Better STM gate。
 
 ### 5.2 全量摸排规则
 
@@ -146,11 +148,13 @@ python -m paper_stm_repair_smoke.cli validate
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
 python -m pytest \
   project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
+  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests \
+  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests
 
 git diff --check
 ```
+
+R4/R5.7 evaluation tests 已归档到 [../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/tests/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/tests/)；active readiness 复验不再调用旧 Better STM gate tests。
 
 `run-seed-sweep` 默认采用 `--continue-on-error` 语义：单个 pair 的 tool exception / timeout 会进入该 pair record，不中断全量摸排；如需调试工具 bug，可使用 `--no-continue-on-error` 让异常 fail-fast。
 

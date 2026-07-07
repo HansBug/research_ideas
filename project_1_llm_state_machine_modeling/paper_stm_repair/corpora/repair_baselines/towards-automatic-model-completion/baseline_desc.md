@@ -21,7 +21,7 @@
 | 自动化程度 | 概念性半自动 |
 | LLM / agent 角色 | 无核心 LLM 角色 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 2024 SoSyM 工作的早期版本，适合记录方法演进，不应重复计为独立强 baseline。
 

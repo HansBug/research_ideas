@@ -23,7 +23,7 @@
 | 自动化程度 | 工具辅助；生成 choices，designer 决策 |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：无 NL 与 NL->STM_0；可参考 consistency feedback 与 choice generation。
 

@@ -21,7 +21,7 @@
 | 自动化程度 | 静态分析、模型转换、代码生成和 build 可自动执行；缺失语义的选择仍依赖用户交互或脚本规则 |
 | LLM / agent 角色 | 无 LLM / agent loop |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 这是 `STM_0 -> executable / refined STM` 的强近邻：它不含 NL，也不做 LLM 修复，但直接处理 partial state machine，并把不可执行 / 不完整状态机转成可执行、可调试、可由输入规则继续推进的 refined HSM。它适合支撑本文的一个关键边界：已有 MDE 工作已经能对 partial STM 做语义保持的 refinement / execution support，但并未解决 `<NL, STM_0>` 语义诊断、需求一致性与无人化 LLM repair loop。
 

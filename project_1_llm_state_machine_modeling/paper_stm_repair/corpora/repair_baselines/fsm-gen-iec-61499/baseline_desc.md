@@ -21,7 +21,7 @@
 | 自动化程度 | 半自动；问题识别和满意度判断依赖人 |
 | LLM / agent 角色 | 核心生成/修改器；具体模型未明确 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 工业控制强近邻，说明 simulation/user feedback refinement 的现实需求；不应写成无人自动 repair baseline。
 

@@ -21,7 +21,7 @@
 | 自动化程度 | 半自动 |
 | LLM / agent 角色 | GPT-3.5 只辅助需求预处理，非核心 repair |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 当前只能作为唯一 P0 路线近邻 / 条件对照：`<GWT requirements, partial SysML SMD> -> completed SMD`；但 partial SMD / states 是否严格由同一组 GWT/NL 生成仍需二次核验。它不是 seed，也不是无人化 formal repair loop。
 

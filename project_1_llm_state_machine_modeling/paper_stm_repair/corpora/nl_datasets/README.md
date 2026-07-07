@@ -36,7 +36,7 @@
 ## 4. 与上游文库的关系
 
 - [../seed_library/](../seed_library/) 负责 `NL -> STM_0` 的 seed 方法 / 来源。
-- [../repair_baselines/](../repair_baselines/) 负责 `STM_0 -> STM_k / Better STM` 的修正近邻。
+- [../repair_baselines/](../repair_baselines/) 负责 source-level issue discovery / repair / closure 的修正近邻。
 - 本库只负责纯 NL 数据源；不把只有 NL 的对象提前当 seed。
 - 若某个 NL 来源后续完成 `STM_0` 构造，应在本库 `SUMMARY.md` 的 `seed_library crosslink` 字段记录对应 seed slug；seed library 侧反向回链字段由后续一致性 PR 统一补齐，避免本脚手架 PR 单方面改写 seed 总账。
 

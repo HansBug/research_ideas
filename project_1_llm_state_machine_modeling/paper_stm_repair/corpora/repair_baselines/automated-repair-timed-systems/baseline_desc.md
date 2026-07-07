@@ -23,7 +23,7 @@
 | 自动化程度 | 自动化工具原型；fault-seeding evaluation |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：缺 NL 与 NL->STM_0；但 formal counterexample-guided repair 机制最强。
 

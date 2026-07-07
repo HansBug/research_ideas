@@ -21,7 +21,7 @@
 | 自动化程度 | 检测较自动；修复决策由用户完成 |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 可作为“statechart debugging + backward requirements checking”的经典前身；不是现代 LLM repair。
 

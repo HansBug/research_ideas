@@ -21,7 +21,7 @@
 
 | 术语 | 当前处理 |
 |---|---|
-| Better STM | 只允许 historical / superseded / archive-pending / claims-to-avoid。 |
+| Better STM | 只允许 historical / superseded / cold archived / claims-to-avoid。 |
 | which STM is better | 不作为 active research question。 |
 | relatively better STM | 不作为 headline；必要时只在解释旧框架时出现。 |
 | repair target taxonomy | 旧 R5.7 术语；新主线优先写 issue ledger / issue taxonomy。 |

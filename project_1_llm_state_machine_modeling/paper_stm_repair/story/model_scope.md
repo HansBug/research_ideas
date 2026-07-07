@@ -39,7 +39,7 @@
 
 ## 5. 与历史 Better STM 框架的关系
 
-Better STM 主框架已经 superseded。旧框架中的 no-regression、attribution boundary、anti-gaming 等纪律若后续有价值，必须从 archive / asset map 中显式迁移到 issue lifecycle 语境，不能自动保留为 active evaluation framework。
+Better STM 主框架已经 superseded。旧框架中的 no-regression、attribution boundary、anti-gaming 等纪律若后续有价值，必须从 cold archive / asset map 中显式迁移到 issue lifecycle 语境，不能自动保留为 active evaluation framework。
 
 ## 6. 禁止外推
 

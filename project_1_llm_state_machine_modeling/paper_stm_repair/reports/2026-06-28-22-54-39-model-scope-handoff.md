@@ -40,7 +40,7 @@ R5.5.1 历史理由：10 个 NL cluster 中 8 个为 T0、1 个为 T0.5、1 个�
 
 ### 6. recommended_next_action
 
-R5.6 应在 [experiment_design/scope/](../experiment_design/scope/) 中冻结 main / supplementary-stress / negative evidence 的模型范围，并由 `story/` 只引用该 scope 决策，不另建第二事实真源；主实验 claim 应限定到 T0 离散状态机族；T0.5 只作为 timer-like caveat under event abstraction 的补充样本，R5.7 再定义 guard/event/action/hierarchy 的 repair target [clm-scope-boundary][clm-scope-candidate-risk]。
+R5.6 应在 [archived experiment_design/scope/](../archive/r5_7_better_stm_snapshot/experiment_design/scope/) 中冻结 main / supplementary-stress / negative evidence 的模型范围，；当前 active scope 以 [../story/model_scope.md](../story/model_scope.md) 为准，`story/` 不再引用旧 scope 作为唯一事实源，不另建第二事实真源；主实验 claim 应限定到 T0 离散状态机族；T0.5 只作为 timer-like caveat under event abstraction 的补充样本，R5.7 再定义 guard/event/action/hierarchy 的 repair target [clm-scope-boundary][clm-scope-candidate-risk]。
 
 ## 审计附录：证据链与事实源
 

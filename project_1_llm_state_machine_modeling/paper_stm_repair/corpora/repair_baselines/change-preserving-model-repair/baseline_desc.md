@@ -23,7 +23,7 @@
 | 自动化程度 | 半自动/工具辅助；用户可查看、测试、回滚 repair |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：无 NL，目标不是 STM 语义 repair；但可提供 model repair taxonomy 与 history-guided repair 参考。
 

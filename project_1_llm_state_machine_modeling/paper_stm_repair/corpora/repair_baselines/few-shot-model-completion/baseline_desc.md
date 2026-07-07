@@ -21,7 +21,7 @@
 | 自动化程度 | 建议生成自动；接受/评估依赖人工 |
 | LLM / agent 角色 | GPT-3 text-davinci-002 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 可作为 partial model completion 方法参照；不能作为 repair baseline 主证据。
 

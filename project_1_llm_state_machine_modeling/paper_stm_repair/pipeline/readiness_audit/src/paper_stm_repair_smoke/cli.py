@@ -36,7 +36,11 @@ LLMS_EMP_PROFILE_DIR = READINESS_ROOT / "llms_emp_profile"
 SELECTED_DIR = PAPER_ROOT / "selected_seed_examples"
 CONVERSION_REPORTS = PIPELINE_ROOT / "conversion/reports"
 REPRESENTATION_REPORTS = PIPELINE_ROOT / "representation/reports"
-EVALUATION_DIR = PIPELINE_ROOT / "evaluation/dry_run_examples"
+# R4/R5.7 evaluation fixtures are historical inputs for the selected-smoke
+# readiness audit. They moved to cold archive in PR-better-archive; future
+# active evaluation must not write back to this directory or inherit its gate.
+R57_ARCHIVE_EVALUATION_DIR = PAPER_ROOT / "archive/r5_7_better_stm_snapshot/pipeline/evaluation/dry_run_examples"
+EVALUATION_DIR = R57_ARCHIVE_EVALUATION_DIR
 SEED_LIBRARY_DIR = PAPER_ROOT / "corpora/seed_library"
 RECOVERY_REPORT_PATH = CONVERSION_REPORTS / "plantuml_recovery_report.json"
 

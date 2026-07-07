@@ -34,7 +34,7 @@
 
 ## SS / SA 判定
 
-- **作为 seed 方法集合：必须纳入。** 它回答的是“如何从自然语言题项生成 SysML v2 state machine diagram”，正属于当前 `<NL, STM_0> -> Better STM` 问题之前的上游 `NL -> STM_0` 生成方法。
+- **作为 seed 方法集合：必须纳入。** 它回答的是“如何从自然语言题项生成 SysML v2 state machine diagram”，正属于当前 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 任务之前的上游 `NL -> STM_0` 生成方法。
 - **作为 PR-R2 主样本：暂不计数。** 公开资产不足：没有 paper-specific code、raw prompt/output bundle、逐次 generated STM、独立 dataset 或结果 workbook；只能从论文正文手工重建。
 - **当前等级：`SS-B/ES-C + SA-3`。** 文献关系成立，但 artifact 是 paper-only，样本仅 2 个题项，外部效度和可复验性都弱。
 

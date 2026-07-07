@@ -34,4 +34,4 @@ R2建议入口：
 
 ## 主 seed 排除说明
 
-当前不计入 `SS-A/SS-B + SA-1/SA-2` 主 seed 下限。若未来要升级，必须补一份 case-level 记录，说明选定 `.xml` 中的 `after` / timeout / signal / guard-action 是否保留、抽象或剔除，以及该处理是否影响后续 Better STM 评价。
+当前不计入 `SS-A/SS-B + SA-1/SA-2` 主 seed 下限。若未来要升级，必须补一份 case-level 记录，说明选定 `.xml` 中的 `after` / timeout / signal / guard-action 是否保留、抽象或剔除，以及该处理是否影响后续 source-level issue discovery / repair / closure 评价。

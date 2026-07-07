@@ -21,7 +21,7 @@
 | 自动化程度 | fault localization、mutation、仿真评估、plausible/partial archive 维护高度自动；最终 valid patch 仍需人工确认以避免 overfitting |
 | LLM / agent 角色 | 无 LLM / agent loop；论文只在 future work 中提到未来可能探索 LLM as mutators |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 FlowRepair 是目前本库中最强的 Stateflow/Simulink repair 近邻之一：它直接修复 statechart-like CPS controller，repair operators 作用于 states、transitions、guard/condition、variable/action 等模型元素，反馈来自测试、仿真、oracle 与 fault localization。若本文后续把目标 STM 映射到 Stateflow/Simulink 且能提供仿真 oracle，它可作为 repair-engine / ablation 近邻。
 
@@ -47,7 +47,7 @@ FlowRepair 是目前本库中最强的 Stateflow/Simulink repair 近邻之一：
 
 ## 5. 主要风险与使用边界
 
-- 无 NL 输入，不能直接覆盖本文的 `<NL, STM_0> -> Better STM` 需求一致性修复问题。
+- 无 NL 输入，不能直接覆盖本文的 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 问题。
 - 强依赖 MATLAB/Simulink/Stateflow、仿真 test oracle 与 Stateflow 模型表达；迁移到文本 DSL 需要转换层与公平性说明。
 - 数据规模较小：9 个 faulty models / 3 个 case studies；作者也承认外部效度有限。
 - plausible patches 可能 overfit；实验中的 valid patch 需要人工语义验证。

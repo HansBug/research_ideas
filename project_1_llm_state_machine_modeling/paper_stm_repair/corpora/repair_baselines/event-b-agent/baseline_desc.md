@@ -21,7 +21,7 @@
 | 自动化程度 | 高自动化，但假设需求内部一致 |
 | LLM / agent 角色 | GPT-5 medium reasoning backbone；soundness 由 deterministic tools 复核 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 显示 SOTA 正从 one-shot NL->formal model 转向 verifier/prover-mediated repair；只能作异构方法上界/近邻。
 

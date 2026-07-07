@@ -51,7 +51,7 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 3. 尚未冻结 paper1 loop 的 stage IO / run record 合同。
 4. 尚未实现 discovery / confirmation、issue-grounded repair、raw/source export、closure/regression audit。
 5. 尚未运行 pilot；因此尚未冻结 final evaluation rubric、baseline contract 或正式实验协议。
-6. 尚未执行真实 repair loop；历史 constructed `STM_k` dry-run 不能作为 method effectiveness evidence。
+6. 尚未执行真实 repair loop；archived constructed `STM_k` dry-run 不能作为 method effectiveness evidence。
 
 ## 4. 方法数据流
 
@@ -83,7 +83,7 @@ flowchart TD
 | [evidence/](./evidence/) | 战略清账、审计、ledger、trace 等证据入口。 | 不把 historical / archive 资产当 active claim evidence。 |
 | [pipeline/](./pipeline/) | conversion / evaluation / representation / readiness 等基础设施。 | 不把 conversion / lowering 算成 repair gain。 |
 | [corpora/](./corpora/) | seed、NL 数据和 baseline candidate 来源。 | 不在 story reset 阶段冻结正式样本分母或 baseline 合同。 |
-| [experiment_design/](./experiment_design/) | 历史评价设计与待归档 R5.7 资产所在路径。 | Better STM-facing 文件在归档前只作 historical / archive-pending 引用。 |
+| [experiment_design/](./experiment_design/) | source-level issue lifecycle 的实验设计 scaffold。 | 旧 R5.7 / Better STM-facing 文件已迁入 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/)，不得作为 active protocol。 |
 | [reports/](./reports/) | 历史 handoff / report 文库。 | R5.7 reports 不证明真实 repair-loop effectiveness。 |
 | [archive/](./archive/) | 历史快照入口。 | archive 不是 active method source。 |
 
@@ -93,13 +93,14 @@ flowchart TD
 2. 想理解战略转向来源：读 [../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md](../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) 和 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)。
 3. 想写或审 paper story：读 [story/README.md](./story/README.md)，再读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [story/paper_outline.md](./story/paper_outline.md)。
 4. 想接后续实现：先读 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)，再根据伞 PR 进入后续 `PR-issue-ledger` / `PR-source-trace` / `PR-loop-io`。
-5. 想引用旧 R5.7 资产：必须写成 historical / superseded / archive-pending / calibration-only；不得把 Better STM / constructed `STM_k` adjudication 写成 active method result。
+5. 想引用旧 R5.7 资产：必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并写成 historical / superseded / calibration-only；不得把 Better STM / constructed `STM_k` adjudication 写成 active method result。
 
 ## 7. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 23:40:00 | `PR-better-archive` 后同步根入口：experiment_design 改为 active scaffold，R5.7 资产改指 cold archive。 |
 | 2026-07-07 22:10:00 | 按导师原话修正 contribution 口径：主贡献是 feedback-driven loop + simulation / formal-verification feedback integration；ledger / audit / evidence bookkeeping 降级为方法和评价纪律。 |
-| 2026-07-07 21:20:00 | 重置 paper1 active story 入口：从 Better STM / which STM is better 框架切换到 source-level behavioral issue discovery and closure；明确 `fcstm` 只是中间语义执行介质，R5.7 Better STM-facing 资产等待后续 archive。 |
+| 2026-07-07 21:20:00 | 重置 paper1 active story 入口：从 Better STM / which STM is better 框架切换到 source-level behavioral issue discovery and closure；明确 `fcstm` 只是中间语义执行介质，R5.7 Better STM-facing 资产已迁入 cold archive。 |
 | 2026-07-07 20:44:08 | `PR-asset-map` 完成资产清账，明确 root/story 需更新、R5.7 Better STM-facing 资产需归档、conversion / representation / runtime 只能作 infrastructure。 |
 | 2026-07-07 17:55:50 | 导师战略讨论落库，确认 paper1 contribution 是 feedback-driven issue discovery / repair / closure loop，而非状态机表达语言本身。 |

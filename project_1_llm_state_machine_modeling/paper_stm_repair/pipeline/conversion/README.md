@@ -171,7 +171,7 @@ export UMPLE_JAR=/path/to/umple.jar
 
 1. [../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 是一手 raw 输入，不得覆盖。
 2. normalized candidate / official SCXML 是 run/report artifact，不得回写替换 raw `stm0.puml`。
-3. 该例的 conversion / 规范化收益只能归入 conversion attribution，不能计入修正收益、Better STM gain 或模型修复收益。
+3. 该例的 conversion / 规范化收益只能归入 conversion attribution，不能计入 source-level 修正收益、issue closure 或模型修复收益。
 
 历史 `ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前 selected smoke 移除。TTool XML 仍可作为未来 / 补充 adapter 方向，用来研究 SysML / AVATAR XML inventory、connector endpoint、timing fields 等问题；`unified-uml-synthetic-0000` 只保留为 registry / 历史 probe 线索。二者都不应出现在当前 R4/R4.5 四例统计中。
 
