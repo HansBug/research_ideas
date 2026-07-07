@@ -94,7 +94,7 @@ Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle 
 2. diagnostics / simulation / verification feedback 各自优势和局限。
 3. source-level projection 的困难。
 4. scenario/property generation 过拟合风险。
-5. 对 future work 中 agentic modeling DSL 的铺垫。
+5. 明确 future work 边界：后续可以研究面向控制系统的建模 DSL / agentic modeling 方向，但这不是 paper1 的贡献。
 
 ## 8. Threats to Validity / Limitations
 

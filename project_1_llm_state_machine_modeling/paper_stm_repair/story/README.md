@@ -43,6 +43,8 @@
 
 不是。Better STM 主框架已经 superseded。当前问题是 issue lifecycle：发现哪些 source-level behavioral issues、哪些被确认、哪些被 issue-grounded repair 闭合、是否引入 regression。
 
+详细模型范围和行为表达边界见 [model_scope.md](./model_scope.md)。
+
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
