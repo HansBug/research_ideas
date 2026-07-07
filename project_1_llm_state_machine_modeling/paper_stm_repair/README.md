@@ -10,9 +10,27 @@
 输出：<candidate issue ledger, confirmed issue ledger, repair/change ledger, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
 ```
 
-`NL -> STM` 一轮式生成不是本文主贡献；`fcstm` / `pyfcstm` 只是中间语义执行表示与可执行反馈介质，不是 paper1 的建模语言贡献。conversion / normalization / lowering 只属于输入准备和表示桥，不能计为 method gain。
+`NL -> STM` 一轮式生成不是本文主贡献；`fcstm` / `pyfcstm` 只是中间语义执行表示与可执行反馈介质，不是 paper1 的建模语言贡献。conversion / normalization / lowering 只属于输入准备和表示桥，不能计为 method gain。issue / repair / closure / regression ledger 是评价和可复现证据链，不是 headline contribution。
 
-## 2. 当前状态
+## 2. Contribution 口径
+
+paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + simulation / formal-verification feedback**。
+
+当前可写成贡献的内容：
+
+1. 面向已有 `NL + raw/source STM_0` 的 feedback-driven LLM refinement loop：发现、确认、修复并闭合 source-level behavioral issues。
+2. 将 diagnostics / inspect、simulation / probe、formal verification / check feedback 接入 agent loop 的 executable-feedback integration。
+3. 修复结果回到 raw/source 层表达，并围绕 issue discovery / closure / regression 与 direct raw/source LLM baseline 设计后续实验。
+
+当前只能写成方法或评价纪律、不能写成主贡献的内容：
+
+- attribution boundary；
+- issue / repair / closure / regression ledgers；
+- closure / regression audit；
+- run record / evidence bookkeeping；
+- pilot 后冻结 metrics / baseline / judge prompt 的规则。
+
+## 3. 当前状态
 
 截至 2026-07-07，paper1 已完成战略转向后的资产清账：导师讨论记录已落库，资产地图已把现有材料标为 `active / update / archive / historical`。当前 active 主线已经从旧的 **Better STM / which STM is better** 框架切换为 **source-level behavioral issue discovery and closure**。
 
@@ -35,7 +53,7 @@
 5. 尚未运行 pilot；因此尚未冻结 final evaluation rubric、baseline contract 或正式实验协议。
 6. 尚未执行真实 repair loop；历史 constructed `STM_k` dry-run 不能作为 method effectiveness evidence。
 
-## 3. 方法数据流
+## 4. 方法数据流
 
 ```mermaid
 flowchart TD
@@ -54,7 +72,7 @@ flowchart TD
 
 这张图描述长期方法链路，不是当前 PR 施工状态。动态施工状态仍以 GitHub PR / issue body 和 comment 为准。
 
-## 4. 目录地图
+## 5. 目录地图
 
 | 路径 | 当前职责 | 必须避免的误读 |
 |---|---|---|
@@ -69,7 +87,7 @@ flowchart TD
 | [reports/](./reports/) | 历史 handoff / report 文库。 | R5.7 reports 不证明真实 repair-loop effectiveness。 |
 | [archive/](./archive/) | 历史快照入口。 | archive 不是 active method source。 |
 
-## 5. 推荐阅读路径
+## 6. 推荐阅读路径
 
 1. 想快速理解 paper1 当前做什么：读本文件，然后读 [SUMMARY.md](./SUMMARY.md)、[STATUS.md](./STATUS.md)、[GUIDE.md](./GUIDE.md)。
 2. 想理解战略转向来源：读 [../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md](../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) 和 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)。
@@ -77,10 +95,11 @@ flowchart TD
 4. 想接后续实现：先读 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)，再根据伞 PR 进入后续 `PR-issue-ledger` / `PR-source-trace` / `PR-loop-io`。
 5. 想引用旧 R5.7 资产：必须写成 historical / superseded / archive-pending / calibration-only；不得把 Better STM / constructed `STM_k` adjudication 写成 active method result。
 
-## 6. 更新日志
+## 7. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | 按导师原话修正 contribution 口径：主贡献是 feedback-driven loop + simulation / formal-verification feedback integration；ledger / audit / evidence bookkeeping 降级为方法和评价纪律。 |
 | 2026-07-07 21:20:00 | 重置 paper1 active story 入口：从 Better STM / which STM is better 框架切换到 source-level behavioral issue discovery and closure；明确 `fcstm` 只是中间语义执行介质，R5.7 Better STM-facing 资产等待后续 archive。 |
 | 2026-07-07 20:44:08 | `PR-asset-map` 完成资产清账，明确 root/story 需更新、R5.7 Better STM-facing 资产需归档、conversion / representation / runtime 只能作 infrastructure。 |
 | 2026-07-07 17:55:50 | 导师战略讨论落库，确认 paper1 contribution 是 feedback-driven issue discovery / repair / closure loop，而非状态机表达语言本身。 |

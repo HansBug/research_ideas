@@ -6,13 +6,19 @@
 
 给定自然语言需求 `NL` 与已有 raw/source 状态机 `STM_0`，本文研究如何通过中间语义执行表示和工具 / agent 反馈发现 source-level behavioral issues，确认问题、围绕 confirmed issues 修复，并回到 raw/source 层审计 closure 与 regression。
 
-`fcstm` / `pyfcstm` 只作为 intermediate executable semantic representation / feedback medium；它们不是 paper1 的 contribution。
+`fcstm` / `pyfcstm` 只作为 intermediate executable semantic representation / feedback medium；它们不是 paper1 的 contribution。ledger / audit / evidence bookkeeping 也不是 headline contribution，只能作为方法、评价和可复现纪律。
+
+paper1 当前 contribution 口径限定为：
+
+1. feedback-driven LLM refinement loop；
+2. diagnostics / inspect、simulation / probe、formal verification / check feedback 的 executable-feedback integration；
+3. source-level repair output and empirical evaluation setup。
 
 ## 2. 文件职责
 
 | 顺序 | 文件 | 职责 | 不能替代什么 |
 |---:|---|---|---|
-| 1 | [paper_story.md](./paper_story.md) | thesis、gap、challenge、method insight、contributions、claims-to-avoid。 | 不替代实验结果或 final paper。 |
+| 1 | [paper_story.md](./paper_story.md) | thesis、gap、challenge、method insight、contributions、claims-to-avoid。 | 不替代实验结果或 final paper；不把 audit / ledger 写成主贡献。 |
 | 2 | [task_boundary.md](./task_boundary.md) | 输入输出、方法内外、人类角色、failure / unsupported / unjudgeable 边界。 | 不冻结 final metrics / baseline。 |
 | 3 | [model_scope.md](./model_scope.md) | 支持的状态机范围和行为表达范围。 | 不把 fcstm 定义为研究对象。 |
 | 4 | [terminology_policy.md](./terminology_policy.md) | 术语中英文与禁用词。 | 不定义 run record schema。 |

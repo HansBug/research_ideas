@@ -6,6 +6,8 @@
 
 paper1 当前已经完成战略转向后的资产清账，并将 active 主线重置为 **source-level behavioral issue discovery and closure**：给定 `NL + raw/source STM_0`，通过中间语义执行表示和工具 / agent 反馈发现、确认、修复 source-level behavioral issues，并回到 raw/source 层做 closure / regression audit。
 
+当前 contribution 口径已进一步收敛为：**feedback-driven LLM refinement loop + diagnostics / simulation / formal-verification feedback integration + source-level repair/evaluation setup**。ledger、audit、trace、run record 和 attribution boundary 只是方法 / 评价 / 可复现纪律，不能作为 headline contribution。
+
 真实 repair loop、pilot、final evaluation rubric、baseline contract 和正式实验协议均尚未完成。
 
 ## 2. 当前事实源
@@ -43,6 +45,7 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 - 不再把 Better STM / which STM is better 作为 paper1 active headline question。
 - 不把 constructed `STM_k` dry-run 或 blind adjudication 写成真实 repair-loop result。
 - 不把 `fcstm` / `pyfcstm` 写成 paper1 contribution。
+- 不把 ledger / audit / evidence bookkeeping 写成 paper1 contribution。
 - 不把 conversion / normalization / lowering 算成 method gain。
 - 不在 pilot 前冻结 final metrics、baseline contract 或 judge prompt。
 - 不把 folded event / ugly expression 自动升级为 confirmed source-level behavioral issue。
@@ -51,5 +54,6 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | SUMMARY 补充 contribution 口径修正：主贡献是 loop + executable feedback integration；ledger / audit 只作评价和证据链纪律。 |
 | 2026-07-07 21:20:00 | SUMMARY 改为 source-level issue discovery and closure 总账；R5.7 Better STM-facing 资产降级为 historical / archive-pending。 |
 | 2026-07-07 20:44:08 | 资产清账完成，新增 asset map 与 scan audit 作为后续 story reset / archive / issue lifecycle PR 的事实入口。 |

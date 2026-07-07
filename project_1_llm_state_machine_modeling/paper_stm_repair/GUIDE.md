@@ -33,9 +33,18 @@ NL + raw/source STM_0
 
 - Better STM / which STM is better；
 - `fcstm` / `pyfcstm` 建模语言贡献；
+- ledger / audit / evidence bookkeeping 贡献；
 - 一轮式 `NL -> STM` 生成；
 - constructed `STM_k` adjudication；
 - generic repair without source-level issue closure。
+
+当前允许写成 paper1 contribution 的内容只有三类：
+
+1. feedback-driven LLM refinement loop for existing STM artifacts；
+2. diagnostics / inspect、simulation / probe、formal verification / check feedback 进入 loop 的 executable-feedback integration；
+3. source-level repair output and empirical evaluation setup。
+
+candidate / confirmed issue ledger、trace、attribution boundary、closure / regression audit、run record 和 post-pilot freeze discipline 均属于方法 / 评价 / 可复现纪律，不能写成 headline contribution。
 
 ## 3. 术语纪律
 
@@ -109,4 +118,5 @@ rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-gro
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | GUIDE 增加 contribution 口径纪律：主贡献限于 loop + executable feedback integration + source-level repair/evaluation setup，ledger / audit 不作 headline contribution。 |
 | 2026-07-07 21:20:00 | GUIDE 改为 source-level issue lifecycle 工作纪律，明确 asset map 优先级、fcstm attribution boundary 和 Better STM archive-pending 规则。 |

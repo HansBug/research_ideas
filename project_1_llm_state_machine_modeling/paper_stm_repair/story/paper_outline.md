@@ -12,7 +12,7 @@
 2. 问题不只是模型是否 runnable，也不是表达语言是否更强，而是 source-level behavioral issue 是否能被发现、确认、修复和闭合。
 3. 描述性状态机、folded event、guard/action/event 混淆等会削弱后续 simulation / verification feedback。
 4. 本文提出一个围绕 existing raw/source STM artifact 的 issue lifecycle workflow。
-5. 贡献需写成 task framing、workflow architecture、attribution discipline、evidence infrastructure 和实验计划。
+5. 贡献需写成 feedback-driven LLM refinement loop、simulation / formal-verification-enabled executable feedback integration、source-level repair output and evaluation setup；ledger / audit / attribution boundary 只能作为方法和评价纪律，不作为主贡献。
 
 ## 2. Background and Motivation
 
@@ -22,6 +22,7 @@
 2. 工具反馈：diagnostics / inspect、simulation/probe、verification/check hints。
 3. 为什么 simulation / verification 需要更细行为语义，但本文不把中间表示本身作为贡献。
 4. 为什么 Better STM / which STM is better 容易滑向 specification quality 或 modeling language 争论。
+5. 为什么 audit / ledger 是可信评价所需的 evidence chain，而不是论文的 headline contribution。
 
 ## 3. Problem Formulation
 
@@ -56,6 +57,7 @@ Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle 
 写作纪律：
 
 - 不把 fcstm 写成贡献。
+- 不把 ledger / audit / evidence infrastructure 写成贡献；它们是 method discipline 与 evaluation protocol。
 - 不把 conversion success 写成 repair gain。
 - 不把 LLM preference 写成最终 judge。
 - 不把 unavailable projection 静默计入 success。

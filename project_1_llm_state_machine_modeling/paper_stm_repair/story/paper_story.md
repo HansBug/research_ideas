@@ -29,7 +29,7 @@ The gap is therefore not “which state-machine representation is better”. The
 
 ## Method Insight
 
-Separate semantic reasoning from deterministic feedback and source-level accountability. The intermediate representation is used because diagnostics, simulation/probe, and verification/check feedback need executable semantics. However, the contribution is not the representation itself; the contribution is the issue lifecycle around existing source artifacts: discover, confirm, repair, project back, and audit closure/regression.
+Separate semantic reasoning from source-level accountability. The intermediate representation is used because diagnostics, simulation/probe, and formal-verification/check feedback need executable semantics. However, the contribution is not the representation itself; the contribution is the feedback-driven refinement loop that injects these executable feedback signals into LLM-based issue discovery and repair, then projects repair evidence back to the raw/source artifact.
 
 ## System / Method Stages
 
@@ -42,13 +42,13 @@ Separate semantic reasoning from deterministic feedback and source-level account
 
 ## Contributions
 
-Current contribution wording must remain evidence-aware:
+Current contribution wording must follow the 2026-07-07 mentor guidance: paper1 contributes the loop plus simulation / formal-verification-enabled feedback, not a new state-machine language and not an audit ledger by itself.
 
-1. **Task framing**: define a source-level issue discovery and closure task for existing state-machine artifacts, rather than one-shot generation or representation comparison.
-2. **Workflow architecture**: design a staged feedback loop that separates candidate issue discovery, strict confirmation, issue-grounded repair, source-level projection, and closure/regression audit.
-3. **Attribution discipline**: enforce a boundary between conversion / representation infrastructure and repair-loop gains.
-4. **Evidence infrastructure**: maintain ledgers and traces that make issues, repairs, unsupported projections, partial closures, and regressions auditable.
-5. **Experimental roadmap**: defer final rubric and baseline contract until pilot produces real raw/source `STM_k` or patch bundle examples.
+1. **Feedback-driven LLM refinement loop for existing STM artifacts**: formulate and implement an iterative loop over `NL + raw/source STM_0` that discovers candidate source-level behavioral issues, confirms them against source evidence, repairs confirmed issues, and checks whether the repaired raw/source artifact closes the issue.
+2. **Executable-feedback integration into the loop**: use an intermediate executable semantic representation to bring diagnostics / inspect output, simulation/probe results, and formal-verification/check feedback into the LLM refinement process, so that the loop is not only free-form textual rewriting.
+3. **Source-level repair output and evaluation setup**: require repair evidence to be projected back to raw/source-level patches, diffs, or final raw/source `STM_k`, and set up the eventual evaluation around issue discovery, issue closure, partial closure, non-closure, regression / over-repair, and direct raw/source LLM baselines.
+
+The following are important method and evaluation disciplines, but they must not be written as main contribution bullets: candidate/confirmed issue ledgers, attribution boundary, traceability records, closure/regression audit tables, run-record evidence, and the post-pilot timing of final metric / baseline / judge-prompt freeze.
 
 ## Evidence
 

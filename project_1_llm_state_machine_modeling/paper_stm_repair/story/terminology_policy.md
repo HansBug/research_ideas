@@ -26,6 +26,7 @@
 | relatively better STM | 不作为 headline；必要时只在解释旧框架时出现。 |
 | repair target taxonomy | 旧 R5.7 术语；新主线优先写 issue ledger / issue taxonomy。 |
 | `fcstm` contribution | 禁止。 |
+| ledger / audit contribution | 禁止；ledger / audit 只能作为方法、评价和可复现纪律。 |
 | conversion gain | 禁止；conversion 只能是 infrastructure。 |
 | model runnable = correct | 禁止。 |
 | objective metric proves improvement | 禁止；指标最多是 supporting evidence。 |
@@ -40,6 +41,7 @@
 | Better STM gate | closure / regression audit。 |
 | repair target | confirmed issue / issue_id-bound repair target。 |
 | baseline 已定义 | baseline contract 将在 pilot 后冻结。 |
+| 贡献是一套审计 / ledger 协议 | 贡献是 feedback-driven LLM refinement loop 与 executable-feedback integration；审计 / ledger 只是支撑。 |
 
 ## 4. 中英文一致性
 
@@ -52,4 +54,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | 增加 contribution 术语禁区：ledger / audit 不能写成 headline contribution。 |
 | 2026-07-07 21:20:00 | 术语从 Better STM / repair target 框架改为 issue discovery / confirmation / repair / closure / regression。 |
