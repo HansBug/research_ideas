@@ -1,6 +1,6 @@
 # audits/ — 历史审计报告入口
 
-> **硬边界**：本子路径保存 R1 阶段的审计设计、审计执行结果和 strict seed 调研口径。它回答“当时怎么审”，不回答“当前最终采用什么”。当前采用口径必须回到 `corpora/`、`reports/` 和后续 `experiment_design/eligibility/`。
+> **硬边界**：本子路径保存 R1 阶段的审计设计、审计执行结果、strict seed 调研口径，以及 2026-07-07 PR-asset-map 的静态扫描审计报告。它回答“当时怎么审 / 本轮如何扫到风险资产”，不回答“当前最终采用什么”。当前采用口径必须回到 `corpora/`、`reports/`、后续 `experiment_design/eligibility/` 和新的 issue lifecycle PR。
 
 ## 1. 什么时候读这里
 
@@ -8,6 +8,7 @@
 |---|---:|---|
 | 想知道 strict seed 早期筛选标准、排除码和人工审计流程 | 是 | [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) 记录了 R1 审计口径。 |
 | 想知道 baseline / seed / converter / comparison 资产如何被初步审计 | 是 | [baseline_asset_audit.md](./baseline_asset_audit.md) 是 R1 审计总账。 |
+| 想复查 PR-asset-map 如何扫描 Better STM / `STM_k` / adjudication / repair target / conversion gain 风险资产 | 是 | [2026-07-07-post-strategy-asset-scan.md](./2026-07-07-post-strategy-asset-scan.md) 记录扫描命令、命中数量、代表性命中和判读。 |
 | 想确定当前主 seed 池数量、转换状态或实验纳入资格 | 否 | 应读当前 reports / registry / machine JSONL。 |
 | 想写论文 related work 的最终定位 | 谨慎 | 可作为线索，但必须回到论文原文、当前 corpus 和正式 citation。 |
 
@@ -15,6 +16,7 @@
 
 | 文件 | 内容 | 推荐阅读场景 | 禁止误用 |
 |---|---|---|---|
+| [2026-07-07-post-strategy-asset-scan.md](./2026-07-07-post-strategy-asset-scan.md) | PR-asset-map 静态扫描审计报告。 | 后续需要复验 `paper1_strategy_asset_map.md` 的扫描证据与代表性命中时。 | 不能把扫描命中数量写成研究结果；不能替代后续 `PR-better-archive` 的实际移动。 |
 | [baseline_asset_audit.md](./baseline_asset_audit.md) | R1 baseline / seed / converter / comparison 资产审计总账。 | 回看 R1 如何识别 generation-era baseline 和近邻资产。 | 不能直接决定当前 repair baseline。 |
 | [strict_seed_literature_survey.md](./strict_seed_literature_survey.md) | strict seed 调研定义、排除码、分级标准和初始事实台账。 | 回看早期 seed 文献范围和排除理由。 | 不能把早期候选直接计入当前 paired seed。 |
 
