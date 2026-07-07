@@ -47,7 +47,6 @@
 | 优先级 | 动作 | 说明 |
 |---|---|---|
 | P0 | 将 2026-07-07 记录发给导师或用于导师确认 | 重点确认 Better STM 是否归档、fcstm 是否只作中间介质、baseline 三层是否合理。 |
-| P0 | 更新 #146 与 #100 | #146 从 contract PR 推进为导师 talks 记录落库 PR；#100 同步该记录为 R6/R7 前置约束。 |
 | P0 | 开 archive 实施 PR | 将 R5.7 Better STM-facing 资产全量迁入 archive snapshot，并保留 index / path mapping。 |
 | P0 | 更新 R6 issue [#145](https://github.com/HansBug/research_ideas/issues/145) | 从 hot-start repair 改为 source-level discover-and-refine pilot。 |
 | P1 | 重建 active issue / closure / regression-audit 文档 | 包括 source-level issue taxonomy、closure metrics、regression audit、source-level projection protocol。 |

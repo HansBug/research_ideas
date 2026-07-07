@@ -333,12 +333,13 @@ R8 才执行正式实验：
 
 ## 10. 接下来大致 TODO
 
-### 10.1 立即要做
+### 10.1 近期落地顺序
 
-1. **落库本导师讨论记录**：新增本文，并同步 [README.md](./README.md) 与 [SUMMARY.md](./SUMMARY.md)。
-2. **更新 #146**：把 #146 从“仅 PR body contract”推进为“正式导师 talks 记录落库 PR”，列出新增 / 更新文件和验收标准。
-3. **同步 #100**：在伞 PR 中说明 #146 已开始长期文档落库，后续 R6/R7/R8 以本记录为优先约束。
-4. **multiagent review**：要求 reviewer 独立检查本文是否自包含、是否区分导师意见 / 用户理解 / AI 建议、是否把 Better STM 全量归档口径讲清楚。
+1. **导师确认**：优先把本记录中的 §10.4 问题用于下一次导师确认，尤其确认 Better STM 是否退出 active framework、`fcstm` 是否只作中间介质、baseline 三层是否合理。
+2. **archive 实施**：在 R6 前通过单独实施 PR 将 R5.7 Better STM-facing 资产全量迁入 `archive/r5_7_better_stm_snapshot/`，并保留 README / index / 原路径映射。
+3. **R6 planning 改写**：将 R6 从 hot-start repair 改为 source-level discover-and-refine pilot。
+4. **active 主路径重建**：新建 source-level issue taxonomy、closure metrics、regression audit、source-level projection protocol 等新框架资产。
+5. **R6 pilot 实现**：复用既有 agent-loop 基础设施，但输出 issue ledger、trace map、source-level patch/projection、closure ledger、regression ledger，而不是只输出 `fcstm STM_k`。
 
 ### 10.2 R6 前必须做
 
