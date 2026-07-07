@@ -40,8 +40,8 @@
 | R6 planning issue | [#145](https://github.com/HansBug/research_ideas/issues/145) | 后续应按本记录改写为 source-level discover-and-refine pilot。 |
 | R5.7 上游 PR | [#138](https://github.com/HansBug/research_ideas/pull/138) | Better STM / repair target 合同历史入口；后续应全量 archive。 |
 | R5.7.5 dry-run PR | [#143](https://github.com/HansBug/research_ideas/pull/143) | constructed `STM_k` + blind adjudication dry-run 资产历史入口。 |
-| archive-first 口径 comment | [#146 comment](https://github.com/HansBug/research_ideas/pull/146#issuecomment-4900393564) | 明确 R5.7 / Better STM-facing 资产全量归档、主路径清理。 |
-| 独立 reviewer archive check | [#146 comment](https://github.com/HansBug/research_ideas/pull/146#issuecomment-4900384221) | 上下文独立核查 archive-first 口径是否清晰。 |
+| archive-first 口径 comment | [#146 comment](https://github.com/HansBug/research_ideas/pull/146#issuecomment-4900393564) | review provenance / 施工口径核查记录；用于追溯本 PR 如何固化用户 archive-first 决策，不是导师原始意见。 |
+| 独立 reviewer archive check | [#146 comment](https://github.com/HansBug/research_ideas/pull/146#issuecomment-4900384221) | review provenance / 上下文独立核查记录；证明 archive-first 表述可读，不是导师原始意见。 |
 | 上一条正式导师记录 | [2026-06-12 记录](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | 被本记录部分覆盖；仍保留第一篇从 `NL -> STM` 转向反馈修正的背景价值。 |
 
 ---
@@ -191,6 +191,8 @@ Output:
 **fold / ugly expression 不自动算 confirmed issue。**
 
 例如，raw PlantUML 或 SysML-like 状态机把本应是 guard/action/effect 的内容折成 plain event label，这可能说明表达不优雅、语义不透明、转换需要更谨慎，但它本身不等于模型语义错误。
+
+本文暂用两个工作口径：**expression debt** 指 raw/source 表达把条件、动作、效果或变量语义折叠进弱结构化标签，导致后续分析成本变高；**semantic opacity** 指模型表面可读但关键行为语义无法被确定性工具直接检查。这两者只能作为 candidate trigger，正式分类仍需在后续 source-level issue taxonomy 中冻结。
 
 可以使用以下区分：
 
@@ -365,7 +367,7 @@ R8 才执行正式实验：
 4. 是否同意 baseline 三层：问题发现、已知问题修复 / 精化、黑盒端到端？
 5. 是否同意 R6 先做 discover-and-refine pilot，而不是直接跑正式实验？
 6. 是否同意 R5.7 Better STM-facing 资产全量归档，主路径只保留新框架资产？
-7. paper 标题 / 方法命名应更偏向 “behavioral issue discovery and refinement” 还是 “semantic-feedback-guided refinement”？
+7. paper 标题 / 方法命名应更偏向 “behavioral issue discovery and refinement” 还是 “semantic-feedback-guided refinement”？前者更突出评价对象是 raw/source 模型中的 confirmed issues，能降低再次滑向建模语言论文的风险；后者更突出方法机制，但需要额外约束，避免被误读成只是在宣传一个 feedback framework。
 
 ---
 
@@ -396,4 +398,4 @@ R8 才执行正式实验：
 
 ## 12. 维护说明
 
-本记录进入 `project_1_llm_state_machine_modeling/talks/` 后，应作为 project_1 第一篇最新高优先级路线记录使用。后续若导师对本记录中“待确认”的 baseline、命名、R6/R7/R8 执行顺序或 archive-first 口径提出修正，应新增一条更晚的导师记录或更新 [SUMMARY.md](./SUMMARY.md) 中的覆盖关系，不应只留在 PR comment 中。
+本记录现位于 `project_1_llm_state_machine_modeling/talks/`，应作为 project_1 第一篇最新高优先级路线记录使用。后续若导师对本记录中“待确认”的 baseline、命名、R6/R7/R8 执行顺序或 archive-first 口径提出修正，应新增一条更晚的导师记录或更新 [SUMMARY.md](./SUMMARY.md) 中的覆盖关系，不应只留在 PR comment 中。
