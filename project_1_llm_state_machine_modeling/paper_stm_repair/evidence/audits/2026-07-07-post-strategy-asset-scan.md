@@ -53,7 +53,8 @@ Result summary:
 
 | metric | value |
 |---|---:|
-| matched lines | 10740 before writing this ledger/audit; 10804 when re-run after these new evidence files are present |
+| pre-write commit | `328907b958639bce5911752c4dd75da96ef2a93a` |
+| matched lines | 10740 before writing this ledger/audit; 10808 when re-run after these new evidence files are present |
 | unique files | 813 before writing this ledger/audit; 818 when re-run after these new evidence files are present |
 
 ### 2.2 Secondary broad scan
@@ -68,7 +69,8 @@ Result summary:
 
 | metric | value |
 |---|---:|
-| matched lines | 16510 before writing this ledger/audit; 16563 when re-run after these new evidence files are present |
+| pre-write commit | `328907b958639bce5911752c4dd75da96ef2a93a` |
+| matched lines | 16510 before writing this ledger/audit; 16565 when re-run after these new evidence files are present |
 | unique files | 796 before writing this ledger/audit; 801 when re-run after these new evidence files are present |
 
 ## 3. 命中分布摘要
@@ -83,6 +85,7 @@ Result summary:
 | `project_1_llm_state_machine_modeling/talks` | 89 | 4 | 2026-07-07 记录为 active strategic；2026-06-12 Better STM 口径部分 superseded。 |
 | `paper_stm_repair/experiment_design/repair_target_adjudication` | 71 | 5 | R5.7.4 static adjudication，archive。 |
 | `paper_stm_repair/experiment_design/metrics` | 69 | 2 | objective metric framework 围绕 Better STM，archive。 |
+| `paper_stm_repair/STATUS.md` | 7 | 1 | 顶层状态表仍有 R5.7 / Better STM active-style 行，`PR-story-reset` 必须改写。 |
 | `paper_stm_repair/pipeline/readiness_audit` | 67 | 5 | readiness / handoff 有价值但需从旧 R6 wording 改为 issue lifecycle。 |
 | `method/` | 26 | 9 | `repair_target` 多为 runtime field；active infra，不等于 R5.7 taxonomy。 |
 | `paper_v1/` | 5 | 3 | 旧 Path-1/Path-2 与 pyfcstm contribution wording，historical。 |
