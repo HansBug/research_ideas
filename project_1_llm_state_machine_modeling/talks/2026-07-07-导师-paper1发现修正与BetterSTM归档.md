@@ -399,3 +399,152 @@ R8 才执行正式实验：
 ## 12. 维护说明
 
 本记录现位于 `project_1_llm_state_machine_modeling/talks/`，应作为 project_1 第一篇最新高优先级路线记录使用。后续若导师对本记录中“待确认”的 baseline、命名、R6/R7/R8 执行顺序或 archive-first 口径提出修正，应新增一条更晚的导师记录或更新 [SUMMARY.md](./SUMMARY.md) 中的覆盖关系，不应只留在 PR comment 中。
+
+---
+
+## 13. 会后进一步讨论形成的我们自己的施工决策
+
+> **来源等级**：本节不是导师原话，而是用户与 AI 在整理本次导师讨论后，为了让 #100 伞 PR 后续施工不再沿旧 R6 / Better STM 路线滑回去而形成的**我们自己的明确决策**。后续若导师给出不同意见，应以更晚导师记录覆盖；在此之前，本节作为 #100 后续 subPR 重排的执行约束。
+
+### 13.1 已完成 PR 的处理原则
+
+已经合入或已完成的 R0--R5.7 相关 subPR 不从 #100 伞 PR 中删除。它们仍然是历史施工证据、seed / conversion / readiness / scope / dry-run / protocol exploration 的可追溯来源。
+
+但这些 PR 在伞 PR 中应重新分层：
+
+1. **R0--R5.6**：主要作为 active foundation / seed、conversion、scope、story 旧基础保留；其中与 Better STM 绑定的 wording 需要后续重写。
+2. **R5.7 / Better STM-facing PRs**：保留为 historical protocol exploration / superseded evidence；其 active framework 被本记录覆盖，后续资产应迁入 archive snapshot。
+3. **#146**：作为当前战略校准入口，优先级高于旧 Better STM active framework。
+
+换言之：**历史 PR 保留，旧 Better STM active claim 不保留。**
+
+### 13.2 后续 subPR 命名规则
+
+后续不再机械使用 `R6 / R7 / R8` 作为 active subPR 名称。新的 subPR 统一使用：
+
+```text
+PR-<short-slug>
+```
+
+命名约束：
+
+1. `<short-slug>` 必须短、表意清晰、辨识度高。
+2. slug 不携带顺序编号，避免后续插入新 PR 后污染命名。
+3. slug 不使用过度抽象词；读者应能从名称直接看出该 PR 的职责。
+4. 已完成历史 R0--R5.7 仍可在伞 PR 中保留原名；新命名规则只约束后续 active subPR。
+
+### 13.3 初步确定的后续 PR map
+
+当前建议的后续 subPR 顺序如下；后续 #100 body 应按该 map 重构 Mermaid 与阶段表。
+
+| 顺序 | PR slug | 主要职责 | 前置依赖 |
+|---:|---|---|---|
+| 1 | `PR-asset-map` | 盘点当前资产，标记 active / update / archive / historical 四类；明确哪些 story、outline、protocol、report、pipeline 资产需要改写或归档。 | #146 |
+| 2 | `PR-story-reset` | 全面更新 story / outline / claim-evidence / terminology / top docs，使 active 主线改为 source-level issue discovery and closure。 | `PR-asset-map` |
+| 3 | `PR-better-archive` | 将 R5.7 / Better STM-facing 资产全量迁入 `archive/r5_7_better_stm_snapshot/`，主路径清理 Better STM 命名资产。 | `PR-asset-map` + `PR-story-reset` |
+| 4 | `PR-issue-taxonomy` | 定义 source-level issue、confirmed issue、expression debt、semantic opacity、issue ledger 字段与判定边界。 | `PR-story-reset` |
+| 5 | `PR-trace-projection` | 定义 raw/source STM 与中间语义表示之间的 trace map，以及 source-level patch / projection / explanation 协议。 | `PR-issue-taxonomy` |
+| 6 | `PR-loop-contract` | 冻结 discover-confirm-repair-rediscover-close 的方法循环、stage 边界、ledger、run record 与迭代停止条件。 | `PR-issue-taxonomy` + `PR-trace-projection` |
+| 7 | `PR-baseline-plan` | 冻结问题发现、已知问题修复 / 精化、黑盒端到端三层 baseline 协议。 | `PR-loop-contract` |
+| 8 | `PR-discovery-runner` | 实现 issue discovery 阶段，输出 issue candidate / confirmed issue ledger 或 adjudication-ready bundle。 | `PR-loop-contract` |
+| 9 | `PR-repair-runner` | 实现 issue-grounded repair 阶段，输出 repair plan、candidate patch、change ledger。 | `PR-discovery-runner` |
+| 10 | `PR-confirm-runner` | 实现 repair 后 rediscovery / issue confirmation / closure adjudication / regression audit。 | `PR-repair-runner` |
+| 11 | `PR-loop-pilot` | 跑 4--8 例技术闭环，再扩到 12--18 pair-level pilot；只报告 calibration / feasibility，不报告正式主结果。 | `PR-confirm-runner` |
+| 12 | `PR-exp-protocol` | 正式实验预注册：reference issue ledger、样本分母、baseline、metrics、judge、eligibility、失败统计。 | `PR-loop-pilot` + `PR-baseline-plan` |
+| 13 | `PR-exp-run` | 正式实验运行与证据包：eligible run records、主结果表、消融、失败案例、case study。 | `PR-exp-protocol` |
+| 14 | `PR-paper-draft` | 基于正式证据包撰写 paper v0。 | `PR-exp-run` |
+
+其中 `PR-asset-map` 是必要的前置清账 PR；不得跳过直接进入 story reset 或 archive，否则容易漏掉仍在 active 路径中的旧 Better STM / `STM_k` / repair target wording。
+
+### 13.4 方法架构决策：采用 issue lifecycle，而不是一次性 Better STM 判定
+
+后续方法架构采用如下循环：
+
+```text
+Input: NL + raw/source STM_i
+
+1. discover issues
+2. confirm source-level issues
+3. repair confirmed issues
+4. rediscover / confirm after repair
+5. adjudicate closure and regression
+6. if unresolved or regression remains, iterate
+```
+
+也可以简写为：
+
+```text
+discover -> confirm -> repair -> rediscover -> close/regress -> iterate
+```
+
+该架构取代旧的：
+
+```text
+STM_0 -> STM_k -> judge whether STM_k is Better STM
+```
+
+### 13.5 discovery 与 confirmation 的分工
+
+`discovery` 阶段可以宽松，目标是提出可能的问题候选；`confirmation` 阶段必须严格，目标是确认哪些候选可以升级为 source-level confirmed issue。
+
+例如：
+
+```text
+raw: Idle -> Cooking : Event("door closed and timer > 0")
+```
+
+可以在 discovery 阶段标为 `guard/action/effect folded into event` 或 `semantic opacity` 候选，但不能直接在 confirmation 阶段升级为 confirmed issue。只有当 `NL + raw/source element + behavior evidence` 能证明 raw 模型行为确实错、漏、冲突或不可闭合时，才可计入 confirmed source-level issue。
+
+### 13.6 repair 必须 issue-grounded
+
+repair 阶段不再以“让模型整体更好”为直接目标，而是围绕 confirmed issue 生成可审计修复。
+
+最低输出应至少包含：
+
+```text
+issue_id
+source_element_id
+repair_action
+candidate_patch
+candidate_model_hash
+repair_source
+expected_closure_condition
+```
+
+例如：
+
+```text
+I-001:
+  raw transition = Idle -> Cooking : Start
+  problem = missing guard door_closed && timer > 0
+  repair_action = add_guard
+  proposed_patch = [door_closed && timer > 0]
+```
+
+后续 closure 判定必须回到 `I-001`，而不是抽象判断候选 `STM_k` 是否“更好”。
+
+### 13.7 repair 后必须 rediscover / confirm
+
+repair 后必须再次运行 discovery / confirmation 或等价 audit，原因是候选修复可能：
+
+1. 真正闭合原 issue。
+2. 只部分闭合原 issue。
+3. 没有闭合原 issue。
+4. 过修，改变了不该改变的行为。
+5. 引入新的 source-level issue 或 critical regression。
+
+因此后续核心输出应从 Better STM verdict 改为：
+
+```text
+closed / partially_closed / not_closed / over_repaired / regression_introduced / unjudgeable
+```
+
+### 13.8 实验优先级决策
+
+正式实验优先级初步定为：
+
+1. **主实验**：known confirmed issue repair / closure。双方给定相同 confirmed issues，对比 baseline raw repair 与 ours issue-grounded repair 的 closure、partial、over-repair、regression、traceability。
+2. **辅助实验**：issue discovery。比较 raw-only baseline 与 ours feedback-assisted discovery 的 precision / recall / F1、spurious issue rate 与 issue type coverage。
+3. **补充实验**：black-box end-to-end。双方都只给 `NL + raw STM_0`，比较最终 discovered-and-closed issues、regression-free closure、invalid output、cost、retry 与 non-convergence。
+
+选择 known issue repair / closure 作为主实验优先层，是因为它最公平、可控，也最符合导师强调的“回到原模型层说明解决了什么问题”。
