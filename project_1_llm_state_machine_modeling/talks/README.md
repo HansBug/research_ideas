@@ -23,10 +23,12 @@
 
 当前已收录：
 
-1. [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md)
-   - 记录 2026-06-12 关于第一篇从 `NL -> STM` 生成转向 `<NL, STM_0> -> STM_k / Better STM` 无人化反馈驱动修正、弱化 `fcstm` / DSL 名头、baseline 角色重排、多格式转换器需求，以及第二篇从 `sources` 文库综述转向 agent-based SLR 方法学论文的导师讨论与会后定调。
-2. [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md)
-   - 记录 2026-06-04 关于 project_1 第一篇论文主线、Path-1/Path-2 分工、E1/E2 定位、核心贡献、baseline、数据选择、变量角色、LangChain/LangGraph、BMC/LTL 与 survey 可能性的导师意见；其中第一篇主任务边界已被 2026-06-12 记录更新。
+1. [2026-07-07-导师-paper1发现修正与BetterSTM归档.md](./2026-07-07-导师-paper1发现修正与BetterSTM归档.md)
+   - 记录 2026-07-07 前后围绕 paper1 最新导师讨论转录与会后复盘形成的战略校准：第一篇不再以 `Better STM / which STM is better` 作为 active 评价框架，而转向 source-level behavioral issue discovery and closure；`fcstm` 进一步下沉为中间语义执行介质；R5.7 / Better STM-facing 资产应全量归档，主路径重建 issue / closure / regression-audit 新框架。该记录覆盖 2026-06-12 记录中的 Better STM 主评价口径。
+2. [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md)
+   - 记录 2026-06-12 关于第一篇从 `NL -> STM` 生成转向 `<NL, STM_0> -> STM_k / Better STM` 无人化反馈驱动修正、弱化 `fcstm` / DSL 名头、baseline 角色重排、多格式转换器需求，以及第二篇从 `sources` 文库综述转向 agent-based SLR 方法学论文的导师讨论与会后定调；其中 Better STM active framework 已被 2026-07-07 记录覆盖，但从 `NL -> STM` 转向已有模型反馈修正的背景仍有效。
+3. [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+   - 记录 2026-06-04 关于 project_1 第一篇论文主线、Path-1/Path-2 分工、E1/E2 定位、核心贡献、baseline、数据选择、变量角色、LangChain/LangGraph、BMC/LTL 与 survey 可能性的导师意见；其中第一篇主任务边界已被 2026-06-12 和 2026-07-07 记录连续更新。
 
 ## 4. 维护边界
 
