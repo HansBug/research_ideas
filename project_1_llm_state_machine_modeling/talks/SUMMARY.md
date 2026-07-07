@@ -4,42 +4,61 @@
 
 | 字段 | 当前状态 |
 |---|---|
-| 正式导师讨论记录数 | 2 |
-| 最近更新时间 | 2026-06-12 16:41:15 |
-| 当前第一篇论文主倾向 | `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正 |
+| 正式导师讨论记录数 | 3 |
+| 最近更新时间 | 2026-07-07 15:17:40 |
+| 当前第一篇论文主倾向 | source-level behavioral issue discovery and closure / discover-and-refine loop |
 | `NL -> STM` 定位 | seed construction / baseline source / related work，不再作为第一篇主贡献 |
+| `fcstm` / `pyfcstm` 定位 | intermediate semantic representation / executable medium，只服务 diagnostics / simulation / verification / refinement，不作为 paper1 contribution |
+| Better STM 定位 | R5.7 阶段性评价框架；active headline framework 已被覆盖，Better STM-facing 资产应全量归档 |
 | Path-2 定位 | 可作为后续控制系统差异化论文继续展开；不压进第一篇主线 |
 | E1/E2 定位 | 同一方法底座或工具链在不同 agent 编排形态下的实验条件，不主打 Hybrid story |
-| 当前核心贡献口径 | 以 `<NL, STM_0> -> STM_k` 的无人化反馈驱动修正协议为核心；语义增强、可机检、可执行状态机表示仅作为承载 diagnostics / simulation / repair feedback 的必要实验载体 |
+| 当前核心贡献口径 | 以 source-level issue discovery、issue closure、source-level patch/projection、regression audit 和 feedback-driven discover-and-refine loop 为核心；语义增强表示只是中间介质 |
 | 第二篇当前倾向 | 从 `sources` 文库综述 / corpus paper 转向带 human audit gates 的 agent-based SLR 方法学与 benchmark / evidence-package 评价框架 |
 
 ## 2. 记录列表
 
-状态口径：🟢 = 当前有效；🟡 = 部分被后续记录覆盖但仍有可复用背景；⚪ = 历史背景。
+状态口径：🟢 = 当前有效；🟡 = 部分被后续记录覆盖但仍有可复用背景；⚪ = 历史背景。状态列只写 emoji。
 
 | 日期 | 记录 | 核心结论 | 状态 |
 |---|---|---|---|
-| 2026-06-12 | [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | 第一篇从 `NL -> STM` 生成转为 `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动修正；`fcstm` / DSL 继续弱化为内部载体；baseline 转为 seed/source/converter/comparison；第二篇转向 agent-based SLR 方法学。 | 🟢 |
-| 2026-06-04 | [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | 第一篇更倾向 Path-1；Path-2 可拆成另一篇；E1/E2 是同一底座在自建 agent-loop 与成熟 agent 框架下的实验对照；弱化 `fcstm` 名称仍有效，但第一篇主任务边界已被 2026-06-12 记录更新。 | 🟡 |
+| 2026-07-07 | [2026-07-07-导师-paper1发现修正与BetterSTM归档.md](./2026-07-07-导师-paper1发现修正与BetterSTM归档.md) | 第一篇不再以 Better STM / which STM is better 作为 active 评价框架，转向 source-level behavioral issue discovery and closure；`fcstm` 下沉为中间语义执行介质；R5.7 / Better STM-facing 资产应全量归档；baseline 按问题发现、已知问题修复 / 精化、黑盒端到端三层重排。 | 🟢 |
+| 2026-06-12 | [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | 第一篇从 `NL -> STM` 生成转为 `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动修正；`fcstm` / DSL 继续弱化为内部载体；baseline 转为 seed/source/converter/comparison；第二篇转向 agent-based SLR 方法学。其中 Better STM active framework 已被 2026-07-07 记录覆盖，但转向已有模型反馈修正、弱化 DSL、baseline 角色重排等背景仍有效。 | 🟡 |
+| 2026-06-04 | [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | 第一篇更倾向 Path-1；Path-2 可拆成另一篇；E1/E2 是同一底座在自建 agent-loop 与成熟 agent 框架下的实验对照；弱化 `fcstm` 名称仍有效，但第一篇主任务边界已被 2026-06-12 和 2026-07-07 记录连续更新。 | 🟡 |
 
 ## 3. 当前高优先级约束
 
 | 约束 / 建议 | 来源等级 | 后续落点 |
 |---|---|---|
-| 第一篇论文主任务改为 `<NL, STM_0> -> STM_k / Better STM` 的自动反馈驱动修正，不再主打 `NL -> STM` 生成。 | 正式定调 / 用户会后确认 | 第一篇 story、abstract、outline、RQ。 |
-| `NL -> STM_0` 只作为 seed construction / baseline source / related work。 | 正式定调 / 用户会后确认 | task definition 与 experiment protocol。 |
-| “无人化”限定为单次 repair run 内 no human-in-the-loop；人类可参与 benchmark、seed 构造、reference / adjudication 和最终审计。 | 正式定调 / 用户会后确认 | method boundary 与 threats。 |
-| 继续弱化 `fcstm` / `pyfcstm` / DSL 名称；语义增强、可机检、可执行表示只是 feedback loop 的必要载体。 | 正式定调 / 延续早期导师意见 | terminology policy 与 contribution。 |
-| prior baseline 不作废，应重排为 seed artifact、输入来源、转换目标、错误类型来源、related work 和必要 comparison / ablation。 | 正式定调 + AI 执行展开 | baseline matrix / related work。 |
-| 规划面向 benchmark seed 的最小多格式转换层，不声称通用多格式状态机转换器。 | 正式定调 + AI 执行展开 | converter planning；具体范围后续 PR 冻结。 |
-| repair-loop evaluation 覆盖 `STM_0` vs `STM_k`、structured feedback ablation、repair acceptance / rollback、rejected repair、oscillation / non-convergence。 | AI 衍生执行建议 | experiment design；可按 pilot 结果调整。 |
+| 第一篇论文优先推进并尽快进入可写作状态；一篇文章不能放太多内容，必须有明确 scope。 | 正式定调 / 按用户转录的导师直接表达 | paper1 R6/R7/R8 节奏、scope 与写作计划。 |
+| paper1 contribution 不是状态机表达、`fcstm`、`pyfcstm` 或 DSL，而是 loop + diagnostics / simulation / formal verification feedback。 | 正式定调 / 按用户转录的导师直接表达 | title、abstract、contribution、method framing。 |
+| 必须列举当前能仿真 / 验证的行为表达，并论证这些表达对控制系统行为和功能质量的重要性。 | 正式定调 / 按用户转录的导师直接表达 | model scope、motivation、method boundary、threats。 |
+| 当前 active 主问题改为 source-level behavioral issue discovery and closure，不再问抽象的 “which STM is better”。 | 用户会后理解 / 待导师确认执行口径 | story、RQ、metric、baseline、experiment protocol。 |
+| `fcstm` 只作为 intermediate semantic representation / executable medium；最终评价必须回到 raw/source issue、patch/projection/explanation。 | 正式定调 + 用户会后理解 | method boundary、run record、trace map、source-level projection。 |
+| R5.7 / Better STM-facing 资产应全量迁入 `archive/r5_7_better_stm_snapshot/`，主路径不保留 Better STM 命名资产。 | 用户明确决策 | R6 前 archive 实施 PR；active 主路径清理。 |
+| fold / ugly expression / guard-action-effect folded into event 不自动算 confirmed issue，只能作为 expression debt / semantic opacity / candidate trigger。 | 用户会后理解 + AI 执行建议 | reference issue ledger、issue taxonomy、baseline fairness。 |
+| confirmed source-level issue 必须由 `NL + raw STM_0 + behavior evidence` 或 raw-internal inconsistency 支撑，不能由 `fcstm STM_k` 反向定义。 | AI 执行建议 / 待导师确认 | R7 reference ledger 构造协议。 |
+| baseline 建议分三层：问题发现能力、已知问题下的修复 / 精化能力、完全黑盒端到端能力。 | 用户复盘 + AI 执行建议 / 待导师确认 | R7 baseline matrix；R8 formal experiment。 |
+| R6 应从 hot-start repair 改为 discover-and-refine pilot，至少补 issue ledger、trace map、source-level patch/projection、closure ledger、regression ledger。 | AI 执行建议 / 待导师确认 | R6 issue [#145](https://github.com/HansBug/research_ideas/issues/145) 与 agent-loop 实现。 |
 | 第二篇转向带 human audit gates 的 agent-based SLR；需要调研 ASReview / RobotReviewer / SLR automation 等既有工作。 | 正式定调 + AI 方法学补证建议 | 第二篇 planning issue / PR。 |
-| 正式导师讨论记录必须区分【正式定调】和【AI 衍生建议】，不得把 AI 补全写成导师原话。 | 维护纪律 | 后续 talks 文库更新。 |
+| 正式导师讨论记录必须区分【正式定调】、【用户会后理解】、【AI 衍生建议】和【待导师确认】，不得把 AI 补全写成导师原话。 | 维护纪律 | 后续 talks 文库更新。 |
 
-## 4. 更新日志
+## 4. 接下来建议动作
+
+| 优先级 | 动作 | 说明 |
+|---|---|---|
+| P0 | 将 2026-07-07 记录发给导师或用于导师确认 | 重点确认 Better STM 是否归档、fcstm 是否只作中间介质、baseline 三层是否合理。 |
+| P0 | 更新 #146 与 #100 | #146 从 contract PR 推进为导师 talks 记录落库 PR；#100 同步该记录为 R6/R7 前置约束。 |
+| P0 | 开 archive 实施 PR | 将 R5.7 Better STM-facing 资产全量迁入 archive snapshot，并保留 index / path mapping。 |
+| P0 | 更新 R6 issue [#145](https://github.com/HansBug/research_ideas/issues/145) | 从 hot-start repair 改为 source-level discover-and-refine pilot。 |
+| P1 | 重建 active issue / closure / regression-audit 文档 | 包括 source-level issue taxonomy、closure metrics、regression audit、source-level projection protocol。 |
+| P1 | R7 前冻结 reference confirmed issue ledger 构造协议 | 必须盲态、冻结、可审计，避免 ours 结果反向污染 reference。 |
+| P1 | R7 前冻结 baseline 三层协议 | 明确输入可见性、输出格式、评价分母、fairness 与 leakage 防护。 |
+
+## 5. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 15:17:40 | 新增 2026-07-07 导师讨论记录，更新第一篇主倾向为 source-level behavioral issue discovery and closure；将 2026-06-12 Better STM active framework 标记为被覆盖；新增 R5.7 Better STM-facing 资产全量归档、`fcstm` 中间介质、baseline 三层、confirmed issue 纪律和 R6/R7/R8 TODO。 |
 | 2026-06-12 16:41:15 | 按三路 reviewer 的 I 级意见补充条目级来源等级、`Better STM` 最小操作化判定框架，并把 SUMMARY 当前约束改为带来源等级表格。 |
 | 2026-06-12 16:20:42 | 新增 2026-06-12 导师讨论记录，更新第一篇为 `<NL, STM_0> -> STM_k / Better STM` 修正任务，并记录第二篇 agent-based SLR 转向；同步新增“正式定调 vs AI 衍生建议”维护纪律。 |
 | 2026-06-04 15:04:00 | 根据三路 reviewer 的 M 级建议，补充单篇记录的 PR 状态说明、contribution 草案归属说明、关键上游 comment 深链与总账回填提示。 |
