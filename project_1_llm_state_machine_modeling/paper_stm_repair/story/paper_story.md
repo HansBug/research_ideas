@@ -55,7 +55,7 @@ The following are important method and evaluation disciplines, but they must not
 | Claim area | Current evidence | Claim strength |
 |---|---|---|
 | Strategic framing | [2026-07-07 mentor record](../../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) and [asset map](../evidence/ledgers/paper1_strategy_asset_map.md). | task framing supported |
-| Existing infrastructure | [pipeline/](../pipeline/) conversion / representation / readiness assets. | infrastructure support |
+| Existing infrastructure | [pipeline/](../pipeline/) conversion / representation / readiness assets. | infrastructure supported |
 | Better STM deactivation | [asset map](../evidence/ledgers/paper1_strategy_asset_map.md) and [scan audit](../evidence/audits/2026-07-07-post-strategy-asset-scan.md). | boundary supported |
 | Method effectiveness | No real repair-loop pilot yet. | future empirical claim only |
 | Evaluation / baseline | To be frozen after pilot. | planning only |

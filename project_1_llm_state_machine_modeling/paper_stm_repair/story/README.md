@@ -55,4 +55,5 @@ paper1 当前 contribution 口径限定为：
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | story 入口补充 contribution 口径限定：主贡献是 feedback-driven LLM refinement loop、executable-feedback integration 与 source-level repair/evaluation setup；ledger / audit 降级为方法和评价纪律。 |
 | 2026-07-07 21:20:00 | story 入口重置为 source-level behavioral issue discovery and closure；Better STM 主框架降级为 historical / archive-pending。 |

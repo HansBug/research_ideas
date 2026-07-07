@@ -22,7 +22,7 @@
 2. 工具反馈：diagnostics / inspect、simulation/probe、verification/check hints。
 3. 为什么 simulation / verification 需要更细行为语义，但本文不把中间表示本身作为贡献。
 4. 为什么 Better STM / which STM is better 容易滑向 specification quality 或 modeling language 争论。
-5. 为什么 audit / ledger 是可信评价所需的 evidence chain，而不是论文的 headline contribution。
+5. 为什么可信评价仍需要 trace / run record / closure evidence chain。
 
 ## 3. Problem Formulation
 

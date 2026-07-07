@@ -23,6 +23,8 @@
 | C6 | 方法能发现并闭合更多 source-level behavioral issues。 | 目前无真实 pilot / main experiment。 | future empirical claim only | 只能写成 future RQ 或 planned evaluation。 | 当前写成已证明 result。 |
 | C7 | baseline / rubric 应等 pilot 后冻结。 | [paper1_strategy_asset_map.md](../evidence/ledgers/paper1_strategy_asset_map.md) and [#100 umbrella PR](https://github.com/HansBug/research_ideas/pull/100)。 | protocol planning supported | “We defer final rubric and baseline contract until pilot output shapes are known.” | “Baseline contract is finalized in story reset.” |
 
+使用导师讨论记录作为 evidence 时，以导师直接表达与本目录当前 story 文件为准；若历史整理段落中曾把 ledger / audit / evidence bookkeeping 写得接近 contribution，应按本文件 §3 的 forbidden claims 处理。
+
 ## 3. Forbidden claims
 
 | Forbidden claim | 为什么禁止 | 替代表述 |
@@ -50,4 +52,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 22:10:00 | claim map 增加 contribution 口径修正：ledger / audit / evidence bookkeeping 明确为 forbidden headline contribution，并补充导师记录引用优先级说明。 |
 | 2026-07-07 21:20:00 | claim map 从 Better STM 改为 source-level issue lifecycle；method effectiveness 降为 future empirical claim。 |
