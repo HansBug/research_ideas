@@ -1,84 +1,114 @@
-# paper outline draft（R5.6 口径更新版 / R0-derived）
+# paper_outline.md — paper1 新主线论文结构草案
 
-## 0. 说明
+本文件是写作结构草案，不是最终正文，不包含最终实验数字。
 
-本文件只冻结第一篇论文的大纲方向和写作约束，不写最终正文。后续 PR-R7 必须根据 R1--R8 的真实证据重写或降级；R5.5 当前只提供 seed profile / readiness / conversion pressure，R5.6 只冻结 model scope / claim boundary，二者都不提供 repair-loop 主结果。
+## 1. Introduction
 
-## 1. Abstract
+目标：让读者理解为什么已有状态机制品需要 feedback-driven issue discovery and closure。
 
-- 背景：控制系统需求到状态机 artifact 后，实际使用需要可检查、可执行、可修正。
-- 问题：一次性生成模型往往留下语义、guard/action、行为场景和可执行性缺陷。
-- 方法：给定 `<NL, STM_0>`，使用 diagnostics、scenario feedback、repair 和 regression checks 构成无人化修正循环。
-- 结果：只在 R6 后填写真实结果；若无充分证据，不写强提升。
-- 范围：主线限定在 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 不进入 headline，只作为当前无独立样例的未来 taxonomy candidate / 语义维度标签；T0.5 / T1-ish 仅作 caveat 或 supplementary stress。
-- 限制：报告失败、回滚、振荡、转换损失、人工裁决边界，并禁止外推到 timed / hybrid / arbitrary UML / protocol FSM。
+要点：
 
-## 2. Introduction
+1. LLM 和建模工具可以产生状态机式制品，但已有制品往往存在行为层问题。
+2. 问题不只是模型是否 runnable，也不是表达语言是否更强，而是 source-level behavioral issue 是否能被发现、确认、修复和闭合。
+3. 描述性状态机、folded event、guard/action/event 混淆等会削弱后续 simulation / verification feedback。
+4. 本文提出一个围绕 existing raw/source STM artifact 的 issue lifecycle workflow。
+5. 贡献需写成 feedback-driven LLM refinement loop、simulation / formal-verification-enabled executable feedback integration、source-level repair output and evaluation setup；ledger / audit / attribution boundary 只能作为方法和评价纪律，不作为主贡献。
 
-1. 控制系统状态机建模的现实需求：不仅要生成图，还要可机检、可执行、可复核。
-2. 旧 `NL -> STM` 生成路线的局限：初始 artifact 质量不稳，且后续缺少闭环修正。
-3. 新任务定义：`<NL, STM_0> -> STM_k / Better STM`。
-4. R5.6 模型范围：T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集，EFSM-lite 不进入 headline，只作为 R5.7/R7 待裁决的未来 taxonomy candidate / 语义维度标签，明确 T0.5 / T1-ish / arbitrary UML 的降级角色。
-5. 方法直觉：结构化 diagnostics + scenario feedback + accept/reject/rollback。
-6. 贡献列表：任务定义、修正协议、Better STM 操作化、seed / converter / baseline 重排、实证评价。
-7. 明确非贡献：不主张新 DSL，不主张完整形式化验证，不主张首个 `NL -> STM`，不主张 timed automata / arbitrary UML repair。
+## 2. Background and Motivation
 
-## 3. Background and Motivation
+要点：
 
-- 状态机 artifact 的描述性与可执行性差异。
-- 轻量语义增强对 diagnostics / simulation / repair feedback 的必要性。
-- seed 来源：prior artifact、弱 prompt、旧模型、学生或人工建模。
-- Motivating example：后续由 R2/R4 提供，不在 R0 构造。
+1. 状态机制品：raw/source STM、intermediate executable semantic representation、trace。
+2. 工具反馈：diagnostics / inspect、simulation/probe、verification/check hints。
+3. 为什么 simulation / verification 需要更细行为语义，但本文不把中间表示本身作为贡献。
+4. 为什么 Better STM / which STM is better 容易滑向 specification quality 或 modeling language 争论。
+5. 为什么可信评价仍需要 trace / run record / closure evidence chain。
 
-## 4. Task Definition
+## 3. Problem Formulation
 
-- 输入输出形式：`NL`、`STM_0`、`STM_k`、diagnostics ledger、scenario ledger、repair ledger。
-- 方法内外边界：seed construction 在方法外，repair loop 在方法内。
-- no-human-in-the-loop 限定：只限定 repair run 内。
-- 模型范围：引用 [model_scope.md](./model_scope.md)，把 main / caveat / supplementary-stress / excluded 作为任务定义的一部分而不是实验后解释。
-- Better STM 最小必要条件。
+定义：
 
-## 5. Method
+```text
+Input:  NL + raw/source STM_0
+Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle or final raw/source STM_k + closure/regression ledger
+```
 
-- Artifact normalization into a machine-checkable executable representation。
-- Diagnostics sources：parse / semantic / design / scenario feedback。
-- Repair proposal generation。
-- Regression checks、accept / reject / rollback。
-- Failure logging：rejected repair、oscillation、non-convergence。
-- Conversion attribution：原始种子、规范化 `STM_0`、修正后 `STM_k`。
+必须区分：
 
-## 6. Experimental Design
+- candidate issue vs confirmed source-level behavioral issue；
+- conversion / representation readiness vs repair gain；
+- intermediate candidate vs raw/source-level output；
+- closure vs regression；
+- unsupported / untraceable / unjudgeable。
 
-- 数据来源与 seed registry：R1/R2/R5.5 已形成 `llms-emp-stm-subset` 主 seed 方向；R5.6 已冻结 model scope；最终 eligibility 仍待 R5.7 / R7 冻结。
-- Scope matrix：主结果只面向 T0 离散 FSM / HSM / 离散 UML-SysML statechart 子集；EFSM-lite 默认不得写入 headline；只有 R7 额外裁决出可审计 eligible 样例后才可在分层/非 headline 中谨慎使用；T0.5 timer-like cue 作 caveat；Digital Camera / T1-ish 作 supplementary stress。完整矩阵见 [model_scope.md](./model_scope.md)。
-- 写作硬约束：Abstract / Introduction / Experiment headline scope 默认不得出现 EFSM-lite wording；只有 R7 eligibility 冻结出独立 EFSM-lite eligible 样例后，才可在分层/非 headline 中谨慎使用；该约束来自 [../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md](../experiment_design/scope/r5_6_to_r5_7_handoff_constraints.md) 的 R56-H1。
-- 四例预演与主实验样本区分。
-- RQ1--RQ6。
-- 指标与评价门：由 R4/R6/R8 冻结。
-- 对照 / 消融：no-repair seed、regenerate-from-NL、no structured feedback、可运行 repair baseline、converter-aware analysis。
+## 4. Method
 
-## 7. Results（后续主结果；当前只允许 pre-repair characterization）
+建议小节：
 
-R0/R5.5/R5.6 不写 repair 结果，也不写 `STM_0 -> STM_k` 改善结论。R5.5 只能作为 `Pre-repair readiness characterization, not repair outcome`：具体 10 NL cluster、6 LLM 输出和 conversion status 均以 [../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 与 [../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) 为 canonical source。R6/R8 后再填：缺陷类型分布、feedback source 覆盖、修正闭合 / 回归 / 拒绝 / 振荡 / 不收敛、`STM_0` vs `STM_k` G0–G6 gate 台账、seed 来源影响、转换损失与归因。
+1. Source ingestion and trace
+2. Intermediate executable semantic representation
+3. Candidate issue discovery
+4. Strict source-level confirmation
+5. Issue-grounded repair
+6. Raw/source patch bundle or final raw/source `STM_k`
+7. Closure and regression audit
+8. Run record and eligibility discipline
 
-## 8. Related Work
+写作纪律：
 
-- LLM / NLP for model generation from requirements。
-- State-machine / behavior model synthesis and repair。
-- Model checking / simulation / executable modeling feedback。
-- LLM self-refinement and agentic repair。
-- 本文定位：不在 `NL -> STM` direct generation 上硬刚，而研究初始 artifact 之后的反馈驱动修正。
+- 不把 fcstm 写成贡献。
+- 不把 ledger / audit / evidence infrastructure 写成贡献；它们是 method discipline 与 evaluation protocol。
+- 不把 conversion success 写成 repair gain。
+- 不把 LLM preference 写成最终 judge。
+- 不把 unavailable projection 静默计入 success。
 
-## 9. Threats and Limitations
+## 5. Experiments
 
-- seed 来源偏差，尤其 `llms-emp` 60 pair 只是 10 个唯一 NL × 6 个模型输出，不是 60 个独立需求。
-- 转换器信息损失，以及 conversion / normalization / lowering 不计 repair gain。
-- T0/T0.5/T1 与 FSM/HSM/statechart 子集及 EFSM-lite future-taxonomy-candidate 边界的范围限制；不能外推到 timed automata、hybrid automata、arbitrary UML 或 protocol FSM。
-- LLM provider drift。
-- 人工裁决一致性。
-- 轻量诊断不等于完整形式化验证。
-- 小样本预演与主实验边界。
+当前只能写 plan，不写 result。
 
-## 10. Conclusion
+建议实验层次：
 
-只在证据闭合后写。核心应回到：反馈驱动修正任务、结构化 feedback 的作用、失败模式和后续可扩展方向。
+1. Pilot feasibility：小规模跑通 issue ledger、trace、repair、raw export、closure audit。
+2. Post-pilot rubric freeze：基于真实 output shape 冻结 closure / partial / regression / unjudgeable 判据。
+3. Baseline contract：三层 baseline 可在 pilot 后定义：
+   - issue discovery；
+   - known confirmed issue repair / closure；
+   - black-box end-to-end。
+4. Formal experiment：样本、reference issue ledger、eligibility、cost / retry / failure accounting。
+
+## 6. Results
+
+当前尚无正式结果。后续结果应围绕：
+
+- discovered candidate issues；
+- confirmed issues；
+- closed / partially closed / not closed issues；
+- regression-introduced count；
+- unsupported / untraceable / unjudgeable cases；
+- baseline comparison under frozen contract；
+- cost / retry / non-convergence。
+
+## 7. Discussion
+
+要点：
+
+1. 中间表示为什么有必要，但为什么不是本文贡献。
+2. diagnostics / simulation / verification feedback 各自优势和局限。
+3. source-level projection 的困难。
+4. scenario/property generation 过拟合风险。
+5. 明确 future work 边界：后续可以研究面向控制系统的建模 DSL / agentic modeling 方向，但这不是 paper1 的贡献。
+
+## 8. Threats to Validity / Limitations
+
+必须包括：
+
+- scope 限制：discrete FSM / HSM / statechart-like subset。
+- 不覆盖 arbitrary UML / SysML / timed / hybrid automata。
+- baseline fairness 依赖 pilot 后 output shape。
+- LLM judge / human adjudication 风险。
+- source trace 和 raw export 可能 unsupported。
+- 不把 pilot calibration 当正式主结果。
+
+## 9. Conclusion
+
+总结应回到：本文研究现有状态机制品上的 issue discovery and closure，不是建模语言优劣或 Better STM 偏好判断。
