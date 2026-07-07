@@ -2,9 +2,9 @@
 
 ## 0. 定位
 
-本目录是第一篇论文 `paper_stm_repair` 的 **repair baselines / near-miss related work** 文库，服务于 `<NL, STM_0> -> STM_k / Better STM` 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
+本目录是第一篇论文 `paper_stm_repair` 的 **repair baselines / near-miss related work** 文库，服务于 source-level issue discovery / repair / closure 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
 
-**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `<NL, STM_0> -> STM_k / Better STM`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给 [../nl_datasets/](../nl_datasets/)。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
+**核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure / regression evidence`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给 [../nl_datasets/](../nl_datasets/)。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
 
 ## 1. 阅读顺序
 
@@ -21,7 +21,7 @@
 |---|---|---|---|
 | 严格全绿 baseline | 暂无 | 尚无条目同时闭合 `NL`、`STM_0`、`NL -> STM_0`、`STM_0 -> STM_k` 与资源可复验 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
 | P0 路线近邻 / 条件对照 | `completion-sysml-gwt` | 最接近“GWT/NL + partial SysML SMD -> completed SMD transitions”；但 `STM_0` 是否严格由同一 NL 生成仍需核验 | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §10 |
-| 生成链内 feedback / refinement | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需反馈修正”的 story，但不能替代 `<NL, STM_0> -> STM_k` baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 |
+| 生成链内 feedback / refinement | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需反馈修正”的 story，但不能替代 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 |
 | repair-engine / partial-STM 近邻 | `flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、TarTar / timed automata repair 簇 | repair/refinement 机制较强，但缺少 NL 或 `NL -> STM_0` 关系 | 见 [SUMMARY.md](./SUMMARY.md) §6 |
 | 异构形式化 / 模型一致性近邻 | `pat-agent`、`event-b-agent`、timed automata repair、UML/SysML consistency、LLM model completion、BPMN diagnostics 等 | 对 feedback loop、diagnostics、repair taxonomy 有参考价值，但不能写成同构 STM baseline | 见 [SUMMARY.md](./SUMMARY.md) §6 与 §9 |
 
@@ -78,7 +78,7 @@
 |---|---|
 | 2026-06-16 23:08:00 | PR-R1.8-E 补充与 seed_library / nl_datasets 的交叉边界，强调 repair_baselines 不提供 R2 seed。 |
 | 2026-06-15 20:55:00 | 用户补齐人工下载队列 10 篇 PDF 后，补入 timed automata repair、UML/model consistency repair、LLM/multi-location model completion 近邻速览；严格 baseline 仍为 0。 |
-| 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 README 结论，明确当前只有 `completion-sysml-gwt` 是 P0 路线近邻 / 条件对照。 |
+| 2026-06-15 18:35:00 | 按 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 README 结论，明确当前只有 `completion-sysml-gwt` 是 P0 路线近邻 / 条件对照。 |
 | 2026-06-15 17:40:00 | 补入 `flowrepair-stateflow-cps`，将其从人工队列升级为 Stateflow repair-engine 近邻，并同步修正检索账与资源表。 |
 | 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正旧 direct baseline 计数口径。 |
 | 2026-06-15 16:20:00 | PR-R1.8-C 初始化 repair_baselines 文库三件套、首批全文阅读条目、检索覆盖表与人工下载队列。 |

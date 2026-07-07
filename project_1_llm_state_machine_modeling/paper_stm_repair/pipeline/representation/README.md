@@ -10,7 +10,7 @@
 R3 规范化 STM JSON -> R4.5 .fcstm / pyfcstm inspect report -> R5 确定性 smoke
 ```
 
-R4.5 不是论文主贡献，不调用 LLM，不读取 `.env`，不生成 `STM_k`，也不执行修正循环。所有 lowering / loss / approximation 都归入 representation / conversion attribution，不能计入 Better STM 或修正收益。当前 [../../selected_seed_examples/](../../selected_seed_examples/) 是 smoke 迷你文库，不是最终实验集合。
+R4.5 不是论文主贡献，不调用 LLM，不读取 `.env`，不生成 `STM_k`，也不执行修正循环。所有 lowering / loss / approximation 都归入 representation / conversion attribution，不能计入 source-level repair gain、issue closure 或方法效果。当前 [../../selected_seed_examples/](../../selected_seed_examples/) 是 smoke 迷你文库，不是最终实验集合。
 
 ## 2. 路径结构
 
@@ -31,17 +31,11 @@ representation/
 │   ├── fcstm_export_report.json
 │   ├── fcstm_export_loss_ledger.jsonl
 │   ├── lowering_inventory.json
-│   ├── fcstm_exports/<example_id>/
-│   │   ├── model.fcstm
-│   │   ├── name_mapping.json
-│   │   ├── lowering_inventory.json
-│   │   └── parse_inspect_report.json
-│   ├── r5_7_4_adjudication_fcstm_exports/<example_id>/
-│   │   └── ...
-│   └── r5_7_4_adjudication_baseline_bundles/
-│       ├── README.md
-│       ├── bundle_index.json
-│       └── bundles/<pair_id>__<slug> -> ../../阶段权威 bundle
+│   └── fcstm_exports/<example_id>/
+│       ├── model.fcstm
+│       ├── name_mapping.json
+│       ├── lowering_inventory.json
+│       └── parse_inspect_report.json
 └── tests/
     ├── test_r45_export_contract.py
     ├── test_r45_name_mapping.py
@@ -82,11 +76,14 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/repres
 pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
 ```
 
-## 4. R5.7.4 裁决样例补充 baseline bundle
+## 4. R5.7.4 裁决样例补充 bundle 已归档
 
-R5.7.4 为静态裁决样例 `llms_emp_stm_results_0001` 和 `llms_emp_stm_results_0018` 额外物化了 standalone baseline `.fcstm` bundle，阶段权威入口为 [reports/r5_7_4_adjudication_fcstm_exports/README.md](./reports/r5_7_4_adjudication_fcstm_exports/README.md)。这两个 bundle 只用于 R5.7.4 / R5.7.5 的 adjudication evidence，不改变 R4.5 selected smoke 四例，不进入 [../../selected_seed_examples/](../../selected_seed_examples/) 的固定四例集合，也不计 repair gain。
+R5.7.4 / R5.7.5 为 Better STM static adjudication 与 constructed `STM_k` dry-run 物化过两类补充表示资产：`r5_7_4_adjudication_fcstm_exports/` 和 `r5_7_4_adjudication_baseline_bundles/`。这些资产只服务旧 Better STM 裁决链，不属于当前 active representation contract，已迁入 cold archive：
 
-为避免 R5.7.5 消费四个裁决 baseline 时在 R4.5 与 R5.7.4 两个阶段目录之间来回查找，本分支新增逻辑入口 [reports/r5_7_4_adjudication_baseline_bundles/README.md](./reports/r5_7_4_adjudication_baseline_bundles/README.md)。该目录只用相对 symlink 收拢 `0000 / 0001 / 0018 / 0045` 四个 baseline bundle，并由 [bundle_index.json](./reports/r5_7_4_adjudication_baseline_bundles/bundle_index.json) 记录权威路径、hash、parse / inspect 状态、selected smoke 身份和 seed-sweep hash 关系；它不移动、不复制、不重写权威产物。
+- [../../archive/r5_7_better_stm_snapshot/pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/](../../archive/r5_7_better_stm_snapshot/pipeline/representation/reports/r5_7_4_adjudication_fcstm_exports/)
+- [../../archive/r5_7_better_stm_snapshot/pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/](../../archive/r5_7_better_stm_snapshot/pipeline/representation/reports/r5_7_4_adjudication_baseline_bundles/)
+
+后续若需要 `0001` / `0018` 的 standalone baseline `.fcstm` 作为 source-level pilot 输入，必须在新的 issue lifecycle PR 中重新登记其 source trace、scope 与 attribution；不得直接恢复旧 Better STM / adjudication / constructed `STM_k` 语义。
 
 ## 5. 当前四例输出
 
@@ -139,7 +136,7 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/represe
 ## 8. 与上下游关系
 
 - 上游 R3：[../conversion/README.md](../conversion/README.md) 提供规范化 JSON、conversion report 与 loss ledger。
-- 上游 R4：[../evaluation/README.md](../evaluation/README.md) 提供诊断 / 场景 / Better STM gate 草案。
+- 历史 R4/R5.7 evaluation：[../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) 已冷归档；active [../evaluation/README.md](../evaluation/README.md) 只是 future source-level closure / regression placeholder。
 - 下游 R5 只消费 R4.5 已提交 `.fcstm` / report，不应在 R5 再补写 exporter。
 
 ## 9. 学术注意点
@@ -148,3 +145,4 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/represe
 - R4.5 只降低 R3 canonical 已承载的语义；例如 SEFM raw Umple 中若存在 entry action 但 R3 canonical 未证明/未保留，R4.5 不从 raw source 私自补回，只能在上游 conversion caveat 中解释。
 - `fcstm_export_loss_ledger.jsonl` 中所有 `repair_contribution_allowed=false`；任何表示转换带来的可解析性改善都不能算作修正循环改进。
 - R5/R6/R7 引用 R4.5 输出时，应同时读取 `lowering_inventory.json` 和 loss ledger，避免把 representation approximation 当作 STM 语义真实变化。
+- `.fcstm` export / lowering 是 intermediate executable semantic medium，不是 source-level closure gate，也不能计入 repair gain。

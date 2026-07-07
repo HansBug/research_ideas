@@ -2,11 +2,11 @@
 
 ## 0. 定位
 
-本目录是第一篇论文 `paper_stm_repair` 的 seed library，服务于 `<NL, STM_0> -> STM_k / Better STM` 任务。它记录能说明 `STM_0` 从自然语言需求、用例、场景、系统描述或文本规格生成 / 派生 / 人工构造而来的上游方法与来源。
+本目录是第一篇论文 `paper_stm_repair` 的 seed library，服务于 `NL + raw/source STM_0 -> issue discovery / repair / closure` 任务。它记录能说明 `STM_0` 从自然语言需求、用例、场景、系统描述或文本规格生成 / 派生 / 人工构造而来的上游方法与来源。
 
 **核心边界**：seed library 不是本论文的 repair baseline，也不是四个代表性样例集合本身。旧 `NL -> STM` generation baseline 在这里作为上游 seed 方法集合、转换压力、相关工作和种子候选来源入账；本论文主贡献仍是后续的无人化反馈驱动修正循环。
 
-三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录 `STM_0 -> STM_k / Better STM` 的 repair / feedback 近邻；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
+三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录 source-level issue discovery / repair / closure 的 repair / feedback 近邻；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
 
 ## 1. 阅读顺序
 

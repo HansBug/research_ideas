@@ -23,7 +23,7 @@
 | 自动化程度 | 自动化工具；用户输入 timed model |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：强 repair engine，但没有 NL 与 NL->STM_0；可作为 formal diagnostics-to-repair 上界参照。
 

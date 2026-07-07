@@ -23,7 +23,7 @@
 | 自动化程度 | 自动化流程；依赖 oracle |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：没有 NL，也不是 NL-derived STM_0；但可作 oracle/testing-guided formal repair near-neighbor。
 

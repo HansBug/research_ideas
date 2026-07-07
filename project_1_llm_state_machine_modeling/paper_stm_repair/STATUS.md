@@ -12,14 +12,15 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 | 资产清账 | 已完成 | [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md), [evidence/audits/2026-07-07-post-strategy-asset-scan.md](./evidence/audits/2026-07-07-post-strategy-asset-scan.md) |
 | seed / corpus 来源 | 已有基础资产 | [corpora/](./corpora/) |
 | conversion / representation 基础设施 | 已有基础资产 | [pipeline/](./pipeline/) |
-| 历史 R5 / R5.7 reports | 已有历史材料 | [reports/](./reports/) |
+| 历史 R5/R5.5 reports | 已有历史材料 | [reports/](./reports/) |
+| 历史 R5.7 Better STM reports | 已迁入 cold archive | [archive/r5_7_better_stm_snapshot/reports/](./archive/r5_7_better_stm_snapshot/reports/) |
 | story reset | 当前已转为 source-level issue lifecycle 口径 | [story/](./story/) |
 
 ## 3. 尚未完成事实
 
 | 后续能力 | 当前状态 | 后续 PR |
 |---|---|---|
-| Better STM-facing 资产归档 | 未完成；当前只允许 historical / archive-pending 引用 | `PR-better-archive` |
+| Better STM-facing 资产归档 | 已完成；只允许 historical / superseded / calibration-only 引用 | [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) |
 | 最小 issue ledger | 未定义 | `PR-issue-ledger` |
 | raw/source trace 与 patch/projection 挂接 | 未定义 | `PR-source-trace` |
 | 最小 loop IO / run record | 未冻结 | `PR-loop-io` |
@@ -64,6 +65,7 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 23:40:00 | STATUS 同步 `PR-better-archive`：R5.7 Better STM-facing 资产已迁入 cold archive，R5/R5.5 reports 与 R5.7 reports 分开。 |
 | 2026-07-07 22:10:00 | STATUS 补充 contribution 修正：audit / ledger 只作方法和评价纪律，不能替代 loop + executable feedback integration。 |
 | 2026-07-07 21:20:00 | STATUS 改为 source-level issue lifecycle 状态总账；明确真实 repair loop / pilot / final evaluation / baseline 均未完成。 |
 | 2026-07-07 20:44:08 | asset map 完成，确认 root/story 需更新，R5.7 Better STM-facing 资产需归档。 |

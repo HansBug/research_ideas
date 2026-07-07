@@ -2,9 +2,9 @@
 
 ## 1. 目标与边界
 
-本 GUIDE 约束 `repair_baselines/` 的后续维护。本目录只记录与 `<NL, STM_0> -> STM_k / Better STM` 主线有关的 **修正、补全、refinement、consistency fixing、feedback-guided repair、verification / simulation / diagnostic feedback、LLM / agentic repair** 工作。
+本 GUIDE 约束 `repair_baselines/` 的后续维护。本目录只记录与 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 主线有关的 **修正、补全、refinement、consistency fixing、feedback-guided repair、verification / simulation / diagnostic feedback、LLM / agentic repair** 工作。
 
-**硬定义**：能被写成本文 baseline 的工作必须同时满足：输入含 `NL` 与 `STM_0`；`STM_0` 明确由同一 `NL` 生成 / 派生；任务目标是从 `<NL, STM_0>` 得到 `STM_k / Better STM`。只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作，即使机制很强，也只能作为 repair-engine near-neighbor 或 related work。
+**硬定义**：能被写成本文 baseline 的工作必须同时满足：输入含 `NL` 与 `STM_0`；`STM_0` 明确由同一 `NL` 生成 / 派生；任务目标是发现 / 修复已有 `NL + raw/source STM_0` 中的 source-level behavioral issues，并给出 closure / regression evidence。只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作，即使机制很强，也只能作为 repair-engine near-neighbor 或 related work。
 
 不得把本目录写成旧 `NL -> STM` generation baseline 文库。若某工作只证明 `STM_0` 可由 `NL` 生成，但没有修正或 feedback 环节，应进入 [../seed_library/](../seed_library/)；若某工作只有控制系统 NL 数据，应留给 [../nl_datasets/](../nl_datasets/)。
 
@@ -29,8 +29,8 @@
 
 | 类别 | 收录口径 |
 |---|---|
-| 路线近邻 / 条件对照 | 本库里最接近 `<NL, STM_0> -> STM_k` 主任务、且适合作为写作与汇报优先展开的条目。它**不**表示严格 baseline 已成立；若仍有关键条件待核，必须在 [SUMMARY.md](./SUMMARY.md) 中单独写出缺口，不能因“条件对照”四字自动升级。 |
-| 前驱 / 条件线索 | 与主任务存在方法史或任务史上的前后承接关系，但通常只提供生成前史、历史原型或术语线索，不直接满足 `<NL, STM_0> -> STM_k`。 |
+| 路线近邻 / 条件对照 | 本库里最接近 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 主任务、且适合作为写作与汇报优先展开的条目。它**不**表示严格 baseline 已成立；若仍有关键条件待核，必须在 [SUMMARY.md](./SUMMARY.md) 中单独写出缺口，不能因“条件对照”四字自动升级。 |
+| 前驱 / 条件线索 | 与主任务存在方法史或任务史上的前后承接关系，但通常只提供生成前史、历史原型或术语线索，不直接满足 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure`。 |
 | 直接 STM 修正近邻 | 明确存在 `STM_0 -> STM_k`、state machine repair、statechart repair、transition completion、guard/action correction，但缺少 NL 或 `NL -> STM_0` 关系。 |
 | 模型制品补全 / 修复 | UML / SysML / Stateflow / IEC 61499 / behavioral model artifact 的 completion、refinement、consistency fixing。 |
 | 反馈驱动修复 | checker、verification、simulation、testing、diagnostic、counterexample、proof feedback 进入模型修正。 |
@@ -57,7 +57,7 @@
 | NL 参与 | repair 输入同时含 NL 与 STM | 初始生成阶段含 NL，repair 阶段主要看模型 | 有 NL 但与 repair 输入关系弱，或仅作背景 | 与 NL/STM 无关 | 待核 | 不适用 |
 | `STM_0` 输入 | repair / completion 输入明确包含初始 STM 或 partial STM | 有初始模型制品，但是否为 STM 或 repair 输入需重建 | 只有非 STM 模型制品或弱初始制品 | 无初始 STM / 模型输入 | 待核 | 不适用 |
 | `NL -> STM_0` 关系 | `STM_0` 明确由同一 NL 生成 / 派生，且作为 repair 输入 | NL 与 `STM_0` 有强 trace / 补全关系，但骨架或生成过程需人工重建 | 只有 NL 或只有 STM，或二者关系弱 | 无 `NL -> STM_0` 关系 | 待核 | 不适用 |
-| 修正任务匹配 | 明确同构 `<NL, STM_0> -> STM_k` repair / completion | `STM_0 -> STM_k` 或模型制品 repair，可较清楚映射到 STM | 只有局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
+| 修正任务匹配 | 明确同构 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` repair / completion | `STM_0 -> STM_k` 或模型制品 repair，可较清楚映射到 STM | 只有局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
 | STM 谱系匹配 | T0+FSM/HSM/EFSM/statechart 明确 | UML/SysML/Stateflow/IEC 61499 等可转换模型 | 状态机边界弱或需大量转换 | 非目标形式主义 / 非模型制品 | 待核 | 不适用 |
 | 反馈来源 | 结构化 diagnostics / verification / simulation / counterexample / proof | rule / test / consistency feedback | 人工审阅、弱反馈或非结构化反馈 | 无反馈 | 待核 | 不适用 |
 | 自动化程度 | 无人化自动闭环 | 半自动，少量人工配置或选择 | 人在回路强依赖 | 手工方法 | 待核 | 不适用 |

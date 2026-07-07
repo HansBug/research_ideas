@@ -26,19 +26,18 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 | 类别 | 当前处理 | 后续入口 |
 |---|---|---|
 | Root docs 和 story | 已转向 source-level issue lifecycle 口径；仍需后续 review 持续防止旧 wording 回流。 | [README.md](./README.md), [story/](./story/) |
-| R5.7 / Better STM-facing 资产 | 只作 historical / superseded / archive-pending；不得作为 active evaluation framework。 | 后续 `PR-better-archive` |
+| R5.7 / Better STM-facing 资产 | 已迁入 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/)；只作 historical / superseded / calibration-only。 | archive snapshot |
 | conversion / representation / pyfcstm 相关基础设施 | 可继续作为中间语义执行表示和工具反馈 infrastructure。 | 后续 `PR-source-trace`, `PR-loop-io`, `PR-raw-export` |
 | seed / corpus / baseline 候选 | 可作为未来 protocol 输入来源，但本阶段不冻结样本分母或 baseline contract。 | 后续 `PR-loop-pilot`, `PR-baseline-contract`, `PR-exp-protocol` |
 | reports / paper_v1 / discussions | 只作历史动机、negative evidence 或旧路线 provenance。 | 后续 archive / story 引用时必须降级 |
 
 ## 4. 下一步依赖
 
-1. `PR-better-archive`：把 R5.7 / Better STM-facing 资产整体迁入 archive snapshot。
-2. `PR-issue-ledger`：定义最小 candidate / confirmed issue ledger。
-3. `PR-source-trace`：定义 raw/source element 与中间表示、patch/projection 的追踪关系。
-4. `PR-loop-io`：冻结最小 stage IO、artifact naming、run record 和失败状态。
-5. `PR-discover-confirm` 之后才进入真实 issue discovery / confirmation 实现。
-6. `PR-loop-pilot` 产出真实 raw/source `STM_k` 或 source-level patch bundle 后，才能冻结 `PR-eval-rubric` 与 `PR-baseline-contract`。
+1. `PR-issue-ledger`：定义最小 candidate / confirmed issue ledger。
+2. `PR-source-trace`：定义 raw/source element 与中间表示、patch/projection 的追踪关系。
+3. `PR-loop-io`：冻结最小 stage IO、artifact naming、run record 和失败状态。
+4. `PR-discover-confirm` 之后才进入真实 issue discovery / confirmation 实现。
+5. `PR-loop-pilot` 产出真实 raw/source `STM_k` 或 source-level patch bundle 后，才能冻结 `PR-eval-rubric` 与 `PR-baseline-contract`.
 
 ## 5. 禁止误读
 
@@ -54,6 +53,7 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 23:40:00 | `PR-better-archive` 后同步总账：R5.7 / Better STM-facing 资产已迁入 cold archive，下一步依赖从 `PR-issue-ledger` 开始。 |
 | 2026-07-07 22:10:00 | SUMMARY 补充 contribution 口径修正：主贡献是 loop + executable feedback integration；ledger / audit 只作评价和证据链纪律。 |
-| 2026-07-07 21:20:00 | SUMMARY 改为 source-level issue discovery and closure 总账；R5.7 Better STM-facing 资产降级为 historical / archive-pending。 |
+| 2026-07-07 21:20:00 | SUMMARY 改为 source-level issue discovery and closure 总账；R5.7 Better STM-facing 资产降级为 historical，并在 `PR-better-archive` 后迁入 cold archive。 |
 | 2026-07-07 20:44:08 | 资产清账完成，新增 asset map 与 scan audit 作为后续 story reset / archive / issue lifecycle PR 的事实入口。 |

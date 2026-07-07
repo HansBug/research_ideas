@@ -21,7 +21,7 @@
 | 自动化程度 | pipeline 可全自动；另有 web interface |
 | LLM / agent 角色 | Planning: OpenAI o3-mini-2025-01-31；Code Generation: Claude 3.7 Sonnet；还评估 DeepSeek-R1 等 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不能作为同构 STM baseline；但强力支撑“formal checker counterexample 可转化为局部修复指令”的方法论。
 

@@ -35,7 +35,7 @@ paper1 当前 contribution 口径限定为：
 ## 4. 历史框架处理
 
 - Better STM / which STM is better：superseded，不再是 active headline。
-- R5.7 repair target taxonomy / objective metrics / adjudication dry-run：historical / archive-pending / calibration-only。
+- R5.7 repair target taxonomy / objective metrics / adjudication dry-run：historical / cold archived / calibration-only，入口为 [../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。
 - constructed `STM_k`：不是真实 repair-loop output。
 - `paper_v1/`、旧 `discussions/`：只作历史背景或 negative evidence，不继承旧 contribution wording。
 
@@ -56,4 +56,4 @@ paper1 当前 contribution 口径限定为：
 | 时间 | 更新内容 |
 |---|---|
 | 2026-07-07 22:10:00 | story 入口补充 contribution 口径限定：主贡献是 feedback-driven LLM refinement loop、executable-feedback integration 与 source-level repair/evaluation setup；ledger / audit 降级为方法和评价纪律。 |
-| 2026-07-07 21:20:00 | story 入口重置为 source-level behavioral issue discovery and closure；Better STM 主框架降级为 historical / archive-pending。 |
+| 2026-07-07 21:20:00 | story 入口重置为 source-level behavioral issue discovery and closure；Better STM 主框架降级为 historical / cold archived。 |

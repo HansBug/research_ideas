@@ -11,7 +11,7 @@
 | 文库 | 当前角色 | 本 SUMMARY 的使用边界 |
 |---|---|---|
 | [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 种子池当前事实入口；仍需逐案例冻结版本、哈希、泄漏边界和数据质量 caveat。 |
-| [../repair_baselines/](../repair_baselines/) | `STM_0 -> STM_k / Better STM` repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供种子。 |
+| [../repair_baselines/](../repair_baselines/) | source-level issue discovery / repair / closure repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供种子。 |
 | [../nl_datasets/](../nl_datasets/) | 只有 NL、尚未闭合 `STM_0` 生成关系的数据源 | 不提前计为 seed；生成并记录 `STM_0` 后才可 crosslink 到本库。 |
 
 
@@ -75,7 +75,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | 作者原生 `<NL, STM_0>` pair | 作者或原始制品直接提供的输入 NL 与生成出的 $STM_0$ 配对；不是我们后续复跑、人工补造或从论文截图猜出的 pair。 |
 | 可重建 `<NL, STM_0>` pair | 可以根据论文、附录、示例、图表或代码重建出来的配对，但作者未直接提供原始 pair。 |
 | 配对索引 / case 对齐 | case id、文件名、表格编号或显式映射能稳定把 NL 与 STM_0 对齐。 |
-| 可计种子候选 | 后续可作为 `<NL, STM_0> -> Better STM` 实验输入来源；必须再做逐案例冻结、哈希、泄漏检查和数据质量 caveat 标注。 |
+| 可计种子候选 | 后续可作为 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 实验输入来源；必须再做逐案例冻结、哈希、泄漏检查和数据质量 caveat 标注。 |
 
 **一手 registry 角色定义**：从一手 registry 起，是否可作为现成 generated seed 只看 [REGISTRY.md](./REGISTRY.md) 的 `recommended_role` 与 validator 输出；旧“严格种子 / 条件种子”只保留为文献层 `NL -> STM_0` 方法证据标签，不能直接决定 实验输入。
 
@@ -92,7 +92,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 
 | 类型 | 定义 | 典型用途 | 进入当前种子池的默认态度 |
 |---|---|---|---|
-| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、泄漏风险和数据质量 caveat 也可冻结，则最接近真实实验 seed。 | 作为 `<NL, STM_0> -> Better STM` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
+| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、泄漏风险和数据质量 caveat 也可冻结，则最接近真实实验 seed。 | 作为 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
 | 条件种子 / 方法证据 | `NL -> STM_0` 关系基本成立，但存在合成 NL、只可论文级重建、需要切片、验证导向、中间层、可变性、完整原生 pair 未公开等限制。 | 作为候选 seed、方法证据、转换器压力或 related work 论证；用于说明上游 seed 生态比严格可用样本更宽。 | 不能自动进入当前种子池；必须先解决具体限制，或明确只作为方法证据 / 备选。 |
 | 边界 / 相关工作 / 哨兵 | 与 `NL -> STM` 或状态机建模相关，但不满足当前 seed 定义；常见原因包括输入不是 NL-only、输出不是目标 STM family、方向相反、只是 protocol / standard-doc / behavior-tree / goal-model / sequence / formal-spec 中间链路。 | 用于 related work、边界论证和防误收，帮助说明哪些工作不能冒充本论文 seed。 | 默认不进入当前种子池；除非后续有独立证据证明可切出合格 `<NL, STM_0>` pair。 |
 | 仅元数据 | 目前只有 BibTeX、DOI、标题或少量元信息，全文或关键制品未拿到，无法判断是否满足 `NL -> T0 STM-family`。 | 保留人工下载 / 后续核验队列，避免遗漏潜在证据。 | 不进入当前种子池，也不作为正向结论；只能标记为待核。 |

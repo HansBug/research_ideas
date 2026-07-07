@@ -21,7 +21,7 @@
 | 自动化程度 | 实验中生成与反馈循环高度自动，但可有人机 refinement |
 | LLM / agent 角色 | GPT-3.5 turbo 作为生成器与反馈再生成器 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 P1：说明工具检查反馈能改善 LLM 生成模型，但反馈深度主要是语法/约束级。
 

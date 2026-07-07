@@ -21,7 +21,7 @@
 | 自动化程度 | LLM 调用自动；grammar / semantic checking 有人工边界 |
 | LLM / agent 角色 | GPT-4 Turbo、GPT-4o、Kimi、Claude 3 Haiku、Llama3.1、DeepSeek-v3 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 P1：比 TTool-AI 更直接报告 feedback regeneration 效果，特别适合 related work 和消融设计；必须只写 STM 子集。
 

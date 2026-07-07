@@ -2,7 +2,7 @@
 
 ## 0. 论文集整体概况
 
-本目录服务于第一篇论文 `<NL, STM_0> -> STM_k / Better STM` 主线，记录 STM 修正任务 baseline 与近邻工作。当前按更严格的实验 baseline 硬定义重新收紧：**真正 baseline 必须同时满足输入含 `NL` 与 `STM_0`，且 `STM_0` 能明确追溯为由同一 `NL` 生成 / 派生；仅有 `STM + error / tests / oracle / diagnostics` 的工作不能称为本文 baseline。**
+本目录服务于第一篇论文 source-level issue discovery / repair / closure 主线，记录 STM 修正任务 baseline 与近邻工作。当前按更严格的实验 baseline 硬定义重新收紧：**真正 baseline 必须同时满足输入含 `NL` 与 `STM_0`，且 `STM_0` 能明确追溯为由同一 `NL` 生成 / 派生；仅有 `STM + error / tests / oracle / diagnostics` 的工作不能称为本文 baseline。**
 
 阶段性结论因此改为：**当前 24 个入库条目中，严格全绿 baseline 仍为 0；`completion-sysml-gwt` 只是唯一 P0 路线近邻 / 条件对照，其余条目应降级为 generation-feedback、repair-engine near-neighbor、异构形式化近邻、模型一致性 / completion 近邻或 negative evidence。**
 
@@ -34,7 +34,7 @@
 | NL 参与 | repair 输入同时含 NL 与 STM | 初始生成阶段含 NL，repair 阶段主要看模型 | 有 NL 但与 repair 输入关系弱，或仅作背景 | 与 NL/STM 无关 | 待核 | 不适用 |
 | `STM_0` 输入 | repair / completion 输入明确包含初始 STM 或 partial STM | 有初始模型制品，但是否为 STM 或 repair 输入需重建 | 只有非 STM 模型制品或弱初始制品 | 无初始 STM / 模型输入 | 待核 | 不适用 |
 | `NL -> STM_0` 关系 | `STM_0` 明确由同一 NL 生成 / 派生，且作为 repair 输入 | NL 与 `STM_0` 有强 trace / 补全关系，但骨架或生成过程需人工重建 | 只有 NL 或只有 STM，或二者关系弱 | 无 `NL -> STM_0` 关系 | 待核 | 不适用 |
-| 修正任务匹配 | 明确同构 `<NL, STM_0> -> STM_k` repair / completion | `STM_0 -> STM_k` 或模型制品 repair，可较清楚映射到 STM | 局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
+| 修正任务匹配 | 明确同构 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` repair / completion | `STM_0 -> STM_k` 或模型制品 repair，可较清楚映射到 STM | 局部 feedback / consistency / completion 线索 | 无 repair / feedback | 待核 | 不适用 |
 | STM 谱系匹配 | T0+FSM/HSM/EFSM/statechart 明确 | UML/SysML/Stateflow/IEC 61499 等可转换模型 | 状态机边界弱或需大量转换 | 非目标形式主义 / 非模型制品 | 待核 | 不适用 |
 | 反馈来源 | 结构化 diagnostics / verification / simulation / counterexample / proof | rule / test / consistency feedback | 人工审阅、弱反馈或非结构化反馈 | 无反馈 | 待核 | 不适用 |
 | 自动化程度 | 无人化自动闭环 | 半自动，少量人工配置或选择 | 人在回路强依赖 | 手工方法 | 待核 | 不适用 |
@@ -104,7 +104,7 @@
 
 ### 3.2 高命中特征
 
-- `partial SysML state machine + GWT requirements` 是目前唯一接近 `<NL, STM_0> -> STM_k` 的主 baseline cluster。
+- `partial SysML state machine + GWT requirements` 是目前唯一接近 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 的主 baseline cluster。
 - 最有价值的新检索方向不是泛化 `state machine repair`，而是先确认 `NL -> STM_0` 生成 / 派生关系，再检查是否有 repair / completion / refinement。
 - `generation pipeline + checker feedback` 常见于 LLM4Modeling 工作，适合作为 feedback-regeneration 近邻，但只有当 repair 输入保留 NL 与 `STM_0` 时才可能升级为 baseline。
 - `Stateflow / Simulink + simulation-based repair`、`PAT/Event-B/timed automata` 的方法学价值高，但通常缺少 NL 或超出 STM family，只能作为 near-neighbor。
@@ -121,22 +121,22 @@
 
 - TarTar / timed automata repair 簇是强形式化 repair engine，但共同输入是已有 TA/NTA + TDT / oracle / timed safety property；它们系统性证明“强 repair 机制 ≠ 本文 baseline”，因为缺少 NL 与 `NL -> STM_0`。
 - UML model consistency 簇常覆盖 class / sequence / statechart 多视图不一致修复，能提供 repair choice、repair tree、side-effect、change-history 等 taxonomy，但起点是已有 UML design model / model version，不是同源 NL 生成的 STM。
-- RAMC / NextFocus 这类 LLM 或 neural software model completion 工作说明 model completion 正在变强，但其 NL 多为模型元素 textual fields，不是 requirements NL；任务也不是 `<NL, STM_0> -> Better STM`。
+- RAMC / NextFocus 这类 LLM 或 neural software model completion 工作说明 model completion 正在变强，但其 NL 多为模型元素 textual fields，不是 requirements NL；任务也不是 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure`。
 - 本轮新增 10 篇全文后，结论反而更稳：严格 baseline 仍为 0，`completion-sysml-gwt` 仍是唯一 P0 路线近邻 / 条件对照。
 
 | 新增簇 | 覆盖条目 | 为什么不是本文 baseline | 可保留的方法学价值 |
 |---|---|---|---|
 | timed automata repair | `clock-bound-repair-timed-systems`、`tartar-timed-automata-repair-tool`、`automated-repair-timed-systems`、`repairing-timed-automata-clock-guards` | 输入是 TA/NTA/PTA + TDT / oracle / timed safety property，不含 requirements NL，也不存在 `NL -> STM_0` 生成关系；timed automata 还超出当前 T0+FSM/HSM/EFSM/statechart 主谱系。 | TDT、MaxSMT/Z3、admissibility、testing/oracle-guided guard repair 可作为 formal feedback / repair engine 的上界参照。 |
 | UML / generic model consistency | `change-preserving-model-repair`、`fixing-inconsistencies-uml-design-models`、`generating-evaluating-choices-uml-design-models`、`computing-repair-trees-design-models` | 输入是已有 UML/design model、consistency rules、edit history 或 rule-evaluation trace；即使覆盖 statechart，也不是由同一 NL 生成的 `STM_0`。 | repair choice、side effect、dependency、change-preserving、repair tree 等概念可支撑 Related Work taxonomy 与评价维度设计。 |
-| LLM / neural software model completion | `software-model-evolution-llm`、`multi-location-software-model-completion` | NL 多为模型元素 textual fields 或 prompt context，不是控制系统 requirements NL；任务是 software model evolution/completion，不是 `<NL, STM_0> -> STM_k`。 | 可对比 LLM/RAG、historical co-change、multi-location completion 的模型补全能力与资源公开方式。 |
+| LLM / neural software model completion | `software-model-evolution-llm`、`multi-location-software-model-completion` | NL 多为模型元素 textual fields 或 prompt context，不是控制系统 requirements NL；任务是 software model evolution/completion，不是 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure`。 | 可对比 LLM/RAG、historical co-change、multi-location completion 的模型补全能力与资源公开方式。 |
 
 ## 4. 最终结论类型
 
 | 类型 | 定义 | 代表 |
 |---|---|---|
-| 严格全绿 baseline | 明确满足 `<NL, STM_0> -> STM_k`，输入同时含 NL 与 `STM_0`，且 `STM_0` 明确由同一 NL 生成 / 派生；资源足以支撑可复验对照。 | 当前未确认 |
+| 严格全绿 baseline | 明确满足 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure`，输入同时含 NL 与 `STM_0`，且 `STM_0` 明确由同一 NL 生成 / 派生；资源足以支撑可复验对照。 | 当前未确认 |
 | P0 路线近邻 / 条件对照 | 最接近硬定义，但至少一个关键条件仍需二次核验或资源不完整。 | `completion-sysml-gwt` |
-| 生成链内 feedback / refinement 近邻 | `NL -> STM` 生成 pipeline 内含检查、错误反馈、再生成或 refinement，但不是独立 `<NL, STM_0> -> STM_k` repair baseline。 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` |
+| 生成链内 feedback / refinement 近邻 | `NL -> STM` 生成 pipeline 内含检查、错误反馈、再生成或 refinement，但不是独立 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` repair baseline。 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` |
 | repair-engine / partial-STM 近邻 | repair / completion / refinement 机制较强，但输入不含 NL 或缺少 `NL -> STM_0` 关系。 | `execution-partial-state-machine-models`、`flowrepair-stateflow-cps` |
 | 异构形式化 repair 强近邻 | 目标工件不是本论文 STM family，但具备形式化 checker / prover / counterexample / proof feedback repair loop。 | `pat-agent`、`event-b-agent`、timed automata repair 簇 |
 | 模型一致性 / 补全近邻 | repair 对象是 UML/SysML/BPMN/class/activity/Ecore 等模型制品，提供 consistency / completion / diagnostics 维度，但不满足本文 baseline 硬门槛。 | `automatic-debugging-support-uml-designs`、`change-preserving-model-repair`、`fixing-inconsistencies-uml-design-models`、`generating-evaluating-choices-uml-design-models`、`computing-repair-trees-design-models`、`software-model-evolution-llm`、`multi-location-software-model-completion` 等 |
@@ -173,7 +173,7 @@
 
 ## 6. 多维 baseline / related work 总表
 
-本表把硬门槛拆开显示，避免把“强 repair 机制”误读成“本文 baseline”。其中 `NL -> STM_0` 是新增核心维度：若该列为 🔴，即使 repair 很强，也不能写成本文 `<NL, STM_0> -> STM_k` baseline。
+本表把硬门槛拆开显示，避免把“强 repair 机制”误读成“本文 baseline”。其中 `NL -> STM_0` 是新增核心维度：若该列为 🔴，即使 repair 很强，也不能写成本文 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` baseline。
 
 | ID | 年份 | NL类型 | STM / 模型类型 | 修正输入 | 修正输出 | 方法 | feedback类型 | NL | STM0 | NL->STM0 | 修正 | 谱系 | 反馈 | 自动化 | LLM/Agent | baseline | 资源 | 当前角色 | 使用方式 | 主要风险 |
 |---|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -266,7 +266,7 @@
 |---|---|---|---|
 | 严格 baseline 暂未确认 | 当前 0 条 | 不能在论文中声称已有同构 baseline 已充分存在 | 后续若要升级，必须证明 `NL`、`STM_0`、`NL -> STM_0`、`STM_0 -> STM_k` 与资源可复验同时成立 |
 | 唯一 P0 路线近邻 / 条件对照 | `completion-sysml-gwt` | 可作为 completion-style 条件对照 / Related Work 首要对象，用于对比“GWT/NL + partial SysML SMD -> completed SMD transitions” | 需明确它不是无人化 repair loop；还需核验 partial SMD / states 是否严格由同一组 GWT/NL 生成或仅为预置骨架 |
-| 生成链内 feedback 只能支撑 story / 消融 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需 feedback / refinement”的论文动机，可对比反馈类型、自动化与 LLM 使用 | 不能替代 `<NL, STM_0> -> STM_k` baseline；特别是 `designing-fsm-gpt4-repair` 的 repair 阶段主要依赖 oracle/trace/fault-model |
+| 生成链内 feedback 只能支撑 story / 消融 | `designing-fsm-gpt4-repair`、`ttool-ai-feedback`、`llms-emp-feedback`、`fsm-gen-iec-61499` | 支撑“NL->STM 后仍需 feedback / refinement”的论文动机，可对比反馈类型、自动化与 LLM 使用 | 不能替代 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` baseline；特别是 `designing-fsm-gpt4-repair` 的 repair 阶段主要依赖 oracle/trace/fault-model |
 | 强 repair engine 只能作近邻 | `flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、TarTar / timed automata repair 簇 | 提供 Stateflow mutation/search、partial STM execution/refinement、TDT/MaxSMT/admissibility 等机制参考 | 无 NL 或无 `NL -> STM_0` 关系，不能作为本文 baseline；只能在 Related Work / ablation 设计中谨慎引用 |
 | 异构形式化 repair 说明闭环范式正在出现 | `pat-agent`、`event-b-agent`、timed automata repair | 支撑 story：从 one-shot generation 转向 checker/prover/verifier-mediated repair | 目标工件不同，不能作为同格式实验 baseline |
 | 模型一致性 / completion 文献提供 repair taxonomy | UML inconsistency、SysML consistency、LLM model completion、multi-location completion、BPMN diagnostics repair | 用于 Related Work、评价维度和风险讨论 | 不要把非 STM 模型补全、泛化 software model completion 或 BPMN diagnostics 写成 STM repair baseline |
@@ -277,7 +277,7 @@
 |---|---|
 | 2026-06-16 23:08:00 | PR-R1.8-E 补充纯 NL 与 seed crosslink 边界，强调本 SUMMARY 只承载 repair baseline / 近邻事实。 |
 | 2026-06-15 20:55:00 | 用户补齐人工下载队列 10 篇 PDF 后全部全文入库，补充 timed automata repair、UML/model consistency repair、LLM/multi-location model completion 近邻；严格 baseline 仍为 0，`completion-sysml-gwt` 仍为唯一 P0 路线近邻 / 条件对照。 |
-| 2026-06-15 18:35:00 | 按 `<NL, STM_0> -> STM_k` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 baseline 口径；新增 `STM_0` 与 `NL -> STM_0` emoji 维度，并将除 `completion-sysml-gwt` 外的条目降级为 near-neighbor / related work。 |
+| 2026-06-15 18:35:00 | 按 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 且 `STM_0` 必须由同一 NL 生成 / 派生的硬定义收紧 baseline 口径；新增 `STM_0` 与 `NL -> STM_0` emoji 维度，并将除 `completion-sysml-gwt` 外的条目降级为 near-neighbor / related work。 |
 | 2026-06-15 17:40:00 | 将 `flowrepair-stateflow-cps` 从人工队列升级为全文入库条目，补充 Stateflow repair-engine 近邻、资源入口、筛查账可复算统计与最终结论边界。 |
 | 2026-06-15 16:50:00 | 补入 `execution-partial-state-machine-models` 与候选池筛查账，修正旧 direct baseline 计数口径。 |
 | 2026-06-15 16:20:00 | 初始化 repair baseline SUMMARY，整合首批全文阅读条目、检索覆盖、人工下载队列、负例证据与最终结论。 |

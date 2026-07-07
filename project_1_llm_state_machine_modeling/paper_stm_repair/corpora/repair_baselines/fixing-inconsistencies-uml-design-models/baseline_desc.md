@@ -23,7 +23,7 @@
 | 自动化程度 | 工具辅助，非全自动 repair；作者明确说工具不能自动决定是否 resolve |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：无 NL；经典 model inconsistency repair related work。
 

@@ -21,7 +21,7 @@
 | 自动化程度 | 初始生成自动；repair 多处依赖 oracle 或专家，fault-model 较自动 |
 | LLM / agent 角色 | GPT-4/GPT-4o 初始生成与部分 prompt-based repair；fault-model repair 更偏形式化候选搜索 |
 
-## 3. 与本论文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 最清楚展示“LLM 生成 FSM 后如何诊断/修复”的候选；但应切片，初始 `NL -> DFSM` 仍归 seed。
 

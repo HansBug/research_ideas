@@ -1,6 +1,6 @@
 # R3.1 PlantUML 转换前规范化与恢复
 
-本目录记录 R3.1 的 PlantUML pre-SCXML normalization / recovery 规则与复验方法。它只服务 conversion eligibility 审计，不是 `<NL, STM_0> -> Better STM` 修复方法本身。
+本目录记录 R3.1 的 PlantUML pre-SCXML normalization / recovery 规则与复验方法。它只服务 conversion eligibility 审计，不是 source-level issue discovery / repair / closure 方法本身。
 
 ## 工作方式
 

@@ -23,7 +23,7 @@
 | 自动化程度 | 自动 completion/recommendation；非 repair loop |
 | LLM / agent 角色 | GPT-family / LLM RAG/fine-tuning |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：不是 `<NL, STM_0>` 输入，且模型 completion 泛化到 Ecore/SysML；可作 LLM model completion near-neighbor。
 

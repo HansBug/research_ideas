@@ -2,70 +2,43 @@
 
 ## 1. 文库定位
 
-本目录是 `paper_stm_repair/` 下 **面向人类阅读的稳定研究报告文库**。它负责保存 seed readiness、main seed profile、negative evidence、handoff、story-facing analysis 等已经形成稳定结论的 Markdown report，供论文写作、审查和后续阶段决策引用。
+本目录保存 `paper_stm_repair/` 下仍处于 active 主路径的人类可读研究报告：主要是 R5/R5.5 seed readiness、conversion readiness、negative evidence、scope handoff 与主 seed profile 的历史快照。机器事实源仍以 [../pipeline/](../pipeline/) 和 [../corpora/](../corpora/) 下 JSON / JSONL / registry / archive 为准。
 
-它不是 pipeline 输出目录，也不是 PR 施工进度台账。机器事实源仍保存在 [../pipeline/](../pipeline/) 的 JSON / JSONL / ZIP / schema / CLI / tests 中；本目录只保存人类可读快照、解释和学术风险分析。
+R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁入 cold archive：[../archive/r5_7_better_stm_snapshot/reports/](../archive/r5_7_better_stm_snapshot/reports/)。它们不再作为本目录 active report 表的一部分。
 
-## 2. 收录范围与排除范围
+## 2. Active report 列表
 
-| 类型 | 是否进入本目录 | 说明 |
-|---|---:|---|
-| seed readiness 报告 | 是 | 例如 R5 全量 seed 摸排的人类阅读入口。 |
-| main seed profile | 是 | 例如 `llms-emp` 10 NL cluster × 6 LLM 输出的画像表。 |
-| negative evidence / blocked 分析 | 是 | 用于解释不能进入主实验或需要 converter follow-up 的稳定证据。 |
-| story / scope handoff | 是 | 只记录稳定研究结论和后续入口，不记录 PR 动态状态。 |
-| JSON / JSONL / ZIP / schema | 否 | 放在 [../pipeline/](../pipeline/)；reports 只链接它们。 |
-| raw seed assets / extracted pairs | 否 | 放在 [../corpora/](../corpora/)；reports 只引用。 |
-| PR review 状态 / merge 进度 / CI 状态 | 否 | 维护在 GitHub PR body / comment。 |
-
-## 3. 与其他路径的边界
-
-| 路径 | 职责 | 与 reports 的关系 |
-|---|---|---|
-| [../pipeline/](../pipeline/) | 可复算机器事实源、schema、CLI、测试与高基数运行制品。 | reports 必须声明 canonical machine source；row-level facts 以 pipeline 为准。 |
-| [../corpora/](../corpora/) | 一手 seed、repair baseline、纯 NL 数据源。 | reports 可解释 corpus 结论，但不能替代 corpus 当前总账。 |
-| [../experiment_design/](../experiment_design/) | scope、quality model、eligibility、protocol、metrics。 | reports 可作为 handoff；正式实验定义应沉淀到 experiment_design。 |
-| [../story/](../story/) | 论文叙事、claim gate 与写作定位。 | story 引用 reports 的稳定结论，不从 reports 复制成第二事实源。 |
-| [../evidence/](../evidence/) | 历史审计与证据索引。 | reports 面向当前 paper 决策；evidence 保存历史来龙去脉。 |
-
-## 4. 报告列表
-
-| 时间 | report | 类型 | 机器事实源入口 |
+| 时间 | report | 类型 | 当前使用方式 |
 |---|---|---|---|
-| 2026-07-05 07:18:31 | [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md) | full blind adjudication dry-run | [blind bundle](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/README.md)、[blind prompt v0](../experiment_design/protocols/better_adjudication_blind_prompt_v0.md)、[blind schema v0](../experiment_design/protocols/better_adjudication_blind_output_schema_v0.json)、[score summary](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/score_summary.json)、[prompt consistency](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/judge_outputs/claude-blind-judge/prompt_consistency_check.stdout.json) |
-| 2026-07-05 02:10:39 | [2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](./2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md) | constructed STM_k coverage dry-run | [constructed suite](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md)、[prompt v0](../experiment_design/protocols/better_adjudication_prompt_v0.md)、[schema v0](../experiment_design/protocols/better_adjudication_output_schema_v0.json) |
-| 2026-07-03 23:44:12 | [2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](./2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md) | static adjudication dry-run | [repair_target_adjudication](../experiment_design/repair_target_adjudication/README.md) |
-| 2026-07-03 21:18:25 | [2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md) | objective metric framework | [objective_metric_framework.md](../experiment_design/metrics/objective_metric_framework.md) |
-| 2026-07-03 02:16:16 | [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md) | Better STM / repair target contract | [better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md)、[repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md) |
-| 2026-07-02 17:02:42 | [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md) | evaluation logic handoff | [evaluation_logic.md](../experiment_design/evaluation_logic.md) |
-| 2026-06-29 19:55:45 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | PlantUML blocked recovery | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) |
-| 2026-06-29 00:03:56 | [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | main seed profile | [llms_emp_case_matrix.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl) |
-| 2026-06-28 23:18:32 | [2026-06-28-23-18-32-negative-evidence-report.md](./2026-06-28-23-18-32-negative-evidence-report.md) | negative evidence | [llms_emp_blocked_probe.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_blocked_probe.jsonl) |
-| 2026-06-28 22:54:39 | [2026-06-28-22-54-39-model-scope-handoff.md](./2026-06-28-22-54-39-model-scope-handoff.md) | scope handoff | [llms_emp_cluster_profiles.jsonl](../pipeline/readiness_audit/llms_emp_profile/llms_emp_cluster_profiles.jsonl) |
-| 2026-06-28 19:42:58 | [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md) | directional analysis | [sweep_report.json](../pipeline/readiness_audit/seed_sweep/sweep_report.json) |
-| 2026-06-28 04:03:18 | [2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) | seed readiness | [records_index.json](../pipeline/readiness_audit/seed_sweep/records_index.json) |
-| 2026-06-28 03:42:24 | [2026-06-28-03-42-24-selected-smoke-summary.md](./2026-06-28-03-42-24-selected-smoke-summary.md) | selected smoke | [smoke_report.json](../pipeline/readiness_audit/selected_examples/smoke_report.json) |
+| 2026-06-29 19:55:45 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | PlantUML blocked recovery | `llms-emp` 三个原 blocked 已恢复为 partial；conversion recovery 不计 repair gain。 |
+| 2026-06-29 00:03:56 | [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | main seed profile | 10 NL cluster × 6 LLM 输出的历史画像；当前状态数字以 R5.5.2 recovery report 为准。 |
+| 2026-06-28 23:18:32 | [2026-06-28-23-18-32-negative-evidence-report.md](./2026-06-28-23-18-32-negative-evidence-report.md) | negative evidence | 旧 blocked 的历史负证据；当前 `llms-emp` blocked 状态已被 R5.5.2 覆盖。 |
+| 2026-06-28 22:54:39 | [2026-06-28-22-54-39-model-scope-handoff.md](./2026-06-28-22-54-39-model-scope-handoff.md) | scope handoff | T0/T0.5/T1 历史 scope handoff；当前 active scope 以 story/model_scope.md 为准。 |
+| 2026-06-28 19:42:58 | [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md) | directional analysis | 解释为什么 `llms-emp-stm-subset` 成为优先主 seed 池。 |
+| 2026-06-28 04:03:18 | [2026-06-28-04-03-18-seed-readiness-report.md](./2026-06-28-04-03-18-seed-readiness-report.md) | seed readiness | R5 seed readiness 历史快照；`llms-emp` 当前状态以 R5.5.2 为准。 |
+| 2026-06-28 03:42:24 | [2026-06-28-03-42-24-selected-smoke-summary.md](./2026-06-28-03-42-24-selected-smoke-summary.md) | selected smoke | 四例 pre-repair baseline smoke；不是修正失败或修正成功。 |
 
-## 5. 推荐阅读顺序
+## 3. Archived R5.7 报告链
 
-1. 先读本文件，确认 reports 文库边界。
-2. 再读 [GUIDE.md](./GUIDE.md)，理解秒级命名、来源考据和 machine-source 同步纪律。
-3. 再读 [SUMMARY.md](./SUMMARY.md)，从总表选择当前要看的 report。
-4. 想理解 R5.7.5 如何用 constructed `STM_k` 与 full blind judge 压力测试 Better STM 裁决协议：先读 [2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md](./2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md)，再读 [2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md](./2026-07-05-02-10-39-r5-7-5-constructed-stmk-coverage-dry-run.md)、[../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_blind_adjudication/README.md)、[../experiment_design/protocols/better_adjudication_blind_prompt_v0.md](../experiment_design/protocols/better_adjudication_blind_prompt_v0.md)、[../experiment_design/protocols/better_adjudication_blind_output_schema_v0.json](../experiment_design/protocols/better_adjudication_blind_output_schema_v0.json) 与 [../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md](../pipeline/evaluation/dry_run_examples/r5_7_5_constructed_stmk/README.md)。
-5. 想看 R5.5.2 后当前 `llms-emp` 状态：先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)，再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) 的 10 cluster 表、10×6 LLM 矩阵与行为特征矩阵。
-6. 想理解 R5.7.1 如何把 story claim 转成评价逻辑链：先读 [../experiment_design/evaluation_logic.md](../experiment_design/evaluation_logic.md)，再读 [2026-07-02-17-02-42-r5-7-1-evaluation-logic.md](./2026-07-02-17-02-42-r5-7-1-evaluation-logic.md)。
-7. 想理解 R5.7.2 如何定义 Better STM gate 与 repair target taxonomy：先读 [../experiment_design/quality_model/better_stm_definition.md](../experiment_design/quality_model/better_stm_definition.md) 与 [../experiment_design/quality_model/repair_target_taxonomy.md](../experiment_design/quality_model/repair_target_taxonomy.md)，再读 [2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md](./2026-07-03-02-16-16-r5-7-2-better-stm-target-contract.md)。
-8. 想理解 R5.7.3 如何把 objective metrics 限定为 Better STM gate 的证据层：先读 [../experiment_design/metrics/objective_metric_framework.md](../experiment_design/metrics/objective_metric_framework.md)，再读 [2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md](./2026-07-03-21-18-25-r5-7-3-objective-metric-framework.md)。
-9. 想理解 R5.7.4 如何把 taxonomy 与 objective metrics 放到真实样例上 dry-run：先读 [../experiment_design/repair_target_adjudication/README.md](../experiment_design/repair_target_adjudication/README.md)，再读 [2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md](./2026-07-03-23-44-12-r5-7-4-static-adjudication-dry-run.md)。
-10. 想解释后续 R6/R7 为什么优先 `llms-emp-stm-subset`：读 [2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md](./2026-06-28-19-42-58-r5-llms-emp-directional-analysis.md)。
-11. 需要复算或审计时，回到每个 report 文末“审计附录：证据链与事实源”中的上游事实源清单、Claim-evidence map 与复验命令。
+| archive 入口 | 内容 | 使用限制 |
+|---|---|---|
+| [../archive/r5_7_better_stm_snapshot/reports/](../archive/r5_7_better_stm_snapshot/reports/) | R5.7.1 evaluation logic、R5.7.2 Better STM / repair target contract、R5.7.3 objective metric framework、R5.7.4 static adjudication、R5.7.5 constructed / blind adjudication reports。 | historical / superseded / calibration-only；不得写成真实 repair-loop effectiveness、active evaluation endpoint 或 current baseline contract。 |
 
-## 6. 命名纪律
+## 4. 推荐阅读顺序
 
-除本目录三件套 [README.md](./README.md)、[SUMMARY.md](./SUMMARY.md)、[GUIDE.md](./GUIDE.md) 外，所有长期 report 必须使用秒级时间前缀：
+1. 想理解当前 seed / conversion readiness：先读 [SUMMARY.md](./SUMMARY.md)，再读 R5.5.2 recovery report 和 main seed profile。
+2. 想理解当前 paper1 story / contribution：不要从 archived R5.7 报告开始；应读 [../README.md](../README.md) 与 [../story/README.md](../story/README.md)。
+3. 想追溯 R5.7 为什么被归档：读 [../archive/r5_7_better_stm_snapshot/README.md](../archive/r5_7_better_stm_snapshot/README.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md)。
 
-```text
-yyyy-mm-dd-hh-mm-ss-short-slug.md
-```
+## 5. 维护纪律
 
-时间前缀表示报告核心学术结论冻结时间；迁移、路径重命名和链接修正不得改变该时间，但必须进入 report 文末审计附录的 A.1 来源考据表。
+1. 本目录不记录 PR review 状态、CI 状态或 merge 进度；这些动态信息留在 GitHub PR body/comment。
+2. 新增 report 必须是稳定研究结论、human-facing handoff 或证据链说明；高基数机器制品留在 pipeline / corpora / runs。
+3. 若 report 被新事实覆盖，应在 [SUMMARY.md](./SUMMARY.md) 中标明 superseded / current-status-overridden，而不是删除历史报告。
+4. archived R5.7 报告只能通过 archive 入口引用，不能恢复为 active report row。
+
+## 6. 更新日志
+
+| 时间 | 更新内容 |
+|---|---|
+| 2026-07-07 23:40:00 | `PR-better-archive` 后将 R5.7 报告链移出 active reports 表，改为 cold archive pointer。 |

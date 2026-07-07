@@ -11,7 +11,7 @@
 5. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
 6. [story/README.md](./story/README.md)：进入 paper story 专题。
 
-任何后续 PR 如果需要使用历史 R5.7 / Better STM-facing 文件，必须先读 asset map，确认它们是否只是 historical / archive-pending。
+任何后续 PR 如果需要使用历史 R5.7 / Better STM-facing 文件，必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并确认它们只是 historical / superseded / calibration-only。
 
 ## 2. Active 主线纪律
 
@@ -67,13 +67,13 @@ candidate / confirmed issue ledger、trace、attribution boundary、closure / re
 |---|---|
 | `active` | 可直接作为当前基础设施或事实入口，但仍需遵守 contribution attribution。 |
 | `update` | 只能在对应 PR 中改写后进入 active 主线。 |
-| `archive` | 必须迁入 archive snapshot 后作为历史证据；归档前只能 archive-pending 引用。 |
+| `archive` | 已迁入 archive snapshot 后作为历史证据；只能 historical / superseded / calibration-only 引用。 |
 | `historical` | 只解释“为什么转向”，不能作为 active claim evidence。 |
 
 特别纪律：
 
-1. R5.7 / Better STM-facing 资产在归档前不得作为 active evaluation framework。
-2. `experiment_design/quality_model/`、`experiment_design/protocols/`、`experiment_design/better_adjudication_dry_run/`、`pipeline/evaluation/dry_run_examples/r5_7_5_*` 和 R5.7 reports 只能 historical / calibration 引用。
+1. R5.7 / Better STM-facing 资产已归档，不得作为 active evaluation framework。
+2. 旧 quality model、protocols、better adjudication dry-run、pipeline evaluation dry-run examples 和 R5.7 reports 只能通过 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) historical / calibration 引用。
 3. `corpora/repair_baselines/` 在 baseline contract 冻结前只作候选来源，不定义正式 baseline。
 4. `discussions/` 和 `paper_v1/` 只作历史背景，不继承旧 claim wording。
 
@@ -112,11 +112,12 @@ rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-gro
   project_1_llm_state_machine_modeling/paper_stm_repair/story
 ```
 
-高风险旧术语可以出现，但必须处于 historical / superseded / archive-pending / claims-to-avoid / forbidden claim 语境。
+高风险旧术语可以出现，但必须处于 historical / superseded / cold archive pointer / claims-to-avoid / forbidden claim 语境。
 
 ## 8. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-07 23:40:00 | GUIDE 同步 `PR-better-archive`：历史 R5.7 资产改为 cold archive pointer，并要求 residual scan 排除 archive。 |
 | 2026-07-07 22:10:00 | GUIDE 增加 contribution 口径纪律：主贡献限于 loop + executable feedback integration + source-level repair/evaluation setup，ledger / audit 不作 headline contribution。 |
-| 2026-07-07 21:20:00 | GUIDE 改为 source-level issue lifecycle 工作纪律，明确 asset map 优先级、fcstm attribution boundary 和 Better STM archive-pending 规则。 |
+| 2026-07-07 21:20:00 | GUIDE 改为 source-level issue lifecycle 工作纪律，明确 asset map 优先级、fcstm attribution boundary 和 Better STM cold archive 规则。 |

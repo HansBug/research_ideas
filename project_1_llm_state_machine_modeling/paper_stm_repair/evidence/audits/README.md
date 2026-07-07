@@ -1,6 +1,6 @@
 # audits/ — 历史审计报告入口
 
-> **硬边界**：本子路径保存 R1 阶段的审计设计、审计执行结果、strict seed 调研口径，以及 2026-07-07 PR-asset-map 的静态扫描审计报告。它回答“当时怎么审 / 本轮如何扫到风险资产”，不回答“当前最终采用什么”。当前采用口径必须回到 `corpora/`、`reports/`、后续 `experiment_design/eligibility/` 和新的 issue lifecycle PR。
+> **硬边界**：本子路径保存 R1 阶段的审计设计、审计执行结果、strict seed 调研口径，以及 2026-07-07 PR-asset-map 的静态扫描审计报告。它回答“当时怎么审 / 本轮如何扫到风险资产”，不回答“当前最终采用什么”。当前采用口径必须回到 `corpora/`、`reports/`、后续 active eligibility / issue lifecycle PR。
 
 ## 1. 什么时候读这里
 

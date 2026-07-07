@@ -11,7 +11,7 @@
 | 文库 | 角色 |
 |---|---|
 | [../seed_library/](../seed_library/) | 上游 `NL -> STM_0` seed 方法 / 来源 |
-| [../repair_baselines/](../repair_baselines/) | `STM_0 -> STM_k / Better STM` 修正近邻 |
+| [../repair_baselines/](../repair_baselines/) | source-level issue discovery / repair / closure 修正近邻 |
 | [./](./) | 控制系统纯 NL 输入来源 |
 
 ## 2. emoji / enum 标准

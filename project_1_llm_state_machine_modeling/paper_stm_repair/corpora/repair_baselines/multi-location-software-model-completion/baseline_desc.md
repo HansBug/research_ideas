@@ -23,7 +23,7 @@
 | 自动化程度 | 自动推荐；非 repair loop |
 | LLM / agent 角色 | NextFocus 本体非 LLM；与 RAMC 组合时使用 LLM model completion |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：无 NL requirements，也无 STM_0 from NL；但对 multi-location model completion 与资产资源可作近邻。
 

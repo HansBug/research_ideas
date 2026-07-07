@@ -23,7 +23,7 @@
 | 自动化程度 | 自动化工具 Model/Analyzer；designer 选择 repair |
 | LLM / agent 角色 | 无 |
 
-## 3. 与本文 `<NL, STM_0> -> Better STM` 的关系
+## 3. 与本文 source-level issue discovery / repair / closure 任务的关系
 
 不满足本文 baseline：无 NL、非 STM-specific；可作 model inconsistency repair taxonomy。
 
