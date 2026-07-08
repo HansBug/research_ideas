@@ -8,9 +8,9 @@
 
 | 合同 | 当前状态 | 为什么不能现在冻结 |
 |---|---|---|
-| candidate issue ledger | 未定义 | 需要先明确 source-level behavioral issue 的字段、证据和 confirmation 规则。 |
-| confirmed issue ledger | 未定义 | 不能把 expression debt / folded event 自动升级为 confirmed issue。 |
-| source trace / patch projection | 未定义 | 必须先记录 raw/source element 与 intermediate representation 的映射，否则无法回到 source 层评价。 |
+| candidate issue ledger | v0 已定义 | 字段、证据和 confirmation status 见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md) 与 schema。 |
+| confirmed issue ledger | v0 已定义 | 只允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path；folded event 默认仍 candidate。 |
+| source trace / patch projection | 未定义 | `source_element_refs` 与 `required_future_trace` 只是 v0 placeholder；必须由 `PR-source-trace` 接管。 |
 | loop IO / run record | 未冻结 | 真实 repair loop 尚未重跑；必须先冻结 stage input/output、失败态和 redaction。 |
 | closure / regression audit | 未定义 | 需要基于真实 repair/change ledger 与 post-repair rediscovery 设计。 |
 | final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）后再冻结。 |
@@ -27,7 +27,7 @@
 
 1. 当前 story 与贡献口径：先读 [../README.md](../README.md) 和 [../story/README.md](../story/README.md)。
 2. 资产归档依据：读 [../evidence/ledgers/paper1_strategy_asset_map.md](../evidence/ledgers/paper1_strategy_asset_map.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md)。
-3. 后续实验设计：从 `PR-issue-ledger` 开始，不从 archive 直接恢复旧 Better STM gate。
+3. 后续实验设计：先读 [issue_lifecycle/README.md](./issue_lifecycle/README.md)，再进入 `PR-source-trace` / `PR-loop-io`；不要从 archive 直接恢复旧 Better STM gate。
 
 ## 5. 禁止误读
 
@@ -40,5 +40,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 10:15:00 | `PR-issue-ledger` 后把 candidate / confirmed issue ledger 标为 v0 已定义，并链接 issue lifecycle docs / schema / fixture / tests。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后将 pilot 后产物记号从易混淆的 active `STM_k` 改为 `STM_final`，避免与 archived constructed `STM_k` 混淆。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写总账：R5.7 资产 cold archived，active 实验设计回到 source-level issue lifecycle。 |

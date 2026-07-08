@@ -43,10 +43,12 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 - 转换与表示基础设施入口：[pipeline/](./pipeline/)
 - 历史 reports 入口：[reports/](./reports/)
 - 当前 story 入口：[story/](./story/)
+- source-level issue lifecycle 合同：[experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/)
+- issue ledger machine schema / fixtures / tests：[pipeline/evaluation/](./pipeline/evaluation/)
 
 当前尚未完成的事实：
 
-1. 尚未定义最小 candidate / confirmed issue ledger。
+1. 已定义最小 source issue ledger v0：见 [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/) 与 [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json)；但尚未接入真实 discovery / repair loop。
 2. 尚未定义 raw/source 到中间表示的最小 trace 与 patch/projection 记录。
 3. 尚未冻结 paper1 loop 的 stage IO / run record 合同。
 4. 尚未实现 discovery / confirmation、issue-grounded repair、raw/source export、closure/regression audit。
@@ -92,13 +94,14 @@ flowchart TD
 1. 想快速理解 paper1 当前做什么：读本文件，然后读 [SUMMARY.md](./SUMMARY.md)、[STATUS.md](./STATUS.md)、[GUIDE.md](./GUIDE.md)。
 2. 想理解战略转向来源：读 [../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md](../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) 和 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)。
 3. 想写或审 paper story：读 [story/README.md](./story/README.md)，再读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [story/paper_outline.md](./story/paper_outline.md)。
-4. 想接后续实现：先读 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)，再根据伞 PR 进入后续 `PR-issue-ledger` / `PR-source-trace` / `PR-loop-io`。
+4. 想接后续实现：先读 [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/) 与 [pipeline/evaluation/README.md](./pipeline/evaluation/README.md)，再根据伞 PR 进入后续 `PR-source-trace` / `PR-loop-io`。
 5. 想引用旧 R5.7 资产：必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并写成 historical / superseded / calibration-only；不得把 Better STM / constructed `STM_k` adjudication 写成 active method result。
 
 ## 7. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 10:15:00 | `PR-issue-ledger` 定义 source issue ledger v0，新增 issue lifecycle 入口、machine schema / fixture / tests 指针，并保留“未接入真实 loop”的限制。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后同步根入口：experiment_design 改为 active scaffold，R5.7 资产改指 cold archive。 |
 | 2026-07-07 22:10:00 | 按导师原话修正 contribution 口径：主贡献是 feedback-driven loop + simulation / formal-verification feedback integration；ledger / audit / evidence bookkeeping 降级为方法和评价纪律。 |
 | 2026-07-07 21:20:00 | 重置 paper1 active story 入口：从 Better STM / which STM is better 框架切换到 source-level behavioral issue discovery and closure；明确 `fcstm` 只是中间语义执行介质，R5.7 Better STM-facing 资产已迁入 cold archive。 |

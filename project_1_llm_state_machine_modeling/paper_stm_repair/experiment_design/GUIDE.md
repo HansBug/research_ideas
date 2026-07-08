@@ -10,8 +10,8 @@
 
 | 对象 | 必须回答的问题 | 最低证据 |
 |---|---|---|
-| candidate issue | 为什么怀疑 raw/source `STM_0` 存在行为问题？ | `NL`、raw/source element、intermediate diagnostics / simulation / check feedback、问题描述。 |
-| confirmed issue | 该问题是否真是 source-level behavioral issue，而非表达债、转换损失或中间表示偏差？ | strict source-level confirmation 记录、证据片段、排除 conversion / lowering 归因。 |
+| candidate issue | 为什么怀疑 raw/source `STM_0` 存在行为问题？ | `NL`、raw/source element、intermediate diagnostics / simulation / check feedback、问题描述；具体字段见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md)。 |
+| confirmed issue | 该问题是否真是 source-level behavioral issue，而非表达债、转换损失或中间表示偏差？ | strict source-level confirmation 记录、证据片段、排除 conversion / lowering 归因；v0 允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条路径。 |
 | repair/change | 修复动作针对哪个 confirmed issue？ | change ledger、source trace、输入输出 hash、LLM / deterministic step 记录。 |
 | source projection | 修复如何回到 raw/source 层？ | patch bundle、projection note、unsupported projection 记录。 |
 | closure / regression | 问题是否闭合，是否引入新问题？ | post-repair rediscovery / confirmation、regression audit、失败 / unknown 入账。 |
@@ -21,7 +21,7 @@
 | archived 内容 | 为什么不能直接继承 | 若未来要复用怎么办 |
 |---|---|---|
 | Better STM gate / `can_claim_better_stm` | endpoint 已被战略校准覆盖。 | 在 `PR-eval-rubric` 重新定义为 issue closure / regression verdict。 |
-| repair target taxonomy | 旧 taxonomy 面向 Better STM target，不等同 confirmed source-level issue。 | 在 `PR-issue-ledger` 重新定义 issue taxonomy。 |
+| repair target taxonomy | 旧 taxonomy 面向 Better STM target，不等同 confirmed source-level issue。 | 已由 [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md) 重建为 v0 issue status / family；后续 pilot 后再扩展。 |
 | objective metric framework | 旧指标围绕 Better STM gate。 | pilot 后基于真实 patch bundle / closure ledger 重建。 |
 | constructed `STM_k` suite | 候选是人工 / 确定性构造，不是真实 repair-loop 输出。 | 只能作 leakage / anti-gaming calibration 参考。 |
 | blind adjudication prompt / schema | 旧 prompt 裁决 Better STM，不裁决 source-level issue closure。 | 若需要 LLM judge，必须另建 source-level closure prompt 并做 blind / leakage 审计。 |
@@ -50,4 +50,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步 GUIDE：candidate / confirmed issue 已有 v0 字段合同和两条 confirmed path，但仍不冻结 final metrics / baseline。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写 GUIDE：移除 active Better STM gate 维护纪律，改为 source-level issue lifecycle protocol 设计纪律。 |
