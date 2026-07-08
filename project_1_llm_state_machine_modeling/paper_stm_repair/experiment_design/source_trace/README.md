@@ -31,7 +31,7 @@ source trace 是证据链和归因边界，不是 paper1 的 headline contributi
 | 对象 | v0 决策 | 说明 |
 |---|---|---|
 | 支持的 trace relation | `exact` / `normalized` / `split` / `ambiguous` / `untraceable` / `conversion_artifact` | 不支持 `merged` / `inferred`，避免真实样例前引入弱归因关系。 |
-| 与 issue ledger 的链接 | trace ledger 通过 `required_for_issue_ids[]` 指向 #150 issue id | 本 PR 不修改 #150 issue ledger schema；consumer 构造确定性 reverse index。 |
+| 与 issue ledger 的链接 | trace ledger 通过 `required_for_issue_ids[]` 指向 #150 issue id，并用 `issue_binding_policy` 声明绑定范围 | 本 PR 不修改 #150 issue ledger schema；consumer 构造确定性 reverse index 并检查 actual issue status。 |
 | closure claim gate | `attribution_boundary.closure_claim_allowed` | `ambiguous` / `untraceable` / `conversion_artifact` 必须为 false。 |
 | partial projection | `projection_status=partially_projectable` | v0 默认只能支撑 partial localization，不单独支撑 full closed。 |
 | fixtures | synthetic contract fixtures | 不是真实实验、不是真实 repair-loop 输出、不跑四个 selected examples。 |

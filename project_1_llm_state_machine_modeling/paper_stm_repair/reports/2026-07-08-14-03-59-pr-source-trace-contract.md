@@ -41,7 +41,7 @@ source trace 因此是 source-level attribution 和 closure evidence 的桥，�
 | 决策 | 内容 | 原因 |
 |---|---|---|
 | v0 不支持 `merged` / `inferred` | schema enum 只含 `exact` / `normalized` / `split` / `ambiguous` / `untraceable` / `conversion_artifact` | plan review 认为 `merged` / `inferred` 在无真实样例和负例测试前容易造成 attribution 漂移。 |
-| 不修改 #150 issue ledger schema | 使用 `required_for_issue_ids[]` 形成 trace → issue 链接 | 避免在 source trace PR 中重定义 issue lifecycle；consumer 构造 deterministic reverse index。 |
+| 不修改 #150 issue ledger schema | 使用 `required_for_issue_ids[]` 形成 trace → issue 链接，并用 `issue_binding_policy` 锁定 relation 允许绑定的 issue status 范围 | 避免在 source trace PR 中重定义 issue lifecycle；consumer 构造 deterministic reverse index，并复制 cross-ledger status check。 |
 | negative trace gate | `ambiguous` / `untraceable` / `conversion_artifact` 必须 `source_level_claim_allowed=false` 且 `closure_claim_allowed=false` | 防止无法追踪或转换产物进入 source-level closure 主结论。 |
 | `normalized` 必须有 normalization evidence | `normalized` fixture / schema 要求 `normalization_report` | 防止把语义改变或无证据 normalization 当 repair gain。 |
 | `split` 只能 partial | `projection_status=partially_projectable` 且 `closure_claim_allowed=false`，并要求 `projection_detail` | 拆分可用于定位，但不能单独证明 full closure。 |
@@ -78,15 +78,17 @@ source trace 因此是 source-level attribution 和 closure evidence 的桥，�
     - `ISSUE.GUARD.001` 覆盖 `T_move`；
     - `ISSUE.INTERNAL.001` 覆盖 `T_unlock_ok` / `T_unlock_alarm`。
 14. reverse index 是 v0 issue-to-trace 的确定性连接方式。
-15. schema 拒绝额外字段，避免 method-effectiveness 等临时字段混入。
+15. `issue_binding_policy` 在 schema 层锁定 positive / negative relation 的 issue 绑定范围；pytest 层再核对实际 issue status。
+16. exact / normalized 必须 `closure_claim_allowed=true`，且非 split relation 不允许携带 `projection_detail`。
+17. schema 拒绝额外字段，避免 method-effectiveness 等临时字段混入。
 
 ## 7. 复验命令与结果
 
 | 命令 | 结果 | 说明 |
 |---|---|---|
-| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests/test_source_trace_schema.py -q` | `17 passed in 0.14s` | source trace 单项 schema / fixture / cross-ledger gate。 |
-| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `44 passed in 0.26s` | evaluation 目录 source issue + source trace 测试。 |
-| `PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `109 passed in 20.73s` | conversion / representation / readiness / evaluation 组合 smoke。 |
+| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests/test_source_trace_schema.py -q` | `18 passed in 0.15s` | source trace 单项 schema / fixture / cross-ledger gate。 |
+| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `45 passed in 0.25s` | evaluation 目录 source issue + source trace 测试。 |
+| `PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `110 passed in 20.04s` | conversion / representation / readiness / evaluation 组合 smoke。 |
 
 ## 8. 可以支持的结论
 

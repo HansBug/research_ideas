@@ -125,8 +125,30 @@ def test_exact_and_normalized_traces_are_projectable_with_positive_claim_boundar
         assert entry["attribution_boundary"]["source_level_claim_allowed"] is True
         assert entry["attribution_boundary"]["closure_claim_allowed"] is True
         assert entry["attribution_boundary"]["conversion_or_lowering_related"] is False
+        assert entry["issue_binding_policy"] == "confirmed_repair_eligible_allowed"
         assert entry["source_elements"]
         assert entry["intermediate_elements"]
+
+
+def test_exact_and_normalized_reject_false_closure_claim_or_projection_detail(source_trace_validator):
+    for fixture_name in ["exact_transition_trace", "normalized_guard_trace"]:
+        ledger, _ = first_entry(fixture_name)
+
+        mutated = copy.deepcopy(ledger)
+        mutated["trace_entries"][0]["attribution_boundary"]["closure_claim_allowed"] = False
+        assert_invalid(source_trace_validator, mutated)
+
+        mutated = copy.deepcopy(ledger)
+        mutated["trace_entries"][0]["projection_detail"] = {
+            "projectable_source_behavior": "not applicable for exact or normalized relation",
+            "non_projectable_or_ambiguous_part": "not applicable for exact or normalized relation",
+            "closure_implication": "projection_detail must remain split-only",
+        }
+        assert_invalid(source_trace_validator, mutated)
+
+        mutated = copy.deepcopy(ledger)
+        mutated["trace_entries"][0]["issue_binding_policy"] = "candidate_or_rejected_only"
+        assert_invalid(source_trace_validator, mutated)
 
 
 def test_normalized_trace_requires_normalization_evidence(source_trace_validator):
@@ -145,6 +167,7 @@ def test_split_trace_is_partially_projectable_not_full_closure(source_trace_vali
     assert entry["projection_status"] == "partially_projectable"
     assert entry["attribution_boundary"]["source_level_claim_allowed"] is True
     assert entry["attribution_boundary"]["closure_claim_allowed"] is False
+    assert entry["issue_binding_policy"] == "confirmed_repair_eligible_allowed"
     assert len(entry["intermediate_elements"]) >= 2
     assert len(entry["trace_relation_rationale"]) >= 20
     assert entry["projection_detail"]["projectable_source_behavior"]
@@ -168,6 +191,10 @@ def test_negative_trace_relations_have_negative_claim_boundary_and_unprojectable
         assert entry["attribution_boundary"]["source_level_claim_allowed"] is False
         assert entry["attribution_boundary"]["closure_claim_allowed"] is False
         assert entry["projection_status"] in {"unprojectable", "not_applicable"}
+        if entry["trace_relation"] == "untraceable":
+            assert entry["issue_binding_policy"] == "no_issue_binding"
+        else:
+            assert entry["issue_binding_policy"] == "candidate_or_rejected_only"
 
         mutated = copy.deepcopy(ledger)
         mutated["trace_entries"][0]["attribution_boundary"]["source_level_claim_allowed"] = True
@@ -175,6 +202,10 @@ def test_negative_trace_relations_have_negative_claim_boundary_and_unprojectable
 
         mutated = copy.deepcopy(ledger)
         mutated["trace_entries"][0]["attribution_boundary"]["closure_claim_allowed"] = True
+        assert_invalid(source_trace_validator, mutated)
+
+        mutated = copy.deepcopy(ledger)
+        mutated["trace_entries"][0]["issue_binding_policy"] = "confirmed_repair_eligible_allowed"
         assert_invalid(source_trace_validator, mutated)
 
 
@@ -192,6 +223,10 @@ def test_untraceable_requires_empty_source_and_negative_trace_evidence(source_tr
             "summary": "Mutation should not be allowed for untraceable relation.",
         }
     ]
+    assert_invalid(source_trace_validator, mutated)
+
+    mutated = copy.deepcopy(ledger)
+    mutated["trace_entries"][0]["required_for_issue_ids"] = ["ISSUE.GUARD.001"]
     assert_invalid(source_trace_validator, mutated)
 
 

@@ -39,12 +39,14 @@ issue_id -> trace_id[]
 
 该 reverse index 是 v0 的 issue-to-trace 机器连接方式。若后续发现需要在 issue ledger 内增加 `trace_entry_ids[]`，必须作为单独 schema migration PR 处理，不能在消费端临时脑补。
 
+注意：JSON Schema 无法直接读取 #150 issue ledger status，因此 `issue_binding_policy` 是 schema 层的第一道保护；pytest 与后续 consumer 必须复制 `issue_id -> trace_id[]` reverse index 检查，确保 `candidate_or_rejected_only` / `no_issue_binding` 不绑定 confirmed repair-eligible issue。
+
 ## 4. relation 与 attribution gate
 
 | trace_relation | projection_status | source-level claim | closure claim | 说明 |
 |---|---|---|---|---|
-| `exact` | `projectable` | allowed | allowed | 一一对应，可作为后续 closure 证据的一部分。 |
-| `normalized` | `projectable` | allowed | allowed | 仅限有 normalization report 的语义保持规范化。 |
+| `exact` | `projectable` | allowed | required allowed | 一一对应，必须 `closure_claim_allowed=true`，可作为后续 closure 证据候选。 |
+| `normalized` | `projectable` | allowed | required allowed | 仅限有 normalization report 的语义保持规范化，必须 `closure_claim_allowed=true`。 |
 | `split` | `partially_projectable` | allowed | not allowed by itself | 可定位 issue，但不能单独证明 full closure。 |
 | `ambiguous` | `unprojectable` | not allowed | not allowed | 多个 source candidate 无法唯一对齐。 |
 | `untraceable` | `unprojectable` | not allowed | not allowed | 中间元素无可靠 source origin。 |

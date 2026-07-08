@@ -35,6 +35,7 @@ Machine schema 位于 [../../pipeline/evaluation/schemas/source_trace.schema.jso
 | `trace_relation` | v0 relation，见 §4。 |
 | `projection_status` | 是否可投影回 raw/source，见 §5。 |
 | `required_for_issue_ids[]` | 该 trace 支撑或关联的 #150 issue id。 |
+| `issue_binding_policy` | v0 对 `required_for_issue_ids[]` 的机器可读解释：`confirmed_repair_eligible_allowed` / `candidate_or_rejected_only` / `no_issue_binding`。 |
 | `attribution_boundary` | source-level claim / closure claim gate。 |
 | `trace_relation_rationale` | 为什么选择该 relation。 |
 | `projection_detail` | 仅 `split` 必需；说明 partial projection。 |
@@ -84,7 +85,7 @@ v0 hard gate：
 1. `ambiguous` / `untraceable` / `conversion_artifact` 必须 `source_level_claim_allowed=false` 且 `closure_claim_allowed=false`。
 2. `conversion_artifact` 必须 `conversion_or_lowering_related=true`。
 3. `split` 可以 `source_level_claim_allowed=true`，但必须 `closure_claim_allowed=false`。
-4. `exact` / `normalized` 可以 `closure_claim_allowed=true`，但仍不等于最终 closure；最终 closure 要等 repair/change 与 post-repair audit。
+4. `exact` / `normalized` 必须 `closure_claim_allowed=true`，表示它们可进入后续 closure 主证据候选；但这仍不等于最终 closure，最终 closure 要等 repair/change 与 post-repair audit。
 
 ## 7. 与 source issue ledger 的连接
 
@@ -105,13 +106,26 @@ trace_entries[].required_for_issue_ids[] -> source_issue_ledger.issues[].issue_i
 issue_id -> trace_id[]
 ```
 
-Cross-ledger tests 必须验证：
+Cross-ledger tests 与后续 consumer 必须验证：
 
 1. 所有 `required_for_issue_ids[]` 都能在 source issue ledger fixtures 中找到。
 2. confirmed + repair-eligible issue 均有 positive trace coverage。
 3. negative trace relation 不绑定 confirmed + repair-eligible issue。
+4. `issue_binding_policy` 与实际 issue status 一致：positive relation 才能绑定 confirmed repair-eligible issue；negative relation 只能绑定 candidate / rejected issue 或不绑定。
 
-## 8. `conversion_artifact` 分层说明
+## 8. issue binding policy
+
+`issue_binding_policy` 是 schema 层可检查的 v0 保护字段，用来弥补 JSON Schema 无法直接读取 #150 issue ledger status 的限制。
+
+| policy | 允许的 issue 绑定 | v0 relation |
+|---|---|---|
+| `confirmed_repair_eligible_allowed` | 可绑定 confirmed + repair-eligible issue。 | `exact` / `normalized` / `split` |
+| `candidate_or_rejected_only` | 只能绑定 candidate / rejected / out-of-scope / insufficient-evidence issue，不能绑定 confirmed + repair-eligible issue。 | `ambiguous` / `conversion_artifact` |
+| `no_issue_binding` | 不允许绑定任何 issue id。 | `untraceable` |
+
+Schema 会锁定 relation 与 policy 的组合；pytest / future consumer 再通过 reverse index 检查实际 issue status。换言之，跨 ledger 语义不只停留在 fixture 测试里，后续消费端也必须复制等价检查。
+
+## 9. `conversion_artifact` 分层说明
 
 `trace_relation=conversion_artifact` 与 #150 的 `confirmation_status=rejected_conversion_artifact` 不是同一个字段：
 
@@ -122,7 +136,7 @@ Cross-ledger tests 必须验证：
 
 如果一个 confirmed issue 的所有 source refs 只能通过 `conversion_artifact` trace 到达，则该 issue 不能作为 confirmed repair-eligible issue 进入主链路，应降级、排除或等待人工复核。
 
-## 9. Contract fixtures
+## 10. Contract fixtures
 
 v0 synthetic fixtures 位于 [../../pipeline/evaluation/fixtures/source_trace/](../../pipeline/evaluation/fixtures/source_trace/)：
 
@@ -135,7 +149,7 @@ v0 synthetic fixtures 位于 [../../pipeline/evaluation/fixtures/source_trace/](
 | `untraceable_element.json` | `untraceable` | 中间元素无 source origin。 |
 | `conversion_artifact_trace.json` | `conversion_artifact` | conversion artifact trace 只关联 rejected issue。 |
 
-## 10. 非目标
+## 11. 非目标
 
 - 不跑真实 LLM。
 - 不跑真实 repair loop。
@@ -145,7 +159,7 @@ v0 synthetic fixtures 位于 [../../pipeline/evaluation/fixtures/source_trace/](
 - 不实现 full round-trip converter。
 - 不声称 trace success 等于 method success。
 
-## 11. 更新日志
+## 12. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
