@@ -8,8 +8,9 @@
 2. [SUMMARY.md](./SUMMARY.md)：获取轻量总账和下一步依赖。
 3. [STATUS.md](./STATUS.md)：确认已完成 / 未完成事实和禁止主张。
 4. [GUIDE.md](./GUIDE.md)：读取当前工作纪律。
-5. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
-6. [story/README.md](./story/README.md)：进入 paper story 专题。
+5. [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md)：若任务涉及 issue discovery / confirmation / repair eligibility，先读 v0 issue ledger 合同。
+6. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
+7. [story/README.md](./story/README.md)：进入 paper story 专题。
 
 任何后续 PR 如果需要使用历史 R5.7 / Better STM-facing 文件，必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并确认它们只是 historical / superseded / calibration-only。
 
@@ -53,7 +54,7 @@ candidate / confirmed issue ledger、trace、attribution boundary、closure / re
 | raw/source `STM_0` | 输入的原始或源层状态机制品。 | 不把 canonical / fcstm 表示当成唯一评价对象。 |
 | intermediate executable semantic representation | 用于 diagnostics / inspect / simulation / verification feedback 的中间执行表示。 | 不写成 paper1 contribution。 |
 | candidate issue | 工具、LLM 或人工提示的可疑行为问题。 | 不直接计入 method success。 |
-| confirmed source-level behavioral issue | 已回到 `NL + raw/source element + behavior evidence` 确认的问题。 | 不把 folded event / ugly expression 自动当确认问题。 |
+| confirmed source-level behavioral issue | v0 默认通过 `NL + raw/source element + behavior evidence` 确认；另允许 `raw_internal_inconsistency` 第二路径，但必须有 source 内部冲突证据、typed internal-consistency evidence、NL 不强制的 rationale 和 attribution boundary。 | 不把 folded event / ugly expression 自动当确认问题；不把 conversion / lowering artifact 当 source-level issue。 |
 | issue-grounded repair | 绑定 `issue_id` 的修复或 refinement。 | 不允许泛泛重写整个模型来声称变好。 |
 | source-level patch bundle | 可回投到 raw/source 层解释的补丁、diff 或说明。 | 不把无法投影的中间改动算 closure。 |
 | closure audit | 修复后判断原 issue closed / partially closed / not closed / over-repaired / unjudgeable。 | 不用单一 LLM 偏好判断替代证据链。 |
@@ -118,6 +119,7 @@ rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-gro
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 10:15:00 | GUIDE 同步 `PR-issue-ledger`：将 issue lifecycle 合同加入默认阅读路径，并修正 confirmed issue 的两条 v0 evidence path。 |
 | 2026-07-07 23:40:00 | GUIDE 同步 `PR-better-archive`：历史 R5.7 资产改为 cold archive pointer，并要求 residual scan 排除 archive。 |
 | 2026-07-07 22:10:00 | GUIDE 增加 contribution 口径纪律：主贡献限于 loop + executable feedback integration + source-level repair/evaluation setup，ledger / audit 不作 headline contribution。 |
 | 2026-07-07 21:20:00 | GUIDE 改为 source-level issue lifecycle 工作纪律，明确 asset map 优先级、fcstm attribution boundary 和 Better STM cold archive 规则。 |

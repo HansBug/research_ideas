@@ -8,7 +8,7 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 
 当前 contribution 口径已进一步收敛为：**feedback-driven LLM refinement loop + diagnostics / simulation / formal-verification feedback integration + source-level repair/evaluation setup**。ledger、audit、trace、run record 和 attribution boundary 只是方法 / 评价 / 可复现纪律，不能作为 headline contribution。
 
-真实 repair loop、pilot、final evaluation rubric、baseline contract 和正式实验协议均尚未完成。
+最小 source issue ledger v0 已定义；真实 repair loop、pilot、final evaluation rubric、baseline contract 和正式实验协议均尚未完成。
 
 ## 2. 当前事实源
 
@@ -20,6 +20,8 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 | 当前状态 | [STATUS.md](./STATUS.md) | 记录已完成、未完成和下一步依赖。 |
 | 后续纪律 | [GUIDE.md](./GUIDE.md) | 约束后续 agent 如何读资产、写 story、避免 claim 漂移。 |
 | story 入口 | [story/README.md](./story/README.md) | 进入 paper story / task boundary / terminology / claim-evidence。 |
+| issue lifecycle | [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md) | 当前 v0 candidate / confirmed / rejected / out-of-scope / insufficient evidence 合同。 |
+| machine contract | [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json), [pipeline/evaluation/tests/test_source_issue_ledger_schema.py](./pipeline/evaluation/tests/test_source_issue_ledger_schema.py) | issue ledger schema、fixture 与 pytest gate。 |
 
 ## 3. 资产状态概览
 
@@ -30,10 +32,11 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 | conversion / representation / pyfcstm 相关基础设施 | 可继续作为中间语义执行表示和工具反馈 infrastructure。 | 后续 `PR-source-trace`, `PR-loop-io`, `PR-raw-export` |
 | seed / corpus / baseline 候选 | 可作为未来 protocol 输入来源，但本阶段不冻结样本分母或 baseline contract。 | 后续 `PR-loop-pilot`, `PR-baseline-contract`, `PR-exp-protocol` |
 | reports / paper_v1 / discussions | 只作历史动机、negative evidence 或旧路线 provenance。 | 后续 archive / story 引用时必须降级 |
+| issue ledger v0 | 已定义最小 schema / fixture / pytest gate；只覆盖合同分支，不是实验结果。 | [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/), [pipeline/evaluation/](./pipeline/evaluation/) |
 
 ## 4. 下一步依赖
 
-1. `PR-issue-ledger`：定义最小 candidate / confirmed issue ledger。
+1. `PR-issue-ledger`：已定义最小 candidate / confirmed issue ledger v0，后续不得绕过该 gate。
 2. `PR-source-trace`：定义 raw/source element 与中间表示、patch/projection 的追踪关系。
 3. `PR-loop-io`：冻结最小 stage IO、artifact naming、run record 和失败状态。
 4. `PR-discover-confirm` 之后才进入真实 issue discovery / confirmation 实现。
@@ -53,6 +56,7 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步总账：最小 issue ledger v0 已落到 issue lifecycle 文档、schema、六个 fixture 与 pytest gate；真实 loop / pilot 仍未运行。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后同步总账：R5.7 / Better STM-facing 资产已迁入 cold archive，下一步依赖从 `PR-issue-ledger` 开始。 |
 | 2026-07-07 22:10:00 | SUMMARY 补充 contribution 口径修正：主贡献是 loop + executable feedback integration；ledger / audit 只作评价和证据链纪律。 |
 | 2026-07-07 21:20:00 | SUMMARY 改为 source-level issue discovery and closure 总账；R5.7 Better STM-facing 资产降级为 historical，并在 `PR-better-archive` 后迁入 cold archive。 |
