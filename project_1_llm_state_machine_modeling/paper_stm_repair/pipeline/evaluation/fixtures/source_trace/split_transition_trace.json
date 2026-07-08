@@ -1,0 +1,87 @@
+{
+  "schema_version": "source_trace.v0",
+  "trace_ledger_id": "contract_fixture.split_transition_trace",
+  "case_id": "contract-fixture-split-transition-trace",
+  "source_model_id": "synthetic-split-transition-trace-source",
+  "intermediate_model_id": "synthetic-split-transition-trace-fcstm",
+  "trace_scope": "contract_fixture",
+  "trace_entries": [
+    {
+      "trace_id": "TRACE.SPLIT.UNLOCK_CONFLICT",
+      "source_elements": [
+        {
+          "element_id": "T_unlock_ok",
+          "element_type": "transition",
+          "reference": "source: Locked --> Unlocked : unlock [pin_ok] / alarm=false",
+          "summary": "First source transition in raw-internal inconsistency."
+        },
+        {
+          "element_id": "T_unlock_alarm",
+          "element_type": "transition",
+          "reference": "source: Locked --> Alarm : unlock [pin_ok] / alarm=true",
+          "summary": "Second source transition in raw-internal inconsistency."
+        }
+      ],
+      "intermediate_elements": [
+        {
+          "element_id": "fcstm.T_unlock_ok",
+          "element_type": "transition",
+          "reference": "fcstm transition for ok branch",
+          "summary": "Intermediate transition for normal unlock branch."
+        },
+        {
+          "element_id": "fcstm.T_unlock_ok.guard",
+          "element_type": "guard",
+          "reference": "fcstm guard pin_ok",
+          "summary": "Guard split from source transition."
+        },
+        {
+          "element_id": "fcstm.T_unlock_alarm",
+          "element_type": "transition",
+          "reference": "fcstm transition for alarm branch",
+          "summary": "Intermediate transition for conflicting alarm branch."
+        },
+        {
+          "element_id": "fcstm.T_unlock_alarm.effect",
+          "element_type": "effect",
+          "reference": "fcstm effect alarm=true",
+          "summary": "Effect split from source transition."
+        }
+      ],
+      "trace_relation": "split",
+      "projection_status": "partially_projectable",
+      "required_for_issue_ids": [
+        "ISSUE.INTERNAL.001"
+      ],
+      "attribution_boundary": {
+        "source_level_claim_allowed": true,
+        "conversion_or_lowering_related": false,
+        "representation_related": false,
+        "closure_claim_allowed": false,
+        "rationale": "The split trace supports issue localization but not full closure by itself; closure must later check each projected source-level change."
+      },
+      "trace_relation_rationale": "Two source transitions are decomposed into separate intermediate transition/guard/effect elements; only the source-level behavioral parts are traceable, so v0 treats this as partially projectable rather than fully closed.",
+      "trace_evidence": [
+        {
+          "evidence_id": "EV.SPLIT.SRC",
+          "evidence_type": "source_fragment_match",
+          "reference": "synthetic source fragments T_unlock_ok and T_unlock_alarm",
+          "summary": "Both conflicting source transitions are identified."
+        },
+        {
+          "evidence_id": "EV.SPLIT.STRUCT",
+          "evidence_type": "structural_match",
+          "reference": "source transition parts -> fcstm transition/guard/effect parts",
+          "summary": "Intermediate elements preserve branch structure but split guard/effect from the raw transition text."
+        }
+      ],
+      "reviewer_notes": "Used to cover ISSUE.INTERNAL.001 without claiming full closure.",
+      "projection_detail": {
+        "projectable_source_behavior": "The two raw/source unlock transitions and their branch conditions can be located and projected back to source transition-level edits.",
+        "non_projectable_or_ambiguous_part": "The intermediate guard/effect split is not itself a raw/source syntax unit, so the split trace alone cannot prove a full source-level closure.",
+        "closure_implication": "A later closure audit may use this trace for partial localization, but full closed requires raw/source patch evidence and post-repair rediscovery."
+      }
+    }
+  ],
+  "notes": "Split trace for raw-internal inconsistency; partially projectable only."
+}

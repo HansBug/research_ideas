@@ -9,8 +9,9 @@
 3. [STATUS.md](./STATUS.md)：确认已完成 / 未完成事实和禁止主张。
 4. [GUIDE.md](./GUIDE.md)：读取当前工作纪律。
 5. [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md)：若任务涉及 issue discovery / confirmation / repair eligibility，先读 v0 issue ledger 合同。
-6. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
-7. [story/README.md](./story/README.md)：进入 paper story 专题。
+6. [experiment_design/source_trace/README.md](./experiment_design/source_trace/README.md)：若任务涉及 raw/source ↔ intermediate trace、projection 或 closure attribution，读取 source trace v0 合同。
+7. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
+8. [story/README.md](./story/README.md)：进入 paper story 专题。
 
 任何后续 PR 如果需要使用历史 R5.7 / Better STM-facing 文件，必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并确认它们只是 historical / superseded / calibration-only。
 
@@ -56,6 +57,7 @@ candidate / confirmed issue ledger、trace、attribution boundary、closure / re
 | candidate issue | 工具、LLM 或人工提示的可疑行为问题。 | 不直接计入 method success。 |
 | confirmed source-level behavioral issue | v0 默认通过 `NL + raw/source element + behavior evidence` 确认；另允许 `raw_internal_inconsistency` 第二路径，但必须有 source 内部冲突证据、typed internal-consistency evidence、NL 不强制的 rationale 和 attribution boundary。 | 不把 folded event / ugly expression 自动当确认问题；不把 conversion / lowering artifact 当 source-level issue。 |
 | issue-grounded repair | 绑定 `issue_id` 的修复或 refinement。 | 不允许泛泛重写整个模型来声称变好。 |
+| source trace | raw/source 元素与中间表示元素之间的追踪关系，见 [experiment_design/source_trace/](./experiment_design/source_trace/)。 | 不把 ambiguous / untraceable / conversion artifact trace 当作 closure 主证据。 |
 | source-level patch bundle | 可回投到 raw/source 层解释的补丁、diff 或说明。 | 不把无法投影的中间改动算 closure。 |
 | closure audit | 修复后判断原 issue closed / partially closed / not closed / over-repaired / unjudgeable。 | 不用单一 LLM 偏好判断替代证据链。 |
 | regression audit | 检查修复是否引入新的 source-level issue。 | 不因原 issue 闭合就忽略新问题。 |
@@ -119,6 +121,7 @@ rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-gro
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | GUIDE 同步 `PR-source-trace`：将 source trace 合同加入默认阅读路径，并固定 negative trace / partial projection / reverse index 纪律。 |
 | 2026-07-08 10:15:00 | GUIDE 同步 `PR-issue-ledger`：将 issue lifecycle 合同加入默认阅读路径，并修正 confirmed issue 的两条 v0 evidence path。 |
 | 2026-07-07 23:40:00 | GUIDE 同步 `PR-better-archive`：历史 R5.7 资产改为 cold archive pointer，并要求 residual scan 排除 archive。 |
 | 2026-07-07 22:10:00 | GUIDE 增加 contribution 口径纪律：主贡献限于 loop + executable feedback integration + source-level repair/evaluation setup，ledger / audit 不作 headline contribution。 |

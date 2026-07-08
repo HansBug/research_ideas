@@ -15,12 +15,15 @@ candidate issue -> confirmed issue -> repair/change -> source projection -> clos
 | active source issue ledger schema | 已定义 v0：[schemas/source_issue_ledger.schema.json](./schemas/source_issue_ledger.schema.json) |
 | source issue ledger fixtures | 已定义六个合同 fixture：[fixtures/source_issue_ledger/](./fixtures/source_issue_ledger/) |
 | source issue ledger tests | 已定义 pytest gate：[tests/test_source_issue_ledger_schema.py](./tests/test_source_issue_ledger_schema.py) |
+| active source trace schema | 已定义 v0：[schemas/source_trace.schema.json](./schemas/source_trace.schema.json) |
+| source trace fixtures | 已定义六个合同 fixture：[fixtures/source_trace/](./fixtures/source_trace/) |
+| source trace tests | 已定义 pytest gate：[tests/test_source_trace_schema.py](./tests/test_source_trace_schema.py) |
 | source-level closure rubric | 未定义 |
 | regression audit protocol | 未定义 |
 | LLM / human judge prompt | 未定义 |
 | baseline comparison contract | 未定义 |
 
-除 issue ledger v0 外，其余内容必须等 `PR-source-trace`、`PR-loop-io` 和 pilot 产出真实 repair/change evidence 后再冻结。
+除 issue ledger v0 与 source trace v0 外，其余 closure rubric / baseline / judge prompt 必须等 `PR-loop-io` 和 pilot 产出真实 repair/change evidence 后再冻结。
 
 ## 禁止误读
 
@@ -33,5 +36,6 @@ candidate issue -> confirmed issue -> repair/change -> source projection -> clos
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace schema、六个合同 fixture 与 pytest gate；negative trace / partial projection 不得进入 closure 主证据。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 source issue ledger schema、六个合同 fixture 与 pytest gate；其他 evaluation rubric / baseline / judge prompt 仍未冻结。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重建 placeholder；旧 R4/R5.7 evaluation directory 已冷归档。 |

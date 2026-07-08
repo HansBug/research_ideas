@@ -10,7 +10,7 @@
 |---|---|---|
 | candidate issue ledger | v0 已定义 | 字段、证据和 confirmation status 见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md) 与 schema。 |
 | confirmed issue ledger | v0 已定义 | 只允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path；folded event 默认仍 candidate。 |
-| source trace / patch projection | 未定义 | `source_element_refs` 与 `required_future_trace` 只是 v0 placeholder；必须由 `PR-source-trace` 接管。 |
+| source trace / patch projection | source trace v0 已定义；patch projection 未实现 | [source_trace/](./source_trace/) 已定义 raw/source ↔ intermediate trace、projection status 与 attribution gate；真实 patch bundle 仍由 `PR-raw-export` 接管。 |
 | loop IO / run record | 未冻结 | 真实 repair loop 尚未重跑；必须先冻结 stage input/output、失败态和 redaction。 |
 | closure / regression audit | 未定义 | 需要基于真实 repair/change ledger 与 post-repair rediscovery 设计。 |
 | final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）后再冻结。 |
@@ -40,6 +40,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | `PR-source-trace` 后把 source trace / patch projection 行更新为 trace v0 已定义 / patch export 未实现，并链接 source_trace docs / schema / fixture / tests。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后把 candidate / confirmed issue ledger 标为 v0 已定义，并链接 issue lifecycle docs / schema / fixture / tests。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后将 pilot 后产物记号从易混淆的 active `STM_k` 改为 `STM_final`，避免与 archived constructed `STM_k` 混淆。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写总账：R5.7 资产 cold archived，active 实验设计回到 source-level issue lifecycle。 |

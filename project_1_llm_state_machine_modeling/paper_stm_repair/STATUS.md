@@ -16,13 +16,14 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 | 历史 R5.7 Better STM reports | 已迁入 cold archive | [archive/r5_7_better_stm_snapshot/reports/](./archive/r5_7_better_stm_snapshot/reports/) |
 | story reset | 当前已转为 source-level issue lifecycle 口径 | [story/](./story/) |
 | 最小 issue ledger v0 | 已定义；覆盖 candidate / confirmed / rejected / out-of-scope / insufficient evidence 与 Q11=A raw-internal path | [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/), [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json), [pipeline/evaluation/tests/test_source_issue_ledger_schema.py](./pipeline/evaluation/tests/test_source_issue_ledger_schema.py) |
+| 最小 source trace v0 | 已定义；覆盖 exact / normalized / split / ambiguous / untraceable / conversion_artifact 与 #150 issue fixture coverage | [experiment_design/source_trace/](./experiment_design/source_trace/), [pipeline/evaluation/schemas/source_trace.schema.json](./pipeline/evaluation/schemas/source_trace.schema.json), [pipeline/evaluation/tests/test_source_trace_schema.py](./pipeline/evaluation/tests/test_source_trace_schema.py) |
 
 ## 3. 尚未完成事实
 
 | 后续能力 | 当前状态 | 后续 PR |
 |---|---|---|
 | Better STM-facing 资产归档 | 已完成；只允许 historical / superseded / calibration-only 引用 | [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) |
-| raw/source trace 与 patch/projection 挂接 | 未定义；`source_element_refs` / `required_future_trace` 只是 v0 placeholder | `PR-source-trace` |
+| raw/source trace 与 patch/projection 挂接 | source trace v0 已定义；尚未接入真实 repair/change ledger 或 raw/source export | `PR-loop-io`, `PR-raw-export` |
 | 最小 loop IO / run record | 未冻结 | `PR-loop-io` |
 | discovery + strict confirmation | 未实现 | `PR-discover-confirm` |
 | issue-grounded repair runner | 未实现 | `PR-repair-runner` |
@@ -41,6 +42,7 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 - 2026-07-07 导师讨论进一步确认：paper1 contribution 应聚焦 feedback-driven LLM refinement loop，以及 diagnostics / inspect、simulation / probe、formal verification / check feedback 如何进入这个 loop；不把 fcstm 本身作为贡献。
 - 已有 conversion / representation / readiness 资产可作为后续方法 infrastructure。
 - 已完成 asset map，可指导哪些材料保留、改写、归档或只作历史证据。
+- 已定义 issue ledger v0 与 source trace v0，可作为后续 loop IO / discovery / repair / raw export 的最小 evidence-chain contract。
 
 ### 不可声称
 
@@ -60,11 +62,13 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 4. 把 ledger / audit / evidence bookkeeping 写成主贡献，偏离导师确认的 loop + simulation / formal-verification feedback 主线。
 5. 在 pilot 前过早冻结 evaluation rubric 或 baseline contract。
 6. 只停留在中间表示修复，未回到 raw/source 层说明 issue closure。
+7. 后续实现若绕过 source trace negative gate，可能把 ambiguous / untraceable / conversion artifact 误算为 closure evidence。
 
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | STATUS 同步 `PR-source-trace`：最小 source trace v0 已定义，negative trace gate / reverse index / partial projection 均有 schema 与 tests，但尚未接入真实 loop。 |
 | 2026-07-08 10:15:00 | STATUS 同步 `PR-issue-ledger`：最小 source issue ledger v0 已定义，但尚未接入真实 discovery / repair / closure loop。 |
 | 2026-07-07 23:40:00 | STATUS 同步 `PR-better-archive`：R5.7 Better STM-facing 资产已迁入 cold archive，R5/R5.5 reports 与 R5.7 reports 分开。 |
 | 2026-07-07 22:10:00 | STATUS 补充 contribution 修正：audit / ledger 只作方法和评价纪律，不能替代 loop + executable feedback integration。 |
