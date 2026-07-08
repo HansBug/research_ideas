@@ -8,7 +8,7 @@
 
 该合同只解决一个最小问题：在给定 `NL + raw/source STM_0` 时，如何区分 candidate、confirmed、rejected conversion artifact、out-of-scope 与 insufficient-evidence issue，并给后续 repair runner 一个可审计的 `issue_id` / repair eligibility gate。[clm-status-branches]
 
-本报告不声称已经运行真实 agent loop、不声称已经生成 `STM_final`、不冻结 final metrics / baseline / judge prompt。[clm-nonclaims]
+本报告不声称已经运行真实 agent loop、不声称已经生成 `STM_final`、不冻结 final metrics / baseline / judge prompt，也不运行 #119 / R2 四个 selected examples。[clm-nonclaims]
 
 ## 2. 核心结论
 
@@ -35,9 +35,9 @@ v0 schema 约束以下 `confirmation_status`：[clm-status-branches]
 
 ### 3.2 confirmed path
 
-默认 confirmed path 是 `nl_grounded_behavioral_issue`：需要 NL evidence、raw/source STM evidence 和 typed behavior evidence 三类证据共同支撑。[clm-nl-path]
+默认 confirmed path 是 `nl_grounded_behavioral_issue`：需要至少一条 `nl_requirement`、至少一条 `source_stm_fragment`，以及至少一条 inspect / simulation / probe / verification 类型的 typed behavior evidence 共同支撑。[clm-nl-path]
 
-第二条 confirmed path 是 `raw_internal_inconsistency`：用于 raw/source STM 自身内部矛盾但不必强制绑定明确 NL 句子的情况。v0 schema 要求至少两个 source element、至少两个 source STM evidence、`source_internal_consistency_check` typed behavior evidence，并要求 rationale 明确说明 “NL evidence is not required”。[clm-raw-path]
+第二条 confirmed path 是 `raw_internal_inconsistency`：用于 raw/source STM 自身内部矛盾但不绑定明确 NL 句子的情况。v0 schema 要求 `nl_evidence=[]`、至少两个 source element、至少两个 source STM evidence、`source_internal_consistency_check` typed behavior evidence，并要求 rationale 明确说明 “NL evidence is not required”。[clm-raw-path]
 
 该第二路径只是 v0 合同，不是最终 taxonomy。后续必须结合真实 raw NL 例子和 discovery 能力复核，尤其要防止 folded event / ugly expression 被自动升级为 confirmed issue。[clm-q11]
 
@@ -106,7 +106,7 @@ and attribution_boundary.source_level_claim_allowed == true
 | [clm-nl-path] | ISSUE-LEDGER-C6 | `nl_grounded_behavioral_issue` 需要 NL / source STM / behavior evidence。 | classification | [src-schema] `confirmation_evidence_path=nl_grounded_behavioral_issue` branch；[src-fixtures] `confirmed_guard_mismatch.json`。 | [cmd-schema-tests] | high | behavior evidence 的具体生成由后续 PR 实现。 |
 | [clm-raw-path] | ISSUE-LEDGER-C7 | `raw_internal_inconsistency` 作为第二 confirmed path 需要内部冲突证据和 source_internal_consistency_check。 | decision | [src-schema] raw-internal branch；[src-fixtures] `raw_internal_inconsistency_confirmed.json`。 | [cmd-schema-tests] | high | 该 path 是 v0；后续必须用真实 raw/NL 复核。 |
 | [clm-q11] | ISSUE-LEDGER-C8 | 用户选择 Q11=A：允许 raw-internal inconsistency，但需后续结合真实样例复核。 | decision | [src-q11]；[src-issue-def] §3.2。 | 人工复验：打开 PR comment 与 definition 文档。 | high | GitHub comment 是流程事实源；长期语义已沉淀到 repo 文档。 |
-| [clm-no-seed] | ISSUE-LEDGER-C9 | 本 PR 不标注真实 seed，不运行真实 LLM / repair。 | prohibition | [src-fixtures] `ledger_scope=contract_fixture`, `source_model_id=synthetic-*`；[src-tests] `test_fixtures_are_contract_fixtures_not_seed_or_archive_annotations`。 | [cmd-schema-tests] | high | 后续 pilot 可产生真实 ledger，但必须另有 run record。 |
+| [clm-no-seed] | ISSUE-LEDGER-C9 | 本 PR 不标注真实 seed，不运行真实 LLM / repair，也不运行四个 selected examples。 | prohibition | [src-fixtures] `ledger_scope=contract_fixture`, `source_model_id=synthetic-*`；[src-tests] `test_fixtures_are_contract_fixtures_not_seed_or_archive_annotations`。 | [cmd-schema-tests] | high | 后续 pilot 可产生真实 ledger，但必须另有 run record。 |
 | [clm-nonclaims] | ISSUE-LEDGER-C10 | 本报告不支持 method effectiveness、final metric、baseline 或 judge prompt claim。 | prohibition | [src-issue-def] §1；[src-ledger-contract] §1--§5；[src-tests] forbidden wording test。 | [cmd-residual-scan] | high | 只适用于本 PR 合同阶段。 |
 
 ### A.4 复验命令
@@ -115,4 +115,5 @@ and attribution_boundary.source_level_claim_allowed == true
 |---|---|---|
 | [cmd-schema-tests] | `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests/test_source_issue_ledger_schema.py` | 校验 schema、fixtures、负例 mutation 与 Markdown links。 |
 | [cmd-eval-tests] | `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests` | 运行 evaluation 测试目录。 |
+| [cmd-pipeline-smoke] | `PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests` | 运行 conversion / representation / readiness / evaluation 组合 smoke。 |
 | [cmd-residual-scan] | `rg -n "can_claim_better_stm|which STM is better|blind adjudication|method effectiveness" project_1_llm_state_machine_modeling/paper_stm_repair/experiment_design/issue_lifecycle project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation project_1_llm_state_machine_modeling/paper_stm_repair/reports/2026-07-08-10-15-00-pr-issue-ledger-contract.md || true` | 检查 active issue-ledger 合同路径中是否混入旧 Better STM endpoint 或方法效果 claim。 |

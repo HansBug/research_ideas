@@ -21,9 +21,9 @@
 
 这是默认 confirmed path。必须同时具备：
 
-1. `NL evidence`：需求文本中能支撑该行为约束的片段或引用。
-2. `raw/source STM evidence`：源状态机中的状态、迁移、事件、guard、action/effect 或层次结构证据。
-3. `typed behavior evidence`：probe、simulation trace、verification counterexample、inspect diagnostic 或等价可引用证据，说明该问题具有行为后果。
+1. `NL evidence`：需求文本中能支撑该行为约束的片段或引用；v0 schema 要求至少一条 `nl_requirement` evidence。
+2. `raw/source STM evidence`：源状态机中的状态、迁移、事件、guard、action/effect 或层次结构证据；v0 schema 要求至少一条 `source_stm_fragment` evidence。
+3. `typed behavior evidence`：probe、simulation trace、verification counterexample、inspect diagnostic 或等价可引用证据，说明该问题具有行为后果；v0 schema 要求至少一条 `inspect_diagnostic` / `simulation_trace` / `probe_result` / `verification_counterexample`，`human_annotation`、`other_reference` 或 `conversion_report` 只能作为补充，不能单独支撑该 path。
 
 ### 3.2 `raw_internal_inconsistency`
 
@@ -33,7 +33,7 @@
 
 1. `source STM evidence`：指出 raw/source artifact 中互相冲突的元素；v0 schema 要求 `source_element_refs` 与 `source_stm_evidence` 至少各有两个条目，用来表达冲突双方。
 2. `source_internal_consistency_check` 或等价 typed behavior evidence：说明冲突如何成立；v0 schema 要求 `behavior_evidence` 中至少包含一个 `source_internal_consistency_check`。
-3. `confirmation_rationale`：解释为什么此处不需要明确 NL evidence；当前 schema 要求 rationale 明确包含 `NL evidence is not required` 语义。
+3. `confirmation_rationale`：解释为什么此处不需要明确 NL evidence；当前 schema 要求 `nl_evidence` 为空，且 rationale 明确包含 `NL evidence is not required` 语义。
 4. `attribution_boundary`：明确排除 conversion / lowering / normalization artifact。
 
 限制：

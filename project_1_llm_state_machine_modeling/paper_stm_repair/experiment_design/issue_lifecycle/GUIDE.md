@@ -15,9 +15,9 @@
 
 1. `candidate_only` 不等于 method success，不允许进入 repair。
 2. `confirmed` 只能通过两条 v0 路径：
-   - `nl_grounded_behavioral_issue`；
+   - `nl_grounded_behavioral_issue`：必须至少包含 `nl_requirement`、`source_stm_fragment` 与 inspect/simulation/probe/verification 类型的 behavior evidence；
    - `raw_internal_inconsistency`。
-3. `raw_internal_inconsistency` 可不强制 `NL evidence`，但必须有至少两个 raw/source 冲突元素、至少两个 source STM evidence、typed internal-consistency evidence 和说明 `NL evidence is not required` 的 rationale。
+3. `raw_internal_inconsistency` 的 `nl_evidence` 必须为空；它必须有至少两个 raw/source 冲突元素、至少两个 source STM evidence、typed internal-consistency evidence 和说明 `NL evidence is not required` 的 rationale。
 4. `raw_internal_inconsistency` 后续必须在真实 raw NL / discovery pilot 中复核，不得在本目录写成 final taxonomy。
 5. conversion / lowering / normalization artifact 必须 rejected 或 attribution-bounded，不得计入 source-level issue。
 6. folded event / expression debt 默认只是 candidate，除非另有 source-level behavior evidence。
@@ -39,7 +39,7 @@ Reviewer 应优先检查：
 2. 是否把 `fcstm` 或 ledger/audit 写成 contribution。
 3. 是否把 expression debt 自动 confirmed。
 4. 是否把 conversion artifact 当 source-level issue。
-5. 是否缺少 typed behavior evidence。
+5. 是否缺少 schema-enforced `nl_requirement` / `source_stm_fragment` / typed behavior evidence。
 6. 是否没有说明为什么 `raw_internal_inconsistency` 不需要 NL evidence。
 7. 是否提前冻结 final metric / baseline。
 

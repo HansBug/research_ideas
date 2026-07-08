@@ -141,6 +141,41 @@ def test_schema_rejects_confirmed_without_confirmed_path(source_issue_validator)
     assert_invalid(source_issue_validator, ledger)
 
 
+
+def test_schema_rejects_nl_grounded_without_nl_requirement(source_issue_validator):
+    ledger, issue = first_issue("confirmed_guard_mismatch")
+    issue["nl_evidence"] = [copy.deepcopy(issue["nl_evidence"][0])]
+    issue["nl_evidence"][0]["evidence_type"] = "human_annotation"
+    assert_invalid(source_issue_validator, ledger)
+
+
+def test_schema_rejects_nl_grounded_without_source_stm_fragment(source_issue_validator):
+    ledger, issue = first_issue("confirmed_guard_mismatch")
+    issue["source_stm_evidence"] = [copy.deepcopy(issue["source_stm_evidence"][0])]
+    issue["source_stm_evidence"][0]["evidence_type"] = "human_annotation"
+    assert_invalid(source_issue_validator, ledger)
+
+
+@pytest.mark.parametrize("weak_type", ["human_annotation", "other_reference", "conversion_report"])
+def test_schema_rejects_nl_grounded_without_behavioral_typed_evidence(source_issue_validator, weak_type):
+    ledger, issue = first_issue("confirmed_guard_mismatch")
+    issue["behavior_evidence"] = [copy.deepcopy(issue["behavior_evidence"][0])]
+    issue["behavior_evidence"][0]["evidence_type"] = weak_type
+    assert_invalid(source_issue_validator, ledger)
+
+
+def test_schema_rejects_raw_internal_with_nl_evidence(source_issue_validator):
+    ledger, issue = first_issue("raw_internal_inconsistency_confirmed")
+    issue["nl_evidence"] = [
+        {
+            "evidence_id": "NL1",
+            "evidence_type": "nl_requirement",
+            "reference": "synthetic NL should not be attached to the raw-internal path",
+            "summary": "Raw-internal path must remain independent from NL evidence in v0.",
+        }
+    ]
+    assert_invalid(source_issue_validator, ledger)
+
 def test_schema_rejects_raw_internal_without_internal_consistency_evidence(source_issue_validator):
     ledger, issue = first_issue("raw_internal_inconsistency_confirmed")
     issue["behavior_evidence"] = [copy.deepcopy(issue["behavior_evidence"][0])]

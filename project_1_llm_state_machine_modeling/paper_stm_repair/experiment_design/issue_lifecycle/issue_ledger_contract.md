@@ -23,7 +23,7 @@
 | `ledger_scope` | `contract_fixture` / `pilot_candidate` / `formal_experiment_candidate` 等范围。 |
 | `issue_id` | 后续 repair runner 必须绑定的最小对象。 |
 | `confirmation_status` | issue 当前状态。 |
-| `confirmation_evidence_path` | confirmed issue 的证据路径；非 confirmed 默认 `not_applicable`。 |
+| `confirmation_evidence_path` | confirmed issue 的证据路径；非 confirmed 默认 `not_applicable`。`nl_grounded_behavioral_issue` 必须有 NL/source/typed behavior 三类强证据，`raw_internal_inconsistency` 必须保持 `nl_evidence=[]`。 |
 | `source_element_refs` | raw/source 元素引用；具体 trace schema 留给 `PR-source-trace`。 |
 | `nl_evidence` | NL 证据。raw-internal path 可为空，但必须有 rationale。 |
 | `source_stm_evidence` | raw/source STM 证据。 |
